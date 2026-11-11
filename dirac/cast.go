@@ -24,6 +24,9 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 	ob := &s.objs[o]
 	p := s.prio
 	c := ob.card
+	if int(o) < len(s.cold.mkObj) {
+		s.cold.mkObj[o] = 0 // a card cast again starts with no payments (CR 702.43; kw_multikicker.go)
+	}
 	var fl uint8
 	if mode&1 != 0 {
 		fl |= sfKicked
@@ -132,6 +135,11 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		// which plans with PlannedCast{}: its hand demand (rank key 6)
 		// counts the card being cast too, so nothing is excluded.
 		cost := s.buildCost(k)
+		if k.t.Cards[c].HasMultikicker {
+			// the count is asked after the cast action: the witness plans the
+			// offer's own base + one payment (gorge's composed potential play)
+			cost = addCost(cost, k.t.Cards[c].Multikicker)
+		}
 		if s.rbAny(p) {
 			// restricted mana the spell may spend (Secluded Courtyard's
 			// {R} for a Goblin, tapped by the play's script prefix) is in
@@ -390,7 +398,7 @@ func (s *State) syncBuild() {
 // these rows. A triggered ability is pushed by takePending before its
 // program starts.
 var buildProgram = [3][]uint8{
-	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsConspire, bsConvoke, bsX, bsDelve, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
+	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsMulti, bsConspire, bsConvoke, bsX, bsDelve, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seAbility: {bsPush, bsModes, bsTapCost, bsX, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seTrigger: {bsModes, bsPips, bsTargets, bsDivide, bsPay},
 }
@@ -601,7 +609,13 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 			c = cd.WebSlingCost // the web-slinging cost (CR 702.188a; kw_websling.go)
 		}
 		if e.flags&sfKicked != 0 {
-			c = addCost(c, cd.Kicker)
+			if cd.HasMultikicker {
+				for i := 0; i < s.multikickCount(e); i++ {
+					c = addCost(c, cd.Multikicker)
+				}
+			} else {
+				c = addCost(c, cd.Kicker)
+			}
 		}
 		if k.gen != nil && k.gen.anyMayFlash && mayFlashEntry(e) && cd.HasMayFlash && !DebugMayFlashFree {
 			c = addCost(c, cd.MayFlashCost) // the mana cost plus the extra (CR 702.8; kw_mayflash.go)
@@ -721,6 +735,12 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				return s.ctl == ctlBuild // false: a short tap cost reversed the build (sacShort)
 			}
 			if k.gen != nil && k.gen.anyWaterbend && s.waterbendOptions(k, d) {
+				return true
+			}
+			s.nextStage(k)
+			continue
+		case bsMulti:
+			if s.multikickOptions(k, d) {
 				return true
 			}
 			s.nextStage(k)
@@ -1345,6 +1365,10 @@ func (s *State) applyBuild(k *prep, a Action) {
 			}
 			s.bld().setPipCol(s.bld().pipN, a.Mode())
 			s.bld().pipN++
+			return
+		}
+		if s.bld().stage == bsMulti {
+			s.answerMultikick(k, a)
 			return
 		}
 		e.x = a.Mode() // X

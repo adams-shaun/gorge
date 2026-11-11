@@ -399,7 +399,7 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 		cd := &k.t.Cards[e.card]
 		c := cd.Cost
 		if e.flags&sfKicked != 0 {
-			c = addCost(c, cd.Kicker)
+			c = addCost(c, kickerPayment(cd))
 		}
 		if cd.HasAltAdd && s.bld().altAdd == 1 {
 			c = addCost(c, cd.AltAddCost.Mana) // Eaten Alive's {3}{B} part (CR 601.2f)

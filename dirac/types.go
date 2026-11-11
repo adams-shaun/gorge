@@ -151,6 +151,11 @@ const (
 	ChVoteCard                  // source = the permanent voted for (gorge effCardVote's KChoose option kind "vote_card", CR 701.38a; act_vote.go)
 )
 
+// ChMultikick is CR 702.43's multikicker count ask (gorge KChoose "multikick",
+// mode = the count; kw_multikicker.go). Explicit ordinal, the iota tail stays
+// untouched.
+const ChMultikick ChoiceKind = 254
+
 // Decision is the next question the game asks a player.
 type Decision struct {
 	Kind    DecisionKind

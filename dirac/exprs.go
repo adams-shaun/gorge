@@ -52,6 +52,28 @@ func (s *State) ctxEntry(e *stackEntry) evalCtx {
 	return c
 }
 
+// timesKicked is CR 702.43's count of multikicker payments for the spell
+// resolving (cold.mkObj by object) or the permanent its spell became (cold.mk
+// by slot, written as it entered). A permanent that changed zones reads 0, as
+// gorge's Object.TimesKicked resets.
+func (s *State) timesKicked(ctx evalCtx) int {
+	if ctx.srcSl != NoSlot && int(ctx.srcSl) < len(s.cold.mk) {
+		return int(s.cold.mk[ctx.srcSl])
+	}
+	// A triggered ability's srcVer can predate the permanent's current
+	// version (its ETB trigger is queued as it enters); the source object on
+	// the battlefield is still the permanent that reads its spell's count.
+	if ctx.src != NoObj {
+		if ob := &s.objs[ctx.src]; ob.zone == kop.ZoneBattlefield && int(ob.slot) < len(s.cold.mk) {
+			return int(s.cold.mk[ob.slot])
+		}
+	}
+	if e := ctx.e; e != nil && e.kind == seSpell {
+		return s.multikickCount(e)
+	}
+	return 0
+}
+
 // evalV evaluates a ValueRef in ctx.
 func (s *State) evalV(k *prep, v kop.ValueRef, ctx evalCtx) int {
 	e := ctx.e
@@ -265,7 +287,9 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 		}
 		v = bits.OnesCount64(seen)
 	case kop.ExKicked:
-		if e != nil && e.flags&sfKicked != 0 && !optCostUnpaid(k, e) {
+		if x.N == 1 {
+			v = s.timesKicked(ctx)
+		} else if e != nil && e.flags&sfKicked != 0 && !optCostUnpaid(k, e) {
 			v = s.evalV(k, x.Sub[0], ctx)
 		} else {
 			v = s.evalV(k, x.Sub[1], ctx)

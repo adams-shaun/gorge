@@ -94,7 +94,7 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 	turnTalliesUses(t, &u) // value_turntallies.go
 	addPhaseUses(t, &u)    // act_addphase.go
 	for i := range t.Cards {
-		if cd := &t.Cards[i]; cd.Keywords&kop.KwKicker != 0 || cd.Bargain || cd.Offspring || cd.OptEvidence != 0 && cd.Types&(kop.TInstant|kop.TSorcery) == 0 {
+		if cd := &t.Cards[i]; cd.Keywords&kop.KwKicker != 0 || cd.HasMultikicker || cd.Bargain || cd.Offspring || cd.OptEvidence != 0 && cd.Types&(kop.TInstant|kop.TSorcery) == 0 {
 			u[mechKicked] = true
 		}
 		once := 0
@@ -249,6 +249,9 @@ func (s *State) arenaClrSlot(sl Slot) {
 	}
 	if r := s.xblkRecs(); len(r) > 0 {
 		r[sl] = xblkRec{}
+	}
+	if int(sl) < len(s.cold.mk) {
+		s.cold.mk[sl] = 0 // the last permanent's multikicker count ends with it (CR 702.43; cast.go)
 	}
 	for i := range s.cold.exMark {
 		if r := &s.cold.exMark[i]; r.sl == sl {

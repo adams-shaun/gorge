@@ -250,6 +250,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Kicker != nil {
 		fmt.Fprintf(w, " kicker=%s", c.Kicker)
 	}
+	if c.Multikicker != nil {
+		fmt.Fprintf(w, " multikicker=%s", c.Multikicker)
+	}
 	if c.Flashback != nil {
 		fmt.Fprintf(w, " flashback=%s", c.Flashback)
 	}

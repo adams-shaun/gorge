@@ -1,0 +1,28 @@
+# the Multikicker pool: the corpus cards whose only blocker at land e46fc98fa8
+# was K:Multikicker / Count$TimesKicked (dirac/oracle/multikicker_test.go).
+# Chun-Li, Countless Kicks is the class's remaining refusal, for its unrelated
+# Play CopyCard trigger. Comet Storm and Strength of the Tajuru are refused for
+# their {X} base cost (the count bound would be read before X). Dark Ritual
+# floats the mana for the Bloodhusk Ritualist lockstep.
+Apex Hawks
+Batroc the Leaper
+Bloodhusk Ritualist
+Dark Ritual
+Deathforge Shaman
+Enclave Elite
+Everflowing Chalice
+Flametongue Yearling
+Gnarlid Pack
+Joraga Warcaller
+Lightkeeper of Emeria
+Marshal's Anthem
+Quag Vampires
+Skitter of Lizards
+Spell Contortion
+Voyager Drake
+Wolfbriar Elemental
+Plains
+Island
+Swamp
+Mountain
+Forest

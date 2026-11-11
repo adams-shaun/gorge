@@ -88,6 +88,9 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		}
 		if s.res.e.flags&sfKicked != 0 && !(k.gen.anyOptCost && castCollectedNever(k, &s.res.e)) {
 			s.mSlSet(k, mechKicked, sl)
+			if k.t.Cards[s.res.e.card].HasMultikicker && int(sl) < len(s.cold.mk) {
+				s.cold.mk[sl] = uint8(s.multikickCount(&s.res.e)) // CR 702.43: the permanent reads its spell's count
+			}
 		}
 		if sneakMarks(&s.res.e) {
 			s.mSlSet(k, mechSneaked, sl) // kw_sneak.go

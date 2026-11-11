@@ -153,6 +153,12 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 			}
 			return Pack(ActChoose+CanonKind(code), RefNone, RefNone, uint8(mode)), true
 		}
+		if o.Kind == "multikick" {
+			// CR 702.43: gorge multikickAsk's count pick (Option.Amount),
+			// the kernel's DkChoose/ChMultikick
+			code, _ := chooseCode("multikick")
+			return Pack(ActChoose+CanonKind(code), RefNone, RefNone, uint8(o.Amount)), o.Amount >= 0 && o.Amount < 256
+		}
 		if o.Kind == "trigger_cost_x" {
 			// gorge's Announce$ NumTimes repetition count (cumulative.go
 			// triggeredCostNumTimesAsk): the kernel's ChX pick,

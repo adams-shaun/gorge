@@ -193,8 +193,8 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if k.gen != nil && k.gen.anyBestow && k.t.Cards[c].HasBestow {
 			s.offerBestowHand(k, d, p, o, c, &av) // kw_bestow.go
 		}
-		if pc.kw&kop.KwKicker != 0 || k.offspring && offspringOffer(k, c) {
-			kc := addCost(pc.cost, k.t.Cards[c].Kicker)
+		if pc.kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker || k.offspring && offspringOffer(k, c) {
+			kc := addCost(pc.cost, kickerPayment(&k.t.Cards[c]))
 			if s.statM.any() || k.gen != nil {
 				kc = s.adjustCost(k, p, c, o, kc) // the reduction applies to the total (CR 601.2f)
 			}

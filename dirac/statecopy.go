@@ -51,6 +51,8 @@ type coldArrays struct {
 	castRing []castPush   // this turn's spell pushes, castRingN per player
 	discHeld []uint8      // the earlier players' discards while the next chooses
 	copyHeld []copyHold   // the resolution waiting on its copy's election
+	mk       []uint8      // per battlefield slot: multikicker payments of the permanent's spell (CR 702.43)
+	mkObj    []uint8      // per object: the multikicker payments of the spell on the stack (CR 702.43)
 }
 
 // coldLayout is the lengths of a table's cold arrays.
@@ -61,6 +63,8 @@ type coldLayout struct {
 	emb                                                                             int // embRec records for emblems past maxEmb, both players; right after the may records (static_emblemcold.go)
 	ctrP                                                                            int // bytes of the per-player creature counter-plus-one record, right after the emblem records (repl_turnrepl.go)
 	partner                                                                         int // cmdPartner records (0 or 1), right after the xblk records (zone_cmdpartner.go)
+	mk                                                                              int // multikicker counts per slot (CR 702.43; cast.go)
+	mkObj                                                                           int // multikicker counts per object while on the stack (cast.go)
 	words                                                                           int
 }
 
@@ -107,6 +111,10 @@ func prepCold(g *genPrep, l *coldLayout) {
 	if g.anyExtraBlock {
 		l.xblk = MaxPerm
 	}
+	if g.anyMultikick {
+		l.mk = MaxPerm
+		l.mkObj = MaxObj
+	}
 }
 
 // place points c's arrays into b, or just counts them if b is nil, and returns
@@ -129,6 +137,8 @@ func (l *coldLayout) place(c *coldArrays, b []uint64) int {
 	c.castRing = coldView[castPush](b, &at, l.castRing)
 	c.discHeld = coldView[uint8](b, &at, l.discHeld)
 	c.copyHeld = coldView[copyHold](b, &at, l.copyHeld)
+	c.mk = coldView[uint8](b, &at, l.mk)
+	c.mkObj = coldView[uint8](b, &at, l.mkObj)
 	return (at + 7) / 8
 }
 

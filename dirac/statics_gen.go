@@ -566,7 +566,7 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
 		full = anyType(full)
 	}
 	if e.flags&sfKicked != 0 {
-		full = addCost(full, cd.Kicker)
+		full = addCost(full, kickerPayment(cd))
 	}
 	// The announced X is part of the cost the payment will charge; fold it
 	// before pricing the full (unreduced) alternative, or a target that only

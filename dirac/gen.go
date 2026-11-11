@@ -84,6 +84,7 @@ type genPrep struct {
 	anyCopyAb       bool // some target slot is a TgtCopyAb or TgtCopyTrig (copy_ability.go)
 	anyBestow       bool // a card has printed bestow (CardDef.HasBestow; kw_bestow.go)
 	anyKickCost     bool // a card has a non-mana kicker cost (CardDef.KickerCost; kw_kicker.go)
+	anyMultikick    bool // a card has Multikicker (CardDef.HasMultikicker; cast.go's bsMulti, cold.mk)
 	anyEvTargets    bool // a spell's CollectEvidence<X> is the targets' total mana value (kop.EvidenceTargetsMV; cost_collectevidencex.go)
 	anyOptCost      bool // a card has an OptionalCost part (CardDef.OptCost/OptBehold; cost_optional.go)
 	equipAnim       bool // an Equip ability and a Creature-adding override: an Equipment can be a creature (CR 704.5p sba arm; static_equipanimated.go)
@@ -526,10 +527,22 @@ func tableHasPrevent(t *kop.Table) bool {
 	return false
 }
 
+// tableHasMultikicker reports whether any card carries K:Multikicker: its
+// count and the permanent's cold mark are cast.go's, so a table without one
+// pays neither.
+func tableHasMultikicker(t *kop.Table) bool {
+	for i := range t.Cards {
+		if t.Cards[i].HasMultikicker {
+			return true
+		}
+	}
+	return false
+}
+
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) {
 		return nil
 	}
 	enteredNeed := tableHasEnteredFrom(t)
@@ -828,6 +841,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.KickerCost.Flags != 0 {
 			g.anyKickCost = true
+		}
+		if c.HasMultikicker {
+			g.anyMultikick = true
 		}
 		g.anyBeam = g.anyBeam || c.BeamMeUp
 		if c.TapPays() || c.Harmonize {

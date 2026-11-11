@@ -753,6 +753,18 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
 				continue
 			}
+			if o.Mode == "multikicked" {
+				// CR 702.43: the kernel's multikicked cast is its kicked cast
+				// (AkCast mode bit 0) plus the count ask that follows, so the
+				// priority option canonicalises as "kicked"
+				if o.AltCostIndex > 15 {
+					note("cast/multikicked")
+					continue
+				}
+				mc, _ := castModeCode("kicked")
+				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, mc|uint8(o.AltCostIndex)<<4), opt: o.Index})
+				continue
+			}
 			mc, ok := castModeCode(o.Mode)
 			if !ok || o.AltCostIndex > 15 {
 				note("cast/" + o.Mode)
@@ -875,6 +887,11 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				a = Pack(ActCastFace, ref(pa.Obj), RefNone, fc)
 			} else if pa.Mode == "impended" {
 				a = Pack(ActCastImpended, ref(pa.Obj), RefNone, 0) // kw_impending.go
+			} else if pa.Mode == "multikicked" {
+				// CR 702.43: the kernel's multikicked cast is its kicked cast
+				// plus the count ask that follows, canonical "kicked"
+				mc, _ := castModeCode("kicked")
+				a = Pack(ActCast, ref(pa.Obj), RefNone, mc)
 			} else if mc, ok := castModeCode(pa.Mode); ok {
 				a = Pack(ActCast, ref(pa.Obj), RefNone, mc)
 			} else {

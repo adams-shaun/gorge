@@ -578,6 +578,9 @@ func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uin
 	case "x":
 		o.Amount = int(c.Mode())
 		o.Label = "X = " + strconv.Itoa(o.Amount)
+	case "multikick":
+		o.Amount = int(c.Mode())
+		o.Label = "Pay the multikicker cost " + strconv.Itoa(o.Amount) + " time(s)"
 	case "number":
 		o.Amount = int(c.Mode())
 		o.Label = strconv.Itoa(o.Amount)
@@ -756,7 +759,7 @@ func (g *Game) chooseKey(x dirac.Action) uint32 {
 		return 1 - uint32(mode&1) // yes, pay, top and unless come first
 	case dirac.ChGenDivide, dirac.ChCastDivide:
 		return uint32(g.s.FeatDivideIndex(src))
-	case dirac.ChX, dirac.ChTrigX, dirac.ChDivide, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChGenManaChoice,
+	case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick, dirac.ChDivide, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChGenManaChoice,
 		dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenReplOrder, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped:
 		return uint32(mode)
 	case dirac.ChGenType:

@@ -331,7 +331,7 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	if mode&2 != 0 {
 		cost = s.flashbackCostOf(k, o)
 	} else if mode&1 != 0 {
-		cost = addCost(cost, k.t.Cards[c].Kicker)
+		cost = addCost(cost, kickerPayment(&k.t.Cards[c]))
 	}
 	if mode == 0 && k.gen != nil && k.gen.anyConvoke {
 		cost = s.convokeCredit(k, p&1, c, o, cost)

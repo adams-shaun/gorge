@@ -290,7 +290,7 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 		}
 		o.obj = src
 		switch d.Sub {
-		case dirac.ChX, dirac.ChTrigX:
+		case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick:
 			o.kind, o.obj, o.amount = okX, noObj, int32(mode)
 		case dirac.ChCostDiscard, dirac.ChCleanupDiscard:
 			o.kind = okDiscard

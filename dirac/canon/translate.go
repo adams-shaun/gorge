@@ -310,6 +310,10 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		switch r.D.Sub {
 		case dirac.ChX:
 			return ch("x", RefNone, mode)
+		case dirac.ChMultikick:
+			// CR 702.43's count pick (gorge KChoose "multikick"): the
+			// canonical option carries the count as its mode
+			return ch("multikick", RefNone, mode)
 		case dirac.ChCostDiscard, dirac.ChDiscard, dirac.ChCleanupDiscard:
 			return ch("discard", src, 0)
 		case dirac.ChVoteCard:

@@ -43,7 +43,7 @@ const (
 	ExCountGraveyard               // graveyard cards matching F (all graveyards; F.Owner narrows); N 1 also counts tokens
 	ExSumPower                     // total power of battlefield creatures matching F
 	ExDistinctCMC                  // distinct mana values among battlefield objects matching F
-	ExKicked                       // Sub[0] if the spell was kicked, else Sub[1]
+	ExKicked                       // Sub[0] if the spell was kicked, else Sub[1]; N 1: the multikicker payment count instead (CardDef.HasMultikicker)
 	ExMorbid                       // Sub[0] if a creature died this turn, else Sub[1]
 	ExAttackedThisTurn             // creatures the controller attacked with this turn
 	ExPowerOf                      // power of Ref (Slot: target slot for RefTarget0)

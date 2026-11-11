@@ -439,6 +439,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseMayFlashCombos()
 	lc.refuseEvokeCombos()
 	lc.refuseDashCombos()          // lower_dash.go
+	lc.refuseMultikickerCombos()   // K:Multikicker beside another cast route
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
 	lc.lowerImpending()
 }
@@ -458,6 +459,25 @@ func (lc *lowerCtx) lowerImpending() {
 		return
 	}
 	lc.guard("K:Impending", lc.impendingTick)
+}
+
+// refuseMultikickerCombos refuses Multikicker beside any other cast cost
+// route: the kernel models the multikicker count as the one extra cost of a
+// kicked cast, and a second route (or a plain Kicker, whose count reads
+// differently) would compete for that cast. The keyword itself is lowered
+// by lowerKeywords.
+func (lc *lowerCtx) refuseMultikickerCombos() {
+	out := lc.out
+	if out.Multikicker == nil {
+		return
+	}
+	if out.Kicker != nil || out.Warp != nil || out.Plot != nil || out.Flashback != nil || out.SpellCost != nil ||
+		out.AltAddCost != nil || out.Sneak != nil || out.Impending != nil || out.Bestow != nil || out.Mayhem != nil ||
+		out.Harmonize != nil || out.Madness != nil || out.Offspring != nil || out.Gift || out.MorphCost != nil ||
+		out.Casualty != 0 || out.Bargain || out.OptCost != nil || out.Teamwork != 0 || out.Spree ||
+		out.Convoke || out.Improvise || len(lc.card.Faces) > 1 || lc.card.AlternateMode != "" {
+		lc.refuseNode("K:Multikicker", "Multikicker beside another cast route or additional cost")
+	}
 }
 
 // refusePlotCombos refuses the plot keyword beside any other cast cost
@@ -1137,6 +1157,23 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Kicker = &mc
+		case head == "Multikicker":
+			// CR 702.43: the per-payment additional cost, paid any number of
+			// times as the spell is cast. The kernel's kicked cast asks the
+			// count before X and the targets (multikick, cast.go), so only a
+			// plain mana parameter on a non-{X} spell is modelled; a non-mana,
+			// {X} parameter or {X} base cost refuses (the count bound would be
+			// read before the X announcement).
+			mc, err := parseManaCost(param)
+			if err != nil || param == "" || strings.Contains(param, ":") || mc.None || mc.X {
+				lc.refuseNode(node, "multikicker cost %q", param)
+				continue
+			}
+			if lc.out.Cost.X {
+				lc.refuseNode(node, "multikicker on an {X} spell")
+				continue
+			}
+			lc.out.Multikicker = &mc
 		case head == "Morph" || head == "Megamorph" || head == "Disguise":
 			// CR 702.37/702.168/702.169: the keyword parameter is the
 			// turn-face-up cost. The kernel's turn-up action spends only
