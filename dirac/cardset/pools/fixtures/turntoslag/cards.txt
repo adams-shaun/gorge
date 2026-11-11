@@ -1,0 +1,10 @@
+# A DestroyAll over the target's attachments: Turn to Slag's "destroy all
+# Equipment attached to that creature" after its 5 damage (CR 608.2c).
+# Decks play it in dirac/oracle/turn_to_slag_test.go.
+Turn to Slag
+Bonesplitter
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Mountain
+Forest

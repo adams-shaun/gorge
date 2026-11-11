@@ -1448,13 +1448,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		}
 		lc.emit(in)
 	case "DestroyAll":
-		var f *lFilter
-		var err error
-		if vc := ps.str("ValidCards"); vc == "TargetedCard.Self,Permanent.NotDefinedTargeted+sharesNameWith Targeted" {
-			f, err = lc.sameNameT0Filter() // lower_choosetype.go
-		} else {
-			f, err = lc.filter(vc)
-		}
+		f, err := lc.destroyAllFilter(ps) // lower_destroyalltargeted.go
 		if err != nil {
 			return err
 		}
@@ -1856,6 +1850,16 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		n, err := lc.amount(ps, "Amount", 1)
 		if err != nil {
 			return err
+		}
+		if ann := ps.str("Annihilator"); ann != "" {
+			// CR 702.86a: the Annihilator expansion's count rides the
+			// marker and replaces Amount$ (gorge zone_bulk.go effSacrifice)
+			v, aerr := strconv.Atoi(ann)
+			if aerr != nil || v < 0 {
+				return refuse("Annihilator count %q", ann)
+			}
+			ps.consume("Annihilator")
+			n = cst(v)
 		}
 		in := lInstr{Op: "Sacrifice", Obj: who, A: n, F: f}
 		if err := lc.sacrificeOptional(ps, &in); err != nil {
@@ -2323,6 +2327,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		lc.emit(lInstr{Op: "Blight", Obj: who, A: n})
 	case "AddPhase":
 		return lc.addPhase(ps) // lower_addphase.go
+	case "SkipPhase":
+		return lc.skipPhase(ps) // lower_skipphase.go
 	case "ChangeTargets":
 		return lc.changeTargets(ps) // lower_stackrewrite.go
 	case "UnlockDoor":
@@ -2330,7 +2336,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 	case "CumulativeUpkeep":
 		return lc.cumulativeUpkeep(ps) // lower_cumulative.go
 	default:
-		return refuse("api %s", sa.API)
+		return refuseAPI(sa.API) // lower_refuseapi.go
 	}
 	return nil
 }
@@ -2982,6 +2988,9 @@ func pumpKeywords(kw string) ([]string, error) {
 }
 
 func (lc *lowerCtx) pumpAll(ps *params) error {
+	if spec, ok := targetedOtherSpec(ps.m["ValidCards"]); ok {
+		return lc.pumpAllOtherThanTarget(ps, spec) // lower_pumpallother.go
+	}
 	f, err := lc.filter(ps.str("ValidCards"))
 	if err != nil {
 		return err

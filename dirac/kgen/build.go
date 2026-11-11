@@ -239,6 +239,13 @@ func manaCostOf(m manaCost) (kop.ManaCost, error) {
 	if m.XXX {
 		out.X = 3
 	}
+	if m.XColor != 0 {
+		i := strings.IndexByte("WUBRG", m.XColor)
+		if i < 0 || out.X == 0 {
+			return out, fmt.Errorf("XColor mana %s", m)
+		}
+		out.XPip = uint8(i + 1)
+	}
 	return out, nil
 }
 
@@ -829,6 +836,7 @@ func (cb *cardBuilder) record() error {
 	d.TapPowerCrew = int8(c.TapPowerCrew)
 	d.TapPowerSaddle = int8(c.TapPowerSaddle)
 	d.MinBlockers = uint8(c.MinBlockers)
+	d.ExtraBlocks = uint8(c.ExtraBlocks)
 	d.Lure = c.Lure
 	d.MustBeBlocked = c.MustBeBlocked
 	d.Daybound, d.Nightbound = c.Daybound, c.Nightbound
@@ -921,7 +929,6 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	if c.XMin > 0 {
 		out.XMin = uint8(c.XMin) // the announced X's floor (kernel cost_sacx.go)
 	}
-	out.XColor = uint8(c.XColor) // the {X}'s one colour (kernel cost_xcolor.go)
 	if c.Sac != nil {
 		set(kop.CostSac, c.SacN) // SacN 0 (SacX): the announced X (kernel cost_sacx.go)
 		// You can only sacrifice what you control: say so in the filter, as

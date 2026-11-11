@@ -250,8 +250,8 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 		}
 		if pm.flags&pfBlocking != 0 {
 			po.Flags |= ProjBlocking
-			if pm.blocking != NoSlot {
-				po.Blocks = s.perms[pm.blocking].obj
+			if a := s.blockProjected(sl); a != NoSlot {
+				po.Blocks = s.perms[a].obj
 			}
 		}
 		if pm.ovr.flags&ovCopy != 0 && !aegis {

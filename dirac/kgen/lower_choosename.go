@@ -21,7 +21,8 @@ import (
 // permanent's chosen byte as a CardID (dirac/repl_choosename.go), and the
 // trigger to a SpellCast line carrying Tf4NamedCast, which also listens for
 // activations. Only these exact spellings lower: another ValidCards$, a
-// Defined$ other than You, a Sub chain, a ValidCard$ other than NamedCard, or
+// Defined$ other than You, a Sub chain (bar Spyglass's and Alhammarret's, High
+// Arbiter's reveal-then-name chains), a ValidCard$ other than NamedCard, or
 // a trigger beside a card that does not name a card as it enters all refuse.
 
 // entersNamingCard reports whether face f names a card as it enters through
@@ -64,11 +65,33 @@ func spyglassChain(sa *cards.SA) bool {
 	return true
 }
 
+// handNameChain reports whether sa is exactly Alhammarret, High Arbiter's
+// as-enters chain: RevealHand (Defined$ Player.Opponent, RememberRevealed$
+// True, no Look$) -> NameCard (Defined$ You, ValidCards$ Card.nonLand,
+// ChooseFromDefinedCards$ Remembered) -> Cleanup (ClearRemembered$ True). The
+// reveal is public (gorge poses no decision) and the name is one of the
+// nonland cards it showed, so the kernel folds the reveal into the name ask's
+// options (ExtChooseName B = 3) and poses no ask when none was shown.
+func handNameChain(sa *cards.SA) bool {
+	if sa == nil || sa.API != "RevealHand" || sa.Params["Defined"] != "Player.Opponent" || !strings.EqualFold(sa.Params["RememberRevealed"], "True") {
+		return false
+	}
+	if _, look := sa.Params["Look"]; look {
+		return false
+	}
+	nc := sa.Sub
+	if nc == nil || nc.API != "NameCard" || nc.Params["ChooseFromDefinedCards"] != "Remembered" {
+		return false
+	}
+	cl := nc.Sub
+	return cl != nil && cl.API == "Cleanup" && cl.Sub == nil && strings.EqualFold(cl.Params["ClearRemembered"], "True")
+}
+
 // etbChooseName lowers an ETB replacement's NameCard node: the entering
 // permanent's own, unconditional, sole choice among the nonland cards.
 func (lc *lowerCtx) etbChooseName(ps *params, node, sa *cards.SA, other bool, cond *lCond) error {
-	chain := spyglassChain(sa)
-	if other || cond.Kind != cNone || len(lc.ab.Prog) != 0 || !chain && (node != sa || sa.Sub != nil) {
+	chain, hand := spyglassChain(sa), handNameChain(sa)
+	if other || cond.Kind != cNone || len(lc.ab.Prog) != 0 || !chain && !hand && (node != sa || sa.Sub != nil) {
 		return refuse("ETB NameCard beside another ETB replacement part")
 	}
 	if d, ok := ps.get("Defined"); !ok || strings.TrimSpace(d) != "You" {
@@ -84,6 +107,11 @@ func (lc *lowerCtx) etbChooseName(ps *params, node, sa *cards.SA, other bool, co
 		in.B, in.Note = cst(2), "choice of any card name as it enters, after the look at the opponent's hand"
 	} else if v := ps.str("ValidCards"); v != "Card.nonLand" {
 		return refuse("ETB NameCard ValidCards$ %q", v)
+	}
+	if hand {
+		// Alhammarret: only the nonland cards the opponents revealed (B = 3)
+		ps.consume("ChooseFromDefinedCards")
+		in.B, in.Note = cst(3), "choice of a nonland card name among the opponents' revealed hands as it enters"
 	}
 	ps.consume("ValidDescription", "SpellDescription")
 	lc.emit(in)

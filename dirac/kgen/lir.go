@@ -493,7 +493,6 @@ type lCost struct {
 	SacN           int
 	SacX           bool     // Sac<X/Spec>: sacrifice the announced X permanents matching Sac (kop.CostSac with N 0; SacN stays 0)
 	XMin           int      // XMin<N> / XMin$ N: the announced X's floor (kop.Cost.XMin)
-	XColor         int      // XColor$: 1 + the colour (W..G) the {X} is paid in (kop.Cost.XColor; lower_xcolor.go)
 	DiscardN       int      // discard N cards (any)
 	DiscardSpec    string   // Discard<N/Spec>: "" (Card, any card), "Random" or "Hand"
 	DiscardHand    bool     // Discard<N/Hand> as an activated ability's cost: the whole hand (kop.Cost.DiscardHand)
@@ -578,6 +577,11 @@ type manaCost struct {
 	XXX       bool // a third {X} symbol (X and XX set too)
 	None      bool // "no cost": cannot be cast
 	C         int  // colorless-specific pips
+	// XColor is Forge's XColor$ as one WUBRG letter: every announced {X} is
+	// that colour's pip, not generic (CR 107.3, 601.2b; Consume Spirit).
+	// Zero when absent. Only a one-colour value is lowered; the multi-colour
+	// Soul Burn shape is refused by name.
+	XColor byte
 }
 
 func (m manaCost) String() string {
@@ -1015,6 +1019,7 @@ type lCard struct {
 	TapPowerCrew   int      // S:Mode$ TapPowerValue for Crew (graveexile)
 	TapPowerSaddle int      // S:Mode$ TapPowerValue for Saddle (graveexile)
 	MinBlockers    int      // S:Mode$ MinMaxBlocker | ValidCard$ Creature.Self | Min$ N (CR 509.1b)
+	ExtraBlocks    int      // S:Mode$ Continuous | AffectedDefined$ Self | CanBlockAmount$ 1 (CR 509.1a)
 	Lure           bool     // the all-must-block keyword: every able creature blocks it (CR 509.1c)
 	MustBeBlocked  bool     // the must-be-blocked keyword (CR 509.1c)
 	Daybound       bool     // K:Daybound (CR 702.145a-d)

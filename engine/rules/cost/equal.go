@@ -25,7 +25,7 @@ func (c *Cost) Equal(o *Cost) bool {
 		c.Life == o.Life &&
 		c.X == o.X &&
 		c.XMin == o.XMin &&
-		c.XColor == o.XColor &&
+		c.XColors == o.XColors &&
 		sliceEqual(c.Hybrid, o.Hybrid) &&
 		sliceEqual(c.Phyrexian, o.Phyrexian) &&
 		sliceEqual(c.Twobrid, o.Twobrid) &&

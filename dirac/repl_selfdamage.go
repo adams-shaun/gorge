@@ -161,8 +161,8 @@ func (s *State) healCombat(k *prep, r *dmgRec) {
 // ranked by bord, after every attacker's event.
 func (s *State) healDealtAfter(r *dmgRec, i int) bool {
 	rank := func(ev *dmgEv) int {
-		if p := &s.perms[ev.src]; p.flags&pfBlocking != 0 && p.blocking == ev.dst {
-			return 1 + int(p.bord)
+		if s.blocks(ev.src, ev.dst) {
+			return 1 + int(s.blockKey(ev.src, ev.dst))
 		}
 		return 0
 	}

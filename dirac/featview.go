@@ -1272,8 +1272,10 @@ func (s *State) FeatObjLinks(o Obj) (card CardID, attached, blocks Obj) {
 		// attached until the next state-based check (Project's rule)
 		attached = s.lingerHost(ob.slot)
 	}
-	if pm.flags&pfBlocking != 0 && pm.blocking != NoSlot {
-		blocks = s.perms[pm.blocking].obj
+	if pm.flags&pfBlocking != 0 {
+		if a := s.blockProjected(ob.slot); a != NoSlot {
+			blocks = s.perms[a].obj
+		}
 	}
 	return s.cardAt(ob.slot), attached, blocks
 }

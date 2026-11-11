@@ -388,6 +388,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.MinBlockers != 0 {
 		fmt.Fprintf(w, " minblockers=%d", c.MinBlockers)
 	}
+	if c.ExtraBlocks != 0 {
+		fmt.Fprintf(w, " extrablocks=%d", c.ExtraBlocks)
+	}
 	if c.ProtFrom != nil {
 		fmt.Fprintf(w, " protfrom=%s", c.ProtFrom)
 	}

@@ -172,6 +172,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtAddPhase:
 		s.addPhaseGrant(k, in) // act_addphase.go
 		return true, true
+	case kop.ExtSkipPhase:
+		s.skipPhaseGrant(k, in) // act_skipphase.go
+		return true, true
 	case kop.ExtToGraveyard:
 		s.moveRef(k, in.Obj, kop.ZoneGraveyard, false) // zone_toplibrary.go
 		return true, true
@@ -213,7 +216,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtChooseName:
 		// the same, for the as-enters nonland card name (repl_choosename.go)
 		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
-			s.queueAsk(s.objs[o].slot, nameAskKind(in))
+			if kind := nameAskKind(in); kind != akNameHand || !s.nameHandNone(k, s.perms[s.objs[o].slot].ctrl) {
+				s.queueAsk(s.objs[o].slot, kind)
+			}
 		}
 		return true, true
 	case kop.ExtTurnFaceUp:

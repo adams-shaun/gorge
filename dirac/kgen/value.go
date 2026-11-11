@@ -53,6 +53,12 @@ func (lc *lowerCtx) value(raw string) (lValue, error) {
 		// only within that chain -- hence lc.excess, never the bare name.
 		return lValue{Kind: vExcessDamage}, nil
 	}
+	if !ok && !neg && raw == "X" && lc.ab != nil && lc.xPaidAb == lc.ab {
+		// Forge's built-in X: a card whose own cost has {X} may write a bare
+		// "X" amount with no SVar (Consume Spirit's NumDmg$ X and LifeAmount$
+		// X), and gorge resolves it as the paid X (count.go raw "X").
+		return lValue{Kind: vX}, nil
+	}
 	if !ok {
 		return lValue{}, fmt.Errorf("amount %q names no SVar", raw)
 	}

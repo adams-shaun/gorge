@@ -495,6 +495,10 @@ type CardDef struct {
 	// 0 = none): menace's floor generalised (dirac/combat.go minBlockers).
 	// Not when the creature has lost its abilities. Troll of Khazad-dum.
 	MinBlockers uint8
+	// ExtraBlocks is a printed S:Mode$ Continuous | AffectedDefined$ Self |
+	// CanBlockAmount$ 1 (CR 509.1a): the creature can block one additional
+	// attacker each combat; 0 none. Not when it has lost its abilities.
+	ExtraBlocks uint8
 	// SpendRead: an SVar reads Count$CastTotalManaSpent (Memory Deluge):
 	// gorge's cast planner prices no cast of it (faceWantsCastSpend,
 	// "shape:mana_spent_reader"; kernel featview.go plannedCastCost).

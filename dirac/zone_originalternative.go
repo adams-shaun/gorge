@@ -44,10 +44,16 @@ func altOp(in *kop.Instr) bool {
 // altOriginOp is altOp of the search op in progress.
 func (s *State) altOriginOp(k *prep) bool { return altOp(&s.prog(k)[s.res.pc]) }
 
-// altBegin starts an alt-origin search afresh (startSearch).
+// altBegin starts an alt-origin search afresh (startSearch). A SrAltAll
+// search (Origin$ Library,Graveyard) starts elected over every zone.
 //
 //go:noinline
-func (s *State) altBegin() { s.g.lookSel = 0 }
+func (s *State) altBegin(in *kop.Instr) {
+	s.g.lookSel = 0
+	if in.B.N&kop.SrAltAll != 0 {
+		s.g.lookSel = (uint32(1)<<altZoneCount(in) - 1) | altElected
+	}
+}
 
 // altZoneOf is the alternative zone the instruction names. The pair's
 // SrAltGraveHand code reads as kop.ZoneLibrary, which no single alternative

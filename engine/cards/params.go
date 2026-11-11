@@ -869,15 +869,16 @@ const (
 	// damage and its ReplaceWith$ body is the rider (The Mindskinner's mill).
 	// CR 615.12 keeps the rider and drops the prevention under can't-prevent.
 	PKPreventionEffect
-	// An activated ability's XColor$ ("Spend only black mana on X"; Crypt
-	// Rats): the one colour its announced {X} must be paid in (rules/pay's
-	// AbilityCompiledCost). Appended: earlier ordinals stay stable.
-	PKXColor
 	// A Mode$ Continuous static's CanBlockAmount$ N / CanBlockAny$ True: the
 	// affected creature can block N additional / any number of creatures
 	// (CR 509.1a). Appended: earlier ordinals stay stable.
 	PKCanBlockAmount
 	PKCanBlockAny
+	// XColor$ names the colour(s) the {X} part of a cost must be paid with
+	// (Forge's SpellAbility.getXColor; Consume Spirit, Crimson Hellkite).
+	// Read by pay.WithSpellAbilityExtras / AbilityCompiledCost into
+	// rules/cost.Cost.XColors. Appended: earlier ordinals stay stable.
+	PKXColor
 	paramKeyCount
 )
 
@@ -1689,9 +1690,9 @@ var paramKeyNames = [paramKeyCount]string{
 	PKSharedKeywordsZone:               "SharedKeywordsZone",
 	PKSharedRestrictions:               "SharedRestrictions",
 	PKPreventionEffect:                 "PreventionEffect",
-	PKXColor:                           "XColor",
 	PKCanBlockAmount:                   "CanBlockAmount",
 	PKCanBlockAny:                      "CanBlockAny",
+	PKXColor:                           "XColor",
 }
 
 // String is the key's Forge text.

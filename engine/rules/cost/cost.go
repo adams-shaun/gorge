@@ -2,6 +2,7 @@ package cost
 
 import (
 	"math"
+	"math/bits"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/state"
@@ -229,13 +230,15 @@ type Cost struct {
 	// price. XMin is a property of the shared announced X, so Plus takes the
 	// max of the two bounds and WithX (the announcement) clears it.
 	XMin int32
-	// XColor, when nonzero, is 1 + the state pool index (state.MW..MG) of
-	// the one colour the cost's {X} must be paid in: an activated ability's
-	// XColor$ ("Spend only black mana on X", Crypt Rats). WithX folds the
-	// announced X into that colour's pips instead of Generic: X mana that
-	// only black mana may pay is X {B} for payment, and the mana value is
-	// unchanged (CR 202.3e: X counts its announced value either way).
-	XColor          uint8
+	// XColors is Forge's XColor$ colour mask (bit 0 W .. bit 4 G): each
+	// {X} symbol must be paid with one mana of one of these colours (CR
+	// 107.3, 601.2b; Consume Spirit's "Spend only black mana on X"). Zero
+	// folds {X} into Generic as before. Only a one-colour mask is modelled:
+	// WithX turns the announced X into that many Colored pips, so the
+	// existing payment planner enforces the restriction. A multi-colour
+	// XColor (Soul Burn's black-and/or-red) is left at zero by the readers
+	// and stays unmodelled, exactly as before this field existed.
+	XColors         uint8
 	Hybrid          []ManaPair
 	Phyrexian       []byte
 	Twobrid         []Twobrid
@@ -528,15 +531,22 @@ func (c Cost) CMC() int32 {
 
 // WithX folds a chosen X value into Generic, once per X symbol the cost
 // carried, then clears X: once a value is chosen, {X} is no longer a
-// distinct requirement, it is simply that much more generic mana.
+// distinct requirement, it is simply that much more generic mana. When
+// XColors names exactly one colour (Forge's XColor$, "spend only black mana
+// on X"), the announced X is that colour's pips instead, so the payment
+// planner can spend only mana of that colour on it (CR 107.3, 601.2b).
 func (c Cost) WithX(x int32) Cost {
-	if c.XColor != 0 {
-		i := c.XColor - 1
-		c.Colored[i] = AddClampedGeneric(c.Colored[i], int64(c.X)*int64(x))
-	} else {
-		c.Generic = AddClampedGeneric(c.Generic, int64(c.X)*int64(x))
+	n := int64(c.X) * int64(x)
+	if n > 0 && c.XColors != 0 && c.XColors&(c.XColors-1) == 0 {
+		if i := bits.TrailingZeros8(c.XColors); i < 5 {
+			c.Colored[i] = AddClampedGeneric(c.Colored[i], n)
+			c.X = 0
+			c.XMin = 0
+			return c
+		}
 	}
-	c.X, c.XColor = 0, 0
+	c.Generic = AddClampedGeneric(c.Generic, n)
+	c.X = 0
 	// The lower bound is consumed by the announcement: once an X is chosen
 	// the bound has served its purpose, and clearing it keeps a later
 	// WithX from double-charging the floor as if it were generic mana.
@@ -554,9 +564,7 @@ func (c Cost) Plus(d Cost) Cost {
 	c.Generic += d.Generic
 	c.Life = AddClampedGeneric(c.Life, int64(d.Life))
 	c.X += d.X
-	if c.XColor == 0 {
-		c.XColor = d.XColor
-	}
+	c.XColors |= d.XColors
 	// The shared announced X takes the higher of the two lower bounds
 	// (Thieving Skydiver: the printed cost carries none, the kicked Kicker
 	// part carries XMin1, so the composed cast's X must be at least 1).

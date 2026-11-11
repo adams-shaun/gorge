@@ -1,0 +1,14 @@
+# A Pump of one creature you control beside a PumpAll of each OTHER creature
+# you control: Phalanx Tactics and Sigil Blessing. The target gets its own
+# pump, the rest the sweep's (CR 608.2c). Decks play it in
+# dirac/oracle/pumpallother_test.go.
+Phalanx Tactics
+Sigil Blessing
+Savannah Lions
+Elite Vanguard
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Plains
+Forest
+Mountain

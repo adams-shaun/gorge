@@ -210,7 +210,8 @@ func (s *State) tapRiderPlan(k *prep, e stackEntry) {
 	s.bld().e.flags, s.bld().bfl, s.bld().fixedGen = fl, bf, fg
 	var av avail
 	s.availFor(k, e.ctrl, &av)
-	if pc.Hyb[0] == 0 && av.affords(&pc, pipMaskOf(&pc), pc.XGeneric(int(e.x))) {
+	pcx := pc.AtX(int(e.x))
+	if pc.Hyb[0] == 0 && av.affords(&pcx, pipMaskOf(&pcx), 0) {
 		s.tapFor(k, e.ctrl, &pc, int(e.x), e.obj)
 	}
 }
@@ -480,11 +481,7 @@ func (s *State) buildCostCharge(k *prep) kop.ManaCost {
 }
 
 func (s *State) buildCostResolve(k *prep, charge bool) kop.ManaCost {
-	c := s.delveApplyPicks(k, s.buildCostResolve0(k, charge)) // (the fixedGen cache holds the pre-credit generic)
-	if charge && k.gen != nil && k.gen.anyXColor {
-		c = s.xColorCharge(k, c) // an XColor$ ability's announced X is that colour's pips (cost_xcolor.go)
-	}
-	return c
+	return s.delveApplyPicks(k, s.buildCostResolve0(k, charge)) // (the fixedGen cache holds the pre-credit generic)
 }
 
 func (s *State) buildCostResolve0(k *prep, charge bool) kop.ManaCost {
@@ -800,10 +797,6 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if k.gen != nil && k.gen.anyFilt {
 				mx = max(mx, s.filtMaxX(k, e.ctrl, &cost, &av, anyColor)) // CR 605.3b: a filter's fee paid in the window
 			}
-			xCol := s.xColorBuilding(k)
-			if xCol != 0 {
-				mx = s.xColorMaxX(k, &cost, xCol, &av, anyColor) // the {X} paid in one colour (cost_xcolor.go)
-			}
 			if cost.XRed > 0 && gorgeSurface {
 				// gorge's xAsk loop stops at pool + graveyard + convoke credit
 				// + 1 + what the window's sources make (it raises the bound for
@@ -819,9 +812,6 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			}
 			d.Kind, d.Sub, d.Player = DkChoose, ChX, e.ctrl
 			hi := s.xReducedCeiling(k, e, &cost, &av, mx)
-			if xCol != 0 {
-				hi = mx // a reduction never pays the coloured X (cost_xcolor.go)
-			}
 			if np := s.convokeXCredit(k); np > 0 {
 				hi = min(maxXAsk, max(hi, mx+np)) // each announced pick pays one generic (a harmonize pick its power) of the X total
 			}
@@ -1198,7 +1188,8 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 		if e.flags&sfAnyMana != 0 && e.kind == seSpell {
 			r = hybridGeneric(anyTypePips(r)) // the pips still to announce are payable by any mana too
 		}
-		if s.faceReachable(k, e.ctrl, &av, &r, r.XGeneric(int(e.x))) || hybGateMutation(s.bld().pipN) {
+		rx := r.AtX(int(e.x))
+		if s.faceReachable(k, e.ctrl, &av, &rx, 0) || hybGateMutation(s.bld().pipN) {
 			d.add(MakeAction(AkChoose, 0, 0, uint8(c)))
 		}
 	}

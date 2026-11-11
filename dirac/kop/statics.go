@@ -345,6 +345,11 @@ const StatCantActivate StaticKind = 236
 // source's chosen name (ExtChooseName).
 const CantActNamed = 4
 
+// CantCastNamed is the StatCantBeCast B bit for ValidCard$ Card.NamedCard
+// (Alhammarret, High Arbiter): the filter holds only for a spell whose card is
+// the static source's chosen name (ExtChooseName).
+const CantCastNamed = 1
+
 // StCasterActive: on a StatCantBeCast only, the
 // restriction binds a caster who is the active player (Caster$
 // Player.Active; gorge actorMatches). It aliases StTargetsFilter2, whose
