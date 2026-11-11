@@ -15,9 +15,9 @@ import (
 // ability beyond a plain {T} still refuses by name.
 func TestSelfTapsPainOnManaCard(t *testing.T) {
 	const head = "Name:Brass Probe\nManaCost:no cost\nTypes:Land\n"
-	const mana = "A:AB$ Mana | Cost$ T | Produced$ Any | Amount$ 1 | SpellDescription$ Add one mana of any color.\n"
-	const trig = "T:Mode$ Taps | ValidCard$ Card.Self | Execute$ TrigDamage | TriggerZones$ Battlefield | TriggerDescription$ Pain.\n"
-	const body = "SVar:TrigDamage:DB$ DealDamage | Defined$ You | NumDmg$ 1\n"
+	const mana = "A:AB$ Mana | Cost$ T | Produced$ Any | SpellDescription$ Probe any.\n"
+	const trig = "T:Mode$ Taps | ValidCard$ Card.Self | TriggerZones$ Battlefield | Execute$ TrigProbe | TriggerDescription$ Probe pain.\n"
+	const body = "SVar:TrigProbe:DB$ DealDamage | Defined$ You | NumDmg$ 1\n"
 	def, rs := kwardpowBuild(t, "Brass Probe", head+mana+trig+body)
 	if len(rs) != 0 {
 		t.Fatalf("City of Brass's shape refused: %v", rs)
@@ -35,9 +35,9 @@ func TestSelfTapsPainOnManaCard(t *testing.T) {
 		t.Fatal("no Taps line lowered")
 	}
 	for _, c := range []struct{ name, src string }{
-		{"a gain-life body", head + mana + trig + "SVar:TrigDamage:DB$ GainLife | LifeAmount$ 1\n"},
-		{"damage to an opponent", head + mana + trig + "SVar:TrigDamage:DB$ DealDamage | Defined$ Opponent | NumDmg$ 1\n"},
-		{"a mana ability with a fee", head + "A:AB$ Mana | Cost$ 1 T | Produced$ Any | Amount$ 1 | SpellDescription$ x.\n" + trig + body},
+		{"a gain-life body", head + mana + trig + "SVar:TrigProbe:DB$ GainLife | LifeAmount$ 1\n"},
+		{"damage to an opponent", head + mana + trig + "SVar:TrigProbe:DB$ DealDamage | Defined$ Opponent | NumDmg$ 1\n"},
+		{"a mana ability with a fee", head + "A:AB$ Mana | Cost$ 1 T | Produced$ Any | SpellDescription$ x.\n" + trig + body},
 		{"two mana", head + "A:AB$ Mana | Cost$ T | Produced$ C | Amount$ 2 | SpellDescription$ x.\n" + trig + body},
 	} {
 		_, rs := kwardpowBuild(t, "Brass Probe", c.src)
