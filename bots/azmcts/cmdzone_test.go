@@ -11,11 +11,11 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// commanderZoneSeed is the first game seed at which the default bot meets a
-// commander-zone ask in foundations-tramplesaurus-rex vs
-// foundations-wretched-ranks: seat 0's commander is put into its graveyard on
-// turn 13.
-const commanderZoneSeed = testSeed
+// commanderZoneSeed is the first game seed (from testSeed) at which the default
+// bot meets a commander-zone ask in foundations-tramplesaurus-rex vs
+// foundations-wretched-ranks (re-measured for the official FDC lists: seed
+// testSeed itself has none).
+const commanderZoneSeed = testSeed + 3
 
 // commanderTestConfig is a two-seat Commander game: the decks' resolved
 // cards, each file's commander indices, the format's 40 life and seed.
