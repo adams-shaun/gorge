@@ -2340,7 +2340,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 	case "CumulativeUpkeep":
 		return lc.cumulativeUpkeep(ps) // lower_cumulative.go
 	default:
-		return refuse("api %s", sa.API)
+		return refuseAPI(sa.API) // lower_refuseapi.go
 	}
 	return nil
 }
