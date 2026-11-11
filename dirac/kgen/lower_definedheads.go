@@ -80,7 +80,7 @@ func (lc *lowerCtx) pumpYouAndValid(ps *params) (done bool, err error) {
 	if !ok {
 		return true, refuse("Pump Defined$ %q without KW$", d)
 	}
-	if _, mb := splitMustBeBlocked(kw); mb {
+	if _, mb := splitKWSentence(kw, mustBeBlockedKW); mb {
 		return true, refuse("Pump Defined$ %q with the must-be-blocked sentence", d)
 	}
 	ks, err := pumpKeywords(kw)

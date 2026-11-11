@@ -2899,8 +2899,8 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 	kw, hasKW := ps.get("KW")
 	mustBlock, noCombat := false, false
 	if hasKW {
-		kw, mustBlock = splitMustBeBlocked(kw)
-		kw, noCombat = splitCantAttackOrBlock(kw)
+		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
+		kw, noCombat = splitKWSentence(kw, cantAttackOrBlockKW)
 	}
 	if hasKW && kw != "" {
 		rest, fbs, err := splitFirebendingGrant(kw)
@@ -2955,31 +2955,18 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 // mark, not a keyword bit.
 const cantAttackOrBlockKW = "HIDDEN CARDNAME can't attack or block."
 
-// splitCantAttackOrBlock takes cantAttackOrBlockKW out of a KW$ list: the rest
-// of the list (possibly empty) and whether the sentence was there.
-func splitCantAttackOrBlock(kw string) (rest string, found bool) {
-	var keep []string
-	for _, k := range strings.Split(kw, "&") {
-		if strings.TrimSpace(k) == cantAttackOrBlockKW {
-			found = true
-			continue
-		}
-		keep = append(keep, strings.TrimSpace(k))
-	}
-	return strings.Join(keep, " & "), found
-}
-
 // mustBeBlockedKW is the one Pump / PumpAll keyword sentence that is a mark,
 // not a keyword bit (CR 509.1c, ExtMustBeBlocked).
 const mustBeBlockedKW = "HIDDEN CARDNAME must be blocked if able."
 
-// splitMustBeBlocked takes mustBeBlockedKW out of a KW$ list: the rest of
-// the list (possibly empty) and whether the sentence was there. Any other
-// spelling stays in the list, where pumpKeywords refuses it.
-func splitMustBeBlocked(kw string) (rest string, found bool) {
+// splitKWSentence takes one mark sentence (mustBeBlockedKW,
+// cantAttackOrBlockKW) out of a KW$ list: the rest of the list (possibly
+// empty) and whether the sentence was there. Any other spelling stays in the
+// list, where pumpKeywords refuses it.
+func splitKWSentence(kw, sentence string) (rest string, found bool) {
 	var keep []string
 	for _, k := range strings.Split(kw, "&") {
-		if strings.TrimSpace(k) == mustBeBlockedKW {
+		if strings.TrimSpace(k) == sentence {
 			found = true
 			continue
 		}
@@ -3065,7 +3052,7 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	}
 	mustBlock := false
 	if kw, ok := ps.get("KW"); ok {
-		kw, mustBlock = splitMustBeBlocked(kw)
+		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
 		if mustBlock && scope.Kind != rNone {
 			return refuse("PumpAll KW$ must be blocked if able with a ValidTgts$ player scope")
 		}
