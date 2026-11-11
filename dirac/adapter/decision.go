@@ -588,6 +588,11 @@ func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uin
 		g.labelDivision(&o, c.Mode())
 	case "primary":
 		o.Label, o.Player = "top", 0
+	case "destination":
+		o.Mode = "primary" // gorge's changezone_dest_alt (dirac ChGenDestAlt)
+		if c.Mode() == 1 {
+			o.Mode = "alternate"
+		}
 	case "bottom":
 		o.Player = 0
 	case "mana":
@@ -757,7 +762,7 @@ func (g *Game) chooseKey(x dirac.Action) uint32 {
 	case dirac.ChGenDivide, dirac.ChCastDivide:
 		return uint32(g.s.FeatDivideIndex(src))
 	case dirac.ChX, dirac.ChTrigX, dirac.ChDivide, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChGenManaChoice,
-		dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenReplOrder, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped:
+		dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenReplOrder, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped, dirac.ChGenDestAlt:
 		return uint32(mode)
 	case dirac.ChGenType:
 		return g.s.FeatTypeKey(g.d.Player, int(x.Target())<<8|int(mode))

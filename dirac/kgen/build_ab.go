@@ -2945,6 +2945,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if in.C == 4 {
 			ki.Op, ki.C = kop.OpToLibraryChoice, kop.LibChoiceSecond
 		}
+		if in.C == libChoiceCtrlGrave { // lower_destalt.go
+			ki.Op, ki.C = kop.OpToLibraryChoice, kop.LibChoiceCtrlGrave
+		}
 	case "ToGraveyard":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtToGraveyard))
 	case "MayShuffleMove":
@@ -3111,6 +3114,22 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, fmt.Errorf("Bottom on a %s from %s", in.Op, fl["from"])
 			}
 			sb |= kop.SrHandBottom
+		}
+		if _, ok := fl["PosAsk"]; ok {
+			// the controller's top-or-bottom ask after a hand put-back
+			// (Dream Cache; lower_destalt.go)
+			if in.Op != "ChooseMove" || zone != kop.ZoneHand || zoneMap[in.C] != kop.ZoneLibrary {
+				return ki, fmt.Errorf("PosAsk on a %s from %s", in.Op, fl["from"])
+			}
+			sb |= kop.SrHandPosAsk
+		}
+		if _, ok := fl["DestAltGrave"]; ok {
+			// the searcher's hand-or-graveyard ask after the pick (Dina's
+			// Guidance; lower_destalt.go)
+			if in.Op != "Search" || zoneMap[in.C] != kop.ZoneHand {
+				return ki, fmt.Errorf("DestAltGrave on a %s", in.Op)
+			}
+			sb |= kop.SrDestAltGrave
 		}
 		if _, ok := fl["ShareLandType"]; ok {
 			if in.Op != "Search" {

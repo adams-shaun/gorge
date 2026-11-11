@@ -1,0 +1,13 @@
+# TapsForMana extras on attached lands (dirac/oracle/tapmana_attached_test.go)
+Wild Growth
+Overgrowth
+Wolfwillow Haven
+Vernal Bloom
+Grizzly Bears
+Llanowar Elves
+Shock
+Forest
+Plains
+Mountain
+Island
+Gauntlet of Might

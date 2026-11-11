@@ -22,7 +22,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | MKM | 279 | 251 | 2 | 36 | 213 | 209 |
 | MSH | 276 | 246 | 1 | 13 | 232 | 232 |
 | OTJ | 276 | 251 | 1 | 9 | 241 | 241 |
-| SOS | 270 | 256 | 0 | 7 | 249 | 249 |
+| SOS | 270 | 257 | 0 | 8 | 249 | 249 |
 | SPM | 192 | 169 | 1 | 10 | 158 | 157 |
 | TDM | 276 | 256 | 3 | 8 | 245 | 245 |
 | TLA | 285 | 261 | 1 | 9 | 251 | 250 |
@@ -30,7 +30,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 299 | 0 | 33 | 266 | 263 |
 | TRK | 311 | 311 | 0 | 0 | 311 | 306 |
 | WOE | 281 | 262 | 0 | 16 | 246 | 245 |
-| ALL | 34442 | 22345 | 22 | 17229 | 5094 | 5065 |
+| ALL | 34442 | 22354 | 22 | 17238 | 5094 | 5065 |
 
 `ALL` is the whole corpus; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.
 

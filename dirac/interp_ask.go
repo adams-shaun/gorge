@@ -883,7 +883,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.continueRes(k, 0)
 	case raGenTopBottom:
 		in := &s.prog(k)[r.pc]
-		if in.C == kop.LibChoiceSecond {
+		if in.Op == kop.OpChooseMove {
+			s.handPosAnswer(a.Mode() == 0) // a put-back's top-or-bottom (zone_destalt.go)
+		} else if in.C == kop.LibChoiceSecond {
 			s.toLibrarySecond(k, in, a.Mode() == 0) // zone_librarysecond.go
 		} else if !s.topBottomStack(k, in.Obj, a.Mode() == 0) { // a spell target (tgt_permorspell.go)
 			s.moveRef(k, in.Obj, kop.ZoneLibrary, a.Mode() == 0)
@@ -1582,7 +1584,7 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 // its host (handAuraEnter), a card entering for its as-enters choice (rerunMove), or
 // an Attacking$ entry's CR 508.4 defender (zone_changezoneparams.go).
 func (s *State) moveAsked() bool {
-	return s.res.ask == raGenEnchant || s.res.ask == raGenRetChoice || s.res.ask == raGenEntryOrder ||
+	return s.res.ask == raGenTopBottom || s.res.ask == raGenEnchant || s.res.ask == raGenRetChoice || s.res.ask == raGenEntryOrder ||
 		s.res.ask == raGenEnterDefender || s.res.ask == raGenCmdZone
 }
 
@@ -1722,6 +1724,14 @@ func (s *State) picksHas(o Obj) bool {
 
 func (s *State) finishSearch(k *prep) {
 	s.res.ask = raNone
+	if s.destAltPark(k) {
+		return // the hand-or-graveyard ask, the found cards still in the library (zone_destalt.go)
+	}
+	s.finishSearchPicked(k)
+}
+
+// finishSearchPicked is finishSearch once the destination is settled.
+func (s *State) finishSearchPicked(k *prep) {
 	if s.entryParkSearch(k) {
 		return // a land's CR 616.1 entry-order ask, the card still in the hand (repl_entryorder.go)
 	}
@@ -1742,6 +1752,7 @@ func (s *State) finishSearch(k *prep) {
 func (s *State) finishSearchNow(k *prep) {
 	p := s.g.pickP
 	fl := s.g.pickF
+	defer s.handPosPark(k, s.g.nlook) // a put-back's top-or-bottom ask, after the moves (zone_destalt.go)
 	if fl&kop.SrForgetOther != 0 {
 		// ForgetOtherRemembered$ (graveexile): gorge forgets the other cards
 		// before the moves, and also when the pool is empty. The picks are

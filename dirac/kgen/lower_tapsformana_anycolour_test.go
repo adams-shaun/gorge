@@ -27,7 +27,7 @@ func TestLowerTapsformanaAnycolour(t *testing.T) {
 		"Kinnan, Bonder Prodigy":   "not a land filter",
 		"Roxanne, Starfall Savant": own,
 		"Winter's Night":           "trigger mode TapsForMana",
-		"Buried in the Garden":     "trigger mode TapsForMana",
+		"Buried in the Garden":     "extra of any colour",
 	}
 	var names []string
 	for n := range want {
