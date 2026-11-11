@@ -1845,7 +1845,7 @@ type genState struct {
 	yourTurns      [MaxSeats]uint8         // ExYourTurns: the turns each player began as the active player, saturating (prep.anyYourTurns only; padding)
 	extraTurnBegun uint8                   // ExYourExtraTurns: bit p, player p has begun an extra turn this game (CR 500.7; value_exprs.go)
 	dayNight       uint8                   // CR 731: bits 0-1 the designation (dnDay, dnNight), bits 2-3 the last turn's active player's spells, at most 2 (kw_daynight.go; padding)
-	links          [8]struct {
+	links          [16]struct {
 		src  Obj
 		sver uint8
 		obj  Obj
@@ -1853,13 +1853,16 @@ type genState struct {
 	} // exiled until the source leaves (OpExileUntilLeaves)
 	nlinks   uint8
 	nexw     uint8
-	linkHide uint8 // bit i: links[i] is a Hideaway link (the card stays exiled face down; kw_hideaway.go; padding)
-	linkAeg  uint8 // bit i: links[i] is an attachment whose copy of its exiled card is live (Assimilation Aegis; zone_exilethenattach.go; padding)
-	linkHand uint8 // bit i: links[i] returns its card to its owner's hand, not the battlefield (a hand exile until the source leaves; act_mayask.go)
+	linkHide uint16 // bit i: links[i] is a Hideaway link (the card stays exiled face down; kw_hideaway.go; padding)
+	linkAeg  uint16 // bit i: links[i] is an attachment whose copy of its exiled card is live (Assimilation Aegis; zone_exilethenattach.go; padding)
+	linkHand uint16 // bit i: links[i] returns its card to its owner's hand, not the battlefield (a hand exile until the source leaves; act_mayask.go)
+	// linkPad keeps perms' cache-line phase after links grew from 8 to 16
+	// (linkPadN, seats_default.go and seats_mp.go)
+	linkPad [linkPadN]uint8
 
 	// retHeld lists, in departure order, the sources that left in the open
 	// departure frame with links to return (holdReturns); bit i of retCtrl is
-	// retHeld[i]'s last controller. Each holds a link, so links bounds the list.
+	// retHeld[i]'s last controller. A ninth source stalls (StallLinks).
 	retHeld  [8]Obj
 	nretHeld uint8
 	retCtrl  uint8
