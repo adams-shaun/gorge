@@ -100,6 +100,26 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			return lRef{}, err
 		}
 		return lRef{Kind: rTriggerAttackers}, nil
+	case "TriggeredAttackerController":
+		// gorge definedSpecTriggeredCombatantController: the attacker's
+		// controller, which an Attacks or Blocks trigger binds as its
+		// trigger player (the kernel queues both with the attacker's
+		// controller, so the Blocks pair's attacker too)
+		if tr := lc.ab.Trigger; tr != nil && (tr.Event == "Attacks" || tr.Event == "Blocks") {
+			return lRef{Kind: rTriggeredPlayer}, nil
+		}
+		return lRef{}, refuse("Defined$ %q outside an Attacks or Blocks trigger", v)
+	case "TriggeredBlockerController":
+		// gorge definedSpecTriggeredCombatantController: the controller of
+		// the captured blocker, read live. A Blocks trigger over the
+		// source's own host (ValidCard$ Card.AttachedBy: the enchanted or
+		// equipped creature) names the host's controller, the one
+		// RefAttachedCtrl reads (Contaminated Bond)
+		if tr := lc.ab.Trigger; tr != nil && tr.Event == "Blocks" && tr.F != nil && len(tr.F.Clauses) == 1 &&
+			tr.F.Players == 0 && tr.F.Clauses[0] == (lClause{Flags: fEquippedBy}) {
+			return lRef{Kind: rAttachedCtrl}, nil
+		}
+		return lRef{}, refuse("Defined$ %q outside a Blocks trigger over the attached creature", v)
 	case "TriggeredBlocker", "TriggeredBlockerLKICopy":
 		// gorge TriggerBlocker of a Blocks trigger: the source itself when
 		// the trigger is "whenever this blocks" (ValidCard$ Card.Self)

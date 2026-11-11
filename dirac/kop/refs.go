@@ -69,6 +69,13 @@ const (
 	// spell's election, or a permanent's gift trigger's queue-time
 	// snapshot. None when no gift was promised.
 	RefPromised Ref = 36
+	// RefAttachedCtrl is a player ref: the controller of the permanent the
+	// source Aura/Equipment is attached to, read live at resolution (the
+	// last known attachment when the source has left). Contaminated Bond's
+	// "its controller loses 3 life" for the enchanted creature that blocked
+	// (gorge Defined$ TriggeredBlockerController over a Card.AttachedBy
+	// Blocks trigger).
+	RefAttachedCtrl Ref = 37
 )
 
 // RefTgtCtrl1 / RefTgtCtrl2 are RefTargetController for target slot 1 / 2
