@@ -506,7 +506,9 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 // instants/sorceries in THEIR graveyard -- The Mouth of Sauron's head),
 // LifeLostThisTurn (the shared Host predicate), DamageThisTurn (the
 // Host's per-player damage-taken fold, implemented engine-side beside
-// LifeLostThisTurn) and Counters.Poison. The /Op suffix applies through
+// LifeLostThisTurn), DamageToOppsThisTurn (the same fold summed over the
+// referenced player's living opponents) and Counters.Poison. The /Op suffix
+// applies through
 // applyCountOp like every other head. A property this build does not
 // model (StartingLife, DomainPlayer, CardsDrawn, ...) or a ref
 // outside the two names, the Defined$-resolved names above, the
@@ -570,9 +572,9 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		// ...) for refs that used to fail closed; an unknown ref or property
 		// still fails closed to (0, false).
 		// The modelled property set is defaultRefPropertyModelled's: LifeTotal
-		// for every such ref, plus CardsInHand and the Valid-family heads for
-		// TriggeredTarget only. Every other ref/property still fails closed to
-		// (0, false).
+		// and DamageToOppsThisTurn for every such ref, plus CardsInHand and
+		// the Valid-family heads for TriggeredTarget only. Every other
+		// ref/property still fails closed to (0, false).
 		if !defaultRefPropertyModelled(ref, prop) {
 			return 0, false
 		}
@@ -651,6 +653,12 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 			n += h.LifeLostThisTurn(p)
 		case prop == "DamageThisTurn":
 			n += h.DamageTakenThisTurn(p)
+		case prop == "DamageToOppsThisTurn":
+			// The referenced player's opponents' damage this turn (Forge's
+			// TriggeredPlayer$DamageToOppsThisTurn, Antagonism's end-step
+			// gate): the shared helper sums the Host fold over the living
+			// seats that are not the referenced player.
+			n += damageToOppsThisTurn(h, g, p)
 		case prop == "CardsDiscardedThisTurn":
 			n += h.CardsDiscardedThisTurn(p)
 		case prop == "TotalCommanderCastFromCommandZone" || prop == "CommanderCastFromCommandZone":
@@ -709,7 +717,9 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 // defaultRefPropertyModelled reports whether a property is readable on a ref
 // the default arm resolves through definedSpec. LifeTotal is modelled for
 // every such ref (Quietus Spike's / Ebonblade Reaper's
-// TriggeredTarget$LifeTotal/HalfUp). CardsInHand and the Valid-family heads
+// TriggeredTarget$LifeTotal/HalfUp), and DamageToOppsThisTurn for every ref
+// that resolves to a player (Antagonism's TriggeredPlayer$ gate). CardsInHand
+// and the Valid-family heads
 // are modelled ONLY for TriggeredTarget -- the damaged player of a DamageDone
 // trigger reads Battle Angels of Tyr's NumInHand, NumLands, sword-of-war-and-
 // peace-style damage and friends -- so the widening cannot spread to
@@ -717,7 +727,7 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 // property. A Valid head is recognised exactly like the property switch below
 // reads it: the word before the first space satisfies countZone.
 func defaultRefPropertyModelled(ref, prop string) bool {
-	if prop == "LifeTotal" {
+	if prop == "LifeTotal" || prop == "DamageToOppsThisTurn" {
 		return true
 	}
 	if ref != "TriggeredTarget" {
