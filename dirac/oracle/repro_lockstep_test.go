@@ -575,3 +575,13 @@ func TestWideGapTapsBeforeGrantedSourceLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "wide_gap_taps_before_granted_source", "std-tla", Config{GorgeAutopaySurface: true})
 }
+
+// TestFlashbackPoolPaysGrantedInstanceLockstep: Fire Nation Attacks prints
+// flashback {8}{R} and Iroh grants another at its mana cost. With an
+// any-colour source on board the potential walk prices both and the planner
+// drops them as ambiguous, but the floating pool pays the granted {4}{R}
+// outright, so gorge's walk offers that instance (CR 702.34a).
+func TestFlashbackPoolPaysGrantedInstanceLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "flashback_pool_pays_granted_instance", "std-tla", Config{})
+}
