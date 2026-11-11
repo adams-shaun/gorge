@@ -2327,6 +2327,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.changeTargets(ps) // lower_stackrewrite.go
 	case "UnlockDoor":
 		return lc.unlockDoor(ps) // lower_unlockdoor.go
+	case "CumulativeUpkeep":
+		return lc.cumulativeUpkeep(ps) // lower_cumulative.go
 	default:
 		return refuse("api %s", sa.API)
 	}

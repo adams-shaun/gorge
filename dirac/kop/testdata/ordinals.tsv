@@ -160,6 +160,7 @@ CtrAddedKindAny	untyped int	0
 CtrAddedKindLore	untyped int	2
 CtrAddedKindMask	untyped int	3
 CtrAddedKindP1P1	untyped int	1
+CtrAge	CounterKind	67
 CtrAll	CounterKind	254
 CtrBait	CounterKind	8
 CtrBloodstain	CounterKind	60
@@ -440,6 +441,7 @@ ExtCopyTokenCtr	ExtOp	172
 ExtCounterAll	ExtOp	226
 ExtCounterLose	ExtOp	41
 ExtCounterPlusEOT	ExtOp	247
+ExtCumulative	ExtOp	312
 ExtDigImprint	ExtOp	282
 ExtDistCounters	ExtOp	310
 ExtDividedCounters	ExtOp	30
@@ -642,8 +644,8 @@ MvUnderYourControl	untyped int	4
 NoCard	CardID	65535
 NumCounterKinds	CounterKind	7
 NumCounterKinds2	CounterKind	13
-NumCounterKinds3	CounterKind	67
-NumCounterKindsX	int	52
+NumCounterKinds3	CounterKind	68
+NumCounterKindsX	int	53
 NumExtOps	ExtOp	320
 NumManaKinds	untyped int	6
 NumSteps	Step	13

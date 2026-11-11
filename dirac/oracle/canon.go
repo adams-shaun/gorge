@@ -210,7 +210,7 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 			code, _ := chooseCode("counter")
 			return Pack(ActChoose+CanonKind(code), RefNone, RefNone, uint8(c)), true
 		}
-		code, known := chooseCode(o.Kind)
+		code, known := chooseCode(cumulativeKindAlias(o.Kind))
 		if !known {
 			// An option kind the table lacks: still canonical as
 			// choose:other over its object (or its index when it names
@@ -371,4 +371,20 @@ func kernelCounterKind(name string) (kop.CounterKind, bool) {
 		}
 	}
 	return 0, false
+}
+
+// cumulativeKindAlias folds gorge's cumulative upkeep ask (rules
+// cumulativePaymentAsk: cumulative_pay or cumulative_sac over the source) onto
+// the trigger-cost ask it is the same window as: the kernel poses a cumulative
+// upkeep's UnlessPaid as the trigger's own pay-or-decline cost (ChGenPay,
+// dirac/trig_cumulative.go), whose canonical kinds are trigger_cost_pay and
+// trigger_cost_decline.
+func cumulativeKindAlias(kind string) string {
+	switch kind {
+	case "cumulative_pay":
+		return "trigger_cost_pay"
+	case "cumulative_sac":
+		return "trigger_cost_decline"
+	}
+	return kind
 }

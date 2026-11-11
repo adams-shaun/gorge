@@ -795,6 +795,9 @@ var expandedKeywords = map[string]bool{
 	// Hideaway (CR 702.75a): gorge kwHideaway's ETB trigger, DB$ Hideaway
 	// (lower_hideaway.go)
 	"Hideaway": true,
+	// Cumulative upkeep (CR 702.24a): gorge kwCumulativeUpkeep expands it into
+	// an upkeep trigger whose body is DB$ CumulativeUpkeep (lower_cumulative.go)
+	"Cumulative upkeep": true,
 }
 
 // protColourLetters maps a "Protection from <q>" colour quality to its
