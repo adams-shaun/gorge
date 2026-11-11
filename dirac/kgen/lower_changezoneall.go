@@ -112,7 +112,7 @@ func (lc *lowerCtx) changeZoneAllRiders(ps *params, in *lInstr, origin, dest int
 	var o *lOverride
 	if hasSe {
 		// read before the origin check so a StaticEffect$ the override
-		// lowering cannot read (Grimoire of the Dead's AddColor$) names that
+		// lowering cannot read (a basic land type, an unknown type) names that
 		if o, err = lc.staticEffectOverride(se); err != nil {
 			return err
 		}
