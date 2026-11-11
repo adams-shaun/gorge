@@ -895,6 +895,10 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		// which never lists Twitching Doll's counter-rider mana, so Cynical
 		// Loner's prefix taps Overlord of the Hauntwoods for the {B} first
 		{"grant_prefix_census_skips_rider_source", false, false},
+		// CR 605.1a: Twitching Doll under Enduring Vitality still taps once for
+		// its granted ability, so Tyvar, the Pummeler's {3}{G}{G} is offered
+		{"rider_source_keeps_granted_unit", true, false},
+		{"grant_prefix_census_skips_rider_source_second", false, false},
 	})
 }
 
