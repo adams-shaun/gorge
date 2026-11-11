@@ -3222,6 +3222,12 @@ func init() {
 		// on the new AttackerBlockedByCreature mode (CR 702.25a), one instance
 		// per non-flanking blocker, debuffing it -1/-1 until EOT via Pump.
 		"kw:Flanking",
+		// Bushido's expansion (engine/cards/kw_bushido.go) is TWO
+		// block-declaration triggers: Mode$ Blocks | ValidCard$ Card.Self
+		// ("blocks") and Mode$ AttackerBlocked | ValidCard$ Card.Self
+		// ("becomes blocked"), each a DB$ Pump of Defined$ Self +N/+N until
+		// end of turn (CR 702.45a).
+		"kw:Bushido",
 		// Afterlife's expansion (engine/cards/keywords.go) is a ChangesZone death
 		// trigger whose effect mints the wb_1_1_spirit_flying tokens.
 		"kw:Afterlife",

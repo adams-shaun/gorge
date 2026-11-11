@@ -55,6 +55,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Landwalk":       "TestLandwalkEvadesDefenderLands",
 		"kw:Protection":     "TestProtectionUsesAllLiveColourQualities",
 		"kw:Flanking":       "TestFlankingKnightOfTheHolyNimbusDebuffsBlockers",
+		"kw:Bushido":        "TestBushidoPumpsOnBlocksAndBecomesBlocked",
 		"kw:Split second":   "TestVATSSplitSecondWithholdsCastsAndActivations",
 		"kw:Devour":         "TestGorgerWurmDevourAsksAndCountsTheSacrificed",
 		"kw:Gravestorm":     "TestOminousHarvestGravestormCopiesPerDeath",

@@ -1,0 +1,24 @@
+{
+  "card": "Samurai of the Pale Curtain",
+  "family": "combat-keywords",
+  "author": "cli-20261111T163531Z (Oracle + CR only)",
+  "scenarios": [
+    {
+      "name": "bushido-blocks-pumps",
+      "cr": ["702.45a", "509.1", "603.2"],
+      "why": "Samurai of the Pale Curtain has bushido 1; when it blocks it gets +1/+1 until end of turn, so the 2/2 is a 3/3.",
+      "setup": {
+        "p0": {"battlefield": ["Samurai of the Pale Curtain"]},
+        "p1": {"battlefield": ["Runeclaw Bear"]}
+      },
+      "steps": [
+        {"op": "attack", "seat": 1, "attackers": ["p1:Runeclaw Bear"], "defender": "p0"},
+        {"op": "block", "seat": 0, "blocks": [["p0:Samurai of the Pale Curtain", "p1:Runeclaw Bear"]]},
+        {"op": "resolve"}
+      ],
+      "expect": [
+        {"card": "p0:Samurai of the Pale Curtain", "pt": "3/3"}
+      ]
+    }
+  ]
+}

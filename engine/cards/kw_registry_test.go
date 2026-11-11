@@ -22,6 +22,11 @@ var expandedHeads = []string{
 	"Equip", "Transmute", "Cycling", "TypeCycling", "Level up", "Affinity",
 	// Undaunted (CR 702.105) was added after the split; the pre-split switch never expanded it.
 	"Undaunted",
+	// Bushido (CR 702.45): the Block half ("blocks") and the
+	// AttackerBlocked half ("becomes blocked"), each a Pump of Self +N/+N
+	// until end of turn. Added after the split; the pre-split switch never
+	// expanded it.
+	"Bushido",
 	"Enchant", "Mobilize", "Afterlife", "Encore", "Embalm", "Eternalize",
 	// Squad (CR 702.66) was added after the split: the corpus carries only
 	// the K:Squad:<cost> line, so the expansion supplies the ETB trigger

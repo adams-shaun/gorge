@@ -48,6 +48,7 @@ import "embed"
 //go:embed kw_annihilator.go
 //go:embed kw_backup.go
 //go:embed kw_battle_cry.go
+//go:embed kw_bushido.go
 //go:embed kw_cipher.go
 //go:embed kw_class.go
 //go:embed kw_conspire.go
