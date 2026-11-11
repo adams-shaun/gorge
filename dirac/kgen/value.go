@@ -560,6 +560,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		switch rest {
 		case "LifeLostThisTurn":
 			v = lValue{Kind: vLifeLostThisTurn}
+		case "LifeLostLastTurn":
+			// gorge Engine.LifeLostLastTurn: the controller's losses in the
+			// previous turn's window (Paladin of Atonement's upkeep CheckSVar).
+			v = lValue{Kind: vLifeLostLastTurn}
 		case "HasPropertyActive":
 			v = lValue{Kind: vYourTurns, N: 1} // 1 on the controller's turn
 		case "CardsDiscardedThisTurn":

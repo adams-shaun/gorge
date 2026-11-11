@@ -111,6 +111,11 @@ const (
 	// Activated.Exhaust+YouCtrl; the kernel keeps one bit per player, so a
 	// second activation still reads 1). dirac/static_turnbits.go.
 	ExThisTurnActExhaust
+	// ExLifeLostLastTurn: the life the evaluating controller lost during the
+	// previous turn (gorge PlayerCountPropertyYou$LifeLostLastTurn, the
+	// LifeLostThisTurn tally one turn back; 0 on the first turn).
+	// dirac/turn.go latches it as the turn changes.
+	ExLifeLostLastTurn
 	ExCount_
 )
 
