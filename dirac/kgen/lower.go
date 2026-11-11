@@ -931,6 +931,16 @@ func (lc *lowerCtx) lowerKeywords() {
 			// CR 506.5: gorge combat.DeclaresAlone over the derived hidden
 			// keywords (Option.AloneRestricted); kernel combat_alone.go
 			lc.out.AloneAtk = true
+		case cards.AloneKeywordOf(head) == cards.AloneKeywordCantBlockAlone && param == "":
+			// CR 506.5's block-only sibling: the lone block is illegal, the
+			// lone attack stays legal (kernel combat_alone.go).
+			lc.out.AloneBlk = true
+		case cards.AloneKeywordOf(head) == cards.AloneKeywordCantAttackOrBlockAlone && param == "":
+			// CR 506.5's compound: BOTH the lone attack and the lone block
+			// are illegal (kernel combat_alone.go). Gorge's
+			// HiddenKeywordFlags carries the same two flags.
+			lc.out.AloneAtk = true
+			lc.out.AloneBlk = true
 		case (head == "Horsemanship" || head == "Intimidate" || head == "Skulk") && param == "":
 			// gorge rules/combat/block.go CanBlock: attacker-keyed blocking
 			// restrictions over the derived keywords (printed only)

@@ -99,6 +99,7 @@ type genPrep struct {
 	anyLandwalk     bool // a card has printed landwalk (repl_regenerate.go)
 	anyEvasion      bool // a card has a printed CardDef.Evasion keyword (act_remember.go)
 	anyAloneAtk     bool // a card has printed "can't attack alone" (CardDef.AloneAtk; combat_alone.go)
+	anyAloneBlk     bool // a card has printed "can't block alone" (CardDef.AloneBlk; combat_alone.go)
 	anyStatGoad     bool // a card has a StatGoad static (act_goad.go)
 	anyTokEndCombat bool // some CreateTokenEx carries the AtEOT$ SacrificeCombat rider (trig_tokenateot.go)
 	anyProwessGrant bool // some Continuous static grants prowess: onCast counts one trigger per static (kw_prowess.go)
@@ -831,6 +832,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.AloneAtk {
 			g.anyAloneAtk = true
+		}
+		if c.AloneBlk {
+			g.anyAloneBlk = true
 		}
 		if c.MinBlockers != 0 {
 			g.anyMinBlk = true
