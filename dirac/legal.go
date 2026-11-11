@@ -452,6 +452,7 @@ func (s *State) onceUsed(k *prep, sl Slot, a *kop.Ability) bool {
 
 // onceUse marks a's activation for the permanent at sl.
 func (s *State) onceUse(k *prep, sl Slot, a *kop.Ability) {
+	s.noteTurnExhaust(k, sl, a)
 	switch a.Once {
 	case 2:
 		s.mSlSet(k, mechOnce2, sl)
@@ -548,7 +549,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if f&kop.CostLoyalty != 0 && (!sorc || p.flags&pfLoyaltyUsed != 0) {
 		return false
 	}
-	if f&kop.CostOncePerGame != 0 && s.onceUsed(k, sl, a) {
+	if f&kop.CostOncePerGame != 0 && s.onceUsed(k, sl, a) && !s.exhaustOnceWaived(k, p.ctrl, a) {
 		return false
 	}
 	mana := a.Cost.Mana

@@ -1624,6 +1624,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 
 // lowerStatic lowers an S: line.
 func (lc *lowerCtx) lowerStatic(s cards.Static) error {
+	if s.Mode == "FlipCoinMod" {
+		return lc.flipCoinModStatic(s) // lower_turnfacts.go
+	}
 	if s.Mode == "TapPowerValue" {
 		return lc.tapPowerValueStatic(s) // lower_hiddenpick.go
 	}
@@ -2028,6 +2031,33 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		if st.Cost.Forage != nil || st.Cost.ExileG != nil || st.Cost.Energy != 0 || st.Cost.Return != nil {
 			return nil, refuse("alternative cost with a forage / exile-from-graveyard part")
 		}
+	case "Activations":
+		// gorge legal_loyalty.go additionalActivationLimit: the one
+		// unbounded MinLimit$ -1 shape, Exhaust abilities on the
+		// controller's own turn while CheckSVar$ X (the turn's Exhaust
+		// activations) is below one. The kernel reads the turn bit and the
+		// active player directly (dirac/turn_facts.go exhaustOnceWaived);
+		// the lowered condition keeps the same expression for any other
+		// reader of the static.
+		if v := strings.TrimSpace(sp.str("ValidSA")); v != "Activated.Exhaust" {
+			return nil, refuse("Activations ValidSA %q (only Activated.Exhaust is lowered)", v)
+		}
+		if v := strings.TrimSpace(sp.str("ValidPlayer")); v != "You" {
+			return nil, refuse("Activations ValidPlayer %q (only You is lowered)", v)
+		}
+		if v := strings.TrimSpace(sp.str("MinLimit")); v != "-1" {
+			return nil, refuse("Activations MinLimit %q (only the unbounded -1 is lowered)", v)
+		}
+		if v := strings.TrimSpace(sp.str("PlayerTurn")); v != "You" {
+			return nil, refuse("Activations PlayerTurn %q (only You is lowered)", v)
+		}
+		sp.consume("ValidSA", "ValidPlayer", "MinLimit", "PlayerTurn")
+		if st.Cond.Kind != cValue || st.Cond.A.Kind != vThisTurnActExhaust || st.Cond.Op != opLT ||
+			!st.Cond.B.isConst() || st.Cond.B.N != 1 {
+			return nil, refuse("Activations CheckSVar %q (only Count$ThisTurnActivated_Activated.Exhaust+YouCtrl LT1 is lowered)", s.Params["CheckSVar"])
+		}
+		st.Cond = andCond(st.Cond, lCond{Kind: cYourTurn})
+		st.Kind = "ActivationLimit"
 	case "Panharmonicon":
 		// gorge panharmoniconEchoes: a battlefield static whose ValidCard$
 		// matches the triggering ability's source adds one trigger

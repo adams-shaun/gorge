@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -165,7 +166,7 @@ func (lc *lowerCtx) flipCoin(ps *params) error {
 	if err != nil {
 		return err
 	}
-	lc.emit(lInstr{Op: "RollDie", A: cst(2), B: cst(0), Note: "flip a coin: 1 heads (win), 2 tails"})
+	lc.emit(lInstr{Op: "RollDie", A: cst(2), B: cst(0), C: int(kop.RollDieCoin), Note: "flip a coin: 1 heads (win), 2 tails"})
 	roll := lValue{Kind: vRollResult}
 	for i, name := range []string{win, lose} {
 		if name == "" {

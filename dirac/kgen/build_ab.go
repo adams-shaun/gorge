@@ -1612,6 +1612,10 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	}
 	var add []uint8
 	switch s.Kind {
+	case "FlipCoinMod":
+		st.Kind = kop.StatFlipCoinMod // turn_facts.go
+	case "ActivationLimit":
+		st.Kind = kop.StatActivationLimit // turn_facts.go
 	case "Continuous":
 		st.Kind = kop.StatContinuous
 		if s.F != nil && s.F.Players != 0 {
@@ -4210,7 +4214,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "CreateEmblem":
 		ki.Op, ki.C = kop.OpCreateEmblem, int16(in.C)
 	case "RollDie":
-		ki.Op = kop.OpRollDie
+		ki.Op, ki.C = kop.OpRollDie, int16(in.C)
 	case "OverrideAll":
 		ki.Op = kop.OpOverrideAll
 		i, err := cb.override(cb.c.overrides[in.C])

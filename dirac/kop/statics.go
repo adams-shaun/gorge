@@ -617,3 +617,20 @@ const StatAsIfHaste StaticKind = 231
 // the Suspected AlterAttribute event only, so a designation it already has
 // stays). Airtight Alibi. dirac/act_suspect.go suspectOne.
 const StatCantBeSuspected StaticKind = 230
+
+// StatFlipCoinMod (an explicit ordinal clear of the iota tail): the source
+// permanent's controller is the "ValidPlayer$ You" of gorge's exact
+// FlipCoinMod static shape (a first flip each turn comes up heads by
+// effects/elements/flipcoin.go FlipCoinForced). The kernel only needs the
+// source and its controller; kgen validates the rest of the shape at
+// lowering time. dirac/turn_facts.go.
+const StatFlipCoinMod StaticKind = 226
+
+// StatActivationLimit (an explicit ordinal clear of the iota tail): during
+// its controller's turn, while that player has not activated an Exhaust
+// ability this turn, Exhaust abilities may be activated as though they had
+// not been activated (S:Mode$ Activations | ValidSA$ Activated.Exhaust |
+// MinLimit$ -1; gorge rules/legal_loyalty.go additionalActivationLimit's
+// unbounded arm). The bit and the exhaust class are kernel facts
+// (dirac/turn_facts.go); kgen validates the static shape at lowering time.
+const StatActivationLimit StaticKind = 227

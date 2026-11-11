@@ -237,6 +237,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.committedCrime(k, x, ctx)
 	case kop.ExThisTurnActGrave:
 		return s.thisTurnActGrave(ctx)
+	case kop.ExThisTurnActExhaust:
+		return s.thisTurnActExhaust(ctx)
 	case kop.ExThisTurnCastSpec:
 		return s.thisTurnCastSpec(k, x, ctx)
 	case kop.ExRollResult:
