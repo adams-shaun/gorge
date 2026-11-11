@@ -10,7 +10,7 @@ import (
 // The Paladin of Atonement lockstep: "at the beginning of each upkeep, if
 // you lost life last turn, put a +1/+1 counter on it" (gorge
 // Engine.LifeLostLastTurn, the previous turn's window of the log; the
-// kernel's lifeLostLast, latched as the turn changes) and "when it dies,
+// kernel's lastLost, latched as the turn changes) and "when it dies,
 // you gain life equal to its toughness", against burn and attackers that
 // make its controller lose life on the opponent's turn. The expected answer
 // at every decision is gorge's.

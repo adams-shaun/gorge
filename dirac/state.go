@@ -392,33 +392,33 @@ func (p *perm) subCtrN(s *State, c, n int) {
 
 // player is one seat.
 type player struct {
-	life         int16
-	lib          [MaxDeck + 8]Obj
-	libLo        uint8 // library = lib[libLo:libHi], lib[libLo] is the top
-	libHi        uint8
-	hand         [MaxHand]Obj
-	handN        uint8
-	grave        [MaxDeck]Obj
-	graveN       uint8
-	exile        [MaxDeck]Obj
-	exileN       uint8
-	pool         [kop.NumManaKinds]uint8
-	landsPlayed  uint8
-	drawnTurn    uint8
-	mulls        uint8
-	lost         bool
-	drewEmpty    bool
-	lifeGained   int16 // this turn
-	lifeLost     int16 // this turn
-	lifeLostLast int16 // the previous turn (ExLifeLostLastTurn)
-	extraTurns   uint8
-	scry         uint8           // this turn: scry instructions in bits 0-3, surveil instructions in bits 4-7 (one byte: it fills padding)
-	sac          [3]uint8        // this turn: [sacAll] every sacrifice, [sacArtifact] artifact cards, [sacFood] Food cards
-	disc         uint8           // cards this player discarded this turn
-	cmd          Obj             // this seat's commander (CR 903.3), NoObj none; set at Init (zone_cmdinit.go)
-	cmdCast      uint8           // times the commander was cast from the command zone (CR 903.8)
-	cmdAsk       uint8           // commander bookkeeping byte for the command-zone replacement
-	cmdDmg       [MaxSeats]uint8 // combat damage dealt to this player by each seat's commander (CR 903.10a)
+	life        int16
+	lib         [MaxDeck + 8]Obj
+	libLo       uint8 // library = lib[libLo:libHi], lib[libLo] is the top
+	libHi       uint8
+	hand        [MaxHand]Obj
+	handN       uint8
+	grave       [MaxDeck]Obj
+	graveN      uint8
+	exile       [MaxDeck]Obj
+	exileN      uint8
+	pool        [kop.NumManaKinds]uint8
+	landsPlayed uint8
+	drawnTurn   uint8
+	mulls       uint8
+	lost        bool
+	drewEmpty   bool
+	lifeGained  int16 // this turn
+	lifeLost    int16 // this turn
+	lastLost    int16 // the life lost in the previous turn (ExLifeLostLastTurn)
+	extraTurns  uint8
+	scry        uint8           // this turn: scry instructions in bits 0-3, surveil instructions in bits 4-7 (one byte: it fills padding)
+	sac         [3]uint8        // this turn: [sacAll] every sacrifice, [sacArtifact] artifact cards, [sacFood] Food cards
+	disc        uint8           // cards this player discarded this turn
+	cmd         Obj             // this seat's commander (CR 903.3), NoObj none; set at Init (zone_cmdinit.go)
+	cmdCast     uint8           // times the commander was cast from the command zone (CR 903.8)
+	cmdAsk      uint8           // commander bookkeeping byte for the command-zone replacement
+	cmdDmg      [MaxSeats]uint8 // combat damage dealt to this player by each seat's commander (CR 903.10a)
 }
 
 // stack entry kinds.
