@@ -466,7 +466,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to s
 			settleHandMove(id, owner)
 			moved = append(moved, id)
 		}
-		handLibraryTail(h, g, cz, c.Source, owner, moved, to)
+		handLibraryTail(h, c, sa, cz, owner, moved, to)
 		// AtEOT$ on the hand walk: the owner's answered batch is the
 		// affected set, scheduled per owner.
 		scheduleAtEOT(h, c, sa, moved)
@@ -503,7 +503,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to s
 				moved = append(moved, pool[j])
 				pool = append(pool[:j], pool[j+1:]...)
 			}
-			handLibraryTail(h, g, cz, c.Source, owner, moved, to)
+			handLibraryTail(h, c, sa, cz, owner, moved, to)
 			scheduleAtEOT(h, c, sa, moved)
 			continue
 		}
@@ -599,7 +599,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to s
 					settleHandMove(id, owner)
 					moved = append(moved, id)
 				}
-				handLibraryTail(h, g, cz, c.Source, owner, moved, to)
+				handLibraryTail(h, c, sa, cz, owner, moved, to)
 				scheduleAtEOT(h, c, sa, moved)
 				continue
 			}
@@ -613,7 +613,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to s
 				settleHandMove(id, owner)
 				moved = append(moved, id)
 			}
-			handLibraryTail(h, g, cz, c.Source, owner, moved, to)
+			handLibraryTail(h, c, sa, cz, owner, moved, to)
 			scheduleAtEOT(h, c, sa, moved)
 			continue
 		}
@@ -695,7 +695,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to s
 				moved = append(moved, eligible[k])
 			}
 		}
-		handLibraryTail(h, g, cz, c.Source, owner, moved, to)
+		handLibraryTail(h, c, sa, cz, owner, moved, to)
 		scheduleAtEOT(h, c, sa, moved)
 	}
 	// The walk completed: release the ride. A later ability in the same
@@ -952,16 +952,25 @@ func handMovePromptFor(cz *ChangeZoneParams, to state.Zone, n int, own bool) str
 // with Forge's absent-LibraryPosition$ default (TOP) applied for the hand
 // path -- Brainstorm and Jace's [0] name no LibraryPosition$ and their
 // oracle puts the cards on top.
-func handLibraryTail(h Host, _ *state.Game, cz *ChangeZoneParams, source state.ObjID, owner state.PlayerID, moved []state.ObjID, to state.Zone) {
+func handLibraryTail(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owner state.PlayerID, moved []state.ObjID, to state.Zone) {
 	if to != state.ZLibrary || len(moved) == 0 {
 		return
 	}
-	// DestinationAlternative$/LibraryPositionAlternative$ (Dream Cache's "both
-	// on top of your library or both on the bottom", 1 raw line) is a modal
-	// destination choice this engine cannot yet ask: the alternative is named
-	// in a Note and the primary destination/position is taken
-	// deterministically, so the unsupported shape is never silent.
-	if alt := cz.DestinationAltText; alt != "" || cz.LibraryPositionAltText != "" {
+	source := c.Source
+	// Dream Cache's "both on top of your library or both on the bottom"
+	// (controllerPositionChoice): the controller chooses once, for the
+	// whole moved set, after the move; the answer places the set.
+	if cz.controllerPositionChoice(to) && !cz.ShuffleTrue {
+		if bottom, ok := askLibraryPosition(h, c, sa, c.Controller, "top"); ok {
+			libraryOrderPlacement(h, owner, moved, bottom)
+			return
+		}
+	}
+	// Any other DestinationAlternative$/LibraryPositionAlternative$ shape is
+	// a modal destination choice this engine cannot yet ask: the
+	// alternative is named in a Note and the primary destination/position is
+	// taken deterministically, so the unsupported shape is never silent.
+	if alt := cz.DestinationAltText; (alt != "" || cz.LibraryPositionAltText != "") && !cz.controllerPositionChoice(to) {
 		h.Emit(events.Event{Kind: events.Note, Obj: source, Player: owner,
 			Text: "DestinationAlternative$ " + alt + " is not a choice this engine can ask; the cards take the primary destination"})
 	}
