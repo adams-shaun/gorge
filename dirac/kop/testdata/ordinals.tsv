@@ -1108,6 +1108,7 @@ StHandOpp	StaticFlags	256
 StMayPayLife	StaticFlags	8192
 StMayRaise	StaticFlags	32768
 StNoPrevCombat	StaticFlags	2
+StNoPrevSpellSelf	StaticFlags	4
 StOncePerTurn	StaticFlags	2
 StPanhETB	StaticFlags	2048
 StRaiseLife	StaticFlags	2048

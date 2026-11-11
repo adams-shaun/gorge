@@ -1983,10 +1983,14 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	case "CantPreventDamage":
 		st.Kind = kop.StatCantPreventDamage // static_cantprevent.go
 		for _, fl := range s.Flags {
-			if fl != "NoPrevCombat" {
+			switch fl {
+			case "NoPrevCombat":
+				st.StFlags |= kop.StNoPrevCombat
+			case "NoPrevSpellSelf":
+				st.StFlags |= kop.StNoPrevSpellSelf
+			default:
 				return ka, nil, fmt.Errorf("CantPreventDamage flag %q", fl)
 			}
-			st.StFlags |= kop.StNoPrevCombat
 		}
 	case "MinMaxBlocker":
 		st.Kind = kop.StatMaxBlockers

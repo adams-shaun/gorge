@@ -77,9 +77,10 @@ type pcard struct {
 	enterTap    bool  // ReplEntersTapped
 	enterCtr    int8  // ReplEntersWithCounters count (+1/+1 kind assumed when C=0)
 	enterCK     kop.CounterKind
-	noCtr       bool // ReplCantBeCountered
-	noUntap     bool // ReplDoesntUntap
-	mayNotUntap bool // ReplMayNotUntap: a tapped one asks "untap or keep tapped" at its controller's untap step (repl_untapchoice.go)
+	noCtr       bool       // ReplCantBeCountered
+	noCtrCond   kop.CondID // a ReplCantBeCountered with a Cond (Banefire: X is 5 or more), read with the entry
+	noUntap     bool       // ReplDoesntUntap
+	mayNotUntap bool       // ReplMayNotUntap: a tapped one asks "untap or keep tapped" at its controller's untap step (repl_untapchoice.go)
 	land        bool
 	altCost     bool // the card has its own mana alternative cost (genPrep.altFree; cast_altfree.go) or Impending: the hand walk's one-byte gate (offerAltHand)
 	plotTrig    bool // a "when this card becomes plotted" trigger (TrigBecomesPlotted; kw_plot.go)
@@ -379,7 +380,11 @@ func prepare(t *kop.Table) *prep {
 					pc.enterCtr = int8(a.Repl.A)
 					pc.enterCK = kop.CounterKind(a.Repl.C)
 				case kop.ReplCantBeCountered:
-					pc.noCtr = true
+					if a.Repl.Cond != 0 {
+						pc.noCtrCond = a.Repl.Cond
+					} else {
+						pc.noCtr = true
+					}
 				case kop.ReplSpellsCantBeCountered:
 					pc.hasStat = true // scanned through statM (repl_uncounterable.go)
 					p.anyUncounter = true

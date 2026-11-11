@@ -2136,6 +2136,14 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			st.Flags = append(st.Flags, "NoPrevCombat")
 		}
 		sp.consume("Secondary")
+		// Banefire's "the damage can't be prevented" (X is 5 or more, CheckSVar$ read
+		// above): a stack-zone static of the spell itself. Only the pair lowers.
+		if vs, ok := sp.get("ValidSource"); ok {
+			if strings.TrimSpace(vs) != "Spell.Self" || sp.str("EffectZone") != "Stack" {
+				return nil, refuse("CantPreventDamage ValidSource$ %q", vs)
+			}
+			st.Flags = append(st.Flags, "NoPrevSpellSelf")
+		}
 	case "CantPutCounter":
 		// gorge PutCounterBlocked's object form (rules/layers_restrict.go):
 		// ValidCard$ (or ValidObject$) scopes the permanent, CounterType$
@@ -3202,6 +3210,18 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 			return refuse("Counter replacement shape")
 		}
 		rl.Kind = "CantBeCountered"
+		if cs, ok := rp.get("CheckSVar"); ok {
+			// Banefire's "if X is 5 or more": the gate reads the spell's X
+			v, err := lc.value(cs)
+			if err != nil {
+				return err
+			}
+			op, b, err := lc.cmpSpec(rp.str("SVarCompare"))
+			if err != nil {
+				return err
+			}
+			rl.Cond = lCond{Kind: cValue, A: v, Op: op, B: b}
+		}
 	case "Untap":
 		if rp.str("Layer") != "CantHappen" {
 			return refuse("Untap replacement shape")

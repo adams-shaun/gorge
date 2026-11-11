@@ -580,6 +580,13 @@ const StTapAnyPlayer = StWithoutManaCost
 // combatDamaging). Noncombat damage is prevented as usual.
 const StNoPrevCombat = StOncePerTurn
 
+// StNoPrevSpellSelf (aliases StAnyManaType, a MayPlayFrom-only bit) on a
+// StatCantPreventDamage static: it functions on the stack, for the damage its
+// own spell deals while that spell resolves (EffectZone$ Stack | ValidSource$
+// Spell.Self; Cond2 the X gate: Banefire). It is never in the battlefield
+// static scan.
+const StNoPrevSpellSelf = StAnyManaType
+
 // StatAnyTypeCreatures: the static's controller may spend mana as though it
 // were mana of any type to cast creature spells (S:Mode$ ManaConvert |
 // ValidPlayer$ You | ValidCard$ Creature.YouCtrl | ValidSA$ Spell |

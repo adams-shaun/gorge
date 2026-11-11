@@ -46,6 +46,10 @@ var (
 func (s *State) uncounterable(k *prep, i int) bool {
 	e := &s.stack[i]
 	self := k.cards[e.card].noCtr
+	if c := k.cards[e.card].noCtrCond; c != 0 && !self {
+		// "if X is 5 or more, this spell can't be countered" (Banefire): the gate reads the entry's X
+		self = s.condEval(k, c, evalCtx{e: e, src: e.obj, ctrl: e.ctrl})
+	}
 	n := 0
 	if k.gen != nil && k.gen.anyDelaySpell && s.g.ndp != 0 && !DebugUncounterDelayOff {
 		n = s.uncounterDelayed(e)
