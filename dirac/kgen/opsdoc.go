@@ -273,6 +273,7 @@ var opsEntries = []opsDoc{
 	{"repl:DoubleTokens", "ReplDoubleTokens", "An effect that would create tokens under the controller's control creates twice that many, once per such permanent. Doubling Season. Repl.A > 2 multiplies by A instead (Ojer Taq: 3); Repl.Filter restricts it to the tokens matching it (Ojer Taq: creature tokens)."},
 	{"repl:DoubleCounters", "ReplDoubleCounters", "An effect that would put counters on a permanent the controller controls puts twice that many, once per such permanent; counters put as a cost are not doubled (EffectOnly). Doubling Season."},
 	{"repl:GraveToLibrary", "ReplGraveToLibrary", "Works from every zone: if this card would be put into a graveyard from anywhere it is put into its owner's library instead and that library is shuffled (no dies trigger: it never reaches the graveyard). Progenitus."},
+	{"repl:PayBeforeETB", "ReplPayBeforeETB (Prog)", "This permanent spell would enter: its controller may discard a land card from their hand instead (an optional discard, run as the spell resolves, the discarded card remembered); if they did the card enters the battlefield, otherwise it goes to its owner's graveyard (Mox Diamond; gorge's Moved replacement chain of Discard, two ChangeZone and Cleanup). The card entering by any route but its cast resolution stalls (StallPayETB)."},
 	{"repl:DiscardOppToBattlefield", "ReplDiscardOppToBattlefield", "This card in its owner's hand, discarded by a spell or ability an opponent of the owner controls, enters the battlefield under its owner's control instead of going to the graveyard. Cost discards (cycling, Discard<> costs), cleanup discards and the owner's own effects keep the graveyard. Wilt-Leaf Liege, Obstinate Baloth, Loxodon Smiter."},
 	{"repl:ExileOnLeave", "ReplExileOnLeave (Filter, C)", "A permanent matching `Filter` that would be put into a graveyard from the battlefield is exiled instead (no dies trigger; leaves triggers still fire). C = 1: from every zone, so a card matching `Filter` moving to a graveyard from the stack (a resolved or countered spell), hand (discard), library (mill) or exile goes to exile instead and no graveyard trigger fires for it (Rest in Peace, Leyline of the Void, Dryad Militant). Two matching sources, or one beside Progenitus's redirect, pose gorge's CR 616.1 order ask: the kernel stalls (StallReplLeave)."},
 	// --- preds / keywords / counters / costs ---
@@ -1204,6 +1205,8 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 					add("repl:GraveToLibrary", name)
 				case kop.ReplDiscardOppToBattlefield:
 					add("repl:DiscardOppToBattlefield", name)
+				case kop.ReplPayBeforeETB:
+					add("repl:PayBeforeETB", name)
 				case kop.ReplExileOnLeave:
 					add("repl:ExileOnLeave", name)
 				case kop.ReplDoubleCountersOn:
