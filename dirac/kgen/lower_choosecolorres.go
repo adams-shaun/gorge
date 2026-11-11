@@ -81,14 +81,14 @@ func (lc *lowerCtx) protectionAllChosen(ps *params) error {
 // Nyx: the mana ability's colour choice and its devotion amount), an
 // Effect other than Prismatic Strands' prevention (Zombie Boa's
 // chosen-colour blocked trigger), a chain longer than one, or another API.
-func (lc *lowerCtx) chooseColorRefusal(n *cards.SA) string {
+func chooseColorRefusal(n *cards.SA) string {
 	switch {
 	case n == nil:
 		return ""
 	case n.API == "Mana":
 		return ": a Mana ability of the chosen colour"
 	case n.API == "Effect" && n.Sub == nil:
-		return ": an Effect other than the chosen-colour prevention (" + lc.preventColorShape(n.Params) + ")"
+		return ": an Effect other than the chosen-colour prevention"
 	case n.Sub != nil:
 		return ": a " + n.API + " sub-ability with more after it"
 	}

@@ -4291,7 +4291,7 @@ func (lc *lowerCtx) chooseColorPrevent(ps *params) error {
 		return nil
 	}
 	if n == nil || n.API != "Effect" || n.Sub != nil || lc.preventColorShape(n.Params) != "" {
-		return refuse("ChooseColor outside an as-enters replacement%s", lc.chooseColorRefusal(n))
+		return refuse("ChooseColor outside an as-enters replacement%s", chooseColorRefusal(n))
 	}
 	lc.prevColor = true
 	return nil
