@@ -2048,10 +2048,20 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			// a free alternative cost (kernel CardDef.AltFree)
 			st.Cost = lCost{}
 			sp.consume("Cost")
-		} else if st.Cost, err = lc.cost(sp.str("Cost")); err != nil {
-			return nil, err
+		} else {
+			lc.altCostHand = true
+			st.Cost, err = lc.cost(sp.str("Cost"))
+			lc.altCostHand = false
+			if err != nil {
+				return nil, err
+			}
 		}
-		if st.Cost.Forage != nil || st.Cost.ExileG != nil || st.Cost.Energy != 0 || st.Cost.Return != nil {
+		if st.Cost.ExileG != nil && !altPayLifeExileHand(&st.Cost) {
+			// only PayLife<N> beside ExileFromHand<N/Spec> (Force of Will)
+			// is the kernel's hand-exile alternative cast (lower_altexilehand.go)
+			return nil, refuse("alternative cost with an exile part other than PayLife<N> beside ExileFromHand<1/Spec>")
+		}
+		if st.Cost.Forage != nil || st.Cost.ExileG != nil && !st.Cost.ExileHand || st.Cost.Energy != 0 || st.Cost.Return != nil {
 			return nil, refuse("alternative cost with a forage / exile-from-graveyard part")
 		}
 	case "Activations":

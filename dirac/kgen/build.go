@@ -1041,7 +1041,11 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	if c.PayLife > 0 && c.LifeX {
 		return out, refuse("life cost: PayLife<N> beside PayLife<X>")
 	}
-	if c.PayLife > 0 {
+	if c.PayLife > 0 && c.ExileG != nil && c.ExileHand && c.PayLife == c.ExileGN {
+		// PayLife<N> beside ExileFromHand<N/Spec> (an alternative cost,
+		// lower_altexilehand.go): the two parts share Cost.N, one count
+		out.Flags |= kop.CostPayLife
+	} else if c.PayLife > 0 {
 		set(kop.CostPayLife, c.PayLife)
 	}
 	if c.LifeX {
