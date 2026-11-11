@@ -75,34 +75,42 @@ func (s *State) blockDeclared(k *prep) bool {
 	return false
 }
 
-// blockPartnerPossible reports whether another ready creature of this
-// defender could still be declared blocking some attacker (the offer test of
-// combat_lure.go's blockPairOK, minus the alone restriction: a restricted
-// partner is a legal partner).
-func (s *State) blockPartnerPossible(k *prep, b Slot) bool {
+// blockPartnerPossible reports whether, with b declared blocking a, another
+// ready creature of this defender could still be declared blocking some
+// attacker and the declaration still complete (the offer test of
+// combat_lure.go's blockPairOK with b's block committed: a's Max$ 1 cap
+// counts b, menace and Min$ floors match with b used up; a restricted partner
+// is a legal partner). gorge offers a pick only inside some valid
+// declaration, so a partner b's own block shuts out is no partner.
+func (s *State) blockPartnerPossible(k *prep, b, a Slot) bool {
 	def := s.blockDef()
+	maxBlk := k.gen != nil && k.gen.anyMaxBlk
 	for bm := s.ctrlM[def]; bm.any(); bm = bm.rest() {
 		q := bm.first()
 		if q == b || !s.blockerReady(k, q) {
 			continue
 		}
 		for am := s.blockAtkM(k); am.any(); am = am.rest() {
-			a := am.first()
-			if s.perms[a].flags&pfAttacking == 0 || !s.canBlock(k, q, a) || s.menaceImpossible(k, a) ||
-				k.gen != nil && k.gen.anyMaxBlk && s.blockCapped(k, a) || !s.blocksCompletable(k, q, a) {
+			a2 := am.first()
+			if s.perms[a2].flags&pfAttacking == 0 || !s.canBlock(k, q, a2) || s.menaceImpossible(k, a2) {
 				continue
 			}
-			return true
+			if maxBlk && (s.blockCapped(k, a2) || a2 == a && s.maxOneBlocker(k, a)) {
+				continue
+			}
+			if s.blocksCompletable2(k, b, a, q, a2) {
+				return true
+			}
 		}
 	}
 	return false
 }
 
-// aloneBlockOfferable reports whether blocker b may be offered now: an
-// unrestricted blocker always, a restricted one only when another block is
-// already declared or can still join it (CR 506.5).
-func (s *State) aloneBlockOfferable(k *prep, b Slot) bool {
-	return !s.aloneBlk(k, b) || s.blockDeclared(k) || s.blockPartnerPossible(k, b)
+// aloneBlockOfferable reports whether the pair (b blocks a) may be offered
+// now: an unrestricted blocker always, a restricted one only when another
+// block is already declared or can still join it (CR 506.5).
+func (s *State) aloneBlockOfferable(k *prep, b, a Slot) bool {
+	return !s.aloneBlk(k, b) || s.blockDeclared(k) || s.blockPartnerPossible(k, b, a)
 }
 
 // loneAloneBlocker reports whether exactly one blocker is declared and it

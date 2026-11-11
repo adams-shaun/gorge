@@ -29,11 +29,32 @@ var kaloneblockDecks = [2][]cardset.Entry{
 	},
 }
 
+// kaloneblockJointDecks adds attackers whose block limits use up a
+// carrier's partner: Viashino Runner (two or more blockers) and Safewright
+// Cavalry (no more than one).
+var kaloneblockJointDecks = [2][]cardset.Entry{
+	{
+		{Name: "Bonded Horncrest", Count: 4}, {Name: "Craven Hulk", Count: 4},
+		{Name: "Grizzly Bears", Count: 4}, {Name: "Viashino Runner", Count: 4}, {Name: "Safewright Cavalry", Count: 4},
+		{Name: "Shock", Count: 3}, {Name: "Mountain", Count: 9}, {Name: "Forest", Count: 8},
+	},
+	{
+		{Name: "Bonded Horncrest", Count: 4}, {Name: "Craven Hulk", Count: 4},
+		{Name: "Grizzly Bears", Count: 4}, {Name: "Viashino Runner", Count: 4}, {Name: "Safewright Cavalry", Count: 4},
+		{Name: "Shock", Count: 3}, {Name: "Mountain", Count: 9}, {Name: "Forest", Count: 8},
+	},
+}
+
 var kaloneblockCarriers = map[string]bool{"Bonded Horncrest": true, "Craven Hulk": true}
+
+// kaloneblockLimited are the attackers whose block limits interact with a
+// carrier's partner.
+var kaloneblockLimited = map[string]bool{"Viashino Runner": true, "Safewright Cavalry": true}
 
 type kaloneblockStats struct {
 	games, divs, stalls           int
 	carrierAttacks, carrierBlocks int
+	limitedBlocks                 int // carrier blocks on a kaloneblockLimited attacker
 }
 
 // kaloneblockPolicy attacks and blocks whenever it can, preferring a carrier;
@@ -53,7 +74,7 @@ func kaloneblockPolicy(seed uint64, st *kaloneblockStats) Policy {
 					continue
 				}
 				if c.G != nil && kaloneblockCarriers[gorgeOptionName(c, *o)] {
-					if carrier < 0 {
+					if carrier < 0 || want == ActBlock && kaloneblockLimited[gorgeAttackerName(c, *o)] {
 						carrier = i
 					}
 				} else if other < 0 {
@@ -66,6 +87,9 @@ func kaloneblockPolicy(seed uint64, st *kaloneblockStats) Policy {
 					st.carrierAttacks++
 				} else {
 					st.carrierBlocks++
+					if kaloneblockLimited[gorgeAttackerName(c, c.D.Options[carrier])] {
+						st.limitedBlocks++
+					}
 				}
 				return c.D.Options[carrier]
 			case other >= 0:
@@ -96,9 +120,25 @@ func gorgeOptionName(c *PickCtx, a Canon) string {
 	return ""
 }
 
+// gorgeAttackerName is the name of the attacker a canonical block option
+// names.
+func gorgeAttackerName(c *PickCtx, a Canon) string {
+	if c.G == nil {
+		return ""
+	}
+	o, ok := c.G.GorgeOption(a)
+	if !ok || o.Attacker == 0 {
+		return ""
+	}
+	if ob := c.G.E.G.Obj(o.Attacker); ob != nil && ob.Face() != nil {
+		return ob.Face().Name
+	}
+	return ""
+}
+
 // runAloneBlock plays seeds of the constructed matchup. mutate sets
 // DebugAloneBlkOff (the mutation must diverge).
-func runAloneBlock(t *testing.T, seeds int, mutate bool) *kaloneblockStats {
+func runAloneBlock(t *testing.T, decksIn [2][]cardset.Entry, seeds int, mutate bool) *kaloneblockStats {
 	t.Helper()
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
@@ -125,7 +165,7 @@ func runAloneBlock(t *testing.T, seeds int, mutate bool) *kaloneblockStats {
 	defer func() { dirac.DebugAloneBlkOff = old }()
 	st := &kaloneblockStats{}
 	var decks [2][]*cards.Card
-	for s, d := range kaloneblockDecks {
+	for s, d := range decksIn {
 		for _, e := range d {
 			c, ok := reg.Lookup(e.Name)
 			if !ok {
@@ -139,7 +179,7 @@ func runAloneBlock(t *testing.T, seeds int, mutate bool) *kaloneblockStats {
 			t.Fatalf("deck %d: %d cards", s, len(decks[s]))
 		}
 	}
-	tbl, _, _, err := set.Matchup(kaloneblockDecks[0], kaloneblockDecks[1])
+	tbl, _, _, err := set.Matchup(decksIn[0], decksIn[1])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +222,7 @@ func TestAloneBlockLockstep(t *testing.T) {
 	if isolate(t) {
 		return
 	}
-	st := runAloneBlock(t, 128, false)
+	st := runAloneBlock(t, kaloneblockDecks, 128, false)
 	t.Logf("%d games, %d divergences, %d stalls, carrier attacks %d, carrier blocks %d",
 		st.games, st.divs, st.stalls, st.carrierAttacks, st.carrierBlocks)
 	if st.divs != 0 || st.stalls != 0 {
@@ -201,9 +241,28 @@ func TestAloneBlockMutation(t *testing.T) {
 	if isolate(t) {
 		return
 	}
-	st := runAloneBlock(t, 64, true)
+	st := runAloneBlock(t, kaloneblockDecks, 64, true)
 	if st.divs == 0 {
 		t.Fatalf("mutation let restricted creatures block alone in %d games with no divergence", st.games)
 	}
 	t.Logf("mutation diverged in %d of %d games", st.divs, st.games)
+}
+
+// TestAloneBlockJointLockstep plays the carriers against Viashino Runner and
+// Safewright Cavalry: a carrier's partner must stay legal with the carrier's
+// own block counted (a capped attacker takes no second blocker, a menace
+// floor needs a blocker the carrier did not use).
+func TestAloneBlockJointLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	st := runAloneBlock(t, kaloneblockJointDecks, 128, false)
+	t.Logf("%d games, %d divergences, %d stalls, carrier attacks %d, carrier blocks %d, on limited attackers %d",
+		st.games, st.divs, st.stalls, st.carrierAttacks, st.carrierBlocks, st.limitedBlocks)
+	if st.divs != 0 || st.stalls != 0 {
+		t.Fatalf("%d divergences, %d stalls", st.divs, st.stalls)
+	}
+	if st.limitedBlocks < 10 {
+		t.Errorf("only %d carrier blocks on a limited attacker", st.limitedBlocks)
+	}
 }

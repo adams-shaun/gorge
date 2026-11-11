@@ -1,6 +1,8 @@
 # the can't-attack-or-block-alone pool: Bonded Horncrest (the compound
 # keyword) and Craven Hulk (block-alone only) beside plain creatures and burn
-# that kills partners, for the constructed lockstep in
+# that kills partners, and a menace-like (Viashino Runner) and a
+# can't-be-blocked-by-more-than-one (Safewright Cavalry) attacker whose
+# limits interact with a carrier's partner, for the constructed lockstep in
 # dirac/oracle/aloneblock_test.go
 Bonded Horncrest
 Craven Hulk
@@ -8,4 +10,6 @@ Forest
 Grizzly Bears
 Hill Giant
 Mountain
+Safewright Cavalry
 Shock
+Viashino Runner

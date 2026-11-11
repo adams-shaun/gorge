@@ -131,6 +131,13 @@ type mbSearch struct {
 	best  int               // best valid score so far, -1 none
 	nodes int
 	over  bool // past mbBudget
+	// CR 506.5 (combat_alone.go): a completion with one blocker that can't
+	// block alone is not valid.
+	alone  [MaxPerm]bool // by blocker index: bl[i] can't block alone
+	nBlk   int           // blockers declared so far (xb included)
+	nBlkR  int           // of them, those that can't block alone
+	added  int           // free blockers the search has assigned
+	addedR int           // of them, those that can't block alone
 }
 
 // mbInit loads the search from the declaration so far with the extra block
@@ -155,6 +162,12 @@ func (m *mbSearch) mbInit(s *State, k *prep, lure, mb, duty slotMask, xb, xa Slo
 		if p := &s.perms[b]; p.flags&pfBlocking != 0 && (m.lure.has(p.blocking) || m.duty.has(b)) {
 			score++ // a lure duty blocker blocking a lure attacker, or a duty blocker blocking
 		}
+		if p := &s.perms[b]; p.flags&pfBlocking != 0 || b == xb {
+			m.nBlk++
+			if s.aloneBlk(k, b) {
+				m.nBlkR++
+			}
+		}
 		if b == xb || !s.blockerReady(k, b) {
 			continue
 		}
@@ -165,7 +178,7 @@ func (m *mbSearch) mbInit(s *State, k *prep, lure, mb, duty slotMask, xb, xa Slo
 				m.last[a] = m.nb
 			}
 		}
-		m.bl[m.nb], m.able[m.nb] = b, able
+		m.bl[m.nb], m.able[m.nb], m.alone[m.nb] = b, able, s.aloneBlk(k, b)
 		m.nb++
 	}
 	if xa != NoSlot {
@@ -247,7 +260,7 @@ func (m *mbSearch) dfs(i, score, deficit int) bool {
 		return false
 	}
 	if i == m.nb {
-		if deficit == 0 && score > m.best {
+		if deficit == 0 && score > m.best && !m.loneAlone() {
 			m.best = score
 			return m.want >= 0 && score >= m.want
 		}
@@ -263,7 +276,9 @@ func (m *mbSearch) dfs(i, score, deficit int) bool {
 			}
 			d := deficit - m.owed(a, int(m.cnt[a])) + m.owed(a, int(m.cnt[a])+1)
 			m.cnt[a]++
+			m.assign(i, 1)
 			done := m.dfs(i+1, score+g, d)
+			m.assign(i, -1)
 			m.cnt[a]--
 			if done {
 				return true
@@ -271,6 +286,19 @@ func (m *mbSearch) dfs(i, score, deficit int) bool {
 		}
 	}
 	return m.dfs(i+1, score, deficit)
+}
+
+// assign counts bl[i] in (by +1) or out of (by -1) the completion.
+func (m *mbSearch) assign(i, by int) {
+	m.added += by
+	if m.alone[i] {
+		m.addedR += by
+	}
+}
+
+// loneAlone: the completion has one blocker and it can't block alone.
+func (m *mbSearch) loneAlone() bool {
+	return m.nBlk+m.added == 1 && m.nBlkR+m.addedR == 1
 }
 
 // mbReach is the most requirements a valid completion of the declaration
@@ -306,7 +334,7 @@ func (s *State) blockerOptionsReq(k *prep, d *Decision, mb slotMask) bool {
 		}
 		for am := s.blockAtkM(k); am.any(); am = am.rest() {
 			a := am.first()
-			if !s.aloneBlockOfferable(k, b) || s.perms[a].flags&pfAttacking == 0 || !s.canBlock(k, b, a) || s.menaceImpossible(k, a) ||
+			if !s.aloneBlockOfferable(k, b, a) || s.perms[a].flags&pfAttacking == 0 || !s.canBlock(k, b, a) || s.menaceImpossible(k, a) ||
 				k.gen.anyMaxBlk && s.blockCapped(k, a) || s.mbReach(k, lure, mb, duty, b, a, q, &over) < q {
 				continue
 			}
@@ -325,9 +353,7 @@ func (s *State) blockerOptionsReq(k *prep, d *Decision, mb slotMask) bool {
 	if s.menaceDeficit(k, NoSlot, NoSlot, nil) == 0 && s.blocksCompletable(k, NoSlot, NoSlot) && !s.loneAloneBlocker(k) {
 		var m mbSearch
 		cur, _ := m.mbInit(s, k, lure, mb, duty, NoSlot, NoSlot)
-		// an alone-block fence can drop every pair mbReach counted toward q
-		// (it does not read CR 506.5): the declaration then closes as it is.
-		if cur >= q || DebugMustBlockGreedy && cur >= 1 || k.gen.anyAloneBlk && d.N == 0 {
+		if cur >= q || DebugMustBlockGreedy && cur >= 1 {
 			d.add(MakeAction(AkDone, 0, 0, 0))
 		}
 	}

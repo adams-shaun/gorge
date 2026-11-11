@@ -623,7 +623,7 @@ func (s *State) blockerOptions(k *prep, d *Decision) bool {
 		for am.any() {
 			a := am.first()
 			am = am.rest()
-			if s.aloneBlockOfferable(k, b) && s.perms[a].flags&pfAttacking != 0 && s.canBlock(k, b, a) && !s.menaceImpossible(k, a) &&
+			if s.aloneBlockOfferable(k, b, a) && s.perms[a].flags&pfAttacking != 0 && s.canBlock(k, b, a) && !s.menaceImpossible(k, a) &&
 				s.blocksCompletable(k, b, a) && !(k.gen != nil && k.gen.anyMaxBlk && s.blockCapped(k, a)) {
 				if int(d.N) >= MaxOptions-1 { // keep room for Done
 					return s.optionsFull(d)
@@ -674,6 +674,11 @@ func (s *State) minBlockers(k *prep, a Slot) int {
 // its minimum (menace's two, a MinMaxBlocker Min$) with the extra block
 // (xb blocks xa) added, and returns how many are missing.
 func (s *State) menaceDeficit(k *prep, xb, xa Slot, out *[MaxPerm]Slot) int {
+	return s.menaceDeficit2(k, xa, NoSlot, out)
+}
+
+// menaceDeficit2 is menaceDeficit with two extra blocks, on xa and ya.
+func (s *State) menaceDeficit2(k *prep, xa, ya Slot, out *[MaxPerm]Slot) int {
 	n := 0
 	for am := s.ctrlM[s.active]; am.any(); am = am.rest() {
 		a := am.first()
@@ -683,6 +688,9 @@ func (s *State) menaceDeficit(k *prep, xb, xa Slot, out *[MaxPerm]Slot) int {
 		}
 		nb := int(ap.nblock)
 		if a == xa {
+			nb++
+		}
+		if a == ya {
 			nb++
 		}
 		if nb == 0 {
@@ -708,8 +716,14 @@ func (s *State) menaceDeficit(k *prep, xb, xa Slot, out *[MaxPerm]Slot) int {
 // gorge's KBlockers offers only completable picks, and Done only once the
 // declaration is valid.
 func (s *State) blocksCompletable(k *prep, xb, xa Slot) bool {
+	return s.blocksCompletable2(k, xb, xa, NoSlot, NoSlot)
+}
+
+// blocksCompletable2 is blocksCompletable with two extra blocks (xb blocks
+// xa, yb blocks ya; NoSlot for none).
+func (s *State) blocksCompletable2(k *prep, xb, xa, yb, ya Slot) bool {
 	var def [MaxPerm]Slot
-	nd := s.menaceDeficit(k, xb, xa, &def)
+	nd := s.menaceDeficit2(k, xa, ya, &def)
 	if nd == 0 {
 		return true
 	}
@@ -717,7 +731,7 @@ func (s *State) blocksCompletable(k *prep, xb, xa Slot) bool {
 	nf := 0
 	for bm := s.ctrlM[s.blockDef()]; bm.any(); bm = bm.rest() {
 		b := bm.first()
-		if b != xb && s.blockerReady(k, b) {
+		if b != xb && b != yb && s.blockerReady(k, b) {
 			free[nf] = b
 			nf++
 		}
