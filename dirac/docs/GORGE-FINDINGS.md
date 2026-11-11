@@ -244,6 +244,12 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   cleanup-step priority after a legend-rule ask is NOT followed (finishCleanupStep
   returns early on the pending ask and the step then ends); no pool reaches it.
 
+- A prevent-the-next-N shield (Healing Salve, Combat Medic; `effPreventDamage`) is
+  registered for the recipient's object, so a creature that leaves the
+  battlefield and returns the same turn keeps it (CR 400.7: it is a new object).
+  dirac keys its record by the same object code (dirac/repl_prevnext.go) and
+  copies that.
+
 ## Still open
 
 - Two or more "can't be countered" replacements matching one Counter event
@@ -362,3 +368,15 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   `getPermanentOrLKIBattlefield` (read, not run); Forge's `TriggerSacrificedOnce` matches its `Cards` run parameter
   (read, not run; whether that is a last-known copy wasn't traced). Gorge's matcher wasn't traced or patched, so
   the cause is unconfirmed. std-blb 435 and 448 also name Camellia but diverge on the stack count and weren't read.
+- A prevent-the-next-N shield (dirac/repl_prevnext.go, Ext PreventNext) and any
+  other damage replacement that would be a candidate for the same event (a
+  colour or scope prevention, a SHIELD counter, a printed prevention, a
+  doubler, a plus-N, a prevent-and-mill or self-damage replacement, a damage
+  mark): gorge asks the CR 616.1 order and the order changes what is
+  prevented and what is left of the shield. dirac stalls with StallPrevNext
+  (loud, never a silent divergence). Two or more shields on one recipient are
+  modelled (the ask is posed and each pick applied as made) in `damageTo` and in
+  a combat damage pass; the other damage sites (a damage sweep, a batch of
+  recipients, fights) stall on them. Three prevention records a
+  turn of any kind (the shield, colour and scope records share
+  `genState.prevCol`), a fourth is the capacity stall StallPrevCol.
