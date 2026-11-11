@@ -614,10 +614,13 @@ func (e *Engine) appendAvailableManaAbilitiesGateCompute(out []*cards.SA, static
 			// controller whose bot policy prefers activating mana over passing
 			// looped on it forever (a zero-production source whose use never
 			// advances any cast). Both limits are checked through the one shared
-			// gate, with the printed identity (flat pile index, no SVar).
+			// gate, with the printed identity (flat pile index, no SVar). An
+			// Exhaust$ mana ability (Loot, the Pathfinder's three of one
+			// colour) is once per object too (CR 702.177a): once used it makes
+			// no potential mana, so it funds no offer.
 			if mf != nil && mf.noLimit {
 				// Neither limit parameter: nothing to check.
-			} else if _, limited := ma.Param(cards.PKActivationLimit); limited || ma.ParamStr(cards.PKGameActivationLimit) != "" {
+			} else if _, limited := ma.Param(cards.PKActivationLimit); limited || ma.ParamStr(cards.PKGameActivationLimit) != "" || ma.ExhaustValue() {
 				idx, merged, found := pileAbilityRefOf(o, ma)
 				if found && e.activationLimitBlocked(p, id, ma, idx, "", merged) {
 					continue
@@ -1499,8 +1502,10 @@ func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.Ob
 	// attribution, so an ability that carries EITHER limit records its
 	// activation here (events.ManaActivate's own comment). Emitted only for a
 	// limit-bearing ability so no existing game's log shape changes.
+	// An Exhaust$ mana ability is once per object (CR 702.177a) and records
+	// its activation the same way.
 	if _, limited := original.Param(cards.PKActivationLimit); limited || original.ParamStr(cards.PKGameActivationLimit) != "" ||
-		pay.ChainGatesOnActivationCount(original) {
+		original.ExhaustValue() || pay.ChainGatesOnActivationCount(original) {
 		// The flat pile index (top face first, then under-cards) is the SAME
 		// identity availableManaAbilitiesUsing's limit gate checks, so an
 		// under-card mana ability's census cannot be counted against a

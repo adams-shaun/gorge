@@ -72,7 +72,7 @@ func (s *State) tokCopyActive(k *prep, p uint8) (n int, host Slot) {
 // adders na). It poses the election and parks the op, or stalls.
 func (s *State) tokCopyOp(k *prep, in *kop.Instr, p uint8, tok CardID, n, nCopy int, host Slot, nOther, na int) (tc CardID, cnt int, ok, parked bool) {
 	ro := &s.g.ro
-	if nCopy > 1 || nOther > 0 || na > 0 || in.Op != kop.OpCreateToken || in.B.N != 0 || n > 255 ||
+	if nCopy > 1 || nOther > 0 || na > 0 || !tokCopyRiders(in) || n > 255 ||
 		ro.n > 0 || ro.on || ro.nca || s.g.nc.n > 0 || s.tokCopyHostStalls(k, host) {
 		s.capFull(StallTokRewrite)
 		return tok, 0, false, false
@@ -81,6 +81,22 @@ func (s *State) tokCopyOp(k *prep, in *kop.Instr, p uint8, tok CardID, n, nCopy 
 	s.g.tok.cand[3] = s.perms[host].obj
 	s.res.ask, s.res.askP = raGenTokCopy, p
 	return tok, 0, true, true
+}
+
+// tokCopyRiders reports whether the creation's riders are ones the copy takes
+// as a plain mint does (gorge applyTokenMintRiders lands every rider on each
+// token the replaced plan mints, the copy included): enters tapped, haste
+// until end of turn, remembered or imprinted, counted, and the end-step
+// sacrifice or exile. A comma-listed script, a Role mint and a token that
+// enters attacking stay unmodelled.
+func tokCopyRiders(in *kop.Instr) bool {
+	switch in.Op {
+	case kop.OpCreateToken:
+		return in.B.N&^(kop.TrTapped|kop.TrHasteEOT) == 0
+	case kop.OpCreateTokenEx:
+		return in.B.N&(kop.TokAttach|kop.TokAttacking|kop.TokAttackAsk) == 0
+	}
+	return false
 }
 
 // tokCopyHostStalls reports a host whose copy the kernel cannot enter at once:
@@ -113,9 +129,9 @@ func (s *State) tokCopyAnswer(k *prep, a Action) {
 }
 
 // mintTokenCopy makes one token under p that is a copy of the permanent host
-// (a copy minted as an untapped, non-attacking token: copyTokenEnterFrom).
+// with the creation in's riders (tokCopyRiders; copyTokenEnterFrom).
 // True when the board is full (a stall).
-func (s *State) mintTokenCopy(k *prep, p uint8, host Obj) bool {
+func (s *State) mintTokenCopy(k *prep, in *kop.Instr, p uint8, host Obj) bool {
 	if s.nearCapacity(k) {
 		s.stall(StallBoard)
 		return true
@@ -123,10 +139,32 @@ func (s *State) mintTokenCopy(k *prep, p uint8, host Obj) bool {
 	sl := s.objs[host].slot
 	t := s.newToken(s.cardAt(sl), p)
 	s.objs[t].of |= ofCopy
+	var cp kop.Instr
+	if in.Op == kop.OpCreateToken && in.B.N&kop.TrTapped != 0 || in.Op == kop.OpCreateTokenEx && in.B.N&kop.TokTapped != 0 {
+		cp.B.N = kop.CpTapped
+	}
+	if in.Op == kop.OpCreateTokenEx {
+		s.g.tokMade++
+		if in.B.N&kop.TokRememberObj != 0 {
+			s.remember(t)
+		}
+		if in.B.N&kop.TokImprintObj != 0 {
+			s.imprint(t) // zone_imprint.go
+		}
+	}
 	e := &s.res.e
 	was := e.ctrl
 	e.ctrl = p
-	s.copyTokenEnterFrom(k, &kop.Instr{}, t, NoSlot, sl, nil)
+	s.copyTokenEnterFrom(k, &cp, t, NoSlot, sl, nil)
 	e.ctrl = was
+	if in.Op == kop.OpCreateTokenEx && in.B.N&(kop.TokSacAtEnd|kop.TokExileAtEnd) != 0 {
+		s.tokenAtEOT(in, t)
+	}
+	if nsl := s.objs[t].slot; in.Op == kop.OpCreateToken && in.B.N&kop.TrHasteEOT != 0 && s.objs[t].zone == kop.ZoneBattlefield {
+		s.perms[nsl].eotKw |= kop.KwHaste
+		s.touchSl(nsl)
+		s.promoKw(k, nsl, kop.KwHaste)
+	}
+	s.res.lastTok = t
 	return false
 }

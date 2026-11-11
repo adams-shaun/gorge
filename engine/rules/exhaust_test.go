@@ -96,3 +96,40 @@ func TestExhaustMaiJadedEdgeWithheldAfterOneUse(t *testing.T) {
 		t.Fatalf("Mai exhaust ability re-offered: %+v", e.Pending().Options)
 	}
 }
+
+// An exhaust mana ability (CR 702.177a) is offered once: its activation is
+// counted like an ActivationLimit$ one, so a second use is withheld though
+// the pool still pays its fee, and its mana no longer counts as potential.
+func TestExhaustManaAbilityWithheldAfterOneUse(t *testing.T) {
+	t.Parallel()
+	const src = "Name:ExhaustPrism\nManaCost:0\nTypes:Artifact\n" +
+		"A:AB$ Mana | Cost$ 1 | Produced$ W | Amount$ 3 | Exhaust$ True | SpellDescription$ Add three white mana, once.\nOracle:x\n"
+	e, _, id := newFixtureDeck(t, 11, src)
+	moveByName(t, e, 0, "ExhaustPrism", state.ZBattlefield)
+	exhaustBattlefield(t, e, id)
+	addMana(t, e, 0, "CC")
+	exhaustPriorityAtSeatZero(t, e)
+	manaOpt := func() (decision.Option, bool) {
+		for _, o := range e.Pending().Options {
+			if o.Kind == "activate" && o.Obj == id {
+				return o, true
+			}
+		}
+		return decision.Option{}, false
+	}
+	opt, ok := manaOpt()
+	if !ok {
+		t.Fatalf("exhaust mana ability not offered: %+v", e.Pending().Options)
+	}
+	submitChoices(t, e, opt.Index)
+	if got := e.G.Players[0].Pool.Total(); got != 4 {
+		t.Fatalf("pool after one activation = %d, want 4 (C + WWW)", got)
+	}
+	exhaustPriorityAtSeatZero(t, e)
+	if _, ok := manaOpt(); ok {
+		t.Fatalf("exhaust mana ability offered twice: %+v", e.Pending().Options)
+	}
+	if pot := e.PotentialMana(0); pot.Total() > e.G.Players[0].Pool.Total() {
+		t.Fatalf("a used exhaust mana ability still counts as potential mana: %+v", pot)
+	}
+}
