@@ -215,8 +215,10 @@ import (
 // +8 (a reflected TapsForMana body over every land: the cards listed at ratchet_test.go's ALL pin; ALL build-level 22097 -> 22105).
 // +3 (lt-low-tappower-station: the three TapPowerValue statics build; ALL build-level 22092 -> 22095).
 // +3 (the merge with land: the same three statics beside land's 22114; merged ALL build-level 22114 -> 22117).
+// +3 (an Effect's trigger bound to a remembered set: the cards listed at ratchet_test.go's ALL pin; ALL build-level 22145 -> 22148).
+// +2 (the optional copy-instead CreateToken replacement: the cards listed at ratchet_test.go's ALL pin; ALL build-level 22149 -> 22151).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22146, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22171, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

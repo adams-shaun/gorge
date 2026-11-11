@@ -74,6 +74,12 @@ type Static struct {
 	// grant costs each card's mana cost. A StatWarpGrant's warp cost
 	// (AddKeyword$ Warp:2 R, Tannuk, Steadfast Second).
 	GrantCost ManaCost
+	// ProtFrom: a StatContinuous grant of protection from a quality, besides
+	// its other parts: the affected objects have protection from the sources
+	// this filter matches (CR 702.16; the grant's AddKeyword$ Protection:
+	// <spec>, Sword of Wealth and Power's instants and sorceries). 0 = none.
+	// The granted read is armed by genPrep.anyProtGrant (kernel kw_protection.go prepProtGrant); anyProtF opens the target, block and attach sites.
+	ProtFrom FilterID
 }
 
 // Override is a fixed-order override record (the plan's replacement for a
@@ -214,6 +220,37 @@ type Emblem struct {
 	// triggers apply to nothing. Without it the capture names the object
 	// across zone changes (gorge matches the object, not a version).
 	CaptureLapse bool
+	// NumAmount: the emblem's frozen number (State.g.embN, evaluated by
+	// OpCreateEmblem's A) rides each of its triggers as the trigger amount, so
+	// a body reading VTriggerAmount reads it (The Eagles Are Coming!: the
+	// count the Effect's RememberObjects$ Remembered held, which the delayed
+	// trigger reads back as Remembered$Amount).
+	NumAmount bool
+	// Once: the emblem is dropped after its trigger first fires (the
+	// trigger's OneOff$ True: gorge's one-shot delayed trigger).
+	Once bool
+	// Capture2: a second remembered object, the second target slot of an
+	// Effect remembering both (T'Pring, Never Parted: RememberObjects$
+	// Targeted over the two fighters). The emblem's dies trigger fires for
+	// either (State.g.embN and g.embR hold the two, object + 1).
+	Capture2 Ref
+	// CaptureRem: the emblem remembers the resolution's whole remembered set,
+	// up to the four the emblem's slots hold (Mysterio, Master of
+	// Illusion's tokens: RememberObjects$ RememberedLKI), and a fifth stalls
+	// StallEmbRem. With CaptureLapse an object leaving the battlefield
+	// drops out of the set (ForgetOnMoved$ Battlefield).
+	CaptureRem bool
+	// Source: the emblem's leave or dies trigger is the creating card's own
+	// (ValidCard$ Card.EffectSource): it fires only for the object that made
+	// the emblem (State.g.embO), which keeps its id across zones.
+	Source bool
+	// NotHere: the emblem is made only when its host is not on the battlefield
+	// (an Effect registered by a permanent that is there ends with the
+	// incarnation on the battlefield at registration: gorge's delayedRegistrationLive reads SourceBattlefield, so
+	// a host-leaves trigger of such a registration never fires; one made with
+	// the host already gone is unbounded and fires when the object leaves
+	// again).
+	NotHere bool
 }
 
 // HostBound reports whether the emblem's lifetime follows its host object:

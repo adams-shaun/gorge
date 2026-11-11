@@ -319,8 +319,11 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			was := s.perms[sl].flags & pfTapped
 			s.perms[sl].flags |= pfTapped
 			s.touchSl(sl)
-			if was == 0 && k.gen != nil && s.subs[kop.TrigTaps].any() {
-				s.fireTapsBy(k, sl, s.effTapper(sl))
+			if was == 0 {
+				if k.gen != nil && s.subs[kop.TrigTaps].any() {
+					s.fireTapsBy(k, sl, s.effTapper(sl))
+				}
+				s.markTapped(k, sl) // only a tap that happens marks
 			}
 		}
 	case kop.OpUntap:

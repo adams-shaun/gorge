@@ -142,6 +142,9 @@ func (s *State) filtUnits(k *prep, sl Slot) int {
 		}
 		return n // an all-at-once filter's whole vector (mana_filtereach.go)
 	}
+	if a.AFlags&kop.AfManaChoice == 0 {
+		return int(max(a.ManaN, 1)) // a pip-fee filter's N of its one chosen colour
+	}
 	return 1
 }
 
@@ -524,6 +527,20 @@ func (s *State) filtOnly(k *prep, p uint8) bool {
 // not fund it (mana_deferred.go).
 func (s *State) gapOthers(k *prep, p uint8) slotMask {
 	m := s.gapMask(k, p, gfGapOther)
+	if k.ctrMana && m.any() {
+		// A counter-cost source with too few counters to remove (Ramos,
+		// Dragon Engine with one +1/+1 counter) cannot be activated either:
+		// gorge's census lists no ability of it, so a filter beside it is
+		// still a filter-only board.
+		live := s.scriptCtr(k, p)
+		for b := m; b.any(); b = b.rest() {
+			sl := b.first()
+			c := s.cardAt(sl)
+			if k.ctrAbOf(c) != nil && int(k.ctrAb[c]) == int(k.gen.gapOther(c)) && !live.has(sl) {
+				m = m.without(sl)
+			}
+		}
+	}
 	if !k.tapMana {
 		return m
 	}
@@ -584,9 +601,15 @@ type filtSearch struct {
 	p     uint8
 	gaps  slotMask // the root census's filter gaps
 	other slotMask // its gaps that are no filter (otherGap)
-	fees  int      // the funding the search may activate
-	own   Slot     // the source whose {T} is the play's own cost (NoSlot: none)
-	sp0   uint8    // the stack at the root: only a deeper one is the path's to resolve
+	// dead: the gaps gapSpendableMask dropped. Neither gaps nor funding
+	// sources: their mana is restricted away from the play, and a funding
+	// tap of one floats only that restricted mana, which pays no fee the
+	// restriction refuses (CR 106.6), as the grant search's dropped holders
+	// fund nothing (grantSrch.candidates).
+	dead  slotMask
+	fees  int   // the funding the search may activate
+	own   Slot  // the source whose {T} is the play's own cost (NoSlot: none)
+	sp0   uint8 // the stack at the root: only a deeper one is the path's to resolve
 	nodes int
 	nseen int
 	seen  [potentialScriptNodes]filtKey
@@ -626,6 +649,16 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 			fs.fees += s.filtFee(k, b.first())
 		}
 	}
+	hadOther := fs.other.any() // a dropped gap still asks for the dead-end check
+	if gapFilteredPlay(a) && (fs.gaps.any() || fs.other.any()) {
+		d := s.grantPayDesc(k, a)
+		g0, o0 := fs.gaps, fs.other
+		fs.gaps, fs.other = s.gapSpendableMask(k, fs.gaps, &d), s.gapSpendableMask(k, fs.other, &d)
+		fs.dead = g0.andNot(fs.gaps).or(o0.andNot(fs.other))
+		if !fs.gaps.any() && !fs.other.any() {
+			return false
+		}
+	}
 	t := s.fork()
 	defer s.unfork()
 	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
@@ -635,7 +668,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	if fs.spill != 0 {
 		s.capFull(fs.spill) // (the fork the step ran on latched it; the real state must)
 	}
-	if !apply && (k.restrSrc || fs.other.any()) && s.filtDeadEnd(k, p, a, &fs) {
+	if !apply && (k.restrSrc || hadOther) && s.filtDeadEnd(k, p, a, &fs) {
 		return false
 	}
 	if apply {
@@ -830,7 +863,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		}
 		for i := 0; i < n; i++ {
 			sl := order[i]
-			if (fs.gaps.has(sl) || fs.other.has(sl)) != gap || sl == fs.own {
+			if (fs.gaps.has(sl) || fs.other.has(sl)) != gap || sl == fs.own || fs.dead.has(sl) {
 				continue // (tapped for mana, the play's source could not pay its own {T}: CR 602.2b)
 			}
 			if gap && fs.other.has(sl) {
@@ -1054,6 +1087,54 @@ func (fs *filtSearch) filtCombo(k *prep, t *State, sl Slot, funded int) bool {
 			if fs.try(k, t, st, funded, true) {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+// gapFilteredPlay: play a is one whose prefix search keeps only the gaps
+// its payment can spend (gorge scriptSpendableGaps): a plain cast of the
+// printed cost, or an activation.
+func gapFilteredPlay(a Action) bool {
+	return a.Kind() == AkActivate || a.Kind() == AkCast && a.Mode() == 0
+}
+
+// gapSpendableMask drops from m each source whose every mana ability, printed
+// or granted, carries a spend restriction payment d refuses (CR 106.6):
+// gorge's prefix search (scriptSpendableGaps) never activates such a gap for
+// the play, since it can only float mana the payment may not spend.
+func (s *State) gapSpendableMask(k *prep, m slotMask, d *payDesc) slotMask {
+	out := m
+	for b := m; b.any(); b = b.rest() {
+		if sl := b.first(); !s.gapSpendable(k, sl, d) {
+			out = out.andNot(slotMask{}.with(sl))
+		}
+	}
+	return out
+}
+
+// gapSpendable: some mana ability of the source at sl, printed or granted,
+// is unrestricted or admits payment d (gorge gapSpendableFor's walk of the
+// census's own membership, which reads every mana ability).
+func (s *State) gapSpendable(k *prep, sl Slot, d *payDesc) bool {
+	p := s.perms[sl].ctrl
+	if !s.genLost(k, sl) {
+		cd := &k.t.Cards[s.cardAt(sl)]
+		for j := range cd.Abilities {
+			if a := &cd.Abilities[j]; a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 &&
+				(a.ManaRestrict == 0 || s.restrSrcAdmits(k, p, sl, a, d)) {
+				return true
+			}
+		}
+	}
+	if k.gen == nil || len(k.gen.grantPC) == 0 {
+		return false
+	}
+	var gi [maxGrants]int16
+	for i, n := 0, s.grantIdxs(k, sl, &gi); i < n; i++ {
+		r := k.gen.grantOf[gi[i]]
+		if k.gen.grantRestr[gi[i]] == 0 || s.restrSrcAdmits(k, p, sl, &k.t.Cards[r.card].Abilities[r.ab], d) {
+			return true
 		}
 	}
 	return false

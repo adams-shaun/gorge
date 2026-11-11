@@ -762,6 +762,13 @@ func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slo
 			if t.affords(cost, pipMaskOf(cost), 0) {
 				return true
 			}
+			// the floating restricted batches and the restricted sources
+			// pay together, as the cast window counts them (castAffordsR):
+			// Helga's floating creature mana beside Oakhollow Village's
+			// creature-only {G} (CR 106.6)
+			if k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, p&1, d, cost, &t, ex, 0) {
+				return true
+			}
 		}
 	}
 	return false

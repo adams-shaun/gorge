@@ -53,7 +53,7 @@ func init() {
 		"kop.RefHost", kop.RefHost, "kop.RefTargetSlot", kop.RefTargetSlot, "kop.RefTargets01", kop.RefTargets01,
 		"kop.RefTargets012", kop.RefTargets012, "kop.RefTargets12", kop.RefTargets12, "kop.RefTargets0123", kop.RefTargets0123,
 		"kop.RefRememberedController", kop.RefRememberedController, "kop.RefDiscarded", kop.RefDiscarded, "kop.RefTgtCtrl1", kop.RefTgtCtrl1, "kop.RefTgtCtrl2", kop.RefTgtCtrl2, "kop.RefLibTop", kop.RefLibTop,
-		"kop.RefOppNonRemCtrl", kop.RefOppNonRemCtrl, "kop.RefSrcOwner", kop.RefSrcOwner, "kop.RefTriggerAttackers", kop.RefTriggerAttackers,
+		"kop.RefOppNonRemCtrl", kop.RefOppNonRemCtrl, "kop.RefSrcOwner", kop.RefSrcOwner, "kop.RefPromised", kop.RefPromised, "kop.RefTriggerAttackers", kop.RefTriggerAttackers,
 		"kop.RefRememberedOwner", kop.RefRememberedOwner, "kop.RefImprinted", kop.RefImprinted, "kop.RefTriggerTgtCtrl", kop.RefTriggerTgtCtrl)
 	enum[kop.VKind]("kop.VConst", kop.VConst, "kop.VX", kop.VX, "kop.VCountFilter", kop.VCountFilter,
 		"kop.VLastDamage", kop.VLastDamage, "kop.VTargetPower", kop.VTargetPower, "kop.VSelfPower", kop.VSelfPower,
@@ -91,7 +91,7 @@ func init() {
 		"kop.ReplDoubleCountersOn", kop.ReplDoubleCountersOn, "kop.ReplAddCountersOn", kop.ReplAddCountersOn, "kop.ReplOnePoison", kop.ReplOnePoison, "kop.ReplDoubleCountersYou", kop.ReplDoubleCountersYou,
 		"kop.ReplOthersDoesntUntap", kop.ReplOthersDoesntUntap, "kop.ReplLifeDouble", kop.ReplLifeDouble, "kop.ReplLifeLossDouble", kop.ReplLifeLossDouble,
 		"kop.ReplLifePlus", kop.ReplLifePlus, "kop.ReplTurnUpProgram", kop.ReplTurnUpProgram, "kop.ReplCantTurnUp", kop.ReplCantTurnUp,
-		"kop.ReplSpellsCantBeCountered", kop.ReplSpellsCantBeCountered, "kop.ReplAnyUntap", kop.ReplAnyUntap, "kop.ReplDrawMore", kop.ReplDrawMore, "kop.ReplRewriteTokens", kop.ReplRewriteTokens, "kop.ReplMayNotUntap", kop.ReplMayNotUntap, "kop.ReplDestroyHeal", kop.ReplDestroyHeal, "kop.ReplDiscardOppToBattlefield", kop.ReplDiscardOppToBattlefield, "kop.ReplPreventMillOpps", kop.ReplPreventMillOpps, "kop.ReplAddToken", kop.ReplAddToken, "kop.ReplPreventDamageCounters", kop.ReplPreventDamageCounters, "kop.ReplDamageHealFirst", kop.ReplDamageHealFirst)
+		"kop.ReplSpellsCantBeCountered", kop.ReplSpellsCantBeCountered, "kop.ReplAnyUntap", kop.ReplAnyUntap, "kop.ReplDrawMore", kop.ReplDrawMore, "kop.ReplRewriteTokens", kop.ReplRewriteTokens, "kop.ReplMayNotUntap", kop.ReplMayNotUntap, "kop.ReplDestroyHeal", kop.ReplDestroyHeal, "kop.ReplDiscardOppToBattlefield", kop.ReplDiscardOppToBattlefield, "kop.ReplPreventMillOpps", kop.ReplPreventMillOpps, "kop.ReplAddToken", kop.ReplAddToken, "kop.ReplPreventDamageCounters", kop.ReplPreventDamageCounters, "kop.ReplDamageHealFirst", kop.ReplDamageHealFirst, "kop.ReplCopyFirstToken", kop.ReplCopyFirstToken)
 	enum[kop.AbilityKind]("kop.AbSpell", kop.AbSpell, "kop.AbActivated", kop.AbActivated, "kop.AbMana", kop.AbMana,
 		"kop.AbTriggered", kop.AbTriggered, "kop.AbStatic", kop.AbStatic, "kop.AbReplacement", kop.AbReplacement,
 		"kop.AbAltCost", kop.AbAltCost)
@@ -141,12 +141,12 @@ func init() {
 		"kop.ExHighestOppPoison", kop.ExHighestOppPoison, "kop.ExThisTurnEntered", kop.ExThisTurnEntered,
 		"kop.ExThisTurnCastSpec", kop.ExThisTurnCastSpec, "kop.ExCommittedCrime", kop.ExCommittedCrime,
 		"kop.ExSelfPrepared", kop.ExSelfPrepared, "kop.ExThisTurnActGrave", kop.ExThisTurnActGrave, "kop.ExSneaked", kop.ExSneaked, "kop.ExTriggerSpellMVLKI", kop.ExTriggerSpellMVLKI,
-		"kop.ExPoisonOf", kop.ExPoisonOf, "kop.ExProduct", kop.ExProduct, "kop.ExAttackersAll", kop.ExAttackersAll, "kop.ExRefCount", kop.ExRefCount, "kop.ExNumColorsOf", kop.ExNumColorsOf,
+		"kop.ExPoisonOf", kop.ExPoisonOf, "kop.ExProduct", kop.ExProduct, "kop.ExAttackersAll", kop.ExAttackersAll, "kop.ExRefCount", kop.ExRefCount, "kop.ExNumColorsOf", kop.ExNumColorsOf, "kop.ExTgtSpent", kop.ExTgtSpent,
 		"kop.ExCountHand", kop.ExCountHand, "kop.ExYourTurns", kop.ExYourTurns, "kop.ExLowestLife", kop.ExLowestLife, "kop.ExOppsAttacked", kop.ExOppsAttacked, "kop.ExRedNCDmg", kop.ExRedNCDmg, "kop.ExVoid", kop.ExVoid, "kop.ExYourExtraTurns", kop.ExYourExtraTurns,
 		"kop.ExRevolt", kop.ExRevolt, "kop.ExLeftZone", kop.ExLeftZone, "kop.ExCtrAdded", kop.ExCtrAdded,
 		"kop.ExCastFromGrave", kop.ExCastFromGrave, "kop.ExFirstCast", kop.ExFirstCast, "kop.ExIfCastOwnMain", kop.ExIfCastOwnMain, "kop.ExExiledWithN", kop.ExExiledWithN,
 		"kop.ExSacrificedThisTurn", kop.ExSacrificedThisTurn, "kop.ExDiscardedThisTurn", kop.ExDiscardedThisTurn,
-		"kop.ExScriedThisTurn", kop.ExScriedThisTurn, "kop.ExDilemmasFaced", kop.ExDilemmasFaced, "kop.ExRemLKIPT", kop.ExRemLKIPT, "kop.ExCastBattlefield", kop.ExCastBattlefield, "kop.ExUnlockedDoors", kop.ExUnlockedDoors, "kop.ExNotOwnLibMV", kop.ExNotOwnLibMV, "kop.ExChromaOf", kop.ExChromaOf, "kop.ExChosenMode", kop.ExChosenMode, "kop.ExChosenNumber", kop.ExChosenNumber, "kop.ExMod", kop.ExMod, "kop.ExPow", kop.ExPow, "kop.ExAttackedTurn", kop.ExAttackedTurn, "kop.ExPhaseCount", kop.ExPhaseCount, "kop.ExAdamant", kop.ExAdamant, "kop.ExCounterKinds", kop.ExCounterKinds, "kop.ExTargetPlayers", kop.ExTargetPlayers, "kop.ExTapPower", kop.ExTapPower, "kop.ExStepIn", kop.ExStepIn)
+		"kop.ExScriedThisTurn", kop.ExScriedThisTurn, "kop.ExDilemmasFaced", kop.ExDilemmasFaced, "kop.ExRemLKIPT", kop.ExRemLKIPT, "kop.ExCastBattlefield", kop.ExCastBattlefield, "kop.ExUnlockedDoors", kop.ExUnlockedDoors, "kop.ExNotOwnLibMV", kop.ExNotOwnLibMV, "kop.ExChromaOf", kop.ExChromaOf, "kop.ExChosenMode", kop.ExChosenMode, "kop.ExChosenNumber", kop.ExChosenNumber, "kop.ExMod", kop.ExMod, "kop.ExPow", kop.ExPow, "kop.ExAttackedTurn", kop.ExAttackedTurn, "kop.ExPhaseCount", kop.ExPhaseCount, "kop.ExAdamant", kop.ExAdamant, "kop.ExCounterKinds", kop.ExCounterKinds, "kop.ExTargetPlayers", kop.ExTargetPlayers, "kop.ExTapPower", kop.ExTapPower, "kop.ExStepIn", kop.ExStepIn, "kop.ExOppExtreme", kop.ExOppExtreme)
 	enum[kop.CondKind]("kop.CondAlways", kop.CondAlways, "kop.CondPresent", kop.CondPresent, "kop.CondValue", kop.CondValue,
 		"kop.CondKicked", kop.CondKicked, "kop.CondThreshold", kop.CondThreshold, "kop.CondYourTurn", kop.CondYourTurn,
 		"kop.CondRefMatches", kop.CondRefMatches, "kop.CondPromised", kop.CondPromised, "kop.CondAnd", kop.CondAnd)

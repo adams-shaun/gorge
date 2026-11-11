@@ -80,7 +80,7 @@ const (
 	ChGenPip                                  // mode = the colour (W U B R G = 0..4) a hybrid pip is paid with (gorge's pay_* pip ask, CR 601.2b)
 	ChGenEnchant                              // source = the permanent a non-cast Aura enchants as it enters (CR 303.4f; gorge's "enchant")
 	ChCastDivide                              // source = the target given one more point of a divided total beyond its 1, announced while casting/activating (gorge's CR 601.2d "divide" ask)
-	ChGenGift                                 // mode 1 = promise the opponent a gift / 0 = don't (gorge's gift_promise / gift_decline, CR 702.174a)
+	ChGenGift                                 // mode 1+i = promise the i-th opponent (AliveFrom order) a gift / 0 = don't (gorge's gift_promise / gift_decline, CR 702.174a)
 	ChCostForage                              // mode 0 = exile three graveyard cards (gorge forage_exile), 1 = sacrifice the Food in source (forage_food); CR 701.61a
 	ChCostExile                               // source = a graveyard card exiled to pay a cost (gorge's exilecost; one pick per card)
 	ChGenPayReturn                            // source = the permanent returned to its owner's hand to pay an unless / if-you-do cost (gorge's returncost)
@@ -116,6 +116,7 @@ const (
 	ChGenFaceDownPick                         // source = the hand card picked to enter face down (gorge effCloak's "face_down_choice" pick, CR 701.58a; face_manifest.go)
 	ChGenDistPick                             // source = a creature picked to share a divided counter total, Done after the first (gorge putCounterPickDistribute's "counter_dist" KChoose, Min 1; ctr_distpick.go)
 	ChGenCopyPick                             // source = the permanent a CopyPermanent Choices$ copies (gorge's "copypermanent_choice" KChoose, whose options are "permanent"; copy_picked.go)
+	ChGenTokCopy                              // mode 0 = decline; mode 1, source = the permanent the token is instead a copy of (gorge's chosen-copy token replacement election, options "decline" then "creature"; repl_tokcopy.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -668,6 +669,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if k.embComb && s.idemEmblemHeld(k, p, uint8(in.C)+1) {
 			break // static_emblemcombat.go
 		}
+		if k.t.Emblems[in.C].NotHere && s.hostNow(e) {
+			break // a registration made with its host on the battlefield ends with it (kop.Emblem.NotHere)
+		}
 		if n := int(s.g.nemb[p]); n < s.embCap() {
 			s.g.embF[p] &^= 1 << n // a new emblem has begun no turn yet
 			r := embRec{idx: uint8(in.C) + 1, c: e.card, obj: e.obj}
@@ -689,6 +693,12 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 				}
 			default:
 				r.num = s.freezeEmbNum(k, in.A, s.ctxEntry(e))
+			}
+			if em := &k.t.Emblems[in.C]; em.Capture2 != kop.RefNone || em.CaptureRem {
+				if !s.embRemFill(em, &r) { // static_emblemrem.go
+					s.capFull(StallEmbRem)
+					break
+				}
 			}
 			r.t = s.tick() // gorge's AddContinuous ClockTick: a new continuous effect is newer than everything before it (CR 613.7)
 			s.embPut(p, n, r)
@@ -770,7 +780,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			}
 			break
 		}
-		d := dprog{card: e.card, ab: uint8(in.C), ctrl: e.ctrl, src: e.obj, n: 1 | dpWhen(in), ext: dpExt(in)}
+		d := dprog{card: e.card, ab: uint8(in.C), ctrl: e.ctrl, src: e.obj, sv: s.objs[e.obj].ver, n: 1 | dpWhen(in), ext: dpExt(in)}
 		d.objs[0], d.vers[0] = o, s.objs[o].ver
 		if in.Obj == kop.RefTriggerObj && o == e.obj && s.objs[o].ver != e.srcVer+1 && !delayCopies(k, e.card, uint8(in.C)) {
 			// the card that died has moved on again (exiled from the
@@ -1162,6 +1172,8 @@ func (s *State) eachPlayers(k *prep, r kop.Ref) seatSeq {
 		return s.oppsNonRemCtrl() // filter_defined.go
 	case kop.RefSrcOwner:
 		return seatOne(s.srcOwner())
+	case kop.RefPromised:
+		return seatOne(s.promisedSeat(k, &s.res.e)) // kw_gift.go
 	}
 	if sl, ok := tgtSlot(r); ok {
 		// the slot's player targets (gorge repeatPlayers' Targeted arm:
@@ -1248,7 +1260,7 @@ func (s *State) moveObj(k *prep, r kop.Ref, o Obj, z kop.Zone) bool {
 	case kop.ZoneNone:
 		return false
 	case kop.ZoneBattlefield:
-		if r == kop.RefSelf && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell && !s.delayedSelfStale(k, &s.res.e) {
+		if r == kop.RefSelf && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell {
 			return false
 		}
 		if z == kop.ZoneGraveyard {

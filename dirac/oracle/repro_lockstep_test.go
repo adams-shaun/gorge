@@ -449,3 +449,139 @@ func TestHandPickEntersTogetherLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "hand_pick_enters_together", "std-msh", Config{GorgeAutopaySurface: true})
 }
+
+// Ambulatory Reactor grants artifact creatures a {C} spendable only on artifact spells and
+// artifact sources' abilities. Floated in the granted-mana prefix search for an artifact
+// play, that {C} cannot pay Skycloud Expanse's {1}: the land's activation is no artifact
+// source's (CR 106.6), so neither engine funds the filter with it.
+func TestRestrictedGrantPaysNoLandFeeLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "restricted_grant_pays_no_land_fee", "std-trc", Config{})
+}
+
+// Toxic Deluge's additional cost is an announced X life, so X = 0 always pays and the
+// cast costs exactly {2}{B}. With Skycloud Expanse's filter a source the planner's census
+// misses, gorge's prefix search prices the cast as it does any other, and both engines
+// offer it.
+func TestAnnouncedLifeCastBehindAFilterLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "announced_life_cast_behind_filter", "std-trc", Config{})
+}
+
+// A delayed return brings two exiled lands back, the first a land that asks to
+// reveal a card as it enters. The election is asked inside its own move, so the
+// second land is still in exile while the first one's controller answers.
+func TestRememberedReturnAsksBetweenMovesLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "remembered_return_asks_between_moves", "std-trc", Config{})
+}
+
+// Two permanents that each make another permanent's exhaust abilities cost {2}
+// less lower an {X}{2}{R} activation by four: the two past its generic part pay
+// into {X} (CR 601.2f), so the X ask reaches two more than the mana on hand.
+func TestAbilityReductionExcessPaysXLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "ability_reduction_excess_pays_x", "std-dft", Config{GorgeAutopaySurface: true})
+}
+
+// A creature that took away another's abilities for as long as it stays on the
+// battlefield is blinked: the effect ends as it leaves (CR 611.2b), and the
+// object that returns is a new one (CR 400.7), so the other creature's
+// activated ability is offered again.
+func TestBlinkedSourceEndsAbilityLossLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "blinked_source_ends_ability_loss", "std-msh", Config{GorgeAutopaySurface: true})
+}
+
+// TestFreeCastAltAddNoPartPayableLockstep: under Omniscience, Eaten Alive with
+// no creature to sacrifice and no mana for its {3}{B} part is not offered; the
+// free alternative cost replaces the mana cost only (CR 118.9d, 601.2b).
+func TestFreeCastAltAddNoPartPayableLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "free_cast_alt_add_no_part_payable", "std-fdn", Config{GorgeAutopaySurface: true})
+}
+
+// TestFilterBesideCounterSourceShortLockstep: Three Tree Mascot's {1} filter
+// pays Infernal Vessel's {B} beside Ramos, Dragon Engine with one +1/+1
+// counter; a counter-cost source that cannot remove its counters is no
+// census gap, so the board is still a filter-only one (CR 605.3a, 602.2b).
+func TestFilterBesideCounterSourceShortLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "filter_beside_counter_source_short_of_counters", "std-fdn", Config{})
+}
+
+// TestGraveyardActivationRestrictedSourceRelaxedLockstep: Merchant of Many
+// Hats' {2}{B} from the graveyard beside a granted {C} (Honest Work) is
+// searched, not proven insufficient: Jasmine Dragon Tea Shop's Ally-only
+// any colour pays an Ally source's ability (CR 106.6, 605.3a).
+func TestGraveyardActivationRestrictedSourceRelaxedLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "graveyard_activation_restricted_source_relaxed", "std-tla", Config{})
+}
+
+// TestTokenCopyOfBackFaceMVLockstep: Ember Island Production's token copy
+// of Avatar Kuruk (The Legend of Kuruk transformed) has mana value 0, so
+// Epic Downfall's "mana value 3 or greater" cannot target it, while the
+// transformed Kuruk itself reads its front face's {2}{U}{U} (CR 712.8e).
+func TestTokenCopyOfBackFaceMVLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "token_copy_of_back_face_has_no_mana_value", "std-tla", Config{GorgeAutopaySurface: true})
+}
+
+// TestMayPlayFoldCounterRaiseAmbiguousLockstep: Quilled Greatwurm in the
+// graveyard beside Muldrotha has two may-play offers; the folded one (its
+// own permission) raises the cost by removing six counters, which gorge's
+// payment builder does not plan, so the autopay surface offers neither.
+func TestMayPlayFoldCounterRaiseAmbiguousLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "mayplay_fold_with_counter_raise_ambiguous", "std-fdn", Config{GorgeAutopaySurface: true})
+}
+
+// TestFlashbackGrantedInstanceNotPrintedOfferLockstep: Fire Nation Attacks
+// prints flashback {8}{R} and Iroh grants another at its mana cost. gorge's
+// prefix search for the printed instance must not stop when the cheaper
+// granted instance becomes castable: that is a different option (CR 702.34a).
+func TestFlashbackGrantedInstanceNotPrintedOfferLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "flashback_granted_instance_not_printed_offer", "std-tla", Config{})
+}
+
+// TestGrantedLandTypeManaAfterPrintedLockstep: White Lotus Hideout with a
+// granted basic land type beside Great Divide Guide's grant. gorge's "choose
+// a mana ability" ask lists the printed {C}, the Lesson-only and the filter
+// abilities before the type's intrinsic {U} (CR 305.7), and the prefix search
+// for Earthen Ally's activation walks them in that order.
+func TestGrantedLandTypeManaAfterPrintedLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "granted_land_type_mana_after_printed_abilities", "std-tla", Config{})
+}
+
+// TestTyLeeLockOnHerselfEndsWhenSheLeavesLockstep: Ty Lee, Chi Blocker taps
+// herself as she enters, later goes to her owner's library and is cast again.
+// The returned card is a new object (CR 400.7): the first lock forgot her as
+// she left (ForgetOnMoved$ Battlefield) and its "for as long as you control"
+// source is gone (CR 611.2b), so she untaps in her controller's untap step.
+func TestTyLeeLockOnHerselfEndsWhenSheLeavesLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "ty_lee_lock_on_herself_ends_when_she_leaves", "std-tla", Config{GorgeAutopaySurface: true})
+}
+
+// TestWideGapTapsBeforeGrantedSourceLockstep: Hermitic Herbalist, entered
+// before a permanent holding a granted mana ability, is a census gap beside
+// it. gorge's one prefix search activates the gaps in battlefield order, so
+// Ba Sing Se's Earthbend activation is preceded by the Herbalist's tap for its
+// first ability's colour, then the granted source's (CR 605.3a, 601.2g-h).
+func TestWideGapTapsBeforeGrantedSourceLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "wide_gap_taps_before_granted_source", "std-tla", Config{GorgeAutopaySurface: true})
+}
+
+// TestFlashbackPoolPaysGrantedInstanceLockstep: Fire Nation Attacks prints
+// flashback {8}{R} and Iroh grants another at its mana cost. With an
+// any-colour source on board the potential walk prices both and the planner
+// drops them as ambiguous, but the floating pool pays the granted {4}{R}
+// outright, so gorge's walk offers that instance (CR 702.34a).
+func TestFlashbackPoolPaysGrantedInstanceLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "flashback_pool_pays_granted_instance", "std-tla", Config{})
+}

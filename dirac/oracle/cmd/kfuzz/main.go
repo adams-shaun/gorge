@@ -166,6 +166,8 @@ func run() int {
 		pods       = flag.Int("pods", 0, "-seats above 2: pods to play (one game each; 0: -pairs)")
 		eventTail  = flag.Int("events", 0, "-repro: print the last N events of gorge's log when the game ends, objects named by card")
 		refusedIn  = flag.Bool("play-refused", false, "pool runs: play the pairs holding a card refused by name too, as scripts/dirac-first-refusals.py settle does")
+		focusPath  = flag.String("focus", "", "-synth: deal a focus pool instead: every deck holds -focus-per-deck cards of this list (one card a line, enablers after a tab, ';'-separated) beside the enablers they name; the run is named after the file (fx-dsk.txt: fx-dsk)")
+		focusPer   = flag.Int("focus-per-deck", oracle.FocusPerDeck, "-focus: focus cards per deck")
 		reachPath  = flag.String("reach", "", "-synth: write one row per card of the list here: card, how far it got, decks, games, plays in clean games")
 		v2RandFull = flag.Bool("v2-rand-full", false, "-v2 transcript: no-op (a rand game is always compared whole; the flag keeps the old spelling working)")
 	)
@@ -226,8 +228,8 @@ func run() int {
 			return 2
 		}
 		*kernel = "fdn"
-	} else if explicit["synth-decks"] || explicit["reach"] {
-		fmt.Fprintln(os.Stderr, "kfuzz: -synth-decks and -reach need -synth")
+	} else if explicit["synth-decks"] || explicit["reach"] || explicit["focus"] || explicit["focus-per-deck"] {
+		fmt.Fprintln(os.Stderr, "kfuzz: -synth-decks, -reach and -focus need -synth")
 		return 2
 	}
 	*kernel, *setName, *decksDir, err = resolveKernel(*kernel, *setName, *decksDir, explicit)
@@ -434,7 +436,7 @@ func run() int {
 		var reach reachFunc
 		if *synth != "" {
 			var err error
-			if dealt, reach, err = dealSynth(c, set, *seed, *synthDecks, *reachPath); err != nil {
+			if dealt, reach, err = dealSynth(c, set, *seed, *synthDecks, *reachPath, *focusPath, *focusPer); err != nil {
 				fmt.Fprintln(os.Stderr, "kfuzz:", err)
 				return 1
 			}
@@ -499,7 +501,7 @@ func run() int {
 	}
 	var pool []oracle.PoolDeck
 	if synthGorge {
-		if pool, _, err = dealSynth(c, set, *seed, *synthDecks, ""); err != nil {
+		if pool, _, err = dealSynth(c, set, *seed, *synthDecks, "", *focusPath, *focusPer); err != nil {
 			fmt.Fprintln(os.Stderr, "kfuzz:", err)
 			return 1
 		}
@@ -1124,7 +1126,11 @@ func runFDN(c *oracle.Corpus, set cardset.Set, rc oracle.RunConfig, ps []oracle.
 	if o.features {
 		feat = &fs
 	}
-	return report(set.Name(), ps, out, rc, o, feat)
+	name := set.Name()
+	if focusName != "" {
+		name = focusName
+	}
+	return report(name, ps, out, rc, o, feat)
 }
 
 // playAll runs play(0..n-1) on workers goroutines under the per-game watchdog and

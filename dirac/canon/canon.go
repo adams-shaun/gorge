@@ -155,6 +155,8 @@ var ChooseKinds = []string{
 	"ward_waterbend",   // gorge kw_ward.go's Ward—Waterbend pick (The Unagi of Kyoshi Island)
 	"counter_dist",     // gorge's distribute-counters pick among the chosen permanents (Vastwood Hydra)
 	"vote_card",        // gorge effCardVote's ballot pick (CR 701.38a)
+	"decline",          // gorge poseChosenTokenReplacement's optional copy-instead election: decline first (repl_tokcopy.go)
+	"creature",         // and the creature to copy
 }
 
 // ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks.

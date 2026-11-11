@@ -543,6 +543,8 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		s.entryOrderOptions(k, d)
 	case raGenReplOrder, raGenCtrOrder:
 		s.replOrderOptions(d)
+	case raGenTokCopy:
+		s.tokCopyOptions(d) // repl_tokcopy.go
 	case raGenCopyTarget, raGenCopyTargets:
 		s.copyTargetOptions(k, d, int(r.left))
 	case raGenEnchant:
@@ -576,6 +578,18 @@ func (s *State) enchantingObj(k *prep) Obj {
 		return s.resArm().look[0] // the move's parked Aura (handAuraEnter)
 	}
 	return s.res.lastTok
+}
+
+// enchantReturnObj is the Aura a pending enchant ask of a return (OpReturn,
+// OpReturnEx) is about; NoObj for any other enchant ask.
+func (s *State) enchantReturnObj(k *prep) Obj {
+	if !s.res.active {
+		return NoObj
+	}
+	if in := &s.prog(k)[s.res.pc]; in.Op == kop.OpReturnEx || in.Op == kop.OpReturn {
+		return s.objRefObj(in.Obj)
+	}
+	return NoObj
 }
 
 // autoPayPick pays the pending pick at once when its candidates are
@@ -1064,6 +1078,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.applyEntryResolve(k, a) // repl_entryorder.go
 	case raGenCtrOrder:
 		s.applyCtrOrder(k, a) // repl_ctrorder.go
+	case raGenTokCopy:
+		s.tokCopyAnswer(k, a) // repl_tokcopy.go
 	case raGenReplOrder:
 		if s.g.tok.on {
 			s.tokAnswer(k, a) // a contested token creation (repl_tokorder.go)
@@ -1669,7 +1685,7 @@ func (s *State) searchCands(k *prep, d *Decision) {
 		if s.picksHas(o) {
 			continue
 		}
-		if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) && s.pickFits(k, in.F, o, false) {
+		if !s.tokenLeftBattlefield(o) && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) && s.pickFits(k, in.F, o, false) { // a token off the battlefield is no card (CR 111.8)
 			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
 		}
 	}

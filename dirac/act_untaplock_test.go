@@ -39,6 +39,7 @@ func untapLockScen(t *testing.T) (*scen, CardID) {
 // (the target rides the resolving ability's triggering object).
 func (sc *scen) lockOn(target, src Obj, ctrl uint8, c int16) {
 	sc.s.res.e.ctrl, sc.s.res.e.obj, sc.s.res.e.trigObj = ctrl, src, target
+	sc.s.res.e.srcVer = sc.s.objs[src].ver
 	sc.s.untapLockAdd(sc.k, &kop.Instr{Op: kop.OpSkipUntap, Obj: kop.RefTriggerObj, C: c})
 }
 
@@ -101,9 +102,17 @@ func TestUntapLock(t *testing.T) {
 	if sc.tapped(tgt) {
 		t.Fatal("the untap step left the creature tapped with its source gone")
 	}
+	// the source's departure ended its record: a card that returns is a new
+	// object the lock does not follow (CR 400.7, 611.2b)
+	if s.g.nul != 0 {
+		t.Fatalf("records %d with the source gone, want 0", s.g.nul)
+	}
 	// the target leaves: its record goes
+	tap()
+	src2 := sc.perm(lc, 0)
+	sc.lockOn(tgt, src2, 0, kop.SkipUntapLockStep)
 	if s.g.nul != 1 {
-		t.Fatalf("records %d with the source gone and the target in play, want 1 (kept: a card source can return)", s.g.nul)
+		t.Fatalf("records %d after a fresh lock, want 1", s.g.nul)
 	}
 	s.leave(sc.k, slot, kop.ZoneGraveyard, false)
 	if s.g.nul != 0 {
@@ -131,5 +140,19 @@ func TestUntapLockCapacity(t *testing.T) {
 	sc.lockOn(tg[4], src, 0, kop.SkipUntapLockStep)
 	if s.g.nul != 4 || s.g.stalled != StallUntapLock {
 		t.Fatalf("records %d stalled %d, want 4 and %d", s.g.nul, s.g.stalled, StallUntapLock)
+	}
+}
+
+// TestUntapLockReturnedSource: a source that left and returned before its
+// lock trigger resolved is a new object, so the lock never applies (CR 400.7,
+// 611.2b; gorge anchors the registration to the source's incarnation).
+func TestUntapLockReturnedSource(t *testing.T) {
+	sc, lc := untapLockScen(t)
+	src, target := sc.perm(lc, 0), sc.perm(lc, 1)
+	sc.s.res.e.ctrl, sc.s.res.e.obj, sc.s.res.e.trigObj = 0, src, target
+	sc.s.res.e.srcVer = sc.s.objs[src].ver - 1 // the incarnation the trigger saw
+	sc.s.untapLockAdd(sc.k, &kop.Instr{Op: kop.OpSkipUntap, Obj: kop.RefTriggerObj, C: kop.SkipUntapLockStep})
+	if sc.s.g.nul != 0 {
+		t.Fatalf("records %d, want 0: the lock's source is a new object", sc.s.g.nul)
 	}
 }

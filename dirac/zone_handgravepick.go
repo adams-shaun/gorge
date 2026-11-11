@@ -47,7 +47,7 @@ func (s *State) handGraveCands(k *prep, in *kop.Instr, d *Decision) {
 			if s.picksHas(o) {
 				continue
 			}
-			if s.matchCardGen(k, in.F, s.objs[o].card, p, ctrl, o) {
+			if !s.tokenLeftBattlefield(o) && s.matchCardGen(k, in.F, s.objs[o].card, p, ctrl, o) { // a token off the battlefield is no card (CR 111.8)
 				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
 			}
 		}

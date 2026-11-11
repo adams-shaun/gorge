@@ -600,11 +600,11 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			continue // a tap's extra is no part of the walk's units here, yet gorge's relaxed census counts it (mana_tapextra.go)
 		}
 		cost, ex, need, ok := s.grantPlayCost(k, p, a, true)
-		if !ok || s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(a)) {
+		if !ok || s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(k, a)) {
 			continue
 		}
 		if (k.multiMana && s.filterSource(k, p) || k.gen.anyFiltFirst && s.scriptFilt(k, p).any()) &&
-			s.filterFunds(k, p, &cost, ex, s.grantPayDesc(a)) {
+			s.filterFunds(k, p, &cost, ex, s.grantPayDesc(k, a)) {
 			// a controlled filter (Rumble Arena's {1},{T}: any colour) or a
 			// first-and-only filter (Prophetic Prism's {1},{T}) is no unit of
 			// the census here, yet it can fund the play (CR 605.1a, 106.1):
@@ -614,7 +614,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			continue
 		}
 		d.remove(a)
-		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), need, &g) {
+		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(k, a), need, &g) {
 			// gorge's one prefix search gave the play up (its granted gaps
 			// spent the node budget before the tap-another line): the
 			// tap-another search alone, which skips the grants, must not
@@ -628,10 +628,10 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 		if !ok {
 			continue
 		}
-		if s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(a)) {
+		if s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(k, a)) {
 			continue // priced by the printed sources, restricted ones the play may spend included
 		}
-		if !s.grantRelaxedAffords(k, p, a, &cost, ex, s.grantPayDesc(a), m) {
+		if !s.grantRelaxedAffords(k, p, a, &cost, ex, s.grantPayDesc(k, a), m) {
 			d.remove(a) // gorge's relaxed proof: insufficient, no prefix search (mana_grantrelaxed.go)
 			capSpent.add(a)
 			continue
@@ -639,7 +639,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 		if k.tapMana && hasOption(d, a) && s.tapXOffGrant(k, p) && s.tapXScript(k, a, p, false) {
 			continue // a tap-another source (Gene Pollinator) pays it in scriptOffers' search, which the grant search does not run (mana_tapanother.go)
 		}
-		if m&availHyp == 0 && s.relaxRestrRefuses(k, p, &cost, s.grantPayDesc(a)) {
+		if m&availHyp == 0 && s.relaxRestrRefuses(k, p, &cost, s.grantPayDesc(k, a)) {
 			d.remove(a) // gorge's relaxed proof refuses the restricted grant: insufficient, never searched (mana_grantrelaxrestr.go)
 			capSpent.add(a)
 			continue
@@ -648,7 +648,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			d.remove(a) // never searched: unpriced
 			continue
 		}
-		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), need, &g) {
+		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(k, a), need, &g) {
 			if !s.tapXOffGrant(k, p) || !s.tapXScript(k, a, p, false) {
 				// Gorge's script search covers every census gap — granted units and
 				// tap-another-permanent gaps alike (CR 605.1a, 601.2g-h) — so the
@@ -678,7 +678,7 @@ func (s *State) grantActScript(k *prep, a Action, p uint8) bool {
 		return s.filtScript(k, a, p, false)
 	}
 	var g grantSrch
-	return s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), need, &g)
+	return s.grantSearch(k, p, &cost, ex, s.grantPayDesc(k, a), need, &g)
 }
 
 // grantPrefix: gorge's planner census holds printed mana abilities only
@@ -696,7 +696,7 @@ func (s *State) grantPrefix(k *prep, a Action, p uint8) {
 		return
 	}
 	var g grantSrch
-	if s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), need, &g) && g.np != 0 {
+	if s.grantSearch(k, p, &cost, ex, s.grantPayDesc(k, a), need, &g) && g.np != 0 {
 		s.grantApply(k, &g) // the found prefix (mana_grantedoffers.go)
 		return
 	}
@@ -706,7 +706,7 @@ func (s *State) grantPrefix(k *prep, a Action, p uint8) {
 	// off the walk and its script search taps the census gaps — the granted
 	// sources in battlefield order, their mana floating beside the pool, and
 	// the tap-another gap's step among them (grantTapXPrefix; pair 676).
-	if !s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(a)) {
+	if !s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(k, a)) {
 		s.grantTapXPrefix(k, a, p)
 	}
 }

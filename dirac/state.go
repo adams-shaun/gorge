@@ -474,6 +474,10 @@ type stackEntry struct {
 	crim    uint8
 	trigObj Obj
 	trigPl  uint8
+	// defSeat is an attack trigger's defending player + 1, bound as it was
+	// queued (pendingTrig.defSeat; 0 = none, and always 0 at two seats). It
+	// takes the padding byte before trigAmt.
+	defSeat uint8
 	trigAmt int16
 	// etbSrc is the source of a spell's pending enters-with rider count
 	// (ctr_effectentry.go): the resolving SpellCast trigger's source, whose
@@ -564,6 +568,11 @@ type pendingTrig struct {
 	grp uint8
 	// skw is the source's departure keywords (stackEntry.skw), with skwMany and skwRem above them
 	skw uint8
+	// defSeat is the defending player + 1 of the attack event that queued
+	// the trigger (gorge TriggerContext.DefendingPlayer, bound from the
+	// DeclareAttackers event; fireAttacksGen), 0 = none. Stamped only when
+	// MaxSeats > 2. It takes the struct's padding byte.
+	defSeat uint8
 }
 
 // delayed is a delayed triggered ability (OpDelayedTrigger).

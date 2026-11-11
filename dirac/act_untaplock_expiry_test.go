@@ -6,11 +6,11 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// TestUntapLockSourceExpiry pins the two source-departure contracts of an
-// untap lock (act_untaplock.go), both matching gorge's continuousLive: a card
-// source that leaves keeps its record and revives it by returning under the
-// same controller, and a token source that leaves drops it for good, since its
-// object is reused.
+// TestUntapLockSourceExpiry pins the source-departure contract of an untap
+// lock (act_untaplock.go), matching gorge's continuousLive reading the
+// registration's source incarnation: a card source or a token source that
+// leaves drops its record for good, and a card that returns does not revive it
+// (CR 400.7, 611.2b). A lock whose source is already gone adds no record.
 func TestUntapLockSourceExpiry(t *testing.T) {
 	sc, lc := untapLockScen(t)
 	s := sc.s
@@ -23,21 +23,20 @@ func TestUntapLockSourceExpiry(t *testing.T) {
 		t.Fatalf("records %d locked %v, want 1 and true", s.g.nul, s.untapLocked(tgt, true))
 	}
 	s.leave(sc.k, sc.slot(src), kop.ZoneGraveyard, false)
-	if s.g.nul != 1 || s.untapLocked(tgt, true) {
-		t.Fatalf("source in the graveyard: records %d locked %v, want 1 and false", s.g.nul, s.untapLocked(tgt, true))
+	if s.g.nul != 0 {
+		t.Fatalf("source in the graveyard: records %d, want 0", s.g.nul)
 	}
 	sc.enterAs(src, 0)
-	if !s.untapLocked(tgt, true) {
-		t.Fatal("the card source returned under the same controller and the lock did not come back")
-	}
-	// ... but not under another controller
-	s.leave(sc.k, sc.slot(src), kop.ZoneGraveyard, false)
-	sc.enterAs(src, 1)
 	if s.untapLocked(tgt, true) {
-		t.Fatal("the card source returned under another controller and the lock is live")
+		t.Fatal("the card source returned and the lock came back")
 	}
 	s.leave(sc.k, sc.slot(src), kop.ZoneGraveyard, false)
-	s.untapLockDrop(func(untapLock) bool { return true })
+
+	// a source already gone when the lock resolves adds nothing
+	sc.lockOn(tgt, src, 0, kop.SkipUntapLockStep)
+	if s.g.nul != 0 {
+		t.Fatalf("records %d from a source in the graveyard, want 0", s.g.nul)
+	}
 
 	// a token source that leaves drops its record
 	tok := s.newToken(lc, 0)

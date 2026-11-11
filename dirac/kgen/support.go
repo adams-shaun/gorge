@@ -55,6 +55,38 @@ func readSupport(src fs.FS) (*supportLists, error) {
 	return s, nil
 }
 
+// firstFace is a split card's left face name ("Cease" of "Cease // Desist"), or "" for a
+// one-name card. Coverage rows, and so the evidence lists written from them, name a card
+// by its first face, so a split card is found under either spelling.
+func firstFace(name string) string {
+	if i := strings.Index(name, " // "); i > 0 {
+		return name[:i]
+	}
+	return ""
+}
+
+// evidencedFor reports whether an evidence list names the card, by its full name or, for
+// a split card, its first face.
+func (s *supportLists) evidencedFor(name string) bool {
+	if s.evidenced[name] {
+		return true
+	}
+	f := firstFace(name)
+	return f != "" && s.evidenced[f]
+}
+
+// refusedFor is the refusal naming the card, by its full name or, for a split card, its
+// first face.
+func (s *supportLists) refusedFor(name string) *cardset.RefusedEntry {
+	if e := s.refused[name]; e != nil {
+		return e
+	}
+	if f := firstFace(name); f != "" {
+		return s.refused[f]
+	}
+	return nil
+}
+
 // embeddedSupport is this binary's lists: like the pool inputs, a build never reads
 // them from the working tree, so tables match their key.
 var embeddedSupport = sync.OnceValues(func() (*supportLists, error) { return readSupport(gorge.TableSources()) })
@@ -63,7 +95,7 @@ var embeddedSupport = sync.OnceValues(func() (*supportLists, error) { return rea
 // does not lower keeps its own refusal, which is the truer reason.
 func refuseByName(lw *lowered, s *supportLists) {
 	for _, c := range lw.cards {
-		if e := s.refused[c.Name]; e != nil && len(c.Refusals) == 0 {
+		if e := s.refusedFor(c.Name); e != nil && len(c.Refusals) == 0 {
 			c.Refusals = append(c.Refusals, refusal{Card: c.Name, Node: supportNode, Reason: e.Reason()})
 		}
 	}
@@ -83,7 +115,7 @@ func statusOf(c *lCard, s *supportLists) (cardset.Status, string) {
 		return cardset.StatusNotLowered, "not lowered: " + c.Refusals[0].Reason
 	case len(c.Refusals) > 0:
 		return cardset.StatusRefused, c.Refusals[0].Reason
-	case !c.Token && !s.evidenced[c.Name]:
+	case !c.Token && !s.evidencedFor(c.Name):
 		return cardset.StatusUnverified, "unverified: in no evidence list"
 	}
 	return cardset.StatusSupported, ""

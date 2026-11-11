@@ -42,6 +42,11 @@ type staticView struct {
 	// through modAmountX's Ctx instead of the always-zero read an unbound
 	// context gives. Printed statics never carry the head and keep the zero.
 	ChosenNumber int32
+	// grantCaster scopes a granted cost static to the spells one player casts
+	// (castByGrantor): only grantCaster's cast is priced by it. Every other
+	// view leaves castByGrantor false and gates no caster.
+	grantCaster   state.PlayerID
+	castByGrantor bool
 	// chosenNumberBound marks a view whose ChosenNumber IS a real
 	// SetChosenNumber$ binding (the delivered-static route: every
 	// CantBlockUnless registry view carries one, frozen at registration).

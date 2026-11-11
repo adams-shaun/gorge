@@ -190,6 +190,9 @@ func buildCard(pt *poolTables, c *lCard) built {
 	if kop.CardTwoSeat(&cb.out.def) {
 		// an operand naming the one opponent marks the card as its lowering
 		// would (lc.twoSeat), so the support count sees it too
+		if !c.TwoSeat {
+			c.TwoSeatWhy = append(c.TwoSeatWhy, twoSeatOperand)
+		}
 		cb.out.def.TwoSeat, c.TwoSeat = true, true
 	}
 	return cb.out
@@ -1827,6 +1830,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefLibTop, nil
 	case rOppNonRemCtrl:
 		return kop.RefOppNonRemCtrl, nil
+	case rPromised:
+		return kop.RefPromised, nil
 	case rSrcOwner:
 		return kop.RefSrcOwner, nil
 	case rTriggerAttackers:
@@ -1962,6 +1967,8 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vPWTypes:            kop.ExCount,
 	vTapPower:           kop.ExTapPower,
 	vStepIn:             kop.ExStepIn,
+	vTgtSpent:           kop.ExTgtSpent,
+	vOppExtreme:         kop.ExOppExtreme,
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {

@@ -1,0 +1,49 @@
+<svg class="mzc" viewBox="0 0 760 298" role="img" aria-label="Grouped bars: gorge enginebench games per core-second by row and workload" xmlns="http://www.w3.org/2000/svg">
+<text x="16.0" y="20.0" class="mz-title" text-anchor="start">gorge benchmark rows: games per core-second</text>
+<circle class="dot s1" cx="22" cy="44" r="5"/>
+<text x="40.0" y="48.0" text-anchor="start">Pair A</text>
+<circle class="dot s2" cx="94" cy="44" r="5"/>
+<text x="112.0" y="48.0" text-anchor="start">Pair B</text>
+<circle class="dot s3" cx="166" cy="44" r="5"/>
+<text x="184.0" y="48.0" text-anchor="start">Burn</text>
+<line class="mz-grid" x1="170.0" y1="64" x2="170.0" y2="262"/>
+<text x="170.0" y="277.0" class="mz-muted" text-anchor="middle">0</text>
+<line class="mz-grid" x1="300.0" y1="64" x2="300.0" y2="262"/>
+<text x="300.0" y="277.0" class="mz-muted" text-anchor="middle">50</text>
+<line class="mz-grid" x1="430.0" y1="64" x2="430.0" y2="262"/>
+<text x="430.0" y="277.0" class="mz-muted" text-anchor="middle">100</text>
+<line class="mz-grid" x1="560.0" y1="64" x2="560.0" y2="262"/>
+<text x="560.0" y="277.0" class="mz-muted" text-anchor="middle">150</text>
+<line class="mz-grid" x1="690.0" y1="64" x2="690.0" y2="262"/>
+<text x="690.0" y="277.0" class="mz-muted" text-anchor="middle">200</text>
+<text x="162.0" y="92.0" text-anchor="end">random -autopay</text>
+<g><title>random -autopay, Pair A: 81.4 games/core-s (80.8-82.1), 532 µs/turn, 23.1 turns/game</title><rect class="s1" x="170.0" y="71.0" width="211.6" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="386.6" y="80.0" class="mz-muted" text-anchor="start">81.4</text>
+<g><title>random -autopay, Pair B: 75.7 games/core-s (74.7-76), 507 µs/turn, 26.1 turns/game</title><rect class="s2" x="170.0" y="83.0" width="196.8" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="371.8" y="92.0" class="mz-muted" text-anchor="start">75.7</text>
+<g><title>random -autopay, Burn: 152 games/core-s (149-153), 264 µs/turn, 24.9 turns/game</title><rect class="s3" x="170.0" y="95.0" width="395.2" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="570.2" y="104.0" class="mz-muted" text-anchor="start">152</text>
+<text x="162.0" y="140.0" text-anchor="end">random</text>
+<g><title>random, Pair A: 87.7 games/core-s (87.4-88), 273 µs/turn, 41.8 turns/game</title><rect class="s1" x="170.0" y="119.0" width="228.0" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="403.0" y="128.0" class="mz-muted" text-anchor="start">87.7</text>
+<g><title>random, Pair B: 90.5 games/core-s (85.2-91.3), 275 µs/turn, 40.2 turns/game</title><rect class="s2" x="170.0" y="131.0" width="235.3" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="410.3" y="140.0" class="mz-muted" text-anchor="start">90.5</text>
+<g><title>random, Burn: 178 games/core-s (176-179), 161 µs/turn, 34.8 turns/game</title><rect class="s3" x="170.0" y="143.0" width="462.8" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="637.8" y="152.0" class="mz-muted" text-anchor="start">178</text>
+<text x="162.0" y="188.0" text-anchor="end">bot -autopay</text>
+<g><title>bot -autopay, Pair A: 87.5 games/core-s (87.3-88.6), 631 µs/turn, 18.2 turns/game</title><rect class="s1" x="170.0" y="167.0" width="227.5" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="402.5" y="176.0" class="mz-muted" text-anchor="start">87.5</text>
+<g><title>bot -autopay, Pair B: 98.8 games/core-s (96-99), 568 µs/turn, 17.9 turns/game</title><rect class="s2" x="170.0" y="179.0" width="256.9" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="431.9" y="188.0" class="mz-muted" text-anchor="start">98.8</text>
+<g><title>bot -autopay, Burn: 125 games/core-s (123-126), 408 µs/turn, 19.6 turns/game</title><rect class="s3" x="170.0" y="191.0" width="325.0" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="500.0" y="200.0" class="mz-muted" text-anchor="start">125</text>
+<text x="162.0" y="236.0" text-anchor="end">bot</text>
+<g><title>bot, Pair A: 113 games/core-s (113-114), 485 µs/turn, 18.2 turns/game</title><rect class="s1" x="170.0" y="215.0" width="293.8" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="468.8" y="224.0" class="mz-muted" text-anchor="start">113</text>
+<g><title>bot, Pair B: 126 games/core-s (124-128), 443 µs/turn, 17.9 turns/game</title><rect class="s2" x="170.0" y="227.0" width="327.6" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="502.6" y="236.0" class="mz-muted" text-anchor="start">126</text>
+<g><title>bot, Burn: 155 games/core-s (154-156), 328 µs/turn, 19.6 turns/game</title><rect class="s3" x="170.0" y="239.0" width="403.0" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="578.0" y="248.0" class="mz-muted" text-anchor="start">155</text>
+<line class="mz-axis" x1="170.0" y1="64" x2="170.0" y2="262"/>
+<text x="430.0" y="292.0" class="mz-muted" text-anchor="middle">games per core-second, median of 3 reps (b78e4c8b1 baseline, re-measured 2026-11-05)</text>
+</svg>

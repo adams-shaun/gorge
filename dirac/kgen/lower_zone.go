@@ -2463,11 +2463,18 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	// RememberObjects$ Targeted beside ValidTgts$ (The Inner Light: "choose
 	// target creature. Whenever it deals combat damage to a player this
 	// turn"): the chain's target slot is the emblem's capture
-	capture, hasCap, player, t, err := lc.emblemCapture(ps, t, eot)
+	mem, err := lc.effectRemember(ps, &t, eot, next) // lower_effectremember.go
 	if err != nil {
 		return err
 	}
-	if !hasCap && eot {
+	var capture lRef
+	var hasCap, player bool
+	if mem.kind == memNone {
+		if capture, hasCap, player, t, err = lc.emblemCapture(ps, t, eot); err != nil {
+			return err
+		}
+	}
+	if !hasCap && eot && mem.kind == memNone {
 		var src bool
 		if t, src, err = effectSourceTrigger(ps, t); err != nil {
 			return err
@@ -2478,8 +2485,9 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	}
 	saved := len(lc.out.Abilities)
 	lc.capRem = hasCap && t.Mode == "DamageDealtOnce"
+	lc.effCount = mem.kind == memCount
 	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
-	lc.capRem = false
+	lc.capRem, lc.effCount = false, false
 	if err != nil {
 		return err
 	}
@@ -2487,6 +2495,11 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		return refuse("emblem trigger lowering")
 	}
 	ab := lc.out.Abilities[saved]
+	if mem.kind != memNone {
+		if err := effectRememberBody(ab, mem); err != nil { // lower_effectremember.go
+			return err
+		}
+	}
 	if hasCap && !player {
 		if err := emblemCaptureFilter(ab); err != nil {
 			return err
@@ -2502,8 +2515,12 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	}
 	ab.Latent = true
 	ab.Name = "EmblemTrigger"
-	lc.out.Emblems = append(lc.out.Emblems, lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next, Capture: capture, CaptureSet: hasCap, CaptureIsPlayer: player})
-	lc.emit(lInstr{Op: "CreateEmblem", Obj: lRef{Kind: rYou}, C: len(lc.out.Emblems) - 1})
+	em := lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next, Capture: capture, CaptureSet: hasCap, CaptureIsPlayer: player}
+	ce := lInstr{Op: "CreateEmblem", Obj: lRef{Kind: rYou}}
+	mem.apply(&em, &ce) // lower_effectremember.go
+	lc.out.Emblems = append(lc.out.Emblems, em)
+	ce.C = len(lc.out.Emblems) - 1
+	lc.emit(ce)
 	return nil
 }
 

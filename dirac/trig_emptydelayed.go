@@ -12,7 +12,7 @@ package dirac
 //
 //go:noinline
 func (s *State) delayEmptyGen(e *stackEntry, ab uint8) {
-	d := dprog{card: e.card, ab: ab, ctrl: e.ctrl, src: e.obj, n: 1}
+	d := dprog{card: e.card, ab: ab, ctrl: e.ctrl, src: e.obj, sv: s.objs[e.obj].ver, n: 1}
 	d.objs[0] = NoObj
 	s.g.dp[s.g.ndp] = d
 	s.g.dpLKI[s.g.ndp] = e.li

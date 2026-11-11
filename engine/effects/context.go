@@ -607,6 +607,26 @@ func triggeredAttackerLKI(c *Ctx) []state.Target {
 	return objectsOf(c.Remembered)
 }
 
+// selfDefinedTarget resolves the Self spelling of Defined$ (and Parent,
+// EffectSource and CorrectedSelf, which the code table maps to the same case).
+// A source that stood on the battlefield when its ability was put on the
+// stack and has since left and returned is a new object the ability has no
+// relation to (CR 400.7, 603.7c), so the literal Self does not name it.
+// CorrectedSelf keeps the raw id because Forge's identity correction
+// re-fetches the card across its own self-exile (Shorecrasher Elemental's
+// DBReturn) and the id is stable there. An ability pushed from another zone
+// (Winter Soldier's return-and-attach activation in the graveyard) did not
+// lose a battlefield incarnation: its source entering the battlefield is the
+// corrected identity the body names, so SourceReturned does not gate it.
+func selfDefinedTarget(h Host, c *Ctx, spec string) []state.Target {
+	if c.SourceReturned && !strings.EqualFold(strings.TrimSpace(spec), "CorrectedSelf") {
+		if ro := h.Game().Obj(c.ResolvingObj); ro == nil || ro.PushSourceOnBattlefield {
+			return nil
+		}
+	}
+	return []state.Target{{Obj: c.Source}}
+}
+
 func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	g := h.Game()
 	// The DOTTED `AttachedTo <referent>[.<quals>]` selector (a Defined-/
@@ -725,7 +745,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// re-fetches the card just exiled by its own cost): the object id is
 		// stable across that self-exile -- no zone change mints a new id --
 		// so the raw c.Source is already the corrected identity.
-		return []state.Target{{Obj: c.Source}}, true
+		return selfDefinedTarget(h, c, spec), true
 	case definedSpecYou:
 		return []state.Target{{Player: c.Controller, IsPlayer: true}}, true
 	case definedSpecTopThirdOfLibrary:

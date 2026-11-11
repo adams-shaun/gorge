@@ -243,11 +243,12 @@ func TestStackKwGrantHarmonizeStalls(t *testing.T) {
 }
 
 // TestStackKwGrantAltRouteStalls: a granted Convoke on a card with an
-// alternative-cost route (here Impending) stalls rather than pose a menu
-// unverified against gorge.
+// alternative-cost route (here Plot) stalls rather than pose a menu
+// unverified against gorge. Impending is no such route: buildCost prices its
+// impending cost, the cost gorge's convoke ask reads.
 func TestStackKwGrantAltRouteStalls(t *testing.T) {
 	sc, m := stackKwStallScen(t, "Pilgrim's Eye")
-	sc.k.t.Cards[sc.s.objs[m].card].Impending = 2
+	sc.k.t.Cards[sc.s.objs[m].card].HasPlot = true
 	sc.do(t, AkCast, uint8(m), 0xff)
 	d := sc.s.Step()
 	if !sc.s.Stalled() || sc.s.StallReason() != StallStackKwGrant || d.Kind != DkNone {

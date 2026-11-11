@@ -336,7 +336,7 @@ ExCountAtLeast	ExprKind	30
 ExCountExile	ExprKind	27
 ExCountGraveyard	ExprKind	4
 ExCountHand	ExprKind	250
-ExCount_	ExprKind	58
+ExCount_	ExprKind	59
 ExCounterKinds	ExprKind	225
 ExCountersOn	ExprKind	18
 ExCreaturesDied	ExprKind	19
@@ -368,6 +368,7 @@ ExMorbid	ExprKind	8
 ExNone	ExprKind	0
 ExNotOwnLibMV	ExprKind	226
 ExNumColorsOf	ExprKind	57
+ExOppExtreme	ExprKind	220
 ExOppLifeLostThisTurn	ExprKind	17
 ExOppsAttacked	ExprKind	229
 ExOppsLostLife	ExprKind	28
@@ -395,6 +396,7 @@ ExSum	ExprKind	25
 ExSumPower	ExprKind	5
 ExTapPower	ExprKind	222
 ExTargetPlayers	ExprKind	223
+ExTgtSpent	ExprKind	58
 ExThisTurnActGrave	ExprKind	50
 ExThisTurnCast	ExprKind	33
 ExThisTurnCastSpec	ExprKind	47
@@ -444,6 +446,7 @@ ExtEnterAttacking	ExtOp	250
 ExtEnterUntapped	ExtOp	228
 ExtExHaste	ExtOp	171
 ExtExchangeControl	ExtOp	244
+ExtExileEmbRem	ExtOp	319
 ExtExileExMark	ExtOp	51
 ExtExileLandChoose	ExtOp	162
 ExtFinalityCtr	ExtOp	198
@@ -803,6 +806,12 @@ OpUntapAll	Op	100
 OpUntapChoose	Op	154
 OpWard	Op	38
 OpWarpExile	Op	135
+OppExtAmount	untyped int	1
+OppExtGrave	untyped int	4
+OppExtHand	untyped int	3
+OppExtLife	untyped int	2
+OppExtLowest	untyped int	256
+OppExtValid	untyped int	5
 OppsHitLegendary	untyped int	1
 OptAll	untyped int	16
 OptAny	untyped int	8
@@ -943,6 +952,7 @@ RefLibTop	Ref	30
 RefNone	Ref	0
 RefOppNonRemCtrl	Ref	245
 RefOpponent	Ref	6
+RefPromised	Ref	36
 RefRemembered	Ref	18
 RefRememberedController	Ref	28
 RefRememberedOwner	Ref	34
@@ -977,7 +987,8 @@ ReplAnyUntap	ReplKind	28
 ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
-ReplCount	ReplKind	38
+ReplCopyFirstToken	ReplKind	38
+ReplCount	ReplKind	39
 ReplCtrAny	int16	-1
 ReplCtrAnyYou	int16	-2
 ReplDamageHealFirst	ReplKind	37

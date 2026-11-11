@@ -1373,9 +1373,6 @@ func (s *State) floatRestrAb(k *prep, p uint8, sl Slot, ab *kop.Ability, col int
 }
 
 func (s *State) floatRestrV(k *prep, p uint8, sl Slot, f kop.FilterID, v uint8, col int, n uint8) bool {
-	if k.artMana && k.cards[s.cardAt(sl)].manaTyped {
-		s.g.poolArt[SeatIx(p)] |= poolArtRestr
-	}
 	return s.addRestrSrcV(k, p, sl, f, v, col, n)
 }
 
@@ -1387,6 +1384,13 @@ func (s *State) addRestrSrc(k *prep, p uint8, sl Slot, f kop.FilterID, col int, 
 
 // addRestrSrcV is addRestrSrc for restriction variant v.
 func (s *State) addRestrSrcV(k *prep, p uint8, sl Slot, f kop.FilterID, v uint8, col int, n uint8) bool {
+	if k.artMana && k.cards[s.cardAt(sl)].manaTyped {
+		// gorge tags the unit by its producer (effects.ManaProducerTag) on
+		// every route the mana takes into the pool, a pair unit's larger
+		// alternative and a filter's restricted output too: a typed unit is
+		// spent after the plain ones of its colour (rbTyped)
+		s.g.poolArt[SeatIx(p)] |= poolArtRestr
+	}
 	var ch uint8
 	for g := f; g != 0; g = k.t.Filters[g].Or {
 		if k.t.Filters[g].Flags2&kop.F2ChosenType != 0 {
@@ -1724,12 +1728,8 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR, tapsDef slo
 	}
 	if ab := &cd.Abilities[k.gen.anyR(s.cardAt(sl))]; restrWideAnyMana(ab) {
 		if s.wideSecond(k, sl) { // its first ability's colours, then the multisets (mana_restrictedcombo.go)
-			s.addExtra(k, p&1, sl, s.manaPCGen(k, sl)) // either tap brings its TapsForMana extra (gorge addTapExtra)
-			if c < kop.NumManaKinds-1 {
-				s.pl[p].pool[c]++
-				return
-			}
-			c -= kop.NumManaKinds - 1
+			s.wide2Float(k, p, sl, c, spill)
+			return
 		}
 		c1, c2 := wideAnswer(c)
 		for _, col := range [2]int{c1, c2} {
@@ -3041,6 +3041,20 @@ func (s *State) manaStep(k *prep) bool {
 			s.tapForSacSelf(k, e.ctrl, &cost, int(e.x), sl) // filter_combatwords.go
 		case a.Cost.Flags&kop.CostTapX != 0 && s.committedPicks():
 			s.tapForTapKept(k, e.ctrl, &cost, int(e.x), a, sl, &saved) // cost_tapkept.go
+		case s.sacXWindowPays(k, e, &cost):
+			// a sacrifice-another source (Bolg's Company) the planner cannot
+			// price: gorge's planner declines the activation, so it pays
+			// through the manual CR 601.2g window, which lists the source in
+			// its battlefield place (mana_windowtapx.go). A pick it pauses on
+			// re-enters here with the walk's mana already floating.
+			ok := s.windowTapHeldOK(k, e.ctrl, &cost)
+			if !s.winPaused() {
+				s.bld().bfl &^= bflMsDone
+				if !ok {
+					s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
+					return true
+				}
+			}
 		default:
 			s.tapFor(k, e.ctrl, &cost, int(e.x), NoObj)
 		}
@@ -3193,8 +3207,11 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 	if f&kop.CostTap != 0 {
 		was := s.perms[sl].flags & pfTapped
 		s.perms[sl].flags |= pfTapped
-		if was == 0 && k.gen != nil && s.subs[kop.TrigTaps].any() {
-			s.fireTaps(k, sl)
+		if was == 0 {
+			if k.gen != nil && s.subs[kop.TrigTaps].any() {
+				s.fireTaps(k, sl)
+			}
+			s.markTapped(k, sl) // only a tap that happens marks
 		}
 	}
 	if f&kop.CostUntapSelf != 0 && sl != NoSlot {
@@ -3217,7 +3234,7 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 		s.perms[sl].flags |= pfSkipUntap
 	}
 	if f&kop.CostOncePerGame != 0 {
-		s.perms[sl].flags |= pfOnceGame
+		s.onceUse(k, sl, a)
 	}
 	if f&kop.CostRemoveCtr != 0 {
 		s.perms[sl].seeCtr(s)
@@ -3317,7 +3334,30 @@ func (s *State) castTapX(k *prep) bool {
 		return false
 	}
 	b := s.bld()
+	if b.e.kind == seAbility {
+		// an activation's window lists them only beside a sacrifice-another
+		// source, the one case it is modelled for (sacXWindowPays)
+		return b.stage == bsMana && b.bfl&bflManaStep != 0 && s.sacXLive(k, b.e.ctrl)
+	}
 	return b.e.kind == seSpell && (b.stage == bsMana || b.stage == bsPay || b.stage == bsAltAdd)
+}
+
+// sacXWindowPays: the activation being built pays through the manual window
+// because a live sacrifice-another source (Bolg's Company) is the planner's
+// census gap and the planner alone cannot pay cost (gorge armAbilityAutoPay
+// declines, manaWindowAsk poses the window). A pick the window paused on
+// (bflMsDone, which only the window's pause sets on an activation) keeps the
+// build on the window.
+func (s *State) sacXWindowPays(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
+	if s.bld().bfl&bflMsDone != 0 {
+		return true
+	}
+	if !k.tapMana || DebugNoSacXMana || cost.X != 0 || !s.sacXLive(k, e.ctrl) {
+		return false
+	}
+	chk := planner{dry: true, noGrant: true}
+	s.tapForPK(k, e.ctrl, cost, int(e.x), NoObj, false, false, &chk)
+	return chk.needT != 0 && !chk.found
 }
 
 // isFork: s is a probe copy (fork), whose window never waits on an answer.
@@ -3358,6 +3398,9 @@ func (s *State) castWinTapPause(sl Slot, col uint8) bool {
 func (s *State) castWinTapOptions(k *prep, d *Decision) bool {
 	p := s.bld().e.ctrl
 	d.Kind, d.Sub, d.Player = DkChoose, ChWindowTap, p
+	if k.sacXOf(s.cardAt(s.g.winSrc)) {
+		d.Sub = ChCostSacrifice // a sacrifice-another source asks which to sacrifice (gorge's "sacrifice" choose)
+	}
 	s.winTapOptions(k, p, d)
 	return true
 }

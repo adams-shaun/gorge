@@ -307,6 +307,14 @@ func (s *State) exileOrderAsk(k *prep, die, gy, pwz, aur *slotMask, askAfter *bo
 			*die, *gy, *pwz, *aur = die.without(sl), gy.without(sl), pwz.without(sl), aur.without(sl)
 		}
 	}
+	if fresh {
+		// gorge's sbaChain (rules/sba.go): the casualties of a pass that asks
+		// stay out of CR 704.5d's sweep until a pass destroys nothing, the
+		// answers re-entering the same CR 704.3 check
+		for _, sl := range order[:n] {
+			s.mObjSet(k, mechSBAChain, s.perms[sl].obj)
+		}
+	}
 	if die.or(*gy).any() {
 		// The rest of the batch applies around the parked casualties, and
 		// gorge's pass ends at the ask (checkStateBased): no further pass runs
@@ -649,4 +657,10 @@ func (s *State) runParkedDread(k *prep, o Obj) {
 	}
 	from := s.detach(o)
 	s.placeFromK(k, o, kop.ZoneGraveyard, false, from, false)
+}
+
+// sbaChainEnd closes gorge's sbaChain: a state-based pass with no casualty
+// ends the chain, and its tokens cease in that pass (CR 704.5d).
+func (s *State) sbaChainEnd(k *prep) {
+	s.mObjZero(k, mechSBAChain)
 }

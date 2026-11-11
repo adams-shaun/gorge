@@ -464,6 +464,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 		if s.AddChosen {
 			fmt.Fprintf(w, " addchosen")
 		}
+		if s.ProtFrom != nil {
+			fmt.Fprintf(w, " protfrom=%s", s.ProtFrom)
+		}
 		if s.OutlivesLoss {
 			fmt.Fprintf(w, " outlivesloss")
 		}
@@ -514,6 +517,17 @@ func dumpLIR(w io.Writer, c *lCard) {
 			}
 			if e.CaptureLapse {
 				eot += " lapses"
+			}
+		}
+		if e.Capture2Set {
+			eot += " and " + e.Capture2.String()
+		}
+		for _, f := range [...]struct {
+			on   bool
+			name string
+		}{{e.CaptureRem, "remembers=set"}, {e.Source, "source"}, {e.NotHere, "not-here"}, {e.NumAmount, "number-as-amount"}, {e.Once, "once"}} {
+			if f.on {
+				eot += " " + f.name
 			}
 		}
 		fmt.Fprintf(w, "  emblem[%d] trigger=%d statics=%d%s\n", i, e.Trigger, len(e.Statics), eot)

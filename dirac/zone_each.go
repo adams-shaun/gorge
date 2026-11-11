@@ -52,7 +52,7 @@ func (s *State) clampEach(k *prep, in *kop.Instr) {
 	var have uint16
 	for _, o := range s.eachPool(k) {
 		c := s.objs[o].card
-		if !s.matchCardGen(k, in.F, c, p, s.res.e.ctrl, o) {
+		if s.tokenLeftBattlefield(o) || !s.matchCardGen(k, in.F, c, p, s.res.e.ctrl, o) { // a token off the battlefield is no card (CR 111.8)
 			continue
 		}
 		if g := s.eachGroup(k, in.F, c, p, s.res.e.ctrl, o); g >= 0 {
@@ -79,7 +79,7 @@ func (s *State) eachCands(k *prep, in *kop.Instr, d *Decision, list []Obj) {
 			continue
 		}
 		c := s.objs[o].card
-		if !s.matchCardGen(k, in.F, c, p, s.res.e.ctrl, o) {
+		if s.tokenLeftBattlefield(o) || !s.matchCardGen(k, in.F, c, p, s.res.e.ctrl, o) { // a token off the battlefield is no card (CR 111.8)
 			continue
 		}
 		if g := s.eachGroup(k, in.F, c, p, s.res.e.ctrl, o); g >= 0 && picked&(1<<g) == 0 {

@@ -409,10 +409,11 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		case dirac.ChGenTeamwork:
 			return ch("teamwork", src, 0) // gorge teamwork ask: Option.Kind "teamwork" (CR 702.194a)
 		case dirac.ChGenGift:
-			// gorge giftAsk: gift_decline, then gift_promise naming the
-			// opponent (Option.Player; no object, so canonical bare)
-			if mode == 1 {
-				return ch("gift_promise", RefNone, 0)
+			// gorge giftAsk: gift_decline, then one gift_promise per
+			// opponent in AliveFrom order, canonical by that position
+			// (the oracle's gift_promise arm); mode is 1 + the position
+			if mode >= 1 {
+				return ch("gift_promise", RefNone, mode-1)
 			}
 			return ch("gift_decline", RefNone, 0)
 		case dirac.ChGenManifestDread:
@@ -738,6 +739,13 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 	case dirac.ChGenCopyPick:
 		// gorge's CopyPermanent Choices$ pick: its options are "permanent"
 		return Pack(kind("permanent"), src, RefNone, 0), true
+	case dirac.ChGenTokCopy:
+		// gorge's chosen-copy token replacement election: "decline" first, then
+		// the creature to copy (poseChosenTokenReplacement)
+		if mode == 1 {
+			return Pack(kind("creature"), src, RefNone, 0), true
+		}
+		return Pack(kind("decline"), RefNone, RefNone, 0), true
 	case dirac.ChGenFaceDownPick:
 		// gorge's face_down_choice pick: the hand card to put onto the
 		// battlefield face down (CR 701.58a)

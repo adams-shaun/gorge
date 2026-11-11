@@ -618,7 +618,7 @@ func (e *Engine) describeTargetEffect(p state.PlayerID, source state.ObjID, sa *
 	if sa == nil {
 		return nil
 	}
-	out := &decision.TargetEffect{API: sa.API, Desc: effects.TargetsOf(sa).Desc}
+	out := &decision.TargetEffect{API: sa.API, Desc: effects.TargetsOf(sa).Desc, Host: e.protectionSource(source)}
 	if x == 0 {
 		if o := e.G.Obj(source); o != nil {
 			x = o.X
@@ -645,6 +645,7 @@ func (e *Engine) describeTargetEffect(p state.PlayerID, source state.ObjID, sa *
 			n := int(amount)
 			out.Damage.Amount = &n
 		}
+		out.Damage.Prevented = e.damagePreventedPermanents(e.protectionSource(source))
 	}
 	return out
 }

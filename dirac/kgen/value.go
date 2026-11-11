@@ -66,6 +66,32 @@ func (lc *lowerCtx) value(raw string) (lValue, error) {
 	return v, nil
 }
 
+// targetedCastSpentValue lowers Targeted$CastTotalManaSpent: the resolving
+// spell's target spell's cast spend, snapshotted as the resolution starts,
+// before the counter that removes its stack entry (gorge
+// targetManaSpentLKI). The kernel holds one snapshot of target slot 0, so the
+// spell must have exactly one target slot, a spell on the stack, declared at
+// cast (EOE Unravel).
+func (lc *lowerCtx) targetedCastSpentValue() (lValue, error) {
+	if lc.ab == nil || lc.ab.Kind != akSpell || lc.ab.Latent {
+		return lValue{}, refuse("Targeted$CastTotalManaSpent outside a resolving spell")
+	}
+	if len(lc.chainT) != 1 {
+		return lValue{}, refuse("Targeted$CastTotalManaSpent over %d target slots", len(lc.chainT))
+	}
+	if lc.chainT[0] != 0 {
+		return lValue{}, refuse("Targeted$CastTotalManaSpent of target slot %d, not the snapshot's slot 0", lc.chainT[0])
+	}
+	tg := lc.ab.Targets[lc.chainT[0]]
+	if tg.AtRes {
+		return lValue{}, refuse("Targeted$CastTotalManaSpent of a target chosen at resolution")
+	}
+	if !tg.Spell || tg.Zone != zStack || tg.StackAb || !isConstN(tg.Min, 1) || !isConstN(tg.Max, 1) {
+		return lValue{}, refuse("Targeted$CastTotalManaSpent of a target slot that is not exactly one spell on the stack")
+	}
+	return lValue{Kind: vTgtSpent}, nil
+}
+
 // svarValue lowers an SVar value body.
 func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 	if depth > 4 {
@@ -197,34 +223,33 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		lc.twoSeat("the melee capture counted as one")
 		v = cst(1)
 	case "PlayerCountOpponents":
-		// Two players: the highest among the opponents is the opponent's.
-		lc.twoSeat("an opponents extreme read as the one opponent's figure")
+		// the living opponents in seat order (gorge opponentGroup): seat-exact
 		switch {
-		case rest == "HighestLifeTotal":
-			v = lValue{Kind: vLifeOf, Ref: lRef{Kind: rEachOpp}}
-		case rest == "HighestCardsInHand", rest == "LowestCardsInHand":
-			v = lValue{Kind: vHandSizeOf, Ref: lRef{Kind: rEachOpp}}
-		case rest == "LowestLifeTotal":
-			v = lValue{Kind: vLifeOf, Ref: lRef{Kind: rEachOpp}}
 		case rest == "Amount":
-			// gorge opponentGroup: the living players other than the
-			// controller -- one while a two-player game goes on
-			v = cst(1)
+			v = lValue{Kind: vOppExtreme, N: kop.OppExtAmount}
+		case rest == "HighestLifeTotal":
+			v = lValue{Kind: vOppExtreme, N: kop.OppExtLife}
+		case rest == "LowestLifeTotal":
+			v = lValue{Kind: vOppExtreme, N: kop.OppExtLife | kop.OppExtLowest}
+		case rest == "HighestCardsInHand":
+			v = lValue{Kind: vOppExtreme, N: kop.OppExtHand}
+		case rest == "LowestCardsInHand":
+			v = lValue{Kind: vOppExtreme, N: kop.OppExtHand | kop.OppExtLowest}
 		case rest == "HighestCardsInGraveyard":
-			f, ferr := lc.filter("Card.OppOwn")
-			if ferr != nil {
-				return lValue{}, ferr
-			}
-			v = lValue{Kind: vCountGraveyard, F: f}
+			v = lValue{Kind: vOppExtreme, N: kop.OppExtGrave}
 		case strings.HasPrefix(rest, "HighestValid "):
-			// the filter is read from the opponent's side: "YouCtrl" there
-			// is the opponent's
+			// the filter is read from each opponent's side: "YouCtrl"
+			// there is that opponent's (gorge SpecContext(p))
 			f, ferr := lc.filter(strings.TrimPrefix(rest, "HighestValid "))
 			if ferr != nil {
 				return lValue{}, ferr
 			}
-			if f, err = opponentView(f); err == nil {
-				v = lValue{Kind: vCount, F: f}
+			// only the controller words are rebound to the opponent: a
+			// player clause or a source-relative word (Other, a compare
+			// against X) would read the controller's side, so it refuses
+			// as opponentView does
+			if _, err = opponentView(f); err == nil {
+				v = lValue{Kind: vOppExtreme, N: kop.OppExtValid, F: f}
 			}
 		case rest == "HighestCounters.Poison":
 			// gorge playerCountExtreme's Counters.Poison arm: the extreme
@@ -338,6 +363,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			tr.CastConverge = true
 			v = lValue{Kind: vTriggerAmount}
 		case "CastTotalManaSpent":
+			if head == "Targeted" {
+				v, err = lc.targetedCastSpentValue()
+				break
+			}
 			// opus: the spell's pool mana spent, snapshotted as the
 			// trigger fires (gorge TriggerManaSpent)
 			tr := lc.ab.Trigger
@@ -632,6 +661,12 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			// size (the fire-time capture excluded; the kernel seeds none).
 			// S marks the ctx-only read for refuseCtxRememberedCount.
 			v = lValue{Kind: vRememberedCount, S: "ctx"}
+			if lc.effCount {
+				// an Effect trigger's body (The Eagles Are Coming!): the set's
+				// size the Effect froze, which the emblem carries as the
+				// trigger amount (lower_effectremember.go)
+				v = lValue{Kind: vTriggerAmount}
+			}
 			break
 		}
 		if spec, ok := strings.CutPrefix(rest, "Valid "); ok {

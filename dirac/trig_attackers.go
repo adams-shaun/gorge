@@ -57,11 +57,12 @@ func readsAtkGrp(a *kop.Ability) bool {
 
 // grpUsed reports whether record i (index+1) is held.
 func (s *State) grpUsed(i uint8) bool {
-	if s.ctl == ctlBuild && s.bld().e.grp == i || s.res.active && s.res.e.grp == i {
+	// a spell's grp is its promised gift opponent (kw_gift.go), not a record
+	if s.ctl == ctlBuild && s.bld().e.kind != seSpell && s.bld().e.grp == i || s.res.active && s.res.e.kind != seSpell && s.res.e.grp == i {
 		return true
 	}
 	for j := 0; j < int(s.sp); j++ {
-		if s.stack[j].grp == i {
+		if s.stack[j].kind != seSpell && s.stack[j].grp == i {
 			return true
 		}
 	}

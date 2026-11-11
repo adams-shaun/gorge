@@ -310,7 +310,7 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 				return true
 			}
 		}
-		d := t.grantPayDesc(fs.a)
+		d := t.grantPayDesc(k, fs.a)
 		for j := 0; j < ng; j++ {
 			if r := k.gen.grantOf[gi[j]]; k.gen.grantRestr[gi[j]] != 0 && !t.restrSrcAdmits(k, p, sl, &k.t.Cards[r.card].Abilities[r.ab], &d) {
 				continue

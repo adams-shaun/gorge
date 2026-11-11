@@ -66,7 +66,7 @@ func (w *legalWalk) offerMayPlayFlashAlts(p state.PlayerID, id state.ObjID, f *c
 	e := w.e
 	for i, alt := range e.alternativeCosts(p, id) {
 		if !alt.flash || w.castRestrictedCost(p, id, alt.cost) ||
-			!w.offerCastable(p, id, alt.cost, spellScope(""), false) ||
+			!w.altAddOfferCastable(p, id, f, alt.cost, spellScope("")) ||
 			!e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}

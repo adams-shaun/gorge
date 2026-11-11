@@ -94,6 +94,11 @@ func (s *State) askOptionsCzParams(k *prep, d *Decision) bool {
 		d.Sub = ChGenEnterDefender
 		var buf [MaxOptions]uint8
 		n := s.enteringDefenderCands(k, s.res.askP, &buf)
+		if MaxSeats > 2 && s.res.e.kind == seTrigger {
+			if fb := s.enterDefenderFallback(k, s.res.askP); fb != NoTarget {
+				n = enterDefenderOrder(&buf, n, fb) // gorge chooseEnteringDefender: fallback first
+			}
+		}
 		for i := 0; i < n; i++ {
 			d.add(MakeAction(AkChoose, buf[i], 0, 0))
 		}
@@ -284,7 +289,7 @@ next:
 				continue next
 			}
 		}
-		if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) {
+		if !s.tokenLeftBattlefield(o) && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) { // a token off the battlefield is no card (CR 111.8)
 			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
 		}
 	}

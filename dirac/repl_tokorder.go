@@ -191,6 +191,10 @@ func (s *State) replTokensOp(k *prep, in *kop.Instr, p uint8, tok CardID, n int)
 		s.capFull(StallReplCands) // loud: never truncate the candidates
 		return tok, 0, false, false
 	}
+	if nCopy, host := s.tokCopyActive(k, p); nCopy > 0 {
+		_, na, _ := s.tokAddCards(k, p, tok)
+		return s.tokCopyOp(k, in, p, tok, n, nCopy, host, int(t.nc), na) // repl_tokcopy.go
+	}
 	if _, na, over := s.tokAddCards(k, p, tok); over {
 		s.capFull(StallReplCands)
 		return tok, 0, false, false
@@ -281,7 +285,13 @@ func (s *State) execCreateToken(k *prep, in *kop.Instr) (ok, done bool) {
 		// an adder's token enters with the op's own (it is alone: replTokensOp)
 		cs, na, _ = s.tokAddCards(k, p, CardID(in0.C))
 	}
-	if na > 0 {
+	if t.on && t.nc == 0 && t.ab[3] != 0 {
+		// the accepted copy-instead election makes this token a copy (repl_tokcopy.go)
+		t.ab[3] = 0
+		if s.mintTokenCopy(k, p, t.cand[3]) {
+			return true, true
+		}
+	} else if na > 0 {
 		if s.createTokensHeld(k, in, p, n, cs[:na]) {
 			return true, true
 		}

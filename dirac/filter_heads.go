@@ -20,10 +20,17 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     active player attacks (CR 506.2) and its attackers attack the other
 //     seat or a permanent that seat controls or protects, so the defending
 //     player is the non-active one. kgen lowers it only in an Attacks
-//     trigger's body.
-func (s *State) ctrlRoleF2(f kop.FilterFlags2, ctrl uint8) bool {
-	if f&kop.F2DefendingCtrl != 0 && ctrl == s.active {
-		return false
+//     trigger's body. Past two seats it is the seat the trigger's attacker
+//     attacks (defendingSeatF2).
+func (s *State) ctrlRoleF2(k *prep, f kop.FilterFlags2, ctrl uint8) bool {
+	if f&kop.F2DefendingCtrl != 0 {
+		if MaxSeats == 2 {
+			if ctrl == s.active {
+				return false
+			}
+		} else if ctrl != s.defendingSeatF2(k) {
+			return false
+		}
 	}
 	if f&kop.F2TgtPlayerCtrl != 0 {
 		if DebugTgtPlayerCtrlAny {
@@ -45,6 +52,31 @@ func (s *State) ctrlRoleF2(f kop.FilterFlags2, ctrl uint8) bool {
 	}
 	return true
 }
+
+// defendingSeatF2 is the defending player of an Attacks trigger past two
+// seats (gorge TriggeredDefendingPlayer, CR 508.5), bound when the trigger is
+// queued: while the trigger fires (an IsPresent$ condition) it is the
+// checked event's seat (g.atkDef), afterwards the current entry's defSeat.
+// A read with neither stalls the game (StallDefenderPW, a declared limit)
+// and answers NoTarget, which matches no seat.
+func (s *State) defendingSeatF2(k *prep) uint8 {
+	if DebugDefendingActiveOpp {
+		return (s.active + 1) % s.nSeats() // seat-ok: a test-only mutation (DebugDefendingActiveOpp)
+	}
+	if s.g.atkDef != 0 {
+		return s.g.atkDef - 1
+	}
+	if e := s.curEntry(); e != nil && e.kind == seTrigger && e.defSeat != 0 {
+		return e.defSeat - 1
+	}
+	s.capFull(StallDefenderPW)
+	return NoTarget
+}
+
+// DebugDefendingActiveOpp is a test-only mutation: past two seats the
+// defending player of an Attacks trigger is read as the seat after the
+// active one, the two-seat reduction, whoever the attacker attacks.
+var DebugDefendingActiveOpp bool
 
 // costTargetMatch reports whether target code t matches the Filter2 f of a
 // target-gated cost reduction (gorge costTargetsMatch, CR 601.2f): a

@@ -1,6 +1,7 @@
 package botpolicy
 
 import (
+	"slices"
 	"sort"
 	"strings"
 
@@ -824,10 +825,35 @@ func (b Board) chooseTargets(d *decision.Decision) []int {
 		return d.GroupAdmits(chosenCounts, o.Group)
 	}
 	choices := make([]int, 0, pick)
+	// An "up to" removal ask is never filled past its Min with the removal's
+	// own host: exiling it achieves nothing, and an exile "until this leaves
+	// the battlefield" aimed at its own host returns host and exiles at once
+	// -- a Saga whose chapter I does it re-enters, re-triggers and loops
+	// forever (Vault 13: Dweller's Journey, whose script omits "other").
+	var selfHost state.ObjID
+	if te := d.TargetEffect; te != nil && te.Removal != nil {
+		selfHost = te.Host
+	}
+	// A damage ask leaves a permanent that prevents all damage to itself
+	// (DamageEffect.Prevented) for last, and only to meet Min: the damage
+	// does nothing there, and two Phyrexian Vindicators aimed at each other
+	// redirect the prevented damage back and forth forever.
+	var prevented []state.ObjID
+	if te := d.TargetEffect; te != nil && te.Damage != nil {
+		prevented = te.Damage.Prevented
+	}
+	var deferred []targetRank
 	pickFrom := func(s []targetRank) {
 		for i := 0; i < len(s) && len(choices) < pick; i++ {
 			o := d.Options[s[i].idx]
 			if !fits(o) {
+				continue
+			}
+			if selfHost != 0 && o.Obj == selfHost && len(choices) >= d.Min {
+				continue
+			}
+			if o.Obj != 0 && o.Kind != "player" && slices.Contains(prevented, o.Obj) {
+				deferred = append(deferred, s[i])
 				continue
 			}
 			if d.TargetsWithSameController && !haveTargetController {
@@ -853,6 +879,11 @@ func (b Board) chooseTargets(d *decision.Decision) []int {
 	} else {
 		byScore(foreign)
 		pickFrom(foreign)
+		if len(choices) < d.Min && len(deferred) > 0 {
+			rest := deferred
+			prevented, deferred = nil, nil
+			pickFrom(rest)
+		}
 		if len(choices) < pick {
 			if ownAsc {
 				byScoreAsc(own) // a curse forced onto our own board costs least on the weakest.
@@ -861,6 +892,11 @@ func (b Board) chooseTargets(d *decision.Decision) []int {
 			}
 			pickFrom(own)
 		}
+	}
+	if len(choices) < d.Min && len(deferred) > 0 {
+		rest := deferred
+		prevented, deferred = nil, nil
+		pickFrom(rest)
 	}
 	return choices
 }

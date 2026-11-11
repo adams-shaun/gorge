@@ -145,6 +145,9 @@ func (s *State) queueTrig(k *prep, l trigListener, a *kop.Ability, tobj Obj, tpl
 	if k.gen.anyGameOnce && a.Trig.Flags3&kop.Tf3GameOnce != 0 {
 		s.markGameOnce(l)
 	}
+	if k.gift && a.AFlags&kop.AfGift != 0 {
+		tpl = s.promisedAt(l.obj) // the promised opponent, snapshotted at queue (kw_gift.go)
+	}
 	n := s.npend
 	s.enqueueLKI(l.obj, s.objs[l.obj].ver, l.card, l.ab, l.ctrl, tobj, tpl, amt)
 	if s.npend > n {
@@ -264,6 +267,9 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 		}
 		if k.gen.anyTWTap && !twTapOK(a, amt) {
 			return // Teamwork$ True: only a teamwork-cost tap (trig_params.go)
+		}
+		if a.Trig.Flags2&kop.Tf2FirstTime != 0 && s.mSl(k, mechTappedTurn, evSl) {
+			return // an earlier tap this turn: FirstTime$ is false (gorge Facts.TappedTurn)
 		}
 		amt = 0                                  // the tapper (fireTapsBy), not an amount
 		tapAll = a.Trig.Flags2&kop.Tf2Batch != 0 // Mode$ TapAll: the tap batch's latch, not the zone batch's (trig_tapall.go)
@@ -405,6 +411,7 @@ func (s *State) fireEmblems(k *prep, ev kop.TrigEvent, who uint8, tobj Obj, extr
 // fireEmblemsAmt is fireEmblems for an event that carries an amount (life
 // gained: Professor Dellian Fel's emblem reads TriggerCount$LifeAmount).
 func (s *State) fireEmblemsAmt(k *prep, ev kop.TrigEvent, who uint8, tobj Obj, amt int16, extra func(a *kop.Ability) bool) {
+	var done [MaxSeats]uint8 // OneOff emblems that fired (trig_emblemonce.go)
 	for pp := uint8(0); pp < s.nSeats(); pp++ {
 		if s.out(pp) {
 			continue
@@ -423,11 +430,20 @@ func (s *State) fireEmblemsAmt(k *prep, ev kop.TrigEvent, who uint8, tobj Obj, a
 					la := &cd.Abilities[ab]
 					if la.Kind == kop.AbTriggered && la.AFlags&kop.AfLatent != 0 && la.Trig.Event == ev && la.Trig.Zone == kop.ZoneCommand {
 						o := s.embObj(pp, i)
-						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, tobj, who, amt)
+						n0 := s.npend
+						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, tobj, who, s.embTrigAmt(e, pp, i, amt))
+						if e.Once && s.npend > n0 && i < 8 {
+							done[pp] |= 1 << uint(i)
+						}
 						break
 					}
 				}
 			}
+		}
+	}
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if done[pp] != 0 {
+			s.embCompact(pp, done[pp])
 		}
 	}
 }

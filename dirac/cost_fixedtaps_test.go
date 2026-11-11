@@ -68,7 +68,7 @@ func TestFixedTapsSpellPricedFromComposedCost(t *testing.T) {
 		sc.untappedPerm(id["Forest"], 0)
 	}
 	sc.untappedPerm(id["Grizzly Bears"], 0)
-	d := sc.s.grantPayDesc(a)
+	d := sc.s.grantPayDesc(k, a)
 	if sc.s.affordsUngrantedFor(k, 0, &cost, NoSlot, d) == false {
 		t.Fatal("precondition: three Forests pay {2}{G}")
 	}

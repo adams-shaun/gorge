@@ -12,6 +12,7 @@ Apocalypse Runner
 Autarch Mammoth
 Avishkar Raceway
 Back on Track
+Basri, Tomorrow's Champion
 Beastrider Vanguard
 Bestow Greatness
 Bleachbone Verge
@@ -19,6 +20,7 @@ Bloodfell Caves
 Bloodghast
 Blossoming Sands
 Boom Scholar
+Boommobile
 Boosted Sloop
 Bounce Off
 Brightfield Glider
@@ -33,6 +35,7 @@ Burner Rocket
 Burnout Bashtronaut
 Caelorna, Coral Tyrant
 Camera Launcher
+Captain Howler, Sea Scourge
 Caradora, Heart of Alacria
 Carrion Cruiser
 Chandra, Spark Hunter
@@ -130,6 +133,7 @@ Memory Guardian
 Mendicant Core, Guidelight
 Midnight Mangler
 Migrating Ketradon
+Mindspring Merfolk
 Momentum Breaker
 Monument to Endurance
 Mountain
@@ -153,6 +157,7 @@ Pothole Mole
 Pride of the Road
 Prowcatcher Specialist
 Push the Limit
+Pyrewood Gearhulk
 Quag Feast
 Racers' Scoreboard
 Rangers' Aetherhive

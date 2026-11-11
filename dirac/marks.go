@@ -165,6 +165,11 @@ func (s *State) genViewHash(h uint64) uint64 {
 	h = hbytes(h, unsafe.Pointer(&g.embO[0]), uintptr(len(g.embO))*unsafe.Sizeof(g.embO[0]))
 	h = hbytes(h, unsafe.Pointer(&g.embN[0]), uintptr(len(g.embN))*unsafe.Sizeof(g.embN[0])) // the frozen chosen number
 	h = hbytes(h, unsafe.Pointer(&g.embT[0]), uintptr(len(g.embT))*unsafe.Sizeof(g.embT[0])) // the layer timestamp
+	if g.embR != [MaxSeats][maxEmb]Obj{} || g.embX != [MaxSeats][maxEmb][embRemSlots - 2]uint8{} {
+		// an emblem's remembered slots (static_emblemrem.go): only a table whose emblems remember keeps them
+		h = hbytes(h, unsafe.Pointer(&g.embR[0]), uintptr(len(g.embR))*unsafe.Sizeof(g.embR[0]))
+		h = hbytes(h, unsafe.Pointer(&g.embX[0]), uintptr(len(g.embX))*unsafe.Sizeof(g.embX[0]))
+	}
 	for p := uint8(0); p < MaxSeats; p++ {
 		if live := s.embColdLive(p); len(live) > 0 {
 			h = hbytes(h, unsafe.Pointer(&live[0]), uintptr(len(live))*unsafe.Sizeof(live[0])) // emblems past maxEmb

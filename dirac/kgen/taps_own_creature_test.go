@@ -1,9 +1,6 @@
 package kgen
 
-import (
-	"strings"
-	"testing"
-)
+import "testing"
 
 // TestTapsOwnCreature: the non-Self Taps watchers lower. Hawkeye's Bow's
 // "whenever equipped creature becomes tapped" (ValidCard$ Creature.EquippedBy,
@@ -11,20 +8,23 @@ import (
 // read against the tapped permanent relative to the Bow's slot, and whose
 // body deals 1 to each opponent from the trigger object (DamageSource$
 // TriggeredCardLKICopy, dmgSrcPlayers). Captain America, Living Legend's
-// YouCtrl watcher refuses: FirstTime$ True needs a per-object
-// tapped-this-turn the kernel keeps nowhere (perm.flags holds no free bit).
+// YouCtrl watcher lowers too: FirstTime$ True reads the per-permanent
+// tapped-this-turn mark in the mechanic arena.
 func TestTapsOwnCreature(t *testing.T) {
 	for _, c := range lowerNamed(t, []string{"Hawkeye's Bow", "Captain America, Living Legend"}) {
 		switch c.Name {
 		case "Captain America, Living Legend":
-			seen := false
-			for _, r := range c.Refusals {
-				if strings.Contains(r.Reason, "Taps FirstTime$") {
-					seen = true
+			if len(c.Refusals) > 0 {
+				t.Fatalf("%s: refused: %v", c.Name, c.Refusals)
+			}
+			found := false
+			for _, a := range c.Abilities {
+				if a.Trigger != nil && a.Trigger.Event == "Taps" {
+					found = true
 				}
 			}
-			if !seen {
-				t.Errorf("%s: no Taps FirstTime$ refusal (%v)", c.Name, c.Refusals)
+			if !found {
+				t.Errorf("%s: no Taps trigger lowered", c.Name)
 			}
 		case "Hawkeye's Bow":
 			if len(c.Refusals) > 0 {

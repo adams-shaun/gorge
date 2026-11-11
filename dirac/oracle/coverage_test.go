@@ -165,3 +165,37 @@ func TestCoverageCreditsStaticTriggers(t *testing.T) {
 		t.Fatalf("Storied Veteran's static rider f0/t0 was never credited: %v", sv.Used)
 	}
 }
+
+// TestCoverageCreditsDelayedShapeTriggers: a Room's "when you unlock this door"
+// reaches the stack in the delayed shape, its body resolved afresh by its Execute$
+// name, so no inventory slot's SA is its ability object; the DelayedPush credits it.
+func TestCoverageCreditsDelayedShapeTriggers(t *testing.T) {
+	c, _ := testCorpus(t)
+	const room = "Bottomless Pool // Locker Room"
+	cd, ok := c.Reg.Lookup(room)
+	if !ok {
+		t.Skipf("%q not in the corpus", room)
+	}
+	es := []deck.Entry{{Name: room, Count: 24}, {Name: "Island", Count: 16}}
+	cc := &Corpus{Reg: c.Reg, decks: map[string][]*cards.Card{}}
+	cc.AddDecks(map[string]deck.File{"rm-a": {Name: "rm-a", Cards: es}, "rm-b": {Name: "rm-b", Cards: es}})
+	var pairs []Pairing
+	for i := 0; i < 4; i++ {
+		pairs = append(pairs, Pairing{Index: i, A: "rm-a", B: "rm-b", Seed: uint64(i + 1)})
+	}
+	s := Fuzz(cc, pairs, GorgeKernel(Config{}), FuzzConfig{Policy: RandomPolicy, Coverage: true}, nil)
+	if s.Diverged != 0 || s.Errors != 0 || s.Coverage == nil {
+		t.Fatalf("gorge mirror: %d diverged, %d errors (%v)", s.Diverged, s.Errors, s.ByClass)
+	}
+	rc := s.Coverage.Cards[coverageName(cd)]
+	if rc == nil {
+		t.Fatalf("no %s row", coverageName(cd))
+	}
+	t.Logf("%s cast %d keys %v used %v", room, rc.Cast, rc.Keys, rc.Used)
+	if rc.Cast == 0 {
+		t.Fatal("the Room was never cast")
+	}
+	if rc.Used["f0/t0"] == 0 {
+		t.Fatalf("the unlock trigger f0/t0 was never credited: %v", rc.Used)
+	}
+}

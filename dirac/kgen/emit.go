@@ -269,6 +269,7 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 		cond(ab.Trig.Cond)
 		filt(ab.Static.Filter)
 		filt(ab.Static.Filter2)
+		filt(ab.Static.ProtFrom)
 		cond(ab.Static.Cond2)
 		val(ab.Static.VA)
 		val(ab.Static.VB)

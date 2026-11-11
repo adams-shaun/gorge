@@ -228,6 +228,17 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 		}
 		var mode int
 		switch o.Kind {
+		case "gift_promise":
+			// giftAsk's one promise per opponent, AliveFrom(caster): the
+			// option's position among them (0 in a two-player game)
+			for j := range d.Options {
+				if &d.Options[j] == o {
+					break
+				}
+				if d.Options[j].Kind == "gift_promise" {
+					mode++
+				}
+			}
 		case "name":
 			// a card name: the label's canonical value, which does not
 			// consult the creature-type vocabulary (canon.NameValue)

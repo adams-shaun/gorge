@@ -25,3 +25,13 @@ const (
 	objOwnerBits  uint8 = 0xc0 // object.acts: the owner (0..3)
 	objOwnerShift       = 6
 )
+
+// embRemSlots is how many objects one emblem remembers (static_emblemrem.go):
+// the frozen-number byte and embR. The four-seat class has no reserved bytes
+// left for embX, so it holds two and a larger set stalls (StallEmbRem).
+const embRemSlots = 2
+
+// linkPadN pads genState after its sixteen exile-until-leaves links so perms
+// keeps its cache-line phase (statelayout_mp_test.go): the four-seat class's
+// alignment leaves a smaller gap than the default class's.
+const linkPadN = 8

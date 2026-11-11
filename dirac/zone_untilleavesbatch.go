@@ -93,6 +93,10 @@ func (s *State) holdClose(k *prep, r holdRec) {
 func (s *State) holdReturns(sl Slot, o Obj) {
 	for i := 0; i < int(s.g.nlinks); i++ {
 		if l := &s.g.links[i]; l.src == o && s.objs[o].ver == l.sver+1 {
+			if int(s.g.nretHeld) == len(s.g.retHeld) {
+				s.capFull(StallLinks) // more linked sources leaving at once than retHeld holds
+				return
+			}
 			s.g.retHeld[s.g.nretHeld] = o
 			s.g.retCtrl |= s.perms[sl].ctrl << s.g.nretHeld
 			s.g.nretHeld++

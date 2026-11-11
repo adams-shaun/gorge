@@ -22,3 +22,11 @@ const (
 	objOwnerBits  uint8 = 0x80 // object.acts: the owner (0 or 1)
 	objOwnerShift       = 7
 )
+
+// embRemSlots is how many objects one emblem remembers (static_emblemrem.go):
+// the frozen-number byte, embR and embX's two.
+const embRemSlots = 4
+
+// linkPadN pads genState after its sixteen exile-until-leaves links so perms
+// keeps its cache-line phase (statelayout_test.go).
+const linkPadN = 16

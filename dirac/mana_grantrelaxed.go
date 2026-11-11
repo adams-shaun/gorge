@@ -24,5 +24,23 @@ func (s *State) grantRelaxedAffords(k *prep, p uint8, a Action, cost *kop.ManaCo
 	if k.tapMana {
 		s.availTapX(k, p, &av) // the relaxed census counts a tap-another source as a free any-colour unit (mana_tapanother.go)
 	}
-	return av.affords(cost, pipMaskOf(cost), 0)
+	if k.gen.anyFilt && s.filtRelaxable(k, s.scriptFilt(k, p)) {
+		// the relaxed proof also appends each subset of the census's paid
+		// alternatives, charging their fees (paymentPlanRelaxProof): Hidden
+		// Grotto's {1},{T} makes the {U} a Forest board lacks, as
+		// relaxRestrRefuses reads it
+		s.availFilt(k, p, &av)
+	}
+	// the floating restricted mana the activation may spend is in the pool
+	// the planner's verdict pays from (gorge AvailableFor; CR 106.6): Cargo
+	// Ship's artifact-only {C} toward an Equipment's equip
+	if s.rbAny(p) {
+		if rm := s.restrPoolAct(k, p, &d); rm != 0 {
+			s.restrAvailAdd(p, rm, &av)
+		}
+	}
+	// a restricted planner source the activation may spend is a census unit
+	// of its own (Jasmine Dragon Tea Shop's any colour for an Ally source's
+	// ability, Merchant of Many Hats' {2}{B} from the graveyard; CR 106.6)
+	return av.affords(cost, pipMaskOf(cost), 0) || k.restrSrc && s.restrSrcAffords(k, p, d, cost, &av, NoSlot, 0)
 }
