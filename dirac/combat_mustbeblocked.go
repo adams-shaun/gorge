@@ -306,7 +306,7 @@ func (s *State) blockerOptionsReq(k *prep, d *Decision, mb slotMask) bool {
 		}
 		for am := s.blockAtkM(k); am.any(); am = am.rest() {
 			a := am.first()
-			if s.perms[a].flags&pfAttacking == 0 || !s.canBlock(k, b, a) || s.menaceImpossible(k, a) ||
+			if !s.aloneBlockOfferable(k, b) || s.perms[a].flags&pfAttacking == 0 || !s.canBlock(k, b, a) || s.menaceImpossible(k, a) ||
 				k.gen.anyMaxBlk && s.blockCapped(k, a) || s.mbReach(k, lure, mb, duty, b, a, q, &over) < q {
 				continue
 			}
@@ -322,10 +322,10 @@ func (s *State) blockerOptionsReq(k *prep, d *Decision, mb slotMask) bool {
 		d.Kind = DkNone
 		return true
 	}
-	if s.menaceDeficit(k, NoSlot, NoSlot, nil) == 0 && s.blocksCompletable(k, NoSlot, NoSlot) {
+	if s.menaceDeficit(k, NoSlot, NoSlot, nil) == 0 && s.blocksCompletable(k, NoSlot, NoSlot) && !s.loneAloneBlocker(k) {
 		var m mbSearch
 		cur, _ := m.mbInit(s, k, lure, mb, duty, NoSlot, NoSlot)
-		if cur >= q || DebugMustBlockGreedy && cur >= 1 {
+		if cur >= q || DebugMustBlockGreedy && cur >= 1 || d.N == 0 {
 			d.add(MakeAction(AkDone, 0, 0, 0))
 		}
 	}

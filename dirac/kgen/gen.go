@@ -364,6 +364,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.AloneAtk {
 		fmt.Fprintf(w, " alone-atk")
 	}
+	if c.AloneBlk {
+		fmt.Fprintf(w, " alone-blk")
+	}
 	if c.Engines {
 		fmt.Fprintf(w, " engines")
 	}

@@ -1,0 +1,11 @@
+# the can't-attack-or-block-alone pool: Bonded Horncrest (the compound
+# keyword) and Craven Hulk (block-alone only) beside plain creatures and burn
+# that kills partners, for the constructed lockstep in
+# dirac/oracle/aloneblock_test.go
+Bonded Horncrest
+Craven Hulk
+Forest
+Grizzly Bears
+Hill Giant
+Mountain
+Shock

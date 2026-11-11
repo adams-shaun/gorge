@@ -623,7 +623,7 @@ func (s *State) blockerOptions(k *prep, d *Decision) bool {
 		for am.any() {
 			a := am.first()
 			am = am.rest()
-			if s.perms[a].flags&pfAttacking != 0 && s.canBlock(k, b, a) && !s.menaceImpossible(k, a) &&
+			if s.aloneBlockOfferable(k, b) && s.perms[a].flags&pfAttacking != 0 && s.canBlock(k, b, a) && !s.menaceImpossible(k, a) &&
 				s.blocksCompletable(k, b, a) && !(k.gen != nil && k.gen.anyMaxBlk && s.blockCapped(k, a)) {
 				if int(d.N) >= MaxOptions-1 { // keep room for Done
 					return s.optionsFull(d)
@@ -632,7 +632,7 @@ func (s *State) blockerOptions(k *prep, d *Decision) bool {
 			}
 		}
 	}
-	if s.blocksCompletable(k, NoSlot, NoSlot) && s.menaceDeficit(k, NoSlot, NoSlot, nil) == 0 {
+	if s.blocksCompletable(k, NoSlot, NoSlot) && s.menaceDeficit(k, NoSlot, NoSlot, nil) == 0 && !s.loneAloneBlocker(k) {
 		d.add(MakeAction(AkDone, 0, 0, 0))
 	}
 	return true
