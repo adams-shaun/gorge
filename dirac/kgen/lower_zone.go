@@ -436,6 +436,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			if flags, err = shareLandType(ps, f, flags); err != nil { // lower_sharelandtype.go
 				return err
 			}
+			if flags, err = searchDestAlt(ps, dest, obj, flags); err != nil { // lower_destalt.go
+				return err
+			}
 			if dest == zBattlefield && !isConstN(n, 1) {
 				// CR 303.4f: the kernel parks one found Aura for its enchant ask.
 				for _, c := range f.Clauses {
@@ -734,6 +737,11 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		if slices.Contains(flags, "Remember") && pos == -1 && origin == zGraveyard && obj.Kind == rTriggeredNew {
 			in.C = kop.LibBottomRememberGrave // zone_tolibraryremember.go
+		}
+		if c, ok, err := ctrlPositionChoice(ps, origin, pos, obj); err != nil { // lower_destalt.go
+			return err
+		} else if ok {
+			in.C = c
 		}
 		if ad, ok := ps.get("AlternativeDecider"); ok {
 			if ad != "TargetedOwner" || ps.str("DestinationAlternative") != "Library" || ps.str("LibraryPositionAlternative") != "-1" || pos != 0 && pos != 1 {

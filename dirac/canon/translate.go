@@ -826,6 +826,10 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(ActMode, RefNone, RefNone, r.S.CastFreeIndex(dirac.Obj(src))), true
 	case dirac.ChGenLookAck:
 		return Pack(kind("yes"), RefNone, RefNone, 0), true
+	case dirac.ChGenDestAlt:
+		// gorge's changezone_dest_alt: "destination" options naming the
+		// searcher, primary (index 0) then alternate (index 1)
+		return Pack(kind("destination"), RefNone, RefPlayer+Ref(r.D.Player), mode), true
 	case dirac.ChGenExplore:
 		// gorge's explore: a KChoose of "graveyard" / "top" over the revealed card
 		if mode == 1 {

@@ -958,13 +958,15 @@ func handLibraryTail(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owner s
 	}
 	source := c.Source
 	// Dream Cache's "both on top of your library or both on the bottom"
-	// (controllerPositionChoice): the controller chooses once, for the
-	// whole moved set, after the move; the answer places the set.
+	// (controllerPositionChoice): the set takes the primary position (the
+	// top) as it moves, then the controller chooses once, for the whole
+	// set; a bottom answer re-places it.
 	if cz.controllerPositionChoice(to) && !cz.ShuffleTrue {
-		if bottom, ok := askLibraryPosition(h, c, sa, c.Controller, "top"); ok {
-			libraryOrderPlacement(h, owner, moved, bottom)
-			return
+		libraryOrderPlacement(h, owner, moved, false)
+		if bottom, ok := askLibraryPosition(h, c, sa, c.Controller, "top"); ok && bottom {
+			libraryOrderPlacement(h, owner, moved, true)
 		}
+		return
 	}
 	// Any other DestinationAlternative$/LibraryPositionAlternative$ shape is
 	// a modal destination choice this engine cannot yet ask: the
