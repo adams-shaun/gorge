@@ -1,0 +1,11 @@
+# Hand of Emrakul: the sacrifice-four-Eldrazi-Spawn alternative cost (a
+# two-subtype sacrifice filter) beside its Annihilator 1 attack trigger
+# (CR 702.86a). Decks play it in dirac/oracle/handofemrakul_test.go.
+Hand of Emrakul
+Awakening Zone
+Nest Invader
+Eldrazi Skyspawner
+Grizzly Bears
+Hill Giant
+Forest
+Island

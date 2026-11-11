@@ -3,12 +3,16 @@ package kop
 // C of an ExtAddPhase: the extra phase's kind (ExtraPhase$ Combat,
 // Upkeep, End of Turn) in bits 0-1, its splice point (AfterPhase$, the LAST
 // step of the named phase, a Step) in bits 4-7. The omitted AfterPhase$ (the
-// step the grant resolves in) is not lowered: its carrier, Full Throttle,
-// stays refused for its Effect.
+// step the grant resolves in) lowers only as AddPhaseCombatMain; its other
+// carrier, Full Throttle, stays refused for its Effect.
 const (
 	AddPhaseCombat = 0 // BeginCombat..EndCombat
 	AddPhaseUpkeep = 1 // Upkeep alone
 	AddPhaseEnd    = 2 // End alone
+	// AddPhaseCombatMain: an extra combat followed by an additional main phase
+	// (FollowedBy$ Main2, Relentless Assault). The splice point is the main
+	// phase the grant resolves in; the nibble is ignored.
+	AddPhaseCombatMain = 3
 )
 
 // AtEOT$ on a ChangeZoneAll sweep onto the battlefield.
@@ -59,6 +63,13 @@ const MayGuardStackSpell = 9
 // OpPutCounter whose Defined target is live (a dead source has no slot), else
 // nothing is asked and the counter is not put.
 const MayGuardPut = 10
+
+// MayGuardMoveRemembered: the OpMayAsk guard of an optional move of the card a
+// looking Peek remembered, from the library (Into the Wilds; gorge
+// moveDefinedLibraryObjects' Optional$ ask over a Defined$ Remembered fetch):
+// the next op's Obj is an object, else (an empty remembered set) nothing is
+// asked and the move is skipped.
+const MayGuardMoveRemembered = 11
 
 // MayGuardAnimateAll: the OpMayAsk guard of Animate over Defined$ Valid: the
 // next op is an OpOverrideAll whose F has at least one battlefield hit (gorge

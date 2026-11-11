@@ -693,6 +693,9 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(kind("hidden_pick"), src, RefNone, 0), true
 	case dirac.ChGenHandMove:
 		return Pack(kind("hand_move"), src, RefNone, 0), true
+	case dirac.ChGenImprint:
+		// gorge zone_change.go's imprint pick (Chrome Mox)
+		return Pack(kind("imprint"), src, RefNone, 0), true
 	case dirac.ChGenReveal:
 		return Pack(kind("reveal"), src, RefNone, 0), true
 	case dirac.ChGenDig:

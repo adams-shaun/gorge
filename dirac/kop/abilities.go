@@ -171,7 +171,10 @@ const AfNinjutsu AbilityFlags = AfStation << 1
 // among the colours of the controller's permanents matching ManaAmong
 // (AB$ ManaReflected, ReflectProperty$ Is; Plaza of Heroes). The colours
 // are read at each use; none, and the ability adds nothing (gorge lists no
-// such ability). Kernel mana_reflected.go.
+// such ability). Kernel mana_reflected.go. A printed one with no ManaAmong
+// filter reads the colours of the cards its source imprinted (Chrome Mox;
+// kernel mana_imprint.go); a granted one with none, the grantee's own
+// colours (Katilda; kernel mana_owncolours.go).
 const AfManaReflect AbilityFlags = AfNinjutsu << 1
 
 // AfManaNonSpell the restricted mana ability
@@ -374,6 +377,16 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 		return true
 	}
 	return false
+}
+
+// DiscardHandManaAb reports whether a is Lion's Eye Diamond's mana ability:
+// discard your hand and sacrifice this, nothing else, a printed ability (kgen
+// lowers it only with InstantSpeed$ True). gorge lists it in no payment window
+// and no planner census (pay.InstantSpeedOnly); only a potential play's prefix
+// search activates it (kernel mana_discardhand.go).
+func DiscardHandManaAb(a *Ability) bool {
+	return a.Kind == AbMana && a.Cost.DiscardHand && a.Cost.Flags == CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
+		a.AFlags&AfLatent == 0
 }
 
 // SecondTapXManaAb reports whether ability j of cd, a later mana ability than

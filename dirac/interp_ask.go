@@ -121,6 +121,9 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	skip := uint16(in.C >> 4)
 	amt := s.value(k, in.A)
 	pips := in.B.N
+	if kind == kop.PayMana && amt > 255 && s.afterCumulative(k) {
+		amt = 255 // n age counters of a generic cost: no pool pays more, and the ask holds a byte (trig_cumulative.go)
+	}
 	if k.gen != nil && k.gen.anyNumTimes && kind == kop.PayMana {
 		amt, pips = s.numTimesScale(k, amt, pips) // cast_announcetimes.go
 	}
@@ -150,7 +153,7 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 		}
 		return true
 	}
-	if e := &s.res.e; e.kind != seTrigger || s.res.pc != 0 && !s.afterNumTimes(k) || in.Op != kop.OpIfPaid {
+	if e := &s.res.e; e.kind != seTrigger || s.res.pc != 0 && !s.afterNumTimes(k) && !s.afterCumulative(k) || in.Op != kop.OpIfPaid && !s.afterCumulative(k) {
 		skip |= pfModes // only a trigger's own cost is gorge's trigger_cost pay/decline; an unless is its modes (Painful Quandary)
 	}
 	if kind == kop.PayMana {
@@ -441,6 +444,8 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			d.Sub = ChGenHandMove
 			if s.g.pickF&kop.SrReveal != 0 {
 				d.Sub = ChGenReveal
+			} else if s.imprintMoxPick(k) {
+				d.Sub = ChGenImprint // mana_imprint.go
 			}
 		default:
 			d.Sub = ChGenHiddenPick

@@ -80,6 +80,12 @@ type Static struct {
 	// <spec>, Sword of Wealth and Power's instants and sorceries). 0 = none.
 	// The granted read is armed by genPrep.anyProtGrant (kernel kw_protection.go prepProtGrant); anyProtF opens the target, block and attach sites.
 	ProtFrom FilterID
+	// Landwalk: a StatContinuous grant of landwalk besides its other parts:
+	// the affected creatures can't be blocked while the defending player
+	// controls a land this filter matches (CR 702.14; AddKeyword$
+	// Landwalk:<land spec>, Goblin King's mountainwalk). 0 = none. Armed by
+	// genPrep.anyLandwalk; read by State.landwalkGranted (kw_evasion.go).
+	Landwalk FilterID
 	// WardLife: a StatContinuous grant's "ward—pay N life" amount
 	// (AddKeyword$ Ward:PayLife<N>; Kw holds KwWard; CR 702.21a). Like Ward,
 	// each such static is its own ward instance; 0 = no life ward.
@@ -339,6 +345,11 @@ const StatCantActivate StaticKind = 236
 // source's chosen name (ExtChooseName).
 const CantActNamed = 4
 
+// CantCastNamed is the StatCantBeCast B bit for ValidCard$ Card.NamedCard
+// (Alhammarret, High Arbiter): the filter holds only for a spell whose card is
+// the static source's chosen name (ExtChooseName).
+const CantCastNamed = 1
+
 // StCasterActive: on a StatCantBeCast only, the
 // restriction binds a caster who is the active player (Caster$
 // Player.Active; gorge actorMatches). It aliases StTargetsFilter2, whose
@@ -573,6 +584,13 @@ const StTapAnyPlayer = StWithoutManaCost
 // (IsCombat$ True: Frenzied Baloth; gorge cantPreventDamage reads it against
 // combatDamaging). Noncombat damage is prevented as usual.
 const StNoPrevCombat = StOncePerTurn
+
+// StNoPrevSpellSelf (aliases StAnyManaType, a MayPlayFrom-only bit) on a
+// StatCantPreventDamage static: it functions on the stack, for the damage its
+// own spell deals while that spell resolves (EffectZone$ Stack | ValidSource$
+// Spell.Self; Cond2 the X gate: Banefire). It is never in the battlefield
+// static scan.
+const StNoPrevSpellSelf = StAnyManaType
 
 // StatAnyTypeCreatures: the static's controller may spend mana as though it
 // were mana of any type to cast creature spells (S:Mode$ ManaConvert |

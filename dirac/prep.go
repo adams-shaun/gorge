@@ -30,6 +30,7 @@ type pcard struct {
 	// Tf2ManaFromSelf SpellCast trigger (mana_spendtrigger.go)
 	castSrc   uint8
 	manaMulti bool          // several plain fixed-colour mana abilities folded into manaCol (mana_multicolour.go)
+	manaRefl  bool          // an imprint mox's view: gorge's census keeps its unit at the source's battlefield position even when it is a colour choice (mana_imprint.go)
 	blgFirst  uint8         // a granted basic land type's view: 1 + its first ability's colour, the payment window's answer (static_landtype.go); 0 otherwise
 	rankCol   kop.ColorMask // a restricted source's colours as gorge's rank keys read them (all its alternatives', admitted or not); 0: manaCol
 	restrU    uint8         // a restricted source's planner view: 1 fixed colour, 2 widened {C} unit (mana_restrictedsource.go)
@@ -76,9 +77,10 @@ type pcard struct {
 	enterTap    bool  // ReplEntersTapped
 	enterCtr    int8  // ReplEntersWithCounters count (+1/+1 kind assumed when C=0)
 	enterCK     kop.CounterKind
-	noCtr       bool // ReplCantBeCountered
-	noUntap     bool // ReplDoesntUntap
-	mayNotUntap bool // ReplMayNotUntap: a tapped one asks "untap or keep tapped" at its controller's untap step (repl_untapchoice.go)
+	noCtr       bool       // ReplCantBeCountered
+	noCtrCond   kop.CondID // a ReplCantBeCountered with a Cond (Banefire: X is 5 or more), read with the entry
+	noUntap     bool       // ReplDoesntUntap
+	mayNotUntap bool       // ReplMayNotUntap: a tapped one asks "untap or keep tapped" at its controller's untap step (repl_untapchoice.go)
 	land        bool
 	altCost     bool // the card has its own mana alternative cost (genPrep.altFree; cast_altfree.go) or Impending: the hand walk's one-byte gate (offerAltHand)
 	plotTrig    bool // a "when this card becomes plotted" trigger (TrigBecomesPlotted; kw_plot.go)
@@ -325,7 +327,7 @@ func prepare(t *kop.Table) *prep {
 					pc.manaTap = (a.Cost.Flags == kop.CostTap || a.Cost.Flags == kop.CostTap|kop.CostOncePerGame) && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
 					pc.manaSac = a.Cost.Flags == kop.CostTap|kop.CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
 					// (a latent one is another permanent's: Lotus Ring's sacrifice-only ability is its equipped creature's, mana_grantcost.go)
-					pc.manaSacOnly = !DebugIgnoreSpawnMana && a.AFlags&kop.AfLatent == 0 && a.Cost.Flags == kop.CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
+					pc.manaSacOnly = !DebugIgnoreSpawnMana && a.AFlags&kop.AfLatent == 0 && a.Cost.Flags == kop.CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && !a.Cost.DiscardHand // (Lion's Eye Diamond is no planner unit: mana_discardhand.go)
 					p.sacMana = p.sacMana || pc.manaSac || pc.manaSacOnly
 					p.sacOnlyMana = p.sacOnlyMana || pc.manaSacOnly
 					if ctrManaAb(a) {
@@ -378,7 +380,11 @@ func prepare(t *kop.Table) *prep {
 					pc.enterCtr = int8(a.Repl.A)
 					pc.enterCK = kop.CounterKind(a.Repl.C)
 				case kop.ReplCantBeCountered:
-					pc.noCtr = true
+					if a.Repl.Cond != 0 {
+						pc.noCtrCond = a.Repl.Cond
+					} else {
+						pc.noCtr = true
+					}
 				case kop.ReplSpellsCantBeCountered:
 					pc.hasStat = true // scanned through statM (repl_uncounterable.go)
 					p.anyUncounter = true
@@ -401,6 +407,9 @@ func prepare(t *kop.Table) *prep {
 		}
 	}
 	for i := range t.Cards {
+		if prepSelfTapsPain(&t.Cards[i], &p.cards[i]) {
+			p.painMana = true
+		}
 		p.phyMana = p.phyMana || t.Cards[i].Cost.Phyrexian()
 		for j := range t.Cards[i].Abilities {
 			p.phyMana = p.phyMana || t.Cards[i].Abilities[j].Cost.Mana.Phyrexian() // an activation's {W/P}

@@ -221,7 +221,7 @@ import (
 // +1 (ConditionActivationLimit$ lowers to kop.ExActivations: Dragon Whelp; merged with land ALL build-level 22184 -> 22185).
 // +2 (DB$ SkipPhase: False Peace, Empty City Ruse; ALL build-level 22203 -> 22205).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22205, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22269, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

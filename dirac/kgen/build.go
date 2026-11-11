@@ -375,6 +375,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"WISH":       kop.CtrWish,       // Wishclaw Talisman's named counter (CR 122.1)
 	"SKEWER":     kop.CtrSkewer,     // Rotisserie Elemental's named counter (CR 122.1)
 	"NEST":       kop.CtrNest,       // Twitching Doll's named counter (CR 122.1)
+	"AGE":        kop.CtrAge,        // cumulative upkeep's age counter (CR 702.24a; Mystic Remora)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {

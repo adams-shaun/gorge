@@ -14,7 +14,7 @@ func (e *Encoder) genOption(d *dirac.Decision, a dirac.Action, o *optIn) {
 		o.kind = okSearch
 	case dirac.ChGenHiddenPick:
 		o.kind = okHiddenPick
-	case dirac.ChGenHandMove:
+	case dirac.ChGenHandMove, dirac.ChGenImprint:
 		o.kind = okHandMove
 	case dirac.ChGenReveal:
 		o.kind = okReveal

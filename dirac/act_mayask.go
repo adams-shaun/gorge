@@ -52,6 +52,10 @@ func (s *State) mayAsk(k *prep, in *kop.Instr) bool {
 		if !s.optMoveAsks(k, in, next) { // zone_optionalmoves.go
 			return true
 		}
+	case kop.MayGuardMoveRemembered:
+		if !s.optMoveRememberedAsks(k, in, next) { // zone_optionalmoves.go
+			return true
+		}
 	case kop.MayGuardLibraryTop:
 		if !s.libTopExists() { // zone_toplibrary.go
 			return true

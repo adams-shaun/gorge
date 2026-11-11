@@ -869,6 +869,11 @@ const (
 	// damage and its ReplaceWith$ body is the rider (The Mindskinner's mill).
 	// CR 615.12 keeps the rider and drops the prevention under can't-prevent.
 	PKPreventionEffect
+	// A Mode$ Continuous static's CanBlockAmount$ N / CanBlockAny$ True: the
+	// affected creature can block N additional / any number of creatures
+	// (CR 509.1a). Appended: earlier ordinals stay stable.
+	PKCanBlockAmount
+	PKCanBlockAny
 	paramKeyCount
 )
 
@@ -1680,6 +1685,8 @@ var paramKeyNames = [paramKeyCount]string{
 	PKSharedKeywordsZone:               "SharedKeywordsZone",
 	PKSharedRestrictions:               "SharedRestrictions",
 	PKPreventionEffect:                 "PreventionEffect",
+	PKCanBlockAmount:                   "CanBlockAmount",
+	PKCanBlockAny:                      "CanBlockAny",
 }
 
 // String is the key's Forge text.

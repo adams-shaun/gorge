@@ -127,7 +127,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (the merge with land: Count$TotalDamageReceivedThisTurn lowered: Tangled Colony beside land's 22180; ALL 22180 -> 22181, WOE 261 -> 262).
 	// +2 (DB$ SkipPhase, all combat phases of the next turn: False Peace, Empty City Ruse; ALL 22203 -> 22205).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22205, 34442},
+	"ALL": {22269, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {216, 280},
@@ -153,7 +153,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TDM": {256, 276},
 	"TLA": {261, 285},
 	"TMT": {183, 194},
-	"TRC": {298, 337},
+	"TRC": {299, 337},
 	"TRK": {311, 311},
 	"WOE": {262, 281},
 }
