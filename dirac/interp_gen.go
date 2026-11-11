@@ -1336,6 +1336,9 @@ func (s *State) execDamageEx(k *prep, in *kop.Instr) {
 		if dealt > 0 {
 			s.damageDealt(k, in, Obj(code)) // cast_mayplaylimit.go
 		}
+		if in.C&kop.DmgNoRegenTarget != 0 {
+			s.markNoRegen(k, Obj(code)) // repl_noregen.go: marked even when the damage was prevented
+		}
 		return
 	}
 	s.damageTo(k, code, n)

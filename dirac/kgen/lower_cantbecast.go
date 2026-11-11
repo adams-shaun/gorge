@@ -17,11 +17,30 @@ import (
 // lookahead). ValidCard$ Card.Self | EffectZone$ All is the card's own "you
 // can't cast this spell": it binds only the card itself,
 // in any zone, with no filter; Caster$ Player.Active (the active player) is
-// read on that shape only.
+// read on that shape only. ValidCard$ Card.NamedCard | Caster$ Opponent over
+// the source's as-enters chosen name (Alhammarret, High Arbiter) binds only
+// the spell with that name (flag NamedCard, kop CantCastNamed).
 func (lc *lowerCtx) cantBeCast(sp *params, st *lStatic) error {
 	vc := sp.str("ValidCard")
 	self := vc == "Card.Self"
-	if vc != "" {
+	if vc == "Card.NamedCard" {
+		// the source's as-enters chosen name (Alhammarret, High Arbiter): the
+		// kernel compares the cast card with the chosen byte (kop CantCastNamed)
+		if !entersNamingCard(lc.face) {
+			return refuse("CantBeCast Card.NamedCard beside no as-enters NameCard")
+		}
+		// only the opponents-can't-cast shape is lockstep-proven
+		// (alhammarret_test.go); the all-casters ones (Meddling Mage) stay refused
+		if c := sp.str("Caster"); c != "Opponent" && c != "Player.Opponent" {
+			return refuse("CantBeCast Card.NamedCard Caster %q", c)
+		}
+		f, err := lc.filter("Card")
+		if err != nil {
+			return err
+		}
+		st.F = f
+		st.Flags = append(st.Flags, "NamedCard")
+	} else if vc != "" {
 		if strings.Contains(vc, "cmc") || strings.Contains(vc, "Self") && !self {
 			return refuse("CantBeCast ValidCard %q", vc)
 		}

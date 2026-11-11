@@ -345,6 +345,11 @@ const StatCantActivate StaticKind = 236
 // source's chosen name (ExtChooseName).
 const CantActNamed = 4
 
+// CantCastNamed is the StatCantBeCast B bit for ValidCard$ Card.NamedCard
+// (Alhammarret, High Arbiter): the filter holds only for a spell whose card is
+// the static source's chosen name (ExtChooseName).
+const CantCastNamed = 1
+
 // StCasterActive: on a StatCantBeCast only, the
 // restriction binds a caster who is the active player (Caster$
 // Player.Active; gorge actorMatches). It aliases StTargetsFilter2, whose
@@ -579,6 +584,13 @@ const StTapAnyPlayer = StWithoutManaCost
 // (IsCombat$ True: Frenzied Baloth; gorge cantPreventDamage reads it against
 // combatDamaging). Noncombat damage is prevented as usual.
 const StNoPrevCombat = StOncePerTurn
+
+// StNoPrevSpellSelf (aliases StAnyManaType, a MayPlayFrom-only bit) on a
+// StatCantPreventDamage static: it functions on the stack, for the damage its
+// own spell deals while that spell resolves (EffectZone$ Stack | ValidSource$
+// Spell.Self; Cond2 the X gate: Banefire). It is never in the battlefield
+// static scan.
+const StNoPrevSpellSelf = StAnyManaType
 
 // StatAnyTypeCreatures: the static's controller may spend mana as though it
 // were mana of any type to cast creature spells (S:Mode$ ManaConvert |

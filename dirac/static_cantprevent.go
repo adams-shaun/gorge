@@ -54,7 +54,31 @@ func (s *State) noPrevLive(k *prep, combat bool) bool {
 		}
 		return true
 	})
+	if !hit && s.res.active && s.res.e.kind == seSpell {
+		hit = s.noPrevSpellSelf(k)
+	}
 	return hit
+}
+
+// noPrevSpellSelf: the spell resolving now carries a StatCantPreventDamage
+// static that functions on the stack (StNoPrevSpellSelf: EffectZone$ Stack |
+// ValidSource$ Spell.Self, Banefire's "if X is 5 or more, the damage can't be
+// prevented") whose Cond2 holds against the entry. gorge's source match is the
+// spell itself; the kernel reads every damage dealt while the spell resolves
+// as its own (a resolution deals no other source's damage).
+func (s *State) noPrevSpellSelf(k *prep) bool {
+	e := &s.res.e
+	cd := &k.t.Cards[e.card]
+	for i := range cd.Abilities {
+		a := &cd.Abilities[i]
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatCantPreventDamage || a.Static.StFlags&kop.StNoPrevSpellSelf == 0 {
+			continue
+		}
+		if c := a.Static.Cond2; c == 0 || s.condEval(k, c, evalCtx{e: e, src: e.obj, ctrl: e.ctrl}) {
+			return true
+		}
+	}
+	return false
 }
 
 // fogNoPrev stalls a Fog's combat damage step while damage can't be

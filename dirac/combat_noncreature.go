@@ -34,15 +34,10 @@ func (s *State) leaveCombat(sl Slot) {
 	}
 	for q := s.occ; q.any(); q = q.rest() {
 		o := q.first()
-		qp := &s.perms[o]
-		if qp.blocking == sl {
-			qp.blocking = NoSlot
-			s.touchSl(o)
-		}
+		s.forgetBlocked(o, sl)
 	}
-	if p.flags&pfBlocking != 0 && p.blocking != NoSlot && s.perms[p.blocking].nblock > 0 {
-		s.perms[p.blocking].nblock--
-		s.touchSl(p.blocking)
+	if p.flags&pfBlocking != 0 {
+		s.releaseBlocked(sl)
 	}
 	p.flags &^= pfAttacking | pfBlocking | pfBlocked
 	p.blocking = NoSlot

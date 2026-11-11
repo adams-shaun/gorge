@@ -45,10 +45,13 @@ func (s *State) HBotBlocking(o Obj) Obj {
 		return NoObj
 	}
 	pm := &s.perms[ob.slot]
-	if pm.flags&pfBlocking == 0 || pm.blocking == NoSlot {
+	if pm.flags&pfBlocking == 0 {
 		return NoObj
 	}
-	return s.perms[pm.blocking].obj
+	if a := s.blockProjected(ob.slot); a != NoSlot {
+		return s.perms[a].obj
+	}
+	return NoObj
 }
 
 // HBotIsPlaneswalker reports whether battlefield object o is a planeswalker

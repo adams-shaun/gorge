@@ -26,6 +26,7 @@ func (s *State) partnerCold() *cmdPartner {
 	_ = coldView[mayPlay](nil, &at, l.may)
 	_ = coldView[embRec](nil, &at, l.emb)
 	_ = coldView[uint8](nil, &at, l.ctrP)
+	_ = coldView[xblkRec](nil, &at, l.xblk)
 	return &coldView[cmdPartner](s.cold.buf, &at, l.partner)[0]
 }
 

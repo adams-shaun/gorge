@@ -92,9 +92,13 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		origin = zAny
 	}
+	lg := isOriginLibraryGrave(ps) // lower_libgrave.go
 	if dualDef || gxTgt {
 		ps.get("Origin") // read
 		origin = zAny
+	} else if lg {
+		ps.get("Origin") // read
+		origin = zLibrary
 	} else if !dual && !hg && !bg {
 		if origin, err = zoneOf(ps, "Origin", zNone); err != nil {
 			return err
@@ -423,6 +427,11 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 					return refuse("OriginAlternative$ with ChangeNum$ %v", n)
 				}
 				flags = append(flags, "alt="+alt)
+			}
+			if lg {
+				if flags, err = libGraveFlags(ps, dest, n, obj, arm != nil, flags); err != nil { // lower_libgrave.go
+					return err
+				}
 			}
 			if flags, err = shareLandType(ps, f, flags); err != nil { // lower_sharelandtype.go
 				return err
@@ -841,16 +850,15 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		in.CS += "|counters=" + counterKind
 	}
 	if optional {
-		// The ask is read exactly for the source returning from the battlefield
-		// to its owner's hand (Intimidation Campaign, Mistbreath Elder): the
-		// guard (kop.MayGuardMove) is the one live object gorge's loop keeps.
-		// Another object set or origin has its own skip rules (changeZoneMoveSkip,
+		// The ask is read exactly for the shapes lower_optionalmove.go names:
+		// the guard is the live object gorge's loop keeps. Another object set
+		// or origin has its own skip rules (changeZoneMoveSkip,
 		// sourceReturnedSincePush, a player target) and stays refused.
-		if obj.Kind != rSelf || origin != zBattlefield || in.Op != "Bounce" ||
-			in.C != 0 || in.A.Kind != 0 || in.CS != "from=Battlefield" || override != nil || self {
+		guard, ok := lc.optionalMoveShape(obj, origin, in, override, self) // lower_optionalmove.go
+		if !ok {
 			return refuse("ChangeZone Optional$ on a %s %s->%s move", refNames[obj.Kind], zoneLabel[origin], zoneLabel[dest])
 		}
-		lc.emit(lInstr{Op: "MayAsk", C: kop.MayGuardMove, Skip: 1, Note: "you may move it"})
+		lc.emit(lInstr{Op: "MayAsk", C: guard, Skip: 1, Note: "you may move it"})
 	}
 	lc.emit(in)
 	if override != nil {

@@ -795,6 +795,12 @@ var expandedKeywords = map[string]bool{
 	// Hideaway (CR 702.75a): gorge kwHideaway's ETB trigger, DB$ Hideaway
 	// (lower_hideaway.go)
 	"Hideaway": true,
+	// Annihilator (CR 702.86a): gorge kwAnnihilator's Attacks Self trigger,
+	// DB$ Sacrifice of the defending player's permanents (Annihilator$ N)
+	"Annihilator": true,
+	// Cumulative upkeep (CR 702.24a): gorge kwCumulativeUpkeep expands it into
+	// an upkeep trigger whose body is DB$ CumulativeUpkeep (lower_cumulative.go)
+	"Cumulative upkeep": true,
 }
 
 // protColourLetters maps a "Protection from <q>" colour quality to its
@@ -1483,6 +1489,8 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Leyline = true
+		case head == "MayEffectFromOpeningHand":
+			lc.refuseNode(node, "%s", refuseOpeningGated(param)) // (lower_gemstone.go)
 		case strings.HasPrefix(k, "A deck can have any number of cards named"):
 			// Deck construction only.
 		case k == "Daybound" || k == "Nightbound":
@@ -2633,8 +2641,8 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		if err := discardHandCost(&cost); err != nil {
 			return err
 		}
-		if cost.DiscardHand && ab.Kind != akActivated {
-			return refuse("discard-hand cost on a mana ability")
+		if cost.DiscardHand && ab.Kind != akActivated && !discardHandManaShape(cost, ps) {
+			return refuse("discard-hand cost on a mana ability beside a part other than sacrificing the source, or without InstantSpeed$ True")
 		}
 		if cost.TapPowN != 0 && (ab.Kind != akActivated || !tapPowerAlone(cost)) {
 			return refuse("tap-any-number cost beside another part or on a mana ability")

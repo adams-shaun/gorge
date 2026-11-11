@@ -85,6 +85,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtNumTimes:
 		return s.numTimesStart(k, in), true // cast_announcetimes.go
+	case kop.ExtCumulative:
+		s.cumulativeStart(k, in) // trig_cumulative.go
+		return true, true
 	case kop.ExtCloneCopy:
 		if in.B.N&kop.ClonePick != 0 {
 			return s.clonePick(k, in), true // copy_clone.go
@@ -210,7 +213,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtChooseName:
 		// the same, for the as-enters nonland card name (repl_choosename.go)
 		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
-			s.queueAsk(s.objs[o].slot, nameAskKind(in))
+			if kind := nameAskKind(in); kind != akNameHand || !s.nameHandNone(k, s.perms[s.objs[o].slot].ctrl) {
+				s.queueAsk(s.objs[o].slot, kind)
+			}
 		}
 		return true, true
 	case kop.ExtTurnFaceUp:
