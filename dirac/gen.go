@@ -359,6 +359,8 @@ type genPrep struct {
 	anyTapsDefer, anyTapsPain bool
 	// anyManaRider: some card has a counter-rider mana ability (mana_rider.go); it sets anyTapsDefer too
 	anyManaRider bool
+	// anyCondSplit: some card has a Condition-split mana source (mana_condsplit.go); it sets anyTapsDefer too
+	anyCondSplit bool
 	// anySelfTaps: some card has a lowered self Taps watcher (TfSelf). kgen
 	// lowers one on a card with a printed mana ability only as the vetted
 	// "deals N damage to you" line (TapPlanPain, City of Brass: priced, never a
@@ -1261,6 +1263,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		prepManaDynPair(g, c, CardID(i), pc)
 		prepManaGate(g, c, CardID(i), pc)
 		prepManaRefl(g, c, CardID(i), pc)
+		prepManaSplit(g, c, CardID(i), pc)
 		g.prepRestrSrc(c, CardID(i), pc)
 		// latent triggered abilities are not subscriptions
 		pc.trigMask = 0
@@ -2265,6 +2268,9 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 	if vi >= 0 {
 		if k.gen.blgOn {
 			s.blgStall(k, sl, c)
+		}
+		if k.gen.anyCondSplit && k.gen.splitAb(c) >= 0 {
+			return s.condSplitView(k, sl, c)
 		}
 		if k.gen.flags[c]&gfManaGate != 0 {
 			return s.manaGateView(k, sl, c, vi)
