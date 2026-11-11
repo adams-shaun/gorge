@@ -188,7 +188,7 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	if k != nil {
 		s.clearFB(k, o) // a new object: a granted flashback ends
 	}
-	if ob.of&ofToken != 0 && !s.g.on {
+	if ob.of&ofToken != 0 && !s.g.on && s.cfg&cfgCommander == 0 {
 		ob.zone = kop.ZoneNone // a token ceases to exist (CR 111.7)
 		return
 	}
