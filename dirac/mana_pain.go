@@ -261,18 +261,22 @@ func (s *State) painAvailMask(pc *pcard, p uint8) uint8 {
 
 // painAvailMaskAt is painAvailMask for the source at sl. An unless / ward
 // window counts a paid-life pain-only source (Mana Confluence) through gorge's
-// paid-cost layer (appendPaidManaUnits, paidCostShape): in battlefield order,
-// each source counts only while the life the earlier counted ones commit and
-// its own leave the payer alive (life - committed > cost).
+// paid-cost layer (appendPaidManaUnits, paidCostShape): in battlefield order
+// (zone order, battlefieldOrder: a reused slot is not entry order), every
+// tappable paid-life alternative counts only while life - committed > its
+// cost, and commits its life when it counts. Starting Town's "{T}, Pay 1
+// life" alternative (painLife, not painOnly) commits life too, so a later
+// source sees less.
 func (s *State) painAvailMaskAt(k *prep, sl Slot, pc *pcard, p uint8) uint8 {
 	if s.g.availX&availWin == 0 || !pc.painOnly || !pc.painLife {
 		return s.painAvailMask(pc, p)
 	}
+	var ord [MaxPerm]Slot
+	n := s.battlefieldOrder(p, s.ctrlM[p], ord[:], 0)
 	committed := 0
-	for m := s.ctrlM[p]; m.any(); m = m.rest() {
-		x := m.first()
+	for _, x := range ord[:n] {
 		xp := s.manaPCAt(k, x)
-		if !xp.painOnly || !xp.painLife || !s.canTapForManaPC(k, x, xp) {
+		if !xp.painLife || xp.painCol == 0 || !s.canTapForManaPC(k, x, xp) {
 			continue
 		}
 		ok := int(s.pl[p].life)-committed > int(xp.painN)

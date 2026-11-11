@@ -14,7 +14,9 @@ import (
 // life into that guard. Mana Leak's unless window counts the source through
 // gorge's paid-cost layer (each counted only while the life committed by the
 // earlier ones and its own leave the payer alive; dirac painAvailMaskAt):
-// seeds 964 and 1520 pin it. The expected answer at every decision is gorge's.
+// seeds 964 and 1520 pin it. A paid-life source cannot be tapped below its
+// life (CR 119.4): seed 2769 pays Mana Leak at life 1 with one Confluence and
+// never a second. The expected answer at every decision is gorge's.
 var kmanaConfluenceDecks = [2][]cardset.Entry{
 	{
 		{Name: "Mana Confluence", Count: 6}, {Name: "Mountain", Count: 8}, {Name: "Forest", Count: 6},
@@ -30,5 +32,5 @@ var kmanaConfluenceDecks = [2][]cardset.Entry{
 
 func TestManaConfluenceLockstep(t *testing.T) {
 	t.Parallel()
-	lockstepSet(t, "manaconfluence", kmanaConfluenceDecks, 1600, "KMANACONFLUENCE_SEEDS")
+	lockstepSet(t, "manaconfluence", kmanaConfluenceDecks, 2800, "KMANACONFLUENCE_SEEDS")
 }
