@@ -6,6 +6,11 @@ package dirac
 // count live here and in seats_mp.go; every other file derives from them.
 const MaxSeats = 2
 
+// turnExhaustShift is the first bit of a player's Exhaust-activation fact in
+// genState.turnF: bits 0-1 hold the coin flips, bits 2-3 the Exhaust
+// activations (4-7 stay free; turnbits.go).
+const turnExhaustShift = 2
+
 // The target-code space (types.go): objects 0..MaxObj-1, stack abilities
 // StackTarget0..PlayerTarget0-1 (16 codes), players PlayerTarget0.. (one
 // code per seat), 0xFE a departed stack target and 0xFF none.
