@@ -1,8 +1,8 @@
 {
   "about": "dirac's per-set support, rendered by scripts/docs_sets.py. corpus and sets are the table in dirac/docs/support.md (corpus is its ALL row): scripts/docs_sets.py --refresh-dirac copies it and docs_sets_test.py holds this file to it. A card is supported when kgen lowers it, it is not refused by name, and clean lockstep games evidence it; lowered counts every card kgen can represent, refused and unverified included. commit is the gorge revision the counts were read at. lockstep is make dirac-slices on the full surface: seeded games played in both engines, compared at every decision.",
   "date": "2026-11-10",
-  "commit": "91d3c6275",
-  "corpus": {"cards": 34442, "lowered": 22171, "refused": 23, "unverified": 17054, "supported": 5094},
+  "commit": "0d558a278",
+  "corpus": {"cards": 34442, "lowered": 22176, "refused": 23, "unverified": 17059, "supported": 5094},
   "lockstep": {
     "BLB": {"games": 1500, "agree": 1500, "stalls": 0, "disagree": 0},
     "FDN": {"games": 1494, "agree": 1491, "stalls": 3, "disagree": 0}
@@ -10,12 +10,12 @@
   "sets": {
     "BIG": {"cards": 30, "lowered": 27, "refused": 0, "unverified": 6, "supported": 21},
     "BLB": {"cards": 278, "lowered": 261, "refused": 3, "unverified": 6, "supported": 252},
-    "DFT": {"cards": 276, "lowered": 254, "refused": 0, "unverified": 3, "supported": 251},
+    "DFT": {"cards": 276, "lowered": 255, "refused": 0, "unverified": 4, "supported": 251},
     "DSK": {"cards": 276, "lowered": 249, "refused": 4, "unverified": 28, "supported": 217},
-    "ECL": {"cards": 273, "lowered": 243, "refused": 1, "unverified": 9, "supported": 233},
+    "ECL": {"cards": 273, "lowered": 244, "refused": 1, "unverified": 10, "supported": 233},
     "EOE": {"cards": 266, "lowered": 250, "refused": 0, "unverified": 11, "supported": 239},
     "FDN": {"cards": 517, "lowered": 517, "refused": 0, "unverified": 0, "supported": 517},
-    "FIN": {"cards": 312, "lowered": 275, "refused": 1, "unverified": 8, "supported": 266},
+    "FIN": {"cards": 312, "lowered": 276, "refused": 1, "unverified": 9, "supported": 266},
     "FRA": {"cards": 269, "lowered": 255, "refused": 0, "unverified": 16, "supported": 239},
     "HOB": {"cards": 172, "lowered": 159, "refused": 0, "unverified": 6, "supported": 153},
     "LCI": {"cards": 290, "lowered": 260, "refused": 1, "unverified": 30, "supported": 229},
