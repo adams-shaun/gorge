@@ -63,11 +63,11 @@ func TestXColorBoundsTheXAnnouncement(t *testing.T) {
 	}
 }
 
-// TestXColorPaysWithBlackMana: X = 2 spends the two black mana, leaving the
-// red floating, and the ability deals 2 to each player.
+// TestXColorPaysWithBlackMana: X = 2 spends the two black mana and leaves
+// the white floating (a generic X would spend the white first).
 func TestXColorPaysWithBlackMana(t *testing.T) {
 	t.Parallel()
-	e, _, d := xColorRatsAsk(t, "BBRRR")
+	e, _, d := xColorRatsAsk(t, "WWBB")
 	pick := -1
 	for _, o := range d.Options {
 		if o.Kind == "x" && o.Amount == 2 {
@@ -89,7 +89,7 @@ func TestXColorPaysWithBlackMana(t *testing.T) {
 		t.Fatalf("the ability is not on the stack: stack=%v pending=%+v", e.G.Stack, e.Pending())
 	}
 	pool := e.G.Players[0].Pool
-	if pool[state.MB] != 0 || pool[state.MR] != 3 {
-		t.Fatalf("pool after paying X=2: B=%d R=%d, want B=0 R=3", pool[state.MB], pool[state.MR])
+	if pool[state.MB] != 0 || pool[state.MW] != 2 {
+		t.Fatalf("pool after paying X=2: W=%d B=%d, want W=2 B=0", pool[state.MW], pool[state.MB])
 	}
 }
