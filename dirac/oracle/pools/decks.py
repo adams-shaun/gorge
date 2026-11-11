@@ -21,7 +21,9 @@ strict pool.
 
 --emit-cards PATH writes the sorted card names of the CSV header (the kgen -card-list input for a
 new set) and exits. --from-decks DIR applies the same rule to gorge deck JSONs in DIR instead of a
-CSV (sim pools); pass --label sim.
+CSV (sim pools); pass --label sim, or --label mtggoldfish for the scraped Standard decks. --min-deck-size N
+keeps a deck of at least N cards instead of exactly --deck-size (Standard's 60 minimum). With --emit-cards,
+--from-decks writes the sorted union of the decks' card names.
 
 Writes <out>/decks/*.json (gorge deck JSON), <out>/pool.tsv (every tenth deck is eval),
 <out>/summary.txt (the refusal census over every extracted deck) and <out>/pool.manifest (the
@@ -102,6 +104,13 @@ def bucket(v):
         return None
 
 
+def emit_deck_cards(dirpath, dest):
+    names = sorted({c for d in from_decks(dirpath) for c in d["cards"]}, key=lambda n: n.encode())
+    with open(dest, "w") as g:
+        g.write("".join(n + "\n" for n in names))
+    print(f"{len(names)} cards -> {dest}")
+
+
 def emit_cards(path, dest):
     with gzip.open(path, "rt", newline="") as f:
         header = next(csv.reader(f))
@@ -175,21 +184,27 @@ def fill_basics(cards, n):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("paths", nargs="+", help="<csv> <out>; with --emit-cards <csv>; with --from-decks <out>")
+    ap.add_argument("paths", nargs="*", help="<csv> <out>; with --emit-cards <csv>; with --from-decks <out>")
     ap.add_argument("--set", required=True, help="upper-case set code, e.g. BLB")
     ap.add_argument("--min-winrate", type=float, default=0.60)
     ap.add_argument("--max-refused", type=int, default=6, help="refused maindeck copies a deck may replace with basics")
     ap.add_argument("--deck-size", type=int, default=40, help="maindeck cards a deck must hold (100 for Commander)")
+    ap.add_argument("--min-deck-size", type=int, default=0, help="maindeck cards a deck must hold at least (60 for Standard); replaces the exact --deck-size check")
     ap.add_argument("--allow-unverified", action="store_true", help="count cards without lockstep evidence as playable (kfuzz -allow-unverified); a refused card stays refused")
     ap.add_argument("--emit-cards", metavar="PATH", help="write the CSV's card names (kgen -card-list input) and exit")
     ap.add_argument("--from-decks", metavar="DIR", help="gorge deck JSONs instead of a CSV")
-    ap.add_argument("--label", choices=["17lands", "sim"], default="17lands")
+    ap.add_argument("--label", choices=["17lands", "sim", "mtggoldfish"], default="17lands")
     args = ap.parse_args()
     SET = args.set
     if SET != SET.upper() or not SET:
         ap.error("--set must be upper-case")
     if args.emit_cards:
-        if len(args.paths) != 1 or args.from_decks:
+        if args.from_decks:
+            if args.paths:
+                ap.error("--emit-cards with --from-decks takes no other path")
+            emit_deck_cards(args.from_decks, args.emit_cards)
+            return
+        if len(args.paths) != 1:
             ap.error("--emit-cards takes the CSV only")
         emit_cards(args.paths[0], args.emit_cards)
         return
@@ -222,7 +237,11 @@ def main():
         by_refused[k] += 1
         if k == 0:
             strict += 1
-        if d["maindeck_size"] != args.deck_size:
+        if args.min_deck_size:
+            if d["maindeck_size"] < args.min_deck_size:
+                skipped[f"maindeck under {args.min_deck_size} cards"] += 1
+                continue
+        elif d["maindeck_size"] != args.deck_size:
             skipped[f"maindeck not {args.deck_size} cards"] += 1
             continue
         if k > args.max_refused:
