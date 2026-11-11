@@ -1269,7 +1269,7 @@ func (lc *lowerCtx) dig(ps *params) error {
 	if err != nil {
 		return err
 	}
-	if err := digNoLooking(ps); err != nil { // lower_digparams.go
+	if err := digNoLooking(ps, who); err != nil { // lower_digparams.go
 		return err
 	}
 	for _, k := range []string{"Optional", "RestRandomOrder", "ForceRevealToController", "Reveal", "RememberChanged"} {

@@ -29,6 +29,16 @@ var kdbDeck = []cardset.Entry{
 	{Name: "Island", Count: 8}, {Name: "Mountain", Count: 4}, {Name: "Forest", Count: 6},
 }
 
+// kdbHamzaDeck plays Hamza, Might of the Yathan over the digblind pool: its
+// landfall trigger seeks a creature card into hand (Seek RememberFound$) and
+// manifests that remembered card from the hand (Manifest Defined$
+// Remembered), the shape Write into Being does from the library's top.
+var kdbHamzaDeck = []cardset.Entry{
+	{Name: "Hamza, Might of the Yathan", Count: 4}, {Name: "Grizzly Bears", Count: 8},
+	{Name: "Llanowar Elves", Count: 4}, {Name: "Plains", Count: 8},
+	{Name: "Swamp", Count: 8}, {Name: "Forest", Count: 8},
+}
+
 const kdbMin = 4
 
 // kdbScan counts, in gorge's event log, each carrier's cast and the cards
@@ -42,7 +52,7 @@ func kdbScan(g *GorgeSide, n map[string]int) {
 		case events.PutOnStack:
 			if ob := g.E.G.Obj(ev.Obj); ob != nil && ob.Face() != nil && ev.From == state.ZHand {
 				switch nm := ob.Face().Name; nm {
-				case "Telling Time", "Moment of Truth", "Expressive Iteration", "Write into Being":
+				case "Telling Time", "Moment of Truth", "Expressive Iteration", "Write into Being", "Hamza, Might of the Yathan":
 					n[nm]++
 				}
 			}
@@ -57,7 +67,7 @@ func kdbScan(g *GorgeSide, n map[string]int) {
 // runDigblind plays the seeded games; mutate turns Write into Being's
 // manifest of the remembered card into a manifest of the library's top card
 // and stops at the first divergence.
-func runDigblind(t *testing.T, seeds uint64, mutate bool) (games, divs int, branch map[string]int) {
+func runDigblind(t *testing.T, deck []cardset.Entry, seeds uint64, mutate bool) (games, divs int, branch map[string]int) {
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {
@@ -70,8 +80,8 @@ func runDigblind(t *testing.T, seeds uint64, mutate bool) (games, divs int, bran
 	var decks [2][]*cards.Card
 	var ents [2][]cardset.Entry
 	for s := range decks {
-		ents[s] = kdbDeck
-		for _, e := range kdbDeck {
+		ents[s] = deck
+		for _, e := range deck {
 			c, ok := reg.Lookup(e.Name)
 			if !ok {
 				t.Fatalf("%s not in the corpus", e.Name)
@@ -148,7 +158,7 @@ func runDigblind(t *testing.T, seeds uint64, mutate bool) (games, divs int, bran
 func TestDigblindLockstep(t *testing.T) {
 	t.Parallel()
 
-	games, divs, branch := runDigblind(t, 200, false)
+	games, divs, branch := runDigblind(t, kdbDeck, 200, false)
 	var keys []string
 	for k := range branch {
 		keys = append(keys, k)
@@ -166,12 +176,38 @@ func TestDigblindLockstep(t *testing.T) {
 	}
 }
 
+// TestDigblindHamzaLockstep plays Hamza's seek-then-manifest landfall: a
+// remembered card manifests from the hand under a trigger's resolution.
+func TestDigblindHamzaLockstep(t *testing.T) {
+	t.Parallel()
+
+	games, divs, branch := runDigblind(t, kdbHamzaDeck, 200, false)
+	t.Logf("%d games, %d divergences; Hamza cast %d, manifested %d", games, divs, branch["Hamza, Might of the Yathan"], branch["manifested"])
+	for _, want := range []string{"Hamza, Might of the Yathan", "manifested"} {
+		if branch[want] < kdbMin {
+			t.Errorf("%s %d, want at least %d", want, branch[want], kdbMin)
+		}
+	}
+}
+
+// TestDigblindHamzaMutation proves the Hamza pool manifests the card Seek
+// remembered: manifesting nothing remembered (B cleared) diverges.
+func TestDigblindHamzaMutation(t *testing.T) {
+	t.Parallel()
+
+	games, divs, _ := runDigblind(t, kdbHamzaDeck, 200, true)
+	if divs == 0 {
+		t.Fatalf("mutation in %d games with no divergence", games)
+	}
+	t.Logf("mutation diverged in game %d", games)
+}
+
 // TestDigblindMutation proves the pool manifests the remembered card:
 // manifesting the library's top card instead diverges.
 func TestDigblindMutation(t *testing.T) {
 	t.Parallel()
 
-	games, divs, _ := runDigblind(t, 200, true)
+	games, divs, _ := runDigblind(t, kdbDeck, 200, true)
 	if divs == 0 {
 		t.Fatalf("mutation in %d games with no divergence", games)
 	}
