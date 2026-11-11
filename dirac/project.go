@@ -344,7 +344,7 @@ func (s *State) projRest(p *Projection, lib bool) {
 			p.Objs[pl.exile[i]].ZoneIdx = uint8(i)
 		}
 		p.Life[pi] = pl.life
-		p.Lands[pi] = pl.landsPlayed
+		p.Lands[pi] = s.landsProj(uint8(pi))
 		p.Pool[pi] = s.poolProj(uint8(pi))
 		p.LibN[pi] = uint8(pl.libLen())
 		p.HandN[pi] = pl.handN

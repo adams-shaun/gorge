@@ -66,6 +66,17 @@
     Forge asks for attackers and blockers before the step's first priority. The rewrites let a driver
     follow either model, and step indices never move. See [Forge-shaped rewrites](protocol.md#forge-shaped-rewrites).
 
+??? question "In a full game, does my engine follow gorge, or does gorge follow my engine?"
+    Your engine follows. gorge plays every game and makes every choice; your engine replays them. So
+    the harness finds every place your engine reaches a different state from the same choices, but never
+    a line of play gorge's bot doesn't take. See [who leads](engine-notes.md#who-leads).
+
+??? question "Do I need to fork my engine?"
+    Only if it lacks the seams a driver needs. XMage needed none: its driver is built on XMage's own
+    unit-test framework, against unmodified upstream. Forge needed none either: its driver uses Forge's
+    player-controller interface and trigger suppression, and lives in our fork only because it's GPL code
+    that fits best beside Forge. See [engine integration notes](engine-notes.md).
+
 ??? question "Can I see what gorge expected?"
     Yes. Every play directory has `gorge.jsonl` with gorge's snapshots for each item, and every finding's
     repro directory has `gorge.json` with the snapshots, decisions and a transcript of the game.

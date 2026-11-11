@@ -5,15 +5,15 @@ import (
 	"testing"
 )
 
-// TestGemstoneCavernsRefusedByName: Gemstone Caverns stays refused on both of
-// its nodes, each with the reason naming what the kernel lacks
-// (lower_gemstone.go): the !PlayFirst-gated opening-hand effect and the
-// Condition-split mana production. River of Tears' split refuses with the same
-// mana reason; a plain Leyline still lowers (the FromHand case is untouched).
+// TestGemstoneCavernsRefusedByName: Gemstone Caverns stays refused on its
+// opening-hand node, with the reason naming what the kernel lacks
+// (lower_gemstone.go): the !PlayFirst-gated effect. Its Condition-split mana
+// production lowers (lower_condsplit.go), River of Tears' with it; a plain
+// Leyline still lowers (the FromHand case is untouched).
 func TestGemstoneCavernsRefusedByName(t *testing.T) {
 	want := map[string][]string{
-		"Gemstone Caverns": {"not being the starting player (!PlayFirst", "Condition-gated root and a Condition-gated DB$ Mana sub"},
-		"River of Tears":   {"Condition-gated root and a Condition-gated DB$ Mana sub"},
+		"Gemstone Caverns": {"not being the starting player (!PlayFirst"},
+		"River of Tears":   {},
 	}
 	seen := map[string]bool{}
 	for _, c := range lowerNamed(t, []string{"Gemstone Caverns", "River of Tears", "Leyline of the Void"}) {

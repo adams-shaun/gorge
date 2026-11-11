@@ -106,6 +106,12 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			continue
 		}
 		c := s.cardAt(sl)
+		if s.splitDeferred(k, sl) {
+			if s.splitUsable(k, sl) {
+				m = m.with(sl) // a Condition-split source (mana_condsplit.go): its relaxed unit and answers are the live gate's
+			}
+			continue
+		}
 		if s.manaGranted(k, sl) || k.gen.has(c, gfRestr|gfAnyR|gfEachCol|gfFilt|gfDeferred) {
 			// Not the plain unrestricted any-colour shape the census gap is:
 			// a restricted source's mana must float restricted (tapDeferFloat
@@ -147,6 +153,9 @@ func tapsDeferColour(c kop.ColorMask) bool {
 // stalls (srcExtra).
 func (s *State) addTapsDeferUnits(k *prep, sl Slot, a *avail) {
 	pc := s.manaPCGen(k, sl)
+	if s.splitDeferred(k, sl) {
+		pc = s.splitCensusPC(k, sl) // the root's production plus the arm's while its gate holds (mana_condsplit.go)
+	}
 	a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
 	if k.gen.anyTapExtra {
 		xv := s.srcExtra(k, sl, pc)

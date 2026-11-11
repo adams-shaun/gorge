@@ -1219,7 +1219,7 @@ func (s *State) FeatProjGlobals(p *Projection) {
 	for pi := 0; pi < int(s.nSeats()); pi++ { // every seat, a departed one included, as projRest
 		pl := &s.pl[pi]
 		p.Life[pi] = pl.life
-		p.Lands[pi] = pl.landsPlayed
+		p.Lands[pi] = s.landsProj(uint8(pi))
 		p.Pool[pi] = s.poolProj(uint8(pi))
 		p.LibN[pi] = uint8(pl.libLen())
 		p.HandN[pi] = pl.handN

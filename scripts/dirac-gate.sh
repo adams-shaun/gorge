@@ -26,9 +26,9 @@
 #   9. synthetic pools: a short kfuzz -synth on the cards the slices of step 4 don't reach. A pair
 #      divergent on the merge base and the head is an open divergence, counted and not failed; a
 #      pair newly divergent fails.
-#  mp. the dirac_mp build in lockstep (make dirac-mp-lockstep: 4-seat vanilla pods, and the FDN and
-#      BLB slices at two seats), about 40 s, only when a non-test file under dirac/ changed. ADVISORY: it
-#      prints its result and never fails the gate.
+#  mp. the dirac_mp build (make dirac-mp-check: vet, the State bar and layout pin, then lockstep on
+#      4-seat vanilla pods and the FDN and BLB slices at two seats), about 60 s, only when a non-test
+#      file under dirac/ changed. A failure fails the gate.
 #
 # Steps 2-3 and 5-7 and step 8's package tests run only when a non-test file under dirac/ changed. A
 # merge base without dirac/ has nothing to compare, so the base rows print a note. The steps run
@@ -237,15 +237,15 @@ for set in fdn blb; do
 done
 
 if [ -n "$dirac_changed" ]; then
-echo "== mp lockstep, 4 seats and the 2-seat slices (advisory)"
+echo "== mp: vet, layout pin and lockstep, 4 seats and the 2-seat slices"
 mp_t0=$SECONDS
-if make --no-print-directory dirac-mp-lockstep BIN_DIR="$S" >"$S/mp.log" 2>&1; then
+if make --no-print-directory dirac-mp-check BIN_DIR="$S" >"$S/mp.log" 2>&1; then
 	grep -E '^(vanilla|fdn|blb):' "$S/mp.log" | grep -v ' kernel capacity stalls '
 	echo "mp: ok ($((SECONDS - mp_t0)) s)"
 else
 	grep -E '^(kfuzz-mp:|vanilla:|DIV |absolute:)|^(fdn|blb): .* clean' "$S/mp.log" | head -12
 	tail -3 "$S/mp.log"
-	echo "dirac gate: WARN (advisory) -- make dirac-mp-lockstep failed ($((SECONDS - mp_t0)) s); the gate does not fail on it yet"
+	bad "make dirac-mp-check failed ($((SECONDS - mp_t0)) s)"
 fi
 fi
 

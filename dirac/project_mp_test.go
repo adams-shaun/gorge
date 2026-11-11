@@ -49,10 +49,15 @@ func TestProjectNSeats(t *testing.T) {
 				t.Fatalf("seat %d hand card %d: FeatZoneIndex %d", p, i, got)
 			}
 		}
+		// Lands is the active seat's count only (landsProj), as gorge's projection is.
+		wantLands := uint8(0)
+		if p == s.active {
+			wantLands = p
+		}
 		if pr.LibN[p] != uint8(pl.libLen()) || pr.HandN[p] != openingHand {
 			t.Fatalf("seat %d: LibN %d HandN %d", p, pr.LibN[p], pr.HandN[p])
 		}
-		if pr.Life[p] != int16(20+p) || pr.Lands[p] != p || pr.Pool[p][0] != 10+p || pr.CmdCast[p] != 30+p || pr.CmdDmg[p][(p+1)%n] != 40+p {
+		if pr.Life[p] != int16(20+p) || pr.Lands[p] != wantLands || pr.Pool[p][0] != 10+p || pr.CmdCast[p] != 30+p || pr.CmdDmg[p][(p+1)%n] != 40+p {
 			t.Fatalf("seat %d: life %d lands %d pool %d cmdcast %d cmddmg %v", p, pr.Life[p], pr.Lands[p], pr.Pool[p][0], pr.CmdCast[p], pr.CmdDmg[p])
 		}
 		if s.Poison(p) != int(1+p) || s.Energy(p) != int(5+p) || s.DungeonRoom(p) != 2+p {

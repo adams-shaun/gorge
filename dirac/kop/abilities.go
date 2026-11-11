@@ -110,6 +110,18 @@ type Ability struct {
 	// script or the manual mana window does (kernel mana_deferred.go). A
 	// table byte: AbilityFlags has no free bit.
 	ManaDeferred bool
+	// SplitGate, SplitCtr, SplitCols: a Condition-split mana ability (River of
+	// Tears' "{T}: Add {U}. If you played a land this turn, add {B}
+	// instead"; Gemstone Caverns' "{T}: Add {C}. If this has a luck counter on
+	// it, instead add one mana of any color"): gorge's AB$ Mana gated EQ0 whose
+	// DB$ Mana sub is gated GE1 on one SVar. ManaColors / ManaN hold the root's
+	// one mana; SplitCols the arm's colours (ColAny or one of WUBRG); SplitGate
+	// the gate the arm needs (SplitGateNone = no arm), SplitCtr the counter
+	// kind a SplitGateCounter reads on the source. gorge defers the source (pay
+	// source:conditional); kernel mana_condsplit.go. Table fields, not State.
+	SplitGate uint8
+	SplitCtr  CounterKind
+	SplitCols ColorMask
 	// ManaHasteValid: AddsKeywords$ Haste | AddsKeywordsValid$ ... |
 	// AddsKeywordsUntil$ UntilEOT (Carnelian Orb of Dragonkind; CR 106.6):
 	// a spell matching this filter, paid with this ability's mana, gains
@@ -493,3 +505,10 @@ func ManaCostShape(a *Ability) string {
 	}
 	return strings.Join(parts, "+")
 }
+
+// Gates of a Condition-split mana ability's arm (Ability.SplitGate).
+const (
+	SplitGateNone    uint8 = iota
+	SplitGateCounter       // the source has at least one counter of Ability.SplitCtr
+	SplitGateLands         // the source's controller has played a land this turn
+)

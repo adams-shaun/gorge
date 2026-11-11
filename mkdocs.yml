@@ -184,7 +184,7 @@ nav:
           - The follower protocol: compliance/engines/protocol.md
           - How-to guides: compliance/engines/howto.md
           - Reading results: compliance/engines/results.md
-          - phase.rs and ManaBrew: compliance/engines/engine-notes.md
+          - Engine integration notes: compliance/engines/engine-notes.md
           - FAQ: compliance/engines/faq.md
   - Contributing:
       - contributing/index.md

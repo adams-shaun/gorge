@@ -209,6 +209,9 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 	if s.g.availX&3 == 0 {
 		for b := s.scriptTapsDefer(k, p); b.any(); b = b.rest() {
 			pc := s.manaPCGen(k, b.first())
+			if s.splitDeferred(k, b.first()) {
+				pc = s.splitWindowPC(k, b.first()) // gorge's window census reads a Condition-split root alone (mana_condsplit.go)
+			}
 			a.addUnits(s.srcMaskAt(pc, b.first()), srcYield(pc))
 		}
 	}

@@ -1,0 +1,14 @@
+# A Condition-split mana source: River of Tears' "{T}: Add {U}. If you played a
+# land this turn, add {B} instead", a planner-deferred source (gorge
+# source:conditional), with a blue and a black one-drop each only it can pay
+# (no other blue or black source), and the lands and creatures beside it.
+# dirac/oracle/riveroftears_test.go plays it.
+River of Tears
+Faerie Seer
+Carrion Feeder
+Opt
+Disfigure
+Mountain
+Forest
+Grizzly Bears
+Hill Giant
