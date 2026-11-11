@@ -1550,6 +1550,18 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		conds = append(conds, deliriumCond())
 	}
+	echoGate := false
+	if v, ok := tp.get("Echo"); ok {
+		// gorge kwEcho's intervening if (CR 702.30a; trigger_match.go
+		// echoGateHolds): the source came under its controller's control since
+		// the beginning of their most recent upkeep, checked as the trigger
+		// fires only (trig_echo.go)
+		if v != "True" || tr.Event != "Phase" || tr.Step != "Upkeep" || tr.Whose != whoYou || len(conds) != 0 {
+			return refuse("Echo$ %q beside another gate", v)
+		}
+		conds = append(conds, lCond{Kind: cEchoOwed})
+		echoGate = true
+	}
 	switch len(conds) {
 	case 0:
 	case 1:
@@ -1570,6 +1582,12 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			return refuse("gift trigger with another condition")
 		}
 		tr.Cond = lCond{Kind: cPromisedGift}
+		ab.Name = "CheckOnTriggerOnly"
+	}
+	if echoGate {
+		if noResolve || fireOnly || giftSelf {
+			return refuse("Echo$ beside another fire-time gate")
+		}
 		ab.Name = "CheckOnTriggerOnly"
 	}
 	if fireOnly && !noResolve {

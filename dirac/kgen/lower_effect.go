@@ -2355,6 +2355,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.unlockDoor(ps) // lower_unlockdoor.go
 	case "CumulativeUpkeep":
 		return lc.cumulativeUpkeep(ps) // lower_cumulative.go
+	case "Echo":
+		return lc.echoUpkeep(ps) // lower_echo.go
 	default:
 		return refuseAPI(sa.API) // lower_refuseapi.go
 	}
