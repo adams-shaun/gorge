@@ -2636,8 +2636,8 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		if err := discardHandCost(&cost); err != nil {
 			return err
 		}
-		if cost.DiscardHand && ab.Kind != akActivated {
-			return refuse("discard-hand cost on a mana ability")
+		if cost.DiscardHand && ab.Kind != akActivated && !discardHandManaShape(cost, ps) {
+			return refuse("discard-hand cost on a mana ability beside a part other than sacrificing the source, or without InstantSpeed$ True")
 		}
 		if cost.TapPowN != 0 && (ab.Kind != akActivated || !tapPowerAlone(cost)) {
 			return refuse("tap-any-number cost beside another part or on a mana ability")

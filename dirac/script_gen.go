@@ -84,7 +84,7 @@ func (s *State) windowRestr(k *prep, p uint8) slotMask {
 // restricted or any-colour gap, a filter-only gap, a counter-cost source, or
 // a Taps-deferred one (mana_tapsdefer.go).
 func (s *State) scriptAny(k *prep) bool {
-	return k.gen != nil && (k.gen.anyScriptGap || k.sacOnlyMana || k.ctrMana || k.gen.anyTapsDefer)
+	return k.gen != nil && (k.gen.anyScriptGap || k.sacOnlyMana || k.ctrMana || k.gen.anyTapsDefer || k.gen.anyDiscHand)
 }
 
 // gapMask: p's untapped permanents whose card carries the sparse mana
@@ -126,6 +126,9 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	if s.g.availX&availAny != 0 {
 		a.addUnits(0x3f, 99)
 		return
+	}
+	if k.gen.anyDiscHand && s.dhBoard(k, p) {
+		s.availDH(k, p, a) // a Lion's Eye Diamond's relaxed units (mana_discardhand.go)
 	}
 	for b := s.scriptGaps(k, p); b.any(); b = b.rest() {
 		s.eachGapUnits(k, p, b.first(), a)
@@ -192,7 +195,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		}
 	}
 	tx := s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p))
-	if !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).any() {
+	dh := k.gen.anyDiscHand && s.dhBoard(k, p) // Lion's Eye Diamonds the only gaps (mana_discardhand.go)
+	if !dh && !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).any() {
 		return
 	}
 	// With only restricted gaps (Giada, a Courtyard) gorge's census is
@@ -275,7 +279,11 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && a.Target() == 0 && s.cfg&cfgGorgeAutopay != 0 {
 			continue // a plain cast: dropped by the autopay surface
 		}
-		if (filt.any() || mix) && a.Kind() == AkActivate && s.liveGrantGap(k, p) {
+		if dh {
+			if !s.dhScript(k, a, p, false) {
+				continue // no script: the discarded hand held the play, or three mana of one colour do not pay it (mana_discardhand.go)
+			}
+		} else if (filt.any() || mix) && a.Kind() == AkActivate && s.liveGrantGap(k, p) {
 			if !s.grantActScript(k, a, p) {
 				continue // no script within gorge's one search's budget (grantActScript)
 			}
@@ -442,6 +450,14 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	// filter-only arm below yields to land's liveGrantGap for every play
 	// (CR 601.2g-h); this guard keeps the mix board's filter route off such
 	// an activation too.
+	if k.gen.anyDiscHand && s.dhBoard(k, p) {
+		var d Decision
+		s.plainOptions(k, &d, 0)
+		if !hasOption(&d, a) {
+			s.dhScript(k, a, p, true) // Lion's Eye Diamonds the only gaps (mana_discardhand.go)
+		}
+		return
+	}
 	act := a.Kind() == AkActivate && s.liveGrantGap(k, p)
 	if s.mixBoard(k, p) {
 		if !act {
@@ -518,7 +534,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 // payment actions and the decision's own options) does not hold.
 func (s *State) FeatScripted(p uint8, a Action) bool {
 	k := s.k()
-	if !s.scriptAny(k) || !isScriptPlayKind(a.Kind()) || !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapsDefer(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapXModelled(k, p)).any() && !(k.gen.anyFilt && s.filtOnly(k, p)) {
+	if !s.scriptAny(k) || !isScriptPlayKind(a.Kind()) || !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapsDefer(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapXModelled(k, p)).any() && !(k.gen.anyFilt && s.filtOnly(k, p)) && !(k.gen.anyDiscHand && s.dhBoard(k, p)) {
 		return false
 	}
 	var d Decision
