@@ -500,6 +500,23 @@ func SecondCtrTapManaAb(cd *CardDef, first, j int) bool {
 	return CtrTapSecondManaAb(&cd.Abilities[j]) && plainTapAb(&cd.Abilities[first])
 }
 
+// ChosenSecondManaAb reports whether ability j of cd, a later mana ability
+// than its first (index first), is a bare "{T}: Add one mana of the chosen
+// colour" beside a plain "{T}" first one of one colour or any (Quirion
+// Elves' second ability): the kernel's source unit reads the chosen colour
+// beside the printed one (pcard.manaChosen, kernel srcMaskAt), as it does for
+// a single "Combo W Chosen" ability.
+func ChosenSecondManaAb(cd *CardDef, first, j int) bool {
+	if first < 0 || j <= first || j >= len(cd.Abilities) {
+		return false
+	}
+	a, f := &cd.Abilities[j], &cd.Abilities[first]
+	return a.Kind == AbMana && a.AFlags == AfManaChosen && a.ManaColors == 0 && a.ManaN <= 1 && a.ManaRestrict == 0 &&
+		a.Cost.Flags == CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && len(a.Prog) == 0 &&
+		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield) &&
+		plainTapAb(f)
+}
+
 // plainTapAb: a is a mana-free {T} ability of one fixed colour or any one
 // colour, amount one, unrestricted (the plain first ability a second
 // CtrTapSecondManaAb one is modelled beside: Weather Maker's any colour).

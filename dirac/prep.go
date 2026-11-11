@@ -17,13 +17,17 @@ type pcard struct {
 	manaCol kop.ColorMask
 	// manaChosen: the mana ability makes one mana of the permanent's chosen
 	// colour (perm.chosen; Heraldic Banner), not manaCol
-	manaChosen  bool
-	manaN       uint8
-	manaDyn     bool // a dynamic-amount variant (varPC): gorge's evaluated-amount layer
-	manaOne     bool // Produced$ Any with an amount above one: all of it one colour, whichever is chosen
-	manaTap     bool // the mana ability costs only {T}
-	manaSac     bool // the mana ability costs {T} and sacrificing the source (Treasure)
-	manaSacOnly bool // the mana ability costs only sacrificing the source (Eldrazi Spawn)
+	manaChosen bool
+	// manaFixedChosen: the chosen-colour ability is a second bare {T} one
+	// beside a fixed first ability (Quirion Elves): the source keeps its
+	// fixed census position, unlike a single Combo Chosen ability
+	manaFixedChosen bool
+	manaN           uint8
+	manaDyn         bool // a dynamic-amount variant (varPC): gorge's evaluated-amount layer
+	manaOne         bool // Produced$ Any with an amount above one: all of it one colour, whichever is chosen
+	manaTap         bool // the mana ability costs only {T}
+	manaSac         bool // the mana ability costs {T} and sacrificing the source (Treasure)
+	manaSacOnly     bool // the mana ability costs only sacrificing the source (Eldrazi Spawn)
 	// castSrc: tapping this source for a cast is recorded (noteTapSrc):
 	// csTreasure, the card's printed subtypes include Treasure (CastSpecTreasure;
 	// set only when the cast ring is on); csObserved, the card carries a
@@ -354,6 +358,13 @@ func prepare(t *kop.Table) *prep {
 					}
 				} else if a.AFlags&kop.AfLatent == 0 {
 					p.multiMana = true
+					if pk := int(pc.manaAb); pk >= 0 && kop.ChosenSecondManaAb(c, pk, j) {
+						// a later bare {T}: Add one mana of the chosen colour
+						// beside a fixed {T} first one (Quirion Elves): the
+						// source's unit reads the chosen colour too, and stays
+						// in the fixed-production census pass
+						pc.manaChosen, pc.manaFixedChosen = true, true
+					}
 					if p.tapXAb[i] < 0 && kop.SecondTapXManaAb(c, int(pc.manaAb), j) {
 						p.tapMana = true // a second tap-another ability: the card's tapX gap (mana_tapanother.go)
 						p.tapXAb[i] = int8(j)

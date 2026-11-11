@@ -112,6 +112,14 @@ func (lc *lowerCtx) refuseMultiMana() {
 		// the kernel's per-count pair view (mana_dynpair.go) plans it
 		return
 	}
+	if len(ms) == 2 && plainTapMana(ms[0], false) && unrestrictedOne(ms[0]) && chosenTapMana(ms[1]) {
+		// a plain fixed {T} ability beside "{T}: Add one mana of the chosen
+		// color" (Quirion Elves): gorge's planner lists the one unit with a
+		// fixed alternative and a chosen one, which the kernel reads as the
+		// source's chosen colour beside its printed one (pcard.manaChosen,
+		// kop.ChosenSecondManaAb)
+		return
+	}
 	if len(ms) == 2 && (restrictedFirstPair(ms[0], ms[1]) || restrictedFixedPair(ms[0], ms[1])) {
 		// a restricted pair whose two abilities are disjoint by payment class:
 		// a spell-only {T} ability of one mana then an activation-only one of
@@ -148,7 +156,8 @@ func (lc *lowerCtx) refuseMultiMana() {
 
 // chosenTapMana: a is a bare "{T}: Add one mana of the chosen color".
 func chosenTapMana(a *lAbility) bool {
-	if a.Mana.Colors != "Chosen" || a.Mana.Special != "" || a.Mana.Choice || a.Mana.Each || !unrestrictedOne(a) {
+	if a.Mana.Colors != "Chosen" || a.Mana.Special != "" || a.Mana.Choice || a.Mana.Each || !unrestrictedOne(a) ||
+		a.Mana.Restrict != nil || a.Mana.RestrictAb != nil {
 		return false
 	}
 	c := *a
@@ -424,6 +433,9 @@ func ctrTapGapModelled(first, a *lAbility) bool {
 //     gorge's planner the larger of the two.
 func manaGapWhy(first, a *lAbility) string {
 	m := a.Mana
+	if chosenTapMana(a) {
+		return "a chosen-colour ability whose first mana ability is not a plain fixed {T} one"
+	}
 	if activationOnlyTapMana(a) && !restrictedFirstPair(first, a) && !restrictedFixedPair(first, a) {
 		return "an activation-only restricted ability of several mana: the kernel plans it only as a chosen or same-colour pair of two to four mana (or an activation-only larger ability beside a spell-only first one of that colour)"
 	}

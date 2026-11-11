@@ -1252,7 +1252,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				// shared census listed at its battlefield position
 				// (rules setPaymentPlanUnitAlt), whatever its colours
 				// (mana_imprint.go)
-				choice := (pc.manaCol == kop.ColAny || bits.OnesCount8(mask) > 1 || pc.manaChosen) && !pc.manaMulti && !(pc.manaRefl && debugImprintMutate != 2)
+				choice := (pc.manaCol == kop.ColAny || bits.OnesCount8(mask) > 1 || pc.manaChosen) && !pc.manaMulti && !pc.manaFixedChosen && !(pc.manaRefl && debugImprintMutate != 2)
 				if choice && k.gen != nil && k.gen.blgOn && pc.manaCol == kop.ColAny && s.blgMask(k, sl) != 0 {
 					// a Produced$ Any land with a granted basic land type
 					// also has the intrinsic abilities, which are
