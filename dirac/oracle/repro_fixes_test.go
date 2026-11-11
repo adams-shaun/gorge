@@ -1062,7 +1062,7 @@ func TestStdWoeReprosLockstep(t *testing.T) {
 // Stingcaster Mage granted flashback, beside the card's printed Harmonize;
 // the kernel's mode-2 flashback cast was canonicalised as "harmonize" (15)
 // where gorge lists "flashback" (2).
-func TestStdMetaReprosLockstep(t *testing.T) {
+func TestStdMetaGrantedFlashbackReprosLockstep(t *testing.T) {
 	t.Parallel()
 	reg := synthReg(t)
 	set := cardsettest.Set(t, "standard-meta")
