@@ -32,8 +32,8 @@ func tableOf(p *pool, poolName string, prev []idEntry) (*cardset.PoolData, cover
 		return nil, pb.cv, nil, fmt.Errorf("pool name %q must be letters, digits, underscores and hyphens only", poolName)
 	}
 	all, bs, pt := pb.all, pb.bs, pb.pt
-	if len(pt.subtypes) > maxTableSubtypes {
-		return nil, pb.cv, nil, fmt.Errorf("refusing the pool: %s %d subtypes, a table's masks hold %d", tableLimitMark, len(pt.subtypes), maxTableSubtypes)
+	if len(pt.subtypes) > kop.MaxSubtypes {
+		return nil, pb.cv, nil, fmt.Errorf("refusing the pool: %s %d subtypes, a table's masks hold %d", tableLimitMark, len(pt.subtypes), kop.MaxSubtypes)
 	}
 	sup, err := embeddedSupport()
 	if err != nil {
@@ -51,7 +51,7 @@ func tableOf(p *pool, poolName string, prev []idEntry) (*cardset.PoolData, cover
 		}
 	}
 	d.Defs = make([]kop.CardDef, len(all))
-	d.CardSubs = make([][2]uint64, len(all))
+	d.CardSubs = make([]kop.SubMask, len(all))
 	d.CardTokens = make([][]uint16, len(all))
 	d.CardRefSubs = make([][]uint8, len(all))
 	d.AbilityOrigin = make([][]uint8, len(all))
@@ -64,7 +64,7 @@ func tableOf(p *pool, poolName string, prev []idEntry) (*cardset.PoolData, cover
 		d.Defs[i] = bs[i].def
 		d.Defs[i].Name = "" // names live in the name table only
 		for _, s := range bs[i].subs {
-			d.CardSubs[i][s/64] |= 1 << (s % 64)
+			d.CardSubs[i] = d.CardSubs[i].With(int(s))
 		}
 		seen := map[int]bool{}
 		for _, t := range bs[i].tokens {
@@ -113,9 +113,6 @@ func tableOf(p *pool, poolName string, prev []idEntry) (*cardset.PoolData, cover
 	d.RoomCards, d.NameReaders, d.AbReducers, d.AbReducerFloor, d.AbReducerTypes, d.AbManaCosted, d.AbManaCostedMV, d.AbManaCostedTypes = guardLists(bs, pt.filters)
 	return d, pb.cv, pb.idx, nil
 }
-
-// maxTableSubtypes is what PoolData.CardSubs, two 64-bit masks a card, can hold.
-const maxTableSubtypes = 128
 
 // tableLimitMark starts a refusal that a smaller list can pass.
 const tableLimitMark = "table limit:"

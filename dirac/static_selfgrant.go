@@ -18,7 +18,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // outside reports whether a creature type outside the matchup survives.
 // A grant from another permanent keeps everything.
 func (s *State) selfGrantKept(k *prep, sl, src Slot) (keep kop.SubMask, outside bool) {
-	keep, outside = kop.SubMask{^uint64(0), ^uint64(0)}, true
+	keep, outside = kop.SubMask{^uint64(0), ^uint64(0), ^uint64(0)}, true
 	if src != sl {
 		return keep, outside
 	}

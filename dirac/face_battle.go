@@ -17,7 +17,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // protChosen is perm.chosen's high nibble for a recorded protector; the low
 // bit is the seat. No colour reader (ch > 4) or subtype reader (ch >=
-// len(Subtypes), MaxSubtypes 128) can mistake it for a choice, and the
+// len(Subtypes), MaxSubtypes 192) can mistake it for a choice, and the
 // default 255 does not match protector's 0xFE mask.
 const protChosen = 0xF0
 

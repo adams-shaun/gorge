@@ -1721,6 +1721,9 @@ type genState struct {
 	untapOn   bool
 
 	lki [maxLKI]lkiRec // the shared LKI pool (zone_lki.go)
+	// lkiPad: the 192-bit SubMask grew each LKI record by 8 bytes (31 x 8 = 248); these 8 carry
+	// that growth to 256, a multiple of 64, so perms keeps its cache-line phase in both size classes.
+	lkiPad [8]uint8
 
 	used  [maxUsed]usedRec // once-per-turn triggers / statics used this turn
 	nused uint8

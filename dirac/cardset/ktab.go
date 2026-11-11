@@ -36,7 +36,7 @@ import (
 const tableMagic = "KTAB"
 
 // TableFormat is the table layout's version.
-const TableFormat = 2
+const TableFormat = 3
 
 // schemaFingerprint is the sha256 of a recursive walk of t writing each type's
 // string, kind, field names and array length. It is redundant with the key on

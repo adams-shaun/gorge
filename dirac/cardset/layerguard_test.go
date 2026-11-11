@@ -18,7 +18,7 @@ func TestGuardMessagesNameTheCards(t *testing.T) {
 			Status:      make([]Status, 2),
 			Reason:      make([]string, 2),
 			Defs:        make([]kop.CardDef, 2),
-			CardSubs:    make([][2]uint64, 2),
+			CardSubs:    make([]kop.SubMask, 2),
 			CardTokens:  make([][]uint16, 2),
 			CardRefSubs: make([][]uint8, 2),
 			StaticSubs:  make([][]AbSubs, 2),

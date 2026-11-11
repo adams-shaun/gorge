@@ -24,7 +24,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // refcounts cannot make equal states hash differently. Readers only ever
 // dereference an index, whose content is the snapshot itself.
 
-// maxLKI is the LKI pool's records, at 32 B of State each on every pool:
+// maxLKI is the LKI pool's records, at 56 B of State each on every pool:
 // tliIdx's five bits hold up to 31. 31 since 2026-11-03, past MaxPending's old
 // 24: every trigger of a creature entering snapshots it, so twenty Cat tokens
 // from Ajani, Caller of the Pride beside Mentor of the Meek took twenty.
@@ -55,7 +55,7 @@ type lkiRec struct {
 	chosen uint8 // perm.chosen (gorge SpecContext.SourceChosenType: a sacrificed source's choice; act_choosetype.go). The padding byte before types
 	types  kop.TypeMask
 	// subs is the derived subtype set at the snapshot, for the
-	// Sacrificed$Valid Card/creature-type reads (anySacSub): the 128-bit
+	// Sacrificed$Valid Card/creature-type reads (anySacSub): the 192-bit
 	// mask does not fit the 16-bit types snapshot, so it is a field of its
 	// own. Zero unless the table lowers one of those reads.
 	subs kop.SubMask

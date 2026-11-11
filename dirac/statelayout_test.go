@@ -19,7 +19,7 @@ var (
 // bytes come out of genState.rsv, the mech arena, a cold array or a scr
 // overlay; a change to this number is a deliberate layout change.
 func TestStateLayoutPinned(t *testing.T) {
-	const want = 19784
+	const want = 20040
 	if sz := unsafe.Sizeof(State{}); sz != want {
 		t.Fatalf("State is %d bytes, pinned at %d", sz, want)
 	}

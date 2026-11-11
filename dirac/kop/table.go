@@ -8,7 +8,7 @@ type CardID uint16
 const NoCard CardID = 0xFFFF
 
 // MaxSubtypes bounds Table.Subtypes: a SubMask holds that many.
-const MaxSubtypes = 128
+const MaxSubtypes = 192
 
 // SubMask is a set of subtype indexes (Table.Subtypes).
 type SubMask [MaxSubtypes / 64]uint64
@@ -25,13 +25,13 @@ func (m SubMask) With(i int) SubMask {
 }
 
 // Or is the union of m and o.
-func (m SubMask) Or(o SubMask) SubMask { return SubMask{m[0] | o[0], m[1] | o[1]} }
+func (m SubMask) Or(o SubMask) SubMask { return SubMask{m[0] | o[0], m[1] | o[1], m[2] | o[2]} }
 
 // And is the intersection of m and o.
-func (m SubMask) And(o SubMask) SubMask { return SubMask{m[0] & o[0], m[1] & o[1]} }
+func (m SubMask) And(o SubMask) SubMask { return SubMask{m[0] & o[0], m[1] & o[1], m[2] & o[2]} }
 
 // Any reports whether m is non-empty.
-func (m SubMask) Any() bool { return m[0]|m[1] != 0 }
+func (m SubMask) Any() bool { return m[0]|m[1]|m[2] != 0 }
 
 // Zone names a zone.
 type Zone uint8
@@ -658,4 +658,4 @@ func (t *Table) Filter(f FilterID) *Filter { return &t.Filters[f] }
 func (c *CardDef) TapPays() bool { return c.Convoke || c.Improvise }
 
 // AndNot is m without the members of o.
-func (m SubMask) AndNot(o SubMask) SubMask { return SubMask{m[0] &^ o[0], m[1] &^ o[1]} }
+func (m SubMask) AndNot(o SubMask) SubMask { return SubMask{m[0] &^ o[0], m[1] &^ o[1], m[2] &^ o[2]} }
