@@ -31,8 +31,9 @@ func TestForceOfWillLockstep(t *testing.T) {
 }
 
 // TestForceOfWillLockstepMutation: with the alternative cost dropped, or its
-// exiled card unpriced (the life alone), some seed diverges, so the pool
-// plays the pitch cast.
+// shared count doubled (2 life and two blue cards, so a hand with one other
+// blue card no longer affords it), some seed diverges, so the pool plays the
+// pitch cast and the kernel prices its count.
 func TestForceOfWillLockstepMutation(t *testing.T) {
 	t.Parallel()
 	for _, m := range []struct {
@@ -40,7 +41,7 @@ func TestForceOfWillLockstepMutation(t *testing.T) {
 		fn   func(*kop.Ability)
 	}{
 		{"no alternative", func(a *kop.Ability) { a.Static.Kind = kop.StatNone }},
-		{"no life", func(a *kop.Ability) { a.Cost.Flags &^= kop.CostPayLife }},
+		{"two cards", func(a *kop.Ability) { a.Cost.N = 2 }},
 	} {
 		n := lockstepRun(t, "forceofwill", kforceofwillDecks, 200, false, func(tbl *kop.Table) {
 			cards := append([]kop.CardDef(nil), tbl.Cards...)

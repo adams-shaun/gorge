@@ -2086,17 +2086,9 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			// place; cost_exilefromhand.go) keeps its own count. A filtered
 			// spec, ExileFromHand<1/All> and CARDNAME stay refused.
 			if lc.altCostHand {
-				// a spell's own AlternativeCost (Force of Will's "exile a
-				// blue card from your hand"; CR 118.9, 601.2b): one card
-				// matching the spec, picked as the cast pays
-				if len(parts) < 2 || len(parts) > 3 || n != 1 || c.ExileG != nil || c.ExileHandN != 0 {
-					return c, refuse("exile cost %q", t)
-				}
-				f, err := lc.filter(parts[1])
-				if err != nil {
+				if err := lc.altExileHandCost(&c, parts, n, t); err != nil {
 					return c, err
 				}
-				c.ExileG, c.ExileGN, c.ExileHand = f, n, true
 				continue
 			}
 			if len(parts) < 2 || len(parts) > 3 || n <= 0 || parts[1] != "Card" {
@@ -2413,10 +2405,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		// Cost.Filter: alone among the counted parts (dirac/kgen/build.go
 		// cost)
 		parts := 0
-		// an alternative cost's PayLife<N> beside ExileFromHand<N/Spec> shares
-		// the count (lower_altexilehand.go)
-		lifeShared := lc.altCostHand && c.ExileHand && c.PayLife == c.ExileGN
-		for _, on := range []bool{c.Forage != nil, c.ExileG != nil, c.Sac != nil, c.DiscardN > 0, c.Loyalty != 0, c.SubCtr > 0, c.SubAmongN > 0, c.PayLife > 0 && !lifeShared, c.TapN > 0, c.EvidenceN > 0} {
+		for _, on := range []bool{c.Forage != nil, c.ExileG != nil, c.Sac != nil, c.DiscardN > 0, c.Loyalty != 0, c.SubCtr > 0, c.SubAmongN > 0, c.PayLife > 0 && !lc.altLifeShared(&c), c.TapN > 0, c.EvidenceN > 0} {
 			if on {
 				parts++
 			}
