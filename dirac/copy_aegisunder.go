@@ -52,6 +52,7 @@ func (s *State) aegisHold(host Slot) {
 			r.kind = fxAegisHeld
 		}
 	}
+	s.aegisHoldGrants(host)
 }
 
 // aegisRestore puts the covered copy's exceptions back (copyBase).
@@ -61,7 +62,7 @@ func (s *State) aegisRestore(host Slot) {
 	}
 	for i := 0; i < int(s.g.nfx); i++ {
 		if r := &s.g.fx[i]; r.sl == host && r.kind == fxAegisHeld {
-			r.kind = fxCopyExc
+			r.kind = grantHeldKind(r)
 		}
 	}
 }
@@ -85,11 +86,12 @@ func (s *State) aegisUnderTake(host Slot) (c CardID, ok bool) {
 // copyLayer is one layer-1 copy effect for copyTop: its card, layer
 // timestamp, and (for a copy marker) the template its exceptions come from.
 type copyLayer struct {
-	kind uint8
-	card CardID
-	ts   uint16
-	idx  uint8 // the copy's own exception override (index+1, 0 none)
-	src  Obj   // the template object (copy markers only)
+	kind  uint8
+	card  CardID
+	ts    uint16
+	idx   uint8 // the copy's own exception override (index+1, 0 none)
+	grant uint8 // an as-enters copy marker's AddAbilities$ override (index+1, 0 none)
+	src   Obj   // the template object (copy markers only)
 }
 
 const (
@@ -150,7 +152,7 @@ func (s *State) copyTop(host, skip Slot) copyLayer {
 		src := Obj(s.g.fx[r].r.p)
 		c := s.g.fx[r].r.src
 		if ts := s.g.fx[r].r.ts; !has || ts >= best {
-			l = copyLayer{kind: copyPerm, card: c, ts: ts, idx: s.g.fx[r].r.idx, src: src}
+			l = copyLayer{kind: copyPerm, card: c, ts: ts, idx: s.g.fx[r].r.idx, src: src, grant: s.g.fx[r].r.fl}
 			best, has = ts, true
 		}
 	}

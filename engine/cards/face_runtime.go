@@ -27,6 +27,20 @@ func (f *Face) SetManaCost(mc string) {
 	f.cmcSrc, f.cmcBound = mc, true
 }
 
+// RefreshManaProduction re-folds ManaProduction() from the face's current
+// abilities, touching no other field. A copy exception that appends a mana
+// ability (Machine God's Effigy's "{T}: Add {U}", CR 707.9b) leaves the value
+// copy's load-time summary stale; the view and the bots read it.
+func (f *Face) RefreshManaProduction() {
+	f.manaProduction = ManaProduction{}
+	for _, a := range f.ManaAbilities() {
+		f.manaProduction.add(a)
+	}
+	for _, a := range f.ManaReflectedAbilities() {
+		f.manaProduction.addReflected(a)
+	}
+}
+
 // copyColoursSet marks Face.copyColours as present; bits 0-4 are the
 // ColourWhite..ColourGreen set.
 const copyColoursSet uint8 = 1 << 7

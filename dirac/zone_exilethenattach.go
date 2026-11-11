@@ -199,7 +199,7 @@ func (s *State) aegisRefresh(k *prep, host, skip Slot) {
 				x := &s.g.fx[i]
 				return x.sl == host && x.kind == fxCopyExc
 			})
-			s.copyExcRebase(k, host, l)
+			s.copyExcRebase(k, host, l) // and its AddAbilities$ grants (copyGrantsRebase)
 			p.ovr.kw = p.ovr.kw&^oldKw | s.copyExcKw(k, host)
 		case copyAegis:
 			// An Aegis copy has no exceptions, so an older "except it has
@@ -221,6 +221,7 @@ func (s *State) aegisRefresh(k *prep, host, skip Slot) {
 					x := &s.g.fx[i]
 					return x.sl == host && x.kind == fxCopyExc
 				})
+				s.dropCopyGrants(host)
 			}
 			p.ovr.kw = p.ovr.kw&^oldKw | s.copyExcKw(k, host)
 		case copyBase:
@@ -230,6 +231,7 @@ func (s *State) aegisRefresh(k *prep, host, skip Slot) {
 	} else {
 		p.ovr.flags &^= ovCopy
 		p.ovr.copyOf = 0
+		s.dropCopyGrants(host)
 		s.cloneRestore(host) // a token copy's own basis
 	}
 	s.subscribe(host, &k.cards[s.cardAt(host)], true)
@@ -334,12 +336,12 @@ func prepAegis(t *kop.Table, g *genPrep) {
 func (s *State) excShows(host Slot, l copyLayer) bool {
 	switch l.kind {
 	case copyAegis:
-		return s.copyRec(host, fxCopyExc) < 0
+		return s.copyRec(host, fxCopyExc) < 0 && s.copyGrantsShow(host, l)
 	case copyPerm, copyEOT:
 		if l.src != NoObj && l.src == s.perms[host].obj {
-			return s.excSelfMatch(host, l)
+			return s.excSelfMatch(host, l) && s.copyGrantsShow(host, l)
 		}
-		return s.excMatch(host, s.copySrcSlot(l.src), l.idx)
+		return s.excMatch(host, s.copySrcSlot(l.src), l.idx) && s.copyGrantsShow(host, l)
 	case copyBase:
 		// a kept floor is always restored by the refresh that takes it
 		return false
@@ -354,7 +356,7 @@ func (s *State) excSelfMatch(sl Slot, l copyLayer) bool {
 	at := 0
 	for i := 0; i < int(s.g.nfx); i++ {
 		r := &s.g.fx[i]
-		if r.sl != sl || r.kind != fxCopySelf || r.r.ts != l.ts {
+		if r.sl != sl || r.kind != fxCopySelf || r.r.ts != l.ts || r.r.fl&ovCopyGrant != 0 {
 			continue
 		}
 		if got, ok := s.excIth(sl, at); !ok || got != r.r.idx {

@@ -897,17 +897,46 @@ func (s *State) grantedHost(k *prep, sl Slot, c CardID) Slot {
 // NoSlot. A loss in the same record (The Irencrag's Everflame) hosts nothing:
 // gorge offers no equip there.
 //
-// On a copy, the printed card's own record hosts too: an as-enters copy's
-// AddAbilities$ grant (Mercurial Pretender, copy_asenters.go), whose ability
-// grantCardAt then reads from the printed card.
+// On a copy, an as-enters copy's AddAbilities$ record (Mercurial Pretender,
+// copy_asenters.go) hosts too, whichever card made it: the Pretender's own
+// copy, and a copy of that copy (CR 707.3), whose ability grantCardAt then
+// reads from the card that made the record.
 func (s *State) selfGrantHost(k *prep, sl Slot, c CardID, ab uint8) Slot {
-	if !s.fxM.has(sl) || s.genLost(k, sl) || s.cardAt(sl) != c && s.perms[sl].card != c {
+	if !s.fxM.has(sl) || s.genLost(k, sl) {
 		return NoSlot
 	}
-	if s.ownGrants(k, sl, c, ab) {
+	if (s.cardAt(sl) == c || s.perms[sl].card == c) && s.ownGrants(k, sl, c, ab) {
+		return sl
+	}
+	if own, ok := s.copyGrantCard(k, sl, ab); ok && own == c {
 		return sl
 	}
 	return NoSlot
+}
+
+// copyGrantCard is the card of the first as-enters copy grant record on sl
+// that grants ability ab.
+func (s *State) copyGrantCard(k *prep, sl Slot, ab uint8) (CardID, bool) {
+	for i := 0; i < int(s.g.nfx); i++ {
+		r := &s.g.fx[i]
+		if r.sl != sl || r.kind != fxOverride || r.r.idx == 0 || !r.r.copyGrant() {
+			continue
+		}
+		for _, g := range k.t.Overrides[r.r.idx-1].Grant {
+			if g == ab+1 {
+				return r.r.src, true
+			}
+		}
+	}
+	return 0, false
+}
+
+// copyGrantIs reports whether ability (c, ab) of sl is an as-enters copy's
+// grant: a copiable value (CR 707.9b), so gorge offers it as a printed
+// ability, priced off every source the controller can tap, not the pool only.
+func (s *State) copyGrantIs(k *prep, sl Slot, c CardID, ab uint8) bool {
+	own, ok := s.copyGrantCard(k, sl, ab)
+	return ok && own == c
 }
 
 // ownGrants reports whether a live override record on sl made by card c
@@ -932,12 +961,17 @@ func (s *State) ownGrants(k *prep, sl Slot, c CardID, ab uint8) bool {
 
 // grantCardAt is the card whose ability ab a granted activation (mode
 // 0x80|ab) hosted by the battlefield permanent at sl names: sl's current
-// card, or, on a copy, its printed card when only a record of the printed
-// card's own grants sl that ability (selfGrantHost).
+// card, or, on a copy, the card of the as-enters grant record that grants sl
+// that ability when no record of the current card does (selfGrantHost).
 func (s *State) grantCardAt(k *prep, sl Slot, ab uint8) CardID {
 	c := s.cardAt(sl)
-	if own := s.perms[sl].card; own != c && s.ownGrants(k, sl, own, ab) && !s.ownGrants(k, sl, c, ab) {
-		return own
+	if !s.ownGrants(k, sl, c, ab) {
+		// also on a permanent whose printed card is the one it shows: a
+		// Grizzly Bears turned into a copy of a Pretender copy by a permanent
+		// copy effect holds the Pretender's grant (copyGrantsAdd)
+		if own, ok := s.copyGrantCard(k, sl, ab); ok {
+			return own
+		}
 	}
 	return c
 }

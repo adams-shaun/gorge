@@ -49,12 +49,16 @@ func TestCloneETBAddAbilitiesMercurialPretender(t *testing.T) {
 	if hasNote(e, "unimplemented API Clone") {
 		t.Fatal("the loud Clone fallback ran")
 	}
-	gr := e.grantedAbilities(0, mp)
-	if len(gr) != 1 || gr[0].SA.API != "ChangeZone" {
-		t.Fatalf("granted abilities %+v, want the one return-to-hand ability", gr)
+	// CR 707.9b: the grant is a copiable value, so it is a printed ability of
+	// the copy's face, not a layer-6 grant.
+	if n := changeZoneAbilities(clone); n != 1 {
+		t.Fatalf("the pretender's face has %d return-to-hand abilities, want 1", n)
 	}
-	if n := len(e.grantedAbilities(0, b)); n != 0 {
-		t.Fatalf("the template has %d granted abilities, want none", n)
+	if n := changeZoneAbilities(e.G.Obj(b)); n != 0 {
+		t.Fatalf("the template has %d return-to-hand abilities, want none", n)
+	}
+	if n := len(e.grantedAbilities(0, mp)); n != 0 {
+		t.Fatalf("the pretender has %d layer-6 granted abilities, want none", n)
 	}
 	e.G.Players[0].Pool[state.MC] = 2
 	e.G.Players[0].Pool[state.MU] = 2
@@ -62,7 +66,7 @@ func TestCloneETBAddAbilitiesMercurialPretender(t *testing.T) {
 	opt := -1
 	if d := e.Pending(); d != nil {
 		for _, o := range d.Options {
-			if o.Kind == "ability" && o.Obj == mp && o.SVar != "" {
+			if o.Kind == "ability" && o.Obj == mp && o.SVar == "" {
 				opt = o.Index
 			}
 		}
@@ -81,4 +85,15 @@ func TestCloneETBAddAbilitiesMercurialPretender(t *testing.T) {
 	if !inHand || e.G.Obj(b).Zone != state.ZBattlefield {
 		t.Fatal("the granted ability did not return the Pretender (and only it) to its owner's hand")
 	}
+}
+
+// changeZoneAbilities counts o's current-face ChangeZone abilities.
+func changeZoneAbilities(o *state.Object) int {
+	n := 0
+	for _, sa := range o.Face().Abilities {
+		if sa.API == "ChangeZone" {
+			n++
+		}
+	}
+	return n
 }

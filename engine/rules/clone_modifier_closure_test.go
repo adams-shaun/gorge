@@ -79,11 +79,20 @@ func TestCloneAddAbilitiesGrantExpiresWithCopy(t *testing.T) {
 		t.Fatal("distinct source and target or grant param missing")
 	}
 	effects.Resolve(e, &effects.Ctx{Source: id, Controller: 0, Targets: []state.Target{{Obj: ox}}, SVars: obj.Face().SVars, OfferedSA: sa}, sa)
-	if e.G.Obj(id).Face().Name != "Fixture Ox" || len(e.grantedAbilities(0, id)) != 1 || e.grantedAbilities(0, id)[0].SA.API != "Pump" {
-		t.Fatalf("clone grant missing: face %v, grants %+v", e.G.Obj(id).Face().Name, e.grantedAbilities(0, id))
+	// CR 707.9b: the grant is part of the copy's copiable values, a face ability.
+	pumps := func() (n int) {
+		for _, a := range e.G.Obj(id).Face().Abilities {
+			if a.API == "Pump" {
+				n++
+			}
+		}
+		return n
+	}
+	if e.G.Obj(id).Face().Name != "Fixture Ox" || pumps() != 1 || len(e.grantedAbilities(0, id)) != 0 {
+		t.Fatalf("clone grant missing: face %v, pumps %d, layer-6 grants %+v", e.G.Obj(id).Face().Name, pumps(), e.grantedAbilities(0, id))
 	}
 	e.EndOfTurnCleanup()
-	if e.G.Obj(id).Face().Name != "Gift Mimic" || len(e.grantedAbilities(0, id)) != 0 {
+	if e.G.Obj(id).Face().Name != "Gift Mimic" || pumps() != 0 {
 		t.Fatal("clone ability grant outlived copy")
 	}
 	replayCheck(t, e, cfg)

@@ -38,8 +38,8 @@ func init() { Register("Clone", effClone) }
 //
 // The characteristic EXCEPTIONS (AddTypes$/RemoveCardTypes$/
 // RemoveCreatureTypes$/RemoveSubTypes$/NonLegendary$, SetColor$/AddColors$,
-// SetPower$/SetToughness$, AddKeywords$) and the AddSVars$/AddTriggers$
-// grants are copiable values (CR 707.9a/b): one CopyExcept event writes their
+// SetPower$/SetToughness$, AddKeywords$) and the AddSVars$/AddTriggers$/
+// AddAbilities$ grants are copiable values (CR 707.9a/b): one CopyExcept event writes their
 // final values onto the copied basis face, so a copy of this copy inherits
 // them (CR 707.3). NewName$ rides the ClonePermanent event (the copy's name)
 // and GainThisAbility$ True keeps the resolving ability and its source face's
@@ -344,7 +344,6 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 	addTypes := cp.TypeAdds
 	nonLegendary := cp.NonLegendary
 	removeSubTypes := cp.RemoveSubTypes
-	addAbilities := cp.AddAbilities
 	// Resolve the named grants against the resolving face before replacing its
 	// copy basis. A copied object's SVar table is not the grantor's table.
 	grantTable := c.SVars
@@ -513,12 +512,12 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
-	// The characteristic exceptions and the AddSVars$/AddTriggers$ grants are
-	// part of the copy's copiable values (CR 707.9a/b): one CopyExcept per
+	// The characteristic exceptions and the AddSVars$/AddTriggers$/AddAbilities$
+	// grants are part of the copy's copiable values (CR 707.9a/b): one CopyExcept per
 	// become object writes their final values onto its basis face right after
 	// the ClonePermanent, so a copy of this copy inherits them (CR 707.3).
-	// Three riders stay continuous effects: PumpKeywords$ (temporary, not an
-	// exception), AddAbilities$, and a Changeling grant -- "except it has
+	// Two riders stay continuous effects: PumpKeywords$ (temporary, not an
+	// exception) and a Changeling grant -- "except it has
 	// changeling" is a characteristic-defining ability, which rules' type walk
 	// must seed ahead of every ordinary layer-4 effect (CDAAllCreatureTypes,
 	// CR 707.9d/613.3), so it keeps its layer-4 marker and layer-6 keyword.
@@ -547,6 +546,14 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
+	// An AddAbilities$ name resolves against the resolving face's table (the
+	// grantor's, not the copied face's); the {name, body} pair rides the
+	// CopyExcept so the copy's basis face carries the ability (CR 707.9b).
+	for _, name := range cp.AddAbilities {
+		if sa := cards.ResolveSVar(grantTable, name); sa != nil && sa.Kind == "AB" {
+			exc.abilities = append(exc.abilities, [2]string{name, grantTable[name]})
+		}
+	}
 	for _, p := range pairs {
 		t := p.src
 		srcObj := g.Obj(t.Obj)
@@ -560,10 +567,6 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		}
 		// One ClonePermanent event per (source, become) pair; the fold
 		// snapshots the source's printed face onto the become object.
-		var abilitySVars map[string]string
-		if f := obj.Face(); f != nil {
-			abilitySVars = f.SVars
-		}
 		ev := events.Event{Kind: events.ClonePermanent, Obj: b.Obj,
 			IDs: []state.ObjID{t.Obj}, Player: c.Controller, Text: newName}
 		if chosenName != "" {
@@ -638,13 +641,6 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		if len(changeling) > 0 {
 			reg(state.ContinuousEffect{Layer: state.LType, CDAAllCreatureTypes: true})
 			reg(state.ContinuousEffect{Layer: state.LAbilities, AddKeywords: slices.Clone(changeling)})
-		}
-		if len(addAbilities) > 0 {
-			// The source table belongs to the become object's original face,
-			// not the copied face. Capture it before ClonePermanent replaces
-			// that face; the grant expires with the same copy unit.
-			reg(state.ContinuousEffect{Layer: state.LAbilities, AddAbilities: slices.Clone(addAbilities),
-				SVars: abilitySVars})
 		}
 		if len(pumpKeywords) > 0 {
 			regDur(state.ContinuousEffect{Layer: state.LAbilities, AddKeywords: slices.Clone(pumpKeywords)}, pumpDur, pumpEOT, pumpTurn)

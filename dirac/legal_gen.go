@@ -93,7 +93,7 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 			if a.Cost.Host != 0 && s.perms[host].ctrl != p {
 				return // only a permanent the payer controls can be sacrificed or exiled (CR 701.21a, 118.3)
 			}
-			if s.cfg&cfgGorgeUnpriced != 0 && !s.poolPays(p, &a.Cost.Mana) {
+			if s.cfg&cfgGorgeUnpriced != 0 && !s.poolPays(p, &a.Cost.Mana) && !s.copyGrantIs(k, sl, c, ab) {
 				// gorge's granted-keyword offer prices the real pool only
 				// (rules.offerCastable with no hypothetical bound), the same
 				// gate the Equipment-granted path above follows; a source-paid
