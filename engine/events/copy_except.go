@@ -191,9 +191,12 @@ func foldCopyExcept(g *state.Game, e *Event) {
 		}
 		for _, ab := range x.Abilities {
 			f.SVars[ab[0]] = ab[1]
-			if sa := cards.ResolveSVar(f.SVars, ab[0]); sa != nil && sa.Kind == "AB" {
-				f.Abilities = append(f.Abilities, sa)
+			sa := cards.ResolveSVar(f.SVars, ab[0])
+			if sa == nil || sa.Kind != "AB" || hasAbilityLine(f.Abilities, sa.Line) {
+				continue // a copy of a copy of the same exception has it once (CR 707.3)
 			}
+			sa.MarkCopyGranted()
+			f.Abilities = append(f.Abilities, sa)
 		}
 		if len(x.Abilities) > 0 {
 			f.RefreshManaProduction()
@@ -214,4 +217,16 @@ func foldCopyExcept(g *state.Game, e *Event) {
 	back := o.CopyFaceBack // a copy of a double-faced token copy keeps the edited other face
 	o.SetCopyFace(&f)
 	o.CopyFaceBack = back
+}
+
+// hasAbilityLine reports whether one of abs is the ability text line: the
+// basis face of a copy of a copy already carries the exception's ability.
+func hasAbilityLine(abs []*cards.SA, line string) bool {
+	line = strings.TrimSpace(line)
+	for _, a := range abs {
+		if a != nil && strings.TrimSpace(a.Line) == line {
+			return true
+		}
+	}
+	return false
 }

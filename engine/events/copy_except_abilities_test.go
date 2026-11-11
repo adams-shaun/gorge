@@ -2,6 +2,7 @@ package events_test
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/events"
@@ -78,5 +79,45 @@ func TestFoldCopyExceptAbilities(t *testing.T) {
 	}
 	if !bear.Faces[0].ManaProduction().IsZero() {
 		t.Fatal("the corpus face's mana production changed")
+	}
+}
+
+// TestFoldCopyExceptAbilitiesOnceAndMarked: a copy exception whose ability the
+// copy's face already has (a copy of a copy of the same exception, CR 707.3)
+// adds nothing; the appended ability is marked as a copy's grant, and a
+// printed A: line is not, though its text is the body of an SVar of its face
+// (Machine God's Effigy).
+func TestFoldCopyExceptAbilitiesOnceAndMarked(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	bear, ok := reg.Lookup("Grizzly Bears")
+	pretender, ok2 := reg.Lookup("Mercurial Pretender")
+	effigy, ok3 := reg.Lookup("Machine God's Effigy")
+	if !ok || !ok2 || !ok3 {
+		t.Skip("corpus lacks Grizzly Bears, Mercurial Pretender or Machine God's Effigy")
+	}
+	ef := effigy.Faces[0]
+	coincides := false
+	for _, sa := range ef.Abilities {
+		for _, body := range ef.SVars {
+			coincides = coincides || sa.Line != "" && strings.TrimSpace(body) == strings.TrimSpace(sa.Line)
+		}
+		if sa.IsCopyGranted() {
+			t.Fatalf("a printed ability of %s is marked as a copy's grant", ef.Name)
+		}
+	}
+	if !coincides {
+		t.Fatal("precondition: no printed ability of Machine God's Effigy has the text of an SVar body")
+	}
+	g := state.NewGame([]string{"a", "b"})
+	o := g.AddObject(bear, 0)
+	o.Zone = state.ZBattlefield
+	x := events.CopyExceptions{Abilities: [][2]string{{"MercurialBounce", pretender.Faces[0].SVars["MercurialBounce"]}}}
+	events.Apply(g, events.Event{Kind: events.CopyExcept, Obj: o.ID, Text: x.Text()})
+	if len(o.Face().Abilities) != 1 || !o.Face().Abilities[0].IsCopyGranted() {
+		t.Fatalf("after one exception the face has %d abilities (marked %v), want one marked", len(o.Face().Abilities), len(o.Face().Abilities) == 1 && o.Face().Abilities[0].IsCopyGranted())
+	}
+	events.Apply(g, events.Event{Kind: events.CopyExcept, Obj: o.ID, Text: x.Text()})
+	if n := len(o.Face().Abilities); n != 1 {
+		t.Fatalf("the same exception twice left %d abilities, want 1", n)
 	}
 }

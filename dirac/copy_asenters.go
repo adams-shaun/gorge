@@ -150,10 +150,13 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 		// AddAbilities$ (Mercurial Pretender): a copiable value (CR 707.9b),
 		// from the entering card's own ability table, for as long as the copy
 		// stays (kgen lower_cloneentergrant.go; grantCardAt)
-		s.applyOverrideFl(k, sl, int(in.A.N)-1, p.card, ovCopyGrant)
+		s.copyGrantPut(k, sl, cgrantRef{uint8(in.A.N), p.card}) // not twice: the template may carry it (a Pretender copying a Pretender copy)
 	}
 	if k.gen.anyCloneCopy {
 		s.clonePermNote(sl, t, c, uint8(in.C>>1), s.tick()) // the marker a later cleanup settle re-bases from
+		if in.A.K == kop.VConst {
+			s.clonePermGrant(sl, uint8(in.A.N))
+		}
 	}
 	// the copied card's own enters replacements apply (CR 707.5; gorge's
 	// entry plan reads the clone template): enters tapped, with counters,

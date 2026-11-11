@@ -120,3 +120,45 @@ func TestCloneOfSakashimaCopyHasTheDelayedReturn(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestMercurialPretenderCopyingAPretenderCopyHasOneReturnAbility: the second
+// Pretender copies the first's copy, whose basis face already carries the
+// "{2}{U}{U}: Return this creature" ability; its own exception adds the same
+// ability, which the copy has once (the fold skips a line the face has), and
+// priority offers it once, marked as a copy's grant, not a printed line.
+func TestMercurialPretenderCopyingAPretenderCopyHasOneReturnAbility(t *testing.T) {
+	t.Parallel()
+	e, cfg, _ := altCostEngine(t, 1433, []string{"Mercurial Pretender", "Mercurial Pretender", "Grizzly Bears"}, nil, nil)
+	bears := findCardObj(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	mp1 := findCardObj(t, e, 0, "Mercurial Pretender", state.ZHand)
+	addMana(t, e, 0, "CCCCU")
+	castCopyCard(t, e, mp1, bears, 0)
+	if o := e.G.Obj(mp1); o.Zone != state.ZBattlefield || changeZoneAbilities(o) != 1 {
+		t.Fatalf("precondition: the first Pretender is %q in zone %v with %d return abilities, want a copy with one", o.Face().Name, o.Zone, changeZoneAbilities(o))
+	}
+	mp2 := findCardObj(t, e, 0, "Mercurial Pretender", state.ZHand)
+	if mp2 == mp1 {
+		t.Fatal("precondition: both Pretenders are the same object")
+	}
+	addMana(t, e, 0, "CCCCU")
+	castCopyCard(t, e, mp2, mp1, 0)
+	o2 := e.G.Obj(mp2)
+	if o2.Zone != state.ZBattlefield || o2.Face().Name != "Grizzly Bears" {
+		t.Fatalf("the second Pretender is %q in zone %v, want a Grizzly Bears on the battlefield", o2.Face().Name, o2.Zone)
+	}
+	if n := changeZoneAbilities(o2); n != 1 {
+		t.Fatalf("the second Pretender's copy has %d return-to-hand abilities, want 1", n)
+	}
+	addMana(t, e, 0, "CCUU")
+	e.priorityRound()
+	n := 0
+	for _, op := range e.Pending().Options {
+		if op.Kind == "ability" && op.Obj == mp2 {
+			n++
+		}
+	}
+	if n != 1 {
+		t.Fatalf("%d ability options offered for the second Pretender, want 1", n)
+	}
+	replayCheck(t, e, cfg)
+}

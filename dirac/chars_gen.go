@@ -939,22 +939,6 @@ func (s *State) copyGrantIs(k *prep, sl Slot, c CardID, ab uint8) bool {
 	return ok && own == c
 }
 
-// copyGrantsAdd carries the as-enters grant records of the template at src
-// (a copy of a Pretender, CR 707.3) onto the new copy at sl, in pool order,
-// each stamped anew.
-//
-//go:noinline
-func (s *State) copyGrantsAdd(k *prep, sl, src Slot) {
-	if src == NoSlot || !s.fxM.has(src) {
-		return
-	}
-	for i, n := 0, int(s.g.nfx); i < n; i++ {
-		if r := s.g.fx[i]; r.sl == src && r.kind == fxOverride && r.r.idx != 0 && r.r.copyGrant() {
-			s.applyOverrideFl(k, sl, int(r.r.idx)-1, r.r.src, ovCopyGrant)
-		}
-	}
-}
-
 // ownGrants reports whether a live override record on sl made by card c
 // grants sl c's ability ab.
 func (s *State) ownGrants(k *prep, sl Slot, c CardID, ab uint8) bool {
@@ -981,7 +965,10 @@ func (s *State) ownGrants(k *prep, sl Slot, c CardID, ab uint8) bool {
 // that ability when no record of the current card does (selfGrantHost).
 func (s *State) grantCardAt(k *prep, sl Slot, ab uint8) CardID {
 	c := s.cardAt(sl)
-	if s.perms[sl].card != c && !s.ownGrants(k, sl, c, ab) {
+	if !s.ownGrants(k, sl, c, ab) {
+		// also on a permanent whose printed card is the one it shows: a
+		// Grizzly Bears turned into a copy of a Pretender copy by a permanent
+		// copy effect holds the Pretender's grant (copyGrantsAdd)
 		if own, ok := s.copyGrantCard(k, sl, ab); ok {
 			return own
 		}

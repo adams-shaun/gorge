@@ -194,6 +194,7 @@ func (s *State) cloneLayerPrep(k *prep, sl Slot, eot bool, c CardID, src Obj, id
 	}
 	if has {
 		s.dropFx(func(i int) bool { r := &s.g.fx[i]; return r.sl == sl && r.kind == fxCopyExc })
+		s.dropCopyGrants(sl) // the covered copy's AddAbilities$ went with its copiable values
 	}
 	s.cloneSelfHeldGC(sl)
 	return old, true
@@ -302,6 +303,8 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 	// across cloneLayerPrep, which clears the slot's for the new layer.
 	var keptExc [maxFx]uint8
 	var keptN int
+	var keptGrant [maxOvr]cgrantRef
+	var keptGrantN int
 	for i := 0; i < n; i++ {
 		sl := ord[i]
 		self := tmpl != NoSlot && sl == tmpl
@@ -315,8 +318,9 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 		}
 		s.touchSl(sl)
 		s.onceBasisBegin(k, sl)
-		keptN = 0
+		keptN, keptGrantN = 0, 0
 		if self {
+			keptGrantN = s.copyGrantRecs(sl, &keptGrant) // an as-enters grant is a copiable value too
 			// CR 707.2, 707.9b: the become object copies its own copiable
 			// values, its current copy exceptions among them. Capture them
 			// before cloneHold sets a token copy's aside and cloneLayerPrep
@@ -358,8 +362,12 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 			if in.C != 0 {
 				s.copyExcPush(sl, uint8(in.C))
 			}
+			for j := 0; j < keptGrantN; j++ {
+				s.copyGrantPut(k, sl, keptGrant[j])
+			}
 		} else {
 			s.copyExcAdd(k, sl, tmpl, uint8(in.C))
+			s.copyGrantsAdd(k, sl, tmpl) // the template's AddAbilities$ (CR 707.3)
 		}
 		p.ovr.kw = p.ovr.kw&^old | s.copyExcKw(k, sl)
 		if !eot {
@@ -370,6 +378,7 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 			// its template is the becomer, so a re-base cannot read them back
 			// from the slot once a newer layer has covered it.
 			s.cloneSelfHeldPush(sl, keptExc[:], keptN, ts)
+			s.cloneSelfGrantsPush(sl, &keptGrant, keptGrantN, ts)
 		}
 		made++
 	}
@@ -465,6 +474,7 @@ func (s *State) cloneCleanup(k *prep) {
 			x := &s.g.fx[i]
 			return x.sl == sl && (x.kind == fxCopyEOT || x.kind == fxCopyExc)
 		})
+		s.dropCopyGrants(sl) // a re-base derives the layer's own again
 		// The layer the ended copies leave: a live Aegis copy or the
 		// permanent marker, whichever is newer (the ended layer itself is
 		// already gone from the pool, so copyTop does not see it).
@@ -525,7 +535,7 @@ func (s *State) copyExcRebase(k *prep, host Slot, l copyLayer) {
 	if l.src != NoObj && l.src == s.perms[host].obj {
 		for i := 0; i < int(s.g.nfx); i++ {
 			r := &s.g.fx[i]
-			if r.sl == host && r.kind == fxCopySelf && r.r.ts == l.ts {
+			if r.sl == host && r.kind == fxCopySelf && r.r.ts == l.ts && r.r.fl&ovCopyGrant == 0 {
 				s.copyExcPush(host, r.r.idx)
 			}
 		}
@@ -535,9 +545,11 @@ func (s *State) copyExcRebase(k *prep, host Slot, l copyLayer) {
 		if s.fxM.has(host) {
 			s.perms[host].ovr.kw |= s.copyExcKw(k, host)
 		}
+		s.copyGrantsRebase(k, host, l)
 		return
 	}
 	s.copyExcAdd(k, host, s.copySrcSlot(l.src), l.idx)
+	s.copyGrantsRebase(k, host, l)
 }
 
 // copySrcSlot is the slot an object's copiable values are read from, NoSlot

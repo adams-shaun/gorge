@@ -32,7 +32,18 @@ type SA struct {
 	apiBound     bool
 	exhaust      bool
 	exhaustBound bool
+	// copyGranted marks an ability a copy effect's AddAbilities$ appended to
+	// a copy's face (CR 707.9b; events foldCopyExcept), as opposed to one the
+	// card prints. Set on the fresh SA ResolveSVar returns; not serialized.
+	copyGranted bool
 }
+
+// MarkCopyGranted marks s as an ability a copy exception added (CR 707.9b).
+func (s *SA) MarkCopyGranted() { s.copyGranted = true }
+
+// IsCopyGranted reports whether s was added by a copy effect's AddAbilities$
+// rather than printed on the card.
+func (s *SA) IsCopyGranted() bool { return s != nil && s.copyGranted }
 
 // APIKind is s.API as an APICode (APIUnknown for an API outside the
 // engine-owned vocabulary): resolved once at load for a printed ability, on

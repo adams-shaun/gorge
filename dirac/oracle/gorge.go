@@ -1784,8 +1784,8 @@ func (g *GorgeSide) maxSpeedOrdinal(id state.ObjID, sv string) (int, bool) {
 }
 
 // copyGrantedAbility reports whether ability i of object id's face is one a
-// copy effect's AddAbilities$ added (CR 707.9b): its text is the body of a
-// named SVar on the face, which no printed A: line of a corpus card is.
+// copy effect's AddAbilities$ added (CR 707.9b): the fold marks it
+// (cards.SA.IsCopyGranted), which no printed A: line is, whatever its text.
 func (g *GorgeSide) copyGrantedAbility(id state.ObjID, i int) bool {
 	return copyGrantedAbilityOf(g.E.G.Obj(id), i)
 }
@@ -1795,17 +1795,7 @@ func copyGrantedAbilityOf(o *state.Object, i int) bool {
 	if o == nil || o.Face() == nil || i < 0 || i >= len(o.Face().Abilities) {
 		return false
 	}
-	sa := o.Face().Abilities[i]
-	if sa == nil || sa.Kind != "AB" {
-		return false
-	}
-	line := strings.TrimSpace(sa.Line)
-	for _, body := range o.Face().SVars {
-		if line != "" && strings.TrimSpace(body) == line {
-			return true
-		}
-	}
-	return false
+	return o.Face().Abilities[i].IsCopyGranted()
 }
 
 // selfKeywordGrant reports whether a continuous effect on object id itself
