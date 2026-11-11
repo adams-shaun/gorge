@@ -899,6 +899,12 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		// its granted ability, so Tyvar, the Pummeler's {3}{G}{G} is offered
 		{"rider_source_keeps_granted_unit", true, false},
 		{"grant_prefix_census_skips_rider_source_second", false, false},
+		// CR 601.2g-h: gorge's potential planner refuses an exile cost part and a
+		// contribution before any prefix search, so Fear of Abduction and an
+		// impending Overlord of the Mistmoors under Dazzling Theater's convoke are
+		// not offered when only Enduring Vitality's creatures make their {W}
+		{"exile_part_cast_takes_no_grant_prefix", false, false},
+		{"granted_convoke_cast_takes_no_grant_prefix", false, false},
 	})
 }
 
