@@ -32,12 +32,28 @@ var kdxtDecks = [2][]cardset.Entry{{
 
 var kdxtCards = []string{"Rolling Thunder", "Fire Covenant", "Hail of Arrows", "Rock Slide", "Shatterskull Smashing"}
 
+// the rest of the class: Meteor Shower (X plus 1) and Polukranos, World Eater
+// (the monstrosity amount over its trigger's targets). Nahiri's Sacrifice stays
+// refused (an Announce$ X gorge does not announce)
+var kdxtDecks2 = func() [2][]cardset.Entry {
+	d := []cardset.Entry{
+		{Name: "Meteor Shower", Count: 4}, {Name: "Polukranos, World Eater", Count: 4},
+		{Name: "Grizzly Bears", Count: 4}, {Name: "Mons's Goblin Raiders", Count: 3}, {Name: "Hill Giant", Count: 2}, {Name: "Llanowar Elves", Count: 4},
+		{Name: "Mountain", Count: 10}, {Name: "Forest", Count: 9},
+	}
+	return [2][]cardset.Entry{d, d}
+}()
+
+var kdxtCards2 = []string{"Meteor Shower", "Polukranos, World Eater"}
+
 // kdxtShape is a divided spell on the stack as last seen: its targets are
 // chosen after it first appears, its X when it is announced.
 type kdxtShape struct {
-	name string
-	n    int
-	x    int32
+	name   string
+	n      int
+	x      int32
+	shares int // the announced division's total, 0 when none was announced
+	parts  int // and its count of shares
 }
 
 type kdxtCount struct {
@@ -54,12 +70,23 @@ type kdxtStats struct {
 	bigSmash    int // Shatterskull Smashing casts with X >= 6 over two targets (twice X)
 }
 
-// kdxtTotal is the total the cast divides.
-func kdxtTotal(name string, x int32) int {
-	if name == "Shatterskull Smashing" && x >= 6 {
-		return int(2 * x)
+// kdxtName names the divided-damage carriers: a spell by its face, and the
+// Polukranos trigger (its DealDamage ability) by its source.
+func kdxtName(g *state.Game, o *state.Object) string {
+	if o.Ability == nil {
+		if o.Face() == nil {
+			return ""
+		}
+		switch n := o.Face().Name; n {
+		case "Rolling Thunder", "Fire Covenant", "Hail of Arrows", "Rock Slide", "Shatterskull Smashing", "Meteor Shower":
+			return n
+		}
+		return ""
 	}
-	return int(x)
+	if src := g.Obj(o.Source); o.Ability.API == "DealDamage" && src != nil && src.Face() != nil && src.Face().Name == "Polukranos, World Eater" {
+		return src.Face().Name
+	}
+	return ""
 }
 
 func kdxtCheck(seen map[state.ObjID]*kdxtShape, players map[state.ObjID]bool) func(*GorgeSide, Side) *Divergence {
@@ -67,11 +94,11 @@ func kdxtCheck(seen map[state.ObjID]*kdxtShape, players map[state.ObjID]bool) fu
 		g := ref.E.G
 		for _, id := range g.Stack {
 			o := g.Obj(id)
-			if o == nil || o.Ability != nil || o.Face() == nil {
+			if o == nil {
 				continue
 			}
-			name := o.Face().Name
-			if !strings.HasPrefix(name, "Shatterskull") && name != "Rolling Thunder" && name != "Fire Covenant" && name != "Hail of Arrows" && name != "Rock Slide" {
+			name := kdxtName(g, o)
+			if name == "" {
 				continue
 			}
 			sh := seen[id]
@@ -80,6 +107,12 @@ func kdxtCheck(seen map[state.ObjID]*kdxtShape, players map[state.ObjID]bool) fu
 				seen[id] = sh
 			}
 			sh.n, sh.x = len(o.Targets), o.X
+			if len(o.Division) > 0 {
+				sh.parts, sh.shares = len(o.Division), 0
+				for _, v := range o.Division {
+					sh.shares += int(v)
+				}
+			}
 			for _, t := range o.Targets {
 				if t.IsPlayer {
 					players[id] = true
@@ -103,8 +136,8 @@ func (st *kdxtStats) tally(seen map[state.ObjID]*kdxtShape, players map[state.Ob
 			c.zero++
 		case sh.n == 1:
 			c.one++
-		case kdxtTotal(sh.name, sh.x) > sh.n:
-			c.divided++
+		case sh.parts >= 2 && sh.shares > sh.parts:
+			c.divided++ // a division was asked: the total is above one per target
 		}
 		if players[id] {
 			c.players++
@@ -187,7 +220,7 @@ func kdxtPolicy(seed uint64) Policy {
 	})
 }
 
-func runDividedXTotal(t *testing.T, seeds int) kdxtStats {
+func runDividedXTotal(t *testing.T, kdxtDecks [2][]cardset.Entry, seeds int) kdxtStats {
 	t.Helper()
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
@@ -249,7 +282,7 @@ func TestDividedXTotalLockstep(t *testing.T) {
 	if isolate(t) {
 		return
 	}
-	st := runDividedXTotal(t, 600)
+	st := runDividedXTotal(t, kdxtDecks, 600)
 	for _, n := range kdxtCards {
 		c := st.by[n]
 		if c == nil {
@@ -276,5 +309,31 @@ func TestDividedXTotalLockstep(t *testing.T) {
 	}
 	if st.bigSmash < 1 {
 		t.Errorf("no Shatterskull Smashing cast at X >= 6 over two targets")
+	}
+}
+
+// TestDividedXTotalClassLockstep: Meteor Shower and Polukranos, World Eater
+// lower through the same clamp.
+func TestDividedXTotalClassLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	st := runDividedXTotal(t, kdxtDecks2, 1500)
+	for _, n := range kdxtCards2 {
+		c := st.by[n]
+		if c == nil {
+			c = &kdxtCount{}
+		}
+		t.Logf("%s: %d casts; %d with no target, %d with one, %d dividing over two or more, %d naming a player", n, c.casts, c.zero, c.one, c.divided, c.players)
+	}
+	t.Logf("%d games, %d divergences", st.games, st.divs)
+	if st.divs != 0 {
+		t.Fatalf("%d divergences", st.divs)
+	}
+	for _, n := range kdxtCards2 {
+		c := st.by[n]
+		if c == nil || c.one < 2 || c.divided < 2 {
+			t.Errorf("%s: casts %+v, want at least 2 each with one target and a division", n, c)
+		}
 	}
 }

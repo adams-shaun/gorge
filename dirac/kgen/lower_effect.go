@@ -2445,6 +2445,13 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 		if obj.Kind != rTarget {
 			return refuse("divided damage without targets")
 		}
+		if _, ok := ps.get("Announce"); ok {
+			// Nahiri's Sacrifice announces X for its "sacrifice a permanent of
+			// mana value X" cost (CR 601.2b); gorge announces no X for a cost
+			// without {X} and reads the sacrifice's X as 0, so the card casts
+			// only against a mana-value-0 permanent
+			return refuse("divided damage over an Announce$ X total: gorge announces no X for a cost without {X}")
+		}
 		if dv.isConst() {
 			lc.ab.Targets[obj.N].Divided = dv.N
 		} else if mn := lc.ab.Targets[obj.N].Min; !mn.isConst() || mn.N != 0 {
