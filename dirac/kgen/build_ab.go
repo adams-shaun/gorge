@@ -1958,6 +1958,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+	case "Lure":
+		st.Kind = kop.StatLure // combat_lure.go isLure
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
 	case "CantPhaseIn":
 		st.Kind = kop.StatCantPhaseIn // kw_phasing.go phaseBlocked
 	case "CantSacrifice":
@@ -3814,6 +3819,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		// OpExt ExtMustBeBlocked, Obj the subject (RefNone
 		// with F: every battlefield permanent matching F)
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtMustBeBlocked))
+		if in.C == kop.MustBeBlockedLure {
+			ki.C = kop.MustBeBlockedLure // the lure mark (a single Obj)
+		}
 		if in.F != nil {
 			if err := objFilter(kop.ZoneBattlefield); err != nil {
 				return ki, err

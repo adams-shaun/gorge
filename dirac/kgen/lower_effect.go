@@ -2917,10 +2917,11 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		lc.emit(lInstr{Op: "PumpUntilEOT", Obj: obj, A: att, B: def})
 	}
 	kw, hasKW := ps.get("KW")
-	mustBlock, noCombat := false, false
+	mustBlock, noCombat, lure := false, false, false
 	if hasKW {
 		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
 		kw, noCombat = splitKWSentence(kw, cantAttackOrBlockKW)
+		kw, lure = splitKWSentence(kw, lureKW)
 	}
 	if hasKW && kw != "" {
 		rest, fbs, err := splitFirebendingGrant(kw)
@@ -2957,6 +2958,12 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		}
 		lc.emit(lInstr{Op: "MustBeBlocked", Obj: obj})
 	}
+	if lure {
+		if zone != zBattlefield || !lc.pumpObjectRef(obj) {
+			return refuse("Pump KW$ all must block on a non-permanent subject")
+		}
+		lc.emit(lInstr{Op: "MustBeBlocked", Obj: obj, C: kop.MustBeBlockedLure})
+	}
 	if noCombat {
 		if zone != zBattlefield || !lc.pumpObjectRef(obj) {
 			return refuse("Pump KW$ can't attack or block on a non-permanent subject")
@@ -2978,6 +2985,11 @@ const cantAttackOrBlockKW = "HIDDEN CARDNAME can't attack or block."
 // mustBeBlockedKW is the one Pump / PumpAll keyword sentence that is a mark,
 // not a keyword bit (CR 509.1c, ExtMustBeBlocked).
 const mustBeBlockedKW = "HIDDEN CARDNAME must be blocked if able."
+
+// lureKW is the Pump keyword sentence "All creatures able to block CARDNAME do
+// so." (CR 509.1c; gorge hidden keyword AllMustBlock): a mark too, set by
+// ExtMustBeBlocked with C = MustBeBlockedLure.
+const lureKW = "HIDDEN All creatures able to block CARDNAME do so."
 
 // splitKWSentence takes one mark sentence (mustBeBlockedKW,
 // cantAttackOrBlockKW) out of a KW$ list: the rest of the list (possibly

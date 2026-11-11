@@ -380,7 +380,14 @@ func init() { extOpNames[ExtExileExMark] = "ExileExMark" }
 // no State byte): cleared as the next turn begins and when the permanent
 // leaves the battlefield. Pump KW$ HIDDEN CARDNAME must be blocked if able.,
 // PumpAll's, an Animate's HiddenKeywords$. dirac/combat_mustbeblocked.go.
+//
+// C = MustBeBlockedLure marks the permanent a lure instead ("All creatures able
+// to block CARDNAME do so.", CR 509.1c; Pump KW$ HIDDEN: Alluring Scent):
+// the arena bit mechLure, same lifetime. Only a single Obj. dirac/combat_lure.go.
 const ExtMustBeBlocked ExtOp = 194
+
+// MustBeBlockedLure is ExtMustBeBlocked's C for the lure mark.
+const MustBeBlockedLure = 1
 
 func init() {
 	extOpNames[ExtMustBeBlocked] = "MustBeBlocked"
