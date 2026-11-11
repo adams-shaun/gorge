@@ -88,3 +88,4 @@ ir-*.gob.gz.lock
 
 # The Docker demo's local configuration (deploy/docker/.env.example).
 /deploy/docker/.env
+docs/site/compliance/engines/
