@@ -601,9 +601,15 @@ type filtSearch struct {
 	p     uint8
 	gaps  slotMask // the root census's filter gaps
 	other slotMask // its gaps that are no filter (otherGap)
-	fees  int      // the funding the search may activate
-	own   Slot     // the source whose {T} is the play's own cost (NoSlot: none)
-	sp0   uint8    // the stack at the root: only a deeper one is the path's to resolve
+	// dead: the gaps gapSpendableMask dropped. Neither gaps nor funding
+	// sources: their mana is restricted away from the play, and a funding
+	// tap of one floats only that restricted mana, which pays no fee the
+	// restriction refuses (CR 106.6), as the grant search's dropped holders
+	// fund nothing (grantSrch.candidates).
+	dead  slotMask
+	fees  int   // the funding the search may activate
+	own   Slot  // the source whose {T} is the play's own cost (NoSlot: none)
+	sp0   uint8 // the stack at the root: only a deeper one is the path's to resolve
 	nodes int
 	nseen int
 	seen  [potentialScriptNodes]filtKey
@@ -646,7 +652,9 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	hadOther := fs.other.any() // a dropped gap still asks for the dead-end check
 	if gapFilteredPlay(a) && (fs.gaps.any() || fs.other.any()) {
 		d := s.grantPayDesc(k, a)
+		g0, o0 := fs.gaps, fs.other
 		fs.gaps, fs.other = s.gapSpendableMask(k, fs.gaps, &d), s.gapSpendableMask(k, fs.other, &d)
+		fs.dead = g0.andNot(fs.gaps).or(o0.andNot(fs.other))
 		if !fs.gaps.any() && !fs.other.any() {
 			return false
 		}
@@ -855,7 +863,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		}
 		for i := 0; i < n; i++ {
 			sl := order[i]
-			if (fs.gaps.has(sl) || fs.other.has(sl)) != gap || sl == fs.own {
+			if (fs.gaps.has(sl) || fs.other.has(sl)) != gap || sl == fs.own || fs.dead.has(sl) {
 				continue // (tapped for mana, the play's source could not pay its own {T}: CR 602.2b)
 			}
 			if gap && fs.other.has(sl) {
