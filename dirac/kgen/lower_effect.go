@@ -1605,6 +1605,16 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		}
 		lc.emit(lInstr{Op: sa.API, Obj: who, A: n})
 	case "Pump":
+		if ps.str("RememberObjects") == "Imprinted" {
+			// a Pump that only rebinds the remembered set to the previously
+			// imprinted card (Tainted Pact's DBRepeat): no characteristic
+			// changes, so anything else left unread refuses below
+			if left := ps.unread(); len(left) > 0 {
+				return refuse("Pump RememberObjects$ Imprinted beside %v", left)
+			}
+			lc.emit(lInstr{Op: "RememberImprinted"})
+			return nil
+		}
 		if _, ok := ps.m["TargetType"]; ok {
 			return lc.pumpSpellTarget(ps) // lower_stackexile.go
 		}
@@ -2012,8 +2022,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			ps.consume("ClearImprinted") // Ensign Pavel Chekov: the chosen set is the imprint (lower_repeatexilechoice.go)
 			lc.exileLandStage = 0
 		}
-		if lc.digImprintSetLive() && ps.is("ClearImprinted", "True") {
-			ps.consume("ClearImprinted") // the Dig's imprinted set (lower_digimprintset.go)
+		if (lc.digImprintSetLive() || lc.repeatImprintBody) && ps.is("ClearImprinted", "True") {
+			ps.consume("ClearImprinted") // the Dig's imprinted set (lower_digimprintset.go); or a RepeatDefined$ Imprinted body's per-pass clear before its Dig
 			lc.emit(lInstr{Op: "ClearImprinted"})
 		}
 		if lc.digImprinted && ps.is("ClearImprinted", "True") {
@@ -2116,6 +2126,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		lc.emit(in)
 	case "Repeat":
 		return lc.repeat(ps)
+	case "StoreSVar":
+		return lc.storeSVar(ps)
 	case "CopySpellAbility":
 		return lc.copySpell(ps)
 	case "Demonstrate":
@@ -4000,10 +4012,14 @@ func (lc *lowerCtx) charmMultiTargets(nModes int, rootTargeted []bool) error {
 
 // repeat lowers a gate-governed api:Repeat (gorge effRepeat): the body
 // (RepeatSubAbility$) runs at most MaxRepeat$ times, again only while the
-// RepeatCheckSVar$ gate compares true after a pass. Only the remembered-set
-// count gate is lowered (Sphinx's Tutelage: `Remembered$Valid <filter>`).
+// RepeatCheckSVar$ gate compares true after a pass. The sibling
+// RepeatDefined$/RepeatPresent$/RepeatCompare$ gate counts the remembered
+// or imprinted set's matches (gorge repeatDefinedGateHolds). Both gates may
+// be present (Tainted Pact): the loop continues only while both hold.
+// RepeatCheckSVar$ bodies of the `Remembered$Valid <filter>` shape and of
+// any Count$ expression are lowered (Sphinx's Tutelage, Tainted Pact).
 func (lc *lowerCtx) repeat(ps *params) error {
-	for _, k := range []string{"RepeatDefined", "RepeatPresent", "RepeatOptional", "RepeatNum", "RepeatCompare"} {
+	for _, k := range []string{"RepeatOptional", "RepeatNum"} {
 		if _, ok := ps.get(k); ok {
 			return refuse("Repeat %s$", k)
 		}
@@ -4014,32 +4030,124 @@ func (lc *lowerCtx) repeat(ps *params) error {
 			return err
 		}
 	}
-	mx, err := lc.value(ps.str("MaxRepeat"))
-	if err != nil {
-		return err
+	check := strings.TrimSpace(ps.str("RepeatCheckSVar"))
+	defined := strings.TrimSpace(ps.str("RepeatDefined"))
+	gated := check != "" || defined != ""
+	mx := cst(255) // the kernel's loopN is uint8; gorge clamps a gated loop to 1000
+	if v, ok := ps.get("MaxRepeat"); ok {
+		n, err := lc.value(v)
+		if err != nil {
+			return err
+		}
+		mx = n
+	} else if !gated {
+		return refuse("Repeat without MaxRepeat$")
 	}
-	gate := lc.face.SVars[ps.str("RepeatCheckSVar")]
-	head, rest, _ := strings.Cut(strings.TrimSpace(gate), "$")
-	if head != "Remembered" || !strings.HasPrefix(rest, "Valid ") {
-		return refuse("Repeat gate %q", gate)
-	}
-	f, err := lc.filter(strings.TrimPrefix(rest, "Valid "))
-	if err != nil {
-		return err
-	}
-	op, v, err := lc.cmpSpec(ps.str("RepeatSVarCompare"))
-	if err != nil {
-		return err
+	svarCmp := strings.TrimSpace(ps.str("RepeatSVarCompare"))
+	var conds []lCond
+	if defined != "" {
+		var ref refKind
+		switch defined {
+		case "Remembered":
+			ref = rRemembered
+		case "Imprinted":
+			ref = rImprinted
+		default:
+			return refuse("RepeatDefined$ %q", defined)
+		}
+		var f *lFilter
+		if present := strings.TrimSpace(ps.str("RepeatPresent")); present != "" {
+			var err error
+			if f, err = lc.filter(present); err != nil {
+				return err
+			}
+		}
+		c := lCond{Kind: cRefMatches, Ref: lRef{Kind: ref}, F: f, Op: opGE, A: cst(1)}
+		cmp := strings.TrimSpace(ps.str("RepeatCompare"))
+		if cmp == "" && check == "" {
+			// gorge: RepeatCompare$ overrides; with no check gate an absent
+			// RepeatCompare$ falls back to RepeatSVarCompare$, default GE1
+			cmp = svarCmp
+		}
+		if cmp != "" {
+			var err error
+			if c.Op, c.A, err = lc.cmpSpec(cmp); err != nil {
+				return err
+			}
+		}
+		conds = append(conds, c)
 	}
 	body := cards.ResolveSVar(lc.face.SVars, ps.str("RepeatSubAbility"))
 	if body == nil {
 		return refuse("Repeat body %q", ps.str("RepeatSubAbility"))
 	}
 	at := len(lc.ab.Prog)
-	lc.emit(lInstr{Op: "RepeatWhile", A: mx, Cond: lCond{Kind: cRefMatches, Ref: lRef{Kind: rRemembered}, F: f, Op: op, A: v}})
-	if err := lc.chain(body, nil); err != nil {
+	lc.emit(lInstr{Op: "RepeatWhile", A: mx})
+	prevSVar, prevAb := lc.repeatCheckSVar, lc.repeatCheckAb
+	prevGuard, prevImprint := lc.repeatStoredGuard, lc.repeatImprintBody
+	lc.repeatCheckSVar, lc.repeatCheckAb = check, lc.ab
+	lc.repeatStoredGuard, lc.repeatImprintBody = false, defined == "Imprinted"
+	err := lc.chain(body, nil)
+	guard := lc.repeatStoredGuard
+	if prevAb != nil {
+		// keep the gate SVar named for the rest of this ability, so the
+		// post-loop reset (Tainted Pact's DBReset) still matches; a nested
+		// repeat restores its outer one
+		lc.repeatCheckSVar, lc.repeatCheckAb = prevSVar, prevAb
+	}
+	lc.repeatStoredGuard, lc.repeatImprintBody = prevGuard, prevImprint
+	if err != nil {
 		return err
 	}
+	if check != "" {
+		// The check gate is built after the body: Tainted Pact's body Dig
+		// opens the imprinted set its Count$ValidHand Card.IsImprinted gate
+		// reads (lower_imprintzone.go's gate requires the writer lower first).
+		gate := lc.face.SVars[check]
+		if head, rest, _ := strings.Cut(strings.TrimSpace(gate), "$"); head == "Remembered" && strings.HasPrefix(rest, "Valid ") {
+			f, err := lc.filter(strings.TrimPrefix(rest, "Valid "))
+			if err != nil {
+				return err
+			}
+			c := lCond{Kind: cRefMatches, Ref: lRef{Kind: rRemembered}, F: f, Op: opGE, A: cst(1)}
+			if svarCmp != "" {
+				if c.Op, c.A, err = lc.cmpSpec(svarCmp); err != nil {
+					return err
+				}
+			}
+			conds = append(conds, c)
+		} else {
+			// an arbitrary level-count gate (Tainted Pact's TaintedCheck:
+			// Count$ValidHand Card.IsImprinted)
+			v, err := lc.value(check)
+			if err != nil {
+				return err
+			}
+			c := lCond{Kind: cValue, A: v, Op: opGE, B: cst(1)}
+			if svarCmp != "" {
+				if c.Op, c.B, err = lc.cmpSpec(svarCmp); err != nil {
+					return err
+				}
+			}
+			conds = append(conds, c)
+		}
+	}
+	if guard {
+		// a StoreSVar$ in the body writes the gate SVar true when the
+		// library is empty (Tainted Pact's LibraryCheck$): the printed
+		// count alone would then re-run the empty body. Fold the write into
+		// the gate; lower_storesvar.go drops the constant write itself.
+		conds = append(conds, lCond{Kind: cValue, A: lValue{Kind: vLibrarySizeOf, Ref: lRef{Kind: rYou}}, Op: opGE, B: cst(1)})
+	}
+	cond := lCond{}
+	for _, c := range conds {
+		if cond.Kind == cNone {
+			cond = c
+		} else {
+			cond = lCond{Kind: cAnd, Sub: []lCond{cond, c}}
+		}
+	}
+	lc.ab.Prog[at].Cond = cond
 	lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
 	return nil
 }

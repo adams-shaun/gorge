@@ -2815,6 +2815,11 @@ type SpecContext struct {
 	TriggerContext
 	You    state.PlayerID
 	Source state.ObjID
+	// HandCount marks a Count$ValidHand scan: IsImprinted reads the source's
+	// association for a candidate now in hand (Tainted Pact's TaintedCheck),
+	// where an ordinary live filter keeps expiring after the card leaves
+	// exile (CR 607.2a). Every other scan leaves it false.
+	HandCount bool
 	// SourceRememberedStrict makes IsRemembered (and the *Remembered
 	// block-history words that share anyRemembered) read only the
 	// resolution/registration set bound on this context, never the source

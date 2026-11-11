@@ -179,6 +179,42 @@ func (s *State) sharesColorRem(k *prep, o Obj, mine kop.ColorMask) bool {
 	return false
 }
 
+// sharesNameRem: gorge sharesNameWith Remembered -- the object shares a
+// printed name with a remembered object other than itself. o is the object
+// (NoObj for a card read only by its CardID c); a face-down object has no
+// name (CR 708.2). The remembered set holds objects only, and an object on
+// the battlefield reads its layer-3 name (a rename/copy counts, CR 707.2),
+// otherwise its card.
+func (s *State) sharesNameRem(o Obj, c CardID, fd bool) bool {
+	nm := c
+	if o != NoObj {
+		if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield {
+			nm = s.nameCardAt(ob.slot)
+		} else {
+			nm = ob.card
+		}
+	}
+	if fd || nm == NoCard {
+		return false
+	}
+	for i := 0; i < int(s.g.nrem); i++ {
+		r := s.g.rem[i]
+		if r == o {
+			continue
+		}
+		var rn CardID
+		if s.objs[r].zone == kop.ZoneBattlefield {
+			rn = s.nameCardAt(s.objs[r].slot)
+		} else {
+			rn = s.objs[r].card
+		}
+		if rn != NoCard && rn == nm {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *State) flags2Perm(k *prep, f kop.FilterFlags2, sl Slot, src Slot, layer uint8) bool {
 	p := &s.perms[sl]
 	o := p.obj
@@ -413,6 +449,8 @@ func (s *State) predPermGen(k *prep, fl *kop.Filter, sl Slot, layer uint8) bool 
 		return s.predModified(k, sl)
 	case kop.PredHasCounters:
 		return s.predHasCounters(sl)
+	case kop.PredSameNameRem:
+		return s.sharesNameRem(s.perms[sl].obj, 0, false)
 	}
 	return s.predPermCold(k, fl, sl) // filter_typesall.go: PredTypesAll and later kinds
 }
@@ -697,6 +735,8 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		return fl.Pred == kop.PredActiveCtrl && owner == s.active // nothing off the battlefield is attached
 	case kop.PredModified, kop.PredHasCounters:
 		return false // only a battlefield permanent is modified or holds counters here
+	case kop.PredSameNameRem:
+		return s.sharesNameRem(o, c, fd)
 	default:
 		if fl.Pred == kop.PredExiledWith {
 			return s.exwCard(o) // zone_exiledwith.go

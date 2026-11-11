@@ -1535,6 +1535,8 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredMonoColor
 	case cmpSameNameT0:
 		kf.Pred = kop.PredSameNameT0
+	case cmpSameNameRem:
+		kf.Pred = kop.PredSameNameRem
 	case cmpAdventureCard:
 		kf.Pred = kop.PredAdventureCard
 	case cmpSolved:

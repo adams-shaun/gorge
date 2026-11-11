@@ -221,6 +221,19 @@ type lowerCtx struct {
 	repeatCard int
 	// repeatOpp: that body repeats over the controller's opponents
 	repeatOpp bool
+	// repeatCheckSVar is the SVar an enclosing gated Repeat's
+	// RepeatCheckSVar$ names, while that body is lowered; repeatCheckAb is
+	// its ability, so a StoreSVar$ after the loop (the reset) still matches
+	// (lower_storesvar.go)
+	repeatCheckSVar string
+	repeatCheckAb   *lAbility
+	// repeatStoredGuard: the body stored the gate SVar true under the
+	// library-empty condition; repeat folds that stop into the gate
+	repeatStoredGuard bool
+	// repeatImprintBody: lowering the body of a RepeatDefined$ Imprinted
+	// loop; a Dig Imprint$ on the spell may open the set when its reads sit
+	// in the same ability (lower_digparams.go)
+	repeatImprintBody bool
 	// rollName is the ResultSVar$ of a RollDice lowered in ability rollAb:
 	// a later bare amount of that name (not a card SVar) is the roll
 	// (lower_combatstatics.go)

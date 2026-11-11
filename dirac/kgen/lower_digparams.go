@@ -79,6 +79,13 @@ func (lc *lowerCtx) digImprint(ps *params, dest int, take lValue) (bool, error) 
 	if !spell {
 		return true, lc.digImprintPermanent(ps, dest, take) // lower_digimprintset.go
 	}
+	if lc.repeatImprintBody {
+		// a RepeatDefined$ Imprinted body's Dig on a spell (Tainted Pact):
+		// the set lives for the resolution, and every read sits in this
+		// ability's chain (refuseCrossAbilityImprinted), so the permanent
+		// shape's take-all-to-exile rule applies unchanged
+		return true, lc.digImprintPermanent(ps, dest, take)
+	}
 	for _, sv := range lc.face.SVars {
 		if strings.Contains(sv, "Imprint") {
 			return false, refuse("Dig Imprint$ read by the script")

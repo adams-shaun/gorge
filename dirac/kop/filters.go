@@ -521,6 +521,12 @@ const PredTrigPlayerCtrl Pred = 239
 // Object.Suspected, false off the battlefield).
 const PredSuspected Pred = 254
 
+// PredSameNameRem: the object shares a printed name with an object in the
+// resolution's remembered set (gorge's filter word "sharesNameWith
+// Remembered", read by Tainted Pact's Card.sharesNameWith Remembered gate).
+// A face-down object has no name (CR 708.2) and matches nothing.
+const PredSameNameRem Pred = 255
+
 // The this-turn records, numbered explicitly clear of the
 // iota lists that sibling families append to.
 

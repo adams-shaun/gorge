@@ -479,6 +479,7 @@ ExtPreventDamageScope	ExtOp	246
 ExtPutCounterExisting	ExtOp	253
 ExtRecruit	ExtOp	94
 ExtRememberAll	ExtOp	306
+ExtRememberImprinted	ExtOp	309
 ExtRememberSearcher	ExtOp	304
 ExtRemoveCounterAny	ExtOp	3
 ExtSacDelayed	ExtOp	32
@@ -919,6 +920,7 @@ PredPowerGEV	Pred	14
 PredPowerGTBase	Pred	243
 PredPowerLE	Pred	1
 PredPowerLTToughness	Pred	17
+PredSameNameRem	Pred	255
 PredSameNameT0	Pred	32
 PredSolved	Pred	252
 PredSubtype	Pred	8

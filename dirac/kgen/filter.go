@@ -160,6 +160,7 @@ const (
 	cmpWasCastSpell   // wasCastFromYourHand[ByYou] / !wasCastFromYourHand / wasCastFromExile / CastSa Spell.MayPlaySource (or wasCast beside them) read on a spell on the stack (CmpN: spell* origin | spellNot; no operator)
 	cmpPermMark       // attackedThisTurn / dealtDamageThisTurn / dealtDamagetoAny / dealtCombatDamagetoAny, with or without ! (CmpN: kop.PermMark* | kop.PermMarkNot; no operator)
 	cmpTriggerObj     // the resolving trigger's object, wherever it is now (ChooseFromDefined$ TriggeredCards; kernel isTriggerObj; no operator)
+	cmpSameNameRem    // shares a name with an object in the remembered set (gorge sharesNameWith Remembered; no operator)
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
@@ -984,6 +985,11 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 	}
 	if ok, err := c.faceUpDisguise(p); ok {
 		return err // lower_filterwords.go
+	}
+	if p == "sharesNameWith Remembered" {
+		// gorge sharesNameWith Remembered: any remembered object with the
+		// candidate's printed name (Tainted Pact's repeat gate)
+		return c.setCmp(cmpSameNameRem, 0, 0, "", "")
 	}
 	if n, ok := filterWordPred(p); ok {
 		return c.setCmp(cmpWord7, 0, n, "", "") // lower_filterwords.go
