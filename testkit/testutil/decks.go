@@ -53,7 +53,7 @@ func RepoDeckNames() []string {
 
 // legacyDeckNames is the 12 60-card constructed Legacy decks the acceptance
 // suite pins its golden games to. The deck directory also
-// holds the five interim 100-card Commander decks (foundations-*), which are
+// holds the five official 100-card Foundations Commander decks (foundations-*), which are
 // not part of the 12: the acceptance chain heads in engine/rules/testdata/heads/ are
 // byte-identical games over these 12, and adding commander decks earlier
 // silently moved those heads by changing the index-based round-robin seat

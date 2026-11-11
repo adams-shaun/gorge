@@ -1,30 +1,56 @@
+Abrade
 Accumulated Knowledge
 Adaptive Automaton
+Adaptive Omnitool
 Aether Adept
 Aether Spellbomb
 Aetherize
 Ajani's Sunstriker
+All Is Dust
+Always Watching
 Ambition's Cost
 Ancient Brontodon
 Ancient Craving
+Angel of Finality
 Angel of Renewal
+Angel of Vitality
 Angel of the Dawn
+Angel of the Ruins
 Angelic Accord
+Angelic Destiny
+Angelic Field Marshal
 Angelic Overseer
 Angelic Purge
 Angelic Skirmisher
+Angelic Sleuth
+Anger
+Arachnogenesis
+Arasta of the Endless Web
+Arcane Signet
+Archangel of Tithes
 Archwing Dragon
 Army of the Damned
+Atsushi, the Blazing Sky
+Austere Command
 Avacyn, Angel of Hope
 Avaricious Dragon
 Aven Gagglemaster
+Ayara, First of Locthwain
+Bad Moon
 Balefire Dragon
 Banisher Priest
 Banishing Light
+Barren Moor
 Basilica Shepherd
+Basilisk Collar
 Battlegrace Angel
 Beast Whisperer
 Beast Within
+Birds of Paradise
+Bishop of Wings
+Bite Down
+Bitter Reunion
+Blasphemous Act
 Blaze
 Blessed Light
 Blighted Cataract
@@ -33,36 +59,70 @@ Blood Artist
 Bloodthrone Vampire
 Blue Sun's Zenith
 Bojuka Bog
+Bonders' Enclave
 Bone Splinters
+Bontu's Monument
 Boomerang
 Borderland Ranger
 Brainstorm
+Breaching Dragonstorm
+Breath Weapon
 Bronze Sable
+Broodstar
 Brushstrider
 Buried Ruin
 Burst Lightning
 Butcher Ghoul
 Butcher of Malakir
+Carnage Tyrant
+Carnelian Orb of Dragonkind
 Carrion Feeder
+Castle Locthwain
 Cemetery Reaper
+Cemetery Recruitment
 Chain Lightning
+Chain Reaction
+Challenger Troll
+Champion of the Perished
+Chandra's Ignition
 Chandra's Phoenix
 Chandra's Spitfire
+Chaos Warp
 Charcoal Diamond
 Chief of the Foundry
+Cleansing Nova
+Clifftop Lookout
+Collective Resistance
 Colossal Dreadmaw
+Colossal Majesty
+Commander's Sphere
 Concentrate
 Condemn
+Consumed by Greed
+Consuming Corruption
 Council's Judgment
+Count on Luck
 Counterspell
+Court of Grace
 Craterhoof Behemoth
+Crucible of Fire
+Cryptbreaker
 Cultivate
+Cultivator's Caravan
+Curious Altisaur
+Cursed Mirror
+Cut a Deal
+Darksteel Citadel
+Darksteel Juggernaut
 Dawnbringer Cleric
 Dawnfeather Eagle
 Day of Judgment
 Dazzling Angel
 Death Baron
+Defy Death
 Demonic Tutor
+Destroy Evil
+Diregraf Colossus
 Diregraf Ghoul
 Disperse
 Divination
@@ -70,53 +130,85 @@ Doom Blade
 Dragon Hatchling
 Dragon Mage
 Dragon Roost
+Dragon Tempest
+Dragon's Hoard
+Dragonhawk, Fate's Tempest
 Dragonlord's Servant
 Dragonmaster Outcast
+Dragonspeaker Shaman
+Dragonstorm Globe
+Drakuseth, Maw of Flames
+Dungrove Elder
+Duplicant
 Dusk Legion Zealot
+Elder Gargaroth
 Electrostatic Bolt
+Elemental Bond
 Elite Vanguard
 Elvish Archdruid
 Elvish Mystic
 Elvish Visionary
 Ember Hauler
 Emerald Medallion
+Emeria Shepherd
+Endless Atlas
 Endless Ranks of the Dead
+Eternal Taskmaster
 Etherium Sculptor
 Evolving Wilds
 Exclude
+Exemplar of Light
 Exile
+Exorcise
 Explosive Vegetation
+Ezuri's Predation
 Faithless Looting
 Falkenrath Noble
+Fall from Favor
 Fallen Angel
+Fateful Absence
 Festering Goblin
 Filigree Familiar
 Fire Diamond
 Firebolt
 Firebrand Archer
+Firemane Commando
+Firespitter Whelp
 Flame Slash
 Flametongue Kavu
 Fleshbag Marauder
 Forbidding Watchtower
 Forest
+Forgotten Cave
 Forked Bolt
+Forsaken Monument
+Foundry Inspector
+Foundry of the Consuls
 Frost Lynx
 Furnace Whelp
 Fyndhorn Elves
 Garruk's Companion
+Garruk's Packleader
 Garruk's Uprising
+Geier Reach Sanitarium
 Ghalta, Primal Hunger
 Ghoulcaller Gisa
 Ghoulcaller's Chant
 Giada, Font of Hope
 Gift of Estates
+Gigantosaurus
 Glint-Nest Crane
 Go for the Throat
 Goblin Balloon Brigade
 Goblin Grenade
 Goblin War Strike
+God-Eternal Bontu
+Goddric, Cloaked Reveler
+Goldlust Triad
 Goreclaw, Terror of Qal Sisma
+Graaz, Unstoppable Juggernaut
 Grand Abolisher
+Grasp of Fate
 Grave Titan
 Graveborn Muse
 Gravecrawler
@@ -126,27 +218,44 @@ Guttersnipe
 Hangarback Walker
 Harmonize
 Harrow
+Haven of the Spirit Dragon
+Hazoret's Monument
+Headless Rider
 Healer's Hawk
 Hedron Archive
+Hellkite Charger
+Herald of Eternal Dawn
 Herald of War
+Herald's Horn
+Heraldic Banner
 Hero's Downfall
+Hit the Mother Lode
 Hoard-Smelter Dragon
 Hordeling Outburst
+Hulking Raptor
 Hunter's Insight
 Hypnotic Specter
+Ichor Wellspring
+Ilysian Caryatid
 Impulse
 Incinerate
+Infernal Idol
 Inspiring Overseer
 Into the Roil
+Invoke the Divine
 Island
 Jayemdae Tome
 Jet Medallion
 Jhoira's Familiar
+Josu Vess, Lich Knight
 Journey to Nowhere
 Junk Diver
 Kabira Crossroads
+Kalitas, Traitor of Ghet
 Kalonian Tusker
+Kappa Cannoneer
 Karakas
+Kenrith's Transformation
 Khalni Heart Expedition
 Kher Keep
 Knight of the White Orchid
@@ -155,48 +264,96 @@ Kor Skyfisher
 Krenko's Command
 Land Tax
 Lathliss, Dragon Queen
+Launch Mishap
 Lead the Stampede
 Leatherback Baloth
 Leonin Relic-Warder
+Leyline Tyrant
 Life's Legacy
 Lightning Bolt
 Lightning Greaves
 Lightning Strike
+Liliana's Mastery
+Liliana's Reaver
 Linvala, Keeper of Silence
+Linvala, the Preserver
 Llanowar Elves
+Llanowar Tribe
 Lone Missionary
+Lonely Sandbar
+Loot, Exuberant Explorer
 Lord of the Accursed
+Lord of the Undead
 Lotus Petal
+Lyra Dawnbringer
+Magmaquake
 Magus of the Wheel
+Mana Geyser
 Mana Leak
 Managorger Hydra
 Marble Diamond
+Marchesa's Decree
+Master Transmuter
 Master of Etherium
+Mazemind Tome
 Memnite
+Memorial to Folly
+Memory Guardian
 Mentor of the Meek
+Merchant of Truth
+Metallic Mimic
+Meteor Golem
+Metropolis Reformer
+Midnight Reaper
 Mind Stone
+Mind's Eye
+Minion of the Mighty
+Mire Triton
+Misleading Signpost
 Mistveil Plains
+Moan of the Unhallowed
 Mogg Fanatic
 Molten Rain
 Momentous Fall
+Monstrous Onslaught
 Moonveil Dragon
 Moss Diamond
+Mosswort Bridge
 Mountain
 Murder
 Murderous Cut
+Mutilate
+Myr Battlesphere
 Myr Retriever
 Myriad Landscape
 Nantuko Husk
 Naturalize
 Nature's Lore
+Necrotic Hex
+Negate
 Nekrataal
+Nettlecyst
+Nevinyrral's Disk
 Night's Whisper
 Nissa's Pilgrimage
+Nogi, Draco-Zealot
+Norn's Choirmaster
+Noxious Ghoul
 Oblivion Ring
+Open the Graves
+Orb of Dragonkind
 Ornithopter
+Ornithopter of Paradise
+Outpost Siege
 Overrun
 Overseer of the Damned
+Oversold Cemetery
+Overwhelming Stampede
+Padeem, Consul of Innovation
 Palladium Myr
+Paradise Druid
+Parapet Thrasher
+Patchwork Banner
 Path to Exile
 Pearl Medallion
 Pelakka Wurm
@@ -210,35 +367,69 @@ Precinct Captain
 Pridemalkin
 Priest of Titania
 Prismatic Lens
+Propaganda
 Prophetic Prism
+Psychosis Crawler
+Pugnacious Hammerskull
+Pull from Tomorrow
+Radiant Fountain
 Raging Goblin
+Ram Through
 Rampant Growth
 Rancor
+Rapacious Dragon
 Ravenous Chupacabra
+Razorlash Transmogrant
 Reckless Charge
 Reclamation Sage
 Reforge the Soul
 Regal Force
+Regal Imperiosaur
 Remand
+Remote Isle
 Repeal
+Research Thief
 Resplendent Angel
 Return of the Wildspeaker
+Reya Dawnbringer
+Rhonas the Indomitable
+Rhonas's Monument
 Riddlesmith
 Righteous Valkyrie
+Ripjaw Raptor
+Rishkar's Expertise
+Rishkar, Peema Renegade
+Rogue's Passage
 Ruby Medallion
 Ryusei, the Falling Star
 Sai, Master Thopterist
 Sakura-Tribe Elder
+Sarkhan, Dragon Ascendant
+Scavenger Grounds
 Scavenging Ooze
 Scourge of Valkas
+Scourge of the Throne
+Scrapshooter
+Scrawling Crawler
+Search the Premises
 Searing Spear
+Secluded Steppe
+Secret Rendezvous
 Seething Song
+Segovian Angel
 Selfless Spirit
+Sephara, Sky's Blade
+Seraph Sanctuary
+Seraph of the Sword
 Serra Angel
 Serra Avenger
 Serra's Guardian
+Shamanic Revelation
 Sharding Sphinx
 Shepherd of Rot
+Shimmer Dragon
+Shimmer Myr
+Shivan Devastator
 Shivan Dragon
 Shock
 Siege-Gang Commander
@@ -249,53 +440,94 @@ Skinrender
 Skullclamp
 Sky Diamond
 Skyclave Apparition
+Skyline Despot
 Skyshroud Claim
+Skysovereign, Consul Flagship
 Sol Ring
 Solemn Simulacrum
 Sorin's Thirst
 Soul Warden
+Soul-Guide Lantern
+Soulless One
 Spawn of Thraxes
+Speaker of the Heavens
+Spinerock Knoll
+Spire Golem
+Spit Flame
 Springbloom Druid
 Squadron Hawk
+Starnheim Aspirant
 Stasis Snare
+Steel Hellkite
 Steel Leaf Champion
+Steel Overseer
 Stone Rain
 Sublime Archangel
 Sun Titan
+Sunblast Angel
+Surrak and Goreclaw
+Surrak, the Hunt Caller
 Swamp
+Swiftfoot Boots
 Swords to Plowshares
+Syphon Flesh
+Tamiyo's Logbook
+Tamiyo's Safekeeping
+Tangleweave Armor
 Tarfire
+Taurean Mauler
 Temple of the False God
 Temur Sabertooth
+Tendrils of Corruption
 Terramorphic Expanse
+Terrian, World Tyrant
 Terror
+Terror of Mount Velus
+The Elder Dragon War
+Thickest in the Thicket
 Thirst for Knowledge
+Thopter Fabricator
+Thopter Spy Network
+Thought Monitor
+Thought Vessel
+Thoughtcast
+Thraben Watcher
 Thran Dynamo
 Thrashing Brontodon
 Three Visits
 Thrill of Possibility
 Thunderbolt
 Thunderbreak Regent
+Thundermane Dragon
 Tidings
 Timberpack Wolf
 Tome of Legends
 Tormenting Voice
 Tormod's Crypt
 Tragic Slip
+Tranquil Thicket
 Trinket Mage
 Trumpet Blast
+Tyrant's Familiar
 Undead Augur
+Undead Butler
 Undead Warchief
+Unexpected Windfall
+Unnatural Growth
 Unstable Obelisk
 Unsummon
 Utvara Hellkite
 Valkyrie Harbinger
+Valorous Stance
 Vampiric Rites
 Vampiric Tutor
+Vanguard Seraph
+Vanquisher's Banner
 Vapor Snag
 Vastwood Hydra
 Vedalken Archmage
 Vengeful Dead
+Verdant Sun's Avatar
 Victim of Night
 Victimize
 Vile Rebirth
@@ -303,10 +535,18 @@ Village Rites
 Volcanic Hammer
 Voracious Hydra
 Walk the Plank
+War Room
+Warstorm Surge
 Wayfarer's Bauble
+Whiptongue Hydra
 Whirler Rogue
 Whisperer of the Wilds
+Wight of Precinct Six
 Winged Boots
+Witch's Clinic
+Witch's Cottage
+Withering Torment
+Wojek Investigator
 Wood Elves
 Workshop Assistant
 World Shaper
@@ -314,7 +554,9 @@ Worn Powerstone
 Wrath of God
 Wurmcoil Engine
 Yavimaya Elder
+Yeva, Nature's Herald
 Young Pyromancer
 Youthful Valkyrie
 Zombie Apocalypse
+Zul Ashur, Lich Lord
 Zulaport Cutthroat
