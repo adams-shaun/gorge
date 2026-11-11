@@ -599,6 +599,7 @@ var opsEntries = []opsDoc{
 	{"card:Madness", "CardDef.HasMadness + MadnessCost", "Printed madness (CR 702.35a-b; gorge rules/altcast.go): a discard of the card puts it into exile instead (every discard path: effect, cost, cleanup), and queues a kernel-native keyword trigger (ab 251) that the owner may answer as it resolves by casting the card from exile for MadnessCost (offered only when castable; paid through gorge's mana window) or else puts it into the graveyard. X, hybrid and granted madness refuse. Fiery Temper."},
 	{"card:Miracle", "CardDef.HasMiracle + MiracleCost", "Printed miracle (CR 702.94a; gorge rules/miracle.go): the first card its owner draws in a turn (never the opening deal) queues a kernel-native keyword trigger (ab 249). Placing it asks the owner whether to reveal (a no drops it), a yes puts it on the stack so both players get priority, and as it resolves the owner may cast the card from hand for MiracleCost (offered only when castable; paid through gorge's mana window) or keep it. X, hybrid and granted miracle refuse. Reforge the Soul."},
 	{"card:MinBlockers", "CardDef.MinBlockers", "A printed S:Mode$ MinMaxBlocker | ValidCard$ Creature.Self | Min$ N (CR 509.1b): the creature can't be blocked except by N or more creatures, menace's floor generalised (an attacker that fewer could block is not offered; a pick that leaves the declaration uncompletable is not offered). Not when it has lost its abilities. Gorge: rules/combat/restrictions.go MinMaxBlockerBounds. Troll of Khazad-dum."},
+	{"card:ExtraBlocks", "CardDef.ExtraBlocks", "A printed S:Mode$ Continuous | AffectedDefined$ Self | CanBlockAmount$ 1 (CR 509.1a): the creature can block one additional attacker each combat, so it is declared against at most two, and its controller divides its combat damage between them (CR 510.1d; one more blocker of each attacker, blocked pairs in declaration order). Not when it has lost its abilities. Gorge: rules/combat/extrablock.go BlockCapacity. Ghastbark Twins."},
 	{"card:Evasion", "CardDef.Evasion", "Printed blocking-restriction keywords without a keyword bit (kop.Ev*): horsemanship (CR 702.31b, blocked only by a creature with horsemanship) and intimidate (CR 702.13a, blocked only by an artifact creature or one sharing a colour). Not when it has lost its abilities. Gorge: rules/combat/block.go CanBlock. Shu Cavalry, Kraken of the Straits."},
 	{"card:Infect", "CardDef.Infect", "Printed infect (CR 702.90): its damage is dealt to a player as poison counters (no life loss) and to a creature as -1/-1 counters (no marked damage). Not when it has lost its abilities. A table with infect and a damage-replacement order ask, a counter-added trigger or proliferate stalls (StallInfect). Gorge: effects/damage.go emitObjectDamage, rules/infect.go convertInfectDamage. Glistener Elf."},
 	{"card:Cascade", "CardDef.Cascade", "Printed K:Cascade instances (CR 702.85a/c): casting the spell queues that many kernel-native triggers; each exiles from the library top to the first nonland card of strictly lower mana value (spell MV + X), offers its free cast, and bottoms the rest in a random order drawn from the engine rng (gorge's seeded Fisher-Yates, effCascadeResidue). Gorge: effects/cascade.go effCascade. Bloodbraid Elf."},
@@ -1315,6 +1316,9 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 		}
 		if d.MinBlockers != 0 {
 			add("card:MinBlockers", name)
+		}
+		if d.ExtraBlocks != 0 {
+			add("card:ExtraBlocks", name)
 		}
 		if d.HasMadness {
 			add("card:Madness", name)

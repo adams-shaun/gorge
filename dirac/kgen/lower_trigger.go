@@ -1648,6 +1648,11 @@ func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 	if s.Mode == "OptionalCost" {
 		return lc.optCostStatic(s) // lower_optcost.go
 	}
+	if s.Mode == "Continuous" && s.Params["CanBlockAmount"] != "" {
+		if ok, err := lc.extraBlockStatic(s); ok || err != nil {
+			return err // lower_extrablock.go
+		}
+	}
 	if s.Mode == "MinMaxBlocker" && s.Params["Max"] == "" {
 		return lc.minMaxBlockerStatic(s) // lower_choosetype.go
 	}

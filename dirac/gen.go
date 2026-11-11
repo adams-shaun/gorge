@@ -844,6 +844,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.MinBlockers != 0 {
 			g.anyMinBlk = true
 		}
+		if c.ExtraBlocks != 0 {
+			g.anyExtraBlock = true
+		}
 		if c.HasMadness {
 			g.anyMadness = true
 		}
