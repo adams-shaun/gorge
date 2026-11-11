@@ -1,7 +1,7 @@
 # the per-turn record pool: !wasDealtDamageThisTurn on a destroyed target and
 # Count$ResolvedThisTurn on an activated ability (Faller's Faithful,
 # Soulbright Seeker) plus spare creatures, and Count$TotalDamageReceivedThisTurn
-# (Tangled Colony; dirac/value_dmgamount_test.go)
+# (Tangled Colony; dirac/dmg_amount_test.go)
 Faller's Faithful
 Forest
 Grizzly Bears

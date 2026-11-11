@@ -610,9 +610,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if t.Exprs[i].Kind == kop.ExTgtSpent {
 			g.anyTgtSpent, g.anySpent, g.anyHist = true, true, true // the target spell's spend is recorded at its payment
 		}
-		if t.Exprs[i].Kind == kop.ExDmgAmountReceived {
-			g.anyDmgAmt = true // value_dmgamount.go: every damage site records the amount for a reader card
-		}
+		// value_dmgamount.go: every damage site records the amount for a reader card
+		g.anyDmgAmt = g.anyDmgAmt || t.Exprs[i].Kind == kop.ExDmgAmountReceived
 	}
 	if tableNthFiltered(t) {
 		g.castRingOn, g.anyHist = true, true

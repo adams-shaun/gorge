@@ -4,9 +4,10 @@ import "testing"
 
 // TestDmgAmountLowers: Tangled Colony lowers its dies trigger's
 // Count$TotalDamageReceivedThisTurn amount to vDmgAmount (the kernel's
-// ExDmgAmountReceived), marks the card as a damage-amount reader, and reads
-// its token's TokenOwner$ You as the creating player. The card had been
-// refused at the count, leaving the token body's parameters unread.
+// ExDmgAmountReceived) and marks the card as a damage-amount reader. The card
+// had been refused at the count, leaving the token body's parameters unread;
+// the no-refusals check is what guards TokenOwner$ You (an unread rules
+// parameter refuses, while a read or default owner both lower to rYou).
 func TestDmgAmountLowers(t *testing.T) {
 	c := lowerCorpusCard(t, "Tangled Colony")
 	if len(c.Refusals) != 0 {
@@ -15,22 +16,19 @@ func TestDmgAmountLowers(t *testing.T) {
 	if !c.DmgAmt {
 		t.Fatal("the card is not marked as a damage-amount reader (CardDef.DmgAmt)")
 	}
-	var tokens, owner, amount int
+	var tokens, amount int
 	for _, a := range c.Abilities {
 		for _, in := range a.Prog {
 			if in.Op != "CreateToken" {
 				continue
 			}
 			tokens++
-			if in.Obj.Kind == rYou {
-				owner++
-			}
 			if in.A.Kind == vDmgAmount {
 				amount++
 			}
 		}
 	}
-	if tokens != 1 || owner != 1 || amount != 1 {
-		t.Fatalf("CreateToken tokens %d, owner Your %d, amount vDmgAmount %d; want 1 each", tokens, owner, amount)
+	if tokens != 1 || amount != 1 {
+		t.Fatalf("CreateToken tokens %d, amount vDmgAmount %d; want 1 each", tokens, amount)
 	}
 }
