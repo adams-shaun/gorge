@@ -4,11 +4,6 @@
 
 package cards
 
-import (
-	"strconv"
-	"strings"
-)
-
 func kwFading(f *Face, i int, k, head, param string, has func(kind, line string) bool) {
 	// CR 702.32a: "This permanent enters with N fade counters on it. At the
 	// beginning of your upkeep, remove a fade counter from it. If you can't,
@@ -19,9 +14,10 @@ func kwFading(f *Face, i int, k, head, param string, has func(kind, line string)
 	// as the ability resolves, and is chained BEFORE the removal so that
 	// "can't remove" means no counter was there to remove (a last counter
 	// removed leaves the permanent until the next upkeep).
-	n, _, _ := strings.Cut(param, ":")
+	// (the corpus prints only K:Fading:<N>, so param is the count itself)
+	n := param
 	if n != "" && !has("R", k) {
-		sv := "__kwFading" + strconv.Itoa(i)
+		sv := "__kwFading#" + k
 		f.setSVar(sv, "DB$ PutCounter | Defined$ Self | CounterType$ FADE | CounterNum$ "+n+" | ETB$ True")
 		p := parseParams("Event$ Moved | Destination$ Battlefield | ValidCard$ Card.Self | ReplacementResult$ Updated | ReplaceWith$ " + sv +
 			" | Keyword$ Fading | Description$ CARDNAME enters with " + n + " fade counters.")
@@ -31,7 +27,7 @@ func kwFading(f *Face, i int, k, head, param string, has func(kind, line string)
 	if has("T", k) {
 		return
 	}
-	rm := "__kwFadingRm" + strconv.Itoa(i)
+	rm := "__kwFadingRm#" + k
 	f.setSVar(rm, "DB$ RemoveCounter | Defined$ Self | CounterType$ FADE | CounterNum$ 1")
 	f.addKeywordTrigger("Fading", k,
 		"Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | TriggerDescription$ Fading",
