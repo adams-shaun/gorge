@@ -1476,10 +1476,12 @@ func (e *Engine) extraPhaseBoundary(leaving state.Step) (state.Step, bool) {
 			// additional main phase" cast in the FIRST main phase: the
 			// additional main is spliced before the ordinary combat, which
 			// still follows it (Relentless Assault ruling). It is its own
-			// one-step grant spliced here, resuming at the splice point's
-			// natural successor, so the step-2 scan below enters it.
+			// one-step grant spliced at the same point as the completing one
+			// (AfterStep, so older pending grants spliced there still follow
+			// it, CR 500.8), resuming at the splice point's natural
+			// successor; the step-2 scan below enters it.
 			e.emit(events.Event{Kind: events.ExtraPhase, Player: ep.Player, Obj: ep.Source,
-				Amount: 1, Step: leaving,
+				Amount: 1, Step: ep.AfterStep,
 				IDs: []state.ObjID{state.ObjID(ep.FollowedBy), state.ObjID(ep.AfterStep + 1)}})
 		}
 	}
