@@ -593,6 +593,7 @@ LibBottomGrave	untyped int	11
 LibBottomRememberBF	untyped int	12
 LibBottomRememberGrave	untyped int	9
 LibBottomShuffle	untyped int	7
+LibChoiceCtrlGrave	untyped int	2
 LibChoiceSecond	untyped int	1
 LibThird	untyped int	6
 LibTopGrave	untyped int	10
@@ -1085,6 +1086,7 @@ SrAuraEntry	untyped int	8
 SrChooserOpp	untyped int	1
 SrChooserYou	untyped int	64
 SrConfirm	untyped int	16
+SrDestAltGrave	untyped int	32
 SrDifferentNames	untyped int	8192
 SrExactly	untyped int	4
 SrForgetChanged	untyped int	2
@@ -1093,6 +1095,7 @@ SrGameGrave	untyped int	8
 SrGraveExile	untyped int	512
 SrHandBottom	untyped int	8
 SrHandGrave	untyped int	4
+SrHandPosAsk	untyped int	32
 SrImprint	untyped int	256
 SrMandatory	untyped int	4
 SrNoLibrary	untyped int	2048
