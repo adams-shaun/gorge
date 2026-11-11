@@ -236,7 +236,7 @@ def fig_copy_vs_step(d):
                    cats, [("s1", "gorge, with GC", gorge_gc, [f"gorge {c}: {num(v)} µs with GC" for c, v in zip(cats, gorge_gc)]),
                           ("s1 soft", "gorge, GC off", gorge_nogc, [f"gorge {c}: {num(v)} µs, GC off" for c, v in zip(cats, gorge_nogc)]),
                           ("s3", "dirac", dirac, [f"dirac {c}: {num(v)} µs, 0 allocations" for c, v in zip(cats, dirac)])],
-                   "µs per operation (log scale); gorge 2026-11-05 (clone, step), dirac 2026-11-02 (CopyFrom, Transition FDN)", log=True, unit=" µs")
+                   "µs per operation (log scale); gorge 2026-11-05 (clone, step), dirac 2026-11-11 (CopyFrom, Transition FDN)", log=True, unit=" µs")
 
 
 # ---- engine.md

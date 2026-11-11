@@ -21,15 +21,15 @@
 <text x="621.2" y="80.0" class="mz-muted" text-anchor="start">27.2 µs</text>
 <g><title>gorge copy a position: 12.9 µs, GC off</title><rect class="s1 soft" x="170.0" y="83.0" width="404.1" height="10" rx="1.5" style="stroke:none"/></g>
 <text x="579.1" y="92.0" class="mz-muted" text-anchor="start">12.9 µs</text>
-<g><title>dirac copy a position: 0.0402 µs, 0 allocations</title><rect class="s3" x="170.0" y="95.0" width="78.5" height="10" rx="1.5" style="stroke:none"/></g>
-<text x="253.5" y="104.0" class="mz-muted" text-anchor="start">0.0402 µs</text>
+<g><title>dirac copy a position: 0.0763 µs, 0 allocations</title><rect class="s3" x="170.0" y="95.0" width="114.7" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="289.7" y="104.0" class="mz-muted" text-anchor="start">0.0763 µs</text>
 <text x="162.0" y="140.0" text-anchor="end">one transition</text>
 <g><title>gorge one transition: 71.2 µs with GC</title><rect class="s1" x="170.0" y="119.0" width="500.5" height="10" rx="1.5" style="stroke:none"/></g>
 <text x="675.5" y="128.0" class="mz-muted" text-anchor="start">71.2 µs</text>
 <g><title>gorge one transition: 43.5 µs, GC off</title><rect class="s1 soft" x="170.0" y="131.0" width="472.7" height="10" rx="1.5" style="stroke:none"/></g>
 <text x="647.7" y="140.0" class="mz-muted" text-anchor="start">43.5 µs</text>
-<g><title>dirac one transition: 2.75 µs, 0 allocations</title><rect class="s3" x="170.0" y="143.0" width="316.9" height="10" rx="1.5" style="stroke:none"/></g>
-<text x="491.9" y="152.0" class="mz-muted" text-anchor="start">2.75 µs</text>
+<g><title>dirac one transition: 3.12 µs, 0 allocations</title><rect class="s3" x="170.0" y="143.0" width="324.1" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="499.1" y="152.0" class="mz-muted" text-anchor="start">3.12 µs</text>
 <line class="mz-axis" x1="170.0" y1="64" x2="170.0" y2="166"/>
-<text x="430.0" y="196.0" class="mz-muted" text-anchor="middle">µs per operation (log scale); gorge 2026-11-05 (clone, step), dirac 2026-11-02 (CopyFrom, Transition FDN)</text>
+<text x="430.0" y="196.0" class="mz-muted" text-anchor="middle">µs per operation (log scale); gorge 2026-11-05 (clone, step), dirac 2026-11-11 (CopyFrom, Transition FDN)</text>
 </svg>

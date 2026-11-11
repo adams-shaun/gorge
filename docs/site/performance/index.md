@@ -79,27 +79,27 @@ full FDN pool, as a search with a card belief does, so work that scales with the
 
 <figure markdown="span">
 --8<-- "performance/figs/copy-vs-step.svg"
-<figcaption>One copy and one transition, the two operations a search repeats. dirac copies a position in 40 ns and steps it in under 3 µs, with no allocation; gorge's clone allocates 195 KB and its garbage collector doubles the cost.</figcaption>
+<figcaption>One copy and one transition, the two operations a search repeats. dirac copies a position in about 76 ns and steps it in about 3 µs, with no allocation; gorge's clone allocates 195 KB and its garbage collector doubles the cost.</figcaption>
 </figure>
 
 <figure markdown="span">
 --8<-- "performance/figs/dirac-ops.svg"
-<figcaption>Instructions per operation, the number that holds still under machine load. Loading the whole FDN pool's table, as a search with a card belief does, costs a third more per transition.</figcaption>
+<figcaption>Instructions per operation, the number that holds still under machine load. Loading the whole FDN pool's table, as a search with a card belief does, costs about half again as much per transition.</figcaption>
 </figure>
 
 
-These ran on one pinned core at a 1-minute load average of 13 on the box. Time per operation moves with the load, the machine and
+These ran on one core (`GOMAXPROCS=1`, capped at 4 CPUs and 4 GB, not pinned) of a Ryzen 9 9950X at a 1-minute load average of about 6. Time per operation moves with the load, the machine and
 code layout. Instructions per operation is the steadier number, and
 [How it is measured](methodology.md#dirac) shows how to get it.
 
 ??? info "The exact numbers"
 
-    | dirac benchmark, 2026-11-02 | ns per op, median of 5 | instructions per op | allocations |
+    | dirac benchmark, 2026-11-11 | ns per op, median of 5 | instructions per op | allocations |
     |---|--:|--:|--:|
-    | Transition, Foundations (FDN) | 2,748 | 45,604 | 0 |
-    | Transition, Bloomburrow (BLB) | 2,909 | 51,990 | 0 |
-    | Transition, FDN whole-pool table | 3,601 | 60,463 | 0 |
-    | `CopyFrom`, mid-game FDN position | 40.2 | 187 | 0 |
+    | Transition, Foundations (FDN) | 3,125 | 50,310 | 0 |
+    | Transition, Bloomburrow (BLB) | 3,175 | 54,075 | 0 |
+    | Transition, FDN whole-pool table | 4,764 | 77,332 | 0 |
+    | `CopyFrom`, mid-game FDN position | 76.3 | 215 | 0 |
 
     | gorge row, 2026-11-05 | µs per op, no GC | µs per op, with GC | bytes per op | mallocs per op |
     |---|--:|--:|--:|--:|
@@ -159,7 +159,7 @@ one. Its memory isn't comparable, since it compiles its few hundred cards into t
     | | |
     |---|---|
     | gorge | `b1630d6b89bb` (2026-11-05), go1.26.3, `cmd/enginebench` |
-    | dirac | `0ec285f67` (2026-11-05) for the game rows, 2026-11-02 for the transition rows, `dirac/cmd/dplay` and `go test -bench`, with `-trimpath` |
+    | dirac | `0ec285f67` (2026-11-05) for the game rows, 2026-11-11 for the transition rows, `dirac/cmd/dplay` and `go test -bench`, with `-trimpath` |
     | XMage | `magefree/mage` `6b602a1c85` (1.4.61), Temurin JDK 17.0.20.1, driver `XEngineBench` (gorge-compliance), 2026-10-20 |
     | Forge | gorge's Forge fork at `da1c712c31`, JDK 17.0.20.1, driver `forge.oracle.GameReplay`, 2026-10-20 |
     | mtg-kernel | `jackmaiorino/mtg-kernel` `058d075e3`, Rust 1.94.1, release build of `examples/bench_kernel` with gorge's `--xengine-json` mode, 2026-10-20 |

@@ -32,8 +32,8 @@ for {
 over, winner := s.Terminal()
 ```
 
-Copying a mid-game FDN position takes about 40 ns and allocates nothing, and a transition takes
-about 2.7 µs, also allocating nothing, measured 2026-11-02
+Copying a mid-game FDN position takes about 76 ns and allocates nothing, and a transition takes
+about 3.1 µs, also allocating nothing, measured 2026-11-11
 ([Performance](../../performance/index.md#transitions-and-copies)).
 
 ## What it supports
