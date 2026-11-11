@@ -283,6 +283,7 @@ DmgLT	DmgCmp	6
 DmgMapped	untyped int	4
 DmgNE	DmgCmp	4
 DmgNoRegen	untyped int	32
+DmgNoRegenTarget	untyped int	128
 DmgRemember	untyped int	8
 DmgTrackExcess	untyped int	1
 DpGroup	untyped int	1

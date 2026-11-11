@@ -2728,6 +2728,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if _, ok := fl["NoRegen"]; ok {
 			c |= kop.DmgNoRegen
 		}
+		if _, ok := fl["NoRegenTarget"]; ok {
+			c |= kop.DmgNoRegenTarget
+		}
 		if strings.HasPrefix(in.Note, "damage map") || cb.inDamageMap {
 			c |= kop.DmgMapped
 			cb.inDamageMap = true
