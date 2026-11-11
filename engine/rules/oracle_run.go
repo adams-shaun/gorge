@@ -591,6 +591,99 @@ func (r *oracleRun) resolve(ref string) (state.ObjID, error) {
 	return 0, harnessf("ref %q names no object", ref)
 }
 
+// setupPlacement is one named setup card: the zone the seat lists it in and
+// whether genesis seats it in the command zone (a Command placement, or a
+// Commanders entry the scenario lists in another zone and setup moves out).
+type setupPlacement struct {
+	name      string
+	zone      state.Zone
+	top       bool
+	commander bool
+}
+
+// setupDecks is collectSetupDecks's result: each seat's named-card deck in
+// placement order (padded with filler), its sideboard, the deck indices
+// genesis must seat as commanders, and the placements in the same order.
+type setupDecks struct {
+	decks      [][]*cards.Card
+	sideboards [][]*cards.Card
+	commanders [][]int
+	places     [][]setupPlacement
+}
+
+// collectSetupDecks lays out every seat's named cards in placement order,
+// adds a Commanders entry placed elsewhere to the command-zone set too, pads
+// the deck for the scenario's turn, and validates the seat's setup fields. A
+// Config commander index is an index into decks[p].
+func collectSetupDecks(sc oracleScenario, seats, turn int, isCommander bool, lookup func(string) (*cards.Card, error), filler *cards.Card) (setupDecks, error) {
+	out := setupDecks{
+		decks:      make([][]*cards.Card, seats),
+		sideboards: make([][]*cards.Card, seats),
+		commanders: make([][]int, seats),
+		places:     make([][]setupPlacement, seats),
+	}
+	for key := range sc.Setup {
+		if p, ok := parseSeatRef(key); !ok || int(p) >= seats {
+			return setupDecks{}, harnessf("setup key %q (want p0..p%d)", key, seats-1)
+		}
+	}
+	for p := 0; p < seats; p++ {
+		s := sc.Setup[fmt.Sprintf("p%d", p)]
+		for _, z := range []struct {
+			names []string
+			zone  state.Zone
+			top   bool
+		}{{s.Battlefield, state.ZBattlefield, false}, {s.Hand, state.ZHand, false},
+			{s.Graveyard, state.ZGraveyard, false}, {s.Library, state.ZLibrary, false},
+			{s.Exile, state.ZExile, false}, {s.Command, state.ZCommand, false},
+			{s.LibraryTop, state.ZLibrary, true}} {
+			for _, n := range z.names {
+				c, err := lookup(n)
+				if err != nil {
+					return setupDecks{}, err
+				}
+				isCmd := z.zone == state.ZCommand
+				if !isCmd && setupCommanderListed(s, n) {
+					// A commander the scenario places outside the command zone
+					// still starts in it: genesis seats it like any command
+					// placement and the bind loop moves it to its listed zone.
+					isCmd = true
+				}
+				if isCmd {
+					out.commanders[p] = append(out.commanders[p], len(out.decks[p]))
+				}
+				out.decks[p] = append(out.decks[p], c)
+				out.places[p] = append(out.places[p], setupPlacement{name: n, zone: z.zone, top: z.top, commander: isCmd})
+			}
+		}
+		// Preserve turn-1 decks exactly. Later checkpoints need at most
+		// turn/2 ordinary draws per seat, plus one card left in the library.
+		// Count named cards even when setup moves them OUT of the library;
+		// match ScenarioReplay.build's filler calculation.
+		deckSize := 40
+		if turn > 1 {
+			deckSize = max(deckSize, len(out.decks[p])+turn/2+1)
+		}
+		for len(out.decks[p]) < deckSize {
+			out.decks[p] = append(out.decks[p], filler)
+		}
+		for _, n := range s.Sideboard {
+			c, err := lookup(n)
+			if err != nil {
+				return setupDecks{}, err
+			}
+			out.sideboards[p] = append(out.sideboards[p], c)
+		}
+		if err := validateSetupState(p, s); err != nil {
+			return setupDecks{}, err
+		}
+		if err := validateSetupCommanders(p, s, isCommander, out.commanders[p], out.decks[p]); err != nil {
+			return setupDecks{}, err
+		}
+	}
+	return out, nil
+}
+
 // build constructs the game: named cards seeded into each seat's deck (so
 // genesis mints them as real cards), commanders in the command zone, then --
 // BEFORE turn 1 begins -- every opening hand returned to the library and each
@@ -625,76 +718,12 @@ func (r *oracleRun) build(sc oracleScenario) error {
 	if err != nil {
 		return err
 	}
-	type placement struct {
-		name      string
-		zone      state.Zone
-		top       bool
-		commander bool
+	setup, err := collectSetupDecks(sc, seats, turn, isCommander, lookup, filler)
+	if err != nil {
+		return err
 	}
-	decks := make([][]*cards.Card, seats)
-	sideboards := make([][]*cards.Card, seats)
-	commanders := make([][]int, seats)
-	places := make([][]placement, seats)
-	for key := range sc.Setup {
-		if p, ok := parseSeatRef(key); !ok || int(p) >= seats {
-			return harnessf("setup key %q (want p0..p%d)", key, seats-1)
-		}
-	}
-	for p := 0; p < seats; p++ {
-		s := sc.Setup[fmt.Sprintf("p%d", p)]
-		for _, z := range []struct {
-			names []string
-			zone  state.Zone
-			top   bool
-		}{{s.Battlefield, state.ZBattlefield, false}, {s.Hand, state.ZHand, false},
-			{s.Graveyard, state.ZGraveyard, false}, {s.Library, state.ZLibrary, false},
-			{s.Exile, state.ZExile, false}, {s.Command, state.ZCommand, false},
-			{s.LibraryTop, state.ZLibrary, true}} {
-			top := z.top
-			for _, n := range z.names {
-				c, err := lookup(n)
-				if err != nil {
-					return err
-				}
-				isCmd := z.zone == state.ZCommand
-				if !isCmd && setupCommanderListed(s, n) {
-					// A commander the scenario places outside the command zone
-					// still starts in it: genesis seats it like any command
-					// placement and the bind loop moves it to its listed zone.
-					isCmd = true
-				}
-				if isCmd {
-					commanders[p] = append(commanders[p], len(decks[p]))
-				}
-				decks[p] = append(decks[p], c)
-				places[p] = append(places[p], placement{name: n, zone: z.zone, top: top, commander: isCmd})
-			}
-		}
-		// Preserve turn-1 decks exactly. Later checkpoints need at most
-		// turn/2 ordinary draws per seat, plus one card left in the library.
-		// Count named cards even when setup moves them OUT of the library;
-		// match ScenarioReplay.build's filler calculation.
-		deckSize := 40
-		if turn > 1 {
-			deckSize = max(deckSize, len(decks[p])+turn/2+1)
-		}
-		for len(decks[p]) < deckSize {
-			decks[p] = append(decks[p], filler)
-		}
-		for _, n := range s.Sideboard {
-			c, err := lookup(n)
-			if err != nil {
-				return err
-			}
-			sideboards[p] = append(sideboards[p], c)
-		}
-		if err := validateSetupState(p, s); err != nil {
-			return err
-		}
-		if err := validateSetupCommanders(p, s, isCommander); err != nil {
-			return err
-		}
-	}
+	decks, sideboards := setup.decks, setup.sideboards
+	commanders, places := setup.commanders, setup.places
 	cfg := Config{Seed: 42, Names: oracleSeatNames[:seats], Decks: decks, Tokens: r.reg.Tokens, NamedCorpus: r.reg.Universe()}
 	// A scenario seating a card-name choice ranges it over the scenario's own
 	// cards (oracleNameUniverse); every other scenario is unchanged.

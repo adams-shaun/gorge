@@ -6,9 +6,11 @@ package rules
 
 import (
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
@@ -172,8 +174,86 @@ func TestOracleSetupCommanderInGraveyardAsksNothing(t *testing.T) {
 	}
 }
 
+// commanderZoneSetup places Isamaru in field (hand, library or library_top)
+// and lists it as p0's commander: the card starts in the command zone and
+// setup moves it to that zone, as if it had been cast and then moved there.
+func commanderZoneSetup(field string) string {
+	return `{"name":"commander-` + field + `","format":"commander","cr":["903.9"],"why":"a commander that moved to ` +
+		field + ` and stayed there","setup":{"p0":{"` + field +
+		`":["Isamaru, Hound of Konda"],"commanders":["Isamaru, Hound of Konda"]},"p1":{}},"steps":[]}`
+}
+
+// TestOracleSetupCommanderStaysInListedZone: setup's move out of the command
+// zone is not a CR 903.9b move from play, so the construct replacement must
+// not ask (and the setup fallback must not take) the command zone. The card
+// stays in its listed zone, and a library_top placement's LibraryOrder names
+// only objects that are actually still in the library.
+func TestOracleSetupCommanderStaysInListedZone(t *testing.T) {
+	const name = "Isamaru, Hound of Konda"
+	cases := []struct {
+		field string
+		zone  state.Zone
+	}{
+		{"hand", state.ZHand},
+		{"library", state.ZLibrary},
+		{"library_top", state.ZLibrary},
+	}
+	for _, c := range cases {
+		t.Run(c.field, func(t *testing.T) {
+			run, fails := runOracleCommander(t, commanderZoneSetup(c.field))
+			if len(fails) != 0 {
+				t.Fatalf("scenario failed: %v\n%s", fails, strings.Join(run.log, "\n"))
+			}
+			for _, d := range run.decisions {
+				if d.Step == -1 {
+					t.Fatalf("setup posed a CR 903.9 decision at step -1: %+v", d)
+				}
+			}
+			ref, ok := run.refs["p0:"+name]
+			if !ok {
+				t.Fatal("precondition: Isamaru's setup ref did not bind")
+			}
+			o := run.e.G.Obj(ref)
+			if o == nil {
+				t.Fatal("precondition: Isamaru's object is gone")
+			}
+			if o.Zone != c.zone {
+				t.Fatalf("Isamaru zone = %v, want %v", o.Zone, c.zone)
+			}
+			if !slices.Contains(run.e.G.Zone(c.zone, 0), ref) {
+				t.Fatalf("%s zone does not hold Isamaru: %v", c.field, run.e.G.Zone(c.zone, 0))
+			}
+			if c.field == "hand" && !slices.Contains(run.snaps[0].Players[0].Hand, name) {
+				t.Fatalf("setup snapshot hand = %v, want Isamaru", run.snaps[0].Players[0].Hand)
+			}
+			if c.field == "library_top" {
+				top := run.snaps[0].Players[0].LibraryTop
+				if len(top) == 0 || top[0] != name {
+					t.Fatalf("setup snapshot library top = %v, want Isamaru first", top)
+				}
+			}
+			for _, ev := range run.e.L.Events {
+				if ev.Kind != events.LibraryOrder || ev.Player != 0 {
+					continue
+				}
+				for _, id := range ev.IDs {
+					if !slices.Contains(run.e.G.Zone(state.ZLibrary, 0), id) {
+						t.Fatalf("LibraryOrder lists %d, which is not in p0's library", id)
+					}
+					if o := run.e.G.Obj(id); o == nil || o.Zone != state.ZLibrary {
+						t.Fatalf("LibraryOrder lists %d, whose zone is not the library", id)
+					}
+				}
+			}
+		})
+	}
+}
+
 // TestOracleSetupCommanderFieldsRefused: each field's harness errors name the
-// seat and the field, never degrade to a silent no-op.
+// seat and the field, never degrade to a silent no-op. That includes a
+// commander genesis would refuse to seat (the set is then not a commander at
+// all) and two cast-count keys naming the same commander under different
+// spellings.
 func TestOracleSetupCommanderFieldsRefused(t *testing.T) {
 	const commanderSetup = `"format":"commander","setup":`
 	cases := []struct {
@@ -207,6 +287,18 @@ func TestOracleSetupCommanderFieldsRefused(t *testing.T) {
 			seat: "p0", key: "commanders",
 		},
 		{
+			name: "not commander eligible",
+			raw: `{"name":"x",` + commanderSetup + `{"p0":{"hand":["Grizzly Bears"],` +
+				`"commanders":["Grizzly Bears"]},"p1":{}},"steps":[]}`,
+			seat: "p0", key: "commanders",
+		},
+		{
+			name: "not a partner pair",
+			raw: `{"name":"x",` + commanderSetup + `{"p0":{"hand":["Isamaru, Hound of Konda","Mirri, Cat Warrior"],` +
+				`"commanders":["Isamaru, Hound of Konda","Mirri, Cat Warrior"]},"p1":{}},"steps":[]}`,
+			seat: "p0", key: "commanders",
+		},
+		{
 			name: "name placed twice",
 			raw: `{"name":"x",` + commanderSetup + `{"p0":{"battlefield":["Isamaru, Hound of Konda","Isamaru, Hound of Konda"],` +
 				`"commanders":["Isamaru, Hound of Konda"]},"p1":{}},"steps":[]}`,
@@ -222,6 +314,12 @@ func TestOracleSetupCommanderFieldsRefused(t *testing.T) {
 			name: "cast count zero",
 			raw: `{"name":"x",` + commanderSetup + `{"p0":{"command":["Isamaru, Hound of Konda"],` +
 				`"commander_casts":{"Isamaru, Hound of Konda":0}},"p1":{}},"steps":[]}`,
+			seat: "p0", key: "commander_casts",
+		},
+		{
+			name: "duplicate cast spellings",
+			raw: `{"name":"x",` + commanderSetup + `{"p0":{"command":["Isamaru, Hound of Konda"],` +
+				`"commander_casts":{"Isamaru, Hound of Konda":1,"isamaru hound of konda":1}},"p1":{}},"steps":[]}`,
 			seat: "p0", key: "commander_casts",
 		},
 		{

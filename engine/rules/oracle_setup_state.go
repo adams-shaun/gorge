@@ -25,10 +25,13 @@ const maxSetupCommanderDamage = 20
 // place: any of them in a constructed scenario, a name that is not one of the
 // seat's non-command placements (or is placed more than once, or is already a
 // command placement), more than two commanders, a cast count below 1, or a
-// damage amount outside 1..maxSetupCommanderDamage. The damage KEY's existence
-// is checked after binding, when the setup refs exist. It runs before the game
-// is built so a typo fails loudly rather than silently placing nothing.
-func validateSetupCommanders(p int, s oracleSeat, commander bool) error {
+// damage amount outside 1..maxSetupCommanderDamage. When the seat uses
+// Commanders, the whole seated set must be one genesis accepts
+// (legalCommandersFor), or the card would silently not be a commander. The
+// damage KEY's existence is checked after binding, when the setup refs exist.
+// It runs before the game is built so a typo fails loudly rather than
+// silently placing nothing.
+func validateSetupCommanders(p int, s oracleSeat, commander bool, cmdIdx []int, deck []*cards.Card) error {
 	if !commander {
 		if len(s.Commanders) > 0 {
 			return harnessf("setup: p%d commanders needs a commander-format scenario", p)
@@ -68,7 +71,22 @@ func validateSetupCommanders(p int, s oracleSeat, commander bool) error {
 	if n := len(s.Command) + len(s.Commanders); n > maxSetupCommanders {
 		return harnessf("setup: p%d has %d commanders (want at most %d; CR 903.3c)", p, n, maxSetupCommanders)
 	}
+	if len(s.Commanders) > 0 {
+		if err := validateSetupCommanderSeating(p, cmdIdx, deck); err != nil {
+			return err
+		}
+	}
+	// A slice, not a map: commander_casts is normally one key, and a
+	// string-keyed map here would raise the engine/rules strings ratchet.
+	seenCasts := make([]string, 0, len(s.CommanderCasts))
 	for _, name := range sortedSetupKeys(s.CommanderCasts) {
+		key := cards.NormalizeName(name)
+		for _, prior := range seenCasts {
+			if cards.NormalizeName(prior) == key {
+				return harnessf("setup: p%d commander_casts lists %q and %q, which name the same commander", p, prior, name)
+			}
+		}
+		seenCasts = append(seenCasts, name)
 		n := s.CommanderCasts[name]
 		if n < 1 {
 			return harnessf("setup: p%d commander_casts %q = %d (want at least 1; CR 903.8)", p, name, n)
@@ -84,6 +102,39 @@ func validateSetupCommanders(p int, s oracleSeat, commander bool) error {
 		}
 	}
 	return nil
+}
+
+// validateSetupCommanderSeating rejects a Commanders-bearing seat whose
+// commander set genesis would refuse whole: a card that cannot be a commander,
+// or a two-card set that is not a legal partner pair. Without this check the
+// scenario would still succeed, with no commander seated and a matching
+// commander_casts seed silently dropped.
+func validateSetupCommanderSeating(p int, cmdIdx []int, deck []*cards.Card) error {
+	cmd := make([]*cards.Card, 0, len(cmdIdx))
+	for _, idx := range cmdIdx {
+		if idx >= 0 && idx < len(deck) && deck[idx] != nil {
+			cmd = append(cmd, deck[idx])
+		}
+	}
+	for _, c := range cmd {
+		if !commanderCardLegal(c) {
+			return harnessf("setup: p%d commanders names %q, which cannot be a commander (CR 903.3)", p, setupCardName(c))
+		}
+	}
+	if len(cmd) == 2 && !partnerPairOK(cmd[0], cmd[1]) {
+		return harnessf("setup: p%d commanders %q and %q are not a legal partner pair (CR 903.13)",
+			p, setupCardName(cmd[0]), setupCardName(cmd[1]))
+	}
+	return nil
+}
+
+// setupCardName returns c's front-face name, or "" for a card without one
+// (setupCardName is only read for a card commanderCardLegal already rejected).
+func setupCardName(c *cards.Card) string {
+	if c == nil || len(c.Faces) == 0 {
+		return ""
+	}
+	return c.Faces[0].Name
 }
 
 // setupPlacementCount counts the seat's non-command placements named name. A
