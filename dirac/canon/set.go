@@ -19,8 +19,11 @@ func (r *Translator) BindSet(set cardset.Set, tbl *kop.Table, reg *cards.Registr
 	for i := range tbl.Cards {
 		cd := &tbl.Cards[i]
 		r.GName[i] = cd.Name
+		if cd.Types&kop.TToken == 0 {
+			r.GName[i] = GorgeName(reg, cd.Name)
+		}
 		if len(cd.Faces) > 0 {
-			r.GName[i] = tbl.Cards[cd.Faces[0]].Name // a face is its card: gorge names the front
+			r.GName[i] = GorgeName(reg, tbl.Cards[cd.Faces[0]].Name) // a face is its card: gorge names the front
 		}
 		pool[i] = -1
 		if j, ok := set.Lookup(cd.Name); ok {
@@ -97,6 +100,22 @@ func (r *Translator) BindSet(set cardset.Set, tbl *kop.Table, reg *cards.Registr
 		}
 		return o, o != 0xFF
 	}
+}
+
+// GorgeName is table card name n as gorge prints the card's front face: the
+// corpus card's front name when the corpus resolves n, n otherwise. A table
+// names a card by the pool decklist's spelling, which differs from gorge's for
+// a two-door Room (a full "A // B" name is named by its front) and for a name
+// the decklist wrote without its diacritic; reg.Lookup folds both
+// (cards.NormalizeName).
+func GorgeName(reg *cards.Registry, n string) string {
+	if reg == nil {
+		return n
+	}
+	if c, ok := reg.Lookup(n); ok {
+		return frontName(c)
+	}
+	return n
 }
 
 func frontName(c *cards.Card) string {
