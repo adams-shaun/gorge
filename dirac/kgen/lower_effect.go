@@ -2992,6 +2992,9 @@ func pumpKeywords(kw string) ([]string, error) {
 }
 
 func (lc *lowerCtx) pumpAll(ps *params) error {
+	if spec, ok := targetedOtherSpec(ps.m["ValidCards"]); ok {
+		return lc.pumpAllOtherThanTarget(ps, spec) // lower_pumpallother.go
+	}
 	f, err := lc.filter(ps.str("ValidCards"))
 	if err != nil {
 		return err
