@@ -2323,6 +2323,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		lc.emit(lInstr{Op: "Blight", Obj: who, A: n})
 	case "AddPhase":
 		return lc.addPhase(ps) // lower_addphase.go
+	case "SkipPhase":
+		return lc.skipPhase(ps) // lower_skipphase.go
 	case "ChangeTargets":
 		return lc.changeTargets(ps) // lower_stackrewrite.go
 	case "UnlockDoor":

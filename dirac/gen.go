@@ -276,6 +276,7 @@ type genPrep struct {
 	anyCombatHit   bool           // some card records its combat hits on players (cdRec) or some expression reads the legendary-hit bit (value_turntallies.go)
 	cdLegOn        bool           // some expression is ExOppsLostLife N 1: record cdLeg
 	anyAddPhase    bool           // some program is ExtAddPhase, some trigger is Tf3FirstAttack or some expression is ExPhaseCount (act_addphase.go)
+	anySkipPhase   bool           // some program is ExtSkipPhase (act_skipphase.go)
 	anyAttackedObj bool           // the table gives mechAttackedObj an arena mask: finishAttacks marks the declared attackers
 	anySuspect     bool           // the table gives mechSuspected an arena mask (act_suspect.go)
 	anySacSub      bool           // some ExRefCount is a Sacrificed$Valid type read (N 1): snapLKI captures the subtype set (value_countheads.go, zone_lki.go)
@@ -1446,6 +1447,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepPermMark(g)          // filter_permmarks.go; reads g.ix
 	prepTurnTallies(t, p, g) // value_turntallies.go; reads g.ix
 	prepAddPhase(t, g)       // act_addphase.go
+	prepSkipPhase(t, g)      // act_skipphase.go
 	prepAirbend(t, g)
 	prepMayWhileSrc(t, g) // cast_whilesource.go
 	prepInit(t, g)        // act_initiative.go
@@ -1610,6 +1612,10 @@ type xTargets struct {
 // genState is the generated-table part of State.
 type genState struct {
 	graveKept bool // removePerm: this move to a graveyard takes no "from anywhere" redirect
+	// cskip: the combat-phase skips (act_skipphase.go). Bit p: player p skips the
+	// combat phases of their next turn; bit 4+p: player p is skipping the combat
+	// phases of the turn being played. Fills the padding byte after graveKept.
+	cskip     uint8
 	fx        [maxFx]fxRec
 	nfx       uint8
 	xtp       [maxXTPool]xTargets // stackEntry.xi - 1 indexes it

@@ -476,6 +476,7 @@ ExtRememberSearcher	ExtOp	304
 ExtRemoveCounterAny	ExtOp	3
 ExtSacDelayed	ExtOp	32
 ExtSearchCounters	ExtOp	252
+ExtSkipPhase	ExtOp	313
 ExtSpellToLib	ExtOp	308
 ExtStackExileMark	ExtOp	315
 ExtSuspect	ExtOp	190

@@ -3797,6 +3797,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		// OpExt ExtAddPhase, B the count, C the kind | splice point
 		ki.Op, ki.B, ki.C = kop.OpExt, ki.A, int16(in.C)
 		ki.A = kop.Const(int(kop.ExtAddPhase))
+	case "SkipPhase":
+		// OpExt ExtSkipPhase, Obj the skipping player (dirac/act_skipphase.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtSkipPhase))
 	case "PlotGrant":
 		// (Kellan Joins Up) OpExt ExtPlotGrant, Obj the
 		// Remembered ref

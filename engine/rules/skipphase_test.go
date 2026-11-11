@@ -59,6 +59,43 @@ func TestFalsePeaceSkipsTheTargetsNextCombats(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestFalsePeaceSkipsAnExtraCombatToo: "all combat phases" includes an extra
+// one. Seat 1's live skip meets a granted extra combat spliced after the
+// precombat main phase: the grant is consumed and completed without the combat
+// beginning, and the walk goes on to the postcombat main phase.
+func TestFalsePeaceSkipsAnExtraCombatToo(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, cfg := addPhaseEngine(t, reg,
+		[]*cards.Card{lookup(t, reg, "False Peace")}, []*cards.Card{})
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "W", Amount: 1})
+	peace := moveByName(t, e, 0, "False Peace", state.ZHand)
+	e.pending = nil
+	e.priorityRound()
+	castSpellAtPlayer(t, e, peace, 1)
+	driveToStep(t, e, 2, 1, state.StepMain1)
+	if !e.G.CombatSkipped(1) {
+		t.Fatalf("precondition: PhaseSkips[1] = %d in turn 2, want the live skip", e.G.PhaseSkips[1])
+	}
+	before := countSteps(e, state.StepBeginCombat)
+	e.emit(events.Event{Kind: events.ExtraPhase, Player: 1, Amount: 1, Step: state.StepMain1,
+		IDs: []state.ObjID{state.ObjID(state.StepBeginCombat)}})
+	if len(e.G.ExtraPhases) != 1 {
+		t.Fatalf("precondition: ExtraPhases = %+v, want the one extra combat grant", e.G.ExtraPhases)
+	}
+	driveToStep(t, e, 2, 1, state.StepMain2)
+	if n := countSteps(e, state.StepBeginCombat) - before; n != 0 {
+		t.Fatalf("%d beginning-of-combat steps in the skipping player's turn, want none", n)
+	}
+	if len(e.G.ExtraPhases) != 0 {
+		t.Fatalf("ExtraPhases = %+v, want the skipped grant consumed and completed", e.G.ExtraPhases)
+	}
+	if got := countEvents(e, func(ev events.Event) bool { return ev.Kind == events.ExtraPhase && ev.Amount < 0 }); got != 2 {
+		t.Fatalf("%d ExtraPhase consume/complete events, want 2", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
 // castSpellAtPlayer casts id, answers its target decision with the player
 // seat, and drains the stack.
 func castSpellAtPlayer(t *testing.T, e *Engine, id state.ObjID, seat state.PlayerID) {

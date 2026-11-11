@@ -266,6 +266,16 @@ func init() {
 	extOpNames[ExtAddPhase] = "AddPhase"
 }
 
+// ExtSkipPhase: the player Obj skips every combat phase of their next turn
+// (gorge effSkipPhase, DB$ SkipPhase with Phase$ BeginCombat, Start$ FromNext,
+// Duration$ UntilTheEndOfTargetedNextTurn; CR 614.10). False Peace, Empty City
+// Ruse. dirac/act_skipphase.go.
+const ExtSkipPhase ExtOp = 313
+
+func init() {
+	extOpNames[ExtSkipPhase] = "SkipPhase"
+}
+
 // DB$ Clone on the battlefield (CR 707.2, 707.9b, 613.2a).
 
 // ExtCloneCopy: a battlefield permanent (or every one matching F) becomes a
