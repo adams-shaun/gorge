@@ -83,7 +83,9 @@ var gorgeKwExact = map[string]kop.KwMask{
 	// KwCantBlock plus the override record's CantAttack (masked like
 	// every kwStaticBits keyword: compared through the combat options)
 	"CARDNAME can't attack or block.": kop.KwCantBlock,
-	"Hexproof:Instant":                kop.KwHexproofFromInstants, "HexproofFromInstants": kop.KwHexproofFromInstants,
+	// a Pump KW$ grant (Alchemist's Vial): the same kernel pair
+	"HIDDEN CARDNAME can't attack or block.": kop.KwCantBlock,
+	"Hexproof:Instant":                       kop.KwHexproofFromInstants, "HexproofFromInstants": kop.KwHexproofFromInstants,
 	"Protection from black": kop.KwProtBlack, "ProtectionFromBlack": kop.KwProtBlack,
 	"Protection from red": kop.KwProtRed, "ProtectionFromRed": kop.KwProtRed,
 	"Prevent all combat damage that would be dealt to CARDNAME.":              kop.KwPreventCombatDamageTo,
@@ -140,6 +142,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Sneak":                  "CardDef.HasSneak (a declare-blockers hand alt cost; compared through the cast options and the entry's tapped and attacking flags)",
 	"MayFlashCost":           "CardDef.HasMayFlash (an instant-timing hand cast for the mana cost plus the extra; compared through the cast options; kw_mayflash.go)",
 	"Web-slinging":           "CardDef.HasWebSling (a hand alt cost plus returning a tapped creature; compared through the cast options and the return; kw_websling.go)",
+	"Dash":                   "CardDef.HasDash (a hand alt cost, haste and the end-step return to hand; compared through the cast options, the stack and the battlefield; kw_dash.go)",
 	"Evoke":                  "CardDef.HasEvoke (a hand alt cost and the sacrifice trigger queued as it enters; compared through the cast options and the stack; kw_evoke.go)",
 	"Start your engines":     "CardDef.Engines (CR 702.179a; compared through the speed projection)",
 	"Bargain":                "CardDef.Bargain (an optional additional cost, no battlefield characteristic; compared through the cast options; kw_bargain.go)",
@@ -184,6 +187,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Job select":        "gorge kwJobSelect's expansion: an enters trigger making a 1/1 Hero token and attaching the Equipment to it (kgen lowers the expansion's nodes; compared through the stack, the token and the attachment), no battlefield characteristic",
 	"Battle cry":        "gorge kwBattleCry's expansion: an Attacks trigger pumping the other attackers (kgen lowers the expansion's nodes; compared through the stack and the attackers' power), no battlefield characteristic",
 	"Cumulative upkeep": "gorge kwCumulativeUpkeep's expansion: an upkeep trigger putting an age counter and charging the generic cost once per counter, else sacrificing (ExtCumulative, dirac/trig_cumulative.go; compared through the age counters, the pay and decline options and the sacrifice), no battlefield characteristic",
+	"Annihilator":       "gorge kwAnnihilator's expansion: an Attacks trigger making the defending player sacrifice N permanents (kgen lowers the expansion's node, Annihilator$ N as the Sacrifice count; compared through the stack and the sacrifice choice), no battlefield characteristic",
 	"Gift":              "CardDef.Gift (a cast-time promise and its GiftAbility; compared through the gift election and the stack; kw_gift.go), no battlefield characteristic",
 }
 

@@ -874,6 +874,11 @@ const (
 	// (CR 509.1a). Appended: earlier ordinals stay stable.
 	PKCanBlockAmount
 	PKCanBlockAny
+	// XColor$ names the colour(s) the {X} part of a cost must be paid with
+	// (Forge's SpellAbility.getXColor; Consume Spirit, Crimson Hellkite).
+	// Read by pay.WithSpellAbilityExtras / AbilityCompiledCost into
+	// rules/cost.Cost.XColors. Appended: earlier ordinals stay stable.
+	PKXColor
 	paramKeyCount
 )
 
@@ -1687,6 +1692,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKPreventionEffect:                 "PreventionEffect",
 	PKCanBlockAmount:                   "CanBlockAmount",
 	PKCanBlockAny:                      "CanBlockAny",
+	PKXColor:                           "XColor",
 }
 
 // String is the key's Forge text.

@@ -374,6 +374,8 @@ func applyKind(g *state.Game, e *Event) {
 		foldLibraryOrder(g, e)
 	case SkipTurn:
 		foldSkipTurn(g, e)
+	case SkipPhase:
+		foldSkipPhase(g, e)
 	case ControlPlayerChange:
 		foldControlPlayerChange(g, e)
 	case ExtraTurn:

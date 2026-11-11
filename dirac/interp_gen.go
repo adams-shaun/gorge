@@ -772,6 +772,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			}
 		}
 	case kop.OpDelayedProgram:
+		if in.A.N == kop.DelayPlayerUpkeep {
+			s.delayPlayerUpkeep(k, e, in) // trig_delayplayerupkeep.go
+			break
+		}
 		o := s.delayedRegObj(in.Obj)
 		if s.g.ndp >= maxDProg {
 			s.capFull(StallDProg)
@@ -1335,6 +1339,9 @@ func (s *State) execDamageEx(k *prep, in *kop.Instr) {
 		}
 		if dealt > 0 {
 			s.damageDealt(k, in, Obj(code)) // cast_mayplaylimit.go
+		}
+		if in.C&kop.DmgNoRegenTarget != 0 {
+			s.markNoRegen(k, Obj(code)) // repl_noregen.go: marked even when the damage was prevented
 		}
 		return
 	}

@@ -162,6 +162,9 @@ func (s *State) resolveTop(k *prep) {
 			if k.gen != nil && k.gen.anyEvoke {
 				s.evokeEnter(k, &e) // the Adamant bind and the evoke sacrifice (kw_evoke.go)
 			}
+			if k.gen != nil && k.gen.anyDash && e.dashed(k) {
+				s.dashEnter(sl, &e) // haste and the end-step return to hand (kw_dash.go)
+			}
 			if k.gen != nil && k.gen.anyWarp && e.mode&modeWarped != 0 {
 				s.registerWarpExile(e.obj, e.ctrl) // kw_warp.go
 			}

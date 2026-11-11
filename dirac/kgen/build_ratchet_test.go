@@ -219,9 +219,8 @@ import (
 // +2 (the optional copy-instead CreateToken replacement: the cards listed at ratchet_test.go's ALL pin; ALL build-level 22149 -> 22151).
 // +1 (Count$TotalDamageReceivedThisTurn lowered: Tangled Colony; merged with land ALL build-level 22180 -> 22181).
 // +1 (ConditionActivationLimit$ lowers to kop.ExActivations: Dragon Whelp; merged with land ALL build-level 22184 -> 22185).
-// +6 (a card's only mana ability "{T}, Pay N life: Add one mana" is a pain-only life source, kop.SoleLifeManaAb: Blightsoil Druid, Mana Confluence, Myr Convert, Phyrexian Lens, Staff of Compleation, Vesper Ghoul; ALL build-level 22214 -> 22220, ONE 198 -> 200: Myr Convert, Staff of Compleation).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22244, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22291, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

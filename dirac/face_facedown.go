@@ -378,8 +378,9 @@ func (s *State) settleTurnUp(k *prep, o Obj, p uint8, mode uint8, x int) {
 	if !s.specialAffords(k, p, &cost, sp, sl, x) {
 		return
 	}
+	cost = cost.AtX(x)
 	if cost.Hyb[0] != 0 {
-		cost = s.turnUpHybResolve(p, cost, cost.XGeneric(x)) // face_turnfaceup.go
+		cost = s.turnUpHybResolve(p, cost, 0) // face_turnfaceup.go
 	}
 	s.paySpecial(k, p, &cost, sp, sl, x)
 	s.turnUpFlip(k, sl, o, p, uint8(x))

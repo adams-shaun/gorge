@@ -200,7 +200,7 @@ var putCounterKnownKeys = [...]string{
 	"UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs", "UnlessSwitched", "UpTo", "UpToMin",
 	"ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices", "ValidCounterType",
 	"ValidDescription", "ValidTgts", "ValidTgtsDesc", "VoteMessage",
-	"WithoutManaCost", "XMax", "XMin",
+	"WithoutManaCost", "XColor", "XMax", "XMin",
 }
 
 // isPutCounterSA reports whether sa resolves as api:PutCounter.

@@ -1610,7 +1610,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// (checkBlocksTriggers); the kernel's remembered set is empty
 		return refuse("Blocks trigger body reads Remembered")
 	}
-	if tr.ByCreature && lc.saReadsRemembered(t.Effect) {
+	if tr.ByCreature && lc.byCreatureReadsRemembered(t.Effect) {
 		// gorge seeds the pair's other member as Remembered
 		// (queueAttackerBlockedTrigger); the kernel's remembered set is empty
 		return refuse("AttackerBlockedByCreature trigger body reads Remembered")
@@ -1647,6 +1647,11 @@ func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 	}
 	if s.Mode == "OptionalCost" {
 		return lc.optCostStatic(s) // lower_optcost.go
+	}
+	if s.Mode == "Continuous" && s.Params["CanBlockAmount"] != "" {
+		if ok, err := lc.extraBlockStatic(s); ok || err != nil {
+			return err // lower_extrablock.go
+		}
 	}
 	if s.Mode == "MinMaxBlocker" && s.Params["Max"] == "" {
 		return lc.minMaxBlockerStatic(s) // lower_choosetype.go
@@ -2043,10 +2048,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			// a free alternative cost (kernel CardDef.AltFree)
 			st.Cost = lCost{}
 			sp.consume("Cost")
-		} else if st.Cost, err = lc.cost(sp.str("Cost")); err != nil {
+		} else if st.Cost, err = lc.altCostCost(sp.str("Cost")); err != nil {
 			return nil, err
 		}
-		if st.Cost.Forage != nil || st.Cost.ExileG != nil || st.Cost.Energy != 0 || st.Cost.Return != nil {
+		if st.Cost.Forage != nil || st.Cost.ExileG != nil && !st.Cost.ExileHand || st.Cost.Energy != 0 || st.Cost.Return != nil {
 			return nil, refuse("alternative cost with a forage / exile-from-graveyard part")
 		}
 	case "Activations":
@@ -3191,7 +3196,7 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		}
 		rl.Prog = ab.Prog
 		rl.Kind = "EntersWith"
-		if spyglassChain(r.With) {
+		if spyglassChain(r.With) || handNameChain(r.With) {
 			// gorge runs this chain (not a bare NameCard body) once the permanent
 			// is on the battlefield: the queued ask, not the stack pre-ask
 			rl.S = "Updated"
@@ -3871,15 +3876,16 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			}
 		case "RevealHand":
 			// the chain's look: folded into the name ask's decisions (B = 2)
-			if other || !spyglassChain(sa) {
+			if other || !spyglassChain(sa) && !handNameChain(sa) {
 				return refuse("ETB replacement api RevealHand")
 			}
-			ps.consume("Defined", "Look")
+			ps.consume("Defined", "Look", "RememberRevealed", "SpellDescription")
 		case "Cleanup":
-			if other || !spyglassChain(sa) {
+			if other || !spyglassChain(sa) && !handNameChain(sa) {
 				return refuse("ETB replacement api Cleanup")
 			}
 			lc.clearChosenPlayer(ps)
+			ps.consume("ClearRemembered") // Alhammarret's chain: the revealed set was never kept
 		case "NameCard":
 			if err := lc.etbChooseName(ps, node, sa, other, cond); err != nil { // lower_choosename.go
 				return err
@@ -3948,6 +3954,30 @@ func (lc *lowerCtx) cloneEnterCounterRider(ps *params, sa *cards.SA) error {
 		return refuse("ETB copy chained rider cleanup unread params %v", left)
 	}
 	return nil
+}
+
+// byCreatureReadsRemembered is saReadsRemembered for an
+// AttackerBlockedByCreature body, minus the spellings that name the pair
+// member without reading the trigger's remembered set: a delayed trigger's
+// RememberObjects$ Triggered{Attacker,Blocker}[LKICopy] (delayedStepRemember
+// binds the object at registration, Deathgazer's destroy at end of combat)
+// and the delayed body's Defined$ DelayTriggerRememberedLKI.
+func (lc *lowerCtx) byCreatureReadsRemembered(sa *cards.SA) bool {
+	strip := strings.NewReplacer(
+		"RememberObjects$ TriggeredAttackerLKICopy", "", "RememberObjects$ TriggeredBlockerLKICopy", "",
+		"RememberObjects$ TriggeredAttacker", "", "RememberObjects$ TriggeredBlocker", "",
+		"DelayTriggerRememberedLKI", "")
+	for ; sa != nil; sa = sa.Sub {
+		if strings.Contains(strip.Replace(sa.Line), "Remember") {
+			return true
+		}
+	}
+	for _, v := range lc.face.SVars {
+		if strings.Contains(strip.Replace(v), "Remember") {
+			return true
+		}
+	}
+	return false
 }
 
 // saReadsRemembered reports whether an ability chain (or any SVar of the
@@ -4028,7 +4058,15 @@ func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 	if err != nil {
 		return err
 	}
+	grant, err := lc.cloneEnterGrant(ps) // lower_cloneentergrant.go
+	if err != nil {
+		return err
+	}
 	in := lInstr{Op: "BecomeCopy", Obj: lRef{Kind: rReplaced}, F: f}
+	if grant != nil {
+		lc.out.overrides = append(lc.out.overrides, grant)
+		in.A = cst(len(lc.out.overrides)) // index+1
+	}
 	if rememberCounters {
 		in.B = cst(int(kop.BecomeCopyCtr))
 		in.Note = "with the copy origin's counters"

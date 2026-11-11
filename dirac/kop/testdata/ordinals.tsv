@@ -6,6 +6,7 @@ AbSpell	AbilityKind	0
 AbStatic	AbilityKind	4
 AbTriggered	AbilityKind	3
 AddPhaseCombat	untyped int	0
+AddPhaseCombatMain	untyped int	3
 AddPhaseEnd	untyped int	2
 AddPhaseUpkeep	untyped int	1
 AfCharmTrigger	AbilityFlags	64
@@ -48,6 +49,7 @@ BncFromLibrary	untyped int	4096
 BncShuffleOwed	untyped int	16384
 C	untyped int	5
 CantActNamed	untyped int	4
+CantCastNamed	untyped int	1
 CantLoseLife	untyped int	1
 CantTgtActivated	untyped int	2
 CantTgtSpell	untyped int	1
@@ -250,6 +252,7 @@ CzUntilLeaves	untyped int	1
 DelayBeginCombat	untyped int	6
 DelayDiesThisTurn	untyped int	5
 DelayEndCombat	untyped int	3
+DelayPlayerUpkeep	untyped int	9
 DelaySpellCast	untyped int	4
 DelaySpellUncounter	untyped int	8
 DelayUpkeep	untyped int	1
@@ -282,6 +285,7 @@ DmgLT	DmgCmp	6
 DmgMapped	untyped int	4
 DmgNE	DmgCmp	4
 DmgNoRegen	untyped int	32
+DmgNoRegenTarget	untyped int	128
 DmgRemember	untyped int	8
 DmgTrackExcess	untyped int	1
 DpGroup	untyped int	1
@@ -478,6 +482,7 @@ ExtRememberSearcher	ExtOp	304
 ExtRemoveCounterAny	ExtOp	3
 ExtSacDelayed	ExtOp	32
 ExtSearchCounters	ExtOp	252
+ExtSkipPhase	ExtOp	313
 ExtSpellToLib	ExtOp	308
 ExtStackExileMark	ExtOp	315
 ExtSuspect	ExtOp	190
@@ -603,6 +608,7 @@ MayGuardDraw	untyped int	5
 MayGuardLibraryTop	untyped int	4
 MayGuardMill	untyped int	0
 MayGuardMove	untyped int	2
+MayGuardMoveRemembered	untyped int	11
 MayGuardPut	untyped int	10
 MayGuardStackSpell	untyped int	9
 MayGuardSuspect	untyped int	3
@@ -1056,6 +1062,7 @@ SacSumToughness	untyped int	4
 SacrificedFood	untyped int	2
 SkipUntapLockAny	untyped int	3
 SkipUntapLockStep	untyped int	2
+SkipUntapPlayerCL	untyped int	4
 SpmActivated	SpecialMask	32
 SpmCloakUp	SpecialMask	8
 SpmDisguiseUp	SpecialMask	2
@@ -1063,6 +1070,7 @@ SpmManifestUp	SpecialMask	4
 SpmMorphUp	SpecialMask	1
 SpmTurnFaceUp	SpecialMask	15
 SpmUnlock	SpecialMask	16
+SrAltAll	untyped int	8
 SrAltGraveHand	int	1
 SrAltOrigin	untyped int	16
 SrAltZoneShift	untyped int	5

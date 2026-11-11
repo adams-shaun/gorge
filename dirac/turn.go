@@ -43,6 +43,9 @@ func (s *State) beginTurn(p uint8) {
 	}
 	s.turn++
 	s.active = p
+	if k := s.k(); k.gen != nil && k.gen.anySkipPhase {
+		s.skipPhaseTurn(p) // act_skipphase.go
+	}
 	if k := s.k(); k.gen != nil && k.gen.anyNTEndEmb {
 		s.embTurnStart(k, p) // UntilTheEndOfYourNextTurn: this turn is its last (static_emblemdurations.go)
 	}
@@ -302,6 +305,8 @@ func (s *State) advance(k *prep) {
 	}
 	if k.gen != nil && k.gen.anyAddPhase {
 		next = s.addPhaseNext(next) // extra phases and the phase ledger (act_addphase.go)
+	} else if k.gen != nil && k.gen.anySkipPhase {
+		next = s.skipCombatNext(next) // act_skipphase.go
 	}
 	s.endStep(next)
 }
@@ -442,6 +447,7 @@ func (s *State) clearCombat() {
 			s.touchSl(sl)
 		}
 	}
+	s.xblkClear()
 	s.nAttackers = 0
 	s.fsStep = false
 }
@@ -1038,8 +1044,8 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 		if k.gen != nil && k.gen.anyWarp && s.objs[ref].zone == kop.ZoneExile {
 			s.warpRecastGrant(ref)
 		}
-	case kop.OpBounce:
-		s.leave(k, sl, kop.ZoneHand, false)
+	case kop.OpBounce, opDashReturn:
+		s.leave(k, sl, kop.ZoneHand, false) // opDashReturn: CR 702.109a's end-step return (kw_dash.go)
 	default:
 		panic("kernel: delayed trigger action not implemented: " + kop.Op(e.trigAmt).String())
 	}

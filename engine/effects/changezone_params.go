@@ -458,7 +458,7 @@ var changeZoneKnownKeys = [...]string{
 	"WithTotalCMC",
 	"WithTotalCardTypes",
 	"WithoutManaCost",
-	"XMax",
+	"XColor", "XMax",
 	"XMin",
 }
 

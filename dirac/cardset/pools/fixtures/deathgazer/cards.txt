@@ -1,0 +1,25 @@
+# the Deathgazer pool: "blocks or becomes blocked by a nonblack creature,
+# destroy that creature at end of combat" (the two AttackerBlockedByCreature
+# halves over an end-of-combat delayed destroy), beside nonblack creatures
+# it kills and a black one it spares, then the rest of the "blocks or becomes
+# blocked by" family (Cockatrice, the Basilisks, Tolarian Entrancer ...), for the
+# oracle's constructed lockstep (dirac/oracle/deathgazer_lockstep_test.go)
+Abomination
+Burglar Rat
+Cockatrice
+Deathgazer
+Dread Specter
+Forest
+Grizzly Bears
+Hill Giant
+Infernal Medusa
+Island
+Mountain
+Rock Basilisk
+Sawtooth Ogre
+Shock
+Swamp
+Tangle Asp
+Thicket Basilisk
+Tolarian Entrancer
+Venomous Dragonfly

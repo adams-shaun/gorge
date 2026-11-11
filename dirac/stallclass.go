@@ -98,6 +98,8 @@ var stallUnmodelledReasons = [...]uint8{
 	StallFbGrantStamp, // a stamped flashback grant beside an own-cost flashback static: gorge offers both granted instances (kw_fbgrant.go)
 	StallRestrDefer,   // a non-spell payment only a Taps-deferred restricted source funds: gorge pays it by its prefix search (mana_tapsdefer.go)
 	StallStackKwGrant, // a granted convoke/improvise on a Harmonize or alternative-cost cast: gorge's announcement for those routes is unverified (kw_convoke.go)
+	// a requirement- or lure-maximising block declaration with a two-attacker blocker ready: gorge offers its second block too (combat_extrablock.go)
+	StallExtraBlockReq,
 }
 
 // initStall is the reason a game of nseat players on this table stalls at its

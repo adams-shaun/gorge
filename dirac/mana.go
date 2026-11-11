@@ -480,11 +480,12 @@ func (a *avail) hybWitnessRider(cost kop.ManaCost, x int, anyColor bool) kop.Man
 	n, f := hybFacesOf(&cost)
 	for m := 0; m < 1<<n; m++ {
 		r := f.resolve(cost, n, hybWitnessMask(m, n))
+		rx := r.AtX(x)
 		var ok bool
 		if anyColor {
-			ok = a.affordsAnyColor(&r, r.XGeneric(x))
+			ok = a.affordsAnyColor(&rx, 0)
 		} else {
-			ok = a.affords(&r, pipMaskOf(&r), r.XGeneric(x))
+			ok = a.affords(&rx, pipMaskOf(&rx), 0)
 		}
 		if ok {
 			return r
@@ -508,7 +509,11 @@ func (a *avail) maxX(cost *kop.ManaCost, pipMask uint8) int {
 	if per == 0 {
 		return 0
 	}
-	for x < maxXAsk && a.affords(cost, pipMask, cost.XGeneric(x+1)) {
+	for x < maxXAsk {
+		next := cost.AtX(x + 1)
+		if !a.affords(&next, pipMaskOf(&next), 0) {
+			break
+		}
 		x++
 	}
 	return x
@@ -524,7 +529,11 @@ func (a *avail) maxXAnyColor(cost *kop.ManaCost) int {
 	if per == 0 {
 		return 0
 	}
-	for x < maxXAsk && a.affordsAnyColor(cost, cost.XGeneric(x+1)) {
+	for x < maxXAsk {
+		next := cost.AtX(x + 1)
+		if !a.affordsAnyColor(&next, 0) {
+			break
+		}
 		x++
 	}
 	return x
@@ -734,8 +743,12 @@ func (s *State) tapForPK(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Ob
 // tapNeed sets pk's deficit for cost (+X) after p's pool (gorge
 // pay/search.go deficit).
 func (s *State) tapNeed(pk *planner, p uint8, cost *kop.ManaCost, x int, anyColor bool) {
+	if cost.XPip != 0 && cost.X != 0 {
+		c := cost.AtX(x) // a coloured X (XColor$) is that colour's pips in the deficit
+		cost, x = &c, 0
+	}
 	pl := &s.pl[p]
-	mv := cost.MV() + cost.XGeneric(x)
+	mv := cost.MV() + cost.XAmount(x)
 	pk.anyColor = anyColor
 	pk.need = [kop.NumManaKinds]int{}
 	pk.needAny = 0
@@ -885,6 +898,10 @@ func (s *State) hybResolveRider(k *prep, p uint8, cost kop.ManaCost, x int, anyC
 // payFromPool spends the pool: coloured pips first, then generic in order
 // C W U B R G (gorge pay/solve.go ResolveManaWith).
 func (s *State) payFromPool(p uint8, cost *kop.ManaCost, x int) {
+	if cost.X != 0 {
+		c := cost.AtX(x)
+		cost, x = &c, 0
+	}
 	pl := &s.pl[p]
 	for c := 0; c < kop.NumManaKinds; c++ {
 		if pl.pool[c] < cost.Pips[c] {
@@ -967,6 +984,10 @@ func (s *State) payAnyTypePips(k *prep, p uint8, cost kop.ManaCost) kop.ManaCost
 // (gorge ResolveMana's anyColorAlts, W first), then generic in order
 // C W U B R G.
 func (s *State) payFromPoolAnyColor(p uint8, cost *kop.ManaCost, x int) {
+	if cost.X != 0 {
+		c := cost.AtX(x)
+		cost, x = &c, 0
+	}
 	pl := &s.pl[p]
 	if pl.pool[kop.C] < cost.Pips[kop.C] {
 		panic("kernel: payment failed (pips)")

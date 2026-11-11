@@ -331,13 +331,16 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 	}
 	var pot avail
 	s.availPotential(k, p, &pot)
-	pm := pipMaskOf(cost)
 	s.g.probe = probe{kind: probeAbility, src: src, ctrl: p}
 	if src == NoSlot {
 		s.g.probe = probe{kind: probeSpell, src: NoSlot, card: c, ctrl: p}
 	}
 	ok := false
-	for x := costXMin(&a.Cost); !ok && x < 255 && pot.affords(cost, pm, cost.XGeneric(x)); x++ { // from the floor (cost_sacx.go)
+	for x := costXMin(&a.Cost); !ok && x < 255; x++ { // from the floor (cost_sacx.go)
+		cx := cost.AtX(x)
+		if !pot.affords(&cx, pipMaskOf(&cx), 0) {
+			break
+		}
 		s.g.probe.x = uint8(x + 1)
 		ok = s.abilityTargetsFeasible(k, a, p, src, 0xff)
 	}

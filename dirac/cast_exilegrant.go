@@ -198,7 +198,7 @@ func (s *State) copyCastUnpayable(k *prep, c CardID, p uint8, o Obj, og restrOri
 	if !av.tbLeafCredited(&base) {
 		cost = s.delveOfferCredit(k, p, c, o, false, cost) // gorge's choke point credits the generic at this read too
 	}
-	cost.Generic = uint8(int(cost.Generic) + cost.XGeneric(x))
+	cost = cost.AtX(x)
 	return !s.castAffordsR(k, p, c, og, &cost, &av)
 }
 

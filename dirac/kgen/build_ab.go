@@ -1857,6 +1857,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StRaiseOpp
 			case "CasterActive":
 				st.StFlags |= kop.StCasterActive
+			case "NamedCard":
+				st.B |= kop.CantCastNamed
 			default:
 				return ka, nil, fmt.Errorf("cant be cast flag %q", fl)
 			}
@@ -2051,11 +2053,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if ka.Cost, err = cb.cost(s.Cost); err != nil {
 			return ka, nil, err
 		}
-		if ka.Cost.Flags&(kop.CostForage|kop.CostExileGrave) != 0 {
+		if ka.Cost.Flags&(kop.CostForage|kop.CostExileGrave) != 0 && !cb.altHandExileOK(&ka.Cost) {
 			return ka, nil, fmt.Errorf("alternative cost with a forage / exile-from-graveyard part")
 		}
 		sacAlt := ka.Cost.Flags == kop.CostSac && ka.Cost.N > 0 && ka.Cost.Mana == (kop.ManaCost{}) && cb.altSacOK()
-		if !sacAlt && (ka.Cost.Flags != 0 || ka.Cost.N != 0 || ka.Cost.Mana.X != 0) {
+		if !sacAlt && !cb.altHandExileOK(&ka.Cost) && (ka.Cost.Flags != 0 || ka.Cost.N != 0 || ka.Cost.Mana.X != 0) {
 			// the kernel offers a mana-only alternative cost
 			// (prepAltFree); a Return / Sac / PayLife / exile-from-hand
 			// part (Daze, Force of Will) would never be offered
@@ -2728,6 +2730,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if _, ok := fl["NoRegen"]; ok {
 			c |= kop.DmgNoRegen
 		}
+		if _, ok := fl["NoRegenTarget"]; ok {
+			c |= kop.DmgNoRegenTarget
+		}
 		if strings.HasPrefix(in.Note, "damage map") || cb.inDamageMap {
 			c |= kop.DmgMapped
 			cb.inDamageMap = true
@@ -3124,6 +3129,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, fmt.Errorf("alt origin %q", az)
 			}
 			sb |= kop.SrAltOrigin | int(altZ)<<kop.SrAltZoneShift
+			if _, ok := fl["altAll"]; ok {
+				// Origin$ Library,Graveyard (lower_libgrave.go): every zone, no election
+				if altZ != kop.ZoneGraveyard {
+					return ki, fmt.Errorf("altAll with alt origin %q", az)
+				}
+				sb |= kop.SrAltAll
+			}
 			zone = kop.ZoneNone // the filter matches cards of every elected zone
 		}
 		if sb, zone, err = sideSearchFlags(in.Op, fl, sb, zone); err != nil {
@@ -3820,6 +3832,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		// OpExt ExtAddPhase, B the count, C the kind | splice point
 		ki.Op, ki.B, ki.C = kop.OpExt, ki.A, int16(in.C)
 		ki.A = kop.Const(int(kop.ExtAddPhase))
+	case "SkipPhase":
+		// OpExt ExtSkipPhase, Obj the skipping player (dirac/act_skipphase.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtSkipPhase))
 	case "PlotGrant":
 		// (Kellan Joins Up) OpExt ExtPlotGrant, Obj the
 		// Remembered ref
@@ -4413,6 +4428,18 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			}
 			ki.C |= int16(i+1) << 1
 		}
+		ki.A = kop.ValueRef{}
+		if in.A.Kind != vNone {
+			// the AddAbilities$ grant (lower_cloneentergrant.go)
+			if !in.A.isConst() || in.A.N < 1 || in.A.N > len(cb.c.overrides) {
+				return ki, fmt.Errorf("BecomeCopy A %v", in.A)
+			}
+			i, err := cb.override(cb.c.overrides[in.A.N-1])
+			if err != nil {
+				return ki, err
+			}
+			ki.A = kop.Const(i + 1)
+		}
 	case "Connive":
 		ki.Op = kop.OpConnive
 	case "ConniveCounters":
@@ -4482,6 +4509,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				ki.A = kop.Const(kop.DelayYourUpkeep)
 			case "NextEndCombat":
 				ki.A = kop.Const(kop.DelayEndCombat)
+			case "NextUpkeepOfPlayer":
+				ki.A = kop.Const(kop.DelayPlayerUpkeep) // dirac/trig_delayplayerupkeep.go
 			case "NextBeginCombat":
 				ki.A = kop.Const(kop.DelayBeginCombat) // dirac/trig_delaybegincombat.go
 			case "NextSpellCast":
@@ -4616,8 +4645,22 @@ func selfCastClause(f *lFilter) (bool, error) {
 // are then the static's alone (kernel prepAltFree, buildPickCost).
 func (cb *cardBuilder) altSacOK() bool {
 	c := cb.c
-	if kop.TypeMask(c.Types)&(kop.TInstant|kop.TSorcery) == 0 || c.AltAddCost != nil {
+	if c.AltAddCost != nil {
 		return false
+	}
+	if kop.TypeMask(c.Types)&(kop.TInstant|kop.TSorcery) == 0 {
+		// a creature spell with no spell ability of its own (Hand of
+		// Emrakul): the alternative cast's pick parts are the static's alone
+		// as well, and no target is asked
+		if kop.TypeMask(c.Types)&kop.TCreature == 0 {
+			return false
+		}
+		for _, a := range c.Abilities {
+			if a.Kind == akSpell {
+				return false
+			}
+		}
+		return true
 	}
 	n := 0
 	for _, a := range c.Abilities {

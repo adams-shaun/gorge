@@ -1272,8 +1272,10 @@ func (s *State) FeatObjLinks(o Obj) (card CardID, attached, blocks Obj) {
 		// attached until the next state-based check (Project's rule)
 		attached = s.lingerHost(ob.slot)
 	}
-	if pm.flags&pfBlocking != 0 && pm.blocking != NoSlot {
-		blocks = s.perms[pm.blocking].obj
+	if pm.flags&pfBlocking != 0 {
+		if a := s.blockProjected(ob.slot); a != NoSlot {
+			blocks = s.perms[a].obj
+		}
 	}
 	return s.cardAt(ob.slot), attached, blocks
 }
@@ -1482,8 +1484,8 @@ func (s *State) FeatAbilityPoolPays(p uint8, o Obj, ab uint8, host Obj) bool {
 		if host == NoObj || s.objs[host].zone != kop.ZoneBattlefield || s.objs[host].slot == NoSlot {
 			return false
 		}
-		c = s.cardAt(s.objs[host].slot)
 		ab &^= 0x80
+		c = s.grantCardAt(k, s.objs[host].slot, ab)
 	}
 	abs := k.t.Cards[c].Abilities
 	if int(ab) >= len(abs) {

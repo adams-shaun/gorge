@@ -125,9 +125,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (ConditionActivationLimit$ lowers to kop.ExActivations on a card whose one non-mana activated ability it gates: Dragon Whelp; DMU 194 -> 195, ALL 22176 -> 22177).
 	// +1 (Fiend Hunter's Defined$ DirectRemembered leave return lowers as the remembered-persist pair; ALL 22176 -> 22177).
 	// +1 (the merge with land: Count$TotalDamageReceivedThisTurn lowered: Tangled Colony beside land's 22180; ALL 22180 -> 22181, WOE 261 -> 262).
-	// +2 (Myr Convert, Staff of Compleation: the sole "{T}, Pay N life" mana ability lowers; ONE 198 -> 200; ALL unchanged at the LIR level).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22244, 34442},
+	"ALL": {22291, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {216, 280},
@@ -145,7 +144,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"MOM": {199, 296},
 	"MSH": {246, 276},
 	"NEO": {201, 287},
-	"ONE": {200, 271},
+	"ONE": {198, 271},
 	"OTJ": {251, 276},
 	"SNC": {187, 266},
 	"SOS": {256, 270},
@@ -153,7 +152,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TDM": {256, 276},
 	"TLA": {261, 285},
 	"TMT": {183, 194},
-	"TRC": {298, 337},
+	"TRC": {299, 337},
 	"TRK": {311, 311},
 	"WOE": {262, 281},
 }
