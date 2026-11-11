@@ -239,6 +239,13 @@ func manaCostOf(m manaCost) (kop.ManaCost, error) {
 	if m.XXX {
 		out.X = 3
 	}
+	if m.XColor != 0 {
+		i := strings.IndexByte("WUBRG", m.XColor)
+		if i < 0 || out.X == 0 {
+			return out, fmt.Errorf("XColor mana %s", m)
+		}
+		out.XPip = uint8(i + 1)
+	}
 	return out, nil
 }
 

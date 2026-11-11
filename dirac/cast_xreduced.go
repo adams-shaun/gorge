@@ -41,5 +41,6 @@ func (s *State) xReducedCeiling(k *prep, e *stackEntry, cost *kop.ManaCost, av *
 // xReducedPays reports whether av pays the spell being built at X = x.
 func (s *State) xReducedPays(k *prep, av *avail, x int) bool {
 	c := s.xHypoCost(k, x)
-	return av.affords(&c, pipMaskOf(&c), c.XGeneric(x))
+	c = c.AtX(x)
+	return av.affords(&c, pipMaskOf(&c), 0)
 }

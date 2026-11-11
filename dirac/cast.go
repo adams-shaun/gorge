@@ -210,7 +210,8 @@ func (s *State) tapRiderPlan(k *prep, e stackEntry) {
 	s.bld().e.flags, s.bld().bfl, s.bld().fixedGen = fl, bf, fg
 	var av avail
 	s.availFor(k, e.ctrl, &av)
-	if pc.Hyb[0] == 0 && av.affords(&pc, pipMaskOf(&pc), pc.XGeneric(int(e.x))) {
+	pcx := pc.AtX(int(e.x))
+	if pc.Hyb[0] == 0 && av.affords(&pcx, pipMaskOf(&pcx), 0) {
 		s.tapFor(k, e.ctrl, &pc, int(e.x), e.obj)
 	}
 }
@@ -1187,7 +1188,8 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 		if e.flags&sfAnyMana != 0 && e.kind == seSpell {
 			r = hybridGeneric(anyTypePips(r)) // the pips still to announce are payable by any mana too
 		}
-		if s.faceReachable(k, e.ctrl, &av, &r, r.XGeneric(int(e.x))) || hybGateMutation(s.bld().pipN) {
+		rx := r.AtX(int(e.x))
+		if s.faceReachable(k, e.ctrl, &av, &rx, 0) || hybGateMutation(s.bld().pipN) {
 			d.add(MakeAction(AkChoose, 0, 0, uint8(c)))
 		}
 	}

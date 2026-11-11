@@ -2708,12 +2708,8 @@ func (s *State) dealAnnouncedDivision(k *prep, e *stackEntry, slot uint8) bool {
 //
 //go:noinline
 func (s *State) tapForHyb(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, anyColor bool) bool {
-	c := *cost
+	c := cost.AtX(x)
 	tb := s.buildCost0(k).Hyb[0] == kop.HybTwobrid
-	if g := cost.XGeneric(x); g != 0 {
-		// the window reads Generic, not X: fold the announced X in
-		c.Generic += uint8(g)
-	}
 	ok, known := s.windowDry(k, p, &c, anyColor)
 	if !known {
 		probe := s.fork() // a gap or sacrificed source: the rare full probe

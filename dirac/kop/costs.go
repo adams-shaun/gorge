@@ -45,6 +45,13 @@ type ManaCost struct {
 	// could not absorb (CR 601.2f): it pays into {X} once X is chosen, so a
 	// cost with XRed > 0 has Generic == 0. Only a cost with X > 0 reads it.
 	XRed uint8
+	// XPip is Forge's XColor$ colour (W=1 .. G=5, 0 = none): when set, each
+	// announced {X} is a pip of that colour instead of generic mana (CR
+	// 107.3, 601.2b; Consume Spirit's "Spend only black mana on X", Forge
+	// SpellAbility.getXColor). AtX folds it into Pips; XGeneric adds
+	// nothing. Only a one-colour XColor is lowered (kgen refuses the
+	// multi-colour Soul Burn shape).
+	XPip uint8
 	// Hyb is up to four hybrid pips ({B/G}; gorge's planHybridLimit), each
 	// the mask of its two colours, 0 = none (Hyb[0] first). The caster announces each pip's
 	// colour before targets (CR 601.2b); a payment only ever sees the
@@ -127,9 +134,38 @@ func (m ManaCost) ResolveTb(generic bool) ManaCost {
 
 // XGeneric is the generic mana the X symbols add at X = x: x per symbol,
 // less the reduction left over from the printed generic part, floored at
-// zero last (CR 601.2f).
+// zero last (CR 601.2f). A colour-restricted X (XPip) adds no generic.
 func (m ManaCost) XGeneric(x int) int {
+	if m.XPip != 0 {
+		return 0
+	}
+	return m.XAmount(x)
+}
+
+// XAmount is the total mana the X symbols add at X = x, whichever colour
+// they are paid with: the mana value of the announced X and the amount the
+// spend tallies count (CR 202.3e).
+func (m ManaCost) XAmount(x int) int {
 	return max(0, x*int(m.X)-int(m.XRed))
+}
+
+// AtX returns m with its {X} symbols folded at x: generic mana as before, or
+// x black/red/... pips when XPip records Forge's XColor$ (CR 107.3,
+// 601.2b). Folding is idempotent (a cost already at X has none left), so a
+// caller may fold before every affordability or payment read.
+func (m ManaCost) AtX(x int) ManaCost {
+	if m.X == 0 {
+		return m
+	}
+	n := m.XAmount(x)
+	m.X, m.XRed = 0, 0
+	if m.XPip != 0 {
+		m.Pips[m.XPip-1] += uint8(n)
+		m.XPip = 0
+	} else {
+		m.Generic += uint8(n)
+	}
+	return m
 }
 
 // MV is the mana value (X counts 0 off the stack; a hybrid pip counts 1).

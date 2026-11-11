@@ -155,6 +155,14 @@ func AbilityCompiledCost(e Engine, sa *cards.SA) *CompiledCost {
 		return v.(*CompiledCost)
 	}
 	c := CompiledCostOf(e, raw)
+	// XColor$ rides the ability beside its Cost$ text (Consume Spirit,
+	// Crimson Hellkite). The configured entry is shared, so attach it to a
+	// fresh compiled copy; only a one-colour mask is modelled (Cost.XColors).
+	if m := xColorMask(sa.ParamStr(cards.PKXColor)); m != 0 && m&(m-1) == 0 {
+		cp := CompiledCostFromCost(c.Cost)
+		cp.Cost.XColors = m
+		c = cp
+	}
 	if slot == nil {
 		return c
 	}

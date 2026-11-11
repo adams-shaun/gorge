@@ -135,6 +135,7 @@ type lowerCtx struct {
 	trigXMax       *lValue   // payInstr: the XMax$ cap of a trigger's own announced {X} cost (Shanna); nil = none read
 	trigRemX       bool      // the ImmediateTrigger's RememberSVarAmount$ X is the announced X (lower_zone.go immediateTrigger)
 	trigXPaid      bool      // the body's Count$xPaid is that announced X (set once the PayManaX cost lowered)
+	xPaidAb        *lAbility // the ability whose own cost carries {X}: a bare Amount$ X is its paid X (gorge count.go raw "X" -> Ctx.X)
 	wbOK           bool      // costParts: a Waterbend<N> part may lower (an UnlessCost$ read by unless(); payInstr gates the shape)
 	unlessCost     bool      // payInstr: the cost is an UnlessCost$ of a non-delayed body
 	unlessParse    bool      // costHand: the tokens are an UnlessCost$ (ExileFromStack)
@@ -690,6 +691,44 @@ func parsePrintedManaCost(s string) (manaCost, error) { return parseManaCostOpt(
 // parseAbilityManaCost is parseManaCost for an activated ability's cost,
 // which also reads a Phyrexian symbol ({W/P}, Forge "WP").
 func parseAbilityManaCost(s string) (manaCost, error) { return parseManaCostSyms(s, false, true) }
+
+// xColorLetter parses Forge's XColor$ value -- colour words ("Black") or a
+// bare WUBRG letter ("R") -- as the one colour the {X} must be paid with.
+// It reports ok=false for a value naming no colour or more than one (Soul
+// Burn's "Black,Red"): the kernel models only a single-colour XColor$.
+func xColorLetter(raw string) (byte, bool) {
+	raw = strings.TrimSpace(raw)
+	if len(raw) == 1 {
+		c := raw[0]
+		if c >= 'a' && c <= 'z' {
+			c -= 'a' - 'A'
+		}
+		if strings.IndexByte("WUBRG", c) >= 0 {
+			return c, true
+		}
+	}
+	set, ok := colorWordSet(raw)
+	if !ok || len(set) != 1 {
+		return 0, false
+	}
+	return set[0], true
+}
+
+// xColor applies XColor$ to a cost's mana part: every announced {X} becomes
+// that colour's pip (kop.ManaCost.XPip) instead of generic mana (CR 107.3,
+// 601.2b). A colour the kernel cannot express as one pip, or an XColor$ on a
+// cost with no {X}, refuses by name rather than lowering something else.
+func (lc *lowerCtx) xColor(m *manaCost, raw string) error {
+	letter, ok := xColorLetter(raw)
+	if !ok {
+		return refuse("XColor$ %q: only a single colour is lowered (a black-and-red X is not modelled)", raw)
+	}
+	if !m.X && !m.XX && !m.XXX {
+		return refuse("XColor$ %q without an {X} in the cost", raw)
+	}
+	m.XColor = letter
+	return nil
+}
 
 func parseManaCostOpt(s string, twobrid bool) (manaCost, error) {
 	return parseManaCostSyms(s, twobrid, twobrid)
@@ -2508,6 +2547,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 	ab := &lAbility{Index: len(lc.out.Abilities)}
 	lc.ab = ab
 	lc.chainT = nil
+	lc.xPaidAb = nil
 	// a chosen-colour chain never crosses an ability boundary (the kernel's
 	// res.chosen lives for one resolution): a chain that ends without the
 	// ClearChosenColor$ Cleanup (Puca's Eye's ETB)
@@ -2519,6 +2559,17 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 	switch sa.Kind {
 	case "SP":
 		ab.Kind = akSpell
+		// XColor$ is the colour the {X} must be paid with (Forge's
+		// SpellAbility.getXColor; Consume Spirit's "Spend only black mana
+		// on X"). It rides the spell ability, beside the printed cost.
+		if xc, ok := ps.get("XColor"); ok {
+			if err := lc.xColor(&lc.out.Cost, xc); err != nil {
+				return err
+			}
+		}
+		if lc.out.Cost.X || lc.out.Cost.XX || lc.out.Cost.XXX {
+			lc.xPaidAb = ab
+		}
 		if ip, ok := ps.get("IsPresent"); ok {
 			// "cast this spell only if <present>" (gorge spellTimingPre's
 			// IsPresent$ cast gate, cr-spell-ispresent-cast-gate feb134b15;
@@ -2603,6 +2654,14 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		lc.unblockedOK, lc.actCost = false, false
 		if err != nil {
 			return err
+		}
+		if xc, ok := ps.get("XColor"); ok {
+			if err := lc.xColor(&cost.Mana, xc); err != nil {
+				return err
+			}
+		}
+		if cost.Mana.X || cost.Mana.XX || cost.Mana.XXX {
+			lc.xPaidAb = ab
 		}
 		if err := xminParam(&cost, ps, ab.Kind == akActivated); err != nil {
 			return err
@@ -3218,10 +3277,10 @@ func (lc *lowerCtx) grantedAbility(name string) (int, error) {
 
 // withAbility lowers fn with ab current and a fresh target chain.
 func (lc *lowerCtx) withAbility(ab *lAbility, fn func() error) error {
-	saved, savedT, savedMode, savedRem := lc.ab, lc.chainT, lc.mode, lc.remTgt
+	saved, savedT, savedMode, savedRem, savedX := lc.ab, lc.chainT, lc.mode, lc.remTgt, lc.xPaidAb
 	lc.ab, lc.chainT, lc.mode, lc.remTgt = ab, nil, -1, 0
 	err := fn()
-	lc.ab, lc.chainT, lc.mode, lc.remTgt = saved, savedT, savedMode, savedRem
+	lc.ab, lc.chainT, lc.mode, lc.remTgt, lc.xPaidAb = saved, savedT, savedMode, savedRem, savedX
 	return err
 }
 

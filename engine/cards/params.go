@@ -868,6 +868,11 @@ const (
 	// damage and its ReplaceWith$ body is the rider (The Mindskinner's mill).
 	// CR 615.12 keeps the rider and drops the prevention under can't-prevent.
 	PKPreventionEffect
+	// XColor$ names the colour(s) the {X} part of a cost must be paid with
+	// (Forge's SpellAbility.getXColor; Consume Spirit, Crimson Hellkite).
+	// Read by pay.WithSpellAbilityExtras / AbilityCompiledCost into
+	// rules/cost.Cost.XColors. Appended: earlier ordinals stay stable.
+	PKXColor
 	paramKeyCount
 )
 
@@ -1678,6 +1683,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKSharedKeywordsZone:               "SharedKeywordsZone",
 	PKSharedRestrictions:               "SharedRestrictions",
 	PKPreventionEffect:                 "PreventionEffect",
+	PKXColor:                           "XColor",
 }
 
 // String is the key's Forge text.

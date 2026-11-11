@@ -391,6 +391,9 @@ func addCost(a, b kop.ManaCost) kop.ManaCost {
 		a.Pips[i] += b.Pips[i]
 	}
 	a.X += b.X
+	if a.XPip == 0 {
+		a.XPip = b.XPip // the one XColor$ an added part may carry (CR 107.3)
+	}
 	for i, h := range b.Hyb {
 		if h != 0 {
 			j := hybN(&a)

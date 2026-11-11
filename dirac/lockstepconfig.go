@@ -34,11 +34,9 @@ func LockstepConfig(surface Surface) Config {
 	}
 }
 
-// xFolded is cost with an announced x in its generic part, as the window reads it.
+// xFolded is cost with an announced x folded in, as the window reads it.
 func xFolded(cost kop.ManaCost, x int) kop.ManaCost {
-	cost.Generic += uint8(cost.XGeneric(x))
-	cost.X, cost.XRed = 0, 0
-	return cost
+	return cost.AtX(x)
 }
 
 // xWindowPay pays an announced X through gorge's manual CR 601.2g window, which its
