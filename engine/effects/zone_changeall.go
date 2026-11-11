@@ -271,6 +271,31 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		c.Remembered = nil
 		clearEventRemembered(h, c)
 	}
+	// A sweep whose ChangeType$ reads the source's own choice (ChosenColor,
+	// ChosenType) is matched once, before any card moves (CR 608.2h: the
+	// answer is determined only once, when the effect is applied): the
+	// source's choice is cleared as it leaves the battlefield, so a sweep
+	// that moves its own source first (Dromar, the Banisher returning
+	// itself and every other creature of the chosen colour) must not stop
+	// matching the rest. Keyed by zone, so a card one origin's move puts into
+	// a later origin zone is not visited twice.
+	if triggeredSet == nil && preMatched == nil && changeZoneAllReadsSourceChoice(spec) {
+		type zoneObj struct {
+			z  state.Zone
+			id state.ObjID
+		}
+		pre := make(map[zoneObj]bool)
+		for _, z := range from {
+			for _, p := range players {
+				for _, id := range g.Zone(z, p) {
+					if matches(z, id) {
+						pre[zoneObj{z, id}] = true
+					}
+				}
+			}
+		}
+		matches = func(z state.Zone, id state.ObjID) bool { return pre[zoneObj{z, id}] }
+	}
 	// RandomOrder$ True (Gríma, Saruman's Footman's
 	// "Then that player puts the exiled cards that weren't cast this way on
 	// the bottom of their library in a random order"): the destination
@@ -561,3 +586,15 @@ var effChangeZoneAllCodes = state.NewStrCodes(
 	state.StrEntry[effChangeZoneAllCode]{Key: "", Val: effChangeZoneAllTop},
 	state.StrEntry[effChangeZoneAllCode]{Key: "0", Val: effChangeZoneAllTop},
 )
+
+// changeZoneAllReadsSourceChoice reports whether a ChangeType$ spec reads
+// the source's recorded choice: some "."/"+"/","-separated word is
+// ChosenColor or ChosenType.
+func changeZoneAllReadsSourceChoice(spec string) bool {
+	for _, w := range strings.FieldsFunc(spec, func(r rune) bool { return r == '.' || r == '+' || r == ',' }) {
+		if w == "ChosenColor" || w == "ChosenType" {
+			return true
+		}
+	}
+	return false
+}
