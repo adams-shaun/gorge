@@ -61,4 +61,13 @@ func TestStackExileAnyNumber(t *testing.T) {
 			t.Errorf("%s: refusals %q, want %q", p.name, all, p.want)
 		}
 	}
+
+	// A one-target stack exile (no TargetMin$/TargetMax$) is not this shape.
+	// Like Gale's Redirection it carries RememberChanged, and the earlier
+	// ChangeZone refusal must stay ahead of any later value head.
+	const single = head +
+		"A:SP$ ChangeZone | TargetType$ Spell | ValidTgts$ Card | TgtZone$ Stack | Origin$ Stack | Destination$ Exile | RememberChanged$ True | SpellDescription$ Exile target spell.\n"
+	if _, rs := kwardpowBuild(t, "Trap Probe", single); !strings.Contains(kpaylifexReasons(rs), "ChangeZone Origin$ Stack shape") {
+		t.Errorf("one-target exile: refusals %q, want the ChangeZone shape", kpaylifexReasons(rs))
+	}
 }
