@@ -41,7 +41,8 @@ flowchart LR
   L -. "gorge.jsonl<br/>gorge's snapshots" .-> D
 ```
 
-1. **Play.** gorge plays games with an exploring bot and records every decision.
+1. **Play.** gorge plays games with an exploring bot and records every decision. gorge leads: the other
+   engine replays gorge's choices and never makes its own ([who leads](engine-notes.md#who-leads)).
 2. **Lower.** Each game becomes one whole-game *tape* and one *window* per turn. gorge's own runner
    must reproduce each one before it is sent anywhere.
 3. **Export.** `oraclediff follower-export` asks your runner which cards it lacks, holds back the items
@@ -133,9 +134,9 @@ small, uses evergreen mechanics, and both phase.rs and ManaBrew already support 
 
     Every class, the repro directories, and which results are leads.
 
-- :material-language-rust: **[phase.rs and ManaBrew](engine-notes.md)**
+- :material-language-rust: **[Engine integration notes](engine-notes.md)**
 
-    What we found in each engine, and the hurdles a follower for it has to clear.
+    How Forge and XMage are wired in, which seams their drivers use, and the plans for phase.rs and ManaBrew.
 
 - :material-frequently-asked-questions: **[FAQ](faq.md)**
 

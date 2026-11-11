@@ -10,7 +10,7 @@ import (
 // reason the kernel cannot model it, while the other ExileFromHand<1/CARDNAME>
 // shapes (a non-mana hand ability) keep their own, older refusal.
 func TestSpiritGuideHandManaRefusal(t *testing.T) {
-	const want = "a hand-zone mana ability: the kernel has no manual mana"
+	const want = "a hand-zone mana ability: the kernel has no hand source in its mana window"
 	cs := lowerNamed(t, []string{"Simian Spirit Guide", "Elvish Spirit Guide", "Masked Bandits"})
 	seen := map[string]bool{}
 	for _, c := range cs {
