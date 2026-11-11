@@ -48,14 +48,12 @@ func (lc *lowerCtx) refuseCtrRiderBeside(ms []*lAbility) bool {
 // Rider kinds stored in lMana.Rider and emitted as kop.Ability.ManaRider.
 const (
 	riderNone = iota
-	riderDraw
 	riderDeplete
 	riderOppGainLife
 )
 
 // riderMana reads a mana ability's lowered rider program: the bounded shapes
 // the kernel runs at activation (CR 605.3b).
-//   - a draw (Chromatic Sphere, the eggs): one Draw of N cards to you;
 //   - a depletion sacrifice (Peat Bog, Gemstone Mine): SkipIf the source's own
 //     counter count is not 0, then Sacrifice the source;
 //   - each opponent gains N life (Grove of the Burnwillows).
@@ -70,8 +68,6 @@ func riderMana(ab *lAbility) (kind int, ctr string, n int, ok bool) {
 	case 1:
 		in := &ab.Prog[0]
 		switch {
-		case in.Op == "Draw" && in.Obj.Kind == rYou && in.A.isConst() && in.A.N >= 1:
-			return riderDraw, "", in.A.N, true
 		case in.Op == "GainLife" && in.Obj.Kind == rEachOpp && in.A.isConst() && in.A.N >= 1:
 			return riderOppGainLife, "", in.A.N, true
 		}

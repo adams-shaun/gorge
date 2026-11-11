@@ -602,10 +602,9 @@ LibTopGrave	untyped int	10
 LibTopShuffle	untyped int	4
 LibTopShuffleGrave	untyped int	8
 LibTopShuffleSelf	untyped int	5
-ManaRiderDeplete	uint8	2
-ManaRiderDraw	uint8	1
+ManaRiderDeplete	uint8	1
 ManaRiderNone	uint8	0
-ManaRiderOppGainLife	uint8	3
+ManaRiderOppGainLife	uint8	2
 MaxSubtypes	untyped int	192
 MaxTargets	untyped int	5
 MayGuardAnimateAll	untyped int	7

@@ -4,7 +4,6 @@
 # dirac/mana_rider_test.go plays it.
 Twitching Doll
 Forest
-Chromatic Sphere
 Gemstone Mine
 Grove of the Burnwillows
 Hickory Woodlot
@@ -12,8 +11,6 @@ Peat Bog
 Remote Farm
 Sandstone Needle
 Saprazzan Skerry
-Shadowblood Egg
-Skycloud Egg
 Island
 Mountain
 Plains

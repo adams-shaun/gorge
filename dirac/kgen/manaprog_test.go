@@ -7,7 +7,7 @@ import (
 
 // TestManaRiderRefused (kmanaprog): a mana ability whose chain carries a
 // conditional rider the kernel does not model (Avid Reclaimer's Nissa clause)
-// is refused; the bounded draw, depletion and opponent-life riders lower
+// is refused; the bounded depletion and opponent-life riders lower
 // (riderMana, TestManaRiderProgram).
 func TestManaRiderRefused(t *testing.T) {
 	want := map[string]bool{"Avid Reclaimer": true, "Eumidian Hatchery": true}

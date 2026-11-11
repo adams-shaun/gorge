@@ -7,10 +7,10 @@ import (
 
 // TestManaRiderProgram: a plain {T} any-colour mana ability whose rider puts
 // a counter on its own source (Twitching Doll) lowers with the rider as its
-// program, and a bounded draw rider (Chromatic Sphere) lowers too; a rider of
-// another shape (Eumidian Hatchery's counter beside a life cost) is refused.
+// program; a rider of another shape (Eumidian Hatchery's counter beside a
+// life cost) is refused.
 func TestManaRiderProgram(t *testing.T) {
-	want := map[string]bool{"Twitching Doll": true, "Chromatic Sphere": true, "Eumidian Hatchery": false}
+	want := map[string]bool{"Twitching Doll": true, "Eumidian Hatchery": false}
 	var names []string
 	for n := range want {
 		names = append(names, n)
@@ -43,10 +43,6 @@ func TestManaRiderProgram(t *testing.T) {
 				}
 				if !found {
 					t.Errorf("%s: no ability is the counter-rider mana shape", c.Name)
-				}
-			case "Chromatic Sphere":
-				if !strings.Contains(sb.String(), "Draw") {
-					t.Errorf("%s: the draw rider is missing:\n%s", c.Name, sb.String())
 				}
 			}
 		} else if !refused {

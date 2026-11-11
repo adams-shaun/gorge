@@ -10,6 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/botpolicy"
 	"github.com/adams-shaun/gorge/bots/spellbench/payexec"
 	"github.com/adams-shaun/gorge/dirac"
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules"
@@ -189,10 +190,13 @@ type frame struct {
 // Mana effect (a loyalty ability, Chandra, Hope's Beacon's [+2]; a spell or a
 // triggered/sub ability, Realm-Scorcher Hellkite; CR 106.3, 605.1a): not the
 // colour ask of a mana ability activated while paying (Kind "AB", no
-// Planeswalker param), which the harness answers itself.
+// Planeswalker param), which the harness answers itself. An AB$ Mana that is
+// no mana ability (its chain draws: Chromatic Sphere, the eggs) resolves on
+// the stack, so its colour ask is a resolving one.
 func manaChoiceResolving(d *decision.Decision) bool {
 	return d.Kind == decision.KChoose && d.ResumeKind == "mana_color" && d.ResumeSA != nil &&
-		(d.ResumeSA.Kind != "AB" || strings.TrimSpace(d.ResumeSA.Params["Planeswalker"]) == "True")
+		(d.ResumeSA.Kind != "AB" || strings.TrimSpace(d.ResumeSA.Params["Planeswalker"]) == "True" ||
+			!cards.IsManaAbilitySA(d.ResumeSA))
 }
 
 // convokeFrame is the absorption budget of a convoke announcement: one

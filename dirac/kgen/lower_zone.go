@@ -3742,9 +3742,12 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 	}
 	ab.Mana = m
 	ps.consume("SubAbility")
-	if ab.Loyalty {
+	if stack := lc.stackManaAbility(sa, ab); ab.Loyalty || stack {
 		// A loyalty ability is never a mana ability (CR 605.1a): Chandra's
-		// +2 adds its mana on resolution.
+		// +2 adds its mana on resolution. Nor is an AB$ Mana whose cost or
+		// chain draws or mills (movesLibraryCard: Chromatic Sphere, the
+		// eggs): gorge puts it on the stack and its resolution adds the mana
+		// and runs the chain (lower_stackmana.go).
 		if m.RestrictAb != nil || m.NonSpell {
 			// the resolution's AddMana floats a spell restriction only
 			// (State.rb): an activated-ability or non-spell one has no carrier
@@ -3752,12 +3755,20 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 		}
 		ab.Kind = akActivated
 		ab.Mana = nil
-		if m.Each {
+		if m.Each && !stack {
 			// Lukka's +1 {R}{G}: the resolution's AddMana floats one colour
 			// of a restriction (State.rb); several at once have no carrier
 			return refuse("loyalty ability adding several colours at once")
 		}
-		if m.Choice || len(m.Colors) > 1 {
+		if m.Each {
+			// an unrestricted all-at-once production: one AddMana per colour
+			if m.Restrict != nil || !amt.isConst() || amt.N < 1 {
+				return refuse("stack mana ability adding several colours under a restriction")
+			}
+			for i := 0; i < len(m.Colors); i++ {
+				lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors[i : i+1]})
+			}
+		} else if m.Choice || len(m.Colors) > 1 {
 			// a colour choice at resolution (gorge askManaChoice): one pick
 			// per mana of a Combo, one for the whole amount of Any; the
 			// kernel's AddMana takes the mask's last colour, no choice

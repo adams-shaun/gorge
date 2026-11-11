@@ -819,7 +819,7 @@ func (lc *lowerCtx) refuseEachMana(ms []*lAbility) bool {
 			// Gutsy Explorer; Tin Street Gossip's Static.isTurnFaceUp clause)
 			// is a restricted planner unit (kernel mana_restrictedsource.go).
 			lc.refuseNode("card", "mana ability adding several colours at once under a spend restriction")
-		case !plainTapMana(a, false) && !ctrEachMana(a) && !filtEachMana(a) && !sacEachMana(a) && !riderEachMana(a):
+		case !plainTapMana(a, false) && !ctrEachMana(a) && !filtEachMana(a) && !sacEachMana(a):
 			// gorge's planner defers any cost beyond {T} (a filter's fee, a
 			// sacrifice of another permanent, removed counters): a census gap.
 			// The kernel's gap searches model the counter removal (ctrEachMana),
@@ -876,32 +876,6 @@ func sacEachMana(a *lAbility) bool {
 	for i := 0; i < len(m.Colors); i++ {
 		if strings.IndexByte(m.Colors[i+1:], m.Colors[i]) >= 0 {
 			return false // a duplicated colour (one colour twice): gorge's relaxed production differs
-		}
-	}
-	return true
-}
-
-// riderEachMana: a is "{N}, {T}, sacrifice this: Add {c1}{c2}..., draw a
-// card" (Shadowblood Egg, Skycloud Egg): the eggs' all-at-once production
-// behind a sacrifice, a generic fee and a draw rider. gorge's planner defers
-// the source (its rider); the kernel's rider gap pays the fee, sacrifices,
-// floats both colours and draws (mana_rider.go).
-func riderEachMana(a *lAbility) bool {
-	m := a.Mana
-	if m == nil || m.Rider != riderDraw || !m.Each || !a.Cost.Tap || !a.Cost.SacSelf || a.Cost.Sac != nil || a.Cost.SacN != 0 {
-		return false
-	}
-	if a.Cost.Mana.X || a.Cost.Mana.Generic < 1 || a.Cost.Mana.Pips != [5]int{} || len(a.Cost.Mana.Hybrid) != 0 ||
-		len(a.Cost.Mana.Twobrid) != 0 || len(a.Cost.Mana.Phyrexian) != 0 || a.Cost.Mana.C != 0 || a.Cost.Mana.None {
-		return false
-	}
-	if m.Choice || m.Restrict != nil || m.RestrictAb != nil || m.NonSpell || !m.Amount.isConst() || m.Amount.N != 1 ||
-		len(m.Colors) < 2 || strings.Trim(m.Colors, "WUBRG") != "" || a.TurnOnce || a.Limit != 0 || a.Sorcery || a.Latent {
-		return false
-	}
-	for i := 0; i < len(m.Colors); i++ {
-		if strings.IndexByte(m.Colors[i+1:], m.Colors[i]) >= 0 {
-			return false
 		}
 	}
 	return true

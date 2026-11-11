@@ -128,16 +128,15 @@ type Ability struct {
 	// haste until end of turn as it enters (0 = no rider). A table field.
 	ManaHasteValid FilterID
 	// ManaRider is the rider a mana ability runs with its mana (CR 605.3b):
-	// a draw (Chromatic Sphere), a self-sacrifice once its last counter is
-	// gone (Peat Bog), or each opponent gaining life (Grove of the
-	// Burnwillows). ManaRiderNone = no rider. A table field, not State;
+	// a self-sacrifice once its last counter is gone (Peat Bog), or each
+	// opponent gaining life (Grove of the Burnwillows). ManaRiderNone = no rider. A table field, not State;
 	// dirac mana_rider.go runs it at activation.
 	ManaRider uint8
 	// ManaRiderCtr is the source's own counter kind a deplete rider reads
 	// (ManaRiderDeplete): the ability is sacrificed once that count is 0.
 	ManaRiderCtr CounterKind
-	// ManaRiderN is the count a draw or life rider uses (ManaRiderDraw,
-	// ManaRiderOppGainLife). A table byte.
+	// ManaRiderN is the count a life rider uses (ManaRiderOppGainLife). A
+	// table byte.
 	ManaRiderN uint8
 	// RepMax: a charm that may choose a mode more than once (CanRepeatModes$)
 	// has RepMax[m] > 0, the most times mode m can be chosen. stackEntry.mode
@@ -164,7 +163,6 @@ const (
 // its mana (CR 605.3b).
 const (
 	ManaRiderNone        uint8 = iota
-	ManaRiderDraw              // draw ManaRiderN cards
 	ManaRiderDeplete           // sacrifice the source once its ManaRiderCtr count is 0
 	ManaRiderOppGainLife       // each opponent gains ManaRiderN life
 )
@@ -372,8 +370,6 @@ func SacXEachManaAb(a *Ability) bool {
 //   - a bare {T} (Grove of the Burnwillows' life rider, Twitching Doll's
 //     counter rider);
 //   - {T} + remove N counters from the source (the depletion lands);
-//   - {N}, {T}, sacrifice this (Chromatic Sphere and the eggs), the fee paid
-//     from the floating pool.
 func riderManaCostOK(a *Ability) bool {
 	f := a.Cost.Flags
 	switch {
@@ -381,8 +377,6 @@ func riderManaCostOK(a *Ability) bool {
 		return a.Cost.Mana.MV() == 0
 	case f == CostTap|CostRemoveCtr:
 		return a.Cost.N > 0 && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
-	case f == CostTap|CostSacSelf:
-		return a.Cost.Mana.X == 0 && a.Cost.Mana.Hyb[0] == 0 && a.Cost.Mana.Tb == 0
 	}
 	return false
 }

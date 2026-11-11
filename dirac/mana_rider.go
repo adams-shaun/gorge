@@ -130,7 +130,7 @@ func (s *State) riderAbilityOf(k *prep, sl Slot) (*kop.Ability, bool) {
 
 // riderActivatable reports whether the bounded rider ability a of the source at
 // sl can be activated now: untapped (and not summoning sick when its cost taps
-// a creature), its own counters enough, and its generic fee in the pool.
+// a creature) and its own counters enough.
 func (s *State) riderActivatable(k *prep, p uint8, sl Slot, a *kop.Ability) bool {
 	if !s.occ.has(sl) || s.genLost(k, sl) || s.activationSick(k, sl) ||
 		k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) {
@@ -143,53 +143,15 @@ func (s *State) riderActivatable(k *prep, p uint8, sl Slot, a *kop.Ability) bool
 	if a.Cost.Flags&kop.CostRemoveCtr != 0 && pm.ctrN(s, int(a.Cost.Ctr)) < int(a.Cost.N) {
 		return false
 	}
-	if a.Cost.Mana.Generic > 0 && s.poolTotal(p) < int(a.Cost.Mana.Generic) {
-		return false
-	}
 	return true
 }
 
-// poolTotal is p's floating mana, every colour: a generic activation fee can
-// spend any of it.
-func (s *State) poolTotal(p uint8) int {
-	n := 0
-	for c := 0; c < kop.NumManaKinds; c++ {
-		n += int(s.pl[SeatIx(p)].pool[c])
-	}
-	return n
-}
-
-// payPoolGeneric spends n generic mana from p's pool in gorge's order
-// C W U B R G (pay/solve.go ResolveManaWith), and reports whether it could.
-func (s *State) payPoolGeneric(p uint8, n int) bool {
-	if n <= 0 {
-		return true
-	}
-	pl := &s.pl[SeatIx(p)]
-	if s.poolTotal(p) < n {
-		return false
-	}
-	for _, c := range [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G} {
-		for n > 0 && pl.pool[c] > 0 {
-			pl.pool[c]--
-			n--
-		}
-	}
-	if s.g.poolArt[SeatIx(p)]|s.fbR[SeatIx(p)]|(s.pmOn>>SeatIx(p))&1 != 0 {
-		s.artSync(p) // (payFromPool's bookkeeping)
-	}
-	return true
-}
-
-// riderGap activates the bounded rider source at sl for p: its fee and
-// counters, its tap, a self-sacrifice cost, its mana, then its rider (CR
-// 605.3b). answer is the colour answer index among the production's bits.
+// riderGap activates the bounded rider source at sl for p: its counters, its
+// tap, its mana, then its rider (CR 605.3b). answer is the colour answer index among the
+// production's bits.
 func (s *State) riderGap(k *prep, p uint8, sl Slot, answer int) bool {
 	a, ok := s.riderAbilityOf(k, sl)
 	if !ok || !s.riderActivatable(k, p, sl, a) {
-		return false
-	}
-	if !s.payPoolGeneric(p, int(a.Cost.Mana.Generic)) {
 		return false
 	}
 	pm := &s.perms[sl]
@@ -202,26 +164,9 @@ func (s *State) riderGap(k *prep, p uint8, sl Slot, answer int) bool {
 		s.touchSl(sl)
 		s.manaTapped(k, sl)
 	}
-	if a.Cost.Flags&kop.CostSacSelf != 0 {
-		s.sacrificeManaSource(k, sl)
-	}
 	s.manaRiderFloat(k, p, sl, a, answer)
 	s.manaRiderEffect(k, sl, a)
 	return true
-}
-
-// sacrificeManaSource sacrifices the permanent at sl as a mana ability's cost
-// (Chromatic Sphere, the eggs): the sacrifice and leave triggers fire, a token
-// ceases at the cast's boundary, and the post-mana state-based check runs.
-func (s *State) sacrificeManaSource(k *prep, sl Slot) {
-	o := s.perms[sl].obj
-	s.fireSac(k, sl)
-	s.leave(k, sl, kop.ZoneGraveyard, false)
-	if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && s.buildLive() &&
-		(s.ctl != ctlBuild || s.bld().bfl&bflManaStep == 0) {
-		s.ceaseManaToken(o)
-	}
-	s.sbaAfterManaSacrifice(k)
 }
 
 // riderAnswerBit is the index of colour col among mask's bits (the script's
@@ -278,19 +223,11 @@ func (s *State) manaRiderFloat(k *prep, p uint8, sl Slot, a *kop.Ability, answer
 	s.artTag(k, p, sl, col)
 }
 
-// manaRiderEffect runs a's rider after its mana (CR 605.3b): a draw, the
+// manaRiderEffect runs a's rider after its mana (CR 605.3b): the
 // source's sacrifice once its last counter is gone, or each opponent gaining
 // life.
 func (s *State) manaRiderEffect(k *prep, sl Slot, a *kop.Ability) {
 	switch a.ManaRider {
-	case kop.ManaRiderDraw:
-		n := int(a.ManaRiderN)
-		if n < 1 {
-			n = 1
-		}
-		for i := 0; i < n && !s.over; i++ {
-			s.draw(s.perms[sl].ctrl)
-		}
 	case kop.ManaRiderDeplete:
 		if s.perms[sl].ctrN(s, int(a.ManaRiderCtr)) == 0 {
 			s.fireSac(k, sl)

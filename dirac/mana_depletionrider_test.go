@@ -36,9 +36,8 @@ func riderBoard(t *testing.T, cfg Config, names ...string) (*scen, map[string]Ca
 
 // TestManaRiderActivation: the bounded riders run with the ability's mana at
 // activation (CR 605.3b): a depletion land removes one counter, adds its
-// production and sacrifices itself on the last counter; Chromatic Sphere and
-// the eggs pay their fee, sacrifice as a cost, add their mana and draw; Grove
-// of the Burnwillows' second ability gives each opponent 1 life.
+// production and sacrifices itself on the last counter; Grove of the
+// Burnwillows' second ability gives each opponent 1 life.
 func TestManaRiderActivation(t *testing.T) {
 	t.Run("depletion land", func(t *testing.T) {
 		sc, _, objs := riderBoard(t, Config{}, "Peat Bog")
@@ -94,42 +93,6 @@ func TestManaRiderActivation(t *testing.T) {
 		}
 		if !sc.onBF(o) {
 			t.Fatal("Gemstone Mine left the battlefield with counters left")
-		}
-	})
-	t.Run("chromatic sphere", func(t *testing.T) {
-		sc, _, objs := riderBoard(t, Config{}, "Chromatic Sphere")
-		o, sl := objs["Chromatic Sphere"], sc.slot(objs["Chromatic Sphere"])
-		sc.s.pl[0].pool[kop.G] = 1 // the {1}
-		hand := sc.s.pl[0].handN
-		if !sc.s.riderGap(sc.k, 0, sl, 0) { // the first answer: W
-			t.Fatal("activation refused")
-		}
-		if sc.onBF(o) || sc.s.objs[o].zone != kop.ZoneGraveyard {
-			t.Fatal("Chromatic Sphere was not sacrificed as its cost")
-		}
-		if got := sc.s.pl[0].pool[kop.W]; got != 1 {
-			t.Fatalf("{W} in pool %d, want 1", got)
-		}
-		if got := sc.s.pl[0].handN; got != hand+1 {
-			t.Fatalf("hand %d after the rider, want %d", got, hand+1)
-		}
-	})
-	t.Run("egg", func(t *testing.T) {
-		sc, _, objs := riderBoard(t, Config{}, "Shadowblood Egg")
-		o, sl := objs["Shadowblood Egg"], sc.slot(objs["Shadowblood Egg"])
-		sc.s.pl[0].pool[kop.G] = 2 // the {2}
-		hand := sc.s.pl[0].handN
-		if !sc.s.riderGap(sc.k, 0, sl, 0) {
-			t.Fatal("activation refused")
-		}
-		if sc.onBF(o) || sc.s.objs[o].zone != kop.ZoneGraveyard {
-			t.Fatal("Shadowblood Egg was not sacrificed as its cost")
-		}
-		if sc.s.pl[0].pool[kop.B] != 1 || sc.s.pl[0].pool[kop.R] != 1 {
-			t.Fatalf("pool B %d R %d, want one of each", sc.s.pl[0].pool[kop.B], sc.s.pl[0].pool[kop.R])
-		}
-		if got := sc.s.pl[0].handN; got != hand+1 {
-			t.Fatalf("hand %d after the rider, want %d", got, hand+1)
 		}
 	})
 	t.Run("grove", func(t *testing.T) {
