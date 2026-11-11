@@ -32,10 +32,11 @@ func rollModifyLife(cost string) (int32, bool) {
 
 // RollModifyCostPayable reports whether p can pay cost now: a PayLife<N> with
 // life of at least N (CR 119.4) while no static forbids the life payment
-// (CR 119.7/119.8).
+// (CR 119.7/119.8); a die-roll cost is not a spell or activated ability, so a
+// cause-scoped CantPayLife line does not reach it.
 func RollModifyCostPayable(e Engine, p state.PlayerID, cost string) bool {
 	n, ok := rollModifyLife(cost)
-	return ok && int(p) < len(e.Game().Players) && !e.Eval().LifeChangeForbidden(p) && e.Game().Players[p].Life >= n
+	return ok && int(p) < len(e.Game().Players) && !e.Eval().LifePaymentForbidden(p, SAOther) && e.Game().Players[p].Life >= n
 }
 
 // PayRollModifyCost pays cost from p's life through the pay-life proposal
