@@ -784,11 +784,15 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet) {
 			av.addUnits(1<<i, pl.pool[i])
 		}
 	}
+	defer_ := s.deferLive(k)
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		pm := &s.perms[sl]
 		if sl == ex || pm.flags&pfTapped != 0 || s.grantMay(k, sl) && s.manaGranted(k, sl) {
 			continue
+		}
+		if defer_ && s.planDeferred(k, p, sl) {
+			continue // the census never lists a deferred source (mana_rider.go)
 		}
 		pc := s.manaPCGen(k, sl)
 		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || !s.canTapForManaPC(k, sl, pc) {

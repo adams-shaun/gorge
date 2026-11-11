@@ -891,6 +891,10 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		// CR 303.4f: Meathook Massacre II returns Duskmourn's Domination under
 		// its controller, who is asked its host with the control already moved
 		{"gain_control_aura_return_host_ask_controller", false, false},
+		// CR 601.2g, 605.3b: the grant search prices each step on the census,
+		// which never lists Twitching Doll's counter-rider mana, so Cynical
+		// Loner's prefix taps Overlord of the Hauntwoods for the {B} first
+		{"grant_prefix_census_skips_rider_source", false, false},
 	})
 }
 
