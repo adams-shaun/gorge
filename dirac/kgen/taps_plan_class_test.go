@@ -1,7 +1,6 @@
 package kgen
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -40,19 +39,13 @@ func TestTapsPlanClass(t *testing.T) {
 		}
 	}
 	// the corpus shapes: Judge of Currents defers, Hawkeye's Bow is ordinary,
-	// Captain America's FirstTime$ line stays refused
+	// Captain America's FirstTime$ untap body defers the source like Judge of Currents
 	for _, c := range lowerNamed(t, []string{"Judge of Currents", "Hawkeye's Bow", "Captain America, Living Legend"}) {
-		if c.Name == "Captain America, Living Legend" {
-			seen := false
-			for _, r := range c.Refusals {
-				seen = seen || strings.Contains(r.Reason, "Taps FirstTime$")
-			}
-			if !seen {
-				t.Errorf("%s: no Taps FirstTime$ refusal", c.Name)
-			}
+		if len(c.Refusals) > 0 {
+			t.Errorf("%s: refused: %v", c.Name, c.Refusals)
 			continue
 		}
-		want := map[string]uint8{"Judge of Currents": uint8(kop.TapPlanDefer), "Hawkeye's Bow": uint8(kop.TapPlanOrdinary)}[c.Name]
+		want := map[string]uint8{"Judge of Currents": uint8(kop.TapPlanDefer), "Hawkeye's Bow": uint8(kop.TapPlanOrdinary), "Captain America, Living Legend": uint8(kop.TapPlanDefer)}[c.Name]
 		found := false
 		for _, a := range c.Abilities {
 			if a.Trigger != nil && a.Trigger.Event == "Taps" {
