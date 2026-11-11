@@ -41,6 +41,7 @@ const (
 	gfTapsPain                       // a TrigTaps watcher classed kop.TapPlanPain: its tapped mana source is a last-resort unit (mana_tapsdefer.go)
 	gfEtbOrder                       // the card's own enter body is exactly one prepared line the CR 616.1 entry-order ask orders (repl_etborder.go)
 	gfManaDynPair                    // a plain {T} mana ability beside an evaluated one of its colour: varPC holds one view per count (mana_dynpair.go)
+	gfDiscHand                       // a discard-hand, sacrifice-this, instant-only mana ability (Lion's Eye Diamond): a prefix-search gap alone (mana_discardhand.go)
 )
 
 // cardSmall is a card's sparse generated-table values, all -1 when absent.
