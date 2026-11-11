@@ -13,8 +13,11 @@ import (
 // addPhase lowers DB$ AddPhase as OpExt ExtAddPhase: A the NumPhases$ count,
 // C the kind | splice point << 4. The (kind, splice point) pairs the kernel
 // walk reproduces: a combat or an upkeep after end of combat, an end step
-// after the end step. ConditionPhases$ (Full Throttle, Great Train Heist) is
-// not lowered: both cards stay refused for another part of the card.
+// after the end step, and (addPhaseFollowedBy) a combat FollowedBy$ Main2
+// spliced after the main phase it resolves in, with AfterPhase$ omitted and
+// its ConditionPhases$ Main1,Main2 gate lowered. Any other ConditionPhases$
+// (Full Throttle, Great Train Heist) is not lowered: both cards stay refused
+// for another part of the card.
 func (lc *lowerCtx) addPhase(ps *params) error {
 	for _, k := range []string{"ExtraPhaseDelayedTrigger", "ExtraPhaseDelayedTriggerExcute", "BeforeFirstPostCombatMainEnd"} {
 		if _, ok := ps.m[k]; ok {
@@ -42,8 +45,9 @@ func (lc *lowerCtx) addPhase(ps *params) error {
 	case "End of Turn":
 		after = int(kop.StepEnd)
 	default:
-		// the omitted form splices after the step the grant resolves in
-		// (Full Throttle, refused for its Effect); no other spelling lowers
+		// without FollowedBy$ the omitted form (splice after the step the
+		// grant resolves in: Full Throttle, refused for its Effect) does not
+		// lower; no other spelling does either
 		return refuse("AddPhase AfterPhase$ %q", ap)
 	}
 	switch {

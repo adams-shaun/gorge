@@ -36,8 +36,10 @@ import (
 // phase as a one-step grant that resumes at the ordinary combat; here the
 // entry stays queued with bit 7 set for the main phase and resumes at its
 // splice point's successor. The kind holds the queue to its own entry: any
-// other grant beside it is a loud stall (the interleavings of gorge's
-// scan are not reproduced).
+// other grant beside it, a grant outside a main phase, or n > 1 is a loud
+// StallLowering (the interleavings of gorge's scan are not reproduced; an
+// unmodelled rule, not a capacity limit). StallAddPhase is the queue's
+// capacity alone.
 //
 // The walk is advance's alone (as gorge's is advanceStep's tail): the jumps
 // outside it (declare attackers with no attacker, regular combat damage to
@@ -134,13 +136,13 @@ func (s *State) addPhaseGrant(k *prep, in *kop.Instr) {
 		// (the lowering's ConditionPhases$ gate keeps it there)
 		at = uint8(s.step) | kop.AddPhaseCombatMain<<4
 		if s.step != kop.StepMain1 && s.step != kop.StepMain2 || g.nxph > 0 || n > 1 {
-			s.capFull(StallAddPhase)
+			s.capFull(StallLowering) // an interleaving gorge's scan plays that the kernel does not reproduce: not a capacity limit
 			return
 		}
 	} else {
 		for i := 0; i < int(g.nxph); i++ {
 			if g.xph[i].at>>4&3 == kop.AddPhaseCombatMain {
-				s.capFull(StallAddPhase)
+				s.capFull(StallLowering) // another grant beside a CombatMain entry: unmodelled, not a capacity limit
 				return
 			}
 		}

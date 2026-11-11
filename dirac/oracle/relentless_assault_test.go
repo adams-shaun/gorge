@@ -3,6 +3,7 @@ package oracle
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -24,15 +25,20 @@ type relentlessAssaultCase struct {
 	repro string
 	main  state.Step // the main phase the spell is cast in
 	steps []state.Step
+	// extraMainCast: a Raging Goblin is cast in the additional main phase,
+	// before the ordinary combat it then attacks in. That priority decision
+	// exists only if the kernel walks into that main phase, so the lockstep
+	// compares the walk there, not only the extra combat.
+	extraMainCast bool
 }
 
 var relentlessAssaultCases = []relentlessAssaultCase{
 	// Main1, extra combat, extra main, the ordinary combat, Main2, End
 	{"relentless_assault_cast_precombat_runs_before_the_ordinary_combat", state.StepMain1,
-		[]state.Step{state.StepBeginCombat, state.StepEndCombat, state.StepMain2, state.StepBeginCombat, state.StepEndCombat, state.StepMain2, state.StepEnd}},
+		[]state.Step{state.StepBeginCombat, state.StepEndCombat, state.StepMain2, state.StepBeginCombat, state.StepEndCombat, state.StepMain2, state.StepEnd}, true},
 	// Main2, extra combat, extra main, End
 	{"relentless_assault_cast_postcombat_adds_a_last_main_phase", state.StepMain2,
-		[]state.Step{state.StepBeginCombat, state.StepEndCombat, state.StepMain2, state.StepEnd}},
+		[]state.Step{state.StepBeginCombat, state.StepEndCombat, state.StepMain2, state.StepEnd}, false},
 }
 
 func relentlessAssaultDecks() [2][]string {
@@ -45,7 +51,9 @@ func relentlessAssaultDecks() [2][]string {
 // relentlessAssaultReached: the card's grant was made in the case's main phase
 // (the extra combat, FollowedBy$ the second main phase), and the steps that
 // followed it in that turn, restricted to the combat ends, the second main
-// phase and the end step, are exactly want.
+// phase and the end step, are exactly want. With extraMainCast a Raging Goblin
+// was also put on the stack in the additional main phase (the third of those
+// steps). Any of the game's grants may be the one that does.
 func relentlessAssaultReached(g *GorgeSide, c relentlessAssaultCase) bool {
 	ev := g.E.L.Events
 	for i, e := range ev {
@@ -58,7 +66,11 @@ func relentlessAssaultReached(g *GorgeSide, c relentlessAssaultCase) bool {
 			continue
 		}
 		var got []state.Step
+		cast := false
 		for _, s := range ev[i+1:] {
+			if s.Kind == events.PutOnStack && len(got) == 3 && isGoblin(g, s.Obj) {
+				cast = true
+			}
 			if s.Kind != events.StepChange {
 				continue
 			}
@@ -70,57 +82,87 @@ func relentlessAssaultReached(g *GorgeSide, c relentlessAssaultCase) bool {
 				break
 			}
 		}
-		if len(got) < len(c.steps) {
-			return false
+		if len(got) >= len(c.steps) && (cast || !c.extraMainCast) && slices.Equal(got[:len(c.steps)], c.steps) {
+			return true
 		}
-		for j, w := range c.steps {
-			if got[j] != w {
-				return false
-			}
-		}
-		return true
 	}
 	return false
 }
 
-// relentlessAssaultPolicy plays a land, casts a Raging Goblin, attacks with
-// every creature, and casts Relentless Assault in the case's main phase.
-func relentlessAssaultPolicy(m *Matchup, main state.Step) Policy {
-	return PolicyFunc(func(c *PickCtx) Canon {
-		switch c.D.Kind {
+// relentlessAssaultPolicy plays a land, casts Relentless Assault in the
+// case's main phase, else a Raging Goblin in the first main phase (with
+// extraMainCast only the first two, the others in a second main phase of a
+// turn with a grant), and attacks with every creature.
+func relentlessAssaultPolicy(m *Matchup, c relentlessAssaultCase) Policy {
+	return PolicyFunc(func(p *PickCtx) Canon {
+		switch p.D.Kind {
 		case DPriority:
-			if c.G != nil {
-				for _, o := range c.D.Options {
-					if o.Kind() != ActCast {
-						continue
-					}
-					switch name := m.InstanceCard(int(o.Src())); {
-					case name == "Raging Goblin" && c.G.E.G.Step == state.StepMain1:
-						return o
-					case name == relentlessAssaultName && c.G.E.G.Step == main:
-						return o
+			if p.G != nil {
+				step := p.G.E.G.Step
+				goblin := step == state.StepMain1 && (!c.extraMainCast || goblinsCast(p.G) < 2) ||
+					c.extraMainCast && step == state.StepMain2 && grantedThisTurn(p.G)
+				for _, want := range [...]bool{true, false} { // Relentless Assault first
+					for _, o := range p.D.Options {
+						if o.Kind() != ActCast {
+							continue
+						}
+						name := m.InstanceCard(int(o.Src()))
+						if want && name == relentlessAssaultName && step == c.main || !want && name == "Raging Goblin" && goblin {
+							return o
+						}
 					}
 				}
 			}
-			for _, o := range c.D.Options {
+			for _, o := range p.D.Options {
 				if o.Kind() == ActPlayLand {
 					return o
 				}
 			}
-			for _, o := range c.D.Options {
+			for _, o := range p.D.Options {
 				if o.Kind() == ActPass {
 					return o
 				}
 			}
 		case DAttackers:
-			for _, o := range c.D.Options {
+			for _, o := range p.D.Options {
 				if o.Kind() == ActAttack {
 					return o
 				}
 			}
 		}
-		return c.D.Options[0]
+		return p.D.Options[0]
 	})
+}
+
+func isGoblin(g *GorgeSide, id state.ObjID) bool {
+	o := g.E.G.Obj(id)
+	return o != nil && o.Face() != nil && o.Face().Name == "Raging Goblin"
+}
+
+// goblinsCast counts the Raging Goblins cast this game; with extraMainCast
+// the policy casts two in first main phases and keeps the rest in hand for an
+// additional main phase.
+func goblinsCast(g *GorgeSide) int {
+	n := 0
+	for _, e := range g.E.L.Events {
+		if e.Kind == events.PutOnStack && isGoblin(g, e.Obj) {
+			n++
+		}
+	}
+	return n
+}
+
+// grantedThisTurn: an extra phase was granted this turn (the second main
+// phase is then the additional one or follows it), so the policy keeps a
+// Raging Goblin for it.
+func grantedThisTurn(g *GorgeSide) bool {
+	ev := g.E.L.Events
+	for i := len(ev) - 1; i >= 0 && ev[i].Kind != events.TurnChange; i-- {
+		if ev[i].Kind == events.ExtraPhase && ev[i].Amount > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // TestRelentlessAssaultReproRecord plays the policy until a game reaches each
@@ -160,7 +202,7 @@ func TestRelentlessAssaultReproRecord(t *testing.T) {
 			reached := false
 			rc := RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 20}
 			rc.Finish = func(g *GorgeSide) { reached = relentlessAssaultReached(g, c) }
-			res := Lockstep(m, r.Seed, k, relentlessAssaultPolicy(m, c.main), rc)
+			res := Lockstep(m, r.Seed, k, relentlessAssaultPolicy(m, c), rc)
 			CloseSide(k)
 			if res.Div != nil {
 				t.Fatalf("%s seed %d: divergence at %d: %s %s %v", c.repro, seed, res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
