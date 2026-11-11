@@ -394,6 +394,19 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 	switch {
 	case t.LKIDiv:
 		ts.Divide = kop.DivLKIP1P1 // the kernel bounds the slot 0..X itself
+	case t.Divided == kop.DivValue && minC && maxC && t.Min.N == 0 && t.Max.N >= 1 && t.Max.N < 255 && !t.AtRes:
+		// "up to N targets" over a value total (Shatterskull Smashing's two,
+		// the total X or 2X): the maximum is min(N, total), so the slot is
+		// bounds-valued and tgtBoundsV clamps it to the total.
+		var err error
+		if ts.MinV, err = cb.value(t.Min); err != nil {
+			return ts, err
+		}
+		if ts.MaxV, err = cb.value(t.Max); err != nil {
+			return ts, err
+		}
+		ts.TFlags |= kop.TgfBoundsV
+		ts.UpTo = true
 	case minC && maxC && t.Min.N == 1 && t.Max.N == 1:
 	case minC && maxC && t.Min.N == 0 && t.Max.N == 1:
 		ts.UpTo = true
@@ -508,7 +521,7 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 			if t.DividedV.Kind == vNone {
 				return ts, fmt.Errorf("divided slot without a value total")
 			}
-			if !tgtBoundReads(t.DividedV) {
+			if !divTotalReads(t.DividedV) {
 				return ts, fmt.Errorf("divided total %s is not evaluable at the announcement", t.DividedV)
 			}
 			if ts.DivideV, err = cb.value(t.DividedV); err != nil {
@@ -576,6 +589,19 @@ func tgtBoundV(v lValue, isMin bool) bool {
 // plainX reports whether v is the announced X itself.
 func plainX(v lValue) bool {
 	return v.Kind == vX && v.Mul == 0 && v.Div == 0 && v.Add == 0 && !v.Neg && len(v.Sub) == 0
+}
+
+// divTotalReads is tgtBoundReads widened to a divided total's
+// "Count$Compare X LT6.X.Z" (Shatterskull Smashing's twice X from 6): a
+// comparison of a bound-readable value whose two arms are bound-readable.
+func divTotalReads(v lValue) bool {
+	if v.Kind == vCompare {
+		if len(v.Sub) != 2 || v.Sub[1].Kind != vBranches || len(v.Sub[1].Sub) != 2 {
+			return false
+		}
+		return tgtBoundReads(v.Sub[0]) && divTotalReads(v.Sub[1].Sub[0]) && divTotalReads(v.Sub[1].Sub[1])
+	}
+	return tgtBoundReads(v)
 }
 
 func tgtBoundReads(v lValue) bool {

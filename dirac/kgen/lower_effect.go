@@ -2447,16 +2447,21 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 		}
 		if dv.isConst() {
 			lc.ab.Targets[obj.N].Divided = dv.N
-		} else if sameValue(dv, lc.ab.Targets[obj.N].Max) {
-			// A value total (Ureni's land count) is read where the ability is
-			// put on the stack, exactly where gorge's divisionTotalFor reads
-			// DividedAsYouChoose$ (CR 601.2d, 603.3d). The slot's TargetMax$
-			// must be that same value: gorge clamps a divided slot's target
-			// count to the announced total, and the kernel does not.
+		} else if mn := lc.ab.Targets[obj.N].Min; !mn.isConst() || mn.N != 0 {
+			// gorge aborts a cast whose total is below the slot's minimum
+			// (cast_targets.go); the kernel's clamp assumes "any number"
+			return refuse("divided over a value total with a TargetMin$ above 0")
+		} else {
+			// A value total (Ureni's land count, a spell's paid X) is read where
+			// the ability is put on the stack, exactly where gorge's
+			// divisionTotalFor reads DividedAsYouChoose$ (CR 601.2d, 603.3d).
+			// gorge clamps a divided slot's target count to that total (each
+			// target takes at least 1; cast_targets.go, target_ask.go) whatever
+			// TargetMax$ says (Rolling Thunder's all-targets count, Shatterskull
+			// Smashing's 2); the kernel clamps the slot's evaluated maximum the
+			// same way (tgtBoundsV).
 			lc.ab.Targets[obj.N].Divided = kop.DivValue
 			lc.ab.Targets[obj.N].DividedV = dv
-		} else {
-			return refuse("divided over a value total that is not TargetMax$")
 		}
 		in.Op = "DealDamageDivided"
 	}

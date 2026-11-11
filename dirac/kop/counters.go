@@ -68,7 +68,10 @@ const DivLKIP1P1 = 255
 // DivValue is TargetSpec.Divide's sentinel for a slot whose divided total is
 // TargetSpec.DivideV, a value evaluated where the spell or ability is put on
 // the stack (gorge divisionTotalFor; CR 601.2d, 603.3d). Ureni, the Song
-// Unending divides its X damage, X the lands its controller controls.
+// Unending divides its X damage, X the lands its controller controls; Rolling
+// Thunder divides its paid X. The slot's target count is clamped to the total
+// (each target takes at least 1, gorge cast_targets.go), whatever its own
+// maximum (an all-candidates count, Shatterskull Smashing's two).
 const DivValue = 253
 
 // CtrMode is Gate.Ctr's sentinel for a Siege's mode gate: the ability exists

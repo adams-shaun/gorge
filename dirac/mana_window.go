@@ -2598,15 +2598,7 @@ func (s *State) startCastDivide(k *prep) {
 		} else if t.Divide == kop.DivValue {
 			// a value total (Ureni's land count): gorge divisionTotalFor
 			// resolves DividedAsYouChoose$ as the ability is put on the stack
-			tot = s.evalV(k, t.DivideV, s.ctxEntry(e))
-			if tot < 0 {
-				tot = 0
-			}
-			if tot > 255 {
-				// the division arrays hold one uint8 per target (xTargets.div)
-				s.capFull(StallXTgt)
-				tot = 255
-			}
+			tot = s.divValueTotal(k, t, e) // tgt_variablemax.go
 		} else if DebugDivNOneEach {
 			// the ctr_divided.go mutation: a literal total is one per target
 			tot = n
