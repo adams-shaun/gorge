@@ -41,16 +41,18 @@ func validateSetupCommanders(p int, s oracleSeat, commander bool) error {
 		}
 		return nil
 	}
-	seen := map[string]bool{}
+	seen := make([]string, 0, len(s.Commanders))
 	for _, name := range s.Commanders {
 		key := cards.NormalizeName(name)
 		if key == "" {
 			return harnessf("setup: p%d commanders has an empty name", p)
 		}
-		if seen[key] {
-			return harnessf("setup: p%d commanders lists %q more than once", p, name)
+		for _, prior := range seen {
+			if prior == key {
+				return harnessf("setup: p%d commanders lists %q more than once", p, name)
+			}
 		}
-		seen[key] = true
+		seen = append(seen, key)
 		for _, cmd := range s.Command {
 			if cards.NormalizeName(cmd) == key {
 				return harnessf("setup: p%d commanders names %q, which is already a command placement", p, name)
@@ -119,21 +121,6 @@ func setupIsCommander(s oracleSeat, name string) bool {
 		}
 	}
 	return setupCommanderListed(s, name)
-}
-
-// setupCommanderCast reads m's count for the named commander, matching names
-// as the rest of setup does (case and punctuation folded) and falling back to
-// sorted keys so no map range decides which duplicate spelling wins.
-func setupCommanderCast(m map[string]int32, name string) int32 {
-	if n, ok := m[name]; ok {
-		return n
-	}
-	for _, key := range sortedSetupKeys(m) {
-		if cards.NormalizeName(key) == cards.NormalizeName(name) {
-			return m[key]
-		}
-	}
-	return 0
 }
 
 // setupCommanderCasts builds Config.CommanderCasts, parallel to commanders (the

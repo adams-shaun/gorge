@@ -914,6 +914,21 @@ func (r *oracleRun) build(sc oracleScenario) error {
 	return harnessf("setup never reached turn %d main1", turn)
 }
 
+// setupCommanderCast reads m's count for the named commander, matching names
+// as the rest of setup does (case and punctuation folded) and falling back to
+// sorted keys so no map range decides which duplicate spelling wins.
+func setupCommanderCast(m map[string]int32, name string) int32 {
+	if n, ok := m[name]; ok {
+		return n
+	}
+	for _, key := range sortedSetupKeys(m) {
+		if cards.NormalizeName(key) == cards.NormalizeName(name) {
+			return m[key]
+		}
+	}
+	return 0
+}
+
 // placeCommanderDamage emits one events.CmdDamage per commander_damage entry,
 // per seat in seat order and per key in sorted order, after every card and
 // attached Aura is placed: a key is a setup ref, which exists only after
