@@ -1904,6 +1904,13 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			c.SubCtrX, c.SubCtrXKnd = true, parts[1]
 			continue
 		}
+		if head == "tapXType" && parts[0] == "X" {
+			// tapXType<X/Spec>: tap any number, X the count (lower_tapxvar.go)
+			if err := lc.tapXVarCost(&c, parts, t); err != nil {
+				return c, err
+			}
+			continue
+		}
 		n, err := strconv.Atoi(parts[0])
 		if err != nil && head != "PayLife" {
 			return c, refuse("cost token %q", t)

@@ -1243,6 +1243,16 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		c.SubCtr = 0
 		n++
 	}
+	if c.TapXVar {
+		// tapXType<X/Spec> as a printed trigger's own whole cost (lower_tapxvar.go)
+		if !lc.trigOwnCost || n != 0 || c.TapF == nil {
+			return in, refuse("resolution tapXType<X> cost shape")
+		}
+		in.CS, in.A, in.F = "TapXVar", cst(0), c.TapF
+		lc.trigXPaid = true
+		c.TapXVar = false
+		n++
+	}
 	if c.TapN > 0 {
 		// C: a literal tapXType<N/Spec> that is the WHOLE cost of a
 		// printed trigger (gorge cumulative.go:1130-1137 and

@@ -381,6 +381,14 @@ const PayBBehold = 6
 // (dirac/cost_unlesswaterbend.go).
 const PayBSubWaterbend = 12
 
+// PayBSubTapXVar: a PayTapX whose B.N carries this sentinel is a trigger's own
+// tapXType<X/Spec> cost (Myr Battlesphere): the payer taps any number of
+// untapped permanents matching F (an any-number pick closed by AkDone, the
+// empty pick the decline) and the count tapped is the body's Count$xPaid
+// (dirac/cost_tapxvar.go). A is unused. B.N's low nibble is 0, clear of
+// PayBSubAddCounter.
+const PayBSubTapXVar = 16
+
 // PayKind is the cost an OpUnlessPaid / OpIfPaid offers (C & 0xF).
 const (
 	PayMana    = 1 // A generic + B.N packed pips (3 bits per colour, WUBRG)
