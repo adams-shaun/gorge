@@ -1,0 +1,9 @@
+# the Mystic Remora pool: cumulative upkeep {1} (CR 702.24a) puts an age
+# counter on the Remora each upkeep and charges {1} per counter or sacrifices
+# it, and its noncreature-spell trigger draws unless the caster pays {4}, for
+# the oracle's constructed lockstep (dirac/oracle/mysticremora_test.go)
+Hill Giant
+Island
+Mountain
+Mystic Remora
+Shock

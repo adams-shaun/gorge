@@ -127,7 +127,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (the merge with land: Count$TotalDamageReceivedThisTurn lowered: Tangled Colony beside land's 22180; ALL 22180 -> 22181, WOE 261 -> 262).
 	// +2 (Myr Convert, Staff of Compleation: the sole "{T}, Pay N life" mana ability lowers; ONE 198 -> 200; ALL unchanged at the LIR level).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22214, 34442},
+	"ALL": {22244, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {216, 280},

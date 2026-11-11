@@ -363,6 +363,8 @@ type genPrep struct {
 	// gap), so any other can only defer a granted mana ability's tap
 	// (act_waterbend.go windowCensusComplete).
 	anySelfTaps bool
+	// anyDiscHand: some card carries gfDiscHand (mana_discardhand.go).
+	anyDiscHand bool
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
 	// Tender), -1 none: a source gorge's planner census misses, reached by
 	// a potential play's scripted prefix (script_gen.go)
@@ -1157,6 +1159,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.smallFor(CardID(i)).gapOther = int8(j)
 					g.setFlag(CardID(i), gfDeferred|gfGapOther)
 					g.anyDeferred, g.anyRestrScript, g.anyWindowGap = true, true, true
+				}
+				if kop.DiscardHandManaAb(a) {
+					g.setFlag(CardID(i), gfDiscHand) // a prefix-search gap alone, never a planner unit (mana_discardhand.go)
+					g.anyDiscHand = true
 				}
 				if a.AFlags&kop.AfManaEachColor != 0 && a.AFlags&kop.AfLatent == 0 && g.eachCol(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).eachCol = int8(j)

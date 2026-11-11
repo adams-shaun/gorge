@@ -2934,7 +2934,9 @@ func (s *State) manaStep(k *prep) bool {
 					cost = s.restrShortAdm(e.ctrl, m, cost)
 				}
 			}
-			s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
+			if s.tapForSpellPlain(k, e, &cost, anyColor, &saved) {
+				return true
+			}
 		}
 		s.bld().bfl &^= bflManaStep
 		s.releaseCostTaps(k, &saved)
