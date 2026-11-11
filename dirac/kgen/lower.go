@@ -436,6 +436,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseMayhemCombos()
 	lc.refuseBeamCombos()
 	lc.refuseSneakCombos()
+	lc.refuseBuybackCombos() // lower_buyback.go
 	lc.refuseWebSlingCombos()
 	lc.refuseMayFlashCombos()
 	lc.refuseEvokeCombos()
@@ -1178,6 +1179,13 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Offspring = &mc
+		case head == "Buyback":
+			// CR 702.27a: an optional additional cost, offered as its own cast
+			// option (gorge's "(buyback)" mode, the Offspring shape); the
+			// resolving spell returns to hand (lower_buyback.go)
+			if !lc.lowerBuyback(param) {
+				lc.refuseNode(node, "buyback cost %q", param)
+			}
 		case head == "Casualty":
 			// CR 702.153a: the optional creature sacrifice and the copy
 			// trigger are the kernel's casualty cast (kw_casualty.go). The

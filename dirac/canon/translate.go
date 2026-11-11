@@ -200,6 +200,8 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm = CastModeOther | 1<<4 // gorge's "optionalcost" cast, AltCostIndex 1 (CR 601.2b; cost_optional.go)
 		case mode&1 != 0 && r.S.FeatOffspringCast(dirac.Obj(src)):
 			cm, _ = CastModeCode("offspring") // the kicked cast of an Offspring card (kw_offspring.go)
+		case mode&1 != 0 && r.S.FeatBuybackCast(dirac.Obj(src)):
+			cm, _ = CastModeCode("buyback") // the kicked cast of a Buyback card (kw_buyback.go): CastModeOther, as "offspring"
 		case mode&1 != 0:
 			cm, _ = CastModeCode("kicked")
 		case mode&2 != 0 && r.S.FeatMayhemCard(dirac.Obj(src)):
