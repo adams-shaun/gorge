@@ -196,3 +196,43 @@ func (lc *lowerCtx) referentGate(expr string) error {
 	}
 	return nil
 }
+
+// targetedPlayerView reads a ThisTargetedPlayer$Valid spec, whose "You" is
+// the targeted player (gorge evalPlayerRefProperty), as that player's
+// battlefield at any seat count: a YouCtrl clause becomes the
+// TargetedPlayerCtrl role (kop.F2TgtPlayerCtrl: the controller is a player
+// target of the resolving entry), a clause with no controller stays. It is
+// exact when the entry has the one player slot, as the entry's other targets
+// are objects. nil means the spec reads another role (an opponent of the
+// targeted player, an owner, a source-relative word) or the ability has a
+// second player slot, and the caller keeps the
+// one-opponent view, which marks the card for the one-opponent game.
+func (lc *lowerCtx) targetedPlayerView(f *lFilter) *lFilter {
+	if f == nil || f.Players != 0 || len(f.Clauses) == 0 {
+		return nil
+	}
+	players := 0
+	for _, t := range lc.ab.Targets {
+		if t.F != nil && t.F.Players != 0 {
+			players++
+		}
+	}
+	if players != 1 {
+		return nil
+	}
+	out := &lFilter{}
+	for _, c := range f.Clauses {
+		if c.Flags != 0 || c.CmpX != "" || c.Owner != whoAny {
+			return nil
+		}
+		switch c.Ctrl {
+		case whoAny:
+		case whoYou:
+			c.Ctrl = whoTgtPlayer
+		default:
+			return nil
+		}
+		out.Clauses = append(out.Clauses, c)
+	}
+	return out
+}
