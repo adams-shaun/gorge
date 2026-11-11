@@ -2875,6 +2875,17 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				ab.ActCond = lCond{Kind: cThreshold}
 			case "Delirium":
 				ab.ActCond = deliriumCond() // gorge activationConditionOK
+			case "Metalcraft":
+				// "activate only if you control three or more artifacts"
+				// (CR 207.2c; gorge activationConditionOK's metalcraft arm)
+				if sa.API != "Mana" {
+					return refuse("Activation %q outside a mana ability", v)
+				}
+				c, err := lc.bareCondition(ps, "Metalcraft")
+				if err != nil {
+					return err
+				}
+				ab.ActCond = c
 			case "Solved":
 				// "activate only if this Case is solved" (CR 719.3b; gorge
 				// activationConditionOKSolved: the source's Solved flag)
