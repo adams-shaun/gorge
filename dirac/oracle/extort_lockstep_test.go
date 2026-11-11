@@ -20,6 +20,11 @@ var kextortDeck = []cardset.Entry{
 	{Name: "Swamp", Count: 9}, {Name: "Plains", Count: 5},
 }
 
+// extortCards are the class carriers the test must actually cast (not merely
+// list in the pool): the Done-means gate is that each newly lowered card's
+// decisions are compared, not that the fixture mentions it.
+var extortCards = []string{"Blind Obedience", "Crypt Ghast", "Life Insurance", "Pontiff of Blight", "Tithe Drinker", "Treasury Thrull"}
+
 // TestExtortLockstep plays the class in lockstep and asserts the election was
 // actually reached: the Check counts the Extort ask on the gorge side, and the
 // policy always takes the first option of a two-mode ask (pay), so a clean run
@@ -55,6 +60,7 @@ func TestExtortLockstep(t *testing.T) {
 		t.Fatal(err)
 	}
 	asks := 0
+	cast := map[string]bool{}
 	for seed := uint64(1); seed <= 200; seed++ {
 		m, err := NewMatchup(reg, [2]string{"extort-a", "extort-b"}, gd, 1)
 		if err != nil {
@@ -75,6 +81,17 @@ func TestExtortLockstep(t *testing.T) {
 					asks++
 				}
 				return nil
+			},
+			Finish: func(g *GorgeSide) {
+				if g.E == nil {
+					return
+				}
+				c := CoverageOf(g, m)
+				for _, n := range extortCards {
+					if cc := c.Cards[n]; cc != nil && cc.Cast > 0 {
+						cast[n] = true
+					}
+				}
 			}})
 		CloseSide(k)
 		if err := unmodelledStallError(t.Name(), &res); err != nil {
@@ -90,7 +107,12 @@ func TestExtortLockstep(t *testing.T) {
 	if asks == 0 {
 		t.Fatal("precondition: no Extort decision was posed in 200 seeds: the pool never cast a spell with an Extort permanent")
 	}
-	t.Logf("extort: %d Extort elections", asks)
+	for _, n := range extortCards {
+		if !cast[n] {
+			t.Errorf("%s: never cast in 200 seeds, so its Extort decisions were not compared", n)
+		}
+	}
+	t.Logf("extort: %d Extort elections, cast %v", asks, cast)
 }
 
 // extortPayPolicy plays castFirstPolicy but takes the first option of a
