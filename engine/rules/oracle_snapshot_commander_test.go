@@ -32,8 +32,8 @@ func TestOracleSnapshotCommanderCasts(t *testing.T) {
 		t.Fatalf("p1 CommanderCasts = %v, want nil", got)
 	}
 
-	cast := strings.TrimSuffix(raw, `}`) + `,
-"steps":[{"op":"cast","seat":0,"card":"p0:` + name + `","mana":"WCC"}]}`
+	cast := strings.Replace(raw, `"steps":[]`,
+		`"steps":[{"op":"cast","seat":0,"card":"p0:`+name+`","mana":"WCC"}]`, 1)
 	run, fails = runOracleCommander(t, cast)
 	if len(fails) != 0 {
 		t.Fatalf("cast scenario failed: %v\n%s", fails, strings.Join(run.log, "\n"))
