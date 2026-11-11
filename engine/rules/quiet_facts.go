@@ -1066,7 +1066,9 @@ func quietSpecMask(spec string) (incl, excl cards.TypeMask, exclSelf, self bool,
 // quietCostFieldNames is the explicit allowlist of cost.Cost fields the
 // classifier reads. The classify test reflects over cost.Cost and fails when
 // a field is not named here (so a new cost component cannot silently read as
-// free).
+// free). XColors needs no nonMana term of its own: it constrains only the
+// {X} symbols, so a cost carrying it while X != 0 is already nonMana / open,
+// and once WithX announces X it has become Colored pips quietManaFloor prices.
 var quietCostFieldNames = map[string]bool{
 	"Colored": true, "Generic": true, "Life": true, "X": true, "XMin": true,
 	"Hybrid": true, "Phyrexian": true, "Twobrid": true, "HybridPhyrexian": true,
@@ -1079,5 +1081,5 @@ var quietCostFieldNames = map[string]bool{
 	"LifeX":      true, "LifeHalfUp": true, "DamageYou": true, "GainLife": true,
 	"Return": true, "PutToLib": true, "MoveToGrave": true, "Mill": true,
 	"Evidence": true, "RollDice": true, "Withheld": true, "Unknown": true,
-	"NumTimes": true,
+	"NumTimes": true, "XColors": true,
 }
