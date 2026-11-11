@@ -14,13 +14,13 @@ import (
 // refuses with a reason naming the part.
 func TestCondSplitKgenLowers(t *testing.T) {
 	const river = "Name:Test River\nManaCost:no cost\nTypes:Land\n" +
-		"A:AB$ Mana | Cost$ T | Produced$ U | ConditionCheckSVar$ X | ConditionSVarCompare$ EQ0 | SubAbility$ ManaB | SpellDescription$ Add {U}. If you played a land this turn, add {B} instead.\n" +
-		"SVar:ManaB:DB$ Mana | Produced$ B | ConditionCheckSVar$ X | ConditionSVarCompare$ GE1\n" +
-		"SVar:X:PlayerCountPropertyYou$LandsPlayed\n"
+		"A:AB$ Mana | Cost$ T | Produced$ U | ConditionCheckSVar$ Dropped | ConditionSVarCompare$ EQ0 | SubAbility$ Alt | SpellDescription$ Blue, or black after a land drop.\n" +
+		"SVar:Alt:DB$ Mana | Produced$ B | ConditionCheckSVar$ Dropped | ConditionSVarCompare$ GE1\n" +
+		"SVar:Dropped:PlayerCountPropertyYou$LandsPlayed\n"
 	const gem = "Name:Test Gem\nManaCost:no cost\nTypes:Legendary Land\n" +
-		"A:AB$ Mana | Cost$ T | Produced$ C | ConditionCheckSVar$ CheckCounter | ConditionSVarCompare$ EQ0 | SubAbility$ DBMana | SpellDescription$ Add {C}. If this has a luck counter on it, instead add one mana of any color.\n" +
-		"SVar:DBMana:DB$ Mana | Produced$ Any | ConditionCheckSVar$ CheckCounter | ConditionSVarCompare$ GE1\n" +
-		"SVar:CheckCounter:Count$CardCounters.LUCK\n"
+		"A:AB$ Mana | Cost$ T | Produced$ C | ConditionCheckSVar$ Lucky | ConditionSVarCompare$ EQ0 | SubAbility$ Colour | SpellDescription$ Colourless, or any colour with a luck counter.\n" +
+		"SVar:Colour:DB$ Mana | Produced$ Any | ConditionCheckSVar$ Lucky | ConditionSVarCompare$ GE1\n" +
+		"SVar:Lucky:Count$CardCounters.LUCK\n"
 	mana := func(d *kop.CardDef) (n int, ab *kop.Ability) {
 		for i := range d.Abilities {
 			if d.Abilities[i].Kind == kop.AbMana {
@@ -61,13 +61,13 @@ func TestCondSplitKgenLowers(t *testing.T) {
 		{"root compare", strings.Replace(river, "EQ0", "EQ1", 1), "gate compare"},
 		{"unknown gate SVar", strings.Replace(river, "PlayerCountPropertyYou$LandsPlayed", "Count$YourLifeTotal", 1), "gate SVar"},
 		{"unknown counter", strings.Replace(gem, "LUCK", "NOSUCHCTR", 1), "gate counter"},
-		{"two arms", strings.Replace(river, "ConditionSVarCompare$ GE1", "ConditionSVarCompare$ GE1 | SubAbility$ ManaB2", 1) + "SVar:ManaB2:DB$ Mana | Produced$ R\n", "no lone DB$ Mana sub"},
+		{"two arms", strings.Replace(river, "ConditionSVarCompare$ GE1", "ConditionSVarCompare$ GE1 | SubAbility$ Alt2", 1) + "SVar:Alt2:DB$ Mana | Produced$ R\n", "no lone DB$ Mana sub"},
 		{"arm amount", strings.Replace(river, "Produced$ B |", "Produced$ B | Amount$ 2 |", 1), "sub param Amount$"},
 		{"arm combo", strings.Replace(river, "Produced$ B |", "Produced$ Combo W U |", 1), "sub Produced$"},
 		{"root fee", strings.Replace(river, "Cost$ T", "Cost$ 1 T", 1), "root cost beyond {T}"},
 		{"root two mana", strings.Replace(river, "Produced$ U", "Produced$ U U", 1), "root Produced$"},
 		{"root restricted", strings.Replace(river, "Produced$ U |", "Produced$ U | RestrictValid$ Spell.Creature |", 1), "root param RestrictValid$"},
-		{"different SVars", strings.Replace(river, "ConditionCheckSVar$ X | ConditionSVarCompare$ GE1", "ConditionCheckSVar$ Y | ConditionSVarCompare$ GE1", 1) + "SVar:Y:PlayerCountPropertyYou$LandsPlayed\n", "different SVars"},
+		{"different SVars", strings.Replace(river, "ConditionCheckSVar$ Dropped | ConditionSVarCompare$ GE1", "ConditionCheckSVar$ Other | ConditionSVarCompare$ GE1", 1) + "SVar:Other:PlayerCountPropertyYou$LandsPlayed\n", "different SVars"},
 	} {
 		_, rs := kwardpowBuild(t, "Test River", strings.Replace(c.src, "Test Gem", "Test River", 1))
 		var all []string
