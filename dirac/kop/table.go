@@ -230,7 +230,11 @@ type CardDef struct {
 	// planner prices no cast of such a face ("shape:mana_spent_reader",
 	// faceWantsCastSpend), so FeatPlannedCast is false for it.
 	SpentSelf bool
-	Gift      bool // K:Gift: the caster may promise the opponent a gift as the spell is cast (CR 702.174a; the build's bsGift stage)
+	// DmgAmt: the card reads Count$TotalDamageReceivedThisTurn (its own
+	// received damage); every damage site records the amount for such a card
+	// (dirac/value_dmgamount.go).
+	DmgAmt bool
+	Gift   bool // K:Gift: the caster may promise the opponent a gift as the spell is cast (CR 702.174a; the build's bsGift stage)
 	// Offspring: K:Offspring (CR 702.175a): Kicker holds the offspring cost
 	// and the kicked cast (AkCast mode bit 0, sfKicked) is gorge's
 	// "(offspring)" cast; Keywords has no KwKicker
