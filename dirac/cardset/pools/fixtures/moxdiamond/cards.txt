@@ -1,0 +1,16 @@
+# the Mox Diamond pool: its entry may discard a land card from the hand (several lands, one, none), else the
+# card goes to the graveyard; an artifact-enters watcher, an opponent-discards watcher and Shatter/Boomerang cover the cards that
+# enter or leave around it, for the oracle's constructed lockstep (dirac/oracle/moxdiamond_test.go)
+Mox Diamond
+Reckless Fireweaver
+Megrim
+Lightning Bolt
+Grizzly Bears
+Hill Giant
+Shatter
+Boomerang
+Mountain
+Forest
+Plains
+Island
+Swamp

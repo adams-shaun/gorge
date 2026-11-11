@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -260,7 +261,7 @@ func (e *Engine) grantedSVarsFor(id state.ObjID) map[string]string {
 // mayLookAtObject: the spec matching is shared, the object here comes from a
 // zone lookup the battlefield read cannot do.
 func (e *Engine) MayLookAtLibraryTop(p state.PlayerID) bool {
-	return e.libraryTopLook(p, false)
+	return libraryTopLook(e.G.Zone(state.ZLibrary, p), e.active(), e.matchesSpecFrom, false)
 }
 
 // LibraryTopRevealed reports whether the top card of p's library is
@@ -270,18 +271,50 @@ func (e *Engine) MayLookAtLibraryTop(p state.PlayerID) bool {
 // LibraryTopRevealed capability shows that card to every seat; a MayLookAt$
 // You grant (Vizier of the Menagerie) stays the owner's private look.
 func (e *Engine) LibraryTopRevealed(p state.PlayerID) bool {
-	return e.libraryTopLook(p, true)
+	return libraryTopLook(e.G.Zone(state.ZLibrary, p), e.active(), e.matchesSpecFrom, true)
+}
+
+// HandCardRevealed reports whether the hand card id is revealed to every
+// player right now: a live MayLookAt$ Player grant over AffectedZone$ Hand
+// ("Your opponents play with their hands revealed", Telepathy; "Play with
+// your hand revealed", Enduring Renewal; CR 400.2) whose Affected$ spec
+// matches it. The view's optional HandCardRevealed capability lists that card
+// in every seat's view of the hand. A read over active()'s sorted slice; the
+// answer is boolean, so no order reaches anything ordered.
+func (e *Engine) HandCardRevealed(id state.ObjID) bool {
+	return handCardRevealed(e.G.Obj(id), e.active(), e.matchesSpecFrom)
+}
+
+// handCardRevealed is HandCardRevealed over the engine's active slice and
+// spec matcher, passed as values (as mayLookAtObject does).
+func handCardRevealed(o *state.Object, ces []ContinuousEffect, matches func(string, state.ObjID, state.PlayerID, state.ObjID) bool) bool {
+	if o == nil || o.Zone != state.ZHand {
+		return false
+	}
+	for i := range ces {
+		ce := &ces[i]
+		if !ce.MayLookAt || !ce.MayLookAtAll {
+			continue
+		}
+		if zones, all, ok := effects.ParseZones(ce.AffectedZone); !ok || all || !slices.Contains(zones, state.ZHand) {
+			continue
+		}
+		if matches(ce.Affects, o.ID, ce.Controller, ce.Source) {
+			return true
+		}
+	}
+	return false
 }
 
 // libraryTopLook is the shared read: any live MayLookAt grant (all false)
-// or only a revealing one (all true) over the top of p's library.
-func (e *Engine) libraryTopLook(p state.PlayerID, all bool) bool {
-	lib := e.G.Zone(state.ZLibrary, p)
+// or only a revealing one (all true) over the top card of lib. A free
+// function over the engine's library slice, active slice and spec matcher.
+func libraryTopLook(lib []state.ObjID, ces []ContinuousEffect, matches func(string, state.ObjID, state.PlayerID, state.ObjID) bool, all bool) bool {
 	if len(lib) == 0 {
 		return false
 	}
-	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
-		ce := &ceL[ceI]
+	for ceI := 0; ceI < len(ces); ceI++ {
+		ce := &ces[ceI]
 		if !ce.MayLookAt || (all && !ce.MayLookAtAll) {
 			continue
 		}
@@ -291,7 +324,7 @@ func (e *Engine) libraryTopLook(p state.PlayerID, all bool) bool {
 		if ce.AffectedZone != "" && ce.AffectedZone != "Library" {
 			continue
 		}
-		if e.matchesSpecFrom(ce.Affects, lib[0], ce.Controller, ce.Source) {
+		if matches(ce.Affects, lib[0], ce.Controller, ce.Source) {
 			return true
 		}
 	}

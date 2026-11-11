@@ -101,6 +101,8 @@ var stallUnmodelledReasons = [...]uint8{
 	StallStackKwGrant, // a granted convoke/improvise on a Harmonize or alternative-cost cast: gorge's announcement for those routes is unverified (kw_convoke.go)
 	// a requirement- or lure-maximising block declaration with a two-attacker blocker ready: gorge offers its second block too (combat_extrablock.go)
 	StallExtraBlockReq,
+	// a card with the pay-before-entering replacement entered other than by its cast spell resolving: gorge asks its controller with the move pending, which the kernel's entry does not model (repl_paybeforeetb.go)
+	StallPayETB,
 }
 
 // initStall is the reason a game of nseat players on this table stalls at its

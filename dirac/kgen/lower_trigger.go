@@ -3117,6 +3117,12 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 			}
 			break
 		}
+		if ok, err := lc.payBeforeETB(rp, r.With, &rl); ok || err != nil { // lower_paybeforeetb.go
+			if err != nil {
+				return err
+			}
+			break
+		}
 		if rp.str("Destination") != "Battlefield" {
 			return refuse("repl-hard: Moved to %s", rp.str("Destination"))
 		}
