@@ -18,7 +18,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 // So the kernel models it as a filter (filterTapMana) live only while its gate
 // holds and the pool (with the restricted mana its activation may spend)
-// holds its colour (filtGateOn): a gap of the census (scriptFilt) and an open
+// holds its colour (filtGateOn). A printed pip-fee filter (Loot, the
+// Pathfinder) is listed whatever floats, as any printed paid mana ability
+// is, so only the gated grant's pool test applies; the gap step still waits
+// for its colour (filtPaid). The gated filter is then: a gap of the census (scriptFilt) and an open
 // source of the potential walk (potentialAdmits) only then. Its fee counts one
 // in the fee arithmetic (filtFee), the gap step is legal only when that colour
 // floats (filtPaid), and it is spent in that colour, restricted mana first
@@ -90,7 +93,7 @@ func (s *State) filtGateOn(k *prep, sl Slot) bool {
 	if a.Trig.Cond != 0 && !s.condEval(k, a.Trig.Cond, evalCtx{src: pp.obj, srcSl: sl, ctrl: pp.ctrl}) {
 		return false
 	}
-	if col, ok := s.filtPip(k, sl); ok {
+	if col, ok := fixedPipFilt(a); ok && k.gen.anyFiltPip {
 		return s.filtPipHeld(k, pp.ctrl, sl, col) >= 1
 	}
 	return true

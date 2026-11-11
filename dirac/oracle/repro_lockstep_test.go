@@ -565,3 +565,23 @@ func TestTyLeeLockOnHerselfEndsWhenSheLeavesLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "ty_lee_lock_on_herself_ends_when_she_leaves", "std-tla", Config{GorgeAutopaySurface: true})
 }
+
+// TestWideGapTapsBeforeGrantedSourceLockstep: Hermitic Herbalist, entered
+// before a permanent holding a granted mana ability, is a census gap beside
+// it. gorge's one prefix search activates the gaps in battlefield order, so
+// Ba Sing Se's Earthbend activation is preceded by the Herbalist's tap for its
+// first ability's colour, then the granted source's (CR 605.3a, 601.2g-h).
+func TestWideGapTapsBeforeGrantedSourceLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "wide_gap_taps_before_granted_source", "std-tla", Config{GorgeAutopaySurface: true})
+}
+
+// TestFlashbackPoolPaysGrantedInstanceLockstep: Fire Nation Attacks prints
+// flashback {8}{R} and Iroh grants another at its mana cost. With an
+// any-colour source on board the potential walk prices both and the planner
+// drops them as ambiguous, but the floating pool pays the granted {4}{R}
+// outright, so gorge's walk offers that instance (CR 702.34a).
+func TestFlashbackPoolPaysGrantedInstanceLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "flashback_pool_pays_granted_instance", "std-tla", Config{})
+}

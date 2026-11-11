@@ -118,6 +118,27 @@ func (o *Oracle) Observe(d *decision.Decision) []events.Event {
 			o.learn(obj, everyone)
 		}
 	}
+	// A live look-at-the-top grant (Mystic Forge: "you may look at the top
+	// card of your library any time") shows that card to its seat, and to a
+	// seat controlling it (CR 720.4); a play-revealed grant shows it to every
+	// seat (CR 401.5). The projection fills LibraryTop behind the same two
+	// engine reads.
+	for pi := range g.Players {
+		p := state.PlayerID(pi)
+		lib := g.Zone(state.ZLibrary, p)
+		if len(lib) == 0 {
+			continue
+		}
+		top := g.Obj(lib[0])
+		if o.e.LibraryTopRevealed(p) {
+			o.learn(top, everyone)
+		} else if o.e.MayLookAtLibraryTop(p) {
+			o.learn(top, bit(p))
+			if ctl, ok := g.LiveController(p); ok {
+				o.learn(top, bit(ctl))
+			}
+		}
+	}
 	if d != nil {
 		for _, opt := range d.Options {
 			if obj := g.Obj(opt.Obj); obj != nil && obj.Zone.Hidden() {

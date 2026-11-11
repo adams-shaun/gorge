@@ -563,6 +563,7 @@ var opsEntries = []opsDoc{
 	{"st:EmbNum", "StEmbNum (Static.A stays 0, no VA)", "ReduceCost on an emblem Effect whose Amount$ was Count$ChosenNumber: the reduction is the emblem's frozen chosen number from `State.g.embN`, not a value. adjustCostGen reads it through embNumAt; an emblem with no frozen number reduces by 0. gorge effects/effect.go evaluates SetChosenNumber$ once as the Effect resolves and the registered static carries that frozen state.ContinuousEffect.ChosenNumber, so life lost or gained later in the turn does not raise the discount (Rowan, Scion of War; Will, Scion of Peace; kernel static_emblemnumber.go; DebugEmbNumLive is the mutation that re-reads the source live)."},
 	{"st:AddSub", "Static.AddSub", "Affected objects also have these subtypes (Skyknight Squire: Knight)."},
 	{"st:Grant", "Static.Grant", "Affected objects have the source card's ability Grant-1 (Fishing Pole)."},
+	{"st:ProtFrom", "Static.ProtFrom", "A Continuous static's granted protection from a quality (AddKeyword$ Protection:<spec>, CR 702.16): the affected objects can't be damaged (prevented), blocked, targeted, enchanted or equipped by a source matching this filter (plain type and colour terms; gorge sourceHasQuality). The filter reads the source as CardDef.ProtFrom does. A layer-6 grant: it does not survive a later loss of the recipient's abilities. Sword of Wealth and Power."},
 	{"st:RaiseYou", "StRaiseYou", "IncreaseCost (kgen RaiseCost, gorge costModifiersCompose's raise group): only the static's controller's spells (Activator$ You); with StRaiseOpp only its opponents'; neither: every caster's. Generic mana A (or VA with StDynamic) is added before the reductions' floor at zero; Zone ZoneCommand is the card's own \"costs more\". Dovin, Hand of Control."},
 	{"st:Zone", "Static.Zone", "ReduceCost: ZoneCommand = the static works on the card itself in hand/any zone ('this spell costs less'); MayPlayFrom: the zone played from."},
 	{"st:YouHexproof", "StYouHexproof", "Continuous: the static's controller has hexproof too (Affected$ You,...; read by playerHexproof under Cond2). Captain America, Super-Soldier; Shalai, Voice of Plenty."},
@@ -1141,12 +1142,16 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 				if st.Grant != 0 {
 					add("st:Grant", name)
 				}
+				if st.ProtFrom != 0 {
+					add("st:ProtFrom", name)
+				}
 				if st.Zone != 0 {
 					add("st:Zone", name)
 				}
 				kw(st.Kw)
 				filt(st.Filter)
 				filt(st.Filter2)
+				filt(st.ProtFrom)
 				val(st.VA)
 				val(st.VB)
 			}

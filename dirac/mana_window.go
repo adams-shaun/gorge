@@ -1728,12 +1728,8 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR, tapsDef slo
 	}
 	if ab := &cd.Abilities[k.gen.anyR(s.cardAt(sl))]; restrWideAnyMana(ab) {
 		if s.wideSecond(k, sl) { // its first ability's colours, then the multisets (mana_restrictedcombo.go)
-			s.addExtra(k, p&1, sl, s.manaPCGen(k, sl)) // either tap brings its TapsForMana extra (gorge addTapExtra)
-			if c < kop.NumManaKinds-1 {
-				s.pl[p].pool[c]++
-				return
-			}
-			c -= kop.NumManaKinds - 1
+			s.wide2Float(k, p, sl, c, spill)
+			return
 		}
 		c1, c2 := wideAnswer(c)
 		for _, col := range [2]int{c1, c2} {

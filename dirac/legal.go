@@ -1406,6 +1406,16 @@ func (s *State) fbInstances(k *prep, p uint8, o Obj) (two, ambiguous, granted bo
 		return true, false, false
 	}
 	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 {
+		if pPot && gPot {
+			// the planner drops both as ambiguous, but gorge's walk offers an
+			// instance the floating pool pays outright (Fire Nation Attacks'
+			// granted {4}{R} beside its printed {8}{R}, pool-paid)
+			var pool avail
+			s.availPool(p, &pool)
+			if pool.affords(&gf, pipMaskOf(&gf), 0) {
+				return true, false, true
+			}
+		}
 		return true, pPot && gPot, !pPot
 	}
 	// gorge's own decision lists both: the kernel's one cast takes the

@@ -475,6 +475,9 @@ type grantSrch struct {
 	// each: the candidate is an each-colour gap (Tarnation Vista), a census gap
 	// of gorge's beside the grants (mana_granteach.go)
 	each [MaxPerm]bool
+	// wide: the candidate is a wide second-ability gap (Hermitic Herbalist),
+	// a census gap of gorge's beside the grants (mana_grantwide.go)
+	wide [MaxPerm]bool
 	// gap: the candidate is a census gap. Non-gap sources join the search only
 	// to fund a paid gap's fee, as many as funding allows (gorge
 	// scriptSearch.funding: census.fees()).
@@ -585,6 +588,7 @@ func (g *grantSrch) candidates(s *State) {
 	tm := s.grantTapXGaps(g.k, g.p)
 	dm := s.scriptDeferred(g.k, g.p)
 	em := s.scriptGaps(g.k, g.p) // (mana_granteach.go)
+	wm := s.wideGaps(g.k, g.p)   // (mana_grantwide.go)
 	g.n = 0
 	holders := 0
 	plain := g.d.hasPlay && gapFilteredPlay(g.d.play)
@@ -595,7 +599,7 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		ng := s.grantIdxs(g.k, sl, &g.gi[g.n])
-		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) {
+		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) && !wm.has(sl) {
 			continue
 		}
 		if ng > 0 {
@@ -614,6 +618,7 @@ func (g *grantSrch) candidates(s *State) {
 		g.def[g.n] = ng == 0 && dm.has(sl)
 		g.cobj[g.n] = s.perms[sl].obj
 		g.each[g.n] = ng == 0 && em.has(sl) && !fm.has(sl) && !tm.has(sl) && !dm.has(sl)
+		g.wide[g.n] = ng == 0 && wm.has(sl) && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl)
 		g.gap[g.n] = true
 		if fm.has(sl) {
 			g.funding += s.filtFee(g.k, sl)
@@ -652,7 +657,7 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n], g.def[g.n] = sl, 0, true, false, false, false
-		g.each[g.n] = false
+		g.each[g.n], g.wide[g.n] = false, false
 		g.gap[g.n] = false
 		g.n++
 	}
@@ -744,6 +749,12 @@ func (g *grantSrch) visit(t *State) bool {
 			// a filter that is its source's only mana ability: no printed
 			// ability to ask beside, one colour ask once its fee is in the pool
 			if t.filtUsable(g.k, sl) && t.filtPaid(g.k, g.p, sl) && g.filtBranch(t, i, sl) {
+				return true
+			}
+			continue
+		}
+		if g.wide[i] {
+			if g.wideBranch(t, i, sl) { // its two mana abilities' answers (mana_grantwide.go)
 				return true
 			}
 			continue
@@ -1373,6 +1384,13 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		switch st.gi {
 		case stepTapX:
 			s.tapXDo(k, g.p, tapXStep{sl: sl, cand: st.cand, cand2: NoSlot, col: st.col, kind: tapXAct})
+			continue
+		case stepWide:
+			s.wideApply(k, g.p, sl, st.col) // (mana_grantwide.go)
+			if g.tapTriggers(s, sl) {
+				passed = true
+				s.tapXNext(g.p, &d)
+			}
 			continue
 		case stepEach:
 			s.eachApply(k, g.p, sl, st.col) // (mana_granteach.go)

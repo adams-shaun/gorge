@@ -8,7 +8,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 
 | list | cards | lowered | refused | unverified | supported | 4-seat |
 |---|---:|---:|---:|---:|---:|---:|
-| BIG | 30 | 26 | 0 | 5 | 21 | 21 |
+| BIG | 30 | 27 | 0 | 6 | 21 | 21 |
 | BLB | 278 | 261 | 3 | 6 | 252 | 251 |
 | DFT | 276 | 254 | 0 | 3 | 251 | 250 |
 | DSK | 276 | 249 | 4 | 28 | 217 | 216 |
@@ -20,7 +20,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | HOB | 172 | 159 | 0 | 6 | 153 | 151 |
 | LCI | 290 | 260 | 1 | 30 | 229 | 225 |
 | MKM | 279 | 251 | 2 | 36 | 213 | 208 |
-| MSH | 276 | 246 | 1 | 13 | 232 | 232 |
+| MSH | 276 | 245 | 1 | 12 | 232 | 232 |
 | OTJ | 276 | 251 | 1 | 9 | 241 | 239 |
 | SOS | 270 | 256 | 0 | 7 | 249 | 249 |
 | SPM | 192 | 169 | 1 | 10 | 158 | 157 |
@@ -30,7 +30,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 298 | 0 | 32 | 266 | 261 |
 | TRK | 311 | 311 | 0 | 0 | 311 | 306 |
 | WOE | 281 | 261 | 0 | 15 | 246 | 245 |
-| ALL | 34442 | 22170 | 23 | 17053 | 5094 | 5054 |
+| ALL | 34442 | 22169 | 23 | 17052 | 5094 | 5054 |
 
 `ALL` is the whole corpus; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.
 
