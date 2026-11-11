@@ -454,8 +454,11 @@ func (d *Decision) blockRequiredCoreChargeFeasible() []int {
 }
 
 // BlockPairAdmits is the shared incremental KBlockers multi-block rule:
-// only two pairs explicitly marked BlockAllDefined may share a blocker.
-// GroupCapFor remains the separate upper bound on how many such pairs fit.
+// two pairs may share a blocker when both are marked BlockAllDefined, or when
+// neither is and the blocker's Group carries a raised cap (CanBlockAmount$ /
+// CanBlockAny$, published by the rules layer through GroupLimits from
+// combat.BlockCapacity). GroupCapFor remains the separate upper bound on how
+// many such pairs fit.
 func (d *Decision) BlockPairAdmits(chosen []int, ci int) bool {
 	if d.Kind != KBlockers || ci < 0 || ci >= len(d.Options) {
 		return true
@@ -466,7 +469,8 @@ func (d *Decision) BlockPairAdmits(chosen []int, ci int) bool {
 			continue
 		}
 		q := d.Options[old]
-		if q.Obj == o.Obj && (!q.BlockMustAll || !o.BlockMustAll) {
+		if q.Obj == o.Obj && (!q.BlockMustAll || !o.BlockMustAll) &&
+			(q.BlockMustAll || o.BlockMustAll || d.GroupCapFor(o.Group) < 2) {
 			return false
 		}
 	}
