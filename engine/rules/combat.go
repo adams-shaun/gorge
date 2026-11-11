@@ -683,7 +683,7 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 	// (validateAttackDeclaration's included).
 	chosen := d.Chosen(in)
 	for _, o := range chosen {
-		if !combat.CanAttackPair(asBoard(e), o.Obj, o.Player) {
+		if !combat.CanAttackPairAt(asBoard(e), o.Obj, o.Player, o.Battle) {
 			return fmt.Errorf("object %d cannot attack", o.Obj)
 		}
 		if o.Battle != 0 && !e.canAttackBattle(o.Battle, d.Player) {

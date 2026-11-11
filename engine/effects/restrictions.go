@@ -1607,6 +1607,23 @@ func CantPayLifeParamsReadable(params map[string]string) bool {
 	return true
 }
 
+var canAttackIfHasteParamsReadableKeys = state.NewNameSet("Mode", "ValidCard", "ValidTarget", "Description", "Secondary")
+
+// CanAttackIfHasteParamsReadable is the parameter whitelist a face
+// CanAttackIfHaste static must pass before combat's CanAttackIfHastePair
+// honours it: the mode, the creature scope (ValidCard$), the defender scope
+// (ValidTarget$) and display text. Any other term is a condition this build
+// does not evaluate; granting the haste exemption blanket would over-permit,
+// so the line is skipped (it stays inert).
+func CanAttackIfHasteParamsReadable(params map[string]string) bool {
+	for k := range params {
+		if !canAttackIfHasteParamsReadableKeys.Has(k) {
+			return false
+		}
+	}
+	return true
+}
+
 var cantChangeLifeParamsReadableKeys = state.NewNameSet("Mode", "ValidPlayer", "Description", "Secondary")
 
 var cantPlayLandParamsReadableKeys = map[string]struct{}{

@@ -1558,20 +1558,29 @@ func (e *Engine) attackOffersCompute() []attackOffer {
 			}
 		}
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
-			if !combat.CanAttackPair(asBoard(e), id, d) || !combat.GoadMayAttack(asBoard(e), id, d) || combat.AttackBlocked(asBoard(e), id, d, 0) {
+			// A summoning-sick creature whose CanAttackIfHaste permission names
+			// only a planeswalker fails the player pair yet may attack that
+			// planeswalker, so the walker block below runs on its own pair test.
+			playerOK := combat.CanAttackPair(asBoard(e), id, d)
+			if !combat.GoadMayAttack(asBoard(e), id, d) || combat.AttackBlocked(asBoard(e), id, d, 0) {
 				continue
 			}
-			charge := e.attackPairCharge(id, d, 0)
-			if !charge.zero() && !e.combatChargeAffordable(p, charge, map[state.ObjID]bool{id: true}, map[state.ObjID]bool{id: true}) {
-				continue
+			if playerOK {
+				charge := e.attackPairCharge(id, d, 0)
+				if !charge.zero() && !e.combatChargeAffordable(p, charge, map[state.ObjID]bool{id: true}, map[state.ObjID]bool{id: true}) {
+					continue
+				}
+				out = append(out, attackOffer{id: id, def: d, charge: charge})
 			}
-			out = append(out, attackOffer{id: id, def: d, charge: charge})
 			// CR 508.1: a planeswalker on d's battlefield is a legal defender
 			// for d's opponents, offered in addition to the player themselves
 			// (defender-major: the player's own pair block, then its
 			// planeswalkers). The walk happens in the planeswalker's
 			// controller's zone order, and d IS that controller here.
 			for _, wid := range walkerTargets {
+				if !playerOK && !combat.CanAttackPairAt(asBoard(e), id, d, wid) {
+					continue
+				}
 				if combat.AttackBlocked(asBoard(e), id, d, wid) {
 					continue
 				}
@@ -1589,7 +1598,7 @@ func (e *Engine) attackOffersCompute() []attackOffer {
 				continue
 			}
 			for _, id := range e.G.Zone(state.ZBattlefield, p) {
-				if !combat.CanAttackPair(asBoard(e), id, d) {
+				if !combat.CanAttackPairAt(asBoard(e), id, d, b.id) {
 					continue
 				}
 				if !combat.GoadMayAttack(asBoard(e), id, d) {
