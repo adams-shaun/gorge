@@ -87,6 +87,12 @@ func graveyardCandidate(o *state.Object) bool {
 	if o.Cloaked || o.Suspected || o.SuspendGranted {
 		return true
 	}
+	// The self-carried AlternativeCost permission (EffectZone$ Graveyard, the
+	// graveyardSelf altCostView) is not a keyword head, so the filter would
+	// otherwise drop the card before graveyardAltCostCasts ever sees it.
+	if faceHasGraveyardSelfAltCost(f) {
+		return true
+	}
 	if len(f.Keywords) != 0 {
 		for _, h := range graveyardPrintedHeads {
 			if f.KeywordLinesHaveHead(h.S, h.ID) {

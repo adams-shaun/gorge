@@ -184,21 +184,35 @@ func TestWorldheartPhoenixAltCostCounters(t *testing.T) {
 		}
 		replayCheck(t, e, cfg)
 	})
-	// The {W}{U}{B}{R}{G} graveyard cast (EffectZone$ Graveyard) is not
-	// offered by the legal walk at all, so the AltCostPaid-gated counters
-	// cannot be reached; pinned as the measured gap (report ## Issues).
-	t.Run("graveyard cast is not offered yet", func(t *testing.T) {
-		e, _ := corpusEngineCfg(t, reg, []*cards.Card{lookup(t, reg, "Worldheart Phoenix")}, nil)
+	// The {W}{U}{B}{R}{G} self-carried graveyard cast (EffectZone$ Graveyard):
+	// offered through graveyardAltCostCasts, paid through the full-list
+	// AltCostIndex, and the AltCostPaid-gated replacement gives the counters.
+	t.Run("graveyard cast enters with two counters", func(t *testing.T) {
+		e, cfg := corpusEngineCfg(t, reg, []*cards.Card{lookup(t, reg, "Worldheart Phoenix")}, nil)
 		id := moveByName(t, e, 0, "Worldheart Phoenix", state.ZGraveyard)
 		addMana(t, e, 0, "WUBRG")
 		if z := e.G.Obj(id).Zone; z != state.ZGraveyard {
 			t.Fatalf("precondition: Phoenix zone=%s, want graveyard", z)
 		}
-		for _, op := range e.Pending().Options {
-			if op.Obj == id && op.Kind == "cast" {
-				t.Fatalf("the graveyard cast is now offered (%q): replace this pin with the two-counter assertion", op.Label)
-			}
+		if !hasAltCostOption(e.Pending().Options, id, 1) {
+			t.Fatalf("no graveyard cast option with AltCostIndex 1 in %+v", e.Pending().Options)
 		}
+		if hasAltCostOption(e.Pending().Options, id, 0) {
+			t.Fatalf("the printed {3}{R} cost is offered from the graveyard: %+v", e.Pending().Options)
+		}
+		castWithAltIndex(t, e, id, 1)
+		passUntilStackEmpty(t, e, 20)
+		o := e.G.Obj(id)
+		if o.Zone != state.ZBattlefield {
+			t.Fatalf("graveyard-cast Phoenix zone=%s, want battlefield", o.Zone)
+		}
+		if got := o.Counter("P1P1"); got != 2 {
+			t.Fatalf("graveyard-cast Phoenix P1P1=%d, want 2", got)
+		}
+		if altCostFlagEvents(e, id) == 0 {
+			t.Fatal("no altcostpaid CastInfo event on the graveyard cast")
+		}
+		replayCheck(t, e, cfg)
 	})
 }
 
