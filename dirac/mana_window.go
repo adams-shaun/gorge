@@ -246,6 +246,11 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 // the walk skips one while the rest still cover the cost (windowPlanCovers),
 // and once they do not takes it in its battlefield place like any other.
 func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clamp, anyColor, noOwed, potential, takeDeferred bool) (ok bool, held [kop.NumManaKinds]uint8) {
+	if s.buildLive() && s.bld().manaNP == 0 && s.bld().bfl&bflPushed != 0 && s.bld().e.kind == seSpell {
+		// the payment's mana abilities queue from here: a reversal (unpushSpell) keeps what they
+		// queued (CR 733.1), whichever window path reverses the cast (Spree's, a hybrid pip's)
+		s.bld().manaNP = 1 + uint8(s.npend)
+	}
 	for !s.windowSpellSettled(k, p, cost, anyColor) {
 		if potential {
 			var pot avail
