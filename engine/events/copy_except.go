@@ -38,6 +38,12 @@ type CopyExceptions struct {
 	// Triggers are raw trigger bodies the copy has (CR 707.9a), in grant
 	// order; each Execute$ is resolved against the merged SVar table.
 	Triggers []string `json:"triggers,omitempty"`
+	// Abilities are {name, body} pairs of activated abilities the copy has
+	// (CR 707.9b: Mercurial Pretender's "{2}{U}{U}: Return this creature to
+	// its owner's hand"). The fold adds each body to the SVar table, after
+	// SVars and before Triggers, and appends the resolved AB to the face's
+	// abilities, so a copy of the copy has it too (CR 707.3).
+	Abilities [][2]string `json:"abilities,omitempty"`
 	// Back marks the payload as the exceptions' final values for the OTHER
 	// face of a double-faced token copy (CR 707.8a): the fold edits that
 	// face and keeps it as the token's CopyFaceBack.
@@ -47,7 +53,8 @@ type CopyExceptions struct {
 // Empty reports whether x carries no exception.
 func (x CopyExceptions) Empty() bool {
 	return !x.TypesSet && !x.ColorsSet && !x.PTSet && !x.NoManaCost &&
-		len(x.Keywords) == 0 && len(x.SVars) == 0 && len(x.Triggers) == 0
+		len(x.Keywords) == 0 && len(x.SVars) == 0 && len(x.Triggers) == 0 &&
+		len(x.Abilities) == 0
 }
 
 // Text is the CopyExcept event's Text for x.
@@ -161,7 +168,7 @@ func foldCopyExcept(g *state.Game, e *Event) {
 		}
 		f.Statics = kept
 	}
-	if len(x.Keywords) > 0 || len(x.SVars) > 0 || len(x.Triggers) > 0 {
+	if len(x.Keywords) > 0 || len(x.SVars) > 0 || len(x.Triggers) > 0 || len(x.Abilities) > 0 {
 		// Deep-copy every container a keyword expansion appends to or writes
 		// (the ClonePermanent "ifnew" discipline): f aliases the source face.
 		svars := make(map[string]string, len(f.SVars))
@@ -181,6 +188,15 @@ func foldCopyExcept(g *state.Game, e *Event) {
 			if !f.ApplyKeywordExpansion(k) {
 				f.Keywords = append(f.Keywords, k)
 			}
+		}
+		for _, ab := range x.Abilities {
+			f.SVars[ab[0]] = ab[1]
+			if sa := cards.ResolveSVar(f.SVars, ab[0]); sa != nil && sa.Kind == "AB" {
+				f.Abilities = append(f.Abilities, sa)
+			}
+		}
+		if len(x.Abilities) > 0 {
+			f.RefreshManaProduction()
 		}
 		for _, raw := range x.Triggers {
 			if tr, ok := cards.ParseTriggerLine(raw); ok {

@@ -180,17 +180,5 @@ func (e *Engine) grantedSAFrom(grantor, recipient state.ObjID, svar string) *car
 			return ab
 		}
 	}
-	// A copy keeps its own printed card under the copy effect (CR 707.2): an
-	// as-enters copy's AddAbilities$ grant (Mercurial Pretender) names an SVar
-	// of that card, captured before the copy replaced the face, and the mint
-	// (events.ResolveSVarAcrossFaces) falls back to the printed faces the
-	// same way. Read only after every current face missed.
-	if o.Card != nil {
-		for _, cf := range o.Card.Faces {
-			if ab := cards.ResolveSVar(cf.SVars, svar); ab != nil && ab.Kind == "AB" {
-				return ab
-			}
-		}
-	}
 	return nil
 }

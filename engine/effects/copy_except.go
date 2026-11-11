@@ -37,6 +37,9 @@ type copyExceptSpec struct {
 	// body} pairs and raw bodies, in grant order (CR 707.9a).
 	svars    [][2]string
 	triggers []string
+	// abilities are the AddAbilities$ grants as {name, body} pairs, in grant
+	// order (CR 707.9b).
+	abilities [][2]string
 }
 
 // copyExceptions settles spec against o, the object that has just become the
@@ -115,6 +118,7 @@ func copyExceptionsOf(f *cards.Face, colours ColorMask, s copyExceptSpec) events
 	x.Keywords = append([]string(nil), s.keywords...)
 	x.SVars = append([][2]string(nil), s.svars...)
 	x.Triggers = append([]string(nil), s.triggers...)
+	x.Abilities = append([][2]string(nil), s.abilities...)
 	return x
 }
 
