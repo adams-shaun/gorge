@@ -3843,6 +3843,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, err
 		}
 		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtColorGrant)), v, int16(in.C)
+		if in.F != nil {
+			// (Akroma's Blessing) the sweep's filter
+			if err := objFilter(kop.ZoneBattlefield); err != nil {
+				return ki, err
+			}
+		}
 	case "Endure":
 		// OpExt ExtEndure, B the Spirit token, C the N/N
 		// override (its PA is N)

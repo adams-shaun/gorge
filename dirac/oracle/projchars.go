@@ -213,6 +213,13 @@ func gorgeKw(s string) (kop.KwMask, bool) {
 			return 0, true
 		}
 	}
+	switch s {
+	case "Protection from white", "Protection from blue", "Protection from green":
+		// a granted protection from the chosen colour (Akroma's Blessing;
+		// the arena marks mechProtW..mechProtG, compared through the
+		// target, block and damage options); black and red keep their bits
+		return 0, true
+	}
 	head := s
 	if i := strings.IndexByte(head, ':'); i >= 0 {
 		head = head[:i]

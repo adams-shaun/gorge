@@ -45,14 +45,19 @@ const (
 	ExtTwoPilesSac
 	// ExtChooseColorRes (Skrelv, Defector Mite): the resolving
 	// controller chooses a colour (ChGenColor, all five); it rides
-	// res.chosen (colour index + 1) for the ExtColorGrant that follow
-	// (gorge effChooseColor Defined$ You). dirac/static_colourgrant.go.
+	// res.chosen (colour index + 1) for the ExtColorGrant that follow,
+	// and res.col for the ChosenColor filters of the rest of the
+	// resolution (gorge effChooseColor Defined$ You records it on the
+	// source, chosenColorMatches reads it). dirac/static_colourgrant.go.
 	ExtChooseColorRes
 	// ExtColorGrant (Skrelv): the object in Obj gains, until end
 	// of turn and for the colour in res.chosen, hexproof from that colour
 	// (C bit 0), toxic B.N (B) and "can't be blocked by creatures of that
 	// colour" (C bit 1) (gorge definedKWGrant and the CantBlockBy Effect's
-	// freezeChosenColor, cr-pump-definedkw-chosencolor).
+	// freezeChosenColor, cr-pump-definedkw-chosencolor); protection from
+	// that colour (C bit 2) for Obj, or, with a filter F, for every
+	// permanent matching F as it resolves (gorge effProtectionAll Gains$
+	// ChosenColor; Akroma's Blessing).
 	// dirac/static_colourgrant.go.
 	ExtColorGrant
 	// ExtMayPlayGrave (Case of the Uneaten Feast): every
