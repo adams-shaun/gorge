@@ -505,14 +505,14 @@ func (s *State) replOrderFreeze(k *prep, r *dmgRec, first bool) {
 		}
 		var bl [MaxPerm]Slot
 		for _, b := range bl[:s.liveBlockers(a, &bl)] {
-			s.combatArm().divAmt[b] = 0
+			*s.divAmtFor(b, a) = 0
 		}
 		fz = fz.with(a)
 		s.combatArm().divDone.set(a)
 	}
 	for i := 0; i < r.nev; i++ {
 		if ev := r.ev[i]; fz.has(ev.src) && ev.dst != NoSlot && s.perms[ev.dst].flags&pfBlocking != 0 {
-			s.combatArm().divAmt[ev.dst] += uint8(ev.n)
+			*s.divAmtFor(ev.dst, ev.src) += uint8(ev.n)
 		}
 	}
 	ro.replHdr = replHdr{on: true, nfz: nfz, cur: NoSlot}

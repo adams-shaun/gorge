@@ -584,14 +584,14 @@ func (s *State) anyBlock(k *prep) bool {
 	for bm.any() {
 		b := bm.first()
 		bm = bm.rest()
-		if !s.blockerReady(k, b) {
+		if !s.blockerRoom(k, b) {
 			continue
 		}
 		am := s.blockAtkM(k)
 		for am.any() {
 			a := am.first()
 			am = am.rest()
-			if s.perms[a].flags&pfAttacking != 0 && s.canBlock(k, b, a) && !s.menaceImpossible(k, a) {
+			if s.perms[a].flags&pfAttacking != 0 && !s.blocks(b, a) && s.canBlock(k, b, a) && !s.menaceImpossible(k, a) {
 				return true
 			}
 		}
@@ -604,11 +604,17 @@ func (s *State) blockerOptions(k *prep, d *Decision) bool {
 	d.Kind, d.Player = DkBlockers, def
 	if k.gen != nil && k.gen.anyMustBlock {
 		if mb := s.mustBlockAttackers(k); mb.any() || s.blockDuty(k).any() {
+			if k.gen.anyExtraBlock && s.extraBlockReady(k) {
+				return s.stallExtraBlockReq(d) // combat_extrablock.go
+			}
 			return s.blockerOptionsReq(k, d, mb) // combat_mustbeblocked.go
 		}
 	}
 	if k.gen != nil && k.gen.anyLure {
 		if lure := s.lureAttackers(k); lure.any() {
+			if k.gen.anyExtraBlock && s.extraBlockReady(k) {
+				return s.stallExtraBlockReq(d) // combat_extrablock.go
+			}
 			return s.blockerOptionsLure(k, d, lure) // combat_lure.go
 		}
 	}
@@ -616,14 +622,14 @@ func (s *State) blockerOptions(k *prep, d *Decision) bool {
 	for bm.any() {
 		b := bm.first()
 		bm = bm.rest()
-		if !s.blockerReady(k, b) {
+		if !s.blockerRoom(k, b) {
 			continue
 		}
 		am := s.blockAtkM(k)
 		for am.any() {
 			a := am.first()
 			am = am.rest()
-			if s.aloneBlockOfferable(k, b, a) && s.perms[a].flags&pfAttacking != 0 && s.canBlock(k, b, a) && !s.menaceImpossible(k, a) &&
+			if !s.blocks(b, a) && s.aloneBlockOfferable(k, b, a) && s.perms[a].flags&pfAttacking != 0 && s.canBlock(k, b, a) && !s.menaceImpossible(k, a) &&
 				s.blocksCompletable(k, b, a) && !(k.gen != nil && k.gen.anyMaxBlk && s.blockCapped(k, a)) {
 				if int(d.N) >= MaxOptions-1 { // keep room for Done
 					return s.optionsFull(d)
@@ -778,10 +784,14 @@ func (s *State) applyBlock(k *prep, a Action) {
 	b := s.objs[a.Source()].slot
 	at := s.objs[a.Target()].slot
 	bp := &s.perms[b]
-	bp.flags |= pfBlocking
-	bp.blocking = at
 	s.blockSeq++
-	bp.bord = s.blockSeq
+	if bp.flags&pfBlocking != 0 {
+		s.xblkRecs()[b] = xblkRec{a: uint8(at) + 1, ord: s.blockSeq} // the second attacker (combat_extrablock.go)
+	} else {
+		bp.flags |= pfBlocking
+		bp.blocking = at
+		bp.bord = s.blockSeq
+	}
 	s.perms[at].nblock++
 	s.touchSl(b)
 	s.touchSl(at)
@@ -1011,7 +1021,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			sum := 0
 			for i := 0; i < nb; i++ {
 				b := bl[i]
-				amt := int(s.combatArm().divAmt[b])
+				amt := int(*s.divAmtFor(b, a))
 				sum += amt
 				r.toPerm[b] = s.addSat16(r.toPerm[b], amt)
 				if dt && amt > 0 {
@@ -1089,6 +1099,10 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			pw = s.combatAmtTough(k, b)
 		}
 		if pw <= 0 {
+			continue
+		}
+		if s.blockedTwo(b) {
+			s.blockerTwoDamage(k, &r, b, pw) // CR 510.1d (combat_extrablock.go)
 			continue
 		}
 		a := bp.blocking
@@ -1281,6 +1295,7 @@ func (s *State) damageStep(k *prep, first, ans bool) {
 	s.divFirst = first
 	if !ans {
 		s.scrCombatEnter() // arm A of scr starts afresh (scratch.go)
+		s.xblkDivReset()
 	}
 	// api:Fog (gorge damageStep's fogActive): no damage pass at all; the
 	// damage divisions are still asked first (gorge asks them before its
@@ -1297,6 +1312,7 @@ func (s *State) damageStep(k *prep, first, ans bool) {
 		return // paused on a replacement-order ask
 	}
 	s.combatArm().divDone = slotMask{}
+	s.xblkDivReset()
 	// state-based actions run right after each damage pass (gorge
 	// completeCombatPass -> checkStateBased); a legend-rule ask waits for
 	// the next priority check
@@ -1396,7 +1412,7 @@ func (s *State) nextDivision(k *prep, first bool) bool {
 		s.divA, s.divI, s.divRem = a, 0, uint8(pw)
 		return true
 	}
-	return false
+	return s.nextBlockerDivision(k, first, &order, no) // combat_extrablock.go
 }
 
 // divideOptions poses gorge's division decision (combat.go
@@ -1405,6 +1421,10 @@ func (s *State) nextDivision(k *prep, first bool) bool {
 // ascending order of (first blocker's share, second's, ...). An option is
 // AkChoose{source: attacker, mode: split index}; SplitAt decodes it.
 func (s *State) divideOptions(k *prep, d *Decision) {
+	if s.perms[s.divA].flags&pfBlocking != 0 {
+		s.blockerDivideOptions(d) // combat_extrablock.go
+		return
+	}
 	var bl [MaxPerm]Slot
 	nb := s.liveBlockers(s.divA, &bl)
 	d.Kind, d.Sub, d.Player = DkChoose, ChDivide, s.active
@@ -1433,12 +1453,16 @@ func SplitAt(p, n, idx int, out []uint8) {
 }
 
 func (s *State) applyDivide(k *prep, a Action) {
+	if s.perms[s.divA].flags&pfBlocking != 0 {
+		s.applyBlockerDivide(a) // combat_extrablock.go
+		return
+	}
 	var bl [MaxPerm]Slot
 	nb := s.liveBlockers(s.divA, &bl)
 	var amt [MaxPerm]uint8
 	SplitAt(int(s.divRem), nb, int(a.Mode()), amt[:nb])
 	for i := 0; i < nb; i++ {
-		s.combatArm().divAmt[bl[i]] = amt[i]
+		*s.divAmtFor(bl[i], s.divA) = amt[i]
 	}
 	s.combatArm().divDone.set(s.divA)
 	s.divA = NoSlot

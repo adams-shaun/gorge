@@ -94,10 +94,11 @@ var stallUnmodelledReasons = [...]uint8{
 	StallGravePower, // no longer raised: FeatCDAPT evaluates every lowered CDA amount
 	StallLandGrant,  // gorge offers both productions of a land with a granted basic type; pcard holds one (static_landtype.go:148,161)
 	StallOutsideType, StallExileOnMoved, StallMultiRetarget, StallL6Walk, StallLowering, StallPayLifeShared, StallNoPrevent,
-	StallDmgMarkOrder, // a damage event the per-player mark and another replacement both match: gorge asks the CR 616.1 order, which the mark has no candidate for (repl_dmgmark.go)
-	StallFbGrantStamp, // a stamped flashback grant beside an own-cost flashback static: gorge offers both granted instances (kw_fbgrant.go)
-	StallRestrDefer,   // a non-spell payment only a Taps-deferred restricted source funds: gorge pays it by its prefix search (mana_tapsdefer.go)
-	StallStackKwGrant, // a granted convoke/improvise on a Harmonize or alternative-cost cast: gorge's announcement for those routes is unverified (kw_convoke.go)
+	StallDmgMarkOrder,  // a damage event the per-player mark and another replacement both match: gorge asks the CR 616.1 order, which the mark has no candidate for (repl_dmgmark.go)
+	StallFbGrantStamp,  // a stamped flashback grant beside an own-cost flashback static: gorge offers both granted instances (kw_fbgrant.go)
+	StallRestrDefer,    // a non-spell payment only a Taps-deferred restricted source funds: gorge pays it by its prefix search (mana_tapsdefer.go)
+	StallStackKwGrant,  // a granted convoke/improvise on a Harmonize or alternative-cost cast: gorge's announcement for those routes is unverified (kw_convoke.go)
+	StallExtraBlockReq, // a requirement- or lure-maximising block declaration with a two-attacker blocker ready: gorge offers its second block too (combat_extrablock.go)
 }
 
 // initStall is the reason a game of nseat players on this table stalls at its
