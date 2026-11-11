@@ -35,7 +35,7 @@ func (s *State) lureAttackers(k *prep) (m slotMask) {
 
 // blockPairOK is blockerOptions' offer test for the pair (b, a).
 func (s *State) blockPairOK(k *prep, b, a Slot) bool {
-	return s.perms[a].flags&pfAttacking != 0 && s.canBlock(k, b, a) && !s.menaceImpossible(k, a) && s.blocksCompletable(k, b, a) &&
+	return s.aloneBlockOfferable(k, b, a) && s.perms[a].flags&pfAttacking != 0 && s.canBlock(k, b, a) && !s.menaceImpossible(k, a) && s.blocksCompletable(k, b, a) &&
 		!(k.gen != nil && k.gen.anyMaxBlk && s.blockCapped(k, a))
 }
 
@@ -69,7 +69,7 @@ func (s *State) blockerOptionsLure(k *prep, d *Decision, lure slotMask) bool {
 			d.add(MakeAction(AkBlock, uint8(s.perms[b].obj), uint8(s.perms[a].obj), 0))
 		}
 	}
-	if !owed && s.blocksCompletable(k, NoSlot, NoSlot) && s.menaceDeficit(k, NoSlot, NoSlot, nil) == 0 {
+	if !owed && s.blocksCompletable(k, NoSlot, NoSlot) && s.menaceDeficit(k, NoSlot, NoSlot, nil) == 0 && !s.loneAloneBlocker(k) {
 		d.add(MakeAction(AkDone, 0, 0, 0))
 	}
 	return true
