@@ -50,9 +50,10 @@ func (s *State) untapLockAdd(k *prep, in *kop.Instr) {
 	if sl == NoSlot {
 		return
 	}
-	if s.objs[s.res.e.obj].zone != kop.ZoneBattlefield {
-		// The source left before the ability resolved: the lock is anchored to
-		// the incarnation that is gone, so it never applies (CR 611.2b).
+	if ob := &s.objs[s.res.e.obj]; ob.zone != kop.ZoneBattlefield || ob.ver != s.res.e.srcVer {
+		// The source left before the ability resolved, even if it has since
+		// returned as a new object: the lock is anchored to the incarnation
+		// that is gone, so it never applies (CR 400.7, 611.2b).
 		return
 	}
 	r := untapLock{tgt: s.perms[sl].obj, src: s.res.e.obj, ctrl: s.res.e.ctrl & ulCtrl}
