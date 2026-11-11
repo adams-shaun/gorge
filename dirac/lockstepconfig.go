@@ -25,7 +25,7 @@ const (
 // deck card) until it sets them.
 func LockstepConfig(surface Surface) Config {
 	return Config{
-		Commanders:          [MaxSeats]int16{-1, -1},
+		Commanders:          noCommanders(),
 		GorgeAltAdd:         true,
 		GorgeUnpriced:       true,
 		GorgeMustAttack:     true,

@@ -39,10 +39,13 @@ type Matchup struct {
 	Mulligans int
 	// Commander plays a Commander game (CR 903): Config's FormatCommander
 	// and 40 starting life, and Commanders[s], an index into Decks[s] (-1
-	// none), is seat s's commander, put into the command zone at genesis.
-	// Corpus.Matchup sets both from a commander deck file's commander.
+	// none), is seat s's commander, put into the command zone at genesis;
+	// Partners[s] (-1 none) is the second of a partner pair (CR 702.124),
+	// seated after it. Corpus.Matchup sets them from a commander deck file's
+	// commanders.
 	Commander  bool
 	Commanders [2]int
+	Partners   [2]int
 	// NameUniverse, when set, replaces the registry's name universe in the
 	// gorge game's Config: a name ask (a card choosing a card name as it
 	// enters) offers only these cards' names. NewMatchup sets it to the
@@ -217,6 +220,9 @@ func (c *Corpus) Matchup(a, b string, mulligans int) (*Matchup, error) {
 		m.Commander = true
 		if ix := f.CommanderIndices(); len(ix) > 0 {
 			m.Commanders[s] = ix[0]
+			if len(ix) > 1 {
+				m.Partners[s] = ix[1]
+			}
 		}
 	}
 	return m, nil
@@ -249,7 +255,7 @@ func NewMatchupN(reg *cards.Registry, names []string, decks [][]*cards.Card, mul
 	if len(names) == 2 {
 		return NewMatchup(reg, [2]string{names[0], names[1]}, [2][]*cards.Card{decks[0], decks[1]}, mulligans)
 	}
-	m := &Matchup{Names: [2]string{names[0], names[1]}, Decks: [2][]*cards.Card{decks[0], decks[1]}, Mulligans: mulligans, Commanders: [2]int{-1, -1}, reg: reg}
+	m := &Matchup{Names: [2]string{names[0], names[1]}, Decks: [2][]*cards.Card{decks[0], decks[1]}, Mulligans: mulligans, Commanders: [2]int{-1, -1}, Partners: [2]int{-1, -1}, reg: reg}
 	for s := 2; s < len(names); s++ {
 		m.More = append(m.More, MoreSeat{Name: names[s], Deck: decks[s]})
 	}
@@ -295,7 +301,7 @@ func NewMatchup(reg *cards.Registry, names [2]string, decks [2][]*cards.Card, mu
 
 // NewMatchupSide is NewMatchup with each seat's sideboard.
 func NewMatchupSide(reg *cards.Registry, names [2]string, decks, sideboards [2][]*cards.Card, mulligans int) (*Matchup, error) {
-	m := &Matchup{Names: names, Decks: decks, Sideboards: sideboards, Mulligans: mulligans, Commanders: [2]int{-1, -1}, reg: reg}
+	m := &Matchup{Names: names, Decks: decks, Sideboards: sideboards, Mulligans: mulligans, Commanders: [2]int{-1, -1}, Partners: [2]int{-1, -1}, reg: reg}
 	if holdsNameChooser(decks) {
 		m.NameUniverse = NameUniverseFor(reg, decks)
 	}
@@ -408,6 +414,9 @@ func (m *Matchup) Config(seed uint64) rules.Config {
 		for s, ix := range m.Commanders {
 			if ix >= 0 {
 				cfg.Commanders[s] = []int{ix}
+				if m.Partners[s] >= 0 {
+					cfg.Commanders[s] = append(cfg.Commanders[s], m.Partners[s])
+				}
 			}
 		}
 	}
@@ -428,14 +437,20 @@ func (m *Matchup) Config(seed uint64) rules.Config {
 	return cfg
 }
 
-// kernelCommanders is m's commander as dirac.Config carries it: seats 0 and 1,
-// and -1 in any further seat slot.
-func (m *Matchup) kernelCommanders() (bool, [dirac.MaxSeats]int16) {
-	var c [dirac.MaxSeats]int16
+// kernelCommanders is m's commanders as dirac.Config carries them: seats 0
+// and 1, each its commander and its partner (CR 702.124), and -1 in every
+// other slot. A partner without a commander seats nothing, as Config drops it.
+func (m *Matchup) kernelCommanders() (bool, [dirac.MaxSeats][2]int16) {
+	var c [dirac.MaxSeats][2]int16
 	for i := range c {
-		c[i] = -1
+		c[i] = [2]int16{-1, -1}
 	}
-	c[0], c[1] = int16(m.Commanders[0]), int16(m.Commanders[1])
+	for s := 0; s < 2; s++ {
+		c[s][0] = int16(m.Commanders[s])
+		if m.Commanders[s] >= 0 {
+			c[s][1] = int16(m.Partners[s])
+		}
+	}
 	return m.Commander, c
 }
 

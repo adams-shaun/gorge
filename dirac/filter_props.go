@@ -320,7 +320,7 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		// object is a commander outside a Commander game
 		o := s.perms[sl].obj
 		p := s.objs[o].owner()
-		ans = s.cfg&cfgCommander != 0 && s.pl[p].cmd == o
+		ans = s.cfg&cfgCommander != 0 && s.cmdSlot(p, o) >= 0
 	case kop.W7NotBottomLibrary:
 		ans = true // a battlefield permanent is no library's bottom card
 	case kop.W7CrewedBySrc:

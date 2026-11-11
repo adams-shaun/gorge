@@ -419,6 +419,7 @@ func prepare(t *kop.Table) *prep {
 	p.availExt = p.painMana || p.phyMana
 	p.restrSrc = p.gen != nil && p.gen.anyRestrSrc
 	p.embComb = prepEmbComb(t, p)
+	p.cold.partner = 1 // any table may seat a partner pair (zone_cmdpartner.go)
 	p.cold.size()
 	return p
 }

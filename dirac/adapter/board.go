@@ -352,15 +352,27 @@ func (g *Game) boardGame() {
 		}
 		pl.Lost = gm.Over && !gm.Draw && gm.Winner != state.PlayerID(p)
 		pl.Commanders, pl.CmdCasts, pl.CmdDamage = pl.Commanders[:0], pl.CmdCasts[:0], pl.CmdDamage[:0]
-		if c := g.s.FeatCommander(uint8(p)); c != dirac.NoObj {
-			pl.Commanders = append(pl.Commanders, g.ids.obj(uint8(c)))
-			pl.CmdCasts = append(pl.CmdCasts, int32(kp.CmdCast[p]))
+		// the projection carries a seat's totals; a partner (slot 1, CR
+		// 702.124) takes its own count out of them, the first commander the rest
+		part := func(total, partner uint8, j uint8) int32 {
+			if j == 1 {
+				return int32(partner)
+			}
+			return int32(total) - int32(partner)
 		}
-		// CmdDamage is dense over the match's commanders, seat order: the
-		// damage this seat took from each one (CR 903.10a)
+		for j := uint8(0); j < 2; j++ {
+			if c := g.s.FeatCommanderN(uint8(p), j); c != dirac.NoObj {
+				pl.Commanders = append(pl.Commanders, g.ids.obj(uint8(c)))
+				pl.CmdCasts = append(pl.CmdCasts, part(kp.CmdCast[p], g.s.FeatCommanderCastN(uint8(p), 1), j))
+			}
+		}
+		// CmdDamage is dense over the match's commanders, seat order then each
+		// seat's slot order: the damage this seat took from each one (CR 903.10a)
 		for q := range gm.Players {
-			if g.s.FeatCommander(uint8(q)) != dirac.NoObj {
-				pl.CmdDamage = append(pl.CmdDamage, int32(kp.CmdDmg[p][q]))
+			for j := uint8(0); j < 2; j++ {
+				if g.s.FeatCommanderN(uint8(q), j) != dirac.NoObj {
+					pl.CmdDamage = append(pl.CmdDamage, part(kp.CmdDmg[p][q], g.s.FeatCommanderDamageN(uint8(p), uint8(q), 1), j))
+				}
 			}
 		}
 		pl.LandsPlayed = 0

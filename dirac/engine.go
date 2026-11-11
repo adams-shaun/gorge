@@ -47,6 +47,7 @@ func (s *State) InitN(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed uint64
 	}
 	s.tbl = registerTable(tbl)
 	s.resetCold(&s.k().cold)
+	s.initPartners()
 	s.g.on = s.k().gen != nil
 	s.g.enteredOn = s.g.on && s.k().gen.enteredNeed
 	if s.g.on && s.k().gen.graveDrawn {
@@ -343,7 +344,7 @@ func (s *State) stepRaw(d *Decision) {
 		case ctlTurnUpX:
 			s.turnUpXOptions(d) // face_turnfaceup.go
 			return
-		case ctlCmdZone0, ctlCmdZone1:
+		case ctlCmdZone0, ctlCmdZone1, ctlCmdZone2, ctlCmdZone3:
 			s.askCmdZone(k, d, s.ctl-ctlCmdZone0) // CR 903.9a (zone_cmdzone.go)
 			return
 		case ctlDivide:
@@ -404,7 +405,7 @@ func (s *State) Apply(a Action) {
 		s.applyExileOrder(k, a)
 	case ctlTurnUpX:
 		s.applyTurnUpX(k, a) // face_turnfaceup.go
-	case ctlCmdZone0, ctlCmdZone1:
+	case ctlCmdZone0, ctlCmdZone1, ctlCmdZone2, ctlCmdZone3:
 		s.applyCmdZone(k, s.ctl-ctlCmdZone0, a.Mode()) // CR 903.9a (zone_cmdzone.go)
 	case ctlDivide:
 		s.applyDivide(k, a)

@@ -9,11 +9,21 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // earlier cast from the command zone. The tax is added after the cost
 // statics so a reduction never takes it off.
 
-// offerCommanderCast offers pl[p].cmd from the command zone when it is
-// there and the hand cast of the same card would be legal.
+// offerCommanderCast offers each of p's commanders from the command zone
+// when it is there and the hand cast of the same card would be legal. A
+// partner pair is offered in command-zone order, as gorge walks its zone
+// list: the commander that arrived last comes second.
 func (s *State) offerCommanderCast(k *prep, d *Decision, p uint8, av *avail) {
-	pl := &s.pl[p]
-	o := pl.cmd
+	first, second := s.pl[p].cmd, s.cmdObj(p, 1)
+	if !s.partnerLast(p) {
+		first, second = second, first
+	}
+	s.offerCommanderSlot(k, d, p, av, first)
+	s.offerCommanderSlot(k, d, p, av, second)
+}
+
+// offerCommanderSlot offers commander o (NoObj none) from the command zone.
+func (s *State) offerCommanderSlot(k *prep, d *Decision, p uint8, av *avail, o Obj) {
 	if o == NoObj || s.objs[o].zone != kop.ZoneCommand {
 		return
 	}
@@ -46,12 +56,12 @@ func (s *State) offerCommanderCast(k *prep, d *Decision, p uint8, av *avail) {
 }
 
 // commanderTax is the CR 903.8 generic tax on o's cast by p: two per
-// earlier cast from the command zone, and only for p's commander cast from
-// there. The build's recorded origin answers once the spell is pushed; before
+// earlier cast of that same commander from the command zone (a partner pair
+// pays two separate taxes), and only for p's commander cast from there. The build's recorded origin answers once the spell is pushed; before
 // that the object's zone is the origin.
 func (s *State) commanderTax(p uint8, o Obj) uint8 {
-	pl := &s.pl[p]
-	if o == NoObj || o != pl.cmd || pl.cmdCast == 0 {
+	j := s.cmdSlot(p, o)
+	if j < 0 || *s.cmdCastAt(p, j) == 0 {
 		return 0
 	}
 	z := s.objs[o].zone
@@ -61,7 +71,7 @@ func (s *State) commanderTax(p uint8, o Obj) uint8 {
 	if z != kop.ZoneCommand {
 		return 0
 	}
-	t := 2 * int(pl.cmdCast)
+	t := 2 * int(*s.cmdCastAt(p, j))
 	if t > 255 {
 		t = 255
 	}

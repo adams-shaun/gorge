@@ -246,8 +246,11 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 		if k != nil && k.gen != nil && k.gen.anyExW {
 			s.exwExile(k, o) // the exiled-with link (zone_exiledwith.go)
 		}
-	case kop.ZoneStack, kop.ZoneNone, kop.ZoneCommand:
-		// the command zone is a place: no list to add to (zone_cmdzone.go)
+	case kop.ZoneStack, kop.ZoneNone:
+	case kop.ZoneCommand:
+		// the command zone is a place: no list to add to (zone_cmdzone.go);
+		// a commander's arrival order is the offer order (zone_cmdpartner.go)
+		s.noteCommandZone(o)
 	default:
 		panic("kernel: place into unsupported zone")
 	}

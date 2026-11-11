@@ -63,7 +63,7 @@ func TestCommanderMatchupConfig(t *testing.T) {
 		t.Errorf("config commanders %v, want %v", cfg.Commanders, m.Commanders)
 	}
 	on, ix := m.kernelCommanders()
-	if !on || ix[0] != int16(m.Commanders[0]) || ix[1] != int16(m.Commanders[1]) {
+	if !on || ix[0][0] != int16(m.Commanders[0]) || ix[1][0] != int16(m.Commanders[1]) {
 		t.Errorf("kernel commanders %v %v", on, ix)
 	}
 
