@@ -4497,6 +4497,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				ki.A = kop.Const(kop.DelayYourUpkeep)
 			case "NextEndCombat":
 				ki.A = kop.Const(kop.DelayEndCombat)
+			case "NextUpkeepOfPlayer":
+				ki.A = kop.Const(kop.DelayPlayerUpkeep) // dirac/trig_delayplayerupkeep.go
 			case "NextBeginCombat":
 				ki.A = kop.Const(kop.DelayBeginCombat) // dirac/trig_delaybegincombat.go
 			case "NextSpellCast":

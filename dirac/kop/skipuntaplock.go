@@ -12,3 +12,10 @@ const (
 	SkipUntapLockStep = 2 // Obj doesn't untap during its controller's untap step (ValidStepTurnToController$ You: Ty Lee, Chi Blocker)
 	SkipUntapLockAny  = 3 // Obj can't become untapped at all, in the untap step or by an effect (no ValidStepTurnToController$: Spider-Woman, Secret Agent)
 )
+
+// SkipUntapPlayerCL is the OpSkipUntap C value for the player Obj's creatures
+// and lands (gorge Effect with an UntapDenial restriction, Affected$
+// Creature.RememberedPlayerCtrl,Land.RememberedPlayerCtrl; Exhaustion): the
+// permanents of those types that player controls at their next untap step stay
+// tapped through it, whoever cast the effect.
+const SkipUntapPlayerCL = 4
