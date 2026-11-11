@@ -19,7 +19,7 @@ import "slices"
 // node fails the build's tests until the function here compares it).
 
 const (
-	saFieldCount       = 14
+	saFieldCount       = 15
 	triggerFieldCount  = 9
 	staticFieldCount   = 5
 	replFieldCount     = 8
@@ -102,7 +102,7 @@ func SAEqual(a, b *SA) bool {
 	}
 	return a.Kind == b.Kind && a.API == b.API && a.Line == b.Line &&
 		a.compiledCatalog == b.compiledCatalog && a.compiledID == b.compiledID &&
-		a.api == b.api && a.apiBound == b.apiBound && a.exhaust == b.exhaust && a.exhaustBound == b.exhaustBound &&
+		a.api == b.api && a.apiBound == b.apiBound && a.exhaust == b.exhaust && a.exhaustBound == b.exhaustBound && a.copyGranted == b.copyGranted &&
 		StringMapEqual(a.Params, b.Params) && paramSetEqual(a.ps, b.ps) && extSlotEqual(a.extSlot, b.extSlot) &&
 		slotEqual(a.costSlot, b.costSlot) && SAEqual(a.Sub, b.Sub)
 }
