@@ -316,6 +316,7 @@ EvHorsemanship	uint8	1
 EvIntimidate	uint8	2
 EvSkulk	uint8	4
 EvidenceTargetsMV	untyped int	255
+ExActivations	ExprKind	60
 ExAdamant	ExprKind	244
 ExAttackedThisTurn	ExprKind	9
 ExAttackedTurn	ExprKind	235
@@ -336,7 +337,7 @@ ExCountAtLeast	ExprKind	30
 ExCountExile	ExprKind	27
 ExCountGraveyard	ExprKind	4
 ExCountHand	ExprKind	250
-ExCount_	ExprKind	60
+ExCount_	ExprKind	61
 ExCounterKinds	ExprKind	225
 ExCountersOn	ExprKind	18
 ExCreaturesDied	ExprKind	19

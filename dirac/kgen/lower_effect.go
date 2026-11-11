@@ -597,6 +597,9 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 	if c, ok := ps.get("Condition"); ok {
 		return lc.bareCondition(ps, c)
 	}
+	if c, ok := ps.get("ConditionActivationLimit"); ok {
+		return lc.activationLimitCondition(ps, c) // lower_activationcount.go
+	}
 	if c, ok := ps.get("ConditionPlayerTurn"); ok {
 		return lc.playerTurnCondition(ps, c)
 	}

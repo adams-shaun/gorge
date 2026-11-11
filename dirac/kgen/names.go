@@ -140,7 +140,7 @@ func init() {
 		"kop.ExValidAgg", kop.ExValidAgg, "kop.ExGraveAgg", kop.ExGraveAgg, "kop.ExYourSpeed", kop.ExYourSpeed,
 		"kop.ExHighestOppPoison", kop.ExHighestOppPoison, "kop.ExThisTurnEntered", kop.ExThisTurnEntered,
 		"kop.ExThisTurnCastSpec", kop.ExThisTurnCastSpec, "kop.ExCommittedCrime", kop.ExCommittedCrime,
-		"kop.ExSelfPrepared", kop.ExSelfPrepared, "kop.ExThisTurnActGrave", kop.ExThisTurnActGrave, "kop.ExThisTurnActExhaust", kop.ExThisTurnActExhaust, "kop.ExSneaked", kop.ExSneaked, "kop.ExTriggerSpellMVLKI", kop.ExTriggerSpellMVLKI,
+		"kop.ExSelfPrepared", kop.ExSelfPrepared, "kop.ExThisTurnActGrave", kop.ExThisTurnActGrave, "kop.ExThisTurnActExhaust", kop.ExThisTurnActExhaust, "kop.ExActivations", kop.ExActivations, "kop.ExSneaked", kop.ExSneaked, "kop.ExTriggerSpellMVLKI", kop.ExTriggerSpellMVLKI,
 		"kop.ExPoisonOf", kop.ExPoisonOf, "kop.ExProduct", kop.ExProduct, "kop.ExAttackersAll", kop.ExAttackersAll, "kop.ExRefCount", kop.ExRefCount, "kop.ExNumColorsOf", kop.ExNumColorsOf, "kop.ExTgtSpent", kop.ExTgtSpent,
 		"kop.ExCountHand", kop.ExCountHand, "kop.ExYourTurns", kop.ExYourTurns, "kop.ExLowestLife", kop.ExLowestLife, "kop.ExOppsAttacked", kop.ExOppsAttacked, "kop.ExRedNCDmg", kop.ExRedNCDmg, "kop.ExVoid", kop.ExVoid, "kop.ExYourExtraTurns", kop.ExYourExtraTurns,
 		"kop.ExRevolt", kop.ExRevolt, "kop.ExLeftZone", kop.ExLeftZone, "kop.ExCtrAdded", kop.ExCtrAdded,

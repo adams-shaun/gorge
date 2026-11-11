@@ -239,6 +239,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.thisTurnActGrave(ctx)
 	case kop.ExThisTurnActExhaust:
 		return s.thisTurnActExhaust(ctx)
+	case kop.ExActivations:
+		return s.activationsOfResolving() // value_activations.go
 	case kop.ExThisTurnCastSpec:
 		return s.thisTurnCastSpec(k, x, ctx)
 	case kop.ExRollResult:
