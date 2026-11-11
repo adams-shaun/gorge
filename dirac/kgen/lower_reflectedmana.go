@@ -81,7 +81,9 @@ func reflTapMana(a *lAbility) bool {
 // {T}: the reflected colour. gorge's planner census lists one unit: the {C}
 // alternative, the reflected colours (normal tier), and the restricted any
 // (deferred); the kernel's view is the union {C} | the reflected colours
-// (kernel mana_reflected.go). It reports whether ms holds a
+// (kernel mana_reflected.go). A reflected ability alone (Mox Amber) is the
+// imprint mox's per-colour views over the filter's colours (kernel
+// mana_imprint.go). It reports whether ms holds a
 // reflected ability (the caller then has nothing to add).
 func (lc *lowerCtx) refuseReflectedMana(ms []*lAbility) bool {
 	for _, a := range ms {
@@ -107,6 +109,15 @@ func (lc *lowerCtx) refuseReflectedMana(ms []*lAbility) bool {
 	}
 	if at < 0 {
 		return false
+	}
+	if len(ms) == 1 {
+		// (Mox Amber) the filter-reflected ability alone, {T} its whole
+		// cost: the kernel models it as the imprint mox's per-colour views
+		// over the filter's colours (dirac mana_imprint.go prepManaImprint)
+		if !reflTapMana(ms[0]) {
+			lc.refuseNode("card", "lone reflected mana ability with a cost beyond {T}")
+		}
+		return true
 	}
 	switch {
 	case len(ms) != 3 || at != 2:
