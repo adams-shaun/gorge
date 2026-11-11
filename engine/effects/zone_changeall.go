@@ -120,13 +120,13 @@ func changeZoneAllCap(h Host, c *Ctx, cza *ChangeZoneAllParams) int32 {
 // on-the-battlefield object reading. For a battlefield-excluding sweep every
 // scan is non-battlefield, which is exactly the whole-origin rewrite the
 // pre-per-zone matcher applied.
-func changeZoneAllMatcher(g *state.Game, c *Ctx, spec string, triggeredSet map[state.ObjID]bool, preMatched *map[state.ObjID]bool) func(state.Zone, state.ObjID) bool {
+func changeZoneAllMatcher(g *state.Game, c *Ctx, spec string, triggeredSet map[state.ObjID]bool, preMatched *func(state.Zone, state.ObjID) bool) func(state.Zone, state.ObjID) bool {
 	return func(zone state.Zone, id state.ObjID) bool {
 		switch {
 		case triggeredSet != nil:
 			return triggeredSet[id]
-		case preMatched != nil && *preMatched != nil:
-			return (*preMatched)[id]
+		case *preMatched != nil:
+			return (*preMatched)(zone, id)
 		}
 		s := spec
 		if zone != state.ZBattlefield {
@@ -134,6 +134,28 @@ func changeZoneAllMatcher(g *state.Game, c *Ctx, spec string, triggeredSet map[s
 		}
 		return MatchesSpecCtx(g, s, id, c.SpecContext(c.Controller))
 	}
+}
+
+// changeZoneAllPreMatch freezes the set a sweep matches against on its one
+// pass, keyed by (zone, id) so an origin's move cannot make an object match
+// again in a later origin zone. The caller passes its current matcher, which
+// must still be the unfrozen one while the snapshot is built.
+func changeZoneAllPreMatch(g *state.Game, from []state.Zone, players []state.PlayerID, matches func(state.Zone, state.ObjID) bool) func(state.Zone, state.ObjID) bool {
+	type key struct {
+		z  state.Zone
+		id state.ObjID
+	}
+	pre := make(map[key]bool)
+	for _, z := range from {
+		for _, p := range players {
+			for _, id := range g.Zone(z, p) {
+				if matches(z, id) {
+					pre[key{z: z, id: id}] = true
+				}
+			}
+		}
+	}
+	return func(z state.Zone, id state.ObjID) bool { return pre[key{z: z, id: id}] }
 }
 
 // changeZoneAllOwners lists the owner of every object the sweep would move,
@@ -236,7 +258,7 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		return &placements[len(placements)-1]
 	}
 	players, scoped := changeZoneAllPlayers(h, c, sa, cza)
-	var preMatched map[state.ObjID]bool
+	var preMatched func(state.Zone, state.ObjID) bool
 	// The one membership test, defined before the ForgetOtherRemembered$
 	// snapshot so the snapshot's own scan shares it: preMatched is captured
 	// by POINTER (a nil value captured by copy would stay nil for the
@@ -255,19 +277,9 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	// after the clear would sweep nothing.
 	if cza.Riders.ForgetOtherRemembered {
 		// The snapshot is built into a local and only then published: the
-		// matcher itself reads preMatched, so an empty map published before
-		// the snapshot would shadow the zone filter with all-false.
-		pre := make(map[state.ObjID]bool)
-		for _, z := range from {
-			for _, p := range players {
-				for _, id := range g.Zone(z, p) {
-					if matches(z, id) {
-						pre[id] = true
-					}
-				}
-			}
-		}
-		preMatched = pre
+		// matcher itself reads preMatched, so a matcher published before the
+		// snapshot would shadow the zone filter with all-false.
+		preMatched = changeZoneAllPreMatch(g, from, players, matches)
 		c.Remembered = nil
 		clearEventRemembered(h, c)
 	}
@@ -280,21 +292,7 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	// matching the rest. Keyed by zone, so a card one origin's move puts into
 	// a later origin zone is not visited twice.
 	if triggeredSet == nil && preMatched == nil && changeZoneAllReadsSourceChoice(spec) {
-		type zoneObj struct {
-			z  state.Zone
-			id state.ObjID
-		}
-		pre := make(map[zoneObj]bool)
-		for _, z := range from {
-			for _, p := range players {
-				for _, id := range g.Zone(z, p) {
-					if matches(z, id) {
-						pre[zoneObj{z, id}] = true
-					}
-				}
-			}
-		}
-		matches = func(z state.Zone, id state.ObjID) bool { return pre[zoneObj{z, id}] }
+		matches = changeZoneAllPreMatch(g, from, players, matches)
 	}
 	// RandomOrder$ True (Gríma, Saruman's Footman's
 	// "Then that player puts the exiled cards that weren't cast this way on
