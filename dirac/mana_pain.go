@@ -81,10 +81,13 @@ func lifePainLandAb(c *kop.CardDef, a *kop.Ability) bool {
 	if _, ok := manaLifePain(a); !ok {
 		return false
 	}
-	n := 0
+	n, self := 0, -1
 	first := true
 	for j := range c.Abilities {
 		b := &c.Abilities[j]
+		if b == a {
+			self = j
+		}
 		if b.Kind != kop.AbMana || b.AFlags&kop.AfLatent != 0 {
 			continue
 		}
@@ -93,7 +96,23 @@ func lifePainLandAb(c *kop.CardDef, a *kop.Ability) bool {
 			first = primaryNormalAb(b)
 		}
 	}
-	return n == 2 && first
+	// (n == 1: Mana Confluence's sole paid-life ability, no normal alternative)
+	return n == 2 && first || n == 1 && self >= 0 && kop.SoleLifeManaAb(c, self)
+}
+
+// prepPainOnlyLife prices a card whose only mana ability is "{T}, Pay N life:
+// Add one mana" (Mana Confluence, kop.SoleLifeManaAb) as a pain-only source
+// paying life: gorge's last-resort Consequence{Life: N} with no normal
+// alternative, a pain-only source's tier (Elves of Deep Shadow) with
+// Starting Town's life cost (painLife). It reports whether it did.
+func prepPainOnlyLife(c *kop.CardDef, pc *pcard) bool {
+	if pc.manaAb < 0 || pc.painCol != 0 || !kop.SoleLifeManaAb(c, int(pc.manaAb)) {
+		return false
+	}
+	a := &c.Abilities[pc.manaAb]
+	pc.painCol, pc.painN, pc.painOnly, pc.painLife = a.ManaColors, a.Cost.N, true, true
+	pc.manaTap = true // its {T} is an ordinary one: the life is the painful alternative's cost
+	return true
 }
 
 // prepPainMana sets pc's pain alternative: the card's mana abilities are a
