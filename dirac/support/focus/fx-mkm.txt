@@ -1,0 +1,36 @@
+# fx-mkm: the unverified MKM cards, reach-limited first; enablers after the tab
+Alley Assailant	Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher;Branch of Vitu-Ghazi
+Alquist Proft, Master Sleuth	Auspicious Arrival;Case of the Filched Falcon;Chalk Outline;Cold Case Cracker
+Bite Down on Crime	Aftermath Analyst;Basilica Stalker;Blood Spatter Analysis;Candlestick
+Branch of Vitu-Ghazi	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Case of the Ransacked Lab	Analyze the Pollen;Archdruid's Charm;Assassin's Trophy;Audience with Trostani
+Case of the Shattered Pact
+Concealed Weapon	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Coveted Falcon	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Culvert Ambusher	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Dog Walker	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Essence of Antiquity	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Exit Specialist	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Faerie Snoop	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Flourishing Bloom-Kin	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Gadget Technician	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Granite Witness	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Greenbelt Radical	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Mistway Spy	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Perimeter Enforcer	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Projektor Inspector	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Pyrotechnic Performer	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Rakish Scoundrel	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Sanguine Savior	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Scene of the Crime	Alquist Proft, Master Sleuth;Auspicious Arrival;Case of the Filched Falcon;Chalk Outline
+Sumala Sentry	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Tin Street Gossip	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Unyielding Gatekeeper	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Vengeful Creeper	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Vitu-Ghazi Inspector	Aftermath Analyst;Basilica Stalker;Blood Spatter Analysis;Candlestick
+Agency Outfitter
+Airtight Alibi
+Fugitive Codebreaker	Alley Assailant;Aurelia's Vindicator;Basilica Stalker;Bolrac-Clan Basher
+Sanctuary Wall
+Tenth District Hero	Aftermath Analyst;Basilica Stalker;Blood Spatter Analysis;Candlestick
+The Pride of Hull Clade

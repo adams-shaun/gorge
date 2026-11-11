@@ -13,8 +13,8 @@ import (
 // on every real Tap event of the permanent, mana taps included; the kernel
 // fires TrigTaps from its attack taps and from the granted mana ability's
 // {T}, gen manaTaps). Captain America, Living Legend's FirstTime$ True line
-// stays refused (the kernel keeps no per-object tapped-this-turn), so it is
-// not in the pool. The expected answer at every decision is gorge's.
+// (the arena's per-slot tapped-this-turn mark) has its own repro and is not
+// in this pool. The expected answer at every decision is gorge's.
 var ktapsOwnDecks = [2][]cardset.Entry{
 	{
 		{Name: "Hawkeye's Bow", Count: 6}, {Name: "Grizzly Bears", Count: 8},

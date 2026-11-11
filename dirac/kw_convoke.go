@@ -265,13 +265,15 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 	if k.gen == nil || !k.gen.anyConvoke || e.kind != seSpell || !s.tapPaysEntry(k, e) {
 		return false
 	}
-	if cd := &k.t.Cards[e.card]; harmonizeEntry(cd, e) || cd.Impending != 0 || cd.HasPlot || cd.HasSneak || cd.HasWarp || e.trigPl == trigPlWarpG ||
+	if cd := &k.t.Cards[e.card]; harmonizeEntry(cd, e) || cd.HasPlot || cd.HasSneak || cd.HasWarp || e.trigPl == trigPlWarpG ||
 		cd.Mayhem || cd.HasWebSling || cd.HasMayFlash {
 		// kgen refuses these routes beside a printed Convoke or Improvise, so
 		// a live one is a grant. gorge's convokeAsk offers harmonize and
 		// convoke/improvise picks together, and prices the alternative-cost
 		// routes' announcement itself; the kernel's menu for them is
-		// unverified under a grant, so stall rather than pose it.
+		// unverified under a grant, so stall rather than pose it. An impending
+		// cast is not among them: buildCost prices its impending cost, the cost
+		// gorge's ask reads (CR 702.176a, 702.51a).
 		fh := s.castFromHandBy(e, e.ctrl)
 		if s.hasConvoke(k, e.ctrl, e.card, e.obj, fh) || s.isImprovise(k, e.ctrl, e.card, e.obj, fh) {
 			s.capFull(StallStackKwGrant)
@@ -304,10 +306,15 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 	// gorge's ask closes at Max = min(#options, slots), the uncredited
 	// Colored.Total()+Generic (pay.ConvokeAsk): an announcement whose picks
 	// reach the slot count commits without a Done.
+	// Only a Convoke creature's colour pick pays a coloured pip (CR 702.51a);
+	// an Improvise artifact pays generic only (CR 702.126a), so gorge counts
+	// the pips as slots only when the ask offers a colour pick.
 	slots := int(raw.Generic)
+	pipSlots := 0
 	for _, p := range raw.Pips {
-		slots += int(p)
+		pipSlots += int(p)
 	}
+	colourOpt := false
 	// gorge's ConvokeAsk Max is min(offered options, outstanding slots) and
 	// the answer commits as soon as Max picks are made (the oracle's Apply),
 	// with no Done-only re-pose. Count the first ask's options over the
@@ -326,6 +333,7 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 		for ci := 0; ci < 5 && cc; ci++ {
 			if raw.Pips[ci] != 0 && col&(1<<ci) != 0 {
 				offered++
+				colourOpt = true
 			}
 		}
 		if cc && genOK {
@@ -334,6 +342,9 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 		if ic && genOK {
 			offered++
 		}
+	}
+	if colourOpt {
+		slots += pipSlots
 	}
 	maxPicks := slots
 	if hasX || offered < maxPicks {
@@ -469,9 +480,12 @@ func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, 
 		was := s.perms[sl].flags & pfTapped
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
-		if was == 0 && k.gen != nil && s.subs[kop.TrigTaps].any() {
-			tb = tb || s.tapBatchOpen(k) // the announcement's taps are one tapping action (gorge EmitConvokeTaps; trig_tapall.go)
-			s.fireTaps(k, sl)
+		if was == 0 {
+			if k.gen != nil && s.subs[kop.TrigTaps].any() {
+				tb = tb || s.tapBatchOpen(k) // the announcement's taps are one tapping action (gorge EmitConvokeTaps; trig_tapall.go)
+				s.fireTaps(k, sl)
+			}
+			s.markTapped(k, sl) // only a tap that happens marks
 		}
 	}
 	s.tapBatchClose(tb)

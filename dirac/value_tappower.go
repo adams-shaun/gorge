@@ -158,14 +158,46 @@ func tapPowerScopeHit(st *kop.Static, flags kop.CostFlags, station bool) bool {
 
 // tapPowerAt is the ExTapPower value head: the tap-power total of the object
 // Ref names, with the host the resolving Station ability's source. A tapped
-// creature that has left reads its last known power (the current vPowerOf
-// read) and no live static bonus.
+// creature that has left reads its last known power and toughness (the
+// vPowerOf read), and the station-scoped statics still in force read the card
+// where it now is, its owner as its controller (gorge tapPowerValueFor over
+// the departed object: Tapestry Warden's toughness for a Survey Mechan
+// sacrificed before the station resolved).
 func (s *State) tapPowerAt(k *prep, r kop.Ref, ctx evalCtx) int {
 	if sl := s.tapPowerSlot(r, ctx); sl != NoSlot {
 		return s.tapPowerTotal(k, sl, 0, true, ctx.srcSl)
 	}
-	pw, _ := s.refPT(k, r, ctx)
-	return pw
+	pw, t := s.refPT(k, r, ctx)
+	if DebugIgnoreTapPower || !k.anyTapPowerStatic || k.gen == nil || r != kop.RefTriggerObj || ctx.e == nil || ctx.e.trigObj == NoObj {
+		return pw
+	}
+	o := ctx.e.trigObj
+	ob := &s.objs[o]
+	base, added := pw, 0
+	s.eachStatic(k, func(st statSrc) bool {
+		a := st.a
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatTapPower || !s.statCond(k, st) || !tapPowerScopeHit(&a.Static, 0, true) {
+			return true
+		}
+		if a.Static.Filter2 != 0 && ctx.srcSl != NoSlot && !s.matchPerm(k, a.Static.Filter2, ctx.srcSl, st.ctrl, st.sl) {
+			return true
+		}
+		if !s.matchCardGen(k, a.Static.Filter, ob.card, ob.owner(), st.ctrl, o) {
+			return true
+		}
+		switch {
+		case a.Static.StFlags&kop.StTapPowerTough != 0:
+			if !DebugToughAssignOff {
+				base = t
+			}
+		case a.Static.StFlags&kop.StDynamic != 0:
+			added += s.evalV(k, a.Static.VA, evalCtx{src: o, srcSl: NoSlot, ctrl: st.ctrl})
+		default:
+			added += int(a.Static.A)
+		}
+		return true
+	})
+	return base + added
 }
 
 // tapPowerSlot is the battlefield slot the tap-power ref names, live as the
@@ -219,7 +251,7 @@ func (s *State) graveExileCands(k *prep, in *kop.Instr, d *Decision) {
 				if s.picksHas(o) {
 					continue
 				}
-				if s.matchCardGen(k, in.F, s.objs[o].card, s.objs[o].owner(), ctrl, o) {
+				if !s.tokenLeftBattlefield(o) && s.matchCardGen(k, in.F, s.objs[o].card, s.objs[o].owner(), ctrl, o) { // a token off the battlefield is no card (CR 111.8)
 					d.add(MakeAction(AkChoose, uint8(o), 0, 0))
 				}
 			}

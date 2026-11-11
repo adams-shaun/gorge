@@ -164,9 +164,20 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 	// 601.2b announces Convoke before X), so the bound is left open and the
 	// X ask prices the announcement against every candidate X instead; the
 	// engine's absorption gate plus that pricing close the rest.
+	// Only a Convoke creature can pay a coloured pip (CR 702.51a); an
+	// Improvise artifact (CR 702.126a), a Harmonize or Waterbend tap pays
+	// generic mana only, so without a colour option the slots are the generic
+	// ones alone (Kappa Cannoneer at {3}{U} admits three artifacts, not four).
+	colourSlots := int32(0)
+	for _, o := range d.Options {
+		if len(o.Kind) == len("convoke_W") && o.Kind[:len("convoke_")] == "convoke_" || o.Kind == "activation_creature" {
+			colourSlots = mana.Colored.Total()
+			break
+		}
+	}
 	d.Max = len(d.Options)
 	if !hasX {
-		if slots := int(mana.Colored.Total() + mana.Generic); slots < d.Max {
+		if slots := int(colourSlots + mana.Generic); slots < d.Max {
 			d.Max = slots
 		}
 	}

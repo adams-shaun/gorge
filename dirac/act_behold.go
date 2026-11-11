@@ -136,7 +136,13 @@ func (s *State) beholdOptions(k *prep, d *Decision) bool {
 		left -= s.beholdPicks() // the picks so far are no candidates
 	}
 	if n < left {
-		panic("kernel: behold cost no longer payable") // gorge aborts the cast; unreachable after the offer gate
+		// gorge offers every either-or part, the unpayable ones last, and a
+		// behold part chosen without enough candidates (another player's
+		// card cast through a grant, its owner's Merfolk not the caster's)
+		// aborts the cast here (beholdCostAsk; CR 601.2h, 733.1).
+		d.N = 0
+		s.reverseCast(k)
+		return true
 	}
 	if n == left {
 		if cd.BeholdExile {

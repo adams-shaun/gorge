@@ -360,10 +360,19 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		//     ValidPlayer$ (any tapper): Captain America, Living Legend's
 		//     Creature.YouCtrl, Hawkeye's Bow's Creature.EquippedBy, and
 		//     Cryoshatter's Card.AttachedBy when its body defers the tap.
+		//     A FirstTime$ True line (Captain America, Living Legend) is the
+		//     same watcher with the tapped-this-turn mark consulted first.
 		// FirstTime$ True ("the first time it has become tapped this turn",
-		// gorge Facts.TappedTurn) needs a per-object bit the kernel keeps
-		// nowhere (perm.flags holds no free bit): 16 State bytes, a
-		// tapped-this-turn slotMask in stateCore, so it refuses.
+		// gorge Facts.TappedTurn) reads the arena's per-slot tapped-this-turn
+		// mark (mechTappedTurn, filter_permmarks.go): every real tap sets it
+		// after its Taps triggers, and a watcher entering later still sees an
+		// earlier tap. FirstTime$ on self and non-Self lines both lower.
+		if v, ok := tp.get("FirstTime"); ok {
+			if v != "True" {
+				return refuse("Taps FirstTime$ %q", v)
+			}
+			tr.First = true
+		}
 		if vc := tp.str("ValidCard"); vc != "Card.Self" {
 			if tr.F, err = readF("ValidCard"); err != nil {
 				return err
@@ -372,9 +381,6 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				return refuse("Taps ValidCard %q", vc)
 			}
 			if vp := tp.str("ValidPlayer"); vp != "You" {
-				if tp.is("FirstTime", "True") {
-					return refuse("Taps FirstTime$: no per-object tapped-this-turn (16 State bytes)")
-				}
 				if vp != "" {
 					return refuse("Taps ValidPlayer %q", vp)
 				}
@@ -2468,6 +2474,10 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		rest, melee := splitMeleeGrant(rest)
 		rest, exalted := splitExaltedGrant(rest)
+		rest, st.ProtFrom, err = lc.splitProtGrant(rest) // lower_protgrant.go
+		if err != nil {
+			return nil, err
+		}
 		if rest != "" {
 			if st.Kw, err = pumpKeywords(rest); err != nil {
 				return nil, err

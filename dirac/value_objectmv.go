@@ -101,6 +101,9 @@ func (s *State) rememberedMV(k *prep) int {
 // targetMV, rememberedMV) goes through here, so a new reader cannot forget
 // the stack X term.
 func (s *State) objMV(k *prep, c CardID, o Obj) int {
+	if o != NoObj && s.objs[o].zone == kop.ZoneBattlefield && s.copiesBackFace(k, s.objs[o].slot) {
+		return 0 // CR 712.8e
+	}
 	mv := int(k.cards[c].total)
 	if k.gen.anySplit {
 		mv = s.splitMV(k, c, o, mv) // face_castface.go
@@ -116,10 +119,24 @@ func (s *State) objMV(k *prep, c CardID, o Obj) int {
 // mvPerm is the printed mana value of the permanent at sl, 0 for an embalm
 // copy (a copy exception's "with no mana cost").
 func (s *State) mvPerm(k *prep, sl Slot) int {
-	if s.cpxNoCost(k, sl) {
+	if s.cpxNoCost(k, sl) || s.copiesBackFace(k, sl) {
 		return 0
 	}
 	return int(k.cards[s.cardAt(sl)].total)
+}
+
+// copiesBackFace reports whether the permanent at sl is a copy (a clone's
+// copy layer or a token copy) whose visible face is a transforming card's
+// back face. Its mana value is 0 (CR 712.8e): the copiable values are the
+// back face's, which has no mana cost, where the transformed card itself
+// reads its front face's cost (gorge state.ManaValue's CopyFace case).
+func (s *State) copiesBackFace(k *prep, sl Slot) bool {
+	c := s.cardAt(sl)
+	cd := &k.t.Cards[c]
+	if cd.FaceMode != kop.FaceTransform || cd.Face == 0 {
+		return false
+	}
+	return s.perms[sl].ovr.flags&ovCopy != 0 || s.objs[s.perms[sl].obj].of&ofCopy != 0
 }
 
 // notOwnLibMV is ExNotOwnLibMV: the mana values summed of the library cards

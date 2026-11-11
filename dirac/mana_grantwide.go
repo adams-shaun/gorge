@@ -1,0 +1,124 @@
+package dirac
+
+import "github.com/adams-shaun/gorge/dirac/kop"
+
+// A wide second-ability gap (Hermitic Herbalist: {T}: one mana of any colour
+// beside a restricted {T}: two mana in any combination of colours) beside a
+// granted mana ability: gorge's census covers neither the combination nor the
+// grant, so both sources are gaps, and its one prefix search
+// (potential_script.go scriptSearch.visit) activates every census gap in
+// battlefield order. A Herbalist entered before the grant's holder is tapped
+// first, for its first ability's colour, though the grant and the printed
+// sources alone would pay the play (CR 605.3a, 601.2g). So the grant search
+// lists it as a candidate too, branching as the script search does
+// (mana_restrictedcombo.go): the "choose a mana ability" ask, the first
+// ability's colour ask, then the combination's allocation ask, one node each.
+
+// stepWide is the gi of a prefix step that taps a wide second-ability gap; the
+// step's col is the engine-order answer tapGapChoice decodes (wide2Answers).
+const stepWide int16 = -5
+
+// wideGaps is p's wide second-ability gaps.
+func (s *State) wideGaps(k *prep, p uint8) slotMask {
+	var m slotMask
+	if k.gen == nil || !k.gen.anyMultiR {
+		return m
+	}
+	for b := s.scriptAnyR(k, p); b.any(); b = b.rest() {
+		if sl := b.first(); s.wideSecond(k, sl) {
+			m = m.with(sl)
+		}
+	}
+	return m
+}
+
+// wideBranch activates the wide candidate i (slot sl) when it can tap, by each
+// answer of its asks in gorge's order.
+func (g *grantSrch) wideBranch(t *State, i int, sl Slot) bool {
+	if !t.canTapForMana(g.k, sl) || !g.node() { // the "choose a mana ability" ask
+		return false
+	}
+	if !g.node() { // the first ability's colour ask
+		return false
+	}
+	order := [kop.NumManaKinds - 1]uint8{0, 1, 2, 3, 4}
+	needFirst(order[:], g.need)
+	for _, c := range order {
+		if g.wideTry(t, i, sl, c, false) {
+			return true
+		}
+	}
+	if !g.node() { // the combination's allocation ask
+		return false
+	}
+	ab := &g.k.t.Cards[t.cardAt(sl)].Abilities[g.k.gen.anyR(t.cardAt(sl))]
+	skip := !t.restrSrcAdmits(g.k, g.p, sl, ab, &g.d)
+	for c := 0; c < wideAnswers; c++ {
+		if g.wideTry(t, i, sl, uint8(kop.NumManaKinds-1+wideEngineAnswer(g.need, c)), skip) {
+			return true
+		}
+	}
+	return false
+}
+
+// wideTry taps candidate i for engine answer ans on a copy of t and continues
+// the search there. skip: the combination's mana is past the play, so its units
+// sit in the ghost (they price nothing, but gorge's state key reads them).
+func (g *grantSrch) wideTry(t *State, i int, sl Slot, ans uint8, skip bool) bool {
+	if g.np >= len(g.path) {
+		return false
+	}
+	var gx [kop.NumManaKinds]uint8
+	if skip {
+		c1, c2 := wideAnswer(int(ans) - (kop.NumManaKinds - 1))
+		gx[c1]++
+		gx[c2]++
+	}
+	c := t.fork()
+	c.perms[sl].flags |= pfTapped
+	c.touchSl(sl)
+	var spill [kop.NumManaKinds]uint8
+	c.wide2Float(g.k, g.p, sl, int(ans), &spill)
+	for j := range gx {
+		g.ghost[j] += gx[j]
+	}
+	g.path[g.np] = grantStep{i: uint8(i), col: ans, gi: stepWide, sl: sl}
+	g.np++
+	ok := g.next(c, sl)
+	if !ok {
+		g.np--
+	}
+	for j := range gx {
+		g.ghost[j] -= gx[j]
+	}
+	t.unfork()
+	return ok
+}
+
+// wideApply taps the wide gap of a found prefix step on s.
+func (s *State) wideApply(k *prep, p uint8, sl Slot, ans uint8) {
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	s.manaTapped(k, sl)
+	var spill [kop.NumManaKinds]uint8
+	s.wide2Float(k, p, sl, int(ans), &spill)
+}
+
+// wide2Float floats engine answer c of the wide second-ability gap at sl: its
+// first ability's colour (c below NumManaKinds-1), else the multiset of its
+// combination, with the TapsForMana extra either tap brings (gorge
+// addTapExtra). A unit the restricted table cannot hold is counted in spill.
+func (s *State) wide2Float(k *prep, p uint8, sl Slot, c int, spill *[kop.NumManaKinds]uint8) {
+	s.addExtra(k, p&1, sl, s.manaPCGen(k, sl))
+	if c < kop.NumManaKinds-1 {
+		s.pl[p].pool[c]++
+		return
+	}
+	ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))]
+	c1, c2 := wideAnswer(c - (kop.NumManaKinds - 1))
+	for _, col := range [2]int{c1, c2} {
+		if !s.floatRestrAb(k, p, sl, ab, col, 1) {
+			spill[col]++
+		}
+	}
+}

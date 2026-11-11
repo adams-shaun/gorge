@@ -70,7 +70,7 @@ func (s *State) offerWarpHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av
 				continue
 			}
 		}
-		if !av.affords(&wc, pipMaskOf(&wc), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), &wc, av)) {
+		if !av.affords(&wc, pipMaskOf(&wc), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), &wc, av)) && !s.warpDeferredRestr(k, p, c, o, &wc, av) {
 			continue
 		}
 		if !s.altAddCastable(k, c, p, o, &wc, av) {
@@ -196,4 +196,21 @@ func (s *State) warpedPerm(o Obj) bool {
 		}
 	}
 	return false
+}
+
+// warpDeferredRestr: the warp cost wc, which av and the census's restricted
+// sources do not pay, is paid with a Taps-deferred restricted source counted
+// (Steelswarm Operator under Cryoshatter paying a warped artifact). gorge
+// offers that warp row: the tap is a mana ability activated while the spell
+// is cast, and the watcher's trigger waits until the cast is done (CR
+// 601.2g, 603.3), so even a sorcery-speed warp keeps its timing. A plain
+// hand cast stays on the census gate, which leaves the source out
+// (cryoshatter_on_restricted_mana_source_does_not_fund_a_cast).
+func (s *State) warpDeferredRestr(k *prep, p uint8, c CardID, o Obj, wc *kop.ManaCost, av *avail) bool {
+	if !k.restrSrc || !s.deferLive(k) || s.g.availX&(availWalk|availHyp) != 0 {
+		return false
+	}
+	d := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o), instant: k.cards[c].instant || s.castFlash(k, p, c)}
+	t, multi, nm := s.restrSrcAvailD(k, p, d, av, NoSlot, true)
+	return t.affordsMulti(wc, 0, multi[:nm])
 }

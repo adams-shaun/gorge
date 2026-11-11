@@ -43,19 +43,52 @@ const nSubEvents = kop.TrigGiveGift
 var _ = [1]struct{}{}[kop.TrigEventCount-1-kop.TrigFacesDilemma]
 
 // giftOptions poses the gift election (gorge giftAsk: decline first, then
-// one option per opponent).
+// one option per opponent, AliveFrom(caster) without the caster): mode 0
+// declines, mode 1+i promises the i-th opponent in that order.
 func (s *State) giftOptions(d *Decision) {
-	d.Kind, d.Sub, d.Player = DkChoose, ChGenGift, s.bld().e.ctrl
+	ctrl := s.bld().e.ctrl
+	d.Kind, d.Sub, d.Player = DkChoose, ChGenGift, ctrl
 	d.add(MakeAction(AkChoose, 0, 0, 0))
-	d.add(MakeAction(AkChoose, 0, 0, 1))
+	q := s.oppsFrom(ctrl)
+	for i := uint8(0); i < q.n; i++ {
+		d.add(MakeAction(AkChoose, 0, 0, 1+i))
+	}
 }
 
-// answerGift records the election on the entry and moves on.
+// answerGift records the election on the entry and moves on: the promise
+// in sfPromised, the promised opponent in the spell entry's grp (an
+// attacker-group index only a trigger carries; grpUsed skips spells).
 func (s *State) answerGift(k *prep, a Action) {
-	if a.Mode() == 1 {
-		s.bld().e.flags |= sfPromised
+	if m := a.Mode(); m >= 1 {
+		e := &s.bld().e
+		e.flags |= sfPromised
+		e.grp = s.oppsFrom(e.ctrl).s[m-1]
 	}
 	s.nextStage(k)
+}
+
+// promisedSeat is the opponent entry e's gift was promised to (gorge
+// Object.GiftPromisedTo; 255 = none): a spell's own election, or a
+// permanent's gift trigger's snapshot taken as it was queued (trigPl,
+// promisedAt; gorge trigger GiftTo).
+func (s *State) promisedSeat(k *prep, e *stackEntry) uint8 {
+	switch {
+	case e.promised():
+		return e.grp
+	case e.kind == seTrigger && e.ab < abCascade && k.t.Cards[e.card].Abilities[e.ab].AFlags&kop.AfGift != 0:
+		return e.trigPl
+	}
+	return 255
+}
+
+// promisedAt is the opponent the resolving spell that is putting o onto
+// the battlefield promised its gift to (255 = none): a permanent's gift
+// trigger snapshots it as it is queued.
+func (s *State) promisedAt(o Obj) uint8 {
+	if r := &s.res; r.active && r.e.obj == o && r.e.promised() {
+		return r.e.grp
+	}
+	return 255
 }
 
 // promisedCtx: the gift of ctx's entry was promised; with no entry (an

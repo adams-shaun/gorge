@@ -76,6 +76,18 @@ func (e *Engine) protectedFrom(target, source state.ObjID) bool {
 			if e.sourceHasQuality(source, q) {
 				return true
 			}
+			// Player-relative qualities (Player.Opponent) are not object
+			// qualities: judge the SOURCE'S CONTROLLER as the seat the spec
+			// names, with the protected permanent's controller as the "you"
+			// the Opponent relation is measured against -- the object analogue
+			// of playerProtectedFrom's arm. Only a live source object is
+			// judged: controllerOf on a dead id degrades to seat 0, which
+			// would falsely name a controller. MatchesPlayerSpecFrom fails
+			// closed on a non-player spec, so no other quality widens here.
+			if e.G.Obj(source) != nil &&
+				effects.MatchesPlayerSpecFrom(e.G, q, e.controllerOf(source), e.controllerOf(target), 0) {
+				return true
+			}
 		}
 	}
 	return false
@@ -261,6 +273,13 @@ func protectionOpponentOfPlayerUID(q string) (int64, bool) {
 // characteristics"; everything else is matched against the source's current
 // colours and types (never a player: source==0 already returned at the
 // protectedFrom gate).
+//
+// The two Player.* player-id forms (Player.PlayerUID_<n> and
+// Player.OpponentOf PlayerUID_<n>) are ABSOLUTE: they name a seat directly.
+// A bare player-relative quality such as Player.Opponent has no absolute
+// reading here; it is resolved by the caller that knows which permanent or
+// player is protected, judging the source's controller against that "you"
+// (protectedFrom for a permanent, playerProtectedFrom for a player).
 func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 	if strings.EqualFold(q, "everything") {
 		return true

@@ -322,7 +322,7 @@ func prepare(t *kop.Table) *prep {
 						prepEachMana(a, pc)
 						p.manaEach = true
 					}
-					pc.manaTap = a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
+					pc.manaTap = (a.Cost.Flags == kop.CostTap || a.Cost.Flags == kop.CostTap|kop.CostOncePerGame) && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
 					pc.manaSac = a.Cost.Flags == kop.CostTap|kop.CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
 					// (a latent one is another permanent's: Lotus Ring's sacrifice-only ability is its equipped creature's, mana_grantcost.go)
 					pc.manaSacOnly = !DebugIgnoreSpawnMana && a.AFlags&kop.AfLatent == 0 && a.Cost.Flags == kop.CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0

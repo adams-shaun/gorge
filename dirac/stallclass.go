@@ -271,12 +271,6 @@ func prepTwoSeat(t *kop.Table, g *genPrep) {
 			return
 		}
 	}
-	for i := range t.Filters {
-		if t.Filters[i].Flags2&kop.F2DefendingCtrl != 0 {
-			g.twoSeatOnly = true // "the defending player": the one non-active player
-			return
-		}
-	}
 }
 
 // cardTwoSeat reports whether c plays only in a two-seat game (kop.CardTwoSeat).

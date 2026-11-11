@@ -1,0 +1,17 @@
+# fx-fra: the unverified FRA cards, reach-limited first; enablers after the tab
+Denzilore Fatehold	Chandra, Chill of Compliance;Diviner of Victory;Enlightened Confidant;Eye of Jace
+Diviner of Victory	Chandra, Chill of Compliance;Enlightened Confidant;Eye of Jace;Fatehold Chronologist
+Karn, Gilded Guardian
+Proft, Consulting Detective	Chandra, Chill of Compliance;Diviner of Victory;Enlightened Confidant;Eye of Jace
+Prudent Fateseer	Chandra, Chill of Compliance;Diviner of Victory;Enlightened Confidant;Eye of Jace
+Saheeli, Consul of Oversight	Chandra, Chill of Compliance;Diviner of Victory;Enlightened Confidant;Eye of Jace
+Countersculpt
+Danitha, Spear of Agony
+Ghalta the Immovable
+Lyra, Tolarian Archangel
+Rise of the Deathbringer
+Sphinx's Approach
+Tam, the Possibility
+Theorist's Proxy
+Twinned Vision
+Way of the Cryomancer

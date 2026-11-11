@@ -206,6 +206,13 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.
 				if o == nil || !MatchesSpecCtx(h.Game(), spec, id, forgetOtherSpecContext(c)) {
 					continue
 				}
+				if o.IsToken && o.Zone != state.ZBattlefield {
+					// A token waiting in a graveyard for state-based actions
+					// (CR 704.5d) is no card, and it cannot move again (CR
+					// 111.7, 111.8): Lich-Knights' Conquest's return never
+					// picks the Rat token it just sacrificed.
+					continue
+				}
 				eligible = append(eligible, id)
 			}
 		}

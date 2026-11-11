@@ -78,6 +78,7 @@ type genPrep struct {
 	anyRemPersist   bool // a card's enters trigger remembers what its leaves trigger reads (CardDef.RemPersist; zone_rememberpersist.go)
 	anyNinjutsu     bool // a card has a K:Ninjutsu ability (kop.AfNinjutsu; kw_ninjutsu.go)
 	anyPowerUp      bool // a card has a printed PowerUp$ ability (kw_powerup.go)
+	anyManaOnce     bool // a card's first mana ability is activate-only-once (Loot, the Pathfinder; mana.go canTapForManaPC)
 	anyStackTgt     bool // some target slot is a TgtStackObj (tgt_stackability.go)
 	anyCopyAb       bool // some target slot is a TgtCopyAb or TgtCopyTrig (copy_ability.go)
 	anyBestow       bool // a card has printed bestow (CardDef.HasBestow; kw_bestow.go)
@@ -126,7 +127,8 @@ type genPrep struct {
 	// source's host ("artifact creatures you control have ..."), so any
 	// permanent can hold the trigger (trigger_granted.go grantTrigHosts)
 	globTrigGrant bool
-	anyProtF      bool // a card has printed K:Protection:<spec> (CardDef.ProtFrom; kw_protection.go)
+	anyProtF      bool // a card has printed K:Protection:<spec> (CardDef.ProtFrom), or a granted one (anyProtGrant)
+	anyProtGrant  bool // a Continuous static has a ProtFrom quality (kop.Static.ProtFrom; kw_protection.go)
 	// manaTaps: the table has a Taps trigger (TrigTaps) and a granted mana
 	// ability, which can tap a Taps listener for mana: the mana taps fire it
 	// (manaTapped)
@@ -174,7 +176,7 @@ type genPrep struct {
 	globGrant      bool           // a global override static grants an ability (Ygra; static_layerwalk.go globalGrants)
 	anyHist        bool           // some trigger reads the turn history bank (expend, the N-th spell; value_turnhistory.go)
 	anyPrevFrom    bool           // some program grants KwPreventCombatDamageFrom (repl_regenerate.go)
-	anyTokRew      bool           // a ReplRewriteTokens or ReplAddToken ability (repl_tokrewrite.go, repl_tokorder.go)
+	anyTokRew      bool           // a ReplRewriteTokens, ReplAddToken or ReplCopyFirstToken ability (repl_tokrewrite.go, repl_tokorder.go)
 	anyPlusCre     bool           // some program is ExtTurnRepl TurnReplPlusCreatureCtr: the cold buffer holds its per-player count and source (repl_turnrepl.go)
 	anyDmgMark     bool           // some program is ExtDmgMark: every damage site reads the per-player marks (repl_dmgmark.go)
 	anyFiltRepl    bool           // a filtered damage doubler or token multiplier, or an x3 one (repl_multipliers.go)
@@ -184,6 +186,7 @@ type genPrep struct {
 	anyCastSpent   bool           // some SpellCast trigger carries Tf2CastSpent (opus)
 	anySpentGate   bool           // some SpellCast trigger carries a Spell.ManaSpent gate in Trigger.N (trig_spentvalid.go)
 	anySpent       bool           // some expression reads the mana spent to cast a spell (ExCastManaSpent; copy_asenters.go)
+	anyTgtSpent    bool           // some expression reads the resolving spell's target spell's spend (ExTgtSpent; resolve.go snapTgtSpent)
 	anyBecomeCopy  bool           // some enters program is OpBecomeCopy (an as-enters clone): a permanent it made a copy is projected as its printed card, and a token copy of a clone is asked its election (ctr_entryperkind.go)
 	anyEntryMerge  bool           // the table has an AddCounter replacement and more than one source of entry counters: enterGen merges them into one put per kind (ctr_entryperkind.go)
 	anyEffEtbCtr   bool           // some instruction is ExtEffEtbCtr: enterGen puts a cast spell's pending extra counters on (ctr_effectentry.go)
@@ -266,6 +269,7 @@ type genPrep struct {
 	anyMayWhileSrc bool           // some OpMayPlay lasts DurWhileSrcMay (cast_whilesource.go)
 	anyGoad        bool           // some program is OpGoad (act_goad.go)
 	anyPermMark    bool           // the table gives some kop.PredPermMark mark an arena mask (filter_permmarks.go)
+	anyTappedTurn  bool           // the table gives mechTappedTurn an arena mask (a Taps FirstTime$ line; filter_permmarks.go)
 	anyCombatHit   bool           // some card records its combat hits on players (cdRec) or some expression reads the legendary-hit bit (value_turntallies.go)
 	cdLegOn        bool           // some expression is ExOppsLostLife N 1: record cdLeg
 	anyAddPhase    bool           // some program is ExtAddPhase, some trigger is Tf3FirstAttack or some expression is ExPhaseCount (act_addphase.go)
@@ -600,6 +604,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if t.Exprs[i].Kind == kop.ExCastManaSpent {
 			g.anySpent, g.anyHist = true, true // recorded at payment by histCast
+		}
+		if t.Exprs[i].Kind == kop.ExTgtSpent {
+			g.anyTgtSpent, g.anySpent, g.anyHist = true, true, true // the target spell's spend is recorded at its payment
 		}
 	}
 	if tableNthFiltered(t) {
@@ -959,7 +966,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplDamageHealFirst:
 					g.replBits[i] |= rbHealSelf
 					pc.hasStat = true
-				case kop.ReplDoubleTokens, kop.ReplRewriteTokens, kop.ReplAddToken:
+				case kop.ReplDoubleTokens, kop.ReplRewriteTokens, kop.ReplAddToken, kop.ReplCopyFirstToken:
 					g.replBits[i] |= rbDblTok
 					pc.hasStat = true
 				case kop.ReplDoubleCounters:
@@ -1146,6 +1153,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				}
 				if firstMana && a.AFlags&kop.AfLatent == 0 {
 					firstMana = false
+					if a.Cost.Flags&kop.CostOncePerGame != 0 {
+						g.anyManaOnce = true
+					}
 					if restrWideAnyMana(a) {
 						// a census gap the prefix search branches on (mana_window.go restrWideAnyMana)
 						g.smallFor(CardID(i)).anyR = int8(j)
@@ -1160,7 +1170,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 							g.anyRestrScript = true
 						}
 					} else if kop.FilterManaAb(a) {
-						g.prepFiltFirst(CardID(i), j) // a filter first and only (mana_filterfirst.go)
+						g.prepFiltFirst(CardID(i), j, a) // a filter first and only (mana_filterfirst.go)
 					}
 				} else if restrAnyTapMana(a) && !restrSrcAb(a) && (!restrWideAnyMana(a) || wideBesideAny(&t.Cards[i], a)) && g.anyR(CardID(i)) < 0 && firstManaAb(&t.Cards[i]) >= 0 {
 					g.smallFor(CardID(i)).anyR = int8(j)
@@ -1388,6 +1398,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			}
 		}
 	}
+	prepProtGrant(t, g) // kw_protection.go
 	for _, b := range g.replBits {
 		g.anyRepl |= b
 	}
@@ -1558,6 +1569,7 @@ type dprog struct {
 	vers [4]uint8
 	n    uint8
 	ext  uint8 // dpExtBeginCombat/dpExtYourEndStep (trig_delaybegincombat.go, trig_delayedtiming.go): n's timing bits are full
+	sv   uint8 // the source's ver at registration (CR 603.7c): a delayed body's Self names that object, not the one at fire
 }
 
 // usedRec marks a once-per-turn use (a trigger, a MayPlay static).
@@ -1829,11 +1841,12 @@ type genState struct {
 	beamGrant      bool                    // the beam me up cast beginCast starts is the granted instance of a card that prints the keyword (kw_beammeup.go; padding)
 	impCast        bool                    // the cast beginCast starts is for the card's impending cost (castImpTgt; kw_impending.go; padding)
 	warpGrant      bool                    // the warp cast beginCast starts pays a battlefield grant's instance (kw_warpgrant.go; padding)
+	bargainCast    bool                    // the permission cast beginCast starts is bargained: the pool it checks pays the bargained price (offerBargainPlay; kw_bargain.go; padding)
 	noUntapL       uint8                   // OpSkipUntap C=1: bit p, player p's lands don't untap during p's next untap step (padding)
 	yourTurns      [MaxSeats]uint8         // ExYourTurns: the turns each player began as the active player, saturating (prep.anyYourTurns only; padding)
 	extraTurnBegun uint8                   // ExYourExtraTurns: bit p, player p has begun an extra turn this game (CR 500.7; value_exprs.go)
 	dayNight       uint8                   // CR 731: bits 0-1 the designation (dnDay, dnNight), bits 2-3 the last turn's active player's spells, at most 2 (kw_daynight.go; padding)
-	links          [8]struct {
+	links          [16]struct {
 		src  Obj
 		sver uint8
 		obj  Obj
@@ -1841,13 +1854,16 @@ type genState struct {
 	} // exiled until the source leaves (OpExileUntilLeaves)
 	nlinks   uint8
 	nexw     uint8
-	linkHide uint8 // bit i: links[i] is a Hideaway link (the card stays exiled face down; kw_hideaway.go; padding)
-	linkAeg  uint8 // bit i: links[i] is an attachment whose copy of its exiled card is live (Assimilation Aegis; zone_exilethenattach.go; padding)
-	linkHand uint8 // bit i: links[i] returns its card to its owner's hand, not the battlefield (a hand exile until the source leaves; act_mayask.go)
+	linkHide uint16 // bit i: links[i] is a Hideaway link (the card stays exiled face down; kw_hideaway.go; padding)
+	linkAeg  uint16 // bit i: links[i] is an attachment whose copy of its exiled card is live (Assimilation Aegis; zone_exilethenattach.go; padding)
+	linkHand uint16 // bit i: links[i] returns its card to its owner's hand, not the battlefield (a hand exile until the source leaves; act_mayask.go)
+	// linkPad keeps perms' cache-line phase after links grew from 8 to 16
+	// (linkPadN, seats_default.go and seats_mp.go)
+	linkPad [linkPadN]uint8
 
 	// retHeld lists, in departure order, the sources that left in the open
 	// departure frame with links to return (holdReturns); bit i of retCtrl is
-	// retHeld[i]'s last controller. Each holds a link, so links bounds the list.
+	// retHeld[i]'s last controller. A ninth source stalls (StallLinks).
 	retHeld  [8]Obj
 	nretHeld uint8
 	retCtrl  uint8
@@ -1960,17 +1976,29 @@ type genState struct {
 	ul      [maxUntapLock]untapLock           // source-bound untap locks (act_untaplock.go)
 	nul     uint8
 	dmk     [dmkBytes]uint8 // per-player damage-doubling marks, a bit per (controller, player) (repl_dmgmark.go)
-	rsv     [rsvN]uint8
+	// tgtSpent: the resolving spell's target spell's cast spend + 1,
+	// saturating at 255 (0 = no snapshot; resolve.go snapTgtSpent). Read by
+	// ExTgtSpent after the counter removed the target's stack entry (EOE
+	// Unravel; gorge targetManaSpentLKI).
+	tgtSpent uint8
+	rsv      [rsvN]uint8
 	// embX: an emblem's remembered slots 2 and 3, object + 1 (static_emblemrem.go); embR is slot 1, embN slot 0. Taken from rsv.
 	embX [MaxSeats][maxEmb][embRemSlots - 2]uint8
+	// atkDef is the defending seat + 1 of the attack event whose triggers are
+	// being checked (fireAttacksGen), 0 outside it: gorge binds a trigger's
+	// DefendingPlayer from that event, and an IsPresent$ checked as the
+	// trigger fires reads it (defendingSeatF2). Set only when MaxSeats > 2.
+	// Taken from rsv.
+	atkDef uint8
 }
 
 const (
 	maxImp = 16
-	// rsvN pads the reserved block to 80 bytes (genState's 5 bytes of tail
-	// padding absorb the rest of the alignment): 64, plus the 16 that carry
-	// State's growth for MaxObj 236 to a multiple of 64 so perms keeps its phase.
-	rsvN = max(0, 80-maxImp-2-MaxSeats-MaxSeats*maxEmb-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-MaxSeats*maxEmb*(embRemSlots-2))
+	// rsvN pads the reserved block to 80 bytes (genState's tail padding
+	// absorbs the rest of the alignment, including tgtSpent): 64, plus the 16
+	// that carry State's growth for MaxObj 236 to a multiple of 64 so perms
+	// keeps its phase.
+	rsvN = max(0, 80-maxImp-2-MaxSeats-MaxSeats*maxEmb-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-MaxSeats*maxEmb*(embRemSlots-2)-1)
 )
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).
@@ -2083,7 +2111,7 @@ const (
 	StallOptions       = 48  // a combat declaration has more attack or block pairs than MaxOptions (combat.go optionsFull)
 	StallRoleMulti     = 49  // an AttachedTo$ token mint would create a number of tokens other than one (static_roletokens.go)
 	StallSrcMark       = 50  // more than maxSrcMark DamagedBy / CrewedThisTurn sources marked permanents this turn (genState.marks; filter_combatwords.go)
-	StallDefenderPW    = 51  // a TriggeredDefender damage whose attacker attacks a planeswalker or battle (or left): gorge damages the defending seat instead (OpAtkPWGuard; filter_combatwords.go)
+	StallDefenderPW    = 51  // a TriggeredDefender damage whose attacker attacks a planeswalker or battle (or left): gorge damages the defending seat instead (OpAtkPWGuard; filter_combatwords.go); past two seats, a trigger with no bound defending player read for an entering attacker's defender (enterDefenderFallback) or a defending player's permanent (defendingSeatF2)
 	StallTokAtkAsk     = 52  // a TokenAttacking$ True mint while the opponent has a planeswalker or battle: gorge asks the CR 508.4 defender (filter_combatwords.go)
 	StallDmgLatch      = 53  // a ninth DamageDealtOnce listener of one source in one combat damage batch (triggers_gen.go dmgLatch)
 	StallReplCands     = 54  // a fifth competing replacement candidate for one event or untap (replOrd.cand; repl_gen.go, act_energy.go)
@@ -2736,15 +2764,19 @@ func (s *State) ceaseTokensGen() {
 	for i0 > 0 && s.objs[i0-1].of&(ofToken|ofCopy) != 0 {
 		i0--
 	}
+	k := s.k()
 	for i := i0; i < int(s.nobj); i++ {
 		ob := &s.objs[i]
 		if ob.of&(ofToken|ofCopy) == 0 {
 			continue
 		}
+		if s.mObj(k, mechSBAChain, Obj(i)) {
+			continue // gorge's sbaChain: it ceases at the pass that destroys nothing (sbaChainEnd)
+		}
 		switch ob.zone {
 		case kop.ZoneLibrary, kop.ZoneHand, kop.ZoneGraveyard, kop.ZoneExile:
 			if ob.zone == kop.ZoneExile && ob.of&ofCopy != 0 {
-				if k := s.k(); k.gen != nil && k.gen.anyPrepare { // CR 722.3c: a linked prepared copy waits in exile
+				if k.gen != nil && k.gen.anyPrepare { // CR 722.3c: a linked prepared copy waits in exile
 					if _, ok := s.preparedCopyLive(k, Obj(i)); ok {
 						continue
 					}

@@ -139,15 +139,19 @@ func (cb *cardBuilder) fold(a *lAbility) (bool, error) {
 	switch {
 	case a.Kind == akActivated && a.Name == "Equip":
 		// Kept as gorge expands it (an activated Attach at sorcery speed,
-		// AfEquip); CardDef.EquipCost records the cost for reference.
-		if len(a.Targets) != 1 || len(a.Prog) != 1 || a.Prog[0].Op != "Attach" || !a.Sorcery || !isCreatureYouCtrl(a.Targets[0].F) {
+		// AfEquip); CardDef.EquipCost records the cost for reference. A
+		// restricted equip ("Equip Pirate {1}", CR 702.6a) keeps its
+		// subtype target; the unrestricted one's cost is the reference.
+		if len(a.Targets) != 1 || len(a.Prog) != 1 || a.Prog[0].Op != "Attach" || !a.Sorcery || !(isCreatureYouCtrl(a.Targets[0].F) || isSubtypeYouCtrl(a.Targets[0].F)) {
 			return false, bfail(cb.node, "equip shape")
 		}
 		mc, err := manaCostOf(a.Cost.Mana)
 		if err != nil {
 			return false, err
 		}
-		d.EquipCost = mc
+		if isCreatureYouCtrl(a.Targets[0].F) {
+			d.EquipCost = mc
+		}
 		return false, nil
 	case a.Kind == akSpell && hasSub(c.Subtypes, "Aura"):
 		if len(a.Targets) != 1 || len(a.Prog) != 1 || a.Prog[0].Op != "Attach" {
@@ -268,6 +272,16 @@ func hasSub(ss []string, w string) bool {
 
 func isCreatureYouCtrl(f *lFilter) bool {
 	return f != nil && f.Players == 0 && len(f.Clauses) == 1 && f.Clauses[0] == lClause{Types: tCreature, Ctrl: whoYou}
+}
+
+// isSubtypeYouCtrl reports a restricted equip's target: one subtype
+// ("a Pirate you control"), optionally under a Creature head.
+func isSubtypeYouCtrl(f *lFilter) bool {
+	if f == nil || f.Players != 0 || len(f.Clauses) != 1 {
+		return false
+	}
+	c := f.Clauses[0]
+	return c.Subtype != "" && (c.Types == 0 || c.Types == tCreature) && c == lClause{Types: c.Types, Subtype: c.Subtype, Ctrl: whoYou}
 }
 
 // isProwess recognises the prowess expansion (or its printed equivalent).
@@ -643,6 +657,7 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		case 0:
 		case 1:
 			ka.Cost.Flags |= kop.CostOncePerGame
+			ka.Once = uint8(a.Once)
 		default:
 			return ka, fmt.Errorf("activation limit %d", a.Limit)
 		}
@@ -1631,6 +1646,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			}
 			st.Grant = uint8(j + 1)
 		}
+		if st.ProtFrom, err = filter(s.ProtFrom, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
 		if s.Override != nil {
 			// RemoveKeyword$ beside the Continuous parts (layer 6)
 			i, err := cb.override(s.Override)
@@ -2322,6 +2340,8 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 				return ka, err
 			}
 		}
+	case "CopyFirstToken":
+		rp.Kind = kop.ReplCopyFirstToken
 	case "DoubleCounters":
 		rp.Kind = kop.ReplDoubleCounters
 	case "GraveToLibrary":

@@ -18,7 +18,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 // So the kernel models it as a filter (filterTapMana) live only while its gate
 // holds and the pool (with the restricted mana its activation may spend)
-// holds its colour (filtGateOn): a gap of the census (scriptFilt) and an open
+// holds its colour (filtGateOn). A printed pip-fee filter (Loot, the
+// Pathfinder) is listed whatever floats, as any printed paid mana ability
+// is, so only the gated grant's pool test applies; the gap step still waits
+// for its colour (filtPaid). The gated filter is then: a gap of the census (scriptFilt) and an open
 // source of the potential walk (potentialAdmits) only then. Its fee counts one
 // in the fee arithmetic (filtFee), the gap step is legal only when that colour
 // floats (filtPaid), and it is spent in that colour, restricted mana first
@@ -26,6 +29,16 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 // Not modelled: gorge's X-spell window (filtActivate, faceReachable) funds the
 // fee from the mana made so far as a count, not by colour.
+
+// pipFilt reports the coloured pip fee of a filter the kernel models: the
+// gated dynamic one fixedPipFilt names, or any pip-fee mana ability
+// kop.PipFeeManaAb admits (a first-only filter, Loot, the Pathfinder).
+func pipFilt(a *kop.Ability) (col int, ok bool) {
+	if col, ok := kop.PipFeeManaAb(a); ok {
+		return col, true
+	}
+	return fixedPipFilt(a)
+}
 
 // fixedPipFilt reports whether a is that filter and its colour: exactly one
 // coloured pip, no generic or hybrid part, the product that colour in a
@@ -48,12 +61,12 @@ func fixedPipFilt(a *kop.Ability) (col int, ok bool) {
 	return col, col >= 0 && a.ManaColors == kop.ColorMask(1)<<uint(col)
 }
 
-// filtPip is fixedPipFilt of the filter at sl.
+// filtPip is pipFilt of the filter at sl.
 func (s *State) filtPip(k *prep, sl Slot) (int, bool) {
 	if !k.gen.anyFiltPip {
 		return 0, false
 	}
-	return fixedPipFilt(s.filtAb(k, sl))
+	return pipFilt(s.filtAb(k, sl))
 }
 
 // filtPipBit is the ability bit of sl's one-pip filter, 0 for none.
@@ -73,11 +86,14 @@ func (s *State) filtPipBit(k *prep, sl Slot) uint16 {
 // mana ability of gorge's at all until the live pool pays its pip.
 func (s *State) filtGateOn(k *prep, sl Slot) bool {
 	a := s.filtAb(k, sl)
+	if a.Cost.Flags&kop.CostOncePerGame != 0 && s.onceUsed(k, sl, a) {
+		return false
+	}
 	pp := &s.perms[sl]
 	if a.Trig.Cond != 0 && !s.condEval(k, a.Trig.Cond, evalCtx{src: pp.obj, srcSl: sl, ctrl: pp.ctrl}) {
 		return false
 	}
-	if col, ok := s.filtPip(k, sl); ok {
+	if col, ok := fixedPipFilt(a); ok && k.gen.anyFiltPip {
 		return s.filtPipHeld(k, pp.ctrl, sl, col) >= 1
 	}
 	return true

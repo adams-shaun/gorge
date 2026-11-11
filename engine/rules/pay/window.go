@@ -70,7 +70,16 @@ type WindowAlt struct {
 	// choosing which colour the generic consumed, and the choice is the
 	// payer's at activation time.
 	CostGeneric int32
+	// CostColored is the coloured mana the activation pays beside
+	// CostGeneric (Uthros, Titanic Godcore's "{U}, {T}: add {U} for each
+	// artifact you control"). Like CostGeneric it is set only by the
+	// cast-payment probe and paid by castWindowReachable from the pool the
+	// window has already accumulated.
+	CostColored state.Mana
 }
+
+// Fee is the alt's activation fee as one mana count, generic and coloured.
+func (a WindowAlt) Fee() int32 { return a.CostGeneric + a.CostColored.Total() }
 
 // Mana is the alt's production as a Mana vector, the form the walk's
 // affordability search and the window's safety ordering both add to a pool.

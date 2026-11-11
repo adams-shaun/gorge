@@ -9,17 +9,16 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Duration$ AsLongAsControl Effect replacement over the remembered target.
 // continuousLive keeps it live only while its source is on the battlefield
 // under the effect's controller, and expireAsLongAsControl drops it for good
-// when the source changes controller. The source leaving does not drop it: a
-// source that returns under the same controller (the same object, as no
-// sweep reads its incarnation) makes the lock live again. ForgetOnMoved$
-// Battlefield forgets the target the moment it leaves, for good.
+// when the source changes controller. The registration is anchored to the
+// source's incarnation, so a source that leaves and returns is a new object
+// the lock no longer follows (CR 400.7, 611.2b). ForgetOnMoved$ Battlefield
+// forgets the target the moment it leaves, for good.
 //
 // The table is a fixed four records in genState (3 B each, plus a count: 13 B
 // out of rsv). A record: the target and source objects, and the controller
 // that made it with ulAny set for the any-event form. An object that leaves
-// is a new object (CR 400.7), so the target's departure drops its records and
-// a token source's too (the object is reused); a card source's records stay
-// and are read live. A fifth record stalls (StallUntapLock).
+// is a new object (CR 400.7), so the departure of either the target or the
+// source drops its records. A fifth record stalls (StallUntapLock).
 
 const (
 	maxUntapLock = 4
@@ -49,6 +48,12 @@ func init() { stallNames[StallUntapLock] = "untaplock" }
 func (s *State) untapLockAdd(k *prep, in *kop.Instr) {
 	sl := s.objRef(k, in.Obj)
 	if sl == NoSlot {
+		return
+	}
+	if ob := &s.objs[s.res.e.obj]; ob.zone != kop.ZoneBattlefield || ob.ver != s.res.e.srcVer {
+		// The source left before the ability resolved, even if it has since
+		// returned as a new object: the lock is anchored to the incarnation
+		// that is gone, so it never applies (CR 400.7, 611.2b).
 		return
 	}
 	r := untapLock{tgt: s.perms[sl].obj, src: s.res.e.obj, ctrl: s.res.e.ctrl & ulCtrl}
@@ -104,13 +109,11 @@ func (s *State) untapLockDrop(drop func(r untapLock) bool) {
 }
 
 // untapLockLeft ends the records of an object that left the battlefield: o as
-// the target (ForgetOnMoved$ Battlefield), and o as the source when it is a
-// token, which never returns.
+// the target (ForgetOnMoved$ Battlefield) or as the source (CR 611.2b).
 //
 //go:noinline
 func (s *State) untapLockLeft(o Obj) {
-	tok := s.objs[o].of&ofToken != 0
-	s.untapLockDrop(func(r untapLock) bool { return r.tgt == o || tok && r.src == o })
+	s.untapLockDrop(func(r untapLock) bool { return r.tgt == o || r.src == o })
 }
 
 // untapLockCtrlDrop ends the records whose source is o now that its

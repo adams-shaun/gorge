@@ -13,9 +13,9 @@ var DebugReferentOwnerSwap bool
 // the same bits keep meaning "controlled by" (ctrlRoleF2 in the perm matcher).
 //
 //go:noinline
-func (s *State) cardRoleF2(f2 kop.FilterFlags2, owner uint8) bool {
+func (s *State) cardRoleF2(k *prep, f2 kop.FilterFlags2, owner uint8) bool {
 	if DebugReferentOwnerSwap {
 		owner ^= 1 // seat-ok: a test-only mutation (DebugReferentOwnerSwap)
 	}
-	return s.ctrlRoleF2(f2, owner)
+	return s.ctrlRoleF2(k, f2, owner)
 }

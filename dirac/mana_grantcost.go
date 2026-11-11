@@ -288,9 +288,12 @@ func grantCostLife(pc *pcard) uint8 {
 	return 0
 }
 
-// grantCostPayable: p can pay pc's life now (CR 119.4: life at least N).
+// grantCostPayable: p can pay pc's life now (CR 119.4: life at least N; no
+// life to pay is always payable, so a player at 0 or less life under Herald
+// of Eternal Dawn still taps a granted source that costs none).
 func (s *State) grantCostPayable(p uint8, pc *pcard) bool {
-	return int(s.pl[SeatIx(p)].life) >= int(grantCostLife(pc))
+	n := grantCostLife(pc)
+	return n == 0 || int(s.pl[SeatIx(p)].life) >= int(n)
 }
 
 // grantAlts counts the granted abilities of sl a "choose a mana ability" ask

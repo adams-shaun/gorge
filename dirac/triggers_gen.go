@@ -145,6 +145,9 @@ func (s *State) queueTrig(k *prep, l trigListener, a *kop.Ability, tobj Obj, tpl
 	if k.gen.anyGameOnce && a.Trig.Flags3&kop.Tf3GameOnce != 0 {
 		s.markGameOnce(l)
 	}
+	if k.gift && a.AFlags&kop.AfGift != 0 {
+		tpl = s.promisedAt(l.obj) // the promised opponent, snapshotted at queue (kw_gift.go)
+	}
 	n := s.npend
 	s.enqueueLKI(l.obj, s.objs[l.obj].ver, l.card, l.ab, l.ctrl, tobj, tpl, amt)
 	if s.npend > n {
@@ -264,6 +267,9 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 		}
 		if k.gen.anyTWTap && !twTapOK(a, amt) {
 			return // Teamwork$ True: only a teamwork-cost tap (trig_params.go)
+		}
+		if a.Trig.Flags2&kop.Tf2FirstTime != 0 && s.mSl(k, mechTappedTurn, evSl) {
+			return // an earlier tap this turn: FirstTime$ is false (gorge Facts.TappedTurn)
 		}
 		amt = 0                                  // the tapper (fireTapsBy), not an amount
 		tapAll = a.Trig.Flags2&kop.Tf2Batch != 0 // Mode$ TapAll: the tap batch's latch, not the zone batch's (trig_tapall.go)

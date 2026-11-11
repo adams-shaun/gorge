@@ -99,6 +99,13 @@ func (e *Engine) costStaticGatePrefix(sv staticView, mode string, p state.Player
 // verdict is the same for every candidate target assignment of one compose.
 // mode and xBound are absent because no head gate reads them.
 func (e *Engine) costStaticGatePrefixCore(sv staticView, p state.PlayerID, id state.ObjID, scope costScope) bool {
+	if sv.castByGrantor && p != sv.grantCaster {
+		// "spells you cast" (Witherbloom, the Balancer's granted affinity): the
+		// offer binds a card waiting in exile through its owner's control, but
+		// another player casting it there (Nita, Forum Conciliator's
+		// permission) casts no spell of the grantor's (CR 601.2a, 702.41a)
+		return false
+	}
 	sv = castersView(sv, p, id, scope.Kind == "Spell")
 	if !e.classBandGateHolds(sv.ParamStr(cards.PKClassBand), sv.Source) {
 		return false

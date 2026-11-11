@@ -49,7 +49,7 @@ func TestRelaxRestrCountsRelaxableFilters(t *testing.T) {
 	if !ok {
 		t.Fatal("grantPlayCost refused the surveil activation")
 	}
-	d := s.grantPayDesc(a)
+	d := s.grantPayDesc(k, a)
 
 	// preconditions: a restricted grant is live, Clement's mana is refused the
 	// activation, the Grotto is a relaxable filter, and the grant alone is the

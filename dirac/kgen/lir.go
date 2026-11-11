@@ -51,12 +51,13 @@ const (
 	rTriggerAttackers             // the attacker group of the AttackersDeclared event (Defined$ TriggeredAttackers)
 	rRememberedOwner              // the remembered object's owner (Unidentified Hovership's leave trigger)
 	rImprinted                    // the resolution's imprinted objects (Dig Imprint$ on a permanent's ability)
+	rPromised                     // the opponent the gift was promised to (Defined$ / TokenOwner$ Promised)
 	rCount
 )
 
 var refNames = [...]string{"None", "Target", "Self", "You", "EachOpp", "EachPlayer", "TargetController",
 	"TargetOwner", "Triggered", "TriggeredNew", "TriggeredSource", "TriggeredPlayer", "TriggeredTgtCtrl", "Equipped", "Remembered",
-	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted"}
+	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted", "Promised"}
 
 type lRef struct {
 	Kind refKind
@@ -179,6 +180,8 @@ const (
 	vPWTypes             // the distinct planeswalker subtypes printed on the battlefield planeswalkers matching F (Count$Valid <spec>$PlaneswalkerType)
 	vTapPower            // the tap-power total of Ref (a Station's amount: power plus every scoped StatTapPower bonus)
 	vStepIn              // 1 while the current step is one of the kop.Step bits in N (ConditionPhases$)
+	vTgtSpent            // the mana spent to cast the spell the resolving spell targets (Targeted$CastTotalManaSpent)
+	vOppExtreme          // a figure over the controller's living opponents, kop.OppExt* in N, F for OppExtValid (PlayerCountOpponents$)
 	vCount_
 )
 
@@ -186,7 +189,7 @@ var valNames = [...]string{"None", "Const", "X", "Count", "CountGraveyard", "Sum
 	"Morbid", "AttackedThisTurn", "PowerOf", "ToughnessOf", "LifeOf", "LibrarySizeOf", "StartingLife",
 	"TriggerAmount", "LifeGainedThisTurn", "OppLifeLostThisTurn", "CountersOn", "CreaturesDied",
 	"RememberedCount", "ExcessDamage", "LastLifeLost", "TokensCreated", "CountCast", "LifeLostThisTurn", "Sum",
-	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast", "YourExtraTurns", "NotOwnLibMV", "CounterKinds", "TargetPlayers", "IfCastOwnMain", "PWTypes", "TapPower", "StepIn"}
+	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast", "YourExtraTurns", "NotOwnLibMV", "CounterKinds", "TargetPlayers", "IfCastOwnMain", "PWTypes", "TapPower", "StepIn", "TgtSpent", "OppExtreme"}
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
 // that order, then negated when Neg.
@@ -727,6 +730,7 @@ type lAbility struct {
 	Exhaust         bool    // Exhaust$ True (CR 702.177a): the AbilityCast class test (kop.Ability.Exhaust)
 	CantCopy        bool    // CantCopy$ True: "this ability can't be copied" (kop.Ability.CantCopy)
 	Limit           int     // activations per game (0 = unlimited)
+	Once            int     // the ordinal among the card's activate-only-once abilities (1..3; 0 = none)
 	EvidenceTargets bool    // CollectEvidence<X> with SVar:X AllTargeted$CardManaCost (a spell's mandatory additional cost; kop.EvidenceTargetsMV)
 	PowerUp         bool    // PowerUp$ True (CR 702.193): once per object stint, cost reduced on its entry turn
 	TurnOnce        bool    // ActivationLimit$ 1: once each turn
@@ -808,10 +812,12 @@ type lStatic struct {
 	Cost         lCost
 	Zone         int
 	Override     *lOverride
-	Grant        []int    // latent abilities the affected objects gain
-	Flags        []string // kind-specific flags
-	Note         string
-	Ward         int // a Continuous grant's "Ward:N" (Kw then holds "Ward")
+	// ProtFrom: a Continuous grant's protection qualities (kop.Static.ProtFrom)
+	ProtFrom *lFilter
+	Grant    []int    // latent abilities the affected objects gain
+	Flags    []string // kind-specific flags
+	Note     string
+	Ward     int // a Continuous grant's "Ward:N" (Kw then holds "Ward")
 	// AbilityRed: a ReduceCost static of activated abilities (Type$ Ability)
 	// rather than spells: 1 any, 2 Exhaust abilities only, 3 a Room unlock,
 	// 4 Power-up abilities only, 5 Equip abilities only (F2: their target;
@@ -906,8 +912,9 @@ type lCard struct {
 	Colors         string
 	P, T           int
 	PTStar         bool
-	NoPT           bool // the face prints no power or toughness (CardDef.NoPT)
-	TwoSeat        bool // the lowering holds only for 2 players (CardDef.TwoSeat, set by lowerCtx.twoSeat)
+	NoPT           bool     // the face prints no power or toughness (CardDef.NoPT)
+	TwoSeat        bool     // the lowering holds only for 2 players (CardDef.TwoSeat, set by lowerCtx.twoSeat)
+	TwoSeatWhy     []string // the reasons that set TwoSeat, in first-seen order (TestTwoSeatReasons)
 	Loyalty        int
 	Defense        int // a Battle's printed Defense (lower_battle.go)
 	Kw             []string

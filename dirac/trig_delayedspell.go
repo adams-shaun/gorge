@@ -80,7 +80,7 @@ func (s *State) fireDelayedSpell(k *prep, e *stackEntry) {
 			// gorge's Static$ fire: the body resolves at the match with no
 			// stack object; the record becomes the Effect it creates
 			// (repl_uncounterable.go), held while e stays on the stack
-			d = dprog{card: d.card, ab: d.ab, ctrl: d.ctrl, src: d.src, n: 1, ext: dpExtUncounter}
+			d = dprog{card: d.card, ab: d.ab, ctrl: d.ctrl, src: d.src, sv: d.sv, n: 1, ext: dpExtUncounter}
 			d.objs[0], d.vers[0] = e.obj, s.objs[e.obj].ver
 			s.g.dp[keep], s.g.dpLKI[keep] = d, 0
 			keep++
@@ -88,7 +88,7 @@ func (s *State) fireDelayedSpell(k *prep, e *stackEntry) {
 		}
 		if due {
 			m := s.npend
-			s.enqueue(d.src, s.objs[d.src].ver, d.card, d.ab, d.ctrl, e.obj, e.ctrl, 0)
+			s.enqueue(d.src, d.sv, d.card, d.ab, d.ctrl, e.obj, e.ctrl, 0)
 			if s.npend > m {
 				s.pend[m].li = s.g.dpLKI[i]
 			}

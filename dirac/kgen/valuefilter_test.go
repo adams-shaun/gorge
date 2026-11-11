@@ -9,7 +9,7 @@ var kvhForms = []formCase{
 	{card: "Anoint with Affliction", form: "TargetedController$Counters.Poison over the one creature target", lir: "PoisonOf(TargetController0)"},
 	{card: "Witchstalker Frenzy", form: "PlayerCountPlayers$AttackersDeclared (gorge Engine.AttackersThisTurn)", lir: "amount=AttackersAll"},
 	{card: "Lunar Convocation", form: "/Times.X over an SVar: the product (gorge applyCountOpOperand)", lir: "Product(LifeLostThisTurn,LifeGainedThisTurn)"},
-	{card: "Refurbished Familiar", form: "/Minus.Remembered$Amount: an inline operand (gorge countOperandValue)", lir: "Sum(1,-RememberedCount(ctx))"},
+	{card: "Refurbished Familiar", form: "/Minus.Remembered$Amount: an inline operand (gorge countOperandValue)", lir: "Sum(OppExtreme,-RememberedCount(ctx))"},
 	{card: "Unstoppable Slasher", form: "TriggeredTarget$LifeTotal/HalfUp: (life+1)/2, truncating", lir: "Sum(LifeOf(TriggeredPlayer),1)/2"},
 	{card: "Unstoppable Slasher", form: "Card.Self+!HasCounters is PredNoCounters", lir: "Self cmp(17 0 0  )"},
 	{card: "Grab the Prize", form: "Discarded$Valid of the spell's one-card discard cost (RefDiscarded); DamageAll ValidPlayers$ Player.Opponent", lir: "1 DamageAll A=RefCount({types=0x0 not=0x1},Discarded)*2 F={players=2}"},

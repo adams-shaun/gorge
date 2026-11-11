@@ -80,6 +80,29 @@ func coverageInventory(c *cards.Card) []covSlot {
 	return out
 }
 
+// execKeys maps each inventory trigger's Execute$ name to its key. A name two
+// triggers of the card share maps to "", so it credits neither.
+func execKeys(c *cards.Card) map[string]string {
+	out := map[string]string{}
+	for fi, f := range c.Faces {
+		if f == nil {
+			continue
+		}
+		for i, t := range f.Triggers {
+			x := t.ParamStr(cards.PKExecute)
+			if t.Effect == nil || bookkeepingTrigger(t) || x == "" {
+				continue
+			}
+			if _, dup := out[x]; dup {
+				out[x] = ""
+				continue
+			}
+			out[x] = fmt.Sprintf("f%d/t%d", fi, i)
+		}
+	}
+	return out
+}
+
 // bookkeepingTrigger is cardfuzz's: a Static$ True trigger with no
 // TriggerDescription$ (a DBForget/DBCleanup rider), unless TapsForMana.
 func bookkeepingTrigger(t cards.Trigger) bool {
@@ -143,6 +166,7 @@ func CoverageOf(g *GorgeSide, m *Matchup) *Coverage {
 	e := g.E
 	bySA := map[*cards.SA][]string{} // SA -> owning card names
 	keyOf := map[*cards.SA]string{}
+	byExec := map[string]map[string]string{} // card -> Execute$ -> key; "" when two triggers share it
 	for s := range m.Decks {
 		for _, cd := range m.Decks[s] {
 			n := coverageName(cd)
@@ -156,6 +180,7 @@ func CoverageOf(g *GorgeSide, m *Matchup) *Coverage {
 				bySA[sl.sa] = append(bySA[sl.sa], n)
 				keyOf[sl.sa] = sl.key
 			}
+			byExec[n] = execKeys(cd)
 		}
 	}
 	credit := func(n string, sa *cards.SA) {
@@ -173,6 +198,15 @@ func CoverageOf(g *GorgeSide, m *Matchup) *Coverage {
 				if cc := c.Cards[ownCardName(e, ev.Obj)]; cc != nil {
 					cc.Cast++
 				}
+			}
+		case events.DelayedPush:
+			// a trigger queued in the delayed shape (a Room's unlock, a Saga
+			// chapter) mints its ability object from a fresh SA resolved by
+			// its Execute$ name, which no inventory slot is: credit the one
+			// trigger of the source card that names that body
+			n := ownCardName(e, ev.Obj)
+			if k := byExec[n][ev.Counter]; k != "" {
+				c.Cards[n].Used[k]++
 			}
 		case events.LandPlayed:
 			if cc := c.Cards[ownCardName(e, playedLand(evs, i))]; cc != nil {

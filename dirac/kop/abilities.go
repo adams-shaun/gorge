@@ -72,6 +72,12 @@ type Ability struct {
 	// test of Mode$ AbilityCast ValidSA$ Activated.Exhaust. AbilityFlags
 	// has no free bit; this is a table byte, not State.
 	Exhaust bool
+	// Once: the ability's ordinal among its card's activate-only-once
+	// abilities (CostOncePerGame), 1..3 in ability order; 0 = none. The
+	// kernel keeps the first such ability's bit in pfOnceGame and the
+	// second and third in the arena masks (dirac/legal.go onceUsed). A
+	// table byte, not State.
+	Once uint8
 	// CantCopy: "this ability can't be copied" (CantCopy$ True; gorge
 	// SpellCopyAllowed): an ExtCopyAbility naming its stack entry copies
 	// nothing. A table byte, not State (AbilityFlags has no free bit).
@@ -227,6 +233,43 @@ func TapXManaTwo(a *Ability) bool {
 // TapXMana is either tap-other-permanents mana shape.
 func TapXMana(a *Ability) bool { return TapXManaAb(a) || TapXManaTwo(a) }
 
+// PipFeeManaAb reports whether a is an activate-only-once mana ability whose
+// fee is exactly one coloured pip (with a {T}) and no generic part, and the
+// pip's colour. Loot, the Pathfinder's "{G}, {T}: Add three mana of any one
+// colour" is the shape: the kernel models it as a filter
+// (dirac/mana_filterfirst.go), paying the pip from the pool. A mana ability
+// that also sacrifices, pays life, or has no once limit is not one.
+func PipFeeManaAb(a *Ability) (col int, ok bool) {
+	m := &a.Cost.Mana
+	if a.Kind != AbMana || a.Cost.Flags != CostTap|CostOncePerGame ||
+		m.Generic != 0 || m.X != 0 || m.Hyb != ([4]ColorMask{}) || m.Tb != 0 ||
+		a.ManaRestrict != 0 || a.ManaN == 0 || len(a.Prog) != 0 ||
+		a.Gate.Ctr != 0 || a.Trig.Cond != 0 || a.ActZone != ZoneNone && a.ActZone != ZoneBattlefield {
+		return 0, false
+	}
+	col = -1
+	for c, n := range m.Pips {
+		if n == 0 {
+			continue
+		}
+		if n != 1 || col >= 0 || c > 4 {
+			return 0, false
+		}
+		col = c
+	}
+	if col < 0 {
+		return 0, false
+	}
+	switch a.AFlags {
+	case 0:
+		return col, a.ManaColors != 0
+	case AfManaChoice:
+		c := a.ManaColors
+		return col, c&^ColAny == 0 && c&(c-1) != 0
+	}
+	return 0, false
+}
+
 // FilterManaAb reports whether mana ability a is a filter the kernel models
 // as a card's first mana ability: a generic-only fee,
 // {1} once each turn (ActivationLimit$ 1) or {1}, {T}, one unrestricted
@@ -240,6 +283,9 @@ func TapXMana(a *Ability) bool { return TapXManaAb(a) || TapXManaTwo(a) }
 // {1},{T}: Add {W}{U}; FilterEachManaAb) is one: its relaxed census
 // alternative is one fixed production (kernel mana_filtereach.go).
 func FilterManaAb(a *Ability) bool {
+	if _, ok := PipFeeManaAb(a); ok {
+		return true
+	}
 	m := &a.Cost.Mana
 	if a.Kind != AbMana || m.Generic == 0 || m.X != 0 || m.Hyb != ([4]ColorMask{}) || m.Tb != 0 || m.Pips != ([NumManaKinds]uint8{}) ||
 		a.Cost.Flags != CostOncePerTurn && a.Cost.Flags != CostTap && a.Cost.Flags != CostTap|CostSacSelf || a.ManaRestrict != 0 || a.ManaN > 1 || len(a.Prog) != 0 ||
@@ -318,8 +364,11 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	if j != first {
 		return f == CostTap || f == CostTap|CostPayLife || SecondTapXManaAb(cd, first, j) || SecondCtrTapManaAb(cd, first, j)
 	}
+	if _, ok := PipFeeManaAb(a); ok {
+		return true
+	}
 	switch {
-	case plain && (f == CostTap || f == CostTap|CostSacSelf || f == CostSacSelf):
+	case plain && (f == CostTap || f == CostTap|CostOncePerGame || f == CostTap|CostSacSelf || f == CostSacSelf):
 		return true
 	case CtrManaAb(a), TapXManaAb(a), TapXManaTwo(a), FilterManaAb(a), SacXEachManaAb(a):
 		return true

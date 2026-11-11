@@ -322,6 +322,10 @@ type tapXKey struct {
 	sp     uint8 // gorge's key counts the stack, hand and graveyard too
 	hand   uint8
 	gy     uint8
+	// bf: p's battlefield objects (gorge's key lists each by id): the Lander
+	// a tapped Seedship Agrarian's trigger made is a new state, though its
+	// own enters trigger leaves the stack as deep as the first did
+	bf uint64
 }
 
 type tapXSearch struct {
@@ -644,8 +648,11 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		was := cp.flags & pfTapped
 		cp.flags |= pfTapped
 		s.touchSl(cd)
-		if was == 0 && s.subs[kop.TrigTaps].any() {
-			s.fireTaps(k, cd)
+		if was == 0 {
+			if s.subs[kop.TrigTaps].any() {
+				s.fireTaps(k, cd)
+			}
+			s.markTapped(k, cd) // only a tap that happens marks
 		}
 	}
 	s.tapBatchClose(tb)
@@ -800,7 +807,7 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		}
 	}
 	pl := &t.pl[SeatIx(p)]
-	key := tapXKey{pool: pl.pool, art: t.g.poolArt[SeatIx(p)], sp: t.sp, hand: pl.handN, gy: pl.graveN}
+	key := tapXKey{pool: pl.pool, art: t.g.poolArt[SeatIx(p)], sp: t.sp, hand: pl.handN, gy: pl.graveN, bf: t.bfObjKey(p)}
 	for b := t.ctrlM[SeatIx(p)].and(t.occ); b.any(); b = b.rest() {
 		if sl := b.first(); t.perms[sl].flags&pfTapped != 0 {
 			key.tapped = key.tapped.with(sl)

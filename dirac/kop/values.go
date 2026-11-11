@@ -100,6 +100,12 @@ const (
 	// the face's colours off the battlefield, so a SpellCast trigger's
 	// spell on the stack reads its printed colours)
 	ExNumColorsOf
+	// ExTgtSpent: the mana spent to cast the spell the resolving spell's
+	// target slot names, snapshotted as the resolution starts (0 with no
+	// snapshot). The counter it targets removes the spell's entry before a
+	// later condition can read the spend (gorge targetManaSpentLKI; EOE
+	// Unravel).
+	ExTgtSpent
 	ExCount_
 )
 
@@ -208,6 +214,27 @@ type Cond struct {
 	Neg  bool
 	Sub  [2]CondID // CondAnd's operands (zero for every other kind)
 }
+
+// ExOppExtreme reads a figure over the controller's living opponents, walked
+// in seat order (gorge effects/count_player.go opponentGroup,
+// playerGroupCount, lifeExtreme and playerCountExtreme). N's low byte names
+// the figure: OppExtAmount the opponents themselves (one each), OppExtLife a
+// life total, OppExtHand the cards in hand, OppExtGrave the cards in the
+// graveyard, OppExtValid the battlefield permanents matching F read from
+// that opponent's side ("YouCtrl" is the opponent's). OppExtLowest in N
+// takes the lowest, else the highest. An empty group reads 0. Explicit
+// ordinal, the iota tail stays untouched.
+const ExOppExtreme ExprKind = 220
+
+// ExOppExtreme's N.
+const (
+	OppExtAmount = 1
+	OppExtLife   = 2
+	OppExtHand   = 3
+	OppExtGrave  = 4
+	OppExtValid  = 5
+	OppExtLowest = 0x100
+)
 
 // ExStepIn is 1 while the game's current step is one of the kop.Step bits
 // in N, else 0 (gorge ConditionPhases$ <list>; the step set is the ONE

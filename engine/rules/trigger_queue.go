@@ -1011,7 +1011,17 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			if e.triggerContexts == nil {
 				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
 			}
-			e.triggerContexts[id] = pt.Ctx.TriggerContext
+			tc := pt.Ctx.TriggerContext
+			if pt.sourceCharLKIValid {
+				// A granted trigger of a source that left while the trigger
+				// waited reads that source's last known characteristics, as
+				// a printed one does (CR 608.2h): a granted "draw cards equal
+				// to its toughness" on a creature that died to the combat
+				// damage it dealt.
+				tc.SourceLeftBeforePush = true
+				e.setSourceCharLKI(id, pt.sourceCharLKI)
+			}
+			e.triggerContexts[id] = tc
 			e.keepTriggerLKI(id, &pt)
 			e.bindReflexiveContext(id, &pt)
 			e.recordTriggerLine(id, pt)

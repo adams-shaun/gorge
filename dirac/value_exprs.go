@@ -263,6 +263,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.validAgg(k, x, ctx)
 	case kop.ExGraveAgg:
 		return s.graveAgg(k, x, ctx)
+	case kop.ExOppExtreme:
+		return s.oppExtreme(k, x, ctx) // value_oppextreme.go
 	case kop.ExHighestOppPoison:
 		if k.gen != nil && k.gen.anyPoisonHigh {
 			return s.highestOppPoison(ctx.ctrl)
@@ -282,6 +284,14 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 			return int(e.x)
 		}
 		return 0
+	case kop.ExTgtSpent:
+		// the resolving spell's target spell's spend, snapshotted as the
+		// resolution started (snapTgtSpent; 0 with no snapshot, as gorge's
+		// absent target spend)
+		if s.g.tgtSpent == 0 {
+			return 0
+		}
+		return int(s.g.tgtSpent) - 1
 	case kop.ExConverge:
 		return s.exConverge(k, ctx) // mana_converge.go
 	case kop.ExAdamant:

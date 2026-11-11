@@ -636,7 +636,7 @@ func (s *State) newTurnGen() {
 	s.mSlZero(s.k(), mechNoRegen) // repl_noregen.go
 	clear(s.cold.exMark)
 	s.mustBlockNewTurn(s.k()) // combat_mustbeblocked.go
-	if k := s.k(); k.gen != nil && k.gen.anyPermMark {
+	if k := s.k(); k.gen != nil && (k.gen.anyPermMark || k.gen.anyTappedTurn) {
 		s.permMarkNewTurn(k) // filter_permmarks.go
 	}
 	if k := s.k(); k.gen != nil && (k.gen.anyAttackedObj || k.gen.anyCombatHit) {
@@ -751,7 +751,7 @@ func (s *State) fireDelayedGen(k *prep) {
 		if d.n&dpCountMask == 2 {
 			amt = s.dpSecond(&d) // Mobilize 2's second token (kw_mobilize.go)
 		}
-		s.enqueue(d.src, s.objs[d.src].ver, d.card, d.ab, d.ctrl, ro, d.ctrl, amt)
+		s.enqueue(d.src, d.sv, d.card, d.ab, d.ctrl, ro, d.ctrl, amt)
 		if s.npend > m {
 			s.pend[m].li = s.g.dpLKI[i]
 			s.pend[m].remVer, s.pend[m].skw = remVer, s.pend[m].skw&^skwRem|boolBit(remSet, skwRem)

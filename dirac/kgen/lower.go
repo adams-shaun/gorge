@@ -419,7 +419,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseRemLKIMV()                // value_remlkimv.go
 	lc.refuseRememberAmountObjects()   // lower_remembered.go
 	lc.refuseRememberSearcherObjects() // lower_remembersearcher.go
-	lc.refuseOnceTwice()
+	lc.numberOnceAbilities()
 	lc.refusePlotCombos()
 	lc.refuseHarmonizeCombos()
 	lc.refuseMayhemCombos()
@@ -2385,12 +2385,6 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 	}
 	if strings.Contains(expr, "attackingYou") {
 		lc.twoSeat("attackingYou read as an attacker an opponent controls")
-	}
-	for _, c := range f.Clauses {
-		if c.Ctrl == whoDefending || c.Owner == whoDefending {
-			lc.twoSeat("the defending player read as the non-active player (kop.F2DefendingCtrl)")
-			break
-		}
 	}
 	for i := range f.Clauses {
 		c := &f.Clauses[i]

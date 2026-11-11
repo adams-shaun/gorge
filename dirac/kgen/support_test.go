@@ -365,3 +365,39 @@ func TestSupportDocIsCurrent(t *testing.T) {
 		t.Errorf("%s is stale: DIRAC_UPDATE_SUPPORT=1 go test -run TestSupportDocIsCurrent ./dirac/kgen rewrites it", supportDocPath)
 	}
 }
+
+// A split card is listed under its first face, as coverage names it: an evidence list
+// naming that face makes the card supported, and a refusal naming it refuses the card.
+func TestSplitCardFoundByFirstFace(t *testing.T) {
+	const name = "Cease // Desist"
+	list := filepath.Join(t.TempDir(), "cards.txt")
+	if err := os.WriteFile(list, []byte(name+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	p, err := loadCardList(list, ratchetCards(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	lw := lowerPool(p)
+	all, _, _, err := buildPool(lw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := all[0]
+	if c.Name != name {
+		t.Fatalf("lowered name %q, want %q", c.Name, name)
+	}
+	s := &supportLists{refused: map[string]*cardset.RefusedEntry{}, evidenced: map[string]bool{"Cease": true}}
+	if st, why := statusOf(c, s); st != cardset.StatusSupported {
+		t.Errorf("evidence under the first face: %v, %q", st, why)
+	}
+	e := cardset.RefusedEntry{Card: "Cease", Class: "lockstep", Why: "it differs"}
+	s = &supportLists{refused: map[string]*cardset.RefusedEntry{"Cease": &e}, evidenced: map[string]bool{}}
+	refuseByName(lw, s)
+	if st, why := statusOf(c, s); st != cardset.StatusRefused || why != e.Reason() {
+		t.Errorf("refused under the first face: %v, %q", st, why)
+	}
+	if firstFace("Lightning Bolt") != "" {
+		t.Error("a one-name card has no first face to match")
+	}
+}
