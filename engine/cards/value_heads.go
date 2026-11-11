@@ -333,7 +333,12 @@ func (f *Face) referencedNames() map[string]bool {
 	for _, k := range f.Keywords {
 		add(k)
 	}
-	for _, body := range f.SVars {
+	for name, body := range f.SVars {
+		if name == "NeedsToPlayVar" {
+			// A Forge AI hint (Etched Oracle's NeedsToPlayVar:Z GE4): it
+			// names the SVar it reads but never reaches the rules evaluator.
+			continue
+		}
 		add(body)
 	}
 	return refs

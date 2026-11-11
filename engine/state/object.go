@@ -594,6 +594,13 @@ const (
 	// FlagBeamedUp marks a cast through beam me up: exiled instead of leaving
 	// the stack any other way, like flashback.
 	FlagBeamedUp
+
+	// FlagAltCostPaid marks a cast that paid an S:Mode$ AlternativeCost
+	// static's alternative (Baleful Mastery's {1}{B}; Forge's
+	// Count$AltCost.<paid>.<unpaid>). Stamped only for a face whose SVars
+	// mention Count$AltCost (rules' faceWantsAltCost heads-safety gate). NOT a
+	// CastProvenanceFlag: CR 707.10 copies the alternative costs paid.
+	FlagAltCostPaid
 )
 
 // CastProvenanceFlags is the ONE home for the CastFlags bits whose reader

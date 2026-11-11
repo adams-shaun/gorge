@@ -115,6 +115,25 @@ func evalCountBodyObjHeads(h Host, c *Ctx, g *state.Game, head, arg string, dept
 		}
 		return dotBranch(h, c, rest, kicked, depth), true, true
 	}
+	// AltCost.<paid>.<unpaid> is <paid> when the cast paid an S:Mode$
+	// AlternativeCost static's alternative (FlagAltCostPaid, or the pending
+	// cast's PendingAltCost before payment), else <unpaid>. Operands resolve
+	// through evalCountOperand (a literal or an SVar name: AltCost.5.X); a
+	// body missing a branch fails closed, as Foretold does.
+	if rest, ok := strings.CutPrefix(head, "AltCost."); ok {
+		yes, no, found := strings.Cut(rest, ".")
+		if !found || strings.TrimSpace(yes) == "" || strings.TrimSpace(no) == "" {
+			return 0, false, true
+		}
+		paid := c.Kicker.PendingAltCost
+		if o := g.Obj(c.Source); o != nil && o.CastFlags&state.FlagAltCostPaid != 0 {
+			paid = true
+		}
+		if paid {
+			return evalCountOperand(h, c, yes, depth), true, true
+		}
+		return evalCountOperand(h, c, no, depth), true, true
+	}
 	// Teamwork.<paid>.<unpaid> is <paid> when the optional cost was paid, else
 	// <unpaid> (Forge's Count$Teamwork.<n>.<m> family). The object's
 	// TeamworkPaid field is authoritative after payment and is shared with the

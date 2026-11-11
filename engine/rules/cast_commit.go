@@ -720,6 +720,9 @@ func (e *Engine) payCast() {
 	if noCounter {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagNoCounter)
 	}
+	if pc.altCostPaid {
+		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagAltCostPaid)
+	}
 	// DB$ Play's ReplaceGraveyard$ Exile rider: the played
 	// spell's provenance — "if that spell would be put into your graveyard
 	// this turn, exile it instead" — rides the same pay-time CastInfo every

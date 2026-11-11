@@ -672,6 +672,14 @@ func faceWantsConverge(f *cards.Face) bool {
 	return false
 }
 
+// faceWantsAltCost is the heads-safety gate for FlagAltCostPaid (the
+// faceWantsConverge shape): only a face that reads Count$AltCost (Baleful
+// Mastery's AltCostPaid, Graveyard Dig's X/Y) has the flag stamped, so a
+// cast of any other card at an alternative cost stays byte-identical.
+func faceWantsAltCost(f *cards.Face) bool {
+	return f != nil && f.Mentions("Count$AltCost")
+}
+
 // faceWantsCastSpend is the heads-safety gate for the pay-time cast-spend
 // CastInfo (the converge gate's shape): it reports whether the face's SVar
 // table reads the TOTAL mana actually spent to cast the spell -- a body

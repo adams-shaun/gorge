@@ -20,6 +20,7 @@ import "github.com/adams-shaun/gorge/engine/cards"
 var modelledValueHeads = []string{
 	"Adamant",
 	"AllFourBend",
+	"AltCost",
 	"AttackersDeclared",
 	"Bargain",
 	"Bargained",
@@ -109,7 +110,6 @@ var modelledValueHeads = []string{
 	"PlayerCountOpponents$HighestCounters",
 	"PlayerCountOpponents$HighestLifeTotal",
 	"PlayerCountOpponents$HighestValid",
-	"PlayerCountOpponents$HighestValidGraveyard",
 	"PlayerCountOpponents$LifeLostLastTurn",
 	"PlayerCountOpponents$LowestCardsInHand",
 	"PlayerCountOpponents$LowestLifeTotal",

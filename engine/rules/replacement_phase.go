@@ -4,9 +4,15 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
+
+// repl:BeginTurn is the ExtraTurn$ True | Skip$ True shape extraTurnSkipped
+// implements; cards' Primitives labels any other BeginTurn line (Time Vault)
+// repl:BeginTurn.OtherShape, which stays unregistered.
+func init() { effects.RegisterNonAPI("repl:BeginTurn") }
 
 // extraTurnSkipped reports whether a live R:Event$ BeginTurn replacement
 // would skip the extra turn `seat` is about to begin (Trouble in Pairs,

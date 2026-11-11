@@ -210,6 +210,12 @@ type pendingCast struct {
 	// tag's units pay this cast.
 	altOnlyTag string `clone:"deep"`
 
+	// altCostPaid marks a cast at an S:Mode$ AlternativeCost static's
+	// alternative (beginCast's announceAlt) for a face that reads
+	// Count$AltCost (faceWantsAltCost): the announce-time PendingAltCost seed
+	// and the pay-time FlagAltCostPaid stamp.
+	altCostPaid bool `clone:"deep"`
+
 	// faceDown marks the morph family's face-down cast (CR 702.37a
 	// Morph, 702.168a Megamorph, 702.169a Disguise): the {3} cast puts a
 	// face-down spell on the stack. It gates the cast-flow stages the

@@ -2161,6 +2161,8 @@ var flagNames = [...]struct {
 	{"addskeywords", state.FlagAddsKeywords},
 	// Beam me up's cast: the flag exiles the spell as it leaves the stack.
 	{"beamedup", state.FlagBeamedUp},
+	// A paid AlternativeCost static's alternative (Count$AltCost).
+	{"altcostpaid", state.FlagAltCostPaid},
 }
 
 // A ModeChosen's Counter says whether the choice was a dilemma: a player faces
