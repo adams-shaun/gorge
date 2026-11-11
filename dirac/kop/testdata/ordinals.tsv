@@ -632,6 +632,7 @@ MorphDisguise	uint8	3
 MorphMegamorph	uint8	2
 MorphMorph	uint8	1
 MorphNone	uint8	0
+MustBeBlockedLure	untyped int	1
 MvAlsoSelf	untyped int	1024
 MvAttacking	untyped int	512
 MvEntryRiders	untyped int	4096
@@ -1190,6 +1191,7 @@ StatFlipCoinMod	StaticKind	226
 StatGoad	StaticKind	249
 StatHexproofOwnColors	StaticKind	19
 StatIncreaseCost	StaticKind	9
+StatLure	StaticKind	228
 StatMaxBlockers	StaticKind	241
 StatMayPlayFrom	StaticKind	13
 StatMustAttack	StaticKind	7
