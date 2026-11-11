@@ -204,6 +204,11 @@ type replChoice struct {
 	resumeAtPose *resumePoint
 	// Set on whichever replacement choice currently owns step-boundary cleanup.
 	manaBoundary *manaBoundaryContinuation
+	// drawChain is the draw lineage's applied set (e.replDrawChain) at the
+	// moment this competition parked. The answer runs the chosen body under
+	// it again, so a replacement already applied to the lineage is not
+	// offered a second time (CR 614.5, 616.1e).
+	drawChain []string
 }
 
 type manaBoundaryContinuation struct {
@@ -328,7 +333,8 @@ func (e *Engine) poseReplacementChoice(ev events.Event, matches []replMatch) {
 		return
 	}
 	e.replChoices = append(e.replChoices, replChoice{kind: kind,
-		ev: ev, cands: matches, player: p, before: e.retainTriggerBefore(), inResolution: e.resolvingObj != 0 || e.answerInResolution})
+		ev: ev, cands: matches, player: p, before: e.retainTriggerBefore(), inResolution: e.resolvingObj != 0 || e.answerInResolution,
+		drawChain: append([]string(nil), e.replDrawChain...)})
 	if e.pending == nil {
 		e.askReplacementChoice(p)
 	}
@@ -980,7 +986,10 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent, inP
 				Text: "replacement-order answer out of range"})
 			return events.Event{}
 		}
+		savedChain := e.replDrawChain
+		e.replDrawChain = rc.drawChain
 		e.applyReplacement(rc.ev, rc.cands[chosen[0].Index])
+		e.replDrawChain = savedChain
 	}
 	e.triggerBefore = before
 	continueLoseManaBoundary(rc.manaBoundary, func() bool { return e.pending != nil }, &e.replChoices, func(leaving, entering state.Step, next int) { e.finishStepBoundary(leaving, entering, next) }, e.finishParkedPhase, e.finishEnteredStep)
