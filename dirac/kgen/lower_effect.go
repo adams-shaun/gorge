@@ -159,7 +159,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// or damage to an opponent from a source the listener controls.
 		// seat-exact: with more seats the kernel's trigger player is the
 		// damaged seat itself (dirac dmgSeat).
-		if lc.damagedPlayerIsTriggerPlayer() {
+		if lc.damagedPlayerIsTriggerPlayer() || ddoPlayerReferent(lc.ab.Trigger) {
 			return lRef{Kind: rTriggeredPlayer}, nil
 		}
 		return lRef{}, refuse("Defined$ %q outside a damage trigger the kernel's trigger object or player names", v)

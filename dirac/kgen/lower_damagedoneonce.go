@@ -93,16 +93,34 @@ func (lc *lowerCtx) damageDoneOnce(tp *params, tr *lTrigger, t cards.Trigger) er
 // read that queue does not carry refuses by name. A line without the read
 // keeps the plain trigger.
 func (lc *lowerCtx) damageDoneSelfObjRef(tp *params, tr *lTrigger, t cards.Trigger) error {
-	if t.Mode != "DamageDone" || !tp.is("ValidSource", "Card.Self") ||
-		tr.F2 == nil || tr.F2.Players != 0 || len(tr.F2.Clauses) == 0 ||
+	if t.Mode != "DamageDone" || !tp.is("ValidSource", "Card.Self") || tr.F2 == nil ||
+		!(tr.F2.Players == 0 && len(tr.F2.Clauses) != 0 || selfPlayerRefShape(tr)) ||
 		!lc.ddoReadsTriggeredTarget(t.Effect) {
 		return nil
 	}
 	tr.Batch, tr.PerRef = true, true
+	tr.SelfPlayerRef = selfPlayerRefShape(tr)
 	if r := lc.ddoReads(t.Effect); r != "" {
 		return refuse("DamageDone body reads %s", r)
 	}
 	return nil
+}
+
+// selfPlayerRefShape reports whether a plain DamageDone line from the card
+// itself to any player (ValidTarget$ Player) that is not combat-only reads
+// the damaged player (Abyssal Specter). The plain trigger's player is the
+// source controller's opponent at two seats, wrong when the Specter hurts its
+// own controller; the per-referent queue carries the damaged player itself
+// (ddoRecipient). A combat-only line keeps the plain trigger, whose damaged
+// player is the defending player (damagedPlayerIsTriggerPlayer).
+func selfPlayerRefShape(tr *lTrigger) bool {
+	return tr.Combat != 1 && tr.F2 != nil && tr.F2.Players == plBoth && len(tr.F2.Clauses) == 0
+}
+
+// ddoPlayerReferent reports whether tr is the per-referent line
+// selfPlayerRefShape gives: the trigger player is the damaged player.
+func ddoPlayerReferent(tr *lTrigger) bool {
+	return tr != nil && tr.Event == "DamageDone" && tr.PerRef && tr.SelfPlayerRef
 }
 
 // ddoBodyReads lists every trigger-context spelling a DamageDone body reads,
@@ -291,7 +309,7 @@ func ddoAttackingPlayer(tr *lTrigger) bool {
 func ddoReadOK(spelling string, tr *lTrigger) bool {
 	switch spelling {
 	case "TriggeredTarget", "TriggeredTargetLKICopy":
-		return ddoObjectReferent(tr)
+		return ddoObjectReferent(tr) || ddoPlayerReferent(tr)
 	case "TriggeredTargetController":
 		// gorge definedSpecTriggeredTargetController: the controller of the
 		// damaged object, read live at resolution (the kernel lowers it to

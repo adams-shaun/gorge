@@ -700,6 +700,7 @@ type lTrigger struct {
 	DefPlayer                 int   // AttackersDeclared per defender, the player only: 1 any player, 2 an opponent of the controller, 3 the controller (AttackedTarget$)
 	PerRef                    bool  // DamageDone lowered from Mode$ DamageDoneOnce: once per damaged referent per batch (kernel Tf2PerReferent)
 	SrcInPlay                 bool  // DamageDone ValidSource$ carries inZoneBattlefield: a source that is not a permanent never matches (kernel Tf2SrcInPlay)
+	SelfPlayerRef             bool  // PerRef from a plain self-source DamageDone to any player that reads the damaged player (lower_damagedoneonce.go selfPlayerRefShape)
 	DmgGate                   int16 // PerRef: DamageAmount$ gate (kop.DmgGate), 0 = none
 	ResolvedLimit             bool  // ResolvedLimit$ 1: the source's limited lines resolve at most once each turn
 	Convoked                  bool  // ETB TfSelf: the trigger amount is Convoked$Amount, bound as it triggers (kernel Tf2Convoked)
