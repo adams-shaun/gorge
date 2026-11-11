@@ -204,7 +204,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ = CastModeCode("kicked")
 		case mode&2 != 0 && r.S.FeatMayhemCard(dirac.Obj(src)):
 			cm, _ = CastModeCode("mayhem") // CR 702.187a: CastModeOther, as "harmonize"
-		case mode&2 != 0 && r.S.FeatHarmonizeCard(dirac.Obj(src)):
+		case mode&2 != 0 && r.S.FeatHarmonizeCast(dirac.Obj(src)):
 			cm, _ = CastModeCode("harmonize") // CR 702.180a: CastModeOther, as "bargained"
 		case mode&2 != 0 && tgt != 0:
 			cm, _ = CastModeCode("beam_me_up") // CastModeOther, as "harmonize"

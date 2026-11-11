@@ -1056,3 +1056,24 @@ func TestStdWoeReprosLockstep(t *testing.T) {
 		{"restricted_each_leftover_not_for_adventure_creature", false, false}, // CR 106.6, 715.4: Troyan's {U} left over from Grove's Bounty floats restricted, so Elusive Otter ({U}, no {X}) is not cast from adventure exile with it
 	})
 }
+
+// std-meta's: the pool's own decks (Avatar and non-WOE cards), not the WOE
+// synthetic pool's. Each fixture holds a Wild Ride in the graveyard that
+// Stingcaster Mage granted flashback, beside the card's printed Harmonize;
+// the kernel's mode-2 flashback cast was canonicalised as "harmonize" (15)
+// where gorge lists "flashback" (2).
+func TestStdMetaReprosLockstep(t *testing.T) {
+	t.Parallel()
+	reg := synthReg(t)
+	set := cardsettest.Set(t, "standard-meta")
+	for _, c := range []stdRepro{
+		{"harmonize_beside_granted_flashback_s17", false, false}, // CR 702.180a, 702.34a: Stingcaster Mage's granted flashback is the mode-2 cast, not Wild Ride's harmonize
+		{"harmonize_beside_granted_flashback_s24", false, false},
+		{"harmonize_beside_granted_flashback_s29", false, false},
+		{"harmonize_beside_granted_flashback_s31", false, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			replayRepro(t, reg, set, c.name, c.autopay, c.stall)
+		})
+	}
+}
