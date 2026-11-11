@@ -125,7 +125,7 @@ func (s *State) addBattleOffers(k *prep, d *Decision, o uint8) {
 func (s *State) dmgPerm(k *prep, sl Slot, p *perm, n int) {
 	if n > 0 {
 		s.g.dmgTurn.set(p.obj)   // WasDealtDamageThisTurn survives every result below (gorge events.foldDamage)
-		s.recordDmgAmt(k, sl, n) // a reader card's amount (dmg_amount.go)
+		s.recordDmgAmt(k, sl, n) // a reader card's amount (value_dmgamount.go)
 	}
 	if s.typesAt(k, sl)&(kop.TPlaneswalker|kop.TBattle) != 0 {
 		s.dmgCounters(k, sl, p, n)
