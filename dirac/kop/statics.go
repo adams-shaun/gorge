@@ -121,9 +121,9 @@ type Override struct {
 	// only this removal (the static's other parts stay Continuous).
 	RemoveKw KwMask
 	// WhileHost: the record lasts only while the effect's source (its
-	// host) stays on the battlefield (Duration$ UntilHostLeavesPlay; the
-	// applied record keeps the host's Obj and ver in its P/T fields, so a
-	// WhileHost override sets no P/T).
+	// host) stays on the battlefield (Duration$ UntilHostLeavesPlay or
+	// AsLongAsInPlay; the applied record keeps the host's Obj and ver in its
+	// P/T fields, so a host-bound P/T is the record's constant SetP/SetT).
 	WhileHost bool
 	// WhileTapped: a WhileHost record that also ends at the host's first
 	// untap (Duration$ UntilUntaps, CR 611.2b: Hedge Whisperer), and starts

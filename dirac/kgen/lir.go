@@ -876,7 +876,7 @@ type lOverride struct {
 	KeepP, KeepT      bool     // a set of base toughness / power only (Maha)
 	RemoveKw          []string // RemoveKeyword$: keywords removed (layer 6)
 	Dedup             bool     // share a byte-identical pool record across cards (Earthbend)
-	WhileHost         bool     // Duration$ UntilHostLeavesPlay
+	WhileHost         bool     // Duration$ UntilHostLeavesPlay / AsLongAsInPlay
 	WhileTapped       bool     // Duration$ UntilUntaps: WhileHost, and the host's untap ends it too
 	CantAttack        bool     // HiddenKeywords$ CARDNAME can't attack or block. (with AddKw CantBlock)
 	MustBeBlocked     bool     // HiddenKeywords$ CARDNAME must be blocked if able.: emitOverride follows the record with ExtMustBeBlocked on the same ref (not a record field)

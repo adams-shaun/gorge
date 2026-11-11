@@ -1,0 +1,10 @@
+# the Awakener Druid pool: its enters trigger's Animate with Duration$
+# AsLongAsInPlay (CR 611.2b) makes a target Forest a 4/5 green Treefolk
+# creature for as long as the Druid stays, for the oracle's constructed
+# lockstep (dirac/oracle/awakener_druid_test.go)
+Awakener Druid
+Forest
+Grizzly Bears
+Hill Giant
+Mountain
+Shock
