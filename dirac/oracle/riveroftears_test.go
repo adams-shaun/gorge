@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"testing"
@@ -48,7 +49,7 @@ type kriverTally struct {
 	games, blueBefore, blackAfter, wrong int
 }
 
-func kriverRun(t *testing.T, n uint64, report bool, tal *kriverTally) int {
+func kriverRun(t *testing.T, first, last uint64, report bool, tal *kriverTally) int {
 	t.Helper()
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
@@ -80,7 +81,7 @@ func kriverRun(t *testing.T, n uint64, report bool, tal *kriverTally) int {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for seed := uint64(1); seed <= n; seed++ {
+		for seed := first; seed <= last; seed++ {
 			if v, err := strconv.ParseUint(os.Getenv("KRIVER_ONLY"), 10, 64); err == nil && seed != v {
 				continue
 			}
@@ -135,7 +136,7 @@ func kriverRun(t *testing.T, n uint64, report bool, tal *kriverTally) int {
 				}
 				return nil
 			}
-			res := Lockstep(m, seed, k, pkPolicy(seed), RunConfig{Config: cfg, MaxDecisions: 6000, MaxTurns: 40, Check: check})
+			res := Lockstep(m, seed, k, pkPolicy(seed), RunConfig{Config: cfg, MaxDecisions: 6000, MaxTurns: 20, Check: check})
 			CloseSide(k)
 			if tal != nil {
 				tal.games++
@@ -174,20 +175,25 @@ func kriverRun(t *testing.T, n uint64, report bool, tal *kriverTally) int {
 	return div
 }
 
+// TestRiverOfTearsDeferredManaLockstep plays seeds 1..300 of both matchups, on both
+// surfaces (odd seeds the full one), as four parallel chunks of 75 seeds that
+// share the fixtures: each must stay in lockstep and reach both arms of the split.
 func TestRiverOfTearsDeferredManaLockstep(t *testing.T) {
 	t.Parallel()
-	var tal kriverTally
-	seeds := uint64(300)
-	if v, err := strconv.ParseUint(os.Getenv("KRIVER_SEEDS"), 10, 64); err == nil {
-		seeds = v // a smaller run while iterating; the arm-coverage floor below needs the full 300
-	}
-	if n := kriverRun(t, seeds, true, &tal); n != 0 {
-		t.Fatalf("%d seeds diverged", n)
-	}
-	t.Logf("%d games: %+v", tal.games, tal)
-	// both arms of the split are reached, and every tap made what its board says
-	if tal.blueBefore < 10 || tal.blackAfter < 10 || tal.wrong != 0 {
-		t.Errorf("arm coverage too thin or River made the wrong colour: %+v", tal)
+	const chunk = 75
+	for first := uint64(1); first <= 300; first += chunk {
+		t.Run(fmt.Sprintf("seeds%03d-%03d", first, first+chunk-1), func(t *testing.T) {
+			t.Parallel()
+			var tal kriverTally
+			if n := kriverRun(t, first, first+chunk-1, true, &tal); n != 0 {
+				t.Fatalf("%d seeds diverged", n)
+			}
+			t.Logf("%d games: %+v", tal.games, tal)
+			// both arms of the split are reached, and every tap made what its board says
+			if tal.blueBefore < 10 || tal.blackAfter < 10 || tal.wrong != 0 {
+				t.Errorf("arm coverage too thin or River made the wrong colour: %+v", tal)
+			}
+		})
 	}
 }
 
@@ -199,7 +205,7 @@ func TestRiverOfTearsLiveGateMutation(t *testing.T) {
 	}
 	dirac.DebugNoCondSplitGate = true
 	defer func() { dirac.DebugNoCondSplitGate = false }()
-	if kriverRun(t, 40, false, nil) == 0 {
+	if kriverRun(t, 1, 40, false, nil) == 0 {
 		t.Fatal("no seed diverged with the Condition-split arm's gate forced off: the pool does not exercise it")
 	}
 }

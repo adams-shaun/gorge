@@ -75,13 +75,9 @@ func (s *State) splitGateOn(k *prep, sl Slot, a *kop.Ability) bool {
 		return s.perms[sl].ctrN(s, int(a.SplitCtr)) >= 1
 	case kop.SplitGateLands:
 		// gorge's PlayerCountPropertyYou$LandsPlayed is Player.LandsPlayed, reset only
-		// when the seat's own turn begins: on an opponent's turn it still holds the
-		// count of the seat's last own turn (landsHeld), not CR 305.2's "this turn"
-		pl := &s.pl[SeatIx(s.perms[sl].ctrl)]
-		if s.perms[sl].ctrl == s.active {
-			return pl.landsPlayed >= 1
-		}
-		return pl.landsHeld >= 1
+		// when the seat's own turn begins (turn.go): on an opponent's turn it still holds
+		// the count of the seat's last own turn, not CR 305.2's "this turn"
+		return s.pl[SeatIx(s.perms[sl].ctrl)].landsPlayed >= 1
 	}
 	return false
 }
@@ -133,4 +129,15 @@ func (s *State) splitUsable(k *prep, sl Slot) bool {
 	pm := &s.perms[sl]
 	return pm.flags&pfTapped == 0 && !s.activationSick(k, sl) && !s.genLost(k, sl) && !s.manaGranted(k, sl) &&
 		!(k.gen.anyCantAct && s.actForbidden(k, sl, true))
+}
+
+// landsProj is seat p's lands-played count as the projections show it: this turn's,
+// the active seat's only. The count itself outlives the seat's own turn
+// (turn.go; the Condition-split gate's reading), which no projection or
+// feature ever showed.
+func (s *State) landsProj(p uint8) uint8 {
+	if p != s.active {
+		return 0
+	}
+	return s.pl[p].landsPlayed
 }

@@ -41,7 +41,6 @@ func (s *State) beginTurn(p uint8) {
 	if goadOn(s.k()) {
 		s.goadTurn(s.k(), p) // act_goad.go
 	}
-	prevActive := s.active
 	s.turn++
 	s.active = p
 	if k := s.k(); k.gen != nil && k.gen.anySkipPhase {
@@ -74,10 +73,13 @@ func (s *State) beginTurn(p uint8) {
 	}
 	for i := range s.pl {
 		pl := &s.pl[i]
-		if uint8(i) == SeatIx(prevActive) {
-			pl.landsHeld = pl.landsPlayed // the turn just ended is this seat's last own turn (mana_condsplit.go)
+		if uint8(i) == SeatIx(p) {
+			// gorge resets a seat's Player.LandsPlayed only when its own turn begins
+			// (events foldTurnChange), so another seat's count outlives the turn it
+			// was made in: the Condition-split gate reads it (mana_condsplit.go); the
+			// projections show the active seat's only (landsProj)
+			pl.landsPlayed = 0
 		}
-		pl.landsPlayed = 0
 		pl.drawnTurn = 0
 		pl.lifeGained = 0
 		pl.lastLost = pl.lifeLost // ExLifeLostLastTurn: the turn just ended
