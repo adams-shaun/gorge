@@ -345,7 +345,7 @@ func Stem(path string) string {
 // ValidateCommander enforces the Commander deck-construction rules (CR 903.4:
 // exactly 100 cards including the commander and, except basic lands, no two
 // cards with the same English name; CR 903.5: every card's colour identity is
-// a subset of the commander's) for a deck file that names a commander. It is
+// a subset of the commander's, and not on the Commander banned list) for a deck file that names a commander. It is
 // called explicitly — never from Parse — and a constructed deck (a File with
 // no commander designation) is not subject to any of it and returns nil, so
 // wiring the validator in never changes how an existing deck file is read.
@@ -442,6 +442,9 @@ func (f File) ValidateCommander(r *cards.Registry) error {
 		basic := isBasicLand(c)
 		if e.Count > 1 && !basic && !AnyNumberAllowed(c) {
 			errs = append(errs, fmt.Sprintf("card %q appears %d times; a Commander deck is singleton except basic lands", e.Name, e.Count))
+		}
+		if IsCommanderBanned(c) {
+			errs = append(errs, fmt.Sprintf("card %q is banned in Commander", e.Name))
 		}
 		if id := c.ColourIdentity(); id&^cmdrID != 0 {
 			errs = append(errs, fmt.Sprintf("card %q has colour identity {%s}, outside commander %q's {%s}",

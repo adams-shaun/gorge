@@ -22,11 +22,13 @@ func commanderFixture(t *testing.T) *cards.Registry {
 		// their basic land TYPE could produce to the commander's identity:
 		// Mountains are not free in a mono-white deck. Wastes has no basic
 		// land subtype and produces only colourless, so it fits any deck.
-		"Plains":   "Name:Plains\nTypes:Basic Land Plains\n",
-		"Mountain": "Name:Mountain\nTypes:Basic Land Mountain\n",
-		"Forest":   "Name:Forest\nTypes:Basic Land Forest\n",
-		"Badlands": "Name:Badlands\nTypes:Land Swamp Mountain\nOracle:({T}: Add {B} or {R}.)\n",
-		"Wastes":   "Name:Wastes\nTypes:Basic Land\nOracle:{T}: Add {C}.\n",
+		"Plains":                  "Name:Plains\nTypes:Basic Land Plains\n",
+		"Mountain":                "Name:Mountain\nTypes:Basic Land Mountain\n",
+		"Forest":                  "Name:Forest\nTypes:Basic Land Forest\n",
+		"Badlands":                "Name:Badlands\nTypes:Land Swamp Mountain\nOracle:({T}: Add {B} or {R}.)\n",
+		"Wastes":                  "Name:Wastes\nTypes:Basic Land\nOracle:{T}: Add {C}.\n",
+		"Karakas":                 "Name:Karakas\nTypes:Legendary Land\n",
+		"Golos, Tireless Pilgrim": "Name:Golos, Tireless Pilgrim\nManaCost:5\nTypes:Legendary Artifact Creature Scout\nPT:3/5\n",
 		// Amalia is the white legendary-commander: identity {W}.
 		"Amalia":       "Name:Amalia\nManaCost:W\nTypes:Legendary Creature Scout\nOracle:Amalia is a commander.\n",
 		"Knight":       "Name:Knight\nManaCost:W\nTypes:Creature Knight\nOracle:Knight.\n",
