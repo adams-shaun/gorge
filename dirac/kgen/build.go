@@ -239,6 +239,13 @@ func manaCostOf(m manaCost) (kop.ManaCost, error) {
 	if m.XXX {
 		out.X = 3
 	}
+	if m.XColor != 0 {
+		i := strings.IndexByte("WUBRG", m.XColor)
+		if i < 0 || out.X == 0 {
+			return out, fmt.Errorf("XColor mana %s", m)
+		}
+		out.XPip = uint8(i + 1)
+	}
 	return out, nil
 }
 
@@ -375,6 +382,8 @@ var counterKinds = map[string]kop.CounterKind{
 	"WISH":       kop.CtrWish,       // Wishclaw Talisman's named counter (CR 122.1)
 	"SKEWER":     kop.CtrSkewer,     // Rotisserie Elemental's named counter (CR 122.1)
 	"NEST":       kop.CtrNest,       // Twitching Doll's named counter (CR 122.1)
+	"AGE":        kop.CtrAge,        // cumulative upkeep's age counter (CR 702.24a; Mystic Remora)
+	"LUCK":       kop.CtrLuck,       // Gemstone Caverns' named counter (CR 122.1; the Condition-split mana gate, lower_condsplit.go)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -700,6 +709,16 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Dash != nil {
+		// CR 702.109a: no KwMask bit is free, so the dash marker is its own
+		// field; the cost is the hand's alternative cost, and the permanent
+		// gains haste and returns to hand at the next end step
+		// (dirac/kw_dash.go)
+		d.HasDash = true
+		if d.DashCost, err = manaCostOf(*c.Dash); err != nil {
+			return err
+		}
+	}
 	if c.Bestow != nil {
 		// CR 702.103a: no KwMask bit is free, so the bestow marker is its own
 		// field; the cost is the hand's alternative cost of the Aura cast and
@@ -802,6 +821,7 @@ func (cb *cardBuilder) record() error {
 	d.SelfFlash = c.SelfFlash
 	d.Gift = c.Gift
 	d.SpentSelf = c.SpentSelf
+	d.DmgAmt = c.DmgAmt
 	if c.CastBF != nil {
 		// Count$LastStateBattlefieldWithFallback: the
 		// filter frozen at beginCast into the spell entry's trigMV
@@ -820,12 +840,14 @@ func (cb *cardBuilder) record() error {
 	d.Evasion = c.Evasion
 	d.Wither = c.Wither
 	d.AloneAtk = c.AloneAtk
+	d.AloneBlk = c.AloneBlk
 	d.Engines = c.Engines
 	d.AtkFace = c.AtkFace
 	d.SagaN = uint8(c.SagaN)
 	d.TapPowerCrew = int8(c.TapPowerCrew)
 	d.TapPowerSaddle = int8(c.TapPowerSaddle)
 	d.MinBlockers = uint8(c.MinBlockers)
+	d.ExtraBlocks = uint8(c.ExtraBlocks)
 	d.Lure = c.Lure
 	d.MustBeBlocked = c.MustBeBlocked
 	d.Daybound, d.Nightbound = c.Daybound, c.Nightbound
@@ -1020,7 +1042,11 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	if c.PayLife > 0 && c.LifeX {
 		return out, refuse("life cost: PayLife<N> beside PayLife<X>")
 	}
-	if c.PayLife > 0 {
+	if c.PayLife > 0 && c.ExileG != nil && c.ExileHand && c.PayLife == c.ExileGN {
+		// PayLife<N> beside ExileFromHand<N/Spec> (an alternative cost,
+		// lower_altexilehand.go): the two parts share Cost.N, one count
+		out.Flags |= kop.CostPayLife
+	} else if c.PayLife > 0 {
 		set(kop.CostPayLife, c.PayLife)
 	}
 	if c.LifeX {
@@ -1834,6 +1860,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefOppNonRemCtrl, nil
 	case rPromised:
 		return kop.RefPromised, nil
+	case rAttachedCtrl:
+		return kop.RefAttachedCtrl, nil
 	case rSrcOwner:
 		return kop.RefSrcOwner, nil
 	case rTriggerAttackers:
@@ -1886,6 +1914,8 @@ func (cb *cardBuilder) value(v lValue) (kop.ValueRef, error) {
 			return kop.ValueRef{}, err
 		}
 		return kop.ValueRef{K: kop.VCountersSelf, N: int16(k)}, nil
+	case v.Kind == vLastDamage && plain:
+		return kop.ValueRef{K: kop.VLastDamage}, nil
 	case v.Kind == vLifeGainedThisTurn && plain:
 		return kop.ValueRef{K: kop.VLifeGainedTurn}, nil
 	case v.Kind == vCount && plain:
@@ -1972,6 +2002,9 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vTgtSpent:           kop.ExTgtSpent,
 	vOppExtreme:         kop.ExOppExtreme,
 	vThisTurnActExhaust: kop.ExThisTurnActExhaust,
+	vActivations:        kop.ExActivations,
+	vLifeLostLastTurn:   kop.ExLifeLostLastTurn,
+	vDmgAmount:          kop.ExDmgAmountReceived,
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {

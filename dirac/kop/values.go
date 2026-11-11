@@ -111,6 +111,19 @@ const (
 	// Activated.Exhaust+YouCtrl; the kernel keeps one bit per player, so a
 	// second activation still reads 1). dirac/static_turnbits.go.
 	ExThisTurnActExhaust
+	// ExActivations: the resolving activated ability's source's non-mana
+	// activations this turn, the resolving one included (gorge
+	// ConditionActivationLimit$ GE<n>, Ctx.ActivationsThisTurn: the ability's
+	// own count). It reads the object's per-turn census (object.acts), which
+	// counts every non-mana activation of the object, so the lowering admits
+	// only a card whose one non-mana activated ability is the counted one.
+	// Dragon Whelp.
+	ExActivations
+	// ExLifeLostLastTurn: the life the evaluating controller lost during the
+	// previous turn (gorge PlayerCountPropertyYou$LifeLostLastTurn, the
+	// LifeLostThisTurn tally one turn back; 0 on the first turn).
+	// dirac/turn.go latches it as the turn changes.
+	ExLifeLostLastTurn
 	ExCount_
 )
 
@@ -534,3 +547,9 @@ const ExTargetPlayers ExprKind = 223
 // Card.IsRemembered+!RememberedPlayerOwn$CardManaCost. No parameters.
 // Explicit ordinal, the iota tail stays untouched.
 const ExNotOwnLibMV ExprKind = 226
+
+// ExDmgAmountReceived: the positive damage the source object received this
+// turn, saturating at 255 (gorge Object.DamageReceivedThisTurn,
+// Count$TotalDamageReceivedThisTurn). A source with no record reads 0.
+// Explicit ordinal, the iota tail stays untouched. Kernel value_dmgamount.go.
+const ExDmgAmountReceived ExprKind = 219

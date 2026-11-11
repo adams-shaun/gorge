@@ -230,7 +230,7 @@ func (s *State) mcombatF2(k *prep, f kop.FilterFlags2, sl, src Slot) bool {
 		if p.flags&pfAttacking == 0 {
 			return false
 		}
-		if src != NoSlot && (s.perms[src].flags&pfBlocking == 0 || s.perms[src].blocking != sl) {
+		if src != NoSlot && !s.blocks(src, sl) {
 			return false
 		}
 	}
@@ -434,8 +434,9 @@ func (s *State) tapForSacSelf(k *prep, p uint8, cost *kop.ManaCost, x int, sl Sl
 // Effect, UntilHostLeavesPlayOrEOT): it ends as the host leaves the
 // battlefield, and an effect whose host has already left does nothing. A
 // host-bound override record keeps the host's Obj and ver in its P/T
-// fields (a WhileHost override sets no P/T: kgen refuses one); a host-bound
-// emblem is State.g.embO's object.
+// fields; its constant P/T, when it has one, is the record's SetP/SetT
+// (basePTGen reads that for a WhileHost record). A host-bound emblem is
+// State.g.embO's object.
 
 // hostHere reports whether the resolving entry's source is still the
 // battlefield object that created the ability.

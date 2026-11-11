@@ -348,7 +348,7 @@ var charmKnownKeys = [...]string{
 	"ValidTgtsDesc",
 	"VoteMessage",
 	"WithoutManaCost",
-	"XMax",
+	"XColor", "XMax",
 	"XMin",
 }
 

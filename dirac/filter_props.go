@@ -295,6 +295,10 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		c := s.cardAt(sl)
 		ans = c != kop.NoCard && k.t.Cards[c].Keywords&kop.KwFlashback != 0 && !s.faceDown(k, sl) &&
 			s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
+	case kop.W7LacksIslandwalk:
+		// !hasKeywordLandwalk:Island over the derived keywords: printed
+		// (kw_evasion.go), granted by a Continuous static, none once lost
+		ans = !s.hasIslandwalk(k, sl)
 	case kop.W7GreatestPowerTgt:
 		// gorge greatestPowerControlledByTargeted: a battlefield creature a
 		// player target of the current entry controls that no OTHER such
@@ -320,7 +324,7 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		// object is a commander outside a Commander game
 		o := s.perms[sl].obj
 		p := s.objs[o].owner()
-		ans = s.cfg&cfgCommander != 0 && s.pl[p].cmd == o
+		ans = s.cfg&cfgCommander != 0 && s.cmdSlot(p, o) >= 0
 	case kop.W7NotBottomLibrary:
 		ans = true // a battlefield permanent is no library's bottom card
 	case kop.W7CrewedBySrc:
@@ -348,6 +352,9 @@ func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 		ans = c != kop.NoCard && k.t.Cards[c].Keywords&kop.KwFlashback != 0
 	case kop.W7FaceUpDisguise:
 		ans = c != kop.NoCard && !fd && k.t.Cards[c].MorphFamily == kop.MorphDisguise
+	case kop.W7LacksIslandwalk:
+		// the printed Landwalk of the card (no abilities to lose or grant off the battlefield)
+		ans = c == kop.NoCard || !landwalkNames(k.t, k.t.Cards[c].Landwalk, islandSub(k))
 	case kop.W7IsCommander:
 		// off the battlefield the word sees only a CardID: no card is a
 		// commander there (CR 903.3)

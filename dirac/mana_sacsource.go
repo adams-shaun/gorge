@@ -640,7 +640,7 @@ func (s *State) activateNeedsEmptyStack(k *prep, a Action) bool {
 		host := &s.objs[Obj(a.Target())]
 		c, ab = host.card, ab&^0x80
 		if host.zone == kop.ZoneBattlefield {
-			c = s.cardAt(host.slot)
+			c = s.grantCardAt(k, host.slot, ab)
 		}
 	case ob.zone == kop.ZoneBattlefield:
 		c = s.cardAt(ob.slot)

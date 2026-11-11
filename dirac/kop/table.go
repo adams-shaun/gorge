@@ -230,7 +230,11 @@ type CardDef struct {
 	// planner prices no cast of such a face ("shape:mana_spent_reader",
 	// faceWantsCastSpend), so FeatPlannedCast is false for it.
 	SpentSelf bool
-	Gift      bool // K:Gift: the caster may promise the opponent a gift as the spell is cast (CR 702.174a; the build's bsGift stage)
+	// DmgAmt: the card reads Count$TotalDamageReceivedThisTurn (its own
+	// received damage); every damage site records the amount for such a card
+	// (dirac/value_dmgamount.go).
+	DmgAmt bool
+	Gift   bool // K:Gift: the caster may promise the opponent a gift as the spell is cast (CR 702.174a; the build's bsGift stage)
 	// Offspring: K:Offspring (CR 702.175a): Kicker holds the offspring cost
 	// and the kicked cast (AkCast mode bit 0, sfKicked) is gorge's
 	// "(offspring)" cast; Keywords has no KwKicker
@@ -304,6 +308,11 @@ type CardDef struct {
 	// declared as an attacker only beside another attacker; not when it has
 	// lost its abilities (dirac/combat_alone.go).
 	AloneAtk bool
+	// AloneBlk is printed "CARDNAME can't block alone." (CR 506.5), and the
+	// block half of the compound "can't attack or block alone.": it is
+	// declared as a blocker only beside another blocker; not when it has lost
+	// its abilities (dirac/combat_alone.go).
+	AloneBlk bool
 	// Evasion holds printed blocking-restriction keywords without a KwMask
 	// bit (Ev* bits): not when the creature has lost its abilities.
 	Evasion uint8
@@ -441,6 +450,14 @@ type CardDef struct {
 	HasEvoke bool
 	// EvokeCost is the printed evoke cost (HasEvoke).
 	EvokeCost ManaCost
+	// HasDash is printed dash (CR 702.109a; no KwMask bit is free): the hand
+	// offers the dashed cast at DashCost (gorge's "dashed" option,
+	// FlagDashed); the permanent that cast produces gains haste and returns
+	// to its owner's hand at the beginning of the next end step
+	// (dirac/kw_dash.go).
+	HasDash bool
+	// DashCost is the printed dash cost (HasDash).
+	DashCost ManaCost
 	// HasBestow is printed bestow (CR 702.103; no KwMask bit is free): the
 	// hand offers the bestowed cast (AkBestow) at BestowCost; the spell is
 	// an Aura with enchant creature (BestowTgt) and the permanent an Aura,
@@ -486,6 +503,10 @@ type CardDef struct {
 	// 0 = none): menace's floor generalised (dirac/combat.go minBlockers).
 	// Not when the creature has lost its abilities. Troll of Khazad-dum.
 	MinBlockers uint8
+	// ExtraBlocks is a printed S:Mode$ Continuous | AffectedDefined$ Self |
+	// CanBlockAmount$ 1 (CR 509.1a): the creature can block one additional
+	// attacker each combat; 0 none. Not when it has lost its abilities.
+	ExtraBlocks uint8
 	// SpendRead: an SVar reads Count$CastTotalManaSpent (Memory Deluge):
 	// gorge's cast planner prices no cast of it (faceWantsCastSpend,
 	// "shape:mana_spent_reader"; kernel featview.go plannedCastCost).

@@ -499,8 +499,14 @@ func parityPredicate(name string) (field numericFieldCode, wantOdd, ok bool) {
 // sameNameContextBase recognises only the three base-prefix forms which
 // carry sameName's referent. Keeping this rewrite name-specific is important:
 // Remembered.*, Targeted.*, and Triggered.* have many unrelated predicates
-// whose grammar and behaviour this must not expand.
+// whose grammar and behaviour this must not expand. The one other form is the
+// bare Targeted base with an Other predicate (Forge filterListByType rewrites
+// Targeted to Card and makes the first targeted card the source, so Other
+// reads "other than the target"; CR 608.2c).
 func sameNameContextBase(base, rest string) bool {
+	if base == "Targeted" && hasPredicate(rest, "Other") {
+		return true
+	}
 	if !strings.HasPrefix(base, "Remembered") &&
 		!strings.HasPrefix(base, "Targeted") &&
 		!strings.HasPrefix(base, "Triggered") {

@@ -1,0 +1,11 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Awakening Zone
+1	card	Eldrazi Skyspawner
+2	card	Forest
+3	card	Grizzly Bears
+4	card	Hand of Emrakul
+5	card	Hill Giant
+6	card	Island
+7	card	Nest Invader
+8	token	c_0_1_eldrazi_spawn_sac
+9	token	c_1_1_eldrazi_scion_sac

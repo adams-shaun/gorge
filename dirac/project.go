@@ -88,7 +88,8 @@ type Projection struct {
 	Winner int8
 	// CmdCast is each seat's commander casts from the command zone (CR
 	// 903.8); CmdDmg[p][q] the combat damage player p was dealt by seat q's
-	// commander (CR 903.10a)
+	// commander (CR 903.10a). A partner pair's two tallies are summed here
+	// (saturating); FeatCommanderCastN / FeatCommanderDamageN keep them apart.
 	CmdCast [MaxSeats]uint8
 	CmdDmg  [MaxSeats][MaxSeats]uint8
 	// Chars is each battlefield object's derived characteristics, by Obj
@@ -250,8 +251,8 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 		}
 		if pm.flags&pfBlocking != 0 {
 			po.Flags |= ProjBlocking
-			if pm.blocking != NoSlot {
-				po.Blocks = s.perms[pm.blocking].obj
+			if a := s.blockProjected(sl); a != NoSlot {
+				po.Blocks = s.perms[a].obj
 			}
 		}
 		if pm.ovr.flags&ovCopy != 0 && !aegis {
@@ -343,15 +344,17 @@ func (s *State) projRest(p *Projection, lib bool) {
 			p.Objs[pl.exile[i]].ZoneIdx = uint8(i)
 		}
 		p.Life[pi] = pl.life
-		p.Lands[pi] = pl.landsPlayed
+		p.Lands[pi] = s.landsProj(uint8(pi))
 		p.Pool[pi] = s.poolProj(uint8(pi))
 		p.LibN[pi] = uint8(pl.libLen())
 		p.HandN[pi] = pl.handN
 		p.GraveN[pi] = pl.graveN
 		p.ExileN[pi] = pl.exileN
-		p.CmdCast[pi] = pl.cmdCast
+		// a seat's two commanders project as one sum, as the oracle folds
+		// gorge's per-commander lists
+		p.CmdCast[pi] = satAdd8(pl.cmdCast, s.cmdCast2(uint8(pi)))
 		for q := range p.CmdDmg[pi] {
-			p.CmdDmg[pi][q] = pl.cmdDmg[q]
+			p.CmdDmg[pi][q] = satAdd8(pl.cmdDmg[q], s.cmdDmg2(uint8(pi), uint8(q)))
 		}
 	}
 	if n := s.nSeats(); n > 2 {

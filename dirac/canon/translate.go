@@ -180,6 +180,12 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ := CastModeCode("evoked")
 			return Pack(ActCast, src, RefNone, cm)
 		}
+		if mode == 0 && tgt == 4 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
+			// the dash cast (CR 702.109a; kernel kw_dash.go castDashTgt):
+			// gorge's "dashed" cast option, AltCostIndex 0
+			cm, _ := CastModeCode("dashed")
+			return Pack(ActCast, src, RefNone, cm)
+		}
 		var cm uint8
 		switch {
 		case mode == 0 && tgt == 1 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand:
@@ -693,6 +699,9 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(kind("hidden_pick"), src, RefNone, 0), true
 	case dirac.ChGenHandMove:
 		return Pack(kind("hand_move"), src, RefNone, 0), true
+	case dirac.ChGenImprint:
+		// gorge zone_change.go's imprint pick (Chrome Mox)
+		return Pack(kind("imprint"), src, RefNone, 0), true
 	case dirac.ChGenReveal:
 		return Pack(kind("reveal"), src, RefNone, 0), true
 	case dirac.ChGenDig:

@@ -100,6 +100,26 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			return lRef{}, err
 		}
 		return lRef{Kind: rTriggerAttackers}, nil
+	case "TriggeredAttackerController":
+		// gorge definedSpecTriggeredCombatantController: the attacker's
+		// controller, which an Attacks or Blocks trigger binds as its
+		// trigger player (the kernel queues both with the attacker's
+		// controller, so the Blocks pair's attacker too)
+		if tr := lc.ab.Trigger; tr != nil && (tr.Event == "Attacks" || tr.Event == "Blocks") {
+			return lRef{Kind: rTriggeredPlayer}, nil
+		}
+		return lRef{}, refuse("Defined$ %q outside an Attacks or Blocks trigger", v)
+	case "TriggeredBlockerController":
+		// gorge definedSpecTriggeredCombatantController: the controller of
+		// the captured blocker, read live. A Blocks trigger over the
+		// source's own host (ValidCard$ Card.AttachedBy: the enchanted or
+		// equipped creature) names the host's controller, the one
+		// RefAttachedCtrl reads (Contaminated Bond)
+		if tr := lc.ab.Trigger; tr != nil && tr.Event == "Blocks" && tr.F != nil && len(tr.F.Clauses) == 1 &&
+			tr.F.Players == 0 && tr.F.Clauses[0] == (lClause{Flags: fEquippedBy}) {
+			return lRef{Kind: rAttachedCtrl}, nil
+		}
+		return lRef{}, refuse("Defined$ %q outside a Blocks trigger over the attached creature", v)
 	case "TriggeredBlocker", "TriggeredBlockerLKICopy":
 		// gorge TriggerBlocker of a Blocks trigger: the source itself when
 		// the trigger is "whenever this blocks" (ValidCard$ Card.Self)
@@ -159,7 +179,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// or damage to an opponent from a source the listener controls.
 		// seat-exact: with more seats the kernel's trigger player is the
 		// damaged seat itself (dirac dmgSeat).
-		if lc.damagedPlayerIsTriggerPlayer() {
+		if lc.damagedPlayerIsTriggerPlayer() || ddoPlayerReferent(lc.ab.Trigger) {
 			return lRef{Kind: rTriggeredPlayer}, nil
 		}
 		return lRef{}, refuse("Defined$ %q outside a damage trigger the kernel's trigger object or player names", v)
@@ -219,6 +239,14 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// with a RememberLKI$ move's captured controller substituted off
 		// the battlefield (kernel tliRemLKI); every other characteristic
 		// is read live, as Remembered's
+		return lRef{Kind: rRemembered}, nil
+	case "DirectRemembered":
+		// gorge definedAliases: DirectRemembered is RememberedLKI. Lowered
+		// only as the remembered-persist leave return (Fiend Hunter), where
+		// both read the source's persistent set as Remembered does
+		if !lc.remPersistShape() {
+			return lRef{}, refuse("Defined$ %q outside the remembered-persist enters/leaves pair", v)
+		}
 		return lRef{Kind: rRemembered}, nil
 	case "Imprinted":
 		// DigUntil's ImprintFound$ chain (lower_digimprint.go): gorge
@@ -596,6 +624,9 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 	}
 	if c, ok := ps.get("Condition"); ok {
 		return lc.bareCondition(ps, c)
+	}
+	if c, ok := ps.get("ConditionActivationLimit"); ok {
+		return lc.activationLimitCondition(ps, c) // lower_activationcount.go
 	}
 	if c, ok := ps.get("ConditionPlayerTurn"); ok {
 		return lc.playerTurnCondition(ps, c)
@@ -1232,6 +1263,16 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		c.SubCtr = 0
 		n++
 	}
+	if c.TapXVar {
+		// tapXType<X/Spec> as a printed trigger's own whole cost (lower_tapxvar.go)
+		if !lc.trigOwnCost || n != 0 || c.TapF == nil {
+			return in, refuse("resolution tapXType<X> cost shape")
+		}
+		in.CS, in.A, in.F = "TapXVar", cst(0), c.TapF
+		lc.trigXPaid = true
+		c.TapXVar = false
+		n++
+	}
 	if c.TapN > 0 {
 		// C: a literal tapXType<N/Spec> that is the WHOLE cost of a
 		// printed trigger (gorge cumulative.go:1130-1137 and
@@ -1427,13 +1468,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		}
 		lc.emit(in)
 	case "DestroyAll":
-		var f *lFilter
-		var err error
-		if vc := ps.str("ValidCards"); vc == "TargetedCard.Self,Permanent.NotDefinedTargeted+sharesNameWith Targeted" {
-			f, err = lc.sameNameT0Filter() // lower_choosetype.go
-		} else {
-			f, err = lc.filter(vc)
-		}
+		f, err := lc.destroyAllFilter(ps) // lower_destroyalltargeted.go
 		if err != nil {
 			return err
 		}
@@ -1835,6 +1870,16 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		n, err := lc.amount(ps, "Amount", 1)
 		if err != nil {
 			return err
+		}
+		if ann := ps.str("Annihilator"); ann != "" {
+			// CR 702.86a: the Annihilator expansion's count rides the
+			// marker and replaces Amount$ (gorge zone_bulk.go effSacrifice)
+			v, aerr := strconv.Atoi(ann)
+			if aerr != nil || v < 0 {
+				return refuse("Annihilator count %q", ann)
+			}
+			ps.consume("Annihilator")
+			n = cst(v)
 		}
 		in := lInstr{Op: "Sacrifice", Obj: who, A: n, F: f}
 		if err := lc.sacrificeOptional(ps, &in); err != nil {
@@ -2302,12 +2347,16 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		lc.emit(lInstr{Op: "Blight", Obj: who, A: n})
 	case "AddPhase":
 		return lc.addPhase(ps) // lower_addphase.go
+	case "SkipPhase":
+		return lc.skipPhase(ps) // lower_skipphase.go
 	case "ChangeTargets":
 		return lc.changeTargets(ps) // lower_stackrewrite.go
 	case "UnlockDoor":
 		return lc.unlockDoor(ps) // lower_unlockdoor.go
+	case "CumulativeUpkeep":
+		return lc.cumulativeUpkeep(ps) // lower_cumulative.go
 	default:
-		return refuse("api %s", sa.API)
+		return refuseAPI(sa.API) // lower_refuseapi.go
 	}
 	return nil
 }
@@ -2410,6 +2459,11 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 			return refuse("divided over a value total that is not TargetMax$")
 		}
 		in.Op = "DealDamageDivided"
+	}
+	if de, ok := ps.get("DivideEvenly"); ok {
+		if err := lc.divideEvenly(ps, de, &in); err != nil { // lower_divideevenly.go
+			return err
+		}
 	}
 	if ps.is("DamageMap", "True") {
 		in.Note = "damage map: dealt together with the following DealDamage nodes"
@@ -2863,9 +2917,10 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		lc.emit(lInstr{Op: "PumpUntilEOT", Obj: obj, A: att, B: def})
 	}
 	kw, hasKW := ps.get("KW")
-	mustBlock := false
+	mustBlock, noCombat := false, false
 	if hasKW {
-		kw, mustBlock = splitMustBeBlocked(kw)
+		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
+		kw, noCombat = splitKWSentence(kw, cantAttackOrBlockKW)
 	}
 	if hasKW && kw != "" {
 		rest, fbs, err := splitFirebendingGrant(kw)
@@ -2902,20 +2957,36 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		}
 		lc.emit(lInstr{Op: "MustBeBlocked", Obj: obj})
 	}
+	if noCombat {
+		if zone != zBattlefield || !lc.pumpObjectRef(obj) {
+			return refuse("Pump KW$ can't attack or block on a non-permanent subject")
+		}
+		// the Animate HiddenKeywords$ pair (animateHiddenKeywords): the
+		// kernel's until-end-of-turn KwCantBlock grant, and the override
+		// record's CantAttack (there is no kernel keyword bit for the attack half)
+		lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: "CantBlock"})
+		lc.emitOverride(obj, &lOverride{CantAttack: true}, "EOT")
+	}
 	return nil
 }
+
+// cantAttackOrBlockKW is the Pump keyword sentence for "can't attack or block
+// this turn" (CR 508.1, 509.1: Alchemist's Vial). Like mustBeBlockedKW it is a
+// mark, not a keyword bit.
+const cantAttackOrBlockKW = "HIDDEN CARDNAME can't attack or block."
 
 // mustBeBlockedKW is the one Pump / PumpAll keyword sentence that is a mark,
 // not a keyword bit (CR 509.1c, ExtMustBeBlocked).
 const mustBeBlockedKW = "HIDDEN CARDNAME must be blocked if able."
 
-// splitMustBeBlocked takes mustBeBlockedKW out of a KW$ list: the rest of
-// the list (possibly empty) and whether the sentence was there. Any other
-// spelling stays in the list, where pumpKeywords refuses it.
-func splitMustBeBlocked(kw string) (rest string, found bool) {
+// splitKWSentence takes one mark sentence (mustBeBlockedKW,
+// cantAttackOrBlockKW) out of a KW$ list: the rest of the list (possibly
+// empty) and whether the sentence was there. Any other spelling stays in the
+// list, where pumpKeywords refuses it.
+func splitKWSentence(kw, sentence string) (rest string, found bool) {
 	var keep []string
 	for _, k := range strings.Split(kw, "&") {
-		if strings.TrimSpace(k) == mustBeBlockedKW {
+		if strings.TrimSpace(k) == sentence {
 			found = true
 			continue
 		}
@@ -2954,6 +3025,9 @@ func pumpKeywords(kw string) ([]string, error) {
 }
 
 func (lc *lowerCtx) pumpAll(ps *params) error {
+	if spec, ok := targetedOtherSpec(ps.m["ValidCards"]); ok {
+		return lc.pumpAllOtherThanTarget(ps, spec) // lower_pumpallother.go
+	}
 	f, err := lc.filter(ps.str("ValidCards"))
 	if err != nil {
 		return err
@@ -2998,7 +3072,7 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	}
 	mustBlock := false
 	if kw, ok := ps.get("KW"); ok {
-		kw, mustBlock = splitMustBeBlocked(kw)
+		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
 		if mustBlock && scope.Kind != rNone {
 			return refuse("PumpAll KW$ must be blocked if able with a ValidTgts$ player scope")
 		}

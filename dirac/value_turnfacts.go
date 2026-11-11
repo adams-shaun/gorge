@@ -114,10 +114,10 @@ func (s *State) sickTapTurnBound(k *prep, sl Slot, a Action) bool {
 		if int(host) >= int(s.nobj) {
 			return true
 		}
-		if c = s.objs[host].card; s.objs[host].zone == kop.ZoneBattlefield {
-			c = s.cardAt(s.objs[host].slot)
-		}
 		ab &^= 0x80
+		if c = s.objs[host].card; s.objs[host].zone == kop.ZoneBattlefield {
+			c = s.grantCardAt(k, s.objs[host].slot, ab)
+		}
 	}
 	abs := k.t.Cards[c].Abilities
 	if int(ab) >= len(abs) {

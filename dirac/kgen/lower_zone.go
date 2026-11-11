@@ -92,9 +92,13 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		origin = zAny
 	}
+	lg := isOriginLibraryGrave(ps) // lower_libgrave.go
 	if dualDef || gxTgt {
 		ps.get("Origin") // read
 		origin = zAny
+	} else if lg {
+		ps.get("Origin") // read
+		origin = zLibrary
 	} else if !dual && !hg && !bg {
 		if origin, err = zoneOf(ps, "Origin", zNone); err != nil {
 			return err
@@ -253,6 +257,11 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		m["ChangeType"] = "Card"
 		ps = &params{m: m, used: ps.used}
+	}
+	if lc.imprintMox && origin == zHand && dest == zExile && ps.is("Imprint", "True") {
+		// the imprint mox's pick: the kernel's reverse exiled-with record
+		// is the imprint (lower_imprintmox.go)
+		ps.consume("Imprint")
 	}
 	if ct, ok := ps.get("ChangeType"); ok {
 		if _, has := ps.m["ValidTgts"]; has && !(origin == zHand && (dest == zExile || dest == zBattlefield || dest == zLibrary) ||
@@ -418,6 +427,11 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 					return refuse("OriginAlternative$ with ChangeNum$ %v", n)
 				}
 				flags = append(flags, "alt="+alt)
+			}
+			if lg {
+				if flags, err = libGraveFlags(ps, dest, n, obj, arm != nil, flags); err != nil { // lower_libgrave.go
+					return err
+				}
 			}
 			if flags, err = shareLandType(ps, f, flags); err != nil { // lower_sharelandtype.go
 				return err
@@ -836,16 +850,15 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		in.CS += "|counters=" + counterKind
 	}
 	if optional {
-		// The ask is read exactly for the source returning from the battlefield
-		// to its owner's hand (Intimidation Campaign, Mistbreath Elder): the
-		// guard (kop.MayGuardMove) is the one live object gorge's loop keeps.
-		// Another object set or origin has its own skip rules (changeZoneMoveSkip,
+		// The ask is read exactly for the shapes lower_optionalmove.go names:
+		// the guard is the live object gorge's loop keeps. Another object set
+		// or origin has its own skip rules (changeZoneMoveSkip,
 		// sourceReturnedSincePush, a player target) and stays refused.
-		if obj.Kind != rSelf || origin != zBattlefield || in.Op != "Bounce" ||
-			in.C != 0 || in.A.Kind != 0 || in.CS != "from=Battlefield" || override != nil || self {
+		guard, ok := lc.optionalMoveShape(obj, origin, in, override, self) // lower_optionalmove.go
+		if !ok {
 			return refuse("ChangeZone Optional$ on a %s %s->%s move", refNames[obj.Kind], zoneLabel[origin], zoneLabel[dest])
 		}
-		lc.emit(lInstr{Op: "MayAsk", C: kop.MayGuardMove, Skip: 1, Note: "you may move it"})
+		lc.emit(lInstr{Op: "MayAsk", C: guard, Skip: 1, Note: "you may move it"})
 	}
 	lc.emit(in)
 	if override != nil {
@@ -946,6 +959,16 @@ func (lc *lowerCtx) staticEffectOverride(name string) (*lOverride, error) {
 			return nil, err
 		}
 		o.AddKw = ks
+	}
+	if c, ok := sp.get("AddColor"); ok {
+		// "is a black Zombie in addition to its other colors" (Rise from
+		// the Grave): gorge parseStaticEffectGrant AddColor$ adds in layer 5
+		// (CR 613.1e), the record's AddColors; an empty set refuses
+		cols, ok := colorWordSet(c)
+		if !ok || cols == "" {
+			return nil, refuse("StaticEffect AddColor$ %q", c)
+		}
+		o.AddColors = cols
 	}
 	if sp.is("RemoveCardTypes", "True") {
 		// "it's an <type> (it's no longer a creature)": the added types
@@ -2039,6 +2062,11 @@ func (lc *lowerCtx) effectStaticBodies(list string) ([]cards.Static, error) {
 
 func (lc *lowerCtx) effectAPI(ps *params) error {
 	if tr, ok := ps.get("Triggers"); ok {
+		if _, st := ps.m["StaticAbilities"]; st {
+			if done, err := lc.effectUntapDenial(ps, tr); done || err != nil { // lower_untapdenial.go
+				return err
+			}
+		}
 		if _, st := ps.m["StaticAbilities"]; st && ps.m["RememberObjects"] != "" {
 			return lc.effectStaticTriggerPair(ps, tr) // lower_effectcaptured.go
 		}
@@ -2702,6 +2730,11 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 		case "Permanent", "UntilYourNextTurn":
 		case "UntilHostLeavesPlay":
 			o.WhileHost, d = true, "WhileHost" // lower_tokenattacking.go
+		case "AsLongAsInPlay":
+			// "for as long as CARDNAME remains on the battlefield" (Awakener
+			// Druid, Skilled Animator): the ANIMATING source is the host, the
+			// same lifetime UntilHostLeavesPlay names (gorge animateHostScoped).
+			o.WhileHost, d = true, "WhileHost"
 		case "UntilUntaps":
 			// "for as long as CARDNAME remains tapped" (Hedge Whisperer):
 			// host-bound, and also ended by the host's untap (gorge
@@ -2813,10 +2846,12 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 				return nil, "", false, refuse("Animate Toughness$ %q: %v", tS, err)
 			}
 		}
-		if o.WhileHost && !(o.WhileTapped && pv.isConst() && tv.isConst()) {
-			// the applied record keeps the host in its P/T fields: only a
-			// constant P/T, read from the table, fits (UntilUntaps alone)
-			return nil, "", false, refuse("Animate Duration UntilHostLeavesPlay with a P/T set")
+		if o.WhileHost && !(pv.isConst() && tv.isConst()) {
+			// the applied record keeps the host's object and version in its P/T
+			// fields, so a host-bound P/T must come from the table (SetP/SetT);
+			// a value read at resolution has no room (gorge registers the P/T
+			// half with the host as DurationSource)
+			return nil, "", false, refuse("Animate host-bound duration with a non-constant P/T")
 		}
 		if o.LivePT {
 			return nil, "", false, refuse("Animate Power$/Toughness$ beside a granted static's P/T")
@@ -3434,6 +3469,11 @@ func (lc *lowerCtx) genericChoice(ps *params) error {
 // lowerMana lowers an AB$ Mana.
 func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 	m := &lMana{}
+	split, err := lc.condSplitRoot(sa, ps, ab) // lower_condsplit.go: the sub folds into the root's lMana
+	if err != nil {
+		return err
+	}
+	m.Split = split
 	prod := ps.str("Produced")
 	if v := ps.peek("TriggersWhenSpent"); v != "" && prod == "R" {
 		if err := lc.deferredMana(ab, ps, v); err != nil {
@@ -3731,7 +3771,7 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 			lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors, F: m.Restrict})
 		}
 	}
-	if sa.Sub != nil {
+	if sa.Sub != nil && m.Split == nil { // (a Condition-split's sub is folded into m.Split)
 		// Chandra's +2: mana, then the rest of the chain.
 		if err := lc.chain(sa.Sub, nil); err != nil {
 			return err

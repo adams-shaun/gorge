@@ -48,6 +48,18 @@ func foldSkipTurn(g *state.Game, e *Event) {
 	}
 }
 
+// foldSkipPhase folds Kind SkipPhase into state: the seat's combat phases are
+// skipped from its next turn on (state.Game.PhaseSkips). Only the combat
+// phase is modelled; any other Step is a no-op.
+func foldSkipPhase(g *state.Game, e *Event) {
+	if validPlayer(g, e.Player) && e.Step == state.StepBeginCombat {
+		if g.PhaseSkips == nil {
+			g.PhaseSkips = map[state.PlayerID]uint8{}
+		}
+		g.PhaseSkips[e.Player] |= state.SkipCombatPending
+	}
+}
+
 // foldStepChange folds Kind StepChange into state.
 func foldStepChange(g *state.Game, e *Event) {
 	// "Until end of combat, you don't lose this mana as steps and phases
@@ -147,6 +159,23 @@ func foldStepChange(g *state.Game, e *Event) {
 	}
 }
 
+// advancePhaseSkips moves the phase skips to the turn beginning for seat: the
+// live ones (the turn now ending) are spent, and a pending one of the
+// beginning seat goes live for this turn.
+func advancePhaseSkips(g *state.Game, seat state.PlayerID) {
+	for p, v := range g.PhaseSkips {
+		v &^= state.SkipCombatLive
+		if p == seat && v&state.SkipCombatPending != 0 {
+			v = v&^state.SkipCombatPending | state.SkipCombatLive
+		}
+		if v == 0 {
+			delete(g.PhaseSkips, p)
+		} else {
+			g.PhaseSkips[p] = v
+		}
+	}
+}
+
 // foldTurnChange folds Kind TurnChange into state.
 func foldTurnChange(g *state.Game, e *Event) {
 	if validPlayer(g, e.Player) {
@@ -242,6 +271,7 @@ func foldTurnChange(g *state.Game, e *Event) {
 		// silently spent at the boundary rather than firing next turn. The
 		// per-turn combat-phase count resets with them.
 		g.ExtraPhases = nil
+		advancePhaseSkips(g, e.Player)
 		g.CombatsThisTurn = 0
 		// The per-turn end-step count is a per-turn fact, dropped at the
 		// boundary exactly as CombatsThisTurn is.

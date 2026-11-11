@@ -1,0 +1,12 @@
+# the Fiend Hunter pool: its enters trigger exiles another creature, its
+# leaves trigger returns that card (Defined$ DirectRemembered, the
+# remembered-persist pair) beside creatures, removal that makes it leave and
+# basics, for the oracle's constructed lockstep (dirac/oracle/fiendhunter_test.go)
+Fiend Hunter
+Grizzly Bears
+Hill Giant
+Murder
+Shock
+Plains
+Swamp
+Mountain

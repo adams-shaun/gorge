@@ -1,0 +1,16 @@
+# the ChangeZone StaticEffect$ AddColor$ pool: Rise from the Grave's
+# reanimated "black Zombie in addition", Doom Blade reading the added
+# black through its nonblack target filter, beside cheap bodies and
+# removal to fill the graveyards
+# (dirac/oracle/risegrave_test.go)
+Doom Blade
+Forest
+Gravedigger
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Mountain
+Murder
+Rise from the Grave
+Shock
+Swamp

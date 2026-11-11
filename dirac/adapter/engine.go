@@ -195,8 +195,10 @@ func (e *Engine) config(c game.Config) dirac.Config {
 	if c.Format == game.FormatCommander {
 		cfg.Commander = true
 		for i := range cfg.Commanders {
-			if i < len(c.Commanders) && len(c.Commanders[i]) == 1 {
-				cfg.Commanders[i] = int16(c.Commanders[i][0])
+			if i < len(c.Commanders) && len(c.Commanders[i]) <= 2 {
+				for j, ix := range c.Commanders[i] {
+					cfg.Commanders[i][j] = int16(ix)
+				}
 			}
 		}
 	}
@@ -204,7 +206,8 @@ func (e *Engine) config(c game.Config) dirac.Config {
 }
 
 // checkCommander names what a Commander table asks of dirac beyond Constructed: one
-// commander per seat, from inside its deck, at the 40 life the kernel starts on (CR 903.7).
+// commander per seat or a partner pair (CR 702.124), from inside its deck, at the 40
+// life the kernel starts on (CR 903.7).
 func checkCommander(c game.Config) error {
 	if c.StartingLife != 0 && c.StartingLife != 40 {
 		return fmt.Errorf("dirac starts a commander game at 40 life, the table asks for %d", c.StartingLife)
@@ -216,14 +219,21 @@ func checkCommander(c game.Config) error {
 	}
 	for i := range c.Decks {
 		if i >= len(c.Commanders) || len(c.Commanders[i]) == 0 {
-			return fmt.Errorf("dirac plays one commander per seat: seat %d names none", i)
+			return fmt.Errorf("dirac plays one or two commanders per seat: seat %d names none", i)
 		}
 		cs := c.Commanders[i]
-		switch {
-		case len(cs) > 1:
-			return fmt.Errorf("dirac plays one commander per seat: seat %d has %d (partners need the gorge engine)", i, len(cs))
-		case cs[0] < 0 || cs[0] >= len(c.Decks[i]):
-			return fmt.Errorf("seat %d: commander index %d is outside its %d-card deck", i, cs[0], len(c.Decks[i]))
+		if len(cs) > 2 {
+			return fmt.Errorf("dirac plays one or two commanders per seat: seat %d has %d", i, len(cs))
+		}
+		for _, ix := range cs {
+			if ix < 0 || ix >= len(c.Decks[i]) {
+				return fmt.Errorf("seat %d: commander index %d is outside its %d-card deck", i, ix, len(c.Decks[i]))
+			}
+		}
+		// the pair gate gorge's deck layer applies (CR 903.3, 702.124): two
+		// distinct cards that may be commanders together
+		if len(cs) == 2 && (cs[0] == cs[1] || !deck.IsPartnerPair(c.Decks[i][cs[0]], c.Decks[i][cs[1]])) {
+			return fmt.Errorf("seat %d: commanders %d and %d are not a legal partner pair", i, cs[0], cs[1])
 		}
 	}
 	if len(c.Commanders) > len(c.Decks) {

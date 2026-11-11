@@ -41,6 +41,7 @@ const (
 	gfTapsPain                       // a TrigTaps watcher classed kop.TapPlanPain: its tapped mana source is a last-resort unit (mana_tapsdefer.go)
 	gfEtbOrder                       // the card's own enter body is exactly one prepared line the CR 616.1 entry-order ask orders (repl_etborder.go)
 	gfManaDynPair                    // a plain {T} mana ability beside an evaluated one of its colour: varPC holds one view per count (mana_dynpair.go)
+	gfDiscHand                       // a discard-hand, sacrifice-this, instant-only mana ability (Lion's Eye Diamond): a prefix-search gap alone (mana_discardhand.go)
 )
 
 // cardSmall is a card's sparse generated-table values, all -1 when absent.
@@ -53,6 +54,7 @@ type cardSmall struct {
 	gapOther int8 // another mana ability gorge's census misses, -1 none
 	cdaAb    int16
 	manaVar  int16 // the varPC index of the card's dynamic-amount view, -1 none
+	splitAb  int8  // its Condition-split mana ability (mana_condsplit.go), -1 none
 }
 
 // has reports whether the card carries flag f.
@@ -90,7 +92,7 @@ func (g *genPrep) smallFor(c CardID) *cardSmall {
 		panic("kernel: genPrep small values set out of card order")
 	}
 	g.smallRecs = append(g.smallRecs, cardSmall{
-		card: c, eachCol: -1, restr: -1, anyR: -1, filt: -1, gapOther: -1, cdaAb: -1, manaVar: -1,
+		card: c, eachCol: -1, restr: -1, anyR: -1, filt: -1, gapOther: -1, cdaAb: -1, manaVar: -1, splitAb: -1,
 	})
 	return &g.smallRecs[len(g.smallRecs)-1]
 }

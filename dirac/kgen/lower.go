@@ -110,6 +110,7 @@ type lowerCtx struct {
 	firstCastSVar  string    // the SVar a static SpellCast StoreSVar of Count$YouCastThisGame writes (lower_firstcast.go)
 	firstCastTrig  int       // that trigger's index + 1: it lowers to nothing
 	stormTrig      int       // the K:Storm expansion trigger's index + 1: it lowers to nothing (lower_storm.go)
+	imprintMox     bool      // the face is the imprint-mox shape: its two static bookkeeping triggers lower to nothing (lower_imprintmox.go)
 	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff; Yue's hand population, playOwnHand)
 	animAll        bool      // lowering an AnimateAll: animateRemoveKeywords accepts a bare RemoveKeywords$ (gorge effAnimateAll reads it)
 	speedRepl      bool      // lowering a max-speed static's granted replacement: damagePlus reads ValidTarget$ Player.Opponent (lower_maxspeedrepl.go)
@@ -135,6 +136,7 @@ type lowerCtx struct {
 	trigXMax       *lValue   // payInstr: the XMax$ cap of a trigger's own announced {X} cost (Shanna); nil = none read
 	trigRemX       bool      // the ImmediateTrigger's RememberSVarAmount$ X is the announced X (lower_zone.go immediateTrigger)
 	trigXPaid      bool      // the body's Count$xPaid is that announced X (set once the PayManaX cost lowered)
+	xPaidAb        *lAbility // the ability whose own cost carries {X}: a bare Amount$ X is its paid X (gorge count.go raw "X" -> Ctx.X)
 	wbOK           bool      // costParts: a Waterbend<N> part may lower (an UnlessCost$ read by unless(); payInstr gates the shape)
 	unlessCost     bool      // payInstr: the cost is an UnlessCost$ of a non-delayed body
 	unlessParse    bool      // costHand: the tokens are an UnlessCost$ (ExileFromStack)
@@ -205,6 +207,9 @@ type lowerCtx struct {
 	// exiled card is lowered (lower_exilegrant.go): the one place an
 	// ExileFromHand<1/Card> cost and a paid Play of Card.Self lower
 	grantExile bool
+	// altCostHand while a spell's own AlternativeCost static's Cost$ is
+	// lowered: an ExileFromHand<1/Spec> part keeps its filter (lower_trigger.go)
+	altCostHand bool
 	// grantAttached while the trigger an Equipment's or Aura's static grants
 	// its attached permanent is lowered (AffectedDefined$ Equipped/Enchanted)
 	grantAttached bool
@@ -327,6 +332,8 @@ func (lc *lowerCtx) lowerFace() {
 	}
 	lc.lowerRecord()
 	lc.scanStorm() // lower_storm.go: K:Storm's expanded trigger, before the lines lower
+	// lower_imprintmox.go: the imprint-mox shape, before the lines lower
+	lc.imprintMox = lc.imprintMoxShape()
 	lc.lowerKeywords()
 	lc.lowerLines(true, false)
 	lc.lowerTail()
@@ -364,6 +371,9 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 		}
 		if lc.stormTrig == i+1 {
 			continue // K:Storm's expansion: CardDef.Storm and the kernel's native trigger own it (lower_storm.go)
+		}
+		if lc.imprintMox && i > 0 {
+			continue // the imprint mox's static Cleanup / ForgetImprinted$ bookkeeping: the kernel's exiled-with record (lower_imprintmox.go)
 		}
 		if t.Mode == "TapsForMana" {
 			lc.guard(fmt.Sprintf("T[%d] Mode=%s", i, t.Mode), func() error { return lc.tapExtraStatic(t) })
@@ -428,6 +438,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseWebSlingCombos()
 	lc.refuseMayFlashCombos()
 	lc.refuseEvokeCombos()
+	lc.refuseDashCombos()          // lower_dash.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
 	lc.lowerImpending()
 }
@@ -567,7 +578,7 @@ func (lc *lowerCtx) refuseMayFlashCombos() {
 	}
 	if out.Kicker != nil || out.Warp != nil || out.Plot != nil || out.Flashback != nil || out.SpellCost != nil || out.AltAddCost != nil || out.Convoke || out.Improvise ||
 		out.Offspring != nil || out.Gift || out.MorphCost != nil || out.Sneak != nil || out.Bestow != nil || out.Impending != nil || out.Mayhem != nil ||
-		out.Harmonize != nil || out.Madness != nil || out.Casualty != 0 || out.Bargain || out.OptCost != nil || out.Teamwork != 0 || out.Spree || out.WebSling != nil || out.Evoke != nil {
+		out.Harmonize != nil || out.Madness != nil || out.Casualty != 0 || out.Bargain || out.OptCost != nil || out.Teamwork != 0 || out.Spree || out.WebSling != nil || out.Evoke != nil || out.Dash != nil {
 		lc.refuseNode("K:MayFlashCost", "MayFlashCost beside an alternative or additional cost")
 	}
 	if out.Cost.X {
@@ -691,6 +702,44 @@ func parsePrintedManaCost(s string) (manaCost, error) { return parseManaCostOpt(
 // which also reads a Phyrexian symbol ({W/P}, Forge "WP").
 func parseAbilityManaCost(s string) (manaCost, error) { return parseManaCostSyms(s, false, true) }
 
+// xColorLetter parses Forge's XColor$ value -- colour words ("Black") or a
+// bare WUBRG letter ("R") -- as the one colour the {X} must be paid with.
+// It reports ok=false for a value naming no colour or more than one (Soul
+// Burn's "Black,Red"): the kernel models only a single-colour XColor$.
+func xColorLetter(raw string) (byte, bool) {
+	raw = strings.TrimSpace(raw)
+	if len(raw) == 1 {
+		c := raw[0]
+		if c >= 'a' && c <= 'z' {
+			c -= 'a' - 'A'
+		}
+		if strings.IndexByte("WUBRG", c) >= 0 {
+			return c, true
+		}
+	}
+	set, ok := colorWordSet(raw)
+	if !ok || len(set) != 1 {
+		return 0, false
+	}
+	return set[0], true
+}
+
+// xColor applies XColor$ to a cost's mana part: every announced {X} becomes
+// that colour's pip (kop.ManaCost.XPip) instead of generic mana (CR 107.3,
+// 601.2b). A colour the kernel cannot express as one pip, or an XColor$ on a
+// cost with no {X}, refuses by name rather than lowering something else.
+func (lc *lowerCtx) xColor(m *manaCost, raw string) error {
+	letter, ok := xColorLetter(raw)
+	if !ok {
+		return refuse("XColor$ %q: only a single colour is lowered (a black-and-red X is not modelled)", raw)
+	}
+	if !m.X && !m.XX && !m.XXX {
+		return refuse("XColor$ %q without an {X} in the cost", raw)
+	}
+	m.XColor = letter
+	return nil
+}
+
 func parseManaCostOpt(s string, twobrid bool) (manaCost, error) {
 	return parseManaCostSyms(s, twobrid, twobrid)
 }
@@ -789,6 +838,12 @@ var expandedKeywords = map[string]bool{
 	// Hideaway (CR 702.75a): gorge kwHideaway's ETB trigger, DB$ Hideaway
 	// (lower_hideaway.go)
 	"Hideaway": true,
+	// Annihilator (CR 702.86a): gorge kwAnnihilator's Attacks Self trigger,
+	// DB$ Sacrifice of the defending player's permanents (Annihilator$ N)
+	"Annihilator": true,
+	// Cumulative upkeep (CR 702.24a): gorge kwCumulativeUpkeep expands it into
+	// an upkeep trigger whose body is DB$ CumulativeUpkeep (lower_cumulative.go)
+	"Cumulative upkeep": true,
 }
 
 // protColourLetters maps a "Protection from <q>" colour quality to its
@@ -931,6 +986,16 @@ func (lc *lowerCtx) lowerKeywords() {
 			// CR 506.5: gorge combat.DeclaresAlone over the derived hidden
 			// keywords (Option.AloneRestricted); kernel combat_alone.go
 			lc.out.AloneAtk = true
+		case cards.AloneKeywordOf(head) == cards.AloneKeywordCantBlockAlone && param == "":
+			// CR 506.5's block-only sibling: the lone block is illegal, the
+			// lone attack stays legal (kernel combat_alone.go).
+			lc.out.AloneBlk = true
+		case cards.AloneKeywordOf(head) == cards.AloneKeywordCantAttackOrBlockAlone && param == "":
+			// CR 506.5's compound: BOTH the lone attack and the lone block
+			// are illegal (kernel combat_alone.go). Gorge's
+			// HiddenKeywordFlags carries the same two flags.
+			lc.out.AloneAtk = true
+			lc.out.AloneBlk = true
 		case (head == "Horsemanship" || head == "Intimidate" || head == "Skulk") && param == "":
 			// gorge rules/combat/block.go CanBlock: attacker-keyed blocking
 			// restrictions over the derived keywords (printed only)
@@ -1369,6 +1434,22 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.MayFlash = &mc
+		case head == "Dash":
+			// CR 702.109a: an alternative hand cost; the permanent gains
+			// haste and returns to its owner's hand at the next end step
+			// (dirac/kw_dash.go). Hybrid pips are announced as for any cost;
+			// X, CardManaCost, a ":" or "<" rider and any non-mana part are
+			// refused.
+			mc, err := parseManaCost(param)
+			if err != nil || param == "" || strings.ContainsAny(param, ":<") || mc.X || mc.None {
+				lc.refuseNode(node, "dash cost %q", param)
+				continue
+			}
+			if lc.out.Dash != nil {
+				lc.refuseNode(node, "two Dash keywords")
+				continue
+			}
+			lc.out.Dash = &mc
 		case head == "Evoke":
 			// CR 702.74a: an alternative hand cost; the permanent is
 			// sacrificed as it enters (dirac/kw_evoke.go). Hybrid
@@ -1467,6 +1548,8 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Leyline = true
+		case head == "MayEffectFromOpeningHand":
+			lc.refuseNode(node, "%s", refuseOpeningGated(param)) // (lower_gemstone.go)
 		case strings.HasPrefix(k, "A deck can have any number of cards named"):
 			// Deck construction only.
 		case k == "Daybound" || k == "Nightbound":
@@ -1904,6 +1987,13 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			c.SubCtrX, c.SubCtrXKnd = true, parts[1]
 			continue
 		}
+		if head == "tapXType" && parts[0] == "X" {
+			// tapXType<X/Spec>: tap any number, X the count (lower_tapxvar.go)
+			if err := lc.tapXVarCost(&c, parts, t); err != nil {
+				return c, err
+			}
+			continue
+		}
 		n, err := strconv.Atoi(parts[0])
 		if err != nil && head != "PayLife" {
 			return c, refuse("cost token %q", t)
@@ -1995,6 +2085,12 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			// hand, and a printed trigger's own cost (costParts gates the
 			// place; cost_exilefromhand.go) keeps its own count. A filtered
 			// spec, ExileFromHand<1/All> and CARDNAME stay refused.
+			if lc.altCostHand {
+				if err := lc.altExileHandCost(&c, parts, n, t); err != nil {
+					return c, err
+				}
+				continue
+			}
 			if len(parts) < 2 || len(parts) > 3 || n <= 0 || parts[1] != "Card" {
 				return c, refuse("exile cost %q", t)
 			}
@@ -2309,7 +2405,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		// Cost.Filter: alone among the counted parts (dirac/kgen/build.go
 		// cost)
 		parts := 0
-		for _, on := range []bool{c.Forage != nil, c.ExileG != nil, c.Sac != nil, c.DiscardN > 0, c.Loyalty != 0, c.SubCtr > 0, c.SubAmongN > 0, c.PayLife > 0, c.TapN > 0, c.EvidenceN > 0} {
+		for _, on := range []bool{c.Forage != nil, c.ExileG != nil, c.Sac != nil, c.DiscardN > 0, c.Loyalty != 0, c.SubCtr > 0, c.SubAmongN > 0, c.PayLife > 0 && !lc.altLifeShared(&c), c.TapN > 0, c.EvidenceN > 0} {
 			if on {
 				parts++
 			}
@@ -2508,6 +2604,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 	ab := &lAbility{Index: len(lc.out.Abilities)}
 	lc.ab = ab
 	lc.chainT = nil
+	lc.xPaidAb = nil
 	// a chosen-colour chain never crosses an ability boundary (the kernel's
 	// res.chosen lives for one resolution): a chain that ends without the
 	// ClearChosenColor$ Cleanup (Puca's Eye's ETB)
@@ -2519,6 +2616,17 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 	switch sa.Kind {
 	case "SP":
 		ab.Kind = akSpell
+		// XColor$ is the colour the {X} must be paid with (Forge's
+		// SpellAbility.getXColor; Consume Spirit's "Spend only black mana
+		// on X"). It rides the spell ability, beside the printed cost.
+		if xc, ok := ps.get("XColor"); ok {
+			if err := lc.xColor(&lc.out.Cost, xc); err != nil {
+				return err
+			}
+		}
+		if lc.out.Cost.X || lc.out.Cost.XX || lc.out.Cost.XXX {
+			lc.xPaidAb = ab
+		}
 		if ip, ok := ps.get("IsPresent"); ok {
 			// "cast this spell only if <present>" (gorge spellTimingPre's
 			// IsPresent$ cast gate, cr-spell-ispresent-cast-gate feb134b15;
@@ -2597,6 +2705,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		if !ok {
 			return refuse("activated ability without Cost$")
 		}
+		if err := handManaRefusal(ab.Kind, c); err != nil {
+			return err
+		}
 		lc.unblockedOK = strings.TrimSpace(sa.Params["Keyword"]) == "Ninjutsu"
 		lc.actCost = ab.Kind == akActivated
 		cost, err := lc.costHand(c)
@@ -2604,14 +2715,22 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		if err != nil {
 			return err
 		}
+		if xc, ok := ps.get("XColor"); ok {
+			if err := lc.xColor(&cost.Mana, xc); err != nil {
+				return err
+			}
+		}
+		if cost.Mana.X || cost.Mana.XX || cost.Mana.XXX {
+			lc.xPaidAb = ab
+		}
 		if err := xminParam(&cost, ps, ab.Kind == akActivated); err != nil {
 			return err
 		}
 		if err := discardHandCost(&cost); err != nil {
 			return err
 		}
-		if cost.DiscardHand && ab.Kind != akActivated {
-			return refuse("discard-hand cost on a mana ability")
+		if cost.DiscardHand && ab.Kind != akActivated && !discardHandManaShape(cost, ps) {
+			return refuse("discard-hand cost on a mana ability beside a part other than sacrificing the source, or without InstantSpeed$ True")
 		}
 		if cost.TapPowN != 0 && (ab.Kind != akActivated || !tapPowerAlone(cost)) {
 			return refuse("tap-any-number cost beside another part or on a mana ability")
@@ -2844,6 +2963,17 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				ab.ActCond = lCond{Kind: cThreshold}
 			case "Delirium":
 				ab.ActCond = deliriumCond() // gorge activationConditionOK
+			case "Metalcraft":
+				// "activate only if you control three or more artifacts"
+				// (CR 207.2c; gorge activationConditionOK's metalcraft arm)
+				if sa.API != "Mana" {
+					return refuse("Activation %q outside a mana ability", v)
+				}
+				c, err := lc.bareCondition(ps, "Metalcraft")
+				if err != nil {
+					return err
+				}
+				ab.ActCond = c
 			case "Solved":
 				// "activate only if this Case is solved" (CR 719.3b; gorge
 				// activationConditionOKSolved: the source's Solved flag)
@@ -3218,10 +3348,10 @@ func (lc *lowerCtx) grantedAbility(name string) (int, error) {
 
 // withAbility lowers fn with ab current and a fresh target chain.
 func (lc *lowerCtx) withAbility(ab *lAbility, fn func() error) error {
-	saved, savedT, savedMode, savedRem := lc.ab, lc.chainT, lc.mode, lc.remTgt
+	saved, savedT, savedMode, savedRem, savedX := lc.ab, lc.chainT, lc.mode, lc.remTgt, lc.xPaidAb
 	lc.ab, lc.chainT, lc.mode, lc.remTgt = ab, nil, -1, 0
 	err := fn()
-	lc.ab, lc.chainT, lc.mode, lc.remTgt = saved, savedT, savedMode, savedRem
+	lc.ab, lc.chainT, lc.mode, lc.remTgt, lc.xPaidAb = saved, savedT, savedMode, savedRem, savedX
 	return err
 }
 

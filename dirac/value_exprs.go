@@ -145,6 +145,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.lowestLife() // value_lowestlife.go
 	case kop.ExLifeLostThisTurn:
 		return int(s.pl[ctx.ctrl].lifeLost)
+	case kop.ExLifeLostLastTurn:
+		return int(s.pl[ctx.ctrl].lastLost)
 	case kop.ExSum:
 		return s.evalV(k, x.Sub[0], ctx) + s.evalV(k, x.Sub[1], ctx)
 	case kop.ExHandSizeOf:
@@ -239,6 +241,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.thisTurnActGrave(ctx)
 	case kop.ExThisTurnActExhaust:
 		return s.thisTurnActExhaust(ctx)
+	case kop.ExActivations:
+		return s.activationsOfResolving() // value_activations.go
 	case kop.ExThisTurnCastSpec:
 		return s.thisTurnCastSpec(k, x, ctx)
 	case kop.ExRollResult:
@@ -286,6 +290,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 			return int(e.x)
 		}
 		return 0
+	case kop.ExDmgAmountReceived:
+		return s.dmgAmountReceived(ctx.src) // value_dmgamount.go
 	case kop.ExTgtSpent:
 		// the resolving spell's target spell's spend, snapshotted as the
 		// resolution started (snapTgtSpent; 0 with no snapshot, as gorge's

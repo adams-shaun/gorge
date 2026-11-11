@@ -10,10 +10,11 @@ func (s *State) noteCmdDamage(src Slot, p uint8, n int) {
 	}
 	o := s.perms[src].obj
 	q := s.objs[o].owner()
-	if s.pl[q].cmd != o {
+	j := s.cmdSlot(q, o)
+	if j < 0 {
 		return
 	}
-	d := &s.pl[p].cmdDmg[q]
+	d := s.cmdDmgAt(p, q, j) // each commander its own tally (CR 903.10a)
 	if t := int(*d) + n; t > 255 {
 		*d = 255
 	} else {
@@ -49,8 +50,19 @@ func (s *State) cmdDamageSBA(k *prep) {
 		if s.out(p) {
 			continue
 		}
-		if (s.pl[p].cmdDmg[0] >= 21 || s.pl[p].cmdDmg[1] >= 21) && !s.pl[p].lost && !s.cantLose(k, p) {
+		if s.cmdLethal(p) && !s.pl[p].lost && !s.cantLose(k, p) {
 			s.pl[p].lost = true
 		}
 	}
+}
+
+// cmdLethal reports whether one commander has dealt this player 21 or more
+// combat damage (CR 903.10a: per commander, a partner pair's never summed).
+func (s *State) cmdLethal(p uint8) bool {
+	for q := range s.pl[p].cmdDmg {
+		if s.pl[p].cmdDmg[q] >= 21 || s.cmdDmg2(p, uint8(q)) >= 21 {
+			return true
+		}
+	}
+	return false
 }

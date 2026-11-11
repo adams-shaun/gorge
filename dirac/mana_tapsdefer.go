@@ -48,6 +48,12 @@ func (s *State) tapsWatchClass(k *prep, p uint8, sl Slot) (painN int, deferSrc b
 			if !whoseOK(a.Trig.Whose, s.perms[w].ctrl, p) {
 				continue
 			}
+			if a.Trig.Flags&kop.TfSelf != 0 {
+				// the source's own Pain-class line (City of Brass) is priced
+				// with its printed mana ability (prepSelfTapsPain), and a
+				// self line classes no other source
+				continue
+			}
 			if !s.matchPermGen(k, a.Trig.Filter, sl, s.perms[w].ctrl, w, layerFull) {
 				continue
 			}
@@ -100,6 +106,12 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			continue
 		}
 		c := s.cardAt(sl)
+		if s.splitDeferred(k, sl) {
+			if s.splitUsable(k, sl) {
+				m = m.with(sl) // a Condition-split source (mana_condsplit.go): its relaxed unit and answers are the live gate's
+			}
+			continue
+		}
 		if s.manaGranted(k, sl) || k.gen.has(c, gfRestr|gfAnyR|gfEachCol|gfFilt|gfDeferred) {
 			// Not the plain unrestricted any-colour shape the census gap is:
 			// a restricted source's mana must float restricted (tapDeferFloat
@@ -141,6 +153,9 @@ func tapsDeferColour(c kop.ColorMask) bool {
 // stalls (srcExtra).
 func (s *State) addTapsDeferUnits(k *prep, sl Slot, a *avail) {
 	pc := s.manaPCGen(k, sl)
+	if s.splitDeferred(k, sl) {
+		pc = s.splitCensusPC(k, sl) // the root's production plus the arm's while its gate holds (mana_condsplit.go)
+	}
 	a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
 	if k.gen.anyTapExtra {
 		xv := s.srcExtra(k, sl, pc)
@@ -208,3 +223,38 @@ func (s *State) planTiered(k *prep, p uint8, pk *planner, exclude Obj) {
 const StallRestrDefer = 160
 
 func init() { stallNames[StallRestrDefer] = "restrdefer" }
+
+// selfTapsPainN is the damage of card c's own Pain-class "whenever CARDNAME
+// becomes tapped" line (kgen admits one beside a printed mana ability only as
+// the vetted "deals N damage to you" body and a plain {T} ability: City of
+// Brass), and whether it has one.
+func selfTapsPainN(c *kop.CardDef) (uint8, bool) {
+	for j := range c.Abilities {
+		a := &c.Abilities[j]
+		if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Flags&kop.TfSelf != 0 &&
+			a.Trig.TapPlan == kop.TapPlanPain && a.AFlags&kop.AfLatent == 0 &&
+			(a.Trig.Zone == kop.ZoneNone || a.Trig.Zone == kop.ZoneBattlefield) {
+			return a.Trig.TapPainN, true
+		}
+	}
+	return 0, false
+}
+
+// prepSelfTapsPain prices a card with a self Pain-class Taps line as a
+// pain-only mana source (mana_pain.go): gorge's planner reads the trigger as
+// the source's own consequence (pay.PaymentPlanSelfDamageTrigger), a
+// last-resort unit priced by its damage, exactly a pain-only source's tier.
+// The damage itself is the trigger's, queued by the tap (manaTapped) and
+// resolved from the stack, so painDamage deals none for it.
+func prepSelfTapsPain(c *kop.CardDef, pc *pcard) bool {
+	if pc.manaAb < 0 || pc.painCol != 0 {
+		return false
+	}
+	n, ok := selfTapsPainN(c)
+	a := &c.Abilities[pc.manaAb]
+	if !ok || !primaryTapAb(a) {
+		return false
+	}
+	pc.painCol, pc.painN, pc.painOnly = a.ManaColors, n, true
+	return true
+}

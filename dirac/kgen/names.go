@@ -54,7 +54,7 @@ func init() {
 		"kop.RefTargets012", kop.RefTargets012, "kop.RefTargets12", kop.RefTargets12, "kop.RefTargets0123", kop.RefTargets0123,
 		"kop.RefRememberedController", kop.RefRememberedController, "kop.RefDiscarded", kop.RefDiscarded, "kop.RefTgtCtrl1", kop.RefTgtCtrl1, "kop.RefTgtCtrl2", kop.RefTgtCtrl2, "kop.RefLibTop", kop.RefLibTop,
 		"kop.RefOppNonRemCtrl", kop.RefOppNonRemCtrl, "kop.RefSrcOwner", kop.RefSrcOwner, "kop.RefPromised", kop.RefPromised, "kop.RefTriggerAttackers", kop.RefTriggerAttackers,
-		"kop.RefRememberedOwner", kop.RefRememberedOwner, "kop.RefImprinted", kop.RefImprinted, "kop.RefTriggerTgtCtrl", kop.RefTriggerTgtCtrl)
+		"kop.RefRememberedOwner", kop.RefRememberedOwner, "kop.RefImprinted", kop.RefImprinted, "kop.RefTriggerTgtCtrl", kop.RefTriggerTgtCtrl, "kop.RefAttachedCtrl", kop.RefAttachedCtrl)
 	enum[kop.VKind]("kop.VConst", kop.VConst, "kop.VX", kop.VX, "kop.VCountFilter", kop.VCountFilter,
 		"kop.VLastDamage", kop.VLastDamage, "kop.VTargetPower", kop.VTargetPower, "kop.VSelfPower", kop.VSelfPower,
 		"kop.VCountersSelf", kop.VCountersSelf, "kop.VCardsInHand", kop.VCardsInHand, "kop.VTriggerAmount", kop.VTriggerAmount,
@@ -91,7 +91,7 @@ func init() {
 		"kop.ReplDoubleCountersOn", kop.ReplDoubleCountersOn, "kop.ReplAddCountersOn", kop.ReplAddCountersOn, "kop.ReplOnePoison", kop.ReplOnePoison, "kop.ReplDoubleCountersYou", kop.ReplDoubleCountersYou,
 		"kop.ReplOthersDoesntUntap", kop.ReplOthersDoesntUntap, "kop.ReplLifeDouble", kop.ReplLifeDouble, "kop.ReplLifeLossDouble", kop.ReplLifeLossDouble,
 		"kop.ReplLifePlus", kop.ReplLifePlus, "kop.ReplTurnUpProgram", kop.ReplTurnUpProgram, "kop.ReplCantTurnUp", kop.ReplCantTurnUp,
-		"kop.ReplSpellsCantBeCountered", kop.ReplSpellsCantBeCountered, "kop.ReplAnyUntap", kop.ReplAnyUntap, "kop.ReplDrawMore", kop.ReplDrawMore, "kop.ReplRewriteTokens", kop.ReplRewriteTokens, "kop.ReplMayNotUntap", kop.ReplMayNotUntap, "kop.ReplDestroyHeal", kop.ReplDestroyHeal, "kop.ReplDiscardOppToBattlefield", kop.ReplDiscardOppToBattlefield, "kop.ReplPreventMillOpps", kop.ReplPreventMillOpps, "kop.ReplAddToken", kop.ReplAddToken, "kop.ReplPreventDamageCounters", kop.ReplPreventDamageCounters, "kop.ReplDamageHealFirst", kop.ReplDamageHealFirst, "kop.ReplCopyFirstToken", kop.ReplCopyFirstToken)
+		"kop.ReplSpellsCantBeCountered", kop.ReplSpellsCantBeCountered, "kop.ReplAnyUntap", kop.ReplAnyUntap, "kop.ReplDrawMore", kop.ReplDrawMore, "kop.ReplRewriteTokens", kop.ReplRewriteTokens, "kop.ReplMayNotUntap", kop.ReplMayNotUntap, "kop.ReplDestroyHeal", kop.ReplDestroyHeal, "kop.ReplDiscardOppToBattlefield", kop.ReplDiscardOppToBattlefield, "kop.ReplPayBeforeETB", kop.ReplPayBeforeETB, "kop.ReplPreventMillOpps", kop.ReplPreventMillOpps, "kop.ReplAddToken", kop.ReplAddToken, "kop.ReplPreventDamageCounters", kop.ReplPreventDamageCounters, "kop.ReplDamageHealFirst", kop.ReplDamageHealFirst, "kop.ReplCopyFirstToken", kop.ReplCopyFirstToken)
 	enum[kop.AbilityKind]("kop.AbSpell", kop.AbSpell, "kop.AbActivated", kop.AbActivated, "kop.AbMana", kop.AbMana,
 		"kop.AbTriggered", kop.AbTriggered, "kop.AbStatic", kop.AbStatic, "kop.AbReplacement", kop.AbReplacement,
 		"kop.AbAltCost", kop.AbAltCost)
@@ -140,13 +140,13 @@ func init() {
 		"kop.ExValidAgg", kop.ExValidAgg, "kop.ExGraveAgg", kop.ExGraveAgg, "kop.ExYourSpeed", kop.ExYourSpeed,
 		"kop.ExHighestOppPoison", kop.ExHighestOppPoison, "kop.ExThisTurnEntered", kop.ExThisTurnEntered,
 		"kop.ExThisTurnCastSpec", kop.ExThisTurnCastSpec, "kop.ExCommittedCrime", kop.ExCommittedCrime,
-		"kop.ExSelfPrepared", kop.ExSelfPrepared, "kop.ExThisTurnActGrave", kop.ExThisTurnActGrave, "kop.ExThisTurnActExhaust", kop.ExThisTurnActExhaust, "kop.ExSneaked", kop.ExSneaked, "kop.ExTriggerSpellMVLKI", kop.ExTriggerSpellMVLKI,
+		"kop.ExSelfPrepared", kop.ExSelfPrepared, "kop.ExThisTurnActGrave", kop.ExThisTurnActGrave, "kop.ExThisTurnActExhaust", kop.ExThisTurnActExhaust, "kop.ExActivations", kop.ExActivations, "kop.ExLifeLostLastTurn", kop.ExLifeLostLastTurn, "kop.ExSneaked", kop.ExSneaked, "kop.ExTriggerSpellMVLKI", kop.ExTriggerSpellMVLKI,
 		"kop.ExPoisonOf", kop.ExPoisonOf, "kop.ExProduct", kop.ExProduct, "kop.ExAttackersAll", kop.ExAttackersAll, "kop.ExRefCount", kop.ExRefCount, "kop.ExNumColorsOf", kop.ExNumColorsOf, "kop.ExTgtSpent", kop.ExTgtSpent,
 		"kop.ExCountHand", kop.ExCountHand, "kop.ExYourTurns", kop.ExYourTurns, "kop.ExLowestLife", kop.ExLowestLife, "kop.ExOppsAttacked", kop.ExOppsAttacked, "kop.ExRedNCDmg", kop.ExRedNCDmg, "kop.ExVoid", kop.ExVoid, "kop.ExYourExtraTurns", kop.ExYourExtraTurns,
 		"kop.ExRevolt", kop.ExRevolt, "kop.ExLeftZone", kop.ExLeftZone, "kop.ExCtrAdded", kop.ExCtrAdded,
 		"kop.ExCastFromGrave", kop.ExCastFromGrave, "kop.ExFirstCast", kop.ExFirstCast, "kop.ExIfCastOwnMain", kop.ExIfCastOwnMain, "kop.ExExiledWithN", kop.ExExiledWithN,
 		"kop.ExSacrificedThisTurn", kop.ExSacrificedThisTurn, "kop.ExDiscardedThisTurn", kop.ExDiscardedThisTurn,
-		"kop.ExScriedThisTurn", kop.ExScriedThisTurn, "kop.ExDilemmasFaced", kop.ExDilemmasFaced, "kop.ExRemLKIPT", kop.ExRemLKIPT, "kop.ExCastBattlefield", kop.ExCastBattlefield, "kop.ExUnlockedDoors", kop.ExUnlockedDoors, "kop.ExNotOwnLibMV", kop.ExNotOwnLibMV, "kop.ExChromaOf", kop.ExChromaOf, "kop.ExChosenMode", kop.ExChosenMode, "kop.ExChosenNumber", kop.ExChosenNumber, "kop.ExMod", kop.ExMod, "kop.ExPow", kop.ExPow, "kop.ExAttackedTurn", kop.ExAttackedTurn, "kop.ExPhaseCount", kop.ExPhaseCount, "kop.ExAdamant", kop.ExAdamant, "kop.ExCounterKinds", kop.ExCounterKinds, "kop.ExTargetPlayers", kop.ExTargetPlayers, "kop.ExTapPower", kop.ExTapPower, "kop.ExStepIn", kop.ExStepIn, "kop.ExOppExtreme", kop.ExOppExtreme)
+		"kop.ExScriedThisTurn", kop.ExScriedThisTurn, "kop.ExDilemmasFaced", kop.ExDilemmasFaced, "kop.ExRemLKIPT", kop.ExRemLKIPT, "kop.ExCastBattlefield", kop.ExCastBattlefield, "kop.ExUnlockedDoors", kop.ExUnlockedDoors, "kop.ExNotOwnLibMV", kop.ExNotOwnLibMV, "kop.ExChromaOf", kop.ExChromaOf, "kop.ExChosenMode", kop.ExChosenMode, "kop.ExChosenNumber", kop.ExChosenNumber, "kop.ExMod", kop.ExMod, "kop.ExPow", kop.ExPow, "kop.ExAttackedTurn", kop.ExAttackedTurn, "kop.ExPhaseCount", kop.ExPhaseCount, "kop.ExAdamant", kop.ExAdamant, "kop.ExCounterKinds", kop.ExCounterKinds, "kop.ExTargetPlayers", kop.ExTargetPlayers, "kop.ExTapPower", kop.ExTapPower, "kop.ExStepIn", kop.ExStepIn, "kop.ExOppExtreme", kop.ExOppExtreme, "kop.ExDmgAmountReceived", kop.ExDmgAmountReceived)
 	enum[kop.CondKind]("kop.CondAlways", kop.CondAlways, "kop.CondPresent", kop.CondPresent, "kop.CondValue", kop.CondValue,
 		"kop.CondKicked", kop.CondKicked, "kop.CondThreshold", kop.CondThreshold, "kop.CondYourTurn", kop.CondYourTurn,
 		"kop.CondRefMatches", kop.CondRefMatches, "kop.CondPromised", kop.CondPromised, "kop.CondAnd", kop.CondAnd)
@@ -168,7 +168,7 @@ func init() {
 		"kop.CtrInvasion", kop.CtrInvasion, "kop.CtrLoot", kop.CtrLoot, "kop.CtrRev", kop.CtrRev, "kop.CtrPage", kop.CtrPage,
 		"kop.CtrIngenuity", kop.CtrIngenuity, "kop.CtrFilm", kop.CtrFilm, "kop.CtrFire", kop.CtrFire, "kop.CtrHone", kop.CtrHone, "kop.CtrCoin", kop.CtrCoin,
 		"kop.CtrDivinity", kop.CtrDivinity, "kop.CtrImpostor", kop.CtrImpostor, "kop.CtrBore", kop.CtrBore, "kop.CtrPoint", kop.CtrPoint,
-		"kop.CtrBloodstain", kop.CtrBloodstain, "kop.CtrPossession", kop.CtrPossession, "kop.CtrPromotion", kop.CtrPromotion, "kop.CtrPeace", kop.CtrPeace, "kop.CtrWish", kop.CtrWish, "kop.CtrSkewer", kop.CtrSkewer, "kop.CtrNest", kop.CtrNest,
+		"kop.CtrBloodstain", kop.CtrBloodstain, "kop.CtrPossession", kop.CtrPossession, "kop.CtrPromotion", kop.CtrPromotion, "kop.CtrPeace", kop.CtrPeace, "kop.CtrWish", kop.CtrWish, "kop.CtrSkewer", kop.CtrSkewer, "kop.CtrNest", kop.CtrNest, "kop.CtrAge", kop.CtrAge, "kop.CtrLuck", kop.CtrLuck,
 		"kop.CtrAll", kop.CtrAll)
 	enum[kop.Whose]("kop.WhoseAny", kop.WhoseAny, "kop.WhoseYou", kop.WhoseYou, "kop.WhoseOpp", kop.WhoseOpp,
 		"kop.WhoseEnchCtrl", kop.WhoseEnchCtrl, "kop.WhoseNonActive", kop.WhoseNonActive)

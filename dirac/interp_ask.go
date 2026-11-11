@@ -121,11 +121,17 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	skip := uint16(in.C >> 4)
 	amt := s.value(k, in.A)
 	pips := in.B.N
+	if kind == kop.PayMana && amt > 255 && s.afterCumulative(k) {
+		amt = 255 // n age counters of a generic cost: no pool pays more, and the ask holds a byte (trig_cumulative.go)
+	}
 	if k.gen != nil && k.gen.anyNumTimes && kind == kop.PayMana {
 		amt, pips = s.numTimesScale(k, amt, pips) // cast_announcetimes.go
 	}
 	if in.Op == kop.OpIfPaid || in.Op == kop.OpUnlessSwitched {
 		skip |= pfIfPaid
+	}
+	if kind == kop.PayTapX && pips == kop.PayBSubTapXVar && p != 255 {
+		return s.execTapXVar(k, p, skip, in.F) // tapXType<X/Spec> (cost_tapxvar.go)
 	}
 	if kind == kop.PayTapX && in.Op == kop.OpIfPaid && s.canPayGen(k, p, kind, amt, pips, in.F) {
 		// gorge's literal tap election IS the payment (cumulative.go:1386):
@@ -147,7 +153,7 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 		}
 		return true
 	}
-	if e := &s.res.e; e.kind != seTrigger || s.res.pc != 0 && !s.afterNumTimes(k) || in.Op != kop.OpIfPaid {
+	if e := &s.res.e; e.kind != seTrigger || s.res.pc != 0 && !s.afterNumTimes(k) && !s.afterCumulative(k) || in.Op != kop.OpIfPaid && !s.afterCumulative(k) {
 		skip |= pfModes // only a trigger's own cost is gorge's trigger_cost pay/decline; an unless is its modes (Painful Quandary)
 	}
 	if kind == kop.PayMana {
@@ -390,6 +396,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 				d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
 			}
 		}
+		s.tapXVarDone(k, d) // closes a tapXType<X/Spec> pick (cost_tapxvar.go)
 	case raGenDigArrange:
 		d.Sub = ChArrange
 		for i := 0; i < int(s.g.nlook); i++ {
@@ -437,6 +444,8 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			d.Sub = ChGenHandMove
 			if s.g.pickF&kop.SrReveal != 0 {
 				d.Sub = ChGenReveal
+			} else if s.imprintMoxPick(k) {
+				d.Sub = ChGenImprint // mana_imprint.go
 			}
 		default:
 			d.Sub = ChGenHiddenPick
@@ -812,6 +821,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			return
 		}
 		o := Obj(a.Source())
+		if s.tapXVarPick(k) {
+			s.applyTapXVarPick(k, a) // tapXType<X/Spec> (cost_tapxvar.go)
+			return
+		}
 		if s.g.pickZ == payKindBehold {
 			s.g.pickLeft = 0 // beholding moves and marks nothing (cost_unlessbehold.go)
 			s.payDone(k, true)
@@ -1343,6 +1356,9 @@ func (s *State) payDone(k *prep, paid bool) {
 		}
 		s.trigXBind(k) // a PayManaX cost: the announced X is Count$xPaid
 	}
+	if paid && s.g.pickZ == kop.PayTapX && s.res.e.kind == seTrigger {
+		s.tapXVarBind(k) // tapXType<X/Spec>: the count tapped is Count$xPaid
+	}
 	if paid && s.g.pickZ == payKindEvidence && s.res.e.kind == seTrigger {
 		s.evidenceXBind(k) // CollectEvidence<X>: the announced X is Count$xPaid
 	}
@@ -1541,7 +1557,7 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 	s.g.pickF = uint16(in.C>>3) | uint16(in.B.N)&(kop.SrAttacking|kop.SrDifferentNames|kop.SrNoShuffle|kop.SrRandom|kop.SrGameGrave)
 	s.g.nlook = 0
 	if altOp(in) {
-		s.altBegin() // OriginAlternative$ (zone_originalternative.go)
+		s.altBegin(in) // OriginAlternative$ (zone_originalternative.go)
 	}
 	if sideOp(in) {
 		s.sideClamp(k, in) // zone_sideboardsearch.go: the pool is the library and the sideboard
@@ -1809,6 +1825,9 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			continue
 		}
 		if s.objs[o].zone == kop.ZoneBattlefield {
+			if z == kop.ZoneBattlefield {
+				continue // already there: nothing to move (placeFromK has no battlefield destination)
+			}
 			if s.pickLeaves(k, o, z) { // a hidden pick from the battlefield (trig_delayedtiming.go)
 				// a CR 903.9b commander move: the cards from this one on wait on
 				// the battlefield for the answer (zone_cmdzone.go)

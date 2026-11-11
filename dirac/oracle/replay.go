@@ -64,6 +64,7 @@ type KernelGame struct {
 	// Commander and Commanders are the matchup's (Repro's same fields).
 	Commander  bool  `json:"commander,omitempty"`
 	Commanders []int `json:"commanders,omitempty"`
+	Partners   []int `json:"partners,omitempty"`
 	// AutopaySurface: the game was played on gorge's autopay surface
 	// (Config.GorgeAutopaySurface), so gorge replays its plain casts as
 	// planned casts, never by lowering a potential play
@@ -134,7 +135,7 @@ func ProjectionHash(p *Projection) uint64 {
 // The policy's PickCtx has no GorgeSide (G is nil). maxDecisions caps it.
 func RecordKernelGame(m *Matchup, seed uint64, k Side, pol Policy, cfg Config, maxDecisions int) *KernelGame {
 	g := &KernelGame{Format: gameFormat, Decks: m.Names, Seed: seed, Mulligans: m.Mulligans, PassElision: cfg.PassElision, Winner: -1}
-	g.Commander, g.Commanders = m.commanderFields()
+	g.Commander, g.Commanders, g.Partners = m.commanderFields()
 	for s := 0; s < 2; s++ {
 		for _, c := range m.Decks[s] {
 			g.Cards[s] = append(g.Cards[s], cardName(c))
@@ -197,7 +198,7 @@ func ReadKernelGame(path string) (*KernelGame, error) {
 
 // Matchup rebuilds the game's matchup from its card names.
 func (g *KernelGame) Matchup(reg *cards.Registry) (*Matchup, error) {
-	r := Repro{Decks: g.Decks, Cards: g.Cards, Mulligans: g.Mulligans, Commander: g.Commander, Commanders: g.Commanders}
+	r := Repro{Decks: g.Decks, Cards: g.Cards, Mulligans: g.Mulligans, Commander: g.Commander, Commanders: g.Commanders, Partners: g.Partners}
 	return r.Matchup(reg)
 }
 

@@ -81,6 +81,7 @@ var stallCapacityReasons = [...]uint8{
 	StallUntapLock, // a fifth source-bound untap lock at once (genState.ul; act_untaplock.go)
 	StallTurnRepl,  // the exile-instead table is full of Malicious Eclipse scope records (repl_turnrepl.go)
 	StallEmbRem,    // a fifth object in an emblem's remembered set (static_emblemrem.go)
+	StallDmgAmt,    // a fifth reader-card object damaged in one turn (genState.dmgAmt; value_dmgamount.go)
 	StallDmgMark,   // a second mark of one controller on one player while the first is live (genState.dmk; repl_dmgmark.go)
 }
 
@@ -96,7 +97,12 @@ var stallUnmodelledReasons = [...]uint8{
 	StallDmgMarkOrder, // a damage event the per-player mark and another replacement both match: gorge asks the CR 616.1 order, which the mark has no candidate for (repl_dmgmark.go)
 	StallFbGrantStamp, // a stamped flashback grant beside an own-cost flashback static: gorge offers both granted instances (kw_fbgrant.go)
 	StallRestrDefer,   // a non-spell payment only a Taps-deferred restricted source funds: gorge pays it by its prefix search (mana_tapsdefer.go)
+	StallDiamondMix,   // a Lion's Eye Diamond beside another census-gap kind: gorge's one prefix search activates both (mana_diamondmix.go)
 	StallStackKwGrant, // a granted convoke/improvise on a Harmonize or alternative-cost cast: gorge's announcement for those routes is unverified (kw_convoke.go)
+	// a requirement- or lure-maximising block declaration with a two-attacker blocker ready: gorge offers its second block too (combat_extrablock.go)
+	StallExtraBlockReq,
+	// a card with the pay-before-entering replacement entered other than by its cast spell resolving: gorge asks its controller with the move pending, which the kernel's entry does not model (repl_paybeforeetb.go)
+	StallPayETB,
 }
 
 // initStall is the reason a game of nseat players on this table stalls at its
@@ -118,6 +124,8 @@ func (g *genPrep) initStall(nseat uint8) uint8 {
 		return StallReplPlus // repl_preventmill.go: gorge asks the order of a prevent-and-mill and an amount change
 	case g.anyRepl&rbSelfDmg != 0 && g.anyRepl&rbSelfDmgCompete != 0:
 		return StallReplPlus // repl_selfdamage.go: gorge asks the order of a self-damage replacement and another damage replacement
+	case g.dhMix:
+		return StallDiamondMix // mana_diamondmix.go prepDiamondMix
 	case g.fbStampOwnCost:
 		return StallFbGrantStamp // kw_fbgrant.go prepFbStamp
 	}
@@ -143,7 +151,8 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 	defer tablesMu.Unlock()
 	tt := new(kop.Table) // prepare fills in an empty Filters
 	*tt = *t
-	g := prepare(tt).gen
+	pp := prepare(tt)
+	g := pp.gen
 	if g == nil {
 		return nil
 	}
@@ -210,6 +219,10 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 				return in.Op == kop.OpGrantKeyword && (kop.KwMask(uint16(in.C))|kop.KwMask(uint16(in.B.N))<<16)&kop.KwFlashbackOwnCost != 0
 			})
 		})
+	case StallDiamondMix:
+		text = "a Lion's Eye Diamond beside another mana census-gap kind (a filter, a restricted or any-colour restricted source, a counter-cost or tap-another source, a deferred source, a granted mana ability, an each-colour source): gorge's one prefix search activates both and the kernel models the Diamond alone"
+		a = abilityOn(kop.DiscardHandManaAb)
+		b = func(_ *kop.CardDef, i int) bool { return dhMixGap(tt, g, pp, i) }
 	}
 	r = &kop.PairRefusal{Reason: StallName(why), Why: text}
 	for _, side := range []func(*kop.CardDef, int) bool{a, b} {

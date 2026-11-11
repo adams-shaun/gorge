@@ -117,6 +117,7 @@ const (
 	ChGenDistPick                             // source = a creature picked to share a divided counter total, Done after the first (gorge putCounterPickDistribute's "counter_dist" KChoose, Min 1; ctr_distpick.go)
 	ChGenCopyPick                             // source = the permanent a CopyPermanent Choices$ copies (gorge's "copypermanent_choice" KChoose, whose options are "permanent"; copy_picked.go)
 	ChGenTokCopy                              // mode 0 = decline; mode 1, source = the permanent the token is instead a copy of (gorge's chosen-copy token replacement election, options "decline" then "creature"; repl_tokcopy.go)
+	ChGenImprint                              // source = the hand card the imprint mox exiles (gorge's "imprint" KChoose, Min=Max=ChangeNum$, asked only with more candidates; mana_imprint.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -273,6 +274,24 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		// 608.2b); otherwise gorge divides at resolution
 		// (effects/damage_deal.go): one repeatable pick per damage over the
 		// slot's legal targets, asked only when there are two or more
+		if in.C&kop.DmgDivideEvenly != 0 {
+			// no division: each legal target takes total / count, rounded down
+			// (Fireball; gorge effects divideEvenlyDown), one damage batch
+			var ec [maxXTgt + 1]uint8
+			n := s.divTargets(k, e, uint8(tgtSlotOf(in.Obj)), &ec)
+			per := 0
+			if n > 0 {
+				per = max(s.value(k, in.A), 0) / n
+			}
+			if per > 0 {
+				var amts [maxXTgt + 1]int
+				for i := 0; i < n; i++ {
+					amts[i] = per
+				}
+				s.damageBatch(k, ec[:n], amts[:n], true) // parked: runProg pauses on the parked event
+			}
+			break
+		}
 		if s.dealAnnouncedDivision(k, e, uint8(tgtSlotOf(in.Obj))) {
 			break
 		}
@@ -753,6 +772,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			}
 		}
 	case kop.OpDelayedProgram:
+		if in.A.N == kop.DelayPlayerUpkeep {
+			s.delayPlayerUpkeep(k, e, in) // trig_delayplayerupkeep.go
+			break
+		}
 		o := s.delayedRegObj(in.Obj)
 		if s.g.ndp >= maxDProg {
 			s.capFull(StallDProg)
@@ -1316,6 +1339,9 @@ func (s *State) execDamageEx(k *prep, in *kop.Instr) {
 		}
 		if dealt > 0 {
 			s.damageDealt(k, in, Obj(code)) // cast_mayplaylimit.go
+		}
+		if in.C&kop.DmgNoRegenTarget != 0 {
+			s.markNoRegen(k, Obj(code)) // repl_noregen.go: marked even when the damage was prevented
 		}
 		return
 	}

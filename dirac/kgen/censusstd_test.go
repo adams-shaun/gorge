@@ -198,8 +198,9 @@ func TestStdCensusBuildPass(t *testing.T) {
 	}
 }
 
-// TestStdCensusTokenUnpack pins token unpacking: Toby's only refusal is the
-// wrapper, and the token's own keyword is the real blocker.
+// TestStdCensusTokenUnpack pins token unpacking: Toby's wrapper and the
+// token's own can't-attack-or-block-alone keyword both lower, so the card
+// carries no refusal row and no token-only class.
 func TestStdCensusTokenUnpack(t *testing.T) {
 	dir := t.TempDir()
 	name := "Toby, Beastie Befriender"
@@ -216,22 +217,24 @@ func TestStdCensusTokenUnpack(t *testing.T) {
 			rows = append(rows, r)
 		}
 	}
-	if got, want := classesFromRows(rows), []string{"kw:CantAttackOrBlockAlone"}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("Toby expanded classes = %q, want %q (rows %+v)", got, want, rows)
+	var classes []string
+	for _, c := range classesFromRows(rows) {
+		if c != "" {
+			classes = append(classes, c)
+		}
+	}
+	if len(classes) != 0 {
+		t.Fatalf("Toby expanded classes = %q, want none: the token's alone keyword lowers (rows %+v)", classes, rows)
 	}
 	for _, r := range res.classes {
 		if r.class == "other:token refused" {
 			t.Fatalf("ranking still has other:token refused: %+v", r)
 		}
 	}
-	foundVia := false
 	for _, r := range res.tsv {
-		if r.via == "w_4_4_beast_lonely" && r.class == "kw:CantAttackOrBlockAlone" {
-			foundVia = true
+		if r.via == "w_4_4_beast_lonely" {
+			t.Fatalf("TSV still has a w_4_4_beast_lonely token refusal: %+v", r)
 		}
-	}
-	if !foundVia {
-		t.Fatalf("TSV lacks via w_4_4_beast_lonely / kw:CantAttackOrBlockAlone: %+v", res.tsv)
 	}
 }
 

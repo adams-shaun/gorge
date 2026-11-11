@@ -87,6 +87,9 @@ func (s *State) Controller(o Obj) uint8 {
 
 // PowerToughness is a battlefield creature's derived P/T.
 func (s *State) PowerToughness(o Obj) (int, int) {
+	if _, no := s.notObj(o); no {
+		return 0, 0
+	}
 	ob := &s.objs[o]
 	if ob.zone != kop.ZoneBattlefield {
 		return 0, 0
@@ -96,6 +99,9 @@ func (s *State) PowerToughness(o Obj) (int, int) {
 
 // IsCreature reports whether battlefield object o is a creature now.
 func (s *State) IsCreature(o Obj) bool {
+	if _, no := s.notObj(o); no {
+		return false
+	}
 	ob := &s.objs[o]
 	return ob.zone == kop.ZoneBattlefield && s.isCreature(s.k(), ob.slot)
 }
@@ -104,6 +110,9 @@ func (s *State) IsCreature(o Obj) bool {
 // other player's hand (unless HandRevealed) and library, and every
 // library (order).
 func (s *State) Hidden(o Obj, seat uint8) bool {
+	if _, no := s.notObj(o); no {
+		return false
+	}
 	ob := &s.objs[o]
 	switch ob.zone {
 	case kop.ZoneLibrary:

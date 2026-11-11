@@ -307,6 +307,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Evoke != nil {
 		fmt.Fprintf(w, " evoke=%s", c.Evoke)
 	}
+	if c.Dash != nil {
+		fmt.Fprintf(w, " dash=%s", c.Dash)
+	}
 	if c.Convoke {
 		fmt.Fprintf(w, " convoke")
 	}
@@ -364,6 +367,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.AloneAtk {
 		fmt.Fprintf(w, " alone-atk")
 	}
+	if c.AloneBlk {
+		fmt.Fprintf(w, " alone-blk")
+	}
 	if c.Engines {
 		fmt.Fprintf(w, " engines")
 	}
@@ -384,6 +390,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	}
 	if c.MinBlockers != 0 {
 		fmt.Fprintf(w, " minblockers=%d", c.MinBlockers)
+	}
+	if c.ExtraBlocks != 0 {
+		fmt.Fprintf(w, " extrablocks=%d", c.ExtraBlocks)
 	}
 	if c.ProtFrom != nil {
 		fmt.Fprintf(w, " protfrom=%s", c.ProtFrom)
@@ -466,6 +475,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 		}
 		if s.ProtFrom != nil {
 			fmt.Fprintf(w, " protfrom=%s", s.ProtFrom)
+		}
+		if s.Landwalk != nil {
+			fmt.Fprintf(w, " landwalk=%s", s.Landwalk)
 		}
 		if s.OutlivesLoss {
 			fmt.Fprintf(w, " outlivesloss")

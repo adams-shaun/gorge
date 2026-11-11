@@ -188,7 +188,7 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	if k != nil {
 		s.clearFB(k, o) // a new object: a granted flashback ends
 	}
-	if ob.of&ofToken != 0 && !s.g.on {
+	if ob.of&ofToken != 0 && !s.g.on && s.cfg&cfgCommander == 0 {
 		ob.zone = kop.ZoneNone // a token ceases to exist (CR 111.7)
 		return
 	}
@@ -246,8 +246,11 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 		if k != nil && k.gen != nil && k.gen.anyExW {
 			s.exwExile(k, o) // the exiled-with link (zone_exiledwith.go)
 		}
-	case kop.ZoneStack, kop.ZoneNone, kop.ZoneCommand:
-		// the command zone is a place: no list to add to (zone_cmdzone.go)
+	case kop.ZoneStack, kop.ZoneNone:
+	case kop.ZoneCommand:
+		// the command zone is a place: no list to add to (zone_cmdzone.go);
+		// a commander's arrival order is the offer order (zone_cmdpartner.go)
+		s.noteCommandZone(o)
 	default:
 		panic("kernel: place into unsupported zone")
 	}
@@ -740,15 +743,11 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 				s.lingerPut(q, o)
 			}
 		}
-		if qp.blocking == sl {
-			// the attacker left: the blocker stays blocking (CR 506.4) but blocks nothing
-			qp.blocking = NoSlot
-			s.touchSl(q)
-		}
-		if p.flags&pfBlocking != 0 && p.blocking == q && qp.nblock > 0 {
-			qp.nblock--
-			s.touchSl(q)
-		}
+		// the attacker left: the blocker stays blocking (CR 506.4) but blocks nothing
+		s.forgetBlocked(q, sl)
+	}
+	if p.flags&pfBlocking != 0 {
+		s.releaseBlocked(sl)
 	}
 	if p.ck[ctrSlots-1] != 0 {
 		s.ctrOverRelease(o)

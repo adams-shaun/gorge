@@ -1,0 +1,11 @@
+# the Alhammarret, High Arbiter pool: the as-enters public reveal of the
+# opponents' hands with a nonland name choice among the revealed cards, and the
+# CantBeCast static over the chosen name, beside Grizzly Bears, Prodigal
+# Sorcerer and Mind Stone (the nonland names the opponent can hold) for the
+# lockstep (dirac/oracle/alhammarret_test.go)
+Alhammarret, High Arbiter
+Grizzly Bears
+Prodigal Sorcerer
+Island
+Mind Stone
+Swamp

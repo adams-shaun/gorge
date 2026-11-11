@@ -719,13 +719,19 @@ func CloneStaticGrantReadable(svars map[string]string, name string) bool {
 }
 
 // CloneNamedGrantsReadable is the ETB offer gate's check for the AddSVars$ /
-// AddTriggers$ riders: every named SVar must exist and every named trigger
-// must exist and parse, the same tests effClone applies when it registers the
+// AddTriggers$ / AddAbilities$ riders: every named SVar must exist, every
+// named trigger must exist and parse, and every named ability must resolve to
+// an activated ability, the same tests effClone applies when it registers the
 // grant, so an unresolvable grant fails closed before the election instead of
 // being dropped with a Note after the copy entered.
 func CloneNamedGrantsReadable(svars map[string]string, cp *CloneParams) bool {
 	for _, name := range cp.AddSVars {
 		if _, ok := svars[name]; !ok {
+			return false
+		}
+	}
+	for _, name := range cp.AddAbilities {
+		if sa := cards.ResolveSVar(svars, name); sa == nil || sa.Kind != "AB" {
 			return false
 		}
 	}

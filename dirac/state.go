@@ -105,12 +105,13 @@ type Config struct {
 	// search's declaration candidates rely on. The oracle sets it.
 	GorgeMustAttack bool
 	// Commander starts a Commander game (CR 903): each seat's commander,
-	// Commanders[p] (an index into that seat's deck, -1 none), is put into
-	// the command zone before the seat's shuffle and opening hand, as gorge's
-	// genesis does, and each player starts at 40 life (CR 903.7). A caller
-	// that sets it gives gorge StartingLife 40.
+	// Commanders[p] (up to two indices into that seat's deck, a partner pair
+	// (CR 702.124); -1 none), is put into the command zone before the seat's
+	// shuffle and opening hand, as gorge's genesis does, and each player
+	// starts at 40 life (CR 903.7). A caller that sets it gives gorge
+	// StartingLife 40.
 	Commander  bool
-	Commanders [MaxSeats]int16
+	Commanders [MaxSeats][2]int16
 	// Side is each seat's sideboard, the cards "outside the game" (CR 400.11):
 	// Side[p][:SideN[p]], at most MaxSide per seat. They are objects of their
 	// own, numbered after both decks, in the zone ZoneSideboard; only a play
@@ -410,11 +411,12 @@ type player struct {
 	drewEmpty   bool
 	lifeGained  int16 // this turn
 	lifeLost    int16 // this turn
+	lastLost    int16 // the life lost in the previous turn (ExLifeLostLastTurn)
 	extraTurns  uint8
 	scry        uint8           // this turn: scry instructions in bits 0-3, surveil instructions in bits 4-7 (one byte: it fills padding)
 	sac         [3]uint8        // this turn: [sacAll] every sacrifice, [sacArtifact] artifact cards, [sacFood] Food cards
 	disc        uint8           // cards this player discarded this turn
-	cmd         Obj             // this seat's commander (CR 903.3), NoObj none; set at Init (zone_cmdinit.go)
+	cmd         Obj             // this seat's commander (CR 903.3), NoObj none; set at Init (zone_cmdinit.go); a partner is the cold cmdPartner record (zone_cmdpartner.go)
 	cmdCast     uint8           // times the commander was cast from the command zone (CR 903.8)
 	cmdAsk      uint8           // commander bookkeeping byte for the command-zone replacement
 	cmdDmg      [MaxSeats]uint8 // combat damage dealt to this player by each seat's commander (CR 903.10a)
@@ -665,6 +667,8 @@ const (
 	ctlTurnUpX    // a keyword turn-up awaiting its announced X (face_turnfaceup.go; parked in genState.pick*)
 	ctlCmdZone0   // the CR 903.9a commander-zone ask to seat 0 (zone_cmdzone.go)
 	ctlCmdZone1   // the CR 903.9a commander-zone ask to seat 1
+	ctlCmdZone2   // the CR 903.9a ask to seat 0 about its partner (ctlCmdZone0 + seat + 2*slot)
+	ctlCmdZone3   // the CR 903.9a ask to seat 1 about its partner
 )
 
 // build stages.
@@ -923,7 +927,7 @@ type stateCore struct {
 	legCard     CardID   // legend rule: the duplicated legendary card
 	legDie      slotMask // legend rule: the creature casualties parked at the ask, applied with the answer
 	legSaga     slotMask // legend rule: the Sagas due their sacrifice at the ask, one batch with the answer (CR 704.3)
-	divA        Slot     // damage division: the attacker being divided (NoSlot = none in progress)
+	divA        Slot     // damage division: the attacker or two-attacker blocker being divided (NoSlot = none in progress)
 	divI        uint8    // index (in block order) of the blocker being assigned
 	divRem      uint8    // damage left to assign
 	divFirst    bool     // the division is for the first-strike damage step

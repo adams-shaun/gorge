@@ -154,7 +154,8 @@ func (s *State) delveOptions(k *prep, d *Decision) bool {
 		return false
 	}
 	cost := s.convokeApplyPicks(k, s.buildCost(k))
-	gen := int(cost.Generic) + cost.XGeneric(int(e.x))
+	cost = cost.AtX(int(e.x))
+	gen := int(cost.Generic)
 	if gen <= 0 {
 		return false
 	}

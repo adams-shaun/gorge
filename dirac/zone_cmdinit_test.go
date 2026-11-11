@@ -15,6 +15,15 @@ const cmdTestSeed = 9031
 // cmdTestCommanders are each seat's commander index into its 100-card deck.
 var cmdTestCommanders = [MaxSeats]int16{37, 62}
 
+// cmdTestConfig is cmdTestCommanders as Config.Commanders: one a seat.
+func cmdTestConfig() [MaxSeats][2]int16 {
+	c := noCommanders()
+	for p := range c {
+		c[p][0] = cmdTestCommanders[p]
+	}
+	return c
+}
+
 // cmdTestDecks are two 100-card kernel decks; the card at each seat's
 // commander index is a creature.
 func cmdTestDecks() [2][]CardID {
@@ -119,7 +128,7 @@ func sameInts(a, b []int) bool {
 
 func TestCommanderGenesisCommandZone(t *testing.T) {
 	d := cmdTestDecks()
-	s := NewConfig(v.Table, d[0], d[1], cmdTestSeed, Config{NoElide: true, Commander: true, Commanders: cmdTestCommanders})
+	s := NewConfig(v.Table, d[0], d[1], cmdTestSeed, Config{NoElide: true, Commander: true, Commanders: cmdTestConfig()})
 	gLib, gHand, gCmd, gLife, gDraws := gorgeGenesis(t, true)
 	lib, hand := diracGenesis(s)
 	for p := 0; p < 2; p++ {
@@ -153,7 +162,7 @@ func TestCommanderGenesisCommandZone(t *testing.T) {
 
 func TestCommanderGenesisOffUnchanged(t *testing.T) {
 	d := cmdTestDecks()
-	s := NewConfig(v.Table, d[0], d[1], cmdTestSeed, Config{NoElide: true, Commanders: cmdTestCommanders})
+	s := NewConfig(v.Table, d[0], d[1], cmdTestSeed, Config{NoElide: true, Commanders: cmdTestConfig()})
 	gLib, gHand, gCmd, _, gDraws := gorgeGenesis(t, false)
 	lib, hand := diracGenesis(s)
 	for p := 0; p < 2; p++ {

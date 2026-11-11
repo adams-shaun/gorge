@@ -82,7 +82,9 @@ func (lc *lowerCtx) exwCheck() {
 				// svarsReadExiledWith, Forge's handleExiledWith: All Good
 				// Things . . .); any other pick into exile is Wormfang's
 				// unproven shape
-				if in.C != zExile || strings.Contains(in.CS, "from=Hand") && lc.svarsReadExiledWith() {
+				if in.C != zExile || strings.Contains(in.CS, "from=Hand") && (lc.svarsReadExiledWith() || lc.imprintMox) {
+					// (the imprint mox reads the reverse record alone, which
+					// gorge sets because its text names ExiledWithSource)
 					continue
 				}
 			case "Search":

@@ -83,6 +83,7 @@ func (s *State) fireDelayedWhen(k *prep, at int) {
 			at == 1 && (w == kop.DelayUpkeep || w == kop.DelayYourUpkeep && s.active == d.ctrl) ||
 			at == 2 && w == kop.DelayEndCombat) ||
 			at == 0 && d.ext == dpExtYourEndStep && s.active == d.ctrl ||
+			at == 1 && d.ext >= dpExtPlayerUpkeep && s.active == d.ext-dpExtPlayerUpkeep ||
 			at == 3 && d.ext == dpExtBeginCombat
 		if !due {
 			s.g.dp[keep], s.g.dpLKI[keep] = d, s.g.dpLKI[i]

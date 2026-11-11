@@ -1406,11 +1406,23 @@ func (e *Engine) advanceStep() {
 	} else {
 		next = skipFirstDrawStep(e.G, next)
 	}
+	next = skipCombatPhase(e.G, next)
 	e.setStep(next)
 	if e.pending != nil {
 		return
 	}
 	e.finishEnteredStep()
+}
+
+// skipCombatPhase is the CR 614.10 skip of the combat phase (DB$ SkipPhase,
+// False Peace): a walk that would enter the beginning of combat step while the
+// active player skips combat phases enters the postcombat main phase instead.
+// Free function over the game, like skipFirstDrawStep.
+func skipCombatPhase(g *state.Game, next state.Step) state.Step {
+	if next == state.StepBeginCombat && g.CombatSkipped(g.Active) {
+		return state.StepMain2
+	}
+	return next
 }
 
 // extraPhaseBoundary is the extra-phase consumer (Forge AddPhaseEffect, DB$
@@ -1471,6 +1483,19 @@ func (e *Engine) extraPhaseBoundary(leaving state.Step) (state.Step, bool) {
 		} else {
 			resume = ep.AfterStep + 1
 		}
+		if followedByMainBeforeCombat(ep) {
+			// "After this main phase, an additional combat followed by an
+			// additional main phase" cast in the FIRST main phase: the
+			// additional main is spliced before the ordinary combat, which
+			// still follows it (Relentless Assault ruling). It is its own
+			// one-step grant spliced at the same point as the completing one
+			// (AfterStep, so older pending grants spliced there still follow
+			// it, CR 500.8), resuming at the splice point's natural
+			// successor; the step-2 scan below enters it.
+			e.emit(events.Event{Kind: events.ExtraPhase, Player: ep.Player, Obj: ep.Source,
+				Amount: 1, Step: ep.AfterStep,
+				IDs: []state.ObjID{state.ObjID(ep.FollowedBy), state.ObjID(ep.AfterStep + 1)}})
+		}
 	}
 	// 2. Splicing the next pending grant: MOST RECENTLY created first (CR
 	// 500.8; the queue is in creation order, so scan from the back), spliced
@@ -1484,6 +1509,26 @@ func (e *Engine) extraPhaseBoundary(leaving state.Step) (state.Step, bool) {
 		if ep.AfterStep != leaving && !(completed && ep.AfterStep == completedAfter) {
 			continue
 		}
+		if ep.Entry == state.StepBeginCombat && e.G.CombatSkipped(e.G.Active) {
+			// CR 614.10: an extra combat phase of a player who skips combat
+			// phases is skipped too. A grant without a delayed-trigger rider
+			// is consumed and completed at once (the phase it was followed by
+			// still comes), and the scan restarts over the shorter queue; one
+			// with a rider stays pending, unspent, so the rider (registered at
+			// consumption) never outlives a combat that does not begin.
+			if ep.Execute == "" && !ep.HasDelayedPhase && ep.ValidPlayer == "" && !ep.DelayedStatic {
+				e.emit(consumedExtraPhaseEvent(ep, -1))
+				e.emit(consumedExtraPhaseEvent(ep, -2))
+				completed, completedAfter = true, ep.AfterStep
+				if ep.HasFollowedBy {
+					resume = ep.FollowedBy
+				} else {
+					resume = ep.AfterStep + 1
+				}
+				i = len(e.G.ExtraPhases)
+			}
+			continue
+		}
 		e.emit(consumedExtraPhaseEvent(ep, -1))
 		return ep.Entry, true
 	}
@@ -1491,6 +1536,14 @@ func (e *Engine) extraPhaseBoundary(leaving state.Step) (state.Step, bool) {
 		return resume, true
 	}
 	return 0, false
+}
+
+// followedByMainBeforeCombat reports a completing grant whose FollowedBy$ main
+// phase is an ADDITIONAL one that precedes the ordinary combat: spliced after
+// the first main phase and followed by the second. The linear walk would
+// leave that main phase for the end step, skipping the ordinary combat.
+func followedByMainBeforeCombat(ep state.ExtraPhase) bool {
+	return ep.HasFollowedBy && ep.AfterStep == state.StepMain1 && ep.FollowedBy == state.StepMain2
 }
 
 // consumedExtraPhaseEvent builds the -1 (consume) / -2 (complete) message

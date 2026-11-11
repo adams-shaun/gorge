@@ -906,6 +906,15 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 		ka.ManaN = 1
 		return nil
 	}
+	if m.Special == "ReflectedImprint" && m.Restrict == nil && m.RestrictAb == nil && m.Amount.isConst() && m.Amount.N == 1 {
+		// (Chrome Mox) a printed AfManaReflect with no ManaAmong filter
+		// reads the colours of the cards its source imprinted (kernel
+		// mana_imprint.go; lower_imprintmox.go)
+		ka.AFlags |= kop.AfManaChoice | kop.AfManaReflect
+		ka.ManaColors = kop.ColAny
+		ka.ManaN = 1
+		return nil
+	}
 	if m.Special == "ReflectedSelf" && m.Restrict == nil && m.RestrictAb == nil && m.Amount.isConst() && m.Amount.N == 1 {
 		// a granted "any of this creature's colors" (Katilda): AfManaReflect
 		// with no ManaAmong filter reads the grantee's own colours
@@ -932,6 +941,16 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	}
 	ka.ManaEach = m.Each
 	ka.ManaDeferred = m.Deferred
+	if sp := m.Split; sp != nil {
+		ka.SplitGate, ka.SplitCols = sp.Gate, colorMask(sp.Cols)
+		if sp.Ctr != "" {
+			k, err := counterKind(sp.Ctr)
+			if err != nil {
+				return err
+			}
+			ka.SplitCtr = k
+		}
+	}
 	// m.RestrictAb beside a spell restriction (Secluded Courtyard: "or
 	// activate an ability of a creature of the chosen type") is the
 	// activated half of the restriction (ManaRestrictAb); m.NonSpell adds
@@ -1658,6 +1677,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.ProtFrom, err = filter(s.ProtFrom, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+		if st.Landwalk, err = filter(s.Landwalk, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
 		if s.Override != nil {
 			// RemoveKeyword$ beside the Continuous parts (layer 6)
 			i, err := cb.override(s.Override)
@@ -1845,6 +1867,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StRaiseOpp
 			case "CasterActive":
 				st.StFlags |= kop.StCasterActive
+			case "NamedCard":
+				st.B |= kop.CantCastNamed
 			default:
 				return ka, nil, fmt.Errorf("cant be cast flag %q", fl)
 			}
@@ -1971,10 +1995,14 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	case "CantPreventDamage":
 		st.Kind = kop.StatCantPreventDamage // static_cantprevent.go
 		for _, fl := range s.Flags {
-			if fl != "NoPrevCombat" {
+			switch fl {
+			case "NoPrevCombat":
+				st.StFlags |= kop.StNoPrevCombat
+			case "NoPrevSpellSelf":
+				st.StFlags |= kop.StNoPrevSpellSelf
+			default:
 				return ka, nil, fmt.Errorf("CantPreventDamage flag %q", fl)
 			}
-			st.StFlags |= kop.StNoPrevCombat
 		}
 	case "MinMaxBlocker":
 		st.Kind = kop.StatMaxBlockers
@@ -2035,11 +2063,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if ka.Cost, err = cb.cost(s.Cost); err != nil {
 			return ka, nil, err
 		}
-		if ka.Cost.Flags&(kop.CostForage|kop.CostExileGrave) != 0 {
+		if ka.Cost.Flags&(kop.CostForage|kop.CostExileGrave) != 0 && !cb.altHandExileOK(&ka.Cost) {
 			return ka, nil, fmt.Errorf("alternative cost with a forage / exile-from-graveyard part")
 		}
 		sacAlt := ka.Cost.Flags == kop.CostSac && ka.Cost.N > 0 && ka.Cost.Mana == (kop.ManaCost{}) && cb.altSacOK()
-		if !sacAlt && (ka.Cost.Flags != 0 || ka.Cost.N != 0 || ka.Cost.Mana.X != 0) {
+		if !sacAlt && !cb.altHandExileOK(&ka.Cost) && (ka.Cost.Flags != 0 || ka.Cost.N != 0 || ka.Cost.Mana.X != 0) {
 			// the kernel offers a mana-only alternative cost
 			// (prepAltFree); a Return / Sac / PayLife / exile-from-hand
 			// part (Daze, Force of Will) would never be offered
@@ -2357,6 +2385,11 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplGraveToLibrary
 	case "DiscardOppToBattlefield":
 		rp.Kind = kop.ReplDiscardOppToBattlefield
+	case "PayBeforeETB":
+		rp.Kind = kop.ReplPayBeforeETB
+		if ka.Prog, err = cb.prog(r.Prog); err != nil {
+			return ka, err
+		}
 	case "DestroyHeal":
 		rp.Kind = kop.ReplDestroyHeal
 		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
@@ -2595,7 +2628,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		} else if in.Op == "UnlessSwitched" {
 			ki.Op = kop.OpUnlessSwitched
 		}
-		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "DamageYou": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "Waterbend": kop.PayTapX, "AddCounter": kop.PayAddCounter, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ExileTrigNewEvidence": kop.PayExileGrave, "EvidenceX": kop.PayManaX, "ExileGraveChain": kop.PayExileGrave, "ExileStackSelf": kop.PayExileGrave, "ExileHand": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
+		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "DamageYou": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "TapXVar": kop.PayTapX, "Waterbend": kop.PayTapX, "AddCounter": kop.PayAddCounter, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ExileTrigNewEvidence": kop.PayExileGrave, "EvidenceX": kop.PayManaX, "ExileGraveChain": kop.PayExileGrave, "ExileStackSelf": kop.PayExileGrave, "ExileHand": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
 		if pk == 0 {
 			return ki, fmt.Errorf("pay kind %q", in.CS)
 		}
@@ -2646,6 +2679,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if in.CS == "DamageYou" {
 			ki.B = kop.Const(kop.PayBSubDamage) // the resolving source deals A damage to the payer, not a draw (cost_restokens.go)
+		}
+		if in.CS == "TapXVar" {
+			ki.B = kop.Const(kop.PayBSubTapXVar) // tap any number, X the count (cost_tapxvar.go)
 		}
 		if in.CS == "Waterbend" {
 			ki.B = kop.Const(kop.PayBSubWaterbend) // an unless Waterbend<N>, not a tapXType (cost_unlesswaterbend.go)
@@ -2708,6 +2744,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if _, ok := fl["NoRegen"]; ok {
 			c |= kop.DmgNoRegen
+		}
+		if _, ok := fl["NoRegenTarget"]; ok {
+			c |= kop.DmgNoRegenTarget
 		}
 		if strings.HasPrefix(in.Note, "damage map") || cb.inDamageMap {
 			c |= kop.DmgMapped
@@ -2792,6 +2831,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		cb.inDamageMap = false
 	case "DealDamageDivided":
 		ki.Op = kop.OpDealDamageDivided
+		if _, ok := fl["DivideEvenly"]; ok {
+			ki.C = kop.DmgDivideEvenly
+		}
 	case "DealDamageFrom":
 		ki.Op = kop.OpDealDamageFrom
 		if in.CS == "players" {
@@ -3102,6 +3144,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, fmt.Errorf("alt origin %q", az)
 			}
 			sb |= kop.SrAltOrigin | int(altZ)<<kop.SrAltZoneShift
+			if _, ok := fl["altAll"]; ok {
+				// Origin$ Library,Graveyard (lower_libgrave.go): every zone, no election
+				if altZ != kop.ZoneGraveyard {
+					return ki, fmt.Errorf("altAll with alt origin %q", az)
+				}
+				sb |= kop.SrAltAll
+			}
 			zone = kop.ZoneNone // the filter matches cards of every elected zone
 		}
 		if sb, zone, err = sideSearchFlags(in.Op, fl, sb, zone); err != nil {
@@ -3630,6 +3679,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, err
 		}
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtEachDamage)), int16(r)|int16(in.C)<<8
+	case "Cumulative":
+		// (Mystic Remora) OpExt ExtCumulative, C the instructions skipped
+		// when the source is gone (lower_cumulative.go)
+		if in.C < 1 || in.C > 3 {
+			return ki, fmt.Errorf("Cumulative skip %d", in.C)
+		}
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtCumulative)), int16(in.C)
 	case "NumTimes":
 		// (Tranquil Frillback) OpExt ExtNumTimes, B the unit's packed
 		// pips; C = the unit's generic | the announcement maximum << 4 | the
@@ -3791,6 +3847,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		// OpExt ExtAddPhase, B the count, C the kind | splice point
 		ki.Op, ki.B, ki.C = kop.OpExt, ki.A, int16(in.C)
 		ki.A = kop.Const(int(kop.ExtAddPhase))
+	case "SkipPhase":
+		// OpExt ExtSkipPhase, Obj the skipping player (dirac/act_skipphase.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtSkipPhase))
 	case "PlotGrant":
 		// (Kellan Joins Up) OpExt ExtPlotGrant, Obj the
 		// Remembered ref
@@ -4384,6 +4443,18 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			}
 			ki.C |= int16(i+1) << 1
 		}
+		ki.A = kop.ValueRef{}
+		if in.A.Kind != vNone {
+			// the AddAbilities$ grant (lower_cloneentergrant.go)
+			if !in.A.isConst() || in.A.N < 1 || in.A.N > len(cb.c.overrides) {
+				return ki, fmt.Errorf("BecomeCopy A %v", in.A)
+			}
+			i, err := cb.override(cb.c.overrides[in.A.N-1])
+			if err != nil {
+				return ki, err
+			}
+			ki.A = kop.Const(i + 1)
+		}
 	case "Connive":
 		ki.Op = kop.OpConnive
 	case "ConniveCounters":
@@ -4453,6 +4524,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				ki.A = kop.Const(kop.DelayYourUpkeep)
 			case "NextEndCombat":
 				ki.A = kop.Const(kop.DelayEndCombat)
+			case "NextUpkeepOfPlayer":
+				ki.A = kop.Const(kop.DelayPlayerUpkeep) // dirac/trig_delayplayerupkeep.go
 			case "NextBeginCombat":
 				ki.A = kop.Const(kop.DelayBeginCombat) // dirac/trig_delaybegincombat.go
 			case "NextSpellCast":
@@ -4587,8 +4660,22 @@ func selfCastClause(f *lFilter) (bool, error) {
 // are then the static's alone (kernel prepAltFree, buildPickCost).
 func (cb *cardBuilder) altSacOK() bool {
 	c := cb.c
-	if kop.TypeMask(c.Types)&(kop.TInstant|kop.TSorcery) == 0 || c.AltAddCost != nil {
+	if c.AltAddCost != nil {
 		return false
+	}
+	if kop.TypeMask(c.Types)&(kop.TInstant|kop.TSorcery) == 0 {
+		// a creature spell with no spell ability of its own (Hand of
+		// Emrakul): the alternative cast's pick parts are the static's alone
+		// as well, and no target is asked
+		if kop.TypeMask(c.Types)&kop.TCreature == 0 {
+			return false
+		}
+		for _, a := range c.Abilities {
+			if a.Kind == akSpell {
+				return false
+			}
+		}
+		return true
 	}
 	n := 0
 	for _, a := range c.Abilities {

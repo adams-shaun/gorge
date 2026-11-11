@@ -417,7 +417,22 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		for _, a := range lc.face.Abilities {
 			if a.API == "Mana" || a.API == "ManaReflected" {
-				return refuse("Taps trigger on a card with a mana ability")
+				// The card's own {T} for mana fires its own Taps line (CR 603.2,
+				// 605.1b). gorge's planner prices the source only for the vetted
+				// "deals N damage to you" body (City of Brass, last resort at N;
+				// pay.PaymentPlanSelfDamageTrigger): any other body defers the
+				// source in gorge's census, a tier the kernel does not mirror.
+				n, ok := selfTapsPain(t)
+				if ok {
+					for _, m := range lc.face.Abilities {
+						ok = ok && (m.API != "Mana" && m.API != "ManaReflected" || selfPainPlainMana(m))
+					}
+				}
+				if !ok {
+					return refuse("Taps trigger on a card with a mana ability whose body is not a literal \"deals N damage to you\" or a plain {T} mana ability")
+				}
+				tr.TapPlan, tr.TapPainN = uint8(kop.TapPlanPain), n
+				break
 			}
 		}
 	case "Blocks":
@@ -1595,7 +1610,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// (checkBlocksTriggers); the kernel's remembered set is empty
 		return refuse("Blocks trigger body reads Remembered")
 	}
-	if tr.ByCreature && lc.saReadsRemembered(t.Effect) {
+	if tr.ByCreature && lc.byCreatureReadsRemembered(t.Effect) {
 		// gorge seeds the pair's other member as Remembered
 		// (queueAttackerBlockedTrigger); the kernel's remembered set is empty
 		return refuse("AttackerBlockedByCreature trigger body reads Remembered")
@@ -1632,6 +1647,11 @@ func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 	}
 	if s.Mode == "OptionalCost" {
 		return lc.optCostStatic(s) // lower_optcost.go
+	}
+	if s.Mode == "Continuous" && s.Params["CanBlockAmount"] != "" {
+		if ok, err := lc.extraBlockStatic(s); ok || err != nil {
+			return err // lower_extrablock.go
+		}
 	}
 	if s.Mode == "MinMaxBlocker" && s.Params["Max"] == "" {
 		return lc.minMaxBlockerStatic(s) // lower_choosetype.go
@@ -1820,6 +1840,9 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 	switch s.Mode {
 	case "Continuous":
 		lc.grantInner = nil
+		if err := extraBlockRefusal(sp); err != nil {
+			return nil, err // lower_extrablock.go
+		}
 		goad := sp.is("Goad", "True")
 		sp.consume("Goad")
 		sts, err := lc.continuous(sp, &st)
@@ -2025,10 +2048,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			// a free alternative cost (kernel CardDef.AltFree)
 			st.Cost = lCost{}
 			sp.consume("Cost")
-		} else if st.Cost, err = lc.cost(sp.str("Cost")); err != nil {
+		} else if st.Cost, err = lc.altCostCost(sp.str("Cost")); err != nil {
 			return nil, err
 		}
-		if st.Cost.Forage != nil || st.Cost.ExileG != nil || st.Cost.Energy != 0 || st.Cost.Return != nil {
+		if st.Cost.Forage != nil || st.Cost.ExileG != nil && !st.Cost.ExileHand || st.Cost.Energy != 0 || st.Cost.Return != nil {
 			return nil, refuse("alternative cost with a forage / exile-from-graveyard part")
 		}
 	case "Activations":
@@ -2118,6 +2141,14 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			st.Flags = append(st.Flags, "NoPrevCombat")
 		}
 		sp.consume("Secondary")
+		// Banefire's "the damage can't be prevented" (X is 5 or more, CheckSVar$ read
+		// above): a stack-zone static of the spell itself. Only the pair lowers.
+		if vs, ok := sp.get("ValidSource"); ok {
+			if strings.TrimSpace(vs) != "Spell.Self" || sp.str("EffectZone") != "Stack" {
+				return nil, refuse("CantPreventDamage ValidSource$ %q", vs)
+			}
+			st.Flags = append(st.Flags, "NoPrevSpellSelf")
+		}
 	case "CantPutCounter":
 		// gorge PutCounterBlocked's object form (rules/layers_restrict.go):
 		// ValidCard$ (or ValidObject$) scopes the permanent, CounterType$
@@ -2289,7 +2320,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			st.Kind = "" // view-only: lower to nothing
 			return nil, nil
 		}
-		if faceDownLookOnly(sp.m) {
+		if faceDownLookOnly(sp.m) || handRevealOnly(sp.m) { // lower_handreveal.go
 			sp.consume("AffectedZone")
 			st.Kind = "" // view-only: lower to nothing
 			return nil, nil
@@ -2482,6 +2513,10 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		rest, melee := splitMeleeGrant(rest)
 		rest, exalted := splitExaltedGrant(rest)
 		rest, st.ProtFrom, err = lc.splitProtGrant(rest) // lower_protgrant.go
+		if err != nil {
+			return nil, err
+		}
+		rest, st.Landwalk, err = lc.splitLandwalkGrant(rest, aff) // lower_landwalkgrant.go
 		if err != nil {
 			return nil, err
 		}
@@ -3082,6 +3117,12 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 			}
 			break
 		}
+		if ok, err := lc.payBeforeETB(rp, r.With, &rl); ok || err != nil { // lower_paybeforeetb.go
+			if err != nil {
+				return err
+			}
+			break
+		}
 		if rp.str("Destination") != "Battlefield" {
 			return refuse("repl-hard: Moved to %s", rp.str("Destination"))
 		}
@@ -3161,7 +3202,7 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		}
 		rl.Prog = ab.Prog
 		rl.Kind = "EntersWith"
-		if spyglassChain(r.With) {
+		if spyglassChain(r.With) || handNameChain(r.With) {
 			// gorge runs this chain (not a bare NameCard body) once the permanent
 			// is on the battlefield: the queued ask, not the stack pre-ask
 			rl.S = "Updated"
@@ -3180,6 +3221,18 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 			return refuse("Counter replacement shape")
 		}
 		rl.Kind = "CantBeCountered"
+		if cs, ok := rp.get("CheckSVar"); ok {
+			// Banefire's "if X is 5 or more": the gate reads the spell's X
+			v, err := lc.value(cs)
+			if err != nil {
+				return err
+			}
+			op, b, err := lc.cmpSpec(rp.str("SVarCompare"))
+			if err != nil {
+				return err
+			}
+			rl.Cond = lCond{Kind: cValue, A: v, Op: op, B: b}
+		}
 	case "Untap":
 		if rp.str("Layer") != "CantHappen" {
 			return refuse("Untap replacement shape")
@@ -3829,15 +3882,16 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			}
 		case "RevealHand":
 			// the chain's look: folded into the name ask's decisions (B = 2)
-			if other || !spyglassChain(sa) {
+			if other || !spyglassChain(sa) && !handNameChain(sa) {
 				return refuse("ETB replacement api RevealHand")
 			}
-			ps.consume("Defined", "Look")
+			ps.consume("Defined", "Look", "RememberRevealed", "SpellDescription")
 		case "Cleanup":
-			if other || !spyglassChain(sa) {
+			if other || !spyglassChain(sa) && !handNameChain(sa) {
 				return refuse("ETB replacement api Cleanup")
 			}
 			lc.clearChosenPlayer(ps)
+			ps.consume("ClearRemembered") // Alhammarret's chain: the revealed set was never kept
 		case "NameCard":
 			if err := lc.etbChooseName(ps, node, sa, other, cond); err != nil { // lower_choosename.go
 				return err
@@ -3906,6 +3960,30 @@ func (lc *lowerCtx) cloneEnterCounterRider(ps *params, sa *cards.SA) error {
 		return refuse("ETB copy chained rider cleanup unread params %v", left)
 	}
 	return nil
+}
+
+// byCreatureReadsRemembered is saReadsRemembered for an
+// AttackerBlockedByCreature body, minus the spellings that name the pair
+// member without reading the trigger's remembered set: a delayed trigger's
+// RememberObjects$ Triggered{Attacker,Blocker}[LKICopy] (delayedStepRemember
+// binds the object at registration, Deathgazer's destroy at end of combat)
+// and the delayed body's Defined$ DelayTriggerRememberedLKI.
+func (lc *lowerCtx) byCreatureReadsRemembered(sa *cards.SA) bool {
+	strip := strings.NewReplacer(
+		"RememberObjects$ TriggeredAttackerLKICopy", "", "RememberObjects$ TriggeredBlockerLKICopy", "",
+		"RememberObjects$ TriggeredAttacker", "", "RememberObjects$ TriggeredBlocker", "",
+		"DelayTriggerRememberedLKI", "")
+	for ; sa != nil; sa = sa.Sub {
+		if strings.Contains(strip.Replace(sa.Line), "Remember") {
+			return true
+		}
+	}
+	for _, v := range lc.face.SVars {
+		if strings.Contains(strip.Replace(v), "Remember") {
+			return true
+		}
+	}
+	return false
 }
 
 // saReadsRemembered reports whether an ability chain (or any SVar of the
@@ -3986,7 +4064,15 @@ func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 	if err != nil {
 		return err
 	}
+	grant, err := lc.cloneEnterGrant(ps) // lower_cloneentergrant.go
+	if err != nil {
+		return err
+	}
 	in := lInstr{Op: "BecomeCopy", Obj: lRef{Kind: rReplaced}, F: f}
+	if grant != nil {
+		lc.out.overrides = append(lc.out.overrides, grant)
+		in.A = cst(len(lc.out.overrides)) // index+1
+	}
 	if rememberCounters {
 		in.B = cst(int(kop.BecomeCopyCtr))
 		in.Note = "with the copy origin's counters"

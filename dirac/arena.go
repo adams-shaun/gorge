@@ -130,7 +130,7 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 					if in.C&kop.DmgExileIfDiesThisTurn != 0 {
 						u[mechExileEx] = true
 					}
-					if in.C&kop.DmgNoRegen != 0 {
+					if in.C&(kop.DmgNoRegen|kop.DmgNoRegenTarget) != 0 {
 						u[mechNoRegen] = true // repl_noregen.go
 					}
 				case kop.OpExileEx:
@@ -246,6 +246,9 @@ func (s *State) arenaClrSlot(sl Slot) {
 	ms := s.cold.ms
 	for i := range ms {
 		ms[i] = ms[i].without(sl)
+	}
+	if r := s.xblkRecs(); len(r) > 0 {
+		r[sl] = xblkRec{}
 	}
 	for i := range s.cold.exMark {
 		if r := &s.cold.exMark[i]; r.sl == sl {

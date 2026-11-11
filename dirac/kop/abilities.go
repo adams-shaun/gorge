@@ -110,6 +110,18 @@ type Ability struct {
 	// script or the manual mana window does (kernel mana_deferred.go). A
 	// table byte: AbilityFlags has no free bit.
 	ManaDeferred bool
+	// SplitGate, SplitCtr, SplitCols: a Condition-split mana ability (River of
+	// Tears' "{T}: Add {U}. If you played a land this turn, add {B}
+	// instead"; Gemstone Caverns' "{T}: Add {C}. If this has a luck counter on
+	// it, instead add one mana of any color"): gorge's AB$ Mana gated EQ0 whose
+	// DB$ Mana sub is gated GE1 on one SVar. ManaColors / ManaN hold the root's
+	// one mana; SplitCols the arm's colours (ColAny or one of WUBRG); SplitGate
+	// the gate the arm needs (SplitGateNone = no arm), SplitCtr the counter
+	// kind a SplitGateCounter reads on the source. gorge defers the source (pay
+	// source:conditional); kernel mana_condsplit.go. Table fields, not State.
+	SplitGate uint8
+	SplitCtr  CounterKind
+	SplitCols ColorMask
 	// ManaHasteValid: AddsKeywords$ Haste | AddsKeywordsValid$ ... |
 	// AddsKeywordsUntil$ UntilEOT (Carnelian Orb of Dragonkind; CR 106.6):
 	// a spell matching this filter, paid with this ability's mana, gains
@@ -171,7 +183,10 @@ const AfNinjutsu AbilityFlags = AfStation << 1
 // among the colours of the controller's permanents matching ManaAmong
 // (AB$ ManaReflected, ReflectProperty$ Is; Plaza of Heroes). The colours
 // are read at each use; none, and the ability adds nothing (gorge lists no
-// such ability). Kernel mana_reflected.go.
+// such ability). Kernel mana_reflected.go. A printed one with no ManaAmong
+// filter reads the colours of the cards its source imprinted (Chrome Mox;
+// kernel mana_imprint.go); a granted one with none, the grantee's own
+// colours (Katilda; kernel mana_owncolours.go).
 const AfManaReflect AbilityFlags = AfNinjutsu << 1
 
 // AfManaNonSpell the restricted mana ability
@@ -370,10 +385,39 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	switch {
 	case plain && (f == CostTap || f == CostTap|CostOncePerGame || f == CostTap|CostSacSelf || f == CostSacSelf):
 		return true
-	case CtrManaAb(a), TapXManaAb(a), TapXManaTwo(a), FilterManaAb(a), SacXEachManaAb(a):
+	case CtrManaAb(a), TapXManaAb(a), TapXManaTwo(a), FilterManaAb(a), SacXEachManaAb(a), SoleLifeManaAb(cd, j):
 		return true
 	}
 	return false
+}
+
+// SoleLifeManaAb reports whether ability j of cd is the card's only own mana
+// ability and is "{T}, Pay N life: Add one mana" (Mana Confluence), with no
+// rider, restriction, flag or program: a pain-only source whose cost is life,
+// gorge's last-resort Consequence{Life: N} with no normal alternative
+// (dirac mana_pain.go prepPainOnlyLife).
+func SoleLifeManaAb(cd *CardDef, j int) bool {
+	a := &cd.Abilities[j]
+	if a.Kind != AbMana || a.AFlags != 0 || a.ManaRestrict != 0 || a.ManaRestrictAb != 0 || len(a.Prog) != 0 || a.ManaEach ||
+		a.Cost.Flags != CostTap|CostPayLife || a.Cost.N < 1 || a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0 || a.ManaN > 1 || a.ManaColors == 0 {
+		return false
+	}
+	for i := range cd.Abilities {
+		if i != j && cd.Abilities[i].Kind == AbMana && cd.Abilities[i].AFlags&AfLatent == 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// DiscardHandManaAb reports whether a is Lion's Eye Diamond's mana ability:
+// discard your hand and sacrifice this, nothing else, a printed ability (kgen
+// lowers it only with InstantSpeed$ True). gorge lists it in no payment window
+// and no planner census (pay.InstantSpeedOnly); only a potential play's prefix
+// search activates it (kernel mana_discardhand.go).
+func DiscardHandManaAb(a *Ability) bool {
+	return a.Kind == AbMana && a.Cost.DiscardHand && a.Cost.Flags == CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
+		a.AFlags&AfLatent == 0
 }
 
 // SecondTapXManaAb reports whether ability j of cd, a later mana ability than
@@ -461,3 +505,10 @@ func ManaCostShape(a *Ability) string {
 	}
 	return strings.Join(parts, "+")
 }
+
+// Gates of a Condition-split mana ability's arm (Ability.SplitGate).
+const (
+	SplitGateNone    uint8 = iota
+	SplitGateCounter       // the source has at least one counter of Ability.SplitCtr
+	SplitGateLands         // the source's controller has played a land this turn
+)

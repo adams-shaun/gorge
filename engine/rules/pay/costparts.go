@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -293,11 +294,57 @@ func WithSpellAbilityExtras(f *cards.Face, cost costvocab.Cost) costvocab.Cost {
 	if sa == nil {
 		return cost
 	}
+	// XColor$ is the colour the {X} must be paid with (Forge's
+	// SpellAbility.getXColor; Consume Spirit's "Spend only black mana on
+	// X"). It rides the ability, parsed once into its compiled cost
+	// (CompiledCost.XColor; zero when absent or multi-colour, unmodelled).
+	// A zero leaves the incoming cost's mask alone (split.go nests calls).
+	if m := AbilityCostOf(sa).XColor; m != 0 {
+		cost.XColors = m
+	}
 	sc := sa.ParamStr(cards.PKCost)
 	if sc == "" {
 		return cost
 	}
 	return foldAdditionalCost(cost, costvocab.ParseCost(sc))
+}
+
+// xColorMask parses Forge's XColor$ value -- colour words ("Black", "Black,Red")
+// or a bare WUBRG letter ("R") -- into a colour mask (bit 0 W .. bit 4 G).
+// An unrecognised value is zero, the same "not modelled" direction the rest of
+// the parameter vocabulary takes.
+func xColorMask(raw string) uint8 {
+	if len(raw) == 1 {
+		return colourBit(raw[0])
+	}
+	cols, ok := effects.ColorLetters(raw)
+	if !ok {
+		return 0
+	}
+	var m uint8
+	for _, c := range cols {
+		if len(c) > 0 {
+			m |= colourBit(c[0])
+		}
+	}
+	return m
+}
+
+// colourBit is the bit (0 W .. 4 G) of a WUBRG letter; 0 for anything else.
+func colourBit(c byte) uint8 {
+	switch c {
+	case 'W':
+		return 1
+	case 'U':
+		return 2
+	case 'B':
+		return 4
+	case 'R':
+		return 8
+	case 'G':
+		return 16
+	}
+	return 0
 }
 
 // foldAdditionalCost concatenates the non-mana parts of extra onto cost. It is

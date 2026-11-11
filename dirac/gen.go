@@ -99,11 +99,13 @@ type genPrep struct {
 	anyLandwalk     bool // a card has printed landwalk (repl_regenerate.go)
 	anyEvasion      bool // a card has a printed CardDef.Evasion keyword (act_remember.go)
 	anyAloneAtk     bool // a card has printed "can't attack alone" (CardDef.AloneAtk; combat_alone.go)
+	anyAloneBlk     bool // a card has printed "can't block alone" (CardDef.AloneBlk; combat_alone.go)
 	anyStatGoad     bool // a card has a StatGoad static (act_goad.go)
 	anyTokEndCombat bool // some CreateTokenEx carries the AtEOT$ SacrificeCombat rider (trig_tokenateot.go)
 	anyProwessGrant bool // some Continuous static grants prowess: onCast counts one trigger per static (kw_prowess.go)
 
 	anyMinBlk                bool // a card has a printed MinMaxBlocker floor (CardDef.MinBlockers; combat.go)
+	anyExtraBlock            bool // a card has a printed CardDef.ExtraBlocks (combat_extrablock.go)
 	anyUntapOther            bool // a card has a StatUntapOther static (static_untapother.go)
 	anyTapExtra              bool // a card has a StatTapExtra static (mana_tapextra.go)
 	anyMaxBlk                bool // a card has a MinMaxBlocker Max$ 1 static (kop.StatMaxBlockers; combat_maxblockers.go)
@@ -188,6 +190,7 @@ type genPrep struct {
 	anySpentGate   bool           // some SpellCast trigger carries a Spell.ManaSpent gate in Trigger.N (trig_spentvalid.go)
 	anySpent       bool           // some expression reads the mana spent to cast a spell (ExCastManaSpent; copy_asenters.go)
 	anyTgtSpent    bool           // some expression reads the resolving spell's target spell's spend (ExTgtSpent; resolve.go snapTgtSpent)
+	anyDmgAmt      bool           // some card reads the damage its object received this turn (CardDef.DmgAmt; value_dmgamount.go)
 	anyBecomeCopy  bool           // some enters program is OpBecomeCopy (an as-enters clone): a permanent it made a copy is projected as its printed card, and a token copy of a clone is asked its election (ctr_entryperkind.go)
 	anyEntryMerge  bool           // the table has an AddCounter replacement and more than one source of entry counters: enterGen merges them into one put per kind (ctr_entryperkind.go)
 	anyEffEtbCtr   bool           // some instruction is ExtEffEtbCtr: enterGen puts a cast spell's pending extra counters on (ctr_effectentry.go)
@@ -213,6 +216,7 @@ type genPrep struct {
 	anyCantTgt     bool           // some card has a StatCantTarget (tgt_canttarget.go cantTargetGen)
 	anyFaces       bool           // some card has faces (CardDef.Faces; face_multiface.go)
 	anyWarp        bool           // some card has warp (CardDef.HasWarp; kw_warp.go)
+	anyDash        bool           // some card has dash (CardDef.HasDash; kw_dash.go)
 	anyEvoke       bool           // some card has evoke (CardDef.HasEvoke) or some expression is ExAdamant (kw_evoke.go)
 	anyImpending   bool           // some card has impending (CardDef.Impending; kw_impending.go)
 	anyPrepare     bool           // some card is a preparation front (FacePrepare; face_prepare.go)
@@ -274,6 +278,7 @@ type genPrep struct {
 	anyCombatHit   bool           // some card records its combat hits on players (cdRec) or some expression reads the legendary-hit bit (value_turntallies.go)
 	cdLegOn        bool           // some expression is ExOppsLostLife N 1: record cdLeg
 	anyAddPhase    bool           // some program is ExtAddPhase, some trigger is Tf3FirstAttack or some expression is ExPhaseCount (act_addphase.go)
+	anySkipPhase   bool           // some program is ExtSkipPhase (act_skipphase.go)
 	anyAttackedObj bool           // the table gives mechAttackedObj an arena mask: finishAttacks marks the declared attackers
 	anySuspect     bool           // the table gives mechSuspected an arena mask (act_suspect.go)
 	anySacSub      bool           // some ExRefCount is a Sacrificed$Valid type read (N 1): snapLKI captures the subtype set (value_countheads.go, zone_lki.go)
@@ -355,10 +360,18 @@ type genPrep struct {
 	anyTapsDefer, anyTapsPain bool
 	// anyManaRider: some card has a counter-rider mana ability (mana_rider.go); it sets anyTapsDefer too
 	anyManaRider bool
+	// anyCondSplit: some card has a Condition-split mana source (mana_condsplit.go); it sets anyTapsDefer too
+	anyCondSplit bool
 	// anySelfTaps: some card has a lowered self Taps watcher (TfSelf). kgen
-	// lowers one only on a card with no printed mana ability, so it can only
-	// defer a granted mana ability's tap (act_waterbend.go windowCensusComplete).
+	// lowers one on a card with a printed mana ability only as the vetted
+	// "deals N damage to you" line (TapPlanPain, City of Brass: priced, never a
+	// gap), so any other can only defer a granted mana ability's tap
+	// (act_waterbend.go windowCensusComplete).
 	anySelfTaps bool
+	// anyDiscHand: some card carries gfDiscHand (mana_discardhand.go).
+	anyDiscHand bool
+	// dhMix: a Diamond beside another census-gap kind (mana_diamondmix.go prepDiamondMix): StallDiamondMix
+	dhMix bool
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
 	// Tender), -1 none: a source gorge's planner census misses, reached by
 	// a potential play's scripted prefix (script_gen.go)
@@ -472,6 +485,7 @@ const (
 	rbPrevMill                        // ReplPreventMillOpps (repl_preventmill.go)
 	rbPrevCtrSelf                     // ReplPreventDamageCounters (repl_selfdamage.go)
 	rbHealSelf                        // ReplDamageHealFirst (repl_selfdamage.go)
+	rbPayETB                          // ReplPayBeforeETB (repl_paybeforeetb.go)
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -609,6 +623,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if t.Exprs[i].Kind == kop.ExTgtSpent {
 			g.anyTgtSpent, g.anySpent, g.anyHist = true, true, true // the target spell's spend is recorded at its payment
 		}
+		// value_dmgamount.go: every damage site records the amount for a reader card
+		g.anyDmgAmt = g.anyDmgAmt || t.Exprs[i].Kind == kop.ExDmgAmountReceived
 	}
 	if tableNthFiltered(t) {
 		g.castRingOn, g.anyHist = true, true
@@ -756,7 +772,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.Daybound || c.Nightbound {
 			p.anyDayNight, g.anyHist = true, true // the spell count rides the history bank
 		}
-		if c.Landwalk != 0 {
+		if c.Landwalk != 0 || landwalkGrantIn(c.Abilities) {
 			g.anyLandwalk = true
 		}
 		if c.CastBF != 0 {
@@ -771,6 +787,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.HasEvoke {
 			g.anyEvoke = true
+			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
+		}
+		if c.HasDash {
+			g.anyDash = true
 			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
 		}
 		if c.HasPlot {
@@ -829,8 +849,14 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.AloneAtk {
 			g.anyAloneAtk = true
 		}
+		if c.AloneBlk {
+			g.anyAloneBlk = true
+		}
 		if c.MinBlockers != 0 {
 			g.anyMinBlk = true
+		}
+		if c.ExtraBlocks != 0 {
+			g.anyExtraBlock = true
 		}
 		if c.HasMadness {
 			g.anyMadness = true
@@ -1022,6 +1048,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.destroyHeal[i] = a.Repl.Filter
 				case kop.ReplDiscardOppToBattlefield:
 					g.replBits[i] |= rbDiscETB
+				case kop.ReplPayBeforeETB:
+					g.replBits[i] |= rbPayETB
 				case kop.ReplGraveToLibrary:
 					g.replBits[i] |= rbGraveLib
 				case kop.ReplMayNotUntap:
@@ -1149,6 +1177,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.setFlag(CardID(i), gfDeferred|gfGapOther)
 					g.anyDeferred, g.anyRestrScript, g.anyWindowGap = true, true, true
 				}
+				if kop.DiscardHandManaAb(a) {
+					g.setFlag(CardID(i), gfDiscHand) // a prefix-search gap alone, never a planner unit (mana_discardhand.go)
+					g.anyDiscHand = true
+				}
 				if a.AFlags&kop.AfManaEachColor != 0 && a.AFlags&kop.AfLatent == 0 && g.eachCol(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).eachCol = int8(j)
 					g.setFlag(CardID(i), gfEachCol)
@@ -1241,6 +1273,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		prepManaDynPair(g, c, CardID(i), pc)
 		prepManaGate(g, c, CardID(i), pc)
 		prepManaRefl(g, c, CardID(i), pc)
+		prepManaSplit(g, c, CardID(i), pc)
 		g.prepRestrSrc(c, CardID(i), pc)
 		// latent triggered abilities are not subscriptions
 		pc.trigMask = 0
@@ -1417,6 +1450,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	// a filter a reducer takes to nothing is the source's own mana (mana_filterfree.go)
 	prepFiltFree(t, g, p)
 	g.anyScriptGap = g.anyEachCol || g.anyRestrScript || g.anyAnyR || g.anyFilt || p.tapMana // (a tap-another-permanent mana gap: mana_tapanother.go)
+	// a Diamond beside another census-gap kind (mana_diamondmix.go)
+	prepDiamondMix(t, g, p)
 	g.anyPrevFrom = grantsKw(t, kop.KwPreventCombatDamageFrom) || g.anyRepl&rbPrevCombatBy != 0
 	prepReplMult(t, g)
 	prepDmgMark(t, g) // repl_dmgmark.go
@@ -1439,6 +1474,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepPermMark(g)          // filter_permmarks.go; reads g.ix
 	prepTurnTallies(t, p, g) // value_turntallies.go; reads g.ix
 	prepAddPhase(t, g)       // act_addphase.go
+	prepSkipPhase(t, g)      // act_skipphase.go
 	prepAirbend(t, g)
 	prepMayWhileSrc(t, g) // cast_whilesource.go
 	prepInit(t, g)        // act_initiative.go
@@ -1603,6 +1639,10 @@ type xTargets struct {
 // genState is the generated-table part of State.
 type genState struct {
 	graveKept bool // removePerm: this move to a graveyard takes no "from anywhere" redirect
+	// cskip: the combat-phase skips (act_skipphase.go). Bit p: player p skips the
+	// combat phases of their next turn; bit 4+p: player p is skipping the combat
+	// phases of the turn being played. Fills the padding byte after graveKept.
+	cskip     uint8
 	fx        [maxFx]fxRec
 	nfx       uint8
 	xtp       [maxXTPool]xTargets // stackEntry.xi - 1 indexes it
@@ -1849,7 +1889,7 @@ type genState struct {
 	impCast        bool                    // the cast beginCast starts is for the card's impending cost (castImpTgt; kw_impending.go; padding)
 	warpGrant      bool                    // the warp cast beginCast starts pays a battlefield grant's instance (kw_warpgrant.go; padding)
 	bargainCast    bool                    // the permission cast beginCast starts is bargained: the pool it checks pays the bargained price (offerBargainPlay; kw_bargain.go; padding)
-	noUntapL       uint8                   // OpSkipUntap C=1: bit p, player p's lands don't untap during p's next untap step (padding)
+	noUntapL       uint8                   // OpSkipUntap C=1: bit p, player p's lands don't untap during p's next untap step; bit 4+p their creatures (SkipUntapPlayerCL; padding)
 	yourTurns      [MaxSeats]uint8         // ExYourTurns: the turns each player began as the active player, saturating (prep.anyYourTurns only; padding)
 	extraTurnBegun uint8                   // ExYourExtraTurns: bit p, player p has begun an extra turn this game (CR 500.7; value_exprs.go)
 	dayNight       uint8                   // CR 731: bits 0-1 the designation (dnDay, dnNight), bits 2-3 the last turn's active player's spells, at most 2 (kw_daynight.go; padding)
@@ -1992,7 +2032,12 @@ type genState struct {
 	// flipped a coin. Bit 2+p: player p activated an Exhaust ability. Bits
 	// 4-7 are free. Cleared at the turn change. Taken from rsv.
 	turnF uint8
-	rsv   [rsvN]uint8
+	// dmgAmt: the positive damage each reader card's object (CardDef.DmgAmt)
+	// received this turn, o = Obj+1 (0 empty) and n saturating at 255
+	// (value_dmgamount.go). Written only under genPrep.anyDmgAmt; cleared at the
+	// turn change. Taken from rsv.
+	dmgAmt [dmgAmtN]struct{ o, n uint8 }
+	rsv    [rsvN]uint8
 	// embX: an emblem's remembered slots 2 and 3, object + 1 (static_emblemrem.go); embR is slot 1, embN slot 0. Taken from rsv.
 	embX [MaxSeats][maxEmb][embRemSlots - 2]uint8
 	// atkDef is the defending seat + 1 of the attack event whose triggers are
@@ -2004,13 +2049,15 @@ type genState struct {
 }
 
 const (
-	maxImp     = 16
-	turnFBytes = 1 // genState.turnF, taken from rsv
+	maxImp      = 16
+	turnFBytes  = 1 // genState.turnF, taken from rsv
+	dmgAmtN     = 4 // genState.dmgAmt: reader-card records (value_dmgamount.go)
+	dmgAmtBytes = dmgAmtN * 2
 	// rsvN pads the reserved block to 80 bytes (genState's tail padding
 	// absorbs the rest of the alignment, including tgtSpent): 64, plus the 16
 	// that carry State's growth for MaxObj 236 to a multiple of 64 so perms
 	// keeps its phase.
-	rsvN = max(0, 80-maxImp-2-MaxSeats-MaxSeats*maxEmb-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-MaxSeats*maxEmb*(embRemSlots-2)-1-turnFBytes)
+	rsvN = max(0, 80-maxImp-2-MaxSeats-MaxSeats*maxEmb-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-MaxSeats*maxEmb*(embRemSlots-2)-1-turnFBytes-dmgAmtBytes)
 )
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).
@@ -2233,6 +2280,9 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 	if vi >= 0 {
 		if k.gen.blgOn {
 			s.blgStall(k, sl, c)
+		}
+		if k.gen.anyCondSplit && k.gen.splitAb(c) >= 0 {
+			return s.condSplitView(k, sl, c)
 		}
 		if k.gen.flags[c]&gfManaGate != 0 {
 			return s.manaGateView(k, sl, c, vi)

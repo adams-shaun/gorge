@@ -31,6 +31,7 @@ const (
 	akName       uint8 = 11 // an as-enters nonland card name (OpExt ExtChooseName; repl_choosename.go)
 	akNameAny    uint8 = 12 // an as-enters name of any card, lands included (ExtChooseName B = 1)
 	akNameLook   uint8 = 13 // akNameAny after a look_ack at the opponent's hand (ExtChooseName B = 2; Sorcerous Spyglass)
+	akNameHand   uint8 = 15 // a nonland name among the opponents' revealed hands (ExtChooseName B = 3; Alhammarret, High Arbiter)
 	// akEtbOrder is the CR 616.1 order between a cast spell's effect-carried
 	// enters-with counters and the entrant's own prepared enter body, asked
 	// with the spell still on the stack (s.g.pre only; repl_etborder.go)
@@ -61,6 +62,9 @@ func (s *State) placeEntryCounters(k *prep, sl Slot, kind, n int, ctrl uint8) in
 // it resets the slot's generated state, records how the permanent arrived,
 // and applies the as-enters replacements (its own and other permanents').
 func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
+	if face == 0 {
+		s.payETBStray(k, o) // repl_paybeforeetb.go
+	}
 	s.touch(o)
 	s.clearFx(sl)
 	s.arenaClrSlot(sl) // the slot takes a new permanent: no mechanic's mark for the last one survives (arena.go)
@@ -304,6 +308,9 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 					s.execGen(k, in)
 					continue
 				}
+			}
+			if kind == akNameHand && s.nameHandNone(k, s.perms[sl].ctrl) {
+				continue // nothing nonland was revealed: gorge poses no ask
 			}
 			if s.g.pre.state == 2 && s.g.pre.obj == s.perms[sl].obj {
 				s.perms[sl].chosen = s.g.pre.val // asked on the stack
@@ -632,7 +639,8 @@ func (s *State) newTurnGen() {
 		s.g.nused = 0
 	}
 	s.g.zoneTurn = objBits{}
-	s.g.dmgTurn = objBits{} // WasDealtDamageThisTurn clears with the marked damage (gorge TurnChange)
+	s.g.dmgTurn = objBits{}                      // WasDealtDamageThisTurn clears with the marked damage (gorge TurnChange)
+	s.g.dmgAmt = [dmgAmtN]struct{ o, n uint8 }{} // DamageReceivedThisTurn clears with it (gorge TurnChange; value_dmgamount.go)
 	s.g.enteredN = 0
 	s.g.enteredFull = false
 	s.mSlZero(s.k(), mechExileEx)

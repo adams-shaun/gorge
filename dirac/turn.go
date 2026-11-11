@@ -43,6 +43,9 @@ func (s *State) beginTurn(p uint8) {
 	}
 	s.turn++
 	s.active = p
+	if k := s.k(); k.gen != nil && k.gen.anySkipPhase {
+		s.skipPhaseTurn(p) // act_skipphase.go
+	}
 	if k := s.k(); k.gen != nil && k.gen.anyNTEndEmb {
 		s.embTurnStart(k, p) // UntilTheEndOfYourNextTurn: this turn is its last (static_emblemdurations.go)
 	}
@@ -70,9 +73,16 @@ func (s *State) beginTurn(p uint8) {
 	}
 	for i := range s.pl {
 		pl := &s.pl[i]
-		pl.landsPlayed = 0
+		if uint8(i) == SeatIx(p) {
+			// gorge resets a seat's Player.LandsPlayed only when its own turn begins
+			// (events foldTurnChange), so another seat's count outlives the turn it
+			// was made in: the Condition-split gate reads it (mana_condsplit.go); the
+			// projections show the active seat's only (landsProj)
+			pl.landsPlayed = 0
+		}
 		pl.drawnTurn = 0
 		pl.lifeGained = 0
+		pl.lastLost = pl.lifeLost // ExLifeLostLastTurn: the turn just ended
 		pl.lifeLost = 0
 		if !DebugSacrificedNoTurnReset {
 			food := pl.sac[sacFood]
@@ -301,6 +311,8 @@ func (s *State) advance(k *prep) {
 	}
 	if k.gen != nil && k.gen.anyAddPhase {
 		next = s.addPhaseNext(next) // extra phases and the phase ledger (act_addphase.go)
+	} else if k.gen != nil && k.gen.anySkipPhase {
+		next = s.skipCombatNext(next) // act_skipphase.go
 	}
 	s.endStep(next)
 }
@@ -441,6 +453,7 @@ func (s *State) clearCombat() {
 			s.touchSl(sl)
 		}
 	}
+	s.xblkClear()
 	s.nAttackers = 0
 	s.fsStep = false
 }
@@ -508,7 +521,7 @@ func (s *State) sba(k *prep) bool {
 		s.cmdDamageSBA(k) // CR 704.6c (combat_cmddamage.go)
 		s.checkOver()
 		if s.over {
-			if k.gen != nil {
+			if k.gen != nil || s.cfg&cfgCommander != 0 {
 				s.ceaseTokensGen()
 			}
 			return true
@@ -665,6 +678,8 @@ func (s *State) sba(k *prep) bool {
 			// pass either way; the order is only observable when both act.
 			if k.gen != nil {
 				s.sbaChainEnd(k)
+			}
+			if k.gen != nil || s.cfg&cfgCommander != 0 {
 				s.ceaseTokensGen()
 			}
 			if k.anySaga && s.sagaSBA(k) {
@@ -690,7 +705,7 @@ func (s *State) sba(k *prep) bool {
 			s.legSaga = s.sagasDue(k)
 			return true
 		}
-		if k.gen != nil {
+		if k.gen != nil || s.cfg&cfgCommander != 0 {
 			s.ceaseTokensGen()
 		}
 		// gorge's order (rules/sba.go): the creature casualties (lethal
@@ -1037,8 +1052,8 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 		if k.gen != nil && k.gen.anyWarp && s.objs[ref].zone == kop.ZoneExile {
 			s.warpRecastGrant(ref)
 		}
-	case kop.OpBounce:
-		s.leave(k, sl, kop.ZoneHand, false)
+	case kop.OpBounce, opDashReturn:
+		s.leave(k, sl, kop.ZoneHand, false) // opDashReturn: CR 702.109a's end-step return (kw_dash.go)
 	default:
 		panic("kernel: delayed trigger action not implemented: " + kop.Op(e.trigAmt).String())
 	}
