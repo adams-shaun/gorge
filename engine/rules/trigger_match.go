@@ -3260,6 +3260,11 @@ func init() {
 		//     bare kw:Partner line and "kw:CARDNAME..." remain play-free.
 		"trig:UnlockDoor", "trig:FullyUnlock", "kw:Station", "kw:Chapter", "kw:Start your engines",
 		"stat:Panharmonicon", "kw:Partner", "kw:Partner with",
+		// kw:Choose a Background (CR 702.124k) is DECK CONSTRUCTION: it lets
+		// the card be paired with a legendary Background enchantment as a
+		// seat's two commanders. Nothing in play reads it; the pair is
+		// deck.IsCommanderPair -> IsPartnerPair's Choose-a-Background family.
+		"kw:Choose a Background",
 		"kw:CARDNAME can be your commander.",
 		// kw:Doctor's companion (the WHO two-commander keyword, the
 		// Doctor's-companion analogue of Companion CR 702.139) is DECK
