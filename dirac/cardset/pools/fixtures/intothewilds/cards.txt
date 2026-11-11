@@ -1,0 +1,9 @@
+# An upkeep trigger that looks at the top card (PeekAndReveal NoReveal$ True,
+# RememberPeeked$ True) and, when it is a land, lets the controller put it onto
+# the battlefield: Into the Wilds. Decks play it in
+# dirac/oracle/into_the_wilds_test.go.
+Into the Wilds
+Grizzly Bears
+Hill Giant
+Forest
+Island

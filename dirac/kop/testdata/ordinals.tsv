@@ -606,6 +606,7 @@ MayGuardDraw	untyped int	5
 MayGuardLibraryTop	untyped int	4
 MayGuardMill	untyped int	0
 MayGuardMove	untyped int	2
+MayGuardMoveRemembered	untyped int	11
 MayGuardPut	untyped int	10
 MayGuardStackSpell	untyped int	9
 MayGuardSuspect	untyped int	3

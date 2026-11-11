@@ -64,6 +64,13 @@ const MayGuardStackSpell = 9
 // nothing is asked and the counter is not put.
 const MayGuardPut = 10
 
+// MayGuardMoveRemembered: the OpMayAsk guard of an optional move of the card a
+// looking Peek remembered, from the library (Into the Wilds; gorge
+// moveDefinedLibraryObjects' Optional$ ask over a Defined$ Remembered fetch):
+// the next op's Obj is an object, else (an empty remembered set) nothing is
+// asked and the move is skipped.
+const MayGuardMoveRemembered = 11
+
 // MayGuardAnimateAll: the OpMayAsk guard of Animate over Defined$ Valid: the
 // next op is an OpOverrideAll whose F has at least one battlefield hit (gorge
 // animateWouldChange), else nothing is asked.
