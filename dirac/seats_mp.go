@@ -39,5 +39,7 @@ const embRemSlots = 2
 // linkPadN pads genState after its sixteen exile-until-leaves links so perms
 // keeps its cache-line phase (statelayout_mp_test.go). The four-seat class's
 // alignment leaves no gap to pad: genState.dmgAmt (value_dmgamount.go) spends
-// the eight bytes that used to hold the phase.
-const linkPadN = 0
+// the eight bytes that used to hold the phase, and player.lastLost
+// (state.go) adds eight more across the four seat slots. 56 bytes put perms
+// back at phase 0.
+const linkPadN = 56
