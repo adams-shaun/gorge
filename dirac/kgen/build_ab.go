@@ -3129,6 +3129,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, fmt.Errorf("alt origin %q", az)
 			}
 			sb |= kop.SrAltOrigin | int(altZ)<<kop.SrAltZoneShift
+			if _, ok := fl["altAll"]; ok {
+				// Origin$ Library,Graveyard (lower_libgrave.go): every zone, no election
+				if altZ != kop.ZoneGraveyard {
+					return ki, fmt.Errorf("altAll with alt origin %q", az)
+				}
+				sb |= kop.SrAltAll
+			}
 			zone = kop.ZoneNone // the filter matches cards of every elected zone
 		}
 		if sb, zone, err = sideSearchFlags(in.Op, fl, sb, zone); err != nil {
