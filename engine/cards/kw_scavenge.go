@@ -4,8 +4,6 @@
 
 package cards
 
-import "strings"
-
 func kwScavenge(f *Face, i int, k, head, param string, has func(kind, line string) bool) {
 	if has("A", k) {
 		return
@@ -20,8 +18,8 @@ func kwScavenge(f *Face, i int, k, head, param string, has func(kind, line strin
 	// the Exiled$CardPower paid-list ref (CR 608.2h).
 	//
 	// param is "<cost>" ("2 G"); no corpus line carries a further
-	// colon-separated field, so the first field is the cost.
-	cost, _, _ := strings.Cut(param, ":")
+	// colon-separated field; KeywordCostField is the shared first-field read.
+	cost := KeywordCostField(param)
 	sa, _ := parseSA("", "AB$ PutCounter | Cost$ "+cost+" ExileFromGrave<1/CARDNAME> | ActivationZone$ Graveyard | ValidTgts$ Creature | CounterType$ P1P1 | CounterNum$ __kwScavengeX | SorcerySpeed$ True | Keyword$ Scavenge | SpellDescription$ Scavenge "+cost)
 	if sa != nil {
 		f.setSVar("__kwScavengeX", "Exiled$CardPower")
