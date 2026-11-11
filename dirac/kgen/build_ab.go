@@ -4428,6 +4428,18 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			}
 			ki.C |= int16(i+1) << 1
 		}
+		ki.A = kop.ValueRef{}
+		if in.A.Kind != vNone {
+			// the AddAbilities$ grant (lower_cloneentergrant.go)
+			if !in.A.isConst() || in.A.N < 1 || in.A.N > len(cb.c.overrides) {
+				return ki, fmt.Errorf("BecomeCopy A %v", in.A)
+			}
+			i, err := cb.override(cb.c.overrides[in.A.N-1])
+			if err != nil {
+				return ki, err
+			}
+			ki.A = kop.Const(i + 1)
+		}
 	case "Connive":
 		ki.Op = kop.OpConnive
 	case "ConniveCounters":

@@ -4058,7 +4058,15 @@ func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 	if err != nil {
 		return err
 	}
+	grant, err := lc.cloneEnterGrant(ps) // lower_cloneentergrant.go
+	if err != nil {
+		return err
+	}
 	in := lInstr{Op: "BecomeCopy", Obj: lRef{Kind: rReplaced}, F: f}
+	if grant != nil {
+		lc.out.overrides = append(lc.out.overrides, grant)
+		in.A = cst(len(lc.out.overrides)) // index+1
+	}
 	if rememberCounters {
 		in.B = cst(int(kop.BecomeCopyCtr))
 		in.Note = "with the copy origin's counters"
