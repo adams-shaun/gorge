@@ -4,8 +4,6 @@
 
 package cards
 
-import "strings"
-
 func kwBushido(f *Face, i int, k, head, param string, has func(kind, line string) bool) {
 	// CR 702.45a: "Whenever this creature blocks or becomes blocked, it gets
 	// +N/+N until end of turn." Forge's CardFactoryUtil builds the same two
@@ -15,7 +13,8 @@ func kwBushido(f *Face, i int, k, head, param string, has func(kind, line string
 	// until end of turn. N is the printed parameter text verbatim; all 37
 	// measured corpus lines are numeric (25x1, 11x2, 1x5) and a bare line
 	// expands nothing.
-	n := strings.TrimSpace(param)
+	// param arrives already trimmed (Face.expandKeywords).
+	n := param
 	if n == "" {
 		return
 	}
