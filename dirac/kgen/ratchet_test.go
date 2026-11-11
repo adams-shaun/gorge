@@ -127,13 +127,13 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (the merge with land: Count$TotalDamageReceivedThisTurn lowered: Tangled Colony beside land's 22180; ALL 22180 -> 22181, WOE 261 -> 262).
 	// +2 (an activated ability's XColor$ lowers to kop.Cost.XColor: Crypt Rats, Crimson Hellkite; ALL 22194 -> 22196).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22196, 34442},
+	"ALL": {22240, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {216, 280},
 	"DFT": {255, 276},
 	"DMU": {195, 270},
-	"DSK": {249, 276},
+	"DSK": {250, 276},
 	"ECL": {244, 273},
 	"EOE": {250, 266},
 	"FDN": {517, 517},

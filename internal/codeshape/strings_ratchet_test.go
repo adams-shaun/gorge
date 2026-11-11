@@ -32,7 +32,7 @@ var stringsRatchetScopes = []string{"engine/rules", "engine/cards", "bots/policy
 
 // stringsRatchetMax is the measured count per scope and metric.
 var stringsRatchetMax = map[string]stringsCounts{
-	"engine/rules":   {calls: 1682, sprint: 235, strconv: 158, maps: 237},
+	"engine/rules":   {calls: 1682, sprint: 235, strconv: 158, maps: 236},
 	"engine/cards":   {calls: 307, sprint: 5, strconv: 35, maps: 106},
 	"bots/policynet": {calls: 49, sprint: 7, strconv: 4, maps: 18},
 	"bots/azmcts":    {calls: 7, sprint: 1, strconv: 0, maps: 0},

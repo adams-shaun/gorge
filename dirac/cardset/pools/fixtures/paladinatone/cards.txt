@@ -1,0 +1,10 @@
+# the Paladin of Atonement pool: an upkeep trigger checking the life its
+# controller lost last turn, the dies trigger gaining life equal to its
+# toughness, against burn and attackers (dirac/oracle/paladinatone_test.go)
+Paladin of Atonement
+Savannah Lions
+Plains
+Shock
+Lightning Bolt
+Hill Giant
+Mountain

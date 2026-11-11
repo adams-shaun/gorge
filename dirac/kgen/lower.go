@@ -110,6 +110,7 @@ type lowerCtx struct {
 	firstCastSVar  string    // the SVar a static SpellCast StoreSVar of Count$YouCastThisGame writes (lower_firstcast.go)
 	firstCastTrig  int       // that trigger's index + 1: it lowers to nothing
 	stormTrig      int       // the K:Storm expansion trigger's index + 1: it lowers to nothing (lower_storm.go)
+	imprintMox     bool      // the face is the imprint-mox shape: its two static bookkeeping triggers lower to nothing (lower_imprintmox.go)
 	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff; Yue's hand population, playOwnHand)
 	animAll        bool      // lowering an AnimateAll: animateRemoveKeywords accepts a bare RemoveKeywords$ (gorge effAnimateAll reads it)
 	speedRepl      bool      // lowering a max-speed static's granted replacement: damagePlus reads ValidTarget$ Player.Opponent (lower_maxspeedrepl.go)
@@ -327,6 +328,8 @@ func (lc *lowerCtx) lowerFace() {
 	}
 	lc.lowerRecord()
 	lc.scanStorm() // lower_storm.go: K:Storm's expanded trigger, before the lines lower
+	// lower_imprintmox.go: the imprint-mox shape, before the lines lower
+	lc.imprintMox = lc.imprintMoxShape()
 	lc.lowerKeywords()
 	lc.lowerLines(true, false)
 	lc.lowerTail()
@@ -364,6 +367,9 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 		}
 		if lc.stormTrig == i+1 {
 			continue // K:Storm's expansion: CardDef.Storm and the kernel's native trigger own it (lower_storm.go)
+		}
+		if lc.imprintMox && i > 0 {
+			continue // the imprint mox's static Cleanup / ForgetImprinted$ bookkeeping: the kernel's exiled-with record (lower_imprintmox.go)
 		}
 		if t.Mode == "TapsForMana" {
 			lc.guard(fmt.Sprintf("T[%d] Mode=%s", i, t.Mode), func() error { return lc.tapExtraStatic(t) })
@@ -789,6 +795,9 @@ var expandedKeywords = map[string]bool{
 	// Hideaway (CR 702.75a): gorge kwHideaway's ETB trigger, DB$ Hideaway
 	// (lower_hideaway.go)
 	"Hideaway": true,
+	// Cumulative upkeep (CR 702.24a): gorge kwCumulativeUpkeep expands it into
+	// an upkeep trigger whose body is DB$ CumulativeUpkeep (lower_cumulative.go)
+	"Cumulative upkeep": true,
 }
 
 // protColourLetters maps a "Protection from <q>" colour quality to its
@@ -931,6 +940,16 @@ func (lc *lowerCtx) lowerKeywords() {
 			// CR 506.5: gorge combat.DeclaresAlone over the derived hidden
 			// keywords (Option.AloneRestricted); kernel combat_alone.go
 			lc.out.AloneAtk = true
+		case cards.AloneKeywordOf(head) == cards.AloneKeywordCantBlockAlone && param == "":
+			// CR 506.5's block-only sibling: the lone block is illegal, the
+			// lone attack stays legal (kernel combat_alone.go).
+			lc.out.AloneBlk = true
+		case cards.AloneKeywordOf(head) == cards.AloneKeywordCantAttackOrBlockAlone && param == "":
+			// CR 506.5's compound: BOTH the lone attack and the lone block
+			// are illegal (kernel combat_alone.go). Gorge's
+			// HiddenKeywordFlags carries the same two flags.
+			lc.out.AloneAtk = true
+			lc.out.AloneBlk = true
 		case (head == "Horsemanship" || head == "Intimidate" || head == "Skulk") && param == "":
 			// gorge rules/combat/block.go CanBlock: attacker-keyed blocking
 			// restrictions over the derived keywords (printed only)
@@ -2620,8 +2639,8 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		if err := discardHandCost(&cost); err != nil {
 			return err
 		}
-		if cost.DiscardHand && ab.Kind != akActivated {
-			return refuse("discard-hand cost on a mana ability")
+		if cost.DiscardHand && ab.Kind != akActivated && !discardHandManaShape(cost, ps) {
+			return refuse("discard-hand cost on a mana ability beside a part other than sacrificing the source, or without InstantSpeed$ True")
 		}
 		if cost.TapPowN != 0 && (ab.Kind != akActivated || !tapPowerAlone(cost)) {
 			return refuse("tap-any-number cost beside another part or on a mana ability")

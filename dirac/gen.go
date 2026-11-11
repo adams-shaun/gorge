@@ -99,6 +99,7 @@ type genPrep struct {
 	anyLandwalk     bool // a card has printed landwalk (repl_regenerate.go)
 	anyEvasion      bool // a card has a printed CardDef.Evasion keyword (act_remember.go)
 	anyAloneAtk     bool // a card has printed "can't attack alone" (CardDef.AloneAtk; combat_alone.go)
+	anyAloneBlk     bool // a card has printed "can't block alone" (CardDef.AloneBlk; combat_alone.go)
 	anyStatGoad     bool // a card has a StatGoad static (act_goad.go)
 	anyTokEndCombat bool // some CreateTokenEx carries the AtEOT$ SacrificeCombat rider (trig_tokenateot.go)
 	anyProwessGrant bool // some Continuous static grants prowess: onCast counts one trigger per static (kw_prowess.go)
@@ -358,9 +359,13 @@ type genPrep struct {
 	// anyManaRider: some card has a counter-rider mana ability (mana_rider.go); it sets anyTapsDefer too
 	anyManaRider bool
 	// anySelfTaps: some card has a lowered self Taps watcher (TfSelf). kgen
-	// lowers one only on a card with no printed mana ability, so it can only
-	// defer a granted mana ability's tap (act_waterbend.go windowCensusComplete).
+	// lowers one on a card with a printed mana ability only as the vetted
+	// "deals N damage to you" line (TapPlanPain, City of Brass: priced, never a
+	// gap), so any other can only defer a granted mana ability's tap
+	// (act_waterbend.go windowCensusComplete).
 	anySelfTaps bool
+	// anyDiscHand: some card carries gfDiscHand (mana_discardhand.go).
+	anyDiscHand bool
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
 	// Tender), -1 none: a source gorge's planner census misses, reached by
 	// a potential play's scripted prefix (script_gen.go)
@@ -761,7 +766,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.Daybound || c.Nightbound {
 			p.anyDayNight, g.anyHist = true, true // the spell count rides the history bank
 		}
-		if c.Landwalk != 0 {
+		if c.Landwalk != 0 || landwalkGrantIn(c.Abilities) {
 			g.anyLandwalk = true
 		}
 		if c.CastBF != 0 {
@@ -833,6 +838,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.AloneAtk {
 			g.anyAloneAtk = true
+		}
+		if c.AloneBlk {
+			g.anyAloneBlk = true
 		}
 		if c.MinBlockers != 0 {
 			g.anyMinBlk = true
@@ -1153,6 +1161,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.smallFor(CardID(i)).gapOther = int8(j)
 					g.setFlag(CardID(i), gfDeferred|gfGapOther)
 					g.anyDeferred, g.anyRestrScript, g.anyWindowGap = true, true, true
+				}
+				if kop.DiscardHandManaAb(a) {
+					g.setFlag(CardID(i), gfDiscHand) // a prefix-search gap alone, never a planner unit (mana_discardhand.go)
+					g.anyDiscHand = true
 				}
 				if a.AFlags&kop.AfManaEachColor != 0 && a.AFlags&kop.AfLatent == 0 && g.eachCol(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).eachCol = int8(j)

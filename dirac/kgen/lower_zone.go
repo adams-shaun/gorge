@@ -254,6 +254,11 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		m["ChangeType"] = "Card"
 		ps = &params{m: m, used: ps.used}
 	}
+	if lc.imprintMox && origin == zHand && dest == zExile && ps.is("Imprint", "True") {
+		// the imprint mox's pick: the kernel's reverse exiled-with record
+		// is the imprint (lower_imprintmox.go)
+		ps.consume("Imprint")
+	}
 	if ct, ok := ps.get("ChangeType"); ok {
 		if _, has := ps.m["ValidTgts"]; has && !(origin == zHand && (dest == zExile || dest == zBattlefield || dest == zLibrary) ||
 			(origin == zBattlefield || origin == zGraveyard) && (dest == zExile || dest == zHand) && ps.is("Hidden", "True") ||

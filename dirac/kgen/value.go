@@ -560,6 +560,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		switch rest {
 		case "LifeLostThisTurn":
 			v = lValue{Kind: vLifeLostThisTurn}
+		case "LifeLostLastTurn":
+			// gorge Engine.LifeLostLastTurn: the controller's losses in the
+			// previous turn's window (Paladin of Atonement's upkeep CheckSVar).
+			v = lValue{Kind: vLifeLostLastTurn}
 		case "HasPropertyActive":
 			v = lValue{Kind: vYourTurns, N: 1} // 1 on the controller's turn
 		case "CardsDiscardedThisTurn":
@@ -1270,6 +1274,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	}
 	if arms, ok := strings.CutPrefix(rest, "Metalcraft."); ok {
 		return lc.metalcraftValue(arms, depth) // value_filterheads.go
+	}
+	if arms, ok := strings.CutPrefix(rest, "Threshold."); ok {
+		return lc.thresholdValue(arms, depth) // value_threshold.go
 	}
 	if arms, ok := strings.CutPrefix(rest, "Hellbent."); ok {
 		// gorge cov3BranchHolds: <yes> with no cards in your hand, else <no>

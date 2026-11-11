@@ -873,6 +873,11 @@ const (
 	// Rats): the one colour its announced {X} must be paid in (rules/pay's
 	// AbilityCompiledCost). Appended: earlier ordinals stay stable.
 	PKXColor
+	// A Mode$ Continuous static's CanBlockAmount$ N / CanBlockAny$ True: the
+	// affected creature can block N additional / any number of creatures
+	// (CR 509.1a). Appended: earlier ordinals stay stable.
+	PKCanBlockAmount
+	PKCanBlockAny
 	paramKeyCount
 )
 
@@ -1685,6 +1690,8 @@ var paramKeyNames = [paramKeyCount]string{
 	PKSharedRestrictions:               "SharedRestrictions",
 	PKPreventionEffect:                 "PreventionEffect",
 	PKXColor:                           "XColor",
+	PKCanBlockAmount:                   "CanBlockAmount",
+	PKCanBlockAny:                      "CanBlockAny",
 }
 
 // String is the key's Forge text.

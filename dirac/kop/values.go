@@ -119,6 +119,11 @@ const (
 	// only a card whose one non-mana activated ability is the counted one.
 	// Dragon Whelp.
 	ExActivations
+	// ExLifeLostLastTurn: the life the evaluating controller lost during the
+	// previous turn (gorge PlayerCountPropertyYou$LifeLostLastTurn, the
+	// LifeLostThisTurn tally one turn back; 0 on the first turn).
+	// dirac/turn.go latches it as the turn changes.
+	ExLifeLostLastTurn
 	ExCount_
 )
 

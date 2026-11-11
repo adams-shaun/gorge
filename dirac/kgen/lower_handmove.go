@@ -120,7 +120,10 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 			return refuse("hand move Chooser$ %q", ch)
 		}
 	}
-	mandatory := ps.is("Mandatory", "True")
+	// the imprint mox's pick is gorge zone_change.go's imprint ask, not the
+	// generic hand mover: ChangeNum$ cards, unasked when no more qualify (the
+	// trigger's OptionalDecider$ is the "you may"; lower_imprintmox.go)
+	mandatory := ps.is("Mandatory", "True") || lc.imprintMox && dest == zExile
 	optional := false
 	if o, ok := ps.get("Optional"); ok {
 		if mandatory {

@@ -375,6 +375,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"WISH":       kop.CtrWish,       // Wishclaw Talisman's named counter (CR 122.1)
 	"SKEWER":     kop.CtrSkewer,     // Rotisserie Elemental's named counter (CR 122.1)
 	"NEST":       kop.CtrNest,       // Twitching Doll's named counter (CR 122.1)
+	"AGE":        kop.CtrAge,        // cumulative upkeep's age counter (CR 702.24a; Mystic Remora)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -821,6 +822,7 @@ func (cb *cardBuilder) record() error {
 	d.Evasion = c.Evasion
 	d.Wither = c.Wither
 	d.AloneAtk = c.AloneAtk
+	d.AloneBlk = c.AloneBlk
 	d.Engines = c.Engines
 	d.AtkFace = c.AtkFace
 	d.SagaN = uint8(c.SagaN)
@@ -1977,6 +1979,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vOppExtreme:         kop.ExOppExtreme,
 	vThisTurnActExhaust: kop.ExThisTurnActExhaust,
 	vActivations:        kop.ExActivations,
+	vLifeLostLastTurn:   kop.ExLifeLostLastTurn,
 	vDmgAmount:          kop.ExDmgAmountReceived,
 }
 

@@ -146,15 +146,16 @@ func (e *Engine) bandBlockPairs(pairs [][2]state.ObjID) [][2]state.ObjID {
 	return pairs
 }
 
-// bandBlockedAttackers lists the live attackers blocker b is blocking, in
-// the active player's battlefield order. In gorge a blocker blocks more than
-// one attacker only through CR 702.22h (the block declaration admits one
-// attacker per blocker), so callers ask only when an attacker is banded.
-func (e *Engine) bandBlockedAttackers(b state.ObjID) []state.ObjID {
+// blockedAttackers lists the live attackers blocker b is blocking, in
+// the active player's battlefield order. A blocker blocks more than one
+// attacker through CR 702.22h (banding), BlockAllDefined$ or a
+// CanBlockAmount$/CanBlockAny$ static (combat.BlockCapacity), so callers ask
+// for every attacking object, banded or not.
+func (e *Engine) blockedAttackers(b state.ObjID) []state.ObjID {
 	var out []state.ObjID
 	for _, aid := range e.G.Zone(state.ZBattlefield, e.G.Active) {
 		a := e.G.Obj(aid)
-		if a == nil || !a.IsAttacking || a.Band == 0 {
+		if a == nil || !a.IsAttacking {
 			continue
 		}
 		if slices.Contains(e.liveBlockers(a), b) {
@@ -168,7 +169,7 @@ func (e *Engine) bandBlockedAttackers(b state.ObjID) []state.ObjID {
 // attacker (a band) -- a division queue entry that divides among attackers.
 func (e *Engine) isBandBlocker(id state.ObjID) bool {
 	o := e.G.Obj(id)
-	return o != nil && o.IsBlocking && !o.IsAttacking && len(e.bandBlockedAttackers(id)) > 1
+	return o != nil && o.IsBlocking && !o.IsAttacking && len(e.blockedAttackers(id)) > 1
 }
 
 // divisionRecipients is what queue entry id divides its combat damage
@@ -176,7 +177,7 @@ func (e *Engine) isBandBlocker(id state.ObjID) bool {
 // blockers.
 func (e *Engine) divisionRecipients(id state.ObjID) []state.ObjID {
 	if e.isBandBlocker(id) {
-		return e.bandBlockedAttackers(id)
+		return e.blockedAttackers(id)
 	}
 	return e.liveBlockers(e.G.Obj(id))
 }
@@ -186,10 +187,10 @@ func (e *Engine) divisionRecipients(id state.ObjID) []state.ObjID {
 // except CR 702.22j: an attacker blocked by a creature with banding is
 // divided by the defending player. CR 510.1d: a blocker's controller,
 // except CR 702.22k: a blocker blocking a creature with banding is divided
-// by the active player (every multi-attacker blocker here blocks a band).
+// by the active player.
 func (e *Engine) divisionChooser(id state.ObjID) (state.PlayerID, string) {
 	if e.isBandBlocker(id) {
-		for _, aid := range e.bandBlockedAttackers(id) {
+		for _, aid := range e.blockedAttackers(id) {
 			if e.hasKeywordH(aid, kwhBanding) {
 				return e.G.Active, "the creatures it blocks"
 			}
@@ -212,14 +213,14 @@ func (e *Engine) divisionChooser(id state.ObjID) (state.PlayerID, string) {
 func (e *Engine) appendBandBlockerDivisions(out []state.ObjID, pass bool) []state.ObjID {
 	for _, aid := range e.G.Zone(state.ZBattlefield, e.G.Active) {
 		a := e.G.Obj(aid)
-		if a == nil || !a.IsAttacking || a.Band == 0 {
+		if a == nil || !a.IsAttacking {
 			continue
 		}
 		for _, bid := range e.liveBlockers(a) {
 			if slices.Contains(out, bid) || !e.actsThisDamageStep(bid, pass) || e.combatDamageAmount(bid) <= 0 {
 				continue
 			}
-			if rs := e.bandBlockedAttackers(bid); len(rs) > 1 && e.divisionCount(rs, e.combatDamageAmount(bid)) <= maxDivisionOptions {
+			if rs := e.blockedAttackers(bid); len(rs) > 1 && e.divisionCount(rs, e.combatDamageAmount(bid)) <= maxDivisionOptions {
 				out = append(out, bid)
 			}
 		}
@@ -236,11 +237,11 @@ func (e *Engine) bandBlockerAssignments(as []assignment, firstStrike bool) []ass
 	var done []state.ObjID
 	for _, aid := range e.G.Zone(state.ZBattlefield, e.G.Active) {
 		a := e.G.Obj(aid)
-		if a == nil || !a.IsAttacking || a.Band == 0 {
+		if a == nil || !a.IsAttacking {
 			continue
 		}
 		for _, bid := range e.liveBlockers(a) {
-			rs := e.bandBlockedAttackers(bid)
+			rs := e.blockedAttackers(bid)
 			if len(rs) < 2 || slices.Contains(done, bid) || !e.actsThisDamageStep(bid, firstStrike) {
 				continue
 			}

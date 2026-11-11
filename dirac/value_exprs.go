@@ -145,6 +145,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.lowestLife() // value_lowestlife.go
 	case kop.ExLifeLostThisTurn:
 		return int(s.pl[ctx.ctrl].lifeLost)
+	case kop.ExLifeLostLastTurn:
+		return int(s.pl[ctx.ctrl].lastLost)
 	case kop.ExSum:
 		return s.evalV(k, x.Sub[0], ctx) + s.evalV(k, x.Sub[1], ctx)
 	case kop.ExHandSizeOf:

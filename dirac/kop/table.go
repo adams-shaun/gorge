@@ -308,6 +308,11 @@ type CardDef struct {
 	// declared as an attacker only beside another attacker; not when it has
 	// lost its abilities (dirac/combat_alone.go).
 	AloneAtk bool
+	// AloneBlk is printed "CARDNAME can't block alone." (CR 506.5), and the
+	// block half of the compound "can't attack or block alone.": it is
+	// declared as a blocker only beside another blocker; not when it has lost
+	// its abilities (dirac/combat_alone.go).
+	AloneBlk bool
 	// Evasion holds printed blocking-restriction keywords without a KwMask
 	// bit (Ev* bits): not when the creature has lost its abilities.
 	Evasion uint8

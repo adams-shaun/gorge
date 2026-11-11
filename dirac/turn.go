@@ -73,6 +73,7 @@ func (s *State) beginTurn(p uint8) {
 		pl.landsPlayed = 0
 		pl.drawnTurn = 0
 		pl.lifeGained = 0
+		pl.lastLost = pl.lifeLost // ExLifeLostLastTurn: the turn just ended
 		pl.lifeLost = 0
 		if !DebugSacrificedNoTurnReset {
 			food := pl.sac[sacFood]
