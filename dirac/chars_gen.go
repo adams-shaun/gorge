@@ -896,9 +896,25 @@ func (s *State) grantedHost(k *prep, sl Slot, c CardID) Slot {
 // (Domesticated Watercourse's "becomes an Equipment with equip {2}"); else
 // NoSlot. A loss in the same record (The Irencrag's Everflame) hosts nothing:
 // gorge offers no equip there.
+//
+// On a copy, the printed card's own record hosts too: an as-enters copy's
+// AddAbilities$ grant (Mercurial Pretender, copy_asenters.go), whose ability
+// grantCardAt then reads from the printed card.
 func (s *State) selfGrantHost(k *prep, sl Slot, c CardID, ab uint8) Slot {
-	if !s.fxM.has(sl) || s.genLost(k, sl) || s.cardAt(sl) != c {
+	if !s.fxM.has(sl) || s.genLost(k, sl) || s.cardAt(sl) != c && s.perms[sl].card != c {
 		return NoSlot
+	}
+	if s.ownGrants(k, sl, c, ab) {
+		return sl
+	}
+	return NoSlot
+}
+
+// ownGrants reports whether a live override record on sl made by card c
+// grants sl c's ability ab.
+func (s *State) ownGrants(k *prep, sl Slot, c CardID, ab uint8) bool {
+	if !s.fxM.has(sl) {
+		return false
 	}
 	for i := 0; i < int(s.g.nfx); i++ {
 		r := &s.g.fx[i]
@@ -907,11 +923,23 @@ func (s *State) selfGrantHost(k *prep, sl Slot, c CardID, ab uint8) Slot {
 		}
 		for _, g := range k.t.Overrides[r.r.idx-1].Grant {
 			if g == ab+1 {
-				return sl
+				return true
 			}
 		}
 	}
-	return NoSlot
+	return false
+}
+
+// grantCardAt is the card whose ability ab a granted activation (mode
+// 0x80|ab) hosted by the battlefield permanent at sl names: sl's current
+// card, or, on a copy, its printed card when only a record of the printed
+// card's own grants sl that ability (selfGrantHost).
+func (s *State) grantCardAt(k *prep, sl Slot, ab uint8) CardID {
+	c := s.cardAt(sl)
+	if own := s.perms[sl].card; own != c && s.ownGrants(k, sl, own, ab) && !s.ownGrants(k, sl, c, ab) {
+		return own
+	}
+	return c
 }
 
 // applyOverride records override idx (from card src) on sl.

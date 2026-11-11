@@ -162,6 +162,9 @@ func (s *State) resolveTop(k *prep) {
 			if k.gen != nil && k.gen.anyEvoke {
 				s.evokeEnter(k, &e) // the Adamant bind and the evoke sacrifice (kw_evoke.go)
 			}
+			if k.gen != nil && k.gen.anyDash && e.dashed(k) {
+				s.dashEnter(sl, &e) // haste and the end-step return to hand (kw_dash.go)
+			}
 			if k.gen != nil && k.gen.anyWarp && e.mode&modeWarped != 0 {
 				s.registerWarpExile(e.obj, e.ctrl) // kw_warp.go
 			}
@@ -664,6 +667,8 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.srcOwner()
 	case kop.RefPromised:
 		return s.promisedSeat(k, e) // kw_gift.go
+	case kop.RefAttachedCtrl:
+		return s.attachedCtrl(s.objRefObj(kop.RefAttached))
 	}
 	if k.gen != nil {
 		return s.refPlayer(k, r, s.ctxEntry(&s.res.e))

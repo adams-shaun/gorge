@@ -44,8 +44,8 @@ func TestTwobridMV(t *testing.T) {
 			t.Errorf("%s: mana value %d, want %d", name, got, want)
 		}
 	}
-	if n := unsafe.Sizeof(kop.ManaCost{}); n != 16 { // Hyb [2] -> [4] (14 before); a table field, not State
-		t.Errorf("sizeof(ManaCost) = %d, want 16", n)
+	if n := unsafe.Sizeof(kop.ManaCost{}); n != 18 { // XPip (16 before); a table field, not State
+		t.Errorf("sizeof(ManaCost) = %d, want 18", n)
 	}
 	c := tbl.Cards[id["Defibrillating Current"]].Cost
 	if c.Tb == 0 || c.Hyb[0] != kop.HybTwobrid || c.Hyb[1] != 0 || c.TbN() != 3 {

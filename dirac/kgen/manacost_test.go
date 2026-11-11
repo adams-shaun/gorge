@@ -99,9 +99,10 @@ func TestManaCostShapesAcceptedAndRefused(t *testing.T) {
 	accept := []string{"Saruli Caretaker", "Springleaf Drum", "Citanul Stalwart", "Dragonbroods' Relic",
 		"Gene Pollinator", "Jaspera Sentinel", "Loam Dryad", "Black Lotus", "Wall of Roots", "Llanowar Elves", "Baylen, the Haymaker", "Birchlore Rangers",
 		"Three Tree Mascot", "Abzan Devotee", "Prophetic Prism", "Giant's Boulder", "Omni-Cheese Pizza", // (the last five: kop.FilterManaAb)
-		"Jeskai Devotee", "Mardu Devotee", "Sultai Devotee", "Temur Devotee"} // (kop.Ability.ManaColOrd)
+		"Jeskai Devotee", "Mardu Devotee", "Sultai Devotee", "Temur Devotee", // (kop.Ability.ManaColOrd)
+		"Mana Confluence"} // (a sole {T}, Pay N life ability: kop.SoleLifeManaAb)
 	refuse := map[string]string{
-		"Heritage Druid": "TapX", "Ashnod's Altar": "Sac", "Mana Confluence": "T+PayLife",
+		"Heritage Druid": "TapX", "Ashnod's Altar": "Sac",
 		"Cabal Coffers": "T+Mana", "Agent of Stromgald": "Mana", "Gilded Goose": "T+Sac", "Druids' Repository": "RemoveCtr",
 		"Moonsnare Prototype": "T+TapX",
 	}

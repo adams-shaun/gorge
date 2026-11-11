@@ -17,7 +17,7 @@ func prepAltFree(t *kop.Table, g *genPrep, p *prep) {
 		}
 		for j := range t.Cards[i].Abilities {
 			a := &t.Cards[i].Abilities[j]
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatAlternativeCost && (a.Cost.Flags == 0 && a.Cost.N == 0 || altSacCost(&a.Cost)) && a.Cost.Mana.X == 0 && j < 255 {
+			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatAlternativeCost && (a.Cost.Flags == 0 && a.Cost.N == 0 || altPickCost(&a.Cost)) && a.Cost.Mana.X == 0 && j < 255 {
 				if g.altFree == nil {
 					g.altFree = make([]uint8, len(t.Cards))
 				}
@@ -36,6 +36,17 @@ func altSacCost(c *kop.Cost) bool {
 	return c.Flags == kop.CostSac && c.N > 0 && c.Mana == (kop.ManaCost{})
 }
 
+// altHandExileCost: the alternative cost is paying N life and exiling N hand
+// cards matching its filter, nothing else (Force of Will's PayLife<1> and
+// ExileFromHand<1/Card.Blue+Other>, CR 118.9; kgen altPayLifeExileHand).
+func altHandExileCost(c *kop.Cost) bool {
+	return c.Flags == kop.CostPayLife|kop.CostExileGrave && c.ExileHand && c.N > 0 && c.Mana == (kop.ManaCost{})
+}
+
+// altPickCost: the alternative cost's non-mana parts are picks the cast asks
+// (the sacrifice or the hand exile) rather than a bare mana price.
+func altPickCost(c *kop.Cost) bool { return altSacCost(c) || altHandExileCost(c) }
+
 // offerAltFreeHand offers hand card o's cast for its own free alternative
 // cost (gorge rules alternativeCosts' face walk, legal_walk_hand.go: an
 // AltCostIndex 1 "cast" option) while the static's condition holds for the
@@ -53,11 +64,12 @@ func (s *State) offerAltFreeHand(k *prep, d *Decision, p uint8, o Obj, c CardID,
 	if !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) || s.castHeldOut(o) {
 		return
 	}
-	if altSacCost(&a.Cost) {
-		// the sacrifice alternative (Fireblast): gorge's hand walk offers
-		// its AltCostIndex 1 cast while the permanents can be sacrificed;
-		// the cast asks the targets, then the sacrifice picks (CR 601.2b-h;
-		// buildPickCost serves the static's cost)
+	if altPickCost(&a.Cost) {
+		// the sacrifice alternative (Fireblast), or the pay-life and
+		// hand-exile one (Force of Will): gorge's hand walk offers its
+		// AltCostIndex 1 cast while the permanents can be sacrificed / the
+		// life paid and the cards exiled; the cast asks the targets, then
+		// the picks (CR 601.2b-h; buildPickCost serves the static's cost)
 		ac := s.adjustCost(k, p, c, o, a.Cost.Mana)
 		if !s.pickCostPayable(k, p, &a.Cost, o) || !av.affords(&ac, pipMaskOf(&ac), 0) || !s.windowPoolPays(p, &ac, false) {
 			return

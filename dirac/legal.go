@@ -391,6 +391,9 @@ func addCost(a, b kop.ManaCost) kop.ManaCost {
 		a.Pips[i] += b.Pips[i]
 	}
 	a.X += b.X
+	if a.XPip == 0 {
+		a.XPip = b.XPip // the one XColor$ an added part may carry (CR 107.3)
+	}
 	for i, h := range b.Hyb {
 		if h != 0 {
 			j := hybN(&a)
@@ -1703,6 +1706,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 		}
 		if a.Target() == castEvokeTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyEvoke {
 			s.g.impCast = true // the evoke cost (kw_evoke.go): beginCast marks the entry evoked
+		}
+		if a.Target() == castDashTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyDash {
+			s.g.impCast = true // the dash cost (kw_dash.go): beginCast marks the entry dashed
 		}
 		if a.Target() == castAltTgt && a.Mode() == 0 && k.gen != nil && k.gen.altFree != nil {
 			s.g.altCast = true // the card's own mana alternative cost (cast_altfree.go)

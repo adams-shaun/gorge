@@ -215,6 +215,11 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 					if payment == nil || !addPotentialChosenColour(e, &out, id, ma) {
 						if !addPotentialReflected(e, &out, p, id, ma) {
 							e.addPotentialManaOf(&out, ma)
+							// A Condition-split ability adds its sub's production instead
+							// when the gate holds (mana_condsplit.go): count both.
+							if sub := condSplitLiveSub(e, p, id, ma); sub != nil {
+								e.addPotentialManaOf(&out, sub)
+							}
 						}
 					}
 					if tapExtra {

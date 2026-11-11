@@ -239,6 +239,13 @@ func manaCostOf(m manaCost) (kop.ManaCost, error) {
 	if m.XXX {
 		out.X = 3
 	}
+	if m.XColor != 0 {
+		i := strings.IndexByte("WUBRG", m.XColor)
+		if i < 0 || out.X == 0 {
+			return out, fmt.Errorf("XColor mana %s", m)
+		}
+		out.XPip = uint8(i + 1)
+	}
 	return out, nil
 }
 
@@ -701,6 +708,16 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Dash != nil {
+		// CR 702.109a: no KwMask bit is free, so the dash marker is its own
+		// field; the cost is the hand's alternative cost, and the permanent
+		// gains haste and returns to hand at the next end step
+		// (dirac/kw_dash.go)
+		d.HasDash = true
+		if d.DashCost, err = manaCostOf(*c.Dash); err != nil {
+			return err
+		}
+	}
 	if c.Bestow != nil {
 		// CR 702.103a: no KwMask bit is free, so the bestow marker is its own
 		// field; the cost is the hand's alternative cost of the Aura cast and
@@ -1024,7 +1041,11 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	if c.PayLife > 0 && c.LifeX {
 		return out, refuse("life cost: PayLife<N> beside PayLife<X>")
 	}
-	if c.PayLife > 0 {
+	if c.PayLife > 0 && c.ExileG != nil && c.ExileHand && c.PayLife == c.ExileGN {
+		// PayLife<N> beside ExileFromHand<N/Spec> (an alternative cost,
+		// lower_altexilehand.go): the two parts share Cost.N, one count
+		out.Flags |= kop.CostPayLife
+	} else if c.PayLife > 0 {
 		set(kop.CostPayLife, c.PayLife)
 	}
 	if c.LifeX {
@@ -1838,6 +1859,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefOppNonRemCtrl, nil
 	case rPromised:
 		return kop.RefPromised, nil
+	case rAttachedCtrl:
+		return kop.RefAttachedCtrl, nil
 	case rSrcOwner:
 		return kop.RefSrcOwner, nil
 	case rTriggerAttackers:

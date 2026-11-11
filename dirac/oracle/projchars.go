@@ -83,7 +83,9 @@ var gorgeKwExact = map[string]kop.KwMask{
 	// KwCantBlock plus the override record's CantAttack (masked like
 	// every kwStaticBits keyword: compared through the combat options)
 	"CARDNAME can't attack or block.": kop.KwCantBlock,
-	"Hexproof:Instant":                kop.KwHexproofFromInstants, "HexproofFromInstants": kop.KwHexproofFromInstants,
+	// a Pump KW$ grant (Alchemist's Vial): the same kernel pair
+	"HIDDEN CARDNAME can't attack or block.": kop.KwCantBlock,
+	"Hexproof:Instant":                       kop.KwHexproofFromInstants, "HexproofFromInstants": kop.KwHexproofFromInstants,
 	"Protection from black": kop.KwProtBlack, "ProtectionFromBlack": kop.KwProtBlack,
 	"Protection from red": kop.KwProtRed, "ProtectionFromRed": kop.KwProtRed,
 	"Prevent all combat damage that would be dealt to CARDNAME.":              kop.KwPreventCombatDamageTo,
@@ -141,6 +143,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Sneak":                  "CardDef.HasSneak (a declare-blockers hand alt cost; compared through the cast options and the entry's tapped and attacking flags)",
 	"MayFlashCost":           "CardDef.HasMayFlash (an instant-timing hand cast for the mana cost plus the extra; compared through the cast options; kw_mayflash.go)",
 	"Web-slinging":           "CardDef.HasWebSling (a hand alt cost plus returning a tapped creature; compared through the cast options and the return; kw_websling.go)",
+	"Dash":                   "CardDef.HasDash (a hand alt cost, haste and the end-step return to hand; compared through the cast options, the stack and the battlefield; kw_dash.go)",
 	"Evoke":                  "CardDef.HasEvoke (a hand alt cost and the sacrifice trigger queued as it enters; compared through the cast options and the stack; kw_evoke.go)",
 	"Start your engines":     "CardDef.Engines (CR 702.179a; compared through the speed projection)",
 	"Bargain":                "CardDef.Bargain (an optional additional cost, no battlefield characteristic; compared through the cast options; kw_bargain.go)",

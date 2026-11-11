@@ -252,6 +252,7 @@ CzUntilLeaves	untyped int	1
 DelayBeginCombat	untyped int	6
 DelayDiesThisTurn	untyped int	5
 DelayEndCombat	untyped int	3
+DelayPlayerUpkeep	untyped int	9
 DelaySpellCast	untyped int	4
 DelaySpellUncounter	untyped int	8
 DelayUpkeep	untyped int	1
@@ -481,6 +482,7 @@ ExtRememberSearcher	ExtOp	304
 ExtRemoveCounterAny	ExtOp	3
 ExtSacDelayed	ExtOp	32
 ExtSearchCounters	ExtOp	252
+ExtSkipPhase	ExtOp	313
 ExtSpellToLib	ExtOp	308
 ExtStackExileMark	ExtOp	315
 ExtSuspect	ExtOp	190
@@ -950,6 +952,7 @@ ReduceAbPowerUp	untyped int	4
 ReduceAbUnlock	untyped int	2
 ReduceColorBits	untyped int	2
 RefAttached	Ref	11
+RefAttachedCtrl	Ref	37
 RefChosen	Ref	13
 RefController	Ref	5
 RefDefendingPlayer	Ref	15
@@ -1060,6 +1063,7 @@ SacSumToughness	untyped int	4
 SacrificedFood	untyped int	2
 SkipUntapLockAny	untyped int	3
 SkipUntapLockStep	untyped int	2
+SkipUntapPlayerCL	untyped int	4
 SpmActivated	SpecialMask	32
 SpmCloakUp	SpecialMask	8
 SpmDisguiseUp	SpecialMask	2
@@ -1425,6 +1429,7 @@ W7GreatestPowerTgt	int16	12
 W7Imprinted	int16	25
 W7InZone	int16	4
 W7IsCommander	int16	16
+W7LacksIslandwalk	int16	27
 W7NoAbilities	int16	15
 W7NoName	int16	1
 W7NoNameTwin	int16	9

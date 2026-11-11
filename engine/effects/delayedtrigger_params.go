@@ -264,7 +264,7 @@ var delayedTriggerKnownKeys = [...]string{
 	"ValidTgtsDesc",
 	"VoteMessage",
 	"WithoutManaCost",
-	"XMax",
+	"XColor", "XMax",
 	"XMin",
 }
 

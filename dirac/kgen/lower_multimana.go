@@ -581,6 +581,15 @@ func (lc *lowerCtx) refuseGatedMana(ms []*lAbility) bool {
 	if gated == 0 {
 		return false
 	}
+	if len(ms) != 1 {
+		for _, a := range ms {
+			if metalcraftGate(a.ActCond) {
+				// only a card's lone mana ability is verified with this gate
+				lc.refuseNode("card", "metalcraft-gated mana ability beside another mana ability")
+				return true
+			}
+		}
+	}
 	if len(ms) == 2 && fixedColourFiltMana(ms[0], ms[1]) {
 		// a plain {T}: Add {c} and a Station-gated {c}, {T}: Add {c} for each
 		// ... (Evendo, Uthros): gorge's census lists the first ability alone
@@ -633,7 +642,7 @@ func (lc *lowerCtx) refuseGatedMana(ms []*lAbility) bool {
 			lc.refuseNode("card", "gated mana ability beside a mana ability or cost not modelled (plain {T}, amount 1, unrestricted only)")
 			return true
 		}
-		if a.ActCond.Kind != cNone && a.ActCond.Kind != cPresent {
+		if a.ActCond.Kind != cNone && a.ActCond.Kind != cPresent && !metalcraftGate(a.ActCond) {
 			lc.refuseNode("card", "gated mana ability with a non-IsPresent gate")
 			return true
 		}
@@ -659,6 +668,14 @@ func (lc *lowerCtx) refuseGatedMana(ms []*lAbility) bool {
 		lc.refuseNode("card", "gated mana ability producing {C} beside another")
 	}
 	return true
+}
+
+// metalcraftGate: c is Activation$ Metalcraft as lowered (bareCondition): the
+// controller's artifact count at least three. The kernel reads a gated mana
+// ability's Trig.Cond with condEval per call (prepManaGate, manaGateView), so
+// a count compare gates the source's view the way an IsPresent$ gate does.
+func metalcraftGate(c lCond) bool {
+	return c.Kind == cValue && c.A.Kind == vCount && c.A.F != nil && c.Op == opGE && c.B.isConst() && c.B.N == 3
 }
 
 // fixedColourFiltMana: first is a plain unrestricted {T}: Add one mana of one

@@ -1,0 +1,18 @@
+# A land whose only mana ability is "{T}, Pay 1 life: Add one mana of any
+# color" (Mana Confluence, CR 118.4, 605.1a): gorge's planner prices it as last
+# resort at its life (Consequence{Life: 1}), never a plan that is lethal.
+# Decks play it in dirac/oracle/mana_confluence_test.go.
+Mana Confluence
+Serra Angel
+Air Elemental
+Counterspell
+Mana Leak
+Lightning Bolt
+Shock
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Plains
+Island
+Mountain
+Forest

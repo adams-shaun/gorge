@@ -76,6 +76,8 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		if s.g.impCast {
 			if k.t.Cards[c].HasEvoke {
 				e.spc |= spcEvoked // the evoked cast (kw_evoke.go)
+			} else if k.t.Cards[c].HasDash {
+				e.mode |= modeImpended // the dashed cast (kw_dash.go: the bit reads as dashed on a HasDash card)
 			} else {
 				e.mode |= modeImpended // kw_impending.go
 			}
@@ -137,7 +139,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 			cost = s.restrShort(k, p, c, s.restrOriginOfObj(o), cost)
 		}
 		s.tapFor(k, p, &cost, 0, NoObj)
-	} else if mode&castWarp != 0 || k.gen != nil && (k.gen.anyImpending && s.bld().e.impended() || k.gen.anyEvoke && s.bld().e.evoked()) {
+	} else if mode&castWarp != 0 || k.gen != nil && (k.gen.anyImpending && s.bld().e.impended() || k.gen.anyEvoke && s.bld().e.evoked() || k.gen.anyDash && s.bld().e.dashed(k)) {
 		// a hand warp is one of gorge's potential plays (the "warped" cast
 		// option carries Potential: true), so its plan is the composed cost
 		// and the oracle always lowers it, like the kicked cast; so is an
@@ -210,7 +212,8 @@ func (s *State) tapRiderPlan(k *prep, e stackEntry) {
 	s.bld().e.flags, s.bld().bfl, s.bld().fixedGen = fl, bf, fg
 	var av avail
 	s.availFor(k, e.ctrl, &av)
-	if pc.Hyb[0] == 0 && av.affords(&pc, pipMaskOf(&pc), pc.XGeneric(int(e.x))) {
+	pcx := pc.AtX(int(e.x))
+	if pc.Hyb[0] == 0 && av.affords(&pcx, pipMaskOf(&pcx), 0) {
 		s.tapFor(k, e.ctrl, &pc, int(e.x), e.obj)
 	}
 }
@@ -575,6 +578,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		}
 		if cd.HasEvoke && e.evoked() {
 			c = cd.EvokeCost // the evoke cost (CR 702.74a; kw_evoke.go)
+		}
+		if cd.HasDash && e.impended() {
+			c = cd.DashCost // the dash cost (CR 702.109a; kw_dash.go)
 		}
 		if e.mode&modeBestowed != 0 && e.bestowedEntry() {
 			c = cd.BestowCost // the bestow cost (CR 702.103a; kw_bestow.go)
@@ -1187,7 +1193,8 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 		if e.flags&sfAnyMana != 0 && e.kind == seSpell {
 			r = hybridGeneric(anyTypePips(r)) // the pips still to announce are payable by any mana too
 		}
-		if s.faceReachable(k, e.ctrl, &av, &r, r.XGeneric(int(e.x))) || hybGateMutation(s.bld().pipN) {
+		rx := r.AtX(int(e.x))
+		if s.faceReachable(k, e.ctrl, &av, &rx, 0) || hybGateMutation(s.bld().pipN) {
 			d.add(MakeAction(AkChoose, 0, 0, uint8(c)))
 		}
 	}
@@ -2309,8 +2316,8 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 			return &cd.AltAddCost
 		}
 		if s.bld().altAdd == buildAltCost {
-			if a := &cd.Abilities[k.gen.altFree[e.card]-1]; altSacCost(&a.Cost) {
-				return &a.Cost // the sacrifice alternative cost (Fireblast; cast_altfree.go)
+			if a := &cd.Abilities[k.gen.altFree[e.card]-1]; altPickCost(&a.Cost) {
+				return &a.Cost // the sacrifice / hand-exile alternative cost (Fireblast, Force of Will; cast_altfree.go)
 			}
 		}
 		if s.bld().altAdd == buildBeamGrant {

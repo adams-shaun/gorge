@@ -1,0 +1,8 @@
+# Contaminated Bond: "whenever enchanted creature attacks or blocks, its
+# controller loses 3 life" (dirac/oracle/contaminatedbond_test.go)
+Contaminated Bond
+Grizzly Bears
+Hill Giant
+Swamp
+Forest
+Mountain

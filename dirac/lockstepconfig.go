@@ -34,11 +34,9 @@ func LockstepConfig(surface Surface) Config {
 	}
 }
 
-// xFolded is cost with an announced x in its generic part, as the window reads it.
+// xFolded is cost with an announced x folded in, as the window reads it.
 func xFolded(cost kop.ManaCost, x int) kop.ManaCost {
-	cost.Generic += uint8(cost.XGeneric(x))
-	cost.X, cost.XRed = 0, 0
-	return cost
+	return cost.AtX(x)
 }
 
 // xWindowPay pays an announced X through gorge's manual CR 601.2g window, which its
@@ -191,8 +189,9 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 	// a spell cast from elsewhere than the hand) adds nothing to an ask the
 	// building entry cannot pay with it
 	a.xd, a.xdOn = s.payDescNow(NoObj), true
+	a.xPlain = s.cfg&cfgGorgeSurface == 0
 	s.availFor(k, p, a)
-	a.xdOn = false
+	a.xdOn, a.xPlain = false, false
 	// A deferred mana source (Pyromancer's Goggles' TriggersWhenSpent$ {R}) is
 	// absent from the planner census but CR 601.2g's window can tap it, and
 	// gorge's xAsk reads the window (mana_deferred.go; availScript adds it when

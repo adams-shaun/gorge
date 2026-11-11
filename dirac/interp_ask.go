@@ -1825,6 +1825,9 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			continue
 		}
 		if s.objs[o].zone == kop.ZoneBattlefield {
+			if z == kop.ZoneBattlefield {
+				continue // already there: nothing to move (placeFromK has no battlefield destination)
+			}
 			if s.pickLeaves(k, o, z) { // a hidden pick from the battlefield (trig_delayedtiming.go)
 				// a CR 903.9b commander move: the cards from this one on wait on
 				// the battlefield for the answer (zone_cmdzone.go)

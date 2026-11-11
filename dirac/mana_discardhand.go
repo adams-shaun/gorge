@@ -16,9 +16,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // priority where the play is offered or the planner pays it from the pool. A
 // play from the hand never completes: the cost discards it.
 //
-// Modelled only when the Diamonds are p's only census gaps (dhBoard); beside
-// another gap kind the kernel leaves them out, as it did before kgen lowered
-// the card.
+// Modelled only when the Diamonds are p's only census gaps (dhBoard); a table
+// holding a Diamond beside another gap kind is refused at its start
+// (StallDiamondMix, mana_diamondmix.go).
 
 // maxDHGaps bounds the Diamonds one search walks.
 const maxDHGaps = 4
