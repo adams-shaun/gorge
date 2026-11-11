@@ -80,6 +80,10 @@ type Static struct {
 	// <spec>, Sword of Wealth and Power's instants and sorceries). 0 = none.
 	// The granted read is armed by genPrep.anyProtGrant (kernel kw_protection.go prepProtGrant); anyProtF opens the target, block and attach sites.
 	ProtFrom FilterID
+	// WardLife: a StatContinuous grant's "ward—pay N life" amount
+	// (AddKeyword$ Ward:PayLife<N>; Kw holds KwWard; CR 702.21a). Like Ward,
+	// each such static is its own ward instance; 0 = no life ward.
+	WardLife uint8
 }
 
 // Override is a fixed-order override record (the plan's replacement for a

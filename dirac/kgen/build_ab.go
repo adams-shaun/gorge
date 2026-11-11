@@ -1635,6 +1635,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, err
 		}
 		st.Ward = uint8(s.Ward)
+		st.WardLife = uint8(s.WardLife)
 		if add, err = cb.subIndexes(s.AddSub); err != nil {
 			return ka, nil, err
 		}

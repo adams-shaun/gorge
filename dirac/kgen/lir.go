@@ -818,6 +818,8 @@ type lStatic struct {
 	Flags    []string // kind-specific flags
 	Note     string
 	Ward     int // a Continuous grant's "Ward:N" (Kw then holds "Ward")
+	// WardLife: a Continuous grant's "Ward:PayLife<N>" (kop.Static.WardLife)
+	WardLife int
 	// AbilityRed: a ReduceCost static of activated abilities (Type$ Ability)
 	// rather than spells: 1 any, 2 Exhaust abilities only, 3 a Room unlock,
 	// 4 Power-up abilities only, 5 Equip abilities only (F2: their target;

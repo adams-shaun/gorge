@@ -1063,7 +1063,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.StatReduceAbility:
 					g.anyAbReduce = true
 				case kop.StatContinuous:
-					if a.Static.Ward != 0 {
+					if a.Static.Ward != 0 || a.Static.WardLife != 0 {
 						g.anyWardGrant = true
 					}
 					if a.Static.Kw&kop.KwProwess != 0 {
