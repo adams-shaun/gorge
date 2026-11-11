@@ -401,6 +401,15 @@ var triggerModeEventRows = [...]struct {
 	// rather than letting it fall to the allTriggerEvents default keeps a
 	// BecomeMonstrous-only face's mask narrow for every other kind.
 	{cards.TriggerBecomeMonstrous, 0},
+	// BecomeRenowned reads the same AlterAttribute carrier ("Renowned" mark,
+	// ordinal 78), past the 64-bit mask's reach, so it is admitted through
+	// the same fail-open path and gated by trigmatch.becomeRenownedMatches.
+	{cards.TriggerBecomeRenowned, 0},
+	// The DungeonComplete Kind's ordinal (114) is past the 64-bit mask's
+	// reach: allows() fails open for it, so the mode is admitted through
+	// that fail-open path and gated by the full matcher
+	// (trigmatch.dungeonCompletedMatches).
+	{cards.TriggerDungeonCompleted, 0},
 	// CaseSolved reads the same AlterAttribute carrier ("Solved" grant),
 	// admitted through the same fail-open path and gated by
 	// trigmatch.caseSolvedMatches.

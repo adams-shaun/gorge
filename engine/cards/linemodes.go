@@ -142,7 +142,11 @@ const (
 	TriggerAbilityTriggered TriggerMode = 102
 	// FacesDilemma (Star Trek, "whenever you face a dilemma").
 	TriggerFacesDilemma TriggerMode = 103
-	TriggerModeCount                = 104 // one past the last; sizes a dense per-TriggerMode array
+	// BecomeRenowned (Relic Seeker) and DungeonCompleted (Varis, Silverymoon
+	// Ranger), appended so every earlier ordinal is unchanged.
+	TriggerBecomeRenowned   TriggerMode = 104
+	TriggerDungeonCompleted TriggerMode = 105
+	TriggerModeCount                    = 106 // one past the last; sizes a dense per-TriggerMode array
 )
 
 var triggerModeNames = [TriggerModeCount]string{
@@ -249,6 +253,8 @@ var triggerModeNames = [TriggerModeCount]string{
 	TriggerCounterTypeAddedAll:        "CounterTypeAddedAll",
 	TriggerAbilityTriggered:           "AbilityTriggered",
 	TriggerFacesDilemma:               "FacesDilemma",
+	TriggerBecomeRenowned:             "BecomeRenowned",
+	TriggerDungeonCompleted:           "DungeonCompleted",
 }
 
 var triggerModeCodes = func() StrCodes[TriggerMode] {

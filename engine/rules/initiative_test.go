@@ -26,7 +26,6 @@ import (
 // card is now fully supported is stale and fails, and a carrier missing
 // something not listed is a new gap and fails.
 var initiativeExceptionTable = map[string][]string{
-	"Loot Dispute":      {"trig:DungeonCompleted"},
 	"Sarevok's Tome":    {"count:Initiative"},
 	"Undercellar Sweep": {"count:PlayerCountDefinedTriggeredAttackedTargetAndYou$HasPropertyhasInitiative"},
 }

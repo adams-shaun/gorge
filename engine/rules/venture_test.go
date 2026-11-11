@@ -47,10 +47,7 @@ var (
 // Venture itself must never appear here; an entry whose card is now fully
 // supported is stale and fails, and a carrier missing something not listed
 // is a new gap and fails.
-var ventureExceptionTable = map[string][]string{
-	"Sefris of the Hidden Ways": {"trig:DungeonCompleted"},
-	"Varis, Silverymoon Ranger": {"trig:DungeonCompleted"},
-}
+var ventureExceptionTable = map[string][]string{}
 
 // TestVenturePrimitiveRegisteredForEveryCorpusCarrier walks the corpus for
 // every card whose parsed primitives include api:Venture and asserts the

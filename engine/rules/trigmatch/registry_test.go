@@ -48,6 +48,9 @@ var addedAfterTheSplit = []string{
 	"Discover", "SeekAll",
 	// "Whenever you face a dilemma" (Star Trek), matching the ModeChosen marker.
 	"FacesDilemma",
+	// "When CARDNAME becomes renowned" (Relic Seeker) and "Whenever you
+	// complete a dungeon" (Varis), matching the Renowned mark and DungeonComplete.
+	"BecomeRenowned", "DungeonCompleted",
 	// rolled-die-trigger: "Whenever you roll a die ..." (CR 706; Mr. House,
 	// Celebr-8000, Feywild Trickster). RolledDie fires once per die, each with
 	// its own result, and its sibling RolledDieOnce fires once per roll action
