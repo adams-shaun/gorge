@@ -723,3 +723,19 @@ func init() { extOpNames[ExtSpellToLib] = "SpellToLib" }
 const ExtCopyExiledWith ExtOp = 258
 
 func init() { extOpNames[ExtCopyExiledWith] = "CopyExiledWith" }
+
+// ExtPreventNext (CR 615.7): prevent the next B damage that would be dealt
+// this turn to the player or permanent Obj (gorge effects/prevent_damage.go
+// effPreventDamage: one this-turn DamageDone shield per recipient that
+// prevents only the next N damage, depletes across events and lets the rest
+// through). B is the amount, read once as the effect resolves; a recipient
+// that is not on the battlefield (or a player who has lost) takes no shield,
+// and an amount of zero or less installs nothing. A record is a recipient
+// code and the damage it has left in genState.pnx (eight a turn; a ninth
+// stalls StallPrevNext), spent records free their slot. A shield that has
+// to be ordered against another damage replacement (CR 616.1: another
+// shield, a colour or scope prevention, a doubler, a SHIELD counter) stalls
+// StallPrevNext: the order changes what is prevented. dirac/repl_prevnext.go.
+const ExtPreventNext ExtOp = 305
+
+func init() { extOpNames[ExtPreventNext] = "PreventNext" }

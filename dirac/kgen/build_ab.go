@@ -4042,6 +4042,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtPreventColor)) // (Prismatic Strands)
 	case "PreventDamageScope":
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventDamageScope)), int16(in.C)
+	case "PreventNext":
+		// OpExt ExtPreventNext on Obj, B the amount (dirac/repl_prevnext.go)
+		v, err := cb.value(in.A)
+		if err != nil {
+			return ki, err
+		}
+		ki.Op, ki.A, ki.B = kop.OpExt, kop.Const(int(kop.ExtPreventNext)), v
 	case "CounterPlusEOT":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtCounterPlusEOT))
 	case "TurnRepl":

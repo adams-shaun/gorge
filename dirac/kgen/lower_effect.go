@@ -1720,6 +1720,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.earthbend(ps)
 	case "Endure":
 		return lc.endure(ps) // lower_endure.go
+	case "PreventDamage":
+		return lc.preventNext(ps) // lower_preventnext.go
 	case "Clone":
 		return lc.cloneAttached(ps) // lower_cloneattached.go
 	case "Goad":
