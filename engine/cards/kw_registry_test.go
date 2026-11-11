@@ -162,6 +162,9 @@ var expandedHeads = []string{
 	// trigger (engine/cards/kw_tribute.go). Added after the split; the
 	// pre-split switch never expanded it.
 	"Tribute",
+	// Scavenge (CR 702.97): a graveyard PutCounter activation sized by the
+	// exiled card's power (engine/cards/kw_scavenge.go). Added after the split.
+	"Scavenge",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

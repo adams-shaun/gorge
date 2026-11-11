@@ -28,7 +28,6 @@ Provoke
 Prowl
 Rampage
 Ripple
-Scavenge
 Shaman's Trance
 Soulshift
 UntapAdjust

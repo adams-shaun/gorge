@@ -781,6 +781,12 @@ func refPower(h Host, o *state.Object, snapshot bool) int32 {
 		}
 		return h.Power(o.ID)
 	}
+	// A characteristic-defining P/T functions in every zone (CR 208.2a,
+	// 604.3): Face.Power holds only the star's fixed term, so read the layer
+	// walk, which already includes counters. An LKI snapshot keeps its value.
+	if !snapshot && o.Face() != nil && o.Face().CharacteristicDefining() {
+		return h.Power(o.ID)
+	}
 	dp, _ := o.CounterPTTotals()
 	return int32(o.Face().Power()) + dp
 }
