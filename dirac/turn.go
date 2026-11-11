@@ -515,7 +515,7 @@ func (s *State) sba(k *prep) bool {
 		s.cmdDamageSBA(k) // CR 704.6c (combat_cmddamage.go)
 		s.checkOver()
 		if s.over {
-			if k.gen != nil {
+			if k.gen != nil || s.cfg&cfgCommander != 0 {
 				s.ceaseTokensGen()
 			}
 			return true
@@ -672,6 +672,8 @@ func (s *State) sba(k *prep) bool {
 			// pass either way; the order is only observable when both act.
 			if k.gen != nil {
 				s.sbaChainEnd(k)
+			}
+			if k.gen != nil || s.cfg&cfgCommander != 0 {
 				s.ceaseTokensGen()
 			}
 			if k.anySaga && s.sagaSBA(k) {
@@ -697,7 +699,7 @@ func (s *State) sba(k *prep) bool {
 			s.legSaga = s.sagasDue(k)
 			return true
 		}
-		if k.gen != nil {
+		if k.gen != nil || s.cfg&cfgCommander != 0 {
 			s.ceaseTokensGen()
 		}
 		// gorge's order (rules/sba.go): the creature casualties (lethal
