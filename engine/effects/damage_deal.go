@@ -83,6 +83,9 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	if n < 0 {
 		n = 0
 	}
+	if dp.DivideEvenlyDown {
+		n = divideEvenlyDown(h, c, sa, n)
+	}
 	// OptionalDecider$ <spec> (Requiem Monolith: "That creature's controller
 	// may have this artifact deal 1 damage to it"): the damage itself is a
 	// may election made by the NAMED player, resolved through the same
@@ -412,6 +415,25 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	h.EndDamageBatch()
+}
+
+// divideEvenlyDown is DivideEvenly$ RoundedDown (Fireball): the amount each
+// target is dealt is n over the targets still legal as the spell resolves,
+// rounded down (Forge's DamageDealEffect divides by the resolving target
+// list, an illegal target having left it, CR 608.2b); no target deals 0.
+func divideEvenlyDown(h Host, c *Ctx, sa *cards.SA, n int32) int32 {
+	var live int32
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer {
+			live++
+		} else if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
+			live++
+		}
+	}
+	if live == 0 {
+		return 0
+	}
+	return n / live
 }
 
 // emitFromEachSource is DealDamage's multi-source arm: a DamageSource$ spec
