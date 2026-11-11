@@ -1489,6 +1489,8 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Leyline = true
+		case head == "MayEffectFromOpeningHand":
+			lc.refuseNode(node, "%s", refuseOpeningGated(param)) // (lower_gemstone.go)
 		case strings.HasPrefix(k, "A deck can have any number of cards named"):
 			// Deck construction only.
 		case k == "Daybound" || k == "Nightbound":
