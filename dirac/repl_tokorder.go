@@ -288,7 +288,7 @@ func (s *State) execCreateToken(k *prep, in *kop.Instr) (ok, done bool) {
 	if t.on && t.nc == 0 && t.ab[3] != 0 {
 		// the accepted copy-instead election makes this token a copy (repl_tokcopy.go)
 		t.ab[3] = 0
-		if s.mintTokenCopy(k, p, t.cand[3]) {
+		if s.mintTokenCopy(k, in, p, t.cand[3]) {
 			return true, true
 		}
 	} else if na > 0 {
