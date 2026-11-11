@@ -435,6 +435,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseWebSlingCombos()
 	lc.refuseMayFlashCombos()
 	lc.refuseEvokeCombos()
+	lc.refuseDashCombos()          // lower_dash.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
 	lc.lowerImpending()
 }
@@ -574,7 +575,7 @@ func (lc *lowerCtx) refuseMayFlashCombos() {
 	}
 	if out.Kicker != nil || out.Warp != nil || out.Plot != nil || out.Flashback != nil || out.SpellCost != nil || out.AltAddCost != nil || out.Convoke || out.Improvise ||
 		out.Offspring != nil || out.Gift || out.MorphCost != nil || out.Sneak != nil || out.Bestow != nil || out.Impending != nil || out.Mayhem != nil ||
-		out.Harmonize != nil || out.Madness != nil || out.Casualty != 0 || out.Bargain || out.OptCost != nil || out.Teamwork != 0 || out.Spree || out.WebSling != nil || out.Evoke != nil {
+		out.Harmonize != nil || out.Madness != nil || out.Casualty != 0 || out.Bargain || out.OptCost != nil || out.Teamwork != 0 || out.Spree || out.WebSling != nil || out.Evoke != nil || out.Dash != nil {
 		lc.refuseNode("K:MayFlashCost", "MayFlashCost beside an alternative or additional cost")
 	}
 	if out.Cost.X {
@@ -1430,6 +1431,22 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.MayFlash = &mc
+		case head == "Dash":
+			// CR 702.109a: an alternative hand cost; the permanent gains
+			// haste and returns to its owner's hand at the next end step
+			// (dirac/kw_dash.go). Hybrid pips are announced as for any cost;
+			// X, CardManaCost, a ":" or "<" rider and any non-mana part are
+			// refused.
+			mc, err := parseManaCost(param)
+			if err != nil || param == "" || strings.ContainsAny(param, ":<") || mc.X || mc.None {
+				lc.refuseNode(node, "dash cost %q", param)
+				continue
+			}
+			if lc.out.Dash != nil {
+				lc.refuseNode(node, "two Dash keywords")
+				continue
+			}
+			lc.out.Dash = &mc
 		case head == "Evoke":
 			// CR 702.74a: an alternative hand cost; the permanent is
 			// sacrificed as it enters (dirac/kw_evoke.go). Hybrid

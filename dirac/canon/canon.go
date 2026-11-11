@@ -93,7 +93,7 @@ const (
 
 // CastMode codes, the low nibble of an ActCast mode (the high nibble is the
 // option's AltCostIndex). Option.Mode / PlannedCast.Origin spellings.
-var castModes = []string{"", "kicked", "flashback", "mayplay", "surged", "miracle", "bestowed", "plot", "warped", "evoked", "dash", "blitz", "foretell", "disturb", "escape", "offspring"}
+var castModes = []string{"", "kicked", "flashback", "mayplay", "surged", "miracle", "bestowed", "plot", "warped", "evoked", "dashed", "blitz", "foretell", "disturb", "escape", "offspring"}
 
 // CastModeOther is the code of a cast mode the table does not list. The
 // table fills the nibble, so it shares "offspring"'s code: CastModeCode

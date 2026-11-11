@@ -76,6 +76,8 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		if s.g.impCast {
 			if k.t.Cards[c].HasEvoke {
 				e.spc |= spcEvoked // the evoked cast (kw_evoke.go)
+			} else if k.t.Cards[c].HasDash {
+				e.mode |= modeImpended // the dashed cast (kw_dash.go: the bit reads as dashed on a HasDash card)
 			} else {
 				e.mode |= modeImpended // kw_impending.go
 			}
@@ -137,7 +139,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 			cost = s.restrShort(k, p, c, s.restrOriginOfObj(o), cost)
 		}
 		s.tapFor(k, p, &cost, 0, NoObj)
-	} else if mode&castWarp != 0 || k.gen != nil && (k.gen.anyImpending && s.bld().e.impended() || k.gen.anyEvoke && s.bld().e.evoked()) {
+	} else if mode&castWarp != 0 || k.gen != nil && (k.gen.anyImpending && s.bld().e.impended() || k.gen.anyEvoke && s.bld().e.evoked() || k.gen.anyDash && s.bld().e.dashed(k)) {
 		// a hand warp is one of gorge's potential plays (the "warped" cast
 		// option carries Potential: true), so its plan is the composed cost
 		// and the oracle always lowers it, like the kicked cast; so is an
@@ -576,6 +578,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		}
 		if cd.HasEvoke && e.evoked() {
 			c = cd.EvokeCost // the evoke cost (CR 702.74a; kw_evoke.go)
+		}
+		if cd.HasDash && e.impended() {
+			c = cd.DashCost // the dash cost (CR 702.109a; kw_dash.go)
 		}
 		if e.mode&modeBestowed != 0 && e.bestowedEntry() {
 			c = cd.BestowCost // the bestow cost (CR 702.103a; kw_bestow.go)

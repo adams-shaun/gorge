@@ -180,6 +180,12 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ := CastModeCode("evoked")
 			return Pack(ActCast, src, RefNone, cm)
 		}
+		if mode == 0 && tgt == 4 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
+			// the dash cast (CR 702.109a; kernel kw_dash.go castDashTgt):
+			// gorge's "dashed" cast option, AltCostIndex 0
+			cm, _ := CastModeCode("dashed")
+			return Pack(ActCast, src, RefNone, cm)
+		}
 		var cm uint8
 		switch {
 		case mode == 0 && tgt == 1 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand:

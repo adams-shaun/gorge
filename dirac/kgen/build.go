@@ -708,6 +708,16 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Dash != nil {
+		// CR 702.109a: no KwMask bit is free, so the dash marker is its own
+		// field; the cost is the hand's alternative cost, and the permanent
+		// gains haste and returns to hand at the next end step
+		// (dirac/kw_dash.go)
+		d.HasDash = true
+		if d.DashCost, err = manaCostOf(*c.Dash); err != nil {
+			return err
+		}
+	}
 	if c.Bestow != nil {
 		// CR 702.103a: no KwMask bit is free, so the bestow marker is its own
 		// field; the cost is the hand's alternative cost of the Aura cast and

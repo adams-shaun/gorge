@@ -450,6 +450,14 @@ type CardDef struct {
 	HasEvoke bool
 	// EvokeCost is the printed evoke cost (HasEvoke).
 	EvokeCost ManaCost
+	// HasDash is printed dash (CR 702.109a; no KwMask bit is free): the hand
+	// offers the dashed cast at DashCost (gorge's "dashed" option,
+	// FlagDashed); the permanent that cast produces gains haste and returns
+	// to its owner's hand at the beginning of the next end step
+	// (dirac/kw_dash.go).
+	HasDash bool
+	// DashCost is the printed dash cost (HasDash).
+	DashCost ManaCost
 	// HasBestow is printed bestow (CR 702.103; no KwMask bit is free): the
 	// hand offers the bestowed cast (AkBestow) at BestowCost; the spell is
 	// an Aura with enchant creature (BestowTgt) and the permanent an Aura,

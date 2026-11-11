@@ -307,6 +307,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Evoke != nil {
 		fmt.Fprintf(w, " evoke=%s", c.Evoke)
 	}
+	if c.Dash != nil {
+		fmt.Fprintf(w, " dash=%s", c.Dash)
+	}
 	if c.Convoke {
 		fmt.Fprintf(w, " convoke")
 	}
