@@ -336,7 +336,7 @@ ExCountAtLeast	ExprKind	30
 ExCountExile	ExprKind	27
 ExCountGraveyard	ExprKind	4
 ExCountHand	ExprKind	250
-ExCount_	ExprKind	59
+ExCount_	ExprKind	60
 ExCounterKinds	ExprKind	225
 ExCountersOn	ExprKind	18
 ExCreaturesDied	ExprKind	19
@@ -397,6 +397,7 @@ ExSumPower	ExprKind	5
 ExTapPower	ExprKind	222
 ExTargetPlayers	ExprKind	223
 ExTgtSpent	ExprKind	58
+ExThisTurnActExhaust	ExprKind	59
 ExThisTurnActGrave	ExprKind	50
 ExThisTurnCast	ExprKind	33
 ExThisTurnCastSpec	ExprKind	47
@@ -1041,6 +1042,7 @@ RetDelayedMany	untyped int	8192
 RetFromLibrary	untyped int	16384
 RetShuffleOwed	untyped int	8192
 RetUnderOpponent	untyped int	4096
+RollDieCoin	int16	1
 SacSumMV	untyped int	8
 SacSumPower	untyped int	2
 SacSumToughness	untyped int	4
@@ -1133,6 +1135,7 @@ StackKwImprovise	int16	1
 StackKwLifelink	int16	4
 StackKwSplitSecond	int16	6
 StackKwStorm	int16	5
+StatActivationLimit	StaticKind	227
 StatAlternativeCost	StaticKind	5
 StatAnyTypeCreatures	StaticKind	239
 StatAsIfHaste	StaticKind	231
@@ -1161,6 +1164,7 @@ StatCount	StaticKind	20
 StatDisableETB	StaticKind	234
 StatExtraLandPlay	StaticKind	12
 StatFbGrant	StaticKind	242
+StatFlipCoinMod	StaticKind	226
 StatGoad	StaticKind	249
 StatHexproofOwnColors	StaticKind	19
 StatIncreaseCost	StaticKind	9
