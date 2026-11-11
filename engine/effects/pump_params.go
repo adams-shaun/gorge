@@ -411,7 +411,7 @@ var pumpKnownKeys = [...]string{
 	"ValidTgtsDesc",
 	"VoteMessage",
 	"WithoutManaCost",
-	"XMax",
+	"XColor", "XMax",
 	"XMin",
 }
 

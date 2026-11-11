@@ -146,7 +146,8 @@ func FaceCompiledCost(e Engine, f *cards.Face) *CompiledCost {
 
 // AbilityCompiledCost is CompiledCostOf(sa's Cost$ text) through the
 // ability's cost slot, the same way FaceCompiledCost serves a face's
-// ManaCost: later reads follow a pointer instead of hashing the text. The
+// ManaCost: later reads follow a pointer instead of hashing the text. An
+// XColor$ ability's cost carries Cost.XColor (withAbilityXColor). The
 // result is READ-ONLY.
 func AbilityCompiledCost(e Engine, sa *cards.SA) *CompiledCost {
 	raw := sa.ParamStr(cards.PKCost)
@@ -154,7 +155,7 @@ func AbilityCompiledCost(e Engine, sa *cards.SA) *CompiledCost {
 	if v, ok := slot.Load(raw); ok {
 		return v.(*CompiledCost)
 	}
-	c := CompiledCostOf(e, raw)
+	c := withAbilityXColor(sa, CompiledCostOf(e, raw))
 	if slot == nil {
 		return c
 	}
@@ -171,7 +172,16 @@ func FaceCostOf(f *cards.Face) *CompiledCost {
 // AbilityCostOf is AbilityCompiledCost for a caller without an engine, on
 // FaceCostOf's terms.
 func AbilityCostOf(sa *cards.SA) *CompiledCost {
-	return slotCost(sa.CostSlot(), sa.ParamStr(cards.PKCost))
+	raw := sa.ParamStr(cards.PKCost)
+	slot := sa.CostSlot()
+	if v, ok := slot.Load(raw); ok {
+		return v.(*CompiledCost)
+	}
+	c := withAbilityXColor(sa, CompiledCostFor(nil, raw))
+	if slot == nil {
+		return c
+	}
+	return slot.Store(raw, c).(*CompiledCost)
 }
 
 func slotCost(slot *cards.Slot, raw string) *CompiledCost {
