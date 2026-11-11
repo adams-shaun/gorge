@@ -569,7 +569,11 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		// other player count semantics (CardsInHand, Valid, Counters.Poison,
 		// ...) for refs that used to fail closed; an unknown ref or property
 		// still fails closed to (0, false).
-		if prop != "LifeTotal" {
+		// The modelled property set is defaultRefPropertyModelled's: LifeTotal
+		// for every such ref, plus CardsInHand and the Valid-family heads for
+		// TriggeredTarget only. Every other ref/property still fails closed to
+		// (0, false).
+		if !defaultRefPropertyModelled(ref, prop) {
 			return 0, false
 		}
 		pts, ok := definedSpec(h, c, ref)
@@ -700,6 +704,31 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		n = applyCountOpOperand(h, c, n, op, 0)
 	}
 	return n, true
+}
+
+// defaultRefPropertyModelled reports whether a property is readable on a ref
+// the default arm resolves through definedSpec. LifeTotal is modelled for
+// every such ref (Quietus Spike's / Ebonblade Reaper's
+// TriggeredTarget$LifeTotal/HalfUp). CardsInHand and the Valid-family heads
+// are modelled ONLY for TriggeredTarget -- the damaged player of a DamageDone
+// trigger reads Battle Angels of Tyr's NumInHand, NumLands, sword-of-war-and-
+// peace-style damage and friends -- so the widening cannot spread to
+// TriggeredPlayer, TriggeredDefendingPlayer or any other ref's unmodelled
+// property. A Valid head is recognised exactly like the property switch below
+// reads it: the word before the first space satisfies countZone.
+func defaultRefPropertyModelled(ref, prop string) bool {
+	if prop == "LifeTotal" {
+		return true
+	}
+	if ref != "TriggeredTarget" {
+		return false
+	}
+	if prop == "CardsInHand" {
+		return true
+	}
+	head, _, _ := strings.Cut(prop, " ")
+	_, ok := countZone(head)
+	return ok
 }
 
 // refPower/refToughness use rules' derived characteristics while a referenced

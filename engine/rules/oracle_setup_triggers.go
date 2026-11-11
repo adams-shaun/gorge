@@ -109,7 +109,13 @@ func setupBackFaceDropsChapter(o *state.Object, backFace bool) bool {
 //     trigger the move queued is discarded.
 //
 // Only fixture scenarios take either branch; a hand-written scenario keeps the
-// ordinary move and every trigger it queues.
+// ordinary move and every trigger it queues. One move is the exception: a
+// Commanders entry is placed out of the command zone by setup's own synthetic
+// MoveZone, and CR 903.9b's optional "put it into the command zone instead?"
+// replacement must not be offered for it -- the cut already shows the
+// commander in its listed zone. The replacement pass is skipped for exactly
+// that move (see the guard in the body), not for a hand-written scenario's
+// other placements.
 //
 // A nonzero bearer marks a battlefield move as an effect-named Aura entry
 // (events.MarkNamedAttachEntry): the Aura enters attached to bearer with no
@@ -123,6 +129,15 @@ func (r *oracleRun) placeSetupCard(id state.ObjID, from, to state.Zone, fixture,
 		events.MarkNamedAttachEntry(&move, []state.ObjID{bearer})
 	}
 	if !fixture {
+		if from == state.ZCommand && (to == state.ZHand || to == state.ZLibrary) {
+			// The synthetic move out of the command zone: the commander is
+			// already in its listed zone at the cut, so the construct-rule
+			// replacement (CR 903.9b) must not re-ask. Every other placement
+			// of a hand-written scenario keeps its ordinary move below.
+			prior := e.applyingReplacement
+			e.applyingReplacement = true
+			defer func() { e.applyingReplacement = prior }()
+		}
 		e.emit(move)
 		return
 	}

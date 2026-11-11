@@ -1210,6 +1210,7 @@ func cloneFieldsEngineParked2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 				}
 				c.replChoices[i0].manaBoundary = &p1
 			}
+			c.replChoices[i0].drawChain = append([]string(nil), e.replChoices[i0].drawChain...)
 		}
 	}
 	c.sbaChain = append([]state.ObjID(nil), e.sbaChain...)

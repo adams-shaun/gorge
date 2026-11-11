@@ -1,0 +1,24 @@
+{
+  "card": "Jade Avenger",
+  "family": "combat-keywords",
+  "author": "cli-20261111T163531Z (Oracle + CR only)",
+  "scenarios": [
+    {
+      "name": "bushido-becomes-blocked-pumps",
+      "cr": ["702.45a", "509.1", "603.2"],
+      "why": "Jade Avenger has bushido 2; when it becomes blocked it gets +2/+2 until end of turn, so the 2/2 is a 4/4.",
+      "setup": {
+        "p0": {"battlefield": ["Jade Avenger"]},
+        "p1": {"battlefield": ["Runeclaw Bear"]}
+      },
+      "steps": [
+        {"op": "attack", "seat": 0, "attackers": ["p0:Jade Avenger"], "defender": "p1"},
+        {"op": "block", "seat": 1, "blocks": [["p1:Runeclaw Bear", "p0:Jade Avenger"]]},
+        {"op": "resolve"}
+      ],
+      "expect": [
+        {"card": "p0:Jade Avenger", "pt": "4/4"}
+      ]
+    }
+  ]
+}

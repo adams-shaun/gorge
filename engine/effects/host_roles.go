@@ -384,6 +384,15 @@ type HostReplacements interface {
 	// reports Amount 0, so the caller draws nothing for it). The test double
 	// returns it unchanged.
 	CountReplacementProposed(ev events.Event) events.Event
+	// RollModifyCostPayable reports whether player can pay the roll-modify
+	// keyword's cost (a fixed PayLife<N>; any other shape is not payable):
+	// life of at least N (CR 119.4) and no life-payment lock. The test double
+	// reports false.
+	RollModifyCostPayable(player state.PlayerID, cost string) bool
+	// PayRollModifyCost pays that cost through the PayLife proposal boundary
+	// (repl:PayLife replacements see it) and reports whether it was paid;
+	// false pays nothing. The test double reports false.
+	PayRollModifyCost(player state.PlayerID, cost string) bool
 	// ReplaceEvent applies a ReplaceEffect body's requested change to the
 	// event currently being replaced. It is inert outside replacement
 	// resolution; rules owns the event and records the resulting delta.

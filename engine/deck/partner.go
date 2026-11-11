@@ -6,8 +6,9 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// IsPartnerPair reports whether two cards may be a two-commander PAIR. Three
-// pair families qualify, all from the same CR 903.13 family of abilities:
+// IsPartnerPair reports whether two cards may be a two-commander PAIR. Four
+// pair families qualify, all from the same CR 903.13 family of abilities
+// (the fourth is CR 702.124k):
 //
 //   - plain Partner (CR 903.13a): each card carries a Partner-family ability
 //     and both are plain Partners — the "Friends forever" alias spells
@@ -17,20 +18,26 @@ import (
 //     K:Doctor's companion and the other is a Doctor (the creature subtype)
 //     — or two distinct Doctors each carrying the companion keyword. The
 //     companion's reminder text is "You can have two commanders if the other
-//     is the Doctor."
+//     is the Doctor.";
+//   - Choose a Background (CR 702.124k): one card carries K:Choose a
+//     Background and the other is a legendary Background enchantment.
 //
 // A plain Partner paired with a Partner-with card is not a legal pair (each
 // half of a named pair names its own partner), and neither is a Doctor's
-// companion paired with anything but a Doctor.
+// companion paired with anything but a Doctor, nor a Choose-a-Background card
+// paired with anything but a legendary Background.
 //
-// This is the ONE pair check for every family: deck.ValidateCommander gates
-// a two-commander deck file through it, and engine/rules/engine.go's partnerPairOK
-// (the engine's seating gate over rules.Config.Commanders) delegates here —
-// the same arrangement as IsCommanderEligible, which the engine already
-// delegates to. Validator and engine therefore cannot disagree about what a
-// legal pair is, and a future pair family is added in exactly one place.
+// This is the ONE family check: IsCommanderPair (the full pair gate, adding
+// each half's individual legality) is what deck.ValidateCommander and
+// engine/rules' commanderPairOK call, and engine/rules/commander_config.go's
+// partnerPairOK and the dirac adapter delegate here — the same arrangement as
+// IsCommanderEligible. Validator and engine therefore cannot disagree about
+// what a legal pair is, and a future pair family is added in exactly one place.
 func IsPartnerPair(a, b *cards.Card) bool {
 	if doctorCompanionPair(a, b) {
+		return true
+	}
+	if isChooseABackgroundPair(a, b) {
 		return true
 	}
 	ha, hb := partnerHead(a), partnerHead(b)
@@ -41,6 +48,58 @@ func IsPartnerPair(a, b *cards.Card) bool {
 		return true
 	}
 	return partnerWithNames(a, b.Faces[0].Name) && partnerWithNames(b, a.Faces[0].Name)
+}
+
+// IsCommanderPair reports whether a and b may be designated together as a
+// seat's two commanders: they form a pair in one of the IsPartnerPair
+// families AND each half is individually a legal commander, or is a legendary
+// Background enchantment. The Background exception (CR 702.124k's last
+// sentence: it can't be your commander unless paired with a Choose-a-
+// Background card) is admitted only here, so a lone Background is still
+// rejected by every single-commander path and IsCommanderEligible is not
+// widened. Nil cards are never a pair.
+func IsCommanderPair(a, b *cards.Card) bool {
+	return IsPartnerPair(a, b) && commanderPairHalfLegal(a) && commanderPairHalfLegal(b)
+}
+
+// commanderPairHalfLegal reports whether c may be one half of a commander
+// pair: individually commander-eligible, or a legendary Background enchantment.
+func commanderPairHalfLegal(c *cards.Card) bool {
+	return IsCommanderEligible(c) || isLegendaryBackgroundEnchantment(c)
+}
+
+// isChooseABackgroundPair reports whether a and b are a legal Choose-a-
+// Background pair (CR 702.124k): one carries K:Choose a Background and the
+// other is a legendary Background enchantment, in either order. Faces are read
+// front-only like the Doctor family (CR 712.2).
+func isChooseABackgroundPair(a, b *cards.Card) bool {
+	return (hasChooseABackground(a) && isLegendaryBackgroundEnchantment(b)) ||
+		(hasChooseABackground(b) && isLegendaryBackgroundEnchantment(a))
+}
+
+// hasChooseABackground reports whether c carries K:Choose a Background on its
+// front face.
+func hasChooseABackground(c *cards.Card) bool {
+	return c != nil && len(c.Faces) > 0 && c.Faces[0].HasKeyword("Choose a Background")
+}
+
+// isLegendaryBackgroundEnchantment reports whether c's front face is a
+// legendary enchantment with the Background subtype (case-insensitive over
+// Types, the isDoctorCard read).
+func isLegendaryBackgroundEnchantment(c *cards.Card) bool {
+	if c == nil || len(c.Faces) == 0 {
+		return false
+	}
+	f := c.Faces[0]
+	if !f.IsLegendary() || !f.IsEnchantment() {
+		return false
+	}
+	for _, ty := range f.Types {
+		if strings.EqualFold(strings.TrimSpace(ty), "Background") {
+			return true
+		}
+	}
+	return false
 }
 
 // doctorCompanionPair reports whether a and b are a legal Doctor's-companion

@@ -983,6 +983,7 @@ func (e *Engine) castModeAsk() bool {
 	}
 	ctx := effects.NewCtxPtr(pc.card, pc.player, effects.CtxInit{})
 	ctx.Kicker.PendingKicked = modeIsKicked(pc.mode)
+	ctx.Kicker.PendingAltCost = pc.altCostPaid
 	// CR 702.194b-c: the mode count is fixed by the declared Teamwork
 	// election at 601.2b, before the optional tap payment is answered.
 	ctx.Kicker.PendingTeamwork = castAnswerCodes.Code(pc.mode) == castAnswerTeamworkMode

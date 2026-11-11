@@ -91,7 +91,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.43a,b | not-impl | - | - | LOUD (24); SILENT granted (1 card) |
 | 702.44a,b,d | follows | `engine/cards/kw_sunburst.go#kwSunburst` | `TestSunburstEtchedOracleEntersWithP1P1PerColour` `TestSunburstPentadPrismEntersWithChargePerColour` | counter kind from the printed type; one per line |
 | 702.44c | not-impl | - | - | LOUD (coverage gate, through Modular) |
-| 702.45a,b | not-impl | - | - | LOUD (37); SILENT granted (Fumiko the Lowblood) |
+| 702.45a,b | partial | `engine/cards/kw_bushido.go#kwBushido` `engine/rules/trigger_blocks.go#Engine.checkBlocksTriggers` `engine/rules/trigger_blocks.go#Engine.checkAttackerBlockedTriggers` | `TestBushidoPumpsOnBlocksAndBecomesBlocked` | printed K:Bushido expands to the two block triggers; granted Bushido (Fumiko the Lowblood, Sensei Golden-Tail's Animate) not synthesized |
 | 702.46a,b | not-impl | - | - | LOUD (26); SILENT granted (Kodama of the Center Tree) |
 | 702.47a-e | not-impl | - | - | LOUD (30) |
 | 702.48a-c | not-impl | - | - | LOUD (6) |

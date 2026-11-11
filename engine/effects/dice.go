@@ -509,7 +509,9 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 	ranges := parseDieRanges(sa.ParamStr(cards.PKResultSubAbilities))
 	for i := int32(0); i < amount; i++ {
 		die := int32(h.Rand(int(sides))) + 1
-		result := die + modifier
+		// CR 706.2: the roller's roll-modify keywords adjust the result
+		// BEFORE the die's Note, so the RolledDie trigger reads the final one.
+		result := modifyRolledDie(h, c, die+modifier)
 		dice = append(dice, result)
 		h.Emit(DieRollNote(c.Source, c.Controller, sides, die, result))
 	}

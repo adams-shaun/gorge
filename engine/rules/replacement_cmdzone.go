@@ -52,6 +52,9 @@ func init() {
 		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",
 		"repl:CreateToken", "repl:RollPlanarDice", "repl:Explore", "repl:Attached", "repl:Scry", "api:ReplaceToken",
 		"repl:AddCounter", "api:ReplaceCounter",
+		// repl:RollDice: continueRollDiceReplacements (replacement_scry.go)
+		// rewrites the held roll's dice count and ignored-low count.
+		"repl:RollDice",
 		// repl:Connive (Leader, Super-Genius) and repl:LoseMana (Ozai, Horizon
 		// Stone, Kruphix, Omnath) are applied by engine/rules/replacement_connive.go and
 		// engine/rules/replacement_lose_mana.go; this makes the coverage ratchet see them.

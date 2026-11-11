@@ -161,15 +161,11 @@ func TestReforgeTheSoulWheelDiscardsWholeHandsAndDrawsSeven(t *testing.T) {
 
 // TestWindfallDiscardsWholeHandsAndRemembersThem pins the Windfall DISCARD
 // half end to end: both players' entire hands are discarded (one
-// events.Discard per card). The chained draw half is DELIBERATELY not pinned
-// here: Windfall's SVar X (PlayerCountPlayers$HighestValidGraveyard,Library,
-// Exile Card.IsRemembered+YouOwn) is unresolvable in engine/effects/count.go —
-// countZone there only knows the single-zone head spellings, so the
-// comma-joined multi-zone form degrades to 0 and the draw emits Amount 0 per
-// player (measured live: 14 draw events, every one Amount 0). That is a
-// separate defect (population
-// 3 corpus files: windfall, whispering_madness, jaces_archivist) — pinning a
-// 0-draw hand size here would enshrine it. The RememberDiscarded$ rider is
+// events.Discard per card). The chained draw half is now pinned separately by
+// TestWindfallDrawsTheGreatestDiscard (windfall_draw_test.go): SVar X
+// (PlayerCountPlayers$HighestValidGraveyard,Library,Exile
+// Card.IsRemembered+YouOwn) resolves through the multi-zone count, so both
+// players draw the greatest number discarded this way. The RememberDiscarded$ rider is
 // pinned at the unit level in engine/effects/cardflow_discard_hand_test.go
 // (TestDiscardHandRememberDiscardedRiderAppliesPerCard); Windfall's own
 // WindfallCleanup (DB$ Cleanup | ClearRemembered$ True) clears the source's

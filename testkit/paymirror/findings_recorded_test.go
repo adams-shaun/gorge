@@ -26,14 +26,16 @@ import (
 //     first. The offer proves every planned step with the card on the stack
 //     (paymentPlanHoldsOnStack), so no planned cast in the game falls back or
 //     mismatches.
-//   - 12603 seq 4634 (Ashnod's Altar), commander4: cast from exile under Party
-//     Thrasher, which grants convoke only to a spell cast from exile, so the plan
-//     prices all of {3}; the seat's convoke tap then has the engine plan the cast
-//     again (CR 702.51a), and run A pays by that witness (Report.ARearm).
-//     Equivalent. The game no longer reaches its earlier finding, Treasonous
+//   - 12603: a clean, control-equivalent game. Its finding, Ashnod's Altar (seq 4634)
+//     cast from exile under Party Thrasher, which grants convoke only to a spell cast
+//     from exile, so the plan prices all of {3}; the seat's convoke tap then has the
+//     engine plan the cast again (CR 702.51a) and run A pays by that witness
+//     (Report.ARearm), is no longer reached: the official Foundations Commander
+//     Keen Engineering list changed the game's shuffles and draws. The re-plan is
+//     pinned by rules/planned_cast_pip_test.go. Its earlier finding, Treasonous
 //     Ogre's life payment read past an opponent's speed gain (CR 702.179d,
-//     lifePaymentConsequences), which TestWitnessReadsLifePaymentPastSpeedGain pins.
-//   - 10877 seq 2842 (Infernal Plunge), commander4: the plan's Ogre paid life for R
+//     lifePaymentConsequences), stays pinned by TestWitnessReadsLifePaymentPastSpeedGain.
+//   - 10877 seq 2838 (Infernal Plunge), commander4: the plan's Ogre paid life for R
 //     and was then the creature sacrificed for the spell's additional cost
 //     (CR 601.2h), which the witness must not read as its activation
 //     (activationProduction). Equivalent.
@@ -42,8 +44,8 @@ import (
 var recordedWant = map[uint64]map[uint64]string{ // seed -> seq -> verdict key ("" = equivalent)
 	12468: {},
 	11828: {},
-	12603: {4634: ""},
-	10877: {2842: ""},
+	12603: {},
+	10877: {2838: ""},
 }
 
 const (

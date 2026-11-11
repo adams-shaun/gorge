@@ -78,7 +78,7 @@ func (f *Face) Primitives() []string {
 		set["stat:"+s.Mode] = struct{}{}
 	}
 	for _, r := range f.Repls {
-		set["repl:"+r.Event] = struct{}{}
+		set[replPrimitive(f, r)] = struct{}{}
 		walk(r.With, 0)
 	}
 	for _, k := range f.Keywords {
@@ -98,7 +98,7 @@ func (f *Face) Primitives() []string {
 		} else if c.Static != nil {
 			set["stat:"+c.Static.Mode] = struct{}{}
 		} else if c.Repl != nil {
-			set["repl:"+c.Repl.Event] = struct{}{}
+			set[replPrimitive(f, *c.Repl)] = struct{}{}
 		}
 	})
 	out := make([]string, 0, len(set))
