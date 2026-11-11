@@ -50,6 +50,7 @@ const (
 	raGenManifestDread        // OpManifestDread: the top-two window's card to manifest (ChGenManifestDread; face_manifest.go)
 	raGenDigAllOpt            // OpDigEx ChangeNum$ All beside Optional$: the yes/no take-all election (ChGenDigOpt)
 	raGenCmdZone              // a commander's CR 903.9b move parked at a hand/library destination (zone_cmdzone.go)
+	raGenExtort               // OpExt ExtExtort: pay {W/B}? (ChGenPayMode mode 1 = pay; act_extort.go)
 )
 
 // ChoiceKinds of the generated table's DkChoose decisions (above the core's).

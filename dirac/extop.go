@@ -235,6 +235,12 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtTurnRepl:
 		s.turnRepl(k, in) // repl_turnrepl.go
 		return true, true
+	case kop.ExtExtort:
+		// CR 702.101a: the trigger's controller may pay {W/B}; both
+		// options are always offered (gorge effExtort), the ask answered
+		// in place (act_extort.go)
+		s.res.ask, s.res.askP = raGenExtort, s.res.e.ctrl
+		return false, true
 	}
 	panic("kernel: ext op not implemented: " + kop.ExtOp(in.A.N).String())
 }

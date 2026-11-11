@@ -1022,17 +1022,18 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 	}
 	// A keyword-granted triggered ability (CR 613.1f): a layer-6 AddKeyword$
 	// grant of a keyword whose rules text is a triggered ability (Prowess --
-	// Wizard's Staff's "Equipped creature has prowess") gives the recipient
+	// Wizard's Staff's "Equipped creature has prowess"; Extort -- Pontiff of
+	// Blight's "Other creatures you control have extort") gives the recipient
 	// the same rules text a printed K: line would, but the printed expansion
-	// (engine/cards/kw_prowess.go) only covers printed lines and a granted keyword
-	// has no face trigger. The trigger is synthesized from the keyword LINE
-	// (grantedKeywordTrigger) exactly as the printed expansion builds
-	// it, so the two cannot drift. It rides the existing Granted/
+	// (engine/cards/kw_prowess.go, kw_extort.go) only covers printed lines and a
+	// granted keyword has no face trigger. The trigger is synthesized from the
+	// keyword LINE (grantedKeywordTrigger) exactly as the printed expansion
+	// builds it, so the two cannot drift. It rides the existing Granted/
 	// GrantTriggerPush path (no new pushTrigger arm): its body is rebuilt
-	// structurally by foldGrantTriggerPush from the __kwProwessGranted
-	// payload, so a log-only replay mints the identical ability. Source is
-	// the GRANTED creature, so the body's Defined$ Self pumps it. The
-	// keyword-granting static reaches this loop because
+	// structurally by foldGrantTriggerPush from the __kw<head>Granted payload,
+	// so a log-only replay mints the identical ability. Source is the GRANTED
+	// creature, so a Prowess body's Defined$ Self pumps it and an Extort body
+	// asks its controller. The keyword-granting static reaches this loop because
 	// grantedTriggerStaticsFor includes it (a granted triggered keyword is a
 	// granted trigger), which also disables the zone-skip so the non-referent
 	// recipient is visited.
@@ -1064,7 +1065,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 				Controller: o.Controller,
 				Granted:    true,
 				Grantor:    ce.Source,
-				Execute:    "__kwProwessGranted",
+				Execute:    "__kw" + cards.KeywordHead(line) + "Granted",
 				Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{
 					Remembered:     triggerRemembered(ev, id),
 					LKI:            objLKI,

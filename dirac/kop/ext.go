@@ -723,3 +723,15 @@ func init() { extOpNames[ExtSpellToLib] = "SpellToLib" }
 const ExtCopyExiledWith ExtOp = 258
 
 func init() { extOpNames[ExtCopyExiledWith] = "CopyExiledWith" }
+
+// ExtExtort (CR 702.101a): an Extort trigger's body. The resolving controller
+// may pay {W/B} (one mana of either colour from their pool); on a paid answer
+// each opponent still in the game loses 1 life and the controller gains that
+// much. The trigger itself is the printed K:Extort expansion's SpellCast line
+// (or the latent trigger a layer-6 AddKeyword$ Extort grant carries), lowered
+// by kgen as this op; the election is posed as the generated ChGenPayMode ask
+// (mode 1 = pay, mode 0 = decline), exactly gorge effExtort's two KModes
+// options. dirac/act_extort.go. Blind Obedience, Crypt Ghast, Pontiff of Blight.
+const ExtExtort ExtOp = 309
+
+func init() { extOpNames[ExtExtort] = "Extort" }

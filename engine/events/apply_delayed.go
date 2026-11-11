@@ -582,6 +582,16 @@ func foldGrantTriggerPush(g *state.Game, e *Event) {
 		sa = &cards.SA{Kind: "DB", API: "Pump", Params: map[string]string{
 			"Defined": "Self", "NumAtt": "+1", "NumDef": "+1"}}
 	}
+	if sa == nil && e.Counter == "__kwExtortGranted" {
+		// A granted Extort (a layer-6 AddKeyword$ Extort, e.g. Pontiff of
+		// Blight's "Other creatures you control have extort") likewise has
+		// no printed SVar; rebuild the same DB$ Extort body the printed
+		// K:Extort expansion carries (engine/cards/kw_extort.go). The
+		// granted creature's controller is the caster the body asks
+		// (effExtort reads c.Controller), exactly as a printed Extort
+		// permanent's controller is.
+		sa = &cards.SA{Kind: "DB", API: "Extort"}
+	}
 	if sa == nil {
 		return
 	}
