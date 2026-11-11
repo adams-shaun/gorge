@@ -2292,7 +2292,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			st.Kind = "" // view-only: lower to nothing
 			return nil, nil
 		}
-		if faceDownLookOnly(sp.m) {
+		if faceDownLookOnly(sp.m) || handRevealOnly(sp.m) { // lower_handreveal.go
 			sp.consume("AffectedZone")
 			st.Kind = "" // view-only: lower to nothing
 			return nil, nil

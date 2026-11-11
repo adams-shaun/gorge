@@ -1,0 +1,7 @@
+# the view-only hand-reveal MayLookAt$ pool: Telepathy (its opponents play
+# with their hands revealed), a vanilla creature and the lands that pay them,
+# for the oracle's constructed lockstep (dirac/oracle/handreveal_test.go)
+Telepathy
+Grizzly Bears
+Island
+Forest

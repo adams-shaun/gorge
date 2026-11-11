@@ -12,13 +12,21 @@ import (
 // layer 6, CR 613.1f). A player-kind ValidTgts$ ("creatures target player
 // controls": gorge targetPlayerKindScope) rides Obj and limits the sweep to
 // that player's permanents. Refused: Zone$ (a non-battlefield sweep),
-// Defined$, and HiddenKeywords$, Replacements$, CantHaveKeyword$, or
+// Defined$, host-bound durations (AsLongAsInPlay, UntilHostLeavesPlay,
+// UntilUntaps: OverrideAll has no host anchor), and HiddenKeywords$, Replacements$, CantHaveKeyword$, or
 // parameters gorge does not read here (Colors$, Abilities$, ...: unread).
 func (lc *lowerCtx) animateAll(ps *params) error {
 	for _, k := range []string{"Zone", "Defined", "HiddenKeywords", "Replacements", "CantHaveKeyword"} {
 		if _, ok := ps.get(k); ok {
 			return refuse("AnimateAll %s$", k)
 		}
+	}
+	// OverrideAll has no host anchor (dirac/static_animateallscope.go overrideAll
+	// passes SetP/SetT where hostLeft reads the host Obj), so a host-bound
+	// duration cannot ride it.
+	switch d := ps.str("Duration"); d {
+	case "AsLongAsInPlay", "UntilHostLeavesPlay", "UntilUntaps":
+		return refuse("AnimateAll Duration$ %s: host-bound, OverrideAll has no host anchor", d)
 	}
 	var scope lRef
 	if vt, ok := ps.get("ValidTgts"); ok {
@@ -50,6 +58,9 @@ func (lc *lowerCtx) animateAll(ps *params) error {
 	lc.animAll = false
 	if err != nil {
 		return err
+	}
+	if o.WhileHost {
+		return refuse("AnimateAll host-bound duration")
 	}
 	if chosen {
 		// gorge's AnimateAll grant reads ChosenColor on the SOURCE, which

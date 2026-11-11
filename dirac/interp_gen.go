@@ -273,6 +273,24 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		// 608.2b); otherwise gorge divides at resolution
 		// (effects/damage_deal.go): one repeatable pick per damage over the
 		// slot's legal targets, asked only when there are two or more
+		if in.C&kop.DmgDivideEvenly != 0 {
+			// no division: each legal target takes total / count, rounded down
+			// (Fireball; gorge effects divideEvenlyDown), one damage batch
+			var ec [maxXTgt + 1]uint8
+			n := s.divTargets(k, e, uint8(tgtSlotOf(in.Obj)), &ec)
+			per := 0
+			if n > 0 {
+				per = max(s.value(k, in.A), 0) / n
+			}
+			if per > 0 {
+				var amts [maxXTgt + 1]int
+				for i := 0; i < n; i++ {
+					amts[i] = per
+				}
+				s.damageBatch(k, ec[:n], amts[:n], true) // parked: runProg pauses on the parked event
+			}
+			break
+		}
 		if s.dealAnnouncedDivision(k, e, uint8(tgtSlotOf(in.Obj))) {
 			break
 		}

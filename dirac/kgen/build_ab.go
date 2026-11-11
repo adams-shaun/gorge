@@ -2792,6 +2792,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		cb.inDamageMap = false
 	case "DealDamageDivided":
 		ki.Op = kop.OpDealDamageDivided
+		if _, ok := fl["DivideEvenly"]; ok {
+			ki.C = kop.DmgDivideEvenly
+		}
 	case "DealDamageFrom":
 		ki.Op = kop.OpDealDamageFrom
 		if in.CS == "players" {
