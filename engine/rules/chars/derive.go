@@ -131,6 +131,16 @@ func PT(b Board, s *Scratch, id state.ObjID, o *state.Object, f *cards.Face, act
 		if ce.Layer != state.LPT {
 			continue
 		}
+		// A bare Card.Self effect applies only to its own source, which is
+		// exactly the early rejection Matches makes; taking it here, before
+		// the frame write and the layer-4 lock, keeps a board carrying one
+		// self pump per creature (a PumpAll resolved over N creatures) from
+		// paying for every other creature's pumps on each derivation. The
+		// frame is rewritten before the next Matches or StaticAmount call
+		// can read it, so skipping its write here changes no value.
+		if ce.Affects == "Card.Self" && id != ce.Source {
+			continue
+		}
 		// kw is the FINISHED layer-6 keyword list bound by the caller (see
 		// PT): a layer-7 pump gated on a granted keyword
 		// (`Affected$ ...+withFlying`) must see the grant CR 613 ordered
