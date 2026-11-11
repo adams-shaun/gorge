@@ -4605,8 +4605,22 @@ func selfCastClause(f *lFilter) (bool, error) {
 // are then the static's alone (kernel prepAltFree, buildPickCost).
 func (cb *cardBuilder) altSacOK() bool {
 	c := cb.c
-	if kop.TypeMask(c.Types)&(kop.TInstant|kop.TSorcery) == 0 || c.AltAddCost != nil {
+	if c.AltAddCost != nil {
 		return false
+	}
+	if kop.TypeMask(c.Types)&(kop.TInstant|kop.TSorcery) == 0 {
+		// a creature spell with no spell ability of its own (Hand of
+		// Emrakul): the alternative cast's pick parts are the static's alone
+		// as well, and no target is asked
+		if kop.TypeMask(c.Types)&kop.TCreature == 0 {
+			return false
+		}
+		for _, a := range c.Abilities {
+			if a.Kind == akSpell {
+				return false
+			}
+		}
+		return true
 	}
 	n := 0
 	for _, a := range c.Abilities {

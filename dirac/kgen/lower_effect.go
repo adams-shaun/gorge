@@ -1857,6 +1857,16 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if err != nil {
 			return err
 		}
+		if ann := ps.str("Annihilator"); ann != "" {
+			// CR 702.86a: the Annihilator expansion's count rides the
+			// marker and replaces Amount$ (gorge zone_bulk.go effSacrifice)
+			v, aerr := strconv.Atoi(ann)
+			if aerr != nil || v < 0 {
+				return refuse("Annihilator count %q", ann)
+			}
+			ps.consume("Annihilator")
+			n = cst(v)
+		}
 		in := lInstr{Op: "Sacrifice", Obj: who, A: n, F: f}
 		if err := lc.sacrificeOptional(ps, &in); err != nil {
 			return err

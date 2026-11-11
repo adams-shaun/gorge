@@ -795,6 +795,9 @@ var expandedKeywords = map[string]bool{
 	// Hideaway (CR 702.75a): gorge kwHideaway's ETB trigger, DB$ Hideaway
 	// (lower_hideaway.go)
 	"Hideaway": true,
+	// Annihilator (CR 702.86a): gorge kwAnnihilator's Attacks Self trigger,
+	// DB$ Sacrifice of the defending player's permanents (Annihilator$ N)
+	"Annihilator": true,
 }
 
 // protColourLetters maps a "Protection from <q>" colour quality to its
