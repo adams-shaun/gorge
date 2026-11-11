@@ -124,6 +124,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Saddle":                   "an activated ability with a CostTapPower cost and OpSaddle (gorge kwSaddle's expansion; C6)",
 	"Station":                  "an activated ability flagged AfStation (gorge rules/station.go; kcounters)",
 	"A deck can have any number of cards named CARDNAME.": "a deckbuilding rule, no game characteristic",
+	"Landwalk":     "CardDef.Landwalk, or a Continuous static's Static.Landwalk grant (CR 702.14; compared through the block options)",
 	"Horsemanship": "CardDef.Evasion (compared through the block options)",
 	"Intimidate":   "CardDef.Evasion (compared through the block options)",
 	"Wither":       "CardDef.Wither (compared through the -1/-1 counters)",

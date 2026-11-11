@@ -760,7 +760,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.Daybound || c.Nightbound {
 			p.anyDayNight, g.anyHist = true, true // the spell count rides the history bank
 		}
-		if c.Landwalk != 0 {
+		if c.Landwalk != 0 || landwalkGrantIn(c.Abilities) {
 			g.anyLandwalk = true
 		}
 		if c.CastBF != 0 {

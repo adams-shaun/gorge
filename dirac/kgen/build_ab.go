@@ -1658,6 +1658,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.ProtFrom, err = filter(s.ProtFrom, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+		if st.Landwalk, err = filter(s.Landwalk, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
 		if s.Override != nil {
 			// RemoveKeyword$ beside the Continuous parts (layer 6)
 			i, err := cb.override(s.Override)
