@@ -40,6 +40,7 @@ func Pools() []Pool {
 		{Name: "blb", Label: "17lands", Tree: "e01290b140e80bd559b2df92aaa9f9a846d8db647e098effce742c92fdefc7f0", Decks: 145},
 		{Name: "pauper", Label: "SpellBench pauper-bo1", Tree: "63423c92b1c867dc4e0406a23a08e6a84ba8e8975ff226902024674f40f9655a", Decks: 8},
 		{Name: "cmd5", Label: "gorge Foundations Commander precons", Tree: "4be0c67789ec4f130f8216a4bb6fd8f8eb9fc7cc06958b71b856bbe239131fd6", Decks: 5},
+		{Name: "standard-meta", Label: "MTGGoldfish Standard", Tree: "3788c0cc4bcecf3807a3c2045e33d466d04270f0d73145ed6c39a212f0122a9f", Decks: 60},
 	}
 }
 

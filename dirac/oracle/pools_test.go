@@ -61,11 +61,14 @@ func TestPoolRegistry(t *testing.T) {
 	for _, p := range Pools() {
 		names = append(names, p.Name)
 	}
-	if got := strings.Join(names, " "); got != "fdn blb pauper cmd5" {
-		t.Fatalf("pools %q, want \"fdn blb pauper cmd5\"", got)
+	if got := strings.Join(names, " "); got != "fdn blb pauper cmd5 standard-meta" {
+		t.Fatalf("pools %q, want \"fdn blb pauper cmd5 standard-meta\"", got)
 	}
-	if _, err := PoolByName("dsk"); err == nil || !strings.Contains(err.Error(), "fdn, blb, pauper, cmd5") {
-		t.Errorf("PoolByName(dsk) error %v, want one listing fdn, blb, pauper, cmd5", err)
+	if _, err := PoolByName("dsk"); err == nil || !strings.Contains(err.Error(), "fdn, blb, pauper, cmd5, standard-meta") {
+		t.Errorf("PoolByName(dsk) error %v, want one listing fdn, blb, pauper, cmd5, standard-meta", err)
+	}
+	if p, err := PoolByName("standard-meta"); err != nil || p.Decks != 60 || p.Tree == "" {
+		t.Errorf("PoolByName(standard-meta) = %+v, %v, want 60 decks and a tree digest", p, err)
 	}
 	for _, name := range names {
 		if p, _ := PoolByName(name); p.Inputs != filepath.Join(poolsRoot, name) {
