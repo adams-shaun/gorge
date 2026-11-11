@@ -70,5 +70,5 @@ func (s *State) resolveSacUntracked(k *prep, e *stackEntry) {
 // it still takes part in the end step's trigger order, is put on the stack and
 // resolves doing nothing (CR 603.7, resolveDelayed's version check).
 func staleOrdered(op kop.Op) bool {
-	return op == kop.OpWarpExile || op == kop.OpUnearth || op == kop.OpDestroy || op == kop.OpExile
+	return op == opDashReturn || op == kop.OpWarpExile || op == kop.OpUnearth || op == kop.OpDestroy || op == kop.OpExile
 }

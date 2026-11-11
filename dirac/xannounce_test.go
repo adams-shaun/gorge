@@ -117,3 +117,82 @@ func TestXAnnouncementNeedsATarget(t *testing.T) {
 		t.Fatalf("a Saga of mana value 3: X options %s, want [3]", xs)
 	}
 }
+
+// TestPlainXAskCountsPrintedAbilityOfGrantedSource: Rok-Tahk grants every
+// creature "{T}: Add {G}{G}"; a Savvy Profiteer beside it keeps its printed
+// "{T}: Add {R}". The plain configuration's payment plans the printed
+// ability, so the X ask must not count the granted {G}{G} for it.
+func TestPlainXAskCountsPrintedAbilityOfGrantedSource(t *testing.T) {
+	tbl, err := cardsettest.Synth(t, "std-trk").Pool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := map[string]CardID{}
+	for c := range tbl.Cards {
+		if _, ok := id[tbl.Cards[c].Name]; !ok {
+			id[tbl.Cards[c].Name] = CardID(c)
+		}
+	}
+	lands := []string{"Forest", "Forest", "Forest", "Forest", "Mountain", "Mountain", "Mountain", "Rok-Tahk, Budding Scientist"}
+	for _, b := range []struct {
+		name  string
+		savvy int
+		maxX  int
+	}{
+		{"one dual source", 1, 9},
+		{"two dual sources", 2, 10},
+	} {
+		board := append([]string{}, lands...)
+		for i := 0; i < b.savvy; i++ {
+			board = append(board, "Savvy Profiteer")
+		}
+		for _, c := range []struct {
+			name string
+			cfg  Config
+		}{
+			{"plain", Config{NoElide: true}},
+			{"lowering", Config{NoElide: true, GorgeLowering: true}},
+		} {
+			name := b.name + "/" + c.name
+			sc := newScenTableLib(t, tbl, id["Forest"], c.cfg)
+			for _, n := range board {
+				if _, ok := id[n]; !ok {
+					t.Fatalf("%s: card %q not in the std-trk pool", name, n)
+				}
+				sc.perm(id[n], 0)
+			}
+			sc.perm(id["Mugato"], 1) // the target
+			sc.hand(id["Khaaaaaaaaaaaannn!"], 0)
+			d := sc.s.Step()
+			cast := false
+			for i := 0; i < int(d.N); i++ {
+				if d.Options[i].Kind() == AkCast {
+					sc.s.Apply(d.Options[i])
+					cast = true
+					break
+				}
+			}
+			if !cast {
+				t.Fatalf("%s: the cast is not offered", name)
+			}
+			d = sc.s.Step()
+			if d.Kind != DkChoose || d.Sub != ChX {
+				t.Fatalf("%s: decision kind %d sub %d, want the X ask", name, d.Kind, d.Sub)
+			}
+			if got := int(d.N) - 1; got != b.maxX {
+				t.Errorf("%s: X offered up to %d, want %d", name, got, b.maxX)
+			}
+			sc.s.Apply(d.Options[d.N-1]) // the widest X: the payment must not panic "autopay found no plan"
+			for i := 0; i < 12; i++ {
+				d = sc.s.Step() // the target, then the payment
+				if d.Kind == DkPriority {
+					break
+				}
+				sc.s.Apply(d.Options[0])
+			}
+			if d.Kind != DkPriority || sc.s.sp != 1 {
+				t.Errorf("%s: stack %d after the widest X, want the Khaaaaaaaaaaaannn! on it", name, sc.s.sp)
+			}
+		}
+	}
+}

@@ -1,0 +1,11 @@
+# A creature with the dash keyword (CR 702.109a): Ragavan, Nimble Pilferer's
+# alternative cost gives it haste and returns it to its owner's hand at the
+# next end step. Decks play it in dirac/oracle/dash_test.go.
+Ragavan, Nimble Pilferer
+Lightning Bolt
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Mountain
+Plains
+Forest

@@ -373,10 +373,29 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	switch {
 	case plain && (f == CostTap || f == CostTap|CostOncePerGame || f == CostTap|CostSacSelf || f == CostSacSelf):
 		return true
-	case CtrManaAb(a), TapXManaAb(a), TapXManaTwo(a), FilterManaAb(a), SacXEachManaAb(a):
+	case CtrManaAb(a), TapXManaAb(a), TapXManaTwo(a), FilterManaAb(a), SacXEachManaAb(a), SoleLifeManaAb(cd, j):
 		return true
 	}
 	return false
+}
+
+// SoleLifeManaAb reports whether ability j of cd is the card's only own mana
+// ability and is "{T}, Pay N life: Add one mana" (Mana Confluence), with no
+// rider, restriction, flag or program: a pain-only source whose cost is life,
+// gorge's last-resort Consequence{Life: N} with no normal alternative
+// (dirac mana_pain.go prepPainOnlyLife).
+func SoleLifeManaAb(cd *CardDef, j int) bool {
+	a := &cd.Abilities[j]
+	if a.Kind != AbMana || a.AFlags != 0 || a.ManaRestrict != 0 || a.ManaRestrictAb != 0 || len(a.Prog) != 0 || a.ManaEach ||
+		a.Cost.Flags != CostTap|CostPayLife || a.Cost.N < 1 || a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0 || a.ManaN > 1 || a.ManaColors == 0 {
+		return false
+	}
+	for i := range cd.Abilities {
+		if i != j && cd.Abilities[i].Kind == AbMana && cd.Abilities[i].AFlags&AfLatent == 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // DiscardHandManaAb reports whether a is Lion's Eye Diamond's mana ability:

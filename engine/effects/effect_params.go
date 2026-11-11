@@ -118,7 +118,7 @@ var effectKnownKeys = [...]string{
 	"TriggerController", "TriggerDescription", "Triggers", "Type", "Ultimate",
 	"UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs", "UnlessSwitched",
 	"ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices", "ValidCounterType",
-	"ValidDescription", "ValidPlayer", "ValidSource", "ValidTgts", "ValidTgtsDesc", "VoteMessage", "WithoutManaCost", "XMax", "XMin",
+	"ValidDescription", "ValidPlayer", "ValidSource", "ValidTgts", "ValidTgtsDesc", "VoteMessage", "WithoutManaCost", "XColor", "XMax", "XMin",
 }
 
 // isEffectSA reports whether sa resolves as api:Effect.

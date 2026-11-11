@@ -571,7 +571,7 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
 	// The announced X is part of the cost the payment will charge; fold it
 	// before pricing the full (unreduced) alternative, or a target that only
 	// the reduction pays for looks affordable.
-	full.Generic = uint8(int(full.Generic) + full.XGeneric(int(e.x)))
+	full = full.AtX(int(e.x))
 	var av avail
 	// a granted ability that spends only on other payments (Clement's
 	// creature-spell-only {G} or {U}) prices no candidate of this cast: gorge's

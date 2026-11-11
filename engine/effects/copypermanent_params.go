@@ -329,7 +329,7 @@ var copyPermanentKnownKeys = [...]string{
 	"WithCountersType",
 	"WithDifferentNames",
 	"WithoutManaCost",
-	"XMax",
+	"XColor", "XMax",
 	"XMin",
 }
 

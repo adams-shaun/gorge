@@ -1,0 +1,11 @@
+# Force of Will's pay-life and exile-a-blue-card alternative cost: Force of
+# Will, blue cards to pitch and cast, spells to counter, and the lands that
+# pay them, for the oracle's constructed lockstep
+# (dirac/oracle/forceofwill_test.go)
+Force of Will
+Counterspell
+Unsummon
+Grizzly Bears
+Shock
+Island
+Mountain

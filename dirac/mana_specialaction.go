@@ -170,7 +170,8 @@ func (s *State) specialAffords(k *prep, p uint8, cost *kop.ManaCost, sp kop.Spec
 	if m != 0 {
 		s.restrAvailAdd(p, m, &a)
 	}
-	return a.affords(cost, pipMaskOf(cost), cost.XGeneric(x))
+	cx := cost.AtX(x)
+	return a.affords(&cx, pipMaskOf(&cx), 0)
 }
 
 // paySpecial spends a special action's mana: the restricted batches its
