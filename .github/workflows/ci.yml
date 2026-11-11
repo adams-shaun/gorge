@@ -357,7 +357,11 @@ jobs:
         run: npm ci
         working-directory: web
       - name: Install Chromium's system libraries
-        run: npx playwright install-deps chromium
+        # security.ubuntu.com has stopped answering GitHub's runners; the Azure archive mirror
+        # carries the same -security pocket.
+        run: |
+          sudo grep -rl security.ubuntu.com /etc/apt/ | xargs -r sudo sed -i 's#http://security.ubuntu.com/ubuntu#http://azure.archive.ubuntu.com/ubuntu#g'
+          npx playwright install-deps chromium
         working-directory: web
       - name: Run the browser gate
         run: make smoke
