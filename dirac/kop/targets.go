@@ -44,6 +44,13 @@ type TargetSpec struct {
 	// MinV, MaxV: the bounds when TFlags has TgfBoundsV (a constant side holds
 	// kop.Const); Min/Max are unused then.
 	MinV, MaxV ValueRef
+	// SpellF is a TgtSpellTgting slot's spell-side filter (the counter's
+	// ValidTgts$, e.g. Avoid Fate's Instant,Aura): a stack-zone filter on the
+	// candidate spell; 0 = any spell. VYou replaces the slot's battlefield
+	// Filter with "a target of the spell is the chooser" (TargetValidTargeting$
+	// You, Dawn Charm).
+	SpellF FilterID
+	VYou   bool
 }
 
 // MaxTargets is the number of target slots an ability may have.

@@ -103,17 +103,31 @@ func counterTypeList(tt string) (spell string, trigOnly bool, err error) {
 // filterTargetValidTargeting, the offer only): every comma term must carry
 // +inRealZoneBattlefield, which is stripped (the kernel matches battlefield
 // objects) and the rest built as a battlefield filter.
-func (lc *lowerCtx) counterValidTargeting(spec string) (*lFilter, error) {
-	const zone = "+inRealZoneBattlefield"
+//
+// The zone term is "+inRealZoneBattlefield" after a property (Permanent.YouCtrl)
+// or ".inRealZoneBattlefield" after a bare type (Creature). The word "You"
+// alone (gorge MatchesPlayerSpec: a target of the spell is the counter's
+// controller; Dawn Charm) returns you with no filter. A term with no zone
+// word (Mistfolk's Card.StrictlySelf, read in any zone) and any mix of "You"
+// with a battlefield term (Siren Stormtamer) refuse.
+func (lc *lowerCtx) counterValidTargeting(spec string) (f *lFilter, you bool, err error) {
+	if spec == "You" {
+		return nil, true, nil
+	}
+	const zone = "inRealZoneBattlefield"
 	terms := strings.Split(spec, ",")
 	for i, t := range terms {
-		base, ok := strings.CutSuffix(t, zone)
+		base, ok := strings.CutSuffix(t, "+"+zone)
+		if !ok {
+			base, ok = strings.CutSuffix(t, "."+zone)
+		}
 		if !ok || base == "" || strings.Contains(base, "inRealZone") {
-			return nil, refuse("Counter TargetValidTargeting %q", spec)
+			return nil, false, refuse("Counter TargetValidTargeting %q has no +inRealZoneBattlefield term on every alternative (the kernel reads battlefield targets only; Mistfolk's any-zone Card.StrictlySelf, Siren Stormtamer's You beside a creature)", spec)
 		}
 		terms[i] = base
 	}
-	return lc.filter(strings.Join(terms, ","))
+	f, err = lc.filter(strings.Join(terms, ","))
+	return f, false, err
 }
 
 // counterCMCWriter reports whether the program under construction has an

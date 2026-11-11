@@ -45,19 +45,32 @@ func (s *State) spellTgtingOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, cod
 	if DebugCtrShapesOff {
 		return true
 	}
+	if t.SpellF != 0 && !s.matchCardAt(k, t.SpellF, s.objs[o].card, s.stackCtrl(o), p, o) {
+		return false // the spell side's own filter (Avoid Fate: Instant,Aura)
+	}
 	e := &s.stack[i]
 	for _, c := range e.tgt {
-		if s.tgtBattlefieldMatch(k, t.Filter, p, c) {
+		if s.tgtClauseMatch(k, t, p, c) {
 			return true
 		}
 	}
 	x := s.xtOf(e)
 	for j := 0; j < int(x.n); j++ {
-		if s.tgtBattlefieldMatch(k, t.Filter, p, x.code[j]) {
+		if s.tgtClauseMatch(k, t, p, x.code[j]) {
 			return true
 		}
 	}
 	return false
+}
+
+// tgtClauseMatch: target byte c satisfies slot t's targeting clause for
+// chooser p: the chooser's own player (VYou, gorge MatchesPlayerSpec "You"),
+// else a battlefield permanent matching the slot's Filter.
+func (s *State) tgtClauseMatch(k *prep, t *kop.TargetSpec, p uint8, c uint8) bool {
+	if t.VYou {
+		return isPlayerTarget(c) && CodeSeat(c) == p
+	}
+	return s.tgtBattlefieldMatch(k, t.Filter, p, c)
 }
 
 // tgtBattlefieldMatch: target byte c names a permanent on the battlefield now

@@ -346,12 +346,20 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		if t.SingleTgt {
 			ts.TFlags |= kop.TgfSingleTgt
 		}
-		if t.VTgt != nil {
-			// the spell side is any spell; the filter names the battlefield
-			// object one of its targets must match
+		if t.VTgt != nil || t.VYou {
+			// the filter names the battlefield object one of the spell's
+			// targets must match (VYou: the chooser); SpellF is the spell side
 			ts.Kind = kop.TgtSpellTgting
-			if ts.Filter, err = cb.filter(t.VTgt, kop.ZoneBattlefield); err != nil {
-				return ts, err
+			ts.VYou = t.VYou
+			if t.VTgt != nil {
+				if ts.Filter, err = cb.filter(t.VTgt, kop.ZoneBattlefield); err != nil {
+					return ts, err
+				}
+			}
+			if t.VSpellF != nil {
+				if ts.SpellF, err = cb.filter(t.VSpellF, kop.ZoneStack); err != nil {
+					return ts, err
+				}
 			}
 			break
 		}

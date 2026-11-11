@@ -454,6 +454,11 @@ type lTarget struct {
 	// VTgt: with Spell, TargetValidTargeting$: a spell whose own object targets
 	// include a battlefield object matching it (TgtSpellTgting)
 	VTgt *lFilter
+	// VSpellF: with VTgt or VYou, the spell side's ValidTgts$ filter (nil = any
+	// spell); VYou: the targeting clause is "You" (a target of the spell is
+	// the chooser), VTgt is nil
+	VSpellF *lFilter
+	VYou    bool
 	// CopyAb: with AbOnly, an ability the chooser controls whose source's types
 	// match F: 1 activated or triggered (TgtCopyAb), 2 triggered only
 	// (TgtCopyTrig)
