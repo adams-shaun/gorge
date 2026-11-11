@@ -327,7 +327,7 @@ const (
 	// forgeVerbatimBaselineMax is the baseline's ceiling, which is what makes it
 	// shrink-only: lower it when a file leaves the list, never raise it. Only a
 	// FORGE_REF bump that puts a line in an existing fixture can justify a raise.
-	forgeVerbatimBaselineMax = 284
+	forgeVerbatimBaselineMax = 283
 )
 
 func newForgeLines() *forgeLines { return &forgeLines{byKey: map[string][]forgeLine{}} }
