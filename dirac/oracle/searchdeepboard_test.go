@@ -6,6 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/kop"
+	"github.com/adams-shaun/gorge/dirac/search"
 	"github.com/adams-shaun/gorge/dirac/search/hbot"
 )
 
@@ -84,4 +85,77 @@ func TestSearchDeepBoardStallsNotPanics(t *testing.T) {
 		t.Fatal("no target decision listed a stack ability: the test never reached the bot's stack-target read")
 	}
 	t.Logf("%d target decisions with a stack-ability option answered by the bot", asked)
+}
+
+// TestSearchHeuristicStackTargetNotPanics: search.Heuristic, the searcher's
+// default bot, answers a target decision that lists a stack ability
+// (StackTarget0 + its stack index) without PowerToughness reading
+// s.objs[236] ("index out of range [236] with length 236"); the
+// accessors answer a stack-ability byte as no creature, no P/T, public.
+func TestSearchHeuristicStackTargetNotPanics(t *testing.T) {
+	t.Parallel()
+
+	corpusDirOrSkip(t)
+	set, err := cardset.RawByName("stacktgt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tbl, d0, d1, err := set.Matchup(kstacktgtErtaiDecks[0], kstacktgtErtaiDecks[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	asked := 0
+	checked := false
+	for seed := uint64(1); seed <= 3000; seed++ {
+		s := dirac.NewConfig(tbl, d0, d1, seed, dirac.Config{})
+		pol := dirac.NewRandomPolicy(seed*7919 + 1)
+		var d dirac.Decision
+		for n := 0; n < 4000; n++ {
+			s.StepInto(&d)
+			if d.Kind == dirac.DkNone {
+				break
+			}
+			if d.Kind == dirac.DkTarget {
+				var first dirac.Obj
+				has := false
+				for i := 0; i < int(d.N); i++ {
+					if _, ok := dirac.StackTargetIndex(d.Options[i].Target()); ok && d.Options[i].Kind() == dirac.AkTarget {
+						if !has {
+							first = dirac.Obj(d.Options[i].Target())
+						}
+						has = true
+					}
+				}
+				if has {
+					asked++
+					if i := (search.Heuristic{}).Pick(s, &d); i < 0 || i >= int(d.N) {
+						t.Fatalf("seed %d decision %d: pick %d of %d options", seed, n, i, d.N)
+					}
+					if !checked {
+						checked = true
+						if pw, th := s.PowerToughness(first); pw != 0 || th != 0 {
+							t.Fatalf("PowerToughness(%#x) = %d/%d, want 0/0", first, pw, th)
+						}
+						if s.IsCreature(first) || s.Hidden(first, 0) || s.Hidden(first, 1) {
+							t.Fatalf("stack-ability byte %#x reads as a creature or hidden", first)
+						}
+					}
+				}
+			}
+			a := pol.Pick(&d)
+			if d.Kind == dirac.DkPriority && s.StackLen() > 0 {
+				for i := 0; i < int(d.N); i++ {
+					o := d.Options[i]
+					if o.Kind() == dirac.AkCast && tbl.Cards[s.ObjCard(dirac.Obj(o.Source()))].Name == "Ertai Resurrected" {
+						a = o
+					}
+				}
+			}
+			s.Apply(a)
+		}
+	}
+	if asked == 0 {
+		t.Fatal("no target decision listed a stack ability: the test never reached the heuristic's stack-target read")
+	}
+	t.Logf("%d target decisions with a stack-ability option answered by search.Heuristic", asked)
 }
