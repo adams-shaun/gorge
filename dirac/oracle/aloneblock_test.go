@@ -31,25 +31,28 @@ var kaloneblockDecks = [2][]cardset.Entry{
 
 // kaloneblockJointDecks adds attackers whose block limits use up a
 // carrier's partner: Viashino Runner (two or more blockers) and Safewright
-// Cavalry (no more than one).
+// Cavalry (no more than one); and whose block requirements meet CR 506.5:
+// Vinebred Brawler (must be blocked if able) and Prized Unicorn (lure).
 var kaloneblockJointDecks = [2][]cardset.Entry{
 	{
 		{Name: "Bonded Horncrest", Count: 4}, {Name: "Craven Hulk", Count: 4},
-		{Name: "Grizzly Bears", Count: 4}, {Name: "Viashino Runner", Count: 4}, {Name: "Safewright Cavalry", Count: 4},
-		{Name: "Shock", Count: 3}, {Name: "Mountain", Count: 9}, {Name: "Forest", Count: 8},
+		{Name: "Grizzly Bears", Count: 3}, {Name: "Viashino Runner", Count: 3}, {Name: "Safewright Cavalry", Count: 3},
+		{Name: "Vinebred Brawler", Count: 3}, {Name: "Prized Unicorn", Count: 3},
+		{Name: "Shock", Count: 2}, {Name: "Mountain", Count: 7}, {Name: "Forest", Count: 8},
 	},
 	{
 		{Name: "Bonded Horncrest", Count: 4}, {Name: "Craven Hulk", Count: 4},
-		{Name: "Grizzly Bears", Count: 4}, {Name: "Viashino Runner", Count: 4}, {Name: "Safewright Cavalry", Count: 4},
-		{Name: "Shock", Count: 3}, {Name: "Mountain", Count: 9}, {Name: "Forest", Count: 8},
+		{Name: "Grizzly Bears", Count: 3}, {Name: "Viashino Runner", Count: 3}, {Name: "Safewright Cavalry", Count: 3},
+		{Name: "Vinebred Brawler", Count: 3}, {Name: "Prized Unicorn", Count: 3},
+		{Name: "Shock", Count: 2}, {Name: "Mountain", Count: 7}, {Name: "Forest", Count: 8},
 	},
 }
 
 var kaloneblockCarriers = map[string]bool{"Bonded Horncrest": true, "Craven Hulk": true}
 
-// kaloneblockLimited are the attackers whose block limits interact with a
-// carrier's partner.
-var kaloneblockLimited = map[string]bool{"Viashino Runner": true, "Safewright Cavalry": true}
+// kaloneblockLimited are the attackers whose block limits or requirements
+// interact with a carrier's partner.
+var kaloneblockLimited = map[string]bool{"Viashino Runner": true, "Safewright Cavalry": true, "Vinebred Brawler": true, "Prized Unicorn": true}
 
 type kaloneblockStats struct {
 	games, divs, stalls           int
