@@ -16,7 +16,7 @@ import (
 // after the end step. ConditionPhases$ (Full Throttle, Great Train Heist) is
 // not lowered: both cards stay refused for another part of the card.
 func (lc *lowerCtx) addPhase(ps *params) error {
-	for _, k := range []string{"FollowedBy", "ExtraPhaseDelayedTrigger", "ExtraPhaseDelayedTriggerExcute", "BeforeFirstPostCombatMainEnd"} {
+	for _, k := range []string{"ExtraPhaseDelayedTrigger", "ExtraPhaseDelayedTriggerExcute", "BeforeFirstPostCombatMainEnd"} {
 		if _, ok := ps.m[k]; ok {
 			return refuse("AddPhase %s$", k)
 		}
@@ -31,6 +31,9 @@ func (lc *lowerCtx) addPhase(ps *params) error {
 		kind = kop.AddPhaseEnd
 	default:
 		return refuse("AddPhase ExtraPhase$ %q", ev)
+	}
+	if fb, ok := ps.get("FollowedBy"); ok {
+		return lc.addPhaseFollowedBy(ps, kind, fb)
 	}
 	var after int
 	switch ap := ps.str("AfterPhase"); ap {
@@ -85,4 +88,26 @@ func (lc *lowerCtx) firstAttackCombat(tp *params, tr *lTrigger, conds *[]lCond, 
 		return true, nil
 	}
 	return false, nil
+}
+
+// addPhaseFollowedBy lowers the one FollowedBy$ shape: an extra combat spliced
+// after the main phase the grant resolves in (AfterPhase$ omitted) and followed
+// by an additional main phase, behind ConditionPhases$ Main1,Main2 (the
+// Aggravated Assault family; Relentless Assault). The gate is lowered with the
+// condition and is what keeps the splice point a main phase.
+func (lc *lowerCtx) addPhaseFollowedBy(ps *params, kind int, fb string) error {
+	if strings.TrimSpace(fb) != "Main2" || kind != kop.AddPhaseCombat {
+		return refuse("AddPhase FollowedBy$ %q with ExtraPhase$ %s", fb, ps.str("ExtraPhase"))
+	}
+	if _, ok := ps.get("AfterPhase"); ok {
+		return refuse("AddPhase FollowedBy$ with AfterPhase$ %q", ps.str("AfterPhase"))
+	}
+	if strings.ReplaceAll(ps.str("ConditionPhases"), " ", "") != "Main1,Main2" {
+		return refuse("AddPhase FollowedBy$ without ConditionPhases$ Main1,Main2")
+	}
+	if _, ok := ps.m["NumPhases"]; ok {
+		return refuse("AddPhase FollowedBy$ with NumPhases$")
+	}
+	lc.emit(lInstr{Op: "AddPhase", A: cst(1), C: kop.AddPhaseCombatMain, Note: "queue an extra combat and an additional main phase (gorge effAddPhase FollowedBy$)"})
+	return nil
 }

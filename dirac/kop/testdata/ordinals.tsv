@@ -6,6 +6,7 @@ AbSpell	AbilityKind	0
 AbStatic	AbilityKind	4
 AbTriggered	AbilityKind	3
 AddPhaseCombat	untyped int	0
+AddPhaseCombatMain	untyped int	3
 AddPhaseEnd	untyped int	2
 AddPhaseUpkeep	untyped int	1
 AfCharmTrigger	AbilityFlags	64
