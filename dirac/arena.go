@@ -130,7 +130,7 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 					if in.C&kop.DmgExileIfDiesThisTurn != 0 {
 						u[mechExileEx] = true
 					}
-					if in.C&kop.DmgNoRegen != 0 {
+					if in.C&(kop.DmgNoRegen|kop.DmgNoRegenTarget) != 0 {
 						u[mechNoRegen] = true // repl_noregen.go
 					}
 				case kop.OpExileEx:
