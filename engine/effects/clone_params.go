@@ -173,7 +173,7 @@ var cloneKnownKeys = [...]string{
 	"Type", "Ultimate", "UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs",
 	"UnlessSwitched", "ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices",
 	"ValidCounterType", "ValidDescription", "ValidTgts", "ValidTgtsDesc", "VoteMessage", "WithoutManaCost",
-	"XMax", "XMin",
+	"XColor", "XMax", "XMin",
 }
 
 // isCloneSA reports whether sa resolves as api:Clone.

@@ -321,7 +321,7 @@ var digKnownKeys = [...]string{
 	"WithMayLook",
 	"WithTotalCMC",
 	"WithoutManaCost",
-	"XMax",
+	"XColor", "XMax",
 	"XMin",
 }
 
