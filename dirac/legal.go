@@ -450,6 +450,13 @@ func (s *State) onceUsed(k *prep, sl Slot, a *kop.Ability) bool {
 	}
 }
 
+// onceBlocked reports whether a's once-only mark refuses an activation for
+// the permanent at sl: used, and not waived by an Activations static
+// (static_turnbits.go). Every once gate, mana abilities included, reads it.
+func (s *State) onceBlocked(k *prep, sl Slot, a *kop.Ability) bool {
+	return s.onceUsed(k, sl, a) && !s.exhaustOnceWaived(k, s.perms[sl].ctrl, a)
+}
+
 // onceUse marks a's activation for the permanent at sl.
 func (s *State) onceUse(k *prep, sl Slot, a *kop.Ability) {
 	s.noteTurnExhaust(k, sl, a)
@@ -549,7 +556,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if f&kop.CostLoyalty != 0 && (!sorc || p.flags&pfLoyaltyUsed != 0) {
 		return false
 	}
-	if f&kop.CostOncePerGame != 0 && s.onceUsed(k, sl, a) && !s.exhaustOnceWaived(k, p.ctrl, a) {
+	if f&kop.CostOncePerGame != 0 && s.onceBlocked(k, sl, a) {
 		return false
 	}
 	mana := a.Cost.Mana
@@ -1576,7 +1583,7 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 	if ab.Cost.Flags&kop.CostOncePerTurn != 0 && j < 8 && pp.actUsed&(1<<j) != 0 {
 		return false // Gravestone Strider, used this turn
 	}
-	if ab.Cost.Flags&kop.CostOncePerGame != 0 && s.onceUsed(k, sl, ab) {
+	if ab.Cost.Flags&kop.CostOncePerGame != 0 && s.onceBlocked(k, sl, ab) {
 		return false // Loot, the Pathfinder's exhaust mana ability
 	}
 	if ab.Cost.Flags&kop.CostPayLife != 0 && int(s.pl[SeatIx(p)].life) < int(ab.Cost.N) {

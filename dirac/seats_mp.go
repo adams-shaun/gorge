@@ -9,7 +9,7 @@ const MaxSeats = 4
 
 // turnExhaustShift is the first bit of a player's Exhaust-activation fact in
 // genState.turnF: bits 0-3 hold the coin flips, bits 4-7 the Exhaust
-// activations (turnbits.go).
+// activations (static_turnbits.go).
 const turnExhaustShift = 4
 
 // The target-code space (types.go): objects 0..MaxObj-1, stack abilities

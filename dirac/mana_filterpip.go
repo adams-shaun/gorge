@@ -86,7 +86,7 @@ func (s *State) filtPipBit(k *prep, sl Slot) uint16 {
 // mana ability of gorge's at all until the live pool pays its pip.
 func (s *State) filtGateOn(k *prep, sl Slot) bool {
 	a := s.filtAb(k, sl)
-	if a.Cost.Flags&kop.CostOncePerGame != 0 && s.onceUsed(k, sl, a) {
+	if a.Cost.Flags&kop.CostOncePerGame != 0 && s.onceBlocked(k, sl, a) {
 		return false
 	}
 	pp := &s.perms[sl]

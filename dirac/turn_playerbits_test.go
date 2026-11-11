@@ -111,3 +111,40 @@ func TestTurnExhaustRefuel(t *testing.T) {
 		t.Fatal("a second exhaust activation in the same turn was offered")
 	}
 }
+
+// TestTurnExhaustRefuelMana: the Activations waiver reaches an Exhaust mana
+// ability (Loot, the Pathfinder's shape) through the same once gate as an
+// activated one: its used once mark is waived while its controller has
+// activated no Exhaust ability this turn, and refuses again once one has.
+func TestTurnExhaustRefuelMana(t *testing.T) {
+	tbl, _, ids := newModeTable(
+		kop.CardDef{Name: "Test Refueler", Types: kop.TCreature, Power: 1, Toughness: 1,
+			Abilities: []kop.Ability{{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatActivationLimit}}}},
+		kop.CardDef{Name: "Test Exhaust Mana", Types: kop.TArtifact,
+			Abilities: []kop.Ability{{Kind: kop.AbMana, Exhaust: true, Once: 1,
+				Cost: kop.Cost{Flags: kop.CostTap | kop.CostOncePerGame}, ManaColors: kop.ColAny, ManaN: 1}}},
+	)
+	sc := newScenTable(t, tbl, Config{NoElide: true})
+	if sc.k.gen == nil || !sc.k.gen.anyTurnF || !sc.k.gen.anyManaOnce {
+		t.Fatal("precondition: the table arms neither the turn facts nor the once-only mana gate")
+	}
+	refueler, mana := sc.perm(ids[0], 0), sc.perm(ids[1], 0)
+	if !sc.onBF(refueler) || !sc.onBF(mana) {
+		t.Fatal("precondition: both permanents are not on the battlefield")
+	}
+	sl := sc.slot(mana)
+	if !sc.s.canTapForMana(sc.k, sl) {
+		t.Fatal("precondition: the unused Exhaust mana ability is not tappable")
+	}
+	sc.s.perms[sl].flags |= pfOnceGame
+	if !sc.s.onceUsed(sc.k, sl, &sc.k.t.Cards[ids[1]].Abilities[0]) {
+		t.Fatal("precondition: the once record is not marked")
+	}
+	if !sc.s.canTapForMana(sc.k, sl) {
+		t.Fatal("the Activations static did not waive the used once mark of the Exhaust mana ability")
+	}
+	sc.s.g.turnF |= 1 << turnExhaustShift
+	if sc.s.canTapForMana(sc.k, sl) {
+		t.Fatal("the Exhaust mana ability stayed waived after an Exhaust activation this turn")
+	}
+}

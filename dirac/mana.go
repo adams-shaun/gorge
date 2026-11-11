@@ -60,7 +60,7 @@ func (s *State) canTapForManaPC(k *prep, sl Slot, pc *pcard) bool {
 	}
 	if k.gen != nil && k.gen.anyManaOnce {
 		if cd := &k.t.Cards[s.cardAt(sl)]; int(pc.manaAb) < len(cd.Abilities) {
-			if a := &cd.Abilities[pc.manaAb]; a.Cost.Flags&kop.CostOncePerGame != 0 && s.onceUsed(k, sl, a) {
+			if a := &cd.Abilities[pc.manaAb]; a.Cost.Flags&kop.CostOncePerGame != 0 && s.onceBlocked(k, sl, a) {
 				return false
 			}
 		}
