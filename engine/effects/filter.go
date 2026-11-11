@@ -1112,6 +1112,20 @@ func init() {
 	// UnknownPredicates classifies it through the same map, so census and
 	// matcher cannot disagree.
 	predicates["NoAbilities"] = noAbilitiesPermanent
+	// hasManaAbility: Forge's Card.hasManaAbility (CardStateProperty:
+	// cardState.getManaAbilities() non-empty, or a trigger whose overriding
+	// ability is a mana ability). Power Sink's TapAll filter
+	// `Land.hasManaAbility` and Moonsilver Key's ChangeZone filter
+	// `Artifact.hasManaAbility,Land.Basic` are the corpus carriers; Midnight
+	// Arsonist's `Artifact.!hasManaAbility` is the negated twin.
+	//
+	// Reads the printed face's abilities. A mana ability granted or lost by a
+	// continuous effect is not visible here, exactly as every other
+	// printed-face ability predicate in this file (objectHasAbility,
+	// noAbilitiesPermanent) -- predFn carries no SpecContext. The face still
+	// carries CR 305.6's intrinsic basic-land ability, which ApplyIntrinsics
+	// appends at load.
+	predicates["hasManaAbility"] = objectHasManaAbility
 	// Soulbond's "PairedWith" and "Paired" predicates (CR 702.103): the
 	// Affected$ spec `Creature.PairedWith` names the creature a source is
 	// paired with, and `Creature.Self+Paired` names the source itself when it
@@ -3915,6 +3929,48 @@ func costOnlyMana(raw string) bool {
 		return false
 	}
 	return len(c.Unknown) == 0 && len(c.Evidence) == 0 && len(c.RollDice) == 0
+}
+
+// objectHasManaAbility is the `hasManaAbility` predicate over the printed
+// face: Forge's Card.hasManaAbility, which answers true for an activated mana
+// ability (CR 605.1a; Face.ManaAbilities and the reflected sibling) or a
+// triggered mana ability (CR 605.1b: a TapsForMana/ManaAdded trigger whose
+// effect produces mana). A face-down permanent has no abilities (CR 708.2),
+// and a nil object or face fails closed.
+func objectHasManaAbility(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+	if o == nil || o.Face() == nil || o.FaceDownHidden() {
+		return false
+	}
+	return FaceHasManaAbility(o.Face())
+}
+
+// FaceHasManaAbility reports whether a printed face carries a mana ability:
+// an activated one (the intrinsic basic-land ability included) or the
+// triggered CR 605.1b form. It is the one home of the characteristic, shared
+// by the effects predicate and by kgen's CardDef.HasManaAbility, so the gorge
+// filter and the kernel table cannot drift.
+func FaceHasManaAbility(f *cards.Face) bool {
+	if f == nil {
+		return false
+	}
+	if len(f.ManaAbilities()) != 0 || len(f.ManaReflectedAbilities()) != 0 {
+		return true
+	}
+	for i := range f.Triggers {
+		tr := &f.Triggers[i]
+		if tr.Mode != "TapsForMana" && tr.Mode != "ManaAdded" {
+			continue
+		}
+		if !strings.EqualFold(strings.TrimSpace(tr.ParamStr(cards.PKStatic)), "True") {
+			continue
+		}
+		for sa, d := tr.Effect, 0; sa != nil && d < 32; sa, d = sa.Sub, d+1 {
+			if sa.Kind == "DB" && (sa.API == "Mana" || sa.API == "ManaReflected") {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // objectHasAbility answers a recognised hasAbility sub-spec over the

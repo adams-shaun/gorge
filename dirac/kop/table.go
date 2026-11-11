@@ -345,6 +345,11 @@ type CardDef struct {
 	// read of the NoAbilities filter word (W7NoAbilities; gorge
 	// FaceHasNoAbilities). Read off the battlefield only.
 	NoAbilities bool
+	// HasManaAbility: the printed face has a mana ability (gorge
+	// effects.FaceHasManaAbility: an activated CR 605.1a ability or a
+	// CR 605.1b triggered one; the intrinsic basic-land ability included).
+	// Read by PredHasManaAbility on and off the battlefield.
+	HasManaAbility bool
 	// HasWarp is printed warp (CR 702.185a; no KwMask bit is free): the
 	// hand offers the warp cast (its warp cost in WarpCost), and a permanent
 	// spell cast that way is exiled at the beginning of the next end step

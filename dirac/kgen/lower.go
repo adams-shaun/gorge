@@ -635,6 +635,7 @@ func (lc *lowerCtx) lowerRecord() {
 		out.Subtypes = append(out.Subtypes, t)
 	}
 	out.NoAbilities = effects.FaceHasNoAbilities(f, out.Types&tLand != 0)
+	out.HasManaAbility = effects.FaceHasManaAbility(f)
 	out.Colors = colorsOf(f)
 	if faceHasKeyword(f, "Devoid") {
 		// CR 702.114a: gorge effects.faceColorMask / cards.printedColourMask

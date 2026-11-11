@@ -2170,6 +2170,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.untapAll(ps)
 	case "TapAll":
 		return lc.tapAll(ps)
+	case "DrainMana":
+		return lc.drainMana(ps)
 	case "Seek":
 		return lc.seek(ps)
 	case "Reveal":

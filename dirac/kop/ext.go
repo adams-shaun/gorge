@@ -235,6 +235,14 @@ const (
 	NumExtOps ExtOp = 320
 )
 
+// ExtDrainMana: the player in Obj loses all unspent mana (gorge
+// effDrainMana: one events.ManaClear for that seat; Power Sink's
+// unless-payment decline, Mana Short). The pool and its side tallies empty.
+// dirac/act_drainmana.go.
+const ExtDrainMana ExtOp = 40
+
+func init() { extOpNames[ExtDrainMana] = "DrainMana" }
+
 // extOpNames is filled by per-sub-op init registrations (extOpNames[ExtX] = "X").
 var extOpNames [NumExtOps]string
 

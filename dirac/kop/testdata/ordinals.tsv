@@ -455,6 +455,7 @@ ExtDigImprint	ExtOp	282
 ExtDistCounters	ExtOp	310
 ExtDividedCounters	ExtOp	30
 ExtDmgMark	ExtOp	317
+ExtDrainMana	ExtOp	40
 ExtDrawUpto	ExtOp	309
 ExtEachDamage	ExtOp	2
 ExtEffEtbCtr	ExtOp	197
@@ -911,6 +912,7 @@ PredFaceDown	Pred	245
 PredHasCounter	Pred	7
 PredHasCounters	Pred	26
 PredHasKeyword	Pred	6
+PredHasManaAbility	Pred	255
 PredHasXCost	Pred	16
 PredHistoric	Pred	19
 PredLacksKeyword	Pred	29

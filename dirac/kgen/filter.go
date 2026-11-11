@@ -153,6 +153,7 @@ const (
 	cmpNoCounters     // !HasCounters: no counter at all (no operator)
 	cmpLacksKw        // !with<Keyword>: lacks keyword bit CmpN (no operator)
 	cmpOutlaw         // Outlaw (CmpN 0) / !Outlaw (CmpN 1): an Assassin, Mercenary, Pirate, Rogue or Warlock (no operator)
+	cmpHasManaAbility // hasManaAbility (CmpN 0) / !hasManaAbility (CmpN 1): the printed face has a mana ability (no operator)
 	cmpMonoColor      // MonoColor: exactly one colour (no operator)
 	cmpSameNameT0     // target 0 or a permanent sharing its name (Maelstrom Pulse)
 	cmpTotalPT        // totalPT_<op><n>: power plus toughness (Cut Down)
@@ -772,6 +773,15 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 			n = 1
 		}
 		return c.setCmp(cmpOutlaw, 0, n, "", "")
+	case "hasManaAbility", "!hasManaAbility":
+		// gorge FaceHasManaAbility (an activated CR 605.1a ability, the
+		// intrinsic basic-land one included, or a CR 605.1b triggered one):
+		// the kernel reads CardDef.HasManaAbility; the '!' is PredN 1.
+		n := 0
+		if p[0] == '!' {
+			n = 1
+		}
+		return c.setCmp(cmpHasManaAbility, 0, n, "", "")
 	case "ExiledWithSource", "ExiledWithSourceLKI":
 		// gorge exiledBySource (both spellings read the one helper): the
 		// card's reverse ExiledWith link or the source's forward list; a
