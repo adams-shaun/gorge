@@ -3469,6 +3469,11 @@ func (lc *lowerCtx) genericChoice(ps *params) error {
 // lowerMana lowers an AB$ Mana.
 func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 	m := &lMana{}
+	split, err := lc.condSplitRoot(sa, ps, ab) // lower_condsplit.go: the sub folds into the root's lMana
+	if err != nil {
+		return err
+	}
+	m.Split = split
 	prod := ps.str("Produced")
 	if v := ps.peek("TriggersWhenSpent"); v != "" && prod == "R" {
 		if err := lc.deferredMana(ab, ps, v); err != nil {
@@ -3766,7 +3771,7 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 			lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors, F: m.Restrict})
 		}
 	}
-	if sa.Sub != nil {
+	if sa.Sub != nil && m.Split == nil { // (a Condition-split's sub is folded into m.Split)
 		// Chandra's +2: mana, then the rest of the chain.
 		if err := lc.chain(sa.Sub, nil); err != nil {
 			return err

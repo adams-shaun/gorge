@@ -88,10 +88,7 @@ func partnerDuel(t *testing.T) (*Matchup, *kop.Table) {
 // seeds both commanders of a pair are cast, a commander is cast again
 // (taxed), a pair's two commanders both deal combat damage, and one
 // commander alone reaches 21 (CR 903.10a), so the per-commander bookkeeping
-// is exercised and not merely zero on both sides. Seeds 1, 6 and 19 are left
-// out: they diverge on a token dying beside a commander (gorge keeps it in
-// the graveyard while the CR 903.9a ask is pending, the kernel ceases it at
-// once), which a one-commander duel of the same decks hits too (seed 5).
+// is exercised and not merely zero on both sides.
 func TestCommanderPartnerLockstep(t *testing.T) {
 	m, tbl := partnerDuel(t)
 	if cfg := m.Config(1); len(cfg.Commanders) != 2 || len(cfg.Commanders[0]) != 2 || len(cfg.Commanders[1]) != 2 {
@@ -103,7 +100,7 @@ func TestCommanderPartnerLockstep(t *testing.T) {
 	rc := RunConfig{Config: Config{PassElision: true}, MaxTurns: 60}
 	mk := RealKernel(tbl, nil, rc.Config)
 	var bothCast, recast, bothHit, lethal bool
-	for _, seed := range []uint64{2, 3, 4, 5, 7, 8, 9, 10, 12, 24} {
+	for _, seed := range []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 19, 24} {
 		lead, err := NewGorgeSide(m, seed, rc.Config, nil)
 		if err != nil {
 			t.Fatal(err)

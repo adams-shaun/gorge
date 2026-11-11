@@ -73,7 +73,13 @@ func (s *State) beginTurn(p uint8) {
 	}
 	for i := range s.pl {
 		pl := &s.pl[i]
-		pl.landsPlayed = 0
+		if uint8(i) == SeatIx(p) {
+			// gorge resets a seat's Player.LandsPlayed only when its own turn begins
+			// (events foldTurnChange), so another seat's count outlives the turn it
+			// was made in: the Condition-split gate reads it (mana_condsplit.go); the
+			// projections show the active seat's only (landsProj)
+			pl.landsPlayed = 0
+		}
 		pl.drawnTurn = 0
 		pl.lifeGained = 0
 		pl.lastLost = pl.lifeLost // ExLifeLostLastTurn: the turn just ended
@@ -515,7 +521,7 @@ func (s *State) sba(k *prep) bool {
 		s.cmdDamageSBA(k) // CR 704.6c (combat_cmddamage.go)
 		s.checkOver()
 		if s.over {
-			if k.gen != nil {
+			if k.gen != nil || s.cfg&cfgCommander != 0 {
 				s.ceaseTokensGen()
 			}
 			return true
@@ -672,6 +678,8 @@ func (s *State) sba(k *prep) bool {
 			// pass either way; the order is only observable when both act.
 			if k.gen != nil {
 				s.sbaChainEnd(k)
+			}
+			if k.gen != nil || s.cfg&cfgCommander != 0 {
 				s.ceaseTokensGen()
 			}
 			if k.anySaga && s.sagaSBA(k) {
@@ -697,7 +705,7 @@ func (s *State) sba(k *prep) bool {
 			s.legSaga = s.sagasDue(k)
 			return true
 		}
-		if k.gen != nil {
+		if k.gen != nil || s.cfg&cfgCommander != 0 {
 			s.ceaseTokensGen()
 		}
 		// gorge's order (rules/sba.go): the creature casualties (lethal
