@@ -260,6 +260,15 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	return p2met, true
 }
 
+// ConditionMet is conditionMet for a reader outside a resolution: whether sa's
+// Condition* gate holds on the board h shows, in c's frame (met), and whether
+// the evaluator could decide it at all (resolved). A sub with no Condition* key
+// answers (true, false), "not gated". rules' Condition-split mana bound
+// (mana_condsplit.go) reads it to tell which arm an activation would make.
+func ConditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
+	return conditionMet(h, c, sa)
+}
+
 // linkConditionMet is conditionMet for one link of a resolving chain. A link whose
 // targets were answered at cast time reads them in its own condition: Quag Feast's
 // `Targeted$CardManaCost` is the Destroy link's target, and the Mill at the root has

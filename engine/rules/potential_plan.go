@@ -2086,8 +2086,6 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 		}
 		amt = max(live, tapped)
 	}
-	mp := effects.ManaOf(ma)
-	counts, any := mp.Counts, mp.CountsAny
 	creature := e.IsCreature(id)
 	// The tap fires the static TapsForMana triggers whichever colour it takes,
 	// so each relaxed production carries the largest extra they add (CR 605.4a):
@@ -2108,16 +2106,37 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 		out = append(out, pay.Alt{Activation: decision.PaymentActivation{Source: id, Produces: pay.ManaAmount(m)},
 			Mana: m, Creature: creature, Ma: ma, Tier: pay.TierNormal, Flex: 1, FlexAll: 1})
 	}
+	if !relaxedAddProduction(effects.ManaOf(ma), amt, add) {
+		return nil, 0, 0, false, false
+	}
+	// A Condition-split ability (Gemstone Caverns' luck counter, River of
+	// Tears' land drop) adds its sub's production INSTEAD when the gate holds
+	// (CR 605.1a): the sub's productions are further alternatives, so the
+	// relaxation still only over-produces (mana_condsplit.go).
+	if sub := e.condSplitLiveSub(p, id, ma); sub != nil {
+		if subAmt := availableAmount(sub); subAmt <= 0 || !relaxedAddProduction(effects.ManaOf(sub), subAmt, add) {
+			return nil, 0, 0, false, false
+		}
+	}
+	return out, fee, repeats, once, true
+}
+
+// relaxedAddProduction hands add one relaxed production per way mp can make
+// amt units (a fixed production; one per colour multiset of an
+// Any/Combo/Chosen choice), false when it names no colour or amt is out of
+// the enumerated range.
+func relaxedAddProduction(mp *effects.ManaParams, amt int32, add func(state.Mana)) bool {
+	counts, any := mp.Counts, mp.CountsAny
 	if !any {
 		var m state.Mana
 		for i, n := range counts {
 			m[state.ManaIndex(cards.ManaSymbol(i))] += n * amt
 		}
 		if m.Total() <= 0 {
-			return nil, 0, 0, false, false
+			return false
 		}
 		add(m)
-		return out, fee, repeats, once, true
+		return true
 	}
 	var cols []int
 	for i, n := range counts {
@@ -2126,7 +2145,7 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 		}
 	}
 	if len(cols) == 0 || amt > 6 {
-		return nil, 0, 0, false, false
+		return false
 	}
 	// Every multiset of amt units over cols (non-decreasing index runs).
 	var m state.Mana
@@ -2143,7 +2162,7 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 		}
 	}
 	rec(0, amt)
-	return out, fee, repeats, once, true
+	return true
 }
 
 type potentialModeBaseCostCode uint16
