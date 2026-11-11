@@ -3949,29 +3949,7 @@ func objectHasManaAbility(_ *state.Game, o *state.Object, _ state.PlayerID, _ st
 // triggered CR 605.1b form. It is the one home of the characteristic, shared
 // by the effects predicate and by kgen's CardDef.HasManaAbility, so the gorge
 // filter and the kernel table cannot drift.
-func FaceHasManaAbility(f *cards.Face) bool {
-	if f == nil {
-		return false
-	}
-	if len(f.ManaAbilities()) != 0 || len(f.ManaReflectedAbilities()) != 0 {
-		return true
-	}
-	for i := range f.Triggers {
-		tr := &f.Triggers[i]
-		if tr.Mode != "TapsForMana" && tr.Mode != "ManaAdded" {
-			continue
-		}
-		if !strings.EqualFold(strings.TrimSpace(tr.ParamStr(cards.PKStatic)), "True") {
-			continue
-		}
-		for sa, d := tr.Effect, 0; sa != nil && d < 32; sa, d = sa.Sub, d+1 {
-			if sa.Kind == "DB" && (sa.API == "Mana" || sa.API == "ManaReflected") {
-				return true
-			}
-		}
-	}
-	return false
-}
+func FaceHasManaAbility(f *cards.Face) bool { return f.HasManaAbility() }
 
 // objectHasAbility answers a recognised hasAbility sub-spec over the
 // object's printed face's activated (AB) abilities.
