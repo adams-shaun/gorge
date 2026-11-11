@@ -111,7 +111,7 @@ func (lc *lowerCtx) damageDoneSelfObjRef(tp *params, tr *lTrigger, t cards.Trigg
 // the damaged player (Abyssal Specter). The plain trigger's player is the
 // source controller's opponent at two seats, wrong when the Specter hurts its
 // own controller; the per-referent queue carries the damaged player itself
-// (ddoRecipient). A combat-only line keeps the plain trigger, whose damaged
+// (ddoRecipient), seat-exact at any seat count. A combat-only line keeps the plain trigger, whose damaged
 // player is the defending player (damagedPlayerIsTriggerPlayer).
 func selfPlayerRefShape(tr *lTrigger) bool {
 	return tr.Combat != 1 && tr.F2 != nil && tr.F2.Players == plBoth && len(tr.F2.Clauses) == 0
