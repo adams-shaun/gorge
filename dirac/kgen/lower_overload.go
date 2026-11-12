@@ -27,7 +27,7 @@ func (lc *lowerCtx) refuseOverloadCombos() bool {
 	if out.Kicker != nil || out.Warp != nil || out.Plot != nil || out.Flashback != nil || out.SpellCost != nil || out.AltAddCost != nil || out.Convoke || out.Improvise ||
 		out.Offspring != nil || out.Gift || out.MorphCost != nil || out.Sneak != nil || out.Bestow != nil || out.Impending != nil || out.Mayhem != nil ||
 		out.Harmonize != nil || out.Madness != nil || out.Casualty != 0 || out.Bargain || out.OptCost != nil || out.Teamwork != 0 || out.Spree || out.WebSling != nil ||
-		out.Dash != nil || out.Evoke != nil || out.MayFlash != nil {
+		out.Dash != nil || out.Evoke != nil || out.MayFlash != nil || out.Delve || out.Storm || out.SpellWaterbend != 0 || out.BeholdN != 0 || out.BeholdExile || out.Miracle != nil {
 		lc.refuseNode("K:Overload", "Overload beside an alternative or additional cost")
 		return true
 	}
@@ -148,6 +148,9 @@ func overloadInstr(in lInstr, t lTarget) (lInstr, error) {
 	case "Exile":
 		if in.C != 0 {
 			return in, refuse("Overload of Exile with flags %#x", in.C)
+		}
+		if t.Zone != zBattlefield && t.Zone != zNone {
+			return in, refuse("Overload of Exile from %s", zoneLabel[t.Zone])
 		}
 		in.Op = "ChangeZoneAll"
 		in.F = t.F

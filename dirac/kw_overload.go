@@ -12,8 +12,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // affordability gate). It rides AkCast mode 0 with castOverloadTgt in the
 // target byte; the cast's target stage asks nothing (the spell has no
 // targets), and the resolution runs CardDef.OverloadProg, kgen's each-variant
-// of the printed program, instead of the printed spell ability. A stack copy
-// clears the mode bit (copy_gen.go), so a copy is not overloaded.
+// of the printed program, instead of the printed spell ability. The mode bit
+// survives on a stack copy, so a copy of an overloaded spell is overloaded
+// too: copy_gen.go clears it only for an impended (ab == 255) permanent
+// spell, and CR 707.10 / 702.96c make the text change copiable (gorge
+// agrees: state.FlagOverloaded is deliberately not in CastProvenanceFlags).
 //
 // Provenance rides stackEntry.mode's impending bit: a card has overload or
 // impending/dash, never both (kgen refuses the combination), so the bit reads
