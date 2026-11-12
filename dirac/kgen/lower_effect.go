@@ -156,13 +156,15 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// of a Phase trigger, the drawer, the player who gained/lost life, the caster)
 		if tr := lc.ab.Trigger; tr != nil {
 			switch tr.Event {
-			case "Phase", "Drawn", "LifeGained", "LifeLost", "SpellCast", "FacesDilemma":
+			case "Phase", "Drawn", "LifeGained", "LifeLost", "SpellCast", "FacesDilemma", "BecomeMonarch":
 				// SpellCast: gorge trigger_referents.go:244-258 sets
-				// TriggerPlayer to the caster, the TriggeredActivator below
+				// TriggerPlayer to the caster, the TriggeredActivator below;
+				// BecomeMonarch: the new monarch (gorge's MonarchChange
+				// Player, lower_monarch.go)
 				return lRef{Kind: rTriggeredPlayer}, nil
 			}
 		}
-		return lRef{}, refuse("Defined$ %q outside a Phase/Drawn/LifeGained/LifeLost/SpellCast/FacesDilemma trigger", v)
+		return lRef{}, refuse("Defined$ %q outside a Phase/Drawn/LifeGained/LifeLost/SpellCast/FacesDilemma/BecomeMonarch trigger", v)
 	case "TriggeredTarget", "TriggeredTargetLKICopy":
 		// gorge definedSpecTriggeredTarget of a damage trigger: the damaged
 		// object or player. A per-referent DamageDone line whose ValidTarget$
@@ -1747,6 +1749,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.goad(ps) // lower_goad.go
 	case "TakeInitiative":
 		return lc.takeInitiative(ps) // lower_initiative.go
+	case "BecomeMonarch":
+		return lc.becomeMonarch(ps) // lower_monarch.go
 	case "Counter":
 		if _, ok := ps.get("TargetType"); !ok {
 			if d, ok := ps.get("Defined"); ok {

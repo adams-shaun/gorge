@@ -59,21 +59,6 @@ func declineBlockers(t *testing.T, e *Engine) {
 	}
 }
 
-// passPriorities passes priority decisions until a non-priority decision
-// appears (the caller stops when the decision it wants is pending), or the
-// budget runs out -- unlike drainPriority, which fatals on a non-priority ask.
-func passPriorities(t *testing.T, e *Engine, limit int) {
-	t.Helper()
-	for i := 0; i < limit; i++ {
-		d := e.Pending()
-		if d == nil || d.Kind != decision.KPriority {
-			return
-		}
-		passPriorityOnce(t, e)
-	}
-	t.Fatal("priority did not drain within the budget")
-}
-
 // rfcDrive crosses every decision on the way to turn/active's step, bounded
 // like driveToStep: priority is passed, an attackers or blockers ask in the
 // way is declined empty (the legal no-op), and any other decision is answered
