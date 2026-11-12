@@ -2,7 +2,7 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
-// DebugNoPlExtreme (TestJaceLockstepMutation): ExPlExtreme reads 0.
+// DebugNoPlExtreme (dirac/oracle TestOneRingExtremeMutation): ExPlExtreme reads 0.
 var DebugNoPlExtreme bool
 
 // plExtreme is ExPlExtreme: the highest, over a living player group walked

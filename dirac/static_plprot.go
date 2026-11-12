@@ -30,8 +30,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // kernel damage call names a live source controller, and the pool's games
 // never hit the shape.
 
-// DebugPlProtAllOff is TestPlayerProtAllMutation's switch: the static is
-// ignored, so the lockstep against gorge must diverge on the first damage
+// DebugPlProtAllOff is the switch of dirac/oracle's
+// TestOneRingPlProtAllMutation and TestNextTurnPlProtAllMutation: the static
+// is ignored, so the lockstep against gorge must diverge on the first damage
 // event to the protected player. Read in the two readers only.
 var DebugPlProtAllOff bool
 
