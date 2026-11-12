@@ -1242,6 +1242,20 @@ func (lc *lowerCtx) dig(ps *params) error {
 		return err
 	}
 	in.F = pickConstraintFilter(in.F, budget, hasBudget, distinct)
+	forgetOther := false
+	if v, ok := ps.get("ForgetOtherRemembered"); ok {
+		// gorge effDig copies the pre-clear candidates, then clears the
+		// resolution's remembered set before the walk (dig.go). The kernel
+		// walks the live set with no pre-clear snapshot, so a ChangeValid$
+		// that reads it refuses by name.
+		if v != "True" {
+			return refuse("Dig ForgetOtherRemembered$ %q", v)
+		}
+		if strings.Contains(ps.m["ChangeValid"], "Remembered") || filterReadsRemembered(in.F) {
+			return refuse("Dig ForgetOtherRemembered$ with a ChangeValid$ that reads the remembered set")
+		}
+		forgetOther = true
+	}
 	if lp, ok := ps.get("LibraryPosition"); ok {
 		if dest != zLibrary && dest2 != zLibrary {
 			return refuse("LibraryPosition without a library destination")
@@ -1314,6 +1328,11 @@ func (lc *lowerCtx) dig(ps *params) error {
 		return err
 	}
 	in.CS = strings.Join(flags, "|")
+	if forgetOther {
+		// both Dig paths clear before the walk; DigRemember then re-adds the
+		// taken cards (Primal Surge)
+		lc.emit(lInstr{Op: "ClearRemembered"})
+	}
 	if ct, ok := ps.get("WithCounters"); ok && lc.name == undercityKey {
 		// the taken card enters with counters (CR 122.6;
 		// the Undercity's Throne). gorge effDig reads neither param
@@ -1339,6 +1358,22 @@ func (lc *lowerCtx) dig(ps *params) error {
 		lc.emit(lInstr{Op: "DigImprint"}) // the dig's takes join the imprinted set
 	}
 	return nil
+}
+
+// filterReadsRemembered reports whether a compiled filter reads the
+// resolution's remembered set (Card.IsRemembered). A Dig's candidates come
+// from a pre-clear snapshot in gorge, which the kernel cannot reproduce for
+// such a filter.
+func filterReadsRemembered(f *lFilter) bool {
+	if f == nil {
+		return false
+	}
+	for _, c := range f.Clauses {
+		if c.Flags&fRemembered != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (lc *lowerCtx) digUntil(ps *params) error {

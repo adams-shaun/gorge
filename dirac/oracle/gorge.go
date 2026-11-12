@@ -752,6 +752,18 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
 				continue
 			}
+			if o.Mode == "foretell_cast" {
+				// CR 702.143a: a foretold card cast from exile; the 16-entry
+				// cast-mode table is full, so the kernel's foretold cast
+				// canonicalises to castModeOther, like "harmonize"
+				// (kw_foretell.go)
+				if o.AltCostIndex > 15 {
+					note("cast/foretell_cast")
+					continue
+				}
+				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
+				continue
+			}
 			if o.Mode == "optionalcost" {
 				// CR 601.2b: an OptionalCost static's view, AltCostIndex
 				// i+1; the kernel's kicked cast of an OptCost card packs

@@ -107,7 +107,7 @@ var DebugPlotInstant bool
 // own walker (warp's recast, plot's free cast), never by the generic play
 // surfaces.
 func ownWalkerRecord(r mayPlay) bool {
-	return r.until == kop.DurWarp || r.until == kop.DurPlot || r.until == kop.DurPrepared || r.until == kop.DurDefeated || r.until == kop.DurAirbend
+	return r.until == kop.DurWarp || r.until == kop.DurPlot || r.until == kop.DurPrepared || r.until == kop.DurDefeated || r.until == kop.DurAirbend || r.until == kop.DurForetell
 }
 
 // plotRecord reports whether p holds a live DurPlot record for o on a turn
@@ -165,9 +165,25 @@ func (s *State) plotAction(k *prep, o Obj, p uint8) {
 	c := ob.card
 	cd := &k.t.Cards[c]
 	cost := s.adjustCost(k, p, c, o, cd.PlotCost)
+	s.payAndExile(k, p, o, cost)
+	if s.mayFull() {
+		s.capFull(StallMayPlay)
+		return
+	}
+	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurPlot, turn: s.turn}
+	s.g.nmay++
+	s.passes = 0
+	if pc := &k.cards[c]; pc.plotTrig {
+		s.fireBecomesPlotted(k, o) // kw_plot.go
+	}
+}
+
+// payAndExile pays the special action's cost (the plot action's, or the
+// foretell action's {2}) and moves hand card o to exile. gorge's potential
+// witness: the action's plan taps the sources at priority, then the action
+// pays from the floating pool.
+func (s *State) payAndExile(k *prep, p uint8, o Obj, cost kop.ManaCost) {
 	if !s.poolPays(p, &cost) {
-		// gorge's potential witness: the plot action's plan taps the
-		// sources at priority, then the action pays from the floating pool
 		short := cost
 		if m := s.restrPoolNonSpell(k, p); m != 0 {
 			short = s.restrShortAdm(p, m, cost) // mana_specialaction.go: only a non-spell restriction funds it
@@ -181,16 +197,6 @@ func (s *State) plotAction(k *prep, o Obj, p uint8) {
 	}
 	from := s.detach(o)
 	s.placeFrom(o, kop.ZoneExile, false, from, false)
-	if s.mayFull() {
-		s.capFull(StallMayPlay)
-		return
-	}
-	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurPlot, turn: s.turn}
-	s.g.nmay++
-	s.passes = 0
-	if pc := &k.cards[c]; pc.plotTrig {
-		s.fireBecomesPlotted(k, o) // kw_plot.go
-	}
 }
 
 // offerPlotCasts offers p's plotted cards' free cast from exile (gorge
