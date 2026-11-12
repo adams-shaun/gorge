@@ -118,3 +118,33 @@ func (s *State) improvisePlanPay(k *prep, e *stackEntry, cost *kop.ManaCost, any
 	s.ctrlM[si] = ctrl
 	return false
 }
+
+// improviseRoute routes the mana step of a spell cast whose plan gorge's
+// planner takes at the printed price with the tap-paid permanents held out of
+// it: a target-paid convoke cast with no creature announced (state.go
+// bflTargetPaid), and an Improvise cast it priced at the credited cost
+// (build.impPlan, kw_improvisepay.go). Both shapes pay through the plan here;
+// the shapes that fall back to the manual CR 601.2g window — convoke or delve
+// beside the mana, an Improvise credit reserved but not announced (manual) —
+// return not handled and manaStep's own arms pay. impPlan and bflTargetPaid
+// are set exclusively (cast.go), so a manual improvise cast can never take the
+// target-paid arm. It reports (handled, stranded): stranded, the payment
+// stranded and the cast was already reversed (CR 733.1).
+func (s *State) improviseRoute(k *prep, e *stackEntry, cost *kop.ManaCost, anyColor bool, saved *[len(build{}.picks)]uint8) (handled, stranded bool) {
+	plan, manual, printed := s.improvisePlanned(k, e)
+	if k.gen != nil && k.gen.anyConvoke && s.tapPaysEntry(k, e) && (s.bld().bfl&bflTargetPaid != 0 || printed) && s.convokePickCount() == 0 && !manual {
+		// a target-paid convoke cast with no creature announced keeps its
+		// plan at the printed cost (state.go bflTargetPaid): the planner
+		// pays, the Treasure for the colour the cost owes. An Improvise cast
+		// with the credit printed and no artifact beside it (printed) takes
+		// the same shape.
+		s.tapForRider(k, e.ctrl, cost, int(e.x), e.obj, anyColor)
+		return true, false
+	}
+	if plan {
+		// an Improvise cast gorge's planner prices: the plan pays it while it
+		// still describes the payment; stranded, the cast is reversed
+		return true, s.improvisePlanPay(k, e, cost, anyColor, saved)
+	}
+	return false, false
+}
