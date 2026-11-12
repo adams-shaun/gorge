@@ -32,8 +32,8 @@ func gameWithSiege(t *testing.T) (*state.Game, state.ObjID) {
 // a Battle enters with defense counters equal to its printed Defense. The
 // arithmetic now lives in EntryCounterGrants; events.Move no longer folds it
 // itself (rules places it through a real CounterChange so the CR 614
-// replacement class and the CantPutCounter prohibition see it, task
-// addcounter1/2), so this test also pins that a bare MoveZone fold grants
+// replacement class and the CantPutCounter prohibition see it), so this
+// test also pins that a bare MoveZone fold grants
 // nothing -- a re-added fold would double every entry counter.
 func TestEntryCounterGrantsBattleDefense(t *testing.T) {
 	g, id := gameWithSiege(t)
