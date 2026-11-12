@@ -96,6 +96,8 @@
  "max_turns": 30,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Warren Warleader attacking with Savannah Lions: its AttackersDeclared charm makes a Rabbit tapped and attacking, the defender the attack trigger's defending player (CR 508.4)",
  "actions": [
   167771904,
   167771904,

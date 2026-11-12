@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 601.2c, 733.1: Q's Play of Make It So paid with an exiled graveyard card announces its untap mode, whose required target the pool cannot cover, so the copy cast is reversed at the target ask with no window opened (autopay surface)",
  "actions": [
   167771904,
   167771904,

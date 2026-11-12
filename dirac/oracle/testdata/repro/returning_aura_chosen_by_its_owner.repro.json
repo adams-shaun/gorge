@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-msh",
+ "why": "Wiccan, Rising Magician returns Super Speed at the end step under its owner's control: the owner chooses what it enchants",
  "actions": [
   16776960,
   16776960,

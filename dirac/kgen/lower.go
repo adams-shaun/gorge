@@ -222,6 +222,19 @@ type lowerCtx struct {
 	repeatCard int
 	// repeatOpp: that body repeats over the controller's opponents
 	repeatOpp bool
+	// repeatCheckSVar is the SVar an enclosing gated Repeat's
+	// RepeatCheckSVar$ names, while that body is lowered; repeatCheckAb is
+	// its ability, so a StoreSVar$ after the loop (the reset) still matches
+	// (lower_storesvar.go)
+	repeatCheckSVar string
+	repeatCheckAb   *lAbility
+	// repeatStoredGuard: the body stored the gate SVar true under the
+	// library-empty condition; repeat folds that stop into the gate
+	repeatStoredGuard bool
+	// repeatImprintBody: lowering the body of a RepeatDefined$ Imprinted
+	// loop; a Dig Imprint$ on the spell may open the set when its reads sit
+	// in the same ability (lower_digparams.go)
+	repeatImprintBody bool
 	// rollName is the ResultSVar$ of a RollDice lowered in ability rollAb:
 	// a later bare amount of that name (not a card SVar) is the roll
 	// (lower_combatstatics.go)
@@ -1664,6 +1677,17 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Miracle = &mc
+		case head == "Compleated":
+			// CR 702.150, as gorge implements it (the kw:Compleated
+			// approximation): the life paid for the printed Phyrexian pips
+			// lowers the entry loyalty (gorge events entry_counters'
+			// CompleatedLifePaid, cast_commit's FlagCompleated CastInfo).
+			// The kernel pays the pips' life in the payment window and
+			// places the entry's CtrLoyalty from the printed Loyalty alone
+			// (zones.go), so the life-paid amount would not reach the
+			// entry: a life-pip cast would enter Jace at full loyalty
+			// where gorge enters it two loyalty lower per pip.
+			lc.refuseNode(node, "keyword %q: the pips' life does not reach the entry loyalty", head)
 		default:
 			lc.refuseNode(node, "keyword %q", head)
 		}

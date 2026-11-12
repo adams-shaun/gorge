@@ -195,6 +195,12 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecConte
 		}
 	}
 	specCtx.DerivedPTs = append(specCtx.DerivedPTs, GreatestPowerDerivedPTs(f.g, matchSpec, f.h)...)
+	if zone == state.ZHand {
+		// a hand scan reads IsImprinted as the association's membership
+		// (Tainted Pact's TaintedCheck); an ordinary live filter keeps the
+		// CR 607.2a expiry
+		specCtx.HandCount = true
+	}
 	if !matchesZoneSpecCtx(f.g, matchSpec, id, specCtx, zone) {
 		return
 	}

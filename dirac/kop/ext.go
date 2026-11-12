@@ -744,6 +744,16 @@ const ExtCopyExiledWith ExtOp = 258
 
 func init() { extOpNames[ExtCopyExiledWith] = "CopyExiledWith" }
 
+// ExtRememberImprinted: each object in the resolution's imprinted set joins
+// the remembered set (gorge Pump RememberObjects$ Imprinted, a body that
+// rebinds the previously exiled card before the next dig; Tainted Pact).
+// dirac/act_remember.go.
+// 307: the merge with land kept land's ExtDrawUpto at 309 and took the free
+// ordinal below it.
+const ExtRememberImprinted ExtOp = 307
+
+func init() { extOpNames[ExtRememberImprinted] = "RememberImprinted" }
+
 // ExtPreventNext (CR 615.7): prevent the next B damage that would be dealt
 // this turn to the player or permanent Obj (gorge effects/prevent_damage.go
 // effPreventDamage: one this-turn DamageDone shield per recipient that

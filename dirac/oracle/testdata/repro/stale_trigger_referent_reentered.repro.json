@@ -94,8 +94,10 @@
  "mulligans": 1,
  "pass_elision": false,
  "max_turns": 100,
- "surface": "autopay",
+ "surface": "full",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 400.7: Support Mission's counter trigger fired for Dr. Leonard \"Bones\" McCoy's first entry puts nothing on the copy that left and was cast back in",
  "actions": [
   184549120,
   184549120,

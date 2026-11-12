@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "CR 106.6, 702.184a: ... and Evendo, Waking Haven's {G},{T} filter is no mana ability below STATION 12, so it does not shield Mechanozoa's and Starbreach Whale's hand warp casts from the prune",
  "actions": [
   16776960,
   16776960,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "CR 602.5c, 613.1a: an Aegis copy ending while another keeps the same copy does not make its once-each-turn ability new",
  "actions": [
   167771904,
   184549120,

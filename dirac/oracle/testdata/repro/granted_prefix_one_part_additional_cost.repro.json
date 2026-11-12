@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-lci",
+ "pool": "std-lci",
+ "why": "CR 601.2g-h, 605.1a: Dusk Rose Reliquary's {W} beside Hidden Necropolis (printed {B} only) and Forgotten Monument's granted any-colour Cave ability: the one-part additional-cost shape is lowered, so the grant search prices its printed {W} and floats the granted mana as the prefix, where the witness found no plan and panicked",
  "actions": [
   167771904,
   184549120,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "CR 605.3b: a combination filter's allocation asks try the combinations naming a colour the cost needs first, so the node budget reaches the funding that pays",
  "actions": [
   16776960,
   16776960,

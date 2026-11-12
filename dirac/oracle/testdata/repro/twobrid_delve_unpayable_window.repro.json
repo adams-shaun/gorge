@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "Teval, Arbiter of Virtue's delve grant on an unresolved twobrid (Gurmag Nightwatch): the cast is offered on the per-face credit (CR 702.66a), and a payment the window's activations still cannot finish reverses the cast keeping the floated mana (CR 733.1: a player may reverse mana abilities activated for an illegal play)",
  "actions": [
   184549120,
   167771904,

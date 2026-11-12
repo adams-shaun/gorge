@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-blb",
+ "pool": "std-blb",
+ "why": "CR 601.2a, 601.2f, 106.6: Head of the Homestead pays its hybrid pips through Helga's floating restricted {G}, so the spell is on the stack when the target/pip asks come",
  "actions": [
   167771904,
   184549120,

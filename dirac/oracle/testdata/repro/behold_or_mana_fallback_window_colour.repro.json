@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 601.2g: a plan that fell back when the chosen mana part changed the cost has no ManaPayment, so the window answers the source's lowest colour, not the owed pip",
  "actions": [
   16776960,
   16776960,

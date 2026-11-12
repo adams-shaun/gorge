@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 40,
  "surface": "full",
+ "pool": "custom",
+ "why": "Tam, the Possibility proliferates once per planeswalker type among its controller's planeswalkers (two Ajanis count once, CR 205.3j) and Tromell, Seymour's Butler once per nontoken creature that entered under you this turn: each a fresh proliferate ask, none at zero (CR 701.34a)",
  "actions": [
   167771904,
   167771904,

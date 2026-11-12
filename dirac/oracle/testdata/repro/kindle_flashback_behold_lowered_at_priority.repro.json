@@ -95,6 +95,8 @@
  "pass_elision": false,
  "surface": "autopay",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "Kindle the Inner Flame flashed back with its behold of three Elementals: gorge's planner declines a behold part, so the cast's {1}{R} is tapped at priority before the spell moves, and the behold is chosen after the target (CR 601.2c, 601.2h, 702.34a)",
  "actions": [
   16776960,
   16776960,

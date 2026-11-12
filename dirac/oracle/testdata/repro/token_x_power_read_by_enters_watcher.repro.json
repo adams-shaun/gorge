@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-dsk",
+ "why": "Unwilling Vessel dies with three counters: the Spirit token enters as a 3/3, so Enduring Innocence's power-2-or-less watcher stays quiet (CR 111.3)",
  "actions": [
   16776960,
   16776960,

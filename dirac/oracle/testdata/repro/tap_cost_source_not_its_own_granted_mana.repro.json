@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 602.2b, 605.3a: Agna Qel'a's {2}{U},{T} is not paid by the tap that is its cost, so Great Divide Guide's grant on it adds no third mana beside Guide and Badgermole Cub's extra {G}",
  "actions": [
   184549120,
   184549120,

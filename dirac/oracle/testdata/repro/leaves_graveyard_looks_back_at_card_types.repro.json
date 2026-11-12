@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-hob",
+ "pool": "std-hob",
+ "why": "CR 603.10a: Tom, Bert, and William return as a noncreature artifact, yet a creature card left the graveyard, so Along the Crooked Way amasses",
  "actions": [
   167771904,
   184549120,

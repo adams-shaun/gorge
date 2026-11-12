@@ -95,6 +95,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Gwenom, Remorseless attacking: a spell cast from the top of the library is offered at the alternative cost only and pays life equal to its mana value in place of its mana cost (CR 118.9)",
  "actions": [
   167771904,
   184549120,

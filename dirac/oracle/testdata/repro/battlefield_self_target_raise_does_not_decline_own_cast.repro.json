@@ -63,6 +63,9 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Icefall Regent's battlefield self-target RaiseCost taxes spells that target the permanent, not the card's own cast from hand: on autopay both engines plan its {3}{U}{U} from the Islands (CR 113.6, 601.2f)",
+ "stall": true,
  "actions": [
   19398400,
   35192576,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-sos",
+ "pool": "std-sos",
+ "why": "CR 202.3b: cascade reads the spell's mana value where the spell resolved, so the ward-counted Fractalize (X paid 4, now a card in the graveyard) prices 1 and does not hit Textbook Tabulator",
  "actions": [
   167771904,
   184549120,

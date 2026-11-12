@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trk",
+ "why": "Test of Identity cast from Tasha Yar's exile on the opponent's turn with Overflow Submatrix out: its Static$ True cast trigger resolves off the stack and the caster keeps priority (CR 117.3c)",
  "actions": [
   16776960,
   16776960,

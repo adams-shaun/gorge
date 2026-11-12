@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trk",
+ "why": "The Unicomplex played under two Warp Speeds with two other lands: its own enters-tapped body applied last at the re-ask taps nothing, so it stays untapped and its enters-untapped trigger is put on the stack (CR 616.1f)",
  "actions": [
   16776960,
   16776960,

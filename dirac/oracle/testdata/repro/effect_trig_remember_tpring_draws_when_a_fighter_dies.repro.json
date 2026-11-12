@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "T'Pring, Never Parted makes two creatures fight, and the Effect draws a card for each that dies this turn (CR 603.7, 701.14)",
  "actions": [
   19398400,
   17891072,

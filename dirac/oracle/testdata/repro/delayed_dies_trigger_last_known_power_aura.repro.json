@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 608.2h: ... and its last-known 3 power with a +1/+0 Aura attached, not the printed 2",
  "actions": [
   16776960,
   16776960,

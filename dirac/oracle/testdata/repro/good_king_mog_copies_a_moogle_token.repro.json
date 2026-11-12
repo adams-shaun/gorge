@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "synth custom",
+ "pool": "custom",
+ "why": "Summon: Good King Mog XII's chapter effect on a noncreature cast: the controller picks one of the non-Saga tokens to copy, both engines agreeing on the offered pick and the copy (CR 707.2)",
  "actions": [
   18087680,
   18415360,

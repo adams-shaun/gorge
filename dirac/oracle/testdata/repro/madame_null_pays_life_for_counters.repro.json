@@ -135,6 +135,8 @@
  "pass_elision": false,
  "max_turns": 14,
  "surface": "autopay",
+ "pool": "std-tmt",
+ "why": "Madame Null, Power Broker pays life equal to an entering creature's power for that many +1/+1 counters on it: both engines offer the payment and agree on life and counters",
  "actions": [
   16776960,
   16776960,

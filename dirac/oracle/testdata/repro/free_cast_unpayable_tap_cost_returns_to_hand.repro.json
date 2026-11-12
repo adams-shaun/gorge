@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-lci",
+ "pool": "std-lci",
+ "why": "CR 601.2b, 118.3, 733.1, 701.57a: a discover's free cast of Guardian of the Great Door with one untapped permanent left cannot pay its tap four: the cast is reversed and the card goes to hand",
  "actions": [
   16776960,
   16776960,

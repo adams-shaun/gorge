@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "CR 106.6, 602.2b: Mm'menon's hand-barred granted blue is no relaxed unit for Atomic Microsizer's Equip {2} nor Sinister Cryologist's hand warp, and the tap-another search alone (Gene Pollinator tapping Nanoform Sentinel) may not keep the play gorge's one prefix search gave up on",
  "actions": [
   167771904,
   167771904,

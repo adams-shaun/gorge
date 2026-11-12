@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-blb",
+ "why": "Splash Portal returns Mockingbird, which was not cast: no mana spent, so it cannot copy Brave-Kin Duo",
  "actions": [
   16776960,
   16776960,

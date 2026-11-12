@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-trc",
+ "pool": "std-trc",
+ "why": "The Guardian of Forever sacrifices a Starfleet Crew and Stonespeaker Crystal exiles the graveyard before the end step: the card is a new object the delayed return cannot find, so it stays in exile (CR 400.7)",
  "actions": [
   167771904,
   184549120,

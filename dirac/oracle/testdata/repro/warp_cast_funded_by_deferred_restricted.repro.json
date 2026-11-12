@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "Mechanozoa's warp {2}{U} in a main phase, its {U} only Steelswarm Operator's artifact-spell mana while Cryoshatter watches the Operator's tap: gorge offers the warp cast, the watcher's trigger waiting until the spell is cast (CR 601.2g, 603.3)",
  "actions": [
   16776960,
   16776960,

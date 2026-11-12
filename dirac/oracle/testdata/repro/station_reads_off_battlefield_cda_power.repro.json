@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "CR 604.3, 702.184a: Adagia's Station counts a sacrificed Harmonious Grovestrider by its lands-you-control power, which works in the graveyard, not by its printed 0",
  "actions": [
   167771904,
   184549120,

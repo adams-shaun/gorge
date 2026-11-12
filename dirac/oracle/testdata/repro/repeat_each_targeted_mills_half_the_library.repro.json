@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 100,
  "surface": "autopay",
+ "pool": "std-eoe",
+ "why": "Singularity Rupture destroys all creatures, then its two target players each mill half their library rounded down, the controller first (gorge AliveFrom), and both engines agree on every one",
  "actions": [
   16776960,
   16776960,

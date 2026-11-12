@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-msh",
+ "why": "The Sensational She-Hulk's damage trigger, put on the stack as she died: the line is printed on her back face, which the card in the graveyard no longer shows, and the may is still asked (CR 712.8a, 603.5)",
  "actions": [
   16776960,
   16776960,

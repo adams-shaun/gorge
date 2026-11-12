@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-spm",
+ "pool": "std-spm",
+ "why": "Guy in the Chair's Web Support, {2}{G},{T}, from an Island, a Forest and Supportive Parents' white: the Parents' \"choose 2\" answers that tap Guy are skipped, as gorge skips them (CR 602.2b), so the search reaches Lurking Lizards and Mechanical Mobster within its budget",
  "actions": [
   167771904,
   184549120,

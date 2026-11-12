@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-fdn",
+ "pool": "std-fdn",
+ "why": "CR 608.2n: a copy token's looked-hand name ask is acknowledged while the creating ability is still on the stack",
  "actions": [
   184549120,
   167771904,

@@ -16,7 +16,7 @@
    "Daru Encampment",
    "Desert of the Glorified",
    "Fire of Orthanc",
-   "Glóin the Mighty",
+   "Gl\u00f3in the Mighty",
    "Goblin Swine-Rider",
    "Greven, Predator Captain",
    "H.E.R.B.I.E., Lovable Robot",
@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "one-off",
+ "why": "",
  "actions": [
   167771904,
   167771904,

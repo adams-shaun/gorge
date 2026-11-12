@@ -63,6 +63,9 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Merchant Raiders's enters trigger taps up to one target creature and locks it the same way",
+ "stall": true,
  "actions": [
   19398400,
   35192576,

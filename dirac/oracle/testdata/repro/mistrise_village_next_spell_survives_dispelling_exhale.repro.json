@@ -67,6 +67,9 @@
  "pass_elision": true,
  "surface": "full",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "Mistrise Village's activation, then Highspire Bell-Ringer: the opponent's Dispelling Exhale does not counter it (CR 101.2)",
+ "stall": true,
  "actions": [
   16908032,
   19726080,

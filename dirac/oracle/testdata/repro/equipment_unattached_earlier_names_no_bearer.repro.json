@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-lci",
+ "why": "CR 608.2h: Tarrian's Soulcleaver detached when its bearer stopped being a creature, so its dies trigger names no equipped creature",
  "actions": [
   16776960,
   16776960,

@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Ty Lee dies to a Lightning Bolt: her lock is not live without her, so the Wall untaps in its next untap step",
  "actions": [
   17497856,
   19136256,
