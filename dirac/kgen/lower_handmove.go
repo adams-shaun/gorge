@@ -173,6 +173,18 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 	} else if untilLeaves {
 		cs = append(cs, "UntilLeaves")
 	}
+	if v, ok := ps.get("ForgetOtherRemembered"); ok {
+		// gorge effChangeZoneHand clears the resolution's remembered set
+		// before the move (and when the pool is empty); RememberChanged$
+		// re-adds the moved cards. The kernel clears SrForgetOther's set
+		// after the picks and before moveFound (dirac/interp_ask.go
+		// finishSearchNow), so a pick filter reading Card.IsRemembered stays
+		// exact.
+		if v != "True" {
+			return refuse("hand move ForgetOtherRemembered$ %q", v)
+		}
+		cs = append(cs, "ForgetOther")
+	}
 	lc.emit(lInstr{Op: "ChooseMove", Obj: owner, A: n, F: f, C: dest, CS: strings.Join(cs, "|")})
 	return nil
 }
