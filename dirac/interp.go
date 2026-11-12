@@ -597,7 +597,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		}
 	case kop.OpShuffle:
 		if in.C != 0 {
-			s.shuffleRememberedOwners() // shuffle_remowners.go
+			s.shuffleRememberedOwners() // zone_shuffleremowners.go
 		} else if p := s.playerRef(k, in.Obj); p != 255 {
 			s.shuffleLib(p)
 		}
