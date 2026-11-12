@@ -10,8 +10,8 @@ import (
 const storeLandHead = `Name:Store Probe
 ManaCost:no cost
 Types:Land
-A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.
-A:AB$ PutCounter | Cost$ 1 T | CounterType$ STORAGE | CounterNum$ 1 | SpellDescription$ Put a storage counter on CARDNAME.
+A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Produce one {C} for the pool.
+A:AB$ PutCounter | Cost$ 1 T | CounterType$ STORAGE | CounterNum$ 1 | SpellDescription$ Put one storage counter here.
 `
 
 // TestStorageLandLowers: a storage-battery mana ability (SubCounter<X/STORAGE>,
@@ -23,8 +23,8 @@ func TestStorageLandLowers(t *testing.T) {
 		mana   string
 		colors kop.ColorMask
 	}{
-		{"colourless", "A:AB$ Mana | Cost$ T SubCounter<X/STORAGE> | Produced$ C | Amount$ X | SpellDescription$ Add {C} for each storage counter removed.\n", kop.ColC},
-		{"two colours", "A:AB$ Mana | Cost$ T SubCounter<X/STORAGE> | Produced$ Combo B R | Amount$ X | SpellDescription$ Add X mana in any combination of {B} and/or {R}.\n", kop.ColB | kop.ColR},
+		{"colourless", "A:AB$ Mana | Cost$ T SubCounter<X/STORAGE> | Produced$ C | Amount$ X | SpellDescription$ Make {C} for each counter taken off.\n", kop.ColC},
+		{"two colours", "A:AB$ Mana | Cost$ T SubCounter<X/STORAGE> | Produced$ Combo B R | Amount$ X | SpellDescription$ Make X mana, {B} and-or {R} in any mix.\n", kop.ColB | kop.ColR},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			d, rs := kwardpowBuild(t, "Store Probe", storeLandHead+c.mana+"SVar:X:Count$xPaid\nOracle:x\n")
@@ -52,7 +52,7 @@ func TestStorageLandLowers(t *testing.T) {
 // cost (Molten Slagheap and kin) has no kernel autopay unit; it stays refused
 // with a reason naming the shape.
 func TestStorageLandFeeRefused(t *testing.T) {
-	const mana = "A:AB$ Mana | Cost$ 1 SubCounter<X/STORAGE> | Produced$ Combo B R | Amount$ X | SpellDescription$ Add X mana in any combination of {B} and/or {R}.\n"
+	const mana = "A:AB$ Mana | Cost$ 1 SubCounter<X/STORAGE> | Produced$ Combo B R | Amount$ X | SpellDescription$ Make X mana, {B} and-or {R} in any mix.\n"
 	_, rs := kwardpowBuild(t, "Store Probe", storeLandHead+mana+"SVar:X:Count$xPaid\nOracle:x\n")
 	if len(rs) != 1 || !strings.Contains(rs[0].Reason, "announced-X counter cost beside a generic fee") {
 		t.Fatalf("refusals = %v, want the generic-fee reason", rs)
