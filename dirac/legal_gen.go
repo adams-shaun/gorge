@@ -52,6 +52,11 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 			s.offerMayKind(k, d, p, r, sorc, landOK, &av)
 			continue
 		}
+		// a Paradigm card the offer covers is cast free instead (kw_paradigm.go:
+		// gorge offers the card once, the free permission dominating the grant)
+		if k.gen.anyParadigm && s.paradigmOffered(k, p, r.obj, sorc) {
+			continue
+		}
 		s.offerPlay(k, d, p, r.obj, castMayPlay, sorc, landOK, false, false, false, &av)
 	}
 	// play-from-zone statics: graveyards, exile, and the hand (free casts)
