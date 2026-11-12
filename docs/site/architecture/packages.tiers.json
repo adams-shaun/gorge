@@ -355,6 +355,11 @@
       "tier": "tooling",
       "status": "TOOL"
     },
+    "scripts": {
+      "tier": "tooling",
+      "status": "TOOL",
+      "purpose": "Tests of the shell runners in this directory (tests only): test-targets.sh's remote runner."
+    },
     "server/divergence": {
       "tier": "server",
       "status": "SUPP"
