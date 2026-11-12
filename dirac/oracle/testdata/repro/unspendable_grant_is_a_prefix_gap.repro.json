@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "CR 601.2g-h: Mm'menon's hand-barred granted blue prices no hand cast (Glacier Godmaw is not offered off it), yet gorge's prefix still taps Nanoform Sentinel for it as a gap step, the blue floating",
  "actions": [
   167771904,
   167771904,

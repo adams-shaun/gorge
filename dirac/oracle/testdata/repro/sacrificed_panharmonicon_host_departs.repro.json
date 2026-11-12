@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 603.2d: a sacrificed Panharmonicon host is gone when Popular Egotist's \"whenever you sacrifice\" trigger is checked, so it echoes nothing",
  "actions": [
   167771904,
   184549120,

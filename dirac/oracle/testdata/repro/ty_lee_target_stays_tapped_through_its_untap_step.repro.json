@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Ty Lee, Chi Blocker taps a Wall of Wood as she enters: it stays tapped through its controller's untap steps while she stays under her controller's control (Duration$ AsLongAsControl, an Untap replacement scoped to the untap step)",
  "actions": [
   19398400,
   35192576,

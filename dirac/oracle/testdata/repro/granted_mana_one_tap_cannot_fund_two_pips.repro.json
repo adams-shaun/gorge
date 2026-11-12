@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-trk",
+ "why": "Warp Speed's {7}{U}{U} less three with Xenobotanist the only blue source beside Rok-Tahk's granted {G}{G}: one tap makes one blue, so the activation is not offered",
  "actions": [
   16776960,
   16776960,

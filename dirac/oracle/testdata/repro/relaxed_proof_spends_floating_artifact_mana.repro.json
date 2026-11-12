@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "CR 106.6, 601.2g: Sage's Nouliths' equip {3}, paid by Cargo Ship's floating artifact-only {C} beside two of A Realm Reborn's granted taps, passes the planner's relaxed proof: the pool counts",
  "actions": [
   184549120,
   184549120,

@@ -56,17 +56,6 @@ func TestRingTemptsYouSingleCreatureDoesNotAsk(t *testing.T) {
 	}
 }
 
-// ringTemptEvents returns the RingTemptsYou events in the log.
-func ringTemptEvents(log []events.Event) []events.Event {
-	var got []events.Event
-	for _, e := range log {
-		if e.Kind == events.RingTemptsYou {
-			got = append(got, e)
-		}
-	}
-	return got
-}
-
 // TestRingTemptsYouOffersTheExistingBearerFirst pins the option ORDER: the
 // deterministic default (the existing Ring-bearer) is option 0, so the
 // shared KChoose first-option policy -- botpolicy's arm and every no-host clamp

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "the same shape recorded on the full surface",
  "actions": [
   167771904,
   184549120,

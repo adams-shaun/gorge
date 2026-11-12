@@ -96,6 +96,8 @@
  "max_turns": 40,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Asinine Antics against Grizzly Bears: a Cursed Role is attached to each creature the opponent controls in one resolution (RepeatEach RepeatCards$ Creature.OppCtrl, ChangeZoneTable$)",
  "actions": [
   21298944,
   18349824,

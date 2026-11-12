@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-fin",
+ "why": "Summon: Primal Odin under Thief's Knife and Zantetsuken: the Knife's static grant lists its draw before the Animate grant's lose-game, so the one order ask means the same order on both sides (CR 603.3b)",
  "actions": [
   16776960,
   16776960,

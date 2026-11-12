@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 24,
  "surface": "full",
+ "pool": "custom",
+ "why": "Spiders-Man, Heroic Horde cast for its web-slinging cost off two Hulking Raptors' and a Burning-Tree Emissary's floating mana, a crewed Smuggler's Copter's pilot returned: its enters trigger gains 3 life and makes two Spider tokens (CR 702.188, 603.4); a plain cast would not",
  "actions": [
   167771904,
   167771904,

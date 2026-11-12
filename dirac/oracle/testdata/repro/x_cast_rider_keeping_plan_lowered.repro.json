@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-blb",
+ "pool": "std-blb",
+ "why": "CR 609.4b, 601.2b: the same cast played: its payment taps the rider's keeping plan, not the smaller-X witness",
  "actions": [
   16776960,
   16776960,

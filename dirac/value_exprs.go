@@ -237,6 +237,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.selfPrepared(x, ctx) // face_prepare.go
 	case kop.ExCommittedCrime:
 		return s.committedCrime(k, x, ctx)
+	case kop.ExMonarch:
+		return s.exMonarch(k, x, ctx) // act_monarch.go
 	case kop.ExThisTurnActGrave:
 		return s.thisTurnActGrave(ctx)
 	case kop.ExThisTurnActExhaust:
@@ -270,7 +272,9 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExGraveAgg:
 		return s.graveAgg(k, x, ctx)
 	case kop.ExOppExtreme:
-		return s.oppExtreme(k, x, ctx) // value_oppextreme.go
+		return s.oppExtreme(k, x, ctx)
+	case kop.ExPlExtreme:
+		return s.plExtreme(k, x, ctx) // value_plrextreme.go
 	case kop.ExHighestOppPoison:
 		if k.gen != nil && k.gen.anyPoisonHigh {
 			return s.highestOppPoison(ctx.ctrl)

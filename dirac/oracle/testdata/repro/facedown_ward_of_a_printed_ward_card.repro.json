@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-mkm",
+ "pool": "std-mkm",
+ "why": "CR 701.58a/702.168b: a cloaked Axebane Ferox (prints Ward) targeted by an opponent: the face-down ward trigger has no face trigger index (gorge 255)",
  "actions": [
   16776960,
   16776960,

@@ -96,6 +96,8 @@
  "max_turns": 40,
  "surface": "autopay",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "Mirrormind Crown equipped to a creature: the first token its controller would create this turn, an Elder Auntie's Goblin, is asked as a copy of the equipped creature (decline first), and the copy enters in its place (CR 614.1a, 707.2)",
  "actions": [
   16776960,
   16776960,

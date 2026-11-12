@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "the same admission check at the double-pip shape: a spell is paid straight out of the floating restricted pair both pips of which the payment may not touch",
  "actions": [
   16776960,
   16776960,

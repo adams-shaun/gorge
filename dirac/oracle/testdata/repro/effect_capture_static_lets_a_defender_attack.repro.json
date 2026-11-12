@@ -94,6 +94,8 @@
  "mulligans": 1,
  "pass_elision": false,
  "surface": "autopay",
+ "pool": "custom",
+ "why": "The Pride of Hull Clade targets itself: the Effect lets it attack as though it lacked defender, and its one combat damage trigger draws (CR 702.3b, 611.2)",
  "actions": [
   184549120,
   167771904,

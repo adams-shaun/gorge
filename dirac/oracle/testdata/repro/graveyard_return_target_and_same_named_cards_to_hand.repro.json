@@ -94,6 +94,8 @@
  "mulligans": 1,
  "pass_elision": false,
  "surface": "autopay",
+ "pool": "custom",
+ "why": "Echoing Return resolves: its graveyard target and every other card there with its name go to the hand, both engines agreeing on every one; played on its own decks' table because the tail-53 pool no longer holds Teetering Peaks",
  "actions": [
   167771904,
   167771904,

@@ -362,6 +362,8 @@ func (r *realSide) Project(p *Projection) {
 	}
 	p.Initiative = r.s.Initiative() // CR 726 (act_initiative.go)
 	p.DayNight = r.s.DayNight()     // CR 731 (kw_daynight.go)
+
+	p.Monarch = uint8(r.s.Monarch() + 1) // CR 725 (act_monarch.go)
 	for s := 0; s < int(r.n) && s < MaxSeats; s++ {
 		sp := p.seat(s)
 		*sp.room = r.s.DungeonRoom(uint8(s))

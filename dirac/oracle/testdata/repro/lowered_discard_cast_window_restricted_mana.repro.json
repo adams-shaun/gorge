@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-msh",
+ "why": "Titania, Rugged Rumbler cast with a discard, its {B} pip's window tapping Villainous Hideout for Villain-only mana: the window pays, no planner tapping again after the discard (CR 601.2g-h, 106.6)",
  "actions": [
   16776960,
   16776960,

@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-otj",
+ "why": "CR 707.2: Loan Shark copying Luxurious Locomotive makes a Treasure per creature that crewed it",
  "actions": [
   16776960,
   16776960,

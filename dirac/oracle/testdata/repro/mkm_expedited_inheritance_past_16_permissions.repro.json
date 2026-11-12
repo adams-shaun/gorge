@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-mkm",
+ "pool": "custom",
+ "why": "kfuzz std-mkm heuristic pair 88: Expedited Inheritance exiles the cards of a long run of damaged deaths and each takes a play-from-exile permission, 40 live at the peak: the cold buffer holds the records past the 16 in the State, so the game plays on with no capacity stall",
  "actions": [
   16776960,
   16776960,

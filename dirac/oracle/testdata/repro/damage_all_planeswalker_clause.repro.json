@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-mkm",
+ "pool": "std-mkm",
+ "why": "CR 120.3c: Incinerator of the Guilty's X damage to each planeswalker that player controls removes Kaya's loyalty",
  "actions": [
   16776960,
   16776960,

@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trk",
+ "why": "the same dig with Hallowed Fountain asked before three more entrants: all their enters triggers are ordered together once the dig is done",
  "actions": [
   16776960,
   16776960,

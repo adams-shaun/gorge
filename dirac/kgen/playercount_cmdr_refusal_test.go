@@ -2,21 +2,21 @@ package kgen
 
 import "testing"
 
-// playercountCmdrRefusalForms pins that kgen keeps refusing the four
-// Commander cards whose count forms engine/effects now models but the kernel
-// does not lower: the refusal is the allowed alternative to lowering (no
-// kernel, kop, oracle or kfuzz change). The test passes before and after the
-// gorge-side feature -- its value is the pin.
-var playercountCmdrRefusalForms = []formCase{
+// playercountCmdrForms pins what kgen does with the four Commander cards whose
+// count forms engine/effects models. The two zone-scoped extreme carriers now
+// lower onto the kernel's ExPlExtreme (with the pump-duration class) and are
+// played decision-by-decision by TestOneRingLockstep; the dice and
+// triggered-target forms stay refused, the allowed alternative to lowering.
+var playercountCmdrForms = []formCase{
 	{
-		card:    "Windfall",
-		form:    "PlayerCountPlayers$HighestValidGraveyard,Library,Exile (multi-zone remembered count)",
-		refused: "PlayerCountPlayers$HighestValidGraveyard,Library,Exile",
+		card: "Windfall",
+		form: "PlayerCountPlayers$HighestValidGraveyard,Library,Exile (multi-zone remembered count)",
+		lir:  "A=PlExtreme(",
 	},
 	{
-		card:    "Jace's Archivist",
-		form:    "PlayerCountPlayers$HighestValidGraveyard,Library,Exile (multi-zone remembered count)",
-		refused: "PlayerCountPlayers$HighestValidGraveyard,Library,Exile",
+		card: "Jace's Archivist",
+		form: "PlayerCountPlayers$HighestValidGraveyard,Library,Exile (multi-zone remembered count)",
+		lir:  "A=PlExtreme(",
 	},
 	{
 		card:    "Iron Mastiff",
@@ -31,5 +31,5 @@ var playercountCmdrRefusalForms = []formCase{
 }
 
 func TestPlayerCountCmdrRefusals(t *testing.T) {
-	checkForms(t, playercountCmdrRefusalForms)
+	checkForms(t, playercountCmdrForms)
 }

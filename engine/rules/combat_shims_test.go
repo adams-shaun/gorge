@@ -41,10 +41,6 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 	return combat.CanBlock(asBoard(e), blocker, attacker)
 }
 
-func (e *Engine) landwalkEvades(attacker state.ObjID) bool {
-	return combat.LandwalkEvades(asBoard(e), attacker)
-}
-
 func (e *Engine) hasActiveGoad(o *state.Object) bool { return combat.HasActiveGoad(asBoard(e), o) }
 
 func (e *Engine) goadedBy(o *state.Object, p state.PlayerID) bool {
@@ -55,10 +51,6 @@ func (e *Engine) maxAttackers() int { return combat.MaxAttackers(asBoard(e)) }
 
 func (e *Engine) attackRestrictLimit(defender state.PlayerID) (int, bool) {
 	return combat.AttackRestrictLimit(asBoard(e), defender, 0)
-}
-
-func (e *Engine) validateMinMaxBlockers(attacker state.ObjID, n int, defender state.PlayerID) error {
-	return combat.ValidateMinMaxBlockers(asBoard(e), attacker, n, defender)
 }
 
 func (e *Engine) legalBlockerCount(attacker state.ObjID, defender state.PlayerID) int {

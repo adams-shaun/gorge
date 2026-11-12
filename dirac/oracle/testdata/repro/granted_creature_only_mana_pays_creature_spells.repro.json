@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 40,
  "surface": "full",
+ "pool": "std-blb",
+ "why": "Clement, the Worrywort's creature-spell-only {G} or {U} on Frogs: the mana floats restricted and pays creature spells, never a noncreature spell (CR 106.6)",
  "actions": [
   167771904,
   184549120,

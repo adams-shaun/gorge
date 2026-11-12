@@ -94,6 +94,8 @@
  "mulligans": 0,
  "pass_elision": false,
  "surface": "autopay",
+ "pool": "custom",
+ "why": "Chandra, Legacy of Fire removes loyalty counters from her permanents, exiles that many cards and imprints them: each is played from exile this turn, then the imprint is cleared (the remembered amount stays apart from the imprinted set)",
  "actions": [
   16776960,
   16776960,

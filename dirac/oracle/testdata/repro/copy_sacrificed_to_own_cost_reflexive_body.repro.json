@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "CR 707.2, 603.12: a copy that sacrifices itself to its ImmediateTrigger cost (Naga Fleshcrafter as Felothar) still queues the copied reflexive body",
  "actions": [
   16776960,
   16776960,

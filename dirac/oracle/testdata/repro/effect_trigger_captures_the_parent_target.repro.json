@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 20,
  "surface": "autopay",
+ "pool": "std-dft",
+ "why": "Captain Howler's discard trigger pumps a creature and the Effect link remembers that target: only its combat damage to a player draws",
  "actions": [
   184549120,
   167771904,

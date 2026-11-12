@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "synth std-fra",
+ "pool": "std-fra",
+ "why": "Theorist's Proxy sacrificed, then another cast: the opponent's Countersculpt does not counter it (CR 101.2)",
  "actions": [
   19398400,
   17497856,

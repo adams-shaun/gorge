@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-spm",
+ "pool": "std-spm",
+ "why": "Gwenom, Remorseless's play-from-the-top Effect twice (Peter Parker's Camera copies the attack trigger): gorge lists one pay-life cast per Effect, AltCostIndex 1 and 2, and the kernel offers one each instead of stalling (CR 118.9)",
  "actions": [
   167771904,
   167771904,
