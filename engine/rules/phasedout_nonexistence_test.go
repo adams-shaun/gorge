@@ -20,17 +20,6 @@ const phasedManaArtifact = "Name:Mana Rock\nManaCost:2\nTypes:Artifact\n" +
 	"A:AB$ Mana | Cost$ T | Produced$ G | SpellDescription$ Add {G}.\n" +
 	"Oracle:{T}: Add {G}.\n"
 
-// phaseOutActivateOffered reports whether p's legal-action offer includes an
-// "activate" (tap-for-mana) option for obj.
-func phaseOutActivateOffered(e *Engine, p state.PlayerID, obj state.ObjID) bool {
-	for _, o := range e.legalActions(p) {
-		if o.Kind == "activate" && o.Obj == obj {
-			return true
-		}
-	}
-	return false
-}
-
 // TestCR702PhasedOutPermanentActivatedAbilityNotOffered pins CR 702.25b: a
 // phased-out permanent is treated as though it does not exist, so none of
 // its activated abilities is offered. The phased-in control on the SAME

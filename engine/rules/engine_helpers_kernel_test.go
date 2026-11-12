@@ -259,3 +259,56 @@ func requireZone(t *testing.T, e *Engine, id state.ObjID, z state.Zone) {
 		t.Fatalf("object %d (%s) in %v, want %v", id, e.G.Obj(id).Face().Name, got, z)
 	}
 }
+
+// phaseOutActivateOffered reports whether p's legal actions include an activation of
+// obj.
+func phaseOutActivateOffered(e *Engine, p state.PlayerID, obj state.ObjID) bool {
+	for _, o := range e.legalActions(p) {
+		if o.Kind == "activate" && o.Obj == obj {
+			return true
+		}
+	}
+	return false
+}
+
+// mayPlayBase is a 2-seat engine at seat 0's turn-1 main phase, hands
+// emptied, so a fixture can place a granting permanent on the battlefield
+// and a chosen number of lands in the hand.
+func mayPlayBase(t *testing.T) *Engine {
+	t.Helper()
+	e := New(Config{Seed: 1, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}})
+	for p := state.PlayerID(0); p < 2; p++ {
+		e.G.SetZone(state.ZHand, p, nil)
+		e.G.SetZone(state.ZGraveyard, p, nil)
+	}
+	e.G.Step = state.StepMain1
+	e.G.Active, e.G.Priority = 0, 0
+	e.G.Turn = 1
+	return e
+}
+
+// adventureOption returns the cast option for id whose Mode is exactly mode,
+// or nil when none is offered.
+func adventureOption(t *testing.T, e *Engine, id state.ObjID, mode string) *decision.Option {
+	t.Helper()
+	opts := castOptions(t, e)
+	for i := range opts {
+		o := &opts[i]
+		if o.Obj == id && o.Mode == mode {
+			return o
+		}
+	}
+	return nil
+}
+
+// battlefieldObjIDByName returns the id of seat 0's battlefield object named
+// name, or 0.
+func battlefieldObjIDByName(e *Engine, name string) state.ObjID {
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
+			return id
+		}
+	}
+	return 0
+}

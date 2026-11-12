@@ -45,7 +45,7 @@ func TestFlyingKickDirectParentTargetPower(t *testing.T) {
 	}
 	id := searchMoveByName(t, e, "Double Jump", state.ZHand)
 	addMana(t, e, 0, "RR")
-	alt := splitOption(t, e, id, "split_alt")
+	alt := adventureOption(t, e, id, "split_alt")
 	if alt == nil {
 		t.Fatalf("Flying Kick split offer missing: %+v", castOptions(t, e))
 	}

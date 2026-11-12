@@ -44,7 +44,7 @@ func TestAffinityGrant_MycosynthGolem_ArtifactCreature(t *testing.T) {
 		t.Fatal("precondition: the gear is not in hand")
 	}
 	for _, name := range []string{"Mycosynth Golem", "Test Relic"} {
-		if sosBattlefieldByName(e, name) == 0 {
+		if battlefieldObjIDByName(e, name) == 0 {
 			t.Fatalf("precondition: %s is not on the battlefield", name)
 		}
 	}
@@ -86,7 +86,7 @@ func TestAffinityGrant_Negative_NonArtifactSpellNotReduced(t *testing.T) {
 	if o := e.G.Obj(plain); o == nil || o.Zone != state.ZHand {
 		t.Fatal("precondition: the plain golem is not in hand")
 	}
-	if sosBattlefieldByName(e, "Mycosynth Golem") == 0 {
+	if battlefieldObjIDByName(e, "Mycosynth Golem") == 0 {
 		t.Fatal("precondition: Mycosynth Golem is not on the battlefield")
 	}
 	if got := reduceOf(t, e, 0, plain); got != 0 {
@@ -98,15 +98,4 @@ func TestAffinityGrant_Negative_NonArtifactSpellNotReduced(t *testing.T) {
 	if opt := castByName(t, e, 0, "Test Plain Golem"); opt != nil {
 		t.Fatalf("the plain golem was castable with %s reduction: %+v", "none", opt)
 	}
-}
-
-// sosBattlefieldByName returns the id of seat 0's battlefield object named
-// name, or 0.
-func sosBattlefieldByName(e *Engine, name string) state.ObjID {
-	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
-		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
-			return id
-		}
-	}
-	return 0
 }

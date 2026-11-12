@@ -42,23 +42,6 @@ const azusaUnlimitedSrc = "Name:Fastbond\nManaCost:G\nTypes:Enchantment\n" +
 const azusaIsPresentSrc = "Name:Thranduil's Company\nManaCost:5 G\nTypes:Creature Elf Noble\nPT:3/4\n" +
 	"S:Mode$ Continuous | Affected$ You | AdjustLandPlays$ 1 | IsPresent$ Elf.YouCtrl+Other\nOracle:x\n"
 
-// landBase is a 2-seat engine at seat 0's turn-1 main phase, hands
-// emptied, so a fixture can place a granting permanent on the battlefield
-// and a chosen number of lands in the hand.
-func landBase(t *testing.T) *Engine {
-	t.Helper()
-	e := New(Config{Seed: 1, Names: []string{"a", "b"},
-		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}})
-	for p := state.PlayerID(0); p < 2; p++ {
-		e.G.SetZone(state.ZHand, p, nil)
-		e.G.SetZone(state.ZGraveyard, p, nil)
-	}
-	e.G.Step = state.StepMain1
-	e.G.Active, e.G.Priority = 0, 0
-	e.G.Turn = 1
-	return e
-}
-
 // handCard places c into p's hand (the graveCard pattern, with the hand).
 func handCard(e *Engine, c *cards.Card, p state.PlayerID) state.ObjID {
 	o := e.G.AddObject(c, p)
@@ -132,7 +115,7 @@ func playAllLands(t *testing.T, e *Engine, p state.PlayerID, id state.ObjID, lim
 // "always offered".
 func TestAzusaGrantsTwoAdditionalLandDrops(t *testing.T) {
 	t.Parallel()
-	e := landBase(t)
+	e := mayPlayBase(t)
 	onBoardGrant(t, e, 0, azusaSrc)
 	lands := []state.ObjID{
 		handCard(e, card(t, landSrc("Mountain")), 0),
@@ -166,7 +149,7 @@ func TestAzusaGrantsTwoAdditionalLandDrops(t *testing.T) {
 // in the turn, the third not offered.
 func TestOracleGrantsOneAdditionalLandDrop(t *testing.T) {
 	t.Parallel()
-	e := landBase(t)
+	e := mayPlayBase(t)
 	onBoardGrant(t, e, 0, oracleSrc)
 	first := handCard(e, card(t, landSrc("Mountain")), 0)
 	second := handCard(e, card(t, landSrc("Forest")), 0)
@@ -188,7 +171,7 @@ func TestOracleGrantsOneAdditionalLandDrop(t *testing.T) {
 // Exploration (+1) is four drops, not three.
 func TestAdjustLandPlaysGrantsSumNotMax(t *testing.T) {
 	t.Parallel()
-	e := landBase(t)
+	e := mayPlayBase(t)
 	onBoardGrant(t, e, 0, azusaSrc)
 	onBoardGrant(t, e, 0, explorationSrc)
 	var lands []state.ObjID
@@ -217,7 +200,7 @@ func TestAdjustLandPlaysGrantsSumNotMax(t *testing.T) {
 // grant) again. Drives two real turns.
 func TestAdjustLandPlaysResetsAtUntap(t *testing.T) {
 	t.Parallel()
-	e := landBase(t)
+	e := mayPlayBase(t)
 	onBoardGrant(t, e, 0, azusaSrc)
 	lands := []state.ObjID{
 		handCard(e, card(t, landSrc("Mountain")), 0),
@@ -268,7 +251,7 @@ func TestAdjustLandPlaysResetsAtUntap(t *testing.T) {
 // offered.
 func TestAdjustLandPlaysExpiresWhenSourceLeaves(t *testing.T) {
 	t.Parallel()
-	e := landBase(t)
+	e := mayPlayBase(t)
 	azusa := onBoardGrant(t, e, 0, azusaSrc)
 	first := handCard(e, card(t, landSrc("Mountain")), 0)
 	second := handCard(e, card(t, landSrc("Forest")), 0)
@@ -292,7 +275,7 @@ func TestAdjustLandPlaysExpiresWhenSourceLeaves(t *testing.T) {
 // cap stays at one and a second drop is not offered.
 func TestAdjustLandPlaysUnlimitedFailsClosed(t *testing.T) {
 	t.Parallel()
-	e := landBase(t)
+	e := mayPlayBase(t)
 	onBoardGrant(t, e, 0, azusaUnlimitedSrc)
 	first := handCard(e, card(t, landSrc("Mountain")), 0)
 	second := handCard(e, card(t, landSrc("Forest")), 0)
@@ -313,7 +296,7 @@ func TestAdjustLandPlaysUnlimitedFailsClosed(t *testing.T) {
 // behaviour for that shape) even though its value is a literal.
 func TestAdjustLandPlaysIsPresentFailsClosed(t *testing.T) {
 	t.Parallel()
-	e := landBase(t)
+	e := mayPlayBase(t)
 	onBoardGrant(t, e, 0, azusaIsPresentSrc)
 	first := handCard(e, card(t, landSrc("Mountain")), 0)
 	second := handCard(e, card(t, landSrc("Forest")), 0)
@@ -335,7 +318,7 @@ func TestAdjustLandPlaysIsPresentFailsClosed(t *testing.T) {
 // SEAT 1 -- seat 0's extra drops vanish and seat 1's appear.
 func TestAdjustLandPlaysFollowsControl(t *testing.T) {
 	t.Parallel()
-	e := landBase(t)
+	e := mayPlayBase(t)
 	azusa := onBoardGrant(t, e, 0, azusaSrc)
 	seat0First := handCard(e, card(t, landSrc("Mountain")), 0)
 	seat0Second := handCard(e, card(t, landSrc("Swamp")), 0)
@@ -379,7 +362,7 @@ func TestAdjustLandPlaysFollowsControl(t *testing.T) {
 // alike, and the fourth is not offered through either.
 func TestAdjustLandPlaysSharesOneBudgetWithMayPlayGrants(t *testing.T) {
 	t.Parallel()
-	e := landBase(t)
+	e := mayPlayBase(t)
 	onBoardGrant(t, e, 0, azusaSrc)
 	onBoardGrant(t, e, 0, conduitGrantSrc)
 	grave := graveCard(e, card(t, landSrc("Mountain")), 0, 0)

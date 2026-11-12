@@ -90,7 +90,7 @@ func bustleToPick(t *testing.T) (*Engine, Config, *decision.Decision, state.ObjI
 	}
 	hid := searchMoveByName(t, e, "Hustle", state.ZHand)
 	addMana(t, e, 0, "RRRRRR")
-	alt := splitOption(t, e, hid, "split_alt")
+	alt := adventureOption(t, e, hid, "split_alt")
 	if alt == nil {
 		t.Fatalf("Bustle offer missing: %+v", castOptions(t, e))
 	}
