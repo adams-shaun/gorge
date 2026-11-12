@@ -1121,6 +1121,13 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !faceHasMeleeTrigger(lc.face) {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
+		case head == "Partner with":
+			// CR 702.124j: the commander-pair marker (no game characteristic)
+			// and gorge kwPartnerWith's enters trigger, lowered from that
+			// line (lower_partnerwith.go)
+			if !lc.partnerWithTrigger() {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
 		case expandedKeywords[head]:
 			// Lowered from the expansion's own lines.
 		case head == "Kicker":

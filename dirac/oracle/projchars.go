@@ -127,6 +127,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Station":                  "an activated ability flagged AfStation (gorge rules/station.go; kcounters)",
 	"A deck can have any number of cards named CARDNAME.": "a deckbuilding rule, no game characteristic",
 	"Partner":      "a deckbuilding rule (CR 702.124, a commander pair), no game characteristic; the kernel seats the pair from Config.Commanders",
+	"Partner with": "the commander-pair marker as Partner, and gorge kwPartnerWith's enters trigger (CR 702.124j: the targeted player's search of their own library for the named partner; kgen lower_partnerwith.go), no battlefield characteristic",
 	"Landwalk":     "CardDef.Landwalk, or a Continuous static's Static.Landwalk grant (CR 702.14; compared through the block options)",
 	"Horsemanship": "CardDef.Evasion (compared through the block options)",
 	"Intimidate":   "CardDef.Evasion (compared through the block options)",

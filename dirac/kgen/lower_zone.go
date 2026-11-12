@@ -264,7 +264,11 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		ps.consume("Imprint")
 	}
 	if ct, ok := ps.get("ChangeType"); ok {
-		if _, has := ps.m["ValidTgts"]; has && !(origin == zHand && (dest == zExile || dest == zBattlefield || dest == zLibrary) ||
+		ownSearch, err := lc.targetPlayerOwnSearch(ps, origin, dest) // lower_partnerwith.go
+		if err != nil {
+			return err
+		}
+		if _, has := ps.m["ValidTgts"]; has && !ownSearch && !(origin == zHand && (dest == zExile || dest == zBattlefield || dest == zLibrary) ||
 			(origin == zBattlefield || origin == zGraveyard) && (dest == zExile || dest == zHand) && ps.is("Hidden", "True") ||
 			origin == zExile && dest == zGraveyard && ps.is("Hidden", "True")) {
 			return refuse("ChangeType$ with ValidTgts$")
