@@ -358,6 +358,7 @@ ExDiscardedThisTurn	ExprKind	241
 ExDistinctCMC	ExprKind	6
 ExDmgAmountReceived	ExprKind	219
 ExDrawnThisTurn	ExprKind	40
+ExEnergyOf	ExprKind	63
 ExExcessDamage	ExprKind	21
 ExExiledWithN	ExprKind	246
 ExFirstCast	ExprKind	255
@@ -437,6 +438,7 @@ ExtChangeTargets	ExtOp	225
 ExtChooseColorRes	ExtOp	5
 ExtChooseName	ExtOp	251
 ExtChooseNumber	ExtOp	230
+ExtChooseNumberMid	ExtOp	309
 ExtClearImprinted	ExtOp	257
 ExtCloneCopy	ExtOp	81
 ExtColorGrant	ExtOp	6
