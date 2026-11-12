@@ -207,6 +207,7 @@ const (
 	CondPromised            // the gift was promised (the spell, or the permanent's spell as it enters; Card.Self+PromisedGift)
 	CondAnd                 // both Sub[0] and Sub[1] hold
 	CondEchoOwed            // the source came under its controller's control since the beginning of their most recent upkeep (echo's intervening if, CR 702.30a)
+	CondSourceZone          // the source object is in Zone (gorge's source-identity IsPresent$ PresentZone$, re-checked at resolution)
 	CondCount_
 )
 
@@ -232,6 +233,7 @@ type Cond struct {
 	A, B ValueRef
 	Neg  bool
 	Sub  [2]CondID // CondAnd's operands (zero for every other kind)
+	Zone Zone      // CondSourceZone: the zone the source must be in
 }
 
 // ExOppExtreme reads a figure over the controller's living opponents, walked

@@ -609,13 +609,13 @@ so this table is complete by construction.
 
 | param | cards | lowering |
 |---|---|---|
-| Chooser | 1: Curator of Destinies | Opponent (Curator shape) |
-| ChosenPile | 1: Curator of Destinies | Curator shape only -> OpTwoPiles C=Hand (other pile to graveyard) |
+| Chooser | 1: Curator of Destinies | Opponent, or absent: the chooser is Defined$ (lower_twopiles.go) |
+| ChosenPile | 1: Curator of Destinies | ChangeZone Defined$ Remembered from the library to the hand -> OpTwoPiles C=Hand |
 | Defined | 1: Curator of Destinies | Obj ref (see Defined$ in Shared grammar) |
 | DefinedCards | 1: Curator of Destinies | Remembered (the peeked cards) |
 | FaceDown | 1: Curator of Destinies | One (Curator shape) |
-| Separator | 1: Curator of Destinies | You |
-| UnchosenPile | 1: Curator of Destinies | ChangeZoneAll to Graveyard (Curator shape) |
+| Separator | 1: Curator of Destinies | You, or Opponent for the controller's pick (TpOppSeparates) |
+| UnchosenPile | 1: Curator of Destinies | ChangeZoneAll to Graveyard (the library's order), or ChangeZone Defined$ Remembered to Graveyard (TpUnchosenPileOrder) |
 | Zone | 1: Curator of Destinies | Library |
 
 ### api:Untap

@@ -1003,14 +1003,16 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				return
 			}
 		}
-		r.ask, r.askP = raGenPileChoose, s.nextAlive(r.e.ctrl) // gorge twoPilesPlayer: the first live opponent
+		_, chooser := s.pilesSeats(&s.prog(k)[r.pc], r.e.ctrl) // act_twopiles.go
+		r.ask, r.askP = raGenPileChoose, chooser
 	case raGenPileChoose:
 		// mode 0: the face-down pile (the picks), 1: the face-up pile. The
 		// chosen pile goes to its zone first: the picks in pick order
 		// (gorge's pile is the chosen list as answered: FDN pair 641,
 		// Elementalist Adept picked before Arcane Epiphany enters the hand
 		// first), the face-up pile in the revealed order; then the other
-		// pile to the graveyard in the revealed order (pair 111).
+		// pile to the graveyard in the revealed order (pair 111), or an
+		// unchosen pile A in pick order (pilesUnchosenPicks).
 		np := bits.OnesCount32(s.g.lookSel)
 		pickA := a.Mode() == 0
 		if pickA {
@@ -1022,6 +1024,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			if inA := s.g.lookSel&(1<<i) != 0; !pickA && !inA {
 				s.pileMove(s.g.rem[i], kop.Zone(s.g.pickZ))
 			}
+		}
+		if !pickA {
+			s.pilesUnchosenPicks(&s.prog(k)[r.pc], np)
 		}
 		for i := 0; i < int(s.g.nrem); i++ {
 			s.pileMove(s.g.rem[i], kop.ZoneGraveyard)

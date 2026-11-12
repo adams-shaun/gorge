@@ -128,6 +128,35 @@ func (s *State) riderAbilityOf(k *prep, sl Slot) (*kop.Ability, bool) {
 	return a, true
 }
 
+// riderPlainFirst reports whether the source at sl prints a plain one-mana
+// tap ability before its bounded rider (Grove of the Burnwillows: "{T}: Add
+// {C}" before "{T}: Add {R} or {G}. Each opponent gains 1 life"). gorge's
+// prefix search activates the source once and answers its one mana ask,
+// whose options are the plain ability's production and the rider's colours;
+// riderPlainGap mirrors that order. Only a fixed one-mana tap is that first
+// branch.
+func (s *State) riderPlainFirst(k *prep, sl Slot) bool {
+	a, ok := s.riderAbilityOf(k, sl)
+	if !ok || a.ManaEach {
+		return false
+	}
+	c := s.cardAt(sl)
+	idx := k.cards[c].manaAb
+	if idx < 0 || int(idx) == int(k.riderAbOf(c)) || int(idx) >= len(k.t.Cards[c].Abilities) {
+		return false
+	}
+	ab := &k.t.Cards[c].Abilities[idx]
+	if ab.Kind != kop.AbMana || ab.ManaRestrict != 0 || len(ab.Prog) != 0 {
+		return false
+	}
+	pc := s.manaPCGen(k, sl)
+	if pc.manaAb != idx || !pc.manaTap || pc.manaN != 1 || pc.manaChosen || pc.manaOne || pc.manaMulti || pc.manaDyn {
+		return false
+	}
+	col := uint8(pc.manaCol)
+	return col != 0 && col&(col-1) == 0
+}
+
 // riderActivatable reports whether the bounded rider ability a of the source at
 // sl can be activated now: untapped (and not summoning sick when its cost taps
 // a creature) and its own counters enough.
@@ -167,6 +196,55 @@ func (s *State) riderGap(k *prep, p uint8, sl Slot, answer int) bool {
 	s.manaRiderFloat(k, p, sl, a, answer)
 	s.manaRiderEffect(k, sl, a)
 	return true
+}
+
+// riderPlainGap activates a riderPlainFirst source for the script search's
+// answer c: the source's mana ask offers the plain first ability's
+// production before the rider's colours (engine order), and gorge's
+// scriptSearch stably reorders those answers by the play's needed pips
+// (scriptOrderAnswers). c indexes that reordered list; the chosen plain
+// production taps without the rider, a chosen rider production runs it.
+func (s *State) riderPlainGap(k *prep, p uint8, a Action, sl Slot, c int) bool {
+	if !s.riderPlainFirst(k, sl) {
+		return false
+	}
+	ra, _ := s.riderAbilityOf(k, sl)
+	var cols [kop.NumManaKinds]uint8
+	var rider [kop.NumManaKinds]int
+	n := 0
+	pc := s.manaPCGen(k, sl)
+	cols[n], rider[n] = uint8(bits.TrailingZeros8(uint8(pc.manaCol))), -1
+	n++
+	for col := 0; col < kop.NumManaKinds; col++ {
+		if uint8(ra.ManaColors)&(1<<uint(col)) != 0 {
+			cols[n], rider[n] = uint8(col), bits.OnesCount8(uint8(ra.ManaColors)&uint8((1<<uint(col))-1))
+			n++
+		}
+	}
+	need := s.playNeed(k, a)
+	for i := 1; i < n; i++ { // needFirst over colours and their productions
+		if !need[cols[i]] {
+			continue
+		}
+		col, r := cols[i], rider[i]
+		j := i
+		for j > 0 && !need[cols[j-1]] {
+			cols[j], rider[j] = cols[j-1], rider[j-1]
+			j--
+		}
+		cols[j], rider[j] = col, r
+	}
+	if c >= n {
+		return false
+	}
+	if rider[c] < 0 {
+		s.perms[sl].flags |= pfTapped
+		s.touchSl(sl)
+		s.manaTapped(k, sl)
+		s.tapDeferPlain(k, p, sl)
+		return true
+	}
+	return s.riderGap(k, p, sl, rider[c])
 }
 
 // riderAnswerBit is the index of colour col among mask's bits (the script's

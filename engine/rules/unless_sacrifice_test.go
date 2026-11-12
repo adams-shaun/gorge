@@ -219,17 +219,6 @@ func TestGiantOpportunityStrictOptionalSacrifice(t *testing.T) {
 	}
 }
 
-// counterTotal reads the total N of one counter kind on an object.
-func counterTotal(o *state.Object, kind string) int32 {
-	n := int32(0)
-	for _, c := range o.Counters {
-		if c.Kind == kind {
-			n += c.N
-		}
-	}
-	return n
-}
-
 // TestTapUnlessCostHallowedFountain drives the dual land's ETB replacement
 // ("you may pay 2 life. If you don't, it enters tapped"): a DB$ Tap with
 // UnlessCost$ PayLife<2> and UnlessPayer$ You, resolved through the shared

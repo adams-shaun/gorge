@@ -85,6 +85,7 @@ func grantedTriggerKeywordHeads(reg *cards.Registry) map[string]bool {
 var grantedTriggerKeywordWalk = map[string]string{
 	// Synthesized from the keyword line by grantedKeywordTrigger.
 	"Prowess": "checkGrantedStaticTriggersUsing",
+	"Myriad":  "checkGrantedStaticTriggersUsing",
 	// Dedicated per-keyword walks.
 	"Afflict":           "checkGrantedAfflictTriggers",
 	"Cumulative upkeep": "checkGrantedCumulativeUpkeepTriggers",
@@ -103,6 +104,7 @@ var knownEquipAuraTriggerKeywords = map[string][2]string{
 	"Aegis of the Legion":   {"Mentor", "covered"},
 	"Agility":               {"Flanking", "covered"},
 	"Armguard Familiar":     {"Ward", "covered"},
+	"Blade of Selves":       {"Myriad", "covered"},
 	"Brotherhood Regalia":   {"Ward", "covered"},
 	"Chains of Custody":     {"Ward", "covered"},
 	"Combat Research":       {"Ward", "covered"},
@@ -128,7 +130,6 @@ var knownEquipAuraTriggerKeywords = map[string][2]string{
 	"Winged Boots":          {"Ward", "covered"},
 	"Wizard's Staff":        {"Prowess", "covered"},
 	// uncovered: no granted walk fires the head yet.
-	"Blade of Selves":      {"Myriad", "uncovered"},
 	"Eldrazi Conscription": {"Annihilator", "uncovered"},
 	"Infantry Shield":      {"Mobilize", "uncovered"},
 	"Nazgûl Battle-Mace":   {"Annihilator", "uncovered"},
@@ -204,10 +205,9 @@ func TestEquipAuraGrantedTriggerKeywordCensus(t *testing.T) {
 		if v[1] != "covered" {
 			continue
 		}
-		if v[0] == "Prowess" {
-			line := "Prowess"
-			if grantedKeywordTrigger(line) == nil {
-				t.Errorf("%s: census calls Prowess covered but grantedKeywordTrigger returns nil", name)
+		if v[0] == "Prowess" || v[0] == "Myriad" {
+			if grantedKeywordTrigger(v[0]) == nil {
+				t.Errorf("%s: census calls %s covered but grantedKeywordTrigger returns nil", name, v[0])
 			}
 		}
 	}

@@ -99,18 +99,16 @@ var conditionUnmodelledBare = newConditionNames(
 // map; the evaluated set is conditionEvaluatedKeys). Counts measured
 // 2026-10-04.
 var conditionUnmodelledKeys = newConditionNames(
-	"ConditionPlayerDefined",        // 9
-	"ConditionPlayerContains",       // 9
-	"ConditionChosenColor",          // 5
-	"ConditionLifeTotal",            // 4
-	"ConditionLifeAmount",           // 4
-	"ConditionTargetValidTargeting", // 3
-	"ConditionGameTypes",            // 3
-	"ConditionTargetsSingleTarget",  // 2
-	"ConditionYouCastThisTurn",      // 1
-	"ConditionWouldDestroy",         // 1
-	"ConditionOpponentTurn",         // 1
-	"ConditionNoDifferentColors",    // 1
+	"ConditionPlayerDefined",     // 9
+	"ConditionPlayerContains",    // 9
+	"ConditionChosenColor",       // 5
+	"ConditionLifeTotal",         // 4
+	"ConditionLifeAmount",        // 4
+	"ConditionGameTypes",         // 3
+	"ConditionYouCastThisTurn",   // 1
+	"ConditionWouldDestroy",      // 1
+	"ConditionOpponentTurn",      // 1
+	"ConditionNoDifferentColors", // 1
 )
 
 // unmodelledConditionKey returns the first (sorted, deterministic) Condition*
