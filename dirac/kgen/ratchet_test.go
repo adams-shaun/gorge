@@ -134,12 +134,12 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +30 (the merge with land: the monarch lowering above against land's corpus; merged ALL 22868 -> 22898).
 	// +16 (the merge with land: land's later work after f486bfb466, the zone-scoped PlayerCount extreme and Pump/UntilYourNextTurn lowering at 0d7bfabead, DSK 250 -> 251; merged ALL 22898 -> 22914 measured).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22946, 34442},
+	"ALL": {22971, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
-	"BRO": {217, 280},
+	"BRO": {218, 280},
 	"DFT": {255, 276},
-	"DMU": {196, 270},
+	"DMU": {197, 270},
 	"DSK": {251, 276},
 	"ECL": {244, 273},
 	"EOE": {250, 266},
@@ -149,7 +149,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	"MKM": {251, 279},
-	"MOM": {200, 296},
+	"MOM": {201, 296},
 	"MSH": {246, 276},
 	"NEO": {201, 287},
 	"ONE": {201, 271},

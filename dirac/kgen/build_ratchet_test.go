@@ -235,7 +235,7 @@ import (
 // +30 (the merge with land: the monarch lowering above against land's corpus; merged ALL build-level 22868 -> 22898).
 // +16 (the merge with land: land's later work after f486bfb466, the zone-scoped PlayerCount extreme and Pump/UntilYourNextTurn lowering at 0d7bfabead, DSK 250 -> 251; merged ALL build-level 22898 -> 22914 measured).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22946, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22971, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
