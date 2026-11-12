@@ -2,8 +2,9 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
-// A ChangeZone over several targets (Calamitous Tide's "return up to two target
-// creatures to their owners' hands") is one simultaneous departure (CR 603.10a):
+// A ChangeZone or Destroy over several targets (Calamitous Tide's "return up to
+// two target creatures to their owners' hands", Wear Down's two artifacts and/or
+// enchantments) is one simultaneous departure (CR 603.10a):
 // gorge's BatchDepartures shares one board snapshot among the moves, so a
 // permanent that leaves together with another sees it leave. Dour Port-Mage
 // bounced beside Plumecreed Mentor still draws for it. Run one target at a
@@ -15,8 +16,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // settles which survive, the rest leave together.
 
 // leaveTogether moves every battlefield object of target slot i that a plain
-// bounce, exile or destroy instruction names: the leaves triggers of all of them are
-// checked first, in pick order, and only then do they leave. It reports false
+// bounce, exile or destroy instruction names: the leaves triggers of all of them
+// are checked first, in pick order, and only then do they leave. A destroy
+// settles each target's indestructible, regeneration and shield first, in pick
+// order (gorge effDestroy builds its victim list before the first move); only
+// the ones that die leave. It reports false
 // (nothing done) unless two or more objects are there to go and every one of
 // them is on the battlefield; the per-target loop then runs as before.
 func (s *State) leaveTogether(k *prep, in *kop.Instr, i uint8) bool {
