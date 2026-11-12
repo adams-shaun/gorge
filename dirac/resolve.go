@@ -168,6 +168,9 @@ func (s *State) resolveTop(k *prep) {
 			if k.gen != nil && k.gen.anyEvoke {
 				s.evokeEnter(k, &e) // the Adamant bind and the evoke sacrifice (kw_evoke.go)
 			}
+			if k.gen != nil && k.gen.anySuspend && e.suspendCast() {
+				s.suspendEnter(k, sl, &e) // haste until the caster loses control (kw_suspend.go)
+			}
 			if k.gen != nil && k.gen.anyDash && e.dashed(k) {
 				s.dashEnter(sl, &e) // haste and the end-step return to hand (kw_dash.go)
 			}

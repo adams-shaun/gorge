@@ -550,6 +550,12 @@ func (e *Engine) startSuspendedCast() bool {
 		if f := o.Face(); f != nil && f.Name != "" {
 			name = f.Name
 		}
+		// CR 117.3b: the final-counter trigger's resolution ends with the
+		// active player receiving priority and a fresh pass count, which the
+		// step entry's own reset (the Priority emit closing advanceStep)
+		// would have given had the ask not cut the entry short. Without it
+		// the answer hands priority to the stale holder of the previous step.
+		e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
 		e.choosing = chooseSuspendCast
 		e.ask(decision.New(o.Owner, decision.KChoose, "Cast "+name+" without paying its mana cost?", 1, 1,
 			[]decision.Option{{Index: 0, Kind: "suspend_cast_yes", Obj: id, Label: "Cast it"},

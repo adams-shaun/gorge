@@ -117,6 +117,7 @@ const (
 	ChGenDistPick                             // source = a creature picked to share a divided counter total, Done after the first (gorge putCounterPickDistribute's "counter_dist" KChoose, Min 1; ctr_distpick.go)
 	ChGenCopyPick                             // source = the permanent a CopyPermanent Choices$ copies (gorge's "copypermanent_choice" KChoose, whose options are "permanent"; copy_picked.go)
 	ChGenTokCopy                              // mode 0 = decline; mode 1, source = the permanent the token is instead a copy of (gorge's chosen-copy token replacement election, options "decline" then "creature"; repl_tokcopy.go)
+	ChSuspendCast                             // source = a suspended card in exile; mode 1 = cast it free (gorge's suspend_cast_yes), 0 = leave it (suspend_cast_no); CR 702.62a
 	ChGenImprint                              // source = the hand card the imprint mox exiles (gorge's "imprint" KChoose, Min=Max=ChangeNum$, asked only with more candidates; mana_imprint.go)
 )
 
@@ -451,6 +452,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			}
 			if s.value(k, in.A) > 0 && kop.CounterKind(in.B.N) == kop.CtrStash {
 				s.stashSet(k, o)
+			}
+			if k.gen.anySuspend && kop.CounterKind(in.B.N) == kop.CtrTime {
+				s.suspendExiled(k, o, s.value(k, in.A)) // a Suspend spell exiling itself with time counters (kw_suspend.go)
 			}
 		}
 	case kop.OpReturnEx:

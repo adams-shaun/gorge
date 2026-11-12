@@ -439,6 +439,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseMayFlashCombos()
 	lc.refuseEvokeCombos()
 	lc.refuseDashCombos()          // lower_dash.go
+	lc.refuseSuspendCombos()       // lower_suspend.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
 	lc.lowerImpending()
 }
@@ -1485,6 +1486,23 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Plot = &mc
+		case head == "Suspend":
+			// CR 702.62a: a hand special action paying this plain mana cost
+			// and exiling the card with N time counters (dirac/kw_suspend.go).
+			// An X time (Aeon Chronicler's), X, hybrid and any non-mana part
+			// have no fixed price or count to plan.
+			ns, cs, ok := strings.Cut(param, ":")
+			n, nerr := strconv.Atoi(strings.TrimSpace(ns))
+			mc, err := parseManaCost(cs)
+			if !ok || nerr != nil || n < 1 || n > 20 || err != nil || strings.TrimSpace(cs) == "" || strings.ContainsAny(cs, ":<") || mc.X || mc.None || len(mc.Hybrid) != 0 {
+				lc.refuseNode(node, "suspend %q", param)
+				continue
+			}
+			if lc.out.Suspend != nil {
+				lc.refuseNode(node, "two Suspend keywords")
+				continue
+			}
+			lc.out.Suspend, lc.out.SuspendN = &mc, n
 		case head == "Paradigm":
 			// SOS Paradigm (gorge rules/paradigm.go): a resolved
 			// spell is exiled, then cast free from exile in each of its

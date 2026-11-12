@@ -15,4 +15,5 @@ const (
 	trigPlMayFlash                     // kw_mayflash.go
 	trigPlMiracle                      // kw_miracle.go
 	trigPlWarpG                        // kw_warpgrant.go: a warp cast at a battlefield grant's cost
+	trigPlSuspend                      // kw_suspend.go: a spell cast free by suspend's last counter (CR 702.62a)
 )

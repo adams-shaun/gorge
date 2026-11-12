@@ -1212,6 +1212,15 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 			return Cost{}, false
 		}
 		return ParseCost(raw), true
+	case potentialModeBaseCostSuspend:
+		// The suspend special action pays the K:Suspend cost (CR 702.62a), the
+		// plot action's shape: an X-time suspend announces its count and is
+		// not witnessed.
+		sc, ok := suspendCost(f)
+		if !ok || sc.timeX {
+			return Cost{}, false
+		}
+		return sc.cost, true
 	case potentialModeBaseCostPrototype:
 		// CR 718.3a: the prototyped cast pays the K:Prototype inset cost,
 		// with the spell's own additional costs folded exactly as beginCast
@@ -2208,6 +2217,7 @@ const (
 	potentialModeBaseCostPreparedCopy
 	potentialModeBaseCostSneak
 	potentialModeBaseCostPrototype
+	potentialModeBaseCostSuspend
 )
 
 var potentialModeBaseCostCodes = state.NewStrCodes(
@@ -2231,6 +2241,7 @@ var potentialModeBaseCostCodes = state.NewStrCodes(
 	state.StrEntry[potentialModeBaseCostCode]{Key: "prepared_copy", Val: potentialModeBaseCostPreparedCopy},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "sneak", Val: potentialModeBaseCostSneak},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "prototype", Val: potentialModeBaseCostPrototype},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "suspend", Val: potentialModeBaseCostSuspend},
 )
 
 // planFaceIdx is the Descriptor.FaceIdx of e.planFace on object id: 1 + its

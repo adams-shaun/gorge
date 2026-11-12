@@ -75,3 +75,28 @@ func TestSuspendedCardPutOntoBattlefieldHasNoHaste(t *testing.T) {
 		t.Fatalf("a suspended card that was not cast gains no haste")
 	}
 }
+
+// The grant belongs to the permanent the suspended cast became: when it
+// returns to the battlefield after a bounce it is a new object (CR 400.7) and
+// has no haste.
+func TestSuspendedCreatureHasteEndsWhenItLeavesTheBattlefield(t *testing.T) {
+	t.Parallel()
+	e := handEngine(t, card(t, "Name:Suspender\nManaCost:3 R\nTypes:Creature Human\nPT:2/2\nK:Suspend:1:R\nOracle:x\n"))
+	id := e.G.Zone(state.ZHand, 0)[0]
+	e.G.Players[0].Pool[state.MR] = 1
+	castMode(t, e, id, "suspend")
+	e.beginTurn(0)
+	submitChoices(t, e, 0)
+	e.resolveTop()
+	if !e.HasKeyword(id, "Haste") {
+		t.Fatalf("precondition: the suspended cast has haste")
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZHand})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+	if o := e.G.Obj(id); o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: the creature did not return: %+v", o)
+	}
+	if e.HasKeyword(id, "Haste") {
+		t.Fatalf("the new object inherited the old one's suspend haste (CR 400.7)")
+	}
+}

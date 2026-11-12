@@ -188,6 +188,8 @@ const (
 	DurPrepared           = 8  // the prepared designation (CR 722.3a/c): obj/ver = the exile copy, turn = source Obj | source ver<<8; live while the source is on the battlefield with that ver
 	DurDefeated           = 9  // a defeated battle in exile awaiting its owner's CR 310.11 transformed-cast ask: obj/ver = the exiled card, ctrl = its owner; consumed by the ask
 	DurAirbend            = 10 // an airbent card (CR 701.65a): its owner may cast it from exile for {2} for as long as obj/ver stays exiled
+	// 11 and 12 are DurWhileSrcMay and DurWhileValid above
+	DurSuspend = 13 // a suspended card (CR 702.62b): obj/ver = the exiled card, ctrl = its owner, turn = its time counters; kind marks the final-counter cast ask (kw_suspend.go)
 )
 
 // MoveFlags (OpExileEx C, OpReturnEx C>>3, OpChangeZoneAllEx C>>3).

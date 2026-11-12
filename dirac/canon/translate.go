@@ -98,6 +98,13 @@ func (r *Translator) Action(a dirac.Action) Canon {
 	case dirac.AkPlayLand:
 		return Pack(ActPlayLand, src, RefNone, mode) // mode: the face played (a modal DFC's "modal_land" is 1)
 	case dirac.AkPlot:
+		if mode == 1 {
+			// the suspend special action is gorge's "suspend" cast option
+			// (CR 702.62a; kw_suspend.go): the 16-entry cast-mode table is
+			// full, so it canonicalises to CastModeOther, like "harmonize"
+			cm, _ := CastModeCode("suspend")
+			return Pack(ActCast, src, RefNone, cm)
+		}
 		cm, _ := CastModeCode("plot") // the hand plot special action is gorge's "plot" cast option (CR 702.170a)
 		return Pack(ActCast, src, RefNone, cm)
 	case dirac.AkCastCasualty:
@@ -335,6 +342,13 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return ch("convoke", src, mode)
 		case dirac.ChWaterbend:
 			return ch("waterbend_generic", src, 0)
+		case dirac.ChSuspendCast:
+			// gorge startSuspendedCast: suspend_cast_yes / suspend_cast_no,
+			// both naming the suspended card (CR 702.62a)
+			if mode == 1 {
+				return ch("suspend_cast_yes", src, 0)
+			}
+			return ch("suspend_cast_no", src, 0)
 		case dirac.ChDefeatCast:
 			// gorge defeatedCastAsk: defeat_cast_yes / defeat_cast_no, both
 			// naming the exiled battle (CR 310.11)

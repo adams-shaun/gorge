@@ -115,7 +115,11 @@ func (e *Engine) altCostEnter(ev events.Event) {
 		// so a control change ends it; leaving the battlefield ends it too.
 		e.AddContinuous(state.ContinuousEffect{
 			Source: ev.Obj, Affects: "Card.Self+YouCtrl", Controller: o.Controller,
-			Layer: state.LAbilities, AddKeywords: []string{"Haste"},
+			// anchored to this incarnation by hand: AddContinuous anchors
+			// only a bare Card.Self, and a card that returns to the
+			// battlefield is a new object (CR 400.7)
+			SourceIncarnation: o.Incarnation,
+			Layer:             state.LAbilities, AddKeywords: []string{"Haste"},
 		})
 	}
 	if o.CastFlags&state.FlagBlitzed != 0 {
