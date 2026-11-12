@@ -296,6 +296,17 @@ type TriggerContext struct {
 	// re-derive it, so it travels with the ability like TriggerStormCount.
 	// Zero outside an Increment trigger.
 	TriggerIncrementSpent int32
+	// TriggerEvolvePower, TriggerEvolveToughness and TriggerEvolveIncarnation
+	// are the entering creature's derived power and toughness and its
+	// battlefield Incarnation as an Evolve trigger fired (CR 702.100a).
+	// Evolve's condition is an intervening "if" (CR 603.4) rechecked as the
+	// ability resolves: a creature still on the battlefield (same
+	// Incarnation) is read live, one that left is read from this snapshot
+	// (CR 608.2h). TriggerEvolveValid marks the snapshot as taken; it is
+	// false outside an Evolve trigger.
+	TriggerEvolvePower, TriggerEvolveToughness int32
+	TriggerEvolveIncarnation                   uint32
+	TriggerEvolveValid                         bool
 	// TriggerPaidX snapshots the paid X of TriggerCard when this trigger
 	// matched. CR 107.3m binds that value at trigger time: it must survive if
 	// the card later leaves the stack or battlefield before the ability

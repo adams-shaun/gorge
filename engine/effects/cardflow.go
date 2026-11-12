@@ -1052,8 +1052,7 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 			if remember {
 				rememberMilled(h, c, id)
 			}
-			// Imprint$ True (task mill-imprint; OTJ Patient Naturalist, BLB
-			// Blanchwood Prowler, WOE Ballad of the Black Flag, and siblings):
+			// Imprint$ True (OTJ Patient Naturalist, BLB Blanchwood Prowler, WOE Ballad of the Black Flag, and siblings):
 			// Forge's MillEffect records every card it moved in the SOURCE's
 			// persistent imprintedCards association, so a chained
 			// `ChangeZone ... ChangeType$ Land.YouOwn+IsImprinted` (Patient
@@ -1114,7 +1113,7 @@ func rememberMilled(h Host, c *Ctx, id state.ObjID) {
 // draws a FULL Fisher-Yates permutation from the engine's seeded generator
 // (h.Rand) -- the same idiom the RevealRandomOrder$ arm of effDigUntil uses,
 // so the order is replay-exact and no seat can influence it. RestRandomOrder$
-// True is the caller (task fdn-dig-rest-random-order); a one-card list has a
+// True is the caller; a one-card list has a
 // single possible order, so the shuffle leaves it untouched.
 func moveRestToBottom(h Host, g *state.Game, p state.PlayerID, ids []state.ObjID, random bool) {
 	if random && len(ids) > 1 {
@@ -2122,7 +2121,7 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 		}
 		// A Scry that completes HERE -- no-host, or the never-posted empty
 		// KArrange an empty library produces -- still completed:
-		// record its zero-card bottom pile (task scrybottom) through
+		// record its zero-card bottom pile through
 		// EmitScryRecord, the same outside-the-replacement-pass route
 		// handleArrange uses, so trig:Scry's plain "whenever you scry" fires
 		// once per instruction and the ToBottom$ True gate stays closed. The

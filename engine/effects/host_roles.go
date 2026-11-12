@@ -57,7 +57,7 @@ type HostEmit interface {
 	Emit(events.Event)
 	// EmitPlayerLost proposes a PlayerLost event for p, gated by any live
 	// `R:Event$ GameLoss | Layer$ CantHappen` replacement for that player and
-	// cause (CR 104.3 / 704.5a-c, task fdn-repl-cant-lose). reason is the
+	// cause (CR 104.3 / 704.5a-c). reason is the
 	// Forge GameLossReason spelling the replacement's ValidLoseReason$
 	// discriminator compares ("Milled" for an empty-library draw, "Effect"
 	// for api:LosesGame); an unmodelled value fails closed in the rules gate.
@@ -67,7 +67,7 @@ type HostEmit interface {
 	EmitPlayerLost(p state.PlayerID, reason, text string)
 	// EmitGameWin proposes a GameOver win for p (the api:WinsGame family),
 	// gated by any live `R:Event$ GameWin | Layer$ CantHappen` replacement for
-	// that player (task fdn-repl-cant-lose). A prevented win emits nothing.
+	// that player. A prevented win emits nothing.
 	EmitGameWin(p state.PlayerID, text string)
 	// EmitTokenCreate emits a token-creation event and returns every object
 	// it actually created, in mint order. A token-creation replacement may
@@ -114,8 +114,8 @@ type HostEmit interface {
 	// hash chain is unaffected; rules.Engine keeps the provenance as event
 	// context while the event's triggers are matched.
 	EmitTap(obj state.ObjID, tapper state.PlayerID, entering bool)
-	// EmitScryRecord logs a COMPLETED scry instruction's events.Scry record
-	// (task scrybottom): the marker trig:Scry's ToBottom$ gate reads, carrying
+	// EmitScryRecord logs a COMPLETED scry instruction's events.Scry record;
+	// the marker trig:Scry's ToBottom$ gate reads, carrying
 	// in Amount the number of cards actually put on the bottom. rules' ordinary
 	// completion site is handleArrange, which emits it through emitScryRecord
 	// -- OUTSIDE the replacement pass, because a finished action is nothing
@@ -539,10 +539,7 @@ type HostCastLedger interface {
 	// reads false; latest-cast-wins.
 	WasCastFromHand(obj state.ObjID) bool
 	// WasCastFromExile reports whether card obj's LATEST cast came from
-	// EXILE — the Count$wasCastFromExile branch head's backing (task
-	// wascastfrom: the "if this spell was cast from exile" carriers —
-	// Delayed Blast Fireball's 5-instead-of-2, Ultimate Magic's
-	// prevent-effect gate, Lifestream's Blessing's doubled life gain).
+	// EXILE — the Count$wasCastFromExile branch head's backing (Ultimate Magic's prevent-effect gate, Lifestream's Blessing's doubled life gain).
 	// Foretell, warp and may-play-from-exile casts carry no origin CastFlags
 	// bit, so the provenance is the event log: the object's latest
 	// PutOnStack event names the cast, whose From is the zone it was cast

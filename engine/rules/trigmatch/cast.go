@@ -3,9 +3,7 @@
 // Mode$ SpellCast, SpellCastOrCopy, SpellCopy, AbilityCast and SpellAbilityCast,
 // with the cast evaluation and the mana/alternative-cost gates they share.
 //
-// Split out of trigger_match.go so tickets touching different modes stop
-// colliding on one file. Registration is at the bottom; a duplicate mode
-// panics (registerTrigMatcher).
+// Registration is at the bottom; a duplicate mode panics (registerTrigMatcher).
 
 package trigmatch
 
@@ -195,7 +193,7 @@ func SpellCastEval(e Board, t cards.Trigger, source state.ObjID, ev events.Event
 			return false
 		}
 	}
-	// Increment (CR 702.XX, task kw:Increment): the keyword expansion's
+	// Increment (CR 702.XX): the keyword expansion's
 	// SpellCast marker (engine/cards/kw_increment.go). "Whenever you cast a spell, if
 	// the amount of mana you spent is greater than this creature's power or
 	// toughness" is an event-relative comparison -- the mana paid for THIS

@@ -452,6 +452,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseDashCombos()          // lower_dash.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
 	lc.lowerImpending()
+	lc.lowerOverload() // lower_overload.go
 }
 
 // lowerImpending appends Impending's end-step tick after the printed lines
@@ -856,6 +857,13 @@ var expandedKeywords = map[string]bool{
 	// Cumulative upkeep (CR 702.24a): gorge kwCumulativeUpkeep expands it into
 	// an upkeep trigger whose body is DB$ CumulativeUpkeep (lower_cumulative.go)
 	"Cumulative upkeep": true,
+	// Fading (CR 702.32a): gorge kwFading's EnterWithCounters FADE replacement
+	// and its upkeep trigger, a Sacrifice of the source when it has no fade
+	// counter chained ahead of the RemoveCounter (every op already lowers)
+	"Fading": true,
+	// Echo (CR 702.30a): gorge kwEcho's upkeep trigger, gated by Echo$ True,
+	// whose body is DB$ Echo (lower_echo.go)
+	"Echo": true,
 }
 
 // protColourLetters maps a "Protection from <q>" colour quality to its
@@ -1044,6 +1052,17 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !found {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
+		case head == "Evolve":
+			// CR 702.100a: gorge kwEvolve expands it into an ETB trigger
+			// (Evolve$ True) whose body puts a +1/+1 counter on Self,
+			// lowered from that line (readEvolveCondition)
+			found := false
+			for _, t := range lc.face.Triggers {
+				found = found || t.Params["Evolve"] == "True"
+			}
+			if !found {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
 		case head == "Firebending":
 			// CR 702.189a: gorge kwFirebending expands it into an Attacks
 			// Self trigger whose body is DB$ Mana (Produced$ R) with
@@ -1084,6 +1103,13 @@ func (lc *lowerCtx) lowerKeywords() {
 			// CopyPermanent | Cost$ <cost> ExileFromGrave<1/CARDNAME> |
 			// SorcerySpeed$, RemoveCost$, SetColor$ White, AddTypes$
 			// Zombie), lowered from that line
+			if !lc.hasKeywordLine(k) {
+				lc.refuseNode(node, "keyword %q without its ability", head)
+			}
+		case head == "Encore":
+			// CR 702.141a: gorge kwEncore expands it into one graveyard
+			// AB$ Encore (Cost$ <cost> ExileFromGrave<1/CARDNAME>,
+			// SorcerySpeed$ True), lowered from that line (lower_encore.go)
 			if !lc.hasKeywordLine(k) {
 				lc.refuseNode(node, "keyword %q without its ability", head)
 			}
@@ -1140,6 +1166,13 @@ func (lc *lowerCtx) lowerKeywords() {
 			// CardDef bit; a face whose expansion is missing would lose
 			// the trigger silently.
 			if !faceHasExtortTrigger(lc.face) {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
+		case head == "Partner with":
+			// CR 702.124j: the commander-pair marker (no game characteristic)
+			// and gorge kwPartnerWith's enters trigger, lowered from that
+			// line (lower_partnerwith.go)
+			if !lc.partnerWithTrigger() {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
 		case head == "Doctor's companion":
@@ -1504,6 +1537,22 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Evoke = &mc
+		case head == "Overload":
+			// CR 702.96a: an alternative hand cost; if paid, every
+			// "target" in the spell's text reads "each" (dirac/kw_overload.go).
+			// X and hybrid pips are announced as for a printed cost; a
+			// CardManaCost, a ":" or "<" rider and any non-mana part are
+			// refused.
+			mc, err := parseManaCost(param)
+			if err != nil || param == "" || strings.ContainsAny(param, ":<") || mc.None {
+				lc.refuseNode(node, "overload cost %q", param)
+				continue
+			}
+			if lc.out.Overload != nil {
+				lc.refuseNode(node, "two Overload keywords")
+				continue
+			}
+			lc.out.Overload = &mc
 		case head == "Bestow":
 			// CR 702.103a: an alternative hand cost; the spell is an Aura
 			// with enchant creature (gorge rules/bestow.go bestowCost and

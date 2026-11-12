@@ -1103,6 +1103,7 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"ClassLevelGained": kop.TrigCounterAddedOnce, // N = CtrLevel (lower_class.go)
 	"BecomesPlotted":   kop.TrigBecomesPlotted,   // the card's own
 	"BecomesSaddled":   kop.TrigBecomesSaddled,
+	"Evolved":          kop.TrigEvolved,  // the source's own, after its evolve counter lands
 	"Attached":         kop.TrigAttached} // the attachment's own, Creature bearer (Assimilation Aegis) // the Mount's own
 
 func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
@@ -1350,6 +1351,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		if t.Attacked&atkOpp != 0 {
 			kt.Flags2 |= kop.Tf2AtkOpp
 		}
+	}
+	if t.PerCounter {
+		if t.Event != "CounterAdded" {
+			return kt, fmt.Errorf("PerCounter on a %s trigger", t.Event)
+		}
+		kt.Flags4 |= kop.Tf4PerCounter
 	}
 	if t.Evolve {
 		if t.Event != "ETB" {
@@ -2114,6 +2121,24 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		st.Kind = kop.StatCantAttack
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
+		}
+	case "CantAttackUnless":
+		st.Kind = kop.StatAttackTax // lower_attacktax.go
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		if err := amounts(s.Amount, lValue{}); err != nil {
+			return ka, nil, err
+		}
+		for _, fl := range s.Flags {
+			switch fl {
+			case "TaxPlayer":
+				st.StFlags |= kop.StAtkTaxPlayer
+			case "TaxWalker":
+				st.StFlags |= kop.StAtkTaxWalker
+			default:
+				return ka, nil, fmt.Errorf("CantAttackUnless flag %q", fl)
+			}
 		}
 	case "CanAttackDefender":
 		st.Kind = kop.StatCanAttackDefender

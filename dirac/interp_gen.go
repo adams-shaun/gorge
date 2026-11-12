@@ -834,7 +834,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpClearChosen:
 		s.g.nchosen = 0
 	case kop.OpDoubleCounters:
-		if sl := s.objRef(k, in.Obj); sl != NoSlot {
+		if in.Obj == kop.RefRemembered && s.g.nrem > 1 {
+			s.doubleCountersRemembered(k, in)
+		} else if sl := s.objRef(k, in.Obj); sl != NoSlot {
 			s.doubleCountersAt(k, sl, in.C)
 		}
 	case kop.OpRemoveCounterRem:
@@ -2139,6 +2141,7 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 			t := s.newToken(c, e.ctrl)
 			s.objs[t].of |= ofCopy
 			s.copyTokenEnter(k, in, t, NoSlot, nil)
+			s.res.lastTok = t // the copy a following RefLastCreated op reads (Encore's attack duty)
 		}
 		return false
 	}
@@ -2177,6 +2180,7 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 		t := s.newToken(c, e.ctrl)
 		s.objs[t].of |= ofCopy
 		s.copyTokenEnter(k, in, t, host, &eb)
+		s.res.lastTok = t // the copy a following RefLastCreated op reads (Encore's attack duty)
 	}
 	return false
 }

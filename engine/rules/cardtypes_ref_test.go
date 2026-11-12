@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestRefCardTypesReadsEveryObjectRef (task lb-cardtypes): <Ref>$CardTypes is
+// TestRefCardTypesReadsEveryObjectRef: <Ref>$CardTypes is
 // the distinct-card-type count over the objects the ref names, for EVERY
 // object ref, not only TriggerObjectsCards/TriggerRemembered. Kefka, Court
 // Mage (Remembered$CardTypes: "draw a card for each card type among cards

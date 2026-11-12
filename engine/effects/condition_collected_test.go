@@ -10,7 +10,7 @@ import (
 )
 
 // TestConditionCollectedGatesOnEvidence pins the ConditionDefined$ Collected
-// group and its CastSA>Collected spelling (task condition-collected): the group
+// group and its CastSA>Collected spelling: the group
 // is the cards THIS cast collected as evidence, read through
 // Host.CostMovesInWindow(events.CostMoveEvidence). The corpus gate is a paired
 // pair -- the plain branch carries `ConditionPresent$ Card | ConditionCompare$

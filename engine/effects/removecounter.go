@@ -63,8 +63,7 @@ import (
 // RememberedLKI/Imprinted/ChosenCard defined sets can name a graveyard or
 // exile card, the TgtZone$ gate above is the only sanctioned off-battlefield
 // family, and swallowing a named target silently is an unledgered narrowing.
-// The note records the skip loudly; nothing moves (removal off-battlefield
-// stays a TgtZone$ task).
+// The note records the skip loudly; nothing moves (removal off-battlefield stays a TgtZone$).
 func effRemoveCounter(h Host, c *Ctx, sa *cards.SA) {
 	rp := RemoveCounterOf(sa)
 	noteUnreadParams(h, c, "RemoveCounter", rp.Unread)
@@ -140,6 +139,12 @@ func effRemoveCounter(h Host, c *Ctx, sa *cards.SA) {
 		if o.Zone != state.ZBattlefield && o.Zone != state.ZExile {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: fmt.Sprintf("RemoveCounter target %d is not on the battlefield (zone %s); skipped", o.ID, o.Zone)})
+			continue
+		}
+		if o.PhasedOut && o.Zone == state.ZBattlefield {
+			// CR 702.26b: a phased-out permanent is treated as though it does
+			// not exist and can't be affected (fading's removal, its source
+			// phased out in response to the upkeep trigger, removes nothing)
 			continue
 		}
 		for _, k := range dedupeKinds(counterKinds(kindArg, len(o.Counters), func(i int) string { return o.Counters[i].Kind }, func(i int) int32 { return o.Counters[i].N })) {
