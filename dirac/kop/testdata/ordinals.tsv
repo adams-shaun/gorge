@@ -1319,6 +1319,7 @@ TgfDistinctNames	TargetFlags	2048
 TgfGiftRange	TargetFlags	128
 TgfKickedRange	TargetFlags	8
 TgfMaxTotalMV	TargetFlags	4096
+TgfOppOnly	TargetFlags	16384
 TgfSameController	TargetFlags	2
 TgfSharedCrType	TargetFlags	1024
 TgfSingleTgt	TargetFlags	8192
