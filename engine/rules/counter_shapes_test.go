@@ -57,10 +57,10 @@ func g120Sa(t *testing.T, face *cards.Face, name, api string) *cards.SA {
 func g120DragonBoard(t *testing.T, names ...string) (*Engine, state.ObjID, []state.ObjID) {
 	t.Helper()
 	e := corpusTokenEngine(t)
-	call := onBoardCard(t, e, 0, mshCorpusCard(t, "Call the Spirit Dragons"))
+	call := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Call the Spirit Dragons"))
 	var ds []state.ObjID
 	for _, n := range names {
-		ds = append(ds, onBoardCard(t, e, 0, mshCorpusCard(t, n)))
+		ds = append(ds, onBoardCard(t, e, 0, corpusAlternativeCard(t, n)))
 	}
 	return e, call, ds
 }
@@ -115,7 +115,7 @@ func TestCallTheSpiritDragonsOneMulticolourDragonDoesNotWin(t *testing.T) {
 func TestPutCounterUpToAsksAmount(t *testing.T) {
 	t.Parallel()
 	e := corpusTokenEngine(t)
-	terra := onBoardCard(t, e, 0, mshCorpusCard(t, "Terra, Magical Adept"))
+	terra := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Terra, Magical Adept"))
 	face := e.G.Obj(terra).Card.Faces[1]
 	saga := onBoard(t, e, 0, "Name:Test Saga\nManaCost:1\nTypes:Enchantment Saga\nOracle:x\n")
 	sa := g120Sa(t, face, "DBPutCounter", "PutCounter")
@@ -150,8 +150,8 @@ func TestPutCounterUpToAsksAmount(t *testing.T) {
 func g120RhysBoard(t *testing.T, counters map[string]int32) (*Engine, *cards.Face, state.ObjID, state.ObjID, *cards.SA) {
 	t.Helper()
 	e := corpusTokenEngine(t)
-	rhys := onBoardCard(t, e, 0, mshCorpusCard(t, "Rhys, the Evermore"))
-	bear := onBoardCard(t, e, 0, mshCorpusCard(t, "Grizzly Bears"))
+	rhys := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Rhys, the Evermore"))
+	bear := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Grizzly Bears"))
 	for _, k := range []string{"M1M1", "P1P1", "STUN"} {
 		if n := counters[k]; n > 0 {
 			e.emit(events.Event{Kind: events.CounterChange, Obj: bear, Counter: k, Amount: n})
@@ -214,8 +214,8 @@ func TestRemoveCounterAnyNumberRhys(t *testing.T) {
 func TestRemoveCounterChoicesAnyKindMisterHyde(t *testing.T) {
 	t.Parallel()
 	e := corpusTokenEngine(t)
-	hyde := onBoardCard(t, e, 0, mshCorpusCard(t, "Mister Hyde, Monster Within"))
-	bear := onBoardCard(t, e, 0, mshCorpusCard(t, "Grizzly Bears"))
+	hyde := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Mister Hyde, Monster Within"))
+	bear := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Grizzly Bears"))
 	e.emit(events.Event{Kind: events.CounterChange, Obj: bear, Counter: "P1P1", Amount: 1})
 	e.emit(events.Event{Kind: events.CounterChange, Obj: bear, Counter: "STUN", Amount: 1})
 	// Hyde itself has no counters, so the bear is the only HasCounters creature.
@@ -241,10 +241,10 @@ func TestRemoveCounterChoicesAnyKindMisterHyde(t *testing.T) {
 func TestPutCounterAllSubLinkPlayerTarget(t *testing.T) {
 	t.Parallel()
 	e := corpusTokenEngine(t)
-	fates := onBoardCard(t, e, 0, mshCorpusCard(t, "Twisted Fates"))
-	mine := onBoardCard(t, e, 0, mshCorpusCard(t, "Grizzly Bears"))
-	theirs := onBoardCard(t, e, 1, mshCorpusCard(t, "Grizzly Bears"))
-	victim := onBoardCard(t, e, 1, mshCorpusCard(t, "Ornithopter"))
+	fates := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Twisted Fates"))
+	mine := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Grizzly Bears"))
+	theirs := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Grizzly Bears"))
+	victim := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Ornithopter"))
 	face := e.G.Obj(fates).Face()
 	resolveUnderProbe(e, func() *effects.Ctx {
 		c := &effects.Ctx{Source: fates, Controller: 0, SVars: face.SVars,

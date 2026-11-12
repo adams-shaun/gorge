@@ -23,10 +23,10 @@ func TestAttackPropRequiredBotAnswerNeverLivelocks(t *testing.T) {
 	cfg := Config{Seed: 716, Names: []string{"a", "b", "c"},
 		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40)}}
 	e := New(cfg)
-	onBoardCard(t, e, 0, mshCorpusCard(t, "Ghostly Prison"))
+	onBoardCard(t, e, 0, corpusAlternativeCard(t, "Ghostly Prison"))
 	var dashers []state.ObjID
 	for i := 0; i < 2; i++ {
-		id := onBoardCard(t, e, 1, mshCorpusCard(t, "Valley Dasher"))
+		id := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Valley Dasher"))
 		e.G.Obj(id).SummonSick = false
 		dashers = append(dashers, id)
 	}

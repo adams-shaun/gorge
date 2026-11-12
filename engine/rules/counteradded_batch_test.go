@@ -34,7 +34,7 @@ import (
 // shape and not a synthetic one.
 func TestCounterAddedBatchAmountReferentOnRealCard(t *testing.T) {
 	t.Parallel()
-	hoplite := mshCorpusCard(t, "Bloodcrazed Hoplite")
+	hoplite := corpusAlternativeCard(t, "Bloodcrazed Hoplite")
 	e := combatEngine(t)
 	id := onBoardCard(t, e, 0, hoplite)
 

@@ -135,7 +135,7 @@ func counterLimitTriggerPushes(e *Engine, id state.ObjID) int {
 // Insect) even though the placement carried two counters.
 func TestCounterAddedActivationLimitCapsBatchInstances(t *testing.T) {
 	t.Parallel()
-	antman := mshCorpusCard(t, "Ant-Man, Colony Commander")
+	antman := corpusAlternativeCard(t, "Ant-Man, Colony Commander")
 	if len(antman.Faces[0].Triggers) < 2 {
 		t.Fatalf("precondition: Ant-Man carries %d triggers, want the attack and CounterAdded lines", len(antman.Faces[0].Triggers))
 	}
@@ -188,7 +188,7 @@ func TestCounterAddedNoLimitStillOnePerCounter(t *testing.T) {
 // queues exactly one more trigger.
 func TestCounterAddedActivationLimitNextTurnFiresAgain(t *testing.T) {
 	t.Parallel()
-	antman := mshCorpusCard(t, "Ant-Man, Colony Commander")
+	antman := corpusAlternativeCard(t, "Ant-Man, Colony Commander")
 	if got := antman.Faces[0].Triggers[1].ParamStr(cards.PKActivationLimit); got != "1" {
 		t.Fatalf("precondition: Ant-Man ActivationLimit$ = %q, want 1", got)
 	}
