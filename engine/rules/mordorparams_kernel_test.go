@@ -74,7 +74,7 @@ func TestArcaneDenialSlowtripDrawsUpToTwo(t *testing.T) {
 	t.Run("answer two draws two", func(t *testing.T) {
 		e, cfg, ctx := setup(t, 4103)
 		lib := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 1)...)
-		before := countDrawFor(e, 1)
+		before := countDraws(e, 1)
 		d := uptoAsk(t, e, ctx, 2)
 		if len(d.Options) != 2 || d.Options[0].Kind != "card" {
 			t.Fatalf("upto ask shape = %+v, want two card options", d.Options)
@@ -86,7 +86,7 @@ func TestArcaneDenialSlowtripDrawsUpToTwo(t *testing.T) {
 			}
 		}
 		submitChoices(t, e, d.Options[0].Index, d.Options[1].Index)
-		if got := countDrawFor(e, 1) - before; got != 2 {
+		if got := countDraws(e, 1) - before; got != 2 {
 			t.Fatalf("answering both drew %d for seat 1, want 2", got)
 		}
 		replayCheck(t, e, cfg)
@@ -94,14 +94,14 @@ func TestArcaneDenialSlowtripDrawsUpToTwo(t *testing.T) {
 
 	t.Run("answer none draws none", func(t *testing.T) {
 		e, cfg, ctx := setup(t, 4104)
-		before := countDrawFor(e, 1)
-		beforeSeat0 := countDrawFor(e, 0)
+		before := countDraws(e, 1)
+		beforeSeat0 := countDraws(e, 0)
 		uptoAsk(t, e, ctx, 2)
 		submitChoices(t, e) // the empty answer, legal at Min 0
-		if got := countDrawFor(e, 1) - before; got != 0 {
+		if got := countDraws(e, 1) - before; got != 0 {
 			t.Fatalf("answering none drew %d for seat 1, want 0", got)
 		}
-		if got := countDrawFor(e, 0) - beforeSeat0; got != 0 {
+		if got := countDraws(e, 0) - beforeSeat0; got != 0 {
 			t.Fatalf("the declined upto draw drew %d for the resolving controller", got)
 		}
 		replayCheck(t, e, cfg)
@@ -115,13 +115,13 @@ func TestArcaneDenialSlowtripDrawsUpToTwo(t *testing.T) {
 			id := e.G.Zone(state.ZLibrary, 1)[0]
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZGraveyard})
 		}
-		before := countDrawFor(e, 1)
+		before := countDraws(e, 1)
 		d := uptoAsk(t, e, ctx, 1)
 		if len(d.Options) != 1 {
 			t.Fatalf("capped upto ask = %+v, want one option", d.Options)
 		}
 		submitChoices(t, e, d.Options[0].Index)
-		if got := countDrawFor(e, 1) - before; got != 1 {
+		if got := countDraws(e, 1) - before; got != 1 {
 			t.Fatalf("the capped answer drew %d, want 1", got)
 		}
 		replayCheck(t, e, cfg)

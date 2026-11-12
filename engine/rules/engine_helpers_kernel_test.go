@@ -196,6 +196,62 @@ func countEventKind(evs []events.Event, kind events.Kind) int {
 	return n
 }
 
+// countDraws counts p's Draw events over the whole log.
+func countDraws(e *Engine, p state.PlayerID) int {
+	n := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Draw && ev.Player == p {
+			n++
+		}
+	}
+	return n
+}
+
+// countPlayerDiscards counts p's discard events over the whole log.
+func countPlayerDiscards(e *Engine, p state.PlayerID) int {
+	n := 0
+	for _, ev := range e.L.Events {
+		if events.IsDiscard(ev) && ev.Player == p {
+			n++
+		}
+	}
+	return n
+}
+
+// pushCount counts the TriggerPush events logged for id.
+func pushCount(e *Engine, id state.ObjID) int {
+	n := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.TriggerPush && ev.Obj == id {
+			n++
+		}
+	}
+	return n
+}
+
+// contains reports whether ids holds want.
+func contains(ids []state.ObjID, want state.ObjID) bool {
+	for _, id := range ids {
+		if id == want {
+			return true
+		}
+	}
+	return false
+}
+
+// sameObjIDs reports whether a and b hold the same ids in the same order.
+func sameObjIDs(a, b []state.ObjID) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
 // corpusCardNamed looks a corpus card up by name (skipping without .cards).
 func corpusCardNamed(t *testing.T, name string) *cards.Card {
 	t.Helper()

@@ -5,7 +5,6 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
-	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
@@ -119,17 +118,6 @@ func drainCounterLimitTriggers(t *testing.T, e *Engine) {
 	t.Fatalf("counter trigger drain did not settle: %d pending, %d on the stack", len(e.pendingTriggers), len(e.G.Stack))
 }
 
-// counterLimitTriggerPushes counts the TriggerPush events the log carries for id.
-func counterLimitTriggerPushes(e *Engine, id state.ObjID) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.TriggerPush && ev.Obj == id {
-			n++
-		}
-	}
-	return n
-}
-
 // TestCounterAddedActivationLimitCapsBatchInstances is the defect: Ant-Man's
 // "triggers only once each turn" line must queue ONE trigger (and make one
 // Insect) even though the placement carried two counters.
@@ -148,7 +136,7 @@ func TestCounterAddedActivationLimitCapsBatchInstances(t *testing.T) {
 	if got := e.G.Obj(bear).Counter("P1P1"); got != 2 {
 		t.Fatalf("precondition: the one placement put %d counters on the Bear, want 2", got)
 	}
-	if got := counterLimitTriggerPushes(e, id); got != 1 {
+	if got := pushCount(e, id); got != 1 {
 		t.Fatalf("one two-counter placement queued %d Ant-Man triggers, want 1 (ActivationLimit$ 1)", got)
 	}
 	if got := combatTokenCount(e, 0, "Insect Token"); got != 1 {
@@ -174,7 +162,7 @@ func TestCounterAddedNoLimitStillOnePerCounter(t *testing.T) {
 	if got := e.G.Obj(bear).Counter("P1P1"); got != 2 {
 		t.Fatalf("precondition: the one placement put %d counters on the Bear, want 2", got)
 	}
-	if got := counterLimitTriggerPushes(e, id); got != 2 {
+	if got := pushCount(e, id); got != 2 {
 		t.Fatalf("one two-counter placement queued %d unlimited triggers, want 2 (CR 603.2c one per counter)", got)
 	}
 	if got := combatTokenCount(e, 0, "Insect Token"); got != 2 {
@@ -194,7 +182,7 @@ func TestCounterAddedActivationLimitNextTurnFiresAgain(t *testing.T) {
 	}
 	e, cfg, id, bear, source := counterLimitBoard(t, 3105, antman)
 	activateCounterLimitSource(t, e, source, bear)
-	if got := counterLimitTriggerPushes(e, id); got != 1 {
+	if got := pushCount(e, id); got != 1 {
 		t.Fatalf("first turn's two-counter placement queued %d Ant-Man triggers, want 1", got)
 	}
 	// Seat 0's next turn (turn 1 -> turn 3 in a two-seat game).
@@ -203,7 +191,7 @@ func TestCounterAddedActivationLimitNextTurnFiresAgain(t *testing.T) {
 		t.Fatalf("precondition: stopped at turn %d active %d, want turn 3 active 0", e.G.Turn, e.G.Active)
 	}
 	activateCounterLimitSource(t, e, source, bear)
-	if got := counterLimitTriggerPushes(e, id); got != 2 {
+	if got := pushCount(e, id); got != 2 {
 		t.Fatalf("the next turn's two-counter placement made the Ant-Man total %d triggers, want 2 (one more)", got)
 	}
 	if got := combatTokenCount(e, 0, "Insect Token"); got != 2 {

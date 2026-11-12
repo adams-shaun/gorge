@@ -41,17 +41,6 @@ func etbCounterEntryReader(t testing.TB) *cards.Card {
 		"Oracle:x\n")
 }
 
-// etbCounterEntryDraws counts the draw events seat p logged.
-func etbCounterEntryDraws(e *Engine, p state.PlayerID) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Draw && ev.Player == p {
-			n++
-		}
-	}
-	return n
-}
-
 // etbCounterEntryMove returns the object's entry MoveZone from the log.
 func etbCounterEntryMove(e *Engine, id state.ObjID) (events.Event, bool) {
 	for _, ev := range e.L.Events {
@@ -174,7 +163,7 @@ func TestEtbCounterNonP1P1KindFoldsIntoMove(t *testing.T) {
 			if o := e.G.Obj(cid); o == nil || o.Zone != state.ZHand {
 				t.Fatal("precondition: artifact not in hand")
 			}
-			before := etbCounterEntryDraws(e, 0)
+			before := countDraws(e, 0)
 			e.emit(events.Event{Kind: events.MoveZone, Obj: cid, From: state.ZHand, To: state.ZBattlefield})
 			if d := e.Pending(); d != nil && d.Kind == decision.KReplacement {
 				if c.pick == "" {
@@ -212,7 +201,7 @@ func TestEtbCounterNonP1P1KindFoldsIntoMove(t *testing.T) {
 			if !etbCounterEntryTriggered(e, cid) {
 				t.Fatal("precondition: the ETB trigger never fired")
 			}
-			if got := etbCounterEntryDraws(e, 0) - before; got != int(c.want) {
+			if got := countDraws(e, 0) - before; got != int(c.want) {
 				t.Fatalf("ETB trigger drew %d, want %d (it must see the entry CHARGE counters)", got, c.want)
 			}
 			replayCheck(t, e, cfg)
@@ -270,7 +259,7 @@ func TestEtbCounterEntryFoldsIntoMove(t *testing.T) {
 			if o := e.G.Obj(cid); o == nil || o.Zone != state.ZHand {
 				t.Fatal("precondition: creature not in hand")
 			}
-			before := etbCounterEntryDraws(e, 0)
+			before := countDraws(e, 0)
 			e.emit(events.Event{Kind: events.MoveZone, Obj: cid, From: state.ZHand, To: state.ZBattlefield})
 			if d := e.Pending(); d != nil && d.Kind == decision.KReplacement {
 				if c.pick == "" {
@@ -311,7 +300,7 @@ func TestEtbCounterEntryFoldsIntoMove(t *testing.T) {
 			if !etbCounterEntryTriggered(e, cid) {
 				t.Fatal("precondition: the ETB trigger never fired")
 			}
-			if got := etbCounterEntryDraws(e, 0) - before; got != int(c.want) {
+			if got := countDraws(e, 0) - before; got != int(c.want) {
 				t.Fatalf("ETB trigger drew %d, want %d (it must see the entry counters)", got, c.want)
 			}
 			replayCheck(t, e, cfg)

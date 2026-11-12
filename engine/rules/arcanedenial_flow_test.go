@@ -54,17 +54,17 @@ func TestArcaneDenialFlowDrawsForCounteredController(t *testing.T) {
 	// Next turn is seat 1's: its upkeep fires the slowtrip draw for seat 1
 	// and the up-to-two ask for seat 0.
 	driveToUpkeepAsk(t, e)
-	before0, before1 := countDrawFor(e, 0), countDrawFor(e, 1)
+	before0, before1 := countDraws(e, 0), countDraws(e, 1)
 	d = drainTriggersThenAsk(t, e, 30)
 	if d.Kind != decision.KChoose || d.Player != 0 || d.Min != 0 || d.Max != 2 {
 		t.Fatalf("upkeep ask = %+v, want KChoose Min 0 Max 2 for seat 0 (the countered spell's controller)", d)
 	}
 	submitChoices(t, e, d.Options[0].Index, d.Options[1].Index)
 	passUntilStackEmpty(t, e, 30)
-	if got := countDrawFor(e, 0) - before0; got != 2 {
+	if got := countDraws(e, 0) - before0; got != 2 {
 		t.Fatalf("seat 0 drew %d at the upkeep, want 2", got)
 	}
-	if got := countDrawFor(e, 1) - before1; got != 1 {
+	if got := countDraws(e, 1) - before1; got != 1 {
 		t.Fatalf("seat 1 drew %d at the upkeep, want 1", got)
 	}
 	replayCheck(t, e, cfg)

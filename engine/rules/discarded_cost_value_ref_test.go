@@ -31,7 +31,7 @@ func TestDiscardedCostValueRef(t *testing.T) {
 			grab := searchMoveByName(t, e, "Grab the Prize", state.ZHand)
 			disc := searchMoveByName(t, e, tc.discard, state.ZHand)
 			addMana(t, e, 0, "1R")
-			life, draws := e.G.Players[1].Life, countDrawFor(e, 0)
+			life, draws := e.G.Players[1].Life, countDraws(e, 0)
 			castNoDrain(t, e, grab)
 			d := e.Pending()
 			if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "discard" {
@@ -42,7 +42,7 @@ func TestDiscardedCostValueRef(t *testing.T) {
 			if o := e.G.Obj(disc); o == nil || o.Zone != state.ZGraveyard {
 				t.Fatalf("discarded card not in the graveyard: %+v", o)
 			}
-			if got := countDrawFor(e, 0) - draws; got != 2 {
+			if got := countDraws(e, 0) - draws; got != 2 {
 				t.Fatalf("drew %d, want 2", got)
 			}
 			if got := life - e.G.Players[1].Life; got != tc.damage {
@@ -67,7 +67,7 @@ func TestDiscardedCostValueRefSurvivesResponseSpell(t *testing.T) {
 	disc := searchMoveByName(t, e, "Grizzly Bears", state.ZHand)
 	ritual := searchMoveByName(t, e, "Dark Ritual", state.ZHand)
 	addMana(t, e, 0, "1RB")
-	life, draws := e.G.Players[1].Life, countDrawFor(e, 0)
+	life, draws := e.G.Players[1].Life, countDraws(e, 0)
 	castNoDrain(t, e, grab)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "discard" {
@@ -88,7 +88,7 @@ func TestDiscardedCostValueRefSurvivesResponseSpell(t *testing.T) {
 	if o := e.G.Obj(disc); o == nil || o.Zone != state.ZGraveyard {
 		t.Fatalf("discarded card not in the graveyard: %+v", o)
 	}
-	if got := countDrawFor(e, 0) - draws; got != 2 {
+	if got := countDraws(e, 0) - draws; got != 2 {
 		t.Fatalf("drew %d, want 2", got)
 	}
 	if got := life - e.G.Players[1].Life; got != 2 {
@@ -111,7 +111,7 @@ func TestDiscardedCostValueRefIgnoresResponseManaDiscard(t *testing.T) {
 	nonland := searchMoveByName(t, e, "Grizzly Bears", state.ZHand)
 	skirge := searchMoveByNameSeat(t, e, 0, "Skirge Familiar", state.ZBattlefield)
 	addMana(t, e, 0, "1R")
-	life, draws := e.G.Players[1].Life, countDrawFor(e, 0)
+	life, draws := e.G.Players[1].Life, countDraws(e, 0)
 	castNoDrain(t, e, grab)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "discard" {
@@ -136,7 +136,7 @@ func TestDiscardedCostValueRefIgnoresResponseManaDiscard(t *testing.T) {
 			t.Fatalf("precondition: discarded card %d not in the graveyard: %+v", id, o)
 		}
 	}
-	if got := countDrawFor(e, 0) - draws; got != 2 {
+	if got := countDraws(e, 0) - draws; got != 2 {
 		t.Fatalf("drew %d, want 2", got)
 	}
 	if got := life - e.G.Players[1].Life; got != 0 {

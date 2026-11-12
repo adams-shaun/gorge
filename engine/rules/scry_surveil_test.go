@@ -311,18 +311,6 @@ func TestSurveilResumeRunsSubAbilityOnceAndDoesNotReask(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-func sameObjIDs(a, b []state.ObjID) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
 func zoneContains(ids []state.ObjID, id state.ObjID) bool {
 	for _, x := range ids {
 		if x == id {

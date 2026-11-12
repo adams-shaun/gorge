@@ -101,17 +101,6 @@ func countChargeChanges(e *Engine, obj state.ObjID, amount int32) int {
 	return n
 }
 
-// countDraws counts Draw events for player p.
-func countDraws(e *Engine, p state.PlayerID) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Draw && ev.Player == p {
-			n++
-		}
-	}
-	return n
-}
-
 // The defect, on the real corpus script: Umezawa's Jitte's
 // T:Mode$ DamageDealtOnce | CombatDamage$ True | ValidSource$
 // Creature.EquippedBy fires when its equipped creature deals combat damage,

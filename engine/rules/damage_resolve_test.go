@@ -27,16 +27,6 @@ const damageBatchWatcher = "Name:Batch Watcher\nTypes:Creature\nPT:1/1\n" +
 // marked damage (so its marked-damage total is observable after the flush).
 const batchWatcherDealt = "Name:Target Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:0/9\nOracle:x\n"
 
-func countDrawsFor(e *Engine, p state.PlayerID) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Draw && ev.Player == p {
-			n++
-		}
-	}
-	return n
-}
-
 // hasUnimplementedResolveNote reports whether the log carries the loud
 // "unimplemented API DamageResolve" Note a missing registration emits. Every
 // test here asserts its absence, so a build with the registration reverted
@@ -232,7 +222,7 @@ func TestDamageResolveFlushesAllMarksInOneBatch(t *testing.T) {
 	if target == watcher || e.G.Obj(target) == nil || e.G.Obj(target).Zone != state.ZBattlefield {
 		t.Fatalf("precondition: target must be its own live battlefield creature (target=%d watcher=%d)", target, watcher)
 	}
-	myDraws := countDrawsFor(e, 0)
+	myDraws := countDraws(e, 0)
 
 	d := e.Pending()
 	idx := -1
@@ -279,7 +269,7 @@ func TestDamageResolveFlushesAllMarksInOneBatch(t *testing.T) {
 	if got := e.G.Players[1].Life; got != 18 {
 		t.Fatalf("opponent life = %d, want 18 (the marked 2 flushed)", got)
 	}
-	if got := countDrawsFor(e, 0) - myDraws; got != 1 {
+	if got := countDraws(e, 0) - myDraws; got != 1 {
 		t.Fatalf("batch watcher drew %d cards, want 1 (both marks flushed in ONE batch)", got)
 	}
 	replayCheck(t, e, cfg)

@@ -102,24 +102,12 @@ func TestArrangeHonoursAnswerOrderNotSorted(t *testing.T) {
 	}
 	a := orderFor(103, 2, 1, 0)
 	b := orderFor(103, 0, 1, 2)
-	if equalObjs(a, b) {
+	if sameObjIDs(a, b) {
 		t.Fatalf("[2,1,0] and [0,1,2] produced the SAME library order %v; the handler must honour the answer's order, not sort it", a)
 	}
 	if !sameObjSet(a, b) {
 		t.Fatalf("%v and %v are not the same three cards; the two runs must start from the same seed", a, b)
 	}
-}
-
-func equalObjs(a, b []state.ObjID) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func sameObjSet(a, b []state.ObjID) bool {

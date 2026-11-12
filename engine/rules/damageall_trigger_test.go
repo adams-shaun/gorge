@@ -192,28 +192,6 @@ func combatTokenCount(e *Engine, p state.PlayerID, name string) int {
 	return n
 }
 
-// countPlayerDraws/are the shared event counters the three batch-set tests
-// assert through.
-func countPlayerDraws(e *Engine, p state.PlayerID) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Draw && ev.Player == p {
-			n++
-		}
-	}
-	return n
-}
-
-func countPlayerDiscards(e *Engine, p state.PlayerID) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if events.IsDiscard(ev) && ev.Player == p {
-			n++
-		}
-	}
-	return n
-}
-
 // passPriorityAll passes every KPriority decision, one seat at a time.
 func passPriorityAll(t *testing.T, e *Engine) bool {
 	t.Helper()
@@ -466,7 +444,7 @@ func TestDamageAllTargetSetDrivesHordewingSkaabDrawCount(t *testing.T) {
 			}
 			// Baseline before combat: the log carries every seat's
 			// opening-hand draws, so the assertions compare deltas.
-			drawsBefore := countPlayerDraws(e, 0)
+			drawsBefore := countDraws(e, 0)
 			e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 2})
 			e.emit(events.Event{Kind: events.StepChange, Step: state.StepDeclareAttackers})
 			e.askAttackers()
@@ -520,7 +498,7 @@ func TestDamageAllTargetSetDrivesHordewingSkaabDrawCount(t *testing.T) {
 					t.Fatalf("precondition: seat %d life = %d, want %d", def, got, want)
 				}
 			}
-			if got := countPlayerDraws(e, 0) - drawsBefore; got != leg.wantDraw {
+			if got := countDraws(e, 0) - drawsBefore; got != leg.wantDraw {
 				t.Fatalf("Draw events for seat 0 = %d, want %d (X = opponents dealt damage)", got, leg.wantDraw)
 			}
 			if got := countPlayerDiscards(e, 0); got != leg.wantDiscard {
@@ -585,7 +563,7 @@ func TestDamageAllBatchSourceControllersDrawOnRealCorpusScript(t *testing.T) {
 			// opening-hand draws, so the assertions compare deltas.
 			before := make(map[state.PlayerID]int, 4)
 			for p := state.PlayerID(0); p < 4; p++ {
-				before[p] = countPlayerDraws(e, p)
+				before[p] = countDraws(e, p)
 			}
 			e.combatDamaging = true
 			e.BeginDamageBatch()
@@ -608,7 +586,7 @@ func TestDamageAllBatchSourceControllersDrawOnRealCorpusScript(t *testing.T) {
 			e.resumeTriggerDrain()
 			passUntilStackEmpty(t, e, 60)
 			for p, want := range leg.wantDraws {
-				if got := countPlayerDraws(e, p) - before[p]; got != want {
+				if got := countDraws(e, p) - before[p]; got != want {
 					t.Fatalf("Draw events for seat %d = %d, want %d (TriggeredSourcesController & You)", p, got, want)
 				}
 			}

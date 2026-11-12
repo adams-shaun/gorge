@@ -420,12 +420,3 @@ func commanderReplayFromLog(t *testing.T, cfg Config, log []events.Event) *state
 	}
 	return g
 }
-
-func contains(ids []state.ObjID, want state.ObjID) bool {
-	for _, id := range ids {
-		if id == want {
-			return true
-		}
-	}
-	return false
-}
