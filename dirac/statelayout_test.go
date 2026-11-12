@@ -19,7 +19,9 @@ var (
 // bytes come out of genState.rsv, the mech arena, a cold array or a scr
 // overlay; a change to this number is a deliberate layout change.
 func TestStateLayoutPinned(t *testing.T) {
-	const want = 20040
+	// +24: coldArrays.hexUB's slice header, Veil of Summer's per-slot grant
+	// timestamp (repl_turnrepl.go).
+	const want = 20064
 	if sz := unsafe.Sizeof(State{}); sz != want {
 		t.Fatalf("State is %d bytes, pinned at %d", sz, want)
 	}
