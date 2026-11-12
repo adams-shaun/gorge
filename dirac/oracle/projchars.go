@@ -113,6 +113,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Harmonize":                "CardDef.Harmonize (a graveyard cast for AltCost; kw_harmonize.go)",
 	"Mayhem":                   "CardDef.Mayhem (a graveyard cast for AltCost if discarded this turn; kw_mayhem.go)",
 	"Offspring":                "CardDef.Offspring (an optional additional cost and its enters trigger)",
+	"Buyback":                  "CardDef.Buyback (an optional additional cost; the spell returns to hand as it resolves, dirac/kw_buyback.go)",
 	"Storm":                    "CardDef.Storm (the printed keyword's native cast trigger, dirac/kw_storm.go; a StatStackKw grant, static_stackkeyword.go)",
 	"Mobilize":                 "gorge kwMobilize's Attacks trigger: a remembering Token plus a group DelayedTrigger (kgen lowers the expansion's nodes; OpDelayedProgram DpGroup, ExtSacDelayed)",
 	"Devoid":                   "a colourless face in every zone (kgen lower.go faceHasKeyword Devoid; CharsProj.Colors)",
@@ -169,6 +170,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Chapter":                           "the chapter abilities (TrigCounterAddedOnce on LORE, kw_saga.go), no battlefield characteristic",
 	"Convoke":                           "CardDef.Convoke (a cast-time payment, no battlefield characteristic; kw_convoke.go)",
 	"Improvise":                         "CardDef.Improvise (a cast-time payment, no battlefield characteristic; kw_convoke.go)",
+	"Rebound":                           "CardDef.ReboundAb (a resolution-time exile and an upkeep delayed program, no battlefield characteristic; kw_rebound.go)",
 	"Delve":                             "CardDef.Delve (a cast-time payment, no battlefield characteristic; kw_delve.go)",
 	"Morph":                             "CardDef.MorphCost/MorphFamily (the face-down cast and turn-up special action)",
 	"Megamorph":                         "CardDef.MorphCost/MorphFamily (the face-down cast and turn-up special action)",
@@ -182,7 +184,9 @@ var gorgeKwElsewhere = map[string]string{
 	"AllMustBlock":                      "CardDef.Lure (CR 509.1c; compared through the block options and Done, combat_lure.go)",
 	"MustBlock":                         "CardDef.MustBeBlocked (CR 509.1c; compared through the block options and Done, combat_mustbeblocked.go)",
 	"CARDNAME must be blocked if able.": "the arena mark mechMustBlocked an Animate's HiddenKeywords$ sets (ExtMustBeBlocked; compared through the block options and Done)",
-	"HIDDEN CARDNAME must be blocked if able.": "the arena mark mechMustBlocked a Pump / PumpAll KW$ sets (ExtMustBeBlocked; compared through the block options and Done)",
+	"HIDDEN CARDNAME must be blocked if able.":           "the arena mark mechMustBlocked a Pump / PumpAll KW$ sets (ExtMustBeBlocked; compared through the block options and Done)",
+	"All creatures able to block CARDNAME do so.":        "the StatLure static an Aura or the creature itself grants through AddHiddenKeyword$ (kop.StatLure; compared through the block options and Done, combat_lure.go)",
+	"HIDDEN All creatures able to block CARDNAME do so.": "the arena mark mechLure a Pump KW$ sets (ExtMustBeBlocked with C=MustBeBlockedLure; compared through the block options and Done, combat_lure.go)",
 	"Hideaway":          "its ETB trigger (OpExt ExtHideaway; the keyword has no other rules effect)",
 	"Backup":            "gorge kwBackup's expansion: an ETB trigger putting a +1/+1 counter and granting the attack trigger (kgen lowers the expansion's nodes; animgb_test.go), no battlefield characteristic",
 	"Job select":        "gorge kwJobSelect's expansion: an enters trigger making a 1/1 Hero token and attaching the Equipment to it (kgen lowers the expansion's nodes; compared through the stack, the token and the attachment), no battlefield characteristic",
@@ -212,6 +216,13 @@ func gorgeKw(s string) (kop.KwMask, bool) {
 			// K:Hexproof:<Colour> (CardDef.HexColors)
 			return 0, true
 		}
+	}
+	switch s {
+	case "Protection from white", "Protection from blue", "Protection from green":
+		// a granted protection from the chosen colour (Akroma's Blessing;
+		// the arena marks mechProtW..mechProtG, compared through the
+		// target, block and damage options); black and red keep their bits
+		return 0, true
 	}
 	head := s
 	if i := strings.IndexByte(head, ':'); i >= 0 {

@@ -31,6 +31,7 @@ var ignoredParams = map[string]bool{
 	"PrimaryPrompt":      true, // caption text; gorge lists it in params.DescriptiveKeys (descriptive.go), never read
 	"AINoRecursiveCheck": true, // Forge AI hint: only in gorge's accepted-key lists (params/mana.go, params/dealdamage.go, changezone_params.go), never read
 	"AIXMax":             true, // Forge AI hint for the X it announces: only in gorge's accepted-key lists (changezone_params.go, params/*.go), never read
+	"UnlessAI":           true, // Forge AI hint (CopySpellAbilityAi / the unless-cost AI: whether the AI pays or copies); gorge never reads it (engine/rules/paramcensus_test.go records it as an AI hint)
 }
 
 // params tracks which parameters of one IR node the lowering read, so an
@@ -331,6 +332,10 @@ func (lc *lowerCtx) lowerFace() {
 		}
 	}
 	lc.lowerRecord()
+	// the face's printed mana abilities' produced colours (CardDef.
+	// ProduceCol; lower_reflectedmana.go producibleMask): a Produce-mode
+	// reflected ability's read
+	lc.out.ProduceCol = producibleMask(lc.face)
 	lc.scanStorm() // lower_storm.go: K:Storm's expanded trigger, before the lines lower
 	// lower_imprintmox.go: the imprint-mox shape, before the lines lower
 	lc.imprintMox = lc.imprintMoxShape()
@@ -432,10 +437,12 @@ func (lc *lowerCtx) lowerTail() {
 	lc.numberOnceAbilities()
 	lc.refusePlotCombos()
 	lc.refuseHarmonizeCombos()
+	lc.refuseReboundCombos() // lower_rebound.go
 	lc.refuseMayhemCombos()
 	lc.lowerRetrace()
 	lc.refuseBeamCombos()
 	lc.refuseSneakCombos()
+	lc.refuseBuybackCombos() // lower_buyback.go
 	lc.refuseWebSlingCombos()
 	lc.refuseMayFlashCombos()
 	lc.refuseEvokeCombos()
@@ -666,6 +673,7 @@ func (lc *lowerCtx) lowerRecord() {
 		out.Subtypes = append(out.Subtypes, t)
 	}
 	out.NoAbilities = effects.FaceHasNoAbilities(f, out.Types&tLand != 0)
+	out.HasManaAbility = effects.FaceHasManaAbility(f)
 	out.Colors = colorsOf(f)
 	if faceHasKeyword(f, "Devoid") {
 		// CR 702.114a: gorge effects.faceColorMask / cards.printedColourMask
@@ -1214,6 +1222,13 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Offspring = &mc
+		case head == "Buyback":
+			// CR 702.27a: an optional additional cost, offered as its own cast
+			// option (gorge's "(buyback)" mode, the Offspring shape); the
+			// resolving spell returns to hand (lower_buyback.go)
+			if !lc.lowerBuyback(param) {
+				lc.refuseNode(node, "buyback cost %q", param)
+			}
 		case head == "Casualty":
 			// CR 702.153a: the optional creature sacrifice and the copy
 			// trigger are the kernel's casualty cast (kw_casualty.go). The
@@ -1378,6 +1393,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			// generic cost (dirac/kw_delve.go); a granted Delve reads the
 			// same kernel path.
 			lc.out.Delve = true
+		case head == "Rebound" && param == "":
+			lc.lowerRebound(node) // lower_rebound.go
 		case head == "Madness":
 			// CR 702.35a-b: a discard replacement into exile plus a
 			// keyword trigger whose resolution offers the cast for this
@@ -2639,6 +2656,19 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 			}
 		}
 	}
+	for i := range f.Clauses {
+		if f.Clauses[i].Ctrl != whoTgtOrCtrl {
+			continue
+		}
+		// the referent is the current link's target -- the last slot the
+		// chain declared before this filter. A filter read before any slot
+		// has none, and gorge binds none.
+		t := lc.lastTarget()
+		if t < 0 {
+			return nil, refuse("filter %q: ControlledBy TargetedOrController without an earlier target", expr)
+		}
+		f.Clauses[i].CtrlTgt = uint8(t + 1)
+	}
 	if err := lc.checkEachPlCtrl(expr, f); err != nil {
 		return nil, err // lower_repeatplayers.go
 	}
@@ -2905,7 +2935,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			}
 		}
 		if ab.Zone == zHand && !cost.DiscardSelf && !ab.Ninjutsu {
-			return refuse("hand ability without discarding itself")
+			if !lc.putSelfAbility(sa.API, ab, ps, cost) { // lower_ninjutsu.go
+				return refuse("hand ability without discarding itself")
+			}
 		}
 		if kw := strings.TrimSpace(sa.Params["Keyword"]); ab.Zone == zHand && (kw == "Cycling" || kw == "TypeCycling") {
 			ab.Cycling = true // gorge cyclingKeyword
@@ -3111,8 +3143,8 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		return refuse("ability kind %s", sa.Kind)
 	}
 	lc.out.Abilities = append(lc.out.Abilities, ab)
-	if ab.Ninjutsu {
-		return lc.ninjutsuBody(ps) // lower_ninjutsu.go
+	if ab.Ninjutsu || ab.PutSelf {
+		return lc.ninjutsuBody(ps, ab.PutSelf) // lower_ninjutsu.go
 	}
 	if sa.API == "Mana" && ab.Kind != akSpell {
 		return lc.lowerMana(sa, ps, ab)

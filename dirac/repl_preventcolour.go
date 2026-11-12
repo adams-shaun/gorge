@@ -15,12 +15,12 @@ type prevTgt struct {
 const raPrevColor uint8 = 251
 
 // prepPrevCol turns the damage hook on for a table with an Ext
-// PreventColor instruction.
+// PreventColor, PreventDamageScope or PreventNext instruction.
 func prepPrevCol(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			for _, in := range t.Cards[i].Abilities[j].Prog {
-				if e := in.Ext(); e == kop.ExtPreventColor || e == kop.ExtPreventDamageScope {
+				if e := in.Ext(); e == kop.ExtPreventColor || e == kop.ExtPreventDamageScope || e == kop.ExtPreventNext {
 					g.anyRepl |= rbPrevCol
 					return
 				}
@@ -36,7 +36,9 @@ func prepPrevCol(t *kop.Table, g *genPrep) {
 func (s *State) prevColHit(k *prep, sl Slot, c CardID, t prevTgt, combat bool) bool {
 	var m kop.ColorMask
 	for i := range s.g.prevCol {
-		m |= s.g.prevCol[i].col
+		if s.g.prevCol[i].sc&prevNextSc == 0 {
+			m |= s.g.prevCol[i].col // a depleting shield's col is its pool (repl_prevnext.go)
+		}
 	}
 	if m != 0 && s.srcColors(k, sl, c)&m != 0 && !DebugNoPrevCol {
 		return !s.noPrev(k, combat) // CR 615.12

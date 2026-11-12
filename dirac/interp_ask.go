@@ -1112,6 +1112,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.runProg(k)
 			return
 		}
+		s.prevNextNC() // repl_prevnext.go
 		s.g.ro.replHdr = replHdr{}
 		s.dealNC(k)
 		if s.g.dmgSeqOn {

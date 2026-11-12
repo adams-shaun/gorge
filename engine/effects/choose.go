@@ -119,6 +119,7 @@ func effChooseColor(h Host, c *Ctx, sa *cards.SA) {
 				letter = colourLetter(opts[0].Label)
 			}
 			h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "color", Text: string(letter)})
+			rebindChosenColorLKI(c, letter)
 			return
 		} else if taken {
 			// The host's own continuation owns the ask (rules routes an
@@ -133,6 +134,23 @@ func effChooseColor(h Host, c *Ctx, sa *cards.SA) {
 		fallback = opts[0].Label
 	}
 	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "color", Text: string(colourLetter(fallback))})
+	rebindChosenColorLKI(c, colourLetter(fallback))
+}
+
+// rebindChosenColorLKI makes a mid-resolution colour answer the one the rest
+// of the chain reads when the resolution reads its departed source through
+// last known information (TriggerContext.SourceLKIValid, rules
+// bindSourceLKI): the snapshot was taken before this choice existed, so
+// sourceChosen would read the stale (empty) colour and "the color of your
+// choice" would match nothing -- Root Greevil, sacrificed as its cost,
+// destroying no enchantment. The answer is this resolution's, not a
+// characteristic of the source (CR 608.2h reads the source's LKI only for
+// information the source had), so it replaces the snapshot's colour; the
+// object keeps the Choose event's record as before.
+func rebindChosenColorLKI(c *Ctx, letter byte) {
+	if c.TriggerContext.SourceLKIValid && letter != 0 {
+		c.TriggerContext.SourceChosenColor = string(letter)
+	}
 }
 
 // chooseColorLabels pairs the WUBRG letter the Choose event records with the
