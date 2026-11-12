@@ -953,6 +953,7 @@ PumpEachTough	untyped int	2
 PutCtrCellFirst	untyped int	3
 PutCtrCellNext	untyped int	4
 PutCtrRemAmount	untyped int	5
+PutCtrRememberPut	untyped int	2
 R	untyped int	3
 ReduceAbEquip	untyped int	8
 ReduceAbMinShift	untyped int	4
