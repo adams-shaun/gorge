@@ -127,22 +127,41 @@ func (s *State) empower(k *prep, in *kop.Instr) bool {
 // Food ability), or NoSlot. The attached-source case is grantedHost; this is the
 // cold path the FRA Ways and Avatar of Burgeoning Echoes need.
 //
-// Of two copies, the older: globalGrantsGen lists the grants in layer
-// timestamp order (gorge's active() order), and the offer collapses the
+// Of two copies, the older: globalGrants/globalGrantsGen list the grants in
+// layer timestamp order (gorge's active() order), and the offer collapses the
 // second copy's identical ability into the first's option, so the host must
 // be the copy gorge's first grant names. Slot order is a slot-allocation
 // artifact and can put the newer copy first.
+//
+// The walk applies the eligibility both global walks apply before they emit:
+// a source whose abilities were removed grants nothing (CR 613.6, except a
+// static kept on loss), a grant older than the grantee's own ability loss no
+// longer reaches it (CR 613.7), and the static's condition gates it. A copy
+// that globalGrantsGen skipped must not become the host merely because its
+// timestamp is older.
 func (s *State) grantHostGen(k *prep, sl Slot, c CardID, ab uint8) Slot {
 	host := NoSlot
+	lts, lost := s.lossAt(k, sl)
 	for m := s.statM; m.any(); m = m.rest() {
 		src := m.first()
 		if s.cardAt(src) != c {
 			continue
 		}
+		if lost && s.layerTs(src) < lts {
+			continue
+		}
+		srcLost := s.genLost(k, src)
 		cd := &k.t.Cards[c]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
 			if a.Kind != kop.AbStatic || !staticGrants(k.t, &a.Static, ab) {
+				continue
+			}
+			if srcLost && !keptOnLoss(k.t, a) {
+				continue
+			}
+			st := statSrc{a: a, sl: src, ctrl: s.perms[src].ctrl, obj: s.perms[src].obj}
+			if !s.statCond(k, st) {
 				continue
 			}
 			if s.matchPermGen(k, a.Static.Filter, sl, s.perms[src].ctrl, src, layerKw) {
