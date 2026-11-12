@@ -28,8 +28,10 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 	if mode&1 != 0 {
 		fl |= sfKicked
 	}
-	mayhem := mayhemCast(k, c, mode) // a graveyard cast that is no flashback (kw_mayhem.go)
-	if mode&2 != 0 && !mayhem {
+	esc := mode&2 != 0 && s.g.escapeCast // the target byte's escape cast (kw_escape.go)
+	s.g.escapeCast = false
+	mayhem := mayhemCast(k, c, mode) && !esc // a graveyard cast that is no flashback (kw_mayhem.go)
+	if mode&2 != 0 && !mayhem && !esc {
 		fl |= sfFlashback
 		if two, _, g := s.fbInstances(k, p, o); two && g {
 			fl |= sfFbGranted // the granted instance (fbInstances)
@@ -48,6 +50,9 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 	}
 	if mayhem {
 		e.trigPl = trigPlMayhem
+	}
+	if esc {
+		e.trigPl = trigPlEscape // the cost builder's escape cast (kw_escape.go)
 	}
 	if mode&castFaceDown != 0 {
 		e.ab = 255
@@ -852,8 +857,11 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			}
 			// gorge's order: sacrifice, the counter removals, discard
 			// (the forage either-or first: gorge forageAsk; an exile
-			// part is the only counted one of its cost: act_forage.go)
-			if k.costObj && s.costObjOptions(k, d) || s.costPickOptions(k, d, kop.CostSac) || s.subCtrOptions(k, d) || k.subAmong && s.subAmongOptions(k, d) || s.costPickOptions(k, d, kop.CostDiscard) {
+			// part is the only counted one of its cost: act_forage.go).
+			// An escape cast's asks follow gorge's costObjectAsks order
+			// (cast_begin.go): the spell's own sacrifice / discard asks
+			// first, then exAsk's escape fodder last (kw_escape.go).
+			if e.trigPl == trigPlEscape && s.beholdOptions(k, d) || s.costPickOptions(k, d, kop.CostSac) || s.subCtrOptions(k, d) || k.subAmong && s.subAmongOptions(k, d) || s.costPickOptions(k, d, kop.CostDiscard) || e.trigPl == trigPlEscape && k.costObj && s.costObjOptions(k, d) {
 				return s.ctl == ctlBuild // false: a short sacrifice reversed the build (sacShort)
 			}
 			if k.gen != nil && (k.gen.anySneak && sneakEntry(e) || k.gen.anyWebSling && webSlingEntry(e)) && s.sneakReturnOptions(k, d) {
@@ -2340,6 +2348,17 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 		if k.gen != nil && k.gen.anyMayRaise {
 			if rc := s.mayRaisePick(k, e); rc != nil {
 				return rc // a may-play cast's non-mana RaiseCost$ (cost_mayplayraise.go)
+			}
+		}
+		if e.trigPl == trigPlEscape {
+			// the escape cast's fodder (CR 702.42a; kw_escape.go): owed while
+			// fewer picks than the grant's count are recorded; then the
+			// spell's own Sac/Discard additional parts chain (the other arms
+			// above read no flag an escape cast sets)
+			if st := s.escapeStatic(k, e.ctrl, s.objs[e.obj].owner(), e.card); st != nil {
+				if ec := escapeFodder(st); int(ec.N) > s.exilePicks() {
+					return &ec
+				}
 			}
 		}
 		return spellAddCost(k, e.card)

@@ -272,6 +272,8 @@ func (a *SBT) priority(s *dirac.State, d *dirac.Decision, seat *builtins.Seat) [
 				cm = "offspring"
 			case mode&1 != 0:
 				cm = "kicked"
+			case mode&2 != 0 && x.Target() == dirac.FeatEscapeTgt:
+				cm = "escape" // CR 702.42a: the escape cast a StatEscapeGrant static gives (kw_escape.go)
 			case mode&2 != 0 && s.FeatMayhemCard(dirac.Obj(src)):
 				cm = "mayhem"
 			case mode&2 != 0 && s.FeatHarmonizeCast(dirac.Obj(src)):

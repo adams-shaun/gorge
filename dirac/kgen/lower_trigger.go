@@ -2337,8 +2337,23 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			return nil, lc.stackKwGrant(sp, st, aff) // lower_stackkw.go
 		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Flashback") {
 			return nil, lc.graveFbGrant(sp, st, aff) // lower_fbgrant.go
+		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Escape") {
+			return nil, lc.graveEscapeGrant(sp, st, aff) // lower_escapegrant.go
 		} else if az == "Hand" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Warp") {
 			return nil, lc.handWarpGrant(sp, st, aff) // lower_warpgrant.go
+		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && inertCountAs(sp.str("AddHiddenKeyword"), aff) {
+			// Pardic Firecat's "CARDNAME count as Flame Burst.": gorge's
+			// printed Continuous static walk registers no AddHiddenKeyword$
+			// head (no PKAddHiddenKeyword branch in layers.go), so the
+			// count-as static is inert in both engines and lowers to
+			// nothing; its consumer (Flame Burst's own count filter) is
+			// refused by name.
+			if ez, ok := sp.get("EffectZone"); ok && strings.TrimSpace(ez) != "Graveyard" {
+				return nil, refuse("AffectedZone Graveyard count-as static with EffectZone %q", ez)
+			}
+			sp.consume("AddHiddenKeyword", "AffectedZone", "EffectZone")
+			st.Kind = "" // inert in both engines: lower to nothing
+			return nil, nil
 		} else if !sp.is("MayPlay", "True") {
 			return nil, refuse("AffectedZone %q without MayPlay", az)
 		}

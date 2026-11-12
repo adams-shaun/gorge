@@ -1871,6 +1871,25 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.GrantCost, err = manaCostOf(s.Cost.Mana); err != nil {
 			return ka, nil, err
 		}
+	case "EscapeGrant":
+		// an AffectedZone$ Graveyard AddKeyword$ Escape static: each matching
+		// card in its controller's graveyard has escape at its mana cost plus
+		// A other cards from the same graveyard (kop.StatEscapeGrant;
+		// kw_escape.go; CR 702.42a; Underworld Breach). Filter is the affected
+		// cards, Filter2 the fodder filter (the grant's ExileFromGrave spec),
+		// A the fodder count; the mana part is the card's own cost, priced at
+		// the offer like any spell's.
+		st.Kind = kop.StatEscapeGrant // kw_escape.go
+		if st.Filter, err = filter(s.F, kop.ZoneGraveyard); err != nil {
+			return ka, nil, err
+		}
+		if s.Cost.ExileG == nil || s.Cost.ExileGN < 1 || s.Cost.ExileGN > 15 {
+			return ka, nil, fmt.Errorf("escape grant without an exile cost")
+		}
+		if st.Filter2, err = filter(s.Cost.ExileG, kop.ZoneGraveyard); err != nil {
+			return ka, nil, err
+		}
+		st.A = int16(s.Cost.ExileGN)
 	case "TapExtra":
 		st.Kind = kop.StatTapExtra
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -1940,6 +1959,10 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				return ka, nil, fmt.Errorf("cant be activated flag %q", fl)
 			}
 		}
+	case "CantTgtGrave":
+		// Ground Seal's class (lower_canttarget.go): every card in every
+		// graveyard untargetable (kw_canttgtgrave.go). No operands.
+		st.Kind = kop.StatCantTgtGrave
 	case "CantTarget":
 		st.Kind = kop.StatCantTarget // lower_canttarget.go
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {

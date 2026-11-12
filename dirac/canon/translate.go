@@ -202,6 +202,8 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ = CastModeCode("offspring") // the kicked cast of an Offspring card (kw_offspring.go)
 		case mode&1 != 0:
 			cm, _ = CastModeCode("kicked")
+		case mode&2 != 0 && tgt == dirac.FeatEscapeTgt:
+			cm, _ = CastModeCode("escape") // CR 702.42a: the escape cast a StatEscapeGrant static gives (kw_escape.go)
 		case mode&2 != 0 && r.S.FeatMayhemCard(dirac.Obj(src)):
 			cm, _ = CastModeCode("mayhem") // CR 702.187a: CastModeOther, as "harmonize"
 		case mode&2 != 0 && r.S.FeatHarmonizeCast(dirac.Obj(src)):
