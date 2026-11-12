@@ -42,6 +42,8 @@ func TestStdMetaReprosLockstep(t *testing.T) {
 		"stdmeta_pool_unnamed_colours_s51p31",
 		"stdmeta_pool_unnamed_colours_s79p32",
 		"stdmeta_pool_unnamed_colours_s84p9",
+		"stdmeta_plot_special_restricted_mana_s14p20",
+		"stdmeta_plot_special_restricted_mana_s46p17",
 		"stdmeta_web_watch_beside_grant_s37p11",
 		"stdmeta_web_watch_beside_grant_s41p37",
 		"stdmeta_web_watch_beside_grant_s49p43",
