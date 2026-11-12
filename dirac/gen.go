@@ -1855,7 +1855,9 @@ type genState struct {
 		col kop.ColorMask
 		// sc, ctl: a scoped record (Ext PreventDamageScope) prevents the
 		// damage its controller ctl (a player) or the creatures ctl controls
-		// would take; sc holds the kop.PrevScope* bits and col is 0
+		// would take; sc holds the kop.PrevScope* bits and col is 0. A record
+		// with sc&prevNextSc is an Ext PreventNext shield: ctl the recipient's
+		// damage code, obj the effect's source, col the damage left (repl_prevnext.go)
 		sc, ctl uint8
 	}
 	lingerM slotMask

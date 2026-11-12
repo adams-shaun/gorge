@@ -555,6 +555,23 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Buyback != nil {
+		// Buyback rides the kicked cast (sfKicked, CardDef.Kicker) with
+		// CardDef.Buyback naming it (kw_buyback.go); refuseBuybackCombos
+		// keeps every other optional cost off the card
+		if c.Kicker != nil || c.Offspring != nil {
+			return fmt.Errorf("buyback with a kicker/offspring")
+		}
+		d.Buyback = true
+		if d.Kicker, err = manaCostOf(*c.Buyback); err != nil {
+			return err
+		}
+		if c.KickerCost != nil {
+			if d.KickerCost, err = cb.cost(*c.KickerCost); err != nil {
+				return err
+			}
+		}
+	}
 	if c.Spree {
 		d.HasModeCost = true
 		for i := range c.ModeCost {

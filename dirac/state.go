@@ -841,7 +841,11 @@ type resCtx struct {
 	trigGone bool
 	bad      uint8 // targets illegal at resolution (bit per slot)
 	xbad     uint8 // multi-object extras illegal at resolution (bit per xTargets index; only with genPrep.anyEachTgt)
-	remLK    int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)
+	// col is the resolution's mid-resolution ChooseColor answer (colour
+	// index + 1, 0 none; ExtChooseColorRes), which a ChosenColor filter
+	// reads (static_colourprot.go resColour)
+	col   uint8
+	remLK int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)
 }
 
 // State is a whole game. Copy one with CopyFrom, or probe on a fork; go vet

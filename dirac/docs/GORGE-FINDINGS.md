@@ -246,6 +246,13 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
 
 ## Still open
 
+- A prevent-the-next-N shield (Healing Salve, Combat Medic; `effPreventDamage`) is
+  registered for the recipient's object, so a creature that leaves the
+  battlefield and returns the same turn keeps it (CR 400.7: it is a new object).
+  dirac keys its record by the same object code (dirac/repl_prevnext.go) and
+  copies that.
+  Follow-up: check `Incarnation` in `damageReplacementMatches` for shield ObjIDs
+  and keep dirac in step.
 - Two or more "can't be countered" replacements matching one Counter event
   (a spell's own plus a battlefield Chimil / Sphinx of the Final Word, or two
   such sources): gorge CounterAllowed parks the event
@@ -355,3 +362,15 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   `isAllCreatureTypes` (both read, not run). All six pairs run clean on a patched gorge export whose
   `setPropTokens` gives an `effects.IntrinsicAllCreatureTypes` card off the battlefield every creature
   type. dirac counts it (`crTypesOf`), so these pairs diverge until gorge is fixed.
+- A prevent-the-next-N shield (dirac/repl_prevnext.go, Ext PreventNext) and any
+  other damage replacement that would be a candidate for the same event (a
+  colour or scope prevention, a SHIELD counter, a printed prevention, a
+  doubler, a plus-N, a prevent-and-mill or self-damage replacement, a damage
+  mark): gorge asks the CR 616.1 order and the order changes what is
+  prevented and what is left of the shield. dirac stalls with StallPrevNext
+  (loud, never a silent divergence). Two or more shields on one recipient are
+  modelled (the ask is posed and each pick applied as made) in `damageTo` and in
+  a combat damage pass; the other damage sites (a damage sweep, a batch of
+  recipients, fights) stall on them. Three prevention records a
+  turn of any kind (the shield, colour and scope records share
+  `genState.prevCol`), a fourth is the capacity stall StallPrevCol.

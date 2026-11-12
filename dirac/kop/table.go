@@ -239,6 +239,11 @@ type CardDef struct {
 	// and the kicked cast (AkCast mode bit 0, sfKicked) is gorge's
 	// "(offspring)" cast; Keywords has no KwKicker
 	Offspring bool
+	// Buyback: K:Buyback (CR 702.27a): Kicker holds the buyback cost (zero
+	// mana with KickerCost for a Sac<1/..> part) and the kicked cast (AkCast
+	// mode bit 0, sfKicked) is gorge's "buyback" cast; Keywords has no
+	// KwKicker. The spell returns to its owner's hand as it resolves.
+	Buyback bool
 	// Landwalk is the printed landwalk keyword's land filter (CR 702.14,
 	// 0 = none): the creature can't be blocked while the defending player
 	// controls a land matching it.
