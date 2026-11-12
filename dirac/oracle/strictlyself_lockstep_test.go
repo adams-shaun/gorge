@@ -264,3 +264,319 @@ func TestStrictlySelfCommanderLockstep(t *testing.T) {
 	}
 	t.Logf("commander: %d Vampire spells cast under a command-zone Edgar Markov", vampireCasts)
 }
+
+// strictlySelfOrderCases put a command-zone trigger and a graveyard trigger on
+// one event, so the trigger-order walk has to visit the graveyard before the
+// command zone exactly as gorge's object walk does. spellcast is Edgar Markov's
+// eminence beside Lingering Phantom's graveyard historic-spell trigger;
+// attackers-declared is Sidar Jabari's eminence (a Knight attacks) beside
+// Interceptor, Shadow's Hound (a legendary creature attacks).
+var strictlySelfOrderCases = []struct {
+	name     string
+	decks    [2][]cardset.Entry
+	priority map[string]bool
+	pair     [2]string
+}{
+	{
+		name: "spellcast",
+		decks: [2][]cardset.Entry{
+			{
+				{Name: "Edgar Markov", Count: 7},
+				{Name: "Lingering Phantom", Count: 4},
+				{Name: "Thought Scour", Count: 6},
+				{Name: "Walking Corpse", Count: 6},
+				{Name: "Plains", Count: 5}, {Name: "Island", Count: 5},
+				{Name: "Swamp", Count: 5}, {Name: "Mountain", Count: 2},
+			},
+			{
+				{Name: "Edgar Markov", Count: 7},
+				{Name: "Lingering Phantom", Count: 4},
+				{Name: "Thought Scour", Count: 6},
+				{Name: "Walking Corpse", Count: 6},
+				{Name: "Plains", Count: 5}, {Name: "Island", Count: 5},
+				{Name: "Swamp", Count: 5}, {Name: "Mountain", Count: 2},
+			},
+		},
+		priority: map[string]bool{"Edgar Markov": true, "Thought Scour": true},
+		pair:     [2]string{"Edgar Markov", "Lingering Phantom"},
+	},
+	{
+		name: "attackers-declared",
+		decks: [2][]cardset.Entry{
+			{
+				{Name: "Sidar Jabari of Zhalfir", Count: 1},
+				{Name: "Edgar Markov", Count: 7},
+				{Name: "Interceptor, Shadow's Hound", Count: 4},
+				{Name: "Thought Scour", Count: 6},
+				{Name: "Walking Corpse", Count: 4},
+				{Name: "Plains", Count: 5}, {Name: "Island", Count: 4},
+				{Name: "Swamp", Count: 6}, {Name: "Mountain", Count: 3},
+			},
+			{
+				{Name: "Sidar Jabari of Zhalfir", Count: 1},
+				{Name: "Edgar Markov", Count: 7},
+				{Name: "Interceptor, Shadow's Hound", Count: 4},
+				{Name: "Thought Scour", Count: 6},
+				{Name: "Walking Corpse", Count: 4},
+				{Name: "Plains", Count: 5}, {Name: "Island", Count: 4},
+				{Name: "Swamp", Count: 6}, {Name: "Mountain", Count: 3},
+			},
+		},
+		priority: map[string]bool{"Edgar Markov": true, "Thought Scour": true},
+		pair:     [2]string{"Sidar Jabari of Zhalfir", "Interceptor, Shadow's Hound"},
+	},
+}
+
+// strictlySelfOrderPolicy prioritises the named cards, keeps the commander in
+// its command zone, and counts the trigger-order decisions offering both
+// watchers of the same event.
+func strictlySelfOrderPolicy(seed uint64, priority map[string]bool, pair [2]string, pairSeen *int) Policy {
+	base := castFirstPolicy(seed)
+	return PolicyFunc(func(c *PickCtx) Canon {
+		if c.G != nil {
+			if c.D.Kind == DTriggerOrder {
+				var seen [2]bool
+				for _, a := range c.D.Options {
+					if a.Kind() != ActOrder {
+						continue
+					}
+					o, ok := c.G.GorgeOption(a)
+					if !ok {
+						continue
+					}
+					ob := c.G.E.G.Obj(o.Obj)
+					if ob == nil || ob.Face() == nil {
+						continue
+					}
+					for i, name := range pair {
+						if ob.Face().Name == name {
+							seen[i] = true
+						}
+					}
+				}
+				if seen[0] && seen[1] {
+					*pairSeen = *pairSeen + 1
+				}
+			}
+			for _, a := range c.D.Options {
+				if a.Kind() != ActCast || isCommandZoneCast(c, a) {
+					continue
+				}
+				o, ok := c.G.GorgeOption(a)
+				if !ok {
+					continue
+				}
+				ob := c.G.E.G.Obj(o.Obj)
+				if ob != nil && ob.Face() != nil && priority[ob.Face().Name] {
+					return a
+				}
+			}
+		}
+		a := base.Pick(c)
+		if isCommandZoneCast(c, a) {
+			for _, o := range c.D.Options {
+				if !isCommandZoneCast(c, o) {
+					return o
+				}
+			}
+		}
+		return a
+	})
+}
+
+// TestStrictlySelfCommandGraveyardOrder plays a command-zone trigger and a
+// graveyard trigger on the same event in a Commander game. gorge queues the
+// graveyard listener first (objectWalkZones: ... battlefield, graveyard,
+// ..., command), so the CR 603.3b trigger-order options match only when the
+// kernel's command walk follows its graveyard walk.
+func TestStrictlySelfCommandGraveyardOrder(t *testing.T) {
+	t.Parallel()
+	cardsDir := corpusDirOrSkip(t)
+	reg, err := cards.SharedCorpus(cardsDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	set, err := cardset.RawByName("strictlyself")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range strictlySelfOrderCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var gd [2][]*cards.Card
+			for s, d := range tc.decks {
+				for _, e := range d {
+					c, ok := reg.Lookup(e.Name)
+					if !ok {
+						t.Fatalf("%s not in the corpus", e.Name)
+					}
+					for i := 0; i < e.Count; i++ {
+						gd[s] = append(gd[s], c)
+					}
+				}
+				if len(gd[s]) != 40 {
+					t.Fatalf("commander deck %d: %d cards", s, len(gd[s]))
+				}
+			}
+			tbl, _, _, err := set.Matchup(tc.decks[0], tc.decks[1])
+			if err != nil {
+				t.Fatal(err)
+			}
+			pairSeen := 0
+			for seed := uint64(1); seed <= 120; seed++ {
+				m, err := NewMatchup(reg, [2]string{"strictlyself-order-a", "strictlyself-order-b"}, gd, 1)
+				if err != nil {
+					t.Fatal(err)
+				}
+				m.Commander, m.Commanders = true, [2]int{0, 0}
+				lead, err := NewGorgeSide(m, seed, Config{}, nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				for s := 0; s < 2; s++ {
+					pl := &lead.E.G.Players[s]
+					if len(pl.Commanders) != 1 || lead.E.G.Obj(pl.Commanders[0]).Zone != state.ZCommand {
+						t.Fatalf("seed %d seat %d: commander %v is not in the command zone", seed, s, pl.Commanders)
+					}
+				}
+				k, err := SetSide(set, tbl, Config{})(m, seed)
+				if err != nil {
+					t.Fatal(err)
+				}
+				res := LockstepLed(m, seed, lead, k, strictlySelfOrderPolicy(seed, tc.priority, tc.pair, &pairSeen),
+					RunConfig{Config: Config{}, MaxDecisions: 5000, MaxTurns: 40})
+				CloseSide(k)
+				if res.Div != nil {
+					t.Errorf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v",
+						seed, res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff, res.Div.Detail, res.Div.RefOptions, res.Div.KerOptions)
+				}
+			}
+			if pairSeen == 0 {
+				t.Fatalf("%s: no trigger-order decision offered both %s and %s: the pool does not reach the same-event pair",
+					tc.name, tc.pair[0], tc.pair[1])
+			}
+			t.Logf("%s: %d same-event trigger-order decisions", tc.name, pairSeen)
+		})
+	}
+}
+
+// strictlySelfInallaDecks keeps Inalla in the command zone and casts a
+// vanilla-bodied Wizard (Krovikan Elementalist) from hand: no battlefield
+// permanent has an enters trigger, so the command-zone eminence's ChangesZone
+// event has no battlefield subscription and no other ETB watcher.
+var strictlySelfInallaDecks = [2][]cardset.Entry{
+	{
+		{Name: "Inalla, Archmage Ritualist", Count: 1},
+		{Name: "Krovikan Elementalist", Count: 12},
+		{Name: "Walking Corpse", Count: 8},
+		{Name: "Plains", Count: 4}, {Name: "Island", Count: 5},
+		{Name: "Swamp", Count: 6}, {Name: "Mountain", Count: 4},
+	},
+	{
+		{Name: "Inalla, Archmage Ritualist", Count: 1},
+		{Name: "Krovikan Elementalist", Count: 12},
+		{Name: "Walking Corpse", Count: 8},
+		{Name: "Plains", Count: 4}, {Name: "Island", Count: 5},
+		{Name: "Swamp", Count: 6}, {Name: "Mountain", Count: 4},
+	},
+}
+
+// strictlySelfNameCastPolicy prioritises casting name from hand (never the
+// commander from its command zone) and counts those casts.
+func strictlySelfNameCastPolicy(seed uint64, name string, casts *int) Policy {
+	base := castFirstPolicy(seed)
+	return PolicyFunc(func(c *PickCtx) Canon {
+		if c.G != nil {
+			for _, a := range c.D.Options {
+				if a.Kind() != ActCast || isCommandZoneCast(c, a) {
+					continue
+				}
+				o, ok := c.G.GorgeOption(a)
+				if !ok {
+					continue
+				}
+				ob := c.G.E.G.Obj(o.Obj)
+				if ob != nil && ob.Face() != nil && ob.Face().Name == name {
+					*casts = *casts + 1
+					return a
+				}
+			}
+		}
+		a := base.Pick(c)
+		if isCommandZoneCast(c, a) {
+			for _, o := range c.D.Options {
+				if !isCommandZoneCast(c, o) {
+					return o
+				}
+			}
+		}
+		return a
+	})
+}
+
+// TestStrictlySelfInallaCommandETB plays Inalla's command-zone eminence enters
+// trigger with no battlefield ETB watcher: anyETB must keep the event alive
+// through the command-zone listener, as gorge's object walk does.
+func TestStrictlySelfInallaCommandETB(t *testing.T) {
+	t.Parallel()
+	cardsDir := corpusDirOrSkip(t)
+	reg, err := cards.SharedCorpus(cardsDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	set, err := cardset.RawByName("strictlyself")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var gd [2][]*cards.Card
+	for s, d := range strictlySelfInallaDecks {
+		for _, e := range d {
+			c, ok := reg.Lookup(e.Name)
+			if !ok {
+				t.Fatalf("%s not in the corpus", e.Name)
+			}
+			for i := 0; i < e.Count; i++ {
+				gd[s] = append(gd[s], c)
+			}
+		}
+		if len(gd[s]) != 40 {
+			t.Fatalf("commander deck %d: %d cards", s, len(gd[s]))
+		}
+	}
+	tbl, _, _, err := set.Matchup(strictlySelfInallaDecks[0], strictlySelfInallaDecks[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	casts := 0
+	for seed := uint64(1); seed <= 120; seed++ {
+		m, err := NewMatchup(reg, [2]string{"strictlyself-inalla-a", "strictlyself-inalla-b"}, gd, 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		m.Commander, m.Commanders = true, [2]int{0, 0}
+		lead, err := NewGorgeSide(m, seed, Config{}, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for s := 0; s < 2; s++ {
+			pl := &lead.E.G.Players[s]
+			if len(pl.Commanders) != 1 || lead.E.G.Obj(pl.Commanders[0]).Zone != state.ZCommand {
+				t.Fatalf("seed %d seat %d: commander %v is not in the command zone", seed, s, pl.Commanders)
+			}
+		}
+		k, err := SetSide(set, tbl, Config{})(m, seed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res := LockstepLed(m, seed, lead, k, strictlySelfNameCastPolicy(seed, "Krovikan Elementalist", &casts),
+			RunConfig{Config: Config{}, MaxDecisions: 5000, MaxTurns: 40})
+		CloseSide(k)
+		if res.Div != nil {
+			t.Errorf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v",
+				seed, res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff, res.Div.Detail, res.Div.RefOptions, res.Div.KerOptions)
+		}
+	}
+	if casts == 0 {
+		t.Fatal("no Krovikan Elementalist cast from hand while the commander was in the command zone: the pool does not reach the command-zone ETB branch")
+	}
+	t.Logf("inalla: %d Wizard enters under a command-zone Inalla", casts)
+}

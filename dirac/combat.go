@@ -463,12 +463,12 @@ func (s *State) fireAtkGroup(k *prep, ord *[MaxPerm]Slot, n int, atk, grp []Slot
 	for _, sl := range ord[:n] {
 		s.slotTriggers(k, sl, isAtk, fire)
 	}
+	if first && len(k.gen.graveTrig) != 0 {
+		s.fireGraveAttackers(k, atk) // zone_changezoneparams.go
+	}
 	s.eachCommandTrigger(k, kop.TrigAttackersDeclared, fire)
 	if emb {
 		s.emblemAtkListeners(k, fire) // gorge: the delayed registrations are checked after the event's face triggers
-	}
-	if first && len(k.gen.graveTrig) != 0 {
-		s.fireGraveAttackers(k, atk) // zone_changezoneparams.go
 	}
 }
 

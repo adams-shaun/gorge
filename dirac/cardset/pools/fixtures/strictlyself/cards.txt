@@ -26,3 +26,11 @@ Island
 Swamp
 Mountain
 Forest
+# the command-zone/graveyard same-event pairs: Lingering Phantom is the
+# graveyard SpellCast watcher, Interceptor, Shadow's Hound the graveyard
+# AttackersDeclared watcher
+Interceptor, Shadow's Hound
+Lingering Phantom
+# a vanilla-bodied Wizard: the Inalla command-zone ETB test has no other
+# enters watcher on the battlefield
+Krovikan Elementalist
