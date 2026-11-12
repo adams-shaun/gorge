@@ -701,7 +701,7 @@ func (w *legalWalk) handWalk() {
 			}
 		}
 		if ph.has(phBuyback) {
-			if bc, ok := buybackCost(f); ok && w.offerCastable(p, id, pay.RawBaseCost(asPayer(e), p, id).Plus(bc), spellScope("buyback"), false) {
+			if bc, ok := buybackCost(f); ok && w.offerCastable(p, id, pay.RawBaseCost(asPayer(e), p, id).Plus(bc), spellScope("buyback"), false) && targetsAvailable() {
 				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast", Label: "Cast " + f.Name + " (buyback)", Obj: id, Mode: "buyback"})
 			}
 		}

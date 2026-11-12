@@ -44,3 +44,46 @@ func (lc *lowerCtx) refuseCtrRiderBeside(ms []*lAbility) bool {
 	}
 	return false
 }
+
+// Rider kinds stored in lMana.Rider and emitted as kop.Ability.ManaRider.
+const (
+	riderNone = iota
+	riderDeplete
+	riderOppGainLife
+)
+
+// riderMana reads a mana ability's lowered rider program: the bounded shapes
+// the kernel runs at activation (CR 605.3b).
+//   - a depletion sacrifice (Peat Bog, Gemstone Mine): SkipIf the source's own
+//     counter count is not 0, then Sacrifice the source;
+//   - each opponent gains N life (Grove of the Burnwillows).
+//
+// The counter-on-self rider stays ctrRiderMana's (Twitching Doll); a
+// conditional life rider (Avid Reclaimer's Nissa clause) is not this shape.
+func riderMana(ab *lAbility) (kind int, ctr string, n int, ok bool) {
+	if ab.Kind != akMana {
+		return 0, "", 0, false
+	}
+	switch len(ab.Prog) {
+	case 1:
+		in := &ab.Prog[0]
+		switch {
+		case in.Op == "GainLife" && in.Obj.Kind == rEachOpp && in.A.isConst() && in.A.N >= 1:
+			return riderOppGainLife, "", in.A.N, true
+		}
+	case 2:
+		skip, sac := &ab.Prog[0], &ab.Prog[1]
+		if skip.Op == "SkipIf" && skip.Skip == 1 && sac.Op == "Sacrifice" &&
+			sac.Obj.Kind == rYou && sac.A.isConst() && sac.A.N == 1 &&
+			sac.F != nil && len(sac.F.Clauses) == 1 && sac.F.Clauses[0].Flags&fSelf != 0 {
+			c := skip.Cond
+			if c.Kind == cPresent && c.F != nil && len(c.F.Clauses) == 1 && c.Op == opGE && c.A.isConst() && c.A.N == 1 {
+				cl := &c.F.Clauses[0]
+				if cl.CmpStat == cmpCounters && cl.CmpN == 0 && cl.CmpCounter != "" {
+					return riderDeplete, cl.CmpCounter, 1, true
+				}
+			}
+		}
+	}
+	return 0, "", 0, false
+}

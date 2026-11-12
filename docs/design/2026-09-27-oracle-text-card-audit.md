@@ -1,8 +1,9 @@
 # Oracle-text card audit — design and pilot
 
-Status: design + pilot (2026-09-27). The harness, 64 pilot scenarios over 25
-cards and the ratchet are in `engine/rules/oracle_audit_test.go` and
-`engine/rules/testdata/oracle/`. This document states the decisions; the pilot
+Status: design + pilot (2026-09-27). The harness is in
+`engine/rules/oracle_run.go`, and the residual pilot scenarios are in
+`engine/rules/testdata/oracle/`; the corpus and its ratchet moved to
+gorge-compliance (below). This document states the decisions; the pilot
 section records what the pilot measured on `main @ 1ffb080ff`.
 
 **Moved (2026-10-16, ADR 0001 amendment 3).** The scenario corpus, its
@@ -35,7 +36,7 @@ card, whichever side is wrong.
 |---|---|
 | `cards.Face.Oracle` | The IR keeps each face's `Oracle:` line (with `\n` escapes). The printed text is available at run time from `.cards` without reading any script line. |
 | `rules` corpus test helpers | Per-file helpers (`moveByName`, `castCorpusSpell`, `addMana`, `driveToStep`, `corpusEngineCfg`, `replayFromLog`/`diffGames`). No shared scenario builder existed; each test hand-rolls setup. |
-| `internal/testutil.CorpusRegistry` | Loads the corpus once per process. It SKIPS when `.cards` is absent, so a worktree without the corpus reads green. |
+| `testkit/testutil.CorpusRegistry` | Loads the corpus once per process. It SKIPS when `.cards` is absent, so a worktree without the corpus reads green. |
 | `engine/rules/acceptance_test.go` `knownUnsupported`, `engine/rules/paramcensus_test.go` `knownUnsupportedParams` | Ratchets on "is every primitive registered / every param read". They measure **coverage, not correctness**. Purphoros's `RemoveType$` has been listed as unread in `paramcensus` all along, yet Purphoros ships in `valgavoth-endless-punishment` and behaves as an always-on 6/5 (§8). |
 | `cmd/repro`, `feedback.EngineAt` | Turns a player report into a failing test at the exact board. It is reactive and per report; it does not audit a card. |
 | The issue history, `feedback/` | 1572 issues and 125 player reports (classified in §3). |

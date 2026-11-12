@@ -10,6 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/botpolicy"
 	"github.com/adams-shaun/gorge/bots/spellbench/payexec"
 	"github.com/adams-shaun/gorge/dirac"
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules"
@@ -189,10 +190,13 @@ type frame struct {
 // Mana effect (a loyalty ability, Chandra, Hope's Beacon's [+2]; a spell or a
 // triggered/sub ability, Realm-Scorcher Hellkite; CR 106.3, 605.1a): not the
 // colour ask of a mana ability activated while paying (Kind "AB", no
-// Planeswalker param), which the harness answers itself.
+// Planeswalker param), which the harness answers itself. An AB$ Mana that is
+// no mana ability (its chain draws: Chromatic Sphere, the eggs) resolves on
+// the stack, so its colour ask is a resolving one.
 func manaChoiceResolving(d *decision.Decision) bool {
 	return d.Kind == decision.KChoose && d.ResumeKind == "mana_color" && d.ResumeSA != nil &&
-		(d.ResumeSA.Kind != "AB" || strings.TrimSpace(d.ResumeSA.Params["Planeswalker"]) == "True")
+		(d.ResumeSA.Kind != "AB" || strings.TrimSpace(d.ResumeSA.Params["Planeswalker"]) == "True" ||
+			!cards.IsManaAbilitySA(d.ResumeSA))
 }
 
 // convokeFrame is the absorption budget of a convoke announcement: one
@@ -703,12 +707,13 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(alt)<<4), opt: o.Index})
 				continue
 			}
-			if o.Mode == "mayhem" {
+			if o.Mode == "mayhem" || o.Mode == "buyback" {
 				// CR 702.187a: the kernel's mode-2 cast of a Mayhem card
 				// canonicalises to castModeOther, like "harmonize"
-				// (kw_mayhem.go)
+				// (kw_mayhem.go); CR 702.27a: so does the kicked cast of a
+				// Buyback card (kw_buyback.go), gorge's "buyback" mode
 				if o.AltCostIndex > 15 {
-					note("cast/mayhem")
+					note("cast/" + o.Mode)
 					continue
 				}
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
@@ -857,7 +862,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			a = Pack(ActCastImpended, ref(pa.Cast.Object), RefNone, 0)
 		} else if pa.Cast.CastMode() == "conspired" {
 			a = Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther|15<<4)
-		} else if pa.Cast.CastMode() == "bargained" || pa.Cast.CastMode() == "teamworked" || pa.Cast.CastMode() == "harmonize" || pa.Cast.CastMode() == "mayhem" || pa.Cast.CastMode() == "optionalcost" || pa.Cast.CastMode() == "web-slinging" {
+		} else if pa.Cast.CastMode() == "bargained" || pa.Cast.CastMode() == "teamworked" || pa.Cast.CastMode() == "harmonize" || pa.Cast.CastMode() == "mayhem" || pa.Cast.CastMode() == "buyback" || pa.Cast.CastMode() == "optionalcost" || pa.Cast.CastMode() == "web-slinging" {
 			// CR 702.166: the full cast-mode table's castModeOther code, the
 			// same canonical form the offered option uses
 			a = Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther)
@@ -903,6 +908,11 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				// plus the count ask that follows, canonical "kicked"
 				mc, _ := castModeCode("kicked")
 				a = Pack(ActCast, ref(pa.Obj), RefNone, mc)
+			} else if pa.Mode == "buyback" {
+				// CR 702.27a: the 16-entry cast-mode table is full; the
+				// kernel's kicked cast of a Buyback card is castModeOther
+				// (kw_buyback.go), as the offered option above
+				a = Pack(ActCast, ref(pa.Obj), RefNone, castModeOther)
 			} else if mc, ok := castModeCode(pa.Mode); ok {
 				a = Pack(ActCast, ref(pa.Obj), RefNone, mc)
 			} else {

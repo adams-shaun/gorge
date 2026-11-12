@@ -270,6 +270,8 @@ func (a *SBT) priority(s *dirac.State, d *dirac.Decision, seat *builtins.Seat) [
 				cm = "optionalcost" // CR 601.2b: gorge's "optionalcost" cast option
 			case mode&1 != 0 && s.FeatOffspringCast(dirac.Obj(src)):
 				cm = "offspring"
+			case mode&1 != 0 && s.FeatBuybackCast(dirac.Obj(src)):
+				cm = "buyback" // CR 702.27a: gorge's "buyback" cast option
 			case mode&1 != 0:
 				cm = "kicked"
 			case mode&2 != 0 && s.FeatMayhemCard(dirac.Obj(src)):
@@ -690,7 +692,7 @@ func (a *SBT) chooseKey(s *dirac.State, d *dirac.Decision, x dirac.Action, zkey 
 		return 1 - uint32(mode&1) // yes / pay / top / unless first
 	case dirac.ChGenDivide, dirac.ChCastDivide:
 		return uint32(s.FeatDivideIndex(src))
-	case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick, dirac.ChDivide, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChGenManaChoice, dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenReplOrder, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped:
+	case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick, dirac.ChDivide, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChGenManaChoice, dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenReplOrder, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped, dirac.ChGenDestAlt:
 		return uint32(mode)
 	case dirac.ChGenType:
 		return s.FeatTypeKey(d.Player, int(x.Target())<<8|int(mode))

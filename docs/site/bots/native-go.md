@@ -198,7 +198,7 @@ dependencies, so that is the whole dependency graph.
 
 ## Play it against the default bot
 
-`cmd/duel` plays seeded games between two registered policies on real decks, seats traded each game. It is the
+`examples/bots/go/cmd/duel` plays seeded games between two registered policies on real decks, seats traded each game. It is the
 in-process path: the engine, both seats and the loop in one process, no network, no clock in any decision. It needs the
 card corpus (`make fetch-cards` in the repository root).
 

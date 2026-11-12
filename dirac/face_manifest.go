@@ -59,6 +59,10 @@ func (s *State) execDread(k *prep, in *kop.Instr) (ok, done bool) {
 // from the top of their library (CR 701.40a) -- the real card moves face down
 // and is marked manifested. No event when A <= 0 or the library is empty.
 func (s *State) manifest(k *prep, in *kop.Instr) {
+	if in.B.N&kop.CfManifestRemembered != 0 {
+		s.faceDownRemembered(k, 0, false)
+		return
+	}
 	p := s.playerRef(k, in.Obj)
 	if p == 255 {
 		p = s.res.e.ctrl
@@ -136,6 +140,14 @@ func (s *State) cloakChosen(k *prep, fl int) {
 // CfShuffle is gorge's pile shuffle, a no-op: no shuffle, no RNG draw. The
 // count is fixed up front because CfRemember can append to the set.
 func (s *State) cloakRemembered(k *prep, fl int) {
+	s.faceDownRemembered(k, fl, true)
+}
+
+// faceDownRemembered is cloakRemembered's walk for either mark: a manifest of
+// the remembered set (gorge effManifest's Defined$ Remembered arm,
+// manifestObjects: each remembered card under the resolving controller, a
+// battlefield card skipped) differs only in the provenance mark.
+func (s *State) faceDownRemembered(k *prep, fl int, cloaked bool) {
 	n := int(s.g.nrem)
 	for i := 0; i < n; i++ {
 		o := s.g.rem[i]
@@ -148,7 +160,7 @@ func (s *State) cloakRemembered(k *prep, fl int) {
 		}
 		from := s.detach(o)
 		sl := s.enterFaceDown(k, o, s.res.e.ctrl, kop.MorphMorph, from)
-		s.markFaceDown(sl, true)
+		s.markFaceDown(sl, cloaked)
 		s.faceDownRiders(k, o, sl, fl&kop.CfTapped != 0, fl&kop.CfRemember != 0)
 	}
 }

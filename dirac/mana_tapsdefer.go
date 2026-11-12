@@ -96,16 +96,28 @@ func (s *State) tapsDeferred(k *prep, p uint8, sl Slot) bool {
 // the offer priced a plain cast with it, which gorge's census never lists and
 // its autopay surface never scripts. Any other production stays unmodelled.
 func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
-	if k.gen == nil || !k.gen.anyTapsDefer {
+	if k.gen == nil || !(k.gen.anyTapsDefer || k.gen.anyManaRider) {
 		return slotMask{}
 	}
 	var m slotMask
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
+		c := s.cardAt(sl)
+		if a, ok := s.riderAbilityOf(k, sl); ok {
+			// A bounded rider source: the planner defers its first ability
+			// (riderDeferred) or, with a plain first ability, its later
+			// rider (Grove of the Burnwillows). Both are prefix gaps; the
+			// activation pays the ability's own cost (mana_rider.go).
+			if s.manaGranted(k, sl) || k.gen.has(c, gfRestr|gfAnyR|gfEachCol|gfFilt|gfDeferred) ||
+				!s.riderActivatable(k, p, sl, a) {
+				continue
+			}
+			m = m.with(sl)
+			continue
+		}
 		if !s.planDeferred(k, p, sl) {
 			continue
 		}
-		c := s.cardAt(sl)
 		if s.splitDeferred(k, sl) {
 			if s.splitUsable(k, sl) {
 				m = m.with(sl) // a Condition-split source (mana_condsplit.go): its relaxed unit and answers are the live gate's
@@ -151,17 +163,30 @@ func tapsDeferColour(c kop.ColorMask) bool {
 // (Badgermole Cub; gorge's relaxed alternative carries it too,
 // potential_plan.go potentialTapExtra). A source the extra cannot be priced on
 // stalls (srcExtra).
-func (s *State) addTapsDeferUnits(k *prep, sl Slot, a *avail) {
+func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
+	if a, ok := s.riderAbilityOf(k, sl); ok {
+		n := max(a.ManaN, 1)
+		if a.ManaEach {
+			for col := 0; col < kop.NumManaKinds; col++ {
+				if uint8(a.ManaColors)&(1<<uint(col)) != 0 {
+					av.addUnits(1<<uint(col), n)
+				}
+			}
+			return
+		}
+		av.addUnits(uint8(a.ManaColors), n)
+		return
+	}
 	pc := s.manaPCGen(k, sl)
 	if s.splitDeferred(k, sl) {
 		pc = s.splitCensusPC(k, sl) // the root's production plus the arm's while its gate holds (mana_condsplit.go)
 	}
-	a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
+	av.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
 	if k.gen.anyTapExtra {
 		xv := s.srcExtra(k, sl, pc)
 		for c := range xv {
 			if xv[c] > 0 {
-				a.addUnits(1<<c, xv[c])
+				av.addUnits(1<<c, xv[c])
 			}
 		}
 	}
@@ -171,6 +196,12 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, a *avail) {
 // activation poses: one per colour its production names (gorge's search
 // branches on the mana ask's options, manaChoiceColours W U B R G).
 func (s *State) deferGapAnswers(k *prep, sl Slot) uint8 {
+	if a, ok := s.riderAbilityOf(k, sl); ok {
+		if a.ManaEach {
+			return 1 // every colour at once: no colour ask
+		}
+		return uint8(bits.OnesCount8(uint8(a.ManaColors)))
+	}
 	return uint8(bits.OnesCount8(uint8(s.manaPCGen(k, sl).manaCol)))
 }
 
@@ -179,6 +210,10 @@ func (s *State) deferGapAnswers(k *prep, sl Slot) uint8 {
 // and the prefix player tap it first, so manaTapped has queued the
 // watcher's trigger for flushPrefixTriggers to place before the play).
 func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
+	if a, ok := s.riderAbilityOf(k, sl); ok {
+		s.manaRiderFloat(k, p, sl, a, c)
+		return
+	}
 	pc := s.manaPCGen(k, sl)
 	mask := uint8(pc.manaCol)
 	for i := 0; i < c; i++ {
