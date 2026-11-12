@@ -17,6 +17,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/deck"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -591,4 +592,81 @@ func battlefieldObjects(g *state.Game, pl state.PlayerID) (out []*state.Object) 
 		}
 	}
 	return out
+}
+
+func expandEntries(t *testing.T, reg *cards.Registry, es []cardset.Entry) []*cards.Card {
+	t.Helper()
+	var out []*cards.Card
+	for _, e := range es {
+		c, ok := reg.Lookup(e.Name)
+		if !ok {
+			t.Fatalf("%s not in the corpus", e.Name)
+		}
+		for i := 0; i < e.Count; i++ {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// castActivateKindPolicy casts or activates whenever it can (so the Vehicles are
+// crewed, the Walls sacrificed and the Dragons cast), else random.
+func castActivateKindPolicy(seed uint64) Policy {
+	rnd := RandomPolicy(seed)
+	var buf []Canon
+	return PolicyFunc(func(c *PickCtx) Canon {
+		buf = buf[:0]
+		for _, a := range c.D.Options {
+			if a.Kind() == ActCast || a.Kind() == ActActivate {
+				buf = append(buf, a)
+			}
+		}
+		if len(buf) == 0 {
+			return rnd.Pick(c)
+		}
+		d := *c.D
+		d.Options = buf
+		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
+	})
+}
+
+func sourceCardName(g *state.Game, id state.ObjID) string {
+	o := g.Obj(id)
+	if o == nil {
+		return ""
+	}
+	if o.Ability != nil && o.Source != 0 {
+		if s := g.Obj(o.Source); s != nil && s.Card != nil && len(s.Card.Faces) > 0 {
+			return s.Card.Faces[0].Name
+		}
+	}
+	if o.Card != nil && len(o.Card.Faces) > 0 {
+		return o.Card.Faces[0].Name
+	}
+	return ""
+}
+
+// discardedIntoPlay is the condition that a card of the given name was put
+// onto the battlefield by a discard move rather than cast (CR 614.1).
+func discardedIntoPlay(name string) func(ref *GorgeSide) bool {
+	return func(ref *GorgeSide) bool {
+		evs := ref.E.L.Events
+		for i := range evs {
+			e := &evs[i]
+			if e.Kind != events.MoveZone || e.To != state.ZBattlefield || !events.IsDiscard(*e) {
+				continue
+			}
+			if o := ref.E.G.Obj(e.Obj); o != nil && o.Face() != nil && o.Face().Name == name {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+func firstFaceName(g *state.Game, id state.ObjID) string {
+	if o := g.Obj(id); o != nil && o.Card != nil && len(o.Card.Faces) > 0 {
+		return o.Card.Faces[0].Name
+	}
+	return ""
 }

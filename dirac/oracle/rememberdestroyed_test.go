@@ -104,9 +104,9 @@ func krem2Scan(g *GorgeSide, n map[string]int) {
 		switch ev.Kind {
 		case events.DelayedPush:
 			switch {
-			case ev.Counter == "TrigPlay" && kremFace(gm, ev.Obj) == "Wishing Well":
+			case ev.Counter == "TrigPlay" && firstFaceName(gm, ev.Obj) == "Wishing Well":
 				n[krem2Well]++
-			case ev.Counter == "TrigPutCounterP1P1" && kremFace(gm, ev.Obj) == "Earthbender Ascension":
+			case ev.Counter == "TrigPutCounterP1P1" && firstFaceName(gm, ev.Obj) == "Earthbender Ascension":
 				n[krem2Earth]++
 			}
 			continue
@@ -115,7 +115,7 @@ func krem2Scan(g *GorgeSide, n map[string]int) {
 			continue
 		}
 		so := gm.Obj(ev.Obj)
-		if so == nil || kremName(gm, ev.Obj) != "Shredder's Technique" {
+		if so == nil || sourceCardName(gm, ev.Obj) != "Shredder's Technique" {
 			continue
 		}
 		ctrl := so.Controller

@@ -110,7 +110,7 @@ func (k *krmctrTracker) pick(c *PickCtx, a Canon) {
 		if d == nil || d.ResumeKind != "counter_pick" {
 			return
 		}
-		k.src = kremName(c.G.E.G, d.Source)
+		k.src = sourceCardName(c.G.E.G, d.Source)
 		switch {
 		case k.src == "Dyadrine, Synthesis Amalgam" && d.Min == 2 && d.Max == 2:
 			k.n[krmctrDyadAsk]++
@@ -131,7 +131,7 @@ func krmctrScan(g *GorgeSide, n map[string]int) {
 	gm := g.E.G
 	evs := g.E.L.Events
 	for i, ev := range evs {
-		if ev.Kind != events.Resolve || kremName(gm, ev.Obj) != "Dyadrine, Synthesis Amalgam" {
+		if ev.Kind != events.Resolve || sourceCardName(gm, ev.Obj) != "Dyadrine, Synthesis Amalgam" {
 			continue
 		}
 		for j := i + 1; j < len(evs) && evs[j].Kind != events.Priority && evs[j].Kind != events.Resolve; j++ {

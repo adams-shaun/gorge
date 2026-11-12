@@ -129,7 +129,7 @@ func ktrigctrScan(g *GorgeSide, tl *ktrigctrTally) {
 				urchin[own]--
 			}
 		case events.Resolve:
-			if kremName(gm, ev.Obj) != "Ancient Cornucopia" {
+			if sourceCardName(gm, ev.Obj) != "Ancient Cornucopia" {
 				continue
 			}
 			for _, nx := range evs[i+1:] {

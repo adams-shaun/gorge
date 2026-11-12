@@ -92,7 +92,7 @@ func (p *kaddphaseProbe) carrierAttack(gs *GorgeSide, a Canon) bool {
 	g := gs.E.G
 	id := gs.id.obj[a.Src()]
 	for _, bf := range g.Zone(state.ZBattlefield, g.Active) {
-		if o := g.Obj(bf); o != nil && kturntalliesName(g, bf) == "Genji Glove" && o.AttachedTo == id {
+		if o := g.Obj(bf); o != nil && firstFaceName(g, bf) == "Genji Glove" && o.AttachedTo == id {
 			return true
 		}
 	}

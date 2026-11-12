@@ -118,29 +118,6 @@ var kremBranches = []string{
 	"discard: none eligible", "discard: unless, 1 eligible", "discard: unless, >= 2 eligible", "discard: ordinary, eligible present",
 }
 
-func kremName(g *state.Game, id state.ObjID) string {
-	o := g.Obj(id)
-	if o == nil {
-		return ""
-	}
-	if o.Ability != nil && o.Source != 0 {
-		if s := g.Obj(o.Source); s != nil && s.Card != nil && len(s.Card.Faces) > 0 {
-			return s.Card.Faces[0].Name
-		}
-	}
-	if o.Card != nil && len(o.Card.Faces) > 0 {
-		return o.Card.Faces[0].Name
-	}
-	return ""
-}
-
-func kremFace(g *state.Game, id state.ObjID) string {
-	if o := g.Obj(id); o != nil && o.Card != nil && len(o.Card.Faces) > 0 {
-		return o.Card.Faces[0].Name
-	}
-	return ""
-}
-
 // kremScan adds one game's branch counts (and its carrier resolutions) from
 // gorge's event log.
 func kremScan(g *GorgeSide, n map[string]int, plays map[string]int) {
@@ -165,7 +142,7 @@ func kremScan(g *GorgeSide, n map[string]int, plays map[string]int) {
 		if so == nil {
 			continue
 		}
-		name, ctrl := kremName(gm, ev.Obj), so.Controller
+		name, ctrl := sourceCardName(gm, ev.Obj), so.Controller
 		// the segment: up to the next Priority or Resolve
 		var seg []events.Event
 		for j := i + 1; j < len(evs) && evs[j].Kind != events.Priority && evs[j].Kind != events.Resolve; j++ {
@@ -195,7 +172,7 @@ func kremScan(g *GorgeSide, n map[string]int, plays map[string]int) {
 					tok++
 				}
 			case events.Damage:
-				if e.Obj != 0 && !strings.Contains(kremFace(gm, e.Obj), "Dragon") {
+				if e.Obj != 0 && !strings.Contains(firstFaceName(gm, e.Obj), "Dragon") {
 					nonDragonHit = true
 				}
 			case events.MoveZone:
@@ -210,7 +187,7 @@ func kremScan(g *GorgeSide, n map[string]int, plays map[string]int) {
 					ret++
 				case e.From == state.ZBattlefield && e.To == state.ZGraveyard:
 					toGY++
-					if kremFace(gm, e.Obj) == "Shivan Dragon" {
+					if firstFaceName(gm, e.Obj) == "Shivan Dragon" {
 						dragonDied = true
 					}
 				}
@@ -369,7 +346,7 @@ func kremPolicy(seed uint64, played, n map[string]int, gs **GorgeSide) Policy {
 			// an ordinary pick with no election before it: the resolving
 			// carrier's hand had no UnlessType$ card
 			if top := c.G.E.G.Stack; len(top) > 0 {
-				switch kremName(c.G.E.G, top[len(top)-1]) {
+				switch sourceCardName(c.G.E.G, top[len(top)-1]) {
 				case "Thirst for Knowledge", "Thirst for Identity", "Steamcore Scholar", "Alpharael, Dreaming Acolyte":
 					if !c.G.unlessAsked(top[len(top)-1]) {
 						n["discard: none eligible"]++
@@ -406,7 +383,7 @@ func kremSteer(c *PickCtx) *PickCtx {
 			return &PickCtx{D: &d, G: c.G, Seq: c.Seq}
 		}
 		if a.Kind() == ActCast && !attackers {
-			if o, ok := c.G.GorgeOption(a); ok && kremFace(g, o.Obj) == "Settle the Wreckage" {
+			if o, ok := c.G.GorgeOption(a); ok && firstFaceName(g, o.Obj) == "Settle the Wreckage" {
 				continue
 			}
 		}
