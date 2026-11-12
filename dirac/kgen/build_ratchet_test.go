@@ -220,8 +220,9 @@ import (
 // +1 (Count$TotalDamageReceivedThisTurn lowered: Tangled Colony; merged with land ALL build-level 22180 -> 22181).
 // +1 (ConditionActivationLimit$ lowers to kop.ExActivations: Dragon Whelp; merged with land ALL build-level 22184 -> 22185).
 // +5 (the Aura-on-land TapsForMana extra with a literal body: Wild Growth, Overgrowth, Wolfwillow Haven, Gauntlet of Might, Vernal Bloom; ALL build-level 22345 -> 22350).
+// +46 (K:Suspend lowers beside Phthisis's Targeted$CardSumPT, Predator's Rapport's, Rousing Refrain's targeted persistent mana and the printed "no cost" casts: Ancestral Vision, Lotus Bloom, Search for Tomorrow, Inspiring Refrain and the rest of the suspend class; ALL build-level 22381 -> 22427).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22381, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22427, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
