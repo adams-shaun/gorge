@@ -34,9 +34,11 @@ var kwcDeck = []cardset.Entry{
 	{Name: "Mountain", Count: 1}, {Name: "Swamp", Count: 1},
 }
 
-// kwcMin is the play floor for the four carriers the brief's lowering classes
-// are measured on; the other eleven classmates are exercised when their games
-// cast them and their absence would be a divergence, not a coverage gap.
+// kwcMin is the play floor for the four carriers whose lowering classes are
+// the measured ones -- Doctor's companion, the Spawner>TriggeredDefendingPlayer
+// fight target and Sac<1/NICKNAME> (K-9, Ace, Adric, Syr Ginger); the other
+// eleven classmates are exercised when their games cast them and their absence
+// would be a divergence, not a coverage gap.
 const kwcMin = 4
 
 // kwcScan counts, in gorge's event log, each lowered carrier's cast.
