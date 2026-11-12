@@ -562,6 +562,8 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		s.entryOrderOptions(k, d)
 	case raGenReplOrder, raGenCtrOrder:
 		s.replOrderOptions(d)
+	case raGenUncOrder:
+		s.uncOrderOptions(d) // repl_uncounterable.go
 	case raGenTokCopy:
 		s.tokCopyOptions(d) // repl_tokcopy.go
 	case raGenCopyTarget, raGenCopyTargets:
@@ -1108,6 +1110,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.applyEntryResolve(k, a) // repl_entryorder.go
 	case raGenCtrOrder:
 		s.applyCtrOrder(k, a) // repl_ctrorder.go
+	case raGenUncOrder:
+		s.applyUncOrder(k, a) // repl_uncounterable.go
 	case raGenTokCopy:
 		s.tokCopyAnswer(k, a) // repl_tokcopy.go
 	case raGenReplOrder:

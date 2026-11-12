@@ -394,16 +394,27 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		}
 		o := s.objRefObj(in.Obj)
 		if o != NoObj {
-			if i := s.stackIndexOf(o); i >= 0 && (in.C&kop.CtrDestMove != 0 || !(s.stack[i].kind == seSpell && s.uncounterable(k, i))) {
-				s.g.stkCt = s.stack[i].ctrl + 1 // "its controller" reads the spell as it last existed (CR 608.2h)
-				if in.B.N != 0 {
-					s.counterRiders(k, i, int(in.B.N)) // tgt_countershapes.go
+			if i := s.stackIndexOf(o); i >= 0 {
+				unc, park := false, false
+				if s.stack[i].kind == seSpell && in.C&kop.CtrDestMove == 0 {
+					// gorge effCounter's counterStopped: a spell two or more
+					// uncounter replacements protect asks CR 616.1's order
+					// (repl_uncounterable.go) before it is skipped
+					if unc, park = s.uncGate(k, i); park {
+						return false
+					}
 				}
-				if in.C != 0 {
-					s.counterTo(k, i, in.C&^kop.CtrDestMove)
-					break
+				if !unc {
+					s.g.stkCt = s.stack[i].ctrl + 1 // "its controller" reads the spell as it last existed (CR 608.2h)
+					if in.B.N != 0 {
+						s.counterRiders(k, i, int(in.B.N)) // tgt_countershapes.go
+					}
+					if in.C != 0 {
+						s.counterTo(k, i, in.C&^kop.CtrDestMove)
+						break
+					}
+					s.counterAt(k, i)
 				}
-				s.counterAt(k, i)
 			}
 		}
 	case kop.OpAttach:
