@@ -516,16 +516,23 @@ func (s *State) restrSrcAffords(k *prep, p uint8, d payDesc, cost *kop.ManaCost,
 }
 
 // restrDeferScriptable: every restricted source gorge's planner defers
-// (restrSrcAvailD's withDeferred arm newly counts) is a Taps-deferred one
-// whose single restricted ability one fixed colour makes, which the script
-// route funds, so restrSrcAffords need not stall the payment.
+// (restrSrcAvailD's withDeferred arm newly counts) is one the script route
+// funds -- a member of scriptTapsDefer's mask, the single-restricted-ability
+// Taps-deferred shape -- so restrSrcAffords need not stall the payment. A
+// deferred source that cannot be activated now (tapped, summoning-sick,
+// locked) funds nothing and is no reason to stall.
 func (s *State) restrDeferScriptable(k *prep, p uint8, skip Slot) bool {
+	var mask slotMask
+	have := false
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
 		sl := m.first()
 		if sl == skip || k.gen.flags[s.cardAt(sl)]&gfRestrSrc == 0 || !s.planDeferred(k, p, sl) {
 			continue
 		}
-		if !s.restrTapsGap(k, p, sl) {
+		if !have {
+			mask, have = s.scriptTapsDefer(k, p), true
+		}
+		if !mask.has(sl) && s.tapsGapActivatable(k, sl) {
 			return false
 		}
 	}

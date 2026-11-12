@@ -138,8 +138,11 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 		if !s.manaGranted(k, sl) && s.restrTapsGap(k, p, sl) {
 			// A restricted source whose single restricted ability one fixed
 			// colour makes (Hydraulic Helper): the same gap, its mana floating
-			// restricted (tapDeferFloat's restrTaps arm, floatRestrAb).
-			m = m.with(sl)
+			// restricted (tapDeferFloat's restrTaps arm, floatRestrAb), when
+			// the source can be activated at all.
+			if s.tapsGapActivatable(k, sl) {
+				m = m.with(sl)
+			}
 			continue
 		}
 		if s.manaGranted(k, sl) || k.gen.has(c, gfRestr|gfAnyR|gfEachCol|gfFilt|gfDeferred) {
@@ -160,14 +163,21 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 		if int(pc.manaAb) >= len(k.t.Cards[c].Abilities) || k.t.Cards[c].Abilities[pc.manaAb].ManaRestrict != 0 {
 			continue // the ability is restricted (Pillar of the Paruns): the gap floats plain mana
 		}
-		pm := &s.perms[sl]
-		if pm.flags&pfTapped != 0 || s.activationSick(k, sl) || s.genLost(k, sl) ||
-			k.gen.anyCantAct && s.actForbidden(k, sl, true) { // a CantBeActivated lock (cast_cantactivate.go)
+		if !s.tapsGapActivatable(k, sl) {
 			continue
 		}
 		m = m.with(sl)
 	}
 	return m
+}
+
+// tapsGapActivatable: the Taps-deferred gap at sl can be tapped for mana now:
+// untapped, not summoning-sick, still its lowered card, and under no
+// CantBeActivated lock (cast_cantactivate.go). Every script gap arm that taps
+// its source asks it.
+func (s *State) tapsGapActivatable(k *prep, sl Slot) bool {
+	return s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl) && !s.genLost(k, sl) &&
+		!(k.gen.anyCantAct && s.actForbidden(k, sl, true))
 }
 
 // tapsDeferColour is the production scriptTapsDefer models: any colour, or
