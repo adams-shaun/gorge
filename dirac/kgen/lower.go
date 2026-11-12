@@ -1569,6 +1569,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.refuseNode(node, "%s", refuseOpeningGated(param)) // (lower_gemstone.go)
 		case strings.HasPrefix(k, "A deck can have any number of cards named"):
 			// Deck construction only.
+		case head == "Partner" && deckOnlyPartner(param):
+			// CR 702.124a: deck construction only (lower_partner.go)
 		case k == "Daybound" || k == "Nightbound":
 			// CR 702.145 (gorge rules/daynight.go, cr-daybound-nightbound
 			// and -transform): the day/night designation and the faces it
