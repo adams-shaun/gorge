@@ -133,10 +133,10 @@ func etbCounterEntryChargeReader(t testing.TB) *cards.Card {
 // answer finalizes the amount.
 func TestEtbCounterNonP1P1KindFoldsIntoMove(t *testing.T) {
 	t.Parallel()
-	constrictor := tokenReplCorpusCard(t, "Winding Constrictor")
-	season := tokenReplCorpusCard(t, "Doubling Season")
-	scales := tokenReplCorpusCard(t, "Hardened Scales")
-	evolution := tokenReplCorpusCard(t, "Branching Evolution")
+	constrictor := corpusAlternativeCard(t, "Winding Constrictor")
+	season := corpusAlternativeCard(t, "Doubling Season")
+	scales := corpusAlternativeCard(t, "Hardened Scales")
+	evolution := corpusAlternativeCard(t, "Branching Evolution")
 
 	type tc struct {
 		name  string
@@ -228,9 +228,9 @@ func TestEtbCounterNonP1P1KindFoldsIntoMove(t *testing.T) {
 // both answers), and the CantPutCounter (Solemnity) case.
 func TestEtbCounterEntryFoldsIntoMove(t *testing.T) {
 	t.Parallel()
-	scales := tokenReplCorpusCard(t, "Hardened Scales")
-	evolution := tokenReplCorpusCard(t, "Branching Evolution")
-	solemnity := tokenReplCorpusCard(t, "Solemnity")
+	scales := corpusAlternativeCard(t, "Hardened Scales")
+	evolution := corpusAlternativeCard(t, "Branching Evolution")
+	solemnity := corpusAlternativeCard(t, "Solemnity")
 
 	type tc struct {
 		name      string

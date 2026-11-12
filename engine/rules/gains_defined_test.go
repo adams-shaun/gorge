@@ -149,7 +149,7 @@ func gainsDefinedUnimplementedNotes(e *Engine) int {
 // the GainedSource anchor and resolvable through GainedAbilityPush.
 func TestKasminaGainsSelfDefinedLoyaltyAbility(t *testing.T) {
 	t.Parallel()
-	kasmina := tokenReplCorpusCard(t, "Kasmina, Enigma Sage")
+	kasmina := corpusAlternativeCard(t, "Kasmina, Enigma Sage")
 	walker := card(t, gainsDefinedWalker())
 	e, cfg := tokenReplGame(t, 9109, kasmina, walker)
 	kasminaID := moveSeededCard(t, e, 0, kasmina, state.ZBattlefield)
@@ -342,7 +342,7 @@ func TestMixedGainsAbilitySpellingsAppendFaces(t *testing.T) {
 // activated abilities of the RememberedLKI target until end of turn.
 func TestQuicksilverGainsRememberedDefinedAbility(t *testing.T) {
 	t.Parallel()
-	quick := tokenReplCorpusCard(t, "Quicksilver Elemental")
+	quick := corpusAlternativeCard(t, "Quicksilver Elemental")
 	target := card(t, gainsDefinedTarget())
 	e, cfg := tokenReplGame(t, 9110, quick, target)
 	quickID := moveSeededCard(t, e, 0, quick, state.ZBattlefield)

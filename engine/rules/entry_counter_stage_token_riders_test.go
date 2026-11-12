@@ -32,9 +32,9 @@ func TestEntryCounterStageTokenEffectRiders(t *testing.T) {
 		want int32
 	}{{"scales-first", 0, 4}, {"evolution-first", 1, 3}} {
 		t.Run(tc.name, func(t *testing.T) {
-			scales := tokenReplCorpusCard(t, "Hardened Scales")
-			evolution := tokenReplCorpusCard(t, "Branching Evolution")
-			excavation := tokenReplCorpusCard(t, "Fallaji Excavation")
+			scales := corpusAlternativeCard(t, "Hardened Scales")
+			evolution := corpusAlternativeCard(t, "Branching Evolution")
+			excavation := corpusAlternativeCard(t, "Fallaji Excavation")
 			sa := excavation.Faces[0].SpellAbility()
 			if sa == nil || sa.Params["TokenTapped"] != "True" || sa.Params["TokenAmount"] != "3" ||
 				sa.Params["TokenScript"] != "c_a_powerstone" || sa.Params["SubAbility"] == "" {
@@ -143,9 +143,9 @@ func TestTokenOrderAskKeepsTokenEffectRiders(t *testing.T) {
 		dsFirst bool
 	}{{"doubling-first", true}, {"helm-first", false}} {
 		t.Run(tc.name, func(t *testing.T) {
-			ds := tokenReplCorpusCard(t, "Doubling Season")
-			helm := tokenReplCorpusCard(t, "Worldwalker Helm")
-			money := tokenReplCorpusCard(t, "Blood Money")
+			ds := corpusAlternativeCard(t, "Doubling Season")
+			helm := corpusAlternativeCard(t, "Worldwalker Helm")
+			money := corpusAlternativeCard(t, "Blood Money")
 			sub := money.Faces[0].SpellAbility()
 			if sub == nil || sub.Sub == nil || sub.Sub.API != "Token" || sub.Sub.Params["TokenTapped"] != "True" ||
 				sub.Sub.Params["TokenAmount"] != "X" || sub.Sub.Sub == nil || sub.Sub.Sub.API != "Cleanup" {
@@ -237,9 +237,9 @@ func TestTokenOrderAskKeepsTokenEffectRiders(t *testing.T) {
 // Scales and Branching Evolution -- into a 4/4 Angel, which enters at once
 // with no order ask and no counters.
 func TestTokenRewriteSettlesBeforeEntryStaging(t *testing.T) {
-	scales := tokenReplCorpusCard(t, "Hardened Scales")
-	evolution := tokenReplCorpusCard(t, "Branching Evolution")
-	dv := tokenReplCorpusCard(t, "Divine Visitation")
+	scales := corpusAlternativeCard(t, "Hardened Scales")
+	evolution := corpusAlternativeCard(t, "Branching Evolution")
+	dv := corpusAlternativeCard(t, "Divine Visitation")
 	token := card(t, "Name:Rewritten Entry Token\nTypes:Creature Construct\nPT:1/1\n"+
 		"R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ AddEntry | ReplacementResult$ Updated | Description$ entry counter\n"+
 		"SVar:AddEntry:DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ 1 | ETB$ True\nOracle:x\n")
@@ -297,9 +297,9 @@ func TestTokenElectionKeepsTokenEffectRiders(t *testing.T) {
 		{"doubling-first", true, false, 2, 4},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			ds := tokenReplCorpusCard(t, "Doubling Season")
-			esix := tokenReplCorpusCard(t, "Esix, Fractal Bloom")
-			excavation := tokenReplCorpusCard(t, "Fallaji Excavation")
+			ds := corpusAlternativeCard(t, "Doubling Season")
+			esix := corpusAlternativeCard(t, "Esix, Fractal Bloom")
+			excavation := corpusAlternativeCard(t, "Fallaji Excavation")
 			bear := card(t, "Name:Election Test Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 			seat := []*cards.Card{esix, excavation, bear}
 			if tc.doubling {
@@ -403,8 +403,8 @@ func TestTokenElectionKeepsTokenEffectRiders(t *testing.T) {
 // Remembered` must imprint the source with the token the answer minted, so
 // the tail runs after the mints, not on the pre-mint first pass.
 func TestParkedTokenImprintsItsMints(t *testing.T) {
-	scales := tokenReplCorpusCard(t, "Hardened Scales")
-	evolution := tokenReplCorpusCard(t, "Branching Evolution")
+	scales := corpusAlternativeCard(t, "Hardened Scales")
+	evolution := corpusAlternativeCard(t, "Branching Evolution")
 	forge := card(t, "Name:Imprinting Forge\nTypes:Artifact\n"+
 		"A:AB$ Token | Cost$ T | TokenScript$ imprint_staged | RememberTokens$ True | ImprintCards$ Remembered | SpellDescription$ Create a token and imprint it.\nOracle:x\n")
 	token := card(t, "Name:Imprinted Staged Token\nTypes:Creature Construct\nPT:1/1\n"+
@@ -477,8 +477,8 @@ func TestEncoreCopiesStageAndKeepTheirRiders(t *testing.T) {
 		want int32
 	}{{"scales-first", 0, 4}, {"evolution-first", 1, 3}} {
 		t.Run(tc.name, func(t *testing.T) {
-			scales := tokenReplCorpusCard(t, "Hardened Scales")
-			evolution := tokenReplCorpusCard(t, "Branching Evolution")
+			scales := corpusAlternativeCard(t, "Hardened Scales")
+			evolution := corpusAlternativeCard(t, "Branching Evolution")
 			grace := card(t, "Name:Encore Grace\nManaCost:1\nTypes:Creature Elf\nPT:1/1\nK:Encore:1\n"+
 				"R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ AddEntry | ReplacementResult$ Updated | Description$ entry counter\n"+
 				"SVar:AddEntry:DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ 1 | ETB$ True\nOracle:x\n")
@@ -571,8 +571,8 @@ func targetObjIDs(ts []state.Target) []state.ObjID {
 func TestEqualMintsWhileStagedAreNewMints(t *testing.T) {
 	for _, kind := range []events.Kind{events.CardToken, events.TokenCreate} {
 		t.Run(kind.String(), func(t *testing.T) {
-			scales := tokenReplCorpusCard(t, "Hardened Scales")
-			evolution := tokenReplCorpusCard(t, "Branching Evolution")
+			scales := corpusAlternativeCard(t, "Hardened Scales")
+			evolution := corpusAlternativeCard(t, "Branching Evolution")
 			entrant := card(t, "Name:Equal Mint\nTypes:Creature Elf\nPT:1/1\n"+
 				"R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ AddEntry | ReplacementResult$ Updated | Description$ entry counter\n"+
 				"SVar:AddEntry:DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ 1 | ETB$ True\nOracle:x\n")
@@ -630,9 +630,9 @@ func TestIncubateAndAmassResumeOntoParkedMints(t *testing.T) {
 		{"amass", "Invade the City", "Divine Visitation", "UUR"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			ds := tokenReplCorpusCard(t, "Doubling Season")
-			other := tokenReplCorpusCard(t, tc.other)
-			spell := tokenReplCorpusCard(t, tc.spell)
+			ds := corpusAlternativeCard(t, "Doubling Season")
+			other := corpusAlternativeCard(t, tc.other)
+			spell := corpusAlternativeCard(t, tc.spell)
 			fodder := card(t, "Name:Graveyard Sorcery\nManaCost:0\nTypes:Sorcery\nA:SP$ GainLife | LifeAmount$ 1 | SpellDescription$ x\nOracle:x\n")
 			e, cfg := tokenReplGame(t, 1011, ds, other, spell, fodder)
 			moveSeededCard(t, e, 0, ds, state.ZBattlefield)
@@ -713,11 +713,11 @@ func TestInvestigateMarkerFollowsItsParkedClue(t *testing.T) {
 			want int32
 		}{{"scales-first", 0, 4}, {"evolution-first", 1, 3}} {
 			t.Run(sp.name+"/"+tc.name, func(t *testing.T) {
-				scales := tokenReplCorpusCard(t, "Hardened Scales")
-				evolution := tokenReplCorpusCard(t, "Branching Evolution")
+				scales := corpusAlternativeCard(t, "Hardened Scales")
+				evolution := corpusAlternativeCard(t, "Branching Evolution")
 				spell := sp.c
 				if spell == nil {
-					spell = tokenReplCorpusCard(t, sp.spell)
+					spell = corpusAlternativeCard(t, sp.spell)
 				}
 				clue := card(t, "Name:Graced Clue\nTypes:Artifact Creature Clue\nPT:0/1\n"+
 					"R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ AddEntry | ReplacementResult$ Updated | Description$ entry counter\n"+

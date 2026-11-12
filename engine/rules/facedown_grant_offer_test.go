@@ -29,8 +29,8 @@ func TestFaceDownGrantorOffersNoGrantedManaAbility(t *testing.T) {
 			name = "face_down"
 		}
 		t.Run(name, func(t *testing.T) {
-			hiero := tokenReplCorpusCard(t, "Citanul Hierophants")
-			bears := tokenReplCorpusCard(t, "Grizzly Bears")
+			hiero := corpusAlternativeCard(t, "Citanul Hierophants")
+			bears := corpusAlternativeCard(t, "Grizzly Bears")
 			e, cfg := tokenReplGame(t, 9181, hiero, bears)
 			toMain1(t, e)
 			var hieroID state.ObjID
@@ -94,8 +94,8 @@ func TestFaceDownGrantorOffersNoGrantedManaAbility(t *testing.T) {
 // for the granted mana.
 func TestFaceDownRecipientKeepsGrantedManaAbility(t *testing.T) {
 	t.Parallel()
-	hiero := tokenReplCorpusCard(t, "Citanul Hierophants")
-	bears := tokenReplCorpusCard(t, "Grizzly Bears")
+	hiero := corpusAlternativeCard(t, "Citanul Hierophants")
+	bears := corpusAlternativeCard(t, "Grizzly Bears")
 	e, cfg := tokenReplGame(t, 9181, hiero, bears)
 	toMain1(t, e)
 	moveSeededCard(t, e, 0, hiero, state.ZBattlefield)
