@@ -16,7 +16,9 @@ import (
 // The kernel models it as one more script gap kind beside the each-colour,
 // restricted and sacrifice-only ones (script_gen.go): its mana in the gaps
 // walk (availCtr), and at the play the chain's activations in battlefield
-// order, an any-colour ability (Vivid Grove's second) branched on its colour
+// order, a source with a plain {T} first ability taken through both branches
+// its activation ask lists (the {T} tap before the counter cost), an
+// any-colour ability (Vivid Grove's second) branched on its colour
 // ask (ctrScript), until the walk lists the play. Each activation puts a
 // -0/-1 counter (kop.CtrM0M1, read by ptGen) and spends the once-each-turn
 // use (perm.actUsed). Everything is behind prep.ctrMana.
@@ -204,27 +206,61 @@ func (s *State) ctrAnsCol(k *prep, a Action, sl Slot, ans int) int {
 
 // ctrChainTap applies the prefix search's chain step for gap sl, answer ans
 // of play a (ctrScript's node build, scriptPrefix's replay): a counter-cost
-// source its counters, use and mana (ctrGap; the SBA a -0/-1 counter may
-// kill with), any other gap its tap (tapGap).
+// source with a plain {T} first mana ability answers 0 with that ability's
+// tap (gorge's activation ask lists it first: Activate Vivid Creek for mana,
+// Add U), later answers its counters, use and mana (ctrGap; the SBA a -0/-1
+// counter may kill with), any other gap its tap (tapGap).
 func (s *State) ctrChainTap(k *prep, p uint8, a Action, sl Slot, ctr, restr slotMask, ans int, held *[kop.NumManaKinds]uint8) {
 	if ctr.has(sl) {
-		s.ctrGap(k, p, sl, s.ctrAnsCol(k, a, sl, ans))
+		off := 0
+		if k.ctrSecond(s.cardAt(sl)) { // the ask's plain {T} first ability is answer 0
+			if ans == 0 {
+				s.ctrAb1(k, p, sl)
+				return
+			}
+			off = 1
+		}
+		s.ctrGap(k, p, sl, s.ctrAnsCol(k, a, sl, ans-off))
 		s.sba(k) // the script returns to priority after the step: a Wall of Roots out of toughness dies before the next one
 		return
 	}
 	s.tapGap(k, p, sl, restr, held)
 }
 
+// ctrAb1 applies the chain's ab1 branch for counter-cost source sl: the
+// card's plain {T} first mana ability (ctrSecond), tapped, its fixed mana
+// into the pool — the counters and the once-each-turn use stay (gorge's
+// activation: the {T} cost, then the mana).
+//
+//go:noinline
+func (s *State) ctrAb1(k *prep, p uint8, sl Slot) {
+	pm := &s.perms[sl]
+	pm.flags |= pfTapped
+	s.manaTapped(k, sl)
+	s.touchSl(sl)
+	c := s.cardAt(sl)
+	cols, n := tapXUnit(&k.t.Cards[c].Abilities[k.cards[c].manaAb])
+	for cc := 0; cc < kop.NumManaKinds; cc++ {
+		if cols&(1<<cc) != 0 {
+			s.poolAdd(p&1, cc, int(n))
+			s.artTag(k, p, sl, cc)
+		}
+	}
+	s.tapExtraStall(k, sl)
+}
+
 // ctrScript is gorge's prefix search (scriptSearch.visit) for play a over the
-// chain order: p's gaps tapped in battlefield order, an any-colour counter
-// ability branched on its five colour answers (ctrAnsCol's order, every
-// answer an activation poses branched on, in engine order), depth first; at
-// each node after a tap the walk (restrOptions) is asked for a. It returns
-// the number of gaps the found script taps (path holds their answers, 0
-// where the gap asks nothing) and whether a was offered at that node, dead
-// there as scriptDeadEnd reads it (restricted mana floats and the plain walk
-// does not price the play). Each node is rebuilt on a fresh fork (the
-// scriptDFS walk), so the caller's state is untouched.
+// chain order: p's gaps tapped in battlefield order, a counter-cost source
+// with a plain {T} first mana ability branched on the two branches its
+// activation ask lists (the {T} tap first, then the counter-cost one), an
+// any-colour counter ability branched on its five colour answers (ctrAnsCol's
+// order, every answer an activation poses branched on, in engine order),
+// depth first; at each node after a tap the walk (restrOptions) is asked for
+// a. It returns the number of gaps the found script taps (path holds their
+// answers, 0 where the gap asks nothing) and whether a was offered at that
+// node, dead there as scriptDeadEnd reads it (restricted mana floats and the
+// plain walk does not price the play). Each node is rebuilt on a fresh fork
+// (the scriptDFS walk), so the caller's state is untouched.
 func (s *State) ctrScript(k *prep, a Action, p uint8, order []Slot, ctr, restr slotMask, path []uint8, noGrant bool) (int, bool, bool) {
 	var d Decision
 	depth := 0 // gaps tapped at this node: order[:depth], answers path[:depth]
@@ -254,9 +290,16 @@ func (s *State) ctrScript(k *prep, a Action, p uint8, order []Slot, ctr, restr s
 				return 0, false, true
 			}
 			j := depth - 1
+			c := s.cardAt(order[j])
 			nch := 1
-			if ab := k.ctrAbOf(s.cardAt(order[j])); ab != nil && ctrAnyColour(ab) {
-				nch = 5 // the colour ask's answers (ctrAnsCol)
+			if ab := k.ctrAbOf(c); ab != nil {
+				nch = 1
+				if k.ctrSecond(c) {
+					nch = 2 // the plain {T} first ability before the counter one (ctrChainTap)
+				}
+				if ctrAnyColour(ab) {
+					nch += 4 // the colour ask's five answers (ctrAnsCol)
+				}
 			}
 			if int(path[j])+1 < nch {
 				path[j]++

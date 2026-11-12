@@ -1788,8 +1788,10 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR, tapsDef slo
 
 // scriptDFS is gorge's prefix search (scriptSearch.visit) for play a: p's
 // gaps tapped in battlefield order (order[i:]), a Courtyard branched on its
-// six answers, an any-colour counter-cost gap (Vivid Grove's second) on its
-// five colour answers, depth first; at each node after the first tap the
+// six answers, a counter-cost gap with a plain {T} first mana ability on
+// the two branches its activation ask lists (the {T} tap, then the
+// counter-cost one -- an any-colour one on its five colour answers),
+// depth first; at each node after the first tap the
 // walk (restricted mana priced as ordinary) is asked for a. It returns the
 // number of gaps the found script taps (path holds their answers) and,
 // in dead, whether the oracle cannot complete it: restricted mana floats
@@ -1866,8 +1868,15 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			nch := uint8(1)
 			switch {
 			case ctr.has(order[j]):
-				if ab := k.ctrAbOf(s.cardAt(order[j])); ab != nil && ctrAnyColour(ab) {
-					nch = 5 // an any-colour counter ability's colour ask (ctrChainTap's answer)
+				c := s.cardAt(order[j])
+				if ab := k.ctrAbOf(c); ab != nil {
+					nch = 1
+					if k.ctrSecond(c) {
+						nch = 2 // the plain {T} first ability before the counter one (ctrChainTap's answer 0)
+					}
+					if ctrAnyColour(ab) {
+						nch += 4 // an any-colour counter ability's colour ask (ctrAnsCol)
+					}
 				}
 			case anyR.has(order[j]):
 				nch = 6
