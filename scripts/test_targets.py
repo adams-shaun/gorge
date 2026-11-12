@@ -41,7 +41,8 @@ MAX_DETAIL = 40
 # Packages that stay out of the reverse-dependency closure: each is over the one-minute budget and runs
 # post-merge or sharded (testing-study section 2).
 EXCLUDE = ("./server/host", "./cmd/cardfuzz", "./testkit/conformance")
-# Packages too big to run whole in the inner loop: only the named tests and the census tests run.
+# Packages too big to run whole in the inner loop: only the named tests and the census tests run, unless a
+# test helper, import or fixture changed (then only the whole package proves the tests it feeds).
 HEAVY = ("./engine/rules", "./dirac/oracle") + EXCLUDE
 # Packages that always run (the structural gates).
 ALWAYS = ("./internal/archtest", "./internal/codeshape")
