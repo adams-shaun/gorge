@@ -23,6 +23,9 @@ func (s *State) fireDefPlayer(k *prep, l trigListener, a *kop.Ability, grp []Slo
 	if a.Trig.Flags2&kop.Tf2AtkYou != 0 && (def != l.ctrl) != DebugTrigQualsFlip {
 		return // AttackedTarget$ You (trig_qualifiers.go)
 	}
+	if a.Trig.Flags4&kop.Tf4DefEnch != 0 && !s.defEnchanted(def) {
+		return // AttackedTarget$ Player.EnchantedBy (kop Tf4DefEnch)
+	}
 	n := int16(len(grp))
 	if a.Trig.Filter != 0 {
 		n = s.attackersMatching(k, l, a, grp)
@@ -30,4 +33,19 @@ func (s *State) fireDefPlayer(k *prep, l trigListener, a *kop.Ability, grp []Slo
 	if n > 0 {
 		s.fireAtkDecl(k, l, a, n, grp) // trig_attackers.go
 	}
+}
+
+// defEnchanted is the Tf4DefEnch gate: the attacked seat is enchanted by
+// ANY enchantment (gorge attackedDefenderMatches reads Player.EnchantedBy
+// through the shared player property, player_filter.go
+// playerSpecQualifierEnchantedBy -- not only the listening Aura's own
+// attachment, so two curses on the two seats each fire on either
+// declaration). The scan is the player-attached auras' seats.
+func (s *State) defEnchanted(def uint8) bool {
+	for m := s.occ; m.any(); m = m.rest() {
+		if p := &s.perms[m.first()]; p.atchP == def+1 {
+			return true
+		}
+	}
+	return false
 }

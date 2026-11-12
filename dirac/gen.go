@@ -2729,6 +2729,14 @@ const (
 	preDigEnchantDone uint8 = 6
 )
 
+// preDigEnchPlayer is preDigEnchant for an Enchant:Player Aura a battlefield
+// dig took: the same CR 303.4f wait, among two or more seats;
+// preDigEnchPlayerDone once answered (val is the seat).
+const (
+	preDigEnchPlayer     uint8 = 8
+	preDigEnchPlayerDone uint8 = 9
+)
+
 type preAsk struct {
 	obj   Obj
 	kind  uint8

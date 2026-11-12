@@ -14,6 +14,15 @@ import (
 // Equipment": gorge attachObjectParentTarget) attaches each still-legal one,
 // in pick order (attachEachTarget).
 func (s *State) attachObj(k *prep, in *kop.Instr) {
+	if in.W != 0 {
+		// a player destination (gorge effAttach's Enchant:Player
+		// Attach body, the "attach to player" event): the object Ref C
+		// names attaches to the seat the Ref names
+		if seat := s.playerRef(k, in.W); seat < s.nSeats() {
+			s.attachObjPlayer(k, in, seat)
+		}
+		return
+	}
 	dst := s.objRef(k, in.Obj)
 	if kop.Ref(in.C) == kop.RefRemembered && s.g.nrem > 1 {
 		s.attachRemembered(k, dst) // tgt_attachremembered.go
@@ -26,6 +35,22 @@ func (s *State) attachObj(k *prep, in *kop.Instr) {
 		return
 	}
 	s.attachOne(k, in, dst)
+}
+
+// attachObjPlayer is attachOne's player-destination twin: the one object
+// Ref C names attaches to PLAYER seat (attachObj's W arm, gorge effAttach's
+// "attach to player"), gated by gorge's EnchantSelf re-check
+// (attachPlayerLegal).
+func (s *State) attachObjPlayer(k *prep, in *kop.Instr, seat uint8) {
+	src := s.objRef(k, kop.Ref(in.C))
+	if src == NoSlot || !s.attachPlayerLegal(k, src, seat) {
+		return
+	}
+	s.attachPlayer(src, seat)
+	s.touchSl(src)
+	if in.B == kop.Const(1) {
+		s.remember(s.perms[src].obj)
+	}
 }
 
 // attachOne attaches the one object Ref C names to dst (attachObj's

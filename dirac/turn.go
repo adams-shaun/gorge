@@ -586,7 +586,20 @@ func (s *State) sba(k *prep) bool {
 			if t&(kop.TAura|kop.TPlaneswalker) == 0 && p.attached == NoSlot {
 				continue
 			}
-			if t&kop.TAura != 0 && (p.attached == NoSlot || !s.enchantLegal(k, sl)) && !s.sbaBestowDetach(k, sl) {
+			if t&kop.TAura != 0 && p.atchP != 0 {
+				// a player-attached Aura (the Enchant:Player curses): gorge
+				// attachmentSBAs' HasAttachedPlayer arm (engine/rules/attach.go:128)
+				// -- a lost seat cannot stay enchanted (CR 800.4a) and an
+				// Aura whose own Enchant spec no longer admits the seat
+				// (a control change moved a YouCtrl line) goes to the
+				// graveyard like any illegal attachment. The player-keyword
+				// protection grant gorge's playerProtectedFrom reads has no
+				// kernel arm: no supported table grants one beside a curse.
+				if !s.playerAuraLegal(k, sl) {
+					gy = gy.with(sl)
+					aur = aur.with(sl)
+				}
+			} else if t&kop.TAura != 0 && (p.attached == NoSlot || !s.enchantLegal(k, sl)) && !s.sbaBestowDetach(k, sl) {
 				// unattached, or attached to something it can no longer
 				// legally enchant (CR 704.5m: Imprisoned in the Moon makes
 				// Witness Protection's creature a land); a bestowed Aura
@@ -771,6 +784,30 @@ func (s *State) sba(k *prep) bool {
 // filter for the Aura's controller; protection from everything excludes
 // it). A lingering host (it left the battlefield, gorge unattaches at the
 // next check) is left to that path.
+// playerAuraLegal reports whether the player-attached Aura at sl is still
+// legally attached (gorge attachmentSBAs' HasAttachedPlayer arm,
+// engine/rules/attach.go:128, with playerAuraStillMatchesEnchant's read):
+// the enchanted seat is alive and not lost, and the Aura's own Enchant
+// restriction still admits it (a control change can move a YouCtrl line;
+// gorge MatchesPlayerSpecFrom over the keyword's spec, whose corpus shapes
+// are the Ctrl filters the kgen fold holds).
+func (s *State) playerAuraLegal(k *prep, sl Slot) bool {
+	p := &s.perms[sl]
+	q := p.atchP - 1
+	if q >= s.nSeats() || s.pl[q].lost {
+		return false
+	}
+	if f := k.t.Cards[s.cardAt(sl)].Enchant.Filter; f != 0 {
+		switch k.t.Filters[f].Ctrl {
+		case kop.CtrlYou:
+			return q == p.ctrl
+		case kop.CtrlOpp:
+			return q != p.ctrl
+		}
+	}
+	return true
+}
+
 func (s *State) enchantLegal(k *prep, sl Slot) bool {
 	p := &s.perms[sl]
 	h := p.attached

@@ -112,3 +112,12 @@ const TgtGraveExileCard TargetKind = 241
 // an ability whose targets are exactly one distinct target (gorge
 // TargetType$ SpellAbility.singleTarget, the singleTarget property).
 const TgfSingleTgt TargetFlags = 1 << 13
+
+// TgfTrigChooser (TargetSpec.TFlags): a triggered ability's slot whose ask is
+// answered by the queue-time trigger player rather than the ability's
+// controller (gorge TargetingPlayer$ TriggeredAttackingPlayer on a triggered
+// ability, targetChooserFromSpec: the trigger context's attacking player,
+// dead referents failing closed to the controller). Only the DECISION's
+// Player moves — target legality stays judged from the ability's controller
+// (engine/rules/target_modes.go targetChooserCore).
+const TgfTrigChooser TargetFlags = 1 << 14

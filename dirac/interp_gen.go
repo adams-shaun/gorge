@@ -940,6 +940,22 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		s.res.ask, s.res.askP = raGenChooseCard, p
 		return false, true
 	case kop.OpAttach:
+		if in.W != 0 {
+			// a player destination (gorge effAttach's "attach to player"
+			// event, Enchant:Player Attach bodies): Self attaches to the
+			// seat the Ref names, gated by gorge's EnchantSelf re-check
+			// (attachPlayerLegal: a living seat, an Opponent Enchant word
+			// excluding the aura's controller)
+			src := s.objRef(k, kop.RefSelf)
+			if seat := s.playerRef(k, in.W); src != NoSlot && seat < s.nSeats() && s.attachPlayerLegal(k, src, seat) {
+				s.attachPlayer(src, seat)
+				s.touchSl(src)
+				if in.C&kop.MvRemember != 0 {
+					s.remember(s.perms[src].obj)
+				}
+			}
+			break
+		}
 		src := s.objRef(k, kop.RefSelf)
 		dst := s.objRef(k, in.Obj)
 		if src != NoSlot && dst != NoSlot && src != dst {
@@ -1759,16 +1775,21 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 				// for its controller's pick among two or more with the cards
 				// before it already entered, and stays where it is with none
 				host := NoSlot
+				enchSeat := uint8(0) // an Enchant:Player Aura's seat, +1 (digAuraPlayerPark's answered one)
 				if z == kop.ZoneBattlefield && k.gen != nil {
-					if s.digAuraStays(k, o, ctrl) {
+					if s.digAuraStays(k, o, ctrl) || s.digAuraPlayerStays(k, o, ctrl) {
 						continue
 					}
-					if host = s.digAuraHost(k, o, ctrl); host == NoSlot && s.digAuraPark(k, o, ctrl) {
-						if !resume {
-							s.g.held, s.g.retTS = 0, stamp
+					if host = s.digAuraHost(k, o, ctrl); host == NoSlot {
+						if seat, ok := s.digAuraPlayerHost(k, o, ctrl); ok {
+							enchSeat = seat + 1
+						} else if s.digAuraPark(k, o, ctrl) || s.digAuraPlayerPark(k, o, ctrl) {
+							if !resume {
+								s.g.held, s.g.retTS = 0, stamp
+							}
+							s.holdBatch(&eb)
+							return false
 						}
-						s.holdBatch(&eb)
-						return false
 					}
 				}
 				if z == kop.ZoneBattlefield && s.cloneReturnPark(k, o, ctrl) {
@@ -1822,7 +1843,9 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 					if s.g.pre.obj == o {
 						s.g.pre = preAsk{}
 					}
-					if host != NoSlot && s.occ.has(host) {
+					if enchSeat != 0 {
+						s.attachPlayer(sl, enchSeat-1) // CR 303.4f: an Enchant:Player Aura enters attached to its seat
+					} else if host != NoSlot && s.occ.has(host) {
 						s.attachTo(k, sl, host)
 					}
 					if mv&kop.MvEntryRiders != 0 {

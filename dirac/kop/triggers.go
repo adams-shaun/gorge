@@ -484,6 +484,17 @@ const (
 	Tf3OrTargets TrigFlags3 = 1 << 3
 )
 
+// Tf4DefEnch (Trigger.Flags4, bit 7, this byte's last free one): Mode$
+// AttackersDeclared with AttackedTarget$ Player.EnchantedBy, the Commander
+// curses' "whenever enchanted player is attacked" (Curse of Opulence,
+// Disturbance, Verbosity, Bounty, Inertia, Vitality; Archnemesis). Beside
+// Tf2DefPlayer, the per-defender group fires only when the DEFENDER is
+// enchanted by any enchantment (gorge attackedDefenderMatches reads
+// Player.EnchantedBy, the shared player property player_filter.go
+// playerSpecQualifierEnchantedBy: enchanted by ANY enchantment, not only the
+// listener's own), through fireDefPlayer's Tf4DefEnch arm.
+const Tf4DefEnch TrigFlags4 = 1 << 7
+
 // TrigNAnyCounter in Trigger.N of a TrigCounterAddedOnce trigger: every
 // counter kind (CounterPlayerAddedAll without CounterType$).
 const TrigNAnyCounter int16 = -1

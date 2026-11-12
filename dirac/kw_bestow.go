@@ -202,7 +202,14 @@ func (s *State) bestowResolve(k *prep, e *stackEntry) {
 //go:noinline
 func (s *State) enterAttached(k *prep, e *stackEntry) Slot {
 	sl := s.enterNF(k, e.obj, e.ctrl, false, kop.ZoneStack, 0)
-	s.attachTo(k, sl, s.objs[e.tgt[0]].slot)
+	if isPlayerTarget(e.tgt[0]) {
+		// an Enchant:Player spell (the curses): the target is the player
+		// code, not an object (gorge auraEntry's toPlayer settle, the
+		// "attach to player" fold)
+		s.attachPlayer(sl, CodeSeat(e.tgt[0]))
+	} else {
+		s.attachTo(k, sl, s.objs[e.tgt[0]].slot)
+	}
 	s.touchSl(sl)
 	if k.gen != nil {
 		s.refreshTy(k)

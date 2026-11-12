@@ -302,6 +302,13 @@ type Instr struct {
 	B   ValueRef
 	C   int16
 	F   FilterID
+	// W is an op's player-valued side input, the Ref the player reads
+	// (0 = none): OpTapOrUntap's Tapper$ provenance read at the tap (the
+	// election ask is the controller's, the tap's is the ref's, gorge
+	// effTapOrUntap's definedPlayerIDs read), OpAttach and OpAttachObj's
+	// PLAYER destination (gorge effAttach's "attach to player" event,
+	// Enchant:Player destinations). 0 keeps every op's playerless default.
+	W Ref
 }
 
 // High ops: ops new families add are numbered from
