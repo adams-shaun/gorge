@@ -15,10 +15,11 @@ import (
 // the gap first (potentialPrefixScript), the sources then paying the rest.
 // The kernel models it as one more script gap kind beside the each-colour,
 // restricted and sacrifice-only ones (script_gen.go): its mana in the gaps
-// walk (availCtr), and at the play the activations in battlefield order
-// until the plain walk lists it (ctrGap). Each activation puts a -0/-1
-// counter (kop.CtrM0M1, read by ptGen) and spends the once-each-turn use
-// (perm.actUsed). Everything is behind prep.ctrMana.
+// walk (availCtr), and at the play the chain's activations in battlefield
+// order, an any-colour ability (Vivid Grove's second) branched on its colour
+// ask (ctrScript), until the walk lists the play. Each activation puts a
+// -0/-1 counter (kop.CtrM0M1, read by ptGen) and spends the once-each-turn
+// use (perm.actUsed). Everything is behind prep.ctrMana.
 //
 // The all-at-once removal shape (kop.CtrEachManaAb: Ramos, Dragon Engine's
 // "Remove five +1/+1 counters from Ramos: Add {W}{W}{U}{U}{B}{B}{R}{R}{G}{G}.
@@ -183,11 +184,12 @@ func ctrAnyColour(a *kop.Ability) bool {
 	return !a.ManaEach && a.ManaColors&(a.ManaColors-1) != 0
 }
 
-// ctrPlayCol is the colour gorge's prefix search answers an any-colour counter
-// ability's ask with first for play a: the lowest of the play's announced
-// colours, else W U B R G (scriptOrderAnswers; tapXSearch.cols). -1 for a fixed
-// colour ability.
-func (s *State) ctrPlayCol(k *prep, a Action, sl Slot) int {
+// ctrAnsCol is the colour counter-cost source sl's mana ability makes for the
+// prefix search's answer ans of play a (ctrScript's path): an any-colour
+// ability's ask is answered in scriptOrderAnswers' order, the play's
+// announced colours first (tapXSearch.cols), 0 the first one; -1 for a fixed
+// colour ability (Wall of Roots, Ramos), whose step asks nothing.
+func (s *State) ctrAnsCol(k *prep, a Action, sl Slot, ans int) int {
 	ab := k.ctrAbOf(s.cardAt(sl))
 	if ab == nil || !ctrAnyColour(ab) {
 		return -1
@@ -197,7 +199,72 @@ func (s *State) ctrPlayCol(k *prep, a Action, sl Slot) int {
 		order[c] = uint8(c)
 	}
 	needFirst(order[:], s.playNeed(k, a))
-	return int(order[0])
+	return int(order[ans])
+}
+
+// ctrChainTap applies the prefix search's chain step for gap sl, answer ans
+// of play a (ctrScript's node build, scriptPrefix's replay): a counter-cost
+// source its counters, use and mana (ctrGap; the SBA a -0/-1 counter may
+// kill with), any other gap its tap (tapGap).
+func (s *State) ctrChainTap(k *prep, p uint8, a Action, sl Slot, ctr, restr slotMask, ans int, held *[kop.NumManaKinds]uint8) {
+	if ctr.has(sl) {
+		s.ctrGap(k, p, sl, s.ctrAnsCol(k, a, sl, ans))
+		s.sba(k) // the script returns to priority after the step: a Wall of Roots out of toughness dies before the next one
+		return
+	}
+	s.tapGap(k, p, sl, restr, held)
+}
+
+// ctrScript is gorge's prefix search (scriptSearch.visit) for play a over the
+// chain order: p's gaps tapped in battlefield order, an any-colour counter
+// ability branched on its five colour answers (ctrAnsCol's order, every
+// answer an activation poses branched on, in engine order), depth first; at
+// each node after a tap the walk (restrOptions) is asked for a. It returns
+// the number of gaps the found script taps (path holds their answers, 0
+// where the gap asks nothing) and whether a was offered at that node, dead
+// there as scriptDeadEnd reads it (restricted mana floats and the plain walk
+// does not price the play). Each node is rebuilt on a fresh fork (the
+// scriptDFS walk), so the caller's state is untouched.
+func (s *State) ctrScript(k *prep, a Action, p uint8, order []Slot, ctr, restr slotMask, path []uint8, noGrant bool) (int, bool, bool) {
+	var d Decision
+	depth := 0 // gaps tapped at this node: order[:depth], answers path[:depth]
+	for {
+		if depth > 0 {
+			t := s.fork()
+			t.g.noGrant = noGrant // (scriptDeadEnd's restrictedGrantLive count; the root's is unset)
+			var held [kop.NumManaKinds]uint8
+			for j := 0; j < depth; j++ {
+				t.ctrChainTap(k, p, a, order[j], ctr, restr, int(path[j]), &held)
+			}
+			t.restrOptions(k, &d, p)
+			if hasOption(&d, a) {
+				dead := held != ([kop.NumManaKinds]uint8{}) && !t.scriptCompletes(k, p, a)
+				s.unfork()
+				return depth, true, dead
+			}
+			s.unfork()
+		}
+		if depth < len(order) { // the node's first child
+			path[depth] = 0
+			depth++
+			continue
+		}
+		for { // a leaf: the deepest gap with an answer left, else done
+			if depth == 0 {
+				return 0, false, true
+			}
+			j := depth - 1
+			nch := 1
+			if ab := k.ctrAbOf(s.cardAt(order[j])); ab != nil && ctrAnyColour(ab) {
+				nch = 5 // the colour ask's answers (ctrAnsCol)
+			}
+			if int(path[j])+1 < nch {
+				path[j]++
+				break
+			}
+			depth--
+		}
+	}
 }
 
 // sbaCtrTough is CR 704.5f for a creature whose toughness only -0/-1
