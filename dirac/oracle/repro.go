@@ -196,9 +196,11 @@ func (m *Matchup) setCommander(on bool, ix, partners []int) {
 	}
 }
 
-// Write saves the repro as indented JSON.
+// Write saves the repro as compact JSON, one line — the encoding the
+// recordings under testdata/repro carry (TestReproCompactRoundTrip pins it),
+// so a newly recorded repro matches the swept corpus.
 func (r *Repro) Write(path string) error {
-	b, err := json.MarshalIndent(r, "", " ")
+	b, err := json.Marshal(r)
 	if err != nil {
 		return err
 	}
