@@ -306,20 +306,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		}
 	case raChooseNumber:
 		d.Sub = ChGenNumber
-		in := &s.prog(k)[r.pc]
-		lo := int(in.C & 0xff)
-		hi := numberOfferCeiling
-		if in.C&0x100 != 0 {
-			hi = s.value(k, in.B)
-			if hi < 0 || lo > hi || hi > 1000 {
-				lo, hi = 0, 0
-			}
-		} else if lo > numberOfferCeiling {
-			lo = 0
-		}
-		if hi > 255 {
-			hi = 255
-		}
+		lo, hi := s.chooseNumberMidBounds(k, &s.prog(k)[r.pc])
 		for n := lo; n <= hi; n++ {
 			d.add(MakeAction(AkChoose, 0, 0, uint8(n)))
 		}

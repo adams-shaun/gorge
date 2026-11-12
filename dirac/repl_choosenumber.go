@@ -61,6 +61,37 @@ const resChosenNumber uint8 = 0x20
 // upper bound of the default list when the card states no Max$.
 const numberOfferCeiling = 12
 
+// numberMidCeiling is the largest number a mid-resolution ChooseNumber can
+// offer and keep: the chosen byte's 255 is the no-choice sentinel, so offering
+// 255 would record a choice that reads back as none. gorge's own offer stops
+// at 1000; a larger bound is a declared capacity limit.
+const numberMidCeiling = 254
+
+// chooseNumberMidBounds is the one home for ExtChooseNumberMid's offer, used
+// both to choose whether the ask is needed (chooseNumberMid) and to build the
+// options the ask poses (interp_ask.go). B is the Max$ value (read when
+// C&0x100 is set), C&0xff the literal Min$ floor. It follows gorge's
+// chooseNumberAsk: without a Max$ the default 0..12 list, and a Min$ past it
+// fails closed to the deterministic 0; with a Max$ a bound the context cannot
+// honour (negative, inverted, or past gorge's 1000-value ceiling) fails closed
+// to 0 too.
+func (s *State) chooseNumberMidBounds(k *prep, in *kop.Instr) (lo, hi int) {
+	lo = int(in.C & 0xff)
+	hi = numberOfferCeiling
+	if in.C&0x100 != 0 {
+		hi = s.value(k, in.B)
+		if hi < 0 || lo > hi || hi > 1000 {
+			return 0, 0
+		}
+	} else if lo > numberOfferCeiling {
+		return 0, 0
+	}
+	if hi > numberMidCeiling {
+		hi = numberMidCeiling
+	}
+	return lo, hi
+}
+
 // chosenNumberOf is ExChosenNumber: the number the source chose, read the way
 // gorge's Object.ChosenNumber is. A permanent on the battlefield keeps it in
 // its chosen byte; a resolving spell keeps it on the card object; a source
@@ -101,31 +132,13 @@ func (s *State) storeChosenNumber(o Obj, sl Slot, n int) {
 	}
 }
 
-// chooseNumberMid runs ExtChooseNumberMid. B is the Max$ value (read when
-// C&0x100 is set), C&0xff the literal Min$ floor, C&0x200 Random$ True. The
-// offer is gorge chooseNumberAsk's: Min..Max, or Min..12 without a Max$; a
-// bound the context cannot honour (a negative or inverted Max$) falls back to
-// the deterministic 0, as gorge's fail-closed arm does. A single candidate is
-// recorded unasked (gorge asks only when the list has more than one option).
-// The answer is stored on the source and read by ExChosenNumber.
+// chooseNumberMid runs ExtChooseNumberMid. C&0x200 is Random$ True; the offer
+// is chooseNumberMidBounds'. A single candidate is recorded unasked (gorge asks
+// only when the list has more than one option). The answer is stored on the
+// source and read by ExChosenNumber.
 func (s *State) chooseNumberMid(k *prep, in *kop.Instr) bool {
-	lo := int(in.C & 0xff)
-	hasMax := in.C&0x100 != 0
 	random := in.C&0x200 != 0
-	hi := numberOfferCeiling
-	if hasMax {
-		hi = s.value(k, in.B)
-		if hi < 0 || lo > hi || hi > 1000 {
-			lo, hi = 0, 0 // gorge's loud fail-closed fallback: the deterministic 0
-		}
-	} else if lo > numberOfferCeiling {
-		lo = 0 // gorge's Min$-only fallback keeps the default 0..12 list
-	}
-	if hi > 255 {
-		// The decision carries the number in a byte; a bound past 255 is a
-		// declared capacity limit (gorge's own list ceiling is 1000).
-		hi = 255
-	}
+	lo, hi := s.chooseNumberMidBounds(k, in)
 	p := s.playerRef(k, in.Obj)
 	if p == 255 {
 		p = s.res.e.ctrl
