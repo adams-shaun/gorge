@@ -51,47 +51,21 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   chosen part at the mana window, where the lands are tapped (pair 9954).
   Tests: TestFreeCastEitherOrNoPayablePart, TestFreeCastEitherOrFloatingPoolPays;
   lockstep: ctrshapes (Hurl into History deck).
-- Mana abilities with a spending restriction (Giada, Secluded
-  Courtyard's any-colour mana) are not autopay sources. Giada's {W} or
-  the Courtyard's colour, tapped by a scripted prefix (gorge's planner
-  census misses both) or, Giada's, by a ward / unless window, floats
-  beside the pool as restricted mana (up to four batches per player, `State.rb`,
-  each of one restriction and chosen type, `mana_restrbatch.go`): projected with the
-  pool, spent first by a spell its restriction allows (an Angel; a
-  creature spell of the Courtyard's chosen type), and while it floats
-  only plays the pool pays are offered, as gorge's planners refuse such
-  a pool. A loyalty ability's resolving restricted mana (Chandra, Chill
-  of Compliance's noncreature-only {U}: no mana ability, CR 605.1a, but
-  the restriction rides it, CR 106.6; gorge's ManaAdd restriction) floats
-  in the same batches: AddMana's F names the restriction, prepareGen
-  registers it, and a fifth batch (`maxRB`) stalls StallRestrSrc
-  (`TestChandraRestrictedLoyaltyMana`, `TestRememberWritesLockstep`). A dynamic-amount
-  one (Elvish Archdruid) is, listed after every fixed and choice-shaped
-  source as gorge's evaluated-amount layer. Quilled Greatwurm's six
-  counters are asked one at a time (ChCostSubCtr), as gorge asks them.
-- Mana an artifact's mana ability adds (Ring of the Lucii's {C}{C} paying a
-  one-mana remainder, a Treasure, Sol Ring) is tagged in gorge's pool
-  (effects.ManaProducerTag) and `pay.PlanPoolOK` refuses a pool holding any
-  tagged unit, as it refuses restricted mana: while one floats a spell is
-  offered only when the floating pool alone pays it. dirac keeps the
-  slots holding such a unit (`genState.poolArt`, padding), clears a slot
-  when it empties (gorge spends a plain unit before a tagged one) and
-  declines the planner in `FeatPlannedCast` / `FeatPlannedActivation`
-  (mana_artifact.go; `ring` pool, TestRingLockstep). gorge's
-  other typed tallies (state.Player.TypedMana: Treasure, Cave, Desert) are
-  refused alike, so a Desert's or a Cave's mana tags too (pcard.manaTyped:
-  Arid Archway's {C}{C} paying a one-mana remainder; `remparams` pool,
-  TestRemparamsLockstep). Open: the filter-land and Giada-window pool
-  additions do not tag (no typed source reaches them).
+- Restricted mana that floats beside the pool (`State.rb`, `mana_restrbatch.go`)
+  from a loyalty ability's resolving restriction (Chandra, Chill of
+  Compliance's noncreature-only {U}: no mana ability, CR 605.1a, but the
+  restriction rides it, CR 106.6; gorge's ManaAdd restriction): AddMana's F
+  names the restriction, prepareGen registers it, and a fifth batch (`maxRB`)
+  stalls StallRestrSrc (`TestChandraRestrictedLoyaltyMana`,
+  `TestRememberWritesLockstep`). A dynamic-amount restricted source (Elvish
+  Archdruid) is listed after every fixed and choice-shaped source as gorge's
+  evaluated-amount layer. Quilled Greatwurm's six counters are asked one at a
+  time (ChCostSubCtr), as gorge asks them.
 - Face casts: gorge's potential planner prices every face route,
   and dirac offers the Adventure (including its exile recast), split
   and modal routes from the ordinary mana census (floating pool plus
   untapped sources) on the oracle surface (`Config.GorgeUnpriced`). The
-  planner's limits apply only to those newly priced routes: a pool holding
-  restricted mana is refused ("unsupported: pool", so the floating pool
-  alone must pay; the query reads `RestrictedMana` only, so an
-  artifact-tagged unit is ordinary mana to it -- unlike the ordinary cast
-  and activation planners' `PlanPoolOK`, above), a scripted prefix whose
+  planner's limits apply only to those newly priced routes: a scripted prefix whose
   restricted mana floats dead-ends, and a witness whose plan consumes a
   source the face's own targets need is dropped ("unsupported:
   witness_unreachable"; Battle Display). gorge's cast planner also plans

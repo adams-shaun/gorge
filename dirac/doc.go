@@ -367,10 +367,10 @@
 //     taps it as a gap as well.
 //     Restricted mana floats beside the pool, restricted
 //     (State.rb, gorge's RestrictedMana: up to four batches, each of one
-//     restriction, in the projected pool), and while it floats gorge's
-//     planners price nothing (FeatPlannedCast, FeatPlannedActivation,
-//     gorgeLowers; no scripted play either: every potential play is
-//     "unsupported: pool"), so a cast is offered when its pool pays it. A
+//     restriction, in the projected pool). gorge's planners read it as the
+//     payment does (pay.PlanPool: a batch counts exactly when the payment
+//     admits it, CR 106.6), so a cast is offered when the pool and the
+//     untapped sources pay it together (CR 601.2g-h). A
 //     spell the restriction allows (an Angel for Giada's {W}) sees the
 //     restricted mana in its pool and spends it first (gorge AvailableFor,
 //     emitRestrictedManaSpend; restrSpendable, payRestr). With only
