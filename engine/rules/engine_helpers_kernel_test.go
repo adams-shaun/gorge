@@ -600,3 +600,57 @@ func runRememberScenario(t *testing.T, raw string) {
 		t.Fatalf("%s\n  transcript:\n    %s", strings.Join(fails, "\n"), strings.Join(tr, "\n    "))
 	}
 }
+
+// miscBoardObj finds the id of the battlefield permanent named name
+// controlled by seat p.
+func miscBoardObj(t *testing.T, e *Engine, p state.PlayerID, name string) state.ObjID {
+	t.Helper()
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
+			return id
+		}
+	}
+	t.Fatalf("seat %d's battlefield has no %q", p, name)
+	return 0
+}
+
+// cr70114TargetFightSA is the fixture fight: the resolving source fights the one
+// targeted creature (the TestFightZeroPowerAndOffBattlefieldNoWedge shape).
+func cr70114TargetFightSA() *cards.SA {
+	return &cards.SA{Kind: "DB", API: "Fight", Params: map[string]string{
+		"Defined": "Self", "ValidTgts": "Creature",
+		"TargetMin": "0", "TargetMax": "1", "TgtPrompt": "x"}}
+}
+
+// revealNotes returns the non-secret Notes carrying ids (the reveal Notes).
+func revealNotes(e *Engine) []events.Event {
+	var out []events.Event
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && !ev.Secret && len(ev.IDs) > 0 {
+			out = append(out, ev)
+		}
+	}
+	return out
+}
+
+// mobVerdictVoteMove moves one corpus card from seat p's hand or library to
+// zone `to` through a logged MoveZone (mobVerdictVoteMove's shape,
+// generalised off its seat-0-only hardcoding), then re-asks priority.
+func mobVerdictVoteMove(t *testing.T, e *Engine, p state.PlayerID, name string, to state.Zone) state.ObjID {
+	t.Helper()
+	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
+		for _, id := range e.G.Zone(z, p) {
+			o := e.G.Obj(id)
+			if o != nil && o.Face() != nil && o.Face().Name == name {
+				if z != to {
+					e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: to})
+				}
+				e.pending = nil
+				e.priorityRound()
+				return id
+			}
+		}
+	}
+	t.Fatalf("corpus card %q absent from seat %d hand/library", name, p)
+	return 0
+}

@@ -63,17 +63,6 @@ func countFlips(e *Engine, id state.ObjID) int {
 	return n
 }
 
-// revealNotes returns the non-secret Notes carrying ids (the reveal Notes).
-func revealNotes(e *Engine) []events.Event {
-	var out []events.Event
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note && !ev.Secret && len(ev.IDs) > 0 {
-			out = append(out, ev)
-		}
-	}
-	return out
-}
-
 // TestDelverWithALandOnTopAndARevealDeclinedDoesNotTransform is the
 // user-reported defect: the trigger used to resolve with no ask at all and
 // transform unconditionally. Now the peek asks, "no" reveals nothing, the

@@ -23,29 +23,6 @@ func mobVerdictVoteNotes(e *Engine) int {
 	return n
 }
 
-// mobVerdictVoteMove moves the corpus card named by `name` from seat p's hand
-// or library to zone `to` (search_library_test.go's helper is seat-0 only, and
-// this scenario needs seat 1's creature for Mob Verdict's "each creature that
-// player controls" half).
-func mobVerdictVoteMove(t *testing.T, e *Engine, p state.PlayerID, name string, to state.Zone) state.ObjID {
-	t.Helper()
-	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
-		for _, id := range e.G.Zone(z, p) {
-			o := e.G.Obj(id)
-			if o != nil && o.Face() != nil && o.Face().Name == name {
-				if z != to {
-					e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: to})
-				}
-				e.pending = nil
-				e.priorityRound()
-				return id
-			}
-		}
-	}
-	t.Fatalf("corpus card %q absent from seat %d hand/library", name, p)
-	return 0
-}
-
 // mobVerdictEngine builds a four-seat table whose seat 0 holds Mob Verdict and
 // whose seat 1 has an Ancient Brontodon (9/9, so it survives the votes and its
 // damage counters are observable). Every seat starts on the same pinned seed

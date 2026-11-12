@@ -89,8 +89,8 @@ func TestOptionalRevealPerTargetAskThroughTheEngine(t *testing.T) {
 	if d.Player != 1 || d.ResumeTarget != 0 {
 		t.Fatalf("pass 1 ask = Player %d ResumeTarget %d, want seat 1 / target 0", d.Player, d.ResumeTarget)
 	}
-	if len(mayRevealNotes(e)) != 0 {
-		t.Fatalf("notes before the answer: %+v", mayRevealNotes(e))
+	if len(revealNotes(e)) != 0 {
+		t.Fatalf("notes before the answer: %+v", revealNotes(e))
 	}
 
 	// Answer DECLINE (option 1). Seat 2 must then be asked its own question.
@@ -102,8 +102,8 @@ func TestOptionalRevealPerTargetAskThroughTheEngine(t *testing.T) {
 	if d.Player != 2 || d.ResumeTarget != 1 {
 		t.Fatalf("pass 2 ask = Player %d ResumeTarget %d, want seat 2 / target 1", d.Player, d.ResumeTarget)
 	}
-	if len(mayRevealNotes(e)) != 0 {
-		t.Fatalf("a declined target's answer leaked a note: %+v", mayRevealNotes(e))
+	if len(revealNotes(e)) != 0 {
+		t.Fatalf("a declined target's answer leaked a note: %+v", revealNotes(e))
 	}
 
 	// Answer ACCEPT (option 0) for target 1. This is the half that proves the
@@ -118,7 +118,7 @@ func TestOptionalRevealPerTargetAskThroughTheEngine(t *testing.T) {
 	if d := e.Pending(); d != nil && d.Kind != decision.KPriority {
 		t.Fatalf("the walk re-posed an ask after every target was answered: %+v", d)
 	}
-	notes := mayRevealNotes(e)
+	notes := revealNotes(e)
 	if len(notes) != 1 {
 		t.Fatalf("reveal notes = %+v, want exactly seat 2's", notes)
 	}

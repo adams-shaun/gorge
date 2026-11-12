@@ -29,14 +29,6 @@ func cr70114DamageSince(e *Engine, mark int) []events.Event {
 	return out
 }
 
-// cr70114TargetFightSA is the targeted fight shape: the resolving source
-// (Defined$ Self) fights the one chosen target.
-func cr70114TargetFightSA() *cards.SA {
-	return &cards.SA{Kind: "DB", API: "Fight", Params: map[string]string{
-		"Defined": "Self", "ValidTgts": "Creature",
-		"TargetMin": "0", "TargetMax": "1", "TgtPrompt": "x"}}
-}
-
 // cr70114AttackTable is a two-seat table parked at seat 0's declare-attackers
 // step, for the attack-triggered fight carriers.
 func cr70114AttackTable(t *testing.T) *Engine {

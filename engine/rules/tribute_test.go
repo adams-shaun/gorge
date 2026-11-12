@@ -22,22 +22,6 @@ import (
 //   - Ornitharch (Tribute 2): a decline mints the two Bird tokens, the same
 //     Execute$ path every carrier shares.
 
-// enterTributee emits the named hand card's battlefield entry (the ETB
-// replacement fires on the Move) and returns the pending decision -- the
-// opponent-pick ask the replacement's body poses. The entry runs as a
-// resolution-kernel probe (enterDevourerAsk's shape): an ask a replacement
-// body poses is posable only inside a kernel run, which poses the decision
-// and unwinds to its checkpoint instead of applying the stand-in.
-func enterTributee(t *testing.T, e *Engine, name string) *decision.Decision {
-	t.Helper()
-	id := searchMoveByName(t, e, name, state.ZHand)
-	e.pending = nil
-	e.probe(func() {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
-	})
-	return e.Pending()
-}
-
 // drainTriggerAndStack drives the queued trigger onto the stack and lets it
 // resolve: pass every priority ask, answer anything else with its first
 // option, until the queue and the stack are both empty (a live priority
@@ -70,7 +54,7 @@ func TestTributePaidEntersWithCounters(t *testing.T) {
 	t.Parallel()
 	e := handEngineTokens(t, corpusAlternativeCard(t, "Snake of the Golden Grove"))
 
-	d := enterTributee(t, e, "Snake of the Golden Grove")
+	d := enterDevourerAsk(t, e, "Snake of the Golden Grove")
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "tribute_payer" ||
 		d.Player != 0 || len(d.Options) != 1 || d.Options[0].Player != 1 {
 		t.Fatalf("payer ask: %+v, want seat 0 asked to pick its one opponent", d)
@@ -100,7 +84,7 @@ func TestTributeDeclinedFiresUnpaidTrigger(t *testing.T) {
 	t.Parallel()
 	e := handEngineTokens(t, corpusAlternativeCard(t, "Snake of the Golden Grove"))
 
-	d := enterTributee(t, e, "Snake of the Golden Grove")
+	d := enterDevourerAsk(t, e, "Snake of the Golden Grove")
 	if d == nil || d.ResumeKind != "tribute_payer" {
 		t.Fatalf("payer ask: %+v", d)
 	}
@@ -128,7 +112,7 @@ func TestTributeOrnitharchDeclineMintsBirds(t *testing.T) {
 	t.Parallel()
 	e := handEngineTokens(t, corpusAlternativeCard(t, "Ornitharch"))
 
-	d := enterTributee(t, e, "Ornitharch")
+	d := enterDevourerAsk(t, e, "Ornitharch")
 	if d == nil || d.ResumeKind != "tribute_payer" {
 		t.Fatalf("payer ask: %+v", d)
 	}
