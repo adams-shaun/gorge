@@ -359,3 +359,25 @@ func scryDecision(t *testing.T, e *Engine, id state.ObjID) *decision.Decision {
 	}
 	return d
 }
+
+// attachActivateResolve activates obj's ability idx, answers every
+// non-priority ask (the equip target) with its first option, and resolves
+// the stack.
+func attachActivateResolve(t *testing.T, e *Engine, obj state.ObjID, idx int) {
+	t.Helper()
+	submitChoices(t, e, abilityOption(t, e, obj, idx).Index)
+	// CR 602.2a: the ability is on the stack before its target is chosen, so
+	// the loop runs until the activation's decisions are answered, not until
+	// the stack is non-empty.
+	for i := 0; i < 5; i++ {
+		d := e.Pending()
+		if d == nil || d.Kind == decision.KPriority {
+			break
+		}
+		submitChoices(t, e, d.Options[0].Index)
+	}
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack %v after activating %d, want the ability", e.G.Stack, obj)
+	}
+	passUntilStackEmpty(t, e, 20)
+}

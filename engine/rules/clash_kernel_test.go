@@ -69,7 +69,7 @@ func TestClashChainedInOneContextRevealsFreshKernel(t *testing.T) {
 func TestClashPlacementCloneIndependenceKernel(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	marvo := onBoardCard(t, e, 0, unblockedCorpusCard(t, "m/marvo_deep_operative.txt"))
+	marvo := onBoardCard(t, e, 0, corpusCardAtPath(t, "m/marvo_deep_operative.txt"))
 	e.G.Obj(marvo).SummonSick = false
 	clearLibrary := func(p state.PlayerID) {
 		for _, id := range e.G.Zone(state.ZLibrary, p) {
@@ -140,7 +140,7 @@ func TestClashPlacementCloneIndependenceKernel(t *testing.T) {
 func TestMarvoDeepOperativeClashWinsDrawsAndOffersFreeCastKernel(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	marvo := onBoardCard(t, e, 0, unblockedCorpusCard(t, "m/marvo_deep_operative.txt"))
+	marvo := onBoardCard(t, e, 0, corpusCardAtPath(t, "m/marvo_deep_operative.txt"))
 	e.G.Obj(marvo).SummonSick = false
 	filler0 := putTopOfLibrary(t, e, card(t, "Name:Seat Zero Filler\nManaCost:2\nTypes:Creature Beast\nPT:2/2\nOracle:x\n"), 0)
 	filler1 := putTopOfLibrary(t, e, card(t, "Name:Seat One Filler\nManaCost:3\nTypes:Creature Beast\nPT:3/3\nOracle:x\n"), 1)

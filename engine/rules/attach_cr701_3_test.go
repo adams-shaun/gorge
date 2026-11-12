@@ -101,28 +101,6 @@ func TestAttachToAnIllegalPermanentDoesNotMove(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// attachActivateResolve activates obj's ability idx, answers every
-// non-priority ask (the equip target) with its first option, and resolves
-// the stack.
-func attachActivateResolve(t *testing.T, e *Engine, obj state.ObjID, idx int) {
-	t.Helper()
-	submitChoices(t, e, abilityOption(t, e, obj, idx).Index)
-	// CR 602.2a: the ability is on the stack before its target is chosen, so
-	// the loop runs until the activation's decisions are answered, not until
-	// the stack is non-empty.
-	for i := 0; i < 5; i++ {
-		d := e.Pending()
-		if d == nil || d.Kind == decision.KPriority {
-			break
-		}
-		submitChoices(t, e, d.Options[0].Index)
-	}
-	if len(e.G.Stack) != 1 {
-		t.Fatalf("stack %v after activating %d, want the ability", e.G.Stack, obj)
-	}
-	passUntilStackEmpty(t, e, 20)
-}
-
 // CR 701.3d: an Equipment that leaves the battlefield while attached becomes
 // unattached from its bearer, and CR 603.10a makes "becomes unattached"
 // triggers look back in time. Grafted Wargear ("Whenever Grafted Wargear

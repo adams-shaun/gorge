@@ -269,3 +269,15 @@ func corpusCardText(t *testing.T, rel string) string {
 	}
 	return string(b)
 }
+
+func corpusCardAtPath(t *testing.T, path string) *cards.Card {
+	t.Helper()
+	c, ds := cards.Parse(filepath.Join("..", "..", ".cards", "cardsfolder", path))
+	if len(ds) != 0 {
+		t.Fatalf("parse %s: %v", path, ds)
+	}
+	if ds = c.Link(); len(ds) != 0 {
+		t.Fatalf("link %s: %v", path, ds)
+	}
+	return c
+}
