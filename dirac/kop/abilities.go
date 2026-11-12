@@ -62,7 +62,17 @@ type Ability struct {
 	ManaRestrictAb FilterID
 	ActZone        Zone     // the zone the source must be in to activate (ZoneNone = battlefield)
 	ManaAmong      FilterID // AfManaEachColor: the permanents whose colours are produced
-	Gate           Gate     // a threshold gate: the ability exists only while it holds
+	// ManaProduce: with AfManaReflect, the reflected read is what the
+	// matching permanents' mana abilities could PRODUCE, not the
+	// permanents' colours (AB$ ManaReflected, ReflectProperty$ Produce,
+	// every Valid$ alternative OppCtrl: Exotic Orchard, Fellwar Stone,
+	// Quirion Explorer, Sylvok Explorer). The colours are the union of the
+	// matched permanents' cards' ProduceCol at each use, {C} dropped (gorge
+	// effects.producibleSymbols over Face.ManaAbilities with
+	// ReflectProperty$ Produce). Kernel mana_reflected.go produceColours.
+	// AbilityFlags has no free bit, so this is a table bool, not State.
+	ManaProduce bool
+	Gate        Gate // a threshold gate: the ability exists only while it holds
 	// OwnReduce: an activated hand ability's own ReduceCost$ (Channel): its
 	// mana cost's generic part is reduced by this value, floored at zero,
 	// at the offer and the charge alike (gorge ownReduceCost; CR 601.2f).
@@ -127,6 +137,17 @@ type Ability struct {
 	// a spell matching this filter, paid with this ability's mana, gains
 	// haste until end of turn as it enters (0 = no rider). A table field.
 	ManaHasteValid FilterID
+	// ManaRider is the rider a mana ability runs with its mana (CR 605.3b):
+	// a self-sacrifice once its last counter is gone (Peat Bog), or each
+	// opponent gaining life (Grove of the Burnwillows). ManaRiderNone = no rider. A table field, not State;
+	// dirac mana_rider.go runs it at activation.
+	ManaRider uint8
+	// ManaRiderCtr is the source's own counter kind a deplete rider reads
+	// (ManaRiderDeplete): the ability is sacrificed once that count is 0.
+	ManaRiderCtr CounterKind
+	// ManaRiderN is the count a life rider uses (ManaRiderOppGainLife). A
+	// table byte.
+	ManaRiderN uint8
 	// RepMax: a charm that may choose a mode more than once (CanRepeatModes$)
 	// has RepMax[m] > 0, the most times mode m can be chosen. stackEntry.mode
 	// then holds a COUNT per mode instead of a bitmask: mode m's count sits
@@ -147,6 +168,18 @@ const (
 	TimingInstant               // any time with priority
 	TimingLand                  // a land play
 )
+
+// ManaRider values (Ability.ManaRider): the rider a mana ability runs with
+// its mana (CR 605.3b).
+const (
+	ManaRiderNone        uint8 = iota
+	ManaRiderDeplete           // sacrifice the source once its ManaRiderCtr count is 0
+	ManaRiderOppGainLife       // each opponent gains ManaRiderN life
+)
+
+// ManaRiderAb reports whether a mana ability carries a rider the kernel runs
+// at activation (kgen riderMana; dirac mana_rider.go).
+func ManaRiderAb(a *Ability) bool { return a.Kind == AbMana && a.ManaRider != ManaRiderNone }
 
 // AbilityFlags (Ability.AFlags).
 type AbilityFlags uint16
@@ -342,6 +375,22 @@ func SacXEachManaAb(a *Ability) bool {
 		c&^ColAny == 0 && c&(c-1) != 0
 }
 
+// riderManaCostOK reports whether a's cost is one the kernel's rider
+// activation pays (never a payment witness unit: gorge defers the source):
+//   - a bare {T} (Grove of the Burnwillows' life rider, Twitching Doll's
+//     counter rider);
+//   - {T} + remove N counters from the source (the depletion lands);
+func riderManaCostOK(a *Ability) bool {
+	f := a.Cost.Flags
+	switch {
+	case f == CostTap:
+		return a.Cost.Mana.MV() == 0
+	case f == CostTap|CostRemoveCtr:
+		return a.Cost.N > 0 && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
+	}
+	return false
+}
+
 // ManaAbilityHonoured reports whether the kernel can activate ability j of
 // cd, an AbMana. It is true for any other ability kind.
 //
@@ -377,7 +426,8 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 		}
 	}
 	if j != first {
-		return f == CostTap || f == CostTap|CostPayLife || SecondTapXManaAb(cd, first, j) || SecondCtrTapManaAb(cd, first, j)
+		return f == CostTap || f == CostTap|CostPayLife || SecondTapXManaAb(cd, first, j) || SecondCtrTapManaAb(cd, first, j) ||
+			ManaRiderAb(a) && f == CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && plainTapAb(&cd.Abilities[first])
 	}
 	if _, ok := PipFeeManaAb(a); ok {
 		return true
@@ -386,6 +436,8 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	case plain && (f == CostTap || f == CostTap|CostOncePerGame || f == CostTap|CostSacSelf || f == CostSacSelf):
 		return true
 	case CtrManaAb(a), TapXManaAb(a), TapXManaTwo(a), FilterManaAb(a), SacXEachManaAb(a), SoleLifeManaAb(cd, j):
+		return true
+	case ManaRiderAb(a) && riderManaCostOK(a):
 		return true
 	}
 	return false
@@ -456,6 +508,23 @@ func SecondCtrTapManaAb(cd *CardDef, first, j int) bool {
 		return false
 	}
 	return CtrTapSecondManaAb(&cd.Abilities[j]) && plainTapAb(&cd.Abilities[first])
+}
+
+// ChosenSecondManaAb reports whether ability j of cd, a later mana ability
+// than its first (index first), is a bare "{T}: Add one mana of the chosen
+// colour" beside a plain "{T}" first one of one colour or any (Quirion
+// Elves' second ability): the kernel's source unit reads the chosen colour
+// beside the printed one (pcard.manaChosen, kernel srcMaskAt), as it does for
+// a single "Combo W Chosen" ability.
+func ChosenSecondManaAb(cd *CardDef, first, j int) bool {
+	if first < 0 || j <= first || j >= len(cd.Abilities) {
+		return false
+	}
+	a, f := &cd.Abilities[j], &cd.Abilities[first]
+	return a.Kind == AbMana && a.AFlags == AfManaChosen && a.ManaColors == 0 && a.ManaN <= 1 && a.ManaRestrict == 0 &&
+		a.Cost.Flags == CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && len(a.Prog) == 0 &&
+		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield) &&
+		plainTapAb(f)
 }
 
 // plainTapAb: a is a mana-free {T} ability of one fixed colour or any one

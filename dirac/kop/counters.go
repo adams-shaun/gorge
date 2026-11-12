@@ -68,7 +68,10 @@ const DivLKIP1P1 = 255
 // DivValue is TargetSpec.Divide's sentinel for a slot whose divided total is
 // TargetSpec.DivideV, a value evaluated where the spell or ability is put on
 // the stack (gorge divisionTotalFor; CR 601.2d, 603.3d). Ureni, the Song
-// Unending divides its X damage, X the lands its controller controls.
+// Unending divides its X damage, X the lands its controller controls; Rolling
+// Thunder divides its paid X. The slot's target count is clamped to the total
+// (each target takes at least 1, gorge cast_targets.go), whatever its own
+// maximum (an all-candidates count, Shatterskull Smashing's two).
 const DivValue = 253
 
 // CtrMode is Gate.Ctr's sentinel for a Siege's mode gate: the ability exists
@@ -291,6 +294,13 @@ const (
 	// CtrLuck is Gemstone Caverns' luck counter (CR 122.1): a named counter
 	// whose presence its mana ability reads (SplitGateCounter).
 	CtrLuck
+	// CtrDepletion is a depletion counter (Peat Bog's "remove a depletion
+	// counter: add {B}{B}"): a named counter with no inherent rules meaning
+	// (CR 122.1) whose count its mana ability's cost and rider read.
+	CtrDepletion
+	// CtrMining is a mining counter (Gemstone Mine): a named counter with no
+	// inherent rules meaning (CR 122.1).
+	CtrMining
 	// CtrFade is a fade counter (CR 702.32a: fading enters with N and removes
 	// one each upkeep, sacrificing when it can't; Blastoderm). A named
 	// counter with no other rules meaning (CR 122.1).
@@ -312,7 +322,8 @@ var CtrXNames = [NumCounterKindsX]string{"CHARGE", "OIL", "SPORE", "QUEST", "VER
 	"First Strike", "Double Strike", "Deathtouch", "Haste", "Hexproof", "Indestructible", "Lifelink", "Menace",
 	"Reach", "Shadow", "Trample", "Vigilance", "SUPPLY", "LORE", "LANDMARK", "DREAD", "DEFENSE", "CHORUS", "M0M1", "FINALITY", "TIME", "VALOR", "NET", "PLAN",
 	"INVASION", "LOOT", "REV", "PAGE", "INGENUITY", "FILM", "FIRE", "HONE", "COIN",
-	"DIVINITY", "IMPOSTOR", "BORE", "POINT", "BLOODSTAIN", "POSSESSION", "PROMOTION", "PEACE", "WISH", "SKEWER", "NEST", "AGE", "LUCK", "FADE"}
+	"DIVINITY", "IMPOSTOR", "BORE", "POINT", "BLOODSTAIN", "POSSESSION", "PROMOTION", "PEACE", "WISH", "SKEWER", "NEST", "AGE", "LUCK",
+	"DEPLETION", "MINING", "FADE"}
 
 // IsCounterKind reports whether c is a real counter kind (a featurized one
 // or an unfeaturized one; CtrLevel and the gap at NumCounterKinds2 are not).

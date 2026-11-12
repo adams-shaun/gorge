@@ -18,8 +18,8 @@ import (
 func TestLowerTapsformanaChoice(t *testing.T) {
 	want := map[string][]string{
 		"Roxanne, Starfall Savant": nil,
-		"Shimmerwilds Growth":      {"trigger mode TapsForMana", `SetColor "ChosenColor"`},
-		"Buried in the Garden":     {"trigger mode TapsForMana"},
+		"Shimmerwilds Growth":      {`SetColor "ChosenColor"`},
+		"Buried in the Garden":     {"extra of any colour"},
 	}
 	var names []string
 	for n := range want {

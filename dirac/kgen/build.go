@@ -385,6 +385,8 @@ var counterKinds = map[string]kop.CounterKind{
 	"AGE":        kop.CtrAge,        // cumulative upkeep's age counter (CR 702.24a; Mystic Remora)
 	"FADE":       kop.CtrFade,       // fading's fade counter (CR 702.32a; Blastoderm)
 	"LUCK":       kop.CtrLuck,       // Gemstone Caverns' named counter (CR 122.1; the Condition-split mana gate, lower_condsplit.go)
+	"DEPLETION":  kop.CtrDepletion,  // Peat Bog's depletion counter (CR 122.1; mana_rider.go)
+	"MINING":     kop.CtrMining,     // Gemstone Mine's mining counter (CR 122.1; mana_rider.go)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -554,6 +556,23 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Buyback != nil {
+		// Buyback rides the kicked cast (sfKicked, CardDef.Kicker) with
+		// CardDef.Buyback naming it (kw_buyback.go); refuseBuybackCombos
+		// keeps every other optional cost off the card
+		if c.Kicker != nil || c.Offspring != nil {
+			return fmt.Errorf("buyback with a kicker/offspring")
+		}
+		d.Buyback = true
+		if d.Kicker, err = manaCostOf(*c.Buyback); err != nil {
+			return err
+		}
+		if c.KickerCost != nil {
+			if d.KickerCost, err = cb.cost(*c.KickerCost); err != nil {
+				return err
+			}
+		}
+	}
 	if c.Spree {
 		d.HasModeCost = true
 		for i := range c.ModeCost {
@@ -595,6 +614,7 @@ func (cb *cardBuilder) record() error {
 	d.RemPersist, d.RemSeed, d.RemKeep = c.RemPersist, c.RemSeed, c.RemKeep
 	d.ExiledWith = c.ExiledWith
 	d.CombatHitRec = c.CombatHitRec
+	d.ProduceCol = c.ProduceCol
 	d.ExiledWithRev = c.ExwWord
 	d.SpendRead = c.SpendRead
 	if c.FbCost != nil {
@@ -1282,18 +1302,28 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			return kf, refuse("wasDealtCombatDamageThisTurnBySource off the battlefield")
 		}
 		kf.Ctrl = kop.CtrlHitBySrc
-	case whoTgtPlayer, whoDefending:
-		// controller roles the kernel reads through a Flags2 bit; the
-		// card matchers never see them (battlefield only)
+	case whoTgtPlayer, whoDefending, whoTgtOrCtrl:
+		// controller roles the kernel reads through a Flags2 bit (or, for
+		// CtrlTgt, a target slot); the card matchers never see them
+		// (battlefield only)
 		if zone != kop.ZoneBattlefield {
 			if c.Ctrl == whoTgtPlayer {
 				return kf, refuse("TargetedPlayerCtrl off the battlefield")
 			}
+			if c.Ctrl == whoTgtOrCtrl {
+				return kf, refuse("ControlledBy TargetedOrController off the battlefield")
+			}
 			return kf, refuse("ControlledBy TriggeredDefendingPlayer outside an Attacks trigger's battlefield filter")
 		}
-		if c.Ctrl == whoTgtPlayer {
+		switch c.Ctrl {
+		case whoTgtPlayer:
 			kf.Flags2 |= kop.F2TgtPlayerCtrl
-		} else {
+		case whoTgtOrCtrl:
+			if c.CtrlTgt == 0 {
+				return kf, refuse("ControlledBy TargetedOrController without a target slot")
+			}
+			kf.CtrlTgt = c.CtrlTgt
+		default:
 			kf.Flags2 |= kop.F2DefendingCtrl
 		}
 		kf.Ctrl = kop.CtrlAny

@@ -450,12 +450,13 @@ const (
 
 // Cloak/ManifestDread flags (OpCloak/OpManifestDread B.N).
 const (
-	CfTapped          = 1 << iota // the cloaked cards enter tapped (gorge Tapped$)
-	CfShuffle                     // pile shuffle; no library shuffle (gorge Shuffle$)
-	CfRemember                    // the moved cards join the remembered set (RememberCloaked$/RememberManifested$)
-	CfChosen                      // cloak the resolution's chosen card from where it sits, under the resolving controller (gorge effCloak's Choices$ pick, Vannifar)
-	CfCloakCtrl                   // Obj names only the library's owner: the cloaked cards enter under the resolving controller (gorge's cloak(t.Obj, c.Controller), Etrata)
-	CfCloakRemembered             // Defined$ Remembered: cloak each remembered card from where it sits, under the resolving controller (Expose the Culprit)
+	CfTapped             = 1 << iota // the cloaked cards enter tapped (gorge Tapped$)
+	CfShuffle                        // pile shuffle; no library shuffle (gorge Shuffle$)
+	CfRemember                       // the moved cards join the remembered set (RememberCloaked$/RememberManifested$)
+	CfChosen                         // cloak the resolution's chosen card from where it sits, under the resolving controller (gorge effCloak's Choices$ pick, Vannifar)
+	CfCloakCtrl                      // Obj names only the library's owner: the cloaked cards enter under the resolving controller (gorge's cloak(t.Obj, c.Controller), Etrata)
+	CfCloakRemembered                // Defined$ Remembered: cloak each remembered card from where it sits, under the resolving controller (Expose the Culprit)
+	CfManifestRemembered             // OpManifest only: Defined$ Remembered: manifest each remembered card from where it sits, under the resolving controller (Write into Being)
 )
 
 // CostTapHost: tap the granting host (an Equipment's granted ability).

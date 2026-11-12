@@ -1829,6 +1829,12 @@ type paymentPlanCensus struct {
 	// cost includes mana (a filter: Heap Gate's "{1}, {T}: Add one mana of
 	// any color"), each with its fee; relaxed holds the free ones.
 	paid []relaxedPaid
+	// fund is the prefix search's funding for a gap ability with no sound
+	// relaxation but a mana fee (a repeatable fee-only ability such as
+	// Orochi Leafcaller's "{G}: Add one mana of any color"): every
+	// activation spends its fee from other sources, bounded only by the
+	// search's node budget.
+	fund int
 	// bound and boundPaid hold the same relaxed units as relaxed and paid
 	// would, plus the extra copies a repeatable tap source can make in one
 	// payment (paymentPlanRelaxedAlternatives' repeats). They are set only
@@ -1858,7 +1864,7 @@ func (c paymentPlanCensus) boundedProof() paymentPlanCensus {
 // fees is the mana the missed paid abilities' fees total (how many other
 // sources a prefix may activate to fund them).
 func (c paymentPlanCensus) fees() int {
-	n := 0
+	n := c.fund
 	for _, pd := range c.paid {
 		n += int(pd.fee)
 	}
@@ -1938,6 +1944,13 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 				continue
 			}
 			relaxed, fee, repeats, once, ok := e.paymentPlanRelaxedAlternatives(p, id, ma, &probe)
+			if !ok && fee > 0 {
+				// a repeatable fee-only ability converts colour, not mana:
+				// each activation spends its fee from other sources, so the
+				// prefix search must be allowed to tap one source per fee per
+				// activation, up to its own node budget
+				out.fund += int(fee) * potentialScriptNodes
+			}
 			if out.relaxable {
 				if !ok || !once || (fee > 0 && len(out.paid) >= relaxedPaidLimit) {
 					// A repeatable tap source is deliberately not relaxable:
@@ -2042,6 +2055,11 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 	if cost.X != 0 || cost.XMin != 0 || len(cost.Hybrid)+len(cost.Phyrexian)+len(cost.Twobrid)+len(cost.HybridPhyrexian) != 0 || cost.Snow != 0 {
 		return nil, 0, 0, false, false
 	}
+	// The fee is the mana the activation spends whatever else follows: a
+	// repeatable fee-only ability (Orochi Leafcaller's "{G}: Add one mana of
+	// any color", Energy Refractor's "{2}: ...") has no sound once-only
+	// relaxation below, but the prefix search still has to fund each
+	// activation, so the census reads its fee even when ok is false.
 	fee = cost.Generic + cost.Colored.Total()
 	once = cost.Tap || cost.Untap || strings.TrimSpace(ma.ParamStr(cards.PKActivationLimit)) == "1" ||
 		strings.TrimSpace(ma.ParamStr(cards.PKGameActivationLimit)) == "1"
@@ -2069,7 +2087,9 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 			return nil, 0, 0, false, true
 		}
 	} else {
-		return nil, 0, 0, false, false
+		// repeatable and not a bounded tap part: no sound relaxation, but
+		// the fee is still the prefix search's funding (fees below)
+		return nil, fee, 0, false, false
 	}
 	amt := availableAmount(ma)
 	if amt <= 0 {

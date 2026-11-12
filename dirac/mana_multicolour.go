@@ -21,11 +21,30 @@ import (
 // abilities in W U B R G C order, colours distinct).
 
 // prepMultiMana folds card c's further plain fixed-colour mana abilities
-// into pc (prepare). It leaves pc as the first ability alone unless every
-// mana ability of c has that shape.
+// into pc (prepare), and reads a later bare "{T}: Add one mana of the chosen
+// colour" beside a plain fixed first ability as the first's chosen-colour
+// twin (Quirion Elves; kop.ChosenSecondManaAb). It leaves pc as the first
+// ability alone unless every mana ability of c has one of those shapes.
 //
 //go:noinline
 func prepMultiMana(c *kop.CardDef, pc *pcard) {
+	first, nAb := -1, 0
+	for j := range c.Abilities {
+		if a := &c.Abilities[j]; a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 {
+			if first < 0 {
+				first = j
+			}
+			nAb++
+		}
+	}
+	if first >= 0 && nAb == 2 {
+		for j := first + 1; j < len(c.Abilities); j++ {
+			if kop.ChosenSecondManaAb(c, first, j) {
+				pc.manaChosen, pc.manaFixedChosen = true, true
+				return
+			}
+		}
+	}
 	var col kop.ColorMask
 	n := 0
 	for j := range c.Abilities {

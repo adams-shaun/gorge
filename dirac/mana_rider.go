@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // A mana ability with a counter rider (Twitching Doll: "{T}: Add one mana of
 // any color. Put a nest counter on this"; kgen ctrRiderMana). CR 605.3b: the
@@ -48,14 +52,21 @@ func cardManaRider(cd *kop.CardDef) (kind, n int, ok bool) {
 	return manaCtrRider(&cd.Abilities[j])
 }
 
-// riderDeferred reports whether sl is a counter-rider mana source the
-// planner defers.
+// riderDeferred reports whether sl is a source whose *first* mana ability is
+// a bounded rider: gorge's planner defers that alternative, so the census
+// skips the source. A later rider ability beside a plain first one (Grove of
+// the Burnwillows) leaves the first unit priced and is only a prefix gap
+// (mana_tapsdefer.go).
 func (s *State) riderDeferred(k *prep, sl Slot) bool {
 	if k.gen == nil || !k.gen.anyManaRider || s.genLost(k, sl) {
 		return false
 	}
-	_, _, ok := cardManaRider(&k.t.Cards[s.cardAt(sl)])
-	return ok
+	c := s.cardAt(sl)
+	if _, _, ok := cardManaRider(&k.t.Cards[c]); ok {
+		return true // Twitching Doll's counter-on-self rider (manaCtrRider)
+	}
+	_, ok := s.riderAbilityOf(k, sl)
+	return ok && int(k.cards[c].manaAb) == int(k.riderAbOf(c))
 }
 
 // planDeferred reports whether gorge's planner tier defers sl: a counter
@@ -91,5 +102,145 @@ func (s *State) manaRider(k *prep, sl Slot) {
 	}
 	if m > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
 		s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(m))
+	}
+}
+
+// riderAbOf is card c's bounded rider ability index (prep.riderAb), -1 none.
+func (k *prep) riderAbOf(c CardID) int8 {
+	if int(c) >= len(k.riderAb) {
+		return -1
+	}
+	return k.riderAb[c]
+}
+
+// riderAbilityOf is the bounded rider ability of the source at sl, when it has
+// one: a mana ability whose kop.Ability.ManaRider is set (mana_rider.go).
+func (s *State) riderAbilityOf(k *prep, sl Slot) (*kop.Ability, bool) {
+	c := s.cardAt(sl)
+	ra := k.riderAbOf(c)
+	if ra < 0 || int(ra) >= len(k.t.Cards[c].Abilities) {
+		return nil, false
+	}
+	a := &k.t.Cards[c].Abilities[ra]
+	if a.Kind != kop.AbMana || a.ManaRider == kop.ManaRiderNone {
+		return nil, false
+	}
+	return a, true
+}
+
+// riderActivatable reports whether the bounded rider ability a of the source at
+// sl can be activated now: untapped (and not summoning sick when its cost taps
+// a creature) and its own counters enough.
+func (s *State) riderActivatable(k *prep, p uint8, sl Slot, a *kop.Ability) bool {
+	if !s.occ.has(sl) || s.genLost(k, sl) || s.activationSick(k, sl) ||
+		k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) {
+		return false
+	}
+	pm := &s.perms[sl]
+	if a.Cost.Flags&kop.CostTap != 0 && pm.flags&pfTapped != 0 {
+		return false
+	}
+	if a.Cost.Flags&kop.CostRemoveCtr != 0 && pm.ctrN(s, int(a.Cost.Ctr)) < int(a.Cost.N) {
+		return false
+	}
+	return true
+}
+
+// riderGap activates the bounded rider source at sl for p: its counters, its
+// tap, its mana, then its rider (CR 605.3b). answer is the colour answer index among the
+// production's bits.
+func (s *State) riderGap(k *prep, p uint8, sl Slot, answer int) bool {
+	a, ok := s.riderAbilityOf(k, sl)
+	if !ok || !s.riderActivatable(k, p, sl, a) {
+		return false
+	}
+	pm := &s.perms[sl]
+	if a.Cost.Flags&kop.CostRemoveCtr != 0 {
+		pm.seeCtr(s) // the activation path's CostRemoveCtr (mana_window.go)
+		pm.subCtrN(s, int(a.Cost.Ctr), int(a.Cost.N))
+	}
+	if a.Cost.Flags&kop.CostTap != 0 {
+		pm.flags |= pfTapped
+		s.touchSl(sl)
+		s.manaTapped(k, sl)
+	}
+	s.manaRiderFloat(k, p, sl, a, answer)
+	s.manaRiderEffect(k, sl, a)
+	return true
+}
+
+// riderAnswerBit is the index of colour col among mask's bits (the script's
+// answer encoding); 0 when col is not in mask.
+func riderAnswerBit(mask uint8, col int) int {
+	n := 0
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if mask&(1<<uint(c)) == 0 {
+			continue
+		}
+		if c == col {
+			return n
+		}
+		n++
+	}
+	return 0
+}
+
+// manaRiderFloat adds the rider ability a's mana to p's pool: one of a chosen
+// colour, each colour of an all-at-once production, or a fixed colour, its
+// amount a.ManaN. answer selects the colour among the mask's bits.
+func (s *State) manaRiderFloat(k *prep, p uint8, sl Slot, a *kop.Ability, answer int) {
+	n := int(a.ManaN)
+	if n == 0 {
+		n = 1
+	}
+	mask := uint8(a.ManaColors)
+	if a.ManaEach {
+		for col := 0; col < kop.NumManaKinds; col++ {
+			if mask&(1<<uint(col)) != 0 {
+				s.pl[SeatIx(p)].pool[col] += uint8(n)
+				s.artTag(k, p, sl, col)
+			}
+		}
+		return
+	}
+	col := 0
+	if mask == uint8(kop.ColAny) || a.AFlags&kop.AfManaChoice != 0 {
+		i := answer
+		for c := 0; c < kop.NumManaKinds; c++ {
+			if mask&(1<<uint(c)) == 0 {
+				continue
+			}
+			if i == 0 {
+				col = c
+				break
+			}
+			i--
+		}
+	} else if mask != 0 {
+		col = bits.TrailingZeros8(mask)
+	}
+	s.pl[SeatIx(p)].pool[col] += uint8(n)
+	s.artTag(k, p, sl, col)
+}
+
+// manaRiderEffect runs a's rider after its mana (CR 605.3b): the
+// source's sacrifice once its last counter is gone, or each opponent gaining
+// life.
+func (s *State) manaRiderEffect(k *prep, sl Slot, a *kop.Ability) {
+	switch a.ManaRider {
+	case kop.ManaRiderDeplete:
+		if s.perms[sl].ctrN(s, int(a.ManaRiderCtr)) == 0 {
+			s.fireSac(k, sl)
+			s.leaveParked(k, sl)
+		}
+	case kop.ManaRiderOppGainLife:
+		n := int(a.ManaRiderN)
+		if n < 1 {
+			n = 1
+		}
+		q := s.oppsFrom(s.perms[sl].ctrl)
+		for i := uint8(0); i < q.n; i++ {
+			s.gainLife(k, q.s[i], n)
+		}
 	}
 }

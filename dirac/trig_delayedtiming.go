@@ -83,7 +83,8 @@ func (s *State) fireDelayedWhen(k *prep, at int) {
 			at == 1 && (w == kop.DelayUpkeep || w == kop.DelayYourUpkeep && s.active == d.ctrl) ||
 			at == 2 && w == kop.DelayEndCombat) ||
 			at == 0 && d.ext == dpExtYourEndStep && s.active == d.ctrl ||
-			at == 1 && d.ext >= dpExtPlayerUpkeep && s.active == d.ext-dpExtPlayerUpkeep ||
+			at == 1 && d.ext >= dpExtPlayerUpkeep && d.ext < dpExtRemUpkeep && s.active == d.ext-dpExtPlayerUpkeep ||
+			at == 1 && d.ext >= dpExtRemUpkeep ||
 			at == 3 && d.ext == dpExtBeginCombat
 		if !due {
 			s.g.dp[keep], s.g.dpLKI[keep] = d, s.g.dpLKI[i]
@@ -106,7 +107,11 @@ func (s *State) fireDelayedWhen(k *prep, at int) {
 		if DebugDelayBeginCombatOff && d.ext == dpExtBeginCombat {
 			continue // TestTheWrathOfKhanMutation: the due program is dropped unrun
 		}
-		s.enqueue(d.src, sv, d.card, d.ab, d.ctrl, ro, d.ctrl, amt)
+		tpl := d.ctrl
+		if d.ext >= dpExtRemUpkeep {
+			tpl = d.ext - dpExtRemUpkeep // trig_delayremupkeep.go: the remembered player
+		}
+		s.enqueue(d.src, sv, d.card, d.ab, d.ctrl, ro, tpl, amt)
 		if s.npend > m {
 			s.pend[m].li = s.g.dpLKI[i]
 			s.pend[m].remVer, s.pend[m].skw = remVer, s.pend[m].skw&^skwRem|boolBit(remSet, skwRem)

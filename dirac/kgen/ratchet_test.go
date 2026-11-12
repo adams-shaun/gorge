@@ -125,9 +125,13 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (ConditionActivationLimit$ lowers to kop.ExActivations on a card whose one non-mana activated ability it gates: Dragon Whelp; DMU 194 -> 195, ALL 22176 -> 22177).
 	// +1 (Fiend Hunter's Defined$ DirectRemembered leave return lowers as the remembered-persist pair; ALL 22176 -> 22177).
 	// +1 (the merge with land: Count$TotalDamageReceivedThisTurn lowered: Tangled Colony beside land's 22180; ALL 22180 -> 22181, WOE 261 -> 262).
+	// +5 (Dig NoLooking$ and Manifest Defined$ Remembered lower: Telling Time, Moment of Truth, Expressive Iteration, Write into Being, Hamza, Might of the Yathan; ALL 22345 -> 22350, MOM 199 -> 200).
 	// +57 (the Echo and Fading keywords lower, echo over a plain mana cost: Cradle Guard, Blastoderm, Avalanche Riders, Mogg War Marshal and the rest of the 24 echo and 11 fading cards the keyword alone refused; ALL 22345 -> 22402).
+	// +58 (the merge with land: the Echo and Fading lowering's +57 measured at
+	// 22345 is +58 on land's tree, one card lowering only with both sides'
+	// changes; merged ALL 22592 -> 22650, measured).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22402, 34442},
+	"ALL": {22650, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {216, 280},
@@ -142,18 +146,18 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	"MKM": {251, 279},
-	"MOM": {199, 296},
+	"MOM": {200, 296},
 	"MSH": {246, 276},
 	"NEO": {201, 287},
 	"ONE": {200, 271},
 	"OTJ": {251, 276},
 	"SNC": {187, 266},
-	"SOS": {256, 270},
+	"SOS": {257, 270},
 	"SPM": {169, 192},
 	"TDM": {256, 276},
 	"TLA": {261, 285},
 	"TMT": {183, 194},
-	"TRC": {299, 337},
+	"TRC": {300, 337},
 	"TRK": {311, 311},
 	"WOE": {262, 281},
 }

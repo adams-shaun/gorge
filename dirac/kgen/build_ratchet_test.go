@@ -219,8 +219,23 @@ import (
 // +2 (the optional copy-instead CreateToken replacement: the cards listed at ratchet_test.go's ALL pin; ALL build-level 22149 -> 22151).
 // +1 (Count$TotalDamageReceivedThisTurn lowered: Tangled Colony; merged with land ALL build-level 22180 -> 22181).
 // +1 (ConditionActivationLimit$ lowers to kop.ExActivations: Dragon Whelp; merged with land ALL build-level 22184 -> 22185).
+// +5 (the Aura-on-land TapsForMana extra with a literal body: Wild Growth, Overgrowth, Wolfwillow Haven, Gauntlet of Might, Vernal Bloom; ALL build-level 22345 -> 22350).
+// +11 (static Condition$ NotPlayerTurn on the Force cycle's AlternativeCost
+// and the hasFewer<Type>sInPlayThanYou combat statics lower, and the bare
+// ExileFromHand<1/Spec> alternative beside them: Cave-In, Pyrokinesis,
+// Snapback, Unmask, Vine Dryad, Force of Negation, Force of Vigor, Force of
+// Despair, Monstrous Hound, Mogg Toady, Goblin Goon; ALL build-level 22381 -> 22392).
+// +192 (the merge with land: this branch's +11, of which land's Misdirection
+// bare-exile lowering already built Cave-In, Pyrokinesis, Snapback, Unmask and
+// Vine Dryad; the six new ones are Force of Negation, Force of Vigor, Force of
+// Despair, Monstrous Hound, Mogg Toady and Goblin Goon; merged ALL build-level
+// 22392 -> 22584).
+// +57 (the Echo and Fading keywords lower, echo over a plain mana cost: Cradle Guard, Blastoderm, Avalanche Riders, Mogg War Marshal and the rest of the 24 echo and 11 fading cards the keyword alone refused; ALL 22345 -> 22402).
+// +58 (the merge with land: the Echo and Fading lowering's +57 measured at
+// 22345 is +58 on land's tree, one card lowering only with both sides' changes;
+// merged ALL build-level 22592 -> 22650, measured).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22402, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22650, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
