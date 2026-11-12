@@ -43,11 +43,11 @@ func globSet(t *testing.T, pool string, r *Repro) cardset.Set {
 	return reproSet(t, pool, r)
 }
 
-// replayReproRes is replayReproValue over an already-decoded repro, on the
+// replayDecodedRes is replayReproValue over an already-decoded repro, on the
 // surface the repro records and 200 decisions past its script, without its
 // divergence fatal: a caller that wants the divergence (a mutation test
 // needing one) reads res.Div itself.
-func replayReproRes(t *testing.T, reg *cards.Registry, set cardset.Set, r *Repro) Result {
+func replayDecodedRes(t *testing.T, reg *cards.Registry, set cardset.Set, r *Repro) Result {
 	t.Helper()
 	m, err := r.Matchup(reg)
 	if err != nil {
@@ -79,7 +79,7 @@ func replayReproRes(t *testing.T, reg *cards.Registry, set cardset.Set, r *Repro
 // replay clean.
 func replayReproValue(t *testing.T, reg *cards.Registry, set cardset.Set, r *Repro) Result {
 	t.Helper()
-	res := replayReproRes(t, reg, set, r)
+	res := replayDecodedRes(t, reg, set, r)
 	if res.Div != nil {
 		t.Fatalf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
 	}
