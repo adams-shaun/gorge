@@ -24,18 +24,42 @@ func TestMultikickerGrantedDelveLockstep(t *testing.T) {
 		{Name: "Plains", Count: 10}, {Name: "Island", Count: 7},
 		{Name: "Swamp", Count: 7}, {Name: "Forest", Count: 6},
 	}
+	runMultikickerDelve(t, d, "Apex Hawks", "")
+}
+
+// The positive half: a multikicked Everflowing Chalice (Multikicker {2}, cost
+// {0}) is offered on the graveyard credit alone, with Dark Ritual's mana
+// floating. The oracle's lowering witness must price that same credit, or it
+// taps (and floats) the credit's worth of extra mana and the projections
+// diverge at the next decision.
+func TestMultikickerGrantedDelvePositiveLockstep(t *testing.T) {
+	t.Parallel()
+	d := []cardset.Entry{
+		{Name: "Everflowing Chalice", Count: 4}, {Name: "Teval, Arbiter of Virtue", Count: 6},
+		{Name: "Dark Ritual", Count: 8}, {Name: "Swamp", Count: 8},
+		{Name: "Island", Count: 7}, {Name: "Forest", Count: 7},
+	}
+	tl := runMultikickerDelve(t, d, "Everflowing Chalice", "Dark Ritual")
+	if tl.casts["Everflowing Chalice"] == 0 {
+		t.Error("no multikicked Everflowing Chalice was cast: the positive credit offer was never taken")
+	}
+}
+
+func runMultikickerDelve(t *testing.T, d []cardset.Entry, want, ritual string) *mkDelveTally {
+	t.Helper()
 	tl := &mkDelveTally{casts: map[string]int{}, counts: map[int]int{}}
 	runMultikicker(t, [2][]cardset.Entry{d, d}, 24, func(seed uint64) Policy {
-		return mkDelvePolicy(seed, tl)
+		return mkDelvePolicy(seed, tl, want, ritual)
 	})
-	t.Logf("multikicked casts %v; counts %v; live-with-Hawks decisions %d; Teval casts %d",
-		tl.casts, tl.counts, tl.liveWithHawks, tl.teval)
+	t.Logf("multikicked casts %v; counts %v; live-with-%s decisions %d; Teval casts %d",
+		tl.casts, tl.counts, want, tl.liveWithHawks, tl.teval)
 	if tl.teval == 0 {
 		t.Error("Teval was never cast: the delve grant was never live")
 	}
 	if tl.liveWithHawks == 0 {
-		t.Error("no decision had Teval's delve grant live with Apex Hawks still in hand")
+		t.Errorf("no decision had Teval's delve grant live with %s still in hand", want)
 	}
+	return tl
 }
 
 // mkDelveTally counts the states the delve fixture depends on.
@@ -52,7 +76,7 @@ type mkDelveTally struct {
 // the card the grant's credit applies to. A kicked cast taken while Teval is
 // live is the positive case; without the pool the kicked offer must not
 // exist at all (the pre-fix divergence this fixture found).
-func mkDelvePolicy(seed uint64, tl *mkDelveTally) Policy {
+func mkDelvePolicy(seed uint64, tl *mkDelveTally, want, ritual string) Policy {
 	rnd := RandomPolicy(seed)
 	r := rand.New(rand.NewPCG(seed, 0x6d6b646c))
 	kick, _ := castModeCode("kicked")
@@ -92,13 +116,22 @@ func mkDelvePolicy(seed uint64, tl *mkDelveTally) Policy {
 			return a
 		}
 		live := mkTevalOnField(c)
-		if live && mkHandHas(c, "Apex Hawks") {
+		if live && mkHandHas(c, want) {
 			tl.liveWithHawks++
+			// float the ritual's mana before the kicked cast, so the pool
+			// holds mana beside the graveyard credit
+			if ritual != "" {
+				for _, a := range c.D.Options {
+					if a.Kind() == ActCast && a.Mode() == 0 && mkCastName(c, a) == ritual {
+						return a
+					}
+				}
+			}
 			// A kicked Apex Hawks can only be the pool-plus-delve offer once
 			// the grant is live (the potential walk declines the credit).
 			for _, a := range c.D.Options {
-				if a.Kind() == ActCast && a.Mode()&0x0f == kick && mkCastName(c, a) == "Apex Hawks" {
-					tl.casts["Apex Hawks"]++
+				if a.Kind() == ActCast && a.Mode()&0x0f == kick && mkCastName(c, a) == want {
+					tl.casts[want]++
 					return a
 				}
 			}
@@ -107,7 +140,7 @@ func mkDelvePolicy(seed uint64, tl *mkDelveTally) Policy {
 		// would leave no multikicker card for the credit.
 		opts = opts[:0]
 		for _, a := range c.D.Options {
-			if a.Kind() == ActCast && mkCastName(c, a) == "Apex Hawks" {
+			if a.Kind() == ActCast && mkCastName(c, a) == want {
 				continue
 			}
 			opts = append(opts, a)

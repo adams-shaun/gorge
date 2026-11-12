@@ -146,6 +146,12 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 			// the witness's pool: tap only for the rest
 			cost = s.restrShort(k, p, c, s.restrOriginOfObj(o), cost)
 		}
+		if k.t.Cards[c].HasMultikicker {
+			// gorge's composed witness prices the delve credit (granted or
+			// printed) that kickedAffords / multikickMax offer on: the same
+			// helper, or the witness taps and floats that much extra
+			cost = s.gateDelveCredit(k, p, c, o, ob.zone == kop.ZoneHand, cost)
+		}
 		s.tapFor(k, p, &cost, 0, NoObj)
 	} else if mode&castWarp != 0 || k.gen != nil && (k.gen.anyImpending && s.bld().e.impended() || k.gen.anyEvoke && s.bld().e.evoked() || k.gen.anyDash && s.bld().e.dashed(k)) {
 		// a hand warp is one of gorge's potential plays (the "warped" cast
