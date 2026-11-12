@@ -238,7 +238,7 @@ import (
 // Underworld Breach, The Master of Keys, Pardic Firecat, Diligent Farmhand and
 // Ground Seal — lower beside land's; merged ALL build-level 22868 -> 22873).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22934, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22976, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
