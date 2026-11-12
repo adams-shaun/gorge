@@ -446,3 +446,35 @@ func TestSpiritGuideOffColour(t *testing.T) {
 		}
 	}
 }
+
+// TestSpiritGuideXWindow measures whether natural play (no out-of-band tap, so a
+// recorded repro could hold it) opens a payment window that lists the guide:
+// Banefire announces an {X}, whose window (gorge's announcedManaWindowAsk) is
+// the one natural window shape the decks here reach. Both guides sit beside
+// Banefire and Mountains (the Elvish guide's {G} could pay the generic X). The
+// Simian guide's decks open such windows, and it asserts that they list the
+// guide and are never answered with it (a battlefield source is listed ahead of
+// it, and the plan covers what is owed); the Elvish guide's decks opened none
+// in the seeds run, which the log records without asserting.
+func TestSpiritGuideXWindow(t *testing.T) {
+	for _, guide := range []string{"Simian Spirit Guide", "Elvish Spirit Guide"} {
+		var deck []string
+		for range 8 {
+			deck = append(deck, guide, "Banefire")
+		}
+		for len(deck) < 40 {
+			deck = append(deck, "Mountain")
+		}
+		o := runSpiritGuideDeck(t, deck, 200, tapNone)
+		t.Logf("%s with Banefire: windows=%d holdGuide=%d lists=%d picks=%d shapes=%v byPool=%v", guide, o.windows, o.windowsHoldGuide, o.windowListsGuide, o.windowPicksGuide, o.shapes, o.byPool)
+		if guide[0] == 'E' {
+			continue
+		}
+		if o.windowListsGuide == 0 {
+			t.Errorf("%s: no natural window listed the guide (%d windows held one): the probe measured nothing", guide, o.windowsHoldGuide)
+		}
+		if o.windowPicksGuide != 0 {
+			t.Errorf("%s: the oracle answered a natural window with the guide %d times", guide, o.windowPicksGuide)
+		}
+	}
+}
