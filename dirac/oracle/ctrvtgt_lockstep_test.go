@@ -7,12 +7,13 @@ import (
 	"github.com/adams-shaun/gorge/dirac/cardset"
 )
 
-// The TargetValidTargeting$ lockstep for the counters the corpus classes
-// beside Fugitive Droid and Turn Aside: Confound and Intervene
-// ("Creature.inRealZoneBattlefield", a dot before the zone word), Avoid Fate
-// (a spell-side ValidTgts$ Instant,Aura filter beside the clause), Dawn
-// Charm's counter mode (TargetValidTargeting$ You, a player target) and
-// Vigilant Martyr (an ability counter with the same dot form).
+// The TargetValidTargeting$ lockstep for every card the corpus classes newly
+// lowered by the dot-zone, "You" and spell-side-filter handling: Confound and
+// Intervene ("Creature.inRealZoneBattlefield", a dot before the zone word),
+// Vigilant Martyr (the dot form with an Enchantment type), Avoid Fate and Ring
+// of Immortals (a spell-side ValidTgts$ Instant,Aura filter beside the clause)
+// and Dawn Charm and Cerulean Drake (TargetValidTargeting$ You, a player
+// target).
 //
 // The opponent's Flame Slash is a sorcery aimed at the first deck's creatures:
 // it meets Confound and Intervene but not Avoid Fate's Instant,Aura filter, so
@@ -26,9 +27,10 @@ import (
 var kctrvtgtDecks = [2][]cardset.Entry{
 	{
 		{Name: "Confound", Count: 3}, {Name: "Intervene", Count: 3}, {Name: "Avoid Fate", Count: 3},
-		{Name: "Dawn Charm", Count: 4}, {Name: "Vigilant Martyr", Count: 2}, {Name: "Grizzly Bears", Count: 4},
-		{Name: "Lightning Bolt", Count: 2}, {Name: "Giant Growth", Count: 2}, {Name: "Island", Count: 7},
-		{Name: "Plains", Count: 5}, {Name: "Forest", Count: 3}, {Name: "Mountain", Count: 2},
+		{Name: "Dawn Charm", Count: 4}, {Name: "Vigilant Martyr", Count: 2}, {Name: "Cerulean Drake", Count: 2},
+		{Name: "Ring of Immortals", Count: 2}, {Name: "Grizzly Bears", Count: 2}, {Name: "Lightning Bolt", Count: 1},
+		{Name: "Giant Growth", Count: 1}, {Name: "Island", Count: 7}, {Name: "Plains", Count: 5},
+		{Name: "Forest", Count: 3}, {Name: "Mountain", Count: 2},
 	},
 	{
 		{Name: "Shock", Count: 2}, {Name: "Lightning Bolt", Count: 3}, {Name: "Pacifism", Count: 2},

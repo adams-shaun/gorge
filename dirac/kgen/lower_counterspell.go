@@ -100,9 +100,9 @@ func counterTypeList(tt string) (spell string, trigOnly bool, err error) {
 }
 
 // counterValidTargeting reads TargetValidTargeting$ (gorge
-// filterTargetValidTargeting, the offer only): every comma term must carry
-// +inRealZoneBattlefield, which is stripped (the kernel matches battlefield
-// objects) and the rest built as a battlefield filter.
+// filterTargetValidTargeting, the offer only): every comma term must carry an
+// inRealZoneBattlefield zone term, which is stripped (the kernel matches
+// battlefield objects) and the rest built as a battlefield filter.
 //
 // The zone term is "+inRealZoneBattlefield" after a property (Permanent.YouCtrl)
 // or ".inRealZoneBattlefield" after a bare type (Creature). The word "You"
@@ -122,7 +122,7 @@ func (lc *lowerCtx) counterValidTargeting(spec string) (f *lFilter, you bool, er
 			base, ok = strings.CutSuffix(t, "."+zone)
 		}
 		if !ok || base == "" || strings.Contains(base, "inRealZone") {
-			return nil, false, refuse("Counter TargetValidTargeting %q has no +inRealZoneBattlefield term on every alternative (the kernel reads battlefield targets only; Mistfolk's any-zone Card.StrictlySelf, Siren Stormtamer's You beside a creature)", spec)
+			return nil, false, refuse("Counter TargetValidTargeting %q has no inRealZoneBattlefield term on every alternative (the kernel reads battlefield targets only; Mistfolk's any-zone Card.StrictlySelf, Siren Stormtamer's You beside a creature)", spec)
 		}
 		terms[i] = base
 	}
