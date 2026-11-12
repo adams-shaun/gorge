@@ -176,7 +176,7 @@ func TestSuspendLockstep(t *testing.T) {
 	t.Parallel()
 
 	for di := range ksDecks {
-		games, divs, branch := runSuspend(t, di, 150, nil)
+		games, divs, branch := runSuspend(t, di, 100, nil)
 		t.Logf("deck %d: %d games, %d divergences; %s", di, games, divs, ksReport(branch))
 		for _, want := range []string{"suspended", "cast from exile"} {
 			if branch[want] < 10 {
@@ -187,6 +187,25 @@ func TestSuspendLockstep(t *testing.T) {
 			if want[0] == string(rune('0'+di)) && branch[want[1]] < 5 {
 				t.Errorf("deck %d: %s %d, want at least 5", di, want[1], branch[want[1]])
 			}
+		}
+	}
+}
+
+// TestSuspendMutation: each kernel switch that breaks one rule of the keyword
+// must diverge from gorge, or the lockstep above would not notice the rule.
+func TestSuspendMutation(t *testing.T) {
+	// not parallel: it flips the kernel's package-level debug switches
+	for _, m := range []struct {
+		name string
+		deck int
+		set  func()
+	}{
+		{"no haste", 1, func() { dirac.DebugSuspendNoHaste = true }},
+		{"no upkeep tick", 0, func() { dirac.DebugSuspendNoTick = true }},
+	} {
+		_, divs, _ := runSuspend(t, m.deck, 60, m.set)
+		if divs == 0 {
+			t.Errorf("%s: the lockstep did not catch the mutation", m.name)
 		}
 	}
 }

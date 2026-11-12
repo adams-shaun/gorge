@@ -108,7 +108,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.59a | not-impl | - | - | LOUD (7) |
 | 702.60a,b | not-impl | - | - | LOUD printed (5); SILENT granted (Thrumming Stone) |
 | 702.61a-c | follows | `engine/rules/split_second.go#Engine.splitSecondHolds` `engine/rules/split_second.go#Engine.filterSplitSecondActions` | `TestVATSSplitSecondWithholdsCastsAndActivations` | mana abilities, special actions kept |
-| 702.62a-d | follows | `engine/rules/cast_altcost.go#suspendCost` `engine/rules/resolution_suspend.go#Engine.Suspended` | - | not audited in depth |
+| 702.62a-d | deviates | `engine/rules/cast_altcost.go#suspendCost` `engine/rules/suspended_card.go#hasSuspendAbility` `engine/rules/turn.go#Engine.startSuspendedCast` `engine/rules/altcast.go#Engine.altCostEnter` | `TestSuspendedCreatureCastGainsHaste` `TestSelfExiledSuspendSpellTicksAndIsOfferedItsCast` `TestSuspendCastGivesTheActivePlayerPriority` | the action, the upkeep tick and the final-counter cast are turn actions, not triggers on the stack (nobody can respond to the removal or the cast offer); a card with Suspend in exile with a time counter is suspended however it got there (702.62b); the cast creature gains haste while its caster controls it (a control round trip would revive it) |
 | 702.63a-c | follows | `engine/cards/kw_vanishing.go#kwVanishing` | `TestFleshDuplicateETBGrantedVanishing` `TestVanishingDeepForestHermitUpkeepAndLastCounter` `TestCR702KeywordFalseGapsAreRegistered` | - |
 | 702.64a-c | not-impl | - | - | SILENT (granted-only in corpus) |
 | 702.65a,b | not-impl | - | - | LOUD (1) |
