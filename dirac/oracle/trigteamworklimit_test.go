@@ -99,11 +99,11 @@ func (c *ktrigp3Tally) check(ref *GorgeSide, _ Side) *Divergence {
 		case events.MoveZone:
 			c.moves[e.Obj]++
 			c.zone[e.Obj] = e.To
-			if cpName(g, e.Obj) == "Acrobatic Cheerleader" {
+			if chName(g, e.Obj) == "Acrobatic Cheerleader" {
 				c.cheer[e.Obj] = true
 			}
 		case events.Tap:
-			if cpName(g, e.Obj) == "Agent Maria Hill" {
+			if chName(g, e.Obj) == "Agent Maria Hill" {
 				if e.Counter == events.TapTeamworkCounter {
 					c.twTaps++
 				} else {
@@ -111,7 +111,7 @@ func (c *ktrigp3Tally) check(ref *GorgeSide, _ Side) *Divergence {
 				}
 			}
 		case events.TriggerPush:
-			switch cpName(g, e.Obj) {
+			switch chName(g, e.Obj) {
 			case "Agent Maria Hill":
 				c.mariaTrig++
 			case "Acrobatic Cheerleader":

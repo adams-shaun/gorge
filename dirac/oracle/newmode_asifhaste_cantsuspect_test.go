@@ -58,14 +58,6 @@ func newModeCases() []newModeCase {
 	}
 }
 
-// objName is the front-face name of gorge object id ("" when gone).
-func objName(g *GorgeSide, id state.ObjID) string {
-	if o := g.E.G.Obj(id); o != nil && o.Face() != nil {
-		return o.Face().Name
-	}
-	return ""
-}
-
 // tappedTheTurnItEntered: a permanent named name tapped in the turn it
 // entered the battlefield (no turn began between its entry and the tap), so
 // it paid a {T} cost while summoning sick.
@@ -76,7 +68,7 @@ func tappedTheTurnItEntered(name string) func(g *GorgeSide) bool {
 			switch {
 			case e.Kind == events.TurnChange:
 				clear(entered)
-			case e.Kind == events.MoveZone && e.To == state.ZBattlefield && objName(g, e.Obj) == name:
+			case e.Kind == events.MoveZone && e.To == state.ZBattlefield && sideObjName(g, e.Obj) == name:
 				entered[e.Obj] = true
 			case e.Kind == events.Tap && entered[e.Obj]:
 				return true
@@ -96,7 +88,7 @@ func activatedWhileAttached(aura string) func(g *GorgeSide) bool {
 		reached := false
 		for _, e := range g.E.L.Events {
 			switch {
-			case e.Kind == events.Attach && len(e.IDs) == 1 && objName(g, e.Obj) == aura:
+			case e.Kind == events.Attach && len(e.IDs) == 1 && sideObjName(g, e.Obj) == aura:
 				bearers[e.IDs[0]] = true
 			case e.Kind == events.MoveZone && e.From == state.ZBattlefield:
 				delete(bearers, e.Obj)

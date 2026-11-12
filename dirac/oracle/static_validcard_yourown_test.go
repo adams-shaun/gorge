@@ -13,7 +13,7 @@ import (
 // (the ids slice is g.Zone's).
 func svcyoOn(g *state.Game, p state.PlayerID, name string) bool {
 	for _, id := range g.Zone(state.ZBattlefield, p) {
-		if reproObjName(g, id) == name {
+		if chName(g, id) == name {
 			return true
 		}
 	}
@@ -38,7 +38,7 @@ var svcyoCases = []struct {
 			if ev.Kind != events.Untap || g.Active != 1 {
 				continue
 			}
-			if o := g.Obj(ev.Obj); o != nil && o.Controller == 0 && reproObjName(g, ev.Obj) == "Alpha Myr" && svcyoOn(g, 0, "Unwinding Clock") {
+			if o := g.Obj(ev.Obj); o != nil && o.Controller == 0 && chName(g, ev.Obj) == "Alpha Myr" && svcyoOn(g, 0, "Unwinding Clock") {
 				st["artifact untapped in the other player's untap step"] = true
 			}
 		}
@@ -50,7 +50,7 @@ var svcyoCases = []struct {
 				continue
 			}
 			for _, id := range ev.IDs {
-				if reproObjName(g, id) == "Reito Sentinel" {
+				if chName(g, id) == "Reito Sentinel" {
 					st["a defender attacked beside Ghalta"] = true
 				}
 			}
@@ -80,7 +80,7 @@ var svcyoCases = []struct {
 				continue
 			}
 			for _, id := range ev.IDs {
-				if o := g.Obj(id); o != nil && reproObjName(g, id) == "Guardians of Oboro" && o.Controller == 0 {
+				if o := g.Obj(id); o != nil && chName(g, id) == "Guardians of Oboro" && o.Controller == 0 {
 					st["a modified defender attacked"] = true
 				}
 			}
@@ -93,7 +93,7 @@ var svcyoCases = []struct {
 			if ev.Kind != events.Untap || g.Active != 1 {
 				continue
 			}
-			if o := g.Obj(ev.Obj); o != nil && o.Controller == 0 && reproObjName(g, ev.Obj) == "Savannah Lions" && svcyoOn(g, 0, "Prop Room") {
+			if o := g.Obj(ev.Obj); o != nil && o.Controller == 0 && chName(g, ev.Obj) == "Savannah Lions" && svcyoOn(g, 0, "Prop Room") {
 				st["a creature untapped in the other player's untap step"] = true
 			}
 		}
