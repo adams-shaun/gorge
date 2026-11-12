@@ -17,10 +17,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // (value_enteredledger.go), so the election is asked at most once per
 // replacement per turn, and no State is kept for it.
 //
-// A CreateToken op without riders asks (tokCopyOp). Every other mint site, a
-// second matching token replacement (gorge's CR 616.1 order ask), and a copy the
-// kernel cannot enter at once (an Aura, a face-down permanent, one that asks
-// as it enters) stall: StallTokRewrite.
+// A CreateToken op without riders asks (tokCopyOp), and beside a multiplier
+// the order walk asks (repl_tokorder.go). A copy proposal (CopyPermanent)
+// declines it: gorge's continueCopyTokenProposal cannot park the copy effect
+// to pose an election. Every other mint site, a second matching token
+// replacement (gorge's CR 616.1 order ask), and a copy the kernel cannot
+// enter at once (an Aura, a face-down permanent, one that asks as it enters)
+// stall: StallTokRewrite.
 
 // raGenTokCopy is the copy-instead election (ChGenTokCopy): decline, or the
 // permanent the source is attached to (source = its object).
