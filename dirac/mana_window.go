@@ -1805,8 +1805,12 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR, tapsDef slo
 func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, anyR, tapsDef slotMask, path []uint8, dead *bool) (int, bool) {
 	var d Decision
 	depth := 0 // gaps tapped at this node: order[:depth], answers path[:depth]
+	nodes := 0
 	for {
 		if depth > 0 {
+			if nodes++; ctr.any() && nodes > potentialScriptNodes { // gorge's search budget: no script past it (the counter gaps' answers multiply)
+				return 0, false
+			}
 			t := s.fork()
 			t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 			var spill [kop.NumManaKinds]uint8
@@ -1868,16 +1872,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			nch := uint8(1)
 			switch {
 			case ctr.has(order[j]):
-				c := s.cardAt(order[j])
-				if ab := k.ctrAbOf(c); ab != nil {
-					nch = 1
-					if k.ctrSecond(c) {
-						nch = 2 // the plain {T} first ability before the counter one (ctrChainTap's answer 0)
-					}
-					if ctrAnyColour(ab) {
-						nch += 4 // an any-colour counter ability's colour ask (ctrAnsCol)
-					}
-				}
+				nch = uint8(max(k.ctrChainN(s.cardAt(order[j])), 1)) // the plain {T} first ability's answers, then the counter ability's (ctrChainTap)
 			case anyR.has(order[j]):
 				nch = 6
 				if cd := &k.t.Cards[s.cardAt(order[j])]; restrWideAnyMana(&cd.Abilities[k.gen.anyR(s.cardAt(order[j]))]) {

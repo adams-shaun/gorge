@@ -196,12 +196,47 @@ func (s *State) ctrAnsCol(k *prep, a Action, sl Slot, ans int) int {
 	if ab == nil || !ctrAnyColour(ab) {
 		return -1
 	}
+	return int(s.ctrColOrder(k, a)[ans])
+}
+
+// ctrColOrder is the colour ask's answers for play a in the prefix search's
+// order: the play's announced colours first (tapXSearch.cols, needFirst).
+func (s *State) ctrColOrder(k *prep, a Action) [5]uint8 {
 	var order [5]uint8
 	for c := range order {
 		order[c] = uint8(c)
 	}
 	needFirst(order[:], s.playNeed(k, a))
-	return int(order[ans])
+	return order
+}
+
+// ctrFirstN is the answers a counter-cost source's plain {T} first mana
+// ability poses in the chain (ctrChainTap): none for a card without one, one
+// for a fixed colour, five (the colour ask, ctrColOrder's order) for an
+// any-colour one (Weather Maker's "{T}: Add one mana of any color", the
+// tapXPlainDo reading of manaCol).
+func (k *prep) ctrFirstN(c CardID) int {
+	if !k.ctrSecond(c) {
+		return 0
+	}
+	if mc := k.cards[c].manaCol; mc&(mc-1) != 0 && !DebugCtrFirstAllColours {
+		return 5
+	}
+	return 1
+}
+
+// ctrChainN is the answers a counter-cost gap of card c offers in the chain:
+// the plain first ability's (ctrFirstN) then the counter ability's, an
+// any-colour one's five colour answers (ctrAnsCol).
+func (k *prep) ctrChainN(c CardID) int {
+	n := k.ctrFirstN(c)
+	if ab := k.ctrAbOf(c); ab != nil {
+		n++
+		if ctrAnyColour(ab) {
+			n += 4
+		}
+	}
+	return n
 }
 
 // ctrChainTap applies the prefix search's chain step for gap sl, answer ans
@@ -212,13 +247,14 @@ func (s *State) ctrAnsCol(k *prep, a Action, sl Slot, ans int) int {
 // counter may kill with), any other gap its tap (tapGap).
 func (s *State) ctrChainTap(k *prep, p uint8, a Action, sl Slot, ctr, restr slotMask, ans int, held *[kop.NumManaKinds]uint8) {
 	if ctr.has(sl) {
-		off := 0
-		if k.ctrSecond(s.cardAt(sl)) { // the ask's plain {T} first ability is answer 0
-			if ans == 0 {
-				s.ctrAb1(k, p, sl)
-				return
+		off := k.ctrFirstN(s.cardAt(sl)) // the ask's plain {T} first ability answers come first
+		if ans < off {
+			col := -1 // a fixed colour asks nothing
+			if off > 1 {
+				col = int(s.ctrColOrder(k, a)[ans])
 			}
-			off = 1
+			s.ctrAb1(k, p, sl, col)
+			return
 		}
 		s.ctrGap(k, p, sl, s.ctrAnsCol(k, a, sl, ans-off))
 		s.sba(k) // the script returns to priority after the step: a Wall of Roots out of toughness dies before the next one
@@ -228,18 +264,22 @@ func (s *State) ctrChainTap(k *prep, p uint8, a Action, sl Slot, ctr, restr slot
 }
 
 // ctrAb1 applies the chain's ab1 branch for counter-cost source sl: the
-// card's plain {T} first mana ability (ctrSecond), tapped, its fixed mana
-// into the pool — the counters and the once-each-turn use stay (gorge's
+// card's plain {T} first mana ability (ctrSecond), tapped, its mana (one of
+// colour col when it asks, an any-colour one: Weather Maker; col -1 for a
+// fixed colour) into the pool — the counters and the once-each-turn use stay (gorge's
 // activation: the {T} cost, then the mana).
 //
 //go:noinline
-func (s *State) ctrAb1(k *prep, p uint8, sl Slot) {
+func (s *State) ctrAb1(k *prep, p uint8, sl Slot, col int) {
 	pm := &s.perms[sl]
 	pm.flags |= pfTapped
 	s.manaTapped(k, sl)
 	s.touchSl(sl)
 	c := s.cardAt(sl)
 	cols, n := tapXUnit(&k.t.Cards[c].Abilities[k.cards[c].manaAb])
+	if col >= 0 {
+		cols = 1 << uint(col)
+	}
 	for cc := 0; cc < kop.NumManaKinds; cc++ {
 		if cols&(1<<cc) != 0 {
 			s.poolAdd(p&1, cc, int(n))
@@ -264,8 +304,12 @@ func (s *State) ctrAb1(k *prep, p uint8, sl Slot) {
 func (s *State) ctrScript(k *prep, a Action, p uint8, order []Slot, ctr, restr slotMask, path []uint8, noGrant bool) (int, bool, bool) {
 	var d Decision
 	depth := 0 // gaps tapped at this node: order[:depth], answers path[:depth]
+	nodes := 0
 	for {
 		if depth > 0 {
+			if nodes++; nodes > potentialScriptNodes { // gorge's search budget: no script past it
+				return 0, false, true
+			}
 			t := s.fork()
 			t.g.noGrant = noGrant // (scriptDeadEnd's restrictedGrantLive count; the root's is unset)
 			var held [kop.NumManaKinds]uint8
@@ -291,16 +335,7 @@ func (s *State) ctrScript(k *prep, a Action, p uint8, order []Slot, ctr, restr s
 			}
 			j := depth - 1
 			c := s.cardAt(order[j])
-			nch := 1
-			if ab := k.ctrAbOf(c); ab != nil {
-				nch = 1
-				if k.ctrSecond(c) {
-					nch = 2 // the plain {T} first ability before the counter one (ctrChainTap)
-				}
-				if ctrAnyColour(ab) {
-					nch += 4 // the colour ask's five answers (ctrAnsCol)
-				}
-			}
+			nch := max(k.ctrChainN(c), 1)
 			if int(path[j])+1 < nch {
 				path[j]++
 				break
@@ -327,6 +362,11 @@ func (s *State) sbaCtrTough(k *prep, die, gy *slotMask) {
 		}
 	}
 }
+
+// DebugCtrFirstAllColours reads an any-colour first mana ability in the
+// counter-cost chain as one answer floating every colour (the old hole; the
+// weather-maker mutation test proves the lockstep needs the colour ask).
+var DebugCtrFirstAllColours bool
 
 // DebugNoCtrMana hides the counter-cost gaps (the wallroots mutation test
 // proves the pool's plays need them).

@@ -30,7 +30,7 @@ var kvividDecks = [2][]cardset.Entry{
 		{Name: "Plains", Count: 2}, {Name: "Secluded Courtyard", Count: 2},
 		{Name: "Bloom Tender", Count: 2}, {Name: "Giada, Font of Hope", Count: 2}, {Name: "Azorius First-Wing", Count: 3},
 		{Name: "Grizzly Bears", Count: 2}, {Name: "Doom Blade", Count: 4}, {Name: "Serra Angel", Count: 2},
-		{Name: "Lightning Bolt", Count: 2}, {Name: "Wind Drake", Count: 2}, {Name: "Hill Giant", Count: 2},
+		{Name: "Lightning Bolt", Count: 2}, {Name: "Wind Drake", Count: 2}, {Name: "Weather Maker", Count: 2},
 	},
 	{
 		{Name: "Hill Giant", Count: 2}, {Name: "Wind Drake", Count: 4}, {Name: "Grizzly Bears", Count: 4},
@@ -46,7 +46,7 @@ var kvividLands = map[string]bool{"Vivid Grove": true, "Vivid Creek": true, "Viv
 // kvividRun plays seeds with pol, failing on each divergence or unmodelled
 // stall (unless mutated: the first divergence is returned instead). byName counts, from gorge's side, each land's counter-cost mana
 // activations (the any-colour second ability).
-func kvividRun(t *testing.T, pol func(uint64) Policy, n uint64, byName map[string]int, mutated bool) *Divergence {
+func kvividRun(t *testing.T, kd [2][]cardset.Entry, pol func(uint64) Policy, n uint64, byName map[string]int, mutated bool) *Divergence {
 	t.Helper()
 	reg, err := cards.SharedCorpus(corpusDirOrSkip(t))
 	if err != nil {
@@ -57,7 +57,7 @@ func kvividRun(t *testing.T, pol func(uint64) Policy, n uint64, byName map[strin
 		t.Fatal(err)
 	}
 	var decks [2][]*cards.Card
-	for s, d := range kvividDecks {
+	for s, d := range kd {
 		for _, e := range d {
 			c, ok := reg.Lookup(e.Name)
 			if !ok {
@@ -71,7 +71,7 @@ func kvividRun(t *testing.T, pol func(uint64) Policy, n uint64, byName map[strin
 			t.Fatalf("deck %d: %d cards", s, len(decks[s]))
 		}
 	}
-	tbl, _, _, err := set.Matchup(kvividDecks[0], kvividDecks[1])
+	tbl, _, _, err := set.Matchup(kd[0], kd[1])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,9 +132,9 @@ func TestVividCounterLandsLockstep(t *testing.T) {
 	if isolate(t) {
 		return
 	}
-	kvividRun(t, pkPolicy, 48, nil, false)
+	kvividRun(t, kvividDecks, pkPolicy, 48, nil, false)
 	byName := map[string]int{}
-	kvividRun(t, ExplorePolicy, 64, byName, false)
+	kvividRun(t, kvividDecks, ExplorePolicy, 64, byName, false)
 	for name := range kvividLands {
 		t.Logf("%s counter ability activated %d times on gorge's side", name, byName[name])
 		if byName[name] == 0 {
@@ -152,7 +152,7 @@ func TestVividCounterLandsMutation(t *testing.T) {
 	}
 	dirac.DebugNoCtrMana = true
 	defer func() { dirac.DebugNoCtrMana = false }()
-	if kvividRun(t, ExplorePolicy, 64, nil, true) == nil {
+	if kvividRun(t, kvividDecks, ExplorePolicy, 64, nil, true) == nil {
 		t.Error("no divergence without the counter-cost gap")
 	}
 }
