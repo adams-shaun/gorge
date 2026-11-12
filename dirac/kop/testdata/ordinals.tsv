@@ -1187,12 +1187,14 @@ StatCantPreventDamage	StaticKind	232
 StatCantPutCounter	StaticKind	252
 StatCantSacrifice	StaticKind	237
 StatCantTarget	StaticKind	235
+StatCantTgtGrave	StaticKind	228
 StatCastWithFlash	StaticKind	6
 StatCombatDmgToughness	StaticKind	245
 StatContinuous	StaticKind	1
 StatControl	StaticKind	17
 StatCount	StaticKind	20
 StatDisableETB	StaticKind	234
+StatEscapeGrant	StaticKind	243
 StatExtraLandPlay	StaticKind	12
 StatFbGrant	StaticKind	242
 StatFlipCoinMod	StaticKind	226
