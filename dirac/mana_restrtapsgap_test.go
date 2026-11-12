@@ -2,9 +2,6 @@ package dirac
 
 import (
 	"testing"
-
-	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 )
 
 // A restricted one-colour source a Taps watcher defers (Hydraulic Helper beside
@@ -14,19 +11,7 @@ import (
 // restrDeferScriptable must not stall on it either.
 func restrTapsGapScen(t *testing.T) (*scen, Slot) {
 	t.Helper()
-	deck := []cardset.Entry{
-		{Name: "Hydraulic Helper", Count: 1}, {Name: "Captain America, Living Legend", Count: 1},
-		{Name: "Island", Count: 16},
-	}
-	tbl, da, _, err := cardsettest.Synth(t, "std-msh").Matchup(deck, deck)
-	if err != nil {
-		t.Fatal(err)
-	}
-	id := map[string]CardID{}
-	for _, c := range da {
-		id[tbl.Cards[c].Name] = c
-	}
-	sc := newScenTable(t, tbl, Config{NoElide: true})
+	sc, id := synthStdMshScen(t, "Hydraulic Helper", "Captain America, Living Legend")
 	sl := sc.slot(sc.perm(id["Hydraulic Helper"], 0))
 	sc.perm(id["Captain America, Living Legend"], 0)
 	return sc, sl
