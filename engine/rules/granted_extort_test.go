@@ -79,10 +79,16 @@ func TestGrantedExtortTriggersPerInstance(t *testing.T) {
 		t.Fatalf("Extort ask player = %d, want the granted creature's controller 0", d.Player)
 	}
 	life0, life1 := e.G.Players[0].Life, e.G.Players[1].Life
+	if e.G.Players[0].Pool[state.MW] != 1 {
+		t.Fatalf("precondition: W pool %d before the pay, want 1", e.G.Players[0].Pool[state.MW])
+	}
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
 		t.Fatalf("submit extort pay: %v", err)
 	}
 	passUntilStackEmpty(t, e, 40)
+	if e.G.Players[0].Pool[state.MW] != 0 {
+		t.Fatalf("W pool %d after the pay, want the {W/B} pip charged", e.G.Players[0].Pool[state.MW])
+	}
 	// Bolt deals 1 to the opponent; the granted Extort drains 1 and gains it.
 	if e.G.Players[1].Life != life1-2 {
 		t.Fatalf("opponent life %d after the granted Extort, want %d", e.G.Players[1].Life, life1-2)

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -31,34 +32,7 @@ var extortCards = []string{"Blind Obedience", "Crypt Ghast", "Life Insurance", "
 // covers the paid drain as well as the decline.
 func TestExtortLockstep(t *testing.T) {
 	t.Parallel()
-	cardsDir := corpusDirOrSkip(t)
-	reg, err := cards.SharedCorpus(cardsDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	set, err := cardset.RawByName("extort")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var gd [2][]*cards.Card
-	for s := 0; s < 2; s++ {
-		for _, e := range kextortDeck {
-			c, ok := reg.Lookup(e.Name)
-			if !ok {
-				t.Fatalf("%s not in the corpus", e.Name)
-			}
-			for i := 0; i < e.Count; i++ {
-				gd[s] = append(gd[s], c)
-			}
-		}
-		if len(gd[s]) != 40 {
-			t.Fatalf("deck %d: %d cards, want 40", s, len(gd[s]))
-		}
-	}
-	tbl, _, _, err := set.Matchup(kextortDeck, kextortDeck)
-	if err != nil {
-		t.Fatal(err)
-	}
+	reg, set, gd, tbl := extortFixture(t)
 	asks := 0
 	cast := map[string]bool{}
 	for seed := uint64(1); seed <= 200; seed++ {
@@ -136,32 +110,8 @@ func TestExtortDeclineLockstep(t *testing.T) {
 	t.Parallel()
 	// The decline arm is the same comparison as the pay arm; one focused
 	// policy run of each keeps a drain bug from hiding behind a policy that
-	// only ever pays. Reuse the pay test's setup with the opposite answer.
-	cardsDir := corpusDirOrSkip(t)
-	reg, err := cards.SharedCorpus(cardsDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	set, err := cardset.RawByName("extort")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var gd [2][]*cards.Card
-	for s := 0; s < 2; s++ {
-		for _, e := range kextortDeck {
-			c, ok := reg.Lookup(e.Name)
-			if !ok {
-				t.Fatalf("%s not in the corpus", e.Name)
-			}
-			for i := 0; i < e.Count; i++ {
-				gd[s] = append(gd[s], c)
-			}
-		}
-	}
-	tbl, _, _, err := set.Matchup(kextortDeck, kextortDeck)
-	if err != nil {
-		t.Fatal(err)
-	}
+	// only ever pays.
+	reg, set, gd, tbl := extortFixture(t)
 	asks := 0
 	for seed := uint64(1); seed <= 40; seed++ {
 		m, err := NewMatchup(reg, [2]string{"extort-a", "extort-b"}, gd, 1)
@@ -205,4 +155,40 @@ func extortDeclinePolicy(seed uint64) Policy {
 		}
 		return cast.Pick(c)
 	})
+}
+
+// extortFixture is the shared setup of the pay and decline lockstep arms: the
+// corpus registry, the extort card set, both seats' 40-card gorge decks and
+// the matchup table.
+func extortFixture(t *testing.T) (*cards.Registry, cardset.Set, [2][]*cards.Card, *kop.Table) {
+	t.Helper()
+	cardsDir := corpusDirOrSkip(t)
+	reg, err := cards.SharedCorpus(cardsDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	set, err := cardset.RawByName("extort")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var gd [2][]*cards.Card
+	for s := 0; s < 2; s++ {
+		for _, e := range kextortDeck {
+			c, ok := reg.Lookup(e.Name)
+			if !ok {
+				t.Fatalf("%s not in the corpus", e.Name)
+			}
+			for i := 0; i < e.Count; i++ {
+				gd[s] = append(gd[s], c)
+			}
+		}
+		if len(gd[s]) != 40 {
+			t.Fatalf("deck %d: %d cards, want 40", s, len(gd[s]))
+		}
+	}
+	tbl, _, _, err := set.Matchup(kextortDeck, kextortDeck)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return reg, set, gd, tbl
 }
