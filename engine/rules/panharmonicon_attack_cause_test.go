@@ -219,19 +219,6 @@ func panharmoniconBatchSeat(t *testing.T) (*Engine, state.ObjID, state.ObjID, st
 	return e, wulfgar, bard, a, b
 }
 
-// panharmoniconBatchEngine is the same board as panharmoniconBatchSeat for the
-// one-attacker control, returning [engine, wulfgar, bard, attacker].
-func panharmoniconBatchEngine(t *testing.T) [4]interface{} {
-	t.Helper()
-	e := threeSeatEngine(t)
-	wulfgar := onBoardCard(t, e, 0, corpusCard(t, "Wulfgar of Icewind Dale"))
-	bard := onBoardCard(t, e, 0, corpusCard(t, "Bard, Heir of Girion"))
-	a := onBoardReady(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
-	e.G.Active = 0
-	e.G.Step = state.StepDeclareAttackers
-	return [4]interface{}{e, wulfgar, bard, a}
-}
-
 // declareOneBatch declares the single attacker at seat 1.
 func declareOneBatch(t *testing.T, e *Engine, attacker state.ObjID) {
 	t.Helper()

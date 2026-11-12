@@ -252,6 +252,14 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			tr.Training = true
 		}
+		if v, ok := tp.get("Myriad"); ok {
+			// K:Myriad's expansion (gorge kwMyriad; trigmatch
+			// AttacksMatchedAttackers fires it only over its DB$ Myriad
+			// Execute$ body; lower_myriad.go)
+			if err := myriadMarker(v, tp.str("ValidCard"), cards.ResolveSVar(svars, t.Params["Execute"])); err != nil {
+				return err
+			}
+		}
 		if v, ok := tp.get("Attacked"); ok {
 			// gorge attackedDefenderMatches, from the trigger controller's
 			// seat: only the player / your-planeswalker alternatives the
@@ -1067,6 +1075,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if err := lc.facesDilemmaTrigger(tp, tr); err != nil {
 			return err
 		}
+	case "BecomeMonarch":
+		if err := lc.becomeMonarchTrigger(tp, tr); err != nil { // lower_monarch.go
+			return err
+		}
 	case "Scry", "Surveil":
 		if err := lc.scrySurveilTrigger(tp, tr, t.Mode); err != nil {
 			return err
@@ -1463,12 +1475,16 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 	}
 	if cdp, ok := tp.get("CheckDefinedPlayer"); ok && cdp != "You.withMostLife" {
-		// gorge trigger_condition.go checkDefinedPlayerHolds: only the
-		// crime spelling is read (CR 700.13); every other one refuses
-		if cdp != "You.committedCrimeThisTurn" {
+		// gorge trigger_condition.go checkDefinedPlayerHolds: the crime
+		// spelling (CR 700.13) and the monarch's (CR 725, lower_monarch.go)
+		// are read; every other one refuses
+		if c, ok := monarchCheck(cdp); ok {
+			conds = append(conds, c)
+		} else if cdp != "You.committedCrimeThisTurn" {
 			return refuse("CheckDefinedPlayer %q", cdp)
+		} else {
+			conds = append(conds, lCond{Kind: cValue, A: lValue{Kind: vCommittedCrime, Sub: []lValue{cst(1), cst(0)}}, Op: opGE, B: cst(1)})
 		}
-		conds = append(conds, lCond{Kind: cValue, A: lValue{Kind: vCommittedCrime, Sub: []lValue{cst(1), cst(0)}}, Op: opGE, B: cst(1)})
 	}
 	if ip, ok := tp.get("IsPresent"); ok {
 		if pd, ok := tp.get("PresentDefined"); ok {
@@ -1521,11 +1537,8 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			c.Op, c.A = op, v
 		}
-		if pz, ok := tp.get("PresentZone"); ok {
-			// gorge trigger_condition.go: the zones' counts summed
-			if c, err = presentZoneCond(c, pz, ip, lc); err != nil {
-				return err
-			}
+		if c, err = lc.triggeredPresentZoneCond(c, tp, ip); err != nil {
+			return err
 		}
 		conds = append(conds, c)
 	}
@@ -2575,6 +2588,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		rest, melee := splitMeleeGrant(rest)
 		rest, exalted := splitExaltedGrant(rest)
 		rest, extort := splitExtortGrant(rest)           // lower_extortgrant.go
+		rest, myriad := splitMyriadGrant(rest)           // lower_myriad.go
 		rest, st.ProtFrom, err = lc.splitProtGrant(rest) // lower_protgrant.go
 		if err != nil {
 			return nil, err
@@ -2624,6 +2638,16 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			// once per instance (lower_extortgrant.go; gorge
 			// rules/scriptfacts)
 			idx, err := lc.extortGrantTrigger()
+			if err != nil {
+				return nil, err
+			}
+			st.Grant = append(st.Grant, idx)
+		}
+		for ; myriad > 0; myriad-- {
+			// CR 702.116a-b granted: one latent Attacks Self trigger,
+			// listed once per instance (lower_myriad.go; gorge
+			// rules/trigger_granted.go)
+			idx, err := lc.myriadGrantTrigger()
 			if err != nil {
 				return nil, err
 			}

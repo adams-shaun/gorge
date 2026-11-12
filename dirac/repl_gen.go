@@ -60,6 +60,9 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	if g.anyRepl&rbPlProt != 0 && sl == NoSlot && s.plProtected(k, srcCtrl, rcp, combat) {
 		return 0 // protection from each opponent prevents it first (CR 702.16e; static_playerstats.go)
 	}
+	if sl == NoSlot && s.plProtAll(k, rcp) && !s.noPrev(k, combat) {
+		return 0 // protection from everything prevents it -- the player's only: a walker or battle they control still takes it (CR 702.16e; static_plprot.go)
+	}
 	if g.anyRepl&rbPrevCol != 0 && !combat {
 		// Ext PreventNext's depleting shield (the combat events take it in replCombatGen)
 		if m, ok := s.prevNextTake(k, srcCtrl, srcSl, srcCard, code, rcp, sl, false, n); ok {
@@ -179,6 +182,9 @@ func (s *State) replCounters(k *prep, sl Slot, kind, n int) int {
 func (s *State) playerHexproof(k *prep, p uint8) bool {
 	if k.gen == nil || k.gen.anyRepl&rbPlHex == 0 {
 		return false
+	}
+	if k.gen.anyPlHexRec && s.turnPlayerHex(k, p) {
+		return true // a Pump's this-turn player grant (repl_turnrepl.go)
 	}
 	if k.gen.anyYouHex {
 		return s.youHexproof(k, p) // ctr_shield.go
@@ -1023,6 +1029,9 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 		rcp = CodeSeat(code)
 		if g.anyRepl&rbPlProt != 0 && s.plProtected(k, ctrl, rcp, false) {
 			return false // prevented before the replacements (replDamage)
+		}
+		if s.plProtAll(k, rcp) && !s.noPrev(k, false) {
+			return false // protection from everything prevents it before the replacements (replDamage)
 		}
 	} else if int(code) < MaxObj && s.objs[code].zone == kop.ZoneBattlefield {
 		sl = s.objs[code].slot

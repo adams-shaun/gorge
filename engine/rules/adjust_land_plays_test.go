@@ -111,20 +111,6 @@ func playOneLand(t *testing.T, e *Engine, p state.PlayerID, id state.ObjID) bool
 	return true
 }
 
-// playAllLands drives priority rounds, playing id whenever it is offered,
-// and returns how many times it was played.
-func playAllLands(t *testing.T, e *Engine, p state.PlayerID, id state.ObjID, limit int) int {
-	t.Helper()
-	played := 0
-	for played < limit {
-		if !playOneLand(t, e, p, id) {
-			break
-		}
-		played++
-	}
-	return played
-}
-
 // TestAzusaGrantsTwoAdditionalLandDrops pins the reported card end to end:
 // with Azusa on the battlefield seat 0 plays THREE lands in one turn (the
 // ordinary drop plus Azusa's two), each through its own priority window,

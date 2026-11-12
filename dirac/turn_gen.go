@@ -730,6 +730,7 @@ func (s *State) cleanupGen(k *prep) {
 			r.until == kop.DurWarp && s.warpRecastLive(r) ||
 			r.until == kop.DurAirbend && s.warpRecastLive(r) ||
 			r.until == kop.DurPlot && s.plotLive(r) ||
+			r.until == kop.DurForetell && s.plotLive(r) ||
 			r.until == kop.DurPrepared && s.preparedSrc(r) ||
 			r.dur() == kop.DurWhileSrcMay && s.mayWhileSrcKeep(r) || // cast_whilesource.go
 			r.dur() == kop.DurWhileValid && s.plotLive(r) ||
@@ -930,7 +931,7 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		}
 		holder := s.prio
 		s.prio = ctrl // the caster (beginCast reads it)
-		s.beginCast(k, o, castFree)
+		s.beginCast(k, o, castFree, 0)
 		s.prio = holder
 		return false
 	}

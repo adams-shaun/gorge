@@ -7,19 +7,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/events"
 )
 
-// kindRuns run-length encodes a slice of events as (kind, count) pairs.
-func kindRuns(evs []events.Event) [][2]int {
-	var runs [][2]int
-	for _, ev := range evs {
-		if n := len(runs); n > 0 && runs[n-1][0] == int(ev.Kind) {
-			runs[n-1][1]++
-			continue
-		}
-		runs = append(runs, [2]int{int(ev.Kind), 1})
-	}
-	return runs
-}
-
 // A seat that pays its last life to a PayLife mana ability answers that
 // ability's colour choice first: state-based actions wait for priority (CR
 // 704.3). The loss then comes with no choose flow armed and no parked colour

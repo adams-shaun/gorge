@@ -90,7 +90,7 @@ func (s *State) beginCopyCast(k *prep, o Obj, ctrl uint8) bool {
 	}
 	holder := s.prio
 	s.prio = ctrl // the caster (beginCast reads it)
-	s.beginCast(k, cp, 0)
+	s.beginCast(k, cp, 0, 0)
 	s.prio = holder
 	return true
 }

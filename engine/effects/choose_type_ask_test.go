@@ -33,17 +33,6 @@ func (h *chooseTypeHost) Ask(d *decision.Decision) bool {
 
 func (h *chooseTypeHost) Suspended() bool { return h.suspended }
 
-// chooseTypeAsks collects the Choose events a resolution emitted.
-func chooseTypeAsks(h *fakeHost) []events.Event {
-	var out []events.Event
-	for _, e := range h.log {
-		if e.Kind == events.Choose && e.Counter == "type" {
-			out = append(out, e)
-		}
-	}
-	return out
-}
-
 // TestChooseTypeSingleOptionTakesTheFallbackWithoutAsking pins the
 // strict-supersets gate: with zero or one offerable type the choice is
 // forced (or empty), so no decision is posed and the deterministic fallback

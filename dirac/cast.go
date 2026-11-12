@@ -20,7 +20,7 @@ import (
 // bits 0..1 with seFaceDown, and ab = 255 (no printed spell ability).
 const castFaceDown uint8 = 1 << 7
 
-func (s *State) beginCast(k *prep, o Obj, mode uint8) {
+func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	ob := &s.objs[o]
 	p := s.prio
 	c := ob.card
@@ -29,7 +29,11 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		fl |= sfKicked
 	}
 	mayhem := mayhemCast(k, c, mode) // a graveyard cast that is no flashback (kw_mayhem.go)
-	if mode&2 != 0 && !mayhem {
+	if k.gen != nil && k.gen.anyAftermath {
+		fl |= s.aftermathCastFlags(k, o, c, mode) // exiled leaving the stack (face_aftermath.go)
+	}
+	retrace := mode&2 != 0 && !mayhem && tgt == retraceTgt && k.t.Cards[c].Retrace // kw_retrace.go
+	if mode&2 != 0 && !mayhem && !retrace {
 		fl |= sfFlashback
 		if two, _, g := s.fbInstances(k, p, o); two && g {
 			fl |= sfFbGranted // the granted instance (fbInstances)
@@ -48,6 +52,9 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 	}
 	if mayhem {
 		e.trigPl = trigPlMayhem
+	}
+	if retrace {
+		e.trigPl = trigPlRetrace // the retrace cast's pick cost (kw_retrace.go)
 	}
 	if mode&castFaceDown != 0 {
 		e.ab = 255
@@ -72,6 +79,10 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		s.g.warpGrant = false
 		if mode&castWarpRecast != 0 {
 			e.mode |= modeWarpRecast
+		}
+		if s.g.impCast && ob.zone == kop.ZoneExile {
+			e.trigPl = trigPlForetold // the foretold cast from exile (kw_foretell.go)
+			s.g.impCast = false
 		}
 		if s.g.impCast {
 			if k.t.Cards[c].HasOverload {
@@ -107,7 +118,11 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 	s.ctl = ctlBuild
 	if k.gen != nil && k.gen.anyConvoke && mode&3 == 0 && s.tapPays(k, p, c, o, ob.zone == kop.ZoneHand) {
 		if _, planned := s.plannedCastCostOf(k, p, o, mode, false, false); planned {
-			s.bld().bfl |= bflTargetPaid
+			if s.improviseLifted(k, p, c, o, ob.zone == kop.ZoneHand) {
+				s.bld().impPlan = true // (bflTargetPaid shares its bit with bflDefeatCast)
+			} else {
+				s.bld().bfl |= bflTargetPaid
+			}
 		}
 	}
 	// a cast only a typed permission allows (Muldrotha's per-type statics,
@@ -567,7 +582,7 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		c := cd.Cost
 		if e.flags&sfFlashback != 0 && ((cd.Keywords&kop.KwFlashback != 0 || cd.BeamMeUp) && e.flags&sfFbGranted == 0 || cd.Harmonize) {
 			c = cd.AltCost // a granted flashback costs the mana cost
-		} else if e.flags&sfFlashback != 0 && k.gen != nil && k.gen.anyFbGrant && !cd.BeamMeUp {
+		} else if e.flags&sfFlashback != 0 && k.gen != nil && k.gen.anyFbGrant && !cd.BeamMeUp && !cd.Aftermath {
 			c = s.fbGrantCost(k, e.ctrl, e.obj, s.bld().fbGrants != 0) // or a live grant's own cost (kw_fbgrant.go)
 		}
 		if e.mode&modeWarped != 0 && e.trigPl == trigPlWarpG {
@@ -1777,6 +1792,9 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 	}
 	if k.gen != nil {
 		s.castTrigGraves(k, e)
+		s.eachCommandTrigger(k, kop.TrigSpellCast, func(l trigListener, a *kop.Ability) {
+			s.castTrigGen(k, l, a, e)
+		})
 		s.fireEmblems(k, kop.TrigSpellCast, e.ctrl, e.obj, func(a *kop.Ability) bool {
 			return s.matchCardGen(k, a.Trig.Filter, e.card, e.ctrl, e.ctrl, e.obj)
 		})
@@ -2358,6 +2376,14 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 		if k.gen != nil && k.gen.anyMayRaise {
 			if rc := s.mayRaisePick(k, e); rc != nil {
 				return rc // a may-play cast's non-mana RaiseCost$ (cost_mayplayraise.go)
+			}
+		}
+		if retraceEntry(cd, e) {
+			// the retrace cast's additional discard-a-land cost (CR 702.81a;
+			// kw_retrace.go). kgen refuses a Retrace card a spell additional
+			// cost, so the spell's own parts are empty here.
+			if rc := s.retraceCost(k, e.card); rc != nil {
+				return rc
 			}
 		}
 		return spellAddCost(k, e.card)

@@ -4,27 +4,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
 )
-
-// saWithSubs is sa() plus the SVar bodies a SubAbility$ chain resolves
-// through (cards.Link, the same mechanism the compiled corpus uses —
-// Ctx.SVars alone does not link a SubAbility$ chain).
-func saWithSubs(t *testing.T, line string, svars ...string) *cards.SA {
-	t.Helper()
-	src := "Name:T\nTypes:Sorcery\nA:" + line
-	for _, sv := range svars {
-		src += "\nSVar:" + sv
-	}
-	src += "\nOracle:x\n"
-	c, d := cards.ParseBytes("t.txt", []byte(src))
-	if len(d) != 0 {
-		t.Fatalf("diags: %v", d)
-	}
-	c.Link()
-	return c.Faces[0].Abilities[0]
-}
 
 // The bare private look's pacing gate: effReveal's two bare arms — NoReveal$ True
 // (Mishra's Bauble) and the mandatory Look$ True arm (Gitaxian Probe) — used

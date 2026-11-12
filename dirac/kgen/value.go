@@ -98,6 +98,28 @@ func (lc *lowerCtx) targetedCastSpentValue() (lValue, error) {
 	return lValue{Kind: vTgtSpent}, nil
 }
 
+// triggeredAttackerValue lowers TriggeredAttacker$...: the ref is the single
+// attacker the trigger captured (gorge count_ref.go refTargetsTriggeredAttacker).
+// CardPower reads its live power (Arahbo, Roar of the World's "X is its
+// power"); CardCounters.ALL sums its LIVE counters (count_ref_property.go's
+// sumCounters, no LKI substitution for a trigger object), so X sees the
+// counter the sibling PutCounter just added. defined() refuses the shapes with
+// no single attacker (an AttackersDeclared player event). CardToughness has no
+// carrier in the class and is left to the ordinary refusal. Spider-Man Noir.
+func (lc *lowerCtx) triggeredAttackerValue(rest string) (lValue, error) {
+	ref, err := lc.defined("TriggeredAttacker")
+	if err != nil {
+		return lValue{}, err
+	}
+	switch rest {
+	case "CardPower":
+		return lValue{Kind: vPowerOf, Ref: ref}, nil
+	case "CardCounters.ALL":
+		return lValue{Kind: vCountersOn, Ref: ref, S: "ALL", N: 1}, nil // N 1: the live read (kernel refCountersAll)
+	}
+	return lValue{}, fmt.Errorf("TriggeredAttacker$%s", rest)
+}
+
 // svarValue lowers an SVar value body.
 func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 	if depth > 4 {
@@ -257,6 +279,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			if _, err = opponentView(f); err == nil {
 				v = lValue{Kind: vOppExtreme, N: kop.OppExtValid, F: f}
 			}
+		case strings.HasPrefix(rest, "HighestValid"):
+			// the zone-scoped extreme over the opponents (value_plrextreme.go):
+			// Nautiloid Ship's X, each opponent read from their own side
+			v, err = lc.plExtremeValue(head, rest)
 		case rest == "HighestCounters.Poison":
 			// gorge playerCountExtreme's Counters.Poison arm: the extreme
 			// over the living opponents, in group order. Every other
@@ -504,21 +530,7 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			err = fmt.Errorf("TargetedPlayer$%s", rest)
 		}
 	case "TriggeredAttacker":
-		// gorge count_ref.go refTargetsTriggeredAttacker: the single attacker
-		// the trigger captured; CardCounters.ALL sums its LIVE counters
-		// (count_ref_property.go's sumCounters, no LKI substitution for a
-		// trigger object), so X sees the counter the sibling PutCounter just
-		// added. defined() refuses the shapes with no single attacker
-		// (an AttackersDeclared player event). Spider-Man Noir
-		if rest != "CardCounters.ALL" {
-			err = fmt.Errorf("TriggeredAttacker$%s", rest)
-			break
-		}
-		ref, derr := lc.defined("TriggeredAttacker")
-		if derr != nil {
-			return lValue{}, derr
-		}
-		v = lValue{Kind: vCountersOn, Ref: ref, S: "ALL", N: 1} // N 1: the live read (kernel refCountersAll)
+		v, err = lc.triggeredAttackerValue(rest)
 	case "Spawner>Sacrificed":
 		// A reflexive trigger reading the creature its parent's own IfPaid
 		// Sacrifice cost took (Bolg of the North's "that creature's power";
@@ -1307,6 +1319,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	if arms, ok := strings.CutPrefix(rest, "Metalcraft."); ok {
 		return lc.metalcraftValue(arms, depth) // value_filterheads.go
 	}
+	if arms, ok := strings.CutPrefix(rest, "wasCastFromExile."); ok {
+		return lc.castFromExileValue(arms) // lower_castfromexile.go
+	}
 	if arms, ok := strings.CutPrefix(rest, "Threshold."); ok {
 		return lc.thresholdValue(arms, depth) // value_threshold.go
 	}
@@ -1340,6 +1355,7 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		bargain bool
 	}{{"Kicked.", vKicked, false}, {"Teamwork.", vKicked, false}, {"Morbid.", vMorbid, false}, {"PromisedGift.", vPromisedGift, false},
 		{"CommittedCrimeThisTurn.", vCommittedCrime, false}, {"Void.", vVoid, false}, {"IfCastInOwnMainPhase.", vIfCastOwnMain, false},
+		{"Monarch.", vMonarch, false},
 		{"wasCastFromGraveyard.", vCastFromGrave, false},
 		{"Bargained.", vKicked, true}, {"Bargain.", vKicked, true}, {"OptionalGenericCostPaid.", vKicked, false}} {
 		if !strings.HasPrefix(rest, cv.pre) {
@@ -1368,13 +1384,14 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		}
 		parts := strings.Split(strings.TrimPrefix(rest, cv.pre), ".")
 		if len(parts) != 2 {
-			if cv.kind == vCommittedCrime || cv.kind == vVoid || cv.kind == vIfCastOwnMain {
+			if cv.kind == vCommittedCrime || cv.kind == vVoid || cv.kind == vIfCastOwnMain || cv.kind == vMonarch {
 				return lValue{}, refuse("Count$%s arms %q", strings.TrimSuffix(cv.pre, "."), rest)
 			}
 			return lValue{}, fmt.Errorf("Count$%s", rest)
 		}
-		if cv.kind == vCommittedCrime || cv.kind == vVoid || cv.kind == vIfCastOwnMain {
-			// gorge cov3BranchHoldsCommittedCrimeThisTurn / ...HoldsVoid: two
+		if cv.kind == vCommittedCrime || cv.kind == vVoid || cv.kind == vIfCastOwnMain || cv.kind == vMonarch {
+			// gorge cov3BranchHoldsCommittedCrimeThisTurn / ...HoldsVoid /
+			// evalCountBodyDottedMorbidOrMonarch's Monarch arm: two
 			// arms, read as integers here (an SVar arm refuses)
 			for _, p := range parts {
 				if _, err := strconv.Atoi(p); err != nil {

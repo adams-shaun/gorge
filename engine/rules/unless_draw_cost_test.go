@@ -3,11 +3,8 @@ package rules
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
-	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // UnlessPayer$ Player.targetedBy and the Draw<N/Spec> unless-cost component,
@@ -18,33 +15,6 @@ import (
 // Draw<4/Player.targetedBy> | UnlessPayer$ Player.targetedBy |
 // UnlessSwitched$ True — paying CAUSES the reveal/cast body, and the payer
 // is the player the ability targeted.
-
-// driveKurokiTrig fires Kuroki's real TrigReveal by seeding the ordinary
-// stack events — the trigger pushed for seat 0, its target bound to the
-// targeted opponent (seat 1) — the same way
-// TestUnlessCostTresserhornPaysSacLifeAndDraw drives its carrier. The
-// trigger is not reached through Phase$ matching: this build's Phase$
-// matcher only admits spellings that are substrings of the hyphenated step
-// name, so TrigReveal's "End of Turn" (927 corpus trigger lines) stays a
-// documented approximation and the test does not depend on it.
-func driveKurokiTrig(t *testing.T) (*Engine, state.ObjID) {
-	t.Helper()
-	reg := testutil.CorpusRegistry(t)
-	e := stealEngine(t, 741)
-	kuroki := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Kuroki, Thief of Talents"))
-	sa := cards.ResolveSVar(e.G.Obj(kuroki).Face().SVars, "TrigReveal")
-	if sa == nil || sa.Params["UnlessPayer"] != "Player.targetedBy" || sa.Params["UnlessCost"] != "Draw<4/Player.targetedBy>" {
-		t.Fatalf("Kuroki TrigReveal = %+v, want the targeted unless-draw shape", sa)
-	}
-	e.emit(events.Event{Kind: events.TriggerPush, Obj: kuroki, Player: 0, Amount: 0})
-	ability := e.G.Stack[len(e.G.Stack)-1]
-	e.emit(events.Event{Kind: events.TargetsChosen, Obj: ability, Player: 1, Amount: 1})
-	e.resolveTop()
-	if d := e.Pending(); d == nil || d.ResumeKind != "unless_pay" || d.Player != 1 {
-		t.Fatalf("pending = %+v, want the unless-pay ask for seat 1", d)
-	}
-	return e, kuroki
-}
 
 // TestUnlessCostUnresolvableDrawerDeclinesWhole pins the ordering the Draw
 // fix exists for: a Draw<N/Spec> whose role the unless context cannot

@@ -1779,6 +1779,12 @@ func effChangeTargets(h Host, c *Ctx, sa *cards.SA) {
 		}
 		return h.AnnouncedLinkTargets(target.ID, link)
 	}
+	// ConditionTargetValidTargeting$ / ConditionTargetsSingleTarget$ (the
+	// Meddle / Quicksilver Dragon gate, changetargets_gate.go): an unmet
+	// condition leaves the spell's targets alone (CR 115.7a).
+	if !changeTargetGateMet(h, c, sa, subject, declared) {
+		return
+	}
 	offered := func(link *cards.SA, old, parent []state.Target) []state.Target {
 		var candidates []state.Target
 		for _, t := range h.LegalRetargets(target.ID, link, parent) {

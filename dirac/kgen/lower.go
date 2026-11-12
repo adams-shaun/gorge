@@ -107,6 +107,8 @@ type lowerCtx struct {
 
 	// deferTrig: the TriggersWhenSpent$ rider the face's deferred mana ability queued (lower_deferredmana.go)
 	deferTrig *cards.Trigger
+	// fuseAlt: lowering a fused split spell, the right half lowerFace folds in after the left half's lines (lower_fuse.go)
+	fuseAlt *cards.Face
 
 	firstCastSVar  string    // the SVar a static SpellCast StoreSVar of Count$YouCastThisGame writes (lower_firstcast.go)
 	firstCastTrig  int       // that trigger's index + 1: it lowers to nothing
@@ -358,6 +360,9 @@ func (lc *lowerCtx) lowerFace() {
 	lc.imprintMox = lc.imprintMoxShape()
 	lc.lowerKeywords()
 	lc.lowerLines(true, false)
+	if lc.fuseAlt != nil {
+		lc.lowerFusedHalf() // lower_fuse.go
+	}
 	lc.lowerTail()
 }
 
@@ -456,6 +461,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseHarmonizeCombos()
 	lc.refuseReboundCombos() // lower_rebound.go
 	lc.refuseMayhemCombos()
+	lc.lowerRetrace()
 	lc.refuseBeamCombos()
 	lc.refuseSneakCombos()
 	lc.refuseBuybackCombos() // lower_buyback.go
@@ -463,6 +469,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseMayFlashCombos()
 	lc.refuseEvokeCombos()
 	lc.refuseDashCombos()          // lower_dash.go
+	lc.refuseForetellCombos()      // lower_foretell.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
 	lc.lowerImpending()
 	lc.lowerOverload() // lower_overload.go
@@ -545,6 +552,42 @@ func (lc *lowerCtx) refuseMayhemCombos() {
 		out.Casualty != 0 || out.Cost.X {
 		lc.refuseNode("K:Mayhem", "Mayhem beside another cast route or additional cost")
 	}
+}
+
+// lowerRetrace refuses the retrace keyword beside another cast route and
+// builds its additional cost. Retrace does not claim CardDef.AltCost (the
+// printed base stays; only the discard folds on, dirac/kw_retrace.go), but
+// the kernel canon reads ONE mode-2 graveyard cast kind per card
+// (canon/translate.go): Flashback, Harmonize, Mayhem and Beam me up would
+// all take the mode-2 target byte 0. The other routes and costs are ones the
+// retrace offer walk does not price (dirac kw_retrace.go offerRetraceCasts
+// prices the printed base and the discard alone): Convoke, Improvise and
+// Delve fold credits into the base (gorge offerCastable), {X} needs the
+// cast's xAsk, and the rest carry their own pick or mana cost on the cast.
+func (lc *lowerCtx) lowerRetrace() {
+	out := lc.out
+	if !out.Retrace {
+		return
+	}
+	if out.Flashback != nil || out.Harmonize != nil || out.Mayhem != nil || out.BeamMeUp != nil {
+		lc.refuseNode("K:Retrace", "Retrace beside a mode-2 graveyard-cast keyword (canon/translate.go reads one)")
+	}
+	if out.Convoke || out.Improvise || out.Delve || out.Kicker != nil || out.Warp != nil || out.Plot != nil || out.Sneak != nil || out.Impending != nil ||
+		out.Bestow != nil || out.SpellCost != nil || out.AltAddCost != nil || out.Offspring != nil || out.Gift || out.MorphCost != nil ||
+		out.Casualty != 0 || out.Bargain || out.OptCost != nil || out.Teamwork != 0 || out.Spree || out.Madness != nil || out.Cost.X {
+		lc.refuseNode("K:Retrace", "Retrace beside another cast route, additional cost or an {X} cost (the offer walk prices the printed base and the discard alone)")
+	}
+	// The discard part is built directly (lc.cost's costParts refuses a
+	// filtered discard outside an activated ability): a bare Discard<1/Land>
+	// is the whole cost, no other part can ride beside it.
+	c, err := lc.costHand("Discard<1/Land>")
+	if err != nil || c.DiscardF == nil || c.DiscardN != 1 ||
+		c.Mana.Generic != 0 || c.Mana.Pips != [5]int{} || c.Mana.C != 0 || c.Mana.X || c.Mana.XX ||
+		len(c.Mana.Hybrid) != 0 || len(c.Mana.Twobrid) != 0 || len(c.Mana.Phyrexian) != 0 || c.Mana.XColor != 0 {
+		lc.refuseNode("K:Retrace", "retrace additional cost %q", "Discard<1/Land>")
+		return
+	}
+	out.RetraceCost = &c
 }
 
 // sneakLowered gates the K:Sneak arm of lowerKeywords.
@@ -1055,6 +1098,13 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !lc.hasKeywordLine(k) {
 				lc.refuseNode(node, "keyword %q without its ability", head)
 			}
+		case head == "Myriad" && param == "":
+			// CR 702.116a: gorge kwMyriad expands it into an Attacks Self
+			// trigger (Myriad$ True, DB$ Myriad), lowered from that line
+			// (lower_myriad.go)
+			if !faceHasMyriadTrigger(lc.face) {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
 		case head == "Training":
 			// CR 702.149a: gorge kwTraining expands it into an Attacks
 			// trigger (Training$ True), lowered from that line
@@ -1363,6 +1413,15 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Mayhem = &mc
+		case head == "Retrace" && param == "":
+			// CR 702.81a: a graveyard cast paying the PRINTED mana cost
+			// plus the additional cost of discarding a land card
+			// (dirac/kw_retrace.go). Retrace is no cost substitution: the
+			// printed base stays, only the discard folds on, so it rides
+			// mode bit 2 beside the mode-2 graveyard-cast keywords rather
+			// than claiming CardDef.AltCost. lowerRetrace refuses the
+			// collisions and builds the discard cost.
+			lc.out.Retrace = true
 		case head == "Spree" && param == "":
 			// CR 702.172a: a modal spell whose modes carry ModeCost$
 			// additional costs (lower_modecost.go reads them)
@@ -1585,6 +1644,21 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Plot = &mc
+		case head == "Foretell":
+			// CR 702.143a: the {2} special action is fixed; the keyword's
+			// cost prices the later cast from exile (dirac/kw_foretell.go).
+			// X, hybrid, a ":" or "<" rider and any non-mana part have no
+			// fixed price to plan.
+			mc, err := parseManaCost(param)
+			if err != nil || param == "" || strings.ContainsAny(param, ":<") || mc.X || mc.None || len(mc.Hybrid) != 0 {
+				lc.refuseNode(node, "foretell cost %q", param)
+				continue
+			}
+			if lc.out.Foretell != nil {
+				lc.refuseNode(node, "two Foretell keywords")
+				continue
+			}
+			lc.out.Foretell = &mc
 		case head == "Paradigm":
 			// SOS Paradigm (gorge rules/paradigm.go): a resolved
 			// spell is exiled, then cast free from exile in each of its
@@ -1674,6 +1748,15 @@ func (lc *lowerCtx) lowerKeywords() {
 			// the sentence to the MustBlock head; the attacker-oriented
 			// requirement, one blocker satisfies it)
 			lc.out.MustBeBlocked = true
+		case head == "Fuse" && param == "" && lc.out.FaceMode == kop.FaceSplit && fuseCard(lc.card):
+			// CR 702.102a: the layout carries it (CardDef.FuseDef, the
+			// fused spell's entry: lower_fuse.go); a half lowers as itself
+		case head == "Aftermath" && param == "" && lc.out.FaceMode == kop.FaceSplit && lc.out.Face == 1:
+			// CR 702.127a: a split card's right half cast only from its
+			// owner's graveyard, then exiled as it leaves the stack (gorge
+			// legal.go aftermathAlternateFace; dirac/face_aftermath.go).
+			// castableFaceLayout refuses the keyword on the left half.
+			lc.out.Aftermath = true
 		case head == "Miracle":
 			// CR 702.94a: the first draw of a turn offers the reveal; the
 			// revealed card's trigger is on the stack, and its resolution
@@ -1686,6 +1769,17 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Miracle = &mc
+		case head == "Compleated":
+			// CR 702.150, as gorge implements it (the kw:Compleated
+			// approximation): the life paid for the printed Phyrexian pips
+			// lowers the entry loyalty (gorge events entry_counters'
+			// CompleatedLifePaid, cast_commit's FlagCompleated CastInfo).
+			// The kernel pays the pips' life in the payment window and
+			// places the entry's CtrLoyalty from the printed Loyalty alone
+			// (zones.go), so the life-paid amount would not reach the
+			// entry: a life-pip cast would enter Jace at full loyalty
+			// where gorge enters it two loyalty lower per pip.
+			lc.refuseNode(node, "keyword %q: the pips' life does not reach the entry loyalty", head)
 		default:
 			lc.refuseNode(node, "keyword %q", head)
 		}
@@ -2083,7 +2177,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			if len(parts) == 3 && !strings.EqualFold(parts[2], "CARDNAME") && !strings.EqualFold(parts[2], "NICKNAME") {
 				return c, refuse("counter cost %q: a filtered target", t)
 			}
-			if !lc.actCost {
+			if !lc.actCost && (lc.ab == nil || lc.ab.Kind != akMana) {
 				return c, refuse("counter cost %q outside an activated ability's own cost", t)
 			}
 			c.SubCtrX, c.SubCtrXKnd = true, parts[1]

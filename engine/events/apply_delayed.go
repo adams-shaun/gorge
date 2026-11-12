@@ -592,6 +592,14 @@ func foldGrantTriggerPush(g *state.Game, e *Event) {
 		// permanent's controller is.
 		sa = &cards.SA{Kind: "DB", API: "Extort"}
 	}
+	if sa == nil && e.Counter == "__kwMyriadGranted" {
+		// A granted myriad keyword (CR 702.116a via a layer-6 AddKeyword$
+		// Myriad, e.g. Blade of Selves' "Equipped creature has myriad"): the
+		// Prowess shape, rebuilt into the printed K:Myriad expansion's DB$
+		// Myriad body (engine/cards/kw_myriad.go). The defending player the
+		// body excludes rides IDs as Remembered.
+		sa = &cards.SA{Kind: "DB", API: "Myriad", Params: map[string]string{}}
+	}
 	if sa == nil {
 		return
 	}
