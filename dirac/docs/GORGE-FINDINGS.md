@@ -325,16 +325,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   all of it, and 800 lockstep games with Burning-Tree Emissary never reached one. Multikicker,
   `Count$TimesKicked`, Mutate and OptionalCost on a permanent spell are refused by kgen, so
   they have no such read.
-- A copy of a charm with two target-bearing modes, or of an ability with a target on a
-  SubAbility$ link: `Engine.charmTargets` is never written for a `StackCopy`, so
-  `charmDistinctTargetRun` falls back and every mode runs over the flat target list (Flash
-  Thompson's copy taps both targets, then untaps both; std-spm 224). `applyStackCopy` drops
-  `SubTargets` from an ability or charm copy, leaving the link to a resolution-time ask (Mechanical
-  Mobster; std-spm 319). CR 707.10 has the copy keep each target where the original had it. In Forge
-  (read, not run), `CopySpellAbilityEffect` copies through `SpellAbility.copy`, which clones that
-  ability's `targetChosen`, and `CardFactory.copySpellAbility` repeats the copy on its `SubAbility`.
-  How Forge builds a charm's mode chain wasn't read, and XMage wasn't checked. dirac keeps both,
-  so these pairs diverge until gorge is fixed.
 - The look-back observer `checkTriggersNow` builds doesn't carry `Engine.startingLife`, so
   `h.StartingLife()` reads 0 on it, and Leyline of Hope's `Count$YourStartingLife/Plus.7` gate is 7
   there. A creature dying at 17 life then reads +2/+2 in its leaves-the-battlefield trigger: Infernal

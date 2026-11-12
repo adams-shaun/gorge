@@ -345,6 +345,11 @@ type CardDef struct {
 	// read of the NoAbilities filter word (W7NoAbilities; gorge
 	// FaceHasNoAbilities). Read off the battlefield only.
 	NoAbilities bool
+	// HasManaAbility: the printed face has a mana ability (gorge
+	// effects.FaceHasManaAbility: an activated CR 605.1a ability or a
+	// CR 605.1b triggered one; the intrinsic basic-land ability included).
+	// Read by PredHasManaAbility on and off the battlefield.
+	HasManaAbility bool
 	// HasWarp is printed warp (CR 702.185a; no KwMask bit is free): the
 	// hand offers the warp cast (its warp cost in WarpCost), and a permanent
 	// spell cast that way is exiled at the beginning of the next end step
@@ -565,6 +570,14 @@ type CardDef struct {
 	// it; a game of more seats refuses a table carrying it (dirac
 	// StallTwoSeat, stallclass.go). Set by dirac/kgen's lc.twoSeat.
 	TwoSeat bool
+	// ProduceCol is the colours the face's printed mana abilities could
+	// produce ({C} dropped; gorge effects.producibleSymbols over
+	// Face.ManaAbilities, the union a blank, "Any" or "Combo Any" Produced$
+	// makes WUBRG, a "Combo <colours>" exactly those, a plain list its
+	// coloured runes). A Produce-mode reflected ability (Ability.ManaProduce)
+	// unions it over the matched permanents at each use (kernel
+	// mana_reflected.go produceColours).
+	ProduceCol ColorMask
 }
 
 // CardDef.MorphFamily values: the face-down keyword the card was printed with.

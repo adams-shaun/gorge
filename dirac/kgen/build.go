@@ -613,6 +613,7 @@ func (cb *cardBuilder) record() error {
 	d.RemPersist, d.RemSeed, d.RemKeep = c.RemPersist, c.RemSeed, c.RemKeep
 	d.ExiledWith = c.ExiledWith
 	d.CombatHitRec = c.CombatHitRec
+	d.ProduceCol = c.ProduceCol
 	d.ExiledWithRev = c.ExwWord
 	d.SpendRead = c.SpendRead
 	if c.FbCost != nil {
@@ -638,6 +639,7 @@ func (cb *cardBuilder) record() error {
 		}
 	}
 	d.NoAbilities = c.NoAbilities
+	d.HasManaAbility = c.HasManaAbility
 	if c.Warp != nil {
 		// CR 702.185a: no KwMask bit is free, so the warp marker is its own
 		// field; the cost is the hand's alternate cost (dirac/kw_warp.go)
@@ -1300,18 +1302,28 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			return kf, refuse("wasDealtCombatDamageThisTurnBySource off the battlefield")
 		}
 		kf.Ctrl = kop.CtrlHitBySrc
-	case whoTgtPlayer, whoDefending:
-		// controller roles the kernel reads through a Flags2 bit; the
-		// card matchers never see them (battlefield only)
+	case whoTgtPlayer, whoDefending, whoTgtOrCtrl:
+		// controller roles the kernel reads through a Flags2 bit (or, for
+		// CtrlTgt, a target slot); the card matchers never see them
+		// (battlefield only)
 		if zone != kop.ZoneBattlefield {
 			if c.Ctrl == whoTgtPlayer {
 				return kf, refuse("TargetedPlayerCtrl off the battlefield")
 			}
+			if c.Ctrl == whoTgtOrCtrl {
+				return kf, refuse("ControlledBy TargetedOrController off the battlefield")
+			}
 			return kf, refuse("ControlledBy TriggeredDefendingPlayer outside an Attacks trigger's battlefield filter")
 		}
-		if c.Ctrl == whoTgtPlayer {
+		switch c.Ctrl {
+		case whoTgtPlayer:
 			kf.Flags2 |= kop.F2TgtPlayerCtrl
-		} else {
+		case whoTgtOrCtrl:
+			if c.CtrlTgt == 0 {
+				return kf, refuse("ControlledBy TargetedOrController without a target slot")
+			}
+			kf.CtrlTgt = c.CtrlTgt
+		default:
 			kf.Flags2 |= kop.F2DefendingCtrl
 		}
 		kf.Ctrl = kop.CtrlAny
@@ -1545,6 +1557,8 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredNoCounters
 	case cmpLacksKw:
 		kf.Pred, kf.PredN = kop.PredLacksKeyword, int16(c.CmpN)
+	case cmpHasManaAbility:
+		kf.Pred, kf.PredN = kop.PredHasManaAbility, int16(c.CmpN)
 	case cmpOutlaw:
 		kf.Pred, kf.PredN = kop.PredOutlaw, int16(c.CmpN)
 		for _, w := range [...]string{"Assassin", "Mercenary", "Pirate", "Rogue", "Warlock"} {

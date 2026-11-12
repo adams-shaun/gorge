@@ -257,6 +257,7 @@ DelayBeginCombat	untyped int	6
 DelayDiesThisTurn	untyped int	5
 DelayEndCombat	untyped int	3
 DelayPlayerUpkeep	untyped int	9
+DelayRemUpkeep	untyped int	10
 DelaySpellCast	untyped int	4
 DelaySpellUncounter	untyped int	8
 DelayUpkeep	untyped int	1
@@ -454,6 +455,8 @@ ExtDigImprint	ExtOp	282
 ExtDistCounters	ExtOp	310
 ExtDividedCounters	ExtOp	30
 ExtDmgMark	ExtOp	317
+ExtDrainMana	ExtOp	40
+ExtDrawUpto	ExtOp	309
 ExtEachDamage	ExtOp	2
 ExtEffEtbCtr	ExtOp	197
 ExtEndure	ExtOp	9
@@ -640,6 +643,7 @@ MorphDisguise	uint8	3
 MorphMegamorph	uint8	2
 MorphMorph	uint8	1
 MorphNone	uint8	0
+MustBeBlockedLure	untyped int	1
 MvAlsoSelf	untyped int	1024
 MvAttacking	untyped int	512
 MvEntryRiders	untyped int	4096
@@ -908,6 +912,7 @@ PredFaceDown	Pred	245
 PredHasCounter	Pred	7
 PredHasCounters	Pred	26
 PredHasKeyword	Pred	6
+PredHasManaAbility	Pred	255
 PredHasXCost	Pred	16
 PredHistoric	Pred	19
 PredLacksKeyword	Pred	29
@@ -1200,6 +1205,7 @@ StatFlipCoinMod	StaticKind	226
 StatGoad	StaticKind	249
 StatHexproofOwnColors	StaticKind	19
 StatIncreaseCost	StaticKind	9
+StatLure	StaticKind	228
 StatMaxBlockers	StaticKind	241
 StatMayPlayFrom	StaticKind	13
 StatMustAttack	StaticKind	7
@@ -1308,6 +1314,7 @@ TfOptional	TrigFlags	1
 TfSecondDraw	TrigFlags	32
 TfSelf	TrigFlags	2
 TfToPlayer	TrigFlags	8
+TgfActOnly	TargetFlags	32768
 TgfAtResolution	TargetFlags	32
 TgfAttachedToT0	TargetFlags	16
 TgfBoundsV	TargetFlags	512
