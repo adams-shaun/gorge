@@ -786,6 +786,13 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		if err := cb.mana(a.Mana, &ka); err != nil {
 			return ka, err
 		}
+		if a.Kind == akMana && a.Cost.SubCtrX && ka.Cost.Flags&kop.CostLoyaltyX != 0 &&
+			ka.AFlags&kop.AfManaDynamic != 0 && ka.ManaV.K == kop.VX {
+			// Amount$ X on a SubCounter<X/KIND> mana ability is the number
+			// of counters removed (CR 107.3, 118.3): the kernel's script
+			// gap reads it off the source (mana_countercost.go).
+			ka.ManaV = kop.ValueRef{K: kop.VCountersSelf, N: int16(ka.Cost.Ctr)}
+		}
 	}
 	if a.Trigger != nil {
 		if a.Trigger.OncePer && (a.Latent || a.Trigger.Zone == zCommand) && a.Trigger.Event != "CounterAddedOnce" {

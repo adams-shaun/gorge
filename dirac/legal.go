@@ -1546,6 +1546,19 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 				}
 				done[sl] |= 1 << j
 				progressed = true
+				if kop.StoreManaAb(ab) {
+					// A storage battery makes its counters' worth, not an
+					// unbounded dynamic amount: count the live counters so a
+					// play it cannot pay is not offered.
+					n := s.perms[sl].ctrN(s, int(ab.Cost.Ctr))
+					if n > 255 {
+						n = 255
+					}
+					if n > 0 {
+						add(sl, uint8(ab.ManaColors), uint8(n))
+					}
+					continue
+				}
 				if ab.ManaColors == kop.ColAny || ab.AFlags&(kop.AfManaDynamic|kop.AfManaEachColor) != 0 { // gorge's walk reads an each-colour production (Bloom Tender) as open
 					open = true
 				} else {

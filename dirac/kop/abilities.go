@@ -381,6 +381,22 @@ func riderManaCostOK(a *Ability) bool {
 	return false
 }
 
+// StoreManaAb reports whether mana ability a is the storage-battery shape:
+// "Remove X <kind> counters from this: Add X mana ..." (Molten Slagheap,
+// Mage-Ring Network; CR 107.3, 118.3). Cost.Ctr is the counter kind and
+// Cost.Ctr's count is read through ManaV (VCountersSelf), so the kernel's
+// script gap removes every counter and makes that many mana. A generic fee
+// (Cost.Mana.Generic) may ride beside it; an announced {X}, a coloured fee,
+// a rider or a spend restriction is another shape.
+func StoreManaAb(a *Ability) bool {
+	if a.Kind != AbMana || a.Cost.Flags&CostLoyaltyX == 0 || a.Cost.Mana.X != 0 ||
+		a.Cost.Mana.Pips != ([NumManaKinds]uint8{}) || a.Cost.Mana.Hyb != ([4]ColorMask{}) || a.Cost.Mana.Tb != 0 ||
+		a.AFlags&AfManaDynamic == 0 || a.ManaV.K != VCountersSelf || a.ManaV.N != int16(a.Cost.Ctr) {
+		return false
+	}
+	return a.ManaRestrict == 0 && a.ManaRestrictAb == 0 && !a.ManaEach && len(a.Prog) == 0
+}
+
 // ManaAbilityHonoured reports whether the kernel can activate ability j of
 // cd, an AbMana. It is true for any other ability kind.
 //
@@ -417,6 +433,7 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	}
 	if j != first {
 		return f == CostTap || f == CostTap|CostPayLife || SecondTapXManaAb(cd, first, j) || SecondCtrTapManaAb(cd, first, j) ||
+			StoreManaAb(a) ||
 			ManaRiderAb(a) && f == CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && plainTapAb(&cd.Abilities[first])
 	}
 	if _, ok := PipFeeManaAb(a); ok {
@@ -425,7 +442,7 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	switch {
 	case plain && (f == CostTap || f == CostTap|CostOncePerGame || f == CostTap|CostSacSelf || f == CostSacSelf):
 		return true
-	case CtrManaAb(a), TapXManaAb(a), TapXManaTwo(a), FilterManaAb(a), SacXEachManaAb(a), SoleLifeManaAb(cd, j):
+	case CtrManaAb(a), TapXManaAb(a), TapXManaTwo(a), FilterManaAb(a), SacXEachManaAb(a), SoleLifeManaAb(cd, j), StoreManaAb(a):
 		return true
 	case ManaRiderAb(a) && riderManaCostOK(a):
 		return true

@@ -503,7 +503,9 @@ func (s *State) windowRestrOwed(k *prep, p uint8, sl Slot, useful *kop.ManaCost)
 // deferred TriggersWhenSpent$ source (Pyromancer's Goggles; mana_deferred.go),
 // so a filter beside it is no filter-only board (filtOnly).
 func censusGapMana(a *kop.Ability) bool {
-	if a.AFlags&kop.AfLatent != 0 {
+	if a.AFlags&kop.AfLatent != 0 || kop.StoreManaAb(a) {
+		// A storage battery is not a census gap: the autopay surface has no
+		// source fee + announced-X unit for it (mana_countercost.go).
 		return false
 	}
 	f := a.Cost.Flags

@@ -306,6 +306,11 @@ func plainTapMana(a *lAbility, paid bool) bool {
 // gap the kernel models or the frozen pools prove (refuseMultiMana).
 func manaGapModelled(first, a *lAbility) bool {
 	switch {
+	case storeGapMana(a):
+		// SubCounter<X/KIND> on a later mana ability (Molten Slagheap,
+		// Mage-Ring Network): the kernel's counter-X script gap removes
+		// every counter and makes that many mana (mana_countercost.go).
+		return true
 	case dynamicLargerSameColour(first, a):
 		return true
 	case tapXGapMana(a):
@@ -440,6 +445,8 @@ func manaGapWhy(first, a *lAbility) string {
 		return "an activation-only restricted ability of several mana: the kernel plans it only as a chosen or same-colour pair of two to four mana (or an activation-only larger ability beside a spell-only first one of that colour)"
 	}
 	switch {
+	case a.Cost.SubCtrX && a.Cost.Mana.Generic > 0:
+		return "an announced-X counter cost beside a generic fee: the kernel's storage script gap prices no source fee (and gorge's planner prices no such source)"
 	case !plainTapMana(a, false) && !plainTapMana(a, true):
 		if a.Cost.SubCtr != 0 {
 			return "a cost beyond {T} the kernel's mana walk cannot activate: its counter gap kind reads a second ability only for a fixed unrestricted colour"
@@ -541,6 +548,40 @@ const maxRestrictedAmount = 4
 // Building's four mana in any combination). gorge's scriptAnswers enumerates
 // at most 64 per-unit combinations, so the kernel's search does too.
 const maxComboMana = 4
+
+// storeGapMana reports the storage-battery shape a later mana ability may
+// carry: SubCounter<X/KIND> on the source, Amount$ X, a fixed or two-colour
+// production and at most one generic fee. The kernel's counter-X script gap
+// (mana_countercost.go) removes every counter and makes that many mana; a
+// five-colour or spend-restricted production has no kernel model and stays
+// refused.
+func storeGapMana(a *lAbility) bool {
+	if a.Kind != akMana || a.Mana == nil || !a.Cost.SubCtrX || a.Latent {
+		return false
+	}
+	m := a.Mana
+	if m.Special != "" || m.SpecialF != nil || m.Restrict != nil || m.RestrictAb != nil || m.NonSpell || m.Each || m.Deferred || m.Rider != 0 || m.RiderCtr != "" {
+		return false
+	}
+	v := m.Amount
+	if v.Kind != vX || v.Mul != 0 || v.Div != 0 || v.Add != 0 || v.Neg {
+		return false
+	}
+	cols := m.Colors
+	if cols != "C" && (cols == "" || len(cols) > 2 || strings.Trim(cols, "WUBRG") != "") {
+		return false
+	}
+	c := a.Cost
+	if c.Mana.X || c.Mana.C != 0 || c.Mana.Pips != [5]int{} || len(c.Mana.Hybrid) > 0 || c.Mana.Generic != 0 {
+		return false
+	}
+	if c.Loyalty != 0 || c.LoyaltyX || c.SubCtr != 0 || c.SubAmongN != 0 || c.AddCtr != 0 || c.PayLife != 0 || c.LifeX ||
+		c.Sac != nil || c.SacSelf || c.DiscardN != 0 || c.DiscardHand || c.DiscardSelf || c.ExileSelf || c.ExileG != nil ||
+		c.Energy != 0 || c.TapN != 0 || c.TapHost || c.SacHost || c.Forage != nil || c.Return != nil || c.Exert || c.ReturnSelf {
+		return false
+	}
+	return true
+}
 
 // dynamicLargerSameColour reports the pair refuseMultiMana names: a plain
 // unrestricted {T}: Add one mana of a fixed colour, then a plain {T}: Add that

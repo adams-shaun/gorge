@@ -171,3 +171,74 @@ func (s *State) sbaCtrTough(k *prep, die, gy *slotMask) {
 // DebugNoCtrMana hides the counter-cost gaps (the wallroots mutation test
 // proves the pool's plays need them).
 var DebugNoCtrMana bool
+
+// storeGap activates a storage-battery mana ability (mage_ring_network and
+// the single-colour storage lands): its {T} if any marked, every counter of
+// the kind removed, and that many mana added, split over the ability's
+// production mask to cover need first and the printed colour order after. A
+// generic fee is not modelled (kgen refuses the fee-bearing shapes). CR
+// 107.3, 118.3; gorge's non-interactive ManaCostSubCounterStage takes X at
+// the bound (all the counters) and its script answers the colour ask
+// needed-first.
+func (s *State) storeGap(k *prep, p uint8, sl Slot, a *kop.Ability, need ...*[kop.NumManaKinds]int) {
+	pm := &s.perms[sl]
+	n := pm.ctrN(s, int(a.Cost.Ctr))
+	if n <= 0 {
+		return
+	}
+	if n > 255 {
+		s.capFull(StallDynMana)
+		n = 255
+	}
+	if a.Cost.Mana.Generic != 0 {
+		return // the fee-bearing shape is not modelled (kgen refuses it)
+	}
+	if a.Cost.Flags&kop.CostTap != 0 {
+		if pm.flags&pfTapped != 0 {
+			return
+		}
+		pm.flags |= pfTapped
+		s.touchSl(sl)
+		s.manaTapped(k, sl)
+	}
+	s.touchSl(sl)
+	pm.seeCtr(s)
+	pm.subCtrN(s, int(a.Cost.Ctr), n)
+	var rem [kop.NumManaKinds]int
+	if len(need) > 0 && need[0] != nil {
+		rem = *need[0]
+	}
+	mask := uint8(a.ManaColors) & 0x3f
+	first := -1
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if mask&(1<<c) != 0 {
+			if first < 0 {
+				first = c
+			}
+		}
+	}
+	if first < 0 {
+		return
+	}
+	for left := n; left > 0; left-- {
+		col := -1
+		for c := 0; c < kop.NumManaKinds; c++ {
+			if mask&(1<<c) != 0 && rem[c] > 0 {
+				col = c
+				break
+			}
+		}
+		if col < 0 {
+			col = first
+		} else {
+			rem[col]--
+		}
+		s.poolAdd(p, col, 1)
+		if a.Cost.Flags&kop.CostTap != 0 {
+			s.artTag(k, p, sl, col)
+		}
+	}
+	if a.Cost.Flags&kop.CostTap != 0 {
+		s.tapExtraStall(k, sl)
+	}
+}
