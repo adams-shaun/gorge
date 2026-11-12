@@ -1217,6 +1217,14 @@ func (s *State) stepColours(k *prep, sl Slot, gi int16, mask uint8, out *[kop.Nu
 			seen |= 1 << c
 		}
 	}
+	if gi < 0 && pc.manaMulti && k.gen.anyVergeOrder {
+		// a gated Verge's ability 0 comes before its lower colour (mana_gate.go)
+		if c0, ok := s.vergeAbility0Col(k, sl); ok && c0 < kop.NumManaKinds && mask&(1<<uint(c0)) != 0 && seen&(1<<uint(c0)) == 0 {
+			out[n] = uint8(c0)
+			n++
+			seen |= 1 << uint(c0)
+		}
+	}
 	for c := uint8(0); c < kop.NumManaKinds; c++ {
 		if mask&(1<<c) != 0 && seen&(1<<c) == 0 {
 			out[n] = c
