@@ -18,6 +18,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     and unless every declaration has enough others, nothing is asked and
 //     nothing moves. With Optional$ (CR 115.7d) the current ones are offered,
 //     Done keeps the rest, and a pick that is already a target stays in place.
+//     C bit 1 (DefinedMagnet$ Self with ChangeSingleTarget$ True, Spellskite)
+//     asks nothing: ksrMagnet moves the first target of the first declaration
+//     that offers the source to the source.
 //   - ExtCounterAll (CR 701.5; gorge effCounter over Defined$ ValidStack
 //     Spell.OppCtrl,Activated.OppCtrl,Triggered.OppCtrl, validStackTargets
 //     L2576: the stack zone's arena order, bottom first): every entry an
@@ -156,6 +159,18 @@ func (s *State) ksrOffered(k *prep, idx, d int, must bool, out *[MaxOptions]uint
 	}
 	n := s.targetCands(k, t, e.ctrl, src, e.obj, out)
 	s.res.e = saved
+	if e.kind != seSpell {
+		// an ability is no legal target for itself (CR 115.5): the entry's own
+		// stack code (a spell's own object is the self targetCands skips)
+		self, m := StackTarget0+uint8(idx), 0
+		for _, c := range out[:n] {
+			if c != self {
+				out[m] = c
+				m++
+			}
+		}
+		n = m
+	}
 	if !must {
 		return n
 	}
@@ -189,13 +204,14 @@ func (s *State) changeTargets(k *prep, in *kop.Instr) bool {
 		return true
 	}
 	must := in.C&1 == 0
+	magnet := in.C&2 != 0
 	s.res.peekN = 0
 	var old, buf [MaxOptions]uint8
 	covered := 0
 	for d := ksrFirstDecl(k, e); d >= 0; d = ksrNextDecl(k, e, d) {
 		nold := s.copySlotTargets(e, d, &old)
 		covered += nold
-		if must && nold > 0 && s.ksrOffered(k, idx, d, true, &buf) < nold {
+		if must && !magnet && nold > 0 && s.ksrOffered(k, idx, d, true, &buf) < nold {
 			return true
 		}
 	}
@@ -207,7 +223,38 @@ func (s *State) changeTargets(k *prep, in *kop.Instr) bool {
 		return true
 	}
 	s.res.left = uint8(idx) + 1
+	if magnet {
+		return s.ksrMagnet(k, e, must)
+	}
 	return s.ksrAskFrom(k, ksrFirstDecl(k, e), must)
+}
+
+// ksrMagnet is the DefinedMagnet$ Self with ChangeSingleTarget$ True walk
+// (gorge effChangeTargets' magnet and single arms): no ask. The first
+// declaration, in the walk's order, whose offer holds the resolving ability's
+// source (a creature or player-less object on the battlefield, as the source
+// still is) takes it in place of its first target, and the walk stops there;
+// a declaration whose offer lacks it is passed over (a source that is already a
+// target is not offered when the targets must change).
+func (s *State) ksrMagnet(k *prep, e *stackEntry, must bool) bool {
+	r := &s.res
+	idx := int(r.left) - 1
+	src := r.e.obj
+	var old, buf [MaxOptions]uint8
+	if ob := &s.objs[src]; ob.zone == kop.ZoneBattlefield && ob.ver == r.e.srcVer {
+		for d := ksrFirstDecl(k, e); d >= 0; d = ksrNextDecl(k, e, d) {
+			if s.copySlotTargets(e, d, &old) == 0 {
+				continue
+			}
+			if n := s.ksrOffered(k, idx, d, must, &buf); ksrHas(buf[:n], uint8(src)) {
+				r.peek[0], r.arr[0], r.peekN = Obj(d), src, 1
+				break
+			}
+		}
+	}
+	s.ksrApply(k, &s.stack[idx])
+	r.left, r.peekN = 0, 0
+	return true
 }
 
 // ksrAskFrom poses the first declaration at or after slot d with something to

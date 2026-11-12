@@ -36,11 +36,15 @@ func altSacCost(c *kop.Cost) bool {
 	return c.Flags == kop.CostSac && c.N > 0 && c.Mana == (kop.ManaCost{})
 }
 
-// altHandExileCost: the alternative cost is paying N life and exiling N hand
-// cards matching its filter, nothing else (Force of Will's PayLife<1> and
-// ExileFromHand<1/Card.Blue+Other>, CR 118.9; kgen altPayLifeExileHand).
+// altHandExileCost: the alternative cost is exiling N hand cards matching its
+// filter, and paying N life beside it or not, nothing else (Force of Will's
+// PayLife<1> and ExileFromHand<1/Card.Blue+Other>, Misdirection's exile alone,
+// the Force cycle's bare ExileFromHand<1/Card.Blue+Other>, CR 118.9; kgen
+// altPayLifeExileHand).
 func altHandExileCost(c *kop.Cost) bool {
-	return c.Flags == kop.CostPayLife|kop.CostExileGrave && c.ExileHand && c.N > 0 && c.Mana == (kop.ManaCost{})
+	shared := c.Flags == kop.CostPayLife|kop.CostExileGrave
+	bare := c.Flags == kop.CostExileGrave
+	return (shared || bare) && c.ExileHand && c.N > 0 && c.Mana == (kop.ManaCost{})
 }
 
 // altPickCost: the alternative cost's non-mana parts are picks the cast asks
@@ -50,8 +54,9 @@ func altPickCost(c *kop.Cost) bool { return altSacCost(c) || altHandExileCost(c)
 // offerAltFreeHand offers hand card o's cast for its own free alternative
 // cost (gorge rules alternativeCosts' face walk, legal_walk_hand.go: an
 // AltCostIndex 1 "cast" option) while the static's condition holds for the
-// caster (gorge alternativeCostScopeOK's CheckSVar$; Land Grant: no land
-// card in hand). It rides the hand free-cast mode castMayPlay|castFree,
+// caster (gorge alternativeCostScopeOK's Condition$ and CheckSVar$; Land
+// Grant: no land card in hand, the Force cycle: not the caster's turn). It
+// rides the hand free-cast mode castMayPlay|castFree,
 // which the oracle canonizes as the AltCostIndex 1 cast; castFlagsGen spends
 // no permission for it. The caller has checked timing and cast prohibition.
 //
