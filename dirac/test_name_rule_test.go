@@ -10,32 +10,40 @@ import (
 	"testing"
 )
 
-// A test file's name says what it pins. It has a separator (<topic>_<what>)
-// and no round suffix: a trailing _followup/_fix/_fixes/_r<N>/_s<N>/_pair<N>
-// token, or a bare trailing digit (layerN excepted). The existing stems that
-// break this are listed in testdata/test_name_grandfathered.txt, which only
-// shrinks: a renamed or deleted file leaves it, nothing joins it.
+// A test file's name says what it pins. A single lowercase word is the
+// card-name convention the one-file-per-card suites use (aftermath, v2block);
+// anything else has a separator (<topic>_<what>). No stem ends in a round
+// suffix: a trailing _followup/_fix/_fixes/_r<N>/_s<N>/_pair<N> token, a bare
+// word ending in fix/fixes (emitfix), or a bare trailing digit (layerN
+// excepted). The existing stems that break this are listed in
+// testdata/test_name_grandfathered.txt, which only shrinks: a renamed or
+// deleted file leaves it, nothing joins it.
 //
-// testNamesGrandfatheredMax is that list's ceiling, which is what makes the
-// shrink-only promise enforceable: lower it when a file leaves the list,
-// never raise it.
-const testNamesGrandfatheredMax = 128
+// testNamesGrandfatheredMax is that list's exact length, which is what makes
+// the shrink-only promise enforceable: lower it in the same commit a file
+// leaves the list, never raise it.
+const testNamesGrandfatheredMax = 1
 
 var (
 	roundToken = regexp.MustCompile(`(^|_)(followup|round[0-9]*|r[0-9]+|s[0-9]+|cs[0-9]+|fix|fixes|pair[0-9]+)$`)
 	digitEnd   = regexp.MustCompile(`[0-9]$`)
 	layerEnd   = regexp.MustCompile(`layer[0-9]$`)
+	fixEnd     = regexp.MustCompile(`fix(es)?$`)
+	singleWord = regexp.MustCompile(`^[a-z0-9]+$`)
 )
 
 // badTestName returns why a test file stem breaks the naming rule, or "".
 func badTestName(stem string) string {
+	sep := strings.Contains(stem, "_")
 	switch {
-	case !strings.Contains(stem, "_"):
-		return "has no separator"
+	case !sep && fixEnd.MatchString(stem):
+		return "has no separator and ends in a fix suffix"
 	case roundToken.MatchString(stem):
 		return "ends in a round suffix"
 	case digitEnd.MatchString(stem) && !layerEnd.MatchString(stem):
 		return "ends in a number"
+	case !sep && !singleWord.MatchString(stem):
+		return "has no separator"
 	}
 	return ""
 }
@@ -69,8 +77,8 @@ func TestTestFileNames(t *testing.T) {
 	if !slices.IsSorted(old) {
 		t.Error("testdata/test_name_grandfathered.txt is not sorted")
 	}
-	if len(old) > testNamesGrandfatheredMax {
-		t.Errorf("testdata/test_name_grandfathered.txt has %d entries, over the ceiling %d: the list only shrinks, lower testNamesGrandfatheredMax instead of raising it", len(old), testNamesGrandfatheredMax)
+	if len(old) != testNamesGrandfatheredMax {
+		t.Errorf("testdata/test_name_grandfathered.txt has %d entries, want exactly %d: the list only shrinks, lower testNamesGrandfatheredMax in the commit that removes a line", len(old), testNamesGrandfatheredMax)
 	}
 	have := map[string]bool{}
 	for _, n := range names {
@@ -93,8 +101,10 @@ func TestTestFileNames(t *testing.T) {
 // The rule itself: each way of being bad is caught, and good names pass.
 func TestBadTestNameCatchesEachShape(t *testing.T) {
 	for stem, want := range map[string]bool{
-		"emitfix": true, "repro_fixes": true, "foo_followup": true, "foo_s41": true,
-		"outcome_pair134": true, "cmdblock5": true, "foo_bar2": true, "foo_r3": true,
+		"emitfix": true, "stdfix": true, "grantprefix": true, "repro_fixes": true,
+		"foo_followup": true, "foo_s41": true, "outcome_pair134": true, "cmdblock5": true,
+		"foo_bar2": true, "foo_r3": true, "FooBar": true,
+		"aftermath": false, "ctrlrolectrl": false, "v2block": false, "chance_prefix": false,
 		"static_layer6": false, "twopiles_params": false, "std_set_repros_lockstep": false,
 	} {
 		if got := badTestName(stem) != ""; got != want {
