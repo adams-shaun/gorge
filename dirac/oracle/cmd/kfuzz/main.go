@@ -110,8 +110,17 @@ func reproRun(rep *oracle.Repro, path, surface string, surfaceGiven bool) (strin
 
 // newRepro is oracle.NewRepro with the side this run plays against.
 func newRepro(m *oracle.Matchup, seed uint64, rc oracle.RunConfig, res *oracle.Result) *oracle.Repro {
-	r := oracle.NewRepro(m, seed, rc, res)
+	return stampRepro(oracle.NewRepro(m, seed, rc, res))
+}
+
+// stampRepro records the side this run plays against on r: the kernel label,
+// and for a synth run the pool (a synth name is its glob pool name, which the
+// lockstep tables match on). Other kernels leave Pool alone.
+func stampRepro(r *oracle.Repro) *oracle.Repro {
 	r.Kernel = runKernel
+	if pool, ok := strings.CutPrefix(runKernel, "synth "); ok {
+		r.Pool = pool
+	}
 	return r
 }
 
@@ -573,7 +582,7 @@ func run() int {
 		if *out != "" {
 			if err := os.MkdirAll(*out, 0o755); err == nil {
 				path := filepath.Join(*out, "repro.json")
-				sum.First.Kernel = runKernel
+				stampRepro(sum.First)
 				if err := sum.First.Write(path); err == nil {
 					fmt.Printf("repro (%d actions", len(sum.First.Actions))
 					if sum.First.Shrunk != nil {
