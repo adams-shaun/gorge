@@ -915,7 +915,8 @@ func (e *Engine) evalTriggerCostFixedX(tc *triggeredEffectCost, o *state.Object,
 	// (refTargets' refTargetsTriggeredCard arm), not Ctx.TriggerCard, so bind
 	// the parked trigger's own capture exactly as the resumed body will.
 	ctx.Remembered = tc.costRemembered
-	e.bindTriggerCostWindowLKI(ctx, tc)
+	lki, ok := e.triggerLKI[tc.resume.obj]
+	bindTriggerObjectLKI(ctx, lki, ok)
 	n, resolvable := effects.EvalCountOK(e, ctx, body)
 	if !resolvable || n < 0 {
 		return 0, false
@@ -923,18 +924,18 @@ func (e *Engine) evalTriggerCostFixedX(tc *triggeredEffectCost, o *state.Object,
 	return n, true
 }
 
-// bindTriggerCostWindowLKI gives a triggered-cost window's SVar read the
-// resolving body's own LKI binding (resolution.go binds the same record): a
+// bindTriggerObjectLKI binds a trigger's object LKI record (when one is held)
+// for the resolving body and for a triggered-cost window's SVar read alike: a
 // TriggeredCard$ referent naming a card that left the battlefield after the
 // trigger fired is read as it last stood there, its counters and continuous
 // effects applied (CR 603.10, 608.2h), not as the copy it now is. Madame
 // Null, Power Broker's "pay life equal to its power" read the sacrificed
 // creature's graveyard face (its static +1/+0 gone) instead of the LKI.
-func (e *Engine) bindTriggerCostWindowLKI(ctx *effects.Ctx, tc *triggeredEffectCost) {
-	if lki, ok := e.triggerLKI[tc.resume.obj]; ok && lki.object != nil {
-		ctx.LKI = lki.object
+func bindTriggerObjectLKI(ctx *effects.Ctx, held triggerObjectLKI, ok bool) {
+	if ok && held.object != nil {
+		ctx.LKI = held.object
 		ctx.Snap.Power, ctx.Snap.Toughness, ctx.Snap.PTValid =
-			lki.power, lki.toughness, lki.ptValid
+			held.power, held.toughness, held.ptValid
 	}
 }
 
@@ -1046,7 +1047,8 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 		ctx.Remembered = tc.costRemembered
 		// The cap body reads the same captured referents a fixed X body does,
 		// LKI binding included.
-		e.bindTriggerCostWindowLKI(ctx, tc)
+		lki, ok := e.triggerLKI[tc.resume.obj]
+		bindTriggerObjectLKI(ctx, lki, ok)
 		if cap, ok := effects.NumResolved(e, ctx, sa, "XMax", 0); ok {
 			if cap < 0 {
 				cap = 0
