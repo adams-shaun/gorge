@@ -1064,8 +1064,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	no := 0
 	m := s.ctrlM[p]
 	var rd payDesc
-	if k.restrSrc || k.gen != nil && len(k.gen.grantRestr) != 0 {
-		rd = s.payDescNow(exclude) // the restricted sources and grants this payment may spend
+	if k.restrSrc {
+		rd = s.payDescNow(exclude) // the restricted sources this payment may spend
 	}
 	// A Taps-deferred source's classification (mana_tapsdefer.go) is a
 	// battlefield fact, so its gate lifts out of the loop: without a live
@@ -1266,7 +1266,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				// abilities only): it is appended with the choice-shaped ones,
 				// in battlefield order (paymentPlanManaUnitsOnlyCompute)
 				choice = choice || sac
-				if choice && !sac && k.gen != nil && len(k.gen.grantPC) > 0 && s.grantMay(k, sl) && s.grantsFixedMana(k, p, sl, &rd) {
+				if choice && !sac && k.gen != nil && len(k.gen.grantPC) > 0 && s.grantMay(k, sl) && s.grantsFixedMana(k, sl) {
 					// a grant of fixed production (Rok-Tahk's {G}{G} to a creature) makes the
 					// source's census unit in the shared census, at its battlefield position;
 					// its own choice-shaped ability joins that unit
