@@ -293,6 +293,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	if k.mayhem {
 		s.offerMayhemCasts(k, d, p, sorc, &av) // kw_mayhem.go
 	}
+	if k.retrace {
+		s.offerRetraceCasts(k, d, p, sorc, &av) // kw_retrace.go
+	}
 	if faces {
 		s.offerAdventureRecasts(k, d, p, sorc) // face_castface.go
 	}
@@ -1743,7 +1746,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if a.Mode()&2 != 0 && a.Target() == castEscapeTgt && k.gen != nil && k.gen.anyEscapeGrant {
 			s.g.escapeCast = true // the escape cast the action names (kw_escape.go)
 		}
-		s.beginCast(k, Obj(a.Source()), a.Mode())
+		s.beginCast(k, Obj(a.Source()), a.Mode(), a.Target()) // the target byte names a retrace cast (kw_retrace.go)
 		if face {
 			s.lowerFaceCast(k, p, Obj(a.Source())) // cast_faceroute.go
 		}

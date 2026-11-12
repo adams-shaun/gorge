@@ -1067,6 +1067,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if err := lc.facesDilemmaTrigger(tp, tr); err != nil {
 			return err
 		}
+	case "BecomeMonarch":
+		if err := lc.becomeMonarchTrigger(tp, tr); err != nil { // lower_monarch.go
+			return err
+		}
 	case "Scry", "Surveil":
 		if err := lc.scrySurveilTrigger(tp, tr, t.Mode); err != nil {
 			return err
@@ -1463,12 +1467,16 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 	}
 	if cdp, ok := tp.get("CheckDefinedPlayer"); ok && cdp != "You.withMostLife" {
-		// gorge trigger_condition.go checkDefinedPlayerHolds: only the
-		// crime spelling is read (CR 700.13); every other one refuses
-		if cdp != "You.committedCrimeThisTurn" {
+		// gorge trigger_condition.go checkDefinedPlayerHolds: the crime
+		// spelling (CR 700.13) and the monarch's (CR 725, lower_monarch.go)
+		// are read; every other one refuses
+		if c, ok := monarchCheck(cdp); ok {
+			conds = append(conds, c)
+		} else if cdp != "You.committedCrimeThisTurn" {
 			return refuse("CheckDefinedPlayer %q", cdp)
+		} else {
+			conds = append(conds, lCond{Kind: cValue, A: lValue{Kind: vCommittedCrime, Sub: []lValue{cst(1), cst(0)}}, Op: opGE, B: cst(1)})
 		}
-		conds = append(conds, lCond{Kind: cValue, A: lValue{Kind: vCommittedCrime, Sub: []lValue{cst(1), cst(0)}}, Op: opGE, B: cst(1)})
 	}
 	if ip, ok := tp.get("IsPresent"); ok {
 		if pd, ok := tp.get("PresentDefined"); ok {

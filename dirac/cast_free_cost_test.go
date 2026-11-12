@@ -36,7 +36,7 @@ func TestFreeCastUnpayableLifeReverses(t *testing.T) {
 	sc := newScenTable(t, freeCostTable(kop.CostPayLife, 2), Config{NoElide: true})
 	fc := sc.hand(v.TestCharm, 0)
 	sc.s.pl[0].life = 1
-	sc.s.beginCast(sc.k, fc, castFree)
+	sc.s.beginCast(sc.k, fc, castFree, 0)
 	sc.s.Step()
 	if sc.s.over || sc.s.pl[0].life != 1 {
 		t.Fatalf("life %d over %v, want the cast reversed with 1 life", sc.s.pl[0].life, sc.s.over)
@@ -57,7 +57,7 @@ func TestFreeCastEmptyHandDiscardReverses(t *testing.T) {
 	t.Parallel()
 	sc := newScenTable(t, freeCostTable(kop.CostDiscard, 1), Config{NoElide: true})
 	fc := sc.hand(v.TestCharm, 0)
-	sc.s.beginCast(sc.k, fc, castFree)
+	sc.s.beginCast(sc.k, fc, castFree, 0)
 	sc.s.Step()
 	if z := sc.s.objs[fc].zone; z != kop.ZoneHand {
 		t.Fatalf("spell zone %d, want the hand after the discard reversal", z)
