@@ -1,6 +1,8 @@
 # K:Rebound (CR 702.88a): a hand-cast instant or sorcery is exiled as it resolves
-# and recast free at its controller's next upkeep. Every printed carrier that
-# lowers, with creatures to blink and copy and cheap spells for Cascade, for
+# and recast free at its controller's next upkeep. All 28 printed carriers kgen
+# lowers (35 corpus cards print the keyword; the other seven are refused for an
+# ability of their own, not for Rebound), with creatures to pump, blink, tap and
+# copy, cheap spells for Cascade, and burn for Fevered Suspicion's opponents, for
 # dirac/oracle/rebound_test.go
 Ephemerate
 Consuming Vapors
@@ -16,6 +18,20 @@ Nomads' Assembly
 Recurring Insight
 Survival Cache
 Transpose
+Artful Maneuver
+Distortion Strike
+Faithless Salvaging
+Great Teacher's Decree
+Ojutai's Breath
+Ojutai's Summons
+Prey's Vengeance
+Profound Journey
+Sight Beyond Sight
+Staggershock
+Taigam's Strike
+Trumpeting Herd
+Virulent Swipe
+Void Squall
 Grizzly Bears
 Llanowar Elves
 Lightning Bolt
