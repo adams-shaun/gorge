@@ -36,9 +36,6 @@ func (s *State) stepAbility(k *prep, sl Slot, gi int16, pc *pcard) *kop.Ability 
 // scriptOrderAnswers never moves ahead for a colour the play needs. mask is the
 // colours the step walks. An unknown ability keeps the colour ordering.
 func (s *State) stepNamed(k *prep, sl Slot, gi int16, mask uint8) bool {
-	if mask&uint8(kop.ColAny) == uint8(kop.ColAny) {
-		return true // an any-colour ability's colour ask names every colour
-	}
 	var pc *pcard
 	if gi < 0 {
 		pc = s.manaPCGen(k, sl)
@@ -47,8 +44,17 @@ func (s *State) stepNamed(k *prep, sl Slot, gi int16, mask uint8) bool {
 	if ab == nil {
 		return true
 	}
-	if ab.AFlags&kop.AfManaChoice == 0 || bits.OnesCount8(uint8(ab.ManaColors)&0x3f) < 2 {
+	cols := uint8(ab.ManaColors) & 0x3f
+	if cols == uint8(kop.ColAny) {
+		return true // an any-colour ability's colour ask names every colour
+	}
+	if gi < 0 && ab.AFlags&kop.AfManaChosen != 0 {
+		if ch := s.perms[sl].chosen; ch < 5 {
+			cols |= 1 << ch // Combo W Chosen (Citadel Gate): the chosen colour joins the Combo's
+		}
+	}
+	if ab.AFlags&kop.AfManaChoice == 0 || bits.OnesCount8(cols) < 2 {
 		return false
 	}
-	return mask&^uint8(ab.ManaColors) == 0 // colours beyond the Combo's are the intrinsic abilities' (CR 305.7)
+	return mask&^cols == 0 // colours beyond the Combo's are the intrinsic abilities' (CR 305.7)
 }
