@@ -61,15 +61,6 @@ func TestCloneOptionalNoHostTakesTheCopy(t *testing.T) {
 	}
 }
 
-func hasNote(h *fakeHost, text string) bool {
-	for _, e := range h.log {
-		if e.Kind == events.Note && e.Text == text {
-			return true
-		}
-	}
-	return false
-}
-
 func cloneNoteTexts(h *fakeHost) []string {
 	var out []string
 	for _, e := range h.log {
