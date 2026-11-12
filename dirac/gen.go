@@ -232,6 +232,7 @@ type genPrep struct {
 	anyPlot        bool           // some card has plot (CardDef.HasPlot; kw_plot.go)
 	anySuspend     bool           // some card has suspend (CardDef.Suspend; kw_suspend.go)
 	anyNoManaCost  bool           // some card has a printed "no cost" mana cost (CardDef.NoManaCost; cast_nomanacost.go)
+	anyForetell    bool           // some card has foretell (CardDef.HasForetell; kw_foretell.go)
 	anyParadigm    bool           // some card has Paradigm (CardDef.Paradigm; kw_paradigm.go)
 	anyNetLock     bool           // some program is ExtLockActs: canActivate and the untap/leave sites read the lock list (act_lockpermanent.go)
 	anyUnearth     bool           // some program has OpUnearth: leaves check the unearth exile promise (cast_altfree.go)
@@ -254,6 +255,8 @@ type genPrep struct {
 	anySplitSecond bool           // some card has a StatStackKw Split second grant (kw_splitsecond.go)
 	anyStackLife   bool           // some card has a StatStackKw Lifelink grant (static_stacklifelink.go)
 	anySplit       bool           // some card is a split card (kop.FaceSplit: its mana value off the stack; face_castface.go)
+	anyAftermath   bool           // some split card's right half has aftermath (CardDef.Aftermath; face_aftermath.go)
+	anyFuse        bool           // some split card has fuse (CardDef.FuseDef; face_fuse.go)
 	anyTwobrid     bool           // some card has a twobrid pip in its printed cost (kop.ManaCost.Tb; mana_twobrid.go)
 	anyBeamGrant   bool           // some card has a StatBeamGrant static
 	anyFbGrant     bool           // some card has a StatFbGrant static (kw_fbgrant.go)
@@ -792,6 +795,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			g.anyFaces = true
 			g.anyPrepare = g.anyPrepare || c.FaceMode == kop.FacePrepare
 			g.anySplit = g.anySplit || c.FaceMode == kop.FaceSplit || c.FaceMode == kop.FaceRoom
+			g.anyAftermath = g.anyAftermath || c.Aftermath
+			g.anyFuse = g.anyFuse || c.FuseDef != 0
 			p.anyRoom = p.anyRoom || c.FaceMode == kop.FaceRoom
 		}
 		if c.Daybound || c.Nightbound {
@@ -830,6 +835,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.NoManaCost {
 			g.anyNoManaCost = true
+		}
+		if c.HasForetell {
+			g.anyForetell = true
 		}
 		if c.RemPersist {
 			g.anyRemPersist = true

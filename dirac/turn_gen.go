@@ -731,6 +731,7 @@ func (s *State) cleanupGen(k *prep) {
 			r.until == kop.DurAirbend && s.warpRecastLive(r) ||
 			r.until == kop.DurPlot && s.plotLive(r) ||
 			r.until == kop.DurSuspend && s.suspendLive(r) || // a suspended card stays while exiled, its haste while it stays (kw_suspend.go)
+			r.until == kop.DurForetell && s.plotLive(r) ||
 			r.until == kop.DurPrepared && s.preparedSrc(r) ||
 			r.dur() == kop.DurWhileSrcMay && s.mayWhileSrcKeep(r) || // cast_whilesource.go
 			r.dur() == kop.DurWhileValid && s.plotLive(r) ||

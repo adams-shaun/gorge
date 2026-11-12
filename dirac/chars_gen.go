@@ -173,8 +173,10 @@ func (s *State) genLost(k *prep, sl Slot) bool {
 	// ovrLoses' gates inline (kperf-blb): a slot without an override
 	// record, in a table without a lose-all static or a layer-6 walk,
 	// asks nothing more; a face-down table sets lossSlow (lostSlow)
-	return s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 ||
-		(k.gen.lossSlow || k.gen.anyLoseRec && s.fxM.has(sl)) && s.lostSlow(k, sl)
+	if s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 {
+		return true
+	}
+	return k.gen != nil && (k.gen.lossSlow || k.gen.anyLoseRec && s.fxM.has(sl)) && s.lostSlow(k, sl)
 }
 
 // loseAllOnset: an effect making the permanent at dst lose all its

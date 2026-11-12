@@ -107,7 +107,7 @@ var DebugPlotInstant bool
 // own walker (warp's recast, plot's free cast), never by the generic play
 // surfaces.
 func ownWalkerRecord(r mayPlay) bool {
-	return r.until == kop.DurWarp || r.until == kop.DurPlot || r.until == kop.DurPrepared || r.until == kop.DurDefeated || r.until == kop.DurAirbend || r.until == kop.DurSuspend
+	return r.until == kop.DurWarp || r.until == kop.DurPlot || r.until == kop.DurPrepared || r.until == kop.DurDefeated || r.until == kop.DurAirbend || r.until == kop.DurSuspend || r.until == kop.DurForetell
 }
 
 // plotRecord reports whether p holds a live DurPlot record for o on a turn
@@ -169,9 +169,8 @@ func (s *State) plotAction(k *prep, o Obj, p uint8) {
 	ob := &s.objs[o]
 	c := ob.card
 	cd := &k.t.Cards[c]
-	s.payHandSpecial(k, p, s.adjustCost(k, p, c, o, cd.PlotCost), o)
-	from := s.detach(o)
-	s.placeFrom(o, kop.ZoneExile, false, from, false)
+	cost := s.adjustCost(k, p, c, o, cd.PlotCost)
+	s.payAndExile(k, p, o, cost)
 	if s.mayFull() {
 		s.capFull(StallMayPlay)
 		return
@@ -188,8 +187,6 @@ func (s *State) plotAction(k *prep, o Obj, p uint8) {
 // the sources it still needs, through restricted mana when p holds some.
 func (s *State) payHandSpecial(k *prep, p uint8, cost kop.ManaCost, o Obj) {
 	if !s.poolPays(p, &cost) {
-		// gorge's potential witness: the plot action's plan taps the
-		// sources at priority, then the action pays from the floating pool
 		short := cost
 		if m := s.restrPoolNonSpell(k, p); m != 0 {
 			short = s.restrShortAdm(p, m, cost) // mana_specialaction.go: only a non-spell restriction funds it
@@ -201,6 +198,16 @@ func (s *State) payHandSpecial(k *prep, p uint8, cost kop.ManaCost, o Obj) {
 	} else {
 		s.payFromPool(p, &cost, 0)
 	}
+}
+
+// payAndExile pays the special action's cost (the plot action's, or the
+// foretell action's {2}) and moves hand card o to exile. gorge's potential
+// witness: the action's plan taps the sources at priority, then the action
+// pays from the floating pool.
+func (s *State) payAndExile(k *prep, p uint8, o Obj, cost kop.ManaCost) {
+	s.payHandSpecial(k, p, cost, o)
+	from := s.detach(o)
+	s.placeFrom(o, kop.ZoneExile, false, from, false)
 }
 
 // offerPlotCasts offers p's plotted cards' free cast from exile (gorge

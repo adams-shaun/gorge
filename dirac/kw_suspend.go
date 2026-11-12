@@ -27,8 +27,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Everything is behind prep.anySuspend.
 
 // plotModeSuspend is the mode byte of AkPlot that names the suspend special
-// action (mode 0 is plot's).
-const plotModeSuspend uint8 = 1
+// action (mode 0 is plot's, mode 1 is foretell's).
+const plotModeSuspend uint8 = 2
+
+// FeatPlotSuspend is plotModeSuspend for the oracle adapter.
+const FeatPlotSuspend = plotModeSuspend
 
 // A DurSuspend record's kind: counting (0), queued for the final-counter cast
 // ask, or its ask on screen.

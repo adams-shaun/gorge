@@ -143,6 +143,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Warp":                   "CardDef.HasWarp (a hand alt cost and the exile recast; compared through the cast options)",
 	"Suspend":                "CardDef.Suspend (a hand special action, the upkeep time-counter removal and the free cast of the last counter; compared through the cast options, the exile counters and the may-cast ask; kw_suspend.go)",
 	"Plot":                   "CardDef.HasPlot (a hand special action and the exile free cast; compared through the cast options)",
+	"Foretell":               "CardDef.HasForetell (the {2} hand special action and the later exile cast for ForetellCost; compared through the cast options; kw_foretell.go)",
 	"Bestow":                 "CardDef.HasBestow (a hand alt cost, the Aura spell and the attached type switch; compared through the cast options, the types and the attachments)",
 	"Sneak":                  "CardDef.HasSneak (a declare-blockers hand alt cost; compared through the cast options and the entry's tapped and attacking flags)",
 	"MayFlashCost":           "CardDef.HasMayFlash (an instant-timing hand cast for the mana cost plus the extra; compared through the cast options; kw_mayflash.go)",

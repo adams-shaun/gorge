@@ -98,7 +98,11 @@ func (r *Translator) Action(a dirac.Action) Canon {
 	case dirac.AkPlayLand:
 		return Pack(ActPlayLand, src, RefNone, mode) // mode: the face played (a modal DFC's "modal_land" is 1)
 	case dirac.AkPlot:
-		if mode == 1 {
+		if mode == dirac.FeatPlotForetell {
+			cm, _ := CastModeCode("foretell") // the foretell special action is gorge's "foretell" cast option (CR 702.143a; kw_foretell.go)
+			return Pack(ActCast, src, RefNone, cm)
+		}
+		if mode == dirac.FeatPlotSuspend {
 			// the suspend special action is gorge's "suspend" cast option
 			// (CR 702.62a; kw_suspend.go): the 16-entry cast-mode table is
 			// full, so it canonicalises to CastModeOther, like "harmonize"
@@ -191,6 +195,15 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			// the dash cast (CR 702.109a; kernel kw_dash.go castDashTgt):
 			// gorge's "dashed" cast option, AltCostIndex 0
 			cm, _ := CastModeCode("dashed")
+			return Pack(ActCast, src, RefNone, cm)
+		}
+		if mode == 0 && tgt == dirac.FeatCastForetellTgt && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneExile {
+			// a foretold card cast from exile (CR 702.143a; kw_foretell.go):
+			// gorge's "foretell_cast" option, which the full cast-mode table
+			// maps to CastModeOther, AltCostIndex 0. The target byte 5 is
+			// shared with the overloaded hand cast (kw_overload.go); the
+			// origin zone tells them apart.
+			cm, _ := CastModeCode("foretell_cast")
 			return Pack(ActCast, src, RefNone, cm)
 		}
 		if mode == 0 && tgt == 5 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {

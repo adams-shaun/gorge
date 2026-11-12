@@ -1966,6 +1966,11 @@ var handEffectsRoots = []string{
 	// it directly on a land's own enters trigger, for a play_land option's
 	// LandWontStay; its reads inspect that trigger's return shape.
 	"EntryLandReturn",
+	// engine/rules/cast_etbchoice.go calls this directly on an as-enters
+	// ChooseNumber body to decide whether the entry asks or draws from the
+	// engine rng (Haktos the Unscarred's Random$ True). It reads only that
+	// rider, so it joins no API's read set.
+	"ChooseNumberAtRandom",
 }
 
 // apiSpecificRulesSA names the rules functions whose SA (bSA) reads execute

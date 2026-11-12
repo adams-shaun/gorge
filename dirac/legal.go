@@ -68,6 +68,12 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			}
 			s.offerPlotHand(k, d, p, o, c, &av) // kw_plot.go
 		}
+		if k.gen != nil && k.gen.anyForetell && k.t.Cards[c].HasForetell && p == s.active && (sorc || !DebugForetellSorcery) {
+			// the foretell special action needs only priority on its
+			// controller's own turn, never sorcery timing (CR 702.143a;
+			// gorge offers it before the front-face timing gate)
+			s.offerForetellHand(k, d, p, o, c) // kw_foretell.go
+		}
 		if k.gen != nil && k.gen.anySneak && k.t.Cards[c].HasSneak && p == s.active && s.sneakStep() {
 			// the sneak window is instant speed in the caster's own
 			// declare-blockers step (CR 702.190a): before the non-instant
@@ -300,6 +306,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	}
 	if faces {
 		s.offerAdventureRecasts(k, d, p, sorc) // face_castface.go
+		if k.gen.anyAftermath {
+			s.offerAftermathCasts(k, d, p, sorc) // face_aftermath.go
+		}
 	}
 	if k.gen != nil && k.gen.anyAirbend {
 		s.offerAirbendCasts(k, d, p, sorc) // act_airbend.go (gorge offers it before the warp recast)
@@ -309,6 +318,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	}
 	if k.gen != nil && k.gen.anyPlot {
 		s.offerPlotCasts(k, d, p, sorc) // kw_plot.go
+	}
+	if k.gen != nil && k.gen.anyForetell {
+		s.offerForetellCasts(k, d, p, sorc) // kw_foretell.go
 	}
 	if k.gen != nil && k.gen.anyParadigm {
 		s.offerParadigm(k, d, p, sorc, &av) // kw_paradigm.go
@@ -1566,6 +1578,19 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 				}
 				done[sl] |= 1 << j
 				progressed = true
+				if kop.StoreManaAb(ab) {
+					// A storage battery makes its counters' worth, not an
+					// unbounded dynamic amount: count the live counters so a
+					// play it cannot pay is not offered.
+					n := s.perms[sl].ctrN(s, int(ab.Cost.Ctr))
+					if n > 255 {
+						n = 255
+					}
+					if n > 0 {
+						add(sl, uint8(ab.ManaColors), uint8(n))
+					}
+					continue
+				}
 				if ab.ManaColors == kop.ColAny || ab.AFlags&(kop.AfManaDynamic|kop.AfManaEachColor) != 0 { // gorge's walk reads an each-colour production (Bloom Tender) as open
 					open = true
 				} else {
@@ -1637,6 +1662,10 @@ func (s *State) potentialGapCost(k *prep, p uint8, sl Slot, j int, ab *kop.Abili
 	switch {
 	case int(k.ctrAb[c]) == j && (kop.CtrManaAb(ab) || kop.CtrTapSecondManaAb(ab)):
 		return ab.Cost.Flags&kop.CostRemoveCtr == 0 || s.perms[sl].ctrN(s, int(ab.Cost.Ctr)) >= int(ab.Cost.N)
+	case int(k.ctrAb[c]) == j && kop.StoreManaAb(ab):
+		// a storage battery (Mage-Ring Network): its announced X is bounded by
+		// the counters it holds (mana_countercost.go storeGap)
+		return s.perms[sl].ctrN(s, int(ab.Cost.Ctr)) > 0
 	case k.tapMana && kop.TapXMana(ab) && int(k.tapXAb[c]) == j: // the first mana ability or a second beside a plain one (mana_tapanother.go tapXAbOf)
 		var cs [MaxPerm]Slot
 		return s.tapXCands(k, p, sl, &cs) >= int(ab.Cost.N)
@@ -1730,6 +1759,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if a.Target() == castDashTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyDash {
 			s.g.impCast = true // the dash cost (kw_dash.go): beginCast marks the entry dashed
 		}
+		if a.Target() == castForetellTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyForetell {
+			s.g.impCast = true // the foretell cost (kw_foretell.go): beginCast marks the entry foretold
+		}
 		if a.Target() == castOverloadTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyOverload {
 			s.g.impCast = true // the overload cost (kw_overload.go): beginCast marks the entry overloaded
 		}
@@ -1761,6 +1793,10 @@ func (s *State) applyPriority(k *prep, a Action) {
 	case AkTurnFaceUp:
 		s.turnFaceUp(k, Obj(a.Source()), p, a.Mode()) // CR 708.6; mode = procedure
 	case AkPlot:
+		if a.Mode() == plotForetell {
+			s.foretellAction(k, Obj(a.Source()), p) // CR 702.143a; kw_foretell.go
+			break
+		}
 		if a.Mode() == plotModeSuspend {
 			s.suspendAction(k, Obj(a.Source()), p) // CR 702.62a; kw_suspend.go
 			break

@@ -407,6 +407,9 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 	if e.trigPl == trigPlAirbend {
 		return s.airbendCost(k, e.ctrl, e.card, e.obj), false, true // act_airbend.go
 	}
+	if e.trigPl == trigPlForetold {
+		return s.foretellCost(k, e.ctrl, e.card, e.obj), false, true // kw_foretell.go
+	}
 	if s.bld().altAdd == buildAltCost {
 		return s.altCostOf(k), false, true // the card's own alternative mana cost (cast_altfree.go)
 	}

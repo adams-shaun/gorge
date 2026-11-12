@@ -28,7 +28,10 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	if mode&1 != 0 {
 		fl |= sfKicked
 	}
-	mayhem := mayhemCast(k, c, mode)                                               // a graveyard cast that is no flashback (kw_mayhem.go)
+	mayhem := mayhemCast(k, c, mode) // a graveyard cast that is no flashback (kw_mayhem.go)
+	if k.gen != nil && k.gen.anyAftermath {
+		fl |= s.aftermathCastFlags(k, o, c, mode) // exiled leaving the stack (face_aftermath.go)
+	}
 	retrace := mode&2 != 0 && !mayhem && tgt == retraceTgt && k.t.Cards[c].Retrace // kw_retrace.go
 	if mode&2 != 0 && !mayhem && !retrace {
 		fl |= sfFlashback
@@ -76,6 +79,10 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		s.g.warpGrant = false
 		if mode&castWarpRecast != 0 {
 			e.mode |= modeWarpRecast
+		}
+		if s.g.impCast && ob.zone == kop.ZoneExile {
+			e.trigPl = trigPlForetold // the foretold cast from exile (kw_foretell.go)
+			s.g.impCast = false
 		}
 		if s.g.impCast {
 			if k.t.Cards[c].HasOverload {
@@ -575,7 +582,7 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		c := cd.Cost
 		if e.flags&sfFlashback != 0 && ((cd.Keywords&kop.KwFlashback != 0 || cd.BeamMeUp) && e.flags&sfFbGranted == 0 || cd.Harmonize) {
 			c = cd.AltCost // a granted flashback costs the mana cost
-		} else if e.flags&sfFlashback != 0 && k.gen != nil && k.gen.anyFbGrant && !cd.BeamMeUp {
+		} else if e.flags&sfFlashback != 0 && k.gen != nil && k.gen.anyFbGrant && !cd.BeamMeUp && !cd.Aftermath {
 			c = s.fbGrantCost(k, e.ctrl, e.obj, s.bld().fbGrants != 0) // or a live grant's own cost (kw_fbgrant.go)
 		}
 		if e.mode&modeWarped != 0 && e.trigPl == trigPlWarpG {
