@@ -21,9 +21,9 @@ import (
 // and whose Panharmonicon static matches that trigger's source. The dying
 // permanent itself must double its own leaves-the-battlefield trigger.
 const panhSelfEcho = "Name:Self-echo host\nTypes:Artifact Creature Golem\nPT:1/1\n" +
-	"S:Mode$ Panharmonicon | ValidCard$ Card.Self | Description$ If a permanent entering the battlefield causes a triggered ability of a permanent you control to trigger, that ability triggers an additional time.\n" +
-	"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | Execute$ Gain | TriggerDescription$ When this dies, you gain 1 life.\n" +
-	"SVar:Gain:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
+	"S:Mode$ Panharmonicon | ValidCard$ Card.Self | Description$ x\n" +
+	"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | Execute$ PanhGain | TriggerDescription$ When this dies, you gain 1 life.\n" +
+	"SVar:PanhGain:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
 
 // panhBatchHost is the host side of the batch case: it doubles every colorless
 // permanent's triggers but carries no trigger of its own.
@@ -33,8 +33,8 @@ const panhBatchHost = "Name:Panh batch host\nTypes:Artifact Creature Golem\nPT:1
 // panhDeathWatcher is the trigger side of the batch case: a colorless death
 // trigger the host doubles.
 const panhDeathWatcher = "Name:Death watcher\nTypes:Artifact Creature Golem\nPT:1/1\n" +
-	"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | Execute$ Gain | TriggerDescription$ When this dies, you gain 1 life.\n" +
-	"SVar:Gain:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
+	"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | Execute$ PanhGain | TriggerDescription$ When this dies, you gain 1 life.\n" +
+	"SVar:PanhGain:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
 
 // panhHasStatic reports whether id carries a live Mode$ Panharmonicon static,
 // the precondition every assertion in this file depends on.
@@ -111,6 +111,37 @@ func TestPanharmoniconHostDyingInBatchStillDoubles(t *testing.T) {
 			if got := e.G.Players[0].Life; got != 22 {
 				t.Fatalf("hostFirst=%v: the watcher's death trigger gained %d life, want 2 (host battlefield order must not matter)", hostFirst, got-20)
 			}
+		}
+	})
+
+	t.Run("real Echoes of Eternity host dies earlier in the batch", func(t *testing.T) {
+		t.Parallel()
+		e := layerEngine(t)
+		echoes := onBoardCard(t, e, 0, corpusCard(t, "Echoes of Eternity"))
+		if z := e.G.Obj(echoes).Zone; z != state.ZBattlefield {
+			t.Fatalf("precondition: Echoes of Eternity is in %s, want the battlefield", z)
+		}
+		if lo := e.G.Obj(echoes).Face(); lo == nil || len(lo.Statics) == 0 || lo.Statics[0].Mode != "Panharmonicon" {
+			t.Fatalf("precondition: Echoes of Eternity has no Panharmonicon static: %+v", lo)
+		}
+		watcher := onBoard(t, e, 0, panhDeathWatcher)
+		if got := e.G.Players[0].Life; got != 20 {
+			t.Fatalf("precondition: seat 0 life = %d, want 20", got)
+		}
+		// One DestroyAll of every permanent: the colorless host and the
+		// colorless watcher depart in one batch, host first.
+		effects.Resolve(e, &effects.Ctx{Source: echoes, Controller: 0},
+			&cards.SA{Kind: "SP", API: "DestroyAll", Params: map[string]string{"ValidCards": "Permanent"}})
+		if z := e.G.Obj(echoes).Zone; z != state.ZGraveyard {
+			t.Fatalf("precondition: Echoes of Eternity is in %s after DestroyAll, want the graveyard", z)
+		}
+		if z := e.G.Obj(watcher).Zone; z != state.ZGraveyard {
+			t.Fatalf("precondition: the watcher is in %s after DestroyAll, want the graveyard", z)
+		}
+		e.Advance()
+		drainTriggers(t, e)
+		if got := e.G.Players[0].Life; got != 22 {
+			t.Fatalf("the watcher's death trigger gained %d life, want 2 (Echoes of Eternity is on the look-back board)", got-20)
 		}
 	})
 }
