@@ -1,10 +1,13 @@
 # the Evolve pool: K:Evolve's ETB trigger and its resolution recheck on
-# Experiment One, Gyre Sage, Pollywog Prodigy and Dinosaur Egg
-# (dirac/oracle/evolve_test.go)
+# Experiment One, Gyre Sage, Pollywog Prodigy and Dinosaur Egg; Fathom
+# Mage's per-counter CounterAdded trigger beside Dragonscale Boon's two
+# counters at once (dirac/oracle/evolve_test.go)
 Experiment One
 Gyre Sage
 Pollywog Prodigy
 Dinosaur Egg
+Fathom Mage
+Dragonscale Boon
 Raise the Alarm
 Grizzly Bears
 Craw Wurm

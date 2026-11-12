@@ -662,6 +662,7 @@ type lTrigger struct {
 	MinAttackers  int
 	AtkCmp        uint8 // ValidAttackersAmount operator as a kop.DmgCmp (0 = GE, the plain literal; kernel trigCmpOK)
 	CrossAt       int   // CounterAdded: CounterAmount$ EQn, the counter total the put must reach (a crossing, CR 122.6); 0 = none
+	PerCounter    bool  // CounterAdded, a named CounterType$, no CounterAmount$ or ActivationLimit$: one trigger per counter of the batch, each carrying amount 1 (CR 603.2c; gorge counterAddedMatches; kop.Tf4PerCounter)
 	CastSnap      bool  // SpellCast: the amount reads the instants and sorceries cast this turn, snapshotted (TriggerObjectsCurrentCastSpells)
 	CastSpent     bool  // SpellCast: the amount is the triggering spell's pool mana spent, snapshotted as the trigger fires (opus; gorge TriggeredCard$CastTotalManaSpent)
 	Increment     bool  // SpellCast: Increment$ True -- the source is a creature and the cast's spend exceeds its P/T, read as the trigger fires and rechecked on resolution (gorge kwIncrement's marker, trigmatch.IncrementHolds; kernel Tf2Increment)

@@ -940,10 +940,19 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// whole size).
 			cmp := tp.str("CounterAmount")
 			if cmp == "" {
-				if al, ok := tp.get("ActivationLimit"); !ok || al != "1" {
+				if al, ok := tp.get("ActivationLimit"); !ok {
+					// a plain line: one trigger per counter of the batch
+					// (CR 603.2c), each carrying amount 1 (gorge queues one
+					// instance per counter), so a body reading the amount
+					// reads 1 as on gorge. Only a named counter kind
+					// (kernel Tf4PerCounter reads the event's one kind).
+					if ct == "*" {
+						return refuse("CounterAdded per-counter (no CounterAmount$) of any counter kind")
+					}
+					tr.PerCounter = true
+				} else if al != "1" {
 					return refuse("CounterAdded per-counter (no CounterAmount$)")
-				}
-				if lc.saReadsBatch(t.Effect) {
+				} else if lc.saReadsBatch(t.Effect) {
 					return refuse("CounterAdded per-counter body reads the trigger")
 				}
 			} else {

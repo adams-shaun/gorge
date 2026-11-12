@@ -1351,6 +1351,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 			kt.Flags2 |= kop.Tf2AtkOpp
 		}
 	}
+	if t.PerCounter {
+		if t.Event != "CounterAdded" {
+			return kt, fmt.Errorf("PerCounter on a %s trigger", t.Event)
+		}
+		kt.Flags4 |= kop.Tf4PerCounter
+	}
 	if t.Evolve {
 		if t.Event != "ETB" {
 			return kt, fmt.Errorf("Evolve on a %s trigger", t.Event)

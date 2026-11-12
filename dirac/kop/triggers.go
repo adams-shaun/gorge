@@ -49,6 +49,12 @@ const (
 	// posed to that seat (gorge deciderFromSpec). Bit 4 is Tf4NamedCast
 	// (Kai Winn), so this family's next free bit is 5.
 	Tf4OptTrigPlayer TrigFlags4 = 1 << 5
+	// Tf4PerCounter: a counter-added line (TrigCounterAddedOnce, a named
+	// kind in N) lowered from a plain Mode$ CounterAdded: one trigger per
+	// counter of the put batch, each carrying amount 1 (CR 603.2c; gorge
+	// counterAddedMatches queues one instance per counter). Fathom Mage.
+	// Bit 6 is Tf4StateCtr.
+	Tf4PerCounter TrigFlags4 = 1 << 7
 )
 
 // TrigFlags5 are the Drawn trigger's draw-step qualifiers (Trigger.Flags5).
