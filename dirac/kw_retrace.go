@@ -82,9 +82,6 @@ func (s *State) offerRetraceCasts(k *prep, d *Decision, p uint8, sorc bool, av *
 		if !cd.Retrace {
 			continue
 		}
-		if k.gen != nil && (s.fbGranted(k, o) || s.fbLive(k, o)) {
-			continue // a granted flashback instance is the flashback cast (legal.go's walk)
-		}
 		if !k.cards[c].instant && !sorc && !s.castFlash(k, p, c) {
 			continue
 		}
@@ -105,7 +102,7 @@ func (s *State) offerRetraceCasts(k *prep, d *Decision, p uint8, sorc bool, av *
 		if s.castHeldOut(o) {
 			continue
 		}
-		if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && s.g.availX&availWalk == 0 && !s.FeatPoolPays(p, o, 2) {
+		if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && s.g.availX&availWalk == 0 && !s.FeatPoolPays(p, o, 2|8) {
 			// gorge's payment planner plans no retrace mode (payment_plan.go
 			// plans plain, may-play and flashback casts only): the cast is
 			// offered only when the floating pool pays the printed base (the

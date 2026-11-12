@@ -1,6 +1,9 @@
 # the Retrace pool (CR 702.81a): the lowered printed-K:Retrace carriers
 # (Call the Skybreaker, Spitting Image, Throes of Chaos, Formless Genesis,
-# Worm Harvest and the classmates Oona's Grace, Raven's Crime, Flame Jab)
+# Worm Harvest and the classmates Oona's Grace, Raven's Crime, Flame Jab,
+# Decaying Time Loop, Embrace the Unknown, Cenn's Enlistment, Monstrify,
+# Savage Conception, Syphon Life, Waves of Aggression) and Sphinx of
+# Forgotten Lore (a flashback granter beside a Retrace card)
 # beside the rituals and ETB mana producers that float the printed bases
 # (Dark Ritual, Rite of Flame, Seething Song, Inner Fire, Manamorphose, Burning-Tree Emissary,
 # Lotus Cobra), discard outlets and self-mill (dirac/oracle/retrace_test.go);
@@ -30,3 +33,11 @@ Swamp
 Mountain
 Forest
 Island
+Decaying Time Loop
+Embrace the Unknown
+Cenn's Enlistment
+Monstrify
+Savage Conception
+Syphon Life
+Waves of Aggression
+Sphinx of Forgotten Lore

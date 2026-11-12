@@ -776,6 +776,9 @@ func (cb *cardBuilder) record() error {
 		// additional discard-a-land cost (dirac/kw_retrace.go); lower.go's
 		// lowerRetrace has refused every collision, so the CardDef carries
 		// only Retrace and RetraceCost.
+		if c.RetraceCost == nil {
+			return fmt.Errorf("Retrace without its discard cost")
+		}
 		d.Retrace = true
 		if d.RetraceCost, err = cb.cost(*c.RetraceCost); err != nil {
 			return err
