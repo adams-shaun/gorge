@@ -2688,7 +2688,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "Demonstrate":
 		ki.Op = kop.OpDemonstrate
 	case "Ninjutsu":
-		ki.Op = kop.OpNinjutsu
+		ki.Op, ki.C = kop.OpNinjutsu, int16(in.C) // C 1: the plain put-self-from-hand (lower_ninjutsu.go putSelfAbility)
 	case "Repeat":
 		ki.Op, ki.B = kop.OpRepeat, skip() // A: the pass count, read as the loop starts
 	case "RepeatWhile":

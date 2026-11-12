@@ -776,6 +776,10 @@ type lAbility struct {
 	Cycling bool
 	// Ninjutsu: the K:Ninjutsu expansion (CR 702.49; lower_ninjutsu.go)
 	Ninjutsu bool
+	// PutSelf: "{cost}: Put this card onto the battlefield from your hand"
+	// (a mana-only hand ability that keeps its source in the hand; the
+	// ChangeZone of lower_ninjutsu.go putSelfAbility)
+	PutSelf bool
 	// Station: the Station ability (K:Station, CR 702.184a;
 	// lower_station.go)
 	Station bool
