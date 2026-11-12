@@ -37,9 +37,8 @@ type Repro struct {
 	// leave it empty.
 	Surface string `json:"surface,omitempty"`
 	Kernel  string `json:"kernel,omitempty"`
-	// Actions is the canonical prefix; Readable is the same, rendered.
-	Actions  []Canon  `json:"actions"`
-	Readable []string `json:"readable,omitempty"`
+	// Actions is the canonical prefix.
+	Actions []Canon `json:"actions"`
 	// Chance, when set, forces the gorge side's random outcomes
 	// (rules.NewHypothetical): a kernel game recorded with its own draws.
 	Chance []rules.ChanceDraw `json:"chance,omitempty"`
@@ -131,7 +130,6 @@ func NewRepro(m *Matchup, seed uint64, rc RunConfig, res *Result) *Repro {
 
 func (r *Repro) setActions(as []Canon) {
 	r.Actions = append([]Canon(nil), as...)
-	r.Readable = actionStrings(r.Actions)
 }
 
 // SurfaceName is the option surface cfg offers: "autopay" or "full".
@@ -206,6 +204,11 @@ func (r *Repro) Write(path string) error {
 	}
 	return os.WriteFile(path, append(b, '\n'), 0o644)
 }
+
+// Explain renders the repro's actions, one string each (kfuzz -explain):
+// what a recorded repro's rendered action list showed, on demand now that
+// recordings no longer carry it.
+func (r *Repro) Explain() []string { return actionStrings(r.Actions) }
 
 // ReadRepro loads a repro.
 func ReadRepro(path string) (*Repro, error) {
