@@ -943,12 +943,17 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	}
 	if m.Special == "Reflected" && m.Restrict == nil && m.RestrictAb == nil && m.Amount.isConst() && m.Amount.N == 1 {
 		// one mana of any colour among the matching permanents' colours
-		// (Plaza of Heroes; lower_reflectedmana.go)
+		// (Plaza of Heroes), or among what the matching permanents' mana
+		// abilities could produce (Ability.ManaProduce, every Valid$ alternative
+		// OppCtrl: Exotic Orchard; lower_reflectedmana.go)
 		id, err := cb.filter(m.SpecialF, kop.ZoneBattlefield)
 		if err != nil {
 			return err
 		}
 		ka.AFlags |= kop.AfManaChoice | kop.AfManaReflect
+		if m.Produce {
+			ka.ManaProduce = true
+		}
 		ka.ManaAmong = id
 		ka.ManaColors = kop.ColAny
 		ka.ManaN = 1
