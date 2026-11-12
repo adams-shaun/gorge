@@ -77,28 +77,26 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   Arid Archway's {C}{C} paying a one-mana remainder; `remparams` pool,
   TestRemparamsLockstep). Open: the filter-land and Giada-window pool
   additions do not tag (no typed source reaches them).
-- Face casts: gorge's potential planner prices every face route,
-  and dirac offers the Adventure (including its exile recast), split
-  and modal routes from the ordinary mana census (floating pool plus
-  untapped sources) on the oracle surface (`Config.GorgeUnpriced`). The
-  planner's limits apply only to those newly priced routes: a pool holding
+- Face casts: gorge's potential planner prices every face route, and its
+  cast payment planner plans the face the card shows (CR 709.3: a Room back
+  in the hand on door 1 is a plain cast of that door, priced from untapped
+  lands like any other), so `plannedCastCost` prices a plain cast of a card
+  showing a nonzero face. dirac offers the Adventure (including its exile
+  recast), split, modal and Room routes from the ordinary mana census
+  (floating pool plus untapped sources) on the oracle surface
+  (`Config.GorgeUnpriced`). The planner's limits apply only to those newly
+  priced routes: a pool holding
   restricted mana is refused ("unsupported: pool", so the floating pool
   alone must pay; the query reads `RestrictedMana` only, so an
   artifact-tagged unit is ordinary mana to it -- unlike the ordinary cast
   and activation planners' `PlanPoolOK`, above), a scripted prefix whose
   restricted mana floats dead-ends, and a witness whose plan consumes a
   source the face's own targets need is dropped ("unsupported:
-  witness_unreachable"; Battle Display). gorge's cast planner also plans
-  face 0 only (rules payment_plan.go planCastPaymentChecked: a `FaceIdx`
-  other than `cast.Face` is "unsupported"), so `plannedCastCost` declines a
-  plain cast of a card showing a nonzero face -- a Room back in the hand on
-  door 1 is lowered or pool-paid. Omen and Prepare
-  keep their census offer. A Room's other door stays pool-only on
-  the oracle surface: its census offer reaches latent dirac Room-rule
-  divergences (the Unholy Annex Demon branch, unlock-trigger token timing). Pricing these casts from untapped
+  witness_unreachable"; Battle Display). Omen and Prepare
+  keep their census offer. Pricing these casts from untapped
   lands lets the kpermcopy lockstep's greedy caster push more than
   `castRingN` spells in a turn: a cast-ring capacity stall, measured
-  2/720 games (TestPermcopyLockstep). Off the oracle surface (self-play's
+  0/720 games (TestPermcopyLockstep). Off the oracle surface (self-play's
   default) every route is the plain rules census, CR 601.2h.
 - Replacement amounts are computed in a fixed order, amounts then
   prevention (Twinflame Tyrant before Crystal Barricade; two Twinflames
