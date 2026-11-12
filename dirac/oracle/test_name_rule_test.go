@@ -15,6 +15,12 @@ import (
 // token, or a bare trailing digit (layerN excepted). The existing stems that
 // break this are listed in testdata/test_name_grandfathered.txt, which only
 // shrinks: a renamed or deleted file leaves it, nothing joins it.
+//
+// testNamesGrandfatheredMax is that list's ceiling, which is what makes the
+// shrink-only promise enforceable: lower it when a file leaves the list,
+// never raise it.
+const testNamesGrandfatheredMax = 731
+
 var (
 	roundToken = regexp.MustCompile(`(^|_)(followup|round[0-9]*|r[0-9]+|s[0-9]+|cs[0-9]+|fix|fixes|pair[0-9]+)$`)
 	digitEnd   = regexp.MustCompile(`[0-9]$`)
@@ -62,6 +68,9 @@ func TestTestFileNames(t *testing.T) {
 	old := grandfathered(t)
 	if !slices.IsSorted(old) {
 		t.Error("testdata/test_name_grandfathered.txt is not sorted")
+	}
+	if len(old) > testNamesGrandfatheredMax {
+		t.Errorf("testdata/test_name_grandfathered.txt has %d entries, over the ceiling %d: the list only shrinks, lower testNamesGrandfatheredMax instead of raising it", len(old), testNamesGrandfatheredMax)
 	}
 	have := map[string]bool{}
 	for _, n := range names {
