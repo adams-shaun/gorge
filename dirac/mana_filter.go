@@ -723,6 +723,7 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		s.otherDo(k, p, st)
 		return
 	}
+	s.fireFiltAbilityCast(k, p, st) // the activation precedes its cost's tap and sacrifice
 	pl := &s.pl[SeatIx(p)]
 	if st.gap && st.ans > 0 {
 		s.filtUse(k, st.sl) // (a once-each-turn filter spends its use, not its {T})
@@ -800,28 +801,46 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 			s.fundSac(k, st.sl)
 		}
 	}
-	s.fireFiltAbilityCast(k, p, st)
 }
 
 // fireFiltAbilityCast queues AbilityCast listeners for the mana ability a
-// filt path step activates (CR 605.1a): a filter's own ability, a restricted
-// source's, or the source's first mana ability for a plain tap. A granted
-// activation has no printed ability to classify and is skipped.
+// filt path step is about to activate (CR 605.1a), resolved here from the step
+// that activates it: a filter's own ability, a restricted source's recorded
+// one, or the source's mana ability that makes the answered colour. A granted
+// activation is skipped (fireViewAbilityCast).
 func (s *State) fireFiltAbilityCast(k *prep, p uint8, st filtStep) {
-	if k.gen == nil || !k.gen.anyAbilityCast || st.other.kind != otherNone || st.sl == NoSlot {
+	if k.gen == nil || !k.gen.anyAbilityCast || st.sl == NoSlot {
 		return
 	}
 	c := s.cardAt(st.sl)
-	ab := int8(-1)
 	switch {
 	case st.gap && st.ans > 0:
-		ab = int8(k.gen.filt(c))
+		s.fireManaAbilityCast(k, c, k.gen.filt(c), p)
 	case st.restr:
-		ab = int8(k.gen.restr(c))
+		s.fireManaAbilityCast(k, c, k.gen.restrRecOf(c).ab, p)
+	case st.gap:
+		s.fireViewAbilityCast(k, p, st.sl, s.manaPCGen(k, st.sl).manaAb)
 	default:
-		ab = s.manaPCGen(k, st.sl).manaAb
+		s.fireViewAbilityCast(k, p, st.sl, s.manaAbForCol(k, st.sl, int(st.ans)))
 	}
-	s.fireManaAbilityCast(k, c, ab, p)
+}
+
+// manaAbForCol is the mana ability of the planner's view of sl that makes
+// colour col: the view's own when it can, else the card's first mana ability
+// that can, else the view's (a multi-ability source's answer names a colour,
+// not an ability).
+func (s *State) manaAbForCol(k *prep, sl Slot, col int) int8 {
+	ab := s.manaPCGen(k, sl).manaAb
+	cd := &k.t.Cards[s.cardAt(sl)]
+	if ab >= 0 && int(ab) < len(cd.Abilities) && uint8(cd.Abilities[ab].ManaColors)&(1<<col) != 0 {
+		return ab
+	}
+	for j := range cd.Abilities {
+		if a := &cd.Abilities[j]; a.Kind == kop.AbMana && uint8(a.ManaColors)&(1<<col) != 0 {
+			return int8(j)
+		}
+	}
+	return ab
 }
 
 func poolTotal(pl *player) int {
