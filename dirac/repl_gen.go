@@ -60,8 +60,8 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	if g.anyRepl&rbPlProt != 0 && sl == NoSlot && s.plProtected(k, srcCtrl, rcp, combat) {
 		return 0 // protection from each opponent prevents it first (CR 702.16e; static_playerstats.go)
 	}
-	if s.plProtAll(k, rcp) && !s.noPrev(k, combat) {
-		return 0 // protection from everything prevents it (CR 702.16e; static_plprot.go)
+	if sl == NoSlot && s.plProtAll(k, rcp) && !s.noPrev(k, combat) {
+		return 0 // protection from everything prevents it -- the player's only: a walker or battle they control still takes it (CR 702.16e; static_plprot.go)
 	}
 	if g.anyRepl&rbPrevCol != 0 && s.prevColHit(k, srcSl, srcCard, prevTgt{rcp, sl}, combat) {
 		return 0 // Ext PreventColor (cast_altfree.go)

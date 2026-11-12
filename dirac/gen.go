@@ -161,6 +161,7 @@ type genPrep struct {
 	anyEOTEmb      bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
 	anyNTEmb       bool           // some emblem ends at its controller's next turn (kop.Emblem.UntilNextTurn; static_effectdelivered.go)
 	anyNTEndEmb    bool           // some emblem ends at its controller's next turn's cleanup (kop.Emblem.UntilEndOfNextTurn; static_emblemdurations.go)
+	anyEmbGrant    bool           // some emblem's Continuous static grants an ability (globalGrantsGen's emblem pass)
 	embObjEv       uint32         // object events (bit per TrigEvent) some emblem trigger listens to (fireEmblemsObj)
 	embCombatEv    uint32         // events (DamageDone, AttackersDeclared, LifeGained) some emblem trigger listens to (trig_effectuntileot.go)
 	anyGrant       bool           // some override or static grants an ability
@@ -870,6 +871,11 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		for j := range c.Abilities {
 			a := &c.Abilities[j]
 			g.prepAddManaRestr(a) // mana_resolverestriction.go
+			for _, in := range a.Prog {
+				if in.Op == kop.OpCreateEmblem {
+					g.prepEmbGrant(t, CardID(i), &t.Emblems[in.C])
+				}
+			}
 			for ti := 0; ti < int(a.NTargets); ti++ {
 				if k := a.Targets[ti].Kind; k == kop.TgtStackObj || k == kop.TgtStackAb || k == kop.TgtStackObjTrig {
 					g.anyStackTgt = true // tgt_stackability.go
