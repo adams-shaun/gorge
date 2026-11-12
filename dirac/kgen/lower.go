@@ -254,6 +254,10 @@ type lowerCtx struct {
 	// damage to a player lowers: ControlledBy Spawner>TriggeredTarget is the
 	// opponent (lower_filterwords.go)
 	spawnDmg bool
+	// spawnAtk while an ImmediateTrigger body spawned by Card.Self's Attacks
+	// trigger lowers: ControlledBy Spawner>TriggeredDefendingPlayer is the
+	// attack's defending player (lower_filterwords.go)
+	spawnAtk bool
 	// actCost while a printed activated ability's own Cost$ is lowered
 	// (RemoveAnyCounter<N/Kind/Filter>, kop.CostSubAmong)
 	actCost bool
@@ -1121,6 +1125,14 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !faceHasMeleeTrigger(lc.face) {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
+		case head == "Doctor's companion":
+			// CR 702.124m: a deck-construction marker (the card may be one
+			// of two commanders beside a Doctor, gorge deck.IsPartnerPair's
+			// doctorCompanionPair). It has no battlefield meaning, gorge
+			// expands it into no ability, and the adapter's commander gate
+			// reads the raw face keyword (dirac/adapter checkCommander
+			// -> deck.IsPartnerPair on the deck's own cards), so lowering
+			// nothing is exact.
 		case expandedKeywords[head]:
 			// Lowered from the expansion's own lines.
 		case head == "Kicker":
@@ -2004,13 +2016,16 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				return c, refuse("cost token %q", t)
 			}
 			if parts[1] == "NICKNAME" {
-				// Forge (CostPart.payCostFromSource) and XMage
-				// (SacrificeSourceCost) read Sac<1/NICKNAME> as the source
-				// itself, but gorge at the pin never offers the activation
-				// (Syr Ginger: 0 of 1012 eligible priority windows, 182 of
-				// 182 with CARDNAME; gorge finding). Refused
-				// until gorge offers it (copy gorge, never guess).
-				return c, refuse("Sac<1/NICKNAME>: gorge never offers the activation (gorge finding)")
+				// gorge pay.SacrificeMatchSpec (engine/rules/quiet_facts.go
+				// sacrificeMatchSpec) reads Forge's NICKNAME spec as CARDNAME
+				// -- the source itself, which is also Forge
+				// (CostPart.payCostFromSource) and XMage
+				// (SacrificeSourceCost). Measured at this pin: gorge offers
+				// both activations (Syr Ginger, the Meal Ender and Adric,
+				// Mathematical Genius, engine/rules nickname_sac_test.go), so
+				// the same reading as CARDNAME.
+				c.SacSelf = true
+				continue
 			}
 			if parts[1] == "CARDNAME" {
 				c.SacSelf = true
@@ -2468,6 +2483,10 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 	if err0 != nil {
 		return nil, err0
 	}
+	expr, err0 = lc.spawnerDefendingCtrl(expr) // lower_filterwords.go
+	if err0 != nil {
+		return nil, err0
+	}
 	expr = expandBasicLandType(expr)
 	if err := lc.referentGate(expr); err != nil {
 		return nil, err
@@ -2584,7 +2603,7 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 			// ZoneStack)
 			return nil, refuse("filter %q: a Spell head outside a ReduceCost ValidTarget$", expr)
 		}
-		if (c.Ctrl == whoDefending || c.Owner == whoDefending) && !lc.atkPresent && (!lc.trigBody || lc.ab == nil || lc.ab.Trigger == nil || lc.ab.Trigger.Event != "Attacks") {
+		if (c.Ctrl == whoDefending || c.Owner == whoDefending) && !lc.atkPresent && !lc.spawnAtk && (!lc.trigBody || lc.ab == nil || lc.ab.Trigger == nil || lc.ab.Trigger.Event != "Attacks") {
 			return nil, refuse("ControlledBy TriggeredDefendingPlayer outside an Attacks trigger's battlefield filter")
 		}
 		if c.CmpX != "" && (c.CmpV == nil || c.CmpV.Kind != vChosenNumber) {

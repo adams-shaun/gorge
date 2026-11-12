@@ -126,6 +126,14 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Fiend Hunter's Defined$ DirectRemembered leave return lowers as the remembered-persist pair; ALL 22176 -> 22177).
 	// +1 (the merge with land: Count$TotalDamageReceivedThisTurn lowered: Tangled Colony beside land's 22180; ALL 22180 -> 22181, WOE 261 -> 262).
 	// +5 (Dig NoLooking$ and Manifest Defined$ Remembered lower: Telling Time, Moment of Truth, Expressive Iteration, Write into Being, Hamza, Might of the Yathan; ALL 22345 -> 22350, MOM 199 -> 200).
+	// +15 (the deck markers and costs gorge already offered lower: the keyword Doctor's companion
+	// (CR 702.124m, a deck-construction marker with no battlefield meaning), Sac<1/NICKNAME> read as
+	// the source itself like CARDNAME (gorge pay.SacrificeMatchSpec), and Ace, Fearless Rebel's
+	// fight target Creature.ControlledBy Spawner>TriggeredDefendingPlayer read as the attack's
+	// defending player: Adric, Mathematical Genius, ED-E, Lonesome Eyebot, Ace, Fearless Rebel,
+	// Graham O'Brien, Jamie McCrimmon, Jirina, Dauntless General, Junktown, K-9, Mark I,
+	// Kagemaro, First to Suffer, Nardole, Resourceful Cyborg, Romana II, Sarah Jane Smith,
+	// Syr Ginger, the Meal Ender, Tegan Jovanka, Yasmin Khan; WOE 262 -> 263).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
 	"ALL": {22381, 34442},
 	"BIG": {27, 30},
@@ -155,7 +163,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TMT": {183, 194},
 	"TRC": {299, 337},
 	"TRK": {311, 311},
-	"WOE": {262, 281},
+	"WOE": {263, 281},
 }
 
 // testSetlistDir is setlistDir relative to the test's working directory
