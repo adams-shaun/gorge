@@ -551,10 +551,10 @@ const maxComboMana = 4
 
 // storeGapMana reports the storage-battery shape a later mana ability may
 // carry: SubCounter<X/KIND> on the source, Amount$ X, a fixed or two-colour
-// production and at most one generic fee. The kernel's counter-X script gap
+// production and no generic fee. The kernel's counter-X script gap
 // (mana_countercost.go) removes every counter and makes that many mana; a
-// five-colour or spend-restricted production has no kernel model and stays
-// refused.
+// fee, a five-colour production or a spend restriction has no kernel model
+// and stays refused.
 func storeGapMana(a *lAbility) bool {
 	if a.Kind != akMana || a.Mana == nil || !a.Cost.SubCtrX || a.Latent {
 		return false
