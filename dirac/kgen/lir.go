@@ -736,6 +736,7 @@ type lAbility struct {
 	RemTgt          bool   // a Pump RememberObjects$ ThisTargetedCard (lower_remembered.go)
 	ReflexObj       bool   // a reflexive latent whose ImmediateTrigger captured a target (lower_remembered.go)
 	DelayedObjOnly  bool   // a delayed latent whose RememberObjects$ set holds objects only (lower_delayedobjects.go)
+	DelayedPlayer   bool   // a delayed latent registered with a remembered PLAYER (the countered spell's controller): Defined$ DelayTriggerRemembered reads the trigger player (lower_delayremplayer.go)
 	DelayedSelf     bool   // the delayed program remembered the source's own card (Transformed$ return; lower_delayedobjects.go)
 	Origin          int    // gorge's Face.Abilities index, or 0x80|Face.Triggers index; 0 is ambiguous with A[0], so Origin is valid only when OriginOK
 	OriginOK        bool

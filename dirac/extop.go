@@ -133,6 +133,8 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtVote:
 		return s.voteStart(k, in), true // act_vote.go
+	case kop.ExtDrawUpto:
+		return s.drawUptoStart(k, in), true // act_drawupto.go
 	case kop.ExtAttacksIfAble:
 		s.attacksIfAbleExt(k, in) // combat_attacksifable.go
 		return true, true

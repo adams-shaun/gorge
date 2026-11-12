@@ -4111,6 +4111,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
+	case "DrawUpto":
+		// OpExt ExtDrawUpto: Obj the drawer, B the most cards (act_drawupto.go)
+		v, err := cb.value(in.A)
+		if err != nil {
+			return ki, err
+		}
+		ki.Op, ki.A, ki.B = kop.OpExt, kop.Const(int(kop.ExtDrawUpto)), v
 	case "Recruit":
 		// OpExt ExtRecruit. The token is a fixed corpus
 		// script (the lowering registered it in lc.out.Tokens); the kernel
@@ -4643,6 +4650,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				ki.A = kop.Const(kop.DelayYourUpkeep)
 			case "NextEndCombat":
 				ki.A = kop.Const(kop.DelayEndCombat)
+			case "NextUpkeepOfRemPlayer":
+				ki.A = kop.Const(kop.DelayRemUpkeep) // dirac/trig_delayremupkeep.go
 			case "NextUpkeepOfPlayer":
 				ki.A = kop.Const(kop.DelayPlayerUpkeep) // dirac/trig_delayplayerupkeep.go
 			case "NextBeginCombat":
