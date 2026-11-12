@@ -333,11 +333,16 @@ var carrierFaceCarries = func(f *cards.Face) bool {
 }
 
 // paymentPlanCarries is one object's half of the carrier test: a printed
-// face or a mutated under-card carries (never granted or derived state, so
-// only creation, a Mutate/HiddenIdentity fold or a merged-pile departure
-// clear can change the answer).
+// face, a mutated under-card or a layer-1 copy face (CR 707.2: a copy has the
+// copied object's copiable values, so a copy of a TapsForMana carrier is one;
+// paymentPlanTapObservers reads the same o.Face()) carries. Granted or
+// derived state never counts, so only creation, a Mutate/HiddenIdentity fold,
+// a merged-pile departure clear or a copy fold can change the answer.
 func paymentPlanCarries(o *state.Object, carries func(*cards.Face) bool) bool {
 	if o.Card != nil && slices.ContainsFunc(o.Card.Faces, carries) {
+		return true
+	}
+	if carries(o.CopyFace) || carries(o.CopyFaceBack) {
 		return true
 	}
 	for j := 0; j < len(o.MergedCards); j++ {
@@ -354,12 +359,15 @@ func paymentPlanCarries(o *state.Object, carries func(*cards.Face) bool) bool {
 // departure clear (CR 702.140e), which drops a mutated permanent's
 // under-cards and runs inside BOTH a MoveZone fold and a MyriadCleanup fold
 // (foldMyriadCleanup's direct exile Move reaches the same clear in move()).
-// Every other kind leaves the printed faces of every existing object alone,
+// The copy folds (ClonePermanent, CloneStatic, CopyExcept, CopyToken,
+// MyriadCopy) set or clear an object's layer-1 CopyFace, which paymentPlanCarries
+// reads. Every other kind leaves the printed faces of every existing object alone,
 // so the memo extends over the new objects instead of rebuilding.
 func carriersTailRescans(tail []events.Event) bool {
 	for i := range tail {
 		switch tail[i].Kind {
-		case events.Mutate, events.HiddenIdentity, events.MoveZone, events.MyriadCleanup:
+		case events.Mutate, events.HiddenIdentity, events.MoveZone, events.MyriadCleanup,
+			events.ClonePermanent, events.CloneStatic, events.CopyExcept, events.CopyToken, events.MyriadCopy:
 			return true
 		}
 	}

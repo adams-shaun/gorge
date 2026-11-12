@@ -224,3 +224,43 @@ func TestPaymentPlanCarriersMemoRebuildsOnMyriadCleanup(t *testing.T) {
 	lacks("after the myriad cleanup", tok)
 	check("after the myriad cleanup")
 }
+
+// TestPaymentPlanCarriersMemoTracksCopyEffects pins that a layer-1 copy of a
+// TapsForMana carrier (CR 707.2) is listed, and that the copy fold is in the
+// tail rescan set: a ClonePermanent onto an existing non-carrier must list it
+// without a forced rebuild, and a clearing ClonePermanent must drop it.
+func TestPaymentPlanCarriersMemoTracksCopyEffects(t *testing.T) {
+	t.Parallel()
+	e, _, _ := newFixtureDeck(t, 9954, interferenceOneInstant)
+	memo := func() []state.ObjID { return pay.PaymentPlanInterferenceCarriers(asPayer(e)) }
+	check := func(label string) {
+		t.Helper()
+		got := slices.Clone(memo())
+		asPayer(e).Session().PaymentPlanCarriersValid = false
+		if forced := memo(); !slices.Equal(got, forced) {
+			t.Fatalf("%s: memoised carriers %v != forced rebuild %v", label, got, forced)
+		}
+	}
+	bear := onBoard(t, e, 0, blankBearSrc)
+	model := onBoardCard(t, e, 1, corpusCard(t, "Forsaken Monument"))
+	memo() // build the memo before the copy
+	if slices.Contains(memo(), bear) {
+		t.Fatalf("precondition: the vanilla bear %d is already a carrier", bear)
+	}
+	e.emit(events.Event{Kind: events.ClonePermanent, Obj: bear, IDs: []state.ObjID{model}})
+	if o := e.G.Obj(bear); o.CopyFace == nil {
+		t.Fatal("precondition: the clone left no copy face")
+	}
+	if !slices.Contains(memo(), bear) {
+		t.Fatalf("a copy of Forsaken Monument %d is not listed: %v", bear, memo())
+	}
+	check("after the copy")
+	e.emit(events.Event{Kind: events.ClonePermanent, Obj: bear})
+	if o := e.G.Obj(bear); o.CopyFace != nil {
+		t.Fatal("precondition: the clearing clone left a copy face")
+	}
+	if slices.Contains(memo(), bear) {
+		t.Fatalf("the cleared copy %d is still listed: %v", bear, memo())
+	}
+	check("after the clearing copy")
+}
