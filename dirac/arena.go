@@ -56,6 +56,7 @@ const (
 	mechProtPostR                   // red
 	mechProtPostG                   // green
 	mechEchoOwed                    // slots of the active player's permanents that came under their control since their previous turn began, read as their upkeep's echo gate (CR 702.30a; trig_echo.go)
+	mechHexUB                       // slots whose permanent has hexproof from blue and from black this turn (TurnReplHexUB; repl_turnrepl.go)
 	numMech
 )
 
@@ -106,9 +107,10 @@ var mechWidth = [numMech]uint8{
 	mechProtPostR:       wSlot,
 	mechProtPostG:       wSlot,
 	mechEchoOwed:        wSlot,
+	mechHexUB:           wSlot,
 }
 
-var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen", "sbaChain", "once2", "once3", "tappedTurn", "lure", "lurePost", "protW", "protU", "protB", "protR", "protG", "protPostW", "protPostU", "protPostB", "protPostR", "protPostG", "echoOwed"}
+var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen", "sbaChain", "once2", "once3", "tappedTurn", "lure", "lurePost", "protW", "protU", "protB", "protR", "protG", "protPostW", "protPostU", "protPostB", "protPostR", "protPostG", "echoOwed", "hexUB"}
 
 // arenaNone is the index of a mechanic the table does not use.
 const arenaNone = 0xFF
@@ -177,6 +179,9 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 					}
 					if in.Ext() == kop.ExtExileExMark || in.Ext() == kop.ExtTurnRepl && in.C == kop.TurnReplExileOpp {
 						u[mechExileEx] = true
+					}
+					if in.Ext() == kop.ExtTurnRepl && in.C == kop.TurnReplHexUB {
+						u[mechHexUB] = true // repl_turnrepl.go
 					}
 					if in.Ext() == kop.ExtSuspect && in.C&1 == 0 {
 						u[mechSuspected] = true // a suspect; an un-suspect or a read needs no mask
@@ -279,6 +284,9 @@ func (s *State) arenaClrSlot(sl Slot) {
 	}
 	if r := s.xblkRecs(); len(r) > 0 {
 		r[sl] = xblkRec{}
+	}
+	if int(sl) < len(s.cold.hexUB) {
+		s.cold.hexUB[sl] = 0 // a new permanent takes no mark from the last one (repl_turnrepl.go)
 	}
 	for i := range s.cold.exMark {
 		if r := &s.cold.exMark[i]; r.sl == sl {

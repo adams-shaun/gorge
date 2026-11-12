@@ -156,6 +156,17 @@ func (e *Engine) applyETBChoiceReplacement(ev events.Event) bool {
 		Min: 1, Max: 1, ResumeKind: "etb", ResumeSA: choice.sa, Source: ev.Obj,
 		Prompt: "Choose" + choice.promptText(), Options: choice.options}
 	e.choosing = chooseETBEntry
+	if choice.random && len(d.Options) > 1 {
+		// Random$ True (Haktos the Unscarred: "choose 2, 3, or 4 at
+		// random") is the engine's own draw, not a question. Draw from the
+		// seeded rng HERE only: faceETBChoice is also the pure probe
+		// entryETBChoiceOutstanding runs, so a draw there would consume the
+		// stream twice. Recording the pick through resumeETBEntry emits the
+		// ordinary Choose "number" event, so a log-only replay re-derives it.
+		e.choosing = chooseNone
+		e.resumeETBEntry([]decision.Option{d.Options[e.Rand(len(d.Options))]})
+		return true
+	}
 	if in, ok := etbTapeAnswer(e, d, ev.Obj); ok {
 		// The resolution kernel's answer in hand: the entry is
 		// never parked. Re-emit it with the answer now, exactly as the legacy

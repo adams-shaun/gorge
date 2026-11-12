@@ -98,7 +98,7 @@ func TestCommanderReproRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(raw), `"commander": true`) || !strings.Contains(string(raw), `"commanders"`) {
+	if !strings.Contains(string(raw), `"commander":true`) || !strings.Contains(string(raw), `"commanders"`) {
 		t.Fatalf("repro does not record the commander:\n%.400s", raw)
 	}
 	r, err := ReadRepro(path)

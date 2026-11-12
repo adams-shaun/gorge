@@ -543,6 +543,12 @@ func (s *State) applyAskUnread(k *prep, a Action) bool {
 		skip := uint8(0)
 		if a.Mode() == 0 && !s.topLibForceMove(k) {
 			skip = uint8(s.value(k, s.prog(k)[s.res.pc].A))
+			// gorge's forgetOther runs before changeZoneOptionalConfirm, so a
+			// declined ForgetOtherRemembered$ move still clears the set. The
+			// accepted path clears in the move op itself (MvForgetOther).
+			if next := &s.prog(k)[s.res.pc+1]; skip == 1 && next.Op == kop.OpReturnEx && next.C>>3&kop.MvForgetOther != 0 {
+				s.g.nrem, s.g.remCnt = 0, 0
+			}
 		}
 		s.continueRes(k, skip)
 	case raGenPeekReveal:

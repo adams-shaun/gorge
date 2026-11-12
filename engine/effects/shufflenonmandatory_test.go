@@ -51,13 +51,6 @@ func shuffleEvents(h *fakeHost, p state.PlayerID) int {
 	return n
 }
 
-func ctxSearchShuffleLabel(accept bool) string {
-	if accept {
-		return "yes"
-	}
-	return "no"
-}
-
 // TestObjectPathShuffleMandatoryShufflesWithoutFlag is half (b)'s silent
 // branch: the same object-target move stating only Shuffle$ True (the 76
 // corpus "shuffle it into their library" lines that do not carry the

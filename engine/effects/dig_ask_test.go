@@ -15,24 +15,6 @@ import (
 // posed decision and suspends -- the effects-package stand-in for
 // rules.Engine.
 
-// digAskFixture builds seat 0's library as [c0 bear, c1 land, c2 land, c3
-// bear] and returns (host, ids).
-func digAskFixture(t *testing.T) (*askHost, []state.ObjID) {
-	t.Helper()
-	h := &askHost{}
-	h.g = state.NewGame(names(2))
-	bear := mkCard(t, "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n")
-	land := mkCard(t, "Name:Isle\nTypes:Basic Land Island\nOracle:x\n")
-	ids := []state.ObjID{
-		h.g.AddObject(bear, 0).ID,
-		h.g.AddObject(land, 0).ID,
-		h.g.AddObject(land, 0).ID,
-		h.g.AddObject(bear, 0).ID,
-	}
-	h.g.SetZone(state.ZLibrary, 0, ids)
-	return h, ids
-}
-
 const digAskSA = "SP$ Dig | Defined$ You | DigNum$ 3 | ChangeNum$ 1 | Optional$ True | ChangeValid$ Land | DestinationZone$ Hand"
 
 // TestDigNoHostFallbackKeepsTheFirstEligibleWithANote pins the no-host fallback:

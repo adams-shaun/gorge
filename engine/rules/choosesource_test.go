@@ -8,36 +8,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// resolveChooseSource resolves the SP$ ChooseSource head of a spell object
-// controlled by its owner, answers the posed KChoose with the option whose
-// object id is want, and asserts the answer landed on the spell's own Chosen
-// list (the binding the registered replacement's ValidSource$ gate reads).
-func resolveChooseSource(t *testing.T, e *Engine, spell state.ObjID, want state.ObjID) {
-	t.Helper()
-	o := e.G.Obj(spell)
-	sa := o.Face().SpellAbility()
-	effects.Resolve(e, &effects.Ctx{Source: spell, Controller: o.Controller, SVars: o.Face().SVars}, sa)
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose {
-		t.Fatalf("ChooseSource did not pose a KChoose, got %+v", d)
-	}
-	idx := -1
-	for _, opt := range d.Options {
-		if opt.Obj == want {
-			idx = opt.Index
-		}
-	}
-	if idx < 0 {
-		t.Fatalf("object %d not among ChooseSource options %+v", want, d.Options)
-	}
-	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
-		t.Fatalf("submit ChooseSource answer: %v", err)
-	}
-	if len(o.Chosen) != 1 || o.Chosen[0].Obj != want {
-		t.Fatalf("chosen = %+v, want [%d]", o.Chosen, want)
-	}
-}
-
 // TestChooseSourceNoCandidateDoesNotWedge pins the zero-candidate shape: a
 // ChooseSource whose Choices$ filter matches nothing poses no decision (the
 // empty-answer-only KChoose is absorbed by effects.Ask), records no chosen

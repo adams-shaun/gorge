@@ -61,13 +61,6 @@ type rememberDrawnSetup struct {
 	almsCollector bool
 }
 
-// rememberDrawnGame builds a two-seat game from seat 0's deck and stops at
-// turn 1's first main, where every board below is set up.
-func rememberDrawnGame(t *testing.T, seed uint64, seat0 []*cards.Card) (*Engine, Config) {
-	t.Helper()
-	return rememberDrawnGameDecks(t, seed, seat0, nil)
-}
-
 // rememberDrawnGameDecks is rememberDrawnGame with an explicit seat 1 deck;
 // nil keeps the all-Mountain deck.
 func rememberDrawnGameDecks(t *testing.T, seed uint64, seat0, seat1 []*cards.Card) (*Engine, Config) {

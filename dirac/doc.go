@@ -279,8 +279,9 @@
 //     graveyard or exile and ChGenHandMove from a hand, gorge's
 //     hidden_pick / hand_move), ChGenDig (source = a
 //     looked-at card taken, AkDone-closed), ChGenPileSplit (source = a card
-//     for the face-down pile, AkDone-closed) then ChGenPileChoose to the
-//     opponent (mode 0 face-down / 1 face-up pile), ChGenChooseEach (source
+//     for the face-down pile, AkDone-closed, to the separator) then
+//     ChGenPileChoose to the chooser (mode 0 face-down / 1 face-up pile),
+//     ChGenChooseEach (source
 //     = the permanent kept for the card type in mode, one ask per type in
 //     artifact, creature, enchantment, land, planeswalker order),
 //     ChGenCastFree (source = a card to cast without paying its mana cost,

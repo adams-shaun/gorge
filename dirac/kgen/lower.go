@@ -2131,7 +2131,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			if len(parts) == 3 && !strings.EqualFold(parts[2], "CARDNAME") && !strings.EqualFold(parts[2], "NICKNAME") {
 				return c, refuse("counter cost %q: a filtered target", t)
 			}
-			if !lc.actCost {
+			if !lc.actCost && (lc.ab == nil || lc.ab.Kind != akMana) {
 				return c, refuse("counter cost %q outside an activated ability's own cost", t)
 			}
 			c.SubCtrX, c.SubCtrXKnd = true, parts[1]
