@@ -1,0 +1,12 @@
+# Bottomless Vault's storage-battery X mana ability (SubCounter<X/STORAGE>,
+# Amount$ X) and a {B} spell only it can pay, for dirac's
+# TestStoreManaGap/TestStorePaysSpell (mana_storex_test.go).
+Bottomless Vault
+Shadowborn Apostle
+Plains
+# Mage-Ring Network is the later-ability shape: a plain {T} first mana
+# ability beside the counter-X one. Sol Ring ({1}) and Mind Stone ({2}) are
+# cast only from that source's mana in the later-shape test.
+Mage-Ring Network
+Mind Stone
+Sol Ring

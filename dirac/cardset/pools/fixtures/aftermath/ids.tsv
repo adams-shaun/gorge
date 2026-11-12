@@ -1,0 +1,63 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Appeal
+1	card	Careful Study
+2	card	Claim
+3	card	Consign
+4	card	Coral Merfolk
+5	card	Counterspell
+6	card	Cut
+7	card	Driven
+8	card	Dusk
+9	card	Essence Scatter
+10	card	Faithless Looting
+11	card	Farm
+12	card	Forest
+13	card	Giant Spider
+14	card	Gray Ogre
+15	card	Grizzly Bears
+16	card	Heaven
+17	card	Hill Giant
+18	card	Island
+19	card	Leave
+20	card	Mind Rot
+21	card	Mountain
+22	card	Mouth
+23	card	Mulch
+24	card	Never
+25	card	Onward
+26	card	Plains
+27	card	Prepare
+28	card	Reason
+29	card	Reduce
+30	card	Road
+31	card	Savannah Lions
+32	card	Serra Angel
+33	card	Shock
+34	card	Spring
+35	card	Start
+36	card	Stitcher's Supplier
+37	card	Swamp
+38	card	Tormenting Voice
+39	card	Walking Corpse
+40	card	Wind Drake
+41	card	face:Appeal#1
+42	card	face:Claim#1
+43	card	face:Consign#1
+44	card	face:Cut#1
+45	card	face:Driven#1
+46	card	face:Dusk#1
+47	card	face:Farm#1
+48	card	face:Heaven#1
+49	card	face:Leave#1
+50	card	face:Mouth#1
+51	card	face:Never#1
+52	card	face:Onward#1
+53	card	face:Prepare#1
+54	card	face:Reason#1
+55	card	face:Reduce#1
+56	card	face:Road#1
+57	card	face:Spring#1
+58	card	face:Start#1
+59	token	b_2_2_zombie
+60	token	g_3_3_hippo
+61	token	w_1_1_warrior_vigilance

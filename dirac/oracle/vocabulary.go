@@ -67,6 +67,8 @@ const (
 	faceCodeAdventure   = canon.FaceCodeAdventure
 	faceCodeRecast      = canon.FaceCodeRecast
 	faceCodeSplit       = canon.FaceCodeSplit
+	faceCodeAftermath   = canon.FaceCodeAftermath
+	faceCodeFuse        = canon.FaceCodeFuse
 	faceCodeMorphed     = canon.FaceCodeMorphed
 	faceCodeMegamorphed = canon.FaceCodeMegamorphed
 	faceCodeDisguised   = canon.FaceCodeDisguised

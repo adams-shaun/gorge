@@ -1319,6 +1319,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	if arms, ok := strings.CutPrefix(rest, "Metalcraft."); ok {
 		return lc.metalcraftValue(arms, depth) // value_filterheads.go
 	}
+	if arms, ok := strings.CutPrefix(rest, "wasCastFromExile."); ok {
+		return lc.castFromExileValue(arms) // lower_castfromexile.go
+	}
 	if arms, ok := strings.CutPrefix(rest, "Threshold."); ok {
 		return lc.thresholdValue(arms, depth) // value_threshold.go
 	}
