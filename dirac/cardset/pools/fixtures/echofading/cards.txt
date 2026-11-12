@@ -1,0 +1,15 @@
+# the echo and fading pool: echo (CR 702.30a: Cradle Guard {1}{G}{G}, Mogg War
+# Marshal {1}{R}, Avalanche Riders {3}{R}) is paid or the creature sacrificed
+# at the upkeep after it came under its controller's control, and fading
+# (CR 702.32a: Blastoderm) enters with fade counters, removes one each upkeep
+# and is sacrificed when it can't, for the oracle's constructed lockstep
+# (dirac/oracle/echofading_test.go); Act of Treason moves a creature's control
+Act of Treason
+Avalanche Riders
+Blastoderm
+Cradle Guard
+Forest
+Hill Giant
+Mogg War Marshal
+Mountain
+Shock

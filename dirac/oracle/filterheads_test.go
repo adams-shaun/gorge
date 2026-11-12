@@ -24,8 +24,10 @@ import (
 //   - an absent creature-type head: Spider-Ham's anthem (the P/T
 //     projection compares it).
 //
-// Syr Ginger's Sac<1/NICKNAME> stays refused (gorge never offers the
-// activation: the gorge finding), so the pool omits it.
+// Syr Ginger's Sac<1/NICKNAME> lowers as the source itself now (kop.CostSacSelf:
+// gorge's pay.SacrificeMatchSpec reads it as CARDNAME and offers the activation,
+// engine/rules nickname_sac_test.go); this pool omits it all the same, its
+// lockstep is the who pool's.
 // Tezzeret, Cruel Captain (Targeted.!Creature) lowers but is left out too:
 // gorge fires its emblem's Phase trigger once (an Effect's Mode$ Phase
 // registration is one-shot), the kernel every combat, as for the four

@@ -165,6 +165,9 @@ var expandedHeads = []string{
 	// Scavenge (CR 702.97): a graveyard PutCounter activation sized by the
 	// exiled card's power (engine/cards/kw_scavenge.go). Added after the split.
 	"Scavenge",
+	// Fading (CR 702.32): enters-with fade counters plus the upkeep
+	// sacrifice-or-remove trigger (engine/cards/kw_fading.go). Added after the split.
+	"Fading",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

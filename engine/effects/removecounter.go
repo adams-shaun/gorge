@@ -142,6 +142,12 @@ func effRemoveCounter(h Host, c *Ctx, sa *cards.SA) {
 				Text: fmt.Sprintf("RemoveCounter target %d is not on the battlefield (zone %s); skipped", o.ID, o.Zone)})
 			continue
 		}
+		if o.PhasedOut && o.Zone == state.ZBattlefield {
+			// CR 702.26b: a phased-out permanent is treated as though it does
+			// not exist and can't be affected (fading's removal, its source
+			// phased out in response to the upkeep trigger, removes nothing)
+			continue
+		}
 		for _, k := range dedupeKinds(counterKinds(kindArg, len(o.Counters), func(i int) string { return o.Counters[i].Kind }, func(i int) int32 { return o.Counters[i].N })) {
 			count := o.Counter(k)
 			amt := n

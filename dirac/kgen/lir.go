@@ -300,11 +300,12 @@ const (
 	cOpponentsTurn          // it is not the controller's turn
 	cPromisedGift           // the gift was promised (Card.Self+PromisedGift on the stack, or the entering permanent)
 	cAnd                    // both Sub conditions hold
+	cEchoOwed               // the source came under its controller's control since the beginning of their most recent upkeep (echo's gate)
 	cCount_
 )
 
 var condNames = [...]string{"None", "Present", "Value", "Kicked", "Threshold", "YourTurn", "RefMatches",
-	"CostPaid", "OpponentsTurn", "PromisedGift", "And"}
+	"CostPaid", "OpponentsTurn", "PromisedGift", "And", "EchoOwed"}
 
 type lCond struct {
 	Kind condKind
