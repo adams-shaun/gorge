@@ -1,12 +1,12 @@
 {
   "card": "Guardian Scalelord",
   "class": "projection-NStack",
-  "why": "the Backup-granted \"whenever this creature attacks\" trigger on Old One Eye's Tyranid token leaves a trigger on dirac's stack where gorge has already countered it for having no legal target; the strictlyself fixture diverges at seed 7, decision 300",
+  "why": "the Backup-granted \"whenever this creature attacks\" trigger on Old One Eye's Tyranid token leaves a trigger on dirac's stack where gorge has already countered it for having no legal target; the tail-14 repro pair 19 shows the divergence",
   "repro": {
-    "pool": "strictlyself",
+    "pool": "tail-14",
     "surface": "autopay",
     "seed": 1,
-    "pair": 0,
+    "pair": 19,
     "policy": "random",
     "mulligans": 1
   }

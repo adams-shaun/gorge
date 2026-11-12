@@ -22,7 +22,8 @@ type trigListener struct {
 }
 
 // eachTrigger calls f for every triggered ability of event ev on the
-// battlefield (subscribed slots) and its granted abilities.
+// battlefield (subscribed slots) and its granted abilities, then for a
+// commander's printed command-zone triggers.
 func (s *State) eachTrigger(k *prep, ev kop.TrigEvent, f func(l trigListener, a *kop.Ability)) {
 	// listeners in gorge's walk order: player 0's battlefield list, then
 	// player 1's (rules forEachObject)
@@ -34,6 +35,39 @@ func (s *State) eachTrigger(k *prep, ev kop.TrigEvent, f func(l trigListener, a 
 	n := s.listenerOrder(m, &ord)
 	for _, sl := range ord[:n] {
 		s.slotTriggers(k, sl, func(a *kop.Ability) bool { return a.Trig.Event == ev }, f)
+	}
+	s.eachCommandTrigger(k, ev, f)
+}
+
+// eachCommandTrigger calls f for each printed command-zone triggered ability
+// of a commander in its command zone. A commander is not a permanent and has
+// no subscribed battlefield slot (CR 903.3), so the ordinary battlefield walks
+// never reach an eminence trigger; its Trigger.Zone marks what none of the
+// other walks see. The walk is seat order, then commander/partner slot, after
+// the battlefield listeners.
+func (s *State) eachCommandTrigger(k *prep, ev kop.TrigEvent, f func(l trigListener, a *kop.Ability)) {
+	if s.cfg&cfgCommander == 0 {
+		return
+	}
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
+		for j := 0; j < 2; j++ {
+			o := s.cmdObj(p, j)
+			if o == NoObj || s.objs[o].zone != kop.ZoneCommand {
+				continue
+			}
+			cid := s.objs[o].card
+			cd := &k.t.Cards[cid]
+			for i := range cd.Abilities {
+				a := &cd.Abilities[i]
+				if a.Kind == kop.AbTriggered && a.AFlags&kop.AfLatent == 0 &&
+					a.Trig.Event == ev && a.Trig.Zone == kop.ZoneCommand {
+					f(trigListener{obj: o, sl: NoSlot, ctrl: s.objs[o].owner(), card: cid, ab: uint8(i)}, a)
+				}
+			}
+		}
 	}
 }
 

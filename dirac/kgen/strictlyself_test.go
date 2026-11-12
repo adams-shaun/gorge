@@ -18,8 +18,9 @@ func TestStrictlySelfFilterWord(t *testing.T) {
 }
 
 // A source-identity presence read is an intervening-if, re-checked when the
-// trigger resolves (CR 603.4), so it is kept: battlefield is the ordinary
-// source count, and another zone is the source-zone condition.
+// trigger resolves (CR 603.4), so it is kept as the source's live zone
+// (gorge's Self is the stable object id, which survives a zone change) rather
+// than the ordinary source count.
 func TestStrictlySelfPresenceKeepsTheInterveningIf(t *testing.T) {
 	grave := lowerScriptCard(t, "Probe Graveyard Presence", "Name:Probe Graveyard Presence\nManaCost:2 B\nTypes:Creature\nPT:2/2\n"+
 		"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Graveyard | IsPresent$ Card.StrictlySelf | PresentZone$ Graveyard | PresentPlayer$ You | Execute$ TrigGain | TriggerDescription$ probe\n"+
@@ -56,9 +57,8 @@ func TestStrictlySelfPresenceKeepsTheInterveningIf(t *testing.T) {
 	if len(battlefield.Abilities) == 0 || battlefield.Abilities[0].Trigger == nil {
 		t.Fatalf("battlefield presence lowered to no trigger: %+v", battlefield.Abilities)
 	}
-	if c := battlefield.Abilities[0].Trigger.Cond; c.Kind != cPresent || c.F == nil ||
-		len(c.F.Clauses) != 1 || c.F.Clauses[0].Flags&fSelf == 0 {
-		t.Fatalf("battlefield presence lowered to %+v, want Present(Card.Self)", c)
+	if c := battlefield.Abilities[0].Trigger.Cond; c.Kind != cSourceZone || c.Zone != zBattlefield {
+		t.Fatalf("battlefield presence lowered to %+v, want SourceZone(Battlefield)", c)
 	}
 }
 

@@ -98,6 +98,18 @@ func (lc *lowerCtx) targetedCastSpentValue() (lValue, error) {
 	return lValue{Kind: vTgtSpent}, nil
 }
 
+// triggeredAttackerPower lowers TriggeredAttacker$CardPower: the triggering
+// attacker's live power through the trigger's object ref (Arahbo, Roar of the
+// World's "X is its power"). CardToughness has no carrier in the class and is
+// left to the ordinary refusal.
+func (lc *lowerCtx) triggeredAttackerPower() (lValue, error) {
+	ref, err := lc.defined("TriggeredAttacker")
+	if err != nil {
+		return lValue{}, err
+	}
+	return lValue{Kind: vPowerOf, Ref: ref}, nil
+}
+
 // svarValue lowers an SVar value body.
 func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 	if depth > 4 {
@@ -508,20 +520,12 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		// the trigger captured; CardCounters.ALL sums its LIVE counters
 		// (count_ref_property.go's sumCounters, no LKI substitution for a
 		// trigger object), so X sees the counter the sibling PutCounter just
-		// added. CardPower/CardToughness read its power/toughness through the
-		// same ref (Arahbo, Roar of the World's "X is its power"). defined()
-		// refuses the shapes with no single attacker (an AttackersDeclared
-		// player event). Spider-Man Noir
-		if rest == "CardPower" || rest == "CardToughness" {
-			ref, derr := lc.defined("TriggeredAttacker")
-			if derr != nil {
-				return lValue{}, derr
-			}
-			kind := vPowerOf
-			if rest == "CardToughness" {
-				kind = vToughnessOf
-			}
-			v = lValue{Kind: kind, Ref: ref}
+		// added. CardPower reads its power through the same ref (Arahbo, Roar
+		// of the World's "X is its power"). defined() refuses the shapes with
+		// no single attacker (an AttackersDeclared player event). Spider-Man
+		// Noir
+		if rest == "CardPower" {
+			v, err = lc.triggeredAttackerPower()
 			break
 		}
 		if rest != "CardCounters.ALL" {
