@@ -3453,7 +3453,10 @@ func (lc *lowerCtx) immediateTrigger(ps *params) error {
 	}
 	savedSpawn := lc.spawnDmg
 	lc.spawnDmg = spawnDamagedOpp(lc.ab) // lower_filterwords.go
+	savedAtk := lc.spawnAtk
+	lc.spawnAtk = spawnAttacked(lc.ab) // lower_filterwords.go
 	err = lc.withAbility(lat, func() error { return lc.chain(exec, nil) })
+	lc.spawnAtk = savedAtk
 	lc.spawnDmg = savedSpawn
 	if err != nil {
 		return err
