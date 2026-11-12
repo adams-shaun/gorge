@@ -1138,6 +1138,16 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				panic("kernel: spell/ability without a legal target")
 			}
 			d.Kind, d.Player = DkTarget, e.ctrl
+			if e.kind == seTrigger && t.TFlags&kop.TgfTrigChooser != 0 {
+				// gorge TargetingPlayer$ (targetChooserCore / engine/rules/
+				// target_modes.go): only the decision's Player moves to the
+				// chooser — the queue-time trigger player here — while
+				// target legality stays judged from the controller; a referent
+				// that left the game fails closed to the controller
+				if !s.out(e.trigPl) {
+					d.Player = e.trigPl
+				}
+			}
 			for i := 0; i < n; i++ {
 				d.add(MakeAction(AkTarget, 0, buf[i], 0))
 			}

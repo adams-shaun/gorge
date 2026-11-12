@@ -40,6 +40,14 @@ func wordPredicateNewWords(p string) (kind wordKind, key string, ok bool) {
 		if arg := strings.TrimSpace(rest); playerSpecBaseCodes.Code(arg) != 0 {
 			return wordAttackingPlayer, arg, true
 		}
+		// A dotted player spec (the Commander curses'
+		// `controlsCreature.attacking Player.EnchantedBy` filter): a
+		// Player.<qualifier> argument the shared player grammar evaluates is
+		// the same rider; an unknown qualifier keeps the word unknown, and
+		// the matcher still fails it closed seat by seat.
+		if arg := strings.TrimSpace(rest); strings.HasPrefix(arg, "Player.") && controlReferentPlayerSpecKnown(arg) {
+			return wordAttackingPlayer, arg, true
+		}
 		return wordUnknown, rest, true
 	}
 	return wordUnknown, "", false
@@ -67,5 +75,5 @@ func wordPredicateNewWords(p string) (kind wordKind, key string, ok bool) {
 // than answering an invented player spec.
 func attackingPlayerMatches(g *state.Game, key string, o *state.Object, sc SpecContext) bool {
 	return o.IsAttacking && o.AttackingBattle == 0 && int(o.Attacking) < len(g.Players) &&
-		MatchesPlayerSpecCtx(g, key, o.Attacking, sc.You, PlayerSpecCtx{})
+		MatchesPlayerSpecCtx(g, key, o.Attacking, sc.You, PlayerSpecCtx{Source: sc.Source, Layers: sc.Layers})
 }

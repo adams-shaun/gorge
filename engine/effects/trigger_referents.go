@@ -866,11 +866,13 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 			}
 		}
 	case controlReferentPlayersPlayerEnchantedBy:
-		// EnchantedBy is a global player property: the Aura's own controller
-		// is irrelevant. Resolve it through the shared player-spec evaluator
-		// so attachment state and the property grammar have one home.
+		// EnchantedBy is source-relative (Forge PlayerProperty.EnchantedBy is
+		// player.isEnchantedBy(the ability's source)), so bind the source the
+		// same way the default arm below does; the Aura's own controller is
+		// irrelevant, but a non-Aura source enchants nobody.
+		pc := PlayerSpecCtx{Source: sc.Source, Layers: sc.Layers}
 		for p := range g.Players {
-			if MatchesPlayerSpecCtx(g, ref, state.PlayerID(p), sc.You, PlayerSpecCtx{}) {
+			if MatchesPlayerSpecCtx(g, ref, state.PlayerID(p), sc.You, pc) {
 				targets = append(targets, state.Target{IsPlayer: true, Player: state.PlayerID(p)})
 			}
 		}

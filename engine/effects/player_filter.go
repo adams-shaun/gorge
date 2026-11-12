@@ -421,15 +421,31 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 				return true
 			}
 		case playerSpecQualifierEnchantedBy:
-			// An Aura may enchant a player of either seat, independent of
-			// the source of the filter.
-			for i := range g.Objs {
-				o := &g.Objs[i]
-				if o.Zone == state.ZBattlefield && o.HasAttachedPlayer && o.AttachedPlayer == p &&
-					o.Face() != nil && o.Face().IsEnchantment() {
-					return true
+			// Forge PlayerProperty.EnchantedBy is source-relative:
+			// player.isEnchantedBy(source), i.e. THIS Aura is attached to
+			// the player (AbilityUtils.getDefinedPlayers evaluates the
+			// restriction against the ability's source). The old
+			// any-enchantment scan fired a Curse for a different Aura's
+			// enchanted player (Archnemesis vs a second Curse). A BOUND
+			// source that departed or is unattached fails closed. A
+			// source-less read (pc.Source 0: a caller with no Aura to name)
+			// keeps the any-enchantment scan, the only reading it has.
+			if pc.Source == 0 {
+				for i := range g.Objs {
+					o := &g.Objs[i]
+					if o.Zone == state.ZBattlefield && o.HasAttachedPlayer && o.AttachedPlayer == p &&
+						o.Face() != nil && o.Face().IsEnchantment() {
+						return true
+					}
 				}
+				return false
 			}
+			o := g.Obj(pc.Source)
+			if o == nil || o.Zone != state.ZBattlefield || !o.HasAttachedPlayer || o.AttachedPlayer != p ||
+				o.Face() == nil || !o.Face().IsEnchantment() {
+				return false
+			}
+			return true
 		case playerSpecQualifierEnchantedController:
 			// Player.EnchantedController (Forge PlayerProperty): the seat is
 			// the controller of the permanent this Aura/Equipment source is
@@ -962,13 +978,14 @@ var isBarePlayerPropertySet = state.NewNameSet(
 var matchesPlayerSingleSpecKeys = state.NewNameSet("CardOwner", "Owner", "IsRemembered", "EnchantedBy", "IsTriggerRemembered")
 
 // playerInnerSourceFree is the set of negated (inner) player qualifiers that
-// are pure player-state reads and therefore evaluate with NO source object
-// bound. Every other negatable qualifier (CardOwner, Owner, IsRemembered)
-// reads the source object, so the negInner branch in matchesPlayerSingleSpec
-// fails it closed when no source is bound. IsTriggerRemembered reads the
-// delayed registration's capture instead, so that branch gates it on the
-// capture binding (DelayedRemembered). A new source-free qualifier adds one
-// entry here rather than another inline literal test.
+// evaluate with NO source object bound. EnchantedBy is the one: a source-less
+// read keeps the any-enchantment scan (see its arm in
+// matchesPlayerSingleSpec). Every other negatable qualifier (CardOwner, Owner,
+// IsRemembered) reads the source object, so the negInner branch fails it
+// closed when no source is bound; IsTriggerRemembered reads the delayed
+// registration's capture instead, gated on DelayedRemembered. A new
+// source-free qualifier adds one entry here rather than another inline
+// literal test.
 var playerInnerSourceFree = state.NewNameSet("EnchantedBy")
 
 type matchesPlayerClauseCtxCode uint16

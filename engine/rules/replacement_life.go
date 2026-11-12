@@ -387,7 +387,7 @@ func (e *Engine) emitLifeReplacement(ev events.Event) (events.Event, bool) {
 func (e *Engine) lifeGainForbidden(p state.PlayerID) bool {
 	for _, sv := range e.activeStatics("CantGainLife") {
 		if spec := sv.ParamStr(cards.PKValidPlayer); spec == "" ||
-			effects.MatchesPlayerSpec(e.G, spec, p, sv.Controller) {
+			effects.MatchesPlayerSpecFrom(e.G, spec, p, sv.Controller, sv.Source) {
 			return true
 		}
 	}
@@ -440,7 +440,7 @@ func (e *Engine) lifeChangeForbidden(ev events.Event) bool {
 func (e *Engine) playerLifeChangeForbidden(p state.PlayerID) bool {
 	for _, sv := range e.activeStatics("CantChangeLife") {
 		if spec := sv.ParamStr(cards.PKValidPlayer); spec == "" ||
-			effects.MatchesPlayerSpec(e.G, spec, p, sv.Controller) {
+			effects.MatchesPlayerSpecFrom(e.G, spec, p, sv.Controller, sv.Source) {
 			return true
 		}
 	}
@@ -463,7 +463,7 @@ func (e *Engine) playerLifeChangeForbidden(p state.PlayerID) bool {
 func (e *Engine) playerLifeLossForbidden(p state.PlayerID) bool {
 	for _, sv := range e.activeStatics("CantLoseLife") {
 		if spec := sv.ParamStr(cards.PKValidPlayer); spec == "" ||
-			effects.MatchesPlayerSpec(e.G, spec, p, sv.Controller) {
+			effects.MatchesPlayerSpecFrom(e.G, spec, p, sv.Controller, sv.Source) {
 			return true
 		}
 	}
@@ -496,7 +496,7 @@ func (e *Engine) restrictionScopesPlayer(ce ContinuousEffect, p state.PlayerID) 
 func (e *Engine) drawForbidden(p state.PlayerID) bool {
 	for _, sv := range e.activeStatics("CantDraw") {
 		if spec := sv.ParamStr(cards.PKValidPlayer); spec != "" &&
-			!effects.MatchesPlayerSpec(e.G, spec, p, sv.Controller) {
+			!effects.MatchesPlayerSpecFrom(e.G, spec, p, sv.Controller, sv.Source) {
 			continue
 		}
 		if limit, hasLimit := sv.Param(cards.PKDrawLimit); hasLimit {

@@ -371,6 +371,11 @@ type lInstr struct {
 	C    int
 	CS   string // symbolic constant: keyword set, counter kind, token key, zone, ...
 	Obj2 lRef   // a second object (AttachObj: the object attached)
+	// W: a player-valued side input. OpTapOrUntap/OpTap: the Tapper$
+	// provenance (gorge effTapOrUntap's Tapper$ read, the tap's trigger
+	// player); OpAttach: the player DESTINATION of an Enchant:Player aura
+	// (gorge effAttach's "attach to player" event, defined() player arms).
+	W    lRef
 	F    *lFilter
 	Cond lCond
 	Skip int
@@ -397,6 +402,9 @@ func (in lInstr) String() string {
 	}
 	if in.Obj2.Kind != rNone {
 		parts = append(parts, "obj2="+in.Obj2.String())
+	}
+	if in.W.Kind != rNone {
+		parts = append(parts, "W="+in.W.String())
 	}
 	if in.F != nil {
 		parts = append(parts, "F="+in.F.String())
@@ -481,6 +489,15 @@ type lTarget struct {
 	// exile matching F, clause i in ClauseZones[i] (TgtGraveExileCard)
 	GraveExileCard bool
 	ClauseZones    []int
+
+	// TrigChooser: the slot's ask is answered by the queue-time trigger
+	// player, not the ability's controller (gorge TargetingPlayer$
+	// TriggeredAttackingPlayer on a triggered ability's target,
+	// targetChooserFromSpec: the trigger context's attacking player; only
+	// the DECISION's Player moves — target legality stays judged from the
+	// controller). TgfTrigChooser; the kernel reads it in the cast stage's
+	// DkTarget ask (cast.go).
+	TrigChooser bool
 
 	AtRes   bool   // asked mid-resolution (gorge's deferred chain-link targets), at its ChooseTargets
 	ChgSub  bool   // declared by a ChangeZone chain link (not the root): gorge announces its targets on cast (castSubChangeZoneAnnounceable)
@@ -709,7 +726,7 @@ type lTrigger struct {
 	CastConverge              bool  // SpellCast: the amount is the triggering spell's colours spent as the trigger fires (TriggeredCard$Converge; kernel Tf3CastConverge)
 	SpentBound                bool  // the body reads Count$CastTotalManaSpent: the entering spell's mana spent, bound as it triggers (self ETB only; kernel Tf2SpentBound)
 	XBound                    bool  // the body reads Count$xPaid without an {X} cost of its own: the trigger object's spell's X, bound as it triggers (CR 107.3m)
-	DefPlayer                 int   // AttackersDeclared per defender, the player only: 1 any player, 2 an opponent of the controller, 3 the controller (AttackedTarget$)
+	DefPlayer                 int   // AttackersDeclared per defender, the player only: 1 any player, 2 an opponent of the controller, 3 the controller, 4 enchanted by this Aura (AttackedTarget$ Player.EnchantedBy; kernel Tf4DefEnch)
 	PerRef                    bool  // DamageDone lowered from Mode$ DamageDoneOnce: once per damaged referent per batch (kernel Tf2PerReferent)
 	SrcInPlay                 bool  // DamageDone ValidSource$ carries inZoneBattlefield: a source that is not a permanent never matches (kernel Tf2SrcInPlay)
 	SelfPlayerRef             bool  // PerRef from a plain self-source DamageDone to any player that reads the damaged player (lower_damagedoneonce.go selfPlayerRefShape)

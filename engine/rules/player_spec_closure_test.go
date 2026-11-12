@@ -129,7 +129,7 @@ func TestPlayerSpecCurseEnchantPlayer(t *testing.T) {
 	if o.Zone != state.ZBattlefield || !o.HasAttachedPlayer || o.AttachedPlayer != 1 {
 		t.Fatalf("curse not attached to seat 1: %+v", o)
 	}
-	if !effects.MatchesPlayerSpec(e.G, "Player.EnchantedBy", 1, 0) || effects.MatchesPlayerSpec(e.G, "Player.EnchantedBy", 0, 0) {
+	if !effects.MatchesPlayerSpecFrom(e.G, "Player.EnchantedBy", 1, 0, id) || effects.MatchesPlayerSpecFrom(e.G, "Player.EnchantedBy", 0, 0, id) {
 		t.Fatal("EnchantedBy must name only the enchanted player")
 	}
 	replayState := e.G.Clone()
@@ -139,11 +139,11 @@ func TestPlayerSpecCurseEnchantPlayer(t *testing.T) {
 		replayState.Obj(id).HasAttachedPlayer != e.G.Obj(id).HasAttachedPlayer {
 		t.Fatal("player attachment must reconstruct by folding the logged event")
 	}
-	if !effects.MatchesPlayerSpec(e.G, "Player.EnchantedBy", 0, 0) || effects.MatchesPlayerSpec(e.G, "Player.EnchantedBy", 1, 0) {
+	if !effects.MatchesPlayerSpecFrom(e.G, "Player.EnchantedBy", 0, 0, id) || effects.MatchesPlayerSpecFrom(e.G, "Player.EnchantedBy", 1, 0, id) {
 		t.Fatal("reattaching to seat zero must not be mistaken for detaching")
 	}
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
-	if effects.MatchesPlayerSpec(e.G, "Player.EnchantedBy", 0, 0) {
+	if effects.MatchesPlayerSpecFrom(e.G, "Player.EnchantedBy", 0, 0, id) {
 		t.Fatal("a departed Aura must not continue enchanting the player")
 	}
 }

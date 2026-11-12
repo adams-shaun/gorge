@@ -1330,6 +1330,7 @@ Tf3MayPlaySrc	TrigFlags3	32
 Tf3OrTargets	TrigFlags3	8
 Tf3Static	TrigFlags3	16
 Tf4CounterCell	TrigFlags4	4
+Tf4DefEnch	TrigFlags4	128
 Tf4NamedCast	TrigFlags4	16
 Tf4NthFiltered	TrigFlags4	8
 Tf4OptTrigPlayer	TrigFlags4	32
@@ -1363,6 +1364,7 @@ TgfOppOnly	TargetFlags	16384
 TgfSameController	TargetFlags	2
 TgfSharedCrType	TargetFlags	1024
 TgfSingleTgt	TargetFlags	8192
+TgfTrigChooser	TargetFlags	65536
 TgtAny	TargetKind	3
 TgtCard	TargetKind	5
 TgtCopyAb	TargetKind	236
@@ -1481,6 +1483,7 @@ VX	VKind	1
 W	untyped int	0
 W7AttachedTo	int16	19
 W7AttackingAlone	int16	3
+W7AttackingEnchTrig	int16	29
 W7AttackingOpp	int16	7
 W7BottomLibrary	int16	17
 W7CostBlue	int16	14

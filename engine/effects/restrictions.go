@@ -1479,7 +1479,7 @@ func effectUntilEOT(h Host, source state.ObjID, dur string) bool {
 // behavior unchanged.
 func RestrictionPlayerSpecMatches(g *state.Game, spec string, defender, controller state.PlayerID, source state.ObjID, rememberedPlayers []state.PlayerID) bool {
 	if !strings.Contains(spec, "IsRemembered") && !strings.Contains(spec, "CardOwner") {
-		return MatchesPlayerSpec(g, spec, defender, controller)
+		return MatchesPlayerSpecFrom(g, spec, defender, controller, source)
 	}
 	for clause := range strings.SplitSeq(spec, "+") {
 		clause = strings.TrimSpace(clause)
@@ -1505,7 +1505,7 @@ func RestrictionPlayerSpecMatches(g *state.Game, spec string, defender, controll
 			}
 			continue
 		}
-		if !MatchesPlayerSpec(g, clause, defender, controller) {
+		if !MatchesPlayerSpecFrom(g, clause, defender, controller, source) {
 			return false
 		}
 	}

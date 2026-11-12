@@ -9,16 +9,49 @@ import (
 // untapAll lowers api:UntapAll (gorge effUntapAll,
 // engine/effects/combatfx.go:134): every tapped battlefield permanent
 // matching ValidCards$ untaps. ValidTgts$ Player scopes the walk to the
-// chosen player targets (allPlayersFor, :179).
+// chosen player targets (allPlayersFor, :179). Defined$ "You" folds into the
+// filter's YouCtrl word: gorge's defined-player walk over one seat and the
+// filter's controller clause admit the same permanents (Curse of Bounty's
+// "untap up to two lands you control" leg). Any other Defined$ value refuses.
 func (lc *lowerCtx) untapAll(ps *params) error {
-	for _, k := range []string{"RememberUntapped", "ControllerUntaps", "Defined"} {
+	trigPlayer := false
+	if v, ok := ps.get("Defined"); ok {
+		switch strings.TrimSpace(v) {
+		case "You":
+			ps.consume("Defined")
+		case "TriggeredAttackingPlayer":
+			// "each opponent attacking that player untaps all nonland
+			// permanents they control": the scoped walk is the trigger
+			// player's battlefield (the curses' second leg). The kernel
+			// predicate reads the resolving entry's trigger player at any
+			// seat count.
+			if tr := lc.ab.Trigger; tr == nil || tr.Event != "AttackersDeclared" {
+				return refuse("UntapAll Defined$ %q outside an AttackersDeclared trigger", v)
+			}
+			ps.consume("Defined")
+			trigPlayer = true
+		default:
+			return refuse("UntapAll Defined$ %q", v)
+		}
+	}
+	for _, k := range []string{"RememberUntapped", "ControllerUntaps"} {
 		if _, ok := ps.get(k); ok {
 			return refuse("UntapAll %s$", k)
 		}
 	}
 	spec := ps.str("ValidCards")
 	if spec == "" {
+		if _, was := ps.get("Defined"); was {
+			return refuse("UntapAll Defined$ without ValidCards$")
+		}
 		return refuse("UntapAll without ValidCards$")
+	}
+	if _, ok := ps.m["Defined"]; ok {
+		if trigPlayer {
+			spec += "+" + trigPlayerCtrlWord // the trigger player's permanents (gorge's defined-player walk)
+		} else {
+			spec += "+YouCtrl" // Defined$ You folded in (gorge's defined-player walk)
+		}
 	}
 	spec, err := lc.sweepTgtPlayer(ps, spec)
 	if err != nil {
@@ -90,10 +123,29 @@ func (lc *lowerCtx) tapAll(ps *params) error {
 
 // tapOrUntap lowers api:TapOrUntap (gorge effTapOrUntap): for its one
 // object (a target or a Defined$ object) on the battlefield, the
-// controller chooses tap or untap. Tapper$ and several-object slots refuse.
+// controller chooses tap or untap. Several-object slots refuse. Tapper$ /
+// TargetingPlayer$ are read on an AttackersDeclared trigger only (Curse of
+// Inertia's "target permanent controlled by enchanted player's controller":
+// Tapper$ names the tap's provenance — the kernel's OpTap W read feeds the
+// Taps triggers; TargetingPlayer$ moves the TARGET ask's Player to the
+// queue-time trigger player, legality still judged from the controller —
+// TgfTrigChooser); both refuse everywhere else.
 func (lc *lowerCtx) tapOrUntap(ps *params) error {
-	if _, ok := ps.get("Tapper"); ok {
-		return refuse("TapOrUntap Tapper$")
+	inAtkTrig := func() bool {
+		tr := lc.ab.Trigger
+		return tr != nil && tr.Event == "AttackersDeclared"
+	}
+	if v, ok := ps.get("Tapper"); ok {
+		if strings.TrimSpace(v) != "TriggeredAttackingPlayer" || !inAtkTrig() {
+			return refuse("TapOrUntap Tapper$ %q outside an AttackersDeclared trigger", v)
+		}
+	}
+	trigChooser := false
+	if v, ok := ps.get("TargetingPlayer"); ok {
+		if strings.TrimSpace(v) != "TriggeredAttackingPlayer" || !inAtkTrig() {
+			return refuse("TapOrUntap TargetingPlayer$ %q outside an AttackersDeclared trigger", v)
+		}
+		trigChooser = true
 	}
 	obj, err := lc.objOrTarget(ps, "", zBattlefield)
 	if err != nil {
@@ -102,17 +154,27 @@ func (lc *lowerCtx) tapOrUntap(ps *params) error {
 	switch obj.Kind {
 	case rSelf, rTriggered, rEquipped:
 	case rTarget:
-		t := lc.ab.Targets[obj.N]
+		t := &lc.ab.Targets[obj.N]
 		if t.F == nil || len(t.F.Clauses) == 0 || t.Zone != zBattlefield {
 			return refuse("TapOrUntap of a non-permanent target")
 		}
 		if !t.Max.isConst() || t.Max.N > 1 {
 			return refuse("TapOrUntap of several targets")
 		}
+		if trigChooser {
+			t.TrigChooser = true // the target ask goes to the trigger player
+		}
 	default:
 		return refuse("TapOrUntap of %s", obj)
 	}
-	lc.emit(lInstr{Op: "TapOrUntap", Obj: obj})
+	if trigChooser && obj.Kind != rTarget {
+		return refuse("TapOrUntap TargetingPlayer$ without a target ask")
+	}
+	in := lInstr{Op: "TapOrUntap", Obj: obj}
+	if _, ok := ps.m["Tapper"]; ok {
+		in.W = lRef{Kind: rTriggeredPlayer} // the tap's provenance (OpTap's W read)
+	}
+	lc.emit(in)
 	return nil
 }
 

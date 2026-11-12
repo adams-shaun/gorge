@@ -1283,6 +1283,14 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 		if s.g.pre.state == preDigEnchant {
 			who = s.res.askP
 		}
+		if s.g.pre.state == preDigEnchPlayer {
+			who = s.res.askP
+			n := s.playerEnchCands(k, s.objs[o].card, who, &buf)
+			for i := 0; i < n; i++ {
+				d.add(MakeAction(AkChoose, PlayerCode(buf[i]), 0, 0))
+			}
+			return
+		}
 		n := s.enchantCands(k, s.objs[o].card, who, &buf)
 		for i := 0; i < n; i++ {
 			d.add(MakeAction(AkChoose, buf[i], 0, 0))

@@ -627,6 +627,52 @@ func selfDefinedTarget(h Host, c *Ctx, spec string) []state.Target {
 	return []state.Target{{Obj: c.Source}}
 }
 
+// triggeredAttackingPlayerDefined resolves the DOTTED
+// `TriggeredAttackingPlayer <qualifiers>` selector (the Commander curses'
+// second leg, "each opponent attacking that player does the same").
+//
+// The BASE referent is the firing attack's DECLARING player, not a candidate
+// pool: Forge resolves TriggeredAttackingPlayer to that one seat and then
+// filters it through the qualifier list relative to the ability's CONTROLLER
+// (AbilityUtils.getDefinedPlayers -> Player.isValid(restriction,
+// sourceController, ...); Player.Opponent is isOpponentOf(sourceController)).
+// So the result is either that one seat or nobody. Reading it as an
+// AliveFrom(ap) sweep with `you` re-anchored on `ap` inverted the Opponent
+// clause and always returned the empty set; the attacker that must receive
+// the second token/draw/life/untap is an opponent of the curse's controller
+// in the ordinary case.
+//
+// A dotted clause whose head is not a base word
+// (controlsCreature.<objspec>) is a candidate property, not a base: it rides
+// the Player.<state-qualifier> grammar as Player.<clause>. The declaring
+// player is bound only by a firing Attacks/AttackersDeclared trigger (rules
+// triggerReferents); a chain leg resolving outside one names nobody.
+func triggeredAttackingPlayerDefined(h Host, c *Ctx, spec string) ([]state.Target, bool) {
+	base, rest, _ := strings.Cut(spec, ".")
+	if base != "TriggeredAttackingPlayer" || rest == "" || strings.Contains(spec, " & ") {
+		return nil, false
+	}
+	if !c.AttackingPlayer.IsPlayer || int(c.AttackingPlayer.Player) >= len(h.Game().Players) {
+		return nil, true
+	}
+	ap := c.AttackingPlayer.Player
+	var clauses []string
+	for clause := range strings.SplitSeq(rest, "+") {
+		clause = strings.TrimSpace(clause)
+		if clause == "" {
+			continue
+		}
+		if head, _, dotted := strings.Cut(clause, "."); dotted && playerSpecBaseCodes.Code(head) == 0 {
+			clause = "Player." + clause
+		}
+		clauses = append(clauses, clause)
+	}
+	if MatchesPlayerSpecWithSVars(h, c, strings.Join(clauses, "+"), ap, c.Controller) {
+		return []state.Target{{Player: ap, IsPlayer: true}}, true
+	}
+	return nil, true
+}
+
 func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	g := h.Game()
 	// The DOTTED `AttachedTo <referent>[.<quals>]` selector (a Defined-/
@@ -1730,6 +1776,9 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return nil, true
 		}
 		return []state.Target{c.DefendingPlayer}, true
+	}
+	if ts, ok := triggeredAttackingPlayerDefined(h, c, spec); ok {
+		return ts, true
 	}
 	// Player.<state-qualifier>: a compound spelling this build's fixed cases
 	// do not name (Player.lifeEQ13, Player.controlsCreature.powerGE4_GE1,

@@ -305,6 +305,8 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		// !hasKeywordLandwalk:Island over the derived keywords: printed
 		// (kw_evasion.go), granted by a Continuous static, none once lost
 		ans = !s.hasIslandwalk(k, sl)
+	case kop.W7AttackingEnchTrig:
+		ans = s.attackingEnchTrig(k, sl, src) // filter_attackenchanted.go
 	case kop.W7GreatestPowerTgt:
 		// gorge greatestPowerControlledByTargeted: a battlefield creature a
 		// player target of the current entry controls that no OTHER such
