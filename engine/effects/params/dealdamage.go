@@ -88,7 +88,7 @@ var dealDamageKnownKeys = [...]string{
 	"ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
 	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent", "ConditionOpponentTurn", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn",
-	"ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc",
+	"ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionTargetValidTargeting", "ConditionTargetsSingleTarget", "ConditionZone", "CopyCard", "Cost", "CostDesc",
 	"DamageMap", "DamageSource", "Defined", "DefinedCards", "DefinedDesc", "DefinedTarget",
 	"Description", "DivideEvenly", "DividedAsYouChoose", "ExcessSVar",
 	"ExcessSVarCondition", "Exclude", "Exhaust", "ForgetOtherTargets", "FromDesc", "GameActivationLimit", "GiftDescription", "IfDesc", "Image",
