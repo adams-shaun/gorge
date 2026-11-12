@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "CR 601.2b, 702.193b: Abomination entered this turn owes {R/G}{R/G}; its pip ask prices each face against that reduced charge, so G is offered when an Island funds Surveillance Room's {1},{T} any-colour filter beside a Mountain",
  "actions": [
   16776960,
   16776960,

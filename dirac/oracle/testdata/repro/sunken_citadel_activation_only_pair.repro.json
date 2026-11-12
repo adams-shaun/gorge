@@ -55,6 +55,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Sunken Citadel's chosen {C}{C}, spendable only to activate abilities of land sources, pays Safe Haven's {2} activation: the kernel plans the activation-only larger alternative as gorge does (CR 106.6, 601.2g-h, 602.2b)",
  "actions": [
   18153216,
   16908032,

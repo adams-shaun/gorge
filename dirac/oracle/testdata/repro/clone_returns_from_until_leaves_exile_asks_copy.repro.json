@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "CR 614.12, 707.2: a clone returning from \"until this leaves\" exile during a resolution is asked its enter-as-a-copy election, as gorge asks it",
  "actions": [
   16776960,
   16776960,

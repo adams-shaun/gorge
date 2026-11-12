@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-fra",
+ "pool": "std-fra",
+ "why": "CR 106.6, 601.2b, 601.2g: Countersculpt's chosen {1} part is planned from the pool first, Chandra's floating noncreature-only {U} paying a pip, so the plan taps for the two sources it has left",
  "actions": [
   184549120,
   167771904,

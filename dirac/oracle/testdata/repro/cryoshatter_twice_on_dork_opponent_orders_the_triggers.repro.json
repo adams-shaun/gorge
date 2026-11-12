@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "CR 605.3a, 603.3b: two Cryoshatters on an untapped Llanowar Elves: its tap sets off two of the opponent's triggers, which the opponent orders before the Elves' controller gets priority; the {G} stays in the pool, so the full surface offers the Grizzly Bears",
  "actions": [
   17366784,
   19070720,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-mkm",
+ "pool": "std-mkm",
+ "why": "CR 613.1d, 205.1: No Witnesses counts a solved Case (a Creature by its static) among the most creatures",
  "actions": [
   16776960,
   16776960,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dft",
+ "pool": "std-dft",
+ "why": "CR 613.1f: a Pilot token under Flood the Engine loses the TapPowerValue static, so it contributes its printed power to a Saddle cost",
  "actions": [
   16776960,
   16776960,

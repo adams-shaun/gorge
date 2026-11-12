@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "Lluwen, Imperfect Naturalist puts a milled creature or land card on top of the library (LibraryPosition$ 0), not at the bottom: the hidden pick places what it moved",
  "actions": [
   184549120,
   184549120,

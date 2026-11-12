@@ -96,6 +96,8 @@
  "max_turns": 40,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Gurmag Angler cast off Priest of Gix's floating black with two graveyard cards delved: the printed keyword pays through the kernel's existing delve ask (CR 702.66a)",
  "actions": [
   167771904,
   167771904,

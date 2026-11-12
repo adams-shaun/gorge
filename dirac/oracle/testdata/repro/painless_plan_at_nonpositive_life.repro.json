@@ -94,8 +94,10 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
- "surface": "autopay",
+ "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 119.4, 601.2g: a player at life <= 0 (a lose-the-game replacement) still pays a {1} spell from painless lands; the pain guard cuts only a plan that pays life",
  "actions": [
   16776960,
   16776960,

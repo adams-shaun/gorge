@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "CR 601.2f, 601.2g: Caustic Exhale ({B}, behold a Dragon or pay {1}) with a Treasure as the only {B}: gorge's lowering floats {B}{1} together and reaches the cast, so it is not a planned one; the kernel priced the witness without the {1}",
  "actions": [
   16776960,
   16776960,

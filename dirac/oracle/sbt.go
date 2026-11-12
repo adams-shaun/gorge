@@ -270,12 +270,16 @@ func (a *SBT) priority(s *dirac.State, d *dirac.Decision, seat *builtins.Seat) [
 				cm = "optionalcost" // CR 601.2b: gorge's "optionalcost" cast option
 			case mode&1 != 0 && s.FeatOffspringCast(dirac.Obj(src)):
 				cm = "offspring"
+			case mode&1 != 0 && s.FeatBuybackCast(dirac.Obj(src)):
+				cm = "buyback" // CR 702.27a: gorge's "buyback" cast option
 			case mode&1 != 0:
 				cm = "kicked"
 			case mode&2 != 0 && s.FeatMayhemCard(dirac.Obj(src)):
 				cm = "mayhem"
 			case mode&2 != 0 && s.FeatHarmonizeCast(dirac.Obj(src)):
 				cm = "harmonize"
+			case mode&2 != 0 && x.Target() == dirac.FeatRetraceTgt && s.FeatRetraceCard(dirac.Obj(src)):
+				cm = "retrace" // CR 702.81a: the printed cost plus the discard-a-land cost (kw_retrace.go)
 			case mode&2 != 0 && x.Target() != 0:
 				cm = "beam_me_up"
 			case mode&2 != 0:

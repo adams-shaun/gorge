@@ -10,8 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The cast/activation trigger family's target-shape parameters (task
-// targetsvalid1): TargetsValid$ and IsSingleTarget$. Before this both were
+// The cast/activation trigger family's target-shape parameters: TargetsValid$ and IsSingleTarget$. Before this both were
 // unread, so a "Whenever you cast a spell that targets CARDNAME" trigger
 // (the whole Heroic family) and Feather, Radiant Arbiter's "Whenever you
 // cast a noncreature spell that targets only CARDNAME" fired on EVERY cast

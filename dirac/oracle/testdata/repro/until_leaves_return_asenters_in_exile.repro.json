@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dft",
+ "pool": "std-dft",
+ "why": "CR 614.12, 610.3: a delayed sacrifice's returning card is asked its as-enters choice with the card still in exile, before the delayed trigger leaves the stack",
  "actions": [
   16776960,
   16776960,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-lci",
+ "pool": "std-lci",
+ "why": "CR 601.2g-h: nine lands cast Guardian of the Great Door: the plan paying {W}{W} from the Plains and Restless Anchorage leaves seven to tap, whatever the reservation order",
  "actions": [
   167771904,
   167771904,

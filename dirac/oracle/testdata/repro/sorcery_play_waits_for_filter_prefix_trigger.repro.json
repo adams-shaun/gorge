@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "CR 603.2c, 605.1b: Hydraulic Helper tapped to fund Surveillance Room's {1} fee queues Rewrite History's trigger once, which resolves before the sorcery-speed Shuri is cast",
  "actions": [
   16776960,
   16776960,

@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "End-Blaze Epiphany kills a Grizzly Bears, exiles that many cards and lets its controller play the chosen one on their next turn (the may-play of the chosen card to the end of the next turn)",
  "actions": [
   19201792,
   17563392,

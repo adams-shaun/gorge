@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-msh",
+ "why": "CR 704.5p: Shuri makes an attached Equipment a copy of a creature",
  "actions": [
   16776960,
   16776960,

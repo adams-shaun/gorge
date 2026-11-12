@@ -61,14 +61,41 @@ func (lc *lowerCtx) ninjutsuAbility(ab *lAbility, ps *params, cost lCost) error 
 }
 
 // ninjutsuBody emits the ability's one op (the ChangeZone's every
-// parameter was read by ninjutsuAbility).
-func (lc *lowerCtx) ninjutsuBody(ps *params) error {
+// parameter was read by ninjutsuAbility or putSelfAbility). plain is the
+// put-self-from-hand shape: the same op with C 1, no tap and no attack.
+func (lc *lowerCtx) ninjutsuBody(ps *params, plain bool) error {
 	ps.consume("SpellDescription", "Keyword", "KeywordLine", "Cost", "ActivationZone")
 	if left := ps.unread(); len(left) > 0 {
 		return refuse("ninjutsu unread params %v", left)
 	}
-	lc.emit(lInstr{Op: "Ninjutsu"})
+	in := lInstr{Op: "Ninjutsu"}
+	if plain {
+		in.C = 1
+	}
+	lc.emit(in)
 	return nil
+}
+
+// putSelfAbility marks an activated hand ability that is exactly
+//
+//	AB$ ChangeZone | Cost$ <mana> | ActivationZone$ Hand | Origin$ Hand
+//	| Defined$ Self | Destination$ Battlefield
+//
+// (Talon Gates of Madara's "{4}: Put this card from your hand onto the
+// battlefield"): the cost leaves the card in the hand, the ability goes on
+// the stack, and on resolution the card enters the battlefield if it is
+// still in its owner's hand (gorge changeZoneMoveSkip's Origin$ guard and
+// sourceReturnedSincePush; CR 400.7). It reports false for any other shape.
+func (lc *lowerCtx) putSelfAbility(api string, ab *lAbility, ps *params, cost lCost) bool {
+	if api != "ChangeZone" || ab.Kind != akActivated || ab.Zone != zHand || !cost.pureMana() || cost.Mana.None ||
+		cost.Mana.X || cost.Mana.XX || ab.Sorcery || ab.Cycling {
+		return false
+	}
+	if !ps.is("Defined", "Self") || !ps.is("Origin", "Hand") || !ps.is("Destination", "Battlefield") {
+		return false
+	}
+	ab.PutSelf = true
+	return true
 }
 
 // triggeredSourceValid lowers TriggeredSource$Valid <spec> (gorge

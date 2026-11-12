@@ -602,7 +602,9 @@ func copyOfCopy(g *state.Game, spell state.ObjID) bool {
 func copyControllerFor(g *state.Game, c *Ctx, spec string) (state.PlayerID, bool) {
 	switch copyControllerForCodes.Code(string(spec)) {
 	case copyControllerForTargeted:
-		for _, t := range c.Targets {
+		// A target that left the battlefield during this resolution (Chain of
+		// Vapor's bounce) is controlled by the controller it had (CR 608.2h).
+		for _, t := range targetsControllerLKI(g, c, c.Targets) {
 			if t.IsPlayer {
 				return t.Player, true
 			}

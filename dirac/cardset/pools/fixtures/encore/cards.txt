@@ -1,0 +1,35 @@
+# Every corpus card carrying K:Encore (CR 702.141a) that kgen lowers:
+# gorge kw_encore.go's expansion, dirac/kgen/lower_encore.go. A creature
+# dies, its encore ability is activated from the graveyard, and the token
+# copies attack their opponents this turn if able before the group's
+# end-step sacrifice (dirac/oracle/encore_test.go). The four corpus cards
+# kgen still refuses (Eumidian Wastewaker, Kitesail Skirmisher, Rakshasa
+# Debaser, Sliver Gravemother) are refused for other mechanisms, not Encore.
+Amphin Mutineer
+Angel of Indemnity
+Belonging
+Briarblade Adept
+Broodmate Tyrant
+Coastline Marauders
+Elvish Dreadlord
+Exquisite Huntmaster
+Fathom Fleet Swordjack
+Fin-Clade Fugitives
+Impulsive Pilferer
+Impulsivity
+Jubilation
+Kangee's Lieutenant
+Kinsbaile Courier
+Lamentation
+Mist Dancer
+Phyrexian Triniform
+Soul of Eternity
+Spellbinding Soprano
+Subterfuge
+Trove Tracker
+Murder
+Mountain
+Island
+Plains
+Swamp
+Forest

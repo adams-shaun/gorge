@@ -1,0 +1,20 @@
+# The One Ring's protection/burden lockstep pool, for
+# dirac/oracle/onering_lockstep_test.go: The One Ring (protection from
+# everything until your next turn, burden counters, the upkeep life loss and
+# the tap draw), Mu Yanling, Sky Dancer's and Fear of Falling's
+# -2/-0-and-loses-flying until your next turn, and the PlayerCount$HighestValid
+# zone extremes of Windfall, Jace's Archivist and Visions of Beyond, beside
+# Nautiloid Ship's target-player exile and Nightmares and Daydreams' mill.
+The One Ring
+Mu Yanling, Sky Dancer
+Fear of Falling
+Windfall
+Jace's Archivist
+Visions of Beyond
+Nightmares and Daydreams
+Nautiloid Ship
+Grizzly Bears
+Llanowar Elves
+Lightning Bolt
+Island
+Mountain

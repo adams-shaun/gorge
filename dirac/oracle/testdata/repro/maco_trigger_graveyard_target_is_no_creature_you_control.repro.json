@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-trk",
+ "why": "Test of Courage exiling a Horta from a graveyard: MACO Strike Team watches creatures you control becoming the target, and a creature card in a graveyard is not one (CR 109.4, 110.2), so no Officer token is made",
  "actions": [
   16776960,
   16776960,

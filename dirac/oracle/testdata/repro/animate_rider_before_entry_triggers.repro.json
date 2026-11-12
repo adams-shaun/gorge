@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 603.6a: an Enduring creature returned as an enchantment has its type-changing rider applied before an \"another creature enters\" watcher matches it, so no extra pump trigger",
  "actions": [
   184549120,
   167771904,

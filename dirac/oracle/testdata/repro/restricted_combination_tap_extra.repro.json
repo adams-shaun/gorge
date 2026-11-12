@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 106.6, 605.4a: Hermitic Herbalist's Lesson-only two-mana combination brings Badgermole Cub's {G} when the creature taps, so with an Island it pays Waterbending Lesson's {3}{U}",
  "actions": [
   16776960,
   16776960,

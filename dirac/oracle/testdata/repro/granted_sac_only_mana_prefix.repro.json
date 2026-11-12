@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-big",
+ "pool": "std-big",
+ "why": "CR 602.2b, 704.5n: Lotus Ring's granted \"Sacrifice this creature: Add three mana of any one color\" is the prefix paying an activation, the equipped Hostile Investigator sacrificed and the Ring unattached",
  "actions": [
   167771904,
   167771904,

@@ -94,7 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 30,
- "surface": "autopay",
+ "surface": "full",
+ "pool": "std-trk",
+ "why": "CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters",
  "actions": [
   16776960,
   16776960,

@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 60,
  "surface": "autopay",
+ "pool": "std-tla",
+ "why": "Iroh, Grand Lotus on the battlefield: on its controller's turn only, a graveyard Lightning Strike or Pillar Launch has flashback at its mana cost and a Lesson at {1}, and each is exiled after (CR 702.34a)",
  "actions": [
   167771904,
   184549120,

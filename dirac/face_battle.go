@@ -255,7 +255,7 @@ func (s *State) defeatAsk(k *prep, d *Decision) bool {
 			s.dropMay(i) // it changed zones or faces since (CR 400.7): no ask
 			continue
 		}
-		if k.gen.anyCantCast && s.castForbidden(k, r.ctrl, cd.Faces[0], r.obj) {
+		if k.gen.anyCantCast && s.castForbiddenFree(k, r.ctrl, cd.Faces[0], r.obj) {
 			s.dropMay(i) // gorge castRestrictedFree reads it front face up
 			continue
 		}
@@ -300,7 +300,7 @@ func (s *State) applyDefeat(k *prep, a Action) bool {
 	holder := s.prio
 	s.prio = r.ctrl
 	s.turnFaceCast(k, r.obj, 1)
-	s.beginCast(k, r.obj, castFace|castFree)
+	s.beginCast(k, r.obj, castFace|castFree, 0)
 	s.bld().bfl |= bflDefeatCast
 	// The pass count at the ask is the count after the cast: when the other
 	// player had already passed (s.passes != 0), the holder's next pass

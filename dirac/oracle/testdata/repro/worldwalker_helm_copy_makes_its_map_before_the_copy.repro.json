@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-big",
+ "pool": "std-big",
+ "why": "Worldwalker Helm copying an artifact token: gorge makes the Map first, then the copy (CR 707.2, 111.5)",
  "actions": [
   167771904,
   167771904,

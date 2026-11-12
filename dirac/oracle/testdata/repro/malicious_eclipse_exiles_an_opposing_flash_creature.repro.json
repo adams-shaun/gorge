@@ -65,6 +65,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Malicious Eclipse's this-turn \"a creature an opponent controls would die: exile it\" also catches an Ambush Viper flashed in after the spell resolved (CR 614.1a, 614.6)",
  "actions": [
   19070720,
   17628928,

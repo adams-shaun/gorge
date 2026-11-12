@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "CR 702.21a, 106.6: Titania's ward—discard a card or pay {2} offers the {2} while Hydraulic Helper's restricted {U} is the only untapped source (gorge's untapped-source gate reads the restriction unread)",
  "actions": [
   16776960,
   16776960,

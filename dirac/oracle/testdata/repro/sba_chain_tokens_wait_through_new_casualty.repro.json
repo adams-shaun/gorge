@@ -94,8 +94,10 @@
  "mulligans": 1,
  "pass_elision": false,
  "max_turns": 100,
- "surface": "full",
+ "surface": "autopay",
  "kernel": "synth std-big",
+ "pool": "std-big",
+ "why": "CR 704.3, 704.5d: combat casualties under two Rest in Peace are asked one by one; a creature that comes to die between the asks parks too, and the tokens already exiled by the earlier answers still wait for the pass that destroys nothing         // CR 602.2b: Lost Jitte's Equip {1} is paid by sacrificing the Bat token Lotus Ring equips, not by sacrificing the Jitte token itself (a prefix that removes the play's own source offers nothing)",
  "actions": [
   184549120,
   167771904,

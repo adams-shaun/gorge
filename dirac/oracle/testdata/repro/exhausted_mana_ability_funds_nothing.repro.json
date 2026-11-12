@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dft",
+ "pool": "std-dft",
+ "why": "Loot, the Pathfinder's exhaust {G}, {T}: three of one colour, once used, makes no more mana: Country Roads' {1}{W}, {T}, sacrifice ability with no other white source is not offered (CR 702.177a, 602.2b)",
  "actions": [
   16776960,
   16776960,

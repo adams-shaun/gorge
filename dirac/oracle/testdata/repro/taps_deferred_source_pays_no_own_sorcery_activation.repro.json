@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "CR 603.3, 602.2b: Cryoshatter on Zookeeper Mechan: its {T}: Add {R} fires the unvetted Taps watcher, so gorge's census never lists it and the {6}{R} sorcery pump it would help pay is not offered on autopay",
  "actions": [
   16776960,
   16776960,

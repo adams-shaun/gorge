@@ -221,6 +221,8 @@
  ],
  "surface": "full",
  "kernel": "set cmd5",
+ "pool": "custom",
+ "why": "kfuzz cmd5 heuristic pair 42: Myriad Landscape finds a Swamp, then a second Swamp (CR 701.23, 205.3i); the matchup table keeps the basic land types the search compares",
  "actions": [
   16776960,
   16776960,

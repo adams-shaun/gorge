@@ -67,6 +67,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "CR 603.2e, 701.21a: Tale of Katara and Toph's granted self Taps FirstTime$ trigger puts the +1/+1 counter on the first tap",
  "actions": [
   19267328,
   17694464,

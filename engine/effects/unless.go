@@ -615,7 +615,11 @@ func unlessPayerTargetsFor(h Host, c *Ctx, sa *cards.SA, ownTargets []state.Targ
 	case unlessPayerTargetsTargetedController:
 		// A missing target uses the historical resolving-controller fallback
 		// below. This is a known target selector, unlike an unknown role.
-		addTargets(targetList)
+		// A target that left the battlefield since the resolution began
+		// (Chain of Vapor's bounce, Chain Lightning's lethal damage) answers
+		// with the controller captured then (CR 608.2h, 400.7): the live
+		// object's controller was reset to its owner by the departure.
+		addTargets(targetsControllerLKI(g, c, targetList))
 	case unlessPayerTargetsYou:
 		add(c.Controller)
 	case unlessPayerTargetsEnchantedController:

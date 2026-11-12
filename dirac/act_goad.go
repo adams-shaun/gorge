@@ -55,6 +55,19 @@ func (s *State) goadedAt(k *prep, sl Slot) bool {
 // only; a repeat by the same goader is one relationship).
 func (s *State) goad(k *prep, in *kop.Instr) {
 	p := s.res.e.ctrl & 1
+	if in.Obj == kop.RefRemembered && s.g.nrem > 1 {
+		// Defined$ Remembered is the whole set (gorge effGoad's Defined$
+		// walk); objRef alone would goad only rem[0]. The overload
+		// each-variant of Spectacular Showdown reaches this.
+		for i := 0; i < int(s.g.nrem); i++ {
+			o := s.g.rem[i]
+			if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield {
+				continue
+			}
+			s.goadSet(k, s.objs[o].slot, p)
+		}
+		return
+	}
 	if in.Obj == kop.RefNone {
 		var ord [MaxPerm]Slot
 		n := s.sweepHits(k, in.F, &ord)

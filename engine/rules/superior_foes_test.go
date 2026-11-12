@@ -1,6 +1,6 @@
 package rules
 
-// ImprintOnHost$ (task param:api:Effect.ImprintOnHost): the DB$ Effect
+// ImprintOnHost$: the DB$ Effect
 // parameter that ties the created effect to its HOST card so a later
 // `DB$ ChangeZone | Defined$ Imprinted | Origin$ Command | Destination$
 // Exile` can exile the imprinted effect and end it. Forge's EffectEffect

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-blb",
+ "pool": "std-blb",
+ "why": "CR 614.12, 707.2: the cards one return instruction returns each make their as-enters choice before any of them is on the battlefield, so Mockingbird's copy election is asked with the other targets still in the graveyard",
  "actions": [
   16776960,
   16776960,

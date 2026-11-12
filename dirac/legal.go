@@ -290,6 +290,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	if k.mayhem {
 		s.offerMayhemCasts(k, d, p, sorc, &av) // kw_mayhem.go
 	}
+	if k.retrace {
+		s.offerRetraceCasts(k, d, p, sorc, &av) // kw_retrace.go
+	}
 	if faces {
 		s.offerAdventureRecasts(k, d, p, sorc) // face_castface.go
 		if k.gen.anyAftermath {
@@ -1218,9 +1221,16 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 		if pp != p && k.gen != nil && k.gen.anyRepl&rbPlHex != 0 && s.playerHexproof(k, pp) {
 			return false
 		}
+		if s.plProtAll(k, pp) {
+			// CR 702.16b: the protected player cannot be the target of
+			// anything, their own spells included (no hexproof-style
+			// self-exemption; gorge stack.go/target_legal.go's
+			// playerProtectedFrom arm)
+			return false
+		}
 		switch t.Kind {
 		case kop.TgtAny:
-			return true
+			return t.TFlags&kop.TgfOppOnly == 0 || pp != p
 		case kop.TgtPlayer:
 			if t.Filter != 0 {
 				switch k.t.Filters[t.Filter].Ctrl {
@@ -1270,7 +1280,7 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 		if ob.zone != kop.ZoneStack || o == self {
 			return false
 		}
-		return s.matchCardAt(k, t.Filter, ob.card, s.stackCtrl(o), p, o)
+		return s.matchCardAt(k, t.Filter, ob.card, s.stackCtrl(o), p, o) && (t.TFlags&kop.TgfSingleTgt == 0 || s.ksrSingleSpell(o))
 	case kop.TgtCard:
 		z := k.t.Filters[t.Filter].Zone
 		if z == kop.ZoneNone {
@@ -1366,7 +1376,9 @@ func (s *State) hasTarget(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Ob
 	}
 	switch t.Kind {
 	case kop.TgtAny:
-		return true // a player is always a legal any-target
+		if t.TFlags&kop.TgfOppOnly == 0 {
+			return true // a player is always a legal any-target
+		}
 	case kop.TgtObject:
 		for m := s.occ; m.any(); m = m.rest() {
 			if s.targetOK(k, t, p, src, self, uint8(s.perms[m.first()].obj)) {
@@ -1713,6 +1725,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if a.Target() == castDashTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyDash {
 			s.g.impCast = true // the dash cost (kw_dash.go): beginCast marks the entry dashed
 		}
+		if a.Target() == castOverloadTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyOverload {
+			s.g.impCast = true // the overload cost (kw_overload.go): beginCast marks the entry overloaded
+		}
 		if a.Target() == castAltTgt && a.Mode() == 0 && k.gen != nil && k.gen.altFree != nil {
 			s.g.altCast = true // the card's own mana alternative cost (cast_altfree.go)
 		}
@@ -1725,7 +1740,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if a.Mode() == 2 && k.gen != nil && k.gen.anyBeam {
 			s.noteBeamCast(k, a) // kw_beammeup.go
 		}
-		s.beginCast(k, Obj(a.Source()), a.Mode())
+		s.beginCast(k, Obj(a.Source()), a.Mode(), a.Target()) // the target byte names a retrace cast (kw_retrace.go)
 		if face {
 			s.lowerFaceCast(k, p, Obj(a.Source())) // cast_faceroute.go
 		}

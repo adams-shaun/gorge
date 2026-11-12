@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Flaring Pain resolves: damage can't be prevented this turn",
  "actions": [
   19398400,
   17432320,

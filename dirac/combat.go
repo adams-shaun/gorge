@@ -83,6 +83,9 @@ func (s *State) declareMustAttack(k *prep) {
 }
 
 func (s *State) anyAttacker(k *prep) bool {
+	if atkTaxOn(k) {
+		return s.atkTaxAnyOffer(k) // combat_attacktax.go
+	}
 	m := s.ctrlM[s.active]
 	for m.any() {
 		sl := m.first()
@@ -137,6 +140,9 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 	}
 	if (!s.mustAttackAsked() || !s.mustAttackLeft(k)) && !s.loneAloneAttacker(k) {
 		d.add(MakeAction(AkDone, 0, 0, 0))
+	}
+	if atkTaxOn(k) {
+		s.atkTaxFilter(k, d) // combat_attacktax.go
 	}
 	return true
 }
@@ -226,6 +232,9 @@ func (s *State) applyAttack(k *prep, a Action) {
 }
 
 func (s *State) finishAttacks(k *prep) {
+	if atkTaxOn(k) && s.nAttackers > 0 {
+		s.atkTaxPay(k) // combat_attacktax.go: CR 508.1g-i, before the declaration's taps and triggers
+	}
 	fs := false
 	var tapped slotMask
 	fresh := 0 // attackers not declared in an earlier combat this turn
@@ -1177,6 +1186,9 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		}
 		if k.anyInit {
 			s.initCombat(k, &r) // CR 726.2 (act_initiative.go)
+		}
+		if k.gen.anyMonarch {
+			s.monarchCombat(&r) // CR 725.2 (act_monarch.go)
 		}
 		return false
 	}

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 702.51b: Sanar's \"you may cast the exiled cards this turn\" permission casts Lofty Dreams ({3}{U}{U} Convoke) from exile, and the convoke announcement filters by the cost beginCast charges (MayPlayCastPaymentCost, payment_plan.go): the oracle caches a priority-time cost for the may-play cast as it does for a plain hand cast, and the kernel's convoke menu filters the same way, so gorge's Submit never refuses a pick the menu no longer offers.",
  "actions": [
   16776960,
   16776960,

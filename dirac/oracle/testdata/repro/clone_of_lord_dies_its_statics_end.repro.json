@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-blb",
+ "why": "a Mockingbird that entered as Ygra dies in combat with it: Ygra is no Food artifact once the copy's static is gone (CR 613.1d)",
  "actions": [
   16776960,
   16776960,
