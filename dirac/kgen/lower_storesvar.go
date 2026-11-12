@@ -39,7 +39,7 @@ func (lc *lowerCtx) storeSVar(ps *params) error {
 // changes, so anything else left unread refuses.
 func (lc *lowerCtx) pumpRememberImprinted(ps *params) error {
 	if left := ps.unread(); len(left) > 0 {
-		return refuse("Pump RememberObjects$ Imprinted beside %v", left)
+		return refuse("Pump RememberObjects$ %q beside %v", "Imprinted", left)
 	}
 	lc.emit(lInstr{Op: "RememberImprinted"})
 	return nil
