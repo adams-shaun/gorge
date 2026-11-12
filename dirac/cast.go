@@ -2369,9 +2369,9 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 			// the spell's own cost (CR 702.42a; kw_escape.go)
 			own := spellAddCost(k, e.card)
 			if pickKind(own.Flags)&pickKind(pickCosts)&^s.bld().donePicks == 0 {
-				if st := s.escapeStatic(k, e.ctrl, s.objs[e.obj].owner(), e.card); st != nil {
-					if ec := escapeFodder(st); int(ec.N) > s.exilePicks() {
-						return &ec
+				if ga := s.escapeStatic(k, e.ctrl, s.objs[e.obj].owner(), e.card); ga != nil {
+					if ec := escapeFodder(ga); int(ec.N) > s.exilePicks() {
+						return ec
 					}
 				}
 			}

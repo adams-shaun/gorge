@@ -621,8 +621,9 @@ const StatWarpGrant StaticKind = 240
 // Escape; CR 702.42a; Underworld Breach). Read live from the battlefield at
 // the graveyard offer and the cost builder, never stamped on the card. The
 // escape cost is the card's mana cost (the grant's CardManaCost placeholder)
-// plus A other cards from the same graveyard: Filter2 is the exile filter
-// (the grant's ExileFromGrave<A/Card.Other/other> spec), A the count. gorge
+// plus N other cards from the same graveyard: the static ability's own
+// Ability.Cost is that exile part (CostExileGrave of Cost.N cards matching
+// Cost.Filter, the grant's ExileFromGrave<N/Card.Other/other> spec). gorge
 // derives the keyword on the card (rules legal_walk_alt.go's escape walk,
 // altcast.go escapeCost). Explicit ordinal: the StaticKind iota tail stays
 // untouched.

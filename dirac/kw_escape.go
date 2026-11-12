@@ -38,13 +38,14 @@ const castEscapeTgt uint8 = 3
 // sbt.go).
 const FeatEscapeTgt = castEscapeTgt
 
-// escapeStatic is the first StatEscapeGrant static in force that p controls
-// whose filter matches card c owned by owner (read with p as "you"), or nil.
-func (s *State) escapeStatic(k *prep, p, owner uint8, c CardID) *kop.Static {
+// escapeStatic is the first StatEscapeGrant static ability in force that p
+// controls whose filter matches card c owned by owner (read with p as
+// "you"), or nil.
+func (s *State) escapeStatic(k *prep, p, owner uint8, c CardID) *kop.Ability {
 	if k.gen == nil || !k.gen.anyEscapeGrant {
 		return nil
 	}
-	var got *kop.Static
+	var got *kop.Ability
 	s.eachStaticC(k, sclsEscapeG, func(st statSrc) bool {
 		a := st.a
 		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatEscapeGrant || st.ctrl != p || st.sl == NoSlot {
@@ -55,18 +56,18 @@ func (s *State) escapeStatic(k *prep, p, owner uint8, c CardID) *kop.Static {
 		if !s.statCond(k, st) || !s.matchCardGenAt(k, a.Static.Filter, c, owner, p, NoObj, nil) {
 			return true
 		}
-		got = &a.Static
+		got = a
 		return false
 	})
 	return got
 }
 
-// escapeFodder is the exile part of the grant st's escape cost: N cards
-// matching the grant's ExileFromGrave spec, the cast card itself excluded by
-// the callers (gorge exAsk skips pc.card; graveCands' FOther).
-func escapeFodder(st *kop.Static) kop.Cost {
-	return kop.Cost{Flags: kop.CostExileGrave, N: uint8(st.A), Filter: st.Filter2}
-}
+// escapeFodder is the exile part of grant a's escape cost: the static
+// ability's own table Cost (kgen build_ab.go: CostExileGrave of N cards
+// matching the grant's ExileFromGrave spec), the cast card itself excluded
+// by the callers (gorge exAsk skips pc.card; graveCands' FOther). A table
+// pointer, so buildPickCost returns it with no copy to the heap.
+func escapeFodder(a *kop.Ability) *kop.Cost { return &a.Cost }
 
 // offerEscapeCasts offers the graveyard casts of p's cards a battlefield
 // StatEscapeGrant gives escape (gorge legal_walk_alt.go's escape walk:
@@ -88,8 +89,8 @@ func (s *State) offerEscapeCasts(k *prep, d *Decision, p uint8, sorc bool, av *a
 		o := pl.grave[i]
 		c := s.objs[o].card
 		cd := &k.t.Cards[c]
-		st := s.escapeStatic(k, p, s.objs[o].owner(), c)
-		if st == nil {
+		ga := s.escapeStatic(k, p, s.objs[o].owner(), c)
+		if ga == nil {
 			continue
 		}
 		if !k.cards[c].instant && !sorc && !s.castFlash(k, p, c) {
@@ -102,8 +103,7 @@ func (s *State) offerEscapeCasts(k *prep, d *Decision, p uint8, sorc bool, av *a
 			s.availFor(k, p, av)
 			have = true
 		}
-		ec := escapeFodder(st)
-		if !s.costObjPayable(k, p, &ec, o, o) {
+		if !s.costObjPayable(k, p, escapeFodder(ga), o, o) {
 			continue // the fodder is not there (gorge offerCostFor prices ec's parts)
 		}
 		if !s.spellCostsFeasible(k, c, p, o) {

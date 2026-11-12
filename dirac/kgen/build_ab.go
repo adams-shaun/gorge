@@ -1902,11 +1902,13 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	case "EscapeGrant":
 		// an AffectedZone$ Graveyard AddKeyword$ Escape static: each matching
 		// card in its controller's graveyard has escape at its mana cost plus
-		// A other cards from the same graveyard (kop.StatEscapeGrant;
+		// N other cards from the same graveyard (kop.StatEscapeGrant;
 		// kw_escape.go; CR 702.42a; Underworld Breach). Filter is the affected
-		// cards, Filter2 the fodder filter (the grant's ExileFromGrave spec),
-		// A the fodder count; the mana part is the card's own cost, priced at
-		// the offer like any spell's.
+		// cards; the ability's own Cost is the fodder part, as an
+		// AlternativeCost static's is: CostExileGrave of N cards matching
+		// Cost.Filter (the grant's ExileFromGrave spec), a table cost the
+		// kernel's cost builder returns in place. The mana part is the card's
+		// own cost, priced at the offer like any spell's.
 		st.Kind = kop.StatEscapeGrant // kw_escape.go
 		if st.Filter, err = filter(s.F, kop.ZoneGraveyard); err != nil {
 			return ka, nil, err
@@ -1914,10 +1916,12 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if s.Cost.ExileG == nil || s.Cost.ExileGN < 1 || s.Cost.ExileGN > 15 {
 			return ka, nil, fmt.Errorf("escape grant without an exile cost")
 		}
-		if st.Filter2, err = filter(s.Cost.ExileG, kop.ZoneGraveyard); err != nil {
+		if ka.Cost, err = cb.cost(s.Cost); err != nil {
 			return ka, nil, err
 		}
-		st.A = int16(s.Cost.ExileGN)
+		if ka.Cost.Flags != kop.CostExileGrave || ka.Cost.Mana != (kop.ManaCost{}) {
+			return ka, nil, fmt.Errorf("escape grant cost beside its exile part")
+		}
 	case "TapExtra":
 		st.Kind = kop.StatTapExtra
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
