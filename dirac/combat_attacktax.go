@@ -286,20 +286,6 @@ func (s *State) atkTaxUnits(k *prep, sl Slot) int {
 	return n
 }
 
-// atkTaxBudget is the active player's attack budget (gorge attackBudget):
-// the pool and every source's units.
-func (s *State) atkTaxBudget(k *prep) int {
-	p := s.active
-	n := 0
-	for _, v := range s.pl[SeatIx(p)].pool {
-		n += int(v)
-	}
-	for m := s.ctrlM[p]; m.any(); m = m.rest() {
-		n += s.atkTaxUnits(k, m.first())
-	}
-	return n
-}
-
 // atkTaxTargets fills tg with the defenders attackerOptions offers the
 // active player's creatures (each other seat still in the game, the
 // planeswalkers it controls, the attackable battles) and returns how many.
@@ -344,7 +330,7 @@ func (s *State) atkTaxCandidate(k *prep, sl Slot) bool {
 // (some offered pair is charged: each Value then folds in its creature's
 // own units, gorge attackTaxed) and spent (the declared picks' Values).
 func (s *State) atkTaxRead(k *prep, tg []uint8) (budget int, taxed bool, spent int) {
-	budget = s.atkTaxBudget(k)
+	budget = s.manaBudget(k, s.active)
 	for m := s.ctrlM[s.active]; m.any() && !taxed; m = m.rest() {
 		sl := m.first()
 		if !s.atkTaxCandidate(k, sl) {
@@ -405,7 +391,7 @@ func (s *State) atkTaxFilter(k *prep, d *Decision) {
 func (s *State) atkTaxAnyOffer(k *prep) bool {
 	var tg [MaxPerm + MaxSeats]uint8
 	nt := s.atkTaxTargets(k, &tg)
-	budget := s.atkTaxBudget(k)
+	budget := s.manaBudget(k, s.active)
 	for m := s.ctrlM[s.active]; m.any(); m = m.rest() {
 		sl := m.first()
 		if !s.canAttack(k, sl) {

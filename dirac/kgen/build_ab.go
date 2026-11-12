@@ -2195,6 +2195,19 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				return ka, nil, fmt.Errorf("CantAttackUnless flag %q", fl)
 			}
 		}
+	case "CantBlockUnless":
+		st.Kind = kop.StatBlockTax // lower_blocktax.go
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		if s.F2 != nil {
+			if st.Filter2, err = filter(s.F2, kop.ZoneBattlefield); err != nil {
+				return ka, nil, err
+			}
+		}
+		if err := amounts(s.Amount, lValue{}); err != nil {
+			return ka, nil, err
+		}
 	case "CanAttackDefender":
 		st.Kind = kop.StatCanAttackDefender
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {

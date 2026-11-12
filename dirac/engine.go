@@ -327,6 +327,9 @@ func (s *State) stepRaw(d *Decision) {
 			}
 		case ctlBlockers:
 			if s.blockerOptions(k, d) {
+				if d.Kind == DkBlockers && blkTaxOn(k) {
+					s.blkTaxFilter(k, d) // combat_blocktax.go
+				}
 				return
 			}
 		case ctlResolve:

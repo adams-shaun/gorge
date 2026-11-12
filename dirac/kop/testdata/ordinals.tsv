@@ -1203,6 +1203,7 @@ StatAnyTypeCreatures	StaticKind	239
 StatAsIfHaste	StaticKind	231
 StatAttackTax	StaticKind	243
 StatBeamGrant	StaticKind	253
+StatBlockTax	StaticKind	256
 StatCDAPT	StaticKind	10
 StatCanAttackDefender	StaticKind	250
 StatCantActivate	StaticKind	236

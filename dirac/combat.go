@@ -601,7 +601,7 @@ func (s *State) anyBlock(k *prep) bool {
 		for am.any() {
 			a := am.first()
 			am = am.rest()
-			if s.perms[a].flags&pfAttacking != 0 && !s.blocks(b, a) && s.canBlock(k, b, a) && !s.menaceImpossible(k, a) {
+			if s.perms[a].flags&pfAttacking != 0 && !s.blocks(b, a) && s.canBlock(k, b, a) && !s.menaceImpossible(k, a) && (!blkTaxOn(k) || s.blkTaxAdmits(k, b, a)) {
 				return true
 			}
 		}
@@ -784,6 +784,9 @@ func (s *State) augment(k *prep, i int, def, free *[MaxPerm]Slot, nf int, match 
 
 func (s *State) applyBlock(k *prep, a Action) {
 	if a.Kind() == AkDone {
+		if blkTaxOn(k) && !s.blkTaxPay(k) {
+			s.dropBlockDeclaration(k) // combat_blocktax.go: CR 509.1d, the unpayable declaration is declined
+		}
 		if MaxSeats > 2 {
 			s.blockRound(k, s.g.blkDef)
 			return

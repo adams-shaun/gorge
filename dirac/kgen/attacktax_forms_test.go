@@ -17,7 +17,7 @@ var attackTaxForms = []formCase{
 	{card: "Reclamation", form: "Cost$ Sac<1/Land>", refused: `CantAttackUnless Cost$ "Sac<1/Land>"`},
 	{card: "Hollow Warrior", form: "Cost$ tapXType<1/Creature.!attacking>", refused: `CantAttackUnless Cost$ "tapXType<1/Creature.!attacking>"`},
 	{card: "Nils, Discipline Enforcer", form: "RememberingAttacker$ True", refused: `CantAttackUnless RememberingAttacker$ "True"`},
-	{card: "Archangel of Tithes", form: "IsPresent$ Card.Self+untapped beside a CantBlockUnless", refused: "static mode CantBlockUnless"},
+	{card: "Archangel of Tithes", form: "IsPresent$ Card.Self+untapped beside a CantBlockUnless (blocktax_forms_test.go)"},
 }
 
 // TestAttackTaxForms pins the lowered and refused CantAttackUnless shapes.
