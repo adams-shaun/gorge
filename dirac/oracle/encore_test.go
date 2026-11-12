@@ -15,37 +15,101 @@ import (
 // activated from the graveyard, the token copy attacks its opponent this
 // turn if able (the mark the kernel auto-declares, ExtAttacksIfAble) and
 // the whole activation's group is sacrificed at the beginning of the next
-// end step (CpSacAtEndDly, gorge's one delayed trigger, CR 603.10a). The
-// six corpus cards carrying K:Encore are the pool; no other card here
-// activates from the graveyard, so every graveyard activation offered is
-// one card's encore, and every Required attacker naming one of the six
-// cards is its minted copy.
-var kencoreCards = map[string]bool{
-	"Impulsive Pilferer":  true,
-	"Amphin Mutineer":     true,
-	"Angel of Indemnity":  true,
-	"Phyrexian Triniform": true,
-	"Belonging":           true,
-	"Broodmate Tyrant":    true,
+// end step (CpSacAtEndDly, gorge's one delayed trigger, CR 603.10a).
+//
+// The pool is every corpus card carrying K:Encore that kgen lowers (22 of
+// the 26; the other four are refused for unrelated mechanisms), so every
+// card Encore newly built is played here. No other card in the pool
+// activates from the graveyard, carries a this-turn attack duty or a copy's
+// end-step sacrifice, so every graveyard activation offered is one card's
+// encore, every Required attacker naming one of these cards is its minted
+// copy, and the mutation tests below drop only Encore's marks.
+var kencoreNames = []string{
+	"Amphin Mutineer", "Angel of Indemnity", "Belonging", "Briarblade Adept",
+	"Broodmate Tyrant", "Coastline Marauders", "Elvish Dreadlord",
+	"Exquisite Huntmaster", "Fathom Fleet Swordjack", "Fin-Clade Fugitives",
+	"Impulsive Pilferer", "Impulsivity", "Jubilation", "Kangee's Lieutenant",
+	"Kinsbaile Courier", "Lamentation", "Mist Dancer", "Phyrexian Triniform",
+	"Soul of Eternity", "Spellbinding Soprano", "Subterfuge", "Trove Tracker",
 }
 
-var kencoreDecks = [2][]cardset.Entry{
+var kencoreCards = func() map[string]bool {
+	m := make(map[string]bool, len(kencoreNames))
+	for _, n := range kencoreNames {
+		m[n] = true
+	}
+	return m
+}()
+
+// kencoreGroup is one focused lockstep over a few lowered Encore cards, four
+// copies of each, so each is drawn, cast, killed and activated often enough
+// across the seeds, with a land base that reaches the expensive encores.
+// All 22 cards appear in exactly one group.
+type kencoreGroup struct {
+	name  string
+	cards []string
+	lands []cardset.Entry
+}
+
+var kencoreGroups = []kencoreGroup{
 	{
-		{Name: "Impulsive Pilferer", Count: 8}, {Name: "Amphin Mutineer", Count: 4},
-		{Name: "Belonging", Count: 2}, {Name: "Broodmate Tyrant", Count: 2},
-		{Name: "Angel of Indemnity", Count: 2}, {Name: "Phyrexian Triniform", Count: 1},
-		{Name: "Grizzly Bears", Count: 1}, {Name: "Murder", Count: 3},
-		{Name: "Mountain", Count: 5}, {Name: "Island", Count: 4}, {Name: "Plains", Count: 4},
-		{Name: "Swamp", Count: 2}, {Name: "Forest", Count: 2},
+		name: "big",
+		cards: []string{
+			"Amphin Mutineer", "Angel of Indemnity", "Belonging", "Broodmate Tyrant",
+		},
+		lands: []cardset.Entry{
+			{Name: "Plains", Count: 6}, {Name: "Island", Count: 6},
+			{Name: "Swamp", Count: 4}, {Name: "Mountain", Count: 4}, {Name: "Forest", Count: 4},
+		},
 	},
 	{
-		{Name: "Impulsive Pilferer", Count: 6}, {Name: "Amphin Mutineer", Count: 4},
-		{Name: "Belonging", Count: 2}, {Name: "Broodmate Tyrant", Count: 2},
-		{Name: "Angel of Indemnity", Count: 2}, {Name: "Phyrexian Triniform", Count: 1},
-		{Name: "Raging Goblin", Count: 3}, {Name: "Hill Giant", Count: 2}, {Name: "Murder", Count: 3},
-		{Name: "Mountain", Count: 5}, {Name: "Island", Count: 3}, {Name: "Plains", Count: 3},
-		{Name: "Swamp", Count: 2}, {Name: "Forest", Count: 2},
+		// Its {9} cast and {12} encore are the hardest to reach, so it gets
+		// its own mana-flooded deck rather than a few slots in another group.
+		name:  "triniform",
+		cards: []string{"Phyrexian Triniform"},
+		lands: []cardset.Entry{{Name: "Forest", Count: 36}},
 	},
+	{
+		// Its {6}{R} cast and {7}{R}{R} encore are the red group's hardest,
+		// so it gets its own mana-flooded deck rather than finishing last
+		// in a shared one.
+		name:  "impulsivity",
+		cards: []string{"Impulsivity"},
+		lands: []cardset.Entry{{Name: "Mountain", Count: 36}},
+	},
+	{
+		name: "red",
+		cards: []string{
+			"Impulsive Pilferer", "Spellbinding Soprano", "Coastline Marauders",
+			"Fathom Fleet Swordjack",
+		},
+		lands: []cardset.Entry{{Name: "Mountain", Count: 24}},
+	},
+	{
+		name:  "black",
+		cards: []string{"Briarblade Adept", "Elvish Dreadlord", "Exquisite Huntmaster", "Lamentation"},
+		lands: []cardset.Entry{{Name: "Swamp", Count: 24}},
+	},
+	{
+		name:  "greenwhite",
+		cards: []string{"Fin-Clade Fugitives", "Jubilation", "Kangee's Lieutenant", "Kinsbaile Courier"},
+		lands: []cardset.Entry{{Name: "Plains", Count: 12}, {Name: "Forest", Count: 12}},
+	},
+	{
+		name:  "bluewhite",
+		cards: []string{"Mist Dancer", "Soul of Eternity", "Subterfuge", "Trove Tracker"},
+		lands: []cardset.Entry{{Name: "Plains", Count: 12}, {Name: "Island", Count: 12}},
+	},
+}
+
+// kencoreDecks builds the 40-card deck both seats play for one group.
+func kencoreDecks(g kencoreGroup) [2][]cardset.Entry {
+	d := make([]cardset.Entry, 0, 40)
+	for _, n := range g.cards {
+		d = append(d, cardset.Entry{Name: n, Count: 4})
+	}
+	d = append(d, g.lands...)
+	return [2][]cardset.Entry{append([]cardset.Entry(nil), d...), append([]cardset.Entry(nil), d...)}
 }
 
 type kencoreStats struct {
@@ -118,25 +182,27 @@ func kencorePolicy(st *kencoreStats) func(uint64) Policy {
 
 func TestEncoreLockstep(t *testing.T) {
 	t.Parallel()
-	seeds := uint64(500)
+	seeds := uint64(200)
 	if v := os.Getenv("KENCORE_SEEDS"); v != "" {
 		if n, err := strconv.ParseUint(v, 10, 64); err == nil && n > 0 {
 			seeds = n
 		}
 	}
 	st := &kencoreStats{}
-	lockstepRunPolicy(t, "encore", kencoreDecks, seeds, true, nil, nil, kencorePolicy(st))
+	for _, g := range kencoreGroups {
+		t.Run(g.name, func(t *testing.T) {
+			lockstepRunPolicy(t, "encore", kencoreDecks(g), seeds, true, nil, nil, kencorePolicy(st))
+		})
+	}
 	t.Logf("%d encore activations, %d attack requirements on encore copies", len(st.acts), st.marks)
-	for _, name := range []string{
-		"Impulsive Pilferer", "Amphin Mutineer", "Angel of Indemnity",
-		"Phyrexian Triniform", "Belonging", "Broodmate Tyrant",
-	} {
+	for _, name := range kencoreNames {
+		t.Logf("%s: encore activated in %d games", name, st.acts[name])
 		if st.acts[name] < 1 {
 			t.Errorf("%s: encore activated in %d games, want >= 1", name, st.acts[name])
 		}
 	}
-	if st.marks < 5 {
-		t.Errorf("only %d attack requirements on encore copies, want >= 5", st.marks)
+	if st.marks < 20 {
+		t.Errorf("only %d attack requirements on encore copies, want >= 20", st.marks)
 	}
 }
 
@@ -144,7 +210,7 @@ func TestEncoreLockstep(t *testing.T) {
 // some seed diverges.
 func TestEncoreLockstepMutationAttack(t *testing.T) {
 	t.Parallel()
-	n := lockstepRun(t, "encore", kencoreDecks, 150, false, kencoreDropAttack)
+	n := lockstepRun(t, "encore", kencoreDecks(kencoreGroups[1]), 150, false, kencoreDropAttack)
 	if n == 0 {
 		t.Fatal("no seed diverged with the copies' attack duty dropped")
 	}
@@ -155,7 +221,7 @@ func TestEncoreLockstepMutationAttack(t *testing.T) {
 // Encore's), some seed diverges.
 func TestEncoreLockstepMutationSac(t *testing.T) {
 	t.Parallel()
-	n := lockstepRun(t, "encore", kencoreDecks, 150, false, kencoreDropSac)
+	n := lockstepRun(t, "encore", kencoreDecks(kencoreGroups[1]), 150, false, kencoreDropSac)
 	if n == 0 {
 		t.Fatal("no seed diverged with the copies' end-step sacrifice dropped")
 	}
