@@ -369,7 +369,7 @@ func (s *State) scriptDeadEnd(k *prep, a Action, p uint8, restr slotMask) bool {
 	var held [kop.NumManaKinds]uint8 // the restricted mana in the copy's pool
 	for i := 0; i < n; i++ {
 		if ctr.has(order[i]) {
-			t.ctrGap(k, p, order[i])
+			t.ctrGap(k, p, order[i], t.ctrPlayCol(k, a, order[i]))
 			t.sba(k)
 		} else {
 			t.tapGap(k, p, order[i], restr, &held)
@@ -520,8 +520,8 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	var held [kop.NumManaKinds]uint8
 	for i := 0; i < n && !hasOption(&d, a); i++ {
 		if ctr.has(order[i]) {
-			s.ctrGap(k, p, order[i]) // a Wall of Roots: its counter, its mana (mana_countercost.go)
-			s.sba(k)                 // the script returns to priority after the step
+			s.ctrGap(k, p, order[i], s.ctrPlayCol(k, a, order[i])) // a Wall of Roots: its counter, its mana (mana_countercost.go)
+			s.sba(k)                                               // the script returns to priority after the step
 		} else {
 			s.tapGap(k, p, order[i], restr, &held)
 		}

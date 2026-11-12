@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // Counter-cost mana (Wall of Roots: "Put a -0/-1 counter on Wall of
 // Roots: Add {G}. Activate only once each turn."). gorge's planner census
@@ -126,10 +130,11 @@ func (s *State) windowCtrOffer(k *prep, p uint8, o Slot, decided bool, want uint
 
 // ctrGap activates counter-cost source sl for p: its counters, its use this
 // turn, its mana into the pool (gorge's activation: the cost's
-// CounterChange, then the mana).
+// CounterChange, then the mana). An any-colour ability (Vivid Grove's second
+// one) asks its colour: col is the answer, the lowest colour when negative.
 //
 //go:noinline
-func (s *State) ctrGap(k *prep, p uint8, sl Slot) {
+func (s *State) ctrGap(k *prep, p uint8, sl Slot, col int) {
 	c := s.cardAt(sl)
 	a := k.ctrAbOf(c)
 	pm := &s.perms[sl]
@@ -152,17 +157,47 @@ func (s *State) ctrGap(k *prep, p uint8, sl Slot) {
 	}
 	s.touchSl(sl)
 	cols, n := tapXUnit(a)
-	for col := 0; col < kop.NumManaKinds; col++ {
-		if cols&(1<<col) != 0 {
-			s.poolAdd(p&1, col, int(n))
+	if ctrAnyColour(a) {
+		if col < 0 {
+			col = bits.TrailingZeros8(cols)
+		}
+		cols = 1 << uint(col)
+	}
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if cols&(1<<c) != 0 {
+			s.poolAdd(p&1, c, int(n))
 			if taps {
-				s.artTag(k, p, sl, col)
+				s.artTag(k, p, sl, c)
 			}
 		}
 	}
 	if taps {
 		s.tapExtraStall(k, sl)
 	}
+}
+
+// ctrAnyColour: counter-cost ability a makes one mana of a colour its
+// activation asks (Vivid Grove's "{T}, remove a charge counter: add one mana
+// of any color"), not a fixed colour or every colour at once.
+func ctrAnyColour(a *kop.Ability) bool {
+	return !a.ManaEach && a.ManaColors&(a.ManaColors-1) != 0
+}
+
+// ctrPlayCol is the colour gorge's prefix search answers an any-colour counter
+// ability's ask with first for play a: the lowest of the play's announced
+// colours, else W U B R G (scriptOrderAnswers; tapXSearch.cols). -1 for a fixed
+// colour ability.
+func (s *State) ctrPlayCol(k *prep, a Action, sl Slot) int {
+	ab := k.ctrAbOf(s.cardAt(sl))
+	if ab == nil || !ctrAnyColour(ab) {
+		return -1
+	}
+	var order [5]uint8
+	for c := range order {
+		order[c] = uint8(c)
+	}
+	needFirst(order[:], s.playNeed(k, a))
+	return int(order[0])
 }
 
 // sbaCtrTough is CR 704.5f for a creature whose toughness only -0/-1

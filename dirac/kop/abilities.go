@@ -489,13 +489,14 @@ func SecondTapXManaAb(cd *CardDef, first, j int) bool {
 // from this: Add <fixed colour>" with no once-each-turn limit (Weather Maker's
 // "{T}, Remove two charge counters: Add {C}{C}"): a mana-free cost of the
 // source's own {T} and counters, a fixed unrestricted production of one colour
-// ({C} counts), ManaN of it. Its {T} is the source's, so the limit is the tap
+// ({C} counts), ManaN of it, or one mana of any colour (Vivid Grove's second
+// ability: the activation asks the colour). Its {T} is the source's, so the limit is the tap
 // alone. Kernel mana_countercost.go reads it, through prep.ctrAb, as a
 // counter-cost gap beside a plain first ability (SecondCtrTapManaAb).
 func CtrTapSecondManaAb(a *Ability) bool {
 	c := a.ManaColors
 	return a.Kind == AbMana && a.Cost.Flags == CostTap|CostRemoveCtr && a.Cost.N > 0 && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
-		a.AFlags == 0 && a.ManaRestrict == 0 && !a.ManaEach && c != 0 && c&(c-1) == 0 && a.ManaN >= 1 && len(a.Prog) == 0 &&
+		a.AFlags == 0 && a.ManaRestrict == 0 && !a.ManaEach && (c != 0 && c&(c-1) == 0 && a.ManaN >= 1 || c == ColAny && a.ManaN <= 1) && len(a.Prog) == 0 &&
 		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
 }
 

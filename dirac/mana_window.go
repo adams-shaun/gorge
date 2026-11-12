@@ -268,7 +268,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		}
 		if gap {
 			if k.ctrMana && s.scriptCtr(k, p).has(sl) {
-				s.ctrGap(k, p, sl) // the counter, the use, the mana (mana_countercost.go)
+				s.ctrGap(k, p, sl, -1) // the counter, the use, the mana (mana_countercost.go)
 				continue
 			}
 			if a, ok := s.riderAbilityOf(k, sl); ok && s.scriptTapsDefer(k, p).has(sl) {
