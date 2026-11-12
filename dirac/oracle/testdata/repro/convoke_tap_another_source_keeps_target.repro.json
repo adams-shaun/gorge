@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 601.2c, 601.2g: a Springleaf Drum left beside a convoke cast's picks keeps its target on gorge's menu, however short the window is",
  "actions": [
   184549120,
   184549120,

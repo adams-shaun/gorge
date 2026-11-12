@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// CounterNumPerDefined$ (task param-putcounter-counternumperdefined): the
+// CounterNumPerDefined$: the
 // count a PutCounter places is evaluated PER AFFECTED OBJECT, not once for
 // the resolving source. The pin is a real card:
 //

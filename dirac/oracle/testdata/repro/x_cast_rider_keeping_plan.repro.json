@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-blb",
+ "pool": "std-blb",
+ "why": "CR 609.4b, 601.2b: Cruelclaw's Heist's any-type rider pays For the Common Good's {G} from a Swamp, so the keeping plan leaves the Treasure as its target",
  "actions": [
   16776960,
   16776960,

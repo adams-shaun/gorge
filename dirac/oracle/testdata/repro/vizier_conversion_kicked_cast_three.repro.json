@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 30,
  "surface": "autopay",
+ "pool": "std-fdn",
+ "why": "... and another",
  "actions": [
   16776960,
   16776960,

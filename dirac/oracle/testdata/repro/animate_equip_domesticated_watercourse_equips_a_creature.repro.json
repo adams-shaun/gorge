@@ -95,6 +95,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Domesticated Watercourse's Animate keeps its abilities and grants it equip {2}: gorge offers the equip and the kernel hosts it on the animated permanent itself, which then attaches to a creature (CR 613.1f, 301.5)",
  "actions": [
   16973568,
   19529472,

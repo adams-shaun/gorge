@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 603.2c: Those Old Scientists' two-card shuffle is one event, so Sela's \"one or more cards leave your graveyard\" triggers once",
  "actions": [
   16776960,
   16776960,

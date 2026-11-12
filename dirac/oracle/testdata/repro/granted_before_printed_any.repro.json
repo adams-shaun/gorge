@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-mkm",
+ "pool": "std-mkm",
+ "why": "CR 305.6: a granted basic type's intrinsic abilities precede a printed any-colour ability in the node-limited plan census",
  "actions": [
   167771904,
   167771904,

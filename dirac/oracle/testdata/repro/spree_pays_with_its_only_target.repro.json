@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-otj",
+ "why": "Explosive Derailment aimed at the Treasure that pays for it: the cast is planned at {R}, targets chosen first, the window sacrifices the Treasure and the cast stands (CR 601.2c, 601.2g)",
  "actions": [
   16776960,
   16776960,

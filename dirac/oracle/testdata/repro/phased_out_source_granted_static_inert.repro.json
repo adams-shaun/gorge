@@ -94,8 +94,10 @@
  "mulligans": 1,
  "pass_elision": false,
  "max_turns": 100,
- "surface": "full",
+ "surface": "autopay",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 702.26b: Nog, Ambitious Cadet phased out stops granting \"play lands from your graveyard\", so the sacrificed Unexplored Territory is not offered as a land play",
  "actions": [
   184549120,
   167771904,

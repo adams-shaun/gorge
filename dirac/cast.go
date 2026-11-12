@@ -78,7 +78,9 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 			e.mode |= modeWarpRecast
 		}
 		if s.g.impCast {
-			if k.t.Cards[c].HasEvoke {
+			if k.t.Cards[c].HasOverload {
+				e.mode |= modeImpended // the overloaded cast (kw_overload.go: the bit reads as overloaded on a HasOverload card)
+			} else if k.t.Cards[c].HasEvoke {
 				e.spc |= spcEvoked // the evoked cast (kw_evoke.go)
 			} else if k.t.Cards[c].HasDash {
 				e.mode |= modeImpended // the dashed cast (kw_dash.go: the bit reads as dashed on a HasDash card)
@@ -143,7 +145,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 			cost = s.restrShort(k, p, c, s.restrOriginOfObj(o), cost)
 		}
 		s.tapFor(k, p, &cost, 0, NoObj)
-	} else if mode&castWarp != 0 || k.gen != nil && (k.gen.anyImpending && s.bld().e.impended() || k.gen.anyEvoke && s.bld().e.evoked() || k.gen.anyDash && s.bld().e.dashed(k)) {
+	} else if mode&castWarp != 0 || k.gen != nil && (k.gen.anyImpending && s.bld().e.impended() || k.gen.anyEvoke && s.bld().e.evoked() || k.gen.anyDash && s.bld().e.dashed(k) || k.gen.anyOverload && s.bld().e.overloaded(k)) {
 		// a hand warp is one of gorge's potential plays (the "warped" cast
 		// option carries Potential: true), so its plan is the composed cost
 		// and the oracle always lowers it, like the kicked cast; so is an
@@ -586,6 +588,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if cd.HasDash && e.impended() {
 			c = cd.DashCost // the dash cost (CR 702.109a; kw_dash.go)
 		}
+		if cd.HasOverload && e.overloaded(k) {
+			c = cd.OverloadCost // the overload cost (CR 702.96a; kw_overload.go)
+		}
 		if e.mode&modeBestowed != 0 && e.bestowedEntry() {
 			c = cd.BestowCost // the bestow cost (CR 702.103a; kw_bestow.go)
 		}
@@ -808,10 +813,13 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			}
 			if cost.XRed > 0 && gorgeSurface {
 				// gorge's xAsk loop stops at pool + graveyard + convoke credit
-				// + 1 + what the window's sources make (it raises the bound for
-				// a reduction only in the named-count case): a CR 601.2f
-				// reduction past it is not offered (GORGE-FINDINGS.md "X ceiling")
-				mx = min(mx, av.total+s.filtBoundExtra(k, e.ctrl)+int(s.pl[SeatIx(e.ctrl)].graveN)+s.convokeXCredit(k)+1)
+				// + 1 + what the window's sources make, raised by the cast's
+				// composed reductions (CR 601.2f: a reduction is mana the
+				// announced X can spend). Its excess over the printed generic
+				// is XRed, and the pool's pip demand never falls below the
+				// reduction's non-excess part, so XRed is exactly the raise
+				// the ask's ceiling needs: the same largest X is offered.
+				mx = min(mx, av.total+s.filtBoundExtra(k, e.ctrl)+int(s.pl[SeatIx(e.ctrl)].graveN)+s.convokeXCredit(k)+1+int(cost.XRed))
 			}
 			if k.gen != nil && k.gen.anyLifeX {
 				mx = s.lifeXClamp(k, &cost, mx) // PayLife<X> bounds the ask by life
@@ -963,6 +971,13 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 		case bsTargets:
 			ti := int(s.bld().ti)
 			if ti >= kop.MaxTargets {
+				s.nextStage(k)
+				continue
+			}
+			if e.kind == seSpell && k.gen != nil && k.gen.anyOverload && e.overloaded(k) {
+				// overload has no targets to announce: "target" reads "each"
+				// (CR 702.96b; kw_overload.go)
+				s.bld().ti = kop.MaxTargets
 				s.nextStage(k)
 				continue
 			}

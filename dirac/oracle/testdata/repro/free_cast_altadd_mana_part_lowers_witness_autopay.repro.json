@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "... and on the autopay surface, with an empty pool, it taps two lands",
  "actions": [
   16776960,
   16776960,

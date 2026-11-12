@@ -4,9 +4,7 @@
 // their own cast matcher because a delayed SpellCast is scoped to the delay, not
 // to the face.
 //
-// Split out of trigger_match.go so tickets touching different modes stop
-// colliding on one file. Registration is at the bottom; a duplicate mode
-// panics (trigmatch.registerTrigMatcher).
+// Registration is at the bottom; a duplicate mode panics (trigmatch.registerTrigMatcher).
 
 package rules
 

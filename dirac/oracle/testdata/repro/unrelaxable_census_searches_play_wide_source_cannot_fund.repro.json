@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-spm",
+ "pool": "std-spm",
+ "why": "Doc Ock's Tentacles' equip {5} from three lands and two Supportive Parents activations, Interdimensional Web Watch untapped: Parents' cost is no once-only one, so gorge's census is unrelaxable, no relaxed proof drops the play the Web Watch's exile-cast mana cannot fund, and the prefix search pays it",
  "actions": [
   167771904,
   167771904,

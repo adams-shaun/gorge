@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 30,
  "surface": "autopay",
+ "pool": "std-woe",
+ "why": "CR 704.3, 603.10a: Cut In's new Role sends the old Wicked Role away in the pass Wicked Visitor dies, so Visitor sees the Role leave",
  "actions": [
   16776960,
   16776960,

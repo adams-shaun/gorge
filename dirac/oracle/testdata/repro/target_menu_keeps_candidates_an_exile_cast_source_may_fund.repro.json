@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-spm",
+ "pool": "std-spm",
+ "why": "Grow Extra Arms cast from exile with only {G} floating, Interdimensional Web Watch untapped: gorge's untapped-source gate reads its exile-cast mana, so the menu keeps Gallant Citizen, and the cast window taps the Web Watch for the unreduced {1} (CR 106.6, 601.2c, 601.2g)",
  "actions": [
   167771904,
   167771904,

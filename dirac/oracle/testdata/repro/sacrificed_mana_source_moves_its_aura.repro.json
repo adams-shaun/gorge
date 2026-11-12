@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-fra",
+ "pool": "std-fra",
+ "why": "CR 704.3, 704.5m: the check after a mana source's sacrifice while paying a cast takes its Aura before the cast's next choice",
  "actions": [
   167771904,
   184549120,

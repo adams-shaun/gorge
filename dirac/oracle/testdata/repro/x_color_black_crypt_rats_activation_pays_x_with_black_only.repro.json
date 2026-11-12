@@ -63,6 +63,9 @@
  "pass_elision": true,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "CR 107.3, 601.2b: Crypt Rats's activated {X} carries the same XColor$ Black, so the activation taps Swamps for the X",
+ "stall": true,
  "actions": [
   19398400,
   17432320,

@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trk",
+ "why": "Branching Timeline puts Sacred Foundry and Syndicate Liquidators onto the battlefield: the Foundry's pay-life ask suspends the dig, and Liquidators' landfall for it goes on the stack only after the whole dig is done (CR 603.6a)",
  "actions": [
   16776960,
   16776960,

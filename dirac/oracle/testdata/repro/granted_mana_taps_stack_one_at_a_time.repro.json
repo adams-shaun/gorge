@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-trk",
+ "why": "CR 603.3b: Deep Space 9 paid by Rok-Tahk's {G}{G} from Beckett Mariner and Erica Ortegas: each tap's trigger is stacked before the next activation, and both resolve before the sorcery-speed cast",
  "actions": [
   16776960,
   16776960,

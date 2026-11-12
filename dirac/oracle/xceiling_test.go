@@ -37,9 +37,13 @@ func TestXCeilingReducePaysX(t *testing.T) {
 			}
 		}
 	}
-	// gorge's xAsk stops at pool + graveyard + convoke credit + 1; a larger
-	// CR 601.2f reduction must not lift the kernel's offer past it (GORGE-FINDINGS.md
-	// "X ceiling"); 14/600 games diverged before the clamp
+	// gorge's xAsk stops at pool + graveyard + convoke credit + 1, raised by
+	// the cast's composed reductions (CR 601.2f: a reduction is mana the
+	// announced X can spend); the kernel's ask stops at the same ceiling
+	// (cast.go bsX, the clamp lifted by XRed in the same change), so every
+	// X either side offers, the other does too. 14/600 games diverged before
+	// the clamp, and again after gorge raised the bound without the kernel
+	// following
 	if bad != 0 {
 		t.Fatalf("diverged %d/600", bad)
 	}

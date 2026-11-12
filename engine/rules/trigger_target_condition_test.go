@@ -12,7 +12,7 @@ import (
 // TriggerTarget role (the damaged recipient for DamageDone/DamageDoneOnce).
 // It used to be an unmodelled group, so conditionMetCore failed it closed and
 // The Incredible Hulk's enrage rider ("if he's attacking, untap him and there
-// is an additional combat phase") never ran (task lb-trigtgtlki).
+// is an additional combat phase") never ran.
 
 // hulkEnrageSrc is The Incredible Hulk's enrage face, written inline.
 const hulkEnrageSrc = "Name:Enrage Hulk\nManaCost:2 R R G G\nTypes:Legendary Creature Gamma Berserker Hero\nPT:8/8\n" +

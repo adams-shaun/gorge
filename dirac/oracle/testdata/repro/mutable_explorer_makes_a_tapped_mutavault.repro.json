@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "Mutable Explorer enters: its trigger copies the card named Mutavault, a tapped token (CopyPermanent DefinedName$, CR 707.2)",
  "actions": [
   18415360,
   17432320,

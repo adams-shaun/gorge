@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 601.2c, 733.1: Q's Play of Make It So announces its untap mode, whose required target the opponent's three untapped lands cannot pay for, so the cast is reversed at the target ask",
  "actions": [
   184549120,
   167771904,

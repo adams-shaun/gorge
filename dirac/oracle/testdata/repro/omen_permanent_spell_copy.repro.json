@@ -94,8 +94,10 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
- "surface": "autopay",
+ "surface": "full",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "CR 720.2c, 720.4: an omen card is one card, so Flamehold Grappler's copy of an omen creature spell (Runescale Stormbrood) is an ordinary copy whose token is the front face, not a 707.10g double-faced token",
  "actions": [
   16776960,
   16776960,

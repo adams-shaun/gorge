@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-msh",
+ "why": "a Super Suit made a copy of Aerial Doombot by Shuri on the turn it entered powers up for {5}{U} less the copy's {U}, not Super Suit's printed {1}{U} (CR 702.193b, 707.2)",
  "actions": [
   16776960,
   16776960,

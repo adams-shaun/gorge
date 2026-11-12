@@ -136,6 +136,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "set standard-meta",
+ "pool": "standard-meta",
+ "why": "CR 702.180a, 702.34a: Stingcaster Mage's granted flashback is the mode-2 cast, not Wild Ride's harmonize",
  "actions": [
   16776960,
   16776960,

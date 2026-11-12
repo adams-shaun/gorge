@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "and the post-attack window with the Overlord already on the battlefield: the hand's impending cast is offered beside the empty pool",
  "actions": [
   167771904,
   184549120,

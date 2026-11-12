@@ -94,6 +94,8 @@
  "mulligans": 1,
  "pass_elision": true,
  "surface": "autopay",
+ "pool": "std-dsk",
+ "why": "Winter, Misanthropic Guide with delirium: the opponent's maximum hand size is seven minus the card types in Winter's controller's graveyard, so the opponent discards down to it at cleanup",
  "actions": [
   167771904,
   184549120,

@@ -55,6 +55,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "two untapped Sunken Citadels and Kher Keep's {1}{R} activation: gorge's census omits the chosen {C}{C} (Amount$ 2), so the witness taps the two one-mana abilities, ObjID-lowest first, as gorge does (CR 106.6, 601.2g-h, 602.2b)",
  "actions": [
   18153216,
   16908032,

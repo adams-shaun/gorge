@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "CR 707.10c, 115.3: Jace Reawakened's copy of Fleeting Reflection may not move \"up to one other target creature\" onto the creature its first target already names",
  "actions": [
   16776960,
   16776960,

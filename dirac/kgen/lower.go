@@ -222,6 +222,19 @@ type lowerCtx struct {
 	repeatCard int
 	// repeatOpp: that body repeats over the controller's opponents
 	repeatOpp bool
+	// repeatCheckSVar is the SVar an enclosing gated Repeat's
+	// RepeatCheckSVar$ names, while that body is lowered; repeatCheckAb is
+	// its ability, so a StoreSVar$ after the loop (the reset) still matches
+	// (lower_storesvar.go)
+	repeatCheckSVar string
+	repeatCheckAb   *lAbility
+	// repeatStoredGuard: the body stored the gate SVar true under the
+	// library-empty condition; repeat folds that stop into the gate
+	repeatStoredGuard bool
+	// repeatImprintBody: lowering the body of a RepeatDefined$ Imprinted
+	// loop; a Dig Imprint$ on the spell may open the set when its reads sit
+	// in the same ability (lower_digparams.go)
+	repeatImprintBody bool
 	// rollName is the ResultSVar$ of a RollDice lowered in ability rollAb:
 	// a later bare amount of that name (not a card SVar) is the roll
 	// (lower_combatstatics.go)
@@ -255,6 +268,10 @@ type lowerCtx struct {
 	// damage to a player lowers: ControlledBy Spawner>TriggeredTarget is the
 	// opponent (lower_filterwords.go)
 	spawnDmg bool
+	// spawnAtk while an ImmediateTrigger body spawned by Card.Self's Attacks
+	// trigger lowers: ControlledBy Spawner>TriggeredDefendingPlayer is the
+	// attack's defending player (lower_filterwords.go)
+	spawnAtk bool
 	// actCost while a printed activated ability's own Cost$ is lowered
 	// (RemoveAnyCounter<N/Kind/Filter>, kop.CostSubAmong)
 	actCost bool
@@ -449,6 +466,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseDashCombos()          // lower_dash.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
 	lc.lowerImpending()
+	lc.lowerOverload() // lower_overload.go
 }
 
 // lowerImpending appends Impending's end-step tick after the printed lines
@@ -889,6 +907,13 @@ var expandedKeywords = map[string]bool{
 	// Cumulative upkeep (CR 702.24a): gorge kwCumulativeUpkeep expands it into
 	// an upkeep trigger whose body is DB$ CumulativeUpkeep (lower_cumulative.go)
 	"Cumulative upkeep": true,
+	// Fading (CR 702.32a): gorge kwFading's EnterWithCounters FADE replacement
+	// and its upkeep trigger, a Sacrifice of the source when it has no fade
+	// counter chained ahead of the RemoveCounter (every op already lowers)
+	"Fading": true,
+	// Echo (CR 702.30a): gorge kwEcho's upkeep trigger, gated by Echo$ True,
+	// whose body is DB$ Echo (lower_echo.go)
+	"Echo": true,
 }
 
 // protColourLetters maps a "Protection from <q>" colour quality to its
@@ -1077,6 +1102,17 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !found {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
+		case head == "Evolve":
+			// CR 702.100a: gorge kwEvolve expands it into an ETB trigger
+			// (Evolve$ True) whose body puts a +1/+1 counter on Self,
+			// lowered from that line (readEvolveCondition)
+			found := false
+			for _, t := range lc.face.Triggers {
+				found = found || t.Params["Evolve"] == "True"
+			}
+			if !found {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
 		case head == "Firebending":
 			// CR 702.189a: gorge kwFirebending expands it into an Attacks
 			// Self trigger whose body is DB$ Mana (Produced$ R) with
@@ -1117,6 +1153,13 @@ func (lc *lowerCtx) lowerKeywords() {
 			// CopyPermanent | Cost$ <cost> ExileFromGrave<1/CARDNAME> |
 			// SorcerySpeed$, RemoveCost$, SetColor$ White, AddTypes$
 			// Zombie), lowered from that line
+			if !lc.hasKeywordLine(k) {
+				lc.refuseNode(node, "keyword %q without its ability", head)
+			}
+		case head == "Encore":
+			// CR 702.141a: gorge kwEncore expands it into one graveyard
+			// AB$ Encore (Cost$ <cost> ExileFromGrave<1/CARDNAME>,
+			// SorcerySpeed$ True), lowered from that line (lower_encore.go)
 			if !lc.hasKeywordLine(k) {
 				lc.refuseNode(node, "keyword %q without its ability", head)
 			}
@@ -1166,6 +1209,21 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !faceHasMeleeTrigger(lc.face) {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
+		case head == "Partner with":
+			// CR 702.124j: the commander-pair marker (no game characteristic)
+			// and gorge kwPartnerWith's enters trigger, lowered from that
+			// line (lower_partnerwith.go)
+			if !lc.partnerWithTrigger() {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
+		case head == "Doctor's companion":
+			// CR 702.124m: a deck-construction marker (the card may be one
+			// of two commanders beside a Doctor, gorge deck.IsPartnerPair's
+			// doctorCompanionPair). It has no battlefield meaning, gorge
+			// expands it into no ability, and the adapter's commander gate
+			// reads the raw face keyword (dirac/adapter checkCommander
+			// -> deck.IsPartnerPair on the deck's own cards), so lowering
+			// nothing is exact.
 		case expandedKeywords[head]:
 			// Lowered from the expansion's own lines.
 		case head == "Kicker":
@@ -1529,6 +1587,22 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Evoke = &mc
+		case head == "Overload":
+			// CR 702.96a: an alternative hand cost; if paid, every
+			// "target" in the spell's text reads "each" (dirac/kw_overload.go).
+			// X and hybrid pips are announced as for a printed cost; a
+			// CardManaCost, a ":" or "<" rider and any non-mana part are
+			// refused.
+			mc, err := parseManaCost(param)
+			if err != nil || param == "" || strings.ContainsAny(param, ":<") || mc.None {
+				lc.refuseNode(node, "overload cost %q", param)
+				continue
+			}
+			if lc.out.Overload != nil {
+				lc.refuseNode(node, "two Overload keywords")
+				continue
+			}
+			lc.out.Overload = &mc
 		case head == "Bestow":
 			// CR 702.103a: an alternative hand cost; the spell is an Aura
 			// with enchant creature (gorge rules/bestow.go bestowCost and
@@ -1615,6 +1689,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.refuseNode(node, "%s", refuseOpeningGated(param)) // (lower_gemstone.go)
 		case strings.HasPrefix(k, "A deck can have any number of cards named"):
 			// Deck construction only.
+		case head == "Partner" && deckOnlyPartner(param):
+			// CR 702.124a: deck construction only (lower_partner.go)
 		case k == "Daybound" || k == "Nightbound":
 			// CR 702.145 (gorge rules/daynight.go, cr-daybound-nightbound
 			// and -transform): the day/night designation and the faces it
@@ -1647,6 +1723,17 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Miracle = &mc
+		case head == "Compleated":
+			// CR 702.150, as gorge implements it (the kw:Compleated
+			// approximation): the life paid for the printed Phyrexian pips
+			// lowers the entry loyalty (gorge events entry_counters'
+			// CompleatedLifePaid, cast_commit's FlagCompleated CastInfo).
+			// The kernel pays the pips' life in the payment window and
+			// places the entry's CtrLoyalty from the printed Loyalty alone
+			// (zones.go), so the life-paid amount would not reach the
+			// entry: a life-pip cast would enter Jace at full loyalty
+			// where gorge enters it two loyalty lower per pip.
+			lc.refuseNode(node, "keyword %q: the pips' life does not reach the entry loyalty", head)
 		default:
 			lc.refuseNode(node, "keyword %q", head)
 		}
@@ -2067,13 +2154,16 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				return c, refuse("cost token %q", t)
 			}
 			if parts[1] == "NICKNAME" {
-				// Forge (CostPart.payCostFromSource) and XMage
-				// (SacrificeSourceCost) read Sac<1/NICKNAME> as the source
-				// itself, but gorge at the pin never offers the activation
-				// (Syr Ginger: 0 of 1012 eligible priority windows, 182 of
-				// 182 with CARDNAME; gorge finding). Refused
-				// until gorge offers it (copy gorge, never guess).
-				return c, refuse("Sac<1/NICKNAME>: gorge never offers the activation (gorge finding)")
+				// gorge pay.SacrificeMatchSpec (engine/rules/quiet_facts.go
+				// sacrificeMatchSpec) reads Forge's NICKNAME spec as CARDNAME
+				// -- the source itself, which is also Forge
+				// (CostPart.payCostFromSource) and XMage
+				// (SacrificeSourceCost). Measured at this pin: gorge offers
+				// both activations (Syr Ginger, the Meal Ender and Adric,
+				// Mathematical Genius, engine/rules nickname_sac_test.go), so
+				// the same reading as CARDNAME.
+				c.SacSelf = true
+				continue
 			}
 			if parts[1] == "CARDNAME" {
 				c.SacSelf = true
@@ -2531,6 +2621,10 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 	if err0 != nil {
 		return nil, err0
 	}
+	expr, err0 = lc.spawnerDefendingCtrl(expr) // lower_filterwords.go
+	if err0 != nil {
+		return nil, err0
+	}
 	expr = expandBasicLandType(expr)
 	if err := lc.referentGate(expr); err != nil {
 		return nil, err
@@ -2647,7 +2741,7 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 			// ZoneStack)
 			return nil, refuse("filter %q: a Spell head outside a ReduceCost ValidTarget$", expr)
 		}
-		if (c.Ctrl == whoDefending || c.Owner == whoDefending) && !lc.atkPresent && (!lc.trigBody || lc.ab == nil || lc.ab.Trigger == nil || lc.ab.Trigger.Event != "Attacks") {
+		if (c.Ctrl == whoDefending || c.Owner == whoDefending) && !lc.atkPresent && !lc.spawnAtk && (!lc.trigBody || lc.ab == nil || lc.ab.Trigger == nil || lc.ab.Trigger.Event != "Attacks") {
 			return nil, refuse("ControlledBy TriggeredDefendingPlayer outside an Attacks trigger's battlefield filter")
 		}
 		if c.CmpX != "" && (c.CmpV == nil || c.CmpV.Kind != vChosenNumber) {

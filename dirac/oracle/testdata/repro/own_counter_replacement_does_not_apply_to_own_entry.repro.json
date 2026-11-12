@@ -94,8 +94,10 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
- "surface": "autopay",
+ "surface": "full",
  "kernel": "synth std-dft",
+ "pool": "std-dft",
+ "why": "CR 614.12: Caradora's \"a creature or Vehicle you control\" plus-one does not apply to the +1/+1 counter Thunderous Velocipede grants it as it enters; a general subset excludes the entrant itself",
  "actions": [
   16776960,
   16776960,

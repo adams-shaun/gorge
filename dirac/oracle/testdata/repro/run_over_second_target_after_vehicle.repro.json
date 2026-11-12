@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-dft",
+ "why": "Run Over aimed first at a crewed Vehicle costs {G}: its second target, an opponent's creature, is still asked",
  "actions": [
   16776960,
   16776960,

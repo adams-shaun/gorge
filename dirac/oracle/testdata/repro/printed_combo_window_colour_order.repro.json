@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "CR 601.2g: a printed Combo's mana window answers the ability's printed order, so Thornwood Falls makes {G} (before its {U}) and Frontier Bivouac stays untapped",
  "actions": [
   16776960,
   16776960,

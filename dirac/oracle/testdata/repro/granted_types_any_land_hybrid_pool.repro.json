@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-mkm",
+ "why": "Leyline of the Guildpact: Fuss after three {W} floated by hand pays its generic from the same lands in both engines",
  "actions": [
   909639424,
   16776960,

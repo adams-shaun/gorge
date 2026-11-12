@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trk",
+ "why": "Eject the Warp Core with a Treasure the only artifact and the only black source: the payment sacrifices it for {B} before the kicker's cost is paid, so the kicked cast is not offered (CR 601.2g-h)",
  "actions": [
   16776960,
   16776960,

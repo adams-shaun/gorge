@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 106.12a, 605.4a: Badgermole Cub's static TapsForMana trigger adds {G} to an animated Forest's tap, so the {2} unless cost is payable and gorge must offer Pay",
  "actions": [
   16776960,
   16776960,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 702.26c, 613.1: an assimilated Lwaxana Troi and a Station-charged Borg Cube phase in during the untap step, and the next decision projects their continuous artifact/creature types",
  "actions": [
   16776960,
   16776960,

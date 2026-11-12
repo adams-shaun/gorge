@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 614.12, 707.9: Dominion Saboteur entering as a copy of Nyota Uhura is asked her \"choose a number\" with the Saboteur still on the stack, after the copy election",
  "actions": [
   167771904,
   184549120,

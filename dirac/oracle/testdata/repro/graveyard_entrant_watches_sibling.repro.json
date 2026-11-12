@@ -94,8 +94,10 @@
  "mulligans": 1,
  "pass_elision": false,
  "max_turns": 100,
- "surface": "full",
+ "surface": "autopay",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "CR 603.10a: a card that entered in the sweep does not watch a sibling leave it",
  "actions": [
   184549120,
   167771904,

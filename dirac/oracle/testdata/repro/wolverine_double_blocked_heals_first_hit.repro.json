@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Wolverine, Fierce Fighter double-blocked: each blocker's damage event heals the one before it, so only the last blocker's damage stays marked on him, and every event is still dealt (CR 614.1a, 510.2)",
  "actions": [
   19398400,
   17432320,

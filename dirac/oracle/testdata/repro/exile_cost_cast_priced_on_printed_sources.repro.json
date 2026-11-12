@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-dsk",
+ "why": "Abhorrent Oculus with six cards to exile and its blue only from Enduring Vitality's grant to Fear of Impostors: the planner prices the shape on the printed sources, so the cast is not offered",
  "actions": [
   926482176,
   16776960,

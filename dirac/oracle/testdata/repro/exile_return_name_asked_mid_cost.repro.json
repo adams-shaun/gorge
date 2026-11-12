@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 614.12, 610.3: In the Pale Moonlight's sacrifice of Malfunctioning Holodeck returns Kai Winn, who is asked her name in exile before the two Romulan tokens are made",
  "actions": [
   16776960,
   16776960,

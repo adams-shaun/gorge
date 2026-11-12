@@ -10,9 +10,10 @@ import (
 // pair families qualify, all from the same CR 903.13 family of abilities
 // (the fourth is CR 702.124k):
 //
-//   - plain Partner (CR 903.13a): each card carries a Partner-family ability
-//     and both are plain Partners — the "Friends forever" alias spells
-//     K:Partner:... and shares the head;
+//   - partner and partner—[text] (CR 702.124h/i): both cards carry partner
+//     (K:Partner), or both carry the same partner—[text] ability
+//     (K:Partner:<text>: Character select, Father & Son, Friends forever,
+//     Survivors);
 //   - "Partner with" (CR 903.13c): each card names the other by printed name;
 //   - Doctor's companion (the Doctor Who cycle): one card carries
 //     K:Doctor's companion and the other is a Doctor (the creature subtype)
@@ -22,8 +23,9 @@ import (
 //   - Choose a Background (CR 702.124k): one card carries K:Choose a
 //     Background and the other is a legendary Background enchantment.
 //
-// A plain Partner paired with a Partner-with card is not a legal pair (each
-// half of a named pair names its own partner), and neither is a Doctor's
+// Different partner abilities never combine (CR 702.124f): a plain Partner
+// paired with a Partner-with card or a partner—[text] card is not a legal
+// pair, nor are two different partner—[text] abilities, nor a Doctor's
 // companion paired with anything but a Doctor, nor a Choose-a-Background card
 // paired with anything but a legendary Background.
 //
@@ -44,7 +46,7 @@ func IsPartnerPair(a, b *cards.Card) bool {
 	if ha == "" || hb == "" {
 		return false
 	}
-	if ha == "Partner" && hb == "Partner" {
+	if samePartnerAbility(a, b) {
 		return true
 	}
 	return partnerWithNames(a, b.Faces[0].Name) && partnerWithNames(b, a.Faces[0].Name)
@@ -166,6 +168,40 @@ func partnerHead(c *cards.Card) string {
 		}
 	}
 	return ""
+}
+
+// samePartnerAbility reports whether a and b share one partner or
+// partner—[text] ability (CR 702.124h/i): partner pairs only with partner,
+// and partner—Character select only with partner—Character select (CR
+// 702.124f). A card with more than one partner ability may use any one of them
+// (CR 702.124g). Front faces only, like every family here.
+func samePartnerAbility(a, b *cards.Card) bool {
+	for _, x := range partnerTexts(a) {
+		for _, y := range partnerTexts(b) {
+			if strings.EqualFold(x, y) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// partnerTexts lists the partner abilities c's front face carries by their
+// text: "" for partner (K:Partner), the text for a partner—[text] ability
+// (K:Partner:Friends forever). "Partner with" is another head and not listed.
+func partnerTexts(c *cards.Card) []string {
+	if c == nil || len(c.Faces) == 0 {
+		return nil
+	}
+	var out []string
+	for _, k := range c.Faces[0].Keywords {
+		if cards.KeywordHead(k) != "Partner" {
+			continue
+		}
+		_, text, _ := strings.Cut(k, ":")
+		out = append(out, strings.TrimSpace(text))
+	}
+	return out
 }
 
 // partnerWithNames reports whether c carries a "Partner with" whose named

@@ -94,6 +94,8 @@
  "mulligans": 1,
  "pass_elision": false,
  "surface": "full",
+ "pool": "std-msh",
+ "why": "Hulk, Gamma Goliath's \"power-up abilities of other creatures you control cost {3} less\" lowers Brave Brawler's {4}{W} Power-up to {1}{W} (CR 601.2f, 602.2b, 702.193a)",
  "actions": [
   167771904,
   167771904,

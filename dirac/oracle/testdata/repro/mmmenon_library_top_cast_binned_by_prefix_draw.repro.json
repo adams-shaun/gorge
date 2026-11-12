@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "CR 400.7: Mechan Navigator's tap draws the library-top Cryogen Relic and discards it, so the cast the granted blue would pay no longer exists",
  "actions": [
   167771904,
   167771904,

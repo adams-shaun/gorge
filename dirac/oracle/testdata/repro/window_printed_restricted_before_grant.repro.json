@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "CR 106.6, 601.2g: a Tiered cast's window asks Cargo Ship's abilities with its printed artifact-only {C} ahead of A Realm Reborn's grant, so the {C} floats unspent",
  "actions": [
   167771904,
   167771904,

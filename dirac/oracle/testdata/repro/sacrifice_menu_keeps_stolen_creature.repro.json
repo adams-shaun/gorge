@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-mkm",
+ "pool": "std-mkm",
+ "why": "",
  "actions": [
   167771904,
   167771904,

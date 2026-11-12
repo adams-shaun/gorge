@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trc",
+ "why": "Lt. Arex's \"up to three\" land pick with one land in hand: the pick ends after it, no lone Done posed beside the kernel's priority",
  "actions": [
   16776960,
   16776960,

@@ -133,8 +133,7 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 			announce: strings.TrimSpace(sv.ParamStr(cards.PKAnnounce)), src: sv.Source,
 			manaRestriction: sv.Params["ManaRestriction"]})
 	}
-	// The Effect-delivered AlternativeCost statics (task
-	// param:api:Effect.ForgetOnCast, Marshland Bloodcaster): registry entries
+	// The Effect-delivered AlternativeCost statics (Marshland Bloodcaster): registry entries
 	// effEffect registered, read through the SAME reader logic as the printed
 	// route above over the same e.active() source collectCostStatics' sibling
 	// walk feeds the Raise/Reduce/Set modes, so the two delivery routes
