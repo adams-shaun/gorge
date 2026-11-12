@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -12,7 +13,7 @@ import (
 // card in a graveyard and lets its controller cast it this turn. The
 // artifact lands (Seat of the Synod, Vault of Whispers) are legal targets
 // that must get no permission (a land is never cast), where the artifact
-// spells do. Against Goblin attackers, Shock and Hill Giant as blockers.
+// spells do. Against Raging Goblin attackers, Shock as removal.
 // The fixture pool is dirac/cardset/pools/fixtures/silasgrave.
 var ksilasgraveDecks = [2][]cardset.Entry{
 	{
@@ -38,7 +39,11 @@ func TestSilasGraveLockstep(t *testing.T) {
 // the check compares exist: Silas's grant carries MayPlayNonLand over
 // target slot 0, and Seat of the Synod is a land in the pool.
 func TestSilasGraveLockstepMutation(t *testing.T) {
+	_ = corpusDirOrSkip(t)
 	set, err := cardset.RawByName("silasgrave")
+	if errors.Is(err, cardset.ErrNoCorpus) {
+		t.Skip("no kernel-synth corpus table: " + err.Error())
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
