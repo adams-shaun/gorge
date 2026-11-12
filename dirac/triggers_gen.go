@@ -39,6 +39,36 @@ func (s *State) eachTrigger(k *prep, ev kop.TrigEvent, f func(l trigListener, a 
 	s.eachCommandTrigger(k, ev, f)
 }
 
+// anyCommandTrigger reports whether a commander in a command zone has a
+// printed trigger for ev. The attack walk's early return uses it: a command
+// zone trigger has no battlefield subscription, so the subscription mask alone
+// cannot decide whether the event has a listener.
+func (s *State) anyCommandTrigger(k *prep, ev kop.TrigEvent) bool {
+	if s.cfg&cfgCommander == 0 {
+		return false
+	}
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
+		for j := 0; j < 2; j++ {
+			o := s.cmdObj(p, j)
+			if o == NoObj || s.objs[o].zone != kop.ZoneCommand {
+				continue
+			}
+			cd := &k.t.Cards[s.objs[o].card]
+			for i := range cd.Abilities {
+				a := &cd.Abilities[i]
+				if a.Kind == kop.AbTriggered && a.AFlags&kop.AfLatent == 0 &&
+					a.Trig.Event == ev && a.Trig.Zone == kop.ZoneCommand {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 // eachCommandTrigger calls f for each printed command-zone triggered ability
 // of a commander in its command zone. A commander is not a permanent and has
 // no subscribed battlefield slot (CR 903.3), so the ordinary battlefield walks

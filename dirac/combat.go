@@ -307,7 +307,7 @@ func (s *State) fireAttacksGen(k *prep) {
 		m = s.grantTrigHosts(k, m)
 	}
 	emb := k.gen.embCombatEv&(1<<kop.TrigAttacks|1<<kop.TrigAttackersDeclared) != 0 && s.anyEmb()
-	if !m.any() && len(k.gen.graveTrig) == 0 && !emb {
+	if !m.any() && len(k.gen.graveTrig) == 0 && !emb && !s.anyCommandTrigger(k, kop.TrigAttackersDeclared) {
 		return
 	}
 	var atk [MaxPerm]Slot
