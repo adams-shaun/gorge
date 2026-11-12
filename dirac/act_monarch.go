@@ -26,12 +26,20 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     triggered) the monarch when it resolves (gorge "__monarch_steal",
 //     MonarchTo). Both are abDelayed entries with obj NoObj and trigAmt
 //     monDrawAmt / monStealAmt.
-//   - 725.4 (more than two seats): not modelled; a departed monarch keeps the
-//     designation.
+//   - 725.4 (more than two seats): when the monarch leaves the game, the
+//     active player becomes the monarch, or the next player in turn order
+//     still in the game when the active player is the one leaving (gorge
+//     monarchHandoffOnDeparture, designationHeir); the move is the ordinary
+//     one, so TrigBecomeMonarch fires. It runs at each loss site as the seat
+//     is marked lost (monarchLeft), in gorge's loss order.
 
 // DebugNoMonarchSteal (TestMonarchLockstepMutation): combat damage to the
 // monarch queues no steal trigger.
 var DebugNoMonarchSteal bool
+
+// DebugNoMonarchHandoff (TestFourSeatMonarchHandoffLockstep): a departed
+// monarch keeps the designation (CR 725.4 dropped).
+var DebugNoMonarchHandoff bool
 
 // MonarchStats counts the mechanic's events; oracle tests only.
 type MonarchStats struct {
@@ -43,6 +51,7 @@ type MonarchStats struct {
 	Fires     int // TrigBecomeMonarch triggers queued
 	ExYes     int // ExMonarch read its Sub[0] arm
 	ExNo      int // ExMonarch read its Sub[1] arm
+	Handoffs  int // the monarch left the game and the designation passed on (CR 725.4)
 }
 
 // DebugMonarchStats is the test hook; nil in normal play.
@@ -109,6 +118,41 @@ func (s *State) becomeMonarchOp(k *prep, in *kop.Instr) {
 	if p := s.playerRef(k, in.Obj); p != 255 {
 		s.becomeMonarch(k, p)
 	}
+}
+
+// monarchLeft runs as seat p is marked lost, at every loss site (sba's life
+// and empty-library loops, poisonSBA, cmdDamageSBA, lose). Those are gorge's
+// loss order (checkLoseConditions: life, then an empty library, then poison,
+// then commander damage, each in seat order), and gorge's losePlayer hands the
+// designation off before the batch's next loss is made, so a seat that loses
+// later in the same check is still in the game when the heir is chosen. At two
+// seats a loss ends the game and the call folds away.
+func (s *State) monarchLeft(k *prep, p uint8) {
+	if MaxSeats > 2 && k.gen != nil && k.gen.anyMonarch && s.g.mon&15 == p+1 {
+		s.monarchHandoff(k, p)
+	}
+}
+
+// monarchHandoff is CR 725.4 for the departed monarch p: the active player
+// becomes the monarch, else the next player in turn order still in the game
+// (gorge designationHeir); with nobody else left the designation stays.
+//
+//go:noinline
+func (s *State) monarchHandoff(k *prep, p uint8) {
+	if DebugNoMonarchHandoff {
+		return
+	}
+	h := s.active
+	if h == p || s.out(h) {
+		h = s.nextAlive(p)
+	}
+	if h == p || s.out(h) {
+		return
+	}
+	if st := DebugMonarchStats; st != nil {
+		st.Handoffs++
+	}
+	s.becomeMonarch(k, h)
 }
 
 // monarchTurn is the TurnChange fold's snapshot: the monarch as this turn
