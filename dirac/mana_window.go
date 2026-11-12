@@ -2840,18 +2840,18 @@ func (s *State) manaStep(k *prep) bool {
 			// refuses a convoke cast (payment_plan.go "shape:contribution"),
 			// so the payment runs through the manual CR 601.2g window: the
 			// first untapped source, repeat until the pool pays.
-			occ := s.occ
-			s.occ = s.occ.andNot(s.convokeHidden())
+			hidden := s.convokeHidden()
+			s.occ = s.occ.andNot(hidden)
 			raw := xFolded(cost, int(e.x))
 			cost = s.convokeApplyPicks(k, raw)
 			if s.bld().bfl&bflMsDone == 0 && s.paymentStranded(k, e, &cost) {
-				s.occ = occ
+				s.unhide(hidden)
 				s.releaseCostTaps(k, &saved)
 				s.reverseCast(k)
 				return true
 			}
 			s.windowTapUseful(k, e.ctrl, &cost, &raw, true, anyColor, s.bld().pipN == 0, false)
-			s.occ = occ
+			s.unhide(hidden)
 		} else if wbCast && cost.X == 0 {
 			s.waterbendCastWindow(k, e, &cost, &wbFull, anyColor) // act_waterbend.go
 		} else if planCut {
