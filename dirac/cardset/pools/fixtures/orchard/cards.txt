@@ -1,0 +1,21 @@
+# the opponents'-production reflected mana (Exotic Orchard, Fellwar Stone,
+# Quirion Explorer, Sylvok Explorer: "{T}: Add one mana of any color that a
+# land an opponent controls could produce"; dirac/oracle/orchard_test.go).
+# The decks carry few basics of their own and lean on the reflected sources
+# for their colours; the opponents' lands hold Island, Forest, Mountain and
+# Command Tower so the read moves across the table and mid-game.
+Exotic Orchard
+Fellwar Stone
+Quirion Explorer
+Sylvok Explorer
+Command Tower
+Isamaru, Hound of Konda
+Grizzly Bears
+Savannah Lions
+Shock
+Lightning Bolt
+Plains
+Island
+Swamp
+Mountain
+Forest

@@ -450,15 +450,21 @@ type lTarget struct {
 	Spell    bool // a spell on the stack
 	StackAb  bool // with Spell: an activated or triggered ability on the stack too (TgtStackObj)
 	AbOnly   bool // with StackAb: abilities only, no spell (TgtStackAb)
+	ActOnly  bool // with AbOnly: activated abilities only (TgfActOnly)
 	TrigOnly bool // with StackAb: triggered abilities only beside the spells (TgtStackObjTrig)
 	// VTgt: with Spell, TargetValidTargeting$: a spell whose own object targets
 	// include a battlefield object matching it (TgtSpellTgting)
 	VTgt *lFilter
+	// VSpellF: with VTgt or VYou, the spell side's ValidTgts$ filter (nil = any
+	// spell); VYou: the targeting clause is "You" (a target of the spell is
+	// the chooser), VTgt is nil
+	VSpellF *lFilter
+	VYou    bool
 	// CopyAb: with AbOnly, an ability the chooser controls whose source's types
 	// match F: 1 activated or triggered (TgtCopyAb), 2 triggered only
 	// (TgtCopyTrig)
 	CopyAb uint8
-	// SingleTgt: with StackAb, only a spell or ability whose targets are exactly one distinct target (TgfSingleTgt)
+	// SingleTgt: with a spell or StackAb slot, only a spell or ability whose targets are exactly one distinct target (TgfSingleTgt)
 	SingleTgt bool
 	// PermOrSpell: with Origin$ Battlefield,Stack, a permanent matching F or
 	// any spell (TgtPermOrSpell)
@@ -796,6 +802,10 @@ type lMana struct {
 	NonSpell   bool     // ... or on any payment that is not a spell (CantCastNonArtifactSpells)
 	Special    string
 	SpecialF   *lFilter
+	// Produce: the reflected read is what the matching permanents' mana
+	// abilities could PRODUCE, not their colours (ReflectProperty$ Produce,
+	// every Valid$ alternative OppCtrl: Exotic Orchard, Fellwar Stone).
+	Produce    bool
 	Deferred   bool     // a TriggersWhenSpent$ source gorge's planner defers (kop.Ability.ManaDeferred; lower_deferredmana.go)
 	Split      *lSplit  // a Condition-split production's arm (kop.Ability.SplitGate; lower_condsplit.go)
 	HasteValid *lFilter // AddsKeywords$ Haste: a spell matching it, paid with this mana, gains haste until end of turn (kop.Ability.ManaHasteValid)
@@ -950,19 +960,20 @@ type lCard struct {
 	MorphFamily    uint8       // kop.Morph*: which face-down keyword the cost belongs to
 	MorphReduce    lValue      // the turn-up cost's printed generic reduction (lower_morphreduce.go)
 	Flashback      *manaCost
-	RemPersist     bool      // the enters/leaves remembered pair, or a Saga's chapter pair (lower_rempersist.go)
-	RemSeed        uint32    // RemPersist: the abilities that start with the kept set (CardDef.RemSeed)
-	RemKeep        uint32    // RemPersist: the abilities whose finished set is kept (CardDef.RemKeep)
-	ExwWord        bool      // the card's text names ExiledWithSource: gorge records the reverse ExiledWith scalar for what it exiles (CardDef.ExiledWithRev)
-	ExiledWith     bool      // a resolution reads the exiled-with source link: the card records what it exiles (CardDef.ExiledWith)
-	CombatHitRec   bool      // a filter reads wasDealtCombatDamageThisTurnBySource against the card itself: its objects' combat hits on players are recorded (CardDef.CombatHitRec)
-	SpendRead      bool      // an SVar body reads Count$CastTotalManaSpent: gorge's planner declines the cast
-	FbCost         *lCost    // the flashback cost's non-mana part (Sac<N/Spec> or tapXType<N/Spec>)
-	Madness        *manaCost // K:Madness:<cost> (CR 702.35a): the exile-cast cost
-	Miracle        *manaCost // K:Miracle:<cost> (CR 702.94a): the hand-cast cost of the revealed first draw
-	Warp           *manaCost // K:Warp:<cost> (CR 702.185a): the hand's alternate cost and the end-step exile marker
-	NoAbilities    bool      // the printed face has no ability (effects.FaceHasNoAbilities): CardDef.NoAbilities, the NoAbilities filter word's card read
-	Impending      *manaCost // K:Impending:<N>:<cost> (CR 702.176a): the hand's alternate cost; ImpendingN time counters
+	RemPersist     bool          // the enters/leaves remembered pair, or a Saga's chapter pair (lower_rempersist.go)
+	RemSeed        uint32        // RemPersist: the abilities that start with the kept set (CardDef.RemSeed)
+	RemKeep        uint32        // RemPersist: the abilities whose finished set is kept (CardDef.RemKeep)
+	ExwWord        bool          // the card's text names ExiledWithSource: gorge records the reverse ExiledWith scalar for what it exiles (CardDef.ExiledWithRev)
+	ExiledWith     bool          // a resolution reads the exiled-with source link: the card records what it exiles (CardDef.ExiledWith)
+	CombatHitRec   bool          // a filter reads wasDealtCombatDamageThisTurnBySource against the card itself: its objects' combat hits on players are recorded (CardDef.CombatHitRec)
+	SpendRead      bool          // an SVar body reads Count$CastTotalManaSpent: gorge's planner declines the cast
+	ProduceCol     kop.ColorMask // the face's printed mana abilities' produced colours ({C} dropped; CardDef.ProduceCol; a Produce-mode reflected ability's read)
+	FbCost         *lCost        // the flashback cost's non-mana part (Sac<N/Spec> or tapXType<N/Spec>)
+	Madness        *manaCost     // K:Madness:<cost> (CR 702.35a): the exile-cast cost
+	Miracle        *manaCost     // K:Miracle:<cost> (CR 702.94a): the hand-cast cost of the revealed first draw
+	Warp           *manaCost     // K:Warp:<cost> (CR 702.185a): the hand's alternate cost and the end-step exile marker
+	NoAbilities    bool          // the printed face has no ability (effects.FaceHasNoAbilities): CardDef.NoAbilities, the NoAbilities filter word's card read
+	Impending      *manaCost     // K:Impending:<N>:<cost> (CR 702.176a): the hand's alternate cost; ImpendingN time counters
 	ImpendingN     int
 	Plot           *manaCost // K:Plot:<cost> (CR 702.170a): the sorcery-speed special action's cost
 	Paradigm       bool      // K:Paradigm (SOS): resolved -> exile, a free cast from exile each first main phase
@@ -989,6 +1000,7 @@ type lCard struct {
 	SelfFlash      bool      // a CastWithFlash EffectZone$ All self grant (Illusion Spinners; CardDef.SelfFlash)
 	Changeling     bool      // K:Changeling: every creature type (CR 702.73a), in every zone
 	Offspring      *manaCost // K:Offspring:<cost> (CR 702.175): the kernel's kicked cast and Kicker cost, CardDef.Offspring
+	Buyback        *manaCost // K:Buyback:<cost> (CR 702.27a): the kernel's kicked cast and Kicker cost, CardDef.Buyback; a Sac<1/..> cost is zero mana plus KickerCost
 	Casualty       int       // printed K:Casualty:<N> (CR 702.153a, fixed N >= 1), CardDef.Casualty
 	Bargain        bool      // printed K:Bargain (CR 702.166), CardDef.Bargain
 	Storm          bool      // printed K:Storm (CR 702.40a), CardDef.Storm: the kernel's own native cast trigger (dirac/kw_storm.go)

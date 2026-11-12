@@ -23,11 +23,17 @@ package dirac
 // offspringOffer: card c has Offspring and its "(offspring)" cast is
 // offered beside the plain one (the kicked cast's offer, legal.go).
 func offspringOffer(k *prep, c CardID) bool {
-	return k.t.Cards[c].Offspring
+	return k.t.Cards[c].Offspring || k.t.Cards[c].Buyback
 }
 
 // FeatOffspringCast reports that object o's kicked cast (AkCast mode bit 0)
 // is gorge's "(offspring)" cast: its card has Offspring.
 func (s *State) FeatOffspringCast(o Obj) bool {
 	return s.k().t.Cards[s.objs[o].card].Offspring
+}
+
+// FeatBuybackCast reports that object o's kicked cast is gorge's
+// "(buyback)" cast: its card has Buyback (kw_buyback.go).
+func (s *State) FeatBuybackCast(o Obj) bool {
+	return s.k().t.Cards[s.objs[o].card].Buyback
 }

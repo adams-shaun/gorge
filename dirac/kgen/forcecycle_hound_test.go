@@ -33,11 +33,11 @@ func TestForceCycleConditionAltCost(t *testing.T) {
 		"Force of Negation": "",
 		"Force of Vigor":    "",
 		"Force of Despair":  "",
-		// the cost and its condition lower; these three are refused by
+		// the cost and its condition lower; these two are refused by
 		// their own spell bodies or the card the kernel offers no cast
 		// for, not by the alternative
 		"Force of Rage":   `SP$ Token: Token AtEOT "YourSacrificeUpkeep"`,
-		"Misdirection":    `ChangeTargets TargetType "Spell.singleTarget"`,
+		"Misdirection":    "",
 		"Force of Virtue": "alternative cost with an exile-from-hand part on a card the kernel offers no alternative cast for",
 		"Mine Collapse":   "",
 		"Commandeer":      `exile cost "ExileFromHand<2/Card.Blue+Other>"`,
@@ -64,7 +64,8 @@ func TestForceCycleConditionAltCost(t *testing.T) {
 			continue
 		}
 		// The turn condition rides the alternative-cost static: NotPlayerTurn
-		// cYourTurn Neg (Mine Collapse's PlayerTurn not negated).
+		// cYourTurn Neg (Mine Collapse's PlayerTurn not negated; Misdirection
+		// has no condition at all).
 		var alt *lStatic
 		for i := range c.Statics {
 			if c.Statics[i].Kind == "AlternativeCost" {
@@ -73,6 +74,12 @@ func TestForceCycleConditionAltCost(t *testing.T) {
 		}
 		if alt == nil {
 			t.Fatalf("%s: no lowered AlternativeCost static", c.Name)
+		}
+		if c.Name == "Misdirection" {
+			if alt.Cond.Kind != cNone {
+				t.Errorf("Misdirection AlternativeCost Cond = %+v, want none", alt.Cond)
+			}
+			continue
 		}
 		wantNeg := c.Name != "Mine Collapse"
 		if alt.Cond.Kind != cYourTurn || alt.Cond.Neg != wantNeg {

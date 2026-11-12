@@ -479,6 +479,7 @@ ExtPhases	ExtOp	110
 ExtPlotGrant	ExtOp	31
 ExtPreventColor	ExtOp	1
 ExtPreventDamageScope	ExtOp	246
+ExtPreventNext	ExtOp	305
 ExtPutCounterExisting	ExtOp	253
 ExtRecruit	ExtOp	94
 ExtRememberAll	ExtOp	306
@@ -639,6 +640,7 @@ MorphDisguise	uint8	3
 MorphMegamorph	uint8	2
 MorphMorph	uint8	1
 MorphNone	uint8	0
+MustBeBlockedLure	untyped int	1
 MvAlsoSelf	untyped int	1024
 MvAttacking	untyped int	512
 MvEntryRiders	untyped int	4096
@@ -1199,6 +1201,7 @@ StatFlipCoinMod	StaticKind	226
 StatGoad	StaticKind	249
 StatHexproofOwnColors	StaticKind	19
 StatIncreaseCost	StaticKind	9
+StatLure	StaticKind	228
 StatMaxBlockers	StaticKind	241
 StatMayPlayFrom	StaticKind	13
 StatMustAttack	StaticKind	7
@@ -1307,6 +1310,7 @@ TfOptional	TrigFlags	1
 TfSecondDraw	TrigFlags	32
 TfSelf	TrigFlags	2
 TfToPlayer	TrigFlags	8
+TgfActOnly	TargetFlags	32768
 TgfAtResolution	TargetFlags	32
 TgfAttachedToT0	TargetFlags	16
 TgfBoundsV	TargetFlags	512
@@ -1318,6 +1322,7 @@ TgfDistinctNames	TargetFlags	2048
 TgfGiftRange	TargetFlags	128
 TgfKickedRange	TargetFlags	8
 TgfMaxTotalMV	TargetFlags	4096
+TgfOppOnly	TargetFlags	16384
 TgfSameController	TargetFlags	2
 TgfSharedCrType	TargetFlags	1024
 TgfSingleTgt	TargetFlags	8192
@@ -1454,6 +1459,7 @@ W7SharesCrTrigObj	int16	21
 W7SharesNameLegend	int16	10
 W7WithDisguise	int16	22
 W7WithFlashback	int16	26
+W7WithInfect	int16	28
 W7WithWarp	int16	11
 WhoseAny	Whose	0
 WhoseEnchCtrl	Whose	3

@@ -211,18 +211,6 @@
 //     ones; a lone (creature, kind) unit is taken unasked, and the counters
 //     leave at payment. A counter cost on the source itself is never asked
 //     in gorge or here.
-//   - A Room trigger printed on the door that is not live resolves against
-//     the live face's SVar table in gorge: printedFaceTrigger
-//     (rules/trigger_inactive_face.go) scans the other face only when
-//     inactiveFaceLayout holds, which is BackFaceIsBattlefieldOnly
-//     (cards/layout.go), true only for DoubleFaced/Modal, not Split
-//     (Rooms). Roaring Furnace's door-0 unlock trigger with Steaming Sauna
-//     live leaves X:Count$CardsInYourHand unresolved and deals 0 (the
-//     kernel deals the hand count), and Unholy Annex's end-step trigger
-//     with Ritual Chamber live loses its DBBranch, so gorge drains 0 where
-//     the kernel takes the Demon branch (drain 2/2) or the "otherwise"
-//     branch (lose 2). The kernel is rules-correct; the rooms lockstep maps
-//     the 7 seeds whose first divergence is this bug.
 //   - Ward and granted prowess are kernel-native triggers (ability index
 //     abWard / abProwess); printed prowess is the card's own SpellCast
 //     trigger, as gorge expands it.

@@ -225,8 +225,13 @@ import (
 // ExileFromHand<1/Spec> alternative beside them: Cave-In, Pyrokinesis,
 // Snapback, Unmask, Vine Dryad, Force of Negation, Force of Vigor, Force of
 // Despair, Monstrous Hound, Mogg Toady, Goblin Goon; ALL build-level 22381 -> 22392).
+// +192 (the merge with land: this branch's +11, of which land's Misdirection
+// bare-exile lowering already built Cave-In, Pyrokinesis, Snapback, Unmask and
+// Vine Dryad; the six new ones are Force of Negation, Force of Vigor, Force of
+// Despair, Monstrous Hound, Mogg Toady and Goblin Goon; merged ALL build-level
+// 22392 -> 22584).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22392, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22584, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

@@ -36,11 +36,11 @@ func altSacCost(c *kop.Cost) bool {
 	return c.Flags == kop.CostSac && c.N > 0 && c.Mana == (kop.ManaCost{})
 }
 
-// altHandExileCost: the alternative cost is exiling N hand cards matching
-// its filter and nothing else (Force of Will's PayLife<1> and
-// ExileFromHand<1/Card.Blue+Other>, CR 118.9: the life and the exile share
-// Cost.N; the Force cycle's bare ExileFromHand<1/Card.Blue+Other> the same
-// pick with no life part; kgen altPayLifeExileHand / altExileHandOnly).
+// altHandExileCost: the alternative cost is exiling N hand cards matching its
+// filter, and paying N life beside it or not, nothing else (Force of Will's
+// PayLife<1> and ExileFromHand<1/Card.Blue+Other>, Misdirection's exile alone,
+// the Force cycle's bare ExileFromHand<1/Card.Blue+Other>, CR 118.9; kgen
+// altPayLifeExileHand).
 func altHandExileCost(c *kop.Cost) bool {
 	shared := c.Flags == kop.CostPayLife|kop.CostExileGrave
 	bare := c.Flags == kop.CostExileGrave

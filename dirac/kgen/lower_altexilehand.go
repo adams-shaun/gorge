@@ -5,11 +5,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // altPayLifeExileHand: the lowered cost of a spell's own AlternativeCost is
 // PayLife<N> and ExileFromHand<N/Spec> and nothing else (Force of Will: "You
 // may pay 1 life and exile a blue card from your hand rather than pay this
-// spell's mana cost", CR 118.9, 601.2b). The two parts share kop.Cost.N, so
-// the life equals the exiled count; build_ab's AlternativeCost arm gates the
+// spell's mana cost", CR 118.9, 601.2b), or the exile alone (Misdirection and
+// the Force cycle's bare ExileFromHand<1/Spec>, PayLife 0). The two parts
+// share kop.Cost.N, so the life equals the exiled count; build_ab's
+// AlternativeCost arm gates the
 // card (an instant or sorcery with one spell ability, cardBuilder.altSacOK).
 func altPayLifeExileHand(c *lCost) bool {
-	if c.ExileG == nil || !c.ExileHand || c.ExileGN != 1 || c.PayLife != c.ExileGN || c.ExileGBf || c.exileGCard {
+	if c.ExileG == nil || !c.ExileHand || c.ExileGN != 1 || c.PayLife != c.ExileGN && c.PayLife != 0 || c.ExileGBf || c.exileGCard {
 		return false
 	}
 	rest := *c
@@ -17,25 +19,11 @@ func altPayLifeExileHand(c *lCost) bool {
 	return rest.pureMana()
 }
 
-// altExileHandOnly: the alternative cost is ExileFromHand<1/Spec> alone, no
-// life beside it (the Force cycle's "you may exile a blue card from your
-// hand rather than pay this spell's mana cost", CR 118.9; Misdirection the
-// same shape). The built Cost is the bare hand-exile pick, CostExileGrave
-// with ExileHand, no PayLife flag.
-func altExileHandOnly(c *lCost) bool {
-	if c.ExileG == nil || !c.ExileHand || c.ExileGN != 1 || c.PayLife != 0 || c.ExileGBf || c.exileGCard {
-		return false
-	}
-	rest := *c
-	rest.ExileG, rest.ExileGN, rest.ExileHand = nil, 0, false
-	return rest.pureMana()
-}
-
 // altCostCost lowers a spell's own AlternativeCost static's Cost$ with
 // lc.altCostHand set, so an ExileFromHand<1/Spec> part keeps its filter
-// (altExileHandCost). PayLife<N> beside ExileFromHand<N/Spec> (Force of
-// Will) and the exile alone (the Force cycle, Misdirection) are the
-// kernel's hand-exile alternative casts; any other exile shape is refused.
+// (altExileHandCost). Only ExileFromHand<N/Spec>, with PayLife<N> beside it
+// or not (Force of Will, Misdirection and the Force cycle), is the kernel's
+// hand-exile alternative cast; any other exile shape is refused.
 func (lc *lowerCtx) altCostCost(s string) (lCost, error) {
 	lc.altCostHand = true
 	c, err := lc.cost(s)
@@ -43,8 +31,8 @@ func (lc *lowerCtx) altCostCost(s string) (lCost, error) {
 	if err != nil {
 		return c, err
 	}
-	if c.ExileG != nil && !altPayLifeExileHand(&c) && !altExileHandOnly(&c) {
-		return c, refuse("alternative cost with an exile part other than PayLife<N> or ExileFromHand<1/Spec> alone")
+	if c.ExileG != nil && !altPayLifeExileHand(&c) {
+		return c, refuse("alternative cost with an exile part other than ExileFromHand<1/Spec>, alone or beside PayLife<N>")
 	}
 	return c, nil
 }

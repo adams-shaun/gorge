@@ -301,7 +301,8 @@ type genPrep struct {
 	anyCharmPick   bool           // some charm carries ChoiceRestriction$ (Ability.ModeRestrict; modal_charmpick.go)
 	anyWaterbend   bool           // some ability costs CostWaterbend (act_waterbend.go)
 	anyXBoundAb    bool           // some activated ability's target is bounded by its X (xBoundTarget): the announced X can leave it no target, which reverses it
-	anyLure        bool           // some card is a lure (CardDef.Lure; combat_lure.go)
+	anyLure        bool           // some card is a lure (CardDef.Lure), or the table can make one (StatLure, mechLure; combat_lure.go)
+	anyLureStat    bool           // a StatLure static (combat_lure.go isLure)
 	anyMustBlock   bool           // some card is printed must-be-blocked or the table gives mechMustBlocked an arena mask (combat_mustbeblocked.go)
 	anyFaceExile   bool           // some Dig exiles face down (kop.DigFaceDown; zone_exilefacedown.go)
 	anyExW         bool           // some card reads the exiled-with source link (CardDef.ExiledWith; zone_exiledwith.go)
@@ -731,6 +732,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyNoPrev = tableHasStatic(t, kop.StatCantPreventDamage)
 	g.anyAsIfHaste = tableHasStatic(t, kop.StatAsIfHaste)
 	g.anyCantSuspect = tableHasStatic(t, kop.StatCantBeSuspected)
+	g.anyLureStat = tableHasStatic(t, kop.StatLure)
 	g.anyTypeCreat = tableHasStatic(t, kop.StatAnyTypeCreatures)
 	g.anyDiscard = tableHasOp(t, kop.OpDiscard)
 	g.anyRemDisc = tableRemembersDiscards(t)
@@ -1855,7 +1857,9 @@ type genState struct {
 		col kop.ColorMask
 		// sc, ctl: a scoped record (Ext PreventDamageScope) prevents the
 		// damage its controller ctl (a player) or the creatures ctl controls
-		// would take; sc holds the kop.PrevScope* bits and col is 0
+		// would take; sc holds the kop.PrevScope* bits and col is 0. A record
+		// with sc&prevNextSc is an Ext PreventNext shield: ctl the recipient's
+		// damage code, obj the effect's source, col the damage left (repl_prevnext.go)
 		sc, ctl uint8
 	}
 	lingerM slotMask

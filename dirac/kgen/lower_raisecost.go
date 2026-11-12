@@ -12,7 +12,11 @@ import (
 // zero): Type$ Spell, ValidCard$ the spells, a constant or SVar Amount$ of
 // generic mana, Activator$ You / Opponent / Player (absent: any caster),
 // the static's conditions; EffectZone$ All with ValidCard$ Card.Self is the
-// card's own "costs more". Refused: Cost$ (a non-generic raise) bar PayLife and raisePerTarget's shape, Relative$,
+// card's own "costs more". EffectZone$ Stack with ValidTarget$ Spell.Self is
+// the spell's own "spells that target it cost more while it is on the stack"
+// (Kaervek's Torch): the source is a stack object (kop.ZoneStack), and the
+// raise charges only a cast whose chosen target is that source. Refused:
+// Cost$ (a non-generic raise) bar PayLife and raisePerTarget's shape, Relative$,
 // ValidSpell$/AffectedZone$, abilities (Type$ Ability).
 func (lc *lowerCtx) raiseCost(sp *params, st *lStatic) error {
 	if sp.str("Type") != "Spell" {
@@ -56,10 +60,35 @@ func (lc *lowerCtx) raiseCost(sp *params, st *lStatic) error {
 		return refuse("RaiseCost Activator %q", a)
 	}
 	if ez, ok := sp.get("EffectZone"); ok {
-		if ez != "All" || sp.str("ValidCard") != "Card.Self" {
+		switch ez {
+		case "All":
+			if sp.str("ValidCard") != "Card.Self" {
+				return refuse("RaiseCost EffectZone %q", ez)
+			}
+			st.Zone = zAny
+		case "Stack":
+			// "As long as CARDNAME is on the stack, spells that target it
+			// cost {N} more to cast" (Kaervek's Torch): the only stack-zone
+			// raise shape this kernel prices. ValidTarget$ Spell.Self makes
+			// the charge read the cast's chosen target as the source spell
+			// itself; a Cost$ or ValidCard$ is a different shape, refused
+			// under its own true reason.
+			if sp.str("ValidTarget") != "Spell.Self" {
+				return refuse("RaiseCost EffectZone %q without ValidTarget$ Spell.Self", ez)
+			}
+			if sp.str("ValidCard") != "" {
+				return refuse("RaiseCost EffectZone %q with ValidCard$ %q", ez, sp.str("ValidCard"))
+			}
+			if _, ok := sp.get("Cost"); ok {
+				return refuse("RaiseCost EffectZone %q with Cost$", ez)
+			}
+			if !st.Amount.isConst() {
+				return refuse("RaiseCost EffectZone %q with a non-literal Amount$", ez)
+			}
+			st.Zone = zStack
+		default:
 			return refuse("RaiseCost EffectZone %q", ez)
 		}
-		st.Zone = zAny
 	}
 	return nil
 }
