@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-sos",
+ "pool": "std-sos",
+ "why": "Witherbloom, the Balancer's affinity grant is its controller's: the opponent casting that player's sorcery from exile through Nita, Forum Conciliator pays its full {2}{G} (CR 601.2a, 702.41a)",
  "actions": [
   184549120,
   184549120,

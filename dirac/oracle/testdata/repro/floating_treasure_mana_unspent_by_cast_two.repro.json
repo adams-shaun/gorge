@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-hob",
+ "pool": "std-hob",
+ "why": "... and An Unexpected Party's",
  "actions": [
   16776960,
   16776960,

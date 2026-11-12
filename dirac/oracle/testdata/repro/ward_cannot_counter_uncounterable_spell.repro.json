@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-mkm",
+ "pool": "std-mkm",
+ "why": "CR 101.2, 702.21a: Long Goodbye can't be countered, so an unpaid ward leaves it on the stack",
  "actions": [
   16776960,
   16776960,

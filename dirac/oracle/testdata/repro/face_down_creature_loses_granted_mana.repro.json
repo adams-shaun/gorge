@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-dsk",
+ "why": "a manifested Zimone under Unable to Scream, which came after Enduring Vitality's grant: it has no mana ability, so Tyvar's {3}{G}{G} is not offered with four sources (CR 613.1f, 613.7)",
  "actions": [
   16776960,
   16776960,

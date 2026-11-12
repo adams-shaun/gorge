@@ -221,6 +221,8 @@
  ],
  "surface": "full",
  "kernel": "set cmd5",
+ "pool": "custom",
+ "why": "kfuzz cmd5 heuristic pair 43: Wretched Ranks' Army of the Damned and Endless Ranks of the Dead make more than 224 objects, past the old target-byte bound",
  "actions": [
   16776960,
   16776960,

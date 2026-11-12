@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Cabal Ritual chained from a Swamp: {B}{B}{B}, then {B}{B}{B}{B}{B} once seven cards are in its controller's graveyard (Count$Threshold.5.3, CR 702.24a)",
  "actions": [
   18677504,
   17039104,

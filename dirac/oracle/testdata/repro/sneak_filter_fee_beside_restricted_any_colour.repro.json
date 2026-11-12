@@ -95,6 +95,9 @@
  "pass_elision": false,
  "max_turns": 30,
  "surface": "autopay",
+ "kernel": "synth std-msh",
+ "pool": "one-off",
+ "why": "",
  "actions": [
   16776960,
   16776960,
@@ -383,6 +386,5 @@
   "detail": "priority decision for p0",
   "lead": "gorge",
   "last_sourced": "attack(#22,P1,0)"
- },
- "kernel": "synth std-msh"
+ }
 }

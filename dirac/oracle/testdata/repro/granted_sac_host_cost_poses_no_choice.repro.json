@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-lci",
+ "pool": "std-lci",
+ "why": "CR 602.2b, 701.21a: Deconstruction Hammer's granted \"Sacrifice Deconstruction Hammer\" cost has one possible payment, so it is paid without a choice after the targets",
  "actions": [
   167771904,
   184549120,

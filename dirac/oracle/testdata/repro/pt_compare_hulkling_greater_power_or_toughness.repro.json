@@ -67,6 +67,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "CR 603.4: Hulkling, Burgeoning Bruiser (2/3) takes a +1/+1 counter when a creature of greater power (3/3) or greater toughness (2/4) enters under its controller, not a 0/3: the trigger filter and the resolution recheck compare against his own power and toughness",
  "actions": [
   17956608,
   18677504,

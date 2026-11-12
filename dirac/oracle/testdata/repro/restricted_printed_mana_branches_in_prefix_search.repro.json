@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 605.1a: White Lotus Hideout's Lesson-only any-colour ability is tapped in gorge's prefix search beside its {C} and the granted one, so Katara's GWU spends the 160-node budget there and is not offered",
  "actions": [
   167771904,
   184549120,

@@ -96,6 +96,8 @@
  "max_turns": 40,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Twisted Sewer-Witch beside a Muck Rats: the Rat token it makes and the Rat already out each get a Wicked Role (RepeatCards$ Creature.Rat+YouCtrl)",
  "actions": [
   21298944,
   19332864,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "CR 301.7b, 303.4f: One Last Job returns Demonic Ruckus \"attached to a creature you control\" while a crewed Luxurious Locomotive is an artifact creature, so the controller chooses between it and Stingerback Terror (gorge read the Enchant spec off printed types)",
  "actions": [
   16776960,
   16776960,

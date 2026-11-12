@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 40,
  "surface": "full",
+ "pool": "custom",
+ "why": "Thranduil the Strategist's {G} or {U} on its Elves: the colour ask lists the card's own order, G then U",
  "actions": [
   167771904,
   184549120,

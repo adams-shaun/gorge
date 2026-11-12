@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Calamity's Wake resolves while the other seat holds a Lightning Bolt and an untapped Mountain: no noncreature spell can be cast this turn (an end-of-turn emblem)",
  "actions": [
   19398400,
   35258112,

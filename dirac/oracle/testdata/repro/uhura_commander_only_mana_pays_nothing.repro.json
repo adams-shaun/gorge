@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-trc",
+ "pool": "std-trc",
+ "why": "Uhura's \"you may pay {1}\" with Queen's Diamond (mana spent only to cast your commander) as the only untapped mana that is not a zero-counter or commander-identity source: its commander-only mana cannot pay a trigger's cost (CR 106.6), so only the decline is offered",
  "actions": [
   16776960,
   16776960,

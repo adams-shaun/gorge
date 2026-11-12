@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-trc",
+ "pool": "std-trc",
+ "why": "Ambulatory Reactor's {C} for artifact spells and abilities of artifact sources, tapped through a vehicle first in battlefield order: the activated half of the restriction rides with the mana, so Skullclamp's equip is paid from it (CR 106.6, 602.2)",
  "actions": [
   16776960,
   16776960,

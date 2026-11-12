@@ -125,8 +125,10 @@
  "seed": 1,
  "mulligans": 0,
  "pass_elision": true,
- "surface": "full",
+ "surface": "autopay",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "Tam, Mindful First-Year's own-colours hexproof static: a red creature beside it is not an opponent's red spell target while Tam is, and both engines agree",
  "actions": [
   22281984,
   18743040,

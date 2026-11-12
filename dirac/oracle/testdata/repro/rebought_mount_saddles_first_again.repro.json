@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "CR 400.7: a Stubborn Burrowfiend saddled, bounced by Nurturing Pixie and recast is a new object, so its first saddle that turn triggers again (gorge's latch stops at the Mount's own zone change).",
  "actions": [
   16776960,
   16776960,

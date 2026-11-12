@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trk",
+ "why": "Dr. Leonard \"Bones\" McCoy paid {1}{G}{G} beside Rok-Tahk's {G}{G} grant: a creature Class-F Shuttlecraft's any-colour mana sits at its battlefield position in gorge's census, so the generic is paid by the first Plains after it, not the first Plains (key 8)",
  "actions": [
   16776960,
   16776960,

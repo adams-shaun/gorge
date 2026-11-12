@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "CR 614.1, 120.3: Lightning, Army of One's Stagger doubles damage to a permanent the player it hit controls, so Giott's regular-step hit on the blocking Matoya is doubled",
  "actions": [
   16776960,
   16776960,

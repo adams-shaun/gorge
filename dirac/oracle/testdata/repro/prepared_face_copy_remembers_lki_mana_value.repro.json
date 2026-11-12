@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "a prepared Grave Researcher casts its Reanimate copy on a Walking Corpse: the same remembered mana value is the life lost",
  "actions": [
   19398400,
   17891072,

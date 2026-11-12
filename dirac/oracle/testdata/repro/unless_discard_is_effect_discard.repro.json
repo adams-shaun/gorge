@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-fdn",
+ "pool": "std-fdn",
+ "why": "CR 118.12: discarding Wilt-Leaf Liege to an opponent's Perforating Artist \"unless\" is that ability's discard, so the Liege enters the battlefield",
  "actions": [
   184549120,
   184549120,

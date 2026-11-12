@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-fdn",
+ "pool": "std-fdn",
+ "why": "CR 601.2g-h, 605.3a: Blossoming Sands and Pyromancer's Goggles' deferred {R}, one funding Three Tree Mascot's {1} for {U}, pay Negate: the filter search runs the Goggles as a gap step",
  "actions": [
   16776960,
   16776960,

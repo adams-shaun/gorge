@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "A Boom Box its opponent stole with Shifting Grift is activated by the thief against itself, its own creature and its own land: no crime at the picks (CR 700.13 judges the targeting, CR 601.2c, before the 601.2h cost), and the self-sacrificing cost does not re-judge the target in the owner's graveyard at placement (act_commitcrime.go crimeStep reads the entry's recorded verdict).",
  "actions": [
   184549120,
   167771904,

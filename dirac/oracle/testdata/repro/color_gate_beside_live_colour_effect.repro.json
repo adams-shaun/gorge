@@ -94,7 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 30,
- "surface": "autopay",
+ "surface": "full",
+ "pool": "std-fdn",
+ "why": "CR 613.1e: Knight of Malice counts Three Tree Mascot Witness Protection made green and white beside Imprisoned in the Moon's live colourless",
  "actions": [
   16776960,
   16776960,

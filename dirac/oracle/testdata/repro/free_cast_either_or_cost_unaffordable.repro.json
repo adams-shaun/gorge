@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 118.9d: a cast without paying its mana cost from Maralen's exile still owes Mudbutton Cursetosser's behold-or-{2}; unpayable, it is not offered",
  "actions": [
   16776960,
   16776960,

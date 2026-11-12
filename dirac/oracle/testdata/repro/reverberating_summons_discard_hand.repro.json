@@ -55,6 +55,8 @@
  "pass_elision": false,
  "max_turns": 30,
  "surface": "autopay",
+ "pool": "std-tdm",
+ "why": "Reverberating Summons activates with six cards in hand: the whole hand is discarded in hand order, then the enchantment is sacrificed, and both engines agree through the resolution",
  "actions": [
   16776960,
   16776960,

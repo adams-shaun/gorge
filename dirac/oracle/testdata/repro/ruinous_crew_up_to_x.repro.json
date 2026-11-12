@@ -93,7 +93,9 @@
  "seed": 16256398713181607051,
  "mulligans": 1,
  "pass_elision": false,
- "surface": "full",
+ "surface": "autopay",
+ "pool": "std-msh",
+ "why": "The Ruinous Wrecking Crew's enters trigger chooses up to the X paid for it, possibly none (CR 117.12, 107.3)",
  "actions": [
   167771904,
   167771904,

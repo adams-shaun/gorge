@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "the same Helix countered by Counterspell goes to the graveyard: the replacement is Fizzle$ False, the resolution move alone",
  "actions": [
   19398400,
   17497856,

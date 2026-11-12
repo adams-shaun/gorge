@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Timetwister: the same Hand,Graveyard sweep over every player",
  "actions": [
   18874112,
   17235712,

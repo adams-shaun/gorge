@@ -94,8 +94,10 @@
  "mulligans": 1,
  "pass_elision": false,
  "max_turns": 100,
- "surface": "autopay",
+ "surface": "full",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 601.2b, 601.2c: the same X copy cast in pair 1331's game still asks X, then aborts at its required target when the announced X leaves it unpayable",
  "actions": [
   184549120,
   184549120,

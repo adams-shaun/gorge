@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-dsk",
+ "pool": "custom",
+ "why": "kfuzz std-dsk heuristic pair 587: Kaito, Bane of Nightmares' +1 makes an emblem each turn he survives, five or more in all: the kernel holds them and plays on, as gorge does",
  "actions": [
   16776960,
   16776960,

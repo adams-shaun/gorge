@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "Caustic Exhale's {1} part chosen beside a payable behold: the fallback window answers Abzan Devotee's colour after its fee with the lowest colour, not the owed {B}, so the cast is stranded and reversed (CR 601.2g, 733.1)",
  "actions": [
   16776960,
   16776960,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-mkm",
+ "pool": "std-mkm",
+ "why": "CR 400.7: Deadly Complication destroys Rune-Brand Juggler, then its counter mode finds no creature: the card returned later by It Doesn't Add Up enters without a +1/+1 counter",
  "actions": [
   16776960,
   16776960,

@@ -94,6 +94,9 @@
  "mulligans": 1,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trk",
+ "why": "Marooned's \"you may pay {3}\" with Isolinear Processor untapped: its artifact-only mana cannot pay the Aura's trigger, so the window does not tap it",
  "actions": [
   184549120,
   184549120,

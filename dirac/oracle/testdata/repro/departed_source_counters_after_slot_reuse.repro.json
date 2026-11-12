@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-trk",
+ "pool": "custom",
+ "why": "Jadzia Dax, Living Legacy's first-main trigger waits on the stack while Impossible Choice destroys her and its two Officer tokens take her permanent slot: the trigger still adds {G} for her four last counters, read from the departure snapshot (CR 608.2h)",
  "actions": [
   16776960,
   16776960,
