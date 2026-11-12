@@ -679,12 +679,20 @@ func (s *State) tappedOf(p uint8) slotMask {
 	return m
 }
 
-// bfObjKey hashes p's battlefield objects, each with its slot (FNV-1a).
+// bfObjKey hashes p's battlefield objects, each with its slot and counters
+// (FNV-1a): gorge's scriptStateKey lists each permanent's id and counters, so
+// an Army a resolved amass grew is a new payer state though its stack, hand
+// and graveyard sizes are those of an earlier node (CR 701.47a).
 func (s *State) bfObjKey(p uint8) uint64 {
 	h := uint64(14695981039346656037)
 	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
 		sl := b.first()
-		h = (h ^ uint64(sl)<<16 ^ uint64(s.perms[sl].obj)) * 1099511628211
+		pm := &s.perms[sl]
+		h = (h ^ uint64(sl)<<16 ^ uint64(pm.obj)) * 1099511628211
+		h = (h ^ uint64(pm.p1)) * 1099511628211
+		for i := range pm.cn {
+			h = (h ^ uint64(pm.ck[i])<<16 ^ uint64(pm.cn[i])) * 1099511628211
+		}
 	}
 	return h
 }
@@ -1887,15 +1895,20 @@ func (s *State) FeatGrantAvail(o Obj) (w int32, ok bool) {
 	return w, true
 }
 
-// grantsFixedMana reports whether an effect grants sl a mana ability of fixed
-// production (a plain tap for a set colour): gorge's shared census lists such a
-// source at its battlefield position whatever shape its own ability has.
+// grantsFixedMana reports whether an effect grants sl an unrestricted mana
+// ability of fixed production (a plain tap for a set colour): gorge's shared
+// census lists such a source at its battlefield position whatever shape its
+// own ability has. A spend-restricted grant is never in that census, whether
+// or not this payment's descriptor admits it (Mm'menon's "{U} to cast from
+// anywhere but your hand" beside an artifact's own any-colour ability): the
+// source keeps its own ability's census position, in the planner's
+// restricted layer.
 func (s *State) grantsFixedMana(k *prep, sl Slot) bool {
 	var gi [maxGrants]int16
 	n := s.grantIdxs(k, sl, &gi)
 	for _, i := range gi[:n] {
 		gp := &k.gen.grantPC[i]
-		if gp.manaTap && !gp.manaSac && !gp.manaSacOnly && !gp.manaChosen && !gp.manaDyn && !gp.manaMulti && gp.manaCol != kop.ColAny && srcMask(gp) != 0 {
+		if gp.manaTap && !gp.manaSac && !gp.manaSacOnly && !gp.manaChosen && !gp.manaDyn && !gp.manaMulti && gp.manaCol != kop.ColAny && srcMask(gp) != 0 && k.gen.grantRestr[i] == 0 {
 			return true
 		}
 	}
