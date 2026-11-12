@@ -166,10 +166,14 @@ func (e *Engine) applyETBChoiceReplacement(ev events.Event) bool {
 		}
 		return false
 	}
-	if e.pending != nil && choice.kind != "enchant" {
+	if e.pending != nil && (e.pending.Kind == decision.KPriority || choice.kind != "enchant") {
 		// Only the CR 303.4f non-cast Aura choice queues behind another
 		// decision; every other as-enters ask keeps the pre-existing
-		// one-at-a-time path (the entry happens unasked).
+		// one-at-a-time path (the entry happens unasked). A priority ask is
+		// not a mid-resolution suspension -- a direct move while the active
+		// player holds priority (the fixture path) keeps the entry happening
+		// unasked rather than parking an answer the priority round cannot
+		// pose.
 		return false
 	}
 	move := ev
