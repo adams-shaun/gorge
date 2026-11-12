@@ -34,8 +34,8 @@ func grantedCyclingOption(e *Engine, p state.PlayerID, id state.ObjID) (decision
 // corpus Cycled trigger fires and draws.
 func TestGrantedCyclingActivationFiresCycledTrigger(t *testing.T) {
 	t.Parallel()
-	mystic := mshCorpusCard(t, "Rhet-Tomb Mystic")
-	rescuer := mshCorpusCard(t, "Valiant Rescuer")
+	mystic := corpusAlternativeCard(t, "Rhet-Tomb Mystic")
+	rescuer := corpusAlternativeCard(t, "Valiant Rescuer")
 	const beast = "Name:Vanilla Beast\nManaCost:1 G\nTypes:Creature Beast\nPT:2/2\nOracle:x\n"
 	e := handEngine(t, card(t, beast))
 	mysticID := onBoardCard(t, e, 0, mystic)
@@ -122,7 +122,7 @@ func TestGrantedCyclingActivationFiresCycledTrigger(t *testing.T) {
 // pile walk offers -- never a synthesized duplicate beside it.
 func TestGrantedCyclingIsOfferedOnceWhenTheFacePrintsTheSameLine(t *testing.T) {
 	t.Parallel()
-	mystic := mshCorpusCard(t, "Rhet-Tomb Mystic")
+	mystic := corpusAlternativeCard(t, "Rhet-Tomb Mystic")
 	const printed = "Name:Printed Cycler\nManaCost:2 G\nTypes:Creature Beast\nPT:2/2\nK:Cycling:1 U\nOracle:x\n"
 	e := handEngine(t, card(t, printed))
 	onBoardCard(t, e, 0, mystic)
@@ -173,7 +173,7 @@ func TestGrantedCyclingAbilityShapes(t *testing.T) {
 // discards with the cycling provenance and draws.
 func TestGrantedCyclingTectonicReformationLandGrant(t *testing.T) {
 	t.Parallel()
-	reformation := mshCorpusCard(t, "Tectonic Reformation")
+	reformation := corpusAlternativeCard(t, "Tectonic Reformation")
 	const land = "Name:Vanilla Land\nTypes:Land\nOracle:x\n"
 	e := handEngine(t, card(t, land))
 	reformationID := onBoardCard(t, e, 0, reformation)
@@ -247,7 +247,7 @@ func TestGrantedCyclingTectonicReformationLandGrant(t *testing.T) {
 // counter on it when the cycle resolves.
 func TestGrantedCyclingJoGrantHistoricGrant(t *testing.T) {
 	t.Parallel()
-	jo := mshCorpusCard(t, "Jo Grant")
+	jo := corpusAlternativeCard(t, "Jo Grant")
 	// A legendary artifact is historic on BOTH the artifact and legendary
 	// limbs of the filter.
 	const relic = "Name:Vanilla Relic\nManaCost:1\nTypes:Legendary Artifact\nOracle:x\n"

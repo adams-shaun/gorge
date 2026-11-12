@@ -16,8 +16,8 @@ import (
 // order.
 func TestLayer6DependencyOrderCavalryMasterOlderThanSidewinder(t *testing.T) {
 	t.Parallel()
-	master := mshCorpusCard(t, "Cavalry Master")
-	sliverCard := mshCorpusCard(t, "Sidewinder Sliver")
+	master := corpusAlternativeCard(t, "Cavalry Master")
+	sliverCard := corpusAlternativeCard(t, "Sidewinder Sliver")
 	e := combatEngine(t)
 	// Cavalry Master FIRST: its lord effect is the OLDER one, so raw
 	// timestamp order evaluates its gate before Sidewinder's own grant is in

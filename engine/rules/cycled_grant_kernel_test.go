@@ -15,7 +15,7 @@ import (
 // with the TypeCycling provenance, firing the sliver's own Cycled trigger.
 func TestGrantedTypeCyclingCrossSeatActivationFiresCycledTrigger(t *testing.T) {
 	t.Parallel()
-	homing := mshCorpusCard(t, "Homing Sliver")
+	homing := corpusAlternativeCard(t, "Homing Sliver")
 	const sliver = "Name:Test Sliver\nManaCost:1 G\nTypes:Creature Sliver\nPT:1/1\n" +
 		"T:Mode$ Cycled | ValidCard$ Card.Self | Execute$ TrigDraw | TriggerDescription$ When you cycle CARDNAME, draw a card.\n" +
 		"SVar:TrigDraw:DB$ Draw | NumCards$ 1\nOracle:x\n"
