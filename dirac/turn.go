@@ -46,6 +46,9 @@ func (s *State) beginTurn(p uint8) {
 	if k := s.k(); k.gen != nil && k.gen.anySkipPhase {
 		s.skipPhaseTurn(p) // act_skipphase.go
 	}
+	if k := s.k(); k.gen != nil && k.gen.anyMonarch {
+		s.monarchTurn() // the turn-start monarch (act_monarch.go)
+	}
 	if k := s.k(); k.gen != nil && k.gen.anyNTEndEmb {
 		s.embTurnStart(k, p) // UntilTheEndOfYourNextTurn: this turn is its last (static_emblemdurations.go)
 	}
@@ -252,6 +255,9 @@ func (s *State) beginStep(k *prep) {
 		s.fireDelayedAt(k, m)
 		if k.gen != nil {
 			s.fireDelayedGen(k)
+			if k.gen.anyMonarch {
+				s.monarchEndStep() // CR 725.2 (act_monarch.go)
+			}
 		}
 		s.openPriority()
 	case kop.StepCleanup:
@@ -1002,6 +1008,10 @@ func (s *State) fireDelayed(k *prep) {
 func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 	if e.trigAmt == speedTrigAmt && e.obj == NoObj {
 		s.resolveSpeed(e) // the source-less speed trigger (kw_speed.go)
+		return
+	}
+	if monarchTrig(e) {
+		s.resolveMonarchTrig(k, e) // the monarch's draw or steal (act_monarch.go)
 		return
 	}
 	if k.gen != nil && e.trigAmt == opLeaveReturn {

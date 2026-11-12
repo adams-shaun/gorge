@@ -118,11 +118,11 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 	}
 	ps.consume("Name", "Image", "Stackable")
 	left := ps.unread()
-	if allCantBeCast(ss) {
+	if allCantBeCast(ss) || lc.monarchGate(ps) {
 		// the Effect's own ConditionPresent$ (Bilbo's Gambit: the gift was
-		// promised) guards the whole node; the node's condition read runs
-		// after this lowering and the node's own unread check refuses what
-		// it does not read
+		// promised) or monarch check (Aragorn, lower_monarch.go) guards the
+		// whole node; the node's condition read runs after this lowering
+		// and the node's own unread check refuses what it does not read
 		left = slices.DeleteFunc(left, func(k string) bool { return strings.HasPrefix(k, "Condition") })
 	}
 	if len(left) > 0 {

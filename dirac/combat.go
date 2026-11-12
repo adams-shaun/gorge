@@ -1178,6 +1178,9 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		if k.anyInit {
 			s.initCombat(k, &r) // CR 726.2 (act_initiative.go)
 		}
+		if k.gen.anyMonarch {
+			s.monarchCombat(&r) // CR 725.2 (act_monarch.go)
+		}
 		return false
 	}
 	for pp := uint8(0); pp < MaxSeats; pp++ {

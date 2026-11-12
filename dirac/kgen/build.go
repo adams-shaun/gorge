@@ -2007,6 +2007,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vActivations:        kop.ExActivations,
 	vLifeLostLastTurn:   kop.ExLifeLostLastTurn,
 	vDmgAmount:          kop.ExDmgAmountReceived,
+	vMonarch:            kop.ExMonarch, // lower_monarch.go
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {

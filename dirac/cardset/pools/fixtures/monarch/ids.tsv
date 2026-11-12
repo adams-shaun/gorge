@@ -1,0 +1,53 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Aragorn, King of Gondor
+1	card	Chief Magistrate of Mercadia
+2	card	Court of Ardenvale
+3	card	Court of Bounty
+4	card	Court of Cunning
+5	card	Court of Embereth
+6	card	Court of Garenbrig
+7	card	Court of Grace
+8	card	Court of Ire
+9	card	Crimson Fleet Commodore
+10	card	Custodi Lich
+11	card	Elite Vanguard
+12	card	Faramir, Steward of Gondor
+13	card	Feast of Succession
+14	card	Forest
+15	card	Garrulous Sycophant
+16	card	Goblin Piker
+17	card	Grave Venerations
+18	card	Grizzly Bears
+19	card	Hill Giant
+20	card	Island
+21	card	Keeper of Keys
+22	card	Knights of the Black Rose
+23	card	Lightning Bolt
+24	card	Marchesa's Decree
+25	card	Mountain
+26	card	Nakia, Wakandan Operative
+27	card	Oath of Eorl
+28	card	Palace Sentinels
+29	card	Plains
+30	card	Queen Marchesa
+31	card	Regal Sliver
+32	card	Savannah Lions
+33	card	Shock
+34	card	Skyline Despot
+35	card	Staunch Throneguard
+36	card	Suntail Hawk
+37	card	Swamp
+38	card	Thorn of the Black Rose
+39	card	Throne Warden
+40	card	Throne of the High City
+41	card	Walking Corpse
+42	card	Wind Drake
+43	card	Éomer, King of Rohan
+44	token	b_1_1_assassin_deathtouch_haste
+45	token	r_2_1_goblin_haste
+46	token	r_2_2_human_knight_trample_haste
+47	token	r_3_1_knight
+48	token	r_5_5_dragon_flying
+49	token	w_1_1_human_soldier
+50	token	w_1_1_spirit_flying
+51	token	w_4_4_angel_flying
