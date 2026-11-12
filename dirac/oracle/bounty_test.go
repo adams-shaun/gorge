@@ -70,7 +70,7 @@ func (p *kbountyProbe) pick(c *PickCtx) Canon {
 	}
 	if len(attacks) > 0 && p.r.IntN(8) != 0 {
 		a := attacks[p.r.IntN(len(attacks))]
-		if c.G != nil && kbargainName(c.G, a.Src()) == "H.M.S. Bounty, Unlikely Timeship" {
+		if c.G != nil && refCardName(c.G, a.Src()) == "H.M.S. Bounty, Unlikely Timeship" {
 			p.st.attacks++
 			if o := c.G.E.G.Obj(c.G.id.obj[a.Src()]); o != nil && p.begun[uint8(o.Controller)&1] {
 				p.st.gatedAttacks++

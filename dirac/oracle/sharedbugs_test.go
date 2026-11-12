@@ -54,7 +54,7 @@ func TestSharedBugsLockstep(t *testing.T) {
 	for _, row := range sharedBugsDecks {
 		t.Run(strings.ReplaceAll(row.name, " ", "_"), func(t *testing.T) {
 			md := [2][]cardset.Entry{row.deck, row.deck}
-			decks := kopusDecksOf(t, reg, md)
+			decks := kcastDeck(t, reg, md)
 			tbl, _, _, err := set.Matchup(md[0], md[1])
 			if err != nil {
 				t.Fatal(err)
@@ -108,7 +108,7 @@ func TestPanharmonicBlockLines(t *testing.T) {
 	}
 	deck := []cardset.Entry{{Name: "Delney, Streetwise Lookout", Count: 8}, {Name: "Alley Grifters", Count: 8}, {Name: "Town Sentry", Count: 8},
 		{Name: "Plains", Count: 8}, {Name: "Swamp", Count: 8}}
-	decks := kopusDecksOf(t, reg, [2][]cardset.Entry{deck, deck})
+	decks := kcastDeck(t, reg, [2][]cardset.Entry{deck, deck})
 	tbl, _, _, err := set.Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)

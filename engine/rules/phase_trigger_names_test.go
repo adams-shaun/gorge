@@ -44,18 +44,6 @@ func phaseCardEngine(t *testing.T, name string) (*Engine, state.ObjID) {
 	return e, id
 }
 
-// queuedPhaseTriggers counts the triggers queued (pending, not yet placed)
-// for the source object.
-func queuedPhaseTriggers(e *Engine, id state.ObjID) int {
-	n := 0
-	for _, pt := range e.pendingTriggers {
-		if pt.Source == id {
-			n++
-		}
-	}
-	return n
-}
-
 // assertPhaseFires drives the card through every step: each step in wants
 // queues exactly one trigger, every other step queues none, and the queue is
 // drained between steps. The card's controller is seat 0, who is also the

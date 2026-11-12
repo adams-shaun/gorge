@@ -17,18 +17,6 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// battlefieldCorpusCard seeds a real corpus card directly onto seat p's
-// battlefield as test setup (the handEngine/graveCreature direct-seed idiom),
-// so a card's own enters-the-battlefield trigger does not have to be driven.
-// The caller asserts the landed state.
-func battlefieldCorpusCard(t *testing.T, e *Engine, p state.PlayerID, c *cards.Card) state.ObjID {
-	t.Helper()
-	o := e.G.AddObject(c, p)
-	o.Zone = state.ZBattlefield
-	e.G.SetZone(state.ZBattlefield, p, append(e.G.Zone(state.ZBattlefield, p), o.ID))
-	return o.ID
-}
-
 // chainHeadIndex returns the face-local index of the activated ChooseColor
 // ability on id's face, plus the head itself.
 func chainHeadIndex(t *testing.T, e *Engine, id state.ObjID) (int, *cards.SA) {
@@ -75,7 +63,7 @@ func TestWickermawChooseColorChainIsAnImmediateManaAbility(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e := corpusEngine(t, reg, nil, nil)
-	id := battlefieldCorpusCard(t, e, 0, lookup(t, reg, "Foraging Wickermaw"))
+	id := putOnBattlefield(t, e, 0, lookup(t, reg, "Foraging Wickermaw"))
 
 	// PRECONDITION: the permanent is on the battlefield, colourless, with no
 	// recorded choice -- a vacuous setup (wrong zone, pre-coloured, stale
@@ -153,7 +141,7 @@ func TestWickermawChainActivationLimitGatesTheWheel(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e := corpusEngine(t, reg, nil, nil)
-	id := battlefieldCorpusCard(t, e, 0, lookup(t, reg, "Foraging Wickermaw"))
+	id := putOnBattlefield(t, e, 0, lookup(t, reg, "Foraging Wickermaw"))
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("precondition: Wickermaw not on the battlefield: %+v", o)
 	}
@@ -191,7 +179,7 @@ func TestNyxLotusChainProducesDevotionInTheChosenColour(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e := corpusEngine(t, reg, nil, nil)
-	id := battlefieldCorpusCard(t, e, 0, lookup(t, reg, "Nyx Lotus"))
+	id := putOnBattlefield(t, e, 0, lookup(t, reg, "Nyx Lotus"))
 	pip1 := battlefieldCreature(t, e, "Name:White Pip One\nManaCost:W\nTypes:Creature Bear\nPT:1/1\nOracle:x\n")
 	pip2 := battlefieldCreature(t, e, "Name:White Pip Two\nManaCost:W\nTypes:Creature Bear\nPT:1/1\nOracle:x\n")
 
@@ -226,7 +214,7 @@ func TestNykthosChainSharesTheWheelWithItsPlainManaAbility(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e := corpusEngine(t, reg, nil, nil)
-	id := battlefieldCorpusCard(t, e, 0, lookup(t, reg, "Nykthos, Shrine to Nyx"))
+	id := putOnBattlefield(t, e, 0, lookup(t, reg, "Nykthos, Shrine to Nyx"))
 	pip1 := battlefieldCreature(t, e, "Name:Green Pip One\nManaCost:G\nTypes:Creature Bear\nPT:1/1\nOracle:x\n")
 	pip2 := battlefieldCreature(t, e, "Name:Green Pip Two\nManaCost:G\nTypes:Creature Bear\nPT:1/1\nOracle:x\n")
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
@@ -276,7 +264,7 @@ func TestRhysticCaveChainIsOfferedAndProducesImmediately(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e := corpusEngine(t, reg, nil, nil)
-	id := battlefieldCorpusCard(t, e, 0, lookup(t, reg, "Rhystic Cave"))
+	id := putOnBattlefield(t, e, 0, lookup(t, reg, "Rhystic Cave"))
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("precondition: Rhystic Cave not on the battlefield: %+v", o)
 	}

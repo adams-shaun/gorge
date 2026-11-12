@@ -20,17 +20,6 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// tutorIndexForObj returns the pending decision's option index whose Obj is
-// id, or -1.
-func tutorIndexForObj(d *decision.Decision, id state.ObjID) int {
-	for _, o := range d.Options {
-		if o.Obj == id {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 // tutorPassIndex returns the pending priority decision's pass option index.
 func tutorPassIndex(t *testing.T, d *decision.Decision) int {
 	t.Helper()
@@ -105,14 +94,14 @@ func TestInfernalTutorEngineSearchUsesTheChosenCard(t *testing.T) {
 		}
 		switch d.ResumeKind {
 		case "reveal_pick":
-			if idx := tutorIndexForObj(d, handForest.ID); idx >= 0 {
+			if idx := indexOfObjOption(d, handForest.ID); idx >= 0 {
 				submitChoices(t, e, idx)
 				picked = true
 			} else {
 				t.Fatalf("reveal pick did not offer the hand Forest: %+v", d)
 			}
 		case "search":
-			if idx := tutorIndexForObj(d, libForest.ID); idx >= 0 {
+			if idx := indexOfObjOption(d, libForest.ID); idx >= 0 {
 				submitChoices(t, e, idx)
 				searched = true
 			} else {

@@ -45,18 +45,6 @@ type kczsimpleTally struct {
 	played                     map[string]int
 }
 
-// kczsimplePolicy is the cast-first random policy of the czparams lockstep
-// and captures the gorge side for the event tally.
-func kczsimplePolicy(seed uint64, played map[string]int, gs **GorgeSide) Policy {
-	inner := eagerPolicy(seed, played)
-	return PolicyFunc(func(c *PickCtx) Canon {
-		if c.G != nil {
-			*gs = c.G
-		}
-		return inner.Pick(c)
-	})
-}
-
 // kczsimpleScan counts the four mechanics in gorge's event log (gorge leads
 // the lockstep, so its log is the reference).
 func kczsimpleScan(g *GorgeSide, tl *kczsimpleTally) {
@@ -157,7 +145,7 @@ func kczsimpleRun(t *testing.T, seeds uint64, mutate func(*kop.Table), report bo
 			t.Fatal(err)
 		}
 		var gs *GorgeSide
-		res := Lockstep(m, seed, k, kczsimplePolicy(seed, tl.played, &gs), RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 25})
+		res := Lockstep(m, seed, k, trackingEagerPolicy(seed, tl.played, &gs), RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 25})
 		CloseSide(k)
 		tl.games++
 		if strings.HasPrefix(res.Stall, KernelStallPrefix) {

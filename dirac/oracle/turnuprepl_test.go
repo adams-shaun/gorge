@@ -94,7 +94,7 @@ func kturnuprepPolicy(seed uint64, up map[string]int) Policy {
 		)
 		buf = buf[:0]
 		for _, a := range c.D.Options {
-			n := kfacedownName(c, a)
+			n := optionFaceName(c, a)
 			switch {
 			case a.Kind() == ActSpecial && a.Mode()&15 == kfacedownTurnUp:
 				if n == "Bubble Smuggler" {
@@ -106,7 +106,7 @@ func kturnuprepPolicy(seed uint64, up map[string]int) Policy {
 				if n != "Memnite" { // the free turn-up is a rare pick, so it is still face down on a Watchdog turn
 					turn, haveTurn = a, true
 				}
-			case a.Kind() == ActCast && kfacedownMox(n):
+			case a.Kind() == ActCast && isMoxName(n):
 				mox, haveMox = a, true
 			case a.Kind() == ActCast && (n == "Soul Summons" || n == "Manifest Dread"):
 				summon, haveSummon = a, true
@@ -126,7 +126,7 @@ func kturnuprepPolicy(seed uint64, up map[string]int) Policy {
 			}
 		}
 		pick := func(a Canon) Canon {
-			n := kfacedownName(c, a)
+			n := optionFaceName(c, a)
 			switch {
 			case a.Kind() == ActCastFace:
 				waiting++

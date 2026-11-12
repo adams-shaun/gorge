@@ -64,7 +64,7 @@ func TestDestAltLockstep(t *testing.T) {
 }
 
 func destaltRun(t *testing.T, reg *cards.Registry, set cardset.Set, c destaltCase) {
-	decks := kincrementDecksOf(t, reg, c.decks)
+	decks := kcastDeck(t, reg, c.decks)
 	tbl, _, _, err := set.Matchup(c.decks[0], c.decks[1])
 	if err != nil {
 		t.Fatal(err)

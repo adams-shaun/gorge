@@ -70,7 +70,7 @@ func (p *invShapesPolicy) steer(c *PickCtx) (Canon, bool) {
 		p.mode == 1 && n[0] == n[1] && n[0] > 0
 	if shape {
 		for _, a := range c.D.Options {
-			if a.Kind() == ActCast && kbargainName(g, a.Src()) == "No Witnesses" {
+			if a.Kind() == ActCast && refCardName(g, a.Src()) == "No Witnesses" {
 				if p.mode == 0 {
 					p.tally.lead++
 				} else {

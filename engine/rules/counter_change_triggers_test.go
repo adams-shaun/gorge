@@ -57,7 +57,7 @@ func corpusTokenEngine(t *testing.T) *Engine {
 func TestKateStewartSoldierPerTimeCounterBatch(t *testing.T) {
 	t.Parallel()
 	e := corpusTokenEngine(t)
-	kate := onBoardCard(t, e, 0, mshCorpusCard(t, "Kate Stewart"))
+	kate := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Kate Stewart"))
 	// The trigger's ValidCard$ is Permanent.YouCtrl+inRealZoneBattlefield, so
 	// the counters must land on a battlefield permanent Kate's controller
 	// owns. Use another battlefield permanent (not self-scoped).
@@ -119,7 +119,7 @@ func TestKateStewartSoldierPerTimeCounterBatch(t *testing.T) {
 func TestDinosaursTokenPerTimeCounterRemoved(t *testing.T) {
 	t.Parallel()
 	e := corpusTokenEngine(t)
-	dino := mshCorpusCard(t, "Dinosaurs on a Spaceship")
+	dino := corpusAlternativeCard(t, "Dinosaurs on a Spaceship")
 
 	// Exiled with suspend provenance and three TIME counters.
 	o := e.G.AddObject(dino, 0)
@@ -187,7 +187,7 @@ func TestDinosaursTokenPerTimeCounterRemoved(t *testing.T) {
 func TestRegenerationsRestoredScrysOncePerBatch(t *testing.T) {
 	t.Parallel()
 	e := corpusTokenEngine(t)
-	id := onBoardCard(t, e, 0, mshCorpusCard(t, "Regenerations Restored"))
+	id := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Regenerations Restored"))
 
 	// The library must hold enough cards for the scry to have a window; the
 	// scry itself poses a real KArrange ask below.
@@ -260,7 +260,7 @@ func TestRegenerationsRestoredScrysOncePerBatch(t *testing.T) {
 func TestCounterRemovedOnceReferentsCaptureTheBatch(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	id := onBoardCard(t, e, 0, mshCorpusCard(t, "Regenerations Restored"))
+	id := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Regenerations Restored"))
 	trig := e.G.Obj(id).Face().Triggers[0]
 	if trig.Mode != "CounterRemovedOnce" {
 		t.Fatalf("Regenerations Restored trigger[0] mode = %q, want CounterRemovedOnce", trig.Mode)

@@ -16,7 +16,7 @@ import (
 // and its attacker binding.
 func TestMustBlockCorpusTolsimirForcesTargetBlock(t *testing.T) {
 	e := threeSeatEngine(t)
-	tolsimirCard := mshCorpusCard(t, "Tolsimir, Midnight's Light")
+	tolsimirCard := corpusAlternativeCard(t, "Tolsimir, Midnight's Light")
 	tolsimir := onBoardCard(t, e, 0, tolsimirCard)
 	wolf := onBoard(t, e, 0, "Name:Wolf Token\nTypes:Token Creature Wolf\nPT:2/2\nOracle:x\n")
 	blocker := onBoard(t, e, 1, "Name:Opponent Bear\nTypes:Creature Bear\nPT:3/3\nOracle:x\n")

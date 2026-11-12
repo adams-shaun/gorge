@@ -18,7 +18,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
-	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
@@ -54,17 +53,6 @@ const asIfHasteTapperSrc = "Name:Test Tapper\nManaCost:G\nTypes:Creature Elf\nPT
 	"A:AB$ Mana | Cost$ T | Produced$ G | SpellDescription$ Add {G}.\n" +
 	"Oracle:x\n"
 
-// wantsActivation reports whether p's legal actions include an activation of
-// obj.
-func wantsActivation(e *Engine, p state.PlayerID, obj state.ObjID) bool {
-	for _, o := range e.legalActions(p) {
-		if o.Kind == "activate" && o.Obj == obj {
-			return true
-		}
-	}
-	return false
-}
-
 // TestActivateAbilityAsIfHasteOffersSickTapper is the behavioural leaf: a
 // summoning-sick {T} mana source is withheld (asserted, so a vacuous setup
 // fails), and an ActivateAbilityAsIfHaste static controlled by its controller
@@ -81,7 +69,7 @@ func TestActivateAbilityAsIfHasteOffersSickTapper(t *testing.T) {
 	if !e.G.Obj(tapper).SummonSick || !e.IsCreature(tapper) {
 		t.Fatal("precondition: the tapper must be a summoning-sick creature on the battlefield")
 	}
-	if wantsActivation(e, 0, tapper) {
+	if phaseOutActivateOffered(e, 0, tapper) {
 		t.Fatal("precondition: the summoning-sick tapper was offered without the static")
 	}
 
@@ -92,7 +80,7 @@ func TestActivateAbilityAsIfHasteOffersSickTapper(t *testing.T) {
 	if !activatesAsIfHaste(e, tapper) {
 		t.Fatal("activatesAsIfHaste did not select the controller's own creature")
 	}
-	if !wantsActivation(e, 0, tapper) {
+	if !phaseOutActivateOffered(e, 0, tapper) {
 		t.Fatal("ActivateAbilityAsIfHaste did not offer the summoning-sick tapper's {T} ability")
 	}
 }
@@ -117,7 +105,7 @@ func TestActivateAbilityAsIfHasteIsScopedToTheControllersCreatures(t *testing.T)
 	if activatesAsIfHaste(e, tapper) {
 		t.Fatal("an opponent's ActivateAbilityAsIfHaste exempted seat 0's creature (ValidCard$ scope broken)")
 	}
-	if wantsActivation(e, 0, tapper) {
+	if phaseOutActivateOffered(e, 0, tapper) {
 		t.Fatal("opponent's ActivateAbilityAsIfHaste wrongly offered seat 0's sick tapper")
 	}
 }

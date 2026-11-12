@@ -120,7 +120,7 @@ func (p *permMarkProbe) pick(c *PickCtx) Canon {
 	if g := c.G; g != nil && kbargainHellkiteZone(g, state.ZHand, c.D.Player)["Red Guardian, Super-Soldier"] > 0 {
 		if damagedOpp(g.E.G, state.PlayerID(c.D.Player)) {
 			for _, x := range casts {
-				if kbargainName(g, x.Src()) == "Red Guardian, Super-Soldier" {
+				if refCardName(g, x.Src()) == "Red Guardian, Super-Soldier" {
 					return x
 				}
 			}

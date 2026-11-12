@@ -86,7 +86,7 @@ func fofTestEngine(t *testing.T) (*Engine, Config, []state.ObjID, state.ObjID) {
 	lib = e.G.Zone(state.ZLibrary, 0)
 	order := append([]state.ObjID(nil), revealIDs...)
 	for _, id := range lib {
-		if !fofContainsID(revealIDs, id) {
+		if !contains(revealIDs, id) {
 			order = append(order, id)
 		}
 	}
@@ -108,15 +108,6 @@ func fofTestEngine(t *testing.T) (*Engine, Config, []state.ObjID, state.ObjID) {
 		t.Fatalf("after the cast: %+v, want the TwoPiles split KChoose", d)
 	}
 	return e, cfg, revealIDs, fofID
-}
-
-func fofContainsID(ids []state.ObjID, want state.ObjID) bool {
-	for _, id := range ids {
-		if id == want {
-			return true
-		}
-	}
-	return false
 }
 
 // TestFactOrFictionSplitsAndMovesThePiles is the before/after pin: before

@@ -23,7 +23,7 @@ import (
 // recipient -- i.e. the gate was met and the amount survived the move.
 func TestDismantleDestroysCounteredTargetAndPlacesCounters(t *testing.T) {
 	t.Parallel()
-	dismantle := mustCorpusCardT(t, "Dismantle")
+	dismantle := corpusAlternativeCard(t, "Dismantle")
 	// The target has NO indestructible: it is destroyed, so only LKI can
 	// carry its counters into the chained PutCounter.
 	target := card(t, "Name:Dismantled Relic\nTypes:Artifact\nOracle:x\n")

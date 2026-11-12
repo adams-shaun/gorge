@@ -12,19 +12,6 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// These tests pin the registered DB$ CopyPermanent primitive, on
-// real corpus cards, end to end. Every one asserts there is no
-// "unimplemented API CopyPermanent" note anywhere in the log, and that the
-// whole game replays byte-identically from its log.
-func noUnimplementedCopyPermanent(t *testing.T, e *Engine) {
-	t.Helper()
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note && strings.Contains(ev.Text, "unimplemented API") {
-			t.Fatalf("log carries an unimplemented-API note: %q", ev.Text)
-		}
-	}
-}
-
 // findTokenCopyOf returns the battlefield token whose face is card's and
 // whose id is none of the skips (the original, a previously found copy), or
 // fails.

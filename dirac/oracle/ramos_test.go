@@ -111,15 +111,7 @@ type kramosScenario struct {
 }
 
 func (p *kramosScenario) Pick(c *PickCtx) Canon {
-	switch c.D.Kind {
-	case DMulligan:
-		return pickKind(c, ActKeep)
-	case DAttackers, DBlockers:
-		return pickKind(c, ActDone)
-	case DPriority:
-		return p.priority(c)
-	}
-	return c.D.Options[0]
+	return mulliganDonePick(p.priority, c)
 }
 
 func (p *kramosScenario) priority(c *PickCtx) Canon {
@@ -130,7 +122,7 @@ func (p *kramosScenario) priority(c *PickCtx) Canon {
 	if a, ok := findAction(c, func(a Canon) bool { return a.Kind() == ActPlayLand }); ok {
 		return a
 	}
-	ramos := mccoyFind(g, "Ramos, Dragon Engine", 0)
+	ramos := reproBattlefieldObj(g, "Ramos, Dragon Engine", 0)
 	n := int32(0)
 	if ramos != nil {
 		n = ramos.Counter("P1P1")
@@ -144,14 +136,14 @@ func (p *kramosScenario) priority(c *PickCtx) Canon {
 		if kramosInHand(g, name) {
 			held = true
 		}
-		if a, ok := mccoyCast(c, g, 0, name); ok && !offered {
+		if a, ok := reproHandCastAction(c, g, 0, name); ok && !offered {
 			off, offered = a, true
 		}
 	}
 	// a sorcery-speed position: some creature cast is offered (a white one)
 	sorcery := false
 	for _, name := range []string{"Savannah Lions", "Healer's Hawk", "Ramos, Dragon Engine"} {
-		if _, ok := mccoyCast(c, g, 0, name); ok {
+		if _, ok := reproHandCastAction(c, g, 0, name); ok {
 			sorcery = true
 		}
 	}
@@ -181,7 +173,7 @@ func (p *kramosScenario) priority(c *PickCtx) Canon {
 		if name == "Ramos, Dragon Engine" && ramos != nil {
 			continue // (the legend rule would ask)
 		}
-		if a, ok := mccoyCast(c, g, 0, name); ok {
+		if a, ok := reproHandCastAction(c, g, 0, name); ok {
 			return a
 		}
 	}

@@ -280,13 +280,20 @@ func runInitiativeUpkeepScenario(t *testing.T, reg *cards.Registry) (*Engine, Co
 	return e, cfg
 }
 
+// initiativeUpkeepReplayBody drives the upkeep-venture scenario and checks
+// its replay head; the shared body of the two upkeep-replay tests below.
+func initiativeUpkeepReplayBody(t *testing.T) {
+	t.Helper()
+	reg := testutil.CorpusRegistry(t)
+	e, cfg := runInitiativeUpkeepScenario(t, reg)
+	initiativeReplayHead(t, e, cfg)
+}
+
 // TestInitiativeHolderVenturesAtTheirUpkeep: the
 // holder's next upkeep ventures again (a non-holder's upkeep does not).
 func TestInitiativeHolderVenturesAtTheirUpkeep(t *testing.T) {
 	t.Parallel()
-	reg := testutil.CorpusRegistry(t)
-	e, cfg := runInitiativeUpkeepScenario(t, reg)
-	initiativeReplayHead(t, e, cfg)
+	initiativeUpkeepReplayBody(t)
 }
 
 // combatBearSrc is the inline attacker/blocker fixture (never a corpus .txt).
@@ -364,9 +371,7 @@ func TestCombatDamageToInitiativeHolderMovesItAndVentures(t *testing.T) {
 // the same chain head.
 func TestInitiativeReplayHead(t *testing.T) {
 	t.Parallel()
-	reg := testutil.CorpusRegistry(t)
-	e, cfg := runInitiativeUpkeepScenario(t, reg)
-	initiativeReplayHead(t, e, cfg)
+	initiativeUpkeepReplayBody(t)
 }
 
 // ---- CR 726.4: the initiative holder leaving the game ----

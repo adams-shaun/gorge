@@ -554,19 +554,6 @@ func driveToStepCleanupWindow(t *testing.T, e *Engine, turn int32, active state.
 	t.Fatalf("never reached a cleanup priority window")
 }
 
-// passPriorityOption returns the pass option index of the pending priority
-// decision, failing the test when there is none.
-func passPriorityOption(t *testing.T, d *decision.Decision) int {
-	t.Helper()
-	for _, o := range d.Options {
-		if o.Kind == "pass" {
-			return o.Index
-		}
-	}
-	t.Fatalf("priority decision with no pass option: %+v", d)
-	return -1
-}
-
 // TestMayFlashSacCleanupWindowPumpExpiresInRepeatedCleanup is the reviewer's
 // until-end-of-turn break attempt. The MayFlashSac delayed sacrifice opens
 // priority during the cleanup step; seat 0 casts a pump instant in that

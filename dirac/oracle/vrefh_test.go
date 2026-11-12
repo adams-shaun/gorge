@@ -38,14 +38,6 @@ type kvrefhStats struct {
 	compel              int // Compel Brutality's planeswalker mode chosen
 }
 
-// kvrefhName is the name of the object's face ("" for none).
-func kvrefhName(g *state.Game, id state.ObjID) string {
-	if ob := g.Obj(id); ob != nil && ob.Face() != nil {
-		return ob.Face().Name
-	}
-	return ""
-}
-
 // kvrefhPolicy takes any non-pass priority option (so the equipment is cast,
 // equipped and used), attacks whenever possible, picks the planeswalker mode
 // when offered, else random; it counts the carriers' gorge-side events.
@@ -102,10 +94,10 @@ func kvrefhPolicy(seed uint64, st *kvrefhStats) Policy {
 			switch {
 			case c.D.Kind == DModes && a.Kind() == ActMode && a.Mode() == 1:
 				st.compel++
-			case a.Kind() == ActAttack && kvrefhName(g, o.Obj) == "Kefka, Court Mage":
+			case a.Kind() == ActAttack && chName(g, o.Obj) == "Kefka, Court Mage":
 				st.kefka++
 			case a.Kind() == ActCast:
-				if n := kvrefhName(g, o.Obj); n == "Divination" || n == "Lightning Bolt" {
+				if n := chName(g, o.Obj); n == "Divination" || n == "Lightning Bolt" {
 					for i := range g.Objs {
 						gl := &g.Objs[i]
 						if gl.Zone == state.ZBattlefield && gl.Face() != nil && gl.Face().Name == "Glamdring, Foe-hammer" &&

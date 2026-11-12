@@ -115,38 +115,6 @@ func keffScan(g *GorgeSide) keffGame {
 	return km
 }
 
-// keffPolicy is eagerPolicy: random, but it prefers a cast or activation when
-// one is offered, so the games reach the carriers instead of passing. It
-// also records each played card for the report.
-func keffPolicy(seed uint64, played map[string]int) Policy {
-	rnd := RandomPolicy(seed)
-	var buf []Canon
-	return PolicyFunc(func(c *PickCtx) Canon {
-		buf = buf[:0]
-		for _, a := range c.D.Options {
-			if k := a.Kind(); k == ActCast || k == ActActivate {
-				buf = append(buf, a)
-			}
-		}
-		var a Canon
-		if len(buf) == 0 {
-			a = rnd.Pick(c)
-		} else {
-			d := *c.D
-			d.Options = buf
-			a = rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
-		}
-		if k := a.Kind(); (k == ActCast || k == ActActivate) && c.G != nil {
-			if o, ok := c.G.GorgeOption(a); ok {
-				if ob := c.G.E.G.Obj(o.Obj); ob != nil && ob.Face() != nil {
-					played[ob.Face().Name]++
-				}
-			}
-		}
-		return a
-	})
-}
-
 // keffTally is one run's counters.
 type keffTally struct {
 	total    keffGame
@@ -208,7 +176,7 @@ func keffRun(t *testing.T, reg *cards.Registry, set cardset.Set, tbl *kop.Table,
 		var km keffGame
 		rc := RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 25,
 			Finish: func(g *GorgeSide) { km = keffScan(g) }}
-		res := Lockstep(m, seed, k, keffPolicy(seed, tal.played), rc)
+		res := Lockstep(m, seed, k, castActivatePlayedPolicy(seed, tal.played), rc)
 		CloseSide(k)
 		tal.games++
 		tal.total.countExiles += km.countExiles

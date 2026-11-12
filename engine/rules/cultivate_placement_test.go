@@ -25,15 +25,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// optionObjs returns each option's object id in wire order.
-func optionObjs(d *decision.Decision) []state.ObjID {
-	out := make([]state.ObjID, 0, len(d.Options))
-	for _, o := range d.Options {
-		out = append(out, o.Obj)
-	}
-	return out
-}
-
 // requireNamedOptions asserts no option is the blind placeholder -- the "the
 // chooser already knows this card" half of the fix -- and that each label is
 // the option object's real printed name.
@@ -102,8 +93,8 @@ func TestCultivatePlacementLegs(t *testing.T) {
 		t.Fatalf("battlefield leg prompt = %q, want the card's SelectPrompt$", got)
 	}
 	requireNamedOptions(t, e, d1, "battlefield leg")
-	if !sameObjMultiset(optionObjs(d1), want) {
-		t.Fatalf("battlefield leg offered %v, want the picked %v", optionObjs(d1), want)
+	if !sameObjMultiset(optionObjIDs(d1), want) {
+		t.Fatalf("battlefield leg offered %v, want the picked %v", optionObjIDs(d1), want)
 	}
 	placed := d1.Options[0]
 	submitChoices(t, e, placed.Index)
@@ -123,7 +114,7 @@ func TestCultivatePlacementLegs(t *testing.T) {
 		remaining = picked[1].Obj
 	}
 	if len(d2.Options) != 1 || d2.Options[0].Obj != remaining {
-		t.Fatalf("hand leg offered %v, want the one card not yet placed (%d)", optionObjs(d2), remaining)
+		t.Fatalf("hand leg offered %v, want the one card not yet placed (%d)", optionObjIDs(d2), remaining)
 	}
 	requireNamedOptions(t, e, d2, "hand leg")
 	submitChoices(t, e, d2.Options[0].Index)
@@ -202,8 +193,8 @@ func TestSearchLegNoRevealSameChooser(t *testing.T) {
 		t.Fatalf("hand leg chooser = seat %d, want the caster (0) who picked by name", d1.Player)
 	}
 	requireNamedOptions(t, e, d1, "no-reveal hand leg")
-	if !sameObjMultiset(optionObjs(d1), want) {
-		t.Fatalf("hand leg offered %v, want the picked %v", optionObjs(d1), want)
+	if !sameObjMultiset(optionObjIDs(d1), want) {
+		t.Fatalf("hand leg offered %v, want the picked %v", optionObjIDs(d1), want)
 	}
 	submitChoices(t, e, d1.Options[0].Index)
 	if d2 := e.Pending(); d2 != nil && d2.Kind == decision.KChoose {
@@ -258,8 +249,8 @@ func TestSearchLegOpponentChooser(t *testing.T) {
 		t.Fatalf("graveyard leg prompt = %q, want the card's SelectPrompt$", got)
 	}
 	requireNamedOptions(t, e, d1, "opponent graveyard leg")
-	if !sameObjMultiset(optionObjs(d1), want) {
-		t.Fatalf("graveyard leg offered %v, want the 2 revealed cards %v", optionObjs(d1), want)
+	if !sameObjMultiset(optionObjIDs(d1), want) {
+		t.Fatalf("graveyard leg offered %v, want the 2 revealed cards %v", optionObjIDs(d1), want)
 	}
 	submitChoices(t, e, d1.Options[0].Index, d1.Options[1].Index)
 	passUntilStackEmpty(t, e, 30)

@@ -82,7 +82,7 @@ func TestDiscoverSeekTriggersAreRegistered(t *testing.T) {
 // opponent, 2 life to Val's controller -- replay-verified.
 func TestValMaroonedSurveyorDiscoverMarkerDealsDamageAndGainsLife(t *testing.T) {
 	t.Parallel()
-	val := tokenReplCorpusCard(t, "Val, Marooned Surveyor")
+	val := corpusAlternativeCard(t, "Val, Marooned Surveyor")
 	e, cfg := tokenReplGame(t, 91, val)
 	valID := moveSeededCard(t, e, 0, val, state.ZBattlefield)
 	life0, life1 := e.G.Players[0].Life, e.G.Players[1].Life
@@ -107,7 +107,7 @@ func TestValMaroonedSurveyorDiscoverMarkerDealsDamageAndGainsLife(t *testing.T) 
 // life -- replay-verified.
 func TestValMaroonedSurveyorSeekMarkerFiresTheSecondaryHalfOnItsOwn(t *testing.T) {
 	t.Parallel()
-	val := tokenReplCorpusCard(t, "Val, Marooned Surveyor")
+	val := corpusAlternativeCard(t, "Val, Marooned Surveyor")
 	e, cfg := tokenReplGame(t, 92, val)
 	valID := moveSeededCard(t, e, 0, val, state.ZBattlefield)
 	life0, life1 := e.G.Players[0].Life, e.G.Players[1].Life
@@ -126,7 +126,7 @@ func TestValMaroonedSurveyorSeekMarkerFiresTheSecondaryHalfOnItsOwn(t *testing.T
 // another player leaves Val silent (the non-matching-player pin).
 func TestValMaroonedSurveyorMarkerFromAnotherPlayerDoesNotFire(t *testing.T) {
 	t.Parallel()
-	val := tokenReplCorpusCard(t, "Val, Marooned Surveyor")
+	val := corpusAlternativeCard(t, "Val, Marooned Surveyor")
 	e, cfg := tokenReplGame(t, 93, val)
 	valID := moveSeededCard(t, e, 0, val, state.ZBattlefield)
 	life0, life1 := e.G.Players[0].Life, e.G.Players[1].Life
@@ -148,7 +148,7 @@ func TestValMaroonedSurveyorMarkerFromAnotherPlayerDoesNotFire(t *testing.T) {
 // queue-time gate the actionTriggerModes membership makes apply.
 func TestCuratorOfSunsCreationDiscoverFiresOnceEachTurn(t *testing.T) {
 	t.Parallel()
-	curator := tokenReplCorpusCard(t, "Curator of Sun's Creation")
+	curator := corpusAlternativeCard(t, "Curator of Sun's Creation")
 	e, cfg := tokenReplGame(t, 94, curator)
 	cID := moveSeededCard(t, e, 0, curator, state.ZBattlefield)
 	discoverSeekMarker(t, e, events.Discover, 0, cID)
@@ -172,7 +172,7 @@ func TestCuratorOfSunsCreationDiscoverFiresOnceEachTurn(t *testing.T) {
 // c_3_3_a_phyrexian_golem token script), replay-verified.
 func TestVexyrSeekMarkerCreatesTheGolemToken(t *testing.T) {
 	t.Parallel()
-	vexyr := tokenReplCorpusCard(t, "Vexyr, Ich-Tekik's Heir")
+	vexyr := corpusAlternativeCard(t, "Vexyr, Ich-Tekik's Heir")
 	e, cfg := tokenReplGame(t, 95, vexyr)
 	vID := moveSeededCard(t, e, 0, vexyr, state.ZBattlefield)
 	discoverSeekMarker(t, e, events.Seek, 0, vID)

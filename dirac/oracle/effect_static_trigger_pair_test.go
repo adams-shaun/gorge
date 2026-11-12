@@ -9,14 +9,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// reproObjName is the card name of object id, "" if it is gone.
-func reproObjName(g *state.Game, id state.ObjID) string {
-	if o := g.Obj(id); o != nil && o.Face() != nil {
-		return o.Face().Name
-	}
-	return ""
-}
-
 // TestEffectStaticTriggerPairReprosReach: the two repros replay clean in
 // lockstep with every scripted action offered and reach what they pin; the
 // lockstep rows alone would accept a script that never got there.
@@ -38,7 +30,7 @@ func TestEffectStaticTriggerPairReprosReach(t *testing.T) {
 		{"effect_capture_trigger_flickers_the_dealer", func(g *state.Game, evs []events.Event, from int, st map[string]bool) {
 			for _, ev := range evs[from:] {
 				switch {
-				case ev.Kind == events.TriggerPush && reproObjName(g, ev.Obj) == "Long River Lurker" && g.Step == state.StepCombatDamage:
+				case ev.Kind == events.TriggerPush && chName(g, ev.Obj) == "Long River Lurker" && g.Step == state.StepCombatDamage:
 					st["damage trigger"] = true
 				case st["damage trigger"] && ev.Kind == events.MoveZone && ev.From == state.ZBattlefield && ev.To == state.ZExile:
 					st["exiled"] = true
@@ -55,10 +47,10 @@ func TestEffectStaticTriggerPairReprosReach(t *testing.T) {
 					// captured creature's alone
 					pride, wall := false, false
 					for _, id := range ev.IDs {
-						pride = pride || reproObjName(g, id) == "The Pride of Hull Clade"
+						pride = pride || chName(g, id) == "The Pride of Hull Clade"
 					}
 					for _, id := range g.Zone(state.ZBattlefield, 0) {
-						wall = wall || reproObjName(g, id) == "Overgrown Battlement"
+						wall = wall || chName(g, id) == "Overgrown Battlement"
 					}
 					if pride && wall {
 						st["defender attacked beside a wall"] = true

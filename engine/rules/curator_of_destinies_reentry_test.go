@@ -84,7 +84,7 @@ func curatorReentryEngine(t *testing.T) (*Engine, Config, []state.ObjID, state.O
 	lib := e.G.Zone(state.ZLibrary, 0)
 	order := append([]state.ObjID(nil), revealIDs...)
 	for _, id := range lib {
-		if !curatorContainsID(revealIDs, id) {
+		if !contains(revealIDs, id) {
 			order = append(order, id)
 		}
 	}
@@ -143,15 +143,6 @@ func curatorReentryEngine(t *testing.T) (*Engine, Config, []state.ObjID, state.O
 		t.Fatalf("Curator remembered set = %+v, want %d entries after the first resolution", cur.Remembered, curatorRevealTop)
 	}
 	return e, cfg, revealIDs, curatorID
-}
-
-func curatorContainsID(ids []state.ObjID, want state.ObjID) bool {
-	for _, id := range ids {
-		if id == want {
-			return true
-		}
-	}
-	return false
 }
 
 // curatorUntilSplit drives the decisions before a Curator split ask: the
@@ -240,7 +231,7 @@ func TestCuratorSecondResolutionMovesOnlyItsOwnCards(t *testing.T) {
 		}
 		secondReveal = append(secondReveal, o.Obj)
 	}
-	if curatorContainsID(secondReveal, recycled) {
+	if contains(secondReveal, recycled) {
 		t.Fatalf("the recycled card %d is in the second reveal window; move it to the library bottom", recycled)
 	}
 	submitChoices(t, e, d.Options[0].Index, d.Options[1].Index)

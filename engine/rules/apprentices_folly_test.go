@@ -53,19 +53,10 @@ func passUntilFollyTarget(t *testing.T, e *Engine, turn int32) *decision.Decisio
 	return nil
 }
 
-func follyOfferIndex(d *decision.Decision, id state.ObjID) int {
-	for _, o := range d.Options {
-		if o.Obj == id {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 func TestApprenticesFollyChapterOneCopiesNontokenCreature(t *testing.T) {
 	e, cfg, bear := follyCastToChapterOneTarget(t, nil)
 	d := e.Pending()
-	pick := follyOfferIndex(d, bear)
+	pick := indexOfObjOption(d, bear)
 	if pick < 0 {
 		t.Fatalf("chapter I does not offer the Bear: %+v", d.Options)
 	}
@@ -110,20 +101,20 @@ func TestApprenticesFollyChapterTwoRefusesNameSharedWithToken(t *testing.T) {
 			dragon = id
 		}
 	}
-	if dragon == 0 || follyOfferIndex(d, bear) < 0 || follyOfferIndex(d, dragon) < 0 {
+	if dragon == 0 || indexOfObjOption(d, bear) < 0 || indexOfObjOption(d, dragon) < 0 {
 		t.Fatalf("precondition: chapter I must offer the Bear (%d) and the Dragon (%d): %+v", bear, dragon, d.Options)
 	}
-	submitChoices(t, e, follyOfferIndex(d, bear))
+	submitChoices(t, e, indexOfObjOption(d, bear))
 	passUntilStackEmpty(t, e, 40)
 	// Chapter II triggers at seat 0's next precombat main.
 	d2 := passUntilFollyTarget(t, e, e.G.Turn+2)
 	if e.G.Active != 0 || e.G.Step != state.StepMain1 {
 		t.Fatalf("precondition: chapter II ask at seat %d step %s, want seat 0 main1", e.G.Active, e.G.Step)
 	}
-	if follyOfferIndex(d2, bear) >= 0 {
+	if indexOfObjOption(d2, bear) >= 0 {
 		t.Errorf("chapter II offers the Bear although a token named Bear exists: %+v", d2.Options)
 	}
-	if follyOfferIndex(d2, dragon) < 0 {
+	if indexOfObjOption(d2, dragon) < 0 {
 		t.Errorf("chapter II does not offer the differently named Dragon: %+v", d2.Options)
 	}
 }

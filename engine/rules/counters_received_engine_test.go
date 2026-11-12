@@ -14,10 +14,10 @@ import (
 func TestCountersReceivedThisTurnEngine(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
-	forge := onBoardCard(t, e, 0, yourCountersCard(t, "La Forge, Thoughtful as Ever"))
-	mine := onBoardCard(t, e, 0, yourCountersCard(t, "Wakka, Devoted Guardian"))
-	theirsMarkedByMe := onBoardCard(t, e, 1, yourCountersCard(t, "Wakka, Devoted Guardian"))
-	markedByThem := onBoardCard(t, e, 0, yourCountersCard(t, "Wakka, Devoted Guardian"))
+	forge := onBoardCard(t, e, 0, corpusAlternativeCard(t, "La Forge, Thoughtful as Ever"))
+	mine := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Wakka, Devoted Guardian"))
+	theirsMarkedByMe := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Wakka, Devoted Guardian"))
+	markedByThem := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Wakka, Devoted Guardian"))
 
 	body := svarBodyOf(t, e.G.Obj(forge).Face(), "X")
 	if body != "Count$Valid Permanent.YouCtrl+countersReceivedThisTurn_GE1_Any_You" {

@@ -68,7 +68,7 @@ func TestSeatDeckManifestTutorPromptIsAuthoritative(t *testing.T) {
 	if slices.Contains(offered, "Grizzly Bears") {
 		t.Fatalf("search offered a manifest card absent from the library: %v", offered)
 	}
-	for _, id := range optionIDs(d) {
+	for _, id := range optionObjIDs(d) {
 		if !slices.Contains(lib, id) {
 			t.Fatalf("search offered object %d which is not in the current library", id)
 		}

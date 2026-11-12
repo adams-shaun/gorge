@@ -44,7 +44,7 @@ func veilResolvedThisTurn(g *GorgeSide) bool {
 		switch {
 		case e.Kind == events.TurnChange:
 			done = false
-		case e.Kind == events.MoveZone && e.From == state.ZStack && e.To == state.ZGraveyard && objFace(g, e.Obj) == "Veil of Summer":
+		case e.Kind == events.MoveZone && e.From == state.ZStack && e.To == state.ZGraveyard && sideObjName(g, e.Obj) == "Veil of Summer":
 			done = true
 		}
 	}

@@ -68,10 +68,10 @@ func TestTrialOfAgonyCantBlockRider(t *testing.T) {
 			}
 			submitChoices(t, e, cast)
 			targetAsk := e.Pending()
-			if targetAsk == nil || targetAsk.Kind != decision.KTarget || targetOptionIndex(targetAsk, wallID) < 0 || targetOptionIndex(targetAsk, colossusID) < 0 {
+			if targetAsk == nil || targetAsk.Kind != decision.KTarget || indexOfObjOption(targetAsk, wallID) < 0 || indexOfObjOption(targetAsk, colossusID) < 0 {
 				t.Fatalf("precondition: both target creatures must be offered: %+v", targetAsk)
 			}
-			submitChoices(t, e, targetOptionIndex(targetAsk, wallID), targetOptionIndex(targetAsk, colossusID))
+			submitChoices(t, e, indexOfObjOption(targetAsk, wallID), indexOfObjOption(targetAsk, colossusID))
 			choose := passUntilAskKind(t, e, decision.KChoose, 200)
 			if choose.Player != 1 || choose.ResumeKind != "choice" || len(choose.Options) != 2 {
 				t.Fatalf("Trial of Agony choice = %+v, want opponent choosing one of two", choose)

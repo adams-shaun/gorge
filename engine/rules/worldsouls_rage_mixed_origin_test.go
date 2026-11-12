@@ -37,7 +37,7 @@ func TestWorldsoulsRagePicksFromHandAndGraveyardInOneAnswer(t *testing.T) {
 			t.Fatalf("land %d entered untapped", land)
 		}
 	}
-	if hasNoteContaining(e, "mixed ChangeZone Origin") {
+	if hasNote(e, "mixed ChangeZone Origin") {
 		t.Fatal("a mixed-origin Note fired although both chosen lands moved")
 	}
 	replayCheck(t, e, cfg)

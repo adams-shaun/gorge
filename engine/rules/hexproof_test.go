@@ -5,7 +5,6 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
-	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
@@ -25,18 +24,6 @@ import (
 // quality test's black source, paired with the existing shockScript (red).
 const darkBlastScript = "Name:Dark Blast\nManaCost:B\nTypes:Instant\n" +
 	"A:SP$ DealDamage | ValidTgts$ Creature | NumDmg$ 2\nOracle:x\n"
-
-// addHexproofCardToHand puts an arbitrary compiled card into seat p's hand
-// eventlessly (the handEngine decks are Mountains; the fixture card exists
-// nowhere to find), recording it in the hand zone so the cast walk offers it.
-// Mirrors shroud_test.go's addShockToHand for the two-spell quality test.
-func addHexproofCardToHand(t *testing.T, e *Engine, p state.PlayerID, src string) state.ObjID {
-	t.Helper()
-	o := e.G.AddObject(card(t, src), p)
-	o.Zone = state.ZHand
-	e.G.SetZone(state.ZHand, p, append(e.G.Zone(state.ZHand, p), o.ID))
-	return o.ID
-}
 
 // TestPrintedHexproofWithholdsOpponentButNotController is the asymmetry leaf
 // (CR 702.11b): a printed K:Hexproof creature is not a legal target of an
@@ -137,7 +124,7 @@ func TestHexproofFromBlackIsQualityAware(t *testing.T) {
 	black := handEngine(t)
 	grace := corpusCard(t, "Knight of Grace")
 	onBoardCard(t, black, 1, grace)
-	blast := addHexproofCardToHand(t, black, 0, darkBlastScript)
+	blast := onHand(t, black, 0, darkBlastScript)
 	addMana(t, black, 0, "B")
 	black.askPriority(0)
 	if d := black.Pending(); castOffered(black, blast) {

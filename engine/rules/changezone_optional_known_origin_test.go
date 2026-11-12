@@ -1,10 +1,7 @@
 package rules
 
 import (
-	"strings"
 	"testing"
-
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // CR 603.5 / 608.2d: a known-origin ChangeZone that carries Optional$ asks
@@ -12,18 +9,6 @@ import (
 // drops that object only, and with no host "may" plays as "do". The
 // hand, hidden-pick, search and object walkers (Intimidation Campaign, Mistbreath
 // Elder, Clash of Elements) all pose the confirmation.
-
-func runCZOptional(t *testing.T, sc string) OracleResult {
-	t.Helper()
-	res, err := RunOracleScenarioJSON(testutil.CorpusRegistry(t), []byte(sc))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res.Fails) != 0 {
-		t.Fatalf("scenario failed: %v\n%s", res.Fails, strings.Join(res.Transcript, "\n"))
-	}
-	return res
-}
 
 func czOptionalLast(res OracleResult) OracleSnapshot {
 	return res.Snapshots[len(res.Snapshots)-1]
@@ -45,7 +30,7 @@ func intimidationScenario(answers string) string {
 }
 
 func TestChangeZoneOptionalKnownOriginDeclineKeeps(t *testing.T) {
-	no := runCZOptional(t, intimidationScenario(`,"answers":[{"kind":"choose","pick":["No"],"seat":0}]`))
+	no := runInline(t, intimidationScenario(`,"answers":[{"kind":"choose","pick":["No"],"seat":0}]`))
 	fin := czOptionalLast(no)
 	if _, ok := snapPerm(fin, "p0:Intimidation Campaign"); !ok {
 		t.Fatalf("declined: Campaign left the battlefield; hand %v", fin.Players[0].Hand)
@@ -58,7 +43,7 @@ func TestChangeZoneOptionalKnownOriginDeclineKeeps(t *testing.T) {
 		t.Fatalf("p1 life = %d, want 18 (Shock resolved)", fin.Players[1].Life)
 	}
 
-	yes := runCZOptional(t, intimidationScenario(`,"answers":[{"kind":"choose","pick":["Yes"],"seat":0}]`))
+	yes := runInline(t, intimidationScenario(`,"answers":[{"kind":"choose","pick":["Yes"],"seat":0}]`))
 	fin = czOptionalLast(yes)
 	if _, ok := snapPerm(fin, "p0:Intimidation Campaign"); ok {
 		t.Fatalf("accepted: Campaign still on the battlefield")
@@ -69,7 +54,7 @@ func TestChangeZoneOptionalKnownOriginDeclineKeeps(t *testing.T) {
 }
 
 func TestChangeZoneOptionalKnownOriginNoHostMoves(t *testing.T) {
-	res := runCZOptional(t, intimidationScenario(``))
+	res := runInline(t, intimidationScenario(``))
 	fin := czOptionalLast(res)
 	if fin.Players[1].Life != 18 {
 		t.Fatalf("p1 life = %d, want 18 (Shock resolved)", fin.Players[1].Life)
@@ -89,7 +74,7 @@ func mistbreathScenario(battlefield, answers string) string {
 
 func TestMistbreathElderOptionalSelfReturn(t *testing.T) {
 	// Lone Elder, decline: it stays and gains no counter.
-	fin := czOptionalLast(runCZOptional(t, mistbreathScenario(``,
+	fin := czOptionalLast(runInline(t, mistbreathScenario(``,
 		`,"answers":[{"kind":"choose","pick":["No"],"seat":0}]`)))
 	elder, ok := snapPerm(fin, "p0:Mistbreath Elder")
 	if !ok {
@@ -99,7 +84,7 @@ func TestMistbreathElderOptionalSelfReturn(t *testing.T) {
 		t.Fatalf("declined: Elder counters = %v, want none", elder.Counters)
 	}
 	// Lone Elder, accept: it returns.
-	fin = czOptionalLast(runCZOptional(t, mistbreathScenario(``,
+	fin = czOptionalLast(runInline(t, mistbreathScenario(``,
 		`,"answers":[{"kind":"choose","pick":["Yes"],"seat":0}]`)))
 	if _, ok := snapPerm(fin, "p0:Mistbreath Elder"); ok || !czOptionalHas(fin.Players[0].Hand, "Mistbreath Elder") {
 		t.Fatalf("accepted: Elder should be in hand; hand %v", fin.Players[0].Hand)
@@ -107,7 +92,7 @@ func TestMistbreathElderOptionalSelfReturn(t *testing.T) {
 	// With a Bears beside it the Bears return, the Elder grows, and the
 	// optional self-return is never posed (its condition fails): the only
 	// answer consumed is the Bears pick.
-	fin = czOptionalLast(runCZOptional(t, mistbreathScenario(`"Grizzly Bears"`,
+	fin = czOptionalLast(runInline(t, mistbreathScenario(`"Grizzly Bears"`,
 		`,"answers":[{"kind":"choose","pick":["p0:Grizzly Bears"]}]`)))
 	elder, ok = snapPerm(fin, "p0:Mistbreath Elder")
 	if !ok || elder.Counters["P1P1"] != 1 {
@@ -126,7 +111,7 @@ func clashScenario(answers string) string {
 
 func TestClashOfElementsOwnerChooses(t *testing.T) {
 	// The ask is posed to seat 1 (the Bears' owner), not the caster.
-	noRes := runCZOptional(t, clashScenario(`,"answers":[{"kind":"choose","pick":["No"],"seat":1}]`))
+	noRes := runInline(t, clashScenario(`,"answers":[{"kind":"choose","pick":["No"],"seat":1}]`))
 	base := noRes.Snapshots[0].Players[1].LibraryCount
 	if _, ok := snapPerm(noRes.Snapshots[0], "p1:Grizzly Bears"); !ok {
 		t.Fatalf("setup: Bears not on the battlefield")
@@ -143,7 +128,7 @@ func TestClashOfElementsOwnerChooses(t *testing.T) {
 			no.Players[1].LibraryCount, no.Players[1].LibraryTop, base+1)
 	}
 
-	yes := czOptionalLast(runCZOptional(t, clashScenario(`,"answers":[{"kind":"choose","pick":["Yes"],"seat":1}]`)))
+	yes := czOptionalLast(runInline(t, clashScenario(`,"answers":[{"kind":"choose","pick":["Yes"],"seat":1}]`)))
 	if yes.Players[1].Life != 18 {
 		t.Fatalf("accepted: p1 life = %d, want 18", yes.Players[1].Life)
 	}

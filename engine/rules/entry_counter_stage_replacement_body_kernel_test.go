@@ -25,8 +25,8 @@ func TestEntryCounterStageReplacementBodyTwoGrants(t *testing.T) {
 		want int32
 	}{{"scales-first", 0, 8}, {"evolution-first", 1, 6}} {
 		t.Run(tc.name, func(t *testing.T) {
-			scales := tokenReplCorpusCard(t, "Hardened Scales")
-			evolution := tokenReplCorpusCard(t, "Branching Evolution")
+			scales := corpusAlternativeCard(t, "Hardened Scales")
+			evolution := corpusAlternativeCard(t, "Branching Evolution")
 			echo := card(t, "Name:Entry Echo\nTypes:Enchantment\n"+
 				"R:Event$ Moved | ActiveZones$ Battlefield | ValidCard$ Creature.Bear+YouOwn,Creature.Elf+YouOwn | Destination$ Battlefield | ReplaceWith$ Echo | ReplacementResult$ Updated | Description$ echo\n"+
 				"SVar:Echo:DB$ GainLife | Defined$ You | LifeAmount$ 1 | SubAbility$ Fetch\n"+

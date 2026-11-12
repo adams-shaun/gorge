@@ -19,7 +19,7 @@ import (
 // must still carry the play the kernel offers.
 func TestLoweringThatWinsTheGameIsACompletedPlay(t *testing.T) {
 	t.Parallel()
-	reg := ebgCorpus(t)
+	reg := synthReg(t)
 	look := func(name string) *cards.Card {
 		c, ok := reg.Lookup(name)
 		if !ok {

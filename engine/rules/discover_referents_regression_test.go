@@ -13,7 +13,7 @@ import (
 // discover value rather than degrading to discover 0.
 func TestCuratorOfSunsCreationRepeatsTheDiscoverValue(t *testing.T) {
 	t.Parallel()
-	curator := tokenReplCorpusCard(t, "Curator of Sun's Creation")
+	curator := corpusAlternativeCard(t, "Curator of Sun's Creation")
 	e, cfg := tokenReplGame(t, 7015704, curator)
 	curatorID := moveSeededCard(t, e, 0, curator, state.ZBattlefield)
 	if o := e.G.Obj(curatorID); o == nil || o.Zone != state.ZBattlefield {

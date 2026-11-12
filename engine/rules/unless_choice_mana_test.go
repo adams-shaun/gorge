@@ -63,7 +63,7 @@ func TestCounterUnlessPaidFromChoiceMana(t *testing.T) {
 	if d == nil || d.ResumeKind != "unless_mana" {
 		t.Fatalf("no mana window after choosing to pay: %+v", d)
 	}
-	submitChoices(t, e, optionForObj(d, id))
+	submitChoices(t, e, indexOfObjOption(d, id))
 	if !e.G.Obj(id).Tapped {
 		t.Fatal("the land did not tap")
 	}

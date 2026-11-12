@@ -28,7 +28,7 @@ func TestMaxHandSizeLatestTimestampWins(t *testing.T) {
 		{"unlimited then ten", noMaxHandSrc, tenMaxHandSrc, 10},
 		{"ten then unlimited", tenMaxHandSrc, noMaxHandSrc, unlimitedHandSize},
 	} {
-		e := landBase(t)
+		e := mayPlayBase(t)
 		a := onBoardGrant(t, e, 0, tc.first)
 		b := onBoardGrant(t, e, 0, tc.second)
 		if ta, tb := e.G.Obj(a).LayerTimestamp(), e.G.Obj(b).LayerTimestamp(); tb <= ta {

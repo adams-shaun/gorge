@@ -76,7 +76,7 @@ func kaurPick(c *PickCtx, st *kaurState, rnd Policy) Canon {
 		case o == nil:
 		case o.FaceDownHidden():
 			faceDown = true
-		case o.Face() != nil && kfacedownMox(o.Face().Name) && !o.Tapped:
+		case o.Face() != nil && isMoxName(o.Face().Name) && !o.Tapped:
 			untappedMox++
 		}
 	}
@@ -104,7 +104,7 @@ func kaurPick(c *PickCtx, st *kaurState, rnd Policy) Canon {
 	var haveLand, haveWhite bool
 	var haveMox, haveAur, haveAven2, haveShock, havePriest, haveTurnUp bool
 	for _, a := range c.D.Options {
-		n := kfacedownName(c, a)
+		n := optionFaceName(c, a)
 		switch {
 		case a.Kind() == ActPlayLand && n == "Crumbling Vestige":
 			land, haveLand = a, true
@@ -133,7 +133,7 @@ func kaurPick(c *PickCtx, st *kaurState, rnd Policy) Canon {
 				tgtField, haveField = a, true
 			}
 			tgtAny, haveAny = a, true
-		case a.Kind() == ActCast && kfacedownMox(n):
+		case a.Kind() == ActCast && isMoxName(n):
 			mox, haveMox = a, true
 		case a.Kind() == ActCast && n == "Aven Farseer":
 			aven, haveAven2 = a, true
@@ -193,7 +193,7 @@ func kaurPick(c *PickCtx, st *kaurState, rnd Policy) Canon {
 	}
 	var rest []Canon
 	for _, a := range c.D.Options {
-		n := kfacedownName(c, a)
+		n := optionFaceName(c, a)
 		switch {
 		case a.Kind() == ActSpecial && a.Mode() == kfacedownTurnUp:
 		case a.Kind() == ActCast && (n == "Iridescent Tiger" || n == "Shock" || n == "Aven Farseer" || n == "Aurelia's Vindicator"):

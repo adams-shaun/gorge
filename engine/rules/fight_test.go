@@ -1,8 +1,6 @@
 package rules
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -16,17 +14,6 @@ import (
 // synthetic fixtures for the rider/edge shapes. The corpus carriers are read
 // as script text so they seed through newFixtureDeck as real deck cards and
 // replayCheck can replay them.
-
-// corpusCardText reads one Forge script out of the gitignored corpus — a
-// file-backed twin of msh_commander_trigger_test.go's mshCorpusCardPath.
-func corpusCardText(t *testing.T, rel string) string {
-	t.Helper()
-	b, err := os.ReadFile(filepath.Join("..", "..", ".cards", "cardsfolder", rel))
-	if err != nil {
-		t.Fatalf("read corpus card %s: %v", rel, err)
-	}
-	return string(b)
-}
 
 // fightDrain passes priority until the stack empties, answering the targeting
 // asks Fight's paths pose along the way: the ETB placement ask (KTarget, from

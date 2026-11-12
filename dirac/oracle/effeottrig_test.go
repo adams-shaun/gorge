@@ -54,7 +54,7 @@ func keffeottrigPolicy(seed uint64, st *keffeottrigCounts) Policy {
 		haveUp, haveDown, haveDalk, haveTiger, haveListener, haveDone := false, false, false, false, false, false
 		buf = buf[:0]
 		for _, a := range c.D.Options {
-			n := kfacedownName(c, a)
+			n := optionFaceName(c, a)
 			switch a.Kind() {
 			case ActSpecial:
 				if a.Mode()&15 == kfacedownTurnUp {
@@ -107,7 +107,7 @@ func keffeottrigPolicy(seed uint64, st *keffeottrigCounts) Policy {
 			case ActCastFace, ActPlayLand:
 				buf = append(buf, a)
 			case ActCast:
-				if kfacedownName(c, a) != "Mistway Spy" {
+				if optionFaceName(c, a) != "Mistway Spy" {
 					buf = append(buf, a)
 				}
 			}

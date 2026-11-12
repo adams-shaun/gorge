@@ -20,17 +20,6 @@ const phasedManaArtifact = "Name:Mana Rock\nManaCost:2\nTypes:Artifact\n" +
 	"A:AB$ Mana | Cost$ T | Produced$ G | SpellDescription$ Add {G}.\n" +
 	"Oracle:{T}: Add {G}.\n"
 
-// phaseOutActivateOffered reports whether p's legal-action offer includes an
-// "activate" (tap-for-mana) option for obj.
-func phaseOutActivateOffered(e *Engine, p state.PlayerID, obj state.ObjID) bool {
-	for _, o := range e.legalActions(p) {
-		if o.Kind == "activate" && o.Obj == obj {
-			return true
-		}
-	}
-	return false
-}
-
 // TestCR702PhasedOutPermanentActivatedAbilityNotOffered pins CR 702.25b: a
 // phased-out permanent is treated as though it does not exist, so none of
 // its activated abilities is offered. The phased-in control on the SAME
@@ -67,7 +56,7 @@ func TestCR702PhasedOutPermanentActivatedAbilityNotOffered(t *testing.T) {
 func TestCR702PhasedOutAttackerIsRemovedFromCombat(t *testing.T) {
 	t.Parallel()
 	e, cfg := phasesGame(t, 502, "Grizzly Bears")
-	bears := moveSeededCard(t, e, 0, tokenReplCorpusCard(t, "Grizzly Bears"), state.ZBattlefield)
+	bears := moveSeededCard(t, e, 0, corpusAlternativeCard(t, "Grizzly Bears"), state.ZBattlefield)
 	o := e.G.Obj(bears)
 	if o == nil || o.Zone != state.ZBattlefield {
 		t.Fatal("precondition: Bears not on the battlefield")
@@ -98,8 +87,8 @@ func TestCR702PhasedOutAttackerIsRemovedFromCombat(t *testing.T) {
 func TestCR702PhasedOutBlockerLeavesZeroTombstone(t *testing.T) {
 	t.Parallel()
 	e, _ := phasesGame(t, 503, "Grizzly Bears", "Hill Giant")
-	attacker := moveSeededCard(t, e, 0, tokenReplCorpusCard(t, "Grizzly Bears"), state.ZBattlefield)
-	blocker := moveSeededCard(t, e, 0, tokenReplCorpusCard(t, "Hill Giant"), state.ZBattlefield)
+	attacker := moveSeededCard(t, e, 0, corpusAlternativeCard(t, "Grizzly Bears"), state.ZBattlefield)
+	blocker := moveSeededCard(t, e, 0, corpusAlternativeCard(t, "Hill Giant"), state.ZBattlefield)
 	a := e.G.Obj(attacker)
 	if a == nil || e.G.Obj(blocker) == nil {
 		t.Fatal("precondition: attacker/blocker not on the battlefield")

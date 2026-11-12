@@ -46,16 +46,6 @@ func witsPayAsk(t *testing.T, e *Engine) *decision.Decision {
 	return d
 }
 
-// witsPayOption returns the index of the window's pay option, or -1.
-func witsPayOption(d *decision.Decision) int {
-	for _, o := range d.Options {
-		if o.Kind == "trigger_cost_pay" {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 // TestChampionOfWitsDrawsItsPowerThenDiscardsTwo pins the whole chain on the
 // real corpus card: an entering 2/1 offers the Draw<X/You> cost, paying it
 // draws exactly two cards (X = power 2), and the chained discard takes
@@ -67,7 +57,7 @@ func TestChampionOfWitsDrawsItsPowerThenDiscardsTwo(t *testing.T) {
 	searchMoveByName(t, e, "Champion of Wits", state.ZBattlefield)
 
 	pay := witsPayAsk(t, e)
-	payIdx := witsPayOption(pay)
+	payIdx := optionIndexForKind(pay, "trigger_cost_pay")
 	if payIdx < 0 {
 		t.Fatalf("the Draw<X/You> cost was not offered as payable: %+v", pay.Options)
 	}

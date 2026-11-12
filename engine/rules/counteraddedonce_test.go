@@ -17,7 +17,7 @@ import (
 // read per event rather than hard-coded.
 func TestCounterAddedOncePutsThatManyGrowthCounters(t *testing.T) {
 	t.Parallel()
-	asc := mshCorpusCard(t, "Simic Ascendancy")
+	asc := corpusAlternativeCard(t, "Simic Ascendancy")
 	e := combatEngine(t)
 	id := onBoardCard(t, e, 0, asc)
 	bear := onBoard(t, e, 0, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
@@ -61,7 +61,7 @@ func TestCounterAddedOncePutsThatManyGrowthCounters(t *testing.T) {
 // across the public event stream rather than only in one resolution.
 func TestCounterAddedOnceReplaysThePayoff(t *testing.T) {
 	t.Parallel()
-	asc := mshCorpusCard(t, "Simic Ascendancy")
+	asc := corpusAlternativeCard(t, "Simic Ascendancy")
 	e := combatEngine(t)
 	id := onBoardCard(t, e, 0, asc)
 	bear := onBoard(t, e, 0, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
@@ -88,7 +88,7 @@ func TestCounterAddedOnceReplaysThePayoff(t *testing.T) {
 // the right object.
 func TestCounterAddedOnceReferentsCaptureTheBatch(t *testing.T) {
 	t.Parallel()
-	asc := mshCorpusCard(t, "Simic Ascendancy")
+	asc := corpusAlternativeCard(t, "Simic Ascendancy")
 	e := combatEngine(t)
 	id := onBoardCard(t, e, 0, asc)
 	bear := onBoard(t, e, 0, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")

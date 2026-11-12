@@ -130,7 +130,7 @@ func TestSacrificedOncePerBatch(t *testing.T) {
 // more. The old implicit once-per-turn limit left the count at 1.
 func TestTokenCreatedOncePerBatch(t *testing.T) {
 	t.Parallel()
-	staff := tokenReplCorpusCard(t, "Staff of the Storyteller")
+	staff := corpusAlternativeCard(t, "Staff of the Storyteller")
 	maker := cardByName(t, "Name:Double Forge\nTypes:Artifact\n"+
 		"A:AB$ Token | Cost$ T | TokenScript$ g_1_1_squirrel | TokenOwner$ You | TokenAmount$ 2\nOracle:x\n")
 	e, cfg := tokenReplGame(t, 41, staff, maker)

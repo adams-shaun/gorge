@@ -139,17 +139,6 @@ func drainVoteTrigger(t *testing.T, e *Engine, carrierID state.ObjID) *decision.
 	return nil
 }
 
-// drawsFor counts the Draw events the log records for one seat.
-func drawsFor(e *Engine, p state.PlayerID) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Draw && ev.Player == p {
-			n++
-		}
-	}
-	return n
-}
-
 // voteFinishedNotes counts the canonical vote-finished Notes in the log.
 func voteFinishedNotes(e *Engine) int {
 	n := 0

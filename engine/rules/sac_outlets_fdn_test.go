@@ -22,16 +22,6 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// fdnSacCard looks a corpus card up and fails fast when it is absent.
-func fdnSacCard(t *testing.T, reg *cards.Registry, name string) *cards.Card {
-	t.Helper()
-	c, ok := reg.Lookup(name)
-	if !ok {
-		t.Fatalf("corpus missing %s", name)
-	}
-	return c
-}
-
 // cv7CountNamed counts seat p's battlefield permanents whose face is named
 // name (used for the Treasure token assertion).
 func cv7CountNamed(e *Engine, p state.PlayerID, name string) int {
@@ -69,7 +59,7 @@ func cv7PickLabel(t *testing.T, e *Engine, substr string) {
 func TestFDNHungryGhoulSacrificesAnotherCreatureForACounter(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
-	ghoul := fdnSacCard(t, reg, "Hungry Ghoul")
+	ghoul := registryCardOrFatal(t, reg, "Hungry Ghoul")
 	bear := card(t, staticBearFixture)
 
 	e, cfg := restrictionGame(t, 9701,
@@ -136,7 +126,7 @@ func TestFDNHungryGhoulSacrificesAnotherCreatureForACounter(t *testing.T) {
 func TestFDNHungryGhoulCannotSacrificeItselfOrANonCreature(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
-	ghoul := fdnSacCard(t, reg, "Hungry Ghoul")
+	ghoul := registryCardOrFatal(t, reg, "Hungry Ghoul")
 	bear := card(t, staticBearFixture)
 	rock := card(t, "Name:CV7 Rock\nManaCost:0\nTypes:Artifact\nOracle:x\n")
 
@@ -172,7 +162,7 @@ func TestFDNHungryGhoulCannotSacrificeItselfOrANonCreature(t *testing.T) {
 func TestFDNVampireGourmandAttackDrawsAndGoesUnblockable(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
-	gourmand := fdnSacCard(t, reg, "Vampire Gourmand")
+	gourmand := registryCardOrFatal(t, reg, "Vampire Gourmand")
 	bear := card(t, staticBearFixture)
 	courser := card(t, "Name:CV7 Courser\nManaCost:3 G\nTypes:Creature Beast\nPT:3/3\nOracle:x\n")
 
@@ -214,8 +204,8 @@ func TestFDNFakeYourOwnDeathReturnsTappedWithATreasure(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	bear := card(t, staticBearFixture)
-	fyod := fdnSacCard(t, reg, "Fake Your Own Death")
-	bolt := fdnSacCard(t, reg, "Lightning Bolt")
+	fyod := registryCardOrFatal(t, reg, "Fake Your Own Death")
+	bolt := registryCardOrFatal(t, reg, "Lightning Bolt")
 
 	e, cfg := restrictionGame(t, 9705,
 		[][]*cards.Card{{fyod, bolt}, {}},

@@ -76,7 +76,7 @@ func TestTriggerLimitsResetWhenTheSourceIsBlinked(t *testing.T) {
 				"SVar:TrigDraw:DB$ Draw\nOracle:x\n")
 			e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -1})
 			e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -1})
-			if n := queuedFrom(e, id); n != 1 {
+			if n := queuedPhaseTriggers(e, id); n != 1 {
 				t.Fatalf("same object, two losses: %d queued, want 1", n)
 			}
 			e.pendingTriggers = nil
@@ -84,11 +84,11 @@ func TestTriggerLimitsResetWhenTheSourceIsBlinked(t *testing.T) {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZExile, To: state.ZBattlefield})
 			e.pendingTriggers = nil
 			e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -1})
-			if n := queuedFrom(e, id); n != 1 {
+			if n := queuedPhaseTriggers(e, id); n != 1 {
 				t.Fatalf("the blinked permanent is a new object: %d queued, want 1", n)
 			}
 			e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -1})
-			if n := queuedFrom(e, id); n != 1 {
+			if n := queuedPhaseTriggers(e, id); n != 1 {
 				t.Fatalf("the new object's own trigger spends its limit: %d queued, want still 1", n)
 			}
 		})

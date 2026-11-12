@@ -53,31 +53,11 @@ func kincrementSetup(t *testing.T) (*cards.Registry, cardset.Set) {
 	return reg, set
 }
 
-func kincrementDecksOf(t *testing.T, reg *cards.Registry, md [2][]cardset.Entry) [2][]*cards.Card {
-	t.Helper()
-	var decks [2][]*cards.Card
-	for s, d := range md {
-		for _, e := range d {
-			c, ok := reg.Lookup(e.Name)
-			if !ok {
-				t.Fatalf("%s not in the corpus", e.Name)
-			}
-			for i := 0; i < e.Count; i++ {
-				decks[s] = append(decks[s], c)
-			}
-		}
-		if len(decks[s]) != 40 {
-			t.Fatalf("deck %d: %d cards", s, len(decks[s]))
-		}
-	}
-	return decks
-}
-
 // kincrementRun plays seeds 1..seeds of the matchup; it returns the games
 // played, whether any diverged (the first is logged) and the stalls.
 func kincrementRun(t *testing.T, reg *cards.Registry, set cardset.Set, seeds uint64, n map[string]int, stopOnDiv bool) (games int, div bool, stalls int) {
 	t.Helper()
-	decks := kincrementDecksOf(t, reg, kincrementDecks)
+	decks := kcastDeck(t, reg, kincrementDecks)
 	tbl, _, _, err := set.Matchup(kincrementDecks[0], kincrementDecks[1])
 	if err != nil {
 		t.Fatal(err)

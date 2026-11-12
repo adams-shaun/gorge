@@ -36,7 +36,7 @@ func TestTriggerKeepsItsSVarsWhenItsSourceBecomesACopy(t *testing.T) {
 		if d == nil || d.Kind != decision.KTarget {
 			t.Fatalf("no target decision for %d: %+v", target, d)
 		}
-		submitChoices(t, e, optionForObj(d, target))
+		submitChoices(t, e, indexOfObjOption(d, target))
 	}
 	resolveStack(t, e)
 	if f := e.G.Obj(stitcher).Face(); f == nil || f.Name != "Grizzly Bears" {

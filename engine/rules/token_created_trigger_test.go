@@ -23,22 +23,12 @@ func untapUntaps(t *testing.T, e *Engine, id state.ObjID) {
 	e.emit(events.Event{Kind: events.Untap, Obj: id})
 }
 
-// indexOfObjOption returns the option index targeting object id, or -1.
-func indexOfObjOption(d *decision.Decision, id state.ObjID) int {
-	for _, o := range d.Options {
-		if o.Obj == id {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 // TestTokenCreatedMirkwoodBatsLosesLifePerToken is the filing card: one Food
 // token mint -> each opponent loses exactly 1 life; a second mint in the same
 // turn loses 1 more (per-token firing, NOT once-per-turn).
 func TestTokenCreatedMirkwoodBatsLosesLifePerToken(t *testing.T) {
 	t.Parallel()
-	bats := tokenReplCorpusCard(t, "Mirkwood Bats")
+	bats := corpusAlternativeCard(t, "Mirkwood Bats")
 	maker := cardByName(t, tokenForgeSrc("c_a_food_sac"))
 	e, cfg := tokenReplGame(t, 41, bats, maker)
 	moveSeededCard(t, e, 0, bats, state.ZBattlefield)
@@ -111,7 +101,7 @@ func answerTargetAsksWith(t *testing.T, e *Engine, opt, forbidden state.ObjID) i
 // answered choice puts a +1/+1 counter on a creature other than Rosie.
 func TestTokenCreatedRosieCottonAsksCounterTarget(t *testing.T) {
 	t.Parallel()
-	rosie := tokenReplCorpusCard(t, "Rosie Cotton of South Lane")
+	rosie := corpusAlternativeCard(t, "Rosie Cotton of South Lane")
 	maker := cardByName(t, tokenForgeSrc("c_a_food_sac"))
 	bear := card(t, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e, cfg := tokenReplGame(t, 41, rosie, maker, bear)
@@ -155,7 +145,7 @@ func TestTokenCreatedRosieCottonAsksCounterTarget(t *testing.T) {
 // self-feed forever.)
 func TestTokenCreatedOnceFiresOnTheFirstMintOfEachTurn(t *testing.T) {
 	t.Parallel()
-	akim := tokenReplCorpusCard(t, "Akim, the Soaring Wind")
+	akim := corpusAlternativeCard(t, "Akim, the Soaring Wind")
 	maker := cardByName(t, tokenForgeSrc("c_a_food_sac"))
 	e, cfg := tokenReplGame(t, 41, akim, maker)
 	moveSeededCard(t, e, 0, akim, state.ZBattlefield)
@@ -188,7 +178,7 @@ func TestTokenCreatedOnceFiresOnTheFirstMintOfEachTurn(t *testing.T) {
 // tokens queue nothing and the FIFTH transforms CARDNAME.
 func TestTokenCreatedVoldarenBloodcasterFiveBloodGate(t *testing.T) {
 	t.Parallel()
-	vol := tokenReplCorpusCard(t, "Voldaren Bloodcaster")
+	vol := corpusAlternativeCard(t, "Voldaren Bloodcaster")
 	maker := cardByName(t, tokenForgeSrc("c_a_blood_draw"))
 	e, cfg := tokenReplGame(t, 41, vol, maker)
 	volID := moveSeededCard(t, e, 0, vol, state.ZBattlefield)

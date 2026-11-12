@@ -5,6 +5,8 @@ package rules
 // Submit.
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -257,4 +259,87 @@ func publicRevealsFrom(e *Engine, from int) []events.Event {
 		}
 	}
 	return out
+}
+
+func corpusCardText(t *testing.T, rel string) string {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join("..", "..", ".cards", "cardsfolder", rel))
+	if err != nil {
+		t.Fatalf("read corpus card %s: %v", rel, err)
+	}
+	return string(b)
+}
+
+func corpusCardAtPath(t *testing.T, path string) *cards.Card {
+	t.Helper()
+	c, ds := cards.Parse(filepath.Join("..", "..", ".cards", "cardsfolder", path))
+	if len(ds) != 0 {
+		t.Fatalf("parse %s: %v", path, ds)
+	}
+	if ds = c.Link(); len(ds) != 0 {
+		t.Fatalf("link %s: %v", path, ds)
+	}
+	return c
+}
+
+// registryCardOrFatal looks a corpus card up and fails fast when it is absent.
+func registryCardOrFatal(t *testing.T, reg *cards.Registry, name string) *cards.Card {
+	t.Helper()
+	c, ok := reg.Lookup(name)
+	if !ok {
+		t.Fatalf("corpus missing %s", name)
+	}
+	return c
+}
+
+// mshCorpusCardPath parses a live corpus card at test time (GPL scripts stay
+// out of the repo), so a pin runs against the real Forge script.
+func mshCorpusCardPath(t *testing.T, name, path string) *cards.Card {
+	t.Helper()
+	c, ds := cards.Parse(filepath.Join("..", "..", ".cards", "cardsfolder", path))
+	if len(ds) != 0 {
+		t.Fatalf("parse %s: %v", name, ds)
+	}
+	if ds = c.Link(); len(ds) != 0 {
+		t.Fatalf("link %s: %v", name, ds)
+	}
+	return c
+}
+
+func corpusCardOrFatal(t *testing.T, name string) *cards.Card {
+	t.Helper()
+	c, ok := testutil.CorpusRegistry(t).Lookup(name)
+	if !ok {
+		t.Fatalf("corpus card %q missing", name)
+	}
+	return c
+}
+
+// lookup is reg.Lookup or the test fails: a corpus card these tests
+// depend on being absent is a corpus-pin change, not something to paper over.
+func lookup(t *testing.T, reg *cards.Registry, name string) *cards.Card {
+	t.Helper()
+	c, ok := reg.Lookup(name)
+	if !ok {
+		t.Fatalf("corpus fixture: %q missing from the registry", name)
+	}
+	return c
+}
+
+func registryCardByName(t *testing.T, reg *cards.Registry, name string) *cards.Card {
+	t.Helper()
+	c, ok := reg.Lookup(name)
+	if !ok {
+		t.Fatalf("card %q not in the corpus", name)
+	}
+	return c
+}
+
+func corpusAlternativeCard(t *testing.T, name string) *cards.Card {
+	t.Helper()
+	c, ok := testutil.CorpusRegistry(t).Lookup(name)
+	if !ok {
+		t.Fatalf("corpus missing %s", name)
+	}
+	return c
 }

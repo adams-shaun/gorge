@@ -74,17 +74,8 @@ type kprops9Tally struct {
 	castFrom map[string]state.Zone
 }
 
-func kprops9Bf(g *state.Game, pl state.PlayerID) (out []*state.Object) {
-	for _, b := range g.Zone(state.ZBattlefield, pl) {
-		if o := g.Obj(b); o != nil {
-			out = append(out, o)
-		}
-	}
-	return out
-}
-
 func kprops9Has(g *state.Game, pl state.PlayerID, name string) bool {
-	for _, o := range kprops9Bf(g, pl) {
+	for _, o := range battlefieldObjects(g, pl) {
 		if chName(g, o.ID) == name {
 			return true
 		}
@@ -97,7 +88,7 @@ func (p *kprops9Tally) flush(g *state.Game, st *kprops9Stats, ctrl state.PlayerI
 		st.greedSac++
 		opp := 1 - ctrl
 		n := 0
-		for _, o := range kprops9Bf(g, opp) {
+		for _, o := range battlefieldObjects(g, opp) {
 			if o.Face() != nil && o.Face().IsCreature() {
 				n++
 			}

@@ -193,7 +193,7 @@ func kstackrewritePolicy(seed uint64, st *kstackrewriteStats) Policy {
 			for _, a := range c.D.Options {
 				// Glen Elendra's Answer is held until the opponent has two
 				// things on the stack, then cast at once
-				if a.Kind() == ActCast && kfullyName(c, a) == "Glen Elendra's Answer" {
+				if a.Kind() == ActCast && gorgeOptionName(c, a) == "Glen Elendra's Answer" {
 					if theirs < 2 {
 						continue
 					}

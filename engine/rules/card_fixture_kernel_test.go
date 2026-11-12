@@ -207,8 +207,8 @@ func optionIdxOfObj(t *testing.T, d *decision.Decision, id state.ObjID) int {
 // zoneOfID is id's current zone.
 func zoneOfID(e *Engine, id state.ObjID) state.Zone { return e.G.Obj(id).Zone }
 
-// hasNoteContaining reports whether any Note on the log contains substr.
-func hasNoteContaining(e *Engine, substr string) bool {
+// hasNote reports whether any Note on the log contains substr.
+func hasNote(e *Engine, substr string) bool {
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.Note && strings.Contains(ev.Text, substr) {
 			return true

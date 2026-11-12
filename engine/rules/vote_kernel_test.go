@@ -70,7 +70,7 @@ func TestErestorVoteFinishedTreasureScryAndDrawKernel(t *testing.T) {
 	run := func(votes []int, wantSame [3]int, wantScry int) {
 		e, _ := voteCarrierEngine(t, reg, "Erestor of the Council")
 		carrier := enterCarrier(t, e, "Erestor of the Council")
-		before := drawsFor(e, 0)
+		before := countDraws(e, 0)
 		resolveVote(t, e, votes)
 		scry := drainVoteTrigger(t, e, carrier)
 		for p, want := range wantSame {
@@ -91,7 +91,7 @@ func TestErestorVoteFinishedTreasureScryAndDrawKernel(t *testing.T) {
 					votes, scry, wantScry)
 			}
 		}
-		if got := drawsFor(e, 0) - before; got != 2 {
+		if got := countDraws(e, 0) - before; got != 2 {
 			t.Fatalf("votes %v: seat 0 drew %d, want 2 (the vote outcome's draw + the trigger's DBDraw)", votes, got)
 		}
 		if got := voteFinishedNotes(e); got != 1 {

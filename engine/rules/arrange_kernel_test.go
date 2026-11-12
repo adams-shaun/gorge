@@ -10,7 +10,7 @@ import "testing"
 func TestArrangePosesDecisionAndSuspends(t *testing.T) {
 	t.Parallel()
 	e, _, id := arrangeFixture(t, 100)
-	d := arrangeDecision(t, e, id)
+	d := scryDecision(t, e, id)
 	if d.Min != 3 || d.Max != 3 {
 		t.Fatalf("Min/Max = %d/%d, want 3/3 (a full reorder is a permutation over the top N)", d.Min, d.Max)
 	}

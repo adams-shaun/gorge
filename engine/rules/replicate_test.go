@@ -66,22 +66,6 @@ func castBear(t *testing.T, e *Engine) state.ObjID {
 	return bear
 }
 
-// replicateOption returns the priority option casting id in the given mode.
-func replicateOption(t *testing.T, e *Engine, id state.ObjID, mode string) decision.Option {
-	t.Helper()
-	d := e.Pending()
-	if d == nil {
-		t.Fatal("no decision pending")
-	}
-	for _, o := range d.Options {
-		if o.Kind == "cast" && o.Obj == id && o.Mode == mode {
-			return o
-		}
-	}
-	t.Fatalf("no %q cast option for %d: %+v", mode, id, d.Options)
-	return decision.Option{}
-}
-
 // chooseReplicate submits the count decision's option whose Amount is want.
 func chooseReplicate(t *testing.T, e *Engine, want int) {
 	t.Helper()

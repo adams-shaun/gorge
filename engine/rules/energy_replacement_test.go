@@ -36,7 +36,7 @@ func energyReplSource(t testing.TB, n int) *cards.Card {
 // authored energy source onto seat 0's battlefield.
 func boardWithEnergyReplacement(t *testing.T, seed uint64, replName string, placed int) (*Engine, Config, state.ObjID) {
 	t.Helper()
-	repl := tokenReplCorpusCard(t, replName)
+	repl := corpusAlternativeCard(t, replName)
 	src := energyReplSource(t, placed)
 	e, cfg := tokenReplGame(t, seed, repl, src)
 	moveSeededCard(t, e, 0, repl, state.ZBattlefield)
@@ -148,8 +148,8 @@ func TestIzzetGeneratoriumAddsOneEnergy(t *testing.T) {
 // assert for Hardened Scales + Branching Evolution.
 func TestEnergyReplacementsComposeScanOrder(t *testing.T) {
 	t.Parallel()
-	refinery := tokenReplCorpusCard(t, "Aether Refinery")
-	generatorium := tokenReplCorpusCard(t, "Izzet Generatorium")
+	refinery := corpusAlternativeCard(t, "Aether Refinery")
+	generatorium := corpusAlternativeCard(t, "Izzet Generatorium")
 	src := energyReplSource(t, 1)
 	e, cfg := tokenReplGame(t, 4107, refinery, generatorium, src)
 	moveSeededCard(t, e, 0, refinery, state.ZBattlefield)

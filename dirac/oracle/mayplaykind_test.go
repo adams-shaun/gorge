@@ -67,27 +67,6 @@ var mayplaykindDecks = [][2][]cardset.Entry{{
 	},
 }}
 
-// mayplaykindPolicy casts or activates whenever it can (so the games reach the
-// permission-kind impulse draws), else random.
-func mayplaykindPolicy(seed uint64) Policy {
-	rnd := RandomPolicy(seed)
-	var buf []Canon
-	return PolicyFunc(func(c *PickCtx) Canon {
-		buf = buf[:0]
-		for _, a := range c.D.Options {
-			if k := a.Kind(); k == ActCast || k == ActActivate {
-				buf = append(buf, a)
-			}
-		}
-		if len(buf) == 0 {
-			return rnd.Pick(c)
-		}
-		d := *c.D
-		d.Options = buf
-		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
-	})
-}
-
 func TestMayPlayKindRiderLockstep(t *testing.T) {
 	t.Parallel()
 
@@ -132,7 +111,7 @@ func TestMayPlayKindRiderLockstep(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			pol := mayplaykindPolicy(seed)
+			pol := castActivatePolicy(seed)
 			if seed%4 == 0 {
 				pol = RandomPolicy(seed)
 			}

@@ -8,23 +8,6 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// runFixtureScenario plays a scenario as RunOracleScenarioJSON does
-// (xmageFixture) and fails the test on any scenario failure.
-func runFixtureScenario(t *testing.T, raw string) (OracleResult, *oracleRun) {
-	t.Helper()
-	reg := testutil.CorpusRegistry(t)
-	sc, err := decodeOracleScenario([]byte(raw))
-	if err != nil {
-		t.Fatal(err)
-	}
-	sc.xmageFixture = true
-	fails, transcript, run := runOracleScenario(reg, sc)
-	if len(fails) != 0 {
-		t.Fatalf("scenario failed: %v\n%s", fails, strings.Join(transcript, "\n"))
-	}
-	return OracleResult{Fails: fails, Transcript: transcript, Snapshots: run.snaps}, run
-}
-
 func setupPermCount(snap OracleSnapshot, name string) int {
 	n := 0
 	for _, p := range snap.Permanents {

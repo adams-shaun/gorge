@@ -117,7 +117,7 @@ func TestEveryOfferedPriorityOptionActs(t *testing.T) {
 //     the next state-changing event.
 func TestStalePriorityOptionIsRejectedOrHeldOut(t *testing.T) {
 	t.Parallel()
-	bears := tokenReplCorpusCard(t, "Grizzly Bears")
+	bears := corpusAlternativeCard(t, "Grizzly Bears")
 	e, _ := tokenReplGame(t, 9183, bears)
 	bearID := moveSeededCard(t, e, 0, bears, state.ZBattlefield)
 	e.pending = nil

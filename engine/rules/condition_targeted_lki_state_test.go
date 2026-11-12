@@ -53,7 +53,7 @@ func TestConditionTargetedReadsLKIState(t *testing.T) {
 			hand := len(e.G.Zone(state.ZHand, 1))
 			spell := e.G.Zone(state.ZHand, 0)[0]
 			castMode(t, e, spell, "")
-			submitChoices(t, e, optionForObj(e.Pending(), target.ID))
+			submitChoices(t, e, indexOfObjOption(e.Pending(), target.ID))
 			passUntilStackEmpty(t, e, 20)
 			if target.Zone == state.ZBattlefield {
 				t.Fatalf("%s left its target on the battlefield", tc.spell)

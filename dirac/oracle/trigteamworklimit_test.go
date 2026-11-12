@@ -99,11 +99,11 @@ func (c *ktrigp3Tally) check(ref *GorgeSide, _ Side) *Divergence {
 		case events.MoveZone:
 			c.moves[e.Obj]++
 			c.zone[e.Obj] = e.To
-			if cpName(g, e.Obj) == "Acrobatic Cheerleader" {
+			if chName(g, e.Obj) == "Acrobatic Cheerleader" {
 				c.cheer[e.Obj] = true
 			}
 		case events.Tap:
-			if cpName(g, e.Obj) == "Agent Maria Hill" {
+			if chName(g, e.Obj) == "Agent Maria Hill" {
 				if e.Counter == events.TapTeamworkCounter {
 					c.twTaps++
 				} else {
@@ -111,7 +111,7 @@ func (c *ktrigp3Tally) check(ref *GorgeSide, _ Side) *Divergence {
 				}
 			}
 		case events.TriggerPush:
-			switch cpName(g, e.Obj) {
+			switch chName(g, e.Obj) {
 			case "Agent Maria Hill":
 				c.mariaTrig++
 			case "Acrobatic Cheerleader":
@@ -157,7 +157,7 @@ func ktrigp3Policy(seed uint64) Policy {
 				}
 				if len(picks) > 0 {
 					for _, a := range picks {
-						if kteamworkName(p.G, a.Src()) == "Agent Maria Hill" {
+						if refCardName(p.G, a.Src()) == "Agent Maria Hill" {
 							return a // the tap that pays for Maria's trigger
 						}
 					}
@@ -185,7 +185,7 @@ func ktrigp3Policy(seed uint64) Policy {
 			// first, so she is there to be tapped.
 			for _, n := range []string{"Agent Maria Hill", "Burning-Tree Emissary"} {
 				for _, a := range p.D.Options {
-					if a.Kind() == ActCast && kteamworkName(p.G, a.Src()) == n {
+					if a.Kind() == ActCast && refCardName(p.G, a.Src()) == n {
 						return a
 					}
 				}

@@ -49,7 +49,7 @@ func reflOwnBoard(t *testing.T, seed uint64, spellSrc, srcName string, own ...st
 		e.G.Obj(id).Tapped = true
 		ids = append(ids, id)
 	}
-	src := onBoardCard(t, e, 0, choiceCard(t, srcName))
+	src := onBoardCard(t, e, 0, corpusCardOrFatal(t, srcName))
 	if o := e.G.Obj(src); o == nil || o.Zone != state.ZBattlefield || o.Tapped || o.Controller != 0 {
 		t.Fatalf("precondition: %s not untapped on seat 0's battlefield", srcName)
 	}
@@ -74,17 +74,17 @@ func reflPlanAndRun(t *testing.T, e *Engine, spell, src state.ObjID, colour stri
 	if err := e.ValidateCastPayment(0, paymentCast(spell), *got.Plan); err != nil {
 		t.Fatalf("validate witness: %v", err)
 	}
-	d := ppAsk(t, e)
+	d := paymentPlanReask(t, e)
 	act := ppAction(t, d, spell)
 	mark := len(e.L.Events)
-	ppSubmitPlan(t, e, d, act)
+	submitPaymentPlan(t, e, d, act)
 	if nd := e.Pending(); nd == nil || nd.Kind != decision.KPriority {
 		t.Fatalf("after the planned cast pending = %#v, want priority (no colour ask)", nd)
 	}
 	if !e.G.Obj(src).Tapped {
 		t.Error("source not tapped by the executed plan")
 	}
-	if prod := ppProduced(e, mark); len(prod) != 1 || !strings.HasSuffix(prod[0], colour) {
+	if prod := producedManaSince(e, mark); len(prod) != 1 || !strings.HasSuffix(prod[0], colour) {
 		t.Errorf("mana produced = %v, want one %s", prod, colour)
 	}
 	for _, ev := range e.L.Events[mark:] {
@@ -170,8 +170,8 @@ func TestPaymentPlanReflectedChromeMoxImprint(t *testing.T) {
 func TestPaymentPlanReflectedColourlessIsLeftToRealSources(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9705, reflGenProbe)
-	wastes := onBoardCard(t, e, 0, choiceCard(t, "Wastes"))
-	poolCard := choiceCard(t, "Reflecting Pool")
+	wastes := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Wastes"))
+	poolCard := corpusCardOrFatal(t, "Reflecting Pool")
 	pool := onBoardCard(t, e, 0, poolCard)
 	if o := e.G.Obj(wastes); o.Zone != state.ZBattlefield || o.Tapped {
 		t.Fatal("precondition: Wastes not untapped on the battlefield")
@@ -199,7 +199,7 @@ func TestPaymentPlanReflectedColourlessIsLeftToRealSources(t *testing.T) {
 func TestPaymentPlanReflectedHorizonOfProgressIsLastResortWithLife(t *testing.T) {
 	t.Parallel()
 	e, spell, src, _ := reflOwnBoard(t, 9706, reflGreenProbe, "Horizon of Progress", reflForest)
-	ma := choiceCard(t, "Horizon of Progress").Faces[0].Abilities[0]
+	ma := corpusCardOrFatal(t, "Horizon of Progress").Faces[0].Abilities[0]
 	tier, c, detail := pay.PaymentPlanAbilityTier(asPayer(e), 0, src, ma)
 	if tier != pay.TierLastResort || c != (pay.Consequence{Life: 1}) {
 		t.Fatalf("Horizon tier = %v consequence = %+v (%q), want last resort {Life:1}", tier, c, detail)
@@ -244,7 +244,7 @@ const reflRedProbeOwn = reflectedRedProbe
 func TestPaymentPlanReflectedTwoPoolsReflectNothing(t *testing.T) {
 	t.Parallel()
 	e, spell, _, _ := reflOwnBoard(t, 9708, reflGreenProbe, "Reflecting Pool")
-	poolCard := choiceCard(t, "Reflecting Pool")
+	poolCard := corpusCardOrFatal(t, "Reflecting Pool")
 	p2 := onBoardCard(t, e, 0, poolCard)
 	if o := e.G.Obj(p2); o.Zone != state.ZBattlefield || o.Tapped {
 		t.Fatal("precondition: second Pool not untapped on the battlefield")
@@ -271,7 +271,7 @@ func TestPaymentPlanReflectedTwoPoolsReflectNothing(t *testing.T) {
 func TestPaymentPlanReflectedOwnBotAnswerValidates(t *testing.T) {
 	t.Parallel()
 	e, spell, src, _ := reflOwnBoard(t, 9709, reflGreenProbe, "Reflecting Pool", reflForest)
-	d := ppAsk(t, e)
+	d := paymentPlanReask(t, e)
 	act := ppAction(t, d, spell)
 	plan := decision.ClonePaymentPlan(act.Plans[0])
 	if len(plan.Activations) != 1 || plan.Activations[0].Source != src {
@@ -301,7 +301,7 @@ func TestPaymentPlanReflectedShapeOverCorpus(t *testing.T) {
 	}
 	for name, ok := range want {
 		var got, seen bool
-		for _, ab := range choiceCard(t, name).Faces[0].Abilities {
+		for _, ab := range corpusCardOrFatal(t, name).Faces[0].Abilities {
 			if ab.APIKind() == cards.APIManaReflected {
 				seen = true
 				got = pay.PaymentPlanReflectedShape(ab)

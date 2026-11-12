@@ -42,13 +42,6 @@ type chTally struct {
 	hbOn, gixOn                 bool
 }
 
-func chName(g *state.Game, id state.ObjID) string {
-	if o := g.Obj(id); o != nil && o.Face() != nil {
-		return o.Face().Name
-	}
-	return ""
-}
-
 func (p *chTally) check(ref *GorgeSide, _ Side) *Divergence {
 	g := ref.E.G
 	evs := ref.E.L.Events

@@ -25,7 +25,7 @@ func TestBotRequiredBlockTeamFitsCombinedPhyrexianTax(t *testing.T) {
 	e := threeSeatEngine(t)
 	// A CantBlockUnless static that charges every blocker one Phyrexian pip.
 	onBoardCard(t, e, 0, card(t, blockPhyrexianFixture))
-	watchdog := onBoardCard(t, e, 0, mshCorpusCard(t, "Watchdog"))
+	watchdog := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Watchdog"))
 	helper := onBoardCard(t, e, 0, card(t, "Name:Block Helper\nTypes:Creature Bear\nPT:1/2\nOracle:x\n"))
 	attacker := onBoardCard(t, e, 1, card(t, "Name:Menace Tax Attacker\nTypes:Creature Bear\nPT:2/2\nK:Menace\nOracle:x\n"))
 	attackSeat0(t, e, attacker)

@@ -133,8 +133,8 @@ func TestCasualtyPrintedSpellSacrificeCopiesTarget(t *testing.T) {
 			if got := e.G.Obj(target).Damage; got != want {
 				t.Fatalf("damage on original target = %d, want %d", got, want)
 			}
-			if copies != countStackCopies(e, spell) {
-				t.Fatalf("copies = %d, want %d", countStackCopies(e, spell), copies)
+			if copies != copyCount(e, spell) {
+				t.Fatalf("copies = %d, want %d", copyCount(e, spell), copies)
 			}
 			if e.G.Obj(low).Zone != state.ZBattlefield {
 				t.Fatal("unselected creature was sacrificed")
@@ -176,7 +176,7 @@ func TestCasualtyAshadGrantOnlyFirstArtifactPerTurn(t *testing.T) {
 	if e.G.Obj(sacrifice).Zone != state.ZGraveyard {
 		t.Fatal("Ashad grant did not sacrifice the chosen bear")
 	}
-	if got := countStackCopies(e, first); got != 1 {
+	if got := copyCount(e, first); got != 1 {
 		t.Fatalf("Ashad grant made %d copies, want one", got)
 	}
 	tokens := 0
@@ -201,7 +201,7 @@ func TestCasualtyAshadGrantOnlyFirstArtifactPerTurn(t *testing.T) {
 	opt = castOptMode(t, e.Pending().Options, second, "")
 	submitChoices(t, e, opt.Index)
 	passUntilStackEmpty(t, e, 60)
-	if got := countStackCopies(e, second); got != 0 {
+	if got := copyCount(e, second); got != 0 {
 		t.Fatalf("second artifact copied %d times", got)
 	}
 	if e.G.Obj(ashad).Zone != state.ZBattlefield {

@@ -67,7 +67,7 @@ func resolveAll(t *testing.T, e *Engine) {
 // the trigger reaches the stack through the synthesized __kwFlanking: payload.
 func TestFlankingGrantedAttackerDebuffsBlocker(t *testing.T) {
 	t.Parallel()
-	sliver := mshCorpusCard(t, "Sidewinder Sliver")
+	sliver := corpusAlternativeCard(t, "Sidewinder Sliver")
 	e := combatEngine(t)
 	attacker := onBoardCard(t, e, 0, sliver)
 	e.G.Obj(attacker).SummonSick = false
@@ -107,8 +107,8 @@ func TestFlankingGrantedAttackerDebuffsBlocker(t *testing.T) {
 // die, so its survival is the assertion.
 func TestFlankingGrantedBlockerIsNotDebuffed(t *testing.T) {
 	t.Parallel()
-	nimbus := mshCorpusCard(t, "Knight of the Holy Nimbus")
-	sliverCard := mshCorpusCard(t, "Sidewinder Sliver")
+	nimbus := corpusAlternativeCard(t, "Knight of the Holy Nimbus")
+	sliverCard := corpusAlternativeCard(t, "Sidewinder Sliver")
 	e := combatEngine(t)
 	attacker := onBoardCard(t, e, 0, nimbus)
 	e.G.Obj(attacker).SummonSick = false
@@ -144,8 +144,8 @@ func TestFlankingGrantedBlockerIsNotDebuffed(t *testing.T) {
 // 1/1.
 func TestFlankingSecondInstanceTriggersSeparately(t *testing.T) {
 	t.Parallel()
-	master := mshCorpusCard(t, "Cavalry Master")
-	nimbus := mshCorpusCard(t, "Knight of the Holy Nimbus")
+	master := corpusAlternativeCard(t, "Cavalry Master")
+	nimbus := corpusAlternativeCard(t, "Knight of the Holy Nimbus")
 	e := combatEngine(t)
 	onBoardCard(t, e, 0, master) // the lord, not attacking
 	attacker := onBoardCard(t, e, 0, nimbus)
@@ -174,7 +174,7 @@ func TestFlankingSecondInstanceTriggersSeparately(t *testing.T) {
 // grant's SOURCE (Aura vs lord static) cannot hide a missed case.
 func TestFlankingAuraGrantedAttackerDebuffsBlocker(t *testing.T) {
 	t.Parallel()
-	agility := mshCorpusCard(t, "Agility")
+	agility := corpusAlternativeCard(t, "Agility")
 	e := combatEngine(t)
 	aura := onBoardCard(t, e, 0, agility)
 	attacker := onBoard(t, e, 0, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
@@ -206,8 +206,8 @@ func TestFlankingAuraGrantedAttackerDebuffsBlocker(t *testing.T) {
 // Cavalry Master then adds a second.
 func TestFlankingChainedGrantsStackInstances(t *testing.T) {
 	t.Parallel()
-	sliverCard := mshCorpusCard(t, "Sidewinder Sliver")
-	master := mshCorpusCard(t, "Cavalry Master")
+	sliverCard := corpusAlternativeCard(t, "Sidewinder Sliver")
+	master := corpusAlternativeCard(t, "Cavalry Master")
 	e := combatEngine(t)
 	// Sidewinder FIRST: its grant must already be in the accumulated list
 	// when Cavalry Master's Affected$ is evaluated.

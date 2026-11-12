@@ -20,8 +20,8 @@ import (
 // enters, then Doubling Season; Ajani's [+1] makes it 5, not 6.
 func TestDoublingSeasonLeavesLoyaltyCostUndoubled(t *testing.T) {
 	t.Parallel()
-	ajani := tokenReplCorpusCard(t, "Ajani Goldmane")
-	ds := tokenReplCorpusCard(t, "Doubling Season")
+	ajani := corpusAlternativeCard(t, "Ajani Goldmane")
+	ds := corpusAlternativeCard(t, "Doubling Season")
 	e, cfg := tokenReplGame(t, 97, ajani, ds)
 	aj := moveSeededCard(t, e, 0, ajani, state.ZBattlefield)
 	moveSeededCard(t, e, 0, ds, state.ZBattlefield)
@@ -45,7 +45,7 @@ func TestDoublingSeasonLeavesCounterCostUndoubledInResponse(t *testing.T) {
 	t.Parallel()
 	src := card(t, "Name:Charge Battery\nTypes:Artifact\n"+
 		"A:AB$ GainLife | Cost$ AddCounter<1/CHARGE> | LifeAmount$ 1 | SpellDescription$ You gain 1 life.\nOracle:x\n")
-	ds := tokenReplCorpusCard(t, "Doubling Season")
+	ds := corpusAlternativeCard(t, "Doubling Season")
 	e, cfg := tokenReplGame(t, 98, src, ds)
 	bat := moveSeededCard(t, e, 0, src, state.ZBattlefield)
 	moveSeededCard(t, e, 0, ds, state.ZBattlefield)

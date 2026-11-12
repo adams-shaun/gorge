@@ -57,8 +57,8 @@ func rankWantSteps(t *testing.T, got PaymentPlanOutcome, want ...rankStep) {
 // auto-pay client would.
 func rankSubmit(t *testing.T, e *Engine, spell state.ObjID) {
 	t.Helper()
-	d := ppAsk(t, e)
-	ppSubmitPlan(t, e, d, ppAction(t, d, spell))
+	d := paymentPlanReask(t, e)
+	submitPaymentPlan(t, e, d, ppAction(t, d, spell))
 	if e.G.Obj(spell).Zone != state.ZStack {
 		t.Fatalf("planned spell zone = %s, want stack", e.G.Obj(spell).Zone)
 	}
@@ -229,7 +229,7 @@ func TestPaymentPlanRankDeterministicAcrossRerunAndClone(t *testing.T) {
 		onBoard(t, e, 0, rankForest)
 	}
 	onBoardReady(t, e, 0, "Name:Elf Dork\nTypes:Creature Elf\nPT:1/1\nA:AB$ Mana | Cost$ T | Produced$ G\nOracle:x\n")
-	d := ppAsk(t, e)
+	d := paymentPlanReask(t, e)
 	first := ppAction(t, d, spell)
 	again := e.PaymentActionsForPriority(0, d.Seq)
 	cloned := e.Clone().PaymentActionsForPriority(0, d.Seq)

@@ -111,7 +111,7 @@ func TestGiftLongRiversPullDeclinedCountersOnlyACreatureSpell(t *testing.T) {
 	if d.Min != 1 || d.Max != 1 {
 		t.Fatalf("declined Long River's Pull target bound = %d..%d, want 1..1 (X = Count$PromisedGift.0.1 unread)", d.Min, d.Max)
 	}
-	i := targetOptionIndex(d, bearsID)
+	i := indexOfObjOption(d, bearsID)
 	if i < 0 {
 		t.Fatalf("target ask does not offer the creature spell: %+v", d.Options)
 	}

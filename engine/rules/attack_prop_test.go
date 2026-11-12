@@ -24,7 +24,7 @@ func attackPropSeat(t *testing.T, propName string, nLands int) (*Engine, state.O
 	cfg := Config{Seed: 716, Names: []string{"a", "b", "c"},
 		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40)}}
 	e := New(cfg)
-	onBoardCard(t, e, 0, mshCorpusCard(t, propName))
+	onBoardCard(t, e, 0, corpusAlternativeCard(t, propName))
 	bear := onBoardReady(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:0/4\nOracle:x\n")
 	for i := 0; i < nLands; i++ {
 		onBoardCard(t, e, 1, card(t, "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n"))
@@ -187,7 +187,7 @@ func TestGhostlyPrisonBlocksWhenTheWindowCannotReach(t *testing.T) {
 func TestSphereOfSafetyPricesItsEnchantmentCount(t *testing.T) {
 	t.Parallel()
 	e, bear := attackPropSeat(t, "Sphere of Safety", 0)
-	onBoardCard(t, e, 0, mshCorpusCard(t, "Ghostly Prison"))
+	onBoardCard(t, e, 0, corpusAlternativeCard(t, "Ghostly Prison"))
 
 	e.askAttackers()
 	d := e.Pending()
@@ -271,9 +271,9 @@ func TestWindbornMusePropIsTheSameShape(t *testing.T) {
 func TestGhostlyPrisonWindowKeepsCrossDefenderTraining(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	onBoardCard(t, e, 1, mshCorpusCard(t, "Ghostly Prison")) // charged defender = seat 1
-	rider := onBoardCard(t, e, 0, mshCorpusCard(t, "Gryff Rider"))
-	wurm := onBoardCard(t, e, 0, mshCorpusCard(t, "Craw Wurm"))
+	onBoardCard(t, e, 1, corpusAlternativeCard(t, "Ghostly Prison")) // charged defender = seat 1
+	rider := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Gryff Rider"))
+	wurm := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Craw Wurm"))
 	if !e.G.Obj(rider).Face().HasKeyword("Training") {
 		t.Fatal("the real Gryff Rider face does not print Training")
 	}
@@ -349,8 +349,8 @@ func TestGhostlyPrisonWindowKeepsCrossDefenderTraining(t *testing.T) {
 func TestAttackPropsAcrossDefendersAllowAPayableDeclaration(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	onBoardCard(t, e, 1, mshCorpusCard(t, "Ghostly Prison"))      // seat 1: {2}
-	onBoardCard(t, e, 2, mshCorpusCard(t, "Archangel of Tithes")) // seat 2: {1} untapped
+	onBoardCard(t, e, 1, corpusAlternativeCard(t, "Ghostly Prison"))      // seat 1: {2}
+	onBoardCard(t, e, 2, corpusAlternativeCard(t, "Archangel of Tithes")) // seat 2: {1} untapped
 	// Archangel of Tithes' Cost$ 1 static is gated on Card.Self+untapped.
 	var bears []state.ObjID
 	for i := 0; i < 2; i++ {

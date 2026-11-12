@@ -130,7 +130,7 @@ func keffnoremPolicy(seed uint64, st *keffnoremStats) Policy {
 			// discount is live
 			if keffnoremLive(c, maskTurn, maskPl) || seed%3 == 0 {
 				for _, a := range c.D.Options {
-					if a.Kind() == ActCast && kfacedownName(c, a) == "Priest of Urabrask" {
+					if a.Kind() == ActCast && optionFaceName(c, a) == "Priest of Urabrask" {
 						buf = append(buf, a, a, a)
 					}
 				}
@@ -149,7 +149,7 @@ func keffnoremPolicy(seed uint64, st *keffnoremStats) Policy {
 		}
 		switch a.Kind() {
 		case ActAttack:
-			if name := kfacedownName(c, a); keffnoremDefenders[name] {
+			if name := optionFaceName(c, a); keffnoremDefenders[name] {
 				st.attacks[name]++
 			} else if name == "Goblin Maskmaker" {
 				maskTurn, maskPl = int(c.G.E.G.Turn), int(c.D.Player)

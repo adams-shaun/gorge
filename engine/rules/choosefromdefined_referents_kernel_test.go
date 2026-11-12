@@ -195,7 +195,7 @@ func TestChangeZoneChooseFromDefinedTargetedCmcLE4Kernel(t *testing.T) {
 	if d == nil || d.ResumeKind != "hidden_pick_confirm" {
 		t.Fatalf("first ask = %+v, want the hidden_pick_confirm gate", d)
 	}
-	d = answerAsk(t, e, optionOfKind(t, d, "yes"))
+	d = answerAsk(t, e, optionKindIndex(t, d, "yes"))
 	if d == nil || d.ResumeKind != "hidden_pick" {
 		t.Fatalf("no hidden-pick ask for the Targeted.cmcLE4 leg: %+v", d)
 	}

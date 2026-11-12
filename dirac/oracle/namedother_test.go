@@ -1,7 +1,6 @@
 package oracle
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -73,18 +72,11 @@ type knamedotherWatch struct {
 	globes    int
 }
 
-func knamedotherName(tbl *kop.Table, c dirac.CardID) string {
-	if int(c) >= len(tbl.Cards) {
-		return ""
-	}
-	return strings.ToLower(tbl.Cards[c].Name)
-}
-
 func (w *knamedotherWatch) observe(s *dirac.State, seen *knamedotherSeen) {
 	tbl := s.Table()
 	var p dirac.Projection
 	s.Project(&p)
-	name := func(o *dirac.ProjObj) string { return knamedotherName(tbl, o.Card) }
+	name := func(o *dirac.ProjObj) string { return kopCardNameLower(tbl, o.Card) }
 	count := func(n string, z kop.Zone, who uint8, tokenOnly bool) int {
 		m := 0
 		for i := 0; i < int(p.NObj); i++ {
@@ -114,14 +106,14 @@ func (w *knamedotherWatch) observe(s *dirac.State, seen *knamedotherSeen) {
 	for i := 0; i < int(p.NStack); i++ {
 		e := p.Stack[i]
 		fresh := i >= w.nStack || w.stack[i] != e
-		if e.Kind == 1 && knamedotherName(tbl, e.Card) == "dragonstorm forecaster" {
+		if e.Kind == 1 && kopCardNameLower(tbl, e.Card) == "dragonstorm forecaster" {
 			searching = true
 			if !w.searching {
 				w.searcher = e.Ctrl
 				w.globes = count("dragonstorm globe", kop.ZoneHand, e.Ctrl, false)
 			}
 		}
-		if fresh && e.Kind == 2 && knamedotherName(tbl, e.Card) == "gruff triplets" {
+		if fresh && e.Kind == 2 && kopCardNameLower(tbl, e.Card) == "gruff triplets" {
 			// the dies trigger: its source has left the battlefield (the
 			// enters trigger's source is on it)
 			src := int(e.Source)
@@ -145,7 +137,7 @@ func (w *knamedotherWatch) observe(s *dirac.State, seen *knamedotherSeen) {
 // the stalls, and adds the observed events to seen.
 func knamedotherRun(t *testing.T, reg *cards.Registry, set cardset.Set, tbl *kop.Table, seeds uint64, seen *knamedotherSeen, stopOnDiv bool) (games int, div bool, stalls int) {
 	t.Helper()
-	decks := kctrnamedDecksOf(t, reg, knamedotherDecks)
+	decks := kcastDeck(t, reg, knamedotherDecks)
 	for seed := uint64(1); seed <= seeds; seed++ {
 		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
 		m, err := NewMatchup(reg, [2]string{"knamedother-a", "knamedother-b"}, decks, 1)

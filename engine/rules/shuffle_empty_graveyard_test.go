@@ -17,7 +17,7 @@ func TestFeldonsCaneShufflesAnEmptyGraveyard(t *testing.T) {
 	e.Advance()
 	toMain1(t, e)
 	p := e.G.Active
-	cane := onBoardReadyCard(t, e, p, mshCorpusCard(t, "Feldon's Cane"))
+	cane := onBoardReadyCard(t, e, p, corpusAlternativeCard(t, "Feldon's Cane"))
 	e.askPriority(p)
 	at := len(e.L.Events)
 	activated := false

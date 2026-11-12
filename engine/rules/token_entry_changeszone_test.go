@@ -74,8 +74,8 @@ func battlefieldToken(t *testing.T, e *Engine, p state.PlayerID, name string) *s
 // vacuous.
 func TestTokenEntryFiresChangesZoneTriggers(t *testing.T) {
 	t.Parallel()
-	warden := tokenReplCorpusCard(t, "Soul Warden")
-	bears := tokenReplCorpusCard(t, "Grizzly Bears")
+	warden := corpusAlternativeCard(t, "Soul Warden")
+	bears := corpusAlternativeCard(t, "Grizzly Bears")
 	maker := cardByName(t, tokenForgeSrc("g_1_1_squirrel"))
 
 	e, cfg := tokenReplGame(t, 71, warden, bears, maker)
@@ -128,7 +128,7 @@ func TestTokenEntryFiresChangesZoneTriggers(t *testing.T) {
 // latches after the first qualifying entry.
 func TestTokenEntryFiresChangesZoneAllTriggers(t *testing.T) {
 	t.Parallel()
-	warmaster := tokenReplCorpusCard(t, "Elvish Warmaster")
+	warmaster := corpusAlternativeCard(t, "Elvish Warmaster")
 	maker := cardByName(t, tokenForgeSrc("g_1_1_elf_warrior"))
 
 	e, cfg := tokenReplGame(t, 73, warmaster, maker)

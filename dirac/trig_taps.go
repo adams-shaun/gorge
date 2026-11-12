@@ -49,10 +49,10 @@ func (s *State) fireTapsBy(k *prep, sl Slot, tapper uint8) {
 	s.fireObj(k, kop.TrigTaps, sl, p.obj, p.ctrl, int16(tapper))
 }
 
-// fireTapsMask is fireTaps over the permanents of m, in the order the
-// attackers were declared (perm.bord; gorge emits a Tap per attacker in the
-// declaration's chosen order, CR 508.1f), so the triggers queue as gorge's do
-// and a trigger_order ask lists them alike.
+// fireTapsMask is fireTaps over the permanents of m, in declaration order
+// (perm.bord, the order the attackers were chosen): gorge emits a Tap per
+// attacker in the order the client submitted them (handleAttackers), which
+// is not the battlefield order when the answer is unsorted.
 //
 //go:noinline
 func (s *State) fireTapsMask(k *prep, m slotMask) {

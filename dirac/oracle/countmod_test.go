@@ -64,13 +64,6 @@ func (w *kcnt9Tally) once(turn, class int32, obj state.ObjID) bool {
 	return true
 }
 
-func kcnt9Name(g *state.Game, id state.ObjID) string {
-	if o := g.Obj(id); o != nil && o.Face() != nil {
-		return o.Face().Name
-	}
-	return ""
-}
-
 var kcnt9Outlaws = []string{"Assassin", "Mercenary", "Pirate", "Rogue", "Warlock"}
 
 func (w *kcnt9Tally) check(ref *GorgeSide, _ Side) *Divergence {
@@ -98,7 +91,7 @@ func (w *kcnt9Tally) check(ref *GorgeSide, _ Side) *Divergence {
 	}
 	sabOf := func(ids []state.ObjID) (state.ObjID, bool) {
 		for _, id := range ids {
-			if kcnt9Name(g, id) == "Sab-Sunen, Luxa Embodied" {
+			if chName(g, id) == "Sab-Sunen, Luxa Embodied" {
 				return id, true
 			}
 		}
@@ -108,7 +101,7 @@ func (w *kcnt9Tally) check(ref *GorgeSide, _ Side) *Divergence {
 		// the can't-attack check: an odd-countered Sab-Sunen of the active
 		// player's, which gorge never lists as an attacker
 		for _, id := range g.Zone(state.ZBattlefield, g.Active) {
-			if kcnt9Name(g, id) == "Sab-Sunen, Luxa Embodied" && sabCounters(id)%2 == 1 && w.once(g.Turn, 9, id) {
+			if chName(g, id) == "Sab-Sunen, Luxa Embodied" && sabCounters(id)%2 == 1 && w.once(g.Turn, 9, id) {
 				w.sabOdd++
 			}
 		}
@@ -142,18 +135,18 @@ func (w *kcnt9Tally) check(ref *GorgeSide, _ Side) *Divergence {
 				}
 			}
 		case events.CounterChange:
-			if lastSabCtr < 0 && kcnt9Name(g, ev.Obj) == "Sab-Sunen, Luxa Embodied" && ev.Amount > 0 {
+			if lastSabCtr < 0 && chName(g, ev.Obj) == "Sab-Sunen, Luxa Embodied" && ev.Amount > 0 {
 				lastSabCtr, lastSab = i, ev.Obj
 			}
 		case events.DamageProvenance:
-			if kcnt9Name(g, ev.Obj) == "Kraven's Last Hunt" && ev.Amount >= 1 && w.once(g.Turn, 5, ev.Obj) {
+			if chName(g, ev.Obj) == "Kraven's Last Hunt" && ev.Amount >= 1 && w.once(g.Turn, 5, ev.Obj) {
 				w.kravenDmg++
 			}
 		case events.PutOnStack:
-			if kcnt9Name(g, ev.Obj) == "Hellspur Brute" && w.once(g.Turn, 6, ev.Obj) {
+			if chName(g, ev.Obj) == "Hellspur Brute" && w.once(g.Turn, 6, ev.Obj) {
 				n := 0
 				for _, id := range g.Zone(state.ZBattlefield, ev.Player) {
-					if o := g.Obj(id); o != nil && o.Face() != nil && kcnt9Name(g, id) != "Hellspur Brute" {
+					if o := g.Obj(id); o != nil && o.Face() != nil && chName(g, id) != "Hellspur Brute" {
 						for _, ty := range o.Face().Types {
 							if slices.Contains(kcnt9Outlaws, ty) {
 								n++
@@ -216,7 +209,7 @@ func kcnt9Policy(seed uint64, w *kcnt9Tally) Policy {
 			}
 		case DModes:
 			pd := c.G.Pending()
-			if pd == nil || kcnt9Name(g, pd.Source) != "Kutzil's Flanker" {
+			if pd == nil || chName(g, pd.Source) != "Kutzil's Flanker" {
 				return a
 			}
 			for _, en := range g.Entered {

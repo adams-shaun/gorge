@@ -32,7 +32,7 @@ func taxedAttackerSeat(t *testing.T, script string) (*Engine, state.ObjID) {
 	cfg := Config{Seed: 718, Names: []string{"a", "b"},
 		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}}
 	e := New(cfg)
-	onBoardCard(t, e, 0, mshCorpusCard(t, "Ghostly Prison"))
+	onBoardCard(t, e, 0, corpusAlternativeCard(t, "Ghostly Prison"))
 	elf := onBoardReady(t, e, 1, script)
 	for i := 0; i < 2; i++ {
 		onBoardCard(t, e, 1, card(t, taxedForest))
@@ -64,15 +64,6 @@ func declareTaxed(t *testing.T, e *Engine, id state.ObjID) *decision.Decision {
 	return pay
 }
 
-func windowLists(d *decision.Decision, id state.ObjID) bool {
-	for _, o := range d.Options {
-		if o.Obj == id {
-			return true
-		}
-	}
-	return false
-}
-
 // TestAttackWindowWithholdsTappedAttacker: the declared attacker without
 // vigilance is not a source of the window that pays its tax, and the two
 // Forests pay it.
@@ -85,7 +76,7 @@ func TestAttackWindowWithholdsTappedAttacker(t *testing.T) {
 		t.Fatalf("precondition: attackManaSources(1) = %+v, want the elf first of three", srcs)
 	}
 	pay := declareTaxed(t, e, elf)
-	if windowLists(pay, elf) {
+	if offersObjOption(pay, elf) {
 		t.Fatalf("the window lists the declared attacker CR 508.1f taps: %+v", pay.Options)
 	}
 	if len(pay.Options) != 2 {
@@ -115,7 +106,7 @@ func TestAttackWindowKeepsVigilantAttacker(t *testing.T) {
 	t.Parallel()
 	e, sentry := taxedAttackerSeat(t, taxedVigilScript)
 	pay := declareTaxed(t, e, sentry)
-	if !windowLists(pay, sentry) || len(pay.Options) != 3 {
+	if !offersObjOption(pay, sentry) || len(pay.Options) != 3 {
 		t.Fatalf("the vigilant attacker is not among the window's 3 sources: %+v", pay.Options)
 	}
 }

@@ -299,20 +299,6 @@ func TestPaymentPlanExecutesFiniteProducedAnyChoice(t *testing.T) {
 	}
 }
 
-// paymentPlanReask re-poses seat 0's priority after an (eventless) fixture
-// change and opts into the lazy payment extension.
-func paymentPlanReask(t *testing.T, e *Engine) *decision.Decision {
-	t.Helper()
-	e.pending = nil
-	e.askPriority(0)
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KPriority {
-		t.Fatalf("pending = %#v, want seat-0 priority", d)
-	}
-	e.EnsurePaymentActions()
-	return d
-}
-
 func paymentPlanActionFor(t *testing.T, d *decision.Decision, spell state.ObjID) decision.PaymentAction {
 	t.Helper()
 	for _, a := range d.PaymentActions {
@@ -322,28 +308,6 @@ func paymentPlanActionFor(t *testing.T, d *decision.Decision, spell state.ObjID)
 	}
 	t.Fatalf("no payment action for %d in %#v", spell, d.PaymentActions)
 	return decision.PaymentAction{}
-}
-
-func submitPaymentPlan(t *testing.T, e *Engine, d *decision.Decision, a decision.PaymentAction) {
-	t.Helper()
-	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player,
-		Payment: &decision.PaymentSelection{ActionID: a.ID, Plan: a.Plans[0]}}); err != nil {
-		t.Fatalf("Submit planned cast: %v", err)
-	}
-}
-
-// producedManaSince lists the colour of every positive ManaAdd from event
-// index from onward, one entry per unit.
-func producedManaSince(e *Engine, from int) []string {
-	var out []string
-	for _, ev := range e.L.Events[from:] {
-		if ev.Kind == events.ManaAdd && ev.Amount > 0 {
-			for i := int32(0); i < ev.Amount; i++ {
-				out = append(out, ev.Counter)
-			}
-		}
-	}
-	return out
 }
 
 // Every intrinsic ability shares the PaymentAbility identity {intrinsic,
@@ -726,17 +690,6 @@ const (
 	paymentPlanShock = "Name:Planned Shock\nManaCost:R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n"
 	paymentPlanBlast = "Name:Planned Blast\nManaCost:R R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 2\nOracle:x\n"
 )
-
-// paymentPlanTapsSince counts the Tap events naming id from event index from.
-func paymentPlanTapsSince(e *Engine, from int, id state.ObjID) int {
-	n := 0
-	for _, ev := range e.L.Events[from:] {
-		if ev.Kind == events.Tap && ev.Obj == id {
-			n++
-		}
-	}
-	return n
-}
 
 // paymentPlanPendingSummary names a pending decision briefly for a failure.
 func paymentPlanPendingSummary(d *decision.Decision) string {

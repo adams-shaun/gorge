@@ -41,27 +41,6 @@ var crewDecks = [][2][]cardset.Entry{{
 	},
 }}
 
-// crewPolicy activates an ability whenever one is offered (a crew, saddle
-// or exhaust activation, so the games reach the tap picks), else random.
-func crewPolicy(seed uint64) Policy {
-	rnd := RandomPolicy(seed)
-	var buf []Canon
-	return PolicyFunc(func(c *PickCtx) Canon {
-		buf = buf[:0]
-		for _, a := range c.D.Options {
-			if a.Kind() == ActActivate {
-				buf = append(buf, a)
-			}
-		}
-		if len(buf) == 0 {
-			return rnd.Pick(c)
-		}
-		d := *c.D
-		d.Options = buf
-		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
-	})
-}
-
 func TestCrewLockstep(t *testing.T) {
 	t.Parallel()
 
@@ -106,7 +85,7 @@ func TestCrewLockstep(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			pol := crewPolicy(seed)
+			pol := activateOnlyPolicy(seed)
 			if seed%4 == 0 {
 				pol = RandomPolicy(seed)
 			}
