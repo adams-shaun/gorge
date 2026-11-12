@@ -15,8 +15,8 @@ import (
 func TestSelfExiledSuspendSpellTicksAndIsOfferedItsCast(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t, card(t, "Name:Refrainer\nManaCost:1 U\nTypes:Sorcery\nK:Suspend:1:U\n"+
-		"A:SP$ Draw | NumCards$ 1 | SubAbility$ DBExile\n"+
-		"SVar:DBExile:DB$ ChangeZone | Origin$ Stack | Destination$ Exile | WithCountersType$ TIME | WithCountersAmount$ 2\nOracle:x\n"))
+		"A:SP$ Draw | SubAbility$ DBExile | NumCards$ 1\n"+
+		"SVar:DBExile:DB$ ChangeZone | Destination$ Exile | Origin$ Stack | WithCountersAmount$ 2 | WithCountersType$ TIME\nOracle:x\n"))
 	id := e.G.Zone(state.ZHand, 0)[0]
 	e.G.Players[0].Pool[state.MU], e.G.Players[0].Pool[state.MC] = 1, 1
 	castMode(t, e, id, "")
