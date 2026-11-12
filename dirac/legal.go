@@ -301,6 +301,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	}
 	if faces {
 		s.offerAdventureRecasts(k, d, p, sorc) // face_castface.go
+		if k.gen.anyAftermath {
+			s.offerAftermathCasts(k, d, p, sorc) // face_aftermath.go
+		}
 	}
 	if k.gen != nil && k.gen.anyAirbend {
 		s.offerAirbendCasts(k, d, p, sorc) // act_airbend.go (gorge offers it before the warp recast)
@@ -1567,6 +1570,19 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 				}
 				done[sl] |= 1 << j
 				progressed = true
+				if kop.StoreManaAb(ab) {
+					// A storage battery makes its counters' worth, not an
+					// unbounded dynamic amount: count the live counters so a
+					// play it cannot pay is not offered.
+					n := s.perms[sl].ctrN(s, int(ab.Cost.Ctr))
+					if n > 255 {
+						n = 255
+					}
+					if n > 0 {
+						add(sl, uint8(ab.ManaColors), uint8(n))
+					}
+					continue
+				}
 				if ab.ManaColors == kop.ColAny || ab.AFlags&(kop.AfManaDynamic|kop.AfManaEachColor) != 0 { // gorge's walk reads an each-colour production (Bloom Tender) as open
 					open = true
 				} else {
@@ -1638,6 +1654,10 @@ func (s *State) potentialGapCost(k *prep, p uint8, sl Slot, j int, ab *kop.Abili
 	switch {
 	case int(k.ctrAb[c]) == j && (kop.CtrManaAb(ab) || kop.CtrTapSecondManaAb(ab)):
 		return ab.Cost.Flags&kop.CostRemoveCtr == 0 || s.perms[sl].ctrN(s, int(ab.Cost.Ctr)) >= int(ab.Cost.N)
+	case int(k.ctrAb[c]) == j && kop.StoreManaAb(ab):
+		// a storage battery (Mage-Ring Network): its announced X is bounded by
+		// the counters it holds (mana_countercost.go storeGap)
+		return s.perms[sl].ctrN(s, int(ab.Cost.Ctr)) > 0
 	case k.tapMana && kop.TapXMana(ab) && int(k.tapXAb[c]) == j: // the first mana ability or a second beside a plain one (mana_tapanother.go tapXAbOf)
 		var cs [MaxPerm]Slot
 		return s.tapXCands(k, p, sl, &cs) >= int(ab.Cost.N)

@@ -304,11 +304,12 @@ const (
 	cPromisedGift           // the gift was promised (Card.Self+PromisedGift on the stack, or the entering permanent)
 	cAnd                    // both Sub conditions hold
 	cEchoOwed               // the source came under its controller's control since the beginning of their most recent upkeep (echo's gate)
+	cSourceZone             // the source object is in Zone (source-identity IsPresent$ PresentZone$)
 	cCount_
 )
 
 var condNames = [...]string{"None", "Present", "Value", "Kicked", "Threshold", "YourTurn", "RefMatches",
-	"CostPaid", "OpponentsTurn", "PromisedGift", "And", "EchoOwed"}
+	"CostPaid", "OpponentsTurn", "PromisedGift", "And", "EchoOwed", "SourceZone"}
 
 type lCond struct {
 	Kind condKind
@@ -318,6 +319,7 @@ type lCond struct {
 	A, B lValue
 	Sub  []lCond
 	Neg  bool
+	Zone uint8 // cSourceZone: the source's zone
 }
 
 func (c lCond) String() string {
@@ -337,6 +339,9 @@ func (c lCond) String() string {
 	}
 	if c.Op != 0 {
 		args = append(args, fmt.Sprintf("op%d", c.Op))
+	}
+	if c.Kind == cSourceZone {
+		args = append(args, zoneLabel[c.Zone])
 	}
 	if c.A.Kind != vNone {
 		args = append(args, c.A.String())
@@ -1013,6 +1018,7 @@ type lCard struct {
 	Delve          bool      // K:Delve (CR 702.66a): the cast exiles graveyard cards toward its generic cost (dirac/kw_delve.go)
 	Rebound        *lAbility // K:Rebound (CR 702.88a): the latent free-cast-from-exile body of the upkeep recast (dirac/kw_rebound.go)
 	Mayhem         *manaCost // K:Mayhem:<cost> (CR 702.187): a graveyard cast for this cost if the card was discarded this turn (dirac/kw_mayhem.go)
+	Aftermath      bool      // K:Aftermath on a split card's right half (CR 702.127a): CardDef.Aftermath (dirac/face_aftermath.go)
 	BeamMeUp       *manaCost // K:Beam me up:<cost>: a graveyard cast for this cost that also returns a creature you control (FbCost)
 	Harmonize      *manaCost // K:Harmonize:<cost> (CR 702.180a): a graveyard cast for this cost, one creature tapped for its power off the generic part
 	Retrace        bool      // K:Retrace (CR 702.81a): a graveyard cast paying the PRINTED cost plus the additional discard-a-land cost (dirac/kw_retrace.go); never a substitution
@@ -1084,6 +1090,10 @@ type lCard struct {
 	// Face is this entry's index and FaceMode the card's kop.Face* layout.
 	Faces []string
 	Face  int
+	// FuseKey is a fuse card's fused split spell entry (lower_fuse.go), one
+	// of its Tokens: CardDef.FuseDef. FusedSpell marks that entry.
+	FuseKey    string
+	FusedSpell bool
 	// printed is a token or face entry's printed name (Name is its pool
 	// key); a named<X> filter resolves X against it
 	printed  string

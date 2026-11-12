@@ -231,7 +231,7 @@ const (
 	SrReveal                       // OpChooseMove from a hand to zone none: a reveal pick (gorge effReveal's reveal_pick), nothing moves; SrConfirm then asks only when a card qualifies
 	SrOwnZone                      // OpChooseMove over the battlefield: only player Obj's permanents (gorge effHiddenPick with DefinedPlayer$), not every player's
 	SrGraveExile                   // OpChooseMove (graveexile): the pool is every player's Graveyard then Exile (gorge effHiddenPick gameWide); Filter.Zone is ZoneNone
-	SrForgetOther                  // OpChooseMove (graveexile): ForgetOtherRemembered$ clears the remembered set before the moves (and on an empty pool)
+	SrForgetOther                  // OpChooseMove (hand move or graveexile): ForgetOtherRemembered$ clears the remembered set before the moves (and on an empty pool)
 	SrUnderYourControl             // OpChooseMove (GainControl$): the picked cards enter under the fetching controller, else (SrGraveExile) under their owner; a plain Graveyard pick with it is game-wide
 )
 

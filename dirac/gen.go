@@ -184,6 +184,10 @@ type genPrep struct {
 	anyHist        bool           // some trigger reads the turn history bank (expend, the N-th spell; value_turnhistory.go)
 	anyPrevFrom    bool           // some program grants KwPreventCombatDamageFrom (repl_regenerate.go)
 	anyTokRew      bool           // a ReplRewriteTokens, ReplAddToken or ReplCopyFirstToken ability (repl_tokrewrite.go, repl_tokorder.go)
+	anyTurnScope   bool           // some program is an ExtTurnRepl scope-record kind (uncounter, player hexproof): the cold exMark table is allocated (repl_turnrepl.go)
+	anyUncScope    bool           // some program is ExtTurnRepl TurnReplUncounter(Creature): uncounterable scans the scope records (repl_turnrepl.go)
+	anyPlHexRec    bool           // some program is ExtTurnRepl TurnReplPlayerHex or TurnReplHexUB: playerHexproof reads the scope records
+	anyHexUB       bool           // some program is ExtTurnRepl TurnReplHexUB: targetableGen reads the mechHexUB plane
 	anyPlusCre     bool           // some program is ExtTurnRepl TurnReplPlusCreatureCtr: the cold buffer holds its per-player count and source (repl_turnrepl.go)
 	anyDmgMark     bool           // some program is ExtDmgMark: every damage site reads the per-player marks (repl_dmgmark.go)
 	anyFiltRepl    bool           // a filtered damage doubler or token multiplier, or an x3 one (repl_multipliers.go)
@@ -249,6 +253,8 @@ type genPrep struct {
 	anySplitSecond bool           // some card has a StatStackKw Split second grant (kw_splitsecond.go)
 	anyStackLife   bool           // some card has a StatStackKw Lifelink grant (static_stacklifelink.go)
 	anySplit       bool           // some card is a split card (kop.FaceSplit: its mana value off the stack; face_castface.go)
+	anyAftermath   bool           // some split card's right half has aftermath (CardDef.Aftermath; face_aftermath.go)
+	anyFuse        bool           // some split card has fuse (CardDef.FuseDef; face_fuse.go)
 	anyTwobrid     bool           // some card has a twobrid pip in its printed cost (kop.ManaCost.Tb; mana_twobrid.go)
 	anyBeamGrant   bool           // some card has a StatBeamGrant static
 	anyFbGrant     bool           // some card has a StatFbGrant static (kw_fbgrant.go)
@@ -438,6 +444,9 @@ type genPrep struct {
 	// anyFiltFirst: some card's filter is its first mana ability (Abzan
 	// Devotee, Prophetic Prism; mana_filterfirst.go)
 	anyFiltFirst bool
+	// anyFiltRepeat: some card's first-ability filter is a fee-only one,
+	// repeatable (mana_filterrepeat.go)
+	anyFiltRepeat bool
 	// gapOther: card i has another mana ability gorge's census misses
 	// (a restricted, each-colour or paid one that is not filt: Lupinflower
 	// Village's creature-only {W}); beside one the filter stays unmodelled
@@ -784,6 +793,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			g.anyFaces = true
 			g.anyPrepare = g.anyPrepare || c.FaceMode == kop.FacePrepare
 			g.anySplit = g.anySplit || c.FaceMode == kop.FaceSplit || c.FaceMode == kop.FaceRoom
+			g.anyAftermath = g.anyAftermath || c.Aftermath
+			g.anyFuse = g.anyFuse || c.FuseDef != 0
 			p.anyRoom = p.anyRoom || c.FaceMode == kop.FaceRoom
 		}
 		if c.Daybound || c.Nightbound {

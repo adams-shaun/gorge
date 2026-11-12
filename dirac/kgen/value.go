@@ -98,6 +98,28 @@ func (lc *lowerCtx) targetedCastSpentValue() (lValue, error) {
 	return lValue{Kind: vTgtSpent}, nil
 }
 
+// triggeredAttackerValue lowers TriggeredAttacker$...: the ref is the single
+// attacker the trigger captured (gorge count_ref.go refTargetsTriggeredAttacker).
+// CardPower reads its live power (Arahbo, Roar of the World's "X is its
+// power"); CardCounters.ALL sums its LIVE counters (count_ref_property.go's
+// sumCounters, no LKI substitution for a trigger object), so X sees the
+// counter the sibling PutCounter just added. defined() refuses the shapes with
+// no single attacker (an AttackersDeclared player event). CardToughness has no
+// carrier in the class and is left to the ordinary refusal. Spider-Man Noir.
+func (lc *lowerCtx) triggeredAttackerValue(rest string) (lValue, error) {
+	ref, err := lc.defined("TriggeredAttacker")
+	if err != nil {
+		return lValue{}, err
+	}
+	switch rest {
+	case "CardPower":
+		return lValue{Kind: vPowerOf, Ref: ref}, nil
+	case "CardCounters.ALL":
+		return lValue{Kind: vCountersOn, Ref: ref, S: "ALL", N: 1}, nil // N 1: the live read (kernel refCountersAll)
+	}
+	return lValue{}, fmt.Errorf("TriggeredAttacker$%s", rest)
+}
+
 // svarValue lowers an SVar value body.
 func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 	if depth > 4 {
@@ -508,21 +530,7 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			err = fmt.Errorf("TargetedPlayer$%s", rest)
 		}
 	case "TriggeredAttacker":
-		// gorge count_ref.go refTargetsTriggeredAttacker: the single attacker
-		// the trigger captured; CardCounters.ALL sums its LIVE counters
-		// (count_ref_property.go's sumCounters, no LKI substitution for a
-		// trigger object), so X sees the counter the sibling PutCounter just
-		// added. defined() refuses the shapes with no single attacker
-		// (an AttackersDeclared player event). Spider-Man Noir
-		if rest != "CardCounters.ALL" {
-			err = fmt.Errorf("TriggeredAttacker$%s", rest)
-			break
-		}
-		ref, derr := lc.defined("TriggeredAttacker")
-		if derr != nil {
-			return lValue{}, derr
-		}
-		v = lValue{Kind: vCountersOn, Ref: ref, S: "ALL", N: 1} // N 1: the live read (kernel refCountersAll)
+		v, err = lc.triggeredAttackerValue(rest)
 	case "Spawner>Sacrificed":
 		// A reflexive trigger reading the creature its parent's own IfPaid
 		// Sacrifice cost took (Bolg of the North's "that creature's power";
