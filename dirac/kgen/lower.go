@@ -437,6 +437,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.numberOnceAbilities()
 	lc.refusePlotCombos()
 	lc.refuseHarmonizeCombos()
+	lc.refuseReboundCombos() // lower_rebound.go
 	lc.refuseMayhemCombos()
 	lc.refuseBeamCombos()
 	lc.refuseSneakCombos()
@@ -635,6 +636,7 @@ func (lc *lowerCtx) lowerRecord() {
 		out.Subtypes = append(out.Subtypes, t)
 	}
 	out.NoAbilities = effects.FaceHasNoAbilities(f, out.Types&tLand != 0)
+	out.HasManaAbility = effects.FaceHasManaAbility(f)
 	out.Colors = colorsOf(f)
 	if faceHasKeyword(f, "Devoid") {
 		// CR 702.114a: gorge effects.faceColorMask / cards.printedColourMask
@@ -1352,6 +1354,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			// generic cost (dirac/kw_delve.go); a granted Delve reads the
 			// same kernel path.
 			lc.out.Delve = true
+		case head == "Rebound" && param == "":
+			lc.lowerRebound(node) // lower_rebound.go
 		case head == "Madness":
 			// CR 702.35a-b: a discard replacement into exile plus a
 			// keyword trigger whose resolution offers the cast for this
@@ -2892,7 +2896,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			}
 		}
 		if ab.Zone == zHand && !cost.DiscardSelf && !ab.Ninjutsu {
-			return refuse("hand ability without discarding itself")
+			if !lc.putSelfAbility(sa.API, ab, ps, cost) { // lower_ninjutsu.go
+				return refuse("hand ability without discarding itself")
+			}
 		}
 		if kw := strings.TrimSpace(sa.Params["Keyword"]); ab.Zone == zHand && (kw == "Cycling" || kw == "TypeCycling") {
 			ab.Cycling = true // gorge cyclingKeyword
@@ -3098,8 +3104,8 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		return refuse("ability kind %s", sa.Kind)
 	}
 	lc.out.Abilities = append(lc.out.Abilities, ab)
-	if ab.Ninjutsu {
-		return lc.ninjutsuBody(ps) // lower_ninjutsu.go
+	if ab.Ninjutsu || ab.PutSelf {
+		return lc.ninjutsuBody(ps, ab.PutSelf) // lower_ninjutsu.go
 	}
 	if sa.API == "Mana" && ab.Kind != akSpell {
 		return lc.lowerMana(sa, ps, ab)

@@ -231,11 +231,15 @@ import (
 // Despair, Monstrous Hound, Mogg Toady and Goblin Goon; merged ALL build-level
 // 22392 -> 22584).
 // +57 (the Echo and Fading keywords lower, echo over a plain mana cost: Cradle Guard, Blastoderm, Avalanche Riders, Mogg War Marshal and the rest of the 24 echo and 11 fading cards the keyword alone refused; ALL 22345 -> 22402).
-// +58 (the merge with land: the Echo and Fading lowering's +57 measured at
-// 22345 is +58 on land's tree, one card lowering only with both sides' changes;
-// merged ALL build-level 22592 -> 22650, measured).
+// +58 (the merge with land at 75218b69a1: the Echo and Fading lowering's +57
+// measured at 22345 is +58 on that tree, one card lowering only with both
+// sides' changes; merged ALL build-level 22592 -> 22650, measured).
+// +39 (the merge with land at 6faca6234c: Rebound, FirstCardInDrawStep$,
+// tokenCreated, Talon Gates of Madara, the Panharmonicon look-back and the
+// hasManaAbility filter beside the +58; merged ALL build-level 22650 -> 22689,
+// measured).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22650, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22689, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

@@ -1565,6 +1565,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	if t.FirstAttack {
 		kt.Flags3 |= kop.Tf3FirstAttack
 	}
+	kt.Flags5 = drawStepFlags(t)
 	if t.GameOnce {
 		kt.Flags3 |= kop.Tf3GameOnce
 	}
@@ -2688,7 +2689,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "Demonstrate":
 		ki.Op = kop.OpDemonstrate
 	case "Ninjutsu":
-		ki.Op = kop.OpNinjutsu
+		ki.Op, ki.C = kop.OpNinjutsu, int16(in.C) // C 1: the plain put-self-from-hand (lower_ninjutsu.go putSelfAbility)
 	case "Repeat":
 		ki.Op, ki.B = kop.OpRepeat, skip() // A: the pass count, read as the loop starts
 	case "RepeatWhile":
@@ -3538,7 +3539,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, err
 		}
 	case "TapAll":
-		ki.Op = kop.OpTapAll
+		ki.Op, ki.C = kop.OpTapAll, int16(in.C) // C 1: TapperController$ True (act_sweeps.go tapAll)
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
@@ -4001,6 +4002,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, fmt.Errorf("DividedCounters Obj %d", ki.Obj)
 		}
 		ki.Op, ki.A, ki.C, ki.Obj = kop.OpExt, kop.Const(int(kop.ExtDividedCounters)), int16(slot), kop.RefSelf
+	case "DrainMana":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtDrainMana))
 	case "CounterLose":
 		// (Tishana's Tidebinder) OpExt ExtCounterLose, C the
 		// host-bound LoseAbilities override

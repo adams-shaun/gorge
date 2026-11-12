@@ -525,6 +525,15 @@ const (
 	PredSolved Pred = 252
 )
 
+// PredHasManaAbility: the object has a mana ability (gorge FaceHasManaAbility:
+// an activated CR 605.1a ability, the intrinsic basic-land ability included,
+// or a CR 605.1b triggered mana ability). PredN 0 = has one, 1 = !hasManaAbility.
+// The card read is CardDef.HasManaAbility, shared with the gorge predicate;
+// a face-down permanent or card matches nothing (CR 708.2). Read on the
+// battlefield and off it (Moonsilver Key searches a library). Explicit high
+// ordinal, filters.go style; 255 is free.
+const PredHasManaAbility Pred = 255
+
 // PredTrigPlayerCtrl: a battlefield permanent whose controller is the
 // current trigger entry's trigger player, the player a damage trigger's
 // damage was dealt to (gorge ControlledBy TriggeredTarget, CR 603.2):

@@ -83,6 +83,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtCounterLose:
 		s.counterLose(k, in) // act_counterlose.go
 		return true, true
+	case kop.ExtDrainMana:
+		s.drainMana(k, in) // act_drainmana.go
+		return true, true
 	case kop.ExtNumTimes:
 		return s.numTimesStart(k, in), true // cast_announcetimes.go
 	case kop.ExtCumulative:

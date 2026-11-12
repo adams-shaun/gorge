@@ -193,6 +193,7 @@ func (s *State) beginStep(k *prep) {
 			return
 		}
 		s.g.drawFirst = true  // repl_draw.go: the first card drawn in this draw step
+		s.g.drawStepN = 0     // trig_drawstep.go: no card drawn in this draw step yet
 		if !s.out(s.active) { // a departed active player draws nothing (gorge turn.go)
 			s.draw(s.active)
 		}
