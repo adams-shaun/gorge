@@ -232,7 +232,7 @@ import (
 // 22392 -> 22584).
 // +31 (K:Partner with: the carriers listed at ratchet_test.go's ALL pin; ALL build-level 22381 -> 22412; merged ALL build-level 22706 -> 22737).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22868, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22870, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
