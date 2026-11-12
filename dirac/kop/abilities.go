@@ -385,16 +385,24 @@ func riderManaCostOK(a *Ability) bool {
 // "Remove X <kind> counters from this: Add X mana ..." (Molten Slagheap,
 // Mage-Ring Network; CR 107.3, 118.3). Cost.Ctr is the counter kind and
 // Cost.Ctr's count is read through ManaV (VCountersSelf), so the kernel's
-// script gap removes every counter and makes that many mana. A generic fee
-// (Cost.Mana.Generic) may ride beside it; an announced {X}, a coloured fee,
-// a rider or a spend restriction is another shape.
+// script gap removes every counter and makes that many mana.
+//
+// The kernel models one fixed colour per counter (dirac
+// mana_countercost.go storeGap). A generic fee, a coloured cost, a
+// combination or any-colour production, an announced {X}, a rider or a
+// spend restriction is another shape and is refused by kgen with its reason.
 func StoreManaAb(a *Ability) bool {
 	if a.Kind != AbMana || a.Cost.Flags&CostLoyaltyX == 0 || a.Cost.Mana.X != 0 ||
+		a.Cost.Mana.Generic != 0 ||
 		a.Cost.Mana.Pips != ([NumManaKinds]uint8{}) || a.Cost.Mana.Hyb != ([4]ColorMask{}) || a.Cost.Mana.Tb != 0 ||
 		a.AFlags&AfManaDynamic == 0 || a.ManaV.K != VCountersSelf || a.ManaV.N != int16(a.Cost.Ctr) {
 		return false
 	}
-	return a.ManaRestrict == 0 && a.ManaRestrictAb == 0 && !a.ManaEach && len(a.Prog) == 0
+	if c := a.ManaColors; c == 0 || c&(c-1) != 0 {
+		return false
+	}
+	f := a.Cost.Flags
+	return (f == CostTap|CostLoyaltyX || f == CostLoyaltyX) && a.ManaRestrict == 0 && a.ManaRestrictAb == 0 && !a.ManaEach && len(a.Prog) == 0
 }
 
 // ManaAbilityHonoured reports whether the kernel can activate ability j of

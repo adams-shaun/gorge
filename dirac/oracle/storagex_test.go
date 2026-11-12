@@ -8,15 +8,21 @@ import (
 )
 
 // The storage-battery X mana ability (SubCounter<X/KIND>, Amount$ X) lowers
-// as the kernel's counter-X gap for the single-colour cards; the fee-bearing
-// combination shapes stay refused in kgen. Each of these cards lives in a
-// tail synthetic pool, so play it in a land-only fixture: its land and
-// counter-placement abilities resolve decision for decision, and the X
-// ability's primitive is covered by dirac's TestStoreManaGap.
+// for the single-colour cards (the fee, combination and any-colour shapes
+// stay refused in kgen; see dirac/kgen/storageland_test.go). City of Shadows
+// is the card the STORAGE counter-kind mapping also unlocks: its {T}: Add {C}
+// for each storage counter is a plain dynamic production, not a SubCounter X
+// cost.
+//
+// Each card lives in a tail synthetic pool. The lockstep plays its land,
+// counter-placement and (City's) production abilities decision for decision;
+// mana abilities are not priority options, so the X activation itself is
+// exercised by dirac's TestStoreManaGap and TestStorePaysSpell, whose fixture
+// pays a {B} spell from Bottomless Vault's stored counters.
 var kStorageX = []string{
 	"Bottomless Vault", "Mercadian Bazaar", "Mage-Ring Network", "Icatian Store",
-	"Dwarven Hold", "Haruspex", "Hollow Trees", "Rushwood Grove", "Fountain of Cho",
-	"Saprazzan Cove", "Sand Silos", "Subterranean Hangar",
+	"Dwarven Hold", "Hollow Trees", "Rushwood Grove", "Fountain of Cho",
+	"Saprazzan Cove", "Sand Silos", "Subterranean Hangar", "City of Shadows",
 }
 
 type storageXFixture struct {

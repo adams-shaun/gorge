@@ -1,0 +1,6 @@
+# Bottomless Vault's storage-battery X mana ability (SubCounter<X/STORAGE>,
+# Amount$ X) and a {B} spell only it can pay, for dirac's
+# TestStoreManaGap/TestStorePaysSpell (mana_storex_test.go).
+Bottomless Vault
+Shadowborn Apostle
+Plains

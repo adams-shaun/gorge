@@ -447,6 +447,8 @@ func manaGapWhy(first, a *lAbility) string {
 	switch {
 	case a.Cost.SubCtrX && a.Cost.Mana.Generic > 0:
 		return "an announced-X counter cost beside a generic fee: the kernel's storage script gap prices no source fee (and gorge's planner prices no such source)"
+	case a.Cost.SubCtrX:
+		return "an announced-X counter cost making a colour combination or any colour: the kernel's counter-X gap models one fixed colour per counter"
 	case !plainTapMana(a, false) && !plainTapMana(a, true):
 		if a.Cost.SubCtr != 0 {
 			return "a cost beyond {T} the kernel's mana walk cannot activate: its counter gap kind reads a second ability only for a fixed unrestricted colour"
@@ -550,11 +552,11 @@ const maxRestrictedAmount = 4
 const maxComboMana = 4
 
 // storeGapMana reports the storage-battery shape a later mana ability may
-// carry: SubCounter<X/KIND> on the source, Amount$ X, a fixed or two-colour
-// production and no generic fee. The kernel's counter-X script gap
-// (mana_countercost.go) removes every counter and makes that many mana; a
-// fee, a five-colour production or a spend restriction has no kernel model
-// and stays refused.
+// carry: SubCounter<X/KIND> on the source, Amount$ X, one fixed colour and no
+// generic fee. The kernel's counter-X script gap (mana_countercost.go)
+// removes every counter and makes that many mana of that colour; a fee, a
+// colour combination, an any-colour production or a spend restriction has no
+// kernel model and stays refused.
 func storeGapMana(a *lAbility) bool {
 	if a.Kind != akMana || a.Mana == nil || !a.Cost.SubCtrX || a.Latent {
 		return false
@@ -568,7 +570,7 @@ func storeGapMana(a *lAbility) bool {
 		return false
 	}
 	cols := m.Colors
-	if cols != "C" && (cols == "" || len(cols) > 2 || strings.Trim(cols, "WUBRG") != "") {
+	if len(cols) != 1 || !strings.Contains("WUBRGC", cols) {
 		return false
 	}
 	c := a.Cost

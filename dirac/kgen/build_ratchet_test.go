@@ -220,14 +220,18 @@ import (
 // +1 (Count$TotalDamageReceivedThisTurn lowered: Tangled Colony; merged with land ALL build-level 22180 -> 22181).
 // +1 (ConditionActivationLimit$ lowers to kop.ExActivations: Dragon Whelp; merged with land ALL build-level 22184 -> 22185).
 // +5 (the Aura-on-land TapsForMana extra with a literal body: Wild Growth, Overgrowth, Wolfwillow Haven, Gauntlet of Might, Vernal Bloom; ALL build-level 22345 -> 22350).
-// +13 from the storage-battery mana abilities (SubCounter<X/KIND>, Amount$ X)
-// with no generic fee: Mage-Ring Network and the single-colour storage lands.
-// The generic-fee shapes (Molten Slagheap, Dreadship Reef, Saltcrusted Steppe,
-// Fungal Reaches, Calciform Pools) and Crucible of the Spirit Dragon's
-// spend-restricted production stay refused with their reasons; ALL build-level
-// 22381 -> 22394.
+// +12 from the single-colour storage-battery mana abilities (SubCounter<X/KIND>,
+// Amount$ X, no generic fee): Bottomless Vault, Mercadian Bazaar, Mage-Ring
+// Network, Icatian Store, Dwarven Hold, Hollow Trees, Rushwood Grove, Fountain
+// of Cho, Saprazzan Cove, Sand Silos, Subterranean Hangar, plus City of Shadows
+// (its PutCounter|CounterType$ STORAGE now maps to kop.CtrStorage; its
+// production is a plain dynamic {T}: Add {C} for each counter, not a
+// SubCounter X cost). Haruspex's any-colour X production, the generic-fee
+// shapes (Molten Slagheap, Dreadship Reef, Saltcrusted Steppe, Fungal Reaches,
+// Calciform Pools) and Crucible of the Spirit Dragon's spend-restricted
+// production stay refused with their reasons; ALL build-level 22381 -> 22393.
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22394, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22393, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

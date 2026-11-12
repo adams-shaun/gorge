@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // Counter-cost mana (Wall of Roots: "Put a -0/-1 counter on Wall of
 // Roots: Add {G}. Activate only once each turn."). gorge's planner census
@@ -40,9 +44,12 @@ func (k *prep) ctrAbOf(c CardID) *kop.Ability {
 }
 
 // ctrSecond: card c's counter-cost ability is a later one beside a plain {T}
-// first (Weather Maker), so activating the source asks which ability.
+// first (Weather Maker), so activating the source asks which ability. A
+// storage battery whose first ability is the counter one (Bottomless Vault)
+// has no plain first ability to answer with (pcard.manaAb is -1: a dynamic
+// amount is no planner unit), so it is not a second.
 func (k *prep) ctrSecond(c CardID) bool {
-	return int(c) < len(k.ctrAb) && k.ctrAb[c] >= 0 && k.ctrAb[c] != k.cards[c].manaAb
+	return int(c) < len(k.ctrAb) && k.ctrAb[c] >= 0 && k.cards[c].manaAb >= 0 && k.ctrAb[c] != k.cards[c].manaAb
 }
 
 // scriptCtr: p's counter-cost sources that can be activated now (a Wall of
@@ -65,7 +72,17 @@ func (s *State) scriptCtr(k *prep, p uint8) slotMask {
 		if a.Cost.Flags&kop.CostRemoveCtr != 0 && s.perms[sl].ctrN(s, int(a.Cost.Ctr)) < int(a.Cost.N) {
 			continue // too few counters to remove (legal.go actCostOK's CostRemoveCtr)
 		}
-		if a.Cost.Flags&kop.CostTap != 0 && !s.canTapForMana(k, sl) {
+		if kop.StoreManaAb(a) {
+			// A storage battery: the announced X is the counters it holds, so
+			// with none there is no activation. Its {T} is read here, not
+			// through canTapForManaPC (whose plain unit prices one mana, not X).
+			if s.perms[sl].ctrN(s, int(a.Cost.Ctr)) <= 0 {
+				continue
+			}
+			if a.Cost.Flags&kop.CostTap != 0 && (s.perms[sl].flags&pfTapped != 0 || s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || s.activationSick(k, sl)) {
+				continue
+			}
+		} else if a.Cost.Flags&kop.CostTap != 0 && !s.canTapForMana(k, sl) {
 			continue // its {T}: the source is untapped and not summoning sick (the second ability beside a plain {T} first)
 		}
 		m = m.with(sl)
@@ -78,7 +95,20 @@ func (s *State) scriptCtr(k *prep, p uint8) slotMask {
 //go:noinline
 func (s *State) availCtr(k *prep, p uint8, av *avail) {
 	for b := s.scriptCtr(k, p); b.any(); b = b.rest() {
-		addCtrUnits(av, k.ctrAbOf(s.cardAt(b.first())))
+		sl := b.first()
+		a := k.ctrAbOf(s.cardAt(sl))
+		if kop.StoreManaAb(a) {
+			n := s.perms[sl].ctrN(s, int(a.Cost.Ctr))
+			if n > 255 {
+				s.capFull(StallDynMana)
+				n = 255
+			}
+			if n > 0 {
+				av.addUnits(uint8(a.ManaColors)&0x3f, uint8(n))
+			}
+			continue
+		}
+		addCtrUnits(av, a)
 	}
 }
 
@@ -117,6 +147,10 @@ func (s *State) windowCtrOffer(k *prep, p uint8, o Slot, decided bool, want uint
 func (s *State) ctrGap(k *prep, p uint8, sl Slot) {
 	c := s.cardAt(sl)
 	a := k.ctrAbOf(c)
+	if kop.StoreManaAb(a) {
+		s.storeGap(k, p, sl, a) // the storage battery's announced X (mana_countercost.go)
+		return
+	}
 	pm := &s.perms[sl]
 	if a.Cost.Flags&kop.CostRemoveCtr != 0 {
 		pm.seeCtr(s) // the activation path's CostRemoveCtr (mana_window.go)
@@ -172,15 +206,14 @@ func (s *State) sbaCtrTough(k *prep, die, gy *slotMask) {
 // proves the pool's plays need them).
 var DebugNoCtrMana bool
 
-// storeGap activates a storage-battery mana ability (mage_ring_network and
-// the single-colour storage lands): its {T} if any marked, every counter of
-// the kind removed, and that many mana added, split over the ability's
-// production mask to cover need first and the printed colour order after. A
-// generic fee is not modelled (kgen refuses the fee-bearing shapes). CR
-// 107.3, 118.3; gorge's non-interactive ManaCostSubCounterStage takes X at
-// the bound (all the counters) and its script answers the colour ask
-// needed-first.
-func (s *State) storeGap(k *prep, p uint8, sl Slot, a *kop.Ability, need ...*[kop.NumManaKinds]int) {
+// storeGap activates a single-colour storage-battery mana ability (Mage-Ring
+// Network and the single-colour storage lands): its {T} if any marked, every
+// counter of the kind removed, and that many mana of the ability's one
+// colour. A generic fee, a colour combination or an any-colour production is
+// not modelled (kgen refuses those shapes with their reasons). CR 107.3,
+// 118.3; gorge's non-interactive ManaCostSubCounterStage takes X at the bound
+// (all the counters).
+func (s *State) storeGap(k *prep, p uint8, sl Slot, a *kop.Ability) {
 	pm := &s.perms[sl]
 	n := pm.ctrN(s, int(a.Cost.Ctr))
 	if n <= 0 {
@@ -190,10 +223,8 @@ func (s *State) storeGap(k *prep, p uint8, sl Slot, a *kop.Ability, need ...*[ko
 		s.capFull(StallDynMana)
 		n = 255
 	}
-	if a.Cost.Mana.Generic != 0 {
-		return // the fee-bearing shape is not modelled (kgen refuses it)
-	}
-	if a.Cost.Flags&kop.CostTap != 0 {
+	taps := a.Cost.Flags&kop.CostTap != 0
+	if taps {
 		if pm.flags&pfTapped != 0 {
 			return
 		}
@@ -204,41 +235,10 @@ func (s *State) storeGap(k *prep, p uint8, sl Slot, a *kop.Ability, need ...*[ko
 	s.touchSl(sl)
 	pm.seeCtr(s)
 	pm.subCtrN(s, int(a.Cost.Ctr), n)
-	var rem [kop.NumManaKinds]int
-	if len(need) > 0 && need[0] != nil {
-		rem = *need[0]
-	}
-	mask := uint8(a.ManaColors) & 0x3f
-	first := -1
-	for c := 0; c < kop.NumManaKinds; c++ {
-		if mask&(1<<c) != 0 {
-			if first < 0 {
-				first = c
-			}
-		}
-	}
-	if first < 0 {
-		return
-	}
-	for left := n; left > 0; left-- {
-		col := -1
-		for c := 0; c < kop.NumManaKinds; c++ {
-			if mask&(1<<c) != 0 && rem[c] > 0 {
-				col = c
-				break
-			}
-		}
-		if col < 0 {
-			col = first
-		} else {
-			rem[col]--
-		}
-		s.poolAdd(p, col, 1)
-		if a.Cost.Flags&kop.CostTap != 0 {
-			s.artTag(k, p, sl, col)
-		}
-	}
-	if a.Cost.Flags&kop.CostTap != 0 {
+	col := bits.TrailingZeros8(uint8(a.ManaColors) & 0x3f)
+	s.poolAdd(p&1, col, n)
+	if taps {
+		s.artTag(k, p, sl, col)
 		s.tapExtraStall(k, sl)
 	}
 }
