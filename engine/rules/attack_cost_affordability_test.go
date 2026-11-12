@@ -19,9 +19,9 @@ import (
 //
 // A multi-pip charge payable ONLY by mixing branches (one pip with colour, one
 // with life) is admitted by the joint Cost{Generic, Phyrexian} reachability
-// read but the all-or-nothing election cannot settle it, so the pair used to
-// be offered, validated, and then silently committed nothing. The read is now
-// narrowed to the branches the window CAN settle.
+// read and is now settleable, because the plan routes and asks per pip
+// (CR 107.4f); the window collects the colour pip's source and charges two
+// life for the life pip.
 //
 // These tests pin both directions at the charge resolver and end to end
 // through the offer list, each asserting its own precondition.
@@ -106,26 +106,25 @@ func TestMyrPrototypeZeroCountersAttacksFree(t *testing.T) {
 
 // combatMultiPipFixture charges two Phyrexian pips of different colours: the
 // shape whose MIXED branch affordability (one pip with colour, one with life)
-// the all-or-nothing election cannot settle.
+// the old all-or-nothing election could not settle and now can.
 const combatMultiPipFixture = "Name:Multi Pip Tax\nTypes:Enchantment\n" +
 	"S:Mode$ CantAttackUnless | ValidCard$ Creature | Target$ You | Cost$ W/P U/P | Description$x\n" +
 	"Oracle:x\n"
 
-// TestMixedOnlyMultiPipChargeIsNeverOffered pins the consequence:
+// TestMixedMultiPipChargeIsOffered pins the per-pip CR 107.4f consequence:
 // a two-pip charge payable ONLY by mixing branches (one colour, one life) is
-// admitted by the joint `Cost{Generic, Phyrexian}` reachability read, but
-// openCombatPayPlan can settle neither an all-colour nor an all-life branch,
-// so the window would decline a pair it had already offered and validated.
-// combatChargeAffordable now narrows to the branches the window CAN settle:
-// such a pair is never offered. All-colour and all-life multi-pip charges are
-// still offered (asserted for the all-life branch here).
-func TestMixedOnlyMultiPipChargeIsNeverOffered(t *testing.T) {
+// settleable per pip now, so it must be affordable and offered, and its
+// payment window must collect the colour pip's source. The all-life control
+// stays affordable too.
+func TestMixedMultiPipChargeIsOffered(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
 	onBoardCard(t, e, 0, card(t, combatMultiPipFixture))
 	bear := onBoardReady(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	plains := onBoardCard(t, e, 1, card(t, "Name:Test Plains\nTypes:Basic Land Plains\nOracle:x\n"))
 	e.G.Active = 1
 	e.G.Step = state.StepDeclareAttackers
+	e.G.Players[1].Life = 3
 
 	ch := e.attackPairCharge(bear, 0, 0)
 	if len(ch.phyrexian) != 2 || ch.phyrexian[0] != 'W' || ch.phyrexian[1] != 'U' || ch.mana != 0 {
@@ -134,35 +133,62 @@ func TestMixedOnlyMultiPipChargeIsNeverOffered(t *testing.T) {
 
 	// MIXED-ONLY: one white source (cannot pay both pips with colour) and
 	// three life (cannot pay both pips with life). The joint cost read admits
-	// the mix; neither all-pips branch can settle, so the pair must not be
-	// offered.
-	onBoardReady(t, e, 1, "Name:Test Plains\nTypes:Basic Land Plains\nOracle:x\n")
-	e.G.Players[1].Life = 3
+	// the mix, and the per-pip plan can settle it as W + 2 life.
 	if !pay.UnlessManaReachable(asPayer(e), 1, chCost(ch), e.G.Players[1].Pool, e.G.Players[1].Snow,
 		e.G.Players[1].ManaUnits(), e.G.Players[1].Life, asEval(e).Conv(1, 0, pay.SAOther),
 		e.attackWindowUnits(1, nil)) {
 		t.Fatal("precondition: the MIXED branch is payable, but the joint read says no (test is vacuous)")
 	}
-	if e.combatChargeAffordable(1, ch, map[state.ObjID]bool{bear: true}, map[state.ObjID]bool{bear: true}) {
-		t.Fatal("precondition: the mixed-only charge reads affordable; the anti-strand narrowing is not in force")
+	committed := map[state.ObjID]bool{bear: true}
+	if !e.combatChargeAffordable(1, ch, committed, committed) {
+		t.Fatal("the mixed W + 2 life payment must be affordable")
 	}
-	e.askAttackers()
-	d := e.Pending()
-	if d != nil && d.Kind == decision.KAttackers {
-		if opt := findAttackOption(d, bear, 0); opt != nil {
-			t.Fatalf("a mixed-only multi-pip charge was offered; the window cannot settle it: %+v", opt)
-		}
-	}
-
-	// ALL-LIFE control: four life covers both pips, so the pair IS offered.
+	// ALL-LIFE control: four life covers both pips.
 	e.G.Players[1].Life = 4
-	if !e.combatChargeAffordable(1, ch, map[state.ObjID]bool{bear: true}, map[state.ObjID]bool{bear: true}) {
+	if !e.combatChargeAffordable(1, ch, committed, committed) {
 		t.Fatal("precondition: an all-life multi-pip charge must read affordable with 4 life")
 	}
+	e.G.Players[1].Life = 3
+
 	e.askAttackers()
-	if d := e.Pending(); d == nil || d.Kind != decision.KAttackers || findAttackOption(d, bear, 0) == nil {
-		t.Fatalf("the all-life-settleable multi-pip pair was not offered: %+v", d)
+	d := e.Pending()
+	opt := findAttackOption(d, bear, 0)
+	if opt == nil {
+		t.Fatalf("mixed-payable multi-pip pair not offered: %+v", d.Options)
 	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{opt.Index}}); err != nil {
+		t.Fatalf("submit the mixed-payable multi-pip attack: %v", err)
+	}
+
+	// The W pip is routed to colour and the U pip to life, so the window asks
+	// for the one white mana the colour face needs.
+	mana := e.Pending()
+	if mana == nil || mana.Kind != decision.KChoose {
+		t.Fatalf("expected the mana-source ask for the colour pip, got %+v", mana)
+	}
+	manaIdx := -1
+	for _, o := range mana.Options {
+		if o.Kind == "attack_mana" {
+			manaIdx = o.Index
+			break
+		}
+	}
+	if manaIdx < 0 {
+		t.Fatalf("mana-source ask has no attack_mana option: %+v", mana.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: mana.Seq, Player: mana.Player, Choices: []int{manaIdx}}); err != nil {
+		t.Fatalf("tap the Plains for the colour pip: %v", err)
+	}
+	if !e.G.Obj(plains).Tapped {
+		t.Fatal("the colour pip's Plains was never tapped")
+	}
+	if got := e.G.Players[1].Life; got != 1 {
+		t.Fatalf("life after the mixed multi-pip payment = %d, want 1 (one pip with 2 life)", got)
+	}
+	if o := e.G.Obj(bear); o == nil || !o.IsAttacking {
+		t.Fatal("the mixed-payable attacker was never declared")
+	}
+	drainCombatPriority(t, e)
 }
 
 // chCost is the joint mana requirement combatChargeAffordable's reachability
