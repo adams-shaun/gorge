@@ -156,6 +156,8 @@ type genPrep struct {
 	infectStall    bool
 	twoSeatOnly    bool           // a card plays only two seats (stallclass.go prepTwoSeat): StallTwoSeat in a larger game
 	fbStampOwnCost bool           // a stamped flashback grant beside an own-cost flashback static (kw_fbgrant.go prepFbStamp): StallFbGrantStamp
+	anyAtkTax      bool           // a card has a StatAttackTax static (combat_attacktax.go)
+	atkTaxStall    bool           // an attack tax beside a part its walk does not model (combat_attacktax.go prepAtkTax): StallAtkTax
 	anyWitherGrant bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
 	anyEOTEmb      bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
 	anyNTEmb       bool           // some emblem ends at its controller's next turn (kop.Emblem.UntilNextTurn; static_effectdelivered.go)
@@ -529,7 +531,7 @@ func tableHasPrevent(t *kop.Table) bool {
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasStatic(t, kop.StatAttackTax) {
 		return nil
 	}
 	enteredNeed := tableHasEnteredFrom(t)
@@ -1500,6 +1502,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepTrigAtk(t, g)   // trig_attackers.go
 	prepBatchPool(t, g) // trig_batchmembers.go
 	g.anyCopyElect = g.anyCopyElect || p.casualty
+	prepAtkTax(t, g) // combat_attacktax.go: after the requirement, Taps and land-type reads it checks
 	prepCold(g, &p.cold)
 	return g
 }

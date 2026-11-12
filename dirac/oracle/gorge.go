@@ -441,6 +441,19 @@ func (g *GorgeSide) internal(d *decision.Decision) bool {
 	if manaChoiceResolving(d) {
 		return false
 	}
+	if d.Options[0].Kind == "attack_mana" {
+		// The declare-attackers attack-tax window (rules/attack_cost.go
+		// askNextAttackPay): one tap per ask, answered with the first source
+		// listed, the order the kernel's atkTaxNext walks.
+		g.Stats.Internal++
+		if g.OnInternal != nil {
+			g.OnInternal(d, d.Options[0].Index)
+		}
+		if err := g.submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}); err != nil {
+			g.fail(fmt.Errorf("oracle: attack payment window answer refused: %w", err))
+		}
+		return true
+	}
 	window := d.ManaPayment != nil || d.PaymentFallback != nil
 	allMana := true
 	for _, o := range d.Options {

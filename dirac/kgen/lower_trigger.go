@@ -1662,6 +1662,11 @@ func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 	if isChosenModeStatic(s) {
 		return lc.chosenModeStatic(s) // lower_siegemode.go
 	}
+	if s.Mode == "CantAttackUnless" {
+		if err := attackTaxReadable(s.Params); err != nil {
+			return err // lower_attacktax.go: before the EffectZone$ strip below
+		}
+	}
 	if s.Params["EffectZone"] == "Battlefield" {
 		// a printed static's default zone spelled out (gorge
 		// EffectZoneOK: the battlefield, as with no EffectZone$)
@@ -1991,6 +1996,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 	case "CantAttack":
 		if err := lc.cantAttack(sp, &st); err != nil {
 			return nil, err
+		}
+	case "CantAttackUnless":
+		if err := lc.cantAttackUnless(sp, &st); err != nil {
+			return nil, err // lower_attacktax.go
 		}
 	case "CanAttackDefender":
 		// gorge combat.AttackAllowedThroughDefender: ValidCard$ (or

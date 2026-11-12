@@ -1118,6 +1118,8 @@ SrThenTop	untyped int	2
 SrUnderYourControl	untyped int	2048
 StAlsoSideboard	StaticFlags	512
 StAnyManaType	StaticFlags	4
+StAtkTaxPlayer	StaticFlags	2
+StAtkTaxWalker	StaticFlags	4
 StBargained	StaticFlags	4096
 StBeamGranted	StaticFlags	1
 StCasterActive	StaticFlags	64
@@ -1170,6 +1172,7 @@ StatActivationLimit	StaticKind	227
 StatAlternativeCost	StaticKind	5
 StatAnyTypeCreatures	StaticKind	239
 StatAsIfHaste	StaticKind	231
+StatAttackTax	StaticKind	243
 StatBeamGrant	StaticKind	253
 StatCDAPT	StaticKind	10
 StatCanAttackDefender	StaticKind	250

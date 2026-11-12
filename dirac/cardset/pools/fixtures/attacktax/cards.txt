@@ -1,0 +1,26 @@
+# the attack-tax lockstep pool (S:Mode$ CantAttackUnless with a generic
+# mana Cost$): the taxes, a planeswalker to attack, attackers with and
+# without a mana ability, and the attack window's source shapes -- fixed
+# lands and rocks, a dual's two intrinsic abilities, a choice-shaped
+# gain land and any-colour creature, a chosen-colour land and a colour
+# identity rock outside a commander game (dirac/oracle/attacktax_test.go)
+Propaganda
+Ghostly Prison
+Windborn Muse
+Baird, Steward of Argive
+Sphere of Safety
+Onakke Oathkeeper
+Ajani, Caller of the Pride
+Grizzly Bears
+Llanowar Elves
+Serra Angel
+Birds of Paradise
+Sol Ring
+Arcane Signet
+Mind Stone
+Tundra
+Tranquil Cove
+Thriving Isle
+Plains
+Island
+Forest

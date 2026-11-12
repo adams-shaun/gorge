@@ -103,6 +103,8 @@ var stallUnmodelledReasons = [...]uint8{
 	StallExtraBlockReq,
 	// a card with the pay-before-entering replacement entered other than by its cast spell resolving: gorge asks its controller with the move pending, which the kernel's entry does not model (repl_paybeforeetb.go)
 	StallPayETB,
+	// an attack tax beside a part its walk does not model: an attack requirement, a Taps watcher, a mana source of another shape (combat_attacktax.go)
+	StallAtkTax,
 }
 
 // initStall is the reason a game of nseat players on this table stalls at its
@@ -128,6 +130,8 @@ func (g *genPrep) initStall(nseat uint8) uint8 {
 		return StallDiamondMix // mana_diamondmix.go prepDiamondMix
 	case g.fbStampOwnCost:
 		return StallFbGrantStamp // kw_fbgrant.go prepFbStamp
+	case g.atkTaxStall:
+		return StallAtkTax // combat_attacktax.go prepAtkTax
 	}
 	return StallNone
 }
@@ -219,6 +223,8 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 				return in.Op == kop.OpGrantKeyword && (kop.KwMask(uint16(in.C))|kop.KwMask(uint16(in.B.N))<<16)&kop.KwFlashbackOwnCost != 0
 			})
 		})
+	case StallAtkTax:
+		text, a, b = atkTaxStallPair(t, g) // combat_attacktax.go
 	case StallDiamondMix:
 		text = "a Lion's Eye Diamond beside another mana census-gap kind (a filter, a restricted or any-colour restricted source, a counter-cost or tap-another source, a deferred source, a granted mana ability, an each-colour source): gorge's one prefix search activates both and the kernel models the Diamond alone"
 		a = abilityOn(kop.DiscardHandManaAb)
