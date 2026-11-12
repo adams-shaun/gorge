@@ -126,7 +126,14 @@ func (s *State) empower(k *prep, in *kop.Instr) bool {
 // the ability (c, ab) (a global "planeswalkers you control have ..." grant, Ygra's
 // Food ability), or NoSlot. The attached-source case is grantedHost; this is the
 // cold path the FRA Ways and Avatar of Burgeoning Echoes need.
+//
+// Of two copies, the older: globalGrantsGen lists the grants in layer
+// timestamp order (gorge's active() order), and the offer collapses the
+// second copy's identical ability into the first's option, so the host must
+// be the copy gorge's first grant names. Slot order is a slot-allocation
+// artifact and can put the newer copy first.
 func (s *State) grantHostGen(k *prep, sl Slot, c CardID, ab uint8) Slot {
+	host := NoSlot
 	for m := s.statM; m.any(); m = m.rest() {
 		src := m.first()
 		if s.cardAt(src) != c {
@@ -139,11 +146,14 @@ func (s *State) grantHostGen(k *prep, sl Slot, c CardID, ab uint8) Slot {
 				continue
 			}
 			if s.matchPermGen(k, a.Static.Filter, sl, s.perms[src].ctrl, src, layerKw) {
-				return src
+				if host == NoSlot || s.layerTs(src) < s.layerTs(host) {
+					host = src
+				}
+				break
 			}
 		}
 	}
-	return NoSlot
+	return host
 }
 
 // embGrantHostObj is the object of the emblem whose Continuous static grants
