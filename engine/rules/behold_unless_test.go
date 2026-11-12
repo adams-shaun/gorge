@@ -182,7 +182,7 @@ func beholdHandEngine(t *testing.T) (*Engine, state.ObjID, state.ObjID) {
 	elfID := e.G.AddObject(elf, 0).ID
 	e.G.Obj(elfID).Zone = state.ZHand
 	e.G.SetZone(state.ZHand, 0, append(e.G.Zone(state.ZHand, 0), elfID))
-	passage := hobPut(t, e, 0, hobCard(t, reg, "Elven Passage"))
+	passage := putOnBattlefield(t, e, 0, hobCard(t, reg, "Elven Passage"))
 	e.askPriority(0)
 	return e, passage, elfID
 }
@@ -248,7 +248,7 @@ func TestBeholdUnlessNotOfferedWithoutCandidate(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e := handEngine(t, hobCard(t, reg, "Elven Passage"))
-	passage := hobPut(t, e, 0, hobCard(t, reg, "Elven Passage"))
+	passage := putOnBattlefield(t, e, 0, hobCard(t, reg, "Elven Passage"))
 	e.askPriority(0)
 	// Precondition: no Elf card or permanent exists on the payer's side.
 	for _, z := range []state.Zone{state.ZBattlefield, state.ZHand} {

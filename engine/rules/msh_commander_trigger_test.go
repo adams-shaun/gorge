@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -25,18 +24,6 @@ func mshCorpusCard(t *testing.T, name string) *cards.Card {
 	c, ok := testutil.CorpusRegistry(t).Lookup(name)
 	if !ok {
 		t.Fatalf("corpus missing %s", name)
-	}
-	return c
-}
-
-func mshCorpusCardPath(t *testing.T, name, path string) *cards.Card {
-	t.Helper()
-	c, ds := cards.Parse(filepath.Join("..", "..", ".cards", "cardsfolder", path))
-	if len(ds) != 0 {
-		t.Fatalf("parse %s: %v", name, ds)
-	}
-	if ds = c.Link(); len(ds) != 0 {
-		t.Fatalf("link %s: %v", name, ds)
 	}
 	return c
 }

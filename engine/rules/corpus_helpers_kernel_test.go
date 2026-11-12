@@ -291,3 +291,27 @@ func registryCardOrFatal(t *testing.T, reg *cards.Registry, name string) *cards.
 	}
 	return c
 }
+
+// mshCorpusCardPath parses a live corpus card at test time (GPL scripts stay
+// out of the repo), so the CantBlockBy pin runs against the real Forge script
+// whose ValidBlocker$ spec the predicate serves.
+func mshCorpusCardPath(t *testing.T, name, path string) *cards.Card {
+	t.Helper()
+	c, ds := cards.Parse(filepath.Join("..", "..", ".cards", "cardsfolder", path))
+	if len(ds) != 0 {
+		t.Fatalf("parse %s: %v", name, ds)
+	}
+	if ds = c.Link(); len(ds) != 0 {
+		t.Fatalf("link %s: %v", name, ds)
+	}
+	return c
+}
+
+func corpusCardOrFatal(t *testing.T, name string) *cards.Card {
+	t.Helper()
+	c, ok := testutil.CorpusRegistry(t).Lookup(name)
+	if !ok {
+		t.Fatalf("corpus card %q missing", name)
+	}
+	return c
+}

@@ -677,3 +677,75 @@ func passPriorityOption(t *testing.T, d *decision.Decision) int {
 	t.Fatalf("priority decision with no pass option: %+v", d)
 	return -1
 }
+
+func findBattlefieldCard(t *testing.T, e *Engine, name string) state.ObjID {
+	t.Helper()
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
+			return id
+		}
+	}
+	t.Fatalf("%s is not on seat 0's battlefield", name)
+	return 0
+}
+
+// graveCreature creates a card object and places it in p's graveyard (a
+// fixture placement, the same shape mayplay_test uses).
+func graveCreature(t *testing.T, e *Engine, p state.PlayerID, src string) state.ObjID {
+	t.Helper()
+	o := e.G.AddObject(card(t, src), p)
+	o.Zone = state.ZGraveyard
+	e.G.SetZone(state.ZGraveyard, p, append(e.G.Zone(state.ZGraveyard, p), o.ID))
+	return o.ID
+}
+
+// graveLandOffered reports whether seat p, made the active player at priority,
+// is offered play_land for id.
+func graveLandOffered(e *Engine, p state.PlayerID, id state.ObjID) bool {
+	e.G.Active, e.G.Priority = p, p
+	for _, o := range e.legalActions(p) {
+		if o.Kind == "play_land" && o.Obj == id {
+			return true
+		}
+	}
+	return false
+}
+
+// nogAnimates is the face indexes of Nog's two Animate abilities, in order.
+func nogAnimates(t *testing.T, e *Engine, nog state.ObjID) []int {
+	t.Helper()
+	var out []int
+	for i, a := range e.G.Obj(nog).Face().Abilities {
+		if a.API == "Animate" {
+			out = append(out, i)
+		}
+	}
+	if len(out) != 2 {
+		t.Fatalf("Nog has %d Animate abilities, want 2", len(out))
+	}
+	return out
+}
+
+// putOnBattlefield seeds a real corpus card directly onto seat p's
+// battlefield as test setup (the handEngine/graveCreature direct-seed idiom),
+// so a card's own enters-the-battlefield trigger does not have to be driven.
+// The caller asserts the landed state.
+func putOnBattlefield(t *testing.T, e *Engine, p state.PlayerID, c *cards.Card) state.ObjID {
+	t.Helper()
+	o := e.G.AddObject(c, p)
+	o.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, p, append(e.G.Zone(state.ZBattlefield, p), o.ID))
+	return o.ID
+}
+
+func fpPlanUses(got PaymentPlanOutcome, id state.ObjID) (decision.PaymentActivation, bool) {
+	if got.Plan == nil {
+		return decision.PaymentActivation{}, false
+	}
+	for _, a := range got.Plan.Activations {
+		if a.Source == id {
+			return a, true
+		}
+	}
+	return decision.PaymentActivation{}, false
+}

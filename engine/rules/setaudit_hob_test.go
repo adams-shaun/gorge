@@ -50,16 +50,6 @@ func hobHasType(f *cards.Face, t string) bool {
 	return false
 }
 
-// hobPut puts a corpus card onto seat p's battlefield eventlessly (as the
-// other onBoard helpers do) and returns its id.
-func hobPut(t *testing.T, e *Engine, p state.PlayerID, c *cards.Card) state.ObjID {
-	t.Helper()
-	o := e.G.AddObject(c, p)
-	o.Zone = state.ZBattlefield
-	e.G.SetZone(state.ZBattlefield, p, append(e.G.Zone(state.ZBattlefield, p), o.ID))
-	return o.ID
-}
-
 // hobSeekUnlessPay passes priority decisions and any mid-resolution search
 // ask until the mid-resolution unless-pay KModes is pending, returning nil if
 // none is posed within limit.
@@ -106,8 +96,8 @@ func TestSetAudit_hob_ElvenPassage_BeholdUntapsSearchedLand(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	elf := card(t, "Name:Elf Scout\nTypes:Creature Elf Scout\nPT:1/1\nOracle:x\n")
 	e := handEngine(t, hobCard(t, reg, "Elven Passage"))
-	elfID := hobPut(t, e, 0, elf)
-	passage := hobPut(t, e, 0, hobCard(t, reg, "Elven Passage"))
+	elfID := putOnBattlefield(t, e, 0, elf)
+	passage := putOnBattlefield(t, e, 0, hobCard(t, reg, "Elven Passage"))
 	e.askPriority(0)
 
 	if o := e.G.Obj(passage); o == nil || o.Face() == nil || o.Face().Name != "Elven Passage" || o.Tapped {
@@ -224,7 +214,7 @@ func TestSetAudit_hob_BardKingOfDale_ReplacesExtraDrawWithTwo(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e := handEngine(t, hobCard(t, reg, "Bard, King of Dale"))
-	bard := hobPut(t, e, 0, hobCard(t, reg, "Bard, King of Dale"))
+	bard := putOnBattlefield(t, e, 0, hobCard(t, reg, "Bard, King of Dale"))
 	if o := e.G.Obj(bard); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatal("precondition: Bard is not on battlefield")
 	}
@@ -382,7 +372,7 @@ func TestSetAudit_hob_Bombur_DoesNotUntapWithoutEnduringStory(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e := handEngine(t, hobCard(t, reg, "Bombur, Gentle Dreamer"))
-	bombur := hobPut(t, e, 0, hobCard(t, reg, "Bombur, Gentle Dreamer"))
+	bombur := putOnBattlefield(t, e, 0, hobCard(t, reg, "Bombur, Gentle Dreamer"))
 	if o := e.G.Obj(bombur); o == nil || !o.Face().HasKeyword("Storied") {
 		t.Fatalf("precondition: Bombur lacks Storied: %+v", e.G.Obj(bombur))
 	}
@@ -439,7 +429,7 @@ func TestSetAudit_hob_MastersCouncillors_CountsGraveyardsWithSevenPlus(t *testin
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e := handEngine(t, hobCard(t, reg, "Master's Councillors"))
-	id := hobPut(t, e, 0, hobCard(t, reg, "Master's Councillors"))
+	id := putOnBattlefield(t, e, 0, hobCard(t, reg, "Master's Councillors"))
 	// Precondition: the printed base is 1/3 and the graveyard starts empty.
 	if o := e.G.Obj(id); o == nil || o.Face() == nil || o.Face().Name != "Master's Councillors" || o.Zone != state.ZBattlefield {
 		t.Fatalf("Master's Councillors precondition: %+v", o)
@@ -464,7 +454,7 @@ func TestSetAudit_hob_TheMasterOfLakeTown_DrawsForGraveyardsWithSevenPlus(t *tes
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e := handEngine(t, hobCard(t, reg, "The Master of Lake-town"))
-	id := hobPut(t, e, 0, hobCard(t, reg, "The Master of Lake-town"))
+	id := putOnBattlefield(t, e, 0, hobCard(t, reg, "The Master of Lake-town"))
 	if o := e.G.Obj(id); o == nil || o.Face() == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("The Master of Lake-town precondition: %+v", o)
 	}
@@ -488,7 +478,7 @@ func TestSetAudit_hob_CantankerousKeepers_AffinityForElvesReducesCost(t *testing
 	e := handEngine(t, hobCard(t, reg, "Cantankerous Keepers"))
 	elf := card(t, "Name:Elf Scout\nTypes:Creature Elf Scout\nPT:1/1\nOracle:x\n")
 	for i := 0; i < 5; i++ {
-		hobPut(t, e, 0, elf)
+		putOnBattlefield(t, e, 0, elf)
 	}
 	var id state.ObjID
 	for _, h := range e.G.Zone(state.ZHand, 0) {
@@ -516,7 +506,7 @@ func TestSetAudit_hob_NastyLittleRabbit_FerociousGate(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e := handEngine(t, hobCard(t, reg, "Nasty Little Rabbit"))
-	rabbit := hobPut(t, e, 0, hobCard(t, reg, "Nasty Little Rabbit"))
+	rabbit := putOnBattlefield(t, e, 0, hobCard(t, reg, "Nasty Little Rabbit"))
 	if o := e.G.Obj(rabbit); o == nil || o.Face() == nil || !hobHasType(o.Face(), "Creature") || o.Zone != state.ZBattlefield {
 		t.Fatalf("Nasty Little Rabbit precondition: %+v", o)
 	}
@@ -533,7 +523,7 @@ func TestSetAudit_hob_NastyLittleRabbit_FerociousGate(t *testing.T) {
 		t.Fatalf("Ferocious with no power-4 creature: rabbit has %d +1/+1 counters, want 0", c)
 	}
 	big := card(t, "Name:Set-Audit Beast\nTypes:Creature Beast\nPT:4/4\nOracle:x\n")
-	hobPut(t, e, 0, big)
+	putOnBattlefield(t, e, 0, big)
 	if p := e.Derived(e.G.Zone(state.ZBattlefield, 0)[len(e.G.Zone(state.ZBattlefield, 0))-1]).Power; p < 4 {
 		t.Fatalf("power-4 precondition: the Beast has power %d", p)
 	}

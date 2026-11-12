@@ -49,33 +49,6 @@ func nogOfficer(t *testing.T) (*Engine, state.ObjID) {
 	return e, nog
 }
 
-// nogAnimates is the face indexes of Nog's two Animate abilities, in order.
-func nogAnimates(t *testing.T, e *Engine, nog state.ObjID) []int {
-	t.Helper()
-	var out []int
-	for i, a := range e.G.Obj(nog).Face().Abilities {
-		if a.API == "Animate" {
-			out = append(out, i)
-		}
-	}
-	if len(out) != 2 {
-		t.Fatalf("Nog has %d Animate abilities, want 2", len(out))
-	}
-	return out
-}
-
-// graveLandOffered reports whether seat p, made the active player at priority,
-// is offered play_land for id.
-func graveLandOffered(e *Engine, p state.PlayerID, id state.ObjID) bool {
-	e.G.Active, e.G.Priority = p, p
-	for _, o := range e.legalActions(p) {
-		if o.Kind == "play_land" && o.Obj == id {
-			return true
-		}
-	}
-	return false
-}
-
 func TestGrantedLandStaticFollowsControllerAndAbilityLoss(t *testing.T) {
 	t.Parallel()
 	e, nog := nogOfficer(t)

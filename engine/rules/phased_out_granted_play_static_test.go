@@ -25,7 +25,7 @@ func phasedNogOfficer(t *testing.T) (*Engine, state.ObjID) {
 	e, _ := corpusEngineCfg(t, reg, []*cards.Card{lookup(t, reg, "Nog, Ambitious Cadet")},
 		[]*cards.Card{lookup(t, reg, "Humility")})
 	nog := moveCorpusCard(t, e, "Nog, Ambitious Cadet", 0, state.ZBattlefield)
-	animates := phasedNogAnimates(t, e, nog)
+	animates := nogAnimates(t, e, nog)
 	for n, mana := range []string{"C", "CCC"} {
 		addMana(t, e, 0, mana)
 		pick := -1
@@ -50,33 +50,6 @@ func phasedNogOfficer(t *testing.T) (*Engine, state.ObjID) {
 	return e, nog
 }
 
-// phasedNogAnimates is the face indexes of Nog's two Animate abilities, in order.
-func phasedNogAnimates(t *testing.T, e *Engine, nog state.ObjID) []int {
-	t.Helper()
-	var out []int
-	for i, a := range e.G.Obj(nog).Face().Abilities {
-		if a.API == "Animate" {
-			out = append(out, i)
-		}
-	}
-	if len(out) != 2 {
-		t.Fatalf("Nog has %d Animate abilities, want 2", len(out))
-	}
-	return out
-}
-
-// phasedGraveLandOffered reports whether seat p, made the active player at priority,
-// is offered play_land for id.
-func phasedGraveLandOffered(e *Engine, p state.PlayerID, id state.ObjID) bool {
-	e.G.Active, e.G.Priority = p, p
-	for _, o := range e.legalActions(p) {
-		if o.Kind == "play_land" && o.Obj == id {
-			return true
-		}
-	}
-	return false
-}
-
 // TestPhasedOutGainedPlayGrantStops pins CR 702.26b: while Nog is phased out,
 // the "play lands from your graveyard" and extra-land statics it gained from
 // its Officer Animate do not function; phasing back in restores them.
@@ -89,7 +62,7 @@ func TestPhasedOutGainedPlayGrantStops(t *testing.T) {
 	if got := e.adjustLandPlays(0); got != 1 {
 		t.Fatalf("precondition: seat 0 extra land drops = %d, want 1", got)
 	}
-	if !phasedGraveLandOffered(e, 0, g0) {
+	if !graveLandOffered(e, 0, g0) {
 		t.Fatal("precondition: the graveyard land was not offered while Nog is phased in")
 	}
 
@@ -100,7 +73,7 @@ func TestPhasedOutGainedPlayGrantStops(t *testing.T) {
 	if got := e.adjustLandPlays(0); got != 0 {
 		t.Fatalf("CR 702.26b: seat 0 extra land drops while Nog is phased out = %d, want 0", got)
 	}
-	if phasedGraveLandOffered(e, 0, g0) {
+	if graveLandOffered(e, 0, g0) {
 		t.Fatal("CR 702.26b: the graveyard land was still offered while Nog is phased out")
 	}
 
@@ -111,7 +84,7 @@ func TestPhasedOutGainedPlayGrantStops(t *testing.T) {
 	if got := e.adjustLandPlays(0); got != 1 {
 		t.Fatalf("seat 0 extra land drops after phasing back in = %d, want 1", got)
 	}
-	if !phasedGraveLandOffered(e, 0, g0) {
+	if !graveLandOffered(e, 0, g0) {
 		t.Fatal("the graveyard land was not offered after phasing back in")
 	}
 }
@@ -125,14 +98,14 @@ func TestGainedPlayGrantFollowsAbilityLoss(t *testing.T) {
 	if got := e.adjustLandPlays(0); got != 1 {
 		t.Fatalf("precondition: seat 0 extra land drops = %d, want 1", got)
 	}
-	if !phasedGraveLandOffered(e, 0, g0) {
+	if !graveLandOffered(e, 0, g0) {
 		t.Fatal("precondition: the graveyard land was not offered")
 	}
 	moveCorpusCard(t, e, "Humility", 1, state.ZBattlefield)
 	if got := e.adjustLandPlays(0); got != 0 {
 		t.Fatalf("CR 613.1f: seat 0 extra land drops under Humility = %d, want 0", got)
 	}
-	if phasedGraveLandOffered(e, 0, g0) {
+	if graveLandOffered(e, 0, g0) {
 		t.Fatal("CR 613.1f: the graveyard land was still offered under Humility")
 	}
 }

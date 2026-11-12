@@ -14,20 +14,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
-
-// choiceCard reads a card by name from the linked corpus at test time (the
-// fpCorpus pattern). A missing corpus is a SKIP via CorpusRegistry, so the
-// Done-means "0 SKIP" check is what proves the corpus was present.
-func choiceCard(t *testing.T, name string) *cards.Card {
-	t.Helper()
-	c, ok := testutil.CorpusRegistry(t).Lookup(name)
-	if !ok {
-		t.Fatalf("corpus card %q missing", name)
-	}
-	return c
-}
 
 // choiceAlts returns the mana each V1 alternative of source id produces,
 // re-derived through the planner's own units. A source with no unit has no
@@ -79,7 +66,7 @@ func TestPaymentPlanChoiceSources(t *testing.T) {
 	t.Parallel()
 	t.Run("combo land funds and executes with no colour ask", func(t *testing.T) {
 		e, _, spell := newFixtureDeck(t, 9401, "Name:White Probe\nManaCost:W\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
-		gate := onBoardCard(t, e, 0, choiceCard(t, "Selesnya Guildgate"))
+		gate := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Selesnya Guildgate"))
 		if o := e.G.Obj(gate); o == nil || o.Zone != state.ZBattlefield || o.Tapped {
 			t.Fatalf("precondition: Guildgate zone=%v tapped=%v", o == nil, o.Tapped)
 		}
@@ -128,7 +115,7 @@ func TestPaymentPlanChoiceSources(t *testing.T) {
 
 	t.Run("chosen colour is planned and resolves", func(t *testing.T) {
 		e, _, spell := newFixtureDeck(t, 9403, "Name:Red Probe\nManaCost:R\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
-		isle := onBoardCard(t, e, 0, choiceCard(t, "Thriving Isle"))
+		isle := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Thriving Isle"))
 		e.G.Obj(isle).ChosenColor = "R"
 		got := e.PlanCastPayment(0, paymentCast(spell))
 		a, ok := choicePlanUses2(got, isle)
@@ -143,7 +130,7 @@ func TestPaymentPlanChoiceSources(t *testing.T) {
 
 	t.Run("chosen colour unrecorded leaves only the fixed colour", func(t *testing.T) {
 		e, _, _ := newFixtureDeck(t, 9404, "Name:White Probe\nManaCost:W\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
-		isle := onBoardCard(t, e, 0, choiceCard(t, "Thriving Isle"))
+		isle := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Thriving Isle"))
 		if c := e.G.Obj(isle).ChosenColor; c != "" {
 			t.Fatalf("precondition: ChosenColor = %q, want empty", c)
 		}
@@ -161,7 +148,7 @@ func TestPaymentPlanChoiceSources(t *testing.T) {
 		e, _, spell := newFixtureDeck(t, 9405, "Name:Green Probe\nManaCost:G\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
 		cmdr := onBoard(t, e, 0, "Name:Probe Commander\nManaCost:G W\nTypes:Legendary Creature Elf\nPT:2/2\nOracle:x\n")
 		e.G.Players[0].Commanders = []state.ObjID{cmdr}
-		tower := onBoardCard(t, e, 0, choiceCard(t, "Command Tower"))
+		tower := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Command Tower"))
 		got := e.PlanCastPayment(0, paymentCast(spell))
 		a, ok := choicePlanUses2(got, tower)
 		if !ok || a.Produces[state.ManaIndex('G')] != 1 {
@@ -177,7 +164,7 @@ func TestPaymentPlanChoiceSources(t *testing.T) {
 		e, _, _ := newFixtureDeck(t, 9406, "Name:Blue Probe\nManaCost:U\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
 		cmdr := onBoard(t, e, 0, "Name:Probe Commander\nManaCost:G W\nTypes:Legendary Creature Elf\nPT:2/2\nOracle:x\n")
 		e.G.Players[0].Commanders = []state.ObjID{cmdr}
-		tower := onBoardCard(t, e, 0, choiceCard(t, "Command Tower"))
+		tower := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Command Tower"))
 		u := choiceHand(t, e, "Name:Blue Probe\nManaCost:U\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
 		if got := e.PlanCastPayment(0, paymentCast(u)); got.Plan != nil || got.Reason != "insufficient" {
 			t.Fatalf("off-identity {U} with only the Tower = %+v reason=%q, want insufficient", got.Plan, got.Reason)
@@ -190,7 +177,7 @@ func TestPaymentPlanChoiceSources(t *testing.T) {
 		if n := len(e.G.Players[0].Commanders); n != 0 {
 			t.Fatalf("precondition: Commanders = %d, want none", n)
 		}
-		tower := onBoardCard(t, e, 0, choiceCard(t, "Command Tower"))
+		tower := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Command Tower"))
 		if alts := choiceAlts(t, e, tower); len(alts) != 0 {
 			t.Fatalf("Tower without a commander offered %v, want no alternatives", choiceColours(alts))
 		}
@@ -200,7 +187,7 @@ func TestPaymentPlanChoiceSources(t *testing.T) {
 		e, _, spell := newFixtureDeck(t, 9408, "Name:Green Probe\nManaCost:G\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n")
 		cmdr := onBoard(t, e, 0, "Name:Probe Commander\nManaCost:G W\nTypes:Legendary Creature Elf\nPT:2/2\nOracle:x\n")
 		e.G.Players[0].Commanders = []state.ObjID{cmdr}
-		tower := onBoardCard(t, e, 0, choiceCard(t, "Command Tower"))
+		tower := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Command Tower"))
 		d := paymentPlanReask(t, e)
 		a := paymentPlanActionFor(t, d, spell)
 		if act, ok := choicePlanUses(a.Plans[0], tower); !ok || act.Produces[state.ManaIndex('G')] != 1 {
@@ -229,7 +216,7 @@ func TestPaymentPlanChoiceSources(t *testing.T) {
 
 	t.Run("last-resort coloured half is planned only as a last resort, its colourless normally", func(t *testing.T) {
 		e, _, _ := newFixtureDeck(t, 9409, "Name:White Probe\nManaCost:W\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
-		wastes := onBoardCard(t, e, 0, choiceCard(t, "Adarkar Wastes"))
+		wastes := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Adarkar Wastes"))
 		// The {C} ability is the only normal alternative; the coloured pain
 		// half is last resort with damage:1.
 		var normal []state.Mana
@@ -271,7 +258,7 @@ func TestPaymentPlanChoiceSources(t *testing.T) {
 
 	t.Run("witness colour outside the ability set is rejected", func(t *testing.T) {
 		e, _, spell := newFixtureDeck(t, 9410, "Name:White Probe\nManaCost:W\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
-		gate := onBoardCard(t, e, 0, choiceCard(t, "Selesnya Guildgate"))
+		gate := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Selesnya Guildgate"))
 		got := e.PlanCastPayment(0, paymentCast(spell))
 		if got.Plan == nil {
 			t.Fatalf("precondition: no plan (%s)", got.Reason)
@@ -339,7 +326,7 @@ func TestPaymentPlanChoiceSourcesComboAnyStaysDeferred(t *testing.T) {
 func TestPaymentPlanChoiceSourcesPathOfAncestryStaysDeferred(t *testing.T) {
 	t.Parallel()
 	e, _, _ := newFixtureDeck(t, 9412, "Name:Green Probe\nManaCost:G\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
-	path := onBoardCard(t, e, 0, choiceCard(t, "Path of Ancestry"))
+	path := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Path of Ancestry"))
 	if alts := choiceAlts(t, e, path); len(alts) != 0 {
 		t.Fatalf("Path of Ancestry offered %v, want no alternatives (TriggersWhenSpent)", choiceColours(alts))
 	}

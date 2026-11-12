@@ -34,7 +34,7 @@ func reflectedBoard(t *testing.T, seed uint64, spellSrc, source string) (*Engine
 	}
 	var src state.ObjID
 	if source != "" {
-		src = onBoardCard(t, e, 0, choiceCard(t, source))
+		src = onBoardCard(t, e, 0, corpusCardOrFatal(t, source))
 		if o := e.G.Obj(src); o == nil || o.Zone != state.ZBattlefield || o.Tapped || o.Controller != 0 {
 			t.Fatalf("precondition: %s not untapped on seat 0's battlefield", source)
 		}
@@ -55,7 +55,7 @@ func TestPaymentPlanReflectedOrchardPlansAndExecutes(t *testing.T) {
 	for i, name := range []string{"Exotic Orchard", "Fellwar Stone"} {
 		t.Run(name, func(t *testing.T) {
 			e, spell, src := reflectedBoard(t, 9601+uint64(i), reflectedRedProbe, name)
-			if tier, _, detail := pay.PaymentPlanAbilityTier(asPayer(e), 0, src, choiceCard(t, name).Faces[0].Abilities[0]); tier != pay.TierNormal {
+			if tier, _, detail := pay.PaymentPlanAbilityTier(asPayer(e), 0, src, corpusCardOrFatal(t, name).Faces[0].Abilities[0]); tier != pay.TierNormal {
 				t.Fatalf("%s tier = %v (%q), want normal", name, tier, detail)
 			}
 			if got := choiceColours(choiceAlts(t, e, src)); !slices.Equal(got, []string{"R"}) {
@@ -153,7 +153,7 @@ func TestPaymentPlanReflectedBotAnswerValidates(t *testing.T) {
 func TestPaymentPlanReflectedChoosesAmongSeveralColours(t *testing.T) {
 	t.Parallel()
 	e, spell, src := reflectedBoard(t, 9615, reflectedRedProbe, "Exotic Orchard")
-	onBoardCard(t, e, 1, choiceCard(t, "Selesnya Guildgate"))
+	onBoardCard(t, e, 1, corpusCardOrFatal(t, "Selesnya Guildgate"))
 	if got := choiceColours(choiceAlts(t, e, src)); !slices.Equal(got, []string{"W", "R", "G"}) {
 		t.Fatalf("precondition: Orchard alternatives = %v, want [W R G]", got)
 	}
