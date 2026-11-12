@@ -40,9 +40,6 @@ var klureGrantDecksB = [2][]cardset.Entry{
 
 func TestLureGrantLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeLureFixTime) {
-		t.Skip("gorge before cr-lure-all-must-block (617daacfb)")
-	}
 	lockstepSet(t, "luregrant", klureGrantDecks, 800, "KLUREGRANT_SEEDS")
 	lockstepSet(t, "luregrant", klureGrantDecksB, 800, "KLUREGRANT_SEEDS")
 }
@@ -51,9 +48,6 @@ func TestLureGrantLockstep(t *testing.T) {
 // and the Pump marks), some seed diverges, so the pool exercises them.
 func TestLureGrantLockstepMutation(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeLureFixTime) {
-		t.Skip("gorge before cr-lure-all-must-block (617daacfb)")
-	}
 	dropStatics := func(tbl *kop.Table) {
 		cards := append([]kop.CardDef(nil), tbl.Cards...)
 		for i := range cards {
@@ -78,9 +72,6 @@ func TestLureGrantLockstepMutation(t *testing.T) {
 // TestLureGrantPumpMutation: with the Pump marks dropped, some seed diverges.
 func TestLureGrantPumpMutation(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeLureFixTime) {
-		t.Skip("gorge before cr-lure-all-must-block (617daacfb)")
-	}
 	dropMarks := func(tbl *kop.Table) {
 		cards := append([]kop.CardDef(nil), tbl.Cards...)
 		for i := range cards {
