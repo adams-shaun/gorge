@@ -16,6 +16,7 @@ import (
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/deck"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 const (
@@ -340,4 +341,49 @@ func refusedPlayable(r *refusedRun) error {
 		return errors.New(r.set.Reason(i))
 	}
 	return nil
+}
+
+// activateOnlyPolicy activates whenever it can (an exhaust or loyalty
+// ability is a rare option), else plays randomly.
+func activateOnlyPolicy(seed uint64) Policy {
+	rnd := RandomPolicy(seed)
+	var buf []Canon
+	return PolicyFunc(func(c *PickCtx) Canon {
+		buf = buf[:0]
+		for _, a := range c.D.Options {
+			if a.Kind() == ActActivate {
+				buf = append(buf, a)
+			}
+		}
+		if len(buf) == 0 {
+			return rnd.Pick(c)
+		}
+		d := *c.D
+		d.Options = buf
+		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
+	})
+}
+
+// gorgeOptionName is the name of the object a canonical option names.
+func gorgeOptionName(c *PickCtx, a Canon) string {
+	if c.G == nil {
+		return ""
+	}
+	o, ok := c.G.GorgeOption(a)
+	if !ok {
+		return ""
+	}
+	if ob := c.G.E.G.Obj(o.Obj); ob != nil && ob.Face() != nil {
+		return ob.Face().Name
+	}
+	return ""
+}
+
+func battlefieldHasName(g *state.Game, pl state.PlayerID, name string) bool {
+	for _, b := range g.Zone(state.ZBattlefield, pl) {
+		if chName(g, b) == name {
+			return true
+		}
+	}
+	return false
 }

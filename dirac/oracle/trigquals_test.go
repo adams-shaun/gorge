@@ -101,15 +101,6 @@ type ktrigqualsTally struct {
 	atkN     int  // attackers of the last DeclareAttackers event
 }
 
-func ktrigqualsOnBf(g *state.Game, pl state.PlayerID, name string) bool {
-	for _, b := range g.Zone(state.ZBattlefield, pl) {
-		if chName(g, b) == name {
-			return true
-		}
-	}
-	return false
-}
-
 func (p *ktrigqualsTally) scan(ref *GorgeSide, st *ktrigqualsStats) {
 	g := ref.E.G
 	evs := ref.E.L.Events
@@ -133,7 +124,7 @@ func (p *ktrigqualsTally) scan(ref *GorgeSide, st *ktrigqualsStats) {
 			p.repCrea, p.ownCrea = false, false
 			p.spells[c]++
 			p.last, p.lastCtrl, p.lastN, p.pushed = n, c, p.spells[c], false
-			if ktrigqualsOnBf(g, c, "Geralf, the Fleshwright") {
+			if battlefieldHasName(g, c, "Geralf, the Fleshwright") {
 				switch {
 				case c != p.turn:
 					if p.spells[c] >= 2 {
@@ -143,7 +134,7 @@ func (p *ktrigqualsTally) scan(ref *GorgeSide, st *ktrigqualsStats) {
 					st.geralfFirst++
 				}
 			}
-			p.rep = ktrigqualsOnBf(g, 1-c, "Reparations")
+			p.rep = battlefieldHasName(g, 1-c, "Reparations")
 		case events.TargetsChosen:
 			if len(e.IDs) > 0 {
 				if o := g.Obj(e.IDs[0]); o != nil && o.Zone == state.ZBattlefield {
@@ -184,20 +175,20 @@ func (p *ktrigqualsTally) scan(ref *GorgeSide, st *ktrigqualsStats) {
 				a = e.IDs[0]
 			}
 			if o := g.Obj(a); o != nil {
-				if ktrigqualsOnBf(g, o.Controller, "Sabotage Strategist") {
+				if battlefieldHasName(g, o.Controller, "Sabotage Strategist") {
 					st.sabOwnNo++
 				}
-				if p.atkN >= 2 && ktrigqualsOnBf(g, o.Controller, "Jiang Yanggu, Alone") {
+				if p.atkN >= 2 && battlefieldHasName(g, o.Controller, "Jiang Yanggu, Alone") {
 					st.jiangMulti++
 				}
 			}
 			if o := g.Obj(e.Obj); o != nil {
 				c := o.Controller
-				if ktrigqualsOnBf(g, c, "Orim's Prayer") || ktrigqualsOnBf(g, c, "Lulu, Stern Guardian") || ktrigqualsOnBf(g, c, "Reveille Squad") {
+				if battlefieldHasName(g, c, "Orim's Prayer") || battlefieldHasName(g, c, "Lulu, Stern Guardian") || battlefieldHasName(g, c, "Reveille Squad") {
 					st.atkOwnNoTrig++
 				}
 			} else if len(e.IDs) > 0 {
-				if o := g.Obj(e.IDs[0]); o != nil && (ktrigqualsOnBf(g, o.Controller, "Orim's Prayer") || ktrigqualsOnBf(g, o.Controller, "Lulu, Stern Guardian") || ktrigqualsOnBf(g, o.Controller, "Reveille Squad")) {
+				if o := g.Obj(e.IDs[0]); o != nil && (battlefieldHasName(g, o.Controller, "Orim's Prayer") || battlefieldHasName(g, o.Controller, "Lulu, Stern Guardian") || battlefieldHasName(g, o.Controller, "Reveille Squad")) {
 					st.atkOwnNoTrig++
 				}
 			}
@@ -220,7 +211,7 @@ func (p *ktrigqualsTally) settle(g *state.Game, st *ktrigqualsStats) {
 		}
 	}
 	if p.last == "Shock" || p.last == "Lightning Bolt" || p.last == "Diabolic Edict" || p.last == "Giant Growth" || p.last == "Essence Scatter" {
-		if ktrigqualsOnBf(g, 1-p.lastCtrl, "Ichneumon Druid") && p.lastN == 1 {
+		if battlefieldHasName(g, 1-p.lastCtrl, "Ichneumon Druid") && p.lastN == 1 {
 			st.druidFirst++
 		}
 	}
