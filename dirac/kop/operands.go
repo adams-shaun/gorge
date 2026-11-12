@@ -188,6 +188,7 @@ const (
 	DurPrepared           = 8  // the prepared designation (CR 722.3a/c): obj/ver = the exile copy, turn = source Obj | source ver<<8; live while the source is on the battlefield with that ver
 	DurDefeated           = 9  // a defeated battle in exile awaiting its owner's CR 310.11 transformed-cast ask: obj/ver = the exiled card, ctrl = its owner; consumed by the ask
 	DurAirbend            = 10 // an airbent card (CR 701.65a): its owner may cast it from exile for {2} for as long as obj/ver stays exiled
+	DurForetell           = 13 // (11 and 12 are DurWhileSrcMay and DurWhileValid) a foretold card (CR 702.143a): its owner may cast it from exile for its foretell cost, only on a later turn than turn
 )
 
 // MoveFlags (OpExileEx C, OpReturnEx C>>3, OpChangeZoneAllEx C>>3).
@@ -230,7 +231,7 @@ const (
 	SrReveal                       // OpChooseMove from a hand to zone none: a reveal pick (gorge effReveal's reveal_pick), nothing moves; SrConfirm then asks only when a card qualifies
 	SrOwnZone                      // OpChooseMove over the battlefield: only player Obj's permanents (gorge effHiddenPick with DefinedPlayer$), not every player's
 	SrGraveExile                   // OpChooseMove (graveexile): the pool is every player's Graveyard then Exile (gorge effHiddenPick gameWide); Filter.Zone is ZoneNone
-	SrForgetOther                  // OpChooseMove (graveexile): ForgetOtherRemembered$ clears the remembered set before the moves (and on an empty pool)
+	SrForgetOther                  // OpChooseMove (hand move or graveexile): ForgetOtherRemembered$ clears the remembered set before the moves (and on an empty pool)
 	SrUnderYourControl             // OpChooseMove (GainControl$): the picked cards enter under the fetching controller, else (SrGraveExile) under their owner; a plain Graveyard pick with it is game-wide
 )
 

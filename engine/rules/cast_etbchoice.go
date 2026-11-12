@@ -263,7 +263,8 @@ func (e *Engine) faceETBChoice(o *state.Object, f *cards.Face, ev events.Event, 
 			if kind == "type" {
 				sa = r.With
 			}
-			return etbChoice{kind: kind, options: opts, sa: sa}, true
+			return etbChoice{kind: kind, options: opts, sa: sa,
+				random: kind == "number" && effects.ChooseNumberAtRandom(r.With)}, true
 		}
 		(*seen)++
 	}

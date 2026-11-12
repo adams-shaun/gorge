@@ -130,6 +130,9 @@ func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
 	if ce.trigPl == trigPlAirbend {
 		ce.trigPl = 0 // nor airbent (act_airbend.go)
 	}
+	if ce.trigPl == trigPlForetold {
+		ce.trigPl = 0 // nor foretold (kw_foretell.go)
+	}
 	if ce.impended() {
 		ce.mode &^= modeImpended // nor impended (CR 707.10: gorge's FlagImpending is cast provenance)
 	}

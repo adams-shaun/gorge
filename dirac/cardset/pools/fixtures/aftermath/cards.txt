@@ -1,0 +1,45 @@
+# the aftermath pool (CR 702.127a): every lowered split card whose right
+# half is cast only from the graveyard, beside graveyard fillers (loot,
+# discard, self-mill), creatures of power 1..5 and flyers, counterspells
+# and basics (dirac/oracle/aftermath_test.go)
+Appeal
+Claim
+Consign
+Cut
+Driven
+Dusk
+Farm
+Heaven
+Leave
+Mouth
+Never
+Onward
+Prepare
+Reason
+Reduce
+Road
+Spring
+Start
+Careful Study
+Faithless Looting
+Tormenting Voice
+Stitcher's Supplier
+Mulch
+Mind Rot
+Counterspell
+Essence Scatter
+Shock
+Savannah Lions
+Walking Corpse
+Serra Angel
+Wind Drake
+Coral Merfolk
+Grizzly Bears
+Hill Giant
+Giant Spider
+Gray Ogre
+Plains
+Island
+Swamp
+Mountain
+Forest
