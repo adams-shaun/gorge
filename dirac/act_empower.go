@@ -146,24 +146,31 @@ func (s *State) grantHostGen(k *prep, sl Slot, c CardID, ab uint8) Slot {
 	return NoSlot
 }
 
-// staticGrants reports whether st grants its card's ability ab.
 // embGrantHostObj is the object of the emblem whose Continuous static grants
 // sl the ability (c, ab): gorge registers an emblem's grant under its
 // creator's object (the effect's Source, CR 114.4 -- the emblem itself has no
 // object) and offers the activation against it wherever the creator now is.
+// It applies the gates globalGrantsGen's emblem pass applies to the same
+// statics (a player out of the game, an attached-only filter, the static's
+// condition), so the two never disagree on whether an emblem grants.
 func (s *State) embGrantHostObj(k *prep, sl Slot, c CardID, ab uint8) (Obj, bool) {
 	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
 			e := &k.t.Emblems[s.embIdx(pp, i)-1]
 			for j := range e.Abilities {
 				a := &e.Abilities[j]
-				if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.Grant != ab+1 {
+				if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.Grant != ab+1 ||
+					filterAttachedOnly(k.t, a.Static.Filter) {
 					continue
 				}
 				if s.embCard(pp, i) != c {
 					continue
 				}
-				if !s.matchPermGen(k, a.Static.Filter, sl, pp, NoSlot, layerKw) {
+				st := statSrc{a: a, sl: NoSlot, ctrl: pp, obj: NoObj, emb: pp<<4 | uint8(i+1)}
+				if !s.statCond(k, st) || !s.matchPermGen(k, a.Static.Filter, sl, pp, NoSlot, layerKw) {
 					continue
 				}
 				return s.embObj(pp, i), true
@@ -173,6 +180,7 @@ func (s *State) embGrantHostObj(k *prep, sl Slot, c CardID, ab uint8) (Obj, bool
 	return NoObj, false
 }
 
+// staticGrants reports whether st grants its card's ability ab.
 func staticGrants(t *kop.Table, st *kop.Static, ab uint8) bool {
 	switch st.Kind {
 	case kop.StatContinuous:

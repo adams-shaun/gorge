@@ -51,7 +51,7 @@ func prepPlProtAll(t *kop.Table, g *genPrep) {
 // plProtAll reports whether player p carries a functioning
 // StatPlayerProtAll static (a runtime emblem of p's).
 func (s *State) plProtAll(k *prep, p uint8) bool {
-	if !k.gen.anyPlProtAll || DebugPlProtAllOff {
+	if k.gen == nil || !k.gen.anyPlProtAll || DebugPlProtAllOff {
 		return false
 	}
 	for i := 0; i < int(s.g.nemb[p]); i++ {

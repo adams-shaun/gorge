@@ -501,7 +501,8 @@ const ExOppsAttacked ExprKind = 229
 // resolves in another step reads Sub[1]. A stack copy was never cast.
 const ExIfCastOwnMain ExprKind = 224
 
-// ExPlExtreme (low expr kind, the first free ordinal past ExCount_): the
+// ExPlExtreme (an explicit ordinal, 88: ExCount_ is 62 and the iota range
+// 63..87 stays unspecified, the iota tail untouched): the
 // highest, over a living player group walked in seat order, of the count of
 // the group member's objects in the named zones that match F, each member
 // read from their OWN side (gorge effects/count_player.go
