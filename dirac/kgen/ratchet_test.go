@@ -135,7 +135,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// Kagemaro, First to Suffer, Nardole, Resourceful Cyborg, Romana II, Sarah Jane Smith,
 	// Syr Ginger, the Meal Ender, Tegan Jovanka, Yasmin Khan; WOE 262 -> 263).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22381, 34442},
+	"ALL": {22396, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {216, 280},
