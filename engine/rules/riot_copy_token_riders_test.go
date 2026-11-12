@@ -138,7 +138,7 @@ func riotCopyStagedRiders(t *testing.T, useEsix bool, riotPick int) {
 				if !useEsix {
 					t.Fatalf("unexpected non-riot KChoose without Esix: %+v", d)
 				}
-				pick = optionForObj(d, rioterID)
+				pick = indexOfObjOption(d, rioterID)
 			}
 		default:
 			t.Fatalf("unexpected decision %+v", d)

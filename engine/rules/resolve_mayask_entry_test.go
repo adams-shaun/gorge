@@ -69,7 +69,7 @@ func TestCopiedAuraEntryAsksEnchant(t *testing.T) {
 			passPriorityOnce(t, e)
 			continue
 		case decision.KTarget:
-			if pick = optionForObj(d, auraID); pick < 0 {
+			if pick = indexOfObjOption(d, auraID); pick < 0 {
 				pick = 0
 			}
 		case decision.KChoose:

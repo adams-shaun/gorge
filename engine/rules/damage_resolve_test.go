@@ -51,16 +51,6 @@ func hasUnimplementedResolveNote(e *Engine, since int) bool {
 	return false
 }
 
-// optionForObj returns the option index naming obj, or -1.
-func optionForObj(d *decision.Decision, obj state.ObjID) int {
-	for _, o := range d.Options {
-		if o.Obj == obj {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 // optionForPlayer returns the option index naming player p, or -1.
 func optionForPlayer(d *decision.Decision, p state.PlayerID) int {
 	for _, o := range d.Options {
@@ -104,7 +94,7 @@ func castTwoTargetDamageSpell(t *testing.T, e *Engine, id, victim state.ObjID) i
 		}
 		switch d.Kind {
 		case decision.KTarget, decision.KChoose:
-			if objIdx := optionForObj(d, victim); objIdx >= 0 && !answeredCreature {
+			if objIdx := indexOfObjOption(d, victim); objIdx >= 0 && !answeredCreature {
 				answeredCreature = true
 				submitChoices(t, e, objIdx)
 				continue
@@ -263,7 +253,7 @@ func TestDamageResolveFlushesAllMarksInOneBatch(t *testing.T) {
 		}
 		switch d.Kind {
 		case decision.KTarget, decision.KChoose:
-			if oi := optionForObj(d, target); oi >= 0 {
+			if oi := indexOfObjOption(d, target); oi >= 0 {
 				submitChoices(t, e, oi)
 				continue
 			}

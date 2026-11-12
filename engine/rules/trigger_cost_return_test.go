@@ -81,7 +81,7 @@ func TestTriggerCostReturnsPermanentToHand(t *testing.T) {
 		t.Parallel()
 		e, ids := celebrantWindow(t, gear, gear)
 		submitChoices(t, e, optionForKind(t, e, "trigger_cost_pay"))
-		submitChoices(t, e, optionForObj(e.Pending(), ids[1]))
+		submitChoices(t, e, indexOfObjOption(e.Pending(), ids[1]))
 		if a, b := e.G.Obj(ids[0]).Zone, e.G.Obj(ids[1]).Zone; a != state.ZBattlefield || b != state.ZHand {
 			t.Fatalf("zones after choosing the second Gear: %v and %v", a, b)
 		}

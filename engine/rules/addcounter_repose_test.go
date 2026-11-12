@@ -47,7 +47,7 @@ func TestAddCounterReposeOffersOnlyUnappliedReplacements(t *testing.T) {
 			passPriorityOnce(t, e)
 			continue
 		case decision.KTarget:
-			pick = optionForObj(d, bearID)
+			pick = indexOfObjOption(d, bearID)
 		case decision.KReplacement:
 			if !strings.Contains(d.Prompt, "counters") {
 				t.Fatalf("unexpected replacement ask %q", d.Prompt)

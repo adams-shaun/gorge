@@ -175,9 +175,9 @@ func TestTokenOrderAskKeepsTokenEffectRiders(t *testing.T) {
 				if d == nil || d.Kind != decision.KReplacement {
 					t.Fatalf("mint %d: expected the token replacement-order ask, got %+v", n, d)
 				}
-				pick := optionForObj(d, helmID)
+				pick := indexOfObjOption(d, helmID)
 				if tc.dsFirst {
-					pick = optionForObj(d, dsID)
+					pick = indexOfObjOption(d, dsID)
 				}
 				if pick < 0 {
 					t.Fatalf("mint %d: order ask does not offer both replacements: %+v", n, d.Options)
@@ -339,9 +339,9 @@ func TestTokenElectionKeepsTokenEffectRiders(t *testing.T) {
 					continue
 				case decision.KReplacement:
 					orders++
-					pick = optionForObj(d, dsID)
+					pick = indexOfObjOption(d, dsID)
 					if tc.esixFirst {
-						pick = optionForObj(d, esixID)
+						pick = indexOfObjOption(d, esixID)
 					}
 				case decision.KChoose:
 					elections++
@@ -351,7 +351,7 @@ func TestTokenElectionKeepsTokenEffectRiders(t *testing.T) {
 					if got := e.G.Players[0].Life; got != life {
 						t.Fatalf("GainLife ran before the election's mint: life %d, want %d", got, life)
 					}
-					pick = optionForObj(d, bearID)
+					pick = indexOfObjOption(d, bearID)
 				default:
 					t.Fatalf("unexpected decision %+v", d)
 				}

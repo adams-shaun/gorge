@@ -130,7 +130,7 @@ func chosenCopyStagedRiders(t *testing.T, useEsix bool, mandatory *cards.Card, w
 			continue
 		case decision.KChoose:
 			elections++
-			pick = optionForObj(d, bearID)
+			pick = indexOfObjOption(d, bearID)
 		case decision.KReplacement:
 			orders++
 			// The staged copy: the newest object, minted by CopyToken and
@@ -495,7 +495,7 @@ func TestNoTokenRiderPrecedesItsStagedEntry(t *testing.T) {
 						continue
 					case decision.KChoose:
 						if electFor != 0 {
-							if k := optionForObj(d, electFor); k >= 0 {
+							if k := indexOfObjOption(d, electFor); k >= 0 {
 								pick = k
 							}
 						}

@@ -103,7 +103,7 @@ func TestAnswerPosedAddCounterOrderResumesTheResolution(t *testing.T) {
 					case strings.Contains(d.Prompt, "moves"):
 						outerAsks++
 						// Choose the counter rewriter's body.
-						pick = optionForObj(d, ctrID)
+						pick = indexOfObjOption(d, ctrID)
 					case strings.Contains(d.Prompt, "counters"):
 						innerAsks++
 						pick = tc.pick
@@ -111,7 +111,7 @@ func TestAnswerPosedAddCounterOrderResumesTheResolution(t *testing.T) {
 						t.Fatalf("unexpected replacement ask %q", d.Prompt)
 					}
 				case decision.KTarget:
-					pick = optionForObj(d, fodder)
+					pick = indexOfObjOption(d, fodder)
 					if pick < 0 {
 						t.Fatalf("target ask does not offer the fodder: %+v", d.Options)
 					}

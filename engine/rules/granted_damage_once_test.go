@@ -26,7 +26,7 @@ func bomberGrants(t *testing.T, e *Engine, n int) state.ObjID {
 		if d == nil || d.Kind != decision.KTarget {
 			t.Fatalf("no target decision after the bomber's ability (pending %+v)", d)
 		}
-		submitChoices(t, e, optionForObj(d, goblin))
+		submitChoices(t, e, indexOfObjOption(d, goblin))
 		settleActivation(t, e)
 	}
 	if grants := triggerGrantsOn(e, goblin); len(grants) != n {

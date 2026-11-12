@@ -16,7 +16,7 @@ func TestAdventureDelayedTriggerOutlivesItsFace(t *testing.T) {
 	e.G.Players[0].Pool[state.MW], e.G.Players[0].Pool[state.MC] = 1, 1
 	e.priorityRound()
 	submitChoices(t, e, castModeOption(t, e, e.G.Zone(state.ZHand, 0)[0], "adventure_alt"))
-	submitChoices(t, e, optionForObj(e.Pending(), quarry))
+	submitChoices(t, e, indexOfObjOption(e.Pending(), quarry))
 	passUntilStackEmpty(t, e, 20)
 	if z := e.G.Obj(quarry).Zone; z != state.ZExile {
 		t.Fatalf("Swift Spiral left its target in zone %v, want exile", z)
