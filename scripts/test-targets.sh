@@ -16,6 +16,10 @@
 #
 #   test-<mode>: PASS|FAIL|ENV|EMPTY|BUDGET|BUSY <sha> <pkgs> <seconds>
 #
+# Settings that belong to the machine, not the repository, go in ~/.config/gorge/test-targets.env (or
+# $GORGE_TEST_TARGETS_ENV): GORGE_POOLS (dirac's deck pools), GATE_AFFECTED_REPO (+ GATE_AFFECTED_PATH, GATE_REF),
+# GORGE_HEAVY_LOCK (+ GORGE_HEAVY_LANES, GORGE_TEST_LANE_WAIT).
+#
 # exit 0 PASS, 1 FAIL, 2 usage, 3 ENV, 4 EMPTY, 5 BUDGET, 75 BUSY. The full `go test -json` stream is kept
 # at .ds4/scratch/test/<mode>-<sha>.json. Never passes -count (the cache stays on).
 set -uo pipefail
@@ -23,6 +27,10 @@ mode=${1:-}
 case $mode in one | targeted | smart | list) ;; *) echo "usage: test-targets.sh one|targeted|smart|list" >&2; exit 2 ;; esac
 top=$(git rev-parse --show-toplevel) || exit 2
 cd "$top" || exit 2
+# The operator's settings (GORGE_POOLS, GATE_AFFECTED_REPO, GORGE_HEAVY_LOCK, ...), outside the repository.
+envfile=${GORGE_TEST_TARGETS_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/gorge/test-targets.env}
+# shellcheck disable=SC1090
+[ ! -r "$envfile" ] || { set -a; . "$envfile"; set +a; }
 py=(python3 -I "$top/scripts/test_targets.py")
 BASE=${BASE:-land}
 t0=$SECONDS
@@ -62,7 +70,6 @@ cards=${GORGE_CARDS:-.cards}
 	verdict ENV "no corpus: $cards/cardsfolder is missing or empty, so every corpus test would skip. ln -s <main checkout>/.cards .cards (or make link-cards)"
 git rev-parse --verify -q "$BASE^{commit}" >/dev/null || verdict ENV "base $BASE does not resolve in this worktree"
 git merge-base --is-ancestor "$BASE" HEAD || echo "test-targets: note: HEAD is not on top of $BASE; the landing rebases, so a conflict with it is not covered" >&2
-[ -n "${GORGE_POOLS:-}" ] || { [ -d /mnt/sata/gorge-training/pools ] && export GORGE_POOLS=/mnt/sata/gorge-training/pools; }
 mod=$(go list -m) || verdict ENV "go list -m failed"
 mkdir -p .ds4/scratch/test
 json=.ds4/scratch/test/$mode-${sha%+dirty}.json
@@ -167,14 +174,16 @@ fi
 # ---- test-smart --------------------------------------------------------------------------------------
 # The gate's own steps, in its order, fail-fast (fleet/land/tools/wland2.sh and g-land.sh): gofmt, the docs
 # snapshot, history hygiene, the oracle skip lint; the census tests; then the affected-package gate
-# (four-yay's gate_affected.sh, read from its main) and the dirac gate (BASE's scripts/dirac-gate.sh) side by
+# (the affected-package gate script, read from GATE_AFFECTED_REPO's GATE_REF) and the dirac gate (BASE's scripts/dirac-gate.sh) side by
 # side in a heavy lane; then the wire goldens. precheck.sh's census and unrefusal steps stay in, so the
 # alias loses nothing.
 [ -z "$(git status --porcelain --untracked-files=no)" ] || verdict ENV "commit first: test-smart checks a commit, not a dirty tree"
-FOURYAY=${FOURYAY:-/home/sadams/projects/four-yay}
+# The affected-package gate lives in another repository; the operator's env file names it.
+GATE_AFFECTED_PATH=${GATE_AFFECTED_PATH:-ops/scripts/gate_affected.sh}
 GATE_REF=${GATE_REF:-main}
-aff_sha=$(git -C "$FOURYAY" rev-parse --short=7 "$GATE_REF:ops/scripts/gate_affected.sh" 2>/dev/null) ||
-	verdict ENV "four-yay's gate_affected.sh not found at $FOURYAY ($GATE_REF): set FOURYAY and GATE_REF"
+[ -n "${GATE_AFFECTED_REPO:-}" ] || verdict ENV "GATE_AFFECTED_REPO is not set: the git repository that holds $GATE_AFFECTED_PATH (set it in $envfile)"
+aff_sha=$(git -C "$GATE_AFFECTED_REPO" rev-parse --short=7 "$GATE_REF:$GATE_AFFECTED_PATH" 2>/dev/null) ||
+	verdict ENV "$GATE_AFFECTED_PATH not found in $GATE_AFFECTED_REPO at $GATE_REF: set GATE_AFFECTED_REPO, GATE_AFFECTED_PATH, GATE_REF"
 dg_sha=$(git rev-parse --short=7 "$BASE:scripts/dirac-gate.sh" 2>/dev/null) || verdict ENV "$BASE has no scripts/dirac-gate.sh"
 pkgs_label=affected@$aff_sha,dirac-gate@$dg_sha
 echo "gate scripts: gate_affected=$aff_sha dirac-gate=$dg_sha"
@@ -211,10 +220,10 @@ fi
 [ "$rc" = 0 ] || finish ""
 
 echo "== 4 affected gate and dirac gate, side by side"
-lock=${GORGE_HEAVY_LOCK:-/home/sadams/projects/gorge/.ds4/heavy.lock}
+lock=${GORGE_HEAVY_LOCK:-}
 lanes=${GORGE_HEAVY_LANES:-3}
 wait_s=${GORGE_TEST_LANE_WAIT:-1500}
-if [ -d "$(dirname "$lock")" ]; then
+if [ -n "$lock" ] && [ -d "$(dirname "$lock")" ]; then
 	deadline=$((SECONDS + wait_s))
 	got=
 	while [ -z "$got" ]; do
@@ -230,7 +239,7 @@ if [ -d "$(dirname "$lock")" ]; then
 		sleep 5
 	done
 else
-	echo "test-targets: note: $lock's directory is missing; running without a heavy lane" >&2
+	echo "test-targets: note: GORGE_HEAVY_LOCK is unset or its directory is missing; running without a heavy lane" >&2
 fi
 dgs=$(mktemp "${TMPDIR:-/tmp}/test-smart-dirac-gate.XXXXXX") && git show "$BASE:scripts/dirac-gate.sh" >"$dgs" || verdict ENV "cannot read $BASE:scripts/dirac-gate.sh"
 S=$(mktemp -d "${TMPDIR:-/tmp}/test-smart.XXXXXX")
@@ -241,9 +250,9 @@ cpu_d=$((ncpu * 100)); [ "$cpu_d" -le 800 ] || cpu_d=800
 U=tsmart-$$-$(date +%s)
 {
 	if systemd-run --user --scope -q true >/dev/null 2>&1; then
-		systemd-run --user --scope -q --unit="$U-aff" -p MemoryMax=16G -p CPUQuota=$cpu_a% env GOFLAGS=-trimpath T="$BASE" bash -c 'set -o pipefail; git -C "$0" show "$1:ops/scripts/gate_affected.sh" | bash -s "$T"' "$FOURYAY" "$GATE_REF" >"$S/aff" 2>&1
+		systemd-run --user --scope -q --unit="$U-aff" -p MemoryMax=16G -p CPUQuota=$cpu_a% env GOFLAGS=-trimpath T="$BASE" bash -c 'set -o pipefail; git -C "$0" show "$1:$2" | bash -s "$T"' "$GATE_AFFECTED_REPO" "$GATE_REF" "$GATE_AFFECTED_PATH" >"$S/aff" 2>&1
 	else
-		GOFLAGS=-trimpath T="$BASE" bash -c 'set -o pipefail; git -C "$0" show "$1:ops/scripts/gate_affected.sh" | bash -s "$T"' "$FOURYAY" "$GATE_REF" >"$S/aff" 2>&1
+		GOFLAGS=-trimpath T="$BASE" bash -c 'set -o pipefail; git -C "$0" show "$1:$2" | bash -s "$T"' "$GATE_AFFECTED_REPO" "$GATE_REF" "$GATE_AFFECTED_PATH" >"$S/aff" 2>&1
 	fi
 	echo $? >"$S/aff.rc"
 } 9>&- &
