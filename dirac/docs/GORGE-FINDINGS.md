@@ -171,17 +171,17 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   Ranch's reveal is never taken (`RevealValid$ Card.Mount` has no Mount in
   the pool), so those tests exercise only its declined else branch.
 - DB$ Clone on the battlefield (`dirac/copy_clone.go`, Ext CloneCopy): dirac models gorge's copy markers, not a stack of
-  layer-1 timestamps. (1) A permanent keeps its newest permanent marker's
-  source (an `fxCopyPerm` record, written by the Ext and by an ETB copy in a
-  table that has the Ext) and one `fxCopyEOT` record while an until-end-of-turn
-  copy is live; at cleanup it returns to its printed card and is re-based on
-  that source as the source is then (gorge `settleExpiredClones`), in the
-  order of the first until-end-of-turn marker. (2) A resolving trigger whose
+  layer-1 timestamps. A copy layer's card is locked when the layer lands (an
+  `fxCopyPerm` record, written by the Ext and by an ETB copy in a table that
+  has the Ext, and one `fxCopyEOT` record while an until-end-of-turn copy is
+  live) and a re-base restores the locked card, never reading the source again
+  (CR 707.2b; dirac `copyTop`, `TestCloneCleanupRebaseKeepsLockedCard`; gorge
+  `settleExpiredClones`). (1) A resolving trigger whose
   source's current card is not the trigger's card is not asked its `may`
   (gorge reads OptionalDecider$ off the source's current face; a copy of
-  something else has no such trigger). (3) The projection shows every copy
+  something else has no such trigger). (2) The projection shows every copy
   effect's permanent as its printed card in such a table (as an Aegis
-  bearer). (4) A permanent copying itself is an ordinary copy layer (its
+  bearer). (3) A permanent copying itself is an ordinary copy layer (its
   inherited exceptions are held beside the layer as `fxCopySelf` records), and
   an Aegis bearer's copy layers are ordered by their layer timestamps
   (`copy_aegisunder.go`). Only the
