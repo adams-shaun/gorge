@@ -45,10 +45,11 @@ func (s *State) selfFlash(k *prep, p uint8, c CardID) bool {
 }
 
 // castFlash reports whether p may cast card c as though it had flash: a
-// battlefield grant (castStatic) or the card's own self grant. gorge reads
-// the one castWithFlash(p, id) for every offer. It inlines to the two guards
-// (a battlefield static in play, the table has a SelfFlash card) and one
-// call, so a table without either pays the guard tests only.
+// battlefield grant (castStatic), the card's own self grant, or one of p's
+// Effect emblems. gorge reads the one castWithFlash(p, id) for every offer.
+// It inlines to the three guards (a battlefield static in play, the table
+// has a SelfFlash card, the table has an emblem grant) and one call, so a
+// table without any pays the guard tests only.
 func (s *State) castFlash(k *prep, p uint8, c CardID) bool {
 	return (s.statM.any() || k.anySelfFlash || k.anyEmbFlash) && s.castFlashAny(k, p, c)
 }
@@ -98,7 +99,7 @@ func (s *State) embFlashForget(k *prep, e *stackEntry) {
 			for j := range em.Abilities {
 				a := &em.Abilities[j]
 				if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCastWithFlash && a.Static.Filter2 != 0 &&
-					s.matchCardGen(k, a.Static.Filter2, e.card, e.ctrl, e.ctrl, e.obj) {
+					s.matchCardGen(k, a.Static.Filter2, e.card, e.ctrl, pp, e.obj) {
 					drop |= 1 << uint(i)
 				}
 			}
