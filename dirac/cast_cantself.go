@@ -11,6 +11,11 @@ var (
 	CantCastNamedHeld       int
 )
 
+// DebugCantSorceryOff is the mutation switch (dirac/oracle
+// TestEffectflashMutation): an OnlySorcerySpeed$ CantBeCast never lets its
+// caster cast at sorcery speed, so the lockstep must diverge.
+var DebugCantSorceryOff bool
+
 // castForbidden reports whether a StatCantBeCast forbids player p casting
 // card c (object o) -- gorge castRestricted: an active static (a
 // battlefield permanent's, or an emblem's) whose caster relation (Caster$:
@@ -32,6 +37,9 @@ func (s *State) castForbidden(k *prep, p uint8, c CardID, o Obj) bool {
 		st := &a.Static
 		if st.StFlags&kop.StRaiseYou != 0 && stc.ctrl != p || st.StFlags&kop.StRaiseOpp != 0 && stc.ctrl == p {
 			return true
+		}
+		if st.B&kop.CantCastSorcery != 0 && !DebugCantSorceryOff && s.sorcerySpeed(p) {
+			return true // OnlySorcerySpeed$: the caster could cast a sorcery, so it does not bind (gorge castSorceryTimingExempt)
 		}
 		if st.B&kop.CantCastNamed != 0 {
 			// Alhammarret, High Arbiter: only the card the source named as it entered
@@ -59,6 +67,17 @@ func (s *State) castForbidden(k *prep, p uint8, c CardID, o Obj) bool {
 		hit = s.castForbiddenSelf(k, p, c, o) // cast_cantself.go
 	}
 	return hit
+}
+
+// castForbiddenFree is castForbidden for a cast a resolving spell or ability
+// makes (a free cast, a hideaway play, a transformed battle): gorge's stack
+// still holds the resolving object there, so no sorcery window is open and an
+// OnlySorcerySpeed$ prohibition binds (castSorceryTimingExempt).
+func (s *State) castForbiddenFree(k *prep, p uint8, c CardID, o Obj) bool {
+	s.cfgx |= cfgxNoSorcery
+	f := s.castForbidden(k, p, c, o)
+	s.cfgx &^= cfgxNoSorcery
+	return f
 }
 
 // a card's own "you can't cast this spell unless/during
