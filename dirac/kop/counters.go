@@ -294,6 +294,13 @@ const (
 	// CtrLuck is Gemstone Caverns' luck counter (CR 122.1): a named counter
 	// whose presence its mana ability reads (SplitGateCounter).
 	CtrLuck
+	// CtrDepletion is a depletion counter (Peat Bog's "remove a depletion
+	// counter: add {B}{B}"): a named counter with no inherent rules meaning
+	// (CR 122.1) whose count its mana ability's cost and rider read.
+	CtrDepletion
+	// CtrMining is a mining counter (Gemstone Mine): a named counter with no
+	// inherent rules meaning (CR 122.1).
+	CtrMining
 	NumCounterKinds3
 )
 
@@ -311,7 +318,8 @@ var CtrXNames = [NumCounterKindsX]string{"CHARGE", "OIL", "SPORE", "QUEST", "VER
 	"First Strike", "Double Strike", "Deathtouch", "Haste", "Hexproof", "Indestructible", "Lifelink", "Menace",
 	"Reach", "Shadow", "Trample", "Vigilance", "SUPPLY", "LORE", "LANDMARK", "DREAD", "DEFENSE", "CHORUS", "M0M1", "FINALITY", "TIME", "VALOR", "NET", "PLAN",
 	"INVASION", "LOOT", "REV", "PAGE", "INGENUITY", "FILM", "FIRE", "HONE", "COIN",
-	"DIVINITY", "IMPOSTOR", "BORE", "POINT", "BLOODSTAIN", "POSSESSION", "PROMOTION", "PEACE", "WISH", "SKEWER", "NEST", "AGE", "LUCK"}
+	"DIVINITY", "IMPOSTOR", "BORE", "POINT", "BLOODSTAIN", "POSSESSION", "PROMOTION", "PEACE", "WISH", "SKEWER", "NEST", "AGE", "LUCK",
+	"DEPLETION", "MINING"}
 
 // IsCounterKind reports whether c is a real counter kind (a featurized one
 // or an unfeaturized one; CtrLevel and the gap at NumCounterKinds2 are not).

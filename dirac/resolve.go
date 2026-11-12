@@ -320,6 +320,7 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 			if k.gen != nil && k.gen.anyParadigm && !fizzled {
 				z = s.paradigmRest(k, e.obj, z) // kw_paradigm.go
 			}
+			z = buybackRest(k, e, z, fizzled) // kw_buyback.go
 			if z == kop.ZoneLibrary {
 				s.omenToLibrary(e.obj) // face_omen.go
 			} else {

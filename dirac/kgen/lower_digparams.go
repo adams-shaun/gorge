@@ -22,6 +22,34 @@ func digNoReveal(ps *params) (bool, error) {
 	return false, refuse("NoReveal %q", v)
 }
 
+// digNoLooking reads Dig's NoLooking$ True. In gorge's effDig it only
+// withholds the chooser's look Note and the card names on the take and
+// arrange options (the window the instruction already named is unchanged,
+// and so are the takes, the remainder and every ask), so the kernel, which
+// carries no per-card look, plays it as the plain Dig. The one shape it
+// changes beyond what a player sees is a face-down exile, where the look
+// decides the may-look marker (digSecretTo / seenFaceDownExile): that
+// refuses, as does any spelling but True. noLooking also decides whether the
+// chooser "saw" the window, which digSecretTo reads for an event's Player; the
+// seat only differs when the chooser is not the library's owner, so a Dig of
+// anyone but the controller's own library, or one with a Choser$, refuses.
+func digNoLooking(ps *params, who lRef) error {
+	v, ok := ps.get("NoLooking")
+	if !ok {
+		return nil
+	}
+	if strings.TrimSpace(v) != "True" {
+		return refuse("Dig NoLooking$ %q", v)
+	}
+	if ps.is("ExileFaceDown", "True") {
+		return refuse("Dig NoLooking$ beside ExileFaceDown$")
+	}
+	if _, ok := ps.m["Choser"]; ok || who.Kind != rYou {
+		return refuse("Dig NoLooking$ of a library the chooser does not own")
+	}
+	return nil
+}
+
 // digRestTop reads Dig's LibraryPosition2$ (gorge dig_params: an omitted
 // or Library DestinationZone2$ defaults it to -1, the bottom). "0" keeps
 // the rest on top (kop.DigRestTop) -- exact only while at most one card

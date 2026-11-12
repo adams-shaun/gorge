@@ -967,6 +967,20 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	}
 	ka.ManaEach = m.Each
 	ka.ManaDeferred = m.Deferred
+	ka.ManaRider = uint8(m.Rider)
+	if m.RiderCtr != "" {
+		k, err := counterKind(m.RiderCtr)
+		if err != nil {
+			return err
+		}
+		ka.ManaRiderCtr = k
+	}
+	if m.RiderN > 0 {
+		if m.RiderN > 255 {
+			return fmt.Errorf("mana rider count %d", m.RiderN)
+		}
+		ka.ManaRiderN = uint8(m.RiderN)
+	}
 	if sp := m.Split; sp != nil {
 		ka.SplitGate, ka.SplitCols = sp.Gate, colorMask(sp.Cols)
 		if sp.Ctr != "" {
@@ -3461,6 +3475,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.B = kop.Const(i + 1)
 	case "Manifest":
 		ki.Op = kop.OpManifest
+		if in.C != 0 {
+			ki.B = kop.Const(in.C) // CfManifestRemembered
+		}
 	case "Cloak":
 		ki.Op = kop.OpCloak
 		ki.B = kop.Const(in.C)
@@ -3826,6 +3843,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, err
 		}
 		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtColorGrant)), v, int16(in.C)
+		if in.F != nil {
+			// (Akroma's Blessing) the sweep's filter
+			if err := objFilter(kop.ZoneBattlefield); err != nil {
+				return ki, err
+			}
+		}
 	case "Endure":
 		// OpExt ExtEndure, B the Spirit token, C the N/N
 		// override (its PA is N)
@@ -4025,6 +4048,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtPreventColor)) // (Prismatic Strands)
 	case "PreventDamageScope":
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventDamageScope)), int16(in.C)
+	case "PreventNext":
+		// OpExt ExtPreventNext on Obj, B the amount, C 1 for combat damage only (dirac/repl_prevnext.go)
+		v, err := cb.value(in.A)
+		if err != nil {
+			return ki, err
+		}
+		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventNext)), v, int16(in.C&1)
 	case "CounterPlusEOT":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtCounterPlusEOT))
 	case "TurnRepl":

@@ -242,6 +242,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtTurnRepl:
 		s.turnRepl(k, in) // repl_turnrepl.go
 		return true, true
+	case kop.ExtPreventNext:
+		s.prevNextAdd(k, in) // repl_prevnext.go
+		return true, true
 	}
 	panic("kernel: ext op not implemented: " + kop.ExtOp(in.A.N).String())
 }

@@ -272,7 +272,9 @@ func (s *State) flags2Perm(k *prep, f kop.FilterFlags2, sl Slot, src Slot, layer
 			return false
 		}
 		if f&kop.F2ChosenColor != 0 {
-			if src == NoSlot {
+			if c, ok := s.resColour(src); ok {
+				ch = c // this resolution's ChooseColor answer (static_colourgrant.go)
+			} else if src == NoSlot {
 				return false
 			}
 			if ch > 4 || s.colorsGen(k, sl)&(1<<ch) == 0 {
@@ -644,6 +646,14 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 				return false
 			}
 			f2 &^= kop.F2ChosenType
+		}
+		if f2&kop.F2ChosenColor != 0 {
+			// a card filter reads this resolution's ChooseColor answer
+			// (Addle's discard choice; static_colourgrant.go resColour)
+			if ch, ok := s.resColour(NoSlot); !ok || cols&(kop.ColW<<ch) == 0 {
+				return false
+			}
+			f2 &^= kop.F2ChosenColor
 		}
 		if f2&(kop.F2Emblem|kop.F2Kicked|kop.F2CastByYou|kop.F2ChosenColor|kop.F2Saddled|kop.F2Sneaked|kop.F2Unblocked|kop.F2BlockedBySrc|kop.F2DamagedBy|kop.F2CrewedSrc|kop.F2Warped) != 0 {
 			return false

@@ -384,6 +384,8 @@ var counterKinds = map[string]kop.CounterKind{
 	"NEST":       kop.CtrNest,       // Twitching Doll's named counter (CR 122.1)
 	"AGE":        kop.CtrAge,        // cumulative upkeep's age counter (CR 702.24a; Mystic Remora)
 	"LUCK":       kop.CtrLuck,       // Gemstone Caverns' named counter (CR 122.1; the Condition-split mana gate, lower_condsplit.go)
+	"DEPLETION":  kop.CtrDepletion,  // Peat Bog's depletion counter (CR 122.1; mana_rider.go)
+	"MINING":     kop.CtrMining,     // Gemstone Mine's mining counter (CR 122.1; mana_rider.go)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -551,6 +553,23 @@ func (cb *cardBuilder) record() error {
 		d.Offspring = true
 		if d.Kicker, err = manaCostOf(*c.Offspring); err != nil {
 			return err
+		}
+	}
+	if c.Buyback != nil {
+		// Buyback rides the kicked cast (sfKicked, CardDef.Kicker) with
+		// CardDef.Buyback naming it (kw_buyback.go); refuseBuybackCombos
+		// keeps every other optional cost off the card
+		if c.Kicker != nil || c.Offspring != nil {
+			return fmt.Errorf("buyback with a kicker/offspring")
+		}
+		d.Buyback = true
+		if d.Kicker, err = manaCostOf(*c.Buyback); err != nil {
+			return err
+		}
+		if c.KickerCost != nil {
+			if d.KickerCost, err = cb.cost(*c.KickerCost); err != nil {
+				return err
+			}
 		}
 	}
 	if c.Spree {
