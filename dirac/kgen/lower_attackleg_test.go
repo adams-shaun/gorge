@@ -23,8 +23,8 @@ func TestAttackLegSkipLowering(t *testing.T) {
 	// count, so the leg is the no-op gorge plays it as.
 	why, ab, _ := ktqBuildSV(t,
 		"T:Mode$ AttackersDeclared | AttackedTarget$ Player.EnchantedBy | Execute$ TrigUntap | TriggerZones$ Battlefield",
-		"SVar:TrigUntap:DB$ UntapAll | Defined$ You | ValidCards$ Permanent.nonLand | SubAbility$ DBUntap",
-		"SVar:DBUntap:DB$ UntapAll | Defined$ TriggeredAttackingPlayer.Opponent+controlsCreature.attacking Player.EnchantedBy | ValidCards$ Permanent.nonLand")
+		"SVar:TrigUntap:DB$ UntapAll | ValidCards$ Permanent.nonLand | Defined$ You | SubAbility$ DBUntapLeg",
+		"SVar:DBUntapLeg:DB$ UntapAll | ValidCards$ Permanent.nonLand | Defined$ TriggeredAttackingPlayer.Opponent+controlsCreature.attacking Player.EnchantedBy")
 	if why != "" {
 		t.Fatalf("the empty attacking-player leg refused: %s", why)
 	}
@@ -35,19 +35,19 @@ func TestAttackLegSkipLowering(t *testing.T) {
 	// provable no-op and refuses under the ordinary TriggeredAttackingPlayer
 	// rule (the referent is only the attacking player there)
 	why, _, _ = ktqBuildSV(t, kccDefEndUntap,
-		"SVar:TrigUntap:DB$ UntapAll | Defined$ TriggeredAttackingPlayer.Opponent+controlsCreature.attacking Player.EnchantedBy | ValidCards$ Permanent.nonLand")
+		"SVar:TrigUntap:DB$ UntapAll | ValidCards$ Permanent.nonLand | Defined$ TriggeredAttackingPlayer.Opponent+controlsCreature.attacking Player.EnchantedBy")
 	if why == "" {
 		t.Fatal("the empty leg lowered off an AttackersDeclared trigger")
 	}
 }
 
 func TestAttackLegSkipAllowlist(t *testing.T) {
-	leg := "SVar:DBUntap:DB$ UntapAll | Defined$ TriggeredAttackingPlayer.Opponent+controlsCreature.attacking Player.EnchantedBy"
+	leg := "SVar:DBUntapLeg:DB$ UntapAll | Defined$ TriggeredAttackingPlayer.Opponent+controlsCreature.attacking Player.EnchantedBy"
 	// a param the allowlist reads (ValidCards$, which scales with the empty
 	// player set) skips with the node
 	why, ab, _ := ktqBuildSV(t,
 		"T:Mode$ AttackersDeclared | AttackedTarget$ Player.EnchantedBy | Execute$ TrigUntap | TriggerZones$ Battlefield",
-		"SVar:TrigUntap:DB$ UntapAll | Defined$ You | ValidCards$ Permanent.nonLand | SubAbility$ DBUntap",
+		"SVar:TrigUntap:DB$ UntapAll | ValidCards$ Permanent.nonLand | Defined$ You | SubAbility$ DBUntapLeg",
 		leg+" | ValidCards$ Permanent.nonLand")
 	if why != "" || len(ab.Prog) != 1 {
 		t.Fatalf("an allowlisted param on the skipped leg: %q, %d instrs", why, len(ab.Prog))
@@ -57,7 +57,7 @@ func TestAttackLegSkipAllowlist(t *testing.T) {
 	// player set (a later leg may read it), so the node refuses
 	why, _, _ = ktqBuildSV(t,
 		"T:Mode$ AttackersDeclared | AttackedTarget$ Player.EnchantedBy | Execute$ TrigUntap | TriggerZones$ Battlefield",
-		"SVar:TrigUntap:DB$ UntapAll | Defined$ You | ValidCards$ Permanent.nonLand | SubAbility$ DBUntap",
+		"SVar:TrigUntap:DB$ UntapAll | ValidCards$ Permanent.nonLand | Defined$ You | SubAbility$ DBUntapLeg",
 		leg+" | RememberTapped$ True")
 	if !strings.Contains(why, "skipped empty attacking-player leg with RememberTapped$") {
 		t.Errorf("RememberTapped$ on the skipped leg: refusals %q, want the skip-with-param refusal", why)
@@ -71,7 +71,7 @@ func TestTapOrUntapTriggerPlayer(t *testing.T) {
 	// trigger only.
 	why, ab, _ := ktqBuildSV(t,
 		"T:Mode$ AttackersDeclared | AttackedTarget$ Player.EnchantedBy | Execute$ TrigTapOrUntap | TriggerZones$ Battlefield",
-		"SVar:TrigTapOrUntap:DB$ TapOrUntap | ValidTgts$ Permanent | TargetingPlayer$ TriggeredAttackingPlayer | Tapper$ TriggeredAttackingPlayer")
+		"SVar:TrigTapOrUntap:DB$ TapOrUntap | TargetingPlayer$ TriggeredAttackingPlayer | ValidTgts$ Permanent | Tapper$ TriggeredAttackingPlayer")
 	if why != "" {
 		t.Fatalf("the trigger-player tap-or-untap refused: %s", why)
 	}
@@ -87,7 +87,7 @@ func TestTapOrUntapTriggerPlayer(t *testing.T) {
 	}
 	// elsewhere the same arms refuse by name
 	why, _, _ = ktqBuildSV(t, kccDefEndTap,
-		"SVar:TrigTapOrUntap:DB$ TapOrUntap | ValidTgts$ Permanent | TargetingPlayer$ TriggeredAttackingPlayer | Tapper$ TriggeredAttackingPlayer")
+		"SVar:TrigTapOrUntap:DB$ TapOrUntap | TargetingPlayer$ TriggeredAttackingPlayer | ValidTgts$ Permanent | Tapper$ TriggeredAttackingPlayer")
 	if !strings.Contains(why, "outside an AttackersDeclared trigger") {
 		t.Errorf("the arms off an AttackersDeclared trigger: refusals %q, want the named refusal", why)
 	}

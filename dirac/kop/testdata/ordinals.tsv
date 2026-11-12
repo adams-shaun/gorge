@@ -1293,6 +1293,7 @@ Tf3MayPlaySrc	TrigFlags3	32
 Tf3OrTargets	TrigFlags3	8
 Tf3Static	TrigFlags3	16
 Tf4CounterCell	TrigFlags4	4
+Tf4DefEnch	TrigFlags4	128
 Tf4NamedCast	TrigFlags4	16
 Tf4NthFiltered	TrigFlags4	8
 Tf4OptTrigPlayer	TrigFlags4	32
@@ -1321,6 +1322,7 @@ TgfMaxTotalMV	TargetFlags	4096
 TgfSameController	TargetFlags	2
 TgfSharedCrType	TargetFlags	1024
 TgfSingleTgt	TargetFlags	8192
+TgfTrigChooser	TargetFlags	16384
 TgtAny	TargetKind	3
 TgtCard	TargetKind	5
 TgtCopyAb	TargetKind	236
