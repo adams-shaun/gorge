@@ -3174,6 +3174,15 @@ func (s *State) paymentStranded(k *prep, e *stackEntry, cost *kop.ManaCost) bool
 		s.CopyFrom(saved)
 		return !ok
 	}
+	if known && !ok && k.gen.anyFilt && s.scriptFilt(k, e.ctrl).any() {
+		// The greedy walk never activates a paid-fee filter ({1},{T}: any
+		// colour); gorge's census (castWindowReachable) searches them, so the
+		// window opens when some filter set pays the cost (CR 601.2g-h).
+		c := *cost
+		var av avail
+		s.availForBuilt(k, e, &av)
+		return !s.faceReachable(k, e.ctrl, &av, &c, 0)
+	}
 	return known && !ok
 }
 
