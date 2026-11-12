@@ -255,6 +255,9 @@ func (s *State) arenaClrSlot(sl Slot) {
 	if r := s.xblkRecs(); len(r) > 0 {
 		r[sl] = xblkRec{}
 	}
+	if int(sl) < len(s.cold.hexUB) {
+		s.cold.hexUB[sl] = 0 // a new permanent takes no mark from the last one (repl_turnrepl.go)
+	}
 	for i := range s.cold.exMark {
 		if r := &s.cold.exMark[i]; r.sl == sl {
 			r.live = false // the last permanent's exile-instead records end with it (repl_exilemark.go)

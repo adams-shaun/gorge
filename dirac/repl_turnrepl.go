@@ -108,7 +108,15 @@ func (s *State) turnRepl(k *prep, in *kop.Instr) {
 				*r = rec
 				if in.C == kop.TurnReplHexUB {
 					for m := s.ctrlM[rec.pl]; m.any(); m = m.rest() {
-						s.mSlSet(k, mechHexUB, m.first())
+						sl := m.first()
+						s.mSlSet(k, mechHexUB, sl)
+						// the slot keeps this record's timestamp: the grant is
+						// the object's, so a later control change neither takes
+						// it nor lets a later Veil that did not mark the slot
+						// refresh it (hexUBColours)
+						if int(sl) < len(s.cold.hexUB) {
+							s.cold.hexUB[sl] = rec.ts
+						}
 					}
 				}
 				return
@@ -196,6 +204,7 @@ func (s *State) turnReplEnd(scope bool) {
 			}
 		}
 		s.mSlZero(s.k(), mechHexUB)
+		clear(s.cold.hexUB)
 	}
 }
 
@@ -255,27 +264,19 @@ func (s *State) turnPlayerHex(k *prep, p uint8) bool {
 }
 
 // hexUBColours is the colours permanent sl has hexproof from through the
-// mechHexUB plane: blue and black while a Veil of its controller marked it and
-// that grant no later loss of abilities has taken (CR 613.7: the newest of the
-// grants and the loss wins). Only its controller's records count: the plane
-// marks every permanent the Veil's controller controlled at its resolution, so
-// a permanent that has since changed controller has lost the grant, and a
-// later Veil of another player does not refresh the oldest grant's timestamp
-// (gorge's per-object pump grant is YouCtrl of the Veil's controller).
-// Cold: targetableGen calls it behind genPrep.anyHexUB.
+// mechHexUB plane: blue and black while a Veil marked it and that grant no
+// later loss of abilities has taken (CR 613.7: the newest of the grants and the
+// loss wins). The plane's per-slot timestamp is the marking record's: the grant
+// is the object's, so a control change neither takes it nor lets a later Veil
+// that did not mark this slot (the permanent was not its controller's at that
+// resolution) refresh it. Cold: targetableGen calls it behind genPrep.anyHexUB.
 //
 //go:noinline
 func (s *State) hexUBColours(k *prep, sl Slot) kop.ColorMask {
-	if DebugTurnReplOff || !s.mSl(k, mechHexUB, sl) {
+	if DebugTurnReplOff || !s.mSl(k, mechHexUB, sl) || int(sl) >= len(s.cold.hexUB) {
 		return 0
 	}
-	ctrl := s.perms[sl].ctrl
-	ts := uint16(0)
-	for i := range s.cold.exMark {
-		if r := &s.cold.exMark[i]; r.live && r.sl == slotExPlHex && r.col == kop.ColU|kop.ColB && r.pl == ctrl {
-			ts = max(ts, r.ts)
-		}
-	}
+	ts := s.cold.hexUB[sl]
 	if ts == 0 {
 		return 0
 	}

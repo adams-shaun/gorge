@@ -51,11 +51,13 @@ type coldArrays struct {
 	castRing []castPush   // this turn's spell pushes, castRingN per player
 	discHeld []uint8      // the earlier players' discards while the next chooses
 	copyHeld []copyHold   // the resolution waiting on its copy's election
+	hexUB    []uint16     // per-slot timestamp of the mechHexUB grant (repl_turnrepl.go)
 }
 
 // coldLayout is the lengths of a table's cold arrays.
 type coldLayout struct {
 	ms, mo, exw, atkGrp, exH, entered, exMark, parked, castRing, discHeld, copyHeld int
+	hexUB                                                                           int // the marking record's timestamp per battlefield slot (0: unmarked)
 	xblk                                                                            int // xblkRec per battlefield slot, after the creature-counter record (combat_extrablock.go)
 	may                                                                             int // mayPlay records past maxMay; the first thing in the buffer (cast_maycold.go)
 	emb                                                                             int // embRec records for emblems past maxEmb, both players; right after the may records (static_emblemcold.go)
@@ -107,6 +109,9 @@ func prepCold(g *genPrep, l *coldLayout) {
 	if g.anyExtraBlock {
 		l.xblk = MaxPerm
 	}
+	if g.anyHexUB {
+		l.hexUB = MaxPerm
+	}
 }
 
 // place points c's arrays into b, or just counts them if b is nil, and returns
@@ -129,6 +134,7 @@ func (l *coldLayout) place(c *coldArrays, b []uint64) int {
 	c.castRing = coldView[castPush](b, &at, l.castRing)
 	c.discHeld = coldView[uint8](b, &at, l.discHeld)
 	c.copyHeld = coldView[copyHold](b, &at, l.copyHeld)
+	c.hexUB = coldView[uint16](b, &at, l.hexUB)
 	return (at + 7) / 8
 }
 

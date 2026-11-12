@@ -15,70 +15,117 @@ func hexUBTbl() *kop.Table {
 		{Kind: kop.AbActivated, Prog: []kop.Instr{in}}}}}}
 }
 
-// TestHexUBColoursLossControllerScope: a permanent marked by Veil of Summer
-// keeps hexproof from blue and from black only against a loss of abilities
-// that is older than its controller's own grant. A later Veil of another
-// player must not refresh the timestamp the loss is compared against, and the
-// plane marking does not follow a permanent that has changed controller
-// (gorge's per-object pump grant is YouCtrl of the Veil's controller).
+// hexUBBear is the battlefield slot the tests mark with Veil's grant.
+const hexUBBear Slot = 3
+
+// newHexUBState lays out a State with hexUBBear controlled by seat 0 and the
+// mechHexUB plane armed for Veil's TurnReplHexUB.
+func newHexUBState(t *testing.T) (*State, *prep) {
+	t.Helper()
+	tbl := hexUBTbl()
+	k := &prep{gen: &genPrep{}}
+	prepArena(tbl, k.gen, &k.cold)
+	prepTurnRepl(tbl, k.gen) // anyTurnScope: the cold exMark table is sized
+	prepCold(k.gen, &k.cold)
+	k.cold.size()
+	s := &State{}
+	s.layOut(&k.cold)
+	s.perms[hexUBBear].ctrl = 0
+	s.ctrlM[0].set(hexUBBear)
+	return s, k
+}
+
+// resolveHexUB resolves one TurnReplHexUB for player pl (seat 0 or 1) and
+// returns the record's timestamp.
+func resolveHexUB(s *State, k *prep, pl uint8) uint16 {
+	s.res.e.ctrl, s.res.e.obj = pl, 1
+	s.turnRepl(k, &kop.Instr{Op: kop.OpExt, C: kop.TurnReplHexUB})
+	return s.ts
+}
+
+// giveHexUBBear gives hexUBBear to player to, as a control change would.
+func giveHexUBBear(s *State, to uint8) {
+	s.ctrlM[s.perms[hexUBBear].ctrl].clr(hexUBBear)
+	s.perms[hexUBBear].ctrl = to
+	s.ctrlM[to].set(hexUBBear)
+}
+
+// TestHexUBColoursLossControllerScope: the grant belongs to the object, so a
+// control change neither takes it nor lets a later Veil of the old controller
+// that did not mark this slot refresh its timestamp. The plane mark is the
+// first Veil's; a loss of abilities after it takes the grant, a later Veil
+// while the permanent was another player's does not put it back.
 func TestHexUBColoursLossControllerScope(t *testing.T) {
 	ub := kop.ColU | kop.ColB
-	const sl = Slot(3)
-	newState := func() (*State, *prep) {
-		tbl := hexUBTbl()
-		k := &prep{gen: &genPrep{}}
-		prepArena(tbl, k.gen, &k.cold)
-		prepTurnRepl(tbl, k.gen) // anyTurnScope: the cold exMark table is sized
-		prepCold(k.gen, &k.cold)
-		k.cold.size()
-		s := &State{}
-		s.layOut(&k.cold)
-		s.mSlSet(k, mechHexUB, sl)
-		return s, k
-	}
-	mark := func(s *State, i int, pl uint8, ts uint16) {
-		s.cold.exMark[i] = exMarkRec{sl: slotExPlHex, src: 1, live: true, pl: pl, col: ub, ts: ts}
-	}
 
-	s, k := newState()
-	r0, lts, r1 := s.tick(), s.tick(), s.tick() // seat 0's Veil, a loss, seat 1's Veil
-	mark(s, 0, 0, r0)
-	mark(s, 1, 1, r1)
-	if got := s.hexUBColours(k, sl); got != ub {
+	// A loss after the grant takes it.
+	s, k := newHexUBState(t)
+	grant := resolveHexUB(s, k, 0)
+	if !s.mSl(k, mechHexUB, hexUBBear) {
+		t.Fatal("precondition: seat 0's Veil did not mark the permanent")
+	}
+	if got := s.hexUBColours(k, hexUBBear); got != ub {
 		t.Fatalf("no loss yet: colours %v, want blue and black", got)
 	}
-	// The loss sits between the two Veils: the permanent's own grant (seat
-	// 0's, older) is newer-lost, so the grant goes even though seat 1's Veil
-	// resolved after the loss. The old max-over-all-records reading compared
-	// against seat 1's ts and wrongly kept it.
-	s.perms[sl].ovr.flags |= ovLoseAll
-	if !s.setLossFx(sl, lts, true) {
+	loss := s.tick()
+	if loss <= grant {
+		t.Fatalf("precondition: loss %d not after the grant %d", loss, grant)
+	}
+	s.perms[hexUBBear].ovr.flags |= ovLoseAll
+	if !s.setLossFx(hexUBBear, loss, true) {
 		t.Fatal("setLossFx: pool full")
 	}
-	if got := s.hexUBColours(k, sl); got != 0 {
-		t.Fatalf("loss between the two Veils: colours %v, want none", got)
-	}
-	// The plane marking does not follow the permanent across a controller
-	// change: seat 1's records count only while sl is seat 1's.
-	s.perms[sl].ctrl = 1
-	if got := s.hexUBColours(k, sl); got != ub {
-		t.Fatalf("the newer Veil is the controller's own: colours %v, want blue and black", got)
+	if got := s.hexUBColours(k, hexUBBear); got != 0 {
+		t.Fatalf("loss after the grant: colours %v, want none", got)
 	}
 
-	// A loss newer than every record takes the grant however many Veils
-	// there are, and an unmarked permanent has none.
-	s, k = newState()
-	mark(s, 0, 0, s.tick())
-	late := s.tick()
-	s.perms[sl].ovr.flags |= ovLoseAll
-	if !s.setLossFx(sl, late, true) {
+	// The grant survives a control change: gorge's per-object Pump grant is an
+	// object-level Card.Self effect, which events.ControlChange does not
+	// remove, and a later loss still takes it from the new controller.
+	s, k = newHexUBState(t)
+	grant = resolveHexUB(s, k, 0)
+	giveHexUBBear(s, 1)
+	if s.perms[hexUBBear].ctrl != 1 {
+		t.Fatal("precondition: the control change did not move the permanent")
+	}
+	if got := s.hexUBColours(k, hexUBBear); got != ub {
+		t.Fatalf("after a control change: colours %v, want blue and black (the object keeps the grant)", got)
+	}
+	loss = s.tick()
+	s.perms[hexUBBear].ovr.flags |= ovLoseAll
+	if !s.setLossFx(hexUBBear, loss, true) {
 		t.Fatal("setLossFx: pool full")
 	}
-	if got := s.hexUBColours(k, sl); got != 0 {
-		t.Fatalf("a loss newer than the grant: colours %v, want none", got)
+	if got := s.hexUBColours(k, hexUBBear); got != 0 {
+		t.Fatalf("a later loss under the new controller: colours %v, want none", got)
 	}
-	s.mSlClr(k, mechHexUB, sl)
-	if got := s.hexUBColours(k, sl); got != 0 {
+
+	// A later Veil of the permanent's old controller does not mark it while it
+	// is another player's, so the later record's timestamp must not replace the
+	// first grant's: a loss between the two Veils still takes the grant.
+	s, k = newHexUBState(t)
+	grant = resolveHexUB(s, k, 0)
+	giveHexUBBear(s, 1)
+	loss = s.tick()
+	s.perms[hexUBBear].ovr.flags |= ovLoseAll
+	if !s.setLossFx(hexUBBear, loss, true) {
+		t.Fatal("setLossFx: pool full")
+	}
+	later := resolveHexUB(s, k, 0)
+	if !(grant < loss && loss < later) {
+		t.Fatalf("precondition: want grant %d < loss %d < later Veil %d", grant, loss, later)
+	}
+	giveHexUBBear(s, 0)
+	if !s.mSl(k, mechHexUB, hexUBBear) {
+		t.Fatal("precondition: the first Veil's plane mark did not survive the control change")
+	}
+	if got := s.hexUBColours(k, hexUBBear); got != 0 {
+		t.Fatalf("a later Veil that did not mark the permanent: colours %v, want none", got)
+	}
+
+	// An unmarked permanent has none.
+	s.mSlClr(k, mechHexUB, hexUBBear)
+	if got := s.hexUBColours(k, hexUBBear); got != 0 {
 		t.Fatalf("an unmarked permanent: colours %v, want none", got)
 	}
 }
