@@ -353,7 +353,7 @@ var subtypeWords = map[string]bool{}
 
 // propWords maps a filter property word to the flag it sets.
 var propWords = map[string]uint64{
-	"Self": fSelf, "Other": fOther, "StrictlyOther": fOther, "token": fToken, "!token": fNonToken, "nonToken": fNonToken,
+	"Self": fSelf, "StrictlySelf": fSelf, "Other": fOther, "StrictlyOther": fOther, "token": fToken, "!token": fNonToken, "nonToken": fNonToken,
 	"attacking": fAttacking, "!attacking": fNotAttacking, "!TriggeredCard": fNotTriggerObj, "blocking": fBlocking, "tapped": fTapped, "untapped": fUntapped,
 	"withFlying": fWithFlying, "withoutFlying": fWithoutFlying, "kicked": fKicked, "wasCastByYou": fCastByYou,
 	"EquippedBy": fEquippedBy, "EnchantedBy": fEnchantedBy, "AttachedBy": fEquippedBy, "ThisTurnEntered": fEnteredThisTurn,

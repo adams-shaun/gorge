@@ -4,6 +4,29 @@ import (
 	"strings"
 )
 
+// selfPresentZoneCond lowers IsPresent$ Card.StrictlySelf beside a single
+// PresentZone$ zone. The read is gorge's intervening-if, checked when the
+// event happens and again when the trigger resolves (CR 603.4), so it cannot
+// be dropped: battlefield is the ordinary cPresent over the source (c already
+// carries the source filter), and another zone is cSourceZone. A zone list or
+// a non-default PresentCompare$ refuses; the carriers name one zone with the
+// default compare (Arden Angel and the graveyard family, Inalla/Arahbo/Edgar
+// Markov/Sidar Jabari's Command and Battlefield twins).
+func selfPresentZoneCond(c lCond, zones string) (lCond, error) {
+	zs := strings.Split(zones, ",")
+	if len(zs) != 1 {
+		return c, refuse("PresentZone %q of a source-identity presence read", zones)
+	}
+	z, ok := zoneNames[strings.TrimSpace(zs[0])]
+	if !ok || z == zNone {
+		return c, refuse("PresentZone %q", zones)
+	}
+	if z == zBattlefield {
+		return c, nil
+	}
+	return lCond{Kind: cSourceZone, Zone: uint8(z)}, nil
+}
+
 // presentZoneCond rewrites a static's IsPresent$ condition c for its
 // PresentZone$ (gorge countStaticPresent: the matching objects summed over
 // the named zones; a non-battlefield zone reads a bare Permanent as a

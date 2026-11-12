@@ -300,11 +300,12 @@ const (
 	cOpponentsTurn          // it is not the controller's turn
 	cPromisedGift           // the gift was promised (Card.Self+PromisedGift on the stack, or the entering permanent)
 	cAnd                    // both Sub conditions hold
+	cSourceZone             // the source object is in Zone (source-identity IsPresent$ PresentZone$)
 	cCount_
 )
 
 var condNames = [...]string{"None", "Present", "Value", "Kicked", "Threshold", "YourTurn", "RefMatches",
-	"CostPaid", "OpponentsTurn", "PromisedGift", "And"}
+	"CostPaid", "OpponentsTurn", "PromisedGift", "And", "SourceZone"}
 
 type lCond struct {
 	Kind condKind
@@ -314,6 +315,7 @@ type lCond struct {
 	A, B lValue
 	Sub  []lCond
 	Neg  bool
+	Zone uint8 // cSourceZone: the source's zone
 }
 
 func (c lCond) String() string {
@@ -333,6 +335,9 @@ func (c lCond) String() string {
 	}
 	if c.Op != 0 {
 		args = append(args, fmt.Sprintf("op%d", c.Op))
+	}
+	if c.Kind == cSourceZone {
+		args = append(args, zoneLabel[c.Zone])
 	}
 	if c.A.Kind != vNone {
 		args = append(args, c.A.String())

@@ -1497,8 +1497,20 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			c.Op, c.A = op, v
 		}
 		if pz, ok := tp.get("PresentZone"); ok {
-			// gorge trigger_condition.go: the zones' counts summed
-			if c, err = presentZoneCond(c, pz, ip, lc); err != nil {
+			// gorge trigger_condition.go: the zones' counts summed. A
+			// source-identity read is an intervening-if, so it is kept and
+			// re-checked at resolution (CR 603.4).
+			if _, cmp := tp.get("PresentCompare"); !cmp && strings.TrimSpace(ip) == "Card.StrictlySelf" {
+				// PresentPlayer$ You names the zone the source card lies in
+				// (its owner's), which is the reading player for its own
+				// graveyard/command-zone trigger.
+				if pp, ok := tp.get("PresentPlayer"); ok && strings.TrimSpace(pp) != "You" {
+					return refuse("PresentPlayer %q of a source-identity presence read", pp)
+				}
+				if c, err = selfPresentZoneCond(c, pz); err != nil {
+					return err
+				}
+			} else if c, err = presentZoneCond(c, pz, ip, lc); err != nil {
 				return err
 			}
 		}

@@ -508,8 +508,22 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		// the trigger captured; CardCounters.ALL sums its LIVE counters
 		// (count_ref_property.go's sumCounters, no LKI substitution for a
 		// trigger object), so X sees the counter the sibling PutCounter just
-		// added. defined() refuses the shapes with no single attacker
-		// (an AttackersDeclared player event). Spider-Man Noir
+		// added. CardPower/CardToughness read its power/toughness through the
+		// same ref (Arahbo, Roar of the World's "X is its power"). defined()
+		// refuses the shapes with no single attacker (an AttackersDeclared
+		// player event). Spider-Man Noir
+		if rest == "CardPower" || rest == "CardToughness" {
+			ref, derr := lc.defined("TriggeredAttacker")
+			if derr != nil {
+				return lValue{}, derr
+			}
+			kind := vPowerOf
+			if rest == "CardToughness" {
+				kind = vToughnessOf
+			}
+			v = lValue{Kind: kind, Ref: ref}
+			break
+		}
 		if rest != "CardCounters.ALL" {
 			err = fmt.Errorf("TriggeredAttacker$%s", rest)
 			break

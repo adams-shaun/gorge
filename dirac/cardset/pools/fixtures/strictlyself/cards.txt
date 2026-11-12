@@ -1,0 +1,23 @@
+# the Card.StrictlySelf presence-gate and TriggeredAttacker$CardPower pool:
+# the eminence and graveyard-presence carriers plus the Attacks pump carriers,
+# for the oracle's lockstep (dirac/oracle/strictlyself_lockstep_test.go)
+Arahbo, Roar of the World
+Arden Angel
+Edgar Markov
+Emergent Woodwurm
+Inalla, Archmage Ritualist
+Jocasta, Automaton Avenger
+Level Up
+Lothlórien Blade
+Master of Death
+Old One Eye
+Sidar Jabari of Zhalfir
+Skyclave Shade
+Thought Scour
+Walking Corpse
+Grizzly Bears
+Plains
+Island
+Swamp
+Mountain
+Forest

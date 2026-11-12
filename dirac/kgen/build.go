@@ -2112,7 +2112,7 @@ var cmpOps = map[uint8]kop.CmpOp{opGE: kop.CmpGE, opLE: kop.CmpLE, opEQ: kop.Cmp
 
 var condKinds = map[condKind]kop.CondKind{cPresent: kop.CondPresent, cValue: kop.CondValue, cKicked: kop.CondKicked,
 	cThreshold: kop.CondThreshold, cYourTurn: kop.CondYourTurn, cRefMatches: kop.CondRefMatches,
-	cPromisedGift: kop.CondPromised, cAnd: kop.CondAnd}
+	cPromisedGift: kop.CondPromised, cAnd: kop.CondAnd, cSourceZone: kop.CondSourceZone}
 
 // cond interns a condition (0 for none).
 func (cb *cardBuilder) cond(c lCond) (kop.CondID, error) {
@@ -2123,7 +2123,7 @@ func (cb *cardBuilder) cond(c lCond) (kop.CondID, error) {
 	if !ok {
 		return 0, fmt.Errorf("condition %s", condNames[c.Kind])
 	}
-	kc := kop.Cond{Kind: k, Op: cmpOps[c.Op], Neg: c.Neg}
+	kc := kop.Cond{Kind: k, Op: cmpOps[c.Op], Neg: c.Neg, Zone: zoneMap[c.Zone]}
 	var err error
 	if c.Kind == cAnd {
 		if len(c.Sub) != 2 {
