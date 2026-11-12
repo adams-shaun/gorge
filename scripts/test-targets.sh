@@ -18,7 +18,13 @@
 #
 # Settings that belong to the machine, not the repository, go in ~/.config/gorge/test-targets.env (or
 # $GORGE_TEST_TARGETS_ENV): GORGE_POOLS (dirac's deck pools), GATE_AFFECTED_REPO (+ GATE_AFFECTED_PATH, GATE_REF),
-# GORGE_HEAVY_LOCK (+ GORGE_HEAVY_LANES, GORGE_TEST_LANE_WAIT).
+# GORGE_HEAVY_LOCK (+ GORGE_HEAVY_LANES, GORGE_TEST_LANE_WAIT), and the remote runner's GORGE_REMOTE_HOST,
+# GORGE_REMOTE_KEY, GORGE_REMOTE_REPO, GORGE_REMOTE_MIN_IDLE, GORGE_REMOTE_OFF (scripts/test-remote.sh).
+#
+# Runner: with the GORGE_REMOTE_* settings present, the mode runs on the gate box instead (the worktree's HEAD and
+# its uncommitted diff are shipped; the same verdict line and the same go test -json at the same local path come
+# back). An unreachable or busy box, or any infrastructure failure, runs it here as before, with one note: only a
+# test failure on the box is FAIL. Unset (the default) means local only.
 #
 # exit 0 PASS, 1 FAIL, 2 usage, 3 ENV, 4 EMPTY, 5 BUDGET, 75 BUSY. The full `go test -json` stream is kept
 # at .ds4/scratch/test/<mode>-<sha>.json. Never passes -count (the cache stays on).
@@ -37,6 +43,8 @@ t0=$SECONDS
 sha=$(git rev-parse --short=10 HEAD 2>/dev/null || echo -)
 [ -z "$(git status --porcelain --untracked-files=no 2>/dev/null)" ] || sha=$sha+dirty
 pkgs_label=""
+# shellcheck disable=SC1091
+. "$top/scripts/test-remote.sh"
 
 # verdict STATUS [msg]: print the verdict line and leave with its exit code.
 verdict() {
@@ -45,6 +53,9 @@ verdict() {
 	exit $?
 }
 usage() { echo "test-targets: $mode: $1" >&2; exit 2; }
+
+# ---- the runner: the gate box when it can, else here --------------------------------------------------
+remote_try
 
 # ---- the cap -----------------------------------------------------------------------------------------
 if [ -z "${TEST_TARGETS_SCOPED:-}" ]; then
@@ -77,7 +88,9 @@ json=.ds4/scratch/test/$mode-${sha%+dirty}.json
 
 # capped MEM CPU cmd...: the command in its own user scope; smart has no outer one. Uncapped without user systemd.
 have_sd=
-systemd-run --user --scope -q true >/dev/null 2>&1 && have_sd=1
+# On the box the whole run is already one scope (CPUWeight below the landing gate's): a scope opened inside it
+# would escape that weight, so nothing here opens one.
+[ -n "${TEST_TARGETS_REMOTE:-}" ] || ! systemd-run --user --scope -q true >/dev/null 2>&1 || have_sd=1
 capped() {
 	if [ -n "$have_sd" ]; then systemd-run --user --scope -q -p MemoryMax="$1" -p CPUQuota="$2" "${@:3}"; else "${@:3}"; fi
 }
@@ -235,7 +248,9 @@ echo "== 4 affected gate and dirac gate, side by side"
 lock=${GORGE_HEAVY_LOCK:-}
 lanes=${GORGE_HEAVY_LANES:-3}
 wait_s=${GORGE_TEST_LANE_WAIT:-1500}
-if [ -n "$lock" ] && { : >>"$lock"; } 2>/dev/null; then
+if [ -n "${TEST_TARGETS_REMOTE:-}" ]; then
+	: # the box caps its concurrent runs itself (test-remote-box.sh)
+elif [ -n "$lock" ] && { : >>"$lock"; } 2>/dev/null; then
 	deadline=$((SECONDS + wait_s))
 	got=
 	while [ -z "$got" ]; do
@@ -261,7 +276,7 @@ cpu_a=$((ncpu * 100)); [ "$cpu_a" -le 1600 ] || cpu_a=1600
 cpu_d=$((ncpu * 100)); [ "$cpu_d" -le 800 ] || cpu_d=800
 U=tsmart-$$-$(date +%s)
 {
-	if systemd-run --user --scope -q true >/dev/null 2>&1; then
+	if [ -n "$have_sd" ]; then
 		systemd-run --user --scope -q --unit="$U-aff" -p MemoryMax=16G -p CPUQuota=$cpu_a% env GOFLAGS=-trimpath T="$BASE" bash -c 'set -o pipefail; git -C "$0" show "$1:$2" | bash -s "$T"' "$GATE_AFFECTED_REPO" "$GATE_REF" "$GATE_AFFECTED_PATH" >"$S/aff" 2>&1
 	else
 		GOFLAGS=-trimpath T="$BASE" bash -c 'set -o pipefail; git -C "$0" show "$1:$2" | bash -s "$T"' "$GATE_AFFECTED_REPO" "$GATE_REF" "$GATE_AFFECTED_PATH" >"$S/aff" 2>&1
@@ -271,7 +286,7 @@ U=tsmart-$$-$(date +%s)
 {
 	if [ -n "${PRECHECK_DIRAC_GATE:-}" ] && [ -x "$PRECHECK_DIRAC_GATE" ]; then
 		"$PRECHECK_DIRAC_GATE" "$BASE" >"$S/dg" 2>&1
-	elif systemd-run --user --scope -q true >/dev/null 2>&1; then
+	elif [ -n "$have_sd" ]; then
 		systemd-run --user --scope -q --unit="$U-dirac" -p MemoryMax=16G -p CPUQuota=$cpu_d% env GOFLAGS=-trimpath GOMAXPROCS=8 GOMEMLIMIT=13GiB bash "$dgs" "$BASE" >"$S/dg" 2>&1
 	else
 		GOFLAGS=-trimpath bash "$dgs" "$BASE" >"$S/dg" 2>&1
