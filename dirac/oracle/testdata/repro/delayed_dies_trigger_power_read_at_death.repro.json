@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 603.10a, 608.2h: Squawkroaster's Vivid power is read as it dies, after Vibrance was sacrificed, not as End-Blaze Epiphany registered the trigger",
  "actions": [
   167771904,
   167771904,

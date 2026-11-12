@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Frenzied Baloth's combat damage to a blocking Swooping Protector: combat damage can't be prevented, so its SHIELD counter stays and the damage is dealt (CR 615.12, 122.1c)",
  "actions": [
   19398400,
   17432320,

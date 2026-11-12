@@ -64,6 +64,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Elvish Refueler activates its own Exhaust ability on two turns: during its controller's turn with no Exhaust activation yet this turn, the used once-only mark is waived (CR 702.177a)",
  "actions": [
   18415360,
   17104640,

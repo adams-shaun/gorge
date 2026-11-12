@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Rite of Flame chained from a Mountain: {R}{R}, then one more {R} per Rite of Flame in each graveyard (CR 106.4)",
  "actions": [
   18480896,
   17104640,

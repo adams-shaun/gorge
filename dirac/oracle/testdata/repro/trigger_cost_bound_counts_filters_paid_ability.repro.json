@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "CR 118.3, 605.3a: Grim Reaper's {3}{B} with a Plains, a Swamp and Surveillance Room untapped is offered: gorge's potential bound counts the Room's {C} and its {1},{T} any-colour filter (the other sources fund the fee)",
  "actions": [
   16776960,
   16776960,

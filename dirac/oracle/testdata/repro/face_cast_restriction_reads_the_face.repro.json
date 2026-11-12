@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-woe",
+ "pool": "std-woe",
+ "why": "Troyan's mana-value-five restricted mana pays Storm Reading cast from the hand beside a Food's granted mana ability: the grant filter reads the Adventure's mana value, not Galvanic Giant's (CR 715.3b, 106.6)",
  "actions": [
   167771904,
   184549120,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 603.6a: Dominion Infiltration's copies of V'Ger and Captain Janeway enter together, so the Janeway copy also triggers for the V'Ger copy",
  "actions": [
   16776960,
   16776960,

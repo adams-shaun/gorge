@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "CR 119.4: Starting Town's pay-1-life ability is lethal at 1 life, but the phase-2 key 5 reads the source's FlexAll (its {C} and every colour), so the plan taps the third Forest rather than the {C} land",
  "actions": [
   16776960,
   16776960,

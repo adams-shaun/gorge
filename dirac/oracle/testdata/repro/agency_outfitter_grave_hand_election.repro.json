@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 20,
  "surface": "autopay",
+ "pool": "std-mkm",
+ "why": "Agency Outfitter's OriginAlternative$ Graveyard,Hand pair: both zones are elected and searched, DifferentNames$ keeps a second Magnifying Glass out, and no library was searched so nothing is shuffled",
  "actions": [
   167771904,
   167771904,

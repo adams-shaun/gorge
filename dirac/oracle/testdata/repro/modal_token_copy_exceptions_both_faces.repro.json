@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-msh",
+ "why": "Multiversal Incursion's token copy of Tony Stark, \"except it isn't legendary\", transforms: the token shows the other face with the same exception (CR 707.8a, 701.28)",
  "actions": [
   16776960,
   16776960,

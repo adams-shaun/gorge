@@ -172,7 +172,7 @@ func (s *State) offerSneakHand(k *prep, d *Decision, p uint8, o Obj, c CardID, a
 // of beginCast's lowering), marked so buildCost prices the sneak cost and
 // the cost stage asks the return.
 func (s *State) beginSneak(k *prep, o Obj) {
-	s.beginCast(k, o, castFace)
+	s.beginCast(k, o, castFace, 0)
 	s.bld().e.trigPl = trigPlSneak
 	s.bld().e.trigObj = NoObj
 	s.lowerSneakCast(k, s.prio, o, s.bld().e.card) // cast_faceroute.go

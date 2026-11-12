@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Season of Gathering puts three +1/+1 counters on a creature you control, each pick remembered so it gains vigilance and trample until end of turn, then destroys every artifact or enchantment (CR 700.2i, 122.1)",
  "actions": [
   19398400,
   17497856,

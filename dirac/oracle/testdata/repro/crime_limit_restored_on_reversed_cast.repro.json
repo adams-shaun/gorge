@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "Vadmir, New Blood's once-each-turn crime trigger is enqueued at the CR 601.2c target answer (the ward walk's crime step); an unpayable Spree cast then reverses, and the reversal gives back the once-per-turn record the queued trigger consumed (gorge abortCast's proposalLimits, CR 733.1), so the retried cast triggers again",
  "actions": [
   16776960,
   16776960,

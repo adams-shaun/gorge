@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Hide on the Ceiling with X of two or more: the same delayed return over a variable target slot",
  "actions": [
   18415360,
   34012928,

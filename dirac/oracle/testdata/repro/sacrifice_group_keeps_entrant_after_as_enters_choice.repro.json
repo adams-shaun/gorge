@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-dft",
+ "why": "Push the Limit returns Burner Rocket, Clamorous Ironclad and Lifecraft Engine, which asks for its creature type: the Engine joins the other two in the one end-step sacrifice (CR 603.7)",
  "actions": [
   16776960,
   16776960,

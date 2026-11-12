@@ -95,6 +95,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Thinking Cap's Equip Detective {1} beside its Equip {3}, the same restricted target on a Detective (CR 702.6a)",
  "actions": [
   19857152,
   18349824,

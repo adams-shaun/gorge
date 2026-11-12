@@ -71,6 +71,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Airtight Alibi on a Repeat Offender: its ETB clears the suspicion, and the Offender's own \"otherwise, suspect it\" then does nothing (CR 701.60)",
  "actions": [
   18939648,
   18153216,

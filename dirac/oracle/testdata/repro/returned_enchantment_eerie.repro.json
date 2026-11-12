@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 603.6a: Enduring Vitality returns from the graveyard while Diversion Specialist's dug card resolves, and Infernal Phantom's Eerie trigger on the returned enchantment is put on the stack",
  "actions": [
   167771904,
   184549120,

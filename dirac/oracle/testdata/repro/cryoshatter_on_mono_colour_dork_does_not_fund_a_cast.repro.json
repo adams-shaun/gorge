@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Cryoshatter on an untapped Llanowar Elves: the tap fires its unvetted Taps watcher, so gorge's census never lists the Elves and its {G} funds no Grizzly Bears on the autopay surface",
  "actions": [
   19398400,
   35651328,

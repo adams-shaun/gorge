@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-msh",
+ "why": "a Dependable Quinjet crewed by Undercover Skrull dies beside one creature card: it is an artifact card in the graveyard, so Skrull's two-creature-cards bonus stays off in the move's own event (CR 400.7, 613.1d)",
  "actions": [
   16776960,
   16776960,

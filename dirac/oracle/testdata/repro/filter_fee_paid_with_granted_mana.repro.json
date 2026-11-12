@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 605.3a, 601.2g: Honest Work's Humble Merchant on Fire Sages pays Rumble Arena's {1} filter fee, so the one prefix search taps it before any printed land to pay Realm of Koh's token activation",
  "actions": [
   167771904,
   184549120,

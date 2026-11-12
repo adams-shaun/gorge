@@ -23,6 +23,11 @@ func (lc *lowerCtx) optionalMoveShape(obj lRef, origin int, in lInstr, override 
 		return kop.MayGuardMove, true
 	case obj.Kind == rRemembered && origin == zLibrary && in.Op == "Return" && in.C == zBattlefield && in.CS == "from=Library":
 		return kop.MayGuardMoveRemembered, lc.afterOneCardPeek()
+	case obj.Kind == rImprinted && origin == zExile && in.Op == "Bounce" && in.C == 0 && in.CS == "from=Exile":
+		// "you may put that card into your hand" over the card the Dig just
+		// imprinted (Tainted Pact): the guard is the chosen object's
+		// existence where it now lies, as the library Peek's arm
+		return kop.MayGuardMoveRemembered, true
 	}
 	return 0, false
 }

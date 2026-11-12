@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Wolverine, Fierce Fighter double-blocked by a Grizzly Bears and a Typhoid Rats declared against slot order: the blocker declared last is the event whose damage and deathtouch mark stay (CR 614.1a, 510.2)",
  "actions": [
   19398400,
   17432320,

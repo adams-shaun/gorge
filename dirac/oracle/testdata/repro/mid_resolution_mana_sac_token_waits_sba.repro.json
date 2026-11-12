@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 704.3, 704.5d: a token sacrificed to pay a mid-resolution UnlessPaid fee waits in the graveyard for the state-based action, as a cast payment's does not",
  "actions": [
   16776960,
   16776960,

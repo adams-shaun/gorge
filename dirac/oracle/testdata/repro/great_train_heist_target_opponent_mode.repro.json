@@ -95,6 +95,8 @@
  "pass_elision": true,
  "surface": "full",
  "kernel": "std-otj",
+ "pool": "std-otj",
+ "why": "Great Train Heist's third Spree mode (choose target opponent) cast in combat: the target is declared and the never-firing Treasure effect is dropped, as gorge's event-trigger registration carries no remembered player",
  "actions": [
   19857152,
   17366784,

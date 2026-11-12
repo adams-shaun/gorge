@@ -96,6 +96,8 @@
  "max_turns": 40,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Uthros, Titanic Godcore the same with {U} floating: its granted \"{U}, {T}: Add {U} for each artifact\" makes four",
  "actions": [
   20446976,
   19136256,

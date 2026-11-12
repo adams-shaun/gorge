@@ -94,6 +94,8 @@
  "mulligans": 1,
  "pass_elision": false,
  "surface": "autopay",
+ "pool": "std-sos",
+ "why": "Ark of Hunger's tap mills a card and registers the remembered card's play permission over the graveyard and exile: the recorded game reaches the tap, and both engines agree through the grant and the cleanup",
  "actions": [
   184549120,
   184549120,

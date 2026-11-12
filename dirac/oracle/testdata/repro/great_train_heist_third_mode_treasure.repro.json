@@ -95,6 +95,8 @@
  "pass_elision": true,
  "surface": "full",
  "kernel": "std-otj",
+ "pool": "std-otj",
+ "why": "Great Train Heist's third Spree mode, then a Reckless Lackey connects: the player-capture emblem fires and the tapped Treasure is made on both engines (CR 603.7, 611.2a)",
  "actions": [
   17891072,
   16776960,

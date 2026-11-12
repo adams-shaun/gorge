@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "CR 601.2g-h: beside Mm'menon's hand-barred granted blue, Gene Pollinator's tap-another-permanent mana pays Mechanozoa's {U}{U} from hand, so the plain cast is offered",
  "actions": [
   16776960,
   16776960,

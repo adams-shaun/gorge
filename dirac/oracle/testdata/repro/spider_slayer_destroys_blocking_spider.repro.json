@@ -79,6 +79,8 @@
  "pass_elision": false,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "a Spider-Slayer that deals combat damage to a blocking Giant Spider destroys it: the damaged creature is the DamageDone trigger's object, so the destroy is not a no-op",
  "actions": [
   16776960,
   16776960,

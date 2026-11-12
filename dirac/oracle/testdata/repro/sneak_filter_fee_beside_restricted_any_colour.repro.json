@@ -95,6 +95,9 @@
  "pass_elision": false,
  "max_turns": 30,
  "surface": "autopay",
+ "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "CR 702.190a, 605.3a: Elektra sneaked for {1}{B}{B} from a Swamp, an Island funding Surveillance Room's {1},{T} any-colour fee and Castle Doom's {C} (its any colour is for artifact spells only): the filter's prefix search funds the sneak cast",
  "actions": [
   16776960,
   16776960,
@@ -383,6 +386,5 @@
   "detail": "priority decision for p0",
   "lead": "gorge",
   "last_sourced": "attack(#22,P1,0)"
- },
- "kernel": "synth std-msh"
+ }
 }

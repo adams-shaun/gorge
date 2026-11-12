@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 601.2a, 707.12: Q's Play of an exiled Infinite Diversity puts the copy on the stack before its target ask, and the Treasure the census cannot price keeps that ask on the menu",
  "actions": [
   16776960,
   16776960,

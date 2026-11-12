@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trk",
+ "why": "Final Frontier cast by beam me up returning Hologram Stalker: the spell leaves the graveyard before the cost is paid (CR 601.2a), so Stalker's \"whenever a card leaves your graveyard\" triggers and goes on the stack though Stalker left (CR 603.3, 113.7a)",
  "actions": [
   16776960,
   16776960,

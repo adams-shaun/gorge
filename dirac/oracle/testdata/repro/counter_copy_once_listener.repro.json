@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "CR 603.3b: Host of the Hereafter copies a legend's +1/+1 and flying counters onto the survivor beside Hollowmurk Siege's Sultai trigger, which hears both kinds only once each turn: the two orders reach the same one trigger.",
  "actions": [
   16776960,
   16776960,

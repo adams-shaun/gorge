@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Arcane Denial counters the opponent's Grizzly Bears: at the next upkeep its controller is asked how many of up to two cards to draw (takes both) and the caster draws one (CR 701.5a, 603.7)",
  "actions": [
   18874112,
   17170176,

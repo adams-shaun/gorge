@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Dark Ritual cast from a Swamp's {B}: the spell resolves and adds {B}{B}{B} (CR 106.4, 605.1a), which a Vampire Nighthawk's {1}{B}{B} then spends",
  "actions": [
   18480896,
   17104640,

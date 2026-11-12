@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 702.51a: Temporal Cleansing cast from Sanar's exile convokes four blue creatures for {3}{U}; only one may pay {U}, the rest pay {1}",
  "actions": [
   184549120,
   184549120,

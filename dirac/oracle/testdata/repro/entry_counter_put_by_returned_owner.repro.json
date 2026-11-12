@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 122.6a: Dr. Leonard \"Bones\" McCoy returns the opponent's Moopsy under its owner's control, so its owner puts the +1/+1 counter and the owner's Dr. Joseph M'Benga doubles it",
  "actions": [
   16776960,
   16776960,

@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 40,
  "surface": "full",
+ "pool": "custom",
+ "why": "Fear of Abduction cast paying its additional cost by exiling a creature you control (a pick of the battlefield, not a sacrifice): the exile pick is posed after the mana is paid through the manual window, since gorge's planner declines an exile part (CR 118.3, 601.2h, 406.2); played on its own decks' table",
  "actions": [
   167771904,
   167771904,

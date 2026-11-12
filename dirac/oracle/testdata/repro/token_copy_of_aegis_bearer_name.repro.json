@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "CR 707.2: Three Steps Ahead's token copy of an Assimilation Aegis bearer is minted on the bearer's printed card (Shackle Slinger) with the copied face (Geralf) as its copy basis, so the token is projected by its printed name exactly as gorge mints it",
  "actions": [
   16776960,
   16776960,

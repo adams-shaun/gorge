@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "CR 707.10c, 701.3a: a copy of Swordsman's attach trigger (Object$ ParentTarget) may choose the Swordsman itself as the creature, as the original could; only an attach of the source itself excludes it",
  "actions": [
   16776960,
   16776960,

@@ -94,6 +94,8 @@
  "mulligans": 1,
  "pass_elision": false,
  "surface": "autopay",
+ "pool": "std-tmt",
+ "why": "Rat King, Verminister's return resolves: its graveyard target and every other card there with its name enter tapped, both engines agreeing on every one",
  "actions": [
   184549120,
   167771904,

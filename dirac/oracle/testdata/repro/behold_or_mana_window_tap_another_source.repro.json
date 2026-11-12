@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 601.2g: the fallback window lists a tap-another source (Springleaf Drum) at its battlefield place, so it taps that source and its creature before a later land",
  "actions": [
   16776960,
   16776960,

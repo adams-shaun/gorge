@@ -290,6 +290,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	if k.mayhem {
 		s.offerMayhemCasts(k, d, p, sorc, &av) // kw_mayhem.go
 	}
+	if k.retrace {
+		s.offerRetraceCasts(k, d, p, sorc, &av) // kw_retrace.go
+	}
 	if faces {
 		s.offerAdventureRecasts(k, d, p, sorc) // face_castface.go
 	}
@@ -1215,6 +1218,13 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 		if pp != p && k.gen != nil && k.gen.anyRepl&rbPlHex != 0 && s.playerHexproof(k, pp) {
 			return false
 		}
+		if s.plProtAll(k, pp) {
+			// CR 702.16b: the protected player cannot be the target of
+			// anything, their own spells included (no hexproof-style
+			// self-exemption; gorge stack.go/target_legal.go's
+			// playerProtectedFrom arm)
+			return false
+		}
 		switch t.Kind {
 		case kop.TgtAny:
 			return t.TFlags&kop.TgfOppOnly == 0 || pp != p
@@ -1727,7 +1737,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if a.Mode() == 2 && k.gen != nil && k.gen.anyBeam {
 			s.noteBeamCast(k, a) // kw_beammeup.go
 		}
-		s.beginCast(k, Obj(a.Source()), a.Mode())
+		s.beginCast(k, Obj(a.Source()), a.Mode(), a.Target()) // the target byte names a retrace cast (kw_retrace.go)
 		if face {
 			s.lowerFaceCast(k, p, Obj(a.Source())) // cast_faceroute.go
 		}

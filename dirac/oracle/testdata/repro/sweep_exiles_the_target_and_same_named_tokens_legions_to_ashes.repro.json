@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Legions to Ashes exiles an opponent's Soldier token and every other Soldier token that player controls: the target and the same-named tokens leave together, and both engines agree on every one (CR 608.2b); played on its own decks' table because BRO has no pool",
  "actions": [
   19398400,
   17432320,

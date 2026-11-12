@@ -406,6 +406,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"LUCK":       kop.CtrLuck,       // Gemstone Caverns' named counter (CR 122.1; the Condition-split mana gate, lower_condsplit.go)
 	"DEPLETION":  kop.CtrDepletion,  // Peat Bog's depletion counter (CR 122.1; mana_rider.go)
 	"MINING":     kop.CtrMining,     // Gemstone Mine's mining counter (CR 122.1; mana_rider.go)
+	"BURDEN":     kop.CtrBurden,     // The One Ring's burden counter (CR 122.1; its count reads in Count$CardCounters.BURDEN)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -815,6 +816,19 @@ func (cb *cardBuilder) record() error {
 		}
 		d.Mayhem = true
 		if d.AltCost, err = manaCostOf(*c.Mayhem); err != nil {
+			return err
+		}
+	}
+	if c.Retrace {
+		// CR 702.81a: a graveyard cast paying the printed cost plus the
+		// additional discard-a-land cost (dirac/kw_retrace.go); lower.go's
+		// lowerRetrace has refused every collision, so the CardDef carries
+		// only Retrace and RetraceCost.
+		if c.RetraceCost == nil {
+			return fmt.Errorf("Retrace without its discard cost")
+		}
+		d.Retrace = true
+		if d.RetraceCost, err = cb.cost(*c.RetraceCost); err != nil {
 			return err
 		}
 	}
@@ -1596,6 +1610,8 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredMonoColor
 	case cmpSameNameT0:
 		kf.Pred = kop.PredSameNameT0
+	case cmpSameNameRem:
+		kf.Pred = kop.PredSameNameRem
 	case cmpAdventureCard:
 		kf.Pred = kop.PredAdventureCard
 	case cmpSolved:
@@ -2064,6 +2080,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vStepIn:             kop.ExStepIn,
 	vTgtSpent:           kop.ExTgtSpent,
 	vOppExtreme:         kop.ExOppExtreme,
+	vPlExtreme:          kop.ExPlExtreme,
 	vThisTurnActExhaust: kop.ExThisTurnActExhaust,
 	vActivations:        kop.ExActivations,
 	vLifeLostLastTurn:   kop.ExLifeLostLastTurn,
@@ -2134,7 +2151,7 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 			}
 		case vCountExile, vExileTypes:
 			zone = kop.ZoneExile
-		case vThisTurnCastSpec, vRefCount:
+		case vThisTurnCastSpec, vRefCount, vPlExtreme:
 			zone = kop.ZoneNone // the object wherever it now lives
 		}
 		if v.Kind == vLeftZone {

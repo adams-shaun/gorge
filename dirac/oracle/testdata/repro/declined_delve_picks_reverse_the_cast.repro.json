@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "CR 702.66a: declining the granted delve leaves the {2} unpayable; the mana window taps what it can and the cast is reversed (CR 733.1)",
  "actions": [
   16776960,
   16776960,
