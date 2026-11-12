@@ -339,18 +339,21 @@ func sacTargetCardReferent(spec string, c *Ctx) (state.ObjID, bool) {
 // stops it. sacrificeObjectVictims (the departure-batch pre-pass) shares
 // this predicate so its victim list cannot drift from the sacrifices.
 //
-// The ability's own source (a "sacrifice this land" line: SacValid$ Self or
-// none) is sacrificed only by the ability's controller: "you" is that player
-// (CR 608.2c) and a player can't sacrifice a permanent they don't control
-// (CR 701.21a), so a source whose control changed while the ability was on
-// the stack is skipped, neither offered nor emitted.
-func sacrificeObjectEligible(h Host, c *Ctx, o *state.Object) bool {
+// The ability's own source on a "sacrifice this land" line (implicitSelf: no
+// Defined$ and no ValidTgts$, SacValid$ Self or none) is sacrificed only by
+// the ability's controller: "you" is that player (CR 608.2c) and a player
+// can't sacrifice a permanent they don't control (CR 701.21a), so a source
+// whose control changed while the ability was on the stack is skipped,
+// neither offered nor emitted. An explicit Defined$ line (the Ring emblem's
+// and decayed's delayed "its controller sacrifices it" body) keeps its
+// referent's own controller as the sacrificer.
+func sacrificeObjectEligible(h Host, c *Ctx, o *state.Object, implicitSelf bool) bool {
 	// A phased-out permanent can't be affected by anything (CR 702.26b), so
 	// it is neither sacrificed nor offered to a sacrifice's chooser.
 	if o == nil || o.Zone != state.ZBattlefield || o.PhasedOut || h.SacrificeBlocked(o.ID, false) {
 		return false
 	}
-	return o.ID != c.Source || o.Controller == c.Controller
+	return !implicitSelf || o.ID != c.Source || o.Controller == c.Controller
 }
 
 // sacrificeObjectVictims lists one effSacrifice call's plain object targets
@@ -361,13 +364,13 @@ func sacrificeObjectEligible(h Host, c *Ctx, o *state.Object) bool {
 // (rules' batchMemberReplActive) and their leaves-the-battlefield triggers
 // see one pre-departure board. An Optional$ ask answered No inside the loop
 // strands a victim, which EndBatchDepartures discards.
-func sacrificeObjectVictims(h Host, c *Ctx, g *state.Game, who []state.Target) []state.ObjID {
+func sacrificeObjectVictims(h Host, c *Ctx, implicitSelf bool, g *state.Game, who []state.Target) []state.ObjID {
 	var victims []state.ObjID
 	for _, t := range who {
 		if t.IsPlayer {
 			continue
 		}
-		if o := g.Obj(t.Obj); sacrificeObjectEligible(h, c, o) {
+		if o := g.Obj(t.Obj); sacrificeObjectEligible(h, c, o, implicitSelf) {
 			victims = append(victims, o.ID)
 		}
 	}
@@ -506,13 +509,14 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	// artifact, creature, ..."). Only a SacValid$ Self/Card.Self line (or no
 	// SacValid$ at all) sacrifices the source object itself. Corpus: 66 such
 	// lines.
-	if !TargetsOf(sa).Has(TgtValidPresent) && !DefinedRefOf(sa).Set() {
+	implicitSelf := !TargetsOf(sa).Has(TgtValidPresent) && !DefinedRefOf(sa).Set()
+	if implicitSelf {
 		if v := strings.TrimSpace(sa.ParamStr(cards.PKSacValid)); v != "" && v != "Self" && v != "Card.Self" {
 			who = []state.Target{{Player: c.Controller, IsPlayer: true}}
 		}
 	}
 	// The plain object targets sacrifice as one batch; see sacrificeObjectVictims.
-	if victims := sacrificeObjectVictims(h, c, g, who); len(victims) > 0 {
+	if victims := sacrificeObjectVictims(h, c, implicitSelf, g, who); len(victims) > 0 {
 		h.BatchDepartures(victims)
 		defer h.EndBatchDepartures()
 	}
@@ -673,7 +677,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 		}
 		o := g.Obj(t.Obj)
 		// Zone + CantSacrifice guards, shared with the pre-pass: see sacrificeObjectEligible.
-		if !sacrificeObjectEligible(h, c, o) {
+		if !sacrificeObjectEligible(h, c, o, implicitSelf) {
 			continue
 		}
 		// A specific object target is sacrificed as-is: the choice of which

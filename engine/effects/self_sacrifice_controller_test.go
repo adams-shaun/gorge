@@ -60,3 +60,14 @@ func TestSelfSacrificeKeepsTheControllersOwnSource(t *testing.T) {
 		t.Fatalf("asks=%d last=%+v, want one ask of seat 0", h.askCount, h.lastAsk)
 	}
 }
+
+// TestExplicitDefinedSelfSacrificeKeepsTheReferentsController: the Ring
+// emblem's and decayed's delayed body (Defined$ Self) is "its controller
+// sacrifices it", so a stolen source is still sacrificed there.
+func TestExplicitDefinedSelfSacrificeKeepsTheReferentsController(t *testing.T) {
+	h, c, id := selfSacrificeStolen(t)
+	effSacrifice(h, c, sacrificeParams(map[string]string{"Defined": "Self"}))
+	if z := h.g.Obj(id).Zone; z != state.ZGraveyard {
+		t.Fatalf("source zone = %v, want graveyard", z)
+	}
+}
