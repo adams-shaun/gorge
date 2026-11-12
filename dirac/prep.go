@@ -141,6 +141,10 @@ type prep struct {
 	// anySelfFlash: some card is a SelfFlash carrier (cast_selfflash.go):
 	// the one guard castFlash adds beside the battlefield-static test
 	anySelfFlash bool
+	// anyEmbFlash: some emblem carries a StatCastWithFlash static (an
+	// Effect-delivered "you may cast ... as though they had flash"): the
+	// other guard castFlash adds
+	anyEmbFlash bool
 	// anyRedNC: some value reads ExRedNCDmg: replDamage tallies
 	// the noncombat damage red sources deal, beginTurn clears the tally
 	anyRedNC bool

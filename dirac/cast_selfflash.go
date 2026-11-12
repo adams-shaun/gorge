@@ -15,6 +15,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // source (selfFlashShape). The same ability on the battlefield grants nothing
 // (castStatic skips a SelfFlash card's own grant).
 
+// DebugEmbFlashOff and DebugEmbForgetOff are the mutation switches (dirac/oracle
+// TestEffectflashMutation): an emblem's spell-flash grant reads false, or a
+// cast never ends a ForgetOnCast$ emblem, so the lockstep must diverge.
+var DebugEmbFlashOff, DebugEmbForgetOff bool
+
 // DebugSelfFlashOff is the mutation switch (dirac/oracle
 // TestSelfflashMutation): selfFlash reads false, so the lockstep must
 // diverge.
@@ -45,10 +50,61 @@ func (s *State) selfFlash(k *prep, p uint8, c CardID) bool {
 // (a battlefield static in play, the table has a SelfFlash card) and one
 // call, so a table without either pays the guard tests only.
 func (s *State) castFlash(k *prep, p uint8, c CardID) bool {
-	return (s.statM.any() || k.anySelfFlash) && s.castFlashAny(k, p, c)
+	return (s.statM.any() || k.anySelfFlash || k.anyEmbFlash) && s.castFlashAny(k, p, c)
 }
 
 // castFlashAny is castFlash's cold body.
 func (s *State) castFlashAny(k *prep, p uint8, c CardID) bool {
-	return s.statM.any() && s.castStatic(k, kop.StatCastWithFlash, p, c) || k.anySelfFlash && s.selfFlash(k, p, c)
+	return s.statM.any() && s.castStatic(k, kop.StatCastWithFlash, p, c) || k.anySelfFlash && s.selfFlash(k, p, c) || k.anyEmbFlash && s.embFlash(k, p, c)
+}
+
+// embFlash reports whether one of player p's emblems (an Effect's
+// StaticAbilities$ CastWithFlash with Caster$ You: Borne Upon a Wind,
+// Alchemist's Refuge, Winding Canyons, Teferi, Time Raveler's +1; gorge
+// effectFlashGrants) lets p cast card c as though it had flash. "You" is the
+// emblem's player, so only p's own emblems count; the emblem has no source,
+// and the card filter is read with p as "you".
+func (s *State) embFlash(k *prep, p uint8, c CardID) bool {
+	if DebugEmbFlashOff {
+		return false
+	}
+	for i := 0; i < int(s.g.nemb[p]); i++ {
+		e := &k.t.Emblems[s.embIdx(p, i)-1]
+		for j := range e.Abilities {
+			a := &e.Abilities[j]
+			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCastWithFlash && s.matchCard(k, a.Static.Filter, c, p, p) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// embFlashForget ends the emblem of any player whose CastWithFlash static names the
+// spell just cast in its Filter2 (the Effect's ForgetOnCast$: Quicken's "the
+// next sorcery spell you cast this turn"): gorge effectCastSweep drops the
+// whole effect at the cast's completion, whether or not the cast used the
+// grant. The filter is read with the emblem's player as "you".
+//
+//go:noinline
+func (s *State) embFlashForget(k *prep, e *stackEntry) {
+	if DebugEmbForgetOff {
+		return
+	}
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		var drop uint8
+		for i := 0; i < int(s.g.nemb[pp]); i++ {
+			em := &k.t.Emblems[s.embIdx(pp, i)-1]
+			for j := range em.Abilities {
+				a := &em.Abilities[j]
+				if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCastWithFlash && a.Static.Filter2 != 0 &&
+					s.matchCardGen(k, a.Static.Filter2, e.card, e.ctrl, e.ctrl, e.obj) {
+					drop |= 1 << uint(i)
+				}
+			}
+		}
+		if drop != 0 {
+			s.embCompact(pp, drop)
+		}
+	}
 }

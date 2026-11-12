@@ -757,6 +757,13 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyLinkCtr = tableLinkCtr(t)
 	prepStaticClasses(t, g)
 	prepHexOwn(t, g) // kw_hexproofcolor.go
+	for i := range t.Emblems {
+		for j := range t.Emblems[i].Abilities {
+			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCastWithFlash {
+				p.anyEmbFlash = true // an Effect-delivered spell-flash grant (cast_selfflash.go embFlash)
+			}
+		}
+	}
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		pc := &p.cards[i]
