@@ -886,7 +886,18 @@ func (g *grantSrch) visit(t *State) bool {
 					if g.branch(t, i, sl, -1, uint8(ra.ManaColors)&0x3f, t.restrAbN(g.k, sl, ra), ra.ManaColors&kop.ColAny == kop.ColAny) {
 						return true
 					}
+				} else if t.wideSecond(g.k, sl) && g.sel != 1 && g.wide2Branch(t, i, sl) {
+					// the wide second ability beside the usable one (Hermitic
+					// Herbalist's Lesson-only two mana): its option follows the
+					// printed pair's first ability in gorge's ask, the grant's
+					// colours after (CR 106.6, 601.2g)
+					return true
 				}
+			}
+			if g.ng[i] > 0 && !t.ownManaUsable(g.k, sl) && t.wideOnly(g.k, sl) && g.sel != 1 && g.wideBranch(t, i, sl) {
+				// a wide-only source that holds a grant: its single printed
+				// ability precedes the grant's colours in gorge's ask
+				return true
 			}
 			if fok && g.filtBranch(t, i, sl) { // (listed after the printed ability, before the grants)
 				return true

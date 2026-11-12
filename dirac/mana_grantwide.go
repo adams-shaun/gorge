@@ -84,6 +84,28 @@ func (g *grantSrch) wideBranch(t *State, i int, sl Slot) bool {
 	return false
 }
 
+// wide2Branch activates candidate i's wide second ability (slot sl) beside the
+// usable printed first one it follows (Hermitic Herbalist bearing a grant):
+// the "choose a mana ability" ask is the grant path's own, the first ability's
+// colours its dual branch, so only the combination's allocation ask and the
+// combinations in engine order are charged here.
+func (g *grantSrch) wide2Branch(t *State, i int, sl Slot) bool {
+	if !t.canTapForMana(g.k, sl) {
+		return false
+	}
+	if !g.node() { // the combination's allocation ask
+		return false
+	}
+	ab := &g.k.t.Cards[t.cardAt(sl)].Abilities[g.k.gen.anyR(t.cardAt(sl))]
+	skip := !t.restrSrcAdmits(g.k, g.p, sl, ab, &g.d)
+	for c := 0; c < wideAnswers; c++ {
+		if g.wideTry(t, i, sl, uint8(kop.NumManaKinds-1+wideEngineAnswer(g.need, c)), skip) {
+			return true
+		}
+	}
+	return false
+}
+
 // wideTry taps candidate i for engine answer ans on a copy of t and continues
 // the search there. skip: the combination's mana is past the play, so its units
 // sit in the ghost (they price nothing, but gorge's state key reads them).
