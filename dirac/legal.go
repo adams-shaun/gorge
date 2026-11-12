@@ -1728,7 +1728,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if a.Mode() == 2 && k.gen != nil && k.gen.anyBeam {
 			s.noteBeamCast(k, a) // kw_beammeup.go
 		}
-		if a.Mode()&2 != 0 && a.Target() == castEscapeTgt && k.gen != nil && k.gen.anyEscapeGrant {
+		if a.Mode()&2 != 0 && (a.Target() == castEscapeTgt || a.Mode()&0xF == canonEscape) && k.gen != nil && k.gen.anyEscapeGrant {
 			s.g.escapeCast = true // the escape cast the action names (kw_escape.go)
 		}
 		s.beginCast(k, Obj(a.Source()), a.Mode())
