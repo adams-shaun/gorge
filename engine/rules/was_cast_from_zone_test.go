@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The wasCastFrom<Zone> filter predicate family (task wascastfrom): the
+// The wasCastFrom<Zone> filter predicate family: the
 // origin-zone cast provenance readable in object filter specs. Sevinne's
 // Reclamation is the real corpus carrier (Desert Bloom, otc):
 // its DBCopy sub gates on ConditionDefined$ Self | ConditionPresent$
@@ -107,7 +107,7 @@ func TestSevinneReclamationFlashbackCastCopies(t *testing.T) {
 	}
 	submitChoices(t, e, d.Options[0].Index)
 	// The Optional$ True copy clause now poses the may-copy election before the
-	// copy is made (task api-copyspellability-optional). Accept it, then drain.
+	// copy is made. Accept it, then drain.
 	// A stack copy was never cast (CR 707.10), so the copy's own clause must
 	// NOT fire: driveSevinneResolutionToEnd declines any nested copy_optional
 	// and returns how many it saw, which must be zero.
@@ -151,7 +151,7 @@ func TestSevinneReclamationHandCastDoesNotCopy(t *testing.T) {
 
 // The origin-zone family beyond the graveyard spelling: wasCastFromExile,
 // wasCastFromYourGraveyard, wasCastFromTheirHand and
-// wasCastFromYourGraveyardByYou (task wascastfrom). Each is pinned end to
+// wasCastFromYourGraveyardByYou. Each is pinned end to
 // end on a real corpus carrier; the hand-engine fixtures never commit Forge
 // script text (the flashback spell is written inline).
 

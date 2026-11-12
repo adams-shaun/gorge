@@ -281,7 +281,7 @@ func evalCountAdamantHead(h Host, c *Ctx, g *state.Game, head string, depth int)
 }
 
 func evalCountBodyDotted(h Host, c *Ctx, g *state.Game, head, arg string, depth int) (int32, bool, bool) {
-	// Count$ChromaSource[.<Colour>] (task lb-chroma): the number of <Colour>
+	// Count$ChromaSource[.<Colour>]: the number of <Colour>
 	// mana symbols in the resolving SOURCE card's printed mana cost -- Forge's
 	// AbilityUtils Chroma block, whose ChromaSource form reads the passed-in
 	// source card (CardLists.getTotalChroma). A hybrid or Phyrexian symbol
@@ -413,10 +413,7 @@ func evalCountBodyDotted(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 			}
 			return n3, true, true
 		case evalCountBodyDottedWasCastFromExile:
-			// The resolving source was CAST FROM EXILE (task wascastfrom; the
-			// delayed_blast_fireball `Count$wasCastFromExile.5.2`,
-			// lifestreams_blessing `.2.0` and the ultimate_magic `.1.0`
-			// carriers): the CR 601.2b provenance of an exile-origin cast —
+			// The resolving source was CAST FROM EXILE (the delayed_blast_fireball `Count$wasCastFromExile.5.2`, lifestreams_blessing `.2.0` and the ultimate_magic `.1.0` carriers): the CR 601.2b provenance of an exile-origin cast —
 			// foretell, warp, may-play — which carries no CastFlags bit (the
 			// flags mark alternative costs and origins only), so the read is
 			// the object's latest PutOnStack (Host.WasCastFromExile's log

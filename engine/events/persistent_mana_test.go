@@ -1,5 +1,5 @@
-// PersistentMana$ True — the ManaAdd " pm" Text suffix's fold (task
-// persistentmana): the pool tally, the ordinary-first spend rule, ManaClear's
+// PersistentMana$ True — the ManaAdd " pm" Text suffix's fold: the pool
+// tally, the ordinary-first spend rule, ManaClear's
 // partial clear and the TurnChange expiry. The rules-side end-to-end pins on
 // the real corpus carrier (Rousing Refrain) live in engine/rules/persistent_mana_test.go;
 // these cover the encoding corners the spell-level flow does not reach: the

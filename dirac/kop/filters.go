@@ -138,6 +138,14 @@ type Filter struct {
 	// from every card already picked (WithDifferentPowers$). False is the
 	// zero Filter's "no requirement".
 	PickDistinctPower bool
+	// CtrlTgt, when non-zero, requires the candidate's controller to be the
+	// controller of target slot CtrlTgt-1 of the current stack entry: a
+	// player target is that player, a stack ability its controller, an object
+	// target the controller of its permanent or, once it has left the
+	// battlefield, its owner (gorge controlReferentPlayers
+	// TargetedOrController). Battlefield only; the card matchers fail
+	// closed on it.
+	CtrlTgt uint8
 }
 
 // SpecialMask is a set of CR 116.2 special actions a RestrictValid$ Static.*
@@ -445,6 +453,13 @@ const W7WithFlashback int16 = 26
 // the printed Landwalk alone counts. Stormtide Leviathan.
 const W7LacksIslandwalk int16 = 27
 
+// W7WithInfect (PredWord7 sub-kind 28): the card was printed with Infect
+// (CardDef.Infect; gorge's exact keyword word withInfect, objectHasKeyword
+// reads the printed face). A battlefield permanent that is face down or lost
+// all abilities has none; off the battlefield the printed card counts in any
+// zone. Corpse Cur, Hand of the Praetors, Burn the Impure.
+const W7WithInfect int16 = 28
+
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
 // dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go
@@ -509,6 +524,15 @@ const (
 	// designation rides OpSaddle with C = 1 (kernel kw_crewsaddle.go).
 	PredSolved Pred = 252
 )
+
+// PredHasManaAbility: the object has a mana ability (gorge FaceHasManaAbility:
+// an activated CR 605.1a ability, the intrinsic basic-land ability included,
+// or a CR 605.1b triggered mana ability). PredN 0 = has one, 1 = !hasManaAbility.
+// The card read is CardDef.HasManaAbility, shared with the gorge predicate;
+// a face-down permanent or card matches nothing (CR 708.2). Read on the
+// battlefield and off it (Moonsilver Key searches a library). Explicit high
+// ordinal, filters.go style; 255 is free.
+const PredHasManaAbility Pred = 255
 
 // PredTrigPlayerCtrl: a battlefield permanent whose controller is the
 // current trigger entry's trigger player, the player a damage trigger's

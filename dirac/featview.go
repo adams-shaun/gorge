@@ -128,6 +128,9 @@ func (s *State) featCardMatch(k *prep, id kop.FilterID, ob *object, ctrl uint8, 
 
 func (s *State) featCardMatch1(k *prep, id kop.FilterID, ob *object, ctrl uint8, srcCard CardID, srcSl Slot) bool {
 	f := &k.t.Filters[id]
+	if f.CtrlTgt != 0 {
+		return false // a live battlefield target's controller; a feature read has none
+	}
 	if k.gen != nil {
 		// the generated matcher refuses a with-flying card test outright;
 		// this function reads the F2 conditions itself (below)
@@ -561,7 +564,7 @@ func (s *State) plannedCastCost(k *prep, p uint8, o Obj, mode uint8) (kop.ManaCo
 // searches potentialScriptPlays caps.
 func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, composed bool) (kop.ManaCost, bool) {
 	c := s.objs[o].card
-	refused := planNeverPricesCore(k, c, hyb, composed, false) || s.boardLifeTgtDep(k, p, c, o)
+	refused := planNeverPricesCore(k, c, hyb, composed, false) || s.boardLifeTgtDep(k, p, c, o) || s.stackTgtDep(k, c)
 	optRefused := k.gen != nil && k.gen.anyOptCost && optCostCard(k, c)
 	spendRefused := !composed && k.gen != nil && k.gen.anyCastSpent && s.spendReaderOut(k)
 	fromHand := s.objs[o].zone == kop.ZoneHand

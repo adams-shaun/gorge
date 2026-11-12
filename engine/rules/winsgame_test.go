@@ -1,6 +1,6 @@
 package rules
 
-// Tests for api:WinsGame (task api-winsgame) and the Count$MostCardName head
+// Tests for api:WinsGame and the Count$MostCardName head
 // its pinned real carrier needs. Mechanized Production is the end-to-end pin:
 // its upkeep trigger copies the enchanted artifact, then wins the game if the
 // controller has eight or more artifacts sharing a name -- the count comes

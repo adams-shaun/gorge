@@ -13,8 +13,7 @@ import (
 )
 
 // TestCrewedThisTurnCensus is the MECHANISM-CLASS census for Forge's
-// Creature.CrewedThisTurn / Card.CrewedThisTurn filter (CR 702.122, task
-// crewedthisturn1). It scans the compiled corpus for every face whose specs
+// Creature.CrewedThisTurn / Card.CrewedThisTurn filter (CR 702.122). It scans the compiled corpus for every face whose specs
 // name the token and pins the carrier set, so a body added to or removed from
 // the corpus is caught here rather than silently changing what the filter must
 // support. The engine's predicate (engine/effects/filter.go's "CrewedThisTurn") is

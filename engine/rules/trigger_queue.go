@@ -96,8 +96,7 @@ func ringEmblemLabel(level int) string {
 // priority -- which is all CR 117.5 asks of it.
 //
 // CR 800.4a: an ability controlled by a player who has left the game ceases to
-// exist, so dropDepartedTriggers discards those rather than (as the
-// pre-Task-27 version did) ranking them after every living seat and putting
+// exist, so dropDepartedTriggers discards those rather than (as an earlier version did) ranking them after every living seat and putting
 // them on the stack regardless.
 func (e *Engine) putTriggersOnStack() bool {
 	for {

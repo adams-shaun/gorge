@@ -1,6 +1,6 @@
 package rules
 
-// kw:Strive (CR 702.52, task kw-strive-no-expansion) pinned end to end on
+// kw:Strive (CR 702.52) pinned end to end on
 // the REAL corpus carrier Twinflame (K:Strive:2 R, the Prismari Artistry
 // deck's carrier): the strive cost is a MANDATORY additional cost of
 // (targets - 1) payments, priced only once the CR 601.2c target answer is

@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The cost-token family (task inbox-paramcensus-cost-token-family): the five
+// The cost-token family: the five
 // heads ParseCost still substituted generic mana for on the repo decks --
 // announced PayLife<X>, bare Exile<N/Spec> (battlefield), Draw<N/Spec>
 // (previously MIS-BUCKETED into SubCounter by the nonManaCost switch), the

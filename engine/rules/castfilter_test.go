@@ -351,8 +351,7 @@ func TestCastTotalManaSpentConsumesPlainBeforeTyped(t *testing.T) {
 
 // --- Restricted tagged mana: the restriction must survive the tag ----------
 //
-// A Treasure/Cave/Desert-typed producer can also carry RestrictValid$ (task
-// the Desert pin). Registering the restriction batch only for the
+// A Treasure/Cave/Desert-typed producer can also carry RestrictValid$. Registering the restriction batch only for the
 // PLAIN counter form silently dropped it for a tagged unit -- the ManaAdd
 // case's typed branch broke out before the registration block -- so Echoing
 // Cavern, Sunken Citadel (both Cave) and Bucolic Ranch (Desert) produced

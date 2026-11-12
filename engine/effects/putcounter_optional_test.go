@@ -94,9 +94,8 @@ func counterChangeCount(h *fakeHost, id state.ObjID) int {
 // recipient that is genuinely NOT a live object: Defined$ Self names an
 // unallocated id, so g.Obj returns nil and putCounterWouldPlace is false --
 // decline and accept are the same, so no decision is posed and the
-// resolution completes silently. (CR 122.1 task note: this premise used to
-// be merely "off the battlefield", which the same task made a real
-// recipient; a dead id is what "nothing to place on" now means.)
+// resolution completes silently. (CR 122.1: a dead id is what "nothing to
+// place on" means, rather than merely "off the battlefield".)
 func TestPutCounterOptionalDeadRecipientNeverAsks(t *testing.T) {
 	h := &askHost{}
 	h.g = state.NewGame(names(2))

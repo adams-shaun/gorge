@@ -25,10 +25,9 @@ var trigMatchers [cards.TriggerModeCount]Matcher
 // registerTrigMatcher installs fn for each named mode. Called from init() in
 // this package's per-mode files.
 //
-// A duplicate registration panics rather than silently replacing. The whole
-// point of the split is that many tickets edit different files at once; two
-// files claiming one mode is the merge accident that costs, so it must be loud
-// at startup and not a matcher that quietly stopped being reached.
+// A duplicate registration panics rather than silently replacing. Two files
+// claiming one mode is the accident that costs, so it must be loud at startup
+// and not a matcher that quietly stopped being reached.
 func registerTrigMatcher(fn Matcher, modes ...string) {
 	for _, mode := range modes {
 		k := cards.TriggerModeOf(mode)

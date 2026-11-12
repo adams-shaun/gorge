@@ -479,7 +479,7 @@ func counterStopped(h Host, c *Ctx, o *state.Object) bool {
 func effCounter(h Host, c *Ctx, sa *cards.SA) {
 	remember := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberCountered)), "True") ||
 		strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberCounteredSA)), "True")
-	// RememberCounteredCMC$ (task counter-cmc): remember each countered
+	// RememberCounteredCMC$: remember each countered
 	// spell's mana VALUE -- Electrosiphon's "an amount of {E} equal to its
 	// mana value", Overwhelming Intellect's draw family (14 corpus carriers,
 	// every one reading it back through SVar:X:Count$RememberedNumber). The

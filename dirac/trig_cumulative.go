@@ -27,6 +27,9 @@ func (s *State) cumulativeStart(k *prep, in *kop.Instr) {
 		s.res.pc += uint8(in.C) // gorge: the source left the battlefield, nothing is asked
 		return
 	}
+	if in.B.N == kop.EchoNoCounter {
+		return // an echo trigger: the cost is charged once and no counter is put (trig_echo.go)
+	}
 	kind := int(kop.CtrAge)
 	if ro := &s.g.ro; k.gen.anyRepl&(rbCtrOn|rbPlusCtrEOT) != 0 && ro.n == 0 && !s.putCounterBlocked(k, sl, kind) {
 		if c := s.ctrGather(k, sl, kind); c.ok && c.n == 2 && c.mixed() {
@@ -45,7 +48,8 @@ func (s *State) cumulativeStart(k *prep, in *kop.Instr) {
 }
 
 // afterCumulative reports whether the instruction before the current one is
-// ExtCumulative: the current UnlessPaid is a cumulative upkeep's own cost.
+// ExtCumulative: the current UnlessPaid is a cumulative upkeep's (or an
+// echo's, trig_echo.go) own cost.
 func (s *State) afterCumulative(k *prep) bool {
 	pc := s.res.pc
 	return pc != 0 && k.gen != nil && s.prog(k)[pc-1].Ext() == kop.ExtCumulative
