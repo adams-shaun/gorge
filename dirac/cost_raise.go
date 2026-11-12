@@ -44,7 +44,10 @@ func (s *State) raiseCostGen(k *prep, p uint8, c CardID, o, priced Obj, pips *[k
 	}
 	s.eachStatic(k, func(stc statSrc) bool {
 		a := stc.a
-		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatIncreaseCost || a.Static.Zone == kop.ZoneCommand {
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatIncreaseCost ||
+			a.Static.Zone == kop.ZoneCommand || a.Static.Zone == kop.ZoneStack {
+			// the card's own raise and the stack-source raise are priced by
+			// their own walks below, never as a battlefield static
 			return true
 		}
 		if f := a.Static.StFlags; f&kop.StRaiseYou != 0 && stc.ctrl != p || f&kop.StRaiseOpp != 0 && stc.ctrl == p {
