@@ -1548,6 +1548,18 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		// incarnation stamp, the 13 slice pairs 88 134 ...)
 		return false
 	}
+	if in.Obj == kop.RefSelf && e.kind == seTrigger && o == e.obj && ob.ver != e.srcVer && s.triggeredFrom(k, e) == kop.ZoneGraveyard {
+		// a trigger that fired while its source was in the graveyard
+		// (Persistent Marshstalker's threshold attack trigger) whose source
+		// has changed zones since is a new object: "return this card from
+		// your graveyard" finds nothing (CR 400.7; gorge's PushSourceZoneGen,
+		// sourceReturnedSincePush). Gated on the graveyard trigger zone: a
+		// dies-trigger is queued from the battlefield (triggeredFrom says
+		// ZoneBattlefield) and its Self is one version past srcVer, so it
+		// keeps returning (pair 1217 is the Marshstalker repro, not a dies
+		// trigger)
+		return false
+	}
 	if in.Obj == kop.RefSelf && e.kind == seAbility && o == e.obj && ob.zone == kop.ZoneExile && s.activatedFrom(k, e) == kop.ZoneGraveyard {
 		// "return this card from your graveyard": a source exiled in
 		// response (Abyssal Harvester) stays exiled (pairs 3630 7853). gorge
@@ -2440,6 +2452,16 @@ func (s *State) discardOK(k *prep, o Obj) bool {
 		return true
 	}
 	return s.discardMatch(k, in.F, o)
+}
+
+// triggeredFrom is the zone the trigger ability entry e's ability fired from
+// (its Trig.Zone; the battlefield when none is set).
+func (s *State) triggeredFrom(k *prep, e *stackEntry) kop.Zone {
+	cd := &k.t.Cards[e.card]
+	if int(e.ab) < len(cd.Abilities) && cd.Abilities[e.ab].Trig.Zone != kop.ZoneNone {
+		return cd.Abilities[e.ab].Trig.Zone
+	}
+	return kop.ZoneBattlefield
 }
 
 // activatedFrom is the zone ability entry e's ability is activated from
