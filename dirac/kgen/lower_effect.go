@@ -3930,8 +3930,11 @@ func (lc *lowerCtx) attach(ps *params) error {
 	// OpAttach W arm is that walk, gated by attachPlayerLegal
 	// (interp_gen.go). Only a triggered player referent is accepted here;
 	// any other Defined$ falls through to the ordinary object walk.
-	if d, ok := ps.get("Defined"); ok {
-		r, err := lc.defined(strings.TrimSpace(d))
+	// Peek (not get) and gate on the one spelling: every other Defined$ (the
+	// ordinary Targeted attach object) must still resolve in the walk below,
+	// after its own target slot exists.
+	if d, ok := ps.m["Defined"]; ok && strings.TrimSpace(d) == "TriggeredAttackingPlayer" {
+		r, err := lc.defined("TriggeredAttackingPlayer")
 		if err != nil {
 			return err
 		}
