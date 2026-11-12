@@ -89,17 +89,6 @@ func taporuntapCast(t *testing.T, e *Engine, mfst, bear state.ObjID) *decision.D
 	return de
 }
 
-func taporuntapOption(t *testing.T, d *decision.Decision, kind string) int {
-	t.Helper()
-	for _, o := range d.Options {
-		if o.Kind == kind {
-			return o.Index
-		}
-	}
-	t.Fatalf("no %q option in %+v", kind, d.Options)
-	return -1
-}
-
 // TestMerrowReejereyTapOrUntapPosesTheChoice is the untap shape: the bear is
 // tapped, the election's option 0 is the state-changing "untap" (the no-host
 // and bot-clamp mirror), answering it untaps the bear exactly once, and the
@@ -113,8 +102,8 @@ func TestMerrowReejereyTapOrUntapPosesTheChoice(t *testing.T) {
 		t.Fatal("pre-setup: the bear should be tapped")
 	}
 	de := taporuntapCast(t, e, mfst, bear)
-	untapIdx := taporuntapOption(t, de, "untap")
-	tapIdx := taporuntapOption(t, de, "tap")
+	untapIdx := optionKindIndex(t, de, "untap")
+	tapIdx := optionKindIndex(t, de, "tap")
 	if de.Options[0].Kind != "untap" {
 		t.Fatalf("option 0 = %+v, want the state-changing untap on a tapped target", de.Options[0])
 	}
@@ -151,7 +140,7 @@ func TestTapOrUntapElectionTapsTheUntappedTarget(t *testing.T) {
 	if de.Options[0].Kind != "tap" {
 		t.Fatalf("option 0 = %+v, want the state-changing tap on an untapped target", de.Options[0])
 	}
-	submitChoices(t, e, taporuntapOption(t, de, "tap"))
+	submitChoices(t, e, optionKindIndex(t, de, "tap"))
 	if !e.G.Obj(bear).Tapped {
 		t.Fatal("the answered tap election left the bear untapped")
 	}

@@ -130,7 +130,7 @@ func TestCopySpellAbilityUnswitchedShapePayingStopsTheCopiesKernel(t *testing.T)
 			if n := countEventKind(eventsSince(e, start), events.StackCopy); n != 0 {
 				t.Fatalf("%v: %d copies before the election was answered", l, n)
 			}
-			d = answerAsk(t, e, optionOfKind(t, d, l.elect))
+			d = answerAsk(t, e, optionKindIndex(t, d, l.elect))
 		}
 		if d != nil && d.ResumeKind == "copy_targets" && l.copies == 1 {
 			d = answerAsk(t, e, 0) // the copy's MayChooseTarget$ election, keeping the target
@@ -205,7 +205,7 @@ func TestTapOrUntapTapperPlainRememberedExcludesCardControllerKernel(t *testing.
 	if d == nil || d.ResumeKind != "taporuntap" {
 		t.Fatalf("TapOrUntap posed %+v, want the tap/untap election", d)
 	}
-	answerAsk(t, e, optionOfKind(t, d, "tap"))
+	answerAsk(t, e, optionKindIndex(t, d, "tap"))
 	if !e.G.Obj(target).Tapped {
 		t.Fatal("the \"tap\" answer did not tap the target")
 	}

@@ -100,7 +100,7 @@ func TestGorMuldrakPlayerProtection(t *testing.T) {
 		t.Fatalf("control engine granted seat 0 player keywords: %v", eA.playerKeywords(0))
 	}
 	before := eA.G.Players[0].Life
-	salamanderA := addScriptToHand(t, eA, 1, testSalamanderScript)
+	salamanderA := onHand(t, eA, 1, testSalamanderScript)
 	addMana(t, eA, 1, "U")
 	eA.askPriority(1)
 	if d := eA.Pending(); !castOffered(eA, salamanderA) {
@@ -125,7 +125,7 @@ func TestGorMuldrakPlayerProtection(t *testing.T) {
 	if eB.playerProtectedFrom(1, gm) {
 		t.Fatalf("protection bled to seat 1 -- the Affected$ You grant matched the wrong seat: %v", eB.playerKeywords(1))
 	}
-	salamanderB := addScriptToHand(t, eB, 1, testSalamanderScript)
+	salamanderB := onHand(t, eB, 1, testSalamanderScript)
 	addMana(t, eB, 1, "U")
 	eB.askPriority(1)
 	if d := eB.Pending(); !castOffered(eB, salamanderB) {
@@ -170,7 +170,7 @@ func TestAbsoluteVirtuePlayerProtection(t *testing.T) {
 	}
 
 	// Opponent-controlled source: seat 0's player option is withheld.
-	opp := addScriptToHand(t, e, 1, sparkPlayerScript)
+	opp := onHand(t, e, 1, sparkPlayerScript)
 	addMana(t, e, 1, "R")
 	e.askPriority(1)
 	if d := e.Pending(); !castOffered(e, opp) {
@@ -198,7 +198,7 @@ func TestAbsoluteVirtuePlayerProtection(t *testing.T) {
 	if e.playerProtectedFrom(0, av) {
 		t.Fatal("playerProtectedFrom withheld seat 0 from its own protected-from-opponents grant")
 	}
-	own := addScriptToHand(t, e, 0, sparkPlayerScript)
+	own := onHand(t, e, 0, sparkPlayerScript)
 	addMana(t, e, 0, "R")
 	e.askPriority(0)
 	if d := e.Pending(); !castOffered(e, own) {
@@ -237,7 +237,7 @@ func TestPlayerProtectionRecheck(t *testing.T) {
 	if len(eCtl.playerKeywords(0)) != 0 {
 		t.Fatalf("control engine granted seat 0 player keywords: %v", eCtl.playerKeywords(0))
 	}
-	srcCtl := addScriptToHand(t, eCtl, 1, testSalamanderScript)
+	srcCtl := onHand(t, eCtl, 1, testSalamanderScript)
 	if got := eCtl.legalTargets(targets, sa, targetZones(sa), 1, srcCtl, 0); len(got) != 1 {
 		t.Fatalf("control recheck dropped an unprotected player target: %v", got)
 	}
@@ -245,7 +245,7 @@ func TestPlayerProtectionRecheck(t *testing.T) {
 	// With Gor Muldrak on board the same recheck drops it.
 	e, _ := linkBoard(t, reg, []string{"Gor Muldrak, Amphinologist"}, []string{"Hill Giant"})
 	wantPlayerKeywordPrefix(t, e, 0, "Protection:Salamander")
-	src := addScriptToHand(t, e, 1, testSalamanderScript)
+	src := onHand(t, e, 1, testSalamanderScript)
 	if got := e.legalTargets(targets, sa, targetZones(sa), 1, src, 0); len(got) != 0 {
 		t.Fatalf("recheck kept a player target whose seat gained matching protection: %v", got)
 	}
@@ -282,7 +282,7 @@ func TestPlayerProtectionChosenQualityFailsClosed(t *testing.T) {
 
 		// The unresolvable quality never withholds: the seat stays a legal
 		// target of an opponent's Player-targeting spell.
-		sp := addScriptToHand(t, e, 1, sparkPlayerScript)
+		sp := onHand(t, e, 1, sparkPlayerScript)
 		addMana(t, e, 1, "R")
 		e.askPriority(1)
 		if d := e.Pending(); !castOffered(e, sp) {

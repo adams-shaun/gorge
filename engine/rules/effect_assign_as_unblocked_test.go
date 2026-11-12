@@ -33,35 +33,6 @@ func boardObj(t *testing.T, e *Engine, p state.PlayerID, name string) state.ObjI
 	return 0
 }
 
-// submitBlockerPairsNoDrain answers the pending blockers decision with the
-// named (attacker, blocker) pairs WITHOUT crossing the CR 509.2 priority
-// window that follows, so the caller can act in it (Outmaneuver is cast
-// there, with the blockers already declared).
-func submitBlockerPairsNoDrain(t *testing.T, e *Engine, pairs ...[2]state.ObjID) {
-	t.Helper()
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KBlockers {
-		t.Fatalf("expected a blockers decision, got %+v", d)
-	}
-	var choices []int
-	for _, pr := range pairs {
-		idx := -1
-		for _, o := range d.Options {
-			if o.Obj == pr[1] && o.Attacker == pr[0] {
-				idx = o.Index
-				break
-			}
-		}
-		if idx < 0 {
-			t.Fatalf("no block option pairing attacker %d with blocker %d: %+v", pr[0], pr[1], d.Options)
-		}
-		choices = append(choices, idx)
-	}
-	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}); err != nil {
-		t.Fatalf("submit blocker pairs: %v", err)
-	}
-}
-
 // electionChooseAskAfter reports whether a choose ask (the KChoose
 // election's DecisionAsk) was posed to player p after marker: the broad
 // DecisionAsk scan electionAskedAfter uses would also match the CR 509.2
@@ -252,7 +223,7 @@ func TestEffectAsUnblockedOutmaneuverMandatory(t *testing.T) {
 	// instant-speed window where the spell's blocked-creature targets exist.
 	driveToStep(t, e, e.G.Turn, 0, state.StepDeclareAttackers)
 	submitAttackers(t, e, atk1, atk2)
-	submitBlockerPairsNoDrain(t, e, [2]state.ObjID{atk1, blk1}, [2]state.ObjID{atk2, blk2})
+	submitBlockerPairsOnly(t, e, [2]state.ObjID{atk1, blk1}, [2]state.ObjID{atk2, blk2})
 	for _, r := range "RR" {
 		e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: string(r), Amount: 1})
 	}

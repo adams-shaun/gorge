@@ -5,6 +5,7 @@ package rules
 // from its checkpoint with the answer served by the tape.
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -12,6 +13,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // fixtureEngine is a seats-player engine (all-Mountain decks) driven to seat 0's
@@ -129,18 +131,6 @@ func optionIdxForObj(t *testing.T, d *decision.Decision, obj state.ObjID) int {
 		}
 	}
 	t.Fatalf("no option for object %d in %+v", obj, d.Options)
-	return -1
-}
-
-// optionOfKind returns the index of d's option of the given Kind, failing when absent.
-func optionOfKind(t *testing.T, d *decision.Decision, kind string) int {
-	t.Helper()
-	for _, o := range d.Options {
-		if o.Kind == kind {
-			return o.Index
-		}
-	}
-	t.Fatalf("no %q option in %+v", kind, d.Options)
 	return -1
 }
 
@@ -436,4 +426,94 @@ func castOffered(e *Engine, id state.ObjID) bool {
 		}
 	}
 	return false
+}
+
+func runFlashZoneScenario(t *testing.T, raw string) {
+	t.Helper()
+	reg := testutil.CorpusRegistry(t)
+	res, err := RunOracleScenarioJSON(reg, []byte(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Fails) != 0 {
+		t.Fatalf("scenario failed: %v\n%s", res.Fails, strings.Join(res.Transcript, "\n"))
+	}
+}
+
+func logDrawsFor(e *Engine, from int, p state.PlayerID) int {
+	n := 0
+	for _, ev := range e.L.Events[from:] {
+		if ev.Kind == events.Draw && ev.Player == p {
+			n++
+		}
+	}
+	return n
+}
+
+func runInline(t *testing.T, sc string) OracleResult {
+	t.Helper()
+	res, err := RunOracleScenarioJSON(testutil.CorpusRegistry(t), []byte(sc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Fails) != 0 {
+		t.Fatalf("scenario failed: %v\n%s", res.Fails, strings.Join(res.Transcript, "\n"))
+	}
+	return res
+}
+
+// onHand places a card straight into a player's hand, appended after their
+// existing hand in hand-zone order, the same direct-setup stance as onBoard
+// for the battlefield. A test that needs a player mid-turn to hold more than
+// maxHandSize adds a few of these on top of the opening hand.
+func onHand(t *testing.T, e *Engine, p state.PlayerID, src string) state.ObjID {
+	t.Helper()
+	o := e.G.AddObject(card(t, src), p)
+	o.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, p, append(e.G.Zone(state.ZHand, p), o.ID))
+	return o.ID
+}
+
+func cfdPass(t *testing.T, e *Engine, d *decision.Decision) {
+	t.Helper()
+	idx := -1
+	for _, o := range d.Options {
+		if o.Kind == "pass" {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("priority decision with no pass option: %+v", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+		t.Fatalf("submit pass: %v", err)
+	}
+}
+
+// submitBlockerPairsOnly is submitBlockerPairs without the trailing priority
+// drain, for fixtures that must inspect the decision the damage step poses
+// next.
+func submitBlockerPairsOnly(t *testing.T, e *Engine, pairs ...[2]state.ObjID) {
+	t.Helper()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KBlockers {
+		t.Fatalf("expected a blockers decision, got %+v", d)
+	}
+	var choices []int
+	for _, pr := range pairs {
+		idx := -1
+		for _, o := range d.Options {
+			if o.Obj == pr[1] && o.Attacker == pr[0] {
+				idx = o.Index
+				break
+			}
+		}
+		if idx < 0 {
+			t.Fatalf("no block option pairing attacker %d with blocker %d: %+v", pr[0], pr[1], d.Options)
+		}
+		choices = append(choices, idx)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}); err != nil {
+		t.Fatalf("submit blocker pairs: %v", err)
+	}
 }

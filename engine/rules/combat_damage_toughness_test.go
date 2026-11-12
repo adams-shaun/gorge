@@ -304,31 +304,3 @@ func TestWeightAdvantageNeedsItsEffectZoneCommand(t *testing.T) {
 		t.Fatalf("blocker damage = %d, want 5 (power: EffectZone$ Command excludes the battlefield)", got)
 	}
 }
-
-// submitBlockerPairsOnly is submitBlockerPairs without the trailing priority
-// drain, for fixtures that must inspect the decision the damage step poses
-// next.
-func submitBlockerPairsOnly(t *testing.T, e *Engine, pairs ...[2]state.ObjID) {
-	t.Helper()
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KBlockers {
-		t.Fatalf("expected a blockers decision, got %+v", d)
-	}
-	var choices []int
-	for _, pr := range pairs {
-		idx := -1
-		for _, o := range d.Options {
-			if o.Obj == pr[1] && o.Attacker == pr[0] {
-				idx = o.Index
-				break
-			}
-		}
-		if idx < 0 {
-			t.Fatalf("no block option pairing attacker %d with blocker %d: %+v", pr[0], pr[1], d.Options)
-		}
-		choices = append(choices, idx)
-	}
-	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}); err != nil {
-		t.Fatalf("submit blocker pairs: %v", err)
-	}
-}

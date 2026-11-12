@@ -13,8 +13,6 @@ package rules
 import (
 	"strings"
 	"testing"
-
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // valgavothScenario has p0 control Valgavoth and Shock p1's Grizzly Bears:
@@ -30,18 +28,6 @@ func valgavothScenario(expect, extra string) string {
 		`{"op":"resolve"},` +
 		`{"op":"mana","seat":0,"mana":"GG"},` +
 		`{"op":"pass_to","seat":0,"decision":"priority","expect":[` + expect + `]}` + extra + `]}`
-}
-
-func runInline(t *testing.T, sc string) OracleResult {
-	t.Helper()
-	res, err := RunOracleScenarioJSON(testutil.CorpusRegistry(t), []byte(sc))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res.Fails) != 0 {
-		t.Fatalf("scenario failed: %v\n%s", res.Fails, strings.Join(res.Transcript, "\n"))
-	}
-	return res
 }
 
 // offeredLabels lists the cast labels a snapshot offered for the named card.
