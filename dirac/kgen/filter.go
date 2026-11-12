@@ -123,6 +123,11 @@ const (
 	// source (gorge dealtCombatDamageBySource; kop.F2CombatHitCtrl,
 	// battlefield only, the card's own ability)
 	whoHitBySrc
+	// whoTgtOrCtrl: ControlledBy TargetedOrController (gorge
+	// controlReferentPlayers TargetedOrController): the controller of the
+	// current link's target -- a player target is that player, an object
+	// target its controller (kop.Filter.CtrlTgt, battlefield only)
+	whoTgtOrCtrl
 )
 
 // Compare statistics (lClause.CmpStat).
@@ -240,6 +245,9 @@ type lClause struct {
 	// same predicate as wasCastFromYourHand); only a CantBeCast ValidCard$
 	// admits it (lowerCtx.cantCastProv).
 	TheirHand bool
+	// CtrlTgt is the target slot (index+1) whose controller must control the
+	// candidate (kop.Filter.CtrlTgt; whoTgtOrCtrl), set by lowerCtx.filter.
+	CtrlTgt uint8
 }
 
 // lFilter is a Forge Valid expression: any clause matching (OR), plus the
@@ -625,6 +633,11 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// gorge wordTargetedPlayerCtrl (matchTargetedPlayerCtrl): the
 		// controller is one of the resolution's player targets
 		return c.setWho(&c.Ctrl, whoTgtPlayer)
+	case "ControlledBy TargetedOrController":
+		// gorge controlReferentPlayers TargetedOrController: the current
+		// link's target's controller, a player target read as itself and an
+		// object target as its controller (kop.Filter.CtrlTgt)
+		return c.setWho(&c.Ctrl, whoTgtOrCtrl)
 	case "ControlledBy TriggeredDefendingPlayer", "DefenderCtrl":
 		// gorge controlReferentPlayers TriggeredDefendingPlayer: the
 		// trigger's DefendingPlayer (lc.filter admits it only in an

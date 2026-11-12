@@ -246,6 +246,13 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
 
 ## Still open
 
+- A prevent-the-next-N shield (Healing Salve, Combat Medic; `effPreventDamage`) is
+  registered for the recipient's object, so a creature that leaves the
+  battlefield and returns the same turn keeps it (CR 400.7: it is a new object).
+  dirac keys its record by the same object code (dirac/repl_prevnext.go) and
+  copies that.
+  Follow-up: check `Incarnation` in `damageReplacementMatches` for shield ObjIDs
+  and keep dirac in step.
 - Two or more "can't be countered" replacements matching one Counter event
   (a spell's own plus a battlefield Chimil / Sphinx of the Final Word, or two
   such sources): gorge CounterAllowed parks the event
@@ -254,19 +261,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   dirac does not pose that ask: the game stalls with StallUncounterOrder
   (repl_uncounterable.go), loud, never a silent divergence. One match
   (the usual case) is exact.
-- A Room trigger printed on the door that is not live resolves against the
-  live face's SVar table in gorge. `printedFaceTrigger`
-  (engine/rules/trigger_inactive_face.go) scans the other face only when
-  `inactiveFaceLayout` holds, and that is `BackFaceIsBattlefieldOnly`
-  (engine/cards/layout.go), true only for `DoubleFaced`/`Modal`, not
-  `Split` (Rooms). So Roaring Furnace's door-0 unlock trigger (Steaming
-  Sauna live) leaves `X:Count$CardsInYourHand` unresolved and deals 0
-  where dirac resolves Roaring Furnace's own SVar and deals the hand
-  count; Unholy Annex's end-step trigger (Ritual Chamber live) loses its
-  `DBBranch`, so gorge drains 0 where dirac takes the Demon branch
-  (drain 2/2) or the `otherwise` branch (lose 2). dirac is
-  rules-correct; the rooms lockstep maps the 7 seeds whose first divergence
-  is this bug (`roomsKnown`).
 - Ward—Sacrifice a <filter>: CantSacrifice restrictions (gorge
   sacrificeBlockedForCost) are not modelled: no pooled card has one.
 - Hollowmurk Siege's Sultai draw (granted
@@ -331,16 +325,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   all of it, and 800 lockstep games with Burning-Tree Emissary never reached one. Multikicker,
   `Count$TimesKicked`, Mutate and OptionalCost on a permanent spell are refused by kgen, so
   they have no such read.
-- A copy of a charm with two target-bearing modes, or of an ability with a target on a
-  SubAbility$ link: `Engine.charmTargets` is never written for a `StackCopy`, so
-  `charmDistinctTargetRun` falls back and every mode runs over the flat target list (Flash
-  Thompson's copy taps both targets, then untaps both; std-spm 224). `applyStackCopy` drops
-  `SubTargets` from an ability or charm copy, leaving the link to a resolution-time ask (Mechanical
-  Mobster; std-spm 319). CR 707.10 has the copy keep each target where the original had it. In Forge
-  (read, not run), `CopySpellAbilityEffect` copies through `SpellAbility.copy`, which clones that
-  ability's `targetChosen`, and `CardFactory.copySpellAbility` repeats the copy on its `SubAbility`.
-  How Forge builds a charm's mode chain wasn't read, and XMage wasn't checked. dirac keeps both,
-  so these pairs diverge until gorge is fixed.
 - The look-back observer `checkTriggersNow` builds doesn't carry `Engine.startingLife`, so
   `h.StartingLife()` reads 0 on it, and Leyline of Hope's `Count$YourStartingLife/Plus.7` gate is 7
   there. A creature dying at 17 life then reads +2/+2 in its leaves-the-battlefield trigger: Infernal
@@ -362,3 +346,15 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   `getPermanentOrLKIBattlefield` (read, not run); Forge's `TriggerSacrificedOnce` matches its `Cards` run parameter
   (read, not run; whether that is a last-known copy wasn't traced). Gorge's matcher wasn't traced or patched, so
   the cause is unconfirmed. std-blb 435 and 448 also name Camellia but diverge on the stack count and weren't read.
+- A prevent-the-next-N shield (dirac/repl_prevnext.go, Ext PreventNext) and any
+  other damage replacement that would be a candidate for the same event (a
+  colour or scope prevention, a SHIELD counter, a printed prevention, a
+  doubler, a plus-N, a prevent-and-mill or self-damage replacement, a damage
+  mark): gorge asks the CR 616.1 order and the order changes what is
+  prevented and what is left of the shield. dirac stalls with StallPrevNext
+  (loud, never a silent divergence). Two or more shields on one recipient are
+  modelled (the ask is posed and each pick applied as made) in `damageTo` and in
+  a combat damage pass; the other damage sites (a damage sweep, a batch of
+  recipients, fights) stall on them. Three prevention records a
+  turn of any kind (the shield, colour and scope records share
+  `genState.prevCol`), a fourth is the capacity stall StallPrevCol.

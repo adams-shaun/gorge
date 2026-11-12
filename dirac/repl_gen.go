@@ -60,6 +60,15 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	if g.anyRepl&rbPlProt != 0 && sl == NoSlot && s.plProtected(k, srcCtrl, rcp, combat) {
 		return 0 // protection from each opponent prevents it first (CR 702.16e; static_playerstats.go)
 	}
+	if g.anyRepl&rbPrevCol != 0 && !combat {
+		// Ext PreventNext's depleting shield (the combat events take it in replCombatGen)
+		if m, ok := s.prevNextTake(k, srcCtrl, srcSl, srcCard, code, rcp, sl, false, n); ok {
+			if k.anyRedNC && m > 0 {
+				s.tallyRedNC(k, srcCtrl, srcSl, srcCard, m)
+			}
+			return m
+		}
+	}
 	if g.anyRepl&rbPrevCol != 0 && s.prevColHit(k, srcSl, srcCard, prevTgt{rcp, sl}, combat) {
 		return 0 // Ext PreventColor (cast_altfree.go)
 	}
@@ -196,7 +205,15 @@ func (s *State) graveRedirect(k *prep, c CardID, z kop.Zone) kop.Zone {
 // before preventCombatGen. Combat damage is never prevented by
 // ReplPreventNoncombatToOthers.
 func (s *State) replCombatGen(k *prep, r *dmgRec) {
-	for i := 0; i < r.nev; i++ {
+	// a live Ext PreventNext shield depletes across the pass's events, so they
+	// are dealt in gorge's assignment order (repl_prevnext.go)
+	var ord [MaxPerm]uint8
+	ordered := k.gen.anyRepl&rbPrevCol != 0 && !s.g.ro.on && s.pnxLive() && s.replOrderOrder(r, &ord) == r.nev
+	for j := 0; j < r.nev; j++ {
+		i := j
+		if ordered {
+			i = int(ord[j])
+		}
 		ev := &r.ev[i]
 		if ev.n <= 0 {
 			continue
@@ -207,6 +224,16 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 			code = src.atk // an attacker's damage to the player it attacks
 		} else {
 			code = uint8(s.perms[ev.dst].obj)
+		}
+		if ordered {
+			if m, ok := s.prevNextTake(k, src.ctrl, ev.src, s.cardAt(ev.src), code, s.recipientCtl(ev.dst, code), ev.dst, true, int(ev.n)); ok {
+				if m == 0 {
+					s.preventCombatEv(k, r, ev) // this event only: the shield's pool may cover others
+					continue
+				}
+				s.combatEvLess(r, ev, code, int(ev.n)-m)
+				continue
+			}
 		}
 		if k.gen.anyRepl&rbPrevCol != 0 && s.prevColHit(k, ev.src, s.cardAt(ev.src), prevTgt{s.recipientCtl(ev.dst, code), ev.dst}, true) {
 			s.preventCombatEv(k, r, ev) // Ext PreventColor: this source's event only
@@ -284,6 +311,7 @@ type replHdr struct {
 	nca           bool   // a parked noncombat event's ask is posed (ncDmg)
 	shld          uint8  // candidates that are the SHIELD counter's prevention (bit per cand; ctr_shield.go)
 	pcol          uint8  // candidates that are an Ext PreventColor record's prevention (bit per cand; cast_altfree.go)
+	pnx           uint8  // candidates that are an Ext PreventNext shield, cand its prevCol index (bit per cand; repl_prevnext.go)
 	nfz           uint8  // the frozen events (fz)
 	// the dealt events, by identity (an index into the order would shift
 	// only across runs, and the walk is frozen, but the marks also gate the
@@ -398,7 +426,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		rcp = s.perms[fe.dst].ctrl
 	}
 	n := 0
-	ro.prev, ro.shld, ro.plus = 0, 0, 0
+	ro.prev, ro.shld, ro.plus, ro.pnx = 0, 0, 0, 0
 	if (rcp != sc || g.anyFiltRepl) && sc <= 1 {
 		// gorge's scan order: the controller's battlefield in entry order.
 		// A table whose only damage replacement is a plus-N addition competes
@@ -459,6 +487,18 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		ro.prev |= 1 << n
 		ro.shld |= 1 << n
 		n++
+	}
+	if g.anyRepl&rbPrevCol != 0 {
+		// Ext PreventNext's shields on the recipient (repl_prevnext.go)
+		code := PlayerCode(rcp)
+		if fe.dst != NoSlot {
+			code = uint8(s.perms[fe.dst].obj)
+		}
+		ro.pnx = 0
+		if n = s.prevNextCands(k, code, true, &ro.cand, n, &ro.pnx); n < 0 {
+			return 0
+		}
+		ro.prev &^= ro.pnx
 	}
 	if g.anyDmgMark && s.dmgMarkCompetes(rcp, n) {
 		return 0 // repl_dmgmark.go
@@ -605,6 +645,9 @@ func (s *State) replOrderMark(src, dst Slot) {
 // recipient a permanent still).
 func (s *State) replCandLive(k *prep, i int) bool {
 	ro := &s.g.ro
+	if ro.pnx&(1<<i) != 0 {
+		return s.g.prevCol[ro.cand[i]].col != 0 && (ro.askD == NoSlot || s.occ.has(ro.askD)) && !s.noPrev(k, true)
+	}
 	if ro.pcol&(1<<i) != 0 {
 		return (ro.askD == NoSlot || s.occ.has(ro.askD)) && !s.noPrev(k, true) // an effect record: it lasts the turn
 	}
@@ -669,8 +712,8 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 	// after the last pick: a candidate the state-based actions at a pause
 	// removed applies only if it was picked
 	for i := 0; i < int(ro.ac) && n > 0; i++ {
-		if ro.plus&(1<<i) != 0 {
-			continue // already in ro.an (replCombatGen applied the additions)
+		if ro.plus&(1<<i) != 0 || ro.pnx&(1<<i) != 0 {
+			continue // already in ro.an (replCombatGen applied the additions; a shield was spent as picked)
 		}
 		if ro.used&(1<<i) == 0 && !s.replCandLive(k, i) {
 			continue
@@ -694,6 +737,21 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 			}
 		}
 		return 0
+	}
+	if ro.pnx != 0 {
+		// a shield prevented part of it as picked: the pass's accounting loses that
+		for i := 0; i < r.nev; i++ {
+			if e := &r.ev[i]; e.src == ro.askS && e.dst == ro.askD {
+				code := PlayerCode(ro.apl)
+				if ro.askD != NoSlot {
+					code = uint8(s.perms[ro.askD].obj)
+				}
+				if d := int(e.n) - n; d > 0 {
+					s.combatEvLess(r, e, code, d)
+				}
+				break
+			}
+		}
 	}
 	if ro.askD == NoSlot {
 		s.noteCmdDamage(ro.askS, ro.apl, n)
@@ -729,6 +787,21 @@ func (s *State) dealCombatEvent(k *prep, r *dmgRec, i int, fe *fzEv) int {
 		s.preventCombatEv(k, r, &r.ev[i]) // combat_prevention.go
 		return 0
 	}
+	if k.gen.anyRepl&rbPrevCol != 0 {
+		// a lone Ext PreventNext shield, spent as the event is dealt (repl_prevnext.go)
+		code := src.atk // the player the source attacks
+		if ev.dst != NoSlot {
+			code = uint8(s.perms[ev.dst].obj)
+		}
+		if m, ok := s.prevNextTake(k, src.ctrl, ev.src, s.cardAt(ev.src), code, s.recipientCtl(ev.dst, code), ev.dst, true, n); ok {
+			if m == 0 {
+				s.preventCombatEv(k, r, &r.ev[i])
+				return 0
+			}
+			s.combatEvLess(r, &r.ev[i], code, n-m)
+			n = m
+		}
+	}
 	if ev.dst == NoSlot {
 		s.noteCmdDamage(ev.src, CodeSeat(src.atk), n)
 		s.loseLife(k, CodeSeat(src.atk), n)
@@ -752,7 +825,11 @@ func (s *State) replOrderOptions(d *Decision) {
 	d.Kind, d.Sub, d.Player = DkChoose, ChGenReplOrder, ro.p
 	for i := 0; i < int(ro.n); i++ {
 		if ro.used&(1<<i) == 0 {
-			d.add(MakeAction(AkChoose, uint8(ro.cand[i]), 0, uint8(i))) // mode: gorge's scan index
+			o := ro.cand[i]
+			if ro.pnx&(1<<i) != 0 {
+				o = s.g.prevCol[o].obj // a shield's option names its source
+			}
+			d.add(MakeAction(AkChoose, uint8(o), 0, uint8(i))) // mode: gorge's scan index
 		}
 	}
 }
@@ -763,6 +840,9 @@ func (s *State) replOrderPick(a Action) bool {
 	ro := &s.g.ro
 	if i := a.Mode(); i < ro.n {
 		ro.used |= 1 << i
+		if ro.pnx&(1<<i) != 0 {
+			return s.prevNextPick(int(i))
+		}
 		if ro.prev&(1<<i) != 0 {
 			if !ro.on {
 				s.replNCPickShield(int(i))
@@ -793,6 +873,7 @@ func (s *State) applyReplOrder(a Action) {
 		return
 	}
 	if !ro.on {
+		s.prevNextNC()
 		ro.replHdr = replHdr{} // a noncombat event: deal it, then the state-based actions
 		s.dealNC(s.k())
 		s.ctl = s.g.ctlRet
@@ -1043,6 +1124,18 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 		shld |= 1 << c
 		c++
 	}
+	var pnx uint8
+	if g.anyRepl&rbPrevCol != 0 {
+		// Ext PreventNext's shields on the recipient (repl_prevnext.go)
+		if c = s.prevNextCands(k, code, false, &cand, c, &pnx); c < 0 {
+			return false
+		}
+		prev &^= pnx
+		if pnx != 0 && c >= 2 && s.prevNextCompetes(k, srcSl, srcCard, rcp, sl, false) {
+			s.capFull(StallPrevNext)
+			return false
+		}
+	}
 	if g.anyDmgMark && s.dmgMarkCompetes(rcp, c) {
 		return false // repl_dmgmark.go
 	}
@@ -1059,10 +1152,15 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 	m := 0
 	if plusOnly {
 		m = n + plusAdd
+	} else if pnx != 0 {
+		m = n // the shields are spent as picked (applyReplOrder sets what is left)
 	} else if shld == 0 {
 		m = s.replDamage(k, ctrl, srcSl, srcCard, code, false, n)
 	}
-	ro.replHdr = replHdr{n: uint8(c), prev: prev, plus: plus, shld: shld, pcol: pcol, p: rcp, cand: cand}
+	ro.replHdr = replHdr{n: uint8(c), prev: prev, plus: plus, shld: shld, pcol: pcol, pnx: pnx, p: rcp, cand: cand}
+	if pnx != 0 {
+		ro.an = int16(min(n, 1<<14))
+	}
 	nc := ncDmg{code: code, ctrl: ctrl, ll: kw&kop.KwLifelink != 0, dt: kw&kop.KwDeathtouch != 0, n: int16(m)}
 	if srcSl != NoSlot {
 		nc.src = s.perms[srcSl].obj

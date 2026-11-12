@@ -1,0 +1,8 @@
+# Chain of Vapor (bounce, then the bounced permanent's controller may sacrifice a land to copy it, the UnlessAI hint ignored) and Indulgent Tormentor (draw unless the targeted opponent pays 3 life or sacrifices a creature) beside creatures to bounce and sacrifice, Control Magic to hand a permanent to a controller who is not its owner, and basic lands (dirac/oracle/chainofvapor_test.go)
+Chain of Vapor
+Indulgent Tormentor
+Merfolk of the Pearl Trident
+Walking Corpse
+Island
+Swamp
+Control Magic

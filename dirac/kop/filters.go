@@ -138,6 +138,14 @@ type Filter struct {
 	// from every card already picked (WithDifferentPowers$). False is the
 	// zero Filter's "no requirement".
 	PickDistinctPower bool
+	// CtrlTgt, when non-zero, requires the candidate's controller to be the
+	// controller of target slot CtrlTgt-1 of the current stack entry: a
+	// player target is that player, a stack ability its controller, an object
+	// target the controller of its permanent or, once it has left the
+	// battlefield, its owner (gorge controlReferentPlayers
+	// TargetedOrController). Battlefield only; the card matchers fail
+	// closed on it.
+	CtrlTgt uint8
 }
 
 // SpecialMask is a set of CR 116.2 special actions a RestrictValid$ Static.*
@@ -444,6 +452,13 @@ const W7WithFlashback int16 = 26
 // Landwalk:Island; the predicate holds when it has none. Off the battlefield
 // the printed Landwalk alone counts. Stormtide Leviathan.
 const W7LacksIslandwalk int16 = 27
+
+// W7WithInfect (PredWord7 sub-kind 28): the card was printed with Infect
+// (CardDef.Infect; gorge's exact keyword word withInfect, objectHasKeyword
+// reads the printed face). A battlefield permanent that is face down or lost
+// all abilities has none; off the battlefield the printed card counts in any
+// zone. Corpse Cur, Hand of the Praetors, Burn the Impure.
+const W7WithInfect int16 = 28
 
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and

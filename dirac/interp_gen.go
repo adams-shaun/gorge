@@ -785,6 +785,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.delayPlayerUpkeep(k, e, in) // trig_delayplayerupkeep.go
 			break
 		}
+		if in.A.N == kop.DelayRemUpkeep {
+			s.delayRemUpkeep(k, e, in) // trig_delayremupkeep.go
+			break
+		}
 		o := s.delayedRegObj(in.Obj)
 		if s.g.ndp >= maxDProg {
 			s.capFull(StallDProg)

@@ -1,0 +1,24 @@
+# Granted lure: Pump KW$ HIDDEN (Alluring Scent, Mortipede, Taunting Challenge, Revenge of the Hunted, Taunting Arbormage's trigger, Bloodscent, Roar of Challenge, Declare Dominance, Shinen's channel) and the Continuous static (Lure, Gift of the Deity, Seton's Desire, Nemesis Mask, Noble Quarry); dirac/oracle/lure_grant_test.go
+Lure
+Gift of the Deity
+Seton's Desire
+Alluring Scent
+Bloodscent
+Roar of Challenge
+Declare Dominance
+Shinen of Life's Roar
+Mortipede
+Nemesis Mask
+Noble Quarry
+Revenge of the Hunted
+Taunting Arbormage
+Taunting Challenge
+Prized Unicorn
+Grizzly Bears
+Hill Giant
+Raging Goblin
+Llanowar Elves
+Giant Growth
+Forest
+Mountain
+Swamp

@@ -194,18 +194,7 @@ func TestRoomsLockstep(t *testing.T) {
 				lo = 0
 			}
 			t.Logf("seed %d last actions %v", seed, actionStrings(res.Actions[lo:d.At]))
-			if why, known, ok := roomsKnownDiv(seed, d); known && ok {
-				t.Logf("seed %d: mapped gorge deviation (%s) at decision %d: %s %s", seed, why, d.At, d.What, d.Field)
-				continue
-			} else if known {
-				k := roomsKnown[seed]
-				t.Errorf("seed %d: known gorge deviation (%s) moved or changed: got %d %s %s %v, want %d %s %s %v", seed, why, d.At, d.What, d.Field, d.Diff, k.at, k.what, k.field, k.diff)
-				continue
-			}
 			t.Errorf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
-		} else if why, known, _ := roomsKnownDiv(seed, nil); known {
-			k := roomsKnown[seed]
-			t.Errorf("seed %d: expected the known gorge deviation (%s) at decision %d (%s %s), got none; update the map", seed, why, k.at, k.what, k.field)
 		}
 	}
 	t.Logf("counts %v kernel %+v", n, *st)
@@ -229,49 +218,12 @@ func TestRoomsLockstep(t *testing.T) {
 // roomsSeeds is the lockstep's seed count.
 const roomsSeeds = 600
 
-// roomsKnown maps the seeds whose first divergence is the one gorge
-// deviation the kernel does not emulate (GORGE-FINDINGS.md and dirac/doc.go
-// "Deviations from gorge"; that section says the oracle must map or avoid
-// it). The kernel is rules-correct on each, so the oracle pins the exact
-// decision, first field and every differing field's values; a divergence
-// anywhere else, a moved or resized one, a changed value, or a pinned one
-// that no longer happens fails the test.
-//
-// No seed is pinned: the non-live Room door's trigger (Unholy Annex's
-// DBBranch, seeds 19, 169, 185, 457 and 595) resolves against that door's
-// own SVars in gorge and the kernel alike since 7f89f7d2f, as Roaring
-// Furnace's X:Count$CardsInYourHand (seeds 351 and 497) did before it. The
-// face-down power filter deviation (Restricted Office's DestroyAll powerGE3)
-// is gone: gorge (mass effects read current P/T) fixed it at pin 01fc61aa7.
-var roomsKnown = map[uint64]struct {
-	at    int
-	what  string
-	field string
-	why   string
-	diff  []string
-}{}
-
-// roomsKnownDiv reports whether d is seed's pinned gorge deviation.
-func roomsKnownDiv(seed uint64, d *Divergence) (why string, known, ok bool) {
-	k, pinned := roomsKnown[seed]
-	if !pinned {
-		return "", false, false
-	}
-	return k.why, true, d != nil && d.At == k.at && d.What == k.what && d.Field == k.field && sameStrings(d.Diff, k.diff)
-}
-
-// sameStrings reports whether a and b hold the same strings in order.
-func sameStrings(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
-}
+// No seed is pinned: the Room lockstep has no tolerated divergence. The
+// non-live Room door's trigger resolves against that door's own SVars in
+// gorge and the kernel alike (Unholy Annex's DBBranch, Roaring Furnace's
+// X:Count$CardsInYourHand); the face-down power filter deviation (Restricted
+// Office's DestroyAll powerGE3) is gone too, since mass effects read current
+// P/T.
 
 // roomsRun plays the Room lockstep's seeds up to the first divergence and
 // returns the number of divergences (0 or 1).
@@ -313,9 +265,6 @@ func roomsRun(t *testing.T, seeds uint64) int {
 		res := Lockstep(m, seed, k, roomsPolicy(seed, n), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40})
 		CloseSide(k)
 		if res.Div != nil {
-			if _, known, ok := roomsKnownDiv(seed, res.Div); known && ok {
-				continue // a pinned gorge deviation does not settle a mutation
-			}
 			div++
 			break // one divergence settles a mutation
 		}

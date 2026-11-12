@@ -31,6 +31,7 @@ var ignoredParams = map[string]bool{
 	"PrimaryPrompt":      true, // caption text; gorge lists it in params.DescriptiveKeys (descriptive.go), never read
 	"AINoRecursiveCheck": true, // Forge AI hint: only in gorge's accepted-key lists (params/mana.go, params/dealdamage.go, changezone_params.go), never read
 	"AIXMax":             true, // Forge AI hint for the X it announces: only in gorge's accepted-key lists (changezone_params.go, params/*.go), never read
+	"UnlessAI":           true, // Forge AI hint (CopySpellAbilityAi / the unless-cost AI: whether the AI pays or copies); gorge never reads it (engine/rules/paramcensus_test.go records it as an AI hint)
 }
 
 // params tracks which parameters of one IR node the lowering read, so an
@@ -331,6 +332,10 @@ func (lc *lowerCtx) lowerFace() {
 		}
 	}
 	lc.lowerRecord()
+	// the face's printed mana abilities' produced colours (CardDef.
+	// ProduceCol; lower_reflectedmana.go producibleMask): a Produce-mode
+	// reflected ability's read
+	lc.out.ProduceCol = producibleMask(lc.face)
 	lc.scanStorm() // lower_storm.go: K:Storm's expanded trigger, before the lines lower
 	// lower_imprintmox.go: the imprint-mox shape, before the lines lower
 	lc.imprintMox = lc.imprintMoxShape()
@@ -435,6 +440,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseMayhemCombos()
 	lc.refuseBeamCombos()
 	lc.refuseSneakCombos()
+	lc.refuseBuybackCombos() // lower_buyback.go
 	lc.refuseWebSlingCombos()
 	lc.refuseMayFlashCombos()
 	lc.refuseEvokeCombos()
@@ -1177,6 +1183,13 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Offspring = &mc
+		case head == "Buyback":
+			// CR 702.27a: an optional additional cost, offered as its own cast
+			// option (gorge's "(buyback)" mode, the Offspring shape); the
+			// resolving spell returns to hand (lower_buyback.go)
+			if !lc.lowerBuyback(param) {
+				lc.refuseNode(node, "buyback cost %q", param)
+			}
 		case head == "Casualty":
 			// CR 702.153a: the optional creature sacrifice and the copy
 			// trigger are the kernel's casualty cast (kw_casualty.go). The
@@ -2592,6 +2605,19 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 				return nil, refuse("filter %q: bound %s names no SVar", expr, c.CmpX)
 			}
 		}
+	}
+	for i := range f.Clauses {
+		if f.Clauses[i].Ctrl != whoTgtOrCtrl {
+			continue
+		}
+		// the referent is the current link's target -- the last slot the
+		// chain declared before this filter. A filter read before any slot
+		// has none, and gorge binds none.
+		t := lc.lastTarget()
+		if t < 0 {
+			return nil, refuse("filter %q: ControlledBy TargetedOrController without an earlier target", expr)
+		}
+		f.Clauses[i].CtrlTgt = uint8(t + 1)
 	}
 	if err := lc.checkEachPlCtrl(expr, f); err != nil {
 		return nil, err // lower_repeatplayers.go
