@@ -1896,16 +1896,27 @@ func (s *State) FeatGrantAvail(o Obj) (w int32, ok bool) {
 }
 
 // grantsFixedMana reports whether an effect grants sl a mana ability of fixed
-// production (a plain tap for a set colour): gorge's shared census lists such a
-// source at its battlefield position whatever shape its own ability has.
-func (s *State) grantsFixedMana(k *prep, sl Slot) bool {
+// production (a plain tap for a set colour) that may pay d: gorge's shared
+// census lists such a source at its battlefield position whatever shape its
+// own ability has. A grant whose spend restriction d cannot satisfy is not in
+// that census (Mm'menon's "{U} to cast from anywhere but your hand" beside an
+// artifact's own any-colour ability): the source keeps its own ability's
+// census position.
+func (s *State) grantsFixedMana(k *prep, p uint8, sl Slot, d *payDesc) bool {
 	var gi [maxGrants]int16
 	n := s.grantIdxs(k, sl, &gi)
 	for _, i := range gi[:n] {
 		gp := &k.gen.grantPC[i]
-		if gp.manaTap && !gp.manaSac && !gp.manaSacOnly && !gp.manaChosen && !gp.manaDyn && !gp.manaMulti && gp.manaCol != kop.ColAny && srcMask(gp) != 0 {
-			return true
+		if !(gp.manaTap && !gp.manaSac && !gp.manaSacOnly && !gp.manaChosen && !gp.manaDyn && !gp.manaMulti && gp.manaCol != kop.ColAny && srcMask(gp) != 0) {
+			continue
 		}
+		if r := k.gen.grantRestr[i]; r != 0 {
+			ref := k.gen.grantOf[i]
+			if !s.restrSrcAdmits(k, p, sl, &k.t.Cards[ref.card].Abilities[ref.ab], d) {
+				continue
+			}
+		}
+		return true
 	}
 	return false
 }
