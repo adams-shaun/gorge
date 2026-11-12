@@ -302,14 +302,17 @@ func (e *Engine) mayPlayPermFreeRaise(p state.PlayerID, id state.ObjID, key stri
 	return free, raise, hasRaise, priced
 }
 
-// mayPlayRaiseCost reports the composition of the RaiseCost$ surcharge the
-// may-play permission over this card carries -- the cost the permission adds
-// on top of the printed cost, in addition to the ordinary cast cost (CR
-// 118.3a: Kotis, Sibsig Champion's "by exiling three other cards from your
-// graveyard in addition to paying its other costs"). `hasRaise` says a
-// granting static carries one at all; `raise` is the accumulated priced
-// composition. `ok` is false only when a raise is present but unpriceable
-// (the variable forms ParseCost cannot price), in which case the static is
+// mayPlayRaiseCost reports the RaiseCost$ surcharge the may-play permission
+// over this card carries -- the cost the permission adds on top of the
+// printed cost, in addition to the ordinary cast cost (CR 118.3a: Kotis,
+// Sibsig Champion's "by exiling three other cards from your graveyard in
+// addition to paying its other costs"). `hasRaise` says ANY granting static
+// carries one at all; `raise` is ONE permission's priced composition, never
+// a sum: a spell is cast under one permission (CR 601.2b/601.2f; the player
+// chooses it, as for an alternative cost, CR 118.9), so two Festivals of
+// Embers, or Noctis beside Wickerfolk Indomitable, charge one raise, not
+// both. `ok` is false only when a raise is present but unpriceable (the
+// variable forms ParseCost cannot price), in which case the static is
 // already withheld by mayPlayStatic and the caller must withhold the offer
 // too -- never grant with an uncharged surcharge.
 //
@@ -317,8 +320,10 @@ func (e *Engine) mayPlayPermFreeRaise(p state.PlayerID, id state.ObjID, key stri
 // grant runs (mayPlayStatic), so a static that raises and a static that
 // grants cannot drift: the raise and the grant are read through one code
 // path. Order is deterministic -- battlefield statics in activeStatics'
-// APNAP order, then the card's own face statics -- and every raise is
-// accumulated with Cost.Plus.
+// order, then the card's own face statics -- and the FIRST priced raise in
+// that order is the permission the untyped offer plays through. dirac's
+// mayRaise walks the same order and prices the same one (CR 118.9 lets the
+// player pick; without a permission ask this read picks deterministically).
 //
 // A LAND walk must withhold a static carrying ANY raise, priced or not
 // (legal.go's mayPlayLandIds): a land play is free, so there is no cost site
@@ -331,10 +336,28 @@ func (e *Engine) mayPlayRaiseCost(p state.PlayerID, id state.ObjID) (raise Cost,
 		return Cost{}, false, true
 	}
 	ok = true
-	// Battlefield statics first (activeStatics' deterministic APNAP order),
-	// each read through the SAME mayPlayStatic gate chain the grant walk
-	// runs. A static mayPlayStatic withheld (unpriceable raise, failed gate)
-	// reports has=false or priced=false and is handled below; the direct
+	picked := false
+	// take records one granting static's raise: ANY raise sets hasRaise (a
+	// LAND is withheld for it), an unpriceable one fails the whole read
+	// closed, and only the FIRST priced raise is charged (CR 601.2b/f: one
+	// cast, one permission).
+	take := func(r Cost, has, priced bool) {
+		if !has {
+			return
+		}
+		hasRaise = true
+		if !priced {
+			ok = false
+			return
+		}
+		if !picked {
+			raise, picked = r, true
+		}
+	}
+	// Battlefield statics first (activeStatics' deterministic order), each
+	// read through the SAME mayPlayStatic gate chain the grant walk runs. A
+	// static mayPlayStatic withheld (unpriceable raise, failed gate) reports
+	// has=false or priced=false and is handled by take; the direct
 	// field-selector arguments keep the census's static-param attribution
 	// (a bare local map variable would be unclassifiable).
 	for _, sv := range e.activeStatics("Continuous") {
@@ -342,30 +365,14 @@ func (e *Engine) mayPlayRaiseCost(p state.PlayerID, id state.ObjID) (raise Cost,
 			continue
 		}
 		_, _, _, r, has, priced := e.mayPlayStatic(sv.Params, id, mayPlayStaticYou(p, &sv), sv.Source)
-		if !has {
-			continue
-		}
-		hasRaise = true
-		if !priced {
-			ok = false
-			continue
-		}
-		raise = raise.Plus(r)
+		take(r, has, priced)
 	}
 	for _, st := range mayPlayOwnStatics(o, p) {
 		if st.Mode != "Continuous" {
 			continue
 		}
 		_, _, _, r, has, priced := e.mayPlayStatic(st.Params, id, o.Controller, id)
-		if !has {
-			continue
-		}
-		hasRaise = true
-		if !priced {
-			ok = false
-			continue
-		}
-		raise = raise.Plus(r)
+		take(r, has, priced)
 	}
 	return raise, hasRaise, ok
 }
@@ -1496,8 +1503,9 @@ func (e *Engine) mayPlayHostsCovering(p state.PlayerID, id state.ObjID) []state.
 // The walk is the grant walk's two gates: mayPlayStaticBenefits (whose "you"
 // the static reads for) and mayPlayGrantedBy (the static really grants this
 // card's cast from its current zone). gorge's untyped may-play model rides
-// EVERY covering grant (mayPlayRaiseCost sums every raise, castRidesMayPlayOf
-// records every host), so "any covering grant carries the rider" is the rule;
+// EVERY covering grant (castRidesMayPlayOf records every host; only the
+// raise is charged from the first permitting static, mayPlayRaiseCost), so
+// "any covering grant carries the rider" is the rule;
 // a static that only exempts the mana cost (MayPlayDontGrantZonePermissions$)
 // does not reach here because mayPlayGrantedBy requires a grant.
 //
