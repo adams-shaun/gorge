@@ -48,6 +48,21 @@ var (
 	UncounterStalls     int
 )
 
+// uncStats records one ordinary Counter's outcome for DebugUncounterStats:
+// the battlefield scan held the spell (n > 0) or let it through (n == 0).
+// self is the spell's own "this spell can't be countered" line, which the
+// tests' tables never hold (their count is the battlefield kind alone).
+func uncStats(n, self int) {
+	if !DebugUncounterStats || self != 0 {
+		return
+	}
+	if n > 0 {
+		UncounterHeld++
+	} else {
+		UncounterPassed++
+	}
+}
+
 // uncounterable reports whether the spell at stack index i can't be
 // countered: its own "this spell can't be countered" (noCtr), a
 // battlefield ReplSpellsCantBeCountered source its controller controls,
@@ -63,13 +78,7 @@ func (s *State) uncounterable(k *prep, i int) bool {
 	if !scan && n == 0 {
 		return false
 	}
-	if DebugUncounterStats && self == 0 {
-		if n > 0 {
-			UncounterHeld++
-		} else {
-			UncounterPassed++
-		}
-	}
+	uncStats(n, self)
 	if n > 1 {
 		if DebugUncounterStats {
 			UncounterStalls++
@@ -131,6 +140,9 @@ func (s *State) uncGate(k *prep, i int) (unc, park bool) {
 		return true, false
 	}
 	n, self, nDelayed, nScope, nScan := s.uncCount(k, i)
+	if n > 0 || k.anyUncounter && !DebugUncounterOff {
+		uncStats(n, self)
+	}
 	if n <= 1 {
 		return n > 0, false
 	}
