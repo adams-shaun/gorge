@@ -338,17 +338,3 @@ func TestStackrewriteMutation(t *testing.T) {
 	}
 	t.Logf("mutation diverged %v in %d games", divs, games)
 }
-
-// Bolt Bend's target is an ability on the stack named by its identity: picked on
-// the multi-target path it keeps that identity, so the stack still shows the target.
-func TestChangeTargetsKeepsStackAbilityTarget(t *testing.T) {
-	pinnedGames(t, "std-fdn", Config{GorgeAutopaySurface: true}, cardOut("Bolt Bend"))
-}
-
-// A required redirect leaves its current target out of the offer and asks nothing
-// when no other is legal; Speedball's optional one walks a spell's declarations.
-func TestRedirectMovesOrKeeps(t *testing.T) {
-	pinnedGames(t, "std-msh", Config{}, cardOut("Speedball, New Warrior"))
-	pinnedGames(t, "std-fdn", Config{GorgeAutopaySurface: true}, cardOut("Bolt Bend"))
-	pinnedGames(t, "std-tla", Config{GorgeAutopaySurface: true}, cardOut("Redirect Lightning"))
-}

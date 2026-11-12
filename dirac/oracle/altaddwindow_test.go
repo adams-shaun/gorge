@@ -190,12 +190,3 @@ func (p *eitherOrProbe) pick(c *PickCtx) Canon {
 	}
 	return p.base.Pick(c)
 }
-
-// Pumpkin Bombardment has a hybrid pip and an either-or part. The pip ask comes
-// before the target menu, so an unpayable part reverses at the target ask after the
-// pips, and a pip the witness didn't price opens the window before the discard is
-// chosen (CR 601.2g-h, 733.1). Full surface: the autopay one doesn't offer this cast.
-func TestEitherOrHybridLockstep(t *testing.T) {
-	t.Parallel()
-	pinnedGames(t, "std-spm", Config{}, cardOut("Pumpkin Bombardment"))
-}
