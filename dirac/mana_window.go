@@ -2330,7 +2330,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			x = restrWitnessXPlus(x, t, multi[:nm], &cost, s.restrWithheldMana(k, p, d)+int(L)) // (mana_restrwithheld.go)
 		}
 	}
-	if cost.X != 0 && s.bld().e.kind == seSpell && s.xWitnessEats(k, p, s.bld().e.card, &cost, x, excl) {
+	if cost.X != 0 && s.bld().e.kind == seSpell && s.xWitnessEats(k, p, s.bld().e.card, &cost, x, excl, L) {
 		s.lowerXEats(k, p, &cost, x, excl, anyColor)
 		return
 	}
