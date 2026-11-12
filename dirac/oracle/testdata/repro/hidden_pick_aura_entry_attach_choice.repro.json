@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-woe",
+ "pool": "std-woe",
+ "why": "CR 303.4f/g: Fetch Quest's hidden pick takes Bestial Bloodline, which waits in the graveyard for its enchant choice while the spell is still on the stack",
  "actions": [
   184549120,
   184549120,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "a floating restricted batch counts as affordable for a spell its restriction does not admit, so the kernel taps one source fewer and floats one pip less",
  "actions": [
   16776960,
   16776960,

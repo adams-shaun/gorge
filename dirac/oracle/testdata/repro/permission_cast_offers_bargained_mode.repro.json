@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-woe",
+ "pool": "std-woe",
+ "why": "Johann, Apprentice Sorcerer casts Johann's Stopgap from the library top bargained, the discount alone making it payable (CR 702.166a, 601.2b)",
  "actions": [
   167771904,
   167771904,

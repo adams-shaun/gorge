@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 601.2b, 601.2g: Mudbutton Cursetosser's {2} part, payable only through Springleaf Drum tapping a creature, is not proved unpayable by the relaxed census, so gorge searches the prefix and offers the cast after an aborted one",
  "actions": [
   16776960,
   16776960,

@@ -69,6 +69,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Tenth District Hero's second ability, evidence collected from the Bolts in its graveyard: it becomes a legendary 5/5 named Mileva, the Stalwart, and other creatures its controller has are indestructible (CR 613.1c, 611.3a)",
  "actions": [
   19398400,
   18153216,

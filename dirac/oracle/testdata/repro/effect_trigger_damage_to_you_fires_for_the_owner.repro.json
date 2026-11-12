@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 20,
  "surface": "autopay",
+ "pool": "std-trc",
+ "why": "Right of Vengeance cast on the opponent's turn: the until-end-of-turn trigger fires for a creature's combat damage to its owner only",
  "actions": [
   184549120,
   167771904,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "Ornery Tumblewagg is cast through Jasper Flint's mayplay and paid with a wide Stablemaster tap and a Mountain: the rider plan's restricted mana floats, the payment admits and spends it first (gorge pay.PlanPool, pay/plancost.go), so the plan taps only for what the restricted mana leaves.",
  "actions": [
   184549120,
   167771904,

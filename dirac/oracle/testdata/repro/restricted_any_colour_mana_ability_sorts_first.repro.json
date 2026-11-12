@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 601.2g: White Lotus Hideout's Lesson-restricted any-colour mana sorts ahead of its {C} ability, so an announced {U} hybrid face is paid instead of stranding the cast",
  "actions": [
   16776960,
   16776960,

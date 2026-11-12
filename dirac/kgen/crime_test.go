@@ -53,7 +53,7 @@ func TestCrimeRefusals(t *testing.T) {
 		{"unread ValidCard", strings.Replace(kcrimeTrig, "ValidPlayer$ You", "ValidPlayer$ You | ValidCard$ Creature", 1), "unread params"},
 		{"arms one", "S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | Amount$ 1 | EffectZone$ All | CheckSVar$ Count$CommittedCrimeThisTurn.1", "Count$CommittedCrimeThisTurn arms"},
 		{"arms svar", "S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | Amount$ 1 | EffectZone$ All | CheckSVar$ Count$CommittedCrimeThisTurn.1.Z\nSVar:Z:Count$Morbid.1.0", "Count$CommittedCrimeThisTurn arms"},
-		{"CheckDefinedPlayer monarch", strings.Replace(kcrimeTrig, "Execute$ ProbeDraw", "Execute$ ProbeDraw | CheckDefinedPlayer$ You.isMonarch", 1), `CheckDefinedPlayer "You.isMonarch"`},
+		{"CheckDefinedPlayer monarch", strings.Replace(kcrimeTrig, "Execute$ ProbeDraw", "Execute$ ProbeDraw | CheckDefinedPlayer$ Player.isMonarch", 1), `CheckDefinedPlayer "Player.isMonarch"`},
 		{"CheckDefinedPlayer opponent", strings.Replace(kcrimeTrig, "Execute$ ProbeDraw", "Execute$ ProbeDraw | CheckDefinedPlayer$ Opponent.committedCrimeThisTurn", 1), `CheckDefinedPlayer "Opponent.committedCrimeThisTurn"`},
 	}
 	for _, c := range cases {

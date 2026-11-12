@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 601.2g: the second game answering X = 1: the Doll, first in battlefield order once the planner census falls short, then Abandoned Campground pay it",
  "actions": [
   184549120,
   167771904,

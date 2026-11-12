@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "CR 702.184a, 608.2h: Survey Mechan, tapped to station Uthros Scanship and then sacrificed, stations with its toughness under Tapestry Warden",
  "actions": [
   16776960,
   16776960,

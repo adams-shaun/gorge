@@ -79,6 +79,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Prairie Dog's activated Effect: until end of turn a +1/+1 placement on a creature its controller controls puts one more (CR 614.1a)",
  "actions": [
   19332864,
   34995968,

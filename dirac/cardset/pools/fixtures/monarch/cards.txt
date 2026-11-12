@@ -1,0 +1,50 @@
+# the monarch pool (CR 725): the cards that make a player the monarch (an ETB,
+# an activated land, a target player, a Saga chapter, a sorcery, a granted
+# trigger), the designation's reads (Count$Monarch, CheckDefinedPlayer$
+# You/Opponent.isMonarch, an Effect gated on it) and Mode$ BecomeMonarch,
+# beside attackers that steal the crown with combat damage
+# (dirac/oracle/monarch_test.go)
+Aragorn, King of Gondor
+Chief Magistrate of Mercadia
+Court of Ardenvale
+Court of Bounty
+Court of Cunning
+Court of Embereth
+Court of Garenbrig
+Court of Grace
+Court of Ire
+Crimson Fleet Commodore
+Custodi Lich
+Elite Vanguard
+Faramir, Steward of Gondor
+Feast of Succession
+Forest
+Garrulous Sycophant
+Goblin Piker
+Grave Venerations
+Grizzly Bears
+Hill Giant
+Island
+Keeper of Keys
+Knights of the Black Rose
+Lightning Bolt
+Marchesa's Decree
+Mountain
+Nakia, Wakandan Operative
+Oath of Eorl
+Palace Sentinels
+Plains
+Queen Marchesa
+Regal Sliver
+Savannah Lions
+Shock
+Skyline Despot
+Staunch Throneguard
+Suntail Hawk
+Swamp
+Thorn of the Black Rose
+Throne Warden
+Throne of the High City
+Walking Corpse
+Wind Drake
+Éomer, King of Rohan

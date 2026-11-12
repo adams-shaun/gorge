@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 119.4, 601.2g: an animated Haunted Screen under Enduring Vitality's grant answers the prefix search's ability ask with the {G} its pay-1-life ability makes, the colour Omnivorous Flytrap needs, so the life is paid",
  "actions": [
   16776960,
   16776960,

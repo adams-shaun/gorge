@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 702.176a, 702.51a: Dazzling Theater grants Overlord of the Mistmoors convoke, but its {2}{W}{W} impending cost is payable without the optional credit, so the mode cast keeps its no-credit witness and is offered",
  "actions": [
   167771904,
   184549120,

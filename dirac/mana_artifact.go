@@ -15,7 +15,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // gorge's typed tallies (state.Player.TypedMana: Treasure, Cave, Desert and
 // Artifact-only) read the same way, so mana a Desert or a Cave adds floats as a
-// tagged unit too.
+// tagged unit too. The tag changes no offer: gorge's planners read a tagged
+// unit as plain mana of its colour (pay.PlanPool; TestPlannerPaysPastATreasureUnit),
+// and a restricted one as the payment admits it (CR 106.6). Open: the
+// filter-land and Giada-window pool additions do not tag (no typed source
+// reaches them).
 
 // typedManaSubtypes is the subtype set of the Desert and Cave producers.
 func typedManaSubtypes(t *kop.Table) kop.SubMask {

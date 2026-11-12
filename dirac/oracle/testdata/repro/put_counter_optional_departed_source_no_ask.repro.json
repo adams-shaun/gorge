@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "CR 400.7: \"you may put a counter on it\" is not asked once its source has left the battlefield, since the counter could not land",
  "actions": [
   167771904,
   184549120,

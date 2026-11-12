@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "CR 601.2f: on the full surface too, Cloud, Planet's Champion's equip reduction prices Excalibur II's and Red Mage's Rapier's Equip {3} at {1}, so gorge offers both activations dirac offers",
  "actions": [
   167771904,
   184549120,

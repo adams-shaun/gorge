@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-fdn",
+ "pool": "std-fdn",
+ "why": "CR 605.3a, 602.2b: the reported pair 36 full-surface Quick-Draw Katana Equip {2} offer: a filter (Three Tree Mascot) beside a deferred TriggersWhenSpent$ source (Pyromancer's Goggles) prices the restricted/deferred script, as gorge does",
  "actions": [
   167771904,
   184549120,

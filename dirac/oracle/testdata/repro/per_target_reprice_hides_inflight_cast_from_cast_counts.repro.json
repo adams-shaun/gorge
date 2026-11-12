@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "CR 601.2f: a per-target cost reprice hides the in-flight cast from the turn's cast counts, as the build's own pricing does",
  "actions": [
   16776960,
   16776960,

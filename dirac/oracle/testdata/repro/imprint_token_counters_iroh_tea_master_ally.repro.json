@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 25,
  "surface": "autopay",
+ "pool": "custom",
+ "why": "Iroh, Tea Master gives a permanent away and makes the 1/1 Ally: its +1/+1 counters go on the imprinted token only, and the cleanup clears the imprint (the imprinted set apart from the remembered given-away permanent)",
  "actions": [
   16776960,
   16776960,

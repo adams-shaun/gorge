@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "a Kindle the Inner Flame copy of an Elemental beside Twinflame Travelers: the copy's own end-step sacrifice triggers an additional time (CR 603.2d, 707.2)",
  "actions": [
   167771904,
   184549120,

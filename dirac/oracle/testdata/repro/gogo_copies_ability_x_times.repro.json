@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 20,
  "surface": "full",
+ "pool": "custom",
+ "why": "Gogo, Master of Mimicry paying X of two or more off the mana a small Blaze left floating, copying a Prodigal Sorcerer ping that many times: each copy is minted and its new target asked in turn (CR 707.10c); played on its own decks' table because Blaze and Prodigal Sorcerer are in no Standard pool",
  "actions": [
   184549120,
   167771904,

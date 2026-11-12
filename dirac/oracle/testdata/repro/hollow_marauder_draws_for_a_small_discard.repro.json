@@ -135,6 +135,8 @@
  "pass_elision": false,
  "max_turns": 14,
  "surface": "autopay",
+ "pool": "std-otj",
+ "why": "Hollow Marauder's enters trigger against an opponent holding lands: the opponent discards one, the draw count is the one targeted opponent, and both engines draw",
  "actions": [
   16776960,
   16776960,

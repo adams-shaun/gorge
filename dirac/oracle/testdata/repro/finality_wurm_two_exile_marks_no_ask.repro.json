@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-dsk",
+ "why": "Balustrade Wurm back with a finality counter takes two Scorching Dragonfire exile marks: the counter exiles it at the move, no order ask (CR 614.1, gorge finalityReplacementApplies)",
  "actions": [
   16776960,
   16776960,

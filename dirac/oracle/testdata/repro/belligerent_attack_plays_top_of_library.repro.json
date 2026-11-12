@@ -95,6 +95,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "The Belligerent crewed and attacking: its trigger lets p0 look at and play the top card of their library for the turn, lands and spells, and the top card changes as each is played",
  "actions": [
   167771904,
   184549120,

@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trk",
+ "why": "Blastoneuron returned from the graveyard by U.S.S. Reliant: its leave-your-graveyard watcher looks back to a board without it (CR 603.10a), so only the enters trigger is put on the stack",
  "actions": [
   16776960,
   16776960,

@@ -94,6 +94,8 @@
  "mulligans": 1,
  "pass_elision": false,
  "surface": "autopay",
+ "pool": "custom",
+ "why": "Long River Lurker's Effect remembers its target: the creature is unblockable, and its combat damage triggers the optional flicker once, for that creature alone (CR 603.7, 611.2, 400.7)",
  "actions": [
   167771904,
   184549120,

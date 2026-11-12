@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "CR 118.9, 701.34d: a plotted Corrupted Conviction is cast free of its mana cost but still sacrifices a creature",
  "actions": [
   184549120,
   184549120,

@@ -96,6 +96,9 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "CR 603.2d: Annie Joins Up makes Roxanne, Starfall Savant's triggered mana ability trigger twice, so a Meteorite tap brings two extra mana that gorge's planner prices as one: the kernel stops as the declared StallTapExtra rather than floating one fewer",
+ "stall": true,
  "actions": [
   16776960,
   16776960,

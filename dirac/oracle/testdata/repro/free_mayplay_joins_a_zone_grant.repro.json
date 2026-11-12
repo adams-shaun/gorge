@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "Weftwalking's free-only static joins Mm'menon's top-of-library grant, so the first spell is cast for free (CR 118.9)",
  "actions": [
   167771904,
   184549120,

@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "damage to a damaged Wolverine, Fierce Fighter: what was already marked on him is healed, then the new damage is dealt (CR 614.1a)",
  "actions": [
   19398400,
   17432320,

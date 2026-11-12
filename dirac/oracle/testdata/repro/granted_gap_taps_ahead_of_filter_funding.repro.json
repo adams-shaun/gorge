@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 601.2g-h: on a board with a live granted mana gap (Honest Work's Humble Merchant) beside a filter (Rumble Arena), gorge's one prefix search taps the granted gap first and pays the filter's {1} fee from its mana, so no printed land is tapped for the fee",
  "actions": [
   16776960,
   16776960,

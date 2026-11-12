@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 701.62a, 616.1: a manifest dread window's other card under two Leylines of the Void parks for its order ask with the card still in the library, and the window's marker has already fired",
  "actions": [
   184549120,
   184549120,

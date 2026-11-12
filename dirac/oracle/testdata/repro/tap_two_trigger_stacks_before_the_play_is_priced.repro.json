@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-spm",
+ "pool": "std-spm",
+ "why": "Kraven, Proud Predator not offered: the filter search's first Supportive Parents answer taps Spider-Gwen, Free Spirit, her loot trigger is stacked and asked, and the sorcery-speed cast waits for it (CR 307.1, 603.3), so gorge's search spends its 160 nodes without a payer node for Kraven",
  "actions": [
   167771904,
   167771904,

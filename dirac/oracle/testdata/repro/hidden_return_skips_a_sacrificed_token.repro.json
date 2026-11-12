@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-woe",
+ "pool": "std-woe",
+ "why": "Lich-Knights' Conquest sacrifices a Rat token and returns creature cards: the token in the graveyard is no card and cannot return, so Lord Skitter sees no Rat enter (CR 111.8, 704.5d)",
  "actions": [
   16776960,
   16776960,

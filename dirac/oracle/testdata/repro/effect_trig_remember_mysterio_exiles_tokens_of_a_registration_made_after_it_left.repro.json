@@ -63,6 +63,9 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Mysterio dies with its enters trigger on the stack, returns, and dies again: the registration made while it was gone exiles the token it remembered (CR 603.7, 400.7)",
+ "stall": true,
  "actions": [
   19398400,
   16776960,

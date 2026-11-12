@@ -134,9 +134,13 @@ type Projection struct {
 	CmdCasts  [2]uint8
 	CmdDamage [2][2]uint8
 	// Seats is a game of more than two seats' further seats (zero at two
-	// seats). It stays last: ProjectionHash drops it while it is zero, so a
-	// two-seat projection hashes as it did before it existed.
+	// seats). It stays last but Monarch: ProjectionHash drops it while it is
+	// zero, so a two-seat projection hashes as it did before it existed.
 	Seats SeatsProj
+	// Monarch is the monarch's seat + 1, 0 nobody (CR 725). It is the
+	// encoding's last byte: ProjectionHash drops it while it is zero, so a
+	// game with no monarch hashes as it did before it existed.
+	Monarch uint8
 }
 
 // SeatsProj is the per-seat state of seats 2 and up, and every seat's loss.
@@ -457,6 +461,9 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 	p.Initiative = -1
 	if g.HasInitiative {
 		p.Initiative = int8(g.Initiative)
+	}
+	if g.HasMonarch {
+		p.Monarch = uint8(g.Monarch) + 1 // CR 725
 	}
 	if n := len(g.Players); n > 2 {
 		p.Seats.NSeat = uint8(n)

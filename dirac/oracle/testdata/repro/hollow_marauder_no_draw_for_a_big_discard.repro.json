@@ -135,6 +135,8 @@
  "pass_elision": false,
  "max_turns": 14,
  "surface": "autopay",
+ "pool": "std-otj",
+ "why": "the same against an opponent whose discard has mana value 4 or more: the count less that discard is zero, and neither engine draws",
  "actions": [
   16776960,
   16776960,

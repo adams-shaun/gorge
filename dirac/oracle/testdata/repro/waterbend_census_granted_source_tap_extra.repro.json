@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 605.1b, 701.67a: Honest Work's Humble Merchant grant survives its lose-all abilities, so Badgermole Cub's tap extra makes the waterbend census incomplete and Foggy Swamp Vinebender's announcement offers Done",
  "actions": [
   16776960,
   16776960,

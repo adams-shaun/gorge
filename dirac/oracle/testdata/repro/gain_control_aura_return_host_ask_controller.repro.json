@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 303.4f: Meathook Massacre II returns Duskmourn's Domination under its controller, who is asked its host with the control already moved",
  "actions": [
   16776960,
   16776960,

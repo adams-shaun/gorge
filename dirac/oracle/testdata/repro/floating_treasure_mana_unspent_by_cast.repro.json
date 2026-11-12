@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-hob",
+ "pool": "std-hob",
+ "why": "CR 106.4, 601.2h: Smaug, Wicked Worm's \"mana from a Treasure was spent\" reads the mana the cast spent, not the Treasures tapped before it: three Treasures sacrificed at priority leave their {G} floating beside the Swamps' {B}, and Inside Information's {X}{B}{B} is paid from the plain {B} (a plain unit goes before a Treasure's).",
  "actions": [
   16776960,
   16776960,

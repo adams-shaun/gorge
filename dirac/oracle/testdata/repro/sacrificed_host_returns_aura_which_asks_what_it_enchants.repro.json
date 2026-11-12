@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-fin",
+ "why": "The Gold Saucer's cost sacrifices White Auracite, which sends Sleep Magic back: its controller's choice of what it enchants is asked inside the cost payment and the answer is kept, not dropped (CR 303.4f, 610.3)",
  "actions": [
   16776960,
   16776960,

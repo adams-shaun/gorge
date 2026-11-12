@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-woe",
+ "pool": "std-woe",
+ "why": "CR 106.6, 715.4: Troyan's {U} left over from Grove's Bounty floats restricted, so Elusive Otter ({U}, no {X}) is not cast from adventure exile with it",
  "actions": [
   184549120,
   184549120,

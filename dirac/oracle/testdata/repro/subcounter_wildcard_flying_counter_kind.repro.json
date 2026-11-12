@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 122.1b: Reaping Willow's remove-any-two-counters cost names a Flying counter by its own kind, not as a +1/+1 counter",
  "actions": [
   16776960,
   16776960,

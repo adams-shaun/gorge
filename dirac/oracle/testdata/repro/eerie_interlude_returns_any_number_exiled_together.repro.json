@@ -63,6 +63,9 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Eerie Interlude exiles any number of its controller's creatures and returns them together at the next end step",
+ "stall": true,
  "actions": [
   18415360,
   34012928,

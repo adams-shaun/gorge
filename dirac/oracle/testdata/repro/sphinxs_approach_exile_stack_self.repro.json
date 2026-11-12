@@ -115,6 +115,8 @@
  "pass_elision": false,
  "max_turns": 15,
  "surface": "autopay",
+ "pool": "std-fra",
+ "why": "Sphinx's Approach's unless cost exiles itself from the stack and four cards named Sphinx's Approach from the graveyard, then searches a Sphinx creature (CR 118.12a)",
  "actions": [
   16776960,
   16776960,

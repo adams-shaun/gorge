@@ -87,6 +87,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "CR 603.2e, 701.21a: Captain America, Living Legend's Taps FirstTime$ trigger untaps a creature's first tap this turn, and not its second",
  "actions": [
   18087680,
   19988224,

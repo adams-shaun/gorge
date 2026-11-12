@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 119.4, 603.3, 307.1: Haunted Screen's 1 life in Overlord of the Hauntwoods' granted-mana prefix stacks Marina Vendrell's Grimoire's trigger, so the prefix taps on and passes for it to resolve before the cast",
  "actions": [
   16776960,
   16776960,

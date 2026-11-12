@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Pyrewood Gearhulk enters: its trigger pumps the other creatures and makes damage unpreventable for the turn (an end-of-turn emblem)",
  "actions": [
   19398400,
   17432320,

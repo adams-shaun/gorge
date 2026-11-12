@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "CR 601.2g, 702.193b: Abomination re-entered this turn beside Hulk owes only {R/G}{R/G}, a charge gorge arms no plan for (no generic or coloured mana), so the manual window taps the first Forests in battlefield order",
  "actions": [
   184549120,
   184549120,

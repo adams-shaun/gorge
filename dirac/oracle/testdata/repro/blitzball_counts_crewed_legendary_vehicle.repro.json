@@ -94,7 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 30,
- "surface": "autopay",
+ "surface": "full",
+ "pool": "std-fin",
+ "why": "CR 510.2, 301.7b, 608.2h: Blitzball's \"dealt combat damage by a legendary creature\" reads the crewed Prima Vista as the creature it was",
  "actions": [
   16776960,
   16776960,

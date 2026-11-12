@@ -37,7 +37,7 @@
    "Plains",
    "Plains",
    "Purple Dragon Punks",
-   "Raph \u0026 Leo, Sibling Rivals",
+   "Raph & Leo, Sibling Rivals",
    "Raphael, the Nightwatcher",
    "Skateboard",
    "Triceraton Commander",
@@ -48,7 +48,7 @@
    "Uneasy Alliance"
   ],
   [
-   "Anchovy \u0026 Banana Pizza",
+   "Anchovy & Banana Pizza",
    "Armaggon, Future Shark",
    "Casey Jones, Vigilante",
    "Casey Jones, Vigilante",
@@ -82,8 +82,8 @@
    "Swamp",
    "Swamp",
    "Swamp",
-   "Tokka \u0026 Rahzar, Terrible Twos",
-   "Tokka \u0026 Rahzar, Terrible Twos",
+   "Tokka & Rahzar, Terrible Twos",
+   "Tokka & Rahzar, Terrible Twos",
    "Tunnel Rats",
    "Turtle Blimp",
    "Wingnut, Bat on the Belfry",
@@ -95,6 +95,8 @@
  "pass_elision": false,
  "surface": "autopay",
  "kernel": "synth std-tmt",
+ "pool": "std-tmt",
+ "why": "Casey Jones, Vigilante's enters trigger draws three and registers a delayed program: at its controller's next upkeep three cards are discarded at random (CR 603.7)",
  "actions": [
   16776960,
   16776960,
