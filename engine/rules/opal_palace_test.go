@@ -119,19 +119,6 @@ func activateOpalRider(t *testing.T, e *Engine, opal state.ObjID, colour string)
 	submitChoices(t, e, idx)
 }
 
-// opalCastCommander submits the command-zone cast option for id and drains
-// the stack, leaving the commander on the battlefield. It does not return the
-// commander to the command zone, so the caller can assert its counters first.
-func opalCastCommander(t *testing.T, e *Engine, id state.ObjID) {
-	t.Helper()
-	opt := commanderCastOption(e, id)
-	if opt == nil {
-		t.Fatalf("no command-zone cast option for commander %d: %+v", id, e.Pending().Options)
-	}
-	submitChoices(t, e, opt.Index)
-	passUntilStackEmpty(t, e, 30)
-}
-
 // TestOpalPalaceRiderCountsCommandZoneCasts is the reported-symptom pin. The
 // first command-zone cast is paid with ordinary (rider-less) mana, so the
 // commander enters with NO counters even though the command-zone count is
@@ -159,7 +146,7 @@ func TestOpalPalaceRiderCountsCommandZoneCasts(t *testing.T) {
 	// Cast 1: ordinary red mana (no rider). The commander enters with no
 	// counters; the count head is already 1 for this very cast.
 	addMana(t, e, 0, "R")
-	opalCastCommander(t, e, cmd)
+	castCommanderOnce(t, e, cmd)
 	o := e.G.Obj(cmd)
 	if o.Zone != state.ZBattlefield {
 		t.Fatalf("precondition: commander zone after cast 1 = %v, want the battlefield", o.Zone)
@@ -193,7 +180,7 @@ func TestOpalPalaceRiderCountsCommandZoneCasts(t *testing.T) {
 	} else if src := e.G.Players[0].RestrictedMana[0].Source; src != opal {
 		t.Fatalf("precondition: rider batch Source = %d, want Opal Palace %d", src, opal)
 	}
-	opalCastCommander(t, e, cmd)
+	castCommanderOnce(t, e, cmd)
 	o = e.G.Obj(cmd)
 	if o.Zone != state.ZBattlefield {
 		t.Fatalf("precondition: commander zone after cast 2 = %v, want the battlefield", o.Zone)
@@ -262,7 +249,7 @@ func TestOpalPalaceRiderScopesToTheCommittedCommanderSpend(t *testing.T) {
 		t.Fatalf("precondition: pool after the step end = %d, want 0", got)
 	}
 	addMana(t, e, 0, "R")
-	opalCastCommander(t, e, cmd)
+	castCommanderOnce(t, e, cmd)
 	o := e.G.Obj(cmd)
 	if o.Zone != state.ZBattlefield {
 		t.Fatalf("precondition: commander zone = %v, want the battlefield", o.Zone)

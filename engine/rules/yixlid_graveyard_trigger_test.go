@@ -44,17 +44,6 @@ func yixlidJailerPreconditions(t *testing.T) {
 	}
 }
 
-// runYixlidScenario runs one inline audit scenario and fails on any scenario
-// failure or replay diff.
-func runYixlidScenario(t *testing.T, sc string) {
-	t.Helper()
-	reg := testutil.CorpusRegistry(t)
-	res, err := RunOracleAuditScenarioJSON(reg, []byte(sc), true)
-	if err != nil || len(res.Fails) != 0 {
-		t.Fatalf("scenario: err=%v fails=%v", err, res.Fails)
-	}
-}
-
 // TestYixlidJailerStopsGraveyardToHandTrigger is the XMage
 // LoosingAbilitiesTest#testYixlidJailerAndPutIntoHandEffect row, folded onto
 // one player: Cemetery Recruitment returns the Brownscale, but Yixlid Jailer
@@ -64,7 +53,7 @@ func runYixlidScenario(t *testing.T, sc string) {
 func TestYixlidJailerStopsGraveyardToHandTrigger(t *testing.T) {
 	t.Parallel()
 	yixlidJailerPreconditions(t)
-	runYixlidScenario(t, `{"name":"yixlid-stops-brownscale","cr":["113.6","603.10a"],"why":"XMage LoosingAbilitiesTest#testYixlidJailerAndPutIntoHandEffect: under Yixlid Jailer the graveyard->hand trigger is gone","setup":{"p0":{"hand":["Cemetery Recruitment"],"battlefield":["Yixlid Jailer","Swamp","Swamp"],"graveyard":["Golgari Brownscale"]}},"steps":[{"op":"cast","seat":0,"card":"p0:Cemetery Recruitment","mana":"CB","targets":["p0:Golgari Brownscale"]},{"op":"resolve","seat":0}],"expect":[{"count":{"seat":0,"zone":"hand","name":"Golgari Brownscale"},"eq":1},{"life":{"p0":20}}]}`)
+	runForEachScenario(t, `{"name":"yixlid-stops-brownscale","cr":["113.6","603.10a"],"why":"XMage LoosingAbilitiesTest#testYixlidJailerAndPutIntoHandEffect: under Yixlid Jailer the graveyard->hand trigger is gone","setup":{"p0":{"hand":["Cemetery Recruitment"],"battlefield":["Yixlid Jailer","Swamp","Swamp"],"graveyard":["Golgari Brownscale"]}},"steps":[{"op":"cast","seat":0,"card":"p0:Cemetery Recruitment","mana":"CB","targets":["p0:Golgari Brownscale"]},{"op":"resolve","seat":0}],"expect":[{"count":{"seat":0,"zone":"hand","name":"Golgari Brownscale"},"eq":1},{"life":{"p0":20}}]}`)
 }
 
 // TestGolgariBrownscaleGraveyardToHandTrigger is the positive control: the
@@ -76,7 +65,7 @@ func TestYixlidJailerStopsGraveyardToHandTrigger(t *testing.T) {
 func TestGolgariBrownscaleGraveyardToHandTrigger(t *testing.T) {
 	t.Parallel()
 	yixlidJailerPreconditions(t)
-	runYixlidScenario(t, `{"name":"brownscale-gains-life","cr":["603.10a"],"why":"without the Jailer the graveyard->hand trigger fires","setup":{"p0":{"hand":["Cemetery Recruitment"],"battlefield":["Swamp","Swamp"],"graveyard":["Golgari Brownscale"]}},"steps":[{"op":"cast","seat":0,"card":"p0:Cemetery Recruitment","mana":"CB","targets":["p0:Golgari Brownscale"]},{"op":"resolve","seat":0}],"expect":[{"count":{"seat":0,"zone":"hand","name":"Golgari Brownscale"},"eq":1},{"life":{"p0":22}}]}`)
+	runForEachScenario(t, `{"name":"brownscale-gains-life","cr":["603.10a"],"why":"without the Jailer the graveyard->hand trigger fires","setup":{"p0":{"hand":["Cemetery Recruitment"],"battlefield":["Swamp","Swamp"],"graveyard":["Golgari Brownscale"]}},"steps":[{"op":"cast","seat":0,"card":"p0:Cemetery Recruitment","mana":"CB","targets":["p0:Golgari Brownscale"]},{"op":"resolve","seat":0}],"expect":[{"count":{"seat":0,"zone":"hand","name":"Golgari Brownscale"},"eq":1},{"life":{"p0":22}}]}`)
 }
 
 // TestUnscopedAbilityLossDoesNotReachGraveyard pins the zone-scope guard in
@@ -102,7 +91,7 @@ func TestUnscopedAbilityLossDoesNotReachGraveyard(t *testing.T) {
 	if !unscoped {
 		t.Fatal("precondition: Humility carries no unscoped RemoveAllAbilities$ static")
 	}
-	runYixlidScenario(t, `{"name":"humility-spares-graveyard","cr":["109.2","113.6"],"why":"an unscoped ability-loss static reaches only battlefield permanents, so the graveyard->hand trigger still fires","setup":{"p0":{"hand":["Cemetery Recruitment"],"battlefield":["Humility","Swamp","Swamp"],"graveyard":["Golgari Brownscale"]}},"steps":[{"op":"cast","seat":0,"card":"p0:Cemetery Recruitment","mana":"CB","targets":["p0:Golgari Brownscale"]},{"op":"resolve","seat":0}],"expect":[{"count":{"seat":0,"zone":"hand","name":"Golgari Brownscale"},"eq":1},{"life":{"p0":22}}]}`)
+	runForEachScenario(t, `{"name":"humility-spares-graveyard","cr":["109.2","113.6"],"why":"an unscoped ability-loss static reaches only battlefield permanents, so the graveyard->hand trigger still fires","setup":{"p0":{"hand":["Cemetery Recruitment"],"battlefield":["Humility","Swamp","Swamp"],"graveyard":["Golgari Brownscale"]}},"steps":[{"op":"cast","seat":0,"card":"p0:Cemetery Recruitment","mana":"CB","targets":["p0:Golgari Brownscale"]},{"op":"resolve","seat":0}],"expect":[{"count":{"seat":0,"zone":"hand","name":"Golgari Brownscale"},"eq":1},{"life":{"p0":22}}]}`)
 }
 
 // TestYixlidJailerKeepsObserverGraveyardTrigger pins the id == ev.Obj guard at
@@ -114,5 +103,5 @@ func TestUnscopedAbilityLossDoesNotReachGraveyard(t *testing.T) {
 func TestYixlidJailerKeepsObserverGraveyardTrigger(t *testing.T) {
 	t.Parallel()
 	yixlidJailerPreconditions(t)
-	runYixlidScenario(t, `{"name":"yixlid-keeps-kishla","cr":["113.6","603.10a"],"why":"the observer's own trigger is not suppressed by the moved card's ability loss","setup":{"p0":{"hand":["Cemetery Recruitment"],"battlefield":["Kishla Skimmer","Yixlid Jailer","Swamp","Swamp"],"graveyard":["Golgari Brownscale"],"library_top":["Grizzly Bears","Silvercoat Lion"]}},"steps":[{"op":"cast","seat":0,"card":"p0:Cemetery Recruitment","mana":"CB","targets":["p0:Golgari Brownscale"]},{"op":"resolve","seat":0}],"expect":[{"count":{"seat":0,"zone":"hand","name":"Golgari Brownscale"},"eq":1},{"count":{"seat":0,"zone":"hand","name":"Grizzly Bears"},"eq":1}]}`)
+	runForEachScenario(t, `{"name":"yixlid-keeps-kishla","cr":["113.6","603.10a"],"why":"the observer's own trigger is not suppressed by the moved card's ability loss","setup":{"p0":{"hand":["Cemetery Recruitment"],"battlefield":["Kishla Skimmer","Yixlid Jailer","Swamp","Swamp"],"graveyard":["Golgari Brownscale"],"library_top":["Grizzly Bears","Silvercoat Lion"]}},"steps":[{"op":"cast","seat":0,"card":"p0:Cemetery Recruitment","mana":"CB","targets":["p0:Golgari Brownscale"]},{"op":"resolve","seat":0}],"expect":[{"count":{"seat":0,"zone":"hand","name":"Golgari Brownscale"},"eq":1},{"count":{"seat":0,"zone":"hand","name":"Grizzly Bears"},"eq":1}]}`)
 }

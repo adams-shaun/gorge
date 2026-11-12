@@ -517,3 +517,63 @@ func submitBlockerPairsOnly(t *testing.T, e *Engine, pairs ...[2]state.ObjID) {
 		t.Fatalf("submit blocker pairs: %v", err)
 	}
 }
+
+// castCommanderOnce casts id from the command zone and drains the stack, but
+// does NOT return it to the command zone. Used only by the replay test, where
+// every event must be produced by the recorded Intents alone (a fixture
+// MoveZone back would not replay).
+func castCommanderOnce(t *testing.T, e *Engine, id state.ObjID) {
+	t.Helper()
+	opt := commanderCastOption(e, id)
+	if opt == nil {
+		t.Fatalf("no command-zone cast option for commander %d: %+v", id, e.Pending().Options)
+	}
+	submitChoices(t, e, opt.Index)
+	passUntilStackEmpty(t, e, 30)
+}
+
+// counterN returns the number of `kind` counters on o.
+func counterN(o *state.Object, kind string) int {
+	for i := range o.Counters {
+		if o.Counters[i].Kind == kind {
+			return int(o.Counters[i].N)
+		}
+	}
+	return 0
+}
+
+// handByName returns seat p's card named name, moving it from the library
+// into the hand when it was not drawn.
+func handByName(t *testing.T, e *Engine, p state.PlayerID, name string) state.ObjID {
+	t.Helper()
+	for _, id := range e.G.Zone(state.ZHand, p) {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
+			return id
+		}
+	}
+	return moveByName(t, e, p, name, state.ZHand)
+}
+
+// runForEachScenario runs one inline XMage-port scenario and requires a clean
+// audit: no fails and an empty replay diff.
+func runForEachScenario(t *testing.T, sc string) {
+	t.Helper()
+	reg := testutil.CorpusRegistry(t)
+	res, err := RunOracleAuditScenarioJSON(reg, []byte(sc), true)
+	if err != nil || len(res.Fails) != 0 {
+		t.Fatalf("scenario: err=%v fails=%v", err, res.Fails)
+	}
+}
+
+// These tests pin the registered DB$ CopyPermanent primitive, on
+// real corpus cards, end to end. Every one asserts there is no
+// "unimplemented API CopyPermanent" note anywhere in the log, and that the
+// whole game replays byte-identically from its log.
+func noUnimplementedCopyPermanent(t *testing.T, e *Engine) {
+	t.Helper()
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "unimplemented API") {
+			t.Fatalf("log carries an unimplemented-API note: %q", ev.Text)
+		}
+	}
+}

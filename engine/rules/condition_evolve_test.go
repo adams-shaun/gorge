@@ -106,7 +106,7 @@ func TestSharpEyedRookieEvolvesOnlyForABiggerCreature(t *testing.T) {
 	if n := clueTokenCount(e); n != 1 {
 		t.Fatalf("Sharp-Eyed Rookie clues = %d after evolving, want 1", n)
 	}
-	noUnimplementedAPI(t, e)
+	noUnimplementedCopyPermanent(t, e)
 	replayCheck(t, e, cfg)
 }
 
@@ -163,7 +163,7 @@ func TestEvolvingAdaptiveEvolvesOnlyForABiggerCreature(t *testing.T) {
 	if got := e.G.Obj(adaptive).Counter("OIL"); got != 2 {
 		t.Fatalf("Evolving Adaptive oil counters = %d after a bigger creature entered, want 2", got)
 	}
-	noUnimplementedAPI(t, e)
+	noUnimplementedCopyPermanent(t, e)
 	replayCheck(t, e, cfg)
 }
 
