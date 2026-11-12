@@ -10,7 +10,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //   - the card a one-card looking Peek just remembered, moved from the library
 //     to the battlefield (Into the Wilds): kop.MayGuardMoveRemembered, gorge's
 //     Defined$ library fetch, which asks once while the remembered set holds
-//     an object and never for an empty one.
+//     an object and never for an empty one; or
+//   - the card the Dig just remembered, exiled, then optionally put onto the
+//     battlefield (Primal Surge): the same guard. The move carries
+//     MvForgetOther, so the kernel also forgets the set on a declined ask,
+//     as gorge's forgetOther does before the confirmation.
 //
 // Another object set or origin has its own skip rules (changeZoneMoveSkip,
 // sourceReturnedSincePush, a player target) and stays refused.
@@ -23,6 +27,13 @@ func (lc *lowerCtx) optionalMoveShape(obj lRef, origin int, in lInstr, override 
 		return kop.MayGuardMove, true
 	case obj.Kind == rRemembered && origin == zLibrary && in.Op == "Return" && in.C == zBattlefield && in.CS == "from=Library":
 		return kop.MayGuardMoveRemembered, lc.afterOneCardPeek()
+	case obj.Kind == rRemembered && origin == zExile && in.Op == "Return" && in.C == zBattlefield && in.CS == "Remember|ForgetOther|from=Exile":
+		return kop.MayGuardMoveRemembered, true
+	case obj.Kind == rImprinted && origin == zExile && in.Op == "Bounce" && in.C == 0 && in.CS == "from=Exile":
+		// "you may put that card into your hand" over the card the Dig just
+		// imprinted (Tainted Pact): the guard is the chosen object's
+		// existence where it now lies, as the library Peek's arm
+		return kop.MayGuardMoveRemembered, true
 	}
 	return 0, false
 }

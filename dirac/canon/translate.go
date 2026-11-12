@@ -186,6 +186,12 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ := CastModeCode("dashed")
 			return Pack(ActCast, src, RefNone, cm)
 		}
+		if mode == 0 && tgt == 5 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
+			// the overloaded cast (CR 702.96a; kernel kw_overload.go
+			// castOverloadTgt): gorge's "overloaded" cast option, AltCostIndex
+			// 0; the 16-entry cast-mode table is full, so CastModeOther
+			return Pack(ActCast, src, RefNone, CastModeOther)
+		}
 		var cm uint8
 		switch {
 		case mode == 0 && tgt == 1 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand:
@@ -208,6 +214,13 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ = CastModeCode("mayhem") // CR 702.187a: CastModeOther, as "harmonize"
 		case mode&2 != 0 && r.S.FeatHarmonizeCast(dirac.Obj(src)):
 			cm, _ = CastModeCode("harmonize") // CR 702.180a: CastModeOther, as "bargained"
+		case mode&2 != 0 && tgt == dirac.FeatRetraceTgt && r.S.FeatRetraceCard(dirac.Obj(src)):
+			// the retrace cast (CR 702.81a; kw_retrace.go): the printed cost
+			// plus the discard-a-land additional cost; gorge's "retrace"
+			// option, CastModeOther as "harmonize". The target byte
+			// separates it from a granted flashback instance of the same
+			// card, which stays the plain mode-2 cast below.
+			cm, _ = CastModeCode("retrace")
 		case mode&2 != 0 && tgt != 0:
 			cm, _ = CastModeCode("beam_me_up") // CastModeOther, as "harmonize"
 			if tgt == dirac.FeatBeamGrantTgt && r.S.FeatBeamPrinted(dirac.Obj(src)) {

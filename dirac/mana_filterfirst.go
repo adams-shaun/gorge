@@ -57,6 +57,9 @@ func (g *genPrep) prepFiltFirst(c CardID, j int, a *kop.Ability) {
 	if _, pip := pipFilt(a); pip {
 		g.anyFiltPip = true
 	}
+	if kop.FeeOnlyManaAb(a) {
+		g.anyFiltRepeat = true
+	}
 }
 
 // filtAb is the filter ability of the card at sl.
@@ -87,6 +90,9 @@ func (s *State) filtUsable(k *prep, sl Slot) bool {
 	if a := s.filtAb(k, sl); a.Cost.Flags&kop.CostOncePerGame != 0 && s.onceBlocked(k, sl, a) {
 		return false
 	}
+	if s.filtRepeat(k, sl) {
+		return true // no {T}, no limit: always (mana_filterrepeat.go)
+	}
 	pm := &s.perms[sl]
 	if s.filtNoTap(k, sl) {
 		return DebugFiltFirstNoLimit || pm.actUsed&(1<<uint(k.gen.filt(s.cardAt(sl)))) == 0
@@ -102,12 +108,20 @@ func (s *State) filtUsable(k *prep, sl Slot) bool {
 func (s *State) filtFirstMask(k *prep, p uint8) slotMask {
 	var m slotMask
 	other := -1
+	var pot avail
+	havePot := false
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
 		if !k.gen.has(s.cardAt(sl), gfFilt) || !s.filtUsable(k, sl) {
 			continue
 		}
-		if s.filtFirstOnly(k, sl) {
+		if s.filtRepeat(k, sl) {
+			// gorge prices membership against the whole potential pool, which
+			// an admitted any-colour fee-only source makes open
+			if !s.filtRepeatPotential(k, p, sl, &pot, &havePot) {
+				continue
+			}
+		} else if s.filtFirstOnly(k, sl) {
 			if other < 0 {
 				other = s.filtOtherMana(k, p)
 			}
@@ -202,6 +216,10 @@ func (s *State) windowFiltFirstFallback(k *prep, p uint8, sl Slot, useful *kop.M
 		c := s.fork()
 		pool := &c.pl[SeatIx(p)].pool
 		fee := s.filtFee(k, sl)
+		if col, ok := s.filtRepeatPip(k, sl); ok {
+			c.filtPayPip(k, p, sl, col) // the pip first, as filtDo
+			fee--
+		}
 		fee -= c.filtFeeRestr(k, p, sl, fee) // filtDo's fee: restricted batches first
 		for _, col := range [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G} {
 			for fee > 0 && pool[col] > 0 {
@@ -220,6 +238,10 @@ func (s *State) windowFiltFirstFallback(k *prep, p uint8, sl Slot, useful *kop.M
 
 // filtUse spends the filter at sl: its {T}, or its use this turn.
 func (s *State) filtUse(k *prep, sl Slot) {
+	if s.filtRepeat(k, sl) {
+		s.touchSl(sl) // repeatable: nothing marks a use (mana_filterrepeat.go)
+		return
+	}
 	if s.filtNoTap(k, sl) {
 		s.perms[sl].actUsed |= 1 << uint(k.gen.filt(s.cardAt(sl)))
 	} else {

@@ -11,8 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Fix-round regression pins for the AddsCounters$ mana-spend rider (task
-// opalp), answering the two MAJORs on the previous round:
+// Fix-round regression pins for the AddsCounters$ mana-spend rider, answering the two MAJORs on the previous round:
 //
 //  1. The captured provenance deduplicated by SOURCE, so two rider mana units
 //     spent from one permanent yielded one grant. The capture is now per

@@ -83,6 +83,6 @@ func (s *State) offerMayFlashHand(k *prep, d *Decision, p uint8, o Obj, c CardID
 //
 //go:noinline
 func (s *State) beginMayFlash(k *prep, o Obj) {
-	s.beginCast(k, o, castFace)
+	s.beginCast(k, o, castFace, 0)
 	s.bld().e.trigPl = trigPlMayFlash
 }

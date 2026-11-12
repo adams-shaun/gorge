@@ -87,16 +87,6 @@ func viviPass(t *testing.T, e *Engine) {
 	t.Fatalf("priority without a pass option: %+v", d.Options)
 }
 
-// viviPick returns the option index whose Kind matches kind (first match).
-func viviPick(d *decision.Decision, kind string) int {
-	for _, o := range d.Options {
-		if o.Kind == kind {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 // viviOption returns the option whose Kind is kind and (when obj != 0) whose
 // Obj is obj — except for the player kind, where the option carries the seat
 // in .Player (Obj is always 0 for a player option).

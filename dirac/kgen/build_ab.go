@@ -808,6 +808,13 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		if err := cb.mana(a.Mana, &ka); err != nil {
 			return ka, err
 		}
+		if a.Kind == akMana && a.Cost.SubCtrX && ka.Cost.Flags&kop.CostLoyaltyX != 0 &&
+			ka.AFlags&kop.AfManaDynamic != 0 && ka.ManaV.K == kop.VX {
+			// Amount$ X on a SubCounter<X/KIND> mana ability is the number
+			// of counters removed (CR 107.3, 118.3): the kernel's script
+			// gap reads it off the source (mana_countercost.go).
+			ka.ManaV = kop.ValueRef{K: kop.VCountersSelf, N: int16(ka.Cost.Ctr)}
+		}
 	}
 	if a.Trigger != nil {
 		if a.Trigger.OncePer && (a.Latent || a.Trigger.Zone == zCommand) && a.Trigger.Event != "CounterAddedOnce" {
@@ -1098,11 +1105,12 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"DamageDealtOnce": kop.TrigDamageDealtOnce, "Drawn": kop.TrigDrawn, "Discarded": kop.TrigDiscarded, "DiscardedAll": kop.TrigDiscardedAll, "AbilityCast": kop.TrigAbilityCast, "Scry": kop.TrigScry, "Surveil": kop.TrigSurveil, "Explores": kop.TrigExplores, "CollectEvidence": kop.TrigCollectEvidence,
 	"LandPlayed": kop.TrigLandPlayed, "SearchedLibrary": kop.TrigSearchedLibrary, "Forage": kop.TrigForage, "Discover": kop.TrigDiscover, "ManifestDread": kop.TrigManifestDread,
 	"CounterAddedOnce": kop.TrigCounterAddedOnce, "CounterAdded": kop.TrigCounterAddedOnce, "Untaps": kop.TrigUntaps,
-	"Sacrificed": kop.TrigSacrificed, "GiveGift": kop.TrigGiveGift, "Proliferate": kop.TrigProliferate, "FacesDilemma": kop.TrigFacesDilemma, "TokenCreated": kop.TrigTokenCreated, "BecomeMonstrous": kop.TrigBecomeMonstrous, "ManaExpend": kop.TrigManaExpend, "AttackerBlocked": kop.TrigBecomesBlocked, "TurnFaceUp": kop.TrigTurnFaceUp, "Transformed": kop.TrigTransformed, "CommitCrime": kop.TrigCommitCrime, "UnlockDoor": kop.TrigUnlockDoor, "FullyUnlock": kop.TrigFullyUnlock,
+	"Sacrificed": kop.TrigSacrificed, "GiveGift": kop.TrigGiveGift, "Proliferate": kop.TrigProliferate, "FacesDilemma": kop.TrigFacesDilemma, "BecomeMonarch": kop.TrigBecomeMonarch, "TokenCreated": kop.TrigTokenCreated, "BecomeMonstrous": kop.TrigBecomeMonstrous, "ManaExpend": kop.TrigManaExpend, "AttackerBlocked": kop.TrigBecomesBlocked, "TurnFaceUp": kop.TrigTurnFaceUp, "Transformed": kop.TrigTransformed, "CommitCrime": kop.TrigCommitCrime, "UnlockDoor": kop.TrigUnlockDoor, "FullyUnlock": kop.TrigFullyUnlock,
 	"BecomesTarget":    kop.TrigBecomesTarget,    // the Valiant, watcher and self shapes (lower_trigger.go)
 	"ClassLevelGained": kop.TrigCounterAddedOnce, // N = CtrLevel (lower_class.go)
 	"BecomesPlotted":   kop.TrigBecomesPlotted,   // the card's own
 	"BecomesSaddled":   kop.TrigBecomesSaddled,
+	"Evolved":          kop.TrigEvolved,  // the source's own, after its evolve counter lands
 	"Attached":         kop.TrigAttached} // the attachment's own, Creature bearer (Assimilation Aegis) // the Mount's own
 
 func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
@@ -1246,8 +1254,8 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	if t.Event == "AbilityCast" {
 		kt.N = t.AbClass
 	}
-	if t.Event == "LandPlayed" || t.Event == "Leaves" {
-		kt.N = t.N // Leaves: the destination mask
+	if t.Event == "LandPlayed" || t.Event == "Leaves" || t.Event == "BecomeMonarch" {
+		kt.N = t.N // Leaves: the destination mask; BecomeMonarch: kop.TrigNMonarchBeganTurn
 	}
 	switch t.Combat {
 	case 1:
@@ -1350,6 +1358,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		if t.Attacked&atkOpp != 0 {
 			kt.Flags2 |= kop.Tf2AtkOpp
 		}
+	}
+	if t.PerCounter {
+		if t.Event != "CounterAdded" {
+			return kt, fmt.Errorf("PerCounter on a %s trigger", t.Event)
+		}
+		kt.Flags4 |= kop.Tf4PerCounter
 	}
 	if t.Evolve {
 		if t.Event != "ETB" {
@@ -2115,6 +2129,24 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+	case "CantAttackUnless":
+		st.Kind = kop.StatAttackTax // lower_attacktax.go
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		if err := amounts(s.Amount, lValue{}); err != nil {
+			return ka, nil, err
+		}
+		for _, fl := range s.Flags {
+			switch fl {
+			case "TaxPlayer":
+				st.StFlags |= kop.StAtkTaxPlayer
+			case "TaxWalker":
+				st.StFlags |= kop.StAtkTaxWalker
+			default:
+				return ka, nil, fmt.Errorf("CantAttackUnless flag %q", fl)
+			}
+		}
 	case "CanAttackDefender":
 		st.Kind = kop.StatCanAttackDefender
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -2196,6 +2228,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		default:
 			return ka, nil, fmt.Errorf("PlayerHexproof amount %v", s.Amount)
 		}
+	case "PlayerProtAll":
+		st.Kind = kop.StatPlayerProtAll // the controller has protection from everything (static_plprot.go)
 	case "MayPlayFrom":
 		st.Kind = kop.StatMayPlayFrom
 		st.Zone = zoneMap[s.Zone]
@@ -3971,6 +4005,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "SkipPhase":
 		// OpExt ExtSkipPhase, Obj the skipping player (dirac/act_skipphase.go)
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtSkipPhase))
+	case "BecomeMonarch":
+		// OpExt ExtBecomeMonarch, Obj the player (dirac/act_monarch.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtBecomeMonarch))
 	case "PlotGrant":
 		// (Kellan Joins Up) OpExt ExtPlotGrant, Obj the
 		// Remembered ref
@@ -4717,6 +4754,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
+	case "RememberImprinted":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRememberImprinted)) // Tainted Pact
 	case "AddTurn":
 		ki.Op = kop.OpAddTurn
 	case "EndTurn":

@@ -9,8 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The generic activation gate's Activation$ read (task
-// inbox-paramcensus-final-stragglers, Sea Gate Wreckage entry). An AB$
+// The generic activation gate's Activation$ read (Sea Gate Wreckage entry). An AB$
 // carrying Activation$ <condition> is offered only while the ACTIVATOR
 // meets the condition -- Forge's SpellAbilityCondition keyword half. The
 // gate lives in the shared offer machinery (engine/rules/legal.go's

@@ -579,6 +579,12 @@ func (s *State) condEval(k *prep, id kop.CondID, ctx evalCtx) bool {
 		r = s.promisedCtx(ctx)
 	case kop.CondAnd:
 		r = s.condEval(k, c.Sub[0], ctx) && s.condEval(k, c.Sub[1], ctx)
+	case kop.CondEchoOwed:
+		r = ctx.srcSl != NoSlot && s.mSl(k, mechEchoOwed, ctx.srcSl) // trig_echo.go
+	case kop.CondSourceZone:
+		// the source object itself is in Zone now: gorge's intervening-if for
+		// IsPresent$ Card.StrictlySelf | PresentZone$, re-checked at resolution
+		r = ctx.src != NoObj && s.objs[ctx.src].zone == c.Zone
 	default:
 		panic("kernel: condition kind not implemented")
 	}
@@ -646,6 +652,14 @@ func (s *State) countRefMatchesN(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx
 		n := 0
 		for i := 0; i < int(s.g.nimp); i++ {
 			n += one(s.g.imp[i])
+		}
+		return n
+	case kop.RefChosen:
+		// a DigUntil ImprintFound$ accumulates the found cards in the
+		// chosen set (digImprintFound); Imprinted$Amount reads it
+		n := 0
+		for i := 0; i < int(s.g.nchosen); i++ {
+			n += one(s.g.chosen[i])
 		}
 		return n
 	case kop.RefRemembered:

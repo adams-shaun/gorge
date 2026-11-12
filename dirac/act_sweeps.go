@@ -44,8 +44,16 @@ func (s *State) putCounterAll(k *prep, in *kop.Instr) {
 	if in.B.N == kop.PutCtrCellFirst {
 		s.g.ctrCell = slotMask{}
 	}
+	var placed [MaxPerm]Slot
+	nplaced := 0
 	for _, sl := range ord[:cnt] {
 		m := s.placeCounters(k, sl, int(in.C), n, s.perms[sl].ctrl, ctrPutEffect)
+		if m > 0 {
+			// RememberPut$ names the recipients whose counter actually landed,
+			// after replacements (gorge rememberPlaced over the placed list).
+			placed[nplaced] = sl
+			nplaced++
+		}
 		if m > 0 && k.anyCtrAdded {
 			s.ctrNote(k, sl, int(in.C))
 		}
@@ -56,6 +64,11 @@ func (s *State) putCounterAll(k *prep, in *kop.Instr) {
 			s.fireCounterCell(k, sl, m) // trig_countercell.go
 		} else if m > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
 			s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(m))
+		}
+	}
+	if in.B.N == kop.PutCtrRememberPut && !DebugRemPutNever {
+		for _, sl := range placed[:nplaced] {
+			s.remember(s.perms[sl].obj)
 		}
 	}
 }

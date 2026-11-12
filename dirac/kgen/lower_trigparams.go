@@ -24,17 +24,25 @@ func (lc *lowerCtx) resolvedLimit(tr *lTrigger, rl, zone string) error {
 }
 
 // readEvolveCondition reads this family's trigger parameters. Condition$ Evolve
-// (CR 702.99a written as a bare trigger condition; gorge trigger_match.go
-// evolveConditionHolds): an ETB trigger fires only when the entering
+// (CR 702.100a written as a bare trigger condition; gorge trigger_match.go
+// evolveConditionHolds) and Evolve$ True (K:Evolve's expansion, gorge
+// kwEvolve; trigmatch zone.go): an ETB trigger fires only when the entering
 // creature's power or toughness is greater than the source's, read as it
-// fires only (gorge has no resolution-time recheck). Any other Condition$
-// is left unread (refused by the caller).
+// fires and again as it resolves (CR 603.4, gorge evolveResolves). Any other
+// Condition$ or Evolve$ value is left unread (refused by the caller).
 func (lc *lowerCtx) readEvolveCondition(tp *params, tr *lTrigger) error {
 	if c, ok := tp.get("Condition"); ok && strings.TrimSpace(c) == "Evolve" {
 		if tr.Event != "ETB" {
 			return refuse("Condition$ Evolve on a %s trigger", tr.Event)
 		}
 		tp.consume("Condition")
+		tr.Evolve = true
+	}
+	if v, ok := tp.get("Evolve"); ok && strings.TrimSpace(v) == "True" {
+		if tr.Event != "ETB" {
+			return refuse("Evolve$ on a %s trigger", tr.Event)
+		}
+		tp.consume("Evolve")
 		tr.Evolve = true
 	}
 	return nil

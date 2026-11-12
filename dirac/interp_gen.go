@@ -18,7 +18,7 @@ const (
 	raGenSearch               // OpSearchEx / OpChooseMove: a card or done
 	raGenDig                  // OpDigEx: a looked-at card or done
 	raGenPileSplit            // OpTwoPiles: a card for the face-down pile, or done
-	raGenPileChoose           // OpTwoPiles: the opponent picks a pile
+	raGenPileChoose           // OpTwoPiles: the chooser picks a pile
 	raGenChooseEach           // OpChooseEachType: a permanent of the type being asked
 	raGenCastFree             // OpCastFree: a card to cast, or done
 	raGenChooseCard           // OpChooseCard
@@ -576,16 +576,17 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		s.res.ask, s.res.askP = raGenResTarget, e.ctrl
 		return false, true
 	case kop.OpTwoPiles:
-		if s.g.nrem == 0 {
+		if s.g.nrem == 0 || s.pilesTooWide() {
 			break
 		}
+		sep, chooser := s.pilesSeats(in, e.ctrl) // act_twopiles.go
 		s.g.lookSel = 0
-		s.res.ask, s.res.askP = raGenPileSplit, e.ctrl
+		s.res.ask, s.res.askP = raGenPileSplit, sep
 		if s.g.nrem == 1 {
 			// gorge poses no split for a one-card set: pile A is the card
-			// (effects/twopiles.go), the opponent still picks (pair 1004)
+			// (effects/twopiles.go), the chooser still picks (pair 1004)
 			s.g.lookSel, s.resArm().pileOrd[0] = 1, 0
-			s.res.ask, s.res.askP = raGenPileChoose, s.nextAlive(e.ctrl) // the first opponent (twoPilesPlayer)
+			s.res.ask, s.res.askP = raGenPileChoose, chooser
 		}
 		s.g.pickZ = uint8(in.C)
 		return false, true
@@ -833,7 +834,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpClearChosen:
 		s.g.nchosen = 0
 	case kop.OpDoubleCounters:
-		if sl := s.objRef(k, in.Obj); sl != NoSlot {
+		if in.Obj == kop.RefRemembered && s.g.nrem > 1 {
+			s.doubleCountersRemembered(k, in)
+		} else if sl := s.objRef(k, in.Obj); sl != NoSlot {
 			s.doubleCountersAt(k, sl, in.C)
 		}
 	case kop.OpRemoveCounterRem:
@@ -2138,6 +2141,7 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 			t := s.newToken(c, e.ctrl)
 			s.objs[t].of |= ofCopy
 			s.copyTokenEnter(k, in, t, NoSlot, nil)
+			s.res.lastTok = t // the copy a following RefLastCreated op reads (Encore's attack duty)
 		}
 		return false
 	}
@@ -2176,6 +2180,7 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 		t := s.newToken(c, e.ctrl)
 		s.objs[t].of |= ofCopy
 		s.copyTokenEnter(k, in, t, host, &eb)
+		s.res.lastTok = t // the copy a following RefLastCreated op reads (Encore's attack duty)
 	}
 	return false
 }

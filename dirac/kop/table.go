@@ -405,6 +405,16 @@ type CardDef struct {
 	// returns a creature you control to its owner's hand (FbCost), then exiles
 	// the spell (dirac/kw_beammeup.go).
 	BeamMeUp bool
+	// Retrace is printed K:Retrace (CR 702.81a; false = none): a graveyard
+	// cast paying the PRINTED cost (never a substitution) plus the additional
+	// RetraceCost, a discard of one land card (CostDiscardFiltered); the
+	// spell rests in its owner's graveyard on resolution (no sfFlashback
+	// exile; beginCast marks the mode-2 retrace cast's entry trigPlRetrace,
+	// and a copy never carries the mark, CR 707.10). Never set with
+	// Flashback, Harmonize, Mayhem, BeamMeUp, Convoke, Improvise, Delve or a
+	// spell additional cost (kgen refuses them; no corpus card carries one).
+	Retrace     bool
+	RetraceCost Cost
 	// MorphCost is the turn-face-up cost of a printed Morph, Megamorph or
 	// Disguise keyword (CR 702.37e, 702.168c, 702.169b; zero with
 	// MorphFamily 0). MorphFamily says which (CardDef.Face*Family).
@@ -473,6 +483,17 @@ type CardDef struct {
 	HasDash bool
 	// DashCost is the printed dash cost (HasDash).
 	DashCost ManaCost
+	// HasOverload is printed overload (CR 702.96a; no KwMask bit is free):
+	// the hand offers the overloaded cast at OverloadCost, and the resolving
+	// spell runs OverloadProg, the "each" variant of its printed program
+	// (dirac/kw_overload.go).
+	HasOverload bool
+	// OverloadCost is the printed overload cost (HasOverload).
+	OverloadCost ManaCost
+	// OverloadProg is the overloaded cast's program (CR 702.96a): the
+	// printed spell's targeted instructions rewritten to their each-sweeps.
+	// Nil when the card cannot be modelled in bounded code.
+	OverloadProg []Instr
 	// HasBestow is printed bestow (CR 702.103; no KwMask bit is free): the
 	// hand offers the bestowed cast (AkBestow) at BestowCost; the spell is
 	// an Aura with enchant creature (BestowTgt) and the permanent an Aura,

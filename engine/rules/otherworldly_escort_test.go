@@ -9,8 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Otherworldly Escort's death trigger (StaticEffect$ Animate, task
-// static-effect) pinned end to end: the card returns with its four charge
+// Otherworldly Escort's death trigger (StaticEffect$ Animate) pinned end to end: the card returns with its four charge
 // counters AND the named Continuous static registered as a real layer effect
 // -- the returned permanent derives as a [Creature Spirit Detective], the
 // Human subtype stripped (RemoveCreatureTypes$ True) before the grant's own

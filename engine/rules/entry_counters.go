@@ -760,7 +760,7 @@ func (e *Engine) entryGrantPlan(ev events.Event, preview *Engine, entrant state.
 	for _, g := range e.entryCounterGrants(&ev) {
 		grants = append(grants, entryGrant{kind: g.Kind, amount: g.Amount})
 	}
-	// AddsCounters$ mana-spend rider (task opalp): the cast's consuming sources,
+	// AddsCounters$ mana-spend rider: the cast's consuming sources,
 	// re-read at entry. Read on e (the origin-zone object carries the links),
 	// before the body grants so the placement order is deterministic.
 	grants = append(grants, e.entryRiderGrants(entrant)...)

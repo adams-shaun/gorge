@@ -13,8 +13,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// xMinAbilityParam is the ONE parse of an ability's XMin$ parameter (task
-// cost:xmin-param): a positive integer is the SA's own announcement floor for
+// xMinAbilityParam is the ONE parse of an ability's XMin$ parameter: a positive integer is the SA's own announcement floor for
 // the shared X; anything else (absent, non-numeric, zero, negative) binds
 // nothing, exactly as the cost-embedded XMin<N> token fallback does not
 // invent a floor. Both floor readers go through it -- xAsk for the option
@@ -115,19 +114,15 @@ func (e *Engine) xAsk() bool {
 			e.abortCast(pc, "announce cost no longer payable; cast aborted", true)
 			return true
 		}
-		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
-			Prompt: "Choose a value for X", Source: pc.card}
-		for _, x := range vals {
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "x",
-				Label: fmt.Sprintf("X = %d", x), Amount: int(x)})
-		}
-		e.choosing = chooseCast
-		e.ask(d)
+		e.askXChoice(pc, vals)
 		return true
 	}
 	// An X bound by a group exile part's withTotal*EQX (Fabrication
 	// Foundry) is announced from the totals the election can reach.
 	if e.groupAnnounceXAsk(pc) {
+		return true
+	}
+	if e.announceSacXAsk(pc) {
 		return true
 	}
 	// A PayEnergy<X> part announces the same X the cast pays with (CR
@@ -189,7 +184,7 @@ func (e *Engine) xAsk() bool {
 	if pc.suspendTimeX && pc.suspendMinX > min {
 		min = pc.suspendMinX
 	}
-	// The active ability's own XMin$ parameter (task cost:xmin-param): an
+	// The active ability's own XMin$ parameter: an
 	// activated ability whose parameters announce a floor for the shared X
 	// (Jetfire, Rasputin, Radiant Lotus, Corpseweft all carry XMin$ 1 beside
 	// an announced X cost part). It folds by MAXIMUM with the cost-embedded

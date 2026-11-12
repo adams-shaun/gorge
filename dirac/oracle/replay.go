@@ -116,6 +116,9 @@ func ProjectionHash(p *Projection) uint64 {
 	var buf bytes.Buffer
 	_ = binary.Write(&buf, binary.LittleEndian, p)
 	b := buf.Bytes()
+	// the trailing Monarch byte is set aside, so the fields before it trim
+	// as they did before it existed, and comes back only when there is one
+	b = b[:len(b)-1]
 	if p.Seats == (SeatsProj{}) {
 		// a two-seat game hashes as it did before the further seats existed
 		// (they are the encoding's last bytes)
@@ -125,6 +128,9 @@ func ProjectionHash(p *Projection) uint64 {
 		// a game with no commander bookkeeping hashes as it did before the
 		// fields existed (they are the encoding's last bytes)
 		b = b[:len(b)-cmdProjBytes]
+	}
+	if p.Monarch != 0 {
+		b = append(b, p.Monarch)
 	}
 	h := fnv.New64a()
 	h.Write(b)

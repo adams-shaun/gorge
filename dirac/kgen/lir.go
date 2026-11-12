@@ -53,12 +53,13 @@ const (
 	rImprinted                    // the resolution's imprinted objects (Dig Imprint$ on a permanent's ability)
 	rPromised                     // the opponent the gift was promised to (Defined$ / TokenOwner$ Promised)
 	rAttachedCtrl                 // the controller of the object the source is attached to, read live (Contaminated Bond's blocker)
+	rLastCreated                  // the token(s) the previous CreateToken/copy op minted (kop.RefLastCreated; Encore's duty on the minted copy)
 	rCount
 )
 
 var refNames = [...]string{"None", "Target", "Self", "You", "EachOpp", "EachPlayer", "TargetController",
 	"TargetOwner", "Triggered", "TriggeredNew", "TriggeredSource", "TriggeredPlayer", "TriggeredTgtCtrl", "Equipped", "Remembered",
-	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted", "Promised", "AttachedCtrl"}
+	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted", "Promised", "AttachedCtrl", "LastCreated"}
 
 type lRef struct {
 	Kind refKind
@@ -188,6 +189,8 @@ const (
 	vLifeLostLastTurn    // life the controller lost during the previous turn (PlayerCountPropertyYou$LifeLostLastTurn)
 	vLastDamage          // damage the spell's previous DealDamage landed (kop.VLastDamage; value_totaldamage.go)
 	vDmgAmount           // the positive damage the source received this turn (Count$TotalDamageReceivedThisTurn)
+	vMonarch             // Sub[0] if the controller (N 0) or an opponent (N 1) is the monarch, else Sub[1] (Count$Monarch.<yes>.<no>, CheckDefinedPlayer$ You|Opponent.isMonarch; lower_monarch.go)
+	vPlExtreme           // the highest, over a player group, of the member's filtered count in the named zones (PlayerCountPlayers/Opponents$HighestValid<zones>)
 	vCount_
 )
 
@@ -195,7 +198,7 @@ var valNames = [...]string{"None", "Const", "X", "Count", "CountGraveyard", "Sum
 	"Morbid", "AttackedThisTurn", "PowerOf", "ToughnessOf", "LifeOf", "LibrarySizeOf", "StartingLife",
 	"TriggerAmount", "LifeGainedThisTurn", "OppLifeLostThisTurn", "CountersOn", "CreaturesDied",
 	"RememberedCount", "ExcessDamage", "LastLifeLost", "TokensCreated", "CountCast", "LifeLostThisTurn", "Sum",
-	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast", "YourExtraTurns", "NotOwnLibMV", "CounterKinds", "TargetPlayers", "IfCastOwnMain", "PWTypes", "TapPower", "StepIn", "TgtSpent", "OppExtreme", "ThisTurnActExhaust", "Activations", "LifeLostLastTurn", "LastDamage", "DmgAmount"}
+	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast", "YourExtraTurns", "NotOwnLibMV", "CounterKinds", "TargetPlayers", "IfCastOwnMain", "PWTypes", "TapPower", "StepIn", "TgtSpent", "OppExtreme", "ThisTurnActExhaust", "Activations", "LifeLostLastTurn", "LastDamage", "DmgAmount", "Monarch", "PlExtreme"}
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
 // that order, then negated when Neg.
@@ -253,7 +256,7 @@ func (v lValue) String() string {
 			args = append(args, fmt.Sprintf("agg=%d", v.N))
 		case vCompare:
 			args = append(args, fmt.Sprintf("op=%d,n=%d", v.Op, v.N))
-		case vSacrificedThisTurn, vScriedThisTurn, vDilemmasFaced, vRemLKIPT, vPhaseCount, vAdamant:
+		case vSacrificedThisTurn, vScriedThisTurn, vDilemmasFaced, vRemLKIPT, vPhaseCount, vAdamant, vMonarch:
 			args = append(args, fmt.Sprintf("n=%d", v.N))
 		case vCountGraveyard, vOppsLostLife:
 			if v.N != 0 {
@@ -300,11 +303,13 @@ const (
 	cOpponentsTurn          // it is not the controller's turn
 	cPromisedGift           // the gift was promised (Card.Self+PromisedGift on the stack, or the entering permanent)
 	cAnd                    // both Sub conditions hold
+	cEchoOwed               // the source came under its controller's control since the beginning of their most recent upkeep (echo's gate)
+	cSourceZone             // the source object is in Zone (source-identity IsPresent$ PresentZone$)
 	cCount_
 )
 
 var condNames = [...]string{"None", "Present", "Value", "Kicked", "Threshold", "YourTurn", "RefMatches",
-	"CostPaid", "OpponentsTurn", "PromisedGift", "And"}
+	"CostPaid", "OpponentsTurn", "PromisedGift", "And", "EchoOwed", "SourceZone"}
 
 type lCond struct {
 	Kind condKind
@@ -314,6 +319,7 @@ type lCond struct {
 	A, B lValue
 	Sub  []lCond
 	Neg  bool
+	Zone uint8 // cSourceZone: the source's zone
 }
 
 func (c lCond) String() string {
@@ -333,6 +339,9 @@ func (c lCond) String() string {
 	}
 	if c.Op != 0 {
 		args = append(args, fmt.Sprintf("op%d", c.Op))
+	}
+	if c.Kind == cSourceZone {
+		args = append(args, zoneLabel[c.Zone])
 	}
 	if c.A.Kind != vNone {
 		args = append(args, c.A.String())
@@ -660,6 +669,7 @@ type lTrigger struct {
 	MinAttackers  int
 	AtkCmp        uint8 // ValidAttackersAmount operator as a kop.DmgCmp (0 = GE, the plain literal; kernel trigCmpOK)
 	CrossAt       int   // CounterAdded: CounterAmount$ EQn, the counter total the put must reach (a crossing, CR 122.6); 0 = none
+	PerCounter    bool  // CounterAdded, a named CounterType$, no CounterAmount$ or ActivationLimit$: one trigger per counter of the batch, each carrying amount 1 (CR 603.2c; gorge counterAddedMatches; kop.Tf4PerCounter)
 	CastSnap      bool  // SpellCast: the amount reads the instants and sorceries cast this turn, snapshotted (TriggerObjectsCurrentCastSpells)
 	CastSpent     bool  // SpellCast: the amount is the triggering spell's pool mana spent, snapshotted as the trigger fires (opus; gorge TriggeredCard$CastTotalManaSpent)
 	Increment     bool  // SpellCast: Increment$ True -- the source is a creature and the cast's spend exceeds its P/T, read as the trigger fires and rechecked on resolution (gorge kwIncrement's marker, trigmatch.IncrementHolds; kernel Tf2Increment)
@@ -996,6 +1006,10 @@ type lCard struct {
 	FbBeholdF      *lFilter
 	Dash           *manaCost // K:Dash:<cost> (CR 702.109a): the hand's alternative cost; the permanent gains haste and returns to its owner's hand at the next end step
 	Evoke          *manaCost // K:Evoke:<cost> (CR 702.74a): the hand's alternative cost; the permanent is sacrificed as it enters
+	Overload       *manaCost // K:Overload:<cost> (CR 702.96a): the hand's alternative cost; the spell reads "target" as "each"
+	// OverloadProg is the overloaded cast's program: the printed spell with
+	// each targeted instruction rewritten to its "each" sweep (CR 702.96a).
+	OverloadProg   []lInstr
 	Bestow         *manaCost // K:Bestow:<cost> (CR 702.103a): the hand's alternative cost of the Aura cast
 	BestowT        *lTarget  // the bestowed Aura's enchant creature target (gorge bestowedAttachSA)
 	Convoke        bool      // K:Convoke (CR 702.51a): the cast may tap creatures for its mana cost
@@ -1005,6 +1019,8 @@ type lCard struct {
 	Mayhem         *manaCost // K:Mayhem:<cost> (CR 702.187): a graveyard cast for this cost if the card was discarded this turn (dirac/kw_mayhem.go)
 	BeamMeUp       *manaCost // K:Beam me up:<cost>: a graveyard cast for this cost that also returns a creature you control (FbCost)
 	Harmonize      *manaCost // K:Harmonize:<cost> (CR 702.180a): a graveyard cast for this cost, one creature tapped for its power off the generic part
+	Retrace        bool      // K:Retrace (CR 702.81a): a graveyard cast paying the PRINTED cost plus the additional discard-a-land cost (dirac/kw_retrace.go); never a substitution
+	RetraceCost    *lCost    // the retrace cast's additional cost: Discard<1/Land> (CardDef.RetraceCost)
 	AltAddCost     *lCost    // AlternateAdditionalCost: pay this instead of the printed additional cost
 	SpellCost      *lCost    // additional costs on the spell (Sac/Discard)
 	AltAddOne      bool      // SpellCost is a one-part AlternateAdditionalCost (gorge's planner: shape:optional_cost)

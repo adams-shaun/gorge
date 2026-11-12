@@ -417,7 +417,7 @@ type pendingCast struct {
 	// without the rest of the pending cast (spec section 9.1).
 	pay.PaidCost `clone:"deep"`
 
-	// addsCounterGrants (task opalp) captures, right after payment, the
+	// addsCounterGrants captures, right after payment, the
 	// AddsCounters$ rider grants the cast earned: the consumed batches'
 	// producing-ability rider snapshots and spent unit counts that
 	// emitRestrictedManaSpend accumulated in e.manaSpentAddsCounters. The
@@ -730,6 +730,12 @@ type subCounterPay = pay.SubCounterPay
 type etbChoice struct {
 	kind    string
 	options []decision.Option
+	// random marks a ChooseNumber body whose Random$ True makes the number
+	// the engine's own draw rather than a question (Haktos the Unscarred).
+	// The draw happens only in applyETBChoiceReplacement: faceETBChoice is
+	// also the pure probe entryETBChoiceOutstanding runs, so a draw here
+	// would consume the seeded rng twice.
+	random bool
 	// sa is the ETBReplacement body of a "type" choice, carried into the
 	// posed Decision's server-side ResumeSA so the SpellBench v2 mapping can
 	// read the Type$ category. Nil for every other kind.

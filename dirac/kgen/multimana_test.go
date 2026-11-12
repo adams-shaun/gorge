@@ -14,9 +14,10 @@ func TestMultiManaShapes(t *testing.T) {
 		"Hidden Grotto": true, "Lupinflower Village": true, "Three Tree City": true,
 		"Ifnir Deadlands": true, // {T}, Pay 1 life beside {C} (kernel painLife)
 		"Baxter Building": true, // {4},{T}: four mana in any combination (kernel filtCombo)
-		"Haunted Screen":  true} // {W} or {B}, then {G}, {U} or {R} for 1 life (kernel painLife)
+		"Haunted Screen":  true, // {W} or {B}, then {G}, {U} or {R} for 1 life (kernel painLife)
+		"Vivid Crag":      true} // {T}, remove a charge counter: one mana of any colour (kernel counter gap)
 	refuse := map[string]bool{"Nightshade Dryad": true, "Abandoned Outpost": true, "An-Havva Township": true,
-		"Eye of Ramos": true, "Crystal Vein": true, "Vivid Crag": true,
+		"Eye of Ramos": true, "Crystal Vein": true,
 		"Cascade Bluffs": true, "Cabal Stronghold": true, "Tournament Grounds": true}
 	var names []string
 	for n := range accept {

@@ -11,7 +11,7 @@ import (
 )
 
 // TestDescribeEvolvedNamesTheEvolvingPermanent pins the transcript line for the
-// events.Evolved marker (CR 702.99b, task trig:Evolved). The marker emits no
+// events.Evolved marker (CR 702.99b). The marker emits no
 // state of its own -- the +1/+1 counter has its own CounterChange line -- so
 // Describe must name the evolving permanent rather than fall through to the
 // "unknown event" fallback that TestDescribeCoversEveryKind guards against.

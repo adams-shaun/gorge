@@ -290,6 +290,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	if k.mayhem {
 		s.offerMayhemCasts(k, d, p, sorc, &av) // kw_mayhem.go
 	}
+	if k.retrace {
+		s.offerRetraceCasts(k, d, p, sorc, &av) // kw_retrace.go
+	}
 	if faces {
 		s.offerAdventureRecasts(k, d, p, sorc) // face_castface.go
 	}
@@ -1215,6 +1218,13 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 		if pp != p && k.gen != nil && k.gen.anyRepl&rbPlHex != 0 && s.playerHexproof(k, pp) {
 			return false
 		}
+		if s.plProtAll(k, pp) {
+			// CR 702.16b: the protected player cannot be the target of
+			// anything, their own spells included (no hexproof-style
+			// self-exemption; gorge stack.go/target_legal.go's
+			// playerProtectedFrom arm)
+			return false
+		}
 		switch t.Kind {
 		case kop.TgtAny:
 			return t.TFlags&kop.TgfOppOnly == 0 || pp != p
@@ -1548,6 +1558,19 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 				}
 				done[sl] |= 1 << j
 				progressed = true
+				if kop.StoreManaAb(ab) {
+					// A storage battery makes its counters' worth, not an
+					// unbounded dynamic amount: count the live counters so a
+					// play it cannot pay is not offered.
+					n := s.perms[sl].ctrN(s, int(ab.Cost.Ctr))
+					if n > 255 {
+						n = 255
+					}
+					if n > 0 {
+						add(sl, uint8(ab.ManaColors), uint8(n))
+					}
+					continue
+				}
 				if ab.ManaColors == kop.ColAny || ab.AFlags&(kop.AfManaDynamic|kop.AfManaEachColor) != 0 { // gorge's walk reads an each-colour production (Bloom Tender) as open
 					open = true
 				} else {
@@ -1619,6 +1642,10 @@ func (s *State) potentialGapCost(k *prep, p uint8, sl Slot, j int, ab *kop.Abili
 	switch {
 	case int(k.ctrAb[c]) == j && (kop.CtrManaAb(ab) || kop.CtrTapSecondManaAb(ab)):
 		return ab.Cost.Flags&kop.CostRemoveCtr == 0 || s.perms[sl].ctrN(s, int(ab.Cost.Ctr)) >= int(ab.Cost.N)
+	case int(k.ctrAb[c]) == j && kop.StoreManaAb(ab):
+		// a storage battery (Mage-Ring Network): its announced X is bounded by
+		// the counters it holds (mana_countercost.go storeGap)
+		return s.perms[sl].ctrN(s, int(ab.Cost.Ctr)) > 0
 	case k.tapMana && kop.TapXMana(ab) && int(k.tapXAb[c]) == j: // the first mana ability or a second beside a plain one (mana_tapanother.go tapXAbOf)
 		var cs [MaxPerm]Slot
 		return s.tapXCands(k, p, sl, &cs) >= int(ab.Cost.N)
@@ -1712,6 +1739,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if a.Target() == castDashTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyDash {
 			s.g.impCast = true // the dash cost (kw_dash.go): beginCast marks the entry dashed
 		}
+		if a.Target() == castOverloadTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyOverload {
+			s.g.impCast = true // the overload cost (kw_overload.go): beginCast marks the entry overloaded
+		}
 		if a.Target() == castAltTgt && a.Mode() == 0 && k.gen != nil && k.gen.altFree != nil {
 			s.g.altCast = true // the card's own mana alternative cost (cast_altfree.go)
 		}
@@ -1724,7 +1754,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if a.Mode() == 2 && k.gen != nil && k.gen.anyBeam {
 			s.noteBeamCast(k, a) // kw_beammeup.go
 		}
-		s.beginCast(k, Obj(a.Source()), a.Mode())
+		s.beginCast(k, Obj(a.Source()), a.Mode(), a.Target()) // the target byte names a retrace cast (kw_retrace.go)
 		if face {
 			s.lowerFaceCast(k, p, Obj(a.Source())) // cast_faceroute.go
 		}

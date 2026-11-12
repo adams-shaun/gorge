@@ -128,6 +128,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Station":                  "an activated ability flagged AfStation (gorge rules/station.go; kcounters)",
 	"A deck can have any number of cards named CARDNAME.": "a deckbuilding rule, no game characteristic",
 	"Partner":            "a deckbuilding rule (CR 702.124, a commander pair), no game characteristic; the kernel seats the pair from Config.Commanders",
+	"Partner with":       "the commander-pair marker as Partner, and gorge kwPartnerWith's enters trigger (CR 702.124j: the targeted player's search of their own library for the named partner; kgen lower_partnerwith.go), no battlefield characteristic",
 	"Doctor's companion": "a deckbuilding rule (CR 702.124, a commander pair), no game characteristic; the kernel seats the pair from Config.Commanders",
 	"Landwalk":           "CardDef.Landwalk, or a Continuous static's Static.Landwalk grant (CR 702.14; compared through the block options)",
 	"Horsemanship":       "CardDef.Evasion (compared through the block options)",
@@ -163,9 +164,11 @@ var gorgeKwElsewhere = map[string]string{
 	"Training":                          "an Attacks trigger with Trigger.N TrigNTraining (gorge kwTraining's expansion), no battlefield characteristic",
 	"Firebending":                       "an Attacks trigger whose AddMana has B = 1 (State.fbR; gorge kwFirebending's expansion, CR 702.189a), no battlefield characteristic",
 	"Melee":                             "an Attacks Self trigger pumping its holder: a printed one from gorge kwMelee's expansion, a static's granted one kop.Ability.MeleeGrant (kw_melee.go; CR 702.121a), no battlefield characteristic",
+	"Evolve":                            "an ETB trigger with Tf2Evolve (gorge kwEvolve's expansion, CR 702.100a; kw_evolve.go), no battlefield characteristic",
 	"Increment":                         "a SpellCast trigger with Tf2Increment (gorge kwIncrement's expansion), no battlefield characteristic",
 	"Craft":                             "a battlefield activated ability (the ExileCtrlOrGrave material and Exile<1/CARDNAME> costs, then the transformed Return; gorge kwCraft's expansion), no battlefield characteristic",
 	"Embalm":                            "a graveyard activated ability (CostExileGrave of itself, OpCopyAsTokenEx with a white / Zombie / no-mana-cost exception; gorge kwEmbalm's expansion), no battlefield characteristic",
+	"Encore":                            "a graveyard activated ability (the printed cost plus CostExileGrave of itself, OpCopyAsTokenEx with the CpSacAtEndDly group sacrifice and the haste pump, ExtAttacksIfAble on the minted copy; gorge kwEncore's expansion), no battlefield characteristic",
 	"TypeCycling":                       "a hand activated ability (CostDiscardSelf, AfCycling, OpSearchEx; gorge kwTypeCycling's expansion), no battlefield characteristic",
 	"Class":                             "the Class level activators and the ClassBand-gated abilities (CtrLevel, kw_class.go), no battlefield characteristic",
 	"Chapter":                           "the chapter abilities (TrigCounterAddedOnce on LORE, kw_saga.go), no battlefield characteristic",
@@ -194,6 +197,8 @@ var gorgeKwElsewhere = map[string]string{
 	"Battle cry":        "gorge kwBattleCry's expansion: an Attacks trigger pumping the other attackers (kgen lowers the expansion's nodes; compared through the stack and the attackers' power), no battlefield characteristic",
 	"Cumulative upkeep": "gorge kwCumulativeUpkeep's expansion: an upkeep trigger putting an age counter and charging the generic cost once per counter, else sacrificing (ExtCumulative, dirac/trig_cumulative.go; compared through the age counters, the pay and decline options and the sacrifice), no battlefield characteristic",
 	"Annihilator":       "gorge kwAnnihilator's expansion: an Attacks trigger making the defending player sacrifice N permanents (kgen lowers the expansion's node, Annihilator$ N as the Sacrifice count; compared through the stack and the sacrifice choice), no battlefield characteristic",
+	"Echo":              "gorge kwEcho's expansion: an upkeep trigger gated by Echo$ True (CondEchoOwed, dirac/trig_echo.go) asking the controller to pay the cost or sacrifice it (ExtCumulative B=1; compared through the pay and decline options and the sacrifice), no battlefield characteristic",
+	"Fading":            "gorge kwFading's expansion: fade counters on entry and an upkeep trigger that sacrifices a permanent with none and removes one (kgen lowers the expansion's nodes; compared through the fade counters and the sacrifice), no battlefield characteristic",
 	"Gift":              "CardDef.Gift (a cast-time promise and its GiftAbility; compared through the gift election and the stack; kw_gift.go), no battlefield characteristic",
 }
 

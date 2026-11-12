@@ -13,7 +13,7 @@ import (
 )
 
 // Pin both the full permutation and the re-entry guard on a real chained SA.
-// Ponder's optional shuffle is now real (task inbox-paramcensus-final-stragglers):
+// Ponder's optional shuffle is now real:
 // the arrange answer is followed by the may-shuffle ask, which this oracle
 // declines so the assertions below stay exactly the permutation/draw-once
 // contract they always certified (the shuffle arm itself is pinned in

@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The cost-token family (task inbox-paramcensus-cost-token-family): the five
+// The cost-token family: the five
 // heads ParseCost still substituted generic mana for on the repo decks --
 // announced PayLife<X>, bare Exile<N/Spec> (battlefield), Draw<N/Spec>
 // (previously MIS-BUCKETED into SubCounter by the nonManaCost switch), the
@@ -77,17 +77,6 @@ func corpusDeckEngine(t *testing.T, hand, board []*cards.Card) (*Engine, Config,
 		return e, cfg, 0
 	}
 	return e, cfg, handIDs[0]
-}
-
-// drawsForPlayer counts the Draw events naming p in the log.
-func drawsForPlayer(e *Engine, p state.PlayerID) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Draw && ev.Player == p {
-			n++
-		}
-	}
-	return n
 }
 
 // xAskOptions returns the pending X-announcement decision's options, failing

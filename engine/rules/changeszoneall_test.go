@@ -86,8 +86,7 @@ func zallDrain(t *testing.T, e *Engine) {
 	for i := 0; i < 50; i++ {
 		if d := e.Pending(); d != nil && d.Kind == decision.KChoose && d.ResumeKind == "search_confirm" {
 			// A pending Optional$ hidden-origin search now poses Forge's
-			// confirmAction gate before the fetch list (task
-			// optional-library-confirm); e.resolveTop below cannot answer it,
+			// confirmAction gate before the fetch list; e.resolveTop below cannot answer it,
 			// so accept -- the deterministic "do the may" answer -- and keep
 			// the pre-confirmation drain behaviour.
 			if len(d.Options) == 0 {
