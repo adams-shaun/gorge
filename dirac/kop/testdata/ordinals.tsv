@@ -50,6 +50,7 @@ BncShuffleOwed	untyped int	16384
 C	untyped int	5
 CantActNamed	untyped int	4
 CantCastNamed	untyped int	1
+CantCastSorcery	untyped int	2
 CantLoseLife	untyped int	1
 CantTgtActivated	untyped int	2
 CantTgtSpell	untyped int	1
@@ -605,6 +606,7 @@ LibChoiceCtrlGrave	untyped int	2
 LibChoiceSecond	untyped int	1
 LibThird	untyped int	6
 LibTopGrave	untyped int	10
+LibTopRememberBF	untyped int	13
 LibTopShuffle	untyped int	4
 LibTopShuffleGrave	untyped int	8
 LibTopShuffleSelf	untyped int	5

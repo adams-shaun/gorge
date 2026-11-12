@@ -131,8 +131,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// 22345 -> 22350).
 	// +14 (Extort: the printed K:Extort expansion and Pontiff of Blight's granted trigger lower; ALL 22350 -> 22364).
 	// +14 (the merge with land: this branch's Extort lowering beside land's 22641; merged ALL 22641 -> 22655).
+	// +14 (the second merge with land: this branch's Extort lowering beside land's 22706; merged ALL 22706 -> 22720).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22655, 34442},
+	"ALL": {22720, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {216, 280},
@@ -160,7 +161,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TMT": {183, 194},
 	"TRC": {300, 337},
 	"TRK": {311, 311},
-	"WOE": {262, 281},
+	"WOE": {263, 281},
 }
 
 // testSetlistDir is setlistDir relative to the test's working directory

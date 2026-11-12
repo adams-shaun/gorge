@@ -30,12 +30,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   plus the greedy artifact credit pays the whole cost (its planner refuses
   the shape), so a cast with a coloured pip is offered only with that colour
   floating, which the lockstep reproduces.
-- X ceiling: gorge's xAsk loops X up to pool + caster's graveyard + convoke
-  credit + what the window's sources make + 1, and raises that only for a
-  named-count discount, so a generic reduction (Zimone, Mocking Sprite) paying
-  into {X} past it is not offered although CR 601.2f allows it. dirac
-  clamps its X ask to the same ceiling on the gorge surfaces (cast.go bsX;
-  TestXCeilingReducePaysX).
 - Free cast with an either-or additional cost (Alternate Additional Cost,
   Eaten Alive via Etali, Louisoix's Sacrifice via Hurl into History's
   Discover): gorge's altAddAsk classifies the parts with `castable` ->
@@ -255,15 +249,16 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   counters in one turn); `khollowDecks` caps the pool at two copies and no
   Barrensteppe, where only one counter a turn is reachable (`TestSiegeHollowmurkLockstep`).
 - A graveyard may-play permission's non-mana `RaiseCost$` (Noctis, Alien Symbiosis, Wickerfolk Indomitable, and BLB's Festival of
-  Embers): gorge SUMS the raise over every granting static
-  (`engine/rules/mayplay.go` `mayPlayRaiseCost`, `Cost.Plus`); dirac prices one.
-  A second granting raise (two Festivals of Embers on the battlefield, or
-  Noctis beside Wickerfolk) is a loud `StallMayRaise` ("mayraise"), as is a
-  spell that already owes its own additional pick cost. BLB's pool gains this
-  stall class with Festival; the pool's two-copy decks reach it only with both
-  on the battlefield. A land a raising permission grants (an artifact land
-  under Noctis) is withheld, payable or not, as gorge's `mayPlayLandIds` does
-  (`dirac/cost_mayplayraise.go` `mayRaiseLandHeld`).
+  Embers) BESIDE the spell's own additional pick cost: the kernel prices one
+  pick Cost, so the cast is a loud `StallMayRaise` ("mayraise"). One raise
+  alone prices in both engines: a cast is made under one permission (CR
+  601.2b/f), so gorge charges the FIRST granting static's raise rather than
+  summing every grant (`engine/rules/mayplay.go` `mayPlayRaiseCost`) and dirac
+  prices that same first static (`dirac/cost_mayplayraise.go` `mayRaise`).
+  BLB's pool reaches this stall class with Festival only beside a spell that
+  also owes its own additional cost. A land a raising permission grants (an
+  artifact land under Noctis) is withheld, payable or not, as gorge's
+  `mayPlayLandIds` does (`dirac/cost_mayplayraise.go` `mayRaiseLandHeld`).
 - The legendary-source combat-hit bit (Blitzball's
   `HasPropertywasDealtCombatDamageThisTurnBy Creature.Legendary GE1`): gorge
   snapshots the hit source's printed face and matches the spec at the READ,

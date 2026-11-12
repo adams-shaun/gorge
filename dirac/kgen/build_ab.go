@@ -1937,6 +1937,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StCasterActive
 			case "NamedCard":
 				st.B |= kop.CantCastNamed
+			case "SorcerySpeed":
+				st.B |= kop.CantCastSorcery
 			default:
 				return ka, nil, fmt.Errorf("cant be cast flag %q", fl)
 			}
@@ -2131,6 +2133,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	case "CastWithFlash":
 		st.Kind = kop.StatCastWithFlash
 		if st.Filter, err = filter(s.F, kop.ZoneHand); err != nil {
+			return ka, nil, err
+		}
+		if st.Filter2, err = filter(s.F2, kop.ZoneStack); err != nil { // an emblem's ForgetOnCast$ (lower_effectemblem.go)
 			return ka, nil, err
 		}
 	case "AlternativeCost":
@@ -3008,6 +3013,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if _, rem := fl["Remember"]; rem && in.C == 1 && in.Obj.Kind == rDelayedRemembered && fl["from"] == "Battlefield" {
 			ki.C = kop.LibBottomRememberBF // dirac/zone_tolibrarybfremember.go
+		}
+		if _, rem := fl["Remember"]; rem && in.C == 0 && in.Obj.Kind == rSelf && fl["from"] == "Battlefield" {
+			ki.C = kop.LibTopRememberBF // dirac/zone_tolibrarybfremember.go
 		}
 		if _, ok := fl["TopShuffle"]; ok {
 			ki.C = kop.LibTopShuffle
@@ -4192,7 +4200,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "LoseGame":
 		ki.Op, ki.C = kop.OpLoseGame, int16(in.C) // in.C 1: WinsGame (kernel winGame)
 	case "Shuffle":
-		ki.Op = kop.OpShuffle
+		ki.Op, ki.C = kop.OpShuffle, int16(in.C) // in.C 1: every remembered owner (lower_shuffleremowners.go)
 	case "SetLife":
 		ki.Op = kop.OpSetLife
 	case "Rearrange":

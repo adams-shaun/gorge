@@ -1327,12 +1327,15 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				registered = true
 				break
 			}
-			if mode == "CastWithFlash" && !LoyaltyFlashParamsReadable(params) {
-				// Only the loyalty-timing grant registers (Jace's Machinations'
-				// "you may activate loyalty abilities of Jace planeswalkers you
-				// control ... any time you could cast an instant"); rules'
-				// loyaltyAtInstantSpeed reads it beside the printed S: route.
-				// A spell-flash grant keeps the unimplemented Note it always had.
+			if mode == "CastWithFlash" && !LoyaltyFlashParamsReadable(params) && !SpellFlashParamsReadable(params) {
+				// Two grants register: the loyalty-timing grant (Jace's
+				// Machinations' "you may activate loyalty abilities of Jace
+				// planeswalkers you control ... any time you could cast an
+				// instant"; rules' loyaltyAtInstantSpeed) and the spell-flash
+				// grant (Borne Upon a Wind's "you may cast spells this turn as
+				// though they had flash"; rules' effectFlashGrants), both read
+				// beside the printed S: route. Any other body keeps the
+				// unimplemented Note.
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
@@ -1415,6 +1418,12 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ForgetOnMoved: forgetOn,
 				ExileOnMoved:  exileOn,
 				ForgetCounter: forgetCounter,
+			}
+			if mode == "CastWithFlash" {
+				// Quicken's "the next sorcery spell you cast this turn": the
+				// first completed cast the spec names ends the grant
+				// (rules' effectCastSweep).
+				ce.ForgetOnCast = forgetOnCast
 			}
 			anchorEffectHostIncarnation(h, c, rawDur, &ce)
 			if IsUntilTargetedUntapsDuration(rawDur) {

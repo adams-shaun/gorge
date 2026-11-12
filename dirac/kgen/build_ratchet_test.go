@@ -232,8 +232,9 @@ import (
 // 22392 -> 22584).
 // +14 (Extort: the printed K:Extort expansion's SpellCast trigger lowers its DB$ Extort body as OpExt ExtExtort, and Pontiff of Blight's AddKeyword$ Extort grant becomes a latent trigger; ALL build-level 22350 -> 22364).
 // +14 (the merge with land: this branch's Extort lowering beside land's 22641; merged ALL build-level 22641 -> 22655).
+// +14 (the second merge with land: this branch's Extort lowering beside land's 22706; merged ALL build-level 22706 -> 22720).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22655, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22720, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
