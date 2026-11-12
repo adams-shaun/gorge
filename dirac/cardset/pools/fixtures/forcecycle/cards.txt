@@ -1,0 +1,19 @@
+# The Force cycle's "If it's not your turn, you may exile a card from your
+# hand rather than pay this spell's mana cost" alternative, Mine Collapse's
+# PlayerTurn sacrifice twin and Misdirection's bare exile, with their
+# targets, counter fodder and lands, for the oracle's constructed lockstep
+# (dirac/oracle/forcecycle_test.go)
+Force of Negation
+Force of Despair
+Force of Vigor
+Misdirection
+Mine Collapse
+Counterspell
+Unsummon
+Dark Ritual
+Shock
+Grizzly Bears
+Island
+Swamp
+Forest
+Mountain

@@ -1766,10 +1766,20 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			default:
 				// gorge continuousConditionHolds (Continuous) and
 				// costConditionHolds (a self cost static: the payer is
-				// the controller) read these against the controller.
+				// the controller) read these against the controller. The
+				// self-carried AlternativeCost (gorge
+				// alternativeCostScopeOK's costConditionHolds read, the
+				// Force cycle: the caster is the static's controller, the
+				// printed you) and the combat restriction statics (gorge
+				// combatBoard.StaticGateHolds' continuousGateHolds,
+				// Monstrous Hound) read theirs against the static's
+				// controller, which statCond's and offerAltFreeHand's
+				// Cond2 contexts name too.
 				selfCost := (s.Mode == "ReduceCost" || s.Mode == "RaiseCost") && s.Params["ValidCard"] == "Card.Self"
+				turnGate := s.Mode == "Continuous" || selfCost || reduceActivatorYou(s.Mode, s.Params) ||
+					s.Mode == "AlternativeCost" || s.Mode == "CantBlock" || s.Mode == "CantAttack"
 				switch {
-				case c == "NotPlayerTurn" && (s.Mode == "Continuous" || selfCost || reduceActivatorYou(s.Mode, s.Params)):
+				case c == "NotPlayerTurn" && turnGate:
 					st.Cond = lCond{Kind: cYourTurn, Neg: true}
 				case c == "Metalcraft" && (s.Mode == "Continuous" || selfCost):
 					f, err := lc.filter("Artifact.YouCtrl")

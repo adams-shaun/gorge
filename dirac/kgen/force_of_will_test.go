@@ -16,8 +16,10 @@ func TestForceOfWillAlternativeCost(t *testing.T) {
 	want := map[string]string{
 		"Force of Will":  "",
 		"Force of Rowan": "",
-		"Misdirection":   "alternative cost with an exile part other than PayLife<N> beside ExileFromHand<1/Spec>",
-		"Commandeer":     `exile cost "ExileFromHand<2/Card.Blue+Other>"`,
+		// the exile alone lowers now; Misdirection is refused by its own
+		// ChangeTargets spell body, not by its cost
+		"Misdirection": `ChangeTargets TargetType "Spell.singleTarget"`,
+		"Commandeer":   `exile cost "ExileFromHand<2/Card.Blue+Other>"`,
 	}
 	seen := 0
 	for _, c := range cs {

@@ -17,11 +17,25 @@ func altPayLifeExileHand(c *lCost) bool {
 	return rest.pureMana()
 }
 
+// altExileHandOnly: the alternative cost is ExileFromHand<1/Spec> alone, no
+// life beside it (the Force cycle's "you may exile a blue card from your
+// hand rather than pay this spell's mana cost", CR 118.9; Misdirection the
+// same shape). The built Cost is the bare hand-exile pick, CostExileGrave
+// with ExileHand, no PayLife flag.
+func altExileHandOnly(c *lCost) bool {
+	if c.ExileG == nil || !c.ExileHand || c.ExileGN != 1 || c.PayLife != 0 || c.ExileGBf || c.exileGCard {
+		return false
+	}
+	rest := *c
+	rest.ExileG, rest.ExileGN, rest.ExileHand = nil, 0, false
+	return rest.pureMana()
+}
+
 // altCostCost lowers a spell's own AlternativeCost static's Cost$ with
 // lc.altCostHand set, so an ExileFromHand<1/Spec> part keeps its filter
-// (altExileHandCost). Only PayLife<N> beside ExileFromHand<N/Spec> (Force of
-// Will) is the kernel's hand-exile alternative cast; any other exile shape
-// is refused.
+// (altExileHandCost). PayLife<N> beside ExileFromHand<N/Spec> (Force of
+// Will) and the exile alone (the Force cycle, Misdirection) are the
+// kernel's hand-exile alternative casts; any other exile shape is refused.
 func (lc *lowerCtx) altCostCost(s string) (lCost, error) {
 	lc.altCostHand = true
 	c, err := lc.cost(s)
@@ -29,8 +43,8 @@ func (lc *lowerCtx) altCostCost(s string) (lCost, error) {
 	if err != nil {
 		return c, err
 	}
-	if c.ExileG != nil && !altPayLifeExileHand(&c) {
-		return c, refuse("alternative cost with an exile part other than PayLife<N> beside ExileFromHand<1/Spec>")
+	if c.ExileG != nil && !altPayLifeExileHand(&c) && !altExileHandOnly(&c) {
+		return c, refuse("alternative cost with an exile part other than PayLife<N> or ExileFromHand<1/Spec> alone")
 	}
 	return c, nil
 }
@@ -57,9 +71,13 @@ func (lc *lowerCtx) altLifeShared(c *lCost) bool {
 	return lc.altCostHand && c.ExileHand && c.PayLife == c.ExileGN
 }
 
-// altHandExileOK: the built alternative cost is the pay-life and hand-exile
-// pick (kernel dirac.altHandExileCost) on a card whose one spell ability can
-// carry it (altSacOK).
+// altHandExileOK: the built alternative cost is the hand-exile pick (kernel
+// dirac.altHandExileCost) -- PayLife<N> beside the exile (Force of Will,
+// Flags CostPayLife|CostExileGrave sharing Cost.N) or the exile alone (the
+// Force cycle, Misdirection; bare CostExileGrave) -- on a card whose one
+// spell ability can carry it (altSacOK).
 func (cb *cardBuilder) altHandExileOK(c *kop.Cost) bool {
-	return c.Flags == kop.CostPayLife|kop.CostExileGrave && c.ExileHand && c.N > 0 && c.Mana == (kop.ManaCost{}) && cb.altSacOK()
+	shared := c.Flags == kop.CostPayLife|kop.CostExileGrave
+	bare := c.Flags == kop.CostExileGrave
+	return (shared || bare) && c.ExileHand && c.N > 0 && c.Mana == (kop.ManaCost{}) && cb.altSacOK()
 }
