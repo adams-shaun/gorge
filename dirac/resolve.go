@@ -131,6 +131,13 @@ func (s *State) resolveTop(k *prep) {
 			if k.gen != nil && !e.faceDown() && e.etbSrc != 0 && s.etbEntryOrderPark(k, e.obj, e.ctrl) {
 				return
 			}
+			// the CR 616.1 order between the entrant's own prepared line and
+			// one other source's enter replacement, when no rider was stamped
+			// (repl_etborder.go); the flag is the hot-path guard
+			if k.gen != nil && !e.faceDown() && e.etbSrc == 0 && k.gen.anyEtbOwnOther &&
+				s.etbOtherOrderPark(k, e.obj, e.ctrl) {
+				return
+			}
 			if k.gen != nil && s.occ.full() {
 				s.stall(StallBoard) // the battlefield is full: the capacity draw
 				return
