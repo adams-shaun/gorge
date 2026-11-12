@@ -76,7 +76,7 @@ func kaurPick(c *PickCtx, st *kaurState, rnd Policy) Canon {
 		case o == nil:
 		case o.FaceDownHidden():
 			faceDown = true
-		case o.Face() != nil && kfacedownMox(o.Face().Name) && !o.Tapped:
+		case o.Face() != nil && isMoxName(o.Face().Name) && !o.Tapped:
 			untappedMox++
 		}
 	}
@@ -133,7 +133,7 @@ func kaurPick(c *PickCtx, st *kaurState, rnd Policy) Canon {
 				tgtField, haveField = a, true
 			}
 			tgtAny, haveAny = a, true
-		case a.Kind() == ActCast && kfacedownMox(n):
+		case a.Kind() == ActCast && isMoxName(n):
 			mox, haveMox = a, true
 		case a.Kind() == ActCast && n == "Aven Farseer":
 			aven, haveAven2 = a, true

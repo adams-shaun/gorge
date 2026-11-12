@@ -106,7 +106,7 @@ func kturnuprepPolicy(seed uint64, up map[string]int) Policy {
 				if n != "Memnite" { // the free turn-up is a rare pick, so it is still face down on a Watchdog turn
 					turn, haveTurn = a, true
 				}
-			case a.Kind() == ActCast && kfacedownMox(n):
+			case a.Kind() == ActCast && isMoxName(n):
 				mox, haveMox = a, true
 			case a.Kind() == ActCast && (n == "Soul Summons" || n == "Manifest Dread"):
 				summon, haveSummon = a, true

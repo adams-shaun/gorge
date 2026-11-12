@@ -55,14 +55,6 @@ type kmanifestCounts struct {
 	cloak                              int
 }
 
-func kmanifestMox(n string) bool {
-	switch n {
-	case "Mox Emerald", "Mox Sapphire", "Mox Jet", "Mox Ruby", "Mox Pearl":
-		return true
-	}
-	return false
-}
-
 // kmanifestDown counts the gorge battlefield's face-down permanents.
 func kmanifestDown(c *PickCtx) int {
 	if c.G == nil {
@@ -121,7 +113,7 @@ func kmanifestPolicy(seed uint64, counts *kmanifestCounts) Policy {
 			case a.Kind() == ActSpecial:
 				up, haveUp = a, true
 
-			case a.Kind() == ActCast && kmanifestMox(n):
+			case a.Kind() == ActCast && isMoxName(n):
 				mox, haveMox = a, true
 			case a.Kind() == ActCast && (n == "Priest of Urabrask" || n == "Priest of Gix"):
 				priest, havePriest = a, true

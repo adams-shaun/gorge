@@ -159,7 +159,7 @@ func kdreadPolicyA(seed uint64, counts *kdreadCounts) Policy {
 			switch {
 			case a.Kind() == ActChoose && graves[n]:
 				return a // the milled card: the mandatory hidden pick
-			case a.Kind() == ActCast && kmanifestMox(n):
+			case a.Kind() == ActCast && isMoxName(n):
 				mox, haveMox = a, true
 			case a.Kind() == ActCast && n == "Paranormal Analyst":
 				analyst, haveAnalyst = a, true
@@ -221,7 +221,7 @@ func kdreadPolicyB(seed uint64, counts *kdreadCounts) Policy {
 			switch {
 			case k == ActChoose && n == "Grizzly Bears" && kdreadHas(c, 0, "Grizzly Bears"):
 				chooseBear, haveChooseBear = a, true
-			case k == ActCast && kmanifestMox(n):
+			case k == ActCast && isMoxName(n):
 				mox, haveMox = a, true
 			case k == ActCast && n == "Unidentified Hovership":
 				ship, haveShip = a, true

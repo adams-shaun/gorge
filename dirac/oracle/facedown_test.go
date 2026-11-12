@@ -71,14 +71,6 @@ type kfacedownSetup struct {
 	moxen, priests, aven, turnUps int
 }
 
-func kfacedownMox(n string) bool {
-	switch n {
-	case "Mox Emerald", "Mox Sapphire", "Mox Jet", "Mox Ruby", "Mox Pearl":
-		return true
-	}
-	return false
-}
-
 // kfacedownPolicy drives the setup: six Moxen, Aven Farseer (the
 // turn-face-up watcher), then every Priest (each floats three mana), then
 // face-down casts and turn-ups. It prefers a carrier it has not exercised
@@ -98,7 +90,7 @@ func kfacedownPolicy(seed uint64, counts *kfacedownCounts, setup *kfacedownSetup
 		for _, a := range c.D.Options {
 			n := optionFaceName(c, a)
 			switch {
-			case a.Kind() == ActCast && kfacedownMox(n):
+			case a.Kind() == ActCast && isMoxName(n):
 				mox, haveMox = a, true
 			case a.Kind() == ActCast && n == "Aven Farseer":
 				aven, haveAven = a, true
@@ -597,7 +589,7 @@ func kfacedownWardPolicy(seed uint64, setup *kfacedownWardSetup) Policy {
 				shock, haveShock = a, true
 			case a.Kind() == ActCast && n == "Mox Ruby":
 				ruby, haveRuby = a, true
-			case a.Kind() == ActCast && kfacedownMox(n):
+			case a.Kind() == ActCast && isMoxName(n):
 				mox, haveMox = a, true
 			case a.Kind() == ActCast && (n == "Priest of Urabrask" || n == "Priest of Gix"):
 				priest, havePriest = a, true

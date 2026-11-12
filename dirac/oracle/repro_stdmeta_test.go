@@ -61,7 +61,7 @@ func TestStdMetaReprosLockstep(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			tbl, _, _, err := set.Matchup(reproEntries(r.Cards[0]), reproEntries(r.Cards[1]))
+			tbl, _, _, err := set.Matchup(oneOfEachEntries(r.Cards[0]), oneOfEachEntries(r.Cards[1]))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -85,12 +85,4 @@ func TestStdMetaReprosLockstep(t *testing.T) {
 			}
 		})
 	}
-}
-
-func reproEntries(names []string) []cardset.Entry {
-	es := make([]cardset.Entry, len(names))
-	for i, n := range names {
-		es[i] = cardset.Entry{Name: n, Count: 1}
-	}
-	return es
 }
