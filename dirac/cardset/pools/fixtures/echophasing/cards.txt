@@ -1,0 +1,15 @@
+# the echo and phasing pool: an echo creature (CR 702.30a: Raven Familiar
+# {2}{U}, Pouncing Jaguar {G}, Cradle Guard {1}{G}{G}) phased out by Vodalian
+# Illusionist or Reality Ripple phases back in during its controller's untap
+# step (CR 702.26a) still owing echo at the upkeep after it came under their
+# control, since phasing changes no control (CR 702.26d); Cloudskate fades
+# (CR 702.32a). For the oracle's constructed lockstep
+# (dirac/oracle/echophasing_test.go).
+Cloudskate
+Cradle Guard
+Forest
+Island
+Pouncing Jaguar
+Raven Familiar
+Reality Ripple
+Vodalian Illusionist

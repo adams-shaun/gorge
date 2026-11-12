@@ -345,6 +345,11 @@ type CardDef struct {
 	// read of the NoAbilities filter word (W7NoAbilities; gorge
 	// FaceHasNoAbilities). Read off the battlefield only.
 	NoAbilities bool
+	// HasManaAbility: the printed face has a mana ability (gorge
+	// effects.FaceHasManaAbility: an activated CR 605.1a ability or a
+	// CR 605.1b triggered one; the intrinsic basic-land ability included).
+	// Read by PredHasManaAbility on and off the battlefield.
+	HasManaAbility bool
 	// HasWarp is printed warp (CR 702.185a; no KwMask bit is free): the
 	// hand offers the warp cast (its warp cost in WarpCost), and a permanent
 	// spell cast that way is exiled at the beginning of the next end step
@@ -378,6 +383,11 @@ type CardDef struct {
 	// exiles graveyard cards toward its generic cost (dirac/kw_delve.go).
 	// A granted delve reads the same path.
 	Delve bool
+	// ReboundAb is 1 + the latent ability index of a printed K:Rebound's
+	// recast body (CR 702.88a; 0 = no Rebound): a spell cast from the hand
+	// is exiled as it resolves and, at its controller's next upkeep, the
+	// body offers the free cast of the exiled card (dirac/kw_rebound.go).
+	ReboundAb uint8
 	// Improvise is printed improvise (CR 702.126a): the cast may tap
 	// untapped artifacts, each paying {1} of the generic part. Never set
 	// with Convoke (kgen refuses both). Shares the convoke payment path.
@@ -463,6 +473,17 @@ type CardDef struct {
 	HasDash bool
 	// DashCost is the printed dash cost (HasDash).
 	DashCost ManaCost
+	// HasOverload is printed overload (CR 702.96a; no KwMask bit is free):
+	// the hand offers the overloaded cast at OverloadCost, and the resolving
+	// spell runs OverloadProg, the "each" variant of its printed program
+	// (dirac/kw_overload.go).
+	HasOverload bool
+	// OverloadCost is the printed overload cost (HasOverload).
+	OverloadCost ManaCost
+	// OverloadProg is the overloaded cast's program (CR 702.96a): the
+	// printed spell's targeted instructions rewritten to their each-sweeps.
+	// Nil when the card cannot be modelled in bounded code.
+	OverloadProg []Instr
 	// HasBestow is printed bestow (CR 702.103; no KwMask bit is free): the
 	// hand offers the bestowed cast (AkBestow) at BestowCost; the spell is
 	// an Aura with enchant creature (BestowTgt) and the permanent an Aura,

@@ -2,14 +2,6 @@ package rules
 
 // The performance/profile half of the loop research harness: the Miner cycle's
 // iteration-count and verify-mode knobs and the single test that drives them.
-// It is split out of loops_prototype_test.go so the per-card line tests and the
-// profiling instrumentation are separate files. The seam is real -- main's
-// profiling commit added this block to the same file three live
-// loops/shortcuts branches carry, and two of those branches are byte-identical
-// to main apart from this block. Splitting does not resolve the branches'
-// current add/add (their merge base predates the file on main, so only a
-// rebase clears that), but it keeps a line-test ticket and a profiling ticket
-// from ever colliding again.
 import (
 	"fmt"
 	"os"

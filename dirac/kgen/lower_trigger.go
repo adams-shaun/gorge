@@ -841,6 +841,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if n, ok := tp.get("Number"); ok {
 			tr.NthDraw, _ = strconv.Atoi(n)
 		}
+		if err := lowerDrawnFirstInDrawStep(tp, tr); err != nil {
+			return err
+		}
 	case "Discarded":
 		if tr.F, err = readF("ValidCard"); err != nil {
 			return err
@@ -937,10 +940,19 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// whole size).
 			cmp := tp.str("CounterAmount")
 			if cmp == "" {
-				if al, ok := tp.get("ActivationLimit"); !ok || al != "1" {
+				if al, ok := tp.get("ActivationLimit"); !ok {
+					// a plain line: one trigger per counter of the batch
+					// (CR 603.2c), each carrying amount 1 (gorge queues one
+					// instance per counter), so a body reading the amount
+					// reads 1 as on gorge. Only a named counter kind
+					// (kernel Tf4PerCounter reads the event's one kind).
+					if ct == "*" {
+						return refuse("CounterAdded per-counter (no CounterAmount$) of any counter kind")
+					}
+					tr.PerCounter = true
+				} else if al != "1" {
 					return refuse("CounterAdded per-counter (no CounterAmount$)")
-				}
-				if lc.saReadsBatch(t.Effect) {
+				} else if lc.saReadsBatch(t.Effect) {
 					return refuse("CounterAdded per-counter body reads the trigger")
 				}
 			} else {
@@ -1211,6 +1223,19 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			tr.First = true
 		}
+	case "Evolved":
+		// gorge trigmatch evolvedMatches (CR 702.100b): the events.Evolved
+		// marker rules' resolveTop emits once the Evolve keyword's counter
+		// lands names the evolving permanent, which ValidCard$ Card.Self
+		// matches; the kernel fires it as that trigger finishes resolving
+		// (kw_evolve.go). ValidPlayer$ is left unread (refused).
+		if v := tp.str("ValidCard"); v != "Card.Self" {
+			return refuse("Evolved ValidCard$ %q", v)
+		}
+		if tr.Zone != 0 && tr.Zone != zBattlefield {
+			return refuse("Evolved TriggerZones %d", tr.Zone)
+		}
+		tp.consume("ValidCard")
 	case "UnlockDoor":
 		// CR 709.5h "when you unlock this door" (gorge rules face_rooms.go
 		// queueUnlockTriggers): read only on a Room door, fired directly by
@@ -1550,6 +1575,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		conds = append(conds, deliriumCond())
 	}
+	if err := echoGate(tp, tr, ab, &conds, noResolve || fireOnly || giftSelf); err != nil { // lower_echo.go
+		return err
+	}
 	switch len(conds) {
 	case 0:
 	case 1:
@@ -1661,6 +1689,11 @@ func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 	}
 	if isChosenModeStatic(s) {
 		return lc.chosenModeStatic(s) // lower_siegemode.go
+	}
+	if s.Mode == "CantAttackUnless" {
+		if err := attackTaxReadable(s.Params); err != nil {
+			return err // lower_attacktax.go: before the EffectZone$ strip below
+		}
 	}
 	if s.Params["EffectZone"] == "Battlefield" {
 		// a printed static's default zone spelled out (gorge
@@ -2015,6 +2048,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 	case "CantAttack":
 		if err := lc.cantAttack(sp, &st); err != nil {
 			return nil, err
+		}
+	case "CantAttackUnless":
+		if err := lc.cantAttackUnless(sp, &st); err != nil {
+			return nil, err // lower_attacktax.go
 		}
 	case "CanAttackDefender":
 		// gorge combat.AttackAllowedThroughDefender: ValidCard$ (or

@@ -53,12 +53,13 @@ const (
 	rImprinted                    // the resolution's imprinted objects (Dig Imprint$ on a permanent's ability)
 	rPromised                     // the opponent the gift was promised to (Defined$ / TokenOwner$ Promised)
 	rAttachedCtrl                 // the controller of the object the source is attached to, read live (Contaminated Bond's blocker)
+	rLastCreated                  // the token(s) the previous CreateToken/copy op minted (kop.RefLastCreated; Encore's duty on the minted copy)
 	rCount
 )
 
 var refNames = [...]string{"None", "Target", "Self", "You", "EachOpp", "EachPlayer", "TargetController",
 	"TargetOwner", "Triggered", "TriggeredNew", "TriggeredSource", "TriggeredPlayer", "TriggeredTgtCtrl", "Equipped", "Remembered",
-	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted", "Promised", "AttachedCtrl"}
+	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted", "Promised", "AttachedCtrl", "LastCreated"}
 
 type lRef struct {
 	Kind refKind
@@ -300,11 +301,12 @@ const (
 	cOpponentsTurn          // it is not the controller's turn
 	cPromisedGift           // the gift was promised (Card.Self+PromisedGift on the stack, or the entering permanent)
 	cAnd                    // both Sub conditions hold
+	cEchoOwed               // the source came under its controller's control since the beginning of their most recent upkeep (echo's gate)
 	cCount_
 )
 
 var condNames = [...]string{"None", "Present", "Value", "Kicked", "Threshold", "YourTurn", "RefMatches",
-	"CostPaid", "OpponentsTurn", "PromisedGift", "And"}
+	"CostPaid", "OpponentsTurn", "PromisedGift", "And", "EchoOwed"}
 
 type lCond struct {
 	Kind condKind
@@ -660,6 +662,7 @@ type lTrigger struct {
 	MinAttackers  int
 	AtkCmp        uint8 // ValidAttackersAmount operator as a kop.DmgCmp (0 = GE, the plain literal; kernel trigCmpOK)
 	CrossAt       int   // CounterAdded: CounterAmount$ EQn, the counter total the put must reach (a crossing, CR 122.6); 0 = none
+	PerCounter    bool  // CounterAdded, a named CounterType$, no CounterAmount$ or ActivationLimit$: one trigger per counter of the batch, each carrying amount 1 (CR 603.2c; gorge counterAddedMatches; kop.Tf4PerCounter)
 	CastSnap      bool  // SpellCast: the amount reads the instants and sorceries cast this turn, snapshotted (TriggerObjectsCurrentCastSpells)
 	CastSpent     bool  // SpellCast: the amount is the triggering spell's pool mana spent, snapshotted as the trigger fires (opus; gorge TriggeredCard$CastTotalManaSpent)
 	Increment     bool  // SpellCast: Increment$ True -- the source is a creature and the cast's spend exceeds its P/T, read as the trigger fires and rechecked on resolution (gorge kwIncrement's marker, trigmatch.IncrementHolds; kernel Tf2Increment)
@@ -720,6 +723,11 @@ type lTrigger struct {
 	N                         int16 // LandPlayed: the Origin$ zone mask, 1<<kop.Zone (0 = any)
 	AbClass                   int16 // AbilityCast: the ValidSA$ class (kop.TrigAbCast*)
 	Evolve                    bool  // ETB: Condition$ Evolve, the entering creature's power or toughness greater than the source's, read as it fires
+
+	// Drawn: FirstCardInDrawStep$ gates the card's position in the drawer's
+	// own draw step (gorge trigmatch.firstCardInDrawStep, CR 504.1).
+	FirstInDrawStep    bool // FirstCardInDrawStep$ True (kop.Tf5FirstCardInDrawStep)
+	NotFirstInDrawStep bool // FirstCardInDrawStep$ False (kop.Tf5NotFirstCardInDrawStep)
 }
 
 // lTrigger.Attacked bits.
@@ -776,6 +784,10 @@ type lAbility struct {
 	Cycling bool
 	// Ninjutsu: the K:Ninjutsu expansion (CR 702.49; lower_ninjutsu.go)
 	Ninjutsu bool
+	// PutSelf: "{cost}: Put this card onto the battlefield from your hand"
+	// (a mana-only hand ability that keeps its source in the hand; the
+	// ChangeZone of lower_ninjutsu.go putSelfAbility)
+	PutSelf bool
 	// Station: the Station ability (K:Station, CR 702.184a;
 	// lower_station.go)
 	Station bool
@@ -974,6 +986,7 @@ type lCard struct {
 	Miracle        *manaCost     // K:Miracle:<cost> (CR 702.94a): the hand-cast cost of the revealed first draw
 	Warp           *manaCost     // K:Warp:<cost> (CR 702.185a): the hand's alternate cost and the end-step exile marker
 	NoAbilities    bool          // the printed face has no ability (effects.FaceHasNoAbilities): CardDef.NoAbilities, the NoAbilities filter word's card read
+	HasManaAbility bool          // the printed face has a mana ability (effects.FaceHasManaAbility): CardDef.HasManaAbility, PredHasManaAbility's card read
 	Impending      *manaCost     // K:Impending:<N>:<cost> (CR 702.176a): the hand's alternate cost; ImpendingN time counters
 	ImpendingN     int
 	Plot           *manaCost // K:Plot:<cost> (CR 702.170a): the sorcery-speed special action's cost
@@ -986,11 +999,16 @@ type lCard struct {
 	FbBeholdF      *lFilter
 	Dash           *manaCost // K:Dash:<cost> (CR 702.109a): the hand's alternative cost; the permanent gains haste and returns to its owner's hand at the next end step
 	Evoke          *manaCost // K:Evoke:<cost> (CR 702.74a): the hand's alternative cost; the permanent is sacrificed as it enters
+	Overload       *manaCost // K:Overload:<cost> (CR 702.96a): the hand's alternative cost; the spell reads "target" as "each"
+	// OverloadProg is the overloaded cast's program: the printed spell with
+	// each targeted instruction rewritten to its "each" sweep (CR 702.96a).
+	OverloadProg   []lInstr
 	Bestow         *manaCost // K:Bestow:<cost> (CR 702.103a): the hand's alternative cost of the Aura cast
 	BestowT        *lTarget  // the bestowed Aura's enchant creature target (gorge bestowedAttachSA)
 	Convoke        bool      // K:Convoke (CR 702.51a): the cast may tap creatures for its mana cost
 	Improvise      bool      // K:Improvise (CR 702.126a): the cast may tap artifacts for the generic part of its mana cost
 	Delve          bool      // K:Delve (CR 702.66a): the cast exiles graveyard cards toward its generic cost (dirac/kw_delve.go)
+	Rebound        *lAbility // K:Rebound (CR 702.88a): the latent free-cast-from-exile body of the upkeep recast (dirac/kw_rebound.go)
 	Mayhem         *manaCost // K:Mayhem:<cost> (CR 702.187): a graveyard cast for this cost if the card was discarded this turn (dirac/kw_mayhem.go)
 	BeamMeUp       *manaCost // K:Beam me up:<cost>: a graveyard cast for this cost that also returns a creature you control (FbCost)
 	Harmonize      *manaCost // K:Harmonize:<cost> (CR 702.180a): a graveyard cast for this cost, one creature tapped for its power off the generic part

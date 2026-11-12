@@ -1,0 +1,14 @@
+{
+  "card": "Krav, the Unredeemed",
+  "class": "options",
+  "why": "its {B}, Sacrifice X creatures activation: gorge offers it at priority while only its untapped sources pay {B} (an announced Sac<X> beside no {X} and no XMin is no cost:x planner decline), the kernel's GorgeUnpriced gate (legal.go) withholds every announced Sac<X> activation the floating pool does not pay",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "krav_the_unredeemed_sacrifice_x_activation_unoffered"
+  }
+}

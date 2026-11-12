@@ -2013,6 +2013,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.phases(ps) // lower_phasing.go
 	case "CopyPermanent":
 		return lc.copyPermanent(ps)
+	case "Encore":
+		return lc.encore(ps) // lower_encore.go
 	case "GainControl":
 		return lc.gainControl(ps)
 	case "ExchangeControl":
@@ -2170,6 +2172,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.untapAll(ps)
 	case "TapAll":
 		return lc.tapAll(ps)
+	case "DrainMana":
+		return lc.drainMana(ps)
 	case "Seek":
 		return lc.seek(ps)
 	case "Reveal":
@@ -2291,6 +2295,9 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 	case "Shuffle":
 		// gorge effShuffle: the controller, or the one Defined$ / target
 		// player (several players and object owners refuse)
+		if ps.is("Defined", "RememberedOwner") {
+			return lc.shuffleRememberedOwners(ps) // lower_shuffleremowners.go
+		}
 		who, err := lc.objOrTarget(ps, "You", zNone)
 		if err != nil {
 			return err
@@ -2391,6 +2398,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.unlockDoor(ps) // lower_unlockdoor.go
 	case "CumulativeUpkeep":
 		return lc.cumulativeUpkeep(ps) // lower_cumulative.go
+	case "Echo":
+		return lc.echoUpkeep(ps) // lower_echo.go
 	default:
 		return refuseAPI(sa.API) // lower_refuseapi.go
 	}

@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The scry stand-in completion (task scrybottom). A scry whose KArrange is
+// The scry stand-in completion. A scry whose KArrange is
 // never answerable -- an empty library or ScryNum$ 0, where the ask's only
 // legal answer is the empty one and effects.Ask never posts it, or a no-host
 // run -- completes in effLookAndArrange's stand-in, not in handleArrange.

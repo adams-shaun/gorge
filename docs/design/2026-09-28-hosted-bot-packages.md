@@ -10,6 +10,9 @@ INFERRED claim has to be measured or tested before anything builds on it.
 **botbench:** the bench command behind almost every number here. It drives games
 through `testkit/bench` and lives in the maintainers' private companion module,
 so this document describes its behaviour rather than citing its source.
+**Later moves:** the clairvoyant package moved out of this repository to the
+private companion module on 2026-10-16, so `clairvoyant` below names that
+module's package; the three SpellBench builtins merged into `bots/sbbuiltin`.
 
 Related documents: the first policy-selection design
 (`archived 2026-09-19-hosted-bot-policy-selection-design.md (docs/design/ARCHIVE.md)`)
@@ -57,8 +60,8 @@ cited below as **SB**), and the training summary
 4. **The known-card tracker moves into the feed** (`Feed.Known()`), so it has
    one owner that the host can rebuild after undo. azmcts and sbsearch stop
    keeping their own.
-5. **azmcts is split.** The clairvoyant world moves to
-   `bots/azmcts/clairvoyant`, which bench and training still link and
+5. **azmcts is split.** The clairvoyant world moves to the private
+   companion module's `clairvoyant` package, which bench and training still link and
    which stays banned from host, httpapi, gorged and `bots/...`. The honest
    core and `RedealSource` become linkable. `SeatConfig.Source` injects the
    clairvoyant factory, and only botbench passes it.
@@ -117,8 +120,8 @@ cited below as **SB**), and the training summary
 - **vs-bot create.**
   - httpapi normalizes `bot_policy` *before* the builder
     (`server/host/httpapi/rest.go:424`), so an omitted field reaches gorged as `bot`.
-  - gorged normalizes again (`cmd/gorged/game.go:37`) and builds a 2-seat
-    table with `Humans: []int{0}` (`cmd/gorged/game.go:96-101`).
+  - gorged normalizes again (`server/gorged/game.go:37`) and builds a 2-seat
+    table with `Humans: []int{0}` (`server/gorged/game.go:96-101`).
   - `TestCreateGameBotPolicyDecodeAndRejectsDiagnostic`
     (`server/host/httpapi/game_test.go:119`) pins that `{}` reaches the builder as
     `bot`.
@@ -348,7 +351,7 @@ func Validate() error                           // each Caretaker resolves to a 
 
 `bots` imports `seat`, `cards`, `decision`, `view`, `botpolicy`, `rules` and
 `bots/searchseat` (for `Env`). It must never import `host`, `protocol`,
-`time`, `testkit/testutil` or `bots/azmcts/clairvoyant` (§6.2).
+`time`, `testkit/testutil` or the private companion module's `clairvoyant` package (§6.2).
 
 ### 4.2 Engine-aware seats and the refusal ladder
 
@@ -413,7 +416,7 @@ func Fallbacks(d *decision.Decision, brd botpolicy.Board, seatIdx int) []decisio
 | `bots/azredeal` | `az-redeal` | `azmcts.NewSeat(seed, nil, Hosted())` |
 | `bots/sbtactical` | `sb-tactical` | `builtins.NewTactical(AutoPay, seed, NewRegistryLookup(Deps.Cards), DefaultTacticalWeights())` |
 | `bots/sbsearch` | `sb-search-lite-atk` | `sbsearch.New(<sb-tactical>, seed, LiteAtk())` |
-| `bots/sbheuristic`, `bots/sbuniform`, `bots/sbfirst` | `sb-heuristic`, `sb-uniform`, `sb-first` | `builtins.New(<policy>, AutoPay, seed[^UniformSeed])` |
+| `bots/sbbuiltin` | `sb-heuristic`, `sb-uniform`, `sb-first` | `builtins.New(<policy>, AutoPay, seed[^UniformSeed])` |
 | `bots/all` | — | blank-imports every package above. gorged and botbench import it. |
 
 Every search adapter exports `Hosted() <Config>` and
@@ -635,7 +638,7 @@ cannot drift.
 
 ### 6.1 The move
 
-- **New package `bots/azmcts/clairvoyant`.** `NewClairvoyant`,
+- **New package `clairvoyant`.** `NewClairvoyant`,
   `AllowClairvoyant`, `ErrClairvoyantRefused` and the `clairvoyant` source
   type move here from `bots/azmcts/world.go:29-72`.
 - **It exports** `Source(env searchseat.Env, obs *searchprobe.Collector)
@@ -646,8 +649,7 @@ cannot drift.
 - **`NewSeat`** (`bots/azmcts/seat.go:117-127`):
   - `World == WorldRedeal` builds the redeal source as today.
   - `World` of `""` or `WorldClairvoyant` requires `cfg.Source != nil`, and
-    otherwise returns `azmcts: the clairvoyant world is not linked
-    (bots/azmcts/clairvoyant)`.
+    otherwise returns an error saying the clairvoyant world is not linked.
   - `DecideSearch` (`bots/azmcts/seat.go:170-182`) calls `cfg.Source` in
     place of `NewClairvoyant`.
 - **The `AllowClairvoyant` runtime gate stays, inside the new package.** A
@@ -674,10 +676,10 @@ that does not yet exist, `continue` already skips it
 
 | change | from | to | why |
 |---|---|---|---|
-| replace `:156-158` | `host`, `server/host/httpapi`, `cmd/gorged` | `bots/azmcts/clairvoyant` | Keeps the ban's intent: nothing that seats a non-bench opponent links the real-engine clone. The honest core becomes linkable. |
-| add | `bots/azmcts` | `bots/azmcts/clairvoyant` | The core must never pull the clone back in. |
-| add | `bots/spellbench/sbsearch`, `bots/searchseat` | `bots/azmcts/clairvoyant` | Both are linked by hosted entries. |
-| add (loop) | every package with prefix `module+"/bots"` | `bots/azmcts/clairvoyant`, `host`, `testkit/testutil` | Bots are hostable and host-independent (host imports bots, so the reverse arrow would also be a cycle). |
+| replace `:156-158` | `host`, `server/host/httpapi`, `cmd/gorged` | `clairvoyant` | Keeps the ban's intent: nothing that seats a non-bench opponent links the real-engine clone. The honest core becomes linkable. |
+| add | `bots/azmcts` | `clairvoyant` | The core must never pull the clone back in. |
+| add | `bots/spellbench/sbsearch`, `bots/searchseat` | `clairvoyant` | Both are linked by hosted entries. |
+| add (loop) | every package with prefix `module+"/bots"` | `clairvoyant`, `host`, `testkit/testutil` | Bots are hostable and host-independent (host imports bots, so the reverse arrow would also be a cycle). |
 | add | `protocol` | `module+"/bots"` | The wire stays a leaf. `bots` imports rules, and `{protocol, rules}` is already forbidden. |
 
 `TestTimeIsImportedOnlyByTheHost` needs no edit: `bots/...` are not on its
@@ -723,7 +725,7 @@ allow-list, so a clock in a bot fails the build. The comment at
   JSON board frame per decision for the whole game, **INFERRED** a few MB per
   match. Both are to be measured. Slots bound the first, and `-max-search-tables` the second.
 - **Pace.** The host's `-pace` sleep (`server/host/match.go:686`) is unaffected.
-  vs-bot tables set no pace (`cmd/gorged/game.go:96-101`).
+  vs-bot tables set no pace (`server/gorged/game.go:96-101`).
 - **Rejected alternatives.**
   1. A wall-clock budget. It makes intents a function of load, which breaks
      §8 and the no-clock rule.
@@ -819,7 +821,7 @@ and a `"BotTier": {"production", "experimental"}` union.
 `web/src/protocol.ts` is regenerated, and `TestCommittedProtocolTSIsFresh`
 (`cmd/gentypes/main_test.go:13`) pins it. `protocol` never imports `bots`.
 gorged converts `bots.Info` to `BotPolicyInfo` with a small function in
-`cmd/gorged/botpolicies.go`.
+`server/gorged/botpolicies.go`.
 
 ### 9.2 Endpoint
 
@@ -840,7 +842,7 @@ gorged converts `bots.Info` to `BotPolicyInfo` with a small function in
   `bots.Normalize` (a 400 on an unregistered name) and passes `""` through
   unchanged. `CreateGameOptions.BotPolicy`'s doc says `""` means "the
   server's default".
-- **gorged.** `createGame` (`cmd/gorged/game.go:33-110`) maps `""` to
+- **gorged.** `createGame` (`server/gorged/game.go:33-110`) maps `""` to
   `c.botPolicy`. It refuses a name that is not offered ("bot policy %q is not
   offered on this server"), a name whose entry's `Formats` lack the requested
   format, and a name whose `MaxSeats` is below 2. The response's `bot_policy`

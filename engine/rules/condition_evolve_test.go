@@ -16,7 +16,7 @@ import (
 // Evolving Adaptive). Forge writes the evolve ability word as a keyword
 // (`Evolve$ True`, engine/cards/kw_evolve.go) on most cards, but on these two it is a
 // bare Condition$ on an ordinary Mode$ ChangesZone ETB trigger. Before this
-// task the shared trigger walk read no bare Condition$ Evolve at all, so the
+// change the shared trigger walk read no bare Condition$ Evolve at all, so the
 // trigger fired UNCONDITIONALLY -- a 2/2 entering under Sharp-Eyed Rookie's
 // controller put a +1/+1 counter and investigated, although CR 702.99a
 // requires the entering creature's power OR toughness to exceed the source's.

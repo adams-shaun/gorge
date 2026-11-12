@@ -7,8 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// putCounterExisting runs the CounterType$ ExistingCounter shape (task
-// lb-existctr): ExistingCounter is not a counter kind but "a kind of counter
+// putCounterExisting runs the CounterType$ ExistingCounter shape: ExistingCounter is not a counter kind but "a kind of counter
 // the recipient already has" (CR 122.1, 122.6). With EachExistingCounter$
 // True (Powerful Broker, Maulfist Revolutionary, Skyship Plunderer: "for each
 // kind of counter on target permanent or player, give that permanent or

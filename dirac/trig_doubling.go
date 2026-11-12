@@ -88,9 +88,6 @@ func (s *State) panharmEchoes(k *prep, l trigListener, ev kop.TrigEvent, tobj Ob
 			if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatPanharmonicon || a.AFlags&kop.AfLatent != 0 {
 				continue
 			}
-			if p.flags&pfPanhGone != 0 {
-				continue // departing in this batch: gorge reads the statics after it
-			}
 			if !s.statCond(k, statSrc{a: a, sl: sl, ctrl: p.ctrl, obj: p.obj}) {
 				continue
 			}
@@ -132,32 +129,4 @@ func (s *State) panharmCause(k *prep, a *kop.Ability, ev kop.TrigEvent, tobj Obj
 		return s.matchPermGen(k, f, ob.slot, ctrl, sl, layerFull)
 	}
 	return s.matchCardGen(k, f, ob.card, ob.owner(), ctrl, tobj)
-}
-
-// panharmDepart marks sl as departed if it hosts a Panharmonicon static.
-// fireLeave calls it as the permanent's own leave event is checked: gorge
-// moves a batch's permanents one at a time in battlefield-list order
-// (sba.go), checks each move's triggers against the board as it then stands
-// and reads the statics (panharmoniconStatics) from that board, so a host
-// that already died earlier in the batch (or is the dying permanent itself)
-// doubles nothing, while one later in the order still does; the kernel
-// removes the batch only after firing every member, so the departures so far
-// are the marks.
-func (s *State) panharmDepart(k *prep, sl Slot) {
-	if s.g.pgT[0] != 0 {
-		// gorge's MoveZone fold has ended the Effect-delivered grants the
-		// permanent hosts or holds (expireUntilUntaps, effectMoveSweep) before
-		// any trigger of the move is checked: its own dies trigger is not
-		// echoed by the grant it carried (act_grantpanharm.go)
-		o := s.perms[sl].obj
-		s.pgDropHost(o)
-		s.pgDropTarget(o)
-	}
-	cd := &k.t.Cards[s.cardAt(sl)]
-	for i := range cd.Abilities {
-		if a := &cd.Abilities[i]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatPanharmonicon {
-			s.perms[sl].flags |= pfPanhGone
-			return
-		}
-	}
 }

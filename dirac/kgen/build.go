@@ -158,6 +158,25 @@ func buildCard(pt *poolTables, c *lCard) built {
 		}
 		cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "emit " + node, Reason: err.Error()})
 		cb.out.def.Abilities = nil
+	} else if c.Rebound != nil {
+		// CR 702.88a: the latent recast body, run by the upkeep delayed
+		// program the kernel registers as the hand-cast spell resolves
+		// (dirac/kw_rebound.go); the ability map is filled by abilities()
+		if j, ok := cb.abMap[c.Rebound.Index]; ok && j+1 <= 255 {
+			cb.out.def.ReboundAb = uint8(j + 1)
+		} else {
+			cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "emit K:Rebound", Reason: "the recast body was not emitted"})
+			cb.out.def.Abilities = nil
+		}
+	}
+	if len(c.Refusals) == 0 && c.Overload != nil && c.OverloadProg != nil {
+		p, err := cb.prog(c.OverloadProg)
+		if err != nil {
+			cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "emit K:Overload", Reason: err.Error()})
+			cb.out.def.Abilities = nil
+		} else {
+			cb.out.def.OverloadProg = p
+		}
 	}
 	if c.Impending == nil && putsTimeCounters(&cb.out.def) {
 		// the kernel's impending dormancy reads the time counters, not
@@ -383,6 +402,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"SKEWER":     kop.CtrSkewer,     // Rotisserie Elemental's named counter (CR 122.1)
 	"NEST":       kop.CtrNest,       // Twitching Doll's named counter (CR 122.1)
 	"AGE":        kop.CtrAge,        // cumulative upkeep's age counter (CR 702.24a; Mystic Remora)
+	"FADE":       kop.CtrFade,       // fading's fade counter (CR 702.32a; Blastoderm)
 	"LUCK":       kop.CtrLuck,       // Gemstone Caverns' named counter (CR 122.1; the Condition-split mana gate, lower_condsplit.go)
 	"DEPLETION":  kop.CtrDepletion,  // Peat Bog's depletion counter (CR 122.1; mana_rider.go)
 	"MINING":     kop.CtrMining,     // Gemstone Mine's mining counter (CR 122.1; mana_rider.go)
@@ -639,6 +659,7 @@ func (cb *cardBuilder) record() error {
 		}
 	}
 	d.NoAbilities = c.NoAbilities
+	d.HasManaAbility = c.HasManaAbility
 	if c.Warp != nil {
 		// CR 702.185a: no KwMask bit is free, so the warp marker is its own
 		// field; the cost is the hand's alternate cost (dirac/kw_warp.go)
@@ -736,6 +757,14 @@ func (cb *cardBuilder) record() error {
 		// (dirac/kw_dash.go)
 		d.HasDash = true
 		if d.DashCost, err = manaCostOf(*c.Dash); err != nil {
+			return err
+		}
+	}
+	if c.Overload != nil {
+		// CR 702.96a: the hand's alternative cost and the resolving program's
+		// each-variant (dirac/kw_overload.go)
+		d.HasOverload = true
+		if d.OverloadCost, err = manaCostOf(*c.Overload); err != nil {
 			return err
 		}
 	}
@@ -1556,6 +1585,8 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredNoCounters
 	case cmpLacksKw:
 		kf.Pred, kf.PredN = kop.PredLacksKeyword, int16(c.CmpN)
+	case cmpHasManaAbility:
+		kf.Pred, kf.PredN = kop.PredHasManaAbility, int16(c.CmpN)
 	case cmpOutlaw:
 		kf.Pred, kf.PredN = kop.PredOutlaw, int16(c.CmpN)
 		for _, w := range [...]string{"Assassin", "Mercenary", "Pirate", "Rogue", "Warlock"} {
@@ -1892,6 +1923,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefPromised, nil
 	case rAttachedCtrl:
 		return kop.RefAttachedCtrl, nil
+	case rLastCreated:
+		return kop.RefLastCreated, nil
 	case rSrcOwner:
 		return kop.RefSrcOwner, nil
 	case rTriggerAttackers:
@@ -2140,7 +2173,7 @@ var cmpOps = map[uint8]kop.CmpOp{opGE: kop.CmpGE, opLE: kop.CmpLE, opEQ: kop.Cmp
 
 var condKinds = map[condKind]kop.CondKind{cPresent: kop.CondPresent, cValue: kop.CondValue, cKicked: kop.CondKicked,
 	cThreshold: kop.CondThreshold, cYourTurn: kop.CondYourTurn, cRefMatches: kop.CondRefMatches,
-	cPromisedGift: kop.CondPromised, cAnd: kop.CondAnd}
+	cPromisedGift: kop.CondPromised, cAnd: kop.CondAnd, cEchoOwed: kop.CondEchoOwed}
 
 // cond interns a condition (0 for none).
 func (cb *cardBuilder) cond(c lCond) (kop.CondID, error) {

@@ -955,8 +955,7 @@ func TestATokenBouncedToHandCeasesToExist(t *testing.T) {
 // stack without being a permanent yet (Ephemeral's own IsCopy half covers
 // that shape already; this is the token half of the same "not every
 // off-battlefield placement is death" principle). Exercised directly
-// against a manufactured stack object rather than a real copy effect (Task
-// 13 does not implement CopySpellAbility) -- what ceaseDeadTokens reads is
+// against a manufactured stack object rather than a real copy effect -- what ceaseDeadTokens reads is
 // only IsToken and Zone, so a token object placed on the stack by hand is
 // exactly as much of a test of the exclusion as a real spell copy would be.
 func TestATokenOnTheStackIsNotPrematurelyCeased(t *testing.T) {

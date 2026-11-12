@@ -230,11 +230,12 @@ import (
 // Vine Dryad; the six new ones are Force of Negation, Force of Vigor, Force of
 // Despair, Monstrous Hound, Mogg Toady and Goblin Goon; merged ALL build-level
 // 22392 -> 22584).
+// +31 (K:Partner with: the carriers listed at ratchet_test.go's ALL pin; ALL build-level 22381 -> 22412; merged ALL build-level 22706 -> 22737).
 // +2 (the merge with land: this branch's an Effect's this-turn uncounter scope
 // and hexproof from blue and from black, the cards listed at ratchet_test.go's
-// ALL pin, beside land's lowers, disjoint; merged ALL build-level 22592 -> 22594).
+// ALL pin, beside land's lowers, disjoint; merged ALL build-level 22868 -> 22870).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22594, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22870, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
