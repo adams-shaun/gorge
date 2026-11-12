@@ -2011,6 +2011,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		if s.Zone == zAny {
 			st.Zone = kop.ZoneCommand
+		} else if s.Zone == zStack {
+			st.Zone = kop.ZoneStack // the spell's own stack-zone raise (lower_raisecost.go)
 		}
 	case "CantBlock":
 		st.Kind = kop.StatCantBlock
