@@ -739,6 +739,7 @@ type build struct {
 	obsWin    uint8    // obsWinTapped: obsSl was set by a manual-window tap before the payment, so it counts only if the payment spends that source's colour; obsWinPaying: the payment began (mana_spendtrigger.go obsWinSettle)
 	pipShort  bool     // the lowered pip window ran dry (loweredPipWindow): the cost objects are still asked, and the payment reverses the cast
 	altAbort  bool     // the chosen either-or part cannot be paid: the fallback CR 601.2g window runs at bsMana (manaStep) and reverses the cast (CR 733.1)
+	impPlan   bool     // gorge's planner priced this Improvise cast (kw_improvisepay.go)
 	payLifeMV bool     // the cast went through a may-play permission whose alternative cost is life equal to its mana value (cast_mayplaypaylife.go)
 }
 

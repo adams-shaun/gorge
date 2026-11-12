@@ -570,7 +570,9 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 	refused := planNeverPricesCore(k, c, hyb, composed, false) || s.boardLifeTgtDep(k, p, c, o) || s.stackTgtDep(k, c)
 	optRefused := k.gen != nil && k.gen.anyOptCost && optCostCard(k, c)
 	spendRefused := !composed && k.gen != nil && k.gen.anyCastSpent && s.spendReaderOut(k)
-	tapRefused := !refused && !optRefused && !spendRefused && s.contribPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand)
+	fromHand := s.objs[o].zone == kop.ZoneHand
+	lifted := !refused && !optRefused && !spendRefused && mode&3 == 0 && s.improviseLifted(k, p, c, o, fromHand)
+	tapRefused := !refused && !optRefused && !spendRefused && !lifted && s.contribPays(k, p, c, o, fromHand)
 	if refused || optRefused || spendRefused || tapRefused {
 		// gorge's planner declines the shape (modal_cost, additional_cost,
 		// optional_cost, mana_spent_reader, contribution, target_dependent_cost)
@@ -608,11 +610,21 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 			cost = addCost(cost, s.altAddManaPart(k, c))
 		}
 	}
+	var reserved slotMask
+	if lifted {
+		// gorge's planImprovise: the artifacts' credit comes off the printed cost
+		// before the reductions, and they are no mana source of the plan
+		reserved = s.improviseReserved(k, p, cost.Generic)
+		cost = s.convokeCredit(k, p&1, c, o, cost)
+	}
 	if s.statM.any() || k.gen != nil {
 		cost = s.featCost(k, p&1, c, o, cost) // a flashback cost is reduced too
 	}
 	if k.gen != nil && (s.g.mayPlayAny || mode&castMayPlay != 0 && s.mayPlayAnyType(k, p, o) || s.convAnyType(k, p&1, o)) {
 		cost = anyTypePips(cost) // gorge's planner funds these pips as generic (pay.PlanManaUnderRider)
+	}
+	if lifted && !s.improviseSourcesPay(k, p, reserved, &cost) {
+		return kop.ManaCost{}, false // "cost:credit": the greedy credit is no proof, the manual window pays
 	}
 	return cost, true
 }
@@ -626,8 +638,9 @@ func (s *State) FeatFaceDown(o Obj) bool {
 // FeatPlanDeclinesShape reports a plain cast of p's object o that gorge's cast
 // planner declines for its cost's shape, not the seat's mana (rules
 // payment_plan.go announcedShape, decision.PotentialShapeCasts): every
-// plannedCastCost refusal, the card's own shape and the board's (a convoke,
-// improvise or delve contribution, an optional cost, a mana-spent reader out).
+// plannedCastCost refusal, the card's own shape and the board's (a convoke or
+// delve contribution, an improvise one its credit's sources cannot pay, an
+// optional cost, a mana-spent reader out).
 func (s *State) FeatPlanDeclinesShape(p uint8, o Obj) bool {
 	_, ok := s.plannedCastCost(s.k(), p, o, 0)
 	return !ok

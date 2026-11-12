@@ -3,8 +3,6 @@ package rules
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/engine/decision"
-	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -33,16 +31,6 @@ func devourFodder(t *testing.T, e *Engine, names ...string) []state.ObjID {
 		ids = append(ids, id)
 	}
 	return ids
-}
-
-// enterDevourer emits the devourer's hand->battlefield entry (the ETB
-// replacement fires on the Move) and returns the pending decision -- the
-// sacrifice ask the replacement's body poses.
-func enterDevourer(t *testing.T, e *Engine, name string) *decision.Decision {
-	t.Helper()
-	id := searchMoveByName(t, e, name, state.ZHand)
-	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
-	return e.Pending()
 }
 
 // idOf finds a seat-0 battlefield object by face name.

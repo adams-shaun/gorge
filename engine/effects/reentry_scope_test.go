@@ -6,7 +6,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // fx42AskHost is a fakeHost whose Ask records every posed decision in order
@@ -31,39 +30,6 @@ func (h *fx42AskHost) Ask(d *decision.Decision) bool {
 }
 
 func (h *fx42AskHost) Suspended() bool { return h.suspended }
-
-// realReentrantDiscardSA returns the REAL compiled outer Discard sub-ability
-// of a named corpus card whose Sub chain reaches a SECOND Discard asker.
-// It asserts the Sub really carries a second asking Discard, so a caller is
-// never handed a shape that only looks like the reentrant case. Gruesome
-// Discovery and Last Rites are the two corpus cards with this shape (measured
-// with a walker over .cards/ir.gob.gz at the branch under test).
-func realReentrantDiscardSA(t *testing.T, cardName string) (*cards.SA, map[string]string) {
-	t.Helper()
-	reg := testutil.CorpusRegistry(t)
-	c, ok := reg.Lookup(cardName)
-	if !ok {
-		t.Fatalf("corpus has no card %q", cardName)
-	}
-	for _, f := range c.Faces {
-		for _, a := range f.Abilities {
-			if a.API != "Discard" || a.Params["Mode"] != "TgtChoose" {
-				continue
-			}
-			reaches := false
-			for s := a.Sub; s != nil; s = s.Sub {
-				if s.API == "Discard" && (s.Params["Mode"] == "RevealYouChoose" || s.Params["Mode"] == "TgtChoose") {
-					reaches = true
-				}
-			}
-			if reaches {
-				return a, f.SVars
-			}
-		}
-	}
-	t.Fatalf("card %q has no TgtChoose Discard ability whose Sub reaches another Discard asker", cardName)
-	return nil, nil
-}
 
 // TestNestedCounterDoesNotInheritOuterUnlessPayAnswer pins the defect
 // synthetically. The corpus cannot reach it — a walker over the compiled

@@ -35,31 +35,6 @@ func (h *countingAskHost) Ask(d *decision.Decision) bool {
 	return true
 }
 
-func tragicArroganceBoard(t *testing.T) (*countingAskHost, *Ctx, *state.Object, *state.Object, *state.Object, *state.Object) {
-	t.Helper()
-	card, chooseSA := corpusSA(t, "Tragic Arrogance", "YouChoose")
-	if chooseSA.API != "ChooseCard" || chooseSA.Params["ChooseEach"] != "Artifact & Creature & Enchantment & Planeswalker" {
-		t.Fatalf("Tragic Arrogance's YouChoose SA changed: %+v", chooseSA)
-	}
-	h := &countingAskHost{}
-	h.g = state.NewGame(names(2))
-	src := h.g.AddObject(card, 0)
-	h.Emit(events.Event{Kind: events.MoveZone, Obj: src.ID, From: state.ZLibrary, To: state.ZBattlefield})
-	// Seat 1 controls the pool ControlledByPlayer$ Remembered narrows to: one
-	// card per group plus a SECOND creature, so the creature group's answer
-	// can be a real election (not a forced sole option), and no planeswalker,
-	// so that group's ask must resolve silently.
-	artifact := h.g.AddObject(mkCard(t, "Name:TA Art\nTypes:Artifact\nOracle:x\n"), 1)
-	creFirst := h.g.AddObject(mkCard(t, "Name:TA Cre One\nTypes:Creature\nPT:1/1\nOracle:x\n"), 1)
-	creSecond := h.g.AddObject(mkCard(t, "Name:TA Cre Two\nTypes:Creature\nPT:1/1\nOracle:x\n"), 1)
-	ench := h.g.AddObject(mkCard(t, "Name:TA Ench\nTypes:Enchantment\nOracle:x\n"), 1)
-	for _, o := range []*state.Object{artifact, creFirst, creSecond, ench} {
-		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZLibrary, To: state.ZBattlefield})
-	}
-	c := &Ctx{Source: src.ID, Controller: 0, Remembered: []state.Target{{Player: 1, IsPlayer: true}}}
-	return h, c, artifact, creFirst, creSecond, ench
-}
-
 // TestChooseCardChooseEachNoHostTakesFirstPerGroup pins the no-host stand-in:
 // with a host that cannot ask, every Mandatory group takes its first
 // eligible candidate in group order (the same deterministic path the

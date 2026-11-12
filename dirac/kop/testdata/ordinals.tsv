@@ -99,12 +99,13 @@ ColU	ColorMask	2
 ColW	ColorMask	1
 CondAlways	CondKind	0
 CondAnd	CondKind	8
-CondCount_	CondKind	10
+CondCount_	CondKind	11
 CondEchoOwed	CondKind	9
 CondKicked	CondKind	3
 CondPresent	CondKind	1
 CondPromised	CondKind	7
 CondRefMatches	CondKind	6
+CondSourceZone	CondKind	10
 CondThreshold	CondKind	4
 CondValue	CondKind	2
 CondYourTurn	CondKind	5
@@ -1384,6 +1385,8 @@ TokRemember	untyped int	2
 TokRememberObj	untyped int	4
 TokSacAtEnd	untyped int	8
 TokTapped	untyped int	1
+TpOppSeparates	untyped int	1
+TpUnchosenPileOrder	untyped int	2
 TrAttacking	untyped int	2
 TrHasteEOT	untyped int	4
 TrList	untyped int	8
@@ -1447,7 +1450,11 @@ TrigTurnFaceUp	TrigEvent	27
 TrigUnlockDoor	TrigEvent	30
 TrigUntaps	TrigEvent	17
 TurnReplExileOpp	untyped int	1
+TurnReplHexUB	untyped int	6
+TurnReplPlayerHex	untyped int	5
 TurnReplPlusCreatureCtr	untyped int	2
+TurnReplUncounter	untyped int	3
+TurnReplUncounterCreature	untyped int	4
 U	untyped int	1
 VCardsInHand	VKind	7
 VConst	VKind	0

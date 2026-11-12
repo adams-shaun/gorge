@@ -318,8 +318,45 @@ func PipFeeManaAb(a *Ability) (col int, ok bool) {
 	return 0, false
 }
 
+// FeeOnlyManaAb reports whether mana ability a is "{cost}: Add ..." with no
+// {T}, no limit and no other cost part (Nomadic Elf's "{1}{G}: Add one mana of
+// any color", Orochi Leafcaller's "{G}: ...", Agent of Stromgald's "{R}: Add
+// {B}", Energy Refractor's "{2}: ..."): the mana alone, at least one mana,
+// at most one WUBRG pip beside any generic part, and a plain unrestricted
+// production of one fixed colour, any colour, or one of at least two colours.
+// It is repeatable: nothing marks a use, so a pool that pays the fee pays it
+// again (gorge's census leaves it unrelaxable and unbounded:
+// potential_plan.go paymentPlanRelaxedAlternatives). The kernel runs gorge's
+// prefix search over it as a first-ability filter (dirac mana_filterfirst.go).
+func FeeOnlyManaAb(a *Ability) bool {
+	m := &a.Cost.Mana
+	if a.Kind != AbMana || a.Cost.Flags != 0 || m.X != 0 || m.Hyb != ([4]ColorMask{}) || m.Tb != 0 || m.MV() < 1 ||
+		a.ManaRestrict != 0 || a.ManaN > 1 || a.ManaEach || len(a.Prog) != 0 ||
+		a.Gate.Ctr != 0 || a.Trig.Cond != 0 || a.ActZone != ZoneNone && a.ActZone != ZoneBattlefield {
+		return false
+	}
+	pips := 0
+	for c, n := range m.Pips {
+		if n == 0 {
+			continue
+		}
+		pips += int(n)
+		if c > 4 || pips > 1 {
+			return false
+		}
+	}
+	c := a.ManaColors
+	switch a.AFlags {
+	case 0:
+		return c == ColAny || c != 0 && c&^ColAny == 0 && c&(c-1) == 0
+	case AfManaChoice:
+		return c&^ColAny == 0 && c&(c-1) != 0
+	}
+	return false
+}
+
 // FilterManaAb reports whether mana ability a is a filter the kernel models
-// as a card's first mana ability: a generic-only fee,
+// as a card's first mana ability: a fee-only one (FeeOnlyManaAb), a generic-only fee,
 // {1} once each turn (ActivationLimit$ 1) or {1}, {T}, one unrestricted
 // mana of any colour (Produced$ Any) or of one of at least two colours
 // (Produced$ Combo, AfManaChoice). gorge's planner census misses it (a paid
@@ -331,6 +368,9 @@ func PipFeeManaAb(a *Ability) (col int, ok bool) {
 // {1},{T}: Add {W}{U}; FilterEachManaAb) is one: its relaxed census
 // alternative is one fixed production (kernel mana_filtereach.go).
 func FilterManaAb(a *Ability) bool {
+	if FeeOnlyManaAb(a) {
+		return true
+	}
 	if _, ok := PipFeeManaAb(a); ok {
 		return true
 	}
@@ -398,7 +438,8 @@ func riderManaCostOK(a *Ability) bool {
 //     sacrifice this alone (pcard.manaTap / manaSac / manaSacOnly), a counter
 //     placed on or removed from the source once a turn (CtrManaAb), the tap-another-
 //     permanent shape of TapXManaAb, the sacrifice-another all-at-once shape
-//     of SacXEachManaAb, or a filter (FilterManaAb);
+//     of SacXEachManaAb, or a filter (FilterManaAb, a fee-only {cost} one
+//     included: FeeOnlyManaAb);
 //   - a granted (latent) one: a mana-free {T}, {T} + pay N life, or
 //     sacrifice this alone (genPrep.grantPC; dirac mana_grantcost.go);
 //   - any later own mana ability: a {T} (a fixed-colour set, a restricted,
@@ -489,13 +530,14 @@ func SecondTapXManaAb(cd *CardDef, first, j int) bool {
 // from this: Add <fixed colour>" with no once-each-turn limit (Weather Maker's
 // "{T}, Remove two charge counters: Add {C}{C}"): a mana-free cost of the
 // source's own {T} and counters, a fixed unrestricted production of one colour
-// ({C} counts), ManaN of it. Its {T} is the source's, so the limit is the tap
+// ({C} counts), ManaN of it, or one mana of any colour (Vivid Grove's second
+// ability: the activation asks the colour). Its {T} is the source's, so the limit is the tap
 // alone. Kernel mana_countercost.go reads it, through prep.ctrAb, as a
 // counter-cost gap beside a plain first ability (SecondCtrTapManaAb).
 func CtrTapSecondManaAb(a *Ability) bool {
 	c := a.ManaColors
 	return a.Kind == AbMana && a.Cost.Flags == CostTap|CostRemoveCtr && a.Cost.N > 0 && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
-		a.AFlags == 0 && a.ManaRestrict == 0 && !a.ManaEach && c != 0 && c&(c-1) == 0 && a.ManaN >= 1 && len(a.Prog) == 0 &&
+		a.AFlags == 0 && a.ManaRestrict == 0 && !a.ManaEach && (c != 0 && c&(c-1) == 0 && a.ManaN >= 1 || c == ColAny && a.ManaN <= 1) && len(a.Prog) == 0 &&
 		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
 }
 

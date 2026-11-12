@@ -110,12 +110,3 @@ func TestEventidesShadowAnyAmountStaysLoudlyWithheld(t *testing.T) {
 		t.Fatalf("withheld shape emitted no loud Note; log = %+v", h.log)
 	}
 }
-
-func assertNoRemoveCounterChoiceNote(t *testing.T, h *fakeHost) {
-	t.Helper()
-	for _, ev := range h.log {
-		if ev.Kind == events.Note && strings.Contains(ev.Text, "unimplemented") {
-			t.Fatalf("unexpected unimplemented Note: %q", ev.Text)
-		}
-	}
-}
