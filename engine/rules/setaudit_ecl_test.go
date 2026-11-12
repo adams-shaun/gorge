@@ -12,7 +12,6 @@ package rules
 // helpers; no Forge script text is committed here.
 
 import (
-	"os"
 	"strings"
 	"testing"
 
@@ -22,15 +21,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
-
-// eclGuard skips a failing finding unless GORGE_SET_AUDIT is set, naming the
-// defect and its follow-up.
-func eclGuard(t *testing.T, defect, ticket string) {
-	t.Helper()
-	if os.Getenv("GORGE_SET_AUDIT") == "" {
-		t.Skip("set-audit finding (ecl): " + defect + ". Follow-up: " + ticket)
-	}
-}
 
 // eclEngine builds a two-seat engine from named corpus cards (seat 0's deck
 // first) padded with Mountains, with the real token scripts, and drives it to

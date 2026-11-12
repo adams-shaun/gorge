@@ -99,12 +99,13 @@ ColU	ColorMask	2
 ColW	ColorMask	1
 CondAlways	CondKind	0
 CondAnd	CondKind	8
-CondCount_	CondKind	10
+CondCount_	CondKind	11
 CondEchoOwed	CondKind	9
 CondKicked	CondKind	3
 CondPresent	CondKind	1
 CondPromised	CondKind	7
 CondRefMatches	CondKind	6
+CondSourceZone	CondKind	10
 CondThreshold	CondKind	4
 CondValue	CondKind	2
 CondYourTurn	CondKind	5
@@ -238,6 +239,7 @@ CtrSkewer	CounterKind	65
 CtrSoul	CounterKind	9
 CtrSpore	CounterKind	17
 CtrStash	CounterKind	12
+CtrStorage	CounterKind	73
 CtrStory	CounterKind	22
 CtrStun	CounterKind	3
 CtrSupply	CounterKind	35
@@ -314,6 +316,7 @@ DuRestBottom	untyped int	8
 DurAirbend	untyped int	10
 DurDefeated	untyped int	9
 DurEOT	untyped int	0
+DurForetell	untyped int	13
 DurPermanent	untyped int	1
 DurPlot	untyped int	7
 DurPrepared	untyped int	8
@@ -674,8 +677,8 @@ MvUnderYourControl	untyped int	4
 NoCard	CardID	65535
 NumCounterKinds	CounterKind	7
 NumCounterKinds2	CounterKind	13
-NumCounterKinds3	CounterKind	73
-NumCounterKindsX	int	58
+NumCounterKinds3	CounterKind	74
+NumCounterKindsX	int	59
 NumExtOps	ExtOp	320
 NumManaKinds	untyped int	6
 NumSteps	Step	13
@@ -1384,6 +1387,8 @@ TokRemember	untyped int	2
 TokRememberObj	untyped int	4
 TokSacAtEnd	untyped int	8
 TokTapped	untyped int	1
+TpOppSeparates	untyped int	1
+TpUnchosenPileOrder	untyped int	2
 TrAttacking	untyped int	2
 TrHasteEOT	untyped int	4
 TrList	untyped int	8
@@ -1447,7 +1452,11 @@ TrigTurnFaceUp	TrigEvent	27
 TrigUnlockDoor	TrigEvent	30
 TrigUntaps	TrigEvent	17
 TurnReplExileOpp	untyped int	1
+TurnReplHexUB	untyped int	6
+TurnReplPlayerHex	untyped int	5
 TurnReplPlusCreatureCtr	untyped int	2
+TurnReplUncounter	untyped int	3
+TurnReplUncounterCreature	untyped int	4
 U	untyped int	1
 VCardsInHand	VKind	7
 VConst	VKind	0

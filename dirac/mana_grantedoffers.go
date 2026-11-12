@@ -643,7 +643,7 @@ func (g *grantSrch) candidates(s *State) {
 		return // every gap dropped: gorge's search runs on none
 	}
 	if !s.filtFunded(g.k, g.p, fm) {
-		g.funding = 0 // (gorge's unrelaxable census funds no fee)
+		g.funding = s.filtFunding(g.k, g.p, fm) // (gorge's unrelaxable census funds no fee, but an unbounded repeatable one)
 	}
 	if g.funding == 0 {
 		return
@@ -1637,6 +1637,8 @@ func (s *State) castFaceCard(k *prep, a Action) CardID {
 	}
 	if cd := &k.t.Cards[c]; roomDef(k, c) {
 		return cd.Faces[a.Target()] // a room_alt cast: the other door, whichever door the card shows
+	} else if fd, ok := fusedDef(k, c); ok && a.Target() == FeatFuseFace {
+		return fd // a fused cast: both halves (face_fuse.go)
 	} else if len(cd.Faces) == 2 && a.Target() == 1 {
 		return cd.Faces[1]
 	}

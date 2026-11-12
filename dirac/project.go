@@ -207,6 +207,9 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 	if k.gen != nil && k.gen.anyFaceExile && ob.zone == kop.ZoneExile && s.faceDownExiled(i) {
 		po.Flags |= ProjFaceDown // a Dig's face-down may-look exile (zone_exilefacedown.go)
 	}
+	if k.gen != nil && k.gen.anyForetell && ob.zone == kop.ZoneExile && s.foretold(i) {
+		po.Flags |= ProjFaceDown // a foretold card is exiled face down (kw_foretell.go)
+	}
 	if ob.zone == kop.ZoneExile && s.g.on && s.mObj(k, mechStash, i) {
 		po.Counters[kop.CtrStash] = 1 // Tinybones' stash counter on an exiled card
 	}

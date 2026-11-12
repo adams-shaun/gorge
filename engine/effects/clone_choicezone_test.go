@@ -32,26 +32,6 @@ func clonePermanentTargets(h *fakeHost) []state.ObjID {
 	return out
 }
 
-func clonePermanentCount(h *fakeHost, id state.ObjID) int {
-	n := 0
-	for _, e := range h.log {
-		if e.Kind == events.ClonePermanent && e.Obj == id {
-			n++
-		}
-	}
-	return n
-}
-
-// bodyBecomeContains reports whether the body's CloneTarget$ sweep covers id.
-func bodyBecomeContains(h *fakeHost, body *cards.SA, id state.ObjID) bool {
-	for _, tgt := range battlefieldValidTargets(h, &Ctx{Source: id, Controller: 0}, "Creature.YouCtrl") {
-		if tgt.Obj == id {
-			return true
-		}
-	}
-	return false
-}
-
 // TestCloneChoiceZoneUnsupportedFailsClosed pins the fail-closed landing for a
 // ChoiceZone$ value this build does not implement: one loud Note, no copy,
 // never a battlefield fall-through.

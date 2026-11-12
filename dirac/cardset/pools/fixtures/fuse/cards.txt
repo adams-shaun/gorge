@@ -1,0 +1,39 @@
+# the fuse pool (CR 702.102): every lowered split card printed with fuse,
+# beside {X} spells whose smaller X floats the mana a fused cast needs and
+# Channel the Suns,
+# artifacts and enchantments for their halves' targets, creatures, a
+# counterspell and basics (dirac/oracle/fuse_test.go)
+Alive
+Beck
+Down
+Far
+Give
+Profit
+Protect
+Ready
+Toil
+Turn
+Wear
+Blaze
+Stream of Life
+Mind Spring
+Exsanguinate
+Channel the Suns
+Ornithopter
+Memnite
+Mind Stone
+Bonesplitter
+Pacifism
+Glorious Anthem
+Rancor
+Counterspell
+Savannah Lions
+Coral Merfolk
+Gray Ogre
+Wind Drake
+Grizzly Bears
+Plains
+Island
+Swamp
+Mountain
+Forest

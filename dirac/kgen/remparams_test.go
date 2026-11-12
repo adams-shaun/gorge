@@ -23,7 +23,8 @@ var kremparamsAccepted = []string{
 	"For the Common Good",              // PumpAll Duration$ UntilYourNextTurn
 	"Mouth of the Storm",               // PumpAll Duration$ UntilYourNextTurn with a constant P/T pump
 	"Grub's Command", "Sygg's Command", // four modes, four target slots
-	"Brigid's Command", // + four targeted modes plus the fight link, five target slots
+	"Brigid's Command",                                          // + four targeted modes plus the fight link, five target slots
+	"Cultivator Colossus", "Primal Surge", "Tidehollow Sculler", // ForgetOtherRemembered$ hand/Dig writers
 }
 
 // kremparamsRefused are the cards that stay refused, with a substring of the

@@ -18,11 +18,14 @@ import (
 // board (measured: the choice-shaped pass tapped the second, gorge the first).
 var kmanaonlyDecks = [2][]cardset.Entry{
 	{
-		{Name: "Quirion Elves", Count: 4},
-		{Name: "Grizzly Bears", Count: 8}, {Name: "Doom Blade", Count: 3}, {Name: "Serra Angel", Count: 3},
-		{Name: "Lightning Bolt", Count: 3}, {Name: "Wind Drake", Count: 3}, {Name: "Hill Giant", Count: 3},
-		{Name: "Forest", Count: 3}, {Name: "Swamp", Count: 3}, {Name: "Plains", Count: 2},
-		{Name: "Mountain", Count: 3}, {Name: "Island", Count: 2},
+		{Name: "Quirion Elves", Count: 2}, {Name: "Nomadic Elf", Count: 2}, {Name: "Orochi Leafcaller", Count: 2},
+		{Name: "Agent of Stromgald", Count: 1}, {Name: "Bog Initiate", Count: 1}, {Name: "Energy Refractor", Count: 2},
+		{Name: "Prismite", Count: 1}, {Name: "Crossroads Candleguide", Count: 1}, {Name: "Signpost Scarecrow", Count: 1},
+		{Name: "Urn of Godfire", Count: 1}, {Name: "Llanowar Envoy", Count: 1},
+		{Name: "Grizzly Bears", Count: 2}, {Name: "Doom Blade", Count: 1}, {Name: "Serra Angel", Count: 1},
+		{Name: "Lightning Bolt", Count: 1}, {Name: "Wind Drake", Count: 2}, {Name: "Hill Giant", Count: 1},
+		{Name: "Forest", Count: 4}, {Name: "Swamp", Count: 3}, {Name: "Plains", Count: 3},
+		{Name: "Mountain", Count: 4}, {Name: "Island", Count: 3},
 	},
 	{
 		{Name: "Hill Giant", Count: 4}, {Name: "Wind Drake", Count: 4}, {Name: "Grizzly Bears", Count: 4},
@@ -32,7 +35,9 @@ var kmanaonlyDecks = [2][]cardset.Entry{
 }
 
 // kmanaonlyFilters are the pool's mana-only-fee carriers and Quirion Elves.
-var kmanaonlyFilters = map[string]bool{"Quirion Elves": true}
+var kmanaonlyFilters = map[string]bool{"Quirion Elves": true, "Nomadic Elf": true, "Orochi Leafcaller": true,
+	"Agent of Stromgald": true, "Bog Initiate": true, "Energy Refractor": true, "Prismite": true,
+	"Crossroads Candleguide": true, "Signpost Scarecrow": true, "Urn of Godfire": true, "Llanowar Envoy": true}
 
 // kmanaonlyRun plays seeds with pol, failing on each divergence or unmodelled
 // stall, and returns the number of games it played. byName counts, from

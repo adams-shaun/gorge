@@ -1,0 +1,59 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Alive
+1	card	Beck
+2	card	Blaze
+3	card	Bonesplitter
+4	card	Channel the Suns
+5	card	Coral Merfolk
+6	card	Counterspell
+7	card	Down
+8	card	Exsanguinate
+9	card	Far
+10	card	Forest
+11	card	Give
+12	card	Glorious Anthem
+13	card	Gray Ogre
+14	card	Grizzly Bears
+15	card	Island
+16	card	Memnite
+17	card	Mind Spring
+18	card	Mind Stone
+19	card	Mountain
+20	card	Ornithopter
+21	card	Pacifism
+22	card	Plains
+23	card	Profit
+24	card	Protect
+25	card	Rancor
+26	card	Ready
+27	card	Savannah Lions
+28	card	Stream of Life
+29	card	Swamp
+30	card	Toil
+31	card	Turn
+32	card	Wear
+33	card	Wind Drake
+34	card	face:Alive#1
+35	card	face:Beck#1
+36	card	face:Down#1
+37	card	face:Far#1
+38	card	face:Give#1
+39	card	face:Profit#1
+40	card	face:Protect#1
+41	card	face:Ready#1
+42	card	face:Toil#1
+43	card	face:Turn#1
+44	card	face:Wear#1
+45	card	fuse:Alive
+46	card	fuse:Beck
+47	card	fuse:Down
+48	card	fuse:Far
+49	card	fuse:Give
+50	card	fuse:Profit
+51	card	fuse:Protect
+52	card	fuse:Ready
+53	card	fuse:Toil
+54	card	fuse:Turn
+55	card	fuse:Wear
+56	token	g_3_3_centaur
+57	token	w_1_1_bird_flying
