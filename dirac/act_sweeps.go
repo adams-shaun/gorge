@@ -44,8 +44,16 @@ func (s *State) putCounterAll(k *prep, in *kop.Instr) {
 	if in.B.N == kop.PutCtrCellFirst {
 		s.g.ctrCell = slotMask{}
 	}
+	var placed [MaxPerm]Slot
+	nplaced := 0
 	for _, sl := range ord[:cnt] {
 		m := s.placeCounters(k, sl, int(in.C), n, s.perms[sl].ctrl, ctrPutEffect)
+		if m > 0 {
+			// RememberPut$ names the recipients whose counter actually landed,
+			// after replacements (gorge rememberPlaced over the placed list).
+			placed[nplaced] = sl
+			nplaced++
+		}
 		if m > 0 && k.anyCtrAdded {
 			s.ctrNote(k, sl, int(in.C))
 		}
@@ -56,6 +64,11 @@ func (s *State) putCounterAll(k *prep, in *kop.Instr) {
 			s.fireCounterCell(k, sl, m) // trig_countercell.go
 		} else if m > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
 			s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(m))
+		}
+	}
+	if in.B.N == kop.PutCtrRememberPut && !DebugRemPutNever {
+		for _, sl := range placed[:nplaced] {
+			s.remember(s.perms[sl].obj)
 		}
 	}
 }
@@ -151,7 +164,9 @@ func (s *State) fireGraveDies(k *prep, sl Slot) {
 // tapAll is OpTapAll: gorge effTapAll walks seat 0's battlefield then seat
 // 1's in entry order and taps (EmitTap) each UNTAPPED permanent matching
 // ValidCards$; each tap fires its Taps triggers as it happens. Obj (a
-// target player) restricts the walk to that player's battlefield.
+// player ref) restricts the walk to that player's battlefield. Instr.C 1
+// is TapperController$ True: each tapped permanent's own controller is the
+// tapper (gorge's per-card tapper), not the resolving ability's controller.
 func (s *State) tapAll(k *prep, in *kop.Instr) {
 	only := uint8(255)
 	if in.Obj != kop.RefNone {
@@ -171,7 +186,11 @@ func (s *State) tapAll(k *prep, in *kop.Instr) {
 		p.flags |= pfTapped
 		s.touchSl(sl)
 		if s.subs[kop.TrigTaps].any() {
-			s.fireTapsBy(k, sl, s.effTapper(sl))
+			tapper := s.effTapper(sl)
+			if in.C == 1 {
+				tapper = p.ctrl
+			}
+			s.fireTapsBy(k, sl, tapper)
 		}
 		s.markTapped(k, sl)
 	}

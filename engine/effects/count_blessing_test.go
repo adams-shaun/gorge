@@ -1,5 +1,4 @@
-// Count$Blessing.<yes>.<no> — CR 702.131's city's-blessing branch head (task
-// activation-blessing-gate), the third read of the one-way blessing latch
+// Count$Blessing.<yes>.<no> — CR 702.131's city's-blessing branch head, the third read of the one-way blessing latch
 // beside the bare Condition$ Blessing gate (engine/effects/conditions.go) and the
 // Activation$ Blessing offer gate (engine/rules/legal.go's activationConditionOK).
 // Unit-tested at the effects-side eval level the sibling branch heads use;

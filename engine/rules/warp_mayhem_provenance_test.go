@@ -1,7 +1,7 @@
 package rules
 
 // The Card.CastSa Spell.Warp and Card.CastSa Spell.Mayhem cast-provenance
-// predicates (task mayplay-warp). Both are alternative-cast permissions, so
+// predicates. Both are alternative-cast permissions, so
 // both read the cast's pay-time CastInfo CastFlags (state.FlagWarped /
 // state.FlagMayhem) and must be admitted at every site the ValidLKI row
 // names: rules' castSaAdmits, the layer Affected$ match (matchesWithTypes),

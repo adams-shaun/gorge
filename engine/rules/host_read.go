@@ -126,8 +126,7 @@ func (e *Engine) Game() *state.Game { return e.G }
 
 func (e *Engine) ObjectColors(o *state.Object) string { return e.objColors(o) }
 
-// CastProhibited is effects' optional castProhibitedHost read (task
-// play-prohibited-election): the same CantBeCast gate beginPlay enforces
+// CastProhibited is effects' optional castProhibitedHost read: the same CantBeCast gate beginPlay enforces
 // (engine/rules/statics_cast.go castRestrictedFree -- every Play election is
 // a free or PlayCost$ cast, CR 107.3b, so no CR 601.3a X lookahead),
 // exposed so effPlay's Play election never

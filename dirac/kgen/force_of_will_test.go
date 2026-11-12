@@ -9,14 +9,14 @@ import (
 // alternative cost: Force of Will's "PayLife<1> ExileFromHand<1/Card.Blue+Other>"
 // lowers (kop.CostPayLife|CostExileGrave sharing Cost.N 1, ExileHand), and
 // Force of Rowan's red twin with it. The same filtered exile with no life
-// part (Misdirection), a count the life does not match (Commandeer's two
+// part (Misdirection) lowers as the exile alone; a count the life does not match (Commandeer's two
 // cards) or a second graveyard-reading part keeps refusing, by name.
 func TestForceOfWillAlternativeCost(t *testing.T) {
 	cs := lowerNamed(t, []string{"Force of Will", "Force of Rowan", "Misdirection", "Commandeer"})
 	want := map[string]string{
 		"Force of Will":  "",
 		"Force of Rowan": "",
-		"Misdirection":   "alternative cost with an exile part other than PayLife<N> beside ExileFromHand<1/Spec>",
+		"Misdirection":   "",
 		"Commandeer":     `exile cost "ExileFromHand<2/Card.Blue+Other>"`,
 	}
 	seen := 0

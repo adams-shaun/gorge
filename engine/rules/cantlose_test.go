@@ -1,5 +1,5 @@
 // Tests for the `R:Event$ GameLoss` / `R:Event$ GameWin | Layer$ CantHappen`
-// replacement class (task fdn-repl-cant-lose): "You can't lose the game and
+// replacement class: "You can't lose the game and
 // your opponents can't win the game" (Herald of Eternal Dawn, the Platinum
 // Angel family, Abyssal Persecutor, Lich's Mastery, and the narrower
 // ValidLoseReason$ carriers). The rule is CR 104.3 / 704.5a-c: while the

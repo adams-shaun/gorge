@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The trigger-side Metalcraft$ named condition (task trig-attacks-metalcraft):
+// The trigger-side Metalcraft$ named condition:
 // a T: line carrying `Metalcraft$ True` fires only while its controller
 // controls three or more artifacts -- the same census the cost-modifier gate
 // (costConditionHolds), the Continuous static gate and the activation-legality
@@ -15,7 +15,7 @@ import (
 // trigger fired unconditionally.
 //
 // The real-card pin is Vedalken Humiliator: its TrigPump body is DB$ AnimateAll,
-// implemented since the api-animateall task (engine/effects/animateall_test.go +
+// implemented since AnimateAll landed (engine/effects/animateall_test.go +
 // engine/rules/animateall_test.go, which resolves the trigger end to end and pins the
 // unread RemoveAllAbilities$ loud note); this test pins the GATE alone.
 

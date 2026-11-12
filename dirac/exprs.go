@@ -579,6 +579,8 @@ func (s *State) condEval(k *prep, id kop.CondID, ctx evalCtx) bool {
 		r = s.promisedCtx(ctx)
 	case kop.CondAnd:
 		r = s.condEval(k, c.Sub[0], ctx) && s.condEval(k, c.Sub[1], ctx)
+	case kop.CondEchoOwed:
+		r = ctx.srcSl != NoSlot && s.mSl(k, mechEchoOwed, ctx.srcSl) // trig_echo.go
 	case kop.CondSourceZone:
 		// the source object itself is in Zone now: gorge's intervening-if for
 		// IsPresent$ Card.StrictlySelf | PresentZone$, re-checked at resolution

@@ -303,8 +303,9 @@ Exit: all ratchets green on `main`; nothing asks for a size-only split.
 3. A behavioural test fills every `deep` field with non-zero values by
    reflection, clones, mutates the original, and asserts the clone is
    unchanged — this catches an omitted copy line mechanically.
-4. Optional second step: `cmd/genclone` generates `cloneWith` from the tags
-   (`go generate`), so a new field needs a tag and nothing else. The generated
+4. Optional second step: `TestCloneGenIsUpToDate` generates `cloneWith` from the
+   tags (`GORGE_GEN_CLONE=1 go test ./engine/rules -run TestCloneGenIsUpToDate`),
+   so a new field needs a tag and nothing else. The generated
    code must match the hand code's allocation profile (Spare pooling,
    `clone_cycle_bench_test.go`); if it cannot, keep hand code plus the tests.
 

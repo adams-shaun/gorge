@@ -125,6 +125,9 @@ const (
 func (s *State) beginStep(k *prep) {
 	switch s.step {
 	case kop.StepUntap:
+		if k.gen != nil && k.gen.ix[mechEchoOwed] != arenaNone && !s.g.untapOn {
+			s.echoSnap(k) // before the untap clears the sickness (trig_echo.go)
+		}
 		if k.phasing && !s.g.untapOn {
 			s.phaseUntap(k) // CR 702.26a/p, before the untap action (kw_phasing.go)
 		}
@@ -190,6 +193,7 @@ func (s *State) beginStep(k *prep) {
 			return
 		}
 		s.g.drawFirst = true  // repl_draw.go: the first card drawn in this draw step
+		s.g.drawStepN = 0     // trig_drawstep.go: no card drawn in this draw step yet
 		if !s.out(s.active) { // a departed active player draws nothing (gorge turn.go)
 			s.draw(s.active)
 		}

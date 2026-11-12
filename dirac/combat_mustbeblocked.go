@@ -49,7 +49,11 @@ func prepMustBlock(t *kop.Table, g *genPrep) {
 // mustBlockUses reports the ExtMustBeBlocked mask need (arenaUses).
 func mustBlockUses(in *kop.Instr, u *[numMech]bool) {
 	if in.Op == kop.OpExt && in.Ext() == kop.ExtMustBeBlocked {
-		u[mechMustBlocked], u[mechMustBlockedPost] = true, true
+		if in.C == kop.MustBeBlockedLure {
+			u[mechLure], u[mechLurePost] = true, true // combat_lure.go
+		} else {
+			u[mechMustBlocked], u[mechMustBlockedPost] = true, true
+		}
 	}
 }
 
@@ -57,6 +61,8 @@ func mustBlockUses(in *kop.Instr, u *[numMech]bool) {
 func (s *State) mustBlockNewTurn(k *prep) {
 	s.mSlZero(k, mechMustBlocked)
 	s.mSlZero(k, mechMustBlockedPost)
+	s.mSlZero(k, mechLure)
+	s.mSlZero(k, mechLurePost)
 	s.mSlZero(k, mechAttacksIfAble) // combat_attacksifable.go
 	s.mSlZero(k, mechBlocksIfAble)  // combat_blocksifable.go
 }
@@ -64,6 +70,12 @@ func (s *State) mustBlockNewTurn(k *prep) {
 // mustBlockExt is ExtMustBeBlocked: Obj, or every battlefield permanent
 // matching F with Obj RefNone (the suspectExt shape), is marked.
 func (s *State) mustBlockExt(k *prep, in *kop.Instr) {
+	if in.C == kop.MustBeBlockedLure {
+		if sl := s.objRef(k, in.Obj); sl != NoSlot {
+			s.lureMark(k, sl) // combat_lure.go
+		}
+		return
+	}
 	if in.Obj == kop.RefNone {
 		var ord [MaxPerm]Slot
 		n := s.sweepHits(k, in.F, &ord)

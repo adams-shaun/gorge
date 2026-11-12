@@ -236,7 +236,7 @@ func (e *Engine) castRestrictedCostAs(statics []staticView, p state.PlayerID, id
 		// the checkSVarHolds the caller used to run separately, and the
 		// duplicate ClassBand$/Condition$ reads inside restrictionGateHolds
 		// below are pure state reads with identical semantics.
-		if !e.continuousGateHolds(sv) || !e.restrictionGateHolds(sv, id) {
+		if !e.continuousGateHolds(sv) || !e.restrictionGateHolds(sv, id) || e.castSorceryTimingExempt(sv, p, castInFlight(e.G, id)) {
 			continue
 		}
 		// Origin$ (Kunoros, Grafdigger's Cage, Memory Vessel's NoCast): the
@@ -249,7 +249,7 @@ func (e *Engine) castRestrictedCostAs(statics []staticView, p state.PlayerID, id
 		}
 		spec := castValidCardSpec(sv)
 		countSpec := spec
-		// The origin-zone cast-provenance split (task wascastfrom): a
+		// The origin-zone cast-provenance split: a
 		// CantBeCast restriction's ValidCard$ carrying a wasCastFromExile /
 		// wasCastFromTheirHand-shaped token gates the cast IN PROGRESS -
 		// which has no PutOnStack yet - so the origin is the restricted
@@ -594,6 +594,25 @@ func castLimitBinds(log []events.Event, sv staticView, p state.PlayerID, inFligh
 		return true
 	}
 	return castsThisTurnMatchingBy(log, p, inFlight, match) >= n
+}
+
+// castSorceryTimingExempt is OnlySorcerySpeed$ True on a CantBeCast static
+// (Teferi, Time Raveler's "each opponent can cast spells only any time they
+// could cast a sorcery"): the prohibition binds only while p could NOT cast a
+// sorcery -- the active player's main phase with an empty stack (CR 307.1,
+// 117.1a) -- so inside that window it does not apply. inFlight, the spell
+// whose cast is under way (castInFlight), is on the stack but is not what
+// makes the window closed, so it is left out of the count; flash grants never
+// open the window, which is about sorcery timing alone.
+func (e *Engine) castSorceryTimingExempt(sv staticView, p state.PlayerID, inFlight state.ObjID) bool {
+	if sv.Params["OnlySorcerySpeed"] != "True" {
+		return false
+	}
+	n := len(e.G.Stack)
+	if inFlight != 0 {
+		n--
+	}
+	return e.G.Active == p && e.G.Step.IsMain() && n == 0
 }
 
 // castInFlight is id when its cast is under way (the card is on the stack),
@@ -941,7 +960,7 @@ func (e *Engine) adjustedCost(p state.PlayerID, id state.ObjID) Cost {
 func (e *Engine) castWithFlash(p state.PlayerID, id state.ObjID) bool {
 	// Fast path: with no CastWithFlash static anywhere (the overwhelming
 	// majority of offers), do not pay for a potential-target census.
-	if len(e.withSelfStatics(e.activeStatics("CastWithFlash"), id, "CastWithFlash", p)) == 0 {
+	if len(e.withSelfStatics(e.activeStatics("CastWithFlash"), id, "CastWithFlash", p)) == 0 && !e.effectFlashLive() {
 		return false
 	}
 	return e.castWithFlashTargets(p, id, e.costPotentialTargets(p, id, spellScope("")), false)
@@ -982,7 +1001,7 @@ func (e *Engine) castWithFlashTargets(p state.PlayerID, id state.ObjID, targets 
 			return true
 		}
 	}
-	return false
+	return e.effectFlashGrants(p, id, o.Face(), targets, teamworkOffer)
 }
 
 // castWithFlashAsFace is castWithFlash priced AS face f of id: the

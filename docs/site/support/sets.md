@@ -9,7 +9,7 @@ the most leverage.
 !!! info "Where the numbers come from"
     - **Generated at every docs build:** the engine headline table, the per-set
       table and the roll-ups. They join gorge-compliance's nightly per-set
-      status with dirac's committed per-set snapshot. Each table's
+      status with dirac's per-set support page. Each table's
       caption gives the date and Forge corpus it measured, which can trail the
       corpus pin below.
     - **Measured by hand:** the corpus figures, the leverage ranking and the
@@ -179,7 +179,8 @@ newest first.
 - **dirac supported** and **dirac lowered** are counts / cards over dirac's own
   card list for the set.
 - **Lockstep games** is agreeing games / games in the set's committed slice, on
-  `-surface full`, for the two sets a clone holds a slice of.
+  `-surface full`. The support page carries no slice results, so the column is
+  "—" until a source for them is wired in.
 
 ## Every set
 

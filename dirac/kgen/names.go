@@ -72,14 +72,14 @@ func init() {
 		"kop.TrigBecomeMonstrous", kop.TrigBecomeMonstrous, "kop.TrigTurnFaceUp", kop.TrigTurnFaceUp, "kop.TrigTransformed", kop.TrigTransformed, "kop.TrigCommitCrime", kop.TrigCommitCrime, "kop.TrigUnlockDoor", kop.TrigUnlockDoor, "kop.TrigFullyUnlock", kop.TrigFullyUnlock,
 		"kop.TrigBecomesPlotted", kop.TrigBecomesPlotted, "kop.TrigBecomesSaddled", kop.TrigBecomesSaddled, "kop.TrigAttached", kop.TrigAttached, "kop.TrigDiscardedAll", kop.TrigDiscardedAll, "kop.TrigAbilityCast", kop.TrigAbilityCast, "kop.TrigScry", kop.TrigScry, "kop.TrigSurveil", kop.TrigSurveil, "kop.TrigExplores", kop.TrigExplores, "kop.TrigCollectEvidence", kop.TrigCollectEvidence,
 		"kop.TrigLandPlayed", kop.TrigLandPlayed, "kop.TrigSearchedLibrary", kop.TrigSearchedLibrary, "kop.TrigForage", kop.TrigForage, "kop.TrigDiscover", kop.TrigDiscover,
-		"kop.TrigManifestDread", kop.TrigManifestDread)
+		"kop.TrigManifestDread", kop.TrigManifestDread, "kop.TrigEvolved", kop.TrigEvolved)
 	enum[kop.StaticKind]("kop.StatNone", kop.StatNone, "kop.StatContinuous", kop.StatContinuous,
 		"kop.StatReduceCost", kop.StatReduceCost, "kop.StatCantBlock", kop.StatCantBlock, "kop.StatCantBlockBy", kop.StatCantBlockBy,
 		"kop.StatAlternativeCost", kop.StatAlternativeCost, "kop.StatCastWithFlash", kop.StatCastWithFlash,
 		"kop.StatMustAttack", kop.StatMustAttack, "kop.StatCantAttack", kop.StatCantAttack, "kop.StatIncreaseCost", kop.StatIncreaseCost, "kop.StatCantBeCast", kop.StatCantBeCast,
 		"kop.StatCDAPT", kop.StatCDAPT, "kop.StatNoMaxHandSize", kop.StatNoMaxHandSize, "kop.StatExtraLandPlay", kop.StatExtraLandPlay,
 		"kop.StatMayPlayFrom", kop.StatMayPlayFrom, "kop.StatOverride", kop.StatOverride,
-		"kop.StatBeamGrant", kop.StatBeamGrant, "kop.StatFbGrant", kop.StatFbGrant, "kop.StatWarpGrant", kop.StatWarpGrant, "kop.StatCantBeBeamedUp", kop.StatCantBeBeamedUp, "kop.StatPlayerHexproof", kop.StatPlayerHexproof, "kop.StatControl", kop.StatControl, "kop.StatPanharmonicon", kop.StatPanharmonicon, "kop.StatCanAttackDefender", kop.StatCanAttackDefender, "kop.StatReduceAbility", kop.StatReduceAbility, "kop.StatStackKw", kop.StatStackKw, "kop.StatMaxBlockers", kop.StatMaxBlockers, "kop.StatCantActivate", kop.StatCantActivate, "kop.StatDisableETB", kop.StatDisableETB, "kop.StatUntapOther", kop.StatUntapOther, "kop.StatCantGainLife", kop.StatCantGainLife, "kop.StatCantDraw", kop.StatCantDraw, "kop.StatCombatDmgToughness", kop.StatCombatDmgToughness, "kop.StatCantPutCounter", kop.StatCantPutCounter, "kop.StatTapExtra", kop.StatTapExtra, "kop.StatGoad", kop.StatGoad, "kop.StatCantTarget", kop.StatCantTarget, "kop.StatCantSacrifice", kop.StatCantSacrifice, "kop.StatCantPhaseIn", kop.StatCantPhaseIn, "kop.StatCantPreventDamage", kop.StatCantPreventDamage, "kop.StatAnyTypeCreatures", kop.StatAnyTypeCreatures, "kop.StatHexproofOwnColors", kop.StatHexproofOwnColors, "kop.StatAsIfHaste", kop.StatAsIfHaste, "kop.StatCantBeSuspected", kop.StatCantBeSuspected, "kop.StatTapPower", kop.StatTapPower, "kop.StatFlipCoinMod", kop.StatFlipCoinMod, "kop.StatActivationLimit", kop.StatActivationLimit)
+		"kop.StatBeamGrant", kop.StatBeamGrant, "kop.StatFbGrant", kop.StatFbGrant, "kop.StatWarpGrant", kop.StatWarpGrant, "kop.StatCantBeBeamedUp", kop.StatCantBeBeamedUp, "kop.StatPlayerHexproof", kop.StatPlayerHexproof, "kop.StatControl", kop.StatControl, "kop.StatPanharmonicon", kop.StatPanharmonicon, "kop.StatCanAttackDefender", kop.StatCanAttackDefender, "kop.StatReduceAbility", kop.StatReduceAbility, "kop.StatStackKw", kop.StatStackKw, "kop.StatMaxBlockers", kop.StatMaxBlockers, "kop.StatCantActivate", kop.StatCantActivate, "kop.StatDisableETB", kop.StatDisableETB, "kop.StatUntapOther", kop.StatUntapOther, "kop.StatCantGainLife", kop.StatCantGainLife, "kop.StatCantDraw", kop.StatCantDraw, "kop.StatCombatDmgToughness", kop.StatCombatDmgToughness, "kop.StatCantPutCounter", kop.StatCantPutCounter, "kop.StatTapExtra", kop.StatTapExtra, "kop.StatGoad", kop.StatGoad, "kop.StatCantTarget", kop.StatCantTarget, "kop.StatCantSacrifice", kop.StatCantSacrifice, "kop.StatCantPhaseIn", kop.StatCantPhaseIn, "kop.StatCantPreventDamage", kop.StatCantPreventDamage, "kop.StatAnyTypeCreatures", kop.StatAnyTypeCreatures, "kop.StatHexproofOwnColors", kop.StatHexproofOwnColors, "kop.StatAsIfHaste", kop.StatAsIfHaste, "kop.StatCantBeSuspected", kop.StatCantBeSuspected, "kop.StatTapPower", kop.StatTapPower, "kop.StatFlipCoinMod", kop.StatFlipCoinMod, "kop.StatActivationLimit", kop.StatActivationLimit, "kop.StatAttackTax", kop.StatAttackTax, "kop.StatLure", kop.StatLure)
 	enum[kop.ReplKind]("kop.ReplNone", kop.ReplNone, "kop.ReplEntersTapped", kop.ReplEntersTapped,
 		"kop.ReplEntersWithCounters", kop.ReplEntersWithCounters, "kop.ReplCantBeCountered", kop.ReplCantBeCountered,
 		"kop.ReplDoesntUntap", kop.ReplDoesntUntap, "kop.ReplEntersAsChoice", kop.ReplEntersAsChoice,
@@ -121,7 +121,7 @@ func init() {
 		"kop.PredSameNameT0", kop.PredSameNameT0, "kop.PredCountersLT", kop.PredCountersLT, "kop.PredToughnessLEV", kop.PredToughnessLEV,
 		"kop.PredTotalPT", kop.PredTotalPT, "kop.PredBlocked", kop.PredBlocked, "kop.PredSolved", kop.PredSolved,
 		"kop.PredAdventureCard", kop.PredAdventureCard, "kop.PredSuspected", kop.PredSuspected, "kop.PredTrigPlayerCtrl", kop.PredTrigPlayerCtrl, "kop.PredExiledWith", kop.PredExiledWith, "kop.PredWasCastEnter", kop.PredWasCastEnter, "kop.PredWasCastSpell", kop.PredWasCastSpell, "kop.PredNotF2", kop.PredNotF2, "kop.PredFaceDown", kop.PredFaceDown, "kop.PredPowerGTBase", kop.PredPowerGTBase, "kop.PredPermMark", kop.PredPermMark, "kop.PredWord7", kop.PredWord7,
-		"kop.PredTriggerObj", kop.PredTriggerObj)
+		"kop.PredTriggerObj", kop.PredTriggerObj, "kop.PredHasManaAbility", kop.PredHasManaAbility)
 	enum[kop.ExprKind]("kop.ExNone", kop.ExNone, "kop.ExConst", kop.ExConst, "kop.ExX", kop.ExX, "kop.ExCount", kop.ExCount,
 		"kop.ExCountGraveyard", kop.ExCountGraveyard, "kop.ExSumPower", kop.ExSumPower, "kop.ExDistinctCMC", kop.ExDistinctCMC,
 		"kop.ExKicked", kop.ExKicked, "kop.ExMorbid", kop.ExMorbid, "kop.ExAttackedThisTurn", kop.ExAttackedThisTurn,
@@ -149,7 +149,7 @@ func init() {
 		"kop.ExScriedThisTurn", kop.ExScriedThisTurn, "kop.ExDilemmasFaced", kop.ExDilemmasFaced, "kop.ExRemLKIPT", kop.ExRemLKIPT, "kop.ExCastBattlefield", kop.ExCastBattlefield, "kop.ExUnlockedDoors", kop.ExUnlockedDoors, "kop.ExNotOwnLibMV", kop.ExNotOwnLibMV, "kop.ExChromaOf", kop.ExChromaOf, "kop.ExChosenMode", kop.ExChosenMode, "kop.ExChosenNumber", kop.ExChosenNumber, "kop.ExMod", kop.ExMod, "kop.ExPow", kop.ExPow, "kop.ExAttackedTurn", kop.ExAttackedTurn, "kop.ExPhaseCount", kop.ExPhaseCount, "kop.ExAdamant", kop.ExAdamant, "kop.ExCounterKinds", kop.ExCounterKinds, "kop.ExTargetPlayers", kop.ExTargetPlayers, "kop.ExTapPower", kop.ExTapPower, "kop.ExStepIn", kop.ExStepIn, "kop.ExOppExtreme", kop.ExOppExtreme, "kop.ExDmgAmountReceived", kop.ExDmgAmountReceived)
 	enum[kop.CondKind]("kop.CondAlways", kop.CondAlways, "kop.CondPresent", kop.CondPresent, "kop.CondValue", kop.CondValue,
 		"kop.CondKicked", kop.CondKicked, "kop.CondThreshold", kop.CondThreshold, "kop.CondYourTurn", kop.CondYourTurn,
-		"kop.CondRefMatches", kop.CondRefMatches, "kop.CondPromised", kop.CondPromised, "kop.CondAnd", kop.CondAnd,
+		"kop.CondRefMatches", kop.CondRefMatches, "kop.CondPromised", kop.CondPromised, "kop.CondAnd", kop.CondAnd, "kop.CondEchoOwed", kop.CondEchoOwed,
 		"kop.CondSourceZone", kop.CondSourceZone)
 	enum[kop.CmpOp]("kop.CmpNone", kop.CmpNone, "kop.CmpGE", kop.CmpGE, "kop.CmpLE", kop.CmpLE, "kop.CmpEQ", kop.CmpEQ,
 		"kop.CmpGT", kop.CmpGT, "kop.CmpLT", kop.CmpLT, "kop.CmpNE", kop.CmpNE, "kop.CmpPrime", kop.CmpPrime)
@@ -169,7 +169,7 @@ func init() {
 		"kop.CtrInvasion", kop.CtrInvasion, "kop.CtrLoot", kop.CtrLoot, "kop.CtrRev", kop.CtrRev, "kop.CtrPage", kop.CtrPage,
 		"kop.CtrIngenuity", kop.CtrIngenuity, "kop.CtrFilm", kop.CtrFilm, "kop.CtrFire", kop.CtrFire, "kop.CtrHone", kop.CtrHone, "kop.CtrCoin", kop.CtrCoin,
 		"kop.CtrDivinity", kop.CtrDivinity, "kop.CtrImpostor", kop.CtrImpostor, "kop.CtrBore", kop.CtrBore, "kop.CtrPoint", kop.CtrPoint,
-		"kop.CtrBloodstain", kop.CtrBloodstain, "kop.CtrPossession", kop.CtrPossession, "kop.CtrPromotion", kop.CtrPromotion, "kop.CtrPeace", kop.CtrPeace, "kop.CtrWish", kop.CtrWish, "kop.CtrSkewer", kop.CtrSkewer, "kop.CtrNest", kop.CtrNest, "kop.CtrAge", kop.CtrAge, "kop.CtrLuck", kop.CtrLuck, "kop.CtrDepletion", kop.CtrDepletion, "kop.CtrMining", kop.CtrMining,
+		"kop.CtrBloodstain", kop.CtrBloodstain, "kop.CtrPossession", kop.CtrPossession, "kop.CtrPromotion", kop.CtrPromotion, "kop.CtrPeace", kop.CtrPeace, "kop.CtrWish", kop.CtrWish, "kop.CtrSkewer", kop.CtrSkewer, "kop.CtrNest", kop.CtrNest, "kop.CtrAge", kop.CtrAge, "kop.CtrLuck", kop.CtrLuck, "kop.CtrDepletion", kop.CtrDepletion, "kop.CtrMining", kop.CtrMining, "kop.CtrFade", kop.CtrFade,
 		"kop.CtrAll", kop.CtrAll)
 	enum[kop.Whose]("kop.WhoseAny", kop.WhoseAny, "kop.WhoseYou", kop.WhoseYou, "kop.WhoseOpp", kop.WhoseOpp,
 		"kop.WhoseEnchCtrl", kop.WhoseEnchCtrl, "kop.WhoseNonActive", kop.WhoseNonActive)
@@ -227,10 +227,11 @@ func init() {
 		"kop.StWithoutManaCost", kop.StWithoutManaCost, "kop.StFunctionsInGraveyard", kop.StFunctionsInGraveyard,
 		"kop.StRemove6Counters", kop.StRemove6Counters, "kop.StTargetsFilter2", kop.StTargetsFilter2, "kop.StYouHexproof", kop.StYouHexproof,
 		"kop.StFunctionsInExile", kop.StFunctionsInExile, "kop.StPanhETB", kop.StPanhETB, "kop.StAlsoSideboard", kop.StAlsoSideboard, "kop.StFreeOnly", kop.StFreeOnly,
-		"kop.StTapPowerCrew", kop.StTapPowerCrew, "kop.StTapPowerSaddle", kop.StTapPowerSaddle, "kop.StTapPowerStation", kop.StTapPowerStation, "kop.StTapPowerTough", kop.StTapPowerTough)
+		"kop.StTapPowerCrew", kop.StTapPowerCrew, "kop.StTapPowerSaddle", kop.StTapPowerSaddle, "kop.StTapPowerStation", kop.StTapPowerStation, "kop.StTapPowerTough", kop.StTapPowerTough,
+		"kop.StAtkTaxPlayer", kop.StAtkTaxPlayer, "kop.StAtkTaxWalker", kop.StAtkTaxWalker)
 	mask[kop.AbilityFlags]("kop.AfLatent", kop.AfLatent, "kop.AfManaDynamic", kop.AfManaDynamic, "kop.AfManaChosen", kop.AfManaChosen, "kop.AfOptionalCost", kop.AfOptionalCost,
 		"kop.AfCheckOnTrigger", kop.AfCheckOnTrigger, "kop.AfEquip", kop.AfEquip, "kop.AfCharmTrigger", kop.AfCharmTrigger, "kop.AfManaEachColor", kop.AfManaEachColor,
 		"kop.AfManaChoice", kop.AfManaChoice, "kop.AfGift", kop.AfGift, "kop.AfResolveCount", kop.AfResolveCount, "kop.AfStation", kop.AfStation, "kop.AfManaReflect", kop.AfManaReflect, "kop.AfManaNonSpell", kop.AfManaNonSpell)
 	mask[kop.TargetFlags]("kop.TgfDistinct", kop.TgfDistinct, "kop.TgfSameController", kop.TgfSameController,
-		"kop.TgfDiffController", kop.TgfDiffController, "kop.TgfKickedRange", kop.TgfKickedRange, "kop.TgfAttachedToT0", kop.TgfAttachedToT0, "kop.TgfDecl", kop.TgfDecl, "kop.TgfGiftRange", kop.TgfGiftRange, "kop.TgfDeclSub", kop.TgfDeclSub, "kop.TgfBoundsV", kop.TgfBoundsV, "kop.TgfSingleTgt", kop.TgfSingleTgt)
+		"kop.TgfDiffController", kop.TgfDiffController, "kop.TgfKickedRange", kop.TgfKickedRange, "kop.TgfAttachedToT0", kop.TgfAttachedToT0, "kop.TgfDecl", kop.TgfDecl, "kop.TgfGiftRange", kop.TgfGiftRange, "kop.TgfDeclSub", kop.TgfDeclSub, "kop.TgfBoundsV", kop.TgfBoundsV, "kop.TgfSingleTgt", kop.TgfSingleTgt, "kop.TgfActOnly", kop.TgfActOnly)
 }

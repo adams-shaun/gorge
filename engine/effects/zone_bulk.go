@@ -425,7 +425,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	// eligible permanents. Forge passes it to the chooser's selection prompt;
 	// with no key the pre-SacMessage wording stays byte for byte.
 	sacMessage := strings.TrimSpace(sa.Params["SacMessage"])
-	// RememberSacrificed$ True drives the task's effect-driven sacrifice
+	// RememberSacrificed$ True drives the effect-driven sacrifice
 	// capture: it makes effSacrifice record the LKI snapshot (power,
 	// toughness, mana value) of each object it sacrifices, so a SubAbility$
 	// chained after it can resolve Sacrificed$CardPower/CardManaCost/Amount

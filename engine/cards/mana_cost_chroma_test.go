@@ -3,7 +3,7 @@ package cards
 import "testing"
 
 // TestManaCostChroma pins the ChromaSource count head's per-symbol read
-// (task lb-chroma): Forge's CardLists.getTotalChroma counts each
+// Forge's CardLists.getTotalChroma counts each
 // space-separated mana-cost symbol ONCE per query whose colour bits
 // intersect the symbol's (ManaCostShard.isColor) -- so a hybrid or
 // Phyrexian symbol is one symbol for a query naming either of its colours
