@@ -891,6 +891,14 @@ func (cb *cardBuilder) record() error {
 			d.Faces = append(d.Faces, kop.CardID(j))
 		}
 		d.Face, d.FaceMode = uint8(c.Face), c.FaceMode
+		d.FusedSpell = c.FusedSpell
+	}
+	if c.FuseKey != "" {
+		j, ok := cb.pt.tokenIdx[c.FuseKey]
+		if !ok {
+			return fmt.Errorf("fused spell %q is not in the pool", c.FuseKey)
+		}
+		d.FuseDef = kop.CardID(j) + 1 // the matchup remaps it (cardset pooldata.go)
 	}
 	return nil
 }

@@ -26,20 +26,20 @@ func lowerNamedPool(t *testing.T, names []string) *lowered {
 }
 
 // TestFaceCastLayouts (C5bb): an Adventure card, a split card
-// (no Room or Fuse) and an Omen card (CR 720) lower their
-// second face as a linked face entry. A Fuse card and a Room stay refused
-// as multi-face cards (an Aftermath card's layout is
+// (a Fuse card too: lower_fuse_test.go's) and an Omen card (CR 720) lower
+// their second face as a linked face entry. A Fuse card beside an Aftermath
+// half stays refused as a multi-face card (an Aftermath card's layout is
 // aftermath_lower_test.go's). An Adventure with a land front
 // and a modal DFC with a nonland back lower (gorge
 // offers the Adventure from the hand; resets the back face off the
 // stack).
 func TestFaceCastLayouts(t *testing.T) {
 	accept := map[string]uint8{"Murderous Rider": kop.FaceAdventure, "Brazen Borrower": kop.FaceAdventure,
-		"Fire": kop.FaceSplit, "Dead": kop.FaceSplit, "Lindblum, Industrial Regency": kop.FaceAdventure,
+		"Fire": kop.FaceSplit, "Dead": kop.FaceSplit, "Alive": kop.FaceSplit, "Lindblum, Industrial Regency": kop.FaceAdventure,
 		"Pestilent Cauldron": kop.FaceModal, "Kolvori, God of Kinship": kop.FaceModal,
 		"Dirgur Island Dragon": kop.FaceOmen,
 		"Bloomvine Regent":     kop.FaceOmen} // its face's Shuffle$ False search lowers
-	refuse := map[string]string{"Alive": "multi-face card"}
+	refuse := map[string]string{"Double Jump": "token refused"} // its fused spell: lower_fuse_test.go
 	var names []string
 	for n := range accept {
 		names = append(names, n)

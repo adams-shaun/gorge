@@ -221,8 +221,9 @@ import (
 // +1 (ConditionActivationLimit$ lowers to kop.ExActivations: Dragon Whelp; merged with land ALL build-level 22184 -> 22185).
 // +5 (the Aura-on-land TapsForMana extra with a literal body: Wild Growth, Overgrowth, Wolfwillow Haven, Gauntlet of Might, Vernal Bloom; ALL build-level 22345 -> 22350).
 // +18 (a split card's aftermath half, cast from the graveyard: Appeal, Claim, Consign, Cut, Driven, Dusk, Farm, Heaven, Leave, Mouth, Never, Onward, Prepare, Reason, Reduce, Road, Spring, Start; ALL build-level 22381 -> 22399).
+// +11 (a split card's fuse, cast as both halves from the hand: Alive, Beck, Down, Far, Give, Profit, Protect, Ready, Toil, Turn, Wear; ALL build-level 22399 -> 22410).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22399, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22410, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

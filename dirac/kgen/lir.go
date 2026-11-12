@@ -1049,6 +1049,10 @@ type lCard struct {
 	// Face is this entry's index and FaceMode the card's kop.Face* layout.
 	Faces []string
 	Face  int
+	// FuseKey is a fuse card's fused split spell entry (lower_fuse.go), one
+	// of its Tokens: CardDef.FuseDef. FusedSpell marks that entry.
+	FuseKey    string
+	FusedSpell bool
 	// printed is a token or face entry's printed name (Name is its pool
 	// key); a named<X> filter resolves X against it
 	printed  string

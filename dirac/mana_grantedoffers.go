@@ -1637,6 +1637,8 @@ func (s *State) castFaceCard(k *prep, a Action) CardID {
 	}
 	if cd := &k.t.Cards[c]; roomDef(k, c) {
 		return cd.Faces[a.Target()] // a room_alt cast: the other door, whichever door the card shows
+	} else if fd, ok := fusedDef(k, c); ok && a.Target() == FeatFuseFace {
+		return fd // a fused cast: both halves (face_fuse.go)
 	} else if len(cd.Faces) == 2 && a.Target() == 1 {
 		return cd.Faces[1]
 	}

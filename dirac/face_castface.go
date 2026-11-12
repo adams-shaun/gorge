@@ -47,7 +47,7 @@ func (s *State) faceCastable(k *prep, p uint8, o Obj, c CardID, sorc bool) bool 
 	ob := &s.objs[o]
 	was := ob.card
 	ob.card = c // the probe: no touch, restored below
-	ok := !(k.gen.anyCantCast && s.castForbidden(k, p, c, o)) && s.spellTargetsFeasibleFrom(k, c, p, o) && s.spellCostsFeasible(k, c, p, o)
+	ok := !(k.gen.anyCantCast && s.castForbiddenFace(k, p, c, o)) && s.spellTargetsFeasibleFrom(k, c, p, o) && s.spellCostsFeasible(k, c, p, o)
 	if ok {
 		// prices every face route through the potential planner
 		// (potential_plan.go potentialModeCastPlan). The priced routes read
@@ -64,6 +64,9 @@ func (s *State) faceCastable(k *prep, p uint8, o Obj, c CardID, sorc bool) bool 
 		ok = s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &dc, &av) && s.altAddCastable(k, c, p, o, &cost, &av)
 		if ok && DebugFacePoolOnly && !s.FeatPoolPays(p, o, 0) {
 			ok = false
+		}
+		if ok && k.gen.anyFuse && !s.fusePoolGate(k, p, o, c) {
+			ok = false // gorge's planner prices no fused cast: only the floating pool casts it (face_fuse.go)
 		}
 		if ok && s.cfg&cfgGorgeUnpriced != 0 && s.contribPays(k, p, c, o, ob.zone == kop.ZoneHand) && !s.FeatPoolPays(p, o, 0) {
 			ok = false // a granted-delve face is a "shape:contribution" the planner declines: only the floating pool casts it
@@ -126,6 +129,9 @@ func (s *State) offerFaceCasts(k *prep, d *Decision, p uint8, o Obj, sorc bool) 
 	if s.faceCastable(k, p, o, cd.Faces[1], sorc) {
 		d.add(MakeAction(AkCast, uint8(o), 1, castFace))
 	}
+	if cd.FuseDef != 0 && k.gen.anyFuse {
+		s.offerFuseCast(k, d, p, o, sorc) // both halves (face_fuse.go)
+	}
 }
 
 // offerAdventureRecasts offers casting the front of each of p's nonland
@@ -151,7 +157,9 @@ func (s *State) offerAdventureRecasts(k *prep, d *Decision, p uint8, sorc bool) 
 // (rules cast_begin.go emitProposalFlip keeps the suppression state), so
 // heldTouch moves with it when o is the held card (castFlagsGen's rule).
 func (s *State) turnFaceCast(k *prep, o Obj, i uint8) {
-	s.turnFace(k, o, i)
+	if !(i == FeatFuseFace && k.gen != nil && k.gen.anyFuse && s.fuseTurn(k, o)) { // a fused cast's def (face_fuse.go)
+		s.turnFace(k, o, i)
+	}
 	if s.heldObj == o || s.objs[o].of&(ofAbort1|ofHeld) != 0 {
 		s.heldTouch++
 	}
@@ -165,7 +173,7 @@ func (s *State) unturnFace(k *prep, o Obj, mode uint8) {
 		s.roomUnturn(k, o, mode) // face_rooms.go
 		return
 	}
-	if cd := &k.t.Cards[s.objs[o].card]; cd.Face != 0 && len(cd.Faces) > 0 && cd.FaceMode != kop.FacePrepare { // a prepared copy keeps its spell face (gorge: no faceBefore)
+	if cd := &k.t.Cards[s.objs[o].card]; (cd.Face != 0 || cd.FusedSpell) && len(cd.Faces) > 0 && cd.FaceMode != kop.FacePrepare { // a prepared copy keeps its spell face (gorge: no faceBefore)
 		s.touch(o)
 		s.objs[o].card = cd.Faces[0]
 	}
@@ -184,6 +192,11 @@ func (s *State) stackExitFace(k *prep, o Obj, z kop.Zone, resolved bool) kop.Zon
 	cd := &k.t.Cards[ob.card]
 	if cd.FaceMode == kop.FaceRoom {
 		s.roomStackExit(k, o) // the face persists (face_rooms.go)
+		return z
+	}
+	if front, ok := fusedFront(k, ob.card); ok {
+		s.touch(o)
+		ob.card = front // a fused spell is its card again (face_fuse.go)
 		return z
 	}
 	if cd.Face == 0 || len(cd.Faces) == 0 || cd.FaceMode != kop.FaceAdventure && cd.FaceMode != kop.FaceSplit && cd.FaceMode != kop.FaceModal && cd.FaceMode != kop.FaceOmen {

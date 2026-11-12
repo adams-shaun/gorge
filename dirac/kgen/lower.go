@@ -106,6 +106,8 @@ type lowerCtx struct {
 
 	// deferTrig: the TriggersWhenSpent$ rider the face's deferred mana ability queued (lower_deferredmana.go)
 	deferTrig *cards.Trigger
+	// fuseAlt: lowering a fused split spell, the right half lowerFace folds in after the left half's lines (lower_fuse.go)
+	fuseAlt *cards.Face
 
 	firstCastSVar  string    // the SVar a static SpellCast StoreSVar of Count$YouCastThisGame writes (lower_firstcast.go)
 	firstCastTrig  int       // that trigger's index + 1: it lowers to nothing
@@ -336,6 +338,9 @@ func (lc *lowerCtx) lowerFace() {
 	lc.imprintMox = lc.imprintMoxShape()
 	lc.lowerKeywords()
 	lc.lowerLines(true, false)
+	if lc.fuseAlt != nil {
+		lc.lowerFusedHalf() // lower_fuse.go
+	}
 	lc.lowerTail()
 }
 
@@ -1572,6 +1577,9 @@ func (lc *lowerCtx) lowerKeywords() {
 			// the sentence to the MustBlock head; the attacker-oriented
 			// requirement, one blocker satisfies it)
 			lc.out.MustBeBlocked = true
+		case head == "Fuse" && param == "" && lc.out.FaceMode == kop.FaceSplit && fuseCard(lc.card):
+			// CR 702.102a: the layout carries it (CardDef.FuseDef, the
+			// fused spell's entry: lower_fuse.go); a half lowers as itself
 		case head == "Aftermath" && param == "" && lc.out.FaceMode == kop.FaceSplit && lc.out.Face == 1:
 			// CR 702.127a: a split card's right half cast only from its
 			// owner's graveyard, then exiled as it leaves the stack (gorge

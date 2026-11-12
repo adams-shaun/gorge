@@ -207,6 +207,10 @@ func lowerPool(p *pool) *lowered {
 			lw.tokens = append(lw.tokens, lowerFaceEntry(p, k))
 			continue
 		}
+		if strings.HasPrefix(k, fuseKeyPrefix) {
+			lw.tokens = append(lw.tokens, lowerFusedEntry(p, k)) // lower_fuse.go
+			continue
+		}
 		if strings.HasPrefix(k, roomKeyPrefix) {
 			lw.tokens = append(lw.tokens, lowerRoomEntry(p, k)) // lower_rooms.go
 			continue

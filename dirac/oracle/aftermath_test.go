@@ -367,6 +367,7 @@ func TestAftermathMutation(t *testing.T) {
 	}
 	for _, mu := range muts {
 		*mu.on = true
+		t.Cleanup(func() { *mu.on = false }) // a t.Fatal inside must not leave it set for the parallel tests
 		diverged := false
 		for seed := uint64(1); seed <= 128 && !diverged; seed++ {
 			res := kaftermathRun(t, reg, set, decks, tbl, seed, aftermathCfg(seed), nil)
