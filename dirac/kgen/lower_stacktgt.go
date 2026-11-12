@@ -18,7 +18,7 @@ func (lc *lowerCtx) rememberedController() (lRef, error) {
 		if (in.Op == "Counter" && in.Note == rememberCounterNote || in.Op == "Destroy" && in.Note == rememberLKINote) && in.Obj.Kind == rTarget {
 			return lRef{Kind: rTargetController, N: in.Obj.N}, nil
 		}
-		if in.Op != "Branch" && in.Op != "Charm" {
+		if in.Op != "Branch" && in.Op != "Charm" && in.Op != "DelayedTrigger" { // a delayed registration earlier in the chain reads the same set
 			break
 		}
 	}

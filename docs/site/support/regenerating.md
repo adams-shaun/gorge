@@ -11,7 +11,7 @@ names the commit it was taken at.
 |---|---|---|
 | per-set playable, Level A, Level B, roll-ups, every-set table | gorge-compliance's `oraclediff status` | nightly, through its `docs-data` branch; rendered at every docs build |
 | certified-set and Level A/B headline rows | the same status | the same |
-| dirac per-set and corpus-wide supported and lowered, lockstep games | `dirac/docs/support.md` and `make dirac-slices` | a committed snapshot, `docs/site/support/dirac-sets.json`, held to that page by a test ([below](#dirac-refreshing-the-snapshot)) |
+| dirac per-set and corpus-wide supported and lowered | `dirac/docs/support.md` | read from that committed page at every docs build ([below](#dirac-refreshing-the-support-page)) |
 | corpus cards, playable, tokens, top missing primitives | gorge, `make report` | by hand |
 | playable by card type | gorge, `make coverage` | by hand |
 | parse diagnostics | gorge, `forgec compile` | by hand |
@@ -26,14 +26,13 @@ flowchart LR
     SB["oraclediff status -level B"] --> DD
   end
   subgraph dirac["dirac, with the corpus"]
-    RK["dirac/docs/support.md<br/>make dirac-slices"]
+    RK["dirac/docs/support.md<br/>(committed)"]
   end
-  RK -->|"--refresh-dirac, held by a test"| SNAP["support/dirac-sets.json<br/>(committed)"]
   subgraph build["gorge docs.yml"]
     DS["scripts/docs_sets.py"] --> FR["support/_generated_sets.md<br/>(gitignored)"]
   end
   DD -->|fetched| DS
-  SNAP --> DS
+  RK -->|read| DS
   FR -->|"pymdownx.snippets"| SETS["sets.md"]
   R["make report / make coverage<br/>go test ./engine/rules"] -->|"by hand"| SETS
 ```
@@ -48,7 +47,7 @@ run. Before the build, it:
 1. generates the package map (`go run ./cmd/pkgmap`);
 2. checks the web-client pages against the client source (`scripts/docs_web_test.py`);
 3. runs `scripts/docs_sets_test.py`, then `scripts/docs_sets.py`. The renderer
-   reads the committed dirac snapshot and, when the fetch succeeds,
+   reads dirac's committed support page (`--dirac-support dirac/docs/support.md`) and, when the fetch succeeds,
    **gorge-compliance's orphan `docs-data` branch** (`status-A.jsonl`,
    `status-B.jsonl`, `meta.json`).
 
@@ -62,7 +61,7 @@ commit, so only the latest state is kept. It publishes only when
 `make compliance-status` passes, so after a failed night the tables keep the last
 published data, and their captions give its date and corpus. gorge-compliance is
 public, so the docs build needs no token. If the branch is missing or the fetch fails, the
-tables still render from the dirac snapshot, and the gorge columns say
+tables still render from dirac's support page, and the gorge columns say
 the data was not available.
 
 ## The renderer: `scripts/docs_sets.py`
@@ -74,7 +73,7 @@ for `pymdownx.snippets`, and `sets.md` includes each one by name:
 | Section | Contents |
 |---|---|
 | `headline` | one row per engine and measure, with the commits and corpus measured |
-| `sets` | the per-set table: every set gorge-compliance audits against a printed list, plus every set in dirac's snapshot, joined by set code |
+| `sets` | the per-set table: every set gorge-compliance audits against a printed list, plus every set on dirac's support page, joined by set code |
 | `rollup` | the roll-up by set type, then every one of the 591 sets |
 | `charts` | one chart per engine over the Standard sets |
 
@@ -82,13 +81,13 @@ To render and build locally:
 
 ```sh
 python3 scripts/docs_sets.py status-A.jsonl --level-b status-B.jsonl --meta meta.json \
-  --dirac docs/site/support/dirac-sets.json
+  --dirac-support dirac/docs/support.md
 uvx --with mkdocs-material==9.7.7 mkdocs build --strict -d /tmp/gorge-site
 python3 -m unittest discover -s scripts -p 'docs_sets_test.py'
 ```
 
 Every input is optional, but the renderer needs at least one of the status
-file and the snapshot. A set code that only one source has still gets a row.
+file and the support page. A set code that only one source has still gets a row.
 `--commit` and `--date` override `meta.json`'s values, and `-o PATH` writes
 somewhere else. The renderer uses only the Python standard library, skips any
 input line that isn't a JSON object, and publishes only counts and
@@ -147,24 +146,21 @@ print(len(rows), "verdicts over", len({r["card"] for r in rows}), "cards")
 print(collections.Counter(r["status"] for r in rows).most_common())'
 ```
 
-## dirac: refreshing the snapshot
+## dirac: refreshing the support page
 
-The docs build has no card corpus, so it can't generate dirac's figures. They live in a small committed file,
-[`docs/site/support/dirac-sets.json`](https://github.com/adams-shaun/gorge/blob/main/docs/site/support/dirac-sets.json),
-holding the gorge commit and date they were read at, the counts of each set and of the corpus, and the lockstep
-result of each committed slice. A clone with the corpus can refresh it:
+The docs build has no card corpus, so it can't generate dirac's figures. It reads them from
+[`dirac/docs/support.md`](https://github.com/adams-shaun/gorge/blob/main/dirac/docs/support.md), whose table holds the
+counts of each set and of the corpus. The stamp on each table is the last commit that touched that page. There is no
+second copy to keep in step. A clone with the corpus refreshes the page:
 
 ```sh
 make dirac-tables
 DIRAC_UPDATE_SUPPORT=1 go test -run TestSupportDocIsCurrent ./dirac/kgen   # rewrites dirac/docs/support.md
-python3 scripts/docs_sets.py --refresh-dirac docs/site/support/dirac-sets.json \
-  --commit "$(git rev-parse --short=9 HEAD)" --date "$(date -u +%F)"
-make dirac-slices    # its -surface full lines give the snapshot's lockstep rows, copied by hand
 ```
 
-`docs_sets_test.py` fails when a count in the snapshot differs from `dirac/docs/support.md`, and the renderer checks
-that each set's counts and each lockstep row add up. To ask about one pool's cards, `go run ./dirac/cmd/kgen -supported fdn`
-prints one line per card.
+The renderer checks that each set's counts add up. The page carries no per-slice lockstep results, so the lockstep rows
+and column on the set tables are marked as not available; `make dirac-slices` still prints them. To ask about one pool's
+cards, `go run ./dirac/cmd/kgen -supported fdn` prints one line per card.
 
 **The evidence behind those counts** is in `dirac/support/evidence/`. `scripts/dirac-evidence.sh <out>` plays the evidence
 corpus and `scripts/dirac-first-refusals.py evidence <out>` writes the lists. The corpus is the committed FDN and BLB slices,

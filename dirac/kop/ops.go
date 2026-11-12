@@ -191,7 +191,7 @@ const (
 	OpPrepare
 	OpDemonstrate // Demonstrate (CR 702.144a; gorge effDemonstrate): the controller of the spell Obj (RefTriggerObj) is asked yes/no; on yes they copy it and each opponent still in the game copies it, every copy keeping the original's targets (gorge's StackCopy); nothing when the spell left the stack
 
-	OpNinjutsu // the K:Ninjutsu ability's resolution (CR 702.49a-b; gorge kwNinjutsu's ChangeZone): if the source card Obj is still in its owner's hand it enters the battlefield, then a Tap ("entered tapped"), then attacking the defender captured on the entry (trigObj) when that is still legal; never declared (no Attacks trigger)
+	OpNinjutsu // the K:Ninjutsu ability's resolution (CR 702.49a-b; gorge kwNinjutsu's ChangeZone): if the source card Obj is still in its owner's hand it enters the battlefield, then a Tap ("entered tapped"), then attacking the defender captured on the entry (trigObj) when that is still legal; never declared (no Attacks trigger); C=1: a mana-only hand ability's plain put-this-card-onto-the-battlefield (Talon Gates of Madara), no tap and no attack
 
 	// OpAtkPWGuard: the Attacks trigger's attacker (RefTriggerObj) must be
 	// attacking a player: attacking a planeswalker or battle, or gone, the
