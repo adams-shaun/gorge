@@ -1488,21 +1488,7 @@ func (lc *lowerCtx) twoPiles(ps *params) error {
 	if ps.str("Zone") == "Battlefield" {
 		return lc.twoPilesSac(ps)
 	}
-	// Curator of Destinies: you separate the remembered top cards into a
-	// face-down and a face-up pile; an opponent chooses one; the chosen
-	// pile goes to your hand and the other to your graveyard.
-	if ps.str("Defined") != "You" || ps.str("Separator") != "You" || ps.str("Chooser") != "Opponent" ||
-		ps.str("DefinedCards") != "Remembered" || ps.str("Zone") != "Library" || ps.str("FaceDown") != "One" {
-		return refuse("TwoPiles shape")
-	}
-	chosen := cards.ResolveSVar(lc.face.SVars, ps.str("ChosenPile"))
-	unchosen := cards.ResolveSVar(lc.face.SVars, ps.str("UnchosenPile"))
-	if chosen == nil || unchosen == nil || chosen.API != "ChangeZone" || chosen.Params["Destination"] != "Hand" ||
-		unchosen.API != "ChangeZoneAll" || unchosen.Params["Destination"] != "Graveyard" || chosen.Sub != nil || unchosen.Sub != nil {
-		return refuse("TwoPiles pile actions")
-	}
-	lc.emit(lInstr{Op: "TwoPiles", Obj: lRef{Kind: rYou}, F: nil, C: zHand, CS: "unchosen=Graveyard|chooser=Opponent|FaceDownOne"})
-	return nil
+	return lc.twoPilesRemembered(ps) // lower_twopiles.go
 }
 
 func (lc *lowerCtx) chooseCard(ps *params) error {

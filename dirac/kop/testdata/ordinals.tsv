@@ -1385,6 +1385,8 @@ TokRemember	untyped int	2
 TokRememberObj	untyped int	4
 TokSacAtEnd	untyped int	8
 TokTapped	untyped int	1
+TpOppSeparates	untyped int	1
+TpUnchosenPileOrder	untyped int	2
 TrAttacking	untyped int	2
 TrHasteEOT	untyped int	4
 TrList	untyped int	8
