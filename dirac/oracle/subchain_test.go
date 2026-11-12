@@ -29,16 +29,6 @@ var ksubchainDecks = [][2][]cardset.Entry{{
 	},
 }}
 
-func ksubchainName(c *PickCtx, r Ref) string {
-	if c.G == nil || int(r) >= int(RefPlayer) {
-		return ""
-	}
-	if o := c.G.E.G.Obj(c.G.id.obj[r]); o != nil && o.Face() != nil {
-		return o.Face().Name
-	}
-	return ""
-}
-
 // ksubchainPolicy casts Vibrant Outburst, Shock and a creature whenever it
 // can, copies the spell on the stack with Mirrorpool's copy ability (its
 // second ability) three games in four, and otherwise plays like RandomPolicy
@@ -48,13 +38,13 @@ func ksubchainPolicy(seed uint64) Policy {
 	return PolicyFunc(func(c *PickCtx) Canon {
 		if c.D.Kind == DPriority && seed%4 != 0 {
 			for _, a := range c.D.Options {
-				if a.Kind() == ActActivate && a.Mode() == 1 && ksubchainName(c, a.Src()) == "Mirrorpool" {
+				if a.Kind() == ActActivate && a.Mode() == 1 && refFaceName(c, a.Src()) == "Mirrorpool" {
 					return a
 				}
 			}
 			for _, want := range []string{"Vibrant Outburst", "Shock", "Grizzly Bears", "Hill Giant"} {
 				for _, a := range c.D.Options {
-					if a.Kind() == ActCast && ksubchainName(c, a.Src()) == want {
+					if a.Kind() == ActCast && refFaceName(c, a.Src()) == want {
 						return a
 					}
 				}
@@ -63,7 +53,7 @@ func ksubchainPolicy(seed uint64) Policy {
 		if c.D.Kind == DTarget && seed%4 != 0 {
 			// a copy's activation names the Vibrant Outburst, not a Shock
 			for _, a := range c.D.Options {
-				if a.Kind() == ActTarget && int(a.Tgt()) < int(RefPlayer) && ksubchainName(c, a.Tgt()) == "Vibrant Outburst" {
+				if a.Kind() == ActTarget && int(a.Tgt()) < int(RefPlayer) && refFaceName(c, a.Tgt()) == "Vibrant Outburst" {
 					return a
 				}
 			}
