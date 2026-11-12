@@ -28,7 +28,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	if mode&1 != 0 {
 		fl |= sfKicked
 	}
-	mayhem := mayhemCast(k, c, mode) // a graveyard cast that is no flashback (kw_mayhem.go)
+	mayhem := mayhemCast(k, c, mode)                                               // a graveyard cast that is no flashback (kw_mayhem.go)
 	retrace := mode&2 != 0 && !mayhem && tgt == retraceTgt && k.t.Cards[c].Retrace // kw_retrace.go
 	if mode&2 != 0 && !mayhem && !retrace {
 		fl |= sfFlashback
