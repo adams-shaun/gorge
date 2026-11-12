@@ -20,7 +20,7 @@ import (
 // cr702corpusCard looks a real corpus card up by name.
 func cr702corpusCard(t *testing.T, name string) *cards.Card {
 	t.Helper()
-	return tokenReplCorpusCard(t, name)
+	return corpusAlternativeCard(t, name)
 }
 
 // TestCR702PhasedOutPermanentIsNotATarget pins CR 702.25b: a phased-out

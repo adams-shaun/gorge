@@ -126,7 +126,7 @@ func animSpireActivate(t *testing.T, e *Engine, spire state.ObjID) {
 
 func TestRestlessSpireFirstStrikeOnlyOnYourTurn(t *testing.T) {
 	t.Parallel()
-	spire := tokenReplCorpusCard(t, "Restless Spire")
+	spire := corpusAlternativeCard(t, "Restless Spire")
 
 	t.Run("your_turn", func(t *testing.T) {
 		e, cfg := tokenReplGame(t, 7, spire)
@@ -161,7 +161,7 @@ func TestRestlessSpireFirstStrikeOnlyOnYourTurn(t *testing.T) {
 
 func TestIrencragEverflamePumpsEquippedCreature(t *testing.T) {
 	t.Parallel()
-	crag := tokenReplCorpusCard(t, "The Irencrag")
+	crag := corpusAlternativeCard(t, "The Irencrag")
 	legend := cardByName(t, "Name:Grant Test Legend\nTypes:Legendary Creature Human\nPT:2/2\nOracle:x\n")
 	e, cfg := tokenReplGame(t, 9, crag, legend)
 	cragID := moveSeededCard(t, e, 0, crag, state.ZBattlefield)

@@ -18,9 +18,9 @@ import (
 // pod livelock with these three on one board).
 func TestAddCounterReposeOffersOnlyUnappliedReplacements(t *testing.T) {
 	t.Parallel()
-	scales := tokenReplCorpusCard(t, "Hardened Scales")
-	mentor := tokenReplCorpusCard(t, "Conclave Mentor")
-	season := tokenReplCorpusCard(t, "Doubling Season")
+	scales := corpusAlternativeCard(t, "Hardened Scales")
+	mentor := corpusAlternativeCard(t, "Conclave Mentor")
+	season := corpusAlternativeCard(t, "Doubling Season")
 	bear := card(t, "Name:Counter Bearer\nManaCost:0\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	spell := card(t, "Name:Grow One\nManaCost:0\nTypes:Sorcery\n"+
 		"A:SP$ PutCounter | ValidTgts$ Creature | CounterType$ P1P1 | CounterNum$ 1 | SpellDescription$ x\nOracle:x\n")

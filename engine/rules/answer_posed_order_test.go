@@ -37,8 +37,8 @@ import (
 // Scales/Evolution pair competes over), one whose body is a plain ChangeZone.
 func answerPosedAddCounterBoard(t *testing.T, seed uint64) (*Engine, Config, state.ObjID, state.ObjID) {
 	t.Helper()
-	scales := tokenReplCorpusCard(t, "Hardened Scales")
-	evolution := tokenReplCorpusCard(t, "Branching Evolution")
+	scales := corpusAlternativeCard(t, "Hardened Scales")
+	evolution := corpusAlternativeCard(t, "Branching Evolution")
 	// The outer rewriter whose answer body places the contested counter.
 	ctrRewriter := card(t, "Name:Counter Rewriter\nTypes:Artifact Creature Golem\nPT:0/4\n"+
 		"R:Event$ Moved | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card | ReplaceWith$ Ctr | Description$ x\n"+
@@ -184,7 +184,7 @@ func TestAnswerPosedTokenOrderResumesTheResolution(t *testing.T) {
 		pick int
 	}{{"first-rewriter", 0}, {"second-rewriter", 1}} {
 		t.Run(tc.name, func(t *testing.T) {
-			ds := tokenReplCorpusCard(t, "Doubling Season")
+			ds := corpusAlternativeCard(t, "Doubling Season")
 			rw1 := card(t, tokenRewriterSrc("Token Rewriter One", "c_a_treasure_sac"))
 			rw2 := card(t, tokenRewriterSrc("Token Rewriter Two", "c_a_clue_draw"))
 			spell := card(t, "Name:Answer Posed Tokens\nManaCost:0\nTypes:Sorcery\n"+
