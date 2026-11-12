@@ -446,7 +446,7 @@ func manaGapWhy(first, a *lAbility) string {
 	switch {
 	case !plainTapMana(a, false) && !plainTapMana(a, true):
 		if a.Cost.SubCtr != 0 {
-			return "a cost beyond {T} the kernel's mana walk cannot activate: its counter gap kind reads a second ability only for a fixed unrestricted colour"
+			return "a cost beyond {T} the kernel's mana walk cannot activate: its counter gap kind reads a second ability only for an unrestricted fixed colour or any colour"
 		}
 		return "a cost beyond {T} the kernel's mana walk cannot activate"
 	case m.Restrict != nil && m.Amount.Kind == vConst && m.Amount.N > 1 && len(m.Colors) == 1 && m.Colors != "WUBRG" && !m.Choice:

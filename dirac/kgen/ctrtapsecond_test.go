@@ -9,11 +9,11 @@ import (
 // <fixed colour>" beside a plain {T} first ability lowers (Weather Maker's
 // {C}{C}: the kernel's counter gap kind reads a second ability,
 // mana_countercost.go), and so does one mana of any colour (the Vivid lands,
-// Tendo Ice Bridge: the activation asks the colour); the same cost shape with
-// a restricted production stays refused (Mirrodin's Core, Throne of Makindi).
+// Tendo Ice Bridge, Mirrodin's Core: the activation asks the colour); the same cost shape with
+// a restricted production stays refused (Throne of Makindi).
 func TestCounterTapSecondManaAbility(t *testing.T) {
-	lowered := []string{"Weather Maker", "Vivid Grove", "Vivid Creek", "Vivid Meadow", "Vivid Crag", "Vivid Marsh", "Tendo Ice Bridge"}
-	refused := []string{"Mirrodin's Core", "Throne of Makindi"}
+	lowered := []string{"Weather Maker", "Vivid Grove", "Vivid Creek", "Vivid Meadow", "Vivid Crag", "Vivid Marsh", "Tendo Ice Bridge", "Mirrodin's Core"}
+	refused := []string{"Throne of Makindi"}
 	lw := lowerNamedPool(t, append(slices.Clone(lowered), refused...))
 	got := map[string]int{}
 	for _, c := range lw.cards {
