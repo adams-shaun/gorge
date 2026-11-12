@@ -1,17 +1,18 @@
 // The CR 603.3d target offer of an Animate Triggers$ granted trigger reads
 // the GRANTOR's SVar table, not the animated object's face. The real corpus
-// carrier is Guardian Scalelord: its BackupAbilities SVar is
-// `DB$ Animate | Keywords$ Flying | Triggers$ AttackTrig | sVars$ AE`, and the
-// granted AttackTrig's Execute$ body (TrigReturn) targets
-// `Permanent.nonLand+cmcLEX+YouOwn` with `SVar:X:TriggeredAttacker$CardPower`
-// defined only on Guardian Scalelord's own face. The other participant is Old
-// One Eye's 5/5 Tyranid token (mana value 6 after the Backup counter: X, the
-// attacking token's power, is 6), so with Old One Eye in the graveyard the
-// trigger has a legal target and must be placed with its target ask; with an
-// empty graveyard it has none and CR 603.3d drops it. On the recipient's
-// table the X read finds nothing and resolved to the paid/stack 0, so
-// cmcLEX admitted nothing in both branches (the divergence dirac's
-// guardian-scalelord refusal recorded). No corpus .txt is inlined.
+// carrier is Guardian Scalelord: its Backup rider animates the target
+// creature with its own Attacks trigger granted until end of turn, and that
+// granted body returns a nonland permanent card of mana value at most X from
+// its controller's graveyard, with X bound (only on Guardian's face) to the
+// attacking creature's power. The other participant is Old One Eye's 5/5
+// Tyranid token (mana value 6 after the Backup counter: X, the attacking
+// token's power, is 6), so with Old One Eye in the graveyard the trigger has
+// a legal target and must be placed with its target ask; with an empty
+// graveyard it has none and CR 603.3d drops it. On the recipient's table the
+// X read finds nothing and resolved to the paid/stack 0, so the
+// mana-value-at-most-X predicate admitted nothing in both branches (the
+// divergence dirac's guardian-scalelord refusal recorded). No corpus .txt is
+// inlined.
 package rules
 
 import (
