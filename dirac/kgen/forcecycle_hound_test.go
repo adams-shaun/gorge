@@ -16,22 +16,29 @@ import (
 // alternative cost with its turn condition: the Cost$ lowers as the bare
 // hand-exile pick (ExileFromHand<1/Spec> alone, Misdirection the same shape
 // with no condition) and the Condition$ NotPlayerTurn rides the static as
-// Cond cYourTurn Neg (Mine Collapse: PlayerTurn, not negated). Commandeer's
-// two-card exile keeps refusing, by name.
+// Cond cYourTurn Neg (Mine Collapse: PlayerTurn, not negated). Force of
+// Virtue's shape lowers but its card keeps refusing (an enchantment, where
+// the kernel offers no alternative cast), and Commandeer's two-card exile
+// keeps refusing, by name.
 func TestForceCycleConditionAltCost(t *testing.T) {
-	cs := lowerNamed(t, []string{
+	lw := lowerNamedPool(t, []string{
 		"Force of Negation", "Force of Vigor", "Force of Despair",
 		"Force of Rage", "Force of Virtue", "Misdirection", "Mine Collapse", "Commandeer",
 	})
+	if _, _, _, err := buildPool(lw); err != nil {
+		t.Fatal(err)
+	}
+	cs := lw.cards
 	want := map[string]string{
 		"Force of Negation": "",
 		"Force of Vigor":    "",
 		"Force of Despair":  "",
-		// the cost and its condition lower; these two are refused by their
-		// own spell bodies, not by the alternative
+		// the cost and its condition lower; these three are refused by
+		// their own spell bodies or the card the kernel offers no cast
+		// for, not by the alternative
 		"Force of Rage":   `SP$ Token: Token AtEOT "YourSacrificeUpkeep"`,
 		"Misdirection":    `ChangeTargets TargetType "Spell.singleTarget"`,
-		"Force of Virtue": "",
+		"Force of Virtue": "alternative cost with an exile-from-hand part on a card the kernel offers no alternative cast for",
 		"Mine Collapse":   "",
 		"Commandeer":      `exile cost "ExileFromHand<2/Card.Blue+Other>"`,
 	}

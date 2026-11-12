@@ -2104,6 +2104,13 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, err
 		}
 		if ka.Cost.Flags&(kop.CostForage|kop.CostExileGrave) != 0 && !cb.altHandExileOK(&ka.Cost) {
+			if altHandExileShape(&ka.Cost) {
+				// the hand-exile shape lowers (the Force cycle); the card
+				// carries no alternative-cost cast (Force of Virtue: an
+				// enchantment, where altSacOK prices instants, sorceries
+				// and creatures alone)
+				return ka, nil, fmt.Errorf("alternative cost with an exile-from-hand part on a card the kernel offers no alternative cast for (instants, sorceries and creatures alone)")
+			}
 			return ka, nil, fmt.Errorf("alternative cost with a forage / exile-from-graveyard part")
 		}
 		sacAlt := ka.Cost.Flags == kop.CostSac && ka.Cost.N > 0 && ka.Cost.Mana == (kop.ManaCost{}) && cb.altSacOK()

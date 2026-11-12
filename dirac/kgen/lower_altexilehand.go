@@ -71,13 +71,19 @@ func (lc *lowerCtx) altLifeShared(c *lCost) bool {
 	return lc.altCostHand && c.ExileHand && c.PayLife == c.ExileGN
 }
 
-// altHandExileOK: the built alternative cost is the hand-exile pick (kernel
-// dirac.altHandExileCost) -- PayLife<N> beside the exile (Force of Will,
-// Flags CostPayLife|CostExileGrave sharing Cost.N) or the exile alone (the
-// Force cycle, Misdirection; bare CostExileGrave) -- on a card whose one
-// spell ability can carry it (altSacOK).
-func (cb *cardBuilder) altHandExileOK(c *kop.Cost) bool {
+// altHandExileShape: the built alternative cost is the hand-exile pick
+// (kernel dirac.altHandExileCost) -- PayLife<N> beside the exile (Force of
+// Will, Flags CostPayLife|CostExileGrave sharing Cost.N) or the exile alone
+// (the Force cycle, Misdirection; bare CostExileGrave).
+func altHandExileShape(c *kop.Cost) bool {
 	shared := c.Flags == kop.CostPayLife|kop.CostExileGrave
 	bare := c.Flags == kop.CostExileGrave
-	return (shared || bare) && c.ExileHand && c.N > 0 && c.Mana == (kop.ManaCost{}) && cb.altSacOK()
+	return (shared || bare) && c.ExileHand && c.N > 0 && c.Mana == (kop.ManaCost{})
+}
+
+// altHandExileOK: the hand-exile shape on a card whose one spell ability can
+// carry it (altSacOK: an instant, sorcery, or a creature with no spell
+// ability of its own).
+func (cb *cardBuilder) altHandExileOK(c *kop.Cost) bool {
+	return altHandExileShape(c) && cb.altSacOK()
 }

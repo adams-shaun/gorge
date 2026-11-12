@@ -12,24 +12,27 @@ import (
 // cost" (an AlternativeCost static whose Condition$ NotPlayerTurn gates the
 // offer, Cost$ a bare ExileFromHand<1/Card.<colour>+Other>, CR 118.9) and
 // Mine Collapse's PlayerTurn sacrifice twin beside it. Seat 0 pitches Force
-// of Negation with Counterspell and Unsummon fodder; seat 1 holds Force of
-// Despair (Dark Ritual the black
-// fodder), Force of Vigor (a Grizzly Bears or a Forest the green fodder),
-// Mine Collapse, Shock and the lands both the sacrifice and the counts
-// read. The expected answer at every decision is gorge's. (Misdirection is
-// beside the pool: its ChangeTargets spell body still refuses, a reason
-// that is not the cost.)
+// of Negation with Counterspell, Unsummon and Snapback fodder and the
+// bare-exile classmates Cave-In and Pyrokinesis; seat 1 holds Force of
+// Despair (Unmask the black fodder), Force of Vigor (a Grizzly Bears, a
+// Vine Dryad or a Forest the green fodder), Mine Collapse and the Mountain
+// its sacrifice reads, Unmask the bare-exile classmate beside them. The
+// expected answer at every decision is gorge's. (Misdirection is beside the
+// pool: its ChangeTargets spell body still refuses, a reason that is not
+// the cost; Force of Virtue keeps refusing, an enchantment the kernel
+// offers no alternative cast for.)
 var kforcecycleDecks = [2][]cardset.Entry{
 	{
-		{Name: "Force of Negation", Count: 4}, {Name: "Counterspell", Count: 8},
-		{Name: "Unsummon", Count: 4},
-		{Name: "Grizzly Bears", Count: 4}, {Name: "Island", Count: 20},
+		{Name: "Force of Negation", Count: 4}, {Name: "Counterspell", Count: 4},
+		{Name: "Unsummon", Count: 4}, {Name: "Snapback", Count: 4},
+		{Name: "Cave-In", Count: 4}, {Name: "Pyrokinesis", Count: 4},
+		{Name: "Grizzly Bears", Count: 4}, {Name: "Island", Count: 12},
 	},
 	{
 		{Name: "Force of Despair", Count: 4}, {Name: "Force of Vigor", Count: 4},
-		{Name: "Mine Collapse", Count: 4}, {Name: "Dark Ritual", Count: 4},
-		{Name: "Shock", Count: 4}, {Name: "Grizzly Bears", Count: 4},
-		{Name: "Island", Count: 8}, {Name: "Forest", Count: 8},
+		{Name: "Mine Collapse", Count: 4}, {Name: "Unmask", Count: 4},
+		{Name: "Vine Dryad", Count: 4}, {Name: "Grizzly Bears", Count: 4},
+		{Name: "Island", Count: 4}, {Name: "Forest", Count: 6}, {Name: "Mountain", Count: 6},
 	},
 }
 
