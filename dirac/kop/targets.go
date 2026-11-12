@@ -119,3 +119,10 @@ const TgtGraveExileCard TargetKind = 241
 // an ability whose targets are exactly one distinct target (gorge
 // TargetType$ SpellAbility.singleTarget, the singleTarget property).
 const TgfSingleTgt TargetFlags = 1 << 13
+
+// TgfOppOnly (TargetSpec.TFlags): a TgtAny slot's player alternative is an
+// opponent of the chooser only (gorge ValidTgts$ Opponent,Planeswalker:
+// Burning Sun's Avatar, Jeskai Charm, Rakdos's Return); the filter's object
+// clause still names the planeswalker alternative, which has no controller
+// word.
+const TgfOppOnly TargetFlags = 1 << 14

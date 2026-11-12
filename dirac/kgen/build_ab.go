@@ -384,6 +384,17 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 			if ts.Filter, err = cb.filter(&g, kop.ZoneBattlefield); err != nil {
 				return ts, err
 			}
+		case f.Players == plOpp && len(f.Clauses) == 1 && f.Clauses[0] == (lClause{Types: tPlaneswalker}):
+			// "target opponent or planeswalker" (Burning Sun's Avatar,
+			// Rakdos's Return): the Boros Charm walk with the player
+			// alternative narrowed to an opponent of the chooser.
+			ts.Kind = kop.TgtAny
+			ts.TFlags |= kop.TgfOppOnly
+			g := *f
+			g.Players = 0
+			if ts.Filter, err = cb.filter(&g, kop.ZoneBattlefield); err != nil {
+				return ts, err
+			}
 		default:
 			return ts, fmt.Errorf("mixed player/object target %s", f)
 		}
