@@ -292,6 +292,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	}
 	if faces {
 		s.offerAdventureRecasts(k, d, p, sorc) // face_castface.go
+		if k.gen.anyAftermath {
+			s.offerAftermathCasts(k, d, p, sorc) // face_aftermath.go
+		}
 	}
 	if k.gen != nil && k.gen.anyAirbend {
 		s.offerAirbendCasts(k, d, p, sorc) // act_airbend.go (gorge offers it before the warp recast)

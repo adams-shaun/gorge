@@ -26,9 +26,10 @@ func lowerNamedPool(t *testing.T, names []string) *lowered {
 }
 
 // TestFaceCastLayouts (C5bb): an Adventure card, a split card
-// (no Room, Fuse or Aftermath) and an Omen card (CR 720) lower their
-// second face as a linked face entry. A Fuse card, an Aftermath card and a
-// Room stay refused as multi-face cards. An Adventure with a land front
+// (no Room or Fuse) and an Omen card (CR 720) lower their
+// second face as a linked face entry. A Fuse card and a Room stay refused
+// as multi-face cards (an Aftermath card's layout is
+// aftermath_lower_test.go's). An Adventure with a land front
 // and a modal DFC with a nonland back lower (gorge
 // offers the Adventure from the hand; resets the back face off the
 // stack).
@@ -38,7 +39,7 @@ func TestFaceCastLayouts(t *testing.T) {
 		"Pestilent Cauldron": kop.FaceModal, "Kolvori, God of Kinship": kop.FaceModal,
 		"Dirgur Island Dragon": kop.FaceOmen,
 		"Bloomvine Regent":     kop.FaceOmen} // its face's Shuffle$ False search lowers
-	refuse := map[string]string{"Alive": "multi-face card", "Commit": "multi-face card"}
+	refuse := map[string]string{"Alive": "multi-face card"}
 	var names []string
 	for n := range accept {
 		names = append(names, n)

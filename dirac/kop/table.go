@@ -386,6 +386,11 @@ type CardDef struct {
 	// the card was discarded this turn (dirac/kw_mayhem.go). Never
 	// set with Flashback or Harmonize (kgen refuses them).
 	Mayhem bool
+	// Aftermath marks the right half of a split card printed with aftermath
+	// (CR 702.127a): this face is cast only from its owner's graveyard, for
+	// its own mana cost (gorge's "aftermath" cast), never from the hand, and
+	// the spell is exiled whenever it leaves the stack (dirac/face_aftermath.go).
+	Aftermath bool
 	// BeamMeUp is printed beam me up: a graveyard cast for AltCost that also
 	// returns a creature you control to its owner's hand (FbCost), then exiles
 	// the spell (dirac/kw_beammeup.go).
@@ -580,8 +585,10 @@ const (
 	// cast (gorge's "adventure_recast"), dirac/face_castface.go.
 	FaceAdventure
 	// FaceSplit is a split card (CR 709), no Room and no Fuse: face 1 is
-	// the right half, cast on its own from the hand (gorge's "split_alt");
-	// off the stack the mana value is the sum of the halves (CR 709.4b).
+	// the right half, cast on its own from the hand (gorge's "split_alt"),
+	// or from the graveyard only when it carries aftermath (CardDef.Aftermath,
+	// gorge's "aftermath"); off the stack the mana value is the sum of the
+	// halves (CR 709.4b).
 	FaceSplit
 	// FaceTransform is a transforming double-faced card or token (gorge's
 	// "DoubleFaced", CR 712): a SetState Mode$ Transform flips it to its

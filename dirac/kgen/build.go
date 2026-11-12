@@ -771,6 +771,11 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Aftermath {
+		// CR 702.127a: the right half of a split card, cast only from its
+		// owner's graveyard and exiled leaving the stack (dirac/face_aftermath.go)
+		d.Aftermath = true
+	}
 	if c.Improvise {
 		// CR 702.126a: printed improvise; the cast taps artifacts for its
 		// generic cost (dirac/kw_convoke.go)

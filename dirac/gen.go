@@ -242,6 +242,7 @@ type genPrep struct {
 	anySplitSecond bool           // some card has a StatStackKw Split second grant (kw_splitsecond.go)
 	anyStackLife   bool           // some card has a StatStackKw Lifelink grant (static_stacklifelink.go)
 	anySplit       bool           // some card is a split card (kop.FaceSplit: its mana value off the stack; face_castface.go)
+	anyAftermath   bool           // some split card's right half has aftermath (CardDef.Aftermath; face_aftermath.go)
 	anyTwobrid     bool           // some card has a twobrid pip in its printed cost (kop.ManaCost.Tb; mana_twobrid.go)
 	anyBeamGrant   bool           // some card has a StatBeamGrant static
 	anyFbGrant     bool           // some card has a StatFbGrant static (kw_fbgrant.go)
@@ -767,6 +768,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			g.anyFaces = true
 			g.anyPrepare = g.anyPrepare || c.FaceMode == kop.FacePrepare
 			g.anySplit = g.anySplit || c.FaceMode == kop.FaceSplit || c.FaceMode == kop.FaceRoom
+			g.anyAftermath = g.anyAftermath || c.Aftermath
 			p.anyRoom = p.anyRoom || c.FaceMode == kop.FaceRoom
 		}
 		if c.Daybound || c.Nightbound {

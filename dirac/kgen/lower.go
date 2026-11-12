@@ -1572,6 +1572,12 @@ func (lc *lowerCtx) lowerKeywords() {
 			// the sentence to the MustBlock head; the attacker-oriented
 			// requirement, one blocker satisfies it)
 			lc.out.MustBeBlocked = true
+		case head == "Aftermath" && param == "" && lc.out.FaceMode == kop.FaceSplit && lc.out.Face == 1:
+			// CR 702.127a: a split card's right half cast only from its
+			// owner's graveyard, then exiled as it leaves the stack (gorge
+			// legal.go aftermathAlternateFace; dirac/face_aftermath.go).
+			// castableFaceLayout refuses the keyword on the left half.
+			lc.out.Aftermath = true
 		case head == "Miracle":
 			// CR 702.94a: the first draw of a turn offers the reveal; the
 			// revealed card's trigger is on the stack, and its resolution

@@ -47,7 +47,7 @@ func (s *State) faceCastable(k *prep, p uint8, o Obj, c CardID, sorc bool) bool 
 	ob := &s.objs[o]
 	was := ob.card
 	ob.card = c // the probe: no touch, restored below
-	ok := !(k.gen.anyCantCast && s.castForbidden(k, p, c, o)) && s.spellTargetsFeasible(k, c, p) && s.spellCostsFeasible(k, c, p, o)
+	ok := !(k.gen.anyCantCast && s.castForbidden(k, p, c, o)) && s.spellTargetsFeasibleFrom(k, c, p, o) && s.spellCostsFeasible(k, c, p, o)
 	if ok {
 		// prices every face route through the potential planner
 		// (potential_plan.go potentialModeCastPlan). The priced routes read
@@ -95,7 +95,8 @@ func facePlannerLimited(fm uint8) bool {
 // offerFaceCasts offers hand card o's other castable face: an Adventure
 // card's Adventure (gorge "adventure_alt", CR 715.3a; a land front's too,
 // from the hand walk's land branch), a split card's right half (gorge
-// "split_alt", CR 709.3) or a modal DFC's nonland back (gorge
+// "split_alt", CR 709.3; an aftermath half is cast only from the graveyard,
+// face_aftermath.go) or a modal DFC's nonland back (gorge
 // "modal_spell", rules legal.go modalSpellBack, CR 712.8; a land back is
 // offerFaceLand's play). The caller reached o in its hand walk before the
 // front face's timing gate: each face has its own (gorge
@@ -110,7 +111,11 @@ func (s *State) offerFaceCasts(k *prep, d *Decision, p uint8, o Obj, sorc bool) 
 		return
 	}
 	switch cd.FaceMode {
-	case kop.FaceAdventure, kop.FaceSplit, kop.FaceOmen:
+	case kop.FaceAdventure, kop.FaceOmen:
+	case kop.FaceSplit:
+		if k.t.Cards[cd.Faces[1]].Aftermath && !DebugAftermathFromHand {
+			return // cast only from the graveyard (face_aftermath.go)
+		}
 	case kop.FaceModal:
 		if k.cards[cd.Faces[1]].land {
 			return

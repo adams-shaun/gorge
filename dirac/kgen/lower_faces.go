@@ -172,9 +172,11 @@ func lowerFaceEntry(p *pool, k string) *lCard {
 //   - Adventure (CR 715): face 1 must be an Instant or Sorcery of type
 //     Adventure (gorge rules adventure.go adventureSpellFace); gorge offers
 //     nothing for any other shape.
-//   - Split (CR 709): neither half a Room (gorge's face_rooms.go owns those),
-//     no Fuse (gorge's "fuse" cast, CR 702.102, is not modelled) and no
-//     Aftermath (the graveyard cast, CR 702.127, is not modelled).
+//   - Split (CR 709): neither half a Room (gorge's face_rooms.go owns those)
+//     and no Fuse (gorge's "fuse" cast, CR 702.102, is not modelled). A
+//     K:Aftermath right half (CR 702.127a) is cast only from the graveyard
+//     (gorge's "aftermath", dirac/face_aftermath.go); Aftermath on the left
+//     half is no shape gorge's aftermathAlternateFace reads, so it refuses.
 //   - Omen (CR 720): face 1 must be an Instant or Sorcery of type Omen
 //     (gorge rules adventure.go omenSpellFace) and the front must not be a
 //     land (gorge's hand walk offers the Omen face from the land branch
@@ -221,7 +223,7 @@ func castableFaceLayout(c *cards.Card) uint8 {
 			return kop.FaceRoom // lower_rooms.go
 		}
 		if f0.IsRoom() || f1.IsRoom() || f0.HasKeyword("Fuse") || f1.HasKeyword("Fuse") ||
-			f0.HasKeyword("Aftermath") || f1.HasKeyword("Aftermath") {
+			f0.HasKeyword("Aftermath") {
 			return kop.FaceNone
 		}
 		return kop.FaceSplit
