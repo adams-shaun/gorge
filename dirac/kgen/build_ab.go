@@ -346,6 +346,9 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		if t.SingleTgt {
 			ts.TFlags |= kop.TgfSingleTgt
 		}
+		if t.ActOnly {
+			ts.TFlags |= kop.TgfActOnly
+		}
 		if t.VTgt != nil || t.VYou {
 			// the filter names the battlefield object one of the spell's
 			// targets must match (VYou: the chooser); SpellF is the spell side
@@ -940,12 +943,17 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	}
 	if m.Special == "Reflected" && m.Restrict == nil && m.RestrictAb == nil && m.Amount.isConst() && m.Amount.N == 1 {
 		// one mana of any colour among the matching permanents' colours
-		// (Plaza of Heroes; lower_reflectedmana.go)
+		// (Plaza of Heroes), or among what the matching permanents' mana
+		// abilities could produce (Ability.ManaProduce, every Valid$ alternative
+		// OppCtrl: Exotic Orchard; lower_reflectedmana.go)
 		id, err := cb.filter(m.SpecialF, kop.ZoneBattlefield)
 		if err != nil {
 			return err
 		}
 		ka.AFlags |= kop.AfManaChoice | kop.AfManaReflect
+		if m.Produce {
+			ka.ManaProduce = true
+		}
 		ka.ManaAmong = id
 		ka.ManaColors = kop.ColAny
 		ka.ManaN = 1
@@ -2019,6 +2027,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+	case "Lure":
+		st.Kind = kop.StatLure // combat_lure.go isLure
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
 	case "CantPhaseIn":
 		st.Kind = kop.StatCantPhaseIn // kw_phasing.go phaseBlocked
 	case "CantSacrifice":
@@ -2125,6 +2138,13 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, err
 		}
 		if ka.Cost.Flags&(kop.CostForage|kop.CostExileGrave) != 0 && !cb.altHandExileOK(&ka.Cost) {
+			if altHandExileShape(&ka.Cost) {
+				// the hand-exile shape lowers (the Force cycle); the card
+				// carries no alternative-cost cast (Force of Virtue: an
+				// enchantment, where altSacOK prices instants, sorceries
+				// and creatures alone)
+				return ka, nil, fmt.Errorf("alternative cost with an exile-from-hand part on a card the kernel offers no alternative cast for (instants, sorceries and creatures alone)")
+			}
 			return ka, nil, fmt.Errorf("alternative cost with a forage / exile-from-graveyard part")
 		}
 		sacAlt := ka.Cost.Flags == kop.CostSac && ka.Cost.N > 0 && ka.Cost.Mana == (kop.ManaCost{}) && cb.altSacOK()
@@ -3903,6 +3923,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		// OpExt ExtMustBeBlocked, Obj the subject (RefNone
 		// with F: every battlefield permanent matching F)
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtMustBeBlocked))
+		if in.C == kop.MustBeBlockedLure {
+			ki.C = kop.MustBeBlockedLure // the lure mark (a single Obj)
+		}
 		if in.F != nil {
 			if err := objFilter(kop.ZoneBattlefield); err != nil {
 				return ki, err

@@ -1766,10 +1766,20 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			default:
 				// gorge continuousConditionHolds (Continuous) and
 				// costConditionHolds (a self cost static: the payer is
-				// the controller) read these against the controller.
+				// the controller) read these against the controller. The
+				// self-carried AlternativeCost (gorge
+				// alternativeCostScopeOK's costConditionHolds read, the
+				// Force cycle: the caster is the static's controller, the
+				// printed you) and the combat restriction statics (gorge
+				// combatBoard.StaticGateHolds' continuousGateHolds,
+				// Monstrous Hound) read theirs against the static's
+				// controller, which statCond's and offerAltFreeHand's
+				// Cond2 contexts name too.
 				selfCost := (s.Mode == "ReduceCost" || s.Mode == "RaiseCost") && s.Params["ValidCard"] == "Card.Self"
+				turnGate := s.Mode == "Continuous" || selfCost || reduceActivatorYou(s.Mode, s.Params) ||
+					s.Mode == "AlternativeCost" || s.Mode == "CantBlock" || s.Mode == "CantAttack"
 				switch {
-				case c == "NotPlayerTurn" && (s.Mode == "Continuous" || selfCost || reduceActivatorYou(s.Mode, s.Params)):
+				case c == "NotPlayerTurn" && turnGate:
 					st.Cond = lCond{Kind: cYourTurn, Neg: true}
 				case c == "Metalcraft" && (s.Mode == "Continuous" || selfCost):
 					f, err := lc.filter("Artifact.YouCtrl")
@@ -1845,8 +1855,14 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		}
 		goad := sp.is("Goad", "True")
 		sp.consume("Goad")
-		sts, err := lc.continuous(sp, &st)
+		lure, lureOnly, err := lc.lureGrant(sp, &st) // lower_lure.go
 		if err != nil {
+			return nil, err
+		}
+		var sts []lStatic
+		if lureOnly {
+			st = lure
+		} else if sts, err = lc.continuous(sp, &st); err != nil {
 			return nil, err
 		}
 		if err := lc.selfCondCheck(&st); err != nil {
@@ -1856,6 +1872,14 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			return nil, err // lower_selfkwaffected.go
 		}
 		extra = sts
+		if lure.Kind != "" && !lureOnly {
+			// the lure rides beside the other parts (Gift of the Deity's
+			// +1/+1): a second static over the same filter and condition
+			if extra == nil {
+				extra = []lStatic{st} // extra replaces the static itself
+			}
+			extra = append(extra, lure)
+		}
 		if goad {
 			// Goad$ True: the affected creatures are goaded while the
 			// static applies (gorge's static goad route; kop.StatGoad), a
@@ -2373,7 +2397,8 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		return nil, nil
 	}
-	if hk, ok := sp.get("AddHiddenKeyword"); ok {
+	if hk, ok := sp.m["AddHiddenKeyword"]; ok && !sp.used["AddHiddenKeyword"] { // a lure grant lureGrant took is lowered beside
+		sp.used["AddHiddenKeyword"] = true
 		if strings.TrimSpace(hk) != "CARDNAME can't block." {
 			return nil, refuse("AddHiddenKeyword %q", hk)
 		}

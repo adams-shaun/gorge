@@ -332,6 +332,10 @@ func (lc *lowerCtx) lowerFace() {
 		}
 	}
 	lc.lowerRecord()
+	// the face's printed mana abilities' produced colours (CardDef.
+	// ProduceCol; lower_reflectedmana.go producibleMask): a Produce-mode
+	// reflected ability's read
+	lc.out.ProduceCol = producibleMask(lc.face)
 	lc.scanStorm() // lower_storm.go: K:Storm's expanded trigger, before the lines lower
 	// lower_imprintmox.go: the imprint-mox shape, before the lines lower
 	lc.imprintMox = lc.imprintMoxShape()
@@ -2601,6 +2605,19 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 				return nil, refuse("filter %q: bound %s names no SVar", expr, c.CmpX)
 			}
 		}
+	}
+	for i := range f.Clauses {
+		if f.Clauses[i].Ctrl != whoTgtOrCtrl {
+			continue
+		}
+		// the referent is the current link's target -- the last slot the
+		// chain declared before this filter. A filter read before any slot
+		// has none, and gorge binds none.
+		t := lc.lastTarget()
+		if t < 0 {
+			return nil, refuse("filter %q: ControlledBy TargetedOrController without an earlier target", expr)
+		}
+		f.Clauses[i].CtrlTgt = uint8(t + 1)
 	}
 	if err := lc.checkEachPlCtrl(expr, f); err != nil {
 		return nil, err // lower_repeatplayers.go
