@@ -213,7 +213,7 @@ func recordPins(t *testing.T, path, pool string, set cardset.Set, rc RunConfig, 
 			// a game the mutated code diverges in: keep the actions up to the divergence, to
 			// be played against the code as it should be
 			r := NewRepro(m, seed, rc, &res)
-			r.Readable, r.MaxTurns, r.Divergence = nil, 0, nil
+			r.MaxTurns, r.Divergence = 0, nil
 			r.Actions = r.Actions[:min(len(r.Actions), res.Div.At+pinTail)]
 			// Only write a game the replay actually reaches the divergence in:
 			// ScriptPolicy skips actions a decision does not offer, so a recorded
@@ -232,7 +232,6 @@ func recordPins(t *testing.T, path, pool string, set cardset.Set, rc RunConfig, 
 			continue // a kept game, already in the file
 		}
 		r := NewRepro(m, seed, rc, &res)
-		r.Readable = nil
 		r.MaxTurns = 0
 		full := append([]Canon(nil), r.Actions...)
 		if rc.Check == nil {

@@ -114,19 +114,15 @@ func (e *Engine) xAsk() bool {
 			e.abortCast(pc, "announce cost no longer payable; cast aborted", true)
 			return true
 		}
-		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
-			Prompt: "Choose a value for X", Source: pc.card}
-		for _, x := range vals {
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "x",
-				Label: fmt.Sprintf("X = %d", x), Amount: int(x)})
-		}
-		e.choosing = chooseCast
-		e.ask(d)
+		e.askXChoice(pc, vals)
 		return true
 	}
 	// An X bound by a group exile part's withTotal*EQX (Fabrication
 	// Foundry) is announced from the totals the election can reach.
 	if e.groupAnnounceXAsk(pc) {
+		return true
+	}
+	if e.announceSacXAsk(pc) {
 		return true
 	}
 	// A PayEnergy<X> part announces the same X the cast pays with (CR

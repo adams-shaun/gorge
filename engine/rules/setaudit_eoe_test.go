@@ -9,7 +9,6 @@ package rules
 // SKIPS otherwise, so the committed file never breaks the ordinary gates.
 
 import (
-	"os"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -18,14 +17,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
-
-// eoeGuard skips a known-defect test unless GORGE_SET_AUDIT is set.
-func eoeGuard(t *testing.T, defect, followUp string) {
-	t.Helper()
-	if os.Getenv("GORGE_SET_AUDIT") == "" {
-		t.Skipf("set-audit finding (eoe): %s. Follow-up: %s", defect, followUp)
-	}
-}
 
 // passToAsk drives priority submissions until a non-priority decision is
 // pending (or nil). It is the harness the mid-resolution asks (a spell's

@@ -19,12 +19,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// comebackCorpusCard looks a real corpus card up by name.
-func comebackCorpusCard(t *testing.T, name string) *cards.Card {
-	t.Helper()
-	return tokenReplCorpusCard(t, name)
-}
-
 // comebackEffectRegistrations returns the number of live EffectRepeat delayed
 // registrations owned by the object (the `|EF` comeback trigger).
 func comebackEffectRegistrations(e *Engine, source state.ObjID) int {

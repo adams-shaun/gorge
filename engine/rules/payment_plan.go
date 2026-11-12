@@ -194,6 +194,7 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	// base is the cast's price BEFORE the cost statics (the composition the
 	// either-or additional cost's part joins, CR 601.2f/h).
 	var base, cost Cost
+	var improviseTaps []state.ObjID
 	if flashback {
 		cost = e.plannedFlashbackCost(statics.get(), p, cast.Object)
 	} else if mayPlay {
@@ -215,6 +216,10 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 		cost = pay.WithSpellAbilityExtras(o.Face(), e.offerCostForUsing(statics.get(), p, cast.Object, base, spellScope("mayplay")))
 	} else {
 		base = pay.RawBaseCost(asPayer(e), p, cast.Object)
+		// CR 702.126a: the artifacts Improvise taps for generic mana are
+		// credited before the statics, as castOfferBase prices the offer, and
+		// stay out of the mana plan (one permanent pays one cost).
+		base, improviseTaps = e.improviseCost(p, cast.Object, base, nil)
 		base = pay.WithSpellAbilityExtras(o.Face(), base)
 		cost = e.offerCostForUsing(statics.get(), p, cast.Object, base, spellScope(""))
 	}
@@ -239,6 +244,9 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 		rider = rider.Or(asPayer(e).Eval().MayPlayRider(p, cast.Object))
 	}
 	mana = pay.PlanManaUnderRider(mana, rider)
+	if len(improviseTaps) != 0 {
+		return planImprovise(asPayer(e), p, cast, mana, &desc, improviseTaps)
+	}
 	if len(cost.Sac) == 0 && len(cost.TapPermanent) == 0 {
 		return pay.PlanPaymentCost(asPayer(e), p, cast, mana, &desc)
 	}
@@ -518,7 +526,15 @@ func (e *Engine) paymentPlanCastShapeDetailAltAdd(statics costStaticViews, p sta
 	if pay.PlanNonManaAdmissible(spellCost) != "" || pay.PlanNonManaAdmissible(pay.WithSpellAbilityExtras(f, Cost{})) != "" {
 		return "shape:additional_cost"
 	}
-	if e.hasCastConvoke(id) || e.hasCastImprovise(id) || e.hasCastDelve(id, false) {
+	if e.hasCastConvoke(id) || e.hasCastDelve(id, false) {
+		return "shape:contribution"
+	}
+	// Improvise alone (CR 702.126a) is planned at the credited price with its
+	// artifacts reserved (planImprovise); a mana remainder the lands pay is
+	// still a witness (CR 601.2h). The shapes that credit does not price
+	// stay with the manual window.
+	if e.hasCastImprovise(id) && (scope.Mode != "" || len(spellCost.Sac) != 0 || len(spellCost.TapPermanent) != 0 ||
+		costAnnouncesX(pay.RawBaseCost(asPayer(e), p, id))) {
 		return "shape:contribution"
 	}
 	// Waterbend (a RaiseCost static's Waterbend<N>, Benevolent River
@@ -968,6 +984,9 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 			}
 			settleBase = settleBase.Plus(raise)
 		}
+	} else {
+		// A plain cast's Improvise credit, as planCastPaymentChecked prices it.
+		settleBase, _ = e.improviseCost(p, cast.Object, settleBase, nil)
 	}
 	cost := pay.PlanManaHalf(e.offerCostFor(p, cast.Object, pay.WithSpellAbilityExtras(e.G.Obj(cast.Object).Face(), settleBase), settleScope))
 	if got.Plan != nil {

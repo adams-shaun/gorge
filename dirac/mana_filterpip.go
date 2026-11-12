@@ -117,6 +117,9 @@ func (s *State) filtPaid(k *prep, p uint8, sl Slot) bool {
 	if col, ok := s.filtPip(k, sl); ok {
 		return s.filtPipHeld(k, p, sl, col) >= 1
 	}
+	if col, ok := s.filtRepeatPip(k, sl); ok && s.filtPipHeld(k, p, sl, col) < 1 {
+		return false // a fee-only filter's pip needs its colour (mana_filterrepeat.go)
+	}
 	return poolTotal(&s.pl[SeatIx(p)])+s.filtFeeRestrN(k, p, sl) >= s.filtFee(k, sl)
 }
 

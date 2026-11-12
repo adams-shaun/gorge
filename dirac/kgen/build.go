@@ -819,6 +819,19 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Retrace {
+		// CR 702.81a: a graveyard cast paying the printed cost plus the
+		// additional discard-a-land cost (dirac/kw_retrace.go); lower.go's
+		// lowerRetrace has refused every collision, so the CardDef carries
+		// only Retrace and RetraceCost.
+		if c.RetraceCost == nil {
+			return fmt.Errorf("Retrace without its discard cost")
+		}
+		d.Retrace = true
+		if d.RetraceCost, err = cb.cost(*c.RetraceCost); err != nil {
+			return err
+		}
+	}
 	if c.Improvise {
 		// CR 702.126a: printed improvise; the cast taps artifacts for its
 		// generic cost (dirac/kw_convoke.go)
@@ -2072,6 +2085,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vActivations:        kop.ExActivations,
 	vLifeLostLastTurn:   kop.ExLifeLostLastTurn,
 	vDmgAmount:          kop.ExDmgAmountReceived,
+	vMonarch:            kop.ExMonarch, // lower_monarch.go
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
@@ -2177,7 +2191,7 @@ var cmpOps = map[uint8]kop.CmpOp{opGE: kop.CmpGE, opLE: kop.CmpLE, opEQ: kop.Cmp
 
 var condKinds = map[condKind]kop.CondKind{cPresent: kop.CondPresent, cValue: kop.CondValue, cKicked: kop.CondKicked,
 	cThreshold: kop.CondThreshold, cYourTurn: kop.CondYourTurn, cRefMatches: kop.CondRefMatches,
-	cPromisedGift: kop.CondPromised, cAnd: kop.CondAnd, cEchoOwed: kop.CondEchoOwed}
+	cPromisedGift: kop.CondPromised, cAnd: kop.CondAnd, cEchoOwed: kop.CondEchoOwed, cSourceZone: kop.CondSourceZone}
 
 // cond interns a condition (0 for none).
 func (cb *cardBuilder) cond(c lCond) (kop.CondID, error) {
@@ -2188,7 +2202,7 @@ func (cb *cardBuilder) cond(c lCond) (kop.CondID, error) {
 	if !ok {
 		return 0, fmt.Errorf("condition %s", condNames[c.Kind])
 	}
-	kc := kop.Cond{Kind: k, Op: cmpOps[c.Op], Neg: c.Neg}
+	kc := kop.Cond{Kind: k, Op: cmpOps[c.Op], Neg: c.Neg, Zone: zoneMap[c.Zone]}
 	var err error
 	if c.Kind == cAnd {
 		if len(c.Sub) != 2 {

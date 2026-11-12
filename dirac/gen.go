@@ -289,6 +289,7 @@ type genPrep struct {
 	cdLegOn        bool           // some expression is ExOppsLostLife N 1: record cdLeg
 	anyAddPhase    bool           // some program is ExtAddPhase, some trigger is Tf3FirstAttack or some expression is ExPhaseCount (act_addphase.go)
 	anySkipPhase   bool           // some program is ExtSkipPhase (act_skipphase.go)
+	anyMonarch     bool           // some program is ExtBecomeMonarch (act_monarch.go)
 	anyAttackedObj bool           // the table gives mechAttackedObj an arena mask: finishAttacks marks the declared attackers
 	anySuspect     bool           // the table gives mechSuspected an arena mask (act_suspect.go)
 	anySacSub      bool           // some ExRefCount is a Sacrificed$Valid type read (N 1): snapLKI captures the subtype set (value_countheads.go, zone_lki.go)
@@ -440,6 +441,9 @@ type genPrep struct {
 	// anyFiltFirst: some card's filter is its first mana ability (Abzan
 	// Devotee, Prophetic Prism; mana_filterfirst.go)
 	anyFiltFirst bool
+	// anyFiltRepeat: some card's first-ability filter is a fee-only one,
+	// repeatable (mana_filterrepeat.go)
+	anyFiltRepeat bool
 	// gapOther: card i has another mana ability gorge's census misses
 	// (a restricted, each-colour or paid one that is not filt: Lupinflower
 	// Village's creature-only {W}); beside one the filter stays unmodelled
@@ -1518,6 +1522,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepTurnTallies(t, p, g) // value_turntallies.go; reads g.ix
 	prepAddPhase(t, g)       // act_addphase.go
 	prepSkipPhase(t, g)      // act_skipphase.go
+	prepMonarch(t, g)        // act_monarch.go
 	prepAirbend(t, g)
 	prepMayWhileSrc(t, g) // cast_whilesource.go
 	prepInit(t, g)        // act_initiative.go
@@ -2106,6 +2111,10 @@ type genState struct {
 	// trigger fires reads it (defendingSeatF2). Set only when MaxSeats > 2.
 	// Taken from rsv.
 	atkDef uint8
+	// mon: the monarch's seat + 1 in bits 0-3 (0 nobody), the monarch as the
+	// turn began + 1 in bits 4-7 (act_monarch.go). The tail padding after
+	// atkDef, so State does not grow.
+	mon uint8
 }
 
 const (

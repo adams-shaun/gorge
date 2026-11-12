@@ -363,7 +363,7 @@ var subtypeWords = map[string]bool{}
 
 // propWords maps a filter property word to the flag it sets.
 var propWords = map[string]uint64{
-	"Self": fSelf, "Other": fOther, "StrictlyOther": fOther, "token": fToken, "!token": fNonToken, "nonToken": fNonToken,
+	"Self": fSelf, "StrictlySelf": fSelf, "Other": fOther, "StrictlyOther": fOther, "token": fToken, "!token": fNonToken, "nonToken": fNonToken,
 	// gorge's tokenCreated (effects/filter.go) is the IsToken marker, the same
 	// read as "token": a token created this turn is the entered ring's entry
 	"tokenCreated": fToken,

@@ -99,12 +99,13 @@ ColU	ColorMask	2
 ColW	ColorMask	1
 CondAlways	CondKind	0
 CondAnd	CondKind	8
-CondCount_	CondKind	10
+CondCount_	CondKind	11
 CondEchoOwed	CondKind	9
 CondKicked	CondKind	3
 CondPresent	CondKind	1
 CondPromised	CondKind	7
 CondRefMatches	CondKind	6
+CondSourceZone	CondKind	10
 CondThreshold	CondKind	4
 CondValue	CondKind	2
 CondYourTurn	CondKind	5
@@ -383,6 +384,7 @@ ExLifeOf	ExprKind	12
 ExLowestLife	ExprKind	252
 ExMVOf	ExprKind	29
 ExMod	ExprKind	234
+ExMonarch	ExprKind	218
 ExMorbid	ExprKind	8
 ExNone	ExprKind	0
 ExNotOwnLibMV	ExprKind	226
@@ -437,6 +439,7 @@ ExtAddPhase	ExtOp	193
 ExtAegisClone	ExtOp	80
 ExtAirbend	ExtOp	95
 ExtAttacksIfAble	ExtOp	255
+ExtBecomeMonarch	ExtOp	259
 ExtBlocksIfAble	ExtOp	256
 ExtBreachChoose	ExtOp	160
 ExtBreachReturn	ExtOp	161
@@ -647,6 +650,7 @@ MayPlayOpponent	untyped int	16384
 MayPlayOwner	untyped int	512
 MayPlayPayLife	untyped int	-32768
 MayPlayRaiseShift	untyped int	10
+MonarchOpp	untyped int	1
 MorphDisguise	uint8	3
 MorphMegamorph	uint8	2
 MorphMorph	uint8	1
@@ -1381,6 +1385,8 @@ TokRemember	untyped int	2
 TokRememberObj	untyped int	4
 TokSacAtEnd	untyped int	8
 TokTapped	untyped int	1
+TpOppSeparates	untyped int	1
+TpUnchosenPileOrder	untyped int	2
 TrAttacking	untyped int	2
 TrHasteEOT	untyped int	4
 TrList	untyped int	8
@@ -1392,6 +1398,7 @@ TrigAbilityCast	TrigEvent	36
 TrigAttached	TrigEvent	33
 TrigAttackersDeclared	TrigEvent	6
 TrigAttacks	TrigEvent	5
+TrigBecomeMonarch	TrigEvent	48
 TrigBecomeMonstrous	TrigEvent	26
 TrigBecomesBlocked	TrigEvent	19
 TrigBecomesPlotted	TrigEvent	31
@@ -1409,7 +1416,7 @@ TrigDiscardedAll	TrigEvent	35
 TrigDiscover	TrigEvent	44
 TrigDrawn	TrigEvent	14
 TrigETB	TrigEvent	1
-TrigEventCount	TrigEvent	48
+TrigEventCount	TrigEvent	49
 TrigEvolved	TrigEvent	47
 TrigExplores	TrigEvent	39
 TrigFacesDilemma	TrigEvent	46
@@ -1423,6 +1430,7 @@ TrigLifeLost	TrigEvent	10
 TrigManaExpend	TrigEvent	21
 TrigManifestDread	TrigEvent	45
 TrigNAnyCounter	int16	-1
+TrigNMonarchBeganTurn	int16	1
 TrigNTeamworkTap	int16	1
 TrigNTraining	int16	2
 TrigNValiant	int16	1

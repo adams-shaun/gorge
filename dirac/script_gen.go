@@ -19,8 +19,9 @@ import (
 // listed with any mana available but not with the sources available are the
 // insufficient ones, in priority-walk order; the first potentialScriptPlays are searched; a
 // searched play the sources plus the gaps' mana pay is offered, and at the
-// play the gaps are tapped into the pool in battlefield order until the
-// plain walk lists it.
+// play the gaps are tapped into the pool in battlefield order, an any-colour
+// counter ability branched on its colour ask (mana_countercost.go ctrScript),
+// until the plain walk lists it.
 
 const potentialScriptPlays = 16 // gorge rules/potential_script.go
 
@@ -208,6 +209,11 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	twoLive := k.tapMana && s.tapXTwoLive(k, p) // (a live Baylen makes the census unrelaxable: gorge paymentPlanRelaxedAlternatives, no once-only cost; every walk play is searched)
 	// A fourth filter, or a dynamic one out of bounds, makes it unrelaxable too (mana_filter.go filtRelaxable).
 	relax := !s.scriptGaps(k, p).any() && !twoLive && s.filtRelaxable(k, filt)
+	// A live repeatable fee-only filter (Nomadic Elf) has no relaxed or bounded
+	// proof in gorge either: it searches every insufficient play, and the gaps
+	// walk (one conversion per filter) cannot say which a many-times-activated
+	// one pays (mana_filterrepeat.go).
+	repeatLive := s.filtRepeatIn(k, filt)
 	var any, gaps Decision
 	s.plainOptions(k, &gaps, availGaps)
 	src := &gaps
@@ -269,7 +275,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	searched := 0
 	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
-		if !hasOption(&gaps, a) && !twoLive {
+		if !hasOption(&gaps, a) && !twoLive && !repeatLive {
 			if !relax {
 				searched++
 			}
@@ -300,15 +306,17 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 				continue // no script within gorge's budget, or one the pool cannot complete (mana_reflected.go)
 			}
 		} else if anyR.any() || tapsDef.any() {
-			if s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef) {
+			if s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, s.scriptCtr(k, p)) {
 				continue // no script within gorge's budget (mana_window.go scriptDeadEndAny)
 			}
 		} else if !restr.any() && !s.scriptCtr(k, p).any() && s.eachFeeBoard(k, p) {
 			if !s.eachScript(k, a, p, false) {
 				continue // no script within gorge's search budget (mana_eachfee.go)
 			}
-		} else if restr.any() && s.scriptDeadEnd(k, a, p, restr) {
-			continue
+		} else if restr.any() || s.scriptCtr(k, p).any() {
+			if s.scriptDeadEnd(k, a, p, restr) {
+				continue // no script within gorge's budget (mana_countercost.go ctrScript; a counter-cost gap alone, no restricted source beside it)
+			}
 		}
 		d.add(a)
 	}
@@ -361,28 +369,14 @@ func (s *State) scriptDeadEnd(k *prep, a Action, p uint8, restr slotMask) bool {
 	// (Pyromancer's Goggles) is no census unit, so a play the deferred gap
 	// and an unrestricted grant together pay is absent from that walk and
 	// must be priced here (restrictedGrantLive).
-	t.g.noGrant = a.Kind() == AkActivate && s.restrictedGrantLive(k, p)
+	noGrant := a.Kind() == AkActivate && s.restrictedGrantLive(k, p)
+	t.g.noGrant = noGrant
 	var order [MaxPerm]Slot
 	ctr := t.scriptCtr(k, p) // a counter-cost gap (Ramos) among them, as scriptPrefix plays it
 	n := t.battlefieldOrder(p, t.scriptGaps(k, p).or(restr).or(ctr), order[:], 0)
-	var d Decision
-	var held [kop.NumManaKinds]uint8 // the restricted mana in the copy's pool
-	for i := 0; i < n; i++ {
-		if ctr.has(order[i]) {
-			t.ctrGap(k, p, order[i])
-			t.sba(k)
-		} else {
-			t.tapGap(k, p, order[i], restr, &held)
-		}
-		t.restrOptions(k, &d, p)
-		if hasOption(&d, a) {
-			if held == ([kop.NumManaKinds]uint8{}) {
-				return false
-			}
-			return !t.scriptCompletes(k, p, a)
-		}
-	}
-	return true
+	var path [MaxPerm]uint8
+	_, found, dead := t.ctrScript(k, a, p, order[:n], ctr, restr, path[:], noGrant)
+	return !found || dead
 }
 
 // restrictedGrantLive: p controls a source whose granted mana ability carries
@@ -436,11 +430,13 @@ func (s *State) tapGap(k *prep, p uint8, sl Slot, restr slotMask, held *[kop.Num
 	s.eachProduce(k, p, sl, s.eachDefaultAns(k, p, sl)) // (a fee-paid each-colour gap: mana_eachfee.go)
 }
 
-// scriptPrefix plays gorge's script for play a: p's gaps tapped in
-// battlefield (entry) order, a restricted source among them (Giada), until
-// the plain walk lists a (nothing when it already does). The restricted
-// mana floats beside the pool (State.rb), priced by the search's walk
-// as gorge's prefix search does (restrOptions).
+// scriptPrefix plays gorge's script for play a: the search's script, played
+// (ctrScript) -- p's gaps tapped in battlefield (entry) order, a restricted
+// source among them (Giada), an any-colour counter ability branched on its
+// colour ask, until the plain walk lists a (nothing when it already does,
+// and nothing new when no branch lists it: the chain's taps as the linear
+// walk played them). The restricted mana floats beside the pool (State.rb),
+// priced by the search's walk as gorge's prefix search does (restrOptions).
 func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	// An activation on a board with a live granted mana ability prices without
 	// the grant (otherGaps): its filter prefix would apply a funding-first
@@ -506,7 +502,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		return
 	}
 	if anyR.any() || tapsDef.any() {
-		s.scriptPrefixAny(k, a, p, restr, anyR, tapsDef)
+		s.scriptPrefixAny(k, a, p, restr, anyR, tapsDef, ctr)
 		return
 	}
 	if !restr.any() && !ctr.any() && s.eachFeeBoard(k, p) {
@@ -517,15 +513,23 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	s.plainOptions(k, &d, 0)
 	var order [MaxPerm]Slot
 	n := s.battlefieldOrder(p, gaps.or(restr).or(ctr), order[:], 0) // gorge's option order (two Tenders)
-	var held [kop.NumManaKinds]uint8
-	for i := 0; i < n && !hasOption(&d, a); i++ {
-		if ctr.has(order[i]) {
-			s.ctrGap(k, p, order[i]) // a Wall of Roots: its counter, its mana (mana_countercost.go)
-			s.sba(k)                 // the script returns to priority after the step
-		} else {
-			s.tapGap(k, p, order[i], restr, &held)
+	if hasOption(&d, a) {
+		return
+	}
+	var path [MaxPerm]uint8
+	m, found, _ := s.ctrScript(k, a, p, order[:n], ctr, restr, path[:], false)
+	if found { // the script gorge's search found: its taps, played
+		var held [kop.NumManaKinds]uint8
+		for j := 0; j < m; j++ {
+			s.ctrChainTap(k, p, a, order[j], ctr, restr, int(path[j]), &held)
 		}
-		s.restrOptions(k, &d, p)
+		return
+	}
+	// no script within gorge's search: the chain's taps as the linear walk
+	// played them, each gap's first answer (the play stays on the offer unfunded)
+	var held [kop.NumManaKinds]uint8
+	for j := 0; j < n; j++ {
+		s.ctrChainTap(k, p, a, order[j], ctr, restr, 0, &held)
 	}
 }
 
