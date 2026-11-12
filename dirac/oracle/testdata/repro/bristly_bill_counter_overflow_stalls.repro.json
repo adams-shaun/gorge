@@ -96,6 +96,9 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "Bristly Bill, Spine Sower's doubling places 81920 +1/+1 counters: past the kernel's 16-bit storage bound no value can agree with gorge, so the game stops as the declared StallCounters capacity (the divergence this replaces was the silent clamp).",
+ "stall": true,
  "actions": [
   167771904,
   167771904,

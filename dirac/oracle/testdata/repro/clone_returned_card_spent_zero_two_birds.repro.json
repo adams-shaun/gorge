@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-blb",
+ "why": "the same under Finch Formation and Valley Floodcaller: only a creature of mana value 0 is offered",
  "actions": [
   16776960,
   16776960,

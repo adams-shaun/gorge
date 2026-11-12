@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 40,
  "surface": "autopay",
+ "pool": "std-mkm",
+ "why": "CR 605.3b, 601.2g: Leering Onlooker's {2}{B}{B} is paid by two Scenes of the Crime's second ability (tap a creature: any colour) after the first Scene's ability ask is answered with its {C}",
  "actions": [
   167771904,
   167771904,

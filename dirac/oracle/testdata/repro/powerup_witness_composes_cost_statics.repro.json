@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "CR 601.2f, 702.193b: gorge's autopay witness for a power-up prices the printed cost after the cost statics (Hulk, Gamma Goliath's {3}), so Quicksilver's {4}{R} is offered from four sources",
  "actions": [
   16776960,
   16776960,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "CR 106.6, 302.6: ... and a tapped Uthros, Titanic Godcore past STATION 12 funds nothing either, so it does not shield Sinister Cryologist's hand warp cast from the prune",
  "actions": [
   184549120,
   167771904,

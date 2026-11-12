@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "The Serpent Society targeted twice by the opponent: one ward election pays its five poison counters (the payer gets them), the other declines and counters the spell, both engines agreeing on every one (CR 702.21a, 122.1f)",
  "actions": [
   16776960,
   16776960,

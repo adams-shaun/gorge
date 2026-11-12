@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-lci",
+ "pool": "std-lci",
+ "why": "Itlimoc, Cradle of the Sun's {T}: Add {G} beside {T}: Add {G} for each creature you control (CR 106.1, 601.2g, 605.3a): gorge's planner takes the larger alternative of the one unit, so the kernel plans the count pair too",
  "actions": [
   16776960,
   16776960,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "set std-dft",
+ "pool": "std-dft",
+ "why": "CR 614.12/603.6a: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first; the copy's Hulldrifter enters trigger queues after the bodies",
  "actions": [
   167771904,
   184549120,

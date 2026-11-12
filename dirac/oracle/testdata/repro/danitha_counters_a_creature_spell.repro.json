@@ -59,6 +59,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Danitha, Spear of Agony's zone-free TargetsValid$ Creature.OppCtrl fires when a Counterspell targets an opponent's creature spell, not only a battlefield permanent (CR 603.2)",
  "actions": [
   19005184,
   17432320,

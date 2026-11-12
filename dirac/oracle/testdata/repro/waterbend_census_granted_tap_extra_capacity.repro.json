@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 605.1b: the same merchant tapped later in the game floats its {G} tap extra, so the payment no longer stalls",
  "actions": [
   16776960,
   16776960,

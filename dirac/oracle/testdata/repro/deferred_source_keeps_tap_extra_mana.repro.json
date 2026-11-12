@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 605.4a: Gran-Gran, deferred by its own tap trigger, still adds Badgermole Cub's extra {G} when tapped for Great Divide Guide's granted mana, so the relaxed proof cannot rule out Foggy Swamp Vinebender's Waterbend {5}",
  "actions": [
   167771904,
   167771904,

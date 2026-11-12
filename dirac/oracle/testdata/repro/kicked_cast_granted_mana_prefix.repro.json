@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-fdn",
+ "why": "Into the Roil kicked, UU from New Horizons' Mountain: the prefix prices the composed cost",
  "actions": [
   16776960,
   16776960,

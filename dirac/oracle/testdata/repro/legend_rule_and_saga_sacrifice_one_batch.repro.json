@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-woe",
+ "pool": "std-woe",
+ "why": "CR 704.3, 603.10a: the Neva the legend rule removes still sees The Princess Takes Flight sacrificed in the same state-based check",
  "actions": [
   16776960,
   16776960,

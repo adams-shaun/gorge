@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-fra",
+ "why": "CR 120.10: Violent Echoes' excess reads the damage as replaced",
  "actions": [
   16776960,
   16776960,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "CR 508.1, 603.2: a granted \"whenever you attack\" trigger fires once for a declaration split across two defenders, not once per defender",
  "actions": [
   167771904,
   184549120,

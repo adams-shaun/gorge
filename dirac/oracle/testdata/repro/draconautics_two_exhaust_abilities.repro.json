@@ -64,6 +64,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "std-dft",
+ "pool": "std-dft",
+ "why": "Draconautics Engineer activates both Exhaust abilities: the second is its own once-only mark, not a shared per-permanent bit (CR 702.177a)",
  "actions": [
   16776960,
   16776960,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-hob",
+ "pool": "std-hob",
+ "why": "CR 603.10a: Tom, Bert, and William returns from the graveyard as an artifact, and Along the Crooked Way still sees a creature card leave",
  "actions": [
   184549120,
   184549120,

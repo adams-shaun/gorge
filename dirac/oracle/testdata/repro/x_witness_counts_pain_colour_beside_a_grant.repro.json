@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-trc",
+ "pool": "std-trc",
+ "why": "CR 107.3, 601.2f: Grand Crescendo's {X}{W}{W} lowered from Plains, Talisman of Dominance and Spire of Industry with Ambulatory Reactor's grant in the table: the witness counts Spire's paid-life white as gorge's census does, so X = 1 taps all three",
  "actions": [
   16776960,
   16776960,

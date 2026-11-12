@@ -136,6 +136,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "set standard-meta",
+ "pool": "standard-meta",
+ "why": "",
  "actions": [
   907083520,
   16776960,

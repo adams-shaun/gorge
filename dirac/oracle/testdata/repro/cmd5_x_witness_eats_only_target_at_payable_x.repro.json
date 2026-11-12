@@ -221,6 +221,8 @@
  ],
  "surface": "full",
  "kernel": "set cmd5",
+ "pool": "custom",
+ "why": "kfuzz cmd5 heuristic pair 646: Lotus Petal alone pays Repeal at X=0 and is the only mana-value-0 permanent: the witness eats the only target the payable X allows, so the cast is not offered (gorge witness_unreachable; CR 601.2c, 601.2g)",
  "actions": [
   16776960,
   16776960,

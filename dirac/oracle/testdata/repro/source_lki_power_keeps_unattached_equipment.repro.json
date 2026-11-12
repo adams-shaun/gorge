@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 608.2h: Firebending Student killed by Razor Rings with its firebending trigger waiting adds its power as it last existed, Glider Staff's +1 included, though the Staff became unattached since",
  "actions": [
   16776960,
   16776960,

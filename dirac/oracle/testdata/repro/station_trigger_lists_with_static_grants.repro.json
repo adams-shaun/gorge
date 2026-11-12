@@ -94,6 +94,9 @@
  "mulligans": 1,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-trc",
+ "why": "U.S.S. Prometheus at station 8 beside an older Supplementation Node: the Node's granted counter trigger lists first, as gorge orders the statics' grants",
  "actions": [
   184549120,
   167771904,

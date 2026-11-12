@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-mkm",
+ "pool": "std-mkm",
+ "why": "... and Doppelgang's copies of several targets likewise enter in one batch",
  "actions": [
   16776960,
   16776960,

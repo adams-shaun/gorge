@@ -134,13 +134,13 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// Breach, The Master of Keys, Pardic Firecat, Diligent Farmhand and Ground Seal —
 	// the same five the build pin at build_ratchet_test.go counts; merged ALL 22868 -> 22873).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22873, 34442},
+	"ALL": {22889, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
-	"BRO": {216, 280},
+	"BRO": {217, 280},
 	"DFT": {255, 276},
 	"DMU": {196, 270},
-	"DSK": {250, 276},
+	"DSK": {251, 276},
 	"ECL": {244, 273},
 	"EOE": {250, 266},
 	"FDN": {517, 517},

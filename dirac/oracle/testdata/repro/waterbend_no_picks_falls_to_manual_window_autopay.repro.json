@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 602.2b, 605.3a: ... on the autopay surface too, where the planner's granted unit would otherwise pick a different source",
  "actions": [
   184549120,
   184549120,

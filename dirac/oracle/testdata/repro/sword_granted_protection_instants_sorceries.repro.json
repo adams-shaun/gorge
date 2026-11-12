@@ -94,6 +94,8 @@
  "mulligans": 1,
  "pass_elision": false,
  "surface": "autopay",
+ "pool": "std-big",
+ "why": "Sword of Wealth and Power: the equipped creature has protection from instants and sorceries, so a target menu of either kind leaves it out (CR 702.16b)",
  "actions": [
   184549120,
   167771904,

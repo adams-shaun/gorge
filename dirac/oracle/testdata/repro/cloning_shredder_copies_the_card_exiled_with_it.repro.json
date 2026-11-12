@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "synth std-tmt",
+ "pool": "std-tmt",
+ "why": "The Cloning of Shredder's chapter I exiles a creature card and copies it from Remembered; its chapter II copies the same card through the exiled-with link (CopyPermanent Defined$ ExiledWith), so the game reaches two token copies",
  "actions": [
   18087680,
   18415360,

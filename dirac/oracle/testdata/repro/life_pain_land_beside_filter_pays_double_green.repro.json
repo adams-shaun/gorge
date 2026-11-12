@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-fin",
+ "why": "Summon: Titan's GG from Starting Town and Capital City: a paid-life land is no census gap beside the filter",
  "actions": [
   16776960,
   16776960,

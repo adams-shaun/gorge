@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "Reno and Rude connects, exiles the top card and sacrifices another permanent: the exiled card, imprinted on it, is cast from exile with mana of any type, then the imprint is cleared",
  "actions": [
   16776960,
   16776960,
