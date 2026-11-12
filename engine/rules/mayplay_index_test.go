@@ -261,16 +261,3 @@ func TestMayPlayIndexOfferSurface(t *testing.T) {
 		t.Fatalf("deck game: index changed the chain head: off=%s on=%s", offDeckHead, onDeckHead)
 	}
 }
-
-// idsOf finds the battlefield object a corpus card became.
-func idsOf(t *testing.T, e *Engine, name string) state.ObjID {
-	t.Helper()
-	for j := range e.G.Objs {
-		o := &e.G.Objs[j]
-		if o.Owner == 0 && o.Face() != nil && o.Face().Name == name {
-			return o.ID
-		}
-	}
-	t.Fatalf("no battlefield object named %s", name)
-	return 0
-}
