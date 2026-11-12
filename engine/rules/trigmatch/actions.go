@@ -3,9 +3,7 @@
 // Mode$ CommitCrime, Vote, FlippedCoin, Attached, RingTemptsYou, BecomesTarget,
 // LandPlayed and Phase.
 //
-// Split out of trigger_match.go so tickets touching different modes stop
-// colliding on one file. Registration is at the bottom; a duplicate mode
-// panics (registerTrigMatcher).
+// Registration is at the bottom; a duplicate mode panics (registerTrigMatcher).
 
 package trigmatch
 

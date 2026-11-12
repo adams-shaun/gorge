@@ -10,8 +10,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Layer, Sublayer and ContinuousEffect moved to engine/state/continuous.go in Task
-// 19c, so effects primitives (which sit below rules and must never import
+// Layer, Sublayer and ContinuousEffect moved to engine/state/continuous.go so
+// effects primitives (which sit below rules and must never import
 // it) can build a ContinuousEffect and hand it to this engine through
 // effects.Host. These aliases and re-exported constants keep this package's
 // own API -- and every existing caller and test in this package -- unchanged:
@@ -456,7 +456,7 @@ func (e *Engine) EndOfTurnCleanup() {
 	kept := e.continuous[:0]
 	// expiredClones collects the clone UNITS whose LCopy marker this cleanup
 	// drops, so the object's CopyFace basis can be settled after the kept
-	// list is rewritten (task api-clone).
+	// list is rewritten.
 	//
 	// A unit is keyed by (become object, expiry moment) rather than by the
 	// become object alone: several clone units may be live on ONE permanent
@@ -549,7 +549,7 @@ func (e *Engine) EndOfTurnCleanup() {
 	}
 }
 
-// cloneExpiry identifies ONE clone unit (task api-clone): the permanent that
+// cloneExpiry identifies ONE clone unit: the permanent that
 // became a copy, together with the moment that copy's lifetime ends. A single
 // permanent may carry several live clone units at once -- Mirage Mirror
 // activated twice in a turn, or a permanent copy under a temporary one -- and
@@ -916,7 +916,7 @@ func mayPlayChosenLeftZone(ce *state.ContinuousEffect, ev events.Event) bool {
 }
 
 // effectCastSweep is the cast-driven lifetime of Effect-created continuous
-// effects carrying ForgetOnCast$ (task param:api:Effect.ForgetOnCast): the
+// effects carrying ForgetOnCast$: the
 // first qualifying spell cast ENDS the whole effect -- Marshland
 // Bloodcaster's "Rather than pay the mana cost of the NEXT spell you cast
 // this turn", the one-cast cascade grants (Dark Apostle, Bigger on the

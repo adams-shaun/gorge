@@ -1,6 +1,6 @@
 package rules
 
-// `Activation$ Blessing` (task activation-blessing-gate, CR 702.131): the
+// `Activation$ Blessing` (CR 702.131): the
 // "Activate only if you have the city's blessing" activation condition.
 // engine/rules/legal.go's activationConditionOK previously failed closed on the
 // Blessing token because the latch was untracked; the Ascend machinery

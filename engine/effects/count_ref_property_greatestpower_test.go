@@ -7,7 +7,7 @@ import (
 )
 
 // TestTriggerObjectsAttackersGreatestCardPower pins the GreatestCardPower
-// property arm (task greatestcardpower) over the tek1 TriggerObjectsAttackers
+// property arm over the tek1 TriggerObjectsAttackers
 // referent set: Aloy, Savior of Meridian's "discover X, where X is the
 // greatest power among them" and Shriekwood Devourer's "untap up to X lands,
 // where X is the greatest power among those creatures". The arm is the MAX

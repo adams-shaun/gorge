@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// AnimateAll (task api-animateall): the ValidCards$ battlefield sweep with
+// AnimateAll: the ValidCards$ battlefield sweep with
 // Animate's per-object registration. The unit tests assert on what got
 // REGISTERED (the effects package has no layer computation); the end-to-end
 // computed result is pinned in rules (mirror entity + Vedalken Humiliator).

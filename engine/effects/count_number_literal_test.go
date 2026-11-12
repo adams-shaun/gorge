@@ -6,8 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The literal "Number$<int>" SVar body (task poison: the arm the Vraska,
-// Betrayal's Sting end-to-end pin rides on). Before the arm every Number$
+// The literal "Number$<int>" SVar body (Betrayal's Sting end-to-end pin rides on). Before the arm every Number$
 // body evaluated to (0, not-evaluated): Num$ Difference read 0, so Vraska's
 // "poison equal to the difference" ultimatum placed nothing. The leaves pin
 // the literal, the SVar-named /Op operand through the SAME resolver the

@@ -38,6 +38,14 @@ type Repro struct {
 	// leave it empty.
 	Surface string `json:"surface,omitempty"`
 	Kernel  string `json:"kernel,omitempty"`
+	// Pool is the synthetic pool the game's decks came from ("std-trk",
+	// "custom", "standard-meta", "one-off"): the tests glob testdata/repro
+	// and replay every file whose pool is theirs. Why is the one-line reason
+	// the game is pinned, as the repro tables used to carry it. Stall marks a
+	// replay that ends at a declared kernel stall.
+	Pool  string `json:"pool,omitempty"`
+	Why   string `json:"why,omitempty"`
+	Stall bool   `json:"stall,omitempty"`
 	// Actions is the canonical prefix.
 	Actions []Canon `json:"actions"`
 	// Chance, when set, forces the gorge side's random outcomes

@@ -34,7 +34,7 @@
 //     raw carrier files. A copy was never cast (the same IsCopy guard both
 //     existing families take); a card never put on the stack reads false.
 //
-//   - the origin-zone family (task wascastfrom): wasCastFromExile,
+//   - the origin-zone family: wasCastFromExile,
 //     wasCastFromYourGraveyard, wasCastFromYourGraveyardByYou and
 //     wasCastFromTheirHand — the object's LATEST PutOnStack cast came from
 //     the named zone (and, for the YourGraveyard spellings, was made by the
@@ -230,7 +230,7 @@ func (e *Engine) castFromHandAnyAdmitsWindow(spec string, objID state.ObjID, pen
 // Forge filter spec against objID — the hand-origin ByYou one
 // (castFromHandAdmits), the any-origin one (castAtAllAdmits), the bare
 // player-less hand one (castFromHandAnyAdmits) and the origin-zone one
-// (castOriginAdmits, task wascastfrom) — chaining the splits so a
+// (castOriginAdmits) — chaining the splits so a
 // spec carrying any (or several) of the tokens evaluates fully. The chain
 // order is load-bearing: ByYou before bare (see castFromHandAnyAdmits's
 // order invariant). This is the one entry point every rules-side match site
@@ -346,15 +346,14 @@ func (e *Engine) castProvenanceAdmitsMasked(spec string, gate provGate, objID st
 	return s, true
 }
 
-// The CastSa family (task castsa-provenance): Forge's "Card.CastSa Spell.<X>"
+// The CastSa family: Forge's "Card.CastSa Spell.<X>"
 // card-level provenance predicate — the card's cast spell ability had
 // property <X>. The corpus's X vocabulary splits by what the engine can
 // answer:
 //
 //   - the mana-spend properties the payment path already encodes: a
 //     Treasure/Cave/Desert/Artifact unit's spend is a tagged ManaAdd event
-//     (state.TypedManaCounter, the castfilter2 encoding — no new event
-//     needed; task mayplay-mfa added Artifact), and the cast's total spend
+//     (state.TypedManaCounter, the castfilter2 encoding — no new event needed), and the cast's total spend
 //     is the plain negative ManaAdd delta (trigmatch.ManaSpentForCast's read, Roiling
 //     Vortex's convention). These five spellings are implemented here.
 //     Spell.ManaFromArtifact (Shadow the Hedgehog's Chaos Control -- "mana
@@ -368,8 +367,8 @@ func (e *Engine) castProvenanceAdmitsMasked(spec string, gate provGate, objID st
 //     (state.FlagMayPlay) and Spell.Warp (state.FlagWarped) read the cast's
 //     own CastFlags rather than a spend window. The independent flags let
 //     sibling predicates share this event transport without changing the
-//     event format. Spell.Warp is the warp alternative cast's provenance
-//     (task mayplay-warp): modeFlags' "warped" case stamps it, and its
+//     event format. Spell.Warp is the warp alternative cast's provenance:
+//     modeFlags' "warped" case stamps it, and its
 //     corpus carrier is Full Bore's `ConditionPresent$ Card.CastSa
 //     Spell.Warp`.
 //
@@ -546,8 +545,7 @@ func (e *Engine) castSaAdmits(spec string, objID state.ObjID) (string, bool) {
 	return spec, true
 }
 
-// castOriginTokens is the origin-zone cast-provenance family (task
-// wascastfrom): each token reads the object's LATEST PutOnStack cast (the
+// castOriginTokens is the origin-zone cast-provenance family: each token reads the object's LATEST PutOnStack cast (the
 // zone the cast came from, optionally scoped to the evaluating you). ByYou
 // MUST be listed before the plain YourGraveyard spelling — it is a
 // superstring of it and the strip is exact-token, but the polarity must be

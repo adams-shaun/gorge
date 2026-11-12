@@ -249,7 +249,7 @@ func (e *Engine) castRestrictedCostAs(statics []staticView, p state.PlayerID, id
 		}
 		spec := castValidCardSpec(sv)
 		countSpec := spec
-		// The origin-zone cast-provenance split (task wascastfrom): a
+		// The origin-zone cast-provenance split: a
 		// CantBeCast restriction's ValidCard$ carrying a wasCastFromExile /
 		// wasCastFromTheirHand-shaped token gates the cast IN PROGRESS -
 		// which has no PutOnStack yet - so the origin is the restricted

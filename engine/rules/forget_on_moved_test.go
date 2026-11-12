@@ -1,6 +1,6 @@
 package rules
 
-// ForgetOnMoved$ (task inbox-paramcensus-effect-forgetonmoved): the
+// ForgetOnMoved$: the
 // move-driven lifetime of a created Effect — a card the effect remembers
 // leaves the named zone and the effect's remembered set must drop it, so the
 // grant/restriction follows what the effect still holds.

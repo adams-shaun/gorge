@@ -428,6 +428,10 @@ func foldCardToken(g *state.Game, e *Event) {
 	o := g.AddObject(card, e.Player)
 	tallyTokenCreated(g, e.Player)
 	o.IsToken = true
+	// A token copy is a copy (CR 707.10a): the IsCopy mark the CopyToken
+	// and MyriadCopy mints carry, so the copy-of-a-card filters and the
+	// kernel's copy-token projection read it identically.
+	o.IsCopy = true
 	o.SetFaceIdx(faceIdx)
 	Move(g, o.ID, state.ZLibrary, state.ZBattlefield)
 	applyEntryCounterPairs(o, e.Pairs)

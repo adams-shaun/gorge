@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// putcounter_dist_test.go (task inbox-paramcensus-putcounter-etb) pins the
+// putcounter_dist_test.go pins the
 // DividedAsYouChoose$ PutCounter distribution shape. The other
 // carriers (the etbCounter X-cost family: Chalice of the Void, Endless One,
 // Walking Ballista, Hangarback Walker) were already read and pinned on main

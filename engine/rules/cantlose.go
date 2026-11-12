@@ -1,5 +1,5 @@
 // The "you can't lose the game / your opponents can't win the game" class
-// (task fdn-repl-cant-lose): CR 104.3's GameLoss replacement and CR 104.2a's
+// CR 104.3's GameLoss replacement and CR 104.2a's
 // GameWin replacement, both printed as bodyless `R:Event$ GameLoss|GameWin |
 // Layer$ CantHappen` lines (Herald of Eternal Dawn, Platinum Angel, Darksteel
 // Angel, Abyssal Persecutor, Lich's Mastery, and the narrower ValidLoseReason$

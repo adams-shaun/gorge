@@ -71,6 +71,7 @@ import "embed"
 //go:embed kw_exploit.go
 //go:embed kw_extort.go
 //go:embed kw_fabricate.go
+//go:embed kw_fading.go
 //go:embed kw_firebending.go
 //go:embed kw_flanking.go
 //go:embed kw_formirrodin.go
