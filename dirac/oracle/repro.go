@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -196,15 +197,39 @@ func (m *Matchup) setCommander(on bool, ix, partners []int) {
 	}
 }
 
-// Write saves the repro as compact JSON, one line — the encoding the
-// recordings under testdata/repro carry (TestReproCompactRoundTrip pins it),
-// so a newly recorded repro matches the swept corpus.
+// Write saves the repro as the compact JSON the recordings under testdata/repro
+// carry: one line, object keys sorted, HTML not escaped (compactReproJSON).
+// TestReproCompactRoundTrip pins the corpus and TestReproWriteCompact pins this
+// path to the same bytes, so a newly recorded repro matches the swept corpus.
 func (r *Repro) Write(path string) error {
 	b, err := json.Marshal(r)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, append(b, '\n'), 0o644)
+	b, err = compactReproJSON(b)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, b, 0o644)
+}
+
+// compactReproJSON re-encodes a repro object the way the corpus stores it: a
+// JSON object decoded into a map, so keys come out sorted, then encoded with
+// HTML escaping off (a literal '&' in a card name stays literal), no
+// indentation, and one trailing newline. Write and the corpus test both go
+// through it, so a recorded repro and a swept one cannot drift again.
+func compactReproJSON(raw []byte) ([]byte, error) {
+	var obj map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &obj); err != nil {
+		return nil, err
+	}
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(obj); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 // Explain renders the repro's actions, one string each (kfuzz -explain):

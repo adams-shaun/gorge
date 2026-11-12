@@ -69,18 +69,15 @@ func TestReproCompactRoundTrip(t *testing.T) {
 			if _, ok := file["readable"]; ok {
 				t.Fatal("file still carries the derived readable field")
 			}
-			// the file is the canonical compact encoding: stripping and
-			// re-encoding its raw JSON reproduces it byte for byte (the
-			// same non-escaping encoder the sweep used: a literal '&' in a
+			// the file is the canonical compact encoding: Write and the
+			// sweep both go through compactReproJSON, and re-encoding the
+			// raw JSON must reproduce it byte for byte (a literal '&' in a
 			// card name stays literal)
-			delete(file, "readable")
-			var buf bytes.Buffer
-			enc := json.NewEncoder(&buf)
-			enc.SetEscapeHTML(false)
-			if err := enc.Encode(file); err != nil {
+			canon, err := compactReproJSON(raw)
+			if err != nil {
 				t.Fatal(err)
 			}
-			if !bytes.Equal(buf.Bytes(), raw) {
+			if !bytes.Equal(canon, raw) {
 				t.Fatal("file on disk is not the compact encoding")
 			}
 			// the on-disk `actions` bytes survive the encoding path: decode
@@ -155,9 +152,12 @@ func TestReproCompactRoundTrip(t *testing.T) {
 
 // TestReproWriteCompact pins Repro.Write to the compact encoding the corpus
 // carries: a newly recorded repro is one line, without indentation or the
-// derived readable field, and decodes to the game it was built from.
+// derived readable field, key-sorted and produced by the same compactReproJSON
+// path TestReproCompactRoundTrip pins the corpus to, and decodes to the game
+// it was built from.
 func TestReproWriteCompact(t *testing.T) {
 	r := &Repro{Format: reproFormat, Decks: [2]string{"d0", "d1"}, Seed: 42,
+		Cards:   [2][]string{{"A&B <C>"}, nil},
 		Actions: []Canon{canon.Pack(canon.ActPass, canon.RefNone, canon.RefNone, 0)}}
 	path := filepath.Join(t.TempDir(), "w.repro.json")
 	if err := r.Write(path); err != nil {
@@ -173,12 +173,30 @@ func TestReproWriteCompact(t *testing.T) {
 	if bytes.Contains(raw, []byte("readable")) {
 		t.Fatal("written repro carries the derived readable field")
 	}
+	// keys are sorted, as the corpus's map encoding is — not struct-field
+	// order (a struct marshal starts with "format", the old mismatch)
+	if !bytes.HasPrefix(raw, []byte(`{"actions":`)) {
+		t.Fatalf("written repro is not key-sorted: %.80s", raw)
+	}
+	// the same canonical check TestReproCompactRoundTrip applies to the
+	// corpus: the bytes Write emitted are exactly what compactReproJSON
+	// produces, so a new recording cannot drift from the swept files
+	canon, err := compactReproJSON(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(canon, raw) {
+		t.Fatalf("written repro is not the canonical compact encoding:\n got %s\nwant %s", raw, canon)
+	}
 	back, err := ReadRepro(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if back.Seed != r.Seed || len(back.Actions) != 1 || back.Actions[0] != r.Actions[0] {
 		t.Fatal("written repro does not decode to the game it was built from")
+	}
+	if back.Cards[0][0] != "A&B <C>" {
+		t.Fatalf("written repro changed a card name to %q", back.Cards[0][0])
 	}
 }
 
