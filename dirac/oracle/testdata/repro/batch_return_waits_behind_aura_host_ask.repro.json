@@ -96,8 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-msh",
- "pool": "one-off",
- "why": "",
+ "pool": "std-msh",
+ "why": "CR 610.3d, 303.4f: Atlantis Attacks bounces two Web Ups; Frozen in Ice's host ask is posed with the Machinesmith Automaton the other Web Up exiled still in exile, as gorge returns it only once the ask is answered",
  "actions": [
   16776960,
   16776960,

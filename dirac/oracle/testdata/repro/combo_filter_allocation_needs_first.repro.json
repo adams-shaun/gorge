@@ -96,8 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-msh",
- "pool": "one-off",
- "why": "",
+ "pool": "std-msh",
+ "why": "CR 601.2g, 605.3a: Baxter Building's {4}, {T} makes four mana in any combination; the {G} cast orders the allocation answers that name its pip first, as gorge's scriptOrderAnswers does, so the search finds the script within its 160 nodes (dirac tried all four W first)",
  "actions": [
   16776960,
   16776960,

@@ -96,8 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-msh",
- "pool": "one-off",
- "why": "",
+ "pool": "std-msh",
+ "why": "CR 107.3m, 603.3c: The Ruinous Wrecking Crew cast for X=2 and binned by the legend rule before its enter trigger is placed still offers \"choose up to X\" modes with the cast's X, so the trigger is not removed",
  "actions": [
   910229248,
   16776960,

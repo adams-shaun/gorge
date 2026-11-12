@@ -96,8 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-msh",
- "pool": "one-off",
- "why": "",
+ "pool": "std-msh",
+ "why": "CR 601.2g, 702.193b: a hybrid Power-up's charge the reductions left hybrid-only arms no plan, so the manual window taps Dark Fortress's conditional {B} or {R} ability before the untapped Mountain",
  "actions": [
   167771904,
   167771904,

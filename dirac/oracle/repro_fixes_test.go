@@ -165,7 +165,12 @@ func TestStdDftReprosLockstep(t *testing.T) {
 // std-tmt's: each of these once ended in a kernel stall, which replayRepro alone does not see.
 func TestStdTmtReprosLockstep(t *testing.T) {
 	t.Parallel()
-	stdReprosGlob(t, "std-tmt")
+	stdReprosGlobStrict(t, "std-tmt",
+		"put_counters_from_unheard_kind_order",
+		"second_ability_counter_cost_taps_source_for_generic",
+		"second_ability_counter_gap_tries_plain_ability_first",
+		"entry_body_rider_own_counter_replacement_excluded",
+		"attach_triggered_card_moved_skips_ninja")
 }
 
 // std-dsk's, on the same terms (this one recorded on the full surface).

@@ -96,8 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-msh",
- "pool": "one-off",
- "why": "",
+ "pool": "std-msh",
+ "why": "CR 601.2f, 602.2b, 702.193a: Hulk's {3} static lowers Viv Vision's power-up enough for six sources to pay it, though neither the pool nor the printed {7} is affordable",
  "actions": [
   927334144,
   924712704,

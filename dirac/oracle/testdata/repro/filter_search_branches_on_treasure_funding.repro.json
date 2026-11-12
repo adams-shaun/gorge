@@ -96,8 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-msh",
- "pool": "one-off",
- "why": "",
+ "pool": "std-msh",
+ "why": "CR 605.3a: gorge's prefix search over Surveillance Room's and Baxter Building's fees also funds them with the Treasure, G first, and runs out of its 160 nodes, so The Unbeatable Squirrel Girl's {1}{G}{G}{G} stays unoffered",
  "actions": [
   16776960,
   16776960,

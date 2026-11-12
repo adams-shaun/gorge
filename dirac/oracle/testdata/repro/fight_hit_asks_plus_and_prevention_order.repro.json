@@ -96,8 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-msh",
- "pool": "one-off",
- "why": "",
+ "pool": "std-msh",
+ "why": "CR 616.1, 701.14a: Abomination's fight hit on Black Panther is matched by Hawkeye's noncombat plus-X and Black Panther's prevention, so the affected player is asked their order before the batch lands",
  "actions": [
   184549120,
   184549120,

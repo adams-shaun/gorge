@@ -96,8 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-msh",
- "pool": "one-off",
- "why": "",
+ "pool": "std-msh",
+ "why": "CR 601.2f: a Power-up offer's planner witness is the printed cost after the cost statics (Hulk, Gamma Goliath's {3} off White Tiger, Ava Ayala's {5}{G}), not the bare printed cost",
  "actions": [
   184549120,
   167771904,

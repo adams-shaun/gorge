@@ -96,8 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-msh",
- "pool": "one-off",
- "why": "",
+ "pool": "std-msh",
+ "why": "CR 601.2g-h, 605.3b: Baxter Building's {4},{T} combination filter pays Truck Toss's {2}{R}{R} once its allocation names the red the search needs",
  "actions": [
   167771904,
   167771904,

@@ -96,8 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-trc",
- "pool": "one-off",
- "why": "",
+ "pool": "std-trc",
+ "why": "CR 700.6: Mutavault animated under On the Shoulders of Giants is not historic, so it gains no flying; the matchup remaps the Saga subtype PredHistoric tests",
  "actions": [
   16776960,
   16776960,

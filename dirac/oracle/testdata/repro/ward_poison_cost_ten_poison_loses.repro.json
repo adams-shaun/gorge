@@ -96,8 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-msh",
- "pool": "one-off",
- "why": "",
+ "pool": "std-msh",
+ "why": "CR 704.5c, 702.21a: The Serpent Society's ward—get five poison counters, paid a second time by a player already at five, puts them at ten and they lose the game (the table's only poison source was the ward)",
  "actions": [
   184549120,
   167771904,
