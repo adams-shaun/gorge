@@ -230,15 +230,17 @@ import (
 // Vine Dryad; the six new ones are Force of Negation, Force of Vigor, Force of
 // Despair, Monstrous Hound, Mogg Toady and Goblin Goon; merged ALL build-level
 // 22392 -> 22584).
-// +15 (the merge with land: this branch's Pump player grant, the object Pump
-// and Debuff Duration$ UntilYourNextTurn overrides and the zone-scoped
-// PlayerCount extreme lower, and the BURDEN counter kind exists: The One Ring,
-// Jace the Perfected Mind's and Mu Yanling Sky Dancer's A[0], Fear of Falling,
-// Windfall, Whispering Madness, Jace's Archivist, Visions of Beyond, Nightmares
-// and Daydreams, Jotun Grunt, Nautiloid Ship; merged ALL build-level
-// 22631 -> 22646 (one above this branch's +14 on its own base).
+// +14 (measured card by card against the land base: the player protection
+// from everything Pump grant, with the BURDEN counter kind, lowers The One
+// Ring, A-The One Ring and The Stasis Coffin; the object Pump and Debuff
+// Duration$ UntilYourNextTurn overrides lower Blue Dragon, Fear of Falling,
+// Hag of Inner Weakness, Liliana, the Last Hope, Mu Yanling, Celestial Wind,
+// Mu Yanling, Sky Dancer and Wasp, Shrinking Savior; the zone-scoped
+// PlayerCount$HighestValid extreme lowers Jace's Archivist, Nightmares and
+// Daydreams, Visions of Beyond and Windfall; a player hexproof grant still
+// refuses, Blossoming Calm; ALL build-level 22631 -> 22645).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22646, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22645, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

@@ -129,14 +129,13 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +5 (the hasManaAbility filter property and DrainMana: Power Sink, Moonsilver
 	// Key, Mana Short, Midnight Arsonist and Raggadragga, Goreguts Boss; ALL
 	// 22345 -> 22350).
-	// +15 (the merge with land: this branch's Pump player grant, the object Pump
-	// and Debuff Duration$ UntilYourNextTurn overrides, the zone-scoped
-	// PlayerCount extreme and the BURDEN counter kind: the cards listed at
-	// build_ratchet_test.go's buildAcceptancePin; merged ALL 22631 -> 22646
-	// (one above this branch's +14 on its own base), BRO 216 -> 217,
-	// DSK 250 -> 251).
+	// +14 (the Pump player grant, the object Pump and Debuff Duration$
+	// UntilYourNextTurn overrides, the zone-scoped PlayerCount extreme and the
+	// BURDEN counter kind: the cards listed at build_ratchet_test.go's
+	// buildAcceptancePin; ALL 22631 -> 22645, BRO 216 -> 217 (The Stasis
+	// Coffin), DSK 250 -> 251 (Fear of Falling)).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22646, 34442},
+	"ALL": {22645, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {217, 280},
