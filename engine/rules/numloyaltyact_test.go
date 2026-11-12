@@ -10,8 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// This file pins the Effect-delivered Mode$ NumLoyaltyAct route (task
-// pw-numloyaltyact): an api:Effect body that grants extra loyalty-ability
+// This file pins the Effect-delivered Mode$ NumLoyaltyAct route: an api:Effect body that grants extra loyalty-ability
 // activations per turn must register into the continuous registry (effects'
 // effEffect) and be read by rules' loyaltyAbilityLimit alongside the printed
 // S: route, so CR 606.3's once-per-turn limit is lifted exactly as the card

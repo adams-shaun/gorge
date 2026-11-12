@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// kw:ETBReplacement's trailing colon fields pin (task etbrepl-filter). The
+// kw:ETBReplacement's trailing colon fields pin. The
 // keyword parameter is
 //
 //	K:ETBReplacement:<layer>:<SVar>:<Mandatory|Optional>:<validZone>:<filter>

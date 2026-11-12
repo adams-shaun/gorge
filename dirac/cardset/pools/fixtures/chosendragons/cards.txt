@@ -1,0 +1,12 @@
+# Crosis and Dromar's chosen-colour combat-damage triggers (dirac/oracle/chosencolour_test.go)
+Crosis, the Purger
+Dromar, the Banisher
+Island
+Swamp
+Mountain
+Plains
+Grizzly Bears
+Savannah Lions
+Hill Giant
+Shock
+Forest

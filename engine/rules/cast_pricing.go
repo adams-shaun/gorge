@@ -964,7 +964,7 @@ func (e *Engine) triggeredConvergeReaderOut() bool {
 // triggeredConvergeReaderOut shape): it reports whether any alive player's
 // battlefield holds a permanent whose face BODY grants sunburst to a spell --
 // Solar Array's and Lux Artillery's `DB$ Animate | Keywords$ Sunburst`
-// (task kw:Sunburst). The Animate grant lands on the spell AFTER payment (a
+// The Animate grant lands on the spell AFTER payment (a
 // SpellCast trigger resolving while the spell is on the stack), so the
 // printed-keyword arm of faceWantsConverge cannot see it at pay time; this
 // board scan arms the capture so the entering permanent reads its colours.

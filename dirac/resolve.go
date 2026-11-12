@@ -131,6 +131,13 @@ func (s *State) resolveTop(k *prep) {
 			if k.gen != nil && !e.faceDown() && e.etbSrc != 0 && s.etbEntryOrderPark(k, e.obj, e.ctrl) {
 				return
 			}
+			// the CR 616.1 order between the entrant's own prepared line and
+			// one other source's enter replacement, when no rider was stamped
+			// (repl_etborder.go); the flag is the hot-path guard
+			if k.gen != nil && !e.faceDown() && e.etbSrc == 0 && k.gen.anyEtbOwnOther &&
+				s.etbOtherOrderPark(k, e.obj, e.ctrl) {
+				return
+			}
 			if k.gen != nil && s.occ.full() {
 				s.stall(StallBoard) // the battlefield is full: the capacity draw
 				return
@@ -314,12 +321,17 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 			if s.spellRestExiles(e) || e.markExiles(fizzled) { // markExiles: repl_stackexile.go
 				z = kop.ZoneExile
 			}
+			rebound := s.reboundRests(k, e, fizzled) // kw_rebound.go
+			if rebound {
+				z = kop.ZoneExile
+			}
 			if k.gen != nil && k.gen.anyFaces {
 				z = s.stackExitFace(k, e.obj, z, !fizzled) // face_castface.go
 			}
 			if k.gen != nil && k.gen.anyParadigm && !fizzled {
 				z = s.paradigmRest(k, e.obj, z) // kw_paradigm.go
 			}
+			z = buybackRest(k, e, z, fizzled) // kw_buyback.go
 			if z == kop.ZoneLibrary {
 				s.omenToLibrary(e.obj) // face_omen.go
 			} else {
@@ -327,11 +339,19 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 				if !fizzled {
 					s.markedPlot(k, e) // repl_stackexile.go
 				}
+				if rebound {
+					s.reboundRegister(k, e)
+				}
 			}
 		}
 	}
 	if k.gen != nil && k.gen.anyTgtSpent {
 		s.g.tgtSpent = 0 // the snapshot is the resolution's
+	}
+	if e.kind == seTrigger && e.trigAmt < 0 && !fizzled && e.ab < abCascade && k.gen != nil {
+		if a := &k.t.Cards[e.card].Abilities[e.ab]; a.Trig.Event == kop.TrigETB && a.Trig.Flags2&kop.Tf2Evolve != 0 {
+			s.evolveDone(k, e) // kw_evolve.go: the Evolved triggers once the counter landed
+		}
 	}
 	s.res.active = false
 	if k.anyStateCtr {
@@ -494,6 +514,9 @@ func (s *State) prog(k *prep) []kop.Instr {
 			return stormProg[:]
 		}
 		return nil
+	}
+	if p := s.overloadProg(k); p != nil {
+		return p
 	}
 	return k.t.Cards[e.card].Abilities[e.ab].Prog
 }

@@ -1,0 +1,18 @@
+# the hasManaAbility filter property: Power Sink taps the lands with mana
+# abilities, Moonsilver Key searches an artifact with one, Mana Short taps all
+# lands and drains the pool; basics and mana rocks are the matching sources,
+# vanilla creatures and sorceries the non-matches
+# (dirac/oracle/hasmanaability_test.go)
+Power Sink
+Moonsilver Key
+Mana Short
+Sol Ring
+Llanowar Elves
+Grizzly Bears
+Forest
+Island
+Mountain
+Counterspell
+Cancel
+Air Elemental
+Shock

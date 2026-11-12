@@ -275,7 +275,7 @@ func countActivation(g *state.Game, id state.ObjID) {
 func applyManaAdd(g *state.Game, e *Event) {
 	if validPlayer(g, e.Player) {
 		player := &g.Players[e.Player]
-		// PersistentMana$ True (task persistentmana): the suffix rides Text
+		// PersistentMana$ True: the suffix rides Text
 		// after every other encoding, so cut it before the restriction
 		// parse and mark the tally/batch below.
 		rest, persistent, combat := cutManaPersistent(e.Text)

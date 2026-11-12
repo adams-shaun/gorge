@@ -138,6 +138,12 @@ func (s *State) predPermCold(k *prep, fl *kop.Filter, sl Slot) bool {
 	if fl.Pred == kop.PredPowerGTBase {
 		return s.powerGTBase(k, sl) // filter_powerbase.go
 	}
+	if fl.Pred == kop.PredHasManaAbility {
+		// gorge FaceHasManaAbility's printed-face read (CardDef has it),
+		// with a face-down permanent's no-abilities rule (CR 708.2); PredN
+		// 1 is !hasManaAbility.
+		return hasManaAbilityCard(k, s.cardAt(sl), s.faceDown(k, sl)) == (fl.PredN == 0)
+	}
 	panic("kernel: filter predicate not implemented: " + predName(fl.Pred))
 }
 
@@ -185,7 +191,18 @@ func predCardCold(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 	if fl.Pred == kop.PredPowerGTBase {
 		return false // off the battlefield power equals base power (gorge objectPower/objectBasePower)
 	}
+	if fl.Pred == kop.PredHasManaAbility {
+		return hasManaAbilityCard(k, c, fd) == (fl.PredN == 0) // a face-down card has no abilities (CR 708.2)
+	}
 	panic("kernel: card predicate not implemented: " + predName(fl.Pred))
+}
+
+// hasManaAbilityCard is PredHasManaAbility's card read: the printed face's
+// mana ability (CardDef.HasManaAbility, filled by kgen from
+// effects.FaceHasManaAbility), with a face-down card or permanent answering
+// false (CR 708.2). Negotiation is the caller's.
+func hasManaAbilityCard(k *prep, c CardID, fd bool) bool {
+	return !fd && c != NoCard && k.t.Cards[c].HasManaAbility
 }
 
 // cardMV is card c's mana value as an off-battlefield filter reads it: the

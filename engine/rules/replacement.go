@@ -383,7 +383,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		return continueMillReplacements(e, e.G, millReplacementAsk(e), ev, matches)
 	}
 	if ev.Kind == events.RollDice {
-		// The roll-action boundary (CR 614.4, task rolldice-repl): the
+		// The roll-action boundary (CR 614.4): the
 		// proposal is held, not logged, so continueRollDiceReplacements owns
 		// the whole return -- it rewrites the held proposal's dice count and
 		// ignored-low count in place and the caller rolls the rewritten roll.
@@ -960,7 +960,7 @@ func replacementEventKind(ev events.Event) cards.ReplEvent {
 		// emitted through emitScryRecord, outside the replacement pass.
 		return cards.ReplScry
 	case events.RollDice:
-		// The roll-action boundary (task rolldice-repl). Only the synthetic
+		// The roll-action boundary. Only the synthetic
 		// PROPOSAL (effects.CountReplacementProposed) reaches the collection: the Kind
 		// is never emitted, so no logged event can ever map here.
 		return cards.ReplRollDice

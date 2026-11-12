@@ -1,6 +1,6 @@
 package rules
 
-// The Affinity task: K:Affinity:<spec> expands (engine/cards/keywords.go) into a
+// The Affinity keyword: K:Affinity:<spec> expands (engine/cards/keywords.go) into a
 // self-scoped ReduceCost cost static priced by a Count$Valid <spec>+YouCtrl
 // SVar, and rides the EXISTING cost-modifier machinery unchanged
 // (collectCostStatics / costStaticApplies / modAmountX). Every fixture

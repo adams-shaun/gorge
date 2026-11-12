@@ -1,7 +1,7 @@
 package rules
 
 // fuse_cantbecast_test.go pins the CR 709.5 prohibition gate on a Fuse cast
-// (task fuse-cantbecast): a fused cast is ONE spell with BOTH halves'
+// a fused cast is ONE spell with BOTH halves'
 // characteristics, so a CantBeCast restriction that matches EITHER half must
 // withhold the fused offer.
 //

@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The static-grant family (task inbox-paramcensus-static-grant-misc): one
+// The static-grant family: one
 // leaf per Continuous grant sub-kind the parameter census named, each on a
 // real corpus card driven through a real engine. The census labels these
 // tests retire: Continuous.CharacteristicDefining (Master of Etherium),

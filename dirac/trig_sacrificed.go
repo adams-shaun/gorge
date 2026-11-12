@@ -24,12 +24,6 @@ func (s *State) fireSac(k *prep, sl Slot) {
 //go:noinline
 func (s *State) fireSacCold(k *prep, sl Slot) {
 	p := &s.perms[sl]
-	if k.gen != nil && k.gen.anyPanharm {
-		// gorge checks a sacrifice's triggers after the permanent moved, so a
-		// sacrificed Panharmonicon host echoes none of them (CR 603.2d);
-		// removePerm clears the mark
-		s.panharmDepart(k, sl)
-	}
 	s.fireObj(k, kop.TrigSacrificed, sl, p.obj, p.ctrl, 0)
 }
 

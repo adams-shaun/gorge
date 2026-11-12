@@ -1,0 +1,13 @@
+# Chosen-colour protection sweeps (dirac/oracle/chosencolour_test.go)
+Akroma's Blessing
+Brave the Elements
+Savannah Lions
+Grizzly Bears
+Plains
+Forest
+Lightning Bolt
+Shock
+Hill Giant
+Prodigal Sorcerer
+Mountain
+Island

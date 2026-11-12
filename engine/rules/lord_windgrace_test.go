@@ -9,8 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The Destroy primitive's Ultimate$ read (task
-// inbox-paramcensus-final-stragglers, Lord Windgrace entry). The census
+// The Destroy primitive's Ultimate$ read (Lord Windgrace entry). The census
 // verified what Ultimate$ gates and the answer is: nothing rules-side -- in
 // Forge the key is read only by the AI's ability ranking and the achievement
 // tracker (forge-ai's ComputerUtilAbility/ComputerUtilCard and forge-game's
