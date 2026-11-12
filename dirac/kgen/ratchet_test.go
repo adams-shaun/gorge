@@ -126,8 +126,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Fiend Hunter's Defined$ DirectRemembered leave return lowers as the remembered-persist pair; ALL 22176 -> 22177).
 	// +1 (the merge with land: Count$TotalDamageReceivedThisTurn lowered: Tangled Colony beside land's 22180; ALL 22180 -> 22181, WOE 261 -> 262).
 	// +5 (Dig NoLooking$ and Manifest Defined$ Remembered lower: Telling Time, Moment of Truth, Expressive Iteration, Write into Being, Hamza, Might of the Yathan; ALL 22345 -> 22350, MOM 199 -> 200).
+	// +35 (K:Foretell lowers as the {2} hand special action and the later exile cast for the foretell cost, and Count$wasCastFromExile.<yes>.<no> lowers in a spell ability: Alrund's Epiphany, Augury Raven, Battle Mammoth, Behold the Multiverse, Demon Bolt, Depart the Realm, Doomskar, Doomskar Oracle, Doomskar Titan, Dual Strike, Dwarven Reinforcements, Frost Fair Lure Fish, Gods' Hall Guardian, Impending Flux, Iron Verdict, Jarl of the Forsaken, Kaya's Onslaught, Mammoth Growth, Ravenform, Return Upon the Tide, A-Return Upon the Tide, Rise of the Dread Marn, Sarulf's Packmate, Saw It Coming, Scorn Effigy, Shepherd of the Cosmos, Skull Raid, Spectral Deluge, Struggle for Skemfar, Surge of Brilliance, Tergrid's Shadow, Vengeful Reaper, Warhorn Blast, Delayed Blast Fireball, Ultimate Magic: Holy; ALL 22381 -> 22416).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22381, 34442},
+	"ALL": {22416, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {216, 280},
