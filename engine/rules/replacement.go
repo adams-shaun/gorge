@@ -900,15 +900,6 @@ func replacementEventNameMatches(replEvent, event string) bool {
 	return event == "Draw" && replEvent == "DrawCards"
 }
 
-// replacementEvent maps the event log's concrete events to Forge R:Event$
-// names. ManaAdd's producer and tap provenance live in synchronous Engine
-// scratch instead of its hash-chained fields; ProduceMana matching requires
-// both, while the logged event remains the ordinary final mana production.
-func replacementEvent(ev events.Event) (string, bool) {
-	k := replacementEventKind(ev)
-	return k.String(), k != 0
-}
-
 // replacementEventKind is replacementEvent's name as its cards.ReplEvent
 // code (0: the event has no R:Event$ class).
 func replacementEventKind(ev events.Event) cards.ReplEvent {

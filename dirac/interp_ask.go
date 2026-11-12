@@ -304,6 +304,16 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 				d.add(MakeAction(AkChoose, 0, 0, uint8(i)))
 			}
 		}
+	case raChooseNumber:
+		d.Sub = ChGenNumber
+		lo, hi, ok := s.chooseNumberMidBounds(k, &s.prog(k)[r.pc])
+		if !ok {
+			s.capFull(StallChooseNumber) // a declared capacity limit, never a truncated ask
+			break
+		}
+		for n := lo; n <= hi; n++ {
+			d.add(MakeAction(AkChoose, 0, 0, uint8(n)))
+		}
 	case raChooseType:
 		d.Sub = ChGenType
 		if c := s.prog(k)[r.pc].C; c != 0 {

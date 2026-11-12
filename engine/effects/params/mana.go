@@ -215,7 +215,7 @@ var manaKnownKeys = [...]string{
 	"ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
 	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent", "ConditionOpponentTurn", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2",
-	"ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc", "Defined", "DefinedCards",
+	"ConditionSVarCompare", "ConditionTargetValidTargeting", "ConditionTargetsSingleTarget", "ConditionZone", "CopyCard", "Cost", "CostDesc", "Defined", "DefinedCards",
 	"DefinedDesc", "DefinedTarget", "Description", "Each", "Exclude", "Exhaust", "ForgetOtherTargets", "FromDesc", "GameActivationLimit", "GiftDescription", "IfDesc", "Image",
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IsCurse", "IsPresent", "KW",
 	"Keyword", "KeywordLine", "LockInText", "ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",

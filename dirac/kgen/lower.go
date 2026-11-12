@@ -107,6 +107,8 @@ type lowerCtx struct {
 
 	// deferTrig: the TriggersWhenSpent$ rider the face's deferred mana ability queued (lower_deferredmana.go)
 	deferTrig *cards.Trigger
+	// fuseAlt: lowering a fused split spell, the right half lowerFace folds in after the left half's lines (lower_fuse.go)
+	fuseAlt *cards.Face
 
 	firstCastSVar  string    // the SVar a static SpellCast StoreSVar of Count$YouCastThisGame writes (lower_firstcast.go)
 	firstCastTrig  int       // that trigger's index + 1: it lowers to nothing
@@ -358,6 +360,9 @@ func (lc *lowerCtx) lowerFace() {
 	lc.imprintMox = lc.imprintMoxShape()
 	lc.lowerKeywords()
 	lc.lowerLines(true, false)
+	if lc.fuseAlt != nil {
+		lc.lowerFusedHalf() // lower_fuse.go
+	}
 	lc.lowerTail()
 }
 
@@ -464,6 +469,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseMayFlashCombos()
 	lc.refuseEvokeCombos()
 	lc.refuseDashCombos()          // lower_dash.go
+	lc.refuseForetellCombos()      // lower_foretell.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
 	lc.lowerImpending()
 	lc.lowerOverload() // lower_overload.go
@@ -1092,6 +1098,13 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !lc.hasKeywordLine(k) {
 				lc.refuseNode(node, "keyword %q without its ability", head)
 			}
+		case head == "Myriad" && param == "":
+			// CR 702.116a: gorge kwMyriad expands it into an Attacks Self
+			// trigger (Myriad$ True, DB$ Myriad), lowered from that line
+			// (lower_myriad.go)
+			if !faceHasMyriadTrigger(lc.face) {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
 		case head == "Training":
 			// CR 702.149a: gorge kwTraining expands it into an Attacks
 			// trigger (Training$ True), lowered from that line
@@ -1622,6 +1635,21 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Plot = &mc
+		case head == "Foretell":
+			// CR 702.143a: the {2} special action is fixed; the keyword's
+			// cost prices the later cast from exile (dirac/kw_foretell.go).
+			// X, hybrid, a ":" or "<" rider and any non-mana part have no
+			// fixed price to plan.
+			mc, err := parseManaCost(param)
+			if err != nil || param == "" || strings.ContainsAny(param, ":<") || mc.X || mc.None || len(mc.Hybrid) != 0 {
+				lc.refuseNode(node, "foretell cost %q", param)
+				continue
+			}
+			if lc.out.Foretell != nil {
+				lc.refuseNode(node, "two Foretell keywords")
+				continue
+			}
+			lc.out.Foretell = &mc
 		case head == "Paradigm":
 			// SOS Paradigm (gorge rules/paradigm.go): a resolved
 			// spell is exiled, then cast free from exile in each of its
@@ -1711,6 +1739,15 @@ func (lc *lowerCtx) lowerKeywords() {
 			// the sentence to the MustBlock head; the attacker-oriented
 			// requirement, one blocker satisfies it)
 			lc.out.MustBeBlocked = true
+		case head == "Fuse" && param == "" && lc.out.FaceMode == kop.FaceSplit && fuseCard(lc.card):
+			// CR 702.102a: the layout carries it (CardDef.FuseDef, the
+			// fused spell's entry: lower_fuse.go); a half lowers as itself
+		case head == "Aftermath" && param == "" && lc.out.FaceMode == kop.FaceSplit && lc.out.Face == 1:
+			// CR 702.127a: a split card's right half cast only from its
+			// owner's graveyard, then exiled as it leaves the stack (gorge
+			// legal.go aftermathAlternateFace; dirac/face_aftermath.go).
+			// castableFaceLayout refuses the keyword on the left half.
+			lc.out.Aftermath = true
 		case head == "Miracle":
 			// CR 702.94a: the first draw of a turn offers the reveal; the
 			// revealed card's trigger is on the stack, and its resolution
@@ -1803,24 +1840,6 @@ func (lc *lowerCtx) costUnless(s string) (lCost, error) {
 		return c, err
 	}
 	return c, lc.costParts(c)
-}
-
-// discardUnlessLifted reports whether every Discard<> token in an UnlessCost$
-// uses a selection method lifts (Random or Hand).
-func discardUnlessLifted(s string) bool {
-	saw := false
-	for _, t := range costTokens(strings.TrimSpace(s)) {
-		head, arg, hasArg := strings.Cut(t, "<")
-		if head != "Discard" || !hasArg {
-			continue
-		}
-		saw = true
-		parts := strings.Split(strings.TrimSuffix(arg, ">"), "/")
-		if len(parts) < 2 || (parts[1] != "Random" && parts[1] != "Hand") {
-			return false
-		}
-	}
-	return saw
 }
 
 // costParts refuses the cost parts only an activated or hand ability may pay.
@@ -1932,6 +1951,27 @@ func putLibSelfGate(ab *lAbility, cost lCost) error {
 	return nil
 }
 
+// energyPayCost parses PayEnergy<X> / PayEnergy<SVar>: the "pay one or more
+// {E}" resolution unless cost (Aether Refinery, Localized Destruction, Pia
+// Nalaar, Rampaging Aetherhood, Territorial Aetherkite, Vault 112). The amount
+// is read when the cost is offered, like PayLife<X>'s LifeBy. An activated
+// ability's printed cost is the constant kop.CostPayEnergy, so a dynamic one
+// there would lose its amount: refuse it.
+func (lc *lowerCtx) energyPayCost(c *lCost, parts []string, tok string) error {
+	if !lc.unlessParse {
+		return refuse("PayEnergy<%s> outside an unless cost", parts[0])
+	}
+	if len(parts) != 1 || c.Energy != 0 || c.EnergyBy != nil {
+		return refuse("energy cost %q", tok)
+	}
+	v, err := lc.value(parts[0])
+	if err != nil {
+		return err
+	}
+	c.EnergyBy = &v
+	return nil
+}
+
 // costHand is cost, also reading Discard<1/CARDNAME> (DiscardSelf).
 func (lc *lowerCtx) costHand(s string) (lCost, error) {
 	var c lCost
@@ -1941,6 +1981,10 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		arg = strings.TrimSuffix(arg, ">")
 		if !hasArg {
 			switch {
+			case t == "Mandatory":
+				// Forge's cost prefix (rules/cost/parse.go skips the same
+				// word): the unless machinery decides pay or decline.
+				continue
 			case t == "T":
 				c.Tap = true
 				continue
@@ -2131,7 +2175,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			if len(parts) == 3 && !strings.EqualFold(parts[2], "CARDNAME") && !strings.EqualFold(parts[2], "NICKNAME") {
 				return c, refuse("counter cost %q: a filtered target", t)
 			}
-			if !lc.actCost {
+			if !lc.actCost && (lc.ab == nil || lc.ab.Kind != akMana) {
 				return c, refuse("counter cost %q outside an activated ability's own cost", t)
 			}
 			c.SubCtrX, c.SubCtrXKnd = true, parts[1]
@@ -2140,6 +2184,12 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		if head == "tapXType" && parts[0] == "X" {
 			// tapXType<X/Spec>: tap any number, X the count (lower_tapxvar.go)
 			if err := lc.tapXVarCost(&c, parts, t); err != nil {
+				return c, err
+			}
+			continue
+		}
+		if head == "PayEnergy" && (parts[0] == "X" || lc.face.SVars[parts[0]] != "") {
+			if err := lc.energyPayCost(&c, parts, t); err != nil {
 				return c, err
 			}
 			continue
@@ -3484,13 +3534,6 @@ func (lc *lowerCtx) lastTarget() int {
 		return -1
 	}
 	return lc.chainT[len(lc.chainT)-1]
-}
-
-func (lc *lowerCtx) firstTarget() int {
-	if len(lc.chainT) == 0 {
-		return -1
-	}
-	return lc.chainT[0]
 }
 
 // newLatent starts a latent ability (a program an op reaches by index) and

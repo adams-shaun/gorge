@@ -524,30 +524,6 @@ func (b Board) removalRanker(me state.PlayerID, effect *decision.TargetEffect) f
 	}
 }
 
-// effectRanker returns the KTarget ranking for a decision whose effect is a
-// recognised direct-damage primitive with the known literal amount dmg. It
-// orders options by the three face-aiming tiers, most important first:
-//
-//   - tier 1: an opponent's creature that may kill the deciding seat this
-//     round AND that dmg can actually kill (remaining toughness no more
-//     than dmg) -- the defensive removal;
-//   - tier 2: an opponent's face, when dmg is potentially lethal to them
-//     (their life no more than dmg) -- the win line, the new capability;
-//   - tier 3: the most powerful opponent creature dmg can kill -- but only
-//     when the seat has spare mana; without it the removal is not spent on
-//     value and these creatures fall back to the board-first ranking below.
-//
-// Everything that is not clearly one of those -- a face the known damage
-// does not reach, a creature the damage cannot kill, a value kill with no
-// spare mana -- keeps the ordinary board-over-face ranking (rankOption's
-// threat()/neutral scale), so this is strictly more aggressive than the
-// old neutral face but never less sound: an option the bot cannot prove
-// lethal or a threat is never promoted, and an unknown never becomes
-// lethal (the unknown stays on the plain path, whose face is neutral).
-func (b Board) effectRanker(me state.PlayerID, dmg int32) func(decision.Option) targetRank {
-	return b.effectRankerAfter(me, dmg, "")
-}
-
 // effectRankerAfter is effectRanker with the pending payment of the spell
 // whose target is being chosen (empty when the ask names no readable spell: a
 // sourceless activated ability). The reserve gate it builds is

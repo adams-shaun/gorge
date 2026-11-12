@@ -1,0 +1,15 @@
+# the Silas Renn pool: his combat-damage Effect may cast a TARGETED artifact
+# card from the graveyard this turn (MayPlayNonLand must skip an artifact
+# land), beside artifact cards and artifact lands to target
+# (dirac/oracle/silasgrave_test.go)
+Silas Renn, Seeker Adept
+Thought Scour
+Ornithopter
+Mind Stone
+Seat of the Synod
+Vault of Whispers
+Island
+Swamp
+Shock
+Mountain
+Raging Goblin

@@ -10,6 +10,11 @@ import (
 // exiled card to the wrong player would.
 var DebugVulcanWrongHolder bool
 
+// DebugMayPlayTargetLands is the mutation hook (TestSilasGraveLockstepMutation):
+// the single-object OpMayPlay grant ignores MayPlayNonLand, so a targeted
+// artifact land in the graveyard gets a play permission it must not have.
+var DebugMayPlayTargetLands bool
+
 // mayPlayRemembered is OpMayPlay over the remembered set (B=1: the
 // Effect's ExileOnMoved$ lifetime, exact for one remembered card only): gorge's Effect
 // registers its static with the whole Remembered list (effectRemembered),

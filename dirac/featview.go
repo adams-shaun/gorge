@@ -646,13 +646,6 @@ func (s *State) FeatPlanDeclinesShape(p uint8, o Obj) bool {
 	return !ok
 }
 
-// planNeverPricesOf is plannedCastCost's refusals that read only the card, with
-// a hybrid cost priced when hyb and
-// the card's own mana-spent read left out when composed (plannedCastCostOf).
-func planNeverPricesOf(k *prep, c CardID, hyb, composed bool) bool {
-	return planNeverPricesCore(k, c, hyb, composed, false)
-}
-
 // planNeverPricesCore is planNeverPricesOf with the shapes gorge's planner
 // admits for a cast payable only by paying with its own only target lifted when
 // modal is set (targetPaidPlanned): a Spree or Tiered face, an either-or or

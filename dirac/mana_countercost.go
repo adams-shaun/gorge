@@ -47,9 +47,12 @@ func (k *prep) ctrAbOf(c CardID) *kop.Ability {
 }
 
 // ctrSecond: card c's counter-cost ability is a later one beside a plain {T}
-// first (Weather Maker), so activating the source asks which ability.
+// first (Weather Maker), so activating the source asks which ability. A
+// storage battery whose first ability is the counter one (Bottomless Vault)
+// has no plain first ability to answer with (pcard.manaAb is -1: a dynamic
+// amount is no planner unit), so it is not a second.
 func (k *prep) ctrSecond(c CardID) bool {
-	return int(c) < len(k.ctrAb) && k.ctrAb[c] >= 0 && k.ctrAb[c] != k.cards[c].manaAb
+	return int(c) < len(k.ctrAb) && k.ctrAb[c] >= 0 && k.cards[c].manaAb >= 0 && k.ctrAb[c] != k.cards[c].manaAb
 }
 
 // scriptCtr: p's counter-cost sources that can be activated now (a Wall of
@@ -72,7 +75,17 @@ func (s *State) scriptCtr(k *prep, p uint8) slotMask {
 		if a.Cost.Flags&kop.CostRemoveCtr != 0 && s.perms[sl].ctrN(s, int(a.Cost.Ctr)) < int(a.Cost.N) {
 			continue // too few counters to remove (legal.go actCostOK's CostRemoveCtr)
 		}
-		if a.Cost.Flags&kop.CostTap != 0 && !s.canTapForMana(k, sl) {
+		if kop.StoreManaAb(a) {
+			// A storage battery: the announced X is the counters it holds, so
+			// with none there is no activation. Its {T} is read here, not
+			// through canTapForManaPC (whose plain unit prices one mana, not X).
+			if s.perms[sl].ctrN(s, int(a.Cost.Ctr)) <= 0 {
+				continue
+			}
+			if a.Cost.Flags&kop.CostTap != 0 && (s.perms[sl].flags&pfTapped != 0 || s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || s.activationSick(k, sl)) {
+				continue
+			}
+		} else if a.Cost.Flags&kop.CostTap != 0 && !s.canTapForMana(k, sl) {
 			continue // its {T}: the source is untapped and not summoning sick (the second ability beside a plain {T} first)
 		}
 		m = m.with(sl)
@@ -85,8 +98,20 @@ func (s *State) scriptCtr(k *prep, p uint8) slotMask {
 //go:noinline
 func (s *State) availCtr(k *prep, p uint8, av *avail) {
 	for b := s.scriptCtr(k, p); b.any(); b = b.rest() {
-		c := s.cardAt(b.first())
+		sl := b.first()
+		c := s.cardAt(sl)
 		a := k.ctrAbOf(c)
+		if kop.StoreManaAb(a) {
+			n := s.perms[sl].ctrN(s, int(a.Cost.Ctr))
+			if n > 255 {
+				s.capFull(StallDynMana)
+				n = 255
+			}
+			if n > 0 {
+				av.addUnits(uint8(a.ManaColors)&0x3f, uint8(n))
+			}
+			continue
+		}
 		if a.Cost.Flags&kop.CostTap != 0 && k.ctrSecond(c) {
 			// A later {T} ability beside a plain {T} first (Weather Maker's
 			// {C}{C} beside its any-colour tap): both are one tap, and the
@@ -140,6 +165,10 @@ func (s *State) windowCtrOffer(k *prep, p uint8, o Slot, decided bool, want uint
 func (s *State) ctrGap(k *prep, p uint8, sl Slot, col int) {
 	c := s.cardAt(sl)
 	a := k.ctrAbOf(c)
+	if kop.StoreManaAb(a) {
+		s.storeGap(k, p, sl, a) // the storage battery's announced X (mana_countercost.go)
+		return
+	}
 	pm := &s.perms[sl]
 	if a.Cost.Flags&kop.CostRemoveCtr != 0 {
 		pm.seeCtr(s) // the activation path's CostRemoveCtr (mana_window.go)
@@ -371,3 +400,40 @@ var DebugCtrFirstAllColours bool
 // DebugNoCtrMana hides the counter-cost gaps (the wallroots mutation test
 // proves the pool's plays need them).
 var DebugNoCtrMana bool
+
+// storeGap activates a single-colour storage-battery mana ability (Mage-Ring
+// Network and the single-colour storage lands): its {T} if any marked, every
+// counter of the kind removed, and that many mana of the ability's one
+// colour. A generic fee, a colour combination or an any-colour production is
+// not modelled (kgen refuses those shapes with their reasons). CR 107.3,
+// 118.3; gorge's non-interactive ManaCostSubCounterStage takes X at the bound
+// (all the counters).
+func (s *State) storeGap(k *prep, p uint8, sl Slot, a *kop.Ability) {
+	pm := &s.perms[sl]
+	n := pm.ctrN(s, int(a.Cost.Ctr))
+	if n <= 0 {
+		return
+	}
+	if n > 255 {
+		s.capFull(StallDynMana)
+		n = 255
+	}
+	taps := a.Cost.Flags&kop.CostTap != 0
+	if taps {
+		if pm.flags&pfTapped != 0 {
+			return
+		}
+		pm.flags |= pfTapped
+		s.touchSl(sl)
+		s.manaTapped(k, sl)
+	}
+	s.touchSl(sl)
+	pm.seeCtr(s)
+	pm.subCtrN(s, int(a.Cost.Ctr), n)
+	col := bits.TrailingZeros8(uint8(a.ManaColors) & 0x3f)
+	s.poolAdd(p&1, col, n)
+	if taps {
+		s.artTag(k, p, sl, col)
+		s.tapExtraStall(k, sl)
+	}
+}

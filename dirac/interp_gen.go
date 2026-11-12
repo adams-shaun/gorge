@@ -676,6 +676,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if o == NoObj || s.objs[o].zone != kop.Zone(in.C) {
 			break
 		}
+		if in.B.N&kop.MayPlayNonLand != 0 && !DebugMayPlayTargetLands && k.t.Cards[s.objs[o].card].Types&kop.TLand != 0 {
+			break // a targeted land cannot be cast (Silas Renn's artifact land)
+		}
 		if s.mayFull() {
 			s.capFull(StallMayPlay)
 			break

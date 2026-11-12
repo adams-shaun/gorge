@@ -63,7 +63,12 @@ func (e *Engine) settleLandPlay(id state.ObjID) {
 // mid-resolution ask. While the entry is parked the land play is not settled --
 // the entry is still in flight and its own completion reaches finishLandPlay.
 func (e *Engine) landEntryParked(id state.ObjID) bool {
-	for _, parked := range [...]*events.Event{e.etbMove, e.riotMove, e.unleashMove, e.siegeMove} {
+	for i := range e.etbQueue {
+		if e.etbQueue[i].move.Obj == id {
+			return true
+		}
+	}
+	for _, parked := range [...]*events.Event{e.riotMove, e.unleashMove, e.siegeMove} {
 		if parked != nil && parked.Obj == id {
 			return true
 		}

@@ -158,25 +158,6 @@ func (s *State) earthbendLeft(k *prep, o Obj) {
 	s.ndly = w
 }
 
-// dropLeaveDelayed removes object o's leave-keyed records (a recycled token
-// object: gorge drops the registration of a ceased source). Belt-and-braces
-// today: execEarthbend does not register a record for a token land, so this
-// normally finds nothing; it keeps the invariant if a token-registering path
-// is added later.
-//
-//go:noinline
-func (s *State) dropLeaveDelayed(o Obj) {
-	w := uint8(0)
-	for i := uint8(0); i < s.ndly; i++ {
-		if d := s.dly[i]; d.when == dlyLeave && d.obj == o {
-			continue
-		}
-		s.dly[w] = s.dly[i]
-		w++
-	}
-	s.ndly = w
-}
-
 // earthbendReturn resolves the return trigger: the card in a graveyard or
 // exile (whatever its incarnation) returns to the battlefield tapped under
 // its owner's control; a card elsewhere does nothing.
