@@ -97,6 +97,9 @@ func (s *State) stackTgtOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, code u
 		if t.Kind == kop.TgtStackObjTrig {
 			return trigOnlyOK(s.stack[i].kind) // tgt_countershapes.go
 		}
+		if e := &s.stack[i]; t.TFlags&kop.TgfActOnly != 0 && e.kind != seAbility {
+			return false
+		}
 		return s.stack[i].kind != seSpell && (t.TFlags&kop.TgfSingleTgt == 0 || s.ksrSingle(&s.stack[i]))
 	}
 	if !isObjTarget(code) || t.Kind == kop.TgtStackAb || copyAbKind(t.Kind) {

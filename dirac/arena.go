@@ -43,6 +43,18 @@ const (
 	mechOnce2                       // slots whose permanent's second activate-only-once ability was activated (legal.go onceUsed)
 	mechOnce3                       // the same for its third such ability
 	mechTappedTurn                  // slots whose permanent has become tapped this turn (Taps FirstTime$; filter_permmarks.go)
+	mechLure                        // slots whose permanent is a lure this turn: all creatures able to block it do so (CR 509.1c; combat_lure.go)
+	mechLurePost                    // slots marked lure while their permanent had lost all abilities: the grant postdates the loss and survives it (CR 613.7)
+	mechProtW                       // slots whose permanent has protection from white until end of turn (a chosen-colour grant; static_colourprot.go)
+	mechProtU                       // the same, blue
+	mechProtB                       // black
+	mechProtR                       // red
+	mechProtG                       // green
+	mechProtPostW                   // slots marked protected from white while their permanent had lost all abilities: the grant postdates the loss and survives it (CR 613.7)
+	mechProtPostU                   // the same, blue
+	mechProtPostB                   // black
+	mechProtPostR                   // red
+	mechProtPostG                   // green
 	numMech
 )
 
@@ -80,9 +92,21 @@ var mechWidth = [numMech]uint8{
 	mechOnce2:           wSlot,
 	mechOnce3:           wSlot,
 	mechTappedTurn:      wSlot,
+	mechLure:            wSlot,
+	mechLurePost:        wSlot,
+	mechProtW:           wSlot,
+	mechProtU:           wSlot,
+	mechProtB:           wSlot,
+	mechProtR:           wSlot,
+	mechProtG:           wSlot,
+	mechProtPostW:       wSlot,
+	mechProtPostU:       wSlot,
+	mechProtPostB:       wSlot,
+	mechProtPostR:       wSlot,
+	mechProtPostG:       wSlot,
 }
 
-var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen", "sbaChain", "once2", "once3", "tappedTurn"}
+var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen", "sbaChain", "once2", "once3", "tappedTurn", "lure", "lurePost", "protW", "protU", "protB", "protR", "protG", "protPostW", "protPostU", "protPostB", "protPostR", "protPostG"}
 
 // arenaNone is the index of a mechanic the table does not use.
 const arenaNone = 0xFF
@@ -139,6 +163,7 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 					}
 				case kop.OpExt:
 					mustBlockUses(&in, &u) // combat_mustbeblocked.go
+					colProtUses(&in, &u)   // static_colourprot.go
 					if in.Ext() == kop.ExtAttacksIfAble {
 						u[mechAttacksIfAble] = true // combat_attacksifable.go
 					}

@@ -14,8 +14,8 @@ the human made. Every place where the human's answer **A** and the shadow's
 answer **B** differ *materially* becomes a **divergence**, captured in the
 existing feedback snapshot format (`match.json` + `log.json`, replayable by
 `cmd/repro`) plus a `divergences.jsonl` sidecar. Offline, a triage command
-rebuilds the human seat's own observation stream, and the existing hindsight
-evaluator (`internal/hindsight`) rolls both A and B to game end on sampled
+rebuilds the human seat's own observation stream, and the hindsight evaluator
+(the `hindsight` tool, since retired) rolls both A and B to game end on sampled
 hidden-information worlds. Each divergence lands in one of four buckets:
 **human_better** (a bot defect), **bot_better** (a human error, or a hold or
 plan the teacher cannot value), **indistinguishable** (split into
@@ -64,13 +64,13 @@ Non-goals (v1):
 |---|---|---|
 | Replayable snapshot of a table's match | `Registry.SnapshotForFeedback(id, seat)`: `match.json` (`FeedbackMatch`), `log.json` (`FeedbackLog`), seat-redacted `view.json`. It reads under the locks and projects outside them. | `server/host/feedback.go:169`, `:37`, `:126`, `:145` |
 | Snapshot of the *current or last* match only | it picks `t.cur`, else `t.history` tail, else the last archived sidecar | `server/host/feedback.go:176-196` |
-| Writing the snapshot beside a report, size cap, status line | `feedbackStore.captureSnapshot`, `maxFeedbackSnapshotBytes = 64 MiB`, `report.json` `snapshot` field | `cmd/gorged/feedback.go:265`, `:75`, `:98` |
+| Writing the snapshot beside a report, size cap, status line | `feedbackStore.captureSnapshot`, `maxFeedbackSnapshotBytes = 64 MiB`, `report.json` `snapshot` field | `server/gorged/feedback.go:265`, `:75`, `:98` |
 | Durable feedback dir outside the wiped `-dir` | `-feedback` flag; empty value disarms the endpoint | `cmd/gorged/main.go:271`, `:449-460` |
 | Load a snapshot dir back to `(Log, Config)` and replay to intent n | `feedback.Load`, `feedback.EngineAt` | `testkit/testutil/feedback/feedback.go:165`, `:436` |
 | Rebuild one seat's observation stream from a log | `searchseat.RebuildFeed(cfg, l, n, actor)`: captures at every intent boundary and records the actor's logged answers | `bots/searchseat/feed.go:57` |
 | Honest teacher over sampled worlds | `searchprobe.TeacherIntentChoice`, with paired `WinsOverBaseline`/`LossesToBaseline` against candidate 0 | `bots/searchprobe/teacher.go:147`, `:73-89` |
-| Adaptive A/B evaluation with CIs, honest and omniscient arms | `hindsight.Evaluate(candidates, source, seed, opts)`: blocks of common-random-number worlds, stops when the top two Wilson intervals separate; `PairedDiff95`; `ClearMargin` (≥ 0.10 and paired lower bound > 0); `Seed` | `internal/hindsight/hindsight.go:270`, `:207`, `:344`, `:365` |
-| Honest world source with redeal fallback; omniscient arm | `evaluateSampled`, `evaluateOmniscient` | `cmd/hindsight/main.go:371`, `:386` |
+| Adaptive A/B evaluation with CIs, honest and omniscient arms | `hindsight.Evaluate(candidates, source, seed, opts)`: blocks of common-random-number worlds, stops when the top two Wilson intervals separate; `PairedDiff95`; `ClearMargin` (≥ 0.10 and paired lower bound > 0); `Seed` | the retired `hindsight` evaluator |
+| Honest world source with redeal fallback; omniscient arm | `evaluateSampled`, `evaluateOmniscient` | the retired `hindsight` command |
 | Sampler starvation is real | A hindsight smoke: 73 of 77 branched decisions (94.8%) were `no_world` before the redeal fallback existed | an archived hindsight measurement (`docs/design/ARCHIVE.md`) |
 | Training record the DPO path reads | `LabelRecord` "label-v1" (schema 2), with `Candidates` (index 0 = bot), `TeacherChoice`, `Margin`, `View` (seat view, `Decision` nil), `Board` (traceboard), `RescoreValues` | the private `searchteacher` training command |
 | Go reader of the same records | `policynet.labelRecord` mirror, `AcceptedLabelSchemaVersions = {1,2,3}`, `Load` | `bots/policynet/loader.go:37`, `:53`, `:154` |
@@ -198,7 +198,7 @@ counter, logged once a minute). A single worker goroutine owns the rest:
    UI asks for historical views by `seq`.
 2. `Registry.ShadowScan(id, k, seat, policy)` (§5.4).
 3. Write `<dir>/<match-id>/`, with match-id = `<UTC ts>-<table>-m<k>`, generated
-   by the server as `feedbackID` is (`cmd/gorged/feedback.go:403`):
+   by the server as `feedbackID` is (`server/gorged/feedback.go:403`):
    - `match.json`, `log.json`: byte-for-byte the feedback shapes, so
      `go run ./cmd/repro <dir>` verifies the replay (exit 0) unchanged.
    - `report.json`: `{"received", "snapshot": "captured: ...", "text": "divergence capture"}`,
@@ -208,7 +208,7 @@ counter, logged once a minute). A single worker goroutine owns the rest:
    - Nothing at all when the scan found zero divergences. The directory is
      created only when there is something to keep.
    - The same 64 MiB cap and the same semantic-partial rule as
-     `captureSnapshot` (`cmd/gorged/feedback.go:298-346`). A partial capture
+     `captureSnapshot` (`server/gorged/feedback.go:298-346`). A partial capture
      (`tokens_unread`) is written but marked, and triage skips it as
      `untriaged: snapshot_partial`.
 
@@ -251,7 +251,7 @@ func Answer(e *rules.Engine, feed *searchseat.Feed, setup searchprobe.PublicGame
   `autoPayMana` is set, as the host does.
 - `ShadowSeed(matchSeed uint64, seat state.PlayerID, n int) uint64`
   is a splitmix avalanche of the three, the same construction as
-  `hindsight.Seed` (`internal/hindsight/hindsight.go:365`), with its own
+  `hindsight.Seed` (the retired `hindsight` tool), with its own
   constants.
 - The engine `e` is a **replay walk's** engine, never the live one, and
   `Answer` must not mutate it. HonestRoot builds a redeal, and `EnsurePaymentActions`
@@ -338,16 +338,14 @@ For each match directory:
      analogue of `cmd/repro`'s DIVERGED: a corpus pin move, a policy change, or
      a determinism defect.
    - Candidates: `[B, A]`, with the shadow at index 0, the "recorded bot answer"
-     convention `hindsight.Evaluate` assumes
-     (`internal/hindsight/hindsight.go:268-270`). Each is turned into
+     convention `hindsight.Evaluate` assumed (the tool is retired). Each is turned into
      observer-local actions with `Collector.IntentActions(d, in)`
      (`bots/searchprobe/action.go:48`).
    - **Honest arm**: `hindsight.Evaluate` with an honest `WorldSource` built
-     exactly as `cmd/hindsight`'s `evaluateSampled`
-     (`cmd/hindsight/main.go:371-384`): seed `hindsight.Seed(base,
+     exactly as the retired `hindsight` command's `evaluateSampled`: seed `hindsight.Seed(base,
      matchHash, n, block)`, with `Redeal` on by default.
    - **Omniscient arm** (`-omniscient`, default on): `evaluateOmniscient`'s
-     source (`cmd/hindsight/main.go:386-395`), repeated clones of the real walk
+     source (the retired `hindsight` command), repeated clones of the real walk
      engine with `Clairvoyant: true`. Its output **never** reaches an export or
      the UI (§10).
 4. Write one `triage-v1` record per divergence: bucket, sub-bucket, both
@@ -615,7 +613,7 @@ Pipeline:
    hand"). This step is research tooling; the repo gets its output, not the
    code.
 3. A maintainer reviews a cluster and files it as a symbol entry in
-   `internal/divergence/symbols.go`. A registry entry is code, so it is
+   `server/divergence`. A registry entry is code, so it is
    deterministic, testable, and runs inside the redaction boundary.
 4. `cmd/divergence symbols-eval -triage ... -symbols name1,name2` evaluates
    each symbol over the triaged divergences on the walk engine's seat view:
@@ -649,7 +647,7 @@ Rules, each with its enforcement:
 | Only the consenting human's seat is analysed and exported | `TeachBot` opt-in, `len(Humans) == 1`, and `ShadowScan(seat)` takes the human seat only |
 | `log.json` is omniscient (it is replay input, as for feedback) and stays server-side and offline | it is never served by any endpoint. Only the triage tool reads it, and only to replay |
 | Anything shown to the player is seat-redacted | the board comes from `ViewAtSeat` (`server/host/viewat.go:66`, seat visibility). Options and choices are the seat's own offered options. B comes from a policy whose inputs are the seat's view, board or honest root (`bots/botpolicy/combat.go:115-124`, `bots/env.go:34-41`) |
-| No clairvoyant output leaves triage | the omniscient arm's values are written only to `triage.jsonl` (an offline file). every evaluation in a triage record carries an `arm` field (`honest` or `omniscient`), and `export-labels` reads only `arm == "honest"` values. It refuses any record whose exported values carry another arm. This mirrors the label writer's own oracle marker, which a consumer filters on (`labels.go:76-82`). The host never links `bots/azmcts/clairvoyant` (`arch_test.go:163-175`), and nothing here changes that |
+| No clairvoyant output leaves triage | the omniscient arm's values are written only to `triage.jsonl` (an offline file). every evaluation in a triage record carries an `arm` field (`honest` or `omniscient`), and `export-labels` reads only `arm == "honest"` values. It refuses any record whose exported values carry another arm. This mirrors the label writer's own oracle marker, which a consumer filters on (`labels.go:76-82`). The host never links the private companion module's clairvoyant package (`arch_test.go:163-175`), and nothing here changes that |
 | Seat routes are fenced | new routes go through `claimForTable` plus a `seatFromQuery`-style check that the claim's seat equals `seat` (`server/host/httpapi/rest.go:113-150`) |
 | Training records are redacted | `view` is the seat view with the decision nil, and `board` is the traceboard projection, the same contract as `LabelRecord.View` (`labels.go:44-50`). A test asserts no opponent hand card name appears in any exported record, mirroring the label writer's documented property |
 | Free text stays out of training records | only checklist ids enter `export-labels`. Free text goes only to `export-reasons`, kept on the training box |

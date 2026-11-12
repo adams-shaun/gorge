@@ -8,7 +8,7 @@ var effectstaticformsForms = []formCase{
 	{card: "Goblin Diplomats", form: "Effect MustAttack static, no RememberObjects$ (gorge effEffect StaticMustAttack: UntilEOT emblem static)", lir: "0 CreateEmblem obj=You\n  emblem[0] trigger=0 statics=1 until=EOT"},
 	{card: "Dread Charge", form: "Effect CantBlockBy static, no RememberObjects$ (gorge restriction case, absentDurationMeansThisTurn)", lir: "0 CreateEmblem obj=You\n  emblem[0] trigger=0 statics=1 until=EOT"},
 	{card: "Walking Desecration", form: "Effect MustAttack static over Creature.ChosenType stays refused (an emblem has no source to read the choice from)", refused: "Effect static filter {types=0x0 ChosenType} reads the effect's chosen type or colour"},
-	{card: "Alchemist's Refuge", form: "Effect spell CastWithFlash stays refused (gorge: only the loyalty-timing grant registers)", refused: "Effect static mode CastWithFlash without RememberObjects$"},
+	{card: "Alchemist's Refuge", form: "Effect CastWithFlash spell grant (gorge SpellFlashParamsReadable: ValidSA$ Spell, Caster$ You; an EOT emblem)", lir: "emblem[0] trigger=0 statics=1 until=EOT"},
 	{card: "Cosmotronic Wave", form: "Effect CantBlock stays refused (gorge effectUnsupportedStatic)", refused: "Effect static mode CantBlock without RememberObjects$"},
 	{card: "Reminisce", form: "ChangeZoneAll Shuffle$ of a target player's graveyard (gorge: the scoped library shuffles even when empty)", lir: "0 ChangeZoneAll obj=Target0 C=4 CS=from=Graveyard F={types=0x0} // only the target player's zone\n     1 Shuffle obj=Target0"},
 	{card: "Feldon's Cane", form: "ChangeZoneAll Shuffle$ of your own graveyard (gorge: you shuffle even when it is empty)", lir: "0 ChangeZoneAll C=4 CS=from=Graveyard F={types=0x0 owner=1}\n     1 Shuffle obj=You"},
