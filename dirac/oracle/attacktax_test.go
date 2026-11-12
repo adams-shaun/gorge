@@ -29,7 +29,8 @@ import (
 // two mana, the choice-shaped Tranquil Cove and Birds of Paradise, the
 // chosen-colour Thriving Isle, Arcane Signet's colour identity outside a
 // commander game, and Llanowar Elves, a mana creature that may attack (its
-// own mana then folds into the budget and CR 508.1f keeps it from paying).
+// own mana then folds into the budget and CR 508.1f keeps it from paying),
+// and Warden of Geometries, whose vigilance leaves it free to pay.
 // The taxer deck plays most taxes, the payer deck most sources; the seats
 // swap every other pair of seeds.
 
@@ -43,11 +44,12 @@ var katTaxer = []cardset.Entry{
 }
 
 var katPayer = []cardset.Entry{
-	{Name: "Grizzly Bears", Count: 5}, {Name: "Llanowar Elves", Count: 4}, {Name: "Birds of Paradise", Count: 3},
+	{Name: "Grizzly Bears", Count: 4}, {Name: "Llanowar Elves", Count: 4}, {Name: "Birds of Paradise", Count: 3},
+	{Name: "Warden of Geometries", Count: 2},
 	{Name: "Serra Angel", Count: 1}, {Name: "Phyrexian Marauder", Count: 2}, {Name: "Koskun Falls", Count: 1},
 	{Name: "Propaganda", Count: 1}, {Name: "Ghostly Prison", Count: 1}, {Name: "Onakke Oathkeeper", Count: 1},
 	{Name: "Ajani, Caller of the Pride", Count: 1}, {Name: "Sol Ring", Count: 2}, {Name: "Arcane Signet", Count: 1},
-	{Name: "Mind Stone", Count: 1}, {Name: "Forest", Count: 6}, {Name: "Plains", Count: 3}, {Name: "Swamp", Count: 3},
+	{Name: "Mind Stone", Count: 1}, {Name: "Forest", Count: 5}, {Name: "Plains", Count: 3}, {Name: "Swamp", Count: 3},
 	{Name: "Tundra", Count: 1}, {Name: "Tranquil Cove", Count: 1}, {Name: "Thriving Isle", Count: 2},
 }
 
@@ -85,6 +87,7 @@ const (
 	katNone  katMutation = iota
 	katFree              // dirac.DebugAtkTaxFree: no attack is taxed
 	katOrder             // dirac.DebugAtkTaxChoiceFirst: the window taps the choice-shaped sources first
+	katVigil             // dirac.DebugAtkTaxWithholdVigilant: the window withholds a declared attacker with vigilance too
 )
 
 // runAttackTax plays the seeded games; a mutation stops at the first
@@ -110,6 +113,10 @@ func runAttackTax(t *testing.T, seeds uint64, mut katMutation) (games, divs int,
 		old := dirac.DebugAtkTaxChoiceFirst
 		dirac.DebugAtkTaxChoiceFirst = true
 		defer func() { dirac.DebugAtkTaxChoiceFirst = old }()
+	case katVigil:
+		old := dirac.DebugAtkTaxWithholdVigilant
+		dirac.DebugAtkTaxWithholdVigilant = true
+		defer func() { dirac.DebugAtkTaxWithholdVigilant = old }()
 	}
 	tally = map[string]int{}
 	for seed := uint64(1); seed <= seeds; seed++ {
@@ -146,6 +153,7 @@ func runAttackTax(t *testing.T, seeds uint64, mut katMutation) (games, divs int,
 			t.Fatal(err)
 		}
 		var gs *GorgeSide
+		declared := map[state.ObjID]bool{} // the attackers picked in the declaration being paid
 		played := map[string]int{}
 		inner := eagerPolicy(seed, played)
 		pol := PolicyFunc(func(c *PickCtx) Canon {
@@ -158,12 +166,21 @@ func runAttackTax(t *testing.T, seeds uint64, mut katMutation) (games, divs int,
 							if ob := gs.E.G.Obj(o.Obj); ob != nil && ob.Face() != nil {
 								tally["tap "+ob.Face().Name]++
 							}
+							if declared[o.Obj] {
+								tally["tap a declared attacker"]++
+							}
 						}
 					}
 				}
 			}
 			a := inner.Pick(c)
+			if c.D.Kind != DAttackers {
+				clear(declared)
+			}
 			if a.Kind() == ActAttack && c.G != nil {
+				if o, ok := c.G.GorgeOption(a); ok {
+					declared[o.Obj] = true
+				}
 				if o, ok := c.G.GorgeOption(a); ok && strings.Contains(o.Label, " per creature)") {
 					tally["taxed picks"]++
 					if o.Battle != 0 {
@@ -256,7 +273,7 @@ func TestAttackTaxLockstep(t *testing.T) {
 		}
 	}
 	for key, min := range map[string]int{"taxed picks": 40, "taxed planeswalker picks": 2, "window taps": 40,
-		"tap Sol Ring": 2, "tap Tundra": 2, "tap Llanowar Elves": 2} {
+		"tap Sol Ring": 2, "tap Tundra": 2, "tap Llanowar Elves": 2, "tap a declared attacker": 1} {
 		if tally[key] < min {
 			t.Errorf("%s %d, want at least %d", key, tally[key], min)
 		}
@@ -287,6 +304,19 @@ func TestAttackTaxOrderMutation(t *testing.T) {
 	games, divs, _ := runAttackTax(t, 160, katOrder)
 	if divs == 0 {
 		t.Fatalf("a choice-first window played %d games with no divergence", games)
+	}
+	t.Logf("mutation diverged in game %d", games)
+}
+
+// TestAttackTaxVigilantMutation: a window that withholds a declared
+// attacker with vigilance (which CR 508.1f leaves untapped) diverges.
+func TestAttackTaxVigilantMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	games, divs, _ := runAttackTax(t, 160, katVigil)
+	if divs == 0 {
+		t.Fatalf("a window withholding vigilant attackers played %d games with no divergence", games)
 	}
 	t.Logf("mutation diverged in game %d", games)
 }

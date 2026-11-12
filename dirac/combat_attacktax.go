@@ -47,7 +47,9 @@ func init() { stallNames[StallAtkTax] = "atktax" }
 // DebugAtkTaxFree (test only, TestAttackTaxFreeMutation): no attack is
 // taxed. DebugAtkTaxChoiceFirst (TestAttackTaxOrderMutation): the payment
 // taps the choice-shaped sources before the fixed-production ones.
-var DebugAtkTaxFree, DebugAtkTaxChoiceFirst bool
+// DebugAtkTaxWithholdVigilant (TestAttackTaxVigilantMutation): the payment
+// withholds a declared attacker with vigilance too.
+var DebugAtkTaxFree, DebugAtkTaxChoiceFirst, DebugAtkTaxWithholdVigilant bool
 
 // atkTaxOn reports whether the table carries an attack tax.
 func atkTaxOn(k *prep) bool { return k.gen != nil && k.gen.anyAtkTax }
@@ -423,7 +425,7 @@ func (s *State) atkTaxNext(k *prep, p uint8) (sl Slot, col, n int) {
 	no := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), order[:], 0)
 	for pass := 0; pass < 2; pass++ {
 		for _, o := range order[:no] {
-			if s.perms[o].flags&pfAttacking != 0 && s.kw(k, o)&kop.KwVigilance == 0 {
+			if s.perms[o].flags&pfAttacking != 0 && (s.kw(k, o)&kop.KwVigilance == 0 || DebugAtkTaxWithholdVigilant) {
 				continue
 			}
 			if c, u, fixed, ok := s.atkTaxShape(k, o); ok && u > 0 && fixed == (pass == 0 != DebugAtkTaxChoiceFirst) {

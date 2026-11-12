@@ -2,8 +2,8 @@
 # mana Cost$): the taxes, a planeswalker to attack, attackers with and
 # without a mana ability, and the attack window's source shapes -- fixed
 # lands and rocks, a dual's two intrinsic abilities, a choice-shaped
-# gain land and any-colour creature, a chosen-colour land and a colour
-# identity rock outside a commander game (dirac/oracle/attacktax_test.go).
+# gain land and any-colour creature, a chosen-colour land, a colour
+# identity rock outside a commander game and a vigilant mana creature (dirac/oracle/attacktax_test.go).
 # Koskun Falls is a World enchantment: the decks hold one copy between them,
 # so the world rule (CR 704.5k), which the kernel does not model, never applies.
 Propaganda
@@ -20,6 +20,7 @@ Phyrexian Marauder
 Ajani, Caller of the Pride
 Grizzly Bears
 Llanowar Elves
+Warden of Geometries
 Serra Angel
 Birds of Paradise
 Sol Ring
