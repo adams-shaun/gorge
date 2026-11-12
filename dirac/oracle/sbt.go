@@ -278,6 +278,8 @@ func (a *SBT) priority(s *dirac.State, d *dirac.Decision, seat *builtins.Seat) [
 				cm = "escape" // CR 702.42a: the escape cast a StatEscapeGrant static gives (kw_escape.go)
 			case mode&2 != 0 && s.FeatMayhemCard(dirac.Obj(src)):
 				cm = "mayhem"
+			case mode&2 != 0 && x.Target() == dirac.FeatCastEscapeTgt:
+				cm = "escape" // CR 702.138a: gorge's "escape" cast option, marked by the target byte (kw_escape.go)
 			case mode&2 != 0 && s.FeatHarmonizeCast(dirac.Obj(src)):
 				cm = "harmonize"
 			case mode&2 != 0 && x.Target() == dirac.FeatRetraceTgt && s.FeatRetraceCard(dirac.Obj(src)):

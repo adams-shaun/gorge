@@ -197,7 +197,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 702.135 | n/a | - | - | Dies trigger: N 1/1 flying Spirits. dirac: no carriers |
 | 702.136 | n/a | - | - | As-enters choice: +1/+1 counter or haste. dirac: no carriers |
 | 702.137 | n/a | - | - | LOUD: kw:Spectacle unregistered, 0/11 carriers playable. dirac: no carriers |
-| 702.138 | n/a | - | - | Graveyard cast exiling other cards; escaped provenance read. dirac: no carriers |
+| 702.138 | follows | `dirac/kw_escape.go#State.offerEscapeCasts` `dirac/cast.go#State.beginCast` `dirac/kgen/lower_escape.go#lowerCtx.escapeCost` | `TestEscapeLockstep` `TestEscapeReprosReach` | printed escape lowers to CardDef.AltCost and the EscCost grave exiles; the escape cast marks the entry trigPlEscape and the entering permanent mechEscaped, read by PredEscaped; a granted flashback beside the kicker-class escape cost is priced as flashback (the escape action carries a target byte). Lunar Hatchling, From the Catacombs, Skyway Robber, Kroxa and Unbreakable Remnant stay refused by name for their other unmodelled parts |
 | 702.139 | n/a | - | - | SILENT: kw:Companion registered supported, no companion reveal or {3} put-into-hand. dirac: no carriers |
 | 702.140a | n/a | - | - | Mutate alt cost targeting non-Human you own. dirac: no carriers |
 | 702.140b | n/a | - | - | REVISED: (e7bb8e319) resolves an illegal-target mutating spell as a creature |

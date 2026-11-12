@@ -92,6 +92,9 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		if sneakMarks(&s.res.e) {
 			s.mSlSet(k, mechSneaked, sl) // kw_sneak.go
 		}
+		if escapeMarks(&s.res.e) {
+			s.mSlSet(k, mechEscaped, sl) // kw_escape.go
+		}
 	}
 	s.g.zoneTurn.set(o)
 	if s.g.enteredOn {

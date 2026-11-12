@@ -928,6 +928,7 @@ PredCountersGE	Pred	13
 PredCountersLT	Pred	33
 PredEnchanted	Pred	21
 PredEquipped	Pred	20
+PredEscaped	Pred	237
 PredExiledWith	Pred	249
 PredFaceDown	Pred	245
 PredHasCounter	Pred	7

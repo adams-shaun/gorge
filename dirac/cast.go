@@ -28,7 +28,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	if mode&1 != 0 {
 		fl |= sfKicked
 	}
-	esc := mode&2 != 0 && s.g.escapeCast // the target byte's escape cast (kw_escape.go)
+	esc := escapeCast(k, c, mode, tgt) || s.g.escapeCast // a printed escape cast, or the target byte's granted escape (kw_escape.go)
 	s.g.escapeCast = false
 	mayhem := mayhemCast(k, c, mode) && !esc // a graveyard cast that is no flashback (kw_mayhem.go)
 	if k.gen != nil && k.gen.anyAftermath {
@@ -56,7 +56,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		e.trigPl = trigPlMayhem
 	}
 	if esc {
-		e.trigPl = trigPlEscape // the cost builder's escape cast (kw_escape.go)
+		e.trigPl = trigPlEscape // the printed or granted escape cost (CR 702.138a; kw_escape.go)
 	}
 	if retrace {
 		e.trigPl = trigPlRetrace // the retrace cast's pick cost (kw_retrace.go)
@@ -612,6 +612,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		}
 		if cd.Mayhem && e.trigPl == trigPlMayhem {
 			c = cd.AltCost // the mayhem cost (CR 702.187a; kw_mayhem.go)
+		}
+		if cd.Escape && e.trigPl == trigPlEscape {
+			c = cd.AltCost // the escape cost (CR 702.138a; kw_escape.go)
 		}
 		if e.trigPl == trigPlMadness && cd.HasMadness {
 			c = cd.MadnessCost // the madness cast from exile (CR 702.35b)
@@ -2391,6 +2394,9 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 		}
 		if e.flags&sfFlashback != 0 && cd.FbCost.Flags != 0 && e.flags&sfFbGranted == 0 {
 			return &cd.FbCost // a non-mana flashback cost (CR 702.34a; kgen lower_fbcost.go)
+		}
+		if cd.Escape && e.trigPl == trigPlEscape && cd.EscCost.Flags != 0 && !DebugEscapeSkipExiles {
+			return &cd.EscCost // the escape cost's exile parts (CR 702.138a; kw_escape.go)
 		}
 		if k.gen != nil && k.gen.anyKickCost {
 			if kc := kickerCostPick(k, e); kc != nil {

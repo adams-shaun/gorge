@@ -556,6 +556,17 @@ const PredTrigPlayerCtrl Pred = 239
 // Object.Suspected, false off the battlefield).
 const PredSuspected Pred = 254
 
+// PredEscaped: PredN 1, a battlefield permanent whose spell was cast for its
+// escape cost; PredN 0, anything else, off the battlefield too (gorge
+// filter.go's 'escaped' predicate / '!escaped' over
+// CastFlags&FlagEscaped, which the move off the battlefield resets). The
+// mark is the arena's mechEscaped (kw_escape.go), the shape PredSuspected
+// rides; a stack read needs no per-permanent storage (the SpellCast self
+// trigger's filter, selfCastFilterOK).
+// 237: land's PredHasManaAbility took 255 in the merge; this is the free
+// explicit ordinal below the 239+ family and PredSameNameRem (238).
+const PredEscaped Pred = 237
+
 // PredSameNameRem: the object shares a printed name with an object in the
 // resolution's remembered set (gorge's filter word "sharesNameWith
 // Remembered", read by Tainted Pact's Card.sharesNameWith Remembered gate).

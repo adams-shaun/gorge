@@ -293,7 +293,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	if k.gen != nil && k.gen.anyBeam {
 		s.offerBeamCasts(k, d, p, sorc, &av) // kw_beammeup.go
 	}
-	if k.gen != nil && k.gen.anyEscapeGrant {
+	if k.escape || k.gen != nil && k.gen.anyEscapeGrant {
 		s.offerEscapeCasts(k, d, p, sorc, &av) // kw_escape.go: gorge lists the escape walk before mayhem's (legal_walk_alt.go)
 	}
 	if k.mayhem {

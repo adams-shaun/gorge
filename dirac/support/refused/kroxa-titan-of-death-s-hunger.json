@@ -1,0 +1,13 @@
+{
+  "card": "Kroxa, Titan of Death's Hunger",
+  "class": "unmodelled",
+  "why": "the enter and attack RepeatEach bodies read ConditionCheckSVar X, unmodelled by kgen; the Escape keyword itself lowers",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 1,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

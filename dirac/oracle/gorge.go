@@ -732,6 +732,17 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
 				continue
 			}
+			if o.Mode == "escape" {
+				// CR 702.138a: the kernel's mode-2 cast of an Escape card
+				// canonicalises to castModeOther, like "mayhem"
+				// (kw_escape.go)
+				if o.AltCostIndex > 15 {
+					note("cast/escape")
+					continue
+				}
+				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
+				continue
+			}
 			if o.Mode == "mayflash" {
 				// CR 702.8: the kernel's AkMayFlash canonicalises to
 				// castModeOther, like "web-slinging" (kw_mayflash.go)

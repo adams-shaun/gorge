@@ -461,6 +461,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseHarmonizeCombos()
 	lc.refuseReboundCombos() // lower_rebound.go
 	lc.refuseMayhemCombos()
+	lc.refuseEscapeCombos()
 	lc.lowerRetrace()
 	lc.refuseBeamCombos()
 	lc.refuseSneakCombos()
@@ -1393,6 +1394,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.out.Harmonize = &mc
 		case head == "Beam me up":
 			lc.beamMeUp(node, param) // lower_beammeup.go
+		case head == "Escape":
+			lc.escapeCost(node, param) // lower_escape.go (CR 702.138a; dirac/kw_escape.go)
 		case head == "Mayhem":
 			// CR 702.187a: a graveyard cast for the colon parameter, an
 			// alternative mana cost, if the card was discarded this turn

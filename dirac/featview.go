@@ -1375,7 +1375,7 @@ func (s *State) CastFreeIndex(o Obj) uint8 {
 // Forgotten Lore), printed beam me up or not.
 func (s *State) flashbackCostOf(k *prep, o Obj) kop.ManaCost {
 	cd := &k.t.Cards[s.objs[o].card]
-	if cd.Keywords&kop.KwFlashback != 0 || cd.Harmonize || cd.Mayhem || cd.BeamMeUp && !s.fbGranted(k, o) {
+	if cd.Keywords&kop.KwFlashback != 0 || cd.Harmonize || cd.Mayhem || cd.Escape || cd.BeamMeUp && !s.fbGranted(k, o) {
 		return cd.AltCost
 	}
 	if cd.Retrace && !s.fbGranted(k, o) && !s.fbLive(k, o) {
