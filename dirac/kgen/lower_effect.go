@@ -1606,14 +1606,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		lc.emit(lInstr{Op: sa.API, Obj: who, A: n})
 	case "Pump":
 		if ps.str("RememberObjects") == "Imprinted" {
-			// a Pump that only rebinds the remembered set to the previously
-			// imprinted card (Tainted Pact's DBRepeat): no characteristic
-			// changes, so anything else left unread refuses below
-			if left := ps.unread(); len(left) > 0 {
-				return refuse("Pump RememberObjects$ Imprinted beside %v", left)
-			}
-			lc.emit(lInstr{Op: "RememberImprinted"})
-			return nil
+			return lc.pumpRememberImprinted(ps) // lower_storesvar.go
 		}
 		if _, ok := ps.m["TargetType"]; ok {
 			return lc.pumpSpellTarget(ps) // lower_stackexile.go
@@ -4046,6 +4039,10 @@ func (lc *lowerCtx) repeat(ps *params) error {
 		mx = n
 	} else if !gated {
 		return refuse("Repeat without MaxRepeat$")
+	}
+	if !gated {
+		// RepeatPresent$/RepeatCompare$ are read only beside RepeatDefined$
+		return refuse("Repeat without RepeatCheckSVar$ or RepeatDefined$")
 	}
 	svarCmp := strings.TrimSpace(ps.str("RepeatSVarCompare"))
 	var conds []lCond

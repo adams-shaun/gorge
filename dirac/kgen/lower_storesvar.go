@@ -33,3 +33,14 @@ func (lc *lowerCtx) storeSVar(ps *params) error {
 	ps.consume("SVar", "Type", "Expression", "ConditionCheckSVar", "ConditionSVarCompare")
 	return nil
 }
+
+// pumpRememberImprinted lowers a Pump that only rebinds the remembered set to
+// the previously imprinted card (Tainted Pact's DBRepeat): no characteristic
+// changes, so anything else left unread refuses.
+func (lc *lowerCtx) pumpRememberImprinted(ps *params) error {
+	if left := ps.unread(); len(left) > 0 {
+		return refuse("Pump RememberObjects$ Imprinted beside %v", left)
+	}
+	lc.emit(lInstr{Op: "RememberImprinted"})
+	return nil
+}
