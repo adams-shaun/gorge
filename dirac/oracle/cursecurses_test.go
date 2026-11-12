@@ -139,9 +139,9 @@ func runCursecurses(t *testing.T, seeds uint64) (games, divs int, branch map[str
 			if lo < 0 {
 				lo = 0
 			}
-			t.Logf("seed %d last actions %v", seed, actionStrings(res.Actions[lo:d.At]))
-			t.Logf("seed %d last sourced %q implicate %v", seed, d.LastSourced, d.Implicates(m))
-			t.Errorf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
+			t.Errorf("seed %d: diverged at decision %d: %s %s %v %s\nlast sourced %q implicate %v\nlast actions %v\nref %v\nker %v",
+				seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.LastSourced, d.Implicates(m),
+				actionStrings(res.Actions[lo:d.At]), d.RefOptions, d.KerOptions)
 			return
 		}
 	}
