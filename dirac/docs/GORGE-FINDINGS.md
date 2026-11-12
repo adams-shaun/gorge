@@ -278,7 +278,7 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   Barrensteppe, where only one counter a turn is reachable (`TestSiegeHollowmurkLockstep`).
 - A graveyard may-play permission's non-mana `RaiseCost$` (Noctis, Alien Symbiosis, Wickerfolk Indomitable, and BLB's Festival of
   Embers): gorge SUMS the raise over every granting static
-  (`rules/mayplay.go` `mayPlayRaiseCost`, `Cost.Plus`); dirac prices one.
+  (`engine/rules/mayplay.go` `mayPlayRaiseCost`, `Cost.Plus`); dirac prices one.
   A second granting raise (two Festivals of Embers on the battlefield, or
   Noctis beside Wickerfolk) is a loud `StallMayRaise` ("mayraise"), as is a
   spell that already owes its own additional pick cost. BLB's pool gains this
