@@ -90,11 +90,13 @@ func (e *Engine) queueTriggerLimited(observer *Engine, pt pendingTrigger, ev eve
 	if e.effectMatchOverride {
 		return
 	}
-	var tp *cards.Trigger
-	if t, ok := e.triggerOf(pt); ok {
-		tp = &t
+	entryCaused := true
+	if trigMode == "ChangesZone" || trigMode == "ChangesZoneAll" {
+		if t, ok := e.triggerOf(pt); ok {
+			entryCaused = panharmoniconEntryTrigger(t)
+		}
 	}
-	for n := e.panharmoniconEchoes(observer, pt.Source, ev, causes, trigMode, tp); n > 0; n-- {
+	for n := e.panharmoniconEchoes(observer, pt.Source, ev, causes, trigMode, entryCaused); n > 0; n-- {
 		if limited != nil {
 			if !e.triggerGameActivationLimitAllows(*limited, key) || !e.triggerActivationLimitAllows(*limited, key) {
 				break
@@ -122,14 +124,14 @@ func (e *Engine) echoCauses(t cards.Trigger, ev events.Event) []state.ObjID {
 func (e *Engine) grantedTriggerInstances(observer *Engine, t *cards.Trigger, id state.ObjID, ev events.Event, pt pendingTrigger) []pendingTrigger {
 	if t.ModeKind() == cards.TriggerAttacks {
 		echoFor := func(attacker state.ObjID) int {
-			return e.panharmoniconEchoes(observer, id, ev, []state.ObjID{attacker}, t.Mode, t)
+			return e.panharmoniconEchoes(observer, id, ev, []state.ObjID{attacker}, t.Mode, true)
 		}
 		if insts := attacksTriggerInstances(boardOf(observer), t, id, ev, pt, echoFor); len(insts) > 0 {
 			return insts
 		}
 	}
 	insts := []pendingTrigger{pt}
-	for n := e.panharmoniconEchoes(observer, id, ev, e.echoCauses(*t, ev), t.Mode, t); n > 0; n-- {
+	for n := e.panharmoniconEchoes(observer, id, ev, e.echoCauses(*t, ev), t.Mode, panharmoniconEntryTrigger(*t)); n > 0; n-- {
 		insts = append(insts, pt)
 	}
 	return insts
@@ -185,7 +187,7 @@ func (e *Engine) grantedTriggerInstances(observer *Engine, t *cards.Trigger, id 
 // against the turn-up event's own object. Params this build cannot evaluate
 // (IsPresent/PresentCompare, Condition) fail closed: the static does not
 // double, never over-applies.
-func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev events.Event, causes []state.ObjID, trigMode string, trig *cards.Trigger) int {
+func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev events.Event, causes []state.ObjID, trigMode string, entryCaused bool) int {
 	// CR 603.10a: a leaves-the-battlefield / sacrifice / unattached walk reads
 	// the game as it was immediately before the event, so the statics that
 	// decide how many times such a trigger fires come from the look-back
@@ -229,7 +231,7 @@ func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev event
 		// queues the leave at detach, before the destination is known, so it
 		// stays single there; the ValidCard$-only shape (no
 		// ValidCause$/Destination$) keeps doubling every matching trigger.
-		if trig != nil && panharmoniconEntersBattlefield(sv) && !panharmoniconEntryTrigger(*trig) {
+		if !entryCaused && panharmoniconEntersBattlefield(sv) {
 			continue
 		}
 		if vm := sv.ParamStr(cards.PKValidMode); vm != "" {
