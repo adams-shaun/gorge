@@ -136,6 +136,46 @@ func TestNahirisSacrificeAnnouncesXForSacrificeCost(t *testing.T) {
 	}
 }
 
+// TestNahirisSacrificeOffersCastForManaValueTwoFodderOnly pins the offer-gate
+// open reading with no mana-value-0 permanent on the board: before X is
+// announced the cmcEQX comparison must be judged open (any creature makes the
+// offer legal), or the cast is never offered at all. It also completes the
+// cast, so the bound reading at X = 2 is exercised with the same fodder.
+func TestNahirisSacrificeOffersCastForManaValueTwoFodderOnly(t *testing.T) {
+	t.Parallel()
+	e, spell, own, opp := nahiriFixture(t, []string{"Grizzly Bears"}, []string{"Grizzly Bears"})
+	bear, theirs := own["Grizzly Bears"][0], opp[0]
+	if n := len(e.G.Zone(state.ZBattlefield, 0)); n != 1 {
+		t.Fatalf("precondition: seat 0 battlefield has %d permanents, want only the bear", n)
+	}
+	if o := e.G.Obj(bear); o == nil || o.Zone != state.ZBattlefield || o.Face().ManaValue() != 2 {
+		t.Fatal("precondition: the fodder is not a mana value 2 creature on the battlefield")
+	}
+	cast := nahiriCastOption(e, spell)
+	if cast == nil {
+		t.Fatalf("no cast option for a mana value 2 fodder: %+v", e.Pending().Options)
+	}
+	submitChoices(t, e, cast.Index)
+	xs := xOptionAmounts(t, e.Pending())
+	two, ok := xs[2]
+	if len(xs) != 1 || !ok {
+		t.Fatalf("X options %v, want exactly {2}", xs)
+	}
+	submitChoices(t, e, two)
+	sacOpts := finishNahiri(t, e, theirs, bear)
+	if len(sacOpts) != 1 || sacOpts[0].Obj != bear {
+		t.Fatalf("sacrifice candidates %+v, want exactly p0's Grizzly Bears", sacOpts)
+	}
+	viviPass(t, e)
+	viviPass(t, e)
+	if z := e.G.Obj(theirs).Zone; z != state.ZGraveyard {
+		t.Fatalf("p1's bear zone %v, want graveyard (X = 2 damage)", z)
+	}
+	if z := e.G.Obj(bear).Zone; z != state.ZGraveyard {
+		t.Fatalf("p0's bear zone %v, want graveyard (sacrificed)", z)
+	}
+}
+
 func TestNahirisSacrificeWithheldWithoutArtifactOrCreature(t *testing.T) {
 	t.Parallel()
 	e, spell, _, _ := nahiriFixture(t, nil, nil)

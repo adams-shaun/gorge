@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 
@@ -28,6 +29,15 @@ import (
 // read for: the one corpus carrier spells it X.
 const costAnnounceVarName = "X"
 
+// trimParam is the defensive trim on a param or SVar read: the corpus parser
+// trims at the boundary (parseParams trims keys and values, the line reader
+// right-trims each line), but a hand-built face need not, and an untrimmed
+// read would silently miss the announce-bound path. It is bytes.TrimSpace,
+// not strings.TrimSpace: the no-strings ratchet
+// (internal/codeshape/strings_ratchet_test.go) never rises, and this read
+// sits on the per-candidate spec walk.
+func trimParam(s string) string { return string(bytes.TrimSpace([]byte(s))) }
+
 // costSpecAnnounceBound reports whether spec, read for source's cost,
 // compares cmcEQX against an X the source's spell ability announces. Only
 // EQ is bound: it is the one operator the carrier uses, and the exact value
@@ -44,10 +54,10 @@ func (e *Engine) costSpecAnnounceBound(spec string, source state.ObjID) bool {
 	}
 	f := o.Face()
 	sa := f.SpellAbility()
-	if sa == nil || sa.ParamStr(cards.PKAnnounce) != costAnnounceVarName {
+	if sa == nil || trimParam(sa.ParamStr(cards.PKAnnounce)) != costAnnounceVarName {
 		return false
 	}
-	if f.SVars[costAnnounceVarName] != "Count$xPaid" {
+	if trimParam(f.SVars[costAnnounceVarName]) != "Count$xPaid" {
 		return false
 	}
 	return pay.FaceCostOf(f).Cost.X == 0
