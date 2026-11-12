@@ -502,44 +502,16 @@ func (a *avail) hybWitnessRider(cost kop.ManaCost, x int, anyColor bool) kop.Man
 // Elves under two Priests of Titania pays 22.
 const maxXAsk = 60
 
-// maxX is the largest X a can pay for cost (bounded by maxXAsk).
+// maxX is the largest X a can pay for cost (bounded by maxXAsk). With L = 0
+// xLcredit prices cost at AtX(0), which differs from cost only in the fields
+// affords never reads (X, XRed, XPip), so the search is the plain one.
 func (a *avail) maxX(cost *kop.ManaCost, pipMask uint8) int {
-	if !a.affords(cost, pipMask, 0) {
-		return -1
-	}
-	x := 0
-	per := int(cost.X)
-	if per == 0 {
-		return 0
-	}
-	for x < maxXAsk {
-		next := cost.AtX(x + 1)
-		if !a.affords(&next, pipMaskOf(&next), 0) {
-			break
-		}
-		x++
-	}
-	return x
+	return a.maxXLeft(cost, 0, pipMask)
 }
 
 // maxXAnyColor is maxX under the any-colour rider.
 func (a *avail) maxXAnyColor(cost *kop.ManaCost) int {
-	if !a.affordsAnyColor(cost, 0) {
-		return -1
-	}
-	x := 0
-	per := int(cost.X)
-	if per == 0 {
-		return 0
-	}
-	for x < maxXAsk {
-		next := cost.AtX(x + 1)
-		if !a.affordsAnyColor(&next, 0) {
-			break
-		}
-		x++
-	}
-	return x
+	return a.maxXAnyColorLeft(cost, 0)
 }
 
 // xLcredit folds cost's {X} at x and takes L generic off: the restricted

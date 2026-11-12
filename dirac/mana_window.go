@@ -1448,11 +1448,8 @@ func (s *State) restrAvailAdd(p, m uint8, av *avail) {
 //
 //go:noinline
 func (s *State) restrShort(k *prep, p uint8, c CardID, og restrOrigin, cost kop.ManaCost) kop.ManaCost {
-	m := s.restrSpendable(k, p, c, og)
-	if m == 0 {
-		return cost
-	}
-	return s.restrShortAdm(p, m, cost)
+	short, _ := s.restrShortL(k, p, c, og, cost)
+	return short
 }
 
 // restrShortAdm is cost less p's restricted mana in the batches of mask m,
@@ -2307,17 +2304,12 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			s.availUngranted(k, p, &av)
 		}
 		if anyColor {
-			if L == 0 {
-				x = max(0, av.maxXAnyColor(&cost))
-			} else {
-				x = max(0, av.maxXAnyColorLeft(&cost, L))
-			}
-		} else if L == 0 {
-			x = max(0, av.maxX(&cost, pipMaskOf(&cost)))
-		} else {
 			// the leftover L is the restricted mana the fixed pips and
 			// generic could not fold: it still pays any part of the cost, so
-			// the witness prices each X with it credited (CR 106.6)
+			// the witness prices each X with it credited (CR 106.6); with
+			// L = 0 maxXAnyColorLeft is the plain maxXAnyColor
+			x = max(0, av.maxXAnyColorLeft(&cost, L))
+		} else {
 			x = max(0, av.maxXLeft(&cost, L, pipMaskOf(&cost)))
 		}
 		// the search is bounded by the mana the pool and every source can
@@ -2333,7 +2325,9 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		if k.restrSrc {
 			d := s.payDescNow(excl)
 			t, multi, nm := s.restrSrcAvail(k, p, d, &av, NoSlot)
-			x = restrWitnessXPlus(x, t, multi[:nm], &cost, s.restrWithheldMana(k, p, d)) // (mana_restrwithheld.go)
+			// L is pool mana gorge's census total counts, as the
+			// (av.total+L) bound above; withheld is the sources' own
+			x = restrWitnessXPlus(x, t, multi[:nm], &cost, s.restrWithheldMana(k, p, d)+int(L)) // (mana_restrwithheld.go)
 		}
 	}
 	if cost.X != 0 && s.bld().e.kind == seSpell && s.xWitnessEats(k, p, s.bld().e.card, &cost, x, excl) {
