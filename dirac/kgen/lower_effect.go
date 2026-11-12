@@ -2975,6 +2975,25 @@ func (lc *lowerCtx) playerGrantStatics(kw string) ([]lStatic, error) {
 	return sts, nil
 }
 
+// pumpPlayerEOT lowers the keywords of an until-end-of-turn Pump grant to the
+// resolving controller (The Needs of the Many, Earthshape: "you gain
+// hexproof until end of turn"). gorge registers the grant as a Player.You
+// keyword static (registerPlayerPumpGrant) that its playerKeywords gates
+// read, so hexproof stops an opponent's targeting until cleanup: the
+// kernel's TurnReplPlayerHex record, the player half pumpYouAndValid emits
+// for Dawn's Truce. Any other keyword refuses by name: a kernel keyword
+// grant lands on a permanent and never on a player, and the kernel has no
+// player read for shroud (CR 702.18a) or a player's protection.
+func (lc *lowerCtx) pumpPlayerEOT(ks []string) error {
+	for _, k := range ks {
+		if k != "Hexproof" {
+			return refuse("player-scoped Pump grant keyword %q until end of turn", k)
+		}
+	}
+	lc.emit(lInstr{Op: "TurnRepl", C: kop.TurnReplPlayerHex, Note: "you have hexproof this turn"})
+	return nil
+}
+
 // pumpNextTurnObject lowers a battlefield object's Pump Duration$
 // UntilYourNextTurn: a keyword grant is the ovNT override record (gorge's
 // durationTiming UntilTurn boundary, CR 611.2b; The Undercity's Throne), a
@@ -3115,7 +3134,13 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 			if err != nil {
 				return err
 			}
-			lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: strings.Join(ks, "&")})
+			if lc.pumpPlayerRef(obj) {
+				if err := lc.pumpPlayerEOT(ks); err != nil {
+					return err
+				}
+			} else {
+				lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: strings.Join(ks, "&")})
+			}
 		}
 		for _, n := range fbs {
 			// CR 702.189a granted until end of turn: the latent Attacks
@@ -3129,6 +3154,9 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		}
 	}
 	if len(extra) > 0 {
+		if lc.pumpPlayerRef(obj) {
+			return refuse("player-scoped Pump KWChoice$ grant")
+		}
 		lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: strings.Join(extra, "&")})
 	}
 	if mustBlock {
