@@ -226,7 +226,17 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 			}
 			for i := 0; i < nc; i++ {
 				if tapXOwnAnswer(fs.own, cs[i], NoSlot) {
-					continue // sacrificing the play's own {T} source is no continuation (CR 602.2b)
+					// The play's own {T} source as the sacrifice: gorge
+					// submits that answer and the node it reaches ends the
+					// line in leftOwnZone (potential_script.go, CR 602.2b),
+					// one node spent whichever candidate is own -- the plain
+					// tap-another cost's own answers are skipped before their
+					// ask branches (tapsOwnSource) and cost none there. The
+					// search keeps its budget charged without the fork.
+					if !fs.tick() {
+						return false
+					}
+					continue
 				}
 				if try(otherStep{kind: otherTapX, cand: cs[i]}) { // otherDo -> tapXDo -> sacXDo
 					return true
