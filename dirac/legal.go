@@ -1703,6 +1703,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 	grantFirst := grants && (a.Kind() == AkActivate && k.gen.anyFilt && s.filtOnly(k, p) || k.gen.anyDeferred && s.scriptDeferred(k, p).any())
 	grantFirst = grantFirst || grants && s.deferBesideGrant(k, p) // the same one search (mana_grantdeferred.go)
 	grantFirst = grantFirst || grants && s.eachBesideGrant(k, p)  // an each-colour gap among the grants (mana_granteach.go)
+	grantFirst = grantFirst || grants && s.wideBesideGrant(k, p)  // a wide-only gap among the grants (mana_grantwide.go)
 	if grantFirst {
 		s.grantPrefix(k, a, p)
 		if s.npend != 0 {

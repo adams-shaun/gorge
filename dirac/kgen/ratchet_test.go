@@ -134,12 +134,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +29 (the monarch, CR 725: api BecomeMonarch, Mode$ BecomeMonarch, Count$Monarch, CheckDefinedPlayer$ You|Opponent.isMonarch and a monarch-gated Effect lower: Aragorn, King of Gondor, Chief Magistrate of Mercadia, Court of Ardenvale, Court of Bounty, Court of Cunning, Court of Embereth, Court of Garenbrig, Court of Grace, Court of Ire, Crimson Fleet Commodore, Custodi Lich, Faramir, Steward of Gondor, Feast of Succession, Garrulous Sycophant, Grave Venerations, Keeper of Keys, Knights of the Black Rose, Marchesa's Decree, Nakia, Wakandan Operative, Oath of Eorl, Palace Sentinels, Queen Marchesa, Regal Sliver, Skyline Despot, Staunch Throneguard, Thorn of the Black Rose, Throne Warden, Throne of the High City, Éomer, King of Rohan; ALL 22381 -> 22410).
 	// +30 (the merge with land: the monarch lowering above against land's corpus; merged ALL 22868 -> 22898).
 	// +16 (the merge with land: land's later work after f486bfb466, the zone-scoped PlayerCount extreme and Pump/UntilYourNextTurn lowering at 0d7bfabead, DSK 250 -> 251; merged ALL 22898 -> 22914 measured).
-	// +5 (the merge with land: the AffectedZone$ Graveyard statics — Underworld
-	// Breach, The Master of Keys, Pardic Firecat, Diligent Farmhand and Ground Seal —
-	// the same five the build pin at build_ratchet_test.go counts; merged ALL 22868 -> 22873).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
 	// +12 (the merge with land: the storage-battery abilities above against land's corpus; merged ALL 22971 -> 22983 measured).
-	"ALL": {23057, 34442},
+	"ALL": {23076, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {218, 280},

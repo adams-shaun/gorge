@@ -193,7 +193,7 @@ var copyPermanentKnownKeys = [...]string{
 	"ConditionPresent",
 	"ConditionPresent2",
 	"ConditionSVarCompare",
-	"ConditionZone",
+	"ConditionTargetValidTargeting", "ConditionTargetsSingleTarget", "ConditionZone",
 	"Controller",
 	"CopyCard",
 	"Cost",

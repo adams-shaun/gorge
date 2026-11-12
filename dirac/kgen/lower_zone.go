@@ -2356,9 +2356,10 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		}
 		aff := sp.str("Affected")
 		nonLand := false
-		if (obj.Kind == rRemembered || lc.digImprintChosen && obj.Kind == rChosen) && (aff == "Card.IsRemembered+nonLand" || aff == "Card.nonLand+IsRemembered") {
-			// "you may cast" the remembered nonland cards: the grant skips a
-			// remembered land (its type cannot change off the battlefield)
+		if (obj.Kind == rRemembered || obj.Kind == rTarget || lc.digImprintChosen && obj.Kind == rChosen) && (aff == "Card.IsRemembered+nonLand" || aff == "Card.nonLand+IsRemembered") {
+			// "you may cast" the remembered nonland cards, or (Silas Renn) the
+			// target RememberObjects$ Targeted remembers: the grant skips a
+			// land (its type cannot change off the battlefield)
 			aff, nonLand = "Card.IsRemembered", true
 		}
 		instSorc := false

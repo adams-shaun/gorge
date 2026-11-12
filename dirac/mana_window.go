@@ -1685,6 +1685,10 @@ func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, an
 		s.ctrChainTap(k, p, a, sl, ctr, restr, c, &[kop.NumManaKinds]uint8{})
 		return
 	}
+	if tapsDef.has(sl) && s.riderPlainFirst(k, sl) {
+		s.riderPlainGap(k, p, a, sl, c) // the plain first ability and the rider's colours are one ask (mana_rider.go)
+		return
+	}
 	s.tapGapChoice(k, p, sl, restr, anyR, tapsDef, s.scriptEngineAnswer(k, a, sl, anyR, tapsDef, c), spill)
 }
 
@@ -2325,7 +2329,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		if k.restrSrc {
 			d := s.payDescNow(excl)
 			t, multi, nm := s.restrSrcAvail(k, p, d, &av, NoSlot)
-			x = restrWitnessX(x, t, multi[:nm], &cost)
+			x = restrWitnessXPlus(x, t, multi[:nm], &cost, s.restrWithheldMana(k, p, d)) // (mana_restrwithheld.go)
 		}
 	}
 	if cost.X != 0 && s.bld().e.kind == seSpell && s.xWitnessEats(k, p, s.bld().e.card, &cost, x, excl) {
@@ -2353,11 +2357,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 // potentialModeCastPlan: paymentPlanCensusTotal / base.X), so Helga's two
 // beside three lands lift {X}{U} to X = 4, not the lands' 3.
 func restrWitnessX(x int, t avail, multi []uint8, cost *kop.ManaCost) int {
-	tot := t.total
-	for _, n := range multi {
-		tot += int(n)
-	}
-	return min(max(x, t.maxXMulti(cost, pipMaskOf(cost), multi)), tot/int(cost.X))
+	return restrWitnessXPlus(x, t, multi, cost, 0)
 }
 
 // witnessAtCheapest reprices a witness the printed composition cannot fund (rules
