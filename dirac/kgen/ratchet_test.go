@@ -130,7 +130,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// Key, Mana Short, Midnight Arsonist and Raggadragga, Goreguts Boss; ALL
 	// 22345 -> 22350).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22689, 34442},
+	"ALL": {22706, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {216, 280},
@@ -158,7 +158,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TMT": {183, 194},
 	"TRC": {300, 337},
 	"TRK": {311, 311},
-	"WOE": {262, 281},
+	"WOE": {263, 281},
 }
 
 // testSetlistDir is setlistDir relative to the test's working directory
