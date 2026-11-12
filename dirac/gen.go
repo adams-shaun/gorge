@@ -1667,6 +1667,7 @@ type genState struct {
 	energy    [MaxSeats]uint8     // each player's energy counters (CR 122.1; saturates at 255; act_energy.go)
 	roll      uint8               // the last OpRollDie result (ExRollResult; act_energy.go)
 	drawFirst bool                // the turn-based draw of the draw step is pending and no card has been drawn in it yet (repl_draw.go; transient, false between decisions)
+	drawStepN uint8               // the active player's draws in this draw step (trig_drawstep.go; reset on entry)
 	conn      uint8               // OpConnive's nonland hand count before its discard, +1 (0: no connive pending; padding; trig_delayedtiming.go)
 	held      uint8               // entry stamps (mod 8) of until-leaves returns whose enters check a departure frame holds (zone_untilleavesbatch.go; 0 outside a frame; fills the padding after conn)
 

@@ -1565,6 +1565,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	if t.FirstAttack {
 		kt.Flags3 |= kop.Tf3FirstAttack
 	}
+	if t.FirstInDrawStep {
+		kt.Flags5 |= kop.Tf5FirstCardInDrawStep
+	}
+	if t.NotFirstInDrawStep {
+		kt.Flags5 |= kop.Tf5NotFirstCardInDrawStep
+	}
 	if t.GameOnce {
 		kt.Flags3 |= kop.Tf3GameOnce
 	}

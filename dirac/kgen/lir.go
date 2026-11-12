@@ -720,6 +720,11 @@ type lTrigger struct {
 	N                         int16 // LandPlayed: the Origin$ zone mask, 1<<kop.Zone (0 = any)
 	AbClass                   int16 // AbilityCast: the ValidSA$ class (kop.TrigAbCast*)
 	Evolve                    bool  // ETB: Condition$ Evolve, the entering creature's power or toughness greater than the source's, read as it fires
+
+	// Drawn: FirstCardInDrawStep$ gates the card's position in the drawer's
+	// own draw step (gorge trigmatch.firstCardInDrawStep, CR 504.1).
+	FirstInDrawStep    bool // FirstCardInDrawStep$ True (kop.Tf5FirstCardInDrawStep)
+	NotFirstInDrawStep bool // FirstCardInDrawStep$ False (kop.Tf5NotFirstCardInDrawStep)
 }
 
 // lTrigger.Attacked bits.

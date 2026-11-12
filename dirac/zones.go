@@ -291,6 +291,9 @@ func (s *State) drawExcl(p uint8, ch drawChain) {
 		return
 	}
 	s.g.drawFirst = false
+	if s.step == kop.StepDraw && p == s.active && s.g.drawStepN < 255 {
+		s.g.drawStepN++ // trig_drawstep.go: the drawer's cards in their own draw step
+	}
 	o := pl.lib[pl.libLo]
 	pl.libLo++
 	s.touch(o)
@@ -829,6 +832,9 @@ func (s *State) firePlayer(k *prep, ev kop.TrigEvent, who uint8, amt int16) {
 				continue
 			}
 			if a.Trig.Flags&kop.TfSecondDraw != 0 && !s.nthDrawOK(&a.Trig, who) {
+				continue
+			}
+			if ev == kop.TrigDrawn && !drawStepGateOK(&a.Trig, s.drawStepFirst(who)) {
 				continue
 			}
 			s.enqueue(lp.obj, s.objs[lp.obj].ver, s.cardAt(ls), uint8(i), lp.ctrl, NoObj, who, amt)

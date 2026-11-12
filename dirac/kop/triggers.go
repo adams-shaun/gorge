@@ -51,6 +51,22 @@ const (
 	Tf4OptTrigPlayer TrigFlags4 = 1 << 5
 )
 
+// TrigFlags5 are the Drawn trigger's draw-step qualifiers (Trigger.Flags5).
+// Flags through Flags4 carry their documented bits, so this family appends a
+// byte after Flags4.
+type TrigFlags5 uint8
+
+const (
+	// Tf5FirstCardInDrawStep: FirstCardInDrawStep$ True -- the draw is the
+	// first card its player draws in that player's own draw step (gorge
+	// trigmatch.firstCardInDrawStep; Wiretapping). CR 504.1: only the active
+	// player's turn-based draw is the draw step's first card.
+	Tf5FirstCardInDrawStep TrigFlags5 = 1 << 0
+	// Tf5NotFirstCardInDrawStep: FirstCardInDrawStep$ False -- the draw is
+	// any card except that first one (Orcish Bowmasters, Xyris, Leela).
+	Tf5NotFirstCardInDrawStep TrigFlags5 = 1 << 1
+)
+
 // TrigEvent is a triggered ability's subscription: the event kind it listens
 // for. The kernel keeps, per event, a bitmask of battlefield slots whose card
 // has a trigger on it, so an event only scans the subscribers. Append-only.
@@ -169,6 +185,7 @@ type Trigger struct {
 	N       int16      // AttackersDeclared: minimum attackers; CounterAddedOnce: the counter kind (TrigNAnyCounter = every kind); BecomesTarget: TrigNValiant; AbilityCast: TrigAbCast*; LandPlayed: origin mask 1<<kop.Zone, 0 = any; Leaves: destination mask 1<<kop.Zone, 0 = any
 	Flags3  TrigFlags3 // still more qualifiers (values.go; a padding byte)
 	Flags4  TrigFlags4 // single-target qualifiers (triggers.go)
+	Flags5  TrigFlags5 // Drawn: the draw-step position (FirstCardInDrawStep$)
 
 	// TapPlan classes a lowered non-Self TrigTaps watcher for the payment
 	// planner (TapPlan); TapPainN is the vetted literal damage amount of a
