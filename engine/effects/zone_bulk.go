@@ -338,10 +338,19 @@ func sacTargetCardReferent(spec string, c *Ctx) (state.ObjID, bool) {
 // nor emitted; the targeting already picked it, the restriction is what
 // stops it. sacrificeObjectVictims (the departure-batch pre-pass) shares
 // this predicate so its victim list cannot drift from the sacrifices.
-func sacrificeObjectEligible(h Host, o *state.Object) bool {
+//
+// The ability's own source (a "sacrifice this land" line: SacValid$ Self or
+// none) is sacrificed only by the ability's controller: "you" is that player
+// (CR 608.2c) and a player can't sacrifice a permanent they don't control
+// (CR 701.21a), so a source whose control changed while the ability was on
+// the stack is skipped, neither offered nor emitted.
+func sacrificeObjectEligible(h Host, c *Ctx, o *state.Object) bool {
 	// A phased-out permanent can't be affected by anything (CR 702.26b), so
 	// it is neither sacrificed nor offered to a sacrifice's chooser.
-	return o != nil && o.Zone == state.ZBattlefield && !o.PhasedOut && !h.SacrificeBlocked(o.ID, false)
+	if o == nil || o.Zone != state.ZBattlefield || o.PhasedOut || h.SacrificeBlocked(o.ID, false) {
+		return false
+	}
+	return o.ID != c.Source || o.Controller == c.Controller
 }
 
 // sacrificeObjectVictims lists one effSacrifice call's plain object targets
@@ -352,13 +361,13 @@ func sacrificeObjectEligible(h Host, o *state.Object) bool {
 // (rules' batchMemberReplActive) and their leaves-the-battlefield triggers
 // see one pre-departure board. An Optional$ ask answered No inside the loop
 // strands a victim, which EndBatchDepartures discards.
-func sacrificeObjectVictims(h Host, g *state.Game, who []state.Target) []state.ObjID {
+func sacrificeObjectVictims(h Host, c *Ctx, g *state.Game, who []state.Target) []state.ObjID {
 	var victims []state.ObjID
 	for _, t := range who {
 		if t.IsPlayer {
 			continue
 		}
-		if o := g.Obj(t.Obj); sacrificeObjectEligible(h, o) {
+		if o := g.Obj(t.Obj); sacrificeObjectEligible(h, c, o) {
 			victims = append(victims, o.ID)
 		}
 	}
@@ -503,7 +512,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	// The plain object targets sacrifice as one batch; see sacrificeObjectVictims.
-	if victims := sacrificeObjectVictims(h, g, who); len(victims) > 0 {
+	if victims := sacrificeObjectVictims(h, c, g, who); len(victims) > 0 {
 		h.BatchDepartures(victims)
 		defer h.EndBatchDepartures()
 	}
@@ -664,7 +673,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 		}
 		o := g.Obj(t.Obj)
 		// Zone + CantSacrifice guards, shared with the pre-pass: see sacrificeObjectEligible.
-		if !sacrificeObjectEligible(h, o) {
+		if !sacrificeObjectEligible(h, c, o) {
 			continue
 		}
 		// A specific object target is sacrificed as-is: the choice of which
