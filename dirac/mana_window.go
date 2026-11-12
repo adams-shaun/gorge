@@ -2929,8 +2929,9 @@ func (s *State) manaStep(k *prep) bool {
 			// order (pay.ManaSourceIDs). When the offer priced a mana-free
 			// part instead, the seat's choice of the mana part changes the
 			// cost the plan was armed for, so fall back to the window as
-			// gorge's plan does.
-			if cd.BeholdN == 0 || s.altAddFreePart(k, e.ctrl, e.card, e.obj) {
+			// gorge's plan does. A cost static can make the two equal (a
+			// reduction taking the mana part's {1}), and then the plan stands.
+			if cd.BeholdN == 0 || s.altAddFreePart(k, e.ctrl, e.card, e.obj) && s.altAddPlanCostDiffers(k, cost) {
 				c := xFolded(cost, int(e.x))
 				// a behold carrier's fallback window has no ManaPayment: a source answers
 				// its lowest colour, not the owed pip (windowCol)
@@ -3453,4 +3454,20 @@ func (s *State) applyCastWinTap(k *prep, a Action) {
 // (a larger alternative of a pair unit).
 func (s *State) floatRestrOnly(k *prep, p uint8, sl Slot, ab *kop.Ability, col int, n uint8) bool {
 	return s.addRestrSrcV(k, p, sl, ab.ManaRestrict, k.gen.restrVarOf(ab), col, n)
+}
+
+// altAddPlanCostDiffers: the mana part chosen beside a payable mana-free part
+// composes a cost other than the one the plan was armed for (the free part's,
+// planCastAltAdd). Gorge falls back to the window only then (paymentPlanCheckUnits:
+// plan.Cost != the actual cost), so a reduction that makes them equal keeps the plan.
+func (s *State) altAddPlanCostDiffers(k *prep, cost kop.ManaCost) bool {
+	b := s.bld()
+	fl, bf, fg, saved := b.e.flags, b.bfl, b.fixedGen, b.altAdd
+	b.e.flags &^= sfAnyMana
+	b.bfl &^= bflAnyColor | bflCostFixed
+	b.altAdd = 0
+	armed := s.buildCost(k)
+	b.altAdd = saved
+	b.e.flags, b.bfl, b.fixedGen = fl, bf, fg
+	return armed != cost
 }
