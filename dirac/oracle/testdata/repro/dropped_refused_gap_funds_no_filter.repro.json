@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-blb",
+ "pool": "std-blb",
+ "why": "Season of Gathering beside Clement's creature-spell-only granted mana and Hidden Grotto's filter: the refused grant is no gap and funds no fee, so the sorcery is short a mana and not offered (CR 106.6)",
  "actions": [
   16776960,
   16776960,

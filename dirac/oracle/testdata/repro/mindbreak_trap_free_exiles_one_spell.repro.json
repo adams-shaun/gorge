@@ -76,6 +76,8 @@
  "max_turns": 16,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "one-off",
+ "why": "",
  "actions": [
   20184832,
   36044544,

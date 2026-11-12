@@ -71,6 +71,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Shang-Chi, Master of Kung Fu out: a Prodigal Sorcerer pings the turn it entered, summoning sick, and still can't attack (CR 302.6)",
  "actions": [
   19398400,
   17891072,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "CR 707.10, 400.7: Echo copies Project Deathlok Soldier's graveyard activation after the card was returned and discarded (graveyard -> hand -> graveyard, never the battlefield): the copy keeps the original's source, a new object by now, so the card stays in the graveyard",
  "actions": [
   16776960,
   16776960,

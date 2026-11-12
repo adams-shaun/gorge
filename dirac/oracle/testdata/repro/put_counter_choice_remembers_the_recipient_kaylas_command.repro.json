@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Kayla's Command chooses the token and counter modes: the +1/+1 counter goes on a creature you control, which is remembered and gains double strike until end of turn (CR 700.2, 122.1)",
  "actions": [
   18415360,
   17497856,

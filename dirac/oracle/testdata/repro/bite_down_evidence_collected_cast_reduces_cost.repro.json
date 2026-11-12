@@ -94,6 +94,8 @@
  "mulligans": 1,
  "pass_elision": false,
  "surface": "full",
+ "pool": "std-mkm",
+ "why": "Bite Down on Crime cast collecting evidence costs {2} less (CR 601.2b, 601.2f), at the offer and at the charge",
  "actions": [
   184549120,
   184549120,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "Armor Wars' chapter I with artifacts out: the controller pays by drawing a card for each, then each opponent draws one, both engines agreeing on the count and the order",
  "actions": [
   16776960,
   16776960,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "a grant search branches a stacked trigger's target ask over gorge's answer order (gorgeTargetOrder), not the kernel's slot order: Nanoform Sentinel's \"untap another target permanent\" untaps the first opponent permanent, not its controller's first land",
  "actions": [
   16776960,
   16776960,

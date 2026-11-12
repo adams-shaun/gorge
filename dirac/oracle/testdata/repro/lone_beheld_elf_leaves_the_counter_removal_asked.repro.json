@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "Champions of the Perfect cast through Dawnhand Dissident, the Dissident the lone Elf to behold: recording it left no pick open, so the three counters are asked and the cast completes (CR 601.2b, 601.2h)",
  "actions": [
   167771904,
   184549120,

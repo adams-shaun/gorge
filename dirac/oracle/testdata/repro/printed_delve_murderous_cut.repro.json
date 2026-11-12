@@ -96,6 +96,8 @@
  "max_turns": 40,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Murderous Cut cast off Priest of Gix's floating black with graveyard cards delved: the same printed-keyword path",
  "actions": [
   167771904,
   167771904,

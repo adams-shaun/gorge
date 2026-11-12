@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-spm",
+ "pool": "std-spm",
+ "why": "CR 601.2g, 733.1: Supportive Parents convoked for Web of Life and Destiny is no window source, so the stranded cast reverses before Guy in the Chair or a Forest taps",
  "actions": [
   16776960,
   16776960,

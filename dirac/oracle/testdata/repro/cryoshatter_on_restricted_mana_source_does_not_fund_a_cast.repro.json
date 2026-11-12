@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Cryoshatter on an untapped Steelswarm Operator: the tap fires its unvetted Taps watcher, so gorge's census leaves out the Operator's restricted {U} too and it funds no Mechan Navigator on the autopay surface",
  "actions": [
   19398400,
   17432320,

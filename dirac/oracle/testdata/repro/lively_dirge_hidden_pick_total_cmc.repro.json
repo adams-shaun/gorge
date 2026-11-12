@@ -94,6 +94,8 @@
  "mulligans": 0,
  "pass_elision": false,
  "surface": "full",
+ "pool": "std-otj",
+ "why": "Lively Dirge's Spree return mode takes creature cards whose printed mana values total 4 or less from the graveyard into one hidden pick: the running sum limits the second card to a 1-drop",
  "actions": [
   16776960,
   16776960,

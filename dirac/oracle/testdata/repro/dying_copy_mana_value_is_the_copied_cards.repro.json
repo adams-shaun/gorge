@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-blb",
+ "why": "a Mockingbird copying Plumecreed Escort dies beside Jackdaw Savior: \"lesser mana value\" reads the copy's 2 (CR 707.2, 608.2h), so Nettle Guard is a target",
  "actions": [
   16776960,
   16776960,

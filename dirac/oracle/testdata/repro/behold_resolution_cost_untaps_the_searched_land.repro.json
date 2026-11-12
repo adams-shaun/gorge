@@ -96,6 +96,8 @@
  "max_turns": 40,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Elven Passage's search finds a basic land and its unless-switched behold of an Elf pays with one of three candidates (battlefield Elves then hand Elves): nothing moves and the land untaps; both engines agree through the pick and past it (CR 701.4a)",
  "actions": [
   184549120,
   184549120,

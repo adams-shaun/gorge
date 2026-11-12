@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-fin",
+ "why": "The Emperor of Palamecia's one mana does not reach Ice Magic's {4}: no target offered, no cast reversed after it",
  "actions": [
   16776960,
   16776960,

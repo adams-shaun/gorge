@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Reanimate returns a Walking Corpse killed by Disfigure: the returned card is remembered and its controller loses two life, its mana value",
  "actions": [
   19398400,
   17891072,

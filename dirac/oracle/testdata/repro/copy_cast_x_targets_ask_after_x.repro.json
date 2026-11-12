@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 601.2b, 601.2c: Q's Play of Dominion Infiltration announces X before its \"X target creatures\", so a copy cast no mana can pay still asks X and reaches its mana window",
  "actions": [
   167771904,
   184549120,

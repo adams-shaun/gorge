@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-trk",
+ "why": "Deep Space 9 cast after tapping Jett Reno for Rok-Tahk's granted {G}{G}: gorge's prefix lets Jett's surveil resolve first and answers it with the empty top pile, so Adversary by Algorithm goes to the graveyard (CR 701.25a)",
  "actions": [
   16776960,
   16776960,

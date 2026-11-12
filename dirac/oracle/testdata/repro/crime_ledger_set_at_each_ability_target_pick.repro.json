@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "Omenport Vigilante's double strike turns on mid-way through a Boom Box activation: gorge records each target ask of an ability as a TargetsChosen as it is applied, so the per-turn crime ledger sets at every pick (CR 700.13), not only at placement, and the kernel follows (act_commitcrime.go crimePick).",
  "actions": [
   184549120,
   167771904,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-dft",
+ "pool": "std-dft",
+ "why": "CR 205.3m, 613.1d: two Lifecraft Engines under one seat grant Kangaroo and Badger (different outside codes) to one Vehicle creature; a ChosenType read on it compares them instead of stalling as outsidetype",
  "actions": [
   184549120,
   167771904,

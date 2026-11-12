@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "CR 603.10a: Devastating Onslaught's Encore sacrifices its two Lightless Evangel tokens together, so each token's sacrifice trigger sees the other go",
  "actions": [
   16776960,
   16776960,

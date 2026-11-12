@@ -96,6 +96,8 @@
  "max_turns": 40,
  "surface": "autopay",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "Moonlit Meditation on a creature: a Cosmogrand Zenith's two Soldiers make one copy of the enchanted permanent and one plain token, the copy closing the first-time gate (CR 614.1a, 707.2)",
  "actions": [
   16776960,
   16776960,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "Skimming Strike, Dirgur Island Dragon's Omen, offered off one floating {U} with Teval's granted delve paying its {1} (CR 702.66a, 720.3a)",
  "actions": [
   16776960,
   16776960,

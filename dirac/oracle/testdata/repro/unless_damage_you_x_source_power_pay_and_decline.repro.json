@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "Combustion Man's attack trigger: the target's controller either takes damage equal to his power or the permanent is destroyed, both engines agreeing on each answer (CR 118.12, 120.3)",
  "actions": [
   16776960,
   16776960,

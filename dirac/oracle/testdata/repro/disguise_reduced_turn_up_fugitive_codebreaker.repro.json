@@ -112,6 +112,8 @@
  "max_turns": 80,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Fugitive Codebreaker turned face up from Priest of Urabrask's {R}{R}{R} with Lightning Bolts in its owner's graveyard: the disguise cost is reduced by {1} for each (CR 601.2f, 702.168c)",
  "actions": [
   167771904,
   167771904,

@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Tangled Colony's dies trigger creates one 1/1 Rat per point of damage it received this turn (Count$TotalDamageReceivedThisTurn): a Lightning Bolt's 3 damage makes three (CR 603.6c, 120.3)",
  "actions": [
   18874112,
   35192576,

@@ -221,6 +221,8 @@
  ],
  "surface": "full",
  "kernel": "set cmd5",
+ "pool": "custom",
+ "why": "kfuzz cmd5 heuristic pair 31: Giada, Font of Hope, a commander, blocks a Zombie token and both die in combat: the command-zone choice is posed before the check's other actions, so the token is still in the graveyard at the ask and ceases after the answer (CR 704.3, 704.6d, 903.9a)",
  "actions": [
   16776960,
   16776960,

@@ -94,7 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 30,
- "surface": "autopay",
+ "surface": "full",
+ "pool": "std-fin",
+ "why": "CR 702.15b: Phoenix's chapter damage, after Stiltzkin gave Phoenix away with the ability on the stack, gains life for Phoenix's controller",
  "actions": [
   16776960,
   16776960,

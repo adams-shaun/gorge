@@ -95,6 +95,9 @@
  "pass_elision": false,
  "max_turns": 30,
  "surface": "autopay",
+ "pool": "std-fdn",
+ "why": "CR 120.3, 704.5g: 32768 combat damage from Heroes' Bane kills the blocking Guttersnipe; the damage record saturates (StallPT past int16), never wraps",
+ "stall": true,
  "actions": [
   16776960,
   16776960,

@@ -96,6 +96,8 @@
  "max_turns": 80,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Twinned Vision flashed back for {1}{U/R}{U/R} and a discard, thirteen times: each hybrid pip's colour is announced like a printed cost's, then the discard is picked (CR 107.4e, 601.2b, 702.34a)",
  "actions": [
   167771904,
   167771904,

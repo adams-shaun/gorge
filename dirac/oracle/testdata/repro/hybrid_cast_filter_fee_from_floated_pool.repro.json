@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "CR 601.2g-h: a hybrid cast whose dry census cannot price a filter's fee still completes when the real window pays it from the floated pool",
  "actions": [
   16776960,
   16776960,

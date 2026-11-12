@@ -198,10 +198,11 @@ func (lc *lowerCtx) connive(ps *params) error {
 
 // debuff lowers api:Debuff (gorge effDebuff: each Defined$ object on the
 // battlefield -- the source when none is named -- gets a layer-6
-// continuous effect removing Keywords$, until end of turn or with
-// Duration$ Permanent for good): an override with RemoveKw. Keywords
-// without a kernel bit, other durations, AllSuffixKeywords$ and
-// Activator$ refuse.
+// continuous effect removing Keywords$, until end of turn, until the
+// controller's next turn (CR 611.2b, Fear of Falling) or with Duration$
+// Permanent for good): an override with RemoveKw, the UntilYourNextTurn
+// one with the next-turn boundary dropNextTurnOv ends. Keywords without a
+// kernel bit, other durations, AllSuffixKeywords$ and Activator$ refuse.
 func (lc *lowerCtx) debuff(ps *params) error {
 	ks, err := removeKeywords(ps.str("Keywords"))
 	if err != nil {
@@ -209,10 +210,14 @@ func (lc *lowerCtx) debuff(ps *params) error {
 	}
 	dur := "EOT"
 	if d, ok := ps.get("Duration"); ok {
-		if d != "Permanent" {
+		switch d {
+		case "Permanent":
+			dur = "Permanent"
+		case "UntilYourNextTurn":
+			dur = "UntilYourNextTurn"
+		default:
 			return refuse("Debuff Duration %q", d)
 		}
-		dur = "Permanent"
 	}
 	obj, err := lc.objOrTarget(ps, "Self", zBattlefield)
 	if err != nil {

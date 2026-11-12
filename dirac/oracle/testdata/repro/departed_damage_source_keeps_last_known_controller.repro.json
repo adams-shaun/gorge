@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "CR 113.7a: Human Torch (owned by the opponent) dies, then deals damage; The Thing, Ben Grimm still sees a Hero its controller controlled",
  "actions": [
   184549120,
   167771904,

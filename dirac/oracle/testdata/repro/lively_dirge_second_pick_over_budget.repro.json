@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "Lively Dirge's return mode after a first creature card: the remaining graveyard creatures whose mana value would carry the total past 4 are no longer offered, so the pick ends",
  "actions": [
   16776960,
   16776960,

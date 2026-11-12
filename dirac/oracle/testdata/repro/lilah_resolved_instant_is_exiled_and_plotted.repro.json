@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Lilah, Undefeated Slickshot out, a Lightning Helix cast from hand resolves: it is exiled instead of going to the graveyard and becomes plotted (CR 614.1a, 702.170b)",
  "actions": [
   19398400,
   17497856,
