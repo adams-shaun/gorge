@@ -223,14 +223,14 @@ echo "== 4 affected gate and dirac gate, side by side"
 lock=${GORGE_HEAVY_LOCK:-}
 lanes=${GORGE_HEAVY_LANES:-3}
 wait_s=${GORGE_TEST_LANE_WAIT:-1500}
-if [ -n "$lock" ] && [ -d "$(dirname "$lock")" ]; then
+if [ -n "$lock" ] && { : >>"$lock"; } 2>/dev/null; then
 	deadline=$((SECONDS + wait_s))
 	got=
 	while [ -z "$got" ]; do
 		for i in $(seq 1 "$lanes"); do
 			f=$lock
 			[ "$i" = 1 ] || f=$lock.lane$i
-			: >>"$f"
+			{ : >>"$f"; } 2>/dev/null || continue
 			exec 9>>"$f"
 			if flock -n 9; then got=$i; break; fi
 		done
@@ -239,7 +239,7 @@ if [ -n "$lock" ] && [ -d "$(dirname "$lock")" ]; then
 		sleep 5
 	done
 else
-	echo "test-targets: note: GORGE_HEAVY_LOCK is unset or its directory is missing; running without a heavy lane" >&2
+	echo "test-targets: note: GORGE_HEAVY_LOCK is unset or not writable; running without a heavy lane" >&2
 fi
 dgs=$(mktemp "${TMPDIR:-/tmp}/test-smart-dirac-gate.XXXXXX") && git show "$BASE:scripts/dirac-gate.sh" >"$dgs" || verdict ENV "cannot read $BASE:scripts/dirac-gate.sh"
 S=$(mktemp -d "${TMPDIR:-/tmp}/test-smart.XXXXXX")
