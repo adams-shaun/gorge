@@ -174,7 +174,7 @@ func krmctrPolicy(seed uint64, tr *krmctrTracker) Policy {
 // krmctrRun plays seeds 1..seeds through tbl, counting branches into n.
 func krmctrRun(t *testing.T, reg *cards.Registry, set cardset.Set, tbl *kop.Table, seeds uint64, n map[string]int, logDiv bool) (games int, div bool, stalls int, seed0 uint64) {
 	t.Helper()
-	decks := kctrnamedDecksOf(t, reg, krmctrDecks)
+	decks := kcastDeck(t, reg, krmctrDecks)
 	for seed := uint64(1); seed <= seeds; seed++ {
 		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
 		m, err := NewMatchup(reg, [2]string{"krmctr-a", "krmctr-b"}, decks, 1)

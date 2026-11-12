@@ -212,7 +212,7 @@ func kcondkeysRun(t *testing.T, seeds uint64, mutate bool) (games, divs, stalls 
 		if swap == 1 {
 			md = [2][]cardset.Entry{kcondkeysDecks[1], kcondkeysDecks[0]}
 		}
-		decks := kctrnamedDecksOf(t, reg, md)
+		decks := kcastDeck(t, reg, md)
 		tbl, _, _, err := set.Matchup(md[0], md[1])
 		if err != nil {
 			t.Fatal(err)
@@ -411,8 +411,8 @@ func TestCondkeysLegendEtbXBoundLockstep(t *testing.T) {
 	reg, set := kcondkeysSetup(t)
 	md := kcondkeysLegendDecks()
 	swapped := [2][]cardset.Entry{md[1], md[0]}
-	decks := kctrnamedDecksOf(t, reg, md)
-	decksSwapped := kctrnamedDecksOf(t, reg, swapped)
+	decks := kcastDeck(t, reg, md)
+	decksSwapped := kcastDeck(t, reg, swapped)
 	cases := []struct {
 		swap int
 		seed uint64

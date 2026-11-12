@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -386,4 +387,24 @@ func battlefieldHasName(g *state.Game, pl state.PlayerID, name string) bool {
 		}
 	}
 	return false
+}
+
+func kcastDeck(t *testing.T, reg *cards.Registry, md [2][]cardset.Entry) [2][]*cards.Card {
+	t.Helper()
+	var decks [2][]*cards.Card
+	for s, d := range md {
+		for _, e := range d {
+			c, ok := reg.Lookup(e.Name)
+			if !ok {
+				t.Fatalf("%s not in the corpus", e.Name)
+			}
+			for i := 0; i < e.Count; i++ {
+				decks[s] = append(decks[s], c)
+			}
+		}
+		if len(decks[s]) != 40 {
+			t.Fatalf("deck %d: %d cards", s, len(decks[s]))
+		}
+	}
+	return decks
 }

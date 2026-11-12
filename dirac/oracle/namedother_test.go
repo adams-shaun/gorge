@@ -145,7 +145,7 @@ func (w *knamedotherWatch) observe(s *dirac.State, seen *knamedotherSeen) {
 // the stalls, and adds the observed events to seen.
 func knamedotherRun(t *testing.T, reg *cards.Registry, set cardset.Set, tbl *kop.Table, seeds uint64, seen *knamedotherSeen, stopOnDiv bool) (games int, div bool, stalls int) {
 	t.Helper()
-	decks := kctrnamedDecksOf(t, reg, knamedotherDecks)
+	decks := kcastDeck(t, reg, knamedotherDecks)
 	for seed := uint64(1); seed <= seeds; seed++ {
 		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
 		m, err := NewMatchup(reg, [2]string{"knamedother-a", "knamedother-b"}, decks, 1)
