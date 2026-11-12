@@ -48,9 +48,18 @@ const (
 	raGenEmpower              // OpEmpower with two or more Jace tokens: which one gets the loyalty counters (ChGenBolster, gorge's "counter_pick"; act_empower.go)
 	raGenDemonstrate          // OpDemonstrate: copy the spell? (gorge demonstrate election, ChGenConfirm; kw_demonstrate.go)
 	raGenManifestDread        // OpManifestDread: the top-two window's card to manifest (ChGenManifestDread; face_manifest.go)
-	raGenDigAllOpt            // OpDigEx ChangeNum$ All beside Optional$: the yes/no take-all election (ChGenDigOpt)
-	raGenCmdZone              // a commander's CR 903.9b move parked at a hand/library destination (zone_cmdzone.go)
-	raGenExtort               // OpExt ExtExtort: pay {W/B}? (ChGenPayMode mode 1 = pay; act_extort.go)
+)
+
+// The asks just above raGenManifestDread live in its free offsets (+4..+6),
+// not in the iota block above: the offset families that anchor at
+// raGenManifestDread (+1/+2 modal_activated.go, +3 zone_changezoneparams.go's
+// may-mill, +40.. act_mayask.go, ...) assign values by addition, so the next
+// iota value would alias one of them and its first handler would claim the
+// other family's election.
+const (
+	raGenDigAllOpt = raGenManifestDread + 4 // OpDigEx ChangeNum$ All beside Optional$: the yes/no take-all election (ChGenDigOpt)
+	raGenCmdZone   = raGenManifestDread + 5 // a commander's CR 903.9b move parked at a hand/library destination (zone_cmdzone.go)
+	raGenExtort    = raGenManifestDread + 6 // OpExt ExtExtort: pay {W/B}? (ChGenPayMode mode 1 = pay; act_extort.go)
 )
 
 // ChoiceKinds of the generated table's DkChoose decisions (above the core's).
