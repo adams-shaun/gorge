@@ -23,16 +23,6 @@ func untapUntaps(t *testing.T, e *Engine, id state.ObjID) {
 	e.emit(events.Event{Kind: events.Untap, Obj: id})
 }
 
-// indexOfObjOption returns the option index targeting object id, or -1.
-func indexOfObjOption(d *decision.Decision, id state.ObjID) int {
-	for _, o := range d.Options {
-		if o.Obj == id {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 // TestTokenCreatedMirkwoodBatsLosesLifePerToken is the filing card: one Food
 // token mint -> each opponent loses exactly 1 life; a second mint in the same
 // turn loses 1 more (per-token firing, NOT once-per-turn).

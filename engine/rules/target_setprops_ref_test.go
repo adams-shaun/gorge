@@ -57,10 +57,10 @@ func TestTargetSetSharedCardType(t *testing.T) {
 	if d == nil {
 		t.Fatal("no target decision posed")
 	}
-	if setPropOptionIndex(d, artifact) == -1 {
+	if indexOfObjOption(d, artifact) == -1 {
 		t.Fatal("the sharing Artifact was not offered")
 	}
-	if setPropOptionIndex(d, creature) != -1 {
+	if indexOfObjOption(d, creature) != -1 {
 		t.Fatal("the non-sharing Creature was offered despite TargetsWithSharedCardType$")
 	}
 	// The resolution recheck applies the same predicate.
@@ -114,10 +114,10 @@ func TestTargetSetSharedTypes(t *testing.T) {
 	if d == nil {
 		t.Fatal("no target decision posed")
 	}
-	if setPropOptionIndex(d, artifact) == -1 {
+	if indexOfObjOption(d, artifact) == -1 {
 		t.Fatal("the whitelisted Artifact was not offered")
 	}
-	if setPropOptionIndex(d, creature) != -1 {
+	if indexOfObjOption(d, creature) != -1 {
 		t.Fatal("the non-whitelisted Creature was offered despite TargetsWithSharedTypes$")
 	}
 }

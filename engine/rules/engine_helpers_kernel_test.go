@@ -147,6 +147,39 @@ func optionIdxWithLabel(t *testing.T, d *decision.Decision, label string) int {
 	return -1
 }
 
+// indexOfObjOption returns the index of d's option carrying id, or -1 when
+// no option does. It does not fail: a test that requires the option to be
+// present reads the -1 itself.
+func indexOfObjOption(d *decision.Decision, id state.ObjID) int {
+	for _, o := range d.Options {
+		if o.Obj == id {
+			return o.Index
+		}
+	}
+	return -1
+}
+
+// optionIndexForKind returns the index of d's option of the given kind, or
+// -1 when no option has it.
+func optionIndexForKind(d *decision.Decision, kind string) int {
+	for _, o := range d.Options {
+		if o.Kind == kind {
+			return o.Index
+		}
+	}
+	return -1
+}
+
+// optionKindOffered reports whether d offers an option of the given kind.
+func optionKindOffered(d *decision.Decision, kind string) bool {
+	return optionIndexForKind(d, kind) >= 0
+}
+
+// offersObjOption reports whether d offers an option carrying id.
+func offersObjOption(d *decision.Decision, id state.ObjID) bool {
+	return indexOfObjOption(d, id) >= 0
+}
+
 // eventsSince returns the events logged from index start on.
 func eventsSince(e *Engine, start int) []events.Event {
 	return append([]events.Event(nil), e.L.Events[start:]...)

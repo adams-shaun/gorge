@@ -192,10 +192,10 @@ func TestSplitAltTargetConditionalFlash(t *testing.T) {
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("split_alt target decision = %+v", d)
 	}
-	if idx := istTargetOptionFor(d, theirGizmo); idx >= 0 {
+	if idx := indexOfObjOption(d, theirGizmo); idx >= 0 {
 		t.Fatalf("the non-qualifying artifact was offered although the flash permission does not cover it: %+v", d.Options)
 	}
-	idx := istTargetOptionFor(d, qualifying)
+	idx := indexOfObjOption(d, qualifying)
 	if idx < 0 {
 		t.Fatalf("precondition: the qualifying artifact must be offered: %+v", d.Options)
 	}
@@ -248,7 +248,7 @@ func TestSplitAltTargetConditionalFlash(t *testing.T) {
 	if d3 == nil || d3.Kind != decision.KTarget {
 		t.Fatalf("instant-half target decision = %+v", d3)
 	}
-	submitChoices(t, e3, istTargetOptionFor(d3, theirGizmo3))
+	submitChoices(t, e3, indexOfObjOption(d3, theirGizmo3))
 	if z := e3.G.Obj(spell3).Zone; z != state.ZStack {
 		t.Fatalf("an instant half cast on a non-qualifying target ended in %s, want the stack (no CR 601.2e reversal)", z)
 	}
@@ -305,11 +305,11 @@ func TestFuseTargetConditionalFlash(t *testing.T) {
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("fused stage 0 decision = %+v", d)
 	}
-	s0 := istTargetOptionFor(d, bear)
+	s0 := indexOfObjOption(d, bear)
 	if s0 < 0 {
 		t.Fatalf("precondition: the front stage must offer the creature: %+v", d.Options)
 	}
-	if istTargetOptionFor(d, myGizmo) >= 0 || istTargetOptionFor(d, theirGizmo) >= 0 {
+	if indexOfObjOption(d, myGizmo) >= 0 || indexOfObjOption(d, theirGizmo) >= 0 {
 		t.Fatalf("precondition: the front stage must not offer the artifacts: %+v", d.Options)
 	}
 	submitChoices(t, e, s0)
@@ -317,10 +317,10 @@ func TestFuseTargetConditionalFlash(t *testing.T) {
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("fused stage 1 decision = %+v", d)
 	}
-	if istTargetOptionFor(d, bear) >= 0 {
+	if indexOfObjOption(d, bear) >= 0 {
 		t.Fatalf("precondition: the alternate stage must not offer the creature: %+v", d.Options)
 	}
-	t1 := istTargetOptionFor(d, theirGizmo)
+	t1 := indexOfObjOption(d, theirGizmo)
 	if t1 < 0 {
 		t.Fatalf("precondition: the alternate stage must offer the opponent's artifact: %+v", d.Options)
 	}
@@ -344,12 +344,12 @@ func TestFuseTargetConditionalFlash(t *testing.T) {
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("second fused stage 0 = %+v", d)
 	}
-	submitChoices(t, e, istTargetOptionFor(d, bear))
+	submitChoices(t, e, indexOfObjOption(d, bear))
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("second fused stage 1 = %+v", d)
 	}
-	idx := istTargetOptionFor(d, myGizmo)
+	idx := indexOfObjOption(d, myGizmo)
 	if idx < 0 {
 		t.Fatalf("precondition: the qualifying artifact must be offered: %+v", d.Options)
 	}
