@@ -78,9 +78,9 @@ func TestPaymentPlanChoiceSources(t *testing.T) {
 		if err := e.ValidateCastPayment(0, paymentCast(spell), *got.Plan); err != nil {
 			t.Fatalf("validate Guildgate witness: %v", err)
 		}
-		d := ppAsk(t, e)
+		d := paymentPlanReask(t, e)
 		act := ppAction(t, d, spell)
-		ppSubmitPlan(t, e, d, act)
+		submitPaymentPlan(t, e, d, act)
 		nd := e.Pending()
 		if nd == nil || nd.Kind != decision.KPriority {
 			t.Fatalf("after the planned cast pending = %#v, want the ordinary priority (no colour ask)", nd)

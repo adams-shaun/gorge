@@ -10,19 +10,10 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-func stageCard(t *testing.T, reg *cards.Registry, name string) *cards.Card {
-	t.Helper()
-	c, ok := reg.Lookup(name)
-	if !ok {
-		t.Fatalf("card %q not in the corpus", name)
-	}
-	return c
-}
-
 func stageCards(t *testing.T, reg *cards.Registry, names ...string) []*cards.Card {
 	out := make([]*cards.Card, 0, len(names))
 	for _, n := range names {
-		out = append(out, stageCard(t, reg, n))
+		out = append(out, registryCardByName(t, reg, n))
 	}
 	return out
 }
@@ -78,18 +69,18 @@ func stageMain(t *testing.T, reg *cards.Registry) (Config, Stage) {
 				Exile: stageCards(t, reg, "Ajani's Pridemate")},
 		},
 		Permanents: []StagedPermanent{
-			{Card: stageCard(t, reg, "Forest"), Owner: 0, Controller: 0},
-			{Card: stageCard(t, reg, "Forest"), Owner: 0, Controller: 0, Tapped: true},
-			{Card: stageCard(t, reg, "Helpful Hunter"), Owner: 0, Controller: 0, Sick: true},
-			{Card: stageCard(t, reg, "Burglar Rat"), Owner: 0, Controller: 0},
-			{Card: stageCard(t, reg, "Guarded Heir"), Owner: 0, Controller: 0, Counters: []StagedCounter{{"P1P1", 2}}, Damage: 1},
-			{Card: stageCard(t, reg, "Ajani, Caller of the Pride"), Owner: 0, Controller: 0},
-			{Card: stageCard(t, reg, "Llanowar Elves"), Owner: 0, Controller: 0, Sick: true},
-			{Card: stageCard(t, reg, "Serra Angel"), Owner: 1, Controller: 1},
-			{Card: stageCard(t, reg, "Pacifism"), Owner: 0, Controller: 0, AttachTo: 8},
+			{Card: registryCardByName(t, reg, "Forest"), Owner: 0, Controller: 0},
+			{Card: registryCardByName(t, reg, "Forest"), Owner: 0, Controller: 0, Tapped: true},
+			{Card: registryCardByName(t, reg, "Helpful Hunter"), Owner: 0, Controller: 0, Sick: true},
+			{Card: registryCardByName(t, reg, "Burglar Rat"), Owner: 0, Controller: 0},
+			{Card: registryCardByName(t, reg, "Guarded Heir"), Owner: 0, Controller: 0, Counters: []StagedCounter{{"P1P1", 2}}, Damage: 1},
+			{Card: registryCardByName(t, reg, "Ajani, Caller of the Pride"), Owner: 0, Controller: 0},
+			{Card: registryCardByName(t, reg, "Llanowar Elves"), Owner: 0, Controller: 0, Sick: true},
+			{Card: registryCardByName(t, reg, "Serra Angel"), Owner: 1, Controller: 1},
+			{Card: registryCardByName(t, reg, "Pacifism"), Owner: 0, Controller: 0, AttachTo: 8},
 			{Token: "w_1_1_cat", Owner: 1, Controller: 1, Sick: true},
-			{Card: stageCard(t, reg, "Savannah Lions"), Owner: 1, Controller: 0},
-			{Card: stageCard(t, reg, "Plains"), Owner: 1, Controller: 1, Tapped: true},
+			{Card: registryCardByName(t, reg, "Savannah Lions"), Owner: 1, Controller: 0},
+			{Card: registryCardByName(t, reg, "Plains"), Owner: 1, Controller: 1, Tapped: true},
 		},
 	}
 	return cfg, st
@@ -235,7 +226,7 @@ func TestStagedHeldDeclareAttackersReachesBlockers(t *testing.T) {
 	st.PriorityPlayer = 1
 	st.Permanents[8].AttachTo = 0 // Pacifism on nothing is illegal; drop it
 	st.Permanents = st.Permanents[:8]
-	st.Permanents = append(st.Permanents, StagedPermanent{Card: stageCard(t, reg, "Savannah Lions"), Owner: 1, Controller: 1})
+	st.Permanents = append(st.Permanents, StagedPermanent{Card: registryCardByName(t, reg, "Savannah Lions"), Owner: 1, Controller: 1})
 	st.Attackers = []StagedAttack{{Attacker: 7, Defender: 0}, {Attacker: 8, Defender: 0}}
 	e, ids, err := NewStaged(cfg, st)
 	if err != nil {

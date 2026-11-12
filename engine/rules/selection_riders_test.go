@@ -46,15 +46,6 @@ func selectionSVars(face *cards.Face) map[string]string {
 	return sv
 }
 
-func selectionCard(t *testing.T, reg *cards.Registry, name string) *cards.Card {
-	t.Helper()
-	c, ok := reg.Lookup(name)
-	if !ok {
-		t.Fatalf("card %q not in the corpus", name)
-	}
-	return c
-}
-
 func selectionOptionObj(d *decision.Decision, index int) state.ObjID {
 	for _, o := range d.Options {
 		if o.Index == index {
@@ -94,11 +85,11 @@ func selectionHasID(ids []state.ObjID, id state.ObjID) bool {
 
 func TestRipDifferentPowersRejectsEqualPowers(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	rip := selectionCard(t, reg, "Rip, Spawn Hunter")
-	hill := selectionCard(t, reg, "Hill Giant")
-	centaur := selectionCard(t, reg, "Centaur Courser")
-	grizzly := selectionCard(t, reg, "Grizzly Bears")
-	llanowar := selectionCard(t, reg, "Llanowar Elves")
+	rip := registryCardByName(t, reg, "Rip, Spawn Hunter")
+	hill := registryCardByName(t, reg, "Hill Giant")
+	centaur := registryCardByName(t, reg, "Centaur Courser")
+	grizzly := registryCardByName(t, reg, "Grizzly Bears")
+	llanowar := registryCardByName(t, reg, "Llanowar Elves")
 
 	e, ids, cfg := selectionStage(t, reg, Stage{
 		Turn: 1, Active: 0, Starting: 0, Step: state.StepMain2,
@@ -146,11 +137,11 @@ func TestRipDifferentPowersRejectsEqualPowers(t *testing.T) {
 
 func TestKlawRevealNumberTargetChoosesReveal(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	klaw := selectionCard(t, reg, "Klaw, Sonic Subjugator")
-	grizzly := selectionCard(t, reg, "Grizzly Bears")
-	hill := selectionCard(t, reg, "Hill Giant")
-	centaur := selectionCard(t, reg, "Centaur Courser")
-	llanowar := selectionCard(t, reg, "Llanowar Elves")
+	klaw := registryCardByName(t, reg, "Klaw, Sonic Subjugator")
+	grizzly := registryCardByName(t, reg, "Grizzly Bears")
+	hill := registryCardByName(t, reg, "Hill Giant")
+	centaur := registryCardByName(t, reg, "Centaur Courser")
+	llanowar := registryCardByName(t, reg, "Llanowar Elves")
 
 	e, ids, cfg := selectionStage(t, reg, Stage{
 		Turn: 1, Active: 0, Starting: 0, Step: state.StepMain1,
@@ -208,10 +199,10 @@ func TestKlawRevealNumberTargetChoosesReveal(t *testing.T) {
 
 func TestGhostVacuumReturnsWithFlyingCounter(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	gv := selectionCard(t, reg, "Ghost Vacuum")
-	ozolith := selectionCard(t, reg, "The Ozolith")
-	hill := selectionCard(t, reg, "Hill Giant")
-	centaur := selectionCard(t, reg, "Centaur Courser")
+	gv := registryCardByName(t, reg, "Ghost Vacuum")
+	ozolith := registryCardByName(t, reg, "The Ozolith")
+	hill := registryCardByName(t, reg, "Hill Giant")
+	centaur := registryCardByName(t, reg, "Centaur Courser")
 
 	e, ids, cfg := selectionStage(t, reg, Stage{
 		Turn: 1, Active: 0, Starting: 0, Step: state.StepMain1,
@@ -267,10 +258,10 @@ func TestGhostVacuumReturnsWithFlyingCounter(t *testing.T) {
 
 func TestFightExcessBindsRhinosRampage(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	rhino := selectionCard(t, reg, "Rhino's Rampage")
-	air := selectionCard(t, reg, "Air Elemental")
-	grizzly := selectionCard(t, reg, "Grizzly Bears")
-	bonesplitter := selectionCard(t, reg, "Bonesplitter")
+	rhino := registryCardByName(t, reg, "Rhino's Rampage")
+	air := registryCardByName(t, reg, "Air Elemental")
+	grizzly := registryCardByName(t, reg, "Grizzly Bears")
+	bonesplitter := registryCardByName(t, reg, "Bonesplitter")
 
 	e, ids, cfg := selectionStage(t, reg, Stage{
 		Turn: 1, Active: 0, Starting: 0, Step: state.StepMain1,
@@ -328,10 +319,10 @@ func TestFightExcessBindsRhinosRampage(t *testing.T) {
 
 func TestFightExcessNoExcessDoesNotTrigger(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	rhino := selectionCard(t, reg, "Rhino's Rampage")
-	grizzly := selectionCard(t, reg, "Grizzly Bears")
-	hill := selectionCard(t, reg, "Hill Giant")
-	bonesplitter := selectionCard(t, reg, "Bonesplitter")
+	rhino := registryCardByName(t, reg, "Rhino's Rampage")
+	grizzly := registryCardByName(t, reg, "Grizzly Bears")
+	hill := registryCardByName(t, reg, "Hill Giant")
+	bonesplitter := registryCardByName(t, reg, "Bonesplitter")
 
 	e, ids, cfg := selectionStage(t, reg, Stage{
 		Turn: 1, Active: 0, Starting: 0, Step: state.StepMain1,
@@ -379,10 +370,10 @@ func TestFightExcessNoExcessDoesNotTrigger(t *testing.T) {
 
 func TestRepeatEachStartingWithYou(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	yangchen := selectionCard(t, reg, "The Legend of Yangchen")
-	first := selectionCard(t, reg, "Hill Giant")
-	second := selectionCard(t, reg, "Centaur Courser")
-	third := selectionCard(t, reg, "Grizzly Bears")
+	yangchen := registryCardByName(t, reg, "The Legend of Yangchen")
+	first := registryCardByName(t, reg, "Hill Giant")
+	second := registryCardByName(t, reg, "Centaur Courser")
+	third := registryCardByName(t, reg, "Grizzly Bears")
 
 	e, ids, cfg := selectionStage(t, reg, Stage{
 		Turn: 1, Active: 1, Starting: 1, Step: state.StepMain1,
@@ -442,11 +433,11 @@ func TestRepeatEachStartingWithYou(t *testing.T) {
 
 func TestKlawRevealNumberCoversHand(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	klaw := selectionCard(t, reg, "Klaw, Sonic Subjugator")
-	grizzly := selectionCard(t, reg, "Grizzly Bears")
-	hill := selectionCard(t, reg, "Hill Giant")
-	centaur := selectionCard(t, reg, "Centaur Courser")
-	llanowar := selectionCard(t, reg, "Llanowar Elves")
+	klaw := registryCardByName(t, reg, "Klaw, Sonic Subjugator")
+	grizzly := registryCardByName(t, reg, "Grizzly Bears")
+	hill := registryCardByName(t, reg, "Hill Giant")
+	centaur := registryCardByName(t, reg, "Centaur Courser")
+	llanowar := registryCardByName(t, reg, "Llanowar Elves")
 
 	e, ids, cfg := selectionStage(t, reg, Stage{
 		Turn: 1, Active: 0, Starting: 0, Step: state.StepMain1,
@@ -486,10 +477,10 @@ func TestKlawRevealNumberCoversHand(t *testing.T) {
 
 func TestFightExcessUsesLandedDamage(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	rhino := selectionCard(t, reg, "Rhino's Rampage")
-	sengir := selectionCard(t, reg, "Sengir Vampire")
-	cho := selectionCard(t, reg, "Cho-Manno, Revolutionary")
-	bonesplitter := selectionCard(t, reg, "Bonesplitter")
+	rhino := registryCardByName(t, reg, "Rhino's Rampage")
+	sengir := registryCardByName(t, reg, "Sengir Vampire")
+	cho := registryCardByName(t, reg, "Cho-Manno, Revolutionary")
+	bonesplitter := registryCardByName(t, reg, "Bonesplitter")
 
 	e, ids, cfg := selectionStage(t, reg, Stage{
 		Turn: 1, Active: 0, Starting: 0, Step: state.StepMain1,

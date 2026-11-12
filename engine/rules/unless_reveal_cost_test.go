@@ -41,26 +41,6 @@ func playLandFromHand(t *testing.T, e *Engine, name string) state.ObjID {
 	return id
 }
 
-// seekUnlessPayAsk passes every priority decision until a mid-resolution
-// unless_pay ask becomes pending.
-func seekUnlessPayAsk(t *testing.T, e *Engine, limit int) *decision.Decision {
-	t.Helper()
-	for i := 0; i < limit && !e.G.Over; i++ {
-		d := e.Pending()
-		if d == nil {
-			return nil
-		}
-		if d.Kind == decision.KModes && d.ResumeKind == "unless_pay" {
-			return d
-		}
-		if d.Kind != decision.KPriority {
-			t.Fatalf("unexpected decision kind %v (seat %d) while seeking the unless-pay ask: %+v", d.Kind, d.Player, d)
-		}
-		castFirst(t, e, "pass")
-	}
-	return nil
-}
-
 // TestUnlessRevealPrimalBeyondPayEntersUntapped is leaf 1: Primal Beyond
 // entering with exactly one Elemental in hand — the exact-candidate shape —
 // records the reveal silently, announces it with the cast flow's public Note,
@@ -73,7 +53,7 @@ func TestUnlessRevealPrimalBeyondPayEntersUntapped(t *testing.T) {
 	e.askPriority(0)
 	land := playLandFromHand(t, e, "Primal Beyond")
 
-	ask := seekUnlessPayAsk(t, e, 40)
+	ask := seekUnlessPay(t, e, 40)
 	if ask == nil {
 		t.Fatal("no unless-pay ask posed for the entering Primal Beyond")
 	}
@@ -118,7 +98,7 @@ func TestUnlessRevealPortTownAsksRevealCost(t *testing.T) {
 	e.askPriority(0)
 	land := playLandFromHand(t, e, "Port Town")
 
-	ask := seekUnlessPayAsk(t, e, 40)
+	ask := seekUnlessPay(t, e, 40)
 	if ask == nil {
 		t.Fatal("no unless-pay ask posed for the entering Port Town")
 	}
@@ -177,7 +157,7 @@ func TestUnlessRevealFurycalmSnarlPayEntersUntapped(t *testing.T) {
 			e.askPriority(0)
 			land := playLandFromHand(t, e, "Furycalm Snarl")
 
-			ask := seekUnlessPayAsk(t, e, 40)
+			ask := seekUnlessPay(t, e, 40)
 			if ask == nil {
 				t.Fatal("no unless-pay ask posed for the entering Furycalm Snarl")
 			}
@@ -229,7 +209,7 @@ func TestUnlessRevealDeclineEntersTapped(t *testing.T) {
 			e.askPriority(0)
 			land := playLandFromHand(t, e, "Primal Beyond")
 
-			ask := seekUnlessPayAsk(t, e, 40)
+			ask := seekUnlessPay(t, e, 40)
 			if ask == nil {
 				t.Fatal("no unless-pay ask posed for the entering Primal Beyond")
 			}

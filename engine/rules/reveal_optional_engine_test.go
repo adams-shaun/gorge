@@ -3,7 +3,6 @@ package rules
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 )
@@ -32,44 +31,6 @@ func mayRevealEngine(t *testing.T, line string) (*Engine, state.ObjID) {
 	bear.Timestamp = e.G.Clock
 	e.G.SetZone(state.ZHand, 0, []state.ObjID{o.ID, bear.ID})
 	return e, o.ID
-}
-
-// castAndReachRevealAsk casts the spell directly (cr601's harness shape: the
-// direct proposal bypasses the offer gate, which a poolless seat needs for
-// even a {0} cost's offer path) and drives every intermediate decision until
-// the may-reveal ask itself is pending.
-func castAndReachRevealAsk(t *testing.T, e *Engine, id state.ObjID) *decision.Decision {
-	t.Helper()
-	e.pending = nil
-	e.beginCast(0, decision.Option{Kind: "cast", Obj: id})
-	e.Advance()
-	for i := 0; i < 200; i++ {
-		d := e.Pending()
-		if d == nil {
-			t.Fatal("no pending decision and no may-reveal ask")
-		}
-		if d.Kind == decision.KChoose && d.ResumeKind == "reveal_optional" {
-			return d
-		}
-		if d.Kind != decision.KPriority {
-			t.Fatalf("unexpected pending decision: %+v", d)
-		}
-		pass := -1
-		for _, o := range d.Options {
-			if o.Kind == "pass" {
-				pass = o.Index
-				break
-			}
-		}
-		if pass < 0 {
-			t.Fatalf("no pass option: %+v", d)
-		}
-		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{pass}}); err != nil {
-			t.Fatalf("submit: %v", err)
-		}
-	}
-	t.Fatal("never reached the may-reveal ask")
-	return nil
 }
 
 // TestMayRevealHandAskSuspendsAndDeclineRevealsNothing drives the decline

@@ -326,3 +326,12 @@ func lookup(t *testing.T, reg *cards.Registry, name string) *cards.Card {
 	}
 	return c
 }
+
+func registryCardByName(t *testing.T, reg *cards.Registry, name string) *cards.Card {
+	t.Helper()
+	c, ok := reg.Lookup(name)
+	if !ok {
+		t.Fatalf("card %q not in the corpus", name)
+	}
+	return c
+}

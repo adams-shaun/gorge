@@ -74,17 +74,17 @@ func reflPlanAndRun(t *testing.T, e *Engine, spell, src state.ObjID, colour stri
 	if err := e.ValidateCastPayment(0, paymentCast(spell), *got.Plan); err != nil {
 		t.Fatalf("validate witness: %v", err)
 	}
-	d := ppAsk(t, e)
+	d := paymentPlanReask(t, e)
 	act := ppAction(t, d, spell)
 	mark := len(e.L.Events)
-	ppSubmitPlan(t, e, d, act)
+	submitPaymentPlan(t, e, d, act)
 	if nd := e.Pending(); nd == nil || nd.Kind != decision.KPriority {
 		t.Fatalf("after the planned cast pending = %#v, want priority (no colour ask)", nd)
 	}
 	if !e.G.Obj(src).Tapped {
 		t.Error("source not tapped by the executed plan")
 	}
-	if prod := ppProduced(e, mark); len(prod) != 1 || !strings.HasSuffix(prod[0], colour) {
+	if prod := producedManaSince(e, mark); len(prod) != 1 || !strings.HasSuffix(prod[0], colour) {
 		t.Errorf("mana produced = %v, want one %s", prod, colour)
 	}
 	for _, ev := range e.L.Events[mark:] {
@@ -271,7 +271,7 @@ func TestPaymentPlanReflectedTwoPoolsReflectNothing(t *testing.T) {
 func TestPaymentPlanReflectedOwnBotAnswerValidates(t *testing.T) {
 	t.Parallel()
 	e, spell, src, _ := reflOwnBoard(t, 9709, reflGreenProbe, "Reflecting Pool", reflForest)
-	d := ppAsk(t, e)
+	d := paymentPlanReask(t, e)
 	act := ppAction(t, d, spell)
 	plan := decision.ClonePaymentPlan(act.Plans[0])
 	if len(plan.Activations) != 1 || plan.Activations[0].Source != src {

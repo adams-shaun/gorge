@@ -69,10 +69,10 @@ func TestPaymentPlanReflectedOrchardPlansAndExecutes(t *testing.T) {
 			if err := e.ValidateCastPayment(0, paymentCast(spell), *got.Plan); err != nil {
 				t.Fatalf("validate %s witness: %v", name, err)
 			}
-			d := ppAsk(t, e)
+			d := paymentPlanReask(t, e)
 			act := ppAction(t, d, spell)
 			mark := len(e.L.Events)
-			ppSubmitPlan(t, e, d, act)
+			submitPaymentPlan(t, e, d, act)
 			if nd := e.Pending(); nd == nil || nd.Kind != decision.KPriority {
 				t.Fatalf("after the planned cast pending = %#v, want priority (no colour ask)", nd)
 			}
@@ -81,7 +81,7 @@ func TestPaymentPlanReflectedOrchardPlansAndExecutes(t *testing.T) {
 			}
 			// The counter carries the producer's provenance tag (Fellwar
 			// Stone's "Artifact"); the colour is its last letter.
-			if prod := ppProduced(e, mark); len(prod) != 1 || !strings.HasSuffix(prod[0], "R") {
+			if prod := producedManaSince(e, mark); len(prod) != 1 || !strings.HasSuffix(prod[0], "R") {
 				t.Errorf("mana produced = %v, want one R", prod)
 			}
 			for _, ev := range e.L.Events[mark:] {
@@ -108,7 +108,7 @@ func TestPaymentPlanReflectedNeedsTheSource(t *testing.T) {
 	if got := e.PlanCastPayment(0, paymentCast(spell)); got.Plan != nil {
 		t.Fatalf("no-source board planned %+v", got.Plan)
 	}
-	if d := ppAsk(t, e); ppHasAction(d, spell) {
+	if d := paymentPlanReask(t, e); ppHasAction(d, spell) {
 		t.Fatal("no-source board posed a PaymentAction for the spell")
 	}
 	blue := "Name:Blue Probe\nManaCost:U\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n"
@@ -129,7 +129,7 @@ func TestPaymentPlanReflectedNeedsTheSource(t *testing.T) {
 func TestPaymentPlanReflectedBotAnswerValidates(t *testing.T) {
 	t.Parallel()
 	e, spell, src := reflectedBoard(t, 9614, reflectedRedProbe, "Exotic Orchard")
-	d := ppAsk(t, e)
+	d := paymentPlanReask(t, e)
 	act := ppAction(t, d, spell)
 	plan := decision.ClonePaymentPlan(act.Plans[0])
 	if len(plan.Activations) != 1 || plan.Activations[0].Source != src {
@@ -157,14 +157,14 @@ func TestPaymentPlanReflectedChoosesAmongSeveralColours(t *testing.T) {
 	if got := choiceColours(choiceAlts(t, e, src)); !slices.Equal(got, []string{"W", "R", "G"}) {
 		t.Fatalf("precondition: Orchard alternatives = %v, want [W R G]", got)
 	}
-	d := ppAsk(t, e)
+	d := paymentPlanReask(t, e)
 	act := ppAction(t, d, spell)
 	mark := len(e.L.Events)
-	ppSubmitPlan(t, e, d, act)
+	submitPaymentPlan(t, e, d, act)
 	if nd := e.Pending(); nd == nil || nd.Kind != decision.KPriority {
 		t.Fatalf("after the planned cast pending = %#v, want priority (no colour ask)", nd)
 	}
-	if prod := ppProduced(e, mark); !slices.Equal(prod, []string{"R"}) {
+	if prod := producedManaSince(e, mark); !slices.Equal(prod, []string{"R"}) {
 		t.Errorf("mana produced = %v, want [R]", prod)
 	}
 	if z := e.G.Obj(spell).Zone; z != state.ZStack {

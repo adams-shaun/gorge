@@ -832,3 +832,104 @@ func runSetupAttachedScenario(t *testing.T, raw string) (fails, transcript []str
 	fails, transcript, run = runOracleScenario(reg, sc)
 	return fails, transcript, run
 }
+
+func paymentPlanReask(t *testing.T, e *Engine) *decision.Decision {
+	t.Helper()
+	e.pending = nil
+	e.askPriority(0)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("pending = %#v, want seat-0 priority", d)
+	}
+	// Payment actions are published lazily: build them
+	// for this ask, as an opted-in consumer would.
+	e.EnsurePaymentActions()
+	return d
+}
+
+func paymentPlanTapsSince(e *Engine, from int, id state.ObjID) int {
+	n := 0
+	for _, ev := range e.L.Events[from:] {
+		if ev.Kind == events.Tap && ev.Obj == id {
+			n++
+		}
+	}
+	return n
+}
+
+func producedManaSince(e *Engine, from int) []string {
+	var out []string
+	for _, ev := range e.L.Events[from:] {
+		if ev.Kind == events.ManaAdd && ev.Amount > 0 {
+			for i := int32(0); i < ev.Amount; i++ {
+				out = append(out, ev.Counter)
+			}
+		}
+	}
+	return out
+}
+
+func submitPaymentPlan(t *testing.T, e *Engine, d *decision.Decision, a decision.PaymentAction) {
+	t.Helper()
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Payment: &decision.PaymentSelection{ActionID: a.ID, Plan: a.Plans[0]}}); err != nil {
+		t.Fatalf("Submit planned cast: %v", err)
+	}
+}
+
+// castAndReachRevealAsk casts the spell directly (cr601's harness shape: the
+// direct proposal bypasses the offer gate, which a poolless seat needs for
+// even a {0} cost's offer path) and drives every intermediate decision until
+// the may-reveal ask itself is pending.
+func castAndReachRevealAsk(t *testing.T, e *Engine, id state.ObjID) *decision.Decision {
+	t.Helper()
+	e.pending = nil
+	e.beginCast(0, decision.Option{Kind: "cast", Obj: id})
+	e.Advance()
+	for i := 0; i < 200; i++ {
+		d := e.Pending()
+		if d == nil {
+			t.Fatal("no pending decision and no may-reveal ask")
+		}
+		if d.Kind == decision.KChoose && d.ResumeKind == "reveal_optional" {
+			return d
+		}
+		if d.Kind != decision.KPriority {
+			t.Fatalf("unexpected pending decision: %+v", d)
+		}
+		pass := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				pass = o.Index
+				break
+			}
+		}
+		if pass < 0 {
+			t.Fatalf("no pass option: %+v", d)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{pass}}); err != nil {
+			t.Fatalf("submit: %v", err)
+		}
+	}
+	t.Fatal("never reached the may-reveal ask")
+	return nil
+}
+
+// seekUnlessPay passes every priority decision until a mid-resolution
+// unless_pay ask becomes pending, and returns it.
+func seekUnlessPay(t *testing.T, e *Engine, limit int) *decision.Decision {
+	t.Helper()
+	for i := 0; i < limit && !e.G.Over; i++ {
+		d := e.Pending()
+		if d == nil {
+			return nil
+		}
+		if d.Kind == decision.KModes && d.ResumeKind == "unless_pay" {
+			return d
+		}
+		if d.Kind != decision.KPriority {
+			t.Fatalf("unexpected decision kind %v (seat %d) while seeking the unless-pay ask: %+v", d.Kind, d.Player, d)
+		}
+		castFirst(t, e, "pass")
+	}
+	return nil
+}

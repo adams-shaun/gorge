@@ -38,42 +38,6 @@ func optionalRevealEngine(t *testing.T, line string, oppNames ...string) (*Engin
 	return e, o.ID
 }
 
-// castAndReachOptionalRevealAsk drives the cast until the pending decision is
-// the may-reveal yes/no (the reveal_optional ask).
-func castAndReachOptionalRevealAsk(t *testing.T, e *Engine, id state.ObjID) *decision.Decision {
-	t.Helper()
-	e.pending = nil
-	e.beginCast(0, decision.Option{Kind: "cast", Obj: id})
-	e.Advance()
-	for i := 0; i < 200; i++ {
-		d := e.Pending()
-		if d == nil {
-			t.Fatal("no pending decision and no may-reveal ask")
-		}
-		if d.Kind == decision.KChoose && d.ResumeKind == "reveal_optional" {
-			return d
-		}
-		if d.Kind != decision.KPriority {
-			t.Fatalf("unexpected pending decision: %+v", d)
-		}
-		pass := -1
-		for _, o := range d.Options {
-			if o.Kind == "pass" {
-				pass = o.Index
-				break
-			}
-		}
-		if pass < 0 {
-			t.Fatalf("no pass option: %+v", d)
-		}
-		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{pass}}); err != nil {
-			t.Fatalf("submit: %v", err)
-		}
-	}
-	t.Fatal("never reached the may-reveal ask")
-	return nil
-}
-
 // TestOptionalRevealPerTargetAskThroughTheEngine drives the whole engine path
 // for a multi-target optional reveal: the engine must attribute
 // seat 1's answer to target 0 while seat 2 is asked its OWN question, not
@@ -85,7 +49,7 @@ func TestOptionalRevealPerTargetAskThroughTheEngine(t *testing.T) {
 	e, id := optionalRevealEngine(t, "SP$ RevealHand | Defined$ Player.Opponent | Optional$ True", "Seat2Card", "Seat3Card")
 
 	// Pass 1: target 0 is seat 1 (Defined$ Player.Opponent is seat order).
-	d := castAndReachOptionalRevealAsk(t, e, id)
+	d := castAndReachRevealAsk(t, e, id)
 	if d.Player != 1 || d.ResumeTarget != 0 {
 		t.Fatalf("pass 1 ask = Player %d ResumeTarget %d, want seat 1 / target 0", d.Player, d.ResumeTarget)
 	}
