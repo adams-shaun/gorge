@@ -915,11 +915,27 @@ func (e *Engine) evalTriggerCostFixedX(tc *triggeredEffectCost, o *state.Object,
 	// (refTargets' refTargetsTriggeredCard arm), not Ctx.TriggerCard, so bind
 	// the parked trigger's own capture exactly as the resumed body will.
 	ctx.Remembered = tc.costRemembered
+	e.bindTriggerCostWindowLKI(ctx, tc)
 	n, resolvable := effects.EvalCountOK(e, ctx, body)
 	if !resolvable || n < 0 {
 		return 0, false
 	}
 	return n, true
+}
+
+// bindTriggerCostWindowLKI gives a triggered-cost window's SVar read the
+// resolving body's own LKI binding (resolution.go binds the same record): a
+// TriggeredCard$ referent naming a card that left the battlefield after the
+// trigger fired is read as it last stood there, its counters and continuous
+// effects applied (CR 603.10, 608.2h), not as the copy it now is. Madame
+// Null, Power Broker's "pay life equal to its power" read the sacrificed
+// creature's graveyard face (its static +1/+0 gone) instead of the LKI.
+func (e *Engine) bindTriggerCostWindowLKI(ctx *effects.Ctx, tc *triggeredEffectCost) {
+	if lki, ok := e.triggerLKI[tc.resume.obj]; ok && lki.object != nil {
+		ctx.LKI = lki.object
+		ctx.Snap.Power, ctx.Snap.Toughness, ctx.Snap.PTValid =
+			lki.power, lki.toughness, lki.ptValid
+	}
 }
 
 // triggeredCostXAsk is the X arm of the payment ask: a cost carrying an
@@ -1028,6 +1044,9 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 			ctx.TriggerContext = tcx
 		}
 		ctx.Remembered = tc.costRemembered
+		// The cap body reads the same captured referents a fixed X body does,
+		// LKI binding included.
+		e.bindTriggerCostWindowLKI(ctx, tc)
 		if cap, ok := effects.NumResolved(e, ctx, sa, "XMax", 0); ok {
 			if cap < 0 {
 				cap = 0
