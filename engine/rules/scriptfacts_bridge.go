@@ -74,3 +74,7 @@ func grantedTriggerHeads(head string) bool { return scriptfacts.GrantedTriggerHe
 func grantedKeywordTrigger(line string) *cards.Trigger {
 	return scriptfacts.GrantedKeywordTrigger(line)
 }
+
+// grantedKeywordPayload names the GrantTriggerPush body payload of a granted
+// keyword line's synthesized trigger (scriptfacts.GrantedKeywordPayload).
+func grantedKeywordPayload(line string) string { return scriptfacts.GrantedKeywordPayload(line) }
