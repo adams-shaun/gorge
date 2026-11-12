@@ -87,19 +87,6 @@ func (h *suspendHost) Ask(d *decision.Decision) bool {
 
 func (h *suspendHost) Suspended() bool { return h.suspended }
 
-// countLifeLoss reports how many negative LifeChange events the target seat
-// received — the "the sub-ability ran N times" metric, mirroring
-// engine/rules/discard_subability_test.go's countLoseLife.
-func countLifeLoss(h *fakeHost, p state.PlayerID) int {
-	n := 0
-	for _, ev := range h.log {
-		if ev.Kind == events.LifeChange && ev.Player == p && ev.Amount < 0 {
-			n++
-		}
-	}
-	return n
-}
-
 // TestDiscardTgtChooseFallsBackToFrontEligibleWhenHostCannotAsk is the
 // no-engine contract for the TgtChoose shape: a host whose Ask returns false
 // must still resolve deterministically — take the FRONT OF THE FILTERED hand

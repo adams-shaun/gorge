@@ -643,7 +643,7 @@ func (g *grantSrch) candidates(s *State) {
 		return // every gap dropped: gorge's search runs on none
 	}
 	if !s.filtFunded(g.k, g.p, fm) {
-		g.funding = 0 // (gorge's unrelaxable census funds no fee)
+		g.funding = s.filtFunding(g.k, g.p, fm) // (gorge's unrelaxable census funds no fee, but an unbounded repeatable one)
 	}
 	if g.funding == 0 {
 		return

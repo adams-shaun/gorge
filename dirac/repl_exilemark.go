@@ -40,7 +40,9 @@ type exMarkRec struct {
 	sl   Slot
 	src  Obj
 	live bool
-	pl   uint8 // a scope record (sl slotExScope) only: the controller of the effect (repl_turnrepl.go)
+	pl   uint8         // a scope record (sl slotExScope and the slotEx* sentinels) only: the controller of the effect (repl_turnrepl.go)
+	col  kop.ColorMask // a player hexproof record: the colours it is from, 0 for plain hexproof
+	ts   uint16        // a player hexproof record: its timestamp (a later loss of abilities takes the permanent grant)
 }
 
 // maxExMarks is how many such effects one turn can hold; more stall by name.

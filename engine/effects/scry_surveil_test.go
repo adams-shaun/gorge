@@ -93,15 +93,3 @@ func TestSurveilNoHostStandInPutsNothingInGraveyard(t *testing.T) {
 		t.Fatal("no LibraryOrder event emitted by the no-host surveil stand-in")
 	}
 }
-
-// countSurveilMarkers reports how many events.Surveil records the effects
-// host's log carries.
-func countSurveilMarkers(h *suspendHost) int {
-	n := 0
-	for _, ev := range h.log {
-		if ev.Kind == events.Surveil {
-			n++
-		}
-	}
-	return n
-}

@@ -306,6 +306,11 @@ func plainTapMana(a *lAbility, paid bool) bool {
 // gap the kernel models or the frozen pools prove (refuseMultiMana).
 func manaGapModelled(first, a *lAbility) bool {
 	switch {
+	case storeGapMana(a):
+		// SubCounter<X/KIND> on a later mana ability (Molten Slagheap,
+		// Mage-Ring Network): the kernel's counter-X script gap removes
+		// every counter and makes that many mana (mana_countercost.go).
+		return true
 	case dynamicLargerSameColour(first, a):
 		return true
 	case tapXGapMana(a):
@@ -398,11 +403,13 @@ func ctrTapGapMana(a *lAbility) bool {
 
 // ctrTapGapModelled: the counter-cost {T} ability a beside the plain first
 // ability first is the shape kop.SecondCtrTapManaAb reads: a fixed colour of a
-// literal amount, unrestricted, the first ability one mana of one colour or
-// any (unrestricted, not a choice).
+// literal amount, or one mana of any colour (the Vivid lands), unrestricted,
+// the first ability one mana of one colour or any (unrestricted, not a choice).
 func ctrTapGapModelled(first, a *lAbility) bool {
 	m, f := a.Mana, first.Mana
-	return len(m.Colors) == 1 && !m.Choice && !m.Each && m.Restrict == nil && m.RestrictAb == nil && m.Amount.Kind == vConst && m.Amount.N >= 1 && m.Amount.N <= maxRestrictedAmount &&
+	oneColour := len(m.Colors) == 1 && m.Amount.N >= 1 && m.Amount.N <= maxRestrictedAmount ||
+		m.Colors == "WUBRG" && m.Amount.N == 1 // one mana of any colour (Vivid Grove's second ability)
+	return oneColour && !m.Choice && !m.Each && m.Restrict == nil && m.RestrictAb == nil && m.Amount.Kind == vConst &&
 		!f.Choice && (len(f.Colors) == 1 || f.Colors == "WUBRG")
 }
 
@@ -415,12 +422,14 @@ func ctrTapGapModelled(first, a *lAbility) bool {
 //     (a first and only all-at-once "{T}, Sacrifice another <filter>" is
 //     modelled: refuseEachMana's sacEachMana);
 //   - a cost of {T} plus removing counters other than ctrTapGapModelled's
-//     (Vivid Crag's any colour, Throne of Makindi's restricted two): gorge's
+//     (Throne of Makindi's restricted two): gorge's
 //     census leaves it a relaxable once-only gap whose prefix script
 //     activates the source, answers the ability ask with the second ability,
 //     then its colour; the kernel's counter gap kind (mana_countercost.go)
-//     reads a second ability only for a fixed unrestricted colour.
-//     (Weather Maker's {C}{C} is modelled: ctrTapGapMana; so is the
+//     reads a second ability only for an unrestricted fixed colour or one
+//     mana of any colour.
+//     (Weather Maker's {C}{C} and the Vivid lands' any colour are modelled:
+//     ctrTapGapMana; so is the
 //     tap-another shape, Scene of the Crime: tapXGapMana.)
 //   - a spend-restricted ability of several mana of a fixed colour other than
 //     the first ability's, or above maxRestrictedAmount (the same colour up to
@@ -440,9 +449,13 @@ func manaGapWhy(first, a *lAbility) string {
 		return "an activation-only restricted ability of several mana: the kernel plans it only as a chosen or same-colour pair of two to four mana (or an activation-only larger ability beside a spell-only first one of that colour)"
 	}
 	switch {
+	case a.Cost.SubCtrX && a.Cost.Mana.Generic > 0:
+		return "an announced-X counter cost beside a generic fee: the kernel's storage script gap prices no source fee (and gorge's planner prices no such source)"
+	case a.Cost.SubCtrX:
+		return "an announced-X counter cost making a colour combination or any colour: the kernel's counter-X gap models one fixed colour per counter"
 	case !plainTapMana(a, false) && !plainTapMana(a, true):
 		if a.Cost.SubCtr != 0 {
-			return "a cost beyond {T} the kernel's mana walk cannot activate: its counter gap kind reads a second ability only for a fixed unrestricted colour"
+			return "a cost beyond {T} the kernel's mana walk cannot activate: its counter gap kind reads a second ability only for an unrestricted fixed colour or any colour"
 		}
 		return "a cost beyond {T} the kernel's mana walk cannot activate"
 	case m.Restrict != nil && m.Amount.Kind == vConst && m.Amount.N > 1 && len(m.Colors) == 1 && m.Colors != "WUBRG" && !m.Choice:
@@ -541,6 +554,40 @@ const maxRestrictedAmount = 4
 // Building's four mana in any combination). gorge's scriptAnswers enumerates
 // at most 64 per-unit combinations, so the kernel's search does too.
 const maxComboMana = 4
+
+// storeGapMana reports the storage-battery shape a later mana ability may
+// carry: SubCounter<X/KIND> on the source, Amount$ X, one fixed colour and no
+// generic fee. The kernel's counter-X script gap (mana_countercost.go)
+// removes every counter and makes that many mana of that colour; a fee, a
+// colour combination, an any-colour production or a spend restriction has no
+// kernel model and stays refused.
+func storeGapMana(a *lAbility) bool {
+	if a.Kind != akMana || a.Mana == nil || !a.Cost.SubCtrX || a.Latent {
+		return false
+	}
+	m := a.Mana
+	if m.Special != "" || m.SpecialF != nil || m.Restrict != nil || m.RestrictAb != nil || m.NonSpell || m.Each || m.Deferred || m.Rider != 0 || m.RiderCtr != "" {
+		return false
+	}
+	v := m.Amount
+	if v.Kind != vX || v.Mul != 0 || v.Div != 0 || v.Add != 0 || v.Neg {
+		return false
+	}
+	cols := m.Colors
+	if len(cols) != 1 || !strings.Contains("WUBRGC", cols) {
+		return false
+	}
+	c := a.Cost
+	if c.Mana.X || c.Mana.C != 0 || c.Mana.Pips != [5]int{} || len(c.Mana.Hybrid) > 0 || c.Mana.Generic != 0 {
+		return false
+	}
+	if c.Loyalty != 0 || c.LoyaltyX || c.SubCtr != 0 || c.SubAmongN != 0 || c.AddCtr != 0 || c.PayLife != 0 || c.LifeX ||
+		c.Sac != nil || c.SacSelf || c.DiscardN != 0 || c.DiscardHand || c.DiscardSelf || c.ExileSelf || c.ExileG != nil ||
+		c.Energy != 0 || c.TapN != 0 || c.TapHost || c.SacHost || c.Forage != nil || c.Return != nil || c.Exert || c.ReturnSelf {
+		return false
+	}
+	return true
+}
 
 // dynamicLargerSameColour reports the pair refuseMultiMana names: a plain
 // unrestricted {T}: Add one mana of a fixed colour, then a plain {T}: Add that

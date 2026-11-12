@@ -114,7 +114,11 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	s.ctl = ctlBuild
 	if k.gen != nil && k.gen.anyConvoke && mode&3 == 0 && s.tapPays(k, p, c, o, ob.zone == kop.ZoneHand) {
 		if _, planned := s.plannedCastCostOf(k, p, o, mode, false, false); planned {
-			s.bld().bfl |= bflTargetPaid
+			if s.improviseLifted(k, p, c, o, ob.zone == kop.ZoneHand) {
+				s.bld().impPlan = true // (bflTargetPaid shares its bit with bflDefeatCast)
+			} else {
+				s.bld().bfl |= bflTargetPaid
+			}
 		}
 	}
 	// a cast only a typed permission allows (Muldrotha's per-type statics,
@@ -1784,6 +1788,9 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 	}
 	if k.gen != nil {
 		s.castTrigGraves(k, e)
+		s.eachCommandTrigger(k, kop.TrigSpellCast, func(l trigListener, a *kop.Ability) {
+			s.castTrigGen(k, l, a, e)
+		})
 		s.fireEmblems(k, kop.TrigSpellCast, e.ctrl, e.obj, func(a *kop.Ability) bool {
 			return s.matchCardGen(k, a.Trig.Filter, e.card, e.ctrl, e.ctrl, e.obj)
 		})

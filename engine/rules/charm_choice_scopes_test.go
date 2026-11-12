@@ -257,12 +257,3 @@ func TestCharmChoiceRestrictionYourLastCombatObjectEnteredAfterBeginCombat(t *te
 	beginCharmCombat(e)
 	assertCharmModes(t, effects.CharmEligibleModes(e, source, sa, all), []string{"PumpField", "PumpHand"})
 }
-
-func containsMode(modes []string, name string) bool {
-	for _, mode := range modes {
-		if mode == name {
-			return true
-		}
-	}
-	return false
-}

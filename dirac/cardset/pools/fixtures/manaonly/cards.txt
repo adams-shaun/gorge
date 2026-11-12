@@ -1,11 +1,21 @@
 # Quirion Elves' second "{T}: Add one mana of the chosen colour" beside its
-# fixed {G} ability (dirac/oracle/manaonly_test.go), in a five-colour deck
-# over thin off-colour mana against a plain creature deck. A mana ability
-# whose cost is mana alone (Nomadic Elf, Orochi Leafcaller, Agent of
-# Stromgald, Bog Initiate, Energy Refractor and the rest of that class) stays
-# refused by name: its prefix funding diverged from gorge in lockstep, so the
-# kernel does not lower it (dirac/kgen/manaonly_cost_test.go).
+# fixed {G} ability, and the mana-ability-cost-is-mana-alone class (Nomadic
+# Elf, Orochi Leafcaller, Agent of Stromgald, Bog Initiate, Energy Refractor,
+# Prismite, Crossroads Candleguide, Signpost Scarecrow, Urn of Godfire,
+# Llanowar Envoy: kop.FeeOnlyManaAb, a repeatable first-ability filter)
+# (dirac/oracle/manaonly_test.go), in a five-colour deck over thin
+# off-colour mana against a plain creature deck.
 Quirion Elves
+Nomadic Elf
+Orochi Leafcaller
+Agent of Stromgald
+Bog Initiate
+Energy Refractor
+Prismite
+Crossroads Candleguide
+Signpost Scarecrow
+Urn of Godfire
+Llanowar Envoy
 Grizzly Bears
 Doom Blade
 Serra Angel
