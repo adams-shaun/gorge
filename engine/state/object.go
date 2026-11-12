@@ -653,7 +653,7 @@ const (
 // statement about the cast, and the prepared designation's exile copy is the
 // only object that was CAST with the grant; a copy OF that copy is put on the
 // stack, never cast (CR 707.10), so it must not re-fire Codie's trigger.
-const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay | FlagRebound | FlagBlitzed | FlagAddsCounters | FlagWebSlinged | FlagSneaked | FlagManaColorSpent | FlagImpending | FlagBargained | FlagPreparedCopy | FlagManaSourcesSpent | FlagAddsKeywords
+const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay | FlagRebound | FlagBlitzed | FlagAddsCounters | FlagWebSlinged | FlagSneaked | FlagManaColorSpent | FlagImpending | FlagBargained | FlagPreparedCopy | FlagManaSourcesSpent | FlagAddsKeywords | FlagSuspend
 
 // ExilesLeavingStack reports whether a cast carrying these flags is a
 // keyword cast whose card is exiled as it leaves the stack, whichever way it

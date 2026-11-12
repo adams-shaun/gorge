@@ -107,6 +107,17 @@ func (e *Engine) altCostEnter(ev events.Event) {
 		e.emit(events.Event{Kind: events.DelayedRegister, Obj: ev.Obj,
 			Player: o.Controller, Step: state.StepEnd, Counter: "__kwDashReturn"})
 	}
+	if ev.From == state.ZStack && o.CastFlags&state.FlagSuspend != 0 && o.Face().IsCreature() {
+		// CR 702.62a: a creature spell cast through the final-counter
+		// trigger gains haste until its caster loses control of the spell or
+		// the permanent it becomes. The grant is scoped to the permanent and
+		// to its caster's control (YouCtrl against the effect's Controller),
+		// so a control change ends it; leaving the battlefield ends it too.
+		e.AddContinuous(state.ContinuousEffect{
+			Source: ev.Obj, Affects: "Card.Self+YouCtrl", Controller: o.Controller,
+			Layer: state.LAbilities, AddKeywords: []string{"Haste"},
+		})
+	}
 	if o.CastFlags&state.FlagBlitzed != 0 {
 		// CR 702.152c-d: a blitzed creature gains haste and the dies-draw
 		// trigger, and is sacrificed at the beginning of the next end step.
