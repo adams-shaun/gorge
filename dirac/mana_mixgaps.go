@@ -37,20 +37,23 @@ type otherStep struct {
 }
 
 // mixBoard: p's census gaps mix filters, restricted any-colour sources and
-// tap-another-permanent sources (no sacrifice-another one), or a filter beside
-// a deferred source (mixDeferred), and hold nothing else.
+// tap-another-permanent sources, or a filter beside a deferred source
+// (mixDeferred) or beside a sacrifice-another one (Giant's Boulder's {1},{T}
+// beside Bolg's Company: gorge's one prefix search activates every census gap
+// in battlefield order, and the filter search takes the sacrifice as an
+// otherGap step: otherGap's sacrifice-another branch), and hold nothing else.
 func (s *State) mixBoard(k *prep, p uint8) bool {
-	if k.tapMana && s.sacXLive(k, p) {
-		return false // a sacrifice-another source is the tap-another search's alone (mana_tapanother.go): no mix models it
-	}
 	if k.gen != nil && k.gen.anyMultiR && s.wide2Board(k, p) {
 		return true // any-colour restricted gaps, a second-ability wide one among them (mana_restrictedcombo.go)
 	}
 	if k.gen == nil || !k.gen.anyFilt && !k.tapMana || !k.gen.anyAnyR && !k.tapMana && !k.gen.anyDeferred {
 		return false
 	}
-	n := 0
 	filt := s.scriptFilt(k, p).any()
+	if k.tapMana && s.sacXLive(k, p) && !filt {
+		return false // no filter gap beside: a sacrifice-another source is the tap-another search's alone (mana_tapanother.go)
+	}
+	n := 0
 	if filt {
 		n++
 	}
@@ -213,6 +216,24 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 		}
 		var cs [MaxPerm]Slot
 		nc := t.tapXCands(k, p, sl, &cs)
+		if k.sacXOf(t.cardAt(sl)) {
+			// A sacrifice-another source asks no colour: its whole production
+			// floats at once (sacXDo, gorge's commit order); only the "which
+			// permanent" ask is a node, with two or more candidates, as the
+			// tap-another search's is (mana_tapanother.go).
+			if nc > 1 && !fs.tick() {
+				return false
+			}
+			for i := 0; i < nc; i++ {
+				if tapXOwnAnswer(fs.own, cs[i], NoSlot) {
+					continue // sacrificing the play's own {T} source is no continuation (CR 602.2b)
+				}
+				if try(otherStep{kind: otherTapX, cand: cs[i]}) { // otherDo -> tapXDo -> sacXDo
+					return true
+				}
+			}
+			return false
+		}
 		colours := func(a, b Slot) bool {
 			if !fs.tick() { // the colour ask
 				return false
