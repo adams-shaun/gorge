@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 701.67a, 601.2g-h: Katara's Waterbend<X> pick Plains (a 3/3 creature land) is tapped for the waterbend, so it is no mana source of the X announcement, which stops at 4 + 5 untapped lands",
  "actions": [
   184549120,
   184549120,

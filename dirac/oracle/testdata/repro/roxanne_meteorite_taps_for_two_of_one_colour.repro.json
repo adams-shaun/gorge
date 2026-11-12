@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "Roxanne, Starfall Savant beside her Meteorite token on both sides: the token's {T}: Add one mana of any color brings one more mana of the colour it made, and gorge's planner folds it into each colour's alternative (CR 106.12a, 605.1b)",
  "actions": [
   19398400,
   17497856,

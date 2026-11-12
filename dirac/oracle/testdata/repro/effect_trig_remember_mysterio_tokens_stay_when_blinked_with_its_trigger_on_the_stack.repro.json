@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Mysterio is blinked with its enters trigger on the stack: gorge binds the Effect to the returned incarnation, which ends without exiling (CR 603.7, 400.7)",
  "actions": [
   19136256,
   16776960,

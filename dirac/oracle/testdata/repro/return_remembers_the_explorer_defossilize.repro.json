@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Defossilize returns a Memnite killed by Disfigure: the returned card is remembered and explores twice (CR 701.44a, 400.7)",
  "actions": [
   19398400,
   34012928,

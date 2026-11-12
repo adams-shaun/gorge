@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 601.2b, 118.9d: Kinsbaile Aspirant cast free from Maralen's exile still owes behold or {2}; with neither payable it is not offered",
  "actions": [
   167771904,
   184549120,

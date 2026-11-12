@@ -137,7 +137,7 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 	}
 	for _, t := range targets {
 		if t.IsPlayer {
-			registerPumpPlayerGrant(h, c, t.Player, grant, chosenKW) // pump_player.go
+			registerPlayerPumpGrant(h, c, t, grant, zone, chosenKW)
 			continue
 		}
 		o := h.Game().Obj(t.Obj)

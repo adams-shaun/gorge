@@ -50,7 +50,7 @@ func (lc *lowerCtx) triggeredQualGuard(sa *cards.SA, ps *params) (lCond, error) 
 
 // pumpYouAndValid lowers the one compound Pump subject gorge's definedSpec
 // joins with " & " (effects/context.go: the parts' target sets, You first;
-// pump.go's object loop skips players and registerPumpPlayerGrant gives the
+// pump.go's object loop skips players and registerPlayerPumpGrant gives the
 // controller the hexproof/shroud/protection keywords): `Defined$ You & Valid
 // <filter>` with KW$ only (Dawn's Truce, Veil of Summer). It emits the
 // controller's hexproof (a TurnRepl record), then a PumpAll of the same
@@ -119,7 +119,7 @@ func (lc *lowerCtx) pumpYouAndValid(ps *params) (done bool, err error) {
 		case k == "Hexproof":
 			hex = true
 		case k == "Shroud" || strings.HasPrefix(k, "ProtectionFrom"):
-			// gorge registerPumpPlayerGrant gives the player these too; the
+			// gorge registerPlayerPumpGrant gives the player these too; the
 			// kernel carries only the controller's hexproof
 			return true, refuse("Pump Defined$ %q: a player %s grant", d, k)
 		}

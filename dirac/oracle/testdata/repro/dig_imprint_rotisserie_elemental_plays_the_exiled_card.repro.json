@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 100,
  "surface": "autopay",
+ "pool": "std-woe",
+ "why": "Rotisserie Elemental connects and sacrifices itself: the top cards (as many as its skewer counters) are exiled and imprinted, played this turn, then the imprint is cleared",
  "actions": [
   16776960,
   16776960,

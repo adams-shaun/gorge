@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Gloomwidow's Feast destroys a blue flyer: the destroyed card is remembered and is blue, so the Spider token is made",
  "actions": [
   19398400,
   17235712,

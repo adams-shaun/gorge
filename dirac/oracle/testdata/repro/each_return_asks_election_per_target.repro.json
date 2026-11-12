@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "CR 614.12, 608.2c: Pull Through the Weft returns its two shock lands one at a time, each one's pay-life election asked before the next moves",
  "actions": [
   16776960,
   16776960,

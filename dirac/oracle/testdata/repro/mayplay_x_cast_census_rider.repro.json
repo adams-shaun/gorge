@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-mkm",
+ "pool": "std-mkm",
+ "why": "CR 609.4b, 601.2g-h: Worldsoul's Rage cast from Outrageous Robbery's exile: the prefix taps Insidious Roots' granted token for W, which the any-type rider spends on {R}, since gorge's census (no granted source) cannot pay the printed pips",
  "actions": [
   16776960,
   16776960,

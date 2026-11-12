@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "CR 601.2g: A Realm Reborn's granted any-colour mana from two untapped artifacts pays Ice Magic's {1}{U}, so the Tiered cast is offered",
  "actions": [
   184549120,
   184549120,

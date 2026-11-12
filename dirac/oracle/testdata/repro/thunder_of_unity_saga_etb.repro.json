@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-tdm",
+ "why": "a chapter of Thunder of Unity with no other enters watcher out: the creature cast afterwards still drains",
  "actions": [
   16776960,
   16776960,

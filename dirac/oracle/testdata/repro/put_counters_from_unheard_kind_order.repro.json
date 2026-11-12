@@ -30,7 +30,7 @@
    "Krang, Master Mind",
    "Lessons from Life",
    "Metalhead",
-   "Mikey \u0026 Don, Party Planners",
+   "Mikey & Don, Party Planners",
    "Mind Transfer Protocol",
    "Mondo Gecko",
    "Mutant Town",
@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tmt",
+ "pool": "std-tmt",
+ "why": "CR 603.3b: Donatello, Mutant Mechanic copies a dead artifact's +1/+1 and stun counters while a +1/+1 trigger listens: the stun is heard by none, so gorge's insertion order is unobservable",
  "actions": [
   184549120,
   184549120,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "CR 733.1, 733.2: a granted-flashback cast's own grant clear during the proposal is undone by its reversal, so it is no progress for the hold-out window: the hand copy's second no-progress abort stays held out instead of being re-offered (pair 478, Phantom Interference).",
  "actions": [
   16776960,
   16776960,

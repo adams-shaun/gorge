@@ -87,10 +87,21 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 			if host == NoSlot {
 				host = s.selfGrantHost(k, sl, c, ab)
 			}
-			if host == NoSlot || a.Cost.Flags&kop.CostTapHost != 0 && s.perms[host].flags&pfTapped != 0 {
+			// an emblem's grant has no slot: gorge registers it under the
+			// creator's object (the effect's Source, CR 114.4) and offers the
+			// activation against it wherever the creator now is
+			embObj := NoObj
+			if host == NoSlot && k.gen.anyEmbGrant {
+				if o, ok := s.embGrantHostObj(k, sl, c, ab); ok {
+					embObj = o
+				} else {
+					return
+				}
+			}
+			if embObj == NoObj && (host == NoSlot || a.Cost.Flags&kop.CostTapHost != 0 && s.perms[host].flags&pfTapped != 0) {
 				return
 			}
-			if a.Cost.Host != 0 && s.perms[host].ctrl != p {
+			if embObj == NoObj && a.Cost.Host != 0 && s.perms[host].ctrl != p {
 				return // only a permanent the payer controls can be sacrificed or exiled (CR 701.21a, 118.3)
 			}
 			if s.cfg&cfgGorgeUnpriced != 0 && !s.poolPays(p, &a.Cost.Mana) && !s.copyGrantIs(k, sl, c, ab) {
@@ -103,7 +114,11 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 			if s.canActivate(k, sl, 255, a, sorc, &av) {
 				// two copies of one grantor give the same ability: the second is the
 				// first's option (gorge's offer list collapses them the same way)
-				act := MakeAction(AkActivate, uint8(s.perms[sl].obj), uint8(s.perms[host].obj), 0x80|ab)
+				hobj := embObj
+				if hobj == NoObj {
+					hobj = s.perms[host].obj
+				}
+				act := MakeAction(AkActivate, uint8(s.perms[sl].obj), uint8(hobj), 0x80|ab)
 				for i := first; i < int(d.N); i++ {
 					if d.Options[i] == act {
 						return

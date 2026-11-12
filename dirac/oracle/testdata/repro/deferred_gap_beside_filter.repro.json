@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-fdn",
+ "pool": "std-fdn",
+ "why": "CR 605.3a, 602.2b: Pyromancer's Goggles is a census gap beside Three Tree Mascot's filter, so its {R} funds Tinybones' {3}{B}",
  "actions": [
   16776960,
   16776960,

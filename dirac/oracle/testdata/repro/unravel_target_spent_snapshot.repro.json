@@ -95,6 +95,8 @@
  "pass_elision": false,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "std-eoe",
+ "why": "Unravel counters a Warp spell cast for less than its mana value and draws: the spend snapshotted at resolution start survives the counter",
  "actions": [
   16776960,
   16776960,

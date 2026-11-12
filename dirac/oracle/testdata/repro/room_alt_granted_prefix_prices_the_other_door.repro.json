@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-dsk",
+ "why": "Unholy Annex showing door 0 cast as Ritual Chamber: the granted-mana prefix is priced at {3}{B}{B}, not the shown door's {2}{B}",
  "actions": [
   16776960,
   16776960,

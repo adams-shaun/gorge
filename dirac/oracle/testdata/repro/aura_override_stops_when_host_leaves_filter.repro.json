@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-lci",
+ "pool": "std-lci",
+ "why": "CR 704.5m, 613.1d: Zoetic Glyph's \"enchanted artifact\" override stops adding the Creature type once Treasure Map transforms into Treasure Cove, so the land is not a 0-toughness creature",
  "actions": [
   16776960,
   16776960,

@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Leyline of Punishment's printed statics: players can't gain life, damage can't be prevented",
  "actions": [
   906428160,
   906362624,

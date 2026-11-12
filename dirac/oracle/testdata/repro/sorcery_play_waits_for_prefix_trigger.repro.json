@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-tla",
+ "why": "CR 307.1: Guru Pathik is cast after Master Pakku's tap trigger resolves, and every granted source is tapped before the pass",
  "actions": [
   16776960,
   16776960,

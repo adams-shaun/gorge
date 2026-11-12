@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "Caustic Exhale may-played from exile prices its {1} part beside the printed {B} at the offer, so the plan taps for both before the part is chosen (CR 118.9d, 601.2b)",
  "actions": [
   16776960,
   16776960,

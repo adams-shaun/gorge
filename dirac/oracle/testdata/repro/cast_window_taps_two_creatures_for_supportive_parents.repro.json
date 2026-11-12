@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-spm",
+ "pool": "std-spm",
+ "why": "Grow Extra Arms aimed at a non-Spider, its {1} from Supportive Parents in the cast window: gorge asks for the two creatures to tap, a pick at a time, and the cast is made",
  "actions": [
   167771904,
   184549120,

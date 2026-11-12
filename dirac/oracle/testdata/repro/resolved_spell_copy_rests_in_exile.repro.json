@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "CR 707.10a: a copy of a spell is exiled as it leaves the stack (gorge's spellRestZone), not put in a graveyard and ceased later",
  "actions": [
   184549120,
   184549120,

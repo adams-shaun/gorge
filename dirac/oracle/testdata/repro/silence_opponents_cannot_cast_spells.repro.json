@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Silence resolves while the other seat holds a Lightning Bolt and an untapped Mountain: its controller's opponents can't cast spells this turn, but the controller's own Savannah Lions is cast under the emblem (an end-of-turn emblem)",
  "actions": [
   19398400,
   16776960,

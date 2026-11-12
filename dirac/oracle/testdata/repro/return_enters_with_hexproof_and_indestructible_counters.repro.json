@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "Perennation returns a milled card with a hexproof and an indestructible counter: both are part of its entry, in that order (CR 122.6, 614.1c)",
  "actions": [
   17628928,
   18939648,

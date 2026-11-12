@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "synth std-tmt",
+ "pool": "std-tmt",
+ "why": "Manhole Missile's optional hand-to-library move with LibraryPosition$ -1 puts the picked card at the bottom and remembers it, so the gated draw happens (gorge handLibraryTail)",
  "actions": [
   19398400,
   17235712,

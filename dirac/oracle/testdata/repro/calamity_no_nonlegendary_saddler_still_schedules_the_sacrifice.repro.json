@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "the same with only a legendary saddler: nothing can be chosen, no copy is made, and both delayed sacrifices are still put on the stack at the end step and do nothing (CR 603.7)",
  "actions": [
   18415360,
   17891072,

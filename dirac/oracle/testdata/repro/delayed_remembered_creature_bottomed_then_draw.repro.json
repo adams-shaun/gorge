@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-trc",
+ "pool": "std-trc",
+ "why": "U.S.S. Farragut puts a creature card from its owner's hand onto the battlefield, and at the next end step the delayed trigger over that one creature puts it on the bottom of its owner's library and the reflexive draw follows (CR 603.7, 603.12)",
  "actions": [
   16776960,
   16776960,

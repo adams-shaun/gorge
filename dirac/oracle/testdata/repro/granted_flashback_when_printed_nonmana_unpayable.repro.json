@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-sos",
+ "pool": "std-sos",
+ "why": "CR 702.34a: a printed flashback whose tap-three-creatures cost is unpayable leaves the granted mana-cost instance castable (Group Project)",
  "actions": [
   167771904,
   184549120,

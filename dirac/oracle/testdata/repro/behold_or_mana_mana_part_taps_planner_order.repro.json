@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 601.2b, 601.2g-h: Mudbutton Cursetosser's chosen {2} part is paid by the payment plan's ObjID-ordered sources, not the manual window's battlefield order",
  "actions": [
   16776960,
   16776960,

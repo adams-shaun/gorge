@@ -95,6 +95,8 @@
  "pass_elision": false,
  "surface": "autopay",
  "kernel": "synth std-woe",
+ "pool": "std-woe",
+ "why": "Feral Encounter's delayed program fires at the next beginning of combat this turn: a creature you control is targeted, the optional second target declined (CR 603.7, 115.1)",
  "actions": [
   16776960,
   16776960,

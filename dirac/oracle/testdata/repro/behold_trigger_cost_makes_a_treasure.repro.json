@@ -96,6 +96,8 @@
  "max_turns": 40,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Sarkhan, Dragon Ascendant's enters trigger offers its own behold cost of a Dragon: paying with one of two candidates makes the Treasure, and both engines agree through the pick and past it (CR 701.4a)",
  "actions": [
   184549120,
   167771904,

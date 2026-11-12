@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "CR 601.2f, 106.6: a Spree mode is priced beside the floating restricted mana the payment may spend, so the mode stays offered",
  "actions": [
   184549120,
   167771904,

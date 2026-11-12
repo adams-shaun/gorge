@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-trc",
+ "pool": "std-trc",
+ "why": "CR 604.3: a phased-out Lt. Arex's characteristic-defining P/T still sets its base, as gorge's CDASetPT reads it in every zone",
  "actions": [
   167771904,
   167771904,

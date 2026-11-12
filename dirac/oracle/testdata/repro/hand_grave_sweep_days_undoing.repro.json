@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Day's Undoing: the same sweep, then the turn ends if it is the caster's",
  "actions": [
   18874112,
   17235712,

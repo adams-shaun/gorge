@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-tla",
+ "why": "Barrels of Blasting Jelly adds nothing to what the window can pay",
  "actions": [
   16776960,
   16776960,

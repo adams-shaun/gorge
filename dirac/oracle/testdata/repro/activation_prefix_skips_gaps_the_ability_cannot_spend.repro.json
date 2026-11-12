@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-blb",
+ "pool": "std-blb",
+ "why": "Lilysplash Mentor's {1}{G}{U} beside Frogs carrying Clement's creature-spell-only {G}/{U}: the prefix search skips them and finds Hidden Grotto's filter funded by a Plains inside its budget (CR 106.6, 605.3a)",
  "actions": [
   167771904,
   184549120,

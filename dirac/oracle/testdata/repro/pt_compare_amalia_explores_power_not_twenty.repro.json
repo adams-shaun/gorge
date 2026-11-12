@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Amalia Benavides Aguirre explores when her controller gains life, and her power is not exactly 20, so the destroy-all is skipped",
  "actions": [
   17628928,
   18611968,

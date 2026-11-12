@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "Explosive Derailment ({R}, Spree, every mode {2}) on a board whose only red source is Conduit Pylons' {1},{T} filter: the printed cost is payable, but no mode is, so neither engine offers the cast (CR 702.172a/702.183a: the mode cost is part of the cheapest legal total).",
  "actions": [
   16776960,
   16776960,

@@ -95,6 +95,8 @@
  "pass_elision": false,
  "surface": "autopay",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "Nashi, Searcher in the Dark deals combat damage: it mills that many cards and takes a legendary or enchantment card from among them to hand, the pick's count the damage dealt",
  "actions": [
   184549120,
   167771904,

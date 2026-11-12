@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-big",
+ "pool": "std-big",
+ "why": "the same, the copy made by the other player's Helm",
  "actions": [
   167771904,
   184549120,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 106.6: Smoky Lounge's Room-only {R}{R} cannot pay Don't Make a Sound's {2} unless tax, so its controller is offered only the decline",
  "actions": [
   16776960,
   16776960,

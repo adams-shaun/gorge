@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 702.176a, 702.51a: Overlord of the Mistmoors cast for its impending cost under Dazzling Theater's granted convoke poses the convoke announcement priced from the impending cost, as gorge's convoke ask does",
  "actions": [
   923926272,
   16776960,

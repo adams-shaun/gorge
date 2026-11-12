@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 30,
  "surface": "autopay",
+ "pool": "std-woe",
+ "why": "CR 603.3b, 701.6a: three Hellkite activations at a Ward {2} Admirer with a Ward {1} Role; the ward trigger of an ability a sibling ward countered leaves without asking",
  "actions": [
   16776960,
   16776960,

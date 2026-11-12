@@ -67,6 +67,8 @@
  "pass_elision": true,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "Twitching Doll taps for a red spell: its mana ability's rider puts a nest counter on it as the mana is added, with no stack and no decision (CR 605.3b)",
  "actions": [
   19267328,
   17891072,

@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "the same counter, the countered spell's controller answers the up-to-two draw with none: only the caster draws (CR 603.7)",
  "actions": [
   18874112,
   17170176,

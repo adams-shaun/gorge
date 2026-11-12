@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 100,
  "surface": "autopay",
+ "pool": "std-trk",
+ "why": "CR 616.1, 614.5: two mandatory \"draw N instead\" replacements compose as N1\u00b7N2 cards either order, so gorge settles in scan order unasked and the kernel walks the chain through the rest",
  "actions": [
   184549120,
   184549120,
