@@ -712,8 +712,14 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out
 // potentialTargetPriced reports whether o is a cast a ValidTarget$ cost static may
 // price lower for some target. No prefix is searched for one: the search replays the
 // play's price, and a target's is not known until the targets are.
+//
+// The PLOT action is exempt (CR 701.34a): plotting exiles the card and poses
+// no target ask -- the cast from exile announces the enchant target later,
+// at its own price. A ValidTarget$ static prices a target-bearing play, so
+// it cannot price the target-free plot action, and a fee-funded plot (the
+// only colour a paid mana ability produces) must stay script-searchable.
 func (e *Engine) potentialTargetPriced(p state.PlayerID, o decision.Option) bool {
-	return o.Kind == "cast" && e.paymentPlanTargetDependentFor(e.collectCostStatics(), p, o.Obj, spellScope(o.Mode))
+	return o.Kind == "cast" && o.Mode != "plot" && e.paymentPlanTargetDependentFor(e.collectCostStatics(), p, o.Obj, spellScope(o.Mode))
 }
 
 // potentialTargetPricedPlan is a witness for a cast whose ValidTarget$ cost
