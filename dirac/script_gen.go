@@ -308,8 +308,10 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			if !s.eachScript(k, a, p, false) {
 				continue // no script within gorge's search budget (mana_eachfee.go)
 			}
-		} else if restr.any() && s.scriptDeadEnd(k, a, p, restr) {
-			continue
+		} else if restr.any() || s.scriptCtr(k, p).any() {
+			if s.scriptDeadEnd(k, a, p, restr) {
+				continue // no script within gorge's budget (mana_countercost.go ctrScript; a counter-cost gap alone, no restricted source beside it)
+			}
 		}
 		d.add(a)
 	}
