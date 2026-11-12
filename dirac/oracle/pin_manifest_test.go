@@ -201,8 +201,8 @@ func TestPinManifest(t *testing.T) {
 		}
 		rc := RunConfig{Config: doc.Config.config()}
 		reached := doc.reached(t)
-		set := cardsettest.Synth(t, doc.Pool)
 		t.Run(pinDocName(path), func(t *testing.T) {
+			set := cardsettest.Synth(t, doc.Pool)
 			if record {
 				games, err := buildPins(t, path, doc.Pool, set, reg, rc, doc.Mulligans, reached)
 				if err != nil {
