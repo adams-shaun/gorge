@@ -126,15 +126,19 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Fiend Hunter's Defined$ DirectRemembered leave return lowers as the remembered-persist pair; ALL 22176 -> 22177).
 	// +1 (the merge with land: Count$TotalDamageReceivedThisTurn lowered: Tangled Colony beside land's 22180; ALL 22180 -> 22181, WOE 261 -> 262).
 	// +5 (Dig NoLooking$ and Manifest Defined$ Remembered lower: Telling Time, Moment of Truth, Expressive Iteration, Write into Being, Hamza, Might of the Yathan; ALL 22345 -> 22350, MOM 199 -> 200).
-	// +24 (mid-resolution ChooseNumber lowers: ChooseNumberMid, with Count$ChosenNumber and the dynamic PayEnergy<X> unless cost; an activated {X} energy cost stays refused rather than losing its amount; ALL 22381 -> 22405, WOE 262 -> 263).
+	// +24 (mid-resolution ChooseNumber lowers: ChooseNumberMid, with Count$ChosenNumber and the dynamic PayEnergy<X> unless cost; an activated {X} energy cost stays refused rather than losing its amount; the merge with land: ALL 22884 -> 22908, WOE 262 -> 263).
+	// +5 (the hasManaAbility filter property and DrainMana: Power Sink, Moonsilver
+	// Key, Mana Short, Midnight Arsonist and Raggadragga, Goreguts Boss; ALL
+	// 22345 -> 22350).
+	// +31 (K:Partner with lowers: the pair marker and the targeted player's own-library search for the named partner (lower_partnerwith.go): Alisaie Leveilleur, Alphinaud Leveilleur, Blaring Captain, Blaring Recruiter, Brallin, Skyshark Rider, Cazur, Ruthless Stalker, Chakram Retriever, Chakram Slinger, Evie Frye, Impetuous Protege, Jenny Flint, Kamber, the Plunderer, Krav, the Unredeemed (refused by name: dirac/support/refused), Laurine, the Diversion, Ley Weaver, Lore Weaver, Merry, Warden of Isengard, Nikara, Lair Scavenger, Pippin, Warden of Isengard, Proud Mentor, Rocksteady, Mutant Marauder, Sam, Loyal Attendant, Shabraz, the Skyshark, Silvar, Devourer of the Free, Soulblade Corrupter, Soulblade Renewer, Timin, Youthful Geist, Toothy, Imaginary Friend, Trynn, Champion of Freedom, Ukkima, Stalking Shadow, Virtus the Veiled; ALL 22381 -> 22412; merged ALL 22706 -> 22737).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22405, 34442},
+	"ALL": {22908, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
-	"BRO": {216, 280},
+	"BRO": {217, 280},
 	"DFT": {255, 276},
 	"DMU": {196, 270},
-	"DSK": {250, 276},
+	"DSK": {251, 276},
 	"ECL": {244, 273},
 	"EOE": {250, 266},
 	"FDN": {517, 517},
@@ -154,7 +158,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TDM": {256, 276},
 	"TLA": {261, 285},
 	"TMT": {183, 194},
-	"TRC": {299, 337},
+	"TRC": {300, 337},
 	"TRK": {311, 311},
 	"WOE": {263, 281},
 }

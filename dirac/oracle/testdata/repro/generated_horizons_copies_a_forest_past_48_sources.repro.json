@@ -63,6 +63,9 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Generated Horizons' upkeep copy of the card named Forest; a cast past 48 sources taps the least ObjIDs, as gorge's uncapped census does (CR 707.2, 601.2g-h)",
+ "stall": true,
  "actions": [
   18415360,
   17432320,

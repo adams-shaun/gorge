@@ -146,6 +146,40 @@ func (s *State) grantHostGen(k *prep, sl Slot, c CardID, ab uint8) Slot {
 	return NoSlot
 }
 
+// embGrantHostObj is the object of the emblem whose Continuous static grants
+// sl the ability (c, ab): gorge registers an emblem's grant under its
+// creator's object (the effect's Source, CR 114.4 -- the emblem itself has no
+// object) and offers the activation against it wherever the creator now is.
+// It applies the gates globalGrantsGen's emblem pass applies to the same
+// statics (a player out of the game, an attached-only filter, the static's
+// condition), so the two never disagree on whether an emblem grants.
+func (s *State) embGrantHostObj(k *prep, sl Slot, c CardID, ab uint8) (Obj, bool) {
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
+		for i := 0; i < int(s.g.nemb[pp]); i++ {
+			e := &k.t.Emblems[s.embIdx(pp, i)-1]
+			for j := range e.Abilities {
+				a := &e.Abilities[j]
+				if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.Grant != ab+1 ||
+					filterAttachedOnly(k.t, a.Static.Filter) {
+					continue
+				}
+				if s.embCard(pp, i) != c {
+					continue
+				}
+				st := statSrc{a: a, sl: NoSlot, ctrl: pp, obj: NoObj, emb: pp<<4 | uint8(i+1)}
+				if !s.statCond(k, st) || !s.matchPermGen(k, a.Static.Filter, sl, pp, NoSlot, layerKw) {
+					continue
+				}
+				return s.embObj(pp, i), true
+			}
+		}
+	}
+	return NoObj, false
+}
+
 // staticGrants reports whether st grants its card's ability ab.
 func staticGrants(t *kop.Table, st *kop.Static, ab uint8) bool {
 	switch st.Kind {
@@ -159,6 +193,28 @@ func staticGrants(t *kop.Table, st *kop.Static, ab uint8) bool {
 		return g[0] == ab+1 || g[1] == ab+1
 	}
 	return false
+}
+
+// prepEmbGrant marks the grant walk for a Continuous static on an emblem the
+// card creates (OpCreateEmblem): the emblem is not a permanent, so its grant
+// is not statM's, it is globalGrantsGen's emblem pass, and the granted
+// ability is one of the creator card's (the emblem's Grant indexes it).
+func (g *genPrep) prepEmbGrant(t *kop.Table, c CardID, e *kop.Emblem) {
+	cd := &t.Cards[c]
+	for i := range e.Abilities {
+		a := &e.Abilities[i]
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.Grant == 0 ||
+			filterAttachedOnly(t, a.Static.Filter) {
+			continue
+		}
+		g.anyEmbGrant = true
+		if int(a.Static.Grant) <= len(cd.Abilities) && cd.Abilities[a.Static.Grant-1].Kind != kop.AbMana {
+			g.anyGrant, g.globGrant = true, true
+			if cd.Abilities[a.Static.Grant-1].Kind == kop.AbTriggered {
+				g.globTrigGrant = true
+			}
+		}
+	}
 }
 
 // globalGrantsGen is globalGrants for a Continuous static whose Grant is a
@@ -221,6 +277,68 @@ func (s *State) globalGrantsGen(k *prep, sl Slot, lost bool, lts uint16, f func(
 				nseen++
 			}
 			f(cid, ab, 1, s.layerTs(src))
+		}
+	}
+	// the emblems' Continuous grants: an emblem is not a permanent, it is
+	// never in statM, so its statics are read off the held emblems (the layer-6
+	// emblem pass reads them the same way, static_layer6.go). The stamps are
+	// the emblems' creation timestamps, sorted before the emission so the g
+	// closure's grantsBetween windows go forward; no table carries both an
+	// emblem grant and another global static grant, so the pass never has to
+	// interleave with the statM walk's order.
+	if k.gen.anyEmbGrant {
+		// one entry per emblem the state can hold (maxEmbTotal per seat): every
+		// corpus grant emblem carries one Continuous grant, so only an emblem
+		// with several matching grants could fill it, and that stalls loudly
+		// rather than drop a grant (StallGrants)
+		var embs [MaxSeats * maxEmbTotal]struct {
+			cid CardID
+			ab  uint8
+			ts  uint16
+		}
+		n := 0
+		for pp := uint8(0); pp < s.nSeats(); pp++ {
+			if s.out(pp) {
+				continue
+			}
+			for i := 0; i < int(s.g.nemb[pp]); i++ {
+				e := &k.t.Emblems[s.embIdx(pp, i)-1]
+				for j := range e.Abilities {
+					a := &e.Abilities[j]
+					if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.Grant == 0 ||
+						filterAttachedOnly(k.t, a.Static.Filter) {
+						continue
+					}
+					cid := s.embCard(pp, i)
+					ab := a.Static.Grant - 1
+					if k.t.Cards[cid].Abilities[ab].Kind == kop.AbMana {
+						// a granted mana ability is contGrants' (gfContGrant)
+						continue
+					}
+					st := statSrc{a: a, sl: NoSlot, ctrl: pp, obj: NoObj, emb: pp<<4 | uint8(i+1)}
+					if !s.statCond(k, st) || !s.matchPermGen(k, a.Static.Filter, sl, pp, NoSlot, layerKw) {
+						continue
+					}
+					ts := s.embStamp(pp, i)
+					if lost && ts < lts {
+						continue
+					}
+					if n == len(embs) {
+						s.capFull(StallGrants)
+						continue
+					}
+					embs[n].cid, embs[n].ab, embs[n].ts = cid, ab, ts
+					n++
+				}
+			}
+		}
+		for i := 1; i < n; i++ {
+			for j := i; j > 0 && embs[j].ts < embs[j-1].ts; j-- {
+				embs[j], embs[j-1] = embs[j-1], embs[j]
+			}
+		}
+		for i := 0; i < n; i++ {
+			f(embs[i].cid, embs[i].ab, 1, embs[i].ts)
 		}
 	}
 }

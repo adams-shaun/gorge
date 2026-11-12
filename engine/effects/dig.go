@@ -72,7 +72,7 @@ import (
 // that never reaches a Dig whose remainder moves replays byte-identically to
 // an engine without this ask.
 //
-// The variant params (task inbox-paramcensus-dig-variants), each read
+// The variant params, each read
 // below:
 //
 //   - Reveal$ True reveals the dug window to the whole table BEFORE any
@@ -232,7 +232,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	}
 	skipReorder := dp.SkipReorder
 	tapped := dp.Tapped
-	// FromBottom$ True (task scrybottom): the Dig window is the BOTTOM DigNum
+	// FromBottom$ True: the Dig window is the BOTTOM DigNum
 	// cards of the library rather than the top. The Temporal Anchor's
 	// "exile that many cards from the bottom of your library" is the corpus
 	// carrier (`/usr/bin/grep -rlE 'FromBottom\$'` = 2 files); everything
@@ -260,7 +260,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	// with two or more untaken cards must record the look before the ordered
 	// bottom ask -- the same record the take-ask path makes before ITS ask.
 	bottomRest := !skipReorder && strings.EqualFold(strings.TrimSpace(dest2Name), "Library") && pos2 == "-1"
-	// RestRandomOrder$ True (task fdn-dig-rest-random-order): the remainder
+	// RestRandomOrder$ True: the remainder
 	// goes to the library bottom in a RANDOM order drawn from the engine's
 	// seeded generator, and the controller is NOT asked to order it -- the
 	// offered order is not even shown. Drivers: Squad Rallier, Loot,

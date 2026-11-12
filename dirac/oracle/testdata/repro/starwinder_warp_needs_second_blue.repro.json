@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "CR 106.6, 702.185a: Starwinder's warp {2}{U}{U} has only Uthros's {U} beside Mm'menon's hand-barred artifact blue, and the live filter that makes grantCap stand down does not make the hand-barred grant a unit, so no warp cast is offered",
  "actions": [
   184549120,
   184549120,

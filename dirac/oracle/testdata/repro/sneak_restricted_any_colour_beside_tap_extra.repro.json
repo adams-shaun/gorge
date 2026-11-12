@@ -18,8 +18,8 @@
    "Forest",
    "Forest",
    "Forest",
-   "Groundchuck \u0026 Dirtbag",
-   "Guac \u0026 Marshmallow Pizza",
+   "Groundchuck & Dirtbag",
+   "Guac & Marshmallow Pizza",
    "Hamato Guardian Stance",
    "Illegitimate Business",
    "Krang, Utrom Warlord",
@@ -27,7 +27,7 @@
    "Leonardo, Big Brother",
    "Leonardo, Leader in Blue",
    "Lita, Little Orphan Amphibian",
-   "Mikey \u0026 Leo, Chaos \u0026 Order",
+   "Mikey & Leo, Chaos & Order",
    "Mona Lisa, Science Geek",
    "Mutant Chain Reaction",
    "Plains",
@@ -48,7 +48,7 @@
    "Turtle Van"
   ],
   [
-   "Anchovy \u0026 Banana Pizza",
+   "Anchovy & Banana Pizza",
    "Crustacean Commando",
    "Does Machines",
    "Donatello, Mutant Mechanic",
@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-tmt",
+ "why": "Leonardo, Big Brother sneaked for {W} from Turtle Lair's restricted any-colour mana with Groundchuck & Dirtbag adding {G} beside it: the lowered payment takes the wheel's any-colour pick",
  "actions": [
   16776960,
   16776960,

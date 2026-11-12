@@ -257,6 +257,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			if _, err = opponentView(f); err == nil {
 				v = lValue{Kind: vOppExtreme, N: kop.OppExtValid, F: f}
 			}
+		case strings.HasPrefix(rest, "HighestValid"):
+			// the zone-scoped extreme over the opponents (value_plrextreme.go):
+			// Nautiloid Ship's X, each opponent read from their own side
+			v, err = lc.plExtremeValue(head, rest)
 		case rest == "HighestCounters.Poison":
 			// gorge playerCountExtreme's Counters.Poison arm: the extreme
 			// over the living opponents, in group order. Every other
@@ -704,6 +708,30 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			break
 		}
 		err = fmt.Errorf("Remembered$%s", rest)
+	case "Imprinted":
+		if rest == "Amount" {
+			// the size of the set the writer filled: DigUntil ImprintFound$
+			// accumulates the found cards in the chosen set (Demonlord
+			// Belzenlok), a Dig Imprint$ in the imprinted one
+			ref := rImprinted
+			if lc.digImprintChosen {
+				ref = rChosen
+			}
+			v = lValue{Kind: vRefCount, Ref: lRef{Kind: ref}}
+			break
+		}
+		if spec, ok := strings.CutPrefix(rest, "Valid "); ok {
+			// gorge evalRefProperty Valid over the imprinted set where the
+			// objects now are (kernel countRefMatches); Tainted Pact's
+			// CheckName (Imprinted$Valid Card.sharesNameWith Remembered)
+			f, ferr := lc.filter(spec)
+			if ferr != nil {
+				return lValue{}, ferr
+			}
+			v = lValue{Kind: vRefCount, Ref: lRef{Kind: rImprinted}, F: f}
+			break
+		}
+		err = fmt.Errorf("Imprinted$%s", rest)
 	default:
 		err = fmt.Errorf("value head %s$", head)
 	}

@@ -19,12 +19,12 @@ Two sources, joined by set code:
    ratchet checks that measurement failed. A meta.json without the count reads
    as none.
 
-2. dirac's per-set support, a committed snapshot
-   (docs/site/support/dirac-sets.json). Its counts are the table in
-   dirac/docs/support.md, which needs the card corpus to generate and so can't
-   be generated here. docs_sets_test.py holds the snapshot to that page, and
-   --refresh-dirac copies the page into it. Its lockstep rows are read from
-   make dirac-slices.
+2. dirac's per-set support, read at build time from the committed table in
+   dirac/docs/support.md (--dirac-support). The page needs the card corpus to
+   generate, so it is committed; this script only reads it. The stamp's commit
+   and date are those of the last commit that touched the page. The page has
+   no per-slice lockstep results, so the lockstep column and headline row
+   render only when a dirac dict carries them (the build's does not).
 
 Either source may be missing; the tables then say so. The output is one
 markdown fragment, docs/site/support/_generated_sets.md (gitignored, never
@@ -48,24 +48,23 @@ Per set:
                  per-set pseudo problem, not a card, so it is not subtracted.
                  For a set without a printed list this is a hard lower bound.
   Level B %    = the same over the Level B status.
-  dirac supported, lowered = counts / cards from the snapshot, over dirac's
+  dirac supported, lowered = counts / cards from the support page, over dirac's
                  own card list for the set (distinct card names in XMage's
                  manifest that exist in the corpus), which can differ by a
                  few cards from gorge-compliance's count.
 
 Stdlib only. Usage:
   scripts/docs_sets.py [status-A.jsonl|-] [--level-b status-B.jsonl]
-                       [--meta meta.json] [--dirac dirac-sets.json]
+                       [--meta meta.json] [--dirac-support dirac/docs/support.md]
                        [-o docs/site/support/_generated_sets.md]
                        [--commit SHA] [--date YYYY-MM-DD]
-  scripts/docs_sets.py --refresh-dirac docs/site/support/dirac-sets.json \\
-                       --commit SHA --date YYYY-MM-DD
 """
 
 import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 from collections import OrderedDict
 
@@ -96,28 +95,26 @@ def load(stream):
     return rows
 
 
-def load_dirac(path):
-    """Read and check the dirac snapshot; raise ValueError on a bad file."""
-    with open(path, encoding="utf-8") as f:
-        d = json.load(f)
+def check_dirac(d, where="dirac"):
+    """Check a dirac dict's counts add up; raise ValueError on a bad one."""
     for k in ("date", "commit", "corpus", "sets"):
         if k not in d:
-            raise ValueError("%s: missing %r" % (path, k))
+            raise ValueError("%s: missing %r" % (where, k))
     for code, s in list(d["sets"].items()) + [("corpus", d["corpus"])]:
         if not all(isinstance(s.get(k), int) and s[k] >= 0 for k in SUPPORT_COUNTS):
-            raise ValueError("%s: %s: need integer %s" % (path, code, ", ".join(SUPPORT_COUNTS)))
+            raise ValueError("%s: %s: need integer %s" % (where, code, ", ".join(SUPPORT_COUNTS)))
         if s["refused"] + s["unverified"] + s["supported"] != s["lowered"] or not 0 < s["cards"] or s["lowered"] > s["cards"]:
-            raise ValueError("%s: %s: need refused + unverified + supported = lowered <= cards, cards > 0" % (path, code))
+            raise ValueError("%s: %s: need refused + unverified + supported = lowered <= cards, cards > 0" % (where, code))
     for code, s in (d.get("lockstep") or {}).items():
         if not all(isinstance(s.get(k), int) for k in ("games", "agree", "stalls", "disagree")):
-            raise ValueError("%s: lockstep %s: need integer games/agree/stalls/disagree" % (path, code))
+            raise ValueError("%s: lockstep %s: need integer games/agree/stalls/disagree" % (where, code))
         if s["agree"] + s["stalls"] + s["disagree"] != s["games"]:
-            raise ValueError("%s: lockstep %s: agree + stalls + disagree != games" % (path, code))
+            raise ValueError("%s: lockstep %s: agree + stalls + disagree != games" % (where, code))
     return d
 
 
 def read_support_page(path=SUPPORT_PAGE):
-    """The rows of dirac/docs/support.md's table: {list: {count: n}}; columns past SUPPORT_COUNTS (the 4-seat ceiling) are not part of the snapshot."""
+    """The rows of dirac/docs/support.md's table: {list: {count: n}}; columns past SUPPORT_COUNTS (the 4-seat ceiling) are not read."""
     rows = {}
     with open(path, encoding="utf-8") as f:
         for line in f:
@@ -127,29 +124,28 @@ def read_support_page(path=SUPPORT_PAGE):
     return rows
 
 
-def refresh_dirac(path, commit, date, support=SUPPORT_PAGE):
-    """Copy dirac/docs/support.md's counts into the snapshot, stamped commit and date."""
-    with open(path, encoding="utf-8") as f:
-        d = json.load(f)
-    rows = read_support_page(support)
-    d["date"], d["commit"] = date, commit[:9]
-    d["corpus"] = rows.pop("ALL")
-    d["sets"] = dict(sorted(rows.items()))
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(dump_dirac(d))
+def page_stamp(path):
+    """(commit, date) of the last commit that touched the page; ("", "") outside a git checkout."""
+    try:
+        out = subprocess.run(["git", "log", "-1", "--format=%H %cs", "--", os.path.abspath(path)],
+                             cwd=os.path.dirname(os.path.abspath(path)), capture_output=True,
+                             text=True, check=True).stdout.split()
+    except (OSError, subprocess.CalledProcessError):
+        return "", ""
+    return (out[0], out[1]) if len(out) == 2 else ("", "")
 
 
-def dump_dirac(d):
-    """The snapshot's committed form: one line per set, so a diff reads count by count."""
-    keys = ["about", "date", "commit", "corpus", "lockstep", "sets"]
-    parts = []
-    for k in keys:
-        if k in ("lockstep", "sets"):
-            rows = ",\n".join("    %s: %s" % (json.dumps(c), json.dumps(v)) for c, v in sorted(d[k].items()))
-            parts.append('  "%s": {\n%s\n  }' % (k, rows))
-        else:
-            parts.append('  "%s": %s' % (k, json.dumps(d[k], ensure_ascii=False)))
-    return "{\n" + ",\n".join(parts) + "\n}\n"
+def load_dirac(path=SUPPORT_PAGE, commit=None, date=None):
+    """dirac's per-set figures from the support page, checked; raise ValueError on a bad page.
+
+    commit and date stamp the figures; unset, they are the page's last commit."""
+    rows = read_support_page(path)
+    if "ALL" not in rows or len(rows) < 2:
+        raise ValueError("%s: need the table's ALL row and at least one set row" % path)
+    gc, gd = page_stamp(path) if commit is None or date is None else ("", "")
+    d = {"date": gd if date is None else date, "commit": gc if commit is None else commit,
+         "corpus": rows.pop("ALL"), "sets": dict(sorted(rows.items()))}
+    return check_dirac(d, path)
 
 
 def measure(r):
@@ -272,7 +268,9 @@ def data_caption(meta):
 
 
 def dd_stamp(dd):
-    return "the dirac snapshot of %s at gorge `%s`" % (dd["date"], dd["commit"][:9])
+    if not dd["commit"]:
+        return "dirac's support page"
+    return "dirac's support page of %s at gorge `%s`" % (dd["date"], dd["commit"][:9])
 
 
 def render_headline(rows, level_b, meta, dd):
@@ -461,7 +459,7 @@ def render_charts(rows, level_b, meta, dd):
         w("*From " + dd_stamp(dd) + ".*")
         w("")
     else:
-        w("*dirac's snapshot was not available to this build, so there is no dirac chart.*")
+        w("*dirac's support page was not available to this build, so there is no dirac chart.*")
         w("")
     by = {r["set"]: r for r in rows}
     codes = [c for c in sorted(sets) if c in by]
@@ -485,7 +483,7 @@ def render_glance(rows, level_b, meta, dd):
     """One tile per set on dirac's support page, tinted by dirac's supported share."""
     sets = (dd or {}).get("sets", {})
     if not sets:
-        return "*dirac's snapshot was not available to this build, so there is no overview.*\n"
+        return "*dirac's support page was not available to this build, so there is no overview.*\n"
     by = {r["set"]: r for r in rows}
     out = ['<div class="gg-heat">']
     for c in sorted(sets):
@@ -528,17 +526,9 @@ def main(argv=None):
     ap.add_argument("--meta", default="", help="docs-data meta.json (commit, gorge_pin, forge_ref, date, ratchet_failures)")
     ap.add_argument("--commit", default="", help="gorge-compliance commit (overrides --meta)")
     ap.add_argument("--date", default="", help="measurement date (overrides --meta)")
-    ap.add_argument("--dirac", default="", help="dirac per-set snapshot JSON")
-    ap.add_argument("--refresh-dirac", default="", metavar="SNAPSHOT",
-                    help="copy dirac/docs/support.md's counts into this snapshot, with --commit and --date, and exit")
+    ap.add_argument("--dirac-support", default="", metavar="PAGE",
+                    help="dirac's support page (dirac/docs/support.md), read for dirac's per-set figures")
     a = ap.parse_args(argv)
-
-    if a.refresh_dirac:
-        if not a.commit or not a.date:
-            print("docs_sets: --refresh-dirac needs --commit and --date", file=sys.stderr)
-            return 1
-        refresh_dirac(a.refresh_dirac, a.commit, a.date)
-        return 0
 
     rows = []
     if a.input == "-":
@@ -562,9 +552,9 @@ def main(argv=None):
         meta["date"] = a.date
     if meta:
         meta["current_forge_ref"] = forge_pin()
-    dd = load_dirac(a.dirac) if a.dirac else None
+    dd = load_dirac(a.dirac_support) if a.dirac_support else None
     if not rows and not dd:
-        print("docs_sets: neither status rows nor a dirac snapshot; fragment not written", file=sys.stderr)
+        print("docs_sets: neither status rows nor dirac's support page; fragment not written", file=sys.stderr)
         return 1
     with open(a.out, "w", encoding="utf-8") as f:
         f.write(render(rows, meta, level_b, dd))

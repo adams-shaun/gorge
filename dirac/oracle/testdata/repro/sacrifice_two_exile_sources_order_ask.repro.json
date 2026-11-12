@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 616.1: a sacrificed creature two Leylines of the Void would exile parks for its order ask, and the batch's later moves wait behind it",
  "actions": [
   167771904,
   184549120,

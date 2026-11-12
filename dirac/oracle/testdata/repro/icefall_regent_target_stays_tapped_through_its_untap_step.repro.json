@@ -63,6 +63,9 @@
  "pass_elision": true,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Icefall Regent's enters trigger is Dungeon Geists's lock again, recorded on the full surface too; the autopay-surface game is battlefield_self_target_raise_does_not_decline_own_cast",
+ "stall": true,
  "actions": [
   19398400,
   35192576,

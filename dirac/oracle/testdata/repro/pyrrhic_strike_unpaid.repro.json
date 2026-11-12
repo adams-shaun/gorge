@@ -93,7 +93,9 @@
  "seed": 10222539518056629737,
  "mulligans": 1,
  "pass_elision": false,
- "surface": "full",
+ "surface": "autopay",
+ "pool": "std-ecl",
+ "why": "Pyrrhic Strike cast without its optional two-life cost: its charm chooses exactly one mode (CR 117.12, 702.34)",
  "actions": [
   167771904,
   167771904,

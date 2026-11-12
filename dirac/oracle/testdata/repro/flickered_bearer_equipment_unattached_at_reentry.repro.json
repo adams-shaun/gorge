@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "Phoenix, Warden of Fire exiles itself and returns beside its twin, a legend ask pending: the Coral Swords it bore show unattached (CR 400.7), not on the returned Joshua",
  "actions": [
   167771904,
   167771904,

@@ -177,7 +177,7 @@ func (s *State) execPutCounter(k *prep, in *kop.Instr) bool {
 			if in.B.N == 1 {
 				s.putCounterRemAmount(k, in, n) // RememberAmount$ (act_remember.go)
 			} else if in.B.N == 2 {
-				s.putCounterRemPut(k, in, sl) // RememberPut$ (ctr_putparams.go)
+				s.putCounterRemPut(k, sl, n) // RememberPut$ (ctr_putparams.go)
 			}
 		}
 	}

@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Radioactive Spider sacrificed for its search: only the Lady Spider and the Iron Spider (Spider Heroes) are offered, not the Radioactive Spiders still in the library",
  "actions": [
   18415360,
   17891072,

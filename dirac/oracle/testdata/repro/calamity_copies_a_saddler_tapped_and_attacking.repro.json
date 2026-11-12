@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "Calamity, Galloping Inferno attacks saddled by several nonlegendary creatures: the controller picks one twice, each copy enters tapped and attacking and is sacrificed at the end step (CR 603.7, 508.4, 707.2)",
  "actions": [
   18087680,
   34012928,

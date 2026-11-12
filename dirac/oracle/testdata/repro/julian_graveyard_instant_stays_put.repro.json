@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trc",
+ "why": "Julian Bashir's trigger aimed at an instant in the graveyard: it stays there (CR 304.4), so Vindicate finds no such permanent",
  "actions": [
   16776960,
   16776960,

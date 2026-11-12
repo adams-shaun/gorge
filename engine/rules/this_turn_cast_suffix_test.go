@@ -1,6 +1,6 @@
 package rules
 
-// Task: the COUNT-level trailing `$<Property>` suffix on the
+// The COUNT-level trailing `$<Property>` suffix on the
 // Count$ThisTurnCast_<spec> branch was unread. Rootha, Mastering the Moment's
 // SVar Y (`Count$ThisTurnCast_Instant.YouCtrl,Sorcery.YouCtrl$GreatestCardManaCost`)
 // sizes her Elemental token from the number of instants cast instead of the

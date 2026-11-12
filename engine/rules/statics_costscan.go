@@ -95,8 +95,7 @@ func (e *Engine) scanCostStatics() costStaticViews {
 			}
 		}
 	}
-	// The Effect-delivered cost-modifier statics (task
-	// param:api:Effect.ForgetOnCast): Mode$ ReduceCost/RaiseCost/SetCost
+	// The Effect-delivered cost-modifier statics: Mode$ ReduceCost/RaiseCost/SetCost
 	// bodies effEffect registered with the line's own parameter map. The
 	// walk reads e.active() so the entries inherit exactly the lifetimes the
 	// layer walk honours -- Permanent entries survive their (already gone)

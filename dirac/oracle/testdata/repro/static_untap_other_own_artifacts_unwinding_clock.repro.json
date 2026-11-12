@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 14,
  "surface": "autopay",
+ "pool": "custom",
+ "why": "Unwinding Clock untaps the Alpha Myr its controller attacked with during the other player's untap step (CR 502.3): a static over its controller's artifacts, not only itself",
  "actions": [
   16776960,
   16776960,

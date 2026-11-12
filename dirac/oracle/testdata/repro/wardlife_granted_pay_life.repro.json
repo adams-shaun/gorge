@@ -95,6 +95,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "std-ecl",
+ "why": "Hexing Squelcher grants a creature with printed ward {2} \"ward--pay 2 life\": both instances fire, the printed mana ward and then the granted life ward, and each asks its own payment (CR 702.21a, 113.2c)",
  "actions": [
   20053760,
   17497856,

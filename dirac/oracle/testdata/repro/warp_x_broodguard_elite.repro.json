@@ -104,6 +104,8 @@
  "max_turns": 80,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Broodguard Elite warped for {X}{G} at several X, once with a floating {G} that pays it at X = 0: the X is announced like a printed one, and that cast taps nothing more (CR 601.2b, 702.185a)",
  "actions": [
   167771904,
   167771904,

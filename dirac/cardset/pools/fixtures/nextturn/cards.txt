@@ -1,0 +1,20 @@
+# The until-your-next-turn Pump lockstep pool, for
+# dirac/oracle/nextturn_pump_lockstep_test.go: the cards this change lowers
+# that the onering pool does not play. A-The One Ring and The Stasis Coffin
+# grant protection from everything until your next turn. Blue Dragon, Hag of
+# Inner Weakness, Liliana, the Last Hope, Mu Yanling, Celestial Wind and Wasp,
+# Shrinking Savior give a creature -N/-0 or -2/-1 until your next turn. They
+# sit beside X/1 and deathtouch creatures and Sign in Blood's target player.
+A-The One Ring
+The Stasis Coffin
+Blue Dragon
+Mu Yanling, Celestial Wind
+Wasp, Shrinking Savior
+Liliana, the Last Hope
+Hag of Inner Weakness
+Coral Merfolk
+Typhoid Rats
+Walking Corpse
+Sign in Blood
+Island
+Swamp

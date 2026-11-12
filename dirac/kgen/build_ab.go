@@ -346,12 +346,23 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		if t.SingleTgt {
 			ts.TFlags |= kop.TgfSingleTgt
 		}
-		if t.VTgt != nil {
-			// the spell side is any spell; the filter names the battlefield
-			// object one of its targets must match
+		if t.ActOnly {
+			ts.TFlags |= kop.TgfActOnly
+		}
+		if t.VTgt != nil || t.VYou {
+			// the filter names the battlefield object one of the spell's
+			// targets must match (VYou: the chooser); SpellF is the spell side
 			ts.Kind = kop.TgtSpellTgting
-			if ts.Filter, err = cb.filter(t.VTgt, kop.ZoneBattlefield); err != nil {
-				return ts, err
+			ts.VYou = t.VYou
+			if t.VTgt != nil {
+				if ts.Filter, err = cb.filter(t.VTgt, kop.ZoneBattlefield); err != nil {
+					return ts, err
+				}
+			}
+			if t.VSpellF != nil {
+				if ts.SpellF, err = cb.filter(t.VSpellF, kop.ZoneStack); err != nil {
+					return ts, err
+				}
 			}
 			break
 		}
@@ -371,6 +382,17 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 			// alternative, a permanent the planeswalker one. Same target
 			// walk as "any target", with the object clause as the filter.
 			ts.Kind = kop.TgtAny
+			g := *f
+			g.Players = 0
+			if ts.Filter, err = cb.filter(&g, kop.ZoneBattlefield); err != nil {
+				return ts, err
+			}
+		case f.Players == plOpp && len(f.Clauses) == 1 && f.Clauses[0] == (lClause{Types: tPlaneswalker}):
+			// "target opponent or planeswalker" (Burning Sun's Avatar,
+			// Rakdos's Return): the Boros Charm walk with the player
+			// alternative narrowed to an opponent of the chooser.
+			ts.Kind = kop.TgtAny
+			ts.TFlags |= kop.TgfOppOnly
 			g := *f
 			g.Players = 0
 			if ts.Filter, err = cb.filter(&g, kop.ZoneBattlefield); err != nil {
@@ -921,12 +943,17 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	}
 	if m.Special == "Reflected" && m.Restrict == nil && m.RestrictAb == nil && m.Amount.isConst() && m.Amount.N == 1 {
 		// one mana of any colour among the matching permanents' colours
-		// (Plaza of Heroes; lower_reflectedmana.go)
+		// (Plaza of Heroes), or among what the matching permanents' mana
+		// abilities could produce (Ability.ManaProduce, every Valid$ alternative
+		// OppCtrl: Exotic Orchard; lower_reflectedmana.go)
 		id, err := cb.filter(m.SpecialF, kop.ZoneBattlefield)
 		if err != nil {
 			return err
 		}
 		ka.AFlags |= kop.AfManaChoice | kop.AfManaReflect
+		if m.Produce {
+			ka.ManaProduce = true
+		}
 		ka.ManaAmong = id
 		ka.ManaColors = kop.ColAny
 		ka.ManaN = 1
@@ -1076,6 +1103,7 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"ClassLevelGained": kop.TrigCounterAddedOnce, // N = CtrLevel (lower_class.go)
 	"BecomesPlotted":   kop.TrigBecomesPlotted,   // the card's own
 	"BecomesSaddled":   kop.TrigBecomesSaddled,
+	"Evolved":          kop.TrigEvolved,  // the source's own, after its evolve counter lands
 	"Attached":         kop.TrigAttached} // the attachment's own, Creature bearer (Assimilation Aegis) // the Mount's own
 
 func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
@@ -1324,6 +1352,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 			kt.Flags2 |= kop.Tf2AtkOpp
 		}
 	}
+	if t.PerCounter {
+		if t.Event != "CounterAdded" {
+			return kt, fmt.Errorf("PerCounter on a %s trigger", t.Event)
+		}
+		kt.Flags4 |= kop.Tf4PerCounter
+	}
 	if t.Evolve {
 		if t.Event != "ETB" {
 			return kt, fmt.Errorf("Evolve on a %s trigger", t.Event)
@@ -1538,6 +1572,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	if t.FirstAttack {
 		kt.Flags3 |= kop.Tf3FirstAttack
 	}
+	kt.Flags5 = drawStepFlags(t)
 	if t.GameOnce {
 		kt.Flags3 |= kop.Tf3GameOnce
 	}
@@ -1909,6 +1944,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StCasterActive
 			case "NamedCard":
 				st.B |= kop.CantCastNamed
+			case "SorcerySpeed":
+				st.B |= kop.CantCastSorcery
 			default:
 				return ka, nil, fmt.Errorf("cant be cast flag %q", fl)
 			}
@@ -1992,9 +2029,16 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		if s.Zone == zAny {
 			st.Zone = kop.ZoneCommand
+		} else if s.Zone == zStack {
+			st.Zone = kop.ZoneStack // the spell's own stack-zone raise (lower_raisecost.go)
 		}
 	case "CantBlock":
 		st.Kind = kop.StatCantBlock
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+	case "Lure":
+		st.Kind = kop.StatLure // combat_lure.go isLure
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
@@ -2078,6 +2122,24 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+	case "CantAttackUnless":
+		st.Kind = kop.StatAttackTax // lower_attacktax.go
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		if err := amounts(s.Amount, lValue{}); err != nil {
+			return ka, nil, err
+		}
+		for _, fl := range s.Flags {
+			switch fl {
+			case "TaxPlayer":
+				st.StFlags |= kop.StAtkTaxPlayer
+			case "TaxWalker":
+				st.StFlags |= kop.StAtkTaxWalker
+			default:
+				return ka, nil, fmt.Errorf("CantAttackUnless flag %q", fl)
+			}
+		}
 	case "CanAttackDefender":
 		st.Kind = kop.StatCanAttackDefender
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -2098,12 +2160,22 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneHand); err != nil {
 			return ka, nil, err
 		}
+		if st.Filter2, err = filter(s.F2, kop.ZoneStack); err != nil { // an emblem's ForgetOnCast$ (lower_effectemblem.go)
+			return ka, nil, err
+		}
 	case "AlternativeCost":
 		st.Kind = kop.StatAlternativeCost
 		if ka.Cost, err = cb.cost(s.Cost); err != nil {
 			return ka, nil, err
 		}
 		if ka.Cost.Flags&(kop.CostForage|kop.CostExileGrave) != 0 && !cb.altHandExileOK(&ka.Cost) {
+			if altHandExileShape(&ka.Cost) {
+				// the hand-exile shape lowers (the Force cycle); the card
+				// carries no alternative-cost cast (Force of Virtue: an
+				// enchantment, where altSacOK prices instants, sorceries
+				// and creatures alone)
+				return ka, nil, fmt.Errorf("alternative cost with an exile-from-hand part on a card the kernel offers no alternative cast for (instants, sorceries and creatures alone)")
+			}
 			return ka, nil, fmt.Errorf("alternative cost with a forage / exile-from-graveyard part")
 		}
 		sacAlt := ka.Cost.Flags == kop.CostSac && ka.Cost.N > 0 && ka.Cost.Mana == (kop.ManaCost{}) && cb.altSacOK()
@@ -2149,6 +2221,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		default:
 			return ka, nil, fmt.Errorf("PlayerHexproof amount %v", s.Amount)
 		}
+	case "PlayerProtAll":
+		st.Kind = kop.StatPlayerProtAll // the controller has protection from everything (static_plprot.go)
 	case "MayPlayFrom":
 		st.Kind = kop.StatMayPlayFrom
 		st.Zone = zoneMap[s.Zone]
@@ -2647,7 +2721,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "Demonstrate":
 		ki.Op = kop.OpDemonstrate
 	case "Ninjutsu":
-		ki.Op = kop.OpNinjutsu
+		ki.Op, ki.C = kop.OpNinjutsu, int16(in.C) // C 1: the plain put-self-from-hand (lower_ninjutsu.go putSelfAbility)
 	case "Repeat":
 		ki.Op, ki.B = kop.OpRepeat, skip() // A: the pass count, read as the loop starts
 	case "RepeatWhile":
@@ -2966,6 +3040,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if _, rem := fl["Remember"]; rem && in.C == 1 && in.Obj.Kind == rDelayedRemembered && fl["from"] == "Battlefield" {
 			ki.C = kop.LibBottomRememberBF // dirac/zone_tolibrarybfremember.go
+		}
+		if _, rem := fl["Remember"]; rem && in.C == 0 && in.Obj.Kind == rSelf && fl["from"] == "Battlefield" {
+			ki.C = kop.LibTopRememberBF // dirac/zone_tolibrarybfremember.go
 		}
 		if _, ok := fl["TopShuffle"]; ok {
 			ki.C = kop.LibTopShuffle
@@ -3497,7 +3574,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, err
 		}
 	case "TapAll":
-		ki.Op = kop.OpTapAll
+		ki.Op, ki.C = kop.OpTapAll, int16(in.C) // C 1: TapperController$ True (act_sweeps.go tapAll)
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
@@ -3843,6 +3920,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, err
 		}
 		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtColorGrant)), v, int16(in.C)
+		if in.F != nil {
+			// (Akroma's Blessing) the sweep's filter
+			if err := objFilter(kop.ZoneBattlefield); err != nil {
+				return ki, err
+			}
+		}
 	case "Endure":
 		// OpExt ExtEndure, B the Spirit token, C the N/N
 		// override (its PA is N)
@@ -3876,6 +3959,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		// OpExt ExtMustBeBlocked, Obj the subject (RefNone
 		// with F: every battlefield permanent matching F)
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtMustBeBlocked))
+		if in.C == kop.MustBeBlockedLure {
+			ki.C = kop.MustBeBlockedLure // the lure mark (a single Obj)
+		}
 		if in.F != nil {
 			if err := objFilter(kop.ZoneBattlefield); err != nil {
 				return ki, err
@@ -3951,6 +4037,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, fmt.Errorf("DividedCounters Obj %d", ki.Obj)
 		}
 		ki.Op, ki.A, ki.C, ki.Obj = kop.OpExt, kop.Const(int(kop.ExtDividedCounters)), int16(slot), kop.RefSelf
+	case "DrainMana":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtDrainMana))
 	case "CounterLose":
 		// (Tishana's Tidebinder) OpExt ExtCounterLose, C the
 		// host-bound LoseAbilities override
@@ -4042,6 +4130,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtPreventColor)) // (Prismatic Strands)
 	case "PreventDamageScope":
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventDamageScope)), int16(in.C)
+	case "PreventNext":
+		// OpExt ExtPreventNext on Obj, B the amount, C 1 for combat damage only (dirac/repl_prevnext.go)
+		v, err := cb.value(in.A)
+		if err != nil {
+			return ki, err
+		}
+		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventNext)), v, int16(in.C&1)
 	case "CounterPlusEOT":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtCounterPlusEOT))
 	case "TurnRepl":
@@ -4054,6 +4149,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
+	case "DrawUpto":
+		// OpExt ExtDrawUpto: Obj the drawer, B the most cards (act_drawupto.go)
+		v, err := cb.value(in.A)
+		if err != nil {
+			return ki, err
+		}
+		ki.Op, ki.A, ki.B = kop.OpExt, kop.Const(int(kop.ExtDrawUpto)), v
 	case "Recruit":
 		// OpExt ExtRecruit. The token is a fixed corpus
 		// script (the lowering registered it in lc.out.Tokens); the kernel
@@ -4123,7 +4225,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "LoseGame":
 		ki.Op, ki.C = kop.OpLoseGame, int16(in.C) // in.C 1: WinsGame (kernel winGame)
 	case "Shuffle":
-		ki.Op = kop.OpShuffle
+		ki.Op, ki.C = kop.OpShuffle, int16(in.C) // in.C 1: every remembered owner (lower_shuffleremowners.go)
 	case "SetLife":
 		ki.Op = kop.OpSetLife
 	case "Rearrange":
@@ -4586,6 +4688,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				ki.A = kop.Const(kop.DelayYourUpkeep)
 			case "NextEndCombat":
 				ki.A = kop.Const(kop.DelayEndCombat)
+			case "NextUpkeepOfRemPlayer":
+				ki.A = kop.Const(kop.DelayRemUpkeep) // dirac/trig_delayremupkeep.go
 			case "NextUpkeepOfPlayer":
 				ki.A = kop.Const(kop.DelayPlayerUpkeep) // dirac/trig_delayplayerupkeep.go
 			case "NextBeginCombat":
@@ -4640,6 +4744,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
+	case "RememberImprinted":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRememberImprinted)) // Tainted Pact
 	case "AddTurn":
 		ki.Op = kop.OpAddTurn
 	case "EndTurn":

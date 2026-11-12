@@ -94,8 +94,10 @@
  "mulligans": 1,
  "pass_elision": false,
  "max_turns": 100,
- "surface": "autopay",
+ "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "CR 118.9, 601.2h: the free plot cast is offered only while its additional sacrifice can be paid",
  "actions": [
   184549120,
   167771904,

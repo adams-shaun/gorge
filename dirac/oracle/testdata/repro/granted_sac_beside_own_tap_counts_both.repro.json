@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-big",
+ "pool": "std-big",
+ "why": "CR 602.2, 605.1a: Ancient Cornucopia equipped with Lotus Ring taps for its own mana and is then sacrificed for the Ring's three (no {T} in that cost), so Vaultborn Tyrant's seven is offered",
  "actions": [
   167771904,
   184549120,

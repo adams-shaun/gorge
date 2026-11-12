@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-big",
+ "pool": "std-big",
+ "why": "five Worldwalker Helms copying a Map token: each adds its Map before the copy, five of them (the kernel's adder buffer held four)",
  "actions": [
   167771904,
   184549120,

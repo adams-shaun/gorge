@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-sos",
+ "pool": "std-sos",
+ "why": "CR 400.7: a second Postmortem Professor return ability resolves after the card came back and died again, and finds a new object",
  "actions": [
   167771904,
   167771904,

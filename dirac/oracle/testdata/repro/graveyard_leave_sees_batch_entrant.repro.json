@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "CR 603.10a: Fang returned by Random Encounter beside the cards it returns did not see them leave",
  "actions": [
   184549120,
   167771904,

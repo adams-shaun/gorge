@@ -270,7 +270,9 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExGraveAgg:
 		return s.graveAgg(k, x, ctx)
 	case kop.ExOppExtreme:
-		return s.oppExtreme(k, x, ctx) // value_oppextreme.go
+		return s.oppExtreme(k, x, ctx)
+	case kop.ExPlExtreme:
+		return s.plExtreme(k, x, ctx) // value_plrextreme.go
 	case kop.ExHighestOppPoison:
 		if k.gen != nil && k.gen.anyPoisonHigh {
 			return s.highestOppPoison(ctx.ctrl)

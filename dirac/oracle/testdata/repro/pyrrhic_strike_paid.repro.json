@@ -93,7 +93,9 @@
  "seed": 12994909170216132588,
  "mulligans": 1,
  "pass_elision": false,
- "surface": "full",
+ "surface": "autopay",
+ "pool": "std-ecl",
+ "why": "Pyrrhic Strike cast paying the two life: its charm chooses up to two modes (CR 117.12, 702.34)",
  "actions": [
   184549120,
   184549120,

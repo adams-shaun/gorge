@@ -1,0 +1,27 @@
+# The Doctor's companion class (CR 702.124m), lowered as a no-op deck marker by
+# dirac/kgen (the keyword case in lower.go), for dirac/oracle/whocompanions_test.go:
+# K-9, Mark I, Ace, Fearless Rebel, Adric, Mathematical Genius, Syr Ginger, the
+# Meal Ender (whose Sac<1/NICKNAME> cost lowers as the source itself) and the
+# classmates whose only blocker was the keyword. Ornithopter is an artifact for
+# Ace's Nitro-9 sacrifice.
+Ace, Fearless Rebel
+Adric, Mathematical Genius
+ED-E, Lonesome Eyebot
+Graham O'Brien
+Jamie McCrimmon
+Jirina, Dauntless General
+Junktown
+K-9, Mark I
+Kagemaro, First to Suffer
+Nardole, Resourceful Cyborg
+Ornithopter
+Romana II
+Sarah Jane Smith
+Syr Ginger, the Meal Ender
+Tegan Jovanka
+Yasmin Khan
+Forest
+Island
+Mountain
+Plains
+Swamp

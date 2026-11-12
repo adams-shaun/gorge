@@ -94,6 +94,9 @@
  "mulligans": 1,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trk",
+ "why": "the same with Vash, Freelance Archaeologist returned by the beam me up cost: its draw trigger is put on the stack",
  "actions": [
   184549120,
   184549120,

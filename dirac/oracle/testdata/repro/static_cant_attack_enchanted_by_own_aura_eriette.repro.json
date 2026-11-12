@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 14,
  "surface": "autopay",
+ "pool": "custom",
+ "why": "Eriette of the Charmed Apple: an opponent's creature enchanted by an Aura Eriette's controller controls is offered no attack at them (CR 508.1c)",
  "actions": [
   16776960,
   16776960,

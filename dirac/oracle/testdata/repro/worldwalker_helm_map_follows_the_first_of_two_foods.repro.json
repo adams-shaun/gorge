@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-big",
+ "pool": "std-big",
+ "why": "Worldwalker Helm beside Bristlebud Farmer's two Foods: the Map is made once for the Token resolution, entering after the first Food (CR 614.1a, 616)",
  "actions": [
   167771904,
   167771904,

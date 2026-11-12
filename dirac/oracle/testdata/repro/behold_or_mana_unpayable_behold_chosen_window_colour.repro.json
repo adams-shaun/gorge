@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 601.2g, 733.1: Silvergill Mentor's unpayable behold chosen beside a plan armed for the {2} part falls back to a window with no ManaPayment, so Eclipsed Realms answers its lowest colour, not the owed pip, and the seat taps the Island that pays the pip, not the first Mountain",
  "actions": [
   16776960,
   16776960,

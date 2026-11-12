@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "CR 400.7, 701.50b: Baron Strucker's connive for a Villain that died and returned before it resolved puts no +1/+1 counter on the new object",
  "actions": [
   16776960,
   16776960,

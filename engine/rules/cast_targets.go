@@ -1571,7 +1571,7 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 				// answered with, or a cast offered under a false gate would abort
 				// here (and vice versa). It subsumes the checkSVarHolds the caller
 				// used to run separately.
-				if !e.continuousGateHolds(sv) || !e.restrictionGateHolds(sv, pc.card) {
+				if !e.continuousGateHolds(sv) || !e.restrictionGateHolds(sv, pc.card) || e.castSorceryTimingExempt(sv, pc.player, castInFlight(e.G, pc.card)) {
 					continue
 				}
 				// Origin$ reads the cast's announced ORIGIN (pc.from): the card
@@ -1625,7 +1625,7 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 		e.abortCast(pc, "cast aborted: proposed spell is illegal (CR 601.2e)", true)
 		return true
 	}
-	// Target-conditional CastWithFlash (task istargeting-flash): a spell
+	// Target-conditional CastWithFlash: a spell
 	// announced at a time a sorcery could not have been cast on the strength
 	// of a CastWithFlash permission whose ValidSA$ requires targeting
 	// something must actually have a qualifying announced target. The

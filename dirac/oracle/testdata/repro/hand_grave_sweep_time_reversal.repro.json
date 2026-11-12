@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Time Reversal: the same sweep, then the spell exiles itself",
  "actions": [
   18874112,
   17235712,

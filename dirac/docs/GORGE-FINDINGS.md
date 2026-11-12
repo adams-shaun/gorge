@@ -30,12 +30,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   plus the greedy artifact credit pays the whole cost (its planner refuses
   the shape), so a cast with a coloured pip is offered only with that colour
   floating, which the lockstep reproduces.
-- X ceiling: gorge's xAsk loops X up to pool + caster's graveyard + convoke
-  credit + what the window's sources make + 1, and raises that only for a
-  named-count discount, so a generic reduction (Zimone, Mocking Sprite) paying
-  into {X} past it is not offered although CR 601.2f allows it. dirac
-  clamps its X ask to the same ceiling on the gorge surfaces (cast.go bsX;
-  TestXCeilingReducePaysX).
 - Free cast with an either-or additional cost (Alternate Additional Cost,
   Eaten Alive via Etali, Louisoix's Sacrifice via Hurl into History's
   Discover): gorge's altAddAsk classifies the parts with `castable` ->
@@ -83,28 +77,26 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   Arid Archway's {C}{C} paying a one-mana remainder; `remparams` pool,
   TestRemparamsLockstep). Open: the filter-land and Giada-window pool
   additions do not tag (no typed source reaches them).
-- Face casts: gorge's potential planner prices every face route,
-  and dirac offers the Adventure (including its exile recast), split
-  and modal routes from the ordinary mana census (floating pool plus
-  untapped sources) on the oracle surface (`Config.GorgeUnpriced`). The
-  planner's limits apply only to those newly priced routes: a pool holding
+- Face casts: gorge's potential planner prices every face route, and its
+  cast payment planner plans the face the card shows (CR 709.3: a Room back
+  in the hand on door 1 is a plain cast of that door, priced from untapped
+  lands like any other), so `plannedCastCost` prices a plain cast of a card
+  showing a nonzero face. dirac offers the Adventure (including its exile
+  recast), split, modal and Room routes from the ordinary mana census
+  (floating pool plus untapped sources) on the oracle surface
+  (`Config.GorgeUnpriced`). The planner's limits apply only to those newly
+  priced routes: a pool holding
   restricted mana is refused ("unsupported: pool", so the floating pool
   alone must pay; the query reads `RestrictedMana` only, so an
   artifact-tagged unit is ordinary mana to it -- unlike the ordinary cast
   and activation planners' `PlanPoolOK`, above), a scripted prefix whose
   restricted mana floats dead-ends, and a witness whose plan consumes a
   source the face's own targets need is dropped ("unsupported:
-  witness_unreachable"; Battle Display). gorge's cast planner also plans
-  face 0 only (rules payment_plan.go planCastPaymentChecked: a `FaceIdx`
-  other than `cast.Face` is "unsupported"), so `plannedCastCost` declines a
-  plain cast of a card showing a nonzero face -- a Room back in the hand on
-  door 1 is lowered or pool-paid. Omen and Prepare
-  keep their census offer. A Room's other door stays pool-only on
-  the oracle surface: its census offer reaches latent dirac Room-rule
-  divergences (the Unholy Annex Demon branch, unlock-trigger token timing). Pricing these casts from untapped
+  witness_unreachable"; Battle Display). Omen and Prepare
+  keep their census offer. Pricing these casts from untapped
   lands lets the kpermcopy lockstep's greedy caster push more than
   `castRingN` spells in a turn: a cast-ring capacity stall, measured
-  2/720 games (TestPermcopyLockstep). Off the oracle surface (self-play's
+  0/720 games (TestPermcopyLockstep). Off the oracle surface (self-play's
   default) every route is the plain rules census, CR 601.2h.
 - Replacement amounts are computed in a fixed order, amounts then
   prevention (Twinflame Tyrant before Crystal Barricade; two Twinflames
@@ -177,28 +169,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   stands). dirac marks the pending ask (`askRec.pc`) and ignores the
   answer. Surfaced by TestWardLockstep seed 197 (two Pacifisms under two
   Sheltered by Ghosts).
-- Panharmonicon (CR 603.2d, `StatPanharmonicon`, the
-  ValidCard$-only shape): dirac copies these gorge limits. (1) gorge doubles
-  every trigger it queues except a Saga chapter and an Effect's delayed combat
-  trigger (`queueTrigger`).
-  (2) gorge reads the statics from
-  `e` (the board after each move) and matches the trigger source in
-  `observer` (before it): a Panharmonicon host that died earlier in the same
-  state-based batch, or is the dying permanent itself, doubles nothing, while
-  one later in the battlefield-list order still does. CR 603.10a would look
-  back at the host; dirac marks the host (`pfPanhGone`, set as its leave
-  event fires, cleared when it is removed) to match gorge. (3) dirac's
-  echo is a copy of the original pending entry, as gorge's is.
-  (4) the entering-permanent shape (`StPanhETB`:
-  ValidMode$ ChangesZone,ChangesZoneAll | ValidCause$ | Destination$
-  Battlefield; Starfield Vocalist, Virtue of Knowledge, Traveling Chocobo)
-  echoes the TrigETB and TrigTokenCreated placements of the entering
-  permanent or token, whose triggering object is the cause (gorge
-  `panharmoniconModes` maps a TokenCreate/CardToken mint to ChangesZone with
-  the battlefield as destination). Not modelled: a graveyard-leave
-  (`Origin$ Graveyard`) trigger caused by the same graveyard -> battlefield
-  move, which gorge's MoveZone mapping also echoes: dirac queues it at
-  `detach`, before the destination is known, so it stays single.
 - The optional top-of-library carriers (exact). Traveling Botanist, Bucolic Ranch and Gathering Stone are
   `Supported` in the `peekreveal` pool. (1) A taken reveal: the sub `Defined$
   Remembered | Origin$ Library | Destination$ Hand` is a fetch, not a search
@@ -246,6 +216,13 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
 
 ## Still open
 
+- A prevent-the-next-N shield (Healing Salve, Combat Medic; `effPreventDamage`) is
+  registered for the recipient's object, so a creature that leaves the
+  battlefield and returns the same turn keeps it (CR 400.7: it is a new object).
+  dirac keys its record by the same object code (dirac/repl_prevnext.go) and
+  copies that.
+  Follow-up: check `Incarnation` in `damageReplacementMatches` for shield ObjIDs
+  and keep dirac in step.
 - Two or more "can't be countered" replacements matching one Counter event
   (a spell's own plus a battlefield Chimil / Sphinx of the Final Word, or two
   such sources): gorge CounterAllowed parks the event
@@ -254,19 +231,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   dirac does not pose that ask: the game stalls with StallUncounterOrder
   (repl_uncounterable.go), loud, never a silent divergence. One match
   (the usual case) is exact.
-- A Room trigger printed on the door that is not live resolves against the
-  live face's SVar table in gorge. `printedFaceTrigger`
-  (engine/rules/trigger_inactive_face.go) scans the other face only when
-  `inactiveFaceLayout` holds, and that is `BackFaceIsBattlefieldOnly`
-  (engine/cards/layout.go), true only for `DoubleFaced`/`Modal`, not
-  `Split` (Rooms). So Roaring Furnace's door-0 unlock trigger (Steaming
-  Sauna live) leaves `X:Count$CardsInYourHand` unresolved and deals 0
-  where dirac resolves Roaring Furnace's own SVar and deals the hand
-  count; Unholy Annex's end-step trigger (Ritual Chamber live) loses its
-  `DBBranch`, so gorge drains 0 where dirac takes the Demon branch
-  (drain 2/2) or the `otherwise` branch (lose 2). dirac is
-  rules-correct; the rooms lockstep maps the 7 seeds whose first divergence
-  is this bug (`roomsKnown`).
 - Ward—Sacrifice a <filter>: CantSacrifice restrictions (gorge
   sacrificeBlockedForCost) are not modelled: no pooled card has one.
 - Hollowmurk Siege's Sultai draw (granted
@@ -283,15 +247,16 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   counters in one turn); `khollowDecks` caps the pool at two copies and no
   Barrensteppe, where only one counter a turn is reachable (`TestSiegeHollowmurkLockstep`).
 - A graveyard may-play permission's non-mana `RaiseCost$` (Noctis, Alien Symbiosis, Wickerfolk Indomitable, and BLB's Festival of
-  Embers): gorge SUMS the raise over every granting static
-  (`rules/mayplay.go` `mayPlayRaiseCost`, `Cost.Plus`); dirac prices one.
-  A second granting raise (two Festivals of Embers on the battlefield, or
-  Noctis beside Wickerfolk) is a loud `StallMayRaise` ("mayraise"), as is a
-  spell that already owes its own additional pick cost. BLB's pool gains this
-  stall class with Festival; the pool's two-copy decks reach it only with both
-  on the battlefield. A land a raising permission grants (an artifact land
-  under Noctis) is withheld, payable or not, as gorge's `mayPlayLandIds` does
-  (`dirac/cost_mayplayraise.go` `mayRaiseLandHeld`).
+  Embers) BESIDE the spell's own additional pick cost: the kernel prices one
+  pick Cost, so the cast is a loud `StallMayRaise` ("mayraise"). One raise
+  alone prices in both engines: a cast is made under one permission (CR
+  601.2b/f), so gorge charges the FIRST granting static's raise rather than
+  summing every grant (`engine/rules/mayplay.go` `mayPlayRaiseCost`) and dirac
+  prices that same first static (`dirac/cost_mayplayraise.go` `mayRaise`).
+  BLB's pool reaches this stall class with Festival only beside a spell that
+  also owes its own additional cost. A land a raising permission grants (an
+  artifact land under Noctis) is withheld, payable or not, as gorge's
+  `mayPlayLandIds` does (`dirac/cost_mayplayraise.go` `mayRaiseLandHeld`).
 - The legendary-source combat-hit bit (Blitzball's
   `HasPropertywasDealtCombatDamageThisTurnBy Creature.Legendary GE1`): gorge
   snapshots the hit source's printed face and matches the spec at the READ,
@@ -331,16 +296,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   all of it, and 800 lockstep games with Burning-Tree Emissary never reached one. Multikicker,
   `Count$TimesKicked`, Mutate and OptionalCost on a permanent spell are refused by kgen, so
   they have no such read.
-- A copy of a charm with two target-bearing modes, or of an ability with a target on a
-  SubAbility$ link: `Engine.charmTargets` is never written for a `StackCopy`, so
-  `charmDistinctTargetRun` falls back and every mode runs over the flat target list (Flash
-  Thompson's copy taps both targets, then untaps both; std-spm 224). `applyStackCopy` drops
-  `SubTargets` from an ability or charm copy, leaving the link to a resolution-time ask (Mechanical
-  Mobster; std-spm 319). CR 707.10 has the copy keep each target where the original had it. In Forge
-  (read, not run), `CopySpellAbilityEffect` copies through `SpellAbility.copy`, which clones that
-  ability's `targetChosen`, and `CardFactory.copySpellAbility` repeats the copy on its `SubAbility`.
-  How Forge builds a charm's mode chain wasn't read, and XMage wasn't checked. dirac keeps both,
-  so these pairs diverge until gorge is fixed.
 - The look-back observer `checkTriggersNow` builds doesn't carry `Engine.startingLife`, so
   `h.StartingLife()` reads 0 on it, and Leyline of Hope's `Count$YourStartingLife/Plus.7` gate is 7
   there. A creature dying at 17 life then reads +2/+2 in its leaves-the-battlefield trigger: Infernal
@@ -355,10 +310,15 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   `isAllCreatureTypes` (both read, not run). All six pairs run clean on a patched gorge export whose
   `setPropTokens` gives an `effects.IntrinsicAllCreatureTypes` card off the battlefield every creature
   type. dirac counts it (`crTypesOf`), so these pairs diverge until gorge is fixed.
-- Camellia, the Seedmiser's `Mode$ SacrificedOnce | ValidCard$ Food` doesn't fire when the Food is a creature
-  Ygra, Eater of All makes one, sacrificed for a forage (std-blb 308, 314, run: gorge's order ask has Scavenger's
-  Talent and Ygra but no Camellia; dirac's has all three). CR 603.10a looks back at the permanent as it last
-  existed, when it was a Food. XMage's `SacrificeOneOrMorePermanentsTriggeredAbility` reads
-  `getPermanentOrLKIBattlefield` (read, not run); Forge's `TriggerSacrificedOnce` matches its `Cards` run parameter
-  (read, not run; whether that is a last-known copy wasn't traced). Gorge's matcher wasn't traced or patched, so
-  the cause is unconfirmed. std-blb 435 and 448 also name Camellia but diverge on the stack count and weren't read.
+- A prevent-the-next-N shield (dirac/repl_prevnext.go, Ext PreventNext) and any
+  other damage replacement that would be a candidate for the same event (a
+  colour or scope prevention, a SHIELD counter, a printed prevention, a
+  doubler, a plus-N, a prevent-and-mill or self-damage replacement, a damage
+  mark): gorge asks the CR 616.1 order and the order changes what is
+  prevented and what is left of the shield. dirac stalls with StallPrevNext
+  (loud, never a silent divergence). Two or more shields on one recipient are
+  modelled (the ask is posed and each pick applied as made) in `damageTo` and in
+  a combat damage pass; the other damage sites (a damage sweep, a batch of
+  recipients, fights) stall on them. Three prevention records a
+  turn of any kind (the shield, colour and scope records share
+  `genState.prevCol`), a fourth is the capacity stall StallPrevCol.

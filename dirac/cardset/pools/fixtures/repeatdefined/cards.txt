@@ -1,0 +1,9 @@
+# RepeatDefined$ lowering: the sibling Repeat gate and its body writers
+# (Tainted Pact's Pump RememberObjects$ Imprinted / Imprinted count,
+# Demonlord Belzenlok's DigUntil ImprintFound$+RememberFound$ /
+# Imprinted$Amount), for the oracle's constructed lockstep
+# (dirac/oracle/repeatdefined_test.go)
+Tainted Pact
+Demonlord Belzenlok
+Grizzly Bears
+Swamp

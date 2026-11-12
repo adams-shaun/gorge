@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 25,
  "surface": "autopay",
+ "pool": "custom",
+ "why": "Summoner's Sending exiles a creature card from a graveyard and makes a Spirit that takes a +1/+1 counter off the imprinted token when the exiled card's mana value is 4 or more",
  "actions": [
   16776960,
   16776960,

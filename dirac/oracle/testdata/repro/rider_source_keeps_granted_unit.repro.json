@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 605.1a: Twitching Doll under Enduring Vitality still taps once for its granted ability, so Tyvar, the Pummeler's {3}{G}{G} is offered",
  "actions": [
   167771904,
   167771904,
