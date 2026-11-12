@@ -1625,7 +1625,7 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 		e.abortCast(pc, "cast aborted: proposed spell is illegal (CR 601.2e)", true)
 		return true
 	}
-	// Target-conditional CastWithFlash (task istargeting-flash): a spell
+	// Target-conditional CastWithFlash: a spell
 	// announced at a time a sorcery could not have been cast on the strength
 	// of a CastWithFlash permission whose ValidSA$ requires targeting
 	// something must actually have a qualifying announced target. The

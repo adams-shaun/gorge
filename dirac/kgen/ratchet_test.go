@@ -126,14 +126,19 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Fiend Hunter's Defined$ DirectRemembered leave return lowers as the remembered-persist pair; ALL 22176 -> 22177).
 	// +1 (the merge with land: Count$TotalDamageReceivedThisTurn lowered: Tangled Colony beside land's 22180; ALL 22180 -> 22181, WOE 261 -> 262).
 	// +5 (Dig NoLooking$ and Manifest Defined$ Remembered lower: Telling Time, Moment of Truth, Expressive Iteration, Write into Being, Hamza, Might of the Yathan; ALL 22345 -> 22350, MOM 199 -> 200).
-	// +11 (the Commander curses' AttackersDeclared Player.EnchantedBy trigger and its empty second leg lower: Curse of Opulence, Curse of Disturbance, Curse of Verbosity, Curse of Bounty, Curse of Vitality, Curse of Inertia, Archnemesis, Curse of Chaos, Curse of Shallow Graves, plus their b_2_2_zombie and c_a_gold_sac token entries; ALL 22381 -> 22392).
 	// +5 (the hasManaAbility filter property and DrainMana: Power Sink, Moonsilver
 	// Key, Mana Short, Midnight Arsonist and Raggadragga, Goreguts Boss; ALL
 	// 22345 -> 22350).
-	// +11 (the merge with land: this branch's Commander curses +11 beside land's
-	// 22648; merged ALL 22648 -> 22659 measured).
+	// +31 (K:Partner with lowers: the pair marker and the targeted player's own-library search for the named partner (lower_partnerwith.go): Alisaie Leveilleur, Alphinaud Leveilleur, Blaring Captain, Blaring Recruiter, Brallin, Skyshark Rider, Cazur, Ruthless Stalker, Chakram Retriever, Chakram Slinger, Evie Frye, Impetuous Protege, Jenny Flint, Kamber, the Plunderer, Krav, the Unredeemed (refused by name: dirac/support/refused), Laurine, the Diversion, Ley Weaver, Lore Weaver, Merry, Warden of Isengard, Nikara, Lair Scavenger, Pippin, Warden of Isengard, Proud Mentor, Rocksteady, Mutant Marauder, Sam, Loyal Attendant, Shabraz, the Skyshark, Silvar, Devourer of the Free, Soulblade Corrupter, Soulblade Renewer, Timin, Youthful Geist, Toothy, Imaginary Friend, Trynn, Champion of Freedom, Ukkima, Stalking Shadow, Virtus the Veiled; ALL 22381 -> 22412; merged ALL 22706 -> 22737).
+	// +11 (the merge with land: this branch's Commander curses'
+	// AttackersDeclared Player.EnchantedBy trigger and its empty second leg
+	// lower — Curse of Opulence, Curse of Disturbance, Curse of Verbosity,
+	// Curse of Bounty, Curse of Vitality, Curse of Inertia, Archnemesis,
+	// Curse of Chaos, Curse of Shallow Graves, plus their b_2_2_zombie and
+	// c_a_gold_sac token entries — beside land's 22868; merged ALL
+	// build-level 22868 -> 22879 measured).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22659, 34442},
+	"ALL": {22879, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {216, 280},
@@ -161,7 +166,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TMT": {183, 194},
 	"TRC": {300, 337},
 	"TRK": {311, 311},
-	"WOE": {262, 281},
+	"WOE": {263, 281},
 }
 
 // testSetlistDir is setlistDir relative to the test's working directory

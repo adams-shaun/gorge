@@ -492,8 +492,10 @@ type stackEntry struct {
 	// (ctr_effectentry.go): the resolving SpellCast trigger's source, whose
 	// Effect registers the live Event$ Moved replacement gorge composes over
 	// the entry. Stamped only when the entrant's own Updated body is exactly
-	// the shape the CR 616.1 entry-order ask orders (repl_etborder.go):
-	// without a stamped source the count is applied silently, as before.
+	// the shape the CR 616.1 entry-order ask orders (repl_etborder.go); any
+	// other spell's count is applied silently, as before. With no count to
+	// name it also holds the one other enter-replacement source of the ask
+	// (etbOtherOrderPark).
 	// Placed before the odd-length byte run that follows so spc's
 	// two-byte alignment does not grow the struct.
 	etbSrc Obj

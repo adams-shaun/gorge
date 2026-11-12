@@ -14,7 +14,7 @@ import (
 // abilities that differ only in amount into one "Add any color" label.
 // Sceptre of Eternal Glory's "Add one mana of any color" and "Add three mana
 // of any one color" both read "Add any color", so a manual payer could not
-// choose the larger ability on purpose (task mana-wheel-amount-labels).
+// choose the larger ability on purpose.
 func TestManaWheelLabelsDistinguishAnyColourAmounts(t *testing.T) {
 	t.Parallel()
 	e := newSeats(t, 2)

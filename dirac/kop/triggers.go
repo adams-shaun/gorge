@@ -49,6 +49,12 @@ const (
 	// posed to that seat (gorge deciderFromSpec). Bit 4 is Tf4NamedCast
 	// (Kai Winn), so this family's next free bit is 5.
 	Tf4OptTrigPlayer TrigFlags4 = 1 << 5
+	// Tf4PerCounter: a counter-added line (TrigCounterAddedOnce, a named
+	// kind in N) lowered from a plain Mode$ CounterAdded: one trigger per
+	// counter of the put batch, each carrying amount 1 (CR 603.2c; gorge
+	// counterAddedMatches queues one instance per counter). Fathom Mage.
+	// Bit 6 is Tf4StateCtr.
+	Tf4PerCounter TrigFlags4 = 1 << 7
 )
 
 // TrigFlags5 are the Drawn trigger's draw-step qualifiers (Trigger.Flags5).
@@ -120,6 +126,7 @@ const (
 	TrigDiscover                    // a player (Whose) discovers (gorge Mode$ Discover, trigmatch cards.go: once per discover, at completion); the trigger amount is the discover value; no slot subscription (trig_modes.go)
 	TrigManifestDread               // a player (Whose) manifests dread (gorge Mode$ ManifestDread, trigmatch keyword_action.go on the completed events.ManifestDreadAction marker, emitted after each window's moves; the trigger object is the card the window put into its owner's graveyard, or none on the one-card shortcut); no slot subscription (trig_modes.go)
 	TrigFacesDilemma                // a player (Whose) chooses one or more modes for a spell or ability (gorge Mode$ FacesDilemma, trigmatch facesDilemmaMatches on the ModeChosen marker)
+	TrigEvolved                     // this creature evolves (CR 702.100b; gorge Mode$ Evolved, ValidCard$ Card.Self, trigmatch evolvedMatches on the events.Evolved marker its evolve ability emits once the +1/+1 counter lands): no slot subscription, fired as the evolve trigger finishes resolving (kw_evolve.go)
 	TrigEventCount                  // number of trigger events; append above
 )
 
@@ -480,9 +487,10 @@ const TrigNTeamworkTap int16 = 1
 // Tf3GameOnce: the line triggers once per source object (GameActivationLimit$ 1).
 const Tf3GameOnce TrigFlags3 = 1 << 6
 
-// Tf2Evolve (Trigger.Flags2): ETB, Condition$ Evolve -- the entering
-// creature's power or toughness is greater than the source's, read as the
-// trigger fires (gorge evolveConditionHolds; dirac/act_mayask.go).
+// Tf2Evolve (Trigger.Flags2): ETB, Condition$ Evolve or K:Evolve's Evolve$
+// True -- the entering creature's power or toughness is greater than the
+// source's, read as the trigger fires and again as it resolves (CR 702.100a,
+// 603.4; gorge evolveConditionHolds, evolveResolves; dirac/kw_evolve.go).
 // A high bit, clear of the siblings' appended ones.
 const Tf2Evolve TrigFlags2 = 1 << 30
 

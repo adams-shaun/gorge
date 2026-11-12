@@ -1,5 +1,4 @@
-// The "whenever this creature evolves" trigger family (Forge Mode$ Evolved,
-// CR 702.99b, task trig:Evolved).
+// The "whenever this creature evolves" trigger family (Forge Mode$ Evolved, CR 702.99b).
 //
 // Evolve is a keyword (K:Evolve expands in engine/cards/kw_evolve.go into an
 // ordinary ChangesZone counter trigger), and Mode$ Evolved is the distinct

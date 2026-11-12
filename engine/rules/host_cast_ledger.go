@@ -297,7 +297,7 @@ func (e *Engine) WasCastFromHand(obj state.ObjID) bool {
 }
 
 // WasCastFromExile satisfies effects.Host's WasCastFromExile for the
-// Count$wasCastFromExile branch head (task wascastfrom): obj's LATEST
+// Count$wasCastFromExile branch head: obj's LATEST
 // PutOnStack cast came from EXILE (foretell, warp, may-play — no CastFlags
 // bit carries an exile origin). Derived from the event log the way
 // WasCastFromHand is, so a replay derives the same answer; a copy was never
@@ -475,13 +475,11 @@ func reverseIDs(in []state.ObjID) []state.ObjID {
 }
 
 // WasCast satisfies effects.Host's WasCast (Forge Card.wasCast():
-// castFrom != null), the Count$IfCastInOwnMainPhase third conjunct (task
-// ifcastmain1). The pending CR 601.2c announcement ask is a cast in progress:
+// castFrom != null), the Count$IfCastInOwnMainPhase third conjunct. The pending CR 601.2c announcement ask is a cast in progress:
 // pushCast runs AFTER targetAsk, so the log scan alone would misread Return
 // to Dust's own TargetMax$ X bound as uncast; the live pending cast closes
 // that window (Forge sets castFrom before setupTargets). !e.cast.isAbility()
-// excludes an ACTIVATED-ABILITY activation (printed or granted, task
-// grantcost1), which Forge never treats as a cast. A copy was never cast
+// excludes an ACTIVATED-ABILITY activation (printed or granted), which Forge never treats as a cast. A copy was never cast
 // (IsCopy), and a card never put on the stack (cheated into play) reads
 // false. Derived from the event log plus the live pending cast, so a replay
 // derives the same answer. A zone change after the latest cast other than

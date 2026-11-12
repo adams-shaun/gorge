@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The R:Event$ Scry replacement class (task scryrepl). The corpus carries
+// The R:Event$ Scry replacement class. The corpus carries
 // exactly two carriers at the pin:
 //
 //   - Kenessos, Priest of Thassa: "If you would scry a number of cards, scry

@@ -130,7 +130,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	// effect's Remembered set. Both this and ForgetOnMoved$ ride every
 	// registration below.
 	forgetCounter := ep.ForgetCounter
-	// ForgetOnCast$ <spec> (task param:api:Effect.ForgetOnCast): the
+	// ForgetOnCast$ <spec>: the
 	// cast-driven lifetime -- the first qualifying spell cast ENDS the whole
 	// effect ("the next spell you cast this turn ...", Marshland
 	// Bloodcaster's alternative cost, Dark Apostle's one-cast cascade). The
@@ -157,7 +157,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	if forgetOnCast == "" {
 		forgetOnCast = effectSelfExileOnCastSpec(h, c, ep.Triggers)
 	}
-	// ImprintOnHost$ True (task param:api:Effect.ImprintOnHost): Forge's
+	// ImprintOnHost$ True: Forge's
 	// EffectEffect imprints the CREATED EFFECT TOKEN on the host card and
 	// moves the token to the Command zone -- the imprint is the link "this
 	// effect belongs to this card", never the remembered card itself. The
@@ -1557,12 +1557,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			effectContinuous(h, ce)
 			registered = true
 		case cards.StaticReduceCost, cards.StaticRaiseCost, cards.StaticSetCost, cards.StaticAlternativeCost, cards.StaticManaConvert:
-			// An Effect-delivered cost-modifier or ManaConvert static (task
-			// param:api:Effect.ForgetOnCast; Marshland Bloodcaster's "Rather
-			// than pay the mana cost of the next spell you cast this turn, you
-			// may pay life equal to that spell's mana value", plus the 11
-			// Effect-delivered Mode$ ReduceCost carriers -- Kaza, Roil Chaser
-			// et al). Registered into the continuous registry with the line's
+			// An Effect-delivered cost-modifier or ManaConvert static (Marshland Bloodcaster's "Rather than pay the mana cost of the next spell you cast this turn, you may pay life equal to that spell's mana value", plus the 11 Effect-delivered Mode$ ReduceCost carriers -- Kaza, Roil Chaser et al). Registered into the continuous registry with the line's
 			// own parameter map; the cost path reads it through the SAME
 			// readers the printed S: static route feeds (rules'
 			// collectCostStatics for the Raise/Reduce/Set modes, rules'

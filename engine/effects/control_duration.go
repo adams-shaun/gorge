@@ -78,7 +78,7 @@ type ControlGrant struct {
 	Duration    ControlDuration
 	// CheckSVar is StaticCommandCheckSVar$'s count, evaluated with the
 	// controlled object as its host; Compare is StaticCommandSVarCompare$
-	// (operator plus a literal or an SVar evaluated with the source as host).
+	// (a comparison operator plus a literal or an SVar evaluated with the source as host).
 	CheckSVar string
 	Compare   string
 	SVars     map[string]string

@@ -112,8 +112,7 @@ Oracle:x
 // library; either way it ends up in seat 0's hand before returning, via a
 // logged MoveZone bridge in the library case. That bridge is deliberately
 // NOT counted by any assertion below that cares how many times the fixture
-// entered the BATTLEFIELD -- it is unrelated setup, not part of what Task
-// 29 changed.
+// entered the BATTLEFIELD -- it is unrelated setup, not part of this test's subject.
 //
 // This deliberately stops at turn 1's upkeep (Advance's own first priority
 // ask) rather than driving all the way to main1 itself: a pending
@@ -149,9 +148,7 @@ func newFixtureDeckSpare(t *testing.T, sp *Spare, seed uint64, fixtureSrc string
 				mountainDeck(t, 40),
 			},
 			// Non-nil (not just the zero value) so a caller that mints a test
-			// fixture into the live game via a logged TokenCreate event (Task
-			// 9's cast_test.go putToken, for a second card replayFromLog could
-			// otherwise never reconstruct -- see this function's own doc above)
+			// fixture into the live game via a logged TokenCreate event (for a second card replayFromLog could otherwise never reconstruct -- see this function's own doc above)
 			// shares the same map between e.G.Tokens and the cfg this function
 			// returns: both are copies of this one Config value, and a map is a
 			// reference type, so a key added to e.G.Tokens after New() is also
@@ -291,7 +288,7 @@ func passUntilStackEmpty(t *testing.T, e *Engine, limit int) int {
 			continue
 		}
 		if d.Kind == decision.KChoose && d.ResumeKind == "vote" {
-			// A per-voter ballot ask (task vote_card_self1): the card and
+			// A per-voter ballot ask: the card and
 			// fixed-list Votes now pose a private ask mid-resolution where
 			// the pre-ask engine silently took the ballot's first option.
 			// These drains were written around that stand-in, so answer
@@ -328,8 +325,7 @@ func passUntilStackEmpty(t *testing.T, e *Engine, limit int) int {
 		}
 		if d.Kind == decision.KChoose && d.ResumeKind == "search_confirm" {
 			// An explicit Optional$ hidden-origin search now poses Forge's
-			// confirmAction gate before the fetch list (task
-			// optional-library-confirm). These drains were written around the
+			// confirmAction gate before the fetch list. These drains were written around the
 			// pre-confirmation engine, whose search proceeded straight to the
 			// pick -- or resolved silently on an empty pool -- so accept, the
 			// deterministic "do the may" answer, and keep exactly the board

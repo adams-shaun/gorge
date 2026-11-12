@@ -40,7 +40,7 @@ func (e *stackEntry) promised() bool {
 // array below fails to compile otherwise.
 const nSubEvents = kop.TrigGiveGift
 
-var _ = [1]struct{}{}[kop.TrigEventCount-1-kop.TrigFacesDilemma]
+var _ = [1]struct{}{}[kop.TrigEventCount-1-kop.TrigEvolved]
 
 // giftOptions poses the gift election (gorge giftAsk: decline first, then
 // one option per opponent, AliveFrom(caster) without the caster): mode 0

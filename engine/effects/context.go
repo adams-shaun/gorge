@@ -1311,8 +1311,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		}
 		return objectsOf(c.Remembered), true
 	case definedSpecDelayTriggerRemembered:
-		// The delayed trigger's remembered set AS-IS, players included (task
-		// mordorparams1): a DelayedTrigger registration that remembered a
+		// The delayed trigger's remembered set AS-IS, players included: a DelayedTrigger registration that remembered a
 		// PLAYER (Arcane Denial's RememberObjects$ RememberedController —
 		// "Its controller may draw up to two cards" names the countered
 		// spell's CONTROLLER, a player, never an object) must resolve to
@@ -2567,7 +2566,7 @@ func copyTargets(s []state.Target) []state.Target {
 //     has written nothing else.
 //
 // The capture is a FALLBACK referent, never memory added to what the body
-// itself wrote (task lb-rempollute, CR 603.7). In the second shape, once the
+// itself wrote (CR 603.7). In the second shape, once the
 // resolution has remembered something of its own (Avatar Destiny's
 // RememberMilled$ before its `ChangeType$ Creature.IsRemembered` return) the
 // seeded capture occurrence is dropped: Forge's host list holds the milled

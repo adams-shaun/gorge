@@ -220,11 +220,6 @@ import (
 // +1 (Count$TotalDamageReceivedThisTurn lowered: Tangled Colony; merged with land ALL build-level 22180 -> 22181).
 // +1 (ConditionActivationLimit$ lowers to kop.ExActivations: Dragon Whelp; merged with land ALL build-level 22184 -> 22185).
 // +5 (the Aura-on-land TapsForMana extra with a literal body: Wild Growth, Overgrowth, Wolfwillow Haven, Gauntlet of Might, Vernal Bloom; ALL build-level 22345 -> 22350).
-// +11 (the Commander curses' AttackersDeclared Player.EnchantedBy trigger and its
-// empty second leg lower: Curse of Opulence, Curse of Disturbance, Curse of
-// Verbosity, Curse of Bounty, Curse of Vitality, Curse of Inertia, Archnemesis,
-// Curse of Chaos, Curse of Shallow Graves, plus their b_2_2_zombie and
-// c_a_gold_sac token entries; ALL build-level 22381 -> 22392).
 // +11 (static Condition$ NotPlayerTurn on the Force cycle's AlternativeCost
 // and the hasFewer<Type>sInPlayThanYou combat statics lower, and the bare
 // ExileFromHand<1/Spec> alternative beside them: Cave-In, Pyrokinesis,
@@ -235,10 +230,16 @@ import (
 // Vine Dryad; the six new ones are Force of Negation, Force of Vigor, Force of
 // Despair, Monstrous Hound, Mogg Toady and Goblin Goon; merged ALL build-level
 // 22392 -> 22584).
-// +11 (the merge with land: this branch's Commander curses +11 beside land's
-// 22648; merged ALL build-level 22648 -> 22659 measured).
+// +31 (K:Partner with: the carriers listed at ratchet_test.go's ALL pin; ALL build-level 22381 -> 22412; merged ALL build-level 22706 -> 22737).
+// +11 (the merge with land: this branch's Commander curses'
+// AttackersDeclared Player.EnchantedBy trigger and its empty second leg
+// lower — Curse of Opulence, Curse of Disturbance, Curse of Verbosity,
+// Curse of Bounty, Curse of Vitality, Curse of Inertia, Archnemesis,
+// Curse of Chaos, Curse of Shallow Graves, plus their b_2_2_zombie and
+// c_a_gold_sac token entries — beside land's 22868; merged ALL
+// build-level 22868 -> 22879 measured).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22659, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22879, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
