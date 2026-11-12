@@ -182,7 +182,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpDemonstrate:
 		return s.demonstrate(k, in), true
 	case kop.OpNinjutsu:
-		s.ninjutsuResolve(k) // CR 702.49b (kw_ninjutsu.go)
+		s.handEntryResolve(k, in.C != 0) // CR 702.49b (kw_ninjutsu.go)
 	case kop.OpRepeatWhile:
 		// gorge effRepeat with RepeatCheckSVar$: MaxRepeat$ evaluated once
 		// as the cap, the gate re-evaluated after every pass (loopBack)
@@ -618,7 +618,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 				// offered (CR 601.2c, effPlay filters through
 				// castTargetsHost): it stays exiled and the trigger finishes
 				if ob.zone == kop.Zone(in.C) && !k.cards[ob.card].land &&
-					s.spellTargetsFeasible(k, ob.card, e.ctrl) && !(k.gen.anyCantCast && s.castForbidden(k, e.ctrl, ob.card, o)) {
+					s.spellTargetsFeasible(k, ob.card, e.ctrl) && !(k.gen.anyCantCast && s.castForbiddenFree(k, e.ctrl, ob.card, o)) {
 					if s.g.nfree >= uint8(len(s.g.free)) {
 						s.capFull(StallFree)
 						break
@@ -783,6 +783,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpDelayedProgram:
 		if in.A.N == kop.DelayPlayerUpkeep {
 			s.delayPlayerUpkeep(k, e, in) // trig_delayplayerupkeep.go
+			break
+		}
+		if in.A.N == kop.DelayRemUpkeep {
+			s.delayRemUpkeep(k, e, in) // trig_delayremupkeep.go
 			break
 		}
 		o := s.delayedRegObj(in.Obj)

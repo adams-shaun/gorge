@@ -1,0 +1,12 @@
+# The withInfect filter word (Corpse Cur's graveyard return target, Hand of the
+# Praetors' lord and spell-cast trigger, Burn the Impure's damage rider) beside
+# infect creatures and plain ones, for dirac/oracle/withinfect_test.go
+Corpse Cur
+Hand of the Praetors
+Burn the Impure
+Glistener Elf
+Plague Stinger
+Grizzly Bears
+Swamp
+Mountain
+Forest

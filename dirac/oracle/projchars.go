@@ -113,6 +113,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Harmonize":                "CardDef.Harmonize (a graveyard cast for AltCost; kw_harmonize.go)",
 	"Mayhem":                   "CardDef.Mayhem (a graveyard cast for AltCost if discarded this turn; kw_mayhem.go)",
 	"Offspring":                "CardDef.Offspring (an optional additional cost and its enters trigger)",
+	"Buyback":                  "CardDef.Buyback (an optional additional cost; the spell returns to hand as it resolves, dirac/kw_buyback.go)",
 	"Storm":                    "CardDef.Storm (the printed keyword's native cast trigger, dirac/kw_storm.go; a StatStackKw grant, static_stackkeyword.go)",
 	"Mobilize":                 "gorge kwMobilize's Attacks trigger: a remembering Token plus a group DelayedTrigger (kgen lowers the expansion's nodes; OpDelayedProgram DpGroup, ExtSacDelayed)",
 	"Devoid":                   "a colourless face in every zone (kgen lower.go faceHasKeyword Devoid; CharsProj.Colors)",
@@ -126,14 +127,15 @@ var gorgeKwElsewhere = map[string]string{
 	"Saddle":                   "an activated ability with a CostTapPower cost and OpSaddle (gorge kwSaddle's expansion; C6)",
 	"Station":                  "an activated ability flagged AfStation (gorge rules/station.go; kcounters)",
 	"A deck can have any number of cards named CARDNAME.": "a deckbuilding rule, no game characteristic",
-	"Partner":      "a deckbuilding rule (CR 702.124, a commander pair), no game characteristic; the kernel seats the pair from Config.Commanders",
-	"Partner with": "the commander-pair marker as Partner, and gorge kwPartnerWith's enters trigger (CR 702.124j: the targeted player's search of their own library for the named partner; kgen lower_partnerwith.go), no battlefield characteristic",
-	"Landwalk":     "CardDef.Landwalk, or a Continuous static's Static.Landwalk grant (CR 702.14; compared through the block options)",
-	"Horsemanship": "CardDef.Evasion (compared through the block options)",
-	"Intimidate":   "CardDef.Evasion (compared through the block options)",
-	"Wither":       "CardDef.Wither (compared through the -1/-1 counters)",
-	"Undying":      "gorge kwUndying's dies trigger (kgen expandedKeywords; compared through the zone moves and the +1/+1 counters)",
-	"Exalted":      "gorge's expanded attacks-alone trigger (kgen expandedKeywords, Tf2Alone; compared through the pump on the stack and P/T)",
+	"Partner":            "a deckbuilding rule (CR 702.124, a commander pair), no game characteristic; the kernel seats the pair from Config.Commanders",
+	"Partner with":       "the commander-pair marker as Partner, and gorge kwPartnerWith's enters trigger (CR 702.124j: the targeted player's search of their own library for the named partner; kgen lower_partnerwith.go), no battlefield characteristic",
+	"Doctor's companion": "a deckbuilding rule (CR 702.124, a commander pair), no game characteristic; the kernel seats the pair from Config.Commanders",
+	"Landwalk":           "CardDef.Landwalk, or a Continuous static's Static.Landwalk grant (CR 702.14; compared through the block options)",
+	"Horsemanship":       "CardDef.Evasion (compared through the block options)",
+	"Intimidate":         "CardDef.Evasion (compared through the block options)",
+	"Wither":             "CardDef.Wither (compared through the -1/-1 counters)",
+	"Undying":            "gorge kwUndying's dies trigger (kgen expandedKeywords; compared through the zone moves and the +1/+1 counters)",
+	"Exalted":            "gorge's expanded attacks-alone trigger (kgen expandedKeywords, Tf2Alone; compared through the pump on the stack and P/T)",
 	"Prevent all damage that would be dealt to CARDNAME.": "CardDef.PreventDmgTo (CR 615.1; compared through the damage behaviour)",
 	"CantAttackAlone":        "CardDef.AloneAtk (CR 506.5; compared through the attack options and Done, combat_alone.go)",
 	"CantBlockAlone":         "CardDef.AloneBlk (CR 506.5; compared through the block options and Done, combat_alone.go)",
@@ -170,6 +172,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Chapter":                           "the chapter abilities (TrigCounterAddedOnce on LORE, kw_saga.go), no battlefield characteristic",
 	"Convoke":                           "CardDef.Convoke (a cast-time payment, no battlefield characteristic; kw_convoke.go)",
 	"Improvise":                         "CardDef.Improvise (a cast-time payment, no battlefield characteristic; kw_convoke.go)",
+	"Rebound":                           "CardDef.ReboundAb (a resolution-time exile and an upkeep delayed program, no battlefield characteristic; kw_rebound.go)",
 	"Delve":                             "CardDef.Delve (a cast-time payment, no battlefield characteristic; kw_delve.go)",
 	"Morph":                             "CardDef.MorphCost/MorphFamily (the face-down cast and turn-up special action)",
 	"Megamorph":                         "CardDef.MorphCost/MorphFamily (the face-down cast and turn-up special action)",
@@ -183,7 +186,9 @@ var gorgeKwElsewhere = map[string]string{
 	"AllMustBlock":                      "CardDef.Lure (CR 509.1c; compared through the block options and Done, combat_lure.go)",
 	"MustBlock":                         "CardDef.MustBeBlocked (CR 509.1c; compared through the block options and Done, combat_mustbeblocked.go)",
 	"CARDNAME must be blocked if able.": "the arena mark mechMustBlocked an Animate's HiddenKeywords$ sets (ExtMustBeBlocked; compared through the block options and Done)",
-	"HIDDEN CARDNAME must be blocked if able.": "the arena mark mechMustBlocked a Pump / PumpAll KW$ sets (ExtMustBeBlocked; compared through the block options and Done)",
+	"HIDDEN CARDNAME must be blocked if able.":           "the arena mark mechMustBlocked a Pump / PumpAll KW$ sets (ExtMustBeBlocked; compared through the block options and Done)",
+	"All creatures able to block CARDNAME do so.":        "the StatLure static an Aura or the creature itself grants through AddHiddenKeyword$ (kop.StatLure; compared through the block options and Done, combat_lure.go)",
+	"HIDDEN All creatures able to block CARDNAME do so.": "the arena mark mechLure a Pump KW$ sets (ExtMustBeBlocked with C=MustBeBlockedLure; compared through the block options and Done, combat_lure.go)",
 	"Hideaway":          "its ETB trigger (OpExt ExtHideaway; the keyword has no other rules effect)",
 	"Backup":            "gorge kwBackup's expansion: an ETB trigger putting a +1/+1 counter and granting the attack trigger (kgen lowers the expansion's nodes; animgb_test.go), no battlefield characteristic",
 	"Job select":        "gorge kwJobSelect's expansion: an enters trigger making a 1/1 Hero token and attaching the Equipment to it (kgen lowers the expansion's nodes; compared through the stack, the token and the attachment), no battlefield characteristic",
@@ -213,6 +218,13 @@ func gorgeKw(s string) (kop.KwMask, bool) {
 			// K:Hexproof:<Colour> (CardDef.HexColors)
 			return 0, true
 		}
+	}
+	switch s {
+	case "Protection from white", "Protection from blue", "Protection from green":
+		// a granted protection from the chosen colour (Akroma's Blessing;
+		// the arena marks mechProtW..mechProtG, compared through the
+		// target, block and damage options); black and red keep their bits
+		return 0, true
 	}
 	head := s
 	if i := strings.IndexByte(head, ':'); i >= 0 {

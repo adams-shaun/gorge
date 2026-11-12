@@ -483,6 +483,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				return refuse("WithCountersAmount$ on a graveyard pick")
 			}
 		}
+		if origin == zGraveyard && (dest == zExile || dest == zHand || dest == zBattlefield) && ps.is("AtRandom", "True") {
+			return lc.randomGraveMove(ps, f, n, flags, counterKind, override, dest) // lower_randomgravemove.go
+		}
 		graveBF := dest == zBattlefield && override == nil && graveToBattlefieldFlags(flags)
 		if origin == zGraveyard && (dest == zHand || graveBF) {
 			for i := range f.Clauses {
@@ -543,9 +546,6 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			}
 			lc.emit(lInstr{Op: "ChooseMove", Obj: lRef{Kind: rYou}, A: n, F: f, C: dest, CS: cs})
 			return nil
-		}
-		if origin == zGraveyard && dest == zExile && ps.is("AtRandom", "True") {
-			return lc.randomGraveExile(ps, f, n, flags, counterKind, override) // lower_randomgraveexile.go
 		}
 		if exwPick {
 			return lc.exilePick(ps, f, n, flags, counterKind, override, dest) // lower_exw.go
@@ -1534,12 +1534,31 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	// kernel exwFlag): Borg Cube's and Assimilation Assessor's "a creature
 	// card exiled with it" (CR 607.2a)
 	lc.exwOK = zone == zExile
-	f, err := lc.filter(ps.str("Choices"))
+	optional := !ps.is("Mandatory", "True")
+	choices := ps.str("Choices")
+	if v := ps.str("ControlledByPlayer"); v != "" && !optional {
+		// the kernel evaluates a mandatory ChooseCard from the resolving
+		// controller too, but no lowered mandatory shape applies the
+		// restriction: applying it only under optional would silently draw
+		// the candidates from every seat, so refuse instead.
+		return refuse("mandatory ChooseCard ControlledByPlayer$ %q", v)
+	}
+	if cbp := ps.str("ControlledByPlayer"); cbp != "" && optional {
+		// gorge controlledByChoicePlayer Chooser: the pick's pool is the
+		// chooser's own objects. The kernel evaluates a ChooseCard's filter
+		// from the chooser's perspective (cardCands' p), so a YouCtrl clause
+		// is the chooser's control here (Flaming Gambit).
+		if cbp != "Chooser" {
+			return refuse("optional ChooseCard ControlledByPlayer$ %q", cbp)
+		}
+		choices = addFilterProp(choices, "YouCtrl")
+		ps.consume("ControlledByPlayer")
+	}
+	f, err := lc.filter(choices)
 	lc.attachedTgtOK, lc.exwOK = false, false
 	if err != nil {
 		return err
 	}
-	optional := !ps.is("Mandatory", "True")
 	if !optional {
 		// A mandatory ChooseCard's chooser is the resolving controller and
 		// its pick count is one (gorge chooseCardChoosers, choiceBounds max
@@ -1557,6 +1576,7 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	if optional && zone == zLibrary {
 		return lc.chooseLibraryUpTo(ps, f)
 	}
+	fromDefined := false
 	if optional {
 		// the optional battlefield path: ChoiceTitle$ is display only (as
 		// the mandatory path's), Defined$ You is the default chooser, and
@@ -1564,7 +1584,19 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 		// choiceBounds: up to one); any other value refuses
 		ps.consume("ChoiceTitle")
 		if v := ps.str("Defined"); v != "" && v != "You" {
-			return refuse("optional ChooseCard Defined$ %q", v)
+			if v != "TargetedOrController" {
+				return refuse("optional ChooseCard Defined$ %q", v)
+			}
+			// gorge definedAliases spells TargetedOrController as
+			// TargetedController: a player target is that player, an object
+			// target its controller (lower_effect.go's rTargetController).
+			// The referent is the chain's target, not this pick's.
+			t := lc.lastTarget()
+			if t < 0 {
+				return refuse("optional ChooseCard Defined$ TargetedOrController without an earlier target")
+			}
+			chooser = lRef{Kind: rTargetController, N: t}
+			fromDefined = true
 		}
 		if v := ps.str("MinAmount"); v != "" && v != "0" {
 			return refuse("optional ChooseCard MinAmount$ %q", v)
@@ -1574,7 +1606,7 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	if optional && (zone != zBattlefield || ps.str("Amount") != "" && ps.str("Amount") != "1") {
 		return refuse("optional ChooseCard")
 	}
-	if !targeted {
+	if !targeted && !fromDefined {
 		chooser = lRef{Kind: rYou}
 	}
 	in := lInstr{Op: "ChooseCard", Obj: chooser, F: f, C: zone}
@@ -3425,7 +3457,10 @@ func (lc *lowerCtx) immediateTrigger(ps *params) error {
 	}
 	savedSpawn := lc.spawnDmg
 	lc.spawnDmg = spawnDamagedOpp(lc.ab) // lower_filterwords.go
+	savedAtk := lc.spawnAtk
+	lc.spawnAtk = spawnAttacked(lc.ab) // lower_filterwords.go
 	err = lc.withAbility(lat, func() error { return lc.chain(exec, nil) })
+	lc.spawnAtk = savedAtk
 	lc.spawnDmg = savedSpawn
 	if err != nil {
 		return err

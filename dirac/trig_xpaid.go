@@ -135,17 +135,25 @@ func (s *State) spellHoldLeaves(k *prep) {
 	if s.spellRestExiles(e) || e.markExiles(false) {
 		z = kop.ZoneExile
 	}
+	rebound := s.reboundRests(k, e, false) // kw_rebound.go
+	if rebound {
+		z = kop.ZoneExile
+	}
 	if k.gen != nil && k.gen.anyFaces {
 		z = s.stackExitFace(k, e.obj, z, true)
 	}
 	if k.gen != nil && k.gen.anyParadigm {
 		z = s.paradigmRest(k, e.obj, z) // kw_paradigm.go
 	}
+	z = buybackRest(k, e, z, false) // kw_buyback.go
 	if z == kop.ZoneLibrary {
 		s.omenToLibrary(e.obj) // face_omen.go
 	} else {
 		s.placeFrom(e.obj, z, false, kop.ZoneStack, false)
 		s.markedPlot(k, e) // repl_stackexile.go
+		if rebound {
+			s.reboundRegister(k, e)
+		}
 	}
 }
 

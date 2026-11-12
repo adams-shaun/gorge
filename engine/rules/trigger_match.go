@@ -1947,7 +1947,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				// computed per instance with that attacker as the sole cause.
 				if mk == cards.TriggerAttacks {
 					echoFor := func(attacker state.ObjID) int {
-						return e.panharmoniconEchoes(observer, id, *ev, []state.ObjID{attacker}, t.Mode)
+						return e.panharmoniconEchoes(observer, id, *ev, []state.ObjID{attacker}, t.Mode, true)
 					}
 					if insts := attacksTriggerInstances(boardOf(observer), &t, id, *ev, pt, echoFor); len(insts) > 0 {
 						e.pendingTriggers = append(e.pendingTriggers, insts...)

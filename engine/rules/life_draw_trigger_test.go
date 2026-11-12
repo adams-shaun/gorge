@@ -112,6 +112,8 @@ func TestOrcishBowmastersDrawnSkipsFirstDrawStepCard(t *testing.T) {
 	if got := e.G.Obj(source).Face().Triggers[1].Params["FirstCardInDrawStep"]; got != "False" {
 		t.Fatalf("Bowmasters FirstCardInDrawStep = %q, want False", got)
 	}
+	// The exemption is CR 504.1's own draw step, so seat 1 must be active.
+	e.G.Active = 1
 	e.emit(events.Event{Kind: events.StepChange, Step: state.StepDraw})
 	first := e.G.Zone(state.ZLibrary, 1)[0]
 	e.emit(events.Event{Kind: events.Draw, Player: 1, Obj: first, From: state.ZLibrary, To: state.ZHand, Secret: true})
