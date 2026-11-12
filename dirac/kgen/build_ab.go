@@ -2014,9 +2014,16 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		if s.Zone == zAny {
 			st.Zone = kop.ZoneCommand
+		} else if s.Zone == zStack {
+			st.Zone = kop.ZoneStack // the spell's own stack-zone raise (lower_raisecost.go)
 		}
 	case "CantBlock":
 		st.Kind = kop.StatCantBlock
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+	case "Lure":
+		st.Kind = kop.StatLure // combat_lure.go isLure
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
@@ -3904,6 +3911,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		// OpExt ExtMustBeBlocked, Obj the subject (RefNone
 		// with F: every battlefield permanent matching F)
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtMustBeBlocked))
+		if in.C == kop.MustBeBlockedLure {
+			ki.C = kop.MustBeBlockedLure // the lure mark (a single Obj)
+		}
 		if in.F != nil {
 			if err := objFilter(kop.ZoneBattlefield); err != nil {
 				return ki, err
