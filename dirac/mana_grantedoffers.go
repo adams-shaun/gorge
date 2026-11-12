@@ -721,6 +721,7 @@ func (g *grantSrch) visit(t *State) bool {
 		return false
 	}
 	cost := g.cost
+	cheap := false // this node's price asks less than the root's (set on success only)
 	if g.dyn {
 		cost = t.grantDynamicCost(g.k, g.p, g.d.play, g.full)
 	}
@@ -731,10 +732,13 @@ func (g *grantSrch) visit(t *State) bool {
 		// discarding a Lesson into the graveyard, CR 601.2f). Price again on
 		// this copy; when the fresh price asks less mana than the root price,
 		// the play is payable where the walk's root price refused it
-		// (grantCostCheaper), and grantCap keeps the play on the offer
+		// (grantCostCheaper), and grantCap keeps the play on the offer. The
+		// flag is set at the success returns below, never here: a node or a
+		// branch that fails must not leave a later root-priced success looking
+		// repriced
 		if fc, _, _, ok := t.grantPlayCost(g.k, g.p, g.d.play, true); ok && grantCostCheaper(fc, g.cost) {
 			cost = fc
-			g.cheaper = true
+			cheap = true
 		}
 	}
 	pl := &t.pl[SeatIx(g.p)]
@@ -761,10 +765,15 @@ func (g *grantSrch) visit(t *State) bool {
 			same = true
 		case e.folded() == fk:
 			// (gorge's seen check precedes its pricing: scriptSearch.visit)
-			return t.floatPaysPlay(g.k, g.p, &cost, g.d) && !g.waitsForStack(t)
+			if t.floatPaysPlay(g.k, g.p, &cost, g.d) && !g.waitsForStack(t) {
+				g.cheaper = cheap
+				return true
+			}
+			return false
 		}
 	}
 	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &cost, g.ex, g.d) && !g.waitsForStack(t) {
+		g.cheaper = cheap
 		return true
 	}
 	if same {
