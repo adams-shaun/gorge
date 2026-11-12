@@ -1118,6 +1118,13 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !lc.hasKeywordLine(k) {
 				lc.refuseNode(node, "keyword %q without its ability", head)
 			}
+		case head == "Myriad" && param == "":
+			// CR 702.116a: gorge kwMyriad expands it into an Attacks Self
+			// trigger (Myriad$ True, DB$ Myriad), lowered from that line
+			// (lower_myriad.go)
+			if !faceHasMyriadTrigger(lc.face) {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
 		case head == "Training":
 			// CR 702.149a: gorge kwTraining expands it into an Attacks
 			// trigger (Training$ True), lowered from that line
@@ -1872,24 +1879,6 @@ func (lc *lowerCtx) costUnless(s string) (lCost, error) {
 	return c, lc.costParts(c)
 }
 
-// discardUnlessLifted reports whether every Discard<> token in an UnlessCost$
-// uses a selection method lifts (Random or Hand).
-func discardUnlessLifted(s string) bool {
-	saw := false
-	for _, t := range costTokens(strings.TrimSpace(s)) {
-		head, arg, hasArg := strings.Cut(t, "<")
-		if head != "Discard" || !hasArg {
-			continue
-		}
-		saw = true
-		parts := strings.Split(strings.TrimSuffix(arg, ">"), "/")
-		if len(parts) < 2 || (parts[1] != "Random" && parts[1] != "Hand") {
-			return false
-		}
-	}
-	return saw
-}
-
 // costParts refuses the cost parts only an activated or hand ability may pay.
 func (lc *lowerCtx) costParts(c lCost) error {
 	if c.DiscardSelf {
@@ -1999,6 +1988,27 @@ func putLibSelfGate(ab *lAbility, cost lCost) error {
 	return nil
 }
 
+// energyPayCost parses PayEnergy<X> / PayEnergy<SVar>: the "pay one or more
+// {E}" resolution unless cost (Aether Refinery, Localized Destruction, Pia
+// Nalaar, Rampaging Aetherhood, Territorial Aetherkite, Vault 112). The amount
+// is read when the cost is offered, like PayLife<X>'s LifeBy. An activated
+// ability's printed cost is the constant kop.CostPayEnergy, so a dynamic one
+// there would lose its amount: refuse it.
+func (lc *lowerCtx) energyPayCost(c *lCost, parts []string, tok string) error {
+	if !lc.unlessParse {
+		return refuse("PayEnergy<%s> outside an unless cost", parts[0])
+	}
+	if len(parts) != 1 || c.Energy != 0 || c.EnergyBy != nil {
+		return refuse("energy cost %q", tok)
+	}
+	v, err := lc.value(parts[0])
+	if err != nil {
+		return err
+	}
+	c.EnergyBy = &v
+	return nil
+}
+
 // costHand is cost, also reading Discard<1/CARDNAME> (DiscardSelf).
 func (lc *lowerCtx) costHand(s string) (lCost, error) {
 	var c lCost
@@ -2008,6 +2018,10 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		arg = strings.TrimSuffix(arg, ">")
 		if !hasArg {
 			switch {
+			case t == "Mandatory":
+				// Forge's cost prefix (rules/cost/parse.go skips the same
+				// word): the unless machinery decides pay or decline.
+				continue
 			case t == "T":
 				c.Tap = true
 				continue
@@ -2207,6 +2221,12 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		if head == "tapXType" && parts[0] == "X" {
 			// tapXType<X/Spec>: tap any number, X the count (lower_tapxvar.go)
 			if err := lc.tapXVarCost(&c, parts, t); err != nil {
+				return c, err
+			}
+			continue
+		}
+		if head == "PayEnergy" && (parts[0] == "X" || lc.face.SVars[parts[0]] != "") {
+			if err := lc.energyPayCost(&c, parts, t); err != nil {
 				return c, err
 			}
 			continue
@@ -3544,13 +3564,6 @@ func (lc *lowerCtx) lastTarget() int {
 		return -1
 	}
 	return lc.chainT[len(lc.chainT)-1]
-}
-
-func (lc *lowerCtx) firstTarget() int {
-	if len(lc.chainT) == 0 {
-		return -1
-	}
-	return lc.chainT[0]
 }
 
 // newLatent starts a latent ability (a program an op reaches by index) and

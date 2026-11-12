@@ -249,7 +249,9 @@ import (
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
 // +12 (the merge with land: the storage-battery abilities above against land's corpus; merged ALL build-level 22971 -> 22983 measured).
 // +16 (the merge with land at bcd3c03ad118: the same CR 702.43 Multikicker and Count$TimesKicked lowering against land's later corpus; merged ALL build-level 23052 -> 23068 measured).
-var buildAcceptancePin = [2]int{23068, 34442} // {built, cards}
+// +24 (mid-resolution ChooseNumber lowers: ChooseNumberMid, with Count$ChosenNumber and the dynamic PayEnergy<X> unless cost; an activated {X} energy cost stays refused rather than losing its amount; merged onto land c70201715c: ALL build-level 23076 -> 23100 measured).
+// +16 (the merge with land at 6f5122c97418: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering beside land's mid-resolution ChooseNumber lowers, disjoint; merged ALL build-level 23105 -> 23121 measured).
+var buildAcceptancePin = [2]int{23121, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

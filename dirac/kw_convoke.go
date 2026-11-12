@@ -224,17 +224,6 @@ func (s *State) improvisePickCount() int {
 	return n
 }
 
-// convokePickN counts the announced convoke picks.
-func (s *State) convokePickN() int {
-	n := 0
-	for i := 0; i < int(s.bld().pickN); i++ {
-		if isConvokePick(s.bld().pickKs[i]) {
-			n++
-		}
-	}
-	return n
-}
-
 func (s *State) pickedKind(o Obj, kind pickKind) bool {
 	for i := 0; i < int(s.bld().pickN); i++ {
 		if s.bld().picks[i] == o && s.bld().pickKs[i] == kind {

@@ -15,6 +15,7 @@ const (
 	trigPlMayFlash                     // kw_mayflash.go
 	trigPlMiracle                      // kw_miracle.go
 	trigPlWarpG                        // kw_warpgrant.go: a warp cast at a battlefield grant's cost
+	trigPlEscape                       // kw_escape.go: an escape cast of a graveyard card
 	trigPlRetrace                      // kw_retrace.go: the retrace graveyard cast (CR 702.81a)
 	trigPlForetold                     // kw_foretell.go: a cast from exile for the foretell cost
 )

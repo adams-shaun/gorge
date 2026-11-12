@@ -583,7 +583,3 @@ func mzDiag(v view.View, seat state.PlayerID, fs FeatureSet, diag *Diag, sk *sin
 		push("mz|ownlib|"+n, 1)
 	}
 }
-
-// cmpFeatureRow orders features by row alone (a stable sort keeps a tie's
-// input order).
-func cmpFeatureRow(a, b Feature) int { return int(a.Row) - int(b.Row) }

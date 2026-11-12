@@ -806,12 +806,13 @@ const (
 	raChooseColor
 	raChooseType
 	raChooseCard
-	raOptional   // "you may" trigger: yes/no
-	raGeneric    // GenericChoice branch
-	raDigPick    // dig: choose a card to keep
-	raOptSac     // optional sacrifice: 0..Amount picks (act_optionalask.go)
-	raOptDiscMay // optional discard election: discard?
-	raOptDisc    // optional discard pick (post-election, or AnyNumber)
+	raOptional     // "you may" trigger: yes/no
+	raGeneric      // GenericChoice branch
+	raDigPick      // dig: choose a card to keep
+	raOptSac       // optional sacrifice: 0..Amount picks (act_optionalask.go)
+	raOptDiscMay   // optional discard election: discard?
+	raOptDisc      // optional discard pick (post-election, or AnyNumber)
+	raChooseNumber // mid-resolution ChooseNumber (ExtChooseNumberMid; repl_choosenumber.go)
 )
 
 // resCtx is a resolution in progress.

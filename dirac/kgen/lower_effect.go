@@ -1145,6 +1145,10 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		n++
 		in.CS, in.A = "PayEnergy", cst(c.Energy)
 	}
+	if c.EnergyBy != nil {
+		n++
+		in.CS, in.A = "PayEnergy", *c.EnergyBy
+	}
 	if c.Return != nil {
 		// one pick: gorge settles all N at once, the kernel one per answer
 		if c.ReturnN != 1 {
@@ -2171,6 +2175,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.protectionAllChosen(ps) // lower_choosecolorres.go
 	case "ChooseType":
 		return lc.chooseType(ps)
+	case "ChooseNumber":
+		return lc.chooseNumberEffect(ps) // lower_choosenumber.go
 	case "Scry":
 		return lc.scry(ps)
 	case "PutCounterAll":
@@ -2407,6 +2413,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.unlockDoor(ps) // lower_unlockdoor.go
 	case "CumulativeUpkeep":
 		return lc.cumulativeUpkeep(ps) // lower_cumulative.go
+	case "Myriad":
+		return lc.myriad(sa) // lower_myriad.go
 	case "Echo":
 		return lc.echoUpkeep(ps) // lower_echo.go
 	default:

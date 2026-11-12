@@ -1092,7 +1092,14 @@ func (g *grantSrch) needPass(t *State, i int, sl Slot) bool {
 // scriptOrderAnswers: an option naming a needed colour first): pass 1 the
 // colours the play needs, pass 2 the others. An any-colour ability's
 // option names no colour, so it waits for pass 2 with all of its colours.
-func (g *grantSrch) selColours(cols []uint8, mask, sel uint8) []uint8 {
+func (g *grantSrch) selColours(cols []uint8, mask, sel uint8, named bool) []uint8 {
+	if !named {
+		// no option names a colour (stepNamed): all wait for pass 2, in engine order
+		if sel == 1 {
+			return nil
+		}
+		return cols
+	}
 	anyAb := mask&uint8(kop.ColAny) == uint8(kop.ColAny)
 	if anyAb {
 		if sel == 1 {
@@ -1132,10 +1139,13 @@ func (g *grantSrch) branchSel(t *State, i int, sl Slot, gi int16, mask, n uint8,
 	}
 	var order [kop.NumManaKinds]uint8
 	no := t.stepColours(g.k, sl, gi, mask, &order)
-	needFirst(order[:no], g.need)
+	named := t.stepNamed(g.k, sl, gi, mask)
+	if named {
+		needFirst(order[:no], g.need)
+	}
 	cols := order[:no]
 	if sel != 0 {
-		cols = g.selColours(cols, mask, sel)
+		cols = g.selColours(cols, mask, sel, named)
 	}
 	for _, c := range cols {
 		t.perms[sl].flags |= pfTapped
@@ -1179,19 +1189,7 @@ func (s *State) stepColours(k *prep, sl Slot, gi int16, mask uint8, out *[kop.Nu
 	if gi < 0 {
 		pc = s.manaPCGen(k, sl)
 	}
-	var ab *kop.Ability
-	if gi < 0 {
-		if ra := s.ownRestrAb(k, sl); ra != nil && !s.ownManaUsable(k, sl) {
-			ab = ra // the printed restricted ability (mana_grantrestrictedown.go)
-		} else if pc.manaAb >= 0 && (pc == &k.cards[cd] || pc.blgFirst != 0) {
-			// the source's own profile or a granted-type view names one of the
-			// card's own abilities; a grant/var/gate view's index names another
-			// card's (mana_window.go windowCol)
-			ab = manaAbView(&k.t.Cards[cd], pc)
-		}
-	} else if r := k.gen.grantOf[gi]; !k.gen.grantSelf[gi] {
-		ab = &k.t.Cards[r.card].Abilities[r.ab]
-	}
+	ab := s.stepAbility(k, sl, gi, pc)
 	var seen uint8
 	if gi < 0 && pc.blgFirst != 0 {
 		// a land with a granted basic type: gorge lists the face's own abilities
@@ -1217,6 +1215,14 @@ func (s *State) stepColours(k *prep, sl Slot, gi int16, mask uint8, out *[kop.Nu
 			out[n] = c
 			n++
 			seen |= 1 << c
+		}
+	}
+	if gi < 0 && pc.manaMulti && k.gen.anyVergeOrder {
+		// a gated Verge's ability 0 comes before its lower colour (mana_gate.go)
+		if c0, ok := s.vergeAbility0Col(k, sl); ok && c0 < kop.NumManaKinds && mask&(1<<uint(c0)) != 0 && seen&(1<<uint(c0)) == 0 {
+			out[n] = uint8(c0)
+			n++
+			seen |= 1 << uint(c0)
 		}
 	}
 	for c := uint8(0); c < kop.NumManaKinds; c++ {

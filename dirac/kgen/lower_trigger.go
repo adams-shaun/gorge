@@ -252,6 +252,14 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			tr.Training = true
 		}
+		if v, ok := tp.get("Myriad"); ok {
+			// K:Myriad's expansion (gorge kwMyriad; trigmatch
+			// AttacksMatchedAttackers fires it only over its DB$ Myriad
+			// Execute$ body; lower_myriad.go)
+			if err := myriadMarker(v, tp.str("ValidCard"), cards.ResolveSVar(svars, t.Params["Execute"])); err != nil {
+				return err
+			}
+		}
 		if v, ok := tp.get("Attacked"); ok {
 			// gorge attackedDefenderMatches, from the trigger controller's
 			// seat: only the player / your-planeswalker alternatives the
@@ -2403,8 +2411,14 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			return nil, lc.stackKwGrant(sp, st, aff) // lower_stackkw.go
 		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Flashback") {
 			return nil, lc.graveFbGrant(sp, st, aff) // lower_fbgrant.go
+		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Escape") {
+			return nil, lc.graveEscapeGrant(sp, st, aff) // lower_escapegrant.go
 		} else if az == "Hand" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Warp") {
 			return nil, lc.handWarpGrant(sp, st, aff) // lower_warpgrant.go
+		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && inertCountAs(sp.str("AddHiddenKeyword"), aff) {
+			return nil, graveCountAsStatic(sp, st) // lower_escapegrant.go
+		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && sp.str("AddKeyword") != "" {
+			return nil, refuseGraveKwGrant(sp, az) // lower_escapegrant.go
 		} else if !sp.is("MayPlay", "True") {
 			return nil, refuse("AffectedZone %q without MayPlay", az)
 		}
@@ -2579,6 +2593,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		rest, melee := splitMeleeGrant(rest)
 		rest, exalted := splitExaltedGrant(rest)
+		rest, myriad := splitMyriadGrant(rest)           // lower_myriad.go
 		rest, st.ProtFrom, err = lc.splitProtGrant(rest) // lower_protgrant.go
 		if err != nil {
 			return nil, err
@@ -2618,6 +2633,16 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			// once per instance (lower_exaltedgrant.go; gorge
 			// rules/melee.go)
 			idx, err := lc.exaltedGrantTrigger()
+			if err != nil {
+				return nil, err
+			}
+			st.Grant = append(st.Grant, idx)
+		}
+		for ; myriad > 0; myriad-- {
+			// CR 702.116a-b granted: one latent Attacks Self trigger,
+			// listed once per instance (lower_myriad.go; gorge
+			// rules/trigger_granted.go)
+			idx, err := lc.myriadGrantTrigger()
 			if err != nil {
 				return nil, err
 			}

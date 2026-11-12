@@ -20,9 +20,6 @@
 package policynet
 
 import (
-	"sort"
-	"strings"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
@@ -433,29 +430,6 @@ func bit(b bool) string {
 		return "1"
 	}
 	return "0"
-}
-
-// counterString renders a counter map in sorted key order — never map
-// iteration order. Format: "Kind=v" joined by ",", "-" when empty.
-func counterString(m map[string]int32) string {
-	if len(m) == 0 {
-		return "-"
-	}
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	var b strings.Builder
-	for i, k := range keys {
-		if i > 0 {
-			b.WriteByte(',')
-		}
-		b.WriteString(k)
-		b.WriteByte('=')
-		b.WriteString(formatInt(int64(m[k])))
-	}
-	return b.String()
 }
 
 func formatInt(v int64) string {

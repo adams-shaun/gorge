@@ -2117,7 +2117,8 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vActivations:        kop.ExActivations,
 	vLifeLostLastTurn:   kop.ExLifeLostLastTurn,
 	vDmgAmount:          kop.ExDmgAmountReceived,
-	vTimesKicked:        kop.ExKicked,  // Expr.N 1: the multikicker count, not the kicked bit
+	vTimesKicked:        kop.ExKicked, // Expr.N 1: the multikicker count, not the kicked bit
+	vEnergyOf:           kop.ExEnergyOf,
 	vMonarch:            kop.ExMonarch, // lower_monarch.go
 }
 

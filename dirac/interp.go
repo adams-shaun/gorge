@@ -978,6 +978,9 @@ func (s *State) applyResolve(k *prep, a Action) {
 			return
 		}
 		s.finishPeek(k)
+	case raChooseNumber:
+		o, sl := s.resolutionTypeSource()
+		s.storeChosenNumber(o, sl, int(a.Mode()))
 	case raChooseType:
 		if k.gen != nil && s.prog(k)[r.pc].C != 0 {
 			r.chosen = cardTypeAnswer(a)

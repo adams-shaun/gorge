@@ -491,19 +491,18 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 			// sacrificed host is what exiled it -- parks it too: the pending
 			// answer continues the resolution, and runProg poses the host ask
 			// before it ends (pair 1265). Outside a resolution (its source
-			// died to a state-based action) the ask is queued before the next
-			// priority (queueAskRet) instead of entering the Aura unattached
-			// to fall to CR 704.5m.
+			// died to a state-based action) every returning Aura queues its
+			// own host ask before the next priority (queueAskRet) instead of
+			// entering unattached to fall to CR 704.5m: they are asked in
+			// entry order, one answer each.
 			parked, queued := false, false
 			if s.res.active && s.g.pre.state == 0 {
 				s.g.pre = preAsk{obj: l.obj, kind: akEnchant, state: preReturn}
 				parked = true
-			} else if !s.res.active && s.g.nask == 0 {
+			} else if !s.res.active {
 				s.queueAskRet(l.obj)
 				queued = true
 			}
-			// an ask is already queued: gorge parks no second entry; the
-			// later one enters attached to its first candidate below
 			if parked || queued {
 				if k.gen.anyLinkCtr {
 					s.linkRetStall(k, srcCtrl, o, l.obj)
@@ -514,20 +513,12 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 		if n := s.auraWithHosts(k, l.obj); x.zone == kop.ZoneExile && (n == 1 || n > 1 && !s.res.active) {
 			// a returning Aura with one permanent it can enchant enters
 			// attached to it (CR 303.4f; Witness Protection under a
-			// destroyed Banishing Light, pair 64152); so does one with
-			// several while an ask is already pending, to its first
-			// candidate: gorge parks no second entry (applyETBChoiceReplacement
-			// needs no pending decision; auraEntryGate's default, in
-			// gorge's battlefield order: player 0's list, then player 1's,
-			// each in entry order)
+			// destroyed Banishing Light, pair 64152)
 			ctrN := 0
 			if k.gen.anyLinkCtr {
 				ctrN = s.linkRetCtrs(k, srcCtrl, o, l.obj) // before the card takes the source's slot
 			}
 			host := s.firstHost(k, l.obj)
-			if s.g.nask > 0 && s.g.ask[0].sl == NoSlot {
-				s.g.ask[0].pc = 1 // its entry record is overwritten (GORGE-FINDINGS.md D-aura-reask)
-			}
 			from := s.detach(l.obj)
 			nsl := s.enterLinkRet(k, l.obj, x.owner(), from)
 			s.attachTo(k, nsl, host)
@@ -1150,13 +1141,10 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 	}
 	s.popAsk()
 	if ask.sl == NoSlot {
-		// the host answered (retAuraAsk); gorge drops the answer when
-		// another Aura entered while it was asked (pc set) and attaches its
-		// first candidate (GORGE-FINDINGS.md D-aura-reask)
+		// the host answered (retAuraAsk); every returning Aura has its own
+		// queued ask, so the answer enters that Aura attached to the chosen
+		// host (CR 303.4f)
 		host := s.objs[a.Source()].slot
-		if ask.pc != 0 {
-			host = s.firstHost(k, Obj(ask.ab))
-		}
 		s.enterRetAura(k, Obj(ask.ab), host)
 		return
 	}

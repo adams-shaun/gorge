@@ -287,16 +287,6 @@ func (s *State) waterbendPlanCost(k *prep, p uint8, o Obj, ab uint8, cost kop.Ma
 	return s.waterbendCredit(k, p, ob.slot, a, cost)
 }
 
-// waterbendPoolPaidOffer reports whether the activation being built is a
-// waterbend ability whose offer credit (waterbendCredit) the floating pool
-// alone pays: gorge's offer gate priced that credited cost, so it is an
-// offered option, not a potential play the witness lowers. The picks are
-// asked next and waterbendManualPay settles or aborts the payment.
-func (s *State) waterbendPoolPaidOffer(k *prep, p uint8, cost kop.ManaCost) bool {
-	credited, ok := s.waterbendBuildCredit(k, p, cost)
-	return ok && s.poolPays(p, &credited)
-}
-
 // waterbendBuildCredit is waterbendCredit for the activation being built; false when
 // it isn't a waterbend ability, and cost goes back as it came. A witness is priced on
 // the credit too (gorge planAbilityPaymentLifePips).
