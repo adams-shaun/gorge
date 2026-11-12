@@ -56,7 +56,7 @@ func riotCopyStagedRiders(t *testing.T, useEsix bool, riotPick int) {
 	}
 	var copier *cards.Card
 	if useEsix {
-		copier = tokenReplCorpusCard(t, "Esix, Fractal Bloom")
+		copier = corpusAlternativeCard(t, "Esix, Fractal Bloom")
 	} else {
 		copier = card(t, "Name:Riot Mandatory Copier\nTypes:Enchantment\n"+
 			"R:Event$ CreateToken | ActiveZones$ Battlefield | ValidPlayer$ You | Layer$ Copy | ReplaceWith$ ThenCopy | Description$ Create copies of the other creature instead.\n"+

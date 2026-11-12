@@ -22,7 +22,7 @@ import (
 // comebackCorpusCard looks a real corpus card up by name.
 func comebackCorpusCard(t *testing.T, name string) *cards.Card {
 	t.Helper()
-	return tokenReplCorpusCard(t, name)
+	return corpusAlternativeCard(t, name)
 }
 
 // comebackEffectRegistrations returns the number of live EffectRepeat delayed

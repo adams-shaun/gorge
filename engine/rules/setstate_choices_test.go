@@ -17,7 +17,7 @@ import (
 // returns the pick it poses.
 func sunderToPick(t *testing.T) (*Engine, Config, *decision.Decision) {
 	t.Helper()
-	sunder := tokenReplCorpusCard(t, "Sunder the Gateway")
+	sunder := corpusAlternativeCard(t, "Sunder the Gateway")
 	e, cfg := tokenReplGame(t, 5, sunder)
 	searchMoveByName(t, e, "Sunder the Gateway", state.ZHand)
 	addMana(t, e, 0, "WWWWWUUUUU")
@@ -80,8 +80,8 @@ func TestSunderTheGatewayPickIsMandatory(t *testing.T) {
 // returns the optional pick.
 func bustleToPick(t *testing.T) (*Engine, Config, *decision.Decision, state.ObjID) {
 	t.Helper()
-	hb := tokenReplCorpusCard(t, "Hustle // Bustle")
-	bears := tokenReplCorpusCard(t, "Grizzly Bears")
+	hb := corpusAlternativeCard(t, "Hustle // Bustle")
+	bears := corpusAlternativeCard(t, "Grizzly Bears")
 	e, cfg := tokenReplGame(t, 7, hb, bears)
 	toMain1(t, e)
 	id := manifestCard(t, e, 0, "Grizzly Bears")

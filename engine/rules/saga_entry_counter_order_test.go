@@ -67,7 +67,7 @@ func entryCounterSagaChapters(e *Engine, id state.ObjID) []string {
 // exactly once each, independent of which replacement was chosen first.
 func TestEntryCounterSagaLoreOrderIsDecidedBeforeEntry(t *testing.T) {
 	t.Parallel()
-	saga := tokenReplCorpusCard(t, "Urza's Saga")
+	saga := corpusAlternativeCard(t, "Urza's Saga")
 	// Precondition: with no replacement the Saga enters with exactly one
 	// lore counter and queues exactly its first chapter, once. If this base
 	// case changed, the doubled/plus-one assertions below would be measuring

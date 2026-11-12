@@ -22,7 +22,7 @@ func tokenMultiForgeSrc(script string, n string) string {
 
 func quinaBoard(t *testing.T, seed uint64, maker *cards.Card) (*Engine, Config, state.ObjID) {
 	t.Helper()
-	quina := tokenReplCorpusCard(t, "Quina, Qu Gourmet")
+	quina := corpusAlternativeCard(t, "Quina, Qu Gourmet")
 	e, cfg := tokenReplGame(t, seed, quina, maker)
 	qid := moveSeededCard(t, e, 0, quina, state.ZBattlefield)
 	if e.G.Obj(qid).Zone != state.ZBattlefield {
@@ -61,7 +61,7 @@ func TestQuinaTwoScriptsOneFrog(t *testing.T) {
 func TestQuinaTwoResolutionsTwoFrogs(t *testing.T) {
 	t.Parallel()
 	maker := cardByName(t, tokenForgeSrc("c_a_food_sac"))
-	quina := tokenReplCorpusCard(t, "Quina, Qu Gourmet")
+	quina := corpusAlternativeCard(t, "Quina, Qu Gourmet")
 	e, cfg := tokenReplGame(t, 59, quina, maker, maker)
 	moveSeededCard(t, e, 0, quina, state.ZBattlefield)
 	m1 := moveSeededCard(t, e, 0, maker, state.ZBattlefield)
@@ -85,7 +85,7 @@ func TestQuinaTwoResolutionsTwoFrogs(t *testing.T) {
 
 func TestCaseOfPilferedProofAddsOneClue(t *testing.T) {
 	t.Parallel()
-	cs := tokenReplCorpusCard(t, "Case of the Pilfered Proof")
+	cs := corpusAlternativeCard(t, "Case of the Pilfered Proof")
 	var seed []*cards.Card
 	for _, n := range []string{"Det One", "Det Two", "Det Three"} {
 		seed = append(seed, cardByName(t, "Name:"+n+"\nTypes:Creature Detective Human\nPT:1/1\nOracle:x\n"))

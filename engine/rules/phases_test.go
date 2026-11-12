@@ -33,7 +33,7 @@ func phasesGame(t *testing.T, seed uint64, names ...string) (*Engine, Config) {
 	t.Helper()
 	cs := make([]*cards.Card, 0, len(names))
 	for _, n := range names {
-		cs = append(cs, tokenReplCorpusCard(t, n))
+		cs = append(cs, corpusAlternativeCard(t, n))
 	}
 	return tokenReplGame(t, seed, cs...)
 }
@@ -57,7 +57,7 @@ func phasesHasNote(e *Engine, want string) bool {
 func TestTalonGatesOfMadaraPhasesOutAndIn(t *testing.T) {
 	t.Parallel()
 	e, cfg := phasesGame(t, 301, "Talon Gates of Madara", "Grizzly Bears")
-	bears := moveSeededCard(t, e, 0, tokenReplCorpusCard(t, "Grizzly Bears"), state.ZBattlefield)
+	bears := moveSeededCard(t, e, 0, corpusAlternativeCard(t, "Grizzly Bears"), state.ZBattlefield)
 	// Precondition: the creature is really a battlefield permanent before the
 	// effect runs (a vacuous setup must fail loudly).
 	if o := e.G.Obj(bears); o == nil || o.Zone != state.ZBattlefield || o.PhasedOut {
@@ -65,7 +65,7 @@ func TestTalonGatesOfMadaraPhasesOutAndIn(t *testing.T) {
 	}
 	// Precondition: the carrier's ETB is the real DB$ Phases body, not
 	// something the engine rewrote.
-	gate := moveSeededCard(t, e, 0, tokenReplCorpusCard(t, "Talon Gates of Madara"), state.ZBattlefield)
+	gate := moveSeededCard(t, e, 0, corpusAlternativeCard(t, "Talon Gates of Madara"), state.ZBattlefield)
 	gf := e.G.Obj(gate).Face()
 	if gf == nil || len(gf.Triggers) == 0 || gf.Triggers[0].Effect == nil {
 		t.Fatal("precondition: Talon Gates ETB trigger is missing")
@@ -104,9 +104,9 @@ func TestTalonGatesOfMadaraPhasesOutAndIn(t *testing.T) {
 func TestGuardianOfFaithPhasesOutOtherCreatures(t *testing.T) {
 	t.Parallel()
 	e, cfg := phasesGame(t, 302, "Guardian of Faith", "Grizzly Bears", "Hill Giant")
-	bears := moveSeededCard(t, e, 0, tokenReplCorpusCard(t, "Grizzly Bears"), state.ZBattlefield)
-	giant := moveSeededCard(t, e, 0, tokenReplCorpusCard(t, "Hill Giant"), state.ZBattlefield)
-	guardian := moveSeededCard(t, e, 0, tokenReplCorpusCard(t, "Guardian of Faith"), state.ZBattlefield)
+	bears := moveSeededCard(t, e, 0, corpusAlternativeCard(t, "Grizzly Bears"), state.ZBattlefield)
+	giant := moveSeededCard(t, e, 0, corpusAlternativeCard(t, "Hill Giant"), state.ZBattlefield)
+	guardian := moveSeededCard(t, e, 0, corpusAlternativeCard(t, "Guardian of Faith"), state.ZBattlefield)
 	if o := e.G.Obj(guardian); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatal("precondition: Guardian of Faith is not on the battlefield")
 	}
@@ -139,7 +139,7 @@ func TestGuardianOfFaithPhasesOutOtherCreatures(t *testing.T) {
 func TestPhaseoutFalsePhasesIn(t *testing.T) {
 	t.Parallel()
 	e, cfg := phasesGame(t, 303, "Grizzly Bears")
-	bears := moveSeededCard(t, e, 0, tokenReplCorpusCard(t, "Grizzly Bears"), state.ZBattlefield)
+	bears := moveSeededCard(t, e, 0, corpusAlternativeCard(t, "Grizzly Bears"), state.ZBattlefield)
 	// Phase it out directly (the effect's own emit path), so the test is
 	// about the Phaseout$ False arm.
 	e.emit(events.Event{Kind: events.PhaseOut, Obj: bears, Amount: 1})
@@ -159,7 +159,7 @@ func TestPhaseoutFalsePhasesIn(t *testing.T) {
 func TestPhasedOutPermanentLeavesBattlefieldPhasesIn(t *testing.T) {
 	t.Parallel()
 	e, cfg := phasesGame(t, 304, "Grizzly Bears")
-	bears := moveSeededCard(t, e, 0, tokenReplCorpusCard(t, "Grizzly Bears"), state.ZBattlefield)
+	bears := moveSeededCard(t, e, 0, corpusAlternativeCard(t, "Grizzly Bears"), state.ZBattlefield)
 	e.emit(events.Event{Kind: events.PhaseOut, Obj: bears, Amount: 1})
 	if o := e.G.Obj(bears); o == nil || !o.PhasedOut {
 		t.Fatal("precondition: Bears are not phased out")
