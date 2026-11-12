@@ -60,6 +60,10 @@ theme:
 plugins:
   - search
 
+# Stub pages for compliance/engines/* when gorge-compliance's copy is absent.
+hooks:
+  - scripts/docs_compliance_stub.py
+
 markdown_extensions:
   - admonition
   - tables

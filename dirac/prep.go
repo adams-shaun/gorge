@@ -17,13 +17,17 @@ type pcard struct {
 	manaCol kop.ColorMask
 	// manaChosen: the mana ability makes one mana of the permanent's chosen
 	// colour (perm.chosen; Heraldic Banner), not manaCol
-	manaChosen  bool
-	manaN       uint8
-	manaDyn     bool // a dynamic-amount variant (varPC): gorge's evaluated-amount layer
-	manaOne     bool // Produced$ Any with an amount above one: all of it one colour, whichever is chosen
-	manaTap     bool // the mana ability costs only {T}
-	manaSac     bool // the mana ability costs {T} and sacrificing the source (Treasure)
-	manaSacOnly bool // the mana ability costs only sacrificing the source (Eldrazi Spawn)
+	manaChosen bool
+	// manaFixedChosen: the chosen-colour ability is a second bare {T} one
+	// beside a fixed first ability (Quirion Elves): the source keeps its
+	// fixed census position, unlike a single Combo Chosen ability
+	manaFixedChosen bool
+	manaN           uint8
+	manaDyn         bool // a dynamic-amount variant (varPC): gorge's evaluated-amount layer
+	manaOne         bool // Produced$ Any with an amount above one: all of it one colour, whichever is chosen
+	manaTap         bool // the mana ability costs only {T}
+	manaSac         bool // the mana ability costs {T} and sacrificing the source (Treasure)
+	manaSacOnly     bool // the mana ability costs only sacrificing the source (Eldrazi Spawn)
 	// castSrc: tapping this source for a cast is recorded (noteTapSrc):
 	// csTreasure, the card's printed subtypes include Treasure (CastSpecTreasure;
 	// set only when the cast ring is on); csObserved, the card carries a
@@ -107,8 +111,8 @@ type prep struct {
 	// bargainRed: some card carries a StBargained cost static
 	// (cost_reducespell.go): guards the bargained pricing
 	bargainRed bool
-	// offspring: some card has Offspring (kw_offspring.go): guards the
-	// offspring cast offer on the priority walk
+	// offspring: some card has Offspring or Buyback (kw_offspring.go,
+	// kw_buyback.go): guards the extra-cost cast offer on the priority walk
 	offspring bool
 	// anyGate: some ability has a threshold gate (Ability.Gate, kw_class.go):
 	// guards the gated trigger/activation checks on the hot paths
@@ -241,6 +245,10 @@ type prep struct {
 	// first, kop.SecondCtrTapManaAb), -1 none: cold, read through ctrAbOf
 	// (mana_countercost.go)
 	ctrAb []int8
+	// riderAb: per card, the index of its bounded mana-ability rider (the
+	// first kop.ManaRiderAb ability), -1 none. Cold; read through riderAbOf
+	// (mana_rider.go).
+	riderAb []int8
 
 	coldCmd coldLayout // the table's cold layout plus the partner record, a Commander game's (zone_cmdpartner.go)
 }
@@ -249,7 +257,7 @@ func prepare(t *kop.Table) *prep {
 	if len(t.Filters) == 0 {
 		t.Filters = []kop.Filter{{}}
 	}
-	p := &prep{t: t, nsub: uint8(len(t.Subtypes)), cards: make([]pcard, len(t.Cards)), selfCast: prepSelfCast(t), eachPay: prepEachPay(t), tapXAb: make([]int8, len(t.Cards)), ctrAb: make([]int8, len(t.Cards))}
+	p := &prep{t: t, nsub: uint8(len(t.Subtypes)), cards: make([]pcard, len(t.Cards)), selfCast: prepSelfCast(t), eachPay: prepEachPay(t), tapXAb: make([]int8, len(t.Cards)), ctrAb: make([]int8, len(t.Cards)), riderAb: make([]int8, len(t.Cards))}
 	p.w8 = tableWord8(t) // filter_props.go
 	typedSub := typedManaSubtypes(t)
 	p.speed, p.engines = prepSpeed(t)
@@ -283,10 +291,10 @@ func prepare(t *kop.Table) *prep {
 		p.bargain = p.bargain || c.Bargain
 		p.mayhem = p.mayhem || c.Mayhem
 		p.teamwork = p.teamwork || c.Teamwork != 0
-		p.offspring = p.offspring || c.Offspring
+		p.offspring = p.offspring || c.Offspring || c.Buyback
 		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.OptCost.Flags|c.KickerCost.Flags|c.FbCost.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.HasSneak || c.HasWebSling // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go)
 		pc.spellAb, pc.manaAb = -1, -1
-		p.tapXAb[i], p.ctrAb[i] = -1, -1
+		p.tapXAb[i], p.ctrAb[i], p.riderAb[i] = -1, -1, -1
 		// the card's mana is typed by its types (mana_artifact.go) whether
 		// the producing ability is printed or granted: the tag rides the
 		// source, not the ability (effects.ManaProducerTag)
@@ -313,6 +321,9 @@ func prepare(t *kop.Table) *prep {
 					}
 				}
 			case kop.AbMana:
+				if a.ManaRider != kop.ManaRiderNone && a.AFlags&kop.AfLatent == 0 && p.riderAb[i] < 0 {
+					p.riderAb[i] = int8(j)
+				}
 				if pc.manaAb < 0 {
 					pc.manaAb = int8(j)
 					pc.manaCol = a.ManaColors
@@ -347,6 +358,13 @@ func prepare(t *kop.Table) *prep {
 					}
 				} else if a.AFlags&kop.AfLatent == 0 {
 					p.multiMana = true
+					if pk := int(pc.manaAb); pk >= 0 && kop.ChosenSecondManaAb(c, pk, j) {
+						// a later bare {T}: Add one mana of the chosen colour
+						// beside a fixed {T} first one (Quirion Elves): the
+						// source's unit reads the chosen colour too, and stays
+						// in the fixed-production census pass
+						pc.manaChosen, pc.manaFixedChosen = true, true
+					}
 					if p.tapXAb[i] < 0 && kop.SecondTapXManaAb(c, int(pc.manaAb), j) {
 						p.tapMana = true // a second tap-another ability: the card's tapX gap (mana_tapanother.go)
 						p.tapXAb[i] = int8(j)

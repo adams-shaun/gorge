@@ -42,6 +42,7 @@ func prepColGrant(t *kop.Table, g *genPrep) {
 				if in.Ext() == kop.ExtColorGrant {
 					g.anyColGrant = true
 					g.anyInfect = g.anyInfect || in.B.N > 0
+					prepColProt(&in, g, i) // static_colourprot.go
 				}
 			}
 		}
@@ -50,6 +51,10 @@ func prepColGrant(t *kop.Table, g *genPrep) {
 
 // colGrant is ExtColorGrant.
 func (s *State) colGrant(k *prep, in *kop.Instr) {
+	if uint8(in.C)&cgProt != 0 {
+		s.colProtGrant(k, in) // static_colourprot.go
+		return
+	}
 	c := s.res.chosen
 	sl := s.objRef(k, in.Obj)
 	if c == 0 || c > 5 || sl == NoSlot {
@@ -132,6 +137,7 @@ func (s *State) applyAskColGrant(k *prep, a Action) bool {
 		return s.applyAskEndure(k, a) // act_endure.go
 	}
 	s.res.chosen = a.Mode() + 1
+	s.res.col = s.res.chosen // the ChosenColor filters' copy (static_colourprot.go resColour)
 	s.continueRes(k, 0)
 	return true
 }

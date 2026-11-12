@@ -414,7 +414,7 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		pm := &s.perms[sl]
-		if pm.flags&pfTapped != 0 || s.manaGranted(k, sl) || deferGap.has(sl) {
+		if pm.flags&pfTapped != 0 || s.manaGranted(k, sl) || deferGap.has(sl) && s.planDeferred(k, p&1, sl) {
 			continue
 		}
 		pc := s.manaPCGen(k, sl)

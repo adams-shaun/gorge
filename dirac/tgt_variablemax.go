@@ -66,7 +66,40 @@ func (s *State) tgtBoundsV(k *prep, t *kop.TargetSpec, e *stackEntry, mt *multiT
 		hi = s.divMaxVCap(hi) // the division arrays' size (ctr_divided.go)
 		lo = min(lo, hi)
 	}
+	if t.Divide == kop.DivValue {
+		lo, hi = s.divValueClamp(k, t, e, lo, hi)
+	}
 	mt.min, mt.max = uint8(lo), uint8(hi)
+}
+
+// divValueTotal is the total of a Divide == kop.DivValue slot of entry e
+// (a value, Ureni's land count or a spell's X): gorge divisionTotalFor
+// resolves DividedAsYouChoose$ as the ability is put on the stack, a negative
+// total is 0.
+func (s *State) divValueTotal(k *prep, t *kop.TargetSpec, e *stackEntry) int {
+	tot := s.evalV(k, t.DivideV, s.ctxEntry(e))
+	if tot < 0 {
+		tot = 0
+	}
+	if tot > 255 {
+		// the division arrays hold one uint8 per target (xTargets.div)
+		s.capFull(StallXTgt)
+		tot = 255
+	}
+	return tot
+}
+
+// divValueClamp is gorge's CR 601.2d clamp of a divided slot: each target
+// receives at least 1, so a cast announces at most as many targets as the
+// total it divides (cast_targets.go, target_ask.go: max = total when the
+// total is below the maximum). A total below the minimum cannot arise: kgen
+// lowers a value total only over TargetMin$ 0.
+func (s *State) divValueClamp(k *prep, t *kop.TargetSpec, e *stackEntry, lo, hi int) (int, int) {
+	if tot := s.divValueTotal(k, t, e); tot < hi {
+		hi = tot
+		lo = min(lo, hi)
+	}
+	return lo, hi
 }
 
 // tgtAsksNothing reports whether slot t of entry e is a TgfBoundsV slot whose
@@ -78,6 +111,9 @@ func (s *State) tgtAsksNothing(k *prep, t *kop.TargetSpec, e *stackEntry) bool {
 	if t.TFlags&kop.TgfBoundsV == 0 {
 		return false
 	}
-	_, hi := s.tgtBoundsEval(k, t, e)
+	lo, hi := s.tgtBoundsEval(k, t, e)
+	if t.Divide == kop.DivValue {
+		_, hi = s.divValueClamp(k, t, e, lo, hi) // a zero total divides among no target
+	}
 	return hi == 0
 }

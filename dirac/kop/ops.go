@@ -165,7 +165,7 @@ const (
 	OpIncubate         // player Obj incubates A (CR 701.53a-b; gorge effIncubate): B times (min 1) create the Incubator token C under Obj (token doublers apply) and put A +1/+1 counters on each mint; A < 0 creates nothing, A = 0 mints with no counter event
 	OpEarthbend        // earthbend A (CR 701.66; gorge effEarthbend): if battlefield permanent Obj is still there, it becomes a 0/0 Creature with haste for as long as it stays (override C, DurPermanent), gets A +1/+1 counters (A <= 0: none) and a leave-keyed delayed record (State.dly, when = dlyLeave)
 	OpEarthbendReturn  // the earthbend return trigger (internal, never in a Prog): when the land goes to a graveyard or exile, return it from either zone to the battlefield tapped under its owner's control
-	OpManifest         // player Obj manifests A cards from the top of their library (CR 701.40a; gorge effManifest): each is the real card moved face down, provenance marked manifested
+	OpManifest         // player Obj manifests A cards from the top of their library (CR 701.40a; gorge effManifest): each is the real card moved face down, provenance marked manifested; B.N = CfManifestRemembered (manifest each remembered card instead; Obj/A unused)
 	OpCloak            // player Obj cloaks A cards from the top of their library (CR 701.58a; gorge effCloak): face down with ward {2}, provenance marked cloaked; B.N = CfTapped|CfShuffle (no-op)|CfRemember|CfChosen|CfCloakCtrl|CfCloakRemembered (cloak each remembered card)
 	OpManifestDread    // player Obj manifests dread A times (CR 701.62a; gorge effManifestDread): look at the top two, manifest one, the other to the graveyard; B.N = CfRemember
 

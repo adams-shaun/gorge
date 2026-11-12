@@ -33,7 +33,8 @@ type TargetSpec struct {
 	TFlags    TargetFlags // distinct-from-earlier-slots, same/different controllers, ...
 	Divide    uint8       // damage divided among the chosen objects (assigned at targeting)
 	// DivideV is the divided total when Divide == DivValue: a value evaluated
-	// as the slot is announced (gorge divisionTotalFor).
+	// as the slot is announced (gorge divisionTotalFor); the slot takes at
+	// most that many objects (MaxV, or Max, clamped to the total).
 	DivideV ValueRef
 	// ParentPlus1 is the 1-based slot of the player target whose graveyard
 	// this card slot is restricted to (kgen's TargetsWithDefinedController$

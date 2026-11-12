@@ -24,6 +24,7 @@ on:
       - web/src/components/PlaySettingsPanel.svelte
       - dirac/docs/support.md
       - cmd/pkgmap/**
+      - scripts/docs_compliance_stub.py
       - .github/workflows/docs.yml
   # A PR (develop -> main above all) builds the site strictly but never
   # deploys it, so a broken link fails before it reaches the public site.
@@ -41,12 +42,17 @@ on:
       - web/src/components/PlaySettingsPanel.svelte
       - dirac/docs/support.md
       - cmd/pkgmap/**
+      - scripts/docs_compliance_stub.py
       - .github/workflows/docs.yml
   # A daily rebuild picks up gorge-compliance's docs-data, written by its
   # nightly job (cron 09:41 UTC, which GitHub often starts hours late), so
   # this runs well after it.
   schedule:
     - cron: '17 17 * * *'
+  # gorge-compliance dispatches this when its docs/engines/ changes, so the
+  # "For engine authors" pages are rebuilt without a gorge push.
+  repository_dispatch:
+    types: [docs-compliance]
   workflow_dispatch:
 
 permissions:
@@ -77,6 +83,25 @@ jobs:
 
       - name: Install MkDocs
         run: pip install -r docs/site/requirements.txt
+
+      # The "For engine authors" pages (compliance/engines/*) are owned by
+      # gorge-compliance: take its main's docs/engines/ (sparse, docs/ only)
+      # into the site tree. Without them the build still passes: the
+      # scripts/docs_compliance_stub.py hook stubs each missing page.
+      - name: Check out the compliance engine docs
+        uses: actions/checkout@v4
+        with:
+          repository: adams-shaun/gorge-compliance
+          ref: main
+          path: .compliance-docs
+          sparse-checkout: docs/engines
+          sparse-checkout-cone-mode: true
+
+      - name: Copy the compliance engine docs into the site
+        run: |
+          mkdir -p docs/site/compliance/engines
+          cp .compliance-docs/docs/engines/* docs/site/compliance/engines/
+          rm -rf .compliance-docs
 
       # Corpus-free and ~1 s: the per-tier package tables and the tier graph
       # (cmd/pkgmap, classification in docs/site/architecture/packages.tiers.json).

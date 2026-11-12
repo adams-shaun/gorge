@@ -1,0 +1,27 @@
+# the value-total divided-damage pool: Rolling Thunder, Fire Covenant, Hail of
+# Arrows, Rock Slide and Shatterskull Smashing divide an X total (a spell's
+# paid X, or twice it) among a number of targets that TargetMax$ bounds
+# separately (a count of every candidate, or two), beside bodies to attack and
+# block with (a flier for Rock Slide's "without flying") and basic lands
+# (dirac/oracle/divided_xtotal_test.go). The class beside them lowers too:
+# Meteor Shower (X plus 1 over any number of targets), # (an announced X, sacrificing a permanent of that mana value) and Polukranos,
+# World Eater (the monstrosity amount, over its enters trigger's targets), with
+# green mana for Polukranos and ramp to reach the large X
+
+Rolling Thunder
+Fire Covenant
+Hail of Arrows
+Rock Slide
+Shatterskull Smashing
+Savannah Lions
+Mons's Goblin Raiders
+Hill Giant
+Suntail Hawk
+Mountain
+Plains
+Swamp
+Meteor Shower
+Polukranos, World Eater
+Grizzly Bears
+Llanowar Elves
+Forest
