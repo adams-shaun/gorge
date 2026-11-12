@@ -1049,13 +1049,14 @@ func (e *Engine) askNextBlockPay() bool {
 	plan := st.plan
 	if plan.phyDone < int32(len(plan.charge.phyrexian)) {
 		pip := plan.charge.phyrexian[plan.phyDone]
+		label := fmt.Sprintf("Pay {%c/P} (%d of %d)", pip, plan.phyDone+1, len(plan.charge.phyrexian))
 		d := &decision.Decision{Player: plan.player, Kind: decision.KChoose, Min: 1, Max: 1,
 			Prompt: "Pay the Phyrexian cost with mana or life"}
 		d.Options = append(d.Options,
 			decision.Option{Index: 0, Kind: "block_phy_colour",
-				Label: fmt.Sprintf("Pay {%c/P} (%d of %d) with %c", pip, plan.phyDone+1, len(plan.charge.phyrexian), pip)},
+				Label: label + " with " + string(pip)},
 			decision.Option{Index: 1, Kind: "block_phy_life",
-				Label: fmt.Sprintf("Pay {%c/P} (%d of %d) with 2 life", pip, plan.phyDone+1, len(plan.charge.phyrexian))})
+				Label: label + " with 2 life"})
 		e.choosing = chooseBlockPay
 		e.ask(d)
 		return true
@@ -1928,13 +1929,14 @@ func (e *Engine) askNextAttackPay() bool {
 	plan := st.plan
 	if plan.phyDone < int32(len(plan.charge.phyrexian)) {
 		pip := plan.charge.phyrexian[plan.phyDone]
+		label := fmt.Sprintf("Pay {%c/P} (%d of %d)", pip, plan.phyDone+1, len(plan.charge.phyrexian))
 		d := &decision.Decision{Player: plan.player, Kind: decision.KChoose, Min: 1, Max: 1,
 			Prompt: "Pay the Phyrexian cost with mana or life"}
 		d.Options = append(d.Options,
 			decision.Option{Index: 0, Kind: "attack_phy_colour",
-				Label: fmt.Sprintf("Pay {%c/P} (%d of %d) with %c", pip, plan.phyDone+1, len(plan.charge.phyrexian), pip)},
+				Label: label + " with " + string(pip)},
 			decision.Option{Index: 1, Kind: "attack_phy_life",
-				Label: fmt.Sprintf("Pay {%c/P} (%d of %d) with 2 life", pip, plan.phyDone+1, len(plan.charge.phyrexian))})
+				Label: label + " with 2 life"})
 		e.choosing = chooseAttackPay
 		e.ask(d)
 		return true
@@ -2022,7 +2024,7 @@ func (e *Engine) attackPayAnswer(d *decision.Decision, in decision.Intent) {
 		plan := st.plan
 		e.attackPay = nil
 		e.emit(events.Event{Kind: events.Note, Player: plan.player,
-			Text: fmt.Sprintf("could not pay the {%d} attack cost", plan.charge.mana)})
+			Text: "could not pay the attack cost"})
 		e.emit(events.Event{Kind: events.DeclareAttackers, Player: e.G.NextAlive(e.G.Active)})
 		return
 	}
