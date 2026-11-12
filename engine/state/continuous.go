@@ -729,8 +729,8 @@ type ContinuousEffect struct {
 	// continuous-effect field.
 	ForgetCounter string
 
-	// ForgetOnCast carries the Effect's ForgetOnCast$ spec (task
-	// param:api:Effect.ForgetOnCast; Marshland Bloodcaster's "Rather than
+	// ForgetOnCast carries the Effect's ForgetOnCast$ spec (Marshland
+	// Bloodcaster's "Rather than
 	// pay the mana cost of the NEXT spell you cast this turn", Dark
 	// Apostle's / Bigger on the Inside's one-cast cascade grant): the first
 	// qualifying spell cast ENDS the whole effect. The spec is a card spec

@@ -313,16 +313,3 @@ func TestLuckBobbleheadRollsEveryControlledBobblehead(t *testing.T) {
 		t.Fatalf("%d Treasure tokens created, want 257 (one per even result, read through TokenAmount$ Y = SVar$EvenResults)", treasures)
 	}
 }
-
-// findObj returns the object whose face is named name, scanning every zone
-// (a destroyed creature is in its graveyard and must still be inspectable).
-func findObj(t *testing.T, g *state.Game, name string) *state.Object {
-	t.Helper()
-	for i := range g.Objs {
-		if o := &g.Objs[i]; o.Face() != nil && o.Face().Name == name {
-			return o
-		}
-	}
-	t.Fatalf("no object named %q anywhere in the game", name)
-	return nil
-}

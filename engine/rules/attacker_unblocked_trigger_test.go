@@ -50,7 +50,7 @@ func swampMosquitoFixture(t *testing.T) (*Engine, state.ObjID) {
 // carries the defending player as its captured role, then resolves the body
 // against that captured seat. Swamp Mosquito's body is
 // `DB$ Poison | Defined$ TriggeredDefendingPlayer | Num$ 1`, and since
-// api:Poison is registered (task poison) the resolution is observed directly
+// api:Poison is registered the resolution is observed directly
 // as seat 1's POISON counter going 0 -> 1 -- the real effect, not the
 // "unimplemented API Poison" Note this leaf used as a stand-in while the
 // primitive was missing. The Note must now be ABSENT, which is asserted, so

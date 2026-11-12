@@ -1,7 +1,6 @@
 package rules
 
-// The ChangeZone hidden-origin param work (task inbox-paramcensus-changezone-
-// hidden-reveal): Forge's ChangeZoneEffect reads five parameters this engine
+// The ChangeZone hidden-origin param work: Forge's ChangeZoneEffect reads five parameters this engine
 // used to leave unread, grouped by shared code path. Every test here drives a
 // real corpus card through the deck-engine fixture style; no Forge script
 // text is committed.

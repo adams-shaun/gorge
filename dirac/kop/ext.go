@@ -45,14 +45,19 @@ const (
 	ExtTwoPilesSac
 	// ExtChooseColorRes (Skrelv, Defector Mite): the resolving
 	// controller chooses a colour (ChGenColor, all five); it rides
-	// res.chosen (colour index + 1) for the ExtColorGrant that follow
-	// (gorge effChooseColor Defined$ You). dirac/static_colourgrant.go.
+	// res.chosen (colour index + 1) for the ExtColorGrant that follow,
+	// and res.col for the ChosenColor filters of the rest of the
+	// resolution (gorge effChooseColor Defined$ You records it on the
+	// source, chosenColorMatches reads it). dirac/static_colourgrant.go.
 	ExtChooseColorRes
 	// ExtColorGrant (Skrelv): the object in Obj gains, until end
 	// of turn and for the colour in res.chosen, hexproof from that colour
 	// (C bit 0), toxic B.N (B) and "can't be blocked by creatures of that
 	// colour" (C bit 1) (gorge definedKWGrant and the CantBlockBy Effect's
-	// freezeChosenColor, cr-pump-definedkw-chosencolor).
+	// freezeChosenColor, cr-pump-definedkw-chosencolor); protection from
+	// that colour (C bit 2) for Obj, or, with a filter F, for every
+	// permanent matching F as it resolves (gorge effProtectionAll Gains$
+	// ChosenColor; Akroma's Blessing).
 	// dirac/static_colourgrant.go.
 	ExtColorGrant
 	// ExtMayPlayGrave (Case of the Uneaten Feast): every
@@ -230,6 +235,14 @@ const (
 	NumExtOps ExtOp = 320
 )
 
+// ExtDrainMana: the player in Obj loses all unspent mana (gorge
+// effDrainMana: one events.ManaClear for that seat; Power Sink's
+// unless-payment decline, Mana Short). The pool and its side tallies empty.
+// dirac/act_drainmana.go.
+const ExtDrainMana ExtOp = 40
+
+func init() { extOpNames[ExtDrainMana] = "DrainMana" }
+
 // extOpNames is filled by per-sub-op init registrations (extOpNames[ExtX] = "X").
 var extOpNames [NumExtOps]string
 
@@ -380,7 +393,14 @@ func init() { extOpNames[ExtExileExMark] = "ExileExMark" }
 // no State byte): cleared as the next turn begins and when the permanent
 // leaves the battlefield. Pump KW$ HIDDEN CARDNAME must be blocked if able.,
 // PumpAll's, an Animate's HiddenKeywords$. dirac/combat_mustbeblocked.go.
+//
+// C = MustBeBlockedLure marks the permanent a lure instead ("All creatures able
+// to block CARDNAME do so.", CR 509.1c; Pump KW$ HIDDEN: Alluring Scent):
+// the arena bit mechLure, same lifetime. Only a single Obj. dirac/combat_lure.go.
 const ExtMustBeBlocked ExtOp = 194
+
+// MustBeBlockedLure is ExtMustBeBlocked's C for the lure mark.
+const MustBeBlockedLure = 1
 
 func init() {
 	extOpNames[ExtMustBeBlocked] = "MustBeBlocked"
@@ -723,3 +743,30 @@ func init() { extOpNames[ExtSpellToLib] = "SpellToLib" }
 const ExtCopyExiledWith ExtOp = 258
 
 func init() { extOpNames[ExtCopyExiledWith] = "CopyExiledWith" }
+
+// ExtRememberImprinted: each object in the resolution's imprinted set joins
+// the remembered set (gorge Pump RememberObjects$ Imprinted, a body that
+// rebinds the previously exiled card before the next dig; Tainted Pact).
+// dirac/act_remember.go.
+// 307: the merge with land kept land's ExtDrawUpto at 309 and took the free
+// ordinal below it.
+const ExtRememberImprinted ExtOp = 307
+
+func init() { extOpNames[ExtRememberImprinted] = "RememberImprinted" }
+
+// ExtPreventNext (CR 615.7): prevent the next B damage that would be dealt
+// this turn to the player or permanent Obj (gorge effects/prevent_damage.go
+// effPreventDamage: one this-turn DamageDone shield per recipient that
+// prevents only the next N damage, depletes across events and lets the rest
+// through). B is the amount, read once as the effect resolves; C 1: the shield
+// matches combat damage only (CombatDamage$ True). A recipient that is not on
+// the battlefield (or a player who has lost) takes no shield, and an amount of
+// zero or less installs nothing. A shield is a genState.prevCol record (three a
+// turn of any kind; a fourth stalls StallPrevCol). A shield that has to be
+// ordered against another damage replacement (CR 616.1: a colour or scope
+// prevention, a doubler, a SHIELD counter) stalls StallPrevNext: the order
+// changes what is prevented; two or more shields on one recipient are asked in
+// order. dirac/repl_prevnext.go.
+const ExtPreventNext ExtOp = 305
+
+func init() { extOpNames[ExtPreventNext] = "PreventNext" }

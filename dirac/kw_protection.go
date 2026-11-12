@@ -9,13 +9,17 @@ import (
 
 // protPrinted is the permanent at sl's printed protection-from-colour
 // colours (CardDef.ProtColors; CR 702.16), none once it has lost its
-// abilities (gorge protectedFrom reads the derived keywords).
+// abilities (gorge protectedFrom reads the derived keywords), and the
+// colours a chosen-colour grant gave it until end of turn (cgProtOf).
 //
 //go:noinline
 func (s *State) protPrinted(k *prep, sl Slot) kop.ColorMask {
 	c := k.t.Cards[s.cardAt(sl)].ProtColors
-	if c == 0 || s.genLost(k, sl) {
-		return 0
+	if c != 0 && s.genLost(k, sl) {
+		c = 0
+	}
+	if k.gen.anyColGrant {
+		c |= s.colProtOf(k, sl) // static_colourprot.go
 	}
 	return c
 }

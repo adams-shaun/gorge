@@ -11,8 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// trig:Proliferate ("Whenever you proliferate, ..." -- CR 701.27, task
-// trig-proliferate) fires once per completed proliferate action on the
+// trig:Proliferate ("Whenever you proliferate, ..." -- CR 701.27) fires once per completed proliferate action on the
 // events.Proliferate marker api:Proliferate emits, never once per recipient
 // or counter, and never for an ordinary counter addition (which carries no
 // marker). Pinned on the real corpus carrier Scheming Aspirant

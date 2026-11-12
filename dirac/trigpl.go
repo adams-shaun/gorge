@@ -16,4 +16,5 @@ const (
 	trigPlMiracle                      // kw_miracle.go
 	trigPlWarpG                        // kw_warpgrant.go: a warp cast at a battlefield grant's cost
 	trigPlSuspend                      // kw_suspend.go: a spell cast free by suspend's last counter (CR 702.62a)
+	trigPlRetrace                      // kw_retrace.go: the retrace graveyard cast (CR 702.81a)
 )

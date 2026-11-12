@@ -29,6 +29,9 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 	if ok, err := lc.effectExileScope(ps); ok || err != nil { // lower_effectexilescope.go
 		return err
 	}
+	if ok, err := lc.effectUncounterScope(ps); ok || err != nil { // lower_effectuncounter.go
+		return err
+	}
 	if ps.is("Duration", "UntilTheEndOfYourNextUntap") {
 		return lc.skipUntapEffect(ps)
 	}

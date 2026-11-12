@@ -43,28 +43,6 @@ func goadGrantEngine(t *testing.T, hand ...*cards.Card) *Engine {
 	return e
 }
 
-// grantGoadTargetAsk drains the stack until the pending decision is the
-// suspect/return target ask, returning it. Every resolveTop either completes
-// a stack entry or parks on the ask; the loop bounds the drain so a registry
-// change that leaves the ask unposed fails the test instead of hanging it.
-func grantGoadTargetAsk(t *testing.T, e *Engine) *decision.Decision {
-	t.Helper()
-	for i := 0; i < 6; i++ {
-		if d := e.Pending(); d != nil {
-			if d.Kind != decision.KTarget {
-				t.Fatalf("expected the target ask, got %+v", d)
-			}
-			return d
-		}
-		if len(e.G.Stack) == 0 {
-			t.Fatal("stack drained without a target ask")
-		}
-		e.resolveTop()
-	}
-	t.Fatal("target ask never parked")
-	return nil
-}
-
 // assertStaticGoadBite is the shared CR 701.38b/508.1d tail: the goaded
 // creature's only offered attack is the non-goader defender, Required, and
 // the engine enforces both halves.

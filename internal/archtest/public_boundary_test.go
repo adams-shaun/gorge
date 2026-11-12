@@ -67,12 +67,13 @@ var (
 	generatedTableFile = regexp.MustCompile(`^(card|token)_[a-z0-9_]+\.go$`)
 	emailShape         = regexp.MustCompile(`[\w.+-]+@[\w-]+\.[a-z]{2,}`)
 	// unresolvableTag matches references a reader of the public tree cannot
-	// follow: ticket and phase labels (E3-5, E5-c2, E0), rulings, seat briefs and
-	// branch names. Case folds for the operator forms only: "Operator decision" is
-	// the same citation. The label form is case-sensitive and starts on a word
-	// boundary, so 0xE3, 1E3 and a table id such as e1-r1-s03 stay clean.
+	// follow: ticket and phase labels (E3-5, E5-c2, E0), pipeline task tags,
+	// rulings, seat briefs and branch names. Case folds for the operator forms
+	// only: "Operator decision" is the same citation. The label form is
+	// case-sensitive and starts on a word boundary, so 0xE3, 1E3 and a table id
+	// such as e1-r1-s03 stay clean.
 	unresolvableTag = regexp.MustCompile(`\bkr-[a-z0-9]|DESIGN §|\bwt/[a-z]|(?i:\(operator\b|operator (ruling|decision))` +
-		`|\bE\d+[a-z]?(?:-[a-z0-9]+)?\b|\bRuling [A-Z]-?\d|\bthe brief\b|\bbrief's\b`)
+		`|\(task [a-z]|\bE\d+[a-z]?(?:-[a-z0-9]+)?\b|\bRuling [A-Z]-?\d|\bthe brief\b|\bbrief's\b`)
 	// sectionCite matches a section sign and the word before it. Only "design §"
 	// names a document that crosses with the tree; "spec §4.6", "plan §2" and a
 	// bare "§3" name nothing a reader can open.
@@ -168,7 +169,7 @@ var boundaryRules = []boundaryRule{
 		if !inLabelFreeTree(p) || isBinary(blob) {
 			return ""
 		}
-		if m := findUnresolvable(blob); m != nil {
+		if m := findUnresolvable(p, blob); m != nil {
 			return "unresolvable reference " + strconv.Quote(string(m))
 		}
 		return ""
@@ -185,10 +186,10 @@ func isDeckSlice(p string) bool {
 
 func inMovedTree(p string) bool { return inDirac(p) || strings.HasPrefix(p, "draft/") }
 
-// inLabelFreeTree is where ticket labels are rejected: the moved trees and the
-// draft commands and example that live outside them.
+// inLabelFreeTree is where ticket labels are rejected: the moved trees, engine/
+// and the draft commands and example that live outside them.
 func inLabelFreeTree(p string) bool {
-	if inMovedTree(p) {
+	if inMovedTree(p) || strings.HasPrefix(p, "engine/") {
 		return true
 	}
 	for _, dir := range []string{"cmd/draftsim/", "cmd/labdemo/", "cmd/deckpool/", "cmd/extagent/", "examples/extagent/"} {
@@ -200,10 +201,16 @@ func inLabelFreeTree(p string) bool {
 }
 
 // findUnresolvable returns the first reference in blob a reader cannot follow,
-// or nil.
-func findUnresolvable(blob []byte) []byte {
+// or nil. Ticket labels are rejected in every label-free tree. A section
+// citation of an internal design document is only checked outside engine/,
+// where it must name a document a reader can open; engine/ keeps its existing
+// "spec §" shorthand.
+func findUnresolvable(p string, blob []byte) []byte {
 	if m := unresolvableTag.Find(blob); m != nil {
 		return m
+	}
+	if strings.HasPrefix(p, "engine/") {
+		return nil
 	}
 	for _, m := range sectionCite.FindAllSubmatch(blob, -1) {
 		if string(m[1]) != "design" {
@@ -283,7 +290,8 @@ func walkPublicFiles(t *testing.T, visit func(path string, blob []byte)) map[str
 
 // TestPublicBoundary fails on generated card tables, binaries under dirac/,
 // Forge scripts, private paths, imports of the private module and unresolvable
-// ticket tags in the moved trees (ADR 0002 decision 6).
+// ticket tags in the moved trees, engine/ and the draft commands (ADR 0002
+// decision 6).
 func TestPublicBoundary(t *testing.T) {
 	var bad []string
 	seen := walkPublicFiles(t, func(p string, blob []byte) {
@@ -626,7 +634,7 @@ func TestPublicBoundaryDetection(t *testing.T) {
 		{"draft/x.md", "by design (operator, 2026-10-30)\n", "unresolvable-reference"},
 		{"draft/x.md", "an Operator Ruling says\n", "unresolvable-reference"},
 		{"draft/x.md", "an operator decision says\n", "unresolvable-reference"},
-		{"engine/x.go", "// kr-loop, DESIGN §3.1, wt/branch, (operator) ruling\n", ""},
+		{"engine/x.go", "// kr-loop, DESIGN §3.1, wt/branch, (operator) ruling\n", "unresolvable-reference"},
 		{"dirac/x.go", "// Pkr-loop, kt/x, the operator set one, a comparison operator, design §3\n", ""},
 		{"draft/x.go", "// the rule E3-5 added\n", "unresolvable-reference"},
 		{"draft/x.go", "// playing is E5-c2's seam\n", "unresolvable-reference"},
@@ -640,7 +648,8 @@ func TestPublicBoundaryDetection(t *testing.T) {
 		{"cmd/labdemo/x.go", "// labdemo (E5-c4)\n", "unresolvable-reference"},
 		{"cmd/draftsim/x.go", "// the spec §4.8 tool\n", "unresolvable-reference"},
 		{"examples/extagent/x.py", "# E5d-6\n", "unresolvable-reference"},
-		{"engine/x.go", "// E3-5, spec §4.6, Ruling P2, the brief\n", ""},
+		{"engine/x.go", "// E3-5, spec §4.6, Ruling P2, the brief\n", "unresolvable-reference"},
+		{"engine/x.go", "// spec §4.6 and plan §2 name an internal document\n", ""},
 		{"cmd/gorged/x.go", "// E3-5, spec §4.6\n", ""},
 		{"draft/x.go", "// 0xE3, 1E3, e1-r1-s03-g1-a2, a brief pause, the spec's pack size\n", ""},
 	}

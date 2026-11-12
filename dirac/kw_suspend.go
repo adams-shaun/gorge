@@ -203,7 +203,7 @@ func (s *State) applySuspendAnswer(k *prep, a Action) bool {
 	if a.Mode() == 0 {
 		return true // suspend_cast_no: it stays in exile
 	}
-	s.beginCast(k, r.obj, castFree)
+	s.beginCast(k, r.obj, castFree, 0)
 	s.bld().e.trigPl = trigPlSuspend
 	return true
 }

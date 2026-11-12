@@ -23,9 +23,8 @@
 // already fired the CastInfo arm, and matching it again would double-fire
 // the trigger on every foretell.
 //
-// Split into its own trigmatch file so tickets touching different modes
-// stop colliding on one file. Registration is at the bottom; a duplicate
-// mode panics (registerTrigMatcher).
+// Registration is at the bottom; a duplicate mode panics
+// (registerTrigMatcher).
 
 package trigmatch
 

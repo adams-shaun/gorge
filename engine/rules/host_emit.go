@@ -11,8 +11,7 @@ import (
 
 func (e *Engine) Emit(ev events.Event) { e.emit(ev) }
 
-// EmitScryRecord is effects.Host's completed-scry-record emit (task
-// scrybottom): the stand-in completion in effects' effLookAndArrange goes
+// EmitScryRecord is effects.Host's completed-scry-record emit: the stand-in completion in effects' effLookAndArrange goes
 // through emitScryRecord, the exact site handleArrange uses, so a scry that
 // finishes without an answerable KArrange (an empty library, ScryNum$ 0, a
 // no-host run) still records its zero-card bottom pile outside the

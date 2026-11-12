@@ -1,5 +1,4 @@
-// The CastSa Spell.ManaFromArtifact cast-provenance predicate (task
-// mayplay-mfa) — "if mana from an artifact was spent to cast it" (Shadow the
+// The CastSa Spell.ManaFromArtifact cast-provenance predicate — "if mana from an artifact was spent to cast it" (Shadow the
 // Hedgehog's Chaos Control) — was read nowhere: the tag table held only
 // Treasure/Cave/Desert, so the predicate failed closed on every cast and the
 // Chaos Control grant was inert. The fix records an Artifact producer tag on

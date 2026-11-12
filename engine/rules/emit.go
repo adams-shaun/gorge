@@ -810,7 +810,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		e.closeDamageBatch()
 	}
 	if stored.Kind == events.PlanarRoll {
-		// CR 901.4 (task planar-verbs): a completed planar-dice roll's kept
+		// CR 901.4: a completed planar-dice roll's kept
 		// results have their consequences — the planeswalk face walks the
 		// roller to the next plane, the chaos face makes chaos ensue on the
 		// roller's current plane. The record above is logged, so the nested

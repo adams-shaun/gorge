@@ -711,7 +711,8 @@ func (s *State) cleanupGen(k *prep) {
 		s.exhClear() // static_cantblockexcept.go
 	}
 	if k.gen.anyColGrant {
-		s.cgClear() // static_colourgrant.go
+		s.cgClear()       // static_colourgrant.go
+		s.colProtClear(k) // static_colourprot.go
 	}
 	if k.gen.anyDmgMark {
 		s.dmgMarkEnd() // Duration$ UntilYourNextTurn (repl_dmgmark.go)
@@ -930,7 +931,7 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		}
 		holder := s.prio
 		s.prio = ctrl // the caster (beginCast reads it)
-		s.beginCast(k, o, castFree)
+		s.beginCast(k, o, castFree, 0)
 		s.prio = holder
 		return false
 	}

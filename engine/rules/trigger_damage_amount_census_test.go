@@ -1,6 +1,6 @@
 package rules
 
-// Census of the trigger-side DamageAmount$ parameter (task lb-dmgamount).
+// Census of the trigger-side DamageAmount$ parameter.
 // trigmatch.DamageMatchesWithCapture / DamageAmountMatches read it; before
 // that nothing did, so Innocent Bystander investigated on Shock. The corpus
 // carries it on exactly 8 trigger lines (plus 4 R: replacement lines, which

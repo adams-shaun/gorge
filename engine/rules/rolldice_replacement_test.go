@@ -1,6 +1,6 @@
 package rules
 
-// R:Event$ RollDice replacement effects (task rolldice-repl). The corpus
+// R:Event$ RollDice replacement effects. The corpus
 // carries exactly four R:Event$ RollDice lines (measured with
 // `grep -rlE 'R:Event$ RollDice' .cards/cardsfolder | wc -l`):
 //

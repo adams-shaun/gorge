@@ -5,19 +5,21 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // A may-play permission's non-mana RaiseCost$ (Noctis,
 // Prince of Lucis "by paying 3 life in addition", Alien Symbiosis "by
 // discarding a card in addition", Wickerfolk Indomitable "by paying 2 life
-// and sacrificing an artifact or creature in addition"; CR 601.2f/h). gorge
-// sums the RaiseCost$ of every may-play static that grants the card
-// (rules/mayplay.go mayPlayRaiseCost), adds it to the base cost before the
-// cost statics apply (payment_plan.go), and withholds the offer when the raise
-// cannot be paid. The kernel reads a StMayRaise static's raise from its
+// and sacrificing an artifact or creature in addition"; CR 601.2f/h). A
+// spell is cast under ONE permission (CR 601.2b/f, 118.9), so gorge charges
+// only that permission's raise (rules/mayplay.go mayPlayRaiseCost: the first
+// granting static in the walk order), adds it to the base cost before the
+// cost statics apply (payment_plan.go), and withholds the offer when the
+// raise cannot be paid. The kernel reads a StMayRaise static's raise from its
 // source card's latent ability Static.B-1 (kop/statics.go), owes it as the
-// cast's pick cost (buildPickCost) and gates the offer on its payability.
-// Cold code: every site is behind prep.gen.anyMayRaise.
+// cast's pick cost (buildPickCost) and gates the offer on its payability. The
+// two engines pick the same first static in the same order, so they charge
+// the same one raise. Cold code: every site is behind prep.gen.anyMayRaise.
 
-// StallMayRaise: two or more granting statics carry a raise. gorge sums them
-// (Cost.Plus); the kernel prices one, so the game stalls loudly rather than
-// charge the wrong amount, as it does for a spell whose own additional pick
-// cost the raise would join (the pick cost is one Cost).
+// StallMayRaise: the cast owes its permission's RaiseCost$ BESIDE the
+// spell's own additional pick cost (the pick cost is one Cost, so the kernel
+// can price only one of the two). Two granting statics no longer stall: one
+// permission applies and both engines price its raise.
 const StallMayRaise = 129
 
 func init() { stallNames[StallMayRaise] = "mayraise" }
@@ -45,29 +47,29 @@ func tableMayRaise(t *kop.Table) bool {
 }
 
 // mayRaise is the raise p's cast of card object o owes: the Cost of the
-// granting StMayRaise static's latent ability, with the static's slot and
-// Static.B; nil when none grants one.
+// FIRST granting StMayRaise static's latent ability, with the static's slot
+// and Static.B; nil when none grants one. One cast is made under one
+// permission (CR 601.2b/f, 118.9), so only that permission's raise applies;
+// gorge's mayPlayRaiseCost picks the first static in the same walk order, so
+// the two engines never sum two grants. A second raise is ignored, not a
+// stall.
 func (s *State) mayRaise(k *prep, p uint8, o Obj) (c *kop.Cost, sl Slot, b int16) {
 	if DebugMayRaiseFree {
 		return nil, NoSlot, 0
 	}
-	n := 0
+	took := false
 	s.mayPlayStatics(k, p, o, func(st statSrc) bool {
-		if st.a.Static.StFlags&kop.StMayRaise == 0 {
+		if st.a.Static.StFlags&kop.StMayRaise == 0 || took {
 			return true
 		}
-		if n++; n == 1 {
-			card := s.objs[o].card
-			if st.sl != NoSlot {
-				card = s.cardAt(st.sl)
-			}
-			c, sl, b = &k.t.Cards[card].Abilities[st.a.Static.B-1].Cost, st.sl, st.a.Static.B
+		took = true
+		card := s.objs[o].card
+		if st.sl != NoSlot {
+			card = s.cardAt(st.sl)
 		}
+		c, sl, b = &k.t.Cards[card].Abilities[st.a.Static.B-1].Cost, st.sl, st.a.Static.B
 		return true
 	})
-	if n > 1 {
-		s.capFull(StallMayRaise)
-	}
 	return c, sl, b
 }
 
@@ -92,9 +94,10 @@ func (s *State) mayRaisePayable(k *prep, p uint8, c *kop.Cost, o Obj) bool {
 	return s.pickCostPayable(k, p, &cc, o)
 }
 
-// mayRaiseOK is the offer gate: p's may-play of o owes a raise it can pay (or
-// none). An unpayable raise withholds every permission's offer (gorge
-// mayPlayRaiseCost sums the raise over all granting statics).
+// mayRaiseOK is the offer gate: p's may-play of o owes the one raise its
+// first granting permission carries, and can pay it (or owes none). An
+// unpayable raise withholds the offer (gorge mayPlayRaiseCost reads the same
+// first raise).
 func (s *State) mayRaiseOK(k *prep, p uint8, o Obj) bool {
 	c, _, _ := s.mayRaise(k, p, o)
 	return c == nil || s.mayRaisePayable(k, p, c, o)

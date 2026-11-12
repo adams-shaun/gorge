@@ -316,6 +316,9 @@ func predName(p kop.Pred) string {
 	if p == kop.PredTypesAllCMCLE {
 		return "TypesAllCMCLE"
 	}
+	if p == kop.PredHasManaAbility {
+		return "HasManaAbility"
+	}
 	if int(p) < len(names) {
 		return names[p]
 	}

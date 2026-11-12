@@ -254,11 +254,7 @@ const (
 	// Appended per the enum's own append-only precedent.
 	FlagManaSpent
 	// FlagManaSnowSpent marks a cast whose pay-time CastInfo carries the
-	// SNOW-unit part of the total mana spent to cast it (CR 107.4h; task
-	// castfilter1's filtered Count$CastTotalManaSpent Snow capture, the
-	// FlagManaSpent pattern: the flag routes the Amount into
-	// Object.ManaSnowSpent instead of overwriting X or the unfiltered
-	// total). It rides its own trailing pay-time CastInfo immediately after
+	// SNOW-unit part of the total mana spent to cast it (CR 107.4h, the FlagManaSpent pattern: the flag routes the Amount into Object.ManaSnowSpent instead of overwriting X or the unfiltered total). It rides its own trailing pay-time CastInfo immediately after
 	// FlagManaSpent's, so the two totals never share an event. Appended per
 	// the enum's own append-only precedent.
 	FlagManaSnowSpent
@@ -278,10 +274,7 @@ const (
 	FlagManaCaveSpent
 	FlagManaDesertSpent
 	// FlagManaArtifactSpent marks a cast whose pay-time CastInfo carries the
-	// ARTIFACT-sourced part of the total mana spent to cast it (task
-	// mayplay-mfa: the filtered Count$CastTotalManaSpent Artifact capture and
-	// the CastSa Spell.ManaFromArtifact predicate, the FlagManaDesertSpent
-	// pattern). It rides its OWN trailing pay-time CastInfo immediately after
+	// ARTIFACT-sourced part of the total mana spent to cast it (the FlagManaDesertSpent pattern). It rides its OWN trailing pay-time CastInfo immediately after
 	// Desert's -- the fifth and newest tag -- so the five totals never share
 	// an event, and events.Apply's CastInfo switch checks the NEWEST flag
 	// first (Artifact, Desert, Cave, Treasure, then Snow, then the total).
@@ -1324,8 +1317,7 @@ type Object struct {
 	// only by an events.AlterAttribute fold.
 	Renowned bool
 
-	// Tributed is CR 702.104's tribute designation (the K:Tribute expansion,
-	// task kw-tribute-expansion): the chosen opponent ACCEPTED the tribute
+	// Tributed is CR 702.104's tribute designation (the K:Tribute expansion): the chosen opponent ACCEPTED the tribute
 	// offer, so the "if tribute wasn't paid" ETB trigger the expansion minted
 	// must not fire. It lasts for this battlefield stint only -- the Move
 	// fold clears it on leaving (a later entry is a new permanent) -- and it
@@ -1523,8 +1515,7 @@ type Object struct {
 	// earned (FlagAddsKeywords Text payload); same provenance window and
 	// resets as ManaAddsCounterGrants.
 	ManaAddsKeywordGrants []ManaAddsKeywordGrant
-	// ManaArtifactSpent is the ARTIFACT-sourced part of ManaSpent (task
-	// mayplay-mfa): how many of the mana units the cast's payment spent were
+	// ManaArtifactSpent is the ARTIFACT-sourced part of ManaSpent: how many of the mana units the cast's payment spent were
 	// produced by an Artifact permanent -- Sol Ring, Arcane Signet, the whole
 	// mana-rock family. It is carried by the pay-time CastInfo's
 	// FlagManaArtifactSpent Amount (the X-overwrite guard, the same pattern
@@ -1695,7 +1686,7 @@ type Object struct {
 	CastBattlefield *CastBattlefield
 
 	// ModeChoices is the persistent per-object log a Charm's ChoiceRestriction$
-	// reads (task charm-choice-restriction): every mode this object has chosen
+	// reads: every mode this object has chosen
 	// under the scope the picking Charm named. Unlike ChosenModes it is NOT
 	// cleared when the choosing stack object resolves -- the whole point is
 	// that a LATER trigger instance on the same source sees the earlier pick --

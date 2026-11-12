@@ -22,8 +22,9 @@ func TestRestrictedPoolCastPlansSourcesBeforeDiscard(t *testing.T) {
 		t.Fatal(err)
 	}
 	// the precondition: the script ends on a cast, and a deck holds the card
-	if n := len(r.Readable); n == 0 || !strings.HasPrefix(r.Readable[n-1], "cast(") {
-		t.Fatalf("fixture does not end on a cast: %v", r.Readable[max(0, len(r.Readable)-1):])
+	readable := actionStrings(r.Actions)
+	if n := len(readable); n == 0 || !strings.HasPrefix(readable[n-1], "cast(") {
+		t.Fatalf("fixture does not end on a cast: %v", readable[max(0, len(readable)-1):])
 	}
 	if !deckHas(r, "Seize the Spoils") {
 		t.Fatal("fixture has no Seize the Spoils")
@@ -45,7 +46,7 @@ func TestFreeCastUnpayableDiscardReturnsToZoneEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	found := false
-	for _, a := range r.Readable {
+	for _, a := range actionStrings(r.Actions) {
 		found = found || strings.HasPrefix(a, "mode(")
 	}
 	if !found || !deckHas(r, "Improvisation Capstone") || !deckHas(r, "Seize the Spoils") {

@@ -207,13 +207,3 @@ func TestEchoUnpayableElectionStillSacrifices(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
-
-// flexCumulativeEngine seeds seat 0 with an inline cumulative-upkeep fixture
-// and lands, places it on the battlefield and resolves one upkeep trigger so
-// the payment window is live (one age counter accrued).
-func flexCumulativeEngine(t *testing.T, fixtureSrc string, seat0Lands []string) (*Engine, Config, state.ObjID) {
-	t.Helper()
-	e, cfg, id := flexUpkeepEngine(t, fixtureSrc, seat0Lands)
-	resolveUpkeepCumulative(t, e)
-	return e, cfg, id
-}

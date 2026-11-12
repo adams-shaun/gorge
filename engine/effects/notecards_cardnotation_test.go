@@ -1,7 +1,6 @@
 package effects
 
-// The NoteCards$/NoteCardsFor$ CARD-notation family (task card-notation:
-// the object-side sibling of notecards_notation_test.go's player half). A
+// The NoteCards$/NoteCardsFor$ CARD-notation family. A
 // DB$ Pump body records "this card was carried by that resolution" through
 // events.CardNoted (Forge's NoteCardsEffect with NoteCards$ Remembered or
 // TriggeredSource), and a later resolution reads it back through the shared

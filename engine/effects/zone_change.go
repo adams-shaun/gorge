@@ -914,7 +914,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		}
 		return
 	}
-	// The ImprintOnHost$ ender (task param:api:Effect.ImprintOnHost): the
+	// The ImprintOnHost$ ender: the
 	// same "exile the implicit effect object" idiom as the block above, but
 	// keyed on the HOST's imprint instead of the effect's own self-exile.
 	// Forge's DB$ Effect | ImprintOnHost$ True imprints the created effect

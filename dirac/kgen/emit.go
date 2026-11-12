@@ -254,7 +254,8 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 		filt(ab.Cost.Filter)
 		for _, t := range ab.Targets {
 			filt(t.Filter)
-			val(t.MinV) // TargetMax$ Count$Valid <subtype>.YouCtrl (Agility Bobblehead)
+			filt(t.SpellF) // TgtSpellTgting's spell-side filter
+			val(t.MinV)    // TargetMax$ Count$Valid <subtype>.YouCtrl (Agility Bobblehead)
 			val(t.MaxV)
 		}
 		filt(ab.Trig.Filter)
@@ -317,7 +318,8 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 	filt(d.Landwalk)
 	filt(d.OptCost.Filter)
 	filt(d.FbCost.Filter)
-	val(d.ModesPickV) // a dynamic triggered charm's count filter (the matchup keeps the subtype it names)
+	filt(d.RetraceCost.Filter) // the retrace cast's discard candidates (CardDef.RetraceCost)
+	val(d.ModesPickV)          // a dynamic triggered charm's count filter (the matchup keeps the subtype it names)
 	val(d.MorphReduce)
 	for i := range d.Abilities {
 		abil(&d.Abilities[i])

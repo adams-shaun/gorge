@@ -22,8 +22,22 @@ type trigListener struct {
 }
 
 // eachTrigger calls f for every triggered ability of event ev on the
-// battlefield (subscribed slots) and its granted abilities.
+// battlefield (subscribed slots) and its granted abilities, then for a
+// commander's printed command-zone triggers.
+//
+// A caller whose event also walks the graveyard uses eachBattlefieldTrigger,
+// walks the graveyard, then calls eachCommandTrigger: gorge's object walk
+// (rules forEachObject) is library, hand, battlefield, graveyard, exile,
+// stack, command, so a graveyard listener queues before a command-zone one.
 func (s *State) eachTrigger(k *prep, ev kop.TrigEvent, f func(l trigListener, a *kop.Ability)) {
+	s.eachBattlefieldTrigger(k, ev, f)
+	s.eachCommandTrigger(k, ev, f)
+}
+
+// eachBattlefieldTrigger calls f for every triggered ability of event ev on
+// the battlefield (subscribed slots) and its granted abilities, in gorge's
+// walk order.
+func (s *State) eachBattlefieldTrigger(k *prep, ev kop.TrigEvent, f func(l trigListener, a *kop.Ability)) {
 	// listeners in gorge's walk order: player 0's battlefield list, then
 	// player 1's (rules forEachObject)
 	var ord [MaxPerm]Slot
@@ -34,6 +48,68 @@ func (s *State) eachTrigger(k *prep, ev kop.TrigEvent, f func(l trigListener, a 
 	n := s.listenerOrder(m, &ord)
 	for _, sl := range ord[:n] {
 		s.slotTriggers(k, sl, func(a *kop.Ability) bool { return a.Trig.Event == ev }, f)
+	}
+}
+
+// anyCommandTrigger reports whether a commander in a command zone has a
+// printed trigger for ev. The attack walk's early return uses it: a command
+// zone trigger has no battlefield subscription, so the subscription mask alone
+// cannot decide whether the event has a listener.
+func (s *State) anyCommandTrigger(k *prep, ev kop.TrigEvent) bool {
+	if s.cfg&cfgCommander == 0 {
+		return false
+	}
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
+		for j := 0; j < 2; j++ {
+			o := s.cmdObj(p, j)
+			if o == NoObj || s.objs[o].zone != kop.ZoneCommand {
+				continue
+			}
+			cd := &k.t.Cards[s.objs[o].card]
+			for i := range cd.Abilities {
+				a := &cd.Abilities[i]
+				if a.Kind == kop.AbTriggered && a.AFlags&kop.AfLatent == 0 &&
+					a.Trig.Event == ev && a.Trig.Zone == kop.ZoneCommand {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// eachCommandTrigger calls f for each printed command-zone triggered ability
+// of a commander in its command zone. A commander is not a permanent and has
+// no subscribed battlefield slot (CR 903.3), so the ordinary battlefield walks
+// never reach an eminence trigger; its Trigger.Zone marks what none of the
+// other walks see. The walk is seat order, then commander/partner slot, after
+// the battlefield listeners.
+func (s *State) eachCommandTrigger(k *prep, ev kop.TrigEvent, f func(l trigListener, a *kop.Ability)) {
+	if s.cfg&cfgCommander == 0 {
+		return
+	}
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
+		for j := 0; j < 2; j++ {
+			o := s.cmdObj(p, j)
+			if o == NoObj || s.objs[o].zone != kop.ZoneCommand {
+				continue
+			}
+			cid := s.objs[o].card
+			cd := &k.t.Cards[cid]
+			for i := range cd.Abilities {
+				a := &cd.Abilities[i]
+				if a.Kind == kop.AbTriggered && a.AFlags&kop.AfLatent == 0 &&
+					a.Trig.Event == ev && a.Trig.Zone == kop.ZoneCommand {
+					f(trigListener{obj: o, sl: NoSlot, ctrl: s.objs[o].owner(), card: cid, ab: uint8(i)}, a)
+				}
+			}
+		}
 	}
 }
 
@@ -202,17 +278,21 @@ func (s *State) objEventMatch(k *prep, l trigListener, a *kop.Ability, evSl Slot
 
 // fireObjGen is the core's fireObj on a generated table: battlefield listeners
 // first, then, for an ETB, the graveyard cards whose Eerie-style line fires
-// from there (Fear of Infinity; face_fullyunlock.go).
+// from there (Fear of Infinity; face_fullyunlock.go), then a commander's
+// command-zone trigger (gorge walks the command zone after the graveyard).
 func (s *State) fireObjGen(k *prep, ev kop.TrigEvent, evSl Slot, evObj Obj, evCtrl uint8, amt int16) {
 	if ev == kop.TrigETB && k.gen.anyDisETB && s.etbDisabled(k, evSl) {
 		return // DisableTriggers (trig_disable.go)
 	}
-	s.eachTrigger(k, ev, func(l trigListener, a *kop.Ability) {
+	s.eachBattlefieldTrigger(k, ev, func(l trigListener, a *kop.Ability) {
 		s.objTrigGen(k, ev, l, a, evSl, evObj, evCtrl, amt)
 	})
 	if ev == kop.TrigETB && k.gen.graveETB {
 		s.fireGraveETB(k, evSl, evObj, evCtrl)
 	}
+	s.eachCommandTrigger(k, ev, func(l trigListener, a *kop.Ability) {
+		s.objTrigGen(k, ev, l, a, evSl, evObj, evCtrl, amt)
+	})
 	if k.gen.embObjEv&(1<<ev) != 0 && evSl != NoSlot {
 		s.fireEmblemsObj(k, ev, evSl, evObj)
 	}
@@ -287,17 +367,27 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 	} else if a.Trig.Flags2&(kop.Tf2Batch|kop.Tf2CastFromHand) != 0 && !s.batchOrProvOK(l, a, evObj) {
 		return
 	}
+	if ev == kop.TrigCounterAddedOnce && a.Trig.Flags4&kop.Tf4PerCounter != 0 {
+		// Mode$ CounterAdded: one trigger per counter of the batch, each
+		// carrying amount 1 (CR 603.2c; gorge queues one instance per counter)
+		for i := int16(0); i < amt; i++ {
+			s.queueTrig(k, l, a, evObj, evCtrl, 1)
+		}
+		return
+	}
 	s.queueTrig(k, l, a, evObj, evCtrl, amt)
 }
 
 // firePlayerGen is the core's firePlayer on a generated table.
 func (s *State) firePlayerGen(k *prep, ev kop.TrigEvent, who uint8, amt int16) {
-	s.eachTrigger(k, ev, func(l trigListener, a *kop.Ability) {
+	f := func(l trigListener, a *kop.Ability) {
 		s.playerTrigGen(k, ev, l, a, who, amt)
-	})
+	}
+	s.eachBattlefieldTrigger(k, ev, f)
 	if ev == kop.TrigDrawn && s.cfgx&cfgxGraveDrawn != 0 {
 		s.fireGraveDrawn(k, who, amt) // trig_gravedrawn.go
 	}
+	s.eachCommandTrigger(k, ev, f)
 	if ev == kop.TrigLifeGained {
 		// an Effect-created trigger (an emblem) follows the battlefield's listeners
 		s.fireEmblemsAmt(k, ev, who, NoObj, amt, func(*kop.Ability) bool { return true })
@@ -327,6 +417,9 @@ func (s *State) playerTrigGenObj(k *prep, ev kop.TrigEvent, l trigListener, a *k
 	switch ev {
 	case kop.TrigDrawn:
 		if t.Flags&kop.TfSecondDraw != 0 && !s.nthDrawOK(t, who) {
+			return
+		}
+		if !drawStepGateOK(t, s.drawStepFirst(who)) {
 			return
 		}
 	case kop.TrigLifeGained:
@@ -366,14 +459,16 @@ func (s *State) playerTrigGenObj(k *prep, ev kop.TrigEvent, l trigListener, a *k
 }
 
 // firePhaseGen is the core's firePhase on a generated table: battlefield
-// triggers, then graveyard triggers (Flamewake Phoenix), then emblems.
+// triggers, then graveyard triggers (Flamewake Phoenix), then a commander's
+// command-zone triggers, then emblems.
 func (s *State) firePhaseGen(k *prep, st kop.Step) {
-	s.eachTrigger(k, kop.TrigPhase, func(l trigListener, a *kop.Ability) {
+	f := func(l trigListener, a *kop.Ability) {
 		if a.Trig.Step != st || !whoseOK(a.Trig.Whose, l.ctrl, s.active) && !(a.Trig.Whose == kop.WhoseEnchCtrl && s.enchCtrlIs(l.sl, s.active)) || !s.trigOK(k, l, a) {
 			return
 		}
 		s.queueTrig(k, l, a, NoObj, s.active, 0)
-	})
+	}
+	s.eachBattlefieldTrigger(k, kop.TrigPhase, f)
 	for _, c := range k.gen.graveTrig {
 		cd := &k.t.Cards[c]
 		for pp := uint8(0); pp < s.nSeats(); pp++ {
@@ -400,6 +495,7 @@ func (s *State) firePhaseGen(k *prep, st kop.Step) {
 			}
 		}
 	}
+	s.eachCommandTrigger(k, kop.TrigPhase, f)
 	s.fireEmblems(k, kop.TrigPhase, s.active, NoObj, func(a *kop.Ability) bool { return a.Trig.Step == st })
 }
 
@@ -609,45 +705,51 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 	if o == NoObj {
 		return
 	}
-	for _, ev := range [2]kop.TrigEvent{kop.TrigDamageDone, kop.TrigDamageDealtOnce} {
-		if !s.subs[ev].any() {
-			continue
+	evs := [2]kop.TrigEvent{kop.TrigDamageDone, kop.TrigDamageDealtOnce}
+	f := func(l trigListener, a *kop.Ability) {
+		t := &a.Trig
+		if rl.batchLineSkips(t) {
+			return
 		}
-		s.eachTrigger(k, ev, func(l trigListener, a *kop.Ability) {
-			t := &a.Trig
-			if rl.batchLineSkips(t) {
+		// ValidSource$ ...inZoneBattlefield: this source is no permanent
+		if t.Flags2&kop.Tf2SrcInPlay != 0 {
+			return
+		}
+		if t.Flags&(kop.TfCombat|kop.TfSelf) != 0 || t.Flags&kop.TfToPlayer != 0 && !toPlayer && t.Filter2 == 0 {
+			return
+		}
+		// "to an opponent": one of the listener's opponents was dealt it
+		// (a Firebrand pinging its own controller is not: pair 63811)
+		if t.Flags2&kop.Tf2ToOpponent != 0 && !oppDamaged(plM, l.ctrl) || t.Flags2&kop.Tf2YourTurn != 0 && s.active != l.ctrl {
+			return
+		}
+		if t.Filter != 0 && !s.matchCardGen(k, t.Filter, s.objs[o].card, ctrl, l.ctrl, o) || !s.trigOK(k, l, a) {
+			return
+		}
+		if t.Flags4 != 0 && !s.singleCauseOK(k, rcp) {
+			return // ValidCause$ Spell.numTargets EQ1 + TargetRelativeToCause$ (trig_params.go)
+		}
+		tobj, tpl, n := o, s.dmgSeat(rcp, ctrl), amt
+		if k.gen.anyDmgRef {
+			var ok bool
+			if n, tobj, tpl, ok = s.ddoLine(k, l, a, NoSlot, o, ctrl, amt, rcp, rl); !ok {
 				return
 			}
-			// ValidSource$ ...inZoneBattlefield: this source is no permanent
-			if t.Flags2&kop.Tf2SrcInPlay != 0 {
-				return
-			}
-			if t.Flags&(kop.TfCombat|kop.TfSelf) != 0 || t.Flags&kop.TfToPlayer != 0 && !toPlayer && t.Filter2 == 0 {
-				return
-			}
-			// "to an opponent": one of the listener's opponents was dealt it
-			// (a Firebrand pinging its own controller is not: pair 63811)
-			if t.Flags2&kop.Tf2ToOpponent != 0 && !oppDamaged(plM, l.ctrl) || t.Flags2&kop.Tf2YourTurn != 0 && s.active != l.ctrl {
-				return
-			}
-			if t.Filter != 0 && !s.matchCardGen(k, t.Filter, s.objs[o].card, ctrl, l.ctrl, o) || !s.trigOK(k, l, a) {
-				return
-			}
-			if t.Flags4 != 0 && !s.singleCauseOK(k, rcp) {
-				return // ValidCause$ Spell.numTargets EQ1 + TargetRelativeToCause$ (trig_params.go)
-			}
-			tobj, tpl, n := o, s.dmgSeat(rcp, ctrl), amt
-			if k.gen.anyDmgRef {
-				var ok bool
-				if n, tobj, tpl, ok = s.ddoLine(k, l, a, NoSlot, o, ctrl, amt, rcp, rl); !ok {
-					return
-				}
-			}
-			s.queueTrig(k, l, a, tobj, tpl, n)
-		})
+		}
+		s.queueTrig(k, l, a, tobj, tpl, n)
+	}
+	for _, ev := range evs {
+		if s.subs[ev].any() {
+			s.eachBattlefieldTrigger(k, ev, f)
+		}
 	}
 	if k.gen.graveDmg && (rl == nil || !rl.agg) { // a batch's aggregate fire is not a damage event
 		s.fireGraveDamage(k, NoSlot, o, ctrl, amt, plM, false, rcp)
+	}
+	for _, ev := range evs {
+		if s.subs[ev].any() {
+			s.eachCommandTrigger(k, ev, f)
+		}
 	}
 }
 
@@ -745,6 +847,12 @@ func (s *State) trigResolveOK(k *prep) bool {
 		// Tf2ToYou on DamageDone lines (kop/triggers.go), and this walk sees
 		// every trigger, not only castTrigGen's SpellCast path.
 		return false
+	}
+	if a.Trig.Event == kop.TrigETB && a.Trig.Flags2&kop.Tf2Evolve != 0 {
+		if !s.evolveResolves(k, e) {
+			return false // kw_evolve.go: CR 603.4's second check of the evolve comparison
+		}
+		s.evolveArm(e, &s.objs[e.obj])
 	}
 	if k.anyGate && a.AFlags&kop.AfCheckOnTrigger == 0 && !s.gateResolveOK(e, a) {
 		return false

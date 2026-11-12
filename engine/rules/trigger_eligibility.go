@@ -333,7 +333,7 @@ var triggerModeEventRows = [...]struct {
 	// than letting it fall to the allTriggerEvents default keeps a
 	// Foretell-only face's mask narrow for every other kind.
 	{cards.TriggerForetell, 1<<events.CastInfo | 1<<events.MoveZone},
-	// The Surveil marker's ordinal (79, task trig-surveil) is past the
+	// The Surveil marker's ordinal (79) is past the
 	// 64-bit mask's reach, the Discover/SeekAll shape: a mask bit is not
 	// encodable and allows() fails open for every kind at or past
 	// triggerMaskKindBits, so the mode is admitted through that fail-open
@@ -352,7 +352,7 @@ var triggerModeEventRows = [...]struct {
 	// an ElementalBend-only face's mask narrow for every other kind.
 	{cards.TriggerElementalBend, 0},
 	// The Proliferate marker's ordinal is past the 64-bit mask's reach
-	// (task trig-proliferate, appended after GiveGift), the
+	// (appended after GiveGift), the
 	// Surveil/Discover shape: a mask bit is not encodable and allows()
 	// fails open for every kind at or past triggerMaskKindBits, so the
 	// mode is admitted through that fail-open path and gated by the full

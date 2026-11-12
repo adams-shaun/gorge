@@ -70,6 +70,9 @@ func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src S
 			return false // value_turntallies.go
 		}
 	}
+	if fl.CtrlTgt != 0 && !s.ctrlRoleTgt(k, int(fl.CtrlTgt)-1, p.ctrl) {
+		return false // filter_heads.go: ControlledBy TargetedOrController
+	}
 	switch fl.Owner {
 	case kop.CtrlYou:
 		if s.objs[p.obj].owner() != ctrl {
@@ -179,6 +182,42 @@ func (s *State) sharesColorRem(k *prep, o Obj, mine kop.ColorMask) bool {
 	return false
 }
 
+// sharesNameRem: gorge sharesNameWith Remembered -- the object shares a
+// printed name with a remembered object other than itself. o is the object
+// (NoObj for a card read only by its CardID c); a face-down object has no
+// name (CR 708.2). The remembered set holds objects only, and an object on
+// the battlefield reads its layer-3 name (a rename/copy counts, CR 707.2),
+// otherwise its card.
+func (s *State) sharesNameRem(o Obj, c CardID, fd bool) bool {
+	nm := c
+	if o != NoObj {
+		if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield {
+			nm = s.nameCardAt(ob.slot)
+		} else {
+			nm = ob.card
+		}
+	}
+	if fd || nm == NoCard {
+		return false
+	}
+	for i := 0; i < int(s.g.nrem); i++ {
+		r := s.g.rem[i]
+		if r == o {
+			continue
+		}
+		var rn CardID
+		if s.objs[r].zone == kop.ZoneBattlefield {
+			rn = s.nameCardAt(s.objs[r].slot)
+		} else {
+			rn = s.objs[r].card
+		}
+		if rn != NoCard && rn == nm {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *State) flags2Perm(k *prep, f kop.FilterFlags2, sl Slot, src Slot, layer uint8) bool {
 	p := &s.perms[sl]
 	o := p.obj
@@ -236,7 +275,9 @@ func (s *State) flags2Perm(k *prep, f kop.FilterFlags2, sl Slot, src Slot, layer
 			return false
 		}
 		if f&kop.F2ChosenColor != 0 {
-			if src == NoSlot {
+			if c, ok := s.resColour(src); ok {
+				ch = c // this resolution's ChooseColor answer (static_colourgrant.go)
+			} else if src == NoSlot {
 				return false
 			}
 			if ch > 4 || s.colorsGen(k, sl)&(1<<ch) == 0 {
@@ -413,6 +454,8 @@ func (s *State) predPermGen(k *prep, fl *kop.Filter, sl Slot, layer uint8) bool 
 		return s.predModified(k, sl)
 	case kop.PredHasCounters:
 		return s.predHasCounters(sl)
+	case kop.PredSameNameRem:
+		return s.sharesNameRem(s.perms[sl].obj, 0, false)
 	}
 	return s.predPermCold(k, fl, sl) // filter_typesall.go: PredTypesAll and later kinds
 }
@@ -504,6 +547,12 @@ func (s *State) matchCardOne(k *prep, fl *kop.Filter, c CardID, owner, ctrl uint
 }
 
 func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl uint8, o Obj, ctx *evalCtx) bool {
+	if fl.CtrlTgt != 0 {
+		// a target's controller is a battlefield role; a card matcher has
+		// no live target to read, so it fails closed (kgen never lowers it
+		// off the battlefield)
+		return false
+	}
 	if fl.Flags&kop.FPlayer != 0 {
 		// a target spec's player alternative (kgen filterPlayerAlt) names a
 		// player, never an object; kernel castTargetsPlayer reads it
@@ -607,6 +656,14 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 			}
 			f2 &^= kop.F2ChosenType
 		}
+		if f2&kop.F2ChosenColor != 0 {
+			// a card filter reads this resolution's ChooseColor answer
+			// (Addle's discard choice; static_colourgrant.go resColour)
+			if ch, ok := s.resColour(NoSlot); !ok || cols&(kop.ColW<<ch) == 0 {
+				return false
+			}
+			f2 &^= kop.F2ChosenColor
+		}
 		if f2&(kop.F2Emblem|kop.F2Kicked|kop.F2CastByYou|kop.F2ChosenColor|kop.F2Saddled|kop.F2Sneaked|kop.F2Unblocked|kop.F2BlockedBySrc|kop.F2DamagedBy|kop.F2CrewedSrc|kop.F2Warped) != 0 {
 			return false
 		}
@@ -697,6 +754,8 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		return fl.Pred == kop.PredActiveCtrl && owner == s.active // nothing off the battlefield is attached
 	case kop.PredModified, kop.PredHasCounters:
 		return false // only a battlefield permanent is modified or holds counters here
+	case kop.PredSameNameRem:
+		return s.sharesNameRem(o, c, fd)
 	default:
 		if fl.Pred == kop.PredExiledWith {
 			return s.exwCard(o) // zone_exiledwith.go

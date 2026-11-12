@@ -101,7 +101,7 @@ const (
 	OpDigEx             // player(s) Obj look at the top A cards; up to B (-1 all, -2 any number) matching F go to zone C&7; C>>3 = DigFlags (rest zone, order, optional, reveal, remember)
 	OpDigUntil          // player(s) Obj reveal from the top until A cards matching F; found to zone C&7, the rest per C>>3 = DigUntilFlags
 	OpPeek              // player Obj looks at the top A cards; they become the remembered set
-	OpTwoPiles          // Obj separates the remembered cards into a face-down and a face-up pile; an opponent picks one; the chosen pile goes to zone C, the other to the graveyard
+	OpTwoPiles          // the controller separates the remembered cards into two piles; an opponent picks one; the chosen pile goes to zone C, the other to the graveyard; B.N = TpOppSeparates (the opponent separates, the controller picks)|TpUnchosenPileOrder (the unchosen pile in its own order)
 	OpChooseEachType    // each player in Obj chooses one permanent they control of each permanent type; the chosen set is RefChosen
 	OpSacrificeAll      // every permanent matching F is sacrificed by its controller
 	OpCastFree          // the controller may cast any number of the cards in Obj (zone C) without paying their mana costs
@@ -191,7 +191,7 @@ const (
 	OpPrepare
 	OpDemonstrate // Demonstrate (CR 702.144a; gorge effDemonstrate): the controller of the spell Obj (RefTriggerObj) is asked yes/no; on yes they copy it and each opponent still in the game copies it, every copy keeping the original's targets (gorge's StackCopy); nothing when the spell left the stack
 
-	OpNinjutsu // the K:Ninjutsu ability's resolution (CR 702.49a-b; gorge kwNinjutsu's ChangeZone): if the source card Obj is still in its owner's hand it enters the battlefield, then a Tap ("entered tapped"), then attacking the defender captured on the entry (trigObj) when that is still legal; never declared (no Attacks trigger)
+	OpNinjutsu // the K:Ninjutsu ability's resolution (CR 702.49a-b; gorge kwNinjutsu's ChangeZone): if the source card Obj is still in its owner's hand it enters the battlefield, then a Tap ("entered tapped"), then attacking the defender captured on the entry (trigObj) when that is still legal; never declared (no Attacks trigger); C=1: a mana-only hand ability's plain put-this-card-onto-the-battlefield (Talon Gates of Madara), no tap and no attack
 
 	// OpAtkPWGuard: the Attacks trigger's attacker (RefTriggerObj) must be
 	// attacking a player: attacking a planeswalker or battle, or gone, the
