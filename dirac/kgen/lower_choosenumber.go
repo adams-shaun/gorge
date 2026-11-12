@@ -135,11 +135,12 @@ func (lc *lowerCtx) chooseNumberEffect(ps *params) error {
 			return err
 		}
 		maxV, hasMax = mv, true
-	} else if lo > numberOfferCeiling {
-		// gorge chooseNumberAsk's same fallback: a Min$ past the default
-		// 0..12 list is not a bound this ask can honour.
-		lo = 0
 	}
+	// Keep the card's stated Min$ even past the default 0..12 list. gorge's
+	// chooseNumberAsk fails a Min$-only bound there closed (it records the
+	// deterministic 0 with no question), and the kernel's
+	// chooseNumberMidBounds reads the same floor and takes the same fallback;
+	// zeroing it here would instead ask 0..12, a question gorge never poses.
 	who := lRef{Kind: rYou}
 	if v, ok := ps.get("Defined"); ok {
 		var err error

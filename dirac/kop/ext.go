@@ -645,7 +645,9 @@ func init() { extOpNames[ExtChooseNumber] = "ChooseNumber" }
 // present and B is its value (a literal, SVar or Count$ expression), C&0x200
 // says Random$ True. The chooser picks from Min..Max (gorge
 // effects.chooseNumberAsk); a bound the context cannot honour falls back to
-// the deterministic 0, exactly as gorge does. The answer is stored on the
+// the deterministic 0, exactly as gorge does, and a present Max$ above the
+// chosen byte's 254 (gorge's own offer reaches 1000) is a declared capacity
+// stall. The answer is stored on the
 // source permanent's chosen byte (or the resolving card object when the
 // source is a spell), and read by ExChosenNumber. A single candidate is
 // recorded without an ask; a Random$ choice draws from the kernel rng.

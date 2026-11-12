@@ -53,6 +53,39 @@ func chooseNumberMidCases() []effectLongCase {
 			surface: "full",
 			reached: chosenNumberOn("Expel the Interlopers"),
 		},
+		{
+			// The no-Max$ shape: the bare "Choose a number" defaults to 0..12.
+			name:   "choose_number_mid_void",
+			prefer: []string{"Void"},
+			decks: [2][]string{
+				append(deckOf(4, "Void"), append(deckOf(18, "Swamp"), deckOf(18, "Mountain")...)...),
+				deckOf(40, "Swamp"),
+			},
+			surface: "full",
+			reached: chosenNumberOn("Void"),
+		},
+		{
+			// Random$ True: the draw must match gorge's engine rng exactly.
+			name:   "choose_number_mid_hapatos_might",
+			prefer: []string{"Hapato's Might", "Black Knight"},
+			decks: [2][]string{
+				append(deckOf(4, "Hapato's Might"), append(deckOf(4, "Black Knight"), deckOf(32, "Swamp")...)...),
+				deckOf(40, "Swamp"),
+			},
+			surface: "full",
+			reached: chosenNumberOn("Hapato's Might"),
+		},
+		{
+			// Max$ 13: a literal above the default 0..12 list.
+			name:   "choose_number_mid_by_invitation_only",
+			prefer: []string{"By Invitation Only"},
+			decks: [2][]string{
+				append(deckOf(4, "By Invitation Only"), deckOf(36, "Plains")...),
+				deckOf(40, "Plains"),
+			},
+			surface: "full",
+			reached: chosenNumberOn("By Invitation Only"),
+		},
 	}
 }
 

@@ -75,14 +75,15 @@ var stallCapacityReasons = [...]uint8{
 	StallObsSrc, StallDynMana, StallTapExtra, StallExiledWith, StallBreach, StallNetLock, StallPanharmGrant, StallExileGrant, StallCharmPick,
 	StallCombatHit, StallFinality, StallPersistMana, StallOptMoves, StallMustBlock, StallRestrSrc, StallFirebend,
 	StallImprint, StallExHaste, StallEffEtbCtr, StallAtkGrp, StallParadigm, StallFiltX, StallPlanAlts,
-	StallCtrAdded,  // a fifth record of genState.ctrAdd; its two non-capacity sites moved to StallLowering
-	StallTwoSeat,   // a two-seat-only table in a larger game (stallclass.go): a declared limit
-	StallAddPhase,  // a fifth genState.xph entry or a 256th grant; its one non-capacity site moved to StallLowering
-	StallUntapLock, // a fifth source-bound untap lock at once (genState.ul; act_untaplock.go)
-	StallTurnRepl,  // the exile-instead table is full of Malicious Eclipse scope records (repl_turnrepl.go)
-	StallEmbRem,    // a fifth object in an emblem's remembered set (static_emblemrem.go)
-	StallDmgAmt,    // a fifth reader-card object damaged in one turn (genState.dmgAmt; value_dmgamount.go)
-	StallDmgMark,   // a second mark of one controller on one player while the first is live (genState.dmk; repl_dmgmark.go)
+	StallCtrAdded,     // a fifth record of genState.ctrAdd; its two non-capacity sites moved to StallLowering
+	StallTwoSeat,      // a two-seat-only table in a larger game (stallclass.go): a declared limit
+	StallAddPhase,     // a fifth genState.xph entry or a 256th grant; its one non-capacity site moved to StallLowering
+	StallUntapLock,    // a fifth source-bound untap lock at once (genState.ul; act_untaplock.go)
+	StallTurnRepl,     // the exile-instead table is full of Malicious Eclipse scope records (repl_turnrepl.go)
+	StallEmbRem,       // a fifth object in an emblem's remembered set (static_emblemrem.go)
+	StallDmgAmt,       // a fifth reader-card object damaged in one turn (genState.dmgAmt; value_dmgamount.go)
+	StallDmgMark,      // a second mark of one controller on one player while the first is live (genState.dmk; repl_dmgmark.go)
+	StallChooseNumber, // a mid-resolution ChooseNumber's present Max$ resolves above the chosen byte's 254 (repl_choosenumber.go)
 }
 
 var stallUnmodelledReasons = [...]uint8{
