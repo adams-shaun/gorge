@@ -24,7 +24,7 @@ const (
 	// --- single-object / single-player primitives ---
 	OpDealDamage       // Obj (object or player) is dealt A damage by the source; sets LastDamage
 	OpDraw             // player Obj draws A cards
-	OpDestroy          // destroy permanent Obj (indestructible / regeneration respected; C&1: it can't be regenerated; C&2: RememberDestroyed$, a destroyed target is remembered)
+	OpDestroy          // destroy permanent Obj (indestructible / regeneration respected; C&1: it can't be regenerated; C&2: RememberDestroyed$, a destroyed target is remembered; C&4: RememberLKI$, a remembered read of the destroyed target takes its last-known controller)
 	OpExile            // exile object Obj (from any zone; a token ceases to exist)
 	OpBounce           // return object Obj to its owner's hand
 	OpToLibrary        // put object Obj into its owner's library: C=0 top, C=1 bottom, C=2 shuffled in
