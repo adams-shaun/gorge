@@ -26,6 +26,7 @@ const (
 	StatControl           // the source's controller controls the objects matching Filter (the source Aura's enchanted permanent; layer 2, CR 613.1b): Control Magic, Kitnap
 	StatPanharmonicon     // a triggered ability of an object of the controller matching Filter triggers an additional time (CR 603.2d; gorge statics_echo.go panharmoniconEchoes)
 	StatHexproofOwnColors // objects matching Filter have hexproof from each of their own current colours (a granted Hexproof:CardColors, CR 702.11d; kw_hexproofcolor.go)
+	StatPlayerProtAll     // the controller has protection from everything (The One Ring's player grant; static_plprot.go)
 	StatCount
 )
 
@@ -33,7 +34,7 @@ const (
 type Static struct {
 	Kind    StaticKind
 	Filter  FilterID
-	Filter2 FilterID // CantBlockBy: the blockers that can't block; ReduceCost (spell or activated ability): the target it needs
+	Filter2 FilterID // CantBlockBy: the blockers that can't block; ReduceCost (spell or activated ability): the target it needs; CastWithFlash of an emblem: the spell whose cast ends the emblem (the Effect's ForgetOnCast$, Quicken)
 	A, B    int16    // P/T deltas, cost reduction
 	Kw      KwMask
 	Cond    uint8 // reserved condition opcode (0 = always)
@@ -350,6 +351,14 @@ const CantActNamed = 4
 // the static source's chosen name (ExtChooseName).
 const CantCastNamed = 1
 
+// CantCastSorcery is the StatCantBeCast B bit for OnlySorcerySpeed$ True
+// (Teferi, Time Raveler: each opponent can cast spells only any time they
+// could cast a sorcery): the static does not bind while the caster could cast
+// a sorcery (the active player, a main phase, an empty stack; gorge
+// castSorceryTimingExempt). A free cast made while a spell or ability
+// resolves is read with the stack non-empty (castForbiddenFree).
+const CantCastSorcery = 2
+
 // StCasterActive: on a StatCantBeCast only, the
 // restriction binds a caster who is the active player (Caster$
 // Player.Active; gorge actorMatches). It aliases StTargetsFilter2, whose
@@ -652,3 +661,10 @@ const StatFlipCoinMod StaticKind = 226
 // unbounded arm). The bit and the exhaust class are kernel facts
 // (dirac/static_turnbits.go); kgen validates the static shape at lowering time.
 const StatActivationLimit StaticKind = 227
+
+// StatLure (an explicit ordinal clear of the iota tail): each battlefield
+// permanent matching Filter, while Cond2 holds, has "All creatures able to
+// block CARDNAME do so." (a Continuous static's AddHiddenKeyword$, CR 509.1c;
+// gorge kw:AllMustBlock): the printed CardDef.Lure, granted. Lure, Gift of the
+// Deity, Seton's Desire, Stone-Tongue Basilisk. dirac/combat_lure.go.
+const StatLure StaticKind = 228

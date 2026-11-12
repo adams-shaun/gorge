@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 610.3, 616.1: Temporal Cleansing's \"second from top or bottom\" answer moves the owner's Liminal Hold into the library inside that answer, so its until-leaves exile ends there and Rimefire Torque's as-enters creature-type choice is asked with the card still in exile",
  "actions": [
   16776960,
   16776960,

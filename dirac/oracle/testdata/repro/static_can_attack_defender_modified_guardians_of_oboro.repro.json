@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 14,
  "surface": "autopay",
+ "pool": "custom",
+ "why": "Guardians of Oboro under an Aura is a modified Defender creature: it attacks as though it lacked defender (CR 702.3b)",
  "actions": [
   16776960,
   16776960,

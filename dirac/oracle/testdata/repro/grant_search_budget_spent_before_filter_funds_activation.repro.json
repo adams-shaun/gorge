@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-blb",
+ "pool": "std-blb",
+ "why": "Rockface Village's {R} pump beside Clement and Three Tree Scribe's creature-only grants and Hidden Grotto: gorge's one prefix search spends its 160 nodes on the grants and offers nothing (CR 605.3a)",
  "actions": [
   16776960,
   16776960,

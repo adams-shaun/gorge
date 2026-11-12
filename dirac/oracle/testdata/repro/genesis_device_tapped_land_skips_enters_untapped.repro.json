@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trk",
+ "why": "Genesis Device puts Quark's Bar and four others onto the battlefield tapped: the land entered tapped, so its enters-untapped charm is not put on the stack (CR 603.6a, 110.5b)",
  "actions": [
   16776960,
   16776960,

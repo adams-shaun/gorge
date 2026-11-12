@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-fdn",
+ "pool": "std-fdn",
+ "why": "CR 603.10a: Garna, Bloodfist of Keld draws for a Perforating Artist that died attacking, its last known status",
  "actions": [
   167771904,
   184549120,

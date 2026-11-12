@@ -291,6 +291,9 @@ func (s *State) drawExcl(p uint8, ch drawChain) {
 		return
 	}
 	s.g.drawFirst = false
+	if s.step == kop.StepDraw && p == s.active && s.g.drawStepN < 255 {
+		s.g.drawStepN++ // trig_drawstep.go: the drawer's cards in their own draw step
+	}
 	o := pl.lib[pl.libLo]
 	pl.libLo++
 	s.touch(o)
@@ -313,10 +316,12 @@ func (s *State) drawExcl(p uint8, ch drawChain) {
 }
 
 func (s *State) lose(p uint8) {
-	if s.pl[p].lost || s.cantLose(s.k(), p) {
+	k := s.k()
+	if s.pl[p].lost || s.cantLose(k, p) {
 		return
 	}
 	s.pl[p].lost = true
+	s.monarchLeft(k, p) // CR 725.4 (act_monarch.go)
 	s.checkOver()
 }
 
@@ -586,9 +591,6 @@ func (s *State) leave(k *prep, sl Slot, z kop.Zone, bottom bool) {
 }
 
 func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
-	if k.gen != nil && k.gen.anyPanharm {
-		s.panharmDepart(k, sl) // trig_doubling.go
-	}
 	if k.gen != nil && k.gen.anyUnearth && z != kop.ZoneExile {
 		z = s.unearthZone(sl, z) // cast_altfree.go
 	}
@@ -654,9 +656,6 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		s.settleSrcKw(k, sl, o)
 		s.snapSrcDepart(o) // CR 608.2h: its abilities read it as it last existed here (zone_lkisource.go)
 	}
-	if k.gen != nil && k.gen.anyPanharm {
-		p.flags &^= pfPanhGone
-	}
 	s.touch(o)
 	if s.g.nul != 0 {
 		s.untapLockLeft(o) // the lock ends with its target (act_untaplock.go)
@@ -673,6 +672,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	if s.g.netAny() {
 		s.netDrop(o)      // the lock ends when the permanent leaves (act_lockpermanent.go)
 		s.pgDropTarget(o) // so do the Panharmonicon grants it was given (act_grantpanharm.go)
+		s.pgDropHost(o)   // and the ones it hosted (CR 603.10a reads them on the look-back board above)
 	}
 	if k.gen != nil && k.gen.anyMonstrosity {
 		s.mSlClr(k, mechMonstrous, sl) // act_monstrosity.go
@@ -829,6 +829,9 @@ func (s *State) firePlayer(k *prep, ev kop.TrigEvent, who uint8, amt int16) {
 				continue
 			}
 			if a.Trig.Flags&kop.TfSecondDraw != 0 && !s.nthDrawOK(&a.Trig, who) {
+				continue
+			}
+			if ev == kop.TrigDrawn && !drawStepGateOK(&a.Trig, s.drawStepFirst(who)) {
 				continue
 			}
 			s.enqueue(lp.obj, s.objs[lp.obj].ver, s.cardAt(ls), uint8(i), lp.ctrl, NoObj, who, amt)

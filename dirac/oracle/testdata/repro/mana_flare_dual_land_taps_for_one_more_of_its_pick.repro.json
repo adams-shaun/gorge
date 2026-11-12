@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Mana Flare beside Rugged Highlands: a land making R or G taps for one more mana of the colour it picked, to whoever tapped it, and gorge folds it into each production (CR 106.12a, 605.1b)",
  "actions": [
   19398400,
   17432320,

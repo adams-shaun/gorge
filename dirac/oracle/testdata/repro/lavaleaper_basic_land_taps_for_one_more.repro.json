@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "Lavaleaper beside Mountains on both sides: a basic land taps for one more mana of its type, to whoever tapped it, and gorge's planner folds it into the tap (CR 106.12a, 605.1b)",
  "actions": [
   19398400,
   17497856,

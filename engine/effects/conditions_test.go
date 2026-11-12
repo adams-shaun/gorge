@@ -108,7 +108,7 @@ func TestConditionGateUnresolvedShapesReportFalse(t *testing.T) {
 		t.Fatal("ConditionCheckSVar$ resolved — out of the scoped shape")
 	}
 	// ConditionNotPresent$ over the REMEMBERED group is resolved as of the
-	// Rakdos-params task (the Ajani/Ravenous/Fallaji "the remembered card is
+	// Rakdos-params work (the Ajani/Ravenous/Fallaji "the remembered card is
 	// gone" shapes); Targeted is now resolved too (conditionMet's Targeted
 	// group). The still-unresolved NOT-PRESENT shape is a defined group this
 	// build cannot enumerate (ChosenCard, lodestone_bauble's).

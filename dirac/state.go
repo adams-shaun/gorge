@@ -197,7 +197,6 @@ const (
 	pfLoyaltyUsed // a loyalty ability of this permanent was activated this turn
 	pfOnceGame    // a once-per-game ("activate only once") ability of this permanent was activated
 	pfDtMore      // a second deathtouch mark (gorge adds a "Deathtouched" counter per deathtouch damage event)
-	pfPanhGone    // a Panharmonicon host departing in the batch being fired: gorge reads its statics after the batch (trig_doubling.go)
 )
 
 // faceDown reports whether the permanent at sl is face down (CR 708.2;
@@ -485,8 +484,10 @@ type stackEntry struct {
 	// (ctr_effectentry.go): the resolving SpellCast trigger's source, whose
 	// Effect registers the live Event$ Moved replacement gorge composes over
 	// the entry. Stamped only when the entrant's own Updated body is exactly
-	// the shape the CR 616.1 entry-order ask orders (repl_etborder.go):
-	// without a stamped source the count is applied silently, as before.
+	// the shape the CR 616.1 entry-order ask orders (repl_etborder.go); any
+	// other spell's count is applied silently, as before. With no count to
+	// name it also holds the one other enter-replacement source of the ask
+	// (etbOtherOrderPark).
 	// Placed before the odd-length byte run that follows so spc's
 	// two-byte alignment does not grow the struct.
 	etbSrc Obj
@@ -737,6 +738,7 @@ type build struct {
 	obsWin    uint8    // obsWinTapped: obsSl was set by a manual-window tap before the payment, so it counts only if the payment spends that source's colour; obsWinPaying: the payment began (mana_spendtrigger.go obsWinSettle)
 	pipShort  bool     // the lowered pip window ran dry (loweredPipWindow): the cost objects are still asked, and the payment reverses the cast
 	altAbort  bool     // the chosen either-or part cannot be paid: the fallback CR 601.2g window runs at bsMana (manaStep) and reverses the cast (CR 733.1)
+	impPlan   bool     // gorge's planner priced this Improvise cast (kw_improvisepay.go)
 	payLifeMV bool     // the cast went through a may-play permission whose alternative cost is life equal to its mana value (cast_mayplaypaylife.go)
 }
 
@@ -841,7 +843,11 @@ type resCtx struct {
 	trigGone bool
 	bad      uint8 // targets illegal at resolution (bit per slot)
 	xbad     uint8 // multi-object extras illegal at resolution (bit per xTargets index; only with genPrep.anyEachTgt)
-	remLK    int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)
+	// col is the resolution's mid-resolution ChooseColor answer (colour
+	// index + 1, 0 none; ExtChooseColorRes), which a ChosenColor filter
+	// reads (static_colourprot.go resColour)
+	col   uint8
+	remLK int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)
 }
 
 // State is a whole game. Copy one with CopyFrom, or probe on a fork; go vet

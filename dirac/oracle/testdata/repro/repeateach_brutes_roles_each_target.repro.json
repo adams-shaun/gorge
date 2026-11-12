@@ -96,6 +96,8 @@
  "max_turns": 40,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Become Brutes aimed at two creatures: each gains haste and gets a Monster Role (RepeatEach DefinedCards$ Targeted)",
  "actions": [
   21298944,
   18349824,

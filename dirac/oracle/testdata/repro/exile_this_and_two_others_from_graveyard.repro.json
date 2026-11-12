@@ -95,6 +95,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Say Its Name exiles itself unasked, then two other Say Its Names the player picks, from its graveyard; the search elects its zones (library, graveyard, hand) and finds Altanak (CR 118.3, 602.2b)",
  "actions": [
   19857152,
   587857664,

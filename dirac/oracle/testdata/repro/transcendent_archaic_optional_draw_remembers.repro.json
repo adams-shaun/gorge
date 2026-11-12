@@ -95,6 +95,8 @@
  "pass_elision": true,
  "max_turns": 30,
  "surface": "full",
+ "pool": "std-sos",
+ "why": "Transcendent Archaic's optional Converge draw accepted off Forests: it draws one, and the chained discard of two runs on the remembered condition",
  "actions": [
   21430016,
   19332864,

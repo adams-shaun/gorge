@@ -51,7 +51,7 @@ func faceHasCastWithFlash(f *cards.Face) bool {
 // extra board scan.
 func (w *legalWalk) flashBoard() bool {
 	if !w.flashBoardSet {
-		w.flashBoardBit = len(w.e.activeStatics("CastWithFlash")) != 0
+		w.flashBoardBit = len(w.e.activeStatics("CastWithFlash")) != 0 || w.e.effectFlashLive()
 		w.flashBoardSet = true
 	}
 	return w.flashBoardBit

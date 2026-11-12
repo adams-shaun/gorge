@@ -100,14 +100,6 @@ func riderMoved(h *askHost, id state.ObjID) bool {
 	return false
 }
 
-func riderSet(ids []state.ObjID) map[state.ObjID]int {
-	m := map[state.ObjID]int{}
-	for _, id := range ids {
-		m[id]++
-	}
-	return m
-}
-
 // --- Amount$ non-literal SVar -------------------------------------------
 
 // TestDigUntilAmountSVarCountsMatchesToTheTally drives the REAL Mass

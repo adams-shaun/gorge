@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 601.2g-h: gorge's potential planner refuses an exile cost part and a contribution before any prefix search, so Fear of Abduction and an impending Overlord of the Mistmoors under Dazzling Theater's convoke are not offered when only Enduring Vitality's creatures make their {W}",
  "actions": [
   167771904,
   184549120,

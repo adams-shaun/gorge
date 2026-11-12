@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trk",
+ "why": "Genesis Device's second ability sacrifices one Island and puts Q Continuum onto the battlefield tapped under Syndicate Liquidators: the single card enters as a batch too, so its enters-untapped charm is not put on the stack beside the landfall trigger (CR 603.6a, 110.5b)",
  "actions": [
   16776960,
   16776960,

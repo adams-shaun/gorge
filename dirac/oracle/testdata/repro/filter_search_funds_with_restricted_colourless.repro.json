@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trk",
+ "why": "Starfleet Academy's {5} with Isolinear Processor untapped: gorge's prefix search tries the artifact-only {C} as funding and runs out of nodes, so Artificial Anomaly's sacrifice ability is not offered (CR 605.3a)",
  "actions": [
   16776960,
   16776960,

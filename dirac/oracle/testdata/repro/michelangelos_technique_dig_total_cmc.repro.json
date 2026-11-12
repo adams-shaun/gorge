@@ -94,6 +94,8 @@
  "mulligans": 0,
  "pass_elision": false,
  "surface": "autopay",
+ "pool": "std-tmt",
+ "why": "Michelangelo's Technique looks at eight and takes creature cards whose total mana value is 6 or less: the bound narrows the second pick as the first sums in",
  "actions": [
   16776960,
   16776960,

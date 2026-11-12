@@ -23,40 +23,6 @@ func untapUntaps(t *testing.T, e *Engine, id state.ObjID) {
 	e.emit(events.Event{Kind: events.Untap, Obj: id})
 }
 
-// passUntilDecision passes priority decisions until a decision of kind kind
-// is pending (a mid-resolution ask) -- for a trigger whose Execute$ poses one
-// -- or the stack is empty.
-func passUntilDecision(t *testing.T, e *Engine, kind decision.Kind) *decision.Decision {
-	t.Helper()
-	for i := 0; i < 40 && !e.G.Over; i++ {
-		if d := e.Pending(); d != nil {
-			if d.Kind == kind {
-				return d
-			}
-			if d.Kind != decision.KPriority {
-				t.Fatalf("non-priority, non-%s decision while driving: %+v", kind, d)
-			}
-		} else if len(e.G.Stack) == 0 {
-			t.Fatalf("stack emptied before a %s decision appeared", kind)
-		}
-		idx := -1
-		d := e.Pending()
-		for _, o := range d.Options {
-			if o.Kind == "pass" {
-				idx = o.Index
-			}
-		}
-		if idx < 0 {
-			t.Fatalf("priority decision with no pass option: %+v", d)
-		}
-		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
-			t.Fatalf("submit pass: %v", err)
-		}
-	}
-	t.Fatalf("did not reach a %s decision within the pass budget", kind)
-	return nil
-}
-
 // indexOfObjOption returns the option index targeting object id, or -1.
 func indexOfObjOption(d *decision.Decision, id state.ObjID) int {
 	for _, o := range d.Options {

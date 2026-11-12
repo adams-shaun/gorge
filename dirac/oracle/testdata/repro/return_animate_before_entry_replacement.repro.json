@@ -95,6 +95,8 @@
  "pass_elision": false,
  "surface": "full",
  "kernel": "set fdn",
+ "pool": "custom",
+ "why": "Good-Fortune Unicorn returned by Valkyrie's Call beside Giada, Font of Hope: the return's \"it's an Angel\" applies before the entry replacements read it, so Giada's extra counters count (CR 614.12)",
  "actions": [
   16776960,
   16776960,

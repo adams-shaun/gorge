@@ -63,8 +63,15 @@ func (lc *lowerCtx) digUntilImprint(ps *params, in lInstr, found, rev int) error
 // amount, the resolving controller's side of the walk, no random order and
 // no RevealedLibraryPosition$ (the shape check on the assembled CS).
 func (lc *lowerCtx) digImprintFound(ps *params, in lInstr, found, rev int) error {
-	if _, ok := ps.get("RememberFound"); ok {
-		return refuse("DigUntil ImprintFound$ beside RememberFound$")
+	rem := false
+	if v, ok := ps.get("RememberFound"); ok {
+		// Demonlord Belzenlok: the found card joins both the remembered
+		// set (the repeat's gate and its hand move) and the chosen set
+		// (ImprintFound$ / Imprinted$Amount)
+		if v != "True" {
+			return refuse("DigUntil RememberFound$ %q beside ImprintFound$", v)
+		}
+		rem = true
 	}
 	if in.A.Kind != vConst || in.A.N < 1 || in.A.N > 127 || found != zExile || rev != zExile || in.CS != "revealed=Exile" {
 		return refuse("DigUntil ImprintFound$ shape")
@@ -75,6 +82,9 @@ func (lc *lowerCtx) digImprintFound(ps *params, in lInstr, found, rev int) error
 		return refuse("DigUntil ImprintFound$ of %v", in.Obj)
 	}
 	in.CS += "|ImprintFound"
+	if rem {
+		in.CS += "|RememberFound"
+	}
 	lc.digImprintFoundMode = true
 	lc.digImprintChosen = true
 	lc.emit(in)

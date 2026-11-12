@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-blb",
+ "pool": "std-blb",
+ "why": "Lilypad Village's {U} surveil with Clement's creature-only grant and Three Tree Mascot's {1} filter: gorge's relaxed proof counts the filter, so the activation is searched and offered (CR 106.6, 605.3a)",
  "actions": [
   16776960,
   16776960,

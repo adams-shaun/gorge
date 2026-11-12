@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 601.2g: Silvergill Mentor's {2} chosen beside a payable behold falls back to a window with no ManaPayment, so Springleaf Drum answers its lowest colour, not the owed pip, and the last pip is paid by the Island, not the first Plains",
  "actions": [
   184549120,
   184549120,

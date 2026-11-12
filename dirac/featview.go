@@ -128,6 +128,9 @@ func (s *State) featCardMatch(k *prep, id kop.FilterID, ob *object, ctrl uint8, 
 
 func (s *State) featCardMatch1(k *prep, id kop.FilterID, ob *object, ctrl uint8, srcCard CardID, srcSl Slot) bool {
 	f := &k.t.Filters[id]
+	if f.CtrlTgt != 0 {
+		return false // a live battlefield target's controller; a feature read has none
+	}
 	if k.gen != nil {
 		// the generated matcher refuses a with-flying card test outright;
 		// this function reads the F2 conditions itself (below)
@@ -311,7 +314,8 @@ func (s *State) FeatActivations(o Obj) int { return int(s.objs[o].activations())
 func (s *State) FeatSickOff(o Obj) bool { return s.objs[o].of&ofSickLeft != 0 }
 
 // FeatPoolPays reports whether p's floating pool alone pays the cast of o
-// in kernel cast mode (bit 0 kicked, bit 1 flashback) -- gorge offers a
+// in kernel cast mode (bit 0 kicked, bit 1 flashback, bit 3 the retrace
+// cast, with bit 1) -- gorge offers a
 // cast as a legacy option exactly then; otherwise only the planner pays it.
 func (s *State) FeatPoolPays(p uint8, o Obj, mode uint8) bool {
 	return s.FeatPoolPaysPlus(p, o, mode, nil)
@@ -328,7 +332,9 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 		s.restrAvail(k, p&1, c, s.restrOriginOfObj(o), &a) // a spell its restriction allows sees it (gorge AvailableFor)
 	}
 	cost := k.cards[c].cost
-	if mode&2 != 0 {
+	if mode&8 != 0 {
+		cost = k.t.Cards[c].Cost // the retrace cast's printed cost, whatever flashback the card also holds (kw_retrace.go)
+	} else if mode&2 != 0 {
 		cost = s.flashbackCostOf(k, o)
 	} else if mode&1 != 0 {
 		cost = addCost(cost, k.t.Cards[c].Kicker)
@@ -561,10 +567,12 @@ func (s *State) plannedCastCost(k *prep, p uint8, o Obj, mode uint8) (kop.ManaCo
 // searches potentialScriptPlays caps.
 func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, composed bool) (kop.ManaCost, bool) {
 	c := s.objs[o].card
-	refused := planNeverPricesCore(k, c, hyb, composed, false) || s.boardLifeTgtDep(k, p, c, o)
+	refused := planNeverPricesCore(k, c, hyb, composed, false) || s.boardLifeTgtDep(k, p, c, o) || s.stackTgtDep(k, c)
 	optRefused := k.gen != nil && k.gen.anyOptCost && optCostCard(k, c)
 	spendRefused := !composed && k.gen != nil && k.gen.anyCastSpent && s.spendReaderOut(k)
-	tapRefused := !refused && !optRefused && !spendRefused && s.contribPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand)
+	fromHand := s.objs[o].zone == kop.ZoneHand
+	lifted := !refused && !optRefused && !spendRefused && mode&3 == 0 && s.improviseLifted(k, p, c, o, fromHand)
+	tapRefused := !refused && !optRefused && !spendRefused && !lifted && s.contribPays(k, p, c, o, fromHand)
 	if refused || optRefused || spendRefused || tapRefused {
 		// gorge's planner declines the shape (modal_cost, additional_cost,
 		// optional_cost, mana_spent_reader, contribution, target_dependent_cost)
@@ -602,11 +610,21 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 			cost = addCost(cost, s.altAddManaPart(k, c))
 		}
 	}
+	var reserved slotMask
+	if lifted {
+		// gorge's planImprovise: the artifacts' credit comes off the printed cost
+		// before the reductions, and they are no mana source of the plan
+		reserved = s.improviseReserved(k, p, cost.Generic)
+		cost = s.convokeCredit(k, p&1, c, o, cost)
+	}
 	if s.statM.any() || k.gen != nil {
 		cost = s.featCost(k, p&1, c, o, cost) // a flashback cost is reduced too
 	}
 	if k.gen != nil && (s.g.mayPlayAny || mode&castMayPlay != 0 && s.mayPlayAnyType(k, p, o) || s.convAnyType(k, p&1, o)) {
 		cost = anyTypePips(cost) // gorge's planner funds these pips as generic (pay.PlanManaUnderRider)
+	}
+	if lifted && !s.improviseSourcesPay(k, p, reserved, &cost) {
+		return kop.ManaCost{}, false // "cost:credit": the greedy credit is no proof, the manual window pays
 	}
 	return cost, true
 }
@@ -620,8 +638,9 @@ func (s *State) FeatFaceDown(o Obj) bool {
 // FeatPlanDeclinesShape reports a plain cast of p's object o that gorge's cast
 // planner declines for its cost's shape, not the seat's mana (rules
 // payment_plan.go announcedShape, decision.PotentialShapeCasts): every
-// plannedCastCost refusal, the card's own shape and the board's (a convoke,
-// improvise or delve contribution, an optional cost, a mana-spent reader out).
+// plannedCastCost refusal, the card's own shape and the board's (a convoke or
+// delve contribution, an improvise one its credit's sources cannot pay, an
+// optional cost, a mana-spent reader out).
 func (s *State) FeatPlanDeclinesShape(p uint8, o Obj) bool {
 	_, ok := s.plannedCastCost(s.k(), p, o, 0)
 	return !ok
@@ -1365,6 +1384,9 @@ func (s *State) flashbackCostOf(k *prep, o Obj) kop.ManaCost {
 	cd := &k.t.Cards[s.objs[o].card]
 	if cd.Keywords&kop.KwFlashback != 0 || cd.Harmonize || cd.Mayhem || cd.BeamMeUp && !s.fbGranted(k, o) {
 		return cd.AltCost
+	}
+	if cd.Retrace && !s.fbGranted(k, o) && !s.fbLive(k, o) {
+		return cd.Cost // the retrace cast's printed cost (kw_retrace.go; FeatPoolPays mode 2)
 	}
 	return s.fbGrantCost(k, s.objs[o].owner(), o, s.fbGranted(k, o)) // the mana cost, or a live grant's own (kw_fbgrant.go)
 }

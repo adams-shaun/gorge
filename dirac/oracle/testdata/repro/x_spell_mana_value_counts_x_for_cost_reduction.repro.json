@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-msh",
+ "why": "Photon Blast Barrage cast for X = 3 beside The Scarlet Witch: the spell on the stack has mana value 5 (CR 202.3e), so its {2} reduction applies and the X ask offers the values only the reduced cost can pay",
  "actions": [
   16776960,
   16776960,

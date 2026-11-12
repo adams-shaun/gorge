@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "CR 601.2f: gorge's printed-cost power-up witness still composes cost statics, so Hercules is offered with two lands once Hulk takes {3} off his {4}{G}",
  "actions": [
   16776960,
   16776960,

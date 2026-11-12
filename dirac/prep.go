@@ -105,14 +105,15 @@ type prep struct {
 	cda      bool // some card has a characteristic-defining P/T (StatCDAPT)
 	casualty bool // some card has Casualty (kw_casualty.go): guards the casualty cast offer
 	mayhem   bool // some card has Mayhem (kw_mayhem.go): guards the discard mark, the cast mark and the graveyard offer
+	retrace  bool // some card has Retrace (kw_retrace.go): guards the graveyard offer
 	bargain  bool // some card has Bargain (kw_bargain.go): guards the bargained cast offer
 	teamwork bool // some card has Teamwork (kw_teamwork.go): guards the teamworked cast offer and the charm pick count
 	gift     bool // some card has Gift (kw_gift.go): guards the gift paths on the hot cast/trigger path
 	// bargainRed: some card carries a StBargained cost static
 	// (cost_reducespell.go): guards the bargained pricing
 	bargainRed bool
-	// offspring: some card has Offspring (kw_offspring.go): guards the
-	// offspring cast offer on the priority walk
+	// offspring: some card has Offspring or Buyback (kw_offspring.go,
+	// kw_buyback.go): guards the extra-cost cast offer on the priority walk
 	offspring bool
 	// anyGate: some ability has a threshold gate (Ability.Gate, kw_class.go):
 	// guards the gated trigger/activation checks on the hot paths
@@ -141,6 +142,10 @@ type prep struct {
 	// anySelfFlash: some card is a SelfFlash carrier (cast_selfflash.go):
 	// the one guard castFlash adds beside the battlefield-static test
 	anySelfFlash bool
+	// anyEmbFlash: some emblem carries a StatCastWithFlash static (an
+	// Effect-delivered "you may cast ... as though they had flash"): the
+	// other guard castFlash adds
+	anyEmbFlash bool
 	// anyRedNC: some value reads ExRedNCDmg: replDamage tallies
 	// the noncombat damage red sources deal, beginTurn clears the tally
 	anyRedNC bool
@@ -290,8 +295,9 @@ func prepare(t *kop.Table) *prep {
 		p.casualty = p.casualty || c.Casualty != 0
 		p.bargain = p.bargain || c.Bargain
 		p.mayhem = p.mayhem || c.Mayhem
+		p.retrace = p.retrace || c.Retrace
 		p.teamwork = p.teamwork || c.Teamwork != 0
-		p.offspring = p.offspring || c.Offspring
+		p.offspring = p.offspring || c.Offspring || c.Buyback
 		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.OptCost.Flags|c.KickerCost.Flags|c.FbCost.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.HasSneak || c.HasWebSling // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go)
 		pc.spellAb, pc.manaAb = -1, -1
 		p.tapXAb[i], p.ctrAb[i], p.riderAb[i] = -1, -1, -1

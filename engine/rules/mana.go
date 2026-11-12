@@ -212,7 +212,7 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 		}
 		base = &local
 	}
-	// The activated ability's own XMin$ parameter (task cost:xmin-param): the
+	// The activated ability's own XMin$ parameter: the
 	// same announcement floor xAsk folds from the ability being activated,
 	// read here off scope.ab -- the exact printed or granted SA the offer walk
 	// scoped. The fold RAISES the cost's own XMin<N> bound by maximum and

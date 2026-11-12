@@ -22,7 +22,6 @@ func TestPaymentPlanShapeGate(t *testing.T) {
 		{"revealOrChoose", "A:SP$ Draw | Cost$ B RevealOrChoose<1/Creature> | NumCards$ 1", "shape:additional_cost"},
 		{"exert", "A:SP$ Draw | Cost$ B Exert<1/CARDNAME> | NumCards$ 1", "shape:additional_cost"},
 		{"delve", "K:Delve\nA:SP$ Draw | NumCards$ 1", "shape:contribution"},
-		{"improvise", "K:Improvise\nA:SP$ Draw | NumCards$ 1", "shape:contribution"},
 		{"convoke", "K:Convoke\nA:SP$ Draw | NumCards$ 1", "shape:contribution"},
 		{"spree", "K:Spree\nA:SP$ Charm | Choices$ DBOne | MinCharmNum$ 1\nSVar:DBOne:DB$ Draw | NumCards$ 1 | ModeCost$ 1", "shape:modal_cost"},
 		{"tiered", "K:Tiered\nA:SP$ Charm | Choices$ DBOne | MinCharmNum$ 1\nSVar:DBOne:DB$ Draw | NumCards$ 1 | ModeCost$ 1", "shape:modal_cost"},
@@ -124,8 +123,11 @@ func TestPaymentPlanShapeGateGrantedImprovise(t *testing.T) {
 		t.Fatal("fixture failed to grant Improvise to the announced spell")
 	}
 	got := e.PlanCastPayment(0, paymentCast(spell))
-	if got.Plan != nil || got.Reason != "unsupported" || got.Detail != "shape:contribution" {
-		t.Fatalf("granted Improvise outcome = %+v, want contribution decline", got)
+	// The Statuary is the one artifact, so the credit takes it for {1} and the
+	// lone {B} has no source: an unknown credit shape, not a proof (the credit
+	// is greedy), and the legacy option below stays.
+	if got.Plan != nil || got.Reason != "unsupported" || got.Detail != "cost:credit" {
+		t.Fatalf("granted Improvise outcome = %+v, want the credit decline", got)
 	}
 	e.G.Players[0].Pool[state.MC] = 1
 	e.G.Players[0].Pool[state.MB] = 1

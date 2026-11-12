@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Moment of Reckoning chooses its destroy mode twice: each instance destroys its own target (CR 700.2d)",
  "actions": [
   19398400,
   17235712,

@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "CR 107.3, 601.2b: Consume Spirit's XColor$ Black makes every announced {X} a black pip, so the cast taps Swamps for the X and a Mountain pays only the generic",
  "actions": [
   19398400,
   35258112,

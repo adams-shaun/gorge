@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 601.2h, 602.2b, 733.1: Wanderbrine Trapper's tap-another pick takes Great Forest Druid, the only mana source, so its {1} cannot be paid and the activation is reversed at the target ask",
  "actions": [
   16776960,
   16776960,

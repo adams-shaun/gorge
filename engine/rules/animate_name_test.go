@@ -1,6 +1,6 @@
 package rules
 
-// api:Animate.Name (task api-animate-name): the end-to-end pins for the
+// api:Animate.Name: the end-to-end pins for the
 // Animate `Name$` rider on REAL corpus cards. The rename is registered as a
 // layer-3 SetName ContinuousEffect -- the same characteristic a printed
 // SetName$ static registers -- so Derived.Name, Engine.Name and the effects

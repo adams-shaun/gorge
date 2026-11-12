@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-fra",
+ "pool": "std-fra",
+ "why": "CR 603.2, 603.4: the same search puts Forests #8 and #9 on beside three other lands, and both Canopy triggers are ordered",
  "actions": [
   167771904,
   184549120,

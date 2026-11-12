@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Cryoshatter on a Grizzly Bears that attacks: the attack tap fires its AttachedBy Taps watcher and the Bears is destroyed (TriggeredCardLKICopy)",
  "actions": [
   19398400,
   17432320,

@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-fdn",
+ "why": "New Horizons on a Forest adds an any-colour ability beside its own, so Wildborn Preserver's \"you may pay {X}\" counts it in the potential pool as gorge's walk does",
  "actions": [
   16776960,
   16776960,

@@ -9,8 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The Untap primitive's ETB$ read (task inbox-paramcensus-final-stragglers,
-// Horizon Explorer entry): the DB$ Untap inside an "enters untapped"
+// The Untap primitive's ETB$ read (Horizon Explorer entry): the DB$ Untap inside an "enters untapped"
 // replacement body carries ETB$ True, the mirror of the ETB$ True the 804
 // enters-tapped bodies carry on DB$ Tap (effTap already reads it there).
 // The ETB untap is the plain Untap event -- no CR 122.1d stun-counter

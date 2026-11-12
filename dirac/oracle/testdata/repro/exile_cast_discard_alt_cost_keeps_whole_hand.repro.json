@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-msh",
+ "why": "Titania cast from exile through Moonstone's permission discards the one card in hand: the spell is not in the hand, so it does not count against it (CR 601.2b)",
  "actions": [
   16776960,
   16776960,

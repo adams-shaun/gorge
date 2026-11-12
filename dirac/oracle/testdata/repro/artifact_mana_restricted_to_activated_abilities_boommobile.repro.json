@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 20,
  "surface": "autopay",
+ "pool": "std-dft",
+ "why": "Boommobile enters and adds four mana of one colour spendable only to activate abilities: they pay its exhaust ability and no spell, and the artifact's units are typed (CR 106.6, 605.1a)",
  "actions": [
   167771904,
   167771904,

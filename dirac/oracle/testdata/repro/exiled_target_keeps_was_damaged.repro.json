@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 120.3a: Sold Out exiles its combat-damaged target, and the exile leaves WasDealtDamageThisTurn standing, so the \"if that creature was dealt damage this turn\" Clue is still made (gorge events.foldDamage)",
  "actions": [
   184549120,
   184549120,

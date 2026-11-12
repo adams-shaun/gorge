@@ -12,7 +12,6 @@ package rules
 // citations are the 2026-08-07 Comprehensive Rules text.
 
 import (
-	"os"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -21,15 +20,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
-
-// tlaSkip guards a FAILING finding: a skip unless GORGE_SET_AUDIT=1, so the
-// committed suite stays green while the defect is open.
-func tlaSkip(t *testing.T, reason string) {
-	t.Helper()
-	if os.Getenv("GORGE_SET_AUDIT") == "" {
-		t.Skip("set-audit finding (tla): " + reason)
-	}
-}
 
 // tlaCorpusCard resolves a real corpus card by name, failing the test if the
 // corpus is absent or the card is missing -- a corpus-backed test that skips
@@ -216,42 +206,6 @@ func TestSetAudit_tla_GiantKoi_WaterbendAbilityCostTapsCreatures(t *testing.T) {
 	}
 	if _, ok := findAbilityOption(e, koiID, 0); !ok {
 		t.Fatalf("Giant Koi's Waterbend {3} ability not offered with three creatures to tap and an empty pool (CR 701.67a): %+v", e.Pending().Options)
-	}
-}
-
-// tlaTapPoolAnswer submits pass on every priority decision and picks a
-// waterbend_generic tap wherever one is offered, until the stack drains.
-func tlaTapPoolAnswer(t *testing.T, e *Engine, limit int) {
-	t.Helper()
-	for n := 0; n < limit; n++ {
-		d := e.Pending()
-		if d == nil {
-			return
-		}
-		if d.Kind != decision.KPriority {
-			return
-		}
-		if len(e.G.Stack) == 0 {
-			return
-		}
-		idx := -1
-		for _, o := range d.Options {
-			if o.Kind == "waterbend_generic" {
-				idx = o.Index
-				break
-			}
-		}
-		if idx < 0 {
-			for _, o := range d.Options {
-				if o.Kind == "pass" {
-					idx = o.Index
-				}
-			}
-		}
-		if idx < 0 {
-			t.Fatalf("priority decision with no pass or waterbend option: %+v", d)
-		}
-		submitChoices(t, e, idx)
 	}
 }
 

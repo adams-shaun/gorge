@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "Oko, the Ringleader's -5 copies each other permanent you control and a copy's as-enters ask parks the sweep; the parked answer leaves the sweep's zone batch to fire once, in entry order, when the sweep ends (CR 603.6a): the Railway Brawler copies' \"another creature enters\" see the Duelist and the later copies enter before the copy the answer was made on",
  "actions": [
   184549120,
   167771904,

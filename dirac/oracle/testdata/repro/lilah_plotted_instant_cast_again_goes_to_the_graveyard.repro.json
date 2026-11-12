@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "a plotted Helix cast again from exile on a later turn is not cast from hand, so Lilah leaves it to the graveyard",
  "actions": [
   19398400,
   17497856,

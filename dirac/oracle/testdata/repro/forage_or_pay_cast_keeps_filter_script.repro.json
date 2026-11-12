@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-blb",
+ "pool": "std-blb",
+ "why": "CR 601.2b, 601.2f-h: Feed the Cycle's forage-or-pay {B} either-or stays with gorge's offer gate, which pays {1}{B}{B} through Hidden Grotto's filter, so the script search offers the cast",
  "actions": [
   16776960,
   16776960,

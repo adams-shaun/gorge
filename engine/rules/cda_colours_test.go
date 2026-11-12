@@ -11,8 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The characteristic-defining SetColor$ colour read in EVERY zone (task
-// cda-colours): CR 604.3/208.2 puts a CDA in every zone, so Transguild
+// The characteristic-defining SetColor$ colour read in EVERY zone: CR 604.3/208.2 puts a CDA in every zone, so Transguild
 // Courier's "CARDNAME is all colors" makes the card WUBRG in hand, on the
 // stack, in the graveyard and on the battlefield, and Ghostfire's "CARDNAME
 // is colorless" makes it colourless everywhere -- the printed {2}{R} never

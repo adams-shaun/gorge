@@ -604,8 +604,7 @@ var actionTriggerModes = map[string]bool{
 	// both gates must apply from day one.
 	"Discover": true, "SeekAll": true,
 	// Surveil joins them for the same reason: it is an event mode registered
-	// from the start (trigmatch.surveilMatches over events.Surveil, the marker Kind
-	// api:Surveil emits, task trig-surveil), so the trigger-level parameters
+	// from the start (trigmatch.surveilMatches over events.Surveil, the marker Kind api:Surveil emits), so the trigger-level parameters
 	// Forge scopes to every event mode -- PlayerTurn$, ActivationLimit$
 	// (Prudent Fateseer's "This ability triggers only once each turn" on its
 	// scry-or-surveil line) and an unevaluable CheckDefinedPlayer$ predicate
@@ -614,8 +613,7 @@ var actionTriggerModes = map[string]bool{
 	// through the shared trigmatch.firstMarkerThisTurn log scan.
 	"Surveil": true,
 	// Milled/MilledAll join them for the same reason: both are event modes
-	// registered from the start (trigmatch.milledMatches over events.Mill, task
-	// trig-milled), so the trigger-level parameters Forge scopes to every
+	// registered from the start (trigmatch.milledMatches over events.Mill), so the trigger-level parameters Forge scopes to every
 	// event mode apply from day one -- ActivationLimit$ (Mirelurk Queen's
 	// "This ability triggers only once each turn" on its MilledAll line),
 	// PlayerTurn$ and an unevaluable CheckDefinedPlayer$ predicate failing
@@ -624,8 +622,7 @@ var actionTriggerModes = map[string]bool{
 	// the batch's single queue slot.
 	"Milled": true, "MilledAll": true,
 	// DiscardedAll joins them for the same reason: it is an event mode
-	// registered from the start (trigmatch.discardedAllMatches over the discard
-	// MoveZone marker, task DiscardedAll), so the trigger-level parameters
+	// registered from the start (trigmatch.discardedAllMatches over the discard MoveZone marker), so the trigger-level parameters
 	// Forge scopes to every event mode apply from day one -- ActivationLimit$
 	// ("This ability triggers only once each turn" on a DiscardedAll line),
 	// PlayerTurn$ and an unevaluable CheckDefinedPlayer$ predicate failing
@@ -634,7 +631,7 @@ var actionTriggerModes = map[string]bool{
 	// count the batch's single queue slot.
 	"DiscardedAll": true,
 	// Proliferate joins them for the same reason: it is an event mode whose
-	// marker Kind (events.Proliferate, task trig-proliferate) api:Proliferate
+	// marker Kind (events.Proliferate) api:Proliferate
 	// emits, and the corpus carriers scope the trigger-level parameters Forge
 	// applies to every event mode -- Contagion Dispenser's line carries BOTH
 	// PlayerTurn$ True and ActivationLimit$ 1 ("Whenever you proliferate
@@ -1068,10 +1065,7 @@ func (e *Engine) checkTriggersNow(ev *events.Event, lki *state.Object,
 		e.checkEventDelayedTriggers(*ev, lki, lkiPower, lkiToughness, lkiPTValid)
 	}
 	// Sagas (kw:Chapter): a lore counter's chapter ability queues off the one
-	// event that places a lore counter -- the LORE CounterChange (the entry
-	// grant rules' foldEntryMove places and the draw-step half alike; task
-	// addcounter1/2 moved the entry grant onto a real CounterChange, so the
-	// old MoveZone arm double-queued the entry chapter).
+	// event that places a lore counter -- the LORE CounterChange (the entry grant rules' foldEntryMove places and the draw-step half alike, so the old MoveZone arm double-queued the entry chapter).
 	// The kind guards sit at the call sites: each callee opens with the same
 	// kind test, but the event is passed by value, and nearly every event is
 	// none of these kinds.
@@ -1144,14 +1138,14 @@ func (e *Engine) checkTriggersNow(ev *events.Event, lki *state.Object,
 	case events.DeclareAttackers, events.DeclareBlockers, events.Damage:
 		e.checkRingEmblemTriggers(*ev)
 	}
-	// A chaos-ensues marker (CR 901.9, task planar-verbs): the current
+	// A chaos-ensues marker (CR 901.9): the current
 	// plane's Mode$ ChaosEnsues ability. The plane lives in ZPlanarDeck,
 	// which the per-face walk above never visits, so this synthetic scan
 	// queues it -- the checkRingEmblemTriggers precedent.
 	if ev.Kind == events.ChaosEnsues {
 		e.checkChaosEnsuesTriggers(*ev)
 	}
-	// A planeswalk (CR 901.8, task planar-verbs): the arrived-at plane's
+	// A planeswalk (CR 901.8): the arrived-at plane's
 	// Mode$ PlaneswalkedTo and the left plane's Mode$ PlaneswalkedFrom. Both
 	// planes live in the private ZPlanarDeck zone, so this is the same
 	// synthetic-scan shape as the chaos marker above.
@@ -1947,7 +1941,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				// computed per instance with that attacker as the sole cause.
 				if mk == cards.TriggerAttacks {
 					echoFor := func(attacker state.ObjID) int {
-						return e.panharmoniconEchoes(observer, id, *ev, []state.ObjID{attacker}, t.Mode)
+						return e.panharmoniconEchoes(observer, id, *ev, []state.ObjID{attacker}, t.Mode, true)
 					}
 					if insts := attacksTriggerInstances(boardOf(observer), &t, id, *ev, pt, echoFor); len(insts) > 0 {
 						e.pendingTriggers = append(e.pendingTriggers, insts...)
@@ -2923,8 +2917,8 @@ func (e *Engine) triggerMatchesWithSVars(t cards.Trigger, source state.ObjID, ev
 	// event-relative (it names the entering creature), so it is evaluated
 	// here, beside trigmatch.Match, where ev is in scope -- not in the
 	// shared triggerConditionHolds walk above (which has no event). Like
-	// Evolve$, it is fire-time only; the resolution-time CR 603.4 recheck
-	// has no entering object to re-derive it from. The word is dispatched
+	// Evolve$, it is rechecked as the ability resolves (evolveResolves,
+	// CR 603.4) from the entering creature captured here. The word is dispatched
 	// through the PKCondition vocabulary (engine/rules/static_condition.go), not a
 	// literal, so the codeshape dispatch ratchet is untouched.
 	if code, ok := t.ParamCode(cards.PKCondition); ok && staticCondition(code) == condEvolve {
@@ -3181,7 +3175,7 @@ func init() {
 		// dies-trigger shape, reading counters_EQ0_M1M1 off the LKI and
 		// returning the permanent with a -1/-1 counter.
 		"kw:Undying", "kw:Persist", "kw:Evolve", "kw:Exalted", "kw:Dethrone", "kw:Prowess", "kw:Riot", "kw:Hideaway", "kw:Extort", "kw:Myriad", "kw:Soulbond", "kw:Dredge",
-		// Increment (CR 702.XX, task kw:Increment): a SpellCast self-trigger
+		// Increment (CR 702.XX): a SpellCast self-trigger
 		// (engine/cards/kw_increment.go) whose event-relative "mana spent > power or
 		// toughness" condition is read by trigmatch.incrementAdmits. Registered here so
 		// the coverage walk stops naming kw:Increment as a gap now that the

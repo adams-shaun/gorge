@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-sos",
+ "pool": "std-sos",
+ "why": "CR 613.1c: the printed Flashback and the granted one (Flashback's pump) price as separate potential casts, so the ambiguity scan never drops both",
  "actions": [
   184549120,
   167771904,

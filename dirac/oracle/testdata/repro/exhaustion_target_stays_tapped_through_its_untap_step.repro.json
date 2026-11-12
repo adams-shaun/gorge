@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Exhaustion on an opponent whose Grizzly Bears attacked and whose Forests paid for them: the tapped creatures and lands stay tapped through their next untap step, the Effect's untap trigger goes on the stack as their upkeep begins, and the permanents untap in the step after (CR 611.2b)",
  "actions": [
   19398400,
   17432320,

@@ -221,6 +221,8 @@
  ],
  "surface": "full",
  "kernel": "set cmd5",
+ "pool": "custom",
+ "why": "kfuzz cmd5 heuristic pair 3: Keen Engineering's thopters and the goblins make the game's 25th token with both 100-card decks holding 200 object ids: the new token takes the id of one that ceased to exist in an earlier turn, on both sides (CR 111.7, 704.5d); TestCmd5TokenIdsReusedNoStall checks it does not stall",
  "actions": [
   16776960,
   16776960,

@@ -220,9 +220,23 @@ import (
 // +1 (Count$TotalDamageReceivedThisTurn lowered: Tangled Colony; merged with land ALL build-level 22180 -> 22181).
 // +1 (ConditionActivationLimit$ lowers to kop.ExActivations: Dragon Whelp; merged with land ALL build-level 22184 -> 22185).
 // +5 (the Aura-on-land TapsForMana extra with a literal body: Wild Growth, Overgrowth, Wolfwillow Haven, Gauntlet of Might, Vernal Bloom; ALL build-level 22345 -> 22350).
-// +35 (K:Foretell lowers as the {2} hand special action and the later exile cast for the foretell cost, and Count$wasCastFromExile.<yes>.<no> lowers in a spell ability: Alrund's Epiphany, Augury Raven, Battle Mammoth, Behold the Multiverse, Demon Bolt, Depart the Realm, Doomskar, Doomskar Oracle, Doomskar Titan, Dual Strike, Dwarven Reinforcements, Frost Fair Lure Fish, Gods' Hall Guardian, Impending Flux, Iron Verdict, Jarl of the Forsaken, Kaya's Onslaught, Mammoth Growth, Ravenform, Return Upon the Tide, A-Return Upon the Tide, Rise of the Dread Marn, Sarulf's Packmate, Saw It Coming, Scorn Effigy, Shepherd of the Cosmos, Skull Raid, Spectral Deluge, Struggle for Skemfar, Surge of Brilliance, Tergrid's Shadow, Vengeful Reaper, Warhorn Blast, Delayed Blast Fireball, Ultimate Magic: Holy; ALL build-level 22381 -> 22416).
+// +11 (static Condition$ NotPlayerTurn on the Force cycle's AlternativeCost
+// and the hasFewer<Type>sInPlayThanYou combat statics lower, and the bare
+// ExileFromHand<1/Spec> alternative beside them: Cave-In, Pyrokinesis,
+// Snapback, Unmask, Vine Dryad, Force of Negation, Force of Vigor, Force of
+// Despair, Monstrous Hound, Mogg Toady, Goblin Goon; ALL build-level 22381 -> 22392).
+// +192 (the merge with land: this branch's +11, of which land's Misdirection
+// bare-exile lowering already built Cave-In, Pyrokinesis, Snapback, Unmask and
+// Vine Dryad; the six new ones are Force of Negation, Force of Vigor, Force of
+// Despair, Monstrous Hound, Mogg Toady and Goblin Goon; merged ALL build-level
+// 22392 -> 22584).
+// +31 (K:Partner with: the carriers listed at ratchet_test.go's ALL pin; ALL build-level 22381 -> 22412; merged ALL build-level 22706 -> 22737).
+// +29 (api BecomeMonarch, Mode$ BecomeMonarch, Count$Monarch, CheckDefinedPlayer$ You|Opponent.isMonarch and a monarch-gated Effect lower: Aragorn, King of Gondor, Chief Magistrate of Mercadia, Court of Ardenvale, Court of Bounty, Court of Cunning, Court of Embereth, Court of Garenbrig, Court of Grace, Court of Ire, Crimson Fleet Commodore, Custodi Lich, Faramir, Steward of Gondor, Feast of Succession, Garrulous Sycophant, Grave Venerations, Keeper of Keys, Knights of the Black Rose, Marchesa's Decree, Nakia, Wakandan Operative, Oath of Eorl, Palace Sentinels, Queen Marchesa, Regal Sliver, Skyline Despot, Staunch Throneguard, Thorn of the Black Rose, Throne Warden, Throne of the High City, Éomer, King of Rohan; ALL build-level 22381 -> 22410).
+// +30 (the merge with land: the monarch lowering above against land's corpus; merged ALL build-level 22868 -> 22898).
+// +16 (the merge with land: land's later work after f486bfb466, the zone-scoped PlayerCount extreme and Pump/UntilYourNextTurn lowering at 0d7bfabead, DSK 250 -> 251; merged ALL build-level 22898 -> 22914 measured).
+// +35 (K:Foretell lowers as the {2} hand special action and the later exile cast for the foretell cost, and Count$wasCastFromExile.<yes>.<no> lowers in a spell ability: Alrund's Epiphany, Augury Raven, Battle Mammoth, Behold the Multiverse, Demon Bolt, Depart the Realm, Doomskar, Doomskar Oracle, Doomskar Titan, Dual Strike, Dwarven Reinforcements, Frost Fair Lure Fish, Gods' Hall Guardian, Impending Flux, Iron Verdict, Jarl of the Forsaken, Kaya's Onslaught, Mammoth Growth, Ravenform, Return Upon the Tide, A-Return Upon the Tide, Rise of the Dread Marn, Sarulf's Packmate, Saw It Coming, Scorn Effigy, Shepherd of the Cosmos, Skull Raid, Spectral Deluge, Struggle for Skemfar, Surge of Brilliance, Tergrid's Shadow, Vengeful Reaper, Warhorn Blast, Delayed Blast Fireball, Ultimate Magic: Holy; ALL build-level 22381 -> 22416; merged with land's 22929, disjoint: ALL 22964 measured).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22416, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22964, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

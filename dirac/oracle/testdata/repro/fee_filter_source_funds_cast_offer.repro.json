@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "CR 601.2g, 605.3a: Mardu Devotee's {1} mana ability's own fee is paid from a Plains, so its {B} funds Caustic Exhale's {1} arm and the cast is offered with nothing floated (std-tdm pair 419).",
  "actions": [
   184549120,
   184549120,

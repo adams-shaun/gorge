@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-fdn",
+ "pool": "std-fdn",
+ "why": "CR 601.2g: Ramos, Dragon Engine's counter-cost mana beside the Goggles pays Zetalpa, Primal Dawn: the deferred script's dead-end check plays the counter gap as the prefix does",
  "actions": [
   167771904,
   184549120,

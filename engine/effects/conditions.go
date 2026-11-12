@@ -596,9 +596,7 @@ func conditionDefinedMet(h Host, c *Ctx, sa *cards.SA, defined, present, compare
 	// The bare spelling is a SUBSTRING of the ByYou token, so a ByYou spec
 	// must not route to the bare helper — the ByYou branch owns it.
 	hasBareHand := !hasHandToken && strings.Contains(present, "wasCastFromYourHand")
-	// The card-level CastSa flag tokens (task mayhem: Sandman's
-	// Quicksand's "if this spell's mayhem cost was paid" split; task
-	// mayplay-warp: Full Bore's Card.CastSa Spell.Warp) are evaluated per
+	// The card-level CastSa flag tokens are evaluated per
 	// member off the cast's CastFlags provenance, the same split the hand
 	// families take. The spend spellings of the CastSa family stay
 	// fail-closed here (no strip; wordMatches never matches them) — the
@@ -1703,7 +1701,7 @@ func castFromHandAnyAdmitsFilter(h Host, spec string, objID state.ObjID) (string
 // (effects cannot import rules); a new flag spelling must be added to BOTH
 // tables, and the census recognition in filter.go's wordKind switch is the
 // third site. Spell.MayPlaySource is deliberately NOT here: it is the
-// sibling task mayplay-src's predicate, recorded and read rules-side only.
+// sibling MayPlaySource predicate, recorded and read rules-side only.
 // The loop in castSaAdmitsFilter and the hasCastSaFlag gate in the
 // ConditionPresent walk both read this one table, so the next flag spelling
 // cannot be handled by one read and missed by the other.
@@ -1726,10 +1724,7 @@ func hasCastSaFlag(spec string) bool {
 	return false
 }
 
-// castSaAdmitsFilter evaluates the card-level CastSa flag tokens (task
-// mayhem: Sandman's Quicksand's `ConditionPresent$ Card.!
-// CastSa Spell.Mayhem` / `Card.CastSa Spell.Mayhem` split; task
-// mayplay-warp: Full Bore's `ConditionPresent$ Card.CastSa Spell.Warp`)
+// castSaAdmitsFilter evaluates the card-level CastSa flag tokens
 // against ONE object through the Host's game read — the effects-side twin
 // of rules' castSaAdmits (which runs the same strip at the rules-side match
 // sites where the Engine is in scope). holds reads the object's LATEST
@@ -1741,7 +1736,7 @@ func hasCastSaFlag(spec string) bool {
 // the copy rules carry), so a warp copy reads true — the same reading the
 // FlagWarped entry hook takes. Both spellings of each token (positive and
 // !-negated) are handled; the spend spellings of the CastSa family and the
-// sibling task mayplay-src's Spell.MayPlaySource stay fail-closed here, the
+// sibling MayPlaySource's Spell.MayPlaySource stay fail-closed here, the
 // documented convention.
 func castSaAdmitsFilter(h Host, spec string, objID state.ObjID) (string, bool) {
 	var flags uint64

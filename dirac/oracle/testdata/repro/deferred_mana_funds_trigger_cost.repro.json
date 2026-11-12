@@ -94,8 +94,10 @@
  "mulligans": 1,
  "pass_elision": false,
  "max_turns": 100,
- "surface": "full",
+ "surface": "autopay",
  "kernel": "synth std-fdn",
+ "pool": "std-fdn",
+ "why": "CR 106.6: Pyromancer's Goggles' {R} has no spending restriction, so an untapped Goggles alone funds Frenzied Goblin's \"you may pay {R}\": pay is offered beside decline",
  "actions": [
   184549120,
   184549120,

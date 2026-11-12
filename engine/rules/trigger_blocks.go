@@ -806,9 +806,7 @@ func (e *Engine) checkAttackerUnblockedOnceTriggers() {
 }
 
 // blocksCandidates lists the (attacker, blocker) pairs one Forge Mode$ Blocks
-// trigger fires for (task trig:Blocks; Savvy Hunter's "Whenever Savvy Hunter
-// attacks or blocks", Heat of Battle's "Whenever a creature blocks", Wand of
-// Orcus' bearer half). Each declared pair is evaluated per pair -- one
+// trigger fires for (Savvy Hunter's "Whenever Savvy Hunter attacks or blocks", Heat of Battle's "Whenever a creature blocks", Wand of Orcus' bearer half). Each declared pair is evaluated per pair -- one
 // instance per matching pair, exactly Forge's per-block-event firing --
 // because the trigger's matching object is the pair's BLOCKER, not the
 // trigger's own source: ValidCard$ is read against the blocker (Card.Self

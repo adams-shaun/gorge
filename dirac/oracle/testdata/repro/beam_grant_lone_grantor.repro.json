@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trk",
+ "why": "Scotty the only creature, Open Communications in the graveyard: the grant has no creature to return",
  "actions": [
   16776960,
   16776960,

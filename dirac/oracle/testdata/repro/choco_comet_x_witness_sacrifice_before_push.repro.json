@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "CR 601.2b, 601.2g, 733.1: Choco-Comet's largest-X lowered witness would sacrifice a Treasure, and Al Bhed Salvagers' trigger would end the game before the push, so gorge's potentialWitnessKeeping prices the smaller X that keeps it and both engines ask X with the spell on the stack",
  "actions": [
   167771904,
   167771904,

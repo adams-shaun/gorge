@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "Mai, Jaded Edge's Honest Work grant live beside Rumble Arena's filter: Agna Qel'a's activation prices without the grant in its filter prefix, so the prefix yields to the grant search, which taps Mai for the filter's fee first, as gorge's one search does (CR 605.3a)",
  "actions": [
   184549120,
   167771904,

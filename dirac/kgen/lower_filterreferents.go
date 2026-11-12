@@ -148,7 +148,7 @@ func ownerRoleF2(c lClause, zone kop.Zone) (kop.FilterFlags2, error) {
 	if zone == kop.ZoneBattlefield || zone == kop.ZoneStack {
 		return 0, refuse("OwnedBy %s on the battlefield or stack", ownerRoleWord(c.Owner))
 	}
-	if c.Ctrl == whoTgtPlayer || c.Ctrl == whoDefending || c.Ctrl == whoHitBySrc {
+	if c.Ctrl == whoTgtPlayer || c.Ctrl == whoTgtOrCtrl || c.Ctrl == whoDefending || c.Ctrl == whoHitBySrc {
 		return 0, refuse("OwnedBy %s beside a controller role", ownerRoleWord(c.Owner))
 	}
 	if c.Owner == whoTgtPlayer {

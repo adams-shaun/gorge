@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trc",
+ "why": "Reg Barclay copies a face-down creature: the token is a 2/2 face-down copy that is still an Illusion artifact with haste",
  "actions": [
   16776960,
   16776960,

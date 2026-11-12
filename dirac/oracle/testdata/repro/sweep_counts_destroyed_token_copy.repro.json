@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-trc",
+ "pool": "std-trc",
+ "why": "Join the Collective destroys nine creatures, one a token copy of Giant Space Amoeba: the copy is still in the graveyard until the next check (CR 111.7, 707.10a), so its nonartifact count makes eight Borg tokens, not seven",
  "actions": [
   16776960,
   16776960,

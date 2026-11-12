@@ -60,7 +60,8 @@ func TestFourSeatGorgeLockstepRunsClean(t *testing.T) {
 
 // TestProjectionHashTwoSeatStable: a two-seat projection, commander fields
 // set and not, hashes over exactly the bytes of every field before Seats, as
-// it did before the further seats existed.
+// it did before the further seats existed (and before the trailing Monarch,
+// which a game with no monarch leaves zero).
 func TestProjectionHashTwoSeatStable(t *testing.T) {
 	var p Projection
 	p.NInst, p.Life, p.Turn, p.Winner = 3, [2]int32{20, 7}, 9, -1
@@ -70,7 +71,7 @@ func TestProjectionHashTwoSeatStable(t *testing.T) {
 		v := reflect.ValueOf(p).Elem()
 		for i := 0; i < v.NumField(); i++ {
 			name := v.Type().Field(i).Name
-			if name == "Seats" {
+			if name == "Seats" || name == "Monarch" && p.Monarch == 0 {
 				continue
 			}
 			zeroCmd := p.CmdCasts == [2]uint8{} && p.CmdDamage == [2][2]uint8{}
