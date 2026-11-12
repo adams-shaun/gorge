@@ -2606,7 +2606,7 @@ func (s *State) digTake(k *prep, o Obj, z kop.Zone, fl int16) {
 		s.enterOnto(host)
 		sl := s.enterMoved(k, o, p, fl&kop.DigTapped != 0, kop.ZoneLibrary)
 		if ok {
-			s.attachPlayer(sl, seat) // CR 303.4f: an Enchant:Player Aura put onto the battlefield enters attached to its seat
+			s.attachPlayer(k, sl, seat) // CR 303.4f: an Enchant:Player Aura put onto the battlefield enters attached to its seat
 		} else {
 			s.attachedTo(k, sl, host) // CR 303.4f: an Aura put onto the battlefield enters attached
 		}

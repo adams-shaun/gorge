@@ -16,10 +16,11 @@ func (s *State) attackingEnchTrig(k *prep, sl, src Slot) bool {
 		return false
 	}
 	sp := &s.perms[src]
-	if sp.atchP == 0 || k.cards[s.objs[sp.obj].card].types&kop.TAura == 0 {
+	at := s.atchSeat(k, src)
+	if at == 0 || k.cards[s.objs[sp.obj].card].types&kop.TAura == 0 {
 		return false
 	}
 	p := &s.perms[sl]
-	return p.flags&pfAttacking != 0 && isPlayerTarget(p.atk) && CodeSeat(p.atk) == sp.atchP-1 &&
+	return p.flags&pfAttacking != 0 && isPlayerTarget(p.atk) && CodeSeat(p.atk) == at-1 &&
 		s.isCreature(k, sl) && s.trigPlayerCtrl(sl)
 }

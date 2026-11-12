@@ -17,7 +17,7 @@ var _ = [0 - unsafe.Offsetof(State{}.perms)%64]struct{}{}
 // pinned, as TestStateLayoutPinned pins the default class's.
 func TestStateLayoutPinnedMP(t *testing.T) {
 	// +24: coldArrays.hexUB's slice header, as in the default class.
-	const want = 21704
+	const want = 21256
 	if sz := unsafe.Sizeof(State{}); sz != want {
 		t.Fatalf("State is %d bytes, pinned at %d", sz, want)
 	}

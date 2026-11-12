@@ -30,7 +30,7 @@ func (s *State) attachQuiet(k *prep, sl, host Slot) (old Slot) {
 		s.lstamp[sl] = s.ts
 	}
 	s.perms[sl].attached = host
-	s.perms[sl].atchP = 0 // the two bearer forms never hold at once (state.go)
+	s.setAtchSeat(k, sl, 0) // the two bearer forms never hold at once
 	s.perms[sl].flags &^= pfLastBear
 	s.loseAllOnset(k, sl, host)
 	return old
@@ -65,24 +65,54 @@ func (s *State) attachPlayerLegal(k *prep, sl Slot, seat uint8) bool {
 // the linger set (gorge's UnattachPending/bearer-left machinery is
 // object-bearer-only), and a player attach carries no lose-all onset (the
 // "loses all abilities" statics name an object bearer).
-func (s *State) attachPlayer(sl Slot, seat uint8) {
-	s.attachQuietPlayer(sl, seat)
+func (s *State) attachPlayer(k *prep, sl Slot, seat uint8) {
+	s.attachQuietPlayer(k, sl, seat)
 }
 
 // attachQuietPlayer is attachPlayer without refreshTy; it restamps the
 // layer timestamp when the host moved (CR 613.7e: attached to a different
 // object OR player, gorge restampLayer).
-func (s *State) attachQuietPlayer(sl Slot, seat uint8) {
+func (s *State) attachQuietPlayer(k *prep, sl Slot, seat uint8) {
 	p := &s.perms[sl]
-	moved := p.attached != NoSlot || p.atchP != seat+1
+	moved := p.attached != NoSlot || s.atchSeat(k, sl) != seat+1
 	if moved {
 		s.ts++
 		s.lstamp[sl] = s.ts
 	}
 	p.attached = NoSlot
-	p.atchP = seat + 1
+	s.setAtchSeat(k, sl, seat+1)
 	p.flags &^= pfLastBear
 	s.touchSl(sl)
+}
+
+// atchSeat is a player-attached Aura's enchanted seat + 1 (0 = not attached
+// to a player): the Enchant:Player curses (gorge Object.HasAttachedPlayer /
+// AttachedPlayer, engine/events/apply_zone.go foldAttach's "attach to
+// player"). It lives in the arena's per-seat slot masks, not in perm (a
+// byte there would grow perm past 56 bytes and put padding under ObjHash's
+// whole-struct hash). The object bearers stay in perm.attached; the two never
+// hold at once, and the player-host reads (fireDefPlayer's Tf4DefEnch scan,
+// the SBA's illegal-player-attachment arm) never touch LastBearer state,
+// which gorge keeps object-bearer-only. A table with no Enchant:Player Aura
+// has no masks and reads 0.
+func (s *State) atchSeat(k *prep, sl Slot) uint8 {
+	for sd := 0; sd < MaxSeats; sd++ {
+		if s.mSl(k, mechAtch0+mech(sd), sl) {
+			return uint8(sd) + 1
+		}
+	}
+	return 0
+}
+
+// setAtchSeat records seat1 (seat + 1, 0 = none) as sl's enchanted player.
+func (s *State) setAtchSeat(k *prep, sl Slot, seat1 uint8) {
+	for sd := 0; sd < MaxSeats; sd++ {
+		if uint8(sd)+1 == seat1 {
+			s.mSlSet(k, mechAtch0+mech(sd), sl)
+		} else {
+			s.mSlClr(k, mechAtch0+mech(sd), sl)
+		}
+	}
 }
 
 // layerTs is the CR 613.7 timestamp the static abilities of the permanent

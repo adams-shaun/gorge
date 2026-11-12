@@ -22,7 +22,7 @@ func TestEnchantedBySecondLeg(t *testing.T) {
 	gold := CardID(len(tbl.Cards))
 	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Test Gold", Types: kop.TArtifact})
 	curse := CardID(len(tbl.Cards))
-	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Test Curse", Types: kop.TEnchantment | kop.TAura,
+	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Test Curse", Types: kop.TEnchantment | kop.TAura, Enchant: kop.TargetSpec{Kind: kop.TgtPlayer},
 		Abilities: []kop.Ability{{Kind: kop.AbTriggered,
 			Trig: kop.Trigger{Event: kop.TrigAttackersDeclared, Flags2: kop.Tf2DefPlayer, Flags4: kop.Tf4DefEnch},
 			Prog: []kop.Instr{
@@ -34,12 +34,12 @@ func TestEnchantedBySecondLeg(t *testing.T) {
 		sc := newScenTable(t, &tbl, Config{})
 		curseObj := sc.perm(curse, ctrl)
 		cs := sc.slot(curseObj)
-		sc.s.perms[cs].atchP = 2 // enchants seat 1 (the seat the other player attacks)
+		sc.s.setAtchSeat(sc.k, cs, 2) // enchants seat 1 (the seat the other player attacks)
 		bear := sc.perm(v.GrizzlyBears, 0)
 		bs := sc.slot(bear)
 		sc.s.perms[bs].atk = uint8(PlayerTarget0 + 1)
-		if sc.s.perms[cs].atchP != 2 || sc.slot(bear) == cs {
-			t.Fatalf("precondition: curse must enchant seat 1 (atchP=%d)", sc.s.perms[cs].atchP)
+		if sc.s.atchSeat(sc.k, cs) != 2 || sc.slot(bear) == cs {
+			t.Fatalf("precondition: curse must enchant seat 1 (atchSeat=%d)", sc.s.atchSeat(sc.k, cs))
 		}
 		l := trigListener{obj: curseObj, sl: cs, ctrl: ctrl, card: curse, ab: 0}
 		sc.s.fireDefPlayer(sc.k, l, &tbl.Cards[curse].Abilities[0], []Slot{bs})

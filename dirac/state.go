@@ -271,14 +271,6 @@ type perm struct {
 	eotP     int8 // until-end-of-turn pump, saturated to the int8 range; the true amount of a larger one is in State.ptx
 	eotT     int8
 	attached Slot // what this Aura/Equipment is attached to
-	// atchP is a player-attached Aura's enchanted seat + 1 (0 = none): the
-	// Enchant:Player curses (gorge Object.HasAttachedPlayer/AttachedPlayer,
-	// engine/events/apply_zone.go foldAttach's "attach to player"). The
-	// object bearers stay in attached; the two never hold at once, and the
-	// player-host read (fireDefPlayer's Tf4DefEnch enchanted scan, the SBA's
-	// illegal-player-attachment arm) never touches LastBearer state, which
-	// gorge keeps object-bearer-only.
-	atchP    uint8
 	blocking Slot // blocker: the attacker it blocks
 	nblock   uint8
 	chosen   uint8           // "as this enters" choice

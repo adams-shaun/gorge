@@ -955,7 +955,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			// excluding the aura's controller)
 			src := s.objRef(k, kop.RefSelf)
 			if seat := s.playerRef(k, in.W); src != NoSlot && seat < s.nSeats() && s.attachPlayerLegal(k, src, seat) {
-				s.attachPlayer(src, seat)
+				s.attachPlayer(k, src, seat)
 				s.touchSl(src)
 				if in.C&kop.MvRemember != 0 {
 					s.remember(s.perms[src].obj)
@@ -1851,7 +1851,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 						s.g.pre = preAsk{}
 					}
 					if enchSeat != 0 {
-						s.attachPlayer(sl, enchSeat-1) // CR 303.4f: an Enchant:Player Aura enters attached to its seat
+						s.attachPlayer(k, sl, enchSeat-1) // CR 303.4f: an Enchant:Player Aura enters attached to its seat
 					} else if host != NoSlot && s.occ.has(host) {
 						s.attachTo(k, sl, host)
 					}

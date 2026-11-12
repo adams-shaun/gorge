@@ -41,14 +41,14 @@ func (s *State) fireDefPlayer(k *prep, l trigListener, a *kop.Ability, grp []Slo
 // -- so two curses on two seats do not fire on each other's declarations, and
 // an Archnemesis on one seat does not fire when a different Aura's player is
 // attacked. The source is the listener's own permanent: its player-attached
-// seat (perm.atchP) plus its Aura type. A missing listener slot or a
+// seat (atchSeat) plus its Aura type. A missing listener slot or a
 // non-Aura source enchants nobody.
 func (s *State) defEnchanted(k *prep, l trigListener, def uint8) bool {
 	if l.sl == NoSlot {
 		return false
 	}
 	p := &s.perms[l.sl]
-	if p.atchP != def+1 {
+	if s.atchSeat(k, l.sl) != def+1 {
 		return false
 	}
 	return k.cards[s.objs[p.obj].card].types&kop.TAura != 0

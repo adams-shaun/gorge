@@ -602,7 +602,7 @@ func (s *State) sba(k *prep) bool {
 			if t&(kop.TAura|kop.TPlaneswalker) == 0 && p.attached == NoSlot {
 				continue
 			}
-			if t&kop.TAura != 0 && p.atchP != 0 {
+			if t&kop.TAura != 0 && s.atchSeat(k, sl) != 0 {
 				// a player-attached Aura (the Enchant:Player curses): gorge
 				// attachmentSBAs' HasAttachedPlayer arm (engine/rules/attach.go:128)
 				// -- a lost seat cannot stay enchanted (CR 800.4a) and an
@@ -796,10 +796,6 @@ func (s *State) sba(k *prep) bool {
 	}
 }
 
-// enchantLegal: Aura sl's host still matches its enchant ability (the
-// filter for the Aura's controller; protection from everything excludes
-// it). A lingering host (it left the battlefield, gorge unattaches at the
-// next check) is left to that path.
 // playerAuraLegal reports whether the player-attached Aura at sl is still
 // legally attached (gorge attachmentSBAs' HasAttachedPlayer arm,
 // engine/rules/attach.go:128, with playerAuraStillMatchesEnchant's read):
@@ -809,7 +805,7 @@ func (s *State) sba(k *prep) bool {
 // are the Ctrl filters the kgen fold holds).
 func (s *State) playerAuraLegal(k *prep, sl Slot) bool {
 	p := &s.perms[sl]
-	q := p.atchP - 1
+	q := s.atchSeat(k, sl) - 1
 	if q >= s.nSeats() || s.pl[q].lost {
 		return false
 	}
@@ -824,6 +820,10 @@ func (s *State) playerAuraLegal(k *prep, sl Slot) bool {
 	return true
 }
 
+// enchantLegal: Aura sl's host still matches its enchant ability (the
+// filter for the Aura's controller; protection from everything excludes
+// it). A lingering host (it left the battlefield, gorge unattaches at the
+// next check) is left to that path.
 func (s *State) enchantLegal(k *prep, sl Slot) bool {
 	p := &s.perms[sl]
 	h := p.attached
