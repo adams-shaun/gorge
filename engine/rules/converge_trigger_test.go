@@ -1,6 +1,6 @@
 package rules
 
-// CR 107.4f-family converge, the TRIGGER-relative spelling (task tconverge1):
+// CR 107.4f-family converge, the TRIGGER-relative spelling:
 // "creatures you control get +1/+0 until end of turn for each color of mana
 // spent to cast that spell" reads SVar:Y:TriggeredCard$Converge -- a trigger
 // reading a DIFFERENT spell's cast. The fix adds the Converge property

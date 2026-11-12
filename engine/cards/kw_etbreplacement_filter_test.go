@@ -3,7 +3,7 @@ package cards
 import "testing"
 
 // TestETBReplacementFilterFieldReachesValidCard pins the keyword expansion's
-// trailing colon field wiring at the compile level (task etbrepl-filter):
+// trailing colon field wiring at the compile level:
 // the 6th content field of
 //
 //	K:ETBReplacement:<layer>:<SVar>:<Mandatory|Optional>:<validZone>:<filter>

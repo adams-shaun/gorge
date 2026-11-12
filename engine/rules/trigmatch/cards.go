@@ -3,9 +3,7 @@
 // Mode$ Drawn, Discarded, Cycled, Explores and Investigated, with the
 // cause-admission and first-of-turn bookkeeping they need.
 //
-// Split out of trigger_match.go so tickets touching different modes stop
-// colliding on one file. Registration is at the bottom; a duplicate mode
-// panics (registerTrigMatcher).
+// Registration is at the bottom; a duplicate mode panics (registerTrigMatcher).
 
 package trigmatch
 
@@ -248,10 +246,7 @@ func seekAllMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Even
 }
 
 // surveilMatches implements the "whenever you surveil" trigger family
-// (Forge Mode$ Surveil, task trig-surveil: 12 corpus files / 12 raw lines at
-// the corpus pin -- Mirko, Obsessive Theorist; Dimir Spybug; Thoughtbound
-// Phantasm; Whispering Snitch; Copy Catchers; Disinformation Campaign;
-// Blood Operative; and the five Secondary$ scry-paired lines). The causing
+// (Forge Mode$ Surveil, Obsessive Theorist, Dimir Spybug, Thoughtbound Phantasm, Whispering Snitch, Copy Catchers, Disinformation Campaign, Blood Operative, and the five Secondary$ scry-paired lines). The causing
 // event is the completed events.Surveil record (a pure Apply no-op marker
 // api:Surveil's effSurveil emits beside each surveil instruction, one per
 // acting player): Player is the surveiling seat (what ValidPlayer$ matches --
@@ -282,8 +277,7 @@ func surveilMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Even
 }
 
 // scryMatches implements the "whenever you scry" / "whenever you choose to
-// put one or more cards on the bottom while scrying" family (Forge Mode$
-// Scry, task scrybottom). The causing event is the completed events.Scry
+// put one or more cards on the bottom while scrying" family (Forge Mode$ Scry). The causing event is the completed events.Scry
 // record rules' handleArrange emits once the KArrange answer is known (a
 // pure Apply no-op marker): Player is the scrying seat (what ValidPlayer$
 // matches), Obj the resolving source permanent, and Amount the number of
@@ -525,11 +519,13 @@ func drawNumberThisTurn(e Board, p state.PlayerID) int {
 }
 
 // firstCardInDrawStep reports whether the most recently emitted Draw for p is
-// the first draw since this turn entered its draw step. The log, rather than a
-// mutable counter, is the source of this ephemeral fact so cloning and replay
-// rebuild it without an event-schema change.
+// the first draw since this turn entered p's own draw step. The log, rather
+// than a mutable counter, is the source of this ephemeral fact so cloning and
+// replay rebuild it without an event-schema change. The active-player gate is
+// CR 504.1's "their draw step": a draw by a non-active seat during another
+// player's draw step is an extra draw, not that seat's turn-based draw.
 func firstCardInDrawStep(e Board, p state.PlayerID) bool {
-	if e.Game().Step != state.StepDraw {
+	if e.Game().Step != state.StepDraw || e.Game().Active != p {
 		return false
 	}
 	draws := 0
@@ -588,9 +584,7 @@ func exploitedMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Ev
 	return true
 }
 
-// evolvedMatches implements "whenever this creature evolves" (Forge Mode$
-// Evolved, CR 702.99b, task trig:Evolved; Watchful Radstag and Renegade Krasis
-// -- the 2 corpus carriers at the pin). The causing event is the completed
+// evolvedMatches implements "whenever this creature evolves" (Forge Mode$ Evolved, CR 702.99b, Watchful Radstag and Renegade Krasis -- the 2 corpus carriers at the pin). The causing event is the completed
 // events.Evolved marker rules' resolveTop emits after the Evolve keyword
 // ability actually put its +1/+1 counter (a pure Apply no-op marker, the
 // GiveGift/Investigate shape -- a dedicated Kind, not a CounterChange rider,

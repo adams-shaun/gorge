@@ -85,7 +85,7 @@ Search(src WorldSource, net *policynet.Model, opts Options) (Result, error)
 
 `-a az -az-sims N -az-world clairvoyant|sampled -checkpoint <gpol>`. It
 follows the L10 searchseat route: the driver feeds the seat the engine and
-history (the `BoardSeat`-style type assertion in `internal/bench.PlayGame`).
+history (the `BoardSeat`-style type assertion in `testkit/bench.PlayGame`).
 `-az-world clairvoyant` is refused anywhere a non-bench opponent could be
 seated (host / gorged).
 

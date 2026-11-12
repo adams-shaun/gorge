@@ -3,9 +3,7 @@
 // Mode$ ChangesZone / ChangesZoneAll and the zone gate every mode consults,
 // plus the Sacrificed and TokenCreated modes, which are zone events too.
 //
-// Split out of trigger_match.go so tickets touching different modes stop
-// colliding on one file. Registration is at the bottom; a duplicate mode
-// panics (registerTrigMatcher).
+// Registration is at the bottom; a duplicate mode panics (registerTrigMatcher).
 
 package trigmatch
 
@@ -213,7 +211,9 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 	// expansion) has already narrowed ev.To, so the extra battlefield guard
 	// is belt-and-braces.
 	if _, hasEvolve := t.Param(cards.PKEvolve); hasEvolve {
-		if ev.To != state.ZBattlefield {
+		// `to` (not ev.To): a token's mint event carries no move zones, and a
+		// token entering evolves the source like any creature (CR 702.100a).
+		if to != state.ZBattlefield {
 			return false
 		}
 		if e.Power(ev.Obj) <= e.Power(source) && e.Toughness(ev.Obj) <= e.Toughness(source) {

@@ -186,14 +186,30 @@ func TestCostTypeListSemicolon(t *testing.T) {
 	}
 }
 
-// TestNicknameSacSelf: Sac<1/NICKNAME> stays refused with a named reason.
-// Forge and XMage read it as the source itself, but gorge at the pin never
-// offers the activation (the gorge finding), so lowering it
-// as CostSacSelf would offer what gorge withholds.
+// TestNicknameSacSelf: Sac<1/NICKNAME> lowers as the source itself
+// (kop.CostSacSelf), the same reading as CARDNAME: gorge's
+// pay.SacrificeMatchSpec reads Forge's NICKNAME spec as CARDNAME and its
+// priority window offers the activation (measured at this pin,
+// engine/rules nickname_sac_test.go), so kgen copies gorge.
 func TestNicknameSacSelf(t *testing.T) {
 	const n = "Syr Ginger, the Meal Ender"
 	kp := kfhBuild(t, []string{n}, nil)
-	kp.refusedWith(t, n, "Sac<1/NICKNAME>: gorge never offers the activation")
+	if rs := kp.built[n].refusals; len(rs) != 0 {
+		t.Fatalf("%s refused: %q", n, keclReason(rs))
+	}
+	saw := false
+	for i := range kp.built[n].def.Abilities {
+		a := &kp.built[n].def.Abilities[i]
+		if a.Cost.Flags&kop.CostSacSelf != 0 {
+			saw = true
+			if a.Cost.Flags&(kop.CostTap|kop.CostSac) != a.Cost.Flags&kop.CostTap {
+				t.Errorf("Syr Ginger's activation cost flags %b: a source sacrifice beside a pick", a.Cost.Flags)
+			}
+		}
+	}
+	if !saw {
+		t.Error("Syr Ginger built with no CostSacSelf activation: Sac<1/NICKNAME> did not lower")
+	}
 }
 
 func TestAnimateTargetedNegatedType(t *testing.T) {

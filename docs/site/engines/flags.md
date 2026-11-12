@@ -87,7 +87,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 
 ## kgen
 
-`go run -trimpath ./dirac/cmd/kgen`. Compiles card pools from gorge's IR into dirac's binary card tables, and answers which cards dirac supports. `cmd/kgen` is a thin main over package `dirac/kgen`.
+`go run -trimpath ./dirac/cmd/kgen`. Compiles card pools from gorge's IR into dirac's binary card tables, and answers which cards dirac supports. `dirac/cmd/kgen` is a thin main over package `dirac/kgen`.
 
 | Flag | Type | Default | Meaning |
 |---|---|---|---|

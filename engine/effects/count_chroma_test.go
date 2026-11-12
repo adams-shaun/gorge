@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestChromaSourceCount pins the ChromaSource count head (task lb-chroma):
+// TestChromaSourceCount pins the ChromaSource count head:
 // Forge's AbilityUtils Chroma block, whose ChromaSource form counts the
 // coloured mana symbols of the PASSED-IN source card's printed mana cost
 // (CardLists.getTotalChroma over ManaCostShard.isColor). Before the

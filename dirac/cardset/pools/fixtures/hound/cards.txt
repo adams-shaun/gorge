@@ -1,0 +1,13 @@
+# The three can't-attack/can't-block self-restrictions with an
+# UnlessDefender$ hasFewer<Type>sInPlayThanYou count and a NotPlayerTurn
+# CantBlock gate (Monstrous Hound, Mogg Toady, Goblin Goon), beside the
+# creatures and lands the counts read, for the oracle's constructed lockstep
+# (dirac/oracle/hound_test.go)
+Monstrous Hound
+Mogg Toady
+Goblin Goon
+Grizzly Bears
+Hill Giant
+Shock
+Forest
+Mountain

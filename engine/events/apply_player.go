@@ -309,7 +309,7 @@ func stampTarget(g *state.Game, o *state.Object, id state.ObjID) {
 func foldAlterAttribute(g *state.Game, e *Event) {
 	// The AlterAttribute fold: the engine models the
 	// "Saddled" (CR 702.171), "Suspected" (CR 702.157), "Harnessed" and "Plotted"
-	// (CR 701.34, task kw-plot)
+	// (CR 701.34)
 	// attributes. Text names the attribute so a future modelled one
 	// extends this switch without an event-schema change; an unmodelled
 	// name never reaches Apply (the effect emits its loud
@@ -380,7 +380,7 @@ func foldAlterAttribute(g *state.Game, e *Event) {
 			// permanent; Amount carries the Renown count for listeners.
 			o.Renowned = e.Amount >= 1
 		case "Tributed":
-			// CR 702.104: the tribute designation (task kw-tribute-expansion).
+			// CR 702.104: the tribute designation.
 			// putCounterTribute's acceptance emits the grant after the chosen
 			// opponent confirmed; the Move fold's leaving-battlefield block is
 			// its one clear. The paying opponent rides Player for listeners.

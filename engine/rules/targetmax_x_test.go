@@ -1,6 +1,6 @@
 package rules
 
-// The TargetMax$ X / TargetMin$ X dynamic-bound task: the announcement ask
+// The TargetMax$ X / TargetMin$ X dynamic-bound family: the announcement ask
 // (targetAsk, engine/rules/cast.go) and the placement ask (askTarget, fed by
 // trigger_queue.go) resolve a non-literal bound through the effects numeric
 // grammar instead of silently dropping it to the default 1. The shared

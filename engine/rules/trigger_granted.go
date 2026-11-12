@@ -3,9 +3,7 @@
 // Conspire, Dethrone, Afflict and Ward reach the stack through a granting static,
 // so they are checked here rather than through the per-mode matchers.
 //
-// Split out of trigger_match.go so tickets touching different modes stop
-// colliding on one file. Registration is at the bottom; a duplicate mode
-// panics (trigmatch.registerTrigMatcher).
+// Registration is at the bottom; a duplicate mode panics (trigmatch.registerTrigMatcher).
 
 package rules
 

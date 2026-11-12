@@ -299,6 +299,13 @@ func (e *Engine) quietBoardBlocker(p state.PlayerID) quietBlockerID {
 			return qbBoardCostGrant
 		}
 	}
+	// An Effect-delivered spell-flash grant (flash_effect_grants.go) lifts a
+	// non-instant's timing like a battlefield CastWithFlash static does.
+	for i := range ces {
+		if spellFlashRegistration(&ces[i]) {
+			return qbBoardFlash
+		}
+	}
 	// One early-exit existence pass over the static-hot objects answers the
 	// AddAbility$ carrier, CastWithFlash, PlotZone, MayPlay$ True and
 	// non-self-only reduce/set cost static reads without building a view

@@ -1,9 +1,8 @@
 // Class trigger mode.
 //
 // Mode$ ClassLevelGained (CR 702.118c): "When this Class becomes level N".
-// Split out of trigger_match.go so tickets touching different modes stop
-// colliding on one file. Registration is at the bottom; a duplicate mode
-// panics (registerTrigMatcher).
+//
+// Registration is at the bottom; a duplicate mode panics (registerTrigMatcher).
 
 package trigmatch
 
