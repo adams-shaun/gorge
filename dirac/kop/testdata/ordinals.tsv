@@ -309,6 +309,7 @@ DuRestBottom	untyped int	8
 DurAirbend	untyped int	10
 DurDefeated	untyped int	9
 DurEOT	untyped int	0
+DurForetell	untyped int	13
 DurPermanent	untyped int	1
 DurPlot	untyped int	7
 DurPrepared	untyped int	8
