@@ -158,6 +158,16 @@ func buildCard(pt *poolTables, c *lCard) built {
 		}
 		cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "emit " + node, Reason: err.Error()})
 		cb.out.def.Abilities = nil
+	} else if c.Rebound != nil {
+		// CR 702.88a: the latent recast body, run by the upkeep delayed
+		// program the kernel registers as the hand-cast spell resolves
+		// (dirac/kw_rebound.go); the ability map is filled by abilities()
+		if j, ok := cb.abMap[c.Rebound.Index]; ok && j+1 <= 255 {
+			cb.out.def.ReboundAb = uint8(j + 1)
+		} else {
+			cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "emit K:Rebound", Reason: "the recast body was not emitted"})
+			cb.out.def.Abilities = nil
+		}
 	}
 	if c.Impending == nil && putsTimeCounters(&cb.out.def) {
 		// the kernel's impending dormancy reads the time counters, not

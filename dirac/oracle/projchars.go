@@ -170,6 +170,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Chapter":                           "the chapter abilities (TrigCounterAddedOnce on LORE, kw_saga.go), no battlefield characteristic",
 	"Convoke":                           "CardDef.Convoke (a cast-time payment, no battlefield characteristic; kw_convoke.go)",
 	"Improvise":                         "CardDef.Improvise (a cast-time payment, no battlefield characteristic; kw_convoke.go)",
+	"Rebound":                           "CardDef.ReboundAb (a resolution-time exile and an upkeep delayed program, no battlefield characteristic; kw_rebound.go)",
 	"Delve":                             "CardDef.Delve (a cast-time payment, no battlefield characteristic; kw_delve.go)",
 	"Morph":                             "CardDef.MorphCost/MorphFamily (the face-down cast and turn-up special action)",
 	"Megamorph":                         "CardDef.MorphCost/MorphFamily (the face-down cast and turn-up special action)",

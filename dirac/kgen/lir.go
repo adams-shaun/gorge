@@ -1001,6 +1001,7 @@ type lCard struct {
 	Convoke        bool      // K:Convoke (CR 702.51a): the cast may tap creatures for its mana cost
 	Improvise      bool      // K:Improvise (CR 702.126a): the cast may tap artifacts for the generic part of its mana cost
 	Delve          bool      // K:Delve (CR 702.66a): the cast exiles graveyard cards toward its generic cost (dirac/kw_delve.go)
+	Rebound        *lAbility // K:Rebound (CR 702.88a): the latent free-cast-from-exile body of the upkeep recast (dirac/kw_rebound.go)
 	Mayhem         *manaCost // K:Mayhem:<cost> (CR 702.187): a graveyard cast for this cost if the card was discarded this turn (dirac/kw_mayhem.go)
 	BeamMeUp       *manaCost // K:Beam me up:<cost>: a graveyard cast for this cost that also returns a creature you control (FbCost)
 	Harmonize      *manaCost // K:Harmonize:<cost> (CR 702.180a): a graveyard cast for this cost, one creature tapped for its power off the generic part

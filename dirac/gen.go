@@ -230,6 +230,7 @@ type genPrep struct {
 	anySneak       bool           // some card has sneak (CardDef.HasSneak; kw_sneak.go)
 	anyWebSling    bool           // some card has web-slinging (CardDef.HasWebSling; kw_websling.go)
 	anyMayFlash    bool           // some card has K:MayFlashCost (CardDef.HasMayFlash; kw_mayflash.go)
+	anyRebound     bool           // some card has printed rebound (CardDef.ReboundAb; kw_rebound.go): a hand-cast spell's resolution exits to exile and registers the upkeep recast
 	anyDelve       bool           // some card has printed or granted Delve (CardDef.Delve, StatStackKw Delve; kw_delve.go)
 	anyConvoke     bool           // some card has printed or granted convoke/improvise or harmonize (CardDef.Convoke/Improvise/Harmonize, StatStackKw Improvise/Convoke; kw_convoke.go)
 	anyBeam        bool           // some card has printed beam me up (CardDef.BeamMeUp; kw_beammeup.go)
@@ -838,6 +839,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.Delve {
 			g.anyDelve = true
+		}
+		if c.ReboundAb != 0 {
+			g.anyRebound = true
+			g.anyCastProv = true // reboundRests reads the cast's zone (stackEntry.prov)
 		}
 		if c.Cascade != 0 {
 			g.anyCascade = true

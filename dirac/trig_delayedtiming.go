@@ -42,6 +42,9 @@ func dpWhen(in *kop.Instr) uint8 {
 // delayed program (genPrep.anyDelayUp).
 func tableDelaysUpkeep(t *Table) bool {
 	for i := range t.Cards {
+		if t.Cards[i].ReboundAb != 0 {
+			return true // kw_rebound.go registers a your-upkeep program
+		}
 		for j := range t.Cards[i].Abilities {
 			for _, in := range t.Cards[i].Abilities[j].Prog {
 				if in.Op == kop.OpDelayedProgram && in.A.N != 0 {

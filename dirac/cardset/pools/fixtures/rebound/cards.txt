@@ -1,0 +1,27 @@
+# K:Rebound (CR 702.88a): a hand-cast instant or sorcery is exiled as it resolves
+# and recast free at its controller's next upkeep. Every printed carrier that
+# lowers, with creatures to blink and copy and cheap spells for Cascade, for
+# dirac/oracle/rebound_test.go
+Ephemerate
+Consuming Vapors
+Into the Time Vortex
+Quantum Misalignment
+Terramorph
+Fantastic Elasticity
+Fevered Suspicion
+Flame On!
+Invisible Force Field
+It's Clobberin' Time!
+Nomads' Assembly
+Recurring Insight
+Survival Cache
+Transpose
+Grizzly Bears
+Llanowar Elves
+Lightning Bolt
+Shock
+Island
+Mountain
+Forest
+Plains
+Swamp

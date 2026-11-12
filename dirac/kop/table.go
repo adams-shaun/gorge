@@ -383,6 +383,11 @@ type CardDef struct {
 	// exiles graveyard cards toward its generic cost (dirac/kw_delve.go).
 	// A granted delve reads the same path.
 	Delve bool
+	// ReboundAb is 1 + the latent ability index of a printed K:Rebound's
+	// recast body (CR 702.88a; 0 = no Rebound): a spell cast from the hand
+	// is exiled as it resolves and, at its controller's next upkeep, the
+	// body offers the free cast of the exiled card (dirac/kw_rebound.go).
+	ReboundAb uint8
 	// Improvise is printed improvise (CR 702.126a): the cast may tap
 	// untapped artifacts, each paying {1} of the generic part. Never set
 	// with Convoke (kgen refuses both). Shares the convoke payment path.

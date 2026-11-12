@@ -437,6 +437,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.numberOnceAbilities()
 	lc.refusePlotCombos()
 	lc.refuseHarmonizeCombos()
+	lc.refuseReboundCombos() // lower_rebound.go
 	lc.refuseMayhemCombos()
 	lc.refuseBeamCombos()
 	lc.refuseSneakCombos()
@@ -1346,6 +1347,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			// generic cost (dirac/kw_delve.go); a granted Delve reads the
 			// same kernel path.
 			lc.out.Delve = true
+		case head == "Rebound" && param == "":
+			lc.lowerRebound(node) // lower_rebound.go
 		case head == "Madness":
 			// CR 702.35a-b: a discard replacement into exile plus a
 			// keyword trigger whose resolution offers the cast for this

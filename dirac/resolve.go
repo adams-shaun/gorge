@@ -314,6 +314,10 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 			if s.spellRestExiles(e) || e.markExiles(fizzled) { // markExiles: repl_stackexile.go
 				z = kop.ZoneExile
 			}
+			rebound := s.reboundRests(k, e, fizzled) // kw_rebound.go
+			if rebound {
+				z = kop.ZoneExile
+			}
 			if k.gen != nil && k.gen.anyFaces {
 				z = s.stackExitFace(k, e.obj, z, !fizzled) // face_castface.go
 			}
@@ -327,6 +331,9 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 				s.placeFromK(k, e.obj, z, false, kop.ZoneStack, false)
 				if !fizzled {
 					s.markedPlot(k, e) // repl_stackexile.go
+				}
+				if rebound {
+					s.reboundRegister(k, e)
 				}
 			}
 		}
