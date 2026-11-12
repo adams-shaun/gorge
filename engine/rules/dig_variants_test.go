@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The Dig variant params (task inbox-paramcensus-dig-variants): the reveal
+// The Dig variant params: the reveal
 // family (Reveal$/NoReveal$/ForceRevealToController$), the second
 // destination (DestinationZone2$/LibraryPosition2$) and the movement riders
 // (Tapped$/SkipReorder$), each pinned end to end through the real engine on

@@ -1566,11 +1566,13 @@ func (e *Engine) attackOffersCompute() []attackOffer {
 				continue
 			}
 			if playerOK {
+				// A priced-out player pair drops that pair alone: a tax on
+				// attacking the player (Propaganda's Target$ You) leaves the
+				// creature's planeswalker pairs below to their own prices.
 				charge := e.attackPairCharge(id, d, 0)
-				if !charge.zero() && !e.combatChargeAffordable(p, charge, map[state.ObjID]bool{id: true}, map[state.ObjID]bool{id: true}) {
-					continue
+				if charge.zero() || e.combatChargeAffordable(p, charge, map[state.ObjID]bool{id: true}, map[state.ObjID]bool{id: true}) {
+					out = append(out, attackOffer{id: id, def: d, charge: charge})
 				}
-				out = append(out, attackOffer{id: id, def: d, charge: charge})
 			}
 			// CR 508.1: a planeswalker on d's battlefield is a legal defender
 			// for d's opponents, offered in addition to the player themselves
@@ -1848,10 +1850,24 @@ func (e *Engine) askNextAttackPay() bool {
 		return false
 	}
 	sources := e.attackManaSources(plan.player)
-	if x := plan.tapExclude(); x != nil {
+	// CR 508.1f taps the declared attackers before 508.1h's mana abilities:
+	// one without vigilance is tapped by then and cannot also tap for mana
+	// here (the budget fold already priced the declaration without its
+	// production, attackOptionBudgetValue); one with vigilance stays
+	// untapped and may pay.
+	var tapped map[state.ObjID]bool
+	for _, o := range st.chosen {
+		if !e.hasKeywordH(o.Obj, kwhVigilance) {
+			if tapped == nil {
+				tapped = make(map[state.ObjID]bool, len(st.chosen))
+			}
+			tapped[o.Obj] = true
+		}
+	}
+	if x := plan.tapExclude(); x != nil || tapped != nil {
 		kept := sources[:0]
 		for _, s := range sources {
-			if !x[s.id] {
+			if !x[s.id] && !tapped[s.id] {
 				kept = append(kept, s)
 			}
 		}

@@ -237,6 +237,16 @@ func (s *State) execCreateToken(k *prep, in *kop.Instr) (ok, done bool) {
 	t := &s.g.tok
 	p := s.playerRef(k, in.Obj)
 	if p == 255 {
+		// gorge's TokenOwner grammar is fail-closed: a recognised player
+		// selector that resolves to nobody -- an unset "up to one" target's
+		// controller (Amphin Mutineer's enters trigger) -- mints no token and
+		// emits no Note (engine/effects/token.go); only an unrecognised
+		// spelling defaults to the controller. A target-slot controller ref
+		// resolves to 255 exactly when its slot is unset (tgtCtrlSlot).
+		switch in.Obj {
+		case kop.RefTargetController, kop.RefTgtCtrl1, kop.RefTgtCtrl2:
+			return true, true
+		}
 		p = s.res.e.ctrl
 	}
 	var tc CardID

@@ -32,8 +32,8 @@ import (
 // for the trigger's chained SubAbility$ -- __kwLWAttach, `DB$ Attach |
 // Defined$ Remembered | Object$ Self` -- to actually run and hit
 // Resolve's "unimplemented API" fallback (Attach is separate, not
-// registered yet). That Note is today's correct, honest outcome; once Task
-// 14 registers Attach, this test's last assertion should flip to checking
+// registered yet). That Note is today's correct, honest outcome; once
+// Attach is registered, this test's last assertion should flip to checking
 // the token is actually attached instead of checking the fallback fired.
 func TestBatterskullLivingWeaponCreatesAGermAndReachesAttach(t *testing.T) {
 	t.Parallel()
@@ -141,8 +141,7 @@ func TestBatterskullLivingWeaponCreatesAGermAndReachesAttach(t *testing.T) {
 	}
 
 	// Cross-check against the resulting object: a 0/0 Phyrexian Germ with no
-	// Attach to grant Batterskull's own +4/+4 (Attach is unregistered -- Task
-	// 14) is immediately lethal to itself under CR 704.5f, and this build's
+	// Attach to grant Batterskull's own +4/+4 (Attach is unregistered --) is immediately lethal to itself under CR 704.5f, and this build's
 	// own ceaseDeadTokens correctly cleans it up the moment it
 	// dies -- so by the time passUntilStackEmpty returns, the germ is
 	// legitimately gone from the battlefield again. That is the CORRECT,

@@ -1227,8 +1227,7 @@ func TestSameAttackerCannotAttackTwoDefenders(t *testing.T) {
 // order, and never against the active player or a departed seat. In a
 // two-player game the same construction is exactly one option per attacker
 // -- which is what keeps two-player behaviour
-// byte-identical (the 2-seat acceptance chain head does not move under this
-// task).
+// byte-identical (the 2-seat acceptance chain head does not move under this).
 func TestAttackersOfferEveryLivingOpponentOnce(t *testing.T) {
 	t.Parallel()
 	e := newSeats(t, 4)

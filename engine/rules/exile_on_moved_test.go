@@ -1,6 +1,6 @@
 package rules
 
-// ExileOnMoved$ (task inbox-paramcensus-exile-on-moved): the whole-effect
+// ExileOnMoved$: the whole-effect
 // end of a created Effect — a card the effect remembers leaves the named
 // zone and the ENTIRE continuous effect ends ("the effect is exiled"),
 // unlike ForgetOnMoved$, which only drops the card from the remembered set

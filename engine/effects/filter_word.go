@@ -468,9 +468,9 @@ func wordPredicate(p string) (wordKind, string) {
 	// spelling -- the same ordering rule castProvenanceAdmits documents.
 	case wordPredicateWordCastProvenance:
 		return wordCastProvenance, p
-	// The card-level CastSa property tokens (task castsa-provenance): the
+	// The card-level CastSa property tokens: the
 	// five mana-spend spellings the payment path's tagged ManaAdd encoding
-	// answers (task mayplay-mfa added CastSa Spell.ManaFromArtifact), plus
+	// answers, plus
 	// the cast-flag spellings Spell.Mayhem (state.FlagMayhem, stamped by
 	// modeFlags' "mayhem" case) and Spell.Warp (state.FlagWarped, modeFlags'
 	// "warped" case) — recognized here (the census no longer reports them

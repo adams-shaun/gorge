@@ -123,8 +123,7 @@ type replChoice struct {
 	// lifelink/deathtouch riders and commander-damage tally pay the way
 	// ordinary combat damage does, and finishChosenDamage resumes
 	// runCombatAssignments once this batch's parked choices all settle.
-	// lifelink/deadly cache the damage source's keywords at park time (Task
-	// 15's provenance-freezing discipline), toxic caches the source's total
+	// lifelink/deadly cache the damage source's keywords at park time, toxic caches the source's total
 	// CR 702.164 toxic N the same way (runCombatAssignments' synchronous emit
 	// site reads it at the moment of the hit; a parked hit must poison the
 	// same amount when it lands in finishChosenDamage), and cause is the

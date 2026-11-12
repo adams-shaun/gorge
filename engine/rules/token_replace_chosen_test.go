@@ -9,9 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The chosen-copy CreateToken replacement (DB$ ReplaceToken |
-// TokenScript$ Chosen | ValidChoices$ <spec>, the Esix / Moonlit Meditation /
-// Mirrormind Crown class, task esix-chosen-token-copy): the controller's
+// The chosen-copy CreateToken replacement (DB$ ReplaceToken | TokenScript$ Chosen | ValidChoices$ <spec>, the Esix / Moonlit Meditation / Mirrormind Crown class): the controller's
 // election is a real mid-replacement KChoose parked on the replacement
 // pipeline; on accept every gated mint becomes a copy of the chosen creature
 // (the DB$ CopyPermanent mint shape), on decline the event stands verbatim.
