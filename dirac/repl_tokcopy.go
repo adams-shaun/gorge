@@ -40,45 +40,18 @@ func (s *State) tokCopyApplies(k *prep, b Slot, a *kop.Ability, p uint8) (host S
 	return h, true
 }
 
-// tokCopyActive counts the ReplCopyFirstToken replacements p controls that
-// apply to a creation now, and the first one's host.
-func (s *State) tokCopyActive(k *prep, p uint8) (n int, host Slot) {
-	g := k.gen
-	host = NoSlot
-	for m := s.tokSrcM(p); m.any(); m = m.rest() {
-		b := m.first()
-		if g.replBits[s.cardAt(b)]&rbDblTok == 0 || s.genLost(k, b) {
-			continue
-		}
-		cd := &k.t.Cards[s.cardAt(b)]
-		for i := range cd.Abilities {
-			a := &cd.Abilities[i]
-			if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplCopyFirstToken {
-				continue
-			}
-			if h, ok := s.tokCopyApplies(k, b, a, p); ok {
-				if n == 0 {
-					host = h
-				}
-				n++
-			}
-		}
-	}
-	return n, host
-}
-
-// tokCopyOp is replTokensOp where a copy-instead replacement applies: nOther
-// other token replacements match the creation (rewriters and multipliers, then
-// adders na). It poses the election and parks the op, or stalls.
-func (s *State) tokCopyOp(k *prep, in *kop.Instr, p uint8, tok CardID, n, nCopy int, host Slot, nOther, na int) (tc CardID, cnt int, ok, parked bool) {
+// tokCopyOp is replTokensOp where a copy-instead replacement is the creation's
+// only replacement (the walk in repl_tokorder.go poses the order ask when a
+// multiplier matches too). It poses the election and parks the op, or stalls.
+func (s *State) tokCopyOp(k *prep, in *kop.Instr, p uint8, tok CardID, n, nCopy int, host Slot, na int) (tc CardID, cnt int, ok, parked bool) {
 	ro := &s.g.ro
-	if nCopy > 1 || nOther > 0 || na > 0 || !tokCopyRiders(in) || n > 255 ||
+	if nCopy > 1 || na > 0 || !tokCopyRiders(in) || n > 255 ||
 		ro.n > 0 || ro.on || ro.nca || s.g.nc.n > 0 || s.tokCopyHostStalls(k, host) {
 		s.capFull(StallTokRewrite)
 		return tok, 0, false, false
 	}
 	s.g.tok = tokOrd{on: true, p: p, left: uint8(n), tok: tok, card: tok, cnt: 1}
-	s.g.tok.cand[3] = s.perms[host].obj
+	s.g.tok.cand[0] = s.perms[host].obj
 	s.res.ask, s.res.askP = raGenTokCopy, p
 	return tok, 0, true, true
 }
@@ -112,20 +85,39 @@ func (s *State) tokCopyHostStalls(k *prep, host Slot) bool {
 func (s *State) tokCopyOptions(d *Decision) {
 	d.Sub = ChGenTokCopy
 	d.add(MakeAction(AkChoose, 0, 0, 0))
-	d.add(MakeAction(AkChoose, uint8(s.g.tok.cand[3]), 0, 1))
+	d.add(MakeAction(AkChoose, uint8(s.tokCopyHost(s.k(), &s.g.tok)), 0, 1))
 }
 
-// tokCopyAnswer applies the election and runs the op again: its walk (the
-// token-by-token decision of repl_tokorder.go, with no candidate) makes the
-// first token a copy of the host when accepted, plain when declined, and the
-// rest plain.
+// tokCopyAnswer applies the election. The lone election (tokCopyOp) runs the
+// op again; the contested walk (repl_tokorder.go) continues with the copy
+// candidate consumed, the accepted copy minted for every token the walk's
+// count names, and later multipliers still applied.
 func (s *State) tokCopyAnswer(k *prep, a Action) {
 	t := &s.g.tok
 	if a.Mode() == 1 {
-		t.ab[3] = 1
+		t.setCopyTaken(true)
 	}
-	s.res.ask = raNone
+	if t.nc == 0 {
+		s.res.ask = raNone
+		s.runProg(k)
+		return
+	}
+	if s.tokAfterWalk(k, true) {
+		return
+	}
 	s.runProg(k)
+}
+
+// mintTokenCopies makes n tokens under p that are copies of the permanent
+// host with the creation in's riders (mintTokenCopy). True when the board is
+// full (a stall).
+func (s *State) mintTokenCopies(k *prep, in *kop.Instr, p uint8, host Obj, n int) bool {
+	for i := 0; i < n; i++ {
+		if s.mintTokenCopy(k, in, p, host) {
+			return true
+		}
+	}
+	return false
 }
 
 // mintTokenCopy makes one token under p that is a copy of the permanent host
