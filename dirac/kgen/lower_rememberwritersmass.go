@@ -41,8 +41,9 @@ var remLKIValueRead = regexp.MustCompile(`\b(RememberedLKI\$|Remembered\$|Rememb
 // target. A later ConditionDefined$ RememberedLKI reads the remembered set
 // (gorge effDestroy records the last controller in Snap.ChangeZone and
 // rememberedControllerLKI reads it: C bit 4 marks the kernel's LKI so a
-// remembered read takes the last-known controller, not the owner). A card whose SVars read the snapshot's
-// characteristics refuses. done: the shape was handled here.
+// remembered read takes the last-known controller, not the owner). A card
+// whose SVars read the snapshot's characteristics refuses. done: the shape
+// was handled here.
 func (lc *lowerCtx) destroyRememberLKIDestroyed(ps *params, in *lInstr) (done bool, err error) {
 	if _, always := ps.m["AlwaysRemember"]; always || strings.TrimSpace(ps.m["RememberLKI"]) != "True" {
 		return false, nil
