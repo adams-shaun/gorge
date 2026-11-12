@@ -53,18 +53,6 @@ func (s *State) hybAbilityOffPlan(k *prep, p uint8, resolved *kop.ManaCost) bool
 	return s.hybResolve(k, p, c0, 0) != *resolved
 }
 
-// windowTapHeld taps p's sources the way gorge's manual cast window is
-// answered, leaving the mana in the pool for the payment (payCastWindow
-// without the spend).
-//
-//go:noinline
-func (s *State) windowTapHeld(k *prep, p uint8, cost *kop.ManaCost) {
-	_, held := s.windowTap(k, p, cost, true)
-	for c := range held {
-		s.pl[p].pool[c] += held[c]
-	}
-}
-
 // payReplanned pays a resolution-time mana cost the way gorge funds an
 // elected "pay" (rules respay.go resPayFund): while the pool does not pay
 // it, plan the rest and activate only that plan's first source, then plan

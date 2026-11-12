@@ -144,17 +144,6 @@ func (e *Engine) walkBuildSeq() uint64 {
 	return e.activeBuildSeq
 }
 
-// boardStaticsWalk returns the walk's fused static membership, or ok=false
-// outside a walk. Every returned slice is clipped, so a caller that appends
-// (castRestrictionSources) reallocates instead of writing the cache.
-func (e *Engine) boardStaticsWalk() (boardStatics, bool) {
-	c, ok := e.boardStaticsRef()
-	if !ok {
-		return boardStatics{}, false
-	}
-	return clipBoardStatics(c.v), true
-}
-
 // boardStaticsRef is boardStaticsWalk's cache, current for this walk, or
 // ok=false outside a walk. A reader of one list clips that list itself
 // rather than copying the whole boardStatics.
@@ -215,17 +204,6 @@ func (e *Engine) boardStaticsRef() (*boardStaticsCache, bool) {
 		c.ver++
 	}
 	return c, true
-}
-
-func clipBoardStatics(v boardStatics) boardStatics {
-	return boardStatics{
-		cost: costStaticViews{raise: slices.Clip(v.cost.raise), reduce: slices.Clip(v.cost.reduce),
-			set: slices.Clip(v.cost.set), optional: slices.Clip(v.cost.optional), validTarget: v.cost.validTarget,
-			manaReaching: v.cost.manaReaching},
-		action: actionStaticViews{cantCast: slices.Clip(v.action.cantCast),
-			cantActivate: slices.Clip(v.action.cantActivate), continuous: slices.Clip(v.action.continuous)},
-		manaConv: slices.Clip(v.manaConv),
-	}
 }
 
 // boardStaticsArrays is v's slices emptied (cleared, so the dead views pin

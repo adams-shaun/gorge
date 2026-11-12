@@ -334,18 +334,6 @@ func entryBodyKindEncodable(sa *cards.SA) bool {
 	return events.EntryCounterKindEncodable(entryBodyKind(effects.PutCounterOf(sa)))
 }
 
-// entryBodyAbsorbable reports whether a replacement body is the bare
-// self-entry counter shape this engine may fold into the entry move: a single
-// DB$ PutCounter | ETB$ True on the entering object itself with a resolvable
-// CounterNum$ and one counter kind. Anything carrying a rider (SubAbility$),
-// an asking modifier (Optional$/Choices$/Bolster$/Support$/Adapt$/
-// Monstrosity$), a per-recipient count or a composite kind is left to the
-// ordinary body path -- the conservative direction, so a body this build
-// cannot fully fold never loses its own resolution.
-func entryBodyAbsorbable(sa *cards.SA) bool {
-	return entryBodyAbsorbableFor(sa, false)
-}
-
 // entryBodyAbsorbableFor is entryBodyAbsorbable with the referent made
 // explicit: the entering object's own body names Defined$ Self, a body that
 // another permanent's replacement lends it (Metallic Mimic's "enters with an

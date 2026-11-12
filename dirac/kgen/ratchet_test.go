@@ -136,7 +136,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +16 (the merge with land: land's later work after f486bfb466, the zone-scoped PlayerCount extreme and Pump/UntilYourNextTurn lowering at 0d7bfabead, DSK 250 -> 251; merged ALL 22898 -> 22914 measured).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
 	// +12 (the merge with land: the storage-battery abilities above against land's corpus; merged ALL 22971 -> 22983 measured).
-	"ALL": {22986, 34442},
+	// +24 (mid-resolution ChooseNumber lowers: ChooseNumberMid, with Count$ChosenNumber and the dynamic PayEnergy<X> unless cost; an activated {X} energy cost stays refused rather than losing its amount; merged onto land c70201715c: ALL 23076 -> 23100, WOE 263 -> 264 measured).
+	"ALL": {23100, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {218, 280},
@@ -164,7 +165,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TMT": {183, 194},
 	"TRC": {300, 337},
 	"TRK": {311, 311},
-	"WOE": {263, 281},
+	"WOE": {264, 281},
 }
 
 // testSetlistDir is setlistDir relative to the test's working directory

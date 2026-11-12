@@ -446,7 +446,8 @@ func prepare(t *kop.Table) *prep {
 	// and cost path to the generated forms (value_tappower.go)
 	p.anyTapPowerStatic = tableHasStatic(t, kop.StatTapPower)
 	p.gen = prepareGen(t, p)
-	p.painMana = p.painMana || p.gen != nil && p.gen.anyTapsPain // a Pain-class Taps watcher prices its tapped source (mana_tapsdefer.go)
+	p.painMana = p.painMana || p.gen != nil && p.gen.anyTapsPain  // a Pain-class Taps watcher prices its tapped source (mana_tapsdefer.go)
+	p.costObj = p.costObj || p.gen != nil && p.gen.anyEscapeGrant // an escape cast's exile-fodder picks (kw_escape.go)
 	p.availExt = p.painMana || p.phyMana
 	p.restrSrc = p.gen != nil && p.gen.anyRestrSrc
 	p.embComb = prepEmbComb(t, p)

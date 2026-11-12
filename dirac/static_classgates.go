@@ -21,6 +21,7 @@ const (
 	sclsExMay                      // the card's own StatMayPlayFrom that works from exile
 	sclsFbGrant                    // StatFbGrant (kw_fbgrant.go)
 	sclsWarpG                      // StatWarpGrant (kw_warpgrant.go)
+	sclsEscapeG                    // StatEscapeGrant (kw_escape.go)
 )
 
 // prepStaticClasses fills g.sCls.
@@ -68,6 +69,8 @@ func prepStaticClasses(t *kop.Table, g *genPrep) {
 				m |= sclsFbGrant
 			case kop.StatWarpGrant:
 				m |= sclsWarpG
+			case kop.StatEscapeGrant:
+				m |= sclsEscapeG
 			}
 		}
 		g.sCls[i] = m

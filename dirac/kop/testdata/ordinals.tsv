@@ -316,6 +316,7 @@ DuRestBottom	untyped int	8
 DurAirbend	untyped int	10
 DurDefeated	untyped int	9
 DurEOT	untyped int	0
+DurForetell	untyped int	13
 DurPermanent	untyped int	1
 DurPlot	untyped int	7
 DurPrepared	untyped int	8
@@ -366,6 +367,7 @@ ExDiscardedThisTurn	ExprKind	241
 ExDistinctCMC	ExprKind	6
 ExDmgAmountReceived	ExprKind	219
 ExDrawnThisTurn	ExprKind	40
+ExEnergyOf	ExprKind	63
 ExExcessDamage	ExprKind	21
 ExExiledWithN	ExprKind	246
 ExFirstCast	ExprKind	255
@@ -448,6 +450,7 @@ ExtChangeTargets	ExtOp	225
 ExtChooseColorRes	ExtOp	5
 ExtChooseName	ExtOp	251
 ExtChooseNumber	ExtOp	230
+ExtChooseNumberMid	ExtOp	303
 ExtClearImprinted	ExtOp	257
 ExtCloneCopy	ExtOp	81
 ExtColorGrant	ExtOp	6
@@ -1216,12 +1219,14 @@ StatCantPreventDamage	StaticKind	232
 StatCantPutCounter	StaticKind	252
 StatCantSacrifice	StaticKind	237
 StatCantTarget	StaticKind	235
+StatCantTgtGrave	StaticKind	229
 StatCastWithFlash	StaticKind	6
 StatCombatDmgToughness	StaticKind	245
 StatContinuous	StaticKind	1
 StatControl	StaticKind	17
 StatCount	StaticKind	21
 StatDisableETB	StaticKind	234
+StatEscapeGrant	StaticKind	225
 StatExtraLandPlay	StaticKind	12
 StatFbGrant	StaticKind	242
 StatFlipCoinMod	StaticKind	226

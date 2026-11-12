@@ -694,6 +694,15 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Foretell != nil {
+		// CR 702.143a: no KwMask bit is free, so the foretell marker is its
+		// own field; the cost is the later exile cast's price, the {2}
+		// special action being fixed (dirac/kw_foretell.go)
+		d.HasForetell = true
+		if d.ForetellCost, err = manaCostOf(*c.Foretell); err != nil {
+			return err
+		}
+	}
 	if c.Sneak != nil {
 		// CR 702.190a: no KwMask bit is free, so the sneak marker is its own
 		// field; the cost is the declare-blockers alternative cost
@@ -819,6 +828,11 @@ func (cb *cardBuilder) record() error {
 		if d.AltCost, err = manaCostOf(*c.Mayhem); err != nil {
 			return err
 		}
+	}
+	if c.Aftermath {
+		// CR 702.127a: the right half of a split card, cast only from its
+		// owner's graveyard and exiled leaving the stack (dirac/face_aftermath.go)
+		d.Aftermath = true
 	}
 	if c.Retrace {
 		// CR 702.81a: a graveyard cast paying the printed cost plus the
@@ -948,6 +962,14 @@ func (cb *cardBuilder) record() error {
 			d.Faces = append(d.Faces, kop.CardID(j))
 		}
 		d.Face, d.FaceMode = uint8(c.Face), c.FaceMode
+		d.FusedSpell = c.FusedSpell
+	}
+	if c.FuseKey != "" {
+		j, ok := cb.pt.tokenIdx[c.FuseKey]
+		if !ok {
+			return fmt.Errorf("fused spell %q is not in the pool", c.FuseKey)
+		}
+		d.FuseDef = kop.CardID(j) + 1 // the matchup remaps it (cardset pooldata.go)
 	}
 	return nil
 }
@@ -2086,6 +2108,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vActivations:        kop.ExActivations,
 	vLifeLostLastTurn:   kop.ExLifeLostLastTurn,
 	vDmgAmount:          kop.ExDmgAmountReceived,
+	vEnergyOf:           kop.ExEnergyOf,
 	vMonarch:            kop.ExMonarch, // lower_monarch.go
 }
 

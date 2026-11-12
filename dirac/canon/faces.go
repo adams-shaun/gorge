@@ -25,6 +25,8 @@ const (
 	FaceCodeAdventure   = 2
 	FaceCodeRecast      = 3
 	FaceCodeSplit       = 4
+	FaceCodeFuse        = 5 // a fuse card cast from the hand as both halves (gorge "fuse", rules legal_walk_hand.go; dirac/face_fuse.go); the face nibble is 0, the front shows
+	FaceCodeAftermath   = 6 // a split card's aftermath half cast from the graveyard (gorge "aftermath", rules legal_walk_alt.go; dirac/face_aftermath.go)
 	FaceCodeMorphed     = 8
 	FaceCodeMegamorphed = 9
 	FaceCodeDisguised   = 10
@@ -40,7 +42,7 @@ const (
 func FollowedFaceRoute(fc uint8) bool {
 	switch fc & 15 {
 	case FaceCodeModal, FaceCodeAdventure, FaceCodeRecast, FaceCodeSplit,
-		FaceCodeOmen, FaceCodePrepared, FaceCodeSneak, FaceCodeRoomAlt:
+		FaceCodeOmen, FaceCodePrepared, FaceCodeSneak, FaceCodeRoomAlt, FaceCodeAftermath:
 		return true
 	}
 	return false
@@ -99,6 +101,10 @@ func (r *Translator) faceCastCanon(src, i uint8) uint8 {
 		code = FaceCodeAdventure
 	case cd.FaceMode == kop.FaceAdventure:
 		code = FaceCodeRecast
+	case dirac.FuseFaceCast(cd, i):
+		code = FaceCodeFuse
+	case cd.FaceMode == kop.FaceSplit && i == 1 && len(cd.Faces) == 2 && r.Tbl.Cards[cd.Faces[1]].Aftermath:
+		code = FaceCodeAftermath
 	case cd.FaceMode == kop.FaceSplit && i == 1:
 		code = FaceCodeSplit
 	case cd.FaceMode == kop.FacePrepare && i == 1:

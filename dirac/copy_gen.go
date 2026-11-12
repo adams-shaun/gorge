@@ -130,6 +130,9 @@ func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
 	if ce.trigPl == trigPlAirbend {
 		ce.trigPl = 0 // nor airbent (act_airbend.go)
 	}
+	if ce.trigPl == trigPlForetold {
+		ce.trigPl = 0 // nor foretold (kw_foretell.go)
+	}
 	if ce.impended() {
 		ce.mode &^= modeImpended // nor impended (CR 707.10: gorge's FlagImpending is cast provenance)
 	}
@@ -152,6 +155,9 @@ func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
 	}
 	if ce.trigPl == trigPlWebSling {
 		ce.trigPl = 0 // nor web-slinged (CR 707.10: gorge's FlagWebSlinged; kw_websling.go)
+	}
+	if ce.trigPl == trigPlEscape {
+		ce.trigPl = 0 // nor escape-cast (CR 707.10: gorge's FlagEscaped is cast provenance; kw_escape.go)
 	}
 	if ce.xi != 0 {
 		from := s.g.xtp[ce.xi-1]

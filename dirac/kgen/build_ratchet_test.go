@@ -246,7 +246,8 @@ import (
 // +16 (the merge with land: land's later work after f486bfb466, the zone-scoped PlayerCount extreme and Pump/UntilYourNextTurn lowering at 0d7bfabead, DSK 250 -> 251; merged ALL build-level 22898 -> 22914 measured).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
 // +12 (the merge with land: the storage-battery abilities above against land's corpus; merged ALL build-level 22971 -> 22983 measured).
-var buildAcceptancePin = [2]int{22986, 34442} // {built, cards}
+// +24 (mid-resolution ChooseNumber lowers: ChooseNumberMid, with Count$ChosenNumber and the dynamic PayEnergy<X> unless cost; an activated {X} energy cost stays refused rather than losing its amount; merged onto land c70201715c: ALL build-level 23076 -> 23100 measured).
+var buildAcceptancePin = [2]int{23100, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
