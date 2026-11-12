@@ -5,62 +5,118 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
+	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 // The Commander curses' second leg (TriggeredAttackingPlayer.Opponent+
 // controlsCreature.attacking Player.EnchantedBy) and Inertia's
 // trigger-player TapOrUntap, on synthetic scripts shaped like the corpus
-// carriers. The skip and the arms live in lower_attackleg.go and
-// lower_tapuntap.go.
+// carriers. The leg lowering lives in lower_attackleg.go.
 
 const kccDefEndUntap = "T:Mode$ Phase | Phase$ End of Turn | TriggerZones$ Battlefield | Execute$ TrigUntap"
 const kccDefEndTap = "T:Mode$ Phase | Phase$ End of Turn | TriggerZones$ Battlefield | Execute$ TrigTapOrUntap"
+const kccAtkEnch = "T:Mode$ AttackersDeclared | AttackedTarget$ Player.EnchantedBy | TriggerZones$ Battlefield | Execute$ Trig"
+const kccLeg = "TriggeredAttackingPlayer.Opponent+controlsCreature.attacking Player.EnchantedBy"
 
-func TestAttackLegSkipLowering(t *testing.T) {
-	// Curse of Bounty's shape: the "you untap" leg lowers, the empty
-	// attacking-player leg ("each opponent attacking that player untaps...")
-	// adds no instruction — its beneficiary set is empty at every seat
-	// count, so the leg is the no-op gorge plays it as.
-	why, ab, _ := ktqBuildSV(t,
-		"T:Mode$ AttackersDeclared | AttackedTarget$ Player.EnchantedBy | Execute$ TrigUntap | TriggerZones$ Battlefield",
-		"SVar:TrigUntap:DB$ UntapAll | ValidCards$ Permanent.nonLand | Defined$ You | SubAbility$ DBUntapLeg",
-		"SVar:DBUntapLeg:DB$ UntapAll | ValidCards$ Permanent.nonLand | Defined$ TriggeredAttackingPlayer.Opponent+controlsCreature.attacking Player.EnchantedBy")
+func TestAttackLegLowering(t *testing.T) {
+	// Curse of Bounty's shape: the "you untap" leg lowers first, then the
+	// attacking-player leg ("each opponent attacking that player untaps..."),
+	// guarded so the curse's own controller (the declaring player on its own
+	// turn) is not an "opponent attacking that player".
+	why, ab, pt := ktqBuildSV(t, kccAtkEnch,
+		"SVar:Trig:DB$ UntapAll | ValidCards$ Permanent.nonLand | Defined$ You | SubAbility$ DBUntapLeg",
+		"SVar:DBUntapLeg:DB$ UntapAll | ValidCards$ Permanent.nonLand | Defined$ "+kccLeg)
 	if why != "" {
-		t.Fatalf("the empty attacking-player leg refused: %s", why)
+		t.Fatalf("the attacking-player leg refused: %s", why)
 	}
-	if len(ab.Prog) != 1 || ab.Prog[0].Op != kop.OpUntapAll {
-		t.Fatalf("the skipped leg left instructions: %d, first %v", len(ab.Prog), ab.Prog)
+	if len(ab.Prog) != 3 {
+		t.Fatalf("the attacking-player leg lowered %d instructions, want the two untaps and one guard: %v", len(ab.Prog), ab.Prog)
 	}
-	// the same leg on a trigger that is not AttackersDeclared is not a
-	// provable no-op and refuses under the ordinary TriggeredAttackingPlayer
-	// rule (the referent is only the attacking player there)
-	why, _, _ = ktqBuildSV(t, kccDefEndUntap,
-		"SVar:TrigUntap:DB$ UntapAll | ValidCards$ Permanent.nonLand | Defined$ TriggeredAttackingPlayer.Opponent+controlsCreature.attacking Player.EnchantedBy")
+	if ab.Prog[1].Op != kop.OpSkipUnless || ab.Prog[1].C == 0 || ab.Prog[1].A.N != 1 {
+		t.Fatalf("want a skip guard over the attacking-player leg, got %+v", ab.Prog[1])
+	}
+	c := pt.conds[ab.Prog[1].C]
+	if c.Kind != kop.CondYourTurn || !c.Neg {
+		t.Fatalf("the guard must skip the controller's own turn, got %+v", c)
+	}
+	if ab.Prog[0].Op != kop.OpUntapAll || ab.Prog[2].Op != kop.OpUntapAll {
+		t.Fatalf("want the two UntapAll legs, got %v", ab.Prog)
+	}
+	found := false
+	for id := ab.Prog[2].F; id != 0; {
+		f := &pt.filters[int(id)]
+		if f.Pred == kop.PredTrigPlayerCtrl {
+			found = true
+			break
+		}
+		id = f.Or
+	}
+	if !found {
+		t.Fatalf("the attacking-player untap is not scoped to the trigger player: %+v", ab.Prog[2])
+	}
+	// The same leg on a trigger that is not an EnchantedBy AttackersDeclared
+	// is not this leg: the ordinary TriggeredAttackingPlayer rule refuses it.
+	why, _, _ = ktqBuildSV(t, kccDefEndUntap, "SVar:TrigUntap:DB$ UntapAll | ValidCards$ Permanent.nonLand | Defined$ "+kccLeg)
 	if why == "" {
-		t.Fatal("the empty leg lowered off an AttackersDeclared trigger")
+		t.Fatal("the attacking-player leg lowered off an AttackersDeclared trigger")
 	}
 }
 
-func TestAttackLegSkipAllowlist(t *testing.T) {
-	leg := "SVar:DBUntapLeg:DB$ UntapAll | Defined$ TriggeredAttackingPlayer.Opponent+controlsCreature.attacking Player.EnchantedBy"
-	// a param the allowlist reads (ValidCards$, which scales with the empty
-	// player set) skips with the node
-	why, ab, _ := ktqBuildSV(t,
-		"T:Mode$ AttackersDeclared | AttackedTarget$ Player.EnchantedBy | Execute$ TrigUntap | TriggerZones$ Battlefield",
-		"SVar:TrigUntap:DB$ UntapAll | ValidCards$ Permanent.nonLand | Defined$ You | SubAbility$ DBUntapLeg",
-		leg+" | ValidCards$ Permanent.nonLand")
-	if why != "" || len(ab.Prog) != 1 {
-		t.Fatalf("an allowlisted param on the skipped leg: %q, %d instrs", why, len(ab.Prog))
+func TestAttackLegParamGate(t *testing.T) {
+	lc := &lowerCtx{ab: &lAbility{Trigger: &lTrigger{Event: "AttackersDeclared", DefPlayer: 4}}}
+	for _, api := range []string{"Token", "Draw", "GainLife", "UntapAll"} {
+		param := "Defined"
+		if api == "Token" {
+			param = "TokenOwner"
+		}
+		p := newParams(map[string]string{param: kccLeg})
+		got, ok := lc.attackLegParamFor(&cards.SA{API: api}, p)
+		if !ok || got != param {
+			t.Errorf("%s$ %s: got (%q, %v), want (%q, true)", api, param, got, ok, param)
+		}
 	}
-	// RememberTapped$ records the untapped objects — with no players untapped
-	// it would record nothing, but the side effect is not proportional to the
-	// player set (a later leg may read it), so the node refuses
-	why, _, _ = ktqBuildSV(t,
-		"T:Mode$ AttackersDeclared | AttackedTarget$ Player.EnchantedBy | Execute$ TrigUntap | TriggerZones$ Battlefield",
-		"SVar:TrigUntap:DB$ UntapAll | ValidCards$ Permanent.nonLand | Defined$ You | SubAbility$ DBUntapLeg",
-		leg+" | RememberTapped$ True")
-	if !strings.Contains(why, "skipped empty attacking-player leg with RememberTapped$") {
-		t.Errorf("RememberTapped$ on the skipped leg: refusals %q, want the skip-with-param refusal", why)
+	p := newParams(map[string]string{"TokenOwner": "You"})
+	if _, ok := lc.attackLegParamFor(&cards.SA{API: "Token"}, p); ok {
+		t.Error("a non-second-leg TokenOwner$ matched the attack-leg gate")
+	}
+	// The trigger must be the per-defender Player.EnchantedBy shape.
+	lc.ab.Trigger.DefPlayer = 2
+	p = newParams(map[string]string{"TokenOwner": kccLeg})
+	if _, ok := lc.attackLegParamFor(&cards.SA{API: "Token"}, p); ok {
+		t.Error("a different AttackedTarget$ shape matched the attack-leg gate")
+	}
+}
+
+func TestAttackLegRefusesUnmodelledParam(t *testing.T) {
+	why, ab, _ := ktqBuildSV(t, kccAtkEnch,
+		"SVar:Trig:DB$ UntapAll | ValidCards$ Permanent.nonLand | Defined$ "+kccLeg+" | RememberTapped$ True")
+	if why == "" || ab.Prog != nil {
+		t.Fatalf("a second-leg param with a side effect lowered: %q", why)
+	}
+	if !strings.Contains(why, "unread params [RememberTapped]") {
+		t.Errorf("RememberTapped$ on the second leg: refusals %q, want the unread-param refusal", why)
+	}
+}
+
+func TestAttackLegReceivers(t *testing.T) {
+	// Draw and GainLife name the trigger player as their acting player, not
+	// the controller (whatever seat the declaring player is).
+	for _, c := range []struct{ api, param string }{{"Draw", "Defined"}, {"GainLife", "Defined"}} {
+		why, ab, _ := ktqBuildSV(t, kccAtkEnch,
+			"SVar:Trig:DB$ "+c.api+" | "+c.param+"$ "+kccLeg)
+		if why != "" {
+			t.Fatalf("%s: refused: %s", c.api, why)
+		}
+		if len(ab.Prog) != 2 || ab.Prog[0].Op != kop.OpSkipUnless || ab.Prog[0].A.N != 1 {
+			t.Fatalf("%s: want one guarded instruction, got %v", c.api, ab.Prog)
+		}
+		want := kop.OpDraw
+		if c.api == "GainLife" {
+			want = kop.OpGainLife
+		}
+		if ab.Prog[1].Op != want || ab.Prog[1].Obj != kop.RefTriggerPlayer {
+			t.Fatalf("%s: acting player is %v, want the trigger player", c.api, ab.Prog[1].Obj)
+		}
 	}
 }
 

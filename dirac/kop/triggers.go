@@ -489,10 +489,10 @@ const (
 // curses' "whenever enchanted player is attacked" (Curse of Opulence,
 // Disturbance, Verbosity, Bounty, Inertia, Vitality; Archnemesis). Beside
 // Tf2DefPlayer, the per-defender group fires only when the DEFENDER is
-// enchanted by any enchantment (gorge attackedDefenderMatches reads
-// Player.EnchantedBy, the shared player property player_filter.go
-// playerSpecQualifierEnchantedBy: enchanted by ANY enchantment, not only the
-// listener's own), through fireDefPlayer's Tf4DefEnch arm.
+// enchanted by THIS listener's Aura (gorge attackedDefenderMatches reads
+// Player.EnchantedBy, the source-relative player property player_filter.go
+// playerSpecQualifierEnchantedBy: player.isEnchantedBy(source)), through
+// fireDefPlayer's Tf4DefEnch arm.
 const Tf4DefEnch TrigFlags4 = 1 << 7
 
 // TrigNAnyCounter in Trigger.N of a TrigCounterAddedOnce trigger: every

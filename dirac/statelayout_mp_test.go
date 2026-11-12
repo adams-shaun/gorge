@@ -16,7 +16,7 @@ var _ = [0 - unsafe.Offsetof(State{}.perms)%64]struct{}{}
 // TestStateLayoutPinnedMP: the dirac_mp State's size and perms' phase are
 // pinned, as TestStateLayoutPinned pins the default class's.
 func TestStateLayoutPinnedMP(t *testing.T) {
-	const want = 21232
+	const want = 21680
 	if sz := unsafe.Sizeof(State{}); sz != want {
 		t.Fatalf("State is %d bytes, pinned at %d", sz, want)
 	}

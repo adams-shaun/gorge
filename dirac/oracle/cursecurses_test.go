@@ -23,9 +23,10 @@ import (
 // and the curse's controller for the tap-or-untap election, Tapper$
 // provenance riding the OpTap). The second leg every non-Inertia curse
 // chains (TriggeredAttackingPlayer.Opponent+controlsCreature.attacking
-// Player.EnchantedBy) is the no-op its empty set is: only the active player
-// ever declares attackers, so no opponent of the attacking player controls
-// an attacking creature. Archnemesis enchants an opponent; its per-defender
+// Player.EnchantedBy) names the declaring player when that player is an
+// opponent of the curse's controller ("each opponent attacking that player
+// does the same"); kgen lowers it to a trigger-player effect behind a
+// controller-turn guard. Archnemesis enchants an opponent; its per-defender
 // trigger makes the attacking player lose 2 and draw 2 while its controller
 // gains 2, and its optional trigger (OptionalDecider$ TriggeredAttackingPlayer)
 // attaches it to the attacking player (the Enchant:Opponent attach's W arm).

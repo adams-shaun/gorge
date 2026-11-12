@@ -30,6 +30,7 @@ func (s *State) attachQuiet(k *prep, sl, host Slot) (old Slot) {
 		s.lstamp[sl] = s.ts
 	}
 	s.perms[sl].attached = host
+	s.perms[sl].atchP = 0 // the two bearer forms never hold at once (state.go)
 	s.perms[sl].flags &^= pfLastBear
 	s.loseAllOnset(k, sl, host)
 	return old

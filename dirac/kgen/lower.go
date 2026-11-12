@@ -3197,11 +3197,9 @@ func (lc *lowerCtx) chain(sa *cards.SA, ps *params) error {
 			p = newParams(node.Params)
 		}
 		p.consume("SubAbility")
-		if done, err := lc.skipEmptyAttackLeg(node, p); done || err != nil {
-			if err != nil {
-				return err // lower_attackleg.go: a param the skip may not drop
-			}
-			continue
+		atkGuard, aerr := lc.lowerAttackLeg(node, p) // lower_attackleg.go
+		if aerr != nil {
+			return aerr
 		}
 		at, nt := len(lc.ab.Prog), len(lc.ab.Targets)
 		lc.atRes = node != sa && lc.mode < 0 && (lc.ab.Kind == akSpell || lc.ab.Kind == akActivated) &&
@@ -3242,6 +3240,9 @@ func (lc *lowerCtx) chain(sa *cards.SA, ps *params) error {
 			lc.ab.Prog = append(lc.ab.Prog, lInstr{})
 			copy(lc.ab.Prog[pos+1:], lc.ab.Prog[pos:])
 			lc.ab.Prog[pos] = lInstr{Op: "ChooseTargets", C: i}
+		}
+		if atkGuard >= 0 {
+			lc.ab.Prog[atkGuard].Skip = len(lc.ab.Prog) - atkGuard - 1
 		}
 		if left := p.unread(); len(left) > 0 {
 			err := refuse("%s$ %s: unread params %v", node.Kind, node.API, left)

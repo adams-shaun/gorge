@@ -262,9 +262,6 @@ func (s *State) applyAskCold2(k *prep, a Action) bool {
 		in := s.prog(k)[s.res.pc]
 		in.Op = kop.OpUntap // gorge TryUntap: a stun counter is removed instead
 		if a.Mode() == 1 {
-			in.Op = kop.OpTap // gorge EmitTap (Taps triggers); W carries Tapper$
-		}
-		if a.Mode() == 1 {
 			in.Op = kop.OpTap // gorge EmitTap (Taps triggers)
 		}
 		s.exec(k, &in)

@@ -471,10 +471,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				tr.DefPlayer = 3 // the defending player is the listener's controller (gorge attackedDefenderMatches)
 			case "Player.EnchantedBy":
 				// gorge playerSpecQualifierEnchantedBy: the defender is
-				// enchanted by ANY enchantment (the shared player property,
-				// not the listener's own attachment -- two curses on two
-				// seats each fire on either declaration). The kernel's
-				// fireDefPlayer scans the player-attached auras' seats
+				// enchanted by THIS listener's Aura (Forge's
+				// player.isEnchantedBy(source), not any enchantment). The
+				// kernel's fireDefPlayer reads the listener's own atchP
 				// (Tf4DefEnch, dirac/trig_defendingplayer.go).
 				tr.DefPlayer = 4
 			default:

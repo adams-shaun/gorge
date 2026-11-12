@@ -715,7 +715,7 @@ type lTrigger struct {
 	CastConverge              bool  // SpellCast: the amount is the triggering spell's colours spent as the trigger fires (TriggeredCard$Converge; kernel Tf3CastConverge)
 	SpentBound                bool  // the body reads Count$CastTotalManaSpent: the entering spell's mana spent, bound as it triggers (self ETB only; kernel Tf2SpentBound)
 	XBound                    bool  // the body reads Count$xPaid without an {X} cost of its own: the trigger object's spell's X, bound as it triggers (CR 107.3m)
-	DefPlayer                 int   // AttackersDeclared per defender, the player only: 1 any player, 2 an opponent of the controller, 3 the controller, 4 enchanted by any enchantment (AttackedTarget$; kernel Tf4DefEnch)
+	DefPlayer                 int   // AttackersDeclared per defender, the player only: 1 any player, 2 an opponent of the controller, 3 the controller, 4 enchanted by this Aura (AttackedTarget$ Player.EnchantedBy; kernel Tf4DefEnch)
 	PerRef                    bool  // DamageDone lowered from Mode$ DamageDoneOnce: once per damaged referent per batch (kernel Tf2PerReferent)
 	SrcInPlay                 bool  // DamageDone ValidSource$ carries inZoneBattlefield: a source that is not a permanent never matches (kernel Tf2SrcInPlay)
 	SelfPlayerRef             bool  // PerRef from a plain self-source DamageDone to any player that reads the damaged player (lower_damagedoneonce.go selfPlayerRefShape)

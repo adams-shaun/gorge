@@ -75,5 +75,5 @@ func wordPredicateNewWords(p string) (kind wordKind, key string, ok bool) {
 // than answering an invented player spec.
 func attackingPlayerMatches(g *state.Game, key string, o *state.Object, sc SpecContext) bool {
 	return o.IsAttacking && o.AttackingBattle == 0 && int(o.Attacking) < len(g.Players) &&
-		MatchesPlayerSpecCtx(g, key, o.Attacking, sc.You, PlayerSpecCtx{})
+		MatchesPlayerSpecCtx(g, key, o.Attacking, sc.You, PlayerSpecCtx{Source: sc.Source, Layers: sc.Layers})
 }

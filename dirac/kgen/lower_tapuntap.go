@@ -14,11 +14,25 @@ import (
 // filter's controller clause admit the same permanents (Curse of Bounty's
 // "untap up to two lands you control" leg). Any other Defined$ value refuses.
 func (lc *lowerCtx) untapAll(ps *params) error {
+	trigPlayer := false
 	if v, ok := ps.get("Defined"); ok {
-		if strings.TrimSpace(v) != "You" {
+		switch strings.TrimSpace(v) {
+		case "You":
+			ps.consume("Defined")
+		case "TriggeredAttackingPlayer":
+			// "each opponent attacking that player untaps all nonland
+			// permanents they control": the scoped walk is the trigger
+			// player's battlefield (the curses' second leg). The kernel
+			// predicate reads the resolving entry's trigger player at any
+			// seat count.
+			if tr := lc.ab.Trigger; tr == nil || tr.Event != "AttackersDeclared" {
+				return refuse("UntapAll Defined$ %q outside an AttackersDeclared trigger", v)
+			}
+			ps.consume("Defined")
+			trigPlayer = true
+		default:
 			return refuse("UntapAll Defined$ %q", v)
 		}
-		ps.consume("Defined")
 	}
 	for _, k := range []string{"RememberUntapped", "ControllerUntaps"} {
 		if _, ok := ps.get(k); ok {
@@ -33,7 +47,11 @@ func (lc *lowerCtx) untapAll(ps *params) error {
 		return refuse("UntapAll without ValidCards$")
 	}
 	if _, ok := ps.m["Defined"]; ok {
-		spec += "+YouCtrl" // Defined$ You folded in (gorge's defined-player walk)
+		if trigPlayer {
+			spec += "+" + trigPlayerCtrlWord // the trigger player's permanents (gorge's defined-player walk)
+		} else {
+			spec += "+YouCtrl" // Defined$ You folded in (gorge's defined-player walk)
+		}
 	}
 	spec, err := lc.sweepTgtPlayer(ps, spec)
 	if err != nil {

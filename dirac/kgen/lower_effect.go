@@ -164,33 +164,9 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		}
 		return lRef{}, refuse("Defined$ %q outside a Phase/Drawn/LifeGained/LifeLost/SpellCast/FacesDilemma trigger", v)
 	case "TriggeredAttackingPlayer":
-		// gorge trigger_referents.go binds AttackingPlayer on a
-		// DeclareAttackers event to the declaring player, who is the game's
-		// active player (CR 508.1: only the active player declares
-		// attackers) — the kernel's queue-time trigger player at every seat
-		// count (fireAtkDecl's who, fireDefPlayer's, combat.go stampDefSeat).
-		if tr := lc.ab.Trigger; tr != nil && tr.Event == "AttackersDeclared" {
-			return lRef{Kind: rTriggeredPlayer}, nil
-		}
-		// (the combat-damage arm below)
-		if tr := lc.ab.Trigger; ddoAttackingPlayer(tr) {
-			lc.twoSeat("TriggeredAttackingPlayer read as the one opponent")
-			return lRef{Kind: rEachOpp}, nil
-		}
-		return lRef{}, refuse("Defined$ %q outside a combat damage-to-you trigger the kernel's attacking player names or an AttackersDeclared trigger", v)
+		return lc.triggeredAttackingPlayerDefined(v)
 	case "TriggeredAttackedTarget":
-		// gorge trigger_referents.go binds AttackedTarget on a
-		// DeclareAttackers event to the event's defender. The kernel names
-		// the seat RefDefendingPlayer: the queue-time defending seat
-		// (combat.go stampDefSeat, every seat count past two) and the one
-		// opponent at two (resolve.go oneOppOf: the active player is the
-		// only possible attacker, CR 508.1). A per-defender line only
-		// (Trigger.DefPlayer set): a batch line queues once for the whole
-		// declaration, whose stamp names only the first defender group.
-		if tr := lc.ab.Trigger; tr != nil && tr.Event == "AttackersDeclared" && tr.DefPlayer != 0 {
-			return lRef{Kind: rDefending}, nil
-		}
-		return lRef{}, refuse("Defined$ %q outside a per-defender AttackersDeclared trigger", v)
+		return lc.triggeredAttackedTargetDefined(v)
 	case "TriggeredTarget", "TriggeredTargetLKICopy":
 		// gorge definedSpecTriggeredTarget of a damage trigger: the damaged
 		// object or player. A per-referent DamageDone line whose ValidTarget$
@@ -345,6 +321,39 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		return lRef{Kind: rSrcOwner}, nil // gorge definedSpecCardOwner
 	}
 	return lRef{}, refuse("Defined$ %q", v)
+}
+
+// triggeredAttackingPlayerDefined is Defined$ TriggeredAttackingPlayer:
+// gorge binds AttackingPlayer on a DeclareAttackers event to the declaring
+// player, who is the game's active player (CR 508.1: only the active player
+// declares attackers) -- the kernel's queue-time trigger player at every seat
+// count (fireAtkDecl's who, fireDefPlayer's, combat.go stampDefSeat). The
+// combat-damage arm keeps its two-seat reading (the combat source's
+// controller is the one opponent).
+func (lc *lowerCtx) triggeredAttackingPlayerDefined(v string) (lRef, error) {
+	if tr := lc.ab.Trigger; tr != nil && tr.Event == "AttackersDeclared" {
+		return lRef{Kind: rTriggeredPlayer}, nil
+	}
+	if tr := lc.ab.Trigger; ddoAttackingPlayer(tr) {
+		lc.twoSeat("TriggeredAttackingPlayer read as the one opponent")
+		return lRef{Kind: rEachOpp}, nil
+	}
+	return lRef{}, refuse("Defined$ %q outside a combat damage-to-you trigger the kernel's attacking player names or an AttackersDeclared trigger", v)
+}
+
+// triggeredAttackedTargetDefined is Defined$ TriggeredAttackedTarget: gorge
+// binds AttackedTarget on a DeclareAttackers event to the event's defender.
+// The kernel names the seat RefDefendingPlayer: the queue-time defending seat
+// (combat.go stampDefSeat, every seat count past two) and the one opponent at
+// two (resolve.go oneOppOf: the active player is the only possible attacker,
+// CR 508.1). A per-defender line only (Trigger.DefPlayer set): a batch line
+// queues once for the whole declaration, whose stamp names only the first
+// defender group.
+func (lc *lowerCtx) triggeredAttackedTargetDefined(v string) (lRef, error) {
+	if tr := lc.ab.Trigger; tr != nil && tr.Event == "AttackersDeclared" && tr.DefPlayer != 0 {
+		return lRef{Kind: rDefending}, nil
+	}
+	return lRef{}, refuse("Defined$ %q outside a per-defender AttackersDeclared trigger", v)
 }
 
 // damagedPlayerIsTriggerPlayer reports whether the ability is a DamageDone
