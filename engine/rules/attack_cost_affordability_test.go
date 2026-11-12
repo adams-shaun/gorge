@@ -222,10 +222,14 @@ func TestPhyrexianColourBranchExcludesReservedTapSource(t *testing.T) {
 	// WITHOUT the caller's exclusion the colour branch reads reachable (the
 	// dork pays the pip); WITH it the colour branch cannot be reached and only
 	// the life branch remains, so the plan must settle deterministically on
-	// life (phyElection=false, phyToLife=1) rather than pose a CR 107.4f
+	// life (all pips routed, none still owed) rather than pose a CR 107.4f
 	// election whose colour half the window cannot settle.
 	committed := map[state.ObjID]bool{bear: true}
-	if _, colour, life := e.combatPhyBothBranches(1, ch); !colour || !life {
+	unexcluded, ok := e.openCombatPayPlan(1, ch, nil, nil)
+	if !ok || unexcluded.phyDone != 0 {
+		t.Fatalf("precondition: unexcluded plan must still owe the pip (ok=%v)", ok)
+	}
+	if colour, life := e.combatPhyPipBranches(unexcluded, nil); !colour || !life {
 		t.Fatalf("precondition: unexcluded colour=%v life=%v, want both reachable", colour, life)
 	}
 	if !e.combatChargeAffordable(1, ch, committed, committed) {
@@ -235,10 +239,10 @@ func TestPhyrexianColourBranchExcludesReservedTapSource(t *testing.T) {
 	if !ok {
 		t.Fatal("precondition: the plan must open for the life branch")
 	}
-	if plan.phyElection {
-		t.Fatal("the plan poses a Phyrexian election whose colour half is unreachable through the reserved tap source")
+	if plan.phyDone != int32(len(ch.phyrexian)) {
+		t.Fatal("the plan still owes a Phyrexian election whose colour half is unreachable through the reserved tap source")
 	}
-	if plan.phyToLife != int32(len(ch.phyrexian)) {
-		t.Fatalf("plan routed %d pips to life, want all %d (the colour branch is unreachable)", plan.phyToLife, len(ch.phyrexian))
+	if plan.phyLifePips() != int32(len(ch.phyrexian)) {
+		t.Fatalf("plan routed %d pips to life, want all %d (the colour branch is unreachable)", plan.phyLifePips(), len(ch.phyrexian))
 	}
 }
