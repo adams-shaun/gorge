@@ -3,6 +3,7 @@ package oracle
 import (
 	"bytes"
 	"encoding/json"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -27,6 +28,15 @@ func TestReproCompactRoundTrip(t *testing.T) {
 			old, err := ReadRepro(p)
 			if err != nil {
 				t.Fatal(err)
+			}
+			// the file itself is the compact encoding: one line, no
+			// indentation, no derived readable field
+			raw, err := os.ReadFile(p)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if bytes.Contains(raw, []byte(`"readable"`)) || bytes.Contains(raw, []byte("\n ")) {
+				t.Fatal("file on disk is not the compact encoding")
 			}
 			b, err := json.Marshal(old)
 			if err != nil {
