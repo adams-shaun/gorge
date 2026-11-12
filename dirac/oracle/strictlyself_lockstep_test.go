@@ -22,7 +22,7 @@ import (
 var strictlySelfCards = map[string]bool{
 	"Arahbo, Roar of the World": true, "Arden Angel": true, "Charforger": true,
 	"Edgar Markov": true, "Emergent Woodwurm": true, "Genesis": true,
-	"Gigapede": true, "Inalla, Archmage Ritualist": true,
+	"Gigapede": true, "Guardian Scalelord": true, "Inalla, Archmage Ritualist": true,
 	"Jocasta, Automaton Avenger": true, "Level Up": true, "Lothlórien Blade": true,
 	"Master of Death": true, "Old One Eye": true, "Pyre Zombie": true,
 	"Sidar Jabari of Zhalfir": true, "Skyclave Shade": true,
@@ -49,6 +49,18 @@ var strictlySelfDeckSets = []struct {
 				{Name: "Sidar Jabari of Zhalfir", Count: 2}, {Name: "Skyclave Shade", Count: 2},
 				{Name: "Thought Scour", Count: 4}, {Name: "Walking Corpse", Count: 4},
 				{Name: "Plains", Count: 5}, {Name: "Island", Count: 4}, {Name: "Swamp", Count: 5}, {Name: "Mountain", Count: 4},
+			},
+		},
+	},
+	{
+		name: "strictlyself-backup-grant-vs-bears",
+		decks: [2][]cardset.Entry{
+			{
+				{Name: "Guardian Scalelord", Count: 4}, {Name: "Old One Eye", Count: 4},
+				{Name: "Grizzly Bears", Count: 2}, {Name: "Plains", Count: 15}, {Name: "Forest", Count: 15},
+			},
+			{
+				{Name: "Grizzly Bears", Count: 8}, {Name: "Plains", Count: 32},
 			},
 		},
 	},
