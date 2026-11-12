@@ -49,7 +49,7 @@ func TestTurnTheEarthObjectPathShufflesIntoLibrary(t *testing.T) {
 	if o := e.G.Obj(bear); o == nil || o.Zone != state.ZGraveyard {
 		t.Fatalf("precondition: graveyard card zone = %v, want graveyard", o)
 	}
-	if inZoneOf(e, state.ZLibrary, 0, bear) {
+	if objectInZone(e, state.ZLibrary, 0, bear) {
 		t.Fatal("precondition: the target is already in the library; the move assertion cannot fail")
 	}
 	if e.G.Obj(spell) == nil || e.G.Obj(spell).Zone != state.ZHand {
@@ -95,14 +95,4 @@ func TestTurnTheEarthObjectPathShufflesIntoLibrary(t *testing.T) {
 		t.Fatalf("seat-0 shuffles after the object-path move = %d, want exactly 1: %+v", got, e.L.Events[start:])
 	}
 	replayCheck(t, e, cfg)
-}
-
-// inZoneOf reports whether id is in zone z for player p.
-func inZoneOf(e *Engine, z state.Zone, p state.PlayerID, id state.ObjID) bool {
-	for _, v := range e.G.Zone(z, p) {
-		if v == id {
-			return true
-		}
-	}
-	return false
 }

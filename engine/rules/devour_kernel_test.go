@@ -36,7 +36,7 @@ func TestGorgerWurmDevourAsksAndCountsTheSacrificed(t *testing.T) {
 	// Sacrifice BOTH, in the reverse of zone order, so the answer -- not a
 	// deterministic first-N pick -- is what lands.
 	submitChoices(t, e, d.Options[1].Index, d.Options[0].Index)
-	if got := e.G.Obj(idOf(t, e, "Gorger Wurm")).Counter("P1P1"); got != 2 {
+	if got := e.G.Obj(battlefieldIDOrFail(t, e, "Gorger Wurm")).Counter("P1P1"); got != 2 {
 		t.Fatalf("Gorger Wurm entered with %d P1P1, want 2 (one per devoured creature, Devour 1)", got)
 	}
 	for _, id := range fodder {
@@ -60,7 +60,7 @@ func TestGorgerWurmDevourDeclineEntersWithoutCounters(t *testing.T) {
 		t.Fatalf("on the wurm's entry: %+v, want the sacrifice ask", d)
 	}
 	submitChoices(t, e)
-	if got := e.G.Obj(idOf(t, e, "Gorger Wurm")).Counter("P1P1"); got != 0 {
+	if got := e.G.Obj(battlefieldIDOrFail(t, e, "Gorger Wurm")).Counter("P1P1"); got != 0 {
 		t.Fatalf("declined wurm entered with %d P1P1, want 0", got)
 	}
 	if o := e.G.Obj(fodder[0]); o == nil || o.Zone != state.ZBattlefield {
@@ -83,7 +83,7 @@ func TestThunderThrashElderDevourThreeCountsSixPerCreature(t *testing.T) {
 		t.Fatalf("sacrifice ask: %+v, want sacrifice 0..2", d)
 	}
 	submitChoices(t, e, d.Options[0].Index, d.Options[1].Index)
-	if got := e.G.Obj(idOf(t, e, "Thunder-Thrash Elder")).Counter("P1P1"); got != 6 {
+	if got := e.G.Obj(battlefieldIDOrFail(t, e, "Thunder-Thrash Elder")).Counter("P1P1"); got != 6 {
 		t.Fatalf("Thunder-Thrash Elder entered with %d P1P1, want 6 (2 creatures x Devour 3)", got)
 	}
 	_ = fodder
@@ -110,7 +110,7 @@ func TestThromokDevourXSquaresTheCount(t *testing.T) {
 		t.Fatalf("sacrifice ask: %+v, want the KChoose sacrifice ask", d)
 	}
 	submitChoices(t, e, d.Options[0].Index, d.Options[1].Index)
-	if got := e.G.Obj(idOf(t, e, "Thromok the Insatiable")).Counter("P1P1"); got != 4 {
+	if got := e.G.Obj(battlefieldIDOrFail(t, e, "Thromok the Insatiable")).Counter("P1P1"); got != 4 {
 		t.Fatalf("Thromok entered with %d P1P1, want 4 (Devour X, 2 devoured: X per creature = n²)", got)
 	}
 }
@@ -134,7 +134,7 @@ func TestFeastingHobbitDevourFiltersFoods(t *testing.T) {
 		t.Fatalf("ask options %+v, want only the Food (Gingerbrute)", d.Options)
 	}
 	submitChoices(t, e, d.Options[0].Index)
-	if got := e.G.Obj(idOf(t, e, "Feasting Hobbit")).Counter("P1P1"); got != 3 {
+	if got := e.G.Obj(battlefieldIDOrFail(t, e, "Feasting Hobbit")).Counter("P1P1"); got != 3 {
 		t.Fatalf("Feasting Hobbit entered with %d P1P1, want 3 (1 Food x Devour 3)", got)
 	}
 	if o := e.G.Obj(fodder[0]); o == nil || o.Zone != state.ZGraveyard {

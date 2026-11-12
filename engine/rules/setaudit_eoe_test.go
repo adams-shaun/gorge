@@ -488,7 +488,7 @@ func TestSetAudit_eoe_SunstarExpansionist_LandfallPump(t *testing.T) {
 	}, nil)
 	moveByName(t, e, 0, "Sunstar Expansionist", state.ZBattlefield)
 	passUntilStackEmpty(t, e, 20)
-	sea := idOf(t, e, "Sunstar Expansionist")
+	sea := battlefieldIDOrFail(t, e, "Sunstar Expansionist")
 	if p := e.Power(sea); p != 2 {
 		t.Fatalf("precondition: Sunstar power %d, want 2", p)
 	}

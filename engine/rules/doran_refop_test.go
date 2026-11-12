@@ -44,7 +44,7 @@ func TestDoranBesiegedPumpsDifference(t *testing.T) {
 			if d == nil || d.Kind != decision.KPriority {
 				break
 			}
-			submitChoices(t, e, doranPassIndex(t, d))
+			submitChoices(t, e, passPriorityOption(t, d))
 		}
 		if e.G.Turn == turn {
 			t.Fatalf("precondition: the turn never ended (step %v)", e.G.Step)
@@ -82,17 +82,6 @@ func TestDoranBesiegedPumpsDifference(t *testing.T) {
 	})
 }
 
-func doranPassIndex(t *testing.T, d *decision.Decision) int {
-	t.Helper()
-	for _, o := range d.Options {
-		if o.Kind == "pass" {
-			return o.Index
-		}
-	}
-	t.Fatalf("priority decision with no pass option: %+v", d)
-	return -1
-}
-
 // settleDoranTriggers passes priority while a trigger is queued or on the
 // stack, so Doran's pump is pushed and resolves, then stops. It reports
 // whether a trigger was ever seen, so a "+0" outcome cannot pass with the
@@ -109,7 +98,7 @@ func settleDoranTriggers(t *testing.T, e *Engine) bool {
 		if d.Kind != decision.KPriority {
 			t.Fatalf("unexpected decision while settling: %+v", d)
 		}
-		submitChoices(t, e, doranPassIndex(t, d))
+		submitChoices(t, e, passPriorityOption(t, d))
 	}
 	t.Fatalf("never settled (stack %d, triggers %d)", len(e.G.Stack), len(e.pendingTriggers))
 	return saw

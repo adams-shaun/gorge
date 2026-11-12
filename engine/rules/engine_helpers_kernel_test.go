@@ -654,3 +654,26 @@ func mobVerdictVoteMove(t *testing.T, e *Engine, p state.PlayerID, name string, 
 	t.Fatalf("corpus card %q absent from seat %d hand/library", name, p)
 	return 0
 }
+
+// battlefieldIDOrFail finds a seat-0 battlefield object by face name.
+func battlefieldIDOrFail(t *testing.T, e *Engine, name string) state.ObjID {
+	t.Helper()
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
+			return id
+		}
+	}
+	t.Fatalf("no battlefield object named %q", name)
+	return 0
+}
+
+func passPriorityOption(t *testing.T, d *decision.Decision) int {
+	t.Helper()
+	for _, o := range d.Options {
+		if o.Kind == "pass" {
+			return o.Index
+		}
+	}
+	t.Fatalf("priority decision with no pass option: %+v", d)
+	return -1
+}

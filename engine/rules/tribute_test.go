@@ -68,7 +68,7 @@ func TestTributePaidEntersWithCounters(t *testing.T) {
 	}
 	submitChoices(t, e, d.Options[0].Index) // yes
 
-	o := e.G.Obj(idOf(t, e, "Snake of the Golden Grove"))
+	o := e.G.Obj(battlefieldIDOrFail(t, e, "Snake of the Golden Grove"))
 	if got := o.Counter("P1P1"); got != 3 {
 		t.Fatalf("accepted snake entered with %d P1P1, want 3 (Tribute 3)", got)
 	}
@@ -96,7 +96,7 @@ func TestTributeDeclinedFiresUnpaidTrigger(t *testing.T) {
 	submitChoices(t, e, d.Options[1].Index) // no
 	drainTriggerAndStack(t, e)
 
-	o := e.G.Obj(idOf(t, e, "Snake of the Golden Grove"))
+	o := e.G.Obj(battlefieldIDOrFail(t, e, "Snake of the Golden Grove"))
 	if got := o.Counter("P1P1"); got != 0 {
 		t.Fatalf("declined snake entered with %d P1P1, want 0", got)
 	}
@@ -120,7 +120,7 @@ func TestTributeOrnitharchDeclineMintsBirds(t *testing.T) {
 	submitChoices(t, e, e.Pending().Options[1].Index) // decline
 	drainTriggerAndStack(t, e)
 
-	if o := e.G.Obj(idOf(t, e, "Ornitharch")); o.Counter("P1P1") != 0 || o.Tributed {
+	if o := e.G.Obj(battlefieldIDOrFail(t, e, "Ornitharch")); o.Counter("P1P1") != 0 || o.Tributed {
 		t.Fatalf("declined Ornitharch: counters %d tributed %v, want 0/false",
 			o.Counter("P1P1"), o.Tributed)
 	}
