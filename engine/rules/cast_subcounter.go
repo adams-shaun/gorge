@@ -226,15 +226,16 @@ func (e *Engine) xAsk() bool {
 		}
 		bound += most
 	}
-	// A named-announcement discount (the March cycle's "{2} less for each
-	// card exiled this way") is a generic reduction the X can spend: the
-	// ceiling rises by the composed reduction at the announced count, or an
-	// X affordable only through it would never be offered.
-	if costHasNamedCount(pc.cost) {
-		for _, red := range e.manaToPayXMods(pc, 0).Reduces {
-			bound = addClampedGeneric(bound, int64(red.Generic))
-		}
-	}
+	// A reduction is mana the announced X can spend (CR 601.2f: the total
+	// cost is the mana cost with X's value, plus increases, minus
+	// reductions): the ceiling rises by the composed reductions at the
+	// announced count — the coloured part included, a pip it takes off is
+	// mana the X no longer needs — or an X affordable only through it would
+	// never be offered. The named-announcement discounts (the March cycle's
+	// "{2} less for each card exiled this way") are one carrier; a plain
+	// generic reducer (Zimone's counters-fuelled discount, Mocking Sprite)
+	// is another.
+	bound = addClampedGeneric(bound, int64(e.manaToPayXMods(pc, 0).ReduceTotal()))
 	// A PayEnergy<X> cost part pays the SAME announced X in energy counters
 	// (Forge CostPayEnergy.getMaxAmountX bounds a dynamic PayEnergy by the
 	// payer's energy total). When the energy part is the ONLY X the cost
