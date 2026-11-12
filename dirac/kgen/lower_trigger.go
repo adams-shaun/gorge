@@ -1553,6 +1553,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		conds = append(conds, deliriumCond())
 	}
+	if err := echoGate(tp, tr, ab, &conds, noResolve || fireOnly || giftSelf); err != nil { // lower_echo.go
+		return err
+	}
 	switch len(conds) {
 	case 0:
 	case 1:

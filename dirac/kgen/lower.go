@@ -856,6 +856,13 @@ var expandedKeywords = map[string]bool{
 	// Cumulative upkeep (CR 702.24a): gorge kwCumulativeUpkeep expands it into
 	// an upkeep trigger whose body is DB$ CumulativeUpkeep (lower_cumulative.go)
 	"Cumulative upkeep": true,
+	// Fading (CR 702.32a): gorge kwFading's EnterWithCounters FADE replacement
+	// and its upkeep trigger, a Sacrifice of the source when it has no fade
+	// counter chained ahead of the RemoveCounter (every op already lowers)
+	"Fading": true,
+	// Echo (CR 702.30a): gorge kwEcho's upkeep trigger, gated by Echo$ True,
+	// whose body is DB$ Echo (lower_echo.go)
+	"Echo": true,
 }
 
 // protColourLetters maps a "Protection from <q>" colour quality to its

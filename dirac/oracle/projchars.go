@@ -195,6 +195,8 @@ var gorgeKwElsewhere = map[string]string{
 	"Battle cry":        "gorge kwBattleCry's expansion: an Attacks trigger pumping the other attackers (kgen lowers the expansion's nodes; compared through the stack and the attackers' power), no battlefield characteristic",
 	"Cumulative upkeep": "gorge kwCumulativeUpkeep's expansion: an upkeep trigger putting an age counter and charging the generic cost once per counter, else sacrificing (ExtCumulative, dirac/trig_cumulative.go; compared through the age counters, the pay and decline options and the sacrifice), no battlefield characteristic",
 	"Annihilator":       "gorge kwAnnihilator's expansion: an Attacks trigger making the defending player sacrifice N permanents (kgen lowers the expansion's node, Annihilator$ N as the Sacrifice count; compared through the stack and the sacrifice choice), no battlefield characteristic",
+	"Echo":              "gorge kwEcho's expansion: an upkeep trigger gated by Echo$ True (CondEchoOwed, dirac/trig_echo.go) asking the controller to pay the cost or sacrifice it (ExtCumulative B=1; compared through the pay and decline options and the sacrifice), no battlefield characteristic",
+	"Fading":            "gorge kwFading's expansion: fade counters on entry and an upkeep trigger that sacrifices a permanent with none and removes one (kgen lowers the expansion's nodes; compared through the fade counters and the sacrifice), no battlefield characteristic",
 	"Gift":              "CardDef.Gift (a cast-time promise and its GiftAbility; compared through the gift election and the stack; kw_gift.go), no battlefield characteristic",
 }
 
