@@ -389,13 +389,15 @@ func riderManaCostOK(a *Ability) bool {
 //
 // The kernel models one fixed colour per counter (dirac
 // mana_countercost.go storeGap). A generic fee, a coloured cost, a
-// combination or any-colour production, an announced {X}, a rider or a
-// spend restriction is another shape and is refused by kgen with its reason.
+// combination or any-colour production, an announced {X}, a rider, a deferred
+// production, a non-spell payment or a spend restriction is another shape and
+// is refused by kgen with its reason.
 func StoreManaAb(a *Ability) bool {
 	if a.Kind != AbMana || a.Cost.Flags&CostLoyaltyX == 0 || a.Cost.Mana.X != 0 ||
 		a.Cost.Mana.Generic != 0 ||
 		a.Cost.Mana.Pips != ([NumManaKinds]uint8{}) || a.Cost.Mana.Hyb != ([4]ColorMask{}) || a.Cost.Mana.Tb != 0 ||
-		a.AFlags&AfManaDynamic == 0 || a.ManaV.K != VCountersSelf || a.ManaV.N != int16(a.Cost.Ctr) {
+		a.AFlags&^AfManaDynamic != 0 || a.ManaV.K != VCountersSelf || a.ManaV.N != int16(a.Cost.Ctr) ||
+		a.ManaDeferred || a.ManaRider != ManaRiderNone || a.ManaRiderCtr != 0 || a.ManaRiderN != 0 {
 		return false
 	}
 	if c := a.ManaColors; c == 0 || c&(c-1) != 0 {

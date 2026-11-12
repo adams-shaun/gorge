@@ -4,3 +4,9 @@
 Bottomless Vault
 Shadowborn Apostle
 Plains
+# Mage-Ring Network is the later-ability shape: a plain {T} first mana
+# ability beside the counter-X one. Sol Ring ({1}) and Mind Stone ({2}) are
+# cast only from that source's mana in the later-shape test.
+Mage-Ring Network
+Mind Stone
+Sol Ring
