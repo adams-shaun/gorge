@@ -25,6 +25,27 @@ func (lc *lowerCtx) manaEffect(ps *params) error {
 	default:
 		return refuse("DB$ Mana outside a triggered ability")
 	}
+	if vt, ok := ps.get("ValidTgts"); ok && lc.ab.Kind == akSpell {
+		// Rousing Refrain's "Add {R} for each card in target opponent's
+		// hand": the spell declares its opponent slot first, so the amount's
+		// TargetedPlayer$ names it. Only an opponents-only player slot lowers
+		// (the amount reads the one opponent's hand); gorge asks the target
+		// when the spell is cast.
+		f, err := lc.filter(vt)
+		if err != nil {
+			return err
+		}
+		if f.Players != plOpp || len(f.Clauses) != 0 || strings.TrimSpace(vt) != "Opponent" {
+			return refuse("SP$ Mana ValidTgts$ %q", vt)
+		}
+		for _, k := range []string{"TargetMin", "TargetMax", "TgtZone", "TargetUnique"} {
+			if _, ok := ps.get(k); ok {
+				return refuse("SP$ Mana ValidTgts$ beside %s$", k)
+			}
+		}
+		lc.addTarget(lTarget{F: f, Zone: zNone})
+		ps.consume("ValidTgts")
+	}
 	rv, _ := ps.get("RestrictValid")
 	if lc.out.Types&tArtifact != 0 && !lc.fbGranted && !dbManaActOnly(rv) { // a granted Firebending's source is the attacker, not this host (lower_firegrant.go)
 		// An activated-only restriction (kop.SpmActivated) is the one typed

@@ -360,6 +360,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = lValue{Kind: vPowerOf, Ref: ref}
 		case "CardToughness":
 			v = lValue{Kind: vToughnessOf, Ref: ref}
+		case "CardSumPT":
+			// its power plus its toughness (Phthisis, Predator's Rapport;
+			// gorge count_ref_property.go's CardSumPT): the two reads, summed
+			v = lValue{Kind: vSum, Sub: []lValue{{Kind: vPowerOf, Ref: ref}, {Kind: vToughnessOf, Ref: ref}}}
 		case "Converge":
 			// the spell's colours spent, snapshotted as the
 			// trigger fires (gorge TriggerConverge)

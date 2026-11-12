@@ -25,9 +25,9 @@ import (
 var ksDecks = [][]cardset.Entry{
 	{ // red and green
 		{Name: "Rift Bolt", Count: 4}, {Name: "Rift Sower", Count: 4}, {Name: "Nantuko Shaman", Count: 3},
-		{Name: "Search for Tomorrow", Count: 4}, {Name: "Lotus Bloom", Count: 3}, {Name: "Shivan Meteor", Count: 2},
-		{Name: "Wheel of Fate", Count: 2}, {Name: "Petrified Plating", Count: 2}, {Name: "Mox Tantalite", Count: 2},
-		{Name: "Mountain", Count: 7}, {Name: "Forest", Count: 7},
+		{Name: "Search for Tomorrow", Count: 4}, {Name: "Lotus Bloom", Count: 2}, {Name: "Shivan Meteor", Count: 2},
+		{Name: "Wheel of Fate", Count: 2}, {Name: "Petrified Plating", Count: 2}, {Name: "Mox Tantalite", Count: 1}, {Name: "Rousing Refrain", Count: 3},
+		{Name: "Mountain", Count: 7}, {Name: "Forest", Count: 6},
 	},
 	{ // blue and white
 		{Name: "Inspiring Refrain", Count: 4}, {Name: "Ancestral Vision", Count: 4}, {Name: "Riftwing Cloudskate", Count: 4},
@@ -36,8 +36,8 @@ var ksDecks = [][]cardset.Entry{
 	},
 	{ // black and the colourless carriers
 		{Name: "Profane Tutor", Count: 4}, {Name: "Charnel Serenade", Count: 4}, {Name: "Suspended Sentence", Count: 4},
-		{Name: "Festering March", Count: 3}, {Name: "Sol Talisman", Count: 3}, {Name: "Deep Dish Pizza", Count: 3},
-		{Name: "Atraxi Warden", Count: 2}, {Name: "Grizzly Bears", Count: 4}, {Name: "Swamp", Count: 8}, {Name: "Plains", Count: 5},
+		{Name: "Festering March", Count: 3}, {Name: "Sol Talisman", Count: 2}, {Name: "Deep Dish Pizza", Count: 2}, {Name: "Phthisis", Count: 3},
+		{Name: "Atraxi Warden", Count: 2}, {Name: "Grizzly Bears", Count: 4}, {Name: "Swamp", Count: 8}, {Name: "Plains", Count: 4},
 	},
 }
 
@@ -53,7 +53,18 @@ func ksScan(g *GorgeSide, n map[string]int) {
 			if ev.Text == "suspended" {
 				n["suspended"]++
 			}
+			if ev.From == state.ZStack && ev.To == state.ZExile {
+				if ob := g.E.G.Obj(ev.Obj); ob != nil && ob.Face() != nil && ob.Counter("TIME") > 0 {
+					n["self-exiled"]++
+				}
+			}
 		case events.PutOnStack:
+			if ob := g.E.G.Obj(ev.Obj); ob != nil && ob.Face() != nil && ev.From == state.ZHand {
+				switch nm := ob.Face().Name; nm {
+				case "Phthisis", "Rousing Refrain", "Inspiring Refrain":
+					n[nm+" hard cast"]++
+				}
+			}
 			if ob := g.E.G.Obj(ev.Obj); ob != nil && ob.Face() != nil && ev.From == state.ZExile {
 				n["cast from exile"]++
 				if ob.Face().IsCreature() {
@@ -170,6 +181,11 @@ func TestSuspendLockstep(t *testing.T) {
 		for _, want := range []string{"suspended", "cast from exile"} {
 			if branch[want] < 10 {
 				t.Errorf("deck %d: %s %d, want at least 10", di, want, branch[want])
+			}
+		}
+		for _, want := range [][2]string{{"0", "Rousing Refrain hard cast"}, {"1", "Inspiring Refrain hard cast"}, {"2", "Phthisis hard cast"}} {
+			if want[0] == string(rune('0'+di)) && branch[want[1]] < 5 {
+				t.Errorf("deck %d: %s %d, want at least 5", di, want[1], branch[want[1]])
 			}
 		}
 	}
