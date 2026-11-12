@@ -137,7 +137,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
 	// +12 (the merge with land: the storage-battery abilities above against land's corpus; merged ALL 22971 -> 22983 measured).
 	// +24 (mid-resolution ChooseNumber lowers: ChooseNumberMid, with Count$ChosenNumber and the dynamic PayEnergy<X> unless cost; an activated {X} energy cost stays refused rather than losing its amount; merged onto land c70201715c: ALL 23076 -> 23100, WOE 263 -> 264 measured).
-	"ALL": {23100, 34442},
+	"ALL": {23105, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {218, 280},
