@@ -841,6 +841,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if n, ok := tp.get("Number"); ok {
 			tr.NthDraw, _ = strconv.Atoi(n)
 		}
+		if err := lowerDrawnFirstInDrawStep(tp, tr); err != nil {
+			return err
+		}
 	case "Discarded":
 		if tr.F, err = readF("ValidCard"); err != nil {
 			return err

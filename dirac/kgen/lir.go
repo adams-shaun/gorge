@@ -720,6 +720,11 @@ type lTrigger struct {
 	N                         int16 // LandPlayed: the Origin$ zone mask, 1<<kop.Zone (0 = any)
 	AbClass                   int16 // AbilityCast: the ValidSA$ class (kop.TrigAbCast*)
 	Evolve                    bool  // ETB: Condition$ Evolve, the entering creature's power or toughness greater than the source's, read as it fires
+
+	// Drawn: FirstCardInDrawStep$ gates the card's position in the drawer's
+	// own draw step (gorge trigmatch.firstCardInDrawStep, CR 504.1).
+	FirstInDrawStep    bool // FirstCardInDrawStep$ True (kop.Tf5FirstCardInDrawStep)
+	NotFirstInDrawStep bool // FirstCardInDrawStep$ False (kop.Tf5NotFirstCardInDrawStep)
 }
 
 // lTrigger.Attacked bits.
@@ -736,6 +741,7 @@ type lAbility struct {
 	RemTgt          bool   // a Pump RememberObjects$ ThisTargetedCard (lower_remembered.go)
 	ReflexObj       bool   // a reflexive latent whose ImmediateTrigger captured a target (lower_remembered.go)
 	DelayedObjOnly  bool   // a delayed latent whose RememberObjects$ set holds objects only (lower_delayedobjects.go)
+	DelayedPlayer   bool   // a delayed latent registered with a remembered PLAYER (the countered spell's controller): Defined$ DelayTriggerRemembered reads the trigger player (lower_delayremplayer.go)
 	DelayedSelf     bool   // the delayed program remembered the source's own card (Transformed$ return; lower_delayedobjects.go)
 	Origin          int    // gorge's Face.Abilities index, or 0x80|Face.Triggers index; 0 is ambiguous with A[0], so Origin is valid only when OriginOK
 	OriginOK        bool
@@ -775,6 +781,10 @@ type lAbility struct {
 	Cycling bool
 	// Ninjutsu: the K:Ninjutsu expansion (CR 702.49; lower_ninjutsu.go)
 	Ninjutsu bool
+	// PutSelf: "{cost}: Put this card onto the battlefield from your hand"
+	// (a mana-only hand ability that keeps its source in the hand; the
+	// ChangeZone of lower_ninjutsu.go putSelfAbility)
+	PutSelf bool
 	// Station: the Station ability (K:Station, CR 702.184a;
 	// lower_station.go)
 	Station bool
@@ -973,6 +983,7 @@ type lCard struct {
 	Miracle        *manaCost     // K:Miracle:<cost> (CR 702.94a): the hand-cast cost of the revealed first draw
 	Warp           *manaCost     // K:Warp:<cost> (CR 702.185a): the hand's alternate cost and the end-step exile marker
 	NoAbilities    bool          // the printed face has no ability (effects.FaceHasNoAbilities): CardDef.NoAbilities, the NoAbilities filter word's card read
+	HasManaAbility bool          // the printed face has a mana ability (effects.FaceHasManaAbility): CardDef.HasManaAbility, PredHasManaAbility's card read
 	Impending      *manaCost     // K:Impending:<N>:<cost> (CR 702.176a): the hand's alternate cost; ImpendingN time counters
 	ImpendingN     int
 	Plot           *manaCost // K:Plot:<cost> (CR 702.170a): the sorcery-speed special action's cost
@@ -990,6 +1001,7 @@ type lCard struct {
 	Convoke        bool      // K:Convoke (CR 702.51a): the cast may tap creatures for its mana cost
 	Improvise      bool      // K:Improvise (CR 702.126a): the cast may tap artifacts for the generic part of its mana cost
 	Delve          bool      // K:Delve (CR 702.66a): the cast exiles graveyard cards toward its generic cost (dirac/kw_delve.go)
+	Rebound        *lAbility // K:Rebound (CR 702.88a): the latent free-cast-from-exile body of the upkeep recast (dirac/kw_rebound.go)
 	Mayhem         *manaCost // K:Mayhem:<cost> (CR 702.187): a graveyard cast for this cost if the card was discarded this turn (dirac/kw_mayhem.go)
 	BeamMeUp       *manaCost // K:Beam me up:<cost>: a graveyard cast for this cost that also returns a creature you control (FbCost)
 	Harmonize      *manaCost // K:Harmonize:<cost> (CR 702.180a): a graveyard cast for this cost, one creature tapped for its power off the generic part

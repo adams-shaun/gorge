@@ -271,6 +271,9 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// included (context.go definedSpecDelayTriggerRemembered); the kernel's
 		// RefDelayedRemembered is objects only. Admit it only over an object-only
 		// RememberObjects$ or a capturing reflexive, never generally.
+		if lc.ab != nil && lc.ab.DelayedPlayer {
+			return lRef{Kind: rTriggeredPlayer}, nil // lower_delayremplayer.go
+		}
 		if lc.ab == nil || (!lc.ab.DelayedObjOnly && !lc.ab.ReflexObj) {
 			return lRef{}, refuse("Defined$ %q", v)
 		}
@@ -1542,6 +1545,9 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if err := lc.drawDecider(ps, who); err != nil { // lower_optional.go
 			return err
 		}
+		if ps.is("Upto", "True") {
+			return lc.drawUpto(ps, who, n, remDrawn || remAll) // lower_drawupto.go
+		}
 		in := lInstr{Op: "Draw", Obj: who, A: n}
 		switch {
 		case remAll:
@@ -1785,6 +1791,15 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if v, ok := ps.get("RememberForCounter"); ok && v != "True" {
 			return refuse("Counter RememberForCounter$ %q", v)
 		}
+		remTargets := false
+		if v, ok := ps.get("RememberTargets"); ok {
+			// Arcane Denial: gorge remembers the countered spell like
+			// RememberForCounter$ (lower_stacktgt.go)
+			if v != "True" || tt != "Spell" {
+				return refuse("Counter RememberTargets$ %q beside TargetType %q", v, tt)
+			}
+			remTargets = true
+		}
 		cl := false
 		if v, ok := ps.get("RememberCountered"); ok {
 			// Tishana's Tidebinder: the countered ability's source card
@@ -1835,7 +1850,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if remMV != 0 {
 			in.B = cst(remMV)
 		}
-		if ps.is("RememberForCounter", "True") {
+		if ps.is("RememberForCounter", "True") || remTargets {
 			in.Note = rememberCounterNote // its controller is the chain's RememberedController
 		}
 		lc.emit(in)
@@ -2155,6 +2170,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.untapAll(ps)
 	case "TapAll":
 		return lc.tapAll(ps)
+	case "DrainMana":
+		return lc.drainMana(ps)
 	case "Seek":
 		return lc.seek(ps)
 	case "Reveal":

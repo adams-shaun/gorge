@@ -197,7 +197,6 @@ const (
 	pfLoyaltyUsed // a loyalty ability of this permanent was activated this turn
 	pfOnceGame    // a once-per-game ("activate only once") ability of this permanent was activated
 	pfDtMore      // a second deathtouch mark (gorge adds a "Deathtouched" counter per deathtouch damage event)
-	pfPanhGone    // a Panharmonicon host departing in the batch being fired: gorge reads its statics after the batch (trig_doubling.go)
 )
 
 // faceDown reports whether the permanent at sl is face down (CR 708.2;

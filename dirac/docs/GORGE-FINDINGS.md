@@ -177,28 +177,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   stands). dirac marks the pending ask (`askRec.pc`) and ignores the
   answer. Surfaced by TestWardLockstep seed 197 (two Pacifisms under two
   Sheltered by Ghosts).
-- Panharmonicon (CR 603.2d, `StatPanharmonicon`, the
-  ValidCard$-only shape): dirac copies these gorge limits. (1) gorge doubles
-  every trigger it queues except a Saga chapter and an Effect's delayed combat
-  trigger (`queueTrigger`).
-  (2) gorge reads the statics from
-  `e` (the board after each move) and matches the trigger source in
-  `observer` (before it): a Panharmonicon host that died earlier in the same
-  state-based batch, or is the dying permanent itself, doubles nothing, while
-  one later in the battlefield-list order still does. CR 603.10a would look
-  back at the host; dirac marks the host (`pfPanhGone`, set as its leave
-  event fires, cleared when it is removed) to match gorge. (3) dirac's
-  echo is a copy of the original pending entry, as gorge's is.
-  (4) the entering-permanent shape (`StPanhETB`:
-  ValidMode$ ChangesZone,ChangesZoneAll | ValidCause$ | Destination$
-  Battlefield; Starfield Vocalist, Virtue of Knowledge, Traveling Chocobo)
-  echoes the TrigETB and TrigTokenCreated placements of the entering
-  permanent or token, whose triggering object is the cause (gorge
-  `panharmoniconModes` maps a TokenCreate/CardToken mint to ChangesZone with
-  the battlefield as destination). Not modelled: a graveyard-leave
-  (`Origin$ Graveyard`) trigger caused by the same graveyard -> battlefield
-  move, which gorge's MoveZone mapping also echoes: dirac queues it at
-  `detach`, before the destination is known, so it stays single.
 - The optional top-of-library carriers (exact). Traveling Botanist, Bucolic Ranch and Gathering Stone are
   `Supported` in the `peekreveal` pool. (1) A taken reveal: the sub `Defined$
   Remembered | Origin$ Library | Destination$ Hand` is a fetch, not a search
@@ -278,7 +256,7 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   Barrensteppe, where only one counter a turn is reachable (`TestSiegeHollowmurkLockstep`).
 - A graveyard may-play permission's non-mana `RaiseCost$` (Noctis, Alien Symbiosis, Wickerfolk Indomitable, and BLB's Festival of
   Embers): gorge SUMS the raise over every granting static
-  (`rules/mayplay.go` `mayPlayRaiseCost`, `Cost.Plus`); dirac prices one.
+  (`engine/rules/mayplay.go` `mayPlayRaiseCost`, `Cost.Plus`); dirac prices one.
   A second granting raise (two Festivals of Embers on the battlefield, or
   Noctis beside Wickerfolk) is a loud `StallMayRaise` ("mayraise"), as is a
   spell that already owes its own additional pick cost. BLB's pool gains this
@@ -339,13 +317,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   `isAllCreatureTypes` (both read, not run). All six pairs run clean on a patched gorge export whose
   `setPropTokens` gives an `effects.IntrinsicAllCreatureTypes` card off the battlefield every creature
   type. dirac counts it (`crTypesOf`), so these pairs diverge until gorge is fixed.
-- Camellia, the Seedmiser's `Mode$ SacrificedOnce | ValidCard$ Food` doesn't fire when the Food is a creature
-  Ygra, Eater of All makes one, sacrificed for a forage (std-blb 308, 314, run: gorge's order ask has Scavenger's
-  Talent and Ygra but no Camellia; dirac's has all three). CR 603.10a looks back at the permanent as it last
-  existed, when it was a Food. XMage's `SacrificeOneOrMorePermanentsTriggeredAbility` reads
-  `getPermanentOrLKIBattlefield` (read, not run); Forge's `TriggerSacrificedOnce` matches its `Cards` run parameter
-  (read, not run; whether that is a last-known copy wasn't traced). Gorge's matcher wasn't traced or patched, so
-  the cause is unconfirmed. std-blb 435 and 448 also name Camellia but diverge on the stack count and weren't read.
 - A prevent-the-next-N shield (dirac/repl_prevnext.go, Ext PreventNext) and any
   other damage replacement that would be a candidate for the same event (a
   colour or scope prevention, a SHIELD counter, a printed prevention, a

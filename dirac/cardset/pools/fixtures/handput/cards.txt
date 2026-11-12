@@ -1,0 +1,10 @@
+# A mana-only hand ability that keeps its source in hand and puts it onto the
+# battlefield (Talon Gates of Madara's "{4}: Put this card from your hand onto the
+# battlefield") for dirac/oracle/handput_test.go
+Talon Gates of Madara
+Grizzly Bears
+Llanowar Elves
+Lightning Bolt
+Island
+Forest
+Mountain
