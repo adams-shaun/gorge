@@ -36,7 +36,17 @@ func TestNicknameSacOffer(t *testing.T) {
 		{name: "Adric, Mathematical Genius"},
 	} {
 		name := tc.name
-		g := mustCorpusCard(t, reg, name)
+		// Copy the registry card before the Haste edit below: the registry is
+		// shared with the rest of the package process, and TestSetHeads (which
+		// runs in it) would see a mutated Syr Ginger and move the woe-6 head.
+		// A shallow Card copy with its own Faces, Face and Keywords slices
+		// keeps the append off the registry.
+		orig := mustCorpusCard(t, reg, name)
+		g := *orig
+		g.Faces = append([]*cards.Face(nil), orig.Faces...)
+		face := *orig.Faces[0]
+		face.Keywords = append([]string(nil), orig.Faces[0].Keywords...)
+		g.Faces[0] = &face
 		var cost string
 		for _, ab := range g.Faces[0].Abilities {
 			if ab != nil && ab.Kind == "AB" {
@@ -46,7 +56,7 @@ func TestNicknameSacOffer(t *testing.T) {
 		if !strings.Contains(cost, "Sac<1/NICKNAME>") {
 			t.Fatalf("%s fixture drift: no Sac<1/NICKNAME> activation cost (got %q)", name, cost)
 		}
-		deck := append([]*cards.Card{g}, mountainDeck(t, 39)...)
+		deck := append([]*cards.Card{&g}, mountainDeck(t, 39)...)
 		cfg := seatZeroStart(Config{Seed: 1, Names: []string{"a", "b"}, Tokens: reg.Tokens,
 			Decks: [][]*cards.Card{deck, mountainDeck(t, 40)}})
 		e := New(cfg)
@@ -55,7 +65,7 @@ func TestNicknameSacOffer(t *testing.T) {
 		// {T} must be available at the window; a test face edit (no event)
 		// keeps the creature out of summoning sickness's tap ban.
 		g.Faces[0].Keywords = append(g.Faces[0].Keywords, "Haste")
-		id := moveSeededCard(t, e, 0, g, state.ZBattlefield)
+		id := moveSeededCard(t, e, 0, &g, state.ZBattlefield)
 		addMana(t, e, 0, testManaFor(cost))
 		e.pending = nil
 		e.priorityRound()
