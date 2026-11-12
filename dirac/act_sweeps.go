@@ -40,6 +40,13 @@ func (s *State) putCounterAll(k *prep, in *kop.Instr) {
 	if in.B.N == 1 { // lowered from Defined$ Valid <filter> (A)
 		s.kdefPutHit(cnt)
 	}
+	if in.B.N == kop.PutCtrRememberPut {
+		// RememberPut$: every recipient is remembered before replacements
+		// (gorge rememberPlaced; the overload each-variant of PutCounter)
+		for _, sl := range ord[:cnt] {
+			s.remember(s.perms[sl].obj)
+		}
+	}
 	s.g.lastCK = kop.CounterKind(in.C) // CounterAddedOnce reads the kind
 	if in.B.N == kop.PutCtrCellFirst {
 		s.g.ctrCell = slotMask{}

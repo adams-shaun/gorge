@@ -441,6 +441,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseDashCombos()          // lower_dash.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
 	lc.lowerImpending()
+	lc.lowerOverload() // lower_overload.go
 }
 
 // lowerImpending appends Impending's end-step tick after the printed lines
@@ -1466,6 +1467,22 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Evoke = &mc
+		case head == "Overload":
+			// CR 702.96a: an alternative hand cost; if paid, every
+			// "target" in the spell's text reads "each" (dirac/kw_overload.go).
+			// X and hybrid pips are announced as for a printed cost; a
+			// CardManaCost, a ":" or "<" rider and any non-mana part are
+			// refused.
+			mc, err := parseManaCost(param)
+			if err != nil || param == "" || strings.ContainsAny(param, ":<") || mc.None {
+				lc.refuseNode(node, "overload cost %q", param)
+				continue
+			}
+			if lc.out.Overload != nil {
+				lc.refuseNode(node, "two Overload keywords")
+				continue
+			}
+			lc.out.Overload = &mc
 		case head == "Bestow":
 			// CR 702.103a: an alternative hand cost; the spell is an Aura
 			// with enchant creature (gorge rules/bestow.go bestowCost and

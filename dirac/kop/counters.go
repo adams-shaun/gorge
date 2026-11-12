@@ -35,6 +35,11 @@ const (
 const (
 	PutCtrCellFirst = 3
 	PutCtrCellNext  = 4
+	// PutCtrRememberPut is OpPutCounterAll's B for a RememberPut$ rewrite: the
+	// recipient is remembered when the CounterNum value is > 0, before
+	// replacements (gorge counters_put.go rememberPlaced, the OpPutCounter B=2
+	// arm; the overload each-variant of PutCounter, kw_overload.go).
+	PutCtrRememberPut = 2
 )
 
 // PutCtrRemAmount is OpPutCounterAll's B for RememberAmount$ True on a

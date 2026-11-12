@@ -495,6 +495,9 @@ func (s *State) prog(k *prep) []kop.Instr {
 		}
 		return nil
 	}
+	if p := s.overloadProg(k); p != nil {
+		return p
+	}
 	return k.t.Cards[e.card].Abilities[e.ab].Prog
 }
 

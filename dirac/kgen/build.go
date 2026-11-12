@@ -159,6 +159,15 @@ func buildCard(pt *poolTables, c *lCard) built {
 		cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "emit " + node, Reason: err.Error()})
 		cb.out.def.Abilities = nil
 	}
+	if len(c.Refusals) == 0 && c.Overload != nil && c.OverloadProg != nil {
+		p, err := cb.prog(c.OverloadProg)
+		if err != nil {
+			cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "emit K:Overload", Reason: err.Error()})
+			cb.out.def.Abilities = nil
+		} else {
+			cb.out.def.OverloadProg = p
+		}
+	}
 	if c.Impending == nil && putsTimeCounters(&cb.out.def) {
 		// the kernel's impending dormancy reads the time counters, not
 		// gorge's cast provenance (FlagImpending): no other card may put
@@ -718,6 +727,14 @@ func (cb *cardBuilder) record() error {
 		// (dirac/kw_dash.go)
 		d.HasDash = true
 		if d.DashCost, err = manaCostOf(*c.Dash); err != nil {
+			return err
+		}
+	}
+	if c.Overload != nil {
+		// CR 702.96a: the hand's alternative cost and the resolving program's
+		// each-variant (dirac/kw_overload.go)
+		d.HasOverload = true
+		if d.OverloadCost, err = manaCostOf(*c.Overload); err != nil {
 			return err
 		}
 	}

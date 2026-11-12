@@ -218,6 +218,7 @@ type genPrep struct {
 	anyWarp        bool           // some card has warp (CardDef.HasWarp; kw_warp.go)
 	anyDash        bool           // some card has dash (CardDef.HasDash; kw_dash.go)
 	anyEvoke       bool           // some card has evoke (CardDef.HasEvoke) or some expression is ExAdamant (kw_evoke.go)
+	anyOverload    bool           // some card has overload (CardDef.HasOverload; kw_overload.go)
 	anyImpending   bool           // some card has impending (CardDef.Impending; kw_impending.go)
 	anyPrepare     bool           // some card is a preparation front (FacePrepare; face_prepare.go)
 	anyPlot        bool           // some card has plot (CardDef.HasPlot; kw_plot.go)
@@ -791,6 +792,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.HasDash {
 			g.anyDash = true
+			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
+		}
+		if c.HasOverload {
+			g.anyOverload = true
 			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
 		}
 		if c.HasPlot {
