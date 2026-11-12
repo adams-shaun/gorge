@@ -123,6 +123,11 @@ const (
 	// source (gorge dealtCombatDamageBySource; kop.F2CombatHitCtrl,
 	// battlefield only, the card's own ability)
 	whoHitBySrc
+	// whoTgtOrCtrl: ControlledBy TargetedOrController (gorge
+	// controlReferentPlayers TargetedOrController): the controller of the
+	// current link's target -- a player target is that player, an object
+	// target its controller (kop.Filter.CtrlTgt, battlefield only)
+	whoTgtOrCtrl
 )
 
 // Compare statistics (lClause.CmpStat).
@@ -160,6 +165,7 @@ const (
 	cmpWasCastSpell   // wasCastFromYourHand[ByYou] / !wasCastFromYourHand / wasCastFromExile / CastSa Spell.MayPlaySource (or wasCast beside them) read on a spell on the stack (CmpN: spell* origin | spellNot; no operator)
 	cmpPermMark       // attackedThisTurn / dealtDamageThisTurn / dealtDamagetoAny / dealtCombatDamagetoAny, with or without ! (CmpN: kop.PermMark* | kop.PermMarkNot; no operator)
 	cmpTriggerObj     // the resolving trigger's object, wherever it is now (ChooseFromDefined$ TriggeredCards; kernel isTriggerObj; no operator)
+	cmpHasManaAbility // hasManaAbility (CmpN 0) / !hasManaAbility (CmpN 1): the printed face has a mana ability (no operator)
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
@@ -240,6 +246,9 @@ type lClause struct {
 	// same predicate as wasCastFromYourHand); only a CantBeCast ValidCard$
 	// admits it (lowerCtx.cantCastProv).
 	TheirHand bool
+	// CtrlTgt is the target slot (index+1) whose controller must control the
+	// candidate (kop.Filter.CtrlTgt; whoTgtOrCtrl), set by lowerCtx.filter.
+	CtrlTgt uint8
 }
 
 // lFilter is a Forge Valid expression: any clause matching (OR), plus the
@@ -354,7 +363,10 @@ var subtypeWords = map[string]bool{}
 // propWords maps a filter property word to the flag it sets.
 var propWords = map[string]uint64{
 	"Self": fSelf, "Other": fOther, "StrictlyOther": fOther, "token": fToken, "!token": fNonToken, "nonToken": fNonToken,
-	"attacking": fAttacking, "!attacking": fNotAttacking, "!TriggeredCard": fNotTriggerObj, "blocking": fBlocking, "tapped": fTapped, "untapped": fUntapped,
+	// gorge's tokenCreated (effects/filter.go) is the IsToken marker, the same
+	// read as "token": a token created this turn is the entered ring's entry
+	"tokenCreated": fToken,
+	"attacking":    fAttacking, "!attacking": fNotAttacking, "!TriggeredCard": fNotTriggerObj, "blocking": fBlocking, "tapped": fTapped, "untapped": fUntapped,
 	"withFlying": fWithFlying, "withoutFlying": fWithoutFlying, "kicked": fKicked, "wasCastByYou": fCastByYou,
 	"EquippedBy": fEquippedBy, "EnchantedBy": fEnchantedBy, "AttachedBy": fEquippedBy, "ThisTurnEntered": fEnteredThisTurn,
 	// gorge matchPredicate's '!' of attachedBy: true for
@@ -625,6 +637,11 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// gorge wordTargetedPlayerCtrl (matchTargetedPlayerCtrl): the
 		// controller is one of the resolution's player targets
 		return c.setWho(&c.Ctrl, whoTgtPlayer)
+	case "ControlledBy TargetedOrController":
+		// gorge controlReferentPlayers TargetedOrController: the current
+		// link's target's controller, a player target read as itself and an
+		// object target as its controller (kop.Filter.CtrlTgt)
+		return c.setWho(&c.Ctrl, whoTgtOrCtrl)
 	case "ControlledBy TriggeredDefendingPlayer", "DefenderCtrl":
 		// gorge controlReferentPlayers TriggeredDefendingPlayer: the
 		// trigger's DefendingPlayer (lc.filter admits it only in an
@@ -759,6 +776,15 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 			n = 1
 		}
 		return c.setCmp(cmpOutlaw, 0, n, "", "")
+	case "hasManaAbility", "!hasManaAbility":
+		// gorge FaceHasManaAbility (an activated CR 605.1a ability, the
+		// intrinsic basic-land one included, or a CR 605.1b triggered one):
+		// the kernel reads CardDef.HasManaAbility; the '!' is PredN 1.
+		n := 0
+		if p[0] == '!' {
+			n = 1
+		}
+		return c.setCmp(cmpHasManaAbility, 0, n, "", "")
 	case "ExiledWithSource", "ExiledWithSourceLKI":
 		// gorge exiledBySource (both spellings read the one helper): the
 		// card's reverse ExiledWith link or the source's forward list; a

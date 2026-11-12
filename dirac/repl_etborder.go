@@ -27,12 +27,14 @@ package dirac
 // it.
 //
 // Not modelled, and left exactly as before: a second effect beside a stamped
-// one stalls at the stamp (three candidates gorge asks over); another
-// source whose enter replacement matches the entrant, a printed
+// one stalls at the stamp (three candidates gorge asks over); a printed
 // enters-tapped or enters-with rider on the card, or a second own line
 // beside the prepared one keep the entry unstamped and unasked
 // (etbOwnPrepares, entryComp) — a longer candidate list gorge would ask
-// over, which the silent application is today.
+// over, which the silent application is today. One other source's enter
+// replacement beside the prepared line, with no rider stamped, does ask:
+// etbOtherOrderPark poses the entrant and that source, and the entry path
+// runs unchanged after the answer because both bodies apply in either order.
 
 // etbEntryOrderPark poses the ask for the permanent spell o, which ctrl is
 // about to put onto the battlefield, when its pending rider count names a
@@ -54,6 +56,42 @@ func (s *State) etbEntryOrderPark(k *prep, o Obj, ctrl uint8) bool {
 		s.stall(StallEntryOrder)
 		return true
 	}
+	s.g.pre = preAsk{obj: o, kind: akEtbOrder, state: 1}
+	s.res.active = false
+	s.g.ctlRet = ctlPriority
+	s.ctl = ctlGenAsk
+	return true
+}
+
+// etbOtherOrderPark poses the same two-candidate ask when no rider was
+// stamped on the spell: the entrant's own prepared line is the only body on
+// its side and exactly one other source's enter replacement matches it
+// (Authority of the Consuls beside a prepared creature, the Group A repros).
+// Both bodies apply in either order, so the answer only settles the order
+// gorge asks (CR 616.1) and the entry path runs as it does today. It reports
+// whether the resolution suspended on the ask.
+func (s *State) etbOtherOrderPark(k *prep, o Obj, ctrl uint8) bool {
+	if !k.gen.anyEtbOwnOther || s.g.pre.kind != 0 || s.g.pre.state != 0 {
+		return false // the table has no such body, or an ask is already parked
+	}
+	if !k.gen.has(s.objs[o].card, gfEtbOrder) {
+		return false // the entrant's own line is not the one prepared body
+	}
+	e := &s.stack[s.sp-1]
+	if e.kind != seSpell || e.obj != o || e.etbSrc != 0 || e.spc&spcEtbMask != 0 {
+		return false // a rider count or an answered entry order is already on it
+	}
+	c, _ := s.entryComp(k, o, ctrl, NoSlot, false)
+	if c.n > 1 || c.over {
+		// more than one other source matches: gorge asks over three or more
+		// candidates, this ask is not that one
+		s.stall(StallEntryOrder)
+		return true
+	}
+	if c.n != 1 || c.hard || c.untap != 0 || c.selfLive != 1 {
+		return false // no competition, or one of a shape this ask does not order
+	}
+	e.etbSrc = c.cand[0] // reuse etbOrderOptions/etbOrderAnswer; the rider count is empty
 	s.g.pre = preAsk{obj: o, kind: akEtbOrder, state: 1}
 	s.res.active = false
 	s.g.ctlRet = ctlPriority

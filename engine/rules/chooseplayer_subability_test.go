@@ -392,7 +392,7 @@ func TestMustAttackTwoNamedRequirementsKeepBothDefenders(t *testing.T) {
 // contract between the face S: line route and the Effect-delivered route.
 // The face whitelist is the Effect registration whitelist EXTENDED by exactly
 // the condition-gate keys rules' continuousGateHolds evaluates
-// (agent task: face restriction gates): the face route can evaluate those
+// (agent-side): the face route can evaluate those
 // gates, the Effect registration path cannot, so a gate-bearing line is
 // face-readable but stays OFF the Effect whitelist -- registering it blanket
 // would over-require. The test pins three directions: the rules wrapper

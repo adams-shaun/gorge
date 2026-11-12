@@ -17,9 +17,33 @@ func foldManaAdd(g *state.Game, e *Event) {
 	applyManaAdd(g, e)
 }
 
+// ManaDrainText marks a ManaClear emitted by DB$ DrainMana (Power Sink,
+// Mana Short): the effect drains every unit, persistent and combat mana
+// included, unlike a step boundary's keep-persistent empty (foldManaClear).
+const ManaDrainText = "\x00drain"
+
 // foldManaClear folds Kind ManaClear into state.
 func foldManaClear(g *state.Game, e *Event) {
 	if validPlayer(g, e.Player) {
+		// DrainManaText is an effect's "lose all unspent mana" (DB$ DrainMana),
+		// not a step boundary: Forge's clearPool(false) clears the persistent
+		// and combat units too, where the boundary keeps them. Empty every
+		// pool tally and the restriction batches.
+		if e.Text == ManaDrainText {
+			p := &g.Players[e.Player]
+			p.Pool = state.Mana{}
+			p.Snow = state.Mana{}
+			p.PersistentMana = state.Mana{}
+			p.CombatMana = state.Mana{}
+			for i := range p.TypedMana {
+				p.TypedMana[i] = state.Mana{}
+			}
+			for i := range p.ArtifactTyped {
+				p.ArtifactTyped[i] = state.Mana{}
+			}
+			p.RestrictedMana = nil
+			return
+		}
 		// PersistentMana$ True units survive the boundary (CR 500.4 with the
 		// producing card's exception) — only the slot's ordinary share
 		// empties, and the tag tallies are drained alongside it so they

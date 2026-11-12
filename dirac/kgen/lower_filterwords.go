@@ -87,7 +87,9 @@ func filterWordPred2(p string) (n int, ok bool) {
 // and hasKeywordWarp stay unknown properties. withDisguise
 // (kop.W7WithDisguise) is the same read for Disguise; withoutDisguise and
 // hasKeywordDisguise stay unknown. withFlashback (kop.W7WithFlashback) is the
-// same read for Flashback, with the same two unknown spellings.
+// same read for Flashback, with the same two unknown spellings. withInfect
+// (kop.W7WithInfect) is the same read for Infect; withoutInfect and
+// hasKeywordInfect stay unknown.
 func filterWordPred3(p string) (n int, ok bool) {
 	switch p {
 	case "greatestPowerControlledByTargeted":
@@ -100,6 +102,8 @@ func filterWordPred3(p string) (n int, ok bool) {
 		return int(kop.W7WithDisguise), true
 	case "withFlashback":
 		return int(kop.W7WithFlashback), true
+	case "withInfect":
+		return int(kop.W7WithInfect), true
 	case "ManaCostPartialBlue":
 		return int(kop.W7CostBlue), true
 	case "NoAbilities":

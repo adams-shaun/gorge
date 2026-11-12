@@ -87,7 +87,7 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 		if !s.spellTargetsFeasibleFrom(k, ob.card, e.ctrl, o) {
 			return true
 		}
-		if k.gen.anyCantCast && s.castForbidden(k, e.ctrl, ob.card, o) {
+		if k.gen.anyCantCast && s.castForbiddenFree(k, e.ctrl, ob.card, o) {
 			return true
 		}
 		if s.g.nfree >= uint8(len(s.g.free)) {

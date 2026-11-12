@@ -11,8 +11,7 @@ package rules
 // against aliasing and clobbering, not a defect repro: it also checks the
 // escape contract by backing identity (an adopted plan's activation list is
 // never the shared candidate-activation storage), and its companion
-// evidence is the before/after profile pair and the enginebench verify smoke
-// (see the brief).
+// evidence is the before/after profile pair and the enginebench verify smoke.
 
 import (
 	"reflect"

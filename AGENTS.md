@@ -12,7 +12,7 @@ into an IR; the engine implements the primitives that IR references. See
   replay eventdiff deck`, `game` and its `gorgegame`, the seam a host runs an
   engine through, and `seat`, the `Seat` contract only). Imports nothing outside.
 - `dirac/`: the second engine, in lockstep with `engine/` and built for machine
-  learning: `kop cardset vanilla feat crcoverage search/{hbot,mull}`, `oracle` (which
+  learning: `kop cardset vanilla feat neteval crcoverage search/{hbot,mull}`, `oracle` (which
   plays it against `engine/rules`; `oracle/cmd/{kfuzz,khbot,ksbt}`), `kgen`,
   `adapter`, `canon`, `support` and `cmd/{kgen,dplay,sbv2dirac}`. The core imports
   nothing outside `dirac/`; nothing in `engine/` imports it. See

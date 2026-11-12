@@ -1,0 +1,9 @@
+# the stackraise pool: Kaervek's Torch's RaiseCost from the stack
+# (ValidTarget$ Spell.Self | EffectZone$ Stack), a counterspell that targets
+# it, creatures to target, and burn (dirac/oracle/stackraise_test.go)
+Kaervek's Torch
+Counterspell
+Grizzly Bears
+Shock
+Island
+Mountain

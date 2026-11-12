@@ -177,7 +177,7 @@ func arrangeAnswerRecord(e *Engine, d *decision.Decision, in decision.Intent, sa
 		e.emit(events.Event{Kind: events.LibraryOrder, Player: owner,
 			IDs: newLib, Secret: true})
 		// A completed Scry records its final bottom pile as the shared
-		// events.Scry marker (task scrybottom). The answer is known here, so
+		// events.Scry marker. The answer is known here, so
 		// Amount is the number the player actually chose to put on the
 		// bottom -- never the number looked at, and 0 when they kept every
 		// card on top. `triggerCount$ScryBottom` resolves it for The Temporal
@@ -227,9 +227,7 @@ func arrangeAnswerRecord(e *Engine, d *decision.Decision, in decision.Intent, sa
 				}
 			}
 		}
-		// RememberKept$ True (task surveil-remember-kept; LCI Starving
-		// Revenant's "for each card you put on top of your library, you
-		// draw a card and you lose 3 life"): the KEPT pile (pile A) joins
+		// RememberKept$ True (LCI Starving Revenant's "for each card you put on top of your library, you draw a card and you lose 3 life"): the KEPT pile (pile A) joins
 		// the source's event-backed remembered list, exactly as
 		// effects.discardAndRemember records a discarded card, so a chained
 		// `Remembered$Amount` / Count$RememberedSize read finds it. Applied

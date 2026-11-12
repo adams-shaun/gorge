@@ -140,7 +140,7 @@ func evalSacrificedOK(h Host, c *Ctx, body string) (int32, bool) {
 	if spec, ok := strings.CutPrefix(trimmed, "Valid "); ok {
 		return finishSacrificed(sacrificedValidCount(h, c, strings.TrimSpace(spec)), op, hasOp), true
 	}
-	// ChromaSource[.<Colour>] (task lb-chroma) is the dotted spelling the
+	// ChromaSource[.<Colour>] is the dotted spelling the
 	// exact-string enum below cannot hold, so it is claimed first: the
 	// sacrificed objects' coloured mana symbols, read off the LKI capture
 	// (Forge's CostSacrifice.getPaidListName "Sacrificed" feeding the

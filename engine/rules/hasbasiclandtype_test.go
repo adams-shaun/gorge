@@ -9,8 +9,7 @@ import (
 )
 
 // TestSproutingGoblinKickedETBSearchesBasicLandTypedLand pins Forge's
-// Card.hasABasicLandType predicate end to end on its corpus carrier (task
-// hasbasiclandtype). Sprouting Goblin's kicked ETB is
+// Card.hasABasicLandType predicate end to end on its corpus carrier. Sprouting Goblin's kicked ETB is
 // `ChangeZone Origin$ Library | Destination$ Hand |
 //
 //	ChangeType$ Land.hasABasicLandType`
