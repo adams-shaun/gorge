@@ -7,17 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
-
-func corpusAlternativeCard(t *testing.T, name string) *cards.Card {
-	t.Helper()
-	c, ok := testutil.CorpusRegistry(t).Lookup(name)
-	if !ok {
-		t.Fatalf("corpus missing %s", name)
-	}
-	return c
-}
 
 func castMode(t *testing.T, e *Engine, id state.ObjID, mode string) {
 	t.Helper()

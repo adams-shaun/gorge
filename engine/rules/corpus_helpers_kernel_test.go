@@ -335,3 +335,12 @@ func registryCardByName(t *testing.T, reg *cards.Registry, name string) *cards.C
 	}
 	return c
 }
+
+func corpusAlternativeCard(t *testing.T, name string) *cards.Card {
+	t.Helper()
+	c, ok := testutil.CorpusRegistry(t).Lookup(name)
+	if !ok {
+		t.Fatalf("corpus missing %s", name)
+	}
+	return c
+}
