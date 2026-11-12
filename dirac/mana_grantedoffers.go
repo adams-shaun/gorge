@@ -429,6 +429,7 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 		if pc.manaOne {
 			s.addOneColour(a, pc.manaN)
 		}
+		s.addReflectOne(k, a, sl, pc)
 		if k.gen.anyTapExtra {
 			xv := s.srcExtra(k, sl, pc) // the planner prices a tap's extra too
 			for c := range xv {

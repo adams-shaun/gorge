@@ -99,6 +99,20 @@ func foldStepChange(g *state.Game, e *Event) {
 			}
 		}
 	}
+	// kw:Echo's provenance (CR 702.30a): when the upkeep step ENDS the
+	// turn's upkeep becomes the controller's "most recent upkeep".
+	// Recording at the step being LEFT (not at the Upkeep StepChange, and
+	// not at Draw's entry: a skipped draw step would never record, and a
+	// skipped upkeep followed by a draw would record one that did not
+	// happen) is what makes the gate's comparison read the PREVIOUS upkeep
+	// at the next upkeep's beginning: the echo trigger fires on the Upkeep
+	// StepChange, before this write, and an acquisition made during that
+	// upkeep itself still counts via its AcqStep >= StepUpkeep half. Zero
+	// stays zero until a seat's first upkeep ends (their first upkeep then
+	// reads as absent — gate vacuously true).
+	if g.Step == state.StepUpkeep && e.Step != state.StepUpkeep && validPlayer(g, g.Active) {
+		g.Players[g.Active].LastUpkeepTurn = g.Turn
+	}
 	g.Step = e.Step
 	// The per-turn combat-phase count (CR 500.6: a turn has exactly one
 	// combat phase -- except the additional ones an api:AddPhase grant
@@ -128,19 +142,6 @@ func foldStepChange(g *state.Game, e *Event) {
 			o.ModeChoices = kept
 			o.CurCombatTurn, o.CurCombatCombat = g.Turn, g.CombatsThisTurn
 		}
-	}
-	// kw:Echo's provenance (CR 702.35a): the Draw step's beginning means
-	// this turn's upkeep just ended, so the turn's upkeep is now the
-	// controller's "most recent upkeep". Recording here (not at the
-	// Upkeep StepChange) is what makes the gate's comparison read the
-	// PREVIOUS upkeep at the next upkeep's beginning: the echo trigger
-	// fires on the same StepChange that would otherwise have just
-	// overwritten the record, and an acquisition made during that upkeep
-	// itself still counts via its AcqStep >= StepUpkeep half. Zero stays
-	// zero until a seat's first draw step (their first upkeep then reads
-	// as absent — gate vacuously true).
-	if e.Step == state.StepDraw && validPlayer(g, g.Active) {
-		g.Players[g.Active].LastUpkeepTurn = g.Turn
 	}
 	// The per-turn end-step count (Forge PhaseHandler.getNumEndOfTurn): one
 	// increment per End-of-Turn ENTRY, so an api:AddPhase-spliced extra end

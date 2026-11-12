@@ -136,3 +136,51 @@ func TestThisTurnEnteredRing(t *testing.T) {
 		t.Fatalf("creature departure: got %d, want 1", got)
 	}
 }
+
+// TestThisTurnEnteredBattlefieldCountsACeasedCopyToken pins CR 111.1 /
+// 700.14 / 603.10a for dest=Battlefield: a token copy that entered and has
+// since ceased (zone ZoneNone) still counts for Idol of Oblivion's
+// Count$ThisTurnEntered_Battlefield_Card.tokenCreated+YouCtrl lowering --
+// F is the permanent-base filter, F4 the Card-base filter, and From is -1
+// (zero would mean "from ZoneNone" and return 0 for the wrong reason). A
+// plain token is the control: it counted before the fix and must keep
+// counting. gorge pairs this in
+// engine/effects.TestThisTurnEnteredCountsADeadTokenCopyEntry.
+func TestThisTurnEnteredBattlefieldCountsACeasedCopyToken(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		copy bool
+	}{
+		{"copy", true},
+		{"plain", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tbl := *v.Table
+			f := kop.Filter{Flags: kop.FToken, Ctrl: kop.CtrlYou}
+			tbl.Filters = append(append([]kop.Filter(nil), v.Table.Filters...), f, f)
+			fid := kop.FilterID(len(v.Table.Filters))
+			f4 := kop.FilterID(len(v.Table.Filters) + 1)
+			sc := newScenTable(t, &tbl, Config{})
+			sc.s.enteredRing()
+			o := sc.perm(v.GrizzlyBears, 0)
+			sc.s.objs[o].of |= ofToken
+			if tc.copy {
+				sc.s.objs[o].of |= ofCopy
+			}
+			sc.s.noteEnter(o, kop.ZoneBattlefield, kop.ZoneLibrary, true)
+			if sc.s.g.enteredN != 1 {
+				t.Fatalf("precondition: ring holds %d entries, want 1", sc.s.g.enteredN)
+			}
+			// The object has left: ZoneNone is off both the battlefield and
+			// the stack, the shape ceasedCopy rejects for a copy.
+			sc.s.objs[o].zone = kop.ZoneNone
+			if got := sc.s.objs[o].of; got&ofToken == 0 || (got&ofCopy != 0) != tc.copy {
+				t.Fatalf("precondition: obj flags %#x, want token=%v copy=%v", got, true, tc.copy)
+			}
+			x := &kop.Expr{Kind: kop.ExThisTurnEntered, N: int16(kop.ZoneBattlefield), F: fid, F4: f4, From: -1}
+			if got := sc.s.thisTurnEntered(sc.k, x, evalCtx{}); got != 1 {
+				t.Errorf("copy=%v: got %d, want 1", tc.copy, got)
+			}
+		})
+	}
+}

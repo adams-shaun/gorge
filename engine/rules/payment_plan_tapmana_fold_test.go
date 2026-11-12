@@ -149,3 +149,28 @@ func TestPaymentPlanTapManaFoldOtherPlayersManaDefers(t *testing.T) {
 		t.Fatalf("Island tier = %d %q, want deferred naming Tap Probe", tier, detail)
 	}
 }
+
+// A layer-1 copy of a TapsForMana carrier is a carrier (CR 707.2, 605.4a): a
+// Blank Bear copying Forsaken Monument folds its trigger into the dork's plan.
+func TestPaymentPlanTapManaFoldCopiedCarrier(t *testing.T) {
+	t.Parallel()
+	e, _, _ := newFixtureDeck(t, 9913, interferenceOneInstant)
+	dork := onBoard(t, e, 0, tapManaDork)
+	e.G.Obj(dork).SummonSick = false
+	if got := interferenceAltMana(t, e, dork); got != (state.Mana{state.MC: 1}) {
+		t.Fatalf("precondition: dork with no carrier = %v, want {C}", got)
+	}
+	bear := onBoard(t, e, 0, blankBearSrc)
+	model := onBoardCard(t, e, 1, corpusCard(t, "Forsaken Monument"))
+	if got := interferenceAltMana(t, e, dork); got != (state.Mana{state.MC: 1}) {
+		t.Fatalf("precondition: dork before the copy = %v, want {C}", got)
+	}
+	e.emit(events.Event{Kind: events.ClonePermanent, Obj: bear, IDs: []state.ObjID{model}})
+	tapManaTriggerPrecondition(t, e, bear)
+	if o := e.G.Obj(bear); o.CopyFace == nil {
+		t.Fatal("precondition: the bear has no copy face")
+	}
+	if got := interferenceAltMana(t, e, dork); got != (state.Mana{state.MC: 2}) {
+		t.Fatalf("dork under a copy of Forsaken Monument = %v, want {C}{C}", got)
+	}
+}
