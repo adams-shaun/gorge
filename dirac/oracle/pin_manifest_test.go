@@ -105,7 +105,7 @@ func readPinDoc(path string) (*pinDoc, bool, error) {
 		return nil, false, fmt.Errorf("%s: %w", path, err)
 	}
 	if doc.Pool == "" || doc.Conditions == nil || len(doc.Games) == 0 {
-		return nil, false, nil
+		return nil, false, fmt.Errorf("%s: a pin document needs a pool, conditions and at least one game", path)
 	}
 	return &doc, true, nil
 }

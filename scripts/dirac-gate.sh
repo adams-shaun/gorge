@@ -205,7 +205,7 @@ fi
 [ -n "$dirac_changed" ] || echo "== 8 tests (refused entries, repro tables, pinned games)"
 pins=$(git ls-tree --name-only HEAD dirac/oracle/testdata/pins/ | sed -E 's|.*/||; s/__.*//; s/\.[0-9]+\.json$//' | sort -u | paste -sd'|')
 [ -n "$pins" ] || bad "no pinned games under dirac/oracle/testdata/pins"
-out=$(go test -v -timeout 5m -run "^TestRefusedEntriesStillDiverge\$|^TestChoosesHaveNoOther\$|^TestStd[A-Za-z]*ReprosLockstep|^TestPinManifest\$|^($pins)\$" ./dirac/oracle 2>&1) || bad "a refused entry no longer diverges, a committed repro left lockstep, or a pinned game no longer reaches its condition: $(named=$(grep -E -- '--- FAIL|divergen|never reaches' <<<"$out" | head -20); if [ -n "$named" ]; then echo "$named"; else echo "(no test failed by name: the test binary died or did not build)"; grep -m1 -A14 -E '^(panic:|fatal error:|# |FAIL[[:space:]])' <<<"$out"; tail -6 <<<"$out"; fi)"
+out=$(go test -v -timeout 5m -run "^TestRefusedEntriesStillDiverge\$|^TestChoosesHaveNoOther\$|^TestStd[A-Za-z]*ReprosLockstep|^TestPinManifest\$|^TestPinManifestCoversOldPins\$|^($pins)\$" ./dirac/oracle 2>&1) || bad "a refused entry no longer diverges, a committed repro left lockstep, or a pinned game no longer reaches its condition: $(named=$(grep -E -- '--- FAIL|divergen|never reaches' <<<"$out" | head -20); if [ -n "$named" ]; then echo "$named"; else echo "(no test failed by name: the test binary died or did not build)"; grep -m1 -A14 -E '^(panic:|fatal error:|# |FAIL[[:space:]])' <<<"$out"; tail -6 <<<"$out"; fi)"
 skip=$(grep -F -- '--- SKIP' <<<"$out")
 [ -z "$skip" ] || bad "a refused entry, repro or pinned game was not played, since its pool or tables are not on this machine (set GORGE_POOLS, make dirac-tables): $skip"
 
