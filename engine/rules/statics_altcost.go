@@ -273,9 +273,11 @@ func (e *Engine) altCostXCandidates(p state.PlayerID, id state.ObjID, alt altCos
 // EffectZone$ (the zone the static's source must sit in — the self-carried
 // free-cast statics name "All" so the grant reaches the hand), ValidPlayer$
 // (the casting player, relative to the static's controller — Deadly
-// Rollick/Deflecting Swat) and IsPresent$ (an existence precondition over
+// Rollick/Deflecting Swat), IsPresent$ (an existence precondition over
 // the battlefield, the shared presentGate with PresentCompare$ defaulting to
-// GE1 — the commander-protection cycle). An absent rider is vacuously true;
+// GE1 — the commander-protection cycle) and Condition$ (PlayerTurn /
+// NotPlayerTurn, the Force cycle — costConditionHolds, read against the
+// caster). An absent rider is vacuously true;
 // a ValidSA$ value whose Spell constraint this build cannot evaluate denies,
 // the same fail-closed direction ValidSpell$ takes — a wrongly-granted free
 // cast is an illegal game action, a wrongly-withheld one merely an option
@@ -292,6 +294,19 @@ func (e *Engine) alternativeCostScopeOK(params map[string]string, id, srcID stat
 		if !e.presentGate(view, ip) {
 			return false
 		}
+	}
+	// Condition$ (the Force cycle's "If it's not your turn, you may exile a
+	// blue card from your hand rather than pay this spell's mana cost", Mine
+	// Collapse's PlayerTurn twin): the same read the cost-modifier statics
+	// take, with the CASTER the condition's "you" -- for the self-carried
+	// free-cast statics the corpus prints, the caster is the static's
+	// controller, the printed you. An unimplementable condition withholds
+	// the alternative (the same deny direction costConditionHolds takes for
+	// a ReduceCost: a wrongly-granted free cast is an illegal game action, a
+	// wrongly-withheld one merely an option lost).
+	if cond := strings.TrimSpace(params["Condition"]); cond != "" &&
+		!e.costConditionHolds(staticView{Params: params}, caster, id) {
+		return false
 	}
 	if vs := strings.TrimSpace(params["ValidSA"]); vs != "" {
 		ok := false
