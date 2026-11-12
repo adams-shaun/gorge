@@ -317,6 +317,7 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 		if pc.manaOne {
 			s.addOneColour(a, pc.manaN)
 		}
+		s.addReflectOne(k, a, sl, pc)
 		if k.gen != nil && k.gen.anyTapExtra {
 			xv := s.srcExtra(k, sl, pc)
 			for c := range xv {

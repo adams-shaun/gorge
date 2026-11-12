@@ -713,20 +713,30 @@ func (s *State) cond(k *prep, in *kop.Instr) bool {
 }
 
 func (s *State) destroy(k *prep, sl Slot) {
-	if s.kw(k, sl)&kop.KwIndestructible != 0 {
+	if s.destroyAbsorbed(k, sl) {
 		return
 	}
+	s.leaveParked(k, sl)
+}
+
+// destroyAbsorbed reports a destroy that does not happen: the permanent is
+// indestructible, healed, regenerated or shielded. Each of those has done its
+// work by the time it reports true.
+func (s *State) destroyAbsorbed(k *prep, sl Slot) bool {
+	if s.kw(k, sl)&kop.KwIndestructible != 0 {
+		return true
+	}
 	if s.destroyHeal(k, sl) {
-		return
+		return true
 	}
 	if s.canRegen(sl) {
 		s.regenerate(sl)
-		return
+		return true
 	}
 	if k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(sl) {
-		return // CR 122.1c, after regeneration (gorge effDestroy)
+		return true // CR 122.1c, after regeneration (gorge effDestroy)
 	}
-	s.leaveParked(k, sl)
+	return false
 }
 
 // moveRef moves the object a Ref names to zone z (its owner's).

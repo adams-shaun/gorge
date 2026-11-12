@@ -525,10 +525,16 @@ func (s *State) targetWindowShort(k *prep, e *stackEntry, cost *kop.ManaCost, hi
 	}
 	s.occ = s.occ.andNot(hide)
 	// gorge's affordableTargetCandidates prices the window from its census,
-	// which leaves a tap-another source (Springleaf Drum) unpriced: the census
-	// is incomplete, so the menu keeps its candidates however short the
-	// window is (CR 601.2g; castWindowCensusComplete). A tap-another source
-	// with a creature left to tap is such a source.
+	// which leaves a source whose production a TapsForMana static alters
+	// (Lavaleaper's reflected basic land) or a tap-another one (Springleaf
+	// Drum) unpriced: the census is incomplete, so the menu keeps its
+	// candidates however short the complete window search is (CR 601.2g,
+	// 605.1b; castWindowCensusComplete). windowCensusComplete is the same
+	// fallback the waterbend target abort reads.
+	if !s.windowCensusComplete(k, e) {
+		s.CopyFrom(saved)
+		return false
+	}
 	if s.scriptTapX(k, e.ctrl).any() {
 		s.CopyFrom(saved)
 		return false
