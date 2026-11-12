@@ -36,11 +36,12 @@ func altSacCost(c *kop.Cost) bool {
 	return c.Flags == kop.CostSac && c.N > 0 && c.Mana == (kop.ManaCost{})
 }
 
-// altHandExileCost: the alternative cost is paying N life and exiling N hand
-// cards matching its filter, nothing else (Force of Will's PayLife<1> and
-// ExileFromHand<1/Card.Blue+Other>, CR 118.9; kgen altPayLifeExileHand).
+// altHandExileCost: the alternative cost is exiling N hand cards matching its
+// filter, and paying N life beside it or not, nothing else (Force of Will's
+// PayLife<1> and ExileFromHand<1/Card.Blue+Other>, Misdirection's exile alone,
+// CR 118.9; kgen altPayLifeExileHand).
 func altHandExileCost(c *kop.Cost) bool {
-	return c.Flags == kop.CostPayLife|kop.CostExileGrave && c.ExileHand && c.N > 0 && c.Mana == (kop.ManaCost{})
+	return (c.Flags == kop.CostPayLife|kop.CostExileGrave || c.Flags == kop.CostExileGrave) && c.ExileHand && c.N > 0 && c.Mana == (kop.ManaCost{})
 }
 
 // altPickCost: the alternative cost's non-mana parts are picks the cast asks

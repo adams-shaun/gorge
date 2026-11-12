@@ -1,0 +1,25 @@
+# ChangeTargets over spells and abilities: Deflecting Swat, Misdirection,
+# Imp's Mischief, Reroute and Sideswipe beside spells to redirect (Lava Spike,
+# First Volley, Rend Flesh are Arcane for Sideswipe), a targeted activated
+# ability (Rod of Ruin, Prodigal Sorcerer) and a targeted trigger
+# (Flametongue Kavu) (dirac/oracle/retarget_test.go)
+Deflecting Swat
+Misdirection
+Imp's Mischief
+Reroute
+Sideswipe
+Lava Spike
+First Volley
+Rend Flesh
+Lightning Bolt
+Shock
+Flametongue Kavu
+Rod of Ruin
+Prodigal Sorcerer
+Essence Scatter
+Opt
+Hill Giant
+Grizzly Bears
+Mountain
+Island
+Swamp

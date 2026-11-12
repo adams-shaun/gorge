@@ -231,5 +231,5 @@ func init() {
 		"kop.AfCheckOnTrigger", kop.AfCheckOnTrigger, "kop.AfEquip", kop.AfEquip, "kop.AfCharmTrigger", kop.AfCharmTrigger, "kop.AfManaEachColor", kop.AfManaEachColor,
 		"kop.AfManaChoice", kop.AfManaChoice, "kop.AfGift", kop.AfGift, "kop.AfResolveCount", kop.AfResolveCount, "kop.AfStation", kop.AfStation, "kop.AfManaReflect", kop.AfManaReflect, "kop.AfManaNonSpell", kop.AfManaNonSpell)
 	mask[kop.TargetFlags]("kop.TgfDistinct", kop.TgfDistinct, "kop.TgfSameController", kop.TgfSameController,
-		"kop.TgfDiffController", kop.TgfDiffController, "kop.TgfKickedRange", kop.TgfKickedRange, "kop.TgfAttachedToT0", kop.TgfAttachedToT0, "kop.TgfDecl", kop.TgfDecl, "kop.TgfGiftRange", kop.TgfGiftRange, "kop.TgfDeclSub", kop.TgfDeclSub, "kop.TgfBoundsV", kop.TgfBoundsV, "kop.TgfSingleTgt", kop.TgfSingleTgt)
+		"kop.TgfDiffController", kop.TgfDiffController, "kop.TgfKickedRange", kop.TgfKickedRange, "kop.TgfAttachedToT0", kop.TgfAttachedToT0, "kop.TgfDecl", kop.TgfDecl, "kop.TgfGiftRange", kop.TgfGiftRange, "kop.TgfDeclSub", kop.TgfDeclSub, "kop.TgfBoundsV", kop.TgfBoundsV, "kop.TgfSingleTgt", kop.TgfSingleTgt, "kop.TgfActOnly", kop.TgfActOnly)
 }

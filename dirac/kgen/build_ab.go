@@ -346,6 +346,9 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		if t.SingleTgt {
 			ts.TFlags |= kop.TgfSingleTgt
 		}
+		if t.ActOnly {
+			ts.TFlags |= kop.TgfActOnly
+		}
 		if t.VTgt != nil {
 			// the spell side is any spell; the filter names the battlefield
 			// object one of its targets must match

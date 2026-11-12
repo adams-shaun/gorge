@@ -450,6 +450,7 @@ type lTarget struct {
 	Spell    bool // a spell on the stack
 	StackAb  bool // with Spell: an activated or triggered ability on the stack too (TgtStackObj)
 	AbOnly   bool // with StackAb: abilities only, no spell (TgtStackAb)
+	ActOnly  bool // with AbOnly: activated abilities only (TgfActOnly)
 	TrigOnly bool // with StackAb: triggered abilities only beside the spells (TgtStackObjTrig)
 	// VTgt: with Spell, TargetValidTargeting$: a spell whose own object targets
 	// include a battlefield object matching it (TgtSpellTgting)
@@ -458,7 +459,7 @@ type lTarget struct {
 	// match F: 1 activated or triggered (TgtCopyAb), 2 triggered only
 	// (TgtCopyTrig)
 	CopyAb uint8
-	// SingleTgt: with StackAb, only a spell or ability whose targets are exactly one distinct target (TgfSingleTgt)
+	// SingleTgt: with a spell or StackAb slot, only a spell or ability whose targets are exactly one distinct target (TgfSingleTgt)
 	SingleTgt bool
 	// PermOrSpell: with Origin$ Battlefield,Stack, a permanent matching F or
 	// any spell (TgtPermOrSpell)

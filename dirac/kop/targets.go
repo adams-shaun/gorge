@@ -108,7 +108,11 @@ const TgtPermOrGraveCard TargetKind = 240
 // walked before exile, so a chain names its graveyard clauses first.
 const TgtGraveExileCard TargetKind = 241
 
-// TgfSingleTgt (TargetSpec.TFlags): a TgtStackObj slot admits only a spell or
+// TgfSingleTgt (TargetSpec.TFlags): a TgtStackObj, TgtStackAb or TgtSpell slot admits only a spell or
 // an ability whose targets are exactly one distinct target (gorge
 // TargetType$ SpellAbility.singleTarget, the singleTarget property).
 const TgfSingleTgt TargetFlags = 1 << 13
+
+// TgfActOnly (TargetSpec.TFlags): a TgtStackAb slot admits only an activated
+// ability, no triggered one (gorge TargetType$ Activated.singleTarget: Reroute).
+const TgfActOnly TargetFlags = 1 << 14

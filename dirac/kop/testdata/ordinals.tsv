@@ -1307,6 +1307,7 @@ TfOptional	TrigFlags	1
 TfSecondDraw	TrigFlags	32
 TfSelf	TrigFlags	2
 TfToPlayer	TrigFlags	8
+TgfActOnly	TargetFlags	16384
 TgfAtResolution	TargetFlags	32
 TgfAttachedToT0	TargetFlags	16
 TgfBoundsV	TargetFlags	512
