@@ -57,6 +57,17 @@ func (s *State) tapsWatchClass(k *prep, p uint8, sl Slot) (painN int, deferSrc b
 			if !s.matchPermGen(k, a.Trig.Filter, sl, s.perms[w].ctrl, w, layerFull) {
 				continue
 			}
+			// The gates gorge's real matcher applies (triggers_gen.go: FirstTime$
+			// reads mechTappedTurn, YourTurn$ the turn's active player): a spent
+			// or wrong-turn watcher matches no tap, so the source is an
+			// ordinary planner unit (Shuri's crewed Quinjet beside a spent
+			// Captain America).
+			if a.Trig.Flags2&kop.Tf2FirstTime != 0 && s.mSl(k, mechTappedTurn, sl) {
+				continue // an earlier tap this turn: FirstTime$ is false
+			}
+			if a.Trig.Flags2&kop.Tf2YourTurn != 0 && s.active != s.perms[w].ctrl {
+				continue // not the watcher's controller's turn
+			}
 			if a.Trig.TapPlan == kop.TapPlanDefer {
 				deferSrc = true
 			} else {
@@ -124,6 +135,13 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			}
 			continue
 		}
+		if !s.manaGranted(k, sl) && s.restrTapsGap(k, p, sl) {
+			// A restricted source whose single restricted ability one fixed
+			// colour makes (Hydraulic Helper): the same gap, its mana floating
+			// restricted (tapDeferFloat's restrTaps arm, floatRestrAb).
+			m = m.with(sl)
+			continue
+		}
 		if s.manaGranted(k, sl) || k.gen.has(c, gfRestr|gfAnyR|gfEachCol|gfFilt|gfDeferred) {
 			// Not the plain unrestricted any-colour shape the census gap is:
 			// a restricted source's mana must float restricted (tapDeferFloat
@@ -158,12 +176,54 @@ func tapsDeferColour(c kop.ColorMask) bool {
 	return c == kop.ColAny || c != 0 && c&^kop.ColAny == 0 && c&(c-1) == 0
 }
 
+// restrTapsGapShape: the source at sl is a restricted planner source whose
+// only mana production is one restricted ability of one fixed colour
+// (Hydraulic Helper's artifact-spells {U}): the Taps-deferred gap the script
+// route funds, floating its mana restricted (floatRestrAb). A source with a
+// choice between restricted abilities (Steelswarm Operator) is no such gap.
+func (s *State) restrTapsGapShape(k *prep, sl Slot) bool {
+	c := s.cardAt(sl)
+	if k.gen == nil || k.gen.rs == nil || k.cards[c].manaAb >= 0 || !k.gen.has(c, gfRestrSrc) {
+		return false
+	}
+	n := 0
+	var rec *restrRec
+	for i := range k.gen.rs.recs {
+		if k.gen.rs.recs[i].card == c {
+			n++
+			rec = &k.gen.rs.recs[i]
+		}
+	}
+	if n != 1 || rec.kind != rkExt {
+		return false
+	}
+	a := &k.t.Cards[c].Abilities[rec.ab]
+	return a.Kind == kop.AbMana && !a.ManaEach &&
+		a.AFlags&(kop.AfManaChoice|kop.AfManaDynamic|kop.AfManaChosen) == 0 &&
+		oneColour(a.ManaColors&kop.ColAny) &&
+		a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
+}
+
+// restrTapsGap: the source at sl is Taps-deferred (a live Defer-class watcher
+// with the gates gorge's matcher applies, tapsWatchClass) and of the script
+// route's restricted shape.
+func (s *State) restrTapsGap(k *prep, p uint8, sl Slot) bool {
+	return s.tapsDeferred(k, p, sl) && s.restrTapsGapShape(k, sl)
+}
+
 // addTapsDeferUnits adds the census unit of the Taps-deferred gap at sl to a:
 // its own mana and the extra a StatTapExtra carrier brings with the tap
 // (Badgermole Cub; gorge's relaxed alternative carries it too,
-// potential_plan.go potentialTapExtra). A source the extra cannot be priced on
-// stalls (srcExtra).
+// potential_plan.go potentialTapExtra). A restricted gap's unit is its
+// restricted ability's production, priced beside the restriction as any gap's
+// is (the play pays it from the floating batches). A source the extra cannot
+// be priced on stalls (srcExtra).
 func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
+	if s.restrTapsGapShape(k, sl) {
+		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.restrRecOf(s.cardAt(sl)).ab]
+		av.addUnits(uint8(ab.ManaColors&kop.ColAny), max(ab.ManaN, 1))
+		return
+	}
 	if a, ok := s.riderAbilityOf(k, sl); ok {
 		n := max(a.ManaN, 1)
 		if a.ManaEach {
@@ -198,6 +258,9 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 // the plain first ability as answer 0 when the rider is a later ability
 // (Grove of the Burnwillows; riderPlainFirst).
 func (s *State) deferGapAnswers(k *prep, sl Slot) uint8 {
+	if s.restrTapsGapShape(k, sl) {
+		return 1 // one fixed colour: no colour ask
+	}
 	if a, ok := s.riderAbilityOf(k, sl); ok {
 		if a.ManaEach {
 			return 1 // every colour at once: no colour ask
@@ -233,6 +296,15 @@ func (s *State) tapDeferPlain(k *prep, p uint8, sl Slot) {
 func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
 	if a, ok := s.riderAbilityOf(k, sl); ok {
 		s.manaRiderFloat(k, p, sl, a, c)
+		return
+	}
+	if s.restrTapsGapShape(k, sl) {
+		// the restricted gap's mana floats restricted (tapGap's restr arm):
+		// the play pays it from the floating batches the payment admits
+		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.restrRecOf(s.cardAt(sl)).ab]
+		if !s.floatRestrAb(k, p, sl, ab, bits.TrailingZeros8(uint8(ab.ManaColors)), max(ab.ManaN, 1)) {
+			s.capFull(StallRestrSrc) // every batch is taken: never a silent spill
+		}
 		return
 	}
 	pc := s.manaPCGen(k, sl)
