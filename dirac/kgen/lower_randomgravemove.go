@@ -6,13 +6,16 @@ import "strings"
 // AtRandom$ True over the controller's own graveyard to an Exile (Tersa
 // Lightshatter: "exile a card at random from your graveyard"), a Hand
 // (Haunted Fengraf, Ghoulraiser, Charmbreaker Devils, Woodland Sleuth, Make a
-// Wish) or the Battlefield (Moldgraf Monstrosity). gorge effHiddenPick takes
+// Wish, Exalted Flamer of Tzeentch) or the Battlefield (Moldgraf Monstrosity,
+// Tomb Tyrant). gorge effHiddenPick takes
 // the engine's seeded pick (randomObjIDs: Rand(len) per card over the
 // eligible pool in graveyard order, no draw when the pool is no larger than
 // the count) instead of asking, then moves the picks as an answered pick
 // would. A constant ChangeNum$ and DefinedPlayer$ You, or none beside a
-// YouCtrl filter (gorge's game-wide pool narrowed to the controller's own
-// cards: off the battlefield a card's controller is its owner); no
+// YouCtrl filter, or a YouOwn one (the same cards, named directly, as in
+// Exalted Flamer of Tzeentch; gorge's game-wide pool narrowed to the
+// controller's own cards: off the battlefield a card's controller is its
+// owner); no
 // Optional$ (gorge would ask the yes/no first), no WithTotalCMC$.
 // RememberChanged$ remembers the moved cards. Kernel OpChooseMove with
 // SrRandom (act_randomgravepick.go).
@@ -45,11 +48,15 @@ func (lc *lowerCtx) randomGraveMove(ps *params, f *lFilter, n lValue, flags []st
 	}
 	for i := range f.Clauses {
 		c := &f.Clauses[i]
-		if c.Owner != whoAny {
-			return refuse("random graveyard move filter with an owner")
+		if c.Owner == whoOpp {
+			return refuse("random graveyard move filter over another player's cards")
 		}
-		if dp == "" && c.Ctrl != whoYou {
-			return refuse("random graveyard move without DefinedPlayer$ over a pool that is not YouCtrl")
+		// The pool is the controller's own graveyard: a YouCtrl clause names
+		// your cards there (off the battlefield a card's controller is its
+		// owner), and a YouOwn one names the same cards directly (Exalted
+		// Flamer of Tzeentch, Tomb Tyrant).
+		if dp == "" && c.Ctrl != whoYou && !(c.Owner == whoYou && c.Ctrl == whoAny) {
+			return refuse("random graveyard move without DefinedPlayer$ over a pool that is not YouCtrl or YouOwn")
 		}
 		if dp == "You" && c.Ctrl != whoAny {
 			return refuse("random graveyard move DefinedPlayer$ You with a controller")

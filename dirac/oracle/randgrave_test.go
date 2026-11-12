@@ -12,12 +12,14 @@ import (
 
 // The ChangeZone AtRandom$ lockstep (Forge changeHiddenOriginResolve, gorge
 // effHiddenPick): Haunted Fengraf, Ghoulraiser, Charmbreaker Devils, Woodland
-// Sleuth and Make a Wish return cards at random from the controller's graveyard
-// to the hand, Moldgraf Monstrosity returns two creature cards at random to the
-// battlefield when it dies. The pick is the engine's seeded Rand per card over
-// the eligible cards in graveyard order (no draw when the pool is no larger than
-// the count), which the kernel repeats draw for draw. Bolt, Shock and Murder
-// fill the graveyards with the creatures and spells the picks choose among.
+// Sleuth, Make a Wish and Exalted Flamer of Tzeentch (YouOwn filter) return
+// cards at random from the controller's graveyard to the hand, Moldgraf
+// Monstrosity and Tomb Tyrant (YouOwn filter, GE3 condition) return creature
+// cards at random to the battlefield. The pick is the engine's seeded Rand per
+// card over the eligible cards in graveyard order (no draw when the pool is no
+// larger than the count), which the kernel repeats draw for draw. Bolt, Shock
+// and Murder fill the graveyards with the creatures and spells the picks choose
+// among.
 
 var krgDecks = [][2][]cardset.Entry{{
 	{
@@ -48,12 +50,50 @@ var krgDecks = [][2][]cardset.Entry{{
 		{Name: "Charmbreaker Devils", Count: 6}, {Name: "Lightning Bolt", Count: 6}, {Name: "Shock", Count: 6},
 		{Name: "Giant Growth", Count: 4}, {Name: "Grizzly Bears", Count: 4}, {Name: "Mountain", Count: 14},
 	},
+}, {
+	// Exalted Flamer of Tzeentch: the upkeep trigger returns an instant or
+	// sorcery card at random from the graveyard to the hand (YouOwn pool). The
+	// mana base carries U, R and G: the Flamer costs {2}{U}{R}, Bolt and Shock
+	// want R, Giant Growth and the Bears want G.
+	{
+		{Name: "Exalted Flamer of Tzeentch", Count: 4}, {Name: "Lightning Bolt", Count: 6}, {Name: "Shock", Count: 6},
+		{Name: "Giant Growth", Count: 6}, {Name: "Grizzly Bears", Count: 4}, {Name: "Island", Count: 5},
+		{Name: "Mountain", Count: 5}, {Name: "Forest", Count: 4},
+	},
+	{
+		{Name: "Exalted Flamer of Tzeentch", Count: 4}, {Name: "Lightning Bolt", Count: 6}, {Name: "Shock", Count: 6},
+		{Name: "Giant Growth", Count: 6}, {Name: "Grizzly Bears", Count: 4}, {Name: "Island", Count: 5},
+		{Name: "Mountain", Count: 5}, {Name: "Forest", Count: 4},
+	},
+}, {
+	// Tomb Tyrant: sacrifice a creature to return a Zombie card at random
+	// from the graveyard to the battlefield (YouOwn pool, GE3 condition).
+	{
+		{Name: "Tomb Tyrant", Count: 4}, {Name: "Ghoulraiser", Count: 6}, {Name: "Scathe Zombies", Count: 6},
+		{Name: "Grizzly Bears", Count: 4}, {Name: "Murder", Count: 4}, {Name: "Swamp", Count: 16},
+	},
+	{
+		{Name: "Tomb Tyrant", Count: 4}, {Name: "Ghoulraiser", Count: 6}, {Name: "Scathe Zombies", Count: 6},
+		{Name: "Grizzly Bears", Count: 4}, {Name: "Murder", Count: 4}, {Name: "Swamp", Count: 16},
+	},
+}, {
+	// Storm of Memories: the exile branch — an instant or sorcery card at
+	// random from the graveyard to exile (YouOwn cmcLE3 pool), then a free
+	// cast of it.
+	{
+		{Name: "Storm of Memories", Count: 4}, {Name: "Lightning Bolt", Count: 8}, {Name: "Shock", Count: 8},
+		{Name: "Mountain", Count: 20},
+	},
+	{
+		{Name: "Storm of Memories", Count: 4}, {Name: "Lightning Bolt", Count: 8}, {Name: "Shock", Count: 8},
+		{Name: "Mountain", Count: 20},
+	},
 }}
 
 // krgTally counts, in gorge's event log, the random returns: a card moved from
 // the graveyard to the hand (every carrier but Moldgraf) or to the battlefield.
 type krgTally struct {
-	games, toHand, toBattlefield, fengraf int
+	games, toHand, toBattlefield int
 }
 
 // krgRun plays seeds 1..n of every matchup; it returns the number of divergent
@@ -168,7 +208,7 @@ func TestRandGraveLockstepMutation(t *testing.T) {
 			carriers[name] = true
 		}
 	})
-	for _, want := range []string{"Haunted Fengraf", "Ghoulraiser", "Moldgraf Monstrosity", "Charmbreaker Devils", "Woodland Sleuth", "Make a Wish"} {
+	for _, want := range []string{"Haunted Fengraf", "Ghoulraiser", "Moldgraf Monstrosity", "Charmbreaker Devils", "Woodland Sleuth", "Make a Wish", "Exalted Flamer of Tzeentch", "Tomb Tyrant"} {
 		if !carriers[want] {
 			t.Fatalf("%s carries no random pick (carriers %v)", want, carriers)
 		}
