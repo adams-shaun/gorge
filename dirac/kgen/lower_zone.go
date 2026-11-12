@@ -479,6 +479,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				return refuse("WithCountersAmount$ on a graveyard pick")
 			}
 		}
+		if origin == zGraveyard && (dest == zExile || dest == zHand || dest == zBattlefield) && ps.is("AtRandom", "True") {
+			return lc.randomGraveMove(ps, f, n, flags, counterKind, override, dest) // lower_randomgravemove.go
+		}
 		graveBF := dest == zBattlefield && override == nil && graveToBattlefieldFlags(flags)
 		if origin == zGraveyard && (dest == zHand || graveBF) {
 			for i := range f.Clauses {
@@ -539,9 +542,6 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			}
 			lc.emit(lInstr{Op: "ChooseMove", Obj: lRef{Kind: rYou}, A: n, F: f, C: dest, CS: cs})
 			return nil
-		}
-		if origin == zGraveyard && dest == zExile && ps.is("AtRandom", "True") {
-			return lc.randomGraveExile(ps, f, n, flags, counterKind, override) // lower_randomgraveexile.go
 		}
 		if exwPick {
 			return lc.exilePick(ps, f, n, flags, counterKind, override, dest) // lower_exw.go

@@ -1,0 +1,18 @@
+# ChangeZone AtRandom$ from the controller's own graveyard to the hand or the
+# battlefield (Haunted Fengraf, Ghoulraiser, Moldgraf Monstrosity, Charmbreaker
+# Devils, Woodland Sleuth, Make a Wish), for dirac/oracle/randgrave_test.go
+Haunted Fengraf
+Ghoulraiser
+Moldgraf Monstrosity
+Charmbreaker Devils
+Woodland Sleuth
+Make a Wish
+Grizzly Bears
+Llanowar Elves
+Lightning Bolt
+Shock
+Murder
+Giant Growth
+Mountain
+Forest
+Swamp
