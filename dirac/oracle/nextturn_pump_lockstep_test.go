@@ -12,7 +12,7 @@ import (
 )
 
 // The rest of this change's until-your-next-turn lowerings, decision by
-// decision against gorge (CR 611.2b): the cards the onering pool does not
+// decision against gorge (CR 611.2a): the cards the onering pool does not
 // play. A-The One Ring and The Stasis Coffin grant their controller
 // protection from everything until their next turn, through the same emblem
 // The One Ring's grant lowers to. Blue Dragon, Mu Yanling, Celestial Wind and
