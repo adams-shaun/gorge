@@ -346,12 +346,20 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		if t.SingleTgt {
 			ts.TFlags |= kop.TgfSingleTgt
 		}
-		if t.VTgt != nil {
-			// the spell side is any spell; the filter names the battlefield
-			// object one of its targets must match
+		if t.VTgt != nil || t.VYou {
+			// the filter names the battlefield object one of the spell's
+			// targets must match (VYou: the chooser); SpellF is the spell side
 			ts.Kind = kop.TgtSpellTgting
-			if ts.Filter, err = cb.filter(t.VTgt, kop.ZoneBattlefield); err != nil {
-				return ts, err
+			ts.VYou = t.VYou
+			if t.VTgt != nil {
+				if ts.Filter, err = cb.filter(t.VTgt, kop.ZoneBattlefield); err != nil {
+					return ts, err
+				}
+			}
+			if t.VSpellF != nil {
+				if ts.SpellF, err = cb.filter(t.VSpellF, kop.ZoneStack); err != nil {
+					return ts, err
+				}
 			}
 			break
 		}
@@ -371,6 +379,17 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 			// alternative, a permanent the planeswalker one. Same target
 			// walk as "any target", with the object clause as the filter.
 			ts.Kind = kop.TgtAny
+			g := *f
+			g.Players = 0
+			if ts.Filter, err = cb.filter(&g, kop.ZoneBattlefield); err != nil {
+				return ts, err
+			}
+		case f.Players == plOpp && len(f.Clauses) == 1 && f.Clauses[0] == (lClause{Types: tPlaneswalker}):
+			// "target opponent or planeswalker" (Burning Sun's Avatar,
+			// Rakdos's Return): the Boros Charm walk with the player
+			// alternative narrowed to an opponent of the chooser.
+			ts.Kind = kop.TgtAny
+			ts.TFlags |= kop.TgfOppOnly
 			g := *f
 			g.Players = 0
 			if ts.Filter, err = cb.filter(&g, kop.ZoneBattlefield); err != nil {
@@ -1992,6 +2011,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		if s.Zone == zAny {
 			st.Zone = kop.ZoneCommand
+		} else if s.Zone == zStack {
+			st.Zone = kop.ZoneStack // the spell's own stack-zone raise (lower_raisecost.go)
 		}
 	case "CantBlock":
 		st.Kind = kop.StatCantBlock

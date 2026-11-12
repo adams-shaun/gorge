@@ -1745,14 +1745,21 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 				return terr
 			}
 		}
-		var vtg *lFilter
+		var vtg, vspell *lFilter
+		vyou := false
 		if v, ok := ps.get("TargetValidTargeting"); ok {
-			if tt != "Spell" || ps.str("ValidTgts") != "Card" {
-				return refuse("Counter TargetValidTargeting beside TargetType %q ValidTgts %q", tt, ps.str("ValidTgts"))
+			if tt != "Spell" {
+				return refuse("Counter TargetValidTargeting beside TargetType %q: a stack ability's targets live in its trigger/activation roles, which gorge's filterTargetValidTargeting does not read (Diplomatic Escort, Siren Stormtamer, Not of This World)", tt)
 			}
 			var verr error
-			if vtg, verr = lc.counterValidTargeting(strings.TrimSpace(v)); verr != nil {
+			if vtg, vyou, verr = lc.counterValidTargeting(strings.TrimSpace(v)); verr != nil {
 				return verr
+			}
+			if vt := ps.str("ValidTgts"); vt != "Card" {
+				// the spell side's own filter (Avoid Fate: Instant,Aura)
+				if vspell, verr = lc.filter(vt); verr != nil {
+					return verr
+				}
 			}
 		}
 		if v, ok := ps.get("TgtZone"); ok && (tt != "Spell" || v != "Stack") {
@@ -1793,7 +1800,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if err != nil {
 			return err
 		}
-		lt := lTarget{F: f, Zone: zStack, Spell: true, StackAb: tt != "Spell", AbOnly: tt == "Activated,Triggered", TrigOnly: trigOnly, VTgt: vtg}
+		lt := lTarget{F: f, Zone: zStack, Spell: true, StackAb: tt != "Spell", AbOnly: tt == "Activated,Triggered", TrigOnly: trigOnly, VTgt: vtg, VYou: vyou, VSpellF: vspell}
 		if v, ok := ps.get("TargetMin"); ok {
 			if lt.Min, err = lc.value(v); err != nil {
 				return err

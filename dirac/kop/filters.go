@@ -445,6 +445,13 @@ const W7WithFlashback int16 = 26
 // the printed Landwalk alone counts. Stormtide Leviathan.
 const W7LacksIslandwalk int16 = 27
 
+// W7WithInfect (PredWord7 sub-kind 28): the card was printed with Infect
+// (CardDef.Infect; gorge's exact keyword word withInfect, objectHasKeyword
+// reads the printed face). A battlefield permanent that is face down or lost
+// all abilities has none; off the battlefield the printed card counts in any
+// zone. Corpse Cur, Hand of the Praetors, Burn the Impure.
+const W7WithInfect int16 = 28
+
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
 // dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go
