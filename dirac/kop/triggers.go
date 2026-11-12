@@ -480,9 +480,10 @@ const TrigNTeamworkTap int16 = 1
 // Tf3GameOnce: the line triggers once per source object (GameActivationLimit$ 1).
 const Tf3GameOnce TrigFlags3 = 1 << 6
 
-// Tf2Evolve (Trigger.Flags2): ETB, Condition$ Evolve -- the entering
-// creature's power or toughness is greater than the source's, read as the
-// trigger fires (gorge evolveConditionHolds; dirac/act_mayask.go).
+// Tf2Evolve (Trigger.Flags2): ETB, Condition$ Evolve or K:Evolve's Evolve$
+// True -- the entering creature's power or toughness is greater than the
+// source's, read as the trigger fires and again as it resolves (CR 702.100a,
+// 603.4; gorge evolveConditionHolds, evolveResolves; dirac/kw_evolve.go).
 // A high bit, clear of the siblings' appended ones.
 const Tf2Evolve TrigFlags2 = 1 << 30
 

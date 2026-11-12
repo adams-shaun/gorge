@@ -2923,8 +2923,8 @@ func (e *Engine) triggerMatchesWithSVars(t cards.Trigger, source state.ObjID, ev
 	// event-relative (it names the entering creature), so it is evaluated
 	// here, beside trigmatch.Match, where ev is in scope -- not in the
 	// shared triggerConditionHolds walk above (which has no event). Like
-	// Evolve$, it is fire-time only; the resolution-time CR 603.4 recheck
-	// has no entering object to re-derive it from. The word is dispatched
+	// Evolve$, it is rechecked as the ability resolves (evolveResolves,
+	// CR 603.4) from the entering creature captured here. The word is dispatched
 	// through the PKCondition vocabulary (engine/rules/static_condition.go), not a
 	// literal, so the codeshape dispatch ratchet is untouched.
 	if code, ok := t.ParamCode(cards.PKCondition); ok && staticCondition(code) == condEvolve {

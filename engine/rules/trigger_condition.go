@@ -32,10 +32,64 @@ func evolveConditionHolds(r interface {
 	Power(state.ObjID) int32
 	Toughness(state.ObjID) int32
 }, ev events.Event, source state.ObjID) bool {
-	if ev.To != state.ZBattlefield || ev.Obj == 0 {
+	// A token's mint event (TokenCreate, CardToken) carries no move zones
+	// (trigmatch zone.go models it as Library -> Battlefield), but the
+	// creature entering is the event's Obj like any other (CR 702.100a).
+	entered := ev.To == state.ZBattlefield || ev.Kind == events.TokenCreate || ev.Kind == events.CardToken
+	if !entered || ev.Obj == 0 {
 		return false
 	}
 	return r.Power(ev.Obj) > r.Power(source) || r.Toughness(ev.Obj) > r.Toughness(source)
+}
+
+// isEvolveTrigger reports whether t carries the evolve condition: the
+// K:Evolve expansion's Evolve$ gate or the bare Condition$ Evolve spelling.
+func isEvolveTrigger(t cards.Trigger) bool {
+	if t.ParamStr(cards.PKEvolve) != "" {
+		return true
+	}
+	code, ok := t.ParamCode(cards.PKCondition)
+	return ok && staticCondition(code) == condEvolve
+}
+
+// captureEvolveSnapshot records, as an Evolve trigger fires, the entering
+// creature's derived power, toughness and Incarnation (the ChangesZone
+// event's Obj), so the CR 603.4 recheck as the ability resolves
+// (evolveResolves) can read a creature that has since left as it last stood.
+func (e *Engine) captureEvolveSnapshot(t cards.Trigger, ev events.Event, c *effects.TriggerContext) {
+	if !isEvolveTrigger(t) || ev.Obj == 0 {
+		return
+	}
+	o := e.G.Obj(ev.Obj)
+	if o == nil {
+		return
+	}
+	c.TriggerEvolveValid = true
+	c.TriggerEvolvePower, c.TriggerEvolveToughness = e.Power(ev.Obj), e.Toughness(ev.Obj)
+	c.TriggerEvolveIncarnation = o.Incarnation
+}
+
+// evolveResolves is Evolve's intervening "if" (CR 702.100a, 603.4) as the
+// trigger resolves: the entering creature's power is still greater than the
+// source's, or its toughness is. Two creatures entering together each queue an
+// evolve, and the first counter makes the second's comparison fail. The
+// entering creature is read live while it is the same object on the
+// battlefield, else from the snapshot taken as the trigger fired; a source
+// that has left the battlefield has no counter to receive, so the ability is
+// left to resolve to nothing. Kernel mirror: dirac evolveResolves.
+func (e *Engine) evolveResolves(source state.ObjID, tc *effects.TriggerContext) bool {
+	if tc == nil || !tc.TriggerEvolveValid {
+		return true
+	}
+	src := e.G.Obj(source)
+	if src == nil || src.Zone != state.ZBattlefield {
+		return true
+	}
+	p, t := tc.TriggerEvolvePower, tc.TriggerEvolveToughness
+	if o := e.G.Obj(tc.TriggerCard); o != nil && o.Zone == state.ZBattlefield && o.Incarnation == tc.TriggerEvolveIncarnation {
+		p, t = e.Power(tc.TriggerCard), e.Toughness(tc.TriggerCard)
+	}
+	return p > e.Power(source) || t > e.Toughness(source)
 }
 
 // noResolvingCheck reports whether the trigger is exempt from the
@@ -101,6 +155,11 @@ func (e *Engine) triggerResolvingCheckHolds(t cards.Trigger, source state.ObjID,
 		if !trigmatch.IncrementHolds(e, source, spent) {
 			return false
 		}
+	}
+	// Evolve (CR 702.100a) is an intervening "if" too: the comparison is read
+	// again as the ability resolves (evolveResolves).
+	if isEvolveTrigger(t) && !e.evolveResolves(source, tc) {
+		return false
 	}
 	// The ability's controller was fixed when it went on the stack. A delayed
 	// Effect can have another owner than its source card; an ordinary trigger's

@@ -1052,6 +1052,17 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !found {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
+		case head == "Evolve":
+			// CR 702.100a: gorge kwEvolve expands it into an ETB trigger
+			// (Evolve$ True) whose body puts a +1/+1 counter on Self,
+			// lowered from that line (readEvolveCondition)
+			found := false
+			for _, t := range lc.face.Triggers {
+				found = found || t.Params["Evolve"] == "True"
+			}
+			if !found {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
 		case head == "Firebending":
 			// CR 702.189a: gorge kwFirebending expands it into an Attacks
 			// Self trigger whose body is DB$ Mana (Produced$ R) with
