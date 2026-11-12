@@ -95,15 +95,20 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		tr.Zone = zoneNames[zone]
 	}
 	if od, ok := tp.get("OptionalDecider"); ok {
-		if od != "You" && od != "TriggeredCardController" && !(od == "TriggeredPlayer" && t.Mode == "Phase") {
+		if od != "You" && od != "TriggeredCardController" && !(od == "TriggeredPlayer" && t.Mode == "Phase") &&
+			!(od == "TriggeredAttackingPlayer" && t.Mode == "AttackersDeclared") {
 			return refuse("OptionalDecider %q", od)
 		}
 		// gorge's one read: a "may" that is only a duration-bounded
 		// play permission (Strongbox Raider) is no CR 603.5 election
 		tr.Optional = scriptfacts.TriggerOptionalSpec(t) != ""
 		// the Phase trigger's player is the active player: it answers
-		// (gorge deciderFromSpecTriggeredPlayer; Peace in Our Time)
-		tr.OptTrigPlayer = tr.Optional && od == "TriggeredPlayer"
+		// (gorge deciderFromSpecTriggeredPlayer; Peace in Our Time). An
+		// AttackersDeclared trigger's TriggeredAttackingPlayer is the
+		// declaring player — the active player too (CR 508.1), the
+		// kernel's queue-time trigger player (gorge
+		// deciderFromSpecTriggeredAttackingPlayer; the Commander curses)
+		tr.OptTrigPlayer = tr.Optional && (od == "TriggeredPlayer" || od == "TriggeredAttackingPlayer")
 		// gorge folds the yes/no into the body's own pay/decline when the
 		// controller decides and the body has a non-mandatory cost
 		// (rules/trigger_queue.go optionalFoldsIntoCost): one question; a
@@ -464,6 +469,14 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				tr.DefPlayer = 2
 			case "You":
 				tr.DefPlayer = 3 // the defending player is the listener's controller (gorge attackedDefenderMatches)
+			case "Player.EnchantedBy":
+				// gorge playerSpecQualifierEnchantedBy: the defender is
+				// enchanted by ANY enchantment (the shared player property,
+				// not the listener's own attachment -- two curses on two
+				// seats each fire on either declaration). The kernel's
+				// fireDefPlayer scans the player-attached auras' seats
+				// (Tf4DefEnch, dirac/trig_defendingplayer.go).
+				tr.DefPlayer = 4
 			default:
 				return refuse("AttackersDeclared AttackedTarget %q", at)
 			}

@@ -460,6 +460,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 			if t.TrigOnly {
 				fmt.Fprintf(w, "      trigonly=true\n")
 			}
+			if t.TrigChooser {
+				fmt.Fprintf(w, "      trigchooser=true\n")
+			}
 			if t.VTgt != nil {
 				fmt.Fprintf(w, "      vtgting=true F=%s\n", t.VTgt)
 			}

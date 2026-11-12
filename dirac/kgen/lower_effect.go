@@ -163,6 +163,34 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			}
 		}
 		return lRef{}, refuse("Defined$ %q outside a Phase/Drawn/LifeGained/LifeLost/SpellCast/FacesDilemma trigger", v)
+	case "TriggeredAttackingPlayer":
+		// gorge trigger_referents.go binds AttackingPlayer on a
+		// DeclareAttackers event to the declaring player, who is the game's
+		// active player (CR 508.1: only the active player declares
+		// attackers) — the kernel's queue-time trigger player at every seat
+		// count (fireAtkDecl's who, fireDefPlayer's, combat.go stampDefSeat).
+		if tr := lc.ab.Trigger; tr != nil && tr.Event == "AttackersDeclared" {
+			return lRef{Kind: rTriggeredPlayer}, nil
+		}
+		// (the combat-damage arm below)
+		if tr := lc.ab.Trigger; ddoAttackingPlayer(tr) {
+			lc.twoSeat("TriggeredAttackingPlayer read as the one opponent")
+			return lRef{Kind: rEachOpp}, nil
+		}
+		return lRef{}, refuse("Defined$ %q outside a combat damage-to-you trigger the kernel's attacking player names or an AttackersDeclared trigger", v)
+	case "TriggeredAttackedTarget":
+		// gorge trigger_referents.go binds AttackedTarget on a
+		// DeclareAttackers event to the event's defender. The kernel names
+		// the seat RefDefendingPlayer: the queue-time defending seat
+		// (combat.go stampDefSeat, every seat count past two) and the one
+		// opponent at two (resolve.go oneOppOf: the active player is the
+		// only possible attacker, CR 508.1). A per-defender line only
+		// (Trigger.DefPlayer set): a batch line queues once for the whole
+		// declaration, whose stamp names only the first defender group.
+		if tr := lc.ab.Trigger; tr != nil && tr.Event == "AttackersDeclared" && tr.DefPlayer != 0 {
+			return lRef{Kind: rDefending}, nil
+		}
+		return lRef{}, refuse("Defined$ %q outside a per-defender AttackersDeclared trigger", v)
 	case "TriggeredTarget", "TriggeredTargetLKICopy":
 		// gorge definedSpecTriggeredTarget of a damage trigger: the damaged
 		// object or player. A per-referent DamageDone line whose ValidTarget$
@@ -209,17 +237,6 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			return lRef{Kind: rEachOpp}, nil
 		}
 		return lRef{}, refuse("Defined$ %q outside an opponent-source BecomesTarget watcher", v)
-	case "TriggeredAttackingPlayer":
-		// gorge trigger_referents.go: the controller of the in-flight
-		// combat source when it is attacking. A per-referent DamageDone
-		// line with CombatDamage$ True and ValidTarget$ You is combat
-		// damage to this listener's controller, so with two players the
-		// source is an attacker the one opponent controls.
-		if tr := lc.ab.Trigger; ddoAttackingPlayer(tr) {
-			lc.twoSeat("TriggeredAttackingPlayer read as the one opponent")
-			return lRef{Kind: rEachOpp}, nil
-		}
-		return lRef{}, refuse("Defined$ %q outside a combat damage-to-you trigger the kernel's attacking player names", v)
 	case "TriggeredCardController", "TriggeredActivator":
 		return lRef{Kind: rTriggeredPlayer}, nil
 	case "Equipped", "Enchanted", "AttachedTo":
@@ -3722,6 +3739,37 @@ func (lc *lowerCtx) fight(ps *params) error {
 func (lc *lowerCtx) attach(ps *params) error {
 	if o, ok := ps.get("Object"); ok && o != "Self" {
 		return lc.attachObject(ps, o)
+	}
+	// A player DESTINATION (Archnemesis's "you may attach Archnemesis to
+	// that player": DB$ Attach | Defined$ TriggeredAttackingPlayer |
+	// Object$ Self): gorge's effAttach EnchantSelf branch
+	// (engine/effects/attach.go) walks the Defined$ player set and attaches
+	// the aura to the first legal seat — alive, not lost, an Opponent
+	// Enchant word excluding the aura's controller — emitting the "attach to
+	// player" event, the no-legal-player Note when none is. The kernel's
+	// OpAttach W arm is that walk, gated by attachPlayerLegal
+	// (interp_gen.go). Only a triggered player referent is accepted here;
+	// any other Defined$ falls through to the ordinary object walk.
+	if d, ok := ps.get("Defined"); ok {
+		r, err := lc.defined(strings.TrimSpace(d))
+		if err != nil {
+			return err
+		}
+		if r.Kind == rTriggeredPlayer {
+			ps.consume("Defined")
+			in := lInstr{Op: "Attach", W: r}
+			if v, ok := ps.m["RememberAttached"]; ok {
+				// gorge attachTo: the attaching object joins the remembered set
+				// when the attach happens
+				if v = strings.TrimSpace(v); v != "True" {
+					return refuse("Attach RememberAttached$ %q", v)
+				}
+				ps.consume("RememberAttached")
+				in.CS = "Remember"
+			}
+			lc.emit(in)
+			return nil
+		}
 	}
 	if _, ok := ps.get("Choices"); ok {
 		if _, ok := ps.get("Object"); !ok {

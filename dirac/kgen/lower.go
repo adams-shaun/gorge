@@ -3197,6 +3197,12 @@ func (lc *lowerCtx) chain(sa *cards.SA, ps *params) error {
 			p = newParams(node.Params)
 		}
 		p.consume("SubAbility")
+		if done, err := lc.skipEmptyAttackLeg(node, p); done || err != nil {
+			if err != nil {
+				return err // lower_attackleg.go: a param the skip may not drop
+			}
+			continue
+		}
 		at, nt := len(lc.ab.Prog), len(lc.ab.Targets)
 		lc.atRes = node != sa && lc.mode < 0 && (lc.ab.Kind == akSpell || lc.ab.Kind == akActivated) &&
 			sa.API != "Charm" && sa.API != "CopySpellAbility" && subTargetAtResolution(node)
