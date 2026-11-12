@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "CR 601.2c, 601.2f: Throw from the Saddle's second target (its SubAbility$ Bite) is announced on cast, and the caster is at 1 life against Terror of the Peaks' \"spells your opponents cast that target it cost an additional 3 life\": the link's menu withholds the Dragon because the total cost can't be paid, as the root target's ask already did.",
  "actions": [
   16776960,
   16776960,

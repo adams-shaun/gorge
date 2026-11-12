@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "A-Ready to Rumble's first mode deals 5 to a Swooping Protector past its SHIELD counter (CR 615.12)",
  "actions": [
   19398400,
   17432320,

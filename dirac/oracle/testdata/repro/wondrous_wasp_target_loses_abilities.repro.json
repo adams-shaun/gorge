@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "The Wondrous Wasp enters and taps a Llanowar Elves, which loses all abilities for as long as the Wasp stays on the battlefield (a host-bound loss of abilities)",
  "actions": [
   19398400,
   35192576,

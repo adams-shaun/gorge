@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "CR 601.2g: an unpayable Tiered mode's window takes Starting Town's pay-life any-colour ability while a {W} pip is owed",
  "actions": [
   184549120,
   167771904,

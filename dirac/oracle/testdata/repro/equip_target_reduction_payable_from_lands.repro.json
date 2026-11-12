@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "CR 601.2f, 602.2b: Cloud's {2} discount for an equip targeting it makes Ultima Weapon's Equip {7} payable from five lands",
  "actions": [
   167771904,
   184549120,

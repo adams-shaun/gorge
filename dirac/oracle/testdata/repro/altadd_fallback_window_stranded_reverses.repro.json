@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "the same fallback window with a Sandsteppe Citadel's colour: the stranded payment reverses the cast, not \"autopay found no plan\" (CR 733.1)",
  "actions": [
   167771904,
   184549120,

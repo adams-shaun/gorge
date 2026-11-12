@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-blb",
+ "pool": "std-blb",
+ "why": "CR 106.6, 601.2g-h: gorge's search answers Helga's \"choose a mana ability\" ask with the colour the cost names first, so Clement's {G}{U} and Burrowguard Mentor's {G} find their prefix, while Thistledown Players' {W} leaves her own any colour first and the granted {G} is a seen state: no prefix",
  "actions": [
   16776960,
   16776960,

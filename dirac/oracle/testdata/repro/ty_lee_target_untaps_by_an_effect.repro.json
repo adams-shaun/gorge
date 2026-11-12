@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "the same Wall untaps when a Vitalize resolves on it: Ty Lee's lock holds only in the untap step",
  "actions": [
   17497856,
   19136256,

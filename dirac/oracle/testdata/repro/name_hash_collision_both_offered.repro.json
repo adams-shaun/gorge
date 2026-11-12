@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 201.4: Jadzia Dax and Xenobotanist hash alike as chosen names, yet both stay distinct options on each side",
  "actions": [
   167771904,
   167771904,

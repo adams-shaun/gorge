@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 603.7: a copy-token Forest earthbent by Earthbending Lesson and killed by Jet's damage still queues the return trigger (it does nothing: the token has ceased, CR 111.8), as gorge's id-keyed registration does",
  "actions": [
   184549120,
   184549120,

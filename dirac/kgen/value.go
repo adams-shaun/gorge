@@ -257,6 +257,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			if _, err = opponentView(f); err == nil {
 				v = lValue{Kind: vOppExtreme, N: kop.OppExtValid, F: f}
 			}
+		case strings.HasPrefix(rest, "HighestValid"):
+			// the zone-scoped extreme over the opponents (value_plrextreme.go):
+			// Nautiloid Ship's X, each opponent read from their own side
+			v, err = lc.plExtremeValue(head, rest)
 		case rest == "HighestCounters.Poison":
 			// gorge playerCountExtreme's Counters.Poison arm: the extreme
 			// over the living opponents, in group order. Every other

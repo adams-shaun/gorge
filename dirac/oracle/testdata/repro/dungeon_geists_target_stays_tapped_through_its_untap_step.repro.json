@@ -63,6 +63,9 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Dungeon Geists's enters trigger is the same lock as Ty Lee's, a creature of any controller",
+ "stall": true,
  "actions": [
   19398400,
   35192576,

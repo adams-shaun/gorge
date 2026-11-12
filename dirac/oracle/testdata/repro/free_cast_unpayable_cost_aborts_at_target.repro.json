@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-blb",
+ "pool": "std-blb",
+ "why": "CR 601.2c, 733.1: Wishing Well casts Sazacap's Brew from the graveyard with the hand empty, so its discard cost is unpayable and the cast is reversed at the target ask, after the gift election",
  "actions": [
   16776960,
   16776960,

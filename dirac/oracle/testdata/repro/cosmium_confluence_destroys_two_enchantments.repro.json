@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Cosmium Confluence chooses its destroy mode twice and its search mode once: the two enchantments are the two instances' targets, the groups asked in printed order (CR 700.2d, 601.2c)",
  "actions": [
   19398400,
   17235712,

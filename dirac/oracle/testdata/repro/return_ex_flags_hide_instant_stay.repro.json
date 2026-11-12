@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 304.4: OpReturnEx's C carries the move flags beside the zone, so the instant-stays guard read a non-battlefield zone and put a manifested instant back onto the battlefield",
  "actions": [
   16776960,
   16776960,

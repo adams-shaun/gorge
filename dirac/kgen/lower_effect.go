@@ -2894,6 +2894,121 @@ func (lc *lowerCtx) pumpObjectRef(obj lRef) bool {
 	return false
 }
 
+// pumpPlayerRef reports whether a Pump's subject is the resolving
+// controller: the one player seat a player grant can name exactly, because
+// the kernel's grant emblem is created for that seat (OpCreateEmblem Obj
+// rYou) and gorge registers the same grant as a Player.You static
+// (registerPlayerPumpGrant). A target player slot or another player
+// selector cannot own the emblem -- the player grammar has no absolute seat
+// spelling -- so it refuses by name (Eon Frolicker, Noble Heritage).
+func (lc *lowerCtx) pumpPlayerRef(obj lRef) bool {
+	return obj.Kind == rYou
+}
+
+// pumpPlayerGrant lowers a player-scoped Pump keyword grant (The One Ring,
+// The Stasis Coffin, Teferi's Protection's "you gain protection from
+// everything") as a runtime emblem of the resolving controller, the same
+// instruction a Duration$ UntilYourNextTurn Effect static lowers to
+// (lower_effectemblem.go): the UntilNextTurn emblem ends at the cleanup
+// before the controller's next turn, gorge's UntilTurn = next - 1 boundary,
+// and static_plprot.go's plProtAll damage and targeting readers judge the
+// emblem's statics. Any other duration, a P/T part, a zone scope or a
+// keyword the kernel has no emblem player read for refuses by name.
+func (lc *lowerCtx) pumpPlayerGrant(ps *params, obj lRef, zone int, d string, na, nd bool, kw string, hasKW bool) error {
+	if na || nd {
+		return refuse("player-scoped Pump beside NumAtt$/NumDef$")
+	}
+	if !hasKW {
+		return refuse("player-scoped Pump without KW$")
+	}
+	if zone != zBattlefield {
+		return refuse("PumpZone$ beside a player grant")
+	}
+	if d != "UntilYourNextTurn" {
+		return refuse("player-scoped Pump grant Duration %q", d)
+	}
+	sts, err := lc.playerGrantStatics(kw)
+	if err != nil {
+		return err
+	}
+	lc.out.Emblems = append(lc.out.Emblems, lEmblem{Statics: sts, UntilNextTurn: true})
+	lc.emit(lInstr{Op: "CreateEmblem", Obj: lRef{Kind: rYou}, C: len(lc.out.Emblems) - 1})
+	return nil
+}
+
+// playerGrantStatics lowers the keywords of a player-scoped Pump grant to
+// the emblem player statics the kernel reads: "Protection from everything"
+// to StatPlayerProtAll (CR 702.16j; static_plprot.go's plProtAll walks the
+// player's emblems). Anything else refuses. Hexproof (Blossoming Calm, CR
+// 702.11c) has no emblem reader: playerHexproof and youHexproof read a
+// StatPlayerHexproof off the permanents the player controls, so an emblem
+// carrying it would leave the player a legal target for an opponent's spell
+// where gorge's playerKeywords refuses it. A shroud has no symmetric kernel
+// player read (playerHexproof keeps hexproof's own-controller exemption, CR
+// 702.11c, which shroud must not: CR 702.18a), and a Protection:<spec>
+// quality (Eon Frolicker's Player.PlayerUID_ChosenPlayerUID) names a player
+// the grant is not for.
+func (lc *lowerCtx) playerGrantStatics(kw string) ([]lStatic, error) {
+	var sts []lStatic
+	for _, k := range strings.Split(kw, "&") {
+		switch k = strings.TrimSpace(k); k {
+		case "Protection from everything":
+			sts = append(sts, lStatic{Kind: "PlayerProtAll"})
+		case "Hexproof":
+			return nil, refuse("player-scoped Pump grant keyword %q: the kernel reads a player's hexproof off the permanents they control, never off a runtime emblem", k)
+		default:
+			return nil, refuse("player-scoped Pump grant keyword %q", k)
+		}
+	}
+	return sts, nil
+}
+
+// pumpNextTurnObject lowers a battlefield object's Pump Duration$
+// UntilYourNextTurn: a keyword grant is the ovNT override record (gorge's
+// durationTiming UntilTurn boundary, CR 611.2b; The Undercity's Throne), a
+// NumAtt$/NumDef$ pump the same record's PTDelta (static_ptdelta.go: the
+// +N/+M a PTDelta record adds with the counters until the resolving
+// controller's next turn, V'Ger's PumpAll shape), and both parts ride one
+// record together as pumpAllDuration's does. A computed amount refuses: a
+// record's P/T is read once at resolution, which a Count$ amount is not.
+func (lc *lowerCtx) pumpNextTurnObject(ps *params, obj lRef, na, nd bool, kw string, hasKW bool) error {
+	if !na && !nd {
+		if !hasKW {
+			return refuse("Pump Duration %q without NumAtt$/NumDef$/KW$", "UntilYourNextTurn")
+		}
+		ks, err := pumpKeywords(kw)
+		if err != nil {
+			return err
+		}
+		lc.emitOverride(obj, &lOverride{AddKw: ks}, "UntilYourNextTurn")
+		return nil
+	}
+	o := &lOverride{}
+	var err error
+	if hasKW {
+		if o.AddKw, err = pumpKeywords(kw); err != nil {
+			return err
+		}
+	}
+	att, def := cst(0), cst(0)
+	if v, ok := ps.get("NumAtt"); ok {
+		if att, err = lc.value(v); err != nil {
+			return err
+		}
+	}
+	if v, ok := ps.get("NumDef"); ok {
+		if def, err = lc.value(v); err != nil {
+			return err
+		}
+	}
+	if !att.isConst() || !def.isConst() {
+		return refuse("Pump Duration UntilYourNextTurn with a computed P/T pump")
+	}
+	o.PTDelta, o.PVal, o.TVal = true, att, def
+	lc.emitOverride(obj, o, "UntilYourNextTurn")
+	return nil
+}
+
 // pumpBody emits one Pump's effects for the already-resolved subject obj.
 // extra is the keyword a KWChoice$ branch chose (nil for a plain Pump).
 func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) error {
@@ -2917,21 +3032,11 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		_, na := ps.m["NumAtt"]
 		_, nd := ps.m["NumDef"]
 		kw, hasKW := ps.get("KW")
-		if d == "UntilYourNextTurn" && lc.pumpObjectRef(obj) && !na && !nd && hasKW && zone == zBattlefield {
-			// gorge's durationTiming gives a next-turn Pump the UntilTurn
-			// boundary AddContinuous computes: it ends at the cleanup
-			// before that controller's next turn, which the kernel's ovNT
-			// record already models. The Undercity's Throne
-			// (lower_initiative.go, "it gains hexproof until your next turn")
-			// is one such grant; every keyword-only Pump line with this
-			// duration lowers the same way. A P/T pump still refuses: it
-			// has no layer-7c record.
-			ks, err := pumpKeywords(kw)
-			if err != nil {
-				return err
-			}
-			lc.emitOverride(obj, &lOverride{AddKw: ks}, "UntilYourNextTurn")
-			return nil
+		if lc.pumpPlayerRef(obj) {
+			return lc.pumpPlayerGrant(ps, obj, zone, d, na, nd, kw, hasKW)
+		}
+		if d == "UntilYourNextTurn" && lc.pumpObjectRef(obj) && zone == zBattlefield {
+			return lc.pumpNextTurnObject(ps, obj, na, nd, kw, hasKW)
 		}
 		if d != "Permanent" || na || nd || !hasKW || zone != zBattlefield {
 			return refuse("Pump Duration %q", d)

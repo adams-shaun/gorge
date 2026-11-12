@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 15,
  "surface": "autopay",
+ "pool": "std-dft",
+ "why": "Basri, Tomorrow's Champion's {W}, {T}, Exert cost makes the token and leaves the exerted creature unable to untap at its controller's next untap step (CR 702.100a-b)",
  "actions": [
   16776960,
   16776960,

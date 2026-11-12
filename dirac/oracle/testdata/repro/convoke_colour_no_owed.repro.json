@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-fra",
+ "why": "a convoke cast's window owes no colour: Dedicated Commons makes its lowest",
  "actions": [
   16776960,
   16776960,

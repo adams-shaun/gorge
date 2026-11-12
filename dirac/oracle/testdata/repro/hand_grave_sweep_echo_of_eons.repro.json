@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Echo of Eons: each player's hand then graveyard goes into its owner's library (the hands first), both libraries shuffled in the order of the first card moved, then seven cards drawn (CR 701.24, 121.2)",
  "actions": [
   18874112,
   17235712,

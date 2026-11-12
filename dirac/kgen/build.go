@@ -406,6 +406,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"LUCK":       kop.CtrLuck,       // Gemstone Caverns' named counter (CR 122.1; the Condition-split mana gate, lower_condsplit.go)
 	"DEPLETION":  kop.CtrDepletion,  // Peat Bog's depletion counter (CR 122.1; mana_rider.go)
 	"MINING":     kop.CtrMining,     // Gemstone Mine's mining counter (CR 122.1; mana_rider.go)
+	"BURDEN":     kop.CtrBurden,     // The One Ring's burden counter (CR 122.1; its count reads in Count$CardCounters.BURDEN)
 	"STORAGE":    kop.CtrStorage,    // Molten Slagheap's storage counter (CR 122.1; mana_countercost.go)
 }
 
@@ -2067,6 +2068,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vStepIn:             kop.ExStepIn,
 	vTgtSpent:           kop.ExTgtSpent,
 	vOppExtreme:         kop.ExOppExtreme,
+	vPlExtreme:          kop.ExPlExtreme,
 	vThisTurnActExhaust: kop.ExThisTurnActExhaust,
 	vActivations:        kop.ExActivations,
 	vLifeLostLastTurn:   kop.ExLifeLostLastTurn,
@@ -2137,7 +2139,7 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 			}
 		case vCountExile, vExileTypes:
 			zone = kop.ZoneExile
-		case vThisTurnCastSpec, vRefCount:
+		case vThisTurnCastSpec, vRefCount, vPlExtreme:
 			zone = kop.ZoneNone // the object wherever it now lives
 		}
 		if v.Kind == vLeftZone {

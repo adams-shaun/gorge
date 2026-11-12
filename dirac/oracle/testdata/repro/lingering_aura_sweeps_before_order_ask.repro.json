@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 704.3, 616.1: a dying creature's order ask is posed in its check: the Aura whose host left in that check is swept, and the token it moved ceases, at the check after the answer",
  "actions": [
   184549120,
   184549120,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-trc",
+ "pool": "std-trc",
+ "why": "Painful Truths paid with Spire of Industry's {C} doubled by Forsaken Monument: an any-colour ability makes no {C} (CR 105.1), so the lowering taps the plain ability and the cast is made, as the kernel makes it",
  "actions": [
   16776960,
   16776960,

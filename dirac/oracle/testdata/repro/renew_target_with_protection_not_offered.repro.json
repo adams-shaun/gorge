@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "CR 115.2, 702.16b: Renew's source is the black card in the graveyard, so Ureni (protection from white and black) is no target and Alchemist's Assistant's ability is not offered",
  "actions": [
   167771904,
   184549120,

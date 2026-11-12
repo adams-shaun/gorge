@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 106.6, 601.2g: Flamebraider's two any-colour mana for an Elemental pays Kulrath Zealot's basic landcycling, a hand activation the census has no unit for",
  "actions": [
   167771904,
   167771904,

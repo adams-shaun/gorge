@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-mkm",
+ "pool": "std-mkm",
+ "why": "CR 701.59a: Forensic Researcher's evidence pick lists the whole graveyard after a declined Lamplight Phoenix cost left its reservation behind",
  "actions": [
   184549120,
   167771904,

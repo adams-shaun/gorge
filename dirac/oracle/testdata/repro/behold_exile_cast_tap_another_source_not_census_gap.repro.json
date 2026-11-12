@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 601.2g: a plain hand Champions of the Shoal is not one of gorge's potential plays (shape:additional_cost is refused before the mana is priced), so no prefix search taps Springleaf Drum for it and dirac must not offer the cast",
  "actions": [
   167771904,
   184549120,

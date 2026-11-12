@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 601.2g, 605.3b: the grant search prices each step on the census, which never lists Twitching Doll's counter-rider mana, so Cynical Loner's prefix taps Overlord of the Hauntwoods for the {B} first",
  "actions": [
   16776960,
   16776960,

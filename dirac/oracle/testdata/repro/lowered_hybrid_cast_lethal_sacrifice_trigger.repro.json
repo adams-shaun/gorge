@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-hob",
+ "pool": "std-hob",
+ "why": "CR 603.3b, 704.5a: a Treasure spent for Duskwatch Hunter's hybrid mana sets off The Sackville-Bagginses' drain before the cast; the lowering's resolutions run their state-based check, which takes the opponent's last life, so the spell stays in hand and the game ends there rather than at a hybrid pip ask.",
  "actions": [
   167771904,
   184549120,

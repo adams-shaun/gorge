@@ -96,6 +96,8 @@
  "max_turns": 40,
  "surface": "full",
  "kernel": "synth std-dft",
+ "pool": "std-dft",
+ "why": "CR 616.1, 616.1f: ... beside two Velocipedes the ask has three options, and a counter source named first moves the card in and asks the two left with it on the battlefield",
  "actions": [
   16776960,
   16776960,

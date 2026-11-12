@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 303.4f: a sacrificed \"until this leaves\" host returns its exiled Aura while the sacrifice cost's payment is still resolving: the Aura waits in exile and its owner chooses what it enchants",
  "actions": [
   167771904,
   167771904,

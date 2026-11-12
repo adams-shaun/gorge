@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Speed, Young Avenger casts a Lightning Bolt and pays {1}: its reflexive trigger makes a creature with haste blockable only by creatures with haste this turn (the targeted grant with no exile sweep)",
  "actions": [
   17891072,
   16776960,

@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Lyra's activated Effect, then she connects: the until-end-of-turn trigger draws two for her own combat damage, so the end-step trigger makes an Angel",
  "actions": [
   18415360,
   17432320,

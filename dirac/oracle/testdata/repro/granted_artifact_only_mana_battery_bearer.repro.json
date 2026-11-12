@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 40,
  "surface": "autopay",
+ "pool": "custom",
+ "why": "Battery Bearer's {C} that can't be spent on a nonartifact spell, granted to creatures: it pays artifact spells and any ability (CR 106.6)",
  "actions": [
   167771904,
   184549120,

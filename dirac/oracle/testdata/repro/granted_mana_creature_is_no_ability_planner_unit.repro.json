@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-tla",
+ "why": "Honest Work's Humble Merchant (Katara) is no unit of an ability's planner, so Flexible Waterbender's waterbend {3} falls to the window, which taps her before the Islands",
  "actions": [
   16776960,
   16776960,

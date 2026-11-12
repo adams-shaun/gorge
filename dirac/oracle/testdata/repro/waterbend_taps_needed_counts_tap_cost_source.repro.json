@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 602.2b, 701.67a: Yue, the Moon Spirit's {T} is part of the ability cost the waterbend ask is paying, so its granted any-colour ability is no window unit and the ask demands the pick the 4-mana pool leaves",
  "actions": [
   167771904,
   167771904,

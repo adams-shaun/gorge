@@ -240,9 +240,9 @@ import (
 // SubCounter X cost). Haruspex's any-colour X production, the generic-fee
 // shapes (Molten Slagheap, Dreadship Reef, Saltcrusted Steppe, Fungal Reaches,
 // Calciform Pools) and Crucible of the Spirit Dragon's spend-restricted
-// production stay refused with their reasons; merged ALL build-level 22870 -> 22882.
+// production stay refused with their reasons; merged ALL build-level 22884 -> 22896.
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22882, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22896, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

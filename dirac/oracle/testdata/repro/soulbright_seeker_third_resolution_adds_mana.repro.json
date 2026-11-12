@@ -63,6 +63,9 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Soulbright Seeker's activated pump resolving a third time in one turn adds {R}{R}{R}{R}: the once-per-turn records count an activated ability's resolutions as a trigger's",
+ "stall": true,
  "actions": [
   19398400,
   17432320,

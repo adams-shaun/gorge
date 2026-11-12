@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 40,
  "surface": "full",
+ "pool": "custom",
+ "why": "Tannuk, Steadfast Second on the battlefield: an artifact or red creature card in hand is warp-cast at {2}{R}, exiled at the next end step and recast from exile on a later turn, the grant read live (CR 702.185a)",
  "actions": [
   184549120,
   167771904,

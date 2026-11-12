@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 601.2b, 601.2c: Q's Play of Set Phasers to . . . with every source tapped announces its mode, then aborts at the chosen mode's target ask",
  "actions": [
   16776960,
   16776960,

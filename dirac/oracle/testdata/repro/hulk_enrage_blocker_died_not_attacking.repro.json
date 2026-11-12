@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-msh",
+ "why": "a blocking The Incredible Hulk killed in combat: \"if he's attacking\" reads a creature card in the graveyard, which attacks nothing, so no extra combat follows (CR 506.4, 400.7)",
  "actions": [
   16776960,
   16776960,
