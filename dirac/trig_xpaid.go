@@ -141,6 +141,7 @@ func (s *State) spellHoldLeaves(k *prep) {
 	if k.gen != nil && k.gen.anyParadigm {
 		z = s.paradigmRest(k, e.obj, z) // kw_paradigm.go
 	}
+	z = buybackRest(k, e, z, false) // kw_buyback.go
 	if z == kop.ZoneLibrary {
 		s.omenToLibrary(e.obj) // face_omen.go
 	} else {

@@ -492,6 +492,15 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		s.g.retMiss = s.objs[o].zone != kop.ZoneBattlefield // an Aura with no legal host stays where it is (CR 303.4g)
 	case kop.OpToLibraryChoice:
 		o := s.objRefObj(in.Obj)
+		if in.C == kop.LibChoiceCtrlGrave {
+			// the controller's top or bottom of a card still in a
+			// graveyard (Not Forgotten, Arashin Sovereign; zone_destalt.go)
+			if o == NoObj || s.objs[o].zone != kop.ZoneGraveyard {
+				break
+			}
+			s.res.ask, s.res.askP = raGenTopBottom, s.res.e.ctrl
+			return false, true
+		}
 		if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield && s.objs[o].zone != kop.ZoneStack {
 			break // a spell target too (TgtPermOrSpell): its owner is asked
 		}

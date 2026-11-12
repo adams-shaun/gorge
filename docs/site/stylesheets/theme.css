@@ -595,6 +595,48 @@
   color: var(--md-default-fg-color--light);
 }
 
+/* The bar's figure: the first segment's share, right of the track. */
+.md-typeset .gg-bars { --gg-bar-val: 3rem; }
+.md-typeset .gg-bar { padding-right: var(--gg-bar-val); background-clip: content-box; }
+.md-typeset .gg-bar__val {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: calc(var(--gg-bar-val) - 0.4rem);
+  text-align: right;
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--md-default-fg-color--light);
+}
+
+/* ---------- coverage heatmap ----------
+ * <div class="gg-heat"> of tiles, one per set. --p is the supported share:
+ * the tile's ground mixes from the bar track toward the supported hue, so a
+ * weak set reads pale at a glance and the figure states it exactly. */
+.md-typeset .gg-heat {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.2rem, 1fr));
+  gap: 0.4rem;
+  margin: 1rem 0 0.6rem;
+}
+.md-typeset .gg-heat__tile {
+  --gg-heat-ink: var(--md-default-fg-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.5rem 0.6rem 0.55rem;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--gg-ok) calc(var(--p) * 0.55), var(--gg-track));
+  border-left: 3px solid color-mix(in srgb, var(--gg-ok) var(--p), var(--gg-ref));
+  color: var(--gg-heat-ink);
+  line-height: 1.25;
+}
+.md-typeset .gg-heat__set { font-size: 0.72rem; font-weight: 650; letter-spacing: 0.02em; }
+.md-typeset .gg-heat__pct { font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.md-typeset .gg-heat__n,
+.md-typeset .gg-heat__g { font-size: 0.62rem; opacity: 0.85; font-variant-numeric: tabular-nums; }
+
 /* ---------- support dots ----------
  * Shape carries the claim: filled is full, half is partial, a ring is none.
  * Each dot has a title and a .gg-sr twin for screen readers. */
@@ -757,7 +799,8 @@
 }
 
 @media (max-width: 40em) {
-  .md-typeset .gg-bars { --gg-bar-label: 3.2rem; }
+  .md-typeset .gg-bars { --gg-bar-label: 3.2rem; --gg-bar-val: 2.6rem; }
+  .md-typeset .gg-heat { grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr)); }
   .md-typeset .gg-area > .gg-lede { font-size: 1rem; }
   .md-typeset .mermaid { padding: 1rem 0.5rem; }
 }

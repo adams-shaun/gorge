@@ -394,6 +394,19 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 	switch {
 	case t.LKIDiv:
 		ts.Divide = kop.DivLKIP1P1 // the kernel bounds the slot 0..X itself
+	case t.Divided == kop.DivValue && minC && maxC && t.Min.N == 0 && t.Max.N >= 1 && t.Max.N < 255 && !t.AtRes:
+		// "up to N targets" over a value total (Shatterskull Smashing's two,
+		// the total X or 2X): the maximum is min(N, total), so the slot is
+		// bounds-valued and tgtBoundsV clamps it to the total.
+		var err error
+		if ts.MinV, err = cb.value(t.Min); err != nil {
+			return ts, err
+		}
+		if ts.MaxV, err = cb.value(t.Max); err != nil {
+			return ts, err
+		}
+		ts.TFlags |= kop.TgfBoundsV
+		ts.UpTo = true
 	case minC && maxC && t.Min.N == 1 && t.Max.N == 1:
 	case minC && maxC && t.Min.N == 0 && t.Max.N == 1:
 		ts.UpTo = true
@@ -508,7 +521,7 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 			if t.DividedV.Kind == vNone {
 				return ts, fmt.Errorf("divided slot without a value total")
 			}
-			if !tgtBoundReads(t.DividedV) {
+			if !divTotalReads(t.DividedV) {
 				return ts, fmt.Errorf("divided total %s is not evaluable at the announcement", t.DividedV)
 			}
 			if ts.DivideV, err = cb.value(t.DividedV); err != nil {
@@ -576,6 +589,19 @@ func tgtBoundV(v lValue, isMin bool) bool {
 // plainX reports whether v is the announced X itself.
 func plainX(v lValue) bool {
 	return v.Kind == vX && v.Mul == 0 && v.Div == 0 && v.Add == 0 && !v.Neg && len(v.Sub) == 0
+}
+
+// divTotalReads is tgtBoundReads widened to a divided total's
+// "Count$Compare X LT6.X.Z" (Shatterskull Smashing's twice X from 6): a
+// comparison of a bound-readable value whose two arms are bound-readable.
+func divTotalReads(v lValue) bool {
+	if v.Kind == vCompare {
+		if len(v.Sub) != 2 || v.Sub[1].Kind != vBranches || len(v.Sub[1].Sub) != 2 {
+			return false
+		}
+		return tgtBoundReads(v.Sub[0]) && divTotalReads(v.Sub[1].Sub[0]) && divTotalReads(v.Sub[1].Sub[1])
+	}
+	return tgtBoundReads(v)
 }
 
 func tgtBoundReads(v lValue) bool {
@@ -941,6 +967,20 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	}
 	ka.ManaEach = m.Each
 	ka.ManaDeferred = m.Deferred
+	ka.ManaRider = uint8(m.Rider)
+	if m.RiderCtr != "" {
+		k, err := counterKind(m.RiderCtr)
+		if err != nil {
+			return err
+		}
+		ka.ManaRiderCtr = k
+	}
+	if m.RiderN > 0 {
+		if m.RiderN > 255 {
+			return fmt.Errorf("mana rider count %d", m.RiderN)
+		}
+		ka.ManaRiderN = uint8(m.RiderN)
+	}
 	if sp := m.Split; sp != nil {
 		ka.SplitGate, ka.SplitCols = sp.Gate, colorMask(sp.Cols)
 		if sp.Ctr != "" {
@@ -2950,6 +2990,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if in.C == 4 {
 			ki.Op, ki.C = kop.OpToLibraryChoice, kop.LibChoiceSecond
 		}
+		if in.C == libChoiceCtrlGrave { // lower_destalt.go
+			ki.Op, ki.C = kop.OpToLibraryChoice, kop.LibChoiceCtrlGrave
+		}
 	case "ToGraveyard":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtToGraveyard))
 	case "MayShuffleMove":
@@ -3116,6 +3159,22 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, fmt.Errorf("Bottom on a %s from %s", in.Op, fl["from"])
 			}
 			sb |= kop.SrHandBottom
+		}
+		if _, ok := fl["PosAsk"]; ok {
+			// the controller's top-or-bottom ask after a hand put-back
+			// (Dream Cache; lower_destalt.go)
+			if in.Op != "ChooseMove" || zone != kop.ZoneHand || zoneMap[in.C] != kop.ZoneLibrary {
+				return ki, fmt.Errorf("PosAsk on a %s from %s", in.Op, fl["from"])
+			}
+			sb |= kop.SrHandPosAsk
+		}
+		if _, ok := fl["DestAltGrave"]; ok {
+			// the searcher's hand-or-graveyard ask after the pick (Dina's
+			// Guidance; lower_destalt.go)
+			if in.Op != "Search" || zoneMap[in.C] != kop.ZoneHand {
+				return ki, fmt.Errorf("DestAltGrave on a %s", in.Op)
+			}
+			sb |= kop.SrDestAltGrave
 		}
 		if _, ok := fl["ShareLandType"]; ok {
 			if in.Op != "Search" {
@@ -3421,6 +3480,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.B = kop.Const(i + 1)
 	case "Manifest":
 		ki.Op = kop.OpManifest
+		if in.C != 0 {
+			ki.B = kop.Const(in.C) // CfManifestRemembered
+		}
 	case "Cloak":
 		ki.Op = kop.OpCloak
 		ki.B = kop.Const(in.C)
@@ -3786,6 +3848,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, err
 		}
 		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtColorGrant)), v, int16(in.C)
+		if in.F != nil {
+			// (Akroma's Blessing) the sweep's filter
+			if err := objFilter(kop.ZoneBattlefield); err != nil {
+				return ki, err
+			}
+		}
 	case "Endure":
 		// OpExt ExtEndure, B the Spirit token, C the N/N
 		// override (its PA is N)
@@ -3988,6 +4056,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtPreventColor)) // (Prismatic Strands)
 	case "PreventDamageScope":
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventDamageScope)), int16(in.C)
+	case "PreventNext":
+		// OpExt ExtPreventNext on Obj, B the amount, C 1 for combat damage only (dirac/repl_prevnext.go)
+		v, err := cb.value(in.A)
+		if err != nil {
+			return ki, err
+		}
+		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventNext)), v, int16(in.C&1)
 	case "CounterPlusEOT":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtCounterPlusEOT))
 	case "TurnRepl":

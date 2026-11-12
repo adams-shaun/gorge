@@ -837,6 +837,11 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
+	if altDecider == "" {
+		// no AlternativeDecider$: the controller's top-or-bottom ask (Not
+		// Forgotten, Arashin Sovereign; zone_positionchoice.go)
+		altBottom, altEngaged = controllerPositionAsk(h, c, sa, cz, to, targets, originZones, originAll)
+	}
 	forgetOther(h, c, cz.Riders.ForgetOtherRemembered)
 	// ForgetOtherTargets$ True (Journey to Nowhere, Leonin Relic-Warder):
 	// Forge's ChangeZoneEffect.forgetOtherTargets -- forget every previously

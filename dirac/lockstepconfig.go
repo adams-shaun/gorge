@@ -208,6 +208,10 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 	// window, so the ask counts this unit too.
 	if s.g.availX&3 == 0 {
 		for b := s.scriptTapsDefer(k, p); b.any(); b = b.rest() {
+			if _, ok := s.riderAbilityOf(k, b.first()); ok {
+				s.addTapsDeferUnits(k, b.first(), a) // its own production, an all-at-once pair included (mana_rider.go)
+				continue
+			}
 			pc := s.manaPCGen(k, b.first())
 			if s.splitDeferred(k, b.first()) {
 				pc = s.splitWindowPC(k, b.first()) // gorge's window census reads a Condition-split root alone (mana_condsplit.go)

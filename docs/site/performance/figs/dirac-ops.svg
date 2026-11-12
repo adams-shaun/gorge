@@ -2,26 +2,28 @@
 <text x="16.0" y="20.0" class="mz-title" text-anchor="start">dirac: instructions per operation</text>
 <line class="mz-grid" x1="230.0" y1="40" x2="230.0" y2="148"/>
 <text x="230.0" y="163.0" class="mz-muted" text-anchor="middle">100</text>
-<line class="mz-grid" x1="386.9" y1="40" x2="386.9" y2="148"/>
-<text x="386.9" y="163.0" class="mz-muted" text-anchor="middle">1,000</text>
-<line class="mz-grid" x1="543.8" y1="40" x2="543.8" y2="148"/>
-<text x="543.8" y="163.0" class="mz-muted" text-anchor="middle">10,000</text>
+<line class="mz-grid" x1="381.4" y1="40" x2="381.4" y2="148"/>
+<text x="381.4" y="163.0" class="mz-muted" text-anchor="middle">1,000</text>
+<line class="mz-grid" x1="532.8" y1="40" x2="532.8" y2="148"/>
+<text x="532.8" y="163.0" class="mz-muted" text-anchor="middle">10,000</text>
+<line class="mz-grid" x1="684.2" y1="40" x2="684.2" y2="148"/>
+<text x="684.2" y="163.0" class="mz-muted" text-anchor="middle">100,000</text>
 <text x="222.0" y="61.0" text-anchor="end">Transition, FDN</text>
-<g><title>Transition, FDN: 45,604 instructions, 2,748 ns per op, 0 allocations</title><rect class="s3" x="230.0" y="48.0" width="417.2" height="18" rx="2" style="stroke:none"/>
+<g><title>Transition, FDN: 50,310 instructions, 3,125 ns per op, 0 allocations</title><rect class="s3" x="230.0" y="48.0" width="409.0" height="18" rx="2" style="stroke:none"/>
 </g>
-<text x="653.2" y="61.0" text-anchor="start">45,604</text>
+<text x="645.0" y="61.0" text-anchor="start">50,310</text>
 <text x="222.0" y="87.0" text-anchor="end">Transition, BLB</text>
-<g><title>Transition, BLB: 51,990 instructions, 2,909 ns per op, 0 allocations</title><rect class="s3" x="230.0" y="74.0" width="426.2" height="18" rx="2" style="stroke:none"/>
+<g><title>Transition, BLB: 54,075 instructions, 3,175 ns per op, 0 allocations</title><rect class="s3" x="230.0" y="74.0" width="413.8" height="18" rx="2" style="stroke:none"/>
 </g>
-<text x="662.2" y="87.0" text-anchor="start">51,990</text>
+<text x="649.8" y="87.0" text-anchor="start">54,075</text>
 <text x="222.0" y="113.0" text-anchor="end">Transition, FDN whole-pool table</text>
-<g><title>Transition, FDN whole-pool table: 60,463 instructions, 3,601 ns per op, 0 allocations</title><rect class="s3" x="230.0" y="100.0" width="436.5" height="18" rx="2" style="stroke:none"/>
+<g><title>Transition, FDN whole-pool table: 77,332 instructions, 4,764 ns per op, 0 allocations</title><rect class="s3" x="230.0" y="100.0" width="437.3" height="18" rx="2" style="stroke:none"/>
 </g>
-<text x="672.5" y="113.0" text-anchor="start">60,463</text>
+<text x="673.3" y="113.0" text-anchor="start">77,332</text>
 <text x="222.0" y="139.0" text-anchor="end">CopyFrom, mid-game FDN</text>
-<g><title>CopyFrom, mid-game FDN: 187 instructions, 40.2 ns per op, 0 allocations</title><rect class="s3" x="230.0" y="126.0" width="42.7" height="18" rx="2" style="stroke:none"/>
+<g><title>CopyFrom, mid-game FDN: 215 instructions, 76.3 ns per op, 0 allocations</title><rect class="s3" x="230.0" y="126.0" width="50.3" height="18" rx="2" style="stroke:none"/>
 </g>
-<text x="278.7" y="139.0" text-anchor="start">187</text>
+<text x="286.3" y="139.0" text-anchor="start">215</text>
 <line class="mz-axis" x1="230.0" y1="40" x2="230.0" y2="148"/>
 <text x="460.0" y="182.0" class="mz-muted" text-anchor="middle">user-space instructions per operation (log scale), median of 5; every row allocates nothing</text>
 </svg>

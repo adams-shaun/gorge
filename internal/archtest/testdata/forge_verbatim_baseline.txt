@@ -1,6 +1,5 @@
 bots/botpolicy/timing_drawtoken_adapter_test.go
 bots/searchprobe/proposal_test.go
-docs/site/architecture/gorge/cards.md
 engine/cards/hiddenkeyword_test.go
 engine/cards/keywords_test.go
 engine/cards/kw_etbreplacement_filter_test.go

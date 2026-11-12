@@ -4,3 +4,25 @@
 # dirac/mana_rider_test.go plays it.
 Twitching Doll
 Forest
+Gemstone Mine
+Grove of the Burnwillows
+Hickory Woodlot
+Peat Bog
+Remote Farm
+Sandstone Needle
+Saprazzan Skerry
+Island
+Mountain
+Plains
+Swamp
+Lightning Bolt
+Grizzly Bears
+Doom Blade
+Divination
+Raise the Alarm
+Shock
+Giant Growth
+Pacifism
+Unsummon
+Duress
+Black Knight

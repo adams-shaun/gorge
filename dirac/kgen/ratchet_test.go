@@ -125,9 +125,10 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (ConditionActivationLimit$ lowers to kop.ExActivations on a card whose one non-mana activated ability it gates: Dragon Whelp; DMU 194 -> 195, ALL 22176 -> 22177).
 	// +1 (Fiend Hunter's Defined$ DirectRemembered leave return lowers as the remembered-persist pair; ALL 22176 -> 22177).
 	// +1 (the merge with land: Count$TotalDamageReceivedThisTurn lowered: Tangled Colony beside land's 22180; ALL 22180 -> 22181, WOE 261 -> 262).
-	// +14 (the all-must-block Lure sentence lowers, as a StatLure static or a Pump mark: Lure, Alluring Scent, Roar of Challenge, Bloodscent, Gift of the Deity, Declare Dominance, Seton's Desire, Shinen of Life's Roar, Mortipede, Nemesis Mask, Noble Quarry, Revenge of the Hunted, Taunting Arbormage, Taunting Challenge; ALL 22345 -> 22359).
+	// +5 (Dig NoLooking$ and Manifest Defined$ Remembered lower: Telling Time, Moment of Truth, Expressive Iteration, Write into Being, Hamza, Might of the Yathan; ALL 22345 -> 22350, MOM 199 -> 200).
+	// +14 (the all-must-block Lure sentence lowers, as a StatLure static or a Pump mark: Lure, Alluring Scent, Roar of Challenge, Bloodscent, Gift of the Deity, Declare Dominance, Seton's Desire, Shinen of Life's Roar, Mortipede, Nemesis Mask, Noble Quarry, Revenge of the Hunted, Taunting Arbormage, Taunting Challenge; the merge with land: this branch's 14 beside land's +151, disjoint; merged ALL 22496 -> 22510).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22359, 34442},
+	"ALL": {22510, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {216, 280},
@@ -142,13 +143,13 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	"MKM": {251, 279},
-	"MOM": {199, 296},
+	"MOM": {200, 296},
 	"MSH": {246, 276},
 	"NEO": {201, 287},
 	"ONE": {200, 271},
 	"OTJ": {251, 276},
 	"SNC": {187, 266},
-	"SOS": {256, 270},
+	"SOS": {257, 270},
 	"SPM": {169, 192},
 	"TDM": {256, 276},
 	"TLA": {261, 285},
