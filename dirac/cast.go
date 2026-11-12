@@ -28,9 +28,14 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	if mode&1 != 0 {
 		fl |= sfKicked
 	}
-	mayhem := mayhemCast(k, c, mode)                                               // a graveyard cast that is no flashback (kw_mayhem.go)
+	esc := mode&2 != 0 && s.g.escapeCast // the target byte's escape cast (kw_escape.go)
+	s.g.escapeCast = false
+	mayhem := mayhemCast(k, c, mode) && !esc // a graveyard cast that is no flashback (kw_mayhem.go)
+	if k.gen != nil && k.gen.anyAftermath {
+		fl |= s.aftermathCastFlags(k, o, c, mode) // exiled leaving the stack (face_aftermath.go)
+	}
 	retrace := mode&2 != 0 && !mayhem && tgt == retraceTgt && k.t.Cards[c].Retrace // kw_retrace.go
-	if mode&2 != 0 && !mayhem && !retrace {
+	if mode&2 != 0 && !mayhem && !esc && !retrace {
 		fl |= sfFlashback
 		if two, _, g := s.fbInstances(k, p, o); two && g {
 			fl |= sfFbGranted // the granted instance (fbInstances)
@@ -49,6 +54,9 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	}
 	if mayhem {
 		e.trigPl = trigPlMayhem
+	}
+	if esc {
+		e.trigPl = trigPlEscape // the cost builder's escape cast (kw_escape.go)
 	}
 	if retrace {
 		e.trigPl = trigPlRetrace // the retrace cast's pick cost (kw_retrace.go)
@@ -76,6 +84,10 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		s.g.warpGrant = false
 		if mode&castWarpRecast != 0 {
 			e.mode |= modeWarpRecast
+		}
+		if s.g.impCast && ob.zone == kop.ZoneExile {
+			e.trigPl = trigPlForetold // the foretold cast from exile (kw_foretell.go)
+			s.g.impCast = false
 		}
 		if s.g.impCast {
 			if k.t.Cards[c].HasOverload {
@@ -575,7 +587,7 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		c := cd.Cost
 		if e.flags&sfFlashback != 0 && ((cd.Keywords&kop.KwFlashback != 0 || cd.BeamMeUp) && e.flags&sfFbGranted == 0 || cd.Harmonize) {
 			c = cd.AltCost // a granted flashback costs the mana cost
-		} else if e.flags&sfFlashback != 0 && k.gen != nil && k.gen.anyFbGrant && !cd.BeamMeUp {
+		} else if e.flags&sfFlashback != 0 && k.gen != nil && k.gen.anyFbGrant && !cd.BeamMeUp && !cd.Aftermath {
 			c = s.fbGrantCost(k, e.ctrl, e.obj, s.bld().fbGrants != 0) // or a live grant's own cost (kw_fbgrant.go)
 		}
 		if e.mode&modeWarped != 0 && e.trigPl == trigPlWarpG {
@@ -869,7 +881,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			// gorge's order: sacrifice, the counter removals, discard
 			// (the forage either-or first: gorge forageAsk; an exile
 			// part is the only counted one of its cost: act_forage.go)
-			if k.costObj && s.costObjOptions(k, d) || s.costPickOptions(k, d, kop.CostSac) || s.subCtrOptions(k, d) || k.subAmong && s.subAmongOptions(k, d) || s.costPickOptions(k, d, kop.CostDiscard) {
+			if s.buildCostAsks(k, d, e) {
 				return s.ctl == ctlBuild // false: a short sacrifice reversed the build (sacShort)
 			}
 			if k.gen != nil && (k.gen.anySneak && sneakEntry(e) || k.gen.anyWebSling && webSlingEntry(e)) && s.sneakReturnOptions(k, d) {
@@ -1126,6 +1138,16 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				panic("kernel: spell/ability without a legal target")
 			}
 			d.Kind, d.Player = DkTarget, e.ctrl
+			if e.kind == seTrigger && t.TFlags&kop.TgfTrigChooser != 0 {
+				// gorge TargetingPlayer$ (targetChooserCore / engine/rules/
+				// target_modes.go): only the decision's Player moves to the
+				// chooser — the queue-time trigger player here — while
+				// target legality stays judged from the controller; a referent
+				// that left the game fails closed to the controller
+				if !s.out(e.trigPl) {
+					d.Player = e.trigPl
+				}
+			}
 			for i := 0; i < n; i++ {
 				d.add(MakeAction(AkTarget, 0, buf[i], 0))
 			}
@@ -1785,6 +1807,9 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 	}
 	if k.gen != nil {
 		s.castTrigGraves(k, e)
+		s.eachCommandTrigger(k, kop.TrigSpellCast, func(l trigListener, a *kop.Ability) {
+			s.castTrigGen(k, l, a, e)
+		})
 		s.fireEmblems(k, kop.TrigSpellCast, e.ctrl, e.obj, func(a *kop.Ability) bool {
 			return s.matchCardGen(k, a.Trig.Filter, e.card, e.ctrl, e.ctrl, e.obj)
 		})
@@ -2077,6 +2102,20 @@ func (s *State) takePending(k *prep, i int) {
 // pickCosts are the cost flags paid by choosing objects.
 const pickCosts = kop.CostDiscard | kop.CostSac | kop.CostTapX
 
+// buildCostAsks poses bsCosts' next cost-object pick of the entry e being
+// built (costObjOptions' forage / exile pick, then sacrifice, the counter
+// removals, discard): false when none is owed. An escape cast (trigPlEscape,
+// kw_escape.go) follows gorge's costObjectAsks order (cast_begin.go): its
+// behold and the spell's own sacrifice / discard asks first, then exAsk's
+// escape fodder (costObjOptions) last.
+func (s *State) buildCostAsks(k *prep, d *Decision, e *stackEntry) bool {
+	return k.costObj && e.trigPl != trigPlEscape && s.costObjOptions(k, d) ||
+		e.trigPl == trigPlEscape && s.beholdOptions(k, d) ||
+		s.costPickOptions(k, d, kop.CostSac) || s.subCtrOptions(k, d) ||
+		k.subAmong && s.subAmongOptions(k, d) || s.costPickOptions(k, d, kop.CostDiscard) ||
+		e.trigPl == trigPlEscape && k.costObj && s.costObjOptions(k, d)
+}
+
 // costPickOptions poses the next pick for the pick costs in allowed of the
 // entry being built (a spell's additional costs live on its spell
 // ability). gorge's order: the tap-creatures cost before X (continueCast's
@@ -2367,6 +2406,22 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 			if rc := s.mayRaisePick(k, e); rc != nil {
 				return rc // a may-play cast's non-mana RaiseCost$ (cost_mayplayraise.go)
 			}
+		}
+		if e.trigPl == trigPlEscape {
+			// the escape cast's own Sac/Discard additional parts come before
+			// its fodder (gorge costObjectAsks: sacrifice, subcounter,
+			// discard, then exAsk), so the fodder is owed only once they are
+			// posed and paid; while one is owed buildPickCost keeps returning
+			// the spell's own cost (CR 702.42a; kw_escape.go)
+			own := spellAddCost(k, e.card)
+			if pickKind(own.Flags)&pickKind(pickCosts)&^s.bld().donePicks == 0 {
+				if ga := s.escapeStatic(k, e.ctrl, s.objs[e.obj].owner(), e.card); ga != nil {
+					if ec := escapeFodder(ga); int(ec.N) > s.exilePicks() {
+						return ec
+					}
+				}
+			}
+			return own
 		}
 		if retraceEntry(cd, e) {
 			// the retrace cast's additional discard-a-land cost (CR 702.81a;

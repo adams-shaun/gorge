@@ -349,7 +349,7 @@ func prepare(t *kop.Table) *prep {
 					pc.manaSacOnly = !DebugIgnoreSpawnMana && a.AFlags&kop.AfLatent == 0 && a.Cost.Flags == kop.CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && !a.Cost.DiscardHand // (Lion's Eye Diamond is no planner unit: mana_discardhand.go)
 					p.sacMana = p.sacMana || pc.manaSac || pc.manaSacOnly
 					p.sacOnlyMana = p.sacOnlyMana || pc.manaSacOnly
-					if ctrManaAb(a) {
+					if ctrManaAb(a) || kop.StoreManaAb(a) {
 						pc.ctrMana = true
 						p.ctrMana = true
 						p.ctrAb[i] = int8(j)
@@ -375,7 +375,7 @@ func prepare(t *kop.Table) *prep {
 						p.tapMana = true // a second tap-another ability: the card's tapX gap (mana_tapanother.go)
 						p.tapXAb[i] = int8(j)
 					}
-					if p.ctrAb[i] < 0 && kop.SecondCtrTapManaAb(c, int(pc.manaAb), j) {
+					if p.ctrAb[i] < 0 && (kop.SecondCtrTapManaAb(c, int(pc.manaAb), j) || kop.StoreManaAb(a)) {
 						p.ctrMana = true // a second counter-cost ability: the card's counter gap (mana_countercost.go)
 						p.ctrAb[i] = int8(j)
 					}
@@ -446,7 +446,8 @@ func prepare(t *kop.Table) *prep {
 	// and cost path to the generated forms (value_tappower.go)
 	p.anyTapPowerStatic = tableHasStatic(t, kop.StatTapPower)
 	p.gen = prepareGen(t, p)
-	p.painMana = p.painMana || p.gen != nil && p.gen.anyTapsPain // a Pain-class Taps watcher prices its tapped source (mana_tapsdefer.go)
+	p.painMana = p.painMana || p.gen != nil && p.gen.anyTapsPain  // a Pain-class Taps watcher prices its tapped source (mana_tapsdefer.go)
+	p.costObj = p.costObj || p.gen != nil && p.gen.anyEscapeGrant // an escape cast's exile-fodder picks (kw_escape.go)
 	p.availExt = p.painMana || p.phyMana
 	p.restrSrc = p.gen != nil && p.gen.anyRestrSrc
 	p.embComb = prepEmbComb(t, p)

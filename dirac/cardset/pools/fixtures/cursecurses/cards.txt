@@ -1,0 +1,21 @@
+# The Commander curses' AttackersDeclared Player.EnchantedBy triggers and
+# their empty TriggeredAttackingPlayer second legs, with Archnemesis's
+# moving Enchant:Opponent attach, for dirac/oracle/cursecurses_test.go
+Curse of Opulence
+Curse of Disturbance
+Curse of Verbosity
+Curse of Bounty
+Curse of Vitality
+Curse of Inertia
+Curse of Chaos
+Curse of Shallow Graves
+Archnemesis
+Grizzly Bears
+Llanowar Elves
+Lightning Bolt
+Shock
+Plains
+Island
+Swamp
+Mountain
+Forest

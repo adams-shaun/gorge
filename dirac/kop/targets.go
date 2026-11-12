@@ -73,8 +73,10 @@ const (
 	TgfMaxTotalMV                             // the objects' total mana value is at most TargetSpec.MaxMV (MaxTotalTargetCMC$)
 )
 
-// TargetFlags qualifies a target slot.
-type TargetFlags uint16
+// TargetFlags qualifies a target slot. The uint32 is for TgfTrigChooser at
+// bit 16: bits 0-13 are the iota block and TgfSingleTgt, and land's
+// TgfOppOnly/TgfActOnly took 14-15.
+type TargetFlags uint32
 
 // TgtCopyAb: an activated or triggered ability on the stack that the chooser
 // controls, whose source's card types match Filter (gorge TargetType$
@@ -130,3 +132,12 @@ const TgfOppOnly TargetFlags = 1 << 14
 // TgfActOnly (TargetSpec.TFlags): a TgtStackAb slot admits only an activated
 // ability, no triggered one (gorge TargetType$ Activated.singleTarget: Reroute).
 const TgfActOnly TargetFlags = 1 << 15
+
+// TgfTrigChooser (TargetSpec.TFlags): a triggered ability's slot whose ask is
+// answered by the queue-time trigger player rather than the ability's
+// controller (gorge TargetingPlayer$ TriggeredAttackingPlayer on a triggered
+// ability, targetChooserFromSpec: the trigger context's attacking player,
+// dead referents failing closed to the controller). Only the DECISION's
+// Player moves — target legality stays judged from the ability's controller
+// (engine/rules/target_modes.go targetChooserCore).
+const TgfTrigChooser TargetFlags = 1 << 16

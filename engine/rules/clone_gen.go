@@ -835,19 +835,30 @@ func cloneFieldsEngineContinuation(c, e *Engine, sp *Spare, remap *cloneRemap) {
 		p0.returns = append([]state.ObjID(nil), e.turnUp.returns...)
 		c.turnUp = &p0
 	}
-	if e.etbMove != nil {
-		p0 := *e.etbMove
-		p0.IDs = append([]state.ObjID(nil), e.etbMove.IDs...)
-		p0.Pairs = append([][2]state.ObjID(nil), e.etbMove.Pairs...)
-		c.etbMove = &p0
+	if e.etbQueue != nil {
+		c.etbQueue = make([]etbParked, len(e.etbQueue))
+		for i0 := range e.etbQueue {
+			c.etbQueue[i0] = e.etbQueue[i0]
+			if e.etbQueue[i0].move != nil {
+				p1 := *e.etbQueue[i0].move
+				p1.IDs = append([]state.ObjID(nil), e.etbQueue[i0].move.IDs...)
+				p1.Pairs = append([][2]state.ObjID(nil), e.etbQueue[i0].move.Pairs...)
+				c.etbQueue[i0].move = &p1
+			}
+			if e.etbQueue[i0].ask != nil {
+				c.etbQueue[i0].ask = cloneDecision(e.etbQueue[i0].ask)
+			}
+		}
 	}
-	c.etbNext = e.etbNext
-	c.auraEntry = e.auraEntry
+	c.auraEntries = append([]auraEntryState(nil), e.auraEntries...)
 	c.etbLandPlay = e.etbLandPlay
 	c.etbLandObj = e.etbLandObj
 	c.etbLandPlayer = e.etbLandPlayer
 	c.etbLandPerm = e.etbLandPerm
 	c.etbLandFrom = e.etbLandFrom
+}
+
+func cloneFieldsEngineContinuation2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	if e.riotMove != nil {
 		p0 := *e.riotMove
 		p0.IDs = append([]state.ObjID(nil), e.riotMove.IDs...)
@@ -860,9 +871,6 @@ func cloneFieldsEngineContinuation(c, e *Engine, sp *Spare, remap *cloneRemap) {
 		p0.Pairs = append([][2]state.ObjID(nil), e.unleashMove.Pairs...)
 		c.unleashMove = &p0
 	}
-}
-
-func cloneFieldsEngineContinuation2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	if e.siegeMove != nil {
 		p0 := *e.siegeMove
 		p0.IDs = append([]state.ObjID(nil), e.siegeMove.IDs...)

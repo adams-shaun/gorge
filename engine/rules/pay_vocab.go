@@ -44,5 +44,3 @@ func payable(c Cost, pool, snow state.Mana, typed [7]state.Mana, life int32) boo
 }
 
 func poolCanPay(c Cost, p state.Mana) bool { return pay.PoolCanPay(c, p) }
-
-func poolPay(c Cost, p state.Mana) (state.Mana, bool) { return pay.PoolPay(c, p) }

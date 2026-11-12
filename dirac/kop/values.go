@@ -207,6 +207,7 @@ const (
 	CondPromised            // the gift was promised (the spell, or the permanent's spell as it enters; Card.Self+PromisedGift)
 	CondAnd                 // both Sub[0] and Sub[1] hold
 	CondEchoOwed            // the source came under its controller's control since the beginning of their most recent upkeep (echo's intervening if, CR 702.30a)
+	CondSourceZone          // the source object is in Zone (gorge's source-identity IsPresent$ PresentZone$, re-checked at resolution)
 	CondCount_
 )
 
@@ -232,6 +233,7 @@ type Cond struct {
 	A, B ValueRef
 	Neg  bool
 	Sub  [2]CondID // CondAnd's operands (zero for every other kind)
+	Zone Zone      // CondSourceZone: the zone the source must be in
 }
 
 // ExOppExtreme reads a figure over the controller's living opponents, walked
@@ -574,6 +576,13 @@ const ExTargetPlayers ExprKind = 223
 // Card.IsRemembered+!RememberedPlayerOwn$CardManaCost. No parameters.
 // Explicit ordinal, the iota tail stays untouched.
 const ExNotOwnLibMV ExprKind = 226
+
+// ExEnergyOf: the energy counters (CR 122.1) of player Ref, read by
+// Count$YourCountersEnergy (the "pay one or more {E}" ChooseNumber bounds of
+// Aether Refinery, Localized Destruction, Pia Nalaar, Rampaging Aetherhood,
+// Territorial Aetherkite and Vault 112). Explicit ordinal in the free
+// low range; the iota tail stays untouched.
+const ExEnergyOf ExprKind = 63
 
 // ExDmgAmountReceived: the positive damage the source object received this
 // turn, saturating at 255 (gorge Object.DamageReceivedThisTurn,

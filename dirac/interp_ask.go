@@ -304,6 +304,16 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 				d.add(MakeAction(AkChoose, 0, 0, uint8(i)))
 			}
 		}
+	case raChooseNumber:
+		d.Sub = ChGenNumber
+		lo, hi, ok := s.chooseNumberMidBounds(k, &s.prog(k)[r.pc])
+		if !ok {
+			s.capFull(StallChooseNumber) // a declared capacity limit, never a truncated ask
+			break
+		}
+		for n := lo; n <= hi; n++ {
+			d.add(MakeAction(AkChoose, 0, 0, uint8(n)))
+		}
 	case raChooseType:
 		d.Sub = ChGenType
 		if c := s.prog(k)[r.pc].C; c != 0 {
@@ -993,14 +1003,16 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				return
 			}
 		}
-		r.ask, r.askP = raGenPileChoose, s.nextAlive(r.e.ctrl) // gorge twoPilesPlayer: the first live opponent
+		_, chooser := s.pilesSeats(&s.prog(k)[r.pc], r.e.ctrl) // act_twopiles.go
+		r.ask, r.askP = raGenPileChoose, chooser
 	case raGenPileChoose:
 		// mode 0: the face-down pile (the picks), 1: the face-up pile. The
 		// chosen pile goes to its zone first: the picks in pick order
 		// (gorge's pile is the chosen list as answered: FDN pair 641,
 		// Elementalist Adept picked before Arcane Epiphany enters the hand
 		// first), the face-up pile in the revealed order; then the other
-		// pile to the graveyard in the revealed order (pair 111).
+		// pile to the graveyard in the revealed order (pair 111), or an
+		// unchosen pile A in pick order (pilesUnchosenPicks).
 		np := bits.OnesCount32(s.g.lookSel)
 		pickA := a.Mode() == 0
 		if pickA {
@@ -1012,6 +1024,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			if inA := s.g.lookSel&(1<<i) != 0; !pickA && !inA {
 				s.pileMove(s.g.rem[i], kop.Zone(s.g.pickZ))
 			}
+		}
+		if !pickA {
+			s.pilesUnchosenPicks(&s.prog(k)[r.pc], np)
 		}
 		for i := 0; i < int(s.g.nrem); i++ {
 			s.pileMove(s.g.rem[i], kop.ZoneGraveyard)
@@ -1167,6 +1182,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		}
 		if s.g.pre.kind == akClone {
 			s.answerCloneReturn(k, a)
+			return
+		}
+		if s.g.pre.kind == akEnchant && s.g.pre.state == preDigEnchPlayer {
+			s.answerDigEnchPlayer(k, r, a) // static_attachtimestamp.go
 			return
 		}
 		if s.g.pre.kind == akEnchant && s.g.pre.state == preDigEnchant {
@@ -2175,8 +2194,16 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 				deferred = s.heldPark(hr)
 				return true // CR 303.4f: the Aura waits in the library for its controller's choice of what it enchants
 			}
+			if z == kop.ZoneBattlefield && park && s.digAuraPlayerPark(k, o, p) {
+				deferred = s.heldPark(hr)
+				return true // CR 303.4f: an Enchant:Player Aura waits for its controller's choice of seat
+			}
 			if z == kop.ZoneBattlefield && s.digAuraStays(k, o, p) {
 				s.g.lookSel &^= 1 << i // CR 303.4g: an Aura with nothing to enchant stays in the library with the rest
+				continue
+			}
+			if z == kop.ZoneBattlefield && s.digAuraPlayerStays(k, o, p) {
+				s.g.lookSel &^= 1 << i // CR 303.4g: an Enchant:Player Aura with no seat stays with the rest
 				continue
 			}
 			zz, bb := z, false
@@ -2297,6 +2324,92 @@ func (s *State) digAuraStays(k *prep, o Obj, p uint8) bool {
 	}
 	var buf [MaxOptions]uint8
 	return s.enchantCands(k, c, p, &buf) == 0
+}
+
+// playerEnchCands lists the seats a taken Enchant:Player Aura may enter
+// enchanting (gorge auraEnchantCandidates' player arm, the printed
+// Enchant:Player / Enchant:Opponent word): living seats in seat order
+// passing the Enchant filter's controller half — CtrlOpp excludes the
+// entering controller, matching the word (the corpus word pairs
+// Player|ValidTgts Player and Opponent|ValidTgts Opponent, so the folded
+// ValidTgts filter carries the keyword's scope). Not targeting, so no
+// hexproof or shroud is consulted (CR 303.4f); protection is (CR 702.16c),
+// but the kernel has no player-keyword protection arm to consult. out
+// receives seats.
+func (s *State) playerEnchCands(k *prep, c CardID, p uint8, out *[MaxOptions]uint8) int {
+	var ctrl kop.CtrlSel
+	if f := k.t.Cards[c].Enchant.Filter; f != 0 {
+		ctrl = k.t.Filters[f].Ctrl
+	}
+	n := 0
+	for seat := uint8(0); seat < s.nSeats(); seat++ {
+		if s.out(seat) {
+			continue
+		}
+		switch ctrl {
+		case kop.CtrlYou:
+			if seat != p {
+				continue
+			}
+		case kop.CtrlOpp:
+			if seat == p {
+				continue
+			}
+		}
+		out[n] = seat
+		n++
+	}
+	return n
+}
+
+// digAuraPlayerStays reports whether taken card o is an Enchant:Player Aura
+// with no seat to enchant (CR 303.4g), which cannot enter.
+func (s *State) digAuraPlayerStays(k *prep, o Obj, p uint8) bool {
+	c := s.objs[o].card
+	if k.gen == nil || k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtPlayer {
+		return false
+	}
+	var buf [MaxOptions]uint8
+	return s.playerEnchCands(k, c, p, &buf) == 0
+}
+
+// digAuraPlayerPark poses the seat election of a taken Enchant:Player Aura
+// with two or more candidates, the twin of digAuraPark (the card waits in
+// the library with the rest; the answer runs the dig again from it).
+//
+//go:noinline
+func (s *State) digAuraPlayerPark(k *prep, o Obj, p uint8) bool {
+	c := s.objs[o].card
+	if k.gen == nil || !s.res.active || s.g.pre.state != 0 || s.res.ask != raNone ||
+		k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtPlayer {
+		return false
+	}
+	var buf [MaxOptions]uint8
+	if s.playerEnchCands(k, c, p, &buf) < 2 {
+		return false
+	}
+	s.g.pre = preAsk{obj: o, kind: akEnchant, state: preDigEnchPlayer}
+	s.res.ask, s.res.askP = raGenRetChoice, p
+	return true
+}
+
+// digAuraPlayerHost is the one seat a taken Enchant:Player Aura enters
+// enchanting when it has exactly one candidate, or the answered seat among
+// two or more (digAuraPlayerPark); ok false for any other card, and for two
+// or more unanswered candidates (whose choice the dig does not pose yet).
+func (s *State) digAuraPlayerHost(k *prep, o Obj, p uint8) (uint8, bool) {
+	if s.g.pre.obj == o && s.g.pre.kind == akEnchant && s.g.pre.state == preDigEnchPlayerDone {
+		return s.g.pre.val, true // the answered choice among two or more seats
+	}
+	c := s.objs[o].card
+	if k.gen == nil || k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtPlayer {
+		return 0, false
+	}
+	var buf [MaxOptions]uint8
+	if s.playerEnchCands(k, c, p, &buf) != 1 {
+		return 0, false
+	}
+	return buf[0], true
 }
 
 // digRestAside takes the n looked-at cards a battlefield dig did not take
@@ -2489,9 +2602,14 @@ func (s *State) digTake(k *prep, o Obj, z kop.Zone, fl int16) {
 	switch {
 	case z == kop.ZoneBattlefield:
 		host := s.digAuraHost(k, o, p)
+		seat, ok := s.digAuraPlayerHost(k, o, p) // an Enchant:Player Aura's seat (digAuraPlayerPark's answered one)
 		s.enterOnto(host)
 		sl := s.enterMoved(k, o, p, fl&kop.DigTapped != 0, kop.ZoneLibrary)
-		s.attachedTo(k, sl, host) // CR 303.4f: an Aura put onto the battlefield enters attached
+		if ok {
+			s.attachPlayer(k, sl, seat) // CR 303.4f: an Enchant:Player Aura put onto the battlefield enters attached to its seat
+		} else {
+			s.attachedTo(k, sl, host) // CR 303.4f: an Aura put onto the battlefield enters attached
+		}
 	case z == kop.ZoneLibrary:
 		if p := &s.g.pre; p.kind == akCmdZone && p.obj == o && p.state == preCmdZoneOK {
 			*p = preAsk{} // the answered CR 903.9b move lands here, not through placeFromK

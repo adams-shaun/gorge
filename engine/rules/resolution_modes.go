@@ -191,13 +191,12 @@ func recordModesAnswer(e *Engine, d *decision.Decision, p state.PlayerID, chosen
 func (e *Engine) resumeETBEntry(chosen []decision.Option) state.ObjID {
 	// handleChoose owns clearing e.resume; this continuation only consumes the
 	// parked entry, keeping the archtest's single ownership rule intact.
-	if e.etbMove == nil || len(chosen) != 1 {
-		e.etbMove = nil
-		e.etbNext = 0
+	if len(e.etbQueue) == 0 || len(chosen) != 1 {
+		e.etbQueue = nil
 		e.choosing = chooseNone
 		return 0
 	}
-	move := *e.etbMove
+	move := *e.etbQueue[0].move
 	opt := chosen[0]
 	// CR 303.4f: a non-cast Aura's "what it enchants" answer (its first
 	// as-enters election) is recorded on the entry record, which the
@@ -272,6 +271,10 @@ func (e *Engine) resumeETBEntry(chosen []decision.Option) state.ObjID {
 	// answer), settle the land play here rather than leaving the continuation
 	// armed for an unrelated later entry to consume.
 	e.settleLandPlayIfDone(move.Obj)
+	// A later Aura entry may have parked its CR 303.4f ask behind this one
+	// while the answer was outstanding; pose it now that this entry's ask is
+	// done (no-op when a further choice on this same entry is outstanding).
+	drainETBQueue(e)
 	return move.Obj
 }
 

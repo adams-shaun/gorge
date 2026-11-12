@@ -220,14 +220,6 @@ func effectEmblemDuration(ps *params) (eot, next bool, err error) {
 	}
 }
 
-// effectEmblemStatic lowers one StaticAbilities$ body of a no-target Effect,
-// accepting only shapes gorge's effEffect registers. The key whitelists are
-// the reference registration's own: a key this build would read but gorge
-// leaves unread must refuse rather than apply a wider grant.
-func (lc *lowerCtx) effectEmblemStatic(s cards.Static) (lStatic, error) {
-	return lc.effectEmblemStaticHost(s, false)
-}
-
 // effectEmblemStaticHost is effectEmblemStatic; host: the emblem reads its
 // host as the source (Self filters allowed).
 func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, error) {

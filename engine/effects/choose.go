@@ -323,6 +323,24 @@ func effChooseNumber(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "number", Amount: 0})
 		return
 	}
+	if strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRandom)), "True") {
+		// Random$ True (Tibalt's Trickery, Murgish Cemetery, Hapatos Might):
+		// the card chooses its number at random, so the chooser is never
+		// asked. The draw is the engine's seeded RNG (the card's own "at
+		// random" instruction, the random-choice convention CR 701.9b
+		// states); one candidate takes no draw, the same convention the
+		// other random picks use.
+		n := int32(0)
+		if len(opts) > 0 {
+			i := 0
+			if len(opts) > 1 {
+				i = h.Rand(len(opts))
+			}
+			n = int32(opts[i].Amount)
+		}
+		h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "number", Amount: n})
+		return
+	}
 	if len(opts) > 1 {
 		d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Min: 1, Max: 1,
 			ResumeKind: "choosenumber", ResumeSA: sa, Prompt: prompt, Source: c.Source}

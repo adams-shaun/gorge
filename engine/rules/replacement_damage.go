@@ -395,7 +395,7 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 				effects.PlayerSpecCtx{Source: source, Remembered: rp, RememberedBound: true}) {
 				return false
 			}
-		} else if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		} else if !effects.MatchesPlayerSpecFrom(e.G, v, ev.Player, ctrl, source) {
 			return false
 		}
 	}

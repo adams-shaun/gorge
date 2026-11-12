@@ -243,15 +243,11 @@ func auraEntryGate(e *Engine, ev *events.Event) bool {
 	if len(cands) == 0 && o.Zone == state.ZStack {
 		// CR 303.4g: a stack object has no zone to stay in; the copy enters
 		// unattached and the CR 704.5m state-based action puts it away.
-		if e.auraEntry.obj == ev.Obj {
-			e.auraEntry = auraEntryState{}
-		}
+		dropAuraEntry(e, ev.Obj)
 		return false
 	}
 	if len(cands) == 0 {
-		if e.auraEntry.obj == ev.Obj {
-			e.auraEntry = auraEntryState{}
-		}
+		dropAuraEntry(e, ev.Obj)
 		text := "nothing the Aura can legally enchant: it stays in its zone (CR 303.4g)"
 		if named {
 			text = "nothing the effect names is something the Aura can legally enchant: it stays in its zone (CR 303.4g)"
@@ -259,13 +255,45 @@ func auraEntryGate(e *Engine, ev *events.Event) bool {
 		e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: o.Controller, Secret: ev.Secret, Text: text})
 		return true
 	}
-	if e.auraEntry.obj == ev.Obj && e.auraEntry.answered {
+	if st := auraEntryOf(e, ev.Obj); st != nil && st.answered {
 		return false
 	}
 	c := cands[0]
-	e.auraEntry = auraEntryState{obj: ev.Obj, bearer: c.obj, player: c.player, toPlayer: c.toPlayer,
+	st := auraEntryState{obj: ev.Obj, bearer: c.obj, player: c.player, toPlayer: c.toPlayer,
 		multi: !named && len(cands) > 1, answered: named}
+	if old := auraEntryOf(e, ev.Obj); old != nil {
+		*old = st
+	} else {
+		e.auraEntries = append(e.auraEntries, st)
+	}
 	return false
+}
+
+// auraEntryOf returns the transient record for the entering object obj, or
+// nil when none is held. An entry is appended at its gate and removed by its
+// fold, so a later entry in the same batch can never overwrite an earlier
+// record.
+func auraEntryOf(e *Engine, obj state.ObjID) *auraEntryState {
+	for i := range e.auraEntries {
+		if e.auraEntries[i].obj == obj {
+			return &e.auraEntries[i]
+		}
+	}
+	return nil
+}
+
+// dropAuraEntry removes the record for obj, if any.
+func dropAuraEntry(e *Engine, obj state.ObjID) {
+	for i := range e.auraEntries {
+		if e.auraEntries[i].obj != obj {
+			continue
+		}
+		e.auraEntries = append(e.auraEntries[:i], e.auraEntries[i+1:]...)
+		if len(e.auraEntries) == 0 {
+			e.auraEntries = nil
+		}
+		return
+	}
 }
 
 // auraTokenGate is auraEntryGate's TokenCreate half: CR 303.4g's "If the
@@ -335,8 +363,8 @@ func (c etbChoice) promptText() string {
 // entry with a multi record owes the enchant answer, but a copied Aura's
 // clone election (or a template's own as-enters choice) can come before it.
 func answerAuraEntry(e *Engine, move *events.Event, opt *decision.Option) {
-	st := &e.auraEntry
-	if st.obj != move.Obj || !st.multi || st.answered || opt.Kind != "enchant" {
+	st := auraEntryOf(e, move.Obj)
+	if st == nil || !st.multi || st.answered || opt.Kind != "enchant" {
 		return
 	}
 	if opt.Obj != 0 {
@@ -349,14 +377,19 @@ func answerAuraEntry(e *Engine, move *events.Event, opt *decision.Option) {
 
 // settleAuraEntry is Engine.emit's post-fold half: once a recorded Aura's
 // entry has folded onto the battlefield it becomes attached to its bearer
-// (CR 303.4f: it enters attached). Any folded move of the object clears the
-// record, so a replaced or redirected entry never leaves one behind.
+// (CR 303.4f: it enters attached). A folded move of the object clears its own
+// record, so a replaced or redirected entry never leaves one behind and a
+// later entry's record is untouched.
 func settleAuraEntry(e *Engine, stored *events.Event) {
-	st := e.auraEntry
-	if stored.Kind != events.MoveZone || st.obj == 0 || st.obj != stored.Obj {
+	if stored.Kind != events.MoveZone {
 		return
 	}
-	e.auraEntry = auraEntryState{}
+	ptr := auraEntryOf(e, stored.Obj)
+	if ptr == nil {
+		return
+	}
+	st := *ptr
+	dropAuraEntry(e, stored.Obj)
 	o := e.G.Obj(st.obj)
 	if stored.To != state.ZBattlefield || o == nil || o.Zone != state.ZBattlefield {
 		return

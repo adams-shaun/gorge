@@ -95,15 +95,20 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		tr.Zone = zoneNames[zone]
 	}
 	if od, ok := tp.get("OptionalDecider"); ok {
-		if od != "You" && od != "TriggeredCardController" && !(od == "TriggeredPlayer" && t.Mode == "Phase") {
+		if od != "You" && od != "TriggeredCardController" && !(od == "TriggeredPlayer" && t.Mode == "Phase") &&
+			!(od == "TriggeredAttackingPlayer" && t.Mode == "AttackersDeclared") {
 			return refuse("OptionalDecider %q", od)
 		}
 		// gorge's one read: a "may" that is only a duration-bounded
 		// play permission (Strongbox Raider) is no CR 603.5 election
 		tr.Optional = scriptfacts.TriggerOptionalSpec(t) != ""
 		// the Phase trigger's player is the active player: it answers
-		// (gorge deciderFromSpecTriggeredPlayer; Peace in Our Time)
-		tr.OptTrigPlayer = tr.Optional && od == "TriggeredPlayer"
+		// (gorge deciderFromSpecTriggeredPlayer; Peace in Our Time). An
+		// AttackersDeclared trigger's TriggeredAttackingPlayer is the
+		// declaring player — the active player too (CR 508.1), the
+		// kernel's queue-time trigger player (gorge
+		// deciderFromSpecTriggeredAttackingPlayer; the Commander curses)
+		tr.OptTrigPlayer = tr.Optional && (od == "TriggeredPlayer" || od == "TriggeredAttackingPlayer")
 		// gorge folds the yes/no into the body's own pay/decline when the
 		// controller decides and the body has a non-mandatory cost
 		// (rules/trigger_queue.go optionalFoldsIntoCost): one question; a
@@ -251,6 +256,14 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				return refuse("Attacks Training %q", v)
 			}
 			tr.Training = true
+		}
+		if v, ok := tp.get("Myriad"); ok {
+			// K:Myriad's expansion (gorge kwMyriad; trigmatch
+			// AttacksMatchedAttackers fires it only over its DB$ Myriad
+			// Execute$ body; lower_myriad.go)
+			if err := myriadMarker(v, tp.str("ValidCard"), cards.ResolveSVar(svars, t.Params["Execute"])); err != nil {
+				return err
+			}
 		}
 		if v, ok := tp.get("Attacked"); ok {
 			// gorge attackedDefenderMatches, from the trigger controller's
@@ -464,6 +477,13 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				tr.DefPlayer = 2
 			case "You":
 				tr.DefPlayer = 3 // the defending player is the listener's controller (gorge attackedDefenderMatches)
+			case "Player.EnchantedBy":
+				// gorge playerSpecQualifierEnchantedBy: the defender is
+				// enchanted by THIS listener's Aura (Forge's
+				// player.isEnchantedBy(source), not any enchantment). The
+				// kernel's fireDefPlayer reads the listener's own atchSeat
+				// (Tf4DefEnch, dirac/trig_defendingplayer.go).
+				tr.DefPlayer = 4
 			default:
 				return refuse("AttackersDeclared AttackedTarget %q", at)
 			}
@@ -1529,11 +1549,8 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			c.Op, c.A = op, v
 		}
-		if pz, ok := tp.get("PresentZone"); ok {
-			// gorge trigger_condition.go: the zones' counts summed
-			if c, err = presentZoneCond(c, pz, ip, lc); err != nil {
-				return err
-			}
+		if c, err = lc.triggeredPresentZoneCond(c, tp, ip); err != nil {
+			return err
 		}
 		conds = append(conds, c)
 	}
@@ -2406,8 +2423,14 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			return nil, lc.stackKwGrant(sp, st, aff) // lower_stackkw.go
 		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Flashback") {
 			return nil, lc.graveFbGrant(sp, st, aff) // lower_fbgrant.go
+		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Escape") {
+			return nil, lc.graveEscapeGrant(sp, st, aff) // lower_escapegrant.go
 		} else if az == "Hand" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Warp") {
 			return nil, lc.handWarpGrant(sp, st, aff) // lower_warpgrant.go
+		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && inertCountAs(sp.str("AddHiddenKeyword"), aff) {
+			return nil, graveCountAsStatic(sp, st) // lower_escapegrant.go
+		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && sp.str("AddKeyword") != "" {
+			return nil, refuseGraveKwGrant(sp, az) // lower_escapegrant.go
 		} else if !sp.is("MayPlay", "True") {
 			return nil, refuse("AffectedZone %q without MayPlay", az)
 		}
@@ -2582,6 +2605,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		rest, melee := splitMeleeGrant(rest)
 		rest, exalted := splitExaltedGrant(rest)
+		rest, myriad := splitMyriadGrant(rest)           // lower_myriad.go
 		rest, st.ProtFrom, err = lc.splitProtGrant(rest) // lower_protgrant.go
 		if err != nil {
 			return nil, err
@@ -2621,6 +2645,16 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			// once per instance (lower_exaltedgrant.go; gorge
 			// rules/melee.go)
 			idx, err := lc.exaltedGrantTrigger()
+			if err != nil {
+				return nil, err
+			}
+			st.Grant = append(st.Grant, idx)
+		}
+		for ; myriad > 0; myriad-- {
+			// CR 702.116a-b granted: one latent Attacks Self trigger,
+			// listed once per instance (lower_myriad.go; gorge
+			// rules/trigger_granted.go)
+			idx, err := lc.myriadGrantTrigger()
 			if err != nil {
 				return nil, err
 			}

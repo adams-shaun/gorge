@@ -1,0 +1,21 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Archnemesis
+1	card	Curse of Bounty
+2	card	Curse of Chaos
+3	card	Curse of Disturbance
+4	card	Curse of Inertia
+5	card	Curse of Opulence
+6	card	Curse of Shallow Graves
+7	card	Curse of Verbosity
+8	card	Curse of Vitality
+9	card	Forest
+10	card	Grizzly Bears
+11	card	Island
+12	card	Lightning Bolt
+13	card	Llanowar Elves
+14	card	Mountain
+15	card	Plains
+16	card	Shock
+17	card	Swamp
+18	token	b_2_2_zombie
+19	token	c_a_gold_sac

@@ -18,34 +18,57 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // step's col is the engine-order answer tapGapChoice decodes (wide2Answers).
 const stepWide int16 = -5
 
-// wideGaps is p's wide second-ability gaps.
+// wideGaps is p's wide gaps: the second-ability ones, and the sources whose only
+// ability is the wide one (Interdimensional Web Watch), which gorge's census
+// misses the same way.
 func (s *State) wideGaps(k *prep, p uint8) slotMask {
 	var m slotMask
 	if k.gen == nil || !k.gen.anyMultiR {
 		return m
 	}
 	for b := s.scriptAnyR(k, p); b.any(); b = b.rest() {
-		if sl := b.first(); s.wideSecond(k, sl) {
+		if sl := b.first(); s.wideSecond(k, sl) || s.wideOnly(k, sl) {
 			m = m.with(sl)
 		}
 	}
 	return m
 }
 
+// wideOnlyTaps: a wide-only source (its restricted ability is no census ability, so
+// no canTapForMana profile) is untapped, keeps its abilities and is not
+// summoning-sick (CR 302.6).
+func (s *State) wideOnlyTaps(k *prep, sl Slot) bool {
+	p := &s.perms[sl]
+	return p.flags&pfTapped == 0 && p.ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0 && !s.activationSick(k, sl)
+}
+
+// wideOnly: the source's only mana ability is the wide any-colour restricted one
+// (restrWideAnyMana), so its activation poses no "choose a mana ability" ask.
+func (s *State) wideOnly(k *prep, sl Slot) bool {
+	c := s.cardAt(sl)
+	j := k.gen.anyR(c)
+	return j >= 0 && int(j) == firstManaAb(&k.t.Cards[c]) && restrWideAnyMana(&k.t.Cards[c].Abilities[j])
+}
+
 // wideBranch activates the wide candidate i (slot sl) when it can tap, by each
 // answer of its asks in gorge's order.
 func (g *grantSrch) wideBranch(t *State, i int, sl Slot) bool {
-	if !t.canTapForMana(g.k, sl) || !g.node() { // the "choose a mana ability" ask
+	if !t.canTapForMana(g.k, sl) && !(t.wideOnly(g.k, sl) && t.wideOnlyTaps(g.k, sl)) {
 		return false
 	}
-	if !g.node() { // the first ability's colour ask
-		return false
-	}
-	order := [kop.NumManaKinds - 1]uint8{0, 1, 2, 3, 4}
-	needFirst(order[:], g.need)
-	for _, c := range order {
-		if g.wideTry(t, i, sl, c, false) {
-			return true
+	if t.wideSecond(g.k, sl) { // (a wide-only source has just the allocation ask below)
+		if !g.node() { // the "choose a mana ability" ask
+			return false
+		}
+		if !g.node() { // the first ability's colour ask
+			return false
+		}
+		order := [kop.NumManaKinds - 1]uint8{0, 1, 2, 3, 4}
+		needFirst(order[:], g.need)
+		for _, c := range order {
+			if g.wideTry(t, i, sl, c, false) {
+				return true
+			}
 		}
 	}
 	if !g.node() { // the combination's allocation ask
@@ -121,4 +144,21 @@ func (s *State) wide2Float(k *prep, p uint8, sl Slot, c int, spill *[kop.NumMana
 			spill[col]++
 		}
 	}
+}
+
+// wideBesideGrant reports whether p has an activatable wide-only gap (Interdimensional
+// Web Watch) while a permanent of p's holds a live granted mana ability: the grant
+// search is then gorge's one prefix search over both, and runs before the wide
+// script, which would tap the Web Watch alone ahead of a granted source that
+// precedes it in battlefield order.
+func (s *State) wideBesideGrant(k *prep, p uint8) bool {
+	if k.gen == nil || !k.gen.anyMultiR {
+		return false
+	}
+	for b := s.scriptWide(k, p); b.any(); b = b.rest() {
+		if s.wideOnly(k, b.first()) {
+			return s.liveGrantGap(k, p)
+		}
+	}
+	return false
 }

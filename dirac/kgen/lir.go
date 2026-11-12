@@ -2,7 +2,6 @@ package kgen
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -190,6 +189,7 @@ const (
 	vLastDamage          // damage the spell's previous DealDamage landed (kop.VLastDamage; value_totaldamage.go)
 	vDmgAmount           // the positive damage the source received this turn (Count$TotalDamageReceivedThisTurn)
 	vMonarch             // Sub[0] if the controller (N 0) or an opponent (N 1) is the monarch, else Sub[1] (Count$Monarch.<yes>.<no>, CheckDefinedPlayer$ You|Opponent.isMonarch; lower_monarch.go)
+	vEnergyOf            // energy counters of player Ref (Count$YourCountersEnergy)
 	vPlExtreme           // the highest, over a player group, of the member's filtered count in the named zones (PlayerCountPlayers/Opponents$HighestValid<zones>)
 	vCount_
 )
@@ -198,7 +198,7 @@ var valNames = [...]string{"None", "Const", "X", "Count", "CountGraveyard", "Sum
 	"Morbid", "AttackedThisTurn", "PowerOf", "ToughnessOf", "LifeOf", "LibrarySizeOf", "StartingLife",
 	"TriggerAmount", "LifeGainedThisTurn", "OppLifeLostThisTurn", "CountersOn", "CreaturesDied",
 	"RememberedCount", "ExcessDamage", "LastLifeLost", "TokensCreated", "CountCast", "LifeLostThisTurn", "Sum",
-	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast", "YourExtraTurns", "NotOwnLibMV", "CounterKinds", "TargetPlayers", "IfCastOwnMain", "PWTypes", "TapPower", "StepIn", "TgtSpent", "OppExtreme", "ThisTurnActExhaust", "Activations", "LifeLostLastTurn", "LastDamage", "DmgAmount", "Monarch", "PlExtreme"}
+	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast", "YourExtraTurns", "NotOwnLibMV", "CounterKinds", "TargetPlayers", "IfCastOwnMain", "PWTypes", "TapPower", "StepIn", "TgtSpent", "OppExtreme", "ThisTurnActExhaust", "Activations", "LifeLostLastTurn", "LastDamage", "DmgAmount", "Monarch", "EnergyOf", "PlExtreme"}
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
 // that order, then negated when Neg.
@@ -223,12 +223,6 @@ type lValue struct {
 }
 
 func cst(n int) lValue { return lValue{Kind: vConst, N: n} }
-
-// sameValue reports whether a and b lower to the same amount. It is the
-// divided-total check: gorge's target ask clamps a divided slot's target count
-// to the announced total, so only a slot whose TargetMax$ is the divided
-// total's own value reads exactly (Ureni's TargetMax$ X / DividedAsYouChoose$ X).
-func sameValue(a, b lValue) bool { return reflect.DeepEqual(a, b) }
 
 func (v lValue) isConst() bool {
 	return v.Kind == vConst && v.Mul == 0 && v.Div == 0 && v.Add == 0 && !v.Neg
@@ -304,11 +298,12 @@ const (
 	cPromisedGift           // the gift was promised (Card.Self+PromisedGift on the stack, or the entering permanent)
 	cAnd                    // both Sub conditions hold
 	cEchoOwed               // the source came under its controller's control since the beginning of their most recent upkeep (echo's gate)
+	cSourceZone             // the source object is in Zone (source-identity IsPresent$ PresentZone$)
 	cCount_
 )
 
 var condNames = [...]string{"None", "Present", "Value", "Kicked", "Threshold", "YourTurn", "RefMatches",
-	"CostPaid", "OpponentsTurn", "PromisedGift", "And", "EchoOwed"}
+	"CostPaid", "OpponentsTurn", "PromisedGift", "And", "EchoOwed", "SourceZone"}
 
 type lCond struct {
 	Kind condKind
@@ -318,6 +313,7 @@ type lCond struct {
 	A, B lValue
 	Sub  []lCond
 	Neg  bool
+	Zone uint8 // cSourceZone: the source's zone
 }
 
 func (c lCond) String() string {
@@ -337,6 +333,9 @@ func (c lCond) String() string {
 	}
 	if c.Op != 0 {
 		args = append(args, fmt.Sprintf("op%d", c.Op))
+	}
+	if c.Kind == cSourceZone {
+		args = append(args, zoneLabel[c.Zone])
 	}
 	if c.A.Kind != vNone {
 		args = append(args, c.A.String())
@@ -372,6 +371,11 @@ type lInstr struct {
 	C    int
 	CS   string // symbolic constant: keyword set, counter kind, token key, zone, ...
 	Obj2 lRef   // a second object (AttachObj: the object attached)
+	// W: a player-valued side input. OpTapOrUntap/OpTap: the Tapper$
+	// provenance (gorge effTapOrUntap's Tapper$ read, the tap's trigger
+	// player); OpAttach: the player DESTINATION of an Enchant:Player aura
+	// (gorge effAttach's "attach to player" event, defined() player arms).
+	W    lRef
 	F    *lFilter
 	Cond lCond
 	Skip int
@@ -398,6 +402,9 @@ func (in lInstr) String() string {
 	}
 	if in.Obj2.Kind != rNone {
 		parts = append(parts, "obj2="+in.Obj2.String())
+	}
+	if in.W.Kind != rNone {
+		parts = append(parts, "W="+in.W.String())
 	}
 	if in.F != nil {
 		parts = append(parts, "F="+in.F.String())
@@ -483,6 +490,15 @@ type lTarget struct {
 	GraveExileCard bool
 	ClauseZones    []int
 
+	// TrigChooser: the slot's ask is answered by the queue-time trigger
+	// player, not the ability's controller (gorge TargetingPlayer$
+	// TriggeredAttackingPlayer on a triggered ability's target,
+	// targetChooserFromSpec: the trigger context's attacking player; only
+	// the DECISION's Player moves — target legality stays judged from the
+	// controller). TgfTrigChooser; the kernel reads it in the cast stage's
+	// DkTarget ask (cast.go).
+	TrigChooser bool
+
 	AtRes   bool   // asked mid-resolution (gorge's deferred chain-link targets), at its ChooseTargets
 	ChgSub  bool   // declared by a ChangeZone chain link (not the root): gorge announces its targets on cast (castSubChangeZoneAnnounceable)
 	Decl    bool   // a spell's copy target declaration (its root node or a charm mode's head)
@@ -545,6 +561,7 @@ type lCost struct {
 	ExileGBf       bool     // ExileCtrlOrGrave<N/Spec>: the battlefield (the payer's permanents) as well (kop.CostExileCtrlOrGrave, Craft)
 	ExileStackSelf bool     // ExileFromStack<1/Card.Self>: the resolving spell exiles itself from the stack (an unless cost beside ExileG)
 	Energy         int      // PayEnergy<N>: pay N energy (an activated ability's cost only)
+	EnergyBy       *lValue  // PayEnergy<X>/<SVar>: the amount read as the cost is offered (a resolution unless cost)
 	Waterbend      int      // Waterbend<N>: N generic payable by tapping artifacts/creatures (an activated ability's cost only)
 	WaterbendX     bool     // Waterbend<X>: the cost's one {X} payable by tapping artifacts/creatures (kop.CostWaterbend with N 0; an activated ability's cost only)
 	BlightN        int      // Blight<N>: put N -1/-1 counters on a creature you control (CR 701.68; shares Cost.N/Filter)
@@ -569,7 +586,7 @@ func (c lCost) pureMana() bool {
 	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 &&
 		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && c.Loyalty == 0 && !c.LoyaltyX &&
 		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.SacX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
-		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.Energy == 0 && !c.ReturnSelf &&
+		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.Energy == 0 && c.EnergyBy == nil && !c.ReturnSelf &&
 		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.TapXVar && !c.ExileTrigNew &&
 		!c.PutLibSelf && c.BeholdN == 0 && c.BeholdF == nil
 }
@@ -709,7 +726,7 @@ type lTrigger struct {
 	CastConverge              bool  // SpellCast: the amount is the triggering spell's colours spent as the trigger fires (TriggeredCard$Converge; kernel Tf3CastConverge)
 	SpentBound                bool  // the body reads Count$CastTotalManaSpent: the entering spell's mana spent, bound as it triggers (self ETB only; kernel Tf2SpentBound)
 	XBound                    bool  // the body reads Count$xPaid without an {X} cost of its own: the trigger object's spell's X, bound as it triggers (CR 107.3m)
-	DefPlayer                 int   // AttackersDeclared per defender, the player only: 1 any player, 2 an opponent of the controller, 3 the controller (AttackedTarget$)
+	DefPlayer                 int   // AttackersDeclared per defender, the player only: 1 any player, 2 an opponent of the controller, 3 the controller, 4 enchanted by this Aura (AttackedTarget$ Player.EnchantedBy; kernel Tf4DefEnch)
 	PerRef                    bool  // DamageDone lowered from Mode$ DamageDoneOnce: once per damaged referent per batch (kernel Tf2PerReferent)
 	SrcInPlay                 bool  // DamageDone ValidSource$ carries inZoneBattlefield: a source that is not a permanent never matches (kernel Tf2SrcInPlay)
 	SelfPlayerRef             bool  // PerRef from a plain self-source DamageDone to any player that reads the damaged player (lower_damagedoneonce.go selfPlayerRefShape)
@@ -992,6 +1009,7 @@ type lCard struct {
 	Impending      *manaCost     // K:Impending:<N>:<cost> (CR 702.176a): the hand's alternate cost; ImpendingN time counters
 	ImpendingN     int
 	Plot           *manaCost // K:Plot:<cost> (CR 702.170a): the sorcery-speed special action's cost
+	Foretell       *manaCost // K:Foretell:<cost> (CR 702.143a): the later cast's cost (the {2} special action is fixed; CardDef.ForetellCost)
 	Paradigm       bool      // K:Paradigm (SOS): resolved -> exile, a free cast from exile each first main phase
 	Sneak          *manaCost // K:Sneak:<cost> (CR 702.190a): the declare-blockers alternative cost (plus the return)
 	WebSling       *manaCost // K:Web-slinging:<cost> (CR 702.188a): the hand's alternative cost (plus returning a tapped creature)
@@ -1012,6 +1030,7 @@ type lCard struct {
 	Delve          bool      // K:Delve (CR 702.66a): the cast exiles graveyard cards toward its generic cost (dirac/kw_delve.go)
 	Rebound        *lAbility // K:Rebound (CR 702.88a): the latent free-cast-from-exile body of the upkeep recast (dirac/kw_rebound.go)
 	Mayhem         *manaCost // K:Mayhem:<cost> (CR 702.187): a graveyard cast for this cost if the card was discarded this turn (dirac/kw_mayhem.go)
+	Aftermath      bool      // K:Aftermath on a split card's right half (CR 702.127a): CardDef.Aftermath (dirac/face_aftermath.go)
 	BeamMeUp       *manaCost // K:Beam me up:<cost>: a graveyard cast for this cost that also returns a creature you control (FbCost)
 	Harmonize      *manaCost // K:Harmonize:<cost> (CR 702.180a): a graveyard cast for this cost, one creature tapped for its power off the generic part
 	Retrace        bool      // K:Retrace (CR 702.81a): a graveyard cast paying the PRINTED cost plus the additional discard-a-land cost (dirac/kw_retrace.go); never a substitution
@@ -1083,6 +1102,10 @@ type lCard struct {
 	// Face is this entry's index and FaceMode the card's kop.Face* layout.
 	Faces []string
 	Face  int
+	// FuseKey is a fuse card's fused split spell entry (lower_fuse.go), one
+	// of its Tokens: CardDef.FuseDef. FusedSpell marks that entry.
+	FuseKey    string
+	FusedSpell bool
 	// printed is a token or face entry's printed name (Name is its pool
 	// key); a named<X> filter resolves X against it
 	printed  string

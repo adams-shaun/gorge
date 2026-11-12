@@ -126,20 +126,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   further options). An untap carrier's `Repl.Cond` is not evaluated by
   `enterGen` for an other-enter program, so the conditional pair of Archelos,
   Lagoon Mystic (`Card.Self+tapped` / `+untapped`) stays refused at lowering.
-- D-aura-reask: an Aura returning from an
-  until-leaves exile outside a resolution (its source died to an SBA) with
-  several hosts is asked of its owner at once, mid departure batch, card
-  still in exile (`queueAskRet`; the hosts are the permanents entered by
-  then, so one returned later in the batch is no answer). gorge parks only
-  one entry (`applyETBChoiceReplacement` needs `e.pending == nil`): a
-  second non-cast Aura returning in the same batch enters at once attached
-  to its first candidate in battlefield order (`firstHost`), and its entry
-  overwrites gorge's single `auraEntry` record, so the first Aura's answer
-  is dropped (`answerAuraEntry` no longer matches) and it too attaches to
-  its first candidate when it enters (CR 303.4f says its owner's choice
-  stands). dirac marks the pending ask (`askRec.pc`) and ignores the
-  answer. Surfaced by TestWardLockstep seed 197 (two Pacifisms under two
-  Sheltered by Ghosts).
 - The optional top-of-library carriers (exact). Traveling Botanist, Bucolic Ranch and Gathering Stone are
   `Supported` in the `peekreveal` pool. (1) A taken reveal: the sub `Defined$
   Remembered | Origin$ Library | Destination$ Hand` is a fetch, not a search

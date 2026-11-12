@@ -125,7 +125,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExChosenMode:
 		return s.chosenModeOf(ctx.srcSl) // face_siegemode.go
 	case kop.ExChosenNumber:
-		return s.chosenNumberOf(ctx.srcSl) // repl_choosenumber.go
+		return s.chosenNumberOfFor(ctx.src, ctx.srcSl) // repl_choosenumber.go
 	case kop.ExUnlockedDoors:
 		return s.unlockedDoors(k, ctx.ctrl) // value_countheads.go
 	case kop.ExRevolt:
@@ -312,7 +312,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.refNumColors(k, x.Ref, ctx) // trig_colours.go
 	case kop.ExChromaOf:
 		return s.refChroma(k, x.Ref, int(x.N), ctx) // trig_colours.go
-	case kop.ExPoisonOf, kop.ExProduct, kop.ExAttackersAll:
+	case kop.ExPoisonOf, kop.ExEnergyOf, kop.ExProduct, kop.ExAttackersAll:
 		return s.exprKvf(k, x, ctx) // filter_valueheads.go
 	}
 	panic("kernel: expr kind not implemented")

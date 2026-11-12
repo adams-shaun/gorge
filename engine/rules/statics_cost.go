@@ -84,18 +84,6 @@ func (e *Engine) manaFeasibleDescriptorKind(p state.PlayerID, d paymentDescripto
 		asEval(e).PayLifeInsteadOfB(p), rider, asEval(e).Conv(p, d.ID, kind), avail)
 }
 
-// manaFeasiblePool is manaFeasible priced against an EXPLICIT pool instead of
-// the seat's restriction-adjusted floating one. The ordinary gate
-// (manaFeasible above) is exactly this with the real manaAvailableFor pool;
-// the potential-action walk (engine/rules/legal.go legalActionsPriced) passes the
-// hypothetical bound the seat would hold after floating every untapped
-// source. The payer grants and conversion shaping are the same reads in both
-// modes, so a potential action and the offer the walk mirrors can never
-// disagree about what the pool may satisfy.
-func (e *Engine) manaFeasiblePool(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, pool state.Mana, typed [7]state.Mana) bool {
-	return e.manaFeasiblePoolP(p, id, ability, &c, &mods, taxGeneric, delve, pool, typed)
-}
-
 // manaFeasiblePoolP is manaFeasiblePool over pointers: *c and *mods are only
 // read, and the common pool-floor refusal never copies either.
 func (e *Engine) manaFeasiblePoolP(p state.PlayerID, id state.ObjID, ability bool, c *Cost, mods *costMods, taxGeneric, delve int32, pool state.Mana, typed [7]state.Mana) bool {

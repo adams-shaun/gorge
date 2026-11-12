@@ -108,8 +108,8 @@ func (s *State) holdReturns(sl Slot, o Obj) {
 // flushReturns returns the cards of the sources holdReturns recorded. When a
 // return parks an ask it stops, leaving the rest in retHeld for resumeReturns;
 // the caller keeps the entry frame open. A queued ask (retAuraAsk, outside a
-// resolution) cannot park this way: the rest of the batch returns before it,
-// which is the bound of that path.
+// resolution) cannot park this way: every returning Aura queues its own ask and
+// the rest of the batch stays in exile until those answers land, in entry order.
 //
 //go:noinline
 func (s *State) flushReturns(k *prep) bool {

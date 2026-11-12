@@ -194,15 +194,36 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 
 // deferGapAnswers is how many colour answers a Taps-deferred gap's
 // activation poses: one per colour its production names (gorge's search
-// branches on the mana ask's options, manaChoiceColours W U B R G).
+// branches on the mana ask's options, manaChoiceColours W U B R G), plus
+// the plain first ability as answer 0 when the rider is a later ability
+// (Grove of the Burnwillows; riderPlainFirst).
 func (s *State) deferGapAnswers(k *prep, sl Slot) uint8 {
 	if a, ok := s.riderAbilityOf(k, sl); ok {
 		if a.ManaEach {
 			return 1 // every colour at once: no colour ask
 		}
-		return uint8(bits.OnesCount8(uint8(a.ManaColors)))
+		n := uint8(bits.OnesCount8(uint8(a.ManaColors)))
+		if s.riderPlainFirst(k, sl) {
+			n++
+		}
+		return n
 	}
 	return uint8(bits.OnesCount8(uint8(s.manaPCGen(k, sl).manaCol)))
+}
+
+// tapDeferPlain floats a rider source's plain first ability at sl, the
+// answer-0 activation of a gap whose rider comes later (riderPlainFirst):
+// one fixed colour into the plain pool, exactly tapDeferFloat's non-rider
+// arm.
+func (s *State) tapDeferPlain(k *prep, p uint8, sl Slot) {
+	pc := s.manaPCGen(k, sl)
+	col := bits.TrailingZeros8(uint8(pc.manaCol))
+	s.pl[p].pool[col]++
+	s.addExtra(k, p, sl, pc) // the tap's StatTapExtra mana floats beside it (addTapsDeferUnits)
+	s.artTag(k, p, sl, col)
+	if k.painMana && pc.painCol != 0 && pc.painOnly {
+		s.painDamage(k, sl, p, int(pc.painN))
+	}
 }
 
 // tapDeferFloat floats the Taps-deferred source at sl's mana in the

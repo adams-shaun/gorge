@@ -14,7 +14,7 @@ import (
 // (amount defaults to 1) and stopped after the first matching card.
 //
 // The parent test (TestDigUntilMinTotalCMCRevealsPastTheThreshold in
-// unread_param_fixes_test.go) uses an inline script and a zero-mana-value
+// unread_param_shapes_test.go) uses an inline script and a zero-mana-value
 // library. These two close the remaining gap: the corpus card itself, and a
 // library whose cumulative sum is non-zero so "sum >= threshold" is a real
 // assertion rather than a vacuous one.

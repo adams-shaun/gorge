@@ -557,21 +557,6 @@ func labelsFromRows(rows []stdTSVRow) []string {
 	return sortedNames(out)
 }
 
-// cardRefusalClasses is every distinct refusal class the card carries; a
-// card with two refusals in one class still carries that class once.
-func cardRefusalClasses(c *lCard) []string {
-	if c == nil {
-		return nil
-	}
-	seen := map[string]bool{}
-	for _, r := range c.Refusals {
-		for _, cl := range refusalClasses(r.Reason) {
-			seen[cl] = true
-		}
-	}
-	return sortedNames(seen)
-}
-
 // sortedNames returns a map's keys sorted, so every lowering pool is built
 // in the same order regardless of map iteration.
 func sortedNames(m map[string]bool) []string {

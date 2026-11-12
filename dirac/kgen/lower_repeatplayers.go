@@ -48,6 +48,11 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 		ps.consume("ChangeZoneTable")
 		lc.twoSeat("ChangeZoneTable over the opponents read as one iteration's batch")
 	}
+	if v, ok := ps.get("StartingWith"); ok && strings.TrimSpace(v) != "You" {
+		// The kernel's RepeatEachPlayer walks the controller first (C&1);
+		// only gorge's "starting with you" order is modelled.
+		return refuse("RepeatEach StartingWith %q", v)
+	}
 	name := ps.str("RepeatSubAbility")
 	body := cards.ResolveSVar(lc.face.SVars, name)
 	if body == nil {
@@ -130,8 +135,9 @@ func (lc *lowerCtx) repeatEachTargetedSlot() (lRef, error) {
 var repeatPlayerOps = map[string]bool{
 	"LoseLife": true, "GainLife": true, "Draw": true, "Discard": true, "Mill": true, "Sacrifice": true,
 	"CreateToken": true, "UnlessPaid": true,
-	"ChooseMove": true, // a hand move's owner (DefinedPlayer$ Remembered; startSearch's playerRef)
-	"Dig":        true, // the library dug (Doomsday Excruciator)
+	"ChooseMove":      true, // a hand move's owner (DefinedPlayer$ Remembered; startSearch's playerRef)
+	"Dig":             true, // the library dug (Doomsday Excruciator)
+	"ChooseNumberMid": true, // the repeated player chooses the amount (join forces; lower_choosenumber.go)
 }
 
 // repeatChooseGreatest lowers Gix's Command's fourth mode body: RepeatEach

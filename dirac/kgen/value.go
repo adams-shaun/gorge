@@ -98,6 +98,28 @@ func (lc *lowerCtx) targetedCastSpentValue() (lValue, error) {
 	return lValue{Kind: vTgtSpent}, nil
 }
 
+// triggeredAttackerValue lowers TriggeredAttacker$...: the ref is the single
+// attacker the trigger captured (gorge count_ref.go refTargetsTriggeredAttacker).
+// CardPower reads its live power (Arahbo, Roar of the World's "X is its
+// power"); CardCounters.ALL sums its LIVE counters (count_ref_property.go's
+// sumCounters, no LKI substitution for a trigger object), so X sees the
+// counter the sibling PutCounter just added. defined() refuses the shapes with
+// no single attacker (an AttackersDeclared player event). CardToughness has no
+// carrier in the class and is left to the ordinary refusal. Spider-Man Noir.
+func (lc *lowerCtx) triggeredAttackerValue(rest string) (lValue, error) {
+	ref, err := lc.defined("TriggeredAttacker")
+	if err != nil {
+		return lValue{}, err
+	}
+	switch rest {
+	case "CardPower":
+		return lValue{Kind: vPowerOf, Ref: ref}, nil
+	case "CardCounters.ALL":
+		return lValue{Kind: vCountersOn, Ref: ref, S: "ALL", N: 1}, nil // N 1: the live read (kernel refCountersAll)
+	}
+	return lValue{}, fmt.Errorf("TriggeredAttacker$%s", rest)
+}
+
 // svarValue lowers an SVar value body.
 func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 	if depth > 4 {
@@ -508,21 +530,7 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			err = fmt.Errorf("TargetedPlayer$%s", rest)
 		}
 	case "TriggeredAttacker":
-		// gorge count_ref.go refTargetsTriggeredAttacker: the single attacker
-		// the trigger captured; CardCounters.ALL sums its LIVE counters
-		// (count_ref_property.go's sumCounters, no LKI substitution for a
-		// trigger object), so X sees the counter the sibling PutCounter just
-		// added. defined() refuses the shapes with no single attacker
-		// (an AttackersDeclared player event). Spider-Man Noir
-		if rest != "CardCounters.ALL" {
-			err = fmt.Errorf("TriggeredAttacker$%s", rest)
-			break
-		}
-		ref, derr := lc.defined("TriggeredAttacker")
-		if derr != nil {
-			return lValue{}, derr
-		}
-		v = lValue{Kind: vCountersOn, Ref: ref, S: "ALL", N: 1} // N 1: the live read (kernel refCountersAll)
+		v, err = lc.triggeredAttackerValue(rest)
 	case "Spawner>Sacrificed":
 		// A reflexive trigger reading the creature its parent's own IfPaid
 		// Sacrifice cost took (Bolg of the North's "that creature's power";
@@ -994,6 +1002,17 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lValue{Kind: vDmgAmount}, nil
 	case "FinishedEndOfTurnsThisTurn":
 		return finishedEndStepsValue(), nil // lower_addphase.go
+	case "ChosenNumber":
+		// Count$ChosenNumber: the resolving source's Object.ChosenNumber
+		// (gorge specCtx's Resolve), set by api:ChooseNumber (the as-enters
+		// entry ask or the mid-resolution ask). ExChosenNumber reads the
+		// permanent's chosen byte, the resolving spell's card object, or the
+		// resolution's own recorded answer.
+		return lValue{Kind: vChosenNumber}, nil
+	case "YourCountersEnergy":
+		// Count$YourCountersEnergy: the controller's energy counters
+		// (CR 122.1), the Max$ bound of the "pay one or more {E}" family.
+		return lValue{Kind: vEnergyOf, Ref: lRef{Kind: rYou}}, nil
 	case "OffspringPaid":
 		// CR 702.175a: the cast paid the offspring cost, read off the permanent
 		// the spell became (the kernel's kicked mark), 0 for a token copy. The
@@ -1310,6 +1329,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	}
 	if arms, ok := strings.CutPrefix(rest, "Metalcraft."); ok {
 		return lc.metalcraftValue(arms, depth) // value_filterheads.go
+	}
+	if arms, ok := strings.CutPrefix(rest, "wasCastFromExile."); ok {
+		return lc.castFromExileValue(arms) // lower_castfromexile.go
 	}
 	if arms, ok := strings.CutPrefix(rest, "Threshold."); ok {
 		return lc.thresholdValue(arms, depth) // value_threshold.go

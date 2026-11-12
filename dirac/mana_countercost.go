@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // Counter-cost mana (Wall of Roots: "Put a -0/-1 counter on Wall of
 // Roots: Add {G}. Activate only once each turn."). gorge's planner census
@@ -11,10 +15,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // the gap first (potentialPrefixScript), the sources then paying the rest.
 // The kernel models it as one more script gap kind beside the each-colour,
 // restricted and sacrifice-only ones (script_gen.go): its mana in the gaps
-// walk (availCtr), and at the play the activations in battlefield order
-// until the plain walk lists it (ctrGap). Each activation puts a -0/-1
-// counter (kop.CtrM0M1, read by ptGen) and spends the once-each-turn use
-// (perm.actUsed). Everything is behind prep.ctrMana.
+// walk (availCtr), and at the play the chain's activations in battlefield
+// order, a source with a plain {T} first ability taken through both branches
+// its activation ask lists (the {T} tap before the counter cost), an
+// any-colour ability (Vivid Grove's second) branched on its colour
+// ask (ctrScript), until the walk lists the play. Each activation puts a
+// -0/-1 counter (kop.CtrM0M1, read by ptGen) and spends the once-each-turn
+// use (perm.actUsed). Everything is behind prep.ctrMana.
 //
 // The all-at-once removal shape (kop.CtrEachManaAb: Ramos, Dragon Engine's
 // "Remove five +1/+1 counters from Ramos: Add {W}{W}{U}{U}{B}{B}{R}{R}{G}{G}.
@@ -40,9 +47,12 @@ func (k *prep) ctrAbOf(c CardID) *kop.Ability {
 }
 
 // ctrSecond: card c's counter-cost ability is a later one beside a plain {T}
-// first (Weather Maker), so activating the source asks which ability.
+// first (Weather Maker), so activating the source asks which ability. A
+// storage battery whose first ability is the counter one (Bottomless Vault)
+// has no plain first ability to answer with (pcard.manaAb is -1: a dynamic
+// amount is no planner unit), so it is not a second.
 func (k *prep) ctrSecond(c CardID) bool {
-	return int(c) < len(k.ctrAb) && k.ctrAb[c] >= 0 && k.ctrAb[c] != k.cards[c].manaAb
+	return int(c) < len(k.ctrAb) && k.ctrAb[c] >= 0 && k.cards[c].manaAb >= 0 && k.ctrAb[c] != k.cards[c].manaAb
 }
 
 // scriptCtr: p's counter-cost sources that can be activated now (a Wall of
@@ -65,7 +75,17 @@ func (s *State) scriptCtr(k *prep, p uint8) slotMask {
 		if a.Cost.Flags&kop.CostRemoveCtr != 0 && s.perms[sl].ctrN(s, int(a.Cost.Ctr)) < int(a.Cost.N) {
 			continue // too few counters to remove (legal.go actCostOK's CostRemoveCtr)
 		}
-		if a.Cost.Flags&kop.CostTap != 0 && !s.canTapForMana(k, sl) {
+		if kop.StoreManaAb(a) {
+			// A storage battery: the announced X is the counters it holds, so
+			// with none there is no activation. Its {T} is read here, not
+			// through canTapForManaPC (whose plain unit prices one mana, not X).
+			if s.perms[sl].ctrN(s, int(a.Cost.Ctr)) <= 0 {
+				continue
+			}
+			if a.Cost.Flags&kop.CostTap != 0 && (s.perms[sl].flags&pfTapped != 0 || s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || s.activationSick(k, sl)) {
+				continue
+			}
+		} else if a.Cost.Flags&kop.CostTap != 0 && !s.canTapForMana(k, sl) {
 			continue // its {T}: the source is untapped and not summoning sick (the second ability beside a plain {T} first)
 		}
 		m = m.with(sl)
@@ -78,7 +98,34 @@ func (s *State) scriptCtr(k *prep, p uint8) slotMask {
 //go:noinline
 func (s *State) availCtr(k *prep, p uint8, av *avail) {
 	for b := s.scriptCtr(k, p); b.any(); b = b.rest() {
-		addCtrUnits(av, k.ctrAbOf(s.cardAt(b.first())))
+		sl := b.first()
+		c := s.cardAt(sl)
+		a := k.ctrAbOf(c)
+		if kop.StoreManaAb(a) {
+			n := s.perms[sl].ctrN(s, int(a.Cost.Ctr))
+			if n > 255 {
+				s.capFull(StallDynMana)
+				n = 255
+			}
+			if n > 0 {
+				av.addUnits(uint8(a.ManaColors)&0x3f, uint8(n))
+			}
+			continue
+		}
+		if a.Cost.Flags&kop.CostTap != 0 && k.ctrSecond(c) {
+			// A later {T} ability beside a plain {T} first (Weather Maker's
+			// {C}{C} beside its any-colour tap): both are one tap, and the
+			// plain walk already counts the first's unit, which pays any
+			// generic unit of the second's. Only the units beyond it are new
+			// (CR 605.3b: one activation per untapped source). A {C} pip
+			// the plain unit cannot pay is not priced by this.
+			cols, n := tapXUnit(a)
+			if cols == 1<<kop.C {
+				av.addUnits(cols, n-1)
+				continue
+			}
+		}
+		addCtrUnits(av, a)
 	}
 }
 
@@ -111,12 +158,17 @@ func (s *State) windowCtrOffer(k *prep, p uint8, o Slot, decided bool, want uint
 
 // ctrGap activates counter-cost source sl for p: its counters, its use this
 // turn, its mana into the pool (gorge's activation: the cost's
-// CounterChange, then the mana).
+// CounterChange, then the mana). An any-colour ability (Vivid Grove's second
+// one) asks its colour: col is the answer, the lowest colour when negative.
 //
 //go:noinline
-func (s *State) ctrGap(k *prep, p uint8, sl Slot) {
+func (s *State) ctrGap(k *prep, p uint8, sl Slot, col int) {
 	c := s.cardAt(sl)
 	a := k.ctrAbOf(c)
+	if kop.StoreManaAb(a) {
+		s.storeGap(k, p, sl, a) // the storage battery's announced X (mana_countercost.go)
+		return
+	}
 	pm := &s.perms[sl]
 	if a.Cost.Flags&kop.CostRemoveCtr != 0 {
 		pm.seeCtr(s) // the activation path's CostRemoveCtr (mana_window.go)
@@ -137,16 +189,188 @@ func (s *State) ctrGap(k *prep, p uint8, sl Slot) {
 	}
 	s.touchSl(sl)
 	cols, n := tapXUnit(a)
-	for col := 0; col < kop.NumManaKinds; col++ {
-		if cols&(1<<col) != 0 {
-			s.poolAdd(p&1, col, int(n))
+	if ctrAnyColour(a) {
+		if col < 0 {
+			col = bits.TrailingZeros8(cols)
+		}
+		cols = 1 << uint(col)
+	}
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if cols&(1<<c) != 0 {
+			s.poolAdd(p&1, c, int(n))
 			if taps {
-				s.artTag(k, p, sl, col)
+				s.artTag(k, p, sl, c)
 			}
 		}
 	}
 	if taps {
 		s.tapExtraStall(k, sl)
+	}
+}
+
+// ctrAnyColour: counter-cost ability a makes one mana of a colour its
+// activation asks (Vivid Grove's "{T}, remove a charge counter: add one mana
+// of any color"), not a fixed colour or every colour at once.
+func ctrAnyColour(a *kop.Ability) bool {
+	return !a.ManaEach && a.ManaColors&(a.ManaColors-1) != 0
+}
+
+// ctrAnsCol is the colour counter-cost source sl's mana ability makes for the
+// prefix search's answer ans of play a (ctrScript's path): an any-colour
+// ability's ask is answered in scriptOrderAnswers' order, the play's
+// announced colours first (tapXSearch.cols), 0 the first one; -1 for a fixed
+// colour ability (Wall of Roots, Ramos), whose step asks nothing.
+func (s *State) ctrAnsCol(k *prep, a Action, sl Slot, ans int) int {
+	ab := k.ctrAbOf(s.cardAt(sl))
+	if ab == nil || !ctrAnyColour(ab) {
+		return -1
+	}
+	return int(s.ctrColOrder(k, a)[ans])
+}
+
+// ctrColOrder is the colour ask's answers for play a in the prefix search's
+// order: the play's announced colours first (tapXSearch.cols, needFirst).
+func (s *State) ctrColOrder(k *prep, a Action) [5]uint8 {
+	var order [5]uint8
+	for c := range order {
+		order[c] = uint8(c)
+	}
+	needFirst(order[:], s.playNeed(k, a))
+	return order
+}
+
+// ctrFirstN is the answers a counter-cost source's plain {T} first mana
+// ability poses in the chain (ctrChainTap): none for a card without one, one
+// for a fixed colour, five (the colour ask, ctrColOrder's order) for an
+// any-colour one (Weather Maker's "{T}: Add one mana of any color", the
+// tapXPlainDo reading of manaCol).
+func (k *prep) ctrFirstN(c CardID) int {
+	if !k.ctrSecond(c) {
+		return 0
+	}
+	if mc := k.cards[c].manaCol; mc&(mc-1) != 0 && !DebugCtrFirstAllColours {
+		return 5
+	}
+	return 1
+}
+
+// ctrChainN is the answers a counter-cost gap of card c offers in the chain:
+// the plain first ability's (ctrFirstN) then the counter ability's, an
+// any-colour one's five colour answers (ctrAnsCol).
+func (k *prep) ctrChainN(c CardID) int {
+	n := k.ctrFirstN(c)
+	if ab := k.ctrAbOf(c); ab != nil {
+		n++
+		if ctrAnyColour(ab) {
+			n += 4
+		}
+	}
+	return n
+}
+
+// ctrChainTap applies the prefix search's chain step for gap sl, answer ans
+// of play a (ctrScript's node build, scriptPrefix's replay): a counter-cost
+// source with a plain {T} first mana ability answers 0 with that ability's
+// tap (gorge's activation ask lists it first: Activate Vivid Creek for mana,
+// Add U), later answers its counters, use and mana (ctrGap; the SBA a -0/-1
+// counter may kill with), any other gap its tap (tapGap).
+func (s *State) ctrChainTap(k *prep, p uint8, a Action, sl Slot, ctr, restr slotMask, ans int, held *[kop.NumManaKinds]uint8) {
+	if ctr.has(sl) {
+		off := k.ctrFirstN(s.cardAt(sl)) // the ask's plain {T} first ability answers come first
+		if ans < off {
+			col := -1 // a fixed colour asks nothing
+			if off > 1 {
+				col = int(s.ctrColOrder(k, a)[ans])
+			}
+			s.ctrAb1(k, p, sl, col)
+			return
+		}
+		s.ctrGap(k, p, sl, s.ctrAnsCol(k, a, sl, ans-off))
+		s.sba(k) // the script returns to priority after the step: a Wall of Roots out of toughness dies before the next one
+		return
+	}
+	s.tapGap(k, p, sl, restr, held)
+}
+
+// ctrAb1 applies the chain's ab1 branch for counter-cost source sl: the
+// card's plain {T} first mana ability (ctrSecond), tapped, its mana (one of
+// colour col when it asks, an any-colour one: Weather Maker; col -1 for a
+// fixed colour) into the pool — the counters and the once-each-turn use stay (gorge's
+// activation: the {T} cost, then the mana).
+//
+//go:noinline
+func (s *State) ctrAb1(k *prep, p uint8, sl Slot, col int) {
+	pm := &s.perms[sl]
+	pm.flags |= pfTapped
+	s.manaTapped(k, sl)
+	s.touchSl(sl)
+	c := s.cardAt(sl)
+	cols, n := tapXUnit(&k.t.Cards[c].Abilities[k.cards[c].manaAb])
+	if col >= 0 {
+		cols = 1 << uint(col)
+	}
+	for cc := 0; cc < kop.NumManaKinds; cc++ {
+		if cols&(1<<cc) != 0 {
+			s.poolAdd(p&1, cc, int(n))
+			s.artTag(k, p, sl, cc)
+		}
+	}
+	s.tapExtraStall(k, sl)
+}
+
+// ctrScript is gorge's prefix search (scriptSearch.visit) for play a over the
+// chain order: p's gaps tapped in battlefield order, a counter-cost source
+// with a plain {T} first mana ability branched on the two branches its
+// activation ask lists (the {T} tap first, then the counter-cost one), an
+// any-colour counter ability branched on its five colour answers (ctrAnsCol's
+// order, every answer an activation poses branched on, in engine order),
+// depth first; at each node after a tap the walk (restrOptions) is asked for
+// a. It returns the number of gaps the found script taps (path holds their
+// answers, 0 where the gap asks nothing) and whether a was offered at that
+// node, dead there as scriptDeadEnd reads it (restricted mana floats and the
+// plain walk does not price the play). Each node is rebuilt on a fresh fork
+// (the scriptDFS walk), so the caller's state is untouched.
+func (s *State) ctrScript(k *prep, a Action, p uint8, order []Slot, ctr, restr slotMask, path []uint8, noGrant bool) (int, bool, bool) {
+	var d Decision
+	depth := 0 // gaps tapped at this node: order[:depth], answers path[:depth]
+	nodes := 0
+	for {
+		if depth > 0 {
+			if nodes++; nodes > potentialScriptNodes { // gorge's search budget: no script past it
+				return 0, false, true
+			}
+			t := s.fork()
+			t.g.noGrant = noGrant // (scriptDeadEnd's restrictedGrantLive count; the root's is unset)
+			var held [kop.NumManaKinds]uint8
+			for j := 0; j < depth; j++ {
+				t.ctrChainTap(k, p, a, order[j], ctr, restr, int(path[j]), &held)
+			}
+			t.restrOptions(k, &d, p)
+			if hasOption(&d, a) {
+				dead := held != ([kop.NumManaKinds]uint8{}) && !t.scriptCompletes(k, p, a)
+				s.unfork()
+				return depth, true, dead
+			}
+			s.unfork()
+		}
+		if depth < len(order) { // the node's first child
+			path[depth] = 0
+			depth++
+			continue
+		}
+		for { // a leaf: the deepest gap with an answer left, else done
+			if depth == 0 {
+				return 0, false, true
+			}
+			j := depth - 1
+			c := s.cardAt(order[j])
+			nch := max(k.ctrChainN(c), 1)
+			if int(path[j])+1 < nch {
+				path[j]++
+				break
+			}
+			depth--
+		}
 	}
 }
 
@@ -168,6 +392,48 @@ func (s *State) sbaCtrTough(k *prep, die, gy *slotMask) {
 	}
 }
 
+// DebugCtrFirstAllColours reads an any-colour first mana ability in the
+// counter-cost chain as one answer floating every colour (the old hole; the
+// weather-maker mutation test proves the lockstep needs the colour ask).
+var DebugCtrFirstAllColours bool
+
 // DebugNoCtrMana hides the counter-cost gaps (the wallroots mutation test
 // proves the pool's plays need them).
 var DebugNoCtrMana bool
+
+// storeGap activates a single-colour storage-battery mana ability (Mage-Ring
+// Network and the single-colour storage lands): its {T} if any marked, every
+// counter of the kind removed, and that many mana of the ability's one
+// colour. A generic fee, a colour combination or an any-colour production is
+// not modelled (kgen refuses those shapes with their reasons). CR 107.3,
+// 118.3; gorge's non-interactive ManaCostSubCounterStage takes X at the bound
+// (all the counters).
+func (s *State) storeGap(k *prep, p uint8, sl Slot, a *kop.Ability) {
+	pm := &s.perms[sl]
+	n := pm.ctrN(s, int(a.Cost.Ctr))
+	if n <= 0 {
+		return
+	}
+	if n > 255 {
+		s.capFull(StallDynMana)
+		n = 255
+	}
+	taps := a.Cost.Flags&kop.CostTap != 0
+	if taps {
+		if pm.flags&pfTapped != 0 {
+			return
+		}
+		pm.flags |= pfTapped
+		s.touchSl(sl)
+		s.manaTapped(k, sl)
+	}
+	s.touchSl(sl)
+	pm.seeCtr(s)
+	pm.subCtrN(s, int(a.Cost.Ctr), n)
+	col := bits.TrailingZeros8(uint8(a.ManaColors) & 0x3f)
+	s.poolAdd(p&1, col, n)
+	if taps {
+		s.artTag(k, p, sl, col)
+		s.tapExtraStall(k, sl)
+	}
+}
