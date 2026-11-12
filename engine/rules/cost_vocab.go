@@ -49,8 +49,6 @@ func matchPayLife(sym string) (string, bool) { return costvocab.MatchPayLife(sym
 
 func isDigitRun(s string) bool { return costvocab.IsDigitRun(s) }
 
-func millCostTotal(parts []CostPart) (int64, bool) { return costvocab.MillCostTotal(parts) }
-
 func dynTapParts(c Cost) []CostPart { return costvocab.DynTapParts(c) }
 
 func costCarriesDynTap(c Cost) bool { return costvocab.CostCarriesDynTap(c) }
@@ -71,10 +69,6 @@ func formatCost(c Cost) string { return costvocab.FormatCost(c) }
 
 func costPhrase(c Cost) string { return costvocab.CostPhrase(c) }
 
-func objectPhrase(part CostPart, defNoun string) string { return costvocab.ObjectPhrase(part, defNoun) }
-
 func specNoun(spec, defNoun string) string { return costvocab.SpecNoun(spec, defNoun) }
 
 func capitaliseFirst(s string) string { return costvocab.CapitaliseFirst(s) }
-
-func manaCostBeyondTap(c Cost) bool { return costvocab.ManaCostBeyondTap(c) }

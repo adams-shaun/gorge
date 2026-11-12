@@ -577,6 +577,13 @@ const ExTargetPlayers ExprKind = 223
 // Explicit ordinal, the iota tail stays untouched.
 const ExNotOwnLibMV ExprKind = 226
 
+// ExEnergyOf: the energy counters (CR 122.1) of player Ref, read by
+// Count$YourCountersEnergy (the "pay one or more {E}" ChooseNumber bounds of
+// Aether Refinery, Localized Destruction, Pia Nalaar, Rampaging Aetherhood,
+// Territorial Aetherkite and Vault 112). Explicit ordinal in the free
+// low range; the iota tail stays untouched.
+const ExEnergyOf ExprKind = 63
+
 // ExDmgAmountReceived: the positive damage the source object received this
 // turn, saturating at 255 (gorge Object.DamageReceivedThisTurn,
 // Count$TotalDamageReceivedThisTurn). A source with no record reads 0.

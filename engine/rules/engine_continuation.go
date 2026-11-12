@@ -101,24 +101,27 @@ type engineContinuation struct {
 	// closures, so Clone copies it like cast/choosing and a replay
 	// re-derives it from the recorded intents.
 	turnUp *turnUpPay `clone:"deep"`
-	// etbMove parks a battlefield entry while its as-enters choice is answered
-	// through the mid-resolution decision path. etbNext is the ordinal of the
-	// next choice on that entry; both are plain data so a clone at the decision
-	// boundary preserves the entry exactly.
-	etbMove *events.Event `clone:"deep"`
-	etbNext int           `clone:"deep"`
-	// auraEntry is the CR 303.4f non-cast Aura entry's transient record
-	// (engine/rules/aura_entry.go): the bearer the entry's fold attaches (default,
-	// answered or effect-named). Plain data, set and consumed around one
-	// entry, carried across its "enchant" decision boundary. auraEntryCands
-	// is the candidate walk's scratch buffer.
-	auraEntry      auraEntryState  `clone:"deep"`
-	auraEntryCands []auraEntryCand `clone:"reset"`
+	// etbQueue parks battlefield entries while their as-enters choices are
+	// answered through the mid-resolution decision path, front first. A
+	// second entry that reaches its own as-enters choice while another
+	// decision is outstanding waits here (with its prebuilt ask) rather than
+	// entering unasked. Both the move and the ask are plain data so a clone
+	// at the decision boundary preserves every parked entry exactly.
+	etbQueue []etbParked `clone:"deep"`
+	// auraEntries holds the CR 303.4f non-cast Aura entries' transient
+	// records (engine/rules/aura_entry.go), one per entering Aura: the bearer
+	// each entry's fold attaches (default, answered or effect-named). Plain
+	// data, set at the gate and consumed by that entry's fold, carried across
+	// its "enchant" decision boundary. A batch returning several Auras keeps
+	// one record each, so a later entry cannot overwrite an earlier answer.
+	// auraEntryCands is the candidate walk's scratch buffer.
+	auraEntries    []auraEntryState `clone:"deep"`
+	auraEntryCands []auraEntryCand  `clone:"reset"`
 	// turnUpMove parks the events.TurnFaceUp marker of a morph-family turn-up
 	// while an "as this is turned face up" replacement body's own answer is
 	// outstanding: the transition must not fold until the body finishes, or
 	// the body and the turn-up's triggers would observe a face the transition
-	// already revealed. Unlike etbMove the park is consumed synchronously
+	// already revealed. Unlike an etbQueue entry the park is consumed synchronously
 	// inside resolveReplacementBody -- before any decision can be answered --
 	// so it need not survive a clone; the re-emit frame it installs on the
 	// body's suspension chain is what crosses the decision boundary.

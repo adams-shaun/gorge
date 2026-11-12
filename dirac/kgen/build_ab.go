@@ -1913,6 +1913,29 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.GrantCost, err = manaCostOf(s.Cost.Mana); err != nil {
 			return ka, nil, err
 		}
+	case "EscapeGrant":
+		// an AffectedZone$ Graveyard AddKeyword$ Escape static: each matching
+		// card in its controller's graveyard has escape at its mana cost plus
+		// N other cards from the same graveyard (kop.StatEscapeGrant;
+		// kw_escape.go; CR 702.42a; Underworld Breach). Filter is the affected
+		// cards; the ability's own Cost is the fodder part, as an
+		// AlternativeCost static's is: CostExileGrave of N cards matching
+		// Cost.Filter (the grant's ExileFromGrave spec), a table cost the
+		// kernel's cost builder returns in place. The mana part is the card's
+		// own cost, priced at the offer like any spell's.
+		st.Kind = kop.StatEscapeGrant // kw_escape.go
+		if st.Filter, err = filter(s.F, kop.ZoneGraveyard); err != nil {
+			return ka, nil, err
+		}
+		if s.Cost.ExileG == nil || s.Cost.ExileGN < 1 || s.Cost.ExileGN > 15 {
+			return ka, nil, fmt.Errorf("escape grant without an exile cost")
+		}
+		if ka.Cost, err = cb.cost(s.Cost); err != nil {
+			return ka, nil, err
+		}
+		if ka.Cost.Flags != kop.CostExileGrave || ka.Cost.Mana != (kop.ManaCost{}) {
+			return ka, nil, fmt.Errorf("escape grant cost beside its exile part")
+		}
 	case "TapExtra":
 		st.Kind = kop.StatTapExtra
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -1984,6 +2007,10 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				return ka, nil, fmt.Errorf("cant be activated flag %q", fl)
 			}
 		}
+	case "CantTgtGrave":
+		// Ground Seal's class (lower_canttarget.go): every card in every
+		// graveyard untargetable (kw_canttgtgrave.go). No operands.
+		st.Kind = kop.StatCantTgtGrave
 	case "CantTarget":
 		st.Kind = kop.StatCantTarget // lower_canttarget.go
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -4785,6 +4812,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "ChooseNumber":
 		// an as-enters number from B to C (lower_choosenumber.go)
 		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumber)), kop.Const(in.B.N), int16(in.C)
+	case "ChooseNumberMid":
+		// a resolution-time number (lower_choosenumber.go): B the Max$
+		// value, C the Min$ floor plus the has-Max / Random flags
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumberMid)), int16(in.C)
 	default:
 		return ki, fmt.Errorf("op %s has no kop form", in.Op)
 	}

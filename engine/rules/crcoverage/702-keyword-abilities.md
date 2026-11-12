@@ -167,7 +167,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.113 | not-impl | - | - |  |
 | 702.114 | follows | `engine/rules/chars/derive.go#Compute` | `TestDevoidCreatureIsColourless` `TestGrantedProtectionCountsAndDevoidIsColourless` |  |
 | 702.115 | not-impl | - | - |  |
-| 702.116 | follows | `engine/cards/kw_myriad.go#kwMyriad` `engine/effects/myriad.go#effMyriad` | `TestMyriadMayChooseEachOpponentIndependently` `TestMyriadMayDeclineEveryOpponent` |  |
+| 702.116 | follows | `engine/cards/kw_myriad.go#kwMyriad` `engine/effects/myriad.go#effMyriad` `engine/rules/scriptfacts/granted_keyword_trigger.go#GrantedKeywordTrigger` | `TestMyriadMayChooseEachOpponentIndependently` `TestMyriadMayDeclineEveryOpponent` `TestGrantedMyriadCreatesCopyAttackingTheOtherOpponent` `TestGrantedMyriadTwoSeatsAsksNothing` | a layer-6 grant (Blade of Selves) synthesizes the printed expansion's trigger |
 | 702.117 | follows | `engine/rules/cast_altcost.go#surgeCost` | `TestSurgeNeedsAnotherSpellThisTurn` `TestSurgeRealCorpusRecklessBushwhacker` |  |
 | 702.118 | follows | `engine/rules/combat/block.go#CanBlock` | `TestSkulkBlocksOnlyGreaterPowerBlockers` `TestGrantedSkulkStaticBlocksGreaterPowerBlockers` | Greater-power creatures cannot block |
 | 702.119 | follows | `engine/rules/emerge.go#emergeCost` `engine/rules/emerge.go#Engine.applyEmergeReduction` | `TestEmergeCastPaysReducedCost` `TestEmergeCastReductionExceedsGenericKeepsColored` |  |

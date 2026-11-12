@@ -23,6 +23,9 @@ func (s *State) targetOKGraveExileCard(k *prep, t *kop.TargetSpec, p uint8, src 
 	if ob.zone != kop.ZoneGraveyard && ob.zone != kop.ZoneExile {
 		return false
 	}
+	if ob.zone == kop.ZoneGraveyard && s.graveCantTargetGen(k) {
+		return false // Ground Seal's class (kw_canttgtgrave.go)
+	}
 	return s.matchCardTgt(k, t.Filter, ob.card, ob.owner(), p, o, src, self) &&
 		(o != self || k.t.Filters[t.Filter].Flags&kop.FOther == 0)
 }

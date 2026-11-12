@@ -698,9 +698,19 @@ func (s *State) filtPlay(k *prep, p uint8, path []filtStep) {
 	s.Decisions = n
 }
 
+// DebugFiltNodeBudget caps fs.tick's budget below potentialScriptNodes,
+// mutation testing only: a test pinning the search's node accounting shrinks
+// the budget to the line it pins. Never above potentialScriptNodes (the seen
+// set is that long); 0 is the search's own budget.
+var DebugFiltNodeBudget int
+
 // tick counts one visited node; false once the budget is spent.
 func (fs *filtSearch) tick() bool {
-	if fs.nodes >= potentialScriptNodes {
+	budget := potentialScriptNodes
+	if DebugFiltNodeBudget != 0 && DebugFiltNodeBudget < budget {
+		budget = DebugFiltNodeBudget
+	}
+	if fs.nodes >= budget {
 		return false
 	}
 	fs.nodes++

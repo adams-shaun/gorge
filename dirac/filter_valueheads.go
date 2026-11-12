@@ -25,6 +25,15 @@ func (s *State) exprKvf(k *prep, x *kop.Expr, ctx evalCtx) int {
 		}
 		kvfHit(KvfPoisonLow + min(v, 3)/3)
 		return v
+	case kop.ExEnergyOf:
+		// Count$YourCountersEnergy: the energy counters of the referenced
+		// player (the resolving controller for the "pay {E}" ChooseNumber
+		// bound; CR 122.1).
+		v := 0
+		if p := s.refPlayer(k, x.Ref, ctx); p != 255 {
+			v = int(s.g.energy[SeatIx(p)])
+		}
+		return v
 	case kop.ExProduct:
 		// gorge applyCountOpOperand: /Times.<SVar> multiplies by the
 		// operand's value

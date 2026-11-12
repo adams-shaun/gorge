@@ -137,7 +137,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
 	// +12 (the merge with land: the storage-battery abilities above against land's corpus; merged ALL 22971 -> 22983 measured).
 	// +46 (the merge with land at bcd3c03ad1: the suspend class on top of land's 23052; ALL 23052 -> 23098 measured).
-	"ALL": {23098, 34442},
+	// +24 (mid-resolution ChooseNumber lowers: ChooseNumberMid, with Count$ChosenNumber and the dynamic PayEnergy<X> unless cost; an activated {X} energy cost stays refused rather than losing its amount; merged onto land c70201715c: ALL 23076 -> 23100, WOE 263 -> 264 measured).
+	// +46 (the merge with land at 6f5122c974: the suspend class on top of land's 23105; ALL 23105 -> 23151 measured).
+	"ALL": {23151, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {218, 280},
@@ -165,7 +167,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TMT": {183, 194},
 	"TRC": {300, 337},
 	"TRK": {311, 311},
-	"WOE": {263, 281},
+	"WOE": {264, 281},
 }
 
 // testSetlistDir is setlistDir relative to the test's working directory

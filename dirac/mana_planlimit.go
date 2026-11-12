@@ -155,7 +155,7 @@ func (s *State) limitPlan(k *prep, pk *planner) {
 		return
 	}
 	for t := 0; t < pk.nt; t++ {
-		if ty := &pk.types[t]; ty.sacOnly || ty.first != 0 || ty.pain != 0 || ty.dmask != ty.mask {
+		if ty := &pk.types[t]; ty.sacOnly || ty.pain != 0 || ty.dmask != ty.mask {
 			return
 		}
 	}

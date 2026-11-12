@@ -166,6 +166,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Training":                          "an Attacks trigger with Trigger.N TrigNTraining (gorge kwTraining's expansion), no battlefield characteristic",
 	"Firebending":                       "an Attacks trigger whose AddMana has B = 1 (State.fbR; gorge kwFirebending's expansion, CR 702.189a), no battlefield characteristic",
 	"Melee":                             "an Attacks Self trigger pumping its holder: a printed one from gorge kwMelee's expansion, a static's granted one kop.Ability.MeleeGrant (kw_melee.go; CR 702.121a), no battlefield characteristic",
+	"Myriad":                            "an Attacks Self trigger with an empty program, two-seat (no opponent other than the defending player): a printed one from gorge kwMyriad's expansion, a static's granted one (kgen lower_myriad.go; CR 702.116a), no battlefield characteristic",
 	"Evolve":                            "an ETB trigger with Tf2Evolve (gorge kwEvolve's expansion, CR 702.100a; kw_evolve.go), no battlefield characteristic",
 	"Increment":                         "a SpellCast trigger with Tf2Increment (gorge kwIncrement's expansion), no battlefield characteristic",
 	"Craft":                             "a battlefield activated ability (the ExileCtrlOrGrave material and Exile<1/CARDNAME> costs, then the transformed Return; gorge kwCraft's expansion), no battlefield characteristic",

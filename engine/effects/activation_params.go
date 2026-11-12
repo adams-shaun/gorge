@@ -250,6 +250,15 @@ type ConditionParams struct {
 	// spell" gate, read through the raw Params map.
 	ManaSpent    string
 	ManaNotSpent string
+	// TargetValidTargeting is ConditionTargetValidTargeting$, the
+	// comma-split object/player specs ANY target of the redirected spell
+	// must match (Meddle, Quicksilver Dragon); TargetsSingleTarget is
+	// ConditionTargetsSingleTarget$ (value the string True): the spell's
+	// distinct targets across its whole chain must be exactly one. Both are
+	// read through the raw Params map and evaluated by the ChangeTargets
+	// gate (changetargets_gate.go), not by conditionMet.
+	TargetValidTargeting string
+	TargetsSingleTarget  bool
 }
 
 // Any reports whether any key conditionMet evaluates is written (a lone
@@ -444,6 +453,8 @@ func compileActivation(sa *cards.SA) *ActivationParams {
 	c.OptionalPaid = strings.TrimSpace(sa.Params["ConditionOptionalPaid"])
 	c.ManaSpent = strings.TrimSpace(sa.Params["ConditionManaSpent"])
 	c.ManaNotSpent = strings.TrimSpace(sa.Params["ConditionManaNotSpent"])
+	c.TargetValidTargeting = strings.TrimSpace(sa.Params["ConditionTargetValidTargeting"])
+	c.TargetsSingleTarget = isTrue(sa.Params["ConditionTargetsSingleTarget"])
 
 	p.UnlessCost = sa.ParamStr(cards.PKUnlessCost)
 	p.UnlessPayer = strings.TrimSpace(sa.ParamStr(cards.PKUnlessPayer))
@@ -496,7 +507,10 @@ var activationZoneMaskTab = state.NewStrTable[uint32](
 	state.StrEntry[uint32]{Key: "Stack", Val: 1 << state.ZStack},
 )
 
-// conditionEvaluatedKeys are the Condition* keys conditionMet evaluates.
+// conditionEvaluatedKeys are the Condition* keys this build evaluates:
+// conditionMet's set plus the two target-shape keys the ChangeTargets gate
+// reads (changetargets_gate.go, Forge's SpellAbilityCondition; conditionMet
+// never reads those two).
 var conditionEvaluatedKeys = state.NewNameSet(
 	"ConditionDefined", "ConditionPresent", "ConditionNotPresent",
 	"ConditionCompare", "ConditionCheckSVar", "ConditionSVarCompare",
@@ -504,4 +518,5 @@ var conditionEvaluatedKeys = state.NewNameSet(
 	"ConditionFirstCombat", "ConditionActivationLimit",
 	"ConditionPresent2", "ConditionCompare2", "ConditionZone",
 	"ConditionOptionalPaid", "ConditionManaSpent", "ConditionManaNotSpent",
+	"ConditionTargetValidTargeting", "ConditionTargetsSingleTarget",
 )

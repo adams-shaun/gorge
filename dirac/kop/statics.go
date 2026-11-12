@@ -625,6 +625,33 @@ const StatFbGrant StaticKind = 242
 // card. Explicit ordinal: the StaticKind iota tail stays untouched.
 const StatWarpGrant StaticKind = 240
 
+// StatEscapeGrant: each card in its controller's graveyard matching Filter
+// has escape (a Continuous static's AffectedZone$ Graveyard AddKeyword$
+// Escape; CR 702.42a; Underworld Breach). Read live from the battlefield at
+// the graveyard offer and the cost builder, never stamped on the card. The
+// escape cost is the card's mana cost (the grant's CardManaCost placeholder)
+// plus N other cards from the same graveyard: the static ability's own
+// Ability.Cost is that exile part (CostExileGrave of Cost.N cards matching
+// Cost.Filter, the grant's ExileFromGrave<N/Card.Other/other> spec). gorge
+// derives the keyword on the card (rules legal_walk_alt.go's escape walk,
+// altcast.go escapeCost). Explicit ordinal: the StaticKind iota tail stays
+// untouched. Renumbered from 243 at the merge with land: land took 243 for
+// kop.StatAttackTax (33bd1fcd87, later than this branch's lowering), and
+// every explicit ordinal above 225 is taken.
+const StatEscapeGrant StaticKind = 225
+
+// StatCantTgtGrave: while it is on the battlefield, cards in graveyards can't
+// be the targets of spells or abilities (a printed S:Mode$ CantTarget static
+// whose AffectedZone$ is Graveyard and which carries no other scoping key;
+// CR 115.4; Ground Seal, Silent Gravestone, Dennick, Underworld Cerberus). No
+// operands: gorge's matcher with no ValidTarget$ withholds every card in the
+// AffectedZone$, from any source, any activator (rules cantTargetBlocks). The
+// gate arms at the three card-target readers (legal.go targetOK's TgtCard
+// branch, tgt_permorgravecard.go, tgt_graveexilecard.go), behind
+// genPrep.anyCantTgtGrave (kw_canttgtgrave.go). Explicit ordinal: the
+// StaticKind iota tail stays untouched.
+const StatCantTgtGrave StaticKind = 229
+
 // StFbOwnCost on a StatFbGrant static: the flashback costs Static.GrantCost,
 // not the card's mana cost.
 const StFbOwnCost StaticFlags = 1 << 0

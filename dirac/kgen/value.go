@@ -1006,6 +1006,17 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lValue{Kind: vDmgAmount}, nil
 	case "FinishedEndOfTurnsThisTurn":
 		return finishedEndStepsValue(), nil // lower_addphase.go
+	case "ChosenNumber":
+		// Count$ChosenNumber: the resolving source's Object.ChosenNumber
+		// (gorge specCtx's Resolve), set by api:ChooseNumber (the as-enters
+		// entry ask or the mid-resolution ask). ExChosenNumber reads the
+		// permanent's chosen byte, the resolving spell's card object, or the
+		// resolution's own recorded answer.
+		return lValue{Kind: vChosenNumber}, nil
+	case "YourCountersEnergy":
+		// Count$YourCountersEnergy: the controller's energy counters
+		// (CR 122.1), the Max$ bound of the "pay one or more {E}" family.
+		return lValue{Kind: vEnergyOf, Ref: lRef{Kind: rYou}}, nil
 	case "OffspringPaid":
 		// CR 702.175a: the cast paid the offspring cost, read off the permanent
 		// the spell became (the kernel's kicked mark), 0 for a token copy. The
