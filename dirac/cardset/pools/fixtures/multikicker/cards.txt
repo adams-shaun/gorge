@@ -4,8 +4,10 @@
 # Play CopyCard trigger. Comet Storm and Strength of the Tajuru are refused for
 # their {X} base cost (the count bound would be read before X). Dark Ritual
 # floats the mana for the Bloodhusk Ritualist lockstep. Chief Engineer grants
-# Convoke to the Chalice and Zombify reanimates Batroc for the multikicker
-# re-entry lockstep (dirac/oracle/multikicker_reentry_test.go).
+# Convoke to the Chalice, Zombify reanimates Batroc for the multikicker
+# re-entry lockstep (dirac/oracle/multikicker_reentry_test.go), and Teval,
+# Arbiter of Virtue grants Delve for the multikicker credit lockstep
+# (dirac/oracle/multikicker_delve_test.go).
 Apex Hawks
 Batroc the Leaper
 Bloodhusk Ritualist
@@ -25,6 +27,7 @@ Voyager Drake
 Wolfbriar Elemental
 Chief Engineer
 Zombify
+Teval, Arbiter of Virtue
 Plains
 Island
 Swamp

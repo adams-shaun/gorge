@@ -69,13 +69,16 @@ func (s *State) addKickerPayments(cd *kop.CardDef, e *stackEntry, c kop.ManaCost
 }
 
 // kickedAffords is the hand-cast kicked offer's mana gate for the total kc.
-// A Multikicker spell that pays with taps (a printed or granted Convoke or
-// Improvise) is offered by gorge's pool-only legacy gate alone: its potential
-// walk declines every credit-bearing kicked mode (cost:credit,
-// potentialModeBaseCost), so lands the cast could still tap do not make the
-// multikicked option (CR 702.43). Without that credit the sources count.
+// A Multikicker spell that pays with taps or the graveyard (a printed or
+// granted Convoke or Improvise, or a granted Delve) is offered by gorge's
+// pool-only legacy gate alone: its potential walk declines every
+// credit-bearing kicked mode (cost:credit, potentialModeBaseCost), so lands
+// the cast could still tap do not make the multikicked option (CR 702.43).
+// The pool gate folds the delve credit the way offerCastableUsing does
+// (FeatPoolPays mode 1 -> delveOfferCredit); without that credit the sources
+// count.
 func (s *State) kickedAffords(k *prep, p uint8, c CardID, o Obj, kc *kop.ManaCost, cav *avail) bool {
-	if k.gen != nil && k.gen.anyConvoke && k.t.Cards[c].HasMultikicker && s.tapPays(k, p, c, o, true) {
+	if k.gen != nil && k.t.Cards[c].HasMultikicker && s.contribPays(k, p, c, o, true) {
 		return s.FeatPoolPays(p, o, 1)
 	}
 	return s.castAffordsR(k, p, c, s.restrOriginOfObj(o), kc, cav)
