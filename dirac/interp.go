@@ -73,7 +73,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		case kop.LibTopGrave, kop.LibBottomGrave:
 			s.toLibraryGrave(k, in) // zone_tolibrarygrave.go
 		case kop.LibBottomRememberBF:
-			s.toLibraryRememberBF(k, in) // zone_tolibrarybfremember.go
+			s.toLibraryRememberBF(k, in, true) // zone_tolibrarybfremember.go
+		case kop.LibTopRememberBF:
+			s.toLibraryRememberBF(k, in, false)
 		case 0:
 			s.moveRef(k, in.Obj, kop.ZoneLibrary, false)
 		case 1:
@@ -594,7 +596,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.lose(p)
 		}
 	case kop.OpShuffle:
-		if p := s.playerRef(k, in.Obj); p != 255 {
+		if in.C != 0 {
+			s.shuffleRememberedOwners() // shuffle_remowners.go
+		} else if p := s.playerRef(k, in.Obj); p != 255 {
 			s.shuffleLib(p)
 		}
 	case kop.OpEndTurn, kop.OpAddTurn:

@@ -3014,6 +3014,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if _, rem := fl["Remember"]; rem && in.C == 1 && in.Obj.Kind == rDelayedRemembered && fl["from"] == "Battlefield" {
 			ki.C = kop.LibBottomRememberBF // dirac/zone_tolibrarybfremember.go
 		}
+		if _, rem := fl["Remember"]; rem && in.C == 0 && in.Obj.Kind == rSelf && fl["from"] == "Battlefield" {
+			ki.C = kop.LibTopRememberBF // dirac/zone_tolibrarybfremember.go
+		}
 		if _, ok := fl["TopShuffle"]; ok {
 			ki.C = kop.LibTopShuffle
 			if (in.Obj.Kind == rTriggered || in.Obj.Kind == rTriggeredNew) && fl["from"] == "Graveyard" {
@@ -4195,7 +4198,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "LoseGame":
 		ki.Op, ki.C = kop.OpLoseGame, int16(in.C) // in.C 1: WinsGame (kernel winGame)
 	case "Shuffle":
-		ki.Op = kop.OpShuffle
+		ki.Op, ki.C = kop.OpShuffle, int16(in.C) // in.C 1: every remembered owner (lower_shuffleremowners.go)
 	case "SetLife":
 		ki.Op = kop.OpSetLife
 	case "Rearrange":
