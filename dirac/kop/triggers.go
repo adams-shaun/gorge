@@ -127,6 +127,7 @@ const (
 	TrigManifestDread               // a player (Whose) manifests dread (gorge Mode$ ManifestDread, trigmatch keyword_action.go on the completed events.ManifestDreadAction marker, emitted after each window's moves; the trigger object is the card the window put into its owner's graveyard, or none on the one-card shortcut); no slot subscription (trig_modes.go)
 	TrigFacesDilemma                // a player (Whose) chooses one or more modes for a spell or ability (gorge Mode$ FacesDilemma, trigmatch facesDilemmaMatches on the ModeChosen marker)
 	TrigEvolved                     // this creature evolves (CR 702.100b; gorge Mode$ Evolved, ValidCard$ Card.Self, trigmatch evolvedMatches on the events.Evolved marker its evolve ability emits once the +1/+1 counter lands): no slot subscription, fired as the evolve trigger finishes resolving (kw_evolve.go)
+	TrigBecomeMonarch               // a player (Whose) becomes the monarch (CR 725.3; gorge Mode$ BecomeMonarch, trigmatch BecomeMonarchMatches on events.MonarchChange; N TrigNMonarchBeganTurn: BeginTurn$ You); no slot subscription: the battlefield is scanned (act_monarch.go)
 	TrigEventCount                  // number of trigger events; append above
 )
 

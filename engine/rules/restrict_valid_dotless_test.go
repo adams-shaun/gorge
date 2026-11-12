@@ -71,16 +71,6 @@ func dotlessEngine(t *testing.T, reg *cards.Registry, front ...*cards.Card) (*En
 	return e, cfg
 }
 
-func dotlessEngineE(t *testing.T, reg *cards.Registry, front ...*cards.Card) *Engine {
-	t.Helper()
-	cfg := seatZeroStart(Config{Seed: 9231, Names: []string{"restrictor", "opponent"},
-		Decks: dotlessDeck(t, reg, front...), Tokens: reg.Tokens})
-	e := New(cfg)
-	e.Advance()
-	toMain1(t, e)
-	return e
-}
-
 // findOption returns the index of the pending decision's option of kind kind
 // carrying Obj obj, or -1 when absent.
 func findOption(d *decision.Decision, kind string, obj state.ObjID) int {

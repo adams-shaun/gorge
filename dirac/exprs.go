@@ -581,6 +581,10 @@ func (s *State) condEval(k *prep, id kop.CondID, ctx evalCtx) bool {
 		r = s.condEval(k, c.Sub[0], ctx) && s.condEval(k, c.Sub[1], ctx)
 	case kop.CondEchoOwed:
 		r = ctx.srcSl != NoSlot && s.mSl(k, mechEchoOwed, ctx.srcSl) // trig_echo.go
+	case kop.CondSourceZone:
+		// the source object itself is in Zone now: gorge's intervening-if for
+		// IsPresent$ Card.StrictlySelf | PresentZone$, re-checked at resolution
+		r = ctx.src != NoObj && s.objs[ctx.src].zone == c.Zone
 	default:
 		panic("kernel: condition kind not implemented")
 	}

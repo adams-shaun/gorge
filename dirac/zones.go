@@ -316,10 +316,12 @@ func (s *State) drawExcl(p uint8, ch drawChain) {
 }
 
 func (s *State) lose(p uint8) {
-	if s.pl[p].lost || s.cantLose(s.k(), p) {
+	k := s.k()
+	if s.pl[p].lost || s.cantLose(k, p) {
 		return
 	}
 	s.pl[p].lost = true
+	s.monarchLeft(k, p) // CR 725.4 (act_monarch.go)
 	s.checkOver()
 }
 

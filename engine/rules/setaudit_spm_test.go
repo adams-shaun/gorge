@@ -8,7 +8,6 @@ package rules
 // without the skip guard.
 
 import (
-	"os"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -16,15 +15,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
-
-// requireSetAudit skips the calling test unless GORGE_SET_AUDIT is set. Use
-// for a test that records a defect (fails on the correct behaviour).
-func requireSetAudit(t *testing.T, why string) {
-	t.Helper()
-	if os.Getenv("GORGE_SET_AUDIT") == "" {
-		t.Skip(why)
-	}
-}
 
 // castOptionsWithMode returns the cast options for obj carrying the given
 // alt-cost mode label.

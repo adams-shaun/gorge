@@ -1,12 +1,10 @@
 package rules
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
-	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
@@ -26,71 +24,6 @@ func planeswalkElectionIDX(d *decision.Decision, kind string) int {
 		}
 	}
 	return -1
-}
-
-// driveTardisToPlaneswalkElection resolves the REAL corpus TARDIS chain body
-// through the live Engine and leaves the pending planeswalk election for the
-// caller to answer. TARDIS' own attack trigger cannot fire end to end in this
-// build: kw:Crew is unsupported (a Vehicle never attacks), and the trigger's
-// intervening-if spec `Card.Time Lord+YouCtrl` names a two-word subtype this
-// engine's predicate classifier does not recognise. So the test drives the
-// body a live TriggerPush would mint --
-// the real `TrigEffect` SVar, the one the trigger's `Execute$` names -- onto
-// the stack through a real LOGGED event, `KeywordTriggerPush`, whose Apply
-// resolves its Counter as an SVar on the source face. That keeps log-only
-// replay exact, and because the SVar body is a distinct *SA object from the
-// trigger's compiled Effect pointer, resolveTop's intervening-if recheck
-// (which matches a trigger by that exact pointer) does not fizzle the chain.
-// The assertions below pin the compiled trigger's own Effect -> Sub linkage,
-// so a `cards.Link` regression that dropped the Execute$ chain still fails.
-func driveTardisToPlaneswalkElection(t *testing.T, e *Engine, tardis *cards.Card) state.ObjID {
-	t.Helper()
-	if len(tardis.Faces[0].Triggers) == 0 || tardis.Faces[0].Triggers[0].Effect == nil {
-		t.Fatal("TARDIS has no compiled attack trigger")
-	}
-	realEffect := tardis.Faces[0].Triggers[0].Effect
-	realSub := realEffect.Sub
-	// The chain linkage this test exists to pin: the compiled trigger's
-	// Execute body is a DB$ Effect whose SubAbility$ is the real DBPlaneswalk.
-	if realEffect.API != "Effect" || realEffect.Params["SubAbility"] != "DBPlaneswalk" ||
-		realSub == nil || realSub.API != "Planeswalk" || !strings.EqualFold(realSub.Params["Optional"], "True") {
-		t.Fatalf("TARDIS TrigEffect chain = %+v / sub %+v, want Effect -> Optional$ Planeswalk", realEffect, realSub)
-	}
-	// A separate SVar lookup must agree with the compiled Sub pointer, so a
-	// Link that stopped resolving Execute$ to the SVar body cannot hide.
-	if sv := cards.ResolveSVar(tardis.Faces[0].SVars, "DBPlaneswalk"); sv == nil || sv.API != "Planeswalk" {
-		t.Fatalf("TARDIS DBPlaneswalk SVar = %+v, want Planeswalk", sv)
-	}
-
-	// TARDIS on seat 0's battlefield as the ability's source (the election
-	// Note names it), and a Time Lord beside it so the board reflects the
-	// card's own condition even though the seeded body does not re-evaluate it.
-	tardisID := moveByName(t, e, 0, "TARDIS", state.ZBattlefield)
-	if e.G.Obj(tardisID).Zone != state.ZBattlefield {
-		t.Fatalf("TARDIS is in %s, want battlefield", e.G.Obj(tardisID).Zone)
-	}
-	if id := moveByName(t, e, 0, "Time Lord Fixture", state.ZBattlefield); e.G.Obj(id).Zone != state.ZBattlefield {
-		t.Fatalf("Time Lord fixture is in %s, want battlefield", e.G.Obj(id).Zone)
-	}
-
-	ability := cards.ResolveSVar(tardis.Faces[0].SVars, "TrigEffect")
-	if ability == nil || ability.API != "Effect" {
-		t.Fatalf("TARDIS TrigEffect SVar = %+v, want DB$ Effect", ability)
-	}
-	// A real, LOGGED event mints the body, so a log-only replay rebuilds the
-	// same object: KeywordTriggerPush's Apply resolves its Counter as an SVar
-	// on the source face (engine/events/apply.go). findTriggerForAbility matches a
-	// trigger by its exact compiled Effect pointer, and this SVar body is a
-	// distinct object from that pointer, so resolving the chain this way does
-	// not re-run the attack trigger's (unsatisfiable) intervening-if recheck.
-	before := len(e.G.Stack)
-	e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: 0, Obj: tardisID,
-		Counter: "TrigEffect", Text: "planeswalk chain"})
-	if len(e.G.Stack) != before+1 {
-		t.Fatalf("KeywordTriggerPush left the stack depth at %d, want %d", len(e.G.Stack), before+1)
-	}
-	e.resolveTop()
-	return tardisID
 }
 
 // TestPlaneswalkProbeAskResolvesChain is the synthetic complement to the

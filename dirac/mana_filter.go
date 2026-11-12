@@ -120,6 +120,9 @@ func (s *State) filtFee(k *prep, sl Slot) int {
 	if _, ok := s.filtPip(k, sl); ok {
 		return 1 // the pip: a generic reducer cannot lower it
 	}
+	if s.filtRepeat(k, sl) {
+		return s.filtRepeatFee(k, sl) // a fee-only one: its pip and its reduced generic part
+	}
 	if k.gen.anyAbReduce {
 		return int(s.abReduced(k, a, sl, s.perms[sl].ctrl, a.Cost.Mana).Generic)
 	}
@@ -152,7 +155,7 @@ func (s *State) filtUnits(k *prep, sl Slot) int {
 // relaxedPaidLimit, each dynamic amount at least one and at most six
 // (rules/potential_plan.go paymentPlanRelaxedAlternatives).
 func (s *State) filtRelaxable(k *prep, f slotMask) bool {
-	if f.count() > relaxedPaidLimit {
+	if f.count() > relaxedPaidLimit || s.filtRepeatIn(k, f) { // (a repeatable one has no relaxed alternative: gorge once=false)
 		return false
 	}
 	for ; f.any(); f = f.rest() {
@@ -385,6 +388,9 @@ func (s *State) windowFiltUseful(k *prep, p uint8, sl Slot, want uint8) bool {
 	}
 	if col, ok := s.filtPip(k, sl); ok {
 		return s.filtGateOn(k, sl) && s.pl[SeatIx(p)].pool[col] >= 1
+	}
+	if col, ok := s.filtRepeatPip(k, sl); ok && s.pl[SeatIx(p)].pool[col] < 1 {
+		return false
 	}
 	return poolTotal(&s.pl[SeatIx(p)]) >= s.filtFee(k, sl)
 }
@@ -644,11 +650,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	if a.Kind() == AkActivate {
 		_, fs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
 	}
-	if s.filtFunded(k, p, fs.gaps) {
-		for b := fs.gaps; b.any(); b = b.rest() {
-			fs.fees += s.filtFee(k, b.first())
-		}
-	}
+	fs.fees = s.filtFunding(k, p, fs.gaps)
 	hadOther := fs.other.any() // a dropped gap still asks for the dead-end check
 	if gapFilteredPlay(a) && (fs.gaps.any() || fs.other.any()) {
 		d := s.grantPayDesc(k, a)
@@ -728,6 +730,9 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		if col, ok := s.filtPip(k, st.sl); ok {
 			s.filtPayPip(k, p, st.sl, col)
 			fee = 0
+		} else if col, ok := s.filtRepeatPip(k, st.sl); ok {
+			s.filtPayPip(k, p, st.sl, col) // a fee-only filter's pip first, then its generic part
+			fee--
 		}
 		fee -= s.filtFeeRestr(k, p, st.sl, fee)
 		for _, c := range [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G} {
@@ -1015,7 +1020,7 @@ func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
 		// a fixed production: no colour ask, one activation (mana_filtereach.go)
 		return fs.try(k, t, filtStep{sl: sl, ans: 1, gap: true}, funded, true)
 	}
-	if !fs.tick() {
+	if !t.filtFixedRepeat(k, sl) && !fs.tick() { // (a fixed production asks no colour)
 		return false
 	}
 	if comboFiltAb(t.filtAb(k, sl)) {

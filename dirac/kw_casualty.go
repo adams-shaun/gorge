@@ -32,7 +32,7 @@ const (
 // casualty election (gorge's "casualty" cast option).
 func (s *State) beginCasualtyCast(k *prep, o Obj, mode uint8) {
 	s.g.bargainCast = mode != 0 && k.t.Cards[s.objs[o].card].Bargain
-	s.beginCast(k, o, mode) // mode: a permission's cast (offerBargainPlay), else 0
+	s.beginCast(k, o, mode, 0) // mode: a permission's cast (offerBargainPlay), else 0
 	s.g.bargainCast = false
 	s.bld().cas = casElected
 	if k.t.Cards[s.bld().e.card].Teamwork != 0 {

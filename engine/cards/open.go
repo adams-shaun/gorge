@@ -257,6 +257,12 @@ func pruneCaches(dir, keepPath string) {
 		}
 		entries = append(entries, entry{p, info.ModTime().UnixNano()})
 	}
+	// Dangling symlinks (a seat worktree links the main checkout's caches,
+	// which prune away) stat nothing: the glob count and the stat'able count
+	// can disagree, so re-check the cap on what actually remains.
+	if len(entries) <= maxSiblingCaches {
+		return
+	}
 	// The just-written cache sorts first regardless of timestamp ties, so a
 	// prune racing the save can never delete the file the caller is about to
 	// read. Everything else is newest first, name-descending as a
