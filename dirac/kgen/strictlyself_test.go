@@ -35,8 +35,8 @@ func TestStrictlySelfPresenceKeepsTheInterveningIf(t *testing.T) {
 	}
 
 	command := lowerScriptCard(t, "Probe Command Presence", "Name:Probe Command Presence\nManaCost:1 W\nTypes:Creature\nPT:2/2\n"+
-		"T:Mode$ Phase | Phase$ BeginCombat | ValidPlayer$ You | TriggerZones$ Command | IsPresent$ Card.StrictlySelf | PresentZone$ Command | Execute$ TrigPump | TriggerDescription$ probe\n"+
-		"SVar:TrigPump:DB$ Pump | Defined$ Self | NumAtt$ +3 | NumDef$ +3\n")
+		"T:Mode$ Phase | Phase$ BeginCombat | ValidPlayer$ You | TriggerZones$ Command | IsPresent$ Card.StrictlySelf | PresentZone$ Command | Execute$ ProbePump | TriggerDescription$ probe\n"+
+		"SVar:ProbePump:DB$ Pump | Defined$ Self | NumAtt$ +7 | NumDef$ +4\n")
 	if len(command.Refusals) != 0 {
 		t.Fatalf("command presence refused: %v", command.Refusals)
 	}
@@ -48,8 +48,8 @@ func TestStrictlySelfPresenceKeepsTheInterveningIf(t *testing.T) {
 	}
 
 	battlefield := lowerScriptCard(t, "Probe Battlefield Presence", "Name:Probe Battlefield Presence\nManaCost:1 W\nTypes:Creature\nPT:2/2\n"+
-		"T:Mode$ Phase | Phase$ BeginCombat | ValidPlayer$ You | IsPresent$ Card.StrictlySelf | PresentZone$ Battlefield | Execute$ TrigPump | TriggerDescription$ probe\n"+
-		"SVar:TrigPump:DB$ Pump | Defined$ Self | NumAtt$ +3 | NumDef$ +3\n")
+		"T:Mode$ Phase | Phase$ BeginCombat | ValidPlayer$ You | IsPresent$ Card.StrictlySelf | PresentZone$ Battlefield | Execute$ ProbePump | TriggerDescription$ probe\n"+
+		"SVar:ProbePump:DB$ Pump | Defined$ Self | NumAtt$ +7 | NumDef$ +4\n")
 	if len(battlefield.Refusals) != 0 {
 		t.Fatalf("battlefield presence refused: %v", battlefield.Refusals)
 	}
