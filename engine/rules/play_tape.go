@@ -58,9 +58,7 @@ func playAnswerApply(e *Engine, ctx *effects.Ctx, sa *cards.SA, chosen []decisio
 	// the tokenizer (strings.FieldsSeq) is whitespace-insensitive, the same
 	// raw-value read the board statics use.
 	manaConversion := sa.ParamStr(cards.PKManaConversion)
-	// ImprintPlayed$ True (task imprintplayed: Rashmi and Ragavan,
-	// Kefka, Beseech the Mirror, Soundwave, Smuggler's Buggy — 5 corpus
-	// files): every card the Play actually BEGINS to play is recorded
+	// ImprintPlayed$ True (Kefka, Beseech the Mirror, Soundwave, Smuggler's Buggy — 5 corpus files): every card the Play actually BEGINS to play is recorded
 	// as imprinted on the resolution's source (events.Imprint, the
 	// same association Chrome Mox's Imprint$ writes), so the chained
 	// ConditionDefined$ Imprinted gate (DBEffect's "did you cast it

@@ -131,7 +131,7 @@ const (
 	// append-only precedent: no assigned value moves, so an existing compiled
 	// cache stays valid.
 	APIAlterAttribute APICode = 78
-	// Appended after AlterAttribute (task api-winsgame), following the enum's
+	// Appended after AlterAttribute, following the enum's
 	// own append-only precedent: no assigned value moves, so an existing
 	// compiled cache stays valid.
 	APIWinsGame    APICode = 79
@@ -139,7 +139,7 @@ const (
 	// Meld's compiled operand record is bound before its handler is registered.
 	// Append only: existing catalog opcodes are unchanged.
 	APIMeld APICode = 81
-	// OpenAttraction is appended after Meld (task hunt-cmdr-attractions):
+	// OpenAttraction is appended after Meld:
 	// no assigned value moves.
 	APIOpenAttraction APICode = 82
 

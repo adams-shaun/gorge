@@ -1,7 +1,7 @@
 package rules
 
 // One test per card for the targeting/type-choice/zone-pump misc census
-// batch (task inbox-paramcensus-targeting-and-type-choice-misc). The census
+// batch. The census
 // ratchet's five cleared entries each get a test proving the param's actual
 // behaviour end to end:
 //

@@ -55,6 +55,7 @@ const (
 	mechProtPostB                   // black
 	mechProtPostR                   // red
 	mechProtPostG                   // green
+	mechEchoOwed                    // slots of the active player's permanents that came under their control since their previous turn began, read as their upkeep's echo gate (CR 702.30a; trig_echo.go)
 	numMech
 )
 
@@ -104,9 +105,10 @@ var mechWidth = [numMech]uint8{
 	mechProtPostB:       wSlot,
 	mechProtPostR:       wSlot,
 	mechProtPostG:       wSlot,
+	mechEchoOwed:        wSlot,
 }
 
-var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen", "sbaChain", "once2", "once3", "tappedTurn", "lure", "lurePost", "protW", "protU", "protB", "protR", "protG", "protPostW", "protPostU", "protPostB", "protPostR", "protPostG"}
+var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen", "sbaChain", "once2", "once3", "tappedTurn", "lure", "lurePost", "protW", "protU", "protB", "protR", "protG", "protPostW", "protPostU", "protPostB", "protPostR", "protPostG", "echoOwed"}
 
 // arenaNone is the index of a mechanic the table does not use.
 const arenaNone = 0xFF
@@ -141,6 +143,9 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 			}
 			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Flags2&kop.Tf2FirstTime != 0 {
 				u[mechTappedTurn] = true
+			}
+			if a.Kind == kop.AbTriggered && a.Trig.Cond != 0 && t.Conds[a.Trig.Cond].Kind == kop.CondEchoOwed {
+				u[mechEchoOwed] = true // an echo trigger's gate (trig_echo.go)
 			}
 			for _, in := range a.Prog {
 				switch in.Op {

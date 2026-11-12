@@ -287,6 +287,14 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 	} else if a.Trig.Flags2&(kop.Tf2Batch|kop.Tf2CastFromHand) != 0 && !s.batchOrProvOK(l, a, evObj) {
 		return
 	}
+	if ev == kop.TrigCounterAddedOnce && a.Trig.Flags4&kop.Tf4PerCounter != 0 {
+		// Mode$ CounterAdded: one trigger per counter of the batch, each
+		// carrying amount 1 (CR 603.2c; gorge queues one instance per counter)
+		for i := int16(0); i < amt; i++ {
+			s.queueTrig(k, l, a, evObj, evCtrl, 1)
+		}
+		return
+	}
 	s.queueTrig(k, l, a, evObj, evCtrl, amt)
 }
 
@@ -748,6 +756,12 @@ func (s *State) trigResolveOK(k *prep) bool {
 		// Tf2ToYou on DamageDone lines (kop/triggers.go), and this walk sees
 		// every trigger, not only castTrigGen's SpellCast path.
 		return false
+	}
+	if a.Trig.Event == kop.TrigETB && a.Trig.Flags2&kop.Tf2Evolve != 0 {
+		if !s.evolveResolves(k, e) {
+			return false // kw_evolve.go: CR 603.4's second check of the evolve comparison
+		}
+		s.evolveArm(e, &s.objs[e.obj])
 	}
 	if k.anyGate && a.AFlags&kop.AfCheckOnTrigger == 0 && !s.gateResolveOK(e, a) {
 		return false

@@ -1,6 +1,6 @@
 package rules
 
-// Increment (CR 702.XX, task kw:Increment): "Whenever you cast a spell, if
+// Increment (CR 702.XX): "Whenever you cast a spell, if
 // the amount of mana you spent is greater than this creature's power or
 // toughness, put a +1/+1 counter on this creature."
 //

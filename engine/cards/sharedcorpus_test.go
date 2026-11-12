@@ -13,7 +13,7 @@ import (
 // containing) dir, preferring the MAIN checkout's copy over the worktree's
 // own path.
 //
-// Every task worktree's .cards is a symlink to the main checkout's
+// Every worktree's .cards is a symlink to the main checkout's
 // (linked by hand, or by a companion module's script), so the
 // bytes are identical either way. The
 // path is not: `go test` keys a cached result on the absolute names of the

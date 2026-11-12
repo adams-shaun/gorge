@@ -156,6 +156,8 @@ type genPrep struct {
 	infectStall     bool
 	twoSeatOnly     bool           // a card plays only two seats (stallclass.go prepTwoSeat): StallTwoSeat in a larger game
 	fbStampOwnCost  bool           // a stamped flashback grant beside an own-cost flashback static (kw_fbgrant.go prepFbStamp): StallFbGrantStamp
+	anyAtkTax       bool           // a card has a StatAttackTax static (combat_attacktax.go)
+	atkTaxStall     bool           // an attack tax beside a part its walk does not model (combat_attacktax.go prepAtkTax): StallAtkTax
 	anyWitherGrant  bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
 	anyEOTEmb       bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
 	anyNTEmb        bool           // some emblem ends at its controller's next turn (kop.Emblem.UntilNextTurn; static_effectdelivered.go)
@@ -219,6 +221,7 @@ type genPrep struct {
 	anyWarp         bool           // some card has warp (CardDef.HasWarp; kw_warp.go)
 	anyDash         bool           // some card has dash (CardDef.HasDash; kw_dash.go)
 	anyEvoke        bool           // some card has evoke (CardDef.HasEvoke) or some expression is ExAdamant (kw_evoke.go)
+	anyOverload     bool           // some card has overload (CardDef.HasOverload; kw_overload.go)
 	anyImpending    bool           // some card has impending (CardDef.Impending; kw_impending.go)
 	anyPrepare      bool           // some card is a preparation front (FacePrepare; face_prepare.go)
 	anyPlot         bool           // some card has plot (CardDef.HasPlot; kw_plot.go)
@@ -533,7 +536,7 @@ func tableHasPrevent(t *kop.Table) bool {
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasStatic(t, kop.StatAttackTax) {
 		return nil
 	}
 	enteredNeed := tableHasEnteredFrom(t)
@@ -759,6 +762,13 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyLinkCtr = tableLinkCtr(t)
 	prepStaticClasses(t, g)
 	prepHexOwn(t, g) // kw_hexproofcolor.go
+	for i := range t.Emblems {
+		for j := range t.Emblems[i].Abilities {
+			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCastWithFlash {
+				p.anyEmbFlash = true // an Effect-delivered spell-flash grant (cast_selfflash.go embFlash)
+			}
+		}
+	}
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		pc := &p.cards[i]
@@ -796,6 +806,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.HasDash {
 			g.anyDash = true
+			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
+		}
+		if c.HasOverload {
+			g.anyOverload = true
 			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
 		}
 		if c.HasPlot {
@@ -1515,6 +1529,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepTrigAtk(t, g)   // trig_attackers.go
 	prepBatchPool(t, g) // trig_batchmembers.go
 	g.anyCopyElect = g.anyCopyElect || p.casualty
+	prepAtkTax(t, g) // combat_attacktax.go: after the requirement, Taps and land-type reads it checks
 	prepCold(g, &p.cold)
 	return g
 }

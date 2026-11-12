@@ -9,6 +9,13 @@ package kop
 // its generic cost once per age counter now on the source, as the trigger's
 // own pay-or-decline ask (gorge's cumulative_pay / cumulative_sac); the
 // sacrifice behind it runs on a decline. dirac/trig_cumulative.go.
+//
+// With B = 1 (EchoNoCounter) it is the head of an echo trigger's body
+// instead (CR 702.30a; Cradle Guard): the same gone-source skip, no age
+// counter, and the UnlessPaid behind it charges the echo cost once.
 const ExtCumulative ExtOp = 312
+
+// EchoNoCounter is ExtCumulative's B for an echo trigger: no age counter.
+const EchoNoCounter = 1
 
 func init() { extOpNames[ExtCumulative] = "Cumulative" }

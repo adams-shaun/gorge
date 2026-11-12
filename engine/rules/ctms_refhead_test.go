@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// CR 601.2h / 106.12, the TRIGGER-relative spelling (task ctms-refhead):
+// CR 601.2h / 106.12, the TRIGGER-relative spelling:
 // `TriggeredCard$CastTotalManaSpent` reads the total mana actually spent to
 // cast the spell a firing trigger is about.
 //

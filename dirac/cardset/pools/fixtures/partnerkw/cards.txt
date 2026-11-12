@@ -1,0 +1,58 @@
+# the printed Partner and Partner:<text> commanders (CR 702.124h/i)
+# kgen lowers as deck construction only, seated as each seat's commander pair
+# or played from the library, beside vanilla creatures, artifact fodder and
+# basics (dirac/oracle/partnerkw_test.go)
+Akiri, Line-Slinger
+Alena, Kessig Trapper
+Alharu, Solemn Ritualist
+Anara, Wolvid Familiar
+April O'Neil, Live on the Scene
+Brinelin, the Moon Kraken
+Bronze Sable
+Bruse Tarl, Boorish Herder
+Chief Jim Hopper
+Coral Merfolk
+Dustin, Gadget Genius
+Esior, Wardwing Familiar
+Falthis, Shadowcat Familiar
+Forest
+Francisco, Fowl Marauder
+Gravedigger
+Gray Ogre
+Grizzly Bears
+Ich-Tekik, Salvage Splicer
+Ishai, Ojutai Dragonspeaker
+Island
+Joel, Resolute Survivor
+Kamahl, Heart of Krosa
+Keleth, Sunmane Familiar
+Keskit, the Flesh Sculptor
+Kraum, Ludevic's Opus
+Kydele, Chosen of Kruphix
+Leonardo, the Balance
+Llanowar Elves
+Lucas, the Sharpshooter
+Max, the Daredevil
+Miara, Thorn of the Glade
+Michelangelo, the Heart
+Mike, the Dungeon Master
+Mountain
+Nadier, Agent of the Duskenel
+Ornithopter
+Plains
+Prava of the Steel Legion
+Raphael, the Muscle
+Ravos, Soultender
+Reyhan, Last of the Abzan
+Rograkh, Son of Rohgahh
+Savannah Lions
+Siani, Eye of the Storm
+Slurrk, All-Ingesting
+Splinter, the Mentor
+Swamp
+Tana, the Bloodsower
+Thrasios, Triton Hero
+Toggo, Goblin Weaponsmith
+Tormod, the Desecrator
+Typhoid Rats
+Yoshimaru, Ever Faithful

@@ -294,7 +294,7 @@ func effManaReflected(h Host, c *Ctx, sa *cards.SA) {
 		amount = 0
 	}
 	restriction := mr.RestrictValid
-	// Producer-type provenance (task ctms): the tag is the ABILITY SOURCE's
+	// Producer-type provenance: the tag is the ABILITY SOURCE's
 	// printed Treasure/Cave/Desert/Snow types -- the same tag effMana stamps --
 	// because "mana from a <Type>" is mana PRODUCED BY a permanent of that
 	// type (Marut's official ruling defines "mana from a Treasure" exactly

@@ -33,7 +33,7 @@ const (
 type Static struct {
 	Kind    StaticKind
 	Filter  FilterID
-	Filter2 FilterID // CantBlockBy: the blockers that can't block; ReduceCost (spell or activated ability): the target it needs
+	Filter2 FilterID // CantBlockBy: the blockers that can't block; ReduceCost (spell or activated ability): the target it needs; CastWithFlash of an emblem: the spell whose cast ends the emblem (the Effect's ForgetOnCast$, Quicken)
 	A, B    int16    // P/T deltas, cost reduction
 	Kw      KwMask
 	Cond    uint8 // reserved condition opcode (0 = always)
@@ -350,6 +350,14 @@ const CantActNamed = 4
 // the static source's chosen name (ExtChooseName).
 const CantCastNamed = 1
 
+// CantCastSorcery is the StatCantBeCast B bit for OnlySorcerySpeed$ True
+// (Teferi, Time Raveler: each opponent can cast spells only any time they
+// could cast a sorcery): the static does not bind while the caster could cast
+// a sorcery (the active player, a main phase, an empty stack; gorge
+// castSorceryTimingExempt). A free cast made while a spell or ability
+// resolves is read with the stack non-empty (castForbiddenFree).
+const CantCastSorcery = 2
+
 // StCasterActive: on a StatCantBeCast only, the
 // restriction binds a caster who is the active player (Caster$
 // Player.Active; gorge actorMatches). It aliases StTargetsFilter2, whose
@@ -626,8 +634,10 @@ const StatWarpGrant StaticKind = 240
 // Cost.Filter, the grant's ExileFromGrave<N/Card.Other/other> spec). gorge
 // derives the keyword on the card (rules legal_walk_alt.go's escape walk,
 // altcast.go escapeCost). Explicit ordinal: the StaticKind iota tail stays
-// untouched.
-const StatEscapeGrant StaticKind = 243
+// untouched. Renumbered from 243 at the merge with land: land took 243 for
+// kop.StatAttackTax (33bd1fcd87, later than this branch's lowering), and
+// every explicit ordinal above 225 is taken.
+const StatEscapeGrant StaticKind = 225
 
 // StatCantTgtGrave: while it is on the battlefield, cards in graveyards can't
 // be the targets of spells or abilities (a printed S:Mode$ CantTarget static

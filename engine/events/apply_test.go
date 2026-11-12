@@ -1359,7 +1359,7 @@ func TestAbilityPushKindString(t *testing.T) {
 // TestTargetsChosenAppendShapes covers TargetsChosen's two
 // new shapes (Amount 2 appends an object target, Amount 3 appends a player
 // target); shapes 0 and 1 must keep replacing exactly as before, so every
-// pre-Task-4 log still applies unchanged.
+// older log still applies unchanged.
 func TestTargetsChosenAppendShapes(t *testing.T) {
 	g, id := gameWithOneCard(t)
 	other := g.AddObject(g.Obj(id).Card, 1).ID

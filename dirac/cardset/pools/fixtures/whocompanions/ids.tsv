@@ -1,0 +1,25 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Ace, Fearless Rebel
+1	card	Adric, Mathematical Genius
+2	card	ED-E, Lonesome Eyebot
+3	card	Forest
+4	card	Graham O'Brien
+5	card	Island
+6	card	Jamie McCrimmon
+7	card	Jirina, Dauntless General
+8	card	Junktown
+9	card	K-9, Mark I
+10	card	Kagemaro, First to Suffer
+11	card	Mountain
+12	card	Nardole, Resourceful Cyborg
+13	card	Ornithopter
+14	card	Plains
+15	card	Romana II
+16	card	Swamp
+17	card	Syr Ginger, the Meal Ender
+18	card	Tegan Jovanka
+19	card	Yasmin Khan
+20	token	c_a_food_sac
+21	token	c_a_junk_sac_exileplay
+22	card	Sarah Jane Smith
+23	token	c_a_clue_draw
