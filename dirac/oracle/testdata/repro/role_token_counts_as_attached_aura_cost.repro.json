@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-woe",
+ "pool": "std-woe",
+ "why": "CR 601.2g, 602.2b: Faunsbane Troll's \"Sacrifice an Aura attached to it\" sees the Role token and the printed plan keeps it, so the granted Food mana funds the {1}",
  "actions": [
   16776960,
   16776960,

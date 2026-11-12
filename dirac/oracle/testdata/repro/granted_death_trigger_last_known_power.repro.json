@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-fin",
+ "why": "CR 608.2h: Galuf's Final Act reads the pumped power",
  "actions": [
   16776960,
   16776960,

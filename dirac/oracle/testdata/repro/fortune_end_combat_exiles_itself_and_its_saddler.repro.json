@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "Fortune, Loyal Steed attacks saddled: at end of combat the player picks the creature that saddled it, and Fortune and that creature are exiled and returned together, both engines agreeing on the pick and the board (CR 603.7, 400.7)",
  "actions": [
   184549120,
   167771904,

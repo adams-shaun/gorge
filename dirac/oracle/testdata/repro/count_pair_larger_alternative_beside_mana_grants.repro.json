@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-lci",
+ "pool": "std-lci",
+ "why": "CR 106.1, 601.2g, 605.3a: with a continuous mana grant in the table every source takes the grant census (availGrant), which must still count Itlimoc's larger alternative ({G} per creature): four creatures and four lands pay Tendril of the Mycotyrant's {5}{G}{G}",
  "actions": [
   16776960,
   16776960,

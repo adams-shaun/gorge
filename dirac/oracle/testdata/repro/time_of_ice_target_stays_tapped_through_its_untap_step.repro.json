@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Time of Ice's chapter locks the creature it tapped for as long as its controller controls the Saga",
  "actions": [
   19398400,
   35192576,

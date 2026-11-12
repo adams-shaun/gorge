@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "CR 707.2, 707.9b: Oko (animated a 3/3 creature by Emergent Haunting's permanent animate) targets himself: a new layer keeps his copiable values and adds hexproof",
  "actions": [
   184549120,
   184549120,

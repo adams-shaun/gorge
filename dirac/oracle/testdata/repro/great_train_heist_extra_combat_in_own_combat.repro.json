@@ -95,6 +95,8 @@
  "pass_elision": true,
  "surface": "full",
  "kernel": "std-otj",
+ "pool": "std-otj",
+ "why": "Great Train Heist's first Spree mode cast in its controller's combat phase: ConditionPlayerTurn$ True beside ConditionPhases$ BeginCombat->EndCombat holds, so the extra combat is spliced after end of combat (CR 500.8, 702.172a)",
  "actions": [
   19857152,
   17366784,

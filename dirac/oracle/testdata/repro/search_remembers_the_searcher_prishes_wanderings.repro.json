@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Prishe's Wanderings searches for a basic land and puts it onto the battlefield tapped: the search is remembered, so the +1/+1 counter trigger it gates goes on a creature you control (CR 701.23b, 603.12)",
  "actions": [
   18415360,
   17432320,

@@ -78,6 +78,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Edgar, King of Figaro beside Viashino Sandswimmers: the first coin flip each turn is heads with no rng draw, a second flip in the turn draws it (CR 705.1)",
  "actions": [
   19005184,
   17891072,

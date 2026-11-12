@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 601.2c, 733.1: Perils of the Past exiled, its Play-granted copy cast the window cannot pay is reversed at its required target ask, leaving the stack as gorge has it",
  "actions": [
   184549120,
   167771904,

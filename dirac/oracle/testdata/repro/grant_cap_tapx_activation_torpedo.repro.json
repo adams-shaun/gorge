@@ -94,7 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 30,
- "surface": "autopay",
+ "surface": "full",
+ "pool": "std-eoe",
+ "why": "CR 605.1a, 601.2g-h: Thaumaton Torpedo's {6},{T},Sac is paid by five lands and Gene Pollinator beside Mm'menon's grant: the granted-only artifact is no unit to take out of the prefix search's availability",
  "actions": [
   16776960,
   16776960,

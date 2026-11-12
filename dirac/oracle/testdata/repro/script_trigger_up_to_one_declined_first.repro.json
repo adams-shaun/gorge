@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-ecl",
+ "why": "Champions of the Shoal tapped to pay Springleaf Drum's cost before an equip: gorge's script search answers the trigger's \"up to one target\" ask with no target first, so the kernel's search does too and Sting-Slinger is not stunned",
  "actions": [
   16776960,
   16776960,

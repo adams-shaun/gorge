@@ -221,6 +221,8 @@
  ],
  "surface": "full",
  "kernel": "set cmd5",
+ "pool": "custom",
+ "why": "kfuzz cmd5 heuristic pair 10: Ancient Tomb's one activation adds {C}{C} (a pain-only source, 2 damage), so beside two Mountains it funds Archwing Dragon's {2}{R}{R} and the cast is offered (CR 106.1, 605.1a); played on its own decks' table because the cmd5 pool no longer holds the card",
  "actions": [
   16776960,
   16776960,

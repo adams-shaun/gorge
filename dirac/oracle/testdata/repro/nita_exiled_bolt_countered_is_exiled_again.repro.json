@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "the same recast Bolt countered by Counterspell is exiled too: Nita's replacement names no resolution, so a counter is replaced as well",
  "actions": [
   17497856,
   19136256,

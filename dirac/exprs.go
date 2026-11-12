@@ -695,6 +695,14 @@ func (s *State) countRefMatchesN(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx
 			n += one(s.g.imp[i])
 		}
 		return n
+	case kop.RefChosen:
+		// a DigUntil ImprintFound$ accumulates the found cards in the
+		// chosen set (digImprintFound); Imprinted$Amount reads it
+		n := 0
+		for i := 0; i < int(s.g.nchosen); i++ {
+			n += one(s.g.chosen[i])
+		}
+		return n
 	case kop.RefRemembered:
 		n := 0
 		ceased = true

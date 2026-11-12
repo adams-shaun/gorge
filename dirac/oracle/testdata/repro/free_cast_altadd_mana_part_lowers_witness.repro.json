@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 118.9d, 601.2b: Silvergill Mentor cast free from Maralen's exile with no Merfolk to behold owes its {2}: gorge's witness taps a Forest beside the floating {U} before the part is asked",
  "actions": [
   16776960,
   16776960,

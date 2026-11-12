@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "CR 608.2h: Captain America's attack trigger resolving after he died pumps the Heroes by his last known toughness, not his printed one",
  "actions": [
   16776960,
   16776960,

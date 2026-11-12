@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 601.2c, 601.2g, 733.1: Q's Play of Dominion Infiltration announces X = 0, so its \"X target creatures\" asks no menu and no affordability census reverses it; the cast reaches its mana window, and the taps and mana stand when it is then reversed",
  "actions": [
   167771904,
   184549120,

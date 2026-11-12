@@ -96,6 +96,8 @@
  "max_turns": 40,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Evendo, Waking Haven at 12 charge counters with {G} floating from Crumbling Vestige: gorge lists its Station-granted \"{G}, {T}: Add {G} for each creature\" once the pool pays the pip, and the window activates it for seven",
  "actions": [
   19332864,
   34995968,
