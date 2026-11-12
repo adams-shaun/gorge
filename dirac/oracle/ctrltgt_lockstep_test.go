@@ -51,8 +51,9 @@ var kctrltgtWant = map[string]string{
 }
 
 // kctrltgtRun plays pol over seeds and accumulates, from gorge's side, how
-// often each wanted card was cast or had the wanted ability key used.
-func kctrltgtRun(t *testing.T, pol func(uint64) Policy, seeds int, used map[string]int) (games, divs, stalls int) {
+// often each wanted card was cast and how often its wanted ability key was
+// used.
+func kctrltgtRun(t *testing.T, pol func(uint64) Policy, seeds int, cast, keys map[string]int) (games, divs, stalls int) {
 	t.Helper()
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
@@ -96,7 +97,7 @@ func kctrltgtRun(t *testing.T, pol func(uint64) Policy, seeds int, used map[stri
 		if err != nil {
 			t.Fatal(err)
 		}
-		res := LockstepLed(m, seed, g, k, pol(seed), RunConfig{Config: cfg, MaxDecisions: 3000, MaxTurns: 24})
+		res := LockstepLed(m, seed, g, k, pol(seed), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40})
 		cov := CoverageOf(g, m)
 		CloseSide(k)
 		games++
@@ -114,37 +115,79 @@ func kctrltgtRun(t *testing.T, pol func(uint64) Policy, seeds int, used map[stri
 				continue
 			}
 			if cc.Cast > 0 {
-				used[name]++
+				cast[name]++
 			}
 			if key != "" && cc.Used[key] > 0 {
-				used[name]++
+				keys[name]++
 			}
 		}
 	}
 	return games, divs, stalls
 }
 
+// kctrltgtUltimatePolicy is ExplorePolicy, but a priority decision that can
+// activate Chandra, Pyrogenius or Chandra Nalaar takes the +ability while
+// the ultimate is not yet offered and the ultimate once it is. The two
+// ultimates are the DamageAll lowering this change reaches.
+func kctrltgtUltimatePolicy(seed uint64) Policy {
+	base := ExplorePolicy(seed)
+	ult := map[string]uint8{"Chandra, Pyrogenius": 2, "Chandra Nalaar": 2}
+	return PolicyFunc(func(c *PickCtx) Canon {
+		if c.D.Kind == DPriority && c.G != nil {
+			var plus, ultimate Canon
+			havePlus, haveUlt := false, false
+			for _, a := range c.D.Options {
+				if a.Kind() != ActActivate {
+					continue
+				}
+				id, ok := kroleRefObj(c.G, a.Src())
+				if !ok {
+					continue
+				}
+				o := c.G.E.G.Obj(id)
+				if o == nil || o.Face() == nil || o.Face().Name != "Chandra, Pyrogenius" && o.Face().Name != "Chandra Nalaar" {
+					continue
+				}
+				if a.Mode() == ult[o.Face().Name] {
+					ultimate, haveUlt = a, true
+				} else if a.Mode() == 0 {
+					plus, havePlus = a, true
+				}
+			}
+			if haveUlt {
+				return ultimate
+			}
+			if havePlus {
+				return plus
+			}
+		}
+		return base.Pick(c)
+	})
+}
+
 // TestCtrlTgtLockstep: random and explore policies play the matchup with no
-// divergence and no unmodelled stall, and every newly lowered card is cast
-// at least once (the two planeswalkers also use the ultimate whose sweep is
-// the lowering).
+// divergence and no unmodelled stall, every newly lowered card is cast at
+// least once, and the two planeswalkers also use the ultimate whose sweep is
+// the lowering.
 func TestCtrlTgtLockstep(t *testing.T) {
 	if isolate(t) {
 		return
 	}
-	used := map[string]int{}
-	if games, divs, stalls := kctrltgtRun(t, RandomPolicy, 32, used); games != 32 || divs != 0 || stalls != 0 {
+	if games, divs, stalls := kctrltgtRun(t, RandomPolicy, 32, map[string]int{}, map[string]int{}); games != 32 || divs != 0 || stalls != 0 {
 		t.Fatalf("random: %d games, %d divergences, %d stalls", games, divs, stalls)
 	}
-	explore := map[string]int{}
-	games, divs, stalls := kctrltgtRun(t, ExplorePolicy, 32, explore)
-	t.Logf("%d explore games, %d divergences, %d stalls; usage %v", games, divs, stalls, explore)
+	cast, keys := map[string]int{}, map[string]int{}
+	games, divs, stalls := kctrltgtRun(t, kctrltgtUltimatePolicy, 32, cast, keys)
+	t.Logf("%d explore games, %d divergences, %d stalls; cast %v; ultimates %v", games, divs, stalls, cast, keys)
 	if divs != 0 || stalls != 0 {
 		t.Errorf("%d divergences, %d stalls", divs, stalls)
 	}
-	for name := range kctrltgtWant {
-		if explore[name] == 0 {
-			t.Errorf("%s was never played on gorge's side", name)
+	for name, key := range kctrltgtWant {
+		if cast[name] == 0 {
+			t.Errorf("%s was never cast on gorge's side", name)
+		}
+		if key != "" && keys[name] == 0 {
+			t.Errorf("%s never used the ultimate %s on gorge's side", name, key)
 		}
 	}
 }
