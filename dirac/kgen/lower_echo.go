@@ -1,6 +1,31 @@
 package kgen
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
+
+// echoGate reads gorge kwEcho's intervening if, Echo$ True (CR 702.30a;
+// engine/rules/echo.go echoGateHolds): the source came under its
+// controller's control since the beginning of their most recent upkeep. It
+// becomes the trigger's only condition, CondEchoOwed, checked as the trigger
+// fires only (CheckOnTriggerOnly; dirac/trig_echo.go). kwEcho's upkeep
+// trigger (Phase$ Upkeep, ValidPlayer$ You) carries no other gate, so Echo$
+// beside another condition, a fire-time gate, a gift or NoResolvingCheck$
+// (otherGate) refuses. A trigger without Echo$ is left as it is.
+func echoGate(tp *params, tr *lTrigger, ab *lAbility, conds *[]lCond, otherGate bool) error {
+	v, ok := tp.get("Echo")
+	if !ok {
+		return nil
+	}
+	if v != "True" || tr.Event != "Phase" || tr.Step != "Upkeep" || tr.Whose != whoYou || len(*conds) != 0 || otherGate {
+		return refuse("Echo$ %q beside another gate", v)
+	}
+	*conds = append(*conds, lCond{Kind: cEchoOwed})
+	ab.Name = "CheckOnTriggerOnly"
+	return nil
+}
 
 // echoUpkeep lowers the body of gorge's echo expansion (CR 702.30a;
 // engine/cards/kw_echo.go: an upkeep trigger of ValidPlayer$ You carrying
@@ -14,7 +39,7 @@ import "strings"
 //	UnlessPaid You Mana   the pay-or-decline ask, skipping the sacrifice when paid
 //	Sacrifice self        a decline
 //
-// The gate (Echo$ True) is the trigger's CondEchoOwed (lower_trigger.go).
+// The gate (Echo$ True) is the trigger's CondEchoOwed (echoGate above).
 // Only a cost of plain mana, generic and coloured pips, lowers: {X} (Volcano
 // Hellion), the action costs of parseCumulativeAction (Discard<1/Card>,
 // Sac<2/Land>), a hybrid or Phyrexian pip (gorge announces those before the
@@ -39,7 +64,7 @@ func (lc *lowerCtx) echoUpkeep(ps *params) error {
 			return refuse("echo cost %q (a pip count past the three bits the payment packs)", raw)
 		}
 	}
-	lc.emit(lInstr{Op: "Cumulative", C: 2, B: cst(1), Note: "echo: no age counter; the payment and the sacrifice are skipped if the source is gone"})
+	lc.emit(lInstr{Op: "Cumulative", C: 2, B: cst(kop.EchoNoCounter), Note: "echo: no age counter; the payment and the sacrifice are skipped if the source is gone"})
 	lc.emit(lInstr{Op: "UnlessPaid", Obj: lRef{Kind: rYou}, CS: "Mana", Skip: 1,
 		A: cst(m.Generic), B: cst(packPips(m.Pips)), Note: "pay the echo cost, else sacrifice"})
 	lc.emit(lInstr{Op: "Sacrifice", Obj: lRef{Kind: rYou}, A: cst(1), F: &lFilter{Clauses: []lClause{{Flags: fSelf}}}})
