@@ -15,8 +15,8 @@ import (
 // stays refused by name.
 func TestChooseNumberMidLowers(t *testing.T) {
 	c := lowerScriptCard(t, "Probe Number", "Name:Probe Number\nManaCost:1 U\nTypes:Instant\n"+
-		"A:SP$ ChooseNumber | Defined$ You | Min$ 1 | Max$ 5 | SubAbility$ DBDraw\n"+
-		"SVar:DBDraw:DB$ Draw | Defined$ You | NumCards$ X\n"+
+		"A:SP$ ChooseNumber | Defined$ You | Min$ 1 | Max$ 5 | SubAbility$ DBProbeDraw\n"+
+		"SVar:DBProbeDraw:DB$ Draw | Defined$ You | NumCards$ X\n"+
 		"SVar:X:Count$ChosenNumber\nOracle:x\n")
 	if len(c.Refusals) != 0 {
 		t.Fatalf("refusals %v, want none", c.Refusals)
@@ -64,8 +64,8 @@ func TestChooseNumberMidRandom(t *testing.T) {
 
 func TestChooseNumberMidEnergyBound(t *testing.T) {
 	c := lowerScriptCard(t, "Probe Energy Number", "Name:Probe Energy Number\nManaCost:1 U\nTypes:Instant\n"+
-		"A:SP$ ChooseNumber | Max$ Count$YourCountersEnergy | SubAbility$ DBDraw\n"+
-		"SVar:DBDraw:DB$ Draw | Defined$ You | NumCards$ X\n"+
+		"A:SP$ ChooseNumber | Max$ Count$YourCountersEnergy | SubAbility$ DBProbeDraw\n"+
+		"SVar:DBProbeDraw:DB$ Draw | Defined$ You | NumCards$ X\n"+
 		"SVar:X:Count$ChosenNumber\nOracle:x\n")
 	if len(c.Refusals) != 0 {
 		t.Fatalf("refusals %v, want none", c.Refusals)
@@ -85,8 +85,8 @@ func TestChooseNumberMidEnergyBound(t *testing.T) {
 
 func TestChooseNumberMidPayEnergy(t *testing.T) {
 	c := lowerScriptCard(t, "Probe Energy Pay", "Name:Probe Energy Pay\nManaCost:1 U\nTypes:Instant\n"+
-		"A:SP$ ChooseNumber | Max$ Count$YourCountersEnergy | SubAbility$ DBPay\n"+
-		"SVar:DBPay:DB$ Draw | Defined$ You | NumCards$ X | UnlessCost$ Mandatory PayEnergy<X> | UnlessPayer$ You | UnlessSwitched$ True\n"+
+		"A:SP$ ChooseNumber | Max$ Count$YourCountersEnergy | SubAbility$ DBProbePay\n"+
+		"SVar:DBProbePay:DB$ Draw | Defined$ You | NumCards$ X | UnlessCost$ Mandatory PayEnergy<X> | UnlessPayer$ You | UnlessSwitched$ True\n"+
 		"SVar:X:Count$ChosenNumber\nOracle:x\n")
 	if len(c.Refusals) != 0 {
 		t.Fatalf("refusals %v, want none", c.Refusals)
@@ -106,8 +106,8 @@ func TestChooseNumberMidPayEnergy(t *testing.T) {
 
 func TestChooseNumberMidJoinForcesRepeat(t *testing.T) {
 	c := lowerScriptCard(t, "Probe Join Forces", "Name:Probe Join Forces\nManaCost:G\nTypes:Sorcery\n"+
-		"A:SP$ RepeatEach | RepeatPlayers$ Player | StartingWith$ You | RepeatSubAbility$ DBPay\n"+
-		"SVar:DBPay:DB$ ChooseNumber | Defined$ Player.IsRemembered | ChooseAnyNumber$ True\n"+
+		"A:SP$ RepeatEach | RepeatPlayers$ Player | StartingWith$ You | RepeatSubAbility$ DBProbePay\n"+
+		"SVar:DBProbePay:DB$ ChooseNumber | Defined$ Player.IsRemembered | ChooseAnyNumber$ True\n"+
 		"Oracle:x\n")
 	if len(c.Refusals) != 0 {
 		t.Fatalf("refusals %v, want none", c.Refusals)
@@ -127,8 +127,8 @@ func TestChooseNumberMidJoinForcesRepeat(t *testing.T) {
 
 func TestChooseNumberMidRefusesTheSecretElection(t *testing.T) {
 	r := lowerScript(t, "Probe Election", "Name:Probe Election\nManaCost:1 U\nTypes:Instant\n"+
-		"A:SP$ ChooseNumber | Defined$ TargetedAndYou | Min$ 1 | Max$ 3 | MatchedAbility$ DBDraw | UnmatchedAbility$ DBDraw | Secretly$ True\n"+
-		"SVar:DBDraw:DB$ Draw | Defined$ You | NumCards$ 1\nOracle:x\n")
+		"A:SP$ ChooseNumber | Defined$ TargetedAndYou | Min$ 1 | Max$ 3 | MatchedAbility$ DBProbeDraw | UnmatchedAbility$ DBProbeDraw | Secretly$ True\n"+
+		"SVar:DBProbeDraw:DB$ Draw | Defined$ You | NumCards$ 1\nOracle:x\n")
 	got := ""
 	for _, s := range r {
 		if s != "" {
