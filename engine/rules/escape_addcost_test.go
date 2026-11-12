@@ -69,3 +69,28 @@ func TestEscapePaysTheSpellsOwnAdditionalCostFirst(t *testing.T) {
 		t.Fatalf("sacrificed body zone=%v, want graveyard", o)
 	}
 }
+
+// TestEscapeNotOfferedWhenOwnAdditionalCostUnpayable: the offer prices the
+// spell's own additional cost with the escape cost (an option that cannot be
+// paid is never offered), so a sacrifice with no creature to sacrifice
+// withholds the escape cast.
+func TestEscapeNotOfferedWhenOwnAdditionalCostUnpayable(t *testing.T) {
+	t.Parallel()
+	e := handEngine(t, corpusAlternativeCard(t, "Underworld Breach"))
+	breach := e.G.Zone(state.ZHand, 0)[0]
+	e.emit(events.Event{Kind: events.MoveZone, Obj: breach, From: state.ZHand, To: state.ZBattlefield})
+	rites := graveyardCard(t, e, "Name:Grave Rites\nManaCost:B\nTypes:Instant\nA:SP$ Draw | Cost$ B Sac<1/Creature> | NumCards$ 2 | SpellDescription$ x\nOracle:x\n")
+	graveyardCard(t, e, "Name:Fodder One\nManaCost:1 R\nTypes:Creature Lizard\nPT:1/1\nOracle:x\n")
+	graveyardCard(t, e, "Name:Fodder Two\nManaCost:2 U\nTypes:Creature Fish\nPT:1/1\nOracle:x\n")
+	graveyardCard(t, e, "Name:Fodder Three\nManaCost:G\nTypes:Creature Insect\nPT:1/1\nOracle:x\n")
+	addMana(t, e, 0, "B")
+	d := e.Pending()
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == rites && o.Mode == "escape" {
+			t.Fatalf("escape cast offered with no creature to sacrifice: %+v", d.Options)
+		}
+	}
+	if d.Kind != decision.KPriority && len(d.Options) == 0 {
+		t.Fatalf("no priority decision: %+v", d)
+	}
+}

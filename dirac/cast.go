@@ -861,7 +861,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			// An escape cast's asks follow gorge's costObjectAsks order
 			// (cast_begin.go): the spell's own sacrifice / discard asks
 			// first, then exAsk's escape fodder last (kw_escape.go).
-			if e.trigPl == trigPlEscape && s.beholdOptions(k, d) || s.costPickOptions(k, d, kop.CostSac) || s.subCtrOptions(k, d) || k.subAmong && s.subAmongOptions(k, d) || s.costPickOptions(k, d, kop.CostDiscard) || e.trigPl == trigPlEscape && k.costObj && s.costObjOptions(k, d) {
+			if k.costObj && e.trigPl != trigPlEscape && s.costObjOptions(k, d) || e.trigPl == trigPlEscape && s.beholdOptions(k, d) || s.costPickOptions(k, d, kop.CostSac) || s.subCtrOptions(k, d) || k.subAmong && s.subAmongOptions(k, d) || s.costPickOptions(k, d, kop.CostDiscard) || e.trigPl == trigPlEscape && k.costObj && s.costObjOptions(k, d) {
 				return s.ctl == ctlBuild // false: a short sacrifice reversed the build (sacShort)
 			}
 			if k.gen != nil && (k.gen.anySneak && sneakEntry(e) || k.gen.anyWebSling && webSlingEntry(e)) && s.sneakReturnOptions(k, d) {

@@ -602,8 +602,8 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		// CR 702.138a, 118.9d: escape is an alternative cost, so the spell's
 		// own additional cost (Village Rites' sacrifice, Thrill of
 		// Possibility's discard) is still paid on top of the escape cost.
-		// The offer gate (legal_walk_alt.go's escape walk) prices only the
-		// escape cost, so an unpayable additional cost reverses at the ask.
+		// The offer gate (legal_walk_alt.go's escape walk) folds the same
+		// extras, so an unpayable additional cost is never offered.
 		// CR 701.34d, 118.9: the plotted free cast waives only the mana
 		// cost; the spell's own additional cost (Corrupted Conviction's
 		// sacrifice) is still paid. The offer (legal_walk_alt.go) folds the

@@ -71,9 +71,9 @@ func escapeFodder(st *kop.Static) kop.Cost {
 // offerEscapeCasts offers the graveyard casts of p's cards a battlefield
 // StatEscapeGrant gives escape (gorge legal_walk_alt.go's escape walk:
 // spellTimingOK, castSuppressed and castTargetsAvailable; priced with the
-// escape cost's parts only -- the card's mana cost plus the fodder -- never
-// the spell's additional costs: gorge pay.NonManaCastable prices only ec, so
-// a missing one reverses at the ask). gorge lists the escape walk before
+// escape cost's parts -- the card's mana cost plus the fodder -- and the
+// spell's own additional costs, which gorge folds into the offer
+// (pay.WithSpellAbilityExtras) as it folds them into the cast). gorge lists the escape walk before
 // mayhem's (legal_walk_alt.go), so the caller poses it before
 // offerMayhemCasts.
 func (s *State) offerEscapeCasts(k *prep, d *Decision, p uint8, sorc bool, av *avail) {
@@ -105,6 +105,9 @@ func (s *State) offerEscapeCasts(k *prep, d *Decision, p uint8, sorc bool, av *a
 		ec := escapeFodder(st)
 		if !s.costObjPayable(k, p, &ec, o, o) {
 			continue // the fodder is not there (gorge offerCostFor prices ec's parts)
+		}
+		if !s.spellCostsFeasible(k, c, p, o) {
+			continue // the spell's own Sac/Discard part is owed on top (CR 118.9d); gorge folds it into the offer
 		}
 		fc := s.adjustCost(k, p, c, o, cd.Cost) // the card's mana cost (CR 702.42a)
 		av.delve = s.tbDelveCredit(k, p, c, o, false)

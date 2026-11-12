@@ -565,7 +565,7 @@ func (w *legalWalk) graveyardCastsOver(grave []state.ObjID) {
 			!e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
-		if w.affordable(p, id, w.offerCostFor(p, id, ec, spellScope("escape")), false) {
+		if w.affordable(p, id, pay.WithSpellAbilityExtras(f, w.offerCostFor(p, id, ec, spellScope("escape"))), false) {
 			*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
 				Label: "Cast " + f.Name + " (escape)", Obj: id, Mode: "escape"})
 		}
