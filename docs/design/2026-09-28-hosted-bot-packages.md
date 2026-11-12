@@ -649,8 +649,7 @@ cannot drift.
 - **`NewSeat`** (`bots/azmcts/seat.go:117-127`):
   - `World == WorldRedeal` builds the redeal source as today.
   - `World` of `""` or `WorldClairvoyant` requires `cfg.Source != nil`, and
-    otherwise returns `azmcts: the clairvoyant world is not linked
-    (bots/azmcts/clairvoyant)`.
+    otherwise returns an error saying the clairvoyant world is not linked.
   - `DecideSearch` (`bots/azmcts/seat.go:170-182`) calls `cfg.Source` in
     place of `NewClairvoyant`.
 - **The `AllowClairvoyant` runtime gate stays, inside the new package.** A
