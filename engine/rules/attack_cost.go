@@ -1538,7 +1538,12 @@ type attackOfferKey struct {
 // CR 508.1d's "satisfy as many requirements as possible": once the legal,
 // affordable pairs are known, every pair of a creature that satisfies FEWER
 // player-attack duties (named or goad) than the creature's best available
-// defender is dropped.
+// defender is dropped. CR 508.1d's last sentence bounds that comparison: a
+// player is never required to pay a cost to attack, so the best is read over
+// ZERO-charge pairs only -- a charged pair that satisfies more duties than
+// every free pair cannot push the free pairs out (a Ghostly Prison beside a
+// MustAttack requirement must not turn the creature's free pairs into a
+// dropped remainder), it merely stays offered as an optional pair.
 // That is what keeps a named MustAttack$ duty and a goad from cancelling each
 // other out into "the creature attacks nobody": the earlier single-defender
 // filter removed the non-named pairs while combat.GoadMayAttack removed the named
@@ -1709,8 +1714,18 @@ func (e *Engine) attackOffersCompute() []attackOffer {
 		}
 	}
 	// Best player-attack duty satisfaction per creature over surviving pairs.
+	// CR 508.1d's last sentence: a player is never required to pay a cost to
+	// attack, so a charged pair never raises the bar -- best reads only
+	// zero-charge pairs. A creature whose every pair is charged keeps best 0
+	// and loses nothing; a charged pair above a lower free best stays offered
+	// (the keep loop below drops only pairs BELOW best), merely optional --
+	// attackDutyDischargeable (engine/rules/combat.go) reads the same list and
+	// skips charged pairs, so such a creature is never marked Required.
 	best := make(map[state.ObjID]int)
 	for _, of := range out {
+		if !of.charge.zero() {
+			continue
+		}
 		if n := reqs[of.id].SatisfiedByOffer(of.def, of.battle); n > best[of.id] {
 			best[of.id] = n
 		}
