@@ -10,7 +10,7 @@ const (
 	cwSelfSacFeeSpell = "Name:Face Self Sac Fee BR\nManaCost:B/R B/R\nTypes:Instant\n" +
 		"A:SP$ Draw | NumCards$ 1 | SpellDescription$ Draw one.\nOracle:x\n"
 	cwSelfSacFeePizza = "Name:Face Self Sac Fee Pizza\nTypes:Artifact\n" +
-		"A:AB$ Mana | Cost$ 1 T Sac<1/CARDNAME/this artifact> | Produced$ Any | Amount$ 1 | SpellDescription$ Add one mana of any color.\nOracle:x\n"
+		"A:AB$ Mana | Cost$ 1 T Sac<1/CARDNAME/this artifact> | Produced$ Any | Amount$ 1\nOracle:x\n"
 )
 
 // A hybrid pip announced as R must stay payable when a self-sacrificing source
