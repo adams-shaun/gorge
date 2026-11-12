@@ -410,6 +410,11 @@ func TestEntryOrderOwnChoiceBodyAsks(t *testing.T) {
 			if sc.s.g.ro.n != 0 || sc.s.g.ro.pcol != 0 || sc.s.g.stalled != 0 || sc.s.ctl != ctlPriority {
 				t.Fatalf("after the last answer: ro %+v stalled %d ctl %d", sc.s.g.ro.replHdr, sc.s.g.stalled, sc.s.ctl)
 			}
+			if d := sc.s.Step(); d.Kind != DkPriority {
+				// the record's choice was answered before the move: the
+				// entry asks nothing more
+				t.Fatalf("next decision %d/%d, want priority", d.Kind, d.Sub)
+			}
 		})
 	}
 }
