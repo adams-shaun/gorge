@@ -37,27 +37,50 @@ func (lc *lowerCtx) cantAttack(sp *params, st *lStatic) error {
 		if vc != "Card.Self" {
 			return refuse("UnlessDefender$ on ValidCard$ %q", vc)
 		}
-		lc.twoSeat("UnlessDefender$ read as the static controller's opponent")
 		ud = strings.TrimSpace(ud)
-		neg := strings.HasPrefix(ud, "!")
-		ud = strings.TrimPrefix(ud, "!")
-		spec, ok := strings.CutPrefix(ud, "controls")
-		if !ok || spec == "" || strings.ContainsAny(spec, "_") || strings.Contains(spec, "Ctrl") {
-			return refuse("UnlessDefender$ %q", ud)
+		if t, ok := fewerInPlayType(ud); ok {
+			// gorge UnlessDefenderHolds' hasFewer<Type>sInPlayThanYou: the
+			// defender controls strictly fewer <Type>s than the static's
+			// controller, so the creature may attack exactly then and the
+			// RESTRICTION holds when the defender's count is at least the
+			// controller's. The kernel is two-player, the defender is the
+			// controller's opponent (Monstrous Hound's lands, Mogg Toady
+			// and Goblin Goon's creatures); the counts are value-vs-value
+			// over the battlefield, so the gate holds for every defender
+			// the two-seat read names.
+			lc.twoSeat("UnlessDefender$ hasFewer<Type>sInPlayThanYou read as the static controller's opponent")
+			fOpp, err := lc.filter(t + ".OppCtrl")
+			if err != nil {
+				return err
+			}
+			fYou, err := lc.filter(t + ".YouCtrl")
+			if err != nil {
+				return err
+			}
+			st.Cond = andCond(st.Cond, lCond{Kind: cValue,
+				A: lValue{Kind: vCount, F: fOpp}, Op: opGE, B: lValue{Kind: vCount, F: fYou}})
+		} else {
+			lc.twoSeat("UnlessDefender$ read as the static controller's opponent")
+			neg := strings.HasPrefix(ud, "!")
+			ud = strings.TrimPrefix(ud, "!")
+			spec, ok := strings.CutPrefix(ud, "controls")
+			if !ok || spec == "" || strings.ContainsAny(spec, "_") || strings.Contains(spec, "Ctrl") {
+				return refuse("UnlessDefender$ %q", ud)
+			}
+			f, err := lc.filter(addFilterProp(spec, "OppCtrl"))
+			if err != nil {
+				return err
+			}
+			cmp := "EQ0"
+			if neg {
+				cmp = "GE1"
+			}
+			op, v, err := lc.cmpSpec(cmp)
+			if err != nil {
+				return err
+			}
+			st.Cond = andCond(st.Cond, lCond{Kind: cPresent, F: f, Op: op, A: v})
 		}
-		f, err := lc.filter(addFilterProp(spec, "OppCtrl"))
-		if err != nil {
-			return err
-		}
-		cmp := "EQ0"
-		if neg {
-			cmp = "GE1"
-		}
-		op, v, err := lc.cmpSpec(cmp)
-		if err != nil {
-			return err
-		}
-		st.Cond = andCond(st.Cond, lCond{Kind: cPresent, F: f, Op: op, A: v})
 	}
 	f, err := lc.filter(vc)
 	if err != nil {
@@ -80,6 +103,25 @@ func (lc *lowerCtx) cantAttack(sp *params, st *lStatic) error {
 	st.F = f
 	sp.consume("Secondary")
 	return nil
+}
+
+// fewerInPlayType reports whether an UnlessDefender$ predicate is gorge
+// UnlessDefenderHolds' hasFewer<Type>sInPlayThanYou (the type word is
+// everything before the first "sIn", the same split effects'
+// unlessDefenderProperty makes, and the tail must read PlayThan) and names
+// the counted type word, the object spec the count walks. The graveyard
+// twin (InYardThanYou) stays refused: a graveyard count is no battlefield
+// filter.
+func fewerInPlayType(ud string) (string, bool) {
+	body, ok := strings.CutPrefix(ud, "hasFewer")
+	if !ok {
+		return "", false
+	}
+	i := strings.Index(body, "sIn")
+	if i <= 0 || !strings.HasPrefix(body[i+3:], "PlayThan") {
+		return "", false
+	}
+	return body[:i], true
 }
 
 // addFilterProp conjoins prop with every comma alternative of a Valid

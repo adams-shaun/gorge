@@ -231,6 +231,7 @@ type genPrep struct {
 	anySneak       bool           // some card has sneak (CardDef.HasSneak; kw_sneak.go)
 	anyWebSling    bool           // some card has web-slinging (CardDef.HasWebSling; kw_websling.go)
 	anyMayFlash    bool           // some card has K:MayFlashCost (CardDef.HasMayFlash; kw_mayflash.go)
+	anyRebound     bool           // some card has printed rebound (CardDef.ReboundAb; kw_rebound.go): a hand-cast spell's resolution exits to exile and registers the upkeep recast
 	anyDelve       bool           // some card has printed or granted Delve (CardDef.Delve, StatStackKw Delve; kw_delve.go)
 	anyConvoke     bool           // some card has printed or granted convoke/improvise or harmonize (CardDef.Convoke/Improvise/Harmonize, StatStackKw Improvise/Convoke; kw_convoke.go)
 	anyBeam        bool           // some card has printed beam me up (CardDef.BeamMeUp; kw_beammeup.go)
@@ -302,7 +303,8 @@ type genPrep struct {
 	anyCharmPick   bool           // some charm carries ChoiceRestriction$ (Ability.ModeRestrict; modal_charmpick.go)
 	anyWaterbend   bool           // some ability costs CostWaterbend (act_waterbend.go)
 	anyXBoundAb    bool           // some activated ability's target is bounded by its X (xBoundTarget): the announced X can leave it no target, which reverses it
-	anyLure        bool           // some card is a lure (CardDef.Lure; combat_lure.go)
+	anyLure        bool           // some card is a lure (CardDef.Lure), or the table can make one (StatLure, mechLure; combat_lure.go)
+	anyLureStat    bool           // a StatLure static (combat_lure.go isLure)
 	anyMustBlock   bool           // some card is printed must-be-blocked or the table gives mechMustBlocked an arena mask (combat_mustbeblocked.go)
 	anyFaceExile   bool           // some Dig exiles face down (kop.DigFaceDown; zone_exilefacedown.go)
 	anyExW         bool           // some card reads the exiled-with source link (CardDef.ExiledWith; zone_exiledwith.go)
@@ -732,6 +734,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyNoPrev = tableHasStatic(t, kop.StatCantPreventDamage)
 	g.anyAsIfHaste = tableHasStatic(t, kop.StatAsIfHaste)
 	g.anyCantSuspect = tableHasStatic(t, kop.StatCantBeSuspected)
+	g.anyLureStat = tableHasStatic(t, kop.StatLure)
 	g.anyTypeCreat = tableHasStatic(t, kop.StatAnyTypeCreatures)
 	g.anyDiscard = tableHasOp(t, kop.OpDiscard)
 	g.anyRemDisc = tableRemembersDiscards(t)
@@ -841,6 +844,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.Delve {
 			g.anyDelve = true
+		}
+		if c.ReboundAb != 0 {
+			g.anyRebound = true
+			g.anyCastProv = true // reboundRests reads the cast's zone (stackEntry.prov)
 		}
 		if c.Cascade != 0 {
 			g.anyCascade = true
@@ -1670,6 +1677,7 @@ type genState struct {
 	energy    [MaxSeats]uint8     // each player's energy counters (CR 122.1; saturates at 255; act_energy.go)
 	roll      uint8               // the last OpRollDie result (ExRollResult; act_energy.go)
 	drawFirst bool                // the turn-based draw of the draw step is pending and no card has been drawn in it yet (repl_draw.go; transient, false between decisions)
+	drawStepN uint8               // the active player's draws in this draw step (trig_drawstep.go; reset on entry)
 	conn      uint8               // OpConnive's nonland hand count before its discard, +1 (0: no connive pending; padding; trig_delayedtiming.go)
 	held      uint8               // entry stamps (mod 8) of until-leaves returns whose enters check a departure frame holds (zone_untilleavesbatch.go; 0 outside a frame; fills the padding after conn)
 
@@ -1860,7 +1868,9 @@ type genState struct {
 		col kop.ColorMask
 		// sc, ctl: a scoped record (Ext PreventDamageScope) prevents the
 		// damage its controller ctl (a player) or the creatures ctl controls
-		// would take; sc holds the kop.PrevScope* bits and col is 0
+		// would take; sc holds the kop.PrevScope* bits and col is 0. A record
+		// with sc&prevNextSc is an Ext PreventNext shield: ctl the recipient's
+		// damage code, obj the effect's source, col the damage left (repl_prevnext.go)
 		sc, ctl uint8
 	}
 	lingerM slotMask

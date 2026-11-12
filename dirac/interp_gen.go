@@ -182,7 +182,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpDemonstrate:
 		return s.demonstrate(k, in), true
 	case kop.OpNinjutsu:
-		s.ninjutsuResolve(k) // CR 702.49b (kw_ninjutsu.go)
+		s.handEntryResolve(k, in.C != 0) // CR 702.49b (kw_ninjutsu.go)
 	case kop.OpRepeatWhile:
 		// gorge effRepeat with RepeatCheckSVar$: MaxRepeat$ evaluated once
 		// as the cap, the gate re-evaluated after every pass (loopBack)
@@ -783,6 +783,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpDelayedProgram:
 		if in.A.N == kop.DelayPlayerUpkeep {
 			s.delayPlayerUpkeep(k, e, in) // trig_delayplayerupkeep.go
+			break
+		}
+		if in.A.N == kop.DelayRemUpkeep {
+			s.delayRemUpkeep(k, e, in) // trig_delayremupkeep.go
 			break
 		}
 		o := s.delayedRegObj(in.Obj)
