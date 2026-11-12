@@ -34,7 +34,7 @@ func TestCR601_3aXSpellEscapesManaValueProhibition(t *testing.T) {
 			battlePerm(t, e, 1, corpusCardText(t, "v/void_winnower.txt"))
 			e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "U", Amount: 4})
 			e.askPriority(0)
-			if !hasCastOptionFor(e, spring) {
+			if !castOffered(e, spring) {
 				t.Fatalf("CR 601.3a: Mind Spring is withheld under Void Winnower although X = 1 gives it an odd mana value")
 			}
 			cr601Choose(t, e, "cast Mind Spring", func(o decision.Option) bool { return o.Kind == "cast" && o.Obj == spring })
@@ -105,7 +105,7 @@ func TestCR601_3aEscapeMustBePayable(t *testing.T) {
 	battlePerm(t, e, 1, corpusCardText(t, "v/void_winnower.txt"))
 	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "U", Amount: 2})
 	e.askPriority(0)
-	if hasCastOptionFor(e, spring) {
+	if castOffered(e, spring) {
 		t.Fatalf("Mind Spring is offered although its only escaping X (1) is unpayable from {U}{U}")
 	}
 }
@@ -128,7 +128,7 @@ func TestCR601_3aFlashbackRouteAnnouncesNoX(t *testing.T) {
 	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "R", Amount: 8})
 	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "W", Amount: 2})
 	e.askPriority(0)
-	if hasCastOptionFor(e, note) {
+	if castOffered(e, note) {
 		t.Fatalf("Molten Note's flashback is offered under Void Winnower although the flashback cost {6}{R}{W} announces no X")
 	}
 }
@@ -145,7 +145,7 @@ func TestCR601_3aFreeMayPlayOfferStillProhibited(t *testing.T) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: omni, From: state.ZHand, To: state.ZBattlefield})
 	battlePerm(t, e, 1, corpusCardText(t, "v/void_winnower.txt"))
 	e.askPriority(0)
-	if hasCastOptionFor(e, spring) {
+	if castOffered(e, spring) {
 		t.Fatalf("Omniscience's free cast of Mind Spring is offered under Void Winnower although a free cast announces no X")
 	}
 }

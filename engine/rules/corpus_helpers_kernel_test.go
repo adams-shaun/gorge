@@ -281,3 +281,13 @@ func corpusCardAtPath(t *testing.T, path string) *cards.Card {
 	}
 	return c
 }
+
+// registryCardOrFatal looks a corpus card up and fails fast when it is absent.
+func registryCardOrFatal(t *testing.T, reg *cards.Registry, name string) *cards.Card {
+	t.Helper()
+	c, ok := reg.Lookup(name)
+	if !ok {
+		t.Fatalf("corpus missing %s", name)
+	}
+	return c
+}

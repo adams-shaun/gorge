@@ -26,8 +26,9 @@
 package rules
 
 import (
-	"github.com/adams-shaun/gorge/engine/decision"
 	"testing"
+
+	"github.com/adams-shaun/gorge/engine/decision"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
@@ -341,13 +342,13 @@ func TestNonHandReductionPricesTheOffer(t *testing.T) {
 	e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MU] = 1, 1
 	e.pending = nil
 	e.priorityRound()
-	if !offersCastMode(e, otter, "flashback") {
+	if !bargainHasCastMode(e, otter, "flashback") {
 		t.Fatalf("flashback at {1}{U} not offered on two mana: %+v", e.Pending())
 	}
 	e.G.Players[0].Pool[state.MC] = 0
 	e.pending = nil
 	e.priorityRound()
-	if offersCastMode(e, otter, "flashback") {
+	if bargainHasCastMode(e, otter, "flashback") {
 		t.Fatalf("flashback offered on one mana: %+v", e.Pending())
 	}
 }
@@ -370,7 +371,7 @@ func TestNonHandReductionIgnoresAnEarlierHandCast(t *testing.T) {
 	e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MU] = 1, 1
 	e.pending = nil
 	e.priorityRound()
-	if !offersCastMode(e, otter, "flashback") {
+	if !bargainHasCastMode(e, otter, "flashback") {
 		t.Fatalf("flashback at {1}{U} not offered after a hand cast: %+v", e.Pending())
 	}
 }
@@ -385,22 +386,9 @@ func TestNonHandReductionLeavesAHandCastAtFullPrice(t *testing.T) {
 	e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MU] = 0, 1
 	e.pending = nil
 	e.priorityRound()
-	if offersCastMode(e, hand[1], "") {
+	if bargainHasCastMode(e, hand[1], "") {
 		t.Fatalf("a hand cast of {2}{U} offered on one mana: %+v", e.Pending())
 	}
-}
-
-func offersCastMode(e *Engine, id state.ObjID, mode string) bool {
-	d := e.Pending()
-	if d == nil {
-		return false
-	}
-	for _, o := range d.Options {
-		if o.Kind == "cast" && o.Obj == id && o.Mode == mode {
-			return true
-		}
-	}
-	return false
 }
 
 // A copy of a flashed-back Otterball Antics was never cast (CR 707.10), so its

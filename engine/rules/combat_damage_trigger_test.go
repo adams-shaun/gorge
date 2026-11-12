@@ -348,17 +348,6 @@ func countCounterChanges(e *Engine, obj state.ObjID, kind string, amount int32) 
 	return n
 }
 
-// countTokenCreates counts TokenCreate events owned by player p.
-func countTokenCreates(e *Engine, p state.PlayerID) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.TokenCreate && ev.Player == p {
-			n++
-		}
-	}
-	return n
-}
-
 // answerRetortTarget answers the pending KTarget decision with the option
 // naming want (the Screaming Nemesis retort asks "any other target" at
 // placement).

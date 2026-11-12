@@ -381,3 +381,59 @@ func attachActivateResolve(t *testing.T, e *Engine, obj state.ObjID, idx int) {
 	}
 	passUntilStackEmpty(t, e, 20)
 }
+
+// replicateOption returns the "cast" option casting id in the given mode, or
+// fails when it is absent.
+func replicateOption(t *testing.T, e *Engine, id state.ObjID, mode string) decision.Option {
+	t.Helper()
+	d := e.Pending()
+	if d == nil {
+		t.Fatal("no decision pending")
+	}
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == id && o.Mode == mode {
+			return o
+		}
+	}
+	t.Fatalf("no %q cast option for %d: %+v", mode, id, d.Options)
+	return decision.Option{}
+}
+
+func bargainHasCastMode(e *Engine, id state.ObjID, mode string) bool {
+	d := e.Pending()
+	if d == nil {
+		return false
+	}
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == id && o.Mode == mode {
+			return true
+		}
+	}
+	return false
+}
+
+// countTokenCreates counts the TokenCreate events minted for player p.
+func countTokenCreates(e *Engine, p state.PlayerID) int {
+	n := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.TokenCreate && ev.Player == p {
+			n++
+		}
+	}
+	return n
+}
+
+// castOffered reports whether the pending priority decision offers a
+// "cast" option naming id.
+func castOffered(e *Engine, id state.ObjID) bool {
+	d := e.Pending()
+	if d == nil {
+		return false
+	}
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == id {
+			return true
+		}
+	}
+	return false
+}

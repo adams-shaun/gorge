@@ -192,20 +192,6 @@ func combatTokenCount(e *Engine, p state.PlayerID, name string) int {
 	return n
 }
 
-// countTokenCreations counts the TokenCreate events that minted a token for
-// owner p. effToken mints ONE event per token (TokenAmount$ X is N events),
-// so this is a mint counter, not a resolution counter -- the latch itself is
-// pinned on pendingTriggers by the synthetic test below.
-func countTokenCreations(e *Engine, p state.PlayerID) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.TokenCreate && ev.Player == p {
-			n++
-		}
-	}
-	return n
-}
-
 // countPlayerDraws/are the shared event counters the three batch-set tests
 // assert through.
 func countPlayerDraws(e *Engine, p state.PlayerID) int {

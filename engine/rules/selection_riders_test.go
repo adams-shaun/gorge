@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -78,15 +77,6 @@ func selectionOptionsWithPower(d *decision.Decision, power string) []int {
 func selectionNoteIDs(e *Engine, player state.PlayerID, ids []state.ObjID) bool {
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.Note && ev.Player == player && !ev.Secret && sameObjIDs(ev.IDs, ids) {
-			return true
-		}
-	}
-	return false
-}
-
-func selectionNoteContains(e *Engine, substr string) bool {
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note && strings.Contains(ev.Text, substr) {
 			return true
 		}
 	}
@@ -410,7 +400,7 @@ func TestRepeatEachStartingWithYou(t *testing.T) {
 	d := runProbeSA(t, e, sa, func() *effects.Ctx {
 		return &effects.Ctx{Source: yangchenID, Controller: 1, SVars: selectionSVars(face)}
 	}, nil)
-	if selectionNoteContains(e, "StartingWith") {
+	if hasNote(e, "StartingWith") {
 		t.Fatal("StartingWith$ is still reported unread")
 	}
 	if d == nil || d.Kind != decision.KChoose {
@@ -483,7 +473,7 @@ func TestKlawRevealNumberCoversHand(t *testing.T) {
 	if len(d.Options) != 4 {
 		t.Fatalf("discard options %d, want the whole 4-card hand: %+v", len(d.Options), d.Options)
 	}
-	if selectionNoteContains(e, "reveal") {
+	if hasNote(e, "reveal") {
 		t.Fatal("N covering the hand must not ask for or note a reveal")
 	}
 	discarded := d.Options[0].Obj
