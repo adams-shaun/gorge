@@ -2822,6 +2822,16 @@ func (s *State) manaStep(k *prep) bool {
 		if s.bld().bfl&bflLowered != 0 && s.bld().pipN != 0 {
 			s.loweredPipWindow(k, e, &cost)
 		}
+		if s.bld().bfl&bflLowered == 0 && cardTgtDepCost(&k.t.Cards[e.card]) && !s.targetPaidPlanned(k, e.ctrl, e.obj) {
+			// gorge's planner declines a cast whose ValidTarget$ cost static
+			// waits for the chosen target ("shape:target_dependent_cost"), so
+			// no witness prices it and its payment runs through the manual
+			// CR 601.2g window: the first useful source in battlefield order,
+			// not the planner's ObjID-ordered witness. Marking it lowered
+			// keeps the plan out of this step and sends finishBuild to its
+			// lowered window arm.
+			s.bld().bfl |= bflLowered
+		}
 		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.bld().bfl&bflLowered != 0 || e.trigPl == trigPlMadness && debugMadnessMutate == 0 || e.trigPl == trigPlMiracle {
 			return false
 		}
