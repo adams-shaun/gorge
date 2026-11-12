@@ -2825,7 +2825,7 @@ func (s *State) manaStep(k *prep) bool {
 			// pays, the Treasure for the colour the cost owes
 			s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 		} else if impPlan {
-			// an Improvise cast gorge's planner prices (kw_improvise_plan.go)
+			// an Improvise cast gorge's planner prices (kw_improvisepay.go)
 			if s.improvisePlanPay(k, e, &cost, anyColor, &saved) {
 				return true
 			}
