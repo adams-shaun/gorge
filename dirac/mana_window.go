@@ -359,12 +359,12 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				return true, held
 			}
 			s.leave(k, sl, kop.ZoneGraveyard, false)
-			// a token sacrificed to pay a cast ceases at once, as gorge pays (a
-			// Treasure: payCast's tail reaches gorge's priority-boundary check,
-			// engine.go checkStateBased); one sacrificed to pay mid-resolution or
-			// by a planned activation's mana step (bflManaStep) waits for the
-			// state-based action at the next priority (CR 704.3, 704.5d)
-			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && s.buildLive() && (s.ctl != ctlBuild || s.bld().bfl&bflManaStep == 0) {
+			// a token sacrificed to pay a spell waits in the graveyard for the
+			// state-based check after the cast (gorge's Submit checks only with no
+			// cast pending, so a later choice of the payment still sees it there);
+			// likewise one sacrificed mid-resolution or by a planned activation's
+			// mana step (bflManaStep). Another cast's token ceases at once (CR 704.3, 704.5d)
+			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && s.buildLive() && (s.ctl != ctlBuild || s.bld().bfl&bflManaStep == 0) && s.bld().e.kind != seSpell {
 				s.ceaseManaToken(o)
 			}
 		}
@@ -2330,7 +2330,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			x = restrWitnessXPlus(x, t, multi[:nm], &cost, s.restrWithheldMana(k, p, d)+int(L)) // (mana_restrwithheld.go)
 		}
 	}
-	if cost.X != 0 && s.bld().e.kind == seSpell && s.xWitnessEats(k, p, s.bld().e.card, &cost, x, excl) {
+	if cost.X != 0 && s.bld().e.kind == seSpell && s.xWitnessEats(k, p, s.bld().e.card, &cost, x, excl, L) {
 		s.lowerXEats(k, p, &cost, x, excl, anyColor)
 		return
 	}

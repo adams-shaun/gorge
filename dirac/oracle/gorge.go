@@ -1105,6 +1105,10 @@ func (g *GorgeSide) repose(fr *frame) {
 		fr.cur.Options = append(fr.cur.Options, x.a)
 		fr.curAt = append(fr.curAt, x.at)
 	}
+	if d.Kind == decision.KTarget && d.AffordableTargets > 0 {
+		fr.cur.TargetLimited = true
+		fr.cur.TargetLeft = max(0, d.AffordableTargets-len(fr.chosen))
+	}
 	if len(es) > MaxOptions {
 		g.Stats.Overflow++
 	}
