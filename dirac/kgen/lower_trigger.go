@@ -2354,6 +2354,12 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			sp.consume("AddHiddenKeyword", "AffectedZone", "EffectZone")
 			st.Kind = "" // inert in both engines: lower to nothing
 			return nil, nil
+		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && sp.str("AddKeyword") != "" {
+			// a graveyard keyword grant whose keyword has no lowering (Six's
+			// Retrace, Varolz's Scavenge): refused by name at its keyword so
+			// the reason is true, not the generic AffectedZone one
+			kw, _, _ := strings.Cut(sp.str("AddKeyword"), ":")
+			return nil, refuse("AffectedZone %q without MayPlay (%s grant not modelled)", az, kw)
 		} else if !sp.is("MayPlay", "True") {
 			return nil, refuse("AffectedZone %q without MayPlay", az)
 		}

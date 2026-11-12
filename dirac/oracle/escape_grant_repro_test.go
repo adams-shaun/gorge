@@ -114,7 +114,9 @@ func runDecks(t *testing.T, seeds uint64, decks [2][]cardset.Entry, name string,
 	t.Helper()
 	cardsDir, err := cardset.CorpusDir()
 	if err != nil {
-		t.Fatal(err)
+		// a box without the corpus skips the corpus tests (testCorpus'
+		// convention), rather than failing a fresh clone
+		t.Skip(err)
 	}
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {
@@ -398,6 +400,289 @@ func TestCountAsStaticLockstep(t *testing.T) {
 	}{
 		{st.firecat, 2, "Pardic Firecat casts"},
 		{st.farmhand, 2, "Diligent Farmhand casts"},
+	} {
+		if c.n < c.min {
+			t.Errorf("%s: %d, want at least %d", c.s, c.n, c.min)
+		}
+	}
+}
+
+// addCostDecks reach an escape of an additional-cost card: Underworld Breach
+// is on the battlefield, Village Rites ({B}, sacrifice a creature) is in the
+// graveyard, two Dark Rituals have floated black mana, and a Memnite waits to
+// be sacrificed. Village Rites' own sacrifice must be posed before the
+// escape fodder (gorge costObjectAsks: sacrifice, subcounter, discard, then
+// exAsk); the pre-fix kernel returned the fodder first instead.
+var addCostDecks = [2][]cardset.Entry{
+	{ // A: B/R
+		{Name: "Underworld Breach", Count: 4}, {Name: "Village Rites", Count: 8},
+		{Name: "Dark Ritual", Count: 8}, {Name: "Memnite", Count: 8},
+		{Name: "Swamp", Count: 8}, {Name: "Mountain", Count: 4},
+	},
+	{ // B: plains do nothing
+		{Name: "Plains", Count: 40},
+	},
+}
+
+type addCostStats struct {
+	offers, casts int
+}
+
+// addCostProbe plays the deck's line: Breach, a sacrifice body, Village
+// Rites from hand, then the Dark Rituals that float the escape's mana, and
+// finally the escape cast.
+type addCostProbe struct {
+	st   *addCostStats
+	base Policy
+	r    *rand.Rand
+}
+
+func (p *addCostProbe) pick(c *PickCtx) Canon {
+	if c.G == nil {
+		return p.base.Pick(c)
+	}
+	eng := c.G.E
+	me := c.D.Player
+	var esc, breach, rites, ritual, memnites, lands []Canon
+	creatures, breachLive, ritesGrave := 0, false, false
+	for pl := uint8(0); pl < 2; pl++ {
+		for _, id := range eng.G.Zone(state.ZBattlefield, state.PlayerID(pl)) {
+			ob := eng.G.Obj(id)
+			if ob == nil || ob.Face() == nil {
+				continue
+			}
+			f := ob.Face()
+			if f.IsCreature() {
+				creatures++
+			}
+			if pl == me && f.Name == "Underworld Breach" {
+				breachLive = true
+			}
+		}
+	}
+	for _, id := range eng.G.Zone(state.ZGraveyard, state.PlayerID(me)) {
+		if ob := eng.G.Obj(id); ob != nil && ob.Face() != nil && ob.Face().Name == "Village Rites" {
+			ritesGrave = true
+		}
+	}
+	for _, x := range c.D.Options {
+		o, ok := c.G.GorgeOption(x)
+		if !ok {
+			continue
+		}
+		switch {
+		case o.Kind == "cast" && o.Mode == "escape":
+			if ob := eng.G.Obj(o.Obj); ob != nil && ob.Face() != nil && ob.Face().Name == "Village Rites" {
+				esc = append(esc, x)
+			}
+		case o.Kind == "cast":
+			if ob := eng.G.Obj(o.Obj); ob != nil && ob.Face() != nil {
+				switch ob.Face().Name {
+				case "Underworld Breach":
+					breach = append(breach, x)
+				case "Village Rites":
+					rites = append(rites, x)
+				case "Dark Ritual":
+					ritual = append(ritual, x)
+				case "Memnite":
+					memnites = append(memnites, x)
+				}
+			}
+		case o.Kind == "play_land":
+			lands = append(lands, x)
+		}
+	}
+	if len(esc) > 0 {
+		p.st.offers++
+	}
+	a := p.base.Pick(c)
+	switch {
+	case len(esc) > 0:
+		a = esc[p.r.IntN(len(esc))]
+	case len(breach) > 0:
+		a = breach[p.r.IntN(len(breach))]
+	case breachLive && len(memnites) > 0 && creatures < 2:
+		a = memnites[p.r.IntN(len(memnites))]
+	case breachLive && len(rites) > 0 && creatures > 0:
+		a = rites[p.r.IntN(len(rites))]
+	case breachLive && ritesGrave && len(ritual) > 0 && creatures > 0:
+		a = ritual[p.r.IntN(len(ritual))]
+	case len(lands) > 0 && p.r.IntN(2) != 0:
+		a = lands[p.r.IntN(len(lands))]
+	}
+	if a.Kind() == ActCast {
+		if o, ok := c.G.GorgeOption(a); ok && o.Mode == "escape" {
+			if ob := eng.G.Obj(o.Obj); ob != nil && ob.Face() != nil && ob.Face().Name == "Village Rites" {
+				p.st.casts++
+			}
+		}
+	}
+	return a
+}
+
+// TestEscapeAdditionalCostLockstep escapes Village Rites, whose own
+// additional sacrifice must precede the escape fodder on both sides. The
+// discard/sacrifice ordering is compared at every decision by Lockstep, so a
+// build that poses the three exile picks first diverges.
+func TestEscapeAdditionalCostLockstep(t *testing.T) {
+	t.Parallel()
+	st := &addCostStats{}
+	div := runDecks(t, 128, addCostDecks, "addcost", func(seed uint64) Policy {
+		p := &addCostProbe{st: st, base: RandomPolicy(seed), r: rand.New(rand.NewPCG(seed, 0x61646463))}
+		return PolicyFunc(p.pick)
+	})
+	t.Logf("128 games, addcost %+v, %d divergences", *st, b2i(div))
+	if div {
+		t.Fatal("diverged")
+	}
+	for _, c := range []struct {
+		n, min int
+		s      string
+	}{
+		{st.offers, 2, "Village Rites escape casts offered"},
+		{st.casts, 1, "Village Rites escape casts taken"},
+	} {
+		if c.n < c.min {
+			t.Errorf("%s: %d, want at least %d", c.s, c.n, c.min)
+		}
+	}
+}
+
+// mokDecks exercise the typed-filter grant: The Master of Keys gives escape
+// only to Enchantment.YouOwn, unlike Underworld Breach's Card.YouOwn+nonLand.
+// Seal of Fire (an enchantment sacrificed to its own ability) is the escape
+// fodder's card; Lightning Bolt and Akki Rockspeaker are the non-enchantment
+// controls that must never be offered escape under the Keys.
+var mokDecks = [2][]cardset.Entry{
+	{ // A: W/U/B/R
+		{Name: "The Master of Keys", Count: 4}, {Name: "Seal of Fire", Count: 8},
+		{Name: "Akki Rockspeaker", Count: 8}, {Name: "Lightning Bolt", Count: 4},
+		{Name: "Arcane Sanctum", Count: 8}, {Name: "Mountain", Count: 8},
+	},
+	{ // B: plains do nothing
+		{Name: "Plains", Count: 40},
+	},
+}
+
+type mokStats struct {
+	sealOffers, sealCasts, nonEnchOffers, mokCasts int
+}
+
+// mokProbe plays the Keys, bins a Seal of Fire to its own sacrifice ability,
+// floats red with Akki Rockspeaker and takes the Seal's escape cast.
+type mokProbe struct {
+	st   *mokStats
+	base Policy
+	r    *rand.Rand
+}
+
+func (p *mokProbe) pick(c *PickCtx) Canon {
+	if c.G == nil {
+		return p.base.Pick(c)
+	}
+	eng := c.G.E
+	me := c.D.Player
+	var esc, moks, seals, akkis, sacs, lands []Canon
+	mokLive := false
+	for pl := uint8(0); pl < 2; pl++ {
+		for _, id := range eng.G.Zone(state.ZBattlefield, state.PlayerID(pl)) {
+			if ob := eng.G.Obj(id); ob != nil && ob.Face() != nil && pl == me && ob.Face().Name == "The Master of Keys" {
+				mokLive = true
+			}
+		}
+	}
+	for _, x := range c.D.Options {
+		o, ok := c.G.GorgeOption(x)
+		if !ok {
+			continue
+		}
+		ob := eng.G.Obj(o.Obj)
+		name := ""
+		ench := false
+		if ob != nil && ob.Face() != nil {
+			name = ob.Face().Name
+			ench = ob.Face().IsEnchantment()
+		}
+		switch {
+		case o.Kind == "cast" && o.Mode == "escape":
+			if name == "Seal of Fire" {
+				esc = append(esc, x)
+			} else if !ench {
+				p.st.nonEnchOffers++
+			}
+		case o.Kind == "cast":
+			switch name {
+			case "The Master of Keys":
+				moks = append(moks, x)
+			case "Seal of Fire":
+				seals = append(seals, x)
+			case "Akki Rockspeaker":
+				akkis = append(akkis, x)
+			}
+		case o.Kind == "ability" && name == "Seal of Fire":
+			sacs = append(sacs, x)
+		case o.Kind == "play_land":
+			lands = append(lands, x)
+		}
+	}
+	if len(esc) > 0 {
+		p.st.sealOffers++
+	}
+	a := p.base.Pick(c)
+	switch {
+	case len(esc) > 0:
+		a = esc[p.r.IntN(len(esc))]
+	case mokLive && len(seals) > 0:
+		a = seals[p.r.IntN(len(seals))]
+	case mokLive && len(sacs) > 0:
+		a = sacs[p.r.IntN(len(sacs))]
+	case mokLive && len(akkis) > 0:
+		a = akkis[p.r.IntN(len(akkis))]
+	case len(moks) > 0:
+		a = moks[p.r.IntN(len(moks))]
+	case len(lands) > 0 && p.r.IntN(2) != 0:
+		a = lands[p.r.IntN(len(lands))]
+	}
+	switch {
+	case a.Kind() == ActCast:
+		if o, ok := c.G.GorgeOption(a); ok && o.Mode == "escape" {
+			if ob := eng.G.Obj(o.Obj); ob != nil && ob.Face() != nil && ob.Face().Name == "Seal of Fire" {
+				p.st.sealCasts++
+			}
+		}
+	}
+	if a.Kind() == ActCast {
+		if o, ok := c.G.GorgeOption(a); ok {
+			if ob := eng.G.Obj(o.Obj); ob != nil && ob.Face() != nil && ob.Face().Name == "The Master of Keys" {
+				p.st.mokCasts++
+			}
+		}
+	}
+	return a
+}
+
+// TestMasterOfKeysGrantLockstep plays the typed-filter escape grant and
+// requires the Keys' enchantment-only offer on both sides: an enchantment
+// (Seal of Fire) is offered and escaped, a non-enchantment never is.
+func TestMasterOfKeysGrantLockstep(t *testing.T) {
+	t.Parallel()
+	st := &mokStats{}
+	div := runDecks(t, 128, mokDecks, "mok", func(seed uint64) Policy {
+		p := &mokProbe{st: st, base: RandomPolicy(seed), r: rand.New(rand.NewPCG(seed, 0x6b657973))}
+		return PolicyFunc(p.pick)
+	})
+	t.Logf("128 games, mok %+v, %d divergences", *st, b2i(div))
+	if div {
+		t.Fatal("diverged")
+	}
+	for _, c := range []struct {
+		n, min int
+		s      string
+	}{
+		{st.mokCasts, 1, "The Master of Keys casts"},
+		{st.sealOffers, 2, "Seal of Fire escape casts offered"},
+		{st.sealCasts, 1, "Seal of Fire escape casts taken"},
+		{st.nonEnchOffers, 0, "non-enchantment escape offers under the Keys"},
 	} {
 		if c.n < c.min {
 			t.Errorf("%s: %d, want at least %d", c.s, c.n, c.min)

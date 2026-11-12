@@ -2351,15 +2351,20 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 			}
 		}
 		if e.trigPl == trigPlEscape {
-			// the escape cast's fodder (CR 702.42a; kw_escape.go): owed while
-			// fewer picks than the grant's count are recorded; then the
-			// spell's own Sac/Discard additional parts chain (the other arms
-			// above read no flag an escape cast sets)
-			if st := s.escapeStatic(k, e.ctrl, s.objs[e.obj].owner(), e.card); st != nil {
-				if ec := escapeFodder(st); int(ec.N) > s.exilePicks() {
-					return &ec
+			// the escape cast's own Sac/Discard additional parts come before
+			// its fodder (gorge costObjectAsks: sacrifice, subcounter,
+			// discard, then exAsk), so the fodder is owed only once they are
+			// posed and paid; while one is owed buildPickCost keeps returning
+			// the spell's own cost (CR 702.42a; kw_escape.go)
+			own := spellAddCost(k, e.card)
+			if pickKind(own.Flags)&pickKind(pickCosts)&^s.bld().donePicks == 0 {
+				if st := s.escapeStatic(k, e.ctrl, s.objs[e.obj].owner(), e.card); st != nil {
+					if ec := escapeFodder(st); int(ec.N) > s.exilePicks() {
+						return &ec
+					}
 				}
 			}
+			return own
 		}
 		return spellAddCost(k, e.card)
 	case seAbility:

@@ -33,13 +33,6 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // and 2).
 const castEscapeTgt uint8 = 3
 
-// canonEscape is the canon CastMode code of "escape" (canon.go castModes[14]):
-// gorge's offered escape option reaches applyPriority packed as mode 14
-// (gorge.go's generic castModeCode packing), the kernel's own offered form as
-// mode 2 with the castEscapeTgt target byte, translated out by canon/translate
-// and sbt. Both decode to g.escapeCast.
-const canonEscape uint8 = 14
-
 // FeatEscapeTgt is castEscapeTgt as the oracle sees it: the kernel's mode-2
 // target-3 cast canonicalises to gorge's "escape" option (canon translate.go,
 // sbt.go).
@@ -66,16 +59,6 @@ func (s *State) escapeStatic(k *prep, p, owner uint8, c CardID) *kop.Static {
 		return false
 	})
 	return got
-}
-
-// escapeLive reports whether a StatEscapeGrant static gives o, a card in its
-// owner's graveyard, escape now.
-func (s *State) escapeLive(k *prep, o Obj) bool {
-	if k.gen == nil || !k.gen.anyEscapeGrant {
-		return false
-	}
-	ob := &s.objs[o]
-	return ob.zone == kop.ZoneGraveyard && s.escapeStatic(k, ob.owner(), ob.owner(), ob.card) != nil
 }
 
 // escapeFodder is the exile part of the grant st's escape cost: N cards
