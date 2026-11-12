@@ -303,8 +303,10 @@ func (e *Engine) alternativeCostScopeOK(params map[string]string, id, srcID stat
 	// controller, the printed you. An unimplementable condition withholds
 	// the alternative (the same deny direction costConditionHolds takes for
 	// a ReduceCost: a wrongly-granted free cast is an illegal game action, a
-	// wrongly-withheld one merely an option lost).
-	if cond := strings.TrimSpace(params["Condition"]); cond != "" &&
+	// wrongly-withheld one merely an option lost). parseParams trims the
+	// value at the boundary, so the emptiness test needs no trimming here;
+	// costConditionHolds reads the key itself, IDs at that boundary.
+	if params["Condition"] != "" &&
 		!e.costConditionHolds(staticView{Params: params}, caster, id) {
 		return false
 	}
