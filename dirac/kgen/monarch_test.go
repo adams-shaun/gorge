@@ -90,6 +90,13 @@ func TestMonarchLowering(t *testing.T) {
 		{"trigger ValidPlayer", "T:Mode$ BecomeMonarch | ValidPlayer$ Player.OpponentOf Remembered | TriggerZones$ Battlefield | Execute$ ProbeDraw\nSVar:ProbeDraw:DB$ Draw | NumCards$ 1", "BecomeMonarch ValidPlayer"},
 		{"trigger BeginTurn", "T:Mode$ BecomeMonarch | ValidPlayer$ Opponent | BeginTurn$ Opponent | TriggerZones$ Battlefield | Execute$ ProbeDraw\nSVar:ProbeDraw:DB$ Draw | NumCards$ 1", "BecomeMonarch BeginTurn$"},
 		{"trigger zone", "T:Mode$ BecomeMonarch | ValidPlayer$ You | TriggerZones$ Command | Execute$ ProbeDraw\nSVar:ProbeDraw:DB$ Draw | NumCards$ 1", "BecomeMonarch trigger outside the battlefield"},
+		// Palace Jailer's shape (a paraphrase, not the script): an exile whose
+		// Effect returns the card when an opponent becomes the monarch
+		{"exile until an opponent becomes the monarch", "T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ ProbeExile\n" +
+			"SVar:ProbeExile:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | ValidTgts$ Creature.OppCtrl | SubAbility$ ProbeEffect\n" +
+			"SVar:ProbeEffect:DB$ Effect | Triggers$ ProbeBack | RememberObjects$ You & Targeted | Duration$ Permanent | ForgetOnMoved$ Exile\n" +
+			"SVar:ProbeBack:Mode$ BecomeMonarch | ValidPlayer$ Player.OpponentOf Remembered | Execute$ ProbeReturn | TriggerZones$ Command | Static$ True\n" +
+			"SVar:ProbeReturn:DB$ ChangeZoneAll | Origin$ Exile | Destination$ Battlefield | ChangeType$ Card.IsRemembered", "an exile until an opponent becomes the monarch (Palace Jailer) is not modelled"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

@@ -87,3 +87,16 @@ func (lc *lowerCtx) monarchGate(ps *params) bool {
 	}
 	return strings.HasPrefix(strings.TrimSpace(lc.face.SVars[cs]), "Count$Monarch.")
 }
+
+// monarchEffectTrigger refuses an Effect's Mode$ BecomeMonarch trigger by
+// name: Palace Jailer's "exile target creature an opponent controls until an
+// opponent becomes the monarch" (CR 610.3). gorge registers the trigger as a
+// static delayed promise that returns the card when an opponent of the
+// Effect's controller becomes the monarch, but its exile does not read the
+// promise: a card is exiled even when an opponent became the monarch after the
+// ability triggered, which CR 610.3b forbids (gorge's 610.3a/b guard,
+// effects exileHostGoneFor, reads only Duration$ UntilHostLeavesPlay). gorge
+// does not play the card text yet, so the kernel has nothing to follow.
+func monarchEffectTrigger() error {
+	return refuse("Effect Mode$ BecomeMonarch trigger: an exile until an opponent becomes the monarch (Palace Jailer) is not modelled; gorge's exile misses CR 610.3b for it")
+}
