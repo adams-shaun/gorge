@@ -3560,11 +3560,20 @@ func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 	case len(prod) == 1 && strings.Contains("WUBRGC", prod):
 		m.Colors = prod
 	case prod == "ColorIdentity" || prod == "Combo ColorIdentity":
-		// "any color in your commander's color identity" (CR 903.4): dirac plays
-		// no commander games, and gorge adds nothing for an empty identity, so the
-		// ability is a source of no colour, which the kernel leaves out of payment;
-		// a TriggersWhenSpent$ rider (Path of Ancestry's scry) waits on that
-		// mana being spent, so it never triggers
+		// "any color in your commander's color identity" (CR 903.4). A plain
+		// {T} source (Arcane Signet, Command Tower, Commander's Sphere, Hidden
+		// Hideout) reads the controller's commanders' identity at each use
+		// (kop.Ability.ManaIdentity; kernel mana_reflected.go identityColours):
+		// one colour adds it unasked, none adds nothing (CR 903.4f, gorge
+		// pay.CommanderIdentityColours). One with a rider (Path of Ancestry's
+		// scry, Opal Palace's counters) or a cost beyond {T} stays a source of no
+		// colour, which the kernel leaves out of payment: a TriggersWhenSpent$
+		// rider waits on that mana being spent, so it never triggers
+		if ps.peek("TriggersWhenSpent") == "" && ps.peek("AddsCounters") == "" && lc.granted == 0 && reflTapCost(&ab.Cost) {
+			m.Special = "ReflectedIdentity"
+			m.Colors, m.Choice, m.Amount = "WUBRG", true, cst(1)
+			return lc.finishMana(sa, ps, ab, m)
+		}
 		ps.str("TriggersWhenSpent")
 		m.Colors = ""
 		m.Amount = cst(1)

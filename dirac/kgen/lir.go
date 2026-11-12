@@ -999,6 +999,7 @@ type lCard struct {
 	ExiledWith     bool          // a resolution reads the exiled-with source link: the card records what it exiles (CardDef.ExiledWith)
 	CombatHitRec   bool          // a filter reads wasDealtCombatDamageThisTurnBySource against the card itself: its objects' combat hits on players are recorded (CardDef.CombatHitRec)
 	SpendRead      bool          // an SVar body reads Count$CastTotalManaSpent: gorge's planner declines the cast
+	Identity       kop.ColorMask // the card's colour identity (CardDef.Identity; a commander-identity mana ability's read)
 	ProduceCol     kop.ColorMask // the face's printed mana abilities' produced colours ({C} dropped; CardDef.ProduceCol; a Produce-mode reflected ability's read)
 	FbCost         *lCost        // the flashback cost's non-mana part (Sac<N/Spec> or tapXType<N/Spec>)
 	Madness        *manaCost     // K:Madness:<cost> (CR 702.35a): the exile-cast cost
