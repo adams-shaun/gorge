@@ -589,9 +589,6 @@ func (s *State) leave(k *prep, sl Slot, z kop.Zone, bottom bool) {
 }
 
 func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
-	if k.gen != nil && k.gen.anyPanharm {
-		s.panharmDepart(k, sl) // trig_doubling.go
-	}
 	if k.gen != nil && k.gen.anyUnearth && z != kop.ZoneExile {
 		z = s.unearthZone(sl, z) // cast_altfree.go
 	}
@@ -657,9 +654,6 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		s.settleSrcKw(k, sl, o)
 		s.snapSrcDepart(o) // CR 608.2h: its abilities read it as it last existed here (zone_lkisource.go)
 	}
-	if k.gen != nil && k.gen.anyPanharm {
-		p.flags &^= pfPanhGone
-	}
 	s.touch(o)
 	if s.g.nul != 0 {
 		s.untapLockLeft(o) // the lock ends with its target (act_untaplock.go)
@@ -676,6 +670,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	if s.g.netAny() {
 		s.netDrop(o)      // the lock ends when the permanent leaves (act_lockpermanent.go)
 		s.pgDropTarget(o) // so do the Panharmonicon grants it was given (act_grantpanharm.go)
+		s.pgDropHost(o)   // and the ones it hosted (CR 603.10a reads them on the look-back board above)
 	}
 	if k.gen != nil && k.gen.anyMonstrosity {
 		s.mSlClr(k, mechMonstrous, sl) // act_monstrosity.go
