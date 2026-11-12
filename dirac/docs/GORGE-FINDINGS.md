@@ -261,19 +261,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   dirac does not pose that ask: the game stalls with StallUncounterOrder
   (repl_uncounterable.go), loud, never a silent divergence. One match
   (the usual case) is exact.
-- A Room trigger printed on the door that is not live resolves against the
-  live face's SVar table in gorge. `printedFaceTrigger`
-  (engine/rules/trigger_inactive_face.go) scans the other face only when
-  `inactiveFaceLayout` holds, and that is `BackFaceIsBattlefieldOnly`
-  (engine/cards/layout.go), true only for `DoubleFaced`/`Modal`, not
-  `Split` (Rooms). So Roaring Furnace's door-0 unlock trigger (Steaming
-  Sauna live) leaves `X:Count$CardsInYourHand` unresolved and deals 0
-  where dirac resolves Roaring Furnace's own SVar and deals the hand
-  count; Unholy Annex's end-step trigger (Ritual Chamber live) loses its
-  `DBBranch`, so gorge drains 0 where dirac takes the Demon branch
-  (drain 2/2) or the `otherwise` branch (lose 2). dirac is
-  rules-correct; the rooms lockstep maps the 7 seeds whose first divergence
-  is this bug (`roomsKnown`).
 - Ward—Sacrifice a <filter>: CantSacrifice restrictions (gorge
   sacrificeBlockedForCost) are not modelled: no pooled card has one.
 - Hollowmurk Siege's Sultai draw (granted

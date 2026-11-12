@@ -463,6 +463,12 @@ func dumpLIR(w io.Writer, c *lCard) {
 			if t.VTgt != nil {
 				fmt.Fprintf(w, "      vtgting=true F=%s\n", t.VTgt)
 			}
+			if t.VYou {
+				fmt.Fprintf(w, "      vtgting=you\n")
+			}
+			if t.VSpellF != nil {
+				fmt.Fprintf(w, "      vspell F=%s\n", t.VSpellF)
+			}
 		}
 		for i, in := range a.Prog {
 			fmt.Fprintf(w, "    %2d %s\n", i, in)
