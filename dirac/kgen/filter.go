@@ -153,7 +153,6 @@ const (
 	cmpNoCounters     // !HasCounters: no counter at all (no operator)
 	cmpLacksKw        // !with<Keyword>: lacks keyword bit CmpN (no operator)
 	cmpOutlaw         // Outlaw (CmpN 0) / !Outlaw (CmpN 1): an Assassin, Mercenary, Pirate, Rogue or Warlock (no operator)
-	cmpHasManaAbility // hasManaAbility (CmpN 0) / !hasManaAbility (CmpN 1): the printed face has a mana ability (no operator)
 	cmpMonoColor      // MonoColor: exactly one colour (no operator)
 	cmpSameNameT0     // target 0 or a permanent sharing its name (Maelstrom Pulse)
 	cmpTotalPT        // totalPT_<op><n>: power plus toughness (Cut Down)
@@ -166,6 +165,7 @@ const (
 	cmpWasCastSpell   // wasCastFromYourHand[ByYou] / !wasCastFromYourHand / wasCastFromExile / CastSa Spell.MayPlaySource (or wasCast beside them) read on a spell on the stack (CmpN: spell* origin | spellNot; no operator)
 	cmpPermMark       // attackedThisTurn / dealtDamageThisTurn / dealtDamagetoAny / dealtCombatDamagetoAny, with or without ! (CmpN: kop.PermMark* | kop.PermMarkNot; no operator)
 	cmpTriggerObj     // the resolving trigger's object, wherever it is now (ChooseFromDefined$ TriggeredCards; kernel isTriggerObj; no operator)
+	cmpHasManaAbility // hasManaAbility (CmpN 0) / !hasManaAbility (CmpN 1): the printed face has a mana ability (no operator)
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
