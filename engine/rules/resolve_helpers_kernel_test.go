@@ -20,18 +20,6 @@ func resolveUnderProbe(e *Engine, ctx func() *effects.Ctx, sa *cards.SA) {
 	e.probe(func() { effects.Resolve(e, ctx(), sa) })
 }
 
-// optionOfObj returns the index of the option offering obj, or fails.
-func optionOfObj(t *testing.T, d *decision.Decision, obj state.ObjID) int {
-	t.Helper()
-	for _, o := range d.Options {
-		if o.Obj == obj {
-			return o.Index
-		}
-	}
-	t.Fatalf("object %d not offered: %+v", obj, d.Options)
-	return -1
-}
-
 // offersObj reports whether d offers obj.
 func offersObj(d *decision.Decision, obj state.ObjID) bool {
 	for _, o := range d.Options {

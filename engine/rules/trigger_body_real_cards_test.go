@@ -78,7 +78,7 @@ func TestYumaEnterCostDeclineDrawsNothing(t *testing.T) {
 
 	// Preconditions: Yuma itself is on the battlefield (the trigger fired on
 	// its own entry) and the paying land is there for the cost to take.
-	if o := e.G.Obj(srcID(t, e, "Yuma, Proud Protector")); o == nil || o.Zone != state.ZBattlefield {
+	if o := e.G.Obj(battlefieldIDOrFail(t, e, "Yuma, Proud Protector")); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("Yuma is not on the battlefield after entry")
 	}
 	if o := e.G.Obj(land); o == nil || o.Zone != state.ZBattlefield {
@@ -98,18 +98,6 @@ func TestYumaEnterCostDeclineDrawsNothing(t *testing.T) {
 	if draws, saccs, discards := movedEvents(e, mark); draws != 0 || saccs != 0 || discards != 0 {
 		t.Fatalf("declining moved cards: draws=%d sacrifices=%d discards=%d", draws, saccs, discards)
 	}
-}
-
-// srcID finds a battlefield object by face name.
-func srcID(t *testing.T, e *Engine, name string) state.ObjID {
-	t.Helper()
-	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
-		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
-			return id
-		}
-	}
-	t.Fatalf("no battlefield object named %q", name)
-	return 0
 }
 
 // TestYumaEnterCostPaysSacrificesChosenLandAndDraws pins the pay arm on the

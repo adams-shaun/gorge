@@ -15,7 +15,7 @@ import (
 // The maximum satisfiable duty count is one (CR 509.1a).
 func TestMustBlockCorpusFighterClassSelectedTargetDeclaration(t *testing.T) {
 	e := threeSeatEngine(t)
-	class := onBoardCard(t, e, 1, mshCorpusCard(t, "Fighter Class"))
+	class := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Fighter Class"))
 	blocker := onBoard(t, e, 0, "Name:Chosen blocker\nTypes:Creature\nPT:2/2\nOracle:x\n")
 	bystander := onBoard(t, e, 0, "Name:Bystander\nTypes:Creature\nPT:2/2\nOracle:x\n")
 	a := onBoard(t, e, 1, "Name:First attacker\nTypes:Creature\nPT:2/2\nOracle:x\n")
@@ -89,7 +89,7 @@ func TestMustBlockCorpusFighterClassSelectedTargetDeclaration(t *testing.T) {
 // ordinary MustBlock, blocking another attacker can also satisfy it.
 func TestMustBlockCorpusMagneticWebDefinedSetDeclaration(t *testing.T) {
 	e := threeSeatEngine(t)
-	web := onBoardCard(t, e, 0, mshCorpusCard(t, "Magnetic Web"))
+	web := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Magnetic Web"))
 	attacker := onBoard(t, e, 1, "Name:Marked attacker\nTypes:Creature\nPT:2/2\nOracle:x\n")
 	otherAttacker := onBoard(t, e, 1, "Name:Unmarked attacker\nTypes:Creature\nPT:2/2\nOracle:x\n")
 	blocker := onBoard(t, e, 0, "Name:Marked blocker\nTypes:Creature\nPT:2/2\nOracle:x\n")

@@ -185,8 +185,8 @@ func TestWithForetellDrivesGraveyardTargetSpec(t *testing.T) {
 	}
 	// A foretell card and a plain card in seat 0's graveyard; the target
 	// walk must offer only the one with foretell.
-	foretold := seedGraveCard(t, e, 0, "Name:Foretold Bloom\nManaCost:2 U\nTypes:Instant\nK:Foretell:2 U\nOracle:x\n")
-	plain := seedGraveCard(t, e, 0, "Name:Plain Bloom\nManaCost:2 U\nTypes:Instant\nOracle:x\n")
+	foretold := graveCreature(t, e, 0, "Name:Foretold Bloom\nManaCost:2 U\nTypes:Instant\nK:Foretell:2 U\nOracle:x\n")
+	plain := graveCreature(t, e, 0, "Name:Plain Bloom\nManaCost:2 U\nTypes:Instant\nOracle:x\n")
 	if !e.matchesSpecFrom(spec, foretold, 0, src.ID) {
 		t.Fatal("withForetell target spec did not match a foretell card in the graveyard")
 	}
@@ -194,20 +194,10 @@ func TestWithForetellDrivesGraveyardTargetSpec(t *testing.T) {
 		t.Fatal("withForetell target spec matched a card with no foretell")
 	}
 	// YouOwn excludes an opponent-owned foretell card.
-	opp := seedGraveCard(t, e, 1, "Name:Opp Bloom\nManaCost:2 U\nTypes:Instant\nK:Foretell:2 U\nOracle:x\n")
+	opp := graveCreature(t, e, 1, "Name:Opp Bloom\nManaCost:2 U\nTypes:Instant\nK:Foretell:2 U\nOracle:x\n")
 	if e.matchesSpecFrom(spec, opp, 0, src.ID) {
 		t.Fatal("withForetell+YouOwn target spec matched an opponent's card")
 	}
-}
-
-// seedGraveCard creates a card object and places it in p's graveyard (a
-// fixture placement, the same shape mayplay_test uses).
-func seedGraveCard(t *testing.T, e *Engine, p state.PlayerID, src string) state.ObjID {
-	t.Helper()
-	o := e.G.AddObject(card(t, src), p)
-	o.Zone = state.ZGraveyard
-	e.G.SetZone(state.ZGraveyard, p, append(e.G.Zone(state.ZGraveyard, p), o.ID))
-	return o.ID
 }
 
 func TestCosmosChargerWidensForetellToAnyPlayersTurn(t *testing.T) {

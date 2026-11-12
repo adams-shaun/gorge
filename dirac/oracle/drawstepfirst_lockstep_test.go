@@ -3,17 +3,8 @@ package oracle
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/state"
 )
-
-func drawStepFirstEntries(names []string) []cardset.Entry {
-	es := make([]cardset.Entry, len(names))
-	for i, n := range names {
-		es[i] = cardset.Entry{Name: n, Count: 1}
-	}
-	return es
-}
 
 func repeatName(name string, n int) []string {
 	out := make([]string, n)
@@ -48,7 +39,7 @@ func TestOrcishBowmastersFirstCardInDrawStepLockstep(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			tbl, _, _, err := set.Matchup(drawStepFirstEntries(decks[0]), drawStepFirstEntries(decks[1]))
+			tbl, _, _, err := set.Matchup(oneOfEachEntries(decks[0]), oneOfEachEntries(decks[1]))
 			if err != nil {
 				t.Fatal(err)
 			}

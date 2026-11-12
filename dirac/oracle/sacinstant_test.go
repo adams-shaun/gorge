@@ -100,7 +100,7 @@ func ksacinstRun(t *testing.T, seeds uint64, tot *ksacinstTally) (games, divSeed
 		t.Fatal(err)
 	}
 	md := [2][]cardset.Entry{ksacinstDeck, ksacinstDeck}
-	decks := kctrnamedDecksOf(t, reg, md)
+	decks := kcastDeck(t, reg, md)
 	tbl, _, _, err := set.Matchup(md[0], md[1])
 	if err != nil {
 		t.Fatal(err)

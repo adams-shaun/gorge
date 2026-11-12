@@ -79,7 +79,7 @@ func tokenForgeTappedSrc(script string) string {
 // second) and an accepted election rewrites the Treasure into a Clue.
 func TestTokenReplacementOptionalAsksAndAccepts(t *testing.T) {
 	t.Parallel()
-	lyev := tokenReplCorpusCard(t, "Flitwing, Lyev Detective")
+	lyev := corpusAlternativeCard(t, "Flitwing, Lyev Detective")
 	maker := cardByName(t, tokenForgeSrc("c_a_treasure_sac"))
 	e, cfg := tokenReplGame(t, 101, lyev, maker)
 	lyevID := moveSeededCard(t, e, 0, lyev, state.ZBattlefield)
@@ -114,7 +114,7 @@ func TestTokenReplacementOptionalAsksAndAccepts(t *testing.T) {
 // silent decline.
 func TestTokenReplacementOptionalDeclineStandsVerbatim(t *testing.T) {
 	t.Parallel()
-	lyev := tokenReplCorpusCard(t, "Flitwing Lyev, Detective")
+	lyev := corpusAlternativeCard(t, "Flitwing Lyev, Detective")
 	maker := cardByName(t, tokenForgeSrc("c_a_treasure_sac"))
 	e, cfg := tokenReplGame(t, 107, lyev, maker)
 	moveSeededCard(t, e, 0, lyev, state.ZBattlefield)
@@ -189,7 +189,7 @@ func TestTokenReplacementSVarAmountDoubles(t *testing.T) {
 // the first.
 func TestTokenReplacementRidersLandOnEveryExtra(t *testing.T) {
 	t.Parallel()
-	ds := tokenReplCorpusCard(t, "Doubling Season")
+	ds := corpusAlternativeCard(t, "Doubling Season")
 	maker := cardByName(t, tokenForgeTappedSrc("g_1_1_squirrel"))
 	e, cfg := tokenReplGame(t, 127, ds, maker)
 	dsID := moveSeededCard(t, e, 0, ds, state.ZBattlefield)
@@ -225,7 +225,7 @@ func TestTokenReplacementRidersLandOnEveryExtra(t *testing.T) {
 // creates enters under Cutpurse's controller's control instead.
 func TestCraftyCutpurseRedirectsOpponentTokens(t *testing.T) {
 	t.Parallel()
-	cutpurse := tokenReplCorpusCard(t, "Crafty Cutpurse")
+	cutpurse := corpusAlternativeCard(t, "Crafty Cutpurse")
 	maker := cardByName(t, tokenForgeSrc("g_1_1_squirrel"))
 	e, cfg := tokenReplGameSeats(t, 139, []*cards.Card{cutpurse}, []*cards.Card{maker})
 	cutID := moveSeededCard(t, e, 0, cutpurse, state.ZBattlefield)
@@ -268,7 +268,7 @@ func TestCraftyCutpurseRedirectsOpponentTokens(t *testing.T) {
 // NOT redirected.
 func TestCraftyCutpurseRegistrationExpiresAfterTheTurn(t *testing.T) {
 	t.Parallel()
-	cutpurse := tokenReplCorpusCard(t, "Crafty Cutpurse")
+	cutpurse := corpusAlternativeCard(t, "Crafty Cutpurse")
 	maker := cardByName(t, tokenForgeSrc("g_1_1_squirrel"))
 	e, cfg := tokenReplGameSeats(t, 149, []*cards.Card{cutpurse}, []*cards.Card{maker})
 	cutID := moveSeededCard(t, e, 0, cutpurse, state.ZBattlefield)

@@ -26,7 +26,7 @@ import (
 // makes this assertion pin the cap specifically.
 func TestTokenPlanCapAbortsStackedDoublers(t *testing.T) {
 	t.Parallel()
-	ds := tokenReplCorpusCard(t, "Doubling Season")
+	ds := corpusAlternativeCard(t, "Doubling Season")
 	maker := cardByName(t, tokenForgeSrc("g_1_1_squirrel"))
 	deck := make([]*cards.Card, 0, 22)
 	for i := 0; i < 21; i++ {
@@ -95,7 +95,7 @@ func TestTokenPlanCapAbortsCopyProposalAmount(t *testing.T) {
 // exists for the unrepresentable tail, not for any realistic stack.
 func TestTokenPlanCapAllowsRealisticDoublerStack(t *testing.T) {
 	t.Parallel()
-	ds := tokenReplCorpusCard(t, "Doubling Season")
+	ds := corpusAlternativeCard(t, "Doubling Season")
 	maker := cardByName(t, tokenForgeSrc("g_1_1_squirrel"))
 	deck := make([]*cards.Card, 0, 11)
 	for i := 0; i < 10; i++ {

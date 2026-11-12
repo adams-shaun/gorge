@@ -67,7 +67,7 @@ func (p *sagaremTally) check(ref *GorgeSide, _ Side) *Divergence {
 			p.exiled++ // the pool's only battlefield exile is chapter I's
 		case e.From == state.ZExile && e.To == state.ZBattlefield:
 			p.returned++
-		case e.From == state.ZBattlefield && rpName(g, e.Obj) == "The Measure of a Man":
+		case e.From == state.ZBattlefield && chName(g, e.Obj) == "The Measure of a Man":
 			if o := g.Obj(e.Obj); o != nil {
 				for _, r := range o.Remembered {
 					if ro := g.Obj(r.Obj); !r.IsPlayer && ro != nil && ro.Zone == state.ZExile {

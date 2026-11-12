@@ -21,7 +21,7 @@ func TestTokenEntryCountersUseReplacements(t *testing.T) {
 			{"Solemnity", "Urza's Saga", "LORE", 1, 0},
 		} {
 			t.Run(tc.rider+"/"+mint.String(), func(t *testing.T) {
-				entrant := tokenReplCorpusCard(t, tc.card)
+				entrant := corpusAlternativeCard(t, tc.card)
 				if grants := events.EntryCounterGrants(&state.Object{Card: entrant}, false); len(grants) != 1 || grants[0].Kind != tc.counter || grants[0].Amount != tc.base || tc.base == tc.want {
 					t.Fatalf("precondition: %s entry grants = %v, want %d %s (different from %d)", tc.card, grants, tc.base, tc.counter, tc.want)
 				}
@@ -46,7 +46,7 @@ func TestTokenEntryCountersUseReplacements(t *testing.T) {
 				}
 				replayCheck(t, base, baseCfg)
 
-				rider := tokenReplCorpusCard(t, tc.rider)
+				rider := corpusAlternativeCard(t, tc.rider)
 				e, cfg := tokenReplGame(t, 196, rider, entrant)
 				// TokenCreate reads a token script from the match's pinned
 				// registry; use the real corpus card as its definition. CardToken

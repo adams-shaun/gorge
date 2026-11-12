@@ -19,7 +19,7 @@ func TestMustBlockCorpusFighterClassSelectedTarget(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			e := threeSeatEngine(t)
-			card := mshCorpusCard(t, "Fighter Class")
+			card := corpusAlternativeCard(t, "Fighter Class")
 			source := onBoardCard(t, e, 0, card)
 			attacker := onBoard(t, e, 0, "Name:Class Attacker\nTypes:Creature Warrior\nPT:3/3\nOracle:x\n")
 			blocker := onBoard(t, e, 1, "Name:Chosen Blocker\nTypes:Creature Bear\nPT:3/3\nOracle:x\n")

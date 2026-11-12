@@ -17,14 +17,6 @@ import (
 // marked-damage heal of cleanup, regeneration or HealDamage is not damage
 // dealt) triggers nothing.
 
-// cr1208FightSA is the fixture fight: the resolving source fights the one
-// targeted creature (the TestFightZeroPowerAndOffBattlefieldNoWedge shape).
-func cr1208FightSA() *cards.SA {
-	return &cards.SA{Kind: "DB", API: "Fight", Params: map[string]string{
-		"Defined": "Self", "ValidTgts": "Creature",
-		"TargetMin": "0", "TargetMax": "1", "TgtPrompt": "x"}}
-}
-
 // cr1208DamageTo returns every logged Damage event whose recipient is obj.
 func cr1208DamageTo(e *Engine, from int, obj state.ObjID) []events.Event {
 	var out []events.Event
@@ -50,7 +42,7 @@ func TestCR120_8ZeroPowerFightDealsNoDamageAndTriggersNothing(t *testing.T) {
 	mark := len(e.L.Events)
 	queued := len(e.pendingTriggers)
 	effects.Resolve(e, &effects.Ctx{Source: pinger, Controller: 0,
-		Targets: []state.Target{{Obj: bear}}, TargetsOffered: true}, cr1208FightSA())
+		Targets: []state.Target{{Obj: bear}}, TargetsOffered: true}, cr70114TargetFightSA())
 	if got := cr1208DamageTo(e, mark, bear); len(got) != 0 {
 		t.Fatalf("0-power fighter's hit logged %+v; CR 120.8: 0 damage is no damage event", got)
 	}
@@ -72,7 +64,7 @@ func TestCR120_8ZeroPowerLifelinkGainsNoLife(t *testing.T) {
 	mark := len(e.L.Events)
 	life := e.G.Players[0].Life
 	effects.Resolve(e, &effects.Ctx{Source: linker, Controller: 0,
-		Targets: []state.Target{{Obj: bear}}, TargetsOffered: true}, cr1208FightSA())
+		Targets: []state.Target{{Obj: bear}}, TargetsOffered: true}, cr70114TargetFightSA())
 	for _, ev := range e.L.Events[mark:] {
 		if ev.Kind == events.LifeChange && ev.Player == 0 {
 			t.Fatalf("0-power lifelink fighter logged %+v; CR 120.8: no damage, no life", ev)
@@ -99,7 +91,7 @@ func TestCR120_8ZeroDamageHasNoEventToReplace(t *testing.T) {
 	bear := onBoard(t, e, 1, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/3\nOracle:x\n")
 	mark := len(e.L.Events)
 	effects.Resolve(e, &effects.Ctx{Source: imp, Controller: 0,
-		Targets: []state.Target{{Obj: bear}}, TargetsOffered: true}, cr1208FightSA())
+		Targets: []state.Target{{Obj: bear}}, TargetsOffered: true}, cr70114TargetFightSA())
 	for _, ev := range cr1208DamageTo(e, mark, bear) {
 		if ev.Amount > 0 {
 			t.Fatalf("Torbran replaced a 0-damage hit into %+v; CR 120.8: there is no event to replace", ev)
@@ -128,7 +120,7 @@ func TestCR120_8NegativePowerFightLeavesMarkedDamage(t *testing.T) {
 	}
 	mark := len(e.L.Events)
 	effects.Resolve(e, &effects.Ctx{Source: weak, Controller: 0,
-		Targets: []state.Target{{Obj: bear}}, TargetsOffered: true}, cr1208FightSA())
+		Targets: []state.Target{{Obj: bear}}, TargetsOffered: true}, cr70114TargetFightSA())
 	if got := cr1208DamageTo(e, mark, bear); len(got) != 0 {
 		t.Fatalf("negative-power hit logged %+v; CR 107.1b/120.8: it deals no damage", got)
 	}

@@ -66,34 +66,9 @@ func (c *kfacedownCounts) addUp(name string) {
 	c.upBy[name]++
 }
 
-// kfacedownName returns the printed name of the gorge option a canonical
-// action selects, or "" when it names no object.
-func kfacedownName(c *PickCtx, a Canon) string {
-	if c.G == nil {
-		return ""
-	}
-	o, ok := c.G.GorgeOption(a)
-	if !ok {
-		return ""
-	}
-	ob := c.G.E.G.Obj(o.Obj)
-	if ob == nil || ob.Face() == nil {
-		return ""
-	}
-	return ob.Face().Name
-}
-
 // kfacedownSetup counts the policy's own early actions across both seats.
 type kfacedownSetup struct {
 	moxen, priests, aven, turnUps int
-}
-
-func kfacedownMox(n string) bool {
-	switch n {
-	case "Mox Emerald", "Mox Sapphire", "Mox Jet", "Mox Ruby", "Mox Pearl":
-		return true
-	}
-	return false
 }
 
 // kfacedownPolicy drives the setup: six Moxen, Aven Farseer (the
@@ -113,9 +88,9 @@ func kfacedownPolicy(seed uint64, counts *kfacedownCounts, setup *kfacedownSetup
 			haveMox, haveAven, havePriest, haveDown, haveUp bool
 		)
 		for _, a := range c.D.Options {
-			n := kfacedownName(c, a)
+			n := optionFaceName(c, a)
 			switch {
-			case a.Kind() == ActCast && kfacedownMox(n):
+			case a.Kind() == ActCast && isMoxName(n):
 				mox, haveMox = a, true
 			case a.Kind() == ActCast && n == "Aven Farseer":
 				aven, haveAven = a, true
@@ -614,7 +589,7 @@ func kfacedownWardPolicy(seed uint64, setup *kfacedownWardSetup) Policy {
 				shock, haveShock = a, true
 			case a.Kind() == ActCast && n == "Mox Ruby":
 				ruby, haveRuby = a, true
-			case a.Kind() == ActCast && kfacedownMox(n):
+			case a.Kind() == ActCast && isMoxName(n):
 				mox, haveMox = a, true
 			case a.Kind() == ActCast && (n == "Priest of Urabrask" || n == "Priest of Gix"):
 				priest, havePriest = a, true

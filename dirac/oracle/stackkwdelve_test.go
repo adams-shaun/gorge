@@ -77,13 +77,13 @@ func kstackkwDelvePolicy(seed uint64, cnt map[string]int) Policy {
 		if c.D.Kind == DPriority && len(c.G.E.G.Stack) == 0 {
 			for _, name := range []string{"Teval, Arbiter of Virtue", "Iridescent Tiger"} {
 				for _, a := range c.D.Options {
-					if a.Kind() == ActCast && kbargainName(c.G, a.Src()) == name {
+					if a.Kind() == ActCast && refCardName(c.G, a.Src()) == name {
 						return a
 					}
 				}
 			}
 			for _, a := range c.D.Options {
-				if a.Kind() == ActCast && kstackkwDelveBig[kbargainName(c.G, a.Src())] && prng.IntN(4) != 0 {
+				if a.Kind() == ActCast && kstackkwDelveBig[refCardName(c.G, a.Src())] && prng.IntN(4) != 0 {
 					cnt["big-casts"]++
 					return a
 				}

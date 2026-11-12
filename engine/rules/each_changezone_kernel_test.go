@@ -251,7 +251,7 @@ func TestKernelEachExplicitZeroChangeNumSelectsNothing(t *testing.T) {
 					t.Fatalf("candidate %d ended in %s, want it to remain in %s", c, z, tc.zone)
 				}
 			}
-			if hasNoteContaining(e, "unimplemented API ChangeZone") {
+			if hasNote(e, "unimplemented API ChangeZone") {
 				t.Fatal("the ChangeZone handler did not run")
 			}
 			replayCheck(t, e, cfg)

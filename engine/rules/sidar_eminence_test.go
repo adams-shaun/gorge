@@ -48,7 +48,7 @@ func eminenceBoard(t *testing.T, sidar *cards.Card, otherSrc string) (*Engine, s
 	if got := e.G.Obj(so.ID).Zone; got != state.ZCommand {
 		t.Fatalf("precondition: Sidar zone = %s, want command", got)
 	}
-	if zoneHas(e.G.Zone(state.ZBattlefield, 0), so.ID) {
+	if contains(e.G.Zone(state.ZBattlefield, 0), so.ID) {
 		t.Fatal("precondition: Sidar must not also be on the battlefield")
 	}
 	// The Knight is a battlefield creature controlled by seat 0 with the

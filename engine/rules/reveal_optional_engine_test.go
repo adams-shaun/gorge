@@ -3,8 +3,6 @@ package rules
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/engine/decision"
-	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 )
@@ -35,55 +33,6 @@ func mayRevealEngine(t *testing.T, line string) (*Engine, state.ObjID) {
 	return e, o.ID
 }
 
-// castAndReachRevealAsk casts the spell directly (cr601's harness shape: the
-// direct proposal bypasses the offer gate, which a poolless seat needs for
-// even a {0} cost's offer path) and drives every intermediate decision until
-// the may-reveal ask itself is pending.
-func castAndReachRevealAsk(t *testing.T, e *Engine, id state.ObjID) *decision.Decision {
-	t.Helper()
-	e.pending = nil
-	e.beginCast(0, decision.Option{Kind: "cast", Obj: id})
-	e.Advance()
-	for i := 0; i < 200; i++ {
-		d := e.Pending()
-		if d == nil {
-			t.Fatal("no pending decision and no may-reveal ask")
-		}
-		if d.Kind == decision.KChoose && d.ResumeKind == "reveal_optional" {
-			return d
-		}
-		if d.Kind != decision.KPriority {
-			t.Fatalf("unexpected pending decision: %+v", d)
-		}
-		pass := -1
-		for _, o := range d.Options {
-			if o.Kind == "pass" {
-				pass = o.Index
-				break
-			}
-		}
-		if pass < 0 {
-			t.Fatalf("no pass option: %+v", d)
-		}
-		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{pass}}); err != nil {
-			t.Fatalf("submit: %v", err)
-		}
-	}
-	t.Fatal("never reached the may-reveal ask")
-	return nil
-}
-
-// revealNotes returns the non-Secret Notes carrying ids (the reveal Notes).
-func mayRevealNotes(e *Engine) []events.Event {
-	var out []events.Event
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note && !ev.Secret && len(ev.IDs) > 0 {
-			out = append(out, ev)
-		}
-	}
-	return out
-}
-
 // TestMayRevealHandAskSuspendsAndDeclineRevealsNothing drives the decline
 // arm: the ask suspends mid-resolution, "no" reveals nothing, and the
 // resolution finishes (the game continues past it).
@@ -94,11 +43,11 @@ func TestMayRevealHandAskSuspendsAndDeclineRevealsNothing(t *testing.T) {
 	if d.Player != 0 || len(d.Options) != 2 || d.Options[0].Kind != "yes" || d.Options[1].Kind != "no" {
 		t.Fatalf("ask = %+v, want a yes/no for the hand's owner", d)
 	}
-	if len(mayRevealNotes(e)) != 0 {
-		t.Fatalf("notes before the answer: %+v", mayRevealNotes(e))
+	if len(revealNotes(e)) != 0 {
+		t.Fatalf("notes before the answer: %+v", revealNotes(e))
 	}
 	submitChoices(t, e, 1) // "no"
-	if notes := mayRevealNotes(e); len(notes) != 0 {
+	if notes := revealNotes(e); len(notes) != 0 {
 		t.Fatalf("a declined may-reveal left reveal Notes: %+v", notes)
 	}
 	if e.G.Obj(id).Zone != state.ZGraveyard {
@@ -125,7 +74,7 @@ func TestMayRevealHandAcceptEmitsThePublicReveal(t *testing.T) {
 
 	bear := e.G.Zone(state.ZHand, 0)
 	submitChoices(t, e, 0) // "yes"
-	notes := mayRevealNotes(e)
+	notes := revealNotes(e)
 	if len(notes) != 1 || len(notes[0].IDs) != len(bear) {
 		t.Fatalf("reveal Notes = %+v, want exactly one naming the hand %v", notes, bear)
 	}

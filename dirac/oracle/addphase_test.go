@@ -85,14 +85,14 @@ func (p *kaddphaseProbe) observe(gs *GorgeSide) {
 // first-attack trigger: Aurelia, Fear of Missing Out, Raph & Leo, or a
 // creature equipped with Genji Glove.
 func (p *kaddphaseProbe) carrierAttack(gs *GorgeSide, a Canon) bool {
-	switch kbargainName(gs, a.Src()) {
+	switch refCardName(gs, a.Src()) {
 	case "Aurelia, the Warleader", "Fear of Missing Out", "Raph & Leo, Sibling Rivals":
 		return true
 	}
 	g := gs.E.G
 	id := gs.id.obj[a.Src()]
 	for _, bf := range g.Zone(state.ZBattlefield, g.Active) {
-		if o := g.Obj(bf); o != nil && kturntalliesName(g, bf) == "Genji Glove" && o.AttachedTo == id {
+		if o := g.Obj(bf); o != nil && firstFaceName(g, bf) == "Genji Glove" && o.AttachedTo == id {
 			return true
 		}
 	}

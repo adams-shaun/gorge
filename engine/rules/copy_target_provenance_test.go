@@ -20,7 +20,7 @@ func TestCopyFusedIllegalInheritedTargetKeepsDeclaration(t *testing.T) {
 	eng.priorityRound()
 	addMana(t, eng, 0, "RWCCCG")
 	wear := miscHandObj(t, eng, 0, "Wear")
-	submitChoices(t, eng, splitOption(t, eng, wear, "fuse").Index)
+	submitChoices(t, eng, adventureOption(t, eng, wear, "fuse").Index)
 	ring := miscBoardObj(t, eng, 1, "Sol Ring")
 	prison := miscBoardObj(t, eng, 1, "Ghostly Prison")
 	choose := func(id state.ObjID) {

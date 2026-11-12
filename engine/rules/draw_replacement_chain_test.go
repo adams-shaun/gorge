@@ -43,7 +43,7 @@ func TestThoughtReflectionDrawsMeetNotionThief(t *testing.T) {
 	if d == nil || d.Kind != decision.KReplacement {
 		t.Fatalf("precondition: the per-card draw must offer the CR 616.1 order choice, got %+v", d)
 	}
-	pick := optionForObj(d, tr)
+	pick := indexOfObjOption(d, tr)
 	if pick < 0 {
 		t.Fatalf("Thought Reflection missing from the draw competition: %+v", d.Options)
 	}
@@ -132,7 +132,7 @@ func TestSecondBloodScrivenerReplacesTheFirstDrawsFirstCard(t *testing.T) {
 	if d == nil || d.Kind != decision.KReplacement {
 		t.Fatalf("precondition: the two Scriveners must compete for the draw, got %+v", d)
 	}
-	pick := optionForObj(d, first)
+	pick := indexOfObjOption(d, first)
 	if pick < 0 {
 		t.Fatalf("the first Scrivener missing from the competition: %+v", d.Options)
 	}
@@ -167,7 +167,7 @@ func TestCompetingDrawCardsReplacementsAskTheDrawer(t *testing.T) {
 	if d == nil || d.Kind != decision.KReplacement || d.Player != 0 || len(d.Options) != 2 {
 		t.Fatalf("batch competition = %+v, want the draw-er ordering two DrawCards candidates", d)
 	}
-	pick := optionForObj(d, qr)
+	pick := indexOfObjOption(d, qr)
 	if pick < 0 {
 		t.Fatalf("Quantum Riddler missing from the batch competition: %+v", d.Options)
 	}

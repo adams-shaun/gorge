@@ -173,7 +173,7 @@ func checkCensus(t *testing.T, label, dir, mustCarry string) {
 		t.Fatalf("%s: census found no carriers at all; the corpus walk is broken", label)
 	}
 	if mustCarry != "" && !got[mustCarry] {
-		t.Fatalf("%s: precondition: %q is not a measured carrier, got %v", label, mustCarry, sortedCensusNames(got))
+		t.Fatalf("%s: precondition: %q is not a measured carrier, got %v", label, mustCarry, sortedSetKeys(got))
 	}
 
 	var gotNames, wantNames []string
@@ -195,15 +195,6 @@ func checkCensus(t *testing.T, label, dir, mustCarry string) {
 			t.Errorf("%s: %s labels = %v, want [%s]", label, name, labels, label)
 		}
 	}
-}
-
-func sortedCensusNames(m map[string]bool) []string {
-	out := make([]string, 0, len(m))
-	for k := range m {
-		out = append(out, k)
-	}
-	sort.Strings(out)
-	return out
 }
 
 // TestCorpusCensusFilesWellFormed holds the three census directories to the

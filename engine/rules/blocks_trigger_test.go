@@ -47,7 +47,7 @@ func blocksCombatEngine(t *testing.T, active state.PlayerID) *Engine {
 // Food, the attack half first.
 func TestSavvyHunterBlocksCreatesFood(t *testing.T) {
 	t.Parallel()
-	hunter := mshCorpusCard(t, "Savvy Hunter")
+	hunter := corpusAlternativeCard(t, "Savvy Hunter")
 	// The ATTACK half (the control arm, trig:Attacks): the Hunter attacks, a
 	// Memnite blocks it; the drain resolves the Attacks trigger pushed at
 	// the attacker submission.
@@ -93,7 +93,7 @@ func TestSavvyHunterBlocksCreatesFood(t *testing.T) {
 // BLOCKER's controller, never the attacker's.
 func TestBlocksTriggerFiresPerPair(t *testing.T) {
 	t.Parallel()
-	hob := mshCorpusCard(t, "Heat of Battle")
+	hob := corpusAlternativeCard(t, "Heat of Battle")
 	e := blocksCombatEngine(t, 0)
 	onBoardCard(t, e, 0, hob)
 	a1 := onBoardReady(t, e, 0, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
@@ -175,7 +175,7 @@ func TestBlocksTriggerBlockerReferents(t *testing.T) {
 	// attacker seat 0's, the blocker seat 1's -- the 1 damage lands on the
 	// blocker's controller (seat 1) and seat 0 is untouched.
 	e2 := blocksCombatEngine(t, 0)
-	onBoardCard(t, e2, 1, mshCorpusCard(t, "Heat of Battle"))
+	onBoardCard(t, e2, 1, corpusAlternativeCard(t, "Heat of Battle"))
 	atk := onBoardReady(t, e2, 0, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	blk := onBoard(t, e2, 1, "Name:Memnite\nManaCost:0\nTypes:Artifact Creature Construct\nPT:1/1\nOracle:x\n")
 	q0, q1 := e2.G.Players[0].Life, e2.G.Players[1].Life
@@ -281,7 +281,7 @@ func TestBlocksTriggerAttachedBearer(t *testing.T) {
 // pre-existing engine gap; see this round's report.)
 func TestBlocksTriggerValidBlockedGatesAttacker(t *testing.T) {
 	t.Parallel()
-	rashka := mshCorpusCard(t, "Rashka the Slayer")
+	rashka := corpusAlternativeCard(t, "Rashka the Slayer")
 	black := "Name:Black Rat\nManaCost:B\nTypes:Creature Rat\nPT:1/1\nOracle:x\n"
 	mem := "Name:Memnite\nManaCost:0\nTypes:Artifact Creature Construct\nPT:1/1\nOracle:x\n"
 
@@ -322,7 +322,7 @@ func TestBlocksTriggerValidBlockedGatesAttacker(t *testing.T) {
 	// -- exactly one trigger, admitted through ValidBlocked$ Card.Self while
 	// the blocks spelling's ValidCard$ Card.Self excludes itself (the
 	// blocker is the Memnite).
-	cadets := mshCorpusCard(t, "Goblin Cadets")
+	cadets := corpusAlternativeCard(t, "Goblin Cadets")
 	e3 := blocksCombatEngine(t, 0)
 	c3 := onBoardCard(t, e3, 0, cadets)
 	e3.G.Obj(c3).SummonSick = false
@@ -362,7 +362,7 @@ func TestBlocksTriggerValidBlockedGatesAttacker(t *testing.T) {
 // identical event log.
 func TestBlocksTriggerCloneReplaysExactly(t *testing.T) {
 	t.Parallel()
-	hunter := mshCorpusCard(t, "Savvy Hunter")
+	hunter := corpusAlternativeCard(t, "Savvy Hunter")
 	e := blocksCombatEngine(t, 1)
 	h := onBoardCard(t, e, 0, hunter)
 	b := onBoard(t, e, 1, "Name:Memnite\nManaCost:0\nTypes:Artifact Creature Construct\nPT:1/1\nOracle:x\n")

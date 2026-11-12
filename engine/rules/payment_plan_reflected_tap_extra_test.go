@@ -22,7 +22,7 @@ func TestPaymentPlanReflectedTapExtraFolds(t *testing.T) {
 		e, _, spell := newFixtureDeck(t, 9361, twoSpell)
 		mtn := onBoard(t, e, 0, ppMountain)
 		onBoard(t, e, 1, reflectedTapExtraCarrier)
-		a := ppAction(t, ppAsk(t, e), spell)
+		a := ppAction(t, paymentPlanReask(t, e), spell)
 		acts := a.Plans[0].Activations
 		if len(acts) != 1 || acts[0].Source != mtn {
 			t.Fatalf("plan = %#v, want the one Mountain", acts)
@@ -35,7 +35,7 @@ func TestPaymentPlanReflectedTapExtraFolds(t *testing.T) {
 		e, _, spell := newFixtureDeck(t, 9363, twoSpell)
 		dual := onBoard(t, e, 0, "Name:Combo Test\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Combo R G | SpellDescription$ x\nOracle:x\n")
 		onBoard(t, e, 1, reflectedTapExtraCarrier)
-		acts := ppAction(t, ppAsk(t, e), spell).Plans[0].Activations
+		acts := ppAction(t, paymentPlanReask(t, e), spell).Plans[0].Activations
 		if len(acts) != 1 || acts[0].Source != dual {
 			t.Fatalf("plan = %#v, want the one dual land", acts)
 		}
@@ -47,7 +47,7 @@ func TestPaymentPlanReflectedTapExtraFolds(t *testing.T) {
 		e, _, _ := newFixtureDeck(t, 9362, twoSpell)
 		dual := onBoard(t, e, 0, "Name:Dual Test\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ R G\nOracle:x\n")
 		onBoard(t, e, 1, reflectedTapExtraCarrier)
-		for _, a := range ppAsk(t, e).PaymentActions {
+		for _, a := range paymentPlanReask(t, e).PaymentActions {
 			for _, p := range a.Plans {
 				for _, act := range p.Activations {
 					if act.Source == dual {

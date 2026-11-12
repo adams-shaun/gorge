@@ -46,17 +46,6 @@ func answerGift(t *testing.T, e *Engine, promise bool) {
 	t.Fatalf("gift ask has no %s option: %+v", want, d.Options)
 }
 
-// targetOptionIndex returns the option index for object id in a pending
-// decision, or -1.
-func targetOptionIndex(d *decision.Decision, id state.ObjID) int {
-	for _, o := range d.Options {
-		if o.Obj == id {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 // deityArtifacts is a pair of cheap real artifacts used as Wear Down targets.
 func wearDownGame(t *testing.T, seed uint64) (*Engine, Config, state.ObjID, state.ObjID, state.ObjID) {
 	t.Helper()
@@ -95,7 +84,7 @@ func TestGiftWearDownPromisedDestroysTwoAndDrawsForPromised(t *testing.T) {
 	if d.Min != 2 || d.Max != 2 {
 		t.Fatalf("promised Wear Down target bound = %d..%d, want 2..2 (Count$PromisedGift.2.1 unread)", d.Min, d.Max)
 	}
-	i1, i2 := targetOptionIndex(d, a1), targetOptionIndex(d, a2)
+	i1, i2 := indexOfObjOption(d, a1), indexOfObjOption(d, a2)
 	if i1 < 0 || i2 < 0 {
 		t.Fatalf("target ask does not offer both artifacts: %+v", d.Options)
 	}
@@ -129,7 +118,7 @@ func TestGiftWearDownDeclinedDestroysOneAndNoDraw(t *testing.T) {
 	if d.Min != 1 || d.Max != 1 {
 		t.Fatalf("declined Wear Down target bound = %d..%d, want 1..1", d.Min, d.Max)
 	}
-	i1 := targetOptionIndex(d, a1)
+	i1 := indexOfObjOption(d, a1)
 	if i1 < 0 {
 		t.Fatalf("target ask does not offer %d: %+v", a1, d.Options)
 	}
@@ -178,7 +167,7 @@ func drainGiftTargets(t *testing.T, e *Engine, target state.ObjID, limit int) {
 		}
 		switch d.Kind {
 		case decision.KTarget:
-			i := targetOptionIndex(d, target)
+			i := indexOfObjOption(d, target)
 			if i < 0 {
 				t.Fatalf("mid-resolution gift target ask does not offer %d: %+v", target, d.Options)
 			}
@@ -188,7 +177,7 @@ func drainGiftTargets(t *testing.T, e *Engine, target state.ObjID, limit int) {
 		case decision.KChoose:
 			// The mid-resolution target ask is posed as a KChoose with
 			// ResumeKind "tgts" (effects' AskTarget path), not a KTarget.
-			i := targetOptionIndex(d, target)
+			i := indexOfObjOption(d, target)
 			if i < 0 {
 				t.Fatalf("mid-resolution gift target choose does not offer %d: %+v", target, d.Options)
 			}
@@ -363,7 +352,7 @@ func TestGiftKitnapPromisedDrawsAndSkipsStunCounters(t *testing.T) {
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("Kitnap aura target ask = %+v", d)
 	}
-	i := targetOptionIndex(d, bear)
+	i := indexOfObjOption(d, bear)
 	if i < 0 {
 		t.Fatalf("Kitnap target ask does not offer the bear: %+v", d.Options)
 	}
@@ -402,7 +391,7 @@ func TestGiftKitnapDeclinedPutsThreeStunCounters(t *testing.T) {
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("Kitnap aura target ask = %+v", d)
 	}
-	i := targetOptionIndex(d, bear)
+	i := indexOfObjOption(d, bear)
 	if i < 0 {
 		t.Fatalf("Kitnap target ask does not offer the bear: %+v", d.Options)
 	}

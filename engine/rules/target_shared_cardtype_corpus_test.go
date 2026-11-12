@@ -102,10 +102,10 @@ func TestSharedCardTypeRealSAPin(t *testing.T) {
 			if d == nil {
 				t.Fatal("real ExchangeControl SA posed no target decision")
 			}
-			if setPropOptionIndex(d, artifact) == -1 {
+			if indexOfObjOption(d, artifact) == -1 {
 				t.Fatal("whitelisted Artifact was not offered by real SA")
 			}
-			if setPropOptionIndex(d, enchantment) != -1 {
+			if indexOfObjOption(d, enchantment) != -1 {
 				t.Fatal("non-whitelisted Enchantment was offered by real SA")
 			}
 

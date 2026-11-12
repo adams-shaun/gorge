@@ -69,7 +69,7 @@ func TestLoseManaBoundaryResumesAfterProduceManaChoice(t *testing.T) {
 	// Bind the production context for the converted ManaAdd to exercise the
 	// nested replacement-choice path (normally boundary conversion is not a tap).
 	e.manaProducer, e.manaFromTap = mountain, true
-	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{optionForObj(d, ids[0])}}); err != nil {
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{indexOfObjOption(d, ids[0])}}); err != nil {
 		t.Fatal(err)
 	}
 	d = e.Pending()
@@ -79,7 +79,7 @@ func TestLoseManaBoundaryResumesAfterProduceManaChoice(t *testing.T) {
 	if e.G.Players[1].Pool.Total() != 1 {
 		t.Fatal("remaining seat cleared before nested answer")
 	}
-	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{optionForObj(d, ids[2])}}); err != nil {
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{indexOfObjOption(d, ids[2])}}); err != nil {
 		t.Fatal(err)
 	}
 	d = e.Pending()

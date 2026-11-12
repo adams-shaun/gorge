@@ -28,15 +28,6 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-func modeOptionByLabel(d *decision.Decision, label string) int {
-	for _, o := range d.Options {
-		if o.Label == label {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 // TestFaceToFaceNotifyIsNotAsked casts Face to Face at seat 1, throws Rock
 // against Scissors twice (two wins), and asserts the match never poses the
 // one-option Notify GenericChoice to anyone, the 5 damage lands, and the
@@ -85,7 +76,7 @@ func TestFaceToFaceNotifyIsNotAsked(t *testing.T) {
 			if d.Player == 1 {
 				want = "Scissors"
 			}
-			j := modeOptionByLabel(d, want)
+			j := optionIndexByLabel(d, want)
 			if j < 0 {
 				t.Fatalf("seat %d throw ask has no %s: %+v", d.Player, want, d.Options)
 			}

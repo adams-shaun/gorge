@@ -19,15 +19,15 @@ import (
 
 func mbengaEntryCounters(t *testing.T, seed uint64, enter string, alreadyOut ...string) int32 {
 	t.Helper()
-	troi := tokenReplCorpusCard(t, "Deanna Troi, Psychic Counsel")
+	troi := corpusAlternativeCard(t, "Deanna Troi, Psychic Counsel")
 	seat0 := []*cards.Card{troi}
 	var out []*cards.Card
 	for _, n := range alreadyOut {
-		c := tokenReplCorpusCard(t, n)
+		c := corpusAlternativeCard(t, n)
 		out = append(out, c)
 		seat0 = append(seat0, c)
 	}
-	entrant := tokenReplCorpusCard(t, enter)
+	entrant := corpusAlternativeCard(t, enter)
 	seat0 = append(seat0, entrant)
 	e, cfg := tokenReplGame(t, seed, seat0...)
 	moveSeededCard(t, e, 0, troi, state.ZBattlefield)

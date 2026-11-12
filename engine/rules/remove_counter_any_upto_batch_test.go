@@ -20,7 +20,7 @@ import (
 func TestRemoveCounterAnyUpToBatchesCounterRemovedOnce(t *testing.T) {
 	t.Parallel()
 	e := corpusTokenEngine(t)
-	reg := onBoardCard(t, e, 0, mshCorpusCard(t, "Regenerations Restored"))
+	reg := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Regenerations Restored"))
 	e.emit(events.Event{Kind: events.CounterChange, Obj: reg, Counter: "TIME", Amount: 4})
 	if o := e.G.Obj(reg); o == nil || o.Zone != state.ZBattlefield || o.Counter("TIME") != 4 {
 		t.Fatalf("precondition: Regenerations Restored = %+v, want battlefield with four TIME", o)
@@ -29,7 +29,7 @@ func TestRemoveCounterAnyUpToBatchesCounterRemovedOnce(t *testing.T) {
 		t.Fatalf("precondition: the TIME put queued %d triggers, want 0", len(e.pendingTriggers))
 	}
 
-	glissa := mshCorpusCard(t, "Glissa Sunslayer")
+	glissa := corpusAlternativeCard(t, "Glissa Sunslayer")
 	mode := cards.ResolveSVar(glissa.Faces[0].SVars, "DBRemove")
 	if mode == nil || mode.API != "RemoveCounter" {
 		t.Fatalf("Glissa DBRRemove = %+v, want RemoveCounter", mode)

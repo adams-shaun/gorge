@@ -8,17 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
-
-func suspendCorpusCard(t *testing.T, name string) *cards.Card {
-	t.Helper()
-	c, ok := testutil.CorpusRegistry(t).Lookup(name)
-	if !ok {
-		t.Fatalf("corpus missing %s", name)
-	}
-	return c
-}
 
 // giveSuspendThroughDoctor resolves The Tenth Doctor's REAL compiled
 // GiveSuspend body against one remembered exiled card, exactly as the card's
@@ -48,8 +38,8 @@ func giveSuspendThroughDoctor(t *testing.T, e *Engine, doctorID, targetID state.
 // keyword view would never tick TIME and never reach the suspend cast queue.
 func TestTenthDoctorExileGainsSuspendAndCasts(t *testing.T) {
 	t.Parallel()
-	doctor := suspendCorpusCard(t, "The Tenth Doctor")
-	spell := suspendCorpusCard(t, "Grizzly Bears") // no printed Suspend
+	doctor := corpusAlternativeCard(t, "The Tenth Doctor")
+	spell := corpusAlternativeCard(t, "Grizzly Bears") // no printed Suspend
 	e := handEngine(t, doctor, spell)
 	doctorID, spellID := e.G.Zone(state.ZHand, 0)[0], e.G.Zone(state.ZHand, 0)[1]
 	e.emit(events.Event{Kind: events.MoveZone, Obj: doctorID, From: state.ZHand, To: state.ZBattlefield})
@@ -112,9 +102,9 @@ func TestTenthDoctorExileGainsSuspendAndCasts(t *testing.T) {
 // the grant's own consumer.
 func TestRoseTylerBadWolfCountsSuspendedCards(t *testing.T) {
 	t.Parallel()
-	doctor := suspendCorpusCard(t, "The Tenth Doctor")
-	rose := suspendCorpusCard(t, "Rose Tyler")
-	spell := suspendCorpusCard(t, "Grizzly Bears")
+	doctor := corpusAlternativeCard(t, "The Tenth Doctor")
+	rose := corpusAlternativeCard(t, "Rose Tyler")
+	spell := corpusAlternativeCard(t, "Grizzly Bears")
 	e := handEngine(t, doctor, rose, spell)
 	doctorID, roseID, spellID := e.G.Zone(state.ZHand, 0)[0], e.G.Zone(state.ZHand, 0)[1], e.G.Zone(state.ZHand, 0)[2]
 	e.emit(events.Event{Kind: events.MoveZone, Obj: doctorID, From: state.ZHand, To: state.ZBattlefield})
@@ -150,9 +140,9 @@ func TestRoseTylerBadWolfCountsSuspendedCards(t *testing.T) {
 // puts the chosen card on the stack without its printed mana cost.
 func TestFaceOfBoeCastsSuspendedSpellAtSuspendCost(t *testing.T) {
 	t.Parallel()
-	boe := suspendCorpusCard(t, "The Face of Boe")
-	spell := suspendCorpusCard(t, "Profane Tutor") // K:Suspend:2:1 B
-	nonSuspend := suspendCorpusCard(t, "Grizzly Bears")
+	boe := corpusAlternativeCard(t, "The Face of Boe")
+	spell := corpusAlternativeCard(t, "Profane Tutor") // K:Suspend:2:1 B
+	nonSuspend := corpusAlternativeCard(t, "Grizzly Bears")
 	e := handEngine(t, boe, spell, nonSuspend)
 	hand := e.G.Zone(state.ZHand, 0)
 	boeID, spellID, nonSuspendID := hand[0], hand[1], hand[2]

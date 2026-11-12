@@ -132,7 +132,7 @@ func (p *choiceScenario) Pick(c *PickCtx) Canon {
 			return a
 		}
 		if d.Player == 1 {
-			if a, ok := mccoyCast(c, g, 1, "Emergency Medical Hologram"); ok {
+			if a, ok := reproHandCastAction(c, g, 1, "Emergency Medical Hologram"); ok {
 				return a
 			}
 			return pickKind(c, ActPass)
@@ -144,7 +144,7 @@ func (p *choiceScenario) Pick(c *PickCtx) Canon {
 		if p.mode == 0 && snap.holos == 0 {
 			return pickKind(c, ActPass)
 		}
-		if a, ok := mccoyCast(c, g, 0, "Impossible Choice"); ok {
+		if a, ok := reproHandCastAction(c, g, 0, "Impossible Choice"); ok {
 			p.cast, p.snap = true, snap
 			return a
 		}

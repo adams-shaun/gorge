@@ -11,7 +11,7 @@ import (
 // Engine lose defender AND become unblockable for the animation's lifetime.
 func TestSurgeEngineAnimateUnblockable(t *testing.T) {
 	t.Parallel()
-	card := mshCorpusCard(t, "Surge Engine")
+	card := corpusAlternativeCard(t, "Surge Engine")
 	e := chargeEngine(t, 8201, card)
 	bear := onBoardReady(t, e, 1, bearBlockSrc)
 	e.Advance()

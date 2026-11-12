@@ -162,7 +162,7 @@ func TestSurveilWithoutSurveilNumStaticLooksAtOne(t *testing.T) {
 	t.Parallel()
 	e, cfg, id := newFixtureDeck(t, 603, surveilOneSrc)
 	addMana(t, e, 0, "U")
-	d := surveilDecision(t, e, id)
+	d := scryDecision(t, e, id)
 	if d.Max != 1 {
 		t.Fatalf("KArrange Max without the static = %d, want 1", d.Max)
 	}

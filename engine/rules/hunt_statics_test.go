@@ -249,23 +249,14 @@ func warsTollBoard(t *testing.T) (*Engine, []state.ObjID, state.ObjID) {
 	return e, able, tapped
 }
 
-func huntOptionOf(d *decision.Decision, obj state.ObjID) int {
-	for _, o := range d.Options {
-		if o.Obj == obj {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 // TestAttackRequirementWholeDeclaration: under War's Toll one able attacker
 // alone is rejected, all able attackers are accepted and so is the empty
 // declaration.
 func TestAttackRequirementWholeDeclaration(t *testing.T) {
 	e, able, _ := warsTollBoard(t)
 	d := e.Pending()
-	one := []int{huntOptionOf(d, able[0])}
-	both := []int{huntOptionOf(d, able[0]), huntOptionOf(d, able[1])}
+	one := []int{indexOfObjOption(d, able[0])}
+	both := []int{indexOfObjOption(d, able[0]), indexOfObjOption(d, able[1])}
 	if one[0] < 0 || both[1] < 0 {
 		t.Fatalf("precondition: able creatures not offered: %+v", d.Options)
 	}
@@ -324,7 +315,7 @@ func TestAttackRequirementBotAnswerPassesValidator(t *testing.T) {
 func TestAttackRequirementRepairCompletesClause(t *testing.T) {
 	e, able, _ := warsTollBoard(t)
 	d := e.Pending()
-	got := d.FitRequired([]int{huntOptionOf(d, able[0])})
+	got := d.FitRequired([]int{indexOfObjOption(d, able[0])})
 	if err := d.Validate(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: got}); err != nil {
 		t.Fatalf("FitRequired returned %v which Validate rejects: %v", got, err)
 	}

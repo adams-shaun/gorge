@@ -15,10 +15,10 @@ import (
 func TestMustBlockMinTeamBotAnswerNeverLivelocks(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	watchdog := onBoardCard(t, e, 0, mshCorpusCard(t, "Watchdog"))
+	watchdog := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Watchdog"))
 	bear := onBoardCard(t, e, 0, card(t, "Name:First Helper\nTypes:Creature Bear\nPT:1/2\nOracle:x\n"))
 	other := onBoardCard(t, e, 0, card(t, "Name:Second Helper\nTypes:Creature Bear\nPT:1/2\nOracle:x\n"))
-	cerberus := onBoardCard(t, e, 1, mshCorpusCard(t, "Underworld Cerberus"))
+	cerberus := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Underworld Cerberus"))
 	attackSeat0(t, e, cerberus)
 	min, _, ok, _, _ := e.minMaxBlockerBounds(cerberus)
 	if !ok || min != 3 || e.legalBlockerCount(cerberus, 0) != 3 {
@@ -60,8 +60,8 @@ func TestMustBlockMinTeamBotAnswerNeverLivelocks(t *testing.T) {
 func TestMustBlockTwoWatchdogsShareAttacker(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	first := onBoardCard(t, e, 0, mshCorpusCard(t, "Watchdog"))
-	second := onBoardCard(t, e, 0, mshCorpusCard(t, "Watchdog"))
+	first := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Watchdog"))
+	second := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Watchdog"))
 	attacker := onBoardCard(t, e, 1, card(t, "Name:Plain Attack\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"))
 	attackSeat0(t, e, attacker)
 	if e.G.Obj(first).Zone != state.ZBattlefield || e.G.Obj(second).Zone != state.ZBattlefield || !e.canBlock(first, attacker) || !e.canBlock(second, attacker) {
@@ -128,10 +128,10 @@ func TestMustBlockAlternateAffordableRequirement(t *testing.T) {
 func TestMustBlockPrefersLegalSingletonOverMinTeam(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	watchdog := onBoardCard(t, e, 0, mshCorpusCard(t, "Watchdog"))
+	watchdog := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Watchdog"))
 	bear := onBoardCard(t, e, 0, card(t, "Name:Helper 1\nTypes:Creature Bear\nPT:1/2\nOracle:x\n"))
 	other := onBoardCard(t, e, 0, card(t, "Name:Helper 2\nTypes:Creature Bear\nPT:1/2\nOracle:x\n"))
-	cerberus := onBoardCard(t, e, 1, mshCorpusCard(t, "Underworld Cerberus"))
+	cerberus := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Underworld Cerberus"))
 	plain := onBoardCard(t, e, 1, card(t, "Name:Plain Attacker\nTypes:Creature Bear\nPT:1/2\nOracle:x\n"))
 	attackSeat0(t, e, cerberus, plain)
 	if e.G.Obj(watchdog).Zone != state.ZBattlefield || !e.canBlock(watchdog, plain) || !e.canBlock(watchdog, cerberus) || e.legalBlockerCount(cerberus, 0) != 3 {

@@ -70,7 +70,7 @@ func pmcAttackSeat(t *testing.T, flag bool, c pmcClass, spoil bool) (*Engine, st
 		Tokens: testutil.CorpusRegistry(t).Tokens,
 		Decks:  [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40)}}
 	e := New(cfg)
-	onBoardCard(t, e, 0, mshCorpusCard(t, "Baird, Steward of Argive"))
+	onBoardCard(t, e, 0, corpusAlternativeCard(t, "Baird, Steward of Argive"))
 	bear := onBoardReady(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:0/4\nOracle:x\n")
 	src := c.place(t, e, 1)
 	if o := e.G.Obj(src); o.Zone != state.ZBattlefield || o.Tapped {

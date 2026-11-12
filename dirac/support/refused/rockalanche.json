@@ -1,0 +1,16 @@
+{
+  "card": "Rockalanche",
+  "class": "options-options",
+  "why": "gorge's potential line taps Gran-Gran for the flashback cost and lets its Taps draw/discard resolve, discarding a Lesson so Gran-Gran's 3+ Lesson reduction applies; the kernel's prefix script does not branch on the trigger's discard ask, so it under-offers the flashback cast",
+  "repro": {
+    "pool": "std-tla",
+    "surface": "full",
+    "seed": 1,
+    "pair": 489,
+    "policy": "random",
+    "mulligans": 0
+  },
+  "evidence": [
+    "std-tla"
+  ]
+}

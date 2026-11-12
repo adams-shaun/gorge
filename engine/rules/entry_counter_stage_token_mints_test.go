@@ -83,8 +83,8 @@ func TestEntryCounterStageTokenMints(t *testing.T) {
 			want int32
 		}{{0, 4}, {1, 3}} {
 			t.Run(tc.name+map[int]string{0: "/scales-first", 1: "/evolution-first"}[answer.pick], func(t *testing.T) {
-				scales := tokenReplCorpusCard(t, "Hardened Scales")
-				evolution := tokenReplCorpusCard(t, "Branching Evolution")
+				scales := corpusAlternativeCard(t, "Hardened Scales")
+				evolution := corpusAlternativeCard(t, "Branching Evolution")
 				entrant := card(t, "Name:Staging Entry\nTypes:Creature Vampire\nPT:1/1\nR:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ DBEntry | ReplacementResult$ Updated | Description$ entry counter\nSVar:DBEntry:DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ 1 | ETB$ True\nOracle:x\n")
 				e, cfg := tokenReplGame(t, 901, scales, evolution, entrant)
 				cfg.Tokens = maps.Clone(cfg.Tokens)

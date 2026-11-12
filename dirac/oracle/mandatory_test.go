@@ -49,7 +49,7 @@ func (c *mandatoryCounter) check(ref *GorgeSide, _ Side) *Divergence {
 		return nil
 	}
 	c.asked[uint64(top)] = true
-	name := mixedarmsName(g, top)
+	name := sourceCardName(g, top)
 	for i, n := range mandatoryCarriers {
 		if name == n {
 			c.n[i]++

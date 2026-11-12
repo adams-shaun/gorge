@@ -43,27 +43,6 @@ var validaggsDecks = [][2][]cardset.Entry{{
 	},
 }}
 
-// validaggsPolicy casts or activates whenever it can (so the games reach the
-// impulse draws, the kicked branches and the activations), else random.
-func validaggsPolicy(seed uint64) Policy {
-	rnd := RandomPolicy(seed)
-	var buf []Canon
-	return PolicyFunc(func(c *PickCtx) Canon {
-		buf = buf[:0]
-		for _, a := range c.D.Options {
-			if k := a.Kind(); k == ActCast || k == ActActivate {
-				buf = append(buf, a)
-			}
-		}
-		if len(buf) == 0 {
-			return rnd.Pick(c)
-		}
-		d := *c.D
-		d.Options = buf
-		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
-	})
-}
-
 func TestValidAggregatesAndImpulseLockstep(t *testing.T) {
 	t.Parallel()
 
@@ -107,7 +86,7 @@ func TestValidAggregatesAndImpulseLockstep(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			pol := validaggsPolicy(seed)
+			pol := castActivatePolicy(seed)
 			if seed%4 == 0 {
 				pol = RandomPolicy(seed)
 			}

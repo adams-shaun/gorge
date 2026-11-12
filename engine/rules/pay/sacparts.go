@@ -455,12 +455,16 @@ func CastWindowSelfSacCost(e Engine, p state.PlayerID, source state.ObjID, c cos
 }
 
 // CastWindowSelfSacFeeCost is CastWindowSelfSacCost for a source whose
-// activation also charges a literal generic or coloured mana fee ("{1}, {T},
-// Sacrifice this artifact: Add one mana of any color"): the fee is paid from
-// the window's mana, the same way castWindowGenericCostShape prices a fee on a
-// source it keeps. Any other cost part is still refused by
-// CastWindowOtherPartsAbsent, and the sacrifice must still be the source
-// alone.
+// activation also charges a literal mana fee -- generic, coloured, or both
+// ("{1}, {T}, Sacrifice this artifact: Add one mana of any color", Omni-Cheese
+// Pizza): the CR 601.2g cast window funds the fee from mana it has already
+// accumulated before activating, so the shape is one deterministic activation.
+// The fee is paid from the window's mana, the same way castWindowGenericCostShape
+// prices a fee on a source it keeps. The shared paid-cost census keeps refusing
+// the shape (CastWindowSelfSacCost): its readers cannot fund a fee from floating
+// mana, so only the cast window's own probe (cast_window.go's
+// castWindowProbeUnits) asks this one. Any other cost part is still refused by
+// CastWindowOtherPartsAbsent, and the sacrifice must still be the source alone.
 func CastWindowSelfSacFeeCost(e Engine, p state.PlayerID, source state.ObjID, c costvocab.Cost) bool {
 	if c.Generic == 0 && c.Colored == (state.Mana{}) {
 		return false

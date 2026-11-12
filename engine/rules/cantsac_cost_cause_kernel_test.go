@@ -156,7 +156,7 @@ func TestCantSacCostCauseTriggeredBlocksCumulativeUpkeepPaymentKernel(t *testing
 	if sac == nil || sac.Kind != decision.KChoose {
 		t.Fatalf("control: no land choice ask: %+v", sac)
 	}
-	submitChoices(t, ctl, optionOfObj(t, sac, m1))
+	submitChoices(t, ctl, objOptionIndex(t, sac, m1))
 	if z := ctl.G.Obj(m1).Zone; z != state.ZGraveyard {
 		t.Fatalf("control: the paid land zone = %s, want graveyard", z)
 	}

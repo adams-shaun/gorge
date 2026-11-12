@@ -3,7 +3,6 @@ package rules
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -34,16 +33,6 @@ func countLibraryOrder(e *Engine) int {
 	return n
 }
 
-// arrangeDecision casts arrangeSrc and returns the pending KArrange decision.
-func arrangeDecision(t *testing.T, e *Engine, id state.ObjID) *decision.Decision {
-	t.Helper()
-	d := castFixture(t, e, id, -1)
-	if d == nil || d.Kind != decision.KArrange {
-		t.Fatalf("expected a pending KArrange decision, got %+v", d)
-	}
-	return d
-}
-
 // TestArrangeAnswerReordersLibrary is the reorder leaf: answering [2,0,1]
 // puts the library in exactly that order on top, leaves the untouched
 // remainder beneath the top 3, and emits exactly one events.LibraryOrder
@@ -52,7 +41,7 @@ func arrangeDecision(t *testing.T, e *Engine, id state.ObjID) *decision.Decision
 func TestArrangeAnswerReordersLibrary(t *testing.T) {
 	t.Parallel()
 	e, cfg, id := arrangeFixture(t, 102)
-	d := arrangeDecision(t, e, id)
+	d := scryDecision(t, e, id)
 	top := []state.ObjID{d.Options[0].Obj, d.Options[1].Obj, d.Options[2].Obj}
 	libBefore := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 0)...)
 
@@ -103,7 +92,7 @@ func TestArrangeHonoursAnswerOrderNotSorted(t *testing.T) {
 	t.Parallel()
 	orderFor := func(seed uint64, choices ...int) []state.ObjID {
 		e, _, id := arrangeFixture(t, seed)
-		d := arrangeDecision(t, e, id)
+		d := scryDecision(t, e, id)
 		// Record the set actually offered, so the two runs can be shown to
 		// operate on the same cards.
 		_ = d
@@ -113,24 +102,12 @@ func TestArrangeHonoursAnswerOrderNotSorted(t *testing.T) {
 	}
 	a := orderFor(103, 2, 1, 0)
 	b := orderFor(103, 0, 1, 2)
-	if equalObjs(a, b) {
+	if sameObjIDs(a, b) {
 		t.Fatalf("[2,1,0] and [0,1,2] produced the SAME library order %v; the handler must honour the answer's order, not sort it", a)
 	}
 	if !sameObjSet(a, b) {
 		t.Fatalf("%v and %v are not the same three cards; the two runs must start from the same seed", a, b)
 	}
-}
-
-func equalObjs(a, b []state.ObjID) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func sameObjSet(a, b []state.ObjID) bool {
@@ -160,7 +137,7 @@ func sameObjSet(a, b []state.ObjID) bool {
 func TestArrangeReplaysByteIdentically(t *testing.T) {
 	t.Parallel()
 	e, cfg, id := arrangeFixture(t, 105)
-	d := arrangeDecision(t, e, id)
+	d := scryDecision(t, e, id)
 	submitChoices(t, e, d.Options[2].Index, d.Options[0].Index, d.Options[1].Index)
 	replayCheck(t, e, cfg)
 }

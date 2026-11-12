@@ -77,9 +77,9 @@ func TestGrantedRetraceChargesTheLandDiscard(t *testing.T) {
 // ability resolves exactly once and leaves the stack.
 func TestTokenElectionSuspendsTheResolvingAbility(t *testing.T) {
 	t.Parallel()
-	vivien := tokenReplCorpusCard(t, "Vivien, Monsters' Advocate")
-	crown := tokenReplCorpusCard(t, "Mirrormind Crown")
-	bears := tokenReplCorpusCard(t, "Grizzly Bears")
+	vivien := corpusAlternativeCard(t, "Vivien, Monsters' Advocate")
+	crown := corpusAlternativeCard(t, "Mirrormind Crown")
+	bears := corpusAlternativeCard(t, "Grizzly Bears")
 	e, cfg := tokenReplGame(t, 71, vivien, crown, bears)
 	viv := moveSeededCard(t, e, 0, vivien, state.ZBattlefield)
 	cr := moveSeededCard(t, e, 0, crown, state.ZBattlefield)

@@ -13,7 +13,7 @@ import (
 func phasedOutRiderBearCounters(t *testing.T, phaseOut bool) int {
 	t.Helper()
 	e, _ := phasesGame(t, 311, "Deanna Troi, Psychic Counsel", "Grizzly Bears")
-	deanna := moveSeededCard(t, e, 0, tokenReplCorpusCard(t, "Deanna Troi, Psychic Counsel"), state.ZBattlefield)
+	deanna := moveSeededCard(t, e, 0, corpusAlternativeCard(t, "Deanna Troi, Psychic Counsel"), state.ZBattlefield)
 	if phaseOut {
 		e.emit(events.Event{Kind: events.PhaseOut, Obj: deanna, Amount: 1})
 	}
@@ -21,7 +21,7 @@ func phasedOutRiderBearCounters(t *testing.T, phaseOut bool) int {
 	if o == nil || o.Zone != state.ZBattlefield || o.PhasedOut != phaseOut {
 		t.Fatalf("precondition: Deanna zone/phasedOut = %+v, want battlefield/phasedOut=%v", o, phaseOut)
 	}
-	bears := moveSeededCard(t, e, 0, tokenReplCorpusCard(t, "Grizzly Bears"), state.ZBattlefield)
+	bears := moveSeededCard(t, e, 0, corpusAlternativeCard(t, "Grizzly Bears"), state.ZBattlefield)
 	b := e.G.Obj(bears)
 	if b == nil || b.Zone != state.ZBattlefield {
 		t.Fatalf("precondition: Bears did not enter: %+v", b)

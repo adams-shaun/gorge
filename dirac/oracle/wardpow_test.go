@@ -35,19 +35,12 @@ type kwardpowTally struct {
 	paid, paidGrowth, declined, games int
 }
 
-func kwardpowFace(g *state.Game, id state.ObjID) string {
-	if ob := g.Obj(id); ob != nil && ob.Face() != nil {
-		return ob.Face().Name
-	}
-	return ""
-}
-
 // kwardpowWard is Raubahn's lowest ward trigger on gorge's stack (0: none)
 // and the stack object below it (the warded spell).
 func kwardpowWard(g *state.Game) (ward, below state.ObjID) {
 	for i, sid := range g.Stack {
 		ob := g.Obj(sid)
-		if ob == nil || ob.Ability == nil || ob.Ability.API != "Ward" || kwardpowFace(g, ob.Source) != kwardpowName {
+		if ob == nil || ob.Ability == nil || ob.Ability.API != "Ward" || chName(g, ob.Source) != kwardpowName {
 			continue
 		}
 		if i > 0 {
@@ -61,10 +54,10 @@ func kwardpowWard(g *state.Game) (ward, below state.ObjID) {
 // kwardpowReady: A holds a Giant Growth; A has an untapped Forest.
 func kwardpowReady(g *state.Game) (gg, forest bool) {
 	for _, id := range g.Zone(state.ZHand, 0) {
-		gg = gg || kwardpowFace(g, id) == "Giant Growth"
+		gg = gg || chName(g, id) == "Giant Growth"
 	}
 	for _, id := range g.Zone(state.ZBattlefield, 0) {
-		if ob := g.Obj(id); ob != nil && !ob.Tapped && kwardpowFace(g, id) == "Forest" {
+		if ob := g.Obj(id); ob != nil && !ob.Tapped && chName(g, id) == "Forest" {
 			forest = true
 		}
 	}
@@ -76,7 +69,7 @@ func kwardpowReady(g *state.Game) (gg, forest bool) {
 func kwardpowGrown(gs *GorgeSide) bool {
 	g := gs.E.G
 	for _, id := range g.Zone(state.ZBattlefield, 0) {
-		if kwardpowFace(g, id) == kwardpowName {
+		if chName(g, id) == kwardpowName {
 			if gs.E.Power(id) != 2 {
 				return true
 			}
@@ -91,7 +84,7 @@ func kwardpowGrown(gs *GorgeSide) bool {
 func kwardpowSpare(g *state.Game) bool {
 	gg := false
 	for _, id := range g.Zone(state.ZHand, 0) {
-		gg = gg || kwardpowFace(g, id) == "Giant Growth"
+		gg = gg || chName(g, id) == "Giant Growth"
 	}
 	if !gg {
 		return true
@@ -102,7 +95,7 @@ func kwardpowSpare(g *state.Game) bool {
 		if ob == nil || ob.Tapped {
 			continue
 		}
-		switch kwardpowFace(g, id) {
+		switch chName(g, id) {
 		case "Forest":
 			forests++
 			lands++
@@ -132,7 +125,7 @@ func kwardpowPolicy(seed uint64) Policy {
 			if !ok {
 				continue
 			}
-			n := kwardpowFace(c.G.E.G, o.Obj)
+			n := chName(c.G.E.G, o.Obj)
 			for _, x := range names {
 				if n == x {
 					buf = append(buf, a)
@@ -150,7 +143,7 @@ func kwardpowPolicy(seed uint64) Policy {
 		ward, _ := kwardpowWard(g)
 		raubahn := false
 		for _, id := range g.Zone(state.ZBattlefield, 0) {
-			raubahn = raubahn || kwardpowFace(g, id) == kwardpowName
+			raubahn = raubahn || chName(g, id) == kwardpowName
 		}
 		// B fires at Raubahn when A can answer with a Giant Growth (or
 		// holds none), so the pumped payment (RW+G) is reached as well as
@@ -188,7 +181,7 @@ func kwardpowPolicy(seed uint64) Policy {
 		for _, a := range c.D.Options {
 			k := a.Kind()
 			if o, ok := c.G.GorgeOption(a); ok && k == ActCast {
-				n := kwardpowFace(g, o.Obj)
+				n := chName(g, o.Obj)
 				if c.D.Player == 0 && (n == "Giant Growth" || !kwardpowSpare(g)) {
 					continue
 				}

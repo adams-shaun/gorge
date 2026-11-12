@@ -99,7 +99,7 @@ func willThreeSeatGame(t *testing.T, seed uint64, seat0 ...*cards.Card) (*Engine
 // Clue; an acceptance creates exactly one.
 func TestNickValentineOptionalInvestigateCanDecline(t *testing.T) {
 	t.Parallel()
-	nick := tokenReplCorpusCard(t, "Nick Valentine, Private Eye")
+	nick := corpusAlternativeCard(t, "Nick Valentine, Private Eye")
 	for _, tc := range []struct {
 		name   string
 		accept bool
@@ -152,7 +152,7 @@ func TestNickValentineOptionalInvestigateCanDecline(t *testing.T) {
 // seat 0, 1 on the accepting opponent, none on the decliner.
 func TestWillTheWiseOptionalInvestigateRemembersOnlyAcceptors(t *testing.T) {
 	t.Parallel()
-	will := tokenReplCorpusCard(t, "Will the Wise")
+	will := corpusAlternativeCard(t, "Will the Wise")
 	e, cfg := willThreeSeatGame(t, 92, will)
 	id := moveSeededCard(t, e, 0, will, state.ZBattlefield)
 	// Precondition: Will the Wise is a battlefield permanent the ETB

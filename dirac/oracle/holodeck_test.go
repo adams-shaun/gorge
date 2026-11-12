@@ -56,21 +56,6 @@ var kholodeckMatchups = []kholodeck{{
 	}},
 }}
 
-func expandHolodeck(t *testing.T, reg *cards.Registry, es []cardset.Entry) []*cards.Card {
-	t.Helper()
-	var out []*cards.Card
-	for _, e := range es {
-		c, ok := reg.Lookup(e.Name)
-		if !ok {
-			t.Fatalf("%s not in the corpus", e.Name)
-		}
-		for i := 0; i < e.Count; i++ {
-			out = append(out, c)
-		}
-	}
-	return out
-}
-
 // runHolodeck plays the matchups for seeds 1..seeds and returns the games,
 // divergences, stalls and the games in which a seat played a card out of its
 // sideboard.
@@ -91,8 +76,8 @@ func runHolodeck(t *testing.T, seeds int, mutate bool) (games, divs, stalls, sid
 	for mi, md := range kholodeckMatchups {
 		var decks, sides [2][]*cards.Card
 		for s := range md.deck {
-			decks[s] = expandHolodeck(t, reg, md.deck[s])
-			sides[s] = expandHolodeck(t, reg, md.side[s])
+			decks[s] = expandEntries(t, reg, md.deck[s])
+			sides[s] = expandEntries(t, reg, md.side[s])
 			if len(decks[s]) != 40 {
 				t.Fatalf("matchup %d deck %d: %d cards", mi, s, len(decks[s]))
 			}

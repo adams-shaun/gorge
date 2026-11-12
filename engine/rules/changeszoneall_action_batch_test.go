@@ -101,7 +101,7 @@ func TestChangesZoneAllSurveilFiresOnce(t *testing.T) {
 	// Origin$ Library: the resolved surveil spell itself reaching the
 	// graveyard from the stack is a separate event and must not count.
 	w := onBoardCard(t, e, 0, card(t, zoneWatcherSrc("Library")))
-	d := surveilDecision(t, e, id)
+	d := scryDecision(t, e, id)
 	if len(d.Options) != 3 {
 		t.Fatalf("surveil window = %d cards, want 3 (precondition)", len(d.Options))
 	}

@@ -66,13 +66,6 @@ func effectReplNamedCases() []effectReplNamedCase {
 	}
 }
 
-func objFace(g *GorgeSide, id state.ObjID) string {
-	if o := g.E.G.Obj(id); o != nil && o.Face() != nil {
-		return o.Face().Name
-	}
-	return ""
-}
-
 // eclipseResolvedThisTurn: a Malicious Eclipse left the stack for the
 // graveyard after the last turn change.
 func eclipseResolvedThisTurn(g *GorgeSide) bool {
@@ -81,7 +74,7 @@ func eclipseResolvedThisTurn(g *GorgeSide) bool {
 		switch {
 		case e.Kind == events.TurnChange:
 			done = false
-		case e.Kind == events.MoveZone && e.From == state.ZStack && e.To == state.ZGraveyard && objFace(g, e.Obj) == "Malicious Eclipse":
+		case e.Kind == events.MoveZone && e.From == state.ZStack && e.To == state.ZGraveyard && sideObjName(g, e.Obj) == "Malicious Eclipse":
 			done = true
 		}
 	}
@@ -127,9 +120,9 @@ func eclipseExilesLateEntrant(g *GorgeSide) bool {
 		case e.Kind == events.TurnChange:
 			resolved = false
 			clear(entered)
-		case e.Kind == events.MoveZone && e.From == state.ZStack && e.To == state.ZGraveyard && objFace(g, e.Obj) == "Malicious Eclipse":
+		case e.Kind == events.MoveZone && e.From == state.ZStack && e.To == state.ZGraveyard && sideObjName(g, e.Obj) == "Malicious Eclipse":
 			resolved = true
-		case resolved && e.Kind == events.MoveZone && e.To == state.ZBattlefield && objFace(g, e.Obj) == "Ambush Viper":
+		case resolved && e.Kind == events.MoveZone && e.To == state.ZBattlefield && sideObjName(g, e.Obj) == "Ambush Viper":
 			entered[e.Obj] = true
 		case e.Kind == events.MoveZone && e.From == state.ZBattlefield && e.To == state.ZExile && entered[e.Obj]:
 			return true
@@ -147,9 +140,9 @@ func plusCountersIn(g *GorgeSide, boimler bool) bool {
 		switch {
 		case e.Kind == events.TurnChange:
 			dog, boim = false, false
-		case e.Kind == events.AbilityPush && objFace(g, e.Obj) == "Prairie Dog":
+		case e.Kind == events.AbilityPush && sideObjName(g, e.Obj) == "Prairie Dog":
 			dog = true
-		case e.Kind == events.TriggerPush && objFace(g, e.Obj) == "Brad Boimler, Eager Ensign":
+		case e.Kind == events.TriggerPush && sideObjName(g, e.Obj) == "Brad Boimler, Eager Ensign":
 			boim = true
 		case e.Kind == events.CounterChange && e.Counter == "P1P1" && dog && boim == boimler:
 			if boimler && e.Amount >= 3 || !boimler && e.Amount >= 2 {

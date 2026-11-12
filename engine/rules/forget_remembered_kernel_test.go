@@ -318,7 +318,7 @@ func TestKernelChangeZoneForgetOtherRememberedFetchEmpty(t *testing.T) {
 					t.Fatalf("a mandatory empty pool posted a decision: %+v", d)
 				}
 				requireSameIDs(t, "memory", rememberedOf(e, src))
-				if hasNoteContaining(e, "unimplemented API ChangeZone") {
+				if hasNote(e, "unimplemented API ChangeZone") {
 					t.Fatal("the ChangeZone handler did not run")
 				}
 			default:

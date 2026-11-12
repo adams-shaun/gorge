@@ -7,18 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
-
-// radiationCorpusCard looks a radiation-carrier corpus card up by name.
-func radiationCorpusCard(t *testing.T, name string) *cards.Card {
-	t.Helper()
-	c, ok := testutil.CorpusRegistry(t).Lookup(name)
-	if !ok {
-		t.Fatalf("corpus missing %s", name)
-	}
-	return c
-}
 
 // radiationLibrary replaces p's whole library with the given cards in TOP
 // order (index 0 is the next card milled/drawn), so the land/nonland split the
@@ -105,7 +94,7 @@ func TestRadiationDrainNotQueuedWithoutCounters(t *testing.T) {
 func TestRadiationPlacementAcquiredMutationAttacks(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
-	aura := onBoardCard(t, e, 0, radiationCorpusCard(t, "Acquired Mutation"))
+	aura := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Acquired Mutation"))
 	bear := onBoard(t, e, 0, "Name:Test Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	// Precondition: the trigger under test is the DB$ Radiation body and the
 	// Aura is attached to the creature it must trigger off.
@@ -138,7 +127,7 @@ func TestRadiationPlacementAcquiredMutationAttacks(t *testing.T) {
 func TestRadiationPlacementVault12ChapterI(t *testing.T) {
 	t.Parallel()
 	e := newSeats(t, 3)
-	saga := onBoardCard(t, e, 0, radiationCorpusCard(t, "Vault 12: The Necropolis"))
+	saga := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Vault 12: The Necropolis"))
 	// Precondition: chapter I is the DB$ Radiation body over every player.
 	first := resolveSVarOf(t, e.G.Obj(saga).Face(), "DBRadiation")
 	if first.API != "Radiation" || first.Params["Defined"] != "Player" || first.Params["Num"] != "3" {

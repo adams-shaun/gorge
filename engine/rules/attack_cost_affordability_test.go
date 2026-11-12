@@ -64,7 +64,7 @@ func TestCombatPropResolvedZeroCountIsFree(t *testing.T) {
 func TestMyrPrototypeZeroCountersAttacksFree(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	myr := onBoardReadyCard(t, e, 0, mshCorpusCard(t, "Myr Prototype"))
+	myr := onBoardReadyCard(t, e, 0, corpusAlternativeCard(t, "Myr Prototype"))
 	e.G.Active = 0
 	e.G.Step = state.StepDeclareAttackers
 

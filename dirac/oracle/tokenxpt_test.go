@@ -30,16 +30,6 @@ var ktokenxptDecks = [][2][]cardset.Entry{{
 	},
 }}
 
-func ktokenxptName(c *PickCtx, r Ref) string {
-	if c.G == nil || int(r) >= int(RefPlayer) {
-		return ""
-	}
-	if o := c.G.E.G.Obj(c.G.id.obj[r]); o != nil && o.Face() != nil {
-		return o.Face().Name
-	}
-	return ""
-}
-
 // ktokenxptPolicy casts the carriers, Giant Growth, Shock and Murder
 // whenever it can (three games in four), aims a target at a minted token when
 // one is offered, and otherwise plays like RandomPolicy.
@@ -57,7 +47,7 @@ func ktokenxptPolicy(seed uint64) Policy {
 				var pick Canon
 				found := false
 				for _, a := range c.D.Options {
-					if k := a.Kind(); (k == ActCast || k == ActActivate) && ktokenxptName(c, a.Src()) == want {
+					if k := a.Kind(); (k == ActCast || k == ActActivate) && refFaceName(c, a.Src()) == want {
 						pick, found = a, true
 					}
 				}
@@ -71,7 +61,7 @@ func ktokenxptPolicy(seed uint64) Policy {
 				if a.Kind() != ActTarget || int(a.Tgt()) >= int(RefPlayer) {
 					continue
 				}
-				if n := ktokenxptName(c, a.Tgt()); n == "Elemental Token" || n == "Spirit Token" || n == "Construct Token" {
+				if n := refFaceName(c, a.Tgt()); n == "Elemental Token" || n == "Spirit Token" || n == "Construct Token" {
 					buf = append(buf, a)
 				}
 			}

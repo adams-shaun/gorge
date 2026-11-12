@@ -156,7 +156,7 @@ func ksacrificedRun(t *testing.T, seeds uint64, report bool) (divs, stalls int, 
 			t.Fatal(err)
 		}
 		pr := &ksacrificedProbe{stats: st}
-		pol := kleftzonePolicy(seed)
+		pol := castActivatePolicy(seed)
 		if seed%4 == 0 {
 			pol = RandomPolicy(seed)
 		}

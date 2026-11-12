@@ -205,7 +205,9 @@ func (e *Engine) castWindowReflectedUnits(pc *pendingCast, units []windowManaUni
 // window: choice-shaped productions (a colour chosen when the source is
 // tapped), free abilities whose Amount$ is not a literal, and non-free
 // activation costs (a literal generic <N>, a PayLife<N>, a deterministic
-// self-sacrifice, or a choice-shaped production behind any of them). The
+// self-sacrifice -- with or without a literal generic fee the window funds
+// first, Omni-Cheese Pizza's "{1}, {T}, Sacrifice this artifact: Add one mana
+// of any color" -- or a choice-shaped production behind any of them). The
 // conservatism of windowManaUnits is load-bearing for the attack-cost and
 // unless-cost windows, which cannot pose a sub-ask while tapping; the CR
 // 601.2g cast window CAN: manaWindowAsk offers any currently payable
@@ -281,7 +283,12 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 				// A source that sacrifices itself beside a literal fee is
 				// one-shot, so pricing it here adds at most one unit for it;
 				// the reach search pays the fee before the production (CR
-				// 605.3b), exactly as the live window does.
+				// 605.3b), exactly as the live window does. Omni-Cheese
+				// Pizza's "{1}, {T}, Sacrifice this artifact: Add one mana
+				// of any color" is the printed shape: the shared paid-cost
+				// census refuses it because its readers cannot fund a fee
+				// from floating mana, so this is the cast window's own paid
+				// layer.
 				genericCost, coloredCost = cost.Generic, cost.Colored
 			default:
 				// The PayLife<N> and self-sacrifice arms are the paid-cost

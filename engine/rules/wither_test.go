@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -10,18 +9,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
-
-func witherCorpusCard(t *testing.T, path string) *cards.Card {
-	t.Helper()
-	c, ds := cards.Parse(filepath.Join("..", "..", ".cards", "cardsfolder", path))
-	if len(ds) != 0 {
-		t.Fatalf("parse %s: %v", path, ds)
-	}
-	if ds = c.Link(); len(ds) != 0 {
-		t.Fatalf("link %s: %v", path, ds)
-	}
-	return c
-}
 
 func assertWitherCounter(t *testing.T, e *Engine, target state.ObjID, amount int32) {
 	t.Helper()
@@ -47,7 +34,7 @@ func TestWitherVillagePillagersETBDamageAllDealsCounters(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
 	target := onBoard(t, e, 1, "Name:Target\nTypes:Creature\nPT:4/4\nOracle:x\n")
-	source := onBoardCard(t, e, 0, witherCorpusCard(t, "v/village_pillagers.txt"))
+	source := onBoardCard(t, e, 0, corpusCardAtPath(t, "v/village_pillagers.txt"))
 	face := e.G.Obj(source).Face()
 	if face == nil || len(face.Triggers) < 1 || face.Triggers[0].Mode != "ChangesZone" || face.Triggers[0].Effect == nil || face.Triggers[0].Effect.API != "DamageAll" {
 		t.Fatalf("precondition: Village Pillagers ETB DamageAll trigger = %+v", face)
@@ -81,7 +68,7 @@ func TestWitherVillagePillagersETBDamageAllDealsCounters(t *testing.T) {
 func TestWitherGrantedKeywordStartsAndStopsWithStatic(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	grantor := onBoardCard(t, e, 0, witherCorpusCard(t, "m/massacre_girl_known_killer.txt"))
+	grantor := onBoardCard(t, e, 0, corpusCardAtPath(t, "m/massacre_girl_known_killer.txt"))
 	source := onBoard(t, e, 0, "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n")
 	target := onBoard(t, e, 1, "Name:Target\nTypes:Creature\nPT:4/4\nOracle:x\n")
 	if e.G.Obj(source).Face() == nil || e.G.Obj(source).Face().HasKeyword("Wither") || !e.HasKeyword(grantor, "Menace") {
@@ -107,7 +94,7 @@ func TestWitherGrantedKeywordStartsAndStopsWithStatic(t *testing.T) {
 func TestWitherCombatDamageToBlockerUsesCounterForm(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	atk := onBoardCard(t, e, 0, witherCorpusCard(t, "n/necroskitter.txt"))
+	atk := onBoardCard(t, e, 0, corpusCardAtPath(t, "n/necroskitter.txt"))
 	e.G.Obj(atk).SummonSick = false
 	blk := onBoard(t, e, 1, "Name:Blocker\nTypes:Creature\nPT:4/4\nOracle:x\n")
 	if !e.HasKeyword(atk, "Wither") || e.G.Obj(blk).Zone != state.ZBattlefield || !e.IsCreature(blk) {
@@ -122,7 +109,7 @@ func TestWitherCombatDamageToBlockerUsesCounterForm(t *testing.T) {
 func TestWitherDamageToPlayerRemainsOrdinary(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	source := onBoardCard(t, e, 0, witherCorpusCard(t, "v/village_pillagers.txt"))
+	source := onBoardCard(t, e, 0, corpusCardAtPath(t, "v/village_pillagers.txt"))
 	before := e.G.Players[1].Life
 	if !e.HasKeyword(source, "Wither") || before != 20 {
 		t.Fatal("precondition: printed Wither source or player life is wrong")
@@ -142,8 +129,8 @@ func TestWitherDamageToPlayerRemainsOrdinary(t *testing.T) {
 func TestWitherNoncombatPlayerHitRedirectsToCreatureCounters(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	source := onBoardCard(t, e, 0, witherCorpusCard(t, "v/village_pillagers.txt"))
-	giant := onBoardCard(t, e, 1, witherCorpusCard(t, "p/palisade_giant.txt"))
+	source := onBoardCard(t, e, 0, corpusCardAtPath(t, "v/village_pillagers.txt"))
+	giant := onBoardCard(t, e, 1, corpusCardAtPath(t, "p/palisade_giant.txt"))
 	if !e.HasKeyword(source, "Wither") || !e.IsCreature(giant) || e.G.Obj(giant).Zone != state.ZBattlefield {
 		t.Fatal("precondition: Wither source or Palisade Giant redirect target is not live")
 	}
@@ -165,8 +152,8 @@ func TestWitherCombatPlayerHitRedirectsToCreatureCounters(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
 	e.G.Active = 1
-	giant := onBoardCard(t, e, 0, witherCorpusCard(t, "p/palisade_giant.txt"))
-	atk := onBoardCard(t, e, 1, witherCorpusCard(t, "v/village_pillagers.txt"))
+	giant := onBoardCard(t, e, 0, corpusCardAtPath(t, "p/palisade_giant.txt"))
+	atk := onBoardCard(t, e, 1, corpusCardAtPath(t, "v/village_pillagers.txt"))
 	e.G.Obj(atk).SummonSick = false
 	if !e.HasKeyword(atk, "Wither") || !e.IsCreature(giant) || e.G.Obj(giant).Zone != state.ZBattlefield {
 		t.Fatal("precondition: combat Wither source or Palisade Giant is not live")
@@ -189,7 +176,7 @@ func TestWitherCombatPlayerHitRedirectsToCreatureCounters(t *testing.T) {
 func TestWitherPreventedCombatHitPlacesNoCounter(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	source := onBoardCard(t, e, 0, witherCorpusCard(t, "v/village_pillagers.txt"))
+	source := onBoardCard(t, e, 0, corpusCardAtPath(t, "v/village_pillagers.txt"))
 	e.G.Obj(source).SummonSick = false
 	target := onBoard(t, e, 1, "Name:Red Ward\nTypes:Creature\nPT:1/6\nK:Protection from Red\nOracle:x\n")
 	if !e.HasKeyword(source, "Wither") || !e.HasKeyword(target, "Protection from Red") || e.G.Obj(target).Zone != state.ZBattlefield {
@@ -221,8 +208,8 @@ func TestWitherPreventedCombatHitPlacesNoCounter(t *testing.T) {
 func TestWitherCounterChangeTriggersWickersmithsTools(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	tools := onBoardCard(t, e, 0, witherCorpusCard(t, "w/wickersmiths_tools.txt"))
-	source := onBoardCard(t, e, 0, witherCorpusCard(t, "v/village_pillagers.txt"))
+	tools := onBoardCard(t, e, 0, corpusCardAtPath(t, "w/wickersmiths_tools.txt"))
+	source := onBoardCard(t, e, 0, corpusCardAtPath(t, "v/village_pillagers.txt"))
 	target := onBoard(t, e, 1, "Name:Target\nTypes:Creature\nPT:4/4\nOracle:x\n")
 	face := e.G.Obj(tools).Face()
 	if !e.HasKeyword(source, "Wither") || face == nil || len(face.Triggers) != 1 || face.Triggers[0].Mode != "CounterAddedOnce" || face.Triggers[0].Params["CounterType"] != "M1M1" {

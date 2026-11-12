@@ -43,7 +43,7 @@ func gainsArtifactSrc(t testing.TB) *cards.Card {
 // (events' moveZoneEvent shape), and returns (engine, cfg, idris, artifact).
 func gainsBoard(t *testing.T) (*Engine, Config, state.ObjID, state.ObjID) {
 	t.Helper()
-	idris := tokenReplCorpusCard(t, "Idris, Soul of the TARDIS")
+	idris := corpusAlternativeCard(t, "Idris, Soul of the TARDIS")
 	artifact := gainsArtifactSrc(t)
 	e, cfg := tokenReplGame(t, 9107, idris, artifact)
 	idrisID := moveSeededCard(t, e, 0, idris, state.ZBattlefield)
@@ -199,7 +199,7 @@ func gainsManaArtifactSrc(t testing.TB) *cards.Card {
 // produces mana when activated.
 func TestIdrisGainsTheExiledArtifactManaAbility(t *testing.T) {
 	t.Parallel()
-	idris := tokenReplCorpusCard(t, "Idris, Soul of the TARDIS")
+	idris := corpusAlternativeCard(t, "Idris, Soul of the TARDIS")
 	artifact := gainsManaArtifactSrc(t)
 	e, cfg := tokenReplGame(t, 9108, idris, artifact)
 	idrisID := moveSeededCard(t, e, 0, idris, state.ZBattlefield)
@@ -284,7 +284,7 @@ func gainedAbilitiesOn(e *Engine, obj state.ObjID) []decision.Option {
 // triggers, because Forge's parameter grants activated abilities only).
 func gainsForgeSrc(t *testing.T) *cards.Card {
 	t.Helper()
-	return tokenReplCorpusCard(t, "Territory Forge")
+	return corpusAlternativeCard(t, "Territory Forge")
 }
 
 // TestGainsAbilitiesOnlyNeverFiresForeignTriggers pins the parameter split in
@@ -397,7 +397,7 @@ func gainsRivalLandSrc(t testing.TB) *cards.Card {
 // window reads.
 func TestGainsValidAbilitiesExcludesForeignManaAbilities(t *testing.T) {
 	t.Parallel()
-	sharkey := tokenReplCorpusCard(t, "Sharkey, Tyrant of the Shire")
+	sharkey := corpusAlternativeCard(t, "Sharkey, Tyrant of the Shire")
 	land := gainsRivalLandSrc(t)
 	e, cfg := tokenReplGameSeats(t, 9111, []*cards.Card{sharkey}, []*cards.Card{land})
 	sharkeyID := moveSeededCard(t, e, 0, sharkey, state.ZBattlefield)
@@ -448,7 +448,7 @@ func gainsRivalWalkerSrc(t testing.TB) *cards.Card {
 // activated abilities exactly the loyalty one is gained.
 func TestGainsValidAbilitiesLoyaltyOnlyAdmitsOnlyLoyalty(t *testing.T) {
 	t.Parallel()
-	bolas := tokenReplCorpusCard(t, "Nicol Bolas, Dragon-God")
+	bolas := corpusAlternativeCard(t, "Nicol Bolas, Dragon-God")
 	walker := gainsRivalWalkerSrc(t)
 	e, cfg := tokenReplGame(t, 9112, bolas, walker)
 	bolasID := moveSeededCard(t, e, 0, bolas, state.ZBattlefield)

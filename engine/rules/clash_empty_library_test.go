@@ -17,7 +17,7 @@ import (
 func TestClashEmptyLibraryParticipantIsNotAsked(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	marvo := onBoardCard(t, e, 0, unblockedCorpusCard(t, "m/marvo_deep_operative.txt"))
+	marvo := onBoardCard(t, e, 0, corpusCardAtPath(t, "m/marvo_deep_operative.txt"))
 	e.G.Obj(marvo).SummonSick = false
 	filler := putTopOfLibrary(t, e, card(t, "Name:Filler\nManaCost:1\nTypes:Creature Beast\nPT:1/1\nOracle:x\n"), 0)
 	high := putTopOfLibrary(t, e, card(t, "Name:High\nManaCost:5\nTypes:Creature Beast\nPT:5/5\nOracle:x\n"), 0)

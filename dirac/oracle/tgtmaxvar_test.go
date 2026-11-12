@@ -277,7 +277,7 @@ func ktvFalconPolicy(seed uint64, downs, ups *int) Policy {
 		var land, mox, tiger, down, up Canon
 		var haveLand, haveMox, haveTiger, haveDown, haveUp bool
 		for _, a := range c.D.Options {
-			n := kfacedownName(c, a)
+			n := optionFaceName(c, a)
 			switch {
 			case a.Kind() == ActPlayLand:
 				land, haveLand = a, true

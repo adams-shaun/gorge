@@ -709,14 +709,33 @@ func (s *State) filtRestrDo(k *prep, p uint8, st filtStep) {
 // plays the script only when the play stays offered once it has run (gorge.go
 // scriptCompletes).
 func (s *State) filtDeadEnd(k *prep, p uint8, a Action, fs *filtSearch) bool {
-	restr := false
+	restr, passed, sp0 := false, false, s.sp
 	for i := 0; i < fs.n; i++ {
 		restr = restr || fs.path[i].restr
+		switch fs.path[i].other.kind {
+		case otherAnswer, otherPass:
+			passed = true
+		}
 	}
 	t := s.fork()
 	defer s.unfork()
 	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 	t.filtPlay(k, p, fs.path[:fs.n])
+	if !passed {
+		passed = t.npend != 0 || t.sp != sp0 // a step the search settled through (try's npend grew)
+	}
+	if passed {
+		// The search found the play at the node its settle reached: after the
+		// replay's last pass or answer (the Pizza's sacrifice triggering Super
+		// Shredder's leaves-the-battlefield counter) the position is answered
+		// with the trigger still on the stack, where the sorcery gate drops
+		// the play. Settle to p's next decision, as the replay of every other
+		// search's path does (tapXPlay's trailing tapXNext, grantApply's).
+		var settled Decision
+		if !t.tapXNext(p, &settled) {
+			return true // the replay cannot settle: the play is not offered
+		}
+	}
 	var d Decision
 	if !restr {
 		t.restrOptions(k, &d, p)

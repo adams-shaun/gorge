@@ -13,7 +13,7 @@ func TestVeilOfSummerGrantsPlayerAndPermanents(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t)
 	bear := onBoardCard(t, e, 0, corpusCard(t, "Grizzly Bears"))
-	veil := addHexproofCardToHand(t, e, 0, corpusCardText(t, "v/veil_of_summer.txt"))
+	veil := onHand(t, e, 0, corpusCardText(t, "v/veil_of_summer.txt"))
 	addMana(t, e, 0, "G")
 	e.askPriority(0)
 	castFirstOf(t, e, veil)

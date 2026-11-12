@@ -76,7 +76,7 @@ func kcopyridersPolicy(seed uint64, st *kcopyridersCounts) Policy {
 					}
 				}
 			case ActCast, ActActivate:
-				n := kfacedownName(c, a)
+				n := optionFaceName(c, a)
 				if kcopyridersCopiers[n] || kcopyridersPlain[n] && c.G != nil && int(c.G.E.G.Turn) == st.riderTurn {
 					cp = append(cp, a)
 					if kcopyridersCopiers[n] {

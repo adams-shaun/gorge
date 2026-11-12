@@ -97,7 +97,7 @@ func TestReproBanefire(t *testing.T) {
 	reg := synthReg(t)
 	for _, c := range banefireCases() {
 		t.Run(c.name, func(t *testing.T) {
-			cantPreventReplay(t, reg, c)
+			replayEffectLongCase(t, reg, c)
 		})
 	}
 }

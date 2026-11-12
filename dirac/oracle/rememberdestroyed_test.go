@@ -104,9 +104,9 @@ func krem2Scan(g *GorgeSide, n map[string]int) {
 		switch ev.Kind {
 		case events.DelayedPush:
 			switch {
-			case ev.Counter == "TrigPlay" && kremFace(gm, ev.Obj) == "Wishing Well":
+			case ev.Counter == "TrigPlay" && firstFaceName(gm, ev.Obj) == "Wishing Well":
 				n[krem2Well]++
-			case ev.Counter == "TrigPutCounterP1P1" && kremFace(gm, ev.Obj) == "Earthbender Ascension":
+			case ev.Counter == "TrigPutCounterP1P1" && firstFaceName(gm, ev.Obj) == "Earthbender Ascension":
 				n[krem2Earth]++
 			}
 			continue
@@ -115,7 +115,7 @@ func krem2Scan(g *GorgeSide, n map[string]int) {
 			continue
 		}
 		so := gm.Obj(ev.Obj)
-		if so == nil || kremName(gm, ev.Obj) != "Shredder's Technique" {
+		if so == nil || sourceCardName(gm, ev.Obj) != "Shredder's Technique" {
 			continue
 		}
 		ctrl := so.Controller
@@ -149,7 +149,7 @@ func krem2Scan(g *GorgeSide, n map[string]int) {
 // the kernel stalls.
 func krem2Run(t *testing.T, reg *cards.Registry, set cardset.Set, tbl *kop.Table, seeds uint64, n map[string]int, logDiv bool) (games int, div bool, stalls int) {
 	t.Helper()
-	decks := kctrnamedDecksOf(t, reg, krem2Decks)
+	decks := kcastDeck(t, reg, krem2Decks)
 	for seed := uint64(1); seed <= seeds; seed++ {
 		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
 		m, err := NewMatchup(reg, [2]string{"krem2-a", "krem2-b"}, decks, 1)

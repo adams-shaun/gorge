@@ -258,7 +258,7 @@ func TestDontPlaneswalkAwaySuppressesTheFromTrigger(t *testing.T) {
 // documented as inert, so this is the end-to-end pin on the finding.
 func TestNornsSeedcoreVerbLandsOnRememberedAndSuppressesAwayWalk(t *testing.T) {
 	t.Parallel()
-	seedcore := tokenReplCorpusCard(t, "Norn's Seedcore")
+	seedcore := corpusAlternativeCard(t, "Norn's Seedcore")
 	away := planeWalkedFromProbe(t, "Probe Away")
 	// Plain destination: the only possible Draw is the departed plane's
 	// PlaneswalkedFrom, which must be suppressed here.
@@ -315,7 +315,7 @@ func TestNornsSeedcoreVerbLandsOnRememberedAndSuppressesAwayWalk(t *testing.T) {
 // parameter text rather than a re-typed copy of it.
 func nornsSeedcorePlaneswalkSA(t *testing.T) *cards.SA {
 	t.Helper()
-	seedcore := tokenReplCorpusCard(t, "Norn's Seedcore")
+	seedcore := corpusAlternativeCard(t, "Norn's Seedcore")
 	sa := cards.ResolveSVar(seedcore.Faces[0].SVars, "DBPlaneswalk")
 	if sa == nil || sa.API != "Planeswalk" {
 		t.Fatalf("Norn's Seedcore DBPlaneswalk is not a compiled Planeswalk SA: %+v", sa)
@@ -521,7 +521,7 @@ func TestChaosScanRejectsAnotherSeatsPlaneMarker(t *testing.T) {
 // the arrival path under test.
 func TestNornsSeedcorePlaneswalkedToEruptsChaos(t *testing.T) {
 	t.Parallel()
-	seedcore := tokenReplCorpusCard(t, "Norn's Seedcore")
+	seedcore := corpusAlternativeCard(t, "Norn's Seedcore")
 	other := plainProbePlane(t, "Probe Other")
 	cfg := twoDeckConfig(t, 83051, []*cards.Card{seedcore, other}, nil)
 	e := New(cfg)

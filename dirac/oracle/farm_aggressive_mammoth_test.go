@@ -43,7 +43,7 @@ func TestPinnedFarmAggressiveMammoth(t *testing.T) {
 	rc := RunConfig{Config: Config{GorgeAutopaySurface: true}}
 	reached := []func(*GorgeSide) bool{
 		onBattlefield("Aggressive Mammoth"),
-		dwynenDiscardedIntoPlay("Wilt-Leaf Liege"),
+		discardedIntoPlay("Wilt-Leaf Liege"),
 	}
 	for i, r := range games {
 		if len(r.Actions) <= 284 {

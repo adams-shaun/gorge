@@ -27,7 +27,7 @@ func TestFusedFarAwayAlternateHalfSuspensionAsksOnlyTheSacrifice(t *testing.T) {
 	bearB := splitMoveFromHandOrLibrary(t, e, 1, "Grizzly Bears")
 	bearC := splitMoveFromHandOrLibrary(t, e, 1, "Grizzly Bears")
 	addMana(t, e, 0, "UUUUB")
-	fuse := splitOption(t, e, id, "fuse")
+	fuse := adventureOption(t, e, id, "fuse")
 	if fuse == nil {
 		t.Fatalf("fused offer missing for Far // Away: %+v", castOptions(t, e))
 	}
@@ -141,7 +141,7 @@ func TestFusedFleshBloodSubAbilityReadsItsOwnHalfTargets(t *testing.T) {
 
 	// Fused cost {3}{B}{G}{R}{G} = 3 generic + B + G + R + G: 7 mana.
 	addMana(t, e, 0, "BBGGRRR")
-	fuse := splitOption(t, e, id, "fuse")
+	fuse := adventureOption(t, e, id, "fuse")
 	if fuse == nil {
 		t.Fatalf("fused offer missing for Flesh // Blood: %+v", castOptions(t, e))
 	}
@@ -258,7 +258,7 @@ func TestFusedBloodSubAbilityReadsItsOwnHalfTargets(t *testing.T) {
 
 	// Fused cost {3}{B}{G}{R}{G}: 7 mana.
 	addMana(t, e, 0, "BBGGRRR")
-	fuse := splitOption(t, e, id, "fuse")
+	fuse := adventureOption(t, e, id, "fuse")
 	if fuse == nil {
 		t.Fatalf("fused offer missing for Flesh // Blood: %+v", castOptions(t, e))
 	}

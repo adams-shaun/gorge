@@ -215,26 +215,6 @@ func convergeSetup(t *testing.T) (*cards.Registry, cardset.Set) {
 	return reg, set
 }
 
-func convergeDecksOf(t *testing.T, reg *cards.Registry, md [2][]cardset.Entry) [2][]*cards.Card {
-	t.Helper()
-	var decks [2][]*cards.Card
-	for s, d := range md {
-		for _, e := range d {
-			c, ok := reg.Lookup(e.Name)
-			if !ok {
-				t.Fatalf("%s not in the corpus", e.Name)
-			}
-			for i := 0; i < e.Count; i++ {
-				decks[s] = append(decks[s], c)
-			}
-		}
-		if len(decks[s]) != 40 {
-			t.Fatalf("deck %d: %d cards", s, len(decks[s]))
-		}
-	}
-	return decks
-}
-
 // convergeRun plays seeds 1..seeds; it returns whether a game diverged
 // (report logs the first as a test error), the kernel stalls and the
 // probe's tallies.
@@ -243,7 +223,7 @@ func convergeRun(t *testing.T, seeds uint64, report bool) (diverged bool, stalls
 	reg, set := convergeSetup(t)
 	n = map[string]int{}
 	for mi, md := range convergeDecks {
-		decks := convergeDecksOf(t, reg, md)
+		decks := kcastDeck(t, reg, md)
 		tbl, _, _, err := set.Matchup(md[0], md[1])
 		if err != nil {
 			t.Fatal(err)

@@ -74,37 +74,6 @@ var playerchoiceCarrierMin = map[string]int{
 	"Orcrist, Goblin-cleaver": 2, "Pol Jamaar, Illusionist": 2,
 }
 
-// playerchoicePolicy casts or activates whenever it can (so the games reach the
-// carriers), else random; it counts the carrier plays the gorge side poses.
-func playerchoicePolicy(seed uint64, played map[string]int) Policy {
-	rnd := RandomPolicy(seed)
-	var buf []Canon
-	return PolicyFunc(func(c *PickCtx) Canon {
-		buf = buf[:0]
-		for _, a := range c.D.Options {
-			if k := a.Kind(); k == ActCast || k == ActActivate {
-				buf = append(buf, a)
-			}
-		}
-		var a Canon
-		if len(buf) == 0 {
-			a = rnd.Pick(c)
-		} else {
-			d := *c.D
-			d.Options = buf
-			a = rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
-		}
-		if k := a.Kind(); (k == ActCast || k == ActActivate) && c.G != nil {
-			if o, ok := c.G.GorgeOption(a); ok {
-				if ob := c.G.E.G.Obj(o.Obj); ob != nil && ob.Face() != nil {
-					played[ob.Face().Name]++
-				}
-			}
-		}
-		return a
-	})
-}
-
 func TestPlayerChoiceCarriersLockstep(t *testing.T) {
 	t.Parallel()
 
@@ -149,7 +118,7 @@ func TestPlayerChoiceCarriersLockstep(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			pol := playerchoicePolicy(seed, played)
+			pol := castActivatePlayedPolicy(seed, played)
 			if seed%4 == 0 {
 				pol = RandomPolicy(seed)
 			}

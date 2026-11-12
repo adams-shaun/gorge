@@ -15,8 +15,8 @@ A:SP$ Draw | NumCards$ Tally | SpellDescription$ Draw a card for each mana spent
 SVar:Tally:Count$CastTotalManaSpent
 `
 	lands := []string{
-		alltargetedCorpusText(t, "s/skycloud_expanse.txt"),
-		alltargetedCorpusText(t, "p/plains.txt"),
+		corpusCardText(t, "s/skycloud_expanse.txt"),
+		corpusCardText(t, "p/plains.txt"),
 	}
 	e, _, spell := newFixtureDeck(t, 7, spellSrc, lands...)
 	for _, l := range lands {

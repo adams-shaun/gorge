@@ -47,7 +47,7 @@ func noUnimplementedPoisonNote(t *testing.T, e *Engine, n0 int) {
 // engine, config and Vraska's object id.
 func vraskaUltGame(t *testing.T, seed uint64) (*Engine, Config, state.ObjID) {
 	t.Helper()
-	vraska := tokenReplCorpusCard(t, "Vraska, Betrayal's Sting")
+	vraska := corpusAlternativeCard(t, "Vraska, Betrayal's Sting")
 	e, cfg := tokenReplGame(t, seed, vraska)
 	id := moveSeededCard(t, e, 0, vraska, state.ZBattlefield)
 	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "LOYALTY", Amount: 3})
@@ -263,8 +263,8 @@ func TestPoisonSBAReachesTenLoses(t *testing.T) {
 // choke point, proving the prohibition sees the resolving api route.
 func TestPoisonCounterProhibitionStillBinds(t *testing.T) {
 	t.Parallel()
-	prologue := tokenReplCorpusCard(t, "Prologue to Phyresis")
-	phila := tokenReplCorpusCard(t, "Phila, Unsealed")
+	prologue := corpusAlternativeCard(t, "Prologue to Phyresis")
+	phila := corpusAlternativeCard(t, "Phila, Unsealed")
 	e, cfg := tokenReplGameSeats(t, 9305, []*cards.Card{prologue}, []*cards.Card{phila})
 	pid := moveSeededCard(t, e, 1, phila, state.ZBattlefield)
 	if o := e.G.Obj(pid); o == nil || o.Zone != state.ZBattlefield {

@@ -19,9 +19,9 @@ import (
 // once Kindle has resolved the madness trigger is on the stack.
 func TestMadnessDiscardDuringARepeatExilesInPlace(t *testing.T) {
 	t.Parallel()
-	kindle := tokenReplCorpusCard(t, "Kindle the Carnage")
-	eruption := tokenReplCorpusCard(t, "Violent Eruption")
-	bear := tokenReplCorpusCard(t, "Grizzly Bears")
+	kindle := corpusAlternativeCard(t, "Kindle the Carnage")
+	eruption := corpusAlternativeCard(t, "Violent Eruption")
+	bear := corpusAlternativeCard(t, "Grizzly Bears")
 	e, cfg := tokenReplGame(t, 9181, kindle, eruption, bear)
 	bearID := moveSeededCard(t, e, 0, bear, state.ZBattlefield)
 	kindleID := moveSeededCard(t, e, 0, kindle, state.ZHand)
@@ -91,7 +91,7 @@ func TestMadnessDiscardDuringARepeatExilesInPlace(t *testing.T) {
 // and a gated repeat whose pass posed nothing and changed nothing stops.
 func TestGatedRepeatStopsWhenAnIterationChangesNothing(t *testing.T) {
 	t.Parallel()
-	rally := tokenReplCorpusCard(t, "Rally the Horde")
+	rally := corpusAlternativeCard(t, "Rally the Horde")
 	e, cfg := tokenReplGame(t, 9182, rally)
 	rallyID := moveSeededCard(t, e, 0, rally, state.ZHand)
 	e.priorityRound()

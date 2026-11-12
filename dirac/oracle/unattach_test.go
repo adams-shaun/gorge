@@ -96,7 +96,7 @@ func kunattachRun(t *testing.T, seeds uint64, report bool, finish func(*GorgeSid
 		t.Fatal(err)
 	}
 	both := [2][]cardset.Entry{kunattachDeck, kunattachDeck}
-	decks := kincrementDecksOf(t, reg, both)
+	decks := kcastDeck(t, reg, both)
 	tbl, _, _, err := set.Matchup(kunattachDeck, kunattachDeck)
 	if err != nil {
 		t.Fatal(err)

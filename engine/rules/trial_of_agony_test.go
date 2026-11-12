@@ -41,10 +41,10 @@ func TestTrialOfAgonyLetsTargetedOpponentChooseDamage(t *testing.T) {
 	}
 	submitChoices(t, e, cast)
 	targetAsk := e.Pending()
-	if targetAsk == nil || targetAsk.Kind != decision.KTarget || targetOptionIndex(targetAsk, bear) < 0 || targetOptionIndex(targetAsk, angel) < 0 {
+	if targetAsk == nil || targetAsk.Kind != decision.KTarget || indexOfObjOption(targetAsk, bear) < 0 || indexOfObjOption(targetAsk, angel) < 0 {
 		t.Fatalf("precondition: both creature targets must be offered: %+v", targetAsk)
 	}
-	submitChoices(t, e, targetOptionIndex(targetAsk, bear), targetOptionIndex(targetAsk, angel))
+	submitChoices(t, e, indexOfObjOption(targetAsk, bear), indexOfObjOption(targetAsk, angel))
 	choose := passUntilAskKind(t, e, decision.KChoose, 200)
 	if choose.Player != 1 || choose.ResumeKind != "choice" || choose.Prompt != "Choose one to take 5 damage" || len(choose.Options) != 2 {
 		t.Fatalf("Trial of Agony choice = %+v, want opponent seat 1 choosing one of two", choose)

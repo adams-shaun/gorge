@@ -187,19 +187,3 @@ func cfdOptionIndexFor(t *testing.T, d *decision.Decision, id state.ObjID) int {
 	t.Fatalf("option for %d not offered: %+v", id, d.Options)
 	return -1
 }
-
-func cfdPass(t *testing.T, e *Engine, d *decision.Decision) {
-	t.Helper()
-	idx := -1
-	for _, o := range d.Options {
-		if o.Kind == "pass" {
-			idx = o.Index
-		}
-	}
-	if idx < 0 {
-		t.Fatalf("priority decision with no pass option: %+v", d)
-	}
-	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
-		t.Fatalf("submit pass: %v", err)
-	}
-}

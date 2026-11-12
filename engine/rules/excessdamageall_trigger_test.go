@@ -118,7 +118,7 @@ func TestExcessDamageAllAggregatesOnlyExcessPerBatch(t *testing.T) {
 	}
 	passUntilStackEmpty(t, e, 80)
 	if got := combatTokenCount(e, 0, "Treasure Token"); got != 2 {
-		t.Fatalf("resolved %d Treasures, want one per closed batch (2); pending=%d stack=%v token events=%d", got, len(e.pendingTriggers), e.G.Stack, countTokenCreations(e, 0))
+		t.Fatalf("resolved %d Treasures, want one per closed batch (2); pending=%d stack=%v token events=%d", got, len(e.pendingTriggers), e.G.Stack, countTokenCreates(e, 0))
 	}
 }
 

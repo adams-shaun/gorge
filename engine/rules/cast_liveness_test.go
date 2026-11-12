@@ -63,22 +63,6 @@ func castOptionFor(t *testing.T, e *Engine, id state.ObjID) decision.Option {
 	return decision.Option{}
 }
 
-// castOffered reports whether the current priority decision offers a "cast"
-// option for id (without the t.Fatal castOptions does, so a test can assert
-// for absence).
-func castOffered(e *Engine, id state.ObjID) bool {
-	d := e.Pending()
-	if d == nil {
-		return false
-	}
-	for _, o := range d.Options {
-		if o.Kind == "cast" && o.Obj == id {
-			return true
-		}
-	}
-	return false
-}
-
 // beginDelveCast submits id's cast option and asserts the delve exile ask
 // follows (the castable gate offered it, so the shortfall was > 0).
 func beginDelveCast(t *testing.T, e *Engine, id state.ObjID) {

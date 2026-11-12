@@ -15,16 +15,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// avernaOptions returns the offered object ids of the pending decision, in
-// option order.
-func avernaOptions(d *decision.Decision) []state.ObjID {
-	out := make([]state.ObjID, 0, len(d.Options))
-	for _, o := range d.Options {
-		out = append(out, o.Obj)
-	}
-	return out
-}
-
 // TestAvernaCascadeOffersOnlyExiledLandBeforeCastElection is the real-card
 // end-to-end pin: casting Bloodbraid Elf (mana value 4) over a window of
 // Forest + Grizzly Bears exiles both cards, Averna's replacement offers
@@ -63,7 +53,7 @@ func TestAvernaCascadeOffersOnlyExiledLandBeforeCastElection(t *testing.T) {
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "hidden_pick" {
 		t.Fatalf("want Averna's hidden land pick, got %+v", d)
 	}
-	if got := avernaOptions(d); len(got) != 1 || got[0] != forestID {
+	if got := optionObjIDs(d); len(got) != 1 || got[0] != forestID {
 		t.Fatalf("Averna offered %v, want exactly the exiled Forest %d (not the unrelated land %d or the found card %d)",
 			got, forestID, otherLand, bearID)
 	}
@@ -170,7 +160,7 @@ func TestAvernaCascadeDeclinedLandStillProceeds(t *testing.T) {
 		t.Fatalf("want Averna's hidden land pick, got %+v", d)
 	}
 	// Precondition: the offered land really is the Forest.
-	if got := avernaOptions(d); len(got) != 1 || got[0] != forestID {
+	if got := optionObjIDs(d); len(got) != 1 || got[0] != forestID {
 		t.Fatalf("Averna offered %v, want the Forest %d", got, forestID)
 	}
 	if got := e.G.Obj(forestID).Zone; got != state.ZExile {
