@@ -53,7 +53,7 @@ func TestLowerEffectUncounterScope(t *testing.T) {
 	const veil = "Name:Uncounter Probe\nManaCost:G\nTypes:Instant\n" +
 		"A:SP$ Effect | ReplacementEffects$ AntiMagic | SubAbility$ DBPump | SpellDescription$ probe\n" +
 		"SVar:AntiMagic:Event$ Counter | ValidSA$ Spell.YouCtrl | Layer$ CantHappen | Description$ probe\n" +
-		"SVar:DBPump:DB$ Pump | Defined$ You & Valid Permanent.YouCtrl | KW$ Hexproof:Black & Hexproof:Blue\n"
+		"SVar:DBPump:DB$ Pump | KW$ Hexproof:Black & Hexproof:Blue | Defined$ You & Valid Permanent.YouCtrl | SpellDescription$ probe\n"
 	if r := exileBfSynth(t, veil); len(r) != 0 {
 		t.Fatalf("the probe script itself refuses: %q", keclReason(r))
 	}
