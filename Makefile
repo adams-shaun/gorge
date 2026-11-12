@@ -91,6 +91,9 @@ help:
 	@echo "  make dirac-tables   — write dirac's binary card tables under the corpus (gitignored, keyed by corpus and kgen sources)"
 	@echo "  make dirac-slices   — play dirac against gorge on the committed FDN and BLB slices, both surfaces"
 	@echo "  make dirac-mp-check — vet, test and lockstep-play dirac's four-seat-slot size class (build tag dirac_mp)"
+	@echo "  make test-one PKG=./p RUN=TestX — one capped, corpus-checked test run with one verdict line (debugging)"
+	@echo "  make test-targeted  — the packages your diff vs BASE touches plus their test reverse deps (the inner loop)"
+	@echo "  make test-smart     — the landing gate's steps, fail-fast, on a committed tree (precheck is an alias)"
 	@echo "  make fresh-clone-check — build, vet and test dirac with no corpus: tests needing tables skip, none fail"
 	@echo "  make enginebench-pair BASE=main CAND=. — paired engine-speed comparison (cmd/enginebench)"
 	@echo "  make enginebench-profile [REV=.]       — CPU/alloc profiles of the bench rows, tops printed"
@@ -257,12 +260,22 @@ dirac-mp-lockstep:
 fresh-clone-check:
 	bash scripts/fresh-clone-check.sh
 
-# precheck runs, on the committed HEAD, what a landing gate most often fails on: gofmt and vet, the
-# census and coverage tests, and BASE's own dirac gate. BASE is the branch the change lands on.
-BASE ?= origin/main
-.PHONY: precheck
-precheck:
-	bash scripts/precheck.sh $(BASE)
+# The test targets (scripts/test-targets.sh) replace a raw `go test`: capped, corpus-checked, one verdict line
+# `test-<mode>: PASS|FAIL|ENV|EMPTY|BUDGET|BUSY <sha> <pkgs> <seconds>` (exit 0, 1, 3, 4, 5, 75).
+#   test-one       PKG=./p RUN=TestX [SKIP= V=1 TIMEOUT=2m TAGS= TESTENV='KGEN_REPIN=1' UPDATE=1]: debugging
+#   test-targeted  the packages the diff vs BASE touches plus every package whose tests import them
+#   test-smart     the landing gate's steps, fail-fast, on a committed tree; precheck is an alias
+# BASE is the branch the change lands on.
+BASE ?= land
+export BASE
+.PHONY: test-one test-targeted test-smart precheck
+test-one:
+	@PKG='$(PKG)' RUN='$(RUN)' SKIP='$(SKIP)' V='$(V)' TIMEOUT='$(TIMEOUT)' TAGS='$(TAGS)' TESTENV='$(TESTENV)' UPDATE='$(UPDATE)' bash scripts/test-targets.sh one
+test-targeted:
+	@bash scripts/test-targets.sh targeted
+test-smart:
+	@bash scripts/test-targets.sh smart
+precheck: test-smart
 
 .PHONY: report
 report: $(BIN_DIR)/forgec
