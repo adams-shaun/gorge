@@ -187,6 +187,7 @@ These stay in the tree, under this directory.
 | File | Date | Title | Outcome |
 |---|---|---|---|
 | `v2-default-interface.md` | 2026-10-28 | SpellBench v2 as gorge's default two-player bot interface | Designed and measured, not switched: the adapter agrees with native but costs about 3x; native `seat.Seat` stays the default. |
+| `2026-10-06-rules-split.md` | 2026-10-06 | Rules package split: compile-time slicing plan | Plan and first slice landed (`engine/rules/scriptfacts`); the remaining slices are parked. |
 
 ## Agent guide
 

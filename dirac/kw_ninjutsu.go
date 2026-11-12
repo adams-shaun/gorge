@@ -72,9 +72,14 @@ func (s *State) ninjutsuCapture(o Obj) {
 
 // ninjutsuResolve is OpNinjutsu: the resolving entry's source card, if
 // still in its owner's hand, enters tapped and attacking.
+func (s *State) ninjutsuResolve(k *prep) { s.handEntryResolve(k, false) }
+
+// handEntryResolve is ninjutsuResolve's body. plain (OpNinjutsu C 1) is a
+// mana-only hand ability's "put this card onto the battlefield from your
+// hand" (Talon Gates of Madara): the same entry, with no tap and no attack.
 //
 //go:noinline
-func (s *State) ninjutsuResolve(k *prep) {
+func (s *State) handEntryResolve(k *prep, plain bool) {
 	e := &s.res.e
 	o := e.obj
 	ob := &s.objs[o]
@@ -92,6 +97,9 @@ func (s *State) ninjutsuResolve(k *prep) {
 	ctrl := ob.owner()
 	from := s.detach(o)
 	sl := s.enter(k, o, ctrl, false, from)
+	if plain {
+		return // put this card onto the battlefield: it enters as it is
+	}
 	pp := &s.perms[sl]
 	if pp.flags&pfTapped == 0 {
 		pp.flags |= pfTapped

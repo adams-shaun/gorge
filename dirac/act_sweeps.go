@@ -151,7 +151,9 @@ func (s *State) fireGraveDies(k *prep, sl Slot) {
 // tapAll is OpTapAll: gorge effTapAll walks seat 0's battlefield then seat
 // 1's in entry order and taps (EmitTap) each UNTAPPED permanent matching
 // ValidCards$; each tap fires its Taps triggers as it happens. Obj (a
-// target player) restricts the walk to that player's battlefield.
+// player ref) restricts the walk to that player's battlefield. Instr.C 1
+// is TapperController$ True: each tapped permanent's own controller is the
+// tapper (gorge's per-card tapper), not the resolving ability's controller.
 func (s *State) tapAll(k *prep, in *kop.Instr) {
 	only := uint8(255)
 	if in.Obj != kop.RefNone {
@@ -171,7 +173,11 @@ func (s *State) tapAll(k *prep, in *kop.Instr) {
 		p.flags |= pfTapped
 		s.touchSl(sl)
 		if s.subs[kop.TrigTaps].any() {
-			s.fireTapsBy(k, sl, s.effTapper(sl))
+			tapper := s.effTapper(sl)
+			if in.C == 1 {
+				tapper = p.ctrl
+			}
+			s.fireTapsBy(k, sl, tapper)
 		}
 		s.markTapped(k, sl)
 	}
