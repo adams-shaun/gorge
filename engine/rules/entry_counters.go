@@ -1123,11 +1123,11 @@ func (e *Engine) entryETBChoiceOutstanding(ev events.Event) bool {
 		return false
 	}
 	ordinal := 0
-	if e.etbMove != nil {
-		if e.etbMove.Obj != ev.Obj {
+	if len(e.etbQueue) > 0 {
+		if e.etbQueue[0].move.Obj != ev.Obj {
 			return false
 		}
-		ordinal = e.etbNext
+		ordinal = e.etbQueue[0].next
 	}
 	_, ok := e.entryETBChoice(ev, ordinal)
 	return ok

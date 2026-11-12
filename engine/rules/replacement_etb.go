@@ -125,50 +125,110 @@ func (e *Engine) sunburstEntryMatch(ev events.Event) *replMatch {
 	return &replMatch{id: ev.Obj, repl: r}
 }
 
+// etbParked is one battlefield entry parked behind its as-enters choice: the
+// move to re-emit once the answer lands, the ordinal of the next choice on
+// that entry, and -- when the entry reached its choice while another decision
+// was still outstanding -- the prebuilt ask waiting for its turn. All plain
+// data, so Clone carries every parked entry exactly.
+type etbParked struct {
+	move *events.Event
+	next int
+	ask  *decision.Decision
+}
+
 // applyETBChoiceReplacement parks an entry before it is folded into the
 // battlefield and asks through the ordinary mid-resolution suspension path.
 // This is the CR 614.12 boundary: the chooser sees the question only when the
 // permanent would enter, whether the move came from a resolving spell, a land
-// play, reanimation or a search. etbMove/etbNext are the only transient
-// continuation state; the answer itself is the existing Choose event.
+// play, reanimation or a search. etbQueue is the only transient continuation
+// state; the answer itself is the existing Choose event.
+//
+// Entries are served front first. A second CR 303.4f Aura entry that reaches
+// this boundary while an earlier entry's ask is still outstanding parks too
+// (with its own ask), so its controller's answer is never overwritten by an
+// unasked default attachment. Other as-enters choices keep the historical
+// one-at-a-time behaviour.
 func (e *Engine) applyETBChoiceReplacement(ev events.Event) bool {
-	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield || e.pending != nil ||
+	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield ||
 		events.IsFaceDownEntry(ev.Counter) {
 		return false
 	}
 	ordinal := 0
-	if e.etbMove != nil {
-		if e.etbMove.Obj != ev.Obj {
-			return false
-		}
-		ordinal = e.etbNext
+	front := false
+	if len(e.etbQueue) > 0 && e.etbQueue[0].move.Obj == ev.Obj {
+		ordinal = e.etbQueue[0].next
+		front = true
 	}
 	choice, ok := e.entryETBChoice(ev, ordinal)
 	if !ok {
-		e.etbMove = nil
-		e.etbNext = 0
+		if front {
+			popETBQueue(e)
+		}
+		return false
+	}
+	if e.pending != nil && choice.kind != "enchant" {
+		// Only the CR 303.4f non-cast Aura choice queues behind another
+		// decision; every other as-enters ask keeps the pre-existing
+		// one-at-a-time path (the entry happens unasked).
 		return false
 	}
 	move := ev
-	e.etbMove = &move
-	e.etbNext = ordinal + 1
+	if front {
+		e.etbQueue[0].move = &move
+		e.etbQueue[0].next = ordinal + 1
+	} else {
+		e.etbQueue = append(e.etbQueue, etbParked{move: &move, next: ordinal + 1})
+	}
 	d := &decision.Decision{Player: e.G.Obj(ev.Obj).Controller, Kind: decision.KChoose,
 		Min: 1, Max: 1, ResumeKind: "etb", ResumeSA: choice.sa, Source: ev.Obj,
 		Prompt: "Choose" + choice.promptText(), Options: choice.options}
+	if e.pending != nil {
+		e.etbQueue[len(e.etbQueue)-1].ask = d
+		return true
+	}
+	askETBChoice(e, d, ev.Obj)
+	return true
+}
+
+// popETBQueue drops the front parked entry.
+func popETBQueue(e *Engine) {
+	if len(e.etbQueue) == 0 {
+		return
+	}
+	e.etbQueue = e.etbQueue[1:]
+	if len(e.etbQueue) == 0 {
+		e.etbQueue = nil
+	}
+}
+
+// askETBChoice poses one parked entry's as-enters ask, serving it from the
+// tape when the resolution kernel owns it (the same split the legacy
+// owner used).
+func askETBChoice(e *Engine, d *decision.Decision, obj state.ObjID) {
 	e.choosing = chooseETBEntry
-	if in, ok := etbTapeAnswer(e, d, ev.Obj); ok {
+	if in, ok := etbTapeAnswer(e, d, obj); ok {
 		// The resolution kernel's answer in hand: the entry is
 		// never parked. Re-emit it with the answer now, exactly as the legacy
 		// chooseETBEntry arm does, and let the interrupted code carry on from
 		// this emit -- the continuation the legacy arm hands back to the
 		// parked frame (continueAfterETBEntry).
 		e.choosing = chooseNone
-		chosen := d.Chosen(in)
-		e.resumeETBEntry(chosen)
-		return true
+		e.resumeETBEntry(d.Chosen(in))
+		return
 	}
 	e.ask(d)
-	return true
+}
+
+// drainETBQueue poses the front parked entry's waiting ask once nothing else
+// is outstanding. It is called after an answer, when a queued Aura entry may
+// have been waiting behind an unrelated decision (a CR 903.9 commander-zone
+// ask, a replacement-order choice).
+func drainETBQueue(e *Engine) {
+	for e.pending == nil && len(e.etbQueue) > 0 && e.etbQueue[0].ask != nil {
+		d := e.etbQueue[0].ask
+		e.etbQueue[0].ask = nil
+		askETBChoice(e, d, e.etbQueue[0].move.Obj)
+	}
 }
 
 // applyRiotReplacement is retained as a defensive fallback for an entry that
