@@ -133,3 +133,24 @@ Decision 7 said deck pools ship as an attributed release asset. They do not:
 the full deck pools are not published and have no download. The committed pool
 inputs under `dirac/cardset/pools/` and the committed slices are what a clone
 has. The original text of decision 7 stays above, marked superseded.
+
+## Amendment (2026-11-05): dirac's search and network evaluator are promoted
+
+Decision 2 kept "`dirac`'s search and network evaluator until promoted"
+private. They were promoted on 2026-11-05, in commit
+`359e84a0e9cd6ac48a672e95909c06abda8d9cef` ("Import dirac's search, its
+network evaluator and the search oracle tests"):
+
+- **`dirac/search`** — the AlphaZero-style search over a `dirac.State`, with
+  its option families. It imports only `dirac` packages, so it sits in
+  dirac's core.
+- **`dirac/neteval`** — the search's network Evaluator, fed by `dirac/feat`
+  and feeding `bots/netsimd` or `bots/gonet`. It imports `bots/`, so it sits
+  outside the core. The remote backend (a client for a private network
+  server) was left in the companion module.
+- **`dirac/oracle/searchtest`** — the lockstep tests that need the search or
+  the evaluator, which `dirac/oracle` may not import.
+
+Decision 2's list no longer names either package; the rest of the list
+stands, and `TestPublicBoundary` holds the promoted packages to the public
+boundary like every other file.

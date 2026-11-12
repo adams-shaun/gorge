@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-sos",
+ "pool": "std-sos",
+ "why": "CR 601.2a, 601.2c: Flashback cast from the graveyard through Tablet of Discovery's permission is on the stack when its target is chosen, so with no other instant or sorcery there it is not offered",
  "actions": [
   16776960,
   16776960,

@@ -116,7 +116,7 @@ func (s *State) offerBestowHand(k *prep, d *Decision, p uint8, o Obj, c CardID, 
 //
 //go:noinline
 func (s *State) beginBestow(k *prep, o Obj) {
-	s.beginCast(k, o, castFace)
+	s.beginCast(k, o, castFace, 0)
 	s.bld().e.mode |= modeBestowed
 	cost := s.buildCost(k)
 	// gorge's planner prices the granted delve's credit (offerPlay's choke

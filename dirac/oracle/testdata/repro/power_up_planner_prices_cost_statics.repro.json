@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "CR 601.2f, 602.2b, 702.193a: Hulk, Gamma Goliath's {3} off She-Hulk, Jade Defender's {4}{G}{G} Power-up is in the planner's printed cost, so five lands with three Forests offer it",
  "actions": [
   184549120,
   184549120,

@@ -23,13 +23,13 @@
    "Dark Ritual",
    "Dark Ritual",
    "Dark Ritual",
-   "Bartolomé del Presidio",
-   "Bartolomé del Presidio",
-   "Bartolomé del Presidio",
-   "Bartolomé del Presidio",
-   "Bartolomé del Presidio",
-   "Bartolomé del Presidio",
-   "Bartolomé del Presidio"
+   "Bartolom\u00e9 del Presidio",
+   "Bartolom\u00e9 del Presidio",
+   "Bartolom\u00e9 del Presidio",
+   "Bartolom\u00e9 del Presidio",
+   "Bartolom\u00e9 del Presidio",
+   "Bartolom\u00e9 del Presidio",
+   "Bartolom\u00e9 del Presidio"
   ],
   [
    "Plains",
@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "One Tarnation Vista with a Dark Ritual's {B}{B}{B} floating: the activation asks which ability only because the pool holds the fee, and the each-colour {W} pays Bartolom\u00e9 del Presidio (CR 106.1, 605.1a)",
  "actions": [
   17235712,
   805306115,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-lci",
+ "pool": "std-lci",
+ "why": "CR 603.2, 605.3b: Vito's trigger from a Treasure sacrificed paying for Guardian of the Great Door resolves before the cast and counts toward \"the second time this ability has resolved this turn\"",
  "actions": [
   16776960,
   16776960,

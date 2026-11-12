@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "CR 601.2g-h: the granted mana is the prefix, so the printed plan leaves the Treasure to sacrifice",
  "actions": [
   184549120,
   167771904,

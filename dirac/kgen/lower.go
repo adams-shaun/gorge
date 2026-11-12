@@ -222,6 +222,19 @@ type lowerCtx struct {
 	repeatCard int
 	// repeatOpp: that body repeats over the controller's opponents
 	repeatOpp bool
+	// repeatCheckSVar is the SVar an enclosing gated Repeat's
+	// RepeatCheckSVar$ names, while that body is lowered; repeatCheckAb is
+	// its ability, so a StoreSVar$ after the loop (the reset) still matches
+	// (lower_storesvar.go)
+	repeatCheckSVar string
+	repeatCheckAb   *lAbility
+	// repeatStoredGuard: the body stored the gate SVar true under the
+	// library-empty condition; repeat folds that stop into the gate
+	repeatStoredGuard bool
+	// repeatImprintBody: lowering the body of a RepeatDefined$ Imprinted
+	// loop; a Dig Imprint$ on the spell may open the set when its reads sit
+	// in the same ability (lower_digparams.go)
+	repeatImprintBody bool
 	// rollName is the ResultSVar$ of a RollDice lowered in ability rollAb:
 	// a later bare amount of that name (not a card SVar) is the roll
 	// (lower_combatstatics.go)
@@ -443,6 +456,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseHarmonizeCombos()
 	lc.refuseReboundCombos() // lower_rebound.go
 	lc.refuseMayhemCombos()
+	lc.lowerRetrace()
 	lc.refuseBeamCombos()
 	lc.refuseSneakCombos()
 	lc.refuseBuybackCombos() // lower_buyback.go
@@ -532,6 +546,42 @@ func (lc *lowerCtx) refuseMayhemCombos() {
 		out.Casualty != 0 || out.Cost.X {
 		lc.refuseNode("K:Mayhem", "Mayhem beside another cast route or additional cost")
 	}
+}
+
+// lowerRetrace refuses the retrace keyword beside another cast route and
+// builds its additional cost. Retrace does not claim CardDef.AltCost (the
+// printed base stays; only the discard folds on, dirac/kw_retrace.go), but
+// the kernel canon reads ONE mode-2 graveyard cast kind per card
+// (canon/translate.go): Flashback, Harmonize, Mayhem and Beam me up would
+// all take the mode-2 target byte 0. The other routes and costs are ones the
+// retrace offer walk does not price (dirac kw_retrace.go offerRetraceCasts
+// prices the printed base and the discard alone): Convoke, Improvise and
+// Delve fold credits into the base (gorge offerCastable), {X} needs the
+// cast's xAsk, and the rest carry their own pick or mana cost on the cast.
+func (lc *lowerCtx) lowerRetrace() {
+	out := lc.out
+	if !out.Retrace {
+		return
+	}
+	if out.Flashback != nil || out.Harmonize != nil || out.Mayhem != nil || out.BeamMeUp != nil {
+		lc.refuseNode("K:Retrace", "Retrace beside a mode-2 graveyard-cast keyword (canon/translate.go reads one)")
+	}
+	if out.Convoke || out.Improvise || out.Delve || out.Kicker != nil || out.Warp != nil || out.Plot != nil || out.Sneak != nil || out.Impending != nil ||
+		out.Bestow != nil || out.SpellCost != nil || out.AltAddCost != nil || out.Offspring != nil || out.Gift || out.MorphCost != nil ||
+		out.Casualty != 0 || out.Bargain || out.OptCost != nil || out.Teamwork != 0 || out.Spree || out.Madness != nil || out.Cost.X {
+		lc.refuseNode("K:Retrace", "Retrace beside another cast route, additional cost or an {X} cost (the offer walk prices the printed base and the discard alone)")
+	}
+	// The discard part is built directly (lc.cost's costParts refuses a
+	// filtered discard outside an activated ability): a bare Discard<1/Land>
+	// is the whole cost, no other part can ride beside it.
+	c, err := lc.costHand("Discard<1/Land>")
+	if err != nil || c.DiscardF == nil || c.DiscardN != 1 ||
+		c.Mana.Generic != 0 || c.Mana.Pips != [5]int{} || c.Mana.C != 0 || c.Mana.X || c.Mana.XX ||
+		len(c.Mana.Hybrid) != 0 || len(c.Mana.Twobrid) != 0 || len(c.Mana.Phyrexian) != 0 || c.Mana.XColor != 0 {
+		lc.refuseNode("K:Retrace", "retrace additional cost %q", "Discard<1/Land>")
+		return
+	}
+	out.RetraceCost = &c
 }
 
 // sneakLowered gates the K:Sneak arm of lowerKeywords.
@@ -1341,6 +1391,15 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Mayhem = &mc
+		case head == "Retrace" && param == "":
+			// CR 702.81a: a graveyard cast paying the PRINTED mana cost
+			// plus the additional cost of discarding a land card
+			// (dirac/kw_retrace.go). Retrace is no cost substitution: the
+			// printed base stays, only the discard folds on, so it rides
+			// mode bit 2 beside the mode-2 graveyard-cast keywords rather
+			// than claiming CardDef.AltCost. lowerRetrace refuses the
+			// collisions and builds the discard cost.
+			lc.out.Retrace = true
 		case head == "Spree" && param == "":
 			// CR 702.172a: a modal spell whose modes carry ModeCost$
 			// additional costs (lower_modecost.go reads them)
@@ -1664,6 +1723,17 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Miracle = &mc
+		case head == "Compleated":
+			// CR 702.150, as gorge implements it (the kw:Compleated
+			// approximation): the life paid for the printed Phyrexian pips
+			// lowers the entry loyalty (gorge events entry_counters'
+			// CompleatedLifePaid, cast_commit's FlagCompleated CastInfo).
+			// The kernel pays the pips' life in the payment window and
+			// places the entry's CtrLoyalty from the printed Loyalty alone
+			// (zones.go), so the life-paid amount would not reach the
+			// entry: a life-pip cast would enter Jace at full loyalty
+			// where gorge enters it two loyalty lower per pip.
+			lc.refuseNode(node, "keyword %q: the pips' life does not reach the entry loyalty", head)
 		default:
 			lc.refuseNode(node, "keyword %q", head)
 		}

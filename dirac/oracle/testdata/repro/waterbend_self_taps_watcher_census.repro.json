@@ -96,6 +96,9 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 605.1b, 701.67a: Great Divide Guide's granted {T} ability on Compassionate Healer fires the Healer's own Taps watcher, which gorge's census cannot price, so the waterbend announcement offers Done",
+ "stall": true,
  "actions": [
   184549120,
   184549120,

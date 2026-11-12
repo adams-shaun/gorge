@@ -170,6 +170,7 @@ CtrAll	CounterKind	254
 CtrBait	CounterKind	8
 CtrBloodstain	CounterKind	60
 CtrBore	CounterKind	58
+CtrBurden	CounterKind	72
 CtrCharge	CounterKind	15
 CtrChorus	CounterKind	40
 CtrCoin	CounterKind	55
@@ -382,6 +383,7 @@ ExLifeOf	ExprKind	12
 ExLowestLife	ExprKind	252
 ExMVOf	ExprKind	29
 ExMod	ExprKind	234
+ExMonarch	ExprKind	218
 ExMorbid	ExprKind	8
 ExNone	ExprKind	0
 ExNotOwnLibMV	ExprKind	226
@@ -392,6 +394,7 @@ ExOppsAttacked	ExprKind	229
 ExOppsLostLife	ExprKind	28
 ExParty	ExprKind	39
 ExPhaseCount	ExprKind	232
+ExPlExtreme	ExprKind	88
 ExPoisonOf	ExprKind	53
 ExPow	ExprKind	230
 ExPowerOf	ExprKind	10
@@ -435,6 +438,7 @@ ExtAddPhase	ExtOp	193
 ExtAegisClone	ExtOp	80
 ExtAirbend	ExtOp	95
 ExtAttacksIfAble	ExtOp	255
+ExtBecomeMonarch	ExtOp	259
 ExtBlocksIfAble	ExtOp	256
 ExtBreachChoose	ExtOp	160
 ExtBreachReturn	ExtOp	161
@@ -490,6 +494,7 @@ ExtPreventNext	ExtOp	305
 ExtPutCounterExisting	ExtOp	253
 ExtRecruit	ExtOp	94
 ExtRememberAll	ExtOp	306
+ExtRememberImprinted	ExtOp	307
 ExtRememberSearcher	ExtOp	304
 ExtRemoveCounterAny	ExtOp	3
 ExtSacDelayed	ExtOp	32
@@ -644,6 +649,7 @@ MayPlayOpponent	untyped int	16384
 MayPlayOwner	untyped int	512
 MayPlayPayLife	untyped int	-32768
 MayPlayRaiseShift	untyped int	10
+MonarchOpp	untyped int	1
 MorphDisguise	uint8	3
 MorphMegamorph	uint8	2
 MorphMorph	uint8	1
@@ -668,8 +674,8 @@ MvUnderYourControl	untyped int	4
 NoCard	CardID	65535
 NumCounterKinds	CounterKind	7
 NumCounterKinds2	CounterKind	13
-NumCounterKinds3	CounterKind	72
-NumCounterKindsX	int	57
+NumCounterKinds3	CounterKind	73
+NumCounterKindsX	int	58
 NumExtOps	ExtOp	320
 NumManaKinds	untyped int	6
 NumSteps	Step	13
@@ -894,6 +900,11 @@ PermMarkDealtTurn	untyped int	1
 PermMarkNot	untyped int	16
 PhaseCountCombats	untyped int	0
 PhaseCountEndSteps	untyped int	1
+PlExtExile	untyped int	1024
+PlExtGrave	untyped int	256
+PlExtLibrary	untyped int	512
+PlExtOpponents	untyped int	1
+PlExtPlayers	untyped int	0
 PlayerPredArtOrEnch	untyped int	4
 PlayerPredControlsCreature	untyped int	1
 PlayerPredCorrupted	untyped int	3
@@ -936,6 +947,7 @@ PredPowerGEV	Pred	14
 PredPowerGTBase	Pred	243
 PredPowerLE	Pred	1
 PredPowerLTToughness	Pred	17
+PredSameNameRem	Pred	238
 PredSameNameT0	Pred	32
 PredSolved	Pred	252
 PredSubtype	Pred	8
@@ -1206,7 +1218,7 @@ StatCastWithFlash	StaticKind	6
 StatCombatDmgToughness	StaticKind	245
 StatContinuous	StaticKind	1
 StatControl	StaticKind	17
-StatCount	StaticKind	20
+StatCount	StaticKind	21
 StatDisableETB	StaticKind	234
 StatExtraLandPlay	StaticKind	12
 StatFbGrant	StaticKind	242
@@ -1223,6 +1235,7 @@ StatNone	StaticKind	0
 StatOverride	StaticKind	14
 StatPanharmonicon	StaticKind	18
 StatPlayerHexproof	StaticKind	15
+StatPlayerProtAll	StaticKind	20
 StatReduceAbility	StaticKind	233
 StatReduceCost	StaticKind	2
 StatStackKw	StaticKind	251
@@ -1384,6 +1397,7 @@ TrigAbilityCast	TrigEvent	36
 TrigAttached	TrigEvent	33
 TrigAttackersDeclared	TrigEvent	6
 TrigAttacks	TrigEvent	5
+TrigBecomeMonarch	TrigEvent	48
 TrigBecomeMonstrous	TrigEvent	26
 TrigBecomesBlocked	TrigEvent	19
 TrigBecomesPlotted	TrigEvent	31
@@ -1401,7 +1415,7 @@ TrigDiscardedAll	TrigEvent	35
 TrigDiscover	TrigEvent	44
 TrigDrawn	TrigEvent	14
 TrigETB	TrigEvent	1
-TrigEventCount	TrigEvent	48
+TrigEventCount	TrigEvent	49
 TrigEvolved	TrigEvent	47
 TrigExplores	TrigEvent	39
 TrigFacesDilemma	TrigEvent	46
@@ -1415,6 +1429,7 @@ TrigLifeLost	TrigEvent	10
 TrigManaExpend	TrigEvent	21
 TrigManifestDread	TrigEvent	45
 TrigNAnyCounter	int16	-1
+TrigNMonarchBeganTurn	int16	1
 TrigNTeamworkTap	int16	1
 TrigNTraining	int16	2
 TrigNValiant	int16	1

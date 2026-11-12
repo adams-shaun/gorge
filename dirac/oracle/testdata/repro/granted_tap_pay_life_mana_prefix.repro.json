@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-lci",
+ "pool": "std-lci",
+ "why": "CR 119.4, 605.1a: Cavernous Maw's \"{T}, Pay 1 life: Add one mana of any color\" granted by Forgotten Monument is the prefix paying Restless Vents' {B}, and its life is paid",
  "actions": [
   184549120,
   167771904,

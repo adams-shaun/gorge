@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "CR 601.2g with CR 107.4e: the reversed twobrid cast's window taps Opulent Palace's \"Combo B G U\" while both G and U are owed; gorge's ask lists the Combo's printed order, so its answer is G, and the floated mana must match (dirac answered the lowest WUBRG colour, U).",
  "actions": [
   16776960,
   16776960,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-woe",
+ "pool": "std-woe",
+ "why": "CR 400.7: Edgewall Inn returns Fell Horseman to hand before its dies trigger resolves, so the trigger cannot put the new object on the bottom of the library",
  "actions": [
   167771904,
   167771904,

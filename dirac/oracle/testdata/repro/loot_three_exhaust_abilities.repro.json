@@ -69,6 +69,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "std-dft",
+ "pool": "std-dft",
+ "why": "Loot, the Pathfinder activates its Exhaust mana ability and then its Exhaust draw: each once-only ability has its own mark (CR 702.177a)",
  "actions": [
   16776960,
   16776960,

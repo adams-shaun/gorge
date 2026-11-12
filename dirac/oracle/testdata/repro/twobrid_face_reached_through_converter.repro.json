@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-tdm",
+ "why": "CR 601.2b: Temur Tawnyback's {2/R} is offered when an Island and Jeskai Devotee's {1} for {R} are the only red",
  "actions": [
   16776960,
   16776960,

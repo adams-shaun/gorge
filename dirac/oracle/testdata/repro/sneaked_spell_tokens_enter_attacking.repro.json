@@ -96,6 +96,8 @@
  "max_turns": 30,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "The Last Ronin's Technique cast for its sneak cost in the declare blockers step: its three Spirits enter tapped and attacking, gorge's combat fallback (CR 508.4, 702.190a)",
  "actions": [
   167771904,
   167771904,

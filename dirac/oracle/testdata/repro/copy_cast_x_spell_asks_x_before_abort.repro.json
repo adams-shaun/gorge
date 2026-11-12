@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 601.2b, 601.2c: Q's Play of Khaaaaaaaaaaaannn! announces X before its target ask, so a copy cast no mana can pay still asks X = 0 and puts the copy on the stack before the target ask reverses it",
  "actions": [
   16776960,
   16776960,

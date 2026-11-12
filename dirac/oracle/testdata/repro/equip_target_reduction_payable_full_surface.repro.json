@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "CR 601.2f, 602.2b: the same equip offer on the full surface",
  "actions": [
   16776960,
   16776960,

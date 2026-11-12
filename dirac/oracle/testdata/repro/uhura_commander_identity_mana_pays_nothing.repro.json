@@ -94,6 +94,9 @@
  "mulligans": 1,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trc",
+ "why": "Uhura's \"you may pay {1}\" with only Arcane Signet and Queen's Diamond untapped and no commander: neither funds it, so only the decline is offered",
  "actions": [
   184549120,
   184549120,

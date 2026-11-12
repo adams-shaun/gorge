@@ -930,7 +930,7 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		}
 		holder := s.prio
 		s.prio = ctrl // the caster (beginCast reads it)
-		s.beginCast(k, o, castFree)
+		s.beginCast(k, o, castFree, 0)
 		s.prio = holder
 		return false
 	}

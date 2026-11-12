@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "CR 613.7e, 707.2: Oko's Assimilation Aegis copy of Daring Thunder-Thief is newer than his until-end-of-turn copy, so \"except he has hexproof\" is overwritten and returns with that layer",
  "actions": [
   184549120,
   184549120,

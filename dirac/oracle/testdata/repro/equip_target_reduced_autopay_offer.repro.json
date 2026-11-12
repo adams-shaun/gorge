@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "CR 601.2f: Cloud, Planet's Champion's {2} less makes White Mage's Staff's equip onto it {1}, payable by tapping Balamb Garden",
  "actions": [
   16776960,
   16776960,

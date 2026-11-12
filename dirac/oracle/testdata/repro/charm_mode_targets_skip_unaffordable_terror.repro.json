@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "CR 601.2c/f, 118.8: a Spree/Charm per-mode target ask withholds Terror of the Peaks when its controller's \"an additional 3 life\" leaves the caster unable to pay, as the root target ask does",
  "actions": [
   184549120,
   167771904,

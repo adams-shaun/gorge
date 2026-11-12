@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-sos",
+ "pool": "std-sos",
+ "why": "CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced",
  "actions": [
   167771904,
   167771904,

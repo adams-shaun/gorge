@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Lightning Strike aimed at Anti-Venom, Horrifying Healer: the damage is prevented and he gets three +1/+1 counters instead (CR 615.1, 614.1a)",
  "actions": [
   19398400,
   17432320,

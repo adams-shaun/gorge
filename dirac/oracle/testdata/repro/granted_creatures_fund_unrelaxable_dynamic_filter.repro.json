@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 605.3a, 601.2g-h: Starfleet Academy's filter makes seven, past the relaxed census's six, so gorge's prefix search funds no fee and taps Rok-Tahk's granted {G}{G} on three creatures before the filter's {B} pays Artificial Anomaly",
  "actions": [
   184549120,
   184549120,

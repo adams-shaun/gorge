@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "The Eagles Are Coming! returns a creature, and the Effect's next-upkeep trigger makes a Bird Soldier for it: the Effect's remembered count rides the trigger (CR 603.7)",
  "actions": [
   19398400,
   17891072,

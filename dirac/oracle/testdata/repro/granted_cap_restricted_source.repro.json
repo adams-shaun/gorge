@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-tla",
+ "why": "Honest Work beside Jasmine Dragon Tea Shop: the printed sources price Sokka",
  "actions": [
   16776960,
   16776960,

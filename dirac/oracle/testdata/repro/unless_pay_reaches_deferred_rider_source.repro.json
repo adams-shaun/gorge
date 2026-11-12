@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 118.3, 605.3b: Anthropede's pay-{2} election is offered when the second mana comes only from Twitching Doll's counter-rider mana, which the planner defers but the unless window taps",
  "actions": [
   16776960,
   16776960,

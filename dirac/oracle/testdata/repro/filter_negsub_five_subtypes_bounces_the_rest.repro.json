@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "Summon: Leviathan's first chapter negates five subtypes in one clause: the Leviathan stays, the Faerie returns to its owner's hand",
  "actions": [
   18415360,
   17891072,

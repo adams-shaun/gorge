@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "CR 601.2f, 118.7: This Town Ain't Big Enough's two-target declaration earns its {3} reduction when ONE target is a permanent the caster controls. The potential planner prices the cheapest legal target set, and a cast payable only by spending that target pays it at CR 601.2g, after the targets are chosen.",
  "actions": [
   16776960,
   16776960,

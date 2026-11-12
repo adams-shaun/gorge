@@ -46,6 +46,9 @@ func (s *State) beginTurn(p uint8) {
 	if k := s.k(); k.gen != nil && k.gen.anySkipPhase {
 		s.skipPhaseTurn(p) // act_skipphase.go
 	}
+	if k := s.k(); k.gen != nil && k.gen.anyMonarch {
+		s.monarchTurn() // the turn-start monarch (act_monarch.go)
+	}
 	if k := s.k(); k.gen != nil && k.gen.anyNTEndEmb {
 		s.embTurnStart(k, p) // UntilTheEndOfYourNextTurn: this turn is its last (static_emblemdurations.go)
 	}
@@ -256,6 +259,9 @@ func (s *State) beginStep(k *prep) {
 		s.fireDelayedAt(k, m)
 		if k.gen != nil {
 			s.fireDelayedGen(k)
+			if k.gen.anyMonarch {
+				s.monarchEndStep() // CR 725.2 (act_monarch.go)
+			}
 		}
 		s.openPriority()
 	case kop.StepCleanup:
@@ -509,10 +515,16 @@ func (s *State) sba(k *prep) bool {
 			// returns at its first order ask and its answer re-enters it
 			s.lingerDrain(k)
 		}
+		// gorge's loss order (checkLoseConditions): every life loss, then
+		// every empty-library one; a departing monarch hands off as it is
+		// marked (CR 725.4, act_monarch.go)
 		for p := uint8(0); p < s.nSeats(); p++ {
 			if s.pl[p].life <= 0 && !s.pl[p].lost && !s.cantLoseLife(k, p) {
 				s.pl[p].lost = true
+				s.monarchLeft(k, p)
 			}
+		}
+		for p := uint8(0); p < s.nSeats(); p++ {
 			if s.pl[p].drewEmpty {
 				// drew from an empty library since the last check (CR 704.5b)
 				s.pl[p].drewEmpty = false
@@ -1043,6 +1055,10 @@ func (s *State) fireDelayed(k *prep) {
 func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 	if e.trigAmt == speedTrigAmt && e.obj == NoObj {
 		s.resolveSpeed(e) // the source-less speed trigger (kw_speed.go)
+		return
+	}
+	if monarchTrig(e) {
+		s.resolveMonarchTrig(k, e) // the monarch's draw or steal (act_monarch.go)
 		return
 	}
 	if k.gen != nil && e.trigAmt == opLeaveReturn {

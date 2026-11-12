@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "CR 601.2f, 118.9d: The Wind Crystal's ReduceCost applies to the Tiered mode cost of a free cast",
  "actions": [
   167771904,
   167771904,

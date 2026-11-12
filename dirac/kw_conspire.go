@@ -57,7 +57,7 @@ func (s *State) conspireOffer(k *prep, p uint8, c CardID, o Obj) bool {
 
 // beginConspireCast begins the conspired cast of o.
 func (s *State) beginConspireCast(k *prep, o Obj) {
-	s.beginCast(k, o, 0)
+	s.beginCast(k, o, 0, 0)
 	s.bld().cas = casConspire
 }
 

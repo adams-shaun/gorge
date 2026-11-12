@@ -231,15 +231,18 @@ import (
 // Despair, Monstrous Hound, Mogg Toady and Goblin Goon; merged ALL build-level
 // 22392 -> 22584).
 // +31 (K:Partner with: the carriers listed at ratchet_test.go's ALL pin; ALL build-level 22381 -> 22412; merged ALL build-level 22706 -> 22737).
+// +29 (api BecomeMonarch, Mode$ BecomeMonarch, Count$Monarch, CheckDefinedPlayer$ You|Opponent.isMonarch and a monarch-gated Effect lower: Aragorn, King of Gondor, Chief Magistrate of Mercadia, Court of Ardenvale, Court of Bounty, Court of Cunning, Court of Embereth, Court of Garenbrig, Court of Grace, Court of Ire, Crimson Fleet Commodore, Custodi Lich, Faramir, Steward of Gondor, Feast of Succession, Garrulous Sycophant, Grave Venerations, Keeper of Keys, Knights of the Black Rose, Marchesa's Decree, Nakia, Wakandan Operative, Oath of Eorl, Palace Sentinels, Queen Marchesa, Regal Sliver, Skyline Despot, Staunch Throneguard, Thorn of the Black Rose, Throne Warden, Throne of the High City, Éomer, King of Rohan; ALL build-level 22381 -> 22410).
+// +30 (the merge with land: the monarch lowering above against land's corpus; merged ALL build-level 22868 -> 22898).
+// +16 (the merge with land: land's later work after f486bfb466, the zone-scoped PlayerCount extreme and Pump/UntilYourNextTurn lowering at 0d7bfabead, DSK 250 -> 251; merged ALL build-level 22898 -> 22914 measured).
 // +11 (the merge with land: this branch's Commander curses'
 // AttackersDeclared Player.EnchantedBy trigger and its empty second leg
 // lower — Curse of Opulence, Curse of Disturbance, Curse of Verbosity,
 // Curse of Bounty, Curse of Vitality, Curse of Inertia, Archnemesis,
 // Curse of Chaos, Curse of Shallow Graves, plus their b_2_2_zombie and
-// c_a_gold_sac token entries — beside land's 22868; merged ALL
-// build-level 22868 -> 22879 measured).
+// c_a_gold_sac token entries — beside land's 22929; merged ALL
+// build-level 22929 -> 22940 measured).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22879, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22940, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

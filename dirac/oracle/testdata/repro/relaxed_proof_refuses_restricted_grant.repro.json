@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "CR 106.6, 602.2b: Mm'menon's spell-only granted blue is no relaxed unit for Atomic Microsizer's Equip {2}, so gorge proves it unpayable off Godless Shrine alone and never searches the Nanoform Sentinel untap line",
  "actions": [
   16776960,
   16776960,

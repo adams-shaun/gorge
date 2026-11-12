@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 601.2c, 733.1: Q's Play of Stray from History, a copy cast the opponent's two Mountains cannot pay, is reversed at the \"target opponent\" ask, after the dilemma and before any tap, as gorge withholds every target of an unpayable cast",
  "actions": [
   184549120,
   167771904,

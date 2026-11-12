@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 707.10b: Airbender Ascension returns South Pole Voyager, whose resolution count keeps the turn's tally, so the second resolution overall does not draw Earth Kingdom Jailer",
  "actions": [
   16776960,
   16776960,

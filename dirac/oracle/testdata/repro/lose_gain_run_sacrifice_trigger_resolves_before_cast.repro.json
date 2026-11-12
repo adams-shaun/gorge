@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-fin",
+ "why": "CR 603.3, 601.2g: Al Bhed Salvagers' \"target opponent loses 1 life and you gain 1\" fires on a Treasure sacrificed for Tonberry's mana and resolves before the spell is cast",
  "actions": [
   16776960,
   16776960,

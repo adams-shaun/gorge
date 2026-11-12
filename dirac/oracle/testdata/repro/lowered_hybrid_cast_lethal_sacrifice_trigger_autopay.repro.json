@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 100,
  "surface": "autopay",
+ "pool": "one-off",
+ "why": "",
  "actions": [
   167771904,
   184549120,

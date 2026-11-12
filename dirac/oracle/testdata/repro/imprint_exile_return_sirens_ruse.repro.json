@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 25,
  "surface": "autopay",
+ "pool": "custom",
+ "why": "Siren's Ruse exiles a creature you control and returns the imprinted card to the battlefield, both engines agreeing through the return and past it",
  "actions": [
   16776960,
   16776960,

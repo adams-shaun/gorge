@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 605.1a, 106.1: Barrels of Blasting Jelly's first-and-only {1} any-colour filter funds Waterbender Ascension's {1}{U} and Fire Nation Palace's {1}{R} activation, so both stay on the menu",
  "actions": [
   184549120,
   184549120,

@@ -94,6 +94,9 @@
  "mulligans": 1,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trk",
+ "why": "Make It So targeting a Treasure it then sacrifices for mana: the target player is still legal, so the spell resolves and that player draws two cards (CR 608.2b)",
  "actions": [
   184549120,
   167771904,

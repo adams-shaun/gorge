@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "one-off",
+ "why": "",
  "actions": [
   18415360,
   17891072,

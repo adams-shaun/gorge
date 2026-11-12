@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 15,
  "surface": "autopay",
+ "pool": "std-msh",
+ "why": "The Astonishing Ant-Man's activation removes an announced X up to its +1/+1 counters and makes that many Insects (CR 107.3, 118.3)",
  "actions": [
   16776960,
   16776960,

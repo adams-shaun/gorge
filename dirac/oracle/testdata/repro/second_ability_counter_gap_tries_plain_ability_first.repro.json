@@ -86,7 +86,7 @@
    "Swamp",
    "Swamp",
    "TCRI Building",
-   "Tokka \u0026 Rahzar, Terrible Twos",
+   "Tokka & Rahzar, Terrible Twos",
    "Turtle Van"
   ]
  ],
@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tmt",
+ "pool": "std-tmt",
+ "why": "CR 605.3b, 601.2g: two Weather Makers pay Metalhead: gorge's prefix search answers the first one's ability ask with its plain ability (the colour ask behind it), then the second one's with its counters, so only the second loses them",
  "actions": [
   184549120,
   167771904,

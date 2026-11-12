@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 613.1e: Bloom Tender's batch reads Puca's Eye's layer-5 chosen colour, not its printed colourless face",
  "actions": [
   184549120,
   184549120,

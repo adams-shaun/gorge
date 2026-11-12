@@ -65,6 +65,7 @@ type genPrep struct {
 	lossSlow        bool  // anyLoseStat: genLost always asks ovrLoses (kperf-blb, kperf2)
 	ctrlSBA         bool  // the state-based check settles control (a control static, a source-bound OpGainControl)
 	anyPTDelta      bool  // some Override is a +N/+M pump record (kop.Override.PTDelta): ptGen adds it (static_ptdelta.go)
+	anyPlProtAll    bool  // some emblem static is a StatPlayerProtAll player protection grant (static_plprot.go)
 	anyNTOv         bool  // an OpOverride / OpOverrideAll lasts until its controller's next turn
 	legendGrant     bool  // some Override adds or sets the Legendary supertype (legendRule reads derived types)
 	anyMayPlay      bool
@@ -162,6 +163,7 @@ type genPrep struct {
 	anyEOTEmb      bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
 	anyNTEmb       bool           // some emblem ends at its controller's next turn (kop.Emblem.UntilNextTurn; static_effectdelivered.go)
 	anyNTEndEmb    bool           // some emblem ends at its controller's next turn's cleanup (kop.Emblem.UntilEndOfNextTurn; static_emblemdurations.go)
+	anyEmbGrant    bool           // some emblem's Continuous static grants an ability (globalGrantsGen's emblem pass)
 	embObjEv       uint32         // object events (bit per TrigEvent) some emblem trigger listens to (fireEmblemsObj)
 	embCombatEv    uint32         // events (DamageDone, AttackersDeclared, LifeGained) some emblem trigger listens to (trig_effectuntileot.go)
 	anyGrant       bool           // some override or static grants an ability
@@ -283,6 +285,7 @@ type genPrep struct {
 	cdLegOn        bool           // some expression is ExOppsLostLife N 1: record cdLeg
 	anyAddPhase    bool           // some program is ExtAddPhase, some trigger is Tf3FirstAttack or some expression is ExPhaseCount (act_addphase.go)
 	anySkipPhase   bool           // some program is ExtSkipPhase (act_skipphase.go)
+	anyMonarch     bool           // some program is ExtBecomeMonarch (act_monarch.go)
 	anyAttackedObj bool           // the table gives mechAttackedObj an arena mask: finishAttacks marks the declared attackers
 	anySuspect     bool           // the table gives mechSuspected an arena mask (act_suspect.go)
 	anySacSub      bool           // some ExRefCount is a Sacrificed$Valid type read (N 1): snapLKI captures the subtype set (value_countheads.go, zone_lki.go)
@@ -890,6 +893,11 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		for j := range c.Abilities {
 			a := &c.Abilities[j]
 			g.prepAddManaRestr(a) // mana_resolverestriction.go
+			for _, in := range a.Prog {
+				if in.Op == kop.OpCreateEmblem {
+					g.prepEmbGrant(t, CardID(i), &t.Emblems[in.C])
+				}
+			}
 			for ti := 0; ti < int(a.NTargets); ti++ {
 				if k := a.Targets[ti].Kind; k == kop.TgtStackObj || k == kop.TgtStackAb || k == kop.TgtStackObjTrig {
 					g.anyStackTgt = true // tgt_stackability.go
@@ -1479,7 +1487,14 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepDiamondMix(t, g, p)
 	g.anyPrevFrom = grantsKw(t, kop.KwPreventCombatDamageFrom) || g.anyRepl&rbPrevCombatBy != 0
 	prepReplMult(t, g)
-	prepDmgMark(t, g) // repl_dmgmark.go
+	prepDmgMark(t, g)   // repl_dmgmark.go
+	prepPlProtAll(t, g) // static_plprot.go
+	if g.anyPlProtAll {
+		// open every replDamage site the way rbPlProt does above: no card
+		// carries the player-protection bit (the emblem is created at
+		// resolution), so the per-permanent walks find none
+		g.anyRepl |= rbPlusDmg
+	}
 	prepInfect(t, g)
 	prepTwoSeat(t, g) // stallclass.go
 	prepFbStamp(t, g) // kw_fbgrant.go
@@ -1500,6 +1515,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepTurnTallies(t, p, g) // value_turntallies.go; reads g.ix
 	prepAddPhase(t, g)       // act_addphase.go
 	prepSkipPhase(t, g)      // act_skipphase.go
+	prepMonarch(t, g)        // act_monarch.go
 	prepAirbend(t, g)
 	prepMayWhileSrc(t, g) // cast_whilesource.go
 	prepInit(t, g)        // act_initiative.go
@@ -2088,6 +2104,10 @@ type genState struct {
 	// trigger fires reads it (defendingSeatF2). Set only when MaxSeats > 2.
 	// Taken from rsv.
 	atkDef uint8
+	// mon: the monarch's seat + 1 in bits 0-3 (0 nobody), the monarch as the
+	// turn began + 1 in bits 4-7 (act_monarch.go). The tail padding after
+	// atkDef, so State does not grow.
+	mon uint8
 }
 
 const (
@@ -2192,7 +2212,7 @@ const (
 	StallRegen     = 28 // a ninth regeneration shield on one permanent: pfRegenX plus the arena's mechRegen bit hold eight (4 before kcaps2x; repl_regenerate.go; kverify-c4)
 	StallLook      = 29 // a dig window wider than genState.look's 24 (12 before kcaps2x; Ulamog's "exile the top twenty"; Hatchery Spider's undergrowth; selfcast): the window used to truncate silently
 	StallCtrOrder  = 30 // an OpPutCountersFrom of two or more counter kinds in a table with a counter-added trigger: gorge fires per kind in the source's insertion order, the kernel walks kinds ascending (ctr_clear.go; eachfromsource)
-	StallGrants    = 31 // more than maxGrants granted mana abilities on one permanent (mana_grantedoffers.go grantIdxs)
+	StallGrants    = 31 // more than maxGrants granted mana abilities on one permanent (mana_grantedoffers.go grantIdxs), or more emblem grants to one permanent than globalGrantsGen's emblem pass holds (act_empower.go)
 	StallShield    = 32 // a SHIELD counter and another damage replacement match one event: gorge asks the CR 616.1 order, the kernel stalls (ctr_shield.go)
 	StallActs      = 33 // 127 non-mana activations of one object in a turn: object.acts keeps the count in seven bits beside the owner
 	StallReplCtr   = 34 // a filtered counter doubler and a filtered plus/minus replacement match one event, or a plus and a minus replacement do: they do not commute; only a two-candidate doubler+plus on an OpPutCounter is asked (repl_ctrorder.go)
