@@ -2191,7 +2191,7 @@ const (
 	StallRegen     = 28 // a ninth regeneration shield on one permanent: pfRegenX plus the arena's mechRegen bit hold eight (4 before kcaps2x; repl_regenerate.go; kverify-c4)
 	StallLook      = 29 // a dig window wider than genState.look's 24 (12 before kcaps2x; Ulamog's "exile the top twenty"; Hatchery Spider's undergrowth; selfcast): the window used to truncate silently
 	StallCtrOrder  = 30 // an OpPutCountersFrom of two or more counter kinds in a table with a counter-added trigger: gorge fires per kind in the source's insertion order, the kernel walks kinds ascending (ctr_clear.go; eachfromsource)
-	StallGrants    = 31 // more than maxGrants granted mana abilities on one permanent (mana_grantedoffers.go grantIdxs)
+	StallGrants    = 31 // more than maxGrants granted mana abilities on one permanent (mana_grantedoffers.go grantIdxs), or more emblem grants to one permanent than globalGrantsGen's emblem pass holds (act_empower.go)
 	StallShield    = 32 // a SHIELD counter and another damage replacement match one event: gorge asks the CR 616.1 order, the kernel stalls (ctr_shield.go)
 	StallActs      = 33 // 127 non-mana activations of one object in a turn: object.acts keeps the count in seven bits beside the owner
 	StallReplCtr   = 34 // a filtered counter doubler and a filtered plus/minus replacement match one event, or a plus and a minus replacement do: they do not commute; only a two-candidate doubler+plus on an OpPutCounter is asked (repl_ctrorder.go)

@@ -287,7 +287,11 @@ func (s *State) globalGrantsGen(k *prep, sl Slot, lost bool, lts uint16, f func(
 	// emblem grant and another global static grant, so the pass never has to
 	// interleave with the statM walk's order.
 	if k.gen.anyEmbGrant {
-		var embs [16]struct {
+		// one entry per emblem the state can hold (maxEmbTotal per seat): every
+		// corpus grant emblem carries one Continuous grant, so only an emblem
+		// with several matching grants could fill it, and that stalls loudly
+		// rather than drop a grant (StallGrants)
+		var embs [MaxSeats * maxEmbTotal]struct {
 			cid CardID
 			ab  uint8
 			ts  uint16
@@ -319,10 +323,12 @@ func (s *State) globalGrantsGen(k *prep, sl Slot, lost bool, lts uint16, f func(
 					if lost && ts < lts {
 						continue
 					}
-					if n < len(embs) {
-						embs[n].cid, embs[n].ab, embs[n].ts = cid, ab, ts
-						n++
+					if n == len(embs) {
+						s.capFull(StallGrants)
+						continue
 					}
+					embs[n].cid, embs[n].ab, embs[n].ts = cid, ab, ts
+					n++
 				}
 			}
 		}
