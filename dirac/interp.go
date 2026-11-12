@@ -713,20 +713,30 @@ func (s *State) cond(k *prep, in *kop.Instr) bool {
 }
 
 func (s *State) destroy(k *prep, sl Slot) {
-	if s.kw(k, sl)&kop.KwIndestructible != 0 {
+	if s.destroySpared(k, sl, false) {
 		return
-	}
-	if s.destroyHeal(k, sl) {
-		return
-	}
-	if s.canRegen(sl) {
-		s.regenerate(sl)
-		return
-	}
-	if k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(sl) {
-		return // CR 122.1c, after regeneration (gorge effDestroy)
 	}
 	s.leaveParked(k, sl)
+}
+
+// destroySpared reports whether the permanent at sl survives a destroy
+// instruction (indestructible, healed, regenerated unless noRegen, shielded),
+// applying the survival's effect; the one home of destroy, destroyNoRegen and
+// the simultaneous multi-target destroy (zone_leavetogether.go).
+func (s *State) destroySpared(k *prep, sl Slot, noRegen bool) bool {
+	if s.kw(k, sl)&kop.KwIndestructible != 0 {
+		return true
+	}
+	if s.destroyHeal(k, sl) {
+		return true
+	}
+	if !noRegen && s.canRegen(sl) {
+		s.regenerate(sl)
+		return true
+	}
+	// CR 122.1c, after regeneration (gorge effDestroy); NoRegen$ suppresses
+	// regeneration, not the shield counter
+	return k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(sl)
 }
 
 // moveRef moves the object a Ref names to zone z (its owner's).
