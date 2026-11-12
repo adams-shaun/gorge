@@ -63,8 +63,7 @@ import (
 // RememberedLKI/Imprinted/ChosenCard defined sets can name a graveyard or
 // exile card, the TgtZone$ gate above is the only sanctioned off-battlefield
 // family, and swallowing a named target silently is an unledgered narrowing.
-// The note records the skip loudly; nothing moves (removal off-battlefield
-// stays a TgtZone$ task).
+// The note records the skip loudly; nothing moves (removal off-battlefield stays a TgtZone$).
 func effRemoveCounter(h Host, c *Ctx, sa *cards.SA) {
 	rp := RemoveCounterOf(sa)
 	noteUnreadParams(h, c, "RemoveCounter", rp.Unread)

@@ -321,8 +321,7 @@ type SearchInputs struct {
 
 // NumberInputs is the chosen and remembered numbers a Count$ reads.
 type NumberInputs struct {
-	// ChosenNumber is the Effect's SetChosenNumber$ binding (task
-	// wildgrowth1): the number the Effect resolved at creation, threaded into
+	// ChosenNumber is the Effect's SetChosenNumber$ binding: the number the Effect resolved at creation, threaded into
 	// a registered replacement's body Ctx by rules' replCtx so the body's
 	// Count$ChosenNumber head (evalCountBody) reads the frozen binding rather
 	// than re-deriving. Zero wherever nothing bound -- the same number a
@@ -342,9 +341,7 @@ type NumberInputs struct {
 	// Dogs); only the flag distinguishes the two.
 	ChosenBound bool
 	// RememberedCMC is the mana value the Counter primitive's
-	// RememberCounteredCMC$ rider remembered (task counter-cmc: Electrosiphon's
-	// "an amount of {E} equal to its mana value", Overwhelming Intellect's
-	// draw-equal-to-mana-value family -- 14 corpus carriers). effCounter sums
+	// RememberCounteredCMC$ rider remembered (Overwhelming Intellect's draw-equal-to-mana-value family -- 14 corpus carriers). effCounter sums
 	// every countered CARD's mana value into it (an ability has none and
 	// contributes nothing); the Count$RememberedNumber head reads it in
 	// preference to the list-length channel, because the number is a VALUE,
