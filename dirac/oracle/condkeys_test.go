@@ -79,17 +79,6 @@ func (t *kcondkeysTally) seen(id state.ObjID) bool {
 	return false
 }
 
-// kcondkeysHasBf reports whether player p controls a battlefield permanent
-// named name.
-func kcondkeysHasBf(g *state.Game, p state.PlayerID, name string) bool {
-	for _, id := range g.Zone(state.ZBattlefield, p) {
-		if chName(g, id) == name {
-			return true
-		}
-	}
-	return false
-}
-
 // finish evaluates the events of one resolution (from just after its Resolve
 // to the next priority boundary).
 func (t *kcondkeysTally) finish(evs []events.Event, at int) {
@@ -183,7 +172,7 @@ func (t *kcondkeysTally) check(ref *GorgeSide, _ Side) *Divergence {
 			t.pend = t.evAt
 			t.pendObj, t.pendTrig, t.pendPlayer = top.obj, top.trig, top.player
 			t.pendName = chName(g, top.obj)
-			t.pendRoller = kcondkeysHasBf(g, top.player, "The Rollercrusher Ride")
+			t.pendRoller = controlsBattlefieldNamed(g, top.player, "The Rollercrusher Ride")
 		case events.Priority, events.StepChange, events.TurnChange:
 			t.finish(evs, t.evAt)
 		}

@@ -104,3 +104,14 @@ func mulliganDonePick(prio func(*PickCtx) Canon, c *PickCtx) Canon {
 	}
 	return c.D.Options[0]
 }
+
+// controlsBattlefieldNamed reports whether p controls a battlefield
+// permanent named name.
+func controlsBattlefieldNamed(g *state.Game, p state.PlayerID, name string) bool {
+	for _, id := range g.Zone(state.ZBattlefield, p) {
+		if chName(g, id) == name {
+			return true
+		}
+	}
+	return false
+}

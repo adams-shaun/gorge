@@ -9,17 +9,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// svcyoOn reports whether seat p controls a battlefield permanent named name
-// (the ids slice is g.Zone's).
-func svcyoOn(g *state.Game, p state.PlayerID, name string) bool {
-	for _, id := range g.Zone(state.ZBattlefield, p) {
-		if chName(g, id) == name {
-			return true
-		}
-	}
-	return false
-}
-
 // svcyoReach is one recorded game's reach predicate: it records into st what
 // the game did since event index from, as the lockstep rows alone would
 // accept a script that never got there.
@@ -38,7 +27,7 @@ var svcyoCases = []struct {
 			if ev.Kind != events.Untap || g.Active != 1 {
 				continue
 			}
-			if o := g.Obj(ev.Obj); o != nil && o.Controller == 0 && chName(g, ev.Obj) == "Alpha Myr" && svcyoOn(g, 0, "Unwinding Clock") {
+			if o := g.Obj(ev.Obj); o != nil && o.Controller == 0 && chName(g, ev.Obj) == "Alpha Myr" && controlsBattlefieldNamed(g, 0, "Unwinding Clock") {
 				st["artifact untapped in the other player's untap step"] = true
 			}
 		}
@@ -46,7 +35,7 @@ var svcyoCases = []struct {
 	// Ghalta the Immovable: an Reito Sentinel (Defender) attacks.
 	{"static_can_attack_defender_own_creatures_ghalta", func(g *state.Game, evs []events.Event, from int, st map[string]bool) {
 		for _, ev := range evs[from:] {
-			if ev.Kind != events.DeclareAttackers || !svcyoOn(g, 0, "Ghalta the Immovable") {
+			if ev.Kind != events.DeclareAttackers || !controlsBattlefieldNamed(g, 0, "Ghalta the Immovable") {
 				continue
 			}
 			for _, id := range ev.IDs {
@@ -59,7 +48,7 @@ var svcyoCases = []struct {
 	// Eriette of the Charmed Apple: the other player declares attackers
 	// holding a creature Eriette's controller's Aura enchants.
 	{"static_cant_attack_enchanted_by_own_aura_eriette", func(g *state.Game, evs []events.Event, from int, st map[string]bool) {
-		if g.Step != state.StepDeclareAttackers || g.Active != 1 || !svcyoOn(g, 0, "Eriette of the Charmed Apple") {
+		if g.Step != state.StepDeclareAttackers || g.Active != 1 || !controlsBattlefieldNamed(g, 0, "Eriette of the Charmed Apple") {
 			return
 		}
 		for _, id := range g.Zone(state.ZBattlefield, 0) {
@@ -93,7 +82,7 @@ var svcyoCases = []struct {
 			if ev.Kind != events.Untap || g.Active != 1 {
 				continue
 			}
-			if o := g.Obj(ev.Obj); o != nil && o.Controller == 0 && chName(g, ev.Obj) == "Savannah Lions" && svcyoOn(g, 0, "Prop Room") {
+			if o := g.Obj(ev.Obj); o != nil && o.Controller == 0 && chName(g, ev.Obj) == "Savannah Lions" && controlsBattlefieldNamed(g, 0, "Prop Room") {
 				st["a creature untapped in the other player's untap step"] = true
 			}
 		}
