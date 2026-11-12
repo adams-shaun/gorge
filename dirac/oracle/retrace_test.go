@@ -46,7 +46,7 @@ var retraceDecks = [2][]cardset.Entry{
 	},
 }
 
-// retraceList are the pool's printed Retrace cards, the brief's six carriers
+// retraceList are the pool's printed Retrace cards, the six named carriers
 // minus Reality Scramble (refused: Card.sharesCardTypeWith RememberedLKI in
 // its DigUntil filter) plus the three classmates the corpus survey found.
 var retraceList = []string{
