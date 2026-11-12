@@ -1,5 +1,7 @@
 package kgen
 
+import "github.com/adams-shaun/gorge/dirac/kop"
+
 // K:Rebound (CR 702.88a): "If this spell was cast from your hand, instead of
 // putting it into your graveyard as it resolves, exile it and, at the
 // beginning of your next upkeep, you may cast this card from exile without
@@ -44,7 +46,7 @@ func (lc *lowerCtx) refuseReboundCombos() {
 	if out.Flashback != nil || out.Harmonize != nil || out.Mayhem != nil || out.BeamMeUp != nil || out.Paradigm {
 		lc.refuseNode("K:Rebound", "Rebound beside a graveyard cast route or Paradigm")
 	}
-	if faceLayout(lc.card, out.Token) != 0 {
+	if faceLayout(lc.card, out.Token) != kop.FaceNone {
 		lc.refuseNode("K:Rebound", "Rebound on a multi-face card")
 	}
 }
