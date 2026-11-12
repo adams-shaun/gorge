@@ -1,6 +1,6 @@
 package rules
 
-// Census for task lb-rempollute: triggered abilities whose body WRITES its own
+// Census for the RememberPollute$ triggered abilities whose body WRITES its own
 // Remembered list (a `Remember*$ True` rider such as RememberMilled$) and then
 // reads it back through a `...IsRemembered` filter in the same chain. For this
 // shape the trigger's fire-time capture must not count as remembered memory

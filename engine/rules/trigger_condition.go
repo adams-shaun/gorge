@@ -4,9 +4,7 @@
 // line grammar -- a LifeAmount$ or IsPresent$/PresentCompare$ clause -- is
 // honoured wherever it appears.
 //
-// Split out of trigger_match.go so tickets touching different modes stop
-// colliding on one file. Registration is at the bottom; a duplicate mode
-// panics (trigmatch.registerTrigMatcher).
+// Registration is at the bottom; a duplicate mode panics (trigmatch.registerTrigMatcher).
 
 package rules
 
@@ -266,7 +264,7 @@ func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.Ob
 		return false
 	}
 	if v, ok := t.Param(cards.PKMetalcraft); ok {
-		// The trigger-side named condition (task trig-attacks-metalcraft):
+		// The trigger-side named condition:
 		// a value this build cannot read as True is an unreadable clause
 		// shape and fails closed like the other clauses above.
 		if !strings.EqualFold(strings.TrimSpace(v), "True") || !e.metalcraftHolds(you) {

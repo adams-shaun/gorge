@@ -11,8 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// One test per card for the land/mana misc parameter-census work (task
-// inbox-paramcensus-land-mana-misc): Lion's Eye Diamond's InstantSpeed$,
+// One test per card for the land/mana misc parameter-census work: Lion's Eye Diamond's InstantSpeed$,
 // Myriad Landscape's ShareLandType$, Mistveil Plains' IsPresent$/PresentCompare$,
 // and Eldrazi Temple's RestrictValid$ pin. Each is the real corpus card (the
 // inline Walloper fixture below is a synthetic stand-in for "any {3}

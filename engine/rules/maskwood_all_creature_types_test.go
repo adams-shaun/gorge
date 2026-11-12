@@ -9,8 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The layer-4 "all creature types" grant (task
-// param-stat-continuous-addallcreaturetypes): Forge's AddAllCreatureTypes$
+// The layer-4 "all creature types" grant: Forge's AddAllCreatureTypes$
 // True -- Maskwood Nexus's S:Mode$ Continuous static and the manland
 // family's AB$ Animate line. The grant rides state.ContinuousEffect as a
 // FLAG, never a materialised registration-time type list: rules'
