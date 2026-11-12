@@ -18,7 +18,7 @@ func TestMadnessCastPriorityToActive(t *testing.T) {
 	if e.G.Active != 0 {
 		t.Fatalf("precondition: active player = %d, want 0", e.G.Active)
 	}
-	submitChoices(t, e, madnessOption(d, "yes"))
+	submitChoices(t, e, optionIndexForKind(d, "yes"))
 	for i := 0; i < 8; i++ {
 		p := e.Pending()
 		if p == nil || p.Kind == decision.KPriority {

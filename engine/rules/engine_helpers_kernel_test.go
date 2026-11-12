@@ -180,6 +180,28 @@ func offersObjOption(d *decision.Decision, id state.ObjID) bool {
 	return indexOfObjOption(d, id) >= 0
 }
 
+// optionIndexByLabel returns the index of d's option labelled label, or -1
+// when no option carries it (the failing variant is optionIdxWithLabel).
+func optionIndexByLabel(d *decision.Decision, label string) int {
+	for _, o := range d.Options {
+		if o.Label == label {
+			return o.Index
+		}
+	}
+	return -1
+}
+
+// copyCount counts the StackCopy events logged for id.
+func copyCount(e *Engine, id state.ObjID) int {
+	n := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.StackCopy && ev.Obj == id {
+			n++
+		}
+	}
+	return n
+}
+
 // eventsSince returns the events logged from index start on.
 func eventsSince(e *Engine, start int) []events.Event {
 	return append([]events.Event(nil), e.L.Events[start:]...)

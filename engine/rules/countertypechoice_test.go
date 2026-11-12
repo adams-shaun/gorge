@@ -9,15 +9,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-func optionIndexByLabel(d *decision.Decision, label string) int {
-	for _, o := range d.Options {
-		if o.Label == label {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 // TestInvokeTheAncientsCounterTypePerDefinedChoice drives the real spell's
 // remembered two-token chain. Every token gets its own choice; the first
 // answer must survive while the second ask is pending.
