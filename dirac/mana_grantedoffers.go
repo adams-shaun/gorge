@@ -894,11 +894,6 @@ func (g *grantSrch) visit(t *State) bool {
 					return true
 				}
 			}
-			if g.ng[i] > 0 && !t.ownManaUsable(g.k, sl) && t.wideOnly(g.k, sl) && g.sel != 1 && g.wideBranch(t, i, sl) {
-				// a wide-only source that holds a grant: its single printed
-				// ability precedes the grant's colours in gorge's ask
-				return true
-			}
 			if fok && g.filtBranch(t, i, sl) { // (listed after the printed ability, before the grants)
 				return true
 			}

@@ -71,6 +71,12 @@ func (g *grantSrch) wideBranch(t *State, i int, sl Slot) bool {
 			}
 		}
 	}
+	return g.wideAlloc(t, i, sl)
+}
+
+// wideAlloc charges the wide ability's combination allocation ask and taps
+// candidate i (slot sl) for each combination in engine order.
+func (g *grantSrch) wideAlloc(t *State, i int, sl Slot) bool {
 	if !g.node() { // the combination's allocation ask
 		return false
 	}
@@ -93,17 +99,7 @@ func (g *grantSrch) wide2Branch(t *State, i int, sl Slot) bool {
 	if !t.canTapForMana(g.k, sl) {
 		return false
 	}
-	if !g.node() { // the combination's allocation ask
-		return false
-	}
-	ab := &g.k.t.Cards[t.cardAt(sl)].Abilities[g.k.gen.anyR(t.cardAt(sl))]
-	skip := !t.restrSrcAdmits(g.k, g.p, sl, ab, &g.d)
-	for c := 0; c < wideAnswers; c++ {
-		if g.wideTry(t, i, sl, uint8(kop.NumManaKinds-1+wideEngineAnswer(g.need, c)), skip) {
-			return true
-		}
-	}
-	return false
+	return g.wideAlloc(t, i, sl)
 }
 
 // wideTry taps candidate i for engine answer ans on a copy of t and continues
