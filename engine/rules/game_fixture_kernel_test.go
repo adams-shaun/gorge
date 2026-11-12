@@ -204,35 +204,11 @@ func optionKindOrFail(t *testing.T, d *decision.Decision, k string) int {
 	return -1
 }
 
-// optionObjOrFail returns the index of d's option naming obj.
-func optionObjOrFail(t *testing.T, d *decision.Decision, obj state.ObjID) int {
-	t.Helper()
-	for _, o := range d.Options {
-		if o.Obj == obj {
-			return o.Index
-		}
-	}
-	t.Fatalf("object %d not offered: %+v", obj, d.Options)
-	return -1
-}
-
 // optionObjIDs is the object of every option of d, in offered order.
 func optionObjIDs(d *decision.Decision) []state.ObjID {
 	out := make([]state.ObjID, 0, len(d.Options))
 	for _, o := range d.Options {
 		out = append(out, o.Obj)
-	}
-	return out
-}
-
-// publicNotesFrom is every non-Secret Note carrying ids logged at or after
-// event index from.
-func publicNotesFrom(e *Engine, from int) []events.Event {
-	var out []events.Event
-	for _, ev := range e.L.Events[from:] {
-		if ev.Kind == events.Note && !ev.Secret && len(ev.IDs) > 0 {
-			out = append(out, ev)
-		}
 	}
 	return out
 }

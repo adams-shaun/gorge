@@ -17,8 +17,8 @@ func TestCostStaticReadsAnnouncedXInManaValue(t *testing.T) {
 	t.Parallel()
 	burst := card(t, "Name:Test Burst\nManaCost:X R R\nTypes:Sorcery\nA:SP$ DealDamage | ValidTgts$ Creature | NumDmg$ X\nSVar:X:Count$xPaid\nOracle:x\n")
 	e := handEngine(t, burst)
-	costredPerm(t, e, 0, "Name:Test Warden\nManaCost:1\nTypes:Creature Human\nPT:1/1\nS:Mode$ ReduceCost | ValidCard$ Sorcery.cmcGE4 | Type$ Spell | Activator$ You | Amount$ 2\nOracle:x\n")
-	bear := costredPerm(t, e, 1, costredBear)
+	battlefieldFixture(t, e, 0, "Name:Test Warden\nManaCost:1\nTypes:Creature Human\nPT:1/1\nS:Mode$ ReduceCost | ValidCard$ Sorcery.cmcGE4 | Type$ Spell | Activator$ You | Amount$ 2\nOracle:x\n")
+	bear := battlefieldFixture(t, e, 1, costredBear)
 	e.G.Players[0].Pool[state.MR] = 2
 	e.G.Players[0].Pool[state.MG] = 2
 	spell := e.G.Zone(state.ZHand, 0)[0]

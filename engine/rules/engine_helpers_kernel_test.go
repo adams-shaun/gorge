@@ -5,6 +5,7 @@ package rules
 // from its checkpoint with the answer served by the tape.
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -575,5 +576,27 @@ func noUnimplementedCopyPermanent(t *testing.T, e *Engine) {
 		if ev.Kind == events.Note && strings.Contains(ev.Text, "unimplemented API") {
 			t.Fatalf("log carries an unimplemented-API note: %q", ev.Text)
 		}
+	}
+}
+
+// battlefieldFixture puts a permanent onto p's battlefield through a real MoveZone
+// so every log-head-keyed cache (mana sources, statics) sees it.
+func battlefieldFixture(t *testing.T, e *Engine, p state.PlayerID, src string) state.ObjID {
+	t.Helper()
+	o := e.G.AddObject(card(t, src), p)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	return o.ID
+}
+
+// runRememberScenario runs one oracle-form scenario and fails with its transcript.
+func runRememberScenario(t *testing.T, raw string) {
+	t.Helper()
+	reg := testutil.CorpusRegistry(t)
+	var sc oracleScenario
+	if err := json.Unmarshal([]byte(raw), &sc); err != nil {
+		t.Fatal(err)
+	}
+	if fails, tr, _ := runOracleScenario(reg, sc); len(fails) > 0 {
+		t.Fatalf("%s\n  transcript:\n    %s", strings.Join(fails, "\n"), strings.Join(tr, "\n    "))
 	}
 }

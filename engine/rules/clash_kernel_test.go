@@ -199,7 +199,7 @@ func TestMarvoDeepOperativeClashWinsDrawsAndOffersFreeCastKernel(t *testing.T) {
 	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "play" {
 		t.Fatalf("expected Marvo's optional free-cast ask, got %+v", d)
 	}
-	submitChoices(t, e, optionOfObj(t, d, freeSpell.ID))
+	submitChoices(t, e, objOptionIndex(t, d, freeSpell.ID))
 	passUntilStackEmpty(t, e, 20)
 	if got := e.G.Obj(freeSpell.ID).Zone; got != state.ZBattlefield {
 		t.Fatalf("accepted free-cast spell in %s, want battlefield", got)

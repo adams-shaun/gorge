@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 
@@ -10,21 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
-
-// runCounterShapeScenario runs one oracle-form scenario and fails with its transcript.
-func runCounterShapeScenario(t *testing.T, raw string) {
-	t.Helper()
-	reg := testutil.CorpusRegistry(t)
-	var sc oracleScenario
-	if err := json.Unmarshal([]byte(raw), &sc); err != nil {
-		t.Fatal(err)
-	}
-	if fails, tr, _ := runOracleScenario(reg, sc); len(fails) > 0 {
-		t.Fatalf("%s\n  transcript:\n    %s", strings.Join(fails, "\n"), strings.Join(tr, "\n    "))
-	}
-}
 
 // TestPutCounterRememberAmountFeedsReflexiveTrigger pins CR 603.12 on
 // Earthbender Ascension: the landfall quest counter that lands remembers its
@@ -33,7 +18,7 @@ func runCounterShapeScenario(t *testing.T, raw string) {
 // after) is asserted on the enchantment itself.
 func TestPutCounterRememberAmountFeedsReflexiveTrigger(t *testing.T) {
 	t.Parallel()
-	runCounterShapeScenario(t, `{"name":"earthbender","cr":["603.12"],"why":"x",
+	runRememberScenario(t, `{"name":"earthbender","cr":["603.12"],"why":"x",
 	 "setup":{"p0":{"battlefield":["Earthbender Ascension","Grizzly Bears"],"hand":["Forest"],"counters":{"Earthbender Ascension":{"QUEST":3}}}},
 	 "steps":[{"op":"play","seat":0,"card":"p0:Forest"},{"op":"resolve","targets":["p0:Grizzly Bears"]},{"op":"resolve"}],
 	 "expect":[{"card":"p0:Earthbender Ascension","counters":{"QUEST":4}},{"card":"p0:Grizzly Bears","counters":{"P1P1":1},"keywords":["Trample"],"pt":"3/3"}]}`)
@@ -44,7 +29,7 @@ func TestPutCounterRememberAmountFeedsReflexiveTrigger(t *testing.T) {
 // value equals the coin counters (2 after the put).
 func TestWishingWellCoinCounterCastsMatchingManaValue(t *testing.T) {
 	t.Parallel()
-	runCounterShapeScenario(t, `{"name":"well","cr":["603.12"],"why":"x",
+	runRememberScenario(t, `{"name":"well","cr":["603.12"],"why":"x",
 	 "setup":{"p0":{"battlefield":["Wishing Well"],"graveyard":["Think Twice"],"counters":{"Wishing Well":{"COIN":1}}}},
 	 "steps":[{"op":"activate","seat":0,"card":"p0:Wishing Well"},{"op":"resolve","targets":["p0:Think Twice"],"answers":[{"kind":"modes","pick":["Play Think Twice"]}]},{"op":"resolve"},{"op":"resolve"}],
 	 "expect":[{"card":"p0:Wishing Well","counters":{"COIN":2}},{"card":"p0:Think Twice","zone":"exile"}]}`)
@@ -280,7 +265,7 @@ func TestPutCounterAllSubLinkPlayerTarget(t *testing.T) {
 // Ornithopter, and only the targeted player's (p0's) creature grows.
 func TestPutCounterAllSubLinkPlayerTargetCastEndToEnd(t *testing.T) {
 	t.Parallel()
-	runCounterShapeScenario(t, `{"name":"fates","cr":["608.2b"],"why":"x",
+	runRememberScenario(t, `{"name":"fates","cr":["608.2b"],"why":"x",
 	 "setup":{"p0":{"battlefield":["Grizzly Bears"],"hand":["Twisted Fates"]},"p1":{"battlefield":["Ornithopter","Runeclaw Bear"]}},
 	 "steps":[{"op":"cast","seat":0,"card":"p0:Twisted Fates","mana":"CCWWB","targets":["p1:Ornithopter","p0"]},{"op":"resolve"}],
 	 "expect":[{"card":"p1:Ornithopter","zone":"graveyard"},{"card":"p0:Grizzly Bears","counters":{"P1P1":1}},{"card":"p1:Runeclaw Bear","counters":{"P1P1":0}}]}`)

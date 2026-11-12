@@ -46,7 +46,7 @@ func optionIndexes(t *testing.T, d *decision.Decision, ids ...state.ObjID) []int
 	t.Helper()
 	out := []int{}
 	for _, id := range ids {
-		out = append(out, optionObjOrFail(t, d, id))
+		out = append(out, objOptionIndex(t, d, id))
 	}
 	return out
 }
@@ -165,7 +165,7 @@ func TestTwoPilesSplitTheSpoilsTargetedChooserOpponent(t *testing.T) {
 	if d == nil || d.ResumeKind != "twopiles_split" || d.Player != 0 || len(d.Options) != 3 {
 		t.Fatalf("split ask = %+v, want the caster's split over the three exiled targets", d)
 	}
-	d = answerChoices(t, e, optionObjOrFail(t, d, gy[1]))
+	d = answerChoices(t, e, objOptionIndex(t, d, gy[1]))
 	if d == nil || d.ResumeKind != "twopiles_pick" || d.Player != 1 {
 		t.Fatalf("pick ask = %+v, want Chooser$ Opponent (seat 1)", d)
 	}
