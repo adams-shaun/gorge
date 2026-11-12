@@ -1455,6 +1455,7 @@ W7SharesCrTrigObj	int16	21
 W7SharesNameLegend	int16	10
 W7WithDisguise	int16	22
 W7WithFlashback	int16	26
+W7WithInfect	int16	28
 W7WithWarp	int16	11
 WhoseAny	Whose	0
 WhoseEnchCtrl	Whose	3
