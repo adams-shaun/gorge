@@ -12,6 +12,7 @@ import (
 // a prepared copy's cast reads as cast (Appa's cast-from-exile
 // trigger), the delayed earthbend return keeps its stack entry while the shock land
 // asks, a Treasure's Sacrificed trigger is placed before priority and survives
+// the cast it was queued in being reversed, and a prepared creature entering beside
 // the cast it was queued in being reversed, a prepared creature entering beside
 // an opponent's enters-tapped replacement asks the CR 616.1 order, and a plot's
 // potential plan prices its mana as the CR 116.2k special action it is. Each repro runs on the repro's own
@@ -74,6 +75,7 @@ func TestStdMetaReprosLockstep(t *testing.T) {
 		"stdmeta_prepared_beside_enters_tapped_s69p19",
 		"stdmeta_prepared_beside_enters_tapped_s90p11",
 		"stdmeta_prepared_beside_enters_tapped_s97p33",
+		"stdmeta_aang_delayed_transform_s97p14",
 	} {
 		t.Run(name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", name+".repro.json"))
