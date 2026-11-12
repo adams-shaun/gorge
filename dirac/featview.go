@@ -128,6 +128,9 @@ func (s *State) featCardMatch(k *prep, id kop.FilterID, ob *object, ctrl uint8, 
 
 func (s *State) featCardMatch1(k *prep, id kop.FilterID, ob *object, ctrl uint8, srcCard CardID, srcSl Slot) bool {
 	f := &k.t.Filters[id]
+	if f.CtrlTgt != 0 {
+		return false // a live battlefield target's controller; a feature read has none
+	}
 	if k.gen != nil {
 		// the generated matcher refuses a with-flying card test outright;
 		// this function reads the F2 conditions itself (below)

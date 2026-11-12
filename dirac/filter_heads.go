@@ -53,6 +53,34 @@ func (s *State) ctrlRoleF2(k *prep, f kop.FilterFlags2, ctrl uint8) bool {
 	return true
 }
 
+// ctrlRoleTgt reports whether a permanent controlled by ctrl passes a
+// Filter.CtrlTgt role: the controller is the controller of target slot
+// slot (index), where a player target is that player and an object target
+// its controller (gorge controlReferentPlayers TargetedOrController,
+// CR 608.2h). The resolving entry reads the target through its last-known
+// controller when it has left; the entry being built has the slots chosen
+// so far. No entry, no such slot or no target is false: gorge leaves the
+// referent unbound.
+func (s *State) ctrlRoleTgt(k *prep, slot int, ctrl uint8) bool {
+	e := s.curEntry()
+	if e == nil || slot < 0 || slot >= int(e.nt) {
+		return false
+	}
+	if s.res.active {
+		return s.tgtCtrlSlot(k, slot) == ctrl
+	}
+	t := e.tgt[slot]
+	switch {
+	case t == NoTarget:
+		return false
+	case isPlayerOrNone(t):
+		return ctrl == CodeSeat(t)
+	case s.objs[t].zone == kop.ZoneBattlefield:
+		return ctrl == s.perms[s.objs[t].slot].ctrl
+	}
+	return false
+}
+
 // defendingSeatF2 is the defending player of an Attacks trigger past two
 // seats (gorge TriggeredDefendingPlayer, CR 508.5), bound when the trigger is
 // queued: while the trigger fires (an IsPresent$ condition) it is the

@@ -1301,18 +1301,28 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			return kf, refuse("wasDealtCombatDamageThisTurnBySource off the battlefield")
 		}
 		kf.Ctrl = kop.CtrlHitBySrc
-	case whoTgtPlayer, whoDefending:
-		// controller roles the kernel reads through a Flags2 bit; the
-		// card matchers never see them (battlefield only)
+	case whoTgtPlayer, whoDefending, whoTgtOrCtrl:
+		// controller roles the kernel reads through a Flags2 bit (or, for
+		// CtrlTgt, a target slot); the card matchers never see them
+		// (battlefield only)
 		if zone != kop.ZoneBattlefield {
 			if c.Ctrl == whoTgtPlayer {
 				return kf, refuse("TargetedPlayerCtrl off the battlefield")
 			}
+			if c.Ctrl == whoTgtOrCtrl {
+				return kf, refuse("ControlledBy TargetedOrController off the battlefield")
+			}
 			return kf, refuse("ControlledBy TriggeredDefendingPlayer outside an Attacks trigger's battlefield filter")
 		}
-		if c.Ctrl == whoTgtPlayer {
+		switch c.Ctrl {
+		case whoTgtPlayer:
 			kf.Flags2 |= kop.F2TgtPlayerCtrl
-		} else {
+		case whoTgtOrCtrl:
+			if c.CtrlTgt == 0 {
+				return kf, refuse("ControlledBy TargetedOrController without a target slot")
+			}
+			kf.CtrlTgt = c.CtrlTgt
+		default:
 			kf.Flags2 |= kop.F2DefendingCtrl
 		}
 		kf.Ctrl = kop.CtrlAny

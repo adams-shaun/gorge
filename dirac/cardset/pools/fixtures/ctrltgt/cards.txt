@@ -1,0 +1,28 @@
+# ControlledBy TargetedOrController (gorge controlReferentPlayers): the
+# damage sweep over each creature the target player or the target
+# planeswalker's controller controls, and Flaming Gambit's optional chosen
+# creature. Targets are a mix of players, creatures and planeswalkers.
+# (dirac/oracle/ctrltgt_lockstep_test.go)
+# Sweeps: Chandra's Fury, Lavalanche, Flame Wave, Chandra Nalaar,
+# Chandra, Pyrogenius, Soul of Shandalar; the choose-and-redirect spell.
+Chandra's Fury
+Lavalanche
+Flame Wave
+Chandra Nalaar
+Chandra, Pyrogenius
+Soul of Shandalar
+Flaming Gambit
+# Cheap targeted removal and bodies, so the sweeps have targets and the
+# planeswalkers have creatures to defend them.
+Lightning Bolt
+Doom Blade
+Grizzly Bears
+Hill Giant
+Serra Angel
+Llanowar Elves
+Ajani, Caller of the Pride
+# Lands.
+Mountain
+Forest
+Plains
+Swamp

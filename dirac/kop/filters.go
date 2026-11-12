@@ -138,6 +138,12 @@ type Filter struct {
 	// from every card already picked (WithDifferentPowers$). False is the
 	// zero Filter's "no requirement".
 	PickDistinctPower bool
+	// CtrlTgt, when non-zero, requires the candidate's controller to be the
+	// controller of target slot CtrlTgt-1 of the current stack entry: a
+	// player target is that player, an object target its controller (gorge
+	// controlReferentPlayers TargetedOrController, CR 608.2h). Battlefield
+	// only; the card matchers fail closed on it.
+	CtrlTgt uint8
 }
 
 // SpecialMask is a set of CR 116.2 special actions a RestrictValid$ Static.*
