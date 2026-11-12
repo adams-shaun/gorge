@@ -26,10 +26,7 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   (convoke picks count toward the expend tally but not CastTotalManaSpent).
   A printed card with both keywords is
   refused in kgen; a grant beside the other keyword (or on an {X} cost)
-  poses gorge's one mixed announcement (convokeOptions, convokeXCost). gorge offers an improvise cast only when the floating pool
-  plus the greedy artifact credit pays the whole cost (its planner refuses
-  the shape), so a cast with a coloured pip is offered only with that colour
-  floating, which the lockstep reproduces.
+  poses gorge's one mixed announcement (convokeOptions, convokeXCost).
 - X ceiling: gorge's xAsk loops X up to pool + caster's graveyard + convoke
   credit + what the window's sources make + 1, and raises that only for a
   named-count discount, so a generic reduction (Zimone, Mocking Sprite) paying

@@ -105,7 +105,11 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 	s.ctl = ctlBuild
 	if k.gen != nil && k.gen.anyConvoke && mode&3 == 0 && s.tapPays(k, p, c, o, ob.zone == kop.ZoneHand) {
 		if _, planned := s.plannedCastCostOf(k, p, o, mode, false, false); planned {
-			s.bld().bfl |= bflTargetPaid
+			if s.improviseLifted(k, p, c, o, ob.zone == kop.ZoneHand) {
+				s.bld().impPlan = true // (bflTargetPaid shares its bit with bflDefeatCast)
+			} else {
+				s.bld().bfl |= bflTargetPaid
+			}
 		}
 	}
 	// a cast only a typed permission allows (Muldrotha's per-type statics,

@@ -2818,11 +2818,17 @@ func (s *State) manaStep(k *prep) bool {
 		if (e.flags&sfAnyMana != 0 || anyColor) && s.bld().bfl&bflMsDone == 0 {
 			s.tapRiderPlan(k, *e) // (not again after a tap-another pick: the window runs on)
 		}
-		if k.gen != nil && k.gen.anyConvoke && s.tapPaysEntry(k, e) && s.bld().bfl&bflTargetPaid != 0 && s.convokePickCount() == 0 {
+		impPlan, impManual, impPrinted := s.improvisePlanned(k, e)
+		if k.gen != nil && k.gen.anyConvoke && s.tapPaysEntry(k, e) && (s.bld().bfl&bflTargetPaid != 0 || impPrinted) && s.convokePickCount() == 0 && !impManual {
 			// a target-paid convoke cast with no creature announced keeps its
 			// plan at the printed cost (state.go bflTargetPaid): the planner
 			// pays, the Treasure for the colour the cost owes
 			s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
+		} else if impPlan {
+			// an Improvise cast gorge's planner prices (kw_improvise_plan.go)
+			if s.improvisePlanPay(k, e, &cost, anyColor, &saved) {
+				return true
+			}
 		} else if k.gen != nil && (k.gen.anyConvoke && s.tapPaysEntry(k, e) || s.delvePaysEntry(k, e)) {
 			// the announced creatures pay their share before the plan runs
 			// (CR 702.51a; gorge convokeAsk before manaWindowAsk) and are
