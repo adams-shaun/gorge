@@ -1175,17 +1175,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			return
 		}
 		if s.g.pre.kind == akEnchant && s.g.pre.state == preDigEnchPlayer {
-			s.res.ask = raNone
-			// a.Source() is the chosen PlayerCode (the ask offers player codes
-			// only, askOptions' preDigEnchPlayer arm), as the object branch
-			// below trusts its ask's object sources
-			s.g.pre.val = CodeSeat(a.Source())
-			s.g.pre.state = preDigEnchPlayerDone
-			if s.rerunMove(k, &s.prog(k)[r.pc]) {
-				return // suspended again at another Aura's choice
-			}
-			s.g.pre = preAsk{}
-			s.continueRes(k, 0)
+			s.answerDigEnchPlayer(k, r, a) // static_attachtimestamp.go
 			return
 		}
 		if s.g.pre.kind == akEnchant && s.g.pre.state == preDigEnchant {

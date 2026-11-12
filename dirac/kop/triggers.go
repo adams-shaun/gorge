@@ -510,7 +510,10 @@ const (
 	Tf3OrTargets TrigFlags3 = 1 << 3
 )
 
-// Tf4DefEnch (Trigger.Flags4, bit 7, this byte's last free one): Mode$
+// Tf4DefEnch (Trigger.Flags4, bit 7, shared with Tf4PerCounter: that flag is
+// read only on a TrigCounterAddedOnce line and this one only on an
+// AttackersDeclared line, so no trigger carries both; the Tf2ToYou /
+// Tf2Increment bit-24 precedent): Mode$
 // AttackersDeclared with AttackedTarget$ Player.EnchantedBy, the Commander
 // curses' "whenever enchanted player is attacked" (Curse of Opulence,
 // Disturbance, Verbosity, Bounty, Inertia, Vitality; Archnemesis). Beside

@@ -83,7 +83,7 @@ func kccScan(g *GorgeSide, n map[string]int) {
 		case events.TokenCreate:
 			n["tokens"]++
 		case events.Attach:
-			if ev.Player != 0 {
+			if ev.Text == "attach to player" {
 				n["player attaches"]++
 			}
 		}

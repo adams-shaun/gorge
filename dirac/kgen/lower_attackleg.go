@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"maps"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -47,6 +48,10 @@ func (lc *lowerCtx) lowerAttackLeg(node *cards.SA, p *params) (guard int, err er
 		return -1, nil
 	}
 	p.consume(param)
+	// p.m is the parsed card's own Params map (newParams stores it, it is not
+	// copied), and the registry hands every pool the same *cards.Card: write a
+	// private copy so a second lowering of the card still sees attackLegKey.
+	p.m = maps.Clone(p.m)
 	p.m[param] = "TriggeredAttackingPlayer"
 	guard = len(lc.ab.Prog)
 	attacker := &lFilter{Clauses: []lClause{{Types: tCreature}}}

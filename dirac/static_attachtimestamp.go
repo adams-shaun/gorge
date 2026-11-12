@@ -120,3 +120,37 @@ func (s *State) setAtchSeat(k *prep, sl Slot, seat1 uint8) {
 func (s *State) layerTs(sl Slot) uint16 {
 	return s.lstamp[sl]
 }
+
+// attachSelfToPlayer is OpAttach with a player destination (gorge effAttach's
+// "attach to player" event, Enchant:Player Attach bodies): Self attaches to
+// the seat the Ref names, gated by gorge's EnchantSelf re-check
+// (attachPlayerLegal: a living seat, an Opponent Enchant word excluding the
+// aura's controller).
+func (s *State) attachSelfToPlayer(k *prep, in *kop.Instr) {
+	src := s.objRef(k, kop.RefSelf)
+	seat := s.playerRef(k, in.W)
+	if src == NoSlot || seat >= s.nSeats() || !s.attachPlayerLegal(k, src, seat) {
+		return
+	}
+	s.attachPlayer(k, src, seat)
+	s.touchSl(src)
+	if in.C&kop.MvRemember != 0 {
+		s.remember(s.perms[src].obj)
+	}
+}
+
+// answerDigEnchPlayer takes the answer to a taken Enchant:Player Aura's seat
+// election (digAuraPlayerPark) and reruns the dig from it. a.Source() is the
+// chosen PlayerCode (the ask offers player codes only, askOptions'
+// preDigEnchPlayer arm), as the object branch of the same ask trusts its
+// ask's object sources.
+func (s *State) answerDigEnchPlayer(k *prep, r *resCtx, a Action) {
+	s.res.ask = raNone
+	s.g.pre.val = CodeSeat(a.Source())
+	s.g.pre.state = preDigEnchPlayerDone
+	if s.rerunMove(k, &s.prog(k)[r.pc]) {
+		return // suspended again at another Aura's choice
+	}
+	s.g.pre = preAsk{}
+	s.continueRes(k, 0)
+}

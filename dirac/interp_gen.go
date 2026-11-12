@@ -948,19 +948,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return false, true
 	case kop.OpAttach:
 		if in.W != 0 {
-			// a player destination (gorge effAttach's "attach to player"
-			// event, Enchant:Player Attach bodies): Self attaches to the
-			// seat the Ref names, gated by gorge's EnchantSelf re-check
-			// (attachPlayerLegal: a living seat, an Opponent Enchant word
-			// excluding the aura's controller)
-			src := s.objRef(k, kop.RefSelf)
-			if seat := s.playerRef(k, in.W); src != NoSlot && seat < s.nSeats() && s.attachPlayerLegal(k, src, seat) {
-				s.attachPlayer(k, src, seat)
-				s.touchSl(src)
-				if in.C&kop.MvRemember != 0 {
-					s.remember(s.perms[src].obj)
-				}
-			}
+			s.attachSelfToPlayer(k, in) // static_attachtimestamp.go
 			break
 		}
 		src := s.objRef(k, kop.RefSelf)
