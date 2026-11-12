@@ -21,8 +21,10 @@ import (
 // both players get priority, and it resolves doing nothing, as gorge's does.
 // Each instance triggers separately (CR 702.116b): Scurry of Squirrels'
 // two printed lines are two triggers, a printed line beside a grant two.
+// twoSeat-at-caller: lc.myriad marks the card.
 
-// myriadTwoSeat is the two-seat reading every Myriad body takes.
+// myriadTwoSeat is the two-seat reading every Myriad body takes
+// (twoSeat-at-caller: lc.myriad marks the card with it).
 const myriadTwoSeat = "Myriad: no opponent other than the defending player"
 
 // isMyriadBody reports whether sa is gorge's DB$ Myriad body as the keyword
