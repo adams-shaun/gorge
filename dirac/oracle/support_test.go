@@ -584,7 +584,7 @@ func castActivatePolicy(seed uint64) Policy {
 	})
 }
 
-// onBf lists the names a player's battlefield holds.
+// battlefieldObjects lists the objects on a player's battlefield.
 func battlefieldObjects(g *state.Game, pl state.PlayerID) (out []*state.Object) {
 	for _, b := range g.Zone(state.ZBattlefield, pl) {
 		if o := g.Obj(b); o != nil {
