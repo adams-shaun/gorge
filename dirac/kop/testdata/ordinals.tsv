@@ -67,6 +67,7 @@ CastSpecYou	untyped int	1
 CfChosen	untyped int	8
 CfCloakCtrl	untyped int	16
 CfCloakRemembered	untyped int	32
+CfManifestRemembered	untyped int	64
 CfRemember	untyped int	4
 CfShuffle	untyped int	2
 CfTapped	untyped int	1
@@ -172,6 +173,7 @@ CtrChorus	CounterKind	40
 CtrCoin	CounterKind	55
 CtrDeathtouch	CounterKind	25
 CtrDefense	CounterKind	39
+CtrDepletion	CounterKind	69
 CtrDestExile	untyped int	1
 CtrDestHand	untyped int	2
 CtrDestLibBottom	untyped int	4
@@ -207,6 +209,7 @@ CtrM0M1	CounterKind	41
 CtrM1M1	CounterKind	1
 CtrMaxSpeed	CounterKind	255
 CtrMenace	CounterKind	30
+CtrMining	CounterKind	70
 CtrMode	CounterKind	253
 CtrNest	CounterKind	66
 CtrNet	CounterKind	45
@@ -254,6 +257,7 @@ DelayBeginCombat	untyped int	6
 DelayDiesThisTurn	untyped int	5
 DelayEndCombat	untyped int	3
 DelayPlayerUpkeep	untyped int	9
+DelayRemUpkeep	untyped int	10
 DelaySpellCast	untyped int	4
 DelaySpellUncounter	untyped int	8
 DelayUpkeep	untyped int	1
@@ -451,6 +455,8 @@ ExtDigImprint	ExtOp	282
 ExtDistCounters	ExtOp	310
 ExtDividedCounters	ExtOp	30
 ExtDmgMark	ExtOp	317
+ExtDrainMana	ExtOp	40
+ExtDrawUpto	ExtOp	309
 ExtEachDamage	ExtOp	2
 ExtEffEtbCtr	ExtOp	197
 ExtEndure	ExtOp	9
@@ -461,7 +467,7 @@ ExtExchangeControl	ExtOp	244
 ExtExileEmbRem	ExtOp	319
 ExtExileExMark	ExtOp	51
 ExtExileLandChoose	ExtOp	162
-ExtExtort	ExtOp	309
+ExtExtort	ExtOp	307
 ExtFinalityCtr	ExtOp	198
 ExtGrantExile	ExtOp	249
 ExtGrantPanharm	ExtOp	248
@@ -477,6 +483,7 @@ ExtPhases	ExtOp	110
 ExtPlotGrant	ExtOp	31
 ExtPreventColor	ExtOp	1
 ExtPreventDamageScope	ExtOp	246
+ExtPreventNext	ExtOp	305
 ExtPutCounterExisting	ExtOp	253
 ExtRecruit	ExtOp	94
 ExtRememberAll	ExtOp	306
@@ -594,12 +601,16 @@ LibBottomGrave	untyped int	11
 LibBottomRememberBF	untyped int	12
 LibBottomRememberGrave	untyped int	9
 LibBottomShuffle	untyped int	7
+LibChoiceCtrlGrave	untyped int	2
 LibChoiceSecond	untyped int	1
 LibThird	untyped int	6
 LibTopGrave	untyped int	10
 LibTopShuffle	untyped int	4
 LibTopShuffleGrave	untyped int	8
 LibTopShuffleSelf	untyped int	5
+ManaRiderDeplete	uint8	1
+ManaRiderNone	uint8	0
+ManaRiderOppGainLife	uint8	2
 MaxSubtypes	untyped int	192
 MaxTargets	untyped int	5
 MayGuardAnimateAll	untyped int	7
@@ -633,6 +644,7 @@ MorphDisguise	uint8	3
 MorphMegamorph	uint8	2
 MorphMorph	uint8	1
 MorphNone	uint8	0
+MustBeBlockedLure	untyped int	1
 MvAlsoSelf	untyped int	1024
 MvAttacking	untyped int	512
 MvEntryRiders	untyped int	4096
@@ -652,8 +664,8 @@ MvUnderYourControl	untyped int	4
 NoCard	CardID	65535
 NumCounterKinds	CounterKind	7
 NumCounterKinds2	CounterKind	13
-NumCounterKinds3	CounterKind	69
-NumCounterKindsX	int	54
+NumCounterKinds3	CounterKind	71
+NumCounterKindsX	int	56
 NumExtOps	ExtOp	320
 NumManaKinds	untyped int	6
 NumSteps	Step	13
@@ -901,6 +913,7 @@ PredFaceDown	Pred	245
 PredHasCounter	Pred	7
 PredHasCounters	Pred	26
 PredHasKeyword	Pred	6
+PredHasManaAbility	Pred	255
 PredHasXCost	Pred	16
 PredHistoric	Pred	19
 PredLacksKeyword	Pred	29
@@ -1086,6 +1099,7 @@ SrAuraEntry	untyped int	8
 SrChooserOpp	untyped int	1
 SrChooserYou	untyped int	64
 SrConfirm	untyped int	16
+SrDestAltGrave	untyped int	32
 SrDifferentNames	untyped int	8192
 SrExactly	untyped int	4
 SrForgetChanged	untyped int	2
@@ -1094,6 +1108,7 @@ SrGameGrave	untyped int	8
 SrGraveExile	untyped int	512
 SrHandBottom	untyped int	8
 SrHandGrave	untyped int	4
+SrHandPosAsk	untyped int	32
 SrImprint	untyped int	256
 SrMandatory	untyped int	4
 SrNoLibrary	untyped int	2048
@@ -1191,6 +1206,7 @@ StatFlipCoinMod	StaticKind	226
 StatGoad	StaticKind	249
 StatHexproofOwnColors	StaticKind	19
 StatIncreaseCost	StaticKind	9
+StatLure	StaticKind	228
 StatMaxBlockers	StaticKind	241
 StatMayPlayFrom	StaticKind	13
 StatMustAttack	StaticKind	7
@@ -1291,6 +1307,8 @@ Tf4OptTrigPlayer	TrigFlags4	32
 Tf4SingleCauseTarget	TrigFlags4	2
 Tf4SingleTarget	TrigFlags4	1
 Tf4StateCtr	TrigFlags4	64
+Tf5FirstCardInDrawStep	TrigFlags5	1
+Tf5NotFirstCardInDrawStep	TrigFlags5	2
 TfCombat	TrigFlags	4
 TfNontokenSrc	TrigFlags	64
 TfNotToGrave	TrigFlags	128
@@ -1299,6 +1317,7 @@ TfOptional	TrigFlags	1
 TfSecondDraw	TrigFlags	32
 TfSelf	TrigFlags	2
 TfToPlayer	TrigFlags	8
+TgfActOnly	TargetFlags	32768
 TgfAtResolution	TargetFlags	32
 TgfAttachedToT0	TargetFlags	16
 TgfBoundsV	TargetFlags	512
@@ -1310,6 +1329,7 @@ TgfDistinctNames	TargetFlags	2048
 TgfGiftRange	TargetFlags	128
 TgfKickedRange	TargetFlags	8
 TgfMaxTotalMV	TargetFlags	4096
+TgfOppOnly	TargetFlags	16384
 TgfSameController	TargetFlags	2
 TgfSharedCrType	TargetFlags	1024
 TgfSingleTgt	TargetFlags	8192
@@ -1446,6 +1466,7 @@ W7SharesCrTrigObj	int16	21
 W7SharesNameLegend	int16	10
 W7WithDisguise	int16	22
 W7WithFlashback	int16	26
+W7WithInfect	int16	28
 W7WithWarp	int16	11
 WhoseAny	Whose	0
 WhoseEnchCtrl	Whose	3

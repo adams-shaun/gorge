@@ -1,0 +1,17 @@
+# the unconditional DestinationAlternative$ pool: the controller's top or
+# bottom of a library (Dream Cache's hand put-back, Not Forgotten's target,
+# Arashin Sovereign's dies trigger) and the searcher's hand or graveyard
+# (Dina's Guidance), with creatures to fill graveyards and removal to kill
+# the Sovereign, for the oracle's constructed lockstep
+# (dirac/oracle/destalt_lockstep_test.go)
+Dream Cache
+Dina's Guidance
+Not Forgotten
+Arashin Sovereign
+Murder
+Grizzly Bears
+Llanowar Elves
+Island
+Swamp
+Forest
+Plains

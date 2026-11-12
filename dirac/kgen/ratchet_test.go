@@ -125,9 +125,14 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (ConditionActivationLimit$ lowers to kop.ExActivations on a card whose one non-mana activated ability it gates: Dragon Whelp; DMU 194 -> 195, ALL 22176 -> 22177).
 	// +1 (Fiend Hunter's Defined$ DirectRemembered leave return lowers as the remembered-persist pair; ALL 22176 -> 22177).
 	// +1 (the merge with land: Count$TotalDamageReceivedThisTurn lowered: Tangled Colony beside land's 22180; ALL 22180 -> 22181, WOE 261 -> 262).
+	// +5 (Dig NoLooking$ and Manifest Defined$ Remembered lower: Telling Time, Moment of Truth, Expressive Iteration, Write into Being, Hamza, Might of the Yathan; ALL 22345 -> 22350, MOM 199 -> 200).
+	// +5 (the hasManaAbility filter property and DrainMana: Power Sink, Moonsilver
+	// Key, Mana Short, Midnight Arsonist and Raggadragga, Goreguts Boss; ALL
+	// 22345 -> 22350).
 	// +14 (Extort: the printed K:Extort expansion and Pontiff of Blight's granted trigger lower; ALL 22350 -> 22364).
+	// +14 (the merge with land: this branch's Extort lowering beside land's 22641; merged ALL 22641 -> 22655).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22364, 34442},
+	"ALL": {22655, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {216, 280},
@@ -142,18 +147,18 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	"MKM": {251, 279},
-	"MOM": {199, 296},
+	"MOM": {200, 296},
 	"MSH": {246, 276},
 	"NEO": {201, 287},
 	"ONE": {200, 271},
 	"OTJ": {251, 276},
 	"SNC": {187, 266},
-	"SOS": {256, 270},
+	"SOS": {257, 270},
 	"SPM": {169, 192},
 	"TDM": {256, 276},
 	"TLA": {261, 285},
 	"TMT": {183, 194},
-	"TRC": {299, 337},
+	"TRC": {300, 337},
 	"TRK": {311, 311},
 	"WOE": {262, 281},
 }

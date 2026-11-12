@@ -436,6 +436,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			if flags, err = shareLandType(ps, f, flags); err != nil { // lower_sharelandtype.go
 				return err
 			}
+			if flags, err = searchDestAlt(ps, dest, obj, flags); err != nil { // lower_destalt.go
+				return err
+			}
 			if dest == zBattlefield && !isConstN(n, 1) {
 				// CR 303.4f: the kernel parks one found Aura for its enchant ask.
 				for _, c := range f.Clauses {
@@ -475,6 +478,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			if dest == zBattlefield && !isConstN(counters, 1) {
 				return refuse("WithCountersAmount$ on a graveyard pick")
 			}
+		}
+		if origin == zGraveyard && (dest == zExile || dest == zHand || dest == zBattlefield) && ps.is("AtRandom", "True") {
+			return lc.randomGraveMove(ps, f, n, flags, counterKind, override, dest) // lower_randomgravemove.go
 		}
 		graveBF := dest == zBattlefield && override == nil && graveToBattlefieldFlags(flags)
 		if origin == zGraveyard && (dest == zHand || graveBF) {
@@ -536,9 +542,6 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			}
 			lc.emit(lInstr{Op: "ChooseMove", Obj: lRef{Kind: rYou}, A: n, F: f, C: dest, CS: cs})
 			return nil
-		}
-		if origin == zGraveyard && dest == zExile && ps.is("AtRandom", "True") {
-			return lc.randomGraveExile(ps, f, n, flags, counterKind, override) // lower_randomgraveexile.go
 		}
 		if exwPick {
 			return lc.exilePick(ps, f, n, flags, counterKind, override, dest) // lower_exw.go
@@ -734,6 +737,11 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		if slices.Contains(flags, "Remember") && pos == -1 && origin == zGraveyard && obj.Kind == rTriggeredNew {
 			in.C = kop.LibBottomRememberGrave // zone_tolibraryremember.go
+		}
+		if c, ok, err := ctrlPositionChoice(ps, origin, pos, obj); err != nil { // lower_destalt.go
+			return err
+		} else if ok {
+			in.C = c
 		}
 		if ad, ok := ps.get("AlternativeDecider"); ok {
 			if ad != "TargetedOwner" || ps.str("DestinationAlternative") != "Library" || ps.str("LibraryPositionAlternative") != "-1" || pos != 0 && pos != 1 {
@@ -1261,6 +1269,9 @@ func (lc *lowerCtx) dig(ps *params) error {
 	if err != nil {
 		return err
 	}
+	if err := digNoLooking(ps, who); err != nil { // lower_digparams.go
+		return err
+	}
 	for _, k := range []string{"Optional", "RestRandomOrder", "ForceRevealToController", "Reveal", "RememberChanged"} {
 		if ps.is(k, "True") && !(k == "Reveal" && noReveal) {
 			flags = append(flags, k)
@@ -1519,12 +1530,31 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	// kernel exwFlag): Borg Cube's and Assimilation Assessor's "a creature
 	// card exiled with it" (CR 607.2a)
 	lc.exwOK = zone == zExile
-	f, err := lc.filter(ps.str("Choices"))
+	optional := !ps.is("Mandatory", "True")
+	choices := ps.str("Choices")
+	if v := ps.str("ControlledByPlayer"); v != "" && !optional {
+		// the kernel evaluates a mandatory ChooseCard from the resolving
+		// controller too, but no lowered mandatory shape applies the
+		// restriction: applying it only under optional would silently draw
+		// the candidates from every seat, so refuse instead.
+		return refuse("mandatory ChooseCard ControlledByPlayer$ %q", v)
+	}
+	if cbp := ps.str("ControlledByPlayer"); cbp != "" && optional {
+		// gorge controlledByChoicePlayer Chooser: the pick's pool is the
+		// chooser's own objects. The kernel evaluates a ChooseCard's filter
+		// from the chooser's perspective (cardCands' p), so a YouCtrl clause
+		// is the chooser's control here (Flaming Gambit).
+		if cbp != "Chooser" {
+			return refuse("optional ChooseCard ControlledByPlayer$ %q", cbp)
+		}
+		choices = addFilterProp(choices, "YouCtrl")
+		ps.consume("ControlledByPlayer")
+	}
+	f, err := lc.filter(choices)
 	lc.attachedTgtOK, lc.exwOK = false, false
 	if err != nil {
 		return err
 	}
-	optional := !ps.is("Mandatory", "True")
 	if !optional {
 		// A mandatory ChooseCard's chooser is the resolving controller and
 		// its pick count is one (gorge chooseCardChoosers, choiceBounds max
@@ -1542,6 +1572,7 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	if optional && zone == zLibrary {
 		return lc.chooseLibraryUpTo(ps, f)
 	}
+	fromDefined := false
 	if optional {
 		// the optional battlefield path: ChoiceTitle$ is display only (as
 		// the mandatory path's), Defined$ You is the default chooser, and
@@ -1549,7 +1580,19 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 		// choiceBounds: up to one); any other value refuses
 		ps.consume("ChoiceTitle")
 		if v := ps.str("Defined"); v != "" && v != "You" {
-			return refuse("optional ChooseCard Defined$ %q", v)
+			if v != "TargetedOrController" {
+				return refuse("optional ChooseCard Defined$ %q", v)
+			}
+			// gorge definedAliases spells TargetedOrController as
+			// TargetedController: a player target is that player, an object
+			// target its controller (lower_effect.go's rTargetController).
+			// The referent is the chain's target, not this pick's.
+			t := lc.lastTarget()
+			if t < 0 {
+				return refuse("optional ChooseCard Defined$ TargetedOrController without an earlier target")
+			}
+			chooser = lRef{Kind: rTargetController, N: t}
+			fromDefined = true
 		}
 		if v := ps.str("MinAmount"); v != "" && v != "0" {
 			return refuse("optional ChooseCard MinAmount$ %q", v)
@@ -1559,7 +1602,7 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	if optional && (zone != zBattlefield || ps.str("Amount") != "" && ps.str("Amount") != "1") {
 		return refuse("optional ChooseCard")
 	}
-	if !targeted {
+	if !targeted && !fromDefined {
 		chooser = lRef{Kind: rYou}
 	}
 	in := lInstr{Op: "ChooseCard", Obj: chooser, F: f, C: zone}
@@ -3734,9 +3777,12 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 	}
 	ab.Mana = m
 	ps.consume("SubAbility")
-	if ab.Loyalty {
+	if stack := lc.stackManaAbility(sa, ab); ab.Loyalty || stack {
 		// A loyalty ability is never a mana ability (CR 605.1a): Chandra's
-		// +2 adds its mana on resolution.
+		// +2 adds its mana on resolution. Nor is an AB$ Mana whose cost or
+		// chain draws or mills (movesLibraryCard: Chromatic Sphere, the
+		// eggs): gorge puts it on the stack and its resolution adds the mana
+		// and runs the chain (lower_stackmana.go).
 		if m.RestrictAb != nil || m.NonSpell {
 			// the resolution's AddMana floats a spell restriction only
 			// (State.rb): an activated-ability or non-spell one has no carrier
@@ -3744,12 +3790,20 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 		}
 		ab.Kind = akActivated
 		ab.Mana = nil
-		if m.Each {
+		if m.Each && !stack {
 			// Lukka's +1 {R}{G}: the resolution's AddMana floats one colour
 			// of a restriction (State.rb); several at once have no carrier
 			return refuse("loyalty ability adding several colours at once")
 		}
-		if m.Choice || len(m.Colors) > 1 {
+		if m.Each {
+			// an unrestricted all-at-once production: one AddMana per colour
+			if m.Restrict != nil || !amt.isConst() || amt.N < 1 {
+				return refuse("stack mana ability adding several colours under a restriction")
+			}
+			for i := 0; i < len(m.Colors); i++ {
+				lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors[i : i+1]})
+			}
+		} else if m.Choice || len(m.Colors) > 1 {
 			// a colour choice at resolution (gorge askManaChoice): one pick
 			// per mana of a Combo, one for the whole amount of Any; the
 			// kernel's AddMana takes the mask's last colour, no choice
@@ -3778,14 +3832,16 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 		}
 	}
 	if ab.Kind == akMana && len(ab.Prog) > 0 && !painRider(ab) && !ctrRiderMana(ab) { // (lower_manarider.go)
-		// CR 605.3b: a mana ability's rider (Chromatic Sphere's draw, a
-		// depletion counter) resolves with it at activation. The kernel's
-		// autopay adds the mana and runs no program, so the ability is
-		// refused rather than lowered without its rider. The one rider
-		// the kernel prices is a painland's "deals N damage to you"
-		// (painRider; gorge's last-resort Consequence{Damage: N},
-		// dirac/mana_pain.go).
-		return refuse("mana ability with a rider program")
+		// CR 605.3b: a mana ability's rider resolves with it at activation.
+		// The bounded shapes the kernel runs are a draw, a self-sacrifice
+		// once the source's last counter is gone, and each opponent gaining
+		// life (riderMana); a conditional rider (Avid Reclaimer's Nissa
+		// clause) is still refused rather than lowered without its rider.
+		kind, ctr, n, ok := riderMana(ab)
+		if !ok {
+			return refuse("mana ability with a conditional or unbounded rider program")
+		}
+		m.Rider, m.RiderCtr, m.RiderN = kind, ctr, n
 	}
 	if err := lc.manaSpentRiders(ps, ab, m); err != nil {
 		return err

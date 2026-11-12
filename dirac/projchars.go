@@ -66,6 +66,9 @@ func (s *State) ProjectChars(p *Projection) {
 		c.Types = s.typesAt(k, sl) &^ kop.TToken
 		c.Colors = s.colorsAt(k, sl) &^ kop.ColC
 		c.Kw = s.kw(k, sl)
+		if k.gen != nil && k.gen.anyColGrant {
+			c.Kw |= s.colProtKw(k, sl) // static_colourprot.go
+		}
 		if k.gen != nil {
 			for i := range k.t.Subtypes {
 				if i < kop.MaxSubtypes && s.hasSubGen(k, sl, uint8(i)) {

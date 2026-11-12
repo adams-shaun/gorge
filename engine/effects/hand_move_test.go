@@ -430,13 +430,12 @@ func TestLostHoursUnsupportedLibraryPositionEmitsNote(t *testing.T) {
 	}
 }
 
-// TestDreamCacheDestinationAlternativeEmitsNote pins the one genuinely
-// unsupported hidden-origin shape's loudness: Dream Cache's "both on top of
-// your library or both on the bottom" (DestinationAlternative$/
-// LibraryPositionAlternative$) cannot be asked yet, so the alternative is
-// named in a Note and the primary destination (top) is taken
-// deterministically -- never a silent no-op.
-func TestDreamCacheDestinationAlternativeEmitsNote(t *testing.T) {
+// TestDreamCacheAsksTopOrBottom pins Dream Cache's "both on top of your
+// library or both on the bottom" (DestinationAlternative$ Library with
+// LibraryPositionAlternative$ -1, no AlternativeDecider$): the hand move is
+// required and takes both cards, then the controller is asked once for the
+// set's position (Forge handleAltDest), with no unsupported-shape Note.
+func TestDreamCacheAsksTopOrBottom(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	card, ok := reg.Lookup("Dream Cache")
 	if !ok {
@@ -462,21 +461,18 @@ func TestDreamCacheDestinationAlternativeEmitsNote(t *testing.T) {
 	h := &askHost{}
 	h.g = g
 	Resolve(h, &Ctx{Controller: 0}, db)
-	if h.asked != nil {
-		t.Fatalf("a decision was posed with eligible (2) == ChangeNum (2): %+v", h.asked)
+	if h.asked == nil || h.asked.Player != 0 || len(h.asked.Options) != 2 ||
+		h.asked.Options[0].Kind != "primary" || h.asked.Options[1].Kind != "bottom" {
+		t.Fatalf("asked = %+v, want the controller's primary/bottom position ask", h.asked)
 	}
 	lib := h.g.Zone(state.ZLibrary, 0)
 	if len(lib) != 2 {
-		t.Fatalf("library = %v, want both hand cards on top", lib)
+		t.Fatalf("library = %v, want both hand cards moved", lib)
 	}
-	sawNote := false
 	for _, ev := range h.log {
 		if ev.Kind == events.Note && strings.Contains(ev.Text, "DestinationAlternative$") {
-			sawNote = true
+			t.Fatalf("unsupported-shape Note %q on a modelled choice", ev.Text)
 		}
-	}
-	if !sawNote {
-		t.Fatalf("no DestinationAlternative$ Note in %+v", h.log)
 	}
 }
 

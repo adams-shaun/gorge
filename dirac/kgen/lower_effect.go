@@ -271,6 +271,9 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// included (context.go definedSpecDelayTriggerRemembered); the kernel's
 		// RefDelayedRemembered is objects only. Admit it only over an object-only
 		// RememberObjects$ or a capturing reflexive, never generally.
+		if lc.ab != nil && lc.ab.DelayedPlayer {
+			return lRef{Kind: rTriggeredPlayer}, nil // lower_delayremplayer.go
+		}
 		if lc.ab == nil || (!lc.ab.DelayedObjOnly && !lc.ab.ReflexObj) {
 			return lRef{}, refuse("Defined$ %q", v)
 		}
@@ -1468,6 +1471,16 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		}
 		lc.emit(in)
 	case "DestroyAll":
+		if ps.peek("RememberAllObjects") != "" {
+			// Angrath, Minotaur Pirate's -11 remembers the destroyed set for
+			// a following non-LKI power total; gorge models neither half
+			return refuse("DestroyAll RememberAllObjects$: the remembered destroyed set is not modelled")
+		}
+		if vt := ps.peek("ValidTgts"); vt != "" {
+			// gorge's targetPlayerKindScope scopes a DestroyAll to the
+			// target's permanents; the kernel instruction is one filter
+			return refuse("DestroyAll ValidTgts$ %q: a target-scoped sweep is not modelled", vt)
+		}
 		f, err := lc.destroyAllFilter(ps) // lower_destroyalltargeted.go
 		if err != nil {
 			return err
@@ -1531,6 +1544,9 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		}
 		if err := lc.drawDecider(ps, who); err != nil { // lower_optional.go
 			return err
+		}
+		if ps.is("Upto", "True") {
+			return lc.drawUpto(ps, who, n, remDrawn || remAll) // lower_drawupto.go
 		}
 		in := lInstr{Op: "Draw", Obj: who, A: n}
 		switch {
@@ -1720,6 +1736,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.earthbend(ps)
 	case "Endure":
 		return lc.endure(ps) // lower_endure.go
+	case "PreventDamage":
+		return lc.preventNext(ps) // lower_preventnext.go
 	case "Clone":
 		return lc.cloneAttached(ps) // lower_cloneattached.go
 	case "Goad":
@@ -1743,14 +1761,21 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 				return terr
 			}
 		}
-		var vtg *lFilter
+		var vtg, vspell *lFilter
+		vyou := false
 		if v, ok := ps.get("TargetValidTargeting"); ok {
-			if tt != "Spell" || ps.str("ValidTgts") != "Card" {
-				return refuse("Counter TargetValidTargeting beside TargetType %q ValidTgts %q", tt, ps.str("ValidTgts"))
+			if tt != "Spell" {
+				return refuse("Counter TargetValidTargeting beside TargetType %q: a stack ability's targets live in its trigger/activation roles, which gorge's filterTargetValidTargeting does not read (Diplomatic Escort, Siren Stormtamer, Not of This World)", tt)
 			}
 			var verr error
-			if vtg, verr = lc.counterValidTargeting(strings.TrimSpace(v)); verr != nil {
+			if vtg, vyou, verr = lc.counterValidTargeting(strings.TrimSpace(v)); verr != nil {
 				return verr
+			}
+			if vt := ps.str("ValidTgts"); vt != "Card" {
+				// the spell side's own filter (Avoid Fate: Instant,Aura)
+				if vspell, verr = lc.filter(vt); verr != nil {
+					return verr
+				}
 			}
 		}
 		if v, ok := ps.get("TgtZone"); ok && (tt != "Spell" || v != "Stack") {
@@ -1765,6 +1790,15 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		}
 		if v, ok := ps.get("RememberForCounter"); ok && v != "True" {
 			return refuse("Counter RememberForCounter$ %q", v)
+		}
+		remTargets := false
+		if v, ok := ps.get("RememberTargets"); ok {
+			// Arcane Denial: gorge remembers the countered spell like
+			// RememberForCounter$ (lower_stacktgt.go)
+			if v != "True" || tt != "Spell" {
+				return refuse("Counter RememberTargets$ %q beside TargetType %q", v, tt)
+			}
+			remTargets = true
 		}
 		cl := false
 		if v, ok := ps.get("RememberCountered"); ok {
@@ -1791,7 +1825,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if err != nil {
 			return err
 		}
-		lt := lTarget{F: f, Zone: zStack, Spell: true, StackAb: tt != "Spell", AbOnly: tt == "Activated,Triggered", TrigOnly: trigOnly, VTgt: vtg}
+		lt := lTarget{F: f, Zone: zStack, Spell: true, StackAb: tt != "Spell", AbOnly: tt == "Activated,Triggered", TrigOnly: trigOnly, VTgt: vtg, VYou: vyou, VSpellF: vspell}
 		if v, ok := ps.get("TargetMin"); ok {
 			if lt.Min, err = lc.value(v); err != nil {
 				return err
@@ -1816,7 +1850,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if remMV != 0 {
 			in.B = cst(remMV)
 		}
-		if ps.is("RememberForCounter", "True") {
+		if ps.is("RememberForCounter", "True") || remTargets {
 			in.Note = rememberCounterNote // its controller is the chain's RememberedController
 		}
 		lc.emit(in)
@@ -2122,6 +2156,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.demonstrate(ps)
 	case "ChooseColor":
 		return lc.chooseColorPrevent(ps) // Prismatic Strands
+	case "ProtectionAll":
+		return lc.protectionAllChosen(ps) // lower_choosecolorres.go
 	case "ChooseType":
 		return lc.chooseType(ps)
 	case "Scry":
@@ -2134,6 +2170,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.untapAll(ps)
 	case "TapAll":
 		return lc.tapAll(ps)
+	case "DrainMana":
+		return lc.drainMana(ps)
 	case "Seek":
 		return lc.seek(ps)
 	case "Reveal":
@@ -2451,18 +2489,30 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 		if obj.Kind != rTarget {
 			return refuse("divided damage without targets")
 		}
+		if _, ok := ps.get("Announce"); ok {
+			// Nahiri's Sacrifice announces X for its "sacrifice a permanent of
+			// mana value X" cost (CR 601.2b); gorge announces no X for a cost
+			// without {X} and reads the sacrifice's X as 0, so the card casts
+			// only against a mana-value-0 permanent
+			return refuse("divided damage over an Announce$ X total: gorge announces no X for a cost without {X}")
+		}
 		if dv.isConst() {
 			lc.ab.Targets[obj.N].Divided = dv.N
-		} else if sameValue(dv, lc.ab.Targets[obj.N].Max) {
-			// A value total (Ureni's land count) is read where the ability is
-			// put on the stack, exactly where gorge's divisionTotalFor reads
-			// DividedAsYouChoose$ (CR 601.2d, 603.3d). The slot's TargetMax$
-			// must be that same value: gorge clamps a divided slot's target
-			// count to the announced total, and the kernel does not.
+		} else if mn := lc.ab.Targets[obj.N].Min; !mn.isConst() || mn.N != 0 {
+			// gorge aborts a cast whose total is below the slot's minimum
+			// (cast_targets.go); the kernel's clamp assumes "any number"
+			return refuse("divided over a value total with a TargetMin$ above 0")
+		} else {
+			// A value total (Ureni's land count, a spell's paid X) is read where
+			// the ability is put on the stack, exactly where gorge's
+			// divisionTotalFor reads DividedAsYouChoose$ (CR 601.2d, 603.3d).
+			// gorge clamps a divided slot's target count to that total (each
+			// target takes at least 1; cast_targets.go, target_ask.go) whatever
+			// TargetMax$ says (Rolling Thunder's all-targets count, Shatterskull
+			// Smashing's 2); the kernel clamps the slot's evaluated maximum the
+			// same way (tgtBoundsV).
 			lc.ab.Targets[obj.N].Divided = kop.DivValue
 			lc.ab.Targets[obj.N].DividedV = dv
-		} else {
-			return refuse("divided over a value total that is not TargetMax$")
 		}
 		in.Op = "DealDamageDivided"
 	}
@@ -2923,10 +2973,11 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		lc.emit(lInstr{Op: "PumpUntilEOT", Obj: obj, A: att, B: def})
 	}
 	kw, hasKW := ps.get("KW")
-	mustBlock, noCombat := false, false
+	mustBlock, noCombat, lure := false, false, false
 	if hasKW {
 		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
 		kw, noCombat = splitKWSentence(kw, cantAttackOrBlockKW)
+		kw, lure = splitKWSentence(kw, lureKW)
 	}
 	if hasKW && kw != "" {
 		rest, fbs, err := splitFirebendingGrant(kw)
@@ -2963,6 +3014,12 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		}
 		lc.emit(lInstr{Op: "MustBeBlocked", Obj: obj})
 	}
+	if lure {
+		if zone != zBattlefield || !lc.pumpObjectRef(obj) {
+			return refuse("Pump KW$ all must block on a non-permanent subject")
+		}
+		lc.emit(lInstr{Op: "MustBeBlocked", Obj: obj, C: kop.MustBeBlockedLure})
+	}
 	if noCombat {
 		if zone != zBattlefield || !lc.pumpObjectRef(obj) {
 			return refuse("Pump KW$ can't attack or block on a non-permanent subject")
@@ -2984,6 +3041,11 @@ const cantAttackOrBlockKW = "HIDDEN CARDNAME can't attack or block."
 // mustBeBlockedKW is the one Pump / PumpAll keyword sentence that is a mark,
 // not a keyword bit (CR 509.1c, ExtMustBeBlocked).
 const mustBeBlockedKW = "HIDDEN CARDNAME must be blocked if able."
+
+// lureKW is the Pump keyword sentence "All creatures able to block CARDNAME do
+// so." (CR 509.1c; gorge hidden keyword AllMustBlock): a mark too, set by
+// ExtMustBeBlocked with C = MustBeBlockedLure.
+const lureKW = "HIDDEN All creatures able to block CARDNAME do so."
 
 // splitKWSentence takes one mark sentence (mustBeBlockedKW,
 // cantAttackOrBlockKW) out of a KW$ list: the rest of the list (possibly
@@ -4266,6 +4328,12 @@ func (lc *lowerCtx) chooseColorPrevent(ps *params) error {
 		lc.emit(lInstr{Op: "ChooseColorRes", Note: "the controller chooses a colour for this resolution"})
 		return nil
 	}
+	if chooseColorResSub(n) {
+		// (Akroma's Blessing, Wash Out) lower_choosecolorres.go
+		lc.colGrant = true
+		lc.emit(lInstr{Op: "ChooseColorRes", Note: "the controller chooses a colour for this resolution"})
+		return nil
+	}
 	if n != nil && n.API == "Animate" && strings.EqualFold(strings.TrimSpace(n.Params["Colors"]), "ChosenColor") {
 		// (Puca's Eye, Mondo Gecko) the Animate's
 		// Colors$ ChosenColor reads the resolution's colour (res.chosen)
@@ -4275,7 +4343,7 @@ func (lc *lowerCtx) chooseColorPrevent(ps *params) error {
 		return nil
 	}
 	if n == nil || n.API != "Effect" || n.Sub != nil || lc.preventColorShape(n.Params) != "" {
-		return refuse("ChooseColor outside an as-enters replacement")
+		return refuse("ChooseColor outside an as-enters replacement%s", chooseColorRefusal(n))
 	}
 	lc.prevColor = true
 	return nil

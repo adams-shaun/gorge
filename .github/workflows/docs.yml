@@ -5,7 +5,7 @@
 # The set-support tables are rendered here, not measured: the compliance
 # oracle (oraclediff) lives in gorge-compliance, whose nightly CI publishes its
 # per-set status to an orphan docs-data branch, and dirac's per-set
-# figures are a committed snapshot (docs/site/support/dirac-sets.json).
+# figures are read from the committed dirac/docs/support.md.
 name: docs
 
 on:
@@ -24,6 +24,7 @@ on:
       - web/src/components/PlaySettingsPanel.svelte
       - dirac/docs/support.md
       - cmd/pkgmap/**
+      - scripts/docs_compliance_stub.py
       - .github/workflows/docs.yml
   # A PR (develop -> main above all) builds the site strictly but never
   # deploys it, so a broken link fails before it reaches the public site.
@@ -41,12 +42,17 @@ on:
       - web/src/components/PlaySettingsPanel.svelte
       - dirac/docs/support.md
       - cmd/pkgmap/**
+      - scripts/docs_compliance_stub.py
       - .github/workflows/docs.yml
   # A daily rebuild picks up gorge-compliance's docs-data, written by its
   # nightly job (cron 09:41 UTC, which GitHub often starts hours late), so
   # this runs well after it.
   schedule:
     - cron: '17 17 * * *'
+  # gorge-compliance dispatches this when its docs/engines/ changes, so the
+  # "For engine authors" pages are rebuilt without a gorge push.
+  repository_dispatch:
+    types: [docs-compliance]
   workflow_dispatch:
 
 permissions:
@@ -78,6 +84,25 @@ jobs:
       - name: Install MkDocs
         run: pip install -r docs/site/requirements.txt
 
+      # The "For engine authors" pages (compliance/engines/*) are owned by
+      # gorge-compliance: take its main's docs/engines/ (sparse, docs/ only)
+      # into the site tree. Without them the build still passes: the
+      # scripts/docs_compliance_stub.py hook stubs each missing page.
+      - name: Check out the compliance engine docs
+        uses: actions/checkout@v4
+        with:
+          repository: adams-shaun/gorge-compliance
+          ref: main
+          path: .compliance-docs
+          sparse-checkout: docs/engines
+          sparse-checkout-cone-mode: true
+
+      - name: Copy the compliance engine docs into the site
+        run: |
+          mkdir -p docs/site/compliance/engines
+          cp .compliance-docs/docs/engines/* docs/site/compliance/engines/
+          rm -rf .compliance-docs
+
       # Corpus-free and ~1 s: the per-tier package tables and the tier graph
       # (cmd/pkgmap, classification in docs/site/architecture/packages.tiers.json).
       - name: Generate the package map
@@ -87,7 +112,7 @@ jobs:
       # by sets.md): gorge-compliance's nightly compliance job publishes its
       # per-set status (Level A for every set, Level B for the printed sets)
       # to its orphan docs-data branch; dirac's per-set acceptance is
-      # the committed snapshot. Without docs-data the tables still render,
+      # read from dirac/docs/support.md. Without docs-data the tables still render,
       # with the gorge columns marked as not available.
       # The Web client pages (web/layouts.md, web/gameplay.md) name the
       # client's layout presets and play settings; fail if the source moved.
@@ -101,7 +126,7 @@ jobs:
       - name: Render the per-set support tables
         run: |
           python3 -m unittest discover -s scripts -p 'docs_sets_test.py'
-          args=(--dirac docs/site/support/dirac-sets.json)
+          args=(--dirac-support dirac/docs/support.md)
           if git fetch --depth=1 https://github.com/adams-shaun/gorge-compliance.git docs-data 2>/dev/null; then
             d=$(mktemp -d)
             for f in status-A.jsonl status-B.jsonl meta.json; do git show "FETCH_HEAD:$f" > "$d/$f"; done

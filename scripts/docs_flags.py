@@ -29,7 +29,7 @@ TOOLS = [
     ("cardfuzz", "cmd/cardfuzz", ["cmd/cardfuzz/main.go"],
      "Plays random and exploring games over the whole corpus on gorge, records failures and tracks which cards and abilities it has reached."),
     ("kgen", "dirac/cmd/kgen", ["dirac/kgen/main.go"],
-     "Compiles card pools from gorge's IR into dirac's binary card tables, and answers which cards dirac supports. `cmd/kgen` is a thin main over package `dirac/kgen`."),
+     "Compiles card pools from gorge's IR into dirac's binary card tables, and answers which cards dirac supports. `dirac/cmd/kgen` is a thin main over package `dirac/kgen`."),
     ("dplay", "dirac/cmd/dplay", ["dirac/cmd/dplay/main.go"],
      "Plays seeded games on dirac alone and prints a line per game and a summary."),
     ("sbv2dirac", "dirac/cmd/sbv2dirac", ["dirac/cmd/sbv2dirac/main.go"],

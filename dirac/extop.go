@@ -83,6 +83,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtCounterLose:
 		s.counterLose(k, in) // act_counterlose.go
 		return true, true
+	case kop.ExtDrainMana:
+		s.drainMana(k, in) // act_drainmana.go
+		return true, true
 	case kop.ExtNumTimes:
 		return s.numTimesStart(k, in), true // cast_announcetimes.go
 	case kop.ExtCumulative:
@@ -133,6 +136,8 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtVote:
 		return s.voteStart(k, in), true // act_vote.go
+	case kop.ExtDrawUpto:
+		return s.drawUptoStart(k, in), true // act_drawupto.go
 	case kop.ExtAttacksIfAble:
 		s.attacksIfAbleExt(k, in) // combat_attacksifable.go
 		return true, true
@@ -241,6 +246,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		// in place (act_extort.go)
 		s.res.ask, s.res.askP = raGenExtort, s.res.e.ctrl
 		return false, true
+	case kop.ExtPreventNext:
+		s.prevNextAdd(k, in) // repl_prevnext.go
+		return true, true
 	}
 	panic("kernel: ext op not implemented: " + kop.ExtOp(in.A.N).String())
 }

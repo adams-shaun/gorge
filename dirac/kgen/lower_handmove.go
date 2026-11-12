@@ -50,10 +50,10 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 		return refuse("hand move ChangeNum$ %v", n)
 	}
 	for _, fl := range flags {
-		if fl == "Bottom" && dest != zLibrary {
+		if (fl == "Bottom" || fl == "PosAsk") && dest != zLibrary {
 			return refuse("hand move Bottom flag to %s", zoneLabel[dest])
 		}
-		if fl != "Tapped" && fl != "Mandatory" && fl != "Remember" && fl != "Bottom" {
+		if fl != "Tapped" && fl != "Mandatory" && fl != "Remember" && fl != "Bottom" && fl != "PosAsk" {
 			return refuse("hand move flag %s", fl)
 		}
 	}
@@ -317,6 +317,9 @@ func (lc *lowerCtx) handPutBack(ps *params, origin, dest, pos int, flags []strin
 	}
 	if pos == -1 {
 		flags = append(flags, "Bottom")
+	}
+	if handPosAsk(ps, pos) { // lower_destalt.go
+		flags = append(flags, "PosAsk")
 	}
 	if ps.is("Mandatory", "True") {
 		flags = append(flags, "Mandatory")

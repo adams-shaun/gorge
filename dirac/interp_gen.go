@@ -183,7 +183,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpDemonstrate:
 		return s.demonstrate(k, in), true
 	case kop.OpNinjutsu:
-		s.ninjutsuResolve(k) // CR 702.49b (kw_ninjutsu.go)
+		s.handEntryResolve(k, in.C != 0) // CR 702.49b (kw_ninjutsu.go)
 	case kop.OpRepeatWhile:
 		// gorge effRepeat with RepeatCheckSVar$: MaxRepeat$ evaluated once
 		// as the cap, the gate re-evaluated after every pass (loopBack)
@@ -493,6 +493,15 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		s.g.retMiss = s.objs[o].zone != kop.ZoneBattlefield // an Aura with no legal host stays where it is (CR 303.4g)
 	case kop.OpToLibraryChoice:
 		o := s.objRefObj(in.Obj)
+		if in.C == kop.LibChoiceCtrlGrave {
+			// the controller's top or bottom of a card still in a
+			// graveyard (Not Forgotten, Arashin Sovereign; zone_destalt.go)
+			if o == NoObj || s.objs[o].zone != kop.ZoneGraveyard {
+				break
+			}
+			s.res.ask, s.res.askP = raGenTopBottom, s.res.e.ctrl
+			return false, true
+		}
 		if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield && s.objs[o].zone != kop.ZoneStack {
 			break // a spell target too (TgtPermOrSpell): its owner is asked
 		}
@@ -775,6 +784,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpDelayedProgram:
 		if in.A.N == kop.DelayPlayerUpkeep {
 			s.delayPlayerUpkeep(k, e, in) // trig_delayplayerupkeep.go
+			break
+		}
+		if in.A.N == kop.DelayRemUpkeep {
+			s.delayRemUpkeep(k, e, in) // trig_delayremupkeep.go
 			break
 		}
 		o := s.delayedRegObj(in.Obj)
