@@ -771,6 +771,16 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Retrace {
+		// CR 702.81a: a graveyard cast paying the printed cost plus the
+		// additional discard-a-land cost (dirac/kw_retrace.go); lower.go's
+		// lowerRetrace has refused every collision, so the CardDef carries
+		// only Retrace and RetraceCost.
+		d.Retrace = true
+		if d.RetraceCost, err = cb.cost(*c.RetraceCost); err != nil {
+			return err
+		}
+	}
 	if c.Improvise {
 		// CR 702.126a: printed improvise; the cast taps artifacts for its
 		// generic cost (dirac/kw_convoke.go)

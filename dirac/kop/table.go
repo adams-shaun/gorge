@@ -390,6 +390,16 @@ type CardDef struct {
 	// returns a creature you control to its owner's hand (FbCost), then exiles
 	// the spell (dirac/kw_beammeup.go).
 	BeamMeUp bool
+	// Retrace is printed K:Retrace (CR 702.81a; false = none): a graveyard
+	// cast paying the PRINTED cost (never a substitution) plus the additional
+	// RetraceCost, a discard of one land card (CostDiscardFiltered); the
+	// spell rests in its owner's graveyard on resolution (no sfFlashback
+	// exile; beginCast marks the mode-2 retrace cast's entry trigPlRetrace,
+	// and a copy never carries the mark, CR 707.10). Never set with
+	// Flashback, Harmonize, Mayhem, BeamMeUp, Convoke, Improvise, Delve or a
+	// spell additional cost (kgen refuses them; no corpus card carries one).
+	Retrace     bool
+	RetraceCost Cost
 	// MorphCost is the turn-face-up cost of a printed Morph, Megamorph or
 	// Disguise keyword (CR 702.37e, 702.168c, 702.169b; zero with
 	// MorphFamily 0). MorphFamily says which (CardDef.Face*Family).

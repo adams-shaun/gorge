@@ -1,0 +1,32 @@
+# the Retrace pool (CR 702.81a): the lowered printed-K:Retrace carriers
+# (Call the Skybreaker, Spitting Image, Throes of Chaos, Formless Genesis,
+# Worm Harvest and the classmates Oona's Grace, Raven's Crime, Flame Jab)
+# beside the rituals and ETB mana producers that float the printed bases
+# (Dark Ritual, Rite of Flame, Seething Song, Inner Fire, Manamorphose, Burning-Tree Emissary,
+# Lotus Cobra), discard outlets and self-mill (dirac/oracle/retrace_test.go);
+# Reality Scramble stays refused (Card.sharesCardTypeWith RememberedLKI in
+# its DigUntil filter) and is not in the pool
+Call the Skybreaker
+Spitting Image
+Throes of Chaos
+Formless Genesis
+Worm Harvest
+Oona's Grace
+Raven's Crime
+Flame Jab
+Dark Ritual
+Rite of Flame
+Seething Song
+Inner Fire
+Manamorphose
+Tormenting Voice
+Thrill of Possibility
+Mulch
+Satyr Wayfinder
+Burning-Tree Emissary
+Lotus Cobra
+Hill Giant
+Swamp
+Mountain
+Forest
+Island
