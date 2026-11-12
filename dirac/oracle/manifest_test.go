@@ -63,23 +63,6 @@ func kmanifestMox(n string) bool {
 	return false
 }
 
-// kmanifestName returns the printed name of the gorge option a canonical
-// action selects, or "" when it names no object.
-func kmanifestName(c *PickCtx, a Canon) string {
-	if c.G == nil {
-		return ""
-	}
-	o, ok := c.G.GorgeOption(a)
-	if !ok {
-		return ""
-	}
-	ob := c.G.E.G.Obj(o.Obj)
-	if ob == nil || ob.Face() == nil {
-		return ""
-	}
-	return ob.Face().Name
-}
-
 // kmanifestDown counts the gorge battlefield's face-down permanents.
 func kmanifestDown(c *PickCtx) int {
 	if c.G == nil {
@@ -133,7 +116,7 @@ func kmanifestPolicy(seed uint64, counts *kmanifestCounts) Policy {
 		cloaked = kmanifestCloaked(c)
 		haveUp, haveMox, havePriest, haveManifest, haveCoat = false, false, false, false, false
 		for _, a := range c.D.Options {
-			n := kmanifestName(c, a)
+			n := optionFaceName(c, a)
 			switch {
 			case a.Kind() == ActSpecial:
 				up, haveUp = a, true

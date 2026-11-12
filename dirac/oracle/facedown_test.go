@@ -66,23 +66,6 @@ func (c *kfacedownCounts) addUp(name string) {
 	c.upBy[name]++
 }
 
-// kfacedownName returns the printed name of the gorge option a canonical
-// action selects, or "" when it names no object.
-func kfacedownName(c *PickCtx, a Canon) string {
-	if c.G == nil {
-		return ""
-	}
-	o, ok := c.G.GorgeOption(a)
-	if !ok {
-		return ""
-	}
-	ob := c.G.E.G.Obj(o.Obj)
-	if ob == nil || ob.Face() == nil {
-		return ""
-	}
-	return ob.Face().Name
-}
-
 // kfacedownSetup counts the policy's own early actions across both seats.
 type kfacedownSetup struct {
 	moxen, priests, aven, turnUps int
@@ -113,7 +96,7 @@ func kfacedownPolicy(seed uint64, counts *kfacedownCounts, setup *kfacedownSetup
 			haveMox, haveAven, havePriest, haveDown, haveUp bool
 		)
 		for _, a := range c.D.Options {
-			n := kfacedownName(c, a)
+			n := optionFaceName(c, a)
 			switch {
 			case a.Kind() == ActCast && kfacedownMox(n):
 				mox, haveMox = a, true

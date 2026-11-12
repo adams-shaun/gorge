@@ -544,3 +544,51 @@ func castActivatePlayedPolicy(seed uint64, played map[string]int) Policy {
 		return a
 	})
 }
+
+// optionFaceName returns the printed name of the gorge option a canonical
+// action selects, or "" when it names no object.
+func optionFaceName(c *PickCtx, a Canon) string {
+	if c.G == nil {
+		return ""
+	}
+	o, ok := c.G.GorgeOption(a)
+	if !ok {
+		return ""
+	}
+	ob := c.G.E.G.Obj(o.Obj)
+	if ob == nil || ob.Face() == nil {
+		return ""
+	}
+	return ob.Face().Name
+}
+
+// castActivatePolicy casts or activates whenever it can (so the games reach the
+// carriers), else random.
+func castActivatePolicy(seed uint64) Policy {
+	rnd := RandomPolicy(seed)
+	var buf []Canon
+	return PolicyFunc(func(c *PickCtx) Canon {
+		buf = buf[:0]
+		for _, a := range c.D.Options {
+			if k := a.Kind(); k == ActCast || k == ActActivate {
+				buf = append(buf, a)
+			}
+		}
+		if len(buf) == 0 {
+			return rnd.Pick(c)
+		}
+		d := *c.D
+		d.Options = buf
+		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
+	})
+}
+
+// onBf lists the names a player's battlefield holds.
+func battlefieldObjects(g *state.Game, pl state.PlayerID) (out []*state.Object) {
+	for _, b := range g.Zone(state.ZBattlefield, pl) {
+		if o := g.Obj(b); o != nil {
+			out = append(out, o)
+		}
+	}
+	return out
+}

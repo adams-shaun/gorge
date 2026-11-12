@@ -65,7 +65,7 @@ func khandrevealPolicy(seed uint64, c *khandrevealCounts) Policy {
 		for _, a := range ctx.D.Options {
 			switch a.Kind() {
 			case ActCast:
-				if kfacedownName(ctx, a) == "Telepathy" {
+				if optionFaceName(ctx, a) == "Telepathy" {
 					c.casts++
 					return a
 				}

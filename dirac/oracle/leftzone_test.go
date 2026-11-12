@@ -173,27 +173,6 @@ func (w *kleftzoneTally) check(ref *GorgeSide, _ Side) *Divergence {
 	return nil
 }
 
-// kleftzonePolicy casts and activates whenever it can (so permanents leave
-// and graveyards are raided), else random.
-func kleftzonePolicy(seed uint64) Policy {
-	rnd := RandomPolicy(seed)
-	var buf []Canon
-	return PolicyFunc(func(c *PickCtx) Canon {
-		buf = buf[:0]
-		for _, a := range c.D.Options {
-			if k := a.Kind(); k == ActCast || k == ActActivate {
-				buf = append(buf, a)
-			}
-		}
-		if len(buf) == 0 {
-			return rnd.Pick(c)
-		}
-		d := *c.D
-		d.Options = buf
-		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
-	})
-}
-
 // runLeftzone plays the constructed matchups. The first return is the
 // tally, then the games, the divergences and the games that stalled on the
 // zone-add ring (StallEntered) or any other kernel capacity.
@@ -239,7 +218,7 @@ func runLeftzone(t *testing.T, seeds int) (w *kleftzoneTally, games, divs, entSt
 			if err != nil {
 				t.Fatal(err)
 			}
-			pol := kleftzonePolicy(seed)
+			pol := castActivatePolicy(seed)
 			if seed%4 == 0 {
 				pol = RandomPolicy(seed)
 			}

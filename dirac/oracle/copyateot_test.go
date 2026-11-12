@@ -88,7 +88,7 @@ func TestCopyAtEndOfTurnLockstep(t *testing.T) {
 				t.Fatal(err)
 			}
 			seen := map[state.ObjID]bool{}
-			pol := mayplaykindPolicy(seed)
+			pol := castActivatePolicy(seed)
 			base := pol
 			pol = PolicyFunc(func(c *PickCtx) Canon {
 				if c.G != nil {

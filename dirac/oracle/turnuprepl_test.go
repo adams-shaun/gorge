@@ -94,7 +94,7 @@ func kturnuprepPolicy(seed uint64, up map[string]int) Policy {
 		)
 		buf = buf[:0]
 		for _, a := range c.D.Options {
-			n := kfacedownName(c, a)
+			n := optionFaceName(c, a)
 			switch {
 			case a.Kind() == ActSpecial && a.Mode()&15 == kfacedownTurnUp:
 				if n == "Bubble Smuggler" {
@@ -126,7 +126,7 @@ func kturnuprepPolicy(seed uint64, up map[string]int) Policy {
 			}
 		}
 		pick := func(a Canon) Canon {
-			n := kfacedownName(c, a)
+			n := optionFaceName(c, a)
 			switch {
 			case a.Kind() == ActCastFace:
 				waiting++

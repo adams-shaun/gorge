@@ -92,7 +92,7 @@ func TestTypesallLockstep(t *testing.T) {
 		// every other seed casts or activates whenever it can (the
 		// anthems, Overseer taps and cycles land early); the rest are
 		// random
-		pol := validaggsPolicy(seed)
+		pol := castActivatePolicy(seed)
 		if seed%2 == 1 {
 			pol = RandomPolicy(seed)
 		}
