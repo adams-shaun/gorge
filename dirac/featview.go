@@ -1366,6 +1366,9 @@ func (s *State) flashbackCostOf(k *prep, o Obj) kop.ManaCost {
 	if cd.Keywords&kop.KwFlashback != 0 || cd.Harmonize || cd.Mayhem || cd.BeamMeUp && !s.fbGranted(k, o) {
 		return cd.AltCost
 	}
+	if cd.Retrace && !s.fbGranted(k, o) && !s.fbLive(k, o) {
+		return cd.Cost // the retrace cast's printed cost (kw_retrace.go; FeatPoolPays mode 2)
+	}
 	return s.fbGrantCost(k, s.objs[o].owner(), o, s.fbGranted(k, o)) // the mana cost, or a live grant's own (kw_fbgrant.go)
 }
 

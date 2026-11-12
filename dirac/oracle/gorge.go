@@ -696,6 +696,17 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(alt)<<4), opt: o.Index})
 				continue
 			}
+			if o.Mode == "retrace" {
+				// CR 702.81a: the kernel's retrace cast (the printed cost
+				// plus the discard-a-land additional cost) canonicalises to
+				// castModeOther, like "harmonize" (kw_retrace.go)
+				if o.AltCostIndex > 15 {
+					note("cast/retrace")
+					continue
+				}
+				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
+				continue
+			}
 			if o.Mode == "mayhem" {
 				// CR 702.187a: the kernel's mode-2 cast of a Mayhem card
 				// canonicalises to castModeOther, like "harmonize"
