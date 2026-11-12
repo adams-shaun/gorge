@@ -55,30 +55,43 @@ func (s *State) ctrlRoleF2(k *prep, f kop.FilterFlags2, ctrl uint8) bool {
 
 // ctrlRoleTgt reports whether a permanent controlled by ctrl passes a
 // Filter.CtrlTgt role: the controller is the controller of target slot
-// slot (index), where a player target is that player and an object target
-// its controller (gorge controlReferentPlayers TargetedOrController,
-// CR 608.2h). The resolving entry reads the target through its last-known
-// controller when it has left; the entry being built has the slots chosen
-// so far. No entry, no such slot or no target is false: gorge leaves the
-// referent unbound.
+// slot (index), where a player target is that player, a stack ability or a
+// spell on the stack its controller, and an object target the controller of
+// its permanent or, once it has left, its owner (gorge
+// controlReferentPlayers TargetedOrController). The resolving entry reads
+// the raw slot: an earlier target this resolution already judged illegal
+// still names its object, so it cannot turn a later link's filter false.
+// The entry being built has the slots chosen so far. No entry, no such slot
+// or no target is false: gorge leaves the referent unbound.
 func (s *State) ctrlRoleTgt(k *prep, slot int, ctrl uint8) bool {
 	e := s.curEntry()
 	if e == nil || slot < 0 || slot >= int(e.nt) {
 		return false
 	}
-	if s.res.active {
-		return s.tgtCtrlSlot(k, slot) == ctrl
-	}
+	// the raw slot, not tgtCode: the illegal mark hides the referent from
+	// the later link's target recheck, which gorge does not do
 	t := e.tgt[slot]
 	switch {
 	case t == NoTarget:
 		return false
-	case isPlayerOrNone(t):
+	case isPlayerTarget(t):
 		return ctrl == CodeSeat(t)
-	case s.objs[t].zone == kop.ZoneBattlefield:
-		return ctrl == s.perms[s.objs[t].slot].ctrl
+	case isStackTarget(t):
+		if s.res.active {
+			return ctrl == s.stackTgtCtrl(slot)
+		}
+		if j := s.stackTgtIdx(t, e.tver[slot]); j >= 0 {
+			return ctrl == s.stack[j].ctrl
+		}
+		return false
+	case !isObjTarget(t):
+		return false // 0xFE, a departed stack target, names no controller
+	case s.objs[t].zone == kop.ZoneStack:
+		if j := s.stackIndexOf(Obj(t)); j >= 0 {
+			return ctrl == s.stack[j].ctrl // a spell is controlled by its caster (CR 108.4)
+		}
 	}
-	return false
+	return ctrl == s.ctrlOfObj(Obj(t))
 }
 
 // defendingSeatF2 is the defending player of an Attacks trigger past two

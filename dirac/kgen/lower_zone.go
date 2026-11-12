@@ -1532,6 +1532,13 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	lc.exwOK = zone == zExile
 	optional := !ps.is("Mandatory", "True")
 	choices := ps.str("Choices")
+	if v := ps.str("ControlledByPlayer"); v != "" && !optional {
+		// the kernel evaluates a mandatory ChooseCard from the resolving
+		// controller too, but no lowered mandatory shape applies the
+		// restriction: applying it only under optional would silently draw
+		// the candidates from every seat, so refuse instead.
+		return refuse("mandatory ChooseCard ControlledByPlayer$ %q", v)
+	}
 	if cbp := ps.str("ControlledByPlayer"); cbp != "" && optional {
 		// gorge controlledByChoicePlayer Chooser: the pick's pool is the
 		// chooser's own objects. The kernel evaluates a ChooseCard's filter
