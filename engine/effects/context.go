@@ -1732,6 +1732,51 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		}
 		return []state.Target{c.DefendingPlayer}, true
 	}
+	// The DOTTED `TriggeredAttackingPlayer <qualifiers>` selector (the
+	// Commander curses' second leg, "each opponent attacking that player does
+	// the same": Curse of Opulence's TokenOwner$/the Draw, UntapAll and
+	// GainLife legs' Defined$
+	// `TriggeredAttackingPlayer.Opponent+controlsCreature.attacking
+	// Player.EnchantedBy`): the living seats the qualifier list admits, read
+	// from the firing attack's DECLARING player -- the base's Opponent clause
+	// excludes that player, exactly as the Opponent base read excludes `you`
+	// in the bridge below, so the first attacker is never its own second
+	// token. The declaring player is bound only by a firing Attacks/
+	// AttackersDeclared trigger (rules triggerReferents); a chain leg
+	// resolving outside one names nobody, the bare referent's absent-role
+	// read. A dotted clause whose head is not a base word
+	// (controlsCreature.<objspec>) is a candidate property, not a base: it
+	// rides the Player.<state-qualifier> grammar below as Player.<clause>,
+	// with `you` re-anchored on the declaring player so every clause of the
+	// list judges the same candidate pool.
+	if base, rest, _ := strings.Cut(spec, "."); base == "TriggeredAttackingPlayer" && rest != "" && !strings.Contains(spec, " & ") {
+		if !c.AttackingPlayer.IsPlayer || int(c.AttackingPlayer.Player) >= len(g.Players) {
+			return nil, true
+		}
+		ap := c.AttackingPlayer.Player
+		var clauses []string
+		for clause := range strings.SplitSeq(rest, "+") {
+			clause = strings.TrimSpace(clause)
+			if clause == "" {
+				continue
+			}
+			if head, _, dotted := strings.Cut(clause, "."); dotted && playerSpecBaseCodes.Code(head) == 0 {
+				clause = "Player." + clause
+			}
+			clauses = append(clauses, clause)
+		}
+		q := strings.Join(clauses, "+")
+		var out []state.Target
+		for _, p := range g.AliveFrom(ap) {
+			if p == ap {
+				continue
+			}
+			if MatchesPlayerSpecWithSVars(h, c, q, p, ap) {
+				out = append(out, state.Target{Player: p, IsPlayer: true})
+			}
+		}
+		return out, true
+	}
 	// Player.<state-qualifier>: a compound spelling this build's fixed cases
 	// do not name (Player.lifeEQ13, Player.controlsCreature.powerGE4_GE1,
 	// Player.withMostTypeCreature, ...) resolves through the trigger-side
