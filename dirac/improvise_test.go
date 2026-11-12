@@ -74,6 +74,8 @@ func TestImproviseExpend(t *testing.T) {
 // artifacts announced the plan pays the credited price ({1}{U}{R} left, the
 // pips from the lands); with none the plan stands at the printed cost, and
 // both casts pay through the planner (improviseRoute), not the manual window.
+// A pin of the shape, not the regression gate: the oracle lockstep
+// (oracle.TestImproviseLockstep) is what fails without the routing.
 func TestImproviseLandPip(t *testing.T) {
 	deck := []cardset.Entry{
 		{Name: "Maverick Thopterist", Count: 1},
