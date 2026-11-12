@@ -1785,6 +1785,9 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 	}
 	if k.gen != nil {
 		s.castTrigGraves(k, e)
+		s.eachCommandTrigger(k, kop.TrigSpellCast, func(l trigListener, a *kop.Ability) {
+			s.castTrigGen(k, l, a, e)
+		})
 		s.fireEmblems(k, kop.TrigSpellCast, e.ctrl, e.obj, func(a *kop.Ability) bool {
 			return s.matchCardGen(k, a.Trig.Filter, e.card, e.ctrl, e.ctrl, e.obj)
 		})

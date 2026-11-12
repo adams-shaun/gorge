@@ -78,7 +78,22 @@ func (s *State) scriptCtr(k *prep, p uint8) slotMask {
 //go:noinline
 func (s *State) availCtr(k *prep, p uint8, av *avail) {
 	for b := s.scriptCtr(k, p); b.any(); b = b.rest() {
-		addCtrUnits(av, k.ctrAbOf(s.cardAt(b.first())))
+		c := s.cardAt(b.first())
+		a := k.ctrAbOf(c)
+		if a.Cost.Flags&kop.CostTap != 0 && k.ctrSecond(c) {
+			// A later {T} ability beside a plain {T} first (Weather Maker's
+			// {C}{C} beside its any-colour tap): both are one tap, and the
+			// plain walk already counts the first's unit, which pays any
+			// generic unit of the second's. Only the units beyond it are new
+			// (CR 605.3b: one activation per untapped source). A {C} pip
+			// the plain unit cannot pay is not priced by this.
+			cols, n := tapXUnit(a)
+			if cols == 1<<kop.C {
+				av.addUnits(cols, n-1)
+				continue
+			}
+		}
+		addCtrUnits(av, a)
 	}
 }
 

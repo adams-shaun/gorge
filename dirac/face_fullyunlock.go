@@ -76,9 +76,13 @@ func (s *State) fireFullyUnlock(k *prep, roomSl Slot, roomObj Obj, unlocker uint
 // battlefield ETB watcher is out, which is exactly the state fireGraveETB
 // exists to cover. An Effect-created enters trigger (Thunder of Unity's
 // chapters) listens from the command zone: with an emblem out and some
-// emblem on the table listening for ETB, no battlefield watcher is needed.
+// emblem on the table listening for ETB, no battlefield watcher is needed. A
+// commander in a command zone has no battlefield subscription either, so the
+// printed command-zone trigger keeps the event alive too (Inalla's eminence).
 func (s *State) anyETB(k *prep) bool {
-	return s.subs[kop.TrigETB].any() || k != nil && k.gen != nil && (k.gen.graveETB || k.gen.embObjEv&(1<<kop.TrigETB) != 0 && s.anyEmb())
+	return s.subs[kop.TrigETB].any() ||
+		k != nil && k.gen != nil && (k.gen.graveETB || k.gen.embObjEv&(1<<kop.TrigETB) != 0 && s.anyEmb()) ||
+		k != nil && s.anyCommandTrigger(k, kop.TrigETB)
 }
 
 // fireGraveETB queues the graveyard cards' ETB triggers (TriggerZones$
