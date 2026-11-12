@@ -221,6 +221,7 @@ type genPrep struct {
 	anyImpending   bool           // some card has impending (CardDef.Impending; kw_impending.go)
 	anyPrepare     bool           // some card is a preparation front (FacePrepare; face_prepare.go)
 	anyPlot        bool           // some card has plot (CardDef.HasPlot; kw_plot.go)
+	anyForetell    bool           // some card has foretell (CardDef.HasForetell; kw_foretell.go)
 	anyParadigm    bool           // some card has Paradigm (CardDef.Paradigm; kw_paradigm.go)
 	anyNetLock     bool           // some program is ExtLockActs: canActivate and the untap/leave sites read the lock list (act_lockpermanent.go)
 	anyUnearth     bool           // some program has OpUnearth: leaves check the unearth exile promise (cast_altfree.go)
@@ -795,6 +796,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.HasPlot {
 			g.anyPlot = true
+		}
+		if c.HasForetell {
+			g.anyForetell = true
 		}
 		if c.RemPersist {
 			g.anyRemPersist = true

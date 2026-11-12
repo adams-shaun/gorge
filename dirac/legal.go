@@ -68,6 +68,12 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			}
 			s.offerPlotHand(k, d, p, o, c, &av) // kw_plot.go
 		}
+		if k.gen != nil && k.gen.anyForetell && k.t.Cards[c].HasForetell && p == s.active && (sorc || !DebugForetellSorcery) {
+			// the foretell special action needs only priority on its
+			// controller's own turn, never sorcery timing (CR 702.143a;
+			// gorge offers it before the front-face timing gate)
+			s.offerForetellHand(k, d, p, o, c) // kw_foretell.go
+		}
 		if k.gen != nil && k.gen.anySneak && k.t.Cards[c].HasSneak && p == s.active && s.sneakStep() {
 			// the sneak window is instant speed in the caster's own
 			// declare-blockers step (CR 702.190a): before the non-instant
@@ -301,6 +307,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	}
 	if k.gen != nil && k.gen.anyPlot {
 		s.offerPlotCasts(k, d, p, sorc) // kw_plot.go
+	}
+	if k.gen != nil && k.gen.anyForetell {
+		s.offerForetellCasts(k, d, p, sorc) // kw_foretell.go
 	}
 	if k.gen != nil && k.gen.anyParadigm {
 		s.offerParadigm(k, d, p, sorc, &av) // kw_paradigm.go
@@ -1710,6 +1719,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if a.Target() == castDashTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyDash {
 			s.g.impCast = true // the dash cost (kw_dash.go): beginCast marks the entry dashed
 		}
+		if a.Target() == castForetellTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyForetell {
+			s.g.impCast = true // the foretell cost (kw_foretell.go): beginCast marks the entry foretold
+		}
 		if a.Target() == castAltTgt && a.Mode() == 0 && k.gen != nil && k.gen.altFree != nil {
 			s.g.altCast = true // the card's own mana alternative cost (cast_altfree.go)
 		}
@@ -1738,6 +1750,10 @@ func (s *State) applyPriority(k *prep, a Action) {
 	case AkTurnFaceUp:
 		s.turnFaceUp(k, Obj(a.Source()), p, a.Mode()) // CR 708.6; mode = procedure
 	case AkPlot:
+		if a.Mode() == plotForetell {
+			s.foretellAction(k, Obj(a.Source()), p) // CR 702.143a; kw_foretell.go
+			break
+		}
 		s.plotAction(k, Obj(a.Source()), p) // CR 702.170a; kw_plot.go
 	case AkUnlock:
 		s.unlock(k, Obj(a.Source()), p, a.Mode()) // CR 709.5e; face_rooms.go

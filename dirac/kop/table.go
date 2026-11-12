@@ -458,6 +458,14 @@ type CardDef struct {
 	HasDash bool
 	// DashCost is the printed dash cost (HasDash).
 	DashCost ManaCost
+	// HasForetell is printed foretell (CR 702.143a; no KwMask bit is free):
+	// during its owner's turn the hand offers the {2} special action that
+	// exiles the card face down, and on a later turn the exile offers the
+	// cast for ForetellCost (dirac/kw_foretell.go).
+	HasForetell bool
+	// ForetellCost is the printed foretell cost (HasForetell): what the
+	// later cast pays, never the {2} action's price.
+	ForetellCost ManaCost
 	// HasBestow is printed bestow (CR 702.103; no KwMask bit is free): the
 	// hand offers the bestowed cast (AkBestow) at BestowCost; the spell is
 	// an Aura with enchant creature (BestowTgt) and the permanent an Aura,

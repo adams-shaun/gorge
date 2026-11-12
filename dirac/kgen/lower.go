@@ -439,6 +439,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseMayFlashCombos()
 	lc.refuseEvokeCombos()
 	lc.refuseDashCombos()          // lower_dash.go
+	lc.refuseForetellCombos()      // lower_foretell.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
 	lc.lowerImpending()
 }
@@ -1485,6 +1486,21 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Plot = &mc
+		case head == "Foretell":
+			// CR 702.143a: the {2} special action is fixed; the keyword's
+			// cost prices the later cast from exile (dirac/kw_foretell.go).
+			// X, hybrid, a ":" or "<" rider and any non-mana part have no
+			// fixed price to plan.
+			mc, err := parseManaCost(param)
+			if err != nil || param == "" || strings.ContainsAny(param, ":<") || mc.X || mc.None || len(mc.Hybrid) != 0 {
+				lc.refuseNode(node, "foretell cost %q", param)
+				continue
+			}
+			if lc.out.Foretell != nil {
+				lc.refuseNode(node, "two Foretell keywords")
+				continue
+			}
+			lc.out.Foretell = &mc
 		case head == "Paradigm":
 			// SOS Paradigm (gorge rules/paradigm.go): a resolved
 			// spell is exiled, then cast free from exile in each of its

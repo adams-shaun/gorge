@@ -653,6 +653,15 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Foretell != nil {
+		// CR 702.143a: no KwMask bit is free, so the foretell marker is its
+		// own field; the cost is the later exile cast's price, the {2}
+		// special action being fixed (dirac/kw_foretell.go)
+		d.HasForetell = true
+		if d.ForetellCost, err = manaCostOf(*c.Foretell); err != nil {
+			return err
+		}
+	}
 	if c.Sneak != nil {
 		// CR 702.190a: no KwMask bit is free, so the sneak marker is its own
 		// field; the cost is the declare-blockers alternative cost

@@ -286,6 +286,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Plot != nil {
 		fmt.Fprintf(w, " plot=%s", c.Plot)
 	}
+	if c.Foretell != nil {
+		fmt.Fprintf(w, " foretell=%s", c.Foretell)
+	}
 	if c.Paradigm {
 		fmt.Fprintf(w, " paradigm")
 	}

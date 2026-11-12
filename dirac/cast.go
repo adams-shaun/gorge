@@ -73,6 +73,10 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		if mode&castWarpRecast != 0 {
 			e.mode |= modeWarpRecast
 		}
+		if s.g.impCast && ob.zone == kop.ZoneExile {
+			e.trigPl = trigPlForetold // the foretold cast from exile (kw_foretell.go)
+			s.g.impCast = false
+		}
 		if s.g.impCast {
 			if k.t.Cards[c].HasEvoke {
 				e.spc |= spcEvoked // the evoked cast (kw_evoke.go)

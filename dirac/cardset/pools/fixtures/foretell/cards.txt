@@ -1,0 +1,36 @@
+# The foretell pool: the Foretell carriers kgen lowers (CR 702.143a: the {2}
+# special action from the hand on its controller's turn, the later cast from
+# exile for the foretell cost), spanning instants (Behold the Multiverse,
+# Demon Bolt, Saw It Coming, Iron Verdict, Tergrid's Shadow, Warhorn Blast,
+# Dual Strike, Surge of Brilliance), sorceries (Ravenform, Alrund's Epiphany,
+# Return Upon the Tide, Spectral Deluge, Impending Flux) and creatures (Battle
+# Mammoth, Frost Fair Lure Fish), beside vanilla bodies and burn to trade with,
+# and the rituals whose floating mana pays the actions and the later casts.
+# Decks play it in dirac/oracle/foretell_test.go.
+Behold the Multiverse
+Ravenform
+Battle Mammoth
+Alrund's Epiphany
+Demon Bolt
+Dual Strike
+Frost Fair Lure Fish
+Impending Flux
+Iron Verdict
+Return Upon the Tide
+Saw It Coming
+Spectral Deluge
+Surge of Brilliance
+Tergrid's Shadow
+Warhorn Blast
+Lightning Bolt
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Island
+Mountain
+Plains
+Swamp
+Forest
+Pyretic Ritual
+Seething Song
+Dark Ritual
