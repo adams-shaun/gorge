@@ -643,18 +643,15 @@ func (p *mokProbe) pick(c *PickCtx) Canon {
 	case len(lands) > 0 && p.r.IntN(2) != 0:
 		a = lands[p.r.IntN(len(lands))]
 	}
-	switch {
-	case a.Kind() == ActCast:
-		if o, ok := c.G.GorgeOption(a); ok && o.Mode == "escape" {
-			if ob := eng.G.Obj(o.Obj); ob != nil && ob.Face() != nil && ob.Face().Name == "Seal of Fire" {
-				p.st.sealCasts++
-			}
-		}
-	}
 	if a.Kind() == ActCast {
 		if o, ok := c.G.GorgeOption(a); ok {
-			if ob := eng.G.Obj(o.Obj); ob != nil && ob.Face() != nil && ob.Face().Name == "The Master of Keys" {
-				p.st.mokCasts++
+			if ob := eng.G.Obj(o.Obj); ob != nil && ob.Face() != nil {
+				switch {
+				case o.Mode == "escape" && ob.Face().Name == "Seal of Fire":
+					p.st.sealCasts++
+				case ob.Face().Name == "The Master of Keys":
+					p.st.mokCasts++
+				}
 			}
 		}
 	}
