@@ -1,7 +1,6 @@
 package rules
 
-// The Count$IfCastInOwnMainPhase / Count$InOwnMainPhase branch heads (task
-// ifcastmain1): "if you cast this spell during your main phase" gate. The
+// The Count$IfCastInOwnMainPhase / Count$InOwnMainPhase branch heads: "if you cast this spell during your main phase" gate. The
 // reading is LIVE (Forge's game.getPhaseHandler(): current step is a main
 // phase and the active player is the resolving controller), plus -- for the
 // IfCast spelling -- the source must have been cast. This file pins the

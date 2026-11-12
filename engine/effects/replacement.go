@@ -41,8 +41,7 @@ func effReplaceEffect(h Host, c *Ctx, sa *cards.SA) {
 }
 
 // rewriteReplaceCountOperand resolves a ReplaceCount$ operand the host's
-// arithmetic cannot parse, so the bound value survives the handover (task
-// wildgrowth1 stretch): replCountOp prices only numeric operands
+// arithmetic cannot parse, so the bound value survives the handover: replCountOp prices only numeric operands
 // (Plus.3/Minus.4/Times.2) and the word ops, so Taii Wakeen's
 // ReplaceCount$DamageAmount/Plus.Y -- the Plus operand behind the SVar
 // Y:Count$ChosenNumber, the Effect's frozen SetChosenNumber$ binding -- used

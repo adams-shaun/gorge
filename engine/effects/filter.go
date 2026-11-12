@@ -618,8 +618,7 @@ var predicates = map[string]predFn{
 	"notExertedThisTurn": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return !o.ExertedThisTurn
 	},
-	// notTributed is CR 702.104's "if tribute wasn't paid" gate (task
-	// kw-tribute-expansion): the permanent has NOT been paid its tribute.
+	// notTributed is CR 702.104's "if tribute wasn't paid" gate: the permanent has NOT been paid its tribute.
 	// The event-backed read is events.Apply's AlterAttribute "Tributed" fold
 	// (state.Object.Tributed), emitted by putCounterTribute's acceptance. The
 	// K:Tribute expansion's minted ETB trigger is the only carrier; the

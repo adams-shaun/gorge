@@ -618,7 +618,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 				// offered (CR 601.2c, effPlay filters through
 				// castTargetsHost): it stays exiled and the trigger finishes
 				if ob.zone == kop.Zone(in.C) && !k.cards[ob.card].land &&
-					s.spellTargetsFeasible(k, ob.card, e.ctrl) && !(k.gen.anyCantCast && s.castForbidden(k, e.ctrl, ob.card, o)) {
+					s.spellTargetsFeasible(k, ob.card, e.ctrl) && !(k.gen.anyCantCast && s.castForbiddenFree(k, e.ctrl, ob.card, o)) {
 					if s.g.nfree >= uint8(len(s.g.free)) {
 						s.capFull(StallFree)
 						break
@@ -833,7 +833,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpClearChosen:
 		s.g.nchosen = 0
 	case kop.OpDoubleCounters:
-		if sl := s.objRef(k, in.Obj); sl != NoSlot {
+		if in.Obj == kop.RefRemembered && s.g.nrem > 1 {
+			s.doubleCountersRemembered(k, in)
+		} else if sl := s.objRef(k, in.Obj); sl != NoSlot {
 			s.doubleCountersAt(k, sl, in.C)
 		}
 	case kop.OpRemoveCounterRem:
@@ -2138,6 +2140,7 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 			t := s.newToken(c, e.ctrl)
 			s.objs[t].of |= ofCopy
 			s.copyTokenEnter(k, in, t, NoSlot, nil)
+			s.res.lastTok = t // the copy a following RefLastCreated op reads (Encore's attack duty)
 		}
 		return false
 	}
@@ -2176,6 +2179,7 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 		t := s.newToken(c, e.ctrl)
 		s.objs[t].of |= ofCopy
 		s.copyTokenEnter(k, in, t, host, &eb)
+		s.res.lastTok = t // the copy a following RefLastCreated op reads (Encore's attack duty)
 	}
 	return false
 }

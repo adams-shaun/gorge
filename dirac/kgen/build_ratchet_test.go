@@ -230,13 +230,9 @@ import (
 // Vine Dryad; the six new ones are Force of Negation, Force of Vigor, Force of
 // Despair, Monstrous Hound, Mogg Toady and Goblin Goon; merged ALL build-level
 // 22392 -> 22584).
-// +11 (the merge with land: the CantAttackUnless generic mana attack tax lowers,
-// kop.StatAttackTax: Archon of Absolution, Baird, Steward of Argive, Brainwash,
-// Collective Restraint, Ghostly Prison, Koskun Falls, Onakke Oathkeeper,
-// Phyrexian Marauder, Propaganda, Sphere of Safety, Windborn Muse; merged ALL
-// build-level 22641 -> 22652).
+// +31 (K:Partner with: the carriers listed at ratchet_test.go's ALL pin; ALL build-level 22381 -> 22412; merged ALL build-level 22706 -> 22737).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22652, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22737, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

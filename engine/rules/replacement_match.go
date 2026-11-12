@@ -534,9 +534,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 	case cards.ReplMill, cards.ReplScry:
 		return millScryProposalMatches(r, ev, func(v string) bool { return effects.MatchesPlayerSpec(e.G, v, ev.Player, you) }, func() bool { return e.replacementConditionHoldsWith(r, source, you, svars) })
 	case cards.ReplRollDice:
-		// The roll-action replacement (R:Event$ RollDice, task rolldice-repl
-		// -- Wyll, Blade of Frontiers; Barbarian Class; Pixie Guide; the
-		// SwapRoll carrier Vedalken Squirrel-Whacker). The event is the
+		// The roll-action replacement (R:Event$ RollDice, Blade of Frontiers, Barbarian Class, Pixie Guide, the SwapRoll carrier Vedalken Squirrel-Whacker). The event is the
 		// synthetic roll PROPOSAL effects' effRollDice builds before any die
 		// is rolled (CR 614.4's before-the-action window); the per-die and
 		// batch Notes are the roll's only log witnesses and are emitted after
@@ -848,7 +846,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		return e.replacementConditionHoldsWith(r, source, you, svars)
 	case cards.ReplGameLoss, cards.ReplGameWin:
 		// The "you can't lose the game" / "your opponents can't win the
-		// game" class (CR 104.3 / 704.5a-c, task fdn-repl-cant-lose). Only
+		// game" class (CR 104.3 / 704.5a-c). Only
 		// the SYNTHETIC proposal reaches here (Engine.gameLossPrevented /
 		// gameWinPrevented pose it with the affected player and, for a loss,
 		// the Forge lose reason in ev.Text): the event log has no GameLoss or

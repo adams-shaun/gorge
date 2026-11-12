@@ -253,7 +253,7 @@ func (e *Engine) finishUntapStep(next int) bool {
 		// re-consulting the moved board (no marker rides the log, so the
 		// event stream is byte-identical). A blocked candidate emits nothing.
 		//
-		// The same scan serves CR 702.26a's keyword half (task phasing-kw):
+		// The same scan serves CR 702.26a's keyword half:
 		// a permanent with the Phasing keyword "phases in or out before [the
 		// active player] untaps during each of [his or her] untap steps", so
 		// a phased-in carrier phases OUT here too. Each permanent is read
@@ -960,8 +960,8 @@ func (e *Engine) drainTriggers() (stopped, performed bool) {
 }
 
 // grantPriority is the tail of a priority round: hand priority to whoever is
-// due it and ask them what they want to do. Split out of priorityRound by Task
-// 27 so that a trigger decision asked partway through the round has an exact
+// due it and ask them what they want to do. Split out of priorityRound so
+// that a trigger decision asked partway through the round has an exact
 // continuation to resume into -- the part of the round that had not run yet,
 // and nothing that had already run.
 func (e *Engine) grantPriority() {

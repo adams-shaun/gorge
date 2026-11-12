@@ -191,7 +191,7 @@ func stampPushedAbilitySources(g *state.Game, n int) {
 
 func applyKind(g *state.Game, e *Event) {
 	switch e.Kind {
-	// RollDice is the proposal-only roll-action Kind (task rolldice-repl): it
+	// RollDice is the proposal-only roll-action Kind: it
 	// is held out to replacement matching, never emitted, so it folds nothing
 	// -- the marker shape PlanarRoll keeps.
 	case ModeChosen:
@@ -351,7 +351,7 @@ func applyKind(g *state.Game, e *Event) {
 			o.SummonSick = false
 		}
 	case ChaosEnsues:
-		// The chaos-ensues marker (CR 901.9, task planar-verbs) is a pure
+		// The chaos-ensues marker (CR 901.9) is a pure
 		// marker, exactly like PlanarRoll: no state folds. The current plane's
 		// chaos ability is an ordinary triggered ability (Mode$ ChaosEnsues)
 		// that rules' trigger walk queues when this marker is checked, so the

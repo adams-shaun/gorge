@@ -51,7 +51,7 @@ type fakeHost struct {
 	// true branch (the real log-scan read is pinned in rules).
 	castFromHand bool
 	// evidence is the CostMovesInWindow(CostMoveEvidence) answer the double
-	// reports (task condition-collected): the cards the fake activation
+	// reports: the cards the fake activation
 	// collected as evidence. The real engine's log-scan read is pinned in
 	// rules (Analyze the Pollen's corpus test).
 	evidence []state.ObjID
@@ -517,14 +517,13 @@ func (h *fakeHost) CostMovesInWindow(_ state.ObjID, kind events.CostMoveKind) []
 // provenance is pinned end to end on the real engine in rules.
 func (h *fakeHost) WasCastFromHand(_ state.ObjID) bool { return h.castFromHand }
 
-// WasCastFromExile (task wascastfrom): the fake has no cast log, so the
+// WasCastFromExile: the fake has no cast log, so the
 // Count$wasCastFromExile branch head's fakeHost evals take the ifFalse
 // branch; the provenance is pinned end to end on the real engine in rules
 // (Delayed Blast Fireball's foretell-cast corpus test).
 func (h *fakeHost) WasCastFromExile(_ state.ObjID) bool { return false }
 
-// WasCast is the Count$IfCastInOwnMainPhase third conjunct's read (task
-// ifcastmain1): the fake reports the flag, so the eval-level head tests pin
+// WasCast is the Count$IfCastInOwnMainPhase third conjunct's read: the fake reports the flag, so the eval-level head tests pin
 // both branches by flipping it (the real engine read is pinned in rules).
 func (h *fakeHost) WasCast(_ state.ObjID) bool { return h.wasCast }
 
