@@ -828,6 +828,19 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Retrace {
+		// CR 702.81a: a graveyard cast paying the printed cost plus the
+		// additional discard-a-land cost (dirac/kw_retrace.go); lower.go's
+		// lowerRetrace has refused every collision, so the CardDef carries
+		// only Retrace and RetraceCost.
+		if c.RetraceCost == nil {
+			return fmt.Errorf("Retrace without its discard cost")
+		}
+		d.Retrace = true
+		if d.RetraceCost, err = cb.cost(*c.RetraceCost); err != nil {
+			return err
+		}
+	}
 	if c.Improvise {
 		// CR 702.126a: printed improvise; the cast taps artifacts for its
 		// generic cost (dirac/kw_convoke.go)
@@ -2081,7 +2094,8 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vActivations:        kop.ExActivations,
 	vLifeLostLastTurn:   kop.ExLifeLostLastTurn,
 	vDmgAmount:          kop.ExDmgAmountReceived,
-	vTimesKicked:        kop.ExKicked, // Expr.N 1: the multikicker count, not the kicked bit
+	vTimesKicked:        kop.ExKicked,  // Expr.N 1: the multikicker count, not the kicked bit
+	vMonarch:            kop.ExMonarch, // lower_monarch.go
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {

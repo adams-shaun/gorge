@@ -328,6 +328,12 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Harmonize != nil {
 		fmt.Fprintf(w, " harmonize=%s", c.Harmonize)
 	}
+	if c.Retrace {
+		fmt.Fprintf(w, " retrace")
+		if c.RetraceCost != nil {
+			fmt.Fprintf(w, " retracecost=%s", costString(*c.RetraceCost))
+		}
+	}
 	if c.BeamMeUp != nil {
 		fmt.Fprintf(w, " beammeup=%s", c.BeamMeUp)
 	}

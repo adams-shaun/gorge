@@ -314,7 +314,8 @@ func (s *State) FeatActivations(o Obj) int { return int(s.objs[o].activations())
 func (s *State) FeatSickOff(o Obj) bool { return s.objs[o].of&ofSickLeft != 0 }
 
 // FeatPoolPays reports whether p's floating pool alone pays the cast of o
-// in kernel cast mode (bit 0 kicked, bit 1 flashback) -- gorge offers a
+// in kernel cast mode (bit 0 kicked, bit 1 flashback, bit 3 the retrace
+// cast, with bit 1) -- gorge offers a
 // cast as a legacy option exactly then; otherwise only the planner pays it.
 func (s *State) FeatPoolPays(p uint8, o Obj, mode uint8) bool {
 	return s.FeatPoolPaysPlus(p, o, mode, nil)
@@ -331,7 +332,9 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 		s.restrAvail(k, p&1, c, s.restrOriginOfObj(o), &a) // a spell its restriction allows sees it (gorge AvailableFor)
 	}
 	cost := k.cards[c].cost
-	if mode&2 != 0 {
+	if mode&8 != 0 {
+		cost = k.t.Cards[c].Cost // the retrace cast's printed cost, whatever flashback the card also holds (kw_retrace.go)
+	} else if mode&2 != 0 {
 		cost = s.flashbackCostOf(k, o)
 	} else if mode&1 != 0 {
 		cost = addCost(cost, kickerPayment(&k.t.Cards[c]))
@@ -1368,6 +1371,9 @@ func (s *State) flashbackCostOf(k *prep, o Obj) kop.ManaCost {
 	cd := &k.t.Cards[s.objs[o].card]
 	if cd.Keywords&kop.KwFlashback != 0 || cd.Harmonize || cd.Mayhem || cd.BeamMeUp && !s.fbGranted(k, o) {
 		return cd.AltCost
+	}
+	if cd.Retrace && !s.fbGranted(k, o) && !s.fbLive(k, o) {
+		return cd.Cost // the retrace cast's printed cost (kw_retrace.go; FeatPoolPays mode 2)
 	}
 	return s.fbGrantCost(k, s.objs[o].owner(), o, s.fbGranted(k, o)) // the mana cost, or a live grant's own (kw_fbgrant.go)
 }
