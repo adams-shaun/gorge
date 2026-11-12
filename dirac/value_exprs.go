@@ -237,6 +237,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.selfPrepared(x, ctx) // face_prepare.go
 	case kop.ExCommittedCrime:
 		return s.committedCrime(k, x, ctx)
+	case kop.ExMonarch:
+		return s.exMonarch(k, x, ctx) // act_monarch.go
 	case kop.ExThisTurnActGrave:
 		return s.thisTurnActGrave(ctx)
 	case kop.ExThisTurnActExhaust:

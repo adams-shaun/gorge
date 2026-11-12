@@ -187,6 +187,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtSkipPhase:
 		s.skipPhaseGrant(k, in) // act_skipphase.go
 		return true, true
+	case kop.ExtBecomeMonarch:
+		s.becomeMonarchOp(k, in) // act_monarch.go
+		return true, true
 	case kop.ExtToGraveyard:
 		s.moveRef(k, in.Obj, kop.ZoneGraveyard, false) // zone_toplibrary.go
 		return true, true

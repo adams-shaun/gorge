@@ -220,7 +220,7 @@ import (
 // +1 (Count$TotalDamageReceivedThisTurn lowered: Tangled Colony; merged with land ALL build-level 22180 -> 22181).
 // +1 (ConditionActivationLimit$ lowers to kop.ExActivations: Dragon Whelp; merged with land ALL build-level 22184 -> 22185).
 // +5 (the Aura-on-land TapsForMana extra with a literal body: Wild Growth, Overgrowth, Wolfwillow Haven, Gauntlet of Might, Vernal Bloom; ALL build-level 22345 -> 22350).
-// +24 (mid-resolution ChooseNumber lowers: ChooseNumberMid, with Count$ChosenNumber and the dynamic PayEnergy<X> unless cost; an activated {X} energy cost stays refused rather than losing its amount; merged ALL build-level 22884 -> 22908).
+// +24 (mid-resolution ChooseNumber lowers: ChooseNumberMid, with Count$ChosenNumber and the dynamic PayEnergy<X> unless cost; an activated {X} energy cost stays refused rather than losing its amount; merged ALL build-level 22929 -> 22953).
 // +11 (static Condition$ NotPlayerTurn on the Force cycle's AlternativeCost
 // and the hasFewer<Type>sInPlayThanYou combat statics lower, and the bare
 // ExileFromHand<1/Spec> alternative beside them: Cave-In, Pyrokinesis,
@@ -232,8 +232,11 @@ import (
 // Despair, Monstrous Hound, Mogg Toady and Goblin Goon; merged ALL build-level
 // 22392 -> 22584).
 // +31 (K:Partner with: the carriers listed at ratchet_test.go's ALL pin; ALL build-level 22381 -> 22412; merged ALL build-level 22706 -> 22737).
+// +29 (api BecomeMonarch, Mode$ BecomeMonarch, Count$Monarch, CheckDefinedPlayer$ You|Opponent.isMonarch and a monarch-gated Effect lower: Aragorn, King of Gondor, Chief Magistrate of Mercadia, Court of Ardenvale, Court of Bounty, Court of Cunning, Court of Embereth, Court of Garenbrig, Court of Grace, Court of Ire, Crimson Fleet Commodore, Custodi Lich, Faramir, Steward of Gondor, Feast of Succession, Garrulous Sycophant, Grave Venerations, Keeper of Keys, Knights of the Black Rose, Marchesa's Decree, Nakia, Wakandan Operative, Oath of Eorl, Palace Sentinels, Queen Marchesa, Regal Sliver, Skyline Despot, Staunch Throneguard, Thorn of the Black Rose, Throne Warden, Throne of the High City, Éomer, King of Rohan; ALL build-level 22381 -> 22410).
+// +30 (the merge with land: the monarch lowering above against land's corpus; merged ALL build-level 22868 -> 22898).
+// +16 (the merge with land: land's later work after f486bfb466, the zone-scoped PlayerCount extreme and Pump/UntilYourNextTurn lowering at 0d7bfabead, DSK 250 -> 251; merged ALL build-level 22898 -> 22914 measured).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22908, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22953, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

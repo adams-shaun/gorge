@@ -2524,6 +2524,9 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if !ok {
 		return refuse("emblem trigger %q", tr)
 	}
+	if t.Mode == "BecomeMonarch" {
+		return monarchEffectTrigger() // lower_monarch.go
+	}
 	if (eot || next) && t.Mode != "SpellCast" && t.Mode != "ChangesZone" && t.Mode != "Sacrificed" && t.Mode != "DamageDone" && !(t.Mode == "DamageDealtOnce" && lc.pairCap != nil) &&
 		t.Mode != "AttackersDeclared" && t.Mode != "AttackersDeclaredOneTarget" && t.Mode != "Attacks" {
 		// an until-end-of-turn Effect's trigger (gorge: the effect leaves
