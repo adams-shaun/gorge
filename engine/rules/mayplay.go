@@ -356,22 +356,28 @@ func (e *Engine) mayPlayRaiseCost(p state.PlayerID, id state.ObjID) (raise Cost,
 	}
 	// Battlefield statics first (activeStatics' deterministic order), each
 	// read through the SAME mayPlayStatic gate chain the grant walk runs. A
-	// static mayPlayStatic withheld (unpriceable raise, failed gate) reports
-	// has=false or priced=false and is handled by take; the direct
-	// field-selector arguments keep the census's static-param attribution
-	// (a bare local map variable would be unclassifiable).
+	// static that does not GRANT this card (a failed gate, an unpriceable
+	// raise) contributes nothing, exactly as mayPlayPermissions skips it;
+	// the direct field-selector arguments keep the census's static-param
+	// attribution (a bare local map variable would be unclassifiable).
 	for _, sv := range e.activeStatics("Continuous") {
 		if !mayPlayStaticBenefits(p, &sv) {
 			continue
 		}
-		_, _, _, r, has, priced := e.mayPlayStatic(sv.Params, id, mayPlayStaticYou(p, &sv), sv.Source)
+		applies, grants, _, r, has, priced := e.mayPlayStatic(sv.Params, id, mayPlayStaticYou(p, &sv), sv.Source)
+		if !applies || !grants {
+			continue
+		}
 		take(r, has, priced)
 	}
 	for _, st := range mayPlayOwnStatics(o, p) {
 		if st.Mode != "Continuous" {
 			continue
 		}
-		_, _, _, r, has, priced := e.mayPlayStatic(st.Params, id, o.Controller, id)
+		applies, grants, _, r, has, priced := e.mayPlayStatic(st.Params, id, o.Controller, id)
+		if !applies || !grants {
+			continue
+		}
 		take(r, has, priced)
 	}
 	return raise, hasRaise, ok
