@@ -86,22 +86,116 @@ func chooseNumberMidCases() []effectLongCase {
 			surface: "full",
 			reached: chosenNumberOn("By Invitation Only"),
 		},
+		// The "pay any amount of {E}" family: Max$ Count$YourCountersEnergy,
+		// read after the card's own PutCounter. A target creature is provided
+		// for the burn shapes, though the number is chosen before the target.
+		{
+			name:   "choose_number_mid_a_galvanic_discharge",
+			prefer: []string{"A-Galvanic Discharge", "Grizzly Bears"},
+			decks: [2][]string{
+				append(deckOf(4, "A-Galvanic Discharge"), deckOf(36, "Mountain")...),
+				append(deckOf(4, "Grizzly Bears"), deckOf(36, "Forest")...),
+			},
+			surface: "full",
+			reached: chosenNumberOn("A-Galvanic Discharge"),
+		},
+		{
+			name:   "choose_number_mid_aether_spike",
+			prefer: []string{"Aether Spike", "Lightning Bolt"},
+			decks: [2][]string{
+				append(deckOf(4, "Aether Spike"), deckOf(36, "Island")...),
+				append(deckOf(8, "Lightning Bolt"), deckOf(32, "Mountain")...),
+			},
+			surface: "full",
+			reached: chosenNumberOn("Aether Spike"),
+		},
+		{
+			name:   "choose_number_mid_die_young",
+			prefer: []string{"Die Young", "Grizzly Bears"},
+			decks: [2][]string{
+				append(deckOf(4, "Die Young"), deckOf(36, "Swamp")...),
+				append(deckOf(4, "Grizzly Bears"), deckOf(36, "Forest")...),
+			},
+			surface: "full",
+			reached: chosenNumberOn("Die Young"),
+		},
+		{
+			name:   "choose_number_mid_galvanic_discharge",
+			prefer: []string{"Galvanic Discharge", "Grizzly Bears"},
+			decks: [2][]string{
+				append(deckOf(4, "Galvanic Discharge"), deckOf(36, "Mountain")...),
+				append(deckOf(4, "Grizzly Bears"), deckOf(36, "Forest")...),
+			},
+			surface: "full",
+			reached: chosenNumberOn("Galvanic Discharge"),
+		},
+		{
+			name:   "choose_number_mid_harnessed_lightning",
+			prefer: []string{"Harnessed Lightning", "Grizzly Bears"},
+			decks: [2][]string{
+				append(deckOf(4, "Harnessed Lightning"), deckOf(36, "Mountain")...),
+				append(deckOf(4, "Grizzly Bears"), deckOf(36, "Forest")...),
+			},
+			surface: "full",
+			reached: chosenNumberOn("Harnessed Lightning"),
+		},
+		{
+			// Max$ Count$ValidHand: a dynamic literal-less bound.
+			name:   "choose_number_mid_rites_of_initiation",
+			prefer: []string{"Rites of Initiation"},
+			decks: [2][]string{
+				append(deckOf(4, "Rites of Initiation"), deckOf(36, "Mountain")...),
+				deckOf(40, "Mountain"),
+			},
+			surface: "full",
+			reached: chosenNumberOn("Rites of Initiation"),
+		},
+		{
+			// The same chosen byte across the as-enters choice and the upkeep
+			// re-choice: at least two Choose events prove the mid ask ran.
+			name:   "choose_number_mid_shapeshifter",
+			prefer: []string{"Shapeshifter"},
+			decks: [2][]string{
+				append(deckOf(4, "Shapeshifter"), deckOf(36, "Wastes")...),
+				deckOf(40, "Wastes"),
+			},
+			surface: "full",
+			reached: chosenNumberAtLeast("Shapeshifter", 2),
+		},
+		{
+			name:   "choose_number_mid_wrath_of_the_skies",
+			prefer: []string{"Wrath of the Skies", "Grizzly Bears"},
+			decks: [2][]string{
+				append(deckOf(4, "Wrath of the Skies"), deckOf(36, "Plains")...),
+				append(deckOf(8, "Grizzly Bears"), deckOf(32, "Forest")...),
+			},
+			surface: "full",
+			reached: chosenNumberOn("Wrath of the Skies"),
+		},
 	}
 }
 
 // chosenNumberOn reads the finished gorge log for the card's own number
 // choice (the Choose event api:ChooseNumber emits, Counter "number").
 func chosenNumberOn(name string) func(g *GorgeSide) bool {
+	return chosenNumberAtLeast(name, 1)
+}
+
+// chosenNumberAtLeast requires n number choices on the card: Shapeshifter
+// chooses as it enters and again at each upkeep, so one event alone would not
+// prove the resolution-time ask ran.
+func chosenNumberAtLeast(name string, n int) func(g *GorgeSide) bool {
 	return func(g *GorgeSide) bool {
+		got := 0
 		for _, e := range g.E.L.Events {
 			if e.Kind != events.Choose || e.Counter != "number" {
 				continue
 			}
 			if o := g.E.G.Obj(e.Obj); o != nil && o.Face() != nil && o.Face().Name == name {
-				return true
+				got++
 			}
 		}
-		return false
+		return got >= n
 	}
 }
 

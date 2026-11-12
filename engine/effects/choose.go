@@ -308,8 +308,9 @@ func effChooseNumber(h Host, c *Ctx, sa *cards.SA) {
 	if strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRandom)), "True") {
 		// Random$ True (Tibalt's Trickery, Murgish Cemetery, Hapatos Might):
 		// the card chooses its number at random, so the chooser is never
-		// asked. The draw is the engine's seeded RNG (CR 701.8b's random
-		// reading); one candidate takes no draw, the same convention the
+		// asked. The draw is the engine's seeded RNG (the card's own "at
+		// random" instruction, the random-choice convention CR 701.9b
+		// states); one candidate takes no draw, the same convention the
 		// other random picks use.
 		n := int32(0)
 		if len(opts) > 0 {

@@ -1782,6 +1782,27 @@ func putLibSelfGate(ab *lAbility, cost lCost) error {
 	return nil
 }
 
+// energyPayCost parses PayEnergy<X> / PayEnergy<SVar>: the "pay one or more
+// {E}" resolution unless cost (Aether Refinery, Localized Destruction, Pia
+// Nalaar, Rampaging Aetherhood, Territorial Aetherkite, Vault 112). The amount
+// is read when the cost is offered, like PayLife<X>'s LifeBy. An activated
+// ability's printed cost is the constant kop.CostPayEnergy, so a dynamic one
+// there would lose its amount: refuse it.
+func (lc *lowerCtx) energyPayCost(c *lCost, parts []string, tok string) error {
+	if !lc.unlessParse {
+		return refuse("PayEnergy<%s> outside an unless cost", parts[0])
+	}
+	if len(parts) != 1 || c.Energy != 0 || c.EnergyBy != nil {
+		return refuse("energy cost %q", tok)
+	}
+	v, err := lc.value(parts[0])
+	if err != nil {
+		return err
+	}
+	c.EnergyBy = &v
+	return nil
+}
+
 // costHand is cost, also reading Discard<1/CARDNAME> (DiscardSelf).
 func (lc *lowerCtx) costHand(s string) (lCost, error) {
 	var c lCost
@@ -1999,24 +2020,9 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			continue
 		}
 		if head == "PayEnergy" && (parts[0] == "X" || lc.face.SVars[parts[0]] != "") {
-			// PayEnergy<X> / PayEnergy<SVar>: the "pay one or more {E}"
-			// resolution unless cost (Aether Refinery, Localized
-			// Destruction, Pia Nalaar, Rampaging Aetherhood, Territorial
-			// Aetherkite, Vault 112). The amount is read when the cost is
-			// offered, like PayLife<X>'s LifeBy. An activated ability's
-			// printed cost is the constant kop.CostPayEnergy, so a dynamic
-			// one there would lose its amount: refuse it.
-			if !lc.unlessParse {
-				return c, refuse("PayEnergy<%s> outside an unless cost", parts[0])
-			}
-			if len(parts) != 1 || c.Energy != 0 || c.EnergyBy != nil {
-				return c, refuse("energy cost %q", t)
-			}
-			v, err := lc.value(parts[0])
-			if err != nil {
+			if err := lc.energyPayCost(&c, parts, t); err != nil {
 				return c, err
 			}
-			c.EnergyBy = &v
 			continue
 		}
 		n, err := strconv.Atoi(parts[0])

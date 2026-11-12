@@ -124,6 +124,14 @@ func (lc *lowerCtx) chooseNumberEffect(ps *params) error {
 			return refuse("ChooseNumber Min$ %q is not a literal", v)
 		}
 		if n > 0 {
+			// The kernel keeps the floor in the chosen byte's low 8 bits,
+			// beside the has-Max (0x100) and Random (0x200) flags: a larger
+			// literal would alias into a flag and change the question. No
+			// corpus card states one; refuse by name rather than lower a
+			// bound that cannot be kept.
+			if n > 0xff {
+				return refuse("ChooseNumber Min$ %d above the kernel's 255 floor", n)
+			}
 			lo = n
 		}
 	}
