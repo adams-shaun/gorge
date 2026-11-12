@@ -5,7 +5,7 @@
 package cards
 
 func kwIncrement(f *Face, i int, k, head, param string, has func(kind, line string) bool) {
-	// Increment (CR 702.XX, task kw:Increment): "Whenever you cast a spell,
+	// Increment (CR 702.XX): "Whenever you cast a spell,
 	// if the amount of mana you spent is greater than this creature's power
 	// or toughness, put a +1/+1 counter on this creature." The corpus prints
 	// only the bare `K:Increment` line -- the oracle reminder is the whole

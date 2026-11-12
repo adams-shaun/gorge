@@ -84,7 +84,7 @@ func TestManaAbilityLabelCostAndAmount(t *testing.T) {
 		{"T", "RR", "2", "Add RR"}, // a multi-pip token is left as written
 		// An Any ability's literal amount is named so two abilities of one
 		// source that differ only in amount are distinguishable on the wheel
-		// (task mana-wheel-amount-labels). An absent, 1 or non-literal amount
+		// An absent, 1 or non-literal amount
 		// keeps the fail-safe "Add any color".
 		{"T", "Any", "2", "Add two mana of any one color"},
 		{"T", "Combo Any", "3", "Add three mana in any combination of colors"},

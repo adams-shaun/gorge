@@ -264,7 +264,11 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		ps.consume("Imprint")
 	}
 	if ct, ok := ps.get("ChangeType"); ok {
-		if _, has := ps.m["ValidTgts"]; has && !(origin == zHand && (dest == zExile || dest == zBattlefield || dest == zLibrary) ||
+		ownSearch, err := lc.targetPlayerOwnSearch(ps, origin, dest) // lower_partnerwith.go
+		if err != nil {
+			return err
+		}
+		if _, has := ps.m["ValidTgts"]; has && !ownSearch && !(origin == zHand && (dest == zExile || dest == zBattlefield || dest == zLibrary) ||
 			(origin == zBattlefield || origin == zGraveyard) && (dest == zExile || dest == zHand) && ps.is("Hidden", "True") ||
 			origin == zExile && dest == zGraveyard && ps.is("Hidden", "True")) {
 			return refuse("ChangeType$ with ValidTgts$")
@@ -479,6 +483,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				return refuse("WithCountersAmount$ on a graveyard pick")
 			}
 		}
+		if origin == zGraveyard && (dest == zExile || dest == zHand || dest == zBattlefield) && ps.is("AtRandom", "True") {
+			return lc.randomGraveMove(ps, f, n, flags, counterKind, override, dest) // lower_randomgravemove.go
+		}
 		graveBF := dest == zBattlefield && override == nil && graveToBattlefieldFlags(flags)
 		if origin == zGraveyard && (dest == zHand || graveBF) {
 			for i := range f.Clauses {
@@ -539,9 +546,6 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			}
 			lc.emit(lInstr{Op: "ChooseMove", Obj: lRef{Kind: rYou}, A: n, F: f, C: dest, CS: cs})
 			return nil
-		}
-		if origin == zGraveyard && dest == zExile && ps.is("AtRandom", "True") {
-			return lc.randomGraveExile(ps, f, n, flags, counterKind, override) // lower_randomgraveexile.go
 		}
 		if exwPick {
 			return lc.exilePick(ps, f, n, flags, counterKind, override, dest) // lower_exw.go
@@ -3453,7 +3457,10 @@ func (lc *lowerCtx) immediateTrigger(ps *params) error {
 	}
 	savedSpawn := lc.spawnDmg
 	lc.spawnDmg = spawnDamagedOpp(lc.ab) // lower_filterwords.go
+	savedAtk := lc.spawnAtk
+	lc.spawnAtk = spawnAttacked(lc.ab) // lower_filterwords.go
 	err = lc.withAbility(lat, func() error { return lc.chain(exec, nil) })
+	lc.spawnAtk = savedAtk
 	lc.spawnDmg = savedSpawn
 	if err != nil {
 		return err

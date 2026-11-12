@@ -34,7 +34,7 @@ const (
 type Static struct {
 	Kind    StaticKind
 	Filter  FilterID
-	Filter2 FilterID // CantBlockBy: the blockers that can't block; ReduceCost (spell or activated ability): the target it needs
+	Filter2 FilterID // CantBlockBy: the blockers that can't block; ReduceCost (spell or activated ability): the target it needs; CastWithFlash of an emblem: the spell whose cast ends the emblem (the Effect's ForgetOnCast$, Quicken)
 	A, B    int16    // P/T deltas, cost reduction
 	Kw      KwMask
 	Cond    uint8 // reserved condition opcode (0 = always)
@@ -350,6 +350,14 @@ const CantActNamed = 4
 // (Alhammarret, High Arbiter): the filter holds only for a spell whose card is
 // the static source's chosen name (ExtChooseName).
 const CantCastNamed = 1
+
+// CantCastSorcery is the StatCantBeCast B bit for OnlySorcerySpeed$ True
+// (Teferi, Time Raveler: each opponent can cast spells only any time they
+// could cast a sorcery): the static does not bind while the caster could cast
+// a sorcery (the active player, a main phase, an empty stack; gorge
+// castSorceryTimingExempt). A free cast made while a spell or ability
+// resolves is read with the stack non-empty (castForbiddenFree).
+const CantCastSorcery = 2
 
 // StCasterActive: on a StatCantBeCast only, the
 // restriction binds a caster who is the active player (Caster$

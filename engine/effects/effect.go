@@ -130,7 +130,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	// effect's Remembered set. Both this and ForgetOnMoved$ ride every
 	// registration below.
 	forgetCounter := ep.ForgetCounter
-	// ForgetOnCast$ <spec> (task param:api:Effect.ForgetOnCast): the
+	// ForgetOnCast$ <spec>: the
 	// cast-driven lifetime -- the first qualifying spell cast ENDS the whole
 	// effect ("the next spell you cast this turn ...", Marshland
 	// Bloodcaster's alternative cost, Dark Apostle's one-cast cascade). The
@@ -157,7 +157,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	if forgetOnCast == "" {
 		forgetOnCast = effectSelfExileOnCastSpec(h, c, ep.Triggers)
 	}
-	// ImprintOnHost$ True (task param:api:Effect.ImprintOnHost): Forge's
+	// ImprintOnHost$ True: Forge's
 	// EffectEffect imprints the CREATED EFFECT TOKEN on the host card and
 	// moves the token to the Command zone -- the imprint is the link "this
 	// effect belongs to this card", never the remembered card itself. The
@@ -1327,12 +1327,15 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				registered = true
 				break
 			}
-			if mode == "CastWithFlash" && !LoyaltyFlashParamsReadable(params) {
-				// Only the loyalty-timing grant registers (Jace's Machinations'
-				// "you may activate loyalty abilities of Jace planeswalkers you
-				// control ... any time you could cast an instant"); rules'
-				// loyaltyAtInstantSpeed reads it beside the printed S: route.
-				// A spell-flash grant keeps the unimplemented Note it always had.
+			if mode == "CastWithFlash" && !LoyaltyFlashParamsReadable(params) && !SpellFlashParamsReadable(params) {
+				// Two grants register: the loyalty-timing grant (Jace's
+				// Machinations' "you may activate loyalty abilities of Jace
+				// planeswalkers you control ... any time you could cast an
+				// instant"; rules' loyaltyAtInstantSpeed) and the spell-flash
+				// grant (Borne Upon a Wind's "you may cast spells this turn as
+				// though they had flash"; rules' effectFlashGrants), both read
+				// beside the printed S: route. Any other body keeps the
+				// unimplemented Note.
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
@@ -1415,6 +1418,12 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ForgetOnMoved: forgetOn,
 				ExileOnMoved:  exileOn,
 				ForgetCounter: forgetCounter,
+			}
+			if mode == "CastWithFlash" {
+				// Quicken's "the next sorcery spell you cast this turn": the
+				// first completed cast the spec names ends the grant
+				// (rules' effectCastSweep).
+				ce.ForgetOnCast = forgetOnCast
 			}
 			anchorEffectHostIncarnation(h, c, rawDur, &ce)
 			if IsUntilTargetedUntapsDuration(rawDur) {
@@ -1548,12 +1557,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			effectContinuous(h, ce)
 			registered = true
 		case cards.StaticReduceCost, cards.StaticRaiseCost, cards.StaticSetCost, cards.StaticAlternativeCost, cards.StaticManaConvert:
-			// An Effect-delivered cost-modifier or ManaConvert static (task
-			// param:api:Effect.ForgetOnCast; Marshland Bloodcaster's "Rather
-			// than pay the mana cost of the next spell you cast this turn, you
-			// may pay life equal to that spell's mana value", plus the 11
-			// Effect-delivered Mode$ ReduceCost carriers -- Kaza, Roil Chaser
-			// et al). Registered into the continuous registry with the line's
+			// An Effect-delivered cost-modifier or ManaConvert static (Marshland Bloodcaster's "Rather than pay the mana cost of the next spell you cast this turn, you may pay life equal to that spell's mana value", plus the 11 Effect-delivered Mode$ ReduceCost carriers -- Kaza, Roil Chaser et al). Registered into the continuous registry with the line's
 			// own parameter map; the cost path reads it through the SAME
 			// readers the printed S: static route feeds (rules'
 			// collectCostStatics for the Raise/Reduce/Set modes, rules'

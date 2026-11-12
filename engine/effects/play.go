@@ -47,8 +47,7 @@ func init() { Register("Play", effPlay) }
 //   - ShowCards$ (Sunbird's Invocation) is the play's public reveal rider,
 //     emitted by rules' answer settle before the cast moves the card out of its
 //     hidden zone (see there).
-//   - ForgetPlayed$ True (task param:api:Play.ForgetPlayed, read on the
-//     PlayDone pass below) drops each actually-begun card from the
+//   - ForgetPlayed$ True (read on the PlayDone pass below) drops each actually-begun card from the
 //     remembered set so a chained "if you don't play it" arm only sees the
 //     unplayed remainder. A refused or reversed cast never began, so its
 //     card stays remembered (CR 733.1-2).
@@ -83,7 +82,7 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 		// reached below this one in the same walk must pose its own ask
 		// instead of inheriting the answered card.
 		//
-		// ForgetPlayed$ True (task param:api:Play.ForgetPlayed): a card the
+		// ForgetPlayed$ True: a card the
 		// Play actually BEGAN to play has been cast/put onto the stack by the
 		// answer settle and must leave the remembered set now -- the chained
 		// "if you don't play it" arm (Vaan, Street Thief's ConditionDefined$
@@ -306,7 +305,7 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 		candidates = kept
 	}
 
-	// Controller$ (task param:api:Play.Controller): WHO the play ask is
+	// Controller$: WHO the play ask is
 	// posed to and whose cast the answer begins. The value resolves
 	// through the ONE shared defined-player machinery (knownDefinedTargets
 	// -> definedSpec), so every spelling the corpus writes on a Play --
@@ -342,7 +341,7 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 		playCtl = ps[0]
 	}
 
-	// The CR 601.3 election filter (task play-prohibited-election): a
+	// The CR 601.3 election filter: a
 	// candidate the CantBeCast statics prohibit for the player WHO WILL CAST
 	// (playCtl, which the Controller$ read above resolved -- Word of Command's
 	// TargetedPlayer casts it, so its restrictions, not the resolving

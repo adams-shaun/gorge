@@ -12,8 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The Animate colour/keyword/type-strip parameters (task
-// inbox-paramcensus-animate-colors): Colors$ and OverwriteColors$ are the
+// The Animate colour/keyword/type-strip parameters: Colors$ and OverwriteColors$ are the
 // manland family's explicit colour identity (Celestial Colonnade's "white and
 // blue", Forbidding Watchtower's "white", Restless Cottage's "black and
 // green"), Keywords$ is the animation's keyword grant (Celestial Colonnade's

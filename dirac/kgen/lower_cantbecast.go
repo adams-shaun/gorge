@@ -12,8 +12,9 @@ import (
 // turn). The kernel withholds the cast offers (hand, flashback, play
 // permissions, free casts). NumLimitEachTurn$ N (a positive literal, an
 // unfiltered ValidCard$) binds once the caster has cast N spells this turn
-// Refused: a filtered NumLimitEachTurn$, Origin$,
-// OnlySorcerySpeed$, Phases$, a mana-value filter (CR 601.3a's X
+// OnlySorcerySpeed$ True (Teferi, Time Raveler) binds only outside the
+// caster's sorcery-speed window (flag SorcerySpeed, kop CantCastSorcery).
+// Refused: a filtered NumLimitEachTurn$, Origin$, Phases$, a mana-value filter (CR 601.3a's X
 // lookahead). ValidCard$ Card.Self | EffectZone$ All is the card's own "you
 // can't cast this spell": it binds only the card itself,
 // in any zone, with no filter; Caster$ Player.Active (the active player) is
@@ -71,6 +72,17 @@ func (lc *lowerCtx) cantBeCast(sp *params, st *lStatic) error {
 		st.Flags = append(st.Flags, "CasterActive")
 	default:
 		return refuse("CantBeCast Caster %q", c)
+	}
+	if sp.is("OnlySorcerySpeed", "True") {
+		// gorge castSorceryTimingExempt: the prohibition binds only while the
+		// caster could not cast a sorcery (Teferi, Time Raveler: "each
+		// opponent can cast spells only any time they could cast a sorcery");
+		// the kernel reads it with its own sorcerySpeed (kop CantCastSorcery)
+		if self {
+			return refuse("CantBeCast OnlySorcerySpeed$ on a Card.Self static")
+		}
+		st.Flags = append(st.Flags, "SorcerySpeed")
+		sp.consume("OnlySorcerySpeed")
 	}
 	if raw, ok := sp.get("NumLimitEachTurn"); ok {
 		// gorge castLimitBinds (rules/statics_cast.go:463-484): binds once the

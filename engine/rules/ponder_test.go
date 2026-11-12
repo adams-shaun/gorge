@@ -8,8 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The RearrangeTopOfLibrary primitive's MayShuffle$ read (task
-// inbox-paramcensus-final-stragglers, Ponder entry): after the KArrange is
+// The RearrangeTopOfLibrary primitive's MayShuffle$ read (Ponder entry): after the KArrange is
 // applied, the effect poses the may-shuffle ask; a "yes" answer
 // (arrange_mayshuffle, applied in place) emits the Shuffle event, and the
 // chained SubAbility$ (Ponder's draw) runs after the shuffle.

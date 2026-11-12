@@ -282,7 +282,7 @@ func (e *Engine) loyaltyActivationsFrom(o *state.Object, from int, onBattlefield
 // and controller (e.specCtx), exactly as castRestricted and abilityRestricted
 // resolve theirs.
 //
-// Both delivery routes are read (task pw-numloyaltyact): a printed S: line
+// Both delivery routes are read: a printed S: line
 // (activeStatics' APNAP walk) and an Effect-delivered one -- Kaito, Dancing
 // Shadow's PWTwice, Comet, Stellar Pup's LoyaltyAbs and Urza Assembles the
 // Titans' PWTwice register a NumLoyaltyAct registry entry (effects' effEffect),

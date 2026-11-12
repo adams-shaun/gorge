@@ -8,8 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// This file is the PLAYER half of the derived-keyword surface (task
-// approx-player-shroud). Until now players had no keyword machinery at all:
+// This file is the PLAYER half of the derived-keyword surface. Until now players had no keyword machinery at all:
 // a continuous static granting a keyword to a seat — True Believer's and
 // Ivory Mask's `Affected$ You | AddKeyword$ Shroud`, Leyline of Sanctity's
 // hexproof — emitted its ContinuousEffect like every other static (the

@@ -3,7 +3,8 @@ package dirac
 import "github.com/adams-shaun/gorge/dirac/kop"
 
 // randomGravePick is OpChooseMove with SrRandom (Tersa Lightshatter's
-// "exile a card at random from your graveyard"): gorge effHiddenPick with
+// "exile a card at random from your graveyard", Ghoulraiser's and Make a
+// Wish's returns to the hand, Moldgraf Monstrosity's to the battlefield): gorge effHiddenPick with
 // AtRandom$ True takes the engine's seeded pick instead of asking
 // (randomObjIDs): the eligible cards in graveyard order; a pool no larger
 // than the count is taken whole without a draw, else Rand(len(rest)) per

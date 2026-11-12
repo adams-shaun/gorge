@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Shriekwood Devourer (task greatestcardpower): "Whenever you attack with one
+// Shriekwood Devourer: "Whenever you attack with one
 // or more creatures, untap up to X lands, where X is the greatest power among
 // those creatures." Its SVar:X is TriggerObjectsAttackers$GreatestCardPower,
 // the property arm evalRefProperty previously had no case for, so X degraded

@@ -1,6 +1,6 @@
 package rules
 
-// CR 700.2a / 603.3c at a modal trigger's placement (task lb-modaltgt): a
+// CR 700.2a / 603.3c at a modal trigger's placement: a
 // mode whose mandatory targets have no legal candidate can't be chosen, and a
 // trigger left with fewer choosable modes than its minimum is removed from
 // the stack. Ferocification (OTJ) with no creature: XMage's stack is empty at

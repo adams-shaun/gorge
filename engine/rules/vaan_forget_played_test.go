@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The ForgetPlayed$ pin (task param:api:Play.ForgetPlayed) on Vaan, Street
+// The ForgetPlayed$ pin on Vaan, Street
 // Thief's REAL compiled corpus script. Vaan's combat-damage trigger digs the
 // top card of the damaged player's library to exile, remembers it, and chains
 // DB$ Play | Defined$ Remembered | ValidSA$ Spell | Optional$ True |

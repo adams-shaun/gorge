@@ -72,8 +72,8 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 508.1d | follows | `dirac/combat.go#State.mustAttackLeft` `dirac/static_emblemcombat.go#prepEmbComb` | `TestEOTEmblemCombatStatic` `TestEffcontLockstep` | RequiredQuota counts creatures, not requirements; an Effect's MustAttack is an emblem static of its controller, until EOT or until the controller's next turn |
 | 508.1e | n/a | - | - | LOUD: banding unregistered |
 | 508.1f | follows | `dirac/combat.go#State.finishAttacks` | `TestVigilanceAndDefender` | D16 minor: taps emitted after attack triggers are checked |
-| 508.1g | n/a | - | - | exert election; dirac: no attack costs in pool |
-| 508.1h-508.1j | n/a | - | - | dirac: no attack costs in pool |
+| 508.1g | partial | `dirac/combat_attacktax.go#State.atkTaxCharge` `dirac/combat_attacktax.go#State.atkTaxFilter` | `TestAttackTaxLockstep` `TestAttackTaxFreeMutation` `TestAttackTaxRefusesUnmodelledPartners` | a generic mana CantAttackUnless tax (kop.StatAttackTax): each (attacker, defender) pair costs the sum of the statics in force admitting it; a pair the other sources cannot pay is not offered and the picks are budgeted as gorge's Decision.MaxSum over Option.Value (inherits gorge: the budget withholds a declared attacker's own mana, vigilance or not). The other attack costs (sacrifice, tap, return, life, a Phyrexian pip) and exert stay refused; a tax beside an attack requirement is refused (StallAtkTax) |
+| 508.1h-508.1j | follows | `dirac/combat_attacktax.go#State.atkTaxPay` `dirac/combat_attacktax.go#State.atkTaxNext` | `TestAttackTaxLockstep` `TestAttackTaxOrderMutation` | paid as Done is answered, before the declaration's taps and triggers: the pool, then the sources in gorge's attack window order (the fixed-production ones in battlefield order, then the choice-shaped ones pinned to their first colour), a declared attacker without vigilance withheld (508.1f) |
 | 508.1k | follows | `dirac/combat.go#State.applyAttack` | - |  |
 | 508.1m | follows | `dirac/combat.go#State.fireAttacksGen` | `TestAttackTriggersInBattlefieldOrder` |  |
 | 508.2 | follows | `dirac/combat.go#State.finishAttacks` | - |  |

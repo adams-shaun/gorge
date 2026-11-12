@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The magecraft task's pins: Mode$ SpellCastOrCopy (the "Whenever you cast
+// The magecraft pins: Mode$ SpellCastOrCopy (the "Whenever you cast
 // or copy an instant or sorcery spell, ..." family -- Jadzi, Oracle of
 // Arcavios, the Strixhaven apprentices, Storm-Kiln Artist) and Mode$
 // SpellCopy ("Whenever you copy a spell, ...") never fired at all --
