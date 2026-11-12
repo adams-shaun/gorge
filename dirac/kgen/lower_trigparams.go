@@ -2,6 +2,8 @@ package kgen
 
 import (
 	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // resolvedLimit reads a trigger's ResolvedLimit$ (gorge trigger_match.go
@@ -129,4 +131,36 @@ func (lc *lowerCtx) trigParams4(tp *params, tr *lTrigger, mode string) error {
 		tp.consume("Origin", "Destination")
 	}
 	return nil
+}
+
+// lowerDrawnFirstInDrawStep reads a Drawn trigger's FirstCardInDrawStep$,
+// which gates the draw's position in the drawer's own draw step (gorge
+// trigmatch.firstCardInDrawStep, CR 504.1). Both spellings lower; any other
+// value is refused by name rather than guessed.
+func lowerDrawnFirstInDrawStep(tp *params, tr *lTrigger) error {
+	v, ok := tp.get("FirstCardInDrawStep")
+	if !ok {
+		return nil
+	}
+	switch strings.TrimSpace(v) {
+	case "True":
+		tr.FirstInDrawStep = true
+	case "False":
+		tr.NotFirstInDrawStep = true
+	default:
+		return refuse("Drawn FirstCardInDrawStep %q", v)
+	}
+	return nil
+}
+
+// drawStepFlags maps a lowered trigger's draw-step gate to its kernel flags.
+func drawStepFlags(t *lTrigger) kop.TrigFlags5 {
+	var f kop.TrigFlags5
+	if t.FirstInDrawStep {
+		f |= kop.Tf5FirstCardInDrawStep
+	}
+	if t.NotFirstInDrawStep {
+		f |= kop.Tf5NotFirstCardInDrawStep
+	}
+	return f
 }

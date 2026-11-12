@@ -126,9 +126,16 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Fiend Hunter's Defined$ DirectRemembered leave return lowers as the remembered-persist pair; ALL 22176 -> 22177).
 	// +1 (the merge with land: Count$TotalDamageReceivedThisTurn lowered: Tangled Colony beside land's 22180; ALL 22180 -> 22181, WOE 261 -> 262).
 	// +5 (Dig NoLooking$ and Manifest Defined$ Remembered lower: Telling Time, Moment of Truth, Expressive Iteration, Write into Being, Hamza, Might of the Yathan; ALL 22345 -> 22350, MOM 199 -> 200).
-	// +11 (the CantAttackUnless generic mana attack tax lowers, kop.StatAttackTax: Archon of Absolution, Baird, Steward of Argive, Brainwash, Collective Restraint, Ghostly Prison, Koskun Falls, Onakke Oathkeeper, Phyrexian Marauder, Propaganda, Sphere of Safety, Windborn Muse; ALL 22381 -> 22392).
+	// +5 (the hasManaAbility filter property and DrainMana: Power Sink, Moonsilver
+	// Key, Mana Short, Midnight Arsonist and Raggadragga, Goreguts Boss; ALL
+	// 22345 -> 22350).
+	// +11 (the merge with land: the CantAttackUnless generic mana attack tax
+	// lowers, kop.StatAttackTax: Archon of Absolution, Baird, Steward of Argive,
+	// Brainwash, Collective Restraint, Ghostly Prison, Koskun Falls, Onakke
+	// Oathkeeper, Phyrexian Marauder, Propaganda, Sphere of Safety, Windborn
+	// Muse; merged ALL 22641 -> 22652).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22392, 34442},
+	"ALL": {22652, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {216, 280},
@@ -154,7 +161,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TDM": {256, 276},
 	"TLA": {261, 285},
 	"TMT": {183, 194},
-	"TRC": {299, 337},
+	"TRC": {300, 337},
 	"TRK": {311, 311},
 	"WOE": {262, 281},
 }

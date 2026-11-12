@@ -5,7 +5,7 @@
 # The set-support tables are rendered here, not measured: the compliance
 # oracle (oraclediff) lives in gorge-compliance, whose nightly CI publishes its
 # per-set status to an orphan docs-data branch, and dirac's per-set
-# figures are a committed snapshot (docs/site/support/dirac-sets.json).
+# figures are read from the committed dirac/docs/support.md.
 name: docs
 
 on:
@@ -112,7 +112,7 @@ jobs:
       # by sets.md): gorge-compliance's nightly compliance job publishes its
       # per-set status (Level A for every set, Level B for the printed sets)
       # to its orphan docs-data branch; dirac's per-set acceptance is
-      # the committed snapshot. Without docs-data the tables still render,
+      # read from dirac/docs/support.md. Without docs-data the tables still render,
       # with the gorge columns marked as not available.
       # The Web client pages (web/layouts.md, web/gameplay.md) name the
       # client's layout presets and play settings; fail if the source moved.
@@ -126,7 +126,7 @@ jobs:
       - name: Render the per-set support tables
         run: |
           python3 -m unittest discover -s scripts -p 'docs_sets_test.py'
-          args=(--dirac docs/site/support/dirac-sets.json)
+          args=(--dirac-support dirac/docs/support.md)
           if git fetch --depth=1 https://github.com/adams-shaun/gorge-compliance.git docs-data 2>/dev/null; then
             d=$(mktemp -d)
             for f in status-A.jsonl status-B.jsonl meta.json; do git show "FETCH_HEAD:$f" > "$d/$f"; done

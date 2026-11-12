@@ -105,6 +105,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallPayETB,
 	// an attack tax beside a part its walk does not model: an attack requirement, a Taps watcher, a mana source of another shape (combat_attacktax.go)
 	StallAtkTax,
+	StallPrevNext, // a depleting prevent-the-next-N shield and another damage replacement match one event, or a shield amount past 255 (repl_prevnext.go)
 }
 
 // initStall is the reason a game of nseat players on this table stalls at its
@@ -186,7 +187,7 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 			return g.replBits[i]&(rbDblDmg|rbPrevNC|rbPlusDmg|rbPrevCol|rbPlProt) != 0 || abilityOn(func(x *kop.Ability) bool {
 				return x.Kind == kop.AbTriggered && x.Trig.Event == kop.TrigCounterAddedOnce ||
 					progHas(x, func(in *kop.Instr) bool {
-						return in.Op == kop.OpProliferate || in.Ext() == kop.ExtPreventColor || in.Ext() == kop.ExtPreventDamageScope
+						return in.Op == kop.OpProliferate || in.Ext() == kop.ExtPreventColor || in.Ext() == kop.ExtPreventDamageScope || in.Ext() == kop.ExtPreventNext
 					})
 			})(c, i)
 		}
@@ -203,7 +204,7 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 		a = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbPrevMill != 0 }
 		b = func(c *kop.CardDef, i int) bool {
 			return g.replBits[i]&(rbDblDmg|rbPlusDmg) != 0 || abilityOn(func(x *kop.Ability) bool {
-				return progHas(x, func(in *kop.Instr) bool { return in.Ext() == kop.ExtPreventColor })
+				return progHas(x, func(in *kop.Instr) bool { return in.Ext() == kop.ExtPreventColor || in.Ext() == kop.ExtPreventNext })
 			})(c, i)
 		}
 	case StallL6Walk:
