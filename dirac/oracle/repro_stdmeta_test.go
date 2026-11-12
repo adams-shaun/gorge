@@ -52,6 +52,8 @@ func TestStdMetaReprosLockstep(t *testing.T) {
 		"stdmeta_verge_ability0_first_s60p6",
 		"stdmeta_verge_ability0_first_s76p19",
 		"stdmeta_verge_ability0_first_s90p18",
+		"stdmeta_x_witness_unspendable_census_s11p1",
+		"stdmeta_node_limit_verge_first_s87p22",
 		"stdmeta_sacrificed_pending_s13p16",
 		"stdmeta_sacrificed_reversed_s21p8",
 		"stdmeta_prepared_beside_enters_tapped_s27p43",
