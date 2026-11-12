@@ -192,7 +192,7 @@ func selfDamagePair(g *genPrep) (string, func(*kop.CardDef, int) bool, func(*kop
 				x.Cost.Flags&kop.CostAddCtr != 0 && x.Cost.Ctr == kop.CtrShield ||
 				progHas(x, func(in *kop.Instr) bool {
 					e := in.Ext()
-					return e == kop.ExtPreventColor || e == kop.ExtPreventDamageScope || (in.Op == kop.OpPutCounter || in.Op == kop.OpPutCounterAll || in.Op == kop.OpEnterWithCounters) && in.C == int16(kop.CtrShield)
+					return e == kop.ExtPreventColor || e == kop.ExtPreventDamageScope || e == kop.ExtPreventNext || (in.Op == kop.OpPutCounter || in.Op == kop.OpPutCounterAll || in.Op == kop.OpEnterWithCounters) && in.C == int16(kop.CtrShield)
 				})
 		})(c, i)
 	}

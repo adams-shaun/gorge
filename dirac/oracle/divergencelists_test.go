@@ -62,7 +62,6 @@ func TestLockstepConfigMatchesOracle(t *testing.T) {
 // pinnedDivergenceLists is what TestNoKnownDivergenceLists finds. It only shrinks,
 // and it ends empty: a supported card has no tolerated divergence.
 var pinnedDivergenceLists = []string{
-	"rooms_test.go: roomsKnown",
 	"unmodelled_test.go: unmodelledKnown",
 }
 

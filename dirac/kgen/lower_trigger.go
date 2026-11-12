@@ -841,6 +841,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if n, ok := tp.get("Number"); ok {
 			tr.NthDraw, _ = strconv.Atoi(n)
 		}
+		if err := lowerDrawnFirstInDrawStep(tp, tr); err != nil {
+			return err
+		}
 	case "Discarded":
 		if tr.F, err = readF("ValidCard"); err != nil {
 			return err
@@ -937,10 +940,19 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// whole size).
 			cmp := tp.str("CounterAmount")
 			if cmp == "" {
-				if al, ok := tp.get("ActivationLimit"); !ok || al != "1" {
+				if al, ok := tp.get("ActivationLimit"); !ok {
+					// a plain line: one trigger per counter of the batch
+					// (CR 603.2c), each carrying amount 1 (gorge queues one
+					// instance per counter), so a body reading the amount
+					// reads 1 as on gorge. Only a named counter kind
+					// (kernel Tf4PerCounter reads the event's one kind).
+					if ct == "*" {
+						return refuse("CounterAdded per-counter (no CounterAmount$) of any counter kind")
+					}
+					tr.PerCounter = true
+				} else if al != "1" {
 					return refuse("CounterAdded per-counter (no CounterAmount$)")
-				}
-				if lc.saReadsBatch(t.Effect) {
+				} else if lc.saReadsBatch(t.Effect) {
 					return refuse("CounterAdded per-counter body reads the trigger")
 				}
 			} else {
@@ -1215,6 +1227,19 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			tr.First = true
 		}
+	case "Evolved":
+		// gorge trigmatch evolvedMatches (CR 702.100b): the events.Evolved
+		// marker rules' resolveTop emits once the Evolve keyword's counter
+		// lands names the evolving permanent, which ValidCard$ Card.Self
+		// matches; the kernel fires it as that trigger finishes resolving
+		// (kw_evolve.go). ValidPlayer$ is left unread (refused).
+		if v := tp.str("ValidCard"); v != "Card.Self" {
+			return refuse("Evolved ValidCard$ %q", v)
+		}
+		if tr.Zone != 0 && tr.Zone != zBattlefield {
+			return refuse("Evolved TriggerZones %d", tr.Zone)
+		}
+		tp.consume("ValidCard")
 	case "UnlockDoor":
 		// CR 709.5h "when you unlock this door" (gorge rules face_rooms.go
 		// queueUnlockTriggers): read only on a Room door, fired directly by
@@ -1558,6 +1583,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		conds = append(conds, deliriumCond())
 	}
+	if err := echoGate(tp, tr, ab, &conds, noResolve || fireOnly || giftSelf); err != nil { // lower_echo.go
+		return err
+	}
 	switch len(conds) {
 	case 0:
 	case 1:
@@ -1670,6 +1698,11 @@ func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 	if isChosenModeStatic(s) {
 		return lc.chosenModeStatic(s) // lower_siegemode.go
 	}
+	if s.Mode == "CantAttackUnless" {
+		if err := attackTaxReadable(s.Params); err != nil {
+			return err // lower_attacktax.go: before the EffectZone$ strip below
+		}
+	}
 	if s.Params["EffectZone"] == "Battlefield" {
 		// a printed static's default zone spelled out (gorge
 		// EffectZoneOK: the battlefield, as with no EffectZone$)
@@ -1774,10 +1807,20 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			default:
 				// gorge continuousConditionHolds (Continuous) and
 				// costConditionHolds (a self cost static: the payer is
-				// the controller) read these against the controller.
+				// the controller) read these against the controller. The
+				// self-carried AlternativeCost (gorge
+				// alternativeCostScopeOK's costConditionHolds read, the
+				// Force cycle: the caster is the static's controller, the
+				// printed you) and the combat restriction statics (gorge
+				// combatBoard.StaticGateHolds' continuousGateHolds,
+				// Monstrous Hound) read theirs against the static's
+				// controller, which statCond's and offerAltFreeHand's
+				// Cond2 contexts name too.
 				selfCost := (s.Mode == "ReduceCost" || s.Mode == "RaiseCost") && s.Params["ValidCard"] == "Card.Self"
+				turnGate := s.Mode == "Continuous" || selfCost || reduceActivatorYou(s.Mode, s.Params) ||
+					s.Mode == "AlternativeCost" || s.Mode == "CantBlock" || s.Mode == "CantAttack"
 				switch {
-				case c == "NotPlayerTurn" && (s.Mode == "Continuous" || selfCost || reduceActivatorYou(s.Mode, s.Params)):
+				case c == "NotPlayerTurn" && turnGate:
 					st.Cond = lCond{Kind: cYourTurn, Neg: true}
 				case c == "Metalcraft" && (s.Mode == "Continuous" || selfCost):
 					f, err := lc.filter("Artifact.YouCtrl")
@@ -1853,8 +1896,14 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		}
 		goad := sp.is("Goad", "True")
 		sp.consume("Goad")
-		sts, err := lc.continuous(sp, &st)
+		lure, lureOnly, err := lc.lureGrant(sp, &st) // lower_lure.go
 		if err != nil {
+			return nil, err
+		}
+		var sts []lStatic
+		if lureOnly {
+			st = lure
+		} else if sts, err = lc.continuous(sp, &st); err != nil {
 			return nil, err
 		}
 		if err := lc.selfCondCheck(&st); err != nil {
@@ -1864,6 +1913,14 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			return nil, err // lower_selfkwaffected.go
 		}
 		extra = sts
+		if lure.Kind != "" && !lureOnly {
+			// the lure rides beside the other parts (Gift of the Deity's
+			// +1/+1): a second static over the same filter and condition
+			if extra == nil {
+				extra = []lStatic{st} // extra replaces the static itself
+			}
+			extra = append(extra, lure)
+		}
 		if goad {
 			// Goad$ True: the affected creatures are goaded while the
 			// static applies (gorge's static goad route; kop.StatGoad), a
@@ -1999,6 +2056,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 	case "CantAttack":
 		if err := lc.cantAttack(sp, &st); err != nil {
 			return nil, err
+		}
+	case "CantAttackUnless":
+		if err := lc.cantAttackUnless(sp, &st); err != nil {
+			return nil, err // lower_attacktax.go
 		}
 	case "CanAttackDefender":
 		// gorge combat.AttackAllowedThroughDefender: ValidCard$ (or
@@ -2381,7 +2442,8 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		return nil, nil
 	}
-	if hk, ok := sp.get("AddHiddenKeyword"); ok {
+	if hk, ok := sp.m["AddHiddenKeyword"]; ok && !sp.used["AddHiddenKeyword"] { // a lure grant lureGrant took is lowered beside
+		sp.used["AddHiddenKeyword"] = true
 		if strings.TrimSpace(hk) != "CARDNAME can't block." {
 			return nil, refuse("AddHiddenKeyword %q", hk)
 		}

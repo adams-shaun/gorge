@@ -711,7 +711,8 @@ func (s *State) cleanupGen(k *prep) {
 		s.exhClear() // static_cantblockexcept.go
 	}
 	if k.gen.anyColGrant {
-		s.cgClear() // static_colourgrant.go
+		s.cgClear()       // static_colourgrant.go
+		s.colProtClear(k) // static_colourprot.go
 	}
 	if k.gen.anyDmgMark {
 		s.dmgMarkEnd() // Duration$ UntilYourNextTurn (repl_dmgmark.go)

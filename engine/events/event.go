@@ -112,8 +112,7 @@ const (
 	EndCombatReset
 	// CastInfo records how a spell was cast: Amount is the value chosen for
 	// {X} (state.Object.X), and Counter is a comma-separated list of flag
-	// names (FlagsFrom/FlagsString) folded into state.Object.CastFlags. Task
-	// 4. Since the paid-{X} Ctx binding (CR 107.3i), commitCast's ability arm
+	// names (FlagsFrom/FlagsString) folded into state.Object.CastFlags. Since the paid-{X} Ctx binding (CR 107.3i), commitCast's ability arm
 	// also emits it on the AbilityPush-minted stack object to record the {X}
 	// an activated ability's Cost$ was paid with -- Obj is that ability
 	// object, never the source permanent -- so Amount's meaning is "the {X}
@@ -539,8 +538,7 @@ const (
 	// every earlier Kind, so no earlier ordinal, hash chain or golden replay
 	// is affected.
 	GrantAbilityPush
-	// Investigate records one completed investigate action (CR 701.36a, task
-	// investtrig1): Player is the investigating seat and Obj the resolving
+	// Investigate records one completed investigate action (CR 701.36a): Player is the investigating seat and Obj the resolving
 	// source permanent (0 for a source-less body). It is an Apply no-op
 	// marker, exactly like Explore: the investigate's own state change (the
 	// Clue token mint) is its own TokenCreate event that precedes this one,
@@ -681,8 +679,7 @@ const (
 	// following every prior Kind's own append-only precedent, so no earlier
 	// ordinal, hash chain or golden replay is affected.
 	Exploit
-	// AlterAttribute records one Forge AlterAttribute application (task
-	// alterattr1): Obj is the permanent whose designation changed, Text is
+	// AlterAttribute records one Forge AlterAttribute application: Obj is the permanent whose designation changed, Text is
 	// the attribute name -- the engine models exactly one, "Suspected"
 	// (CR 702.157, the Blame Game precon's Nelly Borca / Hot Pursuit
 	// family) -- and Amount 1 grants it, -1 removes it (the Activate$ False
@@ -723,8 +720,7 @@ const (
 	// precedent, so no earlier ordinal, hash chain or golden replay is
 	// affected.
 	GainedTriggerPush
-	// Surveil records one completed surveil instruction (CR 701.42, task
-	// trig-surveil): Player is the surveiling seat and Obj the resolving
+	// Surveil records one completed surveil instruction (CR 701.42): Player is the surveiling seat and Obj the resolving
 	// source permanent (0 for a source-less body). It is an Apply no-op
 	// marker, exactly like Explore/Investigate: the surveil's own state
 	// changes (the KArrange answer's LibraryOrder and any graveyard
@@ -825,7 +821,7 @@ const (
 	// ordinal, hash chain or golden replay is affected.
 	KeywordAbilityPush
 	// Scry records one completed scry instruction's final partition
-	// (CR 701.18, task scrybottom): Player is the scrying seat and Obj the
+	// (CR 701.18): Player is the scrying seat and Obj the
 	// resolving source permanent (0 for a source-less body); Amount is the
 	// number of cards the player actually chose to put on the BOTTOM of
 	// their library (0 when every looked-at card was kept on top). It is an
@@ -909,8 +905,7 @@ const (
 	GiveGift
 	// RollDice is the SYNTHETIC roll-action PROPOSAL effects' count-replacement hook
 	// hook holds out to R:Event$ RollDice replacement matching before any die
-	// of one roll action is rolled (CR 614.4's before-the-action window, task
-	// rolldice-repl; the Scry proposal's discipline). Player is the roller,
+	// of one roll action is rolled (CR 614.4's before-the-action window, the Scry proposal's discipline). Player is the roller,
 	// Obj the rolling source, Amount the proposed dice count and Counter the
 	// proposed ignored-low count (decimal, "" = none). It is NEVER emitted --
 	// the roll's log witnesses are the per-die and batch Notes the ordinary
@@ -920,8 +915,7 @@ const (
 	// append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	RollDice
-	// Proliferate records one completed proliferate action (CR 701.27, task
-	// trig-proliferate): Player is the proliferating seat ("whenever YOU
+	// Proliferate records one completed proliferate action (CR 701.27): Player is the proliferating seat ("whenever YOU
 	// proliferate" -- what ValidPlayer$ matches) and Obj the resolving source
 	// permanent (the spell or activated ability on the stack). It is an Apply
 	// no-op marker, exactly like Surveil/Discover: the proliferation's own
@@ -1069,8 +1063,7 @@ const (
 	// SkipTurn, following every prior Kind's append-only precedent, so no
 	// earlier ordinal, hash chain or golden replay is affected.
 	ControlPlayerChange
-	// Crew records one CR 702.122 crew action (the `K:Crew` keyword, task
-	// crewedthisturn1): Obj is the CREWING creature (one of the creatures the
+	// Crew records one CR 702.122 crew action (the `K:Crew` keyword): Obj is the CREWING creature (one of the creatures the
 	// crew cost tapped), Player its controller, and IDs[0] the Vehicle that
 	// creature crewed. The tap itself is its own Tap event (the crew cost is
 	// paid through the ordinary tapXType machinery) -- this event is the
@@ -2007,8 +2000,7 @@ var flagNames = [...]struct {
 	{"manatreasurespent", state.FlagManaTreasureSpent},
 	{"manacavespent", state.FlagManaCaveSpent},
 	{"manadesertspent", state.FlagManaDesertSpent},
-	// The ARTIFACT-sourced part of the total-mana-spent capture (task
-	// mayplay-mfa): a face whose SVar table reads the filtered
+	// The ARTIFACT-sourced part of the total-mana-spent capture: a face whose SVar table reads the filtered
 	// Count$CastTotalManaSpent Artifact head, or whose static reads the
 	// CastSa Spell.ManaFromArtifact predicate, stamps its pay-time CastInfo
 	// with this flag too, so the Amount folds into Object.ManaArtifactSpent

@@ -2,6 +2,8 @@ package kgen
 
 import (
 	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // resolvedLimit reads a trigger's ResolvedLimit$ (gorge trigger_match.go
@@ -22,17 +24,25 @@ func (lc *lowerCtx) resolvedLimit(tr *lTrigger, rl, zone string) error {
 }
 
 // readEvolveCondition reads this family's trigger parameters. Condition$ Evolve
-// (CR 702.99a written as a bare trigger condition; gorge trigger_match.go
-// evolveConditionHolds): an ETB trigger fires only when the entering
+// (CR 702.100a written as a bare trigger condition; gorge trigger_match.go
+// evolveConditionHolds) and Evolve$ True (K:Evolve's expansion, gorge
+// kwEvolve; trigmatch zone.go): an ETB trigger fires only when the entering
 // creature's power or toughness is greater than the source's, read as it
-// fires only (gorge has no resolution-time recheck). Any other Condition$
-// is left unread (refused by the caller).
+// fires and again as it resolves (CR 603.4, gorge evolveResolves). Any other
+// Condition$ or Evolve$ value is left unread (refused by the caller).
 func (lc *lowerCtx) readEvolveCondition(tp *params, tr *lTrigger) error {
 	if c, ok := tp.get("Condition"); ok && strings.TrimSpace(c) == "Evolve" {
 		if tr.Event != "ETB" {
 			return refuse("Condition$ Evolve on a %s trigger", tr.Event)
 		}
 		tp.consume("Condition")
+		tr.Evolve = true
+	}
+	if v, ok := tp.get("Evolve"); ok && strings.TrimSpace(v) == "True" {
+		if tr.Event != "ETB" {
+			return refuse("Evolve$ on a %s trigger", tr.Event)
+		}
+		tp.consume("Evolve")
 		tr.Evolve = true
 	}
 	return nil
@@ -129,4 +139,36 @@ func (lc *lowerCtx) trigParams4(tp *params, tr *lTrigger, mode string) error {
 		tp.consume("Origin", "Destination")
 	}
 	return nil
+}
+
+// lowerDrawnFirstInDrawStep reads a Drawn trigger's FirstCardInDrawStep$,
+// which gates the draw's position in the drawer's own draw step (gorge
+// trigmatch.firstCardInDrawStep, CR 504.1). Both spellings lower; any other
+// value is refused by name rather than guessed.
+func lowerDrawnFirstInDrawStep(tp *params, tr *lTrigger) error {
+	v, ok := tp.get("FirstCardInDrawStep")
+	if !ok {
+		return nil
+	}
+	switch strings.TrimSpace(v) {
+	case "True":
+		tr.FirstInDrawStep = true
+	case "False":
+		tr.NotFirstInDrawStep = true
+	default:
+		return refuse("Drawn FirstCardInDrawStep %q", v)
+	}
+	return nil
+}
+
+// drawStepFlags maps a lowered trigger's draw-step gate to its kernel flags.
+func drawStepFlags(t *lTrigger) kop.TrigFlags5 {
+	var f kop.TrigFlags5
+	if t.FirstInDrawStep {
+		f |= kop.Tf5FirstCardInDrawStep
+	}
+	if t.NotFirstInDrawStep {
+		f |= kop.Tf5NotFirstCardInDrawStep
+	}
+	return f
 }

@@ -1,7 +1,7 @@
 # Rules package split: compile-time slicing plan (2026-10-06)
 
-Status: **plan + first slice landed** (`engine/rules/scriptfacts`).
-This plan sequences the remaining slices as independent changes.
+Status: **parked**; see [ARCHIVE.md](ARCHIVE.md). The first slice landed
+(`engine/rules/scriptfacts`); the remaining slices are not scheduled.
 
 Related design (the wider layering refactor this serves):
 `docs/design/2026-10-03-rules-engine-layering-design.md` §3 (layers)

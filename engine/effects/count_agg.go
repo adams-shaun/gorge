@@ -32,8 +32,7 @@ func publishSVar(c *Ctx, name, value string) {
 }
 
 // stripCastSourceAggregate peels the COUNT-level trailing `$<Property>`
-// suffix off a Count$ThisTurnCast_<spec> body (the third argument form,
-// task: ThisTurnCast extreme suffix), returning the peeled spec and the
+// suffix off a Count$ThisTurnCast_<spec> body (the third argument form), returning the peeled spec and the
 // property. It fires ONLY when the segment after the LAST `$` is in the
 // admitted vocabulary -- the four extreme reductions (isExtremeProperty)
 // plus CardTypes -- so every other suffix keeps the pre-existing whole-token

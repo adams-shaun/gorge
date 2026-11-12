@@ -1,6 +1,6 @@
 package rules
 
-// ChoiceRestriction$ ThisTurn (task charm-choice-restriction): a Charm whose
+// ChoiceRestriction$ ThisTurn: a Charm whose
 // oracle reads "choose one that hasn't been chosen this turn" must not offer a
 // mode an earlier instance of the SAME Charm on the SAME source already chose
 // this turn, and must offer it again next turn. Parapet Thrasher's real

@@ -441,6 +441,19 @@ func (g *GorgeSide) internal(d *decision.Decision) bool {
 	if manaChoiceResolving(d) {
 		return false
 	}
+	if d.Options[0].Kind == "attack_mana" {
+		// The declare-attackers attack-tax window (rules/attack_cost.go
+		// askNextAttackPay): one tap per ask, answered with the first source
+		// listed, the order the kernel's atkTaxNext walks.
+		g.Stats.Internal++
+		if g.OnInternal != nil {
+			g.OnInternal(d, d.Options[0].Index)
+		}
+		if err := g.submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}); err != nil {
+			g.fail(fmt.Errorf("oracle: attack payment window answer refused: %w", err))
+		}
+		return true
+	}
 	window := d.ManaPayment != nil || d.PaymentFallback != nil
 	allMana := true
 	for _, o := range d.Options {
@@ -696,12 +709,13 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(alt)<<4), opt: o.Index})
 				continue
 			}
-			if o.Mode == "mayhem" {
+			if o.Mode == "mayhem" || o.Mode == "buyback" {
 				// CR 702.187a: the kernel's mode-2 cast of a Mayhem card
 				// canonicalises to castModeOther, like "harmonize"
-				// (kw_mayhem.go)
+				// (kw_mayhem.go); CR 702.27a: so does the kicked cast of a
+				// Buyback card (kw_buyback.go), gorge's "buyback" mode
 				if o.AltCostIndex > 15 {
-					note("cast/mayhem")
+					note("cast/" + o.Mode)
 					continue
 				}
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
@@ -742,6 +756,18 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				// the conspired cast keeps its own canonical form (a granted
 				// conspire pairs with a bargain/teamwork cast of the same card)
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|15<<4), opt: o.Index})
+				continue
+			}
+			if o.Mode == "overloaded" {
+				// CR 702.96a: the overloaded cast's mode word is not in the
+				// full 16-entry cast-mode table, so it canonicalises to
+				// CastModeOther, the kernel's castOverloadTgt form
+				// (kw_overload.go; canon/translate.go)
+				if o.AltCostIndex > 15 {
+					note("cast/overloaded")
+					continue
+				}
+				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
 				continue
 			}
 			if o.Mode == "bargained" || o.Mode == "teamworked" {
@@ -838,7 +864,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			a = Pack(ActCastImpended, ref(pa.Cast.Object), RefNone, 0)
 		} else if pa.Cast.CastMode() == "conspired" {
 			a = Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther|15<<4)
-		} else if pa.Cast.CastMode() == "bargained" || pa.Cast.CastMode() == "teamworked" || pa.Cast.CastMode() == "harmonize" || pa.Cast.CastMode() == "mayhem" || pa.Cast.CastMode() == "optionalcost" || pa.Cast.CastMode() == "web-slinging" {
+		} else if pa.Cast.CastMode() == "bargained" || pa.Cast.CastMode() == "teamworked" || pa.Cast.CastMode() == "harmonize" || pa.Cast.CastMode() == "mayhem" || pa.Cast.CastMode() == "buyback" || pa.Cast.CastMode() == "optionalcost" || pa.Cast.CastMode() == "web-slinging" || pa.Cast.CastMode() == "overloaded" {
 			// CR 702.166: the full cast-mode table's castModeOther code, the
 			// same canonical form the offered option uses
 			a = Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther)
@@ -879,6 +905,13 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				a = Pack(ActCastFace, ref(pa.Obj), RefNone, fc)
 			} else if pa.Mode == "impended" {
 				a = Pack(ActCastImpended, ref(pa.Obj), RefNone, 0) // kw_impending.go
+			} else if pa.Mode == "overloaded" {
+				a = Pack(ActCast, ref(pa.Obj), RefNone, castModeOther) // CR 702.96a, kw_overload.go
+			} else if pa.Mode == "buyback" {
+				// CR 702.27a: the 16-entry cast-mode table is full; the
+				// kernel's kicked cast of a Buyback card is castModeOther
+				// (kw_buyback.go), as the offered option above
+				a = Pack(ActCast, ref(pa.Obj), RefNone, castModeOther)
 			} else if mc, ok := castModeCode(pa.Mode); ok {
 				a = Pack(ActCast, ref(pa.Obj), RefNone, mc)
 			} else {

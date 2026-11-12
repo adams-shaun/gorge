@@ -220,9 +220,21 @@ import (
 // +1 (Count$TotalDamageReceivedThisTurn lowered: Tangled Colony; merged with land ALL build-level 22180 -> 22181).
 // +1 (ConditionActivationLimit$ lowers to kop.ExActivations: Dragon Whelp; merged with land ALL build-level 22184 -> 22185).
 // +5 (the Aura-on-land TapsForMana extra with a literal body: Wild Growth, Overgrowth, Wolfwillow Haven, Gauntlet of Might, Vernal Bloom; ALL build-level 22345 -> 22350).
+// +11 (static Condition$ NotPlayerTurn on the Force cycle's AlternativeCost
+// and the hasFewer<Type>sInPlayThanYou combat statics lower, and the bare
+// ExileFromHand<1/Spec> alternative beside them: Cave-In, Pyrokinesis,
+// Snapback, Unmask, Vine Dryad, Force of Negation, Force of Vigor, Force of
+// Despair, Monstrous Hound, Mogg Toady, Goblin Goon; ALL build-level 22381 -> 22392).
+// +192 (the merge with land: this branch's +11, of which land's Misdirection
+// bare-exile lowering already built Cave-In, Pyrokinesis, Snapback, Unmask and
+// Vine Dryad; the six new ones are Force of Negation, Force of Vigor, Force of
+// Despair, Monstrous Hound, Mogg Toady and Goblin Goon; merged ALL build-level
+// 22392 -> 22584).
+// +31 (K:Partner with: the carriers listed at ratchet_test.go's ALL pin; ALL build-level 22381 -> 22412; merged ALL build-level 22706 -> 22737).
 // +29 (api BecomeMonarch, Mode$ BecomeMonarch, Count$Monarch, CheckDefinedPlayer$ You|Opponent.isMonarch and a monarch-gated Effect lower: Aragorn, King of Gondor, Chief Magistrate of Mercadia, Court of Ardenvale, Court of Bounty, Court of Cunning, Court of Embereth, Court of Garenbrig, Court of Grace, Court of Ire, Crimson Fleet Commodore, Custodi Lich, Faramir, Steward of Gondor, Feast of Succession, Garrulous Sycophant, Grave Venerations, Keeper of Keys, Knights of the Black Rose, Marchesa's Decree, Nakia, Wakandan Operative, Oath of Eorl, Palace Sentinels, Queen Marchesa, Regal Sliver, Skyline Despot, Staunch Throneguard, Thorn of the Black Rose, Throne Warden, Throne of the High City, Éomer, King of Rohan; ALL build-level 22381 -> 22410).
+// +30 (the merge with land: the monarch lowering above against land's corpus; merged ALL build-level 22868 -> 22898).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22410, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22898, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

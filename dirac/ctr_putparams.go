@@ -48,14 +48,15 @@ func (s *State) putCounterPick(k *prep, in *kop.Instr, p uint8) (ok, done bool) 
 	return false, true
 }
 
-// putCounterRemPut is OpPutCounter's RememberPut$ arm for the recipient sl.
+// putCounterRemPut is OpPutCounter's RememberPut$ arm for the recipient sl
+// when placeCounters landed m counters: gorge rememberPlaced names only the
+// recipients whose counter actually landed (a prohibition or a zeroing
+// replacement remembers nothing).
 //
 //go:noinline
-func (s *State) putCounterRemPut(k *prep, in *kop.Instr, sl Slot) {
-	if DebugRemPutNever {
+func (s *State) putCounterRemPut(k *prep, sl Slot, m int) {
+	if DebugRemPutNever || m <= 0 {
 		return
 	}
-	if s.value(k, in.A) > 0 {
-		s.remember(s.perms[sl].obj)
-	}
+	s.remember(s.perms[sl].obj)
 }

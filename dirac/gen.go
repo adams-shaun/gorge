@@ -156,6 +156,8 @@ type genPrep struct {
 	infectStall    bool
 	twoSeatOnly    bool           // a card plays only two seats (stallclass.go prepTwoSeat): StallTwoSeat in a larger game
 	fbStampOwnCost bool           // a stamped flashback grant beside an own-cost flashback static (kw_fbgrant.go prepFbStamp): StallFbGrantStamp
+	anyAtkTax      bool           // a card has a StatAttackTax static (combat_attacktax.go)
+	atkTaxStall    bool           // an attack tax beside a part its walk does not model (combat_attacktax.go prepAtkTax): StallAtkTax
 	anyWitherGrant bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
 	anyEOTEmb      bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
 	anyNTEmb       bool           // some emblem ends at its controller's next turn (kop.Emblem.UntilNextTurn; static_effectdelivered.go)
@@ -218,6 +220,7 @@ type genPrep struct {
 	anyWarp        bool           // some card has warp (CardDef.HasWarp; kw_warp.go)
 	anyDash        bool           // some card has dash (CardDef.HasDash; kw_dash.go)
 	anyEvoke       bool           // some card has evoke (CardDef.HasEvoke) or some expression is ExAdamant (kw_evoke.go)
+	anyOverload    bool           // some card has overload (CardDef.HasOverload; kw_overload.go)
 	anyImpending   bool           // some card has impending (CardDef.Impending; kw_impending.go)
 	anyPrepare     bool           // some card is a preparation front (FacePrepare; face_prepare.go)
 	anyPlot        bool           // some card has plot (CardDef.HasPlot; kw_plot.go)
@@ -230,6 +233,7 @@ type genPrep struct {
 	anySneak       bool           // some card has sneak (CardDef.HasSneak; kw_sneak.go)
 	anyWebSling    bool           // some card has web-slinging (CardDef.HasWebSling; kw_websling.go)
 	anyMayFlash    bool           // some card has K:MayFlashCost (CardDef.HasMayFlash; kw_mayflash.go)
+	anyRebound     bool           // some card has printed rebound (CardDef.ReboundAb; kw_rebound.go): a hand-cast spell's resolution exits to exile and registers the upkeep recast
 	anyDelve       bool           // some card has printed or granted Delve (CardDef.Delve, StatStackKw Delve; kw_delve.go)
 	anyConvoke     bool           // some card has printed or granted convoke/improvise or harmonize (CardDef.Convoke/Improvise/Harmonize, StatStackKw Improvise/Convoke; kw_convoke.go)
 	anyBeam        bool           // some card has printed beam me up (CardDef.BeamMeUp; kw_beammeup.go)
@@ -302,7 +306,8 @@ type genPrep struct {
 	anyCharmPick   bool           // some charm carries ChoiceRestriction$ (Ability.ModeRestrict; modal_charmpick.go)
 	anyWaterbend   bool           // some ability costs CostWaterbend (act_waterbend.go)
 	anyXBoundAb    bool           // some activated ability's target is bounded by its X (xBoundTarget): the announced X can leave it no target, which reverses it
-	anyLure        bool           // some card is a lure (CardDef.Lure; combat_lure.go)
+	anyLure        bool           // some card is a lure (CardDef.Lure), or the table can make one (StatLure, mechLure; combat_lure.go)
+	anyLureStat    bool           // a StatLure static (combat_lure.go isLure)
 	anyMustBlock   bool           // some card is printed must-be-blocked or the table gives mechMustBlocked an arena mask (combat_mustbeblocked.go)
 	anyFaceExile   bool           // some Dig exiles face down (kop.DigFaceDown; zone_exilefacedown.go)
 	anyExW         bool           // some card reads the exiled-with source link (CardDef.ExiledWith; zone_exiledwith.go)
@@ -530,7 +535,7 @@ func tableHasPrevent(t *kop.Table) bool {
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasStatic(t, kop.StatAttackTax) {
 		return nil
 	}
 	enteredNeed := tableHasEnteredFrom(t)
@@ -732,6 +737,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyNoPrev = tableHasStatic(t, kop.StatCantPreventDamage)
 	g.anyAsIfHaste = tableHasStatic(t, kop.StatAsIfHaste)
 	g.anyCantSuspect = tableHasStatic(t, kop.StatCantBeSuspected)
+	g.anyLureStat = tableHasStatic(t, kop.StatLure)
 	g.anyTypeCreat = tableHasStatic(t, kop.StatAnyTypeCreatures)
 	g.anyDiscard = tableHasOp(t, kop.OpDiscard)
 	g.anyRemDisc = tableRemembersDiscards(t)
@@ -755,6 +761,13 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyLinkCtr = tableLinkCtr(t)
 	prepStaticClasses(t, g)
 	prepHexOwn(t, g) // kw_hexproofcolor.go
+	for i := range t.Emblems {
+		for j := range t.Emblems[i].Abilities {
+			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCastWithFlash {
+				p.anyEmbFlash = true // an Effect-delivered spell-flash grant (cast_selfflash.go embFlash)
+			}
+		}
+	}
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		pc := &p.cards[i]
@@ -792,6 +805,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.HasDash {
 			g.anyDash = true
+			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
+		}
+		if c.HasOverload {
+			g.anyOverload = true
 			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
 		}
 		if c.HasPlot {
@@ -837,6 +854,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.Delve {
 			g.anyDelve = true
+		}
+		if c.ReboundAb != 0 {
+			g.anyRebound = true
+			g.anyCastProv = true // reboundRests reads the cast's zone (stackEntry.prov)
 		}
 		if c.Cascade != 0 {
 			g.anyCascade = true
@@ -1502,6 +1523,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepTrigAtk(t, g)   // trig_attackers.go
 	prepBatchPool(t, g) // trig_batchmembers.go
 	g.anyCopyElect = g.anyCopyElect || p.casualty
+	prepAtkTax(t, g) // combat_attacktax.go: after the requirement, Taps and land-type reads it checks
 	prepCold(g, &p.cold)
 	return g
 }
@@ -1667,6 +1689,7 @@ type genState struct {
 	energy    [MaxSeats]uint8     // each player's energy counters (CR 122.1; saturates at 255; act_energy.go)
 	roll      uint8               // the last OpRollDie result (ExRollResult; act_energy.go)
 	drawFirst bool                // the turn-based draw of the draw step is pending and no card has been drawn in it yet (repl_draw.go; transient, false between decisions)
+	drawStepN uint8               // the active player's draws in this draw step (trig_drawstep.go; reset on entry)
 	conn      uint8               // OpConnive's nonland hand count before its discard, +1 (0: no connive pending; padding; trig_delayedtiming.go)
 	held      uint8               // entry stamps (mod 8) of until-leaves returns whose enters check a departure frame holds (zone_untilleavesbatch.go; 0 outside a frame; fills the padding after conn)
 
@@ -1857,7 +1880,9 @@ type genState struct {
 		col kop.ColorMask
 		// sc, ctl: a scoped record (Ext PreventDamageScope) prevents the
 		// damage its controller ctl (a player) or the creatures ctl controls
-		// would take; sc holds the kop.PrevScope* bits and col is 0
+		// would take; sc holds the kop.PrevScope* bits and col is 0. A record
+		// with sc&prevNextSc is an Ext PreventNext shield: ctl the recipient's
+		// damage code, obj the effect's source, col the damage left (repl_prevnext.go)
 		sc, ctl uint8
 	}
 	lingerM slotMask

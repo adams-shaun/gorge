@@ -178,7 +178,7 @@ func TestDescribeLeavesANonGenesisTossPhraseAlone(t *testing.T) {
 }
 
 // TestDescribeRendersTheChooserNoteThroughThePlayerName mirrors the toss
-// branch above for E3-1's configured chooser: a Config.StartChooser genesis
+// branch above for the configured chooser: a Config.StartChooser genesis
 // emits "<name> chooses who takes the first turn" as its Seq 1 Note, and the
 // transcript reads it through player() exactly like the toss Note -- the
 // chain text carries the deck identity, the line the human reads carries the

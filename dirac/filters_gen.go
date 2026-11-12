@@ -70,6 +70,9 @@ func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src S
 			return false // value_turntallies.go
 		}
 	}
+	if fl.CtrlTgt != 0 && !s.ctrlRoleTgt(k, int(fl.CtrlTgt)-1, p.ctrl) {
+		return false // filter_heads.go: ControlledBy TargetedOrController
+	}
 	switch fl.Owner {
 	case kop.CtrlYou:
 		if s.objs[p.obj].owner() != ctrl {
@@ -236,7 +239,9 @@ func (s *State) flags2Perm(k *prep, f kop.FilterFlags2, sl Slot, src Slot, layer
 			return false
 		}
 		if f&kop.F2ChosenColor != 0 {
-			if src == NoSlot {
+			if c, ok := s.resColour(src); ok {
+				ch = c // this resolution's ChooseColor answer (static_colourgrant.go)
+			} else if src == NoSlot {
 				return false
 			}
 			if ch > 4 || s.colorsGen(k, sl)&(1<<ch) == 0 {
@@ -504,6 +509,12 @@ func (s *State) matchCardOne(k *prep, fl *kop.Filter, c CardID, owner, ctrl uint
 }
 
 func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl uint8, o Obj, ctx *evalCtx) bool {
+	if fl.CtrlTgt != 0 {
+		// a target's controller is a battlefield role; a card matcher has
+		// no live target to read, so it fails closed (kgen never lowers it
+		// off the battlefield)
+		return false
+	}
 	if fl.Flags&kop.FPlayer != 0 {
 		// a target spec's player alternative (kgen filterPlayerAlt) names a
 		// player, never an object; kernel castTargetsPlayer reads it
@@ -606,6 +617,14 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 				return false
 			}
 			f2 &^= kop.F2ChosenType
+		}
+		if f2&kop.F2ChosenColor != 0 {
+			// a card filter reads this resolution's ChooseColor answer
+			// (Addle's discard choice; static_colourgrant.go resColour)
+			if ch, ok := s.resColour(NoSlot); !ok || cols&(kop.ColW<<ch) == 0 {
+				return false
+			}
+			f2 &^= kop.F2ChosenColor
 		}
 		if f2&(kop.F2Emblem|kop.F2Kicked|kop.F2CastByYou|kop.F2ChosenColor|kop.F2Saddled|kop.F2Sneaked|kop.F2Unblocked|kop.F2BlockedBySrc|kop.F2DamagedBy|kop.F2CrewedSrc|kop.F2Warped) != 0 {
 			return false

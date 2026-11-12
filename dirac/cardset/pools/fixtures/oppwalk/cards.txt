@@ -1,0 +1,22 @@
+# the "target opponent or planeswalker" pool (ValidTgts$ Opponent,Planeswalker):
+# Burning Sun's Avatar (with its up-to-one creature slot), Jeskai Charm,
+# Rakdos's Return, Aether Charge, Zealot of the God-Pharaoh, Scuttling Doom
+# Engine and Theater of Horrors, two cheap planeswalkers to aim them at and
+# creatures/basics for the oracle's constructed lockstep
+# (dirac/oracle/oppwalk_test.go)
+Burning Sun's Avatar
+Jeskai Charm
+Rakdos's Return
+Aether Charge
+Zealot of the God-Pharaoh
+Scuttling Doom Engine
+Theater of Horrors
+Baloth Pup
+Aura Gnarlid
+Ajani, Caller of the Pride
+Kaito, Cunning Infiltrator
+Plains
+Mountain
+Swamp
+Island
+Forest

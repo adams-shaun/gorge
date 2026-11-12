@@ -6,12 +6,15 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// a reflected mana ability (kop.AfManaReflect; AB$ ManaReflected,
-// ReflectProperty$ Is over the controller's own permanents: Plaza of
+// a reflected mana ability (kop.AfManaReflect; AB$ ManaReflected:
+// ReflectProperty$ Is over the controller's own permanents, Plaza of
 // Heroes' "{T}: Add one mana of any color among legendary permanents you
-// control"). kgen admits it only as the third of {T}: Add {C}; {T}: Add one
-// mana of any color (restricted, the Courtyard gap genPrep.anyR); {T}:
-// reflected (dirac/kgen lower_reflectedmana.go).
+// control", or ReflectProperty$ Produce over the opponents', every Valid$
+// alternative OppCtrl: Exotic Orchard's "{T}: Add one mana of any color
+// that a land an opponent controls could produce"). kgen admits it only as
+// the third of {T}: Add {C}; {T}: Add one mana of any color (restricted,
+// the Courtyard gap genPrep.anyR); {T}: reflected (dirac/kgen
+// lower_reflectedmana.go).
 //
 // gorge's planner census (rules paymentPlanManaUnitsOnlyCompute) lists the
 // source as one unit: the shared census's {C}, the reflected colours (the
@@ -80,18 +83,26 @@ func loneManaAb(c *kop.CardDef) bool {
 
 // reflColours is the colours the reflected ability of the source at sl
 // reads: those of its controller's permanents matching ManaAmong (gorge
-// effects.ManaReflectedObjects with ReflectProperty$ Is), {C} dropped.
+// effects.ManaReflectedObjects with ReflectProperty$ Is), or, with
+// M ManaProduce, what the OPPONENTS' matching permanents' mana abilities
+// could produce (ReflectProperty$ Produce: Exotic Orchard, Fellwar Stone;
+// gorge effects.producibleSymbols over Face.ManaAbilities), {C} dropped.
 func (s *State) reflColours(k *prep, sl Slot, c CardID) kop.ColorMask {
 	cd := &k.t.Cards[c]
 	var f kop.FilterID
+	var produce bool
 	for j := range cd.Abilities {
 		if a := &cd.Abilities[j]; a.Kind == kop.AbMana && a.AFlags&kop.AfManaReflect != 0 {
 			f = a.ManaAmong
+			produce = a.ManaProduce
 			break
 		}
 	}
 	if f == 0 {
 		return s.imprintColours(k, sl) // the imprint mox (mana_imprint.go)
+	}
+	if produce {
+		return s.produceColours(k, sl, f)
 	}
 	p := s.perms[sl].ctrl
 	var m kop.ColorMask
@@ -99,6 +110,27 @@ func (s *State) reflColours(k *prep, sl Slot, c CardID) kop.ColorMask {
 		o := b.first()
 		if s.matchPerm(k, f, o, p, sl) {
 			m |= s.colorsAt(k, o)
+		}
+	}
+	return m & kop.ColAny
+}
+
+// produceColours is the colours a Produce-mode reflected ability of the
+// source at sl reads: the union of the OPPONENTS' matching permanents'
+// cards' producible colours (kop.CardDef.ProduceCol, the printed mana
+// abilities' produced symbols {C} dropped, gorge effects.producibleSymbols
+// with ReflectProperty$ Produce). The walk is every other seat's permanents
+// in turn order after the source's controller (gorge AliveFrom(0) x zone
+// order, MatchSpec): a union, so the order never reaches a view, an option
+// list or an event. The filter carries CtrlOpp, so the source's controller's
+// own permanents never match.
+func (s *State) produceColours(k *prep, sl Slot, f kop.FilterID) kop.ColorMask {
+	p := s.perms[sl].ctrl
+	var m kop.ColorMask
+	for b := s.oppsM(p); b.any(); b = b.rest() {
+		o := b.first()
+		if s.matchPerm(k, f, o, p, sl) {
+			m |= k.t.Cards[s.cardAt(o)].ProduceCol
 		}
 	}
 	return m & kop.ColAny

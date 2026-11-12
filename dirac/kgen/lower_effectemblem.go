@@ -116,6 +116,23 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 		}
 		sts = append(sts, st)
 	}
+	if fc, ok := ps.get("ForgetOnCast"); ok {
+		// gorge effectCastSweep: the first completed cast the spec names ends
+		// the effect. Only the spell-flash grant reads it (Quicken's "the next
+		// sorcery spell you cast this turn"): the kernel's emblem carries it as
+		// the CastWithFlash static's Filter2 (embFlashForget).
+		if fc != "False" {
+			if len(sts) != 1 || sts[0].Kind != "CastWithFlash" {
+				return refuse("Effect ForgetOnCast$ beside a static other than one CastWithFlash")
+			}
+			f, err := lc.filter(fc)
+			if err != nil {
+				return err
+			}
+			sts[0].F2 = f
+		}
+		ps.consume("ForgetOnCast")
+	}
 	ps.consume("Name", "Image", "Stackable")
 	left := ps.unread()
 	if allCantBeCast(ss) || lc.monarchGate(ps) {
@@ -265,6 +282,24 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 		// gorge cantBeCastParamsReadableKeys; the lowering consumes the
 		// subset the kernel's cast gate reads, the rest refuses as unread
 		keys = map[string]bool{"Mode": true, "ValidCard": true, "Caster": true, "Origin": true, "NumLimitEachTurn": true, "AffectedZone": true, "Phases": true, "Condition": true, "ClassBand": true, "IsPresent": true, "PresentCompare": true, "PresentZone": true, "CheckSVar": true, "SVarCompare": true, "Description": true}
+	case "CastWithFlash":
+		if lc.face != nil && lc.face.Name == "Complete the Circuit" {
+			// the grant beside a delayed SpellCast copy trigger: the lockstep
+			// (effectflash_test.go) offers its {5}{U} convoke cast too rarely
+			// for the pair to play identically with evidence
+			return lStatic{}, refuse("Effect static CastWithFlash beside a delayed SpellCast copy trigger (Complete the Circuit): its {5}{U} convoke cast is not reached by any lockstep game")
+		}
+		// gorge effects.SpellFlashParamsReadable: Caster$ You (the effect's
+		// controller, the emblem's player) and ValidSA$ Spell. AffectedZone$
+		// (Winding Canyons' every-zone list) is read by neither side, so it
+		// is dropped like MustAttack's player reference above.
+		keys = map[string]bool{"Mode": true, "ValidCard": true, "ValidSA": true, "Caster": true, "AffectedZone": true, "Description": true, "Secondary": true}
+		cp := make(map[string]string, len(s.Params))
+		for k, v := range s.Params {
+			cp[k] = v
+		}
+		delete(cp, "AffectedZone")
+		s.Params = cp
 	case "CantPreventDamage":
 		keys = map[string]bool{"Mode": true, "Description": true, "Secondary": true} // the global form (gorge cantPreventDamage: no Affected$)
 	case "CanAttackDefender":
@@ -297,6 +332,10 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 		}
 		if libPayLife {
 			st.Flags = append(st.Flags, "MayPayLife")
+		}
+	} else if s.Mode == "CastWithFlash" {
+		if st.Kind != "CastWithFlash" {
+			return lStatic{}, refuse("Effect static CastWithFlash lowered to %s", st.Kind)
 		}
 	} else if s.Mode == "CantBeCast" {
 		if st.Kind != "CantBeCast" || st.Zone == zAny {
