@@ -1541,11 +1541,8 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			c.Op, c.A = op, v
 		}
-		if pz, ok := tp.get("PresentZone"); ok {
-			// gorge trigger_condition.go: the zones' counts summed
-			if c, err = presentZoneCond(c, pz, ip, lc); err != nil {
-				return err
-			}
+		if c, err = lc.triggeredPresentZoneCond(c, tp, ip); err != nil {
+			return err
 		}
 		conds = append(conds, c)
 	}

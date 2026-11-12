@@ -101,7 +101,7 @@ const (
 	OpDigEx             // player(s) Obj look at the top A cards; up to B (-1 all, -2 any number) matching F go to zone C&7; C>>3 = DigFlags (rest zone, order, optional, reveal, remember)
 	OpDigUntil          // player(s) Obj reveal from the top until A cards matching F; found to zone C&7, the rest per C>>3 = DigUntilFlags
 	OpPeek              // player Obj looks at the top A cards; they become the remembered set
-	OpTwoPiles          // Obj separates the remembered cards into a face-down and a face-up pile; an opponent picks one; the chosen pile goes to zone C, the other to the graveyard
+	OpTwoPiles          // the controller separates the remembered cards into two piles; an opponent picks one; the chosen pile goes to zone C, the other to the graveyard; B.N = TpOppSeparates (the opponent separates, the controller picks)|TpUnchosenPileOrder (the unchosen pile in its own order)
 	OpChooseEachType    // each player in Obj chooses one permanent they control of each permanent type; the chosen set is RefChosen
 	OpSacrificeAll      // every permanent matching F is sacrificed by its controller
 	OpCastFree          // the controller may cast any number of the cards in Obj (zone C) without paying their mana costs

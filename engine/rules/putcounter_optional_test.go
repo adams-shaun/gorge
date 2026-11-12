@@ -78,32 +78,6 @@ func answerPutOptional(t *testing.T, e *Engine, idx int) {
 	submitChoices(t, e, idx)
 }
 
-// talusPaladinGame builds a 2-seat game with the real corpus Talus Paladin on
-// seat 0's battlefield at Main 1 of turn 1, then pushes its entry trigger
-// directly (the TestVampireLacerator pattern: the push IS the trigger match)
-// and resolves it up to the may-put election.
-func talusPaladinGame(t *testing.T, seed uint64) (*Engine /*cfg*/, Config, state.ObjID) {
-	t.Helper()
-	e, cfg, pal := gateFixture(t, seed, "Talus Paladin")
-	pal = gateMoveFromLibrary(t, e, "Talus Paladin", state.ZBattlefield)
-	e.emit(events.Event{Kind: events.TriggerPush, Obj: pal, Player: 0, Amount: 0})
-	e.resolveTop()
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "put_optional" {
-		t.Fatalf("pending = %+v, want the may-put election", d)
-	}
-	if d.Player != 0 {
-		t.Fatalf("ask player = %d, want 0 (the controller)", d.Player)
-	}
-	if len(d.Options) != 2 || d.Options[0].Kind != "yes" || d.Options[1].Kind != "no" {
-		t.Fatalf("options = %+v, want yes then no (option 0 = yes)", d.Options)
-	}
-	if d.Min != 1 || d.Max != 1 {
-		t.Fatalf("bounds %d..%d, want 1..1", d.Min, d.Max)
-	}
-	return e, cfg, pal
-}
-
 // TestZimonesHypothesisMayPutElectionWrapsThePick: the bare-Choices$ spell
 // carrier asks the ELECTION FIRST (accept -> the recipient pick ask; decline
 // -> neither). The chained DBGenericChoice runs on BOTH paths (the chain is owned

@@ -12,7 +12,6 @@ package rules
 // then the corner cases and the library/graveyard/exile interactions.
 
 import (
-	"os"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -22,14 +21,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
-
-// setAuditSkip skips a FAILING finding unless the audit env is set.
-func setAuditSkip(t *testing.T, defect, ticket string) {
-	t.Helper()
-	if os.Getenv("GORGE_SET_AUDIT") == "" {
-		t.Skipf("set-audit finding (tmt): %s. Follow-up: %s", defect, ticket)
-	}
-}
 
 // setAuditRealCard loads a linked real corpus card, failing the precondition
 // loudly if the corpus is missing it (never a vacuous skip).

@@ -54,6 +54,9 @@ func (s *State) uncounterable(k *prep, i int) bool {
 	if k.gen != nil && k.gen.anyDelaySpell && s.g.ndp != 0 && !DebugUncounterDelayOff {
 		n = s.uncounterDelayed(e)
 	}
+	if k.gen != nil && k.gen.anyUncScope && len(s.cold.exMark) != 0 {
+		n += s.uncounterScope(k, e) // repl_turnrepl.go: Veil of Summer, Domri
+	}
 	scan := k.anyUncounter && !DebugUncounterOff
 	if !scan && n == 0 {
 		return self

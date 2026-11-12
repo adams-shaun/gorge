@@ -72,20 +72,6 @@ func withoutSub(sa *cards.SA) *cards.SA {
 	return &out
 }
 
-// withOptionalAdded copies the compiled body with an Optional$ True election
-// added, for the decline pin: answered "no" (Ctx.SetStateOpt), the body must
-// change no face and remember nothing.
-func withOptionalAdded(sa *cards.SA) *cards.SA {
-	params := make(map[string]string, len(sa.Params)+1)
-	for k, v := range sa.Params {
-		params[k] = v
-	}
-	params["Optional"] = "True"
-	out := *sa
-	out.Params = params
-	return &out
-}
-
 // withoutRememberChanged copies the compiled body with the RememberChanged
 // parameter removed -- the corpus default shape -- for the absent-param pin.
 func withoutRememberChanged(sa *cards.SA) *cards.SA {

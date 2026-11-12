@@ -39,7 +39,8 @@ var improviseDecks = [][2][]cardset.Entry{{
 	},
 }, {
 	// Artifacts ahead of the lands: a declined Foundry Assembler's window taps every
-	// land, floating the coloured pips gorge offers these two against.
+	// land, floating the coloured pips; gorge offers these two with the lands
+	// untapped too, whenever the pool plus the sources pay what the credit leaves.
 	{
 		{Name: "Ornithopter", Count: 18}, {Name: "Foundry Assembler", Count: 8},
 		{Name: "Reverse Engineer", Count: 8}, {Name: "Island", Count: 6},
@@ -71,8 +72,8 @@ type improviseProbe struct {
 	asking   bool
 	// declines: answer the common carriers' announcements with no artifact. A cast
 	// the lands can't pay then taps them in the window and reverses, leaving their
-	// mana floating, and the carriers no plan prices are offered only against a pool
-	// that pays them.
+	// mana floating; a carrier gorge's plan prices is offered with the pool empty
+	// too, when its untapped sources pay what the credit leaves.
 	declines bool
 	// castsFloated: cast Reverse Engineer or Enraged Giant the moment it's offered.
 	// Only floated mana offers one, and the bot rarely ranks it first.

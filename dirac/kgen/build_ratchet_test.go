@@ -239,10 +239,10 @@ import (
 // lower — Curse of Opulence, Curse of Disturbance, Curse of Verbosity,
 // Curse of Bounty, Curse of Vitality, Curse of Inertia, Archnemesis,
 // Curse of Chaos, Curse of Shallow Graves, plus their b_2_2_zombie and
-// c_a_gold_sac token entries — beside land's 22929; merged ALL
-// build-level 22929 -> 22940 measured).
+// c_a_gold_sac token entries — beside land's 22971; merged ALL
+// build-level 22971 -> 22982 measured).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22940, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22982, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

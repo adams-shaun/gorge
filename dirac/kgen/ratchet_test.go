@@ -138,15 +138,15 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// lower — Curse of Opulence, Curse of Disturbance, Curse of Verbosity,
 	// Curse of Bounty, Curse of Vitality, Curse of Inertia, Archnemesis,
 	// Curse of Chaos, Curse of Shallow Graves, plus their b_2_2_zombie and
-	// c_a_gold_sac token entries — beside land's 22929; merged ALL
-	// build-level 22929 -> 22940 measured).
+	// c_a_gold_sac token entries — beside land's 22971; merged ALL
+	// build-level 22971 -> 22982 measured).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22940, 34442},
+	"ALL": {22982, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
-	"BRO": {217, 280},
+	"BRO": {218, 280},
 	"DFT": {255, 276},
-	"DMU": {196, 270},
+	"DMU": {197, 270},
 	"DSK": {251, 276},
 	"ECL": {244, 273},
 	"EOE": {250, 266},
@@ -156,10 +156,10 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	"MKM": {251, 279},
-	"MOM": {200, 296},
+	"MOM": {201, 296},
 	"MSH": {246, 276},
 	"NEO": {201, 287},
-	"ONE": {200, 271},
+	"ONE": {201, 271},
 	"OTJ": {251, 276},
 	"SNC": {187, 266},
 	"SOS": {257, 270},

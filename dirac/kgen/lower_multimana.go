@@ -398,11 +398,13 @@ func ctrTapGapMana(a *lAbility) bool {
 
 // ctrTapGapModelled: the counter-cost {T} ability a beside the plain first
 // ability first is the shape kop.SecondCtrTapManaAb reads: a fixed colour of a
-// literal amount, unrestricted, the first ability one mana of one colour or
-// any (unrestricted, not a choice).
+// literal amount, or one mana of any colour (the Vivid lands), unrestricted,
+// the first ability one mana of one colour or any (unrestricted, not a choice).
 func ctrTapGapModelled(first, a *lAbility) bool {
 	m, f := a.Mana, first.Mana
-	return len(m.Colors) == 1 && !m.Choice && !m.Each && m.Restrict == nil && m.RestrictAb == nil && m.Amount.Kind == vConst && m.Amount.N >= 1 && m.Amount.N <= maxRestrictedAmount &&
+	oneColour := len(m.Colors) == 1 && m.Amount.N >= 1 && m.Amount.N <= maxRestrictedAmount ||
+		m.Colors == "WUBRG" && m.Amount.N == 1 // one mana of any colour (Vivid Grove's second ability)
+	return oneColour && !m.Choice && !m.Each && m.Restrict == nil && m.RestrictAb == nil && m.Amount.Kind == vConst &&
 		!f.Choice && (len(f.Colors) == 1 || f.Colors == "WUBRG")
 }
 
@@ -415,12 +417,14 @@ func ctrTapGapModelled(first, a *lAbility) bool {
 //     (a first and only all-at-once "{T}, Sacrifice another <filter>" is
 //     modelled: refuseEachMana's sacEachMana);
 //   - a cost of {T} plus removing counters other than ctrTapGapModelled's
-//     (Vivid Crag's any colour, Throne of Makindi's restricted two): gorge's
+//     (Throne of Makindi's restricted two): gorge's
 //     census leaves it a relaxable once-only gap whose prefix script
 //     activates the source, answers the ability ask with the second ability,
 //     then its colour; the kernel's counter gap kind (mana_countercost.go)
-//     reads a second ability only for a fixed unrestricted colour.
-//     (Weather Maker's {C}{C} is modelled: ctrTapGapMana; so is the
+//     reads a second ability only for an unrestricted fixed colour or one
+//     mana of any colour.
+//     (Weather Maker's {C}{C} and the Vivid lands' any colour are modelled:
+//     ctrTapGapMana; so is the
 //     tap-another shape, Scene of the Crime: tapXGapMana.)
 //   - a spend-restricted ability of several mana of a fixed colour other than
 //     the first ability's, or above maxRestrictedAmount (the same colour up to
@@ -442,7 +446,7 @@ func manaGapWhy(first, a *lAbility) string {
 	switch {
 	case !plainTapMana(a, false) && !plainTapMana(a, true):
 		if a.Cost.SubCtr != 0 {
-			return "a cost beyond {T} the kernel's mana walk cannot activate: its counter gap kind reads a second ability only for a fixed unrestricted colour"
+			return "a cost beyond {T} the kernel's mana walk cannot activate: its counter gap kind reads a second ability only for an unrestricted fixed colour or any colour"
 		}
 		return "a cost beyond {T} the kernel's mana walk cannot activate"
 	case m.Restrict != nil && m.Amount.Kind == vConst && m.Amount.N > 1 && len(m.Colors) == 1 && m.Colors != "WUBRG" && !m.Choice:

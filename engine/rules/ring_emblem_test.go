@@ -3,19 +3,10 @@ package rules
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
-
-// ringEmblemEngine is layerEngine plus the Config its replay needs.
-func ringEmblemEngine(t *testing.T) (*Engine, Config) {
-	t.Helper()
-	cfg := seatZeroStart(Config{Seed: 1, Names: []string{"a", "b"},
-		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}})
-	return New(cfg), cfg
-}
 
 // countLifeChange sums the LifeChange events for one seat (the emblem's level
 // 4 drain is a LoseLife -> LifeChange with a negative amount).
