@@ -49,14 +49,20 @@ func (s *State) fireTapsBy(k *prep, sl Slot, tapper uint8) {
 	s.fireObj(k, kop.TrigTaps, sl, p.obj, p.ctrl, int16(tapper))
 }
 
-// fireTapsMask is fireTaps over the permanents of m, in battlefield order
-// (the attacking player's list: gorge emits a Tap per attacker of the
-// declaration).
+// fireTapsMask is fireTaps over the permanents of m, in the order the
+// attackers were declared (perm.bord; gorge emits a Tap per attacker in the
+// declaration's chosen order, CR 508.1f), so the triggers queue as gorge's do
+// and a trigger_order ask lists them alike.
 //
 //go:noinline
 func (s *State) fireTapsMask(k *prep, m slotMask) {
 	var ord [MaxPerm]Slot
 	n := s.listenerOrder(m, &ord)
+	for i := 1; i < n; i++ {
+		for j := i; j > 0 && s.perms[ord[j]].bord < s.perms[ord[j-1]].bord; j-- {
+			ord[j], ord[j-1] = ord[j-1], ord[j]
+		}
+	}
 	for _, sl := range ord[:n] {
 		s.fireTaps(k, sl)
 	}
