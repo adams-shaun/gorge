@@ -80,7 +80,7 @@ func prepCold(g *genPrep, l *coldLayout) {
 	if g.enteredNeed {
 		l.entered = maxEntered
 	}
-	if g.ix[mechExileEx] != arenaNone {
+	if g.ix[mechExileEx] != arenaNone || g.anyTurnScope {
 		l.exMark = maxExMarks
 	}
 	if g.ix[mechExileEx] != arenaNone || g.anyRepl&rbExileOnLeave != 0 {

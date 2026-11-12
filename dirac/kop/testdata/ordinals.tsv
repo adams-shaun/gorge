@@ -1410,7 +1410,11 @@ TrigTurnFaceUp	TrigEvent	27
 TrigUnlockDoor	TrigEvent	30
 TrigUntaps	TrigEvent	17
 TurnReplExileOpp	untyped int	1
+TurnReplPlayerHex	untyped int	5
 TurnReplPlusCreatureCtr	untyped int	2
+TurnReplUncounter	untyped int	3
+TurnReplHexUB	untyped int	6
+TurnReplUncounterCreature	untyped int	4
 U	untyped int	1
 VCardsInHand	VKind	7
 VConst	VKind	0

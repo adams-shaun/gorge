@@ -171,6 +171,9 @@ func (s *State) playerHexproof(k *prep, p uint8) bool {
 	if k.gen == nil || k.gen.anyRepl&rbPlHex == 0 {
 		return false
 	}
+	if k.gen.anyPlHexRec && s.turnPlayerHex(k, p) {
+		return true // a Pump's this-turn player grant (repl_turnrepl.go)
+	}
 	if k.gen.anyYouHex {
 		return s.youHexproof(k, p) // ctr_shield.go
 	}

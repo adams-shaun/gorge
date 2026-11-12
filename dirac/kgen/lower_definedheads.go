@@ -4,6 +4,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -49,11 +50,14 @@ func (lc *lowerCtx) triggeredQualGuard(sa *cards.SA, ps *params) (lCond, error) 
 
 // pumpYouAndValid lowers the one compound Pump subject gorge's definedSpec
 // joins with " & " (effects/context.go: the parts' target sets, You first;
-// pump.go skips players in the object loop and gives a player the keyword
-// grant): `Defined$ You & Valid <filter>` with KW$ only (Dawn's Truce). It
-// emits the controller's keyword grant, then a PumpAll of the same keywords
-// over the filter (the set read once, at resolution). done is false for any
-// other subject; any other key or compound refuses by name.
+// pump.go's object loop skips players and registerPumpPlayerGrant gives the
+// controller the hexproof/shroud/protection keywords): `Defined$ You & Valid
+// <filter>` with KW$ only (Dawn's Truce, Veil of Summer). It emits the
+// controller's hexproof (a TurnRepl record), then a PumpAll of the same
+// keywords over the filter (the set read once, at resolution); Veil's
+// hexproof from blue and from black is one TurnRepl TurnReplHexUB for the
+// player and Permanent.YouCtrl together. done is false for any other subject;
+// any other key or compound refuses by name.
 func (lc *lowerCtx) pumpYouAndValid(ps *params) (done bool, err error) {
 	d := strings.TrimSpace(ps.m["Defined"])
 	if !strings.HasPrefix(d, "You & ") {
@@ -83,10 +87,6 @@ func (lc *lowerCtx) pumpYouAndValid(ps *params) (done bool, err error) {
 	if _, mb := splitKWSentence(kw, mustBeBlockedKW); mb {
 		return true, refuse("Pump Defined$ %q with the must-be-blocked sentence", d)
 	}
-	ks, err := pumpKeywords(kw)
-	if err != nil {
-		return true, err
-	}
 	ps.get("Defined")
 	f, err := lc.filter(strings.TrimPrefix(d, "You & Valid "))
 	if err != nil {
@@ -95,8 +95,49 @@ func (lc *lowerCtx) pumpYouAndValid(ps *params) (done bool, err error) {
 	if f.Players != 0 || len(f.Clauses) == 0 {
 		return true, refuse("Pump Defined$ %q: a player alternative", d)
 	}
-	cs := strings.Join(ks, "&")
-	lc.emit(lInstr{Op: "GrantKeyword", Obj: lRef{Kind: rYou}, CS: cs})
-	lc.emit(lInstr{Op: "PumpAll", F: f, A: cst(0), B: cst(0), CS: cs})
+	if hexproofFromBlueBlack(kw) {
+		// Veil of Summer: hexproof from blue and from black for the controller
+		// and every permanent they control as it resolves (the one filter the
+		// kernel's mechHexUB plane carries)
+		all, err := lc.filter("Permanent.YouCtrl")
+		if err != nil {
+			return true, err
+		}
+		if f.String() != all.String() {
+			return true, refuse("Pump Defined$ %q: hexproof from colours over %s", d, f)
+		}
+		lc.emit(lInstr{Op: "TurnRepl", C: kop.TurnReplHexUB, Note: "you and your permanents have hexproof from blue and from black this turn"})
+		return true, nil
+	}
+	ks, err := pumpKeywords(kw)
+	if err != nil {
+		return true, err
+	}
+	hex := false
+	for _, k := range ks {
+		switch {
+		case k == "Hexproof":
+			hex = true
+		case k == "Shroud" || strings.HasPrefix(k, "ProtectionFrom"):
+			// gorge registerPumpPlayerGrant gives the player these too; the
+			// kernel carries only the controller's hexproof
+			return true, refuse("Pump Defined$ %q: a player %s grant", d, k)
+		}
+	}
+	if hex {
+		lc.emit(lInstr{Op: "TurnRepl", C: kop.TurnReplPlayerHex, Note: "you have hexproof this turn"})
+	}
+	lc.emit(lInstr{Op: "PumpAll", F: f, A: cst(0), B: cst(0), CS: strings.Join(ks, "&")})
 	return true, nil
+}
+
+// hexproofFromBlueBlack reports whether a Pump's KW$ is exactly "Hexproof:Black
+// & Hexproof:Blue" in either order (Veil of Summer).
+func hexproofFromBlueBlack(kw string) bool {
+	parts := strings.Split(kw, "&")
+	if len(parts) != 2 {
+		return false
+	}
+	a, b := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
+	return a == "Hexproof:Black" && b == "Hexproof:Blue" || a == "Hexproof:Blue" && b == "Hexproof:Black"
 }
