@@ -11,10 +11,11 @@ import (
 // TestHistoricSagaMatchup: a matchup holding a Saga and a PredHistoric
 // filter must keep the Saga subtype, remap PredN onto it and give the Saga
 // card its mask bit (CR 700.6); the kernel reads exactly those two (predPermKind,
-// predCardKind). tail-10 is used because std-trc keeps every printed subtype
-// through the pool-wide choosesType escape and cannot witness the drop.
+// predCardKind). tail-11 is used because std-trc keeps every printed subtype
+// through the pool-wide choosesType escape and cannot witness the drop; the
+// bucket index moves when a lowering changes the lowered tail's buckets.
 func TestHistoricSagaMatchup(t *testing.T) {
-	set := cardsettest.Synth(t, "tail-10")
+	set := cardsettest.Synth(t, "tail-11")
 	deck := []cardset.Entry{{Name: "Abstergo Entertainment", Count: 1}, {Name: "Azusa's Many Journeys", Count: 1}}
 	tbl, ids, _, err := set.Matchup(deck, nil)
 	if err != nil {
