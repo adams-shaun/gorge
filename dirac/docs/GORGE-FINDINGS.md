@@ -10,11 +10,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
 
 ## dirac copies gorge
 
-- Cascade (CR 702.85a) puts the exiled cards on the bottom "in a random
-  order"; dirac copies gorge's fixed stand-in: the non-found cards in
-  library order right after the scan, then the found card last if it was
-  not cast (dirac/kw_cascade.go). Printed K:Cascade only (CardDef.Cascade);
-  granted cascade and Averna's replacement are not lowered.
 - Improvise (CR 702.126a) rides the convoke payment path (kw_convoke.go,
   CardDef.Improvise): the pick is a ChGenConvoke choose with mode 6 and pays
   generic only; the candidates are untapped artifacts (Engine.IsArtifact,
@@ -27,21 +22,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   A printed card with both keywords is
   refused in kgen; a grant beside the other keyword (or on an {X} cost)
   poses gorge's one mixed announcement (convokeOptions, convokeXCost).
-- Free cast with an either-or additional cost (Alternate Additional Cost,
-  Eaten Alive via Etali, Louisoix's Sacrifice via Hurl into History's
-  Discover): gorge's altAddAsk classifies the parts with `castable` ->
-  `pay.CostPayable`, which reads only the floating pool, and a free cast is
-  no lowered potential play, so untapped lands never reach the pool. A free
-  cast whose pip-free or coloured mana part the pool does not pay (and whose
-  other part is unpayable) is reversed with no ask (CR 733.1) even with
-  lands untapped, although CR 118.9d / 601.2h would let them pay. dirac
-  emulates this at the ask (cast.go bsAltAdd, `altAddPayable(ask=true)`),
-  gated on `cfgGorgeLowering|cfgGorgeAutopay`; with neither part payable at
-  all it reverses with no ask and no taps on every configuration. The answer
-  path keeps the lands-inclusive reading (`ask=false`), since gorge pays a
-  chosen part at the mana window, where the lands are tapped (pair 9954).
-  Tests: TestFreeCastEitherOrNoPayablePart, TestFreeCastEitherOrFloatingPoolPays;
-  lockstep: ctrshapes (Hurl into History deck).
 - Restricted mana that floats beside the pool (`State.rb`, `mana_restrbatch.go`)
   from a loyalty ability's resolving restriction (Chandra, Chill of
   Compliance's noncreature-only {U}: no mana ability, CR 605.1a, but the
@@ -193,19 +173,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   One match (the usual case) is exact.
 - Ward—Sacrifice a <filter>: CantSacrifice restrictions (gorge
   sacrificeBlockedForCost) are not modelled: no pooled card has one.
-- Hollowmurk Siege's Sultai draw (granted
-  `Mode$ CounterAdded | ValidCard$ Creature.YouCtrl | ActivationLimit$ 1`):
-  gorge does not enforce `ActivationLimit$` on an `AddTrigger$`-granted
-  trigger (pin b4e6762a27f9, `engine/rules/trigger_granted.go`
-  `checkGrantedStaticTriggersUsing` never calls `triggerActivationLimitAllows`
-  / `reserveTriggerLimits`; Forge's `Trigger.checkActivationLimit` does), so
-  a second counter in one turn draws a second card in gorge only. dirac
-  keys the limit per (object, ability), which is the card text, and does not
-  emulate gorge. With four or more Hollowmurks about half of 1000 seeds of
-  pool `siege` diverge (seed 1, a `trigger_order` decision: ref two
-  triggers, dirac none), as do two Hollowmurks beside Barrensteppe (several
-  counters in one turn); `khollowDecks` caps the pool at two copies and no
-  Barrensteppe, where only one counter a turn is reachable (`TestSiegeHollowmurkLockstep`).
 - A graveyard may-play permission's non-mana `RaiseCost$` (Noctis, Alien Symbiosis, Wickerfolk Indomitable, and BLB's Festival of
   Embers) BESIDE the spell's own additional pick cost: the kernel prices one
   pick Cost, so the cast is a loud `StallMayRaise` ("mayraise"). One raise
@@ -217,18 +184,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   also owes its own additional cost. A land a raising permission grants (an
   artifact land under Noctis) is withheld, payable or not, as gorge's
   `mayPlayLandIds` does (`dirac/cost_mayplayraise.go` `mayRaiseLandHeld`).
-- The legendary-source combat-hit bit (Blitzball's
-  `HasPropertywasDealtCombatDamageThisTurnBy Creature.Legendary GE1`): gorge
-  snapshots the hit source's printed face and matches the spec at the READ,
-  where a layer-4 type entry for the source's ID (a crewed Vehicle, an
-  animated artifact) is read live and a dead source falls back to its printed
-  face. dirac reads the source's types at the HIT (`typesAt`, layers
-  applied). The two agree unless a type-changing effect on a legendary source
-  begins or ends between the hit and the read (the same turn); no pool card
-  has the shape (an animated legendary non-creature, or a legendary creature
-  that loses Creature mid-turn). `NumStall` is 131 (`StallCombatHit`, a fifth
-  source that reads the BySource word dealt combat damage to a player in one
-  turn).
 - DealDamage `DamageSource$ <trigger object>` to each opponent
   (OpDealDamageFrom with B.N = 1,
   `dirac/act_damagefrom.go` `dmgSrcPlayers`): two gaps against gorge
@@ -241,14 +196,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   two noncombat damage replacements that both apply to the player would
   order differently. Neither shape is in a pool (`dmgsrcpl` has at most
   one noncombat damage replacement and no infect grant).
-- A "single target" filter on a stack object (`singleTarget`,
-  `engine/effects/filter.go`) reads `len(o.Targets)` and leaves out the
-  sub-abilities' targets, so Redirect Lightning is offered on The Last Agni
-  Kai's fight or How to Start a Riot, which have two targets. The card says a
-  spell or ability with a single target; Forge's property counts
-  `getAllTargetChoices`, read, not run. dirac counts the whole chain
-  (`singleTargetOK`), so on the full surface these pairs diverge until gorge
-  is fixed (std-tla 125, 381, 400).
 - A paid Offspring whose source leaves with its enter trigger on the stack: gorge's
   `Count$OffspringPaid` reads what the source left (CR 608.2h) and `CopyPermanent` mints the
   1/1 from the departed object; dirac's lowering (`Count$Valid Card.Self+kicked`) reads
@@ -256,20 +203,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   all of it, and 800 lockstep games with Burning-Tree Emissary never reached one. Multikicker,
   `Count$TimesKicked`, Mutate and OptionalCost on a permanent spell are refused by kgen, so
   they have no such read.
-- The look-back observer `checkTriggersNow` builds doesn't carry `Engine.startingLife`, so
-  `h.StartingLife()` reads 0 on it, and Leyline of Hope's `Count$YourStartingLife/Plus.7` gate is 7
-  there. A creature dying at 17 life then reads +2/+2 in its leaves-the-battlefield trigger: Infernal
-  Phantom deals 4 with power 2 at every decision (std-dsk 53). Adding the field to the observer's literal
-  in a patched gorge export makes the pair run clean to its end. CR 603.10a reads the board as it was,
-  whose condition was false.
-- A Changeling card off the battlefield shares no creature type for `TargetsWithSameCreatureType$`:
-  `setPropTokens` reads `e.Derived(obj).Types`, which carries only the printed Shapeshifter there, so
-  gorge doesn't offer Unbury's two-card mode for a Changeling and an Elf in a graveyard (std-ecl 38, 141,
-  194, 271, 365, 443, run). Changeling is a characteristic-defining ability that works in every zone (CR
-  702.73a, 604.3). Forge's static is `EffectZone$ All` and XMage's `shareCreatureTypes` reads
-  `isAllCreatureTypes` (both read, not run). All six pairs run clean on a patched gorge export whose
-  `setPropTokens` gives an `effects.IntrinsicAllCreatureTypes` card off the battlefield every creature
-  type. dirac counts it (`crTypesOf`), so these pairs diverge until gorge is fixed.
 - A prevent-the-next-N shield (dirac/repl_prevnext.go, Ext PreventNext) and any
   other damage replacement that would be a candidate for the same event (a
   colour or scope prevention, a SHIELD counter, a printed prevention, a
