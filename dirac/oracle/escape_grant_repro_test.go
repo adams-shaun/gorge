@@ -308,3 +308,99 @@ func TestGroundSealLockstep(t *testing.T) {
 		}
 	}
 }
+
+// countAsDecks play the inert count-as carriers: Pardic Firecat and Diligent
+// Farmhand were refused whole on their "CARDNAME count as Flame Burst."
+// AffectedZone$ Graveyard static, which gorge's printed Continuous walk
+// registers nothing for, so both engines now lower the static to nothing and
+// the cards play as their other abilities. Flame Burst, the consumer, stays
+// refused by name: its count reads the count-as filter no engine models.
+var countAsDecks = [2][]cardset.Entry{
+	{ // A: R/G
+		{Name: "Pardic Firecat", Count: 4}, {Name: "Diligent Farmhand", Count: 4},
+		{Name: "Mountain", Count: 16}, {Name: "Forest", Count: 16},
+	},
+	{ // B: plains do nothing
+		{Name: "Plains", Count: 40},
+	},
+}
+
+type countAsStats struct {
+	firecat, farmhand int
+}
+
+type countAsProbe struct {
+	st   *countAsStats
+	base Policy
+	r    *rand.Rand
+}
+
+func (p *countAsProbe) pick(c *PickCtx) Canon {
+	var bodies, lands []Canon
+	if c.G != nil {
+		for _, x := range c.D.Options {
+			o, ok := c.G.GorgeOption(x)
+			if !ok {
+				continue
+			}
+			if o.Kind == "cast" {
+				if ob := c.G.E.G.Obj(o.Obj); ob != nil && ob.Face() != nil {
+					switch ob.Face().Name {
+					case "Pardic Firecat":
+						bodies = append(bodies, x)
+					case "Diligent Farmhand":
+						bodies = append(bodies, x)
+					}
+				}
+			} else if o.Kind == "play_land" {
+				lands = append(lands, x)
+			}
+		}
+	}
+	a := p.base.Pick(c)
+	switch {
+	case len(bodies) > 0 && p.r.IntN(4) != 0:
+		a = bodies[p.r.IntN(len(bodies))]
+	case len(lands) > 0 && p.r.IntN(2) != 0:
+		a = lands[p.r.IntN(len(lands))]
+	}
+	if c.G != nil && a.Kind() == ActCast {
+		if o, ok := c.G.GorgeOption(a); ok {
+			if ob := c.G.E.G.Obj(o.Obj); ob != nil && ob.Face() != nil {
+				switch ob.Face().Name {
+				case "Pardic Firecat":
+					p.st.firecat++
+				case "Diligent Farmhand":
+					p.st.farmhand++
+				}
+			}
+		}
+	}
+	return a
+}
+
+// TestCountAsStaticLockstep plays the inert count-as carriers over seeds and
+// requires both to cast, attack and die identically on both sides.
+func TestCountAsStaticLockstep(t *testing.T) {
+	t.Parallel()
+	st := &countAsStats{}
+	div := runDecks(t, 128, countAsDecks, "countas", func(seed uint64) Policy {
+		p := &countAsProbe{st: st, base: RandomPolicy(seed), r: rand.New(rand.NewPCG(seed, 0x636f756e))}
+		return PolicyFunc(p.pick)
+	})
+	t.Logf("128 games, countas %+v, %d divergences", *st, b2i(div))
+	if div {
+		t.Fatal("diverged")
+	}
+	for _, c := range []struct {
+		n, min int
+		s      string
+	}{
+		{st.firecat, 2, "Pardic Firecat casts"},
+		{st.farmhand, 2, "Diligent Farmhand casts"},
+	} {
+		if c.n < c.min {
+			t.Errorf("%s: %d, want at least %d", c.s, c.n, c.min)
+		}
+	}
+}
