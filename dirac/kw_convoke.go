@@ -524,24 +524,18 @@ func (s *State) targetWindowShort(k *prep, e *stackEntry, cost *kop.ManaCost, hi
 		}
 	}
 	s.occ = s.occ.andNot(hide)
-	// gorge's affordableTargetCandidates prices the window from its census,
-	// which leaves a tap-another source (Springleaf Drum) unpriced: the census
-	// is incomplete, so the menu keeps its candidates however short the
-	// window is (CR 601.2g; castWindowCensusComplete). A tap-another source
-	// with a creature left to tap is such a source.
-	if s.scriptTapX(k, e.ctrl).any() {
+	// gorge's affordableTargetCandidates prices the window from its census;
+	// any source the census cannot price (a tap-another one with no creature
+	// to tap, a restricted mana ability the payment admits but the probe does
+	// not price, an each-colour source, a TapsForMana watcher that changes a
+	// source's production) leaves it incomplete, and the menu keeps its
+	// candidates however short the window is (CR 601.2c: targets are chosen,
+	// and a cast only reverses at 601.2h when the payment cannot be met;
+	// castWindowCensusComplete). This is the arm waterbendTargetAbort and
+	// tapXTargetAbort share.
+	if !s.windowCensusComplete(k, e) {
 		s.CopyFrom(saved)
 		return false
-	}
-	if k.gen.anyWindowGap {
-		// a window-gap source (Bloom Tender) is one gorge's census cannot
-		// price, so the menu keeps its candidates (the census-incomplete arm).
-		for m := s.ctrlM[e.ctrl].and(s.occ); m.any(); m = m.rest() {
-			if s.windowGap(k, e.ctrl, m.first()) {
-				s.CopyFrom(saved)
-				return false
-			}
-		}
 	}
 	ok, _ := s.windowTapRider(k, e.ctrl, cost, false, s.bld().bfl&bflAnyColor != 0)
 	s.CopyFrom(saved)
