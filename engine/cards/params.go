@@ -199,6 +199,7 @@ const (
 	PKPumpDuration
 	PKPumpKeywords
 	PKRandom
+	PKRandomChange
 	PKRandomNumTargets
 	PKReduceCost
 	PKRelative
@@ -1079,6 +1080,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKPumpDuration:                     "PumpDuration",
 	PKPumpKeywords:                     "PumpKeywords",
 	PKRandom:                           "Random",
+	PKRandomChange:                     "RandomChange",
 	PKRandomNumTargets:                 "RandomNumTargets",
 	PKReduceCost:                       "ReduceCost",
 	PKRelative:                         "Relative",

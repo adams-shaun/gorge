@@ -111,7 +111,7 @@ func TestAnimateAll(t *testing.T) {
 		[]string{
 			"OverrideAll CS=EOT F={types=0x1} // override{pt=2/2 addtypes=2}",
 			"OverrideAll CS=EOT F={types=0x0 sub=Forest ctrl=1} // override{pt=2/3 addtypes=2}",
-			"OverrideAll CS=EOT F={types=0x2 ctrl=1} // override{pt=HandSizeOf(You)/HandSizeOf(You)}",
+			"OverrideAll CS=EOT F={types=0x2 ctrl=1} // override{pt=HandSizeOf(n=1,You)/HandSizeOf(n=1,You)}",
 		})
 }
 

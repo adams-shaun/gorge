@@ -981,6 +981,16 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 		ka.ManaN = 1
 		return nil
 	}
+	if m.Special == "ReflectedIdentity" && m.Restrict == nil && m.RestrictAb == nil && m.Amount.isConst() && m.Amount.N == 1 {
+		// (Arcane Signet) a printed AfManaReflect with no ManaAmong filter and
+		// ManaIdentity reads the controller's commanders' colour identity
+		// (kernel mana_reflected.go identityColours; lower_zone.go lowerMana)
+		ka.AFlags |= kop.AfManaChoice | kop.AfManaReflect
+		ka.ManaIdentity = true
+		ka.ManaColors = kop.ColAny
+		ka.ManaN = 1
+		return nil
+	}
 	if m.Special == "ReflectedSelf" && m.Restrict == nil && m.RestrictAb == nil && m.Amount.isConst() && m.Amount.N == 1 {
 		// a granted "any of this creature's colors" (Katilda): AfManaReflect
 		// with no ManaAmong filter reads the grantee's own colours

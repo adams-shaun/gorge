@@ -394,16 +394,27 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		}
 		o := s.objRefObj(in.Obj)
 		if o != NoObj {
-			if i := s.stackIndexOf(o); i >= 0 && (in.C&kop.CtrDestMove != 0 || !(s.stack[i].kind == seSpell && s.uncounterable(k, i))) {
-				s.g.stkCt = s.stack[i].ctrl + 1 // "its controller" reads the spell as it last existed (CR 608.2h)
-				if in.B.N != 0 {
-					s.counterRiders(k, i, int(in.B.N)) // tgt_countershapes.go
+			if i := s.stackIndexOf(o); i >= 0 {
+				unc, park := false, false
+				if s.stack[i].kind == seSpell && in.C&kop.CtrDestMove == 0 {
+					// gorge effCounter's counterStopped: a spell two or more
+					// uncounter replacements protect asks CR 616.1's order
+					// (repl_uncounterable.go) before it is skipped
+					if unc, park = s.uncGate(k, i); park {
+						return false
+					}
 				}
-				if in.C != 0 {
-					s.counterTo(k, i, in.C&^kop.CtrDestMove)
-					break
+				if !unc {
+					s.g.stkCt = s.stack[i].ctrl + 1 // "its controller" reads the spell as it last existed (CR 608.2h)
+					if in.B.N != 0 {
+						s.counterRiders(k, i, int(in.B.N)) // tgt_countershapes.go
+					}
+					if in.C != 0 {
+						s.counterTo(k, i, in.C&^kop.CtrDestMove)
+						break
+					}
+					s.counterAt(k, i)
 				}
-				s.counterAt(k, i)
 			}
 		}
 	case kop.OpAttach:
@@ -713,30 +724,30 @@ func (s *State) cond(k *prep, in *kop.Instr) bool {
 }
 
 func (s *State) destroy(k *prep, sl Slot) {
-	if s.destroyAbsorbed(k, sl) {
+	if s.destroySpared(k, sl, false) {
 		return
 	}
 	s.leaveParked(k, sl)
 }
 
-// destroyAbsorbed reports a destroy that does not happen: the permanent is
-// indestructible, healed, regenerated or shielded. Each of those has done its
-// work by the time it reports true.
-func (s *State) destroyAbsorbed(k *prep, sl Slot) bool {
+// destroySpared reports whether the permanent at sl survives a destroy
+// instruction (indestructible, healed, regenerated unless noRegen, shielded),
+// applying the survival's effect; the one home of destroy, destroyNoRegen and
+// the simultaneous multi-target destroy (zone_leavetogether.go).
+func (s *State) destroySpared(k *prep, sl Slot, noRegen bool) bool {
 	if s.kw(k, sl)&kop.KwIndestructible != 0 {
 		return true
 	}
 	if s.destroyHeal(k, sl) {
 		return true
 	}
-	if s.canRegen(sl) {
+	if !noRegen && s.canRegen(sl) {
 		s.regenerate(sl)
 		return true
 	}
-	if k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(sl) {
-		return true // CR 122.1c, after regeneration (gorge effDestroy)
-	}
-	return false
+	// CR 122.1c, after regeneration (gorge effDestroy); NoRegen$ suppresses
+	// regeneration, not the shield counter
+	return k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(sl)
 }
 
 // moveRef moves the object a Ref names to zone z (its owner's).

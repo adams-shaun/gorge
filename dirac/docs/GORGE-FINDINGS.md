@@ -185,9 +185,12 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   such sources): gorge CounterAllowed parks the event
   on a CR 616.1 order ask (replacement_choice.go replChoiceCounter, answered
   by the spell's controller) though every candidate only stops the event.
-  dirac does not pose that ask: the game stalls with StallUncounterOrder
-  (repl_uncounterable.go), loud, never a silent divergence. One match
-  (the usual case) is exact.
+  dirac poses that ask when every candidate is a battlefield source or the
+  spell's own line (repl_uncounterable.go uncGate,
+  `TestStdEclReprosLockstep`); a delayed or Effect-scope record or a
+  conditional line in the competition, and the ward and the counter sweep,
+  still stall with StallUncounterOrder, loud, never a silent divergence.
+  One match (the usual case) is exact.
 - Ward—Sacrifice a <filter>: CantSacrifice restrictions (gorge
   sacrificeBlockedForCost) are not modelled: no pooled card has one.
 - Hollowmurk Siege's Sultai draw (granted

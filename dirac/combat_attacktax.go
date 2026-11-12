@@ -122,10 +122,11 @@ func atkTaxGap(c *kop.CardDef) bool {
 // exactly as gorge's attack window lists it (rules windowManaUnits and
 // attackChoiceManaSources): a cost of {T} alone, a literal amount, no spend
 // restriction, rider, gate, deferral or simultaneous production, and one
-// colour, a choice of colours or the chosen colour.
+// colour, a choice of colours or the chosen colour, or the commander's colour
+// identity (ManaIdentity), which the window never lists (atkTaxShape).
 func atkTaxManaAb(a *kop.Ability) bool {
 	return a.Cost == (kop.Cost{Flags: kop.CostTap}) && a.ManaN > 0 && len(a.Prog) == 0 &&
-		a.AFlags&^(kop.AfManaChoice|kop.AfManaChosen) == 0 && a.ManaRestrict == 0 && a.ManaRestrictAb == 0 &&
+		(a.AFlags&^(kop.AfManaChoice|kop.AfManaChosen) == 0 || a.ManaIdentity && a.AFlags&^(kop.AfManaChoice|kop.AfManaReflect) == 0) && a.ManaRestrict == 0 && a.ManaRestrictAb == 0 &&
 		!a.ManaEach && !a.ManaDeferred && a.SplitGate == 0 && a.ManaHasteValid == 0 && a.ManaRider == 0 &&
 		a.ActZone == kop.ZoneNone && a.Gate == (kop.Gate{}) && !a.Exhaust && a.Once == 0
 }
@@ -253,6 +254,11 @@ func (s *State) atkTaxShape(k *prep, sl Slot) (col, n int, fixed, ok bool) {
 		return 0, 0, false, false
 	}
 	a := &k.t.Cards[s.cardAt(sl)].Abilities[s.manaPCGen(k, sl).manaAb]
+	if a.ManaIdentity {
+		// gorge's attack window excludes the commander-identity shape: the
+		// parser claims no colour for it (rules attackChoiceManaSources)
+		return 0, 0, false, false
+	}
 	m := uint8(a.ManaColors) & 0x3f
 	switch {
 	case a.AFlags&kop.AfManaChosen != 0:

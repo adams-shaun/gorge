@@ -56,8 +56,8 @@ func TestFuzzPoolRunWritesEveryBadGameRepro(t *testing.T) {
 		if err != nil {
 			t.Fatalf("pair %d: %v", pair, err)
 		}
-		if len(r.Actions) == 0 || r.Seed != seed || r.Kernel != "synth std-fdn" {
-			t.Errorf("pair %d repro: %d actions, seed %d (want %d), kernel %q", pair, len(r.Actions), r.Seed, seed, r.Kernel)
+		if len(r.Actions) == 0 || r.Seed != seed || r.Kernel != "synth std-fdn" || r.Pool != "std-fdn" {
+			t.Errorf("pair %d repro: %d actions, seed %d (want %d), kernel %q, pool %q", pair, len(r.Actions), r.Seed, seed, r.Kernel, r.Pool)
 		}
 		if replay == "" {
 			replay = path
@@ -67,6 +67,13 @@ func TestFuzzPoolRunWritesEveryBadGameRepro(t *testing.T) {
 		t.Fatalf("fixture moved: want at least 2 divergent bad-game lines in pairs 31-33, got %v:\n%s", bad, stdout)
 	}
 	t.Logf("bad pairs %v", bad)
+	first, err := oracle.ReadRepro(filepath.Join(dir, "repro.json"))
+	if err != nil {
+		t.Fatalf("first-divergence repro: %v", err)
+	}
+	if first.Kernel != "synth std-fdn" || first.Pool != "std-fdn" {
+		t.Errorf("repro.json: kernel %q, pool %q; want synth std-fdn, std-fdn", first.Kernel, first.Pool)
+	}
 	for p := 31; p <= 33; p++ {
 		if bad[p] {
 			continue

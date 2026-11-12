@@ -8,12 +8,13 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestStdMetaReprosLockstep replays the standard-meta hunt's NStack divergences
-// (four mechanisms): a prepared copy's cast reads as cast (Appa's cast-from-exile
+// TestStdMetaReprosLockstep replays the standard-meta hunt's NStack divergences:
+// a prepared copy's cast reads as cast (Appa's cast-from-exile
 // trigger), the delayed earthbend return keeps its stack entry while the shock land
 // asks, a Treasure's Sacrificed trigger is placed before priority and survives
-// the cast it was queued in being reversed, and a prepared creature entering beside
-// an opponent's enters-tapped replacement asks the CR 616.1 order. Each repro runs on the repro's own
+// the cast it was queued in being reversed, a prepared creature entering beside
+// an opponent's enters-tapped replacement asks the CR 616.1 order, and a plot's
+// potential plan prices its mana as the CR 116.2k special action it is. Each repro runs on the repro's own
 // surface; a missing generated table fails rather than skips.
 func TestStdMetaReprosLockstep(t *testing.T) {
 	t.Parallel()
@@ -42,12 +43,17 @@ func TestStdMetaReprosLockstep(t *testing.T) {
 		"stdmeta_pool_unnamed_colours_s51p31",
 		"stdmeta_pool_unnamed_colours_s79p32",
 		"stdmeta_pool_unnamed_colours_s84p9",
+		"stdmeta_plot_special_restricted_mana_s14p20",
+		"stdmeta_plot_special_restricted_mana_s46p17",
 		"stdmeta_web_watch_beside_grant_s37p11",
 		"stdmeta_web_watch_beside_grant_s41p37",
 		"stdmeta_web_watch_beside_grant_s49p43",
 		"stdmeta_web_watch_beside_grant_s58p46",
 		"stdmeta_web_watch_beside_grant_s71p25",
 		"stdmeta_web_watch_beside_grant_s72p25",
+		"stdmeta_web_watch_exile_cast_s14p12",
+		"stdmeta_web_watch_exile_cast_s90p46",
+		"stdmeta_verge_ability0_first_s16p24",
 		"stdmeta_verge_ability0_first_s19p46",
 		"stdmeta_verge_ability0_first_s60p6",
 		"stdmeta_verge_ability0_first_s76p19",

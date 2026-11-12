@@ -636,6 +636,7 @@ func (cb *cardBuilder) record() error {
 	d.ExiledWith = c.ExiledWith
 	d.CombatHitRec = c.CombatHitRec
 	d.ProduceCol = c.ProduceCol
+	d.Identity = c.Identity
 	d.ExiledWithRev = c.ExwWord
 	d.SpendRead = c.SpendRead
 	if c.FbCost != nil {

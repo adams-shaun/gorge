@@ -56,7 +56,7 @@ func prepManaRefl(g *genPrep, c *kop.CardDef, id CardID, pc *pcard) {
 		// the imprint mox (mana_imprint.go), or a filter-reflected ability
 		// that is the card's only mana ability (Mox Amber): the same
 		// per-colour views, the colours read from the filter (reflColours)
-		prepManaImprint(g, id, pc)
+		prepManaImprint(g, id, pc, c.Abilities[ra].ManaIdentity)
 		return
 	}
 	g.setFlag(id, gfManaVar|gfManaRefl)
@@ -90,13 +90,17 @@ func loneManaAb(c *kop.CardDef) bool {
 func (s *State) reflColours(k *prep, sl Slot, c CardID) kop.ColorMask {
 	cd := &k.t.Cards[c]
 	var f kop.FilterID
-	var produce bool
+	var produce, ident bool
 	for j := range cd.Abilities {
 		if a := &cd.Abilities[j]; a.Kind == kop.AbMana && a.AFlags&kop.AfManaReflect != 0 {
 			f = a.ManaAmong
 			produce = a.ManaProduce
+			ident = a.ManaIdentity
 			break
 		}
+	}
+	if ident {
+		return s.identityColours(k, s.perms[sl].ctrl)
 	}
 	if f == 0 {
 		return s.imprintColours(k, sl) // the imprint mox (mana_imprint.go)
@@ -110,6 +114,32 @@ func (s *State) reflColours(k *prep, sl Slot, c CardID) kop.ColorMask {
 		o := b.first()
 		if s.matchPerm(k, f, o, p, sl) {
 			m |= s.colorsAt(k, o)
+		}
+	}
+	return m & kop.ColAny
+}
+
+// debugIdentityMutate is the test-only mutation switch (0 none; 1 the
+// commanders' identity is never read: the source makes no mana).
+// TestIdentityManaLockstepMutation requires it to diverge.
+var debugIdentityMutate uint8
+
+// SetDebugIdentityMutate sets the mutation switch; tests only.
+func SetDebugIdentityMutate(m uint8) { debugIdentityMutate = m }
+
+// identityColours is the colours a commander-identity mana ability
+// (kop.Ability.ManaIdentity; Produced$ ColorIdentity, CR 903.4) of a source
+// controlled by seat p reads: the union of the colour identities of p's
+// commanders (the partner's slot too), {C} dropped (gorge
+// pay.CommanderIdentityColours). No commander is no colour (CR 903.4f).
+func (s *State) identityColours(k *prep, p uint8) kop.ColorMask {
+	if debugIdentityMutate == 1 {
+		return 0
+	}
+	var m kop.ColorMask
+	for j := 0; j < 2; j++ {
+		if o := s.cmdObj(p, j); o != NoObj {
+			m |= k.t.Cards[s.objs[o].card].Identity
 		}
 	}
 	return m & kop.ColAny

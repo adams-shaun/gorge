@@ -129,6 +129,14 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.
 		// above was rechecked against the pre-clear snapshot, so a formerly
 		// remembered card remains admitted here.
 		forgetOther(h, c, cz.Riders.ForgetOtherRemembered)
+		// The answered cards move together: one effect putting several
+		// permanents onto the battlefield is one event (CR 603.2c, 603.6a),
+		// so an entering observer latches once for the whole pick. Same
+		// bracket as zone_hand.go's answered batch.
+		if len(valid) > 1 {
+			h.BeginZoneBatch()
+			defer h.EndZoneBatch()
+		}
 		moved := make([]state.ObjID, 0, len(valid))
 		for _, id := range valid {
 			o := g.Obj(id)

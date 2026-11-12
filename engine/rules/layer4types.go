@@ -128,7 +128,23 @@ func poolHasLayer4Static(cfg Config) bool {
 // empirical check of the argument above.
 func (e *Engine) refreshDerivedTypes() {
 	scans := e.staticBuildSeq
+	// A static scan already stamped at this very head (emit runs
+	// refreshRenames, whose scan is one, before this refresh) evaluated its
+	// gates against the table of the previous head. When this refresh
+	// publishes a different table, that scan is stale: a Count$Valid gate over
+	// a type the event just granted (Toph making a War Balloon a land
+	// creature, beside Earth Rumble Wrestlers' land-creature gate) was read
+	// before the grant. The digest is taken only when such a scan stands.
+	var before uint64
+	scanAtHead := e.staticEpoch == len(e.L.Events) && !e.typesBuilding
+	if scanAtHead {
+		before = derivedTypesDigest(e.layer4Types)
+	}
 	e.refreshDerivedTypesTable()
+	if scanAtHead && e.staticEpoch == len(e.L.Events) && derivedTypesDigest(e.layer4Types) != before {
+		e.staticEpoch = -1
+		e.activeEpoch = -1
+	}
 	if e.staticBuildSeq != scans && !e.typesBuilding {
 		// The table's own build asked active(), whose static scan evaluated its
 		// gates against the table of the previous log head, the one this
@@ -139,6 +155,30 @@ func (e *Engine) refreshDerivedTypes() {
 		e.staticEpoch = -1
 		e.activeEpoch = -1
 	}
+}
+
+// derivedTypesDigest is an order-sensitive FNV-1a digest of the published
+// table (object, type list, all-creature-types marker): equal tables digest
+// equal, so a differing digest proves a gate read against the old one stale.
+func derivedTypesDigest(tab []effects.ObjectTypes) uint64 {
+	const prime = 1099511628211
+	h := uint64(14695981039346656037)
+	mix := func(v uint64) { h = (h ^ v) * prime }
+	for i := range tab {
+		t := &tab[i]
+		mix(uint64(t.ID))
+		if t.AllCreatureTypes {
+			mix(1)
+		}
+		for _, ty := range t.Types {
+			for j := 0; j < len(ty); j++ {
+				mix(uint64(ty[j]))
+			}
+			mix(0xff)
+		}
+		mix(0xfe)
+	}
+	return h
 }
 
 func (e *Engine) refreshDerivedTypesTable() {

@@ -11,6 +11,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // time, the first to go would already be off the battlefield when the second's
 // leaves triggers are checked.
 
+// Destroy over several targets is the same departure (Wear Down destroying a
+// Food-ified creature with the Sugar Coat that makes it one): destroySpared
+// settles which survive, the rest leave together.
+
 // leaveTogether moves every battlefield object of target slot i that a plain
 // bounce, exile or destroy instruction names: the leaves triggers of all of them
 // are checked first, in pick order, and only then do they leave. A destroy
@@ -27,7 +31,7 @@ func (s *State) leaveTogether(k *prep, in *kop.Instr, i uint8) bool {
 		z = kop.ZoneHand
 	case in.Op == kop.OpExile && in.C == 0:
 		z = kop.ZoneExile
-	case in.Op == kop.OpDestroy && in.C == 0:
+	case in.Op == kop.OpDestroy && in.C&2 == 0:
 		z, destroy = kop.ZoneGraveyard, true
 	default:
 		return false
@@ -62,67 +66,39 @@ func (s *State) leaveTogether(k *prep, in *kop.Instr, i uint8) bool {
 	if !ok || n < 2 {
 		return false
 	}
+	var zs [maxXTgt + 1]kop.Zone
 	if destroy {
-		s.destroyTogether(k, objs[:n])
-		return true
+		if k.gen != nil {
+			for _, o := range objs[:n] {
+				if s.graveMoveCompetes(k, o) || s.parkedWaitingOn(o) {
+					return false // the per-target path parks the move for its ask
+				}
+			}
+		}
+		m := 0
+		for _, o := range objs[:n] {
+			if !s.destroySpared(k, s.objs[o].slot, in.C&1 != 0) {
+				objs[m] = o
+				m++
+			}
+		}
+		n = m
+		for j, o := range objs[:n] {
+			zs[j] = s.dieZone(k, s.objs[o].slot)
+		}
+	} else {
+		for j := range zs[:n] {
+			zs[j] = z
+		}
 	}
-	for _, o := range objs[:n] {
+	for j, o := range objs[:n] {
 		if s.res.active && k.gen != nil {
 			s.snapResTarget(o)
 		}
-		s.fireLeave(k, s.objs[o].slot, z)
+		s.fireLeave(k, s.objs[o].slot, zs[j])
 	}
-	for _, o := range objs[:n] {
-		s.removePerm(k, s.objs[o].slot, z, false)
+	for j, o := range objs[:n] {
+		s.removePerm(k, s.objs[o].slot, zs[j], false)
 	}
 	return true
-}
-
-// destroyTogether is leaveTogether's departure for a destroy: the targets that
-// are not absorbed go to the graveyard (or wherever a dies replacement sends
-// them) as one batch. A move that must wait for an ordering ask (a parked
-// exile-on-leave choice) is not modelled as a batch: the targets are then
-// destroyed one at a time, as before.
-func (s *State) destroyTogether(k *prep, objs []Obj) {
-	if len(s.cold.parked) != 0 {
-		s.destroyEach(k, objs)
-		return
-	}
-	for _, o := range objs {
-		if s.graveMoveCompetes(k, o) {
-			s.destroyEach(k, objs)
-			return
-		}
-	}
-	var die [maxXTgt + 1]Obj
-	var dz [maxXTgt + 1]kop.Zone
-	n := 0
-	for _, o := range objs {
-		sl := s.objs[o].slot
-		if s.destroyAbsorbed(k, sl) {
-			continue
-		}
-		die[n], dz[n] = o, s.dieZone(k, sl)
-		n++
-	}
-	for _, o := range die[:n] {
-		if s.res.active && k.gen != nil {
-			s.snapResTarget(o)
-		}
-	}
-	for i, o := range die[:n] {
-		s.fireLeave(k, s.objs[o].slot, dz[i])
-	}
-	for i, o := range die[:n] {
-		s.removePerm(k, s.objs[o].slot, dz[i], false)
-	}
-}
-
-// destroyEach destroys objs one at a time (destroy).
-func (s *State) destroyEach(k *prep, objs []Obj) {
-	for _, o := range objs {
-		if s.objs[o].zone == kop.ZoneBattlefield {
-			s.destroy(k, s.objs[o].slot)
-		}
-	}
 }

@@ -106,39 +106,51 @@ func (s *State) stackedThisTurn(o Obj) bool {
 	return false
 }
 
-// offerParadigm offers p's exiled Paradigm cards' free cast (gorge
-// mayPlayGrantScoped's Paradigm source, paradigmMayPlay): p's own first
-// main phase, the card's own timing, a resolved spell of its name, and not
-// put on the stack this turn.
-func (s *State) offerParadigm(k *prep, d *Decision, p uint8, sorc bool, av *avail) {
+// paradigmOffered reports whether p's exiled Paradigm card o gets the free
+// Paradigm cast (gorge mayPlayGrantScoped's Paradigm source, paradigmMayPlay):
+// p's own first main phase, the card in exile, its own timing, a resolved
+// spell of its name, and not put on the stack this turn.
+//
+// It is also the dedupe for a paid play-permission record over the same card:
+// gorge's mayPlaySpellIdsBoard offers the card once, its free Paradigm
+// permission dominating a may-play grant on it (CR 702.192a), so priorityGen
+// skips a record whose object this covers.
+func (s *State) paradigmOffered(k *prep, p uint8, o Obj, sorc bool) bool {
 	if s.active != p || s.step != kop.StepMain1 && !(DebugParadigmAnyMain && s.step == kop.StepMain2) {
-		return
+		return false
 	}
 	if s.g.parad[p] == 0 {
-		return
+		return false
 	}
+	ob := &s.objs[o]
+	if ob.zone != kop.ZoneExile {
+		return false
+	}
+	c := ob.card
+	n := k.t.Cards[c].Paradigm
+	if n == 0 || n > 8 || ob.owner() != p || ob.of&ofCopy != 0 || s.g.parad[p]&(1<<(n-1)) == 0 {
+		return false
+	}
+	if !k.cards[c].instant && !sorc && !s.castFlash(k, p, c) {
+		return false
+	}
+	if s.stackedThisTurn(o) {
+		return false
+	}
+	if s.castHeldOut(o) || k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
+		return false
+	}
+	return s.spellTargetsFeasible(k, c, p)
+}
+
+// offerParadigm offers p's exiled Paradigm cards' free cast.
+func (s *State) offerParadigm(k *prep, d *Decision, p uint8, sorc bool, av *avail) {
 	pl := &s.pl[p]
 	for i := 0; i < int(pl.exileN); i++ {
 		o := pl.exile[i]
-		ob := &s.objs[o]
-		c := ob.card
-		n := k.t.Cards[c].Paradigm
-		if n == 0 || n > 8 || ob.owner() != p || ob.of&ofCopy != 0 || s.g.parad[p]&(1<<(n-1)) == 0 {
-			continue
+		if s.paradigmOffered(k, p, o, sorc) {
+			d.add(MakeAction(AkCast, uint8(o), 0, castParadigm))
 		}
-		if !k.cards[c].instant && !sorc && !s.castFlash(k, p, c) {
-			continue
-		}
-		if s.stackedThisTurn(o) {
-			continue
-		}
-		if s.castHeldOut(o) || k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
-			continue
-		}
-		if !s.spellTargetsFeasible(k, c, p) {
-			continue
-		}
-		d.add(MakeAction(AkCast, uint8(o), 0, castParadigm))
 	}
 }
 
