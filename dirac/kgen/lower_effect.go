@@ -1468,6 +1468,16 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		}
 		lc.emit(in)
 	case "DestroyAll":
+		if ps.peek("RememberAllObjects") != "" {
+			// Angrath, Minotaur Pirate's -11 remembers the destroyed set for
+			// a following non-LKI power total; gorge models neither half
+			return refuse("DestroyAll RememberAllObjects$: the remembered destroyed set is not modelled")
+		}
+		if vt := ps.peek("ValidTgts"); vt != "" {
+			// gorge's targetPlayerKindScope scopes a DestroyAll to the
+			// target's permanents; the kernel instruction is one filter
+			return refuse("DestroyAll ValidTgts$ %q: a target-scoped sweep is not modelled", vt)
+		}
 		f, err := lc.destroyAllFilter(ps) // lower_destroyalltargeted.go
 		if err != nil {
 			return err
