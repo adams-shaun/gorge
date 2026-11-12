@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
+# Deprecated: `make precheck` is now an alias for `make test-smart` (scripts/test-targets.sh), which runs
+# the steps below plus the affected-package gate, the dirac gate's fail handling and the wire goldens.
+# This script stays as a direct fallback: `bash scripts/precheck.sh <base>` (base defaults to origin/main).
+#
 # precheck.sh [base]: the checks a landing gate most often fails on, run on a committed change before it
-# is handed over, so a finding costs a minute here instead of a gate run and a round trip. base is the
-# branch the change will land on (default origin/main). `make precheck BASE=<ref>` runs it.
+# is handed over, so a finding costs a minute here instead of a gate run and a round trip.
 #
 #   1. gofmt on the Go files changed since the merge base, and go vet on their packages.
 #   2. The census and coverage tests (a struct's every field compared or encoded, stall classes, flag

@@ -468,9 +468,8 @@ func literalBlockCount(raw string) (int, bool) {
 // option filter and validateAttackers — and by mustAttackRequired's
 // attackDutyDischargeable gate (CR 508.1d's "if able").
 //
-// A face static's conditional parameter family is read here (task
-// combatres-cantattack, extended by combatres-cantattack-present; the present
-// family became reachable on this path with compound-statics1):
+// A face static's conditional parameter family is read here: the present
+// family became reachable on this path with compound statics:
 // Board.StaticGateHolds evaluates ClassBand$, the IsPresent$/IsPresent2$ +
 // PresentCompare$ count family (PresentZone$ Battlefield/Graveyard/Exile/Hand/
 // Stack; see countStaticPresent), and CheckSVar$/SVarCompare$/Condition$,

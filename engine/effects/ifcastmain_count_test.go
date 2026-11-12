@@ -6,8 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The Count$IfCastInOwnMainPhase / Count$InOwnMainPhase branch heads (task
-// ifcastmain1): Forge's AbilityUtils reads the LIVE phase handler
+// The Count$IfCastInOwnMainPhase / Count$InOwnMainPhase branch heads: Forge's AbilityUtils reads the LIVE phase handler
 // (game.getPhaseHandler(): cPhase.getPhase().isMain() && cPhase.isPlayerTurn),
 // not a stamp of the cast's phase, plus -- for the IfCast spelling only -- the
 // source must have been cast (c.wasCast()). Both operands resolve through the

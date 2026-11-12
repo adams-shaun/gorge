@@ -303,17 +303,28 @@ shrink-only) do not list fails it. Peak RSS is measured per test binary by
    `.cards/` missing executed nothing. If `.cards/` is absent, say so. Do not
    report green.
 3. **Run the right gates before merging.**
-   - Focused, capped tests of the packages you touched (step 4). The full
-     suite runs after merge, in CI. Never run an uncapped
-     `go test ./...` by hand.
+   - `make test-targeted` on each iteration: the packages your diff touches
+     plus every package whose tests import them, capped, one verdict line.
+   - `make test-smart` once on the committed tree (`make precheck` is an alias):
+     the landing gate's own steps, fail-fast. Quote its verdict line.
    - `make lint`: gofmt, vet, `gentypes -check`, plus web lint.
    - `make sim`: 20/20 `replay OK`.
    - If you touched `web/` or changed when a decision is posed, also run the
      `./engine/view` package and the web gates.
+   - The full suite runs after merge, in CI. Never run an uncapped
+     `go test ./...` by hand.
 4. **Every test fits the budget: 4 GB RSS, 4 vCPU, 1 minute wall.** Run tests
-   focused and capped, one package per invocation:
-   `systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB go test -timeout 2m -run X ./pkg`. Never `-count=1` (it defeats the
-   test cache). A test outside the budget is a defect: split it into chunk
+   through the make targets (`scripts/test-targets.sh`), never a raw
+   `go test`. To debug one test: `make test-one PKG=./pkg RUN='^TestX$'`
+   (`SKIP=`, `V=1`, `TIMEOUT=2m` at most 5m, `TAGS=`, `UPDATE=1`, and
+   `TESTENV='KGEN_REPIN=1'` for the allow-listed regeneration variables). Each
+   target caps itself (4G/400% for test-one, `GOMAXPROCS=4`, `GOMEMLIMIT=3GiB`),
+   never passes `-count` (the cache stays on), and ends with one line:
+   `test-<mode>: PASS|FAIL|ENV|EMPTY|BUDGET|BUSY <sha> <pkgs> <seconds>`,
+   exit 0, 1, 3, 4, 5, 75. `ENV` is a missing or empty `.cards`, missing dirac
+   tables, or a test that skipped for the corpus or a pool; `EMPTY` is a `-run`
+   that matched nothing; `BUDGET` is a timeout or a kill. Only `PASS` is green.
+   A test outside the budget is a defect: split it into chunk
    tests that share fixtures, never cut coverage, and never run it whole "for
    a baseline". Tests load the corpus only via
    `testkit/testutil.CorpusRegistry`, never `cards.LoadRegistry` (~600 MB per

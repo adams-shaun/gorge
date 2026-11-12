@@ -326,8 +326,19 @@ func ContainsTargetFold(key string) bool {
 	return false
 }
 
+// PlanSelfCost reports whether a cost part names the play's source itself
+// once with a fixed count, the self-reference the planner's reservation walk
+// (potential_plan.go) keeps out of its plans and its last-resort consequence
+// table reads as the source's own sacrifice. SacrificeMatchSpec normalizes
+// Forge's NICKNAME spelling first, exactly as the offer and payment stages
+// read it (SacrificeCostCandidates), so the planner cannot disagree with the
+// payment about whether a self-reference is payable: measured at this pin,
+// Syr Ginger's Sac<1/NICKNAME> {T} activation was otherwise planned as a
+// generic sacrifice part, planLeavesCostPayable's tap-owning-source exclusion
+// left it no candidates, and the play went unpriced ("cost:reserved_sources")
+// although gorge's payment accepts it (engine/rules nickname_sac_test.go).
 func PlanSelfCost(part cost.CostPart, id state.ObjID) bool {
-	s := strings.ToLower(strings.TrimSpace(part.Spec))
+	s := strings.ToLower(strings.TrimSpace(SacrificeMatchSpec(part.Spec)))
 	return part.N == 1 && (s == "cardname" || s == "this token" || s == "cardname/self" || s == "self")
 }
 

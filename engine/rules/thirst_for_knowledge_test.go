@@ -7,8 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The Discard primitive's UnlessType$ read (task
-// inbox-paramcensus-final-stragglers, Thirst for Knowledge entry). A Mode$
+// The Discard primitive's UnlessType$ read (Thirst for Knowledge entry). A Mode$
 // TgtChoose discard carrying UnlessType$ (Thirst for Knowledge's "discard
 // two cards unless you discard an artifact card") poses the unless ELECTION
 // whenever a card of the type is in hand: "discard one <type> instead" or

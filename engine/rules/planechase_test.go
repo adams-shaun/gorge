@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The planechase verbs (CR 901, task planar-verbs) pinned end to end on the
+// The planechase verbs (CR 901) pinned end to end on the
 // REAL corpus roll carrier (Fractured Powerstone, api:RollPlanarDice) with a
 // planar deck in play: a kept planeswalk face walks the roller to the next
 // plane, and a kept chaos face makes T:Mode$ ChaosEnsues fire on the current

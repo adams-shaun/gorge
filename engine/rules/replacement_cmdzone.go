@@ -61,7 +61,7 @@ func init() {
 		"repl:Connive", "repl:LoseMana",
 		// repl:Destroy: engine/rules/replacement_destroy.go.
 		"repl:Destroy",
-		// repl:GameLoss / repl:GameWin (task fdn-repl-cant-lose) are the
+		// repl:GameLoss / repl:GameWin are the
 		// "you can't lose the game" / "your opponents can't win the game"
 		// CantHappen class (Herald of Eternal Dawn, the Platinum Angel family,
 		// Abyssal Persecutor, Lich's Mastery). Matching and application live in

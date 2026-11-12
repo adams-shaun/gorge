@@ -741,6 +741,40 @@ func LoyaltyFlashParamsReadable(params map[string]string) bool {
 	return loyalty
 }
 
+// SpellFlashParamsReadable reports whether an Effect-delivered
+// Mode$ CastWithFlash body is the spell-flash grant this build evaluates:
+// "you may cast <ValidCard$> spells ... as though they had flash" (Borne
+// Upon a Wind, Quicken, Teferi, Time Raveler's +1, Alchemist's Refuge,
+// Emergence Zone, Winding Canyons). ValidSA$ must be exactly Spell and
+// Caster$ exactly You (the effect's controller); ValidCard$ is the spell
+// selector and AffectedZone$ (Winding Canyons' every-zone list) names the
+// zones the spell is cast from, which Forge's CastWithFlash reads for no
+// spell and rules' castWithFlashTargets, like every cast zone, ignores.
+// Any other key is a gate this build does not evaluate, so the caller
+// registers nothing and keeps the unimplemented Note. Disjoint from
+// LoyaltyFlashParamsReadable (ValidSA$ Activated.Loyalty).
+func SpellFlashParamsReadable(params map[string]string) bool {
+	spell, caster := false, false
+	for key, v := range params {
+		switch spellFlashParamCodes.Code(key) {
+		case spellFlashParamInert:
+		case spellFlashParamValidSA:
+			if strings.TrimSpace(v) != "Spell" {
+				return false
+			}
+			spell = true
+		case spellFlashParamCaster:
+			if strings.TrimSpace(v) != "You" {
+				return false
+			}
+			caster = true
+		default:
+			return false
+		}
+	}
+	return spell && caster
+}
+
 // effectRemembered resolves RememberObjects$ into the concrete object ids the
 // Effect captured. "Targeted"/"ParentTarget" remember the chosen targets;
 // "Remembered" (and creature-flavoured spellings) remember the objects the
@@ -1192,6 +1226,23 @@ var loyaltyFlashParamCodes = state.NewStrCodes(
 	state.StrEntry[loyaltyFlashParamCode]{Key: "Description", Val: loyaltyFlashParamInert},
 	state.StrEntry[loyaltyFlashParamCode]{Key: "ValidSA", Val: loyaltyFlashParamValidSA},
 	state.StrEntry[loyaltyFlashParamCode]{Key: "Caster", Val: loyaltyFlashParamCaster},
+)
+
+type spellFlashParamCode uint16
+
+const (
+	spellFlashParamInert spellFlashParamCode = iota + 1
+	spellFlashParamValidSA
+	spellFlashParamCaster
+)
+
+var spellFlashParamCodes = state.NewStrCodes(
+	state.StrEntry[spellFlashParamCode]{Key: "Mode", Val: spellFlashParamInert},
+	state.StrEntry[spellFlashParamCode]{Key: "ValidCard", Val: spellFlashParamInert},
+	state.StrEntry[spellFlashParamCode]{Key: "Description", Val: spellFlashParamInert},
+	state.StrEntry[spellFlashParamCode]{Key: "AffectedZone", Val: spellFlashParamInert},
+	state.StrEntry[spellFlashParamCode]{Key: "ValidSA", Val: spellFlashParamValidSA},
+	state.StrEntry[spellFlashParamCode]{Key: "Caster", Val: spellFlashParamCaster},
 )
 
 type mayPlayParamCode uint16

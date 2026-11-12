@@ -417,7 +417,7 @@ type pendingCast struct {
 	// without the rest of the pending cast (spec section 9.1).
 	pay.PaidCost `clone:"deep"`
 
-	// addsCounterGrants (task opalp) captures, right after payment, the
+	// addsCounterGrants captures, right after payment, the
 	// AddsCounters$ rider grants the cast earned: the consumed batches'
 	// producing-ability rider snapshots and spent unit counts that
 	// emitRestrictedManaSpend accumulated in e.manaSpentAddsCounters. The

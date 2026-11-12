@@ -24,10 +24,9 @@ func kwETBReplacement(f *Face, i int, k, head, param string, has func(kind, line
 	// a lord like Bramblewood Paragon only ever pumped itself.
 	//
 	// The layer tag (Copy vs Other) and the Optional/Mandatory field are
-	// still parsed past, not modeled (Ledger: replacement-semantics task
-	// owns telling a Copy-layer or Optional replacement apart from a
-	// mandatory Other one); the 47 corpus lines carrying a trailing zone
-	// spec are the population this reads.
+	// still parsed past, not modeled (a Copy-layer or Optional replacement is
+	// told apart from a mandatory Other one); the 47 corpus lines carrying a
+	// trailing zone spec are the population this reads.
 	_, rest, _ := strings.Cut(param, ":")
 	sv, tail, _ := strings.Cut(rest, ":")
 	validCard, activeZones := "Card.Self", ""

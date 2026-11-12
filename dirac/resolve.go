@@ -13,10 +13,17 @@ func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 		return false
 	}
 	if isPlayerOrNone(code) {
-		if pp := CodeSeat(code); s.g.on && pp != e.ctrl && s.playerHexproof(s.k(), pp) {
+		pp := CodeSeat(code)
+		if s.g.on && pp != e.ctrl && s.playerHexproof(s.k(), pp) {
 			return false
 		}
-		return !s.pl[CodeSeat(code)].lost
+		if s.g.on && s.plProtAll(s.k(), pp) {
+			// CR 702.16b: a target that gained protection from everything
+			// between placement and resolution is dropped here, the own
+			// controller's spells included (gorge stack.go's recheck arm)
+			return false
+		}
+		return !s.pl[pp].lost
 	}
 	if isStackTarget(code) {
 		return s.stackTgtStillLegal(e, i) // tgt_stackability.go
@@ -129,6 +136,13 @@ func (s *State) resolveTop(k *prep) {
 			// entrant's own body (repl_etborder.go), gated on the stamped
 			// source first: one load of the copied entry when no rider pends
 			if k.gen != nil && !e.faceDown() && e.etbSrc != 0 && s.etbEntryOrderPark(k, e.obj, e.ctrl) {
+				return
+			}
+			// the CR 616.1 order between the entrant's own prepared line and
+			// one other source's enter replacement, when no rider was stamped
+			// (repl_etborder.go); the flag is the hot-path guard
+			if k.gen != nil && !e.faceDown() && e.etbSrc == 0 && k.gen.anyEtbOwnOther &&
+				s.etbOtherOrderPark(k, e.obj, e.ctrl) {
 				return
 			}
 			if k.gen != nil && s.occ.full() {
@@ -341,6 +355,11 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 	if k.gen != nil && k.gen.anyTgtSpent {
 		s.g.tgtSpent = 0 // the snapshot is the resolution's
 	}
+	if e.kind == seTrigger && e.trigAmt < 0 && !fizzled && e.ab < abCascade && k.gen != nil {
+		if a := &k.t.Cards[e.card].Abilities[e.ab]; a.Trig.Event == kop.TrigETB && a.Trig.Flags2&kop.Tf2Evolve != 0 {
+			s.evolveDone(k, e) // kw_evolve.go: the Evolved triggers once the counter landed
+		}
+	}
 	s.res.active = false
 	if k.anyStateCtr {
 		// any resolution's finish may have emptied the stack of a state
@@ -502,6 +521,9 @@ func (s *State) prog(k *prep) []kop.Instr {
 			return stormProg[:]
 		}
 		return nil
+	}
+	if p := s.overloadProg(k); p != nil {
+		return p
 	}
 	return k.t.Cards[e.card].Abilities[e.ab].Prog
 }
