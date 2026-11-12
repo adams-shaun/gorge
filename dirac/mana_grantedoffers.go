@@ -454,7 +454,12 @@ type grantSrch struct {
 	// node (gorge's potentialPlayVerdict -> withWaterbendOfferCredit).
 	full kop.ManaCost
 	dyn  bool
-	ex   Slot // the play's own {T} source (an activation's), never tapped
+	// cheaper: a repriced leaf asked less mana than the root price (a trigger
+	// the path answered moved a card the price reads, Gran-Gran's loot
+	// discarding a Lesson into the graveyard, CR 601.2f): grantCap offers the
+	// walk play the root price refused (grantCostCheaper)
+	cheaper bool
+	ex      Slot // the play's own {T} source (an activation's), never tapped
 	// d is the payment the play makes, read by a granted source's spend
 	// restriction (Mm'menon's Spell.!wasCastFromYourHand): the payment read,
 	// the cast's origin known and the spell on the stack when paid
@@ -718,6 +723,19 @@ func (g *grantSrch) visit(t *State) bool {
 	cost := g.cost
 	if g.dyn {
 		cost = t.grantDynamicCost(g.k, g.p, g.d.play, g.full)
+	}
+	if g.d.hasPlay && isCastKind(g.d.play.Kind()) && g.answered() {
+		// gorge's planner prices the play again at every node
+		// (potentialPlayVerdict, scriptSearch.priced): a trigger the path
+		// answered can have moved a card the price reads (Gran-Gran's loot
+		// discarding a Lesson into the graveyard, CR 601.2f). Price again on
+		// this copy; when the fresh price asks less mana than the root price,
+		// the play is payable where the walk's root price refused it
+		// (grantCostCheaper), and grantCap keeps the play on the offer
+		if fc, _, _, ok := t.grantPlayCost(g.k, g.p, g.d.play, true); ok && grantCostCheaper(fc, g.cost) {
+			cost = fc
+			g.cheaper = true
+		}
 	}
 	pl := &t.pl[SeatIx(g.p)]
 	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, ghost: g.ghost, sp: t.sp, hand: pl.handN, gy: pl.graveN, bf: t.bfObjKey(g.p)}
@@ -1646,6 +1664,28 @@ func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop
 		cost = planUnderRider(cost, true, false)
 	}
 	return cost, ex, need, ok
+}
+
+// grantCostCheaper reports whether cost c asks strictly less mana than the
+// root price root, kind for kind: a pool that pays root pays c, so a leaf
+// priced at c is payable where the walk priced the play with root (visit).
+// A repricing never reshapes the flexible pips (hybrid, twobrid, X, a
+// reduction's excess), so costs that differ there are not comparable
+// (false: the root price stands).
+func grantCostCheaper(c, root kop.ManaCost) bool {
+	if c.Hyb != root.Hyb || c.Tb != root.Tb || c.HybOrd != root.HybOrd ||
+		c.X != root.X || c.XPip != root.XPip || c.XRed != root.XRed {
+		return false
+	}
+	if c.Generic > root.Generic {
+		return false
+	}
+	for i := range c.Pips {
+		if c.Pips[i] > root.Pips[i] {
+			return false
+		}
+	}
+	return c != root // every kind at most root's, one strictly under
 }
 
 // castFaceCard is the card cast action a puts on the stack: for a face cast
