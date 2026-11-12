@@ -95,6 +95,11 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		if sneakMarks(&s.res.e) {
 			s.mSlSet(k, mechSneaked, sl) // kw_sneak.go
 		}
+	} else if int(o) < len(s.cold.mkObj) {
+		// an entry that is not the resolving spell (reanimate, blink, return)
+		// is a new object with no payments (CR 400.7, 702.43): the last cast's
+		// count must not survive to the ETB trigger's target bound (exprs.go)
+		s.cold.mkObj[o] = 0
 	}
 	s.g.zoneTurn.set(o)
 	if s.g.enteredOn {

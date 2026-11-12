@@ -506,6 +506,15 @@ func castHasX(o *state.Object) bool {
 	return o != nil && o.Face() != nil && pay.FaceCostOf(o.Face()).X > 0
 }
 
+// hasMultikicker reports whether o's face carries K:Multikicker (CR 702.43).
+func hasMultikicker(o *state.Object) bool {
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	_, ok := o.Face().KeywordCostParam("Multikicker")
+	return ok
+}
+
 // convokeFrameFor is the absorption frame of a convoke announcement d, or
 // nil when d is not one. An uncached cast cost is gated by gorge itself.
 func (g *GorgeSide) convokeFrameFor(d *decision.Decision) *convokeFrame {
@@ -631,7 +640,9 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 					g.castX[o.Obj] = castHasX(e.G.Obj(o.Obj))
 				}
 			}
-			if o.Mode == "" && o.AltCostIndex == 0 {
+			if o.Mode == "" && o.AltCostIndex == 0 && !hasMultikicker(e.G.Obj(o.Obj)) {
+				// (a Multikicker card's announcement prices the multikicked total,
+				// not the plain cost cached here: gorge's own gate answers it)
 				if pc, ok := e.CastPaymentCost(d.Player, o.Obj); ok {
 					if g.castCost == nil {
 						g.castCost = map[state.ObjID]decision.PaymentCost{}

@@ -461,20 +461,6 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		ts.MaxV = ts.MinV
 		ts.TFlags |= kop.TgfBoundsV
 	case !t.AtRes && !t.Unique && !t.SameCtrl && !t.DiffCtrl && !t.SharedCrType && !t.DistinctName && (t.Divided == 0 || t.Divided == kop.DivMaxV || t.Divided == kop.DivValue) && t.Mode < 0 && t.ParentPlus1 == 0 &&
-		timesKickedBound(t.Min) && timesKickedBound(t.Max):
-		// "choose a target, then another for each time this spell was
-		// kicked" (TargetMin/Max$ Count$TimesKicked/Plus.1). Both bounds are
-		// read as the slot is announced, after the count ask settled the
-		// multikicker count (gorge's resolvedTargetBounds).
-		var err error
-		if ts.MinV, err = cb.value(t.Min); err != nil {
-			return ts, fmt.Errorf("target count %s..%s: %w", t.Min, t.Max, err)
-		}
-		if ts.MaxV, err = cb.value(t.Max); err != nil {
-			return ts, fmt.Errorf("target count %s..%s: %w", t.Min, t.Max, err)
-		}
-		ts.TFlags |= kop.TgfBoundsV
-	case !t.AtRes && !t.Unique && !t.SameCtrl && !t.DiffCtrl && !t.SharedCrType && !t.DistinctName && (t.Divided == 0 || t.Divided == kop.DivMaxV || t.Divided == kop.DivValue) && t.Mode < 0 && t.ParentPlus1 == 0 &&
 		tgtBoundV(t.Min, true) && tgtBoundV(t.Max, false):
 		// "up to" a value (TargetMax$ X over a count, X paid or
 		// the trigger amount): evaluated as the slot is announced (gorge
@@ -590,13 +576,6 @@ func tgtBoundV(v lValue, isMin bool) bool {
 // plainX reports whether v is the announced X itself.
 func plainX(v lValue) bool {
 	return v.Kind == vX && v.Mul == 0 && v.Div == 0 && v.Add == 0 && !v.Neg && len(v.Sub) == 0
-}
-
-// timesKickedBound reports whether v is Count$TimesKicked with a
-// non-negative constant offset (the plus-one target range), the only shape
-// this arm reads.
-func timesKickedBound(v lValue) bool {
-	return v.Kind == vTimesKicked && v.Mul == 0 && v.Div == 0 && !v.Neg && v.Add >= 0 && len(v.Sub) == 0
 }
 
 func tgtBoundReads(v lValue) bool {

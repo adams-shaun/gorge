@@ -54,6 +54,33 @@ func kickerPayment(cd *kop.CardDef) kop.ManaCost {
 	return cd.Kicker
 }
 
+// addKickerPayments is c plus a kicked cast's additional cost: the chosen
+// count of Multikicker payments (CR 702.43), else the plain Kicker once. The
+// one home of that pricing for the cast build, the may-play cost and the
+// target affordability walk.
+func (s *State) addKickerPayments(cd *kop.CardDef, e *stackEntry, c kop.ManaCost) kop.ManaCost {
+	if !cd.HasMultikicker {
+		return addCost(c, cd.Kicker)
+	}
+	for i := 0; i < s.multikickCount(e); i++ {
+		c = addCost(c, cd.Multikicker)
+	}
+	return c
+}
+
+// kickedAffords is the hand-cast kicked offer's mana gate for the total kc.
+// A Multikicker spell that pays with taps (a printed or granted Convoke or
+// Improvise) is offered by gorge's pool-only legacy gate alone: its potential
+// walk declines every credit-bearing kicked mode (cost:credit,
+// potentialModeBaseCost), so lands the cast could still tap do not make the
+// multikicked option (CR 702.43). Without that credit the sources count.
+func (s *State) kickedAffords(k *prep, p uint8, c CardID, o Obj, kc *kop.ManaCost, cav *avail) bool {
+	if k.gen != nil && k.gen.anyConvoke && k.t.Cards[c].HasMultikicker && s.tapPays(k, p, c, o, true) {
+		return s.FeatPoolPays(p, o, 1)
+	}
+	return s.castAffordsR(k, p, c, s.restrOriginOfObj(o), kc, cav)
+}
+
 // multikickMax is the largest multikicker count gorge multikickAsk would
 // offer: base + N payments walked through the same affordability check the
 // payment uses, bounded by the floating pool for an {X}-less spell (the
@@ -97,12 +124,15 @@ func (s *State) multikickMax(k *prep) int {
 	for n := 1; n <= maxMultikick; n++ {
 		s.setMultikick(e, n)
 		cost := s.buildCost(k)
-		// gorge countCandPayable takes the cast's delve credit before the
+		// gorge countComposedCost folds the Convoke/Improvise reduction the
+		// caster can still announce (convokeCountCredit) into the candidate,
+		// then countCandPayable takes the cast's delve credit before the
 		// mana gate, so a granted Delve (Teval) raises the payable count;
 		// the delve picks are announced after this ask, so the bound reads
 		// the whole graveyard, as gorge's does. K'rrik's PayLifeInsteadOf:B
 		// grant is no dirac static (kgen refuses it), so no life credit is
 		// folded here.
+		cost = s.convokeCreditFrom(k, e.ctrl, e.card, e.obj, fromHand, cost)
 		cost = s.gateDelveCredit(k, e.ctrl, e.card, e.obj, fromHand, cost)
 		if !av.affords(&cost, pipMaskOf(&cost), 0) {
 			break

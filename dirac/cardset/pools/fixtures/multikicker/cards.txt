@@ -3,7 +3,9 @@
 # Chun-Li, Countless Kicks is the class's remaining refusal, for its unrelated
 # Play CopyCard trigger. Comet Storm and Strength of the Tajuru are refused for
 # their {X} base cost (the count bound would be read before X). Dark Ritual
-# floats the mana for the Bloodhusk Ritualist lockstep.
+# floats the mana for the Bloodhusk Ritualist lockstep. Chief Engineer grants
+# Convoke to the Chalice and Zombify reanimates Batroc for the multikicker
+# re-entry lockstep (dirac/oracle/multikicker_reentry_test.go).
 Apex Hawks
 Batroc the Leaper
 Bloodhusk Ritualist
@@ -21,6 +23,8 @@ Skitter of Lizards
 Spell Contortion
 Voyager Drake
 Wolfbriar Elemental
+Chief Engineer
+Zombify
 Plains
 Island
 Swamp

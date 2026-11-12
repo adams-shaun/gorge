@@ -609,13 +609,7 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 			c = cd.WebSlingCost // the web-slinging cost (CR 702.188a; kw_websling.go)
 		}
 		if e.flags&sfKicked != 0 {
-			if cd.HasMultikicker {
-				for i := 0; i < s.multikickCount(e); i++ {
-					c = addCost(c, cd.Multikicker)
-				}
-			} else {
-				c = addCost(c, cd.Kicker)
-			}
+			c = s.addKickerPayments(cd, e, c)
 		}
 		if k.gen != nil && k.gen.anyMayFlash && mayFlashEntry(e) && cd.HasMayFlash && !DebugMayFlashFree {
 			c = addCost(c, cd.MayFlashCost) // the mana cost plus the extra (CR 702.8; kw_mayflash.go)
