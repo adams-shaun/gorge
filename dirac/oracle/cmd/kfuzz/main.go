@@ -411,7 +411,9 @@ func run() int {
 	var pol func(uint64) oracle.Policy
 	switch *policy {
 	case "random":
-		pol = oracle.RandomPolicy
+		pol = func(seed uint64) oracle.Policy {
+			return oracle.AffordableTargetPolicy(oracle.RandomPolicy(seed))
+		}
 	case "heuristic":
 		if *lead == "kernel" {
 			fmt.Fprintln(os.Stderr, "kfuzz: -policy heuristic needs -lead gorge (the heuristic bot drives gorge's pending decision)")
