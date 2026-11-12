@@ -55,14 +55,17 @@ func init() { stallNames[StallTokRewrite] = "tokrewrite" }
 // does not mint the extra token of (addsOK: the site does, mintTokAdds, and
 // only a lone adder is left to it).
 func (s *State) replTokensRew(k *prep, p uint8, tok CardID, n int) (CardID, int, bool) {
-	card, m, _, ok := s.replTokensRewApplied(k, p, tok, n, false)
+	card, m, _, ok := s.replTokensRewApplied(k, p, tok, n, false, false)
 	return card, m, ok
 }
 
 // replTokensRewApplied is replTokensRew that also reports whether a rewriter
 // applied: a copy of the rewriter's own card (an Illusion token) keeps its
-// card but is still rewritten to a plain, untapped, non-copy mint.
-func (s *State) replTokensRewApplied(k *prep, p uint8, tok CardID, n int, addsOK bool) (CardID, int, bool, bool) {
+// card but is still rewritten to a plain, untapped, non-copy mint. copySite
+// marks the token-copy proposal (CopyPermanent), whose election gorge
+// declines rather than posing (replacement_copytoken.go
+// continueCopyTokenProposal): a copy-instead body does not apply there.
+func (s *State) replTokensRewApplied(k *prep, p uint8, tok CardID, n int, addsOK, copySite bool) (CardID, int, bool, bool) {
 	g := k.gen
 	if n <= 0 || p >= MaxSeats {
 		return tok, n, false, true
@@ -89,6 +92,12 @@ func (s *State) replTokensRewApplied(k *prep, p uint8, tok CardID, n int, addsOK
 				rew++
 				card = CardID(a.Repl.C)
 			case kop.ReplCopyFirstToken:
+				// a copy proposal cannot pose the election: gorge declines it
+				// and applies the remaining bodies in scan order
+				// (replacement_copytoken.go continueCopyTokenProposal)
+				if copySite {
+					continue
+				}
 				// the election is asked by a CreateToken op only (repl_tokcopy.go)
 				if _, ok := s.tokCopyApplies(k, b, a, p); ok {
 					s.capFull(StallTokRewrite)
@@ -145,7 +154,7 @@ func (s *State) copyTokenRewrite(k *prep, p uint8, tok CardID, n int, addsOK boo
 	if k.gen == nil || !k.gen.anyTokRew || k.gen.anyRepl&rbDblTok == 0 || n <= 0 || p >= MaxSeats {
 		return tok, s.replTokens(k, p, tok, n), false, true
 	}
-	return s.replTokensRewApplied(k, p, tok, n, addsOK)
+	return s.replTokensRewApplied(k, p, tok, n, addsOK, true)
 }
 
 // mintRewritten creates n plain untapped non-copy tokens of the rewriter's
