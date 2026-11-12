@@ -542,6 +542,58 @@ func (a *avail) maxXAnyColor(cost *kop.ManaCost) int {
 	return x
 }
 
+// xLcredit folds cost's {X} at x and takes L generic off: the restricted
+// mana's leftover pays into {X} (CR 106.6).
+func xLcredit(cost kop.ManaCost, x int, L uint8) kop.ManaCost {
+	c := cost.AtX(x)
+	c.Generic -= uint8(min(int(L), int(c.Generic)))
+	return c
+}
+
+// maxXLeft is maxX with the restricted leftover L credited to cost's {X}
+// (CR 106.6): every check prices AtX(x) with L generic off, so the units the
+// fixed pips and generic could not fold still buy X.
+func (a *avail) maxXLeft(cost *kop.ManaCost, L uint8, pipMask uint8) int {
+	c := xLcredit(*cost, 0, L)
+	if !a.affords(&c, pipMask, 0) {
+		return -1
+	}
+	x := 0
+	per := int(cost.X)
+	if per == 0 {
+		return 0
+	}
+	for x < maxXAsk {
+		next := xLcredit(cost.AtX(x+1), 0, L)
+		if !a.affords(&next, pipMaskOf(&next), 0) {
+			break
+		}
+		x++
+	}
+	return x
+}
+
+// maxXAnyColorLeft is maxXLeft under the any-colour rider.
+func (a *avail) maxXAnyColorLeft(cost *kop.ManaCost, L uint8) int {
+	c := xLcredit(*cost, 0, L)
+	if !a.affordsAnyColor(&c, 0) {
+		return -1
+	}
+	x := 0
+	per := int(cost.X)
+	if per == 0 {
+		return 0
+	}
+	for x < maxXAsk {
+		next := xLcredit(cost.AtX(x+1), 0, L)
+		if !a.affordsAnyColor(&next, 0) {
+			break
+		}
+		x++
+	}
+	return x
+}
+
 // --- the planner (gorge engine/rules/pay PlanPaymentCost, tap-only units) ---
 
 // maxUnits bounds the planner's census. It is MaxPerm, not a smaller budget: a

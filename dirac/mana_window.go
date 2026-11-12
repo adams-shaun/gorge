@@ -1458,6 +1458,15 @@ func (s *State) restrShort(k *prep, p uint8, c CardID, og restrOrigin, cost kop.
 // restrShortAdm is cost less p's restricted mana in the batches of mask m,
 // known spendable on it: each colour's pips, then generic.
 func (s *State) restrShortAdm(p, m uint8, cost kop.ManaCost) kop.ManaCost {
+	c, _ := s.restrShortLeft(p, m, cost)
+	return c
+}
+
+// restrShortLeft is restrShortAdm returning the leftover L: the restricted
+// units it could not fold into the cost's pips or generic. They may still pay
+// any part of the cost, {X} included (CR 106.6), so an {X} witness credits
+// them (lowerWitnessEx).
+func (s *State) restrShortLeft(p, m uint8, cost kop.ManaCost) (kop.ManaCost, uint8) {
 	var t [kop.NumManaKinds]uint8
 	s.rbUnits(p, m, &t)
 	var n uint8
@@ -1466,8 +1475,18 @@ func (s *State) restrShortAdm(p, m uint8, cost kop.ManaCost) kop.ManaCost {
 		cost.Pips[c] -= d
 		n += u - d
 	}
+	L := n - min(n, cost.Generic)
 	cost.Generic -= min(n, cost.Generic)
-	return cost
+	return cost, L
+}
+
+// restrShortL is restrShort returning the leftover L (restrShortLeft).
+func (s *State) restrShortL(k *prep, p uint8, c CardID, og restrOrigin, cost kop.ManaCost) (kop.ManaCost, uint8) {
+	m := s.restrSpendable(k, p, c, og)
+	if m == 0 {
+		return cost, 0
+	}
+	return s.restrShortLeft(p, m, cost)
 }
 
 // payRestrRider is payRestr with the may-play any-colour rider.
@@ -2249,6 +2268,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 	}
 	s.g.noTgtRed = false
 	s.witnessAtCheapest(k, p, &cost, &av)
+	var L uint8
 	if s.rbAny(p&1) && s.bld().e.kind == seSpell {
 		// the witness starts from the mana this payment may spend (pay.PlanPool)
 		if m := s.restrSpendable(k, p, s.bld().e.card, s.restrOriginOfObj(s.bld().e.obj)); m != 0 && cost.Hyb[0] != 0 && cost.Hyb[0] != kop.HybTwobrid {
@@ -2274,7 +2294,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 				}
 			}()
 		} else {
-			cost = s.restrShort(k, p, s.bld().e.card, s.restrOriginOfObj(s.bld().e.obj), cost)
+			cost, L = s.restrShortL(k, p, s.bld().e.card, s.restrOriginOfObj(s.bld().e.obj), cost)
 		}
 	}
 	cost, _ = s.waterbendBuildCredit(k, p, cost)
@@ -2287,15 +2307,25 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			s.availUngranted(k, p, &av)
 		}
 		if anyColor {
-			x = max(0, av.maxXAnyColor(&cost))
-		} else {
+			if L == 0 {
+				x = max(0, av.maxXAnyColor(&cost))
+			} else {
+				x = max(0, av.maxXAnyColorLeft(&cost, L))
+			}
+		} else if L == 0 {
 			x = max(0, av.maxX(&cost, pipMaskOf(&cost)))
+		} else {
+			// the leftover L is the restricted mana the fixed pips and
+			// generic could not fold: it still pays any part of the cost, so
+			// the witness prices each X with it credited (CR 106.6)
+			x = max(0, av.maxXLeft(&cost, L, pipMaskOf(&cost)))
 		}
 		// the search is bounded by the mana the pool and every source can
 		// hold, over the X count, before any reduction (rules
 		// potentialModeCastPlan: hi = paymentPlanCensusTotal / base.X): a
-		// reduction paying into {X} cannot lift the witness past it
-		x = min(x, av.total/int(cost.X))
+		// reduction paying into {X} cannot lift the witness past it; L is
+		// pool mana gorge's census total counts
+		x = min(x, (av.total+int(L))/int(cost.X))
 		// the restricted sources the payment may spend (the Emperor of
 		// Palamecia's {U} or {R}) are census sources of gorge's witness
 		// too: tapForRider's plan taps them, so count them and cap on the
@@ -2309,6 +2339,12 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 	if cost.X != 0 && s.bld().e.kind == seSpell && s.xWitnessEats(k, p, s.bld().e.card, &cost, x, excl) {
 		s.lowerXEats(k, p, &cost, x, excl, anyColor)
 		return
+	}
+	if L != 0 && cost.X != 0 {
+		// the taps price the {X} folded at the witness's x with L generic
+		// off: the payment spends L on it (payRestr, CR 106.6)
+		cost = xLcredit(cost, x, L)
+		x = 0
 	}
 	untapped := s.untappedRestrSrcs(k, p)
 	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd && cost.Hyb[0] == 0 && !s.anyRestrEach(k, untapped) {
