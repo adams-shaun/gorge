@@ -129,7 +129,7 @@ func (p *kturntalliesProbe) observe(gs *GorgeSide) {
 // unconnected gates are compared too).
 func (p *kturntalliesProbe) ready(gs *GorgeSide, a Canon) bool {
 	g := gs.E.G
-	switch kbargainName(gs, a.Src()) {
+	switch refCardName(gs, a.Src()) {
 	case "Steel Hellkite":
 		if a.Mode() != 1 {
 			return p.r.IntN(16) == 0 // the {2} pump spends the mana the destruction wants
@@ -230,16 +230,16 @@ func (p *kturntalliesProbe) pick(c *PickCtx) Canon {
 		a = p.pass(c, a)
 	}
 	for _, o := range c.D.Options {
-		if o.Kind() == ActYes && kbargainName(gs, o.Src()) == "Elanor Gardner" {
+		if o.Kind() == ActYes && refCardName(gs, o.Src()) == "Elanor Gardner" {
 			p.st.elanor++
 			break
 		}
 	}
-	if a.Kind() == ActAttack && kbargainName(gs, a.Src()) == "Steel Hellkite" {
+	if a.Kind() == ActAttack && refCardName(gs, a.Src()) == "Steel Hellkite" {
 		p.st.hellAtk++
 	}
 	if a.Kind() == ActActivate {
-		switch kbargainName(gs, a.Src()) {
+		switch refCardName(gs, a.Src()) {
 		case "Tempting Witch", "Food":
 			p.st.food++
 		case "Blitzball":

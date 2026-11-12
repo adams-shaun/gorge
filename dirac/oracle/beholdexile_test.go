@@ -62,12 +62,12 @@ type kbxPending struct {
 // battlefield permanents of the type, then its hand cards of it, src excepted.
 func kbxCands(g *state.Game, p state.PlayerID, src state.ObjID, ty string) (bf, hand []state.ObjID) {
 	for _, id := range g.Zone(state.ZBattlefield, p) {
-		if kbeholdHasType(g.Obj(id), ty) {
+		if objectHasType(g.Obj(id), ty) {
 			bf = append(bf, id)
 		}
 	}
 	for _, id := range g.Zone(state.ZHand, p) {
-		if id != src && kbeholdHasType(g.Obj(id), ty) {
+		if id != src && objectHasType(g.Obj(id), ty) {
 			hand = append(hand, id)
 		}
 	}
@@ -115,7 +115,7 @@ func kbxPolicy(seed uint64, tl *kbxTally) Policy {
 				if bf, hand := kbxCands(g, d.Player, id, ty); len(bf)+len(hand) == 0 && !kbeholdSpent(g, d.Player) {
 					lands := 0
 					for _, lid := range g.Zone(state.ZBattlefield, d.Player) {
-						if o := g.Obj(lid); !o.Tapped && kbeholdHasType(o, "Land") {
+						if o := g.Obj(lid); !o.Tapped && objectHasType(o, "Land") {
 							lands++
 						}
 					}

@@ -34,7 +34,7 @@ func fixtureWatchPolicy(seed uint64, watch map[string]bool, casts map[string]int
 				if a.Kind() != ActCast {
 					continue
 				}
-				if n := kbargainName(c.G, a.Src()); watch[n] && prng.IntN(4) != 0 {
+				if n := refCardName(c.G, a.Src()); watch[n] && prng.IntN(4) != 0 {
 					casts[n]++
 					return a
 				}

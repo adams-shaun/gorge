@@ -408,3 +408,27 @@ func kcastDeck(t *testing.T, reg *cards.Registry, md [2][]cardset.Entry) [2][]*c
 	}
 	return decks
 }
+
+// refCardName is the canonical card's printed name through the gorge side.
+func refCardName(g *GorgeSide, ref Ref) string {
+	if g == nil || ref >= RefStack || int(ref) >= len(g.id.obj) {
+		return ""
+	}
+	o := g.E.G.Obj(g.id.obj[ref])
+	if o == nil || o.Card == nil || len(o.Card.Faces) == 0 {
+		return ""
+	}
+	return o.Card.Faces[0].Name
+}
+
+func objectHasType(o *state.Object, ty string) bool {
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	for _, w := range o.Face().Types {
+		if w == ty {
+			return true
+		}
+	}
+	return false
+}

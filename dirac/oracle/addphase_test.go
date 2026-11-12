@@ -85,7 +85,7 @@ func (p *kaddphaseProbe) observe(gs *GorgeSide) {
 // first-attack trigger: Aurelia, Fear of Missing Out, Raph & Leo, or a
 // creature equipped with Genji Glove.
 func (p *kaddphaseProbe) carrierAttack(gs *GorgeSide, a Canon) bool {
-	switch kbargainName(gs, a.Src()) {
+	switch refCardName(gs, a.Src()) {
 	case "Aurelia, the Warleader", "Fear of Missing Out", "Raph & Leo, Sibling Rivals":
 		return true
 	}

@@ -65,18 +65,6 @@ type kbeholdTally struct {
 	manaCasts   int // either-or answers choosing the {N} part (gorge's pool-only gate leaves it unpayable: the cast is undone)
 }
 
-func kbeholdHasType(o *state.Object, ty string) bool {
-	if o == nil || o.Face() == nil {
-		return false
-	}
-	for _, w := range o.Face().Types {
-		if w == ty {
-			return true
-		}
-	}
-	return false
-}
-
 // note tallies one either-or answer (part 0 the behold, 1 the {N}) posed
 // by decision d over game g: the behold candidates are the player's
 // battlefield permanents and hand cards of the carrier's type, the cast
@@ -89,12 +77,12 @@ func (tl *kbeholdTally) note(g *state.Game, d *decision.Decision, part int) {
 	ty := kbeholdTribe[g.Obj(d.Source).Face().Name]
 	n := 0
 	for _, id := range g.Zone(state.ZBattlefield, d.Player) {
-		if kbeholdHasType(g.Obj(id), ty) {
+		if objectHasType(g.Obj(id), ty) {
 			n++
 		}
 	}
 	for _, id := range g.Zone(state.ZHand, d.Player) {
-		if id != d.Source && kbeholdHasType(g.Obj(id), ty) {
+		if id != d.Source && objectHasType(g.Obj(id), ty) {
 			n++
 		}
 	}
@@ -112,7 +100,7 @@ func (tl *kbeholdTally) note(g *state.Game, d *decision.Decision, part int) {
 // leaves nothing for gorge's failed payment to float.
 func kbeholdSpent(g *state.Game, p state.PlayerID) bool {
 	for _, id := range g.Zone(state.ZBattlefield, p) {
-		if o := g.Obj(id); o != nil && !o.Tapped && kbeholdHasType(o, "Land") {
+		if o := g.Obj(id); o != nil && !o.Tapped && objectHasType(o, "Land") {
 			return false
 		}
 	}
