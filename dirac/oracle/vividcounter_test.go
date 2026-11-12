@@ -17,16 +17,25 @@ import (
 // colour in gorge's prefix search. A W/R spell over a green, blue, black or
 // colourless board is funded by the counter ability exactly as gorge's search
 // funds it, and the counters run out after two (one on Tendo Ice Bridge).
+// The first deck holds the gaps the prefix searches answer the colour ask
+// over -- a restricted source (Giada's Angel-only {W}), an each-colour one
+// (Bloom Tender), a restricted any-colour one (Secluded Courtyard) -- and
+// Azorius First-Wing, whose {W}{U} the counter ability's second colour alone
+// completes: the search answers the W branch first, which prices nothing, and
+// then the U branch, which does.
 var kvividDecks = [2][]cardset.Entry{
 	{
 		{Name: "Vivid Grove", Count: 3}, {Name: "Vivid Creek", Count: 3}, {Name: "Vivid Marsh", Count: 3},
-		{Name: "Tendo Ice Bridge", Count: 2}, {Name: "Mirrodin's Core", Count: 2}, {Name: "Forest", Count: 2}, {Name: "Swamp", Count: 1},
-		{Name: "Grizzly Bears", Count: 4}, {Name: "Doom Blade", Count: 4}, {Name: "Serra Angel", Count: 4},
-		{Name: "Lightning Bolt", Count: 4}, {Name: "Wind Drake", Count: 4}, {Name: "Hill Giant", Count: 4},
+		{Name: "Tendo Ice Bridge", Count: 2}, {Name: "Mirrodin's Core", Count: 2}, {Name: "Forest", Count: 2},
+		{Name: "Plains", Count: 2}, {Name: "Secluded Courtyard", Count: 2},
+		{Name: "Bloom Tender", Count: 2}, {Name: "Giada, Font of Hope", Count: 2}, {Name: "Azorius First-Wing", Count: 3},
+		{Name: "Grizzly Bears", Count: 2}, {Name: "Doom Blade", Count: 4}, {Name: "Serra Angel", Count: 2},
+		{Name: "Lightning Bolt", Count: 2}, {Name: "Wind Drake", Count: 2}, {Name: "Hill Giant", Count: 2},
 	},
 	{
-		{Name: "Hill Giant", Count: 4}, {Name: "Wind Drake", Count: 4}, {Name: "Grizzly Bears", Count: 4},
+		{Name: "Hill Giant", Count: 2}, {Name: "Wind Drake", Count: 4}, {Name: "Grizzly Bears", Count: 4},
 		{Name: "Doom Blade", Count: 4}, {Name: "Lightning Bolt", Count: 4}, {Name: "Serra Angel", Count: 2},
+		{Name: "Azorius First-Wing", Count: 2},
 		{Name: "Vivid Crag", Count: 3}, {Name: "Vivid Meadow", Count: 3}, {Name: "Forest", Count: 6}, {Name: "Mountain", Count: 6},
 	},
 }

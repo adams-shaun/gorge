@@ -2,7 +2,11 @@
 # counter: add one mana of any colour" (Vivid Grove, Vivid Creek, Vivid Marsh,
 # Tendo Ice Bridge, whose {C} first ability asks no colour; Mirrodin's Core,
 # whose counters a {T} ability puts on it), in a deck over
-# thin off-colour mana against a plain creature deck
+# thin off-colour mana against a plain creature deck, beside the gaps the
+# prefix searches answer the counter ability's colour ask over: a restricted
+# source (Giada's Angel-only {W}), an each-colour one (Bloom Tender), a
+# restricted any-colour one (Secluded Courtyard), and a two-colour spell the
+# counter ability's second colour alone completes (Azorius First-Wing)
 # (dirac/oracle/vividcounter_test.go).
 Vivid Grove
 Vivid Creek
@@ -20,3 +24,8 @@ Hill Giant
 Forest
 Swamp
 Mountain
+Plains
+Azorius First-Wing
+Bloom Tender
+Giada, Font of Hope
+Secluded Courtyard
