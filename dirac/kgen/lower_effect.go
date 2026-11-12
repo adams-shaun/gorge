@@ -2355,6 +2355,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.unlockDoor(ps) // lower_unlockdoor.go
 	case "CumulativeUpkeep":
 		return lc.cumulativeUpkeep(ps) // lower_cumulative.go
+	case "Myriad":
+		return lc.myriad(sa) // lower_myriad.go
 	default:
 		return refuseAPI(sa.API) // lower_refuseapi.go
 	}

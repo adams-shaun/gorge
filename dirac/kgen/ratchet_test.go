@@ -126,8 +126,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Fiend Hunter's Defined$ DirectRemembered leave return lowers as the remembered-persist pair; ALL 22176 -> 22177).
 	// +1 (the merge with land: Count$TotalDamageReceivedThisTurn lowered: Tangled Colony beside land's 22180; ALL 22180 -> 22181, WOE 261 -> 262).
 	// +5 (Dig NoLooking$ and Manifest Defined$ Remembered lower: Telling Time, Moment of Truth, Expressive Iteration, Write into Being, Hamza, Might of the Yathan; ALL 22345 -> 22350, MOM 199 -> 200).
+	// +22 (Myriad lowers as a two-seat Attacks Self trigger with an empty program, printed and a static's grant: Banshee of the Dread Choir, Blade of Selves, Broodbirth Viper, Caller of the Pack, Chittering Dispatcher, Conclave Evangelist, Cybermen Squadron, Dalek Squadron, Genasi Enforcers, Goldlust Triad, Hammers of Moradin, Herald of the Host, Legion Loyalty, Polygoyf, Scion of Calamity, Scurry of Squirrels, Sumala Rumblers, Tabaxi Toucaneers, Tiamat's Fanatics, Warchief Giant, Wizards of Thay, Wyrm's Crossing Patrol; ALL 22381 -> 22403).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22381, 34442},
+	"ALL": {22403, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {216, 280},

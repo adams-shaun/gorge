@@ -1022,6 +1022,13 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !lc.hasKeywordLine(k) {
 				lc.refuseNode(node, "keyword %q without its ability", head)
 			}
+		case head == "Myriad" && param == "":
+			// CR 702.116a: gorge kwMyriad expands it into an Attacks Self
+			// trigger (Myriad$ True, DB$ Myriad), lowered from that line
+			// (lower_myriad.go)
+			if !faceHasMyriadTrigger(lc.face) {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
 		case head == "Training":
 			// CR 702.149a: gorge kwTraining expands it into an Attacks
 			// trigger (Training$ True), lowered from that line
