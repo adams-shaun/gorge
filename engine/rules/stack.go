@@ -106,7 +106,7 @@ func (e *Engine) resolveTop() {
 		// TargetsChosen is ever emitted from. So this is unreachable in
 		// practice today, but a stack object is a stack object, and CR
 		// 608.2b's "spell or ability" covers this shape too if a later
-		// task ever gives a triggered ability a player-chosen target.
+		// change ever gives a triggered ability a player-chosen target.
 		targets := o.Targets
 		// alltargeted1 and the per-mode charm groups compose rather than
 		// compete: a charm's pre-asked sub answers are its chosen modes'
@@ -512,7 +512,7 @@ func (e *Engine) resolveTop() {
 			e.finishEndCombatPhase()
 			return
 		}
-		// CR 702.99b (task trig:Evolved): when this resolving ability is the
+		// CR 702.99b: when this resolving ability is the
 		// Evolve keyword's own counter trigger (its line carries Evolve$ True)
 		// and it actually put the +1/+1 counter, announce the completed evolve
 		// action so a sibling T:Mode$ Evolved ability on the same creature

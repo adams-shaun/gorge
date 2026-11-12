@@ -280,8 +280,11 @@ func TestPermcopyLockstep(t *testing.T) {
 			}
 			if res.Stall == KernelStallPrefix+"castring" {
 				// a greedy caster pushes more than castRingN spells in a
-				// turn (the face casts are now priced from untapped lands):
-				// a known capacity stall, not a divergence
+				// turn (the face casts are priced from untapped lands): a
+				// capacity stall, not a divergence. Re-measured 0/720 with
+				// the shown-face cast planner (rules payment_plan.go
+				// plannedCastFace); a stall here is a new declared limit, not
+				// tolerated silently.
 				ringStalls++
 			} else if strings.HasPrefix(res.Stall, KernelStallPrefix) {
 				t.Errorf("matchup %d seed %d: stalled: %s", mi, seed, res.Stall)
@@ -289,8 +292,8 @@ func TestPermcopyLockstep(t *testing.T) {
 		}
 	}
 	t.Logf("%d cast-ring capacity stalls", ringStalls)
-	if ringStalls > 2 {
-		t.Errorf("%d cast-ring capacity stalls, want at most 2 (the measured ceiling)", ringStalls)
+	if ringStalls != 0 {
+		t.Errorf("%d cast-ring capacity stalls, want 0 (the measured count)", ringStalls)
 	}
 	t.Logf("%d games: %d permanent copies minted, %d resolved as tokens (%d still copies), %d ceased, %d targeted, %d self-copies, %d adventure copies, %d TokenCreate events",
 		games, tal.minted, tal.token, tal.stillCp, tal.ceased, tal.targeted, tal.selfCopy, tal.advCopy, tal.tokCr)

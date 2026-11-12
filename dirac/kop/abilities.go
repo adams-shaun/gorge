@@ -62,7 +62,17 @@ type Ability struct {
 	ManaRestrictAb FilterID
 	ActZone        Zone     // the zone the source must be in to activate (ZoneNone = battlefield)
 	ManaAmong      FilterID // AfManaEachColor: the permanents whose colours are produced
-	Gate           Gate     // a threshold gate: the ability exists only while it holds
+	// ManaProduce: with AfManaReflect, the reflected read is what the
+	// matching permanents' mana abilities could PRODUCE, not the
+	// permanents' colours (AB$ ManaReflected, ReflectProperty$ Produce,
+	// every Valid$ alternative OppCtrl: Exotic Orchard, Fellwar Stone,
+	// Quirion Explorer, Sylvok Explorer). The colours are the union of the
+	// matched permanents' cards' ProduceCol at each use, {C} dropped (gorge
+	// effects.producibleSymbols over Face.ManaAbilities with
+	// ReflectProperty$ Produce). Kernel mana_reflected.go produceColours.
+	// AbilityFlags has no free bit, so this is a table bool, not State.
+	ManaProduce bool
+	Gate        Gate // a threshold gate: the ability exists only while it holds
 	// OwnReduce: an activated hand ability's own ReduceCost$ (Channel): its
 	// mana cost's generic part is reduced by this value, floored at zero,
 	// at the offer and the charge alike (gorge ownReduceCost; CR 601.2f).

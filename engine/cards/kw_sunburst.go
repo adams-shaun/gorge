@@ -6,7 +6,7 @@ package cards
 
 import "strconv"
 
-// kwSunburst expands the Sunburst keyword (CR 702.47, task kw:Sunburst):
+// kwSunburst expands the Sunburst keyword (CR 702.47):
 // "This object enters with a +1/+1 counter on it for each color of mana
 // spent to cast it. If it isn't a creature, it instead enters with that many
 // charge counters on it." The corpus carries only the bare K:Sunburst line

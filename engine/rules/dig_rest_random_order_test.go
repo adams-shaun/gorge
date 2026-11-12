@@ -17,7 +17,7 @@ import (
 //	creature card with power 2 or less from among them and put it into your
 //	hand. Put the rest on the bottom of your library in a random order.
 //
-// Before task fdn-dig-rest-random-order the untaken window cards went to the
+// Before this change the untaken window cards went to the
 // bottom in the offered order (and, for a >=2 remainder, the controller was
 // asked to arrange them). This file pins the fix end to end on the real corpus
 // card: the keep goes to the hand, the other three are the bottom three in an

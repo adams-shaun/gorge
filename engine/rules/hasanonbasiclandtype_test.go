@@ -68,7 +68,7 @@ func wonderscapeSageActivate(t *testing.T, e *Engine, sage, soil state.ObjID) *d
 
 // TestWonderscapeSageNonbasicLandTypeSuppressesDiscard pins Forge's
 // Card.hasANonBasicLandType predicate end to end on its one corpus carrier
-// (task hasanonbasiclandtype). Wonderscape Sage's activated ability returns a
+// Wonderscape Sage's activated ability returns a
 // land as a cost and draws, then
 //
 //	DB$ Discard | ConditionDefined$ Returned |

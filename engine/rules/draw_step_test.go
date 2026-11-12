@@ -80,7 +80,7 @@ func driveToStep(t *testing.T, e *Engine, turn int32, active state.PlayerID, ste
 // engine's current step is still `step`, stopping the instant it changes (or
 // on a non-priority decision, or the game ending) -- so, unlike passAll, a
 // caller can bound a measurement to exactly one step regardless of how many
-// passes that step and its neighbours actually need. Against the pre-Task-28
+// passes that step and its neighbours actually need. Against the earlier
 // code this is what lets the draw step's own runaway show up as "hit the
 // limit without Step ever changing" instead of silently running into the
 // NEXT step's decisions too.

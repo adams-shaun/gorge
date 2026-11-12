@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The CastSa cast-provenance predicate family (task castsa-provenance):
+// The CastSa cast-provenance predicate family:
 // Forge's "Card.CastSa Spell.<X>" card-level spec — the cast that put this
 // object on the stack had property X — was read nowhere outside the
 // ValidLKI$ replacement gate (where it fails closed, the documented row),

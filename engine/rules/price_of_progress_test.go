@@ -7,8 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The RepeatEach primitive's DamageMap$ read (task
-// inbox-paramcensus-final-stragglers, Price of Progress entry). DamageMap$
+// The RepeatEach primitive's DamageMap$ read (Price of Progress entry). DamageMap$
 // True makes the loop's damage ONE damage batch: Forge accumulates every
 // iteration's dealDamage into a per-SA damage table and deals it once after
 // the loop (RepeatEachEffect.resolve), so the loop's DamageDealtOnce
