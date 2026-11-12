@@ -60,6 +60,17 @@ func TestStrictlySelfPresenceKeepsTheInterveningIf(t *testing.T) {
 	if c := battlefield.Abilities[0].Trigger.Cond; c.Kind != cSourceZone || c.Zone != zBattlefield {
 		t.Fatalf("battlefield presence lowered to %+v, want SourceZone(Battlefield)", c)
 	}
+
+	// Any/All must fail closed: gorge's presentZoneFromParam refuses them, and
+	// the kernel's zone is ZoneNone, which a source in no zone would satisfy.
+	for _, zone := range []string{"Any", "All"} {
+		anyZone := lowerScriptCard(t, "Probe Any Presence", "Name:Probe Any Presence\nManaCost:1 W\nTypes:Creature\nPT:2/2\n"+
+			"T:Mode$ Phase | Phase$ BeginCombat | ValidPlayer$ You | IsPresent$ Card.StrictlySelf | PresentZone$ "+zone+" | Execute$ ProbePump | TriggerDescription$ probe\n"+
+			"SVar:ProbePump:DB$ Pump | Defined$ Self | NumAtt$ +7 | NumDef$ +4\n")
+		if len(anyZone.Refusals) == 0 {
+			t.Errorf("PresentZone$ %s of a source-identity read was lowered, want a refusal", zone)
+		}
+	}
 }
 
 // TriggeredAttacker$CardPower is the triggering attacker's live power (Arahbo,

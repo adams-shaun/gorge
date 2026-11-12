@@ -22,7 +22,10 @@ func selfPresentZoneCond(c lCond, zones string) (lCond, error) {
 		return c, refuse("PresentZone %q of a source-identity presence read", zones)
 	}
 	z, ok := zoneNames[strings.TrimSpace(zs[0])]
-	if !ok || z == zNone {
+	if !ok || z == zNone || z == zAny {
+		// Any/All (both zAny) must fail closed: gorge's presentZoneFromParam
+		// rejects them, while zAny's kernel zone is ZoneNone, which
+		// CondSourceZone reads true for an object in no zone.
 		return c, refuse("PresentZone %q", zones)
 	}
 	return lCond{Kind: cSourceZone, Zone: uint8(z)}, nil
