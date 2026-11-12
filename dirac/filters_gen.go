@@ -70,6 +70,9 @@ func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src S
 			return false // value_turntallies.go
 		}
 	}
+	if fl.CtrlTgt != 0 && !s.ctrlRoleTgt(k, int(fl.CtrlTgt)-1, p.ctrl) {
+		return false // filter_heads.go: ControlledBy TargetedOrController
+	}
 	switch fl.Owner {
 	case kop.CtrlYou:
 		if s.objs[p.obj].owner() != ctrl {
@@ -544,6 +547,12 @@ func (s *State) matchCardOne(k *prep, fl *kop.Filter, c CardID, owner, ctrl uint
 }
 
 func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl uint8, o Obj, ctx *evalCtx) bool {
+	if fl.CtrlTgt != 0 {
+		// a target's controller is a battlefield role; a card matcher has
+		// no live target to read, so it fails closed (kgen never lowers it
+		// off the battlefield)
+		return false
+	}
 	if fl.Flags&kop.FPlayer != 0 {
 		// a target spec's player alternative (kgen filterPlayerAlt) names a
 		// player, never an object; kernel castTargetsPlayer reads it

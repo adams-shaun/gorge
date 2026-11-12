@@ -220,10 +220,20 @@ import (
 // +1 (Count$TotalDamageReceivedThisTurn lowered: Tangled Colony; merged with land ALL build-level 22180 -> 22181).
 // +1 (ConditionActivationLimit$ lowers to kop.ExActivations: Dragon Whelp; merged with land ALL build-level 22184 -> 22185).
 // +5 (the Aura-on-land TapsForMana extra with a literal body: Wild Growth, Overgrowth, Wolfwillow Haven, Gauntlet of Might, Vernal Bloom; ALL build-level 22345 -> 22350).
+// +11 (static Condition$ NotPlayerTurn on the Force cycle's AlternativeCost
+// and the hasFewer<Type>sInPlayThanYou combat statics lower, and the bare
+// ExileFromHand<1/Spec> alternative beside them: Cave-In, Pyrokinesis,
+// Snapback, Unmask, Vine Dryad, Force of Negation, Force of Vigor, Force of
+// Despair, Monstrous Hound, Mogg Toady, Goblin Goon; ALL build-level 22381 -> 22392).
+// +192 (the merge with land: this branch's +11, of which land's Misdirection
+// bare-exile lowering already built Cave-In, Pyrokinesis, Snapback, Unmask and
+// Vine Dryad; the six new ones are Force of Negation, Force of Vigor, Force of
+// Despair, Monstrous Hound, Mogg Toady and Goblin Goon; merged ALL build-level
+// 22392 -> 22584).
 // +2 (RepeatDefined$/RepeatPresent$ lowering: Tainted Pact and Demonlord
-// Belzenlok build; ALL build-level 22361 -> 22363; merged with land 22496 -> 22498).
+// Belzenlok build; ALL build-level 22361 -> 22363; merged with land 22631 -> 22633).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22498, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22633, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

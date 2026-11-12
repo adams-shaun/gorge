@@ -177,28 +177,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   stands). dirac marks the pending ask (`askRec.pc`) and ignores the
   answer. Surfaced by TestWardLockstep seed 197 (two Pacifisms under two
   Sheltered by Ghosts).
-- Panharmonicon (CR 603.2d, `StatPanharmonicon`, the
-  ValidCard$-only shape): dirac copies these gorge limits. (1) gorge doubles
-  every trigger it queues except a Saga chapter and an Effect's delayed combat
-  trigger (`queueTrigger`).
-  (2) gorge reads the statics from
-  `e` (the board after each move) and matches the trigger source in
-  `observer` (before it): a Panharmonicon host that died earlier in the same
-  state-based batch, or is the dying permanent itself, doubles nothing, while
-  one later in the battlefield-list order still does. CR 603.10a would look
-  back at the host; dirac marks the host (`pfPanhGone`, set as its leave
-  event fires, cleared when it is removed) to match gorge. (3) dirac's
-  echo is a copy of the original pending entry, as gorge's is.
-  (4) the entering-permanent shape (`StPanhETB`:
-  ValidMode$ ChangesZone,ChangesZoneAll | ValidCause$ | Destination$
-  Battlefield; Starfield Vocalist, Virtue of Knowledge, Traveling Chocobo)
-  echoes the TrigETB and TrigTokenCreated placements of the entering
-  permanent or token, whose triggering object is the cause (gorge
-  `panharmoniconModes` maps a TokenCreate/CardToken mint to ChangesZone with
-  the battlefield as destination). Not modelled: a graveyard-leave
-  (`Origin$ Graveyard`) trigger caused by the same graveyard -> battlefield
-  move, which gorge's MoveZone mapping also echoes: dirac queues it at
-  `detach`, before the destination is known, so it stays single.
 - The optional top-of-library carriers (exact). Traveling Botanist, Bucolic Ranch and Gathering Stone are
   `Supported` in the `peekreveal` pool. (1) A taken reveal: the sub `Defined$
   Remembered | Origin$ Library | Destination$ Hand` is a fetch, not a search
@@ -261,19 +239,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   dirac does not pose that ask: the game stalls with StallUncounterOrder
   (repl_uncounterable.go), loud, never a silent divergence. One match
   (the usual case) is exact.
-- A Room trigger printed on the door that is not live resolves against the
-  live face's SVar table in gorge. `printedFaceTrigger`
-  (engine/rules/trigger_inactive_face.go) scans the other face only when
-  `inactiveFaceLayout` holds, and that is `BackFaceIsBattlefieldOnly`
-  (engine/cards/layout.go), true only for `DoubleFaced`/`Modal`, not
-  `Split` (Rooms). So Roaring Furnace's door-0 unlock trigger (Steaming
-  Sauna live) leaves `X:Count$CardsInYourHand` unresolved and deals 0
-  where dirac resolves Roaring Furnace's own SVar and deals the hand
-  count; Unholy Annex's end-step trigger (Ritual Chamber live) loses its
-  `DBBranch`, so gorge drains 0 where dirac takes the Demon branch
-  (drain 2/2) or the `otherwise` branch (lose 2). dirac is
-  rules-correct; the rooms lockstep maps the 7 seeds whose first divergence
-  is this bug (`roomsKnown`).
 - Ward—Sacrifice a <filter>: CantSacrifice restrictions (gorge
   sacrificeBlockedForCost) are not modelled: no pooled card has one.
 - Hollowmurk Siege's Sultai draw (granted
@@ -291,7 +256,7 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   Barrensteppe, where only one counter a turn is reachable (`TestSiegeHollowmurkLockstep`).
 - A graveyard may-play permission's non-mana `RaiseCost$` (Noctis, Alien Symbiosis, Wickerfolk Indomitable, and BLB's Festival of
   Embers): gorge SUMS the raise over every granting static
-  (`rules/mayplay.go` `mayPlayRaiseCost`, `Cost.Plus`); dirac prices one.
+  (`engine/rules/mayplay.go` `mayPlayRaiseCost`, `Cost.Plus`); dirac prices one.
   A second granting raise (two Festivals of Embers on the battlefield, or
   Noctis beside Wickerfolk) is a loud `StallMayRaise` ("mayraise"), as is a
   spell that already owes its own additional pick cost. BLB's pool gains this
@@ -338,16 +303,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   all of it, and 800 lockstep games with Burning-Tree Emissary never reached one. Multikicker,
   `Count$TimesKicked`, Mutate and OptionalCost on a permanent spell are refused by kgen, so
   they have no such read.
-- A copy of a charm with two target-bearing modes, or of an ability with a target on a
-  SubAbility$ link: `Engine.charmTargets` is never written for a `StackCopy`, so
-  `charmDistinctTargetRun` falls back and every mode runs over the flat target list (Flash
-  Thompson's copy taps both targets, then untaps both; std-spm 224). `applyStackCopy` drops
-  `SubTargets` from an ability or charm copy, leaving the link to a resolution-time ask (Mechanical
-  Mobster; std-spm 319). CR 707.10 has the copy keep each target where the original had it. In Forge
-  (read, not run), `CopySpellAbilityEffect` copies through `SpellAbility.copy`, which clones that
-  ability's `targetChosen`, and `CardFactory.copySpellAbility` repeats the copy on its `SubAbility`.
-  How Forge builds a charm's mode chain wasn't read, and XMage wasn't checked. dirac keeps both,
-  so these pairs diverge until gorge is fixed.
 - The look-back observer `checkTriggersNow` builds doesn't carry `Engine.startingLife`, so
   `h.StartingLife()` reads 0 on it, and Leyline of Hope's `Count$YourStartingLife/Plus.7` gate is 7
   there. A creature dying at 17 life then reads +2/+2 in its leaves-the-battlefield trigger: Infernal
@@ -362,13 +317,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   `isAllCreatureTypes` (both read, not run). All six pairs run clean on a patched gorge export whose
   `setPropTokens` gives an `effects.IntrinsicAllCreatureTypes` card off the battlefield every creature
   type. dirac counts it (`crTypesOf`), so these pairs diverge until gorge is fixed.
-- Camellia, the Seedmiser's `Mode$ SacrificedOnce | ValidCard$ Food` doesn't fire when the Food is a creature
-  Ygra, Eater of All makes one, sacrificed for a forage (std-blb 308, 314, run: gorge's order ask has Scavenger's
-  Talent and Ygra but no Camellia; dirac's has all three). CR 603.10a looks back at the permanent as it last
-  existed, when it was a Food. XMage's `SacrificeOneOrMorePermanentsTriggeredAbility` reads
-  `getPermanentOrLKIBattlefield` (read, not run); Forge's `TriggerSacrificedOnce` matches its `Cards` run parameter
-  (read, not run; whether that is a last-known copy wasn't traced). Gorge's matcher wasn't traced or patched, so
-  the cause is unconfirmed. std-blb 435 and 448 also name Camellia but diverge on the stack count and weren't read.
 - A prevent-the-next-N shield (dirac/repl_prevnext.go, Ext PreventNext) and any
   other damage replacement that would be a candidate for the same event (a
   colour or scope prevention, a SHIELD counter, a printed prevention, a

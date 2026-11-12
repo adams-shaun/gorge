@@ -314,6 +314,10 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return ch("x", RefNone, mode)
 		case dirac.ChCostDiscard, dirac.ChDiscard, dirac.ChCleanupDiscard:
 			return ch("discard", src, 0)
+		case dirac.ChDrawUpto:
+			// gorge's draw_upto KChoose: option kind "card" over a top
+			// library card (a pick is only counted)
+			return ch("card", src, 0)
 		case dirac.ChVoteCard:
 			// gorge effCardVote's KChoose option kind "vote_card" over the
 			// permanent voted for (DChoose, the default KernelDKind arm)
