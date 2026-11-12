@@ -12,7 +12,7 @@ import (
 // answer must be two distinct individual kinds, never a composite kind.
 func TestGrimdancerCounterTypeChoice(t *testing.T) {
 	t.Parallel()
-	grim := mustCorpusCardT(t, "Grimdancer")
+	grim := corpusAlternativeCard(t, "Grimdancer")
 	e, cfg := tokenReplGame(t, 919, grim)
 	toMain1(t, e)
 	id := state.ObjID(0)

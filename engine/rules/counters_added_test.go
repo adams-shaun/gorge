@@ -15,12 +15,12 @@ import (
 func TestCountersAddedThisTurn(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
-	tarfire := onBoardCard(t, e, 0, yourCountersCard(t, "Lasting Tarfire"))
-	creature := onBoardCard(t, e, 0, yourCountersCard(t, "Wakka, Devoted Guardian"))
-	other := onBoardCard(t, e, 1, yourCountersCard(t, "Wakka, Devoted Guardian"))
+	tarfire := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Lasting Tarfire"))
+	creature := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Wakka, Devoted Guardian"))
+	other := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Wakka, Devoted Guardian"))
 	// This creature belongs to seat 0 but receives a seat-1-caused counter.
 	// It distinguishes the actor's Player spelling (any player) from You.
-	crossActor := onBoardCard(t, e, 0, yourCountersCard(t, "Wakka, Devoted Guardian"))
+	crossActor := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Wakka, Devoted Guardian"))
 	if e.G.Obj(tarfire).Zone != state.ZBattlefield || e.G.Obj(creature).Zone != state.ZBattlefield {
 		t.Fatal("test precondition: sources are not on the battlefield")
 	}
@@ -75,7 +75,7 @@ func TestCountersAddedThisTurn(t *testing.T) {
 	// Summon Brynhildr's grammar: the real compiled SVar, evaluated with a
 	// LORE placement on the effect source itself. A different kind names the
 	// same source and reads zero (the two compared values differ).
-	bryn := onBoardCard(t, e, 0, yourCountersCard(t, "Summon Brynhildr"))
+	bryn := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Summon Brynhildr"))
 	brynBody := svarBodyOf(t, e.G.Obj(bryn).Face(), "X")
 	if brynBody != "Count$CountersAddedThisTurn LORE You Card.EffectSource" {
 		t.Fatalf("test precondition: Summon Brynhildr X = %q", brynBody)
@@ -145,8 +145,8 @@ func TestCountersAddedThisTurn(t *testing.T) {
 func TestLastingTarfire(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
-	tarfire := onBoardCard(t, e, 0, yourCountersCard(t, "Lasting Tarfire"))
-	creature := onBoardCard(t, e, 0, yourCountersCard(t, "Wakka, Devoted Guardian"))
+	tarfire := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Lasting Tarfire"))
+	creature := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Wakka, Devoted Guardian"))
 	face := e.G.Obj(tarfire).Face()
 	trig := face.Triggers[0]
 	if trig.Mode != "Phase" || trig.Params["Phase"] != "End of Turn" || trig.Params["CheckSVar"] != "X" || trig.Params["Execute"] != "TrigDamage" {
@@ -185,7 +185,7 @@ func TestLastingTarfire(t *testing.T) {
 	// Control: the same compiled trigger with no matching placement must not
 	// manufacture a damage trigger.
 	e2 := layerEngine(t)
-	onBoardCard(t, e2, 0, yourCountersCard(t, "Lasting Tarfire"))
+	onBoardCard(t, e2, 0, corpusAlternativeCard(t, "Lasting Tarfire"))
 	e2.pending = nil
 	e2.setStep(state.StepEnd)
 	e2.priorityRound()
@@ -348,7 +348,7 @@ func TestCountersAddedThisTurnLedgerReplays(t *testing.T) {
 func TestCountersAddedThisTurnMalformedStaysUnresolvable(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
-	tarfire := onBoardCard(t, e, 0, yourCountersCard(t, "Lasting Tarfire"))
+	tarfire := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Lasting Tarfire"))
 	ctx := &effects.Ctx{Controller: 0, Source: tarfire}
 	if n, ok := effects.EvalCountOK(e, ctx, "Count$CountersAddedThisTurn Any You"); ok || n != 0 {
 		t.Fatalf("malformed count = %d (ok %v), want unresolvable", n, ok)

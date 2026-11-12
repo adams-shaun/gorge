@@ -37,7 +37,7 @@ func payEnergy(t *testing.T, e *Engine, p state.PlayerID, kind string, n int32) 
 func TestCountersRemovedThisTurnHeadFoldsPaidAndLost(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
-	gen := onBoardCard(t, e, 0, yourCountersCard(t, "Izzet Generatorium"))
+	gen := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Izzet Generatorium"))
 	ctx := &effects.Ctx{Controller: 0, Source: gen}
 
 	// Baseline: a modelled head reads an evaluated zero with nothing paid.
@@ -94,7 +94,7 @@ func TestCountersRemovedThisTurnHeadFoldsPaidAndLost(t *testing.T) {
 func TestCountersRemovedThisTurnObjectSpecIsUnresolvable(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
-	res := onBoardCard(t, e, 0, yourCountersCard(t, "Churning Reservoir"))
+	res := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Churning Reservoir"))
 	ctx := &effects.Ctx{Controller: 0, Source: res}
 	// Precondition: the corpus SVar body is the object-spec shape the head
 	// does not resolve.
@@ -117,7 +117,7 @@ func TestBlasterHulkDiscountTracksEnergyPaid(t *testing.T) {
 	t.Parallel()
 	for _, paid := range []int32{0, 1, 2, 3} {
 		t.Run("paid "+string(rune('0'+paid)), func(t *testing.T) {
-			e := handEngine(t, yourCountersCard(t, "Blaster Hulk"))
+			e := handEngine(t, corpusAlternativeCard(t, "Blaster Hulk"))
 			// Precondition: the static's Amount is this head, and the pool is exactly what discriminates.
 			for _, id := range e.G.Zone(state.ZHand, 0) {
 				f := e.G.Obj(id).Face()
@@ -174,8 +174,8 @@ func TestBlasterHulkDiscountTracksEnergyPaid(t *testing.T) {
 func TestIzzetGeneratoriumGateOpensAtFourPaidOrLost(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t)
-	gen := onBoardCard(t, e, 0, yourCountersCard(t, "Izzet Generatorium"))
-	virt := onBoardCard(t, e, 0, yourCountersCard(t, "Whirler Virtuoso"))
+	gen := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Izzet Generatorium"))
+	virt := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Whirler Virtuoso"))
 
 	// Precondition: the AB's CheckSVar/SVarCompare are the gate under test.
 	ab := e.G.Obj(gen).Face().Abilities[0]

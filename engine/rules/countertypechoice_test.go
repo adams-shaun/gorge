@@ -23,7 +23,7 @@ func optionIndexByLabel(d *decision.Decision, label string) int {
 // answer must survive while the second ask is pending.
 func TestInvokeTheAncientsCounterTypePerDefinedChoice(t *testing.T) {
 	t.Parallel()
-	invoke := mustCorpusCardT(t, "Invoke the Ancients")
+	invoke := corpusAlternativeCard(t, "Invoke the Ancients")
 	e, cfg := tokenReplGame(t, 917, invoke)
 	id := moveSeededCard(t, e, 0, invoke, state.ZHand)
 	addMana(t, e, 0, "GGGGG")
@@ -100,7 +100,7 @@ func TestCounterTypeChoiceDoesNotLeakIntoSubAbility(t *testing.T) {
 
 func TestCrystallineGiantCounterTypeChoice(t *testing.T) {
 	t.Parallel()
-	giant := mustCorpusCardT(t, "Crystalline Giant")
+	giant := corpusAlternativeCard(t, "Crystalline Giant")
 	e, cfg := tokenReplGame(t, 921, giant)
 	id := moveSeededCard(t, e, 0, giant, state.ZBattlefield)
 	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "Flying", Amount: 1})
@@ -134,7 +134,7 @@ func TestCrystallineGiantCounterTypeChoice(t *testing.T) {
 // fixed Choices$ recipient does not suppress its subsequent list-kind choice.
 func TestDismantleCounterTypeChoiceContinuesAfterDeterministicRecipient(t *testing.T) {
 	t.Parallel()
-	dismantle := mustCorpusCardT(t, "Dismantle")
+	dismantle := corpusAlternativeCard(t, "Dismantle")
 	// Indestructible keeps the target's counters live for Dismantle's
 	// ConditionDefined$ Targeted check, while its opponent controller leaves
 	// Remaining Relic as the one deterministic Artifact.YouCtrl recipient.
