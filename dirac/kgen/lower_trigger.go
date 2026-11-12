@@ -2369,24 +2369,9 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		} else if az == "Hand" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Warp") {
 			return nil, lc.handWarpGrant(sp, st, aff) // lower_warpgrant.go
 		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && inertCountAs(sp.str("AddHiddenKeyword"), aff) {
-			// Pardic Firecat's "CARDNAME count as Flame Burst.": gorge's
-			// printed Continuous static walk registers no AddHiddenKeyword$
-			// head (no PKAddHiddenKeyword branch in layers.go), so the
-			// count-as static is inert in both engines and lowers to
-			// nothing; its consumer (Flame Burst's own count filter) is
-			// refused by name.
-			if ez, ok := sp.get("EffectZone"); ok && strings.TrimSpace(ez) != "Graveyard" {
-				return nil, refuse("AffectedZone Graveyard count-as static with EffectZone %q", ez)
-			}
-			sp.consume("AddHiddenKeyword", "AffectedZone", "EffectZone")
-			st.Kind = "" // inert in both engines: lower to nothing
-			return nil, nil
+			return nil, graveCountAsStatic(sp, st) // lower_escapegrant.go
 		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && sp.str("AddKeyword") != "" {
-			// a graveyard keyword grant whose keyword has no lowering (Six's
-			// Retrace, Varolz's Scavenge): refused by name at its keyword so
-			// the reason is true, not the generic AffectedZone one
-			kw, _, _ := strings.Cut(sp.str("AddKeyword"), ":")
-			return nil, refuse("AffectedZone %q without MayPlay (%s grant not modelled)", az, kw)
+			return nil, refuseGraveKwGrant(sp, az) // lower_escapegrant.go
 		} else if !sp.is("MayPlay", "True") {
 			return nil, refuse("AffectedZone %q without MayPlay", az)
 		}

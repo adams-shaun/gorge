@@ -105,3 +105,26 @@ func (lc *lowerCtx) graveEscapeGrant(sp *params, st *lStatic, aff string) error 
 func inertCountAs(hk, aff string) bool {
 	return aff == "Card.Self" && strings.HasPrefix(hk, "CARDNAME count as ") && strings.HasSuffix(hk, ".")
 }
+
+// graveCountAsStatic lowers an inertCountAs static (Pardic Firecat's
+// "CARDNAME count as Flame Burst.") to nothing: gorge's printed Continuous
+// static walk registers no AddHiddenKeyword$ head (no PKAddHiddenKeyword
+// branch in layers.go), so the static is inert in both engines; its
+// consumer (Flame Burst's own count filter) is refused by name. An
+// EffectZone$ off the graveyard refuses by name.
+func graveCountAsStatic(sp *params, st *lStatic) error {
+	if ez, ok := sp.get("EffectZone"); ok && strings.TrimSpace(ez) != "Graveyard" {
+		return refuse("AffectedZone Graveyard count-as static with EffectZone %q", ez)
+	}
+	sp.consume("AddHiddenKeyword", "AffectedZone", "EffectZone")
+	st.Kind = "" // inert in both engines: lower to nothing
+	return nil
+}
+
+// refuseGraveKwGrant refuses an AffectedZone$ Graveyard keyword grant whose
+// keyword has no lowering (Six's Retrace, Varolz's Scavenge) by name at its
+// keyword, so the reason is true, not the generic AffectedZone one.
+func refuseGraveKwGrant(sp *params, az string) error {
+	kw, _, _ := strings.Cut(sp.str("AddKeyword"), ":")
+	return refuse("AffectedZone %q without MayPlay (%s grant not modelled)", az, kw)
+}
