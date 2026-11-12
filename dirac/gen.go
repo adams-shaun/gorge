@@ -437,6 +437,9 @@ type genPrep struct {
 	// anyFiltFirst: some card's filter is its first mana ability (Abzan
 	// Devotee, Prophetic Prism; mana_filterfirst.go)
 	anyFiltFirst bool
+	// anyFiltRepeat: some card's first-ability filter is a fee-only one,
+	// repeatable (mana_filterrepeat.go)
+	anyFiltRepeat bool
 	// gapOther: card i has another mana ability gorge's census misses
 	// (a restricted, each-colour or paid one that is not filt: Lupinflower
 	// Village's creature-only {W}); beside one the filter stays unmodelled

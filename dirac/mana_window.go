@@ -871,7 +871,9 @@ func (s *State) windowDryRestr(k *prep, p uint8, cost *kop.ManaCost, anyColor bo
 // can spare and the filter makes a colour cost owes, so it never loses a pip. With
 // nothing to spare the swap gains nothing, and the filter only counts as spent.
 func (s *State) windowDryFilter(k *prep, p uint8, cost *kop.ManaCost, sl Slot) {
-	if s.filtNoTap(k, sl) {
+	if s.filtRepeat(k, sl) {
+		// repeatable: no use to mark (mana_filterrepeat.go)
+	} else if s.filtNoTap(k, sl) {
 		s.perms[sl].actUsed |= 1 << uint(k.gen.filt(s.cardAt(sl)))
 	} else {
 		s.perms[sl].flags |= pfTapped
