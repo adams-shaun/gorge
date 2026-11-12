@@ -857,11 +857,8 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			}
 			// gorge's order: sacrifice, the counter removals, discard
 			// (the forage either-or first: gorge forageAsk; an exile
-			// part is the only counted one of its cost: act_forage.go).
-			// An escape cast's asks follow gorge's costObjectAsks order
-			// (cast_begin.go): the spell's own sacrifice / discard asks
-			// first, then exAsk's escape fodder last (kw_escape.go).
-			if k.costObj && e.trigPl != trigPlEscape && s.costObjOptions(k, d) || e.trigPl == trigPlEscape && s.beholdOptions(k, d) || s.costPickOptions(k, d, kop.CostSac) || s.subCtrOptions(k, d) || k.subAmong && s.subAmongOptions(k, d) || s.costPickOptions(k, d, kop.CostDiscard) || e.trigPl == trigPlEscape && k.costObj && s.costObjOptions(k, d) {
+			// part is the only counted one of its cost: act_forage.go)
+			if s.buildCostAsks(k, d, e) {
 				return s.ctl == ctlBuild // false: a short sacrifice reversed the build (sacShort)
 			}
 			if k.gen != nil && (k.gen.anySneak && sneakEntry(e) || k.gen.anyWebSling && webSlingEntry(e)) && s.sneakReturnOptions(k, d) {
@@ -2058,6 +2055,20 @@ func (s *State) takePending(k *prep, i int) {
 
 // pickCosts are the cost flags paid by choosing objects.
 const pickCosts = kop.CostDiscard | kop.CostSac | kop.CostTapX
+
+// buildCostAsks poses bsCosts' next cost-object pick of the entry e being
+// built (costObjOptions' forage / exile pick, then sacrifice, the counter
+// removals, discard): false when none is owed. An escape cast (trigPlEscape,
+// kw_escape.go) follows gorge's costObjectAsks order (cast_begin.go): its
+// behold and the spell's own sacrifice / discard asks first, then exAsk's
+// escape fodder (costObjOptions) last.
+func (s *State) buildCostAsks(k *prep, d *Decision, e *stackEntry) bool {
+	return k.costObj && e.trigPl != trigPlEscape && s.costObjOptions(k, d) ||
+		e.trigPl == trigPlEscape && s.beholdOptions(k, d) ||
+		s.costPickOptions(k, d, kop.CostSac) || s.subCtrOptions(k, d) ||
+		k.subAmong && s.subAmongOptions(k, d) || s.costPickOptions(k, d, kop.CostDiscard) ||
+		e.trigPl == trigPlEscape && k.costObj && s.costObjOptions(k, d)
+}
 
 // costPickOptions poses the next pick for the pick costs in allowed of the
 // entry being built (a spell's additional costs live on its spell
