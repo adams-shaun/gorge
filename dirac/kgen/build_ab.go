@@ -349,12 +349,20 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		if t.ActOnly {
 			ts.TFlags |= kop.TgfActOnly
 		}
-		if t.VTgt != nil {
-			// the spell side is any spell; the filter names the battlefield
-			// object one of its targets must match
+		if t.VTgt != nil || t.VYou {
+			// the filter names the battlefield object one of the spell's
+			// targets must match (VYou: the chooser); SpellF is the spell side
 			ts.Kind = kop.TgtSpellTgting
-			if ts.Filter, err = cb.filter(t.VTgt, kop.ZoneBattlefield); err != nil {
-				return ts, err
+			ts.VYou = t.VYou
+			if t.VTgt != nil {
+				if ts.Filter, err = cb.filter(t.VTgt, kop.ZoneBattlefield); err != nil {
+					return ts, err
+				}
+			}
+			if t.VSpellF != nil {
+				if ts.SpellF, err = cb.filter(t.VSpellF, kop.ZoneStack); err != nil {
+					return ts, err
+				}
 			}
 			break
 		}
@@ -374,6 +382,17 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 			// alternative, a permanent the planeswalker one. Same target
 			// walk as "any target", with the object clause as the filter.
 			ts.Kind = kop.TgtAny
+			g := *f
+			g.Players = 0
+			if ts.Filter, err = cb.filter(&g, kop.ZoneBattlefield); err != nil {
+				return ts, err
+			}
+		case f.Players == plOpp && len(f.Clauses) == 1 && f.Clauses[0] == (lClause{Types: tPlaneswalker}):
+			// "target opponent or planeswalker" (Burning Sun's Avatar,
+			// Rakdos's Return): the Boros Charm walk with the player
+			// alternative narrowed to an opponent of the chooser.
+			ts.Kind = kop.TgtAny
+			ts.TFlags |= kop.TgfOppOnly
 			g := *f
 			g.Players = 0
 			if ts.Filter, err = cb.filter(&g, kop.ZoneBattlefield); err != nil {
@@ -3846,6 +3865,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, err
 		}
 		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtColorGrant)), v, int16(in.C)
+		if in.F != nil {
+			// (Akroma's Blessing) the sweep's filter
+			if err := objFilter(kop.ZoneBattlefield); err != nil {
+				return ki, err
+			}
+		}
 	case "Endure":
 		// OpExt ExtEndure, B the Spirit token, C the N/N
 		// override (its PA is N)
@@ -4045,6 +4070,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtPreventColor)) // (Prismatic Strands)
 	case "PreventDamageScope":
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventDamageScope)), int16(in.C)
+	case "PreventNext":
+		// OpExt ExtPreventNext on Obj, B the amount, C 1 for combat damage only (dirac/repl_prevnext.go)
+		v, err := cb.value(in.A)
+		if err != nil {
+			return ki, err
+		}
+		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventNext)), v, int16(in.C&1)
 	case "CounterPlusEOT":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtCounterPlusEOT))
 	case "TurnRepl":

@@ -127,8 +127,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (the merge with land: Count$TotalDamageReceivedThisTurn lowered: Tangled Colony beside land's 22180; ALL 22180 -> 22181, WOE 261 -> 262).
 	// +5 (Dig NoLooking$ and Manifest Defined$ Remembered lower: Telling Time, Moment of Truth, Expressive Iteration, Write into Being, Hamza, Might of the Yathan; ALL 22345 -> 22350, MOM 199 -> 200).
 	// +21 (ChangeTargets over spells and abilities: Deflecting Swat, Misdirection, Imp's Mischief, Reroute, Sideswipe, Spellskite, Hydroelectric Specimen; the exile-only hand alternative cost: Pyrokinesis, Snapback, Cave-In, Reverent Mantra, Bounty of the Hunt, Scars of the Veteran; ALL 22381 -> 22402).
+	// +22 (the merge with land: this branch's ChangeTargets and exile-only hand alternative-cost lowers beside land's; merged ALL 22537 -> 22559, measured).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22402, 34442},
+	"ALL": {22559, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {216, 280},

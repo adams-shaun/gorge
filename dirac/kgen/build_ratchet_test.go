@@ -221,8 +221,9 @@ import (
 // +1 (ConditionActivationLimit$ lowers to kop.ExActivations: Dragon Whelp; merged with land ALL build-level 22184 -> 22185).
 // +5 (the Aura-on-land TapsForMana extra with a literal body: Wild Growth, Overgrowth, Wolfwillow Haven, Gauntlet of Might, Vernal Bloom; ALL build-level 22345 -> 22350).
 // +21 (ChangeTargets over spells and abilities: Deflecting Swat, Misdirection, Imp's Mischief, Reroute, Sideswipe, Spellskite, Hydroelectric Specimen; and the exile-only hand alternative cost: Misdirection, Pyrokinesis, Snapback, Cave-In, Reverent Mantra, Bounty of the Hunt, Scars of the Veteran; ALL build-level 22381 -> 22402).
+// +22 (the merge with land: this branch's ChangeTargets and exile-only hand alternative-cost lowers beside land's; merged ALL build-level 22537 -> 22559, measured).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22402, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22559, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

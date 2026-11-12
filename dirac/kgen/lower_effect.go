@@ -1720,6 +1720,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.earthbend(ps)
 	case "Endure":
 		return lc.endure(ps) // lower_endure.go
+	case "PreventDamage":
+		return lc.preventNext(ps) // lower_preventnext.go
 	case "Clone":
 		return lc.cloneAttached(ps) // lower_cloneattached.go
 	case "Goad":
@@ -1743,14 +1745,21 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 				return terr
 			}
 		}
-		var vtg *lFilter
+		var vtg, vspell *lFilter
+		vyou := false
 		if v, ok := ps.get("TargetValidTargeting"); ok {
-			if tt != "Spell" || ps.str("ValidTgts") != "Card" {
-				return refuse("Counter TargetValidTargeting beside TargetType %q ValidTgts %q", tt, ps.str("ValidTgts"))
+			if tt != "Spell" {
+				return refuse("Counter TargetValidTargeting beside TargetType %q: a stack ability's targets live in its trigger/activation roles, which gorge's filterTargetValidTargeting does not read (Diplomatic Escort, Siren Stormtamer, Not of This World)", tt)
 			}
 			var verr error
-			if vtg, verr = lc.counterValidTargeting(strings.TrimSpace(v)); verr != nil {
+			if vtg, vyou, verr = lc.counterValidTargeting(strings.TrimSpace(v)); verr != nil {
 				return verr
+			}
+			if vt := ps.str("ValidTgts"); vt != "Card" {
+				// the spell side's own filter (Avoid Fate: Instant,Aura)
+				if vspell, verr = lc.filter(vt); verr != nil {
+					return verr
+				}
 			}
 		}
 		if v, ok := ps.get("TgtZone"); ok && (tt != "Spell" || v != "Stack") {
@@ -1791,7 +1800,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if err != nil {
 			return err
 		}
-		lt := lTarget{F: f, Zone: zStack, Spell: true, StackAb: tt != "Spell", AbOnly: tt == "Activated,Triggered", TrigOnly: trigOnly, VTgt: vtg}
+		lt := lTarget{F: f, Zone: zStack, Spell: true, StackAb: tt != "Spell", AbOnly: tt == "Activated,Triggered", TrigOnly: trigOnly, VTgt: vtg, VYou: vyou, VSpellF: vspell}
 		if v, ok := ps.get("TargetMin"); ok {
 			if lt.Min, err = lc.value(v); err != nil {
 				return err
@@ -2122,6 +2131,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.demonstrate(ps)
 	case "ChooseColor":
 		return lc.chooseColorPrevent(ps) // Prismatic Strands
+	case "ProtectionAll":
+		return lc.protectionAllChosen(ps) // lower_choosecolorres.go
 	case "ChooseType":
 		return lc.chooseType(ps)
 	case "Scry":
@@ -4272,6 +4283,12 @@ func (lc *lowerCtx) chooseColorPrevent(ps *params) error {
 		lc.emit(lInstr{Op: "ChooseColorRes", Note: "the controller chooses a colour for this resolution"})
 		return nil
 	}
+	if chooseColorResSub(n) {
+		// (Akroma's Blessing, Wash Out) lower_choosecolorres.go
+		lc.colGrant = true
+		lc.emit(lInstr{Op: "ChooseColorRes", Note: "the controller chooses a colour for this resolution"})
+		return nil
+	}
 	if n != nil && n.API == "Animate" && strings.EqualFold(strings.TrimSpace(n.Params["Colors"]), "ChosenColor") {
 		// (Puca's Eye, Mondo Gecko) the Animate's
 		// Colors$ ChosenColor reads the resolution's colour (res.chosen)
@@ -4281,7 +4298,7 @@ func (lc *lowerCtx) chooseColorPrevent(ps *params) error {
 		return nil
 	}
 	if n == nil || n.API != "Effect" || n.Sub != nil || lc.preventColorShape(n.Params) != "" {
-		return refuse("ChooseColor outside an as-enters replacement")
+		return refuse("ChooseColor outside an as-enters replacement%s", chooseColorRefusal(n))
 	}
 	lc.prevColor = true
 	return nil

@@ -44,6 +44,13 @@ type TargetSpec struct {
 	// MinV, MaxV: the bounds when TFlags has TgfBoundsV (a constant side holds
 	// kop.Const); Min/Max are unused then.
 	MinV, MaxV ValueRef
+	// SpellF is a TgtSpellTgting slot's spell-side filter (the counter's
+	// ValidTgts$, e.g. Avoid Fate's Instant,Aura): a stack-zone filter on the
+	// candidate spell; 0 = any spell. VYou replaces the slot's battlefield
+	// Filter with "a target of the spell is the chooser" (TargetValidTargeting$
+	// You, Dawn Charm).
+	SpellF FilterID
+	VYou   bool
 }
 
 // MaxTargets is the number of target slots an ability may have.
@@ -113,6 +120,13 @@ const TgtGraveExileCard TargetKind = 241
 // TargetType$ SpellAbility.singleTarget, the singleTarget property).
 const TgfSingleTgt TargetFlags = 1 << 13
 
+// TgfOppOnly (TargetSpec.TFlags): a TgtAny slot's player alternative is an
+// opponent of the chooser only (gorge ValidTgts$ Opponent,Planeswalker:
+// Burning Sun's Avatar, Jeskai Charm, Rakdos's Return); the filter's object
+// clause still names the planeswalker alternative, which has no controller
+// word.
+const TgfOppOnly TargetFlags = 1 << 14
+
 // TgfActOnly (TargetSpec.TFlags): a TgtStackAb slot admits only an activated
 // ability, no triggered one (gorge TargetType$ Activated.singleTarget: Reroute).
-const TgfActOnly TargetFlags = 1 << 14
+const TgfActOnly TargetFlags = 1 << 15
