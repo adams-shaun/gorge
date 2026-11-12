@@ -485,4 +485,3 @@ func emblemFiltersRefuseHost(where string, fs ...*lFilter) error {
 	}
 	return nil
 }
-
