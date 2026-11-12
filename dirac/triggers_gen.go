@@ -329,6 +329,9 @@ func (s *State) playerTrigGenObj(k *prep, ev kop.TrigEvent, l trigListener, a *k
 		if t.Flags&kop.TfSecondDraw != 0 && !s.nthDrawOK(t, who) {
 			return
 		}
+		if !drawStepGateOK(t, s.drawStepFirst(who)) {
+			return
+		}
 	case kop.TrigLifeGained:
 		if t.Flags2&kop.Tf2FirstTime != 0 && int(s.pl[who].lifeGained) != int(amt) {
 			return

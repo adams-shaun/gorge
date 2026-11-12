@@ -1220,7 +1220,7 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 		}
 		switch t.Kind {
 		case kop.TgtAny:
-			return true
+			return t.TFlags&kop.TgfOppOnly == 0 || pp != p
 		case kop.TgtPlayer:
 			if t.Filter != 0 {
 				switch k.t.Filters[t.Filter].Ctrl {
@@ -1270,7 +1270,7 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 		if ob.zone != kop.ZoneStack || o == self {
 			return false
 		}
-		return s.matchCardAt(k, t.Filter, ob.card, s.stackCtrl(o), p, o)
+		return s.matchCardAt(k, t.Filter, ob.card, s.stackCtrl(o), p, o) && (t.TFlags&kop.TgfSingleTgt == 0 || s.ksrSingleSpell(o))
 	case kop.TgtCard:
 		z := k.t.Filters[t.Filter].Zone
 		if z == kop.ZoneNone {
@@ -1369,7 +1369,9 @@ func (s *State) hasTarget(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Ob
 	}
 	switch t.Kind {
 	case kop.TgtAny:
-		return true // a player is always a legal any-target
+		if t.TFlags&kop.TgfOppOnly == 0 {
+			return true // a player is always a legal any-target
+		}
 	case kop.TgtObject:
 		for m := s.occ; m.any(); m = m.rest() {
 			if s.targetOK(k, t, p, src, self, uint8(s.perms[m.first()].obj)) {

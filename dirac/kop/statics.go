@@ -638,7 +638,7 @@ const StatEscapeGrant StaticKind = 243
 // branch, tgt_permorgravecard.go, tgt_graveexilecard.go), behind
 // genPrep.anyCantTgtGrave (kw_canttgtgrave.go). Explicit ordinal: the
 // StaticKind iota tail stays untouched.
-const StatCantTgtGrave StaticKind = 228
+const StatCantTgtGrave StaticKind = 229
 
 // StFbOwnCost on a StatFbGrant static: the flashback costs Static.GrantCost,
 // not the card's mana cost.
@@ -676,3 +676,10 @@ const StatFlipCoinMod StaticKind = 226
 // unbounded arm). The bit and the exhaust class are kernel facts
 // (dirac/static_turnbits.go); kgen validates the static shape at lowering time.
 const StatActivationLimit StaticKind = 227
+
+// StatLure (an explicit ordinal clear of the iota tail): each battlefield
+// permanent matching Filter, while Cond2 holds, has "All creatures able to
+// block CARDNAME do so." (a Continuous static's AddHiddenKeyword$, CR 509.1c;
+// gorge kw:AllMustBlock): the printed CardDef.Lure, granted. Lure, Gift of the
+// Deity, Seton's Desire, Stone-Tongue Basilisk. dirac/combat_lure.go.
+const StatLure StaticKind = 228

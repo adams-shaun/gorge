@@ -90,7 +90,13 @@ func (e *Engine) queueTriggerLimited(observer *Engine, pt pendingTrigger, ev eve
 	if e.effectMatchOverride {
 		return
 	}
-	for n := e.panharmoniconEchoes(observer, pt.Source, ev, causes, trigMode); n > 0; n-- {
+	entryCaused := true
+	if trigMode == "ChangesZone" || trigMode == "ChangesZoneAll" {
+		if t, ok := e.triggerOf(pt); ok {
+			entryCaused = panharmoniconEntryTrigger(t)
+		}
+	}
+	for n := e.panharmoniconEchoes(observer, pt.Source, ev, causes, trigMode, entryCaused); n > 0; n-- {
 		if limited != nil {
 			if !e.triggerGameActivationLimitAllows(*limited, key) || !e.triggerActivationLimitAllows(*limited, key) {
 				break
@@ -118,14 +124,14 @@ func (e *Engine) echoCauses(t cards.Trigger, ev events.Event) []state.ObjID {
 func (e *Engine) grantedTriggerInstances(observer *Engine, t *cards.Trigger, id state.ObjID, ev events.Event, pt pendingTrigger) []pendingTrigger {
 	if t.ModeKind() == cards.TriggerAttacks {
 		echoFor := func(attacker state.ObjID) int {
-			return e.panharmoniconEchoes(observer, id, ev, []state.ObjID{attacker}, t.Mode)
+			return e.panharmoniconEchoes(observer, id, ev, []state.ObjID{attacker}, t.Mode, true)
 		}
 		if insts := attacksTriggerInstances(boardOf(observer), t, id, ev, pt, echoFor); len(insts) > 0 {
 			return insts
 		}
 	}
 	insts := []pendingTrigger{pt}
-	for n := e.panharmoniconEchoes(observer, id, ev, e.echoCauses(*t, ev), t.Mode); n > 0; n-- {
+	for n := e.panharmoniconEchoes(observer, id, ev, e.echoCauses(*t, ev), t.Mode, panharmoniconEntryTrigger(*t)); n > 0; n-- {
 		insts = append(insts, pt)
 	}
 	return insts
@@ -181,7 +187,18 @@ func (e *Engine) grantedTriggerInstances(observer *Engine, t *cards.Trigger, id 
 // against the turn-up event's own object. Params this build cannot evaluate
 // (IsPresent/PresentCompare, Condition) fail closed: the static does not
 // double, never over-applies.
-func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev events.Event, causes []state.ObjID, trigMode string) int {
+func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev events.Event, causes []state.ObjID, trigMode string, entryCaused bool) int {
+	// CR 603.10a: a leaves-the-battlefield / sacrifice / unattached walk reads
+	// the game as it was immediately before the event, so the statics that
+	// decide how many times such a trigger fires come from the look-back
+	// observer's pre-departure board. Reading them off e (the live board after
+	// each move) made a host that died earlier in the same batch, or was the
+	// dying permanent itself, stop doubling, while one later in
+	// battlefield-list order still did.
+	statics := e
+	if e.lookBackWalk && observer != nil {
+		statics = observer
+	}
 	g := observer.G
 	o := g.Obj(src)
 	if o == nil {
@@ -198,13 +215,23 @@ func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev event
 	}
 	modes := panharmoniconModes(ev)
 	n := 0
-	for _, sv := range e.panharmoniconStatics() {
+	for _, sv := range statics.panharmoniconStatics() {
 		// The "as long as" gates (Condition$, IsPresent$, ClassBand$,
 		// CheckSVar$) share the ONE continuous gate the other static
 		// families use. Bifur, Melodic Rider's `Condition$ EnduringStory`
 		// is the corpus's only gated Panharmonicon static; without this the
 		// echo doubled its Dwarf triggers even with no enduring story.
-		if !e.continuousGateHolds(sv) {
+		if !statics.continuousGateHolds(sv) {
+			continue
+		}
+		// The entering (StPanhETB) shape names its CAUSE: "if an artifact or
+		// creature ENTERING THE BATTLEFIELD causes ...". A graveyard-leave
+		// trigger is caused by the card leaving the graveyard, not by the same
+		// move's entry, so that shape does not double it (CR 603.2d). dirac
+		// queues the leave at detach, before the destination is known, so it
+		// stays single there; the ValidCard$-only shape (no
+		// ValidCause$/Destination$) keeps doubling every matching trigger.
+		if !entryCaused && panharmoniconEntersBattlefield(sv) {
 			continue
 		}
 		if vm := sv.ParamStr(cards.PKValidMode); vm != "" {
@@ -346,6 +373,39 @@ func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev event
 		}
 	}
 	return n
+}
+
+// panharmoniconEntersBattlefield reports whether sv is the "entering the
+// battlefield causes" (StPanhETB) shape: its cause clause names the
+// battlefield as the event's DESTINATION. The ValidCard$-only shape (Echoes of
+// Eternity) has no Destination$ and doubles every trigger of the objects it
+// matches; The Masamune's dying grant names Graveyard and stays a
+// death-doubling static.
+func panharmoniconEntersBattlefield(sv staticView) bool {
+	d := sv.ParamStr(cards.PKDestination)
+	return d != "" && zoneSpecContains(d, state.ZBattlefield)
+}
+
+// panharmoniconEntryTrigger reports whether the trigger line t is caused by
+// its object ENTERING the battlefield, the event the StPanhETB shape's
+// "entering causes" clause names. An explicit Destination$ decides; an
+// Origin$ naming only zones other than the battlefield (the
+// "leaves your graveyard" family) is caused by the departure, not the entry.
+// An absent or Any Origin$ is an ordinary destination trigger.
+func panharmoniconEntryTrigger(t cards.Trigger) bool {
+	switch t.ModeKind() {
+	case cards.TriggerChangesZone, cards.TriggerChangesZoneAll:
+	default:
+		return true
+	}
+	if d := t.ParamStr(cards.PKDestination); d != "" && d != "Any" {
+		return zoneSpecContains(d, state.ZBattlefield)
+	}
+	o := t.ParamStr(cards.PKOrigin)
+	if o == "" || o == "Any" {
+		return true
+	}
+	return zoneSpecContains(o, state.ZBattlefield) || !zoneSpecContains(o, state.ZGraveyard)
 }
 
 // panharmoniconModes maps the folded causing event to the Forge trigger-mode

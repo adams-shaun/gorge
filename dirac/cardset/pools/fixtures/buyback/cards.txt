@@ -1,0 +1,20 @@
+# the Buyback pool: Searing Touch, Capsize, Evincar's Justice, Elvish Fury
+# (Buyback {N}), Forbid (Buyback: discard two cards) and Mind Games beside
+# creatures to hit, pump and bounce, and basics (dirac/oracle/buyback_test.go)
+Searing Touch
+Capsize
+Evincar's Justice
+Elvish Fury
+Forbid
+Mind Games
+Shock
+Grizzly Bears
+Elite Vanguard
+Savannah Lions
+Llanowar Elves
+Ornithopter
+Plains
+Island
+Swamp
+Forest
+Mountain

@@ -112,7 +112,7 @@ draws the tier graph from the real imports with any back-edge in red.
 | Tier | Directories | May import |
 |---|---|---|
 | Engine | `engine/` | the standard library and other `engine/` packages only |
-| dirac | `dirac/` | its core (`dirac`, `kop`, `cardset`, `vanilla`, `search/...`, `feat`) imports only itself; `oracle`, `kgen`, `cmd/dplay` and `cmd/sbv2dirac` may read `engine/`, and `adapter` reads `engine/`'s types and never its rules engine |
+| dirac | `dirac/` | its core (`dirac`, `kop`, `cardset`, `vanilla`, `search/...`, `feat`) imports only itself; `oracle`, `kgen`, `dirac/cmd/dplay` and `dirac/cmd/sbv2dirac` may read `engine/`, and `adapter` reads `engine/`'s types and never its rules engine |
 | Bots | `bots/` | `engine/`, other `bots/` packages |
 | Server | `server/` | `engine/`, `bots/`, other `server/` packages |
 | Tooling | `internal/`, `testkit/`, `cli/` | `engine/`, `bots/`, `server/`, other tooling packages |
