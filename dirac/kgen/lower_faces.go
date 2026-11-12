@@ -119,6 +119,13 @@ func (lc *lowerCtx) lowerFaces(c *cards.Card) bool {
 		lc.refuseRoomDoors(c)
 	}
 	out.Tokens = append(out.Tokens, out.Faces[1:]...)
+	if m == kop.FaceSplit && fuseCard(c) && !out.Token {
+		if r := fuseLayoutRefusal(c); r != "" {
+			lc.refuseNode("K:Fuse", "%s", r) // lower_fuse.go
+		}
+		out.FuseKey = fuseKey(out.Name)
+		out.Tokens = append(out.Tokens, out.FuseKey)
+	}
 	lc.faceTokens() // lower_faces.go
 	return true
 }
@@ -172,9 +179,13 @@ func lowerFaceEntry(p *pool, k string) *lCard {
 //   - Adventure (CR 715): face 1 must be an Instant or Sorcery of type
 //     Adventure (gorge rules adventure.go adventureSpellFace); gorge offers
 //     nothing for any other shape.
-//   - Split (CR 709): neither half a Room (gorge's face_rooms.go owns those),
-//     no Fuse (gorge's "fuse" cast, CR 702.102, is not modelled) and no
-//     Aftermath (the graveyard cast, CR 702.127, is not modelled).
+//   - Split (CR 709): neither half a Room (gorge's face_rooms.go owns
+//     those). A K:Aftermath right half (CR 702.127a) is cast only from the
+//     graveyard (gorge's "aftermath", dirac/face_aftermath.go); Aftermath on
+//     the left half is no shape gorge's aftermathAlternateFace reads, so it
+//     refuses, as does Aftermath beside Fuse. A card printed with fuse (CR
+//     702.102) is cast as both halves too, its fused spell one more entry
+//     (gorge's "fuse", lower_fuse.go).
 //   - Omen (CR 720): face 1 must be an Instant or Sorcery of type Omen
 //     (gorge rules adventure.go omenSpellFace) and the front must not be a
 //     land (gorge's hand walk offers the Omen face from the land branch
@@ -220,8 +231,8 @@ func castableFaceLayout(c *cards.Card) uint8 {
 			!f0.HasKeyword("Aftermath") && !f1.HasKeyword("Aftermath") {
 			return kop.FaceRoom // lower_rooms.go
 		}
-		if f0.IsRoom() || f1.IsRoom() || f0.HasKeyword("Fuse") || f1.HasKeyword("Fuse") ||
-			f0.HasKeyword("Aftermath") || f1.HasKeyword("Aftermath") {
+		if f0.IsRoom() || f1.IsRoom() || f0.HasKeyword("Aftermath") ||
+			f1.HasKeyword("Aftermath") && (f0.HasKeyword("Fuse") || f1.HasKeyword("Fuse")) {
 			return kop.FaceNone
 		}
 		return kop.FaceSplit
@@ -239,11 +250,20 @@ func (lc *lowerCtx) faceTokens() {
 	for _, t := range out.Tokens {
 		have[t] = true
 	}
-	for _, k := range out.Faces[1:] {
-		if _, _, ok := parseFaceKey(k); !ok {
+	keys := out.Faces[1:]
+	if out.FuseKey != "" {
+		keys = append(append([]string(nil), keys...), out.FuseKey)
+	}
+	for _, k := range keys {
+		var entry *lCard
+		if _, _, ok := parseFaceKey(k); ok {
+			entry = lowerFaceEntry(lc.p, k)
+		} else if k == out.FuseKey {
+			entry = lowerFusedEntry(lc.p, k) // lower_fuse.go
+		} else {
 			continue // a Room state def: its doors' tokens are the faces' (lower_rooms.go)
 		}
-		for _, t := range lowerFaceEntry(lc.p, k).Tokens {
+		for _, t := range entry.Tokens {
 			if !have[t] {
 				have[t] = true
 				out.Tokens = append(out.Tokens, t)

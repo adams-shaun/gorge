@@ -244,11 +244,9 @@ import (
 // +29 (api BecomeMonarch, Mode$ BecomeMonarch, Count$Monarch, CheckDefinedPlayer$ You|Opponent.isMonarch and a monarch-gated Effect lower: Aragorn, King of Gondor, Chief Magistrate of Mercadia, Court of Ardenvale, Court of Bounty, Court of Cunning, Court of Embereth, Court of Garenbrig, Court of Grace, Court of Ire, Crimson Fleet Commodore, Custodi Lich, Faramir, Steward of Gondor, Feast of Succession, Garrulous Sycophant, Grave Venerations, Keeper of Keys, Knights of the Black Rose, Marchesa's Decree, Nakia, Wakandan Operative, Oath of Eorl, Palace Sentinels, Queen Marchesa, Regal Sliver, Skyline Despot, Staunch Throneguard, Thorn of the Black Rose, Throne Warden, Throne of the High City, Éomer, King of Rohan; ALL build-level 22381 -> 22410).
 // +30 (the merge with land: the monarch lowering above against land's corpus; merged ALL build-level 22868 -> 22898).
 // +16 (the merge with land: land's later work after f486bfb466, the zone-scoped PlayerCount extreme and Pump/UntilYourNextTurn lowering at 0d7bfabead, DSK 250 -> 251; merged ALL build-level 22898 -> 22914 measured).
-// +2 (a targeted Effect-MayPlay's Card.IsRemembered+nonLand lowers: Emry, Lurker of the Loch and Silas Renn, Seeker Adept; ALL build-level 22929 -> 22931).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
 // +12 (the merge with land: the storage-battery abilities above against land's corpus; merged ALL build-level 22971 -> 22983 measured).
-// +2 (the merge with land: a targeted Effect-MayPlay's Card.IsRemembered+nonLand lowers, Emry, Lurker of the Loch and Silas Renn, Seeker Adept, against land's corpus; merged ALL build-level 22986 -> 22988 measured).
-var buildAcceptancePin = [2]int{22988, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{23052, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
