@@ -2293,6 +2293,9 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 	case "Shuffle":
 		// gorge effShuffle: the controller, or the one Defined$ / target
 		// player (several players and object owners refuse)
+		if ps.is("Defined", "RememberedOwner") {
+			return lc.shuffleRememberedOwners(ps) // lower_shuffleremowners.go
+		}
 		who, err := lc.objOrTarget(ps, "You", zNone)
 		if err != nil {
 			return err

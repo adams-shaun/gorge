@@ -126,18 +126,11 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Fiend Hunter's Defined$ DirectRemembered leave return lowers as the remembered-persist pair; ALL 22176 -> 22177).
 	// +1 (the merge with land: Count$TotalDamageReceivedThisTurn lowered: Tangled Colony beside land's 22180; ALL 22180 -> 22181, WOE 261 -> 262).
 	// +5 (Dig NoLooking$ and Manifest Defined$ Remembered lower: Telling Time, Moment of Truth, Expressive Iteration, Write into Being, Hamza, Might of the Yathan; ALL 22345 -> 22350, MOM 199 -> 200).
-	// +57 (the Echo and Fading keywords lower, echo over a plain mana cost: Cradle Guard, Blastoderm, Avalanche Riders, Mogg War Marshal and the rest of the 24 echo and 11 fading cards the keyword alone refused; ALL 22345 -> 22402).
-	// +58 (the merge with land at 75218b69a1: the Echo and Fading lowering's +57
-	// measured at 22345 is +58 on that tree, one card lowering only with both
-	// sides' changes; merged ALL 22592 -> 22650, measured).
 	// +5 (the hasManaAbility filter property and DrainMana: Power Sink, Moonsilver
 	// Key, Mana Short, Midnight Arsonist and Raggadragga, Goreguts Boss; ALL
 	// 22345 -> 22350).
-	// +39 (the merge with land at 6faca6234c: Rebound, FirstCardInDrawStep$,
-	// tokenCreated, Talon Gates of Madara, the Panharmonicon look-back and the
-	// hasManaAbility filter beside the +58; merged ALL 22650 -> 22689, measured).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22689, 34442},
+	"ALL": {22706, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {216, 280},
@@ -165,7 +158,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TMT": {183, 194},
 	"TRC": {300, 337},
 	"TRK": {311, 311},
-	"WOE": {262, 281},
+	"WOE": {263, 281},
 }
 
 // testSetlistDir is setlistDir relative to the test's working directory

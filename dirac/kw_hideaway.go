@@ -250,7 +250,7 @@ func (s *State) hidePlay(k *prep, in *kop.Instr) bool {
 				if e.ctrl != s.active || s.pl[e.ctrl].landsPlayed >= s.landLimit(k, e.ctrl) {
 					continue
 				}
-			} else if !s.spellTargetsFeasible(k, c, e.ctrl) || k.gen.anyCantCast && s.castForbidden(k, e.ctrl, c, o) {
+			} else if !s.spellTargetsFeasible(k, c, e.ctrl) || k.gen.anyCantCast && s.castForbiddenFree(k, e.ctrl, c, o) {
 				continue
 			}
 			if s.g.nfree >= uint8(len(s.g.free)) {

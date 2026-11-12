@@ -1,0 +1,27 @@
+# the Effect-delivered spell-flash pool: the cards whose Effect
+# StaticAbilities$ grant CastWithFlash (Borne Upon a Wind, Quicken, Teferi,
+# Time Raveler and A-Teferi's +1 beside their casting prohibitions, Alchemist's
+# Refuge, Emergence Zone, Winding Canyons) among
+# sorceries, creatures, instants and basics (dirac/oracle/effectflash_test.go)
+Borne Upon a Wind
+Quicken
+Teferi, Time Raveler
+A-Teferi, Time Raveler
+Alchemist's Refuge
+Emergence Zone
+Winding Canyons
+Cloud Sprite
+Elite Vanguard
+Glory Seeker
+Border Guard
+Environmental Sciences
+Accumulate Wisdom
+Mulch
+Cancel
+Swords to Plowshares
+Raise the Alarm
+Giant Growth
+Grizzly Bears
+Plains
+Island
+Forest

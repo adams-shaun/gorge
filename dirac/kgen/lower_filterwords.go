@@ -229,6 +229,43 @@ func (lc *lowerCtx) spawnerTargetCtrl(expr string) (string, error) {
 	return strings.ReplaceAll(expr, word, "OppCtrl"), nil
 }
 
+// spawnerDefendingCtrl rewrites the filter word "ControlledBy
+// Spawner>TriggeredDefendingPlayer" (gorge controlReferentPlayers
+// spawnerChain: the spawning Attacks trigger's DefendingPlayer, resolved
+// against the immediate trigger's role-riding instance, engine/effects/
+// trigger_referents.go) to the plain "ControlledBy
+// TriggeredDefendingPlayer" word inside an ImmediateTrigger body spawned by
+// an Attacks trigger whose source is the card itself (lc.spawnAtk, set by
+// immediateTrigger). The word marks the card two-seat (kop.CardDef.TwoSeat):
+// past two seats the reflexive entry binds no defSeat, so
+// defendingSeatF2 has no seat to read. Anywhere else the word refuses with a
+// named reason.
+func (lc *lowerCtx) spawnerDefendingCtrl(expr string) (string, error) {
+	const word = "ControlledBy Spawner>TriggeredDefendingPlayer"
+	if !strings.Contains(expr, word) {
+		return expr, nil
+	}
+	if !lc.spawnAtk {
+		return expr, refuse("filter %q: Spawner>TriggeredDefendingPlayer outside an ImmediateTrigger spawned by Card.Self's Attacks trigger", expr)
+	}
+	lc.twoSeat("ControlledBy Spawner>TriggeredDefendingPlayer read as the Attacks trigger's defending player")
+	return strings.ReplaceAll(expr, word, "ControlledBy TriggeredDefendingPlayer"), nil
+}
+
+// spawnAttacked reports whether ab is a triggered ability whose trigger is
+// `Mode$ Attacks | ValidCard$ Card.Self` (Ace, Fearless Rebel's Nitro-9).
+func spawnAttacked(ab *lAbility) bool {
+	if ab == nil || ab.Trigger == nil || ab.Latent {
+		return false
+	}
+	t := ab.Trigger
+	if t.Event != "Attacks" || t.F2 != nil || t.F == nil || len(t.F.Clauses) != 1 {
+		return false
+	}
+	c := t.F.Clauses[0]
+	return c.Flags&fSelf != 0 && c.Ctrl == whoAny
+}
+
 // spawnDamagedOpp reports whether ab is a triggered ability whose trigger is
 // `Mode$ DamageDone | ValidSource$ Card.Self | ValidTarget$ Player |
 // CombatDamage$ True`.
