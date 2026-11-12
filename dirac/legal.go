@@ -971,12 +971,17 @@ func severalTargets(k *prep, c CardID) bool {
 }
 
 // altAddFreePart: card c's either-or additional cost has a part with no mana
-// that can be paid (a creature to sacrifice).
+// that can be paid (a creature to sacrifice). The candidates exclude the card
+// being cast (o): for a cast the card is on the stack while its cost is paid,
+// so it can never pay its own exile or sacrifice fodder (gorge pay
+// NonManaCastable's cast self-skip, CR 601.2a/h) -- a may-play cast from the
+// graveyard (Ark of Hunger's permission) whose only other grave card is a
+// third one must price the mana part, not the exile part.
 func (s *State) altAddFreePart(k *prep, p uint8, c CardID, o Obj) bool {
 	cd := &k.t.Cards[c]
 	ac := spellAddCost(k, c)
-	return manaEmpty(&ac.Mana) && s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p, c, o) && s.altAddPartDisjoint(k, p, c, o, ac) ||
-		manaEmpty(&cd.AltAddCost.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost, NoObj) && s.altAddPartDisjoint(k, p, c, o, &cd.AltAddCost)
+	return manaEmpty(&ac.Mana) && s.pickCostPayable(k, p, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p, c, o) && s.altAddPartDisjoint(k, p, c, o, ac) ||
+		manaEmpty(&cd.AltAddCost.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost, o) && s.altAddPartDisjoint(k, p, c, o, &cd.AltAddCost)
 }
 
 // altAddPartDisjoint: the permanents a part sacrifices or taps are not the
