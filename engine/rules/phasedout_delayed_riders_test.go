@@ -50,7 +50,7 @@ func TestAtEOTDelayedExileSkipsAPhasedOutToken(t *testing.T) {
 		if !offersObj(d, bear) {
 			t.Fatalf("the copy target ask does not offer the Bear: %+v", d)
 		}
-		submitChoices(t, e, optionOfObj(t, d, bear))
+		submitChoices(t, e, objOptionIndex(t, d, bear))
 	}
 	settlePassing(e)
 

@@ -126,6 +126,11 @@ func (s *State) ObjHash(o Obj) uint64 {
 		x := r[ob.slot]
 		h = hmix(h, 0x78626c6b<<24|uint64(x.a)<<16|uint64(x.ord)<<8|uint64(x.div)|uint64(x.adiv)<<56) // combat_extrablock.go
 	}
+	if s.g.on {
+		if a := s.atchSeat(s.k(), ob.slot); a != 0 {
+			h = hmix(h, 0x61746368<<8|uint64(a)) // a player-attached Aura's seat (static_attachtimestamp.go)
+		}
+	}
 	if s.perms[ob.slot].ck[ctrSlots-1] != 0 {
 		h = s.ctrOverHash(h, o)
 	}

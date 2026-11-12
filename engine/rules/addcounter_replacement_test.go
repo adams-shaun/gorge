@@ -34,7 +34,7 @@ func counterReplSource(t testing.TB, n int) *cards.Card {
 // and returns (engine, cfg, source, target).
 func boardWithCounterReplacement(t *testing.T, seed uint64, replName string, counters int) (*Engine, Config, state.ObjID, state.ObjID) {
 	t.Helper()
-	repl := tokenReplCorpusCard(t, replName)
+	repl := corpusAlternativeCard(t, replName)
 	src := counterReplSource(t, counters)
 	target := card(t, "Name:Counter Target\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e, cfg := tokenReplGame(t, seed, repl, src, target)
@@ -116,7 +116,7 @@ func TestBranchingEvolutionDoublesCounters(t *testing.T) {
 func TestCounterReplacementDoesNotTouchRemoval(t *testing.T) {
 	t.Parallel()
 	for _, replName := range []string{"Hardened Scales", "Branching Evolution"} {
-		repl := tokenReplCorpusCard(t, replName)
+		repl := corpusAlternativeCard(t, replName)
 		target := card(t, "Name:Counter Target\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 		e, cfg := tokenReplGame(t, 77, repl, target)
 		targetID := moveSeededCard(t, e, 0, target, state.ZBattlefield)
@@ -151,8 +151,8 @@ func TestCounterReplacementFailsClosedOnOtherCounterKinds(t *testing.T) {
 // reading the amount the previous one produced.
 func TestAddCounterReplacementsComposeScanOrder(t *testing.T) {
 	t.Parallel()
-	hs := tokenReplCorpusCard(t, "Hardened Scales")
-	be := tokenReplCorpusCard(t, "Branching Evolution")
+	hs := corpusAlternativeCard(t, "Hardened Scales")
+	be := corpusAlternativeCard(t, "Branching Evolution")
 	src := counterReplSource(t, 1)
 	target := card(t, "Name:Counter Target\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e, cfg := tokenReplGame(t, 83, hs, be, src, target)
@@ -183,7 +183,7 @@ func TestAddCounterReplacementsComposeScanOrder(t *testing.T) {
 // that many plus one, while a counter on the opponent is untouched.
 func TestWindingConstrictorPlayerCounters(t *testing.T) {
 	t.Parallel()
-	wc := tokenReplCorpusCard(t, "Winding Constrictor")
+	wc := corpusAlternativeCard(t, "Winding Constrictor")
 	e, cfg := tokenReplGame(t, 89, wc)
 	moveSeededCard(t, e, 0, wc, state.ZBattlefield)
 	e.emit(events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "ENERGY", Amount: 3})
@@ -206,7 +206,7 @@ func TestWindingConstrictorPlayerCounters(t *testing.T) {
 // one = 2, never the 3 two overlapping matches would give.
 func TestWindingConstrictorObjectCounters(t *testing.T) {
 	t.Parallel()
-	wc := tokenReplCorpusCard(t, "Winding Constrictor")
+	wc := corpusAlternativeCard(t, "Winding Constrictor")
 	target := card(t, "Name:Counter Target\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e, cfg := tokenReplGame(t, 91, wc, target)
 	moveSeededCard(t, e, 0, wc, state.ZBattlefield)
@@ -228,7 +228,7 @@ func TestWindingConstrictorObjectCounters(t *testing.T) {
 // resolving-effect positive control follows.
 func TestDoublingSeasonEffectOnlyIgnoresNonEffectPlacement(t *testing.T) {
 	t.Parallel()
-	ds := tokenReplCorpusCard(t, "Doubling Season")
+	ds := corpusAlternativeCard(t, "Doubling Season")
 	target := card(t, "Name:Counter Target\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e, cfg := tokenReplGame(t, 97, ds, target)
 	moveSeededCard(t, e, 0, ds, state.ZBattlefield)
@@ -261,7 +261,7 @@ func TestDoublingSeasonEffectOnlyIgnoresNonEffectPlacement(t *testing.T) {
 // rider Note may survive.
 func TestMeliraReplacementBodySubAbilityRunsTheLock(t *testing.T) {
 	t.Parallel()
-	melira := tokenReplCorpusCard(t, "Melira, the Living Cure")
+	melira := corpusAlternativeCard(t, "Melira, the Living Cure")
 	e, cfg := tokenReplGame(t, 101, melira)
 	moveSeededCard(t, e, 0, melira, state.ZBattlefield)
 	before := len(e.L.Events)
@@ -296,7 +296,7 @@ func TestVizierOfRemediesReplacesToZero(t *testing.T) {
 		{1, 0},
 		{3, 2},
 	} {
-		vizier := tokenReplCorpusCard(t, "Vizier of Remedies")
+		vizier := corpusAlternativeCard(t, "Vizier of Remedies")
 		target := card(t, "Name:Counter Target\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 		e, cfg := tokenReplGame(t, 93, vizier, target)
 		moveSeededCard(t, e, 0, vizier, state.ZBattlefield)
@@ -338,7 +338,7 @@ func TestCounterDoublerIgnoresRegenerationShield(t *testing.T) {
 		{"Doubling Season", 103},
 		{"Winding Constrictor", 105},
 	} {
-		repl := tokenReplCorpusCard(t, tc.name)
+		repl := corpusAlternativeCard(t, tc.name)
 		src := regenReplSource(t)
 		target := card(t, "Name:Counter Target\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 		e, cfg := tokenReplGame(t, tc.seed, repl, src, target)
@@ -360,7 +360,7 @@ func TestCounterDoublerIgnoresRegenerationShield(t *testing.T) {
 // EffectOnly$, so a bare emit is the exact shape combat produces.
 func TestCounterReplacementIgnoresDeathtouchedMarker(t *testing.T) {
 	t.Parallel()
-	wc := tokenReplCorpusCard(t, "Winding Constrictor")
+	wc := corpusAlternativeCard(t, "Winding Constrictor")
 	target := card(t, "Name:Counter Target\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e, cfg := tokenReplGame(t, 107, wc, target)
 	moveSeededCard(t, e, 0, wc, state.ZBattlefield)
@@ -379,7 +379,7 @@ func TestCounterReplacementIgnoresDeathtouchedMarker(t *testing.T) {
 // (the chain now runs).
 func TestCounterReplacementBodySubAbilityNoOpStillLocks(t *testing.T) {
 	t.Parallel()
-	melira := tokenReplCorpusCard(t, "Melira, the Living Cure")
+	melira := corpusAlternativeCard(t, "Melira, the Living Cure")
 	e, cfg := tokenReplGame(t, 109, melira)
 	moveSeededCard(t, e, 0, melira, state.ZBattlefield)
 	before := len(e.L.Events)

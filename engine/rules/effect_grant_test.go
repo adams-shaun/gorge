@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -21,20 +20,6 @@ import (
 //
 // Fixtures are authored inline (the licensing rule): Forge corpus .txt is
 // GPL-3.0 and must never be committed.
-
-// effectNoteTexts collects every Note text emitted so far. A test that asserts
-// a characteristic changed must also assert the relevant fallback Note is
-// ABSENT, or it would pass with the registration reverted to a no-op that
-// happens to leave the board alone.
-func effectNoteTexts(e *Engine) []string {
-	var out []string
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note {
-			out = append(out, ev.Text)
-		}
-	}
-	return out
-}
 
 func effectNotesContaining(e *Engine, sub string) []string {
 	var out []string

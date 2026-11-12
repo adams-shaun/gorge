@@ -108,21 +108,6 @@ func kaloneblockPolicy(seed uint64, st *kaloneblockStats) Policy {
 	})
 }
 
-// gorgeOptionName is the name of the object a canonical option names.
-func gorgeOptionName(c *PickCtx, a Canon) string {
-	if c.G == nil {
-		return ""
-	}
-	o, ok := c.G.GorgeOption(a)
-	if !ok {
-		return ""
-	}
-	if ob := c.G.E.G.Obj(o.Obj); ob != nil && ob.Face() != nil {
-		return ob.Face().Name
-	}
-	return ""
-}
-
 // gorgeAttackerName is the name of the attacker a canonical block option
 // names.
 func gorgeAttackerName(c *PickCtx, a Canon) string {

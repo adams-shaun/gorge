@@ -14,6 +14,7 @@ import (
 // lockstep over a range of seeds.
 type fixtureRun struct {
 	games, divs, stalls int
+	scripted            int            // gorge Stats.Scripted summed over the games
 	casts               map[string]int // watched cards cast, by name
 	first               string         // the first divergence, for the failure message
 }
@@ -34,7 +35,7 @@ func fixtureWatchPolicy(seed uint64, watch map[string]bool, casts map[string]int
 				if a.Kind() != ActCast {
 					continue
 				}
-				if n := kbargainName(c.G, a.Src()); watch[n] && prng.IntN(4) != 0 {
+				if n := refCardName(c.G, a.Src()); watch[n] && prng.IntN(4) != 0 {
 					casts[n]++
 					return a
 				}
@@ -103,6 +104,7 @@ func runFixtureLockstep(t *testing.T, fixture string, matchups []fixtureDecks, w
 			t.Fatal(err)
 		}
 		res := LockstepLed(m, seed, g, k, fixtureWatchPolicy(seed, watch, run.casts), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 30})
+		run.scripted += g.Stats.Scripted
 		CloseSide(k)
 		run.games++
 		if strings.HasPrefix(res.Stall, KernelStallPrefix) {

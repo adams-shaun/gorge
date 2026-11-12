@@ -48,7 +48,7 @@ func TestBargainOffersCreatureToken(t *testing.T) {
 	if !bargainHasCastMode(e, candy, "bargained") {
 		t.Fatalf("bargained cast option missing with a creature token: %+v", e.Pending().Options)
 	}
-	submitChoices(t, e, bargainCastMode(t, e, candy, "bargained").Index)
+	submitChoices(t, e, replicateOption(t, e, candy, "bargained").Index)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 1 ||
 		d.Options[0].Kind != "bargain" || d.Options[0].Obj != tok {

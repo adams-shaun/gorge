@@ -26,8 +26,8 @@ func TestEntryCounterStageReplacementBodyTurnEmit(t *testing.T) {
 		want int32
 	}{{"scales-first", 0, 4}, {"evolution-first", 1, 3}} {
 		t.Run(tc.name, func(t *testing.T) {
-			scales := tokenReplCorpusCard(t, "Hardened Scales")
-			evolution := tokenReplCorpusCard(t, "Branching Evolution")
+			scales := corpusAlternativeCard(t, "Hardened Scales")
+			evolution := corpusAlternativeCard(t, "Branching Evolution")
 			spell := card(t, "Name:Body Entry Spell\nManaCost:0\nTypes:Creature\nPT:1/1\n"+
 				"R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ MakeToken | ReplacementResult$ Updated | Description$ make token\n"+
 				"SVar:MakeToken:DB$ Token | TokenScript$ body_entry | TokenTapped$ True | SubAbility$ Rider\n"+

@@ -4,18 +4,8 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/decision"
-	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
-
-// costredPerm puts a permanent onto p's battlefield through a real MoveZone
-// so every log-head-keyed cache (mana sources, statics) sees it.
-func costredPerm(t *testing.T, e *Engine, p state.PlayerID, src string) state.ObjID {
-	t.Helper()
-	o := e.G.AddObject(card(t, src), p)
-	e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZLibrary, To: state.ZBattlefield})
-	return o.ID
-}
 
 const costredIsland = "Name:Island\nTypes:Basic Land Island\nA:AB$ Mana | Cost$ T | Produced$ U\nOracle:x\n"
 const costredMountain = "Name:Mountain\nTypes:Basic Land Mountain\nA:AB$ Mana | Cost$ T | Produced$ R\nOracle:x\n"
@@ -35,7 +25,7 @@ func TestCostredThaumaturgeOffersReducedCastFromPool(t *testing.T) {
 	o := e.G.AddObject(th, 0)
 	o.Zone = state.ZBattlefield
 	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{o.ID})
-	bear := costredPerm(t, e, 1, costredBear)
+	bear := battlefieldFixture(t, e, 1, costredBear)
 	e.G.Players[0].Pool[state.MU] = 1
 	spell := e.G.Zone(state.ZHand, 0)[0]
 	if !hasCastOption(e.legalActions(0), spell) {
@@ -70,7 +60,7 @@ func TestCostredDargoOffersWithThreeSacsFromPool(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t, corpusAlternativeCard(t, "Dargo, the Shipwrecker"))
 	for i := 0; i < 3; i++ {
-		costredPerm(t, e, 0, costredBear)
+		battlefieldFixture(t, e, 0, costredBear)
 	}
 	e.G.Players[0].Pool[state.MR] = 1
 	spell := e.G.Zone(state.ZHand, 0)[0]

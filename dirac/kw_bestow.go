@@ -116,7 +116,7 @@ func (s *State) offerBestowHand(k *prep, d *Decision, p uint8, o Obj, c CardID, 
 //
 //go:noinline
 func (s *State) beginBestow(k *prep, o Obj) {
-	s.beginCast(k, o, castFace)
+	s.beginCast(k, o, castFace, 0)
 	s.bld().e.mode |= modeBestowed
 	cost := s.buildCost(k)
 	// gorge's planner prices the granted delve's credit (offerPlay's choke
@@ -202,7 +202,14 @@ func (s *State) bestowResolve(k *prep, e *stackEntry) {
 //go:noinline
 func (s *State) enterAttached(k *prep, e *stackEntry) Slot {
 	sl := s.enterNF(k, e.obj, e.ctrl, false, kop.ZoneStack, 0)
-	s.attachTo(k, sl, s.objs[e.tgt[0]].slot)
+	if isPlayerTarget(e.tgt[0]) {
+		// an Enchant:Player spell (the curses): the target is the player
+		// code, not an object (gorge auraEntry's toPlayer settle, the
+		// "attach to player" fold)
+		s.attachPlayer(k, sl, CodeSeat(e.tgt[0]))
+	} else {
+		s.attachTo(k, sl, s.objs[e.tgt[0]].slot)
+	}
 	s.touchSl(sl)
 	if k.gen != nil {
 		s.refreshTy(k)

@@ -115,19 +115,6 @@ func miscHandObj(t *testing.T, e *Engine, p state.PlayerID, name string) state.O
 	return 0
 }
 
-// miscBoardObj finds the id of the battlefield permanent named name
-// controlled by seat p.
-func miscBoardObj(t *testing.T, e *Engine, p state.PlayerID, name string) state.ObjID {
-	t.Helper()
-	for _, id := range e.G.Zone(state.ZBattlefield, p) {
-		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
-			return id
-		}
-	}
-	t.Fatalf("seat %d's battlefield has no %q", p, name)
-	return 0
-}
-
 // miscCastOption returns the pending priority decision's cast option for
 // obj, or fails.
 func miscCastOption(t *testing.T, e *Engine, obj state.ObjID) int {

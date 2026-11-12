@@ -16,7 +16,7 @@ import (
 // the DefinedAttacker$ ParentTarget referent.
 func TestMustBlockCorpusHuntDownParentTargetAttacker(t *testing.T) {
 	e := threeSeatEngine(t)
-	spell := onBoardCard(t, e, 1, mshCorpusCard(t, "Hunt Down"))
+	spell := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Hunt Down"))
 	attacker := onBoard(t, e, 1, "Name:Parent target\nTypes:Creature\nPT:2/2\nOracle:x\n")
 	unrelated := onBoard(t, e, 1, "Name:Unrelated attacker\nTypes:Creature\nPT:2/2\nOracle:x\n")
 	blocker := onBoard(t, e, 0, "Name:Child target\nTypes:Creature\nPT:2/2\nOracle:x\n")

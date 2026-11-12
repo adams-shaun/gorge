@@ -128,13 +128,13 @@ func TestPlayerSpecDotlessPlusClause(t *testing.T) {
 	if !aura.Face().IsEnchantment() || aura.AttachedPlayer != 1 {
 		t.Fatalf("precondition: the aura must enchant seat 1: %+v", aura.Face())
 	}
-	if MatchesPlayerSpecFrom(g, "Player.Opponent+!EnchantedBy", 1, 0, src.ID) {
+	if MatchesPlayerSpecFrom(g, "Player.Opponent+!EnchantedBy", 1, 0, aura.ID) {
 		t.Error("!EnchantedBy: the enchanted opponent still matched, want false")
 	}
-	if !MatchesPlayerSpecFrom(g, "Player.Opponent+!EnchantedBy", 2, 0, src.ID) {
+	if !MatchesPlayerSpecFrom(g, "Player.Opponent+!EnchantedBy", 2, 0, aura.ID) {
 		t.Error("!EnchantedBy: the untouched opponent stopped matching, want true")
 	}
-	if !MatchesPlayerSpecFrom(g, "Player.Opponent+EnchantedBy", 1, 0, src.ID) {
+	if !MatchesPlayerSpecFrom(g, "Player.Opponent+EnchantedBy", 1, 0, aura.ID) {
 		t.Error("EnchantedBy: the enchanted opponent must match through the dotless spelling")
 	}
 }

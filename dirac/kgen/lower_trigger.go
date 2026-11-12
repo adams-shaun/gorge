@@ -95,15 +95,20 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		tr.Zone = zoneNames[zone]
 	}
 	if od, ok := tp.get("OptionalDecider"); ok {
-		if od != "You" && od != "TriggeredCardController" && !(od == "TriggeredPlayer" && t.Mode == "Phase") {
+		if od != "You" && od != "TriggeredCardController" && !(od == "TriggeredPlayer" && t.Mode == "Phase") &&
+			!(od == "TriggeredAttackingPlayer" && t.Mode == "AttackersDeclared") {
 			return refuse("OptionalDecider %q", od)
 		}
 		// gorge's one read: a "may" that is only a duration-bounded
 		// play permission (Strongbox Raider) is no CR 603.5 election
 		tr.Optional = scriptfacts.TriggerOptionalSpec(t) != ""
 		// the Phase trigger's player is the active player: it answers
-		// (gorge deciderFromSpecTriggeredPlayer; Peace in Our Time)
-		tr.OptTrigPlayer = tr.Optional && od == "TriggeredPlayer"
+		// (gorge deciderFromSpecTriggeredPlayer; Peace in Our Time). An
+		// AttackersDeclared trigger's TriggeredAttackingPlayer is the
+		// declaring player — the active player too (CR 508.1), the
+		// kernel's queue-time trigger player (gorge
+		// deciderFromSpecTriggeredAttackingPlayer; the Commander curses)
+		tr.OptTrigPlayer = tr.Optional && (od == "TriggeredPlayer" || od == "TriggeredAttackingPlayer")
 		// gorge folds the yes/no into the body's own pay/decline when the
 		// controller decides and the body has a non-mandatory cost
 		// (rules/trigger_queue.go optionalFoldsIntoCost): one question; a
@@ -251,6 +256,14 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				return refuse("Attacks Training %q", v)
 			}
 			tr.Training = true
+		}
+		if v, ok := tp.get("Myriad"); ok {
+			// K:Myriad's expansion (gorge kwMyriad; trigmatch
+			// AttacksMatchedAttackers fires it only over its DB$ Myriad
+			// Execute$ body; lower_myriad.go)
+			if err := myriadMarker(v, tp.str("ValidCard"), cards.ResolveSVar(svars, t.Params["Execute"])); err != nil {
+				return err
+			}
 		}
 		if v, ok := tp.get("Attacked"); ok {
 			// gorge attackedDefenderMatches, from the trigger controller's
@@ -464,6 +477,13 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				tr.DefPlayer = 2
 			case "You":
 				tr.DefPlayer = 3 // the defending player is the listener's controller (gorge attackedDefenderMatches)
+			case "Player.EnchantedBy":
+				// gorge playerSpecQualifierEnchantedBy: the defender is
+				// enchanted by THIS listener's Aura (Forge's
+				// player.isEnchantedBy(source), not any enchantment). The
+				// kernel's fireDefPlayer reads the listener's own atchSeat
+				// (Tf4DefEnch, dirac/trig_defendingplayer.go).
+				tr.DefPlayer = 4
 			default:
 				return refuse("AttackersDeclared AttackedTarget %q", at)
 			}
@@ -940,10 +960,19 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// whole size).
 			cmp := tp.str("CounterAmount")
 			if cmp == "" {
-				if al, ok := tp.get("ActivationLimit"); !ok || al != "1" {
+				if al, ok := tp.get("ActivationLimit"); !ok {
+					// a plain line: one trigger per counter of the batch
+					// (CR 603.2c), each carrying amount 1 (gorge queues one
+					// instance per counter), so a body reading the amount
+					// reads 1 as on gorge. Only a named counter kind
+					// (kernel Tf4PerCounter reads the event's one kind).
+					if ct == "*" {
+						return refuse("CounterAdded per-counter (no CounterAmount$) of any counter kind")
+					}
+					tr.PerCounter = true
+				} else if al != "1" {
 					return refuse("CounterAdded per-counter (no CounterAmount$)")
-				}
-				if lc.saReadsBatch(t.Effect) {
+				} else if lc.saReadsBatch(t.Effect) {
 					return refuse("CounterAdded per-counter body reads the trigger")
 				}
 			} else {
@@ -1056,6 +1085,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 	case "FacesDilemma":
 		if err := lc.facesDilemmaTrigger(tp, tr); err != nil {
+			return err
+		}
+	case "BecomeMonarch":
+		if err := lc.becomeMonarchTrigger(tp, tr); err != nil { // lower_monarch.go
 			return err
 		}
 	case "Scry", "Surveil":
@@ -1214,6 +1247,19 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			tr.First = true
 		}
+	case "Evolved":
+		// gorge trigmatch evolvedMatches (CR 702.100b): the events.Evolved
+		// marker rules' resolveTop emits once the Evolve keyword's counter
+		// lands names the evolving permanent, which ValidCard$ Card.Self
+		// matches; the kernel fires it as that trigger finishes resolving
+		// (kw_evolve.go). ValidPlayer$ is left unread (refused).
+		if v := tp.str("ValidCard"); v != "Card.Self" {
+			return refuse("Evolved ValidCard$ %q", v)
+		}
+		if tr.Zone != 0 && tr.Zone != zBattlefield {
+			return refuse("Evolved TriggerZones %d", tr.Zone)
+		}
+		tp.consume("ValidCard")
 	case "UnlockDoor":
 		// CR 709.5h "when you unlock this door" (gorge rules face_rooms.go
 		// queueUnlockTriggers): read only on a Room door, fired directly by
@@ -1441,12 +1487,16 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 	}
 	if cdp, ok := tp.get("CheckDefinedPlayer"); ok && cdp != "You.withMostLife" {
-		// gorge trigger_condition.go checkDefinedPlayerHolds: only the
-		// crime spelling is read (CR 700.13); every other one refuses
-		if cdp != "You.committedCrimeThisTurn" {
+		// gorge trigger_condition.go checkDefinedPlayerHolds: the crime
+		// spelling (CR 700.13) and the monarch's (CR 725, lower_monarch.go)
+		// are read; every other one refuses
+		if c, ok := monarchCheck(cdp); ok {
+			conds = append(conds, c)
+		} else if cdp != "You.committedCrimeThisTurn" {
 			return refuse("CheckDefinedPlayer %q", cdp)
+		} else {
+			conds = append(conds, lCond{Kind: cValue, A: lValue{Kind: vCommittedCrime, Sub: []lValue{cst(1), cst(0)}}, Op: opGE, B: cst(1)})
 		}
-		conds = append(conds, lCond{Kind: cValue, A: lValue{Kind: vCommittedCrime, Sub: []lValue{cst(1), cst(0)}}, Op: opGE, B: cst(1)})
 	}
 	if ip, ok := tp.get("IsPresent"); ok {
 		if pd, ok := tp.get("PresentDefined"); ok {
@@ -1499,11 +1549,8 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			c.Op, c.A = op, v
 		}
-		if pz, ok := tp.get("PresentZone"); ok {
-			// gorge trigger_condition.go: the zones' counts summed
-			if c, err = presentZoneCond(c, pz, ip, lc); err != nil {
-				return err
-			}
+		if c, err = lc.triggeredPresentZoneCond(c, tp, ip); err != nil {
+			return err
 		}
 		conds = append(conds, c)
 	}
@@ -1552,6 +1599,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			return refuse("Delirium %q", v)
 		}
 		conds = append(conds, deliriumCond())
+	}
+	if err := echoGate(tp, tr, ab, &conds, noResolve || fireOnly || giftSelf); err != nil { // lower_echo.go
+		return err
 	}
 	switch len(conds) {
 	case 0:
@@ -1664,6 +1714,11 @@ func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 	}
 	if isChosenModeStatic(s) {
 		return lc.chosenModeStatic(s) // lower_siegemode.go
+	}
+	if s.Mode == "CantAttackUnless" {
+		if err := attackTaxReadable(s.Params); err != nil {
+			return err // lower_attacktax.go: before the EffectZone$ strip below
+		}
 	}
 	if s.Params["EffectZone"] == "Battlefield" {
 		// a printed static's default zone spelled out (gorge
@@ -2019,6 +2074,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		if err := lc.cantAttack(sp, &st); err != nil {
 			return nil, err
 		}
+	case "CantAttackUnless":
+		if err := lc.cantAttackUnless(sp, &st); err != nil {
+			return nil, err // lower_attacktax.go
+		}
 	case "CanAttackDefender":
 		// gorge combat.AttackAllowedThroughDefender: ValidCard$ (or
 		// ValidCards$) must match the creature, ValidAttacked$ must admit
@@ -2364,8 +2423,14 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			return nil, lc.stackKwGrant(sp, st, aff) // lower_stackkw.go
 		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Flashback") {
 			return nil, lc.graveFbGrant(sp, st, aff) // lower_fbgrant.go
+		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Escape") {
+			return nil, lc.graveEscapeGrant(sp, st, aff) // lower_escapegrant.go
 		} else if az == "Hand" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Warp") {
 			return nil, lc.handWarpGrant(sp, st, aff) // lower_warpgrant.go
+		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && inertCountAs(sp.str("AddHiddenKeyword"), aff) {
+			return nil, graveCountAsStatic(sp, st) // lower_escapegrant.go
+		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && sp.str("AddKeyword") != "" {
+			return nil, refuseGraveKwGrant(sp, az) // lower_escapegrant.go
 		} else if !sp.is("MayPlay", "True") {
 			return nil, refuse("AffectedZone %q without MayPlay", az)
 		}
@@ -2540,6 +2605,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		rest, melee := splitMeleeGrant(rest)
 		rest, exalted := splitExaltedGrant(rest)
+		rest, myriad := splitMyriadGrant(rest)           // lower_myriad.go
 		rest, st.ProtFrom, err = lc.splitProtGrant(rest) // lower_protgrant.go
 		if err != nil {
 			return nil, err
@@ -2579,6 +2645,16 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			// once per instance (lower_exaltedgrant.go; gorge
 			// rules/melee.go)
 			idx, err := lc.exaltedGrantTrigger()
+			if err != nil {
+				return nil, err
+			}
+			st.Grant = append(st.Grant, idx)
+		}
+		for ; myriad > 0; myriad-- {
+			// CR 702.116a-b granted: one latent Attacks Self trigger,
+			// listed once per instance (lower_myriad.go; gorge
+			// rules/trigger_granted.go)
+			idx, err := lc.myriadGrantTrigger()
 			if err != nil {
 				return nil, err
 			}

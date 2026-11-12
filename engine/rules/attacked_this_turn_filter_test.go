@@ -142,7 +142,7 @@ func TestAttackedThisTurnGatesErgRaidersEndStepTrigger(t *testing.T) {
 	if n := stepTriggers(e, state.StepEnd, 0); n != 0 {
 		t.Fatalf("end step queued %d triggers for an attacking Erg Raiders, want 0", n)
 	}
-	for _, n := range notesOf(e) {
+	for _, n := range effectNoteTexts(e) {
 		if strings.Contains(n, "unimplemented") || strings.Contains(n, "unknown") {
 			t.Fatalf("engine note reports an unsupported shape: %q", n)
 		}

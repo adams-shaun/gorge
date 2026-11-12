@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The trig:Surveil half (task trig-surveil, "whenever you surveil"): the
+// The trig:Surveil half ("whenever you surveil"): the
 // events.Surveil record api:Surveil's effSurveil emits beside each surveil
 // instruction is what the mode matches. The corpus population is 12 files /
 // 12 raw `T:Mode$ Surveil` lines (Mirko, Obsessive Theorist; Dimir Spybug;
@@ -111,8 +111,8 @@ func surveilDrain(t *testing.T, e *Engine) {
 // card), replay-verified.
 func TestMirkoSurveilPutsOneCounterPerSurveil(t *testing.T) {
 	t.Parallel()
-	mirko := tokenReplCorpusCard(t, "Mirko, Obsessive Theorist")
-	doll := tokenReplCorpusCard(t, "Wretched Doll")
+	mirko := corpusAlternativeCard(t, "Mirko, Obsessive Theorist")
+	doll := corpusAlternativeCard(t, "Wretched Doll")
 	e, cfg := tokenReplGame(t, 83, mirko, doll, doll)
 	mirkoID := moveSeededCard(t, e, 0, mirko, state.ZBattlefield)
 	doll1 := moveSeededCard(t, e, 0, doll, state.ZBattlefield)
@@ -159,8 +159,8 @@ func TestMirkoSurveilPutsOneCounterPerSurveil(t *testing.T) {
 // Mirko trigger (a per-card firing would place three counters).
 func TestOtherworldlyGazeSurveilThreeFiresMirkoOnce(t *testing.T) {
 	t.Parallel()
-	mirko := tokenReplCorpusCard(t, "Mirko, Obsessive Theorist")
-	gaze := tokenReplCorpusCard(t, "Otherworldly Gaze")
+	mirko := corpusAlternativeCard(t, "Mirko, Obsessive Theorist")
+	gaze := corpusAlternativeCard(t, "Otherworldly Gaze")
 	e, cfg := tokenReplGame(t, 84, mirko, gaze)
 	mirkoID := moveSeededCard(t, e, 0, mirko, state.ZBattlefield)
 	if got := counterOn(t, e, mirkoID, "P1P1"); got != 0 {
@@ -186,8 +186,8 @@ func TestOtherworldlyGazeSurveilThreeFiresMirkoOnce(t *testing.T) {
 // instruction) but fires nothing.
 func TestWhisperingSnitchFirstTimeEachTurn(t *testing.T) {
 	t.Parallel()
-	snitch := tokenReplCorpusCard(t, "Whispering Snitch")
-	doll := tokenReplCorpusCard(t, "Wretched Doll")
+	snitch := corpusAlternativeCard(t, "Whispering Snitch")
+	doll := corpusAlternativeCard(t, "Wretched Doll")
 	e, cfg := tokenReplGame(t, 85, snitch, doll, doll)
 	moveSeededCard(t, e, 0, snitch, state.ZBattlefield)
 	doll1 := moveSeededCard(t, e, 0, doll, state.ZBattlefield)
@@ -231,7 +231,7 @@ func TestWhisperingSnitchFirstTimeEachTurn(t *testing.T) {
 // drain, so the pin is the counter).
 func TestRiverSongOpponentSurveilFires(t *testing.T) {
 	t.Parallel()
-	river := tokenReplCorpusCard(t, "River Song")
+	river := corpusAlternativeCard(t, "River Song")
 	e, cfg := tokenReplGame(t, 86, river)
 	riverID := moveSeededCard(t, e, 0, river, state.ZBattlefield)
 	if got := counterOn(t, e, riverID, "P1P1"); got != 0 {

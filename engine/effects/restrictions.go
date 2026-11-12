@@ -749,9 +749,7 @@ func IsGrantableCostStaticMode(mode string) bool {
 }
 
 // CostStaticParamsReadable is the parameter whitelist an Effect-delivered
-// cost-modifier static (Mode$ ReduceCost/RaiseCost/SetCost/AlternativeCost
-// behind an AB$ Effect's StaticAbilities$ entry, task
-// param:api:Effect.ForgetOnCast) must pass before effEffect registers it
+// cost-modifier static (Mode$ ReduceCost/RaiseCost/SetCost/AlternativeCost behind an AB$ Effect's StaticAbilities$ entry) must pass before effEffect registers it
 // into the continuous registry. It lists exactly the keys the cost chain's
 // own gates evaluate -- rules' costStaticApplies (Type$, ValidCard$,
 // ValidSpell$, ValidTarget$, AffectedZone$, IsPresent$, OnlyFirstSpell$,
@@ -1481,7 +1479,7 @@ func effectUntilEOT(h Host, source state.ObjID, dur string) bool {
 // behavior unchanged.
 func RestrictionPlayerSpecMatches(g *state.Game, spec string, defender, controller state.PlayerID, source state.ObjID, rememberedPlayers []state.PlayerID) bool {
 	if !strings.Contains(spec, "IsRemembered") && !strings.Contains(spec, "CardOwner") {
-		return MatchesPlayerSpec(g, spec, defender, controller)
+		return MatchesPlayerSpecFrom(g, spec, defender, controller, source)
 	}
 	for clause := range strings.SplitSeq(spec, "+") {
 		clause = strings.TrimSpace(clause)
@@ -1507,7 +1505,7 @@ func RestrictionPlayerSpecMatches(g *state.Game, spec string, defender, controll
 			}
 			continue
 		}
-		if !MatchesPlayerSpec(g, clause, defender, controller) {
+		if !MatchesPlayerSpecFrom(g, clause, defender, controller, source) {
 			return false
 		}
 	}

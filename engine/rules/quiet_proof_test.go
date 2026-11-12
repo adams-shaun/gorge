@@ -1064,12 +1064,6 @@ func moveByNameQuiet(t *testing.T, e *Engine, p state.PlayerID, name string, to 
 	return 0
 }
 
-// moveQuiet moves id between two zones without a lookup, for the sweep's
-// reset between positions.
-func moveQuiet(e *Engine, id state.ObjID, from, to state.Zone) {
-	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: from, To: to})
-}
-
 // newSweepEngine is a two-seat game whose seat-0 deck is c plus Mountains and
 // whose seat-1 deck is Mountains, driven to seat 0's turn-1 Main1. It returns
 // nil for a card the engine refuses to seat (a token or a malformed script).

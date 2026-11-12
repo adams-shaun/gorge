@@ -23,7 +23,7 @@ import (
 // ActiveZones$/Permanent.YouCtrl gates are never satisfied by accident.
 func bradBoard(t *testing.T, seed uint64) (*Engine, Config, state.ObjID, state.ObjID) {
 	t.Helper()
-	brad := tokenReplCorpusCard(t, "Brad Boimler, Eager Ensign")
+	brad := corpusAlternativeCard(t, "Brad Boimler, Eager Ensign")
 	target := card(t, "Name:Counter Target\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e, cfg := tokenReplGame(t, seed, brad, target)
 	bradID := moveSeededCard(t, e, 0, brad, state.ZBattlefield)
@@ -75,7 +75,7 @@ func TestBradBoimlerEffectCreatedAddCounterReplacement(t *testing.T) {
 // event the Effect could see.
 func TestBradBoimlerEffectCreatedAddCounterKeepsTriggerController(t *testing.T) {
 	t.Parallel()
-	brad := tokenReplCorpusCard(t, "Brad Boimler, Eager Ensign")
+	brad := corpusAlternativeCard(t, "Brad Boimler, Eager Ensign")
 	seat0TargetCard := card(t, "Name:Counter Target\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	seat1TargetCard := card(t, "Name:Opponent Counter Target\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e, cfg := tokenReplGameSeats(t, 97, []*cards.Card{brad, seat0TargetCard}, []*cards.Card{seat1TargetCard})

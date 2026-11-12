@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -41,6 +42,12 @@ func (lc *lowerCtx) copyExceptions(ps *params) (*lOverride, bool, error) {
 			} else {
 				rest = append(rest, w)
 			}
+		}
+		if slices.Contains(rest, "Myriad") {
+			// gorge expands an added triggered keyword into the copy face's
+			// own trigger (events foldCopyExcept, ApplyKeywordExpansion):
+			// Auton Soldier, Muddle, the Ever-Changing (lower_myriad.go)
+			return nil, false, refuse("copy exception AddKeywords$ Myriad: gorge gives the copy its own Attacks trigger; a kernel copy exception carries keyword bits only")
 		}
 		if len(rest) > 0 {
 			ks, err := pumpKeywords(strings.Join(rest, " & "))

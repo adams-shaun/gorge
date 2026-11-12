@@ -35,7 +35,7 @@ func flicker(e *Engine, id state.ObjID) {
 }
 
 func TestGourmandFlickeredWithItsTriggerOnTheStackIsAnotherCreature(t *testing.T) {
-	e, g := attackingWithTrigger(t, mshCorpusCard(t, "Vampire Gourmand"))
+	e, g := attackingWithTrigger(t, corpusAlternativeCard(t, "Vampire Gourmand"))
 	flicker(e, g)
 	d := passUntilNonPriority(t, e, 8)
 	if d == nil {
@@ -86,7 +86,7 @@ func TestCostReadsAReturnedSourceAsANewObject(t *testing.T) {
 }
 
 func TestGourmandThatStayedIsNotAnotherCreature(t *testing.T) {
-	e, _ := attackingWithTrigger(t, mshCorpusCard(t, "Vampire Gourmand"))
+	e, _ := attackingWithTrigger(t, corpusAlternativeCard(t, "Vampire Gourmand"))
 	d := passUntilNonPriority(t, e, 8)
 	if d == nil || len(d.Options) != 1 || d.Options[0].Kind != "trigger_cost_decline" {
 		t.Fatalf("the cost window = %+v, want decline only", d)
@@ -96,7 +96,7 @@ func TestGourmandThatStayedIsNotAnotherCreature(t *testing.T) {
 // A resolving filter reads the same way: "other creatures you control" reaches the
 // returned source, and "this" does not name it.
 func TestResolvingFilterReadsAReturnedSourceAsANewObject(t *testing.T) {
-	c := mshCorpusCard(t, "Syr Alin, the Lion's Claw")
+	c := corpusAlternativeCard(t, "Syr Alin, the Lion's Claw")
 	for _, returned := range []bool{false, true} {
 		e, src := attackingWithTrigger(t, c)
 		if returned {

@@ -135,11 +135,11 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 	}
 	ps.consume("Name", "Image", "Stackable")
 	left := ps.unread()
-	if allCantBeCast(ss) {
+	if allCantBeCast(ss) || lc.monarchGate(ps) {
 		// the Effect's own ConditionPresent$ (Bilbo's Gambit: the gift was
-		// promised) guards the whole node; the node's condition read runs
-		// after this lowering and the node's own unread check refuses what
-		// it does not read
+		// promised) or monarch check (Aragorn, lower_monarch.go) guards the
+		// whole node; the node's condition read runs after this lowering
+		// and the node's own unread check refuses what it does not read
 		left = slices.DeleteFunc(left, func(k string) bool { return strings.HasPrefix(k, "Condition") })
 	}
 	if len(left) > 0 {
@@ -218,14 +218,6 @@ func effectEmblemDuration(ps *params) (eot, next bool, err error) {
 	default:
 		return false, false, refuse("Effect static Duration$ %q", d)
 	}
-}
-
-// effectEmblemStatic lowers one StaticAbilities$ body of a no-target Effect,
-// accepting only shapes gorge's effEffect registers. The key whitelists are
-// the reference registration's own: a key this build would read but gorge
-// leaves unread must refuse rather than apply a wider grant.
-func (lc *lowerCtx) effectEmblemStatic(s cards.Static) (lStatic, error) {
-	return lc.effectEmblemStaticHost(s, false)
 }
 
 // effectEmblemStaticHost is effectEmblemStatic; host: the emblem reads its

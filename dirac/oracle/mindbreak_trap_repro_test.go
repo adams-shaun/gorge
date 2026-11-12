@@ -63,7 +63,7 @@ func trapExiled(g *GorgeSide) int {
 	n := 0
 	for i := range g.E.L.Events {
 		e := &g.E.L.Events[i]
-		if e.Kind == events.MoveZone && e.From == state.ZStack && e.To == state.ZExile && spellName(g, e.Obj) != "Mindbreak Trap" {
+		if e.Kind == events.MoveZone && e.From == state.ZStack && e.To == state.ZExile && sideObjName(g, e.Obj) != "Mindbreak Trap" {
 			n++
 		}
 	}
@@ -77,7 +77,7 @@ func trapDepth(g *GorgeSide) int {
 	for i := range g.E.L.Events {
 		e := &g.E.L.Events[i]
 		switch {
-		case e.Kind == events.PutOnStack && spellName(g, e.Obj) == "Mindbreak Trap":
+		case e.Kind == events.PutOnStack && sideObjName(g, e.Obj) == "Mindbreak Trap":
 			return depth
 		case e.Kind == events.PutOnStack:
 			depth++
@@ -86,13 +86,6 @@ func trapDepth(g *GorgeSide) int {
 		}
 	}
 	return 0
-}
-
-func spellName(g *GorgeSide, id state.ObjID) string {
-	if o := g.E.G.Obj(id); o != nil && o.Face() != nil {
-		return o.Face().Name
-	}
-	return ""
 }
 
 // mindbreakTrapPolicy casts every offered Ornithopter, and Opt in response

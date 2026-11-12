@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 
@@ -10,21 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
-
-// runCounterShapeScenario runs one oracle-form scenario and fails with its transcript.
-func runCounterShapeScenario(t *testing.T, raw string) {
-	t.Helper()
-	reg := testutil.CorpusRegistry(t)
-	var sc oracleScenario
-	if err := json.Unmarshal([]byte(raw), &sc); err != nil {
-		t.Fatal(err)
-	}
-	if fails, tr, _ := runOracleScenario(reg, sc); len(fails) > 0 {
-		t.Fatalf("%s\n  transcript:\n    %s", strings.Join(fails, "\n"), strings.Join(tr, "\n    "))
-	}
-}
 
 // TestPutCounterRememberAmountFeedsReflexiveTrigger pins CR 603.12 on
 // Earthbender Ascension: the landfall quest counter that lands remembers its
@@ -33,7 +18,7 @@ func runCounterShapeScenario(t *testing.T, raw string) {
 // after) is asserted on the enchantment itself.
 func TestPutCounterRememberAmountFeedsReflexiveTrigger(t *testing.T) {
 	t.Parallel()
-	runCounterShapeScenario(t, `{"name":"earthbender","cr":["603.12"],"why":"x",
+	runRememberScenario(t, `{"name":"earthbender","cr":["603.12"],"why":"x",
 	 "setup":{"p0":{"battlefield":["Earthbender Ascension","Grizzly Bears"],"hand":["Forest"],"counters":{"Earthbender Ascension":{"QUEST":3}}}},
 	 "steps":[{"op":"play","seat":0,"card":"p0:Forest"},{"op":"resolve","targets":["p0:Grizzly Bears"]},{"op":"resolve"}],
 	 "expect":[{"card":"p0:Earthbender Ascension","counters":{"QUEST":4}},{"card":"p0:Grizzly Bears","counters":{"P1P1":1},"keywords":["Trample"],"pt":"3/3"}]}`)
@@ -44,7 +29,7 @@ func TestPutCounterRememberAmountFeedsReflexiveTrigger(t *testing.T) {
 // value equals the coin counters (2 after the put).
 func TestWishingWellCoinCounterCastsMatchingManaValue(t *testing.T) {
 	t.Parallel()
-	runCounterShapeScenario(t, `{"name":"well","cr":["603.12"],"why":"x",
+	runRememberScenario(t, `{"name":"well","cr":["603.12"],"why":"x",
 	 "setup":{"p0":{"battlefield":["Wishing Well"],"graveyard":["Think Twice"],"counters":{"Wishing Well":{"COIN":1}}}},
 	 "steps":[{"op":"activate","seat":0,"card":"p0:Wishing Well"},{"op":"resolve","targets":["p0:Think Twice"],"answers":[{"kind":"modes","pick":["Play Think Twice"]}]},{"op":"resolve"},{"op":"resolve"}],
 	 "expect":[{"card":"p0:Wishing Well","counters":{"COIN":2}},{"card":"p0:Think Twice","zone":"exile"}]}`)
@@ -72,10 +57,10 @@ func g120Sa(t *testing.T, face *cards.Face, name, api string) *cards.SA {
 func g120DragonBoard(t *testing.T, names ...string) (*Engine, state.ObjID, []state.ObjID) {
 	t.Helper()
 	e := corpusTokenEngine(t)
-	call := onBoardCard(t, e, 0, mshCorpusCard(t, "Call the Spirit Dragons"))
+	call := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Call the Spirit Dragons"))
 	var ds []state.ObjID
 	for _, n := range names {
-		ds = append(ds, onBoardCard(t, e, 0, mshCorpusCard(t, n)))
+		ds = append(ds, onBoardCard(t, e, 0, corpusAlternativeCard(t, n)))
 	}
 	return e, call, ds
 }
@@ -130,7 +115,7 @@ func TestCallTheSpiritDragonsOneMulticolourDragonDoesNotWin(t *testing.T) {
 func TestPutCounterUpToAsksAmount(t *testing.T) {
 	t.Parallel()
 	e := corpusTokenEngine(t)
-	terra := onBoardCard(t, e, 0, mshCorpusCard(t, "Terra, Magical Adept"))
+	terra := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Terra, Magical Adept"))
 	face := e.G.Obj(terra).Card.Faces[1]
 	saga := onBoard(t, e, 0, "Name:Test Saga\nManaCost:1\nTypes:Enchantment Saga\nOracle:x\n")
 	sa := g120Sa(t, face, "DBPutCounter", "PutCounter")
@@ -165,8 +150,8 @@ func TestPutCounterUpToAsksAmount(t *testing.T) {
 func g120RhysBoard(t *testing.T, counters map[string]int32) (*Engine, *cards.Face, state.ObjID, state.ObjID, *cards.SA) {
 	t.Helper()
 	e := corpusTokenEngine(t)
-	rhys := onBoardCard(t, e, 0, mshCorpusCard(t, "Rhys, the Evermore"))
-	bear := onBoardCard(t, e, 0, mshCorpusCard(t, "Grizzly Bears"))
+	rhys := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Rhys, the Evermore"))
+	bear := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Grizzly Bears"))
 	for _, k := range []string{"M1M1", "P1P1", "STUN"} {
 		if n := counters[k]; n > 0 {
 			e.emit(events.Event{Kind: events.CounterChange, Obj: bear, Counter: k, Amount: n})
@@ -229,8 +214,8 @@ func TestRemoveCounterAnyNumberRhys(t *testing.T) {
 func TestRemoveCounterChoicesAnyKindMisterHyde(t *testing.T) {
 	t.Parallel()
 	e := corpusTokenEngine(t)
-	hyde := onBoardCard(t, e, 0, mshCorpusCard(t, "Mister Hyde, Monster Within"))
-	bear := onBoardCard(t, e, 0, mshCorpusCard(t, "Grizzly Bears"))
+	hyde := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Mister Hyde, Monster Within"))
+	bear := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Grizzly Bears"))
 	e.emit(events.Event{Kind: events.CounterChange, Obj: bear, Counter: "P1P1", Amount: 1})
 	e.emit(events.Event{Kind: events.CounterChange, Obj: bear, Counter: "STUN", Amount: 1})
 	// Hyde itself has no counters, so the bear is the only HasCounters creature.
@@ -256,10 +241,10 @@ func TestRemoveCounterChoicesAnyKindMisterHyde(t *testing.T) {
 func TestPutCounterAllSubLinkPlayerTarget(t *testing.T) {
 	t.Parallel()
 	e := corpusTokenEngine(t)
-	fates := onBoardCard(t, e, 0, mshCorpusCard(t, "Twisted Fates"))
-	mine := onBoardCard(t, e, 0, mshCorpusCard(t, "Grizzly Bears"))
-	theirs := onBoardCard(t, e, 1, mshCorpusCard(t, "Grizzly Bears"))
-	victim := onBoardCard(t, e, 1, mshCorpusCard(t, "Ornithopter"))
+	fates := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Twisted Fates"))
+	mine := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Grizzly Bears"))
+	theirs := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Grizzly Bears"))
+	victim := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Ornithopter"))
 	face := e.G.Obj(fates).Face()
 	resolveUnderProbe(e, func() *effects.Ctx {
 		c := &effects.Ctx{Source: fates, Controller: 0, SVars: face.SVars,
@@ -280,7 +265,7 @@ func TestPutCounterAllSubLinkPlayerTarget(t *testing.T) {
 // Ornithopter, and only the targeted player's (p0's) creature grows.
 func TestPutCounterAllSubLinkPlayerTargetCastEndToEnd(t *testing.T) {
 	t.Parallel()
-	runCounterShapeScenario(t, `{"name":"fates","cr":["608.2b"],"why":"x",
+	runRememberScenario(t, `{"name":"fates","cr":["608.2b"],"why":"x",
 	 "setup":{"p0":{"battlefield":["Grizzly Bears"],"hand":["Twisted Fates"]},"p1":{"battlefield":["Ornithopter","Runeclaw Bear"]}},
 	 "steps":[{"op":"cast","seat":0,"card":"p0:Twisted Fates","mana":"CCWWB","targets":["p1:Ornithopter","p0"]},{"op":"resolve"}],
 	 "expect":[{"card":"p1:Ornithopter","zone":"graveyard"},{"card":"p0:Grizzly Bears","counters":{"P1P1":1}},{"card":"p1:Runeclaw Bear","counters":{"P1P1":0}}]}`)

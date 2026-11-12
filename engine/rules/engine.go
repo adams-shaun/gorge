@@ -366,6 +366,10 @@ func submitCommit(e *Engine, d *decision.Decision, in decision.Intent) {
 	// behind it (ask's CR 903.9 arm); pose it now that the answer landed,
 	// before anything below can treat the engine as idle and advance.
 	drainDeferredAsks(e)
+	// A CR 303.4f Aura entry that parked its ask behind another decision
+	// (a second Aura returning in the same batch) is posed now, in entry
+	// order, before the engine can treat the answer as the idle boundary.
+	drainETBQueue(e)
 	// A mana ability whose cost payment posed a decision (the CR 903.9
 	// commander-zone choice for a sacrificed commander) resolves its mana
 	// effect once that decision -- and any it handed on to -- is answered.

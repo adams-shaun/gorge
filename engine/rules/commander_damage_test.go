@@ -238,10 +238,7 @@ func TestSameCommanderTwiceCumulatesToTwentyTwoAndLoses(t *testing.T) {
 	}
 
 	// Simulate the commander dying and being recast: it leaves the
-	// battlefield (to the graveyard, standing in for "returns to the command
-	// zone" -- the command-zone-return and cast-from-command-zone plumbing is
-	// another milestone task, so this test moves the object directly, which
-	// is exactly the same ObjID either way).
+	// battlefield (to the graveyard, standing in for "returns to the command zone" -- the command-zone-return and cast-from-command-zone plumbing is another milestone, so this test moves the object directly, which is exactly the same ObjID either way).
 	for civ := state.ZBattlefield; ; {
 		ids := e.G.Zone(civ, 0)
 		if contains(ids, cmd) {
@@ -422,13 +419,4 @@ func commanderReplayFromLog(t *testing.T, cfg Config, log []events.Event) *state
 		events.Apply(g, ev)
 	}
 	return g
-}
-
-func contains(ids []state.ObjID, want state.ObjID) bool {
-	for _, id := range ids {
-		if id == want {
-			return true
-		}
-	}
-	return false
 }

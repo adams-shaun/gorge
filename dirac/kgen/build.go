@@ -169,6 +169,15 @@ func buildCard(pt *poolTables, c *lCard) built {
 			cb.out.def.Abilities = nil
 		}
 	}
+	if len(c.Refusals) == 0 && c.Overload != nil && c.OverloadProg != nil {
+		p, err := cb.prog(c.OverloadProg)
+		if err != nil {
+			cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "emit K:Overload", Reason: err.Error()})
+			cb.out.def.Abilities = nil
+		} else {
+			cb.out.def.OverloadProg = p
+		}
+	}
 	if c.Impending == nil && putsTimeCounters(&cb.out.def) {
 		// the kernel's impending dormancy reads the time counters, not
 		// gorge's cast provenance (FlagImpending): no other card may put
@@ -393,9 +402,12 @@ var counterKinds = map[string]kop.CounterKind{
 	"SKEWER":     kop.CtrSkewer,     // Rotisserie Elemental's named counter (CR 122.1)
 	"NEST":       kop.CtrNest,       // Twitching Doll's named counter (CR 122.1)
 	"AGE":        kop.CtrAge,        // cumulative upkeep's age counter (CR 702.24a; Mystic Remora)
+	"FADE":       kop.CtrFade,       // fading's fade counter (CR 702.32a; Blastoderm)
 	"LUCK":       kop.CtrLuck,       // Gemstone Caverns' named counter (CR 122.1; the Condition-split mana gate, lower_condsplit.go)
 	"DEPLETION":  kop.CtrDepletion,  // Peat Bog's depletion counter (CR 122.1; mana_rider.go)
 	"MINING":     kop.CtrMining,     // Gemstone Mine's mining counter (CR 122.1; mana_rider.go)
+	"BURDEN":     kop.CtrBurden,     // The One Ring's burden counter (CR 122.1; its count reads in Count$CardCounters.BURDEN)
+	"STORAGE":    kop.CtrStorage,    // Molten Slagheap's storage counter (CR 122.1; mana_countercost.go)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -682,6 +694,15 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Foretell != nil {
+		// CR 702.143a: no KwMask bit is free, so the foretell marker is its
+		// own field; the cost is the later exile cast's price, the {2}
+		// special action being fixed (dirac/kw_foretell.go)
+		d.HasForetell = true
+		if d.ForetellCost, err = manaCostOf(*c.Foretell); err != nil {
+			return err
+		}
+	}
 	if c.Sneak != nil {
 		// CR 702.190a: no KwMask bit is free, so the sneak marker is its own
 		// field; the cost is the declare-blockers alternative cost
@@ -750,6 +771,14 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Overload != nil {
+		// CR 702.96a: the hand's alternative cost and the resolving program's
+		// each-variant (dirac/kw_overload.go)
+		d.HasOverload = true
+		if d.OverloadCost, err = manaCostOf(*c.Overload); err != nil {
+			return err
+		}
+	}
 	if c.Bestow != nil {
 		// CR 702.103a: no KwMask bit is free, so the bestow marker is its own
 		// field; the cost is the hand's alternative cost of the Aura cast and
@@ -797,6 +826,24 @@ func (cb *cardBuilder) record() error {
 		}
 		d.Mayhem = true
 		if d.AltCost, err = manaCostOf(*c.Mayhem); err != nil {
+			return err
+		}
+	}
+	if c.Aftermath {
+		// CR 702.127a: the right half of a split card, cast only from its
+		// owner's graveyard and exiled leaving the stack (dirac/face_aftermath.go)
+		d.Aftermath = true
+	}
+	if c.Retrace {
+		// CR 702.81a: a graveyard cast paying the printed cost plus the
+		// additional discard-a-land cost (dirac/kw_retrace.go); lower.go's
+		// lowerRetrace has refused every collision, so the CardDef carries
+		// only Retrace and RetraceCost.
+		if c.RetraceCost == nil {
+			return fmt.Errorf("Retrace without its discard cost")
+		}
+		d.Retrace = true
+		if d.RetraceCost, err = cb.cost(*c.RetraceCost); err != nil {
 			return err
 		}
 	}
@@ -915,6 +962,14 @@ func (cb *cardBuilder) record() error {
 			d.Faces = append(d.Faces, kop.CardID(j))
 		}
 		d.Face, d.FaceMode = uint8(c.Face), c.FaceMode
+		d.FusedSpell = c.FusedSpell
+	}
+	if c.FuseKey != "" {
+		j, ok := cb.pt.tokenIdx[c.FuseKey]
+		if !ok {
+			return fmt.Errorf("fused spell %q is not in the pool", c.FuseKey)
+		}
+		d.FuseDef = kop.CardID(j) + 1 // the matchup remaps it (cardset pooldata.go)
 	}
 	return nil
 }
@@ -1578,6 +1633,8 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredMonoColor
 	case cmpSameNameT0:
 		kf.Pred = kop.PredSameNameT0
+	case cmpSameNameRem:
+		kf.Pred = kop.PredSameNameRem
 	case cmpAdventureCard:
 		kf.Pred = kop.PredAdventureCard
 	case cmpSolved:
@@ -1905,6 +1962,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefPromised, nil
 	case rAttachedCtrl:
 		return kop.RefAttachedCtrl, nil
+	case rLastCreated:
+		return kop.RefLastCreated, nil
 	case rSrcOwner:
 		return kop.RefSrcOwner, nil
 	case rTriggerAttackers:
@@ -2044,10 +2103,13 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vStepIn:             kop.ExStepIn,
 	vTgtSpent:           kop.ExTgtSpent,
 	vOppExtreme:         kop.ExOppExtreme,
+	vPlExtreme:          kop.ExPlExtreme,
 	vThisTurnActExhaust: kop.ExThisTurnActExhaust,
 	vActivations:        kop.ExActivations,
 	vLifeLostLastTurn:   kop.ExLifeLostLastTurn,
 	vDmgAmount:          kop.ExDmgAmountReceived,
+	vEnergyOf:           kop.ExEnergyOf,
+	vMonarch:            kop.ExMonarch, // lower_monarch.go
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
@@ -2114,7 +2176,7 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 			}
 		case vCountExile, vExileTypes:
 			zone = kop.ZoneExile
-		case vThisTurnCastSpec, vRefCount:
+		case vThisTurnCastSpec, vRefCount, vPlExtreme:
 			zone = kop.ZoneNone // the object wherever it now lives
 		}
 		if v.Kind == vLeftZone {
@@ -2153,7 +2215,7 @@ var cmpOps = map[uint8]kop.CmpOp{opGE: kop.CmpGE, opLE: kop.CmpLE, opEQ: kop.Cmp
 
 var condKinds = map[condKind]kop.CondKind{cPresent: kop.CondPresent, cValue: kop.CondValue, cKicked: kop.CondKicked,
 	cThreshold: kop.CondThreshold, cYourTurn: kop.CondYourTurn, cRefMatches: kop.CondRefMatches,
-	cPromisedGift: kop.CondPromised, cAnd: kop.CondAnd}
+	cPromisedGift: kop.CondPromised, cAnd: kop.CondAnd, cEchoOwed: kop.CondEchoOwed, cSourceZone: kop.CondSourceZone}
 
 // cond interns a condition (0 for none).
 func (cb *cardBuilder) cond(c lCond) (kop.CondID, error) {
@@ -2164,7 +2226,7 @@ func (cb *cardBuilder) cond(c lCond) (kop.CondID, error) {
 	if !ok {
 		return 0, fmt.Errorf("condition %s", condNames[c.Kind])
 	}
-	kc := kop.Cond{Kind: k, Op: cmpOps[c.Op], Neg: c.Neg}
+	kc := kop.Cond{Kind: k, Op: cmpOps[c.Op], Neg: c.Neg, Zone: zoneMap[c.Zone]}
 	var err error
 	if c.Kind == cAnd {
 		if len(c.Sub) != 2 {

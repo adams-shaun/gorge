@@ -20,7 +20,7 @@ import (
 // the engine and cfg.
 func philaReplGame(t *testing.T, seed uint64) (*Engine, Config) {
 	t.Helper()
-	phila := tokenReplCorpusCard(t, "Phila, Unsealed")
+	phila := corpusAlternativeCard(t, "Phila, Unsealed")
 	e, cfg := tokenReplGame(t, seed, phila)
 	moveSeededCard(t, e, 0, phila, state.ZBattlefield)
 	return e, cfg
@@ -58,7 +58,7 @@ func TestCantPutCounterPhilaBlocksPoisonOnly(t *testing.T) {
 // direction.
 func TestCantPutCounterMelirasKeepersBlocksSelfOnly(t *testing.T) {
 	t.Parallel()
-	keepers := tokenReplCorpusCard(t, "Melira's Keepers")
+	keepers := corpusAlternativeCard(t, "Melira's Keepers")
 	other := card(t, "Name:Other Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e, cfg := tokenReplGame(t, 213, keepers, other)
 	keepersID := moveSeededCard(t, e, 0, keepers, state.ZBattlefield)
@@ -89,7 +89,7 @@ func TestCantPutCounterMelirasKeepersBlocksSelfOnly(t *testing.T) {
 // opponent's creature place normally.
 func TestCantPutCounterBlightbeetleScopesOpponentsP1P1(t *testing.T) {
 	t.Parallel()
-	beetle := tokenReplCorpusCard(t, "Blightbeetle")
+	beetle := corpusAlternativeCard(t, "Blightbeetle")
 	mine := card(t, "Name:My Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	theirs := card(t, "Name:Their Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e, cfg := tokenReplGameSeats(t, 215, []*cards.Card{beetle, mine}, []*cards.Card{theirs})
@@ -124,7 +124,7 @@ func TestCantPutCounterBlightbeetleScopesOpponentsP1P1(t *testing.T) {
 // non-permissive direction for a restriction.
 func TestMeliraLockExpiresAndTheReplacementRestarts(t *testing.T) {
 	t.Parallel()
-	melira := tokenReplCorpusCard(t, "Melira, the Living Cure")
+	melira := corpusAlternativeCard(t, "Melira, the Living Cure")
 	e, cfg := tokenReplGame(t, 105, melira)
 	moveSeededCard(t, e, 0, melira, state.ZBattlefield)
 	e.emit(events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "POISON", Amount: 3})
@@ -160,7 +160,7 @@ func TestMeliraLockExpiresAndTheReplacementRestarts(t *testing.T) {
 // "counters can't be put on it" static.
 func TestCantPutCounterDoesNotBlockRemovalOrShield(t *testing.T) {
 	t.Parallel()
-	keepers := tokenReplCorpusCard(t, "Melira's Keepers")
+	keepers := corpusAlternativeCard(t, "Melira's Keepers")
 	e, cfg := tokenReplGame(t, 219, keepers)
 	keepersID := moveSeededCard(t, e, 0, keepers, state.ZBattlefield)
 	// A positive regeneration Shield marker on the Keepers must pass -- it is
@@ -185,7 +185,7 @@ func TestCantPutCounterDoesNotBlockRemovalOrShield(t *testing.T) {
 // ValidCounterType$ key silently widens the reading back to nothing.
 func TestCantPutCounterUnscopedPlayerStaticBlocksEveryKind(t *testing.T) {
 	t.Parallel()
-	solemnity := tokenReplCorpusCard(t, "Solemnity")
+	solemnity := corpusAlternativeCard(t, "Solemnity")
 	e, cfg := tokenReplGame(t, 217, solemnity)
 	moveSeededCard(t, e, 0, solemnity, state.ZBattlefield)
 	for _, p := range []state.PlayerID{0, 1} {

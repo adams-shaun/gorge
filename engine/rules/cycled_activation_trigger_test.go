@@ -13,8 +13,8 @@ import (
 // activation. The second watcher exercises SpellAbilityCast's activation arm.
 func TestGrantedCyclingActivationFiresAbilityCastWatchers(t *testing.T) {
 	t.Parallel()
-	mystic := mshCorpusCard(t, "Rhet-Tomb Mystic")
-	rings := mshCorpusCard(t, "Rings of Brighthearth")
+	mystic := corpusAlternativeCard(t, "Rhet-Tomb Mystic")
+	rings := corpusAlternativeCard(t, "Rings of Brighthearth")
 	const watcher = "Name:Activation Watcher\nTypes:Enchantment\n" +
 		"T:Mode$ SpellAbilityCast | ValidSA$ Activated.!ManaAbility | ValidActivatingPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigDraw\n" +
 		"SVar:TrigDraw:DB$ Draw | NumCards$ 1\nOracle:x\n"

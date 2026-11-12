@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"path/filepath"
 	"slices"
 	"testing"
 
@@ -9,21 +8,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
-
-// landwalkCorpusCard parses a real Forge script straight from the live corpus
-// (never a checked-in copy) so each proof below is tied to an actual carrier
-// of the printed `K:Landwalk:<spec>` form, not a lookalike handwritten card.
-func landwalkCorpusCard(t *testing.T, path string) *cards.Card {
-	t.Helper()
-	c, ds := cards.Parse(filepath.Join("..", "..", ".cards", "cardsfolder", path))
-	if len(ds) != 0 {
-		t.Fatalf("parse %s: %v", path, ds)
-	}
-	if ds = c.Link(); len(ds) != 0 {
-		t.Fatalf("link %s: %v", path, ds)
-	}
-	return c
-}
 
 // landwalkAttacker places a real corpus attacker under seat 1 and declares it
 // attacking seat 0, returning its id. Seat 1 is the attacker because seat 0's
@@ -43,7 +27,7 @@ func landwalkAttacker(t *testing.T, e *Engine, c *cards.Card) state.ObjID {
 func TestLandwalkEvadesDefenderLands(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	whale := landwalkAttacker(t, e, landwalkCorpusCard(t, "c/colossal_whale.txt"))
+	whale := landwalkAttacker(t, e, corpusCardAtPath(t, "c/colossal_whale.txt"))
 	// Precondition: the rule reads this exact keyword, and the defending
 	// player is seat 0 (the seat the attacker was declared against).
 	if !e.HasKeyword(whale, "Landwalk") {
@@ -109,7 +93,7 @@ func TestLandwalkBasicLandTypeForms(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			e := combatEngine(t)
-			a := landwalkAttacker(t, e, landwalkCorpusCard(t, tc.path))
+			a := landwalkAttacker(t, e, corpusCardAtPath(t, tc.path))
 			if !e.HasKeyword(a, "Landwalk") {
 				t.Fatalf("%s: carrier does not read as carrying printed Landwalk", tc.path)
 			}
@@ -140,7 +124,7 @@ func TestLandwalkBasicLandTypeForms(t *testing.T) {
 func TestLandwalkNonbasicQualifier(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	a := landwalkAttacker(t, e, landwalkCorpusCard(t, "d/dryad_sophisticate.txt"))
+	a := landwalkAttacker(t, e, corpusCardAtPath(t, "d/dryad_sophisticate.txt"))
 	if !e.HasKeyword(a, "Landwalk") {
 		t.Fatal("Dryad Sophisticate does not read as carrying printed Landwalk")
 	}
@@ -166,7 +150,7 @@ func TestLandwalkNonbasicQualifier(t *testing.T) {
 func TestLandwalkLegendaryQualifier(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	a := landwalkAttacker(t, e, landwalkCorpusCard(t, "l/livonya_silone.txt"))
+	a := landwalkAttacker(t, e, corpusCardAtPath(t, "l/livonya_silone.txt"))
 	if !e.HasKeyword(a, "Landwalk") {
 		t.Fatal("Livonya Silone does not read as carrying printed Landwalk")
 	}
@@ -195,7 +179,7 @@ func TestLandwalkSnowQualifierForms(t *testing.T) {
 	t.Parallel()
 	t.Run("land_snow", func(t *testing.T) {
 		e := combatEngine(t)
-		a := landwalkAttacker(t, e, landwalkCorpusCard(t, "z/zombie_musher.txt"))
+		a := landwalkAttacker(t, e, corpusCardAtPath(t, "z/zombie_musher.txt"))
 		if !e.HasKeyword(a, "Landwalk") {
 			t.Fatal("Zombie Musher does not read as carrying printed Landwalk")
 		}
@@ -217,7 +201,7 @@ func TestLandwalkSnowQualifierForms(t *testing.T) {
 	})
 	t.Run("swamp_snow", func(t *testing.T) {
 		e := combatEngine(t)
-		a := landwalkAttacker(t, e, landwalkCorpusCard(t, "l/legions_of_lim_dul.txt"))
+		a := landwalkAttacker(t, e, corpusCardAtPath(t, "l/legions_of_lim_dul.txt"))
 		if !e.HasKeyword(a, "Landwalk") {
 			t.Fatal("Legions of Lim-Dûl does not read as carrying printed Landwalk")
 		}
@@ -257,7 +241,7 @@ func TestLandwalkSnowQualifierForms(t *testing.T) {
 // parsed card in seat 0's deck.
 func TestLandwalkReadsGrantedLandType(t *testing.T) {
 	t.Parallel()
-	yavimaya := landwalkCorpusCard(t, "y/yavimaya_cradle_of_growth.txt")
+	yavimaya := corpusCardAtPath(t, "y/yavimaya_cradle_of_growth.txt")
 	deck := mountainDeck(t, 39)
 	deck = append(deck, yavimaya)
 	e := New(seatZeroStart(Config{Seed: 1, Names: []string{"a", "b"},
@@ -268,7 +252,7 @@ func TestLandwalkReadsGrantedLandType(t *testing.T) {
 	e.G.Active = 0
 	e.G.Step = state.StepDeclareAttackers
 
-	a := landwalkAttacker(t, e, landwalkCorpusCard(t, "k/koths_courier.txt"))
+	a := landwalkAttacker(t, e, corpusCardAtPath(t, "k/koths_courier.txt"))
 	if !e.HasKeyword(a, "Landwalk") {
 		t.Fatal("Koth's Courier does not read as carrying printed Landwalk")
 	}
@@ -354,7 +338,7 @@ func TestLandwalkDescriptionSuffixIsNotPartOfSpec(t *testing.T) {
 func TestLandwalkReadsLandTypeNotName(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	a := landwalkAttacker(t, e, landwalkCorpusCard(t, "k/koths_courier.txt"))
+	a := landwalkAttacker(t, e, corpusCardAtPath(t, "k/koths_courier.txt"))
 	if !e.HasKeyword(a, "Landwalk") {
 		t.Fatal("Koth's Courier does not read as carrying printed Landwalk")
 	}

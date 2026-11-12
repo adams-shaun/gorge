@@ -75,14 +75,15 @@ var stallCapacityReasons = [...]uint8{
 	StallObsSrc, StallDynMana, StallTapExtra, StallExiledWith, StallBreach, StallNetLock, StallPanharmGrant, StallExileGrant, StallCharmPick,
 	StallCombatHit, StallFinality, StallPersistMana, StallOptMoves, StallMustBlock, StallRestrSrc, StallFirebend,
 	StallImprint, StallExHaste, StallEffEtbCtr, StallAtkGrp, StallParadigm, StallFiltX, StallPlanAlts,
-	StallCtrAdded,  // a fifth record of genState.ctrAdd; its two non-capacity sites moved to StallLowering
-	StallTwoSeat,   // a two-seat-only table in a larger game (stallclass.go): a declared limit
-	StallAddPhase,  // a fifth genState.xph entry or a 256th grant; its one non-capacity site moved to StallLowering
-	StallUntapLock, // a fifth source-bound untap lock at once (genState.ul; act_untaplock.go)
-	StallTurnRepl,  // the exile-instead table is full of Malicious Eclipse scope records (repl_turnrepl.go)
-	StallEmbRem,    // a fifth object in an emblem's remembered set (static_emblemrem.go)
-	StallDmgAmt,    // a fifth reader-card object damaged in one turn (genState.dmgAmt; value_dmgamount.go)
-	StallDmgMark,   // a second mark of one controller on one player while the first is live (genState.dmk; repl_dmgmark.go)
+	StallCtrAdded,     // a fifth record of genState.ctrAdd; its two non-capacity sites moved to StallLowering
+	StallTwoSeat,      // a two-seat-only table in a larger game (stallclass.go): a declared limit
+	StallAddPhase,     // a fifth genState.xph entry or a 256th grant; its one non-capacity site moved to StallLowering
+	StallUntapLock,    // a fifth source-bound untap lock at once (genState.ul; act_untaplock.go)
+	StallTurnRepl,     // the exile-instead table is full of Malicious Eclipse scope records (repl_turnrepl.go)
+	StallEmbRem,       // a fifth object in an emblem's remembered set (static_emblemrem.go)
+	StallDmgAmt,       // a fifth reader-card object damaged in one turn (genState.dmgAmt; value_dmgamount.go)
+	StallDmgMark,      // a second mark of one controller on one player while the first is live (genState.dmk; repl_dmgmark.go)
+	StallChooseNumber, // a mid-resolution ChooseNumber's present Max$ resolves above the chosen byte's 254 (repl_choosenumber.go)
 }
 
 var stallUnmodelledReasons = [...]uint8{
@@ -103,6 +104,8 @@ var stallUnmodelledReasons = [...]uint8{
 	StallExtraBlockReq,
 	// a card with the pay-before-entering replacement entered other than by its cast spell resolving: gorge asks its controller with the move pending, which the kernel's entry does not model (repl_paybeforeetb.go)
 	StallPayETB,
+	// an attack tax beside a part its walk does not model: an attack requirement, a Taps watcher, a mana source of another shape (combat_attacktax.go)
+	StallAtkTax,
 	StallPrevNext, // a depleting prevent-the-next-N shield and another damage replacement match one event, or a shield amount past 255 (repl_prevnext.go)
 }
 
@@ -129,6 +132,8 @@ func (g *genPrep) initStall(nseat uint8) uint8 {
 		return StallDiamondMix // mana_diamondmix.go prepDiamondMix
 	case g.fbStampOwnCost:
 		return StallFbGrantStamp // kw_fbgrant.go prepFbStamp
+	case g.atkTaxStall:
+		return StallAtkTax // combat_attacktax.go prepAtkTax
 	}
 	return StallNone
 }
@@ -220,6 +225,8 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 				return in.Op == kop.OpGrantKeyword && (kop.KwMask(uint16(in.C))|kop.KwMask(uint16(in.B.N))<<16)&kop.KwFlashbackOwnCost != 0
 			})
 		})
+	case StallAtkTax:
+		text, a, b = atkTaxStallPair(t, g) // combat_attacktax.go
 	case StallDiamondMix:
 		text = "a Lion's Eye Diamond beside another mana census-gap kind (a filter, a restricted or any-colour restricted source, a counter-cost or tap-another source, a deferred source, a granted mana ability, an each-colour source): gorge's one prefix search activates both and the kernel models the Diamond alone"
 		a = abilityOn(kop.DiscardHandManaAb)

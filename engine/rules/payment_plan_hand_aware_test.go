@@ -42,10 +42,6 @@ func handAwareSources(t *testing.T, got PaymentPlanOutcome) []state.ObjID {
 	return out
 }
 
-func handAwareSameSources(a, b []state.ObjID) bool {
-	return len(a) == len(b) && reflect.DeepEqual(sortedObjIDs(a), sortedObjIDs(b))
-}
-
 func sortedObjIDs(in []state.ObjID) []state.ObjID {
 	out := append([]state.ObjID(nil), in...)
 	for i := 1; i < len(out); i++ {
@@ -96,7 +92,7 @@ func TestPaymentPlanHandAwareKeepsHandGreenCastable(t *testing.T) {
 			t.Fatalf("source %d untapped after the planned payment", id)
 		}
 	}
-	if n := ppTaps(e, before, forest); n != 0 {
+	if n := paymentPlanTapsSince(e, before, forest); n != 0 {
 		t.Fatalf("Forest tapped %d times in the log", n)
 	}
 }
@@ -148,7 +144,7 @@ func TestPaymentPlanHandAwareAcceptanceBoard(t *testing.T) {
 	if !e.G.Obj(f1).Tapped || !e.G.Obj(wastes).Tapped {
 		t.Fatal("the paying sources were not tapped")
 	}
-	if n := ppTaps(e, before, mountain); n != 0 {
+	if n := paymentPlanTapsSince(e, before, mountain); n != 0 {
 		t.Fatalf("Mountain tapped %d times in the log", n)
 	}
 }

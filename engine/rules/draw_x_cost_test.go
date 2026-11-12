@@ -3,7 +3,6 @@ package rules
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -64,40 +63,6 @@ func cleanMoveByName(t *testing.T, e *Engine, name string, to state.Zone) (state
 	return 0, nil
 }
 
-// titanBearFixture builds the shared-type board the card's own text assumes:
-// a Grizzly Bears on the battlefield, then Titan of Littjara entering, whose
-// as-enters ChooseType ask is answered "Bear" — so Titan IS a Bear (its own
-// `AddType$ ChosenType` static) and the one other Bear shares the type.
-// Returns the engine and Titan's object id.
-func titanBearFixture(t *testing.T, reg *cards.Registry) (*Engine, state.ObjID) {
-	t.Helper()
-	e, _ := searchEngine(t, reg, "Titan of Littjara")
-	bears, _ := cleanMoveByName(t, e, "Grizzly Bears", state.ZBattlefield)
-	if bears == 0 {
-		t.Fatal("no Grizzly Bears fixture")
-	}
-	titan, d := cleanMoveByName(t, e, "Titan of Littjara", state.ZBattlefield)
-	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "choosetype" {
-		t.Fatalf("Titan's entry posed no ChooseType ask: %+v", d)
-	}
-	idx := -1
-	for _, op := range d.Options {
-		if op.Kind == "type" && op.Label == "Bear" {
-			idx = op.Index
-		}
-	}
-	if idx < 0 {
-		t.Fatalf("the ChooseType ask offered no Bear option: %+v", d.Options)
-	}
-	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
-		t.Fatalf("submit ChooseType Bear: %v", err)
-	}
-	if got := e.G.Obj(titan).ChosenType; got != "Bear" {
-		t.Fatalf("Titan's chosen type = %q, want Bear (the shared-type precondition)", got)
-	}
-	return e, titan
-}
-
 // TestDrawXCostSVarFoldsAndDraws pins the fold: a Draw<X/You> part on a face
 // whose SVar:X resolves yields exactly that count, and the trigger window
 // offers the pay election (so the handler is provably reached).
@@ -134,7 +99,7 @@ func TestDrawXCostSVarFoldsAndDraws(t *testing.T) {
 
 	// The window must actually offer the election, or the fold is unreachable.
 	pay := witsPayAsk(t, e)
-	if witsPayOption(pay) < 0 {
+	if optionIndexForKind(pay, "trigger_cost_pay") < 0 {
 		t.Fatalf("the resolvable Draw<X/You> cost was not offered as payable: %+v", pay.Options)
 	}
 }

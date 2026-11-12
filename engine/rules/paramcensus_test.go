@@ -1,6 +1,6 @@
 package rules
 
-// The parameter census (task inbox-engine-ratchet-parameter-census): the
+// The parameter census: the
 // primitive coverage ratchet in engine/rules/acceptance_test.go only asks the
 // registry whether each primitive is REGISTERED. A registered primitive with
 // an unconsumed parameter passes -- Reanimate's `GainControl$` counted as
@@ -1966,6 +1966,11 @@ var handEffectsRoots = []string{
 	// it directly on a land's own enters trigger, for a play_land option's
 	// LandWontStay; its reads inspect that trigger's return shape.
 	"EntryLandReturn",
+	// engine/rules/cast_etbchoice.go calls this directly on an as-enters
+	// ChooseNumber body to decide whether the entry asks or draws from the
+	// engine rng (Haktos the Unscarred's Random$ True). It reads only that
+	// rider, so it joins no API's read set.
+	"ChooseNumberAtRandom",
 }
 
 // apiSpecificRulesSA names the rules functions whose SA (bSA) reads execute
@@ -4246,8 +4251,8 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	// engine/rules/layers.go's staticEffects reads it to place a Set static in the
 	// CR 613.4a CDA sublayer (Tarmogoyf, Krovikan Mist now derive their
 	// announced P/T), so the read is genuine on the generic bucket.
-	// ValidAfterStack$ is consumed by mayPlayStatic as a derived spell filter
-	// (task mayplay-validafterstack); MayPlayPlayer$ is consumed for Exiler and CardOwner only.
+	// ValidAfterStack$ is consumed by mayPlayStatic as a derived spell filter.
+	// MayPlayPlayer$ is consumed for Exiler and CardOwner only.
 	if !d.stat["Continuous.MayPlay"]["ValidAfterStack"] {
 		t.Error(`d.stat["Continuous.MayPlay"]["ValidAfterStack"] = false -- MayPlay characteristic gate lost its read`)
 	}
@@ -4386,8 +4391,7 @@ func TestParamCensusCatchesSVarBodyGaps(t *testing.T) {
 	// read as the parent Charm's, scoped to the mode APIs.)
 	// PayEnergy<X> WAS the fixture's unmodelled
 	// cost token until ParseCost gained a real Energy field, and Waterbend<X>
-	// followed it when ParseCost learned the Waterbend head (task tla-waterbend-
-	// ability-cost); the body cost below is now Mana<1>, a corpus-attested
+	// followed it when ParseCost learned the Waterbend head; the body cost below is now Mana<1>, a corpus-attested
 	// ability-cost head (`Cost$ Mana<2 R\NumTimes>`, bloodthirsty_adversary and
 	// 8 more) ParseCost still does not model.
 	if !d.api["Charm"]["Choices"] || !d.api["Repeat"]["RepeatSubAbility"] {

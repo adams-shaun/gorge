@@ -46,6 +46,9 @@ func (s *State) beginTurn(p uint8) {
 	if k := s.k(); k.gen != nil && k.gen.anySkipPhase {
 		s.skipPhaseTurn(p) // act_skipphase.go
 	}
+	if k := s.k(); k.gen != nil && k.gen.anyMonarch {
+		s.monarchTurn() // the turn-start monarch (act_monarch.go)
+	}
 	if k := s.k(); k.gen != nil && k.gen.anyNTEndEmb {
 		s.embTurnStart(k, p) // UntilTheEndOfYourNextTurn: this turn is its last (static_emblemdurations.go)
 	}
@@ -125,6 +128,9 @@ const (
 func (s *State) beginStep(k *prep) {
 	switch s.step {
 	case kop.StepUntap:
+		if k.gen != nil && k.gen.ix[mechEchoOwed] != arenaNone && !s.g.untapOn {
+			s.echoSnap(k) // before the untap clears the sickness (trig_echo.go)
+		}
 		if k.phasing && !s.g.untapOn {
 			s.phaseUntap(k) // CR 702.26a/p, before the untap action (kw_phasing.go)
 		}
@@ -253,6 +259,9 @@ func (s *State) beginStep(k *prep) {
 		s.fireDelayedAt(k, m)
 		if k.gen != nil {
 			s.fireDelayedGen(k)
+			if k.gen.anyMonarch {
+				s.monarchEndStep() // CR 725.2 (act_monarch.go)
+			}
 		}
 		s.openPriority()
 	case kop.StepCleanup:
@@ -506,10 +515,16 @@ func (s *State) sba(k *prep) bool {
 			// returns at its first order ask and its answer re-enters it
 			s.lingerDrain(k)
 		}
+		// gorge's loss order (checkLoseConditions): every life loss, then
+		// every empty-library one; a departing monarch hands off as it is
+		// marked (CR 725.4, act_monarch.go)
 		for p := uint8(0); p < s.nSeats(); p++ {
 			if s.pl[p].life <= 0 && !s.pl[p].lost && !s.cantLoseLife(k, p) {
 				s.pl[p].lost = true
+				s.monarchLeft(k, p)
 			}
+		}
+		for p := uint8(0); p < s.nSeats(); p++ {
 			if s.pl[p].drewEmpty {
 				// drew from an empty library since the last check (CR 704.5b)
 				s.pl[p].drewEmpty = false
@@ -587,7 +602,20 @@ func (s *State) sba(k *prep) bool {
 			if t&(kop.TAura|kop.TPlaneswalker) == 0 && p.attached == NoSlot {
 				continue
 			}
-			if t&kop.TAura != 0 && (p.attached == NoSlot || !s.enchantLegal(k, sl)) && !s.sbaBestowDetach(k, sl) {
+			if t&kop.TAura != 0 && s.atchSeat(k, sl) != 0 {
+				// a player-attached Aura (the Enchant:Player curses): gorge
+				// attachmentSBAs' HasAttachedPlayer arm (engine/rules/attach.go:128)
+				// -- a lost seat cannot stay enchanted (CR 800.4a) and an
+				// Aura whose own Enchant spec no longer admits the seat
+				// (a control change moved a YouCtrl line) goes to the
+				// graveyard like any illegal attachment. The player-keyword
+				// protection grant gorge's playerProtectedFrom reads has no
+				// kernel arm: no supported table grants one beside a curse.
+				if !s.playerAuraLegal(k, sl) {
+					gy = gy.with(sl)
+					aur = aur.with(sl)
+				}
+			} else if t&kop.TAura != 0 && (p.attached == NoSlot || !s.enchantLegal(k, sl)) && !s.sbaBestowDetach(k, sl) {
 				// unattached, or attached to something it can no longer
 				// legally enchant (CR 704.5m: Imprisoned in the Moon makes
 				// Witness Protection's creature a land); a bestowed Aura
@@ -766,6 +794,30 @@ func (s *State) sba(k *prep) bool {
 			return true
 		}
 	}
+}
+
+// playerAuraLegal reports whether the player-attached Aura at sl is still
+// legally attached (gorge attachmentSBAs' HasAttachedPlayer arm,
+// engine/rules/attach.go:128, with playerAuraStillMatchesEnchant's read):
+// the enchanted seat is alive and not lost, and the Aura's own Enchant
+// restriction still admits it (a control change can move a YouCtrl line;
+// gorge MatchesPlayerSpecFrom over the keyword's spec, whose corpus shapes
+// are the Ctrl filters the kgen fold holds).
+func (s *State) playerAuraLegal(k *prep, sl Slot) bool {
+	p := &s.perms[sl]
+	q := s.atchSeat(k, sl) - 1
+	if q >= s.nSeats() || s.pl[q].lost {
+		return false
+	}
+	if f := k.t.Cards[s.cardAt(sl)].Enchant.Filter; f != 0 {
+		switch k.t.Filters[f].Ctrl {
+		case kop.CtrlYou:
+			return q == p.ctrl
+		case kop.CtrlOpp:
+			return q != p.ctrl
+		}
+	}
+	return true
 }
 
 // enchantLegal: Aura sl's host still matches its enchant ability (the
@@ -1003,6 +1055,10 @@ func (s *State) fireDelayed(k *prep) {
 func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 	if e.trigAmt == speedTrigAmt && e.obj == NoObj {
 		s.resolveSpeed(e) // the source-less speed trigger (kw_speed.go)
+		return
+	}
+	if monarchTrig(e) {
+		s.resolveMonarchTrig(k, e) // the monarch's draw or steal (act_monarch.go)
 		return
 	}
 	if k.gen != nil && e.trigAmt == opLeaveReturn {

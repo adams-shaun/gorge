@@ -125,7 +125,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExChosenMode:
 		return s.chosenModeOf(ctx.srcSl) // face_siegemode.go
 	case kop.ExChosenNumber:
-		return s.chosenNumberOf(ctx.srcSl) // repl_choosenumber.go
+		return s.chosenNumberOfFor(ctx.src, ctx.srcSl) // repl_choosenumber.go
 	case kop.ExUnlockedDoors:
 		return s.unlockedDoors(k, ctx.ctrl) // value_countheads.go
 	case kop.ExRevolt:
@@ -237,6 +237,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.selfPrepared(x, ctx) // face_prepare.go
 	case kop.ExCommittedCrime:
 		return s.committedCrime(k, x, ctx)
+	case kop.ExMonarch:
+		return s.exMonarch(k, x, ctx) // act_monarch.go
 	case kop.ExThisTurnActGrave:
 		return s.thisTurnActGrave(ctx)
 	case kop.ExThisTurnActExhaust:
@@ -270,7 +272,9 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExGraveAgg:
 		return s.graveAgg(k, x, ctx)
 	case kop.ExOppExtreme:
-		return s.oppExtreme(k, x, ctx) // value_oppextreme.go
+		return s.oppExtreme(k, x, ctx)
+	case kop.ExPlExtreme:
+		return s.plExtreme(k, x, ctx) // value_plrextreme.go
 	case kop.ExHighestOppPoison:
 		if k.gen != nil && k.gen.anyPoisonHigh {
 			return s.highestOppPoison(ctx.ctrl)
@@ -308,7 +312,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.refNumColors(k, x.Ref, ctx) // trig_colours.go
 	case kop.ExChromaOf:
 		return s.refChroma(k, x.Ref, int(x.N), ctx) // trig_colours.go
-	case kop.ExPoisonOf, kop.ExProduct, kop.ExAttackersAll:
+	case kop.ExPoisonOf, kop.ExEnergyOf, kop.ExProduct, kop.ExAttackersAll:
 		return s.exprKvf(k, x, ctx) // filter_valueheads.go
 	}
 	panic("kernel: expr kind not implemented")

@@ -77,21 +77,13 @@ func effectTrigRememberCases() []effectLongCase {
 	}
 }
 
-// evName is the card name of event object id, "" if it is gone.
-func evName(g *GorgeSide, id state.ObjID) string {
-	if o := g.E.G.Obj(id); o != nil && o.Face() != nil {
-		return o.Face().Name
-	}
-	return ""
-}
-
 // eaglesBirdAtUpkeep: a creature of seat 0's returned from the battlefield to
 // its hand (the spell), and a Bird Soldier token was minted at a later step.
 func eaglesBirdAtUpkeep(g *GorgeSide) bool {
 	returned := false
 	for _, e := range g.E.L.Events {
 		switch {
-		case e.Kind == events.MoveZone && e.From == state.ZBattlefield && e.To == state.ZHand && evName(g, e.Obj) == "Savannah Lions":
+		case e.Kind == events.MoveZone && e.From == state.ZBattlefield && e.To == state.ZHand && sideObjName(g, e.Obj) == "Savannah Lions":
 			returned = true
 		case returned && e.Kind == events.TokenCreate && strings.Contains(e.Text, "bird"):
 			return true
@@ -108,9 +100,9 @@ func tpringDrawsOnDeath(g *GorgeSide) bool {
 		switch {
 		case e.Kind == events.TurnChange:
 			entered, died = false, false
-		case e.Kind == events.MoveZone && e.To == state.ZBattlefield && evName(g, e.Obj) == "T'Pring, Never Parted":
+		case e.Kind == events.MoveZone && e.To == state.ZBattlefield && sideObjName(g, e.Obj) == "T'Pring, Never Parted":
 			entered = true
-		case entered && e.Kind == events.MoveZone && e.From == state.ZBattlefield && e.To == state.ZGraveyard && evName(g, e.Obj) == "Grizzly Bears":
+		case entered && e.Kind == events.MoveZone && e.From == state.ZBattlefield && e.To == state.ZGraveyard && sideObjName(g, e.Obj) == "Grizzly Bears":
 			died = true
 		case died && e.Kind == events.Draw && e.Player == 0:
 			return true
@@ -131,7 +123,7 @@ func mysterioTokensStay(g *GorgeSide) bool {
 		switch {
 		case e.Kind == events.TokenCreate && strings.Contains(e.Text, "illusion"):
 			tokens = true
-		case tokens && e.Kind == events.MoveZone && e.From == state.ZBattlefield && evName(g, e.Obj) == "Mysterio, Master of Illusion":
+		case tokens && e.Kind == events.MoveZone && e.From == state.ZBattlefield && sideObjName(g, e.Obj) == "Mysterio, Master of Illusion":
 			left = true
 		case left && e.Kind == events.MoveZone && e.From == state.ZBattlefield && e.To == state.ZExile:
 			return false
@@ -148,9 +140,9 @@ func mysterioRegistrationAfterLeaving(g *GorgeSide) bool {
 	deaths, entered := 0, 0
 	for _, e := range g.E.L.Events {
 		switch {
-		case e.Kind == events.MoveZone && e.To == state.ZBattlefield && evName(g, e.Obj) == "Mysterio, Master of Illusion":
+		case e.Kind == events.MoveZone && e.To == state.ZBattlefield && sideObjName(g, e.Obj) == "Mysterio, Master of Illusion":
 			entered++
-		case e.Kind == events.MoveZone && e.From == state.ZBattlefield && evName(g, e.Obj) == "Mysterio, Master of Illusion":
+		case e.Kind == events.MoveZone && e.From == state.ZBattlefield && sideObjName(g, e.Obj) == "Mysterio, Master of Illusion":
 			deaths++
 		case deaths >= 2 && entered >= 2 && e.Kind == events.MoveZone && e.From == state.ZBattlefield && e.To == state.ZExile:
 			return true
@@ -173,16 +165,16 @@ func mysterioTokensStayAfterBlink(g *GorgeSide) bool {
 		switch {
 		case e.Kind == events.Resolve:
 			res = e.Obj
-		case e.Kind == events.MoveZone && e.To == state.ZBattlefield && evName(g, e.Obj) == "Mysterio, Master of Illusion":
+		case e.Kind == events.MoveZone && e.To == state.ZBattlefield && sideObjName(g, e.Obj) == "Mysterio, Master of Illusion":
 			entered++
 		case !blinked && e.Kind == events.TokenCreate && strings.Contains(e.Text, "illusion"):
 			return false // his enters trigger resolved before the blink
-		case entered == 1 && e.Kind == events.MoveZone && e.From == state.ZBattlefield && e.To == state.ZExile && evName(g, e.Obj) == "Mysterio, Master of Illusion":
+		case entered == 1 && e.Kind == events.MoveZone && e.From == state.ZBattlefield && e.To == state.ZExile && sideObjName(g, e.Obj) == "Mysterio, Master of Illusion":
 			blinked = true
 		case blinked && entered >= 2 && !left && e.Kind == events.TokenCreate && strings.Contains(e.Text, "illusion"):
 			made[res] = true
 			tokens = len(made) >= 2 // the first enters trigger resolved with the returned Mysterio out, then the blink's
-		case tokens && e.Kind == events.MoveZone && e.From == state.ZBattlefield && evName(g, e.Obj) == "Mysterio, Master of Illusion":
+		case tokens && e.Kind == events.MoveZone && e.From == state.ZBattlefield && sideObjName(g, e.Obj) == "Mysterio, Master of Illusion":
 			left = true
 		case left && e.Kind == events.MoveZone && e.From == state.ZBattlefield && e.To == state.ZExile:
 			return false
@@ -195,7 +187,7 @@ func mysterioTokensStayAfterBlink(g *GorgeSide) bool {
 func mysterioEntered(g *GorgeSide) int {
 	n := 0
 	for _, e := range g.E.L.Events {
-		if e.Kind == events.MoveZone && e.To == state.ZBattlefield && evName(g, e.Obj) == "Mysterio, Master of Illusion" {
+		if e.Kind == events.MoveZone && e.To == state.ZBattlefield && sideObjName(g, e.Obj) == "Mysterio, Master of Illusion" {
 			n++
 		}
 	}
@@ -206,7 +198,7 @@ func mysterioEntered(g *GorgeSide) int {
 func mysterioDeaths(g *GorgeSide) int {
 	n := 0
 	for _, e := range g.E.L.Events {
-		if e.Kind == events.MoveZone && e.From == state.ZBattlefield && evName(g, e.Obj) == "Mysterio, Master of Illusion" {
+		if e.Kind == events.MoveZone && e.From == state.ZBattlefield && sideObjName(g, e.Obj) == "Mysterio, Master of Illusion" {
 			n++
 		}
 	}
@@ -218,7 +210,7 @@ func mysterioDeaths(g *GorgeSide) int {
 func mysterioTriggerPending(g *GorgeSide) bool {
 	for _, id := range g.E.G.Stack {
 		o := g.E.G.Obj(id)
-		if o == nil || o.Ability == nil || evName(g, o.Source) != "Mysterio, Master of Illusion" {
+		if o == nil || o.Ability == nil || sideObjName(g, o.Source) != "Mysterio, Master of Illusion" {
 			continue
 		}
 		if src := g.E.G.Obj(o.Source); src != nil && src.Zone == state.ZBattlefield {
@@ -233,7 +225,7 @@ func mysterioTriggerPending(g *GorgeSide) bool {
 // Mysterio gone).
 func cloudshiftOnStack(g *GorgeSide) bool {
 	for _, id := range g.E.G.Stack {
-		if evName(g, id) == "Cloudshift" {
+		if sideObjName(g, id) == "Cloudshift" {
 			return true
 		}
 	}
@@ -243,7 +235,7 @@ func cloudshiftOnStack(g *GorgeSide) bool {
 // mysterioOnBattlefield: Mysterio is on seat 0's battlefield.
 func mysterioOnBattlefield(g *GorgeSide) bool {
 	for _, id := range g.E.G.Zone(state.ZBattlefield, 0) {
-		if evName(g, id) == "Mysterio, Master of Illusion" {
+		if sideObjName(g, id) == "Mysterio, Master of Illusion" {
 			return true
 		}
 	}
@@ -258,7 +250,7 @@ func mysterioOut(g *GorgeSide) bool {
 	}
 	mys, tok := false, false
 	for _, id := range g.E.G.Zone(state.ZBattlefield, 0) {
-		n := evName(g, id)
+		n := sideObjName(g, id)
 		mys = mys || n == "Mysterio, Master of Illusion"
 		tok = tok || strings.Contains(n, "Illusion Villain")
 	}
@@ -280,7 +272,7 @@ func effectTrigRememberPolicy(m *Matchup, c effectLongCase, seed uint64) Policy 
 	return PolicyFunc(func(p *PickCtx) Canon {
 		if p.D.Kind == DTarget && p.G != nil {
 			for _, a := range p.D.Options {
-				if o, ok := p.G.GorgeOption(a); ok && a.Kind() == ActTarget && o.Obj != 0 && evName(p.G, o.Obj) == "Mysterio, Master of Illusion" {
+				if o, ok := p.G.GorgeOption(a); ok && a.Kind() == ActTarget && o.Obj != 0 && sideObjName(p.G, o.Obj) == "Mysterio, Master of Illusion" {
 					return a
 				}
 			}

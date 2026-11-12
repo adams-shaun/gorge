@@ -81,16 +81,6 @@ func (p *kprops8Tally) flush(g *state.Game, st *kprops8Stats) {
 	p.cur, p.died = "", false
 }
 
-// onBf lists the names a player's battlefield holds.
-func kprops8Bf(g *state.Game, pl state.PlayerID) (out []*state.Object) {
-	for _, b := range g.Zone(state.ZBattlefield, pl) {
-		if o := g.Obj(b); o != nil {
-			out = append(out, o)
-		}
-	}
-	return out
-}
-
 func (p *kprops8Tally) scan(ref *GorgeSide, st *kprops8Stats) {
 	g := ref.E.G
 	evs := ref.E.L.Events
@@ -137,7 +127,7 @@ func (p *kprops8Tally) scan(ref *GorgeSide, st *kprops8Stats) {
 					continue
 				}
 				oviya, archon, aura := false, false, false
-				for _, o := range kprops8Bf(g, a.Controller) {
+				for _, o := range battlefieldObjects(g, a.Controller) {
 					switch chName(g, o.ID) {
 					case "Oviya, Automech Artisan":
 						oviya = true
@@ -186,7 +176,7 @@ func kprops8Policy(seed uint64, st *kprops8Stats) Policy {
 				g := c.G.E.G
 				have := map[string]bool{}
 				for pl := state.PlayerID(0); pl < 2; pl++ {
-					for _, o := range kprops8Bf(g, pl) {
+					for _, o := range battlefieldObjects(g, pl) {
 						for _, ty := range kprops8Types[chName(g, o.ID)] {
 							have[ty] = true
 						}
@@ -217,7 +207,7 @@ func kprops8Policy(seed uint64, st *kprops8Stats) Policy {
 		case DPriority:
 			if c.G != nil {
 				g := c.G.E.G
-				bf := kprops8Bf(g, state.PlayerID(c.D.Player))
+				bf := battlefieldObjects(g, state.PlayerID(c.D.Player))
 				yenna := false
 				names := map[string]int{}
 				for _, o := range bf {

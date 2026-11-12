@@ -18,23 +18,6 @@ const setupCountersScenario = `{
           "p1":{"battlefield":["Grizzly Bears"]}},
  "steps":[],"expect":[]}`
 
-// runSetupScenario plays raw to its end and returns the engine's final state
-// alongside the result.
-func runSetupScenario(t *testing.T, raw string) (OracleResult, *oracleRun) {
-	t.Helper()
-	reg := testutil.CorpusRegistry(t)
-	sc, err := decodeOracleScenario([]byte(raw))
-	if err != nil {
-		t.Fatal(err)
-	}
-	sc.xmageFixture = true
-	fails, transcript, run := runOracleScenario(reg, sc)
-	if len(fails) != 0 {
-		t.Fatalf("scenario failed: %v\n%s", fails, strings.Join(transcript, "\n"))
-	}
-	return OracleResult{Fails: fails, Transcript: transcript, Snapshots: run.snaps}, run
-}
-
 func setupSweeper(res OracleResult) (OracleSnapPerm, bool) {
 	for _, p := range res.Snapshots[0].Permanents {
 		if p.Name == "Wurmwall Sweeper" {
@@ -45,7 +28,7 @@ func setupSweeper(res OracleResult) (OracleSnapPerm, bool) {
 }
 
 func TestOracleSetupCounters(t *testing.T) {
-	res, run := runSetupScenario(t, setupCountersScenario)
+	res, run := runFixtureScenario(t, setupCountersScenario)
 	sw, ok := setupSweeper(res)
 	if !ok {
 		t.Fatal("Wurmwall Sweeper is not on the battlefield after setup")
@@ -73,21 +56,21 @@ func TestOracleSetupCounters(t *testing.T) {
 	if bare == setupCountersScenario {
 		t.Fatal("test bug: the counters field was not removed")
 	}
-	bareRes, _ := runSetupScenario(t, bare)
+	bareRes, _ := runFixtureScenario(t, bare)
 	plain, _ := setupSweeper(bareRes)
 	if plain.PT != "" || containsStr(plain.Types, "Creature") || len(plain.Counters) != 0 {
 		t.Fatalf("without counters the Spacecraft must stay a plain artifact: %+v", plain)
 	}
 
 	// Replaying the same scenario reproduces the log byte for byte.
-	_, again := runSetupScenario(t, setupCountersScenario)
+	_, again := runFixtureScenario(t, setupCountersScenario)
 	if run.e.L.Head() != again.e.L.Head() {
 		t.Fatalf("log head differs between runs: %s vs %s", run.e.L.Head(), again.e.L.Head())
 	}
 }
 
 func TestOracleSetupSpeed(t *testing.T) {
-	_, run := runSetupScenario(t, setupCountersScenario)
+	_, run := runFixtureScenario(t, setupCountersScenario)
 	if got := run.e.G.Players[0].Speed; got != 3 {
 		t.Fatalf("seat 0 speed = %d, want 3", got)
 	}

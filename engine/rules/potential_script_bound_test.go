@@ -43,19 +43,6 @@ func boundBoard(t *testing.T, board, hand []string) *Engine {
 	return e
 }
 
-// boundBattlefieldID returns the id of the named permanent on seat 0's
-// battlefield.
-func boundBattlefieldID(t *testing.T, e *Engine, name string) state.ObjID {
-	t.Helper()
-	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
-		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
-			return id
-		}
-	}
-	t.Fatalf("%s is not on seat 0's battlefield", name)
-	return 0
-}
-
 // boundHandID returns the id of the named card in seat 0's hand.
 func boundHandID(t *testing.T, e *Engine, name string) state.ObjID {
 	t.Helper()
@@ -161,8 +148,8 @@ func TestPrefixSearchBoundSkipsAnUnpayableTapXPlay(t *testing.T) {
 		[]string{"Supportive Parents", "Grizzly Bears", "Interdimensional Web Watch", "Island"},
 		[]string{"Robotics Mastery"})
 	robotics := boundHandID(t, e, "Robotics Mastery")
-	parents := boundBattlefieldID(t, e, "Supportive Parents")
-	boundBattlefieldID(t, e, "Interdimensional Web Watch")
+	parents := findBattlefieldCard(t, e, "Supportive Parents")
+	findBattlefieldCard(t, e, "Interdimensional Web Watch")
 
 	hyp := e.PotentialMana(0)
 	census := e.paymentPlanCensusOf(0, &hyp)
@@ -232,7 +219,7 @@ func TestPrefixSearchBoundKeepsAPayableTapXPlay(t *testing.T) {
 		[]string{"Supportive Parents", "Grizzly Bears", "Grizzly Bears", "Grizzly Bears", "Island", "Island", "Island"},
 		[]string{"Robotics Mastery"})
 	robotics := boundHandID(t, e, "Robotics Mastery")
-	parents := boundBattlefieldID(t, e, "Supportive Parents")
+	parents := findBattlefieldCard(t, e, "Supportive Parents")
 
 	hyp := e.PotentialMana(0)
 	census := e.paymentPlanCensusOf(0, &hyp)

@@ -69,14 +69,14 @@ func TestRaphaelsTechniqueOptionalEmptyHandDrawsSeven(t *testing.T) {
 			if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "discard_hand" || d.Player != 0 || len(d.Options) != 2 {
 				t.Fatalf("precondition: Raphael's Technique did not offer seat 0 the yes/no hand-discard choice: %+v", d)
 			}
-			if got := optionOfKind(t, d, tc.vote); got < 0 {
+			if got := optionKindIndex(t, d, tc.vote); got < 0 {
 				t.Fatalf("choice %q not offered", tc.vote)
 			}
-			d = answerAsk(t, e, optionOfKind(t, d, tc.vote))
+			d = answerAsk(t, e, optionKindIndex(t, d, tc.vote))
 			if d == nil || d.Player != 1 || d.ResumeKind != "discard_hand" {
 				t.Fatalf("second player did not receive their own hand-discard election: %+v", d)
 			}
-			d = answerAsk(t, e, optionOfKind(t, d, "no"))
+			d = answerAsk(t, e, optionKindIndex(t, d, "no"))
 			if d != nil {
 				t.Fatalf("resolution still pending after the second player's decline: %+v", d)
 			}

@@ -9,7 +9,7 @@ import (
 )
 
 // TestCollectEvidenceWindowChannel pins the Engine half of the
-// ConditionDefined$ Collected group's channel (task condition-collected):
+// ConditionDefined$ Collected group's channel:
 // after a real CollectEvidence<X> payment, Engine.CostMovesInWindow with
 // events.CostMoveEvidence must return the exiled evidence card, and the
 // Discarded/Returned kinds must NOT (the kind selects the cost marker, not a
@@ -17,7 +17,7 @@ import (
 // evidence is owed on the target union, so the artifact target sizes X.
 func TestCollectEvidenceWindowChannel(t *testing.T) {
 	t.Parallel()
-	necropsySrc := alltargetedCorpusText(t, "u/urgent_necropsy.txt")
+	necropsySrc := corpusCardText(t, "u/urgent_necropsy.txt")
 	artifactSrc := "Name:Gold Myr\nManaCost:2\nTypes:Artifact Creature Myr\nPT:1/1\nOracle:x\n"
 	grave3Src := "Name:Big Bones\nManaCost:3\nTypes:Artifact\nOracle:x\n"
 	grave2Src := "Name:Small Bones\nManaCost:2\nTypes:Artifact\nOracle:x\n"

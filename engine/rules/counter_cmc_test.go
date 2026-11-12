@@ -1,4 +1,4 @@
-// RememberCounteredCMC$ (task counter-cmc): a Counter that carries the rider
+// RememberCounteredCMC$: a Counter that carries the rider
 // remembers the countered spell's mana VALUE, and the chained SubAbility$
 // reads it back through SVar:X:Count$RememberedNumber -- Electrosiphon's
 // "Counter target spell. You get an amount of {E} (energy counters) equal to
@@ -75,7 +75,7 @@ func TestElectrosiphonEnergyEqualsManaValue(t *testing.T) {
 		{"cmc 2", "Name:Small Beast\nManaCost:G G\nTypes:Creature Beast\nPT:2/2\nOracle:x\n", 2, 2},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			siphon := tokenReplCorpusCard(t, "Electrosiphon")
+			siphon := corpusAlternativeCard(t, "Electrosiphon")
 			if got := siphon.Faces[0].Cmc(); got != 3 {
 				t.Fatalf("precondition: Electrosiphon's own mana value is %d, want 3 (U U R)", got)
 			}

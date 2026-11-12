@@ -11,7 +11,7 @@ import (
 // must use the same pre-entry replacement staging as other entry counters.
 func TestImpendingEntryTimeCountersApplyDoublingSeason(t *testing.T) {
 	t.Parallel()
-	season := tokenReplCorpusCard(t, "Doubling Season")
+	season := corpusAlternativeCard(t, "Doubling Season")
 	creature := card(t, impendingGolemSrc)
 	e, cfg := tokenReplGame(t, 9876, season, creature)
 	seasonID := moveSeededCard(t, e, 0, season, state.ZBattlefield)

@@ -70,7 +70,7 @@ func ectCloneAgrees(t *testing.T, e *Engine) {
 func TestEffectBlocksTriggerBattleCry(t *testing.T) {
 	t.Parallel()
 	e := blocksCombatEngine(t, 1)
-	ectCast(t, e, unblockedCorpusCard(t, "b/battle_cry.txt"), 0, "Battlecry")
+	ectCast(t, e, corpusCardAtPath(t, "b/battle_cry.txt"), 0, "Battlecry")
 	ectNoUnimplemented(t, e)
 	if n := ectEffectRegs(e, "Blocks"); n != 1 {
 		t.Fatalf("Blocks |EF registrations = %d, want 1", n)
@@ -99,7 +99,7 @@ func TestEffectBlocksTriggerBattleCry(t *testing.T) {
 func TestEffectBlockTriggerExpires(t *testing.T) {
 	t.Parallel()
 	e := blocksCombatEngine(t, 1)
-	ectCast(t, e, unblockedCorpusCard(t, "b/battle_cry.txt"), 0, "Battlecry")
+	ectCast(t, e, corpusCardAtPath(t, "b/battle_cry.txt"), 0, "Battlecry")
 	if n := ectEffectRegs(e, "Blocks"); n != 1 {
 		t.Fatalf("Blocks |EF registrations = %d, want 1", n)
 	}
@@ -120,7 +120,7 @@ func TestEffectBlockTriggerExpires(t *testing.T) {
 func TestEffectAttackerUnblockedGazeOfPain(t *testing.T) {
 	t.Parallel()
 	e := blocksCombatEngine(t, 0)
-	ectCast(t, e, unblockedCorpusCard(t, "g/gaze_of_pain.txt"), 0, "")
+	ectCast(t, e, corpusCardAtPath(t, "g/gaze_of_pain.txt"), 0, "")
 	ectNoUnimplemented(t, e)
 	if n := ectEffectRegs(e, "AttackerUnblocked"); n != 1 {
 		t.Fatalf("AttackerUnblocked |EF registrations = %d, want 1", n)
@@ -172,7 +172,7 @@ func TestEffectAttackerUnblockedGazeOfPain(t *testing.T) {
 func TestEffectAttackerBlockedRememberedOnly(t *testing.T) {
 	t.Parallel()
 	e := blocksCombatEngine(t, 0)
-	c := unblockedCorpusCard(t, "b/barreling_attack.txt")
+	c := corpusCardAtPath(t, "b/barreling_attack.txt")
 	a1 := onBoardReady(t, e, 0, ectBear)
 	a2 := onBoardReady(t, e, 0, "Name:Runeclaw Bear Two\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	b1 := onBoard(t, e, 1, "Name:Memnite\nManaCost:0\nTypes:Artifact Creature Construct\nPT:1/1\nOracle:x\n")

@@ -201,33 +201,13 @@ func kopusSetup(t *testing.T) (*cards.Registry, cardset.Set) {
 	return reg, set
 }
 
-func kopusDecksOf(t *testing.T, reg *cards.Registry, md [2][]cardset.Entry) [2][]*cards.Card {
-	t.Helper()
-	var decks [2][]*cards.Card
-	for s, d := range md {
-		for _, e := range d {
-			c, ok := reg.Lookup(e.Name)
-			if !ok {
-				t.Fatalf("%s not in the corpus", e.Name)
-			}
-			for i := 0; i < e.Count; i++ {
-				decks[s] = append(decks[s], c)
-			}
-		}
-		if len(decks[s]) != 40 {
-			t.Fatalf("deck %d: %d cards", s, len(decks[s]))
-		}
-	}
-	return decks
-}
-
 // kopusRun plays seeds 1..seeds of every matchup; it returns the games
 // played, whether any diverged (the first divergence is logged) and the
 // stalls.
 func kopusRun(t *testing.T, reg *cards.Registry, set cardset.Set, seeds uint64, n map[string]int, stopOnDiv bool) (games int, div bool, stalls int) {
 	t.Helper()
 	for mi, md := range kopusDecks {
-		decks := kopusDecksOf(t, reg, md)
+		decks := kcastDeck(t, reg, md)
 		tbl, _, _, err := set.Matchup(md[0], md[1])
 		if err != nil {
 			t.Fatal(err)

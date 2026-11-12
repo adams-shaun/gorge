@@ -44,7 +44,7 @@ func tormentActive(t *testing.T, e *Engine, torment state.ObjID) {
 func TestEverlastingTormentWitherDamage(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	torment := onBoardCard(t, e, 0, witherCorpusCard(t, "e/everlasting_torment.txt"))
+	torment := onBoardCard(t, e, 0, corpusCardAtPath(t, "e/everlasting_torment.txt"))
 	source := onBoard(t, e, 0, "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n")
 	target := onBoard(t, e, 1, "Name:Target\nTypes:Creature\nPT:4/4\nOracle:x\n")
 	if e.HasKeyword(source, "Wither") || e.HasKeyword(source, "Infect") {
@@ -96,7 +96,7 @@ func TestEverlastingTormentWitherDamage(t *testing.T) {
 func TestEverlastingTormentCombatDamage(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	torment := onBoardCard(t, e, 0, witherCorpusCard(t, "e/everlasting_torment.txt"))
+	torment := onBoardCard(t, e, 0, corpusCardAtPath(t, "e/everlasting_torment.txt"))
 	atk := onBoard(t, e, 0, "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n")
 	blk := onBoard(t, e, 1, "Name:Blocker\nTypes:Creature\nPT:4/4\nOracle:x\n")
 	e.G.Obj(atk).SummonSick = false

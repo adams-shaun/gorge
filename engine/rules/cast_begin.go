@@ -598,7 +598,12 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		// spell's own additional cost (Eviscerator's Insight's sacrifice,
 		// Electric Revelation's discard) is still paid. The offer gate
 		// (legal.go's flashback walk) folds the same extras.
-		opt.Mode == "flashback" || opt.Mode == beamMeUpMode ||
+		opt.Mode == "flashback" || opt.Mode == "escape" || opt.Mode == beamMeUpMode ||
+		// CR 702.138a, 118.9d: escape is an alternative cost, so the spell's
+		// own additional cost (Village Rites' sacrifice, Thrill of
+		// Possibility's discard) is still paid on top of the escape cost.
+		// The offer gate (legal_walk_alt.go's escape walk) folds the same
+		// extras, so an unpayable additional cost is never offered.
 		// CR 701.34d, 118.9: the plotted free cast waives only the mana
 		// cost; the spell's own additional cost (Corrupted Conviction's
 		// sacrifice) is still paid. The offer (legal_walk_alt.go) folds the

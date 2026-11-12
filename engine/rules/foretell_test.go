@@ -49,14 +49,6 @@ func optionByLabel(opts []decision.Option, label string) int {
 	return -1
 }
 
-func graveCreature(t *testing.T, e *Engine, p state.PlayerID, src string) state.ObjID {
-	t.Helper()
-	o := e.G.AddObject(card(t, src), p)
-	o.Zone = state.ZGraveyard
-	e.G.SetZone(state.ZGraveyard, p, append(e.G.Zone(state.ZGraveyard, p), o.ID))
-	return o.ID
-}
-
 // foretellIt foretells the hand card (paying {2} from the pool) and returns
 // the exiled object.
 func foretellIt(t *testing.T, e *Engine, id state.ObjID) *state.Object {

@@ -1,14 +1,14 @@
 # the emit-fixes pool: Warden of the Inner Sky, End the
 # Festivities, Repurposing Bay, Sneaky Snacker and Tear Asunder beside
 # an artifact mana-value ladder, cantrips and basics, for the oracle's
-# constructed lockstep (dirac/oracle/emitfix_test.go)
+# constructed lockstep (dirac/oracle/emit_shapes_lockstep_test.go)
 # The emit-fixes pool: kgen emission shapes for Warden of the
 # Inner Sky (Count$CardCounters.ALL), End the Festivities (DamageAll over the
 # opponent and their creatures and planeswalkers), Repurposing Bay (mana
 # value equal to a value), Sneaky Snacker (a third-draw Drawn trigger from
 # the graveyard) and Tear Asunder (kicked target ranges), with artifacts on
 # a mana-value ladder, cantrips, a planeswalker, an enchantment and basics,
-# for the oracle's constructed lockstep (dirac/oracle/emitfix_test.go).
+# for the oracle's constructed lockstep (dirac/oracle/emit_shapes_lockstep_test.go).
 Warden of the Inner Sky
 End the Festivities
 Repurposing Bay

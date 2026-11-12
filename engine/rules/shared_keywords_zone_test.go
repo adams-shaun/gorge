@@ -63,8 +63,8 @@ func sharedKeywordSet(e *Engine, id state.ObjID) map[string]bool {
 
 func TestEaterOfVirtueGrantsNothingWithEmptyExile(t *testing.T) {
 	t.Parallel()
-	eater := tokenReplCorpusCard(t, "Eater of Virtue")
-	bears := tokenReplCorpusCard(t, "Grizzly Bears")
+	eater := corpusAlternativeCard(t, "Eater of Virtue")
+	bears := corpusAlternativeCard(t, "Grizzly Bears")
 	e, cfg := sharedKeywordBoard(t, 5, eater, bears)
 	eaterID := moveByName(t, e, 0, "Eater of Virtue", state.ZBattlefield)
 	bearsID := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
@@ -92,8 +92,8 @@ func TestEaterOfVirtueGrantsNothingWithEmptyExile(t *testing.T) {
 
 func TestEaterOfVirtueSharesExiledCardsKeywords(t *testing.T) {
 	t.Parallel()
-	eater := tokenReplCorpusCard(t, "Eater of Virtue")
-	bears := tokenReplCorpusCard(t, "Grizzly Bears")
+	eater := corpusAlternativeCard(t, "Eater of Virtue")
+	bears := corpusAlternativeCard(t, "Grizzly Bears")
 	flyer := card(t, sharedZoneFlyerSrc)
 	fresh := card(t, sharedZonePlainSrc)
 	e, cfg := sharedKeywordBoard(t, 6, eater, bears, flyer, fresh)
@@ -137,7 +137,7 @@ func TestEaterOfVirtueSharesExiledCardsKeywords(t *testing.T) {
 
 func TestCairnWandererSharesGraveyardKeywords(t *testing.T) {
 	t.Parallel()
-	cairn := tokenReplCorpusCard(t, "Cairn Wanderer")
+	cairn := corpusAlternativeCard(t, "Cairn Wanderer")
 	flyer := card(t, sharedZoneFlyerSrc)
 	e, cfg := sharedKeywordBoard(t, 7, cairn, flyer)
 	cairnID := moveByName(t, e, 0, "Cairn Wanderer", state.ZBattlefield)

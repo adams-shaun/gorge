@@ -295,7 +295,7 @@ func TestConspireGrantedOfferPayAndCopy(t *testing.T) {
 	if life := e.G.Players[1].Life; life != 14 {
 		t.Fatalf("opponent life %d, want 14 (3 damage twice: the granted cast's copy resolved)", life)
 	}
-	if n := countStackCopies(e, bolt); n != 1 {
+	if n := copyCount(e, bolt); n != 1 {
 		t.Fatalf("granted conspired cast produced %d StackCopy events, want exactly 1", n)
 	}
 	if !e.G.Obj(bf[0]).Tapped || !e.G.Obj(bf[1]).Tapped {
@@ -305,19 +305,6 @@ func TestConspireGrantedOfferPayAndCopy(t *testing.T) {
 		t.Fatal("the granted conspired cast carries no flag")
 	}
 	replayCheck(t, e, cfg)
-}
-
-// countStackCopies counts the StackCopy events naming id -- the copies a
-// copy trigger minted of that spell (events.Apply's StackCopy case rejects
-// anything off the stack, so ev.Obj is the ORIGINAL being copied).
-func countStackCopies(e *Engine, id state.ObjID) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.StackCopy && ev.Obj == id {
-			n++
-		}
-	}
-	return n
 }
 
 // TestConspireGrantedPrintedFaceNotDoubled: a face that PRINTS K:Conspire
@@ -346,7 +333,7 @@ func TestConspireGrantedPrintedFaceNotDoubled(t *testing.T) {
 	if life := e.G.Players[1].Life; life != 14 {
 		t.Fatalf("opponent life %d, want 14 (3 damage twice: one copy, not two)", life)
 	}
-	if n := countStackCopies(e, hero); n != 1 {
+	if n := copyCount(e, hero); n != 1 {
 		t.Fatalf("printed face under a live grant produced %d StackCopy events, want exactly 1", n)
 	}
 	replayCheck(t, e, cfg)
@@ -374,7 +361,7 @@ func TestConspireGrantedPlainCastCopiesNothing(t *testing.T) {
 	if life := e.G.Players[1].Life; life != 17 {
 		t.Fatalf("opponent life %d, want 17 (3 damage once: a plain cast copies nothing)", life)
 	}
-	if n := countStackCopies(e, bolt); n != 0 {
+	if n := copyCount(e, bolt); n != 0 {
 		t.Fatalf("a granted plain cast produced %d StackCopy events, want 0", n)
 	}
 	if logHasFlag(e, bolt, "conspired") {
@@ -407,7 +394,7 @@ func TestConspireNoGrantSilent(t *testing.T) {
 	if life := e.G.Players[1].Life; life != 17 {
 		t.Fatalf("opponent life %d, want 17 (no grant, no copy)", life)
 	}
-	if n := countStackCopies(e, bolt); n != 0 {
+	if n := copyCount(e, bolt); n != 0 {
 		t.Fatalf("a cast with no grant produced %d StackCopy events, want 0", n)
 	}
 	replayCheck(t, e, cfg)

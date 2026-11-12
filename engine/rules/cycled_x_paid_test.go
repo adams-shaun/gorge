@@ -65,7 +65,7 @@ func TestCycledXPaidFeedsTheCycledTriggerTarget(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			elite := mshCorpusCard(t, "Webstrike Elite")
+			elite := corpusAlternativeCard(t, "Webstrike Elite")
 			e := handEngine(t, elite)
 			relicOne := onBoard(t, e, 0, "Name:Relic One\nManaCost:1\nTypes:Artifact\nOracle:x\n")
 			relicThree := onBoard(t, e, 0, "Name:Relic Three\nManaCost:3\nTypes:Artifact\nOracle:x\n")

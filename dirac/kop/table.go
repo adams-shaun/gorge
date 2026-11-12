@@ -306,6 +306,15 @@ type CardDef struct {
 	Face      uint8
 	FaceMode  uint8
 	RoomSplit uint8
+	// FuseDef is, on a split card printed with fuse (CR 702.102a), the
+	// fused split spell's def + 1 (0: none): the card cast from the hand as
+	// both halves at once (gorge's "fuse" cast). That def is FusedSpell: its
+	// record the halves combined (CR 702.102b-c, 709.4d) and its one spell
+	// ability the left half's program then the right half's (CR 702.102d);
+	// it shows the front (Face 0, Faces the card's) and exists only on the
+	// stack, the card its front again as it leaves (dirac/face_fuse.go).
+	FuseDef    CardID
+	FusedSpell bool
 	// Wither is printed wither (CR 702.80): its damage to a creature is
 	// dealt as -1/-1 counters (infect's creature half).
 	Wither bool
@@ -401,10 +410,25 @@ type CardDef struct {
 	// the card was discarded this turn (dirac/kw_mayhem.go). Never
 	// set with Flashback or Harmonize (kgen refuses them).
 	Mayhem bool
+	// Aftermath marks the right half of a split card printed with aftermath
+	// (CR 702.127a): this face is cast only from its owner's graveyard, for
+	// its own mana cost (gorge's "aftermath" cast), never from the hand, and
+	// the spell is exiled whenever it leaves the stack (dirac/face_aftermath.go).
+	Aftermath bool
 	// BeamMeUp is printed beam me up: a graveyard cast for AltCost that also
 	// returns a creature you control to its owner's hand (FbCost), then exiles
 	// the spell (dirac/kw_beammeup.go).
 	BeamMeUp bool
+	// Retrace is printed K:Retrace (CR 702.81a; false = none): a graveyard
+	// cast paying the PRINTED cost (never a substitution) plus the additional
+	// RetraceCost, a discard of one land card (CostDiscardFiltered); the
+	// spell rests in its owner's graveyard on resolution (no sfFlashback
+	// exile; beginCast marks the mode-2 retrace cast's entry trigPlRetrace,
+	// and a copy never carries the mark, CR 707.10). Never set with
+	// Flashback, Harmonize, Mayhem, BeamMeUp, Convoke, Improvise, Delve or a
+	// spell additional cost (kgen refuses them; no corpus card carries one).
+	Retrace     bool
+	RetraceCost Cost
 	// MorphCost is the turn-face-up cost of a printed Morph, Megamorph or
 	// Disguise keyword (CR 702.37e, 702.168c, 702.169b; zero with
 	// MorphFamily 0). MorphFamily says which (CardDef.Face*Family).
@@ -473,6 +497,25 @@ type CardDef struct {
 	HasDash bool
 	// DashCost is the printed dash cost (HasDash).
 	DashCost ManaCost
+	// HasForetell is printed foretell (CR 702.143a; no KwMask bit is free):
+	// during its owner's turn the hand offers the {2} special action that
+	// exiles the card face down, and on a later turn the exile offers the
+	// cast for ForetellCost (dirac/kw_foretell.go).
+	HasForetell bool
+	// ForetellCost is the printed foretell cost (HasForetell): what the
+	// later cast pays, never the {2} action's price.
+	ForetellCost ManaCost
+	// HasOverload is printed overload (CR 702.96a; no KwMask bit is free):
+	// the hand offers the overloaded cast at OverloadCost, and the resolving
+	// spell runs OverloadProg, the "each" variant of its printed program
+	// (dirac/kw_overload.go).
+	HasOverload bool
+	// OverloadCost is the printed overload cost (HasOverload).
+	OverloadCost ManaCost
+	// OverloadProg is the overloaded cast's program (CR 702.96a): the
+	// printed spell's targeted instructions rewritten to their each-sweeps.
+	// Nil when the card cannot be modelled in bounded code.
+	OverloadProg []Instr
 	// HasBestow is printed bestow (CR 702.103; no KwMask bit is free): the
 	// hand offers the bestowed cast (AkBestow) at BestowCost; the spell is
 	// an Aura with enchant creature (BestowTgt) and the permanent an Aura,
@@ -602,9 +645,12 @@ const (
 	// "adventure_alt"); it resolves into exile, from where the front is
 	// cast (gorge's "adventure_recast"), dirac/face_castface.go.
 	FaceAdventure
-	// FaceSplit is a split card (CR 709), no Room and no Fuse: face 1 is
-	// the right half, cast on its own from the hand (gorge's "split_alt");
-	// off the stack the mana value is the sum of the halves (CR 709.4b).
+	// FaceSplit is a split card (CR 709), no Room: face 1 is the right
+	// half, cast on its own from the hand (gorge's "split_alt"), or from the
+	// graveyard only when it carries aftermath (CardDef.Aftermath, gorge's
+	// "aftermath"); a card printed with fuse is cast as both halves too
+	// (CardDef.FuseDef, gorge's "fuse"); off the stack the mana value is the
+	// sum of the halves (CR 709.4b).
 	FaceSplit
 	// FaceTransform is a transforming double-faced card or token (gorge's
 	// "DoubleFaced", CR 712): a SetState Mode$ Transform flips it to its

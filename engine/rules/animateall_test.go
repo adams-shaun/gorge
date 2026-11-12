@@ -1,6 +1,6 @@
 package rules
 
-// AnimateAll (task api-animateall): the rules-level end-to-end pins. The
+// AnimateAll: the rules-level end-to-end pins. The
 // unit-level registrations live in engine/effects/animateall_test.go; these prove
 // the computed result through the real layer walk on REAL corpus cards
 // (Mirror Entity, Vedalken Humiliator), with the other participants freely
@@ -18,18 +18,6 @@ import (
 )
 
 const vanillaBearSrc = "Name:Vanilla Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
-
-// animateAllNotes returns the Note texts the log carries naming an unimplemented
-// AnimateAll parameter.
-func animateAllNotes(e *Engine) []string {
-	var out []string
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note {
-			out = append(out, ev.Text)
-		}
-	}
-	return out
-}
 
 // TestMirrorEntityAnimateAllGrantsBasePTAndAllCreatureTypes drives the REAL
 // corpus Mirror Entity's {X} activation end to end: X = 2 announced, the
@@ -140,13 +128,13 @@ func TestVedalkenHumiliatorAnimateAllResolution(t *testing.T) {
 		t.Fatalf("opponent's bears = %d/%d, want base 1/1", dBear.Power, dBear.Toughness)
 	}
 	var named bool
-	for _, txt := range animateAllNotes(e) {
+	for _, txt := range effectNoteTexts(e) {
 		if strings.Contains(txt, "RemoveAllAbilities$") {
 			named = true
 		}
 	}
 	if named {
-		t.Fatalf("RemoveAllAbilities$ is read; no unread note may name it: %v", animateAllNotes(e))
+		t.Fatalf("RemoveAllAbilities$ is read; no unread note may name it: %v", effectNoteTexts(e))
 	}
 }
 

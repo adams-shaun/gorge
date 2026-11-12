@@ -84,7 +84,7 @@ func TestGiftPermanentQueuesRespondableEntryTriggers(t *testing.T) {
 				if d.Kind != decision.KTarget {
 					t.Fatalf("aura cast target ask = %+v, want KTarget", d)
 				}
-				ti := targetOptionIndex(d, bear)
+				ti := indexOfObjOption(d, bear)
 				if ti < 0 {
 					t.Fatalf("aura target ask does not offer the bear: %+v", d.Options)
 				}
@@ -243,7 +243,7 @@ func answerPriorityOrTarget(t *testing.T, e *Engine, wants ...state.ObjID) error
 			if w == 0 {
 				continue
 			}
-			if i := targetOptionIndex(d, w); i >= 0 {
+			if i := indexOfObjOption(d, w); i >= 0 {
 				return e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{i}})
 			}
 		}
@@ -304,7 +304,7 @@ func TestGiftPermanentPromiseDeliversAfterSourceLeavesTheBattlefield(t *testing.
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("aura cast target ask = %+v, want KTarget", d)
 	}
-	ti := targetOptionIndex(d, bear)
+	ti := indexOfObjOption(d, bear)
 	if ti < 0 {
 		t.Fatalf("aura target ask does not offer the bear: %+v", d.Options)
 	}
@@ -341,7 +341,7 @@ func TestGiftPermanentPromiseDeliversAfterSourceLeavesTheBattlefield(t *testing.
 		default:
 			// Demystify's enchantment target (Kitnap) when offered; anything
 			// else through the shared answerer.
-			if i := targetOptionIndex(d, kitID); i >= 0 {
+			if i := indexOfObjOption(d, kitID); i >= 0 {
 				submitChoices(t, e, i)
 				continue
 			}
@@ -403,7 +403,7 @@ func TestGiftPermanentPromiseGoesToTheChosenSeatAtThreeSeats(t *testing.T) {
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("aura cast target ask = %+v, want KTarget", d)
 	}
-	ti := targetOptionIndex(d, bear)
+	ti := indexOfObjOption(d, bear)
 	if ti < 0 {
 		t.Fatalf("aura target ask does not offer the bear: %+v", d.Options)
 	}

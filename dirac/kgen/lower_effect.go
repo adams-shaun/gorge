@@ -156,13 +156,19 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// of a Phase trigger, the drawer, the player who gained/lost life, the caster)
 		if tr := lc.ab.Trigger; tr != nil {
 			switch tr.Event {
-			case "Phase", "Drawn", "LifeGained", "LifeLost", "SpellCast", "FacesDilemma":
+			case "Phase", "Drawn", "LifeGained", "LifeLost", "SpellCast", "FacesDilemma", "BecomeMonarch":
 				// SpellCast: gorge trigger_referents.go:244-258 sets
-				// TriggerPlayer to the caster, the TriggeredActivator below
+				// TriggerPlayer to the caster, the TriggeredActivator below;
+				// BecomeMonarch: the new monarch (gorge's MonarchChange
+				// Player, lower_monarch.go)
 				return lRef{Kind: rTriggeredPlayer}, nil
 			}
 		}
-		return lRef{}, refuse("Defined$ %q outside a Phase/Drawn/LifeGained/LifeLost/SpellCast/FacesDilemma trigger", v)
+		return lRef{}, refuse("Defined$ %q outside a Phase/Drawn/LifeGained/LifeLost/SpellCast/FacesDilemma/BecomeMonarch trigger", v)
+	case "TriggeredAttackingPlayer":
+		return lc.triggeredAttackingPlayerDefined(v)
+	case "TriggeredAttackedTarget":
+		return lc.triggeredAttackedTargetDefined(v)
 	case "TriggeredTarget", "TriggeredTargetLKICopy":
 		// gorge definedSpecTriggeredTarget of a damage trigger: the damaged
 		// object or player. A per-referent DamageDone line whose ValidTarget$
@@ -209,17 +215,6 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			return lRef{Kind: rEachOpp}, nil
 		}
 		return lRef{}, refuse("Defined$ %q outside an opponent-source BecomesTarget watcher", v)
-	case "TriggeredAttackingPlayer":
-		// gorge trigger_referents.go: the controller of the in-flight
-		// combat source when it is attacking. A per-referent DamageDone
-		// line with CombatDamage$ True and ValidTarget$ You is combat
-		// damage to this listener's controller, so with two players the
-		// source is an attacker the one opponent controls.
-		if tr := lc.ab.Trigger; ddoAttackingPlayer(tr) {
-			lc.twoSeat("TriggeredAttackingPlayer read as the one opponent")
-			return lRef{Kind: rEachOpp}, nil
-		}
-		return lRef{}, refuse("Defined$ %q outside a combat damage-to-you trigger the kernel's attacking player names", v)
 	case "TriggeredCardController", "TriggeredActivator":
 		return lRef{Kind: rTriggeredPlayer}, nil
 	case "Equipped", "Enchanted", "AttachedTo":
@@ -331,6 +326,39 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		return lRef{Kind: rSrcOwner}, nil // gorge definedSpecCardOwner
 	}
 	return lRef{}, refuse("Defined$ %q", v)
+}
+
+// triggeredAttackingPlayerDefined is Defined$ TriggeredAttackingPlayer:
+// gorge binds AttackingPlayer on a DeclareAttackers event to the declaring
+// player, who is the game's active player (CR 508.1: only the active player
+// declares attackers) -- the kernel's queue-time trigger player at every seat
+// count (fireAtkDecl's who, fireDefPlayer's, combat.go stampDefSeat). The
+// combat-damage arm keeps its two-seat reading (the combat source's
+// controller is the one opponent).
+func (lc *lowerCtx) triggeredAttackingPlayerDefined(v string) (lRef, error) {
+	if tr := lc.ab.Trigger; tr != nil && tr.Event == "AttackersDeclared" {
+		return lRef{Kind: rTriggeredPlayer}, nil
+	}
+	if tr := lc.ab.Trigger; ddoAttackingPlayer(tr) {
+		lc.twoSeat("TriggeredAttackingPlayer read as the one opponent")
+		return lRef{Kind: rEachOpp}, nil
+	}
+	return lRef{}, refuse("Defined$ %q outside a combat damage-to-you trigger the kernel's attacking player names or an AttackersDeclared trigger", v)
+}
+
+// triggeredAttackedTargetDefined is Defined$ TriggeredAttackedTarget: gorge
+// binds AttackedTarget on a DeclareAttackers event to the event's defender.
+// The kernel names the seat RefDefendingPlayer: the queue-time defending seat
+// (combat.go stampDefSeat, every seat count past two) and the one opponent at
+// two (resolve.go oneOppOf: the active player is the only possible attacker,
+// CR 508.1). A per-defender line only (Trigger.DefPlayer set): a batch line
+// queues once for the whole declaration, whose stamp names only the first
+// defender group.
+func (lc *lowerCtx) triggeredAttackedTargetDefined(v string) (lRef, error) {
+	if tr := lc.ab.Trigger; tr != nil && tr.Event == "AttackersDeclared" && tr.DefPlayer != 0 {
+		return lRef{Kind: rDefending}, nil
+	}
+	return lRef{}, refuse("Defined$ %q outside a per-defender AttackersDeclared trigger", v)
 }
 
 // damagedPlayerIsTriggerPlayer reports whether the ability is a DamageDone
@@ -1143,6 +1171,10 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		n++
 		in.CS, in.A = "PayEnergy", cst(c.Energy)
 	}
+	if c.EnergyBy != nil {
+		n++
+		in.CS, in.A = "PayEnergy", *c.EnergyBy
+	}
 	if c.Return != nil {
 		// one pick: gorge settles all N at once, the kernel one per answer
 		if c.ReturnN != 1 {
@@ -1621,6 +1653,9 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		}
 		lc.emit(lInstr{Op: sa.API, Obj: who, A: n})
 	case "Pump":
+		if ps.str("RememberObjects") == "Imprinted" {
+			return lc.pumpRememberImprinted(ps) // lower_storesvar.go
+		}
 		if _, ok := ps.m["TargetType"]; ok {
 			return lc.pumpSpellTarget(ps) // lower_stackexile.go
 		}
@@ -1744,6 +1779,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.goad(ps) // lower_goad.go
 	case "TakeInitiative":
 		return lc.takeInitiative(ps) // lower_initiative.go
+	case "BecomeMonarch":
+		return lc.becomeMonarch(ps) // lower_monarch.go
 	case "Counter":
 		if _, ok := ps.get("TargetType"); !ok {
 			if d, ok := ps.get("Defined"); ok {
@@ -2013,6 +2050,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.phases(ps) // lower_phasing.go
 	case "CopyPermanent":
 		return lc.copyPermanent(ps)
+	case "Encore":
+		return lc.encore(ps) // lower_encore.go
 	case "GainControl":
 		return lc.gainControl(ps)
 	case "ExchangeControl":
@@ -2046,8 +2085,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			ps.consume("ClearImprinted") // Ensign Pavel Chekov: the chosen set is the imprint (lower_repeatexilechoice.go)
 			lc.exileLandStage = 0
 		}
-		if lc.digImprintSetLive() && ps.is("ClearImprinted", "True") {
-			ps.consume("ClearImprinted") // the Dig's imprinted set (lower_digimprintset.go)
+		if (lc.digImprintSetLive() || lc.repeatImprintBody) && ps.is("ClearImprinted", "True") {
+			ps.consume("ClearImprinted") // the Dig's imprinted set (lower_digimprintset.go); or a RepeatDefined$ Imprinted body's per-pass clear before its Dig
 			lc.emit(lInstr{Op: "ClearImprinted"})
 		}
 		if lc.digImprinted && ps.is("ClearImprinted", "True") {
@@ -2150,6 +2189,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		lc.emit(in)
 	case "Repeat":
 		return lc.repeat(ps)
+	case "StoreSVar":
+		return lc.storeSVar(ps)
 	case "CopySpellAbility":
 		return lc.copySpell(ps)
 	case "Demonstrate":
@@ -2160,6 +2201,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.protectionAllChosen(ps) // lower_choosecolorres.go
 	case "ChooseType":
 		return lc.chooseType(ps)
+	case "ChooseNumber":
+		return lc.chooseNumberEffect(ps) // lower_choosenumber.go
 	case "Scry":
 		return lc.scry(ps)
 	case "PutCounterAll":
@@ -2293,6 +2336,9 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 	case "Shuffle":
 		// gorge effShuffle: the controller, or the one Defined$ / target
 		// player (several players and object owners refuse)
+		if ps.is("Defined", "RememberedOwner") {
+			return lc.shuffleRememberedOwners(ps) // lower_shuffleremowners.go
+		}
 		who, err := lc.objOrTarget(ps, "You", zNone)
 		if err != nil {
 			return err
@@ -2393,6 +2439,10 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.unlockDoor(ps) // lower_unlockdoor.go
 	case "CumulativeUpkeep":
 		return lc.cumulativeUpkeep(ps) // lower_cumulative.go
+	case "Myriad":
+		return lc.myriad(sa) // lower_myriad.go
+	case "Echo":
+		return lc.echoUpkeep(ps) // lower_echo.go
 	default:
 		return refuseAPI(sa.API) // lower_refuseapi.go
 	}
@@ -2882,6 +2932,140 @@ func (lc *lowerCtx) pumpObjectRef(obj lRef) bool {
 	return false
 }
 
+// pumpPlayerRef reports whether a Pump's subject is the resolving
+// controller: the one player seat a player grant can name exactly, because
+// the kernel's grant emblem is created for that seat (OpCreateEmblem Obj
+// rYou) and gorge registers the same grant as a Player.You static
+// (registerPlayerPumpGrant). A target player slot or another player
+// selector cannot own the emblem -- the player grammar has no absolute seat
+// spelling -- so it refuses by name (Eon Frolicker, Noble Heritage).
+func (lc *lowerCtx) pumpPlayerRef(obj lRef) bool {
+	return obj.Kind == rYou
+}
+
+// pumpPlayerGrant lowers a player-scoped Pump keyword grant (The One Ring,
+// The Stasis Coffin, Teferi's Protection's "you gain protection from
+// everything") as a runtime emblem of the resolving controller, the same
+// instruction a Duration$ UntilYourNextTurn Effect static lowers to
+// (lower_effectemblem.go): the UntilNextTurn emblem ends at the cleanup
+// before the controller's next turn, gorge's UntilTurn = next - 1 boundary,
+// and static_plprot.go's plProtAll damage and targeting readers judge the
+// emblem's statics. Any other duration, a P/T part, a zone scope or a
+// keyword the kernel has no emblem player read for refuses by name.
+func (lc *lowerCtx) pumpPlayerGrant(ps *params, obj lRef, zone int, d string, na, nd bool, kw string, hasKW bool) error {
+	if na || nd {
+		return refuse("player-scoped Pump beside NumAtt$/NumDef$")
+	}
+	if !hasKW {
+		return refuse("player-scoped Pump without KW$")
+	}
+	if zone != zBattlefield {
+		return refuse("PumpZone$ beside a player grant")
+	}
+	if d != "UntilYourNextTurn" {
+		return refuse("player-scoped Pump grant Duration %q", d)
+	}
+	sts, err := lc.playerGrantStatics(kw)
+	if err != nil {
+		return err
+	}
+	lc.out.Emblems = append(lc.out.Emblems, lEmblem{Statics: sts, UntilNextTurn: true})
+	lc.emit(lInstr{Op: "CreateEmblem", Obj: lRef{Kind: rYou}, C: len(lc.out.Emblems) - 1})
+	return nil
+}
+
+// playerGrantStatics lowers the keywords of a player-scoped Pump grant to
+// the emblem player statics the kernel reads: "Protection from everything"
+// to StatPlayerProtAll (CR 702.16j; static_plprot.go's plProtAll walks the
+// player's emblems). Anything else refuses. Hexproof (Blossoming Calm, CR
+// 702.11c) has no emblem reader: playerHexproof and youHexproof read a
+// StatPlayerHexproof off the permanents the player controls, so an emblem
+// carrying it would leave the player a legal target for an opponent's spell
+// where gorge's playerKeywords refuses it. A shroud has no symmetric kernel
+// player read (playerHexproof keeps hexproof's own-controller exemption, CR
+// 702.11c, which shroud must not: CR 702.18a), and a Protection:<spec>
+// quality (Eon Frolicker's Player.PlayerUID_ChosenPlayerUID) names a player
+// the grant is not for.
+func (lc *lowerCtx) playerGrantStatics(kw string) ([]lStatic, error) {
+	var sts []lStatic
+	for _, k := range strings.Split(kw, "&") {
+		switch k = strings.TrimSpace(k); k {
+		case "Protection from everything":
+			sts = append(sts, lStatic{Kind: "PlayerProtAll"})
+		case "Hexproof":
+			return nil, refuse("player-scoped Pump grant keyword %q: the kernel reads a player's hexproof off the permanents they control, never off a runtime emblem", k)
+		default:
+			return nil, refuse("player-scoped Pump grant keyword %q", k)
+		}
+	}
+	return sts, nil
+}
+
+// pumpPlayerEOT lowers the keywords of an until-end-of-turn Pump grant to the
+// resolving controller (The Needs of the Many, Earthshape: "you gain
+// hexproof until end of turn"). gorge registers the grant as a Player.You
+// keyword static (registerPlayerPumpGrant) that its playerKeywords gates
+// read, so hexproof stops an opponent's targeting until cleanup: the
+// kernel's TurnReplPlayerHex record, the player half pumpYouAndValid emits
+// for Dawn's Truce. Any other keyword refuses by name: a kernel keyword
+// grant lands on a permanent and never on a player, and the kernel has no
+// player read for shroud (CR 702.18a) or a player's protection.
+func (lc *lowerCtx) pumpPlayerEOT(ks []string) error {
+	for _, k := range ks {
+		if k != "Hexproof" {
+			return refuse("player-scoped Pump grant keyword %q until end of turn", k)
+		}
+	}
+	lc.emit(lInstr{Op: "TurnRepl", C: kop.TurnReplPlayerHex, Note: "you have hexproof this turn"})
+	return nil
+}
+
+// pumpNextTurnObject lowers a battlefield object's Pump Duration$
+// UntilYourNextTurn: a keyword grant is the ovNT override record (gorge's
+// durationTiming UntilTurn boundary, CR 611.2b; The Undercity's Throne), a
+// NumAtt$/NumDef$ pump the same record's PTDelta (static_ptdelta.go: the
+// +N/+M a PTDelta record adds with the counters until the resolving
+// controller's next turn, V'Ger's PumpAll shape), and both parts ride one
+// record together as pumpAllDuration's does. A computed amount refuses: a
+// record's P/T is read once at resolution, which a Count$ amount is not.
+func (lc *lowerCtx) pumpNextTurnObject(ps *params, obj lRef, na, nd bool, kw string, hasKW bool) error {
+	if !na && !nd {
+		if !hasKW {
+			return refuse("Pump Duration %q without NumAtt$/NumDef$/KW$", "UntilYourNextTurn")
+		}
+		ks, err := pumpKeywords(kw)
+		if err != nil {
+			return err
+		}
+		lc.emitOverride(obj, &lOverride{AddKw: ks}, "UntilYourNextTurn")
+		return nil
+	}
+	o := &lOverride{}
+	var err error
+	if hasKW {
+		if o.AddKw, err = pumpKeywords(kw); err != nil {
+			return err
+		}
+	}
+	att, def := cst(0), cst(0)
+	if v, ok := ps.get("NumAtt"); ok {
+		if att, err = lc.value(v); err != nil {
+			return err
+		}
+	}
+	if v, ok := ps.get("NumDef"); ok {
+		if def, err = lc.value(v); err != nil {
+			return err
+		}
+	}
+	if !att.isConst() || !def.isConst() {
+		return refuse("Pump Duration UntilYourNextTurn with a computed P/T pump")
+	}
+	o.PTDelta, o.PVal, o.TVal = true, att, def
+	lc.emitOverride(obj, o, "UntilYourNextTurn")
+	return nil
+}
+
 // pumpBody emits one Pump's effects for the already-resolved subject obj.
 // extra is the keyword a KWChoice$ branch chose (nil for a plain Pump).
 func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) error {
@@ -2905,21 +3089,11 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		_, na := ps.m["NumAtt"]
 		_, nd := ps.m["NumDef"]
 		kw, hasKW := ps.get("KW")
-		if d == "UntilYourNextTurn" && lc.pumpObjectRef(obj) && !na && !nd && hasKW && zone == zBattlefield {
-			// gorge's durationTiming gives a next-turn Pump the UntilTurn
-			// boundary AddContinuous computes: it ends at the cleanup
-			// before that controller's next turn, which the kernel's ovNT
-			// record already models. The Undercity's Throne
-			// (lower_initiative.go, "it gains hexproof until your next turn")
-			// is one such grant; every keyword-only Pump line with this
-			// duration lowers the same way. A P/T pump still refuses: it
-			// has no layer-7c record.
-			ks, err := pumpKeywords(kw)
-			if err != nil {
-				return err
-			}
-			lc.emitOverride(obj, &lOverride{AddKw: ks}, "UntilYourNextTurn")
-			return nil
+		if lc.pumpPlayerRef(obj) {
+			return lc.pumpPlayerGrant(ps, obj, zone, d, na, nd, kw, hasKW)
+		}
+		if d == "UntilYourNextTurn" && lc.pumpObjectRef(obj) && zone == zBattlefield {
+			return lc.pumpNextTurnObject(ps, obj, na, nd, kw, hasKW)
 		}
 		if d != "Permanent" || na || nd || !hasKW || zone != zBattlefield {
 			return refuse("Pump Duration %q", d)
@@ -2986,7 +3160,13 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 			if err != nil {
 				return err
 			}
-			lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: strings.Join(ks, "&")})
+			if lc.pumpPlayerRef(obj) {
+				if err := lc.pumpPlayerEOT(ks); err != nil {
+					return err
+				}
+			} else {
+				lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: strings.Join(ks, "&")})
+			}
 		}
 		for _, n := range fbs {
 			// CR 702.189a granted until end of turn: the latent Attacks
@@ -3000,6 +3180,9 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		}
 	}
 	if len(extra) > 0 {
+		if lc.pumpPlayerRef(obj) {
+			return refuse("player-scoped Pump KWChoice$ grant")
+		}
 		lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: strings.Join(extra, "&")})
 	}
 	if mustBlock {
@@ -3773,6 +3956,40 @@ func (lc *lowerCtx) attach(ps *params) error {
 	if o, ok := ps.get("Object"); ok && o != "Self" {
 		return lc.attachObject(ps, o)
 	}
+	// A player DESTINATION (Archnemesis's "you may attach Archnemesis to
+	// that player": DB$ Attach | Defined$ TriggeredAttackingPlayer |
+	// Object$ Self): gorge's effAttach EnchantSelf branch
+	// (engine/effects/attach.go) walks the Defined$ player set and attaches
+	// the aura to the first legal seat — alive, not lost, an Opponent
+	// Enchant word excluding the aura's controller — emitting the "attach to
+	// player" event, the no-legal-player Note when none is. The kernel's
+	// OpAttach W arm is that walk, gated by attachPlayerLegal
+	// (interp_gen.go). Only a triggered player referent is accepted here;
+	// any other Defined$ falls through to the ordinary object walk.
+	// Peek (not get) and gate on the one spelling: every other Defined$ (the
+	// ordinary Targeted attach object) must still resolve in the walk below,
+	// after its own target slot exists.
+	if d, ok := ps.m["Defined"]; ok && strings.TrimSpace(d) == "TriggeredAttackingPlayer" {
+		r, err := lc.defined("TriggeredAttackingPlayer")
+		if err != nil {
+			return err
+		}
+		if r.Kind == rTriggeredPlayer {
+			ps.consume("Defined")
+			in := lInstr{Op: "Attach", W: r}
+			if v, ok := ps.m["RememberAttached"]; ok {
+				// gorge attachTo: the attaching object joins the remembered set
+				// when the attach happens
+				if v = strings.TrimSpace(v); v != "True" {
+					return refuse("Attach RememberAttached$ %q", v)
+				}
+				ps.consume("RememberAttached")
+				in.CS = "Remember"
+			}
+			lc.emit(in)
+			return nil
+		}
+	}
 	if _, ok := ps.get("Choices"); ok {
 		if _, ok := ps.get("Object"); !ok {
 			return lc.attachChoices(ps)
@@ -4050,10 +4267,14 @@ func (lc *lowerCtx) charmMultiTargets(nModes int, rootTargeted []bool) error {
 
 // repeat lowers a gate-governed api:Repeat (gorge effRepeat): the body
 // (RepeatSubAbility$) runs at most MaxRepeat$ times, again only while the
-// RepeatCheckSVar$ gate compares true after a pass. Only the remembered-set
-// count gate is lowered (Sphinx's Tutelage: `Remembered$Valid <filter>`).
+// RepeatCheckSVar$ gate compares true after a pass. The sibling
+// RepeatDefined$/RepeatPresent$/RepeatCompare$ gate counts the remembered
+// or imprinted set's matches (gorge repeatDefinedGateHolds). Both gates may
+// be present (Tainted Pact): the loop continues only while both hold.
+// RepeatCheckSVar$ bodies of the `Remembered$Valid <filter>` shape and of
+// any Count$ expression are lowered (Sphinx's Tutelage, Tainted Pact).
 func (lc *lowerCtx) repeat(ps *params) error {
-	for _, k := range []string{"RepeatDefined", "RepeatPresent", "RepeatOptional", "RepeatNum", "RepeatCompare"} {
+	for _, k := range []string{"RepeatOptional", "RepeatNum"} {
 		if _, ok := ps.get(k); ok {
 			return refuse("Repeat %s$", k)
 		}
@@ -4064,32 +4285,128 @@ func (lc *lowerCtx) repeat(ps *params) error {
 			return err
 		}
 	}
-	mx, err := lc.value(ps.str("MaxRepeat"))
-	if err != nil {
-		return err
+	check := strings.TrimSpace(ps.str("RepeatCheckSVar"))
+	defined := strings.TrimSpace(ps.str("RepeatDefined"))
+	gated := check != "" || defined != ""
+	mx := cst(255) // the kernel's loopN is uint8; gorge clamps a gated loop to 1000
+	if v, ok := ps.get("MaxRepeat"); ok {
+		n, err := lc.value(v)
+		if err != nil {
+			return err
+		}
+		mx = n
+	} else if !gated {
+		return refuse("Repeat without MaxRepeat$")
 	}
-	gate := lc.face.SVars[ps.str("RepeatCheckSVar")]
-	head, rest, _ := strings.Cut(strings.TrimSpace(gate), "$")
-	if head != "Remembered" || !strings.HasPrefix(rest, "Valid ") {
-		return refuse("Repeat gate %q", gate)
+	if !gated {
+		// RepeatPresent$/RepeatCompare$ are read only beside RepeatDefined$
+		return refuse("Repeat without RepeatCheckSVar$ or RepeatDefined$")
 	}
-	f, err := lc.filter(strings.TrimPrefix(rest, "Valid "))
-	if err != nil {
-		return err
-	}
-	op, v, err := lc.cmpSpec(ps.str("RepeatSVarCompare"))
-	if err != nil {
-		return err
+	svarCmp := strings.TrimSpace(ps.str("RepeatSVarCompare"))
+	var conds []lCond
+	if defined != "" {
+		var ref refKind
+		switch defined {
+		case "Remembered":
+			ref = rRemembered
+		case "Imprinted":
+			ref = rImprinted
+		default:
+			return refuse("RepeatDefined$ %q", defined)
+		}
+		var f *lFilter
+		if present := strings.TrimSpace(ps.str("RepeatPresent")); present != "" {
+			var err error
+			if f, err = lc.filter(present); err != nil {
+				return err
+			}
+		}
+		c := lCond{Kind: cRefMatches, Ref: lRef{Kind: ref}, F: f, Op: opGE, A: cst(1)}
+		cmp := strings.TrimSpace(ps.str("RepeatCompare"))
+		if cmp == "" && check == "" {
+			// gorge: RepeatCompare$ overrides; with no check gate an absent
+			// RepeatCompare$ falls back to RepeatSVarCompare$, default GE1
+			cmp = svarCmp
+		}
+		if cmp != "" {
+			var err error
+			if c.Op, c.A, err = lc.cmpSpec(cmp); err != nil {
+				return err
+			}
+		}
+		conds = append(conds, c)
 	}
 	body := cards.ResolveSVar(lc.face.SVars, ps.str("RepeatSubAbility"))
 	if body == nil {
 		return refuse("Repeat body %q", ps.str("RepeatSubAbility"))
 	}
 	at := len(lc.ab.Prog)
-	lc.emit(lInstr{Op: "RepeatWhile", A: mx, Cond: lCond{Kind: cRefMatches, Ref: lRef{Kind: rRemembered}, F: f, Op: op, A: v}})
-	if err := lc.chain(body, nil); err != nil {
+	lc.emit(lInstr{Op: "RepeatWhile", A: mx})
+	prevSVar, prevAb := lc.repeatCheckSVar, lc.repeatCheckAb
+	prevGuard, prevImprint := lc.repeatStoredGuard, lc.repeatImprintBody
+	lc.repeatCheckSVar, lc.repeatCheckAb = check, lc.ab
+	lc.repeatStoredGuard, lc.repeatImprintBody = false, defined == "Imprinted"
+	err := lc.chain(body, nil)
+	guard := lc.repeatStoredGuard
+	if prevAb != nil {
+		// keep the gate SVar named for the rest of this ability, so the
+		// post-loop reset (Tainted Pact's DBReset) still matches; a nested
+		// repeat restores its outer one
+		lc.repeatCheckSVar, lc.repeatCheckAb = prevSVar, prevAb
+	}
+	lc.repeatStoredGuard, lc.repeatImprintBody = prevGuard, prevImprint
+	if err != nil {
 		return err
 	}
+	if check != "" {
+		// The check gate is built after the body: Tainted Pact's body Dig
+		// opens the imprinted set its Count$ValidHand Card.IsImprinted gate
+		// reads (lower_imprintzone.go's gate requires the writer lower first).
+		gate := lc.face.SVars[check]
+		if head, rest, _ := strings.Cut(strings.TrimSpace(gate), "$"); head == "Remembered" && strings.HasPrefix(rest, "Valid ") {
+			f, err := lc.filter(strings.TrimPrefix(rest, "Valid "))
+			if err != nil {
+				return err
+			}
+			c := lCond{Kind: cRefMatches, Ref: lRef{Kind: rRemembered}, F: f, Op: opGE, A: cst(1)}
+			if svarCmp != "" {
+				if c.Op, c.A, err = lc.cmpSpec(svarCmp); err != nil {
+					return err
+				}
+			}
+			conds = append(conds, c)
+		} else {
+			// an arbitrary level-count gate (Tainted Pact's TaintedCheck:
+			// Count$ValidHand Card.IsImprinted)
+			v, err := lc.value(check)
+			if err != nil {
+				return err
+			}
+			c := lCond{Kind: cValue, A: v, Op: opGE, B: cst(1)}
+			if svarCmp != "" {
+				if c.Op, c.B, err = lc.cmpSpec(svarCmp); err != nil {
+					return err
+				}
+			}
+			conds = append(conds, c)
+		}
+	}
+	if guard {
+		// a StoreSVar$ in the body writes the gate SVar true when the
+		// library is empty (Tainted Pact's LibraryCheck$): the printed
+		// count alone would then re-run the empty body. Fold the write into
+		// the gate; lower_storesvar.go drops the constant write itself.
+		conds = append(conds, lCond{Kind: cValue, A: lValue{Kind: vLibrarySizeOf, Ref: lRef{Kind: rYou}}, Op: opGE, B: cst(1)})
+	}
+	cond := lCond{}
+	for _, c := range conds {
+		if cond.Kind == cNone {
+			cond = c
+		} else {
+			cond = lCond{Kind: cAnd, Sub: []lCond{cond, c}}
+		}
+	}
+	lc.ab.Prog[at].Cond = cond
 	lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
 	return nil
 }

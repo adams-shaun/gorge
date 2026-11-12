@@ -55,7 +55,7 @@ func kstackkwGrantPolicy(seed uint64, cnt map[string]int) Policy {
 	return PolicyFunc(func(c *PickCtx) Canon {
 		note := func(a Canon) Canon {
 			if c.G != nil && (a.Kind() == ActCast || a.Kind() == ActCastCasualty) {
-				lastCast = kbargainName(c.G, a.Src())
+				lastCast = refCardName(c.G, a.Src())
 			}
 			if a.Kind() == ActCastCasualty {
 				cnt["casualty"]++
@@ -80,7 +80,7 @@ func kstackkwGrantPolicy(seed uint64, cnt map[string]int) Policy {
 		}
 		if c.D.Kind == DPriority && len(c.G.E.G.Stack) == 0 {
 			for _, a := range c.D.Options {
-				if a.Kind() == ActCast && kstackkwGrantPay[kbargainName(c.G, a.Src())] {
+				if a.Kind() == ActCast && kstackkwGrantPay[refCardName(c.G, a.Src())] {
 					return note(a)
 				}
 			}

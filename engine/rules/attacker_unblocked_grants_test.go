@@ -16,7 +16,7 @@ import (
 func TestFrenzySliverGrantedAttackerUnblockedPumps(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	frenzy := onBoardCard(t, e, 0, unblockedCorpusCard(t, "f/frenzy_sliver.txt"))
+	frenzy := onBoardCard(t, e, 0, corpusCardAtPath(t, "f/frenzy_sliver.txt"))
 	e.G.Obj(frenzy).SummonSick = false
 	onBoard(t, e, 1, "Name:Memnite\nManaCost:0\nTypes:Artifact Creature Construct\nPT:1/1\nOracle:x\n")
 

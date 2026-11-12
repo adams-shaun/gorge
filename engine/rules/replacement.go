@@ -383,7 +383,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		return continueMillReplacements(e, e.G, millReplacementAsk(e), ev, matches)
 	}
 	if ev.Kind == events.RollDice {
-		// The roll-action boundary (CR 614.4, task rolldice-repl): the
+		// The roll-action boundary (CR 614.4): the
 		// proposal is held, not logged, so continueRollDiceReplacements owns
 		// the whole return -- it rewrites the held proposal's dice count and
 		// ignored-low count in place and the caller rolls the rewritten roll.
@@ -900,15 +900,6 @@ func replacementEventNameMatches(replEvent, event string) bool {
 	return event == "Draw" && replEvent == "DrawCards"
 }
 
-// replacementEvent maps the event log's concrete events to Forge R:Event$
-// names. ManaAdd's producer and tap provenance live in synchronous Engine
-// scratch instead of its hash-chained fields; ProduceMana matching requires
-// both, while the logged event remains the ordinary final mana production.
-func replacementEvent(ev events.Event) (string, bool) {
-	k := replacementEventKind(ev)
-	return k.String(), k != 0
-}
-
 // replacementEventKind is replacementEvent's name as its cards.ReplEvent
 // code (0: the event has no R:Event$ class).
 func replacementEventKind(ev events.Event) cards.ReplEvent {
@@ -960,7 +951,7 @@ func replacementEventKind(ev events.Event) cards.ReplEvent {
 		// emitted through emitScryRecord, outside the replacement pass.
 		return cards.ReplScry
 	case events.RollDice:
-		// The roll-action boundary (task rolldice-repl). Only the synthetic
+		// The roll-action boundary. Only the synthetic
 		// PROPOSAL (effects.CountReplacementProposed) reaches the collection: the Kind
 		// is never emitted, so no logged event can ever map here.
 		return cards.ReplRollDice

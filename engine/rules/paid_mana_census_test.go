@@ -70,7 +70,7 @@ func pmcAttackSeat(t *testing.T, flag bool, c pmcClass, spoil bool) (*Engine, st
 		Tokens: testutil.CorpusRegistry(t).Tokens,
 		Decks:  [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40)}}
 	e := New(cfg)
-	onBoardCard(t, e, 0, mshCorpusCard(t, "Baird, Steward of Argive"))
+	onBoardCard(t, e, 0, corpusAlternativeCard(t, "Baird, Steward of Argive"))
 	bear := onBoardReady(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:0/4\nOracle:x\n")
 	src := c.place(t, e, 1)
 	if o := e.G.Obj(src); o.Zone != state.ZBattlefield || o.Tapped {
@@ -202,15 +202,6 @@ func pmcPriority(t *testing.T, flag bool, c pmcClass, spoil bool, fixture string
 		t.Fatalf("precondition: pool %v", e.G.Players[0].Pool)
 	}
 	return e, ppPriority(t, e), fid, src
-}
-
-func pmcOffered(d *decision.Decision, kind string, obj state.ObjID) bool {
-	for _, o := range d.Options {
-		if o.Kind == kind && o.Obj == obj {
-			return true
-		}
-	}
-	return false
 }
 
 // TestPaidManaCensusAbilityOffer: a pool-short activated ability ({1}: draw)

@@ -61,13 +61,6 @@ type rememberDrawnSetup struct {
 	almsCollector bool
 }
 
-// rememberDrawnGame builds a two-seat game from seat 0's deck and stops at
-// turn 1's first main, where every board below is set up.
-func rememberDrawnGame(t *testing.T, seed uint64, seat0 []*cards.Card) (*Engine, Config) {
-	t.Helper()
-	return rememberDrawnGameDecks(t, seed, seat0, nil)
-}
-
 // rememberDrawnGameDecks is rememberDrawnGame with an explicit seat 1 deck;
 // nil keeps the all-Mountain deck.
 func rememberDrawnGameDecks(t *testing.T, seed uint64, seat0, seat1 []*cards.Card) (*Engine, Config) {
@@ -247,7 +240,7 @@ func (b *rememberDrawnBoard) castAndResolve(t *testing.T, wantDiscards int, pick
 			if b.reflection == 0 {
 				t.Fatalf("unexpected replacement choice: %+v", d)
 			}
-			pick := optionForObj(d, b.reflection)
+			pick := indexOfObjOption(d, b.reflection)
 			if pick < 0 {
 				t.Fatalf("Thought Reflection missing from the draw competition: %+v", d.Options)
 			}
@@ -262,7 +255,7 @@ func (b *rememberDrawnBoard) castAndResolve(t *testing.T, wantDiscards int, pick
 			}
 			var picks []int
 			for _, want := range pickObjs {
-				idx := optionForObj(d, want)
+				idx := indexOfObjOption(d, want)
 				if idx < 0 {
 					t.Fatalf("discard ask does not offer card %d: %+v", want, d.Options)
 				}

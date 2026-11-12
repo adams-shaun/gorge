@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The Temporal Anchor (task scrybottom) is the corpus's one carrier of
+// The Temporal Anchor is the corpus's one carrier of
 // "Whenever you choose to put one or more cards on the bottom of your
 // library while scrying, exile that many cards from the bottom of your
 // library." Its two halves are the scry trigger (`T:Mode$ Scry |
@@ -123,7 +123,7 @@ func driveToScryArrange(t *testing.T, e *Engine, limit int) *decision.Decision {
 // only exists while it is on the battlefield.
 func anchorOnBattlefield(t *testing.T, seed uint64) (*Engine, Config, state.ObjID, *decision.Decision) {
 	t.Helper()
-	anchor := tokenReplCorpusCard(t, "The Temporal Anchor")
+	anchor := corpusAlternativeCard(t, "The Temporal Anchor")
 	e, cfg := tokenReplGame(t, seed, anchor)
 	anchorID := moveSeededCard(t, e, 0, anchor, state.ZBattlefield)
 	if o := e.G.Obj(anchorID); o == nil || o.Zone != state.ZBattlefield {

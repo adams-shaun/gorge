@@ -12,7 +12,6 @@ package rules
 // library/graveyard/exile. Each citation names the CR rule.
 
 import (
-	"os"
 	"strings"
 	"testing"
 
@@ -21,14 +20,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
-
-// setAuditGuard skips a known-failing finding unless the audit env is set.
-func setAuditGuard(t *testing.T, defect, ticket string) {
-	t.Helper()
-	if os.Getenv("GORGE_SET_AUDIT") == "" {
-		t.Skip("set-audit finding (msh): " + defect + ". Follow-up: " + ticket)
-	}
-}
 
 // auditDrain answers every ask generically so a resolution can be pushed
 // through: pass at priority, full permutation for trigger order, decline

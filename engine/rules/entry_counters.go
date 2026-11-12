@@ -334,18 +334,6 @@ func entryBodyKindEncodable(sa *cards.SA) bool {
 	return events.EntryCounterKindEncodable(entryBodyKind(effects.PutCounterOf(sa)))
 }
 
-// entryBodyAbsorbable reports whether a replacement body is the bare
-// self-entry counter shape this engine may fold into the entry move: a single
-// DB$ PutCounter | ETB$ True on the entering object itself with a resolvable
-// CounterNum$ and one counter kind. Anything carrying a rider (SubAbility$),
-// an asking modifier (Optional$/Choices$/Bolster$/Support$/Adapt$/
-// Monstrosity$), a per-recipient count or a composite kind is left to the
-// ordinary body path -- the conservative direction, so a body this build
-// cannot fully fold never loses its own resolution.
-func entryBodyAbsorbable(sa *cards.SA) bool {
-	return entryBodyAbsorbableFor(sa, false)
-}
-
 // entryBodyAbsorbableFor is entryBodyAbsorbable with the referent made
 // explicit: the entering object's own body names Defined$ Self, a body that
 // another permanent's replacement lends it (Metallic Mimic's "enters with an
@@ -760,7 +748,7 @@ func (e *Engine) entryGrantPlan(ev events.Event, preview *Engine, entrant state.
 	for _, g := range e.entryCounterGrants(&ev) {
 		grants = append(grants, entryGrant{kind: g.Kind, amount: g.Amount})
 	}
-	// AddsCounters$ mana-spend rider (task opalp): the cast's consuming sources,
+	// AddsCounters$ mana-spend rider: the cast's consuming sources,
 	// re-read at entry. Read on e (the origin-zone object carries the links),
 	// before the body grants so the placement order is deterministic.
 	grants = append(grants, e.entryRiderGrants(entrant)...)
@@ -1123,11 +1111,11 @@ func (e *Engine) entryETBChoiceOutstanding(ev events.Event) bool {
 		return false
 	}
 	ordinal := 0
-	if e.etbMove != nil {
-		if e.etbMove.Obj != ev.Obj {
+	if len(e.etbQueue) > 0 {
+		if e.etbQueue[0].move.Obj != ev.Obj {
 			return false
 		}
-		ordinal = e.etbNext
+		ordinal = e.etbQueue[0].next
 	}
 	_, ok := e.entryETBChoice(ev, ordinal)
 	return ok

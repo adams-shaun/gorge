@@ -13,8 +13,7 @@ import (
 )
 
 // TestCrewedThisTurnCensus is the MECHANISM-CLASS census for Forge's
-// Creature.CrewedThisTurn / Card.CrewedThisTurn filter (CR 702.122, task
-// crewedthisturn1). It scans the compiled corpus for every face whose specs
+// Creature.CrewedThisTurn / Card.CrewedThisTurn filter (CR 702.122). It scans the compiled corpus for every face whose specs
 // name the token and pins the carrier set, so a body added to or removed from
 // the corpus is caught here rather than silently changing what the filter must
 // support. The engine's predicate (engine/effects/filter.go's "CrewedThisTurn") is
@@ -86,7 +85,7 @@ func TestCrewedThisTurnCensus(t *testing.T) {
 	sort.Strings(extra)
 	if len(missing) > 0 || len(extra) > 0 {
 		t.Fatalf("Creature.CrewedThisTurn carriers drifted: missing %v, unexpected %v (corpus set = %v)",
-			missing, extra, sortedCrewNames(got))
+			missing, extra, sortedSetKeys(got))
 	}
 }
 
@@ -275,13 +274,4 @@ func paramsNameToken(params map[string]string, token string) bool {
 		}
 	}
 	return false
-}
-
-func sortedCrewNames(m map[string]bool) []string {
-	out := make([]string, 0, len(m))
-	for k := range m {
-		out = append(out, k)
-	}
-	sort.Strings(out)
-	return out
 }

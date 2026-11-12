@@ -57,16 +57,6 @@ func putGraveyard(t *testing.T, e *Engine, seat state.PlayerID, src string) stat
 	return id
 }
 
-// optionFor returns the offered option index for an object, or -1.
-func setPropOptionIndex(d *decision.Decision, id state.ObjID) int {
-	for _, o := range d.Options {
-		if o.Obj == id {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 // setPropChoices maps object ids to their offered option indices, failing
 // loudly when an object was not offered. Using it in place of a bare
 // setPropOptionIndex keeps a wiring bug visible: an unoffered object would
@@ -77,7 +67,7 @@ func setPropChoices(t *testing.T, d *decision.Decision, ids ...state.ObjID) []in
 	t.Helper()
 	out := make([]int, 0, len(ids))
 	for _, id := range ids {
-		i := setPropOptionIndex(d, id)
+		i := indexOfObjOption(d, id)
 		if i < 0 {
 			t.Fatalf("object %d was not offered as a target option", id)
 		}
@@ -335,10 +325,10 @@ func TestTargetSetControllerProperty(t *testing.T) {
 	if d == nil {
 		t.Fatal("no target decision posed")
 	}
-	if setPropOptionIndex(d, dear) != -1 {
+	if indexOfObjOption(d, dear) != -1 {
 		t.Fatal("the over-cost creature was offered despite TargetsWithControllerProperty$")
 	}
-	if setPropOptionIndex(d, cheap) == -1 {
+	if indexOfObjOption(d, cheap) == -1 {
 		t.Fatal("the legal creature was not offered")
 	}
 	// The resolution recheck applies the same predicate: a recorded target
@@ -389,10 +379,10 @@ func TestTargetSetControllerPropertyPower(t *testing.T) {
 	if d == nil {
 		t.Fatal("no target decision posed")
 	}
-	if setPropOptionIndex(d, big) != -1 {
+	if indexOfObjOption(d, big) != -1 {
 		t.Fatal("the power-3 creature was offered despite TargetsWithControllerProperty$")
 	}
-	if setPropOptionIndex(d, small) == -1 {
+	if indexOfObjOption(d, small) == -1 {
 		t.Fatal("the power-2 creature was not offered")
 	}
 	kept := e.legalTargets([]state.Target{{Obj: small}, {Obj: big}}, sa, targetZones(sa), 0, 0, 0)

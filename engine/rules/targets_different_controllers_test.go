@@ -181,7 +181,7 @@ func TestProtectorOfTheWastesResolutionRecheckNarrowsSameController(t *testing.T
 // battlefield under seat, and asserts the placement really took effect.
 func bearPermanent(t *testing.T, e *Engine, seat state.PlayerID) state.ObjID {
 	t.Helper()
-	bear := mshCorpusCard(t, "Runeclaw Bear")
+	bear := corpusAlternativeCard(t, "Runeclaw Bear")
 	id := e.G.AddObject(bear, seat).ID
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield})
 	o := e.G.Obj(id)

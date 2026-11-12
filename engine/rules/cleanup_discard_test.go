@@ -15,18 +15,6 @@ import (
 // limit and non-active cases. The regression tests were written before the
 // implementation; each one names the failure it would catch.
 
-// onHand places a card straight into a player's hand, appended after their
-// existing hand in hand-zone order, the same direct-setup stance as onBoard
-// for the battlefield. A test that needs a player mid-turn to hold more than
-// maxHandSize adds a few of these on top of the opening hand.
-func onHand(t *testing.T, e *Engine, p state.PlayerID, src string) state.ObjID {
-	t.Helper()
-	o := e.G.AddObject(card(t, src), p)
-	o.Zone = state.ZHand
-	e.G.SetZone(state.ZHand, p, append(e.G.Zone(state.ZHand, p), o.ID))
-	return o.ID
-}
-
 // answerIfDiscard answers a pending cleanup KChoose "discard" decision with
 // the naive first-Max options (the same policy botpolicy uses, findings ck/cl),
 // returning true. It returns false when nothing discard-shaped is pending, so

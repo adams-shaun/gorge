@@ -45,7 +45,7 @@ func TestCR601_3aPotentialWalkSeesPayableEscape(t *testing.T) {
 				battlePerm(t, e, 1, corpusCardText(t, "v/void_winnower.txt"))
 			}
 			for i := 0; i < tc.islands; i++ {
-				onBoardCard(t, e, 0, mustCorpusCardT(t, "Island"))
+				onBoardCard(t, e, 0, corpusAlternativeCard(t, "Island"))
 			}
 			if n := e.G.Players[0].Pool.Total(); n != 0 {
 				t.Fatalf("pool holds %d mana, want empty: the projection must see the escape through untapped mana", n)

@@ -212,11 +212,11 @@ func kcharmseqPolicy(seed uint64, c *kcharmseqTally) Policy {
 		if p.D.Kind == DPriority {
 			// Amazing Acrobatics is held for a spell to counter
 			held := func(a Canon) bool {
-				return len(p.G.E.G.Stack) == 0 && kteamworkName(p.G, a.Src()) == "Amazing Acrobatics"
+				return len(p.G.E.G.Stack) == 0 && refCardName(p.G, a.Src()) == "Amazing Acrobatics"
 			}
 			buf = buf[:0]
 			for _, a := range p.D.Options {
-				if a.Kind() == ActCast && a.Mode() == 0 && kcharmseqCarrier[kteamworkName(p.G, a.Src())] && !held(a) {
+				if a.Kind() == ActCast && a.Mode() == 0 && kcharmseqCarrier[refCardName(p.G, a.Src())] && !held(a) {
 					buf = append(buf, a)
 				}
 			}

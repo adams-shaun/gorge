@@ -1,11 +1,9 @@
 package rules
 
 import (
-	"path/filepath"
 	"reflect"
 	"testing"
 
-	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -19,18 +17,6 @@ import (
 // names the defending player; Stinkdrinker Bandit is the multi-attacker,
 // ValidCard$-filtered carrier whose body names its own attacker.
 
-func unblockedCorpusCard(t *testing.T, path string) *cards.Card {
-	t.Helper()
-	c, ds := cards.Parse(filepath.Join("..", "..", ".cards", "cardsfolder", path))
-	if len(ds) != 0 {
-		t.Fatalf("parse %s: %v", path, ds)
-	}
-	if ds = c.Link(); len(ds) != 0 {
-		t.Fatalf("link %s: %v", path, ds)
-	}
-	return c
-}
-
 // swampMosquitoFixture builds combatEngine with the real Swamp Mosquito under
 // seat 0, ready to attack, and a seat-1 blocker candidate so the
 // declare-blockers step poses a KBlockers decision both the empty intent
@@ -38,7 +24,7 @@ func unblockedCorpusCard(t *testing.T, path string) *cards.Card {
 func swampMosquitoFixture(t *testing.T) (*Engine, state.ObjID) {
 	t.Helper()
 	e := combatEngine(t)
-	mosquito := onBoardCard(t, e, 0, unblockedCorpusCard(t, "s/swamp_mosquito.txt"))
+	mosquito := onBoardCard(t, e, 0, corpusCardAtPath(t, "s/swamp_mosquito.txt"))
 	e.G.Obj(mosquito).SummonSick = false
 	onBoard(t, e, 1, "Name:Memnite\nManaCost:0\nTypes:Artifact Creature Construct\nK:Flying\nPT:1/1\nOracle:x\n")
 	e.askAttackers()
@@ -50,7 +36,7 @@ func swampMosquitoFixture(t *testing.T) (*Engine, state.ObjID) {
 // carries the defending player as its captured role, then resolves the body
 // against that captured seat. Swamp Mosquito's body is
 // `DB$ Poison | Defined$ TriggeredDefendingPlayer | Num$ 1`, and since
-// api:Poison is registered (task poison) the resolution is observed directly
+// api:Poison is registered the resolution is observed directly
 // as seat 1's POISON counter going 0 -> 1 -- the real effect, not the
 // "unimplemented API Poison" Note this leaf used as a stand-in while the
 // primitive was missing. The Note must now be ABSENT, which is asserted, so
@@ -150,7 +136,7 @@ func TestSwampMosquitoUnblockedAttackPoisonsDefender(t *testing.T) {
 func TestKeeperOfTresserhornUnblockedAttackDrainsDefender(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	keeper := onBoardCard(t, e, 0, unblockedCorpusCard(t, "k/keeper_of_tresserhorn.txt"))
+	keeper := onBoardCard(t, e, 0, corpusCardAtPath(t, "k/keeper_of_tresserhorn.txt"))
 	e.G.Obj(keeper).SummonSick = false
 	onBoard(t, e, 1, "Name:Memnite\nManaCost:0\nTypes:Artifact Creature Construct\nPT:1/1\nOracle:x\n")
 
@@ -182,7 +168,7 @@ func TestKeeperOfTresserhornUnblockedAttackDrainsDefender(t *testing.T) {
 func TestStinkdrinkerBanditPumpsEachUnblockedRogue(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	bandit := onBoardCard(t, e, 0, unblockedCorpusCard(t, "s/stinkdrinker_bandit.txt"))
+	bandit := onBoardCard(t, e, 0, corpusCardAtPath(t, "s/stinkdrinker_bandit.txt"))
 	r1 := onBoardReady(t, e, 0, "Name:Rogue One\nManaCost:0\nTypes:Creature Rogue\nPT:1/1\nOracle:x\n")
 	r2 := onBoardReady(t, e, 0, "Name:Rogue Two\nManaCost:0\nTypes:Creature Rogue\nPT:2/2\nOracle:x\n")
 	onBoard(t, e, 1, "Name:Memnite\nManaCost:0\nTypes:Artifact Creature\nPT:1/1\nOracle:x\n")

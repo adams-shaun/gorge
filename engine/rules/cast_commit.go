@@ -509,7 +509,7 @@ func (e *Engine) payCast() {
 		pc.converge = convergeColours(spentMana)
 	}
 	captureCastSpend(pc, e.G.Obj(pc.card).Face(), e.triggeredCastSpendReaderOut() || targetedCastSpendReaderOut(e.G, func(f *cards.Face) bool { return e.faceScanHas(f, faceScanTargetedCastSpend) }), spentMana, spentSnow, spentTyped)
-	// AddsCounters$ (task opalp): capture the rider grants from the SAME
+	// AddsCounters$: capture the rider grants from the SAME
 	// payment capture emitRestrictedManaSpend built. This must run before
 	// fireManaSpentTriggers consumes and clears e.manaSpentSources (nothing
 	// can suspend between the payment and here -- the capture site only
@@ -888,7 +888,7 @@ func (e *Engine) payCast() {
 	if ev, ok := manaSourcesCastInfo(pc, flags); ok {
 		e.emit(ev)
 	}
-	// AddsCounters$ (task opalp): the producing abilities' rider grants this
+	// AddsCounters$: the producing abilities' rider grants this
 	// cast earned ride their own TRAILING pay-time CastInfo's Text payload --
 	// the flag (NOT ORed into the accumulating flags, the Conspired/Convoked
 	// pattern) routes the payload into Object.ManaAddsCounterGrants
@@ -1045,8 +1045,7 @@ func (e *Engine) payCast() {
 	// nothing and asks nothing, so no game without a cascade carrier
 	// changes an event.
 	e.queueCascadeTriggers(pc.stackObj, pc.player)
-	// The Effect grants' cast-driven lifetime (ForgetOnCast$, task
-	// param:api:Effect.ForgetOnCast) ends the grants at this completed-cast
+	// The Effect grants' cast-driven lifetime (ForgetOnCast$) ends the grants at this completed-cast
 	// moment, LAST in the pay stage: the qualifying cast often has its
 	// behaviour FROM the grant (Dark Apostle's granted cascade fires this
 	// very cast's cascade trigger, and the cascade resolution itself
@@ -1244,7 +1243,7 @@ func (e *Engine) fireDeferredActivationTrigger() {
 // or names no longer-resolvable body fails closed -- the rider belongs to the
 // permanent. SpellCast is spell-only; SpellAbilityCast dispatches on both
 // spell casts and activated abilities.
-// manaSpentAddsCounterSources (task opalp) is gone: the rider grant is
+// manaSpentAddsCounterSources is gone: the rider grant is
 // captured per batch by emitRestrictedManaSpend (e.manaSpentAddsCounters) so
 // the producing ability's snapshot and the spent unit count survive, instead
 // of a deduplicated source list that re-read the source face at entry.
@@ -1411,7 +1410,7 @@ func (e *Engine) emitBlightCostCounters(blights []state.ObjID, cost *pay.Cost, x
 // finds no flow waiting and is dropped.
 func (e *Engine) endCastFlow() {
 	e.cast = nil
-	if !(e.pending != nil && e.choosing == chooseETBEntry && e.etbMove != nil) {
+	if !(e.pending != nil && e.choosing == chooseETBEntry && len(e.etbQueue) > 0) {
 		e.choosing = chooseNone
 	}
 }

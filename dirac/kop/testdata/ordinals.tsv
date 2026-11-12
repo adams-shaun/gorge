@@ -99,11 +99,13 @@ ColU	ColorMask	2
 ColW	ColorMask	1
 CondAlways	CondKind	0
 CondAnd	CondKind	8
-CondCount_	CondKind	9
+CondCount_	CondKind	11
+CondEchoOwed	CondKind	9
 CondKicked	CondKind	3
 CondPresent	CondKind	1
 CondPromised	CondKind	7
 CondRefMatches	CondKind	6
+CondSourceZone	CondKind	10
 CondThreshold	CondKind	4
 CondValue	CondKind	2
 CondYourTurn	CondKind	5
@@ -169,6 +171,7 @@ CtrAll	CounterKind	254
 CtrBait	CounterKind	8
 CtrBloodstain	CounterKind	60
 CtrBore	CounterKind	58
+CtrBurden	CounterKind	72
 CtrCharge	CounterKind	15
 CtrChorus	CounterKind	40
 CtrCoin	CounterKind	55
@@ -183,6 +186,7 @@ CtrDestMove	untyped int	8
 CtrDivinity	CounterKind	56
 CtrDoubleStrike	CounterKind	24
 CtrDread	CounterKind	38
+CtrFade	CounterKind	71
 CtrFellowship	CounterKind	10
 CtrFilm	CounterKind	52
 CtrFinality	CounterKind	42
@@ -235,6 +239,7 @@ CtrSkewer	CounterKind	65
 CtrSoul	CounterKind	9
 CtrSpore	CounterKind	17
 CtrStash	CounterKind	12
+CtrStorage	CounterKind	73
 CtrStory	CounterKind	22
 CtrStun	CounterKind	3
 CtrSupply	CounterKind	35
@@ -311,6 +316,7 @@ DuRestBottom	untyped int	8
 DurAirbend	untyped int	10
 DurDefeated	untyped int	9
 DurEOT	untyped int	0
+DurForetell	untyped int	13
 DurPermanent	untyped int	1
 DurPlot	untyped int	7
 DurPrepared	untyped int	8
@@ -321,6 +327,7 @@ DurWhileSource	untyped int	3
 DurWhileSrcMay	untyped int	11
 DurWhileValid	untyped int	12
 DurYourNextTurn	untyped int	2
+EchoNoCounter	untyped int	1
 EntryAtEOT	untyped int	32768
 EntryAtEOTExile	untyped int	16384
 EntryKindMask	untyped int	63
@@ -360,6 +367,7 @@ ExDiscardedThisTurn	ExprKind	241
 ExDistinctCMC	ExprKind	6
 ExDmgAmountReceived	ExprKind	219
 ExDrawnThisTurn	ExprKind	40
+ExEnergyOf	ExprKind	63
 ExExcessDamage	ExprKind	21
 ExExiledWithN	ExprKind	246
 ExFirstCast	ExprKind	255
@@ -379,6 +387,7 @@ ExLifeOf	ExprKind	12
 ExLowestLife	ExprKind	252
 ExMVOf	ExprKind	29
 ExMod	ExprKind	234
+ExMonarch	ExprKind	218
 ExMorbid	ExprKind	8
 ExNone	ExprKind	0
 ExNotOwnLibMV	ExprKind	226
@@ -389,6 +398,7 @@ ExOppsAttacked	ExprKind	229
 ExOppsLostLife	ExprKind	28
 ExParty	ExprKind	39
 ExPhaseCount	ExprKind	232
+ExPlExtreme	ExprKind	88
 ExPoisonOf	ExprKind	53
 ExPow	ExprKind	230
 ExPowerOf	ExprKind	10
@@ -432,6 +442,7 @@ ExtAddPhase	ExtOp	193
 ExtAegisClone	ExtOp	80
 ExtAirbend	ExtOp	95
 ExtAttacksIfAble	ExtOp	255
+ExtBecomeMonarch	ExtOp	259
 ExtBlocksIfAble	ExtOp	256
 ExtBreachChoose	ExtOp	160
 ExtBreachReturn	ExtOp	161
@@ -439,6 +450,7 @@ ExtChangeTargets	ExtOp	225
 ExtChooseColorRes	ExtOp	5
 ExtChooseName	ExtOp	251
 ExtChooseNumber	ExtOp	230
+ExtChooseNumberMid	ExtOp	303
 ExtClearImprinted	ExtOp	257
 ExtCloneCopy	ExtOp	81
 ExtColorGrant	ExtOp	6
@@ -487,6 +499,7 @@ ExtPreventNext	ExtOp	305
 ExtPutCounterExisting	ExtOp	253
 ExtRecruit	ExtOp	94
 ExtRememberAll	ExtOp	306
+ExtRememberImprinted	ExtOp	307
 ExtRememberSearcher	ExtOp	304
 ExtRemoveCounterAny	ExtOp	3
 ExtSacDelayed	ExtOp	32
@@ -605,6 +618,7 @@ LibChoiceCtrlGrave	untyped int	2
 LibChoiceSecond	untyped int	1
 LibThird	untyped int	6
 LibTopGrave	untyped int	10
+LibTopRememberBF	untyped int	13
 LibTopShuffle	untyped int	4
 LibTopShuffleGrave	untyped int	8
 LibTopShuffleSelf	untyped int	5
@@ -640,6 +654,7 @@ MayPlayOpponent	untyped int	16384
 MayPlayOwner	untyped int	512
 MayPlayPayLife	untyped int	-32768
 MayPlayRaiseShift	untyped int	10
+MonarchOpp	untyped int	1
 MorphDisguise	uint8	3
 MorphMegamorph	uint8	2
 MorphMorph	uint8	1
@@ -664,8 +679,8 @@ MvUnderYourControl	untyped int	4
 NoCard	CardID	65535
 NumCounterKinds	CounterKind	7
 NumCounterKinds2	CounterKind	13
-NumCounterKinds3	CounterKind	71
-NumCounterKindsX	int	56
+NumCounterKinds3	CounterKind	74
+NumCounterKindsX	int	59
 NumExtOps	ExtOp	320
 NumManaKinds	untyped int	6
 NumSteps	Step	13
@@ -890,6 +905,11 @@ PermMarkDealtTurn	untyped int	1
 PermMarkNot	untyped int	16
 PhaseCountCombats	untyped int	0
 PhaseCountEndSteps	untyped int	1
+PlExtExile	untyped int	1024
+PlExtGrave	untyped int	256
+PlExtLibrary	untyped int	512
+PlExtOpponents	untyped int	1
+PlExtPlayers	untyped int	0
 PlayerPredArtOrEnch	untyped int	4
 PlayerPredControlsCreature	untyped int	1
 PlayerPredCorrupted	untyped int	3
@@ -932,6 +952,7 @@ PredPowerGEV	Pred	14
 PredPowerGTBase	Pred	243
 PredPowerLE	Pred	1
 PredPowerLTToughness	Pred	17
+PredSameNameRem	Pred	238
 PredSameNameT0	Pred	32
 PredSolved	Pred	252
 PredSubtype	Pred	8
@@ -960,6 +981,7 @@ PumpEachTough	untyped int	2
 PutCtrCellFirst	untyped int	3
 PutCtrCellNext	untyped int	4
 PutCtrRemAmount	untyped int	5
+PutCtrRememberPut	untyped int	2
 R	untyped int	3
 ReduceAbEquip	untyped int	8
 ReduceAbMinShift	untyped int	4
@@ -1125,6 +1147,8 @@ SrThenTop	untyped int	2
 SrUnderYourControl	untyped int	2048
 StAlsoSideboard	StaticFlags	512
 StAnyManaType	StaticFlags	4
+StAtkTaxPlayer	StaticFlags	2
+StAtkTaxWalker	StaticFlags	4
 StBargained	StaticFlags	4096
 StBeamGranted	StaticFlags	1
 StCasterActive	StaticFlags	64
@@ -1177,6 +1201,7 @@ StatActivationLimit	StaticKind	227
 StatAlternativeCost	StaticKind	5
 StatAnyTypeCreatures	StaticKind	239
 StatAsIfHaste	StaticKind	231
+StatAttackTax	StaticKind	243
 StatBeamGrant	StaticKind	253
 StatCDAPT	StaticKind	10
 StatCanAttackDefender	StaticKind	250
@@ -1194,12 +1219,14 @@ StatCantPreventDamage	StaticKind	232
 StatCantPutCounter	StaticKind	252
 StatCantSacrifice	StaticKind	237
 StatCantTarget	StaticKind	235
+StatCantTgtGrave	StaticKind	229
 StatCastWithFlash	StaticKind	6
 StatCombatDmgToughness	StaticKind	245
 StatContinuous	StaticKind	1
 StatControl	StaticKind	17
-StatCount	StaticKind	20
+StatCount	StaticKind	21
 StatDisableETB	StaticKind	234
+StatEscapeGrant	StaticKind	225
 StatExtraLandPlay	StaticKind	12
 StatFbGrant	StaticKind	242
 StatFlipCoinMod	StaticKind	226
@@ -1215,6 +1242,7 @@ StatNone	StaticKind	0
 StatOverride	StaticKind	14
 StatPanharmonicon	StaticKind	18
 StatPlayerHexproof	StaticKind	15
+StatPlayerProtAll	StaticKind	20
 StatReduceAbility	StaticKind	233
 StatReduceCost	StaticKind	2
 StatStackKw	StaticKind	251
@@ -1301,9 +1329,11 @@ Tf3MayPlaySrc	TrigFlags3	32
 Tf3OrTargets	TrigFlags3	8
 Tf3Static	TrigFlags3	16
 Tf4CounterCell	TrigFlags4	4
+Tf4DefEnch	TrigFlags4	128
 Tf4NamedCast	TrigFlags4	16
 Tf4NthFiltered	TrigFlags4	8
 Tf4OptTrigPlayer	TrigFlags4	32
+Tf4PerCounter	TrigFlags4	128
 Tf4SingleCauseTarget	TrigFlags4	2
 Tf4SingleTarget	TrigFlags4	1
 Tf4StateCtr	TrigFlags4	64
@@ -1333,6 +1363,7 @@ TgfOppOnly	TargetFlags	16384
 TgfSameController	TargetFlags	2
 TgfSharedCrType	TargetFlags	1024
 TgfSingleTgt	TargetFlags	8192
+TgfTrigChooser	TargetFlags	65536
 TgtAny	TargetKind	3
 TgtCard	TargetKind	5
 TgtCopyAb	TargetKind	236
@@ -1362,6 +1393,8 @@ TokRemember	untyped int	2
 TokRememberObj	untyped int	4
 TokSacAtEnd	untyped int	8
 TokTapped	untyped int	1
+TpOppSeparates	untyped int	1
+TpUnchosenPileOrder	untyped int	2
 TrAttacking	untyped int	2
 TrHasteEOT	untyped int	4
 TrList	untyped int	8
@@ -1373,6 +1406,7 @@ TrigAbilityCast	TrigEvent	36
 TrigAttached	TrigEvent	33
 TrigAttackersDeclared	TrigEvent	6
 TrigAttacks	TrigEvent	5
+TrigBecomeMonarch	TrigEvent	48
 TrigBecomeMonstrous	TrigEvent	26
 TrigBecomesBlocked	TrigEvent	19
 TrigBecomesPlotted	TrigEvent	31
@@ -1390,7 +1424,8 @@ TrigDiscardedAll	TrigEvent	35
 TrigDiscover	TrigEvent	44
 TrigDrawn	TrigEvent	14
 TrigETB	TrigEvent	1
-TrigEventCount	TrigEvent	47
+TrigEventCount	TrigEvent	49
+TrigEvolved	TrigEvent	47
 TrigExplores	TrigEvent	39
 TrigFacesDilemma	TrigEvent	46
 TrigForage	TrigEvent	43
@@ -1403,6 +1438,7 @@ TrigLifeLost	TrigEvent	10
 TrigManaExpend	TrigEvent	21
 TrigManifestDread	TrigEvent	45
 TrigNAnyCounter	int16	-1
+TrigNMonarchBeganTurn	int16	1
 TrigNTeamworkTap	int16	1
 TrigNTraining	int16	2
 TrigNValiant	int16	1
@@ -1422,7 +1458,11 @@ TrigTurnFaceUp	TrigEvent	27
 TrigUnlockDoor	TrigEvent	30
 TrigUntaps	TrigEvent	17
 TurnReplExileOpp	untyped int	1
+TurnReplHexUB	untyped int	6
+TurnReplPlayerHex	untyped int	5
 TurnReplPlusCreatureCtr	untyped int	2
+TurnReplUncounter	untyped int	3
+TurnReplUncounterCreature	untyped int	4
 U	untyped int	1
 VCardsInHand	VKind	7
 VConst	VKind	0
@@ -1442,6 +1482,7 @@ VX	VKind	1
 W	untyped int	0
 W7AttachedTo	int16	19
 W7AttackingAlone	int16	3
+W7AttackingEnchTrig	int16	29
 W7AttackingOpp	int16	7
 W7BottomLibrary	int16	17
 W7CostBlue	int16	14

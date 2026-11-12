@@ -37,8 +37,8 @@ import (
 // Scales/Evolution pair competes over), one whose body is a plain ChangeZone.
 func answerPosedAddCounterBoard(t *testing.T, seed uint64) (*Engine, Config, state.ObjID, state.ObjID) {
 	t.Helper()
-	scales := tokenReplCorpusCard(t, "Hardened Scales")
-	evolution := tokenReplCorpusCard(t, "Branching Evolution")
+	scales := corpusAlternativeCard(t, "Hardened Scales")
+	evolution := corpusAlternativeCard(t, "Branching Evolution")
 	// The outer rewriter whose answer body places the contested counter.
 	ctrRewriter := card(t, "Name:Counter Rewriter\nTypes:Artifact Creature Golem\nPT:0/4\n"+
 		"R:Event$ Moved | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card | ReplaceWith$ Ctr | Description$ x\n"+
@@ -103,7 +103,7 @@ func TestAnswerPosedAddCounterOrderResumesTheResolution(t *testing.T) {
 					case strings.Contains(d.Prompt, "moves"):
 						outerAsks++
 						// Choose the counter rewriter's body.
-						pick = optionForObj(d, ctrID)
+						pick = indexOfObjOption(d, ctrID)
 					case strings.Contains(d.Prompt, "counters"):
 						innerAsks++
 						pick = tc.pick
@@ -111,7 +111,7 @@ func TestAnswerPosedAddCounterOrderResumesTheResolution(t *testing.T) {
 						t.Fatalf("unexpected replacement ask %q", d.Prompt)
 					}
 				case decision.KTarget:
-					pick = optionForObj(d, fodder)
+					pick = indexOfObjOption(d, fodder)
 					if pick < 0 {
 						t.Fatalf("target ask does not offer the fodder: %+v", d.Options)
 					}
@@ -184,7 +184,7 @@ func TestAnswerPosedTokenOrderResumesTheResolution(t *testing.T) {
 		pick int
 	}{{"first-rewriter", 0}, {"second-rewriter", 1}} {
 		t.Run(tc.name, func(t *testing.T) {
-			ds := tokenReplCorpusCard(t, "Doubling Season")
+			ds := corpusAlternativeCard(t, "Doubling Season")
 			rw1 := card(t, tokenRewriterSrc("Token Rewriter One", "c_a_treasure_sac"))
 			rw2 := card(t, tokenRewriterSrc("Token Rewriter Two", "c_a_clue_draw"))
 			spell := card(t, "Name:Answer Posed Tokens\nManaCost:0\nTypes:Sorcery\n"+

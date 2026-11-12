@@ -207,6 +207,10 @@ func lowerPool(p *pool) *lowered {
 			lw.tokens = append(lw.tokens, lowerFaceEntry(p, k))
 			continue
 		}
+		if strings.HasPrefix(k, fuseKeyPrefix) {
+			lw.tokens = append(lw.tokens, lowerFusedEntry(p, k)) // lower_fuse.go
+			continue
+		}
 		if strings.HasPrefix(k, roomKeyPrefix) {
 			lw.tokens = append(lw.tokens, lowerRoomEntry(p, k)) // lower_rooms.go
 			continue
@@ -286,6 +290,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Plot != nil {
 		fmt.Fprintf(w, " plot=%s", c.Plot)
 	}
+	if c.Foretell != nil {
+		fmt.Fprintf(w, " foretell=%s", c.Foretell)
+	}
 	if c.Paradigm {
 		fmt.Fprintf(w, " paradigm")
 	}
@@ -324,6 +331,12 @@ func dumpLIR(w io.Writer, c *lCard) {
 	}
 	if c.Harmonize != nil {
 		fmt.Fprintf(w, " harmonize=%s", c.Harmonize)
+	}
+	if c.Retrace {
+		fmt.Fprintf(w, " retrace")
+		if c.RetraceCost != nil {
+			fmt.Fprintf(w, " retracecost=%s", costString(*c.RetraceCost))
+		}
 	}
 	if c.BeamMeUp != nil {
 		fmt.Fprintf(w, " beammeup=%s", c.BeamMeUp)
@@ -462,6 +475,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 				i, t.Mode, t.Zone, t.Min, t.Max, t.F, t.Unique, t.SameCtrl, t.DiffCtrl, t.Divided, t.Spell, tgtSetLIR(t))
 			if t.TrigOnly {
 				fmt.Fprintf(w, "      trigonly=true\n")
+			}
+			if t.TrigChooser {
+				fmt.Fprintf(w, "      trigchooser=true\n")
 			}
 			if t.VTgt != nil {
 				fmt.Fprintf(w, "      vtgting=true F=%s\n", t.VTgt)

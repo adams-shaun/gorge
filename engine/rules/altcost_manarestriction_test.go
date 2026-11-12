@@ -16,7 +16,7 @@ import (
 // rhoxAltBoard is the probe board: Security Rhox in seat 0's hand at Main1.
 func rhoxAltBoard(t *testing.T) (*Engine, Config, state.ObjID) {
 	t.Helper()
-	rhox := tokenReplCorpusCard(t, "Security Rhox")
+	rhox := corpusAlternativeCard(t, "Security Rhox")
 	e, cfg := tokenReplGame(t, 5, rhox)
 	id := moveSeededCard(t, e, 0, rhox, state.ZHand)
 	toMain1(t, e)

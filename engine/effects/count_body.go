@@ -281,9 +281,7 @@ func evalCountBodyCost(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 	case evalCountBodyCostCompare:
 		return evalCompare(h, c, arg, depth), true, true
 	case evalCountBodyCostMostCardName:
-		// Forge's Count$MostCardName <spec> (task api-winsgame; 4 corpus
-		// carriers -- Mechanized Production, Endless Atlas, Chrome
-		// Replicator, Sceptre of Eternal Glory): the GREATEST number of
+		// Forge's Count$MostCardName <spec> (4 corpus carriers -- Mechanized Production, Endless Atlas, Chrome Replicator, Sceptre of Eternal Glory): the GREATEST number of
 		// battlefield objects matching <spec> that share one face name.
 		// Mechanized Production's "eight or more artifacts with the same
 		// name as one another" is exactly this read over

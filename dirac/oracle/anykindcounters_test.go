@@ -67,15 +67,6 @@ type krepl3Stats struct {
 
 type krepl3Tally struct{ evAt int }
 
-func krepl3Has(g *state.Game, pl state.PlayerID, name string) bool {
-	for _, b := range g.Zone(state.ZBattlefield, pl) {
-		if chName(g, b) == name {
-			return true
-		}
-	}
-	return false
-}
-
 func (p *krepl3Tally) scan(ref *GorgeSide, st *krepl3Stats) {
 	g := ref.E.G
 	evs := ref.E.L.Events
@@ -92,7 +83,7 @@ func (p *krepl3Tally) scan(ref *GorgeSide, st *krepl3Stats) {
 			continue
 		}
 		p1 := e.Counter == "P1P1"
-		if krepl3Has(g, o.Controller, "Loading Zone") {
+		if battlefieldHasName(g, o.Controller, "Loading Zone") {
 			st.lzCtr++
 			if p1 && e.Amount >= 2 {
 				st.lzDoubled++
@@ -104,7 +95,7 @@ func (p *krepl3Tally) scan(ref *GorgeSide, st *krepl3Stats) {
 				st.lzNonP1++
 			}
 		}
-		if krepl3Has(g, o.Controller, "Doc Samson, Super Psychiatrist") {
+		if battlefieldHasName(g, o.Controller, "Doc Samson, Super Psychiatrist") {
 			st.dsCtr++
 			if !p1 {
 				st.dsNonP1++

@@ -97,20 +97,9 @@ func battleAngelsCombat(t *testing.T, s battleAngelsSetup) battleAngelsRun {
 	}
 
 	run := battleAngelsRun{e: e, cfg: cfg, attacker: attacker,
-		draws0: countDraws(e, 0), tokens0: countTokenCreatesFor(e, 0), life0: e.G.Players[0].Life}
+		draws0: countDraws(e, 0), tokens0: countTokenCreates(e, 0), life0: e.G.Players[0].Life}
 	e.askAttackers()
 	return run
-}
-
-// countTokenCreates counts the TokenCreate events minted for player p.
-func countTokenCreatesFor(e *Engine, p state.PlayerID) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.TokenCreate && ev.Player == p {
-			n++
-		}
-	}
-	return n
 }
 
 // resolveBattleAngelsCombat declares the Battle Angels attacker, declines the
@@ -176,7 +165,7 @@ func TestBattleAngelsOfTyrCombatDamageTriggerChecksEachOtherPlayer(t *testing.T)
 	if got := countDraws(e, 0) - run.draws0; got != 1 {
 		t.Fatalf("seat 0 drew %d cards from the trigger, want 1", got)
 	}
-	if got := countTokenCreatesFor(e, 0) - run.tokens0; got != 1 {
+	if got := countTokenCreates(e, 0) - run.tokens0; got != 1 {
 		t.Fatalf("seat 0 created %d Treasure tokens, want 1", got)
 	}
 	if got := e.G.Players[0].Life - run.life0; got != 3 {
@@ -195,7 +184,7 @@ func TestBattleAngelsOfTyrCombatDamageTriggerChecksEachOtherPlayer(t *testing.T)
 	if got := countDraws(e, 0) - run.draws0; got != 0 {
 		t.Fatalf("seat 0 drew %d cards with a hand tie, want 0", got)
 	}
-	if got := countTokenCreatesFor(e, 0) - run.tokens0; got != 0 {
+	if got := countTokenCreates(e, 0) - run.tokens0; got != 0 {
 		t.Fatalf("seat 0 created %d Treasure tokens with a land tie, want 0", got)
 	}
 	if got := e.G.Players[0].Life - run.life0; got != 3 {

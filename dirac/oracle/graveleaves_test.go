@@ -76,27 +76,6 @@ func (w *graveleavesTriggerWatch) Step() CDecision {
 
 func (w *graveleavesTriggerWatch) Close() { CloseSide(w.Side) }
 
-// graveleavesPolicy casts or activates whenever it can (so Raise Dead, Regrowth and
-// Skeleton Crew's return reach the graveyard triggers), else random.
-func graveleavesPolicy(seed uint64) Policy {
-	rnd := RandomPolicy(seed)
-	var buf []Canon
-	return PolicyFunc(func(c *PickCtx) Canon {
-		buf = buf[:0]
-		for _, a := range c.D.Options {
-			if k := a.Kind(); k == ActCast || k == ActActivate {
-				buf = append(buf, a)
-			}
-		}
-		if len(buf) == 0 {
-			return rnd.Pick(c)
-		}
-		d := *c.D
-		d.Options = buf
-		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
-	})
-}
-
 func TestLeavesGraveyardTriggerLockstep(t *testing.T) {
 	t.Parallel()
 
@@ -142,7 +121,7 @@ func TestLeavesGraveyardTriggerLockstep(t *testing.T) {
 				t.Fatal(err)
 			}
 			watch := &graveleavesTriggerWatch{Side: k, seen: map[string]bool{}}
-			pol := graveleavesPolicy(seed)
+			pol := castActivatePolicy(seed)
 			if seed%4 == 0 {
 				pol = RandomPolicy(seed)
 			}

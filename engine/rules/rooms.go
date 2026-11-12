@@ -181,12 +181,3 @@ func (e *Engine) unlockRoomFaceCost(o *state.Object, fi int) (Cost, bool) {
 	}
 	return e.faceCost(o.Card.Faces[fi]), true
 }
-
-// unlockRoomCost returns the first locked face's cost for legacy callers.
-func (e *Engine) unlockRoomCost(o *state.Object) (Cost, bool) {
-	f := roomLockedFace(o)
-	if f == nil {
-		return Cost{}, false
-	}
-	return e.faceCost(f), true
-}

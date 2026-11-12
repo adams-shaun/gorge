@@ -205,7 +205,9 @@ func (e *Engine) castWindowReflectedUnits(pc *pendingCast, units []windowManaUni
 // window: choice-shaped productions (a colour chosen when the source is
 // tapped), free abilities whose Amount$ is not a literal, and non-free
 // activation costs (a literal generic <N>, a PayLife<N>, a deterministic
-// self-sacrifice, or a choice-shaped production behind any of them). The
+// self-sacrifice -- with or without a literal generic fee the window funds
+// first, Omni-Cheese Pizza's "{1}, {T}, Sacrifice this artifact: Add one mana
+// of any color" -- or a choice-shaped production behind any of them). The
 // conservatism of windowManaUnits is load-bearing for the attack-cost and
 // unless-cost windows, which cannot pose a sub-ask while tapping; the CR
 // 601.2g cast window CAN: manaWindowAsk offers any currently payable
@@ -277,6 +279,17 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 				// the production is parsed).
 			case castWindowGenericCostShape(cost):
 				genericCost, coloredCost = cost.Generic, cost.Colored
+			case cost.Generic > 0 && pay.CastWindowSelfSacGenericFeeCost(asPayer(e), p, id, cost):
+				// A literal generic fee with a deterministic self-sacrifice
+				// riding it (Omni-Cheese Pizza's "{1}, {T}, Sacrifice this
+				// artifact: Add one mana of any color"): the window's
+				// activation pays the fee from mana this window has already
+				// accumulated, taps and sacrifices the source without a
+				// further ask (pay.CastWindowSelfSacCost's batch), then
+				// produces. The shared paid-cost census refuses the shape --
+				// its readers cannot fund a fee from floating mana -- so
+				// this is the cast window's own paid layer.
+				genericCost = cost.Generic
 			default:
 				// The PayLife<N> and self-sacrifice arms are the paid-cost
 				// census layer's shared shape test (paid_mana_census.go).
@@ -414,7 +427,8 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc
 			continue
 		}
 		free := pay.ManaFreeCost(cost)
-		if !free && !castWindowGenericCostShape(cost) {
+		if !free && !castWindowGenericCostShape(cost) &&
+			!(cost.Generic > 0 && pay.CastWindowSelfSacGenericFeeCost(asPayer(e), p, id, cost)) {
 			if _, ok := e.paidCostShape(p, id, cost, e.G.Players[p].Life); !ok {
 				return true
 			}

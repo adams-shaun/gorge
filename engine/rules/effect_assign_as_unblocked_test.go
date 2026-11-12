@@ -21,47 +21,6 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// boardObj finds seat p's battlefield permanent named name.
-func boardObj(t *testing.T, e *Engine, p state.PlayerID, name string) state.ObjID {
-	t.Helper()
-	for _, id := range e.G.Zone(state.ZBattlefield, p) {
-		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
-			return id
-		}
-	}
-	t.Fatalf("seat %d's battlefield has no %q", p, name)
-	return 0
-}
-
-// submitBlockerPairsNoDrain answers the pending blockers decision with the
-// named (attacker, blocker) pairs WITHOUT crossing the CR 509.2 priority
-// window that follows, so the caller can act in it (Outmaneuver is cast
-// there, with the blockers already declared).
-func submitBlockerPairsNoDrain(t *testing.T, e *Engine, pairs ...[2]state.ObjID) {
-	t.Helper()
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KBlockers {
-		t.Fatalf("expected a blockers decision, got %+v", d)
-	}
-	var choices []int
-	for _, pr := range pairs {
-		idx := -1
-		for _, o := range d.Options {
-			if o.Obj == pr[1] && o.Attacker == pr[0] {
-				idx = o.Index
-				break
-			}
-		}
-		if idx < 0 {
-			t.Fatalf("no block option pairing attacker %d with blocker %d: %+v", pr[0], pr[1], d.Options)
-		}
-		choices = append(choices, idx)
-	}
-	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}); err != nil {
-		t.Fatalf("submit blocker pairs: %v", err)
-	}
-}
-
 // electionChooseAskAfter reports whether a choose ask (the KChoose
 // election's DecisionAsk) was posed to player p after marker: the broad
 // DecisionAsk scan electionAskedAfter uses would also match the CR 509.2
@@ -121,8 +80,8 @@ func TestEffectAsUnblockedPredatoryFocus(t *testing.T) {
 	e, cfg := restrictionGame(t, 9317,
 		[][]*cards.Card{{focus}, nil},
 		[][]*cards.Card{{atkCard}, {blkCard}})
-	atk := boardObj(t, e, 0, "Brute")
-	blk := boardObj(t, e, 1, "Pup")
+	atk := miscBoardObj(t, e, 0, "Brute")
+	blk := miscBoardObj(t, e, 1, "Pup")
 	focusID := moveByName(t, e, 0, "Predatory Focus", state.ZHand)
 
 	if pw := e.Power(atk); pw != 4 {
@@ -181,8 +140,8 @@ func TestEffectAsUnblockedDeclined(t *testing.T) {
 	e, cfg := restrictionGame(t, 9319,
 		[][]*cards.Card{{focus}, nil},
 		[][]*cards.Card{{atkCard}, {blkCard}})
-	atk := boardObj(t, e, 0, "Brute")
-	blk := boardObj(t, e, 1, "Pup")
+	atk := miscBoardObj(t, e, 0, "Brute")
+	blk := miscBoardObj(t, e, 1, "Pup")
 	focusID := moveByName(t, e, 0, "Predatory Focus", state.ZHand)
 
 	if pw := e.Power(atk); pw != 4 {
@@ -234,10 +193,10 @@ func TestEffectAsUnblockedOutmaneuverMandatory(t *testing.T) {
 	e, cfg := restrictionGame(t, 9329,
 		[][]*cards.Card{{out}, nil},
 		[][]*cards.Card{{atk1Card, atk2Card}, {blk1Card, blk2Card}})
-	atk1 := boardObj(t, e, 0, "Brute")
-	atk2 := boardObj(t, e, 0, "Pal")
-	blk1 := boardObj(t, e, 1, "Pup")
-	blk2 := boardObj(t, e, 1, "Runt")
+	atk1 := miscBoardObj(t, e, 0, "Brute")
+	atk2 := miscBoardObj(t, e, 0, "Pal")
+	blk1 := miscBoardObj(t, e, 1, "Pup")
+	blk2 := miscBoardObj(t, e, 1, "Runt")
 	outID := moveByName(t, e, 0, "Outmaneuver", state.ZHand)
 
 	if pw := e.Power(atk1); pw != 4 || e.Power(atk2) != 4 {
@@ -252,7 +211,7 @@ func TestEffectAsUnblockedOutmaneuverMandatory(t *testing.T) {
 	// instant-speed window where the spell's blocked-creature targets exist.
 	driveToStep(t, e, e.G.Turn, 0, state.StepDeclareAttackers)
 	submitAttackers(t, e, atk1, atk2)
-	submitBlockerPairsNoDrain(t, e, [2]state.ObjID{atk1, blk1}, [2]state.ObjID{atk2, blk2})
+	submitBlockerPairsOnly(t, e, [2]state.ObjID{atk1, blk1}, [2]state.ObjID{atk2, blk2})
 	for _, r := range "RR" {
 		e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: string(r), Amount: 1})
 	}
@@ -342,8 +301,8 @@ func TestEffectAsUnblockedExpires(t *testing.T) {
 	e, cfg := restrictionGame(t, 9341,
 		[][]*cards.Card{{focus}, nil},
 		[][]*cards.Card{{atkCard}, {blkCard}})
-	atk := boardObj(t, e, 0, "Brute")
-	blk := boardObj(t, e, 1, "Pup")
+	atk := miscBoardObj(t, e, 0, "Brute")
+	blk := miscBoardObj(t, e, 1, "Pup")
 	focusID := moveByName(t, e, 0, "Predatory Focus", state.ZHand)
 
 	if e.Power(atk) != 4 || e.Toughness(blk) != 1 {

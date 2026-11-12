@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
-	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -31,9 +30,9 @@ func TestDominionInfiltrationTokenCopyHasChangelingAndHaste(t *testing.T) {
 	if inZone(e, state.ZHand, 1, theirs) {
 		from = state.ZHand
 	}
-	moveTo(e, theirs, from, state.ZBattlefield)
+	moveQuiet(e, theirs, from, state.ZBattlefield)
 	if inZone(e, state.ZLibrary, 0, di) {
-		moveTo(e, di, state.ZLibrary, state.ZHand)
+		moveQuiet(e, di, state.ZLibrary, state.ZHand)
 	}
 	toMain1(t, e)
 	addMana(t, e, 0, "RRRR") // X = 1
@@ -79,8 +78,4 @@ func TestDominionInfiltrationTokenCopyHasChangelingAndHaste(t *testing.T) {
 		t.Fatal("the copied creature gained changeling")
 	}
 	replayCheck(t, e, cfg)
-}
-
-func moveTo(e *Engine, id state.ObjID, from, to state.Zone) {
-	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: from, To: to})
 }

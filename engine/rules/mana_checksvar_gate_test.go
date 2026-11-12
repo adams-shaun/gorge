@@ -11,32 +11,9 @@ package rules
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
-
-func fpCorpus(t *testing.T, name string) *cards.Card {
-	t.Helper()
-	c, ok := testutil.CorpusRegistry(t).Lookup(name)
-	if !ok {
-		t.Fatalf("corpus card %q missing", name)
-	}
-	return c
-}
-
-func fpPlanUses(got PaymentPlanOutcome, id state.ObjID) (decision.PaymentActivation, bool) {
-	if got.Plan == nil {
-		return decision.PaymentActivation{}, false
-	}
-	for _, a := range got.Plan.Activations {
-		if a.Source == id {
-			return a, true
-		}
-	}
-	return decision.PaymentActivation{}, false
-}
 
 // TestAutopayFPCheckSVarGateHoldsForManaAbilities is the census proof: with
 // no poison counters anywhere, Glistening Sphere's Corrupted ability must be
@@ -45,7 +22,7 @@ func fpPlanUses(got PaymentPlanOutcome, id state.ObjID) (decision.PaymentActivat
 func TestAutopayFPCheckSVarGateHoldsForManaAbilities(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9804, "Name:Three Probe\nManaCost:3\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
-	sphere := onBoardCard(t, e, 0, fpCorpus(t, "Glistening Sphere"))
+	sphere := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Glistening Sphere"))
 	gated := e.G.Obj(sphere).Face().Abilities[1]
 	if gated.Params["CheckSVar"] == "" {
 		t.Fatal("fixture: ability 1 must be the CheckSVar-gated Corrupted ability")
@@ -65,7 +42,7 @@ func TestAutopayFPCheckSVarGateHoldsForManaAbilities(t *testing.T) {
 func TestManaAbilityCheckSVarGate(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9804, "Name:Three Probe\nManaCost:3\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
-	sphere := onBoardCard(t, e, 0, fpCorpus(t, "Glistening Sphere"))
+	sphere := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Glistening Sphere"))
 	if o := e.G.Obj(sphere); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatal("precondition: Glistening Sphere is not on the battlefield")
 	}

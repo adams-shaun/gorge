@@ -63,10 +63,10 @@ func TestLoseManaBoundaryWaitsForChoiceBeforeOtherSeatsAndCombatReset(t *testing
 			ozai = id
 		}
 	}
-	if ozai == 0 || optionForObj(d, ozai) < 0 {
+	if ozai == 0 || indexOfObjOption(d, ozai) < 0 {
 		t.Fatalf("precondition: Ozai not offered: %+v", d.Options)
 	}
-	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{optionForObj(d, ozai)}}); err != nil {
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{indexOfObjOption(d, ozai)}}); err != nil {
 		t.Fatal(err)
 	}
 	// Ozai alone applies (CR 616.1f): the converted red is no longer lost,

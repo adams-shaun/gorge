@@ -7,8 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The Discard primitive's UnlessType$ read (task
-// inbox-paramcensus-final-stragglers, Thirst for Knowledge entry). A Mode$
+// The Discard primitive's UnlessType$ read (Thirst for Knowledge entry). A Mode$
 // TgtChoose discard carrying UnlessType$ (Thirst for Knowledge's "discard
 // two cards unless you discard an artifact card") poses the unless ELECTION
 // whenever a card of the type is in hand: "discard one <type> instead" or
@@ -41,15 +40,6 @@ func tfkHand(t *testing.T, extras ...string) (*Engine, state.ObjID) {
 
 func tfkArtifact(spec string) string {
 	return "Name:" + spec + "\nManaCost:0\nTypes:Artifact\nOracle:x\n"
-}
-
-func tfkOptionFor(d *decision.Decision, id state.ObjID) int {
-	for _, o := range d.Options {
-		if o.Obj == id {
-			return o.Index
-		}
-	}
-	return -1
 }
 
 // TestThirstForKnowledgeDiscardsTheArtifactInstead drives the unless arm:
@@ -167,7 +157,7 @@ func TestThirstForKnowledgeChoosesAmongArtifacts(t *testing.T) {
 	}
 	keep := firstHandObj(t, e, "Mox B")
 	take := firstHandObj(t, e, "Mox A")
-	pick := tfkOptionFor(d2, take)
+	pick := indexOfObjOption(d2, take)
 	if pick < 0 {
 		t.Fatalf("Mox A not offered: %+v", d2.Options)
 	}

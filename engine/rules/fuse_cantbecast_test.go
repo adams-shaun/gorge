@@ -1,7 +1,7 @@
 package rules
 
 // fuse_cantbecast_test.go pins the CR 709.5 prohibition gate on a Fuse cast
-// (task fuse-cantbecast): a fused cast is ONE spell with BOTH halves'
+// a fused cast is ONE spell with BOTH halves'
 // characteristics, so a CantBeCast restriction that matches EITHER half must
 // withhold the fused offer.
 //
@@ -94,10 +94,10 @@ func TestFuseCantBeCastEitherHalf(t *testing.T) {
 		// Combined cost {U}{B}+{4}{B}{R} = {4}{U}{B}{B}{R} (8 mana); fund it plus a
 		// spare so affordability is never the withholding reason.
 		addMana(t, e, 0, "UUBBRGGG")
-		if fuse := splitOption(t, e, id, "fuse"); fuse != nil {
+		if fuse := adventureOption(t, e, id, "fuse"); fuse != nil {
 			t.Fatalf("fused offer present although the back half is prohibited: %+v", fuse)
 		}
-		plain := splitOption(t, e, id, "")
+		plain := adventureOption(t, e, id, "")
 		if plain == nil || plain.Label != "Cast Breaking" {
 			t.Fatalf("Breaking's ordinary front offer withheld although unrestricted: %+v",
 				castOptions(t, e))
@@ -106,7 +106,7 @@ func TestFuseCantBeCastEitherHalf(t *testing.T) {
 		// absent. (Separate engine, so the mana funding is reapplied.)
 		ce, _, cid := fuseTestEngine(t, reg, "Breaking", false, 8421)
 		addMana(t, ce, 0, "UUBBRGGG")
-		cf := splitOption(t, ce, cid, "fuse")
+		cf := adventureOption(t, ce, cid, "fuse")
 		if cf == nil || cf.Label != "Cast Breaking // Entering (fused)" {
 			t.Fatalf("control: fused offer missing without the restriction: %+v",
 				castOptions(t, ce))
@@ -158,10 +158,10 @@ func TestFuseCantBeCastEitherHalf(t *testing.T) {
 		}
 		// Combined cost {3}{G}+{W} = {3}{G}{W}; fund it plus a spare.
 		addMana(t, e, 0, "GGWWW")
-		if fuse := splitOption(t, e, id, "fuse"); fuse != nil {
+		if fuse := adventureOption(t, e, id, "fuse"); fuse != nil {
 			t.Fatalf("fused offer present although the front half is prohibited: %+v", fuse)
 		}
-		alt := splitOption(t, e, id, "split_alt")
+		alt := adventureOption(t, e, id, "split_alt")
 		if alt == nil || alt.Label != "Cast Well" {
 			t.Fatalf("Well's independent offer withheld although unrestricted: %+v",
 				castOptions(t, e))
@@ -169,7 +169,7 @@ func TestFuseCantBeCastEitherHalf(t *testing.T) {
 		// Control: with Teeg absent the fused cast is offered.
 		ce, _, cid := fuseTestEngine(t, reg, "Alive", false, 8422)
 		addMana(t, ce, 0, "GGWWW")
-		cf := splitOption(t, ce, cid, "fuse")
+		cf := adventureOption(t, ce, cid, "fuse")
 		if cf == nil || cf.Label != "Cast Alive // Well (fused)" {
 			t.Fatalf("control: fused offer missing without the restriction: %+v",
 				castOptions(t, ce))

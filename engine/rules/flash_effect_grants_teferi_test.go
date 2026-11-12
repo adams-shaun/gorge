@@ -24,13 +24,13 @@ func TestTeferiTimeRaverOpponentCastsAtSorcerySpeedOnly(t *testing.T) {
 	if d := e.Pending(); d == nil || d.Player != 1 || len(e.G.Stack) != 0 {
 		t.Fatalf("precondition: seat 1 should hold priority in its main phase with an empty stack: %+v", d)
 	}
-	if !castOfferedFor(e, bolt) {
+	if !castOffered(e, bolt) {
 		t.Fatalf("precondition: Bolt is not offered before Teferi is in play: %+v", e.Pending().Options)
 	}
 	moveByName(t, e, 0, "Teferi, Time Raveler", state.ZBattlefield)
 	e.pending = nil
 	e.priorityRound()
-	if !castOfferedFor(e, bolt) {
+	if !castOffered(e, bolt) {
 		t.Fatalf("Teferi's static withheld an opponent's cast at sorcery timing: %+v", e.Pending().Options)
 	}
 	castNamed(t, e, "Lightning Bolt")
@@ -41,7 +41,7 @@ func TestTeferiTimeRaverOpponentCastsAtSorcerySpeedOnly(t *testing.T) {
 	if d := e.Pending(); d == nil || d.Player != 1 {
 		t.Fatalf("precondition: seat 1 should hold priority over its own Bolt: %+v", d)
 	}
-	if castOfferedFor(e, shock) {
+	if castOffered(e, shock) {
 		t.Fatalf("an opponent was offered an instant with a spell on the stack under Teferi: %+v", e.Pending().Options)
 	}
 	replayCheck(t, e, cfg)
@@ -79,10 +79,10 @@ func TestTeferiTimeRaverPlusOneGrantsSorceryFlashUntilYourNextTurn(t *testing.T)
 	passUntilStackEmpty(t, e, 40)
 	boltOnStack(t, e)
 	addMana(t, e, 0, "UUUGG")
-	if !castOfferedFor(e, div) {
+	if !castOffered(e, div) {
 		t.Fatalf("Teferi's +1 did not grant flash to a sorcery: %+v", e.Pending().Options)
 	}
-	if castOfferedFor(e, bears) {
+	if castOffered(e, bears) {
 		t.Fatal("Teferi's +1 (ValidCard$ Sorcery) granted flash to a creature")
 	}
 	// Through the opponent's turn ...

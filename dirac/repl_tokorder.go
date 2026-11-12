@@ -39,11 +39,39 @@ type tokOrd struct {
 	cand   [4]Obj // the replacements' sources, in gorge's scan order
 }
 
+// A copy-instead election's state rides in tokOrd.used's high nibble: bits
+// 4-5 the candidate, bit 6 the election due, bit 7 the accepted election. The
+// low nibble is the candidate bitmask (the ask holds four).
+const (
+	tokCopyJMask = 3 << 4
+	tokCopyDue   = 1 << 6
+	tokCopyTaken = 1 << 7
+)
+
+func (t *tokOrd) copyJ() int     { return int(t.used>>4) & 3 }
+func (t *tokOrd) setCopyJ(j int) { t.used = t.used&^tokCopyJMask | uint8(j)<<4 }
+func (t *tokOrd) copyDue() bool  { return t.used&tokCopyDue != 0 }
+func (t *tokOrd) setCopyDue(v bool) {
+	if v {
+		t.used |= tokCopyDue
+	} else {
+		t.used &^= tokCopyDue
+	}
+}
+func (t *tokOrd) copyTaken() bool { return t.used&tokCopyTaken != 0 }
+func (t *tokOrd) setCopyTaken(v bool) {
+	if v {
+		t.used |= tokCopyTaken
+	} else {
+		t.used &^= tokCopyTaken
+	}
+}
+
 // tokCands collects the token replacements that match a token of card tok
 // created under p, in gorge's scan order (p's battlefield in entry order), into
-// t, and returns how many are rewriters. over is set when there are more than
-// the ask holds.
-func (s *State) tokCands(k *prep, p uint8, tok CardID, t *tokOrd) (rew int, over bool) {
+// t, and returns how many are rewriters and how many are copy-instead
+// elections. over is set when there are more than the ask holds.
+func (s *State) tokCands(k *prep, p uint8, tok CardID, t *tokOrd) (rew, copyN int, over bool) {
 	g := k.gen
 	var bf [MaxPerm]Slot
 	for _, b := range bf[:s.battlefieldOrder(p, s.statM.and(s.ctrlM[p]), bf[:], 0)] {
@@ -66,23 +94,48 @@ func (s *State) tokCands(k *prep, p uint8, tok CardID, t *tokOrd) (rew int, over
 				if a.Repl.Filter != 0 && !s.matchCardGen(k, a.Repl.Filter, tok, p, p, NoObj) {
 					continue
 				}
+			case kop.ReplCopyFirstToken:
+				// the election is asked for a token the replacement applies
+				// to now (its gate holds and its source is attached)
+				if _, ok := s.tokCopyApplies(k, b, a, p); !ok {
+					continue
+				}
+				copyN++
 			default:
 				continue
 			}
 			if int(t.nc) == len(t.cand) {
-				return rew, true
+				return rew, copyN, true
 			}
 			t.cand[t.nc], t.ab[t.nc] = s.perms[b].obj, uint8(i)
 			t.nc++
 		}
 	}
-	return rew, false
+	return rew, copyN, false
 }
 
 // tokAbility is candidate j's replacement ability.
 func (s *State) tokAbility(k *prep, j int) *kop.Ability {
-	t := &s.g.tok
+	return s.tokAbilityOf(k, &s.g.tok, j)
+}
+
+// tokAbilityOf is tokAbility over a candidate list not yet stored in g.tok.
+func (s *State) tokAbilityOf(k *prep, t *tokOrd, j int) *kop.Ability {
 	return &k.t.Cards[s.cardAt(s.objs[t.cand[j]].slot)].Abilities[t.ab[j]]
+}
+
+// tokCopyHostOf is the host of a collected copy-instead candidate.
+func (s *State) tokCopyHostOf(k *prep, t *tokOrd, p uint8) Slot {
+	for j := 0; j < int(t.nc); j++ {
+		a := s.tokAbilityOf(k, t, j)
+		if a.Repl.Kind != kop.ReplCopyFirstToken {
+			continue
+		}
+		if h, ok := s.tokCopyApplies(k, s.objs[t.cand[j]].slot, a, p); ok {
+			return h
+		}
+	}
+	return NoSlot
 }
 
 // tokApply applies candidate j to the current token: a rewriter makes it its
@@ -111,13 +164,15 @@ func (s *State) tokApply(k *prep, j int) {
 
 // tokWalk applies the unapplied candidates in scan order until two or more
 // of them that do not all commute remain and ask is set (true: the ask is
-// due) or none remain. The remaining suffix is re-collected after each pick
-// as gorge's walk does: a lone rewriter among two or more candidates does
-// not commute (tokenReplacementsCommute), multipliers alone do.
+// due), a copy-instead election is due (copyOn), or none remain. The
+// remaining suffix is re-collected after each pick as gorge's walk does: a
+// lone rewriter, or a copy election, among two or more candidates does not
+// commute (tokenReplacementsCommute), multipliers alone do.
 func (s *State) tokWalk(k *prep, ask bool) bool {
 	t := &s.g.tok
+	t.setCopyDue(false)
 	for {
-		left, rew, first := 0, 0, -1
+		left, rew, cp, first := 0, 0, 0, -1
 		for j := 0; j < int(t.nc); j++ {
 			if t.used&(1<<j) != 0 {
 				continue
@@ -126,18 +181,84 @@ func (s *State) tokWalk(k *prep, ask bool) bool {
 				first = j
 			}
 			left++
-			if s.tokAbility(k, j).Repl.Kind == kop.ReplRewriteTokens {
+			switch s.tokAbility(k, j).Repl.Kind {
+			case kop.ReplRewriteTokens:
 				rew++
+			case kop.ReplCopyFirstToken:
+				cp++
 			}
 		}
 		if left == 0 {
 			return false
 		}
-		if ask && left > 1 && rew > 0 {
+		if ask && left > 1 && (rew > 0 || cp > 0) {
 			return true
+		}
+		if s.tokAbility(k, first).Repl.Kind == kop.ReplCopyFirstToken {
+			if ask {
+				t.setCopyJ(first)
+				t.setCopyDue(true)
+				return false
+			}
+			t.used |= 1 << first // a lost creator makes no election: decline
+			continue
 		}
 		t.used |= 1 << first
 		s.tokApply(k, first)
+	}
+}
+
+// tokCopyHost is the permanent a copy-instead election copies: the host its
+// source is attached to. The lone election (tokCopyOp) keeps the host in
+// cand[0]; a contested walk's candidate is copyJ.
+func (s *State) tokCopyHost(k *prep, t *tokOrd) Obj {
+	if t.nc == 0 {
+		return t.cand[0]
+	}
+	b := s.objs[t.cand[t.copyJ()]].slot
+	h := s.perms[b].attached
+	if h == NoSlot || !s.occ.has(h) {
+		return NoObj
+	}
+	return s.perms[h].obj
+}
+
+// tokCopyPose poses the copy-instead election for candidate j: it is consumed
+// either way (decline first, or the permanent it is attached to). False when
+// its gate no longer holds, so the walk goes on with it declined.
+func (s *State) tokCopyPose(k *prep, j int) bool {
+	t := &s.g.tok
+	t.used |= 1 << j
+	a := s.tokAbility(k, j)
+	if _, ok := s.tokCopyApplies(k, s.objs[t.cand[j]].slot, a, t.p); !ok {
+		return false
+	}
+	t.setCopyJ(j)
+	s.g.ro.replHdr = replHdr{}
+	s.res.ask, s.res.askP = raGenTokCopy, t.p
+	return true
+}
+
+// tokAfterWalk parks the walk's next ask (an order competition or a
+// copy-instead election), or marks the token ready and returns false.
+func (s *State) tokAfterWalk(k *prep, ask bool) bool {
+	t := &s.g.tok
+	for {
+		if s.tokWalk(k, ask) {
+			s.g.ro.replHdr = replHdr{n: t.nc, used: t.used, p: t.p, cand: t.cand}
+			s.res.ask, s.res.askP = raGenReplOrder, t.p
+			return true
+		}
+		if !t.copyDue() {
+			s.g.ro.replHdr = replHdr{}
+			t.ready = true
+			s.res.ask = raNone
+			return false
+		}
+		t.setCopyDue(false)
+		if s.tokCopyPose(k, t.copyJ()) {
+			return true
+		}
 	}
 }
 
@@ -146,32 +267,43 @@ func (s *State) tokWalk(k *prep, ask bool) bool {
 func (s *State) tokPose(k *prep) bool {
 	t := &s.g.tok
 	t.used, t.card, t.cnt = 0, t.tok, 1
-	if s.tokWalk(k, !s.pl[t.p].lost) {
-		s.g.ro.replHdr = replHdr{n: t.nc, used: t.used, p: t.p, cand: t.cand}
-		s.res.ask, s.res.askP = raGenReplOrder, t.p
-		return true
+	t.setCopyDue(false)
+	t.setCopyTaken(false)
+	// A copy-instead gate is read at every token event: the first token that
+	// enters closes it for the rest of the creation (gorge reads CheckSVar$ at
+	// each TokenCreate event, not once at the op).
+	for j := 0; j < int(t.nc); j++ {
+		a := s.tokAbility(k, j)
+		if a.Repl.Kind != kop.ReplCopyFirstToken {
+			continue
+		}
+		if _, ok := s.tokCopyApplies(k, s.objs[t.cand[j]].slot, a, t.p); !ok {
+			t.used |= 1 << j
+		}
 	}
-	t.ready = true
-	return false
+	return s.tokAfterWalk(k, !s.pl[t.p].lost)
 }
 
 // tokAnswer is the creator's pick: it applies at its scan point, the walk
 // goes on, and when it ends the op's instruction runs again with the token.
 func (s *State) tokAnswer(k *prep, a Action) {
-	t, ro := &s.g.tok, &s.g.ro
+	t := &s.g.tok
 	j := a.Mode()
 	if j >= t.nc || t.used&(1<<j) != 0 {
 		return // not an offered option
 	}
-	t.used |= 1 << j
-	s.tokApply(k, int(j))
-	if s.tokWalk(k, true) {
-		ro.used = t.used // asked again
+	if s.tokAbility(k, int(j)).Repl.Kind == kop.ReplCopyFirstToken {
+		// the picked copy-instead candidate asks its election before it applies
+		if s.tokCopyPose(k, int(j)) {
+			return
+		}
+	} else {
+		t.used |= 1 << j
+		s.tokApply(k, int(j))
+	}
+	if s.tokAfterWalk(k, true) {
 		return
 	}
-	ro.replHdr = replHdr{}
-	t.ready = true
-	s.res.ask = raNone
 	s.runProg(k)
 }
 
@@ -186,14 +318,40 @@ func (s *State) replTokensOp(k *prep, in *kop.Instr, p uint8, tok CardID, n int)
 		return tc, cnt, ok, false
 	}
 	var t tokOrd
-	rew, over := s.tokCands(k, p, tok, &t)
+	rew, ncopy, over := s.tokCands(k, p, tok, &t)
 	if over {
 		s.capFull(StallReplCands) // loud: never truncate the candidates
 		return tok, 0, false, false
 	}
-	if nCopy, host := s.tokCopyActive(k, p); nCopy > 0 {
-		_, na, _ := s.tokAddCards(k, p, tok)
-		return s.tokCopyOp(k, in, p, tok, n, nCopy, host, int(t.nc), na) // repl_tokcopy.go
+	if ncopy > 0 {
+		host := s.tokCopyHostOf(k, &t, p)
+		_, na, addOver := s.tokAddCards(k, p, tok)
+		if addOver {
+			s.capFull(StallReplCands)
+			return tok, 0, false, false
+		}
+		if t.nc == uint8(ncopy) {
+			// the copy-instead election is the creation's only replacement
+			return s.tokCopyOp(k, in, p, tok, n, ncopy, host, na) // repl_tokcopy.go
+		}
+		// A copy-instead election beside a multiplier is gorge's CR 616.1
+		// order ask, which the walk below poses. A rewriter beside it, an
+		// adder beside it, and a host or rider the copy mint cannot enter
+		// stay the declared stall (repl_tokcopy.go).
+		ro := &s.g.ro
+		if ncopy > 1 || rew > 0 || na > 0 || !tokCopyRiders(in) || n > 255 ||
+			ro.n > 0 || ro.on || ro.nca || s.g.nc.n > 0 || host == NoSlot ||
+			s.tokCopyHostStalls(k, host) ||
+			in.Op == kop.OpCreateTokenEx && in.B.N&kop.TokAttach != 0 {
+			s.capFull(StallTokRewrite)
+			return tok, 0, false, false
+		}
+		t.on, t.p, t.left, t.tok = true, p, uint8(n), tok
+		s.g.tok = t
+		if s.tokPose(k) {
+			return tok, 0, true, true
+		}
+		return tok, 0, true, false
 	}
 	if _, na, over := s.tokAddCards(k, p, tok); over {
 		s.capFull(StallReplCands)
@@ -237,6 +395,16 @@ func (s *State) execCreateToken(k *prep, in *kop.Instr) (ok, done bool) {
 	t := &s.g.tok
 	p := s.playerRef(k, in.Obj)
 	if p == 255 {
+		// gorge's TokenOwner grammar is fail-closed: a recognised player
+		// selector that resolves to nobody -- an unset "up to one" target's
+		// controller (Amphin Mutineer's enters trigger) -- mints no token and
+		// emits no Note (engine/effects/token.go); only an unrecognised
+		// spelling defaults to the controller. A target-slot controller ref
+		// resolves to 255 exactly when its slot is unset (tgtCtrlSlot).
+		switch in.Obj {
+		case kop.RefTargetController, kop.RefTgtCtrl1, kop.RefTgtCtrl2:
+			return true, true
+		}
 		p = s.res.e.ctrl
 	}
 	var tc CardID
@@ -285,10 +453,11 @@ func (s *State) execCreateToken(k *prep, in *kop.Instr) (ok, done bool) {
 		// an adder's token enters with the op's own (it is alone: replTokensOp)
 		cs, na, _ = s.tokAddCards(k, p, CardID(in0.C))
 	}
-	if t.on && t.nc == 0 && t.ab[3] != 0 {
-		// the accepted copy-instead election makes this token a copy (repl_tokcopy.go)
-		t.ab[3] = 0
-		if s.mintTokenCopy(k, in, p, t.cand[3]) {
+	if t.on && t.copyTaken() {
+		// the accepted copy-instead election makes every token the walk's
+		// count names a copy (repl_tokcopy.go)
+		t.setCopyTaken(false)
+		if s.mintTokenCopies(k, in, p, s.tokCopyHost(k, t), int(t.cnt)) {
 			return true, true
 		}
 	} else if na > 0 {

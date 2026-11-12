@@ -230,7 +230,7 @@ var charmKnownKeys = [...]string{
 	"ConditionPresent",
 	"ConditionPresent2",
 	"ConditionSVarCompare",
-	"ConditionZone",
+	"ConditionTargetValidTargeting", "ConditionTargetsSingleTarget", "ConditionZone",
 	"CopyCard",
 	"Cost",
 	"CostDesc",

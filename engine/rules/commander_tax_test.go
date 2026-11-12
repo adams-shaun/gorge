@@ -117,20 +117,6 @@ func castCommanderAndReturn(t *testing.T, e *Engine, id state.ObjID) {
 	e.Advance()
 }
 
-// castCommanderOnce casts id from the command zone and drains the stack, but
-// does NOT return it to the command zone. Used only by the replay test, where
-// every event must be produced by the recorded Intents alone (a fixture
-// MoveZone back would not replay).
-func castCommanderOnce(t *testing.T, e *Engine, id state.ObjID) {
-	t.Helper()
-	opt := commanderCastOption(e, id)
-	if opt == nil {
-		t.Fatalf("no command-zone cast option for commander %d: %+v", id, e.Pending().Options)
-	}
-	submitChoices(t, e, opt.Index)
-	passUntilStackEmpty(t, e, 30)
-}
-
 // TestCommanderCastTaxesEveryCastBeyondTheFirst is the CR 903.8 money test:
 // the first cast from the command zone is untaxed, the second costs {2} more
 // and the third {4} more, CmdCasts increments on each, and each additional

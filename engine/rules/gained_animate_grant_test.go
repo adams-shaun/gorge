@@ -25,8 +25,8 @@ import (
 // resolution gives the REFRACTOR (the recipient) a regeneration shield.
 func TestGainedAnimateGrantResolvesOffTheForeignCard(t *testing.T) {
 	t.Parallel()
-	refractor := tokenReplCorpusCard(t, "Manascape Refractor")
-	pool := tokenReplCorpusCard(t, "Spawning Pool")
+	refractor := corpusAlternativeCard(t, "Manascape Refractor")
+	pool := corpusAlternativeCard(t, "Spawning Pool")
 	e, cfg := tokenReplGame(t, 9171, refractor, pool)
 	refID := moveSeededCard(t, e, 0, refractor, state.ZBattlefield)
 	poolID := moveSeededCard(t, e, 0, pool, state.ZBattlefield)

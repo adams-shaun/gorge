@@ -25,7 +25,7 @@ func TestRestrictedSourceRefusesModalBackFace(t *testing.T) {
 	e, _, _ := plannedOfferSetup(t, reg, []*cards.Card{card(t, legendCrest), searchCorpusCard(t, reg, "Swamp"),
 		searchCorpusCard(t, reg, "Kolvori, God of Kinship")}, "Legend Crest", "Swamp")
 	kolvori := searchMoveByName(t, e, "Kolvori, God of Kinship", state.ZHand)
-	d := ppAsk(t, e)
+	d := paymentPlanReask(t, e)
 	for _, o := range d.Options {
 		if o.Obj == kolvori && o.Mode == "modal_spell" {
 			t.Fatalf("offered %q: the restricted green cannot pay a legendary artifact spell", o.Label)

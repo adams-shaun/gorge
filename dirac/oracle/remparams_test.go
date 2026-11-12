@@ -83,6 +83,18 @@ var kremDecks = []struct {
 	}, {
 		{Name: "Grizzly Bears", Count: 12}, {Name: "Forest", Count: 28},
 	}},
+}, {
+	// forget-other: Cultivator Colossus puts a land from its controller's
+	// hand onto the battlefield (the hand move's ForgetOtherRemembered$),
+	// Primal Surge exiles the top card and may put it onto the battlefield
+	// (the Dig's ForgetOtherRemembered$), Tidehollow Sculler exiles a nonland
+	// card from the opponent's hand
+	name: "forget-other", seeds: 128,
+	decks: [2][]cardset.Entry{{
+		{Name: "Cultivator Colossus", Count: 4}, {Name: "Primal Surge", Count: 4}, {Name: "Forest", Count: 32},
+	}, {
+		{Name: "Tidehollow Sculler", Count: 4}, {Name: "Plains", Count: 18}, {Name: "Swamp", Count: 18},
+	}},
 }}
 
 var kremM3 = []cardset.Entry{
@@ -99,6 +111,7 @@ var kremCarriers = []string{
 	"Settle the Wreckage", "Hex Magic", "Elixir", "Overwrite the Multiverse",
 	"Neutralize the Guards", "Wail of War", "How to Start a Riot", "The Black Arrow",
 	"Thirst for Knowledge", "Thirst for Identity", "Steamcore Scholar", "Alpharael, Dreaming Acolyte",
+	"Cultivator Colossus", "Primal Surge", "Tidehollow Sculler",
 }
 
 const (
@@ -116,29 +129,7 @@ var kremBranches = []string{
 	"black arrow: dragon destroyed", "black arrow: non-dragon",
 	"pumpall: opponent scope", "pumpall: caster scope (riot)",
 	"discard: none eligible", "discard: unless, 1 eligible", "discard: unless, >= 2 eligible", "discard: ordinary, eligible present",
-}
-
-func kremName(g *state.Game, id state.ObjID) string {
-	o := g.Obj(id)
-	if o == nil {
-		return ""
-	}
-	if o.Ability != nil && o.Source != 0 {
-		if s := g.Obj(o.Source); s != nil && s.Card != nil && len(s.Card.Faces) > 0 {
-			return s.Card.Faces[0].Name
-		}
-	}
-	if o.Card != nil && len(o.Card.Faces) > 0 {
-		return o.Card.Faces[0].Name
-	}
-	return ""
-}
-
-func kremFace(g *state.Game, id state.ObjID) string {
-	if o := g.Obj(id); o != nil && o.Card != nil && len(o.Card.Faces) > 0 {
-		return o.Card.Faces[0].Name
-	}
-	return ""
+	"ZHand->ZBattlefield", "ZLibrary->ZExile", "ZHand->ZExile",
 }
 
 // kremScan adds one game's branch counts (and its carrier resolutions) from
@@ -165,13 +156,14 @@ func kremScan(g *GorgeSide, n map[string]int, plays map[string]int) {
 		if so == nil {
 			continue
 		}
-		name, ctrl := kremName(gm, ev.Obj), so.Controller
+		name, ctrl := sourceCardName(gm, ev.Obj), so.Controller
 		// the segment: up to the next Priority or Resolve
 		var seg []events.Event
 		for j := i + 1; j < len(evs) && evs[j].Kind != events.Priority && evs[j].Kind != events.Resolve; j++ {
 			seg = append(seg, evs[j])
 		}
 		draws, invest, exiled, surveil, counter, ret, tok, toGY := 0, 0, 0, 0, 0, 0, 0, 0
+		handToBF, libToExile, handToExile := 0, 0, 0
 		var bounced []state.ObjID
 		dragonDied, nonDragonHit := false, false
 		for _, e := range seg {
@@ -195,7 +187,7 @@ func kremScan(g *GorgeSide, n map[string]int, plays map[string]int) {
 					tok++
 				}
 			case events.Damage:
-				if e.Obj != 0 && !strings.Contains(kremFace(gm, e.Obj), "Dragon") {
+				if e.Obj != 0 && !strings.Contains(firstFaceName(gm, e.Obj), "Dragon") {
 					nonDragonHit = true
 				}
 			case events.MoveZone:
@@ -206,11 +198,16 @@ func kremScan(g *GorgeSide, n map[string]int, plays map[string]int) {
 					exiled++
 				case e.From == state.ZHand && e.To == state.ZExile:
 					exiled++
+					handToExile++
+				case e.From == state.ZHand && e.To == state.ZBattlefield:
+					handToBF++
+				case e.From == state.ZLibrary && e.To == state.ZExile:
+					libToExile++
 				case e.From == state.ZExile && e.To == state.ZBattlefield:
 					ret++
 				case e.From == state.ZBattlefield && e.To == state.ZGraveyard:
 					toGY++
-					if kremFace(gm, e.Obj) == "Shivan Dragon" {
+					if firstFaceName(gm, e.Obj) == "Shivan Dragon" {
 						dragonDied = true
 					}
 				}
@@ -307,6 +304,18 @@ func kremScan(g *GorgeSide, n map[string]int, plays map[string]int) {
 			if exiled > 0 {
 				n["settle: attacker exiled"]++
 			}
+		case "Cultivator Colossus":
+			if handToBF > 0 {
+				n["ZHand->ZBattlefield"]++
+			}
+		case "Primal Surge":
+			if libToExile > 0 {
+				n["ZLibrary->ZExile"]++
+			}
+		case "Tidehollow Sculler":
+			if handToExile > 0 {
+				n["ZHand->ZExile"]++
+			}
 		case "Elixir":
 			if so.Ability != nil {
 				n["elixir: resolved"]++
@@ -369,7 +378,7 @@ func kremPolicy(seed uint64, played, n map[string]int, gs **GorgeSide) Policy {
 			// an ordinary pick with no election before it: the resolving
 			// carrier's hand had no UnlessType$ card
 			if top := c.G.E.G.Stack; len(top) > 0 {
-				switch kremName(c.G.E.G, top[len(top)-1]) {
+				switch sourceCardName(c.G.E.G, top[len(top)-1]) {
 				case "Thirst for Knowledge", "Thirst for Identity", "Steamcore Scholar", "Alpharael, Dreaming Acolyte":
 					if !c.G.unlessAsked(top[len(top)-1]) {
 						n["discard: none eligible"]++
@@ -406,7 +415,7 @@ func kremSteer(c *PickCtx) *PickCtx {
 			return &PickCtx{D: &d, G: c.G, Seq: c.Seq}
 		}
 		if a.Kind() == ActCast && !attackers {
-			if o, ok := c.G.GorgeOption(a); ok && kremFace(g, o.Obj) == "Settle the Wreckage" {
+			if o, ok := c.G.GorgeOption(a); ok && firstFaceName(g, o.Obj) == "Settle the Wreckage" {
 				continue
 			}
 		}

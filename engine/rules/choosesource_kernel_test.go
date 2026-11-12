@@ -21,7 +21,7 @@ func resolveChooseSourceAsk(t *testing.T, e *Engine, spell state.ObjID, want sta
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("ChooseSource did not pose a KChoose, got %+v", d)
 	}
-	submitChoices(t, e, optionOfObj(t, d, want))
+	submitChoices(t, e, objOptionIndex(t, d, want))
 	if ch := e.G.Obj(spell).Chosen; len(ch) != 1 || ch[0].Obj != want {
 		t.Fatalf("chosen = %+v, want [%d]", ch, want)
 	}

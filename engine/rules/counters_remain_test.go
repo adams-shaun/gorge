@@ -9,7 +9,7 @@ import (
 
 func TestCountersRemainPreservesCountersExceptHandAndLibrary(t *testing.T) {
 	t.Parallel()
-	card := mshCorpusCard(t, "Me, the Immortal")
+	card := corpusAlternativeCard(t, "Me, the Immortal")
 	e := combatEngine(t)
 	id := onBoardCard(t, e, 0, card)
 	o := e.G.Obj(id)

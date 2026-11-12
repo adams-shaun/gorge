@@ -214,17 +214,6 @@ func drainCopyPayAsks(t *testing.T, e *Engine, limit int, mode string) {
 	}
 }
 
-// copyCount counts StackCopy events naming id.
-func copyCount(e *Engine, id state.ObjID) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.StackCopy && ev.Obj == id {
-			n++
-		}
-	}
-	return n
-}
-
 // allStackCopies lists every StackCopy event's (Obj, Player) pair.
 func allStackCopies(e *Engine) []state.ObjID {
 	var out []state.ObjID
@@ -410,25 +399,6 @@ func TestEachTriggerCopiesItsOwnActivation(t *testing.T) {
 			got, handBefore+6)
 	}
 	replayCheck(t, e, cfg)
-}
-
-// announceSpell casts seat 0's fixture spell named name (the priority
-// decision's first "cast" option for it) and returns the spell object's id
-// while it sits on the stack -- the spell-cast arm's twin of announceAbility.
-func announceSpell(t *testing.T, e *Engine, name string) state.ObjID {
-	t.Helper()
-	castFirst(t, e, "cast")
-	for i := len(e.G.Stack) - 1; i >= 0; i-- {
-		o := e.G.Obj(e.G.Stack[i])
-		if o == nil || o.Card == nil {
-			continue
-		}
-		if o.Face() != nil && o.Face().Name == name {
-			return o.ID
-		}
-	}
-	t.Fatalf("spell %q not on the stack after cast: %v", name, e.G.Stack)
-	return 0
 }
 
 // poolTotal sums a player's floating mana pool (the pay window charges it).

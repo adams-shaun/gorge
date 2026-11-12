@@ -172,7 +172,7 @@ func TestVesuvanShapeshifterCloneEndsOnTurnFaceDownKernel(t *testing.T) {
 		if !offersObj(d, bear) {
 			t.Fatalf("the clone pick does not offer the Bear: %+v", d)
 		}
-		submitChoices(t, e, optionOfObj(t, d, bear))
+		submitChoices(t, e, objOptionIndex(t, d, bear))
 	}
 	if o := e.G.Obj(mimic); o.Face().Name != "Grizzly Bears" || o.FaceDown {
 		t.Fatalf("live face-up copy missing before expiry: %q facedown %v", o.Face().Name, o.FaceDown)

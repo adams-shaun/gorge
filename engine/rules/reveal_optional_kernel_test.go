@@ -63,7 +63,7 @@ func TestRevealOptionalPeekPosesTheYesNoAsk(t *testing.T) {
 	if !strings.Contains(d.Prompt, "Bolt") {
 		t.Fatalf("prompt = %q, want it to name the top card", d.Prompt)
 	}
-	if n := publicNotesFrom(e, mark); len(n) != 0 {
+	if n := publicRevealsFrom(e, mark); len(n) != 0 {
 		t.Fatalf("a reveal Note landed before the answer: %+v", n)
 	}
 	if e.G.Players[0].Life != life {
@@ -87,7 +87,7 @@ func TestRevealOptionalAnsweredYesRevealsAndRemembers(t *testing.T) {
 	if d := answerChoices(t, e, optionKindOrFail(t, d, "yes")); d != nil {
 		t.Fatalf("the accepted reveal posed another decision: %+v", d)
 	}
-	notes := publicNotesFrom(e, mark)
+	notes := publicRevealsFrom(e, mark)
 	if len(notes) != 1 || len(notes[0].IDs) != 1 || notes[0].IDs[0] != bolt || notes[0].Text != "" {
 		t.Fatalf("reveal notes = %+v, want one text-less public Note carrying Bolt %d", notes, bolt)
 	}
@@ -112,7 +112,7 @@ func TestRevealOptionalAnsweredNoRevealsNothing(t *testing.T) {
 	if d := answerChoices(t, e, optionKindOrFail(t, d, "no")); d != nil {
 		t.Fatalf("the declined reveal posed another decision: %+v", d)
 	}
-	if n := publicNotesFrom(e, mark); len(n) != 0 {
+	if n := publicRevealsFrom(e, mark); len(n) != 0 {
 		t.Fatalf("a declined reveal emitted a Note: %+v", n)
 	}
 	if got := e.G.Players[0].Life; got != life {
@@ -144,7 +144,7 @@ func TestMayRevealAskKeysOnTheFlagNotTheAPI(t *testing.T) {
 			if d == nil || d.Player != 0 || d.ResumeKind != "reveal_optional" || len(d.Options) != 2 || d.Options[0].Kind != "yes" {
 				t.Fatalf("decision = %+v, want a reveal_optional yes/no for seat 0", d)
 			}
-			if n := publicNotesFrom(e, mark); len(n) != 0 {
+			if n := publicRevealsFrom(e, mark); len(n) != 0 {
 				t.Fatalf("revealed before the answer: %+v", n)
 			}
 		})
@@ -191,7 +191,7 @@ func TestOptionalHandRevealDeclinePosesNoPick(t *testing.T) {
 	if d := answerChoices(t, e, optionKindOrFail(t, d, "no")); d != nil {
 		t.Fatalf("a declined optional hand reveal posed another ask: %+v", d)
 	}
-	if n := publicNotesFrom(e, mark); len(n) != 0 {
+	if n := publicRevealsFrom(e, mark); len(n) != 0 {
 		t.Fatalf("a declined optional hand reveal revealed: %+v", n)
 	}
 	replayCheck(t, e, cfg)
@@ -215,7 +215,7 @@ func TestOptionalHandRevealDeclineWithRevealValidPosesNoPick(t *testing.T) {
 	if d := answerChoices(t, e, optionKindOrFail(t, d, "no")); d != nil {
 		t.Fatalf("a declined NumCards$ 5 optional reveal posed a pick: %+v", d)
 	}
-	if n := publicNotesFrom(e, mark); len(n) != 0 {
+	if n := publicRevealsFrom(e, mark); len(n) != 0 {
 		t.Fatalf("a declined NumCards$ 5 optional reveal revealed: %+v", n)
 	}
 	if e.G.Players[0].Life != life {
@@ -264,7 +264,7 @@ func TestOptionalRevealPosesOncePerDefinedTarget(t *testing.T) {
 		t.Fatalf("first ask = %+v, want seat 1's reveal_optional", d)
 	}
 	d = answerChoices(t, e, optionKindOrFail(t, d, "no"))
-	if n := publicNotesFrom(e, mark); len(n) != 0 {
+	if n := publicRevealsFrom(e, mark); len(n) != 0 {
 		t.Fatalf("a declined reveal emitted a note: %+v", n)
 	}
 	if d == nil || d.ResumeKind != "reveal_optional" || d.Player != 2 {
@@ -273,7 +273,7 @@ func TestOptionalRevealPosesOncePerDefinedTarget(t *testing.T) {
 	if d := answerChoices(t, e, optionKindOrFail(t, d, "yes")); d != nil {
 		t.Fatalf("the walk re-posed after every target answered: %+v", d)
 	}
-	notes := publicNotesFrom(e, mark)
+	notes := publicRevealsFrom(e, mark)
 	if len(notes) != 1 || notes[0].Player != 2 || !slices.Equal(notes[0].IDs, []state.ObjID{ids[2], ids[3]}) {
 		t.Fatalf("notes = %+v, want exactly seat 2's hand %v", notes, ids[2:])
 	}
@@ -293,7 +293,7 @@ func TestOptionalRevealAcceptDoesNotAcceptLaterTargets(t *testing.T) {
 		t.Fatalf("first ask = %+v, want seat 1's reveal_optional", d)
 	}
 	d = answerChoices(t, e, optionKindOrFail(t, d, "yes"))
-	notes := publicNotesFrom(e, mark)
+	notes := publicRevealsFrom(e, mark)
 	if len(notes) != 1 || notes[0].Player != 1 || !slices.Equal(notes[0].IDs, []state.ObjID{ids[0], ids[1]}) {
 		t.Fatalf("after seat 1 accepted notes = %+v, want exactly seat 1's hand", notes)
 	}
@@ -318,8 +318,8 @@ func TestOptionalPickableRevealAsksEachTarget(t *testing.T) {
 	if d == nil || d.ResumeKind != "reveal_pick" || d.Player != 1 {
 		t.Fatalf("ask 2 = %+v, want seat 1's reveal pick", d)
 	}
-	d = answerChoices(t, e, optionObjOrFail(t, d, ids[1]))
-	if n := publicNotesFrom(e, mark); len(n) != 1 || n[0].Player != 1 || !slices.Equal(n[0].IDs, []state.ObjID{ids[1]}) {
+	d = answerChoices(t, e, objOptionIndex(t, d, ids[1]))
+	if n := publicRevealsFrom(e, mark); len(n) != 1 || n[0].Player != 1 || !slices.Equal(n[0].IDs, []state.ObjID{ids[1]}) {
 		t.Fatalf("after seat 1's pick notes = %+v, want its chosen card", n)
 	}
 	if d == nil || d.ResumeKind != "reveal_optional" || d.Player != 2 {
@@ -329,10 +329,10 @@ func TestOptionalPickableRevealAsksEachTarget(t *testing.T) {
 	if d == nil || d.ResumeKind != "reveal_pick" || d.Player != 2 {
 		t.Fatalf("ask 4 = %+v, want seat 2's reveal pick", d)
 	}
-	if d := answerChoices(t, e, optionObjOrFail(t, d, ids[2])); d != nil {
+	if d := answerChoices(t, e, objOptionIndex(t, d, ids[2])); d != nil {
 		t.Fatalf("walk re-posed after both picks: %+v", d)
 	}
-	notes := publicNotesFrom(e, mark)
+	notes := publicRevealsFrom(e, mark)
 	if len(notes) != 2 || notes[1].Player != 2 || !slices.Equal(notes[1].IDs, []state.ObjID{ids[2]}) {
 		t.Fatalf("final notes = %+v, want seat 2's chosen card", notes)
 	}
@@ -354,11 +354,11 @@ func TestHandRevealPickPosesOncePerDefinedTarget(t *testing.T) {
 	if got := optionObjIDs(d); !slices.Equal(got, []state.ObjID{ids[0], ids[1]}) {
 		t.Fatalf("pick 1 options = %v, want seat 1's hand %v", got, ids[:2])
 	}
-	if n := publicNotesFrom(e, mark); len(n) != 0 {
+	if n := publicRevealsFrom(e, mark); len(n) != 0 {
 		t.Fatalf("a reveal note landed before any answer: %+v", n)
 	}
-	d = answerChoices(t, e, optionObjOrFail(t, d, ids[0]))
-	if n := publicNotesFrom(e, mark); len(n) != 1 || n[0].Player != 1 || !slices.Equal(n[0].IDs, []state.ObjID{ids[0]}) {
+	d = answerChoices(t, e, objOptionIndex(t, d, ids[0]))
+	if n := publicRevealsFrom(e, mark); len(n) != 1 || n[0].Player != 1 || !slices.Equal(n[0].IDs, []state.ObjID{ids[0]}) {
 		t.Fatalf("after seat 1's answer notes = %+v, want exactly seat 1's chosen card", n)
 	}
 	if d == nil || d.ResumeKind != "reveal_pick" || d.Player != 2 {
@@ -367,10 +367,10 @@ func TestHandRevealPickPosesOncePerDefinedTarget(t *testing.T) {
 	if got := optionObjIDs(d); !slices.Equal(got, []state.ObjID{ids[2], ids[3]}) {
 		t.Fatalf("pick 2 options = %v, want seat 2's hand %v", got, ids[2:])
 	}
-	if d := answerChoices(t, e, optionObjOrFail(t, d, ids[3])); d != nil {
+	if d := answerChoices(t, e, objOptionIndex(t, d, ids[3])); d != nil {
 		t.Fatalf("the walk re-posed after every target answered: %+v", d)
 	}
-	notes := publicNotesFrom(e, mark)
+	notes := publicRevealsFrom(e, mark)
 	if len(notes) != 2 || notes[0].IDs[0] != ids[0] || notes[1].Player != 2 || notes[1].IDs[0] != ids[3] {
 		t.Fatalf("notes = %+v, want seat 1 revealing %d then seat 2 revealing %d", notes, ids[0], ids[3])
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The planechase verbs (CR 901, task planar-verbs) pinned end to end on the
+// The planechase verbs (CR 901) pinned end to end on the
 // REAL corpus roll carrier (Fractured Powerstone, api:RollPlanarDice) with a
 // planar deck in play: a kept planeswalk face walks the roller to the next
 // plane, and a kept chaos face makes T:Mode$ ChaosEnsues fire on the current
@@ -104,7 +104,7 @@ func searchForFace(t *testing.T, seedBase uint64, maxSeeds int, stone *cards.Car
 // the engine never produces one.
 func TestChaosFaceFiresThePlanesChaosTrigger(t *testing.T) {
 	t.Parallel()
-	stone := tokenReplCorpusCard(t, "Fractured Powerstone")
+	stone := corpusAlternativeCard(t, "Fractured Powerstone")
 	probe := probePlaneCard(t)
 
 	found := searchForFace(t, 70000, 64, stone, []*cards.Card{probe}, planarDieChaos)
@@ -162,7 +162,7 @@ func TestChaosFaceFiresThePlanesChaosTrigger(t *testing.T) {
 // one.
 func TestChaosVerbResolvesTheCurrentPlane(t *testing.T) {
 	t.Parallel()
-	stone := tokenReplCorpusCard(t, "Fractured Powerstone")
+	stone := corpusAlternativeCard(t, "Fractured Powerstone")
 	probe := probePlaneCard(t)
 	cfg := planeDeckConfig(t, 81001, stone, probe)
 	e := New(cfg)
@@ -214,9 +214,9 @@ func TestChaosVerbResolvesTheCurrentPlane(t *testing.T) {
 // planar deck, revealing the next plane.
 func TestPlaneswalkFaceWalksToTheNextPlane(t *testing.T) {
 	t.Parallel()
-	stone := tokenReplCorpusCard(t, "Fractured Powerstone")
-	planeA := tokenReplCorpusCard(t, "Aretopolis")
-	planeB := tokenReplCorpusCard(t, "Pools of Becoming")
+	stone := corpusAlternativeCard(t, "Fractured Powerstone")
+	planeA := corpusAlternativeCard(t, "Aretopolis")
+	planeB := corpusAlternativeCard(t, "Pools of Becoming")
 
 	found := searchForFace(t, 72000, 64, stone, []*cards.Card{planeA, planeB}, planarDiePlaneswalk)
 	if found == nil {

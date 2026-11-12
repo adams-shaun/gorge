@@ -108,7 +108,7 @@ func activateSivitriPlusOne(t *testing.T, e *Engine, sivitri *cards.Card) state.
 // turn.
 func TestSivitriDeliveredCantAttackUnlessChargesLife(t *testing.T) {
 	t.Parallel()
-	sivCard := mshCorpusCard(t, "Sivitri, Dragon Master")
+	sivCard := corpusAlternativeCard(t, "Sivitri, Dragon Master")
 	// A second planeswalker Sivitri's controller controls, so the
 	// Planeswalker.YouCtrl half of the Target$ is exercised against a real
 	// walker while an unrelated player (seat 2) remains untaxed.
@@ -214,7 +214,7 @@ func TestSivitriDeliveredCantAttackUnlessChargesLife(t *testing.T) {
 // differ, so a missed binding cannot pass.
 func TestWarTaxDeliveredCantAttackUnlessChargesChosenX(t *testing.T) {
 	t.Parallel()
-	tax := mshCorpusCard(t, "War Tax")
+	tax := corpusAlternativeCard(t, "War Tax")
 	e := chargeEngine(t, 9102, tax)
 	bear := onBoardReady(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e.Advance()
@@ -283,7 +283,7 @@ func TestWarTaxDeliveredCantAttackUnlessChargesChosenX(t *testing.T) {
 // live at consult time).
 func TestWhipgrassEntanglerDeliveredStaticChargesAttackPerCleric(t *testing.T) {
 	t.Parallel()
-	whipCard := mshCorpusCard(t, "Whipgrass Entangler")
+	whipCard := corpusAlternativeCard(t, "Whipgrass Entangler")
 	e := chargeEngine(t, 9103, whipCard)
 	bear := onBoardReady(t, e, 1, bearBlockSrc)
 	e.Advance()
@@ -345,7 +345,7 @@ func TestWhipgrassEntanglerDeliveredStaticChargesAttackPerCleric(t *testing.T) {
 // pair, and Sivitri's +1 really registered.
 func TestSivitriDeliveredInsufficientLifeIsNeverOffered(t *testing.T) {
 	t.Parallel()
-	sivCard := mshCorpusCard(t, "Sivitri, Dragon Master")
+	sivCard := corpusAlternativeCard(t, "Sivitri, Dragon Master")
 	e := chargeEngine(t, 9104, sivCard)
 	activateSivitriPlusOne(t, e, sivCard)
 	bear := onBoardReady(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
@@ -377,7 +377,7 @@ func TestSivitriDeliveredInsufficientLifeIsNeverOffered(t *testing.T) {
 // unimplemented" Note, and must instead register a live restriction.
 func TestSivitriDeliveredRegistrationEmitsNoUnimplementedNote(t *testing.T) {
 	t.Parallel()
-	sivCard := mshCorpusCard(t, "Sivitri, Dragon Master")
+	sivCard := corpusAlternativeCard(t, "Sivitri, Dragon Master")
 	e := chargeEngine(t, 9105, sivCard)
 	e.Advance()
 	id := moveSeededCard(t, e, 0, sivCard, state.ZBattlefield)

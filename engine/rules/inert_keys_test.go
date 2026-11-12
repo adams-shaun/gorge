@@ -33,7 +33,7 @@ func g223OptionFor(t *testing.T, d *decision.Decision, id state.ObjID) int {
 // (three per exiled card) and no "ignores unread parameter(s) ETB$" Note.
 func TestMimeoplasmXIsTheEnteringX(t *testing.T) {
 	t.Parallel()
-	mimeo := tokenReplCorpusCard(t, "Mimeoplasm, Revered One")
+	mimeo := corpusAlternativeCard(t, "Mimeoplasm, Revered One")
 	bears := corpusCard(t, "Grizzly Bears")
 	giant := corpusCard(t, "Hill Giant")
 
@@ -122,7 +122,7 @@ func TestMimeoplasmXIsTheEnteringX(t *testing.T) {
 // the replacement finishes, so the second places nothing. Poison stays 1.
 func TestMeliraCapsPoisonAtOneAfterReplacement(t *testing.T) {
 	t.Parallel()
-	melira := tokenReplCorpusCard(t, "Melira, the Living Cure")
+	melira := corpusAlternativeCard(t, "Melira, the Living Cure")
 	poisonOne := card(t, "Name:G223 Poison One\nManaCost:0\nTypes:Sorcery\n"+
 		"A:SP$ Poison | Defined$ You | Num$ 3 | SpellDescription$ You get three poison counters.\n"+
 		"Oracle:x\n")

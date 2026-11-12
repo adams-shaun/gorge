@@ -55,31 +55,6 @@ type kmanifestCounts struct {
 	cloak                              int
 }
 
-func kmanifestMox(n string) bool {
-	switch n {
-	case "Mox Emerald", "Mox Sapphire", "Mox Jet", "Mox Ruby", "Mox Pearl":
-		return true
-	}
-	return false
-}
-
-// kmanifestName returns the printed name of the gorge option a canonical
-// action selects, or "" when it names no object.
-func kmanifestName(c *PickCtx, a Canon) string {
-	if c.G == nil {
-		return ""
-	}
-	o, ok := c.G.GorgeOption(a)
-	if !ok {
-		return ""
-	}
-	ob := c.G.E.G.Obj(o.Obj)
-	if ob == nil || ob.Face() == nil {
-		return ""
-	}
-	return ob.Face().Name
-}
-
 // kmanifestDown counts the gorge battlefield's face-down permanents.
 func kmanifestDown(c *PickCtx) int {
 	if c.G == nil {
@@ -133,12 +108,12 @@ func kmanifestPolicy(seed uint64, counts *kmanifestCounts) Policy {
 		cloaked = kmanifestCloaked(c)
 		haveUp, haveMox, havePriest, haveManifest, haveCoat = false, false, false, false, false
 		for _, a := range c.D.Options {
-			n := kmanifestName(c, a)
+			n := optionFaceName(c, a)
 			switch {
 			case a.Kind() == ActSpecial:
 				up, haveUp = a, true
 
-			case a.Kind() == ActCast && kmanifestMox(n):
+			case a.Kind() == ActCast && isMoxName(n):
 				mox, haveMox = a, true
 			case a.Kind() == ActCast && (n == "Priest of Urabrask" || n == "Priest of Gix"):
 				priest, havePriest = a, true

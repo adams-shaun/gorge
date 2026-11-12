@@ -28,7 +28,7 @@ import (
 // on targetSeat, so the own/opponent directions can be driven independently.
 func vorinclexBoard(t *testing.T, seed uint64, sourceSeat, targetSeat state.PlayerID, counters int) (*Engine, Config, state.ObjID, state.ObjID) {
 	t.Helper()
-	vori := tokenReplCorpusCard(t, "Vorinclex, Monstrous Raider")
+	vori := corpusAlternativeCard(t, "Vorinclex, Monstrous Raider")
 	src := counterReplSource(t, counters)
 	target := card(t, "Name:Counter Target\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	seat0 := []*cards.Card{vori}
@@ -183,7 +183,7 @@ func TestCounterAdderPublishesAtCostSite(t *testing.T) {
 	replayCheck(t, e, cfg)
 
 	// Under Vorinclex, the cost's one loyalty counter is doubled (3 -> 5).
-	vori := tokenReplCorpusCard(t, "Vorinclex, Monstrous Raider")
+	vori := corpusAlternativeCard(t, "Vorinclex, Monstrous Raider")
 	walker2 := card(t, walkerSrc)
 	e2, cfg2 := tokenReplGame(t, 223, vori, walker2)
 	// The walker is seeded before Vorinclex: its entry's loyalty is put by its
@@ -317,7 +317,7 @@ func TestStatusMarkerGuardCoversShieldAndDeathtouched(t *testing.T) {
 		{"Winding Constrictor", 235, "Shield"},
 		{"Winding Constrictor", 237, "Deathtouched"},
 	} {
-		repl := tokenReplCorpusCard(t, tc.name)
+		repl := corpusAlternativeCard(t, tc.name)
 		target := card(t, "Name:Counter Target\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 		e, cfg := tokenReplGame(t, tc.seed, repl, target)
 		moveSeededCard(t, e, 0, repl, state.ZBattlefield)

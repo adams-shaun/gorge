@@ -15,7 +15,10 @@ import (
 	"time"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/deck"
+	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 const (
@@ -340,4 +343,365 @@ func refusedPlayable(r *refusedRun) error {
 		return errors.New(r.set.Reason(i))
 	}
 	return nil
+}
+
+// activateOnlyPolicy activates whenever it can (an exhaust or loyalty
+// ability is a rare option), else plays randomly.
+func activateOnlyPolicy(seed uint64) Policy {
+	rnd := RandomPolicy(seed)
+	var buf []Canon
+	return PolicyFunc(func(c *PickCtx) Canon {
+		buf = buf[:0]
+		for _, a := range c.D.Options {
+			if a.Kind() == ActActivate {
+				buf = append(buf, a)
+			}
+		}
+		if len(buf) == 0 {
+			return rnd.Pick(c)
+		}
+		d := *c.D
+		d.Options = buf
+		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
+	})
+}
+
+// gorgeOptionName is the name of the object a canonical option names.
+func gorgeOptionName(c *PickCtx, a Canon) string {
+	if c.G == nil {
+		return ""
+	}
+	o, ok := c.G.GorgeOption(a)
+	if !ok {
+		return ""
+	}
+	if ob := c.G.E.G.Obj(o.Obj); ob != nil && ob.Face() != nil {
+		return ob.Face().Name
+	}
+	return ""
+}
+
+func battlefieldHasName(g *state.Game, pl state.PlayerID, name string) bool {
+	for _, b := range g.Zone(state.ZBattlefield, pl) {
+		if chName(g, b) == name {
+			return true
+		}
+	}
+	return false
+}
+
+func kcastDeck(t *testing.T, reg *cards.Registry, md [2][]cardset.Entry) [2][]*cards.Card {
+	t.Helper()
+	var decks [2][]*cards.Card
+	for s, d := range md {
+		for _, e := range d {
+			c, ok := reg.Lookup(e.Name)
+			if !ok {
+				t.Fatalf("%s not in the corpus", e.Name)
+			}
+			for i := 0; i < e.Count; i++ {
+				decks[s] = append(decks[s], c)
+			}
+		}
+		if len(decks[s]) != 40 {
+			t.Fatalf("deck %d: %d cards", s, len(decks[s]))
+		}
+	}
+	return decks
+}
+
+// refCardName is the canonical card's printed name through the gorge side.
+func refCardName(g *GorgeSide, ref Ref) string {
+	if g == nil || ref >= RefStack || int(ref) >= len(g.id.obj) {
+		return ""
+	}
+	o := g.E.G.Obj(g.id.obj[ref])
+	if o == nil || o.Card == nil || len(o.Card.Faces) == 0 {
+		return ""
+	}
+	return o.Card.Faces[0].Name
+}
+
+func objectHasType(o *state.Object, ty string) bool {
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	for _, w := range o.Face().Types {
+		if w == ty {
+			return true
+		}
+	}
+	return false
+}
+
+func replayEffectLongCase(t *testing.T, reg *cards.Registry, c effectLongCase) {
+	t.Helper()
+	r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	script := &ScriptPolicy{Actions: r.Actions}
+	res, reached := effectLongPlay(t, reg, c, r, printedDelveSet(t, r.Cards), script)
+	if res.Div != nil {
+		t.Fatalf("divergence at %d: %s %s %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
+	}
+	if script.Skipped != 0 {
+		t.Errorf("%d scripted actions were not offered", script.Skipped)
+	}
+	if !reached {
+		t.Fatalf("the recorded game never reaches %s", c.name)
+	}
+}
+
+// resolveSourceName names a resolving stack object: an ability's
+// source permanent, else the stack card itself.
+func resolveSourceName(g *state.Game, id state.ObjID) string {
+	o := g.Obj(id)
+	if o == nil {
+		return ""
+	}
+	// An ability object (activated or triggered) has no card of its own:
+	// its Source points at the permanent whose ability is resolving. A spell
+	// has no Source and names its card directly.
+	if o.Source != 0 {
+		if n := chName(g, o.Source); n != "" {
+			return n
+		}
+	}
+	return chName(g, id)
+}
+
+// trackingEagerPolicy is the cast-first random policy of the czparams lockstep
+// and captures the gorge side for the event tally.
+func trackingEagerPolicy(seed uint64, played map[string]int, gs **GorgeSide) Policy {
+	inner := eagerPolicy(seed, played)
+	return PolicyFunc(func(c *PickCtx) Canon {
+		if c.G != nil {
+			*gs = c.G
+		}
+		return inner.Pick(c)
+	})
+}
+
+// combatCastPolicy attacks, blocks and casts whenever it can (so the
+// carriers resolve and the pumped creatures meet blockers and burn), else
+// random.
+func combatCastPolicy(seed uint64) Policy {
+	rnd := RandomPolicy(seed)
+	var buf []Canon
+	return PolicyFunc(func(c *PickCtx) Canon {
+		buf = buf[:0]
+		for _, a := range c.D.Options {
+			if k := a.Kind(); k == ActAttack || k == ActBlock || k == ActCast {
+				buf = append(buf, a)
+			}
+		}
+		if len(buf) == 0 {
+			return rnd.Pick(c)
+		}
+		d := *c.D
+		d.Options = buf
+		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
+	})
+}
+
+func synthReg(t *testing.T) *cards.Registry {
+	t.Helper()
+	dir := corpusDirOrSkip(t)
+	reg, err := cards.SharedCorpus(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return reg
+}
+
+// castActivatePlayedPolicy casts or activates whenever it can (so the games reach the
+// carriers), else random; it counts the carrier plays the gorge side poses.
+func castActivatePlayedPolicy(seed uint64, played map[string]int) Policy {
+	rnd := RandomPolicy(seed)
+	var buf []Canon
+	return PolicyFunc(func(c *PickCtx) Canon {
+		buf = buf[:0]
+		for _, a := range c.D.Options {
+			if k := a.Kind(); k == ActCast || k == ActActivate {
+				buf = append(buf, a)
+			}
+		}
+		var a Canon
+		if len(buf) == 0 {
+			a = rnd.Pick(c)
+		} else {
+			d := *c.D
+			d.Options = buf
+			a = rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
+		}
+		if k := a.Kind(); (k == ActCast || k == ActActivate) && c.G != nil {
+			if o, ok := c.G.GorgeOption(a); ok {
+				if ob := c.G.E.G.Obj(o.Obj); ob != nil && ob.Face() != nil {
+					played[ob.Face().Name]++
+				}
+			}
+		}
+		return a
+	})
+}
+
+// optionFaceName returns the printed name of the gorge option a canonical
+// action selects, or "" when it names no object.
+func optionFaceName(c *PickCtx, a Canon) string {
+	if c.G == nil {
+		return ""
+	}
+	o, ok := c.G.GorgeOption(a)
+	if !ok {
+		return ""
+	}
+	ob := c.G.E.G.Obj(o.Obj)
+	if ob == nil || ob.Face() == nil {
+		return ""
+	}
+	return ob.Face().Name
+}
+
+// castActivatePolicy casts or activates whenever it can (so the games reach the
+// carriers), else random.
+func castActivatePolicy(seed uint64) Policy {
+	rnd := RandomPolicy(seed)
+	var buf []Canon
+	return PolicyFunc(func(c *PickCtx) Canon {
+		buf = buf[:0]
+		for _, a := range c.D.Options {
+			if k := a.Kind(); k == ActCast || k == ActActivate {
+				buf = append(buf, a)
+			}
+		}
+		if len(buf) == 0 {
+			return rnd.Pick(c)
+		}
+		d := *c.D
+		d.Options = buf
+		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
+	})
+}
+
+// battlefieldObjects lists the objects on a player's battlefield.
+func battlefieldObjects(g *state.Game, pl state.PlayerID) (out []*state.Object) {
+	for _, b := range g.Zone(state.ZBattlefield, pl) {
+		if o := g.Obj(b); o != nil {
+			out = append(out, o)
+		}
+	}
+	return out
+}
+
+func expandEntries(t *testing.T, reg *cards.Registry, es []cardset.Entry) []*cards.Card {
+	t.Helper()
+	var out []*cards.Card
+	for _, e := range es {
+		c, ok := reg.Lookup(e.Name)
+		if !ok {
+			t.Fatalf("%s not in the corpus", e.Name)
+		}
+		for i := 0; i < e.Count; i++ {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// castActivateKindPolicy casts or activates whenever it can (so the Vehicles are
+// crewed, the Walls sacrificed and the Dragons cast), else random.
+func castActivateKindPolicy(seed uint64) Policy {
+	rnd := RandomPolicy(seed)
+	var buf []Canon
+	return PolicyFunc(func(c *PickCtx) Canon {
+		buf = buf[:0]
+		for _, a := range c.D.Options {
+			if a.Kind() == ActCast || a.Kind() == ActActivate {
+				buf = append(buf, a)
+			}
+		}
+		if len(buf) == 0 {
+			return rnd.Pick(c)
+		}
+		d := *c.D
+		d.Options = buf
+		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
+	})
+}
+
+func sourceCardName(g *state.Game, id state.ObjID) string {
+	o := g.Obj(id)
+	if o == nil {
+		return ""
+	}
+	if o.Ability != nil && o.Source != 0 {
+		if s := g.Obj(o.Source); s != nil && s.Card != nil && len(s.Card.Faces) > 0 {
+			return s.Card.Faces[0].Name
+		}
+	}
+	if o.Card != nil && len(o.Card.Faces) > 0 {
+		return o.Card.Faces[0].Name
+	}
+	return ""
+}
+
+// discardedIntoPlay is the condition that a card of the given name was put
+// onto the battlefield by a discard move rather than cast (CR 614.1).
+func discardedIntoPlay(name string) func(ref *GorgeSide) bool {
+	return func(ref *GorgeSide) bool {
+		evs := ref.E.L.Events
+		for i := range evs {
+			e := &evs[i]
+			if e.Kind != events.MoveZone || e.To != state.ZBattlefield || !events.IsDiscard(*e) {
+				continue
+			}
+			if o := ref.E.G.Obj(e.Obj); o != nil && o.Face() != nil && o.Face().Name == name {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+func firstFaceName(g *state.Game, id state.ObjID) string {
+	if o := g.Obj(id); o != nil && o.Card != nil && len(o.Card.Faces) > 0 {
+		return o.Card.Faces[0].Name
+	}
+	return ""
+}
+
+// kickHoldPolicy (kfix-cast) takes a kicked cast whenever one is offered
+// and otherwise never casts a held card unkicked, so Sowing Mycospawn waits
+// for its {1}{C} kicker (Mind Stone) instead of being cast at four mana.
+func kickHoldPolicy(base Policy, hold map[Ref]bool) Policy {
+	var buf []Canon
+	return PolicyFunc(func(c *PickCtx) Canon {
+		buf = buf[:0]
+		for _, a := range c.D.Options {
+			if a.Kind() == ActCast && a.Mode()&0xF == 1 {
+				return a
+			}
+			if a.Kind() == ActCast && hold[a.Src()] {
+				continue
+			}
+			buf = append(buf, a)
+		}
+		if len(buf) == len(c.D.Options) || len(buf) == 0 {
+			return base.Pick(c)
+		}
+		d := *c.D
+		d.Options = buf
+		return base.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
+	})
+}
+
+func refFaceName(c *PickCtx, r Ref) string {
+	if c.G == nil || int(r) >= int(RefPlayer) {
+		return ""
+	}
+	if o := c.G.E.G.Obj(c.G.id.obj[r]); o != nil && o.Face() != nil {
+		return o.Face().Name
+	}
+	return ""
 }

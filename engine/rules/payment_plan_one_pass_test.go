@@ -259,12 +259,12 @@ func TestPaymentPlanOnePassMatchesReferenceOnFixtureBoards(t *testing.T) {
 			hand(e, 0, t, opDraw)
 		}, 2},
 		{"last-resort source only funds nothing", 0, func(t *testing.T, e *Engine) {
-			onBoardCard(t, e, 0, corpusTierFixture(t, "Ancient Tomb"))
+			onBoardCard(t, e, 0, corpusCardOrFatal(t, "Ancient Tomb"))
 			lands(e, 0, t, opSwamp)
 			hand(e, 0, t, opDraw, opBolt, opGrixis)
 		}, 0},
 		{"normal sources beside a last-resort one", 0, func(t *testing.T, e *Engine) {
-			onBoardCard(t, e, 0, corpusTierFixture(t, "Ancient Tomb"))
+			onBoardCard(t, e, 0, corpusCardOrFatal(t, "Ancient Tomb"))
 			lands(e, 0, t, opSwamp, opSwamp, opIsland)
 			hand(e, 0, t, "Name:OP Two\nManaCost:2\nTypes:Instant\nA:SP$ Draw | NumCards$ 1\nOracle:x\n", opGrixis, opBig)
 		}, 2},

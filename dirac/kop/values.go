@@ -206,6 +206,8 @@ const (
 	CondRefMatches          // the number of objects in Ref matching F compares (Op) with A
 	CondPromised            // the gift was promised (the spell, or the permanent's spell as it enters; Card.Self+PromisedGift)
 	CondAnd                 // both Sub[0] and Sub[1] hold
+	CondEchoOwed            // the source came under its controller's control since the beginning of their most recent upkeep (echo's intervening if, CR 702.30a)
+	CondSourceZone          // the source object is in Zone (gorge's source-identity IsPresent$ PresentZone$, re-checked at resolution)
 	CondCount_
 )
 
@@ -231,6 +233,7 @@ type Cond struct {
 	A, B ValueRef
 	Neg  bool
 	Sub  [2]CondID // CondAnd's operands (zero for every other kind)
+	Zone Zone      // CondSourceZone: the zone the source must be in
 }
 
 // ExOppExtreme reads a figure over the controller's living opponents, walked
@@ -501,6 +504,32 @@ const ExOppsAttacked ExprKind = 229
 // resolves in another step reads Sub[1]. A stack copy was never cast.
 const ExIfCastOwnMain ExprKind = 224
 
+// ExPlExtreme (an explicit ordinal, 88: ExCount_ is 62 and the iota range
+// 63..87 stays unspecified, the iota tail untouched): the
+// highest, over a living player group walked in seat order, of the count of
+// the group member's objects in the named zones that match F, each member
+// read from their OWN side (gorge effects/count_player.go
+// playerCountExtremeZones: the "YouCtrl"/"YouOwn" qualifiers of the spec
+// name the counted member, c.SpecContext(p); F.Ctrl = the member).
+// PlayerCountPlayers$HighestValidGraveyard Card.YouOwn (Jace, the Perfected
+// Mind's Y, Visions of Beyond), PlayerCountPlayers$HighestValidGraveyard,
+// Library,Exile Card.IsRemembered+YouOwn (Windfall, Jace's Archivist) and
+// PlayerCountOpponents$HighestValidGraveyard Creature.YouOwn (Nautiloid
+// Ship). An empty group (only at the game's end) reads 0: a count always
+// has one answer. Only the Highest form is lowered; gorge's Lowest extreme
+// stays refused. F spans the named zones (kop.ZoneNone, no zone default).
+const ExPlExtreme ExprKind = 88
+
+// ExPlExtreme's N: PlExtPlayers or PlExtOpponents in bits 0..1, the named
+// zones above them. Explicit ordinals, the iota tail stays untouched.
+const (
+	PlExtPlayers   = 0 // every living player, the evaluating controller included
+	PlExtOpponents = 1 // the evaluating controller's living opponents
+	PlExtGrave     = 1 << 8
+	PlExtLibrary   = 1 << 9
+	PlExtExile     = 1 << 10
+)
+
 // ExVoid (high expr kind): Sub[0] if the Void of Edge of
 // Eternities holds, else Sub[1] (gorge Count$Void.<yes>.<no>,
 // cov3BranchHoldsVoid). Void holds when a nonland permanent left the
@@ -547,6 +576,13 @@ const ExTargetPlayers ExprKind = 223
 // Card.IsRemembered+!RememberedPlayerOwn$CardManaCost. No parameters.
 // Explicit ordinal, the iota tail stays untouched.
 const ExNotOwnLibMV ExprKind = 226
+
+// ExEnergyOf: the energy counters (CR 122.1) of player Ref, read by
+// Count$YourCountersEnergy (the "pay one or more {E}" ChooseNumber bounds of
+// Aether Refinery, Localized Destruction, Pia Nalaar, Rampaging Aetherhood,
+// Territorial Aetherkite and Vault 112). Explicit ordinal in the free
+// low range; the iota tail stays untouched.
+const ExEnergyOf ExprKind = 63
 
 // ExDmgAmountReceived: the positive damage the source object received this
 // turn, saturating at 255 (gorge Object.DamageReceivedThisTurn,

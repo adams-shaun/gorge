@@ -448,10 +448,25 @@ func PaymentPlanProducedExactly(e Engine, p state.PlayerID, from int, want decis
 // (manaDiscardActivation) sacrifices it without a further ask. Any other Sac
 // shape (multi-part, overlapping, multiple candidates) is refused.
 func CastWindowSelfSacCost(e Engine, p state.PlayerID, source state.ObjID, c costvocab.Cost) bool {
+	if c.Generic != 0 {
+		return false
+	}
+	return CastWindowSelfSacGenericFeeCost(e, p, source, c)
+}
+
+// CastWindowSelfSacGenericFeeCost is CastWindowSelfSacCost with a literal
+// generic fee allowed ("{1}, {T}, Sacrifice this artifact: Add one mana of any
+// color", Omni-Cheese Pizza): the CR 601.2g cast window funds the fee from
+// mana it has already accumulated before activating, so the shape is one
+// deterministic activation. The shared paid-cost census keeps refusing it
+// (CastWindowSelfSacCost): its readers cannot fund a fee from floating mana,
+// so only the cast window's own probe (cast_window.go's castWindowProbeUnits)
+// asks this one.
+func CastWindowSelfSacGenericFeeCost(e Engine, p state.PlayerID, source state.ObjID, c costvocab.Cost) bool {
 	if len(c.Sac) != 1 || c.Sac[0].N != 1 || !strings.EqualFold(SacrificeMatchSpec(c.Sac[0].Spec), "CARDNAME") {
 		return false
 	}
-	if c.Generic != 0 || c.Life != 0 || c.Colored != (state.Mana{}) || !CastWindowOtherPartsAbsent(c) {
+	if c.Life != 0 || c.Colored != (state.Mana{}) || !CastWindowOtherPartsAbsent(c) {
 		return false
 	}
 	n := 0

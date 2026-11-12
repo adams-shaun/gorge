@@ -1,12 +1,10 @@
 package rules
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
-	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
@@ -41,26 +39,6 @@ func playLandFromHand(t *testing.T, e *Engine, name string) state.ObjID {
 	return id
 }
 
-// seekUnlessPayAsk passes every priority decision until a mid-resolution
-// unless_pay ask becomes pending.
-func seekUnlessPayAsk(t *testing.T, e *Engine, limit int) *decision.Decision {
-	t.Helper()
-	for i := 0; i < limit && !e.G.Over; i++ {
-		d := e.Pending()
-		if d == nil {
-			return nil
-		}
-		if d.Kind == decision.KModes && d.ResumeKind == "unless_pay" {
-			return d
-		}
-		if d.Kind != decision.KPriority {
-			t.Fatalf("unexpected decision kind %v (seat %d) while seeking the unless-pay ask: %+v", d.Kind, d.Player, d)
-		}
-		castFirst(t, e, "pass")
-	}
-	return nil
-}
-
 // TestUnlessRevealPrimalBeyondPayEntersUntapped is leaf 1: Primal Beyond
 // entering with exactly one Elemental in hand — the exact-candidate shape —
 // records the reveal silently, announces it with the cast flow's public Note,
@@ -73,7 +51,7 @@ func TestUnlessRevealPrimalBeyondPayEntersUntapped(t *testing.T) {
 	e.askPriority(0)
 	land := playLandFromHand(t, e, "Primal Beyond")
 
-	ask := seekUnlessPayAsk(t, e, 40)
+	ask := seekUnlessPay(t, e, 40)
 	if ask == nil {
 		t.Fatal("no unless-pay ask posed for the entering Primal Beyond")
 	}
@@ -118,7 +96,7 @@ func TestUnlessRevealPortTownAsksRevealCost(t *testing.T) {
 	e.askPriority(0)
 	land := playLandFromHand(t, e, "Port Town")
 
-	ask := seekUnlessPayAsk(t, e, 40)
+	ask := seekUnlessPay(t, e, 40)
 	if ask == nil {
 		t.Fatal("no unless-pay ask posed for the entering Port Town")
 	}
@@ -177,7 +155,7 @@ func TestUnlessRevealFurycalmSnarlPayEntersUntapped(t *testing.T) {
 			e.askPriority(0)
 			land := playLandFromHand(t, e, "Furycalm Snarl")
 
-			ask := seekUnlessPayAsk(t, e, 40)
+			ask := seekUnlessPay(t, e, 40)
 			if ask == nil {
 				t.Fatal("no unless-pay ask posed for the entering Furycalm Snarl")
 			}
@@ -229,7 +207,7 @@ func TestUnlessRevealDeclineEntersTapped(t *testing.T) {
 			e.askPriority(0)
 			land := playLandFromHand(t, e, "Primal Beyond")
 
-			ask := seekUnlessPayAsk(t, e, 40)
+			ask := seekUnlessPay(t, e, 40)
 			if ask == nil {
 				t.Fatal("no unless-pay ask posed for the entering Primal Beyond")
 			}
@@ -255,42 +233,4 @@ func TestUnlessRevealDeclineEntersTapped(t *testing.T) {
 			}
 		})
 	}
-}
-
-// drivePriestTrigger fires Priest of the Wakening Sun's real upkeep trigger
-// (SVar:ABGainLife: DB$ GainLife | UnlessCost$ Reveal<1/Creature.Dinosaur> |
-// UnlessPayer$ You | UnlessSwitched$ True | LifeAmount$ 2) by seeding the
-// ordinary stack events — the same harness driveKurokiTrig uses, since the
-// engine's Phase$ matcher cannot reach the trigger text naturally here.
-func drivePriestTrigger(t *testing.T, dinos int) (*Engine, state.ObjID) {
-	t.Helper()
-	reg := testutil.CorpusRegistry(t)
-	e := stealEngine(t, 743)
-	priest := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Priest of the Wakening Sun"))
-	sa := cards.ResolveSVar(e.G.Obj(priest).Face().SVars, "ABGainLife")
-	if sa == nil || sa.Params["UnlessCost"] != "Reveal<1/Creature.Dinosaur>" || sa.Params["UnlessPayer"] != "You" || sa.Params["UnlessSwitched"] != "True" {
-		t.Fatalf("Priest ABGainLife = %+v, want the switched reveal shape", sa)
-	}
-	// Seed the reveal candidates BEFORE the ask is posed: the option list is
-	// built at pose time from the hand, so a card injected afterwards would
-	// not (and should not) change what was offered.
-	dinoNames := []string{"Rexy", "Brutus", "Cera"}
-	for i := 0; i < dinos; i++ {
-		name := dinoNames[i%len(dinoNames)]
-		dino := card(t, fmt.Sprintf("Name:%s\nTypes:Creature Dinosaur\nPT:3/3\nOracle:x\n", name))
-		o := e.G.AddObject(dino, 0)
-		o.Zone = state.ZHand
-		e.G.SetZone(state.ZHand, 0, append(e.G.Zone(state.ZHand, 0), o.ID))
-	}
-	e.emit(events.Event{Kind: events.TriggerPush, Obj: priest, Player: 0, Amount: 0})
-	e.resolveTop()
-	// OptionalDecider$ You makes the trigger itself an optional election;
-	// accept it so the unless-pay gate on the body is reached.
-	if d := e.Pending(); d != nil && d.Kind == decision.KTriggerOptional && d.ResumeKind == "optional" {
-		submitChoices(t, e, d.Options[0].Index) // yes
-	}
-	if d := e.Pending(); d == nil || d.ResumeKind != "unless_pay" || d.Player != 0 {
-		t.Fatalf("pending = %+v, want the unless-pay ask for seat 0", d)
-	}
-	return e, priest
 }

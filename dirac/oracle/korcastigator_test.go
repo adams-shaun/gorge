@@ -30,13 +30,6 @@ func korCastigatorCase() effectLongCase {
 	}
 }
 
-func korFaceName(g *GorgeSide, id state.ObjID) string {
-	if o := g.E.G.Obj(id); o != nil && o.Face() != nil {
-		return o.Face().Name
-	}
-	return ""
-}
-
 // korCastigatorBlocked: a Grizzly Bears blocked Kor Castigator while a Scion
 // stood untapped on the battlefield, and no Scion ever blocked it.
 func korCastigatorBlocked(g *GorgeSide) bool {
@@ -47,10 +40,10 @@ func korCastigatorBlocked(g *GorgeSide) bool {
 			continue
 		}
 		for _, p := range e.Pairs {
-			if korFaceName(g, p[0]) != "Kor Castigator" {
+			if sideObjName(g, p[0]) != "Kor Castigator" {
 				continue
 			}
-			switch korFaceName(g, p[1]) {
+			switch sideObjName(g, p[1]) {
 			case "Eldrazi Scion Token":
 				return false
 			case "Grizzly Bears":
@@ -63,7 +56,7 @@ func korCastigatorBlocked(g *GorgeSide) bool {
 	}
 	for i := range g.E.G.Objs {
 		o := &g.E.G.Objs[i]
-		if o.Zone == state.ZBattlefield && !o.Tapped && korFaceName(g, o.ID) == "Eldrazi Scion Token" {
+		if o.Zone == state.ZBattlefield && !o.Tapped && sideObjName(g, o.ID) == "Eldrazi Scion Token" {
 			return true
 		}
 	}
@@ -98,8 +91,8 @@ func korCastigatorPolicy(m *Matchup, seed uint64, witnessed *int, leaked *int) P
 				if o.Kind() != ActBlock {
 					continue
 				}
-				if g, ok := p.G.GorgeOption(o); ok && korFaceName(p.G, g.Attacker) == "Kor Castigator" {
-					switch korFaceName(p.G, g.Obj) {
+				if g, ok := p.G.GorgeOption(o); ok && sideObjName(p.G, g.Attacker) == "Kor Castigator" {
+					switch sideObjName(p.G, g.Obj) {
 					case "Grizzly Bears":
 						bears = o
 					case "Eldrazi Scion Token":
@@ -113,7 +106,7 @@ func korCastigatorPolicy(m *Matchup, seed uint64, witnessed *int, leaked *int) P
 			if bears != 0 {
 				for i := range p.G.E.G.Objs {
 					o := &p.G.E.G.Objs[i]
-					if o.Zone == state.ZBattlefield && !o.Tapped && korFaceName(p.G, o.ID) == "Eldrazi Scion Token" {
+					if o.Zone == state.ZBattlefield && !o.Tapped && sideObjName(p.G, o.ID) == "Eldrazi Scion Token" {
 						*witnessed++
 						return bears
 					}

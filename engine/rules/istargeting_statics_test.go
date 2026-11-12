@@ -41,15 +41,6 @@ func battlePerm(t *testing.T, e *Engine, p state.PlayerID, src string) state.Obj
 	return o.ID
 }
 
-func istTargetOptionFor(d *decision.Decision, id state.ObjID) int {
-	for _, o := range d.Options {
-		if o.Obj == id {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 // TestIsTargetingFlashPhotography pins the real-corpus Flash Photography
 // script: `ValidSA$ Spell.IsTargeting Valid Permanent.YouCtrl`. The sorcery
 // must be offered only off-turn and only when a permanent its controller
@@ -80,7 +71,7 @@ func TestIsTargetingFlashPhotography(t *testing.T) {
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("second target decision = %+v", d)
 	}
-	idx := istTargetOptionFor(d, myBear)
+	idx := indexOfObjOption(d, myBear)
 	if idx < 0 {
 		t.Fatalf("precondition: the qualifying permanent must be offered: %+v", d.Options)
 	}
@@ -134,10 +125,10 @@ func TestIsTargetingTimelyWard(t *testing.T) {
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("Timely Ward target decision = %+v", d)
 	}
-	if idx := istTargetOptionFor(d, plain); idx >= 0 {
+	if idx := indexOfObjOption(d, plain); idx >= 0 {
 		t.Fatalf("the non-commander was offered although the flash permission does not cover it: %+v", d.Options)
 	}
-	idx := istTargetOptionFor(d, cmdr)
+	idx := indexOfObjOption(d, cmdr)
 	if idx < 0 {
 		t.Fatalf("precondition: the commander must be offered: %+v", d.Options)
 	}

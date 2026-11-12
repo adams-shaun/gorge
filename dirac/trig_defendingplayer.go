@@ -23,6 +23,9 @@ func (s *State) fireDefPlayer(k *prep, l trigListener, a *kop.Ability, grp []Slo
 	if a.Trig.Flags2&kop.Tf2AtkYou != 0 && (def != l.ctrl) != DebugTrigQualsFlip {
 		return // AttackedTarget$ You (trig_qualifiers.go)
 	}
+	if a.Trig.Flags4&kop.Tf4DefEnch != 0 && !s.defEnchanted(k, l, def) {
+		return // AttackedTarget$ Player.EnchantedBy (kop Tf4DefEnch)
+	}
 	n := int16(len(grp))
 	if a.Trig.Filter != 0 {
 		n = s.attackersMatching(k, l, a, grp)
@@ -30,4 +33,23 @@ func (s *State) fireDefPlayer(k *prep, l trigListener, a *kop.Ability, grp []Slo
 	if n > 0 {
 		s.fireAtkDecl(k, l, a, n, grp) // trig_attackers.go
 	}
+}
+
+// defEnchanted is the Tf4DefEnch gate: the attacked seat is enchanted by
+// the LISTENING Aura itself. Forge's PlayerProperty.EnchantedBy is
+// player.isEnchantedBy(source) -- the ability's source, not any enchantment
+// -- so two curses on two seats do not fire on each other's declarations, and
+// an Archnemesis on one seat does not fire when a different Aura's player is
+// attacked. The source is the listener's own permanent: its player-attached
+// seat (atchSeat) plus its Aura type. A missing listener slot or a
+// non-Aura source enchants nobody.
+func (s *State) defEnchanted(k *prep, l trigListener, def uint8) bool {
+	if l.sl == NoSlot {
+		return false
+	}
+	p := &s.perms[l.sl]
+	if s.atchSeat(k, l.sl) != def+1 {
+		return false
+	}
+	return k.cards[s.objs[p.obj].card].types&kop.TAura != 0
 }

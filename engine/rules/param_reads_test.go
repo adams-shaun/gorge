@@ -11,7 +11,7 @@ import (
 )
 
 // This file pins the parameter reads the param-census ratchet shrank for
-// (task inbox-paramcensus-planeswalker-ultimate-and-mass-move), one test per
+// one test per
 // API touched, each end to end on the real corpus card whose label was
 // removed (or, for the Effect Stackable$ dedup, on an inline fixture whose
 // static actually registers — the only repo-deck carrier, Wrenn and Six,

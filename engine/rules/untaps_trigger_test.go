@@ -61,7 +61,7 @@ func TestUntapsTriggerKeyToTheCityDrawsAfterPaying(t *testing.T) {
 	}
 	submitChoices(t, e, pay)
 	passUntilStackEmpty(t, e, 40)
-	if got := untapsDrawsFor(e, before, 0); got != 1 {
+	if got := logDrawsFor(e, before, 0); got != 1 {
 		t.Fatalf("Key to the City produced %d draw events after paying {2}, want exactly 1", got)
 	}
 	if e.G.Players[0].Pool.Total() != 0 {
@@ -119,16 +119,6 @@ func TestUntapsTriggerScopesToUntappedObjectAndBattlefield(t *testing.T) {
 			t.Fatalf("after real Untap %d, queued %d triggers, want %d", i, got, i)
 		}
 	}
-}
-
-func untapsDrawsFor(e *Engine, from int, p state.PlayerID) int {
-	n := 0
-	for _, ev := range e.L.Events[from:] {
-		if ev.Kind == events.Draw && ev.Player == p {
-			n++
-		}
-	}
-	return n
 }
 
 func untapsContains(values []string, want string) bool {

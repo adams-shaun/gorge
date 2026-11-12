@@ -3,35 +3,24 @@ package rules
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The CounterType$ EachFromSource PutCounter shape (task eachfromsource):
+// The CounterType$ EachFromSource PutCounter shape:
 // the copy-each-kind-of-counter body -- "put those counters on target
 // permanent" -- over the corpus's three referents (TriggeredCardLKICopy,
 // Self, Remembered). Resourceful Defense is the deck carrier; The Ozolith, Denry Klin and Heroic Sacrifice pin the other
 // referent/destination combinations; every test drives the REAL corpus card
 // end to end.
 
-func mustCorpusCardT(t *testing.T, name string) *cards.Card {
-	t.Helper()
-	c, ok := testutil.CorpusRegistry(t).Lookup(name)
-	if !ok {
-		t.Fatalf("corpus missing %s", name)
-	}
-	return c
-}
-
 // TestResourcefulDefenseCopiesEachCounterKind: a
 // 2/2 with two +1/+1 counters and a charge counter leaves the battlefield;
 // the target permanent gains exactly two +1/+1 and one charge counter.
 func TestResourcefulDefenseCopiesEachCounterKind(t *testing.T) {
 	t.Parallel()
-	rd := mustCorpusCardT(t, "Resourceful Defense")
+	rd := corpusAlternativeCard(t, "Resourceful Defense")
 	leaver := card(t, "Name:Leaving Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	recvr := card(t, "Name:Receiving Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e, cfg := tokenReplGame(t, 447, rd, leaver, recvr)
@@ -91,7 +80,7 @@ func TestResourcefulDefenseCopiesEachCounterKind(t *testing.T) {
 // this shape disproves.
 func TestTheOzolithCollectsTheLeftCounters(t *testing.T) {
 	t.Parallel()
-	oz := mustCorpusCardT(t, "The Ozolith")
+	oz := corpusAlternativeCard(t, "The Ozolith")
 	leaver := card(t, "Name:Leaving Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e, cfg := tokenReplGame(t, 449, oz, leaver)
 	ozID := moveSeededCard(t, e, 0, oz, state.ZBattlefield)
@@ -124,7 +113,7 @@ func TestTheOzolithCollectsTheLeftCounters(t *testing.T) {
 // therefore survives its own toughness-0 moment, the card's whole point.
 func TestAmbitiousAugmenterCountersRideOntoTheFractalToken(t *testing.T) {
 	t.Parallel()
-	aa := mustCorpusCardT(t, "Ambitious Augmenter")
+	aa := corpusAlternativeCard(t, "Ambitious Augmenter")
 	e, cfg := tokenReplGame(t, 453, aa)
 	aaID := moveSeededCard(t, e, 0, aa, state.ZBattlefield)
 	e.emit(events.Event{Kind: events.CounterChange, Obj: aaID, Counter: "P1P1", Amount: 2})
@@ -171,7 +160,7 @@ func TestAmbitiousAugmenterCountersRideOntoTheFractalToken(t *testing.T) {
 // instant of the sacrifice) is the only place they still exist.
 func TestZackFairBequeathsCountersThroughTheSacrificeLKI(t *testing.T) {
 	t.Parallel()
-	zack := mustCorpusCardT(t, "Zack Fair")
+	zack := corpusAlternativeCard(t, "Zack Fair")
 	recvr := card(t, "Name:Heir Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e, cfg := tokenReplGame(t, 455, zack, recvr)
 	zackID := moveSeededCard(t, e, 0, zack, state.ZBattlefield)
@@ -228,7 +217,7 @@ func TestZackFairBequeathsCountersThroughTheSacrificeLKI(t *testing.T) {
 // True path can place on it at all.
 func TestBlueLoyalRaptorEnteringDinosaurCarriesHisKinds(t *testing.T) {
 	t.Parallel()
-	blue := mustCorpusCardT(t, "Blue, Loyal Raptor")
+	blue := corpusAlternativeCard(t, "Blue, Loyal Raptor")
 	dino := card(t, "Name:Arriving Dinosaur\nTypes:Creature Dinosaur\nPT:3/3\nOracle:x\n")
 	e, cfg := tokenReplGame(t, 457, blue, dino)
 	blueID := moveSeededCard(t, e, 0, blue, state.ZBattlefield)

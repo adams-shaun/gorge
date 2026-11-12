@@ -64,7 +64,7 @@ func TestFusedDownDirtyAlternateHalfRunsAfterTheDiscardAsk(t *testing.T) {
 	e, cfg, id, gyID := fusedDownDirtyEngine(t, reg, 8431)
 
 	addMana(t, e, 0, "BBBBBBG")
-	fuse := splitOption(t, e, id, "fuse")
+	fuse := adventureOption(t, e, id, "fuse")
 	if fuse == nil {
 		t.Fatalf("fused offer missing for Down // Dirty: %+v", castOptions(t, e))
 	}

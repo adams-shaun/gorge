@@ -87,10 +87,21 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 			if host == NoSlot {
 				host = s.selfGrantHost(k, sl, c, ab)
 			}
-			if host == NoSlot || a.Cost.Flags&kop.CostTapHost != 0 && s.perms[host].flags&pfTapped != 0 {
+			// an emblem's grant has no slot: gorge registers it under the
+			// creator's object (the effect's Source, CR 114.4) and offers the
+			// activation against it wherever the creator now is
+			embObj := NoObj
+			if host == NoSlot && k.gen.anyEmbGrant {
+				if o, ok := s.embGrantHostObj(k, sl, c, ab); ok {
+					embObj = o
+				} else {
+					return
+				}
+			}
+			if embObj == NoObj && (host == NoSlot || a.Cost.Flags&kop.CostTapHost != 0 && s.perms[host].flags&pfTapped != 0) {
 				return
 			}
-			if a.Cost.Host != 0 && s.perms[host].ctrl != p {
+			if embObj == NoObj && a.Cost.Host != 0 && s.perms[host].ctrl != p {
 				return // only a permanent the payer controls can be sacrificed or exiled (CR 701.21a, 118.3)
 			}
 			if s.cfg&cfgGorgeUnpriced != 0 && !s.poolPays(p, &a.Cost.Mana) && !s.copyGrantIs(k, sl, c, ab) {
@@ -103,7 +114,11 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 			if s.canActivate(k, sl, 255, a, sorc, &av) {
 				// two copies of one grantor give the same ability: the second is the
 				// first's option (gorge's offer list collapses them the same way)
-				act := MakeAction(AkActivate, uint8(s.perms[sl].obj), uint8(s.perms[host].obj), 0x80|ab)
+				hobj := embObj
+				if hobj == NoObj {
+					hobj = s.perms[host].obj
+				}
+				act := MakeAction(AkActivate, uint8(s.perms[sl].obj), uint8(hobj), 0x80|ab)
 				for i := first; i < int(d.N); i++ {
 					if d.Options[i] == act {
 						return
@@ -392,6 +407,9 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 	if e.trigPl == trigPlAirbend {
 		return s.airbendCost(k, e.ctrl, e.card, e.obj), false, true // act_airbend.go
 	}
+	if e.trigPl == trigPlForetold {
+		return s.foretellCost(k, e.ctrl, e.card, e.obj), false, true // kw_foretell.go
+	}
 	if s.bld().altAdd == buildAltCost {
 		return s.altCostOf(k), false, true // the card's own alternative mana cost (cast_altfree.go)
 	}
@@ -474,6 +492,9 @@ func (s *State) targetableGen(k *prep, sl Slot, p uint8) bool {
 	if k.gen.anyHexOwn && s.perms[sl].ctrl != p {
 		hexC |= s.hexOwnColors(k, sl) // a granted hexproof from its own colours (kw_hexproofcolor.go)
 	}
+	if k.gen.anyHexUB && s.perms[sl].ctrl != p {
+		hexC |= s.hexUBColours(k, sl) // Veil of Summer's grant (repl_turnrepl.go)
+	}
 	if k.gen.anyCantTgt && s.cantTargetGen(k, sl, p) {
 		return false // a printed CantTarget static (tgt_canttarget.go)
 	}
@@ -481,34 +502,9 @@ func (s *State) targetableGen(k *prep, sl Slot, p uint8) bool {
 		!(k.gen.anyProtF && (k.t.Cards[s.cardAt(sl)].ProtFrom != 0 || k.gen.anyProtGrant)) && hexC == 0 {
 		return true
 	}
-	var spell bool
-	var card CardID
-	var c kop.ColorMask
-	srcSl := NoSlot
-	if e := s.curEntry(); e != nil {
-		spell, card = e.kind == seSpell, e.card
-		c = k.t.Cards[e.card].Colors
-		if !spell && e.obj != NoObj && s.objs[e.obj].zone == kop.ZoneBattlefield {
-			srcSl = s.objs[e.obj].slot
-			c = s.colorsGen(k, srcSl)
-		}
-	} else {
-		switch s.g.probe.kind {
-		case probeSpell:
-			spell, card = true, s.g.probe.card
-			c = k.t.Cards[card].Colors
-		case probeAbility:
-			if s.g.probe.src != NoSlot {
-				srcSl = s.g.probe.src
-				card = s.cardAt(srcSl)
-				c = s.colorsGen(k, s.g.probe.src)
-			} else if s.g.probe.off {
-				card = s.g.probe.card // CR 702.16b: the card's own colours (Renew from a graveyard)
-				c = k.t.Cards[card].Colors
-			}
-		default:
-			return true
-		}
+	spell, card, c, srcSl, ok := s.tgtSource(k)
+	if !ok {
+		return true
 	}
 	// an instant spell, or an ability whose source is an instant (Faebloom
 	// Trick's reflexive trigger: CR 702.11d's "sources with that quality")
@@ -928,4 +924,38 @@ func (s *State) priorityGenReadsAv(k *prep, p uint8) bool {
 		k.manaOne || g.anyTapExtra || g.anyContGrant || len(g.grantPC) != 0 || g.anyTapsDefer ||
 		k.availExt || k.painMana || s.g.availX&3 != 0 ||
 		g.anyGrant && s.ctrlM[p].any() && s.grantsLive(k)
+}
+
+// tgtSource is the spell or ability the current targeting is for (the entry
+// being built or resolved, else the feasibility probe): spell reports a spell,
+// card its card, c its colours (a source on the battlefield's current ones),
+// srcSl its permanent. ok is false when no targeting is in progress.
+func (s *State) tgtSource(k *prep) (spell bool, card CardID, c kop.ColorMask, srcSl Slot, ok bool) {
+	srcSl = NoSlot
+	if e := s.curEntry(); e != nil {
+		spell, card = e.kind == seSpell, e.card
+		c = k.t.Cards[e.card].Colors
+		if !spell && e.obj != NoObj && s.objs[e.obj].zone == kop.ZoneBattlefield {
+			srcSl = s.objs[e.obj].slot
+			c = s.colorsGen(k, srcSl)
+		}
+		return spell, card, c, srcSl, true
+	}
+	switch s.g.probe.kind {
+	case probeSpell:
+		spell, card = true, s.g.probe.card
+		c = k.t.Cards[card].Colors
+	case probeAbility:
+		if s.g.probe.src != NoSlot {
+			srcSl = s.g.probe.src
+			card = s.cardAt(srcSl)
+			c = s.colorsGen(k, s.g.probe.src)
+		} else if s.g.probe.off {
+			card = s.g.probe.card // CR 702.16b: the card's own colours (Renew from a graveyard)
+			c = k.t.Cards[card].Colors
+		}
+	default:
+		return false, 0, 0, NoSlot, false
+	}
+	return spell, card, c, srcSl, true
 }

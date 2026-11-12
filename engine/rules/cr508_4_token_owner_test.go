@@ -179,7 +179,7 @@ func tokenForgeAttackingSrc(script string) string {
 // rather than attack its own controller.
 func TestCR508_4CraftyCutpurseRedirectedTokenDoesNotAttackItself(t *testing.T) {
 	t.Parallel()
-	cutpurse := tokenReplCorpusCard(t, "Crafty Cutpurse")
+	cutpurse := corpusAlternativeCard(t, "Crafty Cutpurse")
 	jace := lookup(t, searchTestRegistry(t), "Jace, the Mind Sculptor")
 	maker := cardByName(t, tokenForgeAttackingSrc("g_1_1_squirrel"))
 	e, cfg := tokenReplGameSeats(t, 1391, []*cards.Card{cutpurse, jace}, []*cards.Card{maker})

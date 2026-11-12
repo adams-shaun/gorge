@@ -643,7 +643,7 @@ func (g *grantSrch) candidates(s *State) {
 		return // every gap dropped: gorge's search runs on none
 	}
 	if !s.filtFunded(g.k, g.p, fm) {
-		g.funding = 0 // (gorge's unrelaxable census funds no fee)
+		g.funding = s.filtFunding(g.k, g.p, fm) // (gorge's unrelaxable census funds no fee, but an unbounded repeatable one)
 	}
 	if g.funding == 0 {
 		return
@@ -679,12 +679,20 @@ func (s *State) tappedOf(p uint8) slotMask {
 	return m
 }
 
-// bfObjKey hashes p's battlefield objects, each with its slot (FNV-1a).
+// bfObjKey hashes p's battlefield objects, each with its slot and counters
+// (FNV-1a): gorge's scriptStateKey lists each permanent's id and counters, so
+// an Army a resolved amass grew is a new payer state though its stack, hand
+// and graveyard sizes are those of an earlier node (CR 701.47a).
 func (s *State) bfObjKey(p uint8) uint64 {
 	h := uint64(14695981039346656037)
 	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
 		sl := b.first()
-		h = (h ^ uint64(sl)<<16 ^ uint64(s.perms[sl].obj)) * 1099511628211
+		pm := &s.perms[sl]
+		h = (h ^ uint64(sl)<<16 ^ uint64(pm.obj)) * 1099511628211
+		h = (h ^ uint64(pm.p1)) * 1099511628211
+		for i := range pm.cn {
+			h = (h ^ uint64(pm.ck[i])<<16 ^ uint64(pm.cn[i])) * 1099511628211
+		}
 	}
 	return h
 }
@@ -1092,7 +1100,14 @@ func (g *grantSrch) needPass(t *State, i int, sl Slot) bool {
 // scriptOrderAnswers: an option naming a needed colour first): pass 1 the
 // colours the play needs, pass 2 the others. An any-colour ability's
 // option names no colour, so it waits for pass 2 with all of its colours.
-func (g *grantSrch) selColours(cols []uint8, mask, sel uint8) []uint8 {
+func (g *grantSrch) selColours(cols []uint8, mask, sel uint8, named bool) []uint8 {
+	if !named {
+		// no option names a colour (stepNamed): all wait for pass 2, in engine order
+		if sel == 1 {
+			return nil
+		}
+		return cols
+	}
 	anyAb := mask&uint8(kop.ColAny) == uint8(kop.ColAny)
 	if anyAb {
 		if sel == 1 {
@@ -1132,10 +1147,13 @@ func (g *grantSrch) branchSel(t *State, i int, sl Slot, gi int16, mask, n uint8,
 	}
 	var order [kop.NumManaKinds]uint8
 	no := t.stepColours(g.k, sl, gi, mask, &order)
-	needFirst(order[:no], g.need)
+	named := t.stepNamed(g.k, sl, gi, mask)
+	if named {
+		needFirst(order[:no], g.need)
+	}
 	cols := order[:no]
 	if sel != 0 {
-		cols = g.selColours(cols, mask, sel)
+		cols = g.selColours(cols, mask, sel, named)
 	}
 	for _, c := range cols {
 		t.perms[sl].flags |= pfTapped
@@ -1179,19 +1197,7 @@ func (s *State) stepColours(k *prep, sl Slot, gi int16, mask uint8, out *[kop.Nu
 	if gi < 0 {
 		pc = s.manaPCGen(k, sl)
 	}
-	var ab *kop.Ability
-	if gi < 0 {
-		if ra := s.ownRestrAb(k, sl); ra != nil && !s.ownManaUsable(k, sl) {
-			ab = ra // the printed restricted ability (mana_grantrestrictedown.go)
-		} else if pc.manaAb >= 0 && (pc == &k.cards[cd] || pc.blgFirst != 0) {
-			// the source's own profile or a granted-type view names one of the
-			// card's own abilities; a grant/var/gate view's index names another
-			// card's (mana_window.go windowCol)
-			ab = manaAbView(&k.t.Cards[cd], pc)
-		}
-	} else if r := k.gen.grantOf[gi]; !k.gen.grantSelf[gi] {
-		ab = &k.t.Cards[r.card].Abilities[r.ab]
-	}
+	ab := s.stepAbility(k, sl, gi, pc)
 	var seen uint8
 	if gi < 0 && pc.blgFirst != 0 {
 		// a land with a granted basic type: gorge lists the face's own abilities
@@ -1217,6 +1223,14 @@ func (s *State) stepColours(k *prep, sl Slot, gi int16, mask uint8, out *[kop.Nu
 			out[n] = c
 			n++
 			seen |= 1 << c
+		}
+	}
+	if gi < 0 && pc.manaMulti && k.gen.anyVergeOrder {
+		// a gated Verge's ability 0 comes before its lower colour (mana_gate.go)
+		if c0, ok := s.vergeAbility0Col(k, sl); ok && c0 < kop.NumManaKinds && mask&(1<<uint(c0)) != 0 && seen&(1<<uint(c0)) == 0 {
+			out[n] = uint8(c0)
+			n++
+			seen |= 1 << uint(c0)
 		}
 	}
 	for c := uint8(0); c < kop.NumManaKinds; c++ {
@@ -1637,6 +1651,8 @@ func (s *State) castFaceCard(k *prep, a Action) CardID {
 	}
 	if cd := &k.t.Cards[c]; roomDef(k, c) {
 		return cd.Faces[a.Target()] // a room_alt cast: the other door, whichever door the card shows
+	} else if fd, ok := fusedDef(k, c); ok && a.Target() == FeatFuseFace {
+		return fd // a fused cast: both halves (face_fuse.go)
 	} else if len(cd.Faces) == 2 && a.Target() == 1 {
 		return cd.Faces[1]
 	}
@@ -1678,6 +1694,8 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 				return s.adjustCost(k, p, c, Obj(a.Source()), cd.EvokeCost), ex, need, true
 			case a.Target() == castDashTgt && cd.HasDash:
 				return s.adjustCost(k, p, c, Obj(a.Source()), cd.DashCost), ex, need, true
+			case a.Target() == castOverloadTgt && cd.HasOverload:
+				return s.adjustCost(k, p, c, Obj(a.Source()), cd.OverloadCost), ex, need, true
 			}
 		}
 		if a.Mode()&1 != 0 {
@@ -1759,7 +1777,7 @@ func (s *State) playNeed(k *prep, a Action) (need [kop.NumManaKinds]bool) {
 			need = s.abilityNeed(k, Obj(a.Source()), a.Mode())
 		}
 	case AkCast:
-		if a.Mode() == 0 && a.Target() != castImpTgt && a.Target() != castEvokeTgt && a.Target() != castDashTgt {
+		if a.Mode() == 0 && a.Target() != castImpTgt && a.Target() != castEvokeTgt && a.Target() != castDashTgt && a.Target() != castOverloadTgt {
 			need = grantNeedColours(k.cards[s.objs[a.Source()].card].cost)
 		}
 	}

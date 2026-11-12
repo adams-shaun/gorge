@@ -264,7 +264,11 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		ps.consume("Imprint")
 	}
 	if ct, ok := ps.get("ChangeType"); ok {
-		if _, has := ps.m["ValidTgts"]; has && !(origin == zHand && (dest == zExile || dest == zBattlefield || dest == zLibrary) ||
+		ownSearch, err := lc.targetPlayerOwnSearch(ps, origin, dest) // lower_partnerwith.go
+		if err != nil {
+			return err
+		}
+		if _, has := ps.m["ValidTgts"]; has && !ownSearch && !(origin == zHand && (dest == zExile || dest == zBattlefield || dest == zLibrary) ||
 			(origin == zBattlefield || origin == zGraveyard) && (dest == zExile || dest == zHand) && ps.is("Hidden", "True") ||
 			origin == zExile && dest == zGraveyard && ps.is("Hidden", "True")) {
 			return refuse("ChangeType$ with ValidTgts$")
@@ -1238,6 +1242,20 @@ func (lc *lowerCtx) dig(ps *params) error {
 		return err
 	}
 	in.F = pickConstraintFilter(in.F, budget, hasBudget, distinct)
+	forgetOther := false
+	if v, ok := ps.get("ForgetOtherRemembered"); ok {
+		// gorge effDig copies the pre-clear candidates, then clears the
+		// resolution's remembered set before the walk (dig.go). The kernel
+		// walks the live set with no pre-clear snapshot, so a ChangeValid$
+		// that reads it refuses by name.
+		if v != "True" {
+			return refuse("Dig ForgetOtherRemembered$ %q", v)
+		}
+		if strings.Contains(ps.m["ChangeValid"], "Remembered") || filterReadsRemembered(in.F) {
+			return refuse("Dig ForgetOtherRemembered$ with a ChangeValid$ that reads the remembered set")
+		}
+		forgetOther = true
+	}
 	if lp, ok := ps.get("LibraryPosition"); ok {
 		if dest != zLibrary && dest2 != zLibrary {
 			return refuse("LibraryPosition without a library destination")
@@ -1310,6 +1328,11 @@ func (lc *lowerCtx) dig(ps *params) error {
 		return err
 	}
 	in.CS = strings.Join(flags, "|")
+	if forgetOther {
+		// both Dig paths clear before the walk; DigRemember then re-adds the
+		// taken cards (Primal Surge)
+		lc.emit(lInstr{Op: "ClearRemembered"})
+	}
 	if ct, ok := ps.get("WithCounters"); ok && lc.name == undercityKey {
 		// the taken card enters with counters (CR 122.6;
 		// the Undercity's Throne). gorge effDig reads neither param
@@ -1335,6 +1358,22 @@ func (lc *lowerCtx) dig(ps *params) error {
 		lc.emit(lInstr{Op: "DigImprint"}) // the dig's takes join the imprinted set
 	}
 	return nil
+}
+
+// filterReadsRemembered reports whether a compiled filter reads the
+// resolution's remembered set (Card.IsRemembered). A Dig's candidates come
+// from a pre-clear snapshot in gorge, which the kernel cannot reproduce for
+// such a filter.
+func filterReadsRemembered(f *lFilter) bool {
+	if f == nil {
+		return false
+	}
+	for _, c := range f.Clauses {
+		if c.Flags&fRemembered != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (lc *lowerCtx) digUntil(ps *params) error {
@@ -1484,21 +1523,7 @@ func (lc *lowerCtx) twoPiles(ps *params) error {
 	if ps.str("Zone") == "Battlefield" {
 		return lc.twoPilesSac(ps)
 	}
-	// Curator of Destinies: you separate the remembered top cards into a
-	// face-down and a face-up pile; an opponent chooses one; the chosen
-	// pile goes to your hand and the other to your graveyard.
-	if ps.str("Defined") != "You" || ps.str("Separator") != "You" || ps.str("Chooser") != "Opponent" ||
-		ps.str("DefinedCards") != "Remembered" || ps.str("Zone") != "Library" || ps.str("FaceDown") != "One" {
-		return refuse("TwoPiles shape")
-	}
-	chosen := cards.ResolveSVar(lc.face.SVars, ps.str("ChosenPile"))
-	unchosen := cards.ResolveSVar(lc.face.SVars, ps.str("UnchosenPile"))
-	if chosen == nil || unchosen == nil || chosen.API != "ChangeZone" || chosen.Params["Destination"] != "Hand" ||
-		unchosen.API != "ChangeZoneAll" || unchosen.Params["Destination"] != "Graveyard" || chosen.Sub != nil || unchosen.Sub != nil {
-		return refuse("TwoPiles pile actions")
-	}
-	lc.emit(lInstr{Op: "TwoPiles", Obj: lRef{Kind: rYou}, F: nil, C: zHand, CS: "unchosen=Graveyard|chooser=Opponent|FaceDownOne"})
-	return nil
+	return lc.twoPilesRemembered(ps) // lower_twopiles.go
 }
 
 func (lc *lowerCtx) chooseCard(ps *params) error {
@@ -2331,9 +2356,10 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		}
 		aff := sp.str("Affected")
 		nonLand := false
-		if (obj.Kind == rRemembered || lc.digImprintChosen && obj.Kind == rChosen) && (aff == "Card.IsRemembered+nonLand" || aff == "Card.nonLand+IsRemembered") {
-			// "you may cast" the remembered nonland cards: the grant skips a
-			// remembered land (its type cannot change off the battlefield)
+		if (obj.Kind == rRemembered || obj.Kind == rTarget || lc.digImprintChosen && obj.Kind == rChosen) && (aff == "Card.IsRemembered+nonLand" || aff == "Card.nonLand+IsRemembered") {
+			// "you may cast" the remembered nonland cards, or (Silas Renn) the
+			// target RememberObjects$ Targeted remembers: the grant skips a
+			// land (its type cannot change off the battlefield)
 			aff, nonLand = "Card.IsRemembered", true
 		}
 		instSorc := false
@@ -2519,6 +2545,9 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	t, ok := cards.ParseTriggerLine(lc.face.SVars[tr])
 	if !ok {
 		return refuse("emblem trigger %q", tr)
+	}
+	if t.Mode == "BecomeMonarch" {
+		return monarchEffectTrigger() // lower_monarch.go
 	}
 	if (eot || next) && t.Mode != "SpellCast" && t.Mode != "ChangesZone" && t.Mode != "Sacrificed" && t.Mode != "DamageDone" && !(t.Mode == "DamageDealtOnce" && lc.pairCap != nil) &&
 		t.Mode != "AttackersDeclared" && t.Mode != "AttackersDeclaredOneTarget" && t.Mode != "Attacks" {
@@ -3453,7 +3482,10 @@ func (lc *lowerCtx) immediateTrigger(ps *params) error {
 	}
 	savedSpawn := lc.spawnDmg
 	lc.spawnDmg = spawnDamagedOpp(lc.ab) // lower_filterwords.go
+	savedAtk := lc.spawnAtk
+	lc.spawnAtk = spawnAttacked(lc.ab) // lower_filterwords.go
 	err = lc.withAbility(lat, func() error { return lc.chain(exec, nil) })
+	lc.spawnAtk = savedAtk
 	lc.spawnDmg = savedSpawn
 	if err != nil {
 		return err

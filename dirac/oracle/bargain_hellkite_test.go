@@ -86,7 +86,7 @@ func kbargainHellkitePolicy(seed uint64, c *kbargainHellkiteTally, t *testing.T)
 		}
 		for _, a := range p.D.Options {
 			if a.Kind() == ActCast && a.Mode()>>4 == 0 && a.Mode()&0xf == kbargainCastOther &&
-				kbargainName(g, a.Src()) == "Realm-Scorcher Hellkite" {
+				refCardName(g, a.Src()) == "Realm-Scorcher Hellkite" {
 				c.casts++
 				return a
 			}
@@ -100,7 +100,7 @@ func kbargainHellkitePolicy(seed uint64, c *kbargainHellkiteTally, t *testing.T)
 		pool, landed := pl.Pool.Total(), pl.LandsPlayed
 		castOf := func(name string) (Canon, bool) {
 			for _, a := range p.D.Options {
-				if a.Kind() == ActCast && a.Mode() == 0 && kbargainName(g, a.Src()) == name {
+				if a.Kind() == ActCast && a.Mode() == 0 && refCardName(g, a.Src()) == name {
 					return a, true
 				}
 			}

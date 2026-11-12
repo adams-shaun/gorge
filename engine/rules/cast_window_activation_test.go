@@ -79,16 +79,6 @@ func cwArmBelt(t *testing.T, e *Engine, beltID state.ObjID) *decision.Decision {
 	return d
 }
 
-// cwOffersTarget reports whether the target decision lists id.
-func cwOffersTarget(d *decision.Decision, id state.ObjID) bool {
-	for _, o := range d.Options {
-		if o.Obj == id {
-			return true
-		}
-	}
-	return false
-}
-
 // cwProbeAlts counts the alternatives castWindowUnits priced for a source, so
 // a leaf can assert the widened layer actually contributed the activation
 // (the precondition a withheld-target assertion would otherwise not check).
@@ -149,13 +139,13 @@ func TestCastWindowChoiceDynamicAmountAdmitsTarget(t *testing.T) {
 		t.Fatalf("pool precondition = %d, want 6", got)
 	}
 	d := cwArmBelt(t, e, beltID)
-	if !cwOffersTarget(d, bruteID) {
+	if !offersObjOption(d, bruteID) {
 		t.Fatalf("4-power target withheld at {6}: %+v", d.Options)
 	}
 	if alts := cwProbeAlts(t, e, dynID); alts == 0 {
 		t.Fatal("probe priced no alternative for the dynamic choice-shaped source")
 	}
-	if !cwOffersTarget(d, smallID) {
+	if !offersObjOption(d, smallID) {
 		t.Fatalf("2-power target withheld although {6} plus DynAny's {2} of one colour funds its {8}: %+v", d.Options)
 	}
 
@@ -167,7 +157,7 @@ func TestCastWindowChoiceDynamicAmountAdmitsTarget(t *testing.T) {
 	}
 	addMana(t, b2.engine, 0, "CCCCCC")
 	d2 := cwArmBelt(t, b2.engine, b2.belt)
-	if cwOffersTarget(d2, b2.small) {
+	if offersObjOption(d2, b2.small) {
 		t.Fatalf("2-power target offered from {6} alone without the dynamic source: %+v", d2.Options)
 	}
 	targetObject(t, e, smallID)
@@ -246,10 +236,10 @@ func TestCastWindowGenericMultiColourAdmitsTarget(t *testing.T) {
 	if alts := cwProbeAlts(t, e, triID); alts == 0 {
 		t.Fatal("probe priced no alternative for the multi-colour generic producer")
 	}
-	if !cwOffersTarget(d, smallID) {
+	if !offersObjOption(d, smallID) {
 		t.Fatalf("2-power target withheld although {6} plus TriRock's net {2} funds its {8}: %+v", d.Options)
 	}
-	if !cwOffersTarget(d, bruteID) {
+	if !offersObjOption(d, bruteID) {
 		t.Fatalf("4-power target withheld at {6}: %+v", d.Options)
 	}
 
@@ -259,7 +249,7 @@ func TestCastWindowGenericMultiColourAdmitsTarget(t *testing.T) {
 	b2 := equipWindowGame(t, 712, cwTriRockFeeSrc)
 	addMana(t, b2.engine, 0, "CCCCCC")
 	d2 := cwArmBelt(t, b2.engine, b2.belt)
-	if cwOffersTarget(d2, b2.small) {
+	if offersObjOption(d2, b2.small) {
 		t.Fatalf("2-power target offered although {6} plus a net-zero multi-colour source = 6 < 8: %+v", d2.Options)
 	}
 }
@@ -287,7 +277,7 @@ func TestCastWindowGenericFundedByEarlierSourceAdmitsTarget(t *testing.T) {
 	if alts := cwProbeAlts(t, e, paidID); alts == 0 {
 		t.Fatal("probe priced no alternative for the over-pool generic producer")
 	}
-	if !cwOffersTarget(d, smallID) {
+	if !offersObjOption(d, smallID) {
 		t.Fatalf("2-power target withheld although {6} plus a free {C} funds PaidRock's {7} fee and its {8} reaches {8}: %+v", d.Options)
 	}
 	// Prove the window can execute the sequence the probe promised: tap the
@@ -322,7 +312,7 @@ func TestCastWindowGenericFundedByEarlierSourceAdmitsTarget(t *testing.T) {
 	b2 := equipWindowGame(t, 714, cwPaidRockSrc)
 	addMana(t, b2.engine, 0, "CCCCCC")
 	d2 := cwArmBelt(t, b2.engine, b2.belt)
-	if cwOffersTarget(d2, b2.small) {
+	if offersObjOption(d2, b2.small) {
 		t.Fatalf("2-power target offered although PaidRock's {7} fee exceeds the {6} pool with no window source: %+v", d2.Options)
 	}
 }
@@ -357,7 +347,7 @@ func TestCastWindowSamePermanentNotDoubleTapped(t *testing.T) {
 	if n < 2 {
 		t.Fatalf("probe priced %d alternatives for the dual land, want its two abilities", n)
 	}
-	if cwOffersTarget(d, smallID) {
+	if offersObjOption(d, smallID) {
 		t.Fatalf("2-power target offered from {6} plus one dual land (one tap = 1 mana, not 2): %+v", d.Options)
 	}
 }
@@ -440,7 +430,7 @@ func TestCastWindowRestrictedAbilityAdmittedIsPriced(t *testing.T) {
 	if !e.castWindowCensusComplete(e.cast, e.castWindowUnits(e.cast)) {
 		t.Fatal("a priced restricted source left the census incomplete")
 	}
-	if !cwOffersTarget(d, smallID) {
+	if !offersObjOption(d, smallID) {
 		t.Fatalf("2-power target withheld although {6} plus the restricted {G}{G} funds its {8}: %+v", d.Options)
 	}
 	targetObject(t, e, smallID)
@@ -493,10 +483,10 @@ func TestCastWindowRestrictedAbilityStaysFailClosed(t *testing.T) {
 	if alts := cwProbeAlts(t, e, resID); alts != 0 {
 		t.Fatalf("probe priced %d alternatives for a RestrictValid$-governed source; it must stay fail-closed", alts)
 	}
-	if cwOffersTarget(d, smallID) {
+	if offersObjOption(d, smallID) {
 		t.Fatalf("2-power target offered although its {8} needs a RestrictValid$ source the probe must not price: %+v", d.Options)
 	}
-	if !cwOffersTarget(d, bruteID) {
+	if !offersObjOption(d, bruteID) {
 		t.Fatalf("4-power target withheld at {6}: %+v", d.Options)
 	}
 	// The boundary is fail-closed, not a removal of the offer: the live window

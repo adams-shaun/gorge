@@ -1,7 +1,7 @@
 package rules
 
 // One test per card for the targeting/type-choice/zone-pump misc census
-// batch (task inbox-paramcensus-targeting-and-type-choice-misc). The census
+// batch. The census
 // ratchet's five cleared entries each get a test proving the param's actual
 // behaviour end to end:
 //
@@ -232,7 +232,7 @@ func TestPlanetaryAnnihilationRevealsKeptLands(t *testing.T) {
 	}
 	submitChoices(t, e, d.Options[0].Index, d.Options[1].Index)
 	reveals := revealNotes(e)
-	if len(reveals) != 1 || reveals[0].Player != 0 || !sameIDs(reveals[0].IDs, []state.ObjID{l0a, l0b}) {
+	if len(reveals) != 1 || reveals[0].Player != 0 || !sameObjIDs(reveals[0].IDs, []state.ObjID{l0a, l0b}) {
 		t.Fatalf("after seat 0's answer the log = %+v, want one public reveal of seat 0's lands", revealNotes(e))
 	}
 
@@ -243,7 +243,7 @@ func TestPlanetaryAnnihilationRevealsKeptLands(t *testing.T) {
 	}
 	submitChoices(t, e, d.Options[0].Index, d.Options[1].Index)
 	reveals = revealNotes(e)
-	if len(reveals) != 2 || reveals[1].Player != 1 || !sameIDs(reveals[1].IDs, []state.ObjID{l1a, l1b}) {
+	if len(reveals) != 2 || reveals[1].Player != 1 || !sameObjIDs(reveals[1].IDs, []state.ObjID{l1a, l1b}) {
 		t.Fatalf("after seat 1's answer the log = %+v, want one public reveal of seat 1's lands", revealNotes(e))
 	}
 	passUntilStackEmpty(t, e, 20)
@@ -254,18 +254,6 @@ func TestPlanetaryAnnihilationRevealsKeptLands(t *testing.T) {
 		t.Fatal("the chosen keeps were sacrificed instead of kept")
 	}
 	replayCheck(t, e, cfg)
-}
-
-func sameIDs(a, b []state.ObjID) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 // find2ByName returns the SECOND object named name owned by p (the fixture

@@ -235,7 +235,7 @@ func TestDeflectingSwatOffersTheSpellControllersLegalTargetsKernel(t *testing.T)
 	if offersObj(d, theirs) {
 		t.Fatalf("offered the caster's own creature, illegal for its spell: %+v", d.Options)
 	}
-	submitChoices(t, e, optionOfObj(t, d, mineB))
+	submitChoices(t, e, objOptionIndex(t, d, mineB))
 	if got := e.G.Obj(murder.ID).Targets; len(got) != 1 || got[0].Obj != mineB {
 		t.Fatalf("Murder targets = %+v, want creature %d", got, mineB)
 	}
@@ -258,7 +258,7 @@ func TestBraidsRepeatEachSeesTheSacrificedCardKernel(t *testing.T) {
 	if d == nil || d.Kind != decision.KChoose || d.Min != 0 || d.Max != 1 {
 		t.Fatalf("Braids's optional sacrifice did not ask: %+v", d)
 	}
-	submitChoices(t, e, optionOfObj(t, d, relic))
+	submitChoices(t, e, objOptionIndex(t, d, relic))
 	if e.G.Obj(braids).Zone != state.ZBattlefield || e.G.Obj(relic).Zone != state.ZGraveyard {
 		t.Fatalf("Braids zone %v relic zone %v, want Braids kept and the relic sacrificed",
 			e.G.Obj(braids).Zone, e.G.Obj(relic).Zone)

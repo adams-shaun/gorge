@@ -26,16 +26,7 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   (convoke picks count toward the expend tally but not CastTotalManaSpent).
   A printed card with both keywords is
   refused in kgen; a grant beside the other keyword (or on an {X} cost)
-  poses gorge's one mixed announcement (convokeOptions, convokeXCost). gorge offers an improvise cast only when the floating pool
-  plus the greedy artifact credit pays the whole cost (its planner refuses
-  the shape), so a cast with a coloured pip is offered only with that colour
-  floating, which the lockstep reproduces.
-- X ceiling: gorge's xAsk loops X up to pool + caster's graveyard + convoke
-  credit + what the window's sources make + 1, and raises that only for a
-  named-count discount, so a generic reduction (Zimone, Mocking Sprite) paying
-  into {X} past it is not offered although CR 601.2f allows it. dirac
-  clamps its X ask to the same ceiling on the gorge surfaces (cast.go bsX;
-  TestXCeilingReducePaysX).
+  poses gorge's one mixed announcement (convokeOptions, convokeXCost).
 - Free cast with an either-or additional cost (Alternate Additional Cost,
   Eaten Alive via Etali, Louisoix's Sacrifice via Hurl into History's
   Discover): gorge's altAddAsk classifies the parts with `castable` ->
@@ -51,60 +42,32 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   chosen part at the mana window, where the lands are tapped (pair 9954).
   Tests: TestFreeCastEitherOrNoPayablePart, TestFreeCastEitherOrFloatingPoolPays;
   lockstep: ctrshapes (Hurl into History deck).
-- Mana abilities with a spending restriction (Giada, Secluded
-  Courtyard's any-colour mana) are not autopay sources. Giada's {W} or
-  the Courtyard's colour, tapped by a scripted prefix (gorge's planner
-  census misses both) or, Giada's, by a ward / unless window, floats
-  beside the pool as restricted mana (up to four batches per player, `State.rb`,
-  each of one restriction and chosen type, `mana_restrbatch.go`): projected with the
-  pool, spent first by a spell its restriction allows (an Angel; a
-  creature spell of the Courtyard's chosen type), and while it floats
-  only plays the pool pays are offered, as gorge's planners refuse such
-  a pool. A loyalty ability's resolving restricted mana (Chandra, Chill
-  of Compliance's noncreature-only {U}: no mana ability, CR 605.1a, but
-  the restriction rides it, CR 106.6; gorge's ManaAdd restriction) floats
-  in the same batches: AddMana's F names the restriction, prepareGen
-  registers it, and a fifth batch (`maxRB`) stalls StallRestrSrc
-  (`TestChandraRestrictedLoyaltyMana`, `TestRememberWritesLockstep`). A dynamic-amount
-  one (Elvish Archdruid) is, listed after every fixed and choice-shaped
-  source as gorge's evaluated-amount layer. Quilled Greatwurm's six
-  counters are asked one at a time (ChCostSubCtr), as gorge asks them.
-- Mana an artifact's mana ability adds (Ring of the Lucii's {C}{C} paying a
-  one-mana remainder, a Treasure, Sol Ring) is tagged in gorge's pool
-  (effects.ManaProducerTag) and `pay.PlanPoolOK` refuses a pool holding any
-  tagged unit, as it refuses restricted mana: while one floats a spell is
-  offered only when the floating pool alone pays it. dirac keeps the
-  slots holding such a unit (`genState.poolArt`, padding), clears a slot
-  when it empties (gorge spends a plain unit before a tagged one) and
-  declines the planner in `FeatPlannedCast` / `FeatPlannedActivation`
-  (mana_artifact.go; `ring` pool, TestRingLockstep). gorge's
-  other typed tallies (state.Player.TypedMana: Treasure, Cave, Desert) are
-  refused alike, so a Desert's or a Cave's mana tags too (pcard.manaTyped:
-  Arid Archway's {C}{C} paying a one-mana remainder; `remparams` pool,
-  TestRemparamsLockstep). Open: the filter-land and Giada-window pool
-  additions do not tag (no typed source reaches them).
-- Face casts: gorge's potential planner prices every face route,
-  and dirac offers the Adventure (including its exile recast), split
-  and modal routes from the ordinary mana census (floating pool plus
-  untapped sources) on the oracle surface (`Config.GorgeUnpriced`). The
-  planner's limits apply only to those newly priced routes: a pool holding
-  restricted mana is refused ("unsupported: pool", so the floating pool
-  alone must pay; the query reads `RestrictedMana` only, so an
-  artifact-tagged unit is ordinary mana to it -- unlike the ordinary cast
-  and activation planners' `PlanPoolOK`, above), a scripted prefix whose
+- Restricted mana that floats beside the pool (`State.rb`, `mana_restrbatch.go`)
+  from a loyalty ability's resolving restriction (Chandra, Chill of
+  Compliance's noncreature-only {U}: no mana ability, CR 605.1a, but the
+  restriction rides it, CR 106.6; gorge's ManaAdd restriction): AddMana's F
+  names the restriction, prepareGen registers it, and a fifth batch (`maxRB`)
+  stalls StallRestrSrc (`TestChandraRestrictedLoyaltyMana`,
+  `TestRememberWritesLockstep`). A dynamic-amount restricted source (Elvish
+  Archdruid) is listed after every fixed and choice-shaped source as gorge's
+  evaluated-amount layer. Quilled Greatwurm's six counters are asked one at a
+  time (ChCostSubCtr), as gorge asks them.
+- Face casts: gorge's potential planner prices every face route, and its
+  cast payment planner plans the face the card shows (CR 709.3: a Room back
+  in the hand on door 1 is a plain cast of that door, priced from untapped
+  lands like any other), so `plannedCastCost` prices a plain cast of a card
+  showing a nonzero face. dirac offers the Adventure (including its exile
+  recast), split, modal and Room routes from the ordinary mana census
+  (floating pool plus untapped sources) on the oracle surface
+  (`Config.GorgeUnpriced`). The planner's limits apply only to those newly
+  priced routes: a scripted prefix whose
   restricted mana floats dead-ends, and a witness whose plan consumes a
   source the face's own targets need is dropped ("unsupported:
-  witness_unreachable"; Battle Display). gorge's cast planner also plans
-  face 0 only (rules payment_plan.go planCastPaymentChecked: a `FaceIdx`
-  other than `cast.Face` is "unsupported"), so `plannedCastCost` declines a
-  plain cast of a card showing a nonzero face -- a Room back in the hand on
-  door 1 is lowered or pool-paid. Omen and Prepare
-  keep their census offer. A Room's other door stays pool-only on
-  the oracle surface: its census offer reaches latent dirac Room-rule
-  divergences (the Unholy Annex Demon branch, unlock-trigger token timing). Pricing these casts from untapped
+  witness_unreachable"; Battle Display). Omen and Prepare
+  keep their census offer. Pricing these casts from untapped
   lands lets the kpermcopy lockstep's greedy caster push more than
   `castRingN` spells in a turn: a cast-ring capacity stall, measured
-  2/720 games (TestPermcopyLockstep). Off the oracle surface (self-play's
+  0/720 games (TestPermcopyLockstep). Off the oracle surface (self-play's
   default) every route is the plain rules census, CR 601.2h.
 - Replacement amounts are computed in a fixed order, amounts then
   prevention (Twinflame Tyrant before Crystal Barricade; two Twinflames
@@ -163,20 +126,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   further options). An untap carrier's `Repl.Cond` is not evaluated by
   `enterGen` for an other-enter program, so the conditional pair of Archelos,
   Lagoon Mystic (`Card.Self+tapped` / `+untapped`) stays refused at lowering.
-- D-aura-reask: an Aura returning from an
-  until-leaves exile outside a resolution (its source died to an SBA) with
-  several hosts is asked of its owner at once, mid departure batch, card
-  still in exile (`queueAskRet`; the hosts are the permanents entered by
-  then, so one returned later in the batch is no answer). gorge parks only
-  one entry (`applyETBChoiceReplacement` needs `e.pending == nil`): a
-  second non-cast Aura returning in the same batch enters at once attached
-  to its first candidate in battlefield order (`firstHost`), and its entry
-  overwrites gorge's single `auraEntry` record, so the first Aura's answer
-  is dropped (`answerAuraEntry` no longer matches) and it too attaches to
-  its first candidate when it enters (CR 303.4f says its owner's choice
-  stands). dirac marks the pending ask (`askRec.pc`) and ignores the
-  answer. Surfaced by TestWardLockstep seed 197 (two Pacifisms under two
-  Sheltered by Ghosts).
 - The optional top-of-library carriers (exact). Traveling Botanist, Bucolic Ranch and Gathering Stone are
   `Supported` in the `peekreveal` pool. (1) A taken reveal: the sub `Defined$
   Remembered | Origin$ Library | Destination$ Hand` is a fetch, not a search
@@ -205,17 +154,17 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   Ranch's reveal is never taken (`RevealValid$ Card.Mount` has no Mount in
   the pool), so those tests exercise only its declined else branch.
 - DB$ Clone on the battlefield (`dirac/copy_clone.go`, Ext CloneCopy): dirac models gorge's copy markers, not a stack of
-  layer-1 timestamps. (1) A permanent keeps its newest permanent marker's
-  source (an `fxCopyPerm` record, written by the Ext and by an ETB copy in a
-  table that has the Ext) and one `fxCopyEOT` record while an until-end-of-turn
-  copy is live; at cleanup it returns to its printed card and is re-based on
-  that source as the source is then (gorge `settleExpiredClones`), in the
-  order of the first until-end-of-turn marker. (2) A resolving trigger whose
+  layer-1 timestamps. A copy layer's card is locked when the layer lands (an
+  `fxCopyPerm` record, written by the Ext and by an ETB copy in a table that
+  has the Ext, and one `fxCopyEOT` record while an until-end-of-turn copy is
+  live) and a re-base restores the locked card, never reading the source again
+  (CR 707.2b; dirac `copyTop`, `TestCloneCleanupRebaseKeepsLockedCard`; gorge
+  `settleExpiredClones`). (1) A resolving trigger whose
   source's current card is not the trigger's card is not asked its `may`
   (gorge reads OptionalDecider$ off the source's current face; a copy of
-  something else has no such trigger). (3) The projection shows every copy
+  something else has no such trigger). (2) The projection shows every copy
   effect's permanent as its printed card in such a table (as an Aegis
-  bearer). (4) A permanent copying itself is an ordinary copy layer (its
+  bearer). (3) A permanent copying itself is an ordinary copy layer (its
   inherited exceptions are held beside the layer as `fxCopySelf` records), and
   an Aegis bearer's copy layers are ordered by their layer timestamps
   (`copy_aegisunder.go`). Only the
@@ -255,15 +204,16 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   counters in one turn); `khollowDecks` caps the pool at two copies and no
   Barrensteppe, where only one counter a turn is reachable (`TestSiegeHollowmurkLockstep`).
 - A graveyard may-play permission's non-mana `RaiseCost$` (Noctis, Alien Symbiosis, Wickerfolk Indomitable, and BLB's Festival of
-  Embers): gorge SUMS the raise over every granting static
-  (`engine/rules/mayplay.go` `mayPlayRaiseCost`, `Cost.Plus`); dirac prices one.
-  A second granting raise (two Festivals of Embers on the battlefield, or
-  Noctis beside Wickerfolk) is a loud `StallMayRaise` ("mayraise"), as is a
-  spell that already owes its own additional pick cost. BLB's pool gains this
-  stall class with Festival; the pool's two-copy decks reach it only with both
-  on the battlefield. A land a raising permission grants (an artifact land
-  under Noctis) is withheld, payable or not, as gorge's `mayPlayLandIds` does
-  (`dirac/cost_mayplayraise.go` `mayRaiseLandHeld`).
+  Embers) BESIDE the spell's own additional pick cost: the kernel prices one
+  pick Cost, so the cast is a loud `StallMayRaise` ("mayraise"). One raise
+  alone prices in both engines: a cast is made under one permission (CR
+  601.2b/f), so gorge charges the FIRST granting static's raise rather than
+  summing every grant (`engine/rules/mayplay.go` `mayPlayRaiseCost`) and dirac
+  prices that same first static (`dirac/cost_mayplayraise.go` `mayRaise`).
+  BLB's pool reaches this stall class with Festival only beside a spell that
+  also owes its own additional cost. A land a raising permission grants (an
+  artifact land under Noctis) is withheld, payable or not, as gorge's
+  `mayPlayLandIds` does (`dirac/cost_mayplayraise.go` `mayRaiseLandHeld`).
 - The legendary-source combat-hit bit (Blitzball's
   `HasPropertywasDealtCombatDamageThisTurnBy Creature.Legendary GE1`): gorge
   snapshots the hit source's printed face and matches the spec at the READ,

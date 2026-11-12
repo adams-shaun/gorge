@@ -33,27 +33,6 @@ var kabilitycastDecks = [2][]cardset.Entry{
 	},
 }
 
-// kabilitycastPolicy activates whenever it can (an exhaust or loyalty
-// ability is a rare option), else plays randomly.
-func kabilitycastPolicy(seed uint64) Policy {
-	rnd := RandomPolicy(seed)
-	var buf []Canon
-	return PolicyFunc(func(c *PickCtx) Canon {
-		buf = buf[:0]
-		for _, a := range c.D.Options {
-			if a.Kind() == ActActivate {
-				buf = append(buf, a)
-			}
-		}
-		if len(buf) == 0 {
-			return rnd.Pick(c)
-		}
-		d := *c.D
-		d.Options = buf
-		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
-	})
-}
-
 func runAbilitycast(t *testing.T, seeds int, mutate bool) (games, divs, stalls int, st dirac.AbilityCastStats) {
 	t.Helper()
 	cardsDir := corpusDirOrSkip(t)
@@ -105,7 +84,7 @@ func runAbilitycast(t *testing.T, seeds int, mutate bool) (games, divs, stalls i
 		if err != nil {
 			t.Fatal(err)
 		}
-		res := LockstepLed(m, seed, g, k, kabilitycastPolicy(seed), RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 20})
+		res := LockstepLed(m, seed, g, k, activateOnlyPolicy(seed), RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 20})
 		CloseSide(k)
 		games++
 		if strings.HasPrefix(res.Stall, KernelStallPrefix) {

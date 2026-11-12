@@ -99,16 +99,6 @@ func castFormationNow(t *testing.T, e *Engine, name string) {
 	passUntilStackEmpty(t, e, 20)
 }
 
-// counterN returns the number of `kind` counters on o.
-func counterN(o *state.Object, kind string) int {
-	for i := range o.Counters {
-		if o.Counters[i].Kind == kind {
-			return int(o.Counters[i].N)
-		}
-	}
-	return 0
-}
-
 // assertAddendum asserts the addendum's two signatures on each creature:
 // vigilance and one +1/+1 counter.
 func assertAddendum(t *testing.T, e *Engine, ids ...state.ObjID) {

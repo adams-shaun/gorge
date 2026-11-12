@@ -73,7 +73,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		case kop.LibTopGrave, kop.LibBottomGrave:
 			s.toLibraryGrave(k, in) // zone_tolibrarygrave.go
 		case kop.LibBottomRememberBF:
-			s.toLibraryRememberBF(k, in) // zone_tolibrarybfremember.go
+			s.toLibraryRememberBF(k, in, true) // zone_tolibrarybfremember.go
+		case kop.LibTopRememberBF:
+			s.toLibraryRememberBF(k, in, false)
 		case 0:
 			s.moveRef(k, in.Obj, kop.ZoneLibrary, false)
 		case 1:
@@ -321,7 +323,16 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.touchSl(sl)
 			if was == 0 {
 				if k.gen != nil && s.subs[kop.TrigTaps].any() {
-					s.fireTapsBy(k, sl, s.effTapper(sl))
+					who := s.effTapper(sl)
+					if in.W != 0 {
+						// the instruction's Tapper$ provenance (gorge
+						// effTapOrUntap's Tapper$ read; the election ask
+						// is the controller's, the tap's is the ref's)
+						if p := s.playerRef(k, in.W); p < s.nSeats() {
+							who = p
+						}
+					}
+					s.fireTapsBy(k, sl, who)
 				}
 				s.markTapped(k, sl) // only a tap that happens marks
 			}
@@ -594,7 +605,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.lose(p)
 		}
 	case kop.OpShuffle:
-		if p := s.playerRef(k, in.Obj); p != 255 {
+		if in.C != 0 {
+			s.shuffleRememberedOwners() // zone_shuffleremowners.go
+		} else if p := s.playerRef(k, in.Obj); p != 255 {
 			s.shuffleLib(p)
 		}
 	case kop.OpEndTurn, kop.OpAddTurn:
@@ -974,6 +987,9 @@ func (s *State) applyResolve(k *prep, a Action) {
 			return
 		}
 		s.finishPeek(k)
+	case raChooseNumber:
+		o, sl := s.resolutionTypeSource()
+		s.storeChosenNumber(o, sl, int(a.Mode()))
 	case raChooseType:
 		if k.gen != nil && s.prog(k)[r.pc].C != 0 {
 			r.chosen = cardTypeAnswer(a)

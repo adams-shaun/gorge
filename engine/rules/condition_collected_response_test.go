@@ -14,7 +14,7 @@ import (
 // exiled card from CostMovesInWindow.
 func TestConditionCollectedSurvivesResponse(t *testing.T) {
 	t.Parallel()
-	necropsySrc := alltargetedCorpusText(t, "u/urgent_necropsy.txt")
+	necropsySrc := corpusCardText(t, "u/urgent_necropsy.txt")
 	artifactSrc := "Name:Gold Myr\nManaCost:2\nTypes:Artifact Creature Myr\nPT:1/1\nOracle:x\n"
 	grave3Src := "Name:Big Bones\nManaCost:3\nTypes:Artifact\nOracle:x\n"
 	zapSrc := "Name:Little Zap\nManaCost:R\nTypes:Instant\nA:SP$ GainLife | LifeAmount$ 1 | SpellDescription$ You gain 1 life.\nOracle:x\n"

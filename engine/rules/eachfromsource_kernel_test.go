@@ -15,7 +15,7 @@ import (
 // entering creature's own pre-entry count of zero is the vacuity guard.
 func TestDenryKlinCopiesHisOwnKindsOntoTheEnteringCreature(t *testing.T) {
 	t.Parallel()
-	denry := mustCorpusCardT(t, "Denry Klin, Editor in Chief")
+	denry := corpusAlternativeCard(t, "Denry Klin, Editor in Chief")
 	entering := card(t, "Name:Arriving Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e, cfg := tokenReplGame(t, 451, denry, entering)
 	toMain1(t, e)

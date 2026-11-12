@@ -550,6 +550,9 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 			}
 			d.Faces = fs
 		}
+		if d.FuseDef != 0 {
+			d.FuseDef = id[int(d.FuseDef)-1] + 1 // the fused spell's def (dirac/face_fuse.go)
+		}
 		if inert && s.Inert(i) {
 			d = inertDef(d)
 		}

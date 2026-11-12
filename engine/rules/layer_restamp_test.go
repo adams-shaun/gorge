@@ -13,32 +13,10 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
-	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
-
-// restampActivate activates obj's ability idx, answers every non-priority
-// ask (the equip target) with its first option, and resolves the stack. The
-// ability is already on the stack while its target is asked (CR 602.2a), so
-// the asks are answered until the proposal completes rather than until the
-// stack gains the object.
-func restampActivate(t *testing.T, e *Engine, obj state.ObjID, idx int) {
-	t.Helper()
-	submitChoices(t, e, abilityOption(t, e, obj, idx).Index)
-	for i := 0; i < 5; i++ {
-		d := e.Pending()
-		if d == nil || d.Kind == decision.KPriority {
-			break
-		}
-		submitChoices(t, e, d.Options[0].Index)
-	}
-	if len(e.G.Stack) != 1 {
-		t.Fatalf("stack %v after activating %d, want the ability", e.G.Stack, obj)
-	}
-	passUntilStackEmpty(t, e, 20)
-}
 
 // Swiftfoot Boots is on the battlefield, unattached, BEFORE Witness
 // Protection enchants the Bears; then the Boots are equipped to the Bears.
@@ -55,7 +33,7 @@ func TestEquipAfterAbilityLossRestampsTheEquipment(t *testing.T) {
 	lossAttach(t, e, "Witness Protection", 0, bears)
 	entry := e.G.Obj(boots).Timestamp
 	addMana(t, e, 0, "G")
-	restampActivate(t, e, boots, 0)
+	attachActivateResolve(t, e, boots, 0)
 	if got := e.G.Obj(boots).AttachedTo; got != bears {
 		t.Fatalf("Swiftfoot Boots attached to %d, want the Bears %d", got, bears)
 	}
@@ -83,7 +61,7 @@ func TestEquipBeforeAbilityLossStaysLost(t *testing.T) {
 	boots := moveCorpusCard(t, e, "Swiftfoot Boots", 0, state.ZBattlefield)
 	bears := moveCorpusCard(t, e, "Grizzly Bears", 0, state.ZBattlefield)
 	addMana(t, e, 0, "G")
-	restampActivate(t, e, boots, 0)
+	attachActivateResolve(t, e, boots, 0)
 	if !e.HasKeyword(bears, "Hexproof") || !e.HasKeyword(bears, "Haste") {
 		t.Fatalf("precondition: equipped Bears keywords %v, want hexproof and haste", e.Keywords(bears))
 	}
@@ -112,7 +90,7 @@ func TestTransformRestampsThePermanent(t *testing.T) {
 	bears := moveCorpusCard(t, e, "Grizzly Bears", 0, state.ZBattlefield)
 	lossAttach(t, e, "Witness Protection", 0, bears)
 	addMana(t, e, 0, "GGGGGGG")
-	restampActivate(t, e, oddity, 0)
+	attachActivateResolve(t, e, oddity, 0)
 	if f := e.G.Obj(oddity).Face(); f == nil || f.Name != "Ulvenwald Behemoth" {
 		t.Fatalf("Ulvenwald Oddity did not transform: face %v", f)
 	}

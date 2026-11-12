@@ -3,9 +3,7 @@
 // Conspire, Dethrone, Afflict and Ward reach the stack through a granting static,
 // so they are checked here rather than through the per-mode matchers.
 //
-// Split out of trigger_match.go so tickets touching different modes stop
-// colliding on one file. Registration is at the bottom; a duplicate mode
-// panics (trigmatch.registerTrigMatcher).
+// Registration is at the bottom; a duplicate mode panics (trigmatch.registerTrigMatcher).
 
 package rules
 
@@ -1035,7 +1033,10 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 	// keyword-granting static reaches this loop because
 	// grantedTriggerStaticsFor includes it (a granted triggered keyword is a
 	// granted trigger), which also disables the zone-skip so the non-referent
-	// recipient is visited.
+	// recipient is visited. A granted Myriad (CR 702.116a, Blade of Selves)
+	// rides the same path with the __kwMyriadGranted payload; its Remembered
+	// carries the DeclareAttackers event's defending player, as the printed
+	// trigger's does.
 	for _, ce := range statics {
 		if len(ce.AddKeywords) == 0 {
 			continue
@@ -1064,7 +1065,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 				Controller: o.Controller,
 				Granted:    true,
 				Grantor:    ce.Source,
-				Execute:    "__kwProwessGranted",
+				Execute:    grantedKeywordPayload(line),
 				Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{
 					Remembered:     triggerRemembered(ev, id),
 					LKI:            objLKI,

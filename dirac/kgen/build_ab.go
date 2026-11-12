@@ -535,6 +535,12 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 	if t.DiffCtrl {
 		ts.TFlags |= kop.TgfDiffController
 	}
+	if t.TrigChooser {
+		if ts.Min|ts.Max != 0 || ts.Divide != 0 {
+			return ts, fmt.Errorf("trigger-player chooser on a several-object slot")
+		}
+		ts.TFlags |= kop.TgfTrigChooser
+	}
 	if err := tgtSetSpec(t, &ts); err != nil { // lower_targetset.go
 		return ts, err
 	}
@@ -807,6 +813,13 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 	if a.Mana != nil {
 		if err := cb.mana(a.Mana, &ka); err != nil {
 			return ka, err
+		}
+		if a.Kind == akMana && a.Cost.SubCtrX && ka.Cost.Flags&kop.CostLoyaltyX != 0 &&
+			ka.AFlags&kop.AfManaDynamic != 0 && ka.ManaV.K == kop.VX {
+			// Amount$ X on a SubCounter<X/KIND> mana ability is the number
+			// of counters removed (CR 107.3, 118.3): the kernel's script
+			// gap reads it off the source (mana_countercost.go).
+			ka.ManaV = kop.ValueRef{K: kop.VCountersSelf, N: int16(ka.Cost.Ctr)}
 		}
 	}
 	if a.Trigger != nil {
@@ -1098,11 +1111,12 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"DamageDealtOnce": kop.TrigDamageDealtOnce, "Drawn": kop.TrigDrawn, "Discarded": kop.TrigDiscarded, "DiscardedAll": kop.TrigDiscardedAll, "AbilityCast": kop.TrigAbilityCast, "Scry": kop.TrigScry, "Surveil": kop.TrigSurveil, "Explores": kop.TrigExplores, "CollectEvidence": kop.TrigCollectEvidence,
 	"LandPlayed": kop.TrigLandPlayed, "SearchedLibrary": kop.TrigSearchedLibrary, "Forage": kop.TrigForage, "Discover": kop.TrigDiscover, "ManifestDread": kop.TrigManifestDread,
 	"CounterAddedOnce": kop.TrigCounterAddedOnce, "CounterAdded": kop.TrigCounterAddedOnce, "Untaps": kop.TrigUntaps,
-	"Sacrificed": kop.TrigSacrificed, "GiveGift": kop.TrigGiveGift, "Proliferate": kop.TrigProliferate, "FacesDilemma": kop.TrigFacesDilemma, "TokenCreated": kop.TrigTokenCreated, "BecomeMonstrous": kop.TrigBecomeMonstrous, "ManaExpend": kop.TrigManaExpend, "AttackerBlocked": kop.TrigBecomesBlocked, "TurnFaceUp": kop.TrigTurnFaceUp, "Transformed": kop.TrigTransformed, "CommitCrime": kop.TrigCommitCrime, "UnlockDoor": kop.TrigUnlockDoor, "FullyUnlock": kop.TrigFullyUnlock,
+	"Sacrificed": kop.TrigSacrificed, "GiveGift": kop.TrigGiveGift, "Proliferate": kop.TrigProliferate, "FacesDilemma": kop.TrigFacesDilemma, "BecomeMonarch": kop.TrigBecomeMonarch, "TokenCreated": kop.TrigTokenCreated, "BecomeMonstrous": kop.TrigBecomeMonstrous, "ManaExpend": kop.TrigManaExpend, "AttackerBlocked": kop.TrigBecomesBlocked, "TurnFaceUp": kop.TrigTurnFaceUp, "Transformed": kop.TrigTransformed, "CommitCrime": kop.TrigCommitCrime, "UnlockDoor": kop.TrigUnlockDoor, "FullyUnlock": kop.TrigFullyUnlock,
 	"BecomesTarget":    kop.TrigBecomesTarget,    // the Valiant, watcher and self shapes (lower_trigger.go)
 	"ClassLevelGained": kop.TrigCounterAddedOnce, // N = CtrLevel (lower_class.go)
 	"BecomesPlotted":   kop.TrigBecomesPlotted,   // the card's own
 	"BecomesSaddled":   kop.TrigBecomesSaddled,
+	"Evolved":          kop.TrigEvolved,  // the source's own, after its evolve counter lands
 	"Attached":         kop.TrigAttached} // the attachment's own, Creature bearer (Assimilation Aegis) // the Mount's own
 
 func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
@@ -1246,8 +1260,8 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	if t.Event == "AbilityCast" {
 		kt.N = t.AbClass
 	}
-	if t.Event == "LandPlayed" || t.Event == "Leaves" {
-		kt.N = t.N // Leaves: the destination mask
+	if t.Event == "LandPlayed" || t.Event == "Leaves" || t.Event == "BecomeMonarch" {
+		kt.N = t.N // Leaves: the destination mask; BecomeMonarch: kop.TrigNMonarchBeganTurn
 	}
 	switch t.Combat {
 	case 1:
@@ -1351,6 +1365,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 			kt.Flags2 |= kop.Tf2AtkOpp
 		}
 	}
+	if t.PerCounter {
+		if t.Event != "CounterAdded" {
+			return kt, fmt.Errorf("PerCounter on a %s trigger", t.Event)
+		}
+		kt.Flags4 |= kop.Tf4PerCounter
+	}
 	if t.Evolve {
 		if t.Event != "ETB" {
 			return kt, fmt.Errorf("Evolve on a %s trigger", t.Event)
@@ -1393,6 +1413,11 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 			kt.Flags2 |= kop.Tf2AtkOpp
 		case 3:
 			kt.Flags2 |= kop.Tf2AtkYou // AttackedTarget$ You: the defender is the controller (kernel fireDefPlayer)
+		case 4:
+			// AttackedTarget$ Player.EnchantedBy: the defender is enchanted
+			// by any enchantment (gorge playerSpecQualifierEnchantedBy); the
+			// kernel scans the player-attached auras' seats (fireDefPlayer)
+			kt.Flags4 |= kop.Tf4DefEnch
 		}
 	}
 	if t.OrCopy {
@@ -1586,10 +1611,10 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		kt.Flags4 |= kop.Tf4CounterCell
 	}
 	if t.OptTrigPlayer {
-		if !t.Optional || t.Event != "Phase" {
+		if !t.Optional || (t.Event != "Phase" && t.Event != "AttackersDeclared") {
 			return kt, fmt.Errorf("optional trigger player on a %s trigger", t.Event)
 		}
-		if t.Whose != whoAny {
+		if t.Event == "Phase" && t.Whose != whoAny {
 			// only the every-player's-turn shape is played against gorge
 			// (Peace in Our Time); Apathy's ValidPlayer$ enchanted-controller
 			// line has no lockstep yet
@@ -1899,6 +1924,29 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.GrantCost, err = manaCostOf(s.Cost.Mana); err != nil {
 			return ka, nil, err
 		}
+	case "EscapeGrant":
+		// an AffectedZone$ Graveyard AddKeyword$ Escape static: each matching
+		// card in its controller's graveyard has escape at its mana cost plus
+		// N other cards from the same graveyard (kop.StatEscapeGrant;
+		// kw_escape.go; CR 702.42a; Underworld Breach). Filter is the affected
+		// cards; the ability's own Cost is the fodder part, as an
+		// AlternativeCost static's is: CostExileGrave of N cards matching
+		// Cost.Filter (the grant's ExileFromGrave spec), a table cost the
+		// kernel's cost builder returns in place. The mana part is the card's
+		// own cost, priced at the offer like any spell's.
+		st.Kind = kop.StatEscapeGrant // kw_escape.go
+		if st.Filter, err = filter(s.F, kop.ZoneGraveyard); err != nil {
+			return ka, nil, err
+		}
+		if s.Cost.ExileG == nil || s.Cost.ExileGN < 1 || s.Cost.ExileGN > 15 {
+			return ka, nil, fmt.Errorf("escape grant without an exile cost")
+		}
+		if ka.Cost, err = cb.cost(s.Cost); err != nil {
+			return ka, nil, err
+		}
+		if ka.Cost.Flags != kop.CostExileGrave || ka.Cost.Mana != (kop.ManaCost{}) {
+			return ka, nil, fmt.Errorf("escape grant cost beside its exile part")
+		}
 	case "TapExtra":
 		st.Kind = kop.StatTapExtra
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -1970,6 +2018,10 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				return ka, nil, fmt.Errorf("cant be activated flag %q", fl)
 			}
 		}
+	case "CantTgtGrave":
+		// Ground Seal's class (lower_canttarget.go): every card in every
+		// graveyard untargetable (kw_canttgtgrave.go). No operands.
+		st.Kind = kop.StatCantTgtGrave
 	case "CantTarget":
 		st.Kind = kop.StatCantTarget // lower_canttarget.go
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -2115,6 +2167,24 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+	case "CantAttackUnless":
+		st.Kind = kop.StatAttackTax // lower_attacktax.go
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		if err := amounts(s.Amount, lValue{}); err != nil {
+			return ka, nil, err
+		}
+		for _, fl := range s.Flags {
+			switch fl {
+			case "TaxPlayer":
+				st.StFlags |= kop.StAtkTaxPlayer
+			case "TaxWalker":
+				st.StFlags |= kop.StAtkTaxWalker
+			default:
+				return ka, nil, fmt.Errorf("CantAttackUnless flag %q", fl)
+			}
+		}
 	case "CanAttackDefender":
 		st.Kind = kop.StatCanAttackDefender
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -2196,6 +2266,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		default:
 			return ka, nil, fmt.Errorf("PlayerHexproof amount %v", s.Amount)
 		}
+	case "PlayerProtAll":
+		st.Kind = kop.StatPlayerProtAll // the controller has protection from everything (static_plprot.go)
 	case "MayPlayFrom":
 		st.Kind = kop.StatMayPlayFrom
 		st.Zone = zoneMap[s.Zone]
@@ -2598,6 +2670,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	var err error
 	if ki.Obj, err = cb.ref(in.Obj); err != nil {
 		return ki, err
+	}
+	if in.W.Kind != rNone {
+		// the player side input (lir.go lInstr.W: a Tapper$ provenance or an
+		// OpAttach player destination)
+		if ki.W, err = cb.ref(in.W); err != nil {
+			return ki, err
+		}
 	}
 	if in.Op != "Bite" && in.Op != "Fight" {
 		if ki.A, err = cb.value(in.A); err != nil {
@@ -3013,6 +3092,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if _, rem := fl["Remember"]; rem && in.C == 1 && in.Obj.Kind == rDelayedRemembered && fl["from"] == "Battlefield" {
 			ki.C = kop.LibBottomRememberBF // dirac/zone_tolibrarybfremember.go
+		}
+		if _, rem := fl["Remember"]; rem && in.C == 0 && in.Obj.Kind == rSelf && fl["from"] == "Battlefield" {
+			ki.C = kop.LibTopRememberBF // dirac/zone_tolibrarybfremember.go
 		}
 		if _, ok := fl["TopShuffle"]; ok {
 			ki.C = kop.LibTopShuffle
@@ -3968,6 +4050,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "SkipPhase":
 		// OpExt ExtSkipPhase, Obj the skipping player (dirac/act_skipphase.go)
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtSkipPhase))
+	case "BecomeMonarch":
+		// OpExt ExtBecomeMonarch, Obj the player (dirac/act_monarch.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtBecomeMonarch))
 	case "PlotGrant":
 		// (Kellan Joins Up) OpExt ExtPlotGrant, Obj the
 		// Remembered ref
@@ -4195,7 +4280,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "LoseGame":
 		ki.Op, ki.C = kop.OpLoseGame, int16(in.C) // in.C 1: WinsGame (kernel winGame)
 	case "Shuffle":
-		ki.Op = kop.OpShuffle
+		ki.Op, ki.C = kop.OpShuffle, int16(in.C) // in.C 1: every remembered owner (lower_shuffleremowners.go)
 	case "SetLife":
 		ki.Op = kop.OpSetLife
 	case "Rearrange":
@@ -4714,6 +4799,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
+	case "RememberImprinted":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRememberImprinted)) // Tainted Pact
 	case "AddTurn":
 		ki.Op = kop.OpAddTurn
 	case "EndTurn":
@@ -4743,6 +4830,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "ChooseNumber":
 		// an as-enters number from B to C (lower_choosenumber.go)
 		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumber)), kop.Const(in.B.N), int16(in.C)
+	case "ChooseNumberMid":
+		// a resolution-time number (lower_choosenumber.go): B the Max$
+		// value, C the Min$ floor plus the has-Max / Random flags
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumberMid)), int16(in.C)
 	default:
 		return ki, fmt.Errorf("op %s has no kop form", in.Op)
 	}
