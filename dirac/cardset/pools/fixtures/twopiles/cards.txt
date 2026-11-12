@@ -1,0 +1,17 @@
+# TwoPiles over the remembered reveal (gorge effTwoPiles' DefinedCards$
+# Remembered arm): an opponent separates and you pick (Fact or Fiction,
+# Sphinx of Uthuun, Unesh, Criosphinx Sovereign, Sphinx of Clear Skies), or
+# you separate and an opponent picks (Steam Augury, Epiphany at the
+# Drownyard), for dirac/oracle/twopiles_remembered_test.go
+Fact or Fiction
+Steam Augury
+Epiphany at the Drownyard
+Sphinx of Uthuun
+Unesh, Criosphinx Sovereign
+Sphinx of Clear Skies
+Grizzly Bears
+Island
+Mountain
+Plains
+Swamp
+Forest

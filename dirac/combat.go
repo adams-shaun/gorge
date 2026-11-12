@@ -316,7 +316,7 @@ func (s *State) fireAttacksGen(k *prep) {
 		m = s.grantTrigHosts(k, m)
 	}
 	emb := k.gen.embCombatEv&(1<<kop.TrigAttacks|1<<kop.TrigAttackersDeclared) != 0 && s.anyEmb()
-	if !m.any() && len(k.gen.graveTrig) == 0 && !emb {
+	if !m.any() && len(k.gen.graveTrig) == 0 && !emb && !s.anyCommandTrigger(k, kop.TrigAttackersDeclared) {
 		return
 	}
 	var atk [MaxPerm]Slot
@@ -472,11 +472,12 @@ func (s *State) fireAtkGroup(k *prep, ord *[MaxPerm]Slot, n int, atk, grp []Slot
 	for _, sl := range ord[:n] {
 		s.slotTriggers(k, sl, isAtk, fire)
 	}
-	if emb {
-		s.emblemAtkListeners(k, fire) // gorge: the delayed registrations are checked after the event's face triggers
-	}
 	if first && len(k.gen.graveTrig) != 0 {
 		s.fireGraveAttackers(k, atk) // zone_changezoneparams.go
+	}
+	s.eachCommandTrigger(k, kop.TrigAttackersDeclared, fire)
+	if emb {
+		s.emblemAtkListeners(k, fire) // gorge: the delayed registrations are checked after the event's face triggers
 	}
 }
 
@@ -1186,6 +1187,9 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		}
 		if k.anyInit {
 			s.initCombat(k, &r) // CR 726.2 (act_initiative.go)
+		}
+		if k.gen.anyMonarch {
+			s.monarchCombat(&r) // CR 725.2 (act_monarch.go)
 		}
 		return false
 	}

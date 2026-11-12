@@ -221,7 +221,7 @@ func TestAutopayKickedCountsCastCard(t *testing.T) {
 		}
 		bl := sc.hand(v.BurstLightning, 0)
 		if kicked {
-			sc.s.beginCast(sc.k, bl, 1)
+			sc.s.beginCast(sc.k, bl, 1, 0)
 		} else {
 			// the same {4}{R} planned with the cast card excluded (a
 			// planned cast's demand): key 8 decides

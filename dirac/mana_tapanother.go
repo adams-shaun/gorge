@@ -631,8 +631,8 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		return
 	}
 	if st.cand == NoSlot {
-		s.ctrGap(k, p, st.sl) // a counter-cost gap: its counter, its use, its mana
-		s.sba(k)              // the script returns to priority after the step: a Wall of Roots out of toughness dies before the next one
+		s.ctrGap(k, p, st.sl, int(st.col)) // a counter-cost gap: its counter, its use, its mana
+		s.sba(k)                           // the script returns to priority after the step: a Wall of Roots out of toughness dies before the next one
 		return
 	}
 	if k.sacXOf(s.cardAt(st.sl)) {
@@ -853,6 +853,19 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			// gap's counters may pay where this one's would have
 			if found, handled := rs.ctrAbilityAsk(k, t, sl, &cols); handled {
 				return found
+			}
+			if ab := k.ctrAbOf(t.cardAt(sl)); ctrAnyColour(ab) {
+				// an any-colour counter ability (Vivid Grove's second) asks
+				// its colour after the ability: the announced ones first
+				if !rs.tick() { // the colour ask
+					return false
+				}
+				for i := 0; i < 5; i++ {
+					if rs.try(k, t, tapXStep{sl: sl, cand: NoSlot, cand2: NoSlot, col: cols[i]}) {
+						return true
+					}
+				}
+				continue
 			}
 			if rs.try(k, t, tapXStep{sl: sl, cand: NoSlot, cand2: NoSlot}) {
 				return true

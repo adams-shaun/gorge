@@ -1,0 +1,17 @@
+# Reverent Mantra's life-free "exile a white card from your hand rather than
+# pay this spell's mana cost" alternative (a bare ExileFromHand<1/Card.White+Other>,
+# whose cast asks the chosen colour mid-resolution for ProtectionAll), with
+# white hand fodder to pitch (Savannah Lions, Serra Angel, Silver Knight) and
+# Snapback's blue twin beside the targets, fodder and lands, for the oracle's
+# constructed lockstep (dirac/oracle/reverentmantra_test.go)
+Reverent Mantra
+Savannah Lions
+Serra Angel
+Silver Knight
+Snapback
+Unsummon
+Grizzly Bears
+Shock
+Plains
+Island
+Mountain

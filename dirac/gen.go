@@ -184,6 +184,10 @@ type genPrep struct {
 	anyHist        bool           // some trigger reads the turn history bank (expend, the N-th spell; value_turnhistory.go)
 	anyPrevFrom    bool           // some program grants KwPreventCombatDamageFrom (repl_regenerate.go)
 	anyTokRew      bool           // a ReplRewriteTokens, ReplAddToken or ReplCopyFirstToken ability (repl_tokrewrite.go, repl_tokorder.go)
+	anyTurnScope   bool           // some program is an ExtTurnRepl scope-record kind (uncounter, player hexproof): the cold exMark table is allocated (repl_turnrepl.go)
+	anyUncScope    bool           // some program is ExtTurnRepl TurnReplUncounter(Creature): uncounterable scans the scope records (repl_turnrepl.go)
+	anyPlHexRec    bool           // some program is ExtTurnRepl TurnReplPlayerHex or TurnReplHexUB: playerHexproof reads the scope records
+	anyHexUB       bool           // some program is ExtTurnRepl TurnReplHexUB: targetableGen reads the mechHexUB plane
 	anyPlusCre     bool           // some program is ExtTurnRepl TurnReplPlusCreatureCtr: the cold buffer holds its per-player count and source (repl_turnrepl.go)
 	anyDmgMark     bool           // some program is ExtDmgMark: every damage site reads the per-player marks (repl_dmgmark.go)
 	anyFiltRepl    bool           // a filtered damage doubler or token multiplier, or an x3 one (repl_multipliers.go)
@@ -285,6 +289,7 @@ type genPrep struct {
 	cdLegOn        bool           // some expression is ExOppsLostLife N 1: record cdLeg
 	anyAddPhase    bool           // some program is ExtAddPhase, some trigger is Tf3FirstAttack or some expression is ExPhaseCount (act_addphase.go)
 	anySkipPhase   bool           // some program is ExtSkipPhase (act_skipphase.go)
+	anyMonarch     bool           // some program is ExtBecomeMonarch (act_monarch.go)
 	anyAttackedObj bool           // the table gives mechAttackedObj an arena mask: finishAttacks marks the declared attackers
 	anySuspect     bool           // the table gives mechSuspected an arena mask (act_suspect.go)
 	anySacSub      bool           // some ExRefCount is a Sacrificed$Valid type read (N 1): snapLKI captures the subtype set (value_countheads.go, zone_lki.go)
@@ -436,6 +441,9 @@ type genPrep struct {
 	// anyFiltFirst: some card's filter is its first mana ability (Abzan
 	// Devotee, Prophetic Prism; mana_filterfirst.go)
 	anyFiltFirst bool
+	// anyFiltRepeat: some card's first-ability filter is a fee-only one,
+	// repeatable (mana_filterrepeat.go)
+	anyFiltRepeat bool
 	// gapOther: card i has another mana ability gorge's census misses
 	// (a restricted, each-colour or paid one that is not filt: Lupinflower
 	// Village's creature-only {W}); beside one the filter stays unmodelled
@@ -1514,6 +1522,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepTurnTallies(t, p, g) // value_turntallies.go; reads g.ix
 	prepAddPhase(t, g)       // act_addphase.go
 	prepSkipPhase(t, g)      // act_skipphase.go
+	prepMonarch(t, g)        // act_monarch.go
 	prepAirbend(t, g)
 	prepMayWhileSrc(t, g) // cast_whilesource.go
 	prepInit(t, g)        // act_initiative.go
@@ -2102,6 +2111,10 @@ type genState struct {
 	// trigger fires reads it (defendingSeatF2). Set only when MaxSeats > 2.
 	// Taken from rsv.
 	atkDef uint8
+	// mon: the monarch's seat + 1 in bits 0-3 (0 nobody), the monarch as the
+	// turn began + 1 in bits 4-7 (act_monarch.go). The tail padding after
+	// atkDef, so State does not grow.
+	mon uint8
 }
 
 const (

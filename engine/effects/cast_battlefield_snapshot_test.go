@@ -7,22 +7,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// bfItoa is a tiny base-10 int formatter (strconv is avoided in this package by
-// convention).
-func bfItoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	var b [12]byte
-	i := len(b)
-	for n > 0 {
-		i--
-		b[i] = byte('0' + n%10)
-		n /= 10
-	}
-	return string(b[i:])
-}
-
 // castBattlefieldSnapshotGame seats n 1/2 Bears on player 0's battlefield and
 // one spell on the stack, returning the game, the spell id and the Bear ids.
 func castBattlefieldSnapshotGame(t *testing.T, bears int) (*state.Game, state.ObjID, []state.ObjID) {
