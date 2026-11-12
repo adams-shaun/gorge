@@ -757,8 +757,11 @@ func (s *State) trigResolveOK(k *prep) bool {
 		// every trigger, not only castTrigGen's SpellCast path.
 		return false
 	}
-	if a.Trig.Event == kop.TrigETB && a.Trig.Flags2&kop.Tf2Evolve != 0 && !s.evolveResolves(k, e) {
-		return false // kw_evolve.go: CR 603.4's second check of the evolve comparison
+	if a.Trig.Event == kop.TrigETB && a.Trig.Flags2&kop.Tf2Evolve != 0 {
+		if !s.evolveResolves(k, e) {
+			return false // kw_evolve.go: CR 603.4's second check of the evolve comparison
+		}
+		s.evolveArm(e, &s.objs[e.obj])
 	}
 	if k.anyGate && a.AFlags&kop.AfCheckOnTrigger == 0 && !s.gateResolveOK(e, a) {
 		return false

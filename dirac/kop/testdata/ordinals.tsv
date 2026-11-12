@@ -1309,6 +1309,7 @@ Tf4CounterCell	TrigFlags4	4
 Tf4NamedCast	TrigFlags4	16
 Tf4NthFiltered	TrigFlags4	8
 Tf4OptTrigPlayer	TrigFlags4	32
+Tf4PerCounter	TrigFlags4	128
 Tf4SingleCauseTarget	TrigFlags4	2
 Tf4SingleTarget	TrigFlags4	1
 Tf4StateCtr	TrigFlags4	64
@@ -1395,7 +1396,8 @@ TrigDiscardedAll	TrigEvent	35
 TrigDiscover	TrigEvent	44
 TrigDrawn	TrigEvent	14
 TrigETB	TrigEvent	1
-TrigEventCount	TrigEvent	47
+TrigEventCount	TrigEvent	48
+TrigEvolved	TrigEvent	47
 TrigExplores	TrigEvent	39
 TrigFacesDilemma	TrigEvent	46
 TrigForage	TrigEvent	43

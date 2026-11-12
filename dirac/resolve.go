@@ -341,6 +341,11 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 	if k.gen != nil && k.gen.anyTgtSpent {
 		s.g.tgtSpent = 0 // the snapshot is the resolution's
 	}
+	if e.kind == seTrigger && e.trigAmt < 0 && !fizzled && e.ab < abCascade && k.gen != nil {
+		if a := &k.t.Cards[e.card].Abilities[e.ab]; a.Trig.Event == kop.TrigETB && a.Trig.Flags2&kop.Tf2Evolve != 0 {
+			s.evolveDone(k, e) // kw_evolve.go: the Evolved triggers once the counter landed
+		}
+	}
 	s.res.active = false
 	if k.anyStateCtr {
 		// any resolution's finish may have emptied the stack of a state

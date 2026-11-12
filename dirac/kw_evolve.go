@@ -34,3 +34,38 @@ func (s *State) evolveResolves(k *prep, e *stackEntry) bool {
 	sp, st := s.pt(k, src.slot)
 	return p > sp || t > st
 }
+
+// evolveArm marks a resolving Evolve trigger with its source's +1/+1 count
+// before the body runs: trigAmt is -(count+1), a value no ETB trigger's
+// amount takes (evolveDone reads it as the trigger finishes).
+func (s *State) evolveArm(e *stackEntry, src *object) {
+	e.trigAmt = -int16(s.perms[src.slot].p1) - 1
+}
+
+// evolveDone fires the source's Evolved triggers (CR 702.100b; gorge
+// resolveTop emits events.Evolved after the body when the source's +1/+1
+// count rose) as an armed Evolve trigger finishes resolving. The source must
+// still be the same object on the battlefield and its +1/+1 count must be
+// above the armed one.
+//
+//go:noinline
+func (s *State) evolveDone(k *prep, e *stackEntry) {
+	src := &s.objs[e.obj]
+	if src.zone != kop.ZoneBattlefield || src.ver != e.srcVer {
+		return
+	}
+	if int(s.perms[src.slot].p1) <= int(-e.trigAmt)-1 {
+		return
+	}
+	card := s.cardAt(src.slot)
+	cd := &k.t.Cards[card]
+	for i := range cd.Abilities {
+		a := &cd.Abilities[i]
+		if a.Kind != kop.AbTriggered || a.Trig.Event != kop.TrigEvolved {
+			continue
+		}
+		np := s.npend
+		s.enqueue(e.obj, src.ver, card, uint8(i), s.ctrlOfObj(e.obj), e.obj, s.ctrlOfObj(e.obj), 0)
+		s.panharmKeyword(k, src.slot, kop.TrigEvolved, e.obj, np)
+	}
+}

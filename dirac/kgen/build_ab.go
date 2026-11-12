@@ -1103,6 +1103,7 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"ClassLevelGained": kop.TrigCounterAddedOnce, // N = CtrLevel (lower_class.go)
 	"BecomesPlotted":   kop.TrigBecomesPlotted,   // the card's own
 	"BecomesSaddled":   kop.TrigBecomesSaddled,
+	"Evolved":          kop.TrigEvolved,  // the source's own, after its evolve counter lands
 	"Attached":         kop.TrigAttached} // the attachment's own, Creature bearer (Assimilation Aegis) // the Mount's own
 
 func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {

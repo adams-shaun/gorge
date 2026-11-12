@@ -1223,6 +1223,19 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			tr.First = true
 		}
+	case "Evolved":
+		// gorge trigmatch evolvedMatches (CR 702.100b): the events.Evolved
+		// marker rules' resolveTop emits once the Evolve keyword's counter
+		// lands names the evolving permanent, which ValidCard$ Card.Self
+		// matches; the kernel fires it as that trigger finishes resolving
+		// (kw_evolve.go). ValidPlayer$ is left unread (refused).
+		if v := tp.str("ValidCard"); v != "Card.Self" {
+			return refuse("Evolved ValidCard$ %q", v)
+		}
+		if tr.Zone != 0 && tr.Zone != zBattlefield {
+			return refuse("Evolved TriggerZones %d", tr.Zone)
+		}
+		tp.consume("ValidCard")
 	case "UnlockDoor":
 		// CR 709.5h "when you unlock this door" (gorge rules face_rooms.go
 		// queueUnlockTriggers): read only on a Room door, fired directly by
