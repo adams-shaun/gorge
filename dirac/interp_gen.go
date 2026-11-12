@@ -618,7 +618,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 				// offered (CR 601.2c, effPlay filters through
 				// castTargetsHost): it stays exiled and the trigger finishes
 				if ob.zone == kop.Zone(in.C) && !k.cards[ob.card].land &&
-					s.spellTargetsFeasible(k, ob.card, e.ctrl) && !(k.gen.anyCantCast && s.castForbidden(k, e.ctrl, ob.card, o)) {
+					s.spellTargetsFeasible(k, ob.card, e.ctrl) && !(k.gen.anyCantCast && s.castForbiddenFree(k, e.ctrl, ob.card, o)) {
 					if s.g.nfree >= uint8(len(s.g.free)) {
 						s.capFull(StallFree)
 						break

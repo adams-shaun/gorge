@@ -1937,6 +1937,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StCasterActive
 			case "NamedCard":
 				st.B |= kop.CantCastNamed
+			case "SorcerySpeed":
+				st.B |= kop.CantCastSorcery
 			default:
 				return ka, nil, fmt.Errorf("cant be cast flag %q", fl)
 			}
@@ -2131,6 +2133,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	case "CastWithFlash":
 		st.Kind = kop.StatCastWithFlash
 		if st.Filter, err = filter(s.F, kop.ZoneHand); err != nil {
+			return ka, nil, err
+		}
+		if st.Filter2, err = filter(s.F2, kop.ZoneStack); err != nil { // an emblem's ForgetOnCast$ (lower_effectemblem.go)
 			return ka, nil, err
 		}
 	case "AlternativeCost":

@@ -255,7 +255,7 @@ func (s *State) defeatAsk(k *prep, d *Decision) bool {
 			s.dropMay(i) // it changed zones or faces since (CR 400.7): no ask
 			continue
 		}
-		if k.gen.anyCantCast && s.castForbidden(k, r.ctrl, cd.Faces[0], r.obj) {
+		if k.gen.anyCantCast && s.castForbiddenFree(k, r.ctrl, cd.Faces[0], r.obj) {
 			s.dropMay(i) // gorge castRestrictedFree reads it front face up
 			continue
 		}

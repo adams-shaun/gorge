@@ -1571,7 +1571,7 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 				// answered with, or a cast offered under a false gate would abort
 				// here (and vice versa). It subsumes the checkSVarHolds the caller
 				// used to run separately.
-				if !e.continuousGateHolds(sv) || !e.restrictionGateHolds(sv, pc.card) {
+				if !e.continuousGateHolds(sv) || !e.restrictionGateHolds(sv, pc.card) || e.castSorceryTimingExempt(sv, pc.player, castInFlight(e.G, pc.card)) {
 					continue
 				}
 				// Origin$ reads the cast's announced ORIGIN (pc.from): the card
