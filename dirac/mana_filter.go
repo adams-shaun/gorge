@@ -800,6 +800,28 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 			s.fundSac(k, st.sl)
 		}
 	}
+	s.fireFiltAbilityCast(k, p, st)
+}
+
+// fireFiltAbilityCast queues AbilityCast listeners for the mana ability a
+// filt path step activates (CR 605.1a): a filter's own ability, a restricted
+// source's, or the source's first mana ability for a plain tap. A granted
+// activation has no printed ability to classify and is skipped.
+func (s *State) fireFiltAbilityCast(k *prep, p uint8, st filtStep) {
+	if k.gen == nil || !k.gen.anyAbilityCast || st.other.kind != otherNone || st.sl == NoSlot {
+		return
+	}
+	c := s.cardAt(st.sl)
+	ab := int8(-1)
+	switch {
+	case st.gap && st.ans > 0:
+		ab = int8(k.gen.filt(c))
+	case st.restr:
+		ab = int8(k.gen.restr(c))
+	default:
+		ab = s.manaPCGen(k, st.sl).manaAb
+	}
+	s.fireManaAbilityCast(k, c, ab, p)
 }
 
 func poolTotal(pl *player) int {

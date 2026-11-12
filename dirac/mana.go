@@ -1468,6 +1468,10 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		i := int(run[r])
 		u := best[i]
 		sl := pk.units[u]
+		actCard, actAb := NoCard, int8(-1)
+		if k.gen != nil && k.gen.anyAbilityCast {
+			actCard, actAb = s.cardAt(sl), pk.rAb[u] // the activation this unit performs
+		}
 		if k.gen != nil && k.gen.castTapOn && s.buildLive() && s.bld().e.kind == seSpell && k.cards[s.cardAt(sl)].castSrc != 0 {
 			s.noteTapSrc(k, &k.cards[s.cardAt(sl)], sl)
 		}
@@ -1527,7 +1531,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					s.bld().bfl |= bflPlanCut
 				}
 				s.pl[p].pool[col] -= ty.n // it floats once the move has its answer (CR 605.3b)
-				return                    // and the plan's other sources wait for it too: the mana step runs again after the answer
+				s.fireManaAbilityCast(k, actCard, actAb, p)
+				return // and the plan's other sources wait for it too: the mana step runs again after the answer
 			} else {
 				s.leave(k, sl, kop.ZoneGraveyard, false)
 				if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && s.buildLive() && (s.ctl != ctlBuild || s.bld().bfl&bflManaStep == 0) {
@@ -1536,6 +1541,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				s.sbaAfterManaSacrifice(k)
 			}
 		}
+		s.fireManaAbilityCast(k, actCard, actAb, p)
 	}
 }
 
