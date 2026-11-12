@@ -59,7 +59,7 @@ func TestStoreManaGap(t *testing.T) {
 	if pot.total != 3 {
 		t.Fatalf("availPotential.total = %d, want 3", pot.total)
 	}
-	sc.s.ctrGap(sc.k, 0, sl)
+	sc.s.ctrGap(sc.k, 0, sl, -1)
 	if n := sc.s.perms[sl].ctrN(sc.s, int(kop.CtrStorage)); n != 0 {
 		t.Fatalf("storage counters left %d, want 0 (the cost removes every counter)", n)
 	}
