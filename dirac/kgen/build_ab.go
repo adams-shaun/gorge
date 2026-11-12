@@ -3538,7 +3538,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, err
 		}
 	case "TapAll":
-		ki.Op = kop.OpTapAll
+		ki.Op, ki.C = kop.OpTapAll, int16(in.C) // C 1: TapperController$ True (act_sweeps.go tapAll)
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
