@@ -355,13 +355,14 @@ test-wires:
 #   make enginebench-profile [REV=.]           CPU + allocation profiles, tops printed
 #   make enginebench-verify [REV=.]            memo-verify-mode smoke (cache changes)
 # Knobs: ROWS="-row random -pair A;-row sampler" REPS=3 SECS=10 GOGC=...
-# BENCH_DIR HEAVY_LOCK (see scripts/enginebench-lib.sh).
-BASE ?= main
+# BENCH_DIR HEAVY_LOCK (see scripts/enginebench-lib.sh). BENCH_BASE defaults to main; a BASE on the command
+# line still selects the base rev (it also selects the test targets' branch).
+BENCH_BASE ?= main
 CAND ?= .
 REV  ?= .
 .PHONY: enginebench-pair enginebench-profile enginebench-verify
 enginebench-pair:
-	scripts/enginebench-pair.sh $(BASE) $(CAND)
+	scripts/enginebench-pair.sh $(if $(filter command line environment,$(origin BASE)),$(BASE),$(BENCH_BASE)) $(CAND)
 enginebench-profile:
 	scripts/enginebench-profile.sh $(REV)
 enginebench-verify:

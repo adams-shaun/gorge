@@ -107,13 +107,16 @@ if [ "$mode" = one ]; then
 	[[ $pkg =~ ^\./[A-Za-z0-9_./-]+$ && $pkg != *...* ]] || usage "PKG=./path/to/one/package is required (got '$pkg'); no ./... and no wildcards"
 	[ -n "${RUN:-}" ] || usage "RUN=<test regexp> is required"
 	case $pkg in ./engine/rules | ./dirac/oracle)
-		case ${RUN} in . | .\* | ^) usage "$pkg is too big to run whole: name the tests in RUN" ;; esac ;;
+		# An exact name (or a |-alternation of them), so a broad pattern cannot run the whole package.
+		[[ $RUN =~ ^\^[A-Za-z0-9_|^$]*[A-Za-z0-9_]\$$ ]] ||
+			usage "$pkg is too big to run whole: name the exact tests in RUN (e.g. '^TestX\$'); got '$RUN'"
+		;;
 	esac
 	to=${TIMEOUT:-2m}
 	[[ $to =~ ^([0-9]+)([sm])$ ]] || usage "TIMEOUT is Ns or Nm"
 	secs=${BASH_REMATCH[1]}
 	[ "${BASH_REMATCH[2]}" = s ] || secs=$((secs * 60))
-	[ "$secs" -le 300 ] || usage "TIMEOUT is at most 5m"
+	[ "$secs" -ge 1 ] && [ "$secs" -le 300 ] || usage "TIMEOUT is between 1s and 5m"
 	[ -z "${TAGS:-}" ] || [[ $TAGS =~ ^[A-Za-z0-9_,]+$ ]] || usage "TAGS is a comma list of build tags"
 	envs=()
 	for kv in ${TESTENV:-}; do
@@ -175,13 +178,22 @@ fi
 # The gate's own steps, in its order, fail-fast (fleet/land/tools/wland2.sh and g-land.sh): gofmt, the docs
 # snapshot, history hygiene, the oracle skip lint; the census tests; then the affected-package gate
 # (the affected-package gate script, read from GATE_AFFECTED_REPO's GATE_REF) and the dirac gate (BASE's scripts/dirac-gate.sh) side by
-# side in a heavy lane; then the wire goldens. precheck.sh's census and unrefusal steps stay in, so the
-# alias loses nothing.
+# side in a heavy lane; the repro tables when the dirac gate skipped; then the wire goldens. precheck.sh's
+# census, unrefusal and 3b repro steps stay in, so the alias loses nothing. Not run here (follow-ups in the
+# report): wland2's pinrise re-pin and g-land's remote/farm (rgate) path.
 [ -z "$(git status --porcelain --untracked-files=no)" ] || verdict ENV "commit first: test-smart checks a commit, not a dirty tree"
-# The affected-package gate lives in another repository; the operator's env file names it.
+# The affected-package gate lives in another repository; the operator's env file names it. With no setting,
+# look for a local checkout one level under $HOME that carries the gate at GATE_REF, so `make precheck`
+# still runs on a box whose environment file is not provisioned.
 GATE_AFFECTED_PATH=${GATE_AFFECTED_PATH:-ops/scripts/gate_affected.sh}
 GATE_REF=${GATE_REF:-main}
-[ -n "${GATE_AFFECTED_REPO:-}" ] || verdict ENV "GATE_AFFECTED_REPO is not set: the git repository that holds $GATE_AFFECTED_PATH (set it in $envfile)"
+if [ -z "${GATE_AFFECTED_REPO:-}" ] && [ -n "${HOME:-}" ]; then
+	for d in "$HOME"/*/*; do
+		[ -e "$d/.git" ] || continue
+		if git -C "$d" cat-file -e "$GATE_REF:$GATE_AFFECTED_PATH" 2>/dev/null; then GATE_AFFECTED_REPO=$d; break; fi
+	done
+fi
+[ -n "${GATE_AFFECTED_REPO:-}" ] || verdict ENV "GATE_AFFECTED_REPO is not set and no local checkout under \$HOME carries $GATE_AFFECTED_PATH at $GATE_REF (set it in $envfile)"
 aff_sha=$(git -C "$GATE_AFFECTED_REPO" rev-parse --short=7 "$GATE_REF:$GATE_AFFECTED_PATH" 2>/dev/null) ||
 	verdict ENV "$GATE_AFFECTED_PATH not found in $GATE_AFFECTED_REPO at $GATE_REF: set GATE_AFFECTED_REPO, GATE_AFFECTED_PATH, GATE_REF"
 dg_sha=$(git rev-parse --short=7 "$BASE:scripts/dirac-gate.sh" 2>/dev/null) || verdict ENV "$BASE has no scripts/dirac-gate.sh"
@@ -286,17 +298,34 @@ grep -qE '^(--- FAIL|FAIL[[:space:]]|panic:)' "$S/aff" && ra=1
 keep=.ds4/scratch/test/smart-${sha%+dirty}
 cp "$S/aff" "$keep.affected.log" 2>/dev/null
 cp "$S/dg" "$keep.dirac.log" 2>/dev/null
-case ${ra:-1} in 137 | 143) echo "affected gate killed (rc=$ra)"; verdict BUDGET "affected gate killed" ;; esac
-if [ "${ra:-1}" != 0 ]; then
+aff_fail=0 dirac_fail=0
+{ [ -z "$ra" ] || [ "$ra" != 0 ]; } && aff_fail=1
+{ [ -z "$rd" ] || [ "$rd" != 0 ]; } && dirac_fail=1
+# Report both gates, as g-land does. The dirac gate often fails first; stopping the affected scope then
+# leaves it at 137/143 (or with no rc file), and that must neither hide the dirac failure nor be read as
+# the budget: the dirac failure decides the landing.
+if [ "$aff_fail" = 1 ]; then
 	grep -E -A8 -- '^--- FAIL|^FAIL|panic:' "$S/aff" | head -40
+	echo "affected gate rc=${ra:-missing}${stopped:+ ($stopped)}"
 	echo "full output: $keep.affected.log"
-	bad "affected gate rc=${ra:-1}${stopped:+ ($stopped)}"
 fi
 grep -E '^(==|dirac gate|State|Benchmark|fdn:|blb:|std-|  )' "$S/dg" | head -60
-if [ "${rd:-1}" != 0 ]; then
+if [ "$dirac_fail" = 1 ]; then
 	tail -30 "$S/dg"
+	echo "dirac gate rc=${rd:-missing}${stopped:+ ($stopped)}"
 	echo "full output: $keep.dirac.log"
-	bad "dirac gate rc=${rd:-1}${stopped:+ ($stopped)}"
+	bad "dirac gate rc=${rd:-missing}; affected gate rc=${ra:-missing}${stopped:+ ($stopped)}"
+fi
+if [ "${ra:-}" = 137 ] || [ "${ra:-}" = 143 ]; then
+	verdict BUDGET "affected gate killed (rc=$ra)"
+fi
+[ "$aff_fail" = 0 ] || bad "affected gate rc=${ra:-missing}${stopped:+ ($stopped)}"
+
+if grep -q 'dirac gate: skipped' "$S/dg"; then
+	echo "== 4b repro tables (the dirac gate skipped)"
+	capped 8G 400% env GOMAXPROCS=4 GOMEMLIMIT=6GiB go test -json -failfast -timeout 10m -run '^TestStd[A-Za-z]*ReprosLockstep' ./dirac/oracle >>"$json" 2>&1
+	rc=$?
+	[ "$rc" = 0 ] || finish ""
 fi
 
 echo "== 5 wire goldens"

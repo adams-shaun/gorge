@@ -25,11 +25,16 @@ EXIT = {"PASS": 0, "FAIL": 1, "ENV": 3, "EMPTY": 4, "BUDGET": 5, "BUSY": 75}
 
 # A skip whose message says the corpus, the pools or dirac's tables are missing means the environment, not
 # the code, decided the run: it is not a pass. "not in the FDN table" or "every pool card is supported" are
-# the test's own subject and stay skips.
+# the test's own subject and stay skips, so the table arm names the table's owner ("no FDN table") instead
+# of matching any "no ... table" (which would catch "no Bird subtype in the table").
 ENV_SKIP = re.compile(
     r"\.cards|fetch-cards|dirac-tables|link-cards|GORGE_POOLS|GORGE_CARDS|KGEN_DECKS|KERNEL_FDN_DECKS"
-    r"|\bgorge corpus\b|\b(no|missing)\b[^:]{0,30}\bcorpus\b|\bcorpus\b[^:]{0,25}\b(unavailable|not (fetched|present)|has no cardsfolder)"
-    r"|\bpools?\b[^:]{0,20}\babsent|\bno\b[^:]{0,40}\bpool\b|\bsynthetic pools\b|\bno\b[^:]{0,30}\btables?\b", re.I)
+    r"|\bgorge corpus\b"
+    r"|\b(no|missing)\b[^:]{0,30}\bcorpus\b"
+    r"|\bcorpus\b[^:]{0,40}\b(missing|unavailable|lacks|has no cardsfolder|not (fetched|present|found))\b"
+    r"|\bnot in the corpus\b|\bcorpus fixture\b"
+    r"|\bpools?\b[^:]{0,20}\babsent|\bno\b[^:]{0,40}\bpool\b|\bsynthetic pools\b"
+    r"|\b(no|missing)\b[^:]{0,20}\b(dirac|fdn|blb|set|card)\s+tables?\b|\bno\s+tables?\b", re.I)
 NO_TESTS = "[no tests to run]"
 MAX_DETAIL = 40
 
@@ -123,10 +128,11 @@ def classify(lines, rc=0, named=()):
         res.reasons.append("killed, rc=%d" % rc)
     if budget:
         res.status = "BUDGET"
+    elif failed or pkg_fail or rc != 0:
+        # A real failure wins over an environment skip: the code, not the box, decided the run.
+        res.status = "FAIL"
     elif env:
         res.status = "ENV"
-    elif failed or pkg_fail or rc != 0:
-        res.status = "FAIL"
     elif empty or res.ran == 0:
         res.status = "EMPTY"
         if not res.reasons:
@@ -215,7 +221,8 @@ def plan(changes, dirmap, deps, lines_of):
     lines_of  path -> lines of the file's current text
 
     Returns a list of (kind, package, regex): whole, named (regex must match), census (regex may match
-    nothing). Package names are ./relative, as `go test` takes them."""
+    nothing). Package names are ./relative, as `go test` takes them. A package whose test helper, import or
+    testdata fixture changed runs whole even when it is heavy: the tests it feeds are otherwise unprovable."""
     rel = {v: k for k, v in dirmap.items()}
     src, touched, named, forced_whole = set(), set(), {}, set()
     for path, ranges in sorted(changes.items()):
@@ -243,12 +250,21 @@ def plan(changes, dirmap, deps, lines_of):
         return "./" + d if d != "." else "."
 
     out = {}
+    skipped = []
     for p in sorted(touched):
         if p not in deps:
             continue  # no test files
         lp = local(p)
+        if lp in EXCLUDE:
+            if lp not in skipped:
+                skipped.append(lp)
+            continue
         heavy = lp in HEAVY
-        if heavy:
+        if p in forced_whole:
+            # A helper, type, import or testdata fixture can feed any test in the package: only the whole
+            # package proves it, heavy or not (the census-only shortcut would print PASS on an untested test).
+            out[lp] = ("whole", lp, "")
+        elif heavy:
             names = sorted(named.get(p, ()))
             if names:
                 out[lp] = ("named", lp, "^(%s)$|%s" % ("|".join(names), CENSUS))
@@ -258,13 +274,13 @@ def plan(changes, dirmap, deps, lines_of):
             out[lp] = ("whole", lp, "")
         else:
             out[lp] = ("named", lp, "^(%s)$" % "|".join(sorted(named[p])))
-    skipped = []
     for p, ds in sorted(deps.items()):
         if not (ds & src) and p not in src:
             continue
         lp = local(p)
         if lp in EXCLUDE:
-            skipped.append(lp)
+            if lp not in skipped:
+                skipped.append(lp)
             continue
         if lp not in out or out[lp][0] != "whole":
             if lp not in HEAVY:

@@ -69,6 +69,17 @@ def test_skip_for_a_missing_corpus_is_env_not_pass():
     assert tt.classify(other + PASS).status == "PASS"
 
 
+def test_a_failure_beats_an_environment_skip():
+    # The environment skip is printed, but the code decided the run: FAIL, not ENV.
+    lines = [ev("run", test="TestSkipped"), ev("output", test="TestSkipped", out="    x_test.go:1: corpus missing card \"Foo\"\n"),
+             ev("skip", test="TestSkipped"), ev("run", test="TestBad"), ev("output", test="TestBad", out="    x_test.go:9: boom\n"),
+             ev("fail", test="TestBad"), ev("fail")]
+    r = tt.classify(lines, rc=1)
+    assert r.status == "FAIL"
+    assert any("TestBad" in l for l in r.detail)
+    assert any("skipped for the environment" in reason for reason in r.reasons)
+
+
 @pytest.mark.parametrize("msg,env", [
     ("gorge corpus: open .cards/cardsfolder: no such file", True),
     ("no gorge corpus: boom", True),
@@ -77,10 +88,14 @@ def test_skip_for_a_missing_corpus_is_env_not_pass():
     ("synthetic pools: none", True),
     ("FDN pool absent: x", True),
     ("Grizzly Bears not in the FDN table", False),
+    ("no Bird subtype in the table", False),
     ("every pool card is supported: no inert fallback to play", False),
     ("every tail bucket fits one table: nothing to split", False),
     ("table too small for the scenario library", False),
-    ("corpus missing card \"Gitaxian Probe\"", False),
+    ("corpus missing card \"Gitaxian Probe\"", True),
+    ("corpus lacks Grizzly Bears, so the test cannot play it", True),
+    ("role_cursed token script not in the corpus", True),
+    ("corpus fixture: decks/std/foo.txt missing", True),
     ("no deck directory: NETSIMD_DECKS is unset", False),
 ])
 def test_which_skips_are_the_environments(msg, env):
@@ -116,11 +131,13 @@ def test_finish_cli_exit_codes(tmp_path):
 # ---- selection -------------------------------------------------------------------------------------
 
 DIRMAP = {"engine/rules": "m/engine/rules", "engine/game/gorgegame": "m/engine/game/gorgegame", "server/host": "m/server/host",
+          "dirac/oracle": "m/dirac/oracle",
           "leaf": "m/leaf", "internal/archtest": "m/internal/archtest", "internal/codeshape": "m/internal/codeshape"}
 DEPS = {
     "m/engine/rules": {"m/engine/rules"},
     "m/engine/game/gorgegame": {"m/engine/game/gorgegame", "m/engine/rules"},
     "m/server/host": {"m/server/host", "m/engine/rules"},
+    "m/dirac/oracle": {"m/dirac/oracle"},
     "m/leaf": {"m/leaf"},
     "m/internal/archtest": {"m/internal/archtest"},
     "m/internal/codeshape": {"m/internal/codeshape"},
@@ -156,6 +173,20 @@ def test_helper_or_fixture_change_runs_the_package_whole():
     assert planned({"leaf/leaf.go": None})[0]["./leaf"][0] == "whole"
 
 
+def test_heavy_package_helper_or_fixture_change_runs_whole_not_census():
+    # A helper or fixture feeds tests the census regex never names: running only CENSUS would print PASS
+    # on an unrun test.
+    assert planned({"engine/rules/rules_test.go": [(5, 5)]}, {"engine/rules/rules_test.go": LEAF_TEST})[0]["./engine/rules"][0] == "whole"
+    assert planned({"engine/rules/testdata/foo.txt": None})[0]["./engine/rules"][0] == "whole"
+    assert planned({"dirac/oracle/testdata/x.txt": None})[0]["./dirac/oracle"][0] == "whole"
+
+
+def test_touched_excluded_package_is_excluded_not_census():
+    got, skipped = planned({"server/host/host.go": None})
+    assert "./server/host" not in got
+    assert "./server/host" in skipped
+
+
 def test_heavy_package_with_named_tests_adds_the_census_tests():
     kind, rx = planned({"engine/rules/x_test.go": [(7, 7)]}, {"engine/rules/x_test.go": LEAF_TEST})[0]["./engine/rules"]
     assert kind == "named" and rx.startswith("^(TestOne)$|") and "Census" in rx
@@ -164,6 +195,30 @@ def test_heavy_package_with_named_tests_adds_the_census_tests():
 def test_docs_only_diff_selects_just_the_structural_packages():
     got, _ = planned({"docs/agents/invariants.md": None, "AGENTS.md": None})
     assert sorted(got) == ["./internal/archtest", "./internal/codeshape"]
+
+
+def test_go_graph_reads_the_real_test_binaries():
+    # The real `go list -e -test` path (not the hand-built DEPS): `.test` entries are the reverse-dep graph
+    # that made engine/rules/engine.go select gorgegame on 2026-11-11.
+    dirmap, deps = tt.go_graph()
+    rules = dirmap.get("engine/rules", "")
+    assert rules.endswith("/engine/rules")
+    assert rules in deps and rules in deps[rules]
+    assert dirmap.get("engine/game/gorgegame", "").endswith("/engine/game/gorgegame")
+    assert any(rules in ds for ds in deps.values())
+
+
+def test_diff_changes_reads_test_line_ranges(tmp_path, monkeypatch):
+    f = tmp_path / "x_test.go"
+    run = lambda *a: subprocess.run(a, cwd=tmp_path, check=True, capture_output=True)
+    run("git", "init", "-q", "-b", "land")
+    f.write_text("package x\n\nfunc TestOne(t *testing.T) {\n\ta()\n}\n")
+    run("git", "add", "x_test.go")
+    run("git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "x")
+    f.write_text("package x\n\nfunc TestOne(t *testing.T) {\n\tb()\n}\n")
+    monkeypatch.chdir(tmp_path)
+    changes = tt.diff_changes("HEAD")
+    assert changes["x_test.go"] == [(4, 4)]
 
 
 # ---- the wrapper's preflight ----------------------------------------------------------------------
@@ -207,7 +262,10 @@ def test_empty_cards_folder_is_env(repo):
 def test_one_usage_errors_exit_2(repo):
     (repo / ".cards" / "cardsfolder").mkdir(parents=True)
     (repo / ".cards" / "cardsfolder" / "a.txt").write_text("x")
-    for env in ({"PKG": "./...", "RUN": "T"}, {"PKG": "./p"}, {"PKG": "./p", "RUN": "T", "TESTENV": "PATH=/x"}, {"PKG": "./p", "RUN": "T", "TIMEOUT": "9m"}):
+    for env in ({"PKG": "./...", "RUN": "T"}, {"PKG": "./p"}, {"PKG": "./p", "RUN": "T", "TESTENV": "PATH=/x"},
+                {"PKG": "./p", "RUN": "T", "TIMEOUT": "9m"}, {"PKG": "./p", "RUN": "T", "TIMEOUT": "0s"},
+                {"PKG": "./p", "RUN": "T", "TIMEOUT": "0m"}, {"PKG": "./engine/rules", "RUN": "^Test"},
+                {"PKG": "./engine/rules", "RUN": "^Test.*$"}, {"PKG": "./dirac/oracle", "RUN": "."}):
         rc, lines, err = wrapper(repo, "one", env=env)
         assert rc == 2 and not lines, env
 
