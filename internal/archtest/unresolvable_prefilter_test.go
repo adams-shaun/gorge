@@ -45,19 +45,17 @@ func TestUnresolvablePrefilterNeverHidesAMatch(t *testing.T) {
 		{"draft/x.go", "kr-a"},
 	} {
 		b := []byte(c.blob)
-		if findUnresolvable(c.path, b) == nil {
-			t.Fatalf("precondition: findUnresolvable(%q) does not match %.60q", c.path, c.blob)
-		}
-		if unresolvableTag.Find(b) == nil {
+		if unresolvableTag.Find(b) != nil {
+			if !mayHaveUnresolvableTag(b) {
+				t.Errorf("mayHaveUnresolvableTag(%.60q) = false, but unresolvableTag matches", c.blob)
+			}
+		} else if !sectionCite.Match(b) {
 			// A section-cite positive: its "§" filter is exact, so the tag
 			// prefilter is not involved.
-			if !sectionCite.Match(b) {
-				t.Fatalf("precondition: %.60q matches neither unresolvableTag nor sectionCite", c.blob)
-			}
-			continue
+			t.Fatalf("precondition: %.60q matches neither unresolvableTag nor sectionCite", c.blob)
 		}
-		if !mayHaveUnresolvableTag(b) {
-			t.Errorf("mayHaveUnresolvableTag(%.60q) = false, but unresolvableTag matches", c.blob)
+		if findUnresolvable(c.path, b) == nil {
+			t.Fatalf("precondition: findUnresolvable(%q) does not match %.60q", c.path, c.blob)
 		}
 	}
 
