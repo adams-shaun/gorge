@@ -674,10 +674,12 @@ func TestMasterOfKeysGrantLockstep(t *testing.T) {
 		{st.mokCasts, 1, "The Master of Keys casts"},
 		{st.sealOffers, 2, "Seal of Fire escape casts offered"},
 		{st.sealCasts, 1, "Seal of Fire escape casts taken"},
-		{st.nonEnchOffers, 0, "non-enchantment escape offers under the Keys"},
 	} {
 		if c.n < c.min {
 			t.Errorf("%s: %d, want at least %d", c.s, c.n, c.min)
 		}
+	}
+	if st.nonEnchOffers != 0 {
+		t.Errorf("non-enchantment escape offers under the Keys: %d, want 0", st.nonEnchOffers)
 	}
 }
