@@ -58,16 +58,6 @@ type ktrigctrTally struct {
 	played map[string]int
 }
 
-func ktrigctrPolicy(seed uint64, played map[string]int, gs **GorgeSide) Policy {
-	inner := eagerPolicy(seed, played)
-	return PolicyFunc(func(c *PickCtx) Canon {
-		if c.G != nil {
-			*gs = c.G
-		}
-		return inner.Pick(c)
-	})
-}
-
 // ktrigctrScan replays the log's counter changes per object, and at each
 // battlefield departure checks which counter-head trigger saw it.
 func ktrigctrScan(g *GorgeSide, tl *ktrigctrTally) {
@@ -197,7 +187,7 @@ func ktrigctrRun(t *testing.T, seeds uint64, report bool) (*ktrigctrTally, *Dive
 			t.Fatal(err)
 		}
 		var gs *GorgeSide
-		res := Lockstep(m, seed, k, ktrigctrPolicy(seed, tl.played, &gs), RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 25})
+		res := Lockstep(m, seed, k, trackingEagerPolicy(seed, tl.played, &gs), RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 25})
 		CloseSide(k)
 		tl.games++
 		if strings.HasPrefix(res.Stall, KernelStallPrefix) {

@@ -88,28 +88,6 @@ func (p *kdelaydiesTally) check(ref *GorgeSide, _ Side) *Divergence {
 	return nil
 }
 
-// kdelaydiesPolicy attacks, blocks and casts whenever it can (so the
-// carriers resolve and the pumped creatures meet blockers and burn), else
-// random.
-func kdelaydiesPolicy(seed uint64) Policy {
-	rnd := RandomPolicy(seed)
-	var buf []Canon
-	return PolicyFunc(func(c *PickCtx) Canon {
-		buf = buf[:0]
-		for _, a := range c.D.Options {
-			if k := a.Kind(); k == ActAttack || k == ActBlock || k == ActCast {
-				buf = append(buf, a)
-			}
-		}
-		if len(buf) == 0 {
-			return rnd.Pick(c)
-		}
-		d := *c.D
-		d.Options = buf
-		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
-	})
-}
-
 func kdelaydiesSetup(t *testing.T) (*cards.Registry, cardset.Set, [2][]*cards.Card, *kop.Table) {
 	t.Helper()
 	cardsDir := corpusDirOrSkip(t)
@@ -154,7 +132,7 @@ func kdelaydiesRun(t *testing.T, reg *cards.Registry, set cardset.Set, decks [2]
 	if err != nil {
 		t.Fatal(err)
 	}
-	res := Lockstep(m, seed, k, kdelaydiesPolicy(seed), RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 20, Check: check})
+	res := Lockstep(m, seed, k, combatCastPolicy(seed), RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 20, Check: check})
 	CloseSide(k)
 	return res
 }

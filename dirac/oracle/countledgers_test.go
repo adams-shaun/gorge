@@ -55,24 +55,6 @@ type kcountheads10Tally struct {
 	draws int
 }
 
-// kcountheads10ResolveName names a resolving stack object: an ability's
-// source permanent, else the stack card itself.
-func kcountheads10ResolveName(g *state.Game, id state.ObjID) string {
-	o := g.Obj(id)
-	if o == nil {
-		return ""
-	}
-	// An ability object (activated or triggered) has no card of its own:
-	// its Source points at the permanent whose ability is resolving. A spell
-	// has no Source and names its card directly.
-	if o.Source != 0 {
-		if n := chName(g, o.Source); n != "" {
-			return n
-		}
-	}
-	return chName(g, id)
-}
-
 func (p *kcountheads10Tally) flush(st *kcountheads10Stats) {
 	switch p.cur {
 	case "Agency Coroner":
@@ -103,7 +85,7 @@ func (p *kcountheads10Tally) scan(ref *GorgeSide, st *kcountheads10Stats) {
 			p.flush(st)
 		case events.Resolve:
 			p.flush(st)
-			p.cur = kcountheads10ResolveName(g, e.Obj)
+			p.cur = resolveSourceName(g, e.Obj)
 		case events.Draw:
 			if p.cur != "" {
 				p.draws++

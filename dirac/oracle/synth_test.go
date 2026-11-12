@@ -16,17 +16,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/events"
 )
 
-// synthReg is the corpus for a synth test, skipping as the tables do when there is none.
-func synthReg(t *testing.T) *cards.Registry {
-	t.Helper()
-	dir := corpusDirOrSkip(t)
-	reg, err := cards.SharedCorpus(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return reg
-}
-
 // stdPools is the std-* pools, each whole Standard list or its pieces.
 func stdPools(t *testing.T) []string {
 	t.Helper()

@@ -432,3 +432,115 @@ func objectHasType(o *state.Object, ty string) bool {
 	}
 	return false
 }
+
+func replayEffectLongCase(t *testing.T, reg *cards.Registry, c effectLongCase) {
+	t.Helper()
+	r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	script := &ScriptPolicy{Actions: r.Actions}
+	res, reached := effectLongPlay(t, reg, c, r, printedDelveSet(t, r.Cards), script)
+	if res.Div != nil {
+		t.Fatalf("divergence at %d: %s %s %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
+	}
+	if script.Skipped != 0 {
+		t.Errorf("%d scripted actions were not offered", script.Skipped)
+	}
+	if !reached {
+		t.Fatalf("the recorded game never reaches %s", c.name)
+	}
+}
+
+// resolveSourceName names a resolving stack object: an ability's
+// source permanent, else the stack card itself.
+func resolveSourceName(g *state.Game, id state.ObjID) string {
+	o := g.Obj(id)
+	if o == nil {
+		return ""
+	}
+	// An ability object (activated or triggered) has no card of its own:
+	// its Source points at the permanent whose ability is resolving. A spell
+	// has no Source and names its card directly.
+	if o.Source != 0 {
+		if n := chName(g, o.Source); n != "" {
+			return n
+		}
+	}
+	return chName(g, id)
+}
+
+// trackingEagerPolicy is the cast-first random policy of the czparams lockstep
+// and captures the gorge side for the event tally.
+func trackingEagerPolicy(seed uint64, played map[string]int, gs **GorgeSide) Policy {
+	inner := eagerPolicy(seed, played)
+	return PolicyFunc(func(c *PickCtx) Canon {
+		if c.G != nil {
+			*gs = c.G
+		}
+		return inner.Pick(c)
+	})
+}
+
+// combatCastPolicy attacks, blocks and casts whenever it can (so the
+// carriers resolve and the pumped creatures meet blockers and burn), else
+// random.
+func combatCastPolicy(seed uint64) Policy {
+	rnd := RandomPolicy(seed)
+	var buf []Canon
+	return PolicyFunc(func(c *PickCtx) Canon {
+		buf = buf[:0]
+		for _, a := range c.D.Options {
+			if k := a.Kind(); k == ActAttack || k == ActBlock || k == ActCast {
+				buf = append(buf, a)
+			}
+		}
+		if len(buf) == 0 {
+			return rnd.Pick(c)
+		}
+		d := *c.D
+		d.Options = buf
+		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
+	})
+}
+
+func synthReg(t *testing.T) *cards.Registry {
+	t.Helper()
+	dir := corpusDirOrSkip(t)
+	reg, err := cards.SharedCorpus(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return reg
+}
+
+// castActivatePlayedPolicy casts or activates whenever it can (so the games reach the
+// carriers), else random; it counts the carrier plays the gorge side poses.
+func castActivatePlayedPolicy(seed uint64, played map[string]int) Policy {
+	rnd := RandomPolicy(seed)
+	var buf []Canon
+	return PolicyFunc(func(c *PickCtx) Canon {
+		buf = buf[:0]
+		for _, a := range c.D.Options {
+			if k := a.Kind(); k == ActCast || k == ActActivate {
+				buf = append(buf, a)
+			}
+		}
+		var a Canon
+		if len(buf) == 0 {
+			a = rnd.Pick(c)
+		} else {
+			d := *c.D
+			d.Options = buf
+			a = rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
+		}
+		if k := a.Kind(); (k == ActCast || k == ActActivate) && c.G != nil {
+			if o, ok := c.G.GorgeOption(a); ok {
+				if ob := c.G.E.G.Obj(o.Obj); ob != nil && ob.Face() != nil {
+					played[ob.Face().Name]++
+				}
+			}
+		}
+		return a
+	})
+}
