@@ -277,6 +277,12 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 				// the production is parsed).
 			case castWindowGenericCostShape(cost):
 				genericCost, coloredCost = cost.Generic, cost.Colored
+			case pay.CastWindowSelfSacFeeCost(asPayer(e), p, id, cost):
+				// A source that sacrifices itself beside a literal fee is
+				// one-shot, so pricing it here adds at most one unit for it;
+				// the reach search pays the fee before the production (CR
+				// 605.3b), exactly as the live window does.
+				genericCost, coloredCost = cost.Generic, cost.Colored
 			default:
 				// The PayLife<N> and self-sacrifice arms are the paid-cost
 				// census layer's shared shape test (paid_mana_census.go).
@@ -414,7 +420,7 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc
 			continue
 		}
 		free := pay.ManaFreeCost(cost)
-		if !free && !castWindowGenericCostShape(cost) {
+		if !free && !castWindowGenericCostShape(cost) && !pay.CastWindowSelfSacFeeCost(asPayer(e), p, id, cost) {
 			if _, ok := e.paidCostShape(p, id, cost, e.G.Players[p].Life); !ok {
 				return true
 			}
