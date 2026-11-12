@@ -220,7 +220,8 @@ unit test (including `oracle_unconsumed_test.go`, the leftover-answer
 regression), the set audits, and the nine scenario files its own card tests
 load (Wizard's Staff, Heirloom Epic, Gray Merchant of Asphodel, Rhovanion
 Rampager, Supper for Spiders, Uncover the Moon-Letters, and the census
-carriers Witness Protection, Purphoros and Bard's Company).
+carriers Witness Protection, Purphoros and Bard's Company)
+*(the count is wrong; corrected 2026-11-11 below)*.
 `oracle_contract_test.go` plays them through the exported API as the
 runner's contract check. A scenario file lives in exactly one repository;
 gorge-compliance's audit and gate read the union.
@@ -234,3 +235,14 @@ ReplayDiff}`), `CheckOracleScenarioJSON(raw)` (corpus-free shape check) and
 thin wrappers over the non-test `logReplayGame`/`gameStateDiff` they now
 share with it. Changing these is an API change for gorge-compliance.
 gorge never imports gorge-compliance.
+
+**Correction (2026-11-11): eleven scenario files, not nine.** The
+measurement behind cleanup unit A7 counted the residual
+`engine/rules/testdata/oracle/<family>/*.json` files `loadOracleFiles`
+(`oracle_contract_test.go`) reads: **eleven**, at the audit (2026-11-11) and
+again at the land candidate. The list above gains the two bushido carriers
+`combat-keywords/jade-avenger.json` and
+`combat-keywords/samurai-of-the-pale-curtain.json`, which
+`engine/rules/bushido_test.go` plays; the nine names stand. The header
+comment of `oracle_contract_test.go` repeats the nine-name list and gains
+the same two names with the next change to that file.

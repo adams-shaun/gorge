@@ -109,7 +109,7 @@ func (s *State) applyMiracleAsk(k *prep, a Action) bool {
 		// priority, as gorge resumes after the miracle trigger
 		holder := s.prio
 		s.prio = p
-		s.beginCast(k, o, 0)
+		s.beginCast(k, o, 0, 0)
 		s.prio = holder
 		s.bld().e.trigPl = trigPlMiracle
 	}
