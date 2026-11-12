@@ -11,51 +11,16 @@ package rules
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
-
-// phasedNogOfficer puts Nog on seat 0's battlefield and runs both Animate steps
-// ({1}: Scout, then {3}: Officer), returning the engine and Nog's id.
-func phasedNogOfficer(t *testing.T) (*Engine, state.ObjID) {
-	t.Helper()
-	reg := testutil.CorpusRegistry(t)
-	e, _ := corpusEngineCfg(t, reg, []*cards.Card{lookup(t, reg, "Nog, Ambitious Cadet")},
-		[]*cards.Card{lookup(t, reg, "Humility")})
-	nog := moveCorpusCard(t, e, "Nog, Ambitious Cadet", 0, state.ZBattlefield)
-	animates := nogAnimates(t, e, nog)
-	for n, mana := range []string{"C", "CCC"} {
-		addMana(t, e, 0, mana)
-		pick := -1
-		for _, o := range e.Pending().Options {
-			if o.Kind == "ability" && o.Obj == nog && o.Ability == animates[n] {
-				pick = o.Index
-			}
-		}
-		if pick < 0 {
-			t.Fatalf("Nog's animate #%d not offered: %+v", n, e.Pending().Options)
-		}
-		submitChoices(t, e, pick)
-		passUntilStackEmpty(t, e, 50)
-	}
-	isOfficer := false
-	for _, ty := range e.Chars(nog).Types {
-		isOfficer = isOfficer || ty == "Officer"
-	}
-	if !isOfficer {
-		t.Fatalf("precondition: Nog is not an Officer: %v", e.Chars(nog).Types)
-	}
-	return e, nog
-}
 
 // TestPhasedOutGainedPlayGrantStops pins CR 702.26b: while Nog is phased out,
 // the "play lands from your graveyard" and extra-land statics it gained from
 // its Officer Animate do not function; phasing back in restores them.
 func TestPhasedOutGainedPlayGrantStops(t *testing.T) {
 	t.Parallel()
-	e, nog := phasedNogOfficer(t)
+	e, nog := nogOfficer(t)
 	g0 := graveCard(e, card(t, landSrc("Forest")), 0, 0)
 
 	// Precondition: the grants are live while Nog is phased in.
@@ -93,7 +58,7 @@ func TestPhasedOutGainedPlayGrantStops(t *testing.T) {
 // newer "loses all abilities" removes the gained play grants for good.
 func TestGainedPlayGrantFollowsAbilityLoss(t *testing.T) {
 	t.Parallel()
-	e, _ := phasedNogOfficer(t)
+	e, _ := nogOfficer(t)
 	g0 := graveCard(e, card(t, landSrc("Forest")), 0, 0)
 	if got := e.adjustLandPlays(0); got != 1 {
 		t.Fatalf("precondition: seat 0 extra land drops = %d, want 1", got)

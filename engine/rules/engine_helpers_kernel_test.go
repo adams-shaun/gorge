@@ -341,7 +341,7 @@ func effectNoteTexts(e *Engine) []string {
 	return out
 }
 
-// scryDecision casts arrangeSrc and returns the pending KArrange decision.
+// scryDecision casts id and returns the pending KArrange decision.
 func scryDecision(t *testing.T, e *Engine, id state.ObjID) *decision.Decision {
 	t.Helper()
 	d := castFixture(t, e, id, -1)
@@ -566,10 +566,8 @@ func runForEachScenario(t *testing.T, sc string) {
 	}
 }
 
-// These tests pin the registered DB$ CopyPermanent primitive, on
-// real corpus cards, end to end. Every one asserts there is no
-// "unimplemented API CopyPermanent" note anywhere in the log, and that the
-// whole game replays byte-identically from its log.
+// noUnimplementedCopyPermanent fails when the log carries an "unimplemented
+// API" note for the primitive under test.
 func noUnimplementedCopyPermanent(t *testing.T, e *Engine) {
 	t.Helper()
 	for _, ev := range e.L.Events {
@@ -634,8 +632,7 @@ func revealNotes(e *Engine) []events.Event {
 }
 
 // mobVerdictVoteMove moves one corpus card from seat p's hand or library to
-// zone `to` through a logged MoveZone (mobVerdictVoteMove's shape,
-// generalised off its seat-0-only hardcoding), then re-asks priority.
+// zone `to` through a logged MoveZone, then re-asks priority.
 func mobVerdictVoteMove(t *testing.T, e *Engine, p state.PlayerID, name string, to state.Zone) state.ObjID {
 	t.Helper()
 	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
@@ -932,4 +929,37 @@ func seekUnlessPay(t *testing.T, e *Engine, limit int) *decision.Decision {
 		castFirst(t, e, "pass")
 	}
 	return nil
+}
+
+// nogOfficer puts Nog on seat 0's battlefield and runs both Animate steps
+// ({1}: Scout, then {3}: Officer), returning the engine and Nog's id.
+func nogOfficer(t *testing.T) (*Engine, state.ObjID) {
+	t.Helper()
+	reg := testutil.CorpusRegistry(t)
+	e, _ := corpusEngineCfg(t, reg, []*cards.Card{lookup(t, reg, "Nog, Ambitious Cadet")},
+		[]*cards.Card{lookup(t, reg, "Humility")})
+	nog := moveCorpusCard(t, e, "Nog, Ambitious Cadet", 0, state.ZBattlefield)
+	animates := nogAnimates(t, e, nog)
+	for n, mana := range []string{"C", "CCC"} {
+		addMana(t, e, 0, mana)
+		pick := -1
+		for _, o := range e.Pending().Options {
+			if o.Kind == "ability" && o.Obj == nog && o.Ability == animates[n] {
+				pick = o.Index
+			}
+		}
+		if pick < 0 {
+			t.Fatalf("Nog's animate #%d not offered: %+v", n, e.Pending().Options)
+		}
+		submitChoices(t, e, pick)
+		passUntilStackEmpty(t, e, 50)
+	}
+	isOfficer := false
+	for _, ty := range e.Chars(nog).Types {
+		isOfficer = isOfficer || ty == "Officer"
+	}
+	if !isOfficer {
+		t.Fatalf("precondition: Nog is not an Officer: %v", e.Chars(nog).Types)
+	}
+	return e, nog
 }
