@@ -1215,6 +1215,13 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 		if pp != p && k.gen != nil && k.gen.anyRepl&rbPlHex != 0 && s.playerHexproof(k, pp) {
 			return false
 		}
+		if s.plProtAll(k, pp) {
+			// CR 702.16b: the protected player cannot be the target of
+			// anything, their own spells included (no hexproof-style
+			// self-exemption; gorge stack.go/target_legal.go's
+			// playerProtectedFrom arm)
+			return false
+		}
 		switch t.Kind {
 		case kop.TgtAny:
 			return true

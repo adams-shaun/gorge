@@ -17,6 +17,12 @@ import (
 func (lc *lowerCtx) kvfHead(head, rest string) (lValue, error) {
 	switch head {
 	case "PlayerCountPlayers":
+		if strings.HasPrefix(rest, "HighestValid") {
+			// the zone-scoped extreme (value_plrextreme.go): the highest,
+			// over the living players, of the member's own-side count in
+			// the named zones
+			return lc.plExtremeValue(head, rest)
+		}
 		switch rest {
 		case "AttackersDeclared":
 			// gorge cov3PlayerScalarAttackersDeclared: the every-player

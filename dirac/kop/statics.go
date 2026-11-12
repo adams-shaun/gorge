@@ -26,6 +26,7 @@ const (
 	StatControl           // the source's controller controls the objects matching Filter (the source Aura's enchanted permanent; layer 2, CR 613.1b): Control Magic, Kitnap
 	StatPanharmonicon     // a triggered ability of an object of the controller matching Filter triggers an additional time (CR 603.2d; gorge statics_echo.go panharmoniconEchoes)
 	StatHexproofOwnColors // objects matching Filter have hexproof from each of their own current colours (a granted Hexproof:CardColors, CR 702.11d; kw_hexproofcolor.go)
+	StatPlayerProtAll     // the controller has protection from everything (The One Ring's player grant; static_plprot.go)
 	StatCount
 )
 

@@ -60,6 +60,9 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	if g.anyRepl&rbPlProt != 0 && sl == NoSlot && s.plProtected(k, srcCtrl, rcp, combat) {
 		return 0 // protection from each opponent prevents it first (CR 702.16e; static_playerstats.go)
 	}
+	if s.plProtAll(k, rcp) && !s.noPrev(k, combat) {
+		return 0 // protection from everything prevents it (CR 702.16e; static_plprot.go)
+	}
 	if g.anyRepl&rbPrevCol != 0 && s.prevColHit(k, srcSl, srcCard, prevTgt{rcp, sl}, combat) {
 		return 0 // Ext PreventColor (cast_altfree.go)
 	}
@@ -942,6 +945,9 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 		rcp = CodeSeat(code)
 		if g.anyRepl&rbPlProt != 0 && s.plProtected(k, ctrl, rcp, false) {
 			return false // prevented before the replacements (replDamage)
+		}
+		if s.plProtAll(k, rcp) && !s.noPrev(k, false) {
+			return false // protection from everything prevents it before the replacements (replDamage)
 		}
 	} else if int(code) < MaxObj && s.objs[code].zone == kop.ZoneBattlefield {
 		sl = s.objs[code].slot

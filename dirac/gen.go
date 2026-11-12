@@ -65,6 +65,7 @@ type genPrep struct {
 	lossSlow        bool  // anyLoseStat: genLost always asks ovrLoses (kperf-blb, kperf2)
 	ctrlSBA         bool  // the state-based check settles control (a control static, a source-bound OpGainControl)
 	anyPTDelta      bool  // some Override is a +N/+M pump record (kop.Override.PTDelta): ptGen adds it (static_ptdelta.go)
+	anyPlProtAll    bool  // some emblem static is a StatPlayerProtAll player protection grant (static_plprot.go)
 	anyNTOv         bool  // an OpOverride / OpOverrideAll lasts until its controller's next turn
 	legendGrant     bool  // some Override adds or sets the Legendary supertype (legendRule reads derived types)
 	anyMayPlay      bool
@@ -1458,7 +1459,14 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepDiamondMix(t, g, p)
 	g.anyPrevFrom = grantsKw(t, kop.KwPreventCombatDamageFrom) || g.anyRepl&rbPrevCombatBy != 0
 	prepReplMult(t, g)
-	prepDmgMark(t, g) // repl_dmgmark.go
+	prepDmgMark(t, g)   // repl_dmgmark.go
+	prepPlProtAll(t, g) // static_plprot.go
+	if g.anyPlProtAll {
+		// open every replDamage site the way rbPlProt does above: no card
+		// carries the player-protection bit (the emblem is created at
+		// resolution), so the per-permanent walks find none
+		g.anyRepl |= rbPlusDmg
+	}
 	prepInfect(t, g)
 	prepTwoSeat(t, g) // stallclass.go
 	prepFbStamp(t, g) // kw_fbgrant.go

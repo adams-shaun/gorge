@@ -1584,6 +1584,17 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Miracle = &mc
+		case head == "Compleated":
+			// CR 702.150, as gorge implements it (the kw:Compleated
+			// approximation): the life paid for the printed Phyrexian pips
+			// lowers the entry loyalty (gorge events entry_counters'
+			// CompleatedLifePaid, cast_commit's FlagCompleated CastInfo).
+			// The kernel pays the pips' life in the payment window and
+			// places the entry's CtrLoyalty from the printed Loyalty alone
+			// (zones.go), so the life-paid amount would not reach the
+			// entry: a life-pip cast would enter Jace at full loyalty
+			// where gorge enters it two loyalty lower per pip.
+			lc.refuseNode(node, "keyword %q: the pips' life does not reach the entry loyalty", head)
 		default:
 			lc.refuseNode(node, "keyword %q", head)
 		}

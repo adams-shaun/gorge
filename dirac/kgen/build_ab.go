@@ -2149,6 +2149,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		default:
 			return ka, nil, fmt.Errorf("PlayerHexproof amount %v", s.Amount)
 		}
+	case "PlayerProtAll":
+		st.Kind = kop.StatPlayerProtAll // the controller has protection from everything (static_plprot.go)
 	case "MayPlayFrom":
 		st.Kind = kop.StatMayPlayFrom
 		st.Zone = zoneMap[s.Zone]

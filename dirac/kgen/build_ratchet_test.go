@@ -220,8 +220,9 @@ import (
 // +1 (Count$TotalDamageReceivedThisTurn lowered: Tangled Colony; merged with land ALL build-level 22180 -> 22181).
 // +1 (ConditionActivationLimit$ lowers to kop.ExActivations: Dragon Whelp; merged with land ALL build-level 22184 -> 22185).
 // +5 (the Aura-on-land TapsForMana extra with a literal body: Wild Growth, Overgrowth, Wolfwillow Haven, Gauntlet of Might, Vernal Bloom; ALL build-level 22345 -> 22350).
+// +14 (the Pump player grant, the object Pump and Debuff Duration$ UntilYourNextTurn overrides and the zone-scoped PlayerCount extreme lower, and the BURDEN counter kind exists: The One Ring, Jace the Perfected Mind's and Mu Yanling Sky Dancer's A[0], Fear of Falling, Windfall, Whispering Madness, Jace's Archivist, Visions of Beyond, Nightmares and Daydreams, Jotun Grunt, Nautiloid Ship; ALL build-level 22381 -> 22395).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22381, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22395, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

@@ -13,10 +13,17 @@ func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 		return false
 	}
 	if isPlayerOrNone(code) {
-		if pp := CodeSeat(code); s.g.on && pp != e.ctrl && s.playerHexproof(s.k(), pp) {
+		pp := CodeSeat(code)
+		if s.g.on && pp != e.ctrl && s.playerHexproof(s.k(), pp) {
 			return false
 		}
-		return !s.pl[CodeSeat(code)].lost
+		if s.g.on && s.plProtAll(s.k(), pp) {
+			// CR 702.16b: a target that gained protection from everything
+			// between placement and resolution is dropped here, the own
+			// controller's spells included (gorge stack.go's recheck arm)
+			return false
+		}
+		return !s.pl[pp].lost
 	}
 	if isStackTarget(code) {
 		return s.stackTgtStillLegal(e, i) // tgt_stackability.go
