@@ -229,9 +229,9 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 					// The play's own {T} source as the sacrifice: gorge
 					// submits that answer and the node it reaches ends the
 					// line in leftOwnZone (potential_script.go, CR 602.2b),
-					// one node spent whichever candidate is own -- the plain
-					// tap-another cost's own answers are skipped before their
-					// ask branches (tapsOwnSource) and cost none there. The
+					// one node spent, ask or no ask -- the plain tap-another
+					// cost's own answers are skipped before their ask
+					// branches (tapsOwnSource) and cost none there. The
 					// search keeps its budget charged without the fork.
 					if !fs.tick() {
 						return false
