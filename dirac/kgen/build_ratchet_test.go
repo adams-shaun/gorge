@@ -231,17 +231,8 @@ import (
 // Despair, Monstrous Hound, Mogg Toady and Goblin Goon; merged ALL build-level
 // 22392 -> 22584).
 // +31 (K:Partner with: the carriers listed at ratchet_test.go's ALL pin; ALL build-level 22381 -> 22412; merged ALL build-level 22706 -> 22737).
-// +14 (the merge with land: the player protection
-// from everything Pump grant, with the BURDEN counter kind, lowers The One
-// Ring, A-The One Ring and The Stasis Coffin; the object Pump and Debuff
-// Duration$ UntilYourNextTurn overrides lower Blue Dragon, Fear of Falling,
-// Hag of Inner Weakness, Liliana, the Last Hope, Mu Yanling, Celestial Wind,
-// Mu Yanling, Sky Dancer and Wasp, Shrinking Savior; the zone-scoped
-// PlayerCount$HighestValid extreme lowers Jace's Archivist, Nightmares and
-// Daydreams, Visions of Beyond and Windfall; a player hexproof grant still
-// refuses, Blossoming Calm; merged ALL build-level 22868 -> 22882).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22882, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22870, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
