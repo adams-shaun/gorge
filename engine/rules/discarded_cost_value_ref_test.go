@@ -109,7 +109,7 @@ func TestDiscardedCostValueRefIgnoresResponseManaDiscard(t *testing.T) {
 	grab := searchMoveByName(t, e, "Grab the Prize", state.ZHand)
 	land := searchMoveByName(t, e, "Forest", state.ZHand)
 	nonland := searchMoveByName(t, e, "Grizzly Bears", state.ZHand)
-	skirge := mordorMove(t, e, 0, "Skirge Familiar", state.ZBattlefield)
+	skirge := searchMoveByNameSeat(t, e, 0, "Skirge Familiar", state.ZBattlefield)
 	addMana(t, e, 0, "1R")
 	life, draws := e.G.Players[1].Life, countDrawFor(e, 0)
 	castNoDrain(t, e, grab)

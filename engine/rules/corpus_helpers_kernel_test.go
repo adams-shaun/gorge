@@ -315,3 +315,14 @@ func corpusCardOrFatal(t *testing.T, name string) *cards.Card {
 	}
 	return c
 }
+
+// lookup is reg.Lookup or the test fails: a corpus card these tests
+// depend on being absent is a corpus-pin change, not something to paper over.
+func lookup(t *testing.T, reg *cards.Registry, name string) *cards.Card {
+	t.Helper()
+	c, ok := reg.Lookup(name)
+	if !ok {
+		t.Fatalf("corpus fixture: %q missing from the registry", name)
+	}
+	return c
+}

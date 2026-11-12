@@ -749,3 +749,86 @@ func fpPlanUses(got PaymentPlanOutcome, id state.ObjID) (decision.PaymentActivat
 	}
 	return decision.PaymentActivation{}, false
 }
+
+// findInHand returns the id of the card named name in seat p's hand, or 0.
+func findInHand(e *Engine, p state.PlayerID, name string) state.ObjID {
+	for _, id := range e.G.Zone(state.ZHand, p) {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
+			return id
+		}
+	}
+	return 0
+}
+
+// countVoteReveals counts the deferred "votes for" reveal Notes emitted
+// so far (the player ballot defers them until every voter has answered).
+func countVoteReveals(e *Engine) int {
+	n := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && strings.HasPrefix(ev.Text, "votes for ") {
+			n++
+		}
+	}
+	return n
+}
+
+// searchMoveByNameSeat is searchMoveByName for any seat: the named card moves from
+// hand (or library) to the target zone through a logged MoveZone.
+func searchMoveByNameSeat(t *testing.T, e *Engine, p state.PlayerID, name string, to state.Zone) state.ObjID {
+	t.Helper()
+	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
+		for _, id := range e.G.Zone(z, p) {
+			o := e.G.Obj(id)
+			if o != nil && o.Face() != nil && o.Face().Name == name {
+				if z != to {
+					e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: to})
+				}
+				e.pending = nil
+				e.priorityRound()
+				return id
+			}
+		}
+	}
+	t.Fatalf("corpus fixture %q absent from seat %d's hand/library", name, p)
+	return 0
+}
+
+// addManaQuiet is fundPool for a named seat: it emits ManaAdd events into
+// seat p's pool without driving anywhere, then re-asks priority so the
+// pending decision reflects the funded pool.
+func addManaQuiet(t *testing.T, e *Engine, p state.PlayerID, symbols string) {
+	t.Helper()
+	for _, r := range symbols {
+		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: string(r), Amount: 1})
+	}
+	e.priorityRound()
+}
+
+// runFixtureScenario plays a scenario as RunOracleScenarioJSON does
+// (xmageFixture) and fails the test on any scenario failure.
+func runFixtureScenario(t *testing.T, raw string) (OracleResult, *oracleRun) {
+	t.Helper()
+	reg := testutil.CorpusRegistry(t)
+	sc, err := decodeOracleScenario([]byte(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sc.xmageFixture = true
+	fails, transcript, run := runOracleScenario(reg, sc)
+	if len(fails) != 0 {
+		t.Fatalf("scenario failed: %v\n%s", fails, strings.Join(transcript, "\n"))
+	}
+	return OracleResult{Fails: fails, Transcript: transcript, Snapshots: run.snaps}, run
+}
+
+func runSetupAttachedScenario(t *testing.T, raw string) (fails, transcript []string, run *oracleRun) {
+	t.Helper()
+	reg := testutil.CorpusRegistry(t)
+	sc, err := decodeOracleScenario([]byte(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sc.xmageFixture = true
+	fails, transcript, run = runOracleScenario(reg, sc)
+	return fails, transcript, run
+}

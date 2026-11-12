@@ -80,27 +80,6 @@ func castNoDrain(t *testing.T, e *Engine, id state.ObjID) {
 	}
 }
 
-// mordorMove is searchMoveByName for any seat: the named card moves from
-// hand (or library) to the target zone through a logged MoveZone.
-func mordorMove(t *testing.T, e *Engine, p state.PlayerID, name string, to state.Zone) state.ObjID {
-	t.Helper()
-	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
-		for _, id := range e.G.Zone(z, p) {
-			o := e.G.Obj(id)
-			if o != nil && o.Face() != nil && o.Face().Name == name {
-				if z != to {
-					e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: to})
-				}
-				e.pending = nil
-				e.priorityRound()
-				return id
-			}
-		}
-	}
-	t.Fatalf("corpus fixture %q absent from seat %d's hand/library", name, p)
-	return 0
-}
-
 // driveMordor drives across turns to the named step, answering the
 // bookkeeping decisions the drive crosses: passes, empty declarations, and
 // cleanup-step discards (CR 514.1 — the first Max options in hand order).

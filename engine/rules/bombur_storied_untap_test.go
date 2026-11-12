@@ -29,8 +29,8 @@ import (
 func TestBomburUntapsWithAnEnduringStory(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
-	e := handEngine(t, hobCard(t, reg, "Bombur, Gentle Dreamer"))
-	bombur := putOnBattlefield(t, e, 0, hobCard(t, reg, "Bombur, Gentle Dreamer"))
+	e := handEngine(t, lookup(t, reg, "Bombur, Gentle Dreamer"))
+	bombur := putOnBattlefield(t, e, 0, lookup(t, reg, "Bombur, Gentle Dreamer"))
 	if o := e.G.Obj(bombur); o == nil || !o.Face().HasKeyword("Storied") {
 		t.Fatalf("precondition: Bombur lacks Storied: %+v", e.G.Obj(bombur))
 	}

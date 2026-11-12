@@ -32,7 +32,7 @@ func TestAffinityGrant_MycosynthGolem_ArtifactCreature(t *testing.T) {
 	if gear == 0 {
 		t.Fatal("precondition: the gear must open in hand")
 	}
-	if plain := sosHandCardByName(e, 0, "Test Plain Golem"); plain != 0 {
+	if plain := findInHand(e, 0, "Test Plain Golem"); plain != 0 {
 		t.Fatal("precondition shape: the plain golem unexpectedly opened in hand before the hand setup")
 	}
 	if got := searchMoveByName(t, e, "Mycosynth Golem", state.ZBattlefield); got == 0 {

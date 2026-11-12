@@ -65,7 +65,7 @@ func TestSpellIsPresentGatesCast(t *testing.T) {
 		if o := e.G.Obj(bear); o.IsAttacking {
 			t.Fatal("precondition: the bear is attacking on turn 1")
 		}
-		fundPoolSeat(t, e, 0, "WWWWW")
+		addManaQuiet(t, e, 0, "WWWWW")
 		if d := e.Pending(); d == nil || d.Kind != decision.KPriority || d.Player != 0 {
 			t.Fatalf("precondition: want seat 0 priority, got %+v", d)
 		}
@@ -84,7 +84,7 @@ func TestSpellIsPresentGatesCast(t *testing.T) {
 		if o := e.G.Obj(bear); !o.IsAttacking || o.Attacking != 0 {
 			t.Fatalf("precondition: bear attacking=%v defender=%d, want attacking seat 0", o.IsAttacking, o.Attacking)
 		}
-		fundPoolSeat(t, e, 0, "WWWWW")
+		addManaQuiet(t, e, 0, "WWWWW")
 		if !castOffered(e, confront) {
 			t.Fatalf("Confront the Assault not offered while a creature attacks seat 0: %+v", e.Pending())
 		}
@@ -98,7 +98,7 @@ func TestSpellIsPresentGatesCast(t *testing.T) {
 		if o := e.G.Obj(bear); o.Zone != state.ZBattlefield || o.IsAttacking {
 			t.Fatalf("precondition: bear zone=%v attacking=%v", o.Zone, o.IsAttacking)
 		}
-		fundPoolSeat(t, e, 0, "WWWWW")
+		addManaQuiet(t, e, 0, "WWWWW")
 		if d := e.Pending(); d == nil || d.Kind != decision.KPriority || d.Player != 0 {
 			t.Fatalf("precondition: want seat 0 priority, got %+v", d)
 		}

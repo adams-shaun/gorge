@@ -1,27 +1,13 @@
 package rules
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
-	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 )
-
-// mobVerdictVoteNotes counts the deferred "votes for" reveal Notes emitted
-// so far (the player ballot defers them until every voter has answered).
-func mobVerdictVoteNotes(e *Engine) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note && strings.HasPrefix(ev.Text, "votes for ") {
-			n++
-		}
-	}
-	return n
-}
 
 // mobVerdictEngine builds a four-seat table whose seat 0 holds Mob Verdict and
 // whose seat 1 has an Ancient Brontodon (9/9, so it survives the votes and its
@@ -149,7 +135,7 @@ func TestMobVerdictPlayerBallotDamageAndDrawPerVote(t *testing.T) {
 		if i == len(wantPick)-1 {
 			wantNotes = len(wantPick)
 		}
-		if got := mobVerdictVoteNotes(e); got != wantNotes {
+		if got := countVoteReveals(e); got != wantNotes {
 			t.Fatalf("after voter %d: %d reveal Notes, want %d", i, got, wantNotes)
 		}
 		d = e.Pending()

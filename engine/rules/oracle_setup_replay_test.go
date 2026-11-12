@@ -18,7 +18,7 @@ func TestOracleSetupCountersAndSpeedReplay(t *testing.T) {
           "p1":{"battlefield":["Grizzly Bears"],
                    "counters":{"Grizzly Bears":{"GROWTH":2}},"speed":2}},
  "steps":[],"expect":[]}`
-	res, run := runSetupScenario(t, raw)
+	res, run := runFixtureScenario(t, raw)
 	if len(res.Snapshots) != 1 {
 		t.Fatalf("setup snapshots = %d, want 1", len(res.Snapshots))
 	}
@@ -64,7 +64,7 @@ func TestOracleSetupCountersAndSpeedReplay(t *testing.T) {
 	if reordered == raw {
 		t.Fatal("precondition: JSON member order was not reversed")
 	}
-	_, again := runSetupScenario(t, reordered)
+	_, again := runFixtureScenario(t, reordered)
 	if !reflect.DeepEqual(run.e.L.Events, again.e.L.Events) || run.e.L.Head() != again.e.L.Head() {
 		t.Fatal("reordering setup counter kinds changed the event stream or its head")
 	}
