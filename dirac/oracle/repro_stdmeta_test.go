@@ -70,6 +70,7 @@ func TestStdMetaReprosLockstep(t *testing.T) {
 		"stdmeta_prepared_beside_enters_tapped_s67p34",
 		"stdmeta_prepared_beside_enters_tapped_s68p22",
 		"stdmeta_prepared_beside_enters_tapped_s68p46",
+		"stdmeta_ill_timed_explosion_s81p32",
 		"stdmeta_prepared_beside_enters_tapped_s69p19",
 		"stdmeta_prepared_beside_enters_tapped_s90p11",
 		"stdmeta_prepared_beside_enters_tapped_s97p33",
