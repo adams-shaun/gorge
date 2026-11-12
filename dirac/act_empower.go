@@ -127,11 +127,11 @@ func (s *State) empower(k *prep, in *kop.Instr) bool {
 // Food ability), or NoSlot. The attached-source case is grantedHost; this is the
 // cold path the FRA Ways and Avatar of Burgeoning Echoes need.
 //
-// Of two copies, the older: globalGrants/globalGrantsGen list the grants in
-// layer timestamp order (gorge's active() order), and the offer collapses the
-// second copy's identical ability into the first's option, so the host must
-// be the copy gorge's first grant names. Slot order is a slot-allocation
-// artifact and can put the newer copy first.
+// Of two copies, the older: gorge's active() order is layer timestamp order,
+// and globalGrantsGen emits in it (globalGrants walks statM in slot order),
+// and the offer collapses the second copy's identical ability into the first's
+// option, so the host must be the copy gorge's first grant names. Slot order
+// is a slot-allocation artifact and can put the newer copy first.
 //
 // The walk applies the eligibility both global walks apply before they emit:
 // a source whose abilities were removed grants nothing (CR 613.6, except a
