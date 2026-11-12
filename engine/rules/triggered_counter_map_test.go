@@ -19,7 +19,7 @@ import (
 func triggeredCounterMapGame(t *testing.T, recipient string) (*Engine, state.ObjID, state.ObjID) {
 	t.Helper()
 	e := layerEngine(t)
-	cm := onBoardCard(t, e, 0, mshCorpusCard(t, "Captain Marvel, Apex Avenger"))
+	cm := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Captain Marvel, Apex Avenger"))
 	other := onBoard(t, e, 0, recipient)
 	if e.G.Obj(cm).Zone != state.ZBattlefield || e.G.Obj(other).Zone != state.ZBattlefield {
 		t.Fatal("precondition: Captain Marvel and the recipient must be on the battlefield")

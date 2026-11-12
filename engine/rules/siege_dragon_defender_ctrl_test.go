@@ -14,7 +14,7 @@ import (
 func siegeDragonAttack(t *testing.T, wall bool) (pushes int, ordered bool, e *Engine, dragon state.ObjID) {
 	t.Helper()
 	e = combatEngine(t)
-	dragon = onBoardCard(t, e, 0, mshCorpusCard(t, "Siege Dragon"))
+	dragon = onBoardCard(t, e, 0, corpusAlternativeCard(t, "Siege Dragon"))
 	e.G.Obj(dragon).SummonSick = false
 	if wall {
 		w := onBoard(t, e, 1, "Name:Test Wall\nManaCost:1\nTypes:Creature Wall\nPT:0/4\nOracle:x\n")
