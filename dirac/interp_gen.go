@@ -2140,6 +2140,7 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 			t := s.newToken(c, e.ctrl)
 			s.objs[t].of |= ofCopy
 			s.copyTokenEnter(k, in, t, NoSlot, nil)
+			s.res.lastTok = t // the copy a following RefLastCreated op reads (Encore's attack duty)
 		}
 		return false
 	}
@@ -2178,6 +2179,7 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 		t := s.newToken(c, e.ctrl)
 		s.objs[t].of |= ofCopy
 		s.copyTokenEnter(k, in, t, host, &eb)
+		s.res.lastTok = t // the copy a following RefLastCreated op reads (Encore's attack duty)
 	}
 	return false
 }

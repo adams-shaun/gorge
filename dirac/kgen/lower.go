@@ -1095,6 +1095,13 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !lc.hasKeywordLine(k) {
 				lc.refuseNode(node, "keyword %q without its ability", head)
 			}
+		case head == "Encore":
+			// CR 702.141a: gorge kwEncore expands it into one graveyard
+			// AB$ Encore (Cost$ <cost> ExileFromGrave<1/CARDNAME>,
+			// SorcerySpeed$ True), lowered from that line (lower_encore.go)
+			if !lc.hasKeywordLine(k) {
+				lc.refuseNode(node, "keyword %q without its ability", head)
+			}
 		case head == "Cycling" || head == "TypeCycling":
 			// gorge expands it into a hand ability (AB$ Draw / AB$ ChangeZone
 			// | Cost$ <cost> Discard<1/CARDNAME> | ActivationZone$ Hand,

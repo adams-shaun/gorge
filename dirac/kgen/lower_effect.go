@@ -2013,6 +2013,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.phases(ps) // lower_phasing.go
 	case "CopyPermanent":
 		return lc.copyPermanent(ps)
+	case "Encore":
+		return lc.encore(ps) // lower_encore.go
 	case "GainControl":
 		return lc.gainControl(ps)
 	case "ExchangeControl":

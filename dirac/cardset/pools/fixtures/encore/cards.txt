@@ -1,0 +1,20 @@
+# The six corpus cards carrying K:Encore (CR 702.141a; gorge
+# kw_encore.go's expansion, dirac/kgen/lower_encore.go): a creature dies,
+# its encore ability is activated from the graveyard, and the token copy
+# attacks its opponent this turn if able before the group's end-step
+# sacrifice (dirac/oracle/encore_test.go).
+Impulsive Pilferer
+Amphin Mutineer
+Angel of Indemnity
+Phyrexian Triniform
+Belonging
+Broodmate Tyrant
+Murder
+Grizzly Bears
+Hill Giant
+Raging Goblin
+Mountain
+Island
+Plains
+Swamp
+Forest

@@ -167,6 +167,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Increment":                         "a SpellCast trigger with Tf2Increment (gorge kwIncrement's expansion), no battlefield characteristic",
 	"Craft":                             "a battlefield activated ability (the ExileCtrlOrGrave material and Exile<1/CARDNAME> costs, then the transformed Return; gorge kwCraft's expansion), no battlefield characteristic",
 	"Embalm":                            "a graveyard activated ability (CostExileGrave of itself, OpCopyAsTokenEx with a white / Zombie / no-mana-cost exception; gorge kwEmbalm's expansion), no battlefield characteristic",
+	"Encore":                            "a graveyard activated ability (the printed cost plus CostExileGrave of itself, OpCopyAsTokenEx with the CpSacAtEndDly group sacrifice and the haste pump, ExtAttacksIfAble on the minted copy; gorge kwEncore's expansion), no battlefield characteristic",
 	"TypeCycling":                       "a hand activated ability (CostDiscardSelf, AfCycling, OpSearchEx; gorge kwTypeCycling's expansion), no battlefield characteristic",
 	"Class":                             "the Class level activators and the ClassBand-gated abilities (CtrLevel, kw_class.go), no battlefield characteristic",
 	"Chapter":                           "the chapter abilities (TrigCounterAddedOnce on LORE, kw_saga.go), no battlefield characteristic",
