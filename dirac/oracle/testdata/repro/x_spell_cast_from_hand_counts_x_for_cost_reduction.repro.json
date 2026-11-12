@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-msh",
+ "why": "the same cast from the hand with floating mana: the X ask offers 7 and 8, which only the reduced cost pays",
  "actions": [
   16776960,
   16776960,

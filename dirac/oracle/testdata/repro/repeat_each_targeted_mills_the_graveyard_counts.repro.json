@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 100,
  "surface": "autopay",
+ "pool": "std-dft",
+ "why": "Riverchurn Monument's exhaust ability targets both players: each mills cards equal to their own graveyard count, the controller's mill first (gorge AliveFrom), and both engines agree on every one",
  "actions": [
   16776960,
   16776960,

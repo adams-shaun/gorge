@@ -504,6 +504,32 @@ const ExOppsAttacked ExprKind = 229
 // resolves in another step reads Sub[1]. A stack copy was never cast.
 const ExIfCastOwnMain ExprKind = 224
 
+// ExPlExtreme (an explicit ordinal, 88: ExCount_ is 62 and the iota range
+// 63..87 stays unspecified, the iota tail untouched): the
+// highest, over a living player group walked in seat order, of the count of
+// the group member's objects in the named zones that match F, each member
+// read from their OWN side (gorge effects/count_player.go
+// playerCountExtremeZones: the "YouCtrl"/"YouOwn" qualifiers of the spec
+// name the counted member, c.SpecContext(p); F.Ctrl = the member).
+// PlayerCountPlayers$HighestValidGraveyard Card.YouOwn (Jace, the Perfected
+// Mind's Y, Visions of Beyond), PlayerCountPlayers$HighestValidGraveyard,
+// Library,Exile Card.IsRemembered+YouOwn (Windfall, Jace's Archivist) and
+// PlayerCountOpponents$HighestValidGraveyard Creature.YouOwn (Nautiloid
+// Ship). An empty group (only at the game's end) reads 0: a count always
+// has one answer. Only the Highest form is lowered; gorge's Lowest extreme
+// stays refused. F spans the named zones (kop.ZoneNone, no zone default).
+const ExPlExtreme ExprKind = 88
+
+// ExPlExtreme's N: PlExtPlayers or PlExtOpponents in bits 0..1, the named
+// zones above them. Explicit ordinals, the iota tail stays untouched.
+const (
+	PlExtPlayers   = 0 // every living player, the evaluating controller included
+	PlExtOpponents = 1 // the evaluating controller's living opponents
+	PlExtGrave     = 1 << 8
+	PlExtLibrary   = 1 << 9
+	PlExtExile     = 1 << 10
+)
+
 // ExVoid (high expr kind): Sub[0] if the Void of Edge of
 // Eternities holds, else Sub[1] (gorge Count$Void.<yes>.<no>,
 // cov3BranchHoldsVoid). Void holds when a nonland permanent left the

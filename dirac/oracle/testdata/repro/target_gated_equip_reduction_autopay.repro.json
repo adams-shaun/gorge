@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-hob",
+ "pool": "std-hob",
+ "why": "Dwarven Mauler's \"equip abilities that target this creature cost {2} less\" is priced by the autopay planner too: Orcrist's {3} equip is offered from two untapped lands at {1} (CR 601.2f, 602.2b)",
  "actions": [
   16776960,
   16776960,

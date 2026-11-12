@@ -79,17 +79,6 @@ func corpusDeckEngine(t *testing.T, hand, board []*cards.Card) (*Engine, Config,
 	return e, cfg, handIDs[0]
 }
 
-// drawsForPlayer counts the Draw events naming p in the log.
-func drawsForPlayer(e *Engine, p state.PlayerID) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Draw && ev.Player == p {
-			n++
-		}
-	}
-	return n
-}
-
 // xAskOptions returns the pending X-announcement decision's options, failing
 // when the pending decision is not one.
 func xAskOptions(t *testing.T, e *Engine) []decision.Option {

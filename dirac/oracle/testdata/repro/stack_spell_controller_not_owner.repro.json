@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 108.4, 110.2: Brazen Bluff asks the controller of the spell it targets, the player casting Transporter Malfunction from the opponent's exile, not its owner",
  "actions": [
   167771904,
   184549120,

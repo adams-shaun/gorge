@@ -311,6 +311,10 @@ const (
 	// one each upkeep, sacrificing when it can't; Blastoderm). A named
 	// counter with no other rules meaning (CR 122.1).
 	CtrFade
+	// CtrBurden is The One Ring's burden counter: a named counter with no
+	// inherent rules meaning (CR 122.1); its count drives the upkeep life
+	// loss and the draw rider (Count$CardCounters.BURDEN).
+	CtrBurden
 	NumCounterKinds3
 )
 
@@ -329,7 +333,7 @@ var CtrXNames = [NumCounterKindsX]string{"CHARGE", "OIL", "SPORE", "QUEST", "VER
 	"Reach", "Shadow", "Trample", "Vigilance", "SUPPLY", "LORE", "LANDMARK", "DREAD", "DEFENSE", "CHORUS", "M0M1", "FINALITY", "TIME", "VALOR", "NET", "PLAN",
 	"INVASION", "LOOT", "REV", "PAGE", "INGENUITY", "FILM", "FIRE", "HONE", "COIN",
 	"DIVINITY", "IMPOSTOR", "BORE", "POINT", "BLOODSTAIN", "POSSESSION", "PROMOTION", "PEACE", "WISH", "SKEWER", "NEST", "AGE", "LUCK",
-	"DEPLETION", "MINING", "FADE"}
+	"DEPLETION", "MINING", "FADE", "BURDEN"}
 
 // IsCounterKind reports whether c is a real counter kind (a featurized one
 // or an unfeaturized one; CtrLevel and the gap at NumCounterKinds2 are not).

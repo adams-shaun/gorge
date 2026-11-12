@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 305.6, 601.2g: Jasmine Dragon Tea Shop made an Island taps for its intrinsic {U}, not its restricted any-colour {R}, toward Earthen Ally's {2}{W}{U}{B}{R}{G}: gorge's witness ranks an intrinsic ability before a printed one, so Avatar Kyoshi makes the six {R}",
  "actions": [
   167771904,
   184549120,

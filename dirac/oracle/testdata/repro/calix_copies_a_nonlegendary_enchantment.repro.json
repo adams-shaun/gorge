@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "synth custom",
+ "pool": "custom",
+ "why": "Calix, Guided by Fate connects with an enchantment out: the controller picks which nonlegendary enchantment to copy and both engines agree on the offered pick and the token (CR 707.2, 603.5)",
  "actions": [
   18415360,
   17891072,

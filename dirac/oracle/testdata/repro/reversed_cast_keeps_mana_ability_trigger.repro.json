@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 733.1: Springleaf Drum tapped Wanderwine Distracter for Appeal to Eirdu; the cast is reversed, the mana ability is not, so the \"becomes tapped\" trigger stays queued",
  "actions": [
   16776960,
   16776960,

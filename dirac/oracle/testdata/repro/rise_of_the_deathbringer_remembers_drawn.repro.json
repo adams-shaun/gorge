@@ -95,6 +95,8 @@
  "pass_elision": true,
  "max_turns": 30,
  "surface": "autopay",
+ "pool": "std-fra",
+ "why": "Rise of the Deathbringer cast in its Draw mode: it draws three, and the chained lose-life reads the remembered set (life 1, not 4, when the write is lost)",
  "actions": [
   17170176,
   21561088,

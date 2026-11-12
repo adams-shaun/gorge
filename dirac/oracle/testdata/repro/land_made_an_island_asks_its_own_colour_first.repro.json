@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-tla",
+ "why": "a Forest an Earthbend made an Island asks G, then U, then the Guide's any colour: the face's own ability precedes the type's intrinsic one (CR 305.6)",
  "actions": [
   16776960,
   16776960,

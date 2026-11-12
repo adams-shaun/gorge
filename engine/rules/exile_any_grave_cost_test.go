@@ -204,31 +204,6 @@ func TestExileAnyGraveThelonOfHavenwoodAbilityPaysAndExiles(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// waitForWindow drains priority-only decisions until the triggered-cost
-// window's pay ask (or a decline-only one) is pending.
-func waitForWindow(t *testing.T, e *Engine) *decision.Decision {
-	t.Helper()
-	for i := 0; i < 4; i++ {
-		d := e.Pending()
-		if d == nil {
-			t.Fatal("no decision while waiting for the triggered-cost window")
-		}
-		if d.Kind == decision.KChoose && len(d.Options) > 0 &&
-			(d.Options[0].Kind == "trigger_cost_pay" || d.Options[0].Kind == "trigger_cost_decline") {
-			return d
-		}
-		if d.Kind != decision.KPriority {
-			t.Fatalf("unexpected decision waiting for the window: %+v", d)
-		}
-		if len(e.G.Stack) == 0 {
-			t.Fatal("stack empty but the triggered-cost window never opened")
-		}
-		e.resolveTop()
-	}
-	t.Fatal("the triggered-cost window never opened")
-	return nil
-}
-
 // TestTriggeredNewCardCostIsUnpayableWithoutATriggerContext (the guard): an
 // ORDINARY activated ability whose cost carries the bare trigger referent is
 // never offered, even with eligible-looking cards in the zone -- the

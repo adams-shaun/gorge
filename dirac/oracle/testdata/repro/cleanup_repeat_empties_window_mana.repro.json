@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-big",
+ "pool": "std-big",
+ "why": "CR 500.4, 514.3b: the mana Lotus Ring made in a cleanup priority window (a discard set off Hostile Investigator) empties as that step ends, before the repeated step's discard",
  "actions": [
   16776960,
   16776960,

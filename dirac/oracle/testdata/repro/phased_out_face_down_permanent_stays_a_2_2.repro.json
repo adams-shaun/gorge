@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-trc",
+ "pool": "std-trc",
+ "why": "U.S.S. Defiant phases out a face-down Lightning Greaves: it stays face down (CR 110.5, 708.2), a nameless 2/2 creature, not its printed Equipment",
  "actions": [
   167771904,
   184549120,

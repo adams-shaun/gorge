@@ -25,11 +25,11 @@
    "Porcelain Legionnaire",
    "Porcelain Legionnaire",
    "Porcelain Legionnaire",
-   "Bartolomé del Presidio",
-   "Bartolomé del Presidio",
-   "Bartolomé del Presidio",
-   "Bartolomé del Presidio",
-   "Bartolomé del Presidio"
+   "Bartolom\u00e9 del Presidio",
+   "Bartolom\u00e9 del Presidio",
+   "Bartolom\u00e9 del Presidio",
+   "Bartolom\u00e9 del Presidio",
+   "Bartolom\u00e9 del Presidio"
   ],
   [
    "Plains",
@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Four Tarnation Vistas beside a Porcelain Legionnaire: gorge's search taps three for their chosen {R} (each asks which ability, the chosen {T} listed first) and the fourth's each-colour {W}, its {1} paid from the floating {R}, pays Bartolom\u00e9 del Presidio; the kernel's each-colour search plays the same prefix (CR 106.1, 605.1a)",
  "actions": [
   17628928,
   805306115,

@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-ecl",
+ "why": "CR 400.7: Personify cast free through Maralen blinks her, and the returned Maralen is a new object whose once-each-turn permission is unspent",
  "actions": [
   16776960,
   16776960,

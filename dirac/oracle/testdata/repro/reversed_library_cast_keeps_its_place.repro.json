@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "CR 733.1-2: Titania, cast from among Cosmic Cube's six looked-at cards and reversed when its cost can't be paid, never left the remembered set, so \"the rest\" includes her and she goes to the bottom with the other five",
  "actions": [
   16776960,
   16776960,

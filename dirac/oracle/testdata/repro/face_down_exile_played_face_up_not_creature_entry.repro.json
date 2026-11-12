@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-spm",
+ "pool": "std-spm",
+ "why": "CR 708.2: a land exiled face down by Black Cat and played face up enters as a land, not the 2/2 face-down creature, so Spider-UK's end-step count stays at 1",
  "actions": [
   16776960,
   16776960,

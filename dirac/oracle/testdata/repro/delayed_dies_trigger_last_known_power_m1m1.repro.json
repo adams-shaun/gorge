@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 608.2h: End-Blaze Epiphany's delayed dies trigger exiles the graveyard-bound creature's last-known 2 power (a -1/-1 counter), not its printed 3",
  "actions": [
   16776960,
   16776960,

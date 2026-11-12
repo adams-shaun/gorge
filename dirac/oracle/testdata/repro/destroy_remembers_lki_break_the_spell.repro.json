@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Break the Spell destroys its caster's own enchantment: the destroyed card is remembered and was a permanent they controlled, so they draw",
  "actions": [
   18415360,
   17891072,

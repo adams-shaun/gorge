@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 614.12, 616.1: Kai Winn entering beside Deanna Troi's extra counter is asked only the name, as the two compose in either order",
  "actions": [
   184549120,
   184549120,

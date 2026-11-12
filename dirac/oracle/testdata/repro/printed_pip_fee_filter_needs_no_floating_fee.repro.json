@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dft",
+ "pool": "std-dft",
+ "why": "Loot, the Pathfinder's printed {G}, {T}: three of one colour with no {G} floating: gorge's census lists it (a land pays the fee), so the plays its mana funds are offered; only a granted counters-gated filter waits for its colour in the pool",
  "actions": [
   16776960,
   16776960,

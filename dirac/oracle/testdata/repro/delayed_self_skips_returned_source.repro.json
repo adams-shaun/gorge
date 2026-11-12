@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "CR 603.7c, 400.7: two Fortune, Loyal Steed end-of-combat delayed triggers; the first blinks Fortune and its saddler, so the second names a new object and moves nothing.",
  "actions": [
   16776960,
   16776960,

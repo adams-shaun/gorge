@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "CR 601.2g-h: Gene Pollinator taps Seedship Agrarian; its trigger's Lander sets off Tezzeret's, and the prefix search tells that state from the first by the new token, as gorge's key lists the battlefield",
  "actions": [
   16776960,
   16776960,

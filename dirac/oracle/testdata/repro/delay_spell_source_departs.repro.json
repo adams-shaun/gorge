@@ -75,6 +75,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "CR 608.2h: Loki Laufeyson pumped to 5 by Titan's Strength registers his delayed SpellCast, then is sacrificed to Goblin Bombardment: the bound reads his last known power, so a Divination (mana value 3) is copied",
  "actions": [
   19660544,
   19070720,

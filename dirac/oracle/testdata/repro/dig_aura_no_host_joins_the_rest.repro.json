@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "CR 303.4g: United Battlefront picks Fresh Start with nothing to enchant; it stays in the library and joins \"the rest\" on the bottom, so the six other window cards keep their relative order",
  "actions": [
   184549120,
   184549120,

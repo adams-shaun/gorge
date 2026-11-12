@@ -241,6 +241,10 @@ func (pe *payer) MatchesSpecFrom(spec string, id state.ObjID, you state.PlayerID
 	if e.costSpecTargetBound(spec, source) {
 		return e.matchTargetBoundCostSpec(spec, id, you, source)
 	}
+	// Likewise an X the caster announces (cost_announce_bound.go).
+	if e.costSpecAnnounceBound(spec, source) {
+		return e.matchAnnounceBoundCostSpec(spec, id, you, source)
+	}
 	return e.matchesSpecFrom(spec, id, you, source)
 }
 func (pe *payer) MatchesSpellFrom(spec string, id state.ObjID, you state.PlayerID, source state.ObjID) bool {

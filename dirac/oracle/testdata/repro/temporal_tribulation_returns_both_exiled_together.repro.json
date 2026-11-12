@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Temporal Tribulation exiles two permanents and returns both at the next end step as one delayed trigger's set, in the order they were exiled (CR 603.7)",
  "actions": [
   18415360,
   17891072,

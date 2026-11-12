@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "... and the same reversal in a second game (pair 372)",
  "actions": [
   16776960,
   16776960,

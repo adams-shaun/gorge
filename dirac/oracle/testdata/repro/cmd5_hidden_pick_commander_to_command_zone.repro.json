@@ -221,6 +221,8 @@
  ],
  "surface": "full",
  "kernel": "set cmd5",
+ "pool": "custom",
+ "why": "kfuzz cmd5 heuristic pair 110: Temur Sabertooth returns Ghalta, Primal Hunger, a commander, and the owner sends it to the command zone instead: it leaves the battlefield, Rancor goes to the graveyard and its trigger is stacked (CR 903.9b)",
  "actions": [
   16776960,
   16776960,

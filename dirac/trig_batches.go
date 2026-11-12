@@ -68,6 +68,9 @@ func (s *State) replOrderEnd(k *prep, r *dmgRec) {
 	if k.anyInit {
 		s.initCombat(k, r) // CR 726.2 (act_initiative.go)
 	}
+	if k.gen.anyMonarch {
+		s.monarchCombat(r) // CR 725.2 (act_monarch.go)
+	}
 }
 
 // entBatch is one resolution's battlefield entrants (CR 603.6a, gorge

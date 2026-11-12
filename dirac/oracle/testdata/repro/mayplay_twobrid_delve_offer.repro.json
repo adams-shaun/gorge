@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "CR 107.4e, 702.66a: a card exiled by Cori Mountain Monastery's may-play permission is still castable when Teval, Arbiter of Virtue's granted delve pays the twobrid pips' generic faces, so the offer is present from exile with an empty pool and six graveyard cards (the hand walk already priced this).",
  "actions": [
   167771904,
   167771904,

@@ -94,6 +94,8 @@
  "mulligans": 0,
  "pass_elision": false,
  "surface": "full",
+ "pool": "custom",
+ "why": "Ao, the Dawn Sky's dies trigger takes nonland permanents with total mana value 4 or less: the bound rides the pick filter's head, not the instruction",
  "actions": [
   16776960,
   16776960,

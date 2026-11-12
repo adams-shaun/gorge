@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 605.1a, 106.1: ... and on the autopay surface, where the same first-and-only filter funds Fire Nation Palace's activation from the floating pool",
  "actions": [
   184549120,
   184549120,

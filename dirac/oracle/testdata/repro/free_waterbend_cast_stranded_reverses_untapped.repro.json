@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 733.1: Benevolent River Spirit cast free off Solstice Revelations with Ty Lee waterbent leaves {4} no source pays; the cast reverses before the Mountain taps",
  "actions": [
   167771904,
   184549120,

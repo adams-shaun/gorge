@@ -149,6 +149,13 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtDigImprint:
 		return true, true // read by the dig it follows (zone_digimprint.go)
+	case kop.ExtRememberImprinted:
+		// Pump RememberObjects$ Imprinted: the previously dug cards join
+		// the remembered set, deduped (Tainted Pact)
+		for i := 0; i < int(s.g.nimp); i++ {
+			s.remember(s.g.imp[i])
+		}
+		return true, true
 	case kop.ExtRememberSearcher:
 		s.rememberSearcher() // zone_remembersearcher.go
 		return true, true
@@ -179,6 +186,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtSkipPhase:
 		s.skipPhaseGrant(k, in) // act_skipphase.go
+		return true, true
+	case kop.ExtBecomeMonarch:
+		s.becomeMonarchOp(k, in) // act_monarch.go
 		return true, true
 	case kop.ExtToGraveyard:
 		s.moveRef(k, in.Obj, kop.ZoneGraveyard, false) // zone_toplibrary.go

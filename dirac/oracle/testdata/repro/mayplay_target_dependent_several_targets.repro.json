@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "CR 601.2f: This Town Ain't Big Enough cast from Jasper Flint's mayplay: the mayPlay arm prices the full price from the sources first, and its target retry prices one matching target from the pool alone.",
  "actions": [
   167771904,
   184549120,

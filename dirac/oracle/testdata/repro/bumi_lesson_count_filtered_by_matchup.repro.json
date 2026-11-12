@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "the same count with one Lesson in the graveyard: the matchup keeps the subtype its filter names, so the trigger is put on the stack with one legal mode (CR 603.3c)",
  "actions": [
   16776960,
   16776960,

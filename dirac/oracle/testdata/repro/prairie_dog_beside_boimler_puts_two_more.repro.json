@@ -79,6 +79,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "the same beside Brad Boimler's tap-triggered every-kind plus one: both apply to one placement (CR 616.1)",
  "actions": [
   20840192,
   19332864,

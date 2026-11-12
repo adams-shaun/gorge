@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 605.3a, 601.2g: a filter's {1} fee is funded by the play's granted {C} source, as gorge's one prefix search taps the census gaps in battlefield order",
  "actions": [
   16776960,
   16776960,

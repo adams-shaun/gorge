@@ -7,15 +7,19 @@ import "strings"
 var specCompareOps = [...]string{"EQ", "NE", "LT", "LE", "GT", "GE"}
 
 // termComparesVar reports whether one filter term is a numeric predicate
-// whose right-hand side is exactly the name name ("cmcEQX" for X).
-func termComparesVar(term, name string) bool {
+// whose right-hand side is exactly the name name ("cmcEQX" for X); a
+// non-empty op restricts it to that one operator ("EQ").
+func termComparesVar(term, name, op string) bool {
 	rest, ok := strings.CutSuffix(term, name)
 	if !ok || len(rest) < 3 {
 		return false
 	}
-	op := rest[len(rest)-2:]
+	got := rest[len(rest)-2:]
+	if op != "" && got != op {
+		return false
+	}
 	for _, o := range specCompareOps {
-		if op == o {
+		if got == o {
 			return true
 		}
 	}
@@ -27,7 +31,12 @@ func termComparesVar(term, name string) bool {
 // Creature.Other+cmcEQX, Scrap Welder's Artifact.cmcGTX, Kozilek's
 // Card.cmcEQX. A spec without the name's letter returns false without
 // splitting anything (the one byte scan every caller pays).
-func SpecComparesVar(spec, name string) bool {
+func SpecComparesVar(spec, name string) bool { return SpecComparesVarOp(spec, name, "") }
+
+// SpecComparesVarOp is SpecComparesVar restricted to one comparison operator
+// ("EQ", "GT", ...; "" admits every one): Nahiri's Sacrifice's
+// Creature.cmcEQX is SpecComparesVarOp(spec, "X", "EQ").
+func SpecComparesVarOp(spec, name, op string) bool {
 	if name == "" || !strings.Contains(spec, name) {
 		return false
 	}
@@ -37,7 +46,7 @@ func SpecComparesVar(spec, name string) bool {
 			continue
 		}
 		for term := range strings.SplitSeq(rest, "+") {
-			if termComparesVar(term, name) {
+			if termComparesVar(term, name, op) {
 				return true
 			}
 		}
@@ -64,7 +73,7 @@ func StripVarCompares(spec, name string) string {
 		}
 		var keep []string
 		for term := range strings.SplitSeq(rest, "+") {
-			if !termComparesVar(term, name) {
+			if !termComparesVar(term, name, "") {
 				keep = append(keep, term)
 			}
 		}

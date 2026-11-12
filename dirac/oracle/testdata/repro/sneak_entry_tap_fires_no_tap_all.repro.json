@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "CR 603.2e: Elektra sneaked in tapped and attacking was not tapped, so Rewrite History's \"become tapped\" does not trigger",
  "actions": [
   167771904,
   184549120,

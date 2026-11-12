@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 613.7, 605.1a: Honest Work's {T}: Add {C} on a land of the other seat is listed after Great Divide Guide's any-colour grant, as gorge walks the statics by seat",
  "actions": [
   184549120,
   184549120,
