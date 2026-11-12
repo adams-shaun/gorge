@@ -150,7 +150,7 @@ func TestFaceDownRecipientKeepsGrantedTrigger(t *testing.T) {
 		"SVar:TrigDraw:DB$ Draw\nOracle:x\n")
 	e.G.Obj(id).FaceDown = true
 	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -1})
-	if n := queuedFrom(e, id); n != 0 {
+	if n := queuedPhaseTriggers(e, id); n != 0 {
 		t.Fatalf("a face-down permanent's printed line queued %d", n)
 	}
 	onBoard(t, e, 0, "Name:Granter\nTypes:Enchantment\n"+
@@ -158,7 +158,7 @@ func TestFaceDownRecipientKeepsGrantedTrigger(t *testing.T) {
 		"SVar:TrigGranted:Mode$ LifeLost | ValidPlayer$ Opponent | TriggerZones$ Battlefield | Execute$ TrigDraw\n"+
 		"SVar:TrigDraw:DB$ Draw\nOracle:x\n")
 	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -1})
-	if n := queuedFrom(e, id); n != 1 {
+	if n := queuedPhaseTriggers(e, id); n != 1 {
 		t.Fatalf("the granted line queued %d on the face-down creature, want 1", n)
 	}
 }

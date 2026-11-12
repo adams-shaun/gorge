@@ -104,18 +104,6 @@ func chainOfSilencePreconditions(t *testing.T, reg *cards.Registry, e *Engine, t
 	}
 }
 
-// copiesOnStack counts the IsCopy stack objects -- the engine's own mark of a
-// StackCopy-created duplicate (CR 707.10).
-func copiesOnStack(e *Engine) int {
-	n := 0
-	for _, id := range e.G.Stack {
-		if o := e.G.Obj(id); o != nil && o.IsCopy {
-			n++
-		}
-	}
-	return n
-}
-
 // castChainOfSilenceAtSeat1Target casts the real Chain of Silence from seat
 // 0's hand at seat 1's creature and drives to the pending unless_pay decision,
 // returning it.

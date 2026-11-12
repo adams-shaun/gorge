@@ -85,7 +85,7 @@ func TestCrewedThisTurnCensus(t *testing.T) {
 	sort.Strings(extra)
 	if len(missing) > 0 || len(extra) > 0 {
 		t.Fatalf("Creature.CrewedThisTurn carriers drifted: missing %v, unexpected %v (corpus set = %v)",
-			missing, extra, sortedCrewNames(got))
+			missing, extra, sortedSetKeys(got))
 	}
 }
 
@@ -274,13 +274,4 @@ func paramsNameToken(params map[string]string, token string) bool {
 		}
 	}
 	return false
-}
-
-func sortedCrewNames(m map[string]bool) []string {
-	out := make([]string, 0, len(m))
-	for k := range m {
-		out = append(out, k)
-	}
-	sort.Strings(out)
-	return out
 }

@@ -6,6 +6,7 @@ package rules
 
 import (
 	"encoding/json"
+	"sort"
 	"strings"
 	"testing"
 
@@ -196,6 +197,44 @@ func copyCount(e *Engine, id state.ObjID) int {
 	n := 0
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.StackCopy && ev.Obj == id {
+			n++
+		}
+	}
+	return n
+}
+
+// copiesOnStack counts the stack objects that are copies.
+func copiesOnStack(e *Engine) int {
+	n := 0
+	for _, id := range e.G.Stack {
+		if o := e.G.Obj(id); o != nil && o.IsCopy {
+			n++
+		}
+	}
+	return n
+}
+
+// moveQuiet moves id from zone to zone through a logged MoveZone, without
+// driving anything (a fixture placement, not a play).
+func moveQuiet(e *Engine, id state.ObjID, from, to state.Zone) {
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: from, To: to})
+}
+
+// sortedSetKeys returns the keys of a name-set map, sorted.
+func sortedSetKeys(m map[string]bool) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// queuedPhaseTriggers counts e's pending triggers sourced from id.
+func queuedPhaseTriggers(e *Engine, id state.ObjID) int {
+	n := 0
+	for _, pt := range e.pendingTriggers {
+		if pt.Source == id {
 			n++
 		}
 	}

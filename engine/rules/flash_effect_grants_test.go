@@ -13,21 +13,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// castOfferedFor reports whether the pending priority decision offers a cast
-// of id.
-func castOfferedFor(e *Engine, id state.ObjID) bool {
-	d := e.Pending()
-	if d == nil {
-		return false
-	}
-	for _, o := range d.Options {
-		if o.Kind == "cast" && o.Obj == id {
-			return true
-		}
-	}
-	return false
-}
-
 // boltOnStack casts Lightning Bolt (seat 0, at the opponent) and leaves it on
 // the stack with seat 0 holding priority, then asserts that precondition.
 func boltOnStack(t *testing.T, e *Engine) {
@@ -62,7 +47,7 @@ func TestEffectFlashGrantBorneUponAWind(t *testing.T) {
 	div, bears := hand[2], hand[3]
 	boltOnStack(t, e)
 	addMana(t, e, 0, "UU")
-	if castOfferedFor(e, div) || castOfferedFor(e, bears) {
+	if castOffered(e, div) || castOffered(e, bears) {
 		t.Fatal("precondition: a sorcery or a creature is offered with a spell on the stack before any grant")
 	}
 	castNamed(t, e, "Borne Upon a Wind")
@@ -71,7 +56,7 @@ func TestEffectFlashGrantBorneUponAWind(t *testing.T) {
 		t.Fatalf("after Borne resolved seat 0 should hold priority over Bolt: stack %d, %+v", len(e.G.Stack), d)
 	}
 	addMana(t, e, 0, "UUUGG")
-	if !castOfferedFor(e, div) || !castOfferedFor(e, bears) {
+	if !castOffered(e, div) || !castOffered(e, bears) {
 		t.Fatalf("Borne Upon a Wind did not grant flash to a sorcery and a creature: %+v", e.Pending().Options)
 	}
 	if e.castWithFlash(1, div) {
@@ -95,14 +80,14 @@ func TestEffectFlashGrantQuickenEndsAfterTheNextSorcery(t *testing.T) {
 	castNamed(t, e, "Quicken")
 	resolveTop(t, e)
 	addMana(t, e, 0, "UUUBB")
-	if !castOfferedFor(e, div) || !castOfferedFor(e, whisper) {
+	if !castOffered(e, div) || !castOffered(e, whisper) {
 		t.Fatalf("Quicken did not grant flash to a sorcery: %+v", e.Pending().Options)
 	}
-	if castOfferedFor(e, bears) {
+	if castOffered(e, bears) {
 		t.Fatal("Quicken (ValidCard$ Sorcery) granted flash to a creature")
 	}
 	castNamed(t, e, "Divination")
-	if castOfferedFor(e, whisper) || e.castWithFlash(0, whisper) {
+	if castOffered(e, whisper) || e.castWithFlash(0, whisper) {
 		t.Fatal("the grant outlived the next sorcery spell cast (ForgetOnCast$)")
 	}
 	replayCheck(t, e, cfg)
@@ -116,7 +101,7 @@ func TestEffectFlashGrantWindingCanyonsCreaturesOnly(t *testing.T) {
 	driveToStep(t, e, 3, 0, state.StepMain1)
 	boltOnStack(t, e)
 	addMana(t, e, 0, "CC")
-	if castOfferedFor(e, bears) {
+	if castOffered(e, bears) {
 		t.Fatal("precondition: a creature is offered before the grant")
 	}
 	opt, ok := findAbilityOptionByLabel(e, battle[0], "Until end of turn, you may cast creature spells as though they had flash.")
@@ -126,10 +111,10 @@ func TestEffectFlashGrantWindingCanyonsCreaturesOnly(t *testing.T) {
 	submitChoices(t, e, opt.Index)
 	resolveTop(t, e)
 	addMana(t, e, 0, "GGG")
-	if !castOfferedFor(e, bears) {
+	if !castOffered(e, bears) {
 		t.Fatalf("Winding Canyons did not grant flash to a creature: %+v", e.Pending().Options)
 	}
-	if castOfferedFor(e, div) {
+	if castOffered(e, div) {
 		t.Fatal("Winding Canyons (ValidCard$ Creature) granted flash to a sorcery")
 	}
 	replayCheck(t, e, cfg)
