@@ -104,7 +104,7 @@ func readPinDoc(path string) (*pinDoc, bool, error) {
 	if err := json.Unmarshal(b, &doc); err != nil {
 		return nil, false, fmt.Errorf("%s: %w", path, err)
 	}
-	if doc.Pool == "" || doc.Conditions == nil || len(doc.Games) == 0 {
+	if doc.Pool == "" || len(doc.Conditions) == 0 || len(doc.Games) == 0 {
 		return nil, false, fmt.Errorf("%s: a pin document needs a pool, conditions and at least one game", path)
 	}
 	return &doc, true, nil
@@ -201,19 +201,18 @@ func TestPinManifest(t *testing.T) {
 		}
 		rc := RunConfig{Config: doc.Config.config()}
 		reached := doc.reached(t)
-		if record {
-			set := cardsettest.Synth(t, doc.Pool)
-			games, err := buildPins(t, path, doc.Pool, set, reg, rc, doc.Mulligans, reached)
-			if err != nil {
-				t.Fatalf("%s: %v", path, err)
-			}
-			doc.Games = games
-			if err := writePinDoc(path, doc); err != nil {
-				t.Fatal(err)
-			}
-		}
 		set := cardsettest.Synth(t, doc.Pool)
 		t.Run(pinDocName(path), func(t *testing.T) {
+			if record {
+				games, err := buildPins(t, path, doc.Pool, set, reg, rc, doc.Mulligans, reached)
+				if err != nil {
+					t.Fatalf("%s: %v", path, err)
+				}
+				doc.Games = games
+				if err := writePinDoc(path, doc); err != nil {
+					t.Fatal(err)
+				}
+			}
 			for i, r := range doc.Games {
 				res, hit, err := playPinned(set, reg, r, rc, reached)
 				if err != nil {
