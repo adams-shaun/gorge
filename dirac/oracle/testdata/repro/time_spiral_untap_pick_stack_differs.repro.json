@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Time Spiral exiles itself at its Origin$ Stack ChangeZone, then asks the untap-up-to-six-lands pick: the spell is in exile and off the stack at the pick, as gorge has it (CR 608.2c, 608.2n)",
  "actions": [
   18874112,
   17235712,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 122.6a: Overflow Submatrix's finality counter on the opponent's Storied Veteran is put by the Submatrix's controller, so Dr. Joseph M'Benga doubles only the Veteran's own grant",
  "actions": [
   16776960,
   16776960,

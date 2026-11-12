@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-fra",
+ "pool": "custom",
+ "why": "Intrepid Stablemaster beside four other sources making all their mana in one colour: the fifth is priced (colour multisets per amount), not a capacity stall",
  "actions": [
   16776960,
   16776960,

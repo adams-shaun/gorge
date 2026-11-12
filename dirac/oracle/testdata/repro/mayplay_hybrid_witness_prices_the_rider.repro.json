@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-mkm",
+ "pool": "std-mkm",
+ "why": "CR 601.2b: Outrageous Robbery's any-type cast of the exiled Trostani, Three Whispers ({G}{G/W}{W}, no pip ask): the witness prices the rider's cost, one generic per hybrid pip",
  "actions": [
   16776960,
   16776960,

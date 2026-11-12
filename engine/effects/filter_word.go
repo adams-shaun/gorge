@@ -468,9 +468,9 @@ func wordPredicate(p string) (wordKind, string) {
 	// spelling -- the same ordering rule castProvenanceAdmits documents.
 	case wordPredicateWordCastProvenance:
 		return wordCastProvenance, p
-	// The card-level CastSa property tokens (task castsa-provenance): the
+	// The card-level CastSa property tokens: the
 	// five mana-spend spellings the payment path's tagged ManaAdd encoding
-	// answers (task mayplay-mfa added CastSa Spell.ManaFromArtifact), plus
+	// answers, plus
 	// the cast-flag spellings Spell.Mayhem (state.FlagMayhem, stamped by
 	// modeFlags' "mayhem" case) and Spell.Warp (state.FlagWarped, modeFlags'
 	// "warped" case) — recognized here (the census no longer reports them
@@ -1074,6 +1074,19 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// but a zone-change trigger hands this predicate the event's LKI
 		// snapshot, whose zone is where the card was a moment ago -- so an
 		// imprinted card leaving exile still reads IsImprinted.
+		// A Count$ValidHand scan is the one live read that keeps the
+		// association after the return to hand: Tainted Pact's TaintedCheck
+		// asks whether the card its Dig imprinted is now in hand (Forge's
+		// ImprintedCards list survives that move), while an ordinary filter
+		// on a hand card keeps expiring (CR 607.2a).
+		if sc.HandCount && o.Zone == state.ZHand {
+			for _, id := range src.Imprinted {
+				if id == o.ID {
+					return true
+				}
+			}
+			return false
+		}
 		return imprintAssociationContainsCandidate(g, src, o)
 	case wordDefenderCtrl:
 		// Forge's DefenderCtrl: the object is controlled by the defending

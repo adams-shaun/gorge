@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Skycloud Expanse's {1},{T}: Add {W}{U}, an all-at-once filter and its card's only mana ability: a Plains funds the {1} and the Skycloud adds both colours, no colour ask, so Galina's Knight's {W}{U} is paid (CR 106.1, 605.3b); played on its own decks' table because the frozen std-trc pool predates the lowering",
  "actions": [
   18415360,
   17432320,

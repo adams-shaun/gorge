@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-mkm",
+ "pool": "std-mkm",
+ "why": "CR 303.4f: Doppelgang's copy of an Aura asks what it enchants as it enters, the later targets' copies after the answer",
  "actions": [
   16776960,
   16776960,

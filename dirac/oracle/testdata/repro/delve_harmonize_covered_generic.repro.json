@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "CR 702.66a, 702.180a: a Harmonize creature whose power already covers the whole generic part leaves no shortfall for Teval's granted delve, so no graveyard card is offered (Ureni's Rebuff).",
  "actions": [
   167771904,
   167771904,

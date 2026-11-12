@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "an Act of Treason takes Ty Lee: the lock ends for good with the control change (CR 611.2b), so the Wall untaps in its next untap step",
  "actions": [
   19398400,
   35192576,

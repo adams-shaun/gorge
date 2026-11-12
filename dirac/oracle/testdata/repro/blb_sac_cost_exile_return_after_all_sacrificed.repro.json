@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 30,
  "surface": "autopay",
+ "pool": "std-blb",
+ "why": "CR 701.21a, 610.3d: Scavenger's Talent's sacrifice-three cost includes Banishing Light, so its card returns after all three are gone",
  "actions": [
   16776960,
   16776960,

@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 30,
  "surface": "autopay",
+ "pool": "std-tla",
+ "why": "CR 305.6, 605.1a: White Lotus Hideout under an Island grant lists gorge's seven node-limited alternatives ({C}, the granted {U}, the admitted any-colour ability's five), not its {1},{T} filter's or a WUBRG intrinsic run, so the alternative array no longer overflows",
  "actions": [
   16776960,
   16776960,

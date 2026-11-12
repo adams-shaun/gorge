@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-fin",
+ "why": "CR 109.5: \"your library\" after Stiltzkin gave the source away",
  "actions": [
   16776960,
   16776960,

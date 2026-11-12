@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-fin",
+ "why": "CR 608.2m: Buster Sword's offer may target the trigger itself",
  "actions": [
   16776960,
   16776960,

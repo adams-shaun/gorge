@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "full",
+ "pool": "std-big",
+ "why": "Loot counts the card types among permanents, and a token copied \"except it's an artifact creature\" has the creature type",
  "actions": [
   16776960,
   16776960,

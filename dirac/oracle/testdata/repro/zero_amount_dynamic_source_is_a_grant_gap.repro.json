@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-trc",
+ "pool": "std-trc",
+ "why": "CR 602.2b, 106.4: Astral Cornucopia with no charge counters is a census gap gorge's grant prefix taps for nothing before Ambulatory Reactor's granted {C}",
  "actions": [
   16776960,
   16776960,

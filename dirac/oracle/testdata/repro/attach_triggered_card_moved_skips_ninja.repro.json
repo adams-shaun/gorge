@@ -42,7 +42,7 @@
    "Plains",
    "Plains",
    "Prehistoric Pet",
-   "Raph \u0026 Leo, Sibling Rivals",
+   "Raph & Leo, Sibling Rivals",
    "The Ooze",
    "Turtle Lair",
    "Weather Maker"
@@ -74,8 +74,8 @@
    "Leonardo, Cutting Edge",
    "Leonardo, Sewer Samurai",
    "Leonardo, Sewer Samurai",
-   "Mikey \u0026 Leo, Chaos \u0026 Order",
-   "Mikey \u0026 Leo, Chaos \u0026 Order",
+   "Mikey & Leo, Chaos & Order",
+   "Mikey & Leo, Chaos & Order",
    "Northampton Farm",
    "Plains",
    "Plains",
@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tmt",
+ "pool": "std-tmt",
+ "why": "CR 400.7: Quintessential Katana's \"attach to the entering Ninja\" trigger waits on the stack while that Ninja returns to hand and re-enters, so its TriggeredCardLKICopy is a new object and the attach finds nothing",
  "actions": [
   184549120,
   167771904,

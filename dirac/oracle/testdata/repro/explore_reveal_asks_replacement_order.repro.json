@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-big",
+ "pool": "std-big",
+ "why": "CR 616.1, 701.44a: a Map's explore reveals a nonland card under two Rest in Peace, so its move to the graveyard asks which replacement applies; the card waits on top of the library for the answer",
  "actions": [
   16776960,
   16776960,

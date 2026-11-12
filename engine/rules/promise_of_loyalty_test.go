@@ -21,7 +21,7 @@ import (
 // loop-tail DBEffect registers a Mode$ CantAttack continuous effect whose
 // ValidCard$ Card.IsRemembered scopes it to exactly the vowed creatures, with
 // ForgetOnMoved$ Battlefield and ForgetCounter$ VOW lifetimes. Before this
-// task the whole card was a silent no-op (one loud Note, zero counters, zero
+// change the whole card was a silent no-op (one loud Note, zero counters, zero
 // sacrifices, zero asks).
 //
 // The fixture deck is compiled corpus cards only (no Forge script text is

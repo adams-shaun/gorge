@@ -1103,6 +1103,7 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"ClassLevelGained": kop.TrigCounterAddedOnce, // N = CtrLevel (lower_class.go)
 	"BecomesPlotted":   kop.TrigBecomesPlotted,   // the card's own
 	"BecomesSaddled":   kop.TrigBecomesSaddled,
+	"Evolved":          kop.TrigEvolved,  // the source's own, after its evolve counter lands
 	"Attached":         kop.TrigAttached} // the attachment's own, Creature bearer (Assimilation Aegis) // the Mount's own
 
 func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
@@ -1350,6 +1351,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		if t.Attacked&atkOpp != 0 {
 			kt.Flags2 |= kop.Tf2AtkOpp
 		}
+	}
+	if t.PerCounter {
+		if t.Event != "CounterAdded" {
+			return kt, fmt.Errorf("PerCounter on a %s trigger", t.Event)
+		}
+		kt.Flags4 |= kop.Tf4PerCounter
 	}
 	if t.Evolve {
 		if t.Event != "ETB" {
@@ -2115,6 +2122,24 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+	case "CantAttackUnless":
+		st.Kind = kop.StatAttackTax // lower_attacktax.go
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		if err := amounts(s.Amount, lValue{}); err != nil {
+			return ka, nil, err
+		}
+		for _, fl := range s.Flags {
+			switch fl {
+			case "TaxPlayer":
+				st.StFlags |= kop.StAtkTaxPlayer
+			case "TaxWalker":
+				st.StFlags |= kop.StAtkTaxWalker
+			default:
+				return ka, nil, fmt.Errorf("CantAttackUnless flag %q", fl)
+			}
+		}
 	case "CanAttackDefender":
 		st.Kind = kop.StatCanAttackDefender
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -2196,6 +2221,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		default:
 			return ka, nil, fmt.Errorf("PlayerHexproof amount %v", s.Amount)
 		}
+	case "PlayerProtAll":
+		st.Kind = kop.StatPlayerProtAll // the controller has protection from everything (static_plprot.go)
 	case "MayPlayFrom":
 		st.Kind = kop.StatMayPlayFrom
 		st.Zone = zoneMap[s.Zone]
@@ -3013,6 +3040,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if _, rem := fl["Remember"]; rem && in.C == 1 && in.Obj.Kind == rDelayedRemembered && fl["from"] == "Battlefield" {
 			ki.C = kop.LibBottomRememberBF // dirac/zone_tolibrarybfremember.go
+		}
+		if _, rem := fl["Remember"]; rem && in.C == 0 && in.Obj.Kind == rSelf && fl["from"] == "Battlefield" {
+			ki.C = kop.LibTopRememberBF // dirac/zone_tolibrarybfremember.go
 		}
 		if _, ok := fl["TopShuffle"]; ok {
 			ki.C = kop.LibTopShuffle
@@ -4195,7 +4225,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "LoseGame":
 		ki.Op, ki.C = kop.OpLoseGame, int16(in.C) // in.C 1: WinsGame (kernel winGame)
 	case "Shuffle":
-		ki.Op = kop.OpShuffle
+		ki.Op, ki.C = kop.OpShuffle, int16(in.C) // in.C 1: every remembered owner (lower_shuffleremowners.go)
 	case "SetLife":
 		ki.Op = kop.OpSetLife
 	case "Rearrange":
@@ -4714,6 +4744,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
+	case "RememberImprinted":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRememberImprinted)) // Tainted Pact
 	case "AddTurn":
 		ki.Op = kop.OpAddTurn
 	case "EndTurn":

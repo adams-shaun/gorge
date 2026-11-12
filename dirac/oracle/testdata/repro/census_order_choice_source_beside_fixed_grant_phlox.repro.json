@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trk",
+ "why": "the same census order with Xenobotanist and Phlox's any-colour mana under Rok-Tahk's grant",
  "actions": [
   16776960,
   16776960,

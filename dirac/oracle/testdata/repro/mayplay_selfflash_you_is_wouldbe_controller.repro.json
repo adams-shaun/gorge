@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 109.5: a may-play cast of a card exiled by Maralen, Fae Ascendant reads the card's own CastWithFlash static's \"you\" as the would-be controller",
  "actions": [
   167771904,
   184549120,

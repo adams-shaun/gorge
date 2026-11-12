@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Ranger-Captain of Eos sacrificed while the other seat holds a Lightning Bolt and a flash Ambush Viper: the opponent can't cast the Bolt but casts the Viper once the ability resolves, and the controller's own Sol Ring is cast under the emblem (an end-of-turn emblem)",
  "actions": [
   19398400,
   16776960,

@@ -95,6 +95,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Pirate Hat's Equip Pirate {1} beside its Equip {2}: both equips offered, the cheaper one only onto a Pirate you control (CR 702.6a)",
  "actions": [
   19857152,
   18349824,

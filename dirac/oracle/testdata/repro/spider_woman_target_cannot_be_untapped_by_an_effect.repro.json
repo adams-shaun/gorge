@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "the same Wall stays tapped through a Vitalize that would untap it: Spider-Woman's lock replaces every untap, not the untap step's alone",
  "actions": [
   19398400,
   35192576,

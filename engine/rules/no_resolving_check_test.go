@@ -1,5 +1,4 @@
-// The NoResolvingCheck$ True trigger param (task param:trig:AttackersDeclared
-// .NoResolvingCheck): a trigger carrying it is checked ONLY when it fires;
+// The NoResolvingCheck$ True trigger param: a trigger carrying it is checked ONLY when it fires;
 // the resolution-time CR 603.4 recheck must not re-verify the condition, so
 // transient fire-time state that moved since (a bounced attacker, drained
 // power) never fizzles the ability. Pinned end to end on the real corpus

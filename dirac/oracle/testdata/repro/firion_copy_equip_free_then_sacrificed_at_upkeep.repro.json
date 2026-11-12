@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "Firion, Wild Rose Warrior copies an Excalibur II: the token's {3} equip costs {2} less, its sacrifice waits for the next upkeep, and both engines agree on the offered equip, the price and the sacrifice (CR 603.7, 707.9b)",
  "actions": [
   18415360,
   17891072,

@@ -266,8 +266,7 @@ func TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets(t *testing.T) {
 	// fails closed by the contract and would classify them wrongly.
 	//
 	// The game-long damage-by-source qualifier
-	// (Opponent.wasDealtDamageThisGameBy Self, task game-long damage
-	// provenance) needs a bound SOURCE and a landed hit in the recipient's
+	// (Opponent.wasDealtDamageThisGameBy Self) needs a bound SOURCE and a landed hit in the recipient's
 	// record; without both it fails closed like any other unbound qualifier.
 	// src is that source, and seat 1's record names it, so the qualifier is
 	// judged with a real binding -- the shape an Actual ask resolves.

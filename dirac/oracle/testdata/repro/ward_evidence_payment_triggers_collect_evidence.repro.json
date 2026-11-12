@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-mkm",
+ "why": "a ward {Collect evidence} paid with Cryptic Coat's graveyard beside an Evidence Examiner: the payment is a collect-evidence action, so the Examiner investigates",
  "actions": [
   16776960,
   16776960,

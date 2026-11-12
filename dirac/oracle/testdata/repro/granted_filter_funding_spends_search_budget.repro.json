@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 605.3a: a filter's fee is funded by a non-gap source before the prefix search reaches Earthen Ally's {2}{W}{U}{B}{R}{G}, so the search spends its node budget as gorge's does and neither engine offers the activation",
  "actions": [
   167771904,
   184549120,

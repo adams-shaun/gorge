@@ -29,3 +29,21 @@ func (s *State) putCounterRemembered(k *prep, in *kop.Instr) {
 		}
 	}
 }
+
+// doubleCountersRemembered is OpDoubleCounters with Obj$ Remembered: gorge's
+// effMultiplyCounter doubles each object of the whole Defined$ set
+// (engine/effects/counters.go:46), but the kernel's objRef resolves one
+// object (refObjCtx returns rem[0]). The overload each-variant is the live
+// carrier: Fangs of Kalonia remembers every creature its PutCounterAll
+// countered, then doubles each one.
+//
+//go:noinline
+func (s *State) doubleCountersRemembered(k *prep, in *kop.Instr) {
+	for i := 0; i < int(s.g.nrem); i++ {
+		o := s.g.rem[i]
+		if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield {
+			continue
+		}
+		s.doubleCountersAt(k, s.objs[o].slot, in.C)
+	}
+}

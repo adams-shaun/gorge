@@ -1,7 +1,6 @@
 package rules
 
-// The dotless RestrictValid$ payment classes (the restricted-mana spend
-// task): bare `Spell` (Klauth's encoding), bare `Activated` (Omen Hawker's),
+// The dotless RestrictValid$ payment classes (the restricted-mana spend): bare `Spell` (Klauth's encoding), bare `Activated` (Omen Hawker's),
 // and the cost-keyed terms — CostContainsC read from a COMMA TAIL,
 // CostContainsX, CantPayGenericCosts, CantCastNonArtifactSpells,
 // CantCastSpellFromHand and CumulativeUpkeep. Each pin drives the REAL corpus

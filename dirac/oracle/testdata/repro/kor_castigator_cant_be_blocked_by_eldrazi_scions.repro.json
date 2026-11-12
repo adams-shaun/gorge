@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Kor Castigator attacks beside two Eldrazi Scion tokens and a Grizzly Bears: only the Bears is offered the block, the CantBlockBy static's two-subtype ValidBlocker$ (Creature.Eldrazi+Scion) refusing the tokens in both engines (CR 509.1b, 509.1c)",
  "actions": [
   17366784,
   19267328,

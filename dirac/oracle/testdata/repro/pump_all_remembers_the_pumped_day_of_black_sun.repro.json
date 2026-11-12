@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "full",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Day of Black Sun with X 0 remembers every creature of mana value 0 it sweeps: those lose their abilities and are destroyed, then the set is cleared",
  "actions": [
   35192576,
   35258112,

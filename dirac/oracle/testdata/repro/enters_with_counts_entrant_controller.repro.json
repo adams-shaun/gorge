@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "CR 109.5: Dust Animus returned by a foreign Mystical Tether counts its own controller's untapped lands",
  "actions": [
   16776960,
   16776960,

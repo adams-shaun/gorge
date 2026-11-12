@@ -95,6 +95,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Dark Supplicant sacrificing three Clerics searches its graveyard, hand and library for a card named Scion of Darkness (none in the deck): the zone election of the Graveyard,Hand pair, then nothing found (CR 701.23)",
  "actions": [
   19857152,
   18349824,

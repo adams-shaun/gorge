@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-spm",
+ "pool": "std-spm",
+ "why": "CR 602.2b: the Parents' second activation has exactly two candidates, so nothing is asked and the forced tap takes Guy; the search drops that line and reaches the pair that leaves Spider Manifestation untapped within its budget",
  "actions": [
   184549120,
   184549120,

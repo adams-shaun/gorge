@@ -144,7 +144,7 @@ func classifyCounterUnlessSVarLines(t *testing.T, reg *cards.Registry) []string 
 // fold; We Say Thee Nay!'s unpaid branch resolves to {2}. The remaining
 // hard decline is Count$Party/Plus.
 //
-// Re-measured 2026-09-23 (task api:Poison): Rune Snag's
+// Re-measured 2026-09-23: Rune Snag's
 // `SVar:Z:Number$2/Plus.Y` MOVED from `decline` to `resolves:{2}`. That is
 // this diff's doing and is attributed here: `evalCountExprOK` grew the
 // literal `Number$<int>` arm (the Vraska, Betrayal's Sting differential

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "CR 106.6: Mm'menon's hand-barred granted blue is no relaxed unit for Station Monitor's plain hand cast, so neither copy is offered",
  "actions": [
   184549120,
   167771904,

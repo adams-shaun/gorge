@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "Rip, Spawn Hunter's Dig after a first take: a card whose power was already taken is not offered again, so only Done remains",
  "actions": [
   16776960,
   16776960,

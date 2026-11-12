@@ -94,6 +94,8 @@
  "mulligans": 0,
  "pass_elision": false,
  "surface": "autopay",
+ "pool": "std-dsk",
+ "why": "Rip, Spawn Hunter's Dig takes creature and Vehicle cards with pairwise different powers: a second card of a power already taken is not offered",
  "actions": [
   16776960,
   16776960,

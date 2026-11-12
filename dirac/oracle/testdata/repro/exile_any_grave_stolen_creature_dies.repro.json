@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-tmt",
+ "why": "a stolen Paramecia Coloniex dies into its owner's graveyard: its controller may still exile it from there",
  "actions": [
   16776960,
   16776960,

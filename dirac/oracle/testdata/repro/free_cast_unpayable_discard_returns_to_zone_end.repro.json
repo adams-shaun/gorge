@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-sos",
+ "pool": "std-sos",
+ "why": "CR 601.2b, 733.1: Improvisation Capstone's free Seize the Spoils with no card to discard is pushed and reversed, and returns behind the other exiled cards",
  "actions": [
   16776960,
   16776960,

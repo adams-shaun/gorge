@@ -43,7 +43,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	}
 	prop, op, hasOp := strings.Cut(prop, "/")
 	prop = strings.TrimSpace(prop)
-	// ChromaSource[.<Colour>] (task lb-chroma): the referenced objects'
+	// ChromaSource[.<Colour>]: the referenced objects'
 	// coloured mana symbols, the ref half of Forge's AbilityUtils Chroma
 	// block (handlePaid routes each referenced card through the same
 	// ChromaSource count the plain head reads off the source). Parsed once
@@ -78,8 +78,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	g := h.Game()
 	var n int32
 	triggerObjectTypes := map[string]bool{}
-	// The Colors distinct-set property over a reference's objects (task
-	// levelb-static-count-attachments): `ExiledWith$Colors` (Sunbird Effigy's
+	// The Colors distinct-set property over a reference's objects: `ExiledWith$Colors` (Sunbird Effigy's
 	// characteristic-defining P/T) counts the DISTINCT colours among the
 	// referenced cards, the same distinct-set read
 	// evalCountBody's Count$Valid <spec>$Colors makes over zone matches
@@ -165,7 +164,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		f := o.Face()
 		switch {
 		case prop == "CardTypes":
-			// Property-scoped, not ref-scoped (task lb-cardtypes): the
+			// Property-scoped, not ref-scoped: the
 			// distinct card types among the referenced objects, for every
 			// object ref -- Remembered$ (Kefka, Court Mage's draw; Occult
 			// Epiphany), TriggerRemembered$ (Mount Velus Manticore),
@@ -205,7 +204,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 				}
 			}
 		case prop == "GreatestCardPower":
-			// Greatest-of, never summed (task greatestcardpower): the extreme
+			// Greatest-of, never summed: the extreme
 			// aggregate the ref-scoped carriers size X with -- Aloy, Savior of
 			// Meridian's discover and Shriekwood Devourer's "untap up to X
 			// lands" over TriggerObjectsAttackers, Shadowgrange Archfiend's
@@ -278,7 +277,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			// the two spellings cannot disagree about one object.
 			n += int32(len(h.ObjectColors(o)))
 		case isChroma:
-			// The referenced objects' coloured mana symbols (task lb-chroma),
+			// The referenced objects' coloured mana symbols,
 			// summed over the referent set the way Forge's handlePaid sums
 			// per referenced card: Namor the Sub-Mariner's
 			// TriggeredCard$ChromaSource.Blue (the cast spell's blue pips),

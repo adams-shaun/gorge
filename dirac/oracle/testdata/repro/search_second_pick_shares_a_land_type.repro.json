@@ -94,8 +94,10 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
- "surface": "full",
+ "surface": "autopay",
  "kernel": "synth tail-04",
+ "pool": "custom",
+ "why": "Myriad Landscape finds an Island, then a second Island: gorge's Submit refuses two basics with no common land type, so the second pick offers only the Islands, as the kernel offers them; played on its own decks' table because the tail partition no longer holds every card of the recorded decks",
  "actions": [
   16776960,
   16776960,

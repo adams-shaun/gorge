@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 601.2g-h: Fear of Exposure's tap-two is priced from its composed cost, so the granted-mana prefix taps Enduring Vitality's creatures in battlefield order and leaves the rest for the pick",
  "actions": [
   16776960,
   16776960,

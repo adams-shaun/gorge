@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-fra",
+ "why": "Danitha, on the second object of a multi-object slot",
  "actions": [
   16776960,
   16776960,
