@@ -235,8 +235,9 @@ import (
 // +14 (the second merge with land: this branch's Extort lowering beside land's 22706; merged ALL build-level 22706 -> 22720).
 // +31 (K:Partner with: the carriers listed at ratchet_test.go's ALL pin; ALL build-level 22381 -> 22412; merged ALL build-level 22706 -> 22737).
 // +14 (the merge with land: this branch's Extort lowering beside land's 22868; merged ALL build-level 22868 -> 22882).
+// +2 (the merge with land: this branch's Extort lowering at 22882 beside land's 22870; merged ALL build-level 22882 -> 22884).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22882, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22884, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

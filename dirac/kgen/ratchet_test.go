@@ -134,8 +134,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +14 (the second merge with land: this branch's Extort lowering beside land's 22706; merged ALL 22706 -> 22720).
 	// +31 (K:Partner with lowers: the pair marker and the targeted player's own-library search for the named partner (lower_partnerwith.go): Alisaie Leveilleur, Alphinaud Leveilleur, Blaring Captain, Blaring Recruiter, Brallin, Skyshark Rider, Cazur, Ruthless Stalker, Chakram Retriever, Chakram Slinger, Evie Frye, Impetuous Protege, Jenny Flint, Kamber, the Plunderer, Krav, the Unredeemed (refused by name: dirac/support/refused), Laurine, the Diversion, Ley Weaver, Lore Weaver, Merry, Warden of Isengard, Nikara, Lair Scavenger, Pippin, Warden of Isengard, Proud Mentor, Rocksteady, Mutant Marauder, Sam, Loyal Attendant, Shabraz, the Skyshark, Silvar, Devourer of the Free, Soulblade Corrupter, Soulblade Renewer, Timin, Youthful Geist, Toothy, Imaginary Friend, Trynn, Champion of Freedom, Ukkima, Stalking Shadow, Virtus the Veiled; ALL 22381 -> 22412; merged ALL 22706 -> 22737).
 	// +14 (the merge with land: this branch's Extort lowering beside land's 22868; merged ALL 22868 -> 22882).
+	// +2 (the merge with land: this branch's Extort lowering at 22882 beside land's 22870; merged ALL 22882 -> 22884).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22882, 34442},
+	"ALL": {22884, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {216, 280},
