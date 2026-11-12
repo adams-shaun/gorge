@@ -59,7 +59,7 @@ func echoCheck(ref *GorgeSide, first map[state.ObjID]int32, seenFade map[state.O
 				}
 				if t, ok := first[id]; !ok {
 					first[id] = turn
-				} else if turn >= t+2 && turn == t+2 {
+				} else if turn == t+2 {
 					st.echoPaid++
 				}
 			case "Blastoderm":
