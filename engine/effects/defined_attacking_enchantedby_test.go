@@ -69,8 +69,16 @@ func TestTriggeredAttackingPlayerEnchantedByNamesTheAttacker(t *testing.T) {
 
 	// The controller itself attacks the player it enchants: Player.Opponent
 	// excludes it, so nobody gets the second token/draw/life/untap.
+	// The controller has its own creature attacking the enchanted seat, so
+	// the controlsCreature clause holds and ONLY the Opponent anchor can
+	// exclude it: without the Opponent clause the same selector names seat 1.
+	testAttackingCurseBear(t, reg, g, 1, 2)
 	c1 := &Ctx{Source: curse.ID, Controller: 1,
 		TriggerContext: TriggerContext{AttackingPlayer: state.Target{Player: 1, IsPlayer: true}}}
+	noOpp := "TriggeredAttackingPlayer.controlsCreature.attacking Player.EnchantedBy"
+	if ts := Defined(h, c1, &cards.SA{Params: map[string]string{"Defined": noOpp}}); len(ts) != 1 || ts[0].Player != 1 {
+		t.Fatalf("precondition: without Opponent the controller's own attacker names seat 1, got %+v", ts)
+	}
 	if ts := Defined(h, c1, &cards.SA{Params: map[string]string{"Defined": spec}}); len(ts) != 0 {
 		t.Fatalf("the controller attacking its own cursed target = %+v, want the empty set", ts)
 	}

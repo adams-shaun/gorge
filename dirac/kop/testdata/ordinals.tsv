@@ -1432,6 +1432,7 @@ VX	VKind	1
 W	untyped int	0
 W7AttachedTo	int16	19
 W7AttackingAlone	int16	3
+W7AttackingEnchTrig	int16	28
 W7AttackingOpp	int16	7
 W7BottomLibrary	int16	17
 W7CostBlue	int16	14

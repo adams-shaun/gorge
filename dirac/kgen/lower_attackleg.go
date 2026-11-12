@@ -3,6 +3,7 @@ package kgen
 import (
 	"strings"
 
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -19,18 +20,26 @@ import (
 // the player I enchanted" case names that opponent, who must receive the
 // second token/draw/life/untap ("Each opponent attacking that player does the
 // same"). Only the controller attacking the player it enchanted is excluded,
-// which is the SkipIf guard below (it is that controller's turn exactly when
-// the controller is the declaring player).
+// which is the YourTurn half of the SkipIf guard below (it is that
+// controller's turn exactly when the controller is the declaring player).
+//
+// The selector is read when the leg RESOLVES (gorge's Defined$ is evaluated
+// at resolution), so the guard's other half re-reads the board: the trigger
+// player must still control a creature attacking the player THIS Aura is
+// attached to (kop.W7AttackingEnchTrig). An attacker removed in response to
+// the curse's trigger, or the Aura itself leaving, empties the set in gorge
+// and skips the leg here.
 const attackLegKey = "TriggeredAttackingPlayer.Opponent+controlsCreature.attacking Player.EnchantedBy"
 
 // lowerAttackLeg models an AttackersDeclared EnchantedBy trigger's second
 // leg as the trigger player's effect. It rewrites the beneficiary to the
 // bare TriggeredAttackingPlayer referent (the kernel's queue-time trigger
-// player at any seat count) and emits a guard that skips the node when the
-// controller is the declaring player (the controller's own turn): the
-// ability's controller is not among "each opponent attacking that player".
-// The guard's skip length is patched after the node lowers (lower.go's
-// chain). The caller's chain loop then lowers the node normally, so every
+// player at any seat count) and emits a guard that runs the node only when it
+// is NOT the controller's own turn (the ability's controller is not among
+// "each opponent attacking that player") AND the trigger player still
+// controls a creature attacking this Aura's enchanted player (the
+// resolution-time half of the selector). The guard's skip length is patched
+// after the node lowers (lower.go's chain). The caller's chain loop then lowers the node normally, so every
 // param is read or refused by the ordinary API lowering.
 func (lc *lowerCtx) lowerAttackLeg(node *cards.SA, p *params) (guard int, err error) {
 	param, ok := lc.attackLegParamFor(node, p)
@@ -40,8 +49,12 @@ func (lc *lowerCtx) lowerAttackLeg(node *cards.SA, p *params) (guard int, err er
 	p.consume(param)
 	p.m[param] = "TriggeredAttackingPlayer"
 	guard = len(lc.ab.Prog)
-	lc.emit(lInstr{Op: "SkipIf", Cond: lCond{Kind: cYourTurn, Neg: true},
-		Note: "only an opponent attacking the enchanted player gets the second leg"})
+	attacker := &lFilter{Clauses: []lClause{{Types: tCreature}}}
+	attacker.Clauses[0].setCmp(cmpWord7, 0, int(kop.W7AttackingEnchTrig), "", "")
+	lc.emit(lInstr{Op: "SkipIf", Cond: lCond{Kind: cAnd, Sub: []lCond{
+		{Kind: cYourTurn, Neg: true},
+		{Kind: cPresent, F: attacker, Op: opGE, A: cst(1)},
+	}}, Note: "only an opponent still attacking the enchanted player gets the second leg"})
 	return guard, nil
 }
 

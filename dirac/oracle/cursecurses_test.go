@@ -15,7 +15,8 @@ import (
 // The Commander curses' lockstep (CR 508.1, 303.4, 701.3b): each curse
 // enchants a player and fires on an AttackersDeclared group whose defender
 // carries it (AttackedTarget$ Player.EnchantedBy — the kernel's Tf4DefEnch
-// gate over the player-attached auras' seats); its controller pays
+// gate: the LISTENING Aura is itself attached to the attacked seat, as
+// Forge's player.isEnchantedBy(source) reads it); its controller pays
 // (Opulence's Gold and Disturbance's and Shallow Graves's tapped Zombies are
 // minted, Verbosity draws, Vitality gains life, Bounty untaps, Chaos's
 // attacking player discards to draw, Inertia asks the attacking player for
@@ -31,6 +32,12 @@ import (
 // gains 2, and its optional trigger (OptionalDecider$ TriggeredAttackingPlayer)
 // attaches it to the attacking player (the Enchant:Opponent attach's W arm).
 
+// The second leg is read when it RESOLVES (gorge's Defined$ at resolution), so
+// both decks play Lightning Bolt and kccBoltPolicy casts one at an attacker
+// while a curse trigger waits in the declare-attackers step: the attacker
+// leaves combat before the leg resolves and neither engine pays the declaring
+// player ("bolted attacker" in the branch counts).
+//
 // kccDeckA plays Opulence, Disturbance, Verbosity, Inertia and Archnemesis;
 // kccDeckB plays Bounty, Vitality, Chaos and Shallow Graves. Each side
 // enchants the other and both attack, so every carrier is cast, fired and
@@ -39,7 +46,8 @@ var kccDeckA = []cardset.Entry{
 	{Name: "Curse of Opulence", Count: 2}, {Name: "Curse of Disturbance", Count: 2},
 	{Name: "Curse of Verbosity", Count: 2}, {Name: "Curse of Inertia", Count: 2},
 	{Name: "Archnemesis", Count: 2},
-	{Name: "Grizzly Bears", Count: 10}, {Name: "Llanowar Elves", Count: 8},
+	{Name: "Lightning Bolt", Count: 4},
+	{Name: "Grizzly Bears", Count: 8}, {Name: "Llanowar Elves", Count: 6},
 	{Name: "Mountain", Count: 3}, {Name: "Island", Count: 3}, {Name: "Forest", Count: 2},
 	{Name: "Swamp", Count: 2}, {Name: "Plains", Count: 2},
 }
@@ -47,7 +55,8 @@ var kccDeckA = []cardset.Entry{
 var kccDeckB = []cardset.Entry{
 	{Name: "Curse of Bounty", Count: 2}, {Name: "Curse of Vitality", Count: 2},
 	{Name: "Curse of Chaos", Count: 2}, {Name: "Curse of Shallow Graves", Count: 2},
-	{Name: "Grizzly Bears", Count: 10}, {Name: "Llanowar Elves", Count: 8},
+	{Name: "Lightning Bolt", Count: 4},
+	{Name: "Grizzly Bears", Count: 8}, {Name: "Llanowar Elves", Count: 6},
 	{Name: "Forest", Count: 3}, {Name: "Plains", Count: 3}, {Name: "Swamp", Count: 3},
 	{Name: "Island", Count: 2}, {Name: "Mountain", Count: 3},
 }
@@ -79,6 +88,28 @@ func kccScan(g *GorgeSide, n map[string]int) {
 			}
 		}
 	}
+}
+
+// kccBoltPolicy answers a priority decision in the declare-attackers step with
+// a non-empty stack (a curse trigger waiting) by casting a Lightning Bolt when
+// one is offered; the target decision that follows stays with the inner
+// policy, which reaches an attacker in some games.
+func kccBoltPolicy(c *PickCtx) (Canon, bool) {
+	var none Canon
+	if c.G == nil || c.D.Kind != DPriority || c.G.E.G.Step != state.StepDeclareAttackers || len(c.G.E.G.Stack) == 0 {
+		return none, false
+	}
+	for _, o := range c.D.Options {
+		if o.Kind() != ActCast {
+			continue
+		}
+		if g, ok := c.G.GorgeOption(o); ok {
+			if ob := c.G.E.G.Obj(g.Obj); ob != nil && ob.Face() != nil && ob.Face().Name == "Lightning Bolt" {
+				return o, true
+			}
+		}
+	}
+	return none, false
 }
 
 func runCursecurses(t *testing.T, seeds uint64) (games, divs int, branch map[string]int) {
@@ -127,6 +158,10 @@ func runCursecurses(t *testing.T, seeds uint64) (games, divs int, branch map[str
 		pol := PolicyFunc(func(c *PickCtx) Canon {
 			if c.G != nil {
 				gs = c.G
+			}
+			if a, ok := kccBoltPolicy(c); ok {
+				branch["bolt in response"]++
+				return a
 			}
 			return inner.Pick(c)
 		})

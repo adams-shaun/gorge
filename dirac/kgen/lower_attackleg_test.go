@@ -36,8 +36,20 @@ func TestAttackLegLowering(t *testing.T) {
 		t.Fatalf("want a skip guard over the attacking-player leg, got %+v", ab.Prog[1])
 	}
 	c := pt.conds[ab.Prog[1].C]
-	if c.Kind != kop.CondYourTurn || !c.Neg {
-		t.Fatalf("the guard must skip the controller's own turn, got %+v", c)
+	if c.Kind != kop.CondAnd {
+		t.Fatalf("the guard must be the conjunction of the opponent's-turn and still-attacking halves, got %+v", c)
+	}
+	turn, present := pt.conds[c.Sub[0]], pt.conds[c.Sub[1]]
+	if turn.Kind != kop.CondYourTurn || !turn.Neg {
+		t.Fatalf("the guard must skip the controller's own turn, got %+v", turn)
+	}
+	// The resolution-time half: the trigger player must still control a
+	// creature attacking THIS Aura's enchanted player.
+	if present.Kind != kop.CondPresent || present.Neg {
+		t.Fatalf("the guard must test a present attacker, got %+v", present)
+	}
+	if f := &pt.filters[int(present.F)]; f.Pred != kop.PredWord7 || f.PredN != kop.W7AttackingEnchTrig {
+		t.Fatalf("the present-attacker filter must be W7AttackingEnchTrig, got Pred %d PredN %d", f.Pred, f.PredN)
 	}
 	if ab.Prog[0].Op != kop.OpUntapAll || ab.Prog[2].Op != kop.OpUntapAll {
 		t.Fatalf("want the two UntapAll legs, got %v", ab.Prog)
