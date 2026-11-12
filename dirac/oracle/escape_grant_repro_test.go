@@ -112,12 +112,7 @@ func (p *escapeProbe) pick(c *PickCtx) Canon {
 
 func runDecks(t *testing.T, seeds uint64, decks [2][]cardset.Entry, name string, policy func(seed uint64) Policy) (diverged bool) {
 	t.Helper()
-	cardsDir, err := cardset.CorpusDir()
-	if err != nil {
-		// a box without the corpus skips the corpus tests (testCorpus'
-		// convention), rather than failing a fresh clone
-		t.Skip(err)
-	}
+	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {
 		t.Fatal(err)
