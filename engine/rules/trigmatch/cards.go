@@ -525,11 +525,13 @@ func drawNumberThisTurn(e Board, p state.PlayerID) int {
 }
 
 // firstCardInDrawStep reports whether the most recently emitted Draw for p is
-// the first draw since this turn entered its draw step. The log, rather than a
-// mutable counter, is the source of this ephemeral fact so cloning and replay
-// rebuild it without an event-schema change.
+// the first draw since this turn entered p's own draw step. The log, rather
+// than a mutable counter, is the source of this ephemeral fact so cloning and
+// replay rebuild it without an event-schema change. The active-player gate is
+// CR 504.1's "their draw step": a draw by a non-active seat during another
+// player's draw step is an extra draw, not that seat's turn-based draw.
 func firstCardInDrawStep(e Board, p state.PlayerID) bool {
-	if e.Game().Step != state.StepDraw {
+	if e.Game().Step != state.StepDraw || e.Game().Active != p {
 		return false
 	}
 	draws := 0

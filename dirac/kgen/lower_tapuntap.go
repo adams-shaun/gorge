@@ -71,9 +71,10 @@ func (lc *lowerCtx) untapAll(ps *params) error {
 
 // tapAll lowers api:TapAll (gorge effTapAll: every untapped battlefield
 // permanent matching ValidCards$ -- "Permanent" when absent -- becomes
-// tapped, seat 0's battlefield first). A player ValidTgts$ scopes the walk
-// to the target player's battlefield (gorge allPlayersFor); Defined$,
-// RememberTapped$ and TapperController$ stay unread.
+// tapped, seat 0's battlefield first). A player ValidTgts$ or Defined$
+// selector scopes the walk to that player's battlefield (gorge
+// allPlayersFor); TapperController$ True gives each card's own controller
+// the tap. RememberTapped$ stays unread.
 func (lc *lowerCtx) tapAll(ps *params) error {
 	spec := ps.str("ValidCards")
 	if spec == "" {
@@ -84,6 +85,19 @@ func (lc *lowerCtx) tapAll(ps *params) error {
 		return err
 	}
 	in := lInstr{Op: "TapAll", F: f}
+	if d, ok := ps.get("Defined"); ok {
+		r, err := lc.defined(d)
+		if err != nil {
+			return err
+		}
+		switch r.Kind {
+		case rYou, rEachOpp, rTarget, rTargetController, rTriggeredPlayer, rDefending:
+			in.Obj = r
+		default:
+			return refuse("TapAll Defined$ %q is not a player selector", d)
+		}
+		in.Note = "only the defined player's permanents"
+	}
 	if vt, ok := ps.get("ValidTgts"); ok {
 		pf, err := lc.filter(vt)
 		if err != nil {
@@ -96,6 +110,12 @@ func (lc *lowerCtx) tapAll(ps *params) error {
 		in.Obj = lRef{Kind: rTarget, N: t}
 		in.Note = "only the target player's permanents"
 		ps.consume("TgtPrompt")
+	}
+	if v, ok := ps.get("TapperController"); ok {
+		if !strings.EqualFold(strings.TrimSpace(v), "True") {
+			return refuse("TapAll TapperController$ %q", v)
+		}
+		in.C = 1
 	}
 	lc.emit(in)
 	return nil

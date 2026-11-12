@@ -1767,6 +1767,9 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 	if e.ctrl == 0 && !e.faceDown() {
 		s.castFromStack(k, e)
 	}
+	if k.anyEmbFlash {
+		s.embFlashForget(k, e)
+	}
 	if k.gen != nil {
 		s.castTrigGraves(k, e)
 		s.fireEmblems(k, kop.TrigSpellCast, e.ctrl, e.obj, func(a *kop.Ability) bool {

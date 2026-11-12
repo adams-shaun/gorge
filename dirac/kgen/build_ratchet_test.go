@@ -225,8 +225,20 @@ import (
 // Verbosity, Curse of Bounty, Curse of Vitality, Curse of Inertia, Archnemesis,
 // Curse of Chaos, Curse of Shallow Graves, plus their b_2_2_zombie and
 // c_a_gold_sac token entries; ALL build-level 22381 -> 22392).
+// +11 (static Condition$ NotPlayerTurn on the Force cycle's AlternativeCost
+// and the hasFewer<Type>sInPlayThanYou combat statics lower, and the bare
+// ExileFromHand<1/Spec> alternative beside them: Cave-In, Pyrokinesis,
+// Snapback, Unmask, Vine Dryad, Force of Negation, Force of Vigor, Force of
+// Despair, Monstrous Hound, Mogg Toady, Goblin Goon; ALL build-level 22381 -> 22392).
+// +192 (the merge with land: this branch's +11, of which land's Misdirection
+// bare-exile lowering already built Cave-In, Pyrokinesis, Snapback, Unmask and
+// Vine Dryad; the six new ones are Force of Negation, Force of Vigor, Force of
+// Despair, Monstrous Hound, Mogg Toady and Goblin Goon; merged ALL build-level
+// 22392 -> 22584).
+// +11 (the merge with land: this branch's Commander curses +11 beside land's
+// 22648; merged ALL build-level 22648 -> 22659 measured).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22392, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22659, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

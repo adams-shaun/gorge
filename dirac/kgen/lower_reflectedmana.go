@@ -1,22 +1,35 @@
 package kgen
 
 import (
+	"slices"
 	"strings"
 
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 )
 
-// AB$ ManaReflected in its one planned colour-read shape over the
-// controller's own permanents ("add one mana of any color among legendary
-// permanents you control": Plaza of Heroes). gorge pay.PaymentPlanReflectedShape
-// admits ReflectProperty$ Is over a Valid$ whose every alternative carries
-// YouCtrl; the census resolves the colours with the resolution's own walk
-// (effects.ManaReflectedObjects) and drops {C} (PaymentPlanReflectedCounts).
-// The kernel reads exactly: Cost$ T, ColorOrType$ Color, ReflectProperty$ Is,
-// Valid$ <filter>[,<filter>] each with YouCtrl. Anything else is refused.
+// AB$ ManaReflected in its two planned colour-read shapes over permanents:
+// the controller's own ("add one mana of any color among legendary
+// permanents you control": Plaza of Heroes, ReflectProperty$ Is, every
+// Valid$ alternative YouCtrl) and the opponents' production ("add one mana
+// of any color that a land an opponent controls could produce": Exotic
+// Orchard, Fellwar Stone, Quirion Explorer, Sylvok Explorer,
+// ReflectProperty$ Produce, every Valid$ alternative OppCtrl). gorge
+// pay.PaymentPlanReflectedShape admits both over a Valid$ whose every
+// alternative carries the matching control property (YouCtrl or OppCtrl,
+// reflectsStableObjects); the census resolves the colours with the
+// resolution's own walk (effects.ManaReflectedObjects) and drops {C}
+// (PaymentPlanReflectedCounts). The kernel reads exactly: Cost$ T,
+// ColorOrType$ Color, ReflectProperty$ Is with Valid$ <filter>[,<filter>]
+// each with YouCtrl, or ReflectProperty$ Produce with each with OppCtrl.
+// Anything else is refused.
 func (lc *lowerCtx) lowerManaReflected(sa *cards.SA, ps *params, ab *lAbility) error {
 	if ps.str("ColorOrType") != "Color" {
 		return refuse("ManaReflected ColorOrType$ %q", ps.str("ColorOrType"))
+	}
+	if ps.str("ReflectProperty") == "Produce" {
+		return lc.lowerManaReflectedProduce(sa, ps, ab)
 	}
 	if ps.str("ReflectProperty") != "Is" {
 		return refuse("ManaReflected ReflectProperty$ %q", ps.str("ReflectProperty"))
@@ -56,6 +69,74 @@ func (lc *lowerCtx) lowerManaReflected(sa *cards.SA, ps *params, ab *lAbility) e
 	}
 	m := &lMana{Colors: "WUBRG", Choice: true, Amount: cst(1), Special: "Reflected", SpecialF: f}
 	return lc.finishMana(sa, ps, ab, m)
+}
+
+// lowerManaReflectedProduce lowers the opponents'-production shape (Valid$
+// <filter>[,<filter>] each with OppCtrl): one mana of any colour among the
+// matched permanents' cards' producible colours (CardDef.ProduceCol; kernel
+// mana_reflected.go produceColours, gorge effects.producibleSymbols). A
+// mixed YouCtrl list would need two walks, the kernel's one walk is the
+// opponents' alone, so every alternative must carry OppCtrl; gorge's planner
+// admits the mixed list (reflectsStableObjects), no corpus card carries one.
+func (lc *lowerCtx) lowerManaReflectedProduce(sa *cards.SA, ps *params, ab *lAbility) error {
+	valid := ps.str("Valid")
+	if valid == "" || strings.HasPrefix(valid, "Defined.") {
+		return refuse("ManaReflected Valid$ %q", valid)
+	}
+	for _, alt := range strings.Split(valid, ",") {
+		if _, props, ok := strings.Cut(strings.TrimSpace(alt), "."); !ok ||
+			!slices.Contains(strings.Split(props, "+"), "OppCtrl") {
+			// gorge's shape needs the opponent read on every alternative
+			// (reflectsStableObjects); the kernel's one walk is the
+			// opponents' matching permanents (produceColours)
+			return refuse("ManaReflected Valid$ %q without OppCtrl", valid)
+		}
+	}
+	f, err := lc.filter(valid)
+	if err != nil {
+		return err
+	}
+	m := &lMana{Colors: "WUBRG", Choice: true, Amount: cst(1), Special: "Reflected", Produce: true, SpecialF: f}
+	return lc.finishMana(sa, ps, ab, m)
+}
+
+// reflectedProducedReplacer strips a Produced$ list's braces and spaces
+// (gorge effects manaReflectedReplacer).
+var reflectedProducedReplacer = strings.NewReplacer("{", "", "}", "", " ", "")
+
+// producibleMask is the colours the face's printed mana abilities could
+// produce ({C} dropped — the only consumer, a Produce-mode reflected
+// ability's ColorOrType$ Color, never admits it), gorge
+// effects.producibleSymbols over Face.ManaAbilities exactly: a blank,
+// "Any" or "Combo Any" Produced$ is every colour, "Combo <colours>" exactly
+// those, a plain brace/space-stripped list its coloured runes. Stored on
+// CardDef.ProduceCol; the kernel unions it over the matched permanents at
+// each use.
+func producibleMask(f *cards.Face) kop.ColorMask {
+	if f == nil {
+		return 0
+	}
+	var set kop.ColorMask
+	for _, ma := range f.ManaAbilities() {
+		p := effects.ManaOf(ma).Produced
+		switch {
+		case p == "" || p == "Any" || p == "Combo Any":
+			set |= kop.ColAny
+			continue
+		}
+		if cols, ok := effects.ComboColours(p); ok {
+			for _, col := range cols {
+				set |= colorMask(col)
+			}
+			continue
+		}
+		for _, r := range reflectedProducedReplacer.Replace(p) {
+			if i := strings.IndexRune("WUBRG", r); i >= 0 {
+				set |= 1 << uint(i)
+			}
+		}
+	}
+	return set
 }
 
 // reflTapMana: a is the lowered reflected ability, cost {T} alone.

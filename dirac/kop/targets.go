@@ -44,6 +44,13 @@ type TargetSpec struct {
 	// MinV, MaxV: the bounds when TFlags has TgfBoundsV (a constant side holds
 	// kop.Const); Min/Max are unused then.
 	MinV, MaxV ValueRef
+	// SpellF is a TgtSpellTgting slot's spell-side filter (the counter's
+	// ValidTgts$, e.g. Avoid Fate's Instant,Aura): a stack-zone filter on the
+	// candidate spell; 0 = any spell. VYou replaces the slot's battlefield
+	// Filter with "a target of the spell is the chooser" (TargetValidTargeting$
+	// You, Dawn Charm).
+	SpellF FilterID
+	VYou   bool
 }
 
 // MaxTargets is the number of target slots an ability may have.
@@ -66,8 +73,10 @@ const (
 	TgfMaxTotalMV                             // the objects' total mana value is at most TargetSpec.MaxMV (MaxTotalTargetCMC$)
 )
 
-// TargetFlags qualifies a target slot.
-type TargetFlags uint16
+// TargetFlags qualifies a target slot. The uint32 is for TgfTrigChooser at
+// bit 16: bits 0-13 are the iota block and TgfSingleTgt, and land's
+// TgfOppOnly/TgfActOnly took 14-15.
+type TargetFlags uint32
 
 // TgtCopyAb: an activated or triggered ability on the stack that the chooser
 // controls, whose source's card types match Filter (gorge TargetType$
@@ -108,10 +117,21 @@ const TgtPermOrGraveCard TargetKind = 240
 // walked before exile, so a chain names its graveyard clauses first.
 const TgtGraveExileCard TargetKind = 241
 
-// TgfSingleTgt (TargetSpec.TFlags): a TgtStackObj slot admits only a spell or
+// TgfSingleTgt (TargetSpec.TFlags): a TgtStackObj, TgtStackAb or TgtSpell slot admits only a spell or
 // an ability whose targets are exactly one distinct target (gorge
 // TargetType$ SpellAbility.singleTarget, the singleTarget property).
 const TgfSingleTgt TargetFlags = 1 << 13
+
+// TgfOppOnly (TargetSpec.TFlags): a TgtAny slot's player alternative is an
+// opponent of the chooser only (gorge ValidTgts$ Opponent,Planeswalker:
+// Burning Sun's Avatar, Jeskai Charm, Rakdos's Return); the filter's object
+// clause still names the planeswalker alternative, which has no controller
+// word.
+const TgfOppOnly TargetFlags = 1 << 14
+
+// TgfActOnly (TargetSpec.TFlags): a TgtStackAb slot admits only an activated
+// ability, no triggered one (gorge TargetType$ Activated.singleTarget: Reroute).
+const TgfActOnly TargetFlags = 1 << 15
 
 // TgfTrigChooser (TargetSpec.TFlags): a triggered ability's slot whose ask is
 // answered by the queue-time trigger player rather than the ability's
@@ -120,4 +140,4 @@ const TgfSingleTgt TargetFlags = 1 << 13
 // dead referents failing closed to the controller). Only the DECISION's
 // Player moves — target legality stays judged from the ability's controller
 // (engine/rules/target_modes.go targetChooserCore).
-const TgfTrigChooser TargetFlags = 1 << 14
+const TgfTrigChooser TargetFlags = 1 << 16

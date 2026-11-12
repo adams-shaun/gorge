@@ -292,10 +292,10 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 							pt.AddToughnessAffected = effects.AffectedXStaticAmount(pt.AddToughnessExpr)
 							out = append(out, pt)
 						}
-						if st.HasParam(cards.PKAddKeyword) || st.HasParam(cards.PKRemoveKeyword) || st.HasParam(cards.PKCantHaveKeyword) {
+						if st.HasParam(cards.PKAddKeyword) || st.HasParam(cards.PKRemoveKeyword) || st.HasParam(cards.PKCantHaveKeyword) || statGrantsLure(st) {
 							kw := base
 							kw.Layer = LAbilities
-							kw.AddKeywords = statKeywords(st)
+							kw.AddKeywords = withLureGrant(st, statKeywords(st))
 							if st.HasParam(cards.PKSharedKeywordsZone) {
 								// A shared-keyword grant is filtered by the cards in the
 								// named zones right now (Eater of Virtue's exile, Cairn
