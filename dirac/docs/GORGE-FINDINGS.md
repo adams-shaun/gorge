@@ -30,12 +30,6 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   plus the greedy artifact credit pays the whole cost (its planner refuses
   the shape), so a cast with a coloured pip is offered only with that colour
   floating, which the lockstep reproduces.
-- X ceiling: gorge's xAsk loops X up to pool + caster's graveyard + convoke
-  credit + what the window's sources make + 1, and raises that only for a
-  named-count discount, so a generic reduction (Zimone, Mocking Sprite) paying
-  into {X} past it is not offered although CR 601.2f allows it. dirac
-  clamps its X ask to the same ceiling on the gorge surfaces (cast.go bsX;
-  TestXCeilingReducePaysX).
 - Free cast with an either-or additional cost (Alternate Additional Cost,
   Eaten Alive via Etali, Louisoix's Sacrifice via Hurl into History's
   Discover): gorge's altAddAsk classifies the parts with `castable` ->

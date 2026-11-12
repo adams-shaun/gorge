@@ -804,10 +804,13 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			}
 			if cost.XRed > 0 && gorgeSurface {
 				// gorge's xAsk loop stops at pool + graveyard + convoke credit
-				// + 1 + what the window's sources make (it raises the bound for
-				// a reduction only in the named-count case): a CR 601.2f
-				// reduction past it is not offered (GORGE-FINDINGS.md "X ceiling")
-				mx = min(mx, av.total+s.filtBoundExtra(k, e.ctrl)+int(s.pl[SeatIx(e.ctrl)].graveN)+s.convokeXCredit(k)+1)
+				// + 1 + what the window's sources make, raised by the cast's
+				// composed reductions (CR 601.2f: a reduction is mana the
+				// announced X can spend). Its excess over the printed generic
+				// is XRed, and the pool's pip demand never falls below the
+				// reduction's non-excess part, so XRed is exactly the raise
+				// the ask's ceiling needs: the same largest X is offered.
+				mx = min(mx, av.total+s.filtBoundExtra(k, e.ctrl)+int(s.pl[SeatIx(e.ctrl)].graveN)+s.convokeXCredit(k)+1+int(cost.XRed))
 			}
 			if k.gen != nil && k.gen.anyLifeX {
 				mx = s.lifeXClamp(k, &cost, mx) // PayLife<X> bounds the ask by life
