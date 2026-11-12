@@ -78,14 +78,50 @@ func TestLowerEffectUncounterScope(t *testing.T) {
 	}
 }
 
+// lowerSynth lowers a synthetic card script and returns the lowered card.
+func lowerSynth(t *testing.T, src string) *lCard {
+	t.Helper()
+	card, diags := cards.ParseBytes("synth_probe.txt", []byte(src))
+	if card == nil {
+		t.Fatalf("parse: %v", diags)
+	}
+	if d := card.Link(); len(d) != 0 {
+		t.Fatalf("link: %v", d)
+	}
+	name := card.Faces[0].Name
+	p := &pool{names: []string{name}, byName: map[string]*cards.Card{name: card},
+		nDecks: map[string]int{}, reg: &cards.Registry{}}
+	return lowerCard(p, name, card, false)
+}
+
+// turnReplKinds is the lowered card's TurnRepl kinds, in program order.
+func turnReplKinds(lc *lCard) []int {
+	var kinds []int
+	for _, ab := range lc.Abilities {
+		for _, in := range ab.Prog {
+			if in.Op == "TurnRepl" {
+				kinds = append(kinds, in.C)
+			}
+		}
+	}
+	return kinds
+}
+
 // TestLowerPumpYouPlayerGrant: the player half of a Pump Defined$ You & Valid
-// grant is the kernel's TurnRepl player hexproof (Dawn's Truce); shroud or
-// protection, which gorge also gives the player, stay refused by name.
+// grant is the kernel's TurnRepl player hexproof (Dawn's Truce) — the plain
+// Hexproof grant emits a TurnReplPlayerHex beside the per-object PumpAll, so
+// the kernel refuses an opponent's targeting of the player as gorge does;
+// shroud or protection, which gorge also gives the player, stay refused by
+// name.
 func TestLowerPumpYouPlayerGrant(t *testing.T) {
 	const truce = "Name:Player Grant Probe\nManaCost:W\nTypes:Instant\n" +
 		"A:SP$ Pump | Defined$ You & Valid Permanent.YouCtrl | KW$ Hexproof | SpellDescription$ probe\n"
-	if r := exileBfSynth(t, truce); len(r) != 0 {
+	lc := lowerSynth(t, truce)
+	if r := lc.Refusals; len(r) != 0 {
 		t.Fatalf("the probe script itself refuses: %q", keclReason(r))
+	}
+	if kinds := turnReplKinds(lc); len(kinds) != 1 || kinds[0] != kop.TurnReplPlayerHex {
+		t.Fatalf("plain Hexproof: TurnRepl kinds %v, want one %d", kinds, kop.TurnReplPlayerHex)
 	}
 	for _, c := range []struct{ kw, want string }{
 		{"Shroud", `a player Shroud grant`},

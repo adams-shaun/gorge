@@ -255,18 +255,24 @@ func (s *State) turnPlayerHex(k *prep, p uint8) bool {
 }
 
 // hexUBColours is the colours permanent sl has hexproof from through the
-// mechHexUB plane: blue and black while it was marked by a Veil whose grant
-// no later loss of abilities has taken (CR 613.7: the newest of the grants
-// and the loss wins). Cold: targetableGen calls it behind genPrep.anyHexUB.
+// mechHexUB plane: blue and black while a Veil of its controller marked it and
+// that grant no later loss of abilities has taken (CR 613.7: the newest of the
+// grants and the loss wins). Only its controller's records count: the plane
+// marks every permanent the Veil's controller controlled at its resolution, so
+// a permanent that has since changed controller has lost the grant, and a
+// later Veil of another player does not refresh the oldest grant's timestamp
+// (gorge's per-object pump grant is YouCtrl of the Veil's controller).
+// Cold: targetableGen calls it behind genPrep.anyHexUB.
 //
 //go:noinline
 func (s *State) hexUBColours(k *prep, sl Slot) kop.ColorMask {
 	if DebugTurnReplOff || !s.mSl(k, mechHexUB, sl) {
 		return 0
 	}
+	ctrl := s.perms[sl].ctrl
 	ts := uint16(0)
 	for i := range s.cold.exMark {
-		if r := &s.cold.exMark[i]; r.live && r.sl == slotExPlHex && r.col == kop.ColU|kop.ColB {
+		if r := &s.cold.exMark[i]; r.live && r.sl == slotExPlHex && r.col == kop.ColU|kop.ColB && r.pl == ctrl {
 			ts = max(ts, r.ts)
 		}
 	}
