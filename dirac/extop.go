@@ -213,6 +213,8 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 			s.queueAsk(s.objs[o].slot, akNumber)
 		}
 		return true, true
+	case kop.ExtChooseNumberMid:
+		return s.chooseNumberMid(k, in), true // repl_choosenumber.go
 	case kop.ExtChooseName:
 		// the same, for the as-enters nonland card name (repl_choosename.go)
 		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {

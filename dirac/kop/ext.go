@@ -637,6 +637,23 @@ const ExtChooseNumber ExtOp = 230
 
 func init() { extOpNames[ExtChooseNumber] = "ChooseNumber" }
 
+// ExtChooseNumberMid: a number chosen while an ability or spell resolves
+// (gorge effects.ChooseNumber's non-ETB path, the "pay any amount" family:
+// Well of Lost Dreams, Yusri, Fortune's Flame, Tibalt's Trickery, the join
+// forces cards, and the energy cards). Obj is the chooser; C&0xff is the
+// literal Min$ floor (the corpus has only 0..2), C&0x100 says Max$ is
+// present and B is its value (a literal, SVar or Count$ expression), C&0x200
+// says Random$ True. The chooser picks from Min..Max (gorge
+// effects.chooseNumberAsk); a bound the context cannot honour falls back to
+// the deterministic 0, exactly as gorge does. The answer is stored on the
+// source permanent's chosen byte (or the resolving card object when the
+// source is a spell), and read by ExChosenNumber. A single candidate is
+// recorded without an ask; a Random$ choice draws from the kernel rng.
+// dirac/repl_choosenumber.go.
+const ExtChooseNumberMid ExtOp = 309
+
+func init() { extOpNames[ExtChooseNumberMid] = "ChooseNumberMid" }
+
 // ExtGrantExile (Q, Stacking the Deck): every remembered object that is in
 // exile gains the activated ability C of the resolving ability's card, an
 // ability whose ActZone is Exile (gorge Animate Abilities$ with Duration$

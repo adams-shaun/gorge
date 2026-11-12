@@ -4669,6 +4669,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "ChooseNumber":
 		// an as-enters number from B to C (lower_choosenumber.go)
 		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumber)), kop.Const(in.B.N), int16(in.C)
+	case "ChooseNumberMid":
+		// a resolution-time number (lower_choosenumber.go): B the Max$
+		// value, C the Min$ floor plus the has-Max / Random flags
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumberMid)), int16(in.C)
 	default:
 		return ki, fmt.Errorf("op %s has no kop form", in.Op)
 	}

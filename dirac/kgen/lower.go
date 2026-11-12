@@ -1791,6 +1791,10 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		arg = strings.TrimSuffix(arg, ">")
 		if !hasArg {
 			switch {
+			case t == "Mandatory":
+				// Forge's cost prefix (rules/cost/parse.go skips the same
+				// word): the unless machinery decides pay or decline.
+				continue
 			case t == "T":
 				c.Tap = true
 				continue
@@ -1992,6 +1996,27 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			if err := lc.tapXVarCost(&c, parts, t); err != nil {
 				return c, err
 			}
+			continue
+		}
+		if head == "PayEnergy" && (parts[0] == "X" || lc.face.SVars[parts[0]] != "") {
+			// PayEnergy<X> / PayEnergy<SVar>: the "pay one or more {E}"
+			// resolution unless cost (Aether Refinery, Localized
+			// Destruction, Pia Nalaar, Rampaging Aetherhood, Territorial
+			// Aetherkite, Vault 112). The amount is read when the cost is
+			// offered, like PayLife<X>'s LifeBy. An activated ability's
+			// printed cost is the constant kop.CostPayEnergy, so a dynamic
+			// one there would lose its amount: refuse it.
+			if !lc.unlessParse {
+				return c, refuse("PayEnergy<%s> outside an unless cost", parts[0])
+			}
+			if len(parts) != 1 || c.Energy != 0 || c.EnergyBy != nil {
+				return c, refuse("energy cost %q", t)
+			}
+			v, err := lc.value(parts[0])
+			if err != nil {
+				return c, err
+			}
+			c.EnergyBy = &v
 			continue
 		}
 		n, err := strconv.Atoi(parts[0])

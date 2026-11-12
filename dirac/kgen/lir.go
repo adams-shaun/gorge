@@ -188,6 +188,7 @@ const (
 	vLifeLostLastTurn    // life the controller lost during the previous turn (PlayerCountPropertyYou$LifeLostLastTurn)
 	vLastDamage          // damage the spell's previous DealDamage landed (kop.VLastDamage; value_totaldamage.go)
 	vDmgAmount           // the positive damage the source received this turn (Count$TotalDamageReceivedThisTurn)
+	vEnergyOf            // energy counters of player Ref (Count$YourCountersEnergy)
 	vCount_
 )
 
@@ -195,7 +196,7 @@ var valNames = [...]string{"None", "Const", "X", "Count", "CountGraveyard", "Sum
 	"Morbid", "AttackedThisTurn", "PowerOf", "ToughnessOf", "LifeOf", "LibrarySizeOf", "StartingLife",
 	"TriggerAmount", "LifeGainedThisTurn", "OppLifeLostThisTurn", "CountersOn", "CreaturesDied",
 	"RememberedCount", "ExcessDamage", "LastLifeLost", "TokensCreated", "CountCast", "LifeLostThisTurn", "Sum",
-	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast", "YourExtraTurns", "NotOwnLibMV", "CounterKinds", "TargetPlayers", "IfCastOwnMain", "PWTypes", "TapPower", "StepIn", "TgtSpent", "OppExtreme", "ThisTurnActExhaust", "Activations", "LifeLostLastTurn", "LastDamage", "DmgAmount"}
+	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast", "YourExtraTurns", "NotOwnLibMV", "CounterKinds", "TargetPlayers", "IfCastOwnMain", "PWTypes", "TapPower", "StepIn", "TgtSpent", "OppExtreme", "ThisTurnActExhaust", "Activations", "LifeLostLastTurn", "LastDamage", "DmgAmount", "EnergyOf"}
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
 // that order, then negated when Neg.
@@ -535,6 +536,7 @@ type lCost struct {
 	ExileGBf       bool     // ExileCtrlOrGrave<N/Spec>: the battlefield (the payer's permanents) as well (kop.CostExileCtrlOrGrave, Craft)
 	ExileStackSelf bool     // ExileFromStack<1/Card.Self>: the resolving spell exiles itself from the stack (an unless cost beside ExileG)
 	Energy         int      // PayEnergy<N>: pay N energy (an activated ability's cost only)
+	EnergyBy       *lValue  // PayEnergy<X>/<SVar>: the amount read as the cost is offered (a resolution unless cost)
 	Waterbend      int      // Waterbend<N>: N generic payable by tapping artifacts/creatures (an activated ability's cost only)
 	WaterbendX     bool     // Waterbend<X>: the cost's one {X} payable by tapping artifacts/creatures (kop.CostWaterbend with N 0; an activated ability's cost only)
 	BlightN        int      // Blight<N>: put N -1/-1 counters on a creature you control (CR 701.68; shares Cost.N/Filter)
@@ -559,7 +561,7 @@ func (c lCost) pureMana() bool {
 	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 &&
 		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && c.Loyalty == 0 && !c.LoyaltyX &&
 		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.SacX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
-		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.Energy == 0 && !c.ReturnSelf &&
+		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.Energy == 0 && c.EnergyBy == nil && !c.ReturnSelf &&
 		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.TapXVar && !c.ExileTrigNew &&
 		!c.PutLibSelf && c.BeholdN == 0 && c.BeholdF == nil
 }
