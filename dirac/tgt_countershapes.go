@@ -12,6 +12,14 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // the targeting clause (any spell).
 var DebugCtrShapesOff bool
 
+// DebugCtrSpellFOff (mutation, TestCtrvtgtSpellFMutation): TgtSpellTgting
+// ignores the spell side's own filter (Avoid Fate's Instant,Aura).
+var DebugCtrSpellFOff bool
+
+// DebugCtrVYouAnyPlayer (mutation, TestCtrvtgtVYouMutation): TgtSpellTgting's
+// "You" clause accepts a target that is any player, not the chooser.
+var DebugCtrVYouAnyPlayer bool
+
 // ctrShapeKind reports whether target kind kd is TgtStackObjTrig or
 // TgtSpellTgting.
 func ctrShapeKind(kd kop.TargetKind) bool {
@@ -45,7 +53,7 @@ func (s *State) spellTgtingOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, cod
 	if DebugCtrShapesOff {
 		return true
 	}
-	if t.SpellF != 0 && !s.matchCardAt(k, t.SpellF, s.objs[o].card, s.stackCtrl(o), p, o) {
+	if !DebugCtrSpellFOff && t.SpellF != 0 && !s.matchCardAt(k, t.SpellF, s.objs[o].card, s.stackCtrl(o), p, o) {
 		return false // the spell side's own filter (Avoid Fate: Instant,Aura)
 	}
 	e := &s.stack[i]
@@ -68,7 +76,7 @@ func (s *State) spellTgtingOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, cod
 // else a battlefield permanent matching the slot's Filter.
 func (s *State) tgtClauseMatch(k *prep, t *kop.TargetSpec, p uint8, c uint8) bool {
 	if t.VYou {
-		return isPlayerTarget(c) && CodeSeat(c) == p
+		return isPlayerTarget(c) && (DebugCtrVYouAnyPlayer || CodeSeat(c) == p)
 	}
 	return s.tgtBattlefieldMatch(k, t.Filter, p, c)
 }

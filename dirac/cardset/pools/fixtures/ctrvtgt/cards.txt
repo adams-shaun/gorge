@@ -1,13 +1,18 @@
 # the TargetValidTargeting$ pool: a counter whose clause reads a battlefield
 # creature after a dot (Confound, Intervene, Vigilant Martyr), a spell-side
 # Instant,Aura filter beside the clause (Avoid Fate) and the "You" clause
-# (Dawn Charm) (dirac/oracle/ctrvtgt_lockstep_test.go)
+# (Dawn Charm); Flame Slash is a sorcery targeting a creature (the SpellF
+# exclusion), Heroes' Reunion targets a player other than the Dawn Charm
+# controller (the VYou seat check) and Lightning Bolt in the first deck aims at
+# a player (the same check from the other side) (dirac/oracle/ctrvtgt_lockstep_test.go)
 Confound
 Intervene
 Avoid Fate
 Dawn Charm
 Vigilant Martyr
+Flame Slash
 Giant Growth
+Heroes' Reunion
 Lightning Bolt
 Pacifism
 Shock
