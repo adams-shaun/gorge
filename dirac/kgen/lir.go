@@ -252,9 +252,9 @@ func (v lValue) String() string {
 			args = append(args, fmt.Sprintf("op=%d,n=%d", v.Op, v.N))
 		case vSacrificedThisTurn, vScriedThisTurn, vDilemmasFaced, vRemLKIPT, vPhaseCount, vAdamant, vMonarch:
 			args = append(args, fmt.Sprintf("n=%d", v.N))
-		case vCountGraveyard, vOppsLostLife:
+		case vCountGraveyard, vHandSizeOf, vOppsLostLife:
 			if v.N != 0 {
-				args = append(args, fmt.Sprintf("n=%d", v.N)) // N 1: the opponents dealt combat damage by a legendary creature
+				args = append(args, fmt.Sprintf("n=%d", v.N)) // N 1: the cards, not the raw zone length (a hand token is no card)
 			}
 		}
 		if v.Ref.Kind != rNone {
