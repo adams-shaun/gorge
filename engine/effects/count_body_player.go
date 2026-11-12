@@ -209,9 +209,9 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 	// PlayerCountDefinedRegistered$<Property> — the group of registered
 	// players. The two spellings are matched EXACTLY (never the wider
 	// PlayerCountDefined prefix: the corpus's other PlayerCountDefined*
-	// groups — DefinedRememberedOwner, DefinedNonTriggeredTarget,
-	// DefinedActivePlayer, … — need referent machinery this head does not
-	// build and stay fail-closed at the fallthrough below):
+	// groups — DefinedRememberedOwner, DefinedActivePlayer, … — need
+	// referent machinery this head does not build and stay fail-closed at
+	// the fallthrough below; DefinedNonTriggeredTarget is dispatched above):
 	//
 	//   - PlayerCountDefinedRegistered$: every living player, the controller
 	//     INCLUDED (Knight of the Ebon Legion and Y'shtola say "if a PLAYER
@@ -222,6 +222,10 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 	//   - PlayerCountDefinedRegistered.Other$: living players minus the
 	//     resolving controller (Ludevic, Necro-Alchemist's "a player other
 	//     than you lost life this turn").
+	if rest, ok := strings.CutPrefix(head, "PlayerCountDefinedNonTriggeredTarget$"); ok {
+		av, aok := playerCountNonTriggeredTarget(h, g, c, rest, arg)
+		return av, aok, true
+	}
 	if rest, ok := strings.CutPrefix(head, "PlayerCountDefinedRegistered.Other$"); ok {
 		if n, ok2 := playerGroupCount(opponentGroup(g, c), rest); ok2 {
 			return n, true, true

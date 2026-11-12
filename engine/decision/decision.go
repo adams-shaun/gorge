@@ -832,6 +832,15 @@ type Decision struct {
 	// value below 2, falls back to GroupCap. GroupCapFor is the one reader,
 	// so Validate, FitRequired and botpolicy's repair cannot drift.
 	GroupLimits map[string]int `json:"groupLimits,omitempty"`
+	// AttackRequirements are the whole-declaration closures an AttackRequirement
+	// static puts on a KAttackers decision (War's Toll): a declaration that
+	// includes any Triggers creature must include every Members creature. The
+	// rules layer publishes only closures a legal declaration can satisfy within
+	// the decision's own bounds. AttackRequirementsSatisfied is the one rule;
+	// Validate, FitRequired and the engine's declaration check all call it.
+	// Server-side only (json:"-", BlockMust's precedent): the engine rejects an
+	// unsatisfied declaration, so the wire payload is unchanged.
+	AttackRequirements []AttackRequirementGroup `json:"-"`
 	// Repeatable relaxes Validate's no-duplicate-index rule: when true the
 	// SAME option index may be chosen more than once in one answer. It is
 	// set only by a modal (Charm) decision whose SA carries
@@ -1572,6 +1581,9 @@ func (d *Decision) Validate(in Intent) error {
 	// from, so the published fact, this fence and the repair cannot disagree.
 	if err := d.validateAlone(in.Choices); err != nil {
 		return err
+	}
+	if d.Kind == KAttackers && !d.AttackRequirementsSatisfied(in.Choices) {
+		return fmt.Errorf("declaration does not satisfy an AttackRequirement static's whole-declaration closure")
 	}
 	if len(in.Rest) > 0 {
 		if d.Kind != KArrange {

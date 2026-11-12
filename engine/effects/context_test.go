@@ -339,6 +339,10 @@ func (h *fakeHost) EmitScryRecord(e events.Event) { h.Emit(e) }
 // CountReplacementProposed has no replacement registry in the effects test double.
 func (h *fakeHost) CountReplacementProposed(ev events.Event) events.Event { return ev }
 
+// RollModifyCostPayable / PayRollModifyCost: the double has no payment engine.
+func (h *fakeHost) RollModifyCostPayable(state.PlayerID, string) bool { return false }
+func (h *fakeHost) PayRollModifyCost(state.PlayerID, string) bool     { return false }
+
 // CascadeReplacement has no replacement registry to consult here, the same
 // discipline as the double's Scry above: it reports that nothing replaced the
 // cascade instruction, so the caller runs its residue inline.

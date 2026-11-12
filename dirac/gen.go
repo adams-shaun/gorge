@@ -1167,7 +1167,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.anyOwnReduce = true
 				}
 			case kop.AbMana:
-				if _, _, ok := manaCtrRider(a); ok {
+				if _, _, ok := manaCtrRider(a); ok || kop.ManaRiderAb(a) {
 					g.anyManaRider, g.anyTapsDefer = true, true // a planner-deferred source (mana_rider.go)
 				}
 				if a.ManaDeferred && a.AFlags&kop.AfLatent == 0 {
@@ -1224,7 +1224,11 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 						g.anyFiltPip = true
 					}
 				}
-				if int(g.filt(CardID(i))) != j && censusGapMana(a) && !lifePainLandAb(&t.Cards[i], a) && g.gapOther(CardID(i)) < 0 {
+				if int(g.filt(CardID(i))) != j && censusGapMana(a) && !lifePainLandAb(&t.Cards[i], a) &&
+					!kop.ChosenSecondManaAb(&t.Cards[i], firstManaAb(&t.Cards[i]), j) && g.gapOther(CardID(i)) < 0 {
+					// (Quirion Elves' chosen {T} is folded into the source's
+					// unit by prepMultiMana, not a census gap: registering it as
+					// one would keep a filter beside it off the filtScript path)
 					g.smallFor(CardID(i)).gapOther = int8(j)
 					g.setFlag(CardID(i), gfGapOther)
 				}
@@ -1721,6 +1725,9 @@ type genState struct {
 	untapOn   bool
 
 	lki [maxLKI]lkiRec // the shared LKI pool (zone_lki.go)
+	// lkiPad: the 192-bit SubMask grew each LKI record by 8 bytes (31 x 8 = 248); these 8 carry
+	// that growth to 256, a multiple of 64, so perms keeps its cache-line phase in both size classes.
+	lkiPad [8]uint8
 
 	used  [maxUsed]usedRec // once-per-turn triggers / statics used this turn
 	nused uint8
@@ -1848,7 +1855,9 @@ type genState struct {
 		col kop.ColorMask
 		// sc, ctl: a scoped record (Ext PreventDamageScope) prevents the
 		// damage its controller ctl (a player) or the creatures ctl controls
-		// would take; sc holds the kop.PrevScope* bits and col is 0
+		// would take; sc holds the kop.PrevScope* bits and col is 0. A record
+		// with sc&prevNextSc is an Ext PreventNext shield: ctl the recipient's
+		// damage code, obj the effect's source, col the damage left (repl_prevnext.go)
 		sc, ctl uint8
 	}
 	lingerM slotMask

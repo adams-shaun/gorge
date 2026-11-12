@@ -47,7 +47,7 @@ type PoolData struct {
 	Status              []Status
 	Reason              []string      // why an entry is not StatusSupported; "" when it is
 	Defs                []kop.CardDef // Name blank: Names holds them
-	CardSubs            [][2]uint64
+	CardSubs            []kop.SubMask
 	CardTokens          [][]uint16
 	CardRefSubs         [][]uint8
 	AbilityOrigin       [][]uint8
@@ -288,8 +288,8 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 	// the masks -- unless a card chooses a creature type, when every
 	// printed subtype is kept (any of them may be chosen), or the kernel
 	// reads one by name (Role below, Army for amass).
-	var subSet [2]uint64
-	mark := func(s uint8) { subSet[s/64] |= 1 << (s % 64) }
+	var subSet kop.SubMask
+	mark := func(s uint8) { subSet = subSet.With(int(s)) }
 	choosesType := false
 	usesOverride := map[int]bool{}
 	for _, i := range pool {
@@ -333,8 +333,7 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 					// its Type$ word) so that lookup and the CardDef.Subtypes.Has(army)
 					// check both work.
 					if x := int(in.C); x >= 0 && x < len(dd.CardSubs) {
-						subSet[0] |= dd.CardSubs[x][0]
-						subSet[1] |= dd.CardSubs[x][1]
+						subSet = subSet.Or(dd.CardSubs[x])
 					}
 				case kop.OpCopyAsTokenEx:
 					if in.C > 0 {
@@ -363,7 +362,7 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 		// has set them.
 		for _, s := range dd.OverrideSubs[o].Keep {
 			for _, i := range pool {
-				if dd.CardSubs[i][s/64]&(1<<(s%64)) != 0 {
+				if dd.CardSubs[i].Has(int(s)) {
 					mark(s)
 					break
 				}
@@ -381,8 +380,7 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 	if pwTypes {
 		for _, i := range pool {
 			if dd.Defs[i].Types&kop.TPlaneswalker != 0 {
-				subSet[0] |= dd.CardSubs[i][0]
-				subSet[1] |= dd.CardSubs[i][1]
+				subSet = subSet.Or(dd.CardSubs[i])
 			}
 		}
 	}
@@ -393,8 +391,7 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 	}
 	if choosesType {
 		for _, i := range pool {
-			subSet[0] |= dd.CardSubs[i][0]
-			subSet[1] |= dd.CardSubs[i][1]
+			subSet = subSet.Or(dd.CardSubs[i])
 		}
 	}
 	// The kernel's Role exclusivity keys on the printed Role subtype by
@@ -406,7 +403,7 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 			continue
 		}
 		for _, i := range pool {
-			if dd.CardSubs[i][s/64]&(1<<(s%64)) != 0 {
+			if dd.CardSubs[i].Has(int(s)) {
 				mark(uint8(s))
 				break
 			}
@@ -416,7 +413,7 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 	subMap := map[uint8]uint8{}
 	t := &kop.Table{Exprs: dd.Exprs, Conds: dd.Conds}
 	for s := 0; s < len(dd.Subtypes); s++ {
-		if subSet[s/64]&(1<<(s%64)) != 0 {
+		if subSet.Has(int(s)) {
 			subMap[uint8(s)] = uint8(len(t.Subtypes))
 			t.Subtypes = append(t.Subtypes, dd.Subtypes[s])
 		}
@@ -540,7 +537,7 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 		d.Name = dd.Names[i]
 		var subs []uint8
 		for s := 0; s < len(dd.Subtypes); s++ {
-			if dd.CardSubs[i][s/64]&(1<<(s%64)) != 0 {
+			if dd.CardSubs[i].Has(int(s)) {
 				subs = append(subs, uint8(s))
 			}
 		}

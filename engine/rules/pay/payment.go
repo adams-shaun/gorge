@@ -142,7 +142,7 @@ func PayManaDescriptorForSpent(e Engine, p state.PlayerID, d Descriptor, cost Co
 	beforeTyped := av.Typed
 	pay, ok := ResolveManaWith(cost, before, beforeSnow, beforeTyped, e.Game().Players[p].Life,
 		e.Eval().PayLifeInsteadOfB(p), rider, conv)
-	if e.Eval().LifeChangeForbidden(p) {
+	if e.Eval().LifePaymentForbidden(p, d.SAKind()) {
 		// CR 119.7/119.8: the payer's life total can't change, so the charge
 		// is re-resolved with every life face closed -- a fixed PayLife<N>, a
 		// Phyrexian pip's two life and K'rrik's 2-life {B}. An offer gate
@@ -830,7 +830,7 @@ func CostPayableClass(e Engine, p state.PlayerID, d Descriptor, rider PipRider, 
 // (PayManaDescriptorForSpent) also keeps the grant, so a payer who declines
 // the window still spends the life.
 func CostPayableClassLife(e Engine, p state.PlayerID, d Descriptor, rider PipRider, cost Cost, lifeGrant bool) bool {
-	if e.Eval().LifeChangeForbidden(p) {
+	if e.Eval().LifePaymentForbidden(p, d.SAKind()) {
 		// CR 119.7/119.8: no positive life may be paid at all, so neither a
 		// fixed life part nor a Phyrexian/life pip alternative is available.
 		// CR 119.4b keeps a 0-life cost payable exactly as before.
@@ -881,7 +881,7 @@ func CostPayable(e Engine, p state.PlayerID, id state.ObjID, ability bool, cost 
 // modes, so a potential action and the payment it promises can never disagree
 // about what the pool may satisfy.
 func CostPayablePool(e Engine, p state.PlayerID, id state.ObjID, kind SAKind, cost Cost, pool state.Mana, typed [7]state.Mana) bool {
-	if e.Eval().LifeChangeForbidden(p) {
+	if e.Eval().LifePaymentForbidden(p, kind) {
 		// CR 119.7/119.8: the payer can pay no positive life, so the same
 		// closed-life resolve every other offer gate uses prices this
 		// hypothetical pool.

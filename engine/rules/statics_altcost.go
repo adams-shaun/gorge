@@ -32,6 +32,63 @@ type altCostView struct {
 	// only mana produced by Treasures to cast it this way), as parsed; empty
 	// is unrestricted. A value pay.OnlyTagKnown rejects withholds the offer.
 	manaRestriction string
+	// graveyardSelf marks an entry whose self-carried static names the
+	// graveyard explicitly (EffectZone$ Graveyard), the permission to cast
+	// the card from its own graveyard. EffectZone$ All also admits the
+	// graveyard at effectZoneOK, so this bit cannot be read off the zone
+	// gate: only an explicit Graveyard token sets it.
+	graveyardSelf bool
+}
+
+// graveyardSelfAltCost reports whether st is an AlternativeCost static whose
+// EffectZone$ explicitly names the graveyard. That is the self-carried
+// graveyard-cast permission (Worldheart Phoenix, Raffine's Guidance, Squee,
+// Scourge of Nel Toth); EffectZone$ All admits the graveyard at
+// effectZoneOK but is not a graveyard cast and must not be offered there.
+func graveyardSelfAltCost(st *cards.Static) bool {
+	if st == nil || st.Mode != "AlternativeCost" {
+		return false
+	}
+	// Split on commas and trim each token by hand: this sits on the
+	// graveyard-candidate path, which codeshape's strings ratchet keeps
+	// free of string machinery.
+	list := st.ParamStr(cards.PKEffectZone)
+	for start := 0; start <= len(list); {
+		end := start
+		for end < len(list) && list[end] != ',' {
+			end++
+		}
+		tok := list[start:end]
+		for len(tok) > 0 && (tok[0] == ' ' || tok[0] == '\t') {
+			tok = tok[1:]
+		}
+		for len(tok) > 0 && (tok[len(tok)-1] == ' ' || tok[len(tok)-1] == '\t') {
+			tok = tok[:len(tok)-1]
+		}
+		if tok == "Graveyard" {
+			return true
+		}
+		if end == len(list) {
+			return false
+		}
+		start = end + 1
+	}
+	return false
+}
+
+// faceHasGraveyardSelfAltCost reports whether f carries a self-carried
+// AlternativeCost static scoped to the graveyard. The ir probe first: a face
+// with no EffectZone$ key anywhere cannot have one.
+func faceHasGraveyardSelfAltCost(f *cards.Face) bool {
+	if f == nil || !f.StaticsMayNameEffectZone() {
+		return false
+	}
+	for i := range f.Statics {
+		if graveyardSelfAltCost(&f.Statics[i]) {
+			return true
+		}
+	}
+	return false
 }
 
 // alternativeCosts lists extra ways to cast id, each becoming its own
@@ -127,7 +184,8 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 				}
 				out = append(out, altCostView{cost: cost,
 					announce: strings.TrimSpace(st.ParamStr(cards.PKAnnounce)), src: id,
-					manaRestriction: st.Params["ManaRestriction"]})
+					manaRestriction: st.Params["ManaRestriction"],
+					graveyardSelf:   graveyardSelfAltCost(&st)})
 			}
 		}
 	}

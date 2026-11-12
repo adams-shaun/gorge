@@ -677,6 +677,23 @@ func evalCov3PlayerScalar(h Host, c *Ctx, g *state.Game, group string, players [
 			return 0, false
 		}
 		return domainCount(h, c, c.Controller, 0), true
+	case cov3PlayerScalarDamageToOppsThisTurn:
+		// Forge's DamageToOppsThisTurn on PlayerCountPropertyYou
+		// (Bloodcrazed Goblin's "unless an opponent has been dealt damage
+		// this turn"): the resolving controller's living opponents' damage
+		// this turn, through the same helper the TriggeredPlayer$ ref reads.
+		// Other group spellings stay unmodelled: PlayerCountOpponents$
+		// DamageToOppsThisTurn is only Antagonism's AI hint, which is not a
+		// rules read (and after the NeedsToPlayVar census fix no referenced
+		// body carries it).
+		if group != "PlayerCountPropertyYou" {
+			return 0, false
+		}
+		var n int32
+		for _, p := range players {
+			n += damageToOppsThisTurn(h, g, p)
+		}
+		return n, true
 	}
 	return 0, false
 }
@@ -990,6 +1007,7 @@ const (
 	cov3PlayerScalarOpponentsAttackedThisCombat
 	cov3PlayerScalarHasPropertyAttackedYouTheirLastTurn
 	cov3PlayerScalarDomainPlayer
+	cov3PlayerScalarDamageToOppsThisTurn
 )
 
 var cov3PlayerScalarCodes = state.NewStrCodes(
@@ -1005,4 +1023,5 @@ var cov3PlayerScalarCodes = state.NewStrCodes(
 	state.StrEntry[cov3PlayerScalarCode]{Key: "OpponentsAttackedThisCombat", Val: cov3PlayerScalarOpponentsAttackedThisCombat},
 	state.StrEntry[cov3PlayerScalarCode]{Key: "HasPropertyattackedYouTheirLastTurn", Val: cov3PlayerScalarHasPropertyAttackedYouTheirLastTurn},
 	state.StrEntry[cov3PlayerScalarCode]{Key: "DomainPlayer", Val: cov3PlayerScalarDomainPlayer},
+	state.StrEntry[cov3PlayerScalarCode]{Key: "DamageToOppsThisTurn", Val: cov3PlayerScalarDamageToOppsThisTurn},
 )

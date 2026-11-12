@@ -1,0 +1,19 @@
+# Quirion Elves' second "{T}: Add one mana of the chosen colour" beside its
+# fixed {G} ability (dirac/oracle/manaonly_test.go), in a five-colour deck
+# over thin off-colour mana against a plain creature deck. A mana ability
+# whose cost is mana alone (Nomadic Elf, Orochi Leafcaller, Agent of
+# Stromgald, Bog Initiate, Energy Refractor and the rest of that class) stays
+# refused by name: its prefix funding diverged from gorge in lockstep, so the
+# kernel does not lower it (dirac/kgen/manaonly_cost_test.go).
+Quirion Elves
+Grizzly Bears
+Doom Blade
+Serra Angel
+Lightning Bolt
+Wind Drake
+Hill Giant
+Forest
+Swamp
+Plains
+Mountain
+Island

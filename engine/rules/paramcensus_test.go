@@ -2422,7 +2422,10 @@ var handRoots = struct {
 		// fold, outside the replacement pipeline (the copy basis face is
 		// applied after the move folds). Its reads are gated on
 		// Event$ Moved, so the bucket stays repl:Moved.
-		"Engine.entryBodyCounterGrants"},
+		"Engine.entryBodyCounterGrants",
+		// R:Event$ CopySpell (Twinning Staff) is read at copy time through the
+		// effects host seam Engine.CopySpellExtra, outside the pipeline.
+		"copySpellExtra"},
 }
 
 // derivedReads is the per-primitive read set the scan attributes.

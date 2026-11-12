@@ -58,9 +58,10 @@ type Eval interface {
 	// Conv is the stat:ManaConvert conversion set for p paying for id
 	// (ability selects ValidSA$ scoping), or nil when nothing converts.
 	Conv(p state.PlayerID, id state.ObjID, kind SAKind) *Conv
-	// LifeChangeForbidden reports whether a CantChangeLife static applies to
-	// p (CR 119.7/119.8's "your life total can't change"): p can pay no
-	// amount of life above 0 (CR 119.4b's "players can always pay 0 life"
-	// still holds). rules' playerLifeChangeForbidden is the one answer.
-	LifeChangeForbidden(p state.PlayerID) bool
+	// LifePaymentForbidden reports whether p can pay no life above 0 in a
+	// payment of this kind (CR 119.4b's "players can always pay 0 life" still
+	// holds): a CantChangeLife/CantLoseLife static (CR 119.7/119.8, every
+	// kind) or a cause-scoped CantPayLife static (kind is the cause the
+	// ValidCause$ list reads). rules' playerLifePayForbidden is the one answer.
+	LifePaymentForbidden(p state.PlayerID, kind SAKind) bool
 }

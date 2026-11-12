@@ -284,7 +284,7 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 			}
 		case "trigger_cost_counter", "trigger_cost_among":
 			mode = counterKindMode(o.Counter)
-		case "division", "altaddcost", "dungeon", "room", "pile", "mode", "counter", "pile-a", "pile-b", "zone":
+		case "division", "altaddcost", "dungeon", "room", "pile", "mode", "counter", "pile-a", "pile-b", "zone", "destination":
 			// The option index is canonical here: a division is the
 			// lexicographic composition order over the attacker's blockers
 			// (rules.divisionOptions), an additional-cost pick is the

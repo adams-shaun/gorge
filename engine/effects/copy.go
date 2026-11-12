@@ -362,8 +362,32 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 				}
 				emitCopy(h, c, rememberCopies, ev, addTypes)
 			}
+			if n < 1 {
+				continue
+			}
+			// R:Event$ CopySpell (Twinning Staff): "copy it that many times
+			// plus an additional time. You may choose new targets for the
+			// additional copy" -- each extra copy carries the CR 707.10c
+			// new-targets permission (Amount 1) whatever MayChooseTarget$ says.
+			for i, extra := 0, copySpellExtra(h, controller, sp); i < extra; i++ {
+				ev := events.Event{Kind: events.StackCopy, Obj: sp, Player: controller, Counter: payload, Amount: 1}
+				emitCopy(h, c, rememberCopies, ev, addTypes)
+			}
 		}
 	}
+}
+
+// copySpellExtra asks the rules host how many additional copies its live
+// R:Event$ CopySpell replacements add when copier copies spell. Effects test
+// doubles without this optional seam add none.
+func copySpellExtra(h Host, copier state.PlayerID, spell state.ObjID) int {
+	r, ok := h.(interface {
+		CopySpellExtra(copier state.PlayerID, spell state.ObjID) int
+	})
+	if !ok {
+		return 0
+	}
+	return r.CopySpellExtra(copier, spell)
 }
 
 // spellCopyAllowed asks the rules host whether the candidate spell's own
@@ -578,7 +602,9 @@ func copyOfCopy(g *state.Game, spell state.ObjID) bool {
 func copyControllerFor(g *state.Game, c *Ctx, spec string) (state.PlayerID, bool) {
 	switch copyControllerForCodes.Code(string(spec)) {
 	case copyControllerForTargeted:
-		for _, t := range c.Targets {
+		// A target that left the battlefield during this resolution (Chain of
+		// Vapor's bounce) is controlled by the controller it had (CR 608.2h).
+		for _, t := range targetsControllerLKI(g, c, c.Targets) {
 			if t.IsPlayer {
 				return t.Player, true
 			}

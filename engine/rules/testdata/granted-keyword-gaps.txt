@@ -5,7 +5,6 @@ Assist
 At the beginning of your upkeep, destroy this creature unless you pay {1} for each music counter on it
 Bands with other
 Battle Cry
-Bushido
 CantSearchLibrary
 Double team
 Freerunning
@@ -29,7 +28,6 @@ Provoke
 Prowl
 Rampage
 Ripple
-Scavenge
 Shaman's Trance
 Soulshift
 UntapAdjust

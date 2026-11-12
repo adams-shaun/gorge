@@ -63,7 +63,7 @@ func (s *State) spellEntryOf(o Obj) *stackEntry {
 func (s *State) wasCastSpell(fl *kop.Filter, o Obj, you uint8) bool {
 	n := fl.PredN
 	cast, from, by, may, resolving, mayhem := false, kop.ZoneNone, uint8(0), false, false, false
-	if e := s.spellEntryOf(o); e != nil && s.objs[o].of&ofCopy == 0 {
+	if e := s.spellEntryOf(o); e != nil && (s.objs[o].of&ofCopy == 0 || e.prov&7 != 0) { // a copy that was cast (prepared, CR 707.12) records its origin zone
 		cast, from, by, may, resolving, mayhem = true, kop.Zone(e.prov&7), e.ctrl, s.mayPlaySpell(e), e == &s.res.e, e.trigPl == trigPlMayhem
 		if DebugWasCastFromHandIgnored {
 			from, by = kop.ZoneHand, you

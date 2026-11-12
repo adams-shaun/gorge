@@ -16,10 +16,9 @@ package host
 // shape here: no engine path emits events after a parked ask any more.
 //
 // The fixture is measured, not constructed: decks foundations-reign-of-
-// dragons vs foundations-calling-all-angels, seed 17, burst 918 — a board
-// wipe destroys seat 1's commander, the next state-based check asks seat 1
-// at its first pass, and the same pass removes three destroyed tokens
-// ("ceased to exist") only after the answer. The park lands on that ask. The shape is
+// dragons vs foundations-calling-all-angels, seed 1, burst 456 — seat 1's
+// commander dies, the next state-based check asks seat 1 at its first pass
+// and applies nothing else until the answer. The park lands on that ask. The shape is
 // re-derived from the live match below, so a corpus or engine move fails
 // here loudly instead of testing nothing. (Measured history: before CR
 // 903.9a, the shape was an ask parked mid-lethal-sweep on
@@ -47,18 +46,17 @@ import (
 const (
 	overshootDeckA = "foundations-reign-of-dragons"
 	overshootDeckB = "foundations-calling-all-angels"
-	overshootSeed  = 17
+	overshootSeed  = 1
 	// The hosted game opens with the CR 103.1 winner-chooses ask, so every
 	// later intent (including the overshoot burst's own) sits one later in the
 	// count. The fixture is foundations-reign-of-dragons vs
-	// foundations-calling-all-angels, seed 17, burst 918 (re-measured when the
-	// Foundations decks lost Ancient Tomb; seed 1, burst 664 before): a board wipe destroys
-	// seat 1's commander, the next check asks seat 1 at its first pass, and the
-	// same pass holds its three destroyed tokens in the graveyard until the
-	// answer. assertOvershootShape requires the ask to end the burst. A rules change
+	// foundations-calling-all-angels, seed 1, burst 456 (re-measured when the
+	// Foundations decks became the official FDC lists; seed 17, burst 918 before):
+	// seat 1's commander dies, the next check asks seat 1 at its first pass, and
+	// nothing else applies until the answer. assertOvershootShape requires the ask to end the burst. A rules change
 	// that adds or removes a decision before the burst moves this count;
 	// re-record the capture via TestGenerateOvershootCapture with it.
-	overshootIntents = 918 // intents recorded when parked on the overshoot burst's pending ask
+	overshootIntents = 456 // intents recorded when parked on the overshoot burst's pending ask
 )
 
 // gateSeat is a bot behind a test gate: every decision is signalled to the
@@ -498,7 +496,7 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 // leaving a stale fixture behind. The committed capture is the historical
 // seed-1 fixture: 3650 events, 664 intents, head 4e49b15e79cad14d, ending at the
 // parked ask. The live fixture has since moved to seed
-// 17 / 918 intents, so regenerating it now with TestGenerateOvershootCapture
+// 1 / 456 intents, so regenerating it now with TestGenerateOvershootCapture
 // writes that capture with new pins.
 const committedCaptureRel = "../../cmd/repro/testdata/feedback/20260915T094418Z-e484f1db"
 

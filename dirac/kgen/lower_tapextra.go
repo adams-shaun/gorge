@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 )
 
@@ -12,24 +13,36 @@ import (
 // (pay.PaymentPlanFoldableTapMana: one literal symbol and amount, no other
 // parameter), or a reflected body over lands (Lavaleaper, Mana Flare:
 // pay.PaymentPlanReflectedTapMana, one mana of the type the tap produced).
-// Anything else keeps refusing: an
-// any-colour body is a deferred source in gorge, planned by hand in the mana
-// window.
+// A body whose colour is not a literal keeps refusing with its own reason: an
+// any-colour body asks a colour choice at tap time (tapExtraAnyColour), and a
+// chosen-colour body is a source gorge's planner defers (tapExtraChosen).
 func (lc *lowerCtx) tapExtraStatic(t cards.Trigger) error {
+	if handled, err := lc.tapExtraChosen(t); handled {
+		return err
+	}
 	tm, ok := pay.PaymentPlanFoldableTapMana(lc.face, t)
 	if !ok {
+		if lc.tapExtraAnyColour(t) {
+			return refuse("TapsForMana extra of any colour: the trigger asks a colour choice at tap time, which the tap-extra model cannot pose")
+		}
 		return lc.tapExtraReflected(t)
-	}
-	if tm.ToTapped {
-		return refuse("TapsForMana adding mana to the tapped permanent's controller")
 	}
 	tp := newParams(t.Params)
 	tp.consume("Mode", "Execute", "Static", "TriggerZones", "TriggerDescription")
-	if v := strings.TrimSpace(tp.str("Activator")); v != "You" {
-		return refuse("TapsForMana Activator$ %q", v)
+	st := lStatic{Kind: "TapExtra"}
+	// A body adding mana to the tapped permanent's controller (Defined$
+	// TriggeredCardController) reaches every tap of that permanent, not just
+	// the trigger controller's: the tapped permanent's controller is the only
+	// player who can tap it, so the extra is the tapper's (TapAnyPlayer). A
+	// body adding to the trigger controller is its own taps only.
+	switch v := strings.TrimSpace(tp.str("Activator")); {
+	case v == "You" && !tm.ToTapped:
+	case v == "" && tm.ToTapped:
+		st.Flags = append(st.Flags, "TapAnyPlayer")
+	default:
+		return refuse("TapsForMana Activator$ %q with Defined$ to the tapped permanent's controller %v", v, tm.ToTapped)
 	}
 	tp.consume("Activator")
-	st := lStatic{Kind: "TapExtra"}
 	var err error
 	if v := tp.str("ValidCard"); v != "" {
 		if st.F, err = lc.filter(v); err != nil {
@@ -60,6 +73,71 @@ func (lc *lowerCtx) tapExtraStatic(t cards.Trigger) error {
 	}
 	lc.out.Statics = append(lc.out.Statics, st)
 	return nil
+}
+
+// tapExtraChosen refuses a `DB$ Mana | Produced$ Chosen` body whose mana goes
+// to the tapped permanent's controller (Utopia Sprawl, Shimmerwilds Growth).
+// The extra's colour is the source's as-enters choice, so it poses no tap-time
+// ask; but gorge's planner never folds a Produced$ Chosen body
+// (pay.PaymentPlanFoldableTapMana), so it defers the enchanted source to the
+// manual window and its potential bound reads the source without the extra.
+// The kernel's potential surface cannot mirror that deferral (a lockstep game
+// offered casts gorge did not), so the card keeps refusing with this reason.
+// handled is false for any other trigger, so the foldable/reflected
+// classifiers run.
+func (lc *lowerCtx) tapExtraChosen(t cards.Trigger) (handled bool, err error) {
+	if t.Mode != "TapsForMana" || !strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKStatic)), "True") {
+		return false, nil
+	}
+	body := t.Effect
+	if body == nil && lc.face != nil {
+		body = cards.ResolveSVar(lc.face.SVars, strings.TrimSpace(t.ParamStr(cards.PKExecute)))
+	}
+	if body == nil || body.API != "Mana" || body.Sub != nil ||
+		strings.TrimSpace(body.ParamStr(cards.PKSubAbility)) != "" {
+		return false, nil
+	}
+	mp := effects.ManaOf(body)
+	if mp.Produced != "Chosen" || len(mp.Unread) != 0 {
+		return false, nil
+	}
+	if v := mp.AmountTrim; v != "" && (!mp.AmountIsLit || mp.AmountLit < 1 || mp.AmountLit > 20) {
+		return false, nil
+	}
+	if strings.TrimSpace(body.ParamStr(cards.PKDefined)) != "TriggeredCardController" {
+		return false, nil // the trigger controller's mana, not the tapped permanent's
+	}
+	tp := newParams(t.Params)
+	tp.consume("Mode", "Execute", "Static", "TriggerZones", "TriggerDescription")
+	if tp.str("Produced") != "" || tp.str("Activator") != "" { // a tap gate, or the trigger controller's taps
+		return false, nil
+	}
+	if tp.str("ValidCard") == "" {
+		return false, nil
+	}
+	tp.consume("ValidCard")
+	if len(tp.unread()) != 0 {
+		return false, nil // an unmodelled trigger parameter: the generic refusal names it
+	}
+	return true, refuse("TapsForMana extra of the source's chosen colour: gorge defers a Produced$ Chosen body and the kernel's potential bound cannot mirror it")
+}
+
+// tapExtraAnyColour reports whether t is a TapsForMana extra whose DB$ Mana
+// body adds mana of any colour (Produced$ Any) or a combination of colours
+// (Combo Any, Market Festival). Gorge resolves such a trigger with a KChoose
+// colour ask (effects.askManaChoice) when the land is tapped; the kernel's
+// fixed StatTapExtra cannot pose that ask, so the card keeps refusing with
+// this reason instead of the generic "trigger mode TapsForMana".
+func (lc *lowerCtx) tapExtraAnyColour(t cards.Trigger) bool {
+	body := t.Effect
+	if body == nil && lc.face != nil {
+		body = cards.ResolveSVar(lc.face.SVars, strings.TrimSpace(t.ParamStr(cards.PKExecute)))
+	}
+	if body == nil || body.API != "Mana" {
+		return false
+	}
+	mp := effects.ManaOf(body)
+	return mp.Produced != "" && mp.CountsAny && !mp.NeedsChosen
 }
 
 // tapReflectLandFilters are the ValidCard$ filters of a reflected TapsForMana

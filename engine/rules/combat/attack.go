@@ -28,6 +28,9 @@ func CanAttack(b Board, id state.ObjID) bool {
 	if !ok {
 		return false
 	}
+	if o.SummonSick && !b.HasKW(id, KWHaste) && !canAttackIfHasteBlind(b, id) {
+		return false
+	}
 	if !b.HasKW(id, KWDefender) {
 		return true
 	}
@@ -47,7 +50,20 @@ func CanAttack(b Board, id state.ObjID) bool {
 // spec admits, so a Defender creature may be attackable against one defender
 // and walled against the rest.
 func CanAttackPair(b Board, id state.ObjID, defender state.PlayerID) bool {
-	if _, ok := AttackableCreature(b, id); !ok {
+	return CanAttackPairAt(b, id, defender, 0)
+}
+
+// CanAttackPairAt is CanAttackPair for the attacked permanent too: battle is
+// the planeswalker or battle attacked (0 for a player attack). It differs only
+// where a CanAttackIfHaste static's ValidTarget$ names the permanent (Instill
+// Energy's "Planeswalker"-scoped sibling lines), so a summoning-sick creature
+// may be exempt against a planeswalker and not against its controller.
+func CanAttackPairAt(b Board, id state.ObjID, defender state.PlayerID, battle state.ObjID) bool {
+	o, ok := AttackableCreature(b, id)
+	if !ok {
+		return false
+	}
+	if o.SummonSick && !b.HasKW(id, KWHaste) && !CanAttackIfHastePair(b, id, defender, battle) {
 		return false
 	}
 	if b.HasKW(id, KWDefender) && !AttackAllowedThroughDefender(b, id, defender) {
@@ -56,12 +72,59 @@ func CanAttackPair(b Board, id state.ObjID, defender state.PlayerID) bool {
 	return true
 }
 
+// CanAttackIfHastePair reports whether a CanAttackIfHaste static lets the
+// (summoning-sick) creature id attack defender / battle as though it had haste
+// (CR 302.6's exemption is for attacking only; nothing here lifts a {T} cost).
+// ValidCard$ defaults to every creature and ValidTarget$ to every defender, as
+// an absent parameter matches everything; a present ValidTarget$ is tried as a
+// player filter first and as the attacked permanent second, AttackRestrictLimit's
+// convention.
+func CanAttackIfHastePair(b Board, id state.ObjID, defender state.PlayerID, battle state.ObjID) bool {
+	return canAttackIfHaste(b, id, defender, battle, false)
+}
+
+// canAttackIfHasteBlind is the defender-blind form CanAttack takes: it reads
+// ValidCard$ only, so a creature whose only permission names a planeswalker is
+// not dropped from the "can attack at all" list before the per-pair offer walk
+// (the authoritative one) judges its pairs.
+func canAttackIfHasteBlind(b Board, id state.ObjID) bool {
+	return canAttackIfHaste(b, id, 0, 0, true)
+}
+
+func canAttackIfHaste(b Board, id state.ObjID, defender state.PlayerID, battle state.ObjID, blind bool) bool {
+	for _, sv := range b.Statics("CanAttackIfHaste") {
+		if !effects.CanAttackIfHasteParamsReadable(sv.Params) || !b.StaticGateHolds(sv) {
+			continue
+		}
+		spec := sv.ParamStr(cards.PKValidCard)
+		if spec == "" {
+			spec = "Card"
+		}
+		if !b.MatchesStaticSpec(spec, id, sv) {
+			continue
+		}
+		if tgt := sv.ParamStr(cards.PKValidTarget); tgt != "" && !blind {
+			ok := effects.MatchesPlayerSpecCtx(b.Game(), tgt, defender, sv.Controller, b.PlayerSpecCtx(sv.Source))
+			if !ok && battle != 0 {
+				ok = b.MatchesSpec(tgt, battle, sv.Source, sv.Controller, nil, nil, false)
+			}
+			if !ok {
+				continue
+			}
+		}
+		return true
+	}
+	return false
+}
+
 // AttackableCreature is the defender-blind half both reads share: the object
 // exists, is a battlefield creature of the active player (the DERIVED type,
 // layer 4 -- an animated land attacks, while its printed face is a Land, and
 // everything the printed face admits the derived walk admits too, so ordinary
 // creatures are unchanged; a bestowed card stays excluded, BestowedAttached),
-// untapped, and either not summoning sick or hasty.
+// untapped. Summoning sickness is NOT read here: whether a sick creature may
+// attack depends on the pair (a CanAttackIfHaste static's ValidTarget$), so
+// CanAttack and CanAttackPairAt apply it.
 func AttackableCreature(b Board, id state.ObjID) (*state.Object, bool) {
 	g := b.Game()
 	o := g.Obj(id)
@@ -79,9 +142,6 @@ func AttackableCreature(b Board, id state.ObjID) (*state.Object, bool) {
 		return nil, false
 	}
 	if o.Tapped {
-		return nil, false
-	}
-	if o.SummonSick && !b.HasKW(id, KWHaste) {
 		return nil, false
 	}
 	return o, true

@@ -203,6 +203,10 @@ type KickerInputs struct {
 	// election (CR 702.166d): Brave the Wilds' TargetMin$ X over
 	// Count$Bargained.1.0 is read before payment stamps FlagBargained.
 	PendingBargained bool
+	// PendingAltCost is the same pre-payment gap for an AlternativeCost
+	// static's chosen alternative: Graveyard Dig's TargetMax$ X over
+	// Count$AltCost.0.2 is read before payment stamps FlagAltCostPaid.
+	PendingAltCost bool
 	// PendingTeamwork is the cast's elected intention to pay its optional
 	// Teamwork cost, available during CR 601.2c target announcement before
 	// payCast stamps TeamworkPaid on the stack object (CR 702.194b-c).

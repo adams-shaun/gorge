@@ -287,6 +287,10 @@ func (e *Engine) askAttackers() {
 			break
 		}
 	}
+	// AttackRequirement closures (War's Toll): published on the decision, with
+	// the triggers of a closure no legal declaration can complete removed.
+	reqGroups, opts := attackRequirementOffers(asBoard(e), opts, mustAtt, maxOpts, maxSum, payerLife)
+	maxOpts = min(maxOpts, len(opts))
 	if len(opts) == 0 {
 		// Every (attacker, defender) pair is blocked — a CantAttack static or
 		// restriction covering the whole table — or priced out — a
@@ -321,7 +325,7 @@ func (e *Engine) askAttackers() {
 		// option's TapPoolCost so a rules-ignorant client can see whether a
 		// declaration still leaves it payable. 0 (omitted) when no pool is
 		// readable, so every ordinary declaration is byte-identical.
-		ChargeTapPool: tapPool})
+		ChargeTapPool: tapPool, AttackRequirements: reqGroups})
 }
 
 // handleAttackers records the chosen attackers (CR 508.1c: this is what
@@ -683,7 +687,7 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 	// (validateAttackDeclaration's included).
 	chosen := d.Chosen(in)
 	for _, o := range chosen {
-		if !combat.CanAttackPair(asBoard(e), o.Obj, o.Player) {
+		if !combat.CanAttackPairAt(asBoard(e), o.Obj, o.Player, o.Battle) {
 			return fmt.Errorf("object %d cannot attack", o.Obj)
 		}
 		if o.Battle != 0 && !e.canAttackBattle(o.Battle, d.Player) {
@@ -896,6 +900,9 @@ func (e *Engine) validateAttackDeclarationChosen(d *decision.Decision, in decisi
 	if quota, got := d.RequiredQuota(), d.RequiredChosen(in.Choices); got < quota {
 		return fmt.Errorf("must attack with as many required creatures as possible (required %d, declared %d; max attackers %d)",
 			quota, got, maxAllowed)
+	}
+	if !d.AttackRequirementsSatisfied(in.Choices) {
+		return fmt.Errorf("declaration does not satisfy an AttackRequirement static's whole-declaration closure")
 	}
 	if len(chosen) > maxAllowed {
 		return fmt.Errorf("declared %d attackers, more than the allowed %d", len(chosen), maxAllowed)

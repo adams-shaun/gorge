@@ -48,6 +48,7 @@ import "embed"
 //go:embed kw_annihilator.go
 //go:embed kw_backup.go
 //go:embed kw_battle_cry.go
+//go:embed kw_bushido.go
 //go:embed kw_cipher.go
 //go:embed kw_class.go
 //go:embed kw_conspire.go
@@ -97,6 +98,7 @@ import "embed"
 //go:embed kw_renown.go
 //go:embed kw_replicate.go
 //go:embed kw_saddle.go
+//go:embed kw_scavenge.go
 //go:embed kw_soulbond.go
 //go:embed kw_squad.go
 //go:embed kw_storm.go

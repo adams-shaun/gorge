@@ -1,0 +1,15 @@
+# Chosen-colour bounce and discard (dirac/oracle/chosencolour_test.go)
+Wash Out
+Addle
+Persecute
+Coral Merfolk
+Walking Corpse
+Island
+Swamp
+Grizzly Bears
+Savannah Lions
+Hill Giant
+Shock
+Mountain
+Forest
+Plains

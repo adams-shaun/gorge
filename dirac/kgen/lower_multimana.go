@@ -88,6 +88,14 @@ func (lc *lowerCtx) refuseMultiMana() {
 		// (pay.PaymentPlanDamageRider; kernel mana_pain.go)
 		return
 	}
+	if len(ms) == 2 && plainTapMana(ms[0], false) && unrestrictedOne(ms[0]) && primaryMana(ms[0]) && riderTapMana(ms[1]) {
+		// a plain {T} ability beside a {T} ability with a bounded rider
+		// (Grove of the Burnwillows: {C}, then {R} or {G}, each opponent
+		// gains 1 life): gorge's planner defers the rider ability
+		// (source:rider) and prices the first normally; the kernel's
+		// Taps-deferred route mirrors it (mana_rider.go).
+		return
+	}
 	if len(ms) == 2 && plainTapMana(ms[0], false) && unrestrictedOne(ms[0]) && primaryMana(ms[0]) && lifeTapMana(ms[1]) {
 		// {T}: Add {C}, then {T}, Pay N life: Add one mana of any colour
 		// (Starting Town), or a plain two-colour {T} choice beside a
@@ -102,6 +110,14 @@ func (lc *lowerCtx) refuseMultiMana() {
 		// alternatives (the evaluated one at its count, payment_plan.go's
 		// evaluated-amount layer) and the planner takes the best per payment;
 		// the kernel's per-count pair view (mana_dynpair.go) plans it
+		return
+	}
+	if len(ms) == 2 && plainTapMana(ms[0], false) && unrestrictedOne(ms[0]) && chosenTapMana(ms[1]) {
+		// a plain fixed {T} ability beside "{T}: Add one mana of the chosen
+		// color" (Quirion Elves): gorge's planner lists the one unit with a
+		// fixed alternative and a chosen one, which the kernel reads as the
+		// source's chosen colour beside its printed one (pcard.manaChosen,
+		// kop.ChosenSecondManaAb)
 		return
 	}
 	if len(ms) == 2 && (restrictedFirstPair(ms[0], ms[1]) || restrictedFixedPair(ms[0], ms[1])) {
@@ -140,7 +156,8 @@ func (lc *lowerCtx) refuseMultiMana() {
 
 // chosenTapMana: a is a bare "{T}: Add one mana of the chosen color".
 func chosenTapMana(a *lAbility) bool {
-	if a.Mana.Colors != "Chosen" || a.Mana.Special != "" || a.Mana.Choice || a.Mana.Each || !unrestrictedOne(a) {
+	if a.Mana.Colors != "Chosen" || a.Mana.Special != "" || a.Mana.Choice || a.Mana.Each || !unrestrictedOne(a) ||
+		a.Mana.Restrict != nil || a.Mana.RestrictAb != nil {
 		return false
 	}
 	c := *a
@@ -416,6 +433,9 @@ func ctrTapGapModelled(first, a *lAbility) bool {
 //     gorge's planner the larger of the two.
 func manaGapWhy(first, a *lAbility) string {
 	m := a.Mana
+	if chosenTapMana(a) {
+		return "a chosen-colour ability whose first mana ability is not a plain fixed {T} one"
+	}
 	if activationOnlyTapMana(a) && !restrictedFirstPair(first, a) && !restrictedFixedPair(first, a) {
 		return "an activation-only restricted ability of several mana: the kernel plans it only as a chosen or same-colour pair of two to four mana (or an activation-only larger ability beside a spell-only first one of that colour)"
 	}
@@ -871,6 +891,27 @@ func sacEachMana(a *lAbility) bool {
 		}
 	}
 	return true
+}
+
+// riderTapMana: a is a bare {T} mana ability of one fixed colour or a
+// two-colour choice carrying a bounded rider (riderMana): Grove of the
+// Burnwillows' second ability.
+func riderTapMana(a *lAbility) bool {
+	if a.Mana == nil || a.Mana.Rider != riderOppGainLife || a.Latent {
+		return false
+	}
+	c := *a
+	c.Prog = nil
+	if !plainTapMana(&c, false) || !unrestrictedOne(&c) || c.Mana.Each {
+		return false
+	}
+	switch n := len(c.Mana.Colors); {
+	case n == 1:
+		return strings.Contains("WUBRG", c.Mana.Colors)
+	case n == 2:
+		return c.Mana.Choice && strings.Trim(c.Mana.Colors, "WUBRG") == ""
+	}
+	return false
 }
 
 // filtEachMana: a is "{N}, {T}: Add {c1}{c2}..." (Skycloud Expanse's {1},{T}:

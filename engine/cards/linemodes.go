@@ -142,7 +142,11 @@ const (
 	TriggerAbilityTriggered TriggerMode = 102
 	// FacesDilemma (Star Trek, "whenever you face a dilemma").
 	TriggerFacesDilemma TriggerMode = 103
-	TriggerModeCount                = 104 // one past the last; sizes a dense per-TriggerMode array
+	// BecomeRenowned (Relic Seeker) and DungeonCompleted (Varis, Silverymoon
+	// Ranger), appended so every earlier ordinal is unchanged.
+	TriggerBecomeRenowned   TriggerMode = 104
+	TriggerDungeonCompleted TriggerMode = 105
+	TriggerModeCount                    = 106 // one past the last; sizes a dense per-TriggerMode array
 )
 
 var triggerModeNames = [TriggerModeCount]string{
@@ -249,6 +253,8 @@ var triggerModeNames = [TriggerModeCount]string{
 	TriggerCounterTypeAddedAll:        "CounterTypeAddedAll",
 	TriggerAbilityTriggered:           "AbilityTriggered",
 	TriggerFacesDilemma:               "FacesDilemma",
+	TriggerBecomeRenowned:             "BecomeRenowned",
+	TriggerDungeonCompleted:           "DungeonCompleted",
 }
 
 var triggerModeCodes = func() StrCodes[TriggerMode] {
@@ -308,7 +314,10 @@ const (
 	StaticUnspentMana           StaticMode = 31
 	StaticCantPlayLand          StaticMode = 32
 	StaticCantChangeLife        StaticMode = 33
-	StaticModeCount                        = 34 // one past the last; sizes a dense per-StaticMode array
+	StaticCantPayLife           StaticMode = 34
+	StaticCanAttackIfHaste      StaticMode = 35
+	StaticAttackRequirement     StaticMode = 36
+	StaticModeCount                        = 37 // one past the last; sizes a dense per-StaticMode array
 )
 
 var staticModeNames = [StaticModeCount]string{
@@ -345,6 +354,9 @@ var staticModeNames = [StaticModeCount]string{
 	StaticUnspentMana:           "UnspentMana",
 	StaticCantPlayLand:          "CantPlayLand",
 	StaticCantChangeLife:        "CantChangeLife",
+	StaticCantPayLife:           "CantPayLife",
+	StaticCanAttackIfHaste:      "CanAttackIfHaste",
+	StaticAttackRequirement:     "AttackRequirement",
 }
 
 var staticModeCodes = func() StrCodes[StaticMode] {

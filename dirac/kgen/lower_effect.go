@@ -1720,6 +1720,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.earthbend(ps)
 	case "Endure":
 		return lc.endure(ps) // lower_endure.go
+	case "PreventDamage":
+		return lc.preventNext(ps) // lower_preventnext.go
 	case "Clone":
 		return lc.cloneAttached(ps) // lower_cloneattached.go
 	case "Goad":
@@ -1743,14 +1745,21 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 				return terr
 			}
 		}
-		var vtg *lFilter
+		var vtg, vspell *lFilter
+		vyou := false
 		if v, ok := ps.get("TargetValidTargeting"); ok {
-			if tt != "Spell" || ps.str("ValidTgts") != "Card" {
-				return refuse("Counter TargetValidTargeting beside TargetType %q ValidTgts %q", tt, ps.str("ValidTgts"))
+			if tt != "Spell" {
+				return refuse("Counter TargetValidTargeting beside TargetType %q: a stack ability's targets live in its trigger/activation roles, which gorge's filterTargetValidTargeting does not read (Diplomatic Escort, Siren Stormtamer, Not of This World)", tt)
 			}
 			var verr error
-			if vtg, verr = lc.counterValidTargeting(strings.TrimSpace(v)); verr != nil {
+			if vtg, vyou, verr = lc.counterValidTargeting(strings.TrimSpace(v)); verr != nil {
 				return verr
+			}
+			if vt := ps.str("ValidTgts"); vt != "Card" {
+				// the spell side's own filter (Avoid Fate: Instant,Aura)
+				if vspell, verr = lc.filter(vt); verr != nil {
+					return verr
+				}
 			}
 		}
 		if v, ok := ps.get("TgtZone"); ok && (tt != "Spell" || v != "Stack") {
@@ -1791,7 +1800,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if err != nil {
 			return err
 		}
-		lt := lTarget{F: f, Zone: zStack, Spell: true, StackAb: tt != "Spell", AbOnly: tt == "Activated,Triggered", TrigOnly: trigOnly, VTgt: vtg}
+		lt := lTarget{F: f, Zone: zStack, Spell: true, StackAb: tt != "Spell", AbOnly: tt == "Activated,Triggered", TrigOnly: trigOnly, VTgt: vtg, VYou: vyou, VSpellF: vspell}
 		if v, ok := ps.get("TargetMin"); ok {
 			if lt.Min, err = lc.value(v); err != nil {
 				return err
@@ -2122,6 +2131,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.demonstrate(ps)
 	case "ChooseColor":
 		return lc.chooseColorPrevent(ps) // Prismatic Strands
+	case "ProtectionAll":
+		return lc.protectionAllChosen(ps) // lower_choosecolorres.go
 	case "ChooseType":
 		return lc.chooseType(ps)
 	case "Scry":
@@ -2445,18 +2456,30 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 		if obj.Kind != rTarget {
 			return refuse("divided damage without targets")
 		}
+		if _, ok := ps.get("Announce"); ok {
+			// Nahiri's Sacrifice announces X for its "sacrifice a permanent of
+			// mana value X" cost (CR 601.2b); gorge announces no X for a cost
+			// without {X} and reads the sacrifice's X as 0, so the card casts
+			// only against a mana-value-0 permanent
+			return refuse("divided damage over an Announce$ X total: gorge announces no X for a cost without {X}")
+		}
 		if dv.isConst() {
 			lc.ab.Targets[obj.N].Divided = dv.N
-		} else if sameValue(dv, lc.ab.Targets[obj.N].Max) {
-			// A value total (Ureni's land count) is read where the ability is
-			// put on the stack, exactly where gorge's divisionTotalFor reads
-			// DividedAsYouChoose$ (CR 601.2d, 603.3d). The slot's TargetMax$
-			// must be that same value: gorge clamps a divided slot's target
-			// count to the announced total, and the kernel does not.
+		} else if mn := lc.ab.Targets[obj.N].Min; !mn.isConst() || mn.N != 0 {
+			// gorge aborts a cast whose total is below the slot's minimum
+			// (cast_targets.go); the kernel's clamp assumes "any number"
+			return refuse("divided over a value total with a TargetMin$ above 0")
+		} else {
+			// A value total (Ureni's land count, a spell's paid X) is read where
+			// the ability is put on the stack, exactly where gorge's
+			// divisionTotalFor reads DividedAsYouChoose$ (CR 601.2d, 603.3d).
+			// gorge clamps a divided slot's target count to that total (each
+			// target takes at least 1; cast_targets.go, target_ask.go) whatever
+			// TargetMax$ says (Rolling Thunder's all-targets count, Shatterskull
+			// Smashing's 2); the kernel clamps the slot's evaluated maximum the
+			// same way (tgtBoundsV).
 			lc.ab.Targets[obj.N].Divided = kop.DivValue
 			lc.ab.Targets[obj.N].DividedV = dv
-		} else {
-			return refuse("divided over a value total that is not TargetMax$")
 		}
 		in.Op = "DealDamageDivided"
 	}
@@ -4260,6 +4283,12 @@ func (lc *lowerCtx) chooseColorPrevent(ps *params) error {
 		lc.emit(lInstr{Op: "ChooseColorRes", Note: "the controller chooses a colour for this resolution"})
 		return nil
 	}
+	if chooseColorResSub(n) {
+		// (Akroma's Blessing, Wash Out) lower_choosecolorres.go
+		lc.colGrant = true
+		lc.emit(lInstr{Op: "ChooseColorRes", Note: "the controller chooses a colour for this resolution"})
+		return nil
+	}
 	if n != nil && n.API == "Animate" && strings.EqualFold(strings.TrimSpace(n.Params["Colors"]), "ChosenColor") {
 		// (Puca's Eye, Mondo Gecko) the Animate's
 		// Colors$ ChosenColor reads the resolution's colour (res.chosen)
@@ -4269,7 +4298,7 @@ func (lc *lowerCtx) chooseColorPrevent(ps *params) error {
 		return nil
 	}
 	if n == nil || n.API != "Effect" || n.Sub != nil || lc.preventColorShape(n.Params) != "" {
-		return refuse("ChooseColor outside an as-enters replacement")
+		return refuse("ChooseColor outside an as-enters replacement%s", chooseColorRefusal(n))
 	}
 	lc.prevColor = true
 	return nil

@@ -162,3 +162,11 @@ func (s *State) harmonizeOptions(k *prep, d *Decision) bool {
 func (s *State) FeatHarmonizeCard(o Obj) bool {
 	return s.k().t.Cards[s.objs[o].card].Harmonize
 }
+
+// FeatHarmonizeCast reports whether o's pending mode-2 cast is the harmonize
+// cast: the card has Harmonize and no granted flashback. A granted flashback
+// on the same card is the flashback cast (kw_fbgrant.go); the kernel encodes
+// both as mode 2.
+func (s *State) FeatHarmonizeCast(o Obj) bool {
+	return s.FeatHarmonizeCard(o) && s.FeatGrantedOff(o)&kop.KwFlashback == 0
+}

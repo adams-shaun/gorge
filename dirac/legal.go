@@ -1217,7 +1217,7 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 		}
 		switch t.Kind {
 		case kop.TgtAny:
-			return true
+			return t.TFlags&kop.TgfOppOnly == 0 || pp != p
 		case kop.TgtPlayer:
 			if t.Filter != 0 {
 				switch k.t.Filters[t.Filter].Ctrl {
@@ -1363,7 +1363,9 @@ func (s *State) hasTarget(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Ob
 	}
 	switch t.Kind {
 	case kop.TgtAny:
-		return true // a player is always a legal any-target
+		if t.TFlags&kop.TgfOppOnly == 0 {
+			return true // a player is always a legal any-target
+		}
 	case kop.TgtObject:
 		for m := s.occ; m.any(); m = m.rest() {
 			if s.targetOK(k, t, p, src, self, uint8(s.perms[m.first()].obj)) {
@@ -1497,7 +1499,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 					k.gen.flags[c]&gfManaDynPair != 0 // gorge's potentialAmount reads the second ability's Count$ as indeterminate: unbounded (mana_dynpair.go)
 			}
 		}
-		if dynamic || !pc.manaMulti && (pc.manaCol == kop.ColAny && !pc.manaChosen || pc.manaChosen && !payment) {
+		if dynamic || !pc.manaMulti && (pc.manaCol == kop.ColAny && !pc.manaChosen || pc.manaChosen && !payment && !pc.manaFixedChosen) {
 			open = true
 			continue
 		}

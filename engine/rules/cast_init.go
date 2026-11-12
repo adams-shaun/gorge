@@ -189,6 +189,11 @@ func init() {
 		// zone-aware count in effects.countEntered.
 		"kw:Gravestorm",
 		"kw:Embalm", "kw:Eternalize",
+		// kw:Scavenge: CR 702.97, expanded by engine/cards/kw_scavenge.go into
+		// one graveyard-zone PutCounter activation whose cost exiles the card
+		// itself; the whole keyword is that expansion plus the existing
+		// PutCounter and paid-list (Exiled$CardPower) machinery.
+		"kw:Scavenge",
 		// kw:Plot: CR 701.34, the hand-origin alternative ACTION -- pay the
 		// K:Plot colon parameter, exile the card face up with the plotted
 		// designation stamped with the current turn (NO counters: the free

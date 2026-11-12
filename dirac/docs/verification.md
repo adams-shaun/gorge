@@ -102,7 +102,7 @@ derives each list from the set lists and the corpus on every build, and kfuzz de
 - `std-<set>` is one set list of `dirac/cardset/standard.txt`, front-face names, basics added.
 - `tail-NN` is 250 lowered cards outside those lists, cut in FNV-1a order. `tail-unlowered.txt` beside
   the tables names the rest of the corpus, so every card is accounted for.
-- A list too big for one table (over the 128 subtypes a table's masks hold) becomes `<pool>-a` and `<pool>-b`, split
+- A list too big for one table (over the 192 subtypes a table's masks hold) becomes `<pool>-a` and `<pool>-b`, split
   on the lowest bit of the name's hash that lets both halves build. Cards on opposite sides never meet.
 
 `oracle.SynthPool` deals `oracle.SynthDecks` 40-card decks from `-seed`: two colours, 23 spells from a

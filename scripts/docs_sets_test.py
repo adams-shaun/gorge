@@ -72,7 +72,7 @@ class RenderTest(unittest.TestCase):
         self.out = docs_sets.render(A_ROWS, META, B_ROWS, DD)
 
     def test_sections(self):
-        for name in ("headline", "sets", "rollup", "charts"):
+        for name in ("headline", "glance", "sets", "rollup", "charts"):
             section(self.out, name)
 
     def test_join_by_set_code(self):
@@ -104,6 +104,14 @@ class RenderTest(unittest.TestCase):
         # gorge: only the sets dirac also lists, BRO and FDN; BRO has 21 unsupported of 280
         self.assertIn('title="BRO: 259 playable, 0 not in corpus, 21 unsupported"', charts)
         self.assertNotIn('title="ZZZ: 1 playable', charts)
+
+    def test_glance(self):
+        glance = section(self.out, "glance")
+        self.assertIn('title="FDN: dirac supports 300 of', glance)
+        self.assertIn("gorge playable", glance)
+        self.assertIn('title="ZZZ: dirac supports 1 of 2 cards; 0 unverified, 0 refused"', glance)
+        empty = section(docs_sets.render([], {}, {}, None), "glance")
+        self.assertIn("no overview", empty)
 
     def test_charts_without_gorge_status(self):
         charts = section(docs_sets.render([], {}, {}, DD), "charts")

@@ -352,6 +352,42 @@ func opponentGroup(g *state.Game, c *Ctx) []state.PlayerID {
 	return opps
 }
 
+// nonTriggeredTargetGroup returns the group PlayerCountDefinedNonTriggeredTarget$
+// counts: every living player except the player the firing trigger refers to
+// (Ctx.TriggerTarget -- the damaged player of Battle Angels of Tyr's
+// DamageDone trigger). With no triggered player in the Ctx there is nothing to
+// exclude, so the group is every living player. That bare-Ctx reading is
+// deliberate: the registry honesty probe evaluates a body with no trigger, and
+// a fail-closed empty group would make the head impossible to list.
+func nonTriggeredTargetGroup(g *state.Game, c *Ctx) []state.PlayerID {
+	var out []state.PlayerID
+	for _, p := range g.AliveFrom(0) {
+		if c.TriggerTarget.IsPlayer && c.TriggerTarget.Player == p {
+			continue
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
+// playerCountNonTriggeredTarget answers PlayerCountDefinedNonTriggeredTarget$
+// <Property> over nonTriggeredTargetGroup with the same property dispatch the
+// PlayerCountOpponents$ extremes use: the per-member Amount, the life-total
+// extreme, and playerCountExtreme's scalar/zone-count extremes
+// (HighestCardsInHand, HighestLifeTotal, HighestValid Land.YouCtrl -- Battle
+// Angels of Tyr's three "more than each other player" conditions). Any other
+// property falls out of playerCountExtreme as unresolvable.
+func playerCountNonTriggeredTarget(h Host, g *state.Game, c *Ctx, prop, arg string) (int32, bool) {
+	group := nonTriggeredTargetGroup(g, c)
+	if n, ok := playerGroupCount(group, prop); ok {
+		return n, true
+	}
+	if n, ok := lifeExtreme(g, group, prop); ok {
+		return n, true
+	}
+	return playerCountExtreme(h, g, c, group, prop, arg)
+}
+
 // playerCountDefinedRegistered answers the PlayerCountDefinedRegistered[.Other]$
 // properties. The two life-extreme properties route through the shared
 // playerCountExtreme (whose LifeLostThisTurn arm is the Host's log-derived
@@ -471,6 +507,21 @@ func hasPropertyStateBacked(h Host, g *state.Game, c *Ctx, group []state.PlayerI
 		qualifies = func(p state.PlayerID) bool {
 			for _, hit := range hits {
 				if hit.Player == p {
+					return true
+				}
+			}
+			return false
+		}
+	case base == "HasPropertyDefending":
+		// Iron Mastiff / Pack Attack: "each player being attacked" -- a member
+		// qualifies when at least one creature is attacking that seat. The
+		// group is counted per member below, so a player attacked by three
+		// creatures counts once. Read from live combat state only, so outside
+		// combat the count is a readable 0, never unresolvable.
+		qualifies = func(p state.PlayerID) bool {
+			for i := range g.Objs {
+				o := &g.Objs[i]
+				if o.Zone == state.ZBattlefield && o.IsAttacking && o.Attacking == p && o.Controller != p {
 					return true
 				}
 			}
@@ -891,19 +942,46 @@ func playerCountExtreme(h Host, g *state.Game, c *Ctx, players []state.PlayerID,
 		}
 		return best, true
 	}
-	zone, ok := countZone(prop)
-	if !ok || strings.TrimSpace(spec) == "" {
+	zones := playerCountZones(prop)
+	if len(zones) == 0 || strings.TrimSpace(spec) == "" {
 		return 0, false
 	}
+	return playerCountExtremeZones(g, c, players, zones, spec, highest)
+}
+
+// playerCountZones resolves the zone list of a Highest/Lowest zone-count
+// property: the single-zone spelling countZone knows, or the comma-joined
+// Valid<Zone>,<Zone>[,...] list multiCountZones parses. A nil result means
+// the property names no readable zone (an unknown or repeated word), so the
+// caller keeps the whole head unresolvable rather than counting a fake zero.
+func playerCountZones(prop string) []state.Zone {
+	if zone, ok := countZone(prop); ok {
+		return []state.Zone{zone}
+	}
+	return multiCountZones(prop)
+}
+
+// playerCountExtremeZones reduces the per-member zone count to the
+// highest/lowest over the group. A member's count is the SUM over the named
+// zones of the objects matching spec in that zone (Windfall / Jace's
+// Archivist: PlayerCountPlayers$HighestValidGraveyard,Library,Exile
+// Card.IsRemembered+YouOwn, "the greatest number of cards a player discarded
+// this way"). Each member is read from their OWN perspective -- a YouOwn in
+// the spec names the counted member -- and every zone is passed to the
+// matcher so a zone-scoped Valid... qualifier sees the zone being summed.
+// Deterministic: the group and each zone's object list are iterated in order.
+func playerCountExtremeZones(g *state.Game, c *Ctx, players []state.PlayerID, zones []state.Zone, spec string, highest bool) (int32, bool) {
 	best, seen := int32(0), false
 	for _, p := range players {
 		if int(p) < 0 || int(p) >= len(g.Players) {
 			continue
 		}
 		var n int32
-		for _, id := range g.Zone(zone, p) {
-			if matchesZoneSpecCtx(g, spec, id, c.SpecContext(p), zone) {
-				n++
+		for _, zone := range zones {
+			for _, id := range g.Zone(zone, p) {
+				if matchesZoneSpecCtx(g, spec, id, c.SpecContext(p), zone) {
+					n++
+				}
 			}
 		}
 		if !seen || (highest && n > best) || (!highest && n < best) {

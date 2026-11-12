@@ -670,6 +670,10 @@ func (w *legalWalk) graveyardCastsOver(grave []state.ObjID) {
 				Label: "Cast " + f.Name + " (mayhem)", Obj: id, Mode: "mayhem"})
 		}
 	}
+
+	// Self-carried S:Mode$ AlternativeCost | EffectZone$ Graveyard: the card's
+	// own static is the permission to cast it from this graveyard.
+	w.graveyardAltCostCasts(grave)
 }
 
 // exileCastsWalk is the exile recast section (warp recast).

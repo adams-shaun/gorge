@@ -648,7 +648,7 @@ func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost 
 	typed [7]state.Mana, life int32, conv *manaConv, rider pipRider, units []windowManaUnit) bool {
 	// CR 119.8: under a CantChangeLife static no positive life may be paid,
 	// whether by the cost or by a PayLife source's activation.
-	if asEval(e).LifeChangeForbidden(p) {
+	if asEval(e).LifePaymentForbidden(p, pay.SASpell) {
 		life = 0
 	}
 	payable := func(pool, snowPool state.Mana, lifeNow int32) bool {

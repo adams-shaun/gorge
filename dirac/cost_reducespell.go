@@ -121,7 +121,10 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]uint8, n int, free bo
 	e := &s.bld().e
 	defer s.unmarkCostComposition(s.markCostComposition())
 	cd := &k.t.Cards[e.card]
-	has := false
+	// A stack-zone raise (EffectZone$ Stack, Kaervek's Torch) prices this
+	// cast by a target too: the Torch on the stack is a candidate the menu
+	// must withhold when its {N} makes the cast unaffordable.
+	has := s.stackRaiseOnStack(k)
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
 		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatIncreaseCost && a.Static.StFlags&kop.StTargetsFilter2 != 0 {

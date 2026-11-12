@@ -27,7 +27,9 @@ var repoCommanderGames = []struct {
 	{"foundations-calling-all-angels", "foundations-keen-engineering", 1000, 5000, nil},
 	{"foundations-keen-engineering", "foundations-wretched-ranks", 1001, 5001, nil},
 	{"foundations-wretched-ranks", "foundations-reign-of-dragons", 1002, 5002, nil},
-	{"foundations-reign-of-dragons", "foundations-tramplesaurus-rex", 1003, 5003, nil},
+	// 1003 was replaced by 1026 when the Foundations decks became the official FDC
+	// lists: the 1003 game no longer casts Lathliss. 1026 casts twice.
+	{"foundations-reign-of-dragons", "foundations-tramplesaurus-rex", 1026, 5003, nil},
 	// 1018 was added when hybrid/Phyrexian costs became real alternative
 	// payments and additional sacrifice costs started actually being paid:
 	// the three original seeds still play and replay, but none of them ramps

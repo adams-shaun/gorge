@@ -20,11 +20,20 @@ the most leverage.
 
 ## Headline
 
-**gorge, playable:** 32,393 of
-34,074 Forge card scripts at the corpus pin. All of them compile into gorge's IR
-(`make report`, 2026-11-02, `b78e4c8b1`).
+**gorge, playable:** 32,992 of
+34,444 Forge card scripts at the corpus pin. All of them compile into gorge's IR
+(`make report`, 2026-11-11, `a99704ac7`).
 
 --8<-- "support/_generated_sets.md:headline"
+
+## At a glance
+
+One tile per Standard set (the sets on dirac's support page). The tint and the
+large figure are the share of the set's cards dirac supports; the rest are
+unverified (lowered, not yet evidenced by lockstep games) or refused. When this
+build has gorge-compliance's status, each tile also gives gorge's playable share.
+
+--8<-- "support/_generated_sets.md:glance"
 
 ## What "supported" means, engine by engine
 

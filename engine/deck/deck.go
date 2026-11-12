@@ -154,9 +154,10 @@ func (f File) firstCommanderIndex() int {
 // IsCommanderEligible reports whether a card may be a commander: CR 903.3 —
 // a legendary card that is a creature card, a Vehicle card, or a Spacecraft
 // card with one or more power/toughness boxes — or one of the cards the
-// corpus marks as saying it can be a commander (planeswalker-legends,
-// Partner/choose-a-background cases, which the corpus carries only as Oracle
-// prose — see the report). The P/T-box carve-out is what keeps the two
+// corpus marks as saying it can be a commander (the planeswalker legends,
+// which the corpus carries only as Oracle prose). A legendary Background
+// enchantment is NOT eligible here: CR 702.124k admits it only as the half of
+// a Choose-a-Background pair, which IsCommanderPair (not this) allows. The P/T-box carve-out is what keeps the two
 // classes apart: every Vehicle is printed with a power/toughness box, while
 // Spacecraft normally carry a defense box instead (The Eternity Elevator has
 // neither power nor toughness and is not commander-legal), but the starship
@@ -344,12 +345,13 @@ func Stem(path string) string {
 // ValidateCommander enforces the Commander deck-construction rules (CR 903.4:
 // exactly 100 cards including the commander and, except basic lands, no two
 // cards with the same English name; CR 903.5: every card's colour identity is
-// a subset of the commander's) for a deck file that names a commander. It is
+// a subset of the commander's, and not on the Commander banned list) for a deck file that names a commander. It is
 // called explicitly — never from Parse — and a constructed deck (a File with
 // no commander designation) is not subject to any of it and returns nil, so
 // wiring the validator in never changes how an existing deck file is read.
 // Every violation is reported together and each names the offending card (or
-// the commander).
+// the commander). A two-commander deck must be a legal pair (IsCommanderPair:
+// Partner, Partner with, Doctor's companion, or Choose a Background CR 702.124k).
 func (f File) ValidateCommander(r *cards.Registry) error {
 	names := f.CommanderNames()
 	if len(names) == 0 {
@@ -375,17 +377,17 @@ func (f File) ValidateCommander(r *cards.Registry) error {
 		if !ok {
 			return fmt.Errorf("commander %q is not in the registry", n)
 		}
-		if !IsCommanderEligible(c) {
-			return fmt.Errorf("commander %q is not a legendary creature, a Vehicle, or a Spacecraft with a power/toughness box, or a card that says it can be your commander", n)
-		}
 		cmdrs = append(cmdrs, c)
 		cmdrID |= c.ColourIdentity()
+	}
+	if len(cmdrs) == 1 && !IsCommanderEligible(cmdrs[0]) {
+		return fmt.Errorf("commander %q is not a legendary creature, a Vehicle, or a Spacecraft with a power/toughness box, or a card that says it can be your commander", names[0])
 	}
 	if len(cmdrs) == 2 && cards.NormalizeName(names[0]) == cards.NormalizeName(names[1]) {
 		return fmt.Errorf("commander deck invalid:\n  the commanders list names %q twice; a Commander deck's commanders are one or two DISTINCT cards (CR 903.3) — a duplicated designation would seat the same object twice", names[0])
 	}
-	if len(cmdrs) == 2 && !IsPartnerPair(cmdrs[0], cmdrs[1]) {
-		return fmt.Errorf("commander pair %q and %q is not a legal commander pair: each must carry Partner, each must name the other with Partner with (CR 903.13), or one must carry Doctor's companion and the other must be the Doctor", names[0], names[1])
+	if len(cmdrs) == 2 && !IsCommanderPair(cmdrs[0], cmdrs[1]) {
+		return fmt.Errorf("commander pair %q and %q is not a legal commander pair: each must carry Partner, each must name the other with Partner with (CR 903.13), or one must carry Doctor's companion and the other must be the Doctor, or one must carry Choose a Background and the other must be a legendary Background enchantment (CR 702.124k)", names[0], names[1])
 	}
 
 	// The label the per-card messages name: the single commander, or the
@@ -440,6 +442,9 @@ func (f File) ValidateCommander(r *cards.Registry) error {
 		basic := isBasicLand(c)
 		if e.Count > 1 && !basic && !AnyNumberAllowed(c) {
 			errs = append(errs, fmt.Sprintf("card %q appears %d times; a Commander deck is singleton except basic lands", e.Name, e.Count))
+		}
+		if IsCommanderBanned(c) {
+			errs = append(errs, fmt.Sprintf("card %q is banned in Commander", e.Name))
 		}
 		if id := c.ColourIdentity(); id&^cmdrID != 0 {
 			errs = append(errs, fmt.Sprintf("card %q has colour identity {%s}, outside commander %q's {%s}",

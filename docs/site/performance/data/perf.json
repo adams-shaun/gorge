@@ -30,12 +30,12 @@
     ]
   },
   "dirac_ops": {
-    "_source": "index.md, Transitions and copies: dirac go test -bench, 2026-11-02, median of 5, zero allocations.",
+    "_source": "index.md, Transitions and copies: dirac go test -bench, 2026-11-11, median of 5, zero allocations.",
     "rows": [
-      {"op": "Transition, FDN", "ns": 2748, "instr": 45604},
-      {"op": "Transition, BLB", "ns": 2909, "instr": 51990},
-      {"op": "Transition, FDN whole-pool table", "ns": 3601, "instr": 60463},
-      {"op": "CopyFrom, mid-game FDN", "ns": 40.2, "instr": 187}
+      {"op": "Transition, FDN", "ns": 3125, "instr": 50310},
+      {"op": "Transition, BLB", "ns": 3175, "instr": 54075},
+      {"op": "Transition, FDN whole-pool table", "ns": 4764, "instr": 77332},
+      {"op": "CopyFrom, mid-game FDN", "ns": 76.3, "instr": 215}
     ]
   },
   "gorge_ops": {

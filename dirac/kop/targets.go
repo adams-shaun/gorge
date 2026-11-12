@@ -33,7 +33,8 @@ type TargetSpec struct {
 	TFlags    TargetFlags // distinct-from-earlier-slots, same/different controllers, ...
 	Divide    uint8       // damage divided among the chosen objects (assigned at targeting)
 	// DivideV is the divided total when Divide == DivValue: a value evaluated
-	// as the slot is announced (gorge divisionTotalFor).
+	// as the slot is announced (gorge divisionTotalFor); the slot takes at
+	// most that many objects (MaxV, or Max, clamped to the total).
 	DivideV ValueRef
 	// ParentPlus1 is the 1-based slot of the player target whose graveyard
 	// this card slot is restricted to (kgen's TargetsWithDefinedController$
@@ -43,6 +44,13 @@ type TargetSpec struct {
 	// MinV, MaxV: the bounds when TFlags has TgfBoundsV (a constant side holds
 	// kop.Const); Min/Max are unused then.
 	MinV, MaxV ValueRef
+	// SpellF is a TgtSpellTgting slot's spell-side filter (the counter's
+	// ValidTgts$, e.g. Avoid Fate's Instant,Aura): a stack-zone filter on the
+	// candidate spell; 0 = any spell. VYou replaces the slot's battlefield
+	// Filter with "a target of the spell is the chooser" (TargetValidTargeting$
+	// You, Dawn Charm).
+	SpellF FilterID
+	VYou   bool
 }
 
 // MaxTargets is the number of target slots an ability may have.
@@ -111,3 +119,10 @@ const TgtGraveExileCard TargetKind = 241
 // an ability whose targets are exactly one distinct target (gorge
 // TargetType$ SpellAbility.singleTarget, the singleTarget property).
 const TgfSingleTgt TargetFlags = 1 << 13
+
+// TgfOppOnly (TargetSpec.TFlags): a TgtAny slot's player alternative is an
+// opponent of the chooser only (gorge ValidTgts$ Opponent,Planeswalker:
+// Burning Sun's Avatar, Jeskai Charm, Rakdos's Return); the filter's object
+// clause still names the planeswalker alternative, which has no controller
+// word.
+const TgfOppOnly TargetFlags = 1 << 14

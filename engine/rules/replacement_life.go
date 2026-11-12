@@ -435,7 +435,7 @@ func (e *Engine) lifeChangeForbidden(ev events.Event) bool {
 }
 
 // playerLifeChangeForbidden is lifeChangeForbidden's player form, the read
-// every offer gate takes (the payment layer's payEval.LifeChangeForbidden and
+// every offer gate takes (the payment layer's payEval.LifePaymentForbidden and
 // the attack/block charge gates).
 func (e *Engine) playerLifeChangeForbidden(p state.PlayerID) bool {
 	for _, sv := range e.activeStatics("CantChangeLife") {

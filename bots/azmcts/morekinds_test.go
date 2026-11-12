@@ -37,15 +37,15 @@ type kindFixture struct {
 // kind's shapes (found by scanning the default bot's games).
 var kindFixtures = []kindFixture{
 	{"modes 2 of 3", "mono-red-prowess", "foundations-calling-all-angels", testSeed + 1, 0, decision.KModes, "", 2, 2, 3, "modes"},
-	{"modes 1 of 3", "foundations-keen-engineering", "death-n-taxes", testSeed + 10, 0, decision.KModes, "", 1, 1, 3, "modes"},
-	{"may trigger", "foundations-calling-all-angels", "foundations-keen-engineering", testSeed, 0, decision.KTriggerOptional, "", 1, 1, 2, "optional"},
-	{"choose X of 2", "foundations-keen-engineering", "mono-red-prowess", testSeed + 6, 0, decision.KChoose, "x", 1, 1, 2, "choose"},
-	{"choose X of 5", "foundations-keen-engineering", "foundations-tramplesaurus-rex", testSeed + 40, 1, decision.KChoose, "x", 1, 1, 5, "choose"},
-	{"sacrifice 2 of 3", "foundations-keen-engineering", "foundations-tramplesaurus-rex", testSeed + 5, 0, decision.KChoose, "sacrifice", 2, 2, 3, "choose"},
-	{"exile up to 2 of 3", "foundations-tramplesaurus-rex", "foundations-wretched-ranks", testSeed + 25, 1, decision.KChoose, "exile", 0, 2, 3, "choose"},
-	{"up to 2 targets of 3", "mono-red-prowess", "foundations-reign-of-dragons", testSeed + 1, 1, decision.KTarget, "", 1, 2, 3, "multitarget"},
-	{"optional target of 2", "foundations-calling-all-angels", "mono-blue-tempo", testSeed + 3, 0, decision.KTarget, "", 0, 1, 2, "multitarget"},
-	{"2 targets of 5", "foundations-wretched-ranks", "mono-red-prowess", testSeed + 265, 0, decision.KTarget, "", 2, 2, 5, "multitarget"},
+	{"modes 1 of 3", "foundations-keen-engineering", "death-n-taxes", testSeed + 17, 0, decision.KModes, "", 1, 1, 3, "modes"},
+	{"may trigger", "foundations-calling-all-angels", "foundations-keen-engineering", testSeed + 5, 0, decision.KTriggerOptional, "", 1, 1, 2, "optional"},
+	{"choose X of 2", "foundations-keen-engineering", "mono-red-prowess", testSeed + 1, 0, decision.KChoose, "x", 1, 1, 2, "choose"},
+	{"choose X of 5", "mono-blue-tempo", "uw-control", testSeed, 1, decision.KChoose, "x", 1, 1, 5, "choose"},
+	{"sacrifice 2 of 3", "foundations-keen-engineering", "foundations-tramplesaurus-rex", testSeed + 6, 0, decision.KChoose, "sacrifice", 2, 2, 3, "choose"},
+	{"exile up to 2 of 3", "foundations-tramplesaurus-rex", "dimir-tempo", testSeed + 17, 1, decision.KChoose, "exile", 0, 2, 3, "choose"},
+	{"up to 2 targets of 3", "mono-green-stompy", "cavalry-charge", testSeed + 2, 1, decision.KTarget, "", 1, 2, 3, "multitarget"},
+	{"optional target of 2", "foundations-calling-all-angels", "mono-blue-tempo", testSeed + 25, 0, decision.KTarget, "", 0, 1, 2, "multitarget"},
+	{"2 targets of 5", "growing-threat", "mono-blue-tempo", testSeed + 42, 0, decision.KTarget, "", 2, 2, 5, "multitarget"},
 }
 
 func (f kindFixture) matches(d *decision.Decision) bool {

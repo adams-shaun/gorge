@@ -200,11 +200,13 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm = CastModeOther | 1<<4 // gorge's "optionalcost" cast, AltCostIndex 1 (CR 601.2b; cost_optional.go)
 		case mode&1 != 0 && r.S.FeatOffspringCast(dirac.Obj(src)):
 			cm, _ = CastModeCode("offspring") // the kicked cast of an Offspring card (kw_offspring.go)
+		case mode&1 != 0 && r.S.FeatBuybackCast(dirac.Obj(src)):
+			cm, _ = CastModeCode("buyback") // the kicked cast of a Buyback card (kw_buyback.go): CastModeOther, as "offspring"
 		case mode&1 != 0:
 			cm, _ = CastModeCode("kicked")
 		case mode&2 != 0 && r.S.FeatMayhemCard(dirac.Obj(src)):
 			cm, _ = CastModeCode("mayhem") // CR 702.187a: CastModeOther, as "harmonize"
-		case mode&2 != 0 && r.S.FeatHarmonizeCard(dirac.Obj(src)):
+		case mode&2 != 0 && r.S.FeatHarmonizeCast(dirac.Obj(src)):
 			cm, _ = CastModeCode("harmonize") // CR 702.180a: CastModeOther, as "bargained"
 		case mode&2 != 0 && tgt != 0:
 			cm, _ = CastModeCode("beam_me_up") // CastModeOther, as "harmonize"
@@ -826,6 +828,10 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(ActMode, RefNone, RefNone, r.S.CastFreeIndex(dirac.Obj(src))), true
 	case dirac.ChGenLookAck:
 		return Pack(kind("yes"), RefNone, RefNone, 0), true
+	case dirac.ChGenDestAlt:
+		// gorge's changezone_dest_alt: "destination" options naming the
+		// searcher, primary (index 0) then alternate (index 1)
+		return Pack(kind("destination"), RefNone, RefPlayer+Ref(r.D.Player), mode), true
 	case dirac.ChGenExplore:
 		// gorge's explore: a KChoose of "graveyard" / "top" over the revealed card
 		if mode == 1 {

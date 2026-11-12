@@ -45,14 +45,19 @@ const (
 	ExtTwoPilesSac
 	// ExtChooseColorRes (Skrelv, Defector Mite): the resolving
 	// controller chooses a colour (ChGenColor, all five); it rides
-	// res.chosen (colour index + 1) for the ExtColorGrant that follow
-	// (gorge effChooseColor Defined$ You). dirac/static_colourgrant.go.
+	// res.chosen (colour index + 1) for the ExtColorGrant that follow,
+	// and res.col for the ChosenColor filters of the rest of the
+	// resolution (gorge effChooseColor Defined$ You records it on the
+	// source, chosenColorMatches reads it). dirac/static_colourgrant.go.
 	ExtChooseColorRes
 	// ExtColorGrant (Skrelv): the object in Obj gains, until end
 	// of turn and for the colour in res.chosen, hexproof from that colour
 	// (C bit 0), toxic B.N (B) and "can't be blocked by creatures of that
 	// colour" (C bit 1) (gorge definedKWGrant and the CantBlockBy Effect's
-	// freezeChosenColor, cr-pump-definedkw-chosencolor).
+	// freezeChosenColor, cr-pump-definedkw-chosencolor); protection from
+	// that colour (C bit 2) for Obj, or, with a filter F, for every
+	// permanent matching F as it resolves (gorge effProtectionAll Gains$
+	// ChosenColor; Akroma's Blessing).
 	// dirac/static_colourgrant.go.
 	ExtColorGrant
 	// ExtMayPlayGrave (Case of the Uneaten Feast): every
@@ -723,3 +728,20 @@ func init() { extOpNames[ExtSpellToLib] = "SpellToLib" }
 const ExtCopyExiledWith ExtOp = 258
 
 func init() { extOpNames[ExtCopyExiledWith] = "CopyExiledWith" }
+
+// ExtPreventNext (CR 615.7): prevent the next B damage that would be dealt
+// this turn to the player or permanent Obj (gorge effects/prevent_damage.go
+// effPreventDamage: one this-turn DamageDone shield per recipient that
+// prevents only the next N damage, depletes across events and lets the rest
+// through). B is the amount, read once as the effect resolves; C 1: the shield
+// matches combat damage only (CombatDamage$ True). A recipient that is not on
+// the battlefield (or a player who has lost) takes no shield, and an amount of
+// zero or less installs nothing. A shield is a genState.prevCol record (three a
+// turn of any kind; a fourth stalls StallPrevCol). A shield that has to be
+// ordered against another damage replacement (CR 616.1: a colour or scope
+// prevention, a doubler, a SHIELD counter) stalls StallPrevNext: the order
+// changes what is prevented; two or more shields on one recipient are asked in
+// order. dirac/repl_prevnext.go.
+const ExtPreventNext ExtOp = 305
+
+func init() { extOpNames[ExtPreventNext] = "PreventNext" }

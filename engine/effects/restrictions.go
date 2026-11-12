@@ -1590,6 +1590,57 @@ func PanharmoniconParamsReadable(params map[string]string) bool {
 
 var cantGainLifeParamsReadableKeys = state.NewNameSet("Mode", "ValidPlayer", "Description", "Secondary")
 
+var cantPayLifeParamsReadableKeys = state.NewNameSet("Mode", "ValidPlayer", "ValidCause", "ForCost", "Description", "Secondary")
+
+// CantPayLifeParamsReadable is the parameter whitelist a face CantPayLife
+// static must pass before rules' playerLifePayForbidden enforces it: the mode,
+// the payer scope (ValidPlayer$), the cause scoping the cost path evaluates
+// (ValidCause$, ForCost$) and display text. Any other term names a condition
+// this build does not evaluate; enforcing it blanket would over-restrict, so
+// the line is skipped (the permissive direction for a restriction).
+func CantPayLifeParamsReadable(params map[string]string) bool {
+	for k := range params {
+		if !cantPayLifeParamsReadableKeys.Has(k) {
+			return false
+		}
+	}
+	return true
+}
+
+var canAttackIfHasteParamsReadableKeys = state.NewNameSet("Mode", "ValidCard", "ValidTarget", "Description", "Secondary")
+
+// CanAttackIfHasteParamsReadable is the parameter whitelist a face
+// CanAttackIfHaste static must pass before combat's CanAttackIfHastePair
+// honours it: the mode, the creature scope (ValidCard$), the defender scope
+// (ValidTarget$) and display text. Any other term is a condition this build
+// does not evaluate; granting the haste exemption blanket would over-permit,
+// so the line is skipped (it stays inert).
+func CanAttackIfHasteParamsReadable(params map[string]string) bool {
+	for k := range params {
+		if !canAttackIfHasteParamsReadableKeys.Has(k) {
+			return false
+		}
+	}
+	return true
+}
+
+var attackRequirementParamsReadableKeys = state.NewNameSet("Mode", "ValidCard", "ValidAttacker", "Description", "Secondary")
+
+// AttackRequirementParamsReadable is the parameter whitelist a face
+// AttackRequirement static must pass before combat's AttackRequirementClauses
+// publishes it: the mode, the two creature scopes (ValidCard$ the creatures
+// that must attack, ValidAttacker$ the attackers that trigger the duty) and
+// display text. Any other term is a condition this build does not evaluate;
+// enforcing the duty blanket would over-restrict, so the line is skipped.
+func AttackRequirementParamsReadable(params map[string]string) bool {
+	for k := range params {
+		if !attackRequirementParamsReadableKeys.Has(k) {
+			return false
+		}
+	}
+	return true
+}
+
 var cantChangeLifeParamsReadableKeys = state.NewNameSet("Mode", "ValidPlayer", "Description", "Secondary")
 
 var cantPlayLandParamsReadableKeys = map[string]struct{}{

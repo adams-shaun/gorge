@@ -66,7 +66,7 @@ A 2026-11-05 paired comparison (`make enginebench-pair BASE=b78e4c8b1 CAND=HEAD`
 HEAD (`0ec285f67`) at 1.06-1.25× the `b78e4c8b1` baseline's CPU per turn on every row: ×1.24-1.25 on `random -autopay`, ×1.11-1.13 on `random`, ×1.12-1.13 on
 `bot -autopay`, ×1.06-1.08 on `bot`, and ×1.05-1.10 on the Burn mirror. That regression is engine work, not a published number: until it is fixed, the rows
 below are the `b78e4c8b1` baseline re-measured on 2026-11-05 as the base arm of that paired run — Go 1.26.3, `GOMAXPROCS=1`, 15 CPU-seconds a run, three reps
-per row, Burn from its own paired run. The [comparison page](index.md) keeps gorge's 2026-11-02 baseline figures and measures dirac at HEAD. HEAD's `clone`
+per row, Burn from its own paired run. The [comparison page](index.md) quotes the same baseline for gorge, dated 2026-11-05, and measures dirac at HEAD. HEAD's `clone`
 measures the same as the baseline and `step` about 5% more CPU with GC off.
 
 <figure markdown="span">

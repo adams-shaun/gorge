@@ -56,20 +56,24 @@ func KernelMatchupN(reg *cards.Registry, tbl *kop.Table, labels []string, decks 
 
 // RealKernel is a SideFactory over package kernel playing tbl. The matchup's
 // gorge decks are mapped back to tbl's cards by name (names: kernel name ->
-// gorge name, as given to KernelMatchup). Elision follows cfg.PassElision
+// gorge name, as given to KernelMatchup); a name the map does not fix up
+// resolves through the corpus (canon.GorgeName). Elision follows cfg.PassElision
 // (dirac.Config.NoElide when off).
 func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory {
-	rev := map[string]kop.CardID{}
-	for i, c := range tbl.Cards {
-		n := c.Name
-		if g, ok := names[n]; ok {
-			n = g
-		}
-		if _, dup := rev[n]; !dup {
-			rev[n] = kop.CardID(i)
-		}
-	}
 	return func(m *Matchup, seed uint64) (Side, error) {
+		gorgeName := func(n string) string {
+			if g, ok := names[n]; ok {
+				n = g
+			}
+			return canon.GorgeName(m.reg, n)
+		}
+		rev := make(map[string]kop.CardID, len(tbl.Cards))
+		for i, c := range tbl.Cards {
+			n := gorgeName(c.Name)
+			if _, dup := rev[n]; !dup {
+				rev[n] = kop.CardID(i)
+			}
+		}
 		n := m.NSeat()
 		if n > dirac.MaxSeats {
 			return nil, fmt.Errorf("realkernel: a matchup of %d seats; this kernel build holds %d (the dirac_mp build tag holds %d)", n, dirac.MaxSeats, MaxSeats)
@@ -103,9 +107,7 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 			if len(c.Faces) > 0 {
 				n = tbl.Cards[c.Faces[0]].Name // a face is its card (gorge names the front)
 			}
-			if g, ok := names[n]; ok {
-				n = g
-			}
+			n = gorgeName(n)
 			r.gname[i] = n
 			r.tidx[i] = NoCardIndex
 			for j, t := range m.Table {

@@ -22,6 +22,11 @@ var expandedHeads = []string{
 	"Equip", "Transmute", "Cycling", "TypeCycling", "Level up", "Affinity",
 	// Undaunted (CR 702.105) was added after the split; the pre-split switch never expanded it.
 	"Undaunted",
+	// Bushido (CR 702.45): the Block half ("blocks") and the
+	// AttackerBlocked half ("becomes blocked"), each a Pump of Self +N/+N
+	// until end of turn. Added after the split; the pre-split switch never
+	// expanded it.
+	"Bushido",
 	"Enchant", "Mobilize", "Afterlife", "Encore", "Embalm", "Eternalize",
 	// Squad (CR 702.66) was added after the split: the corpus carries only
 	// the K:Squad:<cost> line, so the expansion supplies the ETB trigger
@@ -157,6 +162,9 @@ var expandedHeads = []string{
 	// trigger (engine/cards/kw_tribute.go). Added after the split; the
 	// pre-split switch never expanded it.
 	"Tribute",
+	// Scavenge (CR 702.97): a graveyard PutCounter activation sized by the
+	// exiled card's power (engine/cards/kw_scavenge.go). Added after the split.
+	"Scavenge",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

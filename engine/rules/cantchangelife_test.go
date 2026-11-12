@@ -24,7 +24,7 @@ import (
 //     still moves life normally (the control).
 //   - the payment layer's offer gates (pay.CostPayableClassLife /
 //     CostPayablePool / ResolveManaNoLifePay, reached through
-//     pay.Eval.LifeChangeForbidden) refuse a positive life cost for that
+//     pay.Eval.LifePaymentForbidden) refuse a positive life cost for that
 //     payer, so a `Cost$ PayLife<1>` activation is priced infeasible.
 //
 // Every "nothing happens" subtest also asserts the feature RAN: the emitted

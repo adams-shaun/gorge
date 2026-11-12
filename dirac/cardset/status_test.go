@@ -15,7 +15,7 @@ func statusPool() *PoolData {
 		PoolID: []uint16{0, 1, 2, 3, 4},
 		Status: []Status{StatusSupported, StatusNotLowered, StatusRefused, StatusUnverified, StatusSupported},
 		Reason: []string{"", "not lowered: no", "refused: lockstep: it differs; catch-up pending", "unverified: in no evidence list", ""},
-		Defs:   make([]kop.CardDef, 5), CardSubs: make([][2]uint64, 5), CardTokens: make([][]uint16, 5),
+		Defs:   make([]kop.CardDef, 5), CardSubs: make([]kop.SubMask, 5), CardTokens: make([][]uint16, 5),
 		CardRefSubs: make([][]uint8, 5), AbilityOrigin: make([][]uint8, 5), StaticSubs: make([][]AbSubs, 5),
 		Filters: []kop.Filter{{}}, Exprs: []kop.Expr{}, Conds: []kop.Cond{}, Overrides: []kop.Override{}, Emblems: []kop.Emblem{}}
 }

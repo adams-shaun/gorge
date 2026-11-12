@@ -454,6 +454,11 @@ type lTarget struct {
 	// VTgt: with Spell, TargetValidTargeting$: a spell whose own object targets
 	// include a battlefield object matching it (TgtSpellTgting)
 	VTgt *lFilter
+	// VSpellF: with VTgt or VYou, the spell side's ValidTgts$ filter (nil = any
+	// spell); VYou: the targeting clause is "You" (a target of the spell is
+	// the chooser), VTgt is nil
+	VSpellF *lFilter
+	VYou    bool
 	// CopyAb: with AbOnly, an ability the chooser controls whose source's types
 	// match F: 1 activated or triggered (TgtCopyAb), 2 triggered only
 	// (TgtCopyTrig)
@@ -799,6 +804,11 @@ type lMana struct {
 	Deferred   bool     // a TriggersWhenSpent$ source gorge's planner defers (kop.Ability.ManaDeferred; lower_deferredmana.go)
 	Split      *lSplit  // a Condition-split production's arm (kop.Ability.SplitGate; lower_condsplit.go)
 	HasteValid *lFilter // AddsKeywords$ Haste: a spell matching it, paid with this mana, gains haste until end of turn (kop.Ability.ManaHasteValid)
+	// Rider is the rider the ability runs with its mana (kop.Ability.ManaRider;
+	// lower_manarider.go): none, deplete or each-opponent life.
+	Rider    int
+	RiderCtr string // the source counter kind a deplete rider reads
+	RiderN   int    // the life count
 }
 
 type lUnless struct {
@@ -984,6 +994,7 @@ type lCard struct {
 	SelfFlash      bool      // a CastWithFlash EffectZone$ All self grant (Illusion Spinners; CardDef.SelfFlash)
 	Changeling     bool      // K:Changeling: every creature type (CR 702.73a), in every zone
 	Offspring      *manaCost // K:Offspring:<cost> (CR 702.175): the kernel's kicked cast and Kicker cost, CardDef.Offspring
+	Buyback        *manaCost // K:Buyback:<cost> (CR 702.27a): the kernel's kicked cast and Kicker cost, CardDef.Buyback; a Sac<1/..> cost is zero mana plus KickerCost
 	Casualty       int       // printed K:Casualty:<N> (CR 702.153a, fixed N >= 1), CardDef.Casualty
 	Bargain        bool      // printed K:Bargain (CR 702.166), CardDef.Bargain
 	Storm          bool      // printed K:Storm (CR 702.40a), CardDef.Storm: the kernel's own native cast trigger (dirac/kw_storm.go)

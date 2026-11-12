@@ -336,3 +336,254 @@
 334	token	w_4_4_angel_flying
 335	token	w_4_4_angel_flying_vigilance
 336	token	u_x_x_illusion
+337	card	Abrade
+338	card	Adaptive Omnitool
+339	card	All Is Dust
+340	card	Always Watching
+341	card	Angel of Finality
+342	card	Angel of Vitality
+343	card	Angel of the Ruins
+344	card	Angelic Destiny
+345	card	Angelic Field Marshal
+346	card	Angelic Sleuth
+347	card	Anger
+348	card	Arachnogenesis
+349	card	Arasta of the Endless Web
+350	card	Arcane Signet
+351	card	Archangel of Tithes
+352	card	Atsushi, the Blazing Sky
+353	card	Austere Command
+354	card	Ayara, First of Locthwain
+355	card	Bad Moon
+356	card	Barren Moor
+357	card	Basilisk Collar
+358	card	Birds of Paradise
+359	card	Bishop of Wings
+360	card	Bite Down
+361	card	Bitter Reunion
+362	card	Blasphemous Act
+363	card	Bonders' Enclave
+364	card	Bontu's Monument
+365	card	Breaching Dragonstorm
+366	card	Breath Weapon
+367	card	Broodstar
+368	card	Carnage Tyrant
+369	card	Carnelian Orb of Dragonkind
+370	card	Castle Locthwain
+371	card	Cemetery Recruitment
+372	card	Chain Reaction
+373	card	Challenger Troll
+374	card	Champion of the Perished
+375	card	Chandra's Ignition
+376	card	Chaos Warp
+377	card	Cleansing Nova
+378	card	Clifftop Lookout
+379	card	Collective Resistance
+380	card	Colossal Majesty
+381	card	Commander's Sphere
+382	card	Consumed by Greed
+383	card	Consuming Corruption
+384	card	Count on Luck
+385	card	Court of Grace
+386	card	Crucible of Fire
+387	card	Cryptbreaker
+388	card	Cultivator's Caravan
+389	card	Curious Altisaur
+390	card	Cursed Mirror
+391	card	Cut a Deal
+392	card	Darksteel Citadel
+393	card	Darksteel Juggernaut
+394	card	Defy Death
+395	card	Destroy Evil
+396	card	Diregraf Colossus
+397	card	Dragon Tempest
+398	card	Dragon's Hoard
+399	card	Dragonhawk, Fate's Tempest
+400	card	Dragonspeaker Shaman
+401	card	Dragonstorm Globe
+402	card	Drakuseth, Maw of Flames
+403	card	Dungrove Elder
+404	card	Duplicant
+405	card	Elder Gargaroth
+406	card	Elemental Bond
+407	card	Emeria Shepherd
+408	card	Endless Atlas
+409	card	Eternal Taskmaster
+410	card	Exemplar of Light
+411	card	Exorcise
+412	card	Ezuri's Predation
+413	card	Fall from Favor
+414	card	Fateful Absence
+415	card	Firemane Commando
+416	card	Firespitter Whelp
+417	card	Forgotten Cave
+418	card	Forsaken Monument
+419	card	Foundry Inspector
+420	card	Foundry of the Consuls
+421	card	Garruk's Packleader
+422	card	Geier Reach Sanitarium
+423	card	Gigantosaurus
+424	card	God-Eternal Bontu
+425	card	Goddric, Cloaked Reveler
+426	card	Goldlust Triad
+427	card	Graaz, Unstoppable Juggernaut
+428	card	Grasp of Fate
+429	card	Haven of the Spirit Dragon
+430	card	Hazoret's Monument
+431	card	Headless Rider
+432	card	Hellkite Charger
+433	card	Herald of Eternal Dawn
+434	card	Herald's Horn
+435	card	Heraldic Banner
+436	card	Hit the Mother Lode
+437	card	Hulking Raptor
+438	card	Ichor Wellspring
+439	card	Ilysian Caryatid
+440	card	Infernal Idol
+441	card	Invoke the Divine
+442	card	Josu Vess, Lich Knight
+443	card	Kalitas, Traitor of Ghet
+444	card	Kappa Cannoneer
+445	card	Kenrith's Transformation
+446	card	Launch Mishap
+447	card	Leyline Tyrant
+448	card	Liliana's Mastery
+449	card	Liliana's Reaver
+450	card	Linvala, the Preserver
+451	card	Llanowar Tribe
+452	card	Lonely Sandbar
+453	card	Loot, Exuberant Explorer
+454	card	Lord of the Undead
+455	card	Lyra Dawnbringer
+456	card	Magmaquake
+457	card	Mana Geyser
+458	card	Marchesa's Decree
+459	card	Master Transmuter
+460	card	Mazemind Tome
+461	card	Memorial to Folly
+462	card	Memory Guardian
+463	card	Merchant of Truth
+464	card	Metallic Mimic
+465	card	Meteor Golem
+466	card	Metropolis Reformer
+467	card	Midnight Reaper
+468	card	Mind's Eye
+469	card	Minion of the Mighty
+470	card	Mire Triton
+471	card	Misleading Signpost
+472	card	Moan of the Unhallowed
+473	card	Monstrous Onslaught
+474	card	Mosswort Bridge
+475	card	Mutilate
+476	card	Myr Battlesphere
+477	card	Necrotic Hex
+478	card	Negate
+479	card	Nettlecyst
+480	card	Nevinyrral's Disk
+481	card	Nogi, Draco-Zealot
+482	card	Norn's Choirmaster
+483	card	Noxious Ghoul
+484	card	Open the Graves
+485	card	Orb of Dragonkind
+486	card	Ornithopter of Paradise
+487	card	Outpost Siege
+488	card	Oversold Cemetery
+489	card	Overwhelming Stampede
+490	card	Padeem, Consul of Innovation
+491	card	Paradise Druid
+492	card	Parapet Thrasher
+493	card	Patchwork Banner
+494	card	Propaganda
+495	card	Psychosis Crawler
+496	card	Pugnacious Hammerskull
+497	card	Pull from Tomorrow
+498	card	Radiant Fountain
+499	card	Ram Through
+500	card	Rapacious Dragon
+501	card	Razorlash Transmogrant
+502	card	Regal Imperiosaur
+503	card	Remote Isle
+504	card	Research Thief
+505	card	Reya Dawnbringer
+506	card	Rhonas the Indomitable
+507	card	Rhonas's Monument
+508	card	Ripjaw Raptor
+509	card	Rishkar's Expertise
+510	card	Rishkar, Peema Renegade
+511	card	Rogue's Passage
+512	card	Sarkhan, Dragon Ascendant
+513	card	Scavenger Grounds
+514	card	Scourge of the Throne
+515	card	Scrapshooter
+516	card	Scrawling Crawler
+517	card	Search the Premises
+518	card	Secluded Steppe
+519	card	Secret Rendezvous
+520	card	Segovian Angel
+521	card	Sephara, Sky's Blade
+522	card	Seraph Sanctuary
+523	card	Seraph of the Sword
+524	card	Shamanic Revelation
+525	card	Shimmer Dragon
+526	card	Shimmer Myr
+527	card	Shivan Devastator
+528	card	Skyline Despot
+529	card	Skysovereign, Consul Flagship
+530	card	Soul-Guide Lantern
+531	card	Soulless One
+532	card	Speaker of the Heavens
+533	card	Spinerock Knoll
+534	card	Spire Golem
+535	card	Spit Flame
+536	card	Starnheim Aspirant
+537	card	Steel Hellkite
+538	card	Steel Overseer
+539	card	Sunblast Angel
+540	card	Surrak and Goreclaw
+541	card	Surrak, the Hunt Caller
+542	card	Swiftfoot Boots
+543	card	Syphon Flesh
+544	card	Tamiyo's Logbook
+545	card	Tamiyo's Safekeeping
+546	card	Tangleweave Armor
+547	card	Taurean Mauler
+548	card	Tendrils of Corruption
+549	card	Terrian, World Tyrant
+550	card	Terror of Mount Velus
+551	card	The Elder Dragon War
+552	card	Thickest in the Thicket
+553	card	Thopter Fabricator
+554	card	Thopter Spy Network
+555	card	Thought Monitor
+556	card	Thought Vessel
+557	card	Thoughtcast
+558	card	Thraben Watcher
+559	card	Thundermane Dragon
+560	card	Tranquil Thicket
+561	card	Tyrant's Familiar
+562	card	Undead Butler
+563	card	Unexpected Windfall
+564	card	Unnatural Growth
+565	card	Valorous Stance
+566	card	Vanguard Seraph
+567	card	Vanquisher's Banner
+568	card	Verdant Sun's Avatar
+569	card	War Room
+570	card	Warstorm Surge
+571	card	Whiptongue Hydra
+572	card	Wight of Precinct Six
+573	card	Witch's Clinic
+574	card	Witch's Cottage
+575	card	Withering Torment
+576	card	Wojek Investigator
+577	card	Yeva, Nature's Herald
+578	card	Zul Ashur, Lich Lord
+579	token	b_0_0_phyrexian_germ
+580	token	b_2_2_zombie_knight_menace
+581	token	c_1_1_a_myr
+582	token	c_a_clue_draw
+583	token	c_a_treasure_sac
+584	token	g_1_2_spider_reach
+585	token	r_4_4_dragon_flying
+586	token	w_1_1_spirit_flying
+587	token	w_3_3_angel_flying

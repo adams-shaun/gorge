@@ -179,3 +179,56 @@ func TestCompetingDrawCardsReplacementsAskTheDrawer(t *testing.T) {
 		t.Fatalf("seat 1 hand delta = %d, want 1", got)
 	}
 }
+
+// driveThreeRiddlers poses one DrawBatchProposal against three Quantum
+// Riddlers and answers every replacement ask with pickOption(options). It
+// returns the option counts of the asks and the hand/library deltas.
+func driveThreeRiddlers(t *testing.T, pickOption func(n int) int) (asks []int, handDelta, libDelta int) {
+	t.Helper()
+	reg := testutil.CorpusRegistry(t)
+	e := drawReplEngine(t, 754)
+	var qr state.ObjID
+	for i := 0; i < 3; i++ {
+		qr = onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Quantum Riddler"))
+	}
+	setDrawHand(t, e, 0, 1)
+	e.pending = nil
+	hand0, lib0 := len(e.G.Zone(state.ZHand, 0)), len(e.G.Zone(state.ZLibrary, 0))
+	e.CountReplacementProposed(events.Event{Kind: events.DrawBatchProposal,
+		Player: 0, Obj: qr, Amount: 1})
+	for len(asks) < 12 {
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KReplacement {
+			break
+		}
+		asks = append(asks, len(d.Options))
+		submitChoices(t, e, pickOption(len(d.Options)))
+	}
+	return asks, len(e.G.Zone(state.ZHand, 0)) - hand0, lib0 - len(e.G.Zone(state.ZLibrary, 0))
+}
+
+// TestThreeQuantumRiddlersEachApplyOnceToOneDraw: a parked order ask must
+// remember the draw lineage's applied set (CR 614.5), or the answered body's
+// nested proposal re-offers a Riddler that already applied and the asks never
+// end. Three Riddlers: 3 options, then 2, then the last applies unasked.
+func TestThreeQuantumRiddlersEachApplyOnceToOneDraw(t *testing.T) {
+	t.Parallel()
+	for name, pick := range map[string]func(int) int{
+		"first": func(int) int { return 0 },
+		"last":  func(n int) int { return n - 1 },
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			asks, handDelta, libDelta := driveThreeRiddlers(t, pick)
+			if len(asks) == 0 || asks[0] != 3 {
+				t.Fatalf("first ask options = %v, want 3 Riddler candidates", asks)
+			}
+			if len(asks) != 2 || asks[1] != 2 {
+				t.Fatalf("asks = %v, want [3 2]", asks)
+			}
+			if handDelta != 4 || libDelta != 4 {
+				t.Fatalf("hand delta %d, library delta %d, want 4 and 4 (1 + one per Riddler)", handDelta, libDelta)
+			}
+		})
+	}
+}

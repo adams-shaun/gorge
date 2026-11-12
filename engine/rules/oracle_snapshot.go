@@ -48,6 +48,14 @@ type OracleSnapPlayer struct {
 	LibraryCount int              `json:"library_count"`
 	LibraryTop   []string         `json:"library_top"` // top first, at most oracleLibraryTopN
 	Pool         string           `json:"pool"`        // WUBRGC letters
+	// CommanderCasts is how many times each of this seat's commanders has been
+	// cast from the command zone (Player.CmdCasts, CR 903.8): commander front-face
+	// name -> count, non-zero entries only, nil when none.
+	CommanderCasts oracleSnapTally `json:"commander_casts,omitempty"`
+	// CommanderDamage is the combat damage this seat has taken from each
+	// commander (Player.CmdDamage, CR 903.10a): "pN:<front-face name>", N the
+	// commander's owner, -> damage, non-zero entries only, nil when none.
+	CommanderDamage oracleSnapTally `json:"commander_damage,omitempty"`
 	// Lost marks a seat that has lost the game (CR 104.3). Only a game of
 	// three or more seats goes on past it (CR 800.4a), so it is false in
 	// every two-seat checkpoint but a game-over one.
@@ -277,6 +285,51 @@ func (r *oracleRun) zoneNames(z state.Zone, p state.PlayerID, sorted bool) []str
 	return out
 }
 
+// frontFaceName is a commander's identity for the snapshot tallies: the
+// printed front face, not the current face, so a transformed or face-down
+// commander keeps one key.
+func (r *oracleRun) frontFaceName(o *state.Object) string {
+	if o != nil && o.Card != nil && len(o.Card.Faces) > 0 {
+		return o.Card.Faces[0].Name
+	}
+	return r.objName(o)
+}
+
+// cmdTallies returns seat i's non-zero commander tax counts and the commander
+// damage it has taken, keyed as OracleSnapPlayer documents. Read-only: it
+// walks Player.Commanders, CmdCasts and CmdDamage exactly as genesis sized
+// them (the damage index is commanderDenseIndex's match-wide order: seat
+// order, then each seat's Commander order).
+func (r *oracleRun) cmdTallies(i int) (casts, damage oracleSnapTally) {
+	g := r.e.G
+	for k, id := range g.Players[i].Commanders {
+		if k >= len(g.Players[i].CmdCasts) {
+			break
+		}
+		if n := g.Players[i].CmdCasts[k]; n != 0 {
+			if casts == nil {
+				casts = oracleSnapTally{}
+			}
+			casts[r.frontFaceName(g.Obj(id))] = n
+		}
+	}
+	dense := 0
+	for s := range g.Players {
+		for _, id := range g.Players[s].Commanders {
+			if dense < len(g.Players[i].CmdDamage) {
+				if n := g.Players[i].CmdDamage[dense]; n != 0 {
+					if damage == nil {
+						damage = oracleSnapTally{}
+					}
+					damage[oracleSeatRef(s, r.frontFaceName(g.Obj(id)))] = n
+				}
+			}
+			dense++
+		}
+	}
+	return casts, damage
+}
+
 // snapshot builds the checkpoint. Read-only: it calls only accessors.
 func (r *oracleRun) snapshot(checkpoint string) OracleSnapshot {
 	e, g := r.e, r.e.G
@@ -296,11 +349,13 @@ func (r *oracleRun) snapshot(checkpoint string) OracleSnapshot {
 		for j := 0; j < len(lib) && j < oracleLibraryTopN; j++ {
 			top = append(top, r.objName(g.Obj(lib[j])))
 		}
+		casts, damage := r.cmdTallies(i)
 		s.Players = append(s.Players, OracleSnapPlayer{
 			Seat: i, Life: g.Players[i].Life, Counters: r.snapCounters(g.Players[i].Counters),
 			Hand: r.zoneNames(state.ZHand, p, true), Graveyard: r.zoneNames(state.ZGraveyard, p, false),
 			Exile: r.zoneNames(state.ZExile, p, true), Command: r.zoneNames(state.ZCommand, p, true),
 			LibraryCount: len(lib), LibraryTop: top, Pool: poolString(g.Players[i].Pool),
+			CommanderCasts: casts, CommanderDamage: damage,
 			Lost: g.Players[i].Lost,
 		})
 	}

@@ -710,6 +710,12 @@ func (e *Engine) quietGraveBlocker(p state.PlayerID, ceiling int32, unbounded, s
 			return qbGraveRoute
 		}
 		f := o.Face()
+		// The self-carried graveyard AlternativeCost is a graveyard cast this
+		// per-face recast price cannot see; block conservatively (no pricing
+		// needed) so the walk is never skipped while one is in the graveyard.
+		if faceHasGraveyardSelfAltCost(f) {
+			return qbGraveRoute
+		}
 		if ff.quiet.recastOpen || ff.quiet.recastFloor >= 0 {
 			qf := &ff.quiet
 			if quietGraveRecastBlocked(qf, ceiling, unbounded, sorceryOpen) {

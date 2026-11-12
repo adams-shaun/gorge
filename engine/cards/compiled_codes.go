@@ -139,9 +139,12 @@ const (
 	// Meld's compiled operand record is bound before its handler is registered.
 	// Append only: existing catalog opcodes are unchanged.
 	APIMeld APICode = 81
+	// OpenAttraction is appended after Meld (task hunt-cmdr-attractions):
+	// no assigned value moves.
+	APIOpenAttraction APICode = 82
 
 	// APICodeCount includes the zero/unknown slot and sizes dense dispatch.
-	APICodeCount = 82
+	APICodeCount = 83
 )
 
 // APICodeForName returns the stable opcode for an engine-owned effect API.
@@ -240,6 +243,8 @@ func APICodeForName(api string) APICode {
 		return APIManaReflected
 	case "Meld":
 		return APIMeld
+	case "OpenAttraction":
+		return APIOpenAttraction
 	case "Mill":
 		return APIMill
 	case "Myriad":
