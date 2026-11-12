@@ -2,6 +2,7 @@ package oracle
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -19,8 +20,11 @@ import (
 // combat_attacktax.go): Propaganda, Ghostly Prison and Windborn Muse tax an
 // attack on their controller, Baird and Sphere of Safety (its tax the
 // number of enchantments its controller controls) one on that player or a
-// planeswalker they control, Onakke Oathkeeper one on such a planeswalker
-// (Ajani, Caller of the Pride). The payers' sources cover the attack
+// planeswalker they control (so do Archon of Absolution and Collective
+// Restraint, its tax the domain count), Onakke Oathkeeper one on such a
+// planeswalker (Ajani, Caller of the Pride), Brainwash every attack of the
+// creature it enchants and Phyrexian Marauder its own, {1} per +1/+1
+// counter on it. The payers' sources cover the attack
 // window's shapes: basic lands, a dual's two intrinsic abilities, Sol Ring's
 // two mana, the choice-shaped Tranquil Cove and Birds of Paradise, the
 // chosen-colour Thriving Isle, Arcane Signet's colour identity outside a
@@ -32,21 +36,28 @@ import (
 var katTaxer = []cardset.Entry{
 	{Name: "Propaganda", Count: 2}, {Name: "Ghostly Prison", Count: 2}, {Name: "Windborn Muse", Count: 2},
 	{Name: "Baird, Steward of Argive", Count: 2}, {Name: "Sphere of Safety", Count: 2}, {Name: "Onakke Oathkeeper", Count: 2},
-	{Name: "Ajani, Caller of the Pride", Count: 2}, {Name: "Grizzly Bears", Count: 3}, {Name: "Serra Angel", Count: 2},
-	{Name: "Mind Stone", Count: 2}, {Name: "Plains", Count: 9}, {Name: "Island", Count: 4}, {Name: "Tundra", Count: 2},
-	{Name: "Tranquil Cove", Count: 2}, {Name: "Thriving Isle", Count: 2},
+	{Name: "Archon of Absolution", Count: 1}, {Name: "Brainwash", Count: 2}, {Name: "Collective Restraint", Count: 1},
+	{Name: "Ajani, Caller of the Pride", Count: 2}, {Name: "Grizzly Bears", Count: 2}, {Name: "Serra Angel", Count: 1},
+	{Name: "Mind Stone", Count: 1}, {Name: "Plains", Count: 9}, {Name: "Island", Count: 4}, {Name: "Tundra", Count: 2},
+	{Name: "Tranquil Cove", Count: 2}, {Name: "Thriving Isle", Count: 1},
 }
 
 var katPayer = []cardset.Entry{
-	{Name: "Grizzly Bears", Count: 6}, {Name: "Llanowar Elves", Count: 4}, {Name: "Birds of Paradise", Count: 3},
-	{Name: "Serra Angel", Count: 2}, {Name: "Propaganda", Count: 1}, {Name: "Ghostly Prison", Count: 1},
-	{Name: "Onakke Oathkeeper", Count: 1}, {Name: "Ajani, Caller of the Pride", Count: 1}, {Name: "Sol Ring", Count: 2},
-	{Name: "Arcane Signet", Count: 1}, {Name: "Mind Stone", Count: 1}, {Name: "Forest", Count: 7}, {Name: "Plains", Count: 5},
-	{Name: "Tundra", Count: 1}, {Name: "Tranquil Cove", Count: 2}, {Name: "Thriving Isle", Count: 2},
+	{Name: "Grizzly Bears", Count: 5}, {Name: "Llanowar Elves", Count: 4}, {Name: "Birds of Paradise", Count: 3},
+	{Name: "Serra Angel", Count: 1}, {Name: "Phyrexian Marauder", Count: 2}, {Name: "Koskun Falls", Count: 1},
+	{Name: "Propaganda", Count: 1}, {Name: "Ghostly Prison", Count: 1}, {Name: "Onakke Oathkeeper", Count: 1},
+	{Name: "Ajani, Caller of the Pride", Count: 1}, {Name: "Sol Ring", Count: 2}, {Name: "Arcane Signet", Count: 1},
+	{Name: "Mind Stone", Count: 1}, {Name: "Forest", Count: 6}, {Name: "Plains", Count: 3}, {Name: "Swamp", Count: 3},
+	{Name: "Tundra", Count: 1}, {Name: "Tranquil Cove", Count: 1}, {Name: "Thriving Isle", Count: 2},
 }
 
-// katTaxes are the newly lowered carriers each game counts the casts of.
-var katTaxes = []string{"Propaganda", "Ghostly Prison", "Windborn Muse", "Baird, Steward of Argive", "Sphere of Safety", "Onakke Oathkeeper"}
+// katTaxes are the newly lowered carriers each game counts the casts of:
+// the class the Commander precons hold and the corpus's other generic mana
+// taxes the lowering admits (Archon of Absolution, Brainwash's enchanted
+// creature, Collective Restraint's domain, Koskun Falls, Phyrexian
+// Marauder's own counters).
+var katTaxes = []string{"Propaganda", "Ghostly Prison", "Windborn Muse", "Baird, Steward of Argive", "Sphere of Safety",
+	"Onakke Oathkeeper", "Archon of Absolution", "Brainwash", "Collective Restraint", "Koskun Falls", "Phyrexian Marauder"}
 
 // katScan counts each tax card's casts in gorge's log.
 func katScan(g *GorgeSide, n map[string]int) {
@@ -158,6 +169,7 @@ func runAttackTax(t *testing.T, seeds uint64, mut katMutation) (games, divs int,
 					if o.Battle != 0 {
 						tally["taxed planeswalker picks"]++
 					}
+					katLive(c.G.E.G, o, tally)
 				}
 			}
 			return a
@@ -178,6 +190,41 @@ func runAttackTax(t *testing.T, seeds uint64, mut katMutation) (games, divs int,
 		}
 	}
 	return
+}
+
+// katPlayerTaxes tax an attack on their controller only; katWalkerTaxes
+// one on that player's planeswalkers (Baird, Sphere of Safety and Archon of
+// Absolution tax both).
+var (
+	katPlayerTaxes = []string{"Propaganda", "Ghostly Prison", "Windborn Muse", "Collective Restraint", "Koskun Falls", "Baird, Steward of Argive", "Sphere of Safety", "Archon of Absolution"}
+	katWalkerTaxes = []string{"Onakke Oathkeeper", "Baird, Steward of Argive", "Sphere of Safety", "Archon of Absolution"}
+)
+
+// katLive tallies, for one charged pick o, the newly lowered taxes in force
+// on it: each carrier of the right scope on the defender's battlefield, a
+// Brainwash enchanting the attacker, an attacking Phyrexian Marauder.
+func katLive(g *state.Game, o decision.Option, tally map[string]int) {
+	scope := katPlayerTaxes
+	if o.Battle != 0 {
+		scope = katWalkerTaxes
+	}
+	seen := map[string]bool{}
+	for _, id := range g.Zone(state.ZBattlefield, o.Player) {
+		if ob := g.Obj(id); ob != nil && ob.Face() != nil && slices.Contains(scope, ob.Face().Name) && !seen[ob.Face().Name] {
+			seen[ob.Face().Name] = true
+			tally["live "+ob.Face().Name]++
+		}
+	}
+	if ob := g.Obj(o.Obj); ob != nil && ob.Face() != nil && ob.Face().Name == "Phyrexian Marauder" {
+		tally["live Phyrexian Marauder"]++
+	}
+	for p := range g.Players {
+		for _, id := range g.Zone(state.ZBattlefield, state.PlayerID(p)) {
+			if ob := g.Obj(id); ob != nil && ob.Face() != nil && ob.Face().Name == "Brainwash" && ob.AttachedTo == o.Obj {
+				tally["live Brainwash"]++
+			}
+		}
+	}
 }
 
 func katTally(tally map[string]int) string {
@@ -201,8 +248,11 @@ func TestAttackTaxLockstep(t *testing.T) {
 	games, divs, tally := runAttackTax(t, 160, katNone)
 	t.Logf("%d games, %d divergences; %s", games, divs, katTally(tally))
 	for _, name := range katTaxes {
-		if tally["cast "+name] < 4 {
-			t.Errorf("%s cast %d times, want at least 4", name, tally["cast "+name])
+		if tally["cast "+name] < 3 {
+			t.Errorf("%s cast %d times, want at least 3", name, tally["cast "+name])
+		}
+		if tally["live "+name] < 2 {
+			t.Errorf("%s taxed %d charged picks, want at least 2", name, tally["live "+name])
 		}
 	}
 	for key, min := range map[string]int{"taxed picks": 40, "taxed planeswalker picks": 2, "window taps": 40,
