@@ -355,10 +355,3 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   `isAllCreatureTypes` (both read, not run). All six pairs run clean on a patched gorge export whose
   `setPropTokens` gives an `effects.IntrinsicAllCreatureTypes` card off the battlefield every creature
   type. dirac counts it (`crTypesOf`), so these pairs diverge until gorge is fixed.
-- Camellia, the Seedmiser's `Mode$ SacrificedOnce | ValidCard$ Food` doesn't fire when the Food is a creature
-  Ygra, Eater of All makes one, sacrificed for a forage (std-blb 308, 314, run: gorge's order ask has Scavenger's
-  Talent and Ygra but no Camellia; dirac's has all three). CR 603.10a looks back at the permanent as it last
-  existed, when it was a Food. XMage's `SacrificeOneOrMorePermanentsTriggeredAbility` reads
-  `getPermanentOrLKIBattlefield` (read, not run); Forge's `TriggerSacrificedOnce` matches its `Cards` run parameter
-  (read, not run; whether that is a last-known copy wasn't traced). Gorge's matcher wasn't traced or patched, so
-  the cause is unconfirmed. std-blb 435 and 448 also name Camellia but diverge on the stack count and weren't read.
