@@ -841,19 +841,8 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if n, ok := tp.get("Number"); ok {
 			tr.NthDraw, _ = strconv.Atoi(n)
 		}
-		// FirstCardInDrawStep$ gates the draw's position in the drawer's own
-		// draw step (gorge trigmatch.firstCardInDrawStep, CR 504.1). Both
-		// spellings lower; any other value stays unread so the census refuses
-		// it rather than guessing.
-		if v, ok := tp.get("FirstCardInDrawStep"); ok {
-			switch strings.TrimSpace(v) {
-			case "True":
-				tr.FirstInDrawStep = true
-			case "False":
-				tr.NotFirstInDrawStep = true
-			default:
-				return refuse("Drawn FirstCardInDrawStep %q", v)
-			}
+		if err := lowerDrawnFirstInDrawStep(tp, tr); err != nil {
+			return err
 		}
 	case "Discarded":
 		if tr.F, err = readF("ValidCard"); err != nil {
