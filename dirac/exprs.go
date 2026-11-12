@@ -624,6 +624,8 @@ func (s *State) condEval(k *prep, id kop.CondID, ctx evalCtx) bool {
 		r = s.promisedCtx(ctx)
 	case kop.CondAnd:
 		r = s.condEval(k, c.Sub[0], ctx) && s.condEval(k, c.Sub[1], ctx)
+	case kop.CondEchoOwed:
+		r = ctx.srcSl != NoSlot && s.mSl(k, mechEchoOwed, ctx.srcSl) // trig_echo.go
 	default:
 		panic("kernel: condition kind not implemented")
 	}

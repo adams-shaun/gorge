@@ -116,7 +116,9 @@ func echoAnnounceableCost(c Cost) bool {
 func (e *Engine) startEcho(stackObj, source state.ObjID, sa *cards.SA) {
 	o := e.G.Obj(source)
 	stack := e.G.Obj(stackObj)
-	if o == nil || o.Zone != state.ZBattlefield || stack == nil {
+	// A source that left, or phased out in response (CR 702.26b: treated as
+	// though it does not exist), is asked nothing and sacrificed by nothing.
+	if !pay.ExistsOnBattlefield(o) || stack == nil {
 		e.finishResumption(stackObj)
 		return
 	}
@@ -163,7 +165,7 @@ func (e *Engine) echoElectionAsk() {
 		return
 	}
 	o := e.G.Obj(ef.source)
-	if o == nil || o.Zone != state.ZBattlefield {
+	if !pay.ExistsOnBattlefield(o) {
 		e.finishEcho()
 		return
 	}
@@ -251,7 +253,7 @@ func (e *Engine) echoAnswer(chosen []decision.Option) {
 		e.echoActionExecute(chosen)
 		return
 	}
-	if o := e.G.Obj(ef.source); o != nil && o.Zone == state.ZBattlefield {
+	if pay.ExistsOnBattlefield(e.G.Obj(ef.source)) {
 		pay.PaySacrificeCost(asPayer(e), []state.ObjID{ef.source})
 	}
 	e.finishEcho()

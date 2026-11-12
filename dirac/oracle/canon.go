@@ -391,6 +391,12 @@ func cumulativeKindAlias(kind string) string {
 		return "trigger_cost_pay"
 	case "cumulative_sac":
 		return "trigger_cost_decline"
+	case "echo_pay", "echo_pay_manual":
+		// echo's pay-or-sacrifice (rules startEcho; CR 702.30a) is the same
+		// trigger-cost window as a cumulative upkeep's (dirac/trig_echo.go)
+		return "trigger_cost_" + strings.TrimPrefix(kind, "echo_")
+	case "echo_sac":
+		return "trigger_cost_decline"
 	}
 	return kind
 }

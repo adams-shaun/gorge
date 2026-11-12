@@ -1,7 +1,6 @@
 package rules
 
-// namor_chroma_test.go pins the ChromaSource count head end-to-end (task
-// lb-chroma). Before the evaluator, `TriggeredCard$ChromaSource.Blue`
+// namor_chroma_test.go pins the ChromaSource count head end-to-end. Before the evaluator, `TriggeredCard$ChromaSource.Blue`
 // answered zero, so Namor the Sub-Mariner's spell-cast trigger created no
 // Merfolk, and `Count$ChromaSource.White` answered zero, so Light from
 // Within's AffectedX added +0/+0. Both scenarios assert the OBSERVABLE

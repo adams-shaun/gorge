@@ -84,8 +84,7 @@ func DistinctNameCandidates(e Engine, spec string, ids []state.ObjID) []state.Ob
 // wording, CR 107.4) unless they carry a literal Amount$ above one, which is
 // then named ("Add three mana of any one color" for Any, "... in any
 // combination of colors" for Combo Any) so a source whose abilities differ
-// only in amount offers distinguishable wheel options (task
-// mana-wheel-amount-labels); Produced$ Chosen reads "Add chosen color";
+// only in amount offers distinguishable wheel options; Produced$ Chosen reads "Add chosen color";
 // anything else -- a plain single colour or C (the shape the wheel tints), a
 // doubled "RR", a Special expression -- keeps the bare "Add <value>" shape.
 // manaAbilityComboColours reports whether the ability's own Produced$ is an
@@ -152,8 +151,7 @@ func manaProducedLabel(ma *cards.SA, chosen string) string {
 		// differ only in amount -- Sceptre of Eternal Glory's one-mana and
 		// three-mana "any color" abilities -- offers two distinguishable
 		// wheel options. Without it both read "Add any color", and a manual
-		// payer could not choose the larger ability on purpose (task
-		// mana-wheel-amount-labels). The two shapes keep the distinct
+		// payer could not choose the larger ability on purpose. The two shapes keep the distinct
 		// wording their stage-2 prompt uses (manaColourPrompt).
 		if n, ok := literalManaAmount(mp); ok && n > 1 {
 			if produced == "Combo Any" {

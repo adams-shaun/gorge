@@ -1712,6 +1712,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if a.Target() == castDashTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyDash {
 			s.g.impCast = true // the dash cost (kw_dash.go): beginCast marks the entry dashed
 		}
+		if a.Target() == castOverloadTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyOverload {
+			s.g.impCast = true // the overload cost (kw_overload.go): beginCast marks the entry overloaded
+		}
 		if a.Target() == castAltTgt && a.Mode() == 0 && k.gen != nil && k.gen.altFree != nil {
 			s.g.altCast = true // the card's own mana alternative cost (cast_altfree.go)
 		}

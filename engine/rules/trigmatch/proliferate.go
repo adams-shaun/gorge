@@ -1,9 +1,8 @@
 // The Proliferate trigger mode.
 //
-// Mode$ Proliferate: "Whenever you proliferate, ..." (CR 701.27, task
-// trig-proliferate). Its own file because the mode's marker event, emitter
-// and matcher were all added together and the per-mode split exists so
-// tickets touching one mode stop colliding on a shared trigmatch_*.go.
+// Mode$ Proliferate: "Whenever you proliferate, ..." (CR 701.27). Its own
+// file because the mode's marker event, emitter and matcher were all added
+// together.
 
 package trigmatch
 
@@ -17,10 +16,7 @@ import (
 )
 
 // proliferateMatches implements the "whenever you proliferate" trigger family
-// (Forge Mode$ Proliferate, task trig-proliferate: 6 corpus carrier files at
-// the corpus pin -- Voidwing Hybrid, Ezuri Stalker of Spheres, Scheming
-// Aspirant, Venser Corpse Puppet, Ichor Aberration, Contagion Dispenser; all
-// six read `ValidPlayer$ You`). The causing event is the completed
+// (Forge Mode$ Proliferate, Ezuri Stalker of Spheres, Scheming Aspirant, Venser Corpse Puppet, Ichor Aberration, Contagion Dispenser, all six read `ValidPlayer$ You`). The causing event is the completed
 // events.Proliferate marker (a pure Apply no-op api:Proliferate's
 // effProliferate emits once per completed proliferate action -- one ask or
 // silent no-eligible completion, never once per recipient or counter, and

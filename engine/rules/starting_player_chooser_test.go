@@ -1,6 +1,6 @@
 package rules
 
-// E3-1: a Config.StartChooser names the seat posed CR 103.1's starting-player
+// A Config.StartChooser names the seat posed CR 103.1's starting-player
 // choice instead of the toss winner (MTR 2.2: the loser of the previous game
 // of a match chooses), and TossWinner exports the toss itself as a pure
 // function. A Config that does not set the field must be byte-identical to

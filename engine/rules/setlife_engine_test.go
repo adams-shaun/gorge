@@ -10,8 +10,7 @@ import (
 
 // TestSetLifeSpellTargetsAPlayerBlessedWind is the engine-level proof of the
 // `SP$ SetLife | ValidTgts$ Player` shape (11 of the 45 SetLife carriers are
-// SP$/AB$ ability lines, which the `(DB|AP|A)$` regex the dispatch brief used
-// does not see; task eoe-the-endstone-set-life). Blessed Wind is
+// SP$/AB$ ability lines, which the `(DB|AP|A)$` regex does not see). Blessed Wind is
 // "{7}{W}{W} sorcery — Target player's life total becomes 20.": the spell
 // must ask for a player target and set the TARGET's life to 20, not the
 // caster's.

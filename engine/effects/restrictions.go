@@ -749,9 +749,7 @@ func IsGrantableCostStaticMode(mode string) bool {
 }
 
 // CostStaticParamsReadable is the parameter whitelist an Effect-delivered
-// cost-modifier static (Mode$ ReduceCost/RaiseCost/SetCost/AlternativeCost
-// behind an AB$ Effect's StaticAbilities$ entry, task
-// param:api:Effect.ForgetOnCast) must pass before effEffect registers it
+// cost-modifier static (Mode$ ReduceCost/RaiseCost/SetCost/AlternativeCost behind an AB$ Effect's StaticAbilities$ entry) must pass before effEffect registers it
 // into the continuous registry. It lists exactly the keys the cost chain's
 // own gates evaluate -- rules' costStaticApplies (Type$, ValidCard$,
 // ValidSpell$, ValidTarget$, AffectedZone$, IsPresent$, OnlyFirstSpell$,

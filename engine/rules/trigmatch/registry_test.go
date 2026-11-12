@@ -216,7 +216,7 @@ var addedAfterTheSplit = []string{
 	// discard action (engine/rules/trigger_match.go's discard latch) -- but the MODE
 	// name is new, so no pre-split switch arm could have dispatched it.
 	"DiscardedAll",
-	// task scrybottom: "Whenever you choose to put one or more cards on the
+	// "Whenever you choose to put one or more cards on the
 	// bottom of your library while scrying, ..." (CR 701.18; The Temporal
 	// Anchor, the corpus's one `ToBottom$ True` carrier at the pin -- 20
 	// files carry `T:Mode$ Scry`). It matches the events.Scry marker Kind
