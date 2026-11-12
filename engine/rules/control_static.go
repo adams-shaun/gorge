@@ -95,25 +95,6 @@ func (e *Engine) staticControlWants() []staticWant {
 	return w
 }
 
-// poolHasControlStatic reports whether any card this match can put into play
-// may carry a GainControl$ static (cards.MayCarryControlStatic over the decks
-// and the token table), the genesis-time gate of reconcileControlStatics.
-func poolHasControlStatic(cfg Config) bool {
-	for _, deck := range cfg.Decks {
-		for _, c := range deck {
-			if c.MayCarryControlStatic() {
-				return true
-			}
-		}
-	}
-	for _, c := range cfg.Tokens {
-		if c.MayCarryControlStatic() {
-			return true
-		}
-	}
-	return false
-}
-
 // staticGainControlController resolves a GainControl$ static VALUE to the
 // player who takes the affected objects. "You" is the static's controller
 // (ce.Controller -- the Aura's controller, live every re-derivation). Any

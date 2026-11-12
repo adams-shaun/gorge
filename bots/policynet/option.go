@@ -504,26 +504,6 @@ func manaCostBits(cost string) ([6]bool, int) {
 	return colours, mv
 }
 
-// addColour ORs a token's colour letters into the WUBRG C mask.
-func addColour(letters string, colours *[6]bool) {
-	for i := 0; i < len(letters); i++ {
-		switch letters[i] {
-		case 'W':
-			colours[0] = true
-		case 'U':
-			colours[1] = true
-		case 'B':
-			colours[2] = true
-		case 'R':
-			colours[3] = true
-		case 'G':
-			colours[4] = true
-		case 'C':
-			colours[5] = true
-		}
-	}
-}
-
 // twobridManaValue recognises Forge's concatenated ("2W") and slash
 // ("2/W") monocolour-hybrid spellings, returning the generic face — the
 // symbol's mana value. This is cards/twobridManaValue copied verbatim

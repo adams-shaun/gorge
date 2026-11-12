@@ -65,10 +65,6 @@ func foretellCost(f *cards.Face) (Cost, bool) { return scriptfacts.ForetellCost(
 // (scriptfacts.TriggerOptionalSpec).
 func triggerOptionalSpec(t cards.Trigger) string { return scriptfacts.TriggerOptionalSpec(t) }
 
-// grantedTriggerHeads reports whether a head can be synthesized
-// (scriptfacts.GrantedTriggerHeads).
-func grantedTriggerHeads(head string) bool { return scriptfacts.GrantedTriggerHeads(head) }
-
 // grantedKeywordTrigger synthesizes a granted keyword line's triggered
 // ability (scriptfacts.GrantedKeywordTrigger).
 func grantedKeywordTrigger(line string) *cards.Trigger {

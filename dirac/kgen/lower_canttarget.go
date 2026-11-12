@@ -11,8 +11,10 @@ import "strings"
 // Triggered; absent: every kind) and whose controller Activator$ names
 // (Opponent: the static controller's opponents; You: the controller;
 // absent: anyone). Flags: "ActivatorOpp", "ActivatorYou", and "SA<kind>"
-// per ValidSA$ alternative. Refused: an AffectedZone$ other than the
-// battlefield (Ground Seal reaches graveyards), EffectZone$ (a spell's own
+// per ValidSA$ alternative. An AffectedZone$ Graveyard static with no
+// scoping key lowers to "CantTgtGrave" (kop.StatCantTgtGrave, Ground Seal's
+// class: every card in every graveyard untargetable, any source, any
+// activator). Refused: any other AffectedZone$, EffectZone$ (a spell's own
 // targeting rule), SourceCanOnlyTarget$ (unmodelled in gorge too), a
 // ValidSA$ alternative with qualifiers, and a condition (no corpus
 // CantTarget carries one; gorge's gate for one is not lockstep-verified).
@@ -26,7 +28,23 @@ func (lc *lowerCtx) cantTarget(sp *params, st *lStatic) error {
 		}
 	}
 	if az, ok := sp.get("AffectedZone"); ok && az != "Battlefield" {
-		return refuse("CantTarget AffectedZone %q", az)
+		if az != "Graveyard" {
+			return refuse("CantTarget AffectedZone %q", az)
+		}
+		// Ground Seal's class: the corpus's graveyard CantTarget carries no
+		// scoping key at all (Cards in graveyards can't be the targets of
+		// spells or abilities). gorge's matcher with no ValidTarget$ withholds
+		// every card in the AffectedZone$ from any source and activator
+		// (cantTargetBlocks), so the lowering is key-free too: anything besides
+		// AffectedZone$ and Description$ is a different, unlowered shape.
+		for _, k := range []string{"ValidTarget", "ValidSA", "ValidSource", "Activator", "Secondary"} {
+			if _, ok := sp.get(k); ok {
+				return refuse("CantTarget AffectedZone Graveyard beside %s$", k)
+			}
+		}
+		sp.consume("AffectedZone")
+		st.Kind = "CantTgtGrave" // build_ab.go: kop.StatCantTgtGrave (kw_canttgtgrave.go)
+		return nil
 	}
 	vt, ok := sp.get("ValidTarget")
 	if !ok {

@@ -293,6 +293,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	if k.gen != nil && k.gen.anyBeam {
 		s.offerBeamCasts(k, d, p, sorc, &av) // kw_beammeup.go
 	}
+	if k.gen != nil && k.gen.anyEscapeGrant {
+		s.offerEscapeCasts(k, d, p, sorc, &av) // kw_escape.go: gorge lists the escape walk before mayhem's (legal_walk_alt.go)
+	}
 	if k.mayhem {
 		s.offerMayhemCasts(k, d, p, sorc, &av) // kw_mayhem.go
 	}
@@ -1295,6 +1298,9 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 		if z == kop.ZoneNone {
 			z = kop.ZoneGraveyard
 		}
+		if z == kop.ZoneGraveyard && s.graveCantTargetGen(k) {
+			return false // Ground Seal's class (kw_canttgtgrave.go)
+		}
 		if k.gen != nil {
 			// the object's own state too (Abyssal Harvester's "put there this turn")
 			return ob.zone == z && (t.Filter == 0 || s.matchCardTgt(k, t.Filter, ob.card, ob.owner(), p, o, src, self) && (o != self || k.t.Filters[t.Filter].Flags&kop.FOther == 0))
@@ -1769,6 +1775,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 		}
 		if a.Mode() == 2 && k.gen != nil && k.gen.anyBeam {
 			s.noteBeamCast(k, a) // kw_beammeup.go
+		}
+		if a.Mode()&2 != 0 && a.Target() == castEscapeTgt && k.gen != nil && k.gen.anyEscapeGrant {
+			s.g.escapeCast = true // the escape cast the action names (kw_escape.go)
 		}
 		s.beginCast(k, Obj(a.Source()), a.Mode(), a.Target()) // the target byte names a retrace cast (kw_retrace.go)
 		if face {

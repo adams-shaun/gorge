@@ -1401,12 +1401,6 @@ func (s *State) floatRestrV(k *prep, p uint8, sl Slot, f kop.FilterID, v uint8, 
 	return s.addRestrSrcV(k, p, sl, f, v, col, n)
 }
 
-// addRestrSrc is addRestr for mana source sl, whose chosen creature type the
-// batch keeps when restriction f reads one.
-func (s *State) addRestrSrc(k *prep, p uint8, sl Slot, f kop.FilterID, col int, n uint8) bool {
-	return s.addRestrSrcV(k, p, sl, f, 0, col, n)
-}
-
 // addRestrSrcV is addRestrSrc for restriction variant v.
 func (s *State) addRestrSrcV(k *prep, p uint8, sl Slot, f kop.FilterID, v uint8, col int, n uint8) bool {
 	if k.artMana && k.cards[s.cardAt(sl)].manaTyped {
@@ -1474,26 +1468,6 @@ func (s *State) restrShortAdm(p, m uint8, cost kop.ManaCost) kop.ManaCost {
 	}
 	cost.Generic -= min(n, cost.Generic)
 	return cost
-}
-
-// restrAffords: av (p's pool and sources) lacks cost, but p's restricted
-// mana makes it up for the cast of card c, which may spend it (gorge's
-// pool for that payment, AvailableFor, holds it).
-//
-//go:noinline
-func (s *State) restrAffords(k *prep, p uint8, c CardID, og restrOrigin, cost *kop.ManaCost, av *avail) bool {
-	t := *av
-	return s.restrAvail(k, p, c, og, &t) && t.affords(cost, pipMaskOf(cost), 0)
-}
-
-// payRestr is pay for p's cast of object o while restricted mana floats:
-// a spell that may spend it sees it in its pool and spends it before the
-// ordinary mana of its colour (gorge emitRestrictedManaSpend carves the
-// matching batches first); otherwise it stays beside the pool.
-//
-//go:noinline
-func (s *State) payRestr(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj) {
-	s.payRestrRider(k, p, cost, x, o, false)
 }
 
 // payRestrRider is payRestr with the may-play any-colour rider.
@@ -2489,14 +2463,6 @@ func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]
 		}
 	}
 }
-
-// lkiCtrl is the controller of the resolving entry's first target o, which
-// has left since it was targeted (once: ver is its targeted ver + 1), as
-// it last existed (CR 608.2h; gorge's TargetedController): a permanent
-// target's departed battlefield record (the newest one naming o), else o's
-// owner. Stroke of Midnight's token for the destroyed permanent's
-// controller (pair 84472), Condemn's life gain.
-func (s *State) lkiCtrl(k *prep, o Obj) uint8 { return s.lkiCtrlSlot(k, o, 0) }
 
 // lkiCtrlSlot is lkiCtrl for target slot i's object.
 func (s *State) lkiCtrlSlot(k *prep, o Obj, i int) uint8 {

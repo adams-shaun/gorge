@@ -80,7 +80,7 @@ func TestLowerAffzoneGraveFlashback(t *testing.T) {
 	}
 	for _, c := range []struct{ name, line, want string }{
 		{"opponent's graveyard", strings.Replace(fbGrantOwn, "+YouOwn", "+OppOwn", 2), "not your graveyard"},
-		{"another keyword", strings.Replace(fbGrantOwn, "AddKeyword$ Flashback", "AddKeyword$ Escape", 1), "AffectedZone \"Graveyard\" without MayPlay"},
+		{"another keyword", strings.Replace(fbGrantOwn, "AddKeyword$ Flashback", "AddKeyword$ Retrace", 1), "AffectedZone \"Graveyard\" without MayPlay"},
 		{"effect zone", fbGrantOwn + " | EffectZone$ Graveyard", "EffectZone"},
 		{"x cost", strings.Replace(fbGrantFixed, "Flashback:1", "Flashback:X", 1), "flashback grant cost"},
 		{"non-mana cost", strings.Replace(fbGrantFixed, "Flashback:1", "Flashback:Sac<1/Creature>", 1), "flashback grant cost"},
