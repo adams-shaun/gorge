@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-mkm",
+ "pool": "std-mkm",
+ "why": "CR 118.9d, 601.2f: Reenact the Crime's free copy of Officious Interrogation still owes its per-target RaiseCost; the pool cannot pay it, so the cast window reverses the cast (std-mkm pair 2359)",
  "actions": [
   16776960,
   16776960,

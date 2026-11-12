@@ -27,8 +27,7 @@ var manaLetters = pay.ManaLetters
 // spent delta: the pre-restriction-split per-colour pool delta converge
 // counts from, the snow-unit delta the filtered
 // Count$CastTotalManaSpent Snow head reads, and the
-// per-tag typed deltas the filtered Treasure/Cave/Desert heads read (task
-// castfilter2). The spell arm's only ask stages have all completed by
+// per-tag typed deltas the filtered Treasure/Cave/Desert heads read. The spell arm's only ask stages have all completed by
 // payment, so the deltas ride pendingCast plain data to the pay-time
 // CastInfo exactly like replicateTimes does. The rider was proved by the
 // offer gate while the card still sat in the granted zone; the payment
@@ -241,6 +240,10 @@ func (pe *payer) MatchesSpecFrom(spec string, id state.ObjID, you state.PlayerID
 	// the targets exist.
 	if e.costSpecTargetBound(spec, source) {
 		return e.matchTargetBoundCostSpec(spec, id, you, source)
+	}
+	// Likewise an X the caster announces (cost_announce_bound.go).
+	if e.costSpecAnnounceBound(spec, source) {
+		return e.matchAnnounceBoundCostSpec(spec, id, you, source)
 	}
 	return e.matchesSpecFrom(spec, id, you, source)
 }

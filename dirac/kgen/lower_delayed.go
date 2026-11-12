@@ -32,6 +32,9 @@ func (lc *lowerCtx) delayedUpkeep(ps *params) error {
 		return refuse("delayed trigger Execute %q", ps.str("Execute"))
 	}
 	ro := ps.str("RememberObjects")
+	if ro == "RememberedController" {
+		return lc.delayedRemPlayer(when, exec) // lower_delayremplayer.go
+	}
 	obj, err := lc.delayedStepRemember("upkeep", ro, exec)
 	if err != nil {
 		return err

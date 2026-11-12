@@ -49,12 +49,15 @@ TestPoolFrozen/blb
 TestPoolFrozen/cmd5
 TestPoolFrozen/fdn
 TestPoolFrozen/pauper
+TestPoolFrozen/standard-meta
 TestRecordingStopsAtAConcession
 TestServedFieldsMatchGorge
 TestSliceMatchesPool/blb
 TestSliceMatchesPool/cmd5
 TestSliceMatchesPool/fdn
 TestSliceMatchesPool/pauper
+TestSliceMatchesPool/standard-meta
 TestSpectatorSeesNoHand
+TestStdMetaPoolTree
 TestSubmitRefusalLeavesStateIntact
 TestWindowOwedRestrictedLockstep

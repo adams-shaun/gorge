@@ -1,6 +1,6 @@
 package rules
 
-// AnimateAll (task api-animateall): the rules-level end-to-end pins. The
+// AnimateAll: the rules-level end-to-end pins. The
 // unit-level registrations live in engine/effects/animateall_test.go; these prove
 // the computed result through the real layer walk on REAL corpus cards
 // (Mirror Entity, Vedalken Humiliator), with the other participants freely

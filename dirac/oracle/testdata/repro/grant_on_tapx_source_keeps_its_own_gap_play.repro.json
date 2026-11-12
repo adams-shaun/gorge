@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "Mm'menon's spell-only grant sits on Gene Pollinator, whose own tapXType ability is the census gap that pays Lander Token's {2}: the kernel's grant search misses the tap-another gap and drops the activation gorge's prefix search prices (CR 605.1a, 601.2g)",
  "actions": [
   16776960,
   16776960,

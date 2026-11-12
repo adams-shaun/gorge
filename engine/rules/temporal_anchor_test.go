@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The Temporal Anchor (task scrybottom) is the corpus's one carrier of
+// The Temporal Anchor is the corpus's one carrier of
 // "Whenever you choose to put one or more cards on the bottom of your
 // library while scrying, exile that many cards from the bottom of your
 // library." Its two halves are the scry trigger (`T:Mode$ Scry |

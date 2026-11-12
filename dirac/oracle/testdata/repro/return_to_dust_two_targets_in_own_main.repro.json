@@ -94,6 +94,8 @@
  "mulligans": 1,
  "pass_elision": false,
  "surface": "autopay",
+ "pool": "std-trc",
+ "why": "Return to Dust cast in its controller's main phase takes up to two targets (CR 601.2c)",
  "actions": [
   184549120,
   167771904,

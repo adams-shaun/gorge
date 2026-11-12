@@ -94,7 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 30,
- "surface": "autopay",
+ "surface": "full",
+ "pool": "std-hob",
+ "why": "CR 604.1: Master's Councillors' +2/+0 per graveyard with seven or more cards counts the graveyard that has them",
  "actions": [
   16776960,
   16776960,

@@ -214,25 +214,6 @@ func countPlayerDiscards(e *Engine, p state.PlayerID) int {
 	return n
 }
 
-// answerDrain answers the named decision kinds a drain crosses and passes
-// everything else, returning the first decision that matches none of the
-// handlers (nil when the game settles).
-func answerDrain(t *testing.T, e *Engine, limit int, on func(t *testing.T, e *Engine, d *decision.Decision) bool) *decision.Decision {
-	t.Helper()
-	for i := 0; i < limit && !e.G.Over; i++ {
-		d := e.Pending()
-		if d == nil {
-			return nil
-		}
-		if on != nil && on(t, e, d) {
-			continue
-		}
-		return d
-	}
-	t.Fatalf("drain did not settle within %d rounds", limit)
-	return nil
-}
-
 // passPriorityAll passes every KPriority decision, one seat at a time.
 func passPriorityAll(t *testing.T, e *Engine) bool {
 	t.Helper()

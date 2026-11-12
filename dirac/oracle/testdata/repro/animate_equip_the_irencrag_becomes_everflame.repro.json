@@ -67,6 +67,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "The Irencrag's trigger answered yes as a legendary creature enters: it becomes the legendary Equipment Everflame, Heroes' Legacy and loses its {T}: Add {C} (CR 613.1a, 613.1f)",
  "actions": [
   19267328,
   17891072,

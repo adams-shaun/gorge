@@ -17,8 +17,7 @@ import (
 //	  ConditionPresent$ Card.wasCastFromGraveyard
 //
 // ("If this spell was cast from a graveyard, you may copy this spell and may
-// choose a new target for the copy.") Before task api-copyspellability-
-// optional the copy was made unconditionally; Optional$ True now poses a real
+// choose a new target for the copy.") Before that change the copy was made unconditionally; Optional$ True now poses a real
 // KChoose yes/no over the ordinary mid-resolution machinery, and the answered
 // election rides Ctx.CopyOpt.
 //

@@ -42,10 +42,6 @@ func handAwareSources(t *testing.T, got PaymentPlanOutcome) []state.ObjID {
 	return out
 }
 
-func handAwareSameSources(a, b []state.ObjID) bool {
-	return len(a) == len(b) && reflect.DeepEqual(sortedObjIDs(a), sortedObjIDs(b))
-}
-
 func sortedObjIDs(in []state.ObjID) []state.ObjID {
 	out := append([]state.ObjID(nil), in...)
 	for i := 1; i < len(out); i++ {

@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "full",
  "kernel": "synth std-tmt",
+ "pool": "std-tmt",
+ "why": "Omni-Cheese Pizza's {1}, {T}, sacrifice filter makes the {B} of a Squirrelanoids (a Plains funds its {1}): the Pizza leaves the battlefield as the activation is paid, a Super Shredder in play takes its counter (CR 602.2b, 605.1a)",
  "actions": [
   18415360,
   17891072,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-fra",
+ "pool": "std-fra",
+ "why": "CR 614.12: Generous Revival returns Yoshimaru, Beloved Companion with a +1/+1 counter; its own \"that many plus one\" does not apply, since the replacement affects a general subset, not only itself",
  "actions": [
   16776960,
   16776960,

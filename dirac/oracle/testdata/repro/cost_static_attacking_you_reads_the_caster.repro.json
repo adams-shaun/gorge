@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-trk",
+ "pool": "custom",
+ "why": "Red Alert! exiled from seat 1 by Vulcan Mind-Meld and cast by seat 0 while seat 0 attacks seat 1: the \"creature attacking you\" discount reads the caster, so one Plains cannot pay its {2}{R} (CR 601.2a, 601.2f)",
  "actions": [
   16776960,
   16776960,

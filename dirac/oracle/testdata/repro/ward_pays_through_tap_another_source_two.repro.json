@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 30,
  "surface": "autopay",
+ "pool": "std-eoe",
+ "why": "... and Sunset Saboteur's attack trigger is paid the same way",
  "actions": [
   16776960,
   16776960,

@@ -95,6 +95,8 @@
  "pass_elision": false,
  "surface": "autopay",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "CR 603.7c: Loki Laufeyson's delayed SpellCast bound is its own power at the cast, re-read after the registration (a three-mana spell misses at power 2; a two-mana one fires), and both engines agree on every one",
  "actions": [
   16776960,
   16776960,

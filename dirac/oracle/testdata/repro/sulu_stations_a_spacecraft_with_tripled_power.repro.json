@@ -95,6 +95,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "synth std-trc",
+ "pool": "std-trc",
+ "why": "Sulu, Heroic Helmsman stations U.S.S. Prometheus, Prototype with his power tripled: six charge counters (CR 702.184a)",
  "actions": [
   19857152,
   17366784,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-mkm",
+ "pool": "std-mkm",
+ "why": "CR 601.2b, 601.2g-h: Fuss's {R/W} cast from Outrageous Robbery's exile is priced under the any-type rider, so the printed lands pay it and Insidious Roots' granted token stays untapped",
  "actions": [
   167771904,
   167771904,

@@ -18,15 +18,6 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-func corpusNamed(t *testing.T, name string) *cards.Card {
-	t.Helper()
-	c, ok := testutil.CorpusRegistry(t).Lookup(name)
-	if !ok {
-		t.Fatalf("corpus missing %q", name)
-	}
-	return c
-}
-
 // effectGrantEngine is the cascadeTestEngine pattern over the named cards:
 // battlefield cards land on seat 0's battlefield and hand cards stay in its
 // hand, every placement a logged MoveZone a replay reproduces.

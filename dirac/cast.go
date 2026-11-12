@@ -20,7 +20,7 @@ import (
 // bits 0..1 with seFaceDown, and ab = 255 (no printed spell ability).
 const castFaceDown uint8 = 1 << 7
 
-func (s *State) beginCast(k *prep, o Obj, mode uint8) {
+func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	ob := &s.objs[o]
 	p := s.prio
 	c := ob.card
@@ -28,8 +28,9 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 	if mode&1 != 0 {
 		fl |= sfKicked
 	}
-	mayhem := mayhemCast(k, c, mode) // a graveyard cast that is no flashback (kw_mayhem.go)
-	if mode&2 != 0 && !mayhem {
+	mayhem := mayhemCast(k, c, mode)                                               // a graveyard cast that is no flashback (kw_mayhem.go)
+	retrace := mode&2 != 0 && !mayhem && tgt == retraceTgt && k.t.Cards[c].Retrace // kw_retrace.go
+	if mode&2 != 0 && !mayhem && !retrace {
 		fl |= sfFlashback
 		if two, _, g := s.fbInstances(k, p, o); two && g {
 			fl |= sfFbGranted // the granted instance (fbInstances)
@@ -48,6 +49,9 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 	}
 	if mayhem {
 		e.trigPl = trigPlMayhem
+	}
+	if retrace {
+		e.trigPl = trigPlRetrace // the retrace cast's pick cost (kw_retrace.go)
 	}
 	if mode&castFaceDown != 0 {
 		e.ab = 255
@@ -74,7 +78,9 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 			e.mode |= modeWarpRecast
 		}
 		if s.g.impCast {
-			if k.t.Cards[c].HasEvoke {
+			if k.t.Cards[c].HasOverload {
+				e.mode |= modeImpended // the overloaded cast (kw_overload.go: the bit reads as overloaded on a HasOverload card)
+			} else if k.t.Cards[c].HasEvoke {
 				e.spc |= spcEvoked // the evoked cast (kw_evoke.go)
 			} else if k.t.Cards[c].HasDash {
 				e.mode |= modeImpended // the dashed cast (kw_dash.go: the bit reads as dashed on a HasDash card)
@@ -105,7 +111,11 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 	s.ctl = ctlBuild
 	if k.gen != nil && k.gen.anyConvoke && mode&3 == 0 && s.tapPays(k, p, c, o, ob.zone == kop.ZoneHand) {
 		if _, planned := s.plannedCastCostOf(k, p, o, mode, false, false); planned {
-			s.bld().bfl |= bflTargetPaid
+			if s.improviseLifted(k, p, c, o, ob.zone == kop.ZoneHand) {
+				s.bld().impPlan = true // (bflTargetPaid shares its bit with bflDefeatCast)
+			} else {
+				s.bld().bfl |= bflTargetPaid
+			}
 		}
 	}
 	// a cast only a typed permission allows (Muldrotha's per-type statics,
@@ -139,7 +149,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 			cost = s.restrShort(k, p, c, s.restrOriginOfObj(o), cost)
 		}
 		s.tapFor(k, p, &cost, 0, NoObj)
-	} else if mode&castWarp != 0 || k.gen != nil && (k.gen.anyImpending && s.bld().e.impended() || k.gen.anyEvoke && s.bld().e.evoked() || k.gen.anyDash && s.bld().e.dashed(k)) {
+	} else if mode&castWarp != 0 || k.gen != nil && (k.gen.anyImpending && s.bld().e.impended() || k.gen.anyEvoke && s.bld().e.evoked() || k.gen.anyDash && s.bld().e.dashed(k) || k.gen.anyOverload && s.bld().e.overloaded(k)) {
 		// a hand warp is one of gorge's potential plays (the "warped" cast
 		// option carries Potential: true), so its plan is the composed cost
 		// and the oracle always lowers it, like the kicked cast; so is an
@@ -582,6 +592,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if cd.HasDash && e.impended() {
 			c = cd.DashCost // the dash cost (CR 702.109a; kw_dash.go)
 		}
+		if cd.HasOverload && e.overloaded(k) {
+			c = cd.OverloadCost // the overload cost (CR 702.96a; kw_overload.go)
+		}
 		if e.mode&modeBestowed != 0 && e.bestowedEntry() {
 			c = cd.BestowCost // the bestow cost (CR 702.103a; kw_bestow.go)
 		}
@@ -804,10 +817,13 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			}
 			if cost.XRed > 0 && gorgeSurface {
 				// gorge's xAsk loop stops at pool + graveyard + convoke credit
-				// + 1 + what the window's sources make (it raises the bound for
-				// a reduction only in the named-count case): a CR 601.2f
-				// reduction past it is not offered (GORGE-FINDINGS.md "X ceiling")
-				mx = min(mx, av.total+s.filtBoundExtra(k, e.ctrl)+int(s.pl[SeatIx(e.ctrl)].graveN)+s.convokeXCredit(k)+1)
+				// + 1 + what the window's sources make, raised by the cast's
+				// composed reductions (CR 601.2f: a reduction is mana the
+				// announced X can spend). Its excess over the printed generic
+				// is XRed, and the pool's pip demand never falls below the
+				// reduction's non-excess part, so XRed is exactly the raise
+				// the ask's ceiling needs: the same largest X is offered.
+				mx = min(mx, av.total+s.filtBoundExtra(k, e.ctrl)+int(s.pl[SeatIx(e.ctrl)].graveN)+s.convokeXCredit(k)+1+int(cost.XRed))
 			}
 			if k.gen != nil && k.gen.anyLifeX {
 				mx = s.lifeXClamp(k, &cost, mx) // PayLife<X> bounds the ask by life
@@ -959,6 +975,13 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 		case bsTargets:
 			ti := int(s.bld().ti)
 			if ti >= kop.MaxTargets {
+				s.nextStage(k)
+				continue
+			}
+			if e.kind == seSpell && k.gen != nil && k.gen.anyOverload && e.overloaded(k) {
+				// overload has no targets to announce: "target" reads "each"
+				// (CR 702.96b; kw_overload.go)
+				s.bld().ti = kop.MaxTargets
 				s.nextStage(k)
 				continue
 			}
@@ -1757,6 +1780,9 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 	if e.ctrl == 0 && !e.faceDown() {
 		s.castFromStack(k, e)
 	}
+	if k.anyEmbFlash {
+		s.embFlashForget(k, e)
+	}
 	if k.gen != nil {
 		s.castTrigGraves(k, e)
 		s.fireEmblems(k, kop.TrigSpellCast, e.ctrl, e.obj, func(a *kop.Ability) bool {
@@ -2340,6 +2366,14 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 		if k.gen != nil && k.gen.anyMayRaise {
 			if rc := s.mayRaisePick(k, e); rc != nil {
 				return rc // a may-play cast's non-mana RaiseCost$ (cost_mayplayraise.go)
+			}
+		}
+		if retraceEntry(cd, e) {
+			// the retrace cast's additional discard-a-land cost (CR 702.81a;
+			// kw_retrace.go). kgen refuses a Retrace card a spell additional
+			// cost, so the spell's own parts are empty here.
+			if rc := s.retraceCost(k, e.card); rc != nil {
+				return rc
 			}
 		}
 		return spellAddCost(k, e.card)

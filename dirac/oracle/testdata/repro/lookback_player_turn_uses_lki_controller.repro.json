@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dft",
+ "pool": "std-dft",
+ "why": "CR 603.10a: a stolen Ketramose exiled from the battlefield on its thief's turn triggers for the thief (PlayerTurn$ reads the last-known controller)",
  "actions": [
   16776960,
   16776960,

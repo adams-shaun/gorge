@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tla",
+ "pool": "std-tla",
+ "why": "CR 616.1: two plus-N replacements are a sum no order changes",
  "actions": [
   16776960,
   16776960,

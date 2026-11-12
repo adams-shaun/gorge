@@ -221,6 +221,8 @@
  ],
  "surface": "full",
  "kernel": "set cmd5",
+ "pool": "custom",
+ "why": "kfuzz cmd5 heuristic pair 92: the same return answered to let it go: Ghalta reaches its owner's hand and the resolution goes on (CR 903.9b)",
  "actions": [
   16776960,
   16776960,

@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-blb",
+ "pool": "std-blb",
+ "why": "CR 106.6, 302.6, 601.2g-h: Rockface Village's {R},{T} pump is paid by Helga's two restricted {R}, Clement's {G}, a Forest's {G} for Three Tree Mascot's summoning-sick Changeling filter, whose {1} needs no tap",
  "actions": [
   16776960,
   16776960,

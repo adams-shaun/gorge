@@ -1,0 +1,42 @@
+# Partner with [name] (CR 702.124j): every corpus carrier kgen lowers and
+# builds and does not refuse by name (Krav, the Unredeemed is refused), whose
+# enters trigger lets the target player search their own library for the
+# named partner (gorge cards/kw_partner_with.go), basics and vanilla
+# creatures, for dirac/oracle/partnerwith_test.go
+Alisaie Leveilleur
+Alphinaud Leveilleur
+Blaring Captain
+Blaring Recruiter
+Brallin, Skyshark Rider
+Cazur, Ruthless Stalker
+Chakram Retriever
+Chakram Slinger
+Evie Frye
+Impetuous Protege
+Jenny Flint
+Kamber, the Plunderer
+Laurine, the Diversion
+Ley Weaver
+Lore Weaver
+Merry, Warden of Isengard
+Nikara, Lair Scavenger
+Pippin, Warden of Isengard
+Proud Mentor
+Rocksteady, Mutant Marauder
+Sam, Loyal Attendant
+Shabraz, the Skyshark
+Silvar, Devourer of the Free
+Soulblade Corrupter
+Soulblade Renewer
+Timin, Youthful Geist
+Toothy, Imaginary Friend
+Trynn, Champion of Freedom
+Ukkima, Stalking Shadow
+Virtus the Veiled
+Grizzly Bears
+Llanowar Elves
+Plains
+Island
+Swamp
+Mountain
+Forest

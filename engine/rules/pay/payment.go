@@ -561,7 +561,7 @@ func emitRestrictedManaSpend(e Engine, p state.PlayerID, d Descriptor, spent *st
 		if (d.Class == PurposeSpell || d.Class == PurposeActivated) && r.Source != 0 && !slices.Contains(capt.ManaSpentSources, r.Source) {
 			capt.ManaSpentSources = append(capt.ManaSpentSources, r.Source)
 		}
-		// AddsCounters$ (task opalp): a consumed batch that carries the
+		// AddsCounters$: a consumed batch that carries the
 		// producing ability's rider contributes THIS batch's spent unit count
 		// as one grant. The rider is the batch's own snapshot, so a different
 		// ability of the same permanent cannot import its rider, and the

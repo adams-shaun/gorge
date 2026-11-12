@@ -137,8 +137,7 @@ type zoneCountFold struct {
 	seen           bool
 	seenTokenNames map[string]bool
 	seenCardTypes  map[string]bool
-	// seenCreatureTypes is the CreatureType spelling's distinct set (task
-	// diffcount2): creature-subtype words among the matched faces, read
+	// seenCreatureTypes is the CreatureType spelling's distinct set: creature-subtype words among the matched faces, read
 	// only through len.
 	seenCreatureTypes map[string]bool
 	// seenPlaneswalkerTypes is the PlaneswalkerType spelling's distinct set
@@ -196,6 +195,12 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecConte
 		}
 	}
 	specCtx.DerivedPTs = append(specCtx.DerivedPTs, GreatestPowerDerivedPTs(f.g, matchSpec, f.h)...)
+	if zone == state.ZHand {
+		// a hand scan reads IsImprinted as the association's membership
+		// (Tainted Pact's TaintedCheck); an ordinary live filter keeps the
+		// CR 607.2a expiry
+		specCtx.HandCount = true
+	}
 	if !matchesZoneSpecCtx(f.g, matchSpec, id, specCtx, zone) {
 		return
 	}

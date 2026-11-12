@@ -10,7 +10,7 @@ import (
 
 // TestSetLifeCorpusCensus names every corpus card whose scripts carry a
 // `SetLife` API line. `api:SetLife` was among the largest single unimplemented
-// APIs in this set (task eoe-the-endstone-set-life); the census pins the
+// APIs in this set; the census pins the
 // carrier list so a future change to the primitive's grammar has the full
 // population to re-measure against, and so the registration cannot silently
 // lose a shape (a reverted REGISTER fails here as well as at the Endstone
@@ -78,7 +78,7 @@ func TestSetLifeCorpusCensus(t *testing.T) {
 // SP$ (a spell ability), AB$ (an activated ability), AP$ (an activated
 // ability in the newer spelling) and A$ (an activated ability's chained
 // body). Each reaches the same registry entry, so the census must see all of
-// them -- the `(DB|AP|A)$` spelling the dispatch brief used sees neither SP$
+// them -- the `(DB|AP|A)$` spelling sees neither SP$
 // nor AB$.
 func hasSetLifeAPILine(script string) bool {
 	for _, marker := range []string{

@@ -104,8 +104,8 @@ const (
 	TriggerUnattached                 TriggerMode = 82
 	TriggerUntaps                     TriggerMode = 83
 	TriggerVote                       TriggerMode = 84
-	// set-mechanic / keyword-action trigger modes (task
-	// triage-478c51d1): the trigger modes Standard's set mechanics and
+	// set-mechanic / keyword-action trigger modes: the trigger modes
+	// Standard's set mechanics and
 	// keyword actions print. Appended after TriggerVote, following the
 	// vocabulary's append-only convention, so no earlier ordinal moves.
 	TriggerCrewed         TriggerMode = 85

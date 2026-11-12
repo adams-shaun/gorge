@@ -195,7 +195,7 @@ This site is `docs/site/`, built by MkDocs Material from the root
 
 ```sh
 go run ./cmd/pkgmap > docs/site/architecture/_generated_packages.md   # the generated package tables
-python3 scripts/docs_sets.py --dirac docs/site/support/dirac-sets.json # the set tables, without gorge's columns
+python3 scripts/docs_sets.py --dirac-support dirac/docs/support.md      # the set tables, without gorge's columns
 uvx --with mkdocs-material==9.7.7 mkdocs serve                        # or: pip install -r docs/site/requirements.txt
 ```
 

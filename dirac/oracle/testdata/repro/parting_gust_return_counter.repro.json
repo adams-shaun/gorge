@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-blb",
+ "why": "Parting Gust returns a creature under its owner's control: the owner puts its counter, so their Stocking the Pantry triggers",
  "actions": [
   16776960,
   16776960,

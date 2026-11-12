@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-trk",
+ "pool": "std-trk",
+ "why": "CR 400.7, 611.2c: V'Ger's \"-1/-0 until your next turn\" does not reach Hologram Janeway that Ghost of Illyria blinked back, a new object",
  "actions": [
   16776960,
   16776960,

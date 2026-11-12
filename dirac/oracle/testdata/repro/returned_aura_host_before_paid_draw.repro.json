@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dft",
+ "pool": "std-dft",
+ "why": "CR 303.4f, 610.3: sacrificing Perilous Snare pays Chandra's \"if you do, draw\": its exiled Aura's host answer comes before the draw, as gorge asks it mid-payment",
  "actions": [
   167771904,
   167771904,

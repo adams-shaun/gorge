@@ -94,6 +94,9 @@
  "mulligans": 0,
  "pass_elision": false,
  "max_turns": 100,
+ "surface": "autopay",
+ "pool": "std-trk",
+ "why": "a stolen Georgiou keeps its controller alive at 0 life; its owner loses and leaves, and the survivor wins at once (CR 104.2a, 800.4a) instead of losing to the life total as the card leaves",
  "actions": [
   16776960,
   16776960,

@@ -12,7 +12,7 @@ into an IR; the engine implements the primitives that IR references. See
   replay eventdiff deck`, `game` and its `gorgegame`, the seam a host runs an
   engine through, and `seat`, the `Seat` contract only). Imports nothing outside.
 - `dirac/`: the second engine, in lockstep with `engine/` and built for machine
-  learning: `kop cardset vanilla feat crcoverage search/{hbot,mull}`, `oracle` (which
+  learning: `kop cardset vanilla feat neteval crcoverage search/{hbot,mull}`, `oracle` (which
   plays it against `engine/rules`; `oracle/cmd/{kfuzz,khbot,ksbt}`), `kgen`,
   `adapter`, `canon`, `support` and `cmd/{kgen,dplay,sbv2dirac}`. The core imports
   nothing outside `dirac/`; nothing in `engine/` imports it. See
@@ -89,10 +89,19 @@ make fresh-clone-check    # dirac with no corpus: builds, tests skip, none fail
 ```
 
 **Test budget:** every test fits 4 GB RSS, 4 vCPU and 1 minute wall; one outside
-it is a defect to split, never to trim. Agents run tests focused and capped,
-never `go test ./...` or `-count=1`:
-`systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB go test -timeout 2m -run X ./pkg`.
-The full suite runs after merge, in CI.
+it is a defect to split, never to trim. Agents run tests through the make
+targets, never a raw `go test` and never `go test ./...` or `-count=1`. Each is
+capped, checks the corpus (a skip for a missing `.cards` is `ENV`, never green)
+and ends with one line `test-<mode>: PASS|FAIL|ENV|EMPTY|BUDGET|BUSY <sha> <pkgs> <seconds>`
+(exit 0, 1, 3, 4, 5, 75):
+
+```sh
+make test-one PKG=./engine/rules RUN='^TestX$'   # debugging: one package, named tests
+make test-targeted                               # each iteration: the diff's packages + all their test reverse deps
+make test-smart                                  # once, before DONE: the landing gate's steps, on a committed tree
+```
+
+`make precheck` is an alias for `test-smart`. The full suite runs after merge, in CI.
 Rules and rationale: [invariants.md](docs/agents/invariants.md#workflow).
 
 Acceptance commands:

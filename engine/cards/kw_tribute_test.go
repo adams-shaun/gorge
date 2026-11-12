@@ -3,7 +3,7 @@ package cards
 import "testing"
 
 // TestTributeExpandsToETBReplacementAndUnpaidTrigger pins the K:Tribute
-// expansion (CR 702.104, task kw-tribute-expansion): one Moved→Battlefield
+// expansion (CR 702.104): one Moved→Battlefield
 // replacement whose body is the tribute offer (DB$ PutCounter on the
 // ReplacedCard with the Tribute$ marker), plus the "if tribute wasn't paid"
 // ETB trigger executing the face's own TrigNotTribute SVar with the

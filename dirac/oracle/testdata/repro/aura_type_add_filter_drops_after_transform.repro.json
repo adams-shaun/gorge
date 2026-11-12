@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-lci",
+ "pool": "std-lci",
+ "why": "CR 613.1d, 704.5m: Zoetic Glyph's \"enchanted artifact is a 5/4 Golem creature\" stops applying when Matzalantli transforms into a land, so the land stays and only the Glyph falls off",
  "actions": [
   16776960,
   16776960,

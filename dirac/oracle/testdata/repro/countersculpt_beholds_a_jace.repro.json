@@ -95,6 +95,8 @@
  "pass_elision": false,
  "surface": "autopay",
  "kernel": "synth std-fra",
+ "pool": "std-fra",
+ "why": "Countersculpt's either-or additional cost paid by beholding a Jace planeswalker, not the {1}: the behold is chosen after the target (CR 601.2b, 601.2h)",
  "actions": [
   16776960,
   16776960,

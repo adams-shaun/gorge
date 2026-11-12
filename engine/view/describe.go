@@ -218,7 +218,7 @@ func describe(g *state.Game, ev events.Event) string {
 		}
 		return obj(g, ev.Obj) + " damaged " + obj(g, ev.IDs[0]) + " this game"
 	case events.ClonePermanent:
-		// CR 613.1a's layer-1 copy basis (api:Clone, task api-clone): Obj is
+		// CR 613.1a's layer-1 copy basis (api:Clone): Obj is
 		// the object that becomes the copy and IDs[0] the object copied from;
 		// a zero/absent id is the expiry/cleanup clear.
 		if len(ev.IDs) == 0 || ev.IDs[0] == 0 {
@@ -281,7 +281,7 @@ func describe(g *state.Game, ev events.Event) string {
 		}
 		return player(g, ev.Player) + " returns " + mana(ev.Counter, ev.Amount)
 	case events.ChaosEnsues:
-		// CR 901.9 (task planar-verbs): the chaos-ensues marker. Obj is the
+		// CR 901.9: the chaos-ensues marker. Obj is the
 		// plane it erupts on when the emitter resolved one (the roll path and
 		// the DB$ ChaosEnsues verb both do; the Describe-coverage fuzz may
 		// carry a zero Obj, so the bare form stays grammatical).
@@ -312,7 +312,7 @@ func describe(g *state.Game, ev events.Event) string {
 		// rises; the RemoveDungeon transition moves the token itself.
 		return player(g, ev.Player) + " completes the dungeon"
 	case events.RollDice:
-		// The roll-action PROPOSAL (task rolldice-repl) is never logged -- the
+		// The roll-action PROPOSAL is never logged -- the
 		// per-die Notes are the roll's transcript lines -- but the Describe-
 		// coverage walk visits every Kind, so the held proposal describes as
 		// the pending roll action it is. Amount is the proposal's dice count.
@@ -418,7 +418,7 @@ func describe(g *state.Game, ev events.Event) string {
 		}
 		return player(g, ev.Player) + " loses the clash"
 	case events.Evolved:
-		// The completed evolve marker (CR 702.99b, task trig:Evolved) is a
+		// The completed evolve marker (CR 702.99b) is a
 		// pure no-op like GiveGift/Investigate: the +1/+1 counter placement
 		// is its own CounterChange line, so this line names only the
 		// evolving permanent (Obj is the Evolve trigger's own source).
@@ -461,8 +461,7 @@ func describe(g *state.Game, ev events.Event) string {
 			return player(g, ev.Player) + " scries"
 		}
 		if ev.Kind == events.Proliferate {
-			// The completed proliferate marker (CR 701.27, task
-			// trig-proliferate) follows the counter batch's own lines and
+			// The completed proliferate marker (CR 701.27) follows the counter batch's own lines and
 			// names only the proliferating seat; Obj is the source permanent.
 			return player(g, ev.Player) + " proliferates"
 		}

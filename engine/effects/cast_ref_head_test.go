@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The TriggeredCard$CastTotalManaSpent ref-head (task ctms-refhead): the TOTAL
+// The TriggeredCard$CastTotalManaSpent ref-head: the TOTAL
 // mana actually spent to cast the card a firing trigger bound, read off the
 // same recorded per-cast totals the plain Count$CastTotalManaSpent head reads
 // (Object.ManaSpent / ManaSnowSpent / the typed captures). The row's carrier

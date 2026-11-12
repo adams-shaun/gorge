@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-woe",
+ "pool": "std-woe",
+ "why": "Prophetic Prism sacrificed through the ability Food Fight grants it: the damage is 1 plus the Food Fights its controller controls, a count only Food Fight defines (CR 113.7a), so it deals 2, not the 0 the artifact's own table gives",
  "actions": [
   16776960,
   16776960,

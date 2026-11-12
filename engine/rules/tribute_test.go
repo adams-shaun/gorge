@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The K:Tribute expansion (CR 702.104, task kw-tribute-expansion), pinned on
+// The K:Tribute expansion (CR 702.104), pinned on
 // real corpus carriers:
 //
 //   - Snake of the Golden Grove (Tribute 3): the ETB replacement poses the

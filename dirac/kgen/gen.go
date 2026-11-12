@@ -319,8 +319,17 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Delve {
 		fmt.Fprintf(w, " delve")
 	}
+	if c.Rebound != nil {
+		fmt.Fprintf(w, " rebound")
+	}
 	if c.Harmonize != nil {
 		fmt.Fprintf(w, " harmonize=%s", c.Harmonize)
+	}
+	if c.Retrace {
+		fmt.Fprintf(w, " retrace")
+		if c.RetraceCost != nil {
+			fmt.Fprintf(w, " retracecost=%s", costString(*c.RetraceCost))
+		}
 	}
 	if c.BeamMeUp != nil {
 		fmt.Fprintf(w, " beammeup=%s", c.BeamMeUp)
@@ -462,6 +471,12 @@ func dumpLIR(w io.Writer, c *lCard) {
 			}
 			if t.VTgt != nil {
 				fmt.Fprintf(w, "      vtgting=true F=%s\n", t.VTgt)
+			}
+			if t.VYou {
+				fmt.Fprintf(w, "      vtgting=you\n")
+			}
+			if t.VSpellF != nil {
+				fmt.Fprintf(w, "      vspell F=%s\n", t.VSpellF)
 			}
 		}
 		for i, in := range a.Prog {

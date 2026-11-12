@@ -52,6 +52,7 @@ func (s *State) cmdDamageSBA(k *prep) {
 		}
 		if s.cmdLethal(p) && !s.pl[p].lost && !s.cantLose(k, p) {
 			s.pl[p].lost = true
+			s.monarchLeft(k, p) // CR 725.4 (act_monarch.go)
 		}
 	}
 }

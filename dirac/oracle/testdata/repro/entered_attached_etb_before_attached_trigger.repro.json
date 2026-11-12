@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "CR 603.3b: One Last Job returns Assimilation Aegis attached; gorge scans the move (its ETB trigger) before the attach (its Attached trigger), so the ETB trigger is queued first",
  "actions": [
   167771904,
   184549120,

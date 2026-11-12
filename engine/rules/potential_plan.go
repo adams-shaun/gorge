@@ -1766,17 +1766,21 @@ func planConsumed(plan decision.PaymentPlan, tapped bool) map[state.ObjID]bool {
 // (when non-nil) is the exact assignment the tap parts take, withheld from
 // the plan. A sacrifice part needs candidates the plan did not sacrifice or
 // return (a tapped source can still be sacrificed) and that no tap part
-// claimed; a self-sacrifice needs the plan to leave id in play.
+// claimed; a self-sacrifice needs the plan to leave id in play. The cost's
+// own {T} claims id only for the tap: a sacrifice part may still take id --
+// CR 602.2b pays the costs in any order, so the source is tapped and then
+// sacrificed (Bloodflow Connoisseur's "{T}, Sacrifice a creature" beside no
+// other creature).
 func (e *Engine) planLeavesCostPayable(p state.PlayerID, id state.ObjID, cost Cost, ability, selfSource bool, plan decision.PaymentPlan, reserved []state.ObjID) bool {
 	tapped := planConsumed(plan, true)
 	gone := planConsumed(plan, false)
 	claimed := map[state.ObjID]bool{} // lookup only
-	enough := func(cands []state.ObjID, n int32, spent map[state.ObjID]bool) bool {
+	enough := func(cands []state.ObjID, n int32, spent map[state.ObjID]bool, skipSelf bool) bool {
 		for _, oid := range cands {
 			if n <= 0 {
 				break
 			}
-			if spent[oid] || claimed[oid] || (cost.Tap && oid == id) {
+			if spent[oid] || claimed[oid] || (skipSelf && oid == id) {
 				continue
 			}
 			claimed[oid] = true
@@ -1793,7 +1797,7 @@ func (e *Engine) planLeavesCostPayable(p state.PlayerID, id state.ObjID, cost Co
 		}
 	} else {
 		for _, part := range cost.TapPermanent {
-			if part.Dyn == "" && part.N > 0 && !enough(pay.TapCostCandidates(asPayer(e), p, id, part), part.N, tapped) {
+			if part.Dyn == "" && part.N > 0 && !enough(pay.TapCostCandidates(asPayer(e), p, id, part), part.N, tapped, cost.Tap) {
 				return false
 			}
 		}
@@ -1808,7 +1812,7 @@ func (e *Engine) planLeavesCostPayable(p state.PlayerID, id state.ObjID, cost Co
 			}
 			continue
 		}
-		if !enough(pay.SacrificeCostCandidates(asPayer(e), p, id, part, ability), part.N, gone) {
+		if !enough(pay.SacrificeCostCandidates(asPayer(e), p, id, part, ability), part.N, gone, false) {
 			return false
 		}
 	}

@@ -200,8 +200,7 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 					// scans on the Engine's own buffer (staticQueueBuf): the face's
 					// own statics at depth 0, then every granted static appended with
 					// its depth, so a granted static's emission is the SAME body a
-					// printed one runs -- one grant grammar (task
-					// inbox-paramcensus-static-grant-misc). The depth-0 check below
+					// printed one runs -- one grant grammar. The depth-0 check below
 					// bounds the recursion; the warm-rescan allocation budget
 					// (static_effects_buffer_test) is why the buffer is reused,
 					// never re-made per face.
@@ -292,10 +291,10 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 							pt.AddToughnessAffected = effects.AffectedXStaticAmount(pt.AddToughnessExpr)
 							out = append(out, pt)
 						}
-						if st.HasParam(cards.PKAddKeyword) || st.HasParam(cards.PKRemoveKeyword) || st.HasParam(cards.PKCantHaveKeyword) {
+						if st.HasParam(cards.PKAddKeyword) || st.HasParam(cards.PKRemoveKeyword) || st.HasParam(cards.PKCantHaveKeyword) || statGrantsLure(st) {
 							kw := base
 							kw.Layer = LAbilities
-							kw.AddKeywords = statKeywords(st)
+							kw.AddKeywords = withLureGrant(st, statKeywords(st))
 							if st.HasParam(cards.PKSharedKeywordsZone) {
 								// A shared-keyword grant is filtered by the cards in the
 								// named zones right now (Eater of Virtue's exile, Cairn
@@ -646,7 +645,7 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 							out = append(out, al)
 						}
 						// --- the four static-grant kinds the parameter census named
-						// (task inbox-paramcensus-static-grant-misc). Each reads its
+						// Each reads its
 						// own key and fails closed on a shape it cannot evaluate, like
 						// every grant branch above. ---
 

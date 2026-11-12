@@ -9,7 +9,7 @@ import (
 )
 
 // TestCollectEvidenceWindowChannel pins the Engine half of the
-// ConditionDefined$ Collected group's channel (task condition-collected):
+// ConditionDefined$ Collected group's channel:
 // after a real CollectEvidence<X> payment, Engine.CostMovesInWindow with
 // events.CostMoveEvidence must return the exiled evidence card, and the
 // Discarded/Returned kinds must NOT (the kind selects the cost marker, not a

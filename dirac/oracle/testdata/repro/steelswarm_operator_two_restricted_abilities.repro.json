@@ -55,6 +55,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Steelswarm Operator's artifact-spell {U} pays Wayfarer's Bauble and its artifact-activation {U}{U} the Bauble's {2} activation: the kernel keeps both restricted abilities and plans the half the payment's class admits (CR 106.6, 601.2g-h, 602.2b)",
  "actions": [
   18153216,
   16908032,

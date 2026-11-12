@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-tdm",
+ "pool": "std-tdm",
+ "why": "a twobrid cast's manual window taps the flexible source for its first owed colour, stranding the pip only that source could make: both engines reverse the cast and keep the tap and its mana (CR 601.2g-h, 733.1)",
  "actions": [
   16776960,
   16776960,

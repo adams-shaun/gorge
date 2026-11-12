@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-msh",
+ "pool": "std-msh",
+ "why": "Armor Wars' chapter I twice: once declined with artifacts out, once with none, where the draw is offered as a decline alone (an X of zero is no payment, CR 118.3)",
  "actions": [
   16776960,
   16776960,

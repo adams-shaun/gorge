@@ -93,7 +93,9 @@
  "seed": 2734872401331845329,
  "mulligans": 1,
  "pass_elision": false,
- "surface": "full",
+ "surface": "autopay",
+ "pool": "std-tla",
+ "why": "Bumi's charm chooses up to the number of Lesson cards in its controller's graveyard, possibly none (CR 117.12)",
  "actions": [
   167771904,
   167771904,

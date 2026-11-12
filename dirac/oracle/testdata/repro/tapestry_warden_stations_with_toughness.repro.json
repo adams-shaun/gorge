@@ -95,6 +95,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "Tapestry Warden makes a power<toughness creature station with its toughness: the 3/4 Warden puts four charge counters on Entropic Battlecruiser (CR 702.184a)",
  "actions": [
   19857152,
   17628928,

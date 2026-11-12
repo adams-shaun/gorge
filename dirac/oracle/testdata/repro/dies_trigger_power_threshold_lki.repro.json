@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "CR 603.3b: Syr Vondam's own dies trigger queues before the dies trigger Perigee Beckoner granted it",
  "actions": [
   167771904,
   184549120,

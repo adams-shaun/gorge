@@ -96,6 +96,8 @@ func (s *State) askOptionsCold1(k *prep, d *Decision) bool {
 		d.add(MakeAction(AkChoose, 0, 0, 0))
 	case raVote:
 		s.voteOptions(k, d) // act_vote.go
+	case raDrawUpto:
+		s.drawUptoOptions(d) // act_drawupto.go
 	case raGenDestAlt:
 		s.destAltOptions(d) // zone_destalt.go
 	default:
@@ -121,6 +123,8 @@ func (s *State) applyAskCold1(k *prep, a Action) bool {
 		}
 	case raVote:
 		s.voteAnswer(k, a) // act_vote.go
+	case raDrawUpto:
+		s.drawUptoAnswer(k, a) // act_drawupto.go
 	case raGenDestAlt:
 		s.destAltAnswer(k, a) // zone_destalt.go
 	default:
@@ -643,7 +647,7 @@ func (s *State) applyAskPauperkw(k *prep, a Action) bool {
 		// priority, as gorge resumes after the madness trigger
 		holder := s.prio
 		s.prio = p
-		s.beginCast(k, o, 0)
+		s.beginCast(k, o, 0, 0)
 		s.prio = holder
 		s.bld().e.trigPl = trigPlMadness
 		return true

@@ -1,0 +1,65 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Akiri, Line-Slinger
+1	card	Alena, Kessig Trapper
+2	card	Alharu, Solemn Ritualist
+3	card	Anara, Wolvid Familiar
+4	card	April O'Neil, Live on the Scene
+5	card	Brinelin, the Moon Kraken
+6	card	Bronze Sable
+7	card	Bruse Tarl, Boorish Herder
+8	card	Chief Jim Hopper
+9	card	Coral Merfolk
+10	card	Dustin, Gadget Genius
+11	card	Esior, Wardwing Familiar
+12	card	Falthis, Shadowcat Familiar
+13	card	Forest
+14	card	Francisco, Fowl Marauder
+15	card	Gravedigger
+16	card	Gray Ogre
+17	card	Grizzly Bears
+18	card	Ich-Tekik, Salvage Splicer
+19	card	Ishai, Ojutai Dragonspeaker
+20	card	Island
+21	card	Joel, Resolute Survivor
+22	card	Kamahl, Heart of Krosa
+23	card	Keleth, Sunmane Familiar
+24	card	Keskit, the Flesh Sculptor
+25	card	Kraum, Ludevic's Opus
+26	card	Kydele, Chosen of Kruphix
+27	card	Leonardo, the Balance
+28	card	Llanowar Elves
+29	card	Lucas, the Sharpshooter
+30	card	Max, the Daredevil
+31	card	Miara, Thorn of the Glade
+32	card	Michelangelo, the Heart
+33	card	Mike, the Dungeon Master
+34	card	Mountain
+35	card	Nadier, Agent of the Duskenel
+36	card	Ornithopter
+37	card	Plains
+38	card	Prava of the Steel Legion
+39	card	Raphael, the Muscle
+40	card	Ravos, Soultender
+41	card	Reyhan, Last of the Abzan
+42	card	Rograkh, Son of Rohgahh
+43	card	Savannah Lions
+44	card	Siani, Eye of the Storm
+45	card	Slurrk, All-Ingesting
+46	card	Splinter, the Mentor
+47	card	Swamp
+48	card	Tana, the Bloodsower
+49	card	Thrasios, Triton Hero
+50	card	Toggo, Goblin Weaponsmith
+51	card	Tormod, the Desecrator
+52	card	Typhoid Rats
+53	card	Yoshimaru, Ever Faithful
+54	token	b_2_2_zombie
+55	token	c_3_3_a_phyrexian_golem
+56	token	c_a_clue_draw
+57	token	c_a_food_sac
+58	token	c_a_mutagen_sac
+59	token	g_1_1_elf_warrior
+60	token	g_1_1_saproling
+61	token	rock
+62	token	w_1_1_soldier
+63	token	w_1_1_spirit_flying

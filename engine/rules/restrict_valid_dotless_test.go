@@ -1,7 +1,6 @@
 package rules
 
-// The dotless RestrictValid$ payment classes (the restricted-mana spend
-// task): bare `Spell` (Klauth's encoding), bare `Activated` (Omen Hawker's),
+// The dotless RestrictValid$ payment classes (the restricted-mana spend): bare `Spell` (Klauth's encoding), bare `Activated` (Omen Hawker's),
 // and the cost-keyed terms — CostContainsC read from a COMMA TAIL,
 // CostContainsX, CantPayGenericCosts, CantCastNonArtifactSpells,
 // CantCastSpellFromHand and CumulativeUpkeep. Each pin drives the REAL corpus
@@ -70,16 +69,6 @@ func dotlessEngine(t *testing.T, reg *cards.Registry, front ...*cards.Card) (*En
 	e.Advance()
 	toMain1(t, e)
 	return e, cfg
-}
-
-func dotlessEngineE(t *testing.T, reg *cards.Registry, front ...*cards.Card) *Engine {
-	t.Helper()
-	cfg := seatZeroStart(Config{Seed: 9231, Names: []string{"restrictor", "opponent"},
-		Decks: dotlessDeck(t, reg, front...), Tokens: reg.Tokens})
-	e := New(cfg)
-	e.Advance()
-	toMain1(t, e)
-	return e
 }
 
 // findOption returns the index of the pending decision's option of kind kind

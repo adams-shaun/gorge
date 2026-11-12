@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-ecl",
+ "pool": "std-ecl",
+ "why": "CR 601.2g, 733.1: Mudbutton Cursetosser's chosen {2} part falls back to the manual window, which poses Springleaf Drum's tap-another pick before it reverses the unpayable cast",
  "actions": [
   16776960,
   16776960,

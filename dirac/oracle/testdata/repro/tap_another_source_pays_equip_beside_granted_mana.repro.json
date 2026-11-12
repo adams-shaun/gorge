@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-eoe",
+ "pool": "std-eoe",
+ "why": "Gene Pollinator and four lands pay Meltstrider's Gear's Equip {5} beside Mm'menon's spell-only grant: the grant cap keeps the play",
  "actions": [
   184549120,
   167771904,

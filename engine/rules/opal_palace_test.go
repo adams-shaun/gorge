@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The AddsCounters$ mana-spend rider (task opalp). Opal Palace's second
+// The AddsCounters$ mana-spend rider. Opal Palace's second
 // ability is the corpus pin: "{1}, {T}: Add one mana of any color in your
 // commander's color identity. If you spend this mana to cast your commander,
 // it enters with a number of additional +1/+1 counters on it equal to the

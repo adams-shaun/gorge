@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-fdn",
+ "pool": "std-fdn",
+ "why": "CR 601.2g-h, 605.1a: gorge's prefix search taps New Horizons' Mountain for {R}{R} and Pyromancer's Goggles' deferred {R}, both census gaps, so Lathliss, Dragon Queen's {4}{R}{R} is offered",
  "actions": [
   184549120,
   184549120,

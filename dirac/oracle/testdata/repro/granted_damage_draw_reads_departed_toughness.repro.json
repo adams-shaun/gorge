@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-mkm",
+ "pool": "std-mkm",
+ "why": "The Pride of Hull Clade's granted \"draw cards equal to its toughness\" on a trampling Ooze that dies to the combat damage it dealt: the trigger reads the Ooze's last known toughness, 2, not the 0 of a token that has ceased to exist (CR 608.2h)",
  "actions": [
   16776960,
   16776960,

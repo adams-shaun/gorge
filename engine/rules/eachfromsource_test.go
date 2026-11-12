@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The CounterType$ EachFromSource PutCounter shape (task eachfromsource):
+// The CounterType$ EachFromSource PutCounter shape:
 // the copy-each-kind-of-counter body -- "put those counters on target
 // permanent" -- over the corpus's three referents (TriggeredCardLKICopy,
 // Self, Remembered). Resourceful Defense is the deck carrier; The Ozolith, Denry Klin and Heroic Sacrifice pin the other

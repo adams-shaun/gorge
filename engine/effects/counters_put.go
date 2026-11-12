@@ -16,7 +16,7 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	pc := PutCounterOf(sa)
 	noteUnreadParams(h, c, "PutCounter", pc.Unread)
 
-	// Adapt$ (CR 702.35a; task param-adapt): an AB/DB$ PutCounter carrying
+	// Adapt$ (CR 702.35a): an AB/DB$ PutCounter carrying
 	// Adapt$ N reads N as the count -- Pteramander's `Adapt$ 4`, Jetfire's
 	// chained `SVar:DBAdapt:DB$ PutCounter | Adapt$ 3`. The corpus writes only
 	// literal values (measured: Adapt$ 1-4 over the 25 raw lines) and no
@@ -38,7 +38,7 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	if n < 0 {
 		n = 0
 	}
-	// Tribute$ (CR 702.104; task kw-tribute-expansion): the put is the
+	// Tribute$ (CR 702.104): the put is the
 	// tribute offer the K:Tribute expansion mints -- two asks, then the
 	// counters on acceptance. It is dispatched before every other shape: a
 	// tribute body carries none of the Optional$/Bolster$/Support$ modifiers,
@@ -153,7 +153,7 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	// while the object is still mid-entry must place the counters anyway,
 	// not skip on the battlefield precondition.
 	etb := pc.ETB
-	// CounterType$ EachFromSource (task eachfromsource): the copy-each-kind
+	// CounterType$ EachFromSource: the copy-each-kind
 	// shape -- the target(s) take a counter of each kind the EachFromSource$
 	// source carried. Not a real counter kind, so the ordinary loop below
 	// would put nothing of a nonexistent kind; dispatch to the shape's own
@@ -231,7 +231,7 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
-	// CounterNumPerDefined$ (task param-putcounter-counternumperdefined): the
+	// CounterNumPerDefined$: the
 	// count is evaluated PER AFFECTED OBJECT, not once for the resolving
 	// source -- Canopy Gargantuan's upkeep trigger puts +1/+1 counters on
 	// each other creature equal to THAT creature's toughness
@@ -578,8 +578,7 @@ func putCounterDefined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 	return ts
 }
 
-// putCounterEachFromSource runs the CounterType$ EachFromSource shape (task
-// eachfromsource): the target(s) take a counter of each kind the
+// putCounterEachFromSource runs the CounterType$ EachFromSource shape: the target(s) take a counter of each kind the
 // EachFromSource$ source carried -- Forge's PutCounterEffect eachFromSource
 // arm, the "put those counters on target permanent" copy. The corpus's 23
 // carriers split on ONE axis: the referent (TriggeredCardLKICopy 19, Self 3,

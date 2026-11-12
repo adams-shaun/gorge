@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "Intimidation Campaign, cast this turn under the opponent's High Noon, returns to hand on its crime trigger: its finished cast is still the one spell that turn, so neither engine offers it again (CR 601.2e; gorge excluded every push of the same ObjID).",
  "actions": [
   16776960,
   16776960,

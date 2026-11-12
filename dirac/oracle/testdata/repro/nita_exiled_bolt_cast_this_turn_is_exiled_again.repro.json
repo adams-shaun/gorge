@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Nita, Forum Conciliator exiles an opponent's Lightning Bolt and it is cast this turn with any mana: the spell is one she does not own, and it is exiled instead of going back to the graveyard",
  "actions": [
   19398400,
   35192576,

@@ -448,6 +448,52 @@ func untilUntapsDuration(dur string) bool {
 	return strings.EqualFold(strings.TrimSpace(dur), "UntilUntaps")
 }
 
+// registerPlayerPumpGrant is effPump's player half. A Pump whose affected
+// set names a PLAYER (The One Ring's "you gain protection from everything
+// until your next turn", The Stasis Coffin, Teferi's Protection) never
+// reaches the object walk below; instead the grant registers as a PLAYER
+// keyword static: one continuous effect, Layer LAbilities, AddKeywords the
+// same list the object grant carries, Affects "Player.You" -- the one
+// affected-seat shape effects' player grammar names exactly, because a
+// continuous effect's Affects$ is judged from its own controller
+// (effects.MatchesPlayerSpecFrom) and "you" IS the protected seat
+// (player_filter.go has no absolute seat spelling). engine/rules'
+// playerKeywords walks it beside every printed `Affected$ You |
+// AddKeyword$` static, so shroud, hexproof and protection enforce through
+// their existing player gates (CR 702.18, 702.11, 702.16c), and the
+// Duration rides the same UntilTurn machinery the object grant does
+// (CR 611.2b: it ends at the cleanup before the controller's next turn).
+//
+// A player other than the resolving controller keeps the historic skip:
+// the grammar cannot name that seat, and "Player.Opponent" would widen
+// the affected set beyond the pump's own in a game of three or more (the
+// set CR 611.2c fixes at resolution). PumpZone$ has no player reading: a
+// grant scoped to a zone of a zone-less subject is not a rule this engine
+// can ask, so the grant is skipped with one loud Note.
+func registerPlayerPumpGrant(h Host, c *Ctx, t state.Target, g *PumpGrant, zone string, chosenKW []string) {
+	if int(t.Player) >= len(h.Game().Players) || t.Player != c.Controller {
+		return
+	}
+	if zone != "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "PumpZone$ " + zone + " beside a player grant is not a rule this engine can ask; the grant is skipped"})
+		return
+	}
+	kws := g.KW
+	if len(chosenKW) > 0 {
+		kws = append(kws[:len(kws):len(kws)], chosenKW...)
+	}
+	if len(kws) == 0 {
+		return
+	}
+	permanent, untilEOT := durationTiming(g.Duration)
+	h.AddContinuous(state.ContinuousEffect{
+		Source: c.Source, Affects: "Player.You", Controller: c.Controller,
+		Layer: state.LAbilities, AddKeywords: kws,
+		Duration: g.Duration, Permanent: permanent, UntilEOT: untilEOT,
+	})
+}
+
 // registerPumpEffects is Pump and PumpAll's sole per-object registration
 // path. Its KW$/Duration$/LeaveBattlefield$ come from the one compiled
 // PumpGrant (compilePumpGrant, pump_params.go), so neither effect can

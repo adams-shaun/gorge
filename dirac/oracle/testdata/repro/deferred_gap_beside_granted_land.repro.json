@@ -95,6 +95,8 @@
  "pass_elision": false,
  "max_turns": 30,
  "surface": "autopay",
+ "pool": "std-fdn",
+ "why": "CR 601.2g-h, 605.1a: Pyromancer's Goggles' deferred {R} beside Giant Cindermaw's Imprisoned-in-the-Moon {C} pays Pirate's Cutlass's Equip {2}: the restricted/deferred script search must count the unrestricted grant",
  "actions": [
   16776960,
   16776960,

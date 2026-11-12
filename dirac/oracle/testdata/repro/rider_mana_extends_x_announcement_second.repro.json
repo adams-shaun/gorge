@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "CR 601.2b, 601.2g: the same counter-rider unit makes X = 1 payable from the floating {G}, the Doll and Abandoned Campground (mana_rider.go)",
  "actions": [
   184549120,
   167771904,

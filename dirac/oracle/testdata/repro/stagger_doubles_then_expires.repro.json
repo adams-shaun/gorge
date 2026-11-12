@@ -95,6 +95,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "synth std-fin",
+ "pool": "std-fin",
+ "why": "Lightning, Army of One's Stagger: the damaged player takes double until the Effect's controller's next turn, then the mark ends (CR 614.1, 120.3)",
  "actions": [
   19857152,
   18349824,

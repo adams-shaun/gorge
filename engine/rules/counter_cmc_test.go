@@ -1,4 +1,4 @@
-// RememberCounteredCMC$ (task counter-cmc): a Counter that carries the rider
+// RememberCounteredCMC$: a Counter that carries the rider
 // remembers the countered spell's mana VALUE, and the chained SubAbility$
 // reads it back through SVar:X:Count$RememberedNumber -- Electrosiphon's
 // "Counter target spell. You get an amount of {E} (energy counters) equal to

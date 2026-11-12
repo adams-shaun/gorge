@@ -204,15 +204,6 @@ func pmcPriority(t *testing.T, flag bool, c pmcClass, spoil bool, fixture string
 	return e, ppPriority(t, e), fid, src
 }
 
-func pmcOffered(d *decision.Decision, kind string, obj state.ObjID) bool {
-	for _, o := range d.Options {
-		if o.Kind == kind && o.Obj == obj {
-			return true
-		}
-	}
-	return false
-}
-
 // TestPaidManaCensusAbilityOffer: a pool-short activated ability ({1}: draw)
 // paid by the class's source is offered and auto-paid only with the flag on.
 func TestPaidManaCensusAbilityOffer(t *testing.T) {

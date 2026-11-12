@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-blb",
+ "pool": "std-blb",
+ "why": "Lilysplash Mentor's {1}{G}{U} on a Forest board beside Clement's creature-spell-only grant: gorge's relaxed proof counts Hidden Grotto's {1},{T} filter for the {U}, so the activation is searched and offered",
  "actions": [
   184549120,
   184549120,

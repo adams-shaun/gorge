@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "full",
  "kernel": "synth std-otj",
+ "pool": "std-otj",
+ "why": "CR 707.2b: a clone re-base keeps the values locked when its layer was applied",
  "actions": [
   167771904,
   167771904,

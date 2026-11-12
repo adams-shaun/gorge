@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-sos",
+ "pool": "std-sos",
+ "why": "Tablet of Discovery's instant-and-sorcery-only {R}{R} beside a land's {R}: a prepared Rampant Growth spends the plain {R} first (an artifact's unit is typed), so the {R}{R} left cannot help cast Topiary Lecturer",
  "actions": [
   184549120,
   167771904,

@@ -23,7 +23,7 @@ import (
 // primitive (this project does not grow the "supported" set just
 // to make the ratchet green). A newly imported deck can extend it; its
 // entries must be measured from the compiled corpus, never marked supported
-// without an implementation. Which task retired an entry goes in the commit
+// without an implementation. Which change retired an entry goes in the commit
 // message (git log -- engine/rules/acceptance_test.go holds the history).
 func knownUnsupported(t *testing.T) map[string][]string {
 	t.Helper()

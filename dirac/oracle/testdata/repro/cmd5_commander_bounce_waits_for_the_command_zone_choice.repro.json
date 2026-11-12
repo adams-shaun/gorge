@@ -221,6 +221,8 @@
  ],
  "surface": "full",
  "kernel": "set cmd5",
+ "pool": "custom",
+ "why": "kfuzz cmd5 heuristic pair 3: Boomerang aimed at Lathliss, Dragon Queen, a commander: the owner's command-zone choice is posed while Boomerang is still on the stack, as the bounce instruction would move her, and Boomerang reaches the graveyard only after the answer (CR 608.2n, 903.9b)",
  "actions": [
   16776960,
   16776960,

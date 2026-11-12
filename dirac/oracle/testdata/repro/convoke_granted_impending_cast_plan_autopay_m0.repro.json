@@ -96,6 +96,8 @@
  "max_turns": 100,
  "surface": "autopay",
  "kernel": "synth std-dsk",
+ "pool": "std-dsk",
+ "why": "the same at the other seat: two Overlords' impended casts priced without the granted convoke",
  "actions": [
   16776960,
   16776960,

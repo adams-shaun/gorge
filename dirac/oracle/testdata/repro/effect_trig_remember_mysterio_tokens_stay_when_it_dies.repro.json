@@ -63,6 +63,8 @@
  "pass_elision": true,
  "surface": "autopay",
  "kernel": "custom",
+ "pool": "custom",
+ "why": "Mysterio, Master of Illusion dies with its Illusion tokens out: gorge's Effect registration ends with the source, so the leave trigger never exiles them (CR 603.7)",
  "actions": [
   19398400,
   16776960,

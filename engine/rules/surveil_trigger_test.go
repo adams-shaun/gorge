@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The trig:Surveil half (task trig-surveil, "whenever you surveil"): the
+// The trig:Surveil half ("whenever you surveil"): the
 // events.Surveil record api:Surveil's effSurveil emits beside each surveil
 // instruction is what the mode matches. The corpus population is 12 files /
 // 12 raw `T:Mode$ Surveil` lines (Mirko, Obsessive Theorist; Dimir Spybug;
