@@ -124,7 +124,7 @@ func TestHarnessedGatesTheInfinityTrigger(t *testing.T) {
 		e.emit(events.Event{Kind: events.AbilityPush, Obj: id, Player: 0, Amount: int32(harness)})
 		e.resolveTop()
 		if !e.G.Obj(id).Harnessed {
-			t.Fatalf("%s: resolving the Harness ability did not harness it (notes: %v)", tc.name, notesOf(e))
+			t.Fatalf("%s: resolving the Harness ability did not harness it (notes: %v)", tc.name, effectNoteTexts(e))
 		}
 		if !effects.MatchesObjectCtx(e.G, "Card.Self+harnessed", e.G.Obj(id), effects.SpecContext{Source: id}) {
 			t.Fatalf("%s: harnessed object does not match Card.Self+harnessed", tc.name)
@@ -191,16 +191,6 @@ func TestAttackedThisCombatAcrossSplitDefenderGroups(t *testing.T) {
 	if n := len(e.pendingTriggers); n != 1 {
 		t.Fatalf("two-player split declaration queued %d Wolf triggers, want 1", n)
 	}
-}
-
-func notesOf(e *Engine) []string {
-	var out []string
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note {
-			out = append(out, ev.Text)
-		}
-	}
-	return out
 }
 
 // TestAttackedThisCombatGatesTolsimirsWolfTrigger drives the real Tolsimir,

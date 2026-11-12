@@ -75,20 +75,6 @@ const splitBearSrc = "Name:My Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nO
 const splitMyGizmoSrc = "Name:My Gizmo\nTypes:Artifact\nOracle:x\n"
 const splitTheirGizmoSrc = "Name:Their Gizmo\nTypes:Artifact\nOracle:x\n"
 
-// splitFlashOption returns the cast option for id with the given Mode, read
-// off the hand walk (legalActions) rather than a posed decision -- the
-// handEngine fixtures never enter a priority round, exactly like the
-// istargeting_statics_test.go reads.
-func splitFlashOption(e *Engine, id state.ObjID, mode string) *decision.Option {
-	for _, o := range e.legalActions(0) {
-		if o.Kind == "cast" && o.Obj == id && o.Mode == mode {
-			cp := o
-			return &cp
-		}
-	}
-	return nil
-}
-
 // splitFlashPreconditions asserts the shape every test below leans on: the
 // spell is in hand, a two-face Split card, the two faces have disjoint
 // target specs, the named face carries exactly one CastWithFlash static and
@@ -177,7 +163,7 @@ func TestSplitAltTargetConditionalFlash(t *testing.T) {
 	// Their Gizmo is the alt half's only legal artifact target and the
 	// OPPONENT's: the grant has no qualifying permanent you control, so the
 	// off-turn offer stays withheld.
-	if opt := splitFlashOption(e, spell, "split_alt"); opt != nil {
+	if opt := altFaceOption(e, spell, "split_alt"); opt != nil {
 		t.Fatalf("split_alt offered off-turn with no qualifying target: %+v", *opt)
 	}
 	// A permanent you control that is ALSO an artifact (so a legal target of
@@ -186,12 +172,12 @@ func TestSplitAltTargetConditionalFlash(t *testing.T) {
 	if e.G.Obj(qualifying).Zone != state.ZBattlefield || e.G.Obj(qualifying).Face().IsCreature() {
 		t.Fatal("precondition: the qualifying artifact is not a battlefield artifact")
 	}
-	if opt := splitFlashOption(e, spell, "split_alt"); opt == nil {
+	if opt := altFaceOption(e, spell, "split_alt"); opt == nil {
 		t.Fatalf("split_alt withheld off-turn although a qualifying target exists: %+v", e.legalActions(0))
 	}
 	// Sorcery timing still offers the half without any grant (no over-withhold).
 	e.G.Active = 0
-	if opt := splitFlashOption(e, spell, "split_alt"); opt == nil {
+	if opt := altFaceOption(e, spell, "split_alt"); opt == nil {
 		t.Fatal("split_alt not offered at sorcery timing")
 	}
 	e.G.Active = 1
@@ -200,7 +186,7 @@ func TestSplitAltTargetConditionalFlash(t *testing.T) {
 	// non-qualifying artifact is a legal target of the alternate half but is
 	// not covered by the permission that granted the off-turn timing, so it is
 	// not on the menu; the qualifying artifact completes the cast.
-	opt := splitFlashOption(e, spell, "split_alt")
+	opt := altFaceOption(e, spell, "split_alt")
 	e.beginCast(0, *opt)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KTarget {
@@ -236,11 +222,11 @@ func TestSplitAltTargetConditionalFlash(t *testing.T) {
 	_ = theirGizmo2
 	// My Bear makes the FRONT half's grant satisfiable; the alternate half has
 	// no permission of its own, so its off-turn offer must stay withheld.
-	if opt := splitFlashOption(e2, spell2, "split_alt"); opt != nil {
+	if opt := altFaceOption(e2, spell2, "split_alt"); opt != nil {
 		t.Fatalf("the front half's flash grant offered the alternate half off-turn: %+v", *opt)
 	}
 	e2.G.Active = 0
-	if opt := splitFlashOption(e2, spell2, "split_alt"); opt == nil {
+	if opt := altFaceOption(e2, spell2, "split_alt"); opt == nil {
 		t.Fatal("split_alt not offered at sorcery timing (front-grant card)")
 	}
 
@@ -253,7 +239,7 @@ func TestSplitAltTargetConditionalFlash(t *testing.T) {
 	spell3 := e3.G.Zone(state.ZHand, 0)[0]
 	splitFlashPreconditions(t, e3, spell3, 1, false, true)
 	_, theirGizmo3 := splitFlashBoard(t, e3)
-	opt3 := splitFlashOption(e3, spell3, "split_alt")
+	opt3 := altFaceOption(e3, spell3, "split_alt")
 	if opt3 == nil {
 		t.Fatal("the instant alternate half was not offered off-turn")
 	}
@@ -291,7 +277,7 @@ func TestFuseTargetConditionalFlash(t *testing.T) {
 
 	// With only the opponent's artifact present, the alternate half's grant
 	// has no qualifying target: the fused cast stays withheld.
-	if opt := splitFlashOption(e, spell, "fuse"); opt != nil {
+	if opt := altFaceOption(e, spell, "fuse"); opt != nil {
 		t.Fatalf("fuse offered off-turn with no qualifying target: %+v", *opt)
 	}
 	// My Gizmo (you control, an artifact, thus a legal target of the alternate
@@ -301,19 +287,19 @@ func TestFuseTargetConditionalFlash(t *testing.T) {
 	if e.G.Obj(myGizmo).Zone != state.ZBattlefield || e.G.Obj(myGizmo).Face().IsCreature() {
 		t.Fatal("precondition: the qualifying artifact is not a battlefield artifact")
 	}
-	if opt := splitFlashOption(e, spell, "fuse"); opt == nil {
+	if opt := altFaceOption(e, spell, "fuse"); opt == nil {
 		t.Fatalf("fused cast withheld off-turn although each half is instant-speed with a qualifying target: %+v", e.legalActions(0))
 	}
 	// Sorcery timing still offers the fused cast (no over-withhold).
 	e.G.Active = 0
-	if opt := splitFlashOption(e, spell, "fuse"); opt == nil {
+	if opt := altFaceOption(e, spell, "fuse"); opt == nil {
 		t.Fatal("fused cast not offered at sorcery timing")
 	}
 	e.G.Active = 1
 
 	// Cast fused: stage 0 asks the FRONT half's targets (creatures only),
 	// stage 1 the ALTERNATE half's (artifacts only).
-	fuse := splitFlashOption(e, spell, "fuse")
+	fuse := altFaceOption(e, spell, "fuse")
 	e.beginCast(0, *fuse)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KTarget {
@@ -353,7 +339,7 @@ func TestFuseTargetConditionalFlash(t *testing.T) {
 	}
 
 	// The qualifying artifact completes the fused cast.
-	e.beginCast(0, *splitFlashOption(e, spell, "fuse"))
+	e.beginCast(0, *altFaceOption(e, spell, "fuse"))
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("second fused stage 0 = %+v", d)
@@ -388,11 +374,11 @@ func TestFuseTargetConditionalFlash(t *testing.T) {
 	_ = theirGizmo2
 	// My Bear satisfies the FRONT half's grant; the alternate half has no
 	// permission of its own, so the fused spell is not instant-speed.
-	if opt := splitFlashOption(e2, spell2, "fuse"); opt != nil {
+	if opt := altFaceOption(e2, spell2, "fuse"); opt != nil {
 		t.Fatalf("the front half's flash grant permitted the fused cast off-turn: %+v", *opt)
 	}
 	e2.G.Active = 0
-	if opt := splitFlashOption(e2, spell2, "fuse"); opt == nil {
+	if opt := altFaceOption(e2, spell2, "fuse"); opt == nil {
 		t.Fatal("fused cast not offered at sorcery timing (front-grant card)")
 	}
 }

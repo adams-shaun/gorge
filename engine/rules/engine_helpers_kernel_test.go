@@ -312,3 +312,50 @@ func battlefieldObjIDByName(e *Engine, name string) state.ObjID {
 	}
 	return 0
 }
+
+// altFaceOption returns the cast option for id whose Mode is exactly mode, or
+// nil when none is offered. It reads e.legalActions directly rather than the
+// pending snapshot, so it can be called at any point in a transaction.
+func altFaceOption(e *Engine, id state.ObjID, mode string) *decision.Option {
+	for _, o := range e.legalActions(0) {
+		if o.Kind == "cast" && o.Obj == id && o.Mode == mode {
+			cp := o
+			return &cp
+		}
+	}
+	return nil
+}
+
+// altCastOptions returns the alternative-cost cast options legalActions
+// offered for id (AltCostIndex > 0; the paid cast carries the zero value).
+func altCastOptions(opts []decision.Option, id state.ObjID) []decision.Option {
+	var out []decision.Option
+	for _, o := range opts {
+		if o.Kind == "cast" && o.Obj == id && o.AltCostIndex > 0 {
+			out = append(out, o)
+		}
+	}
+	return out
+}
+
+// effectNoteTexts returns the Note texts the log carries naming an unimplemented
+// AnimateAll parameter.
+func effectNoteTexts(e *Engine) []string {
+	var out []string
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note {
+			out = append(out, ev.Text)
+		}
+	}
+	return out
+}
+
+// scryDecision casts arrangeSrc and returns the pending KArrange decision.
+func scryDecision(t *testing.T, e *Engine, id state.ObjID) *decision.Decision {
+	t.Helper()
+	d := castFixture(t, e, id, -1)
+	if d == nil || d.Kind != decision.KArrange {
+		t.Fatalf("expected a pending KArrange decision, got %+v", d)
+	}
+	return d
+}

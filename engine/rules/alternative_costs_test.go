@@ -756,18 +756,6 @@ func TestOpeningHandRevealActionAndPlayFirstGate(t *testing.T) {
 // alternative-cost tests use the event boundary for game changes.
 var _ = events.Event{}
 
-// altCastOptions returns the alternative-cost cast options legalActions
-// offered for id (AltCostIndex > 0; the paid cast carries the zero value).
-func altCastOptions(opts []decision.Option, id state.ObjID) []decision.Option {
-	var out []decision.Option
-	for _, o := range opts {
-		if o.Kind == "cast" && o.Obj == id && o.AltCostIndex > 0 {
-			out = append(out, o)
-		}
-	}
-	return out
-}
-
 // TestDazeAltCostGatedOnAnIslandToReturn pins the two-param shape: Daze's
 // EffectZone$ All + ValidSA$ Spell.Self self-carried static reaches the
 // hand, but the Cost$ Return<1/Island> candidate gate keeps the alternative

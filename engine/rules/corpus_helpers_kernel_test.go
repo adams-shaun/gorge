@@ -5,6 +5,8 @@ package rules
 // Submit.
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -257,4 +259,13 @@ func publicRevealsFrom(e *Engine, from int) []events.Event {
 		}
 	}
 	return out
+}
+
+func corpusCardText(t *testing.T, rel string) string {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join("..", "..", ".cards", "cardsfolder", rel))
+	if err != nil {
+		t.Fatalf("read corpus card %s: %v", rel, err)
+	}
+	return string(b)
 }

@@ -180,7 +180,7 @@ func TestAggressiveBiomancy(t *testing.T) {
 		t.Fatal("the copied original gained the granted ETB trigger -- the grant leaked")
 	}
 	if n := countGrantTriggerPush(e); n != 1 {
-		t.Fatalf("the granted trigger pushed %d time(s), want 1 (notes: %v)", n, copyNotes(e))
+		t.Fatalf("the granted trigger pushed %d time(s), want 1 (notes: %v)", n, effectNoteTexts(e))
 	}
 	noCopyPermanentModNote(t, e, "AddTriggers", "AddSVars")
 	replayCheck(t, e, cfg)
@@ -208,17 +208,6 @@ func grantedTriggerCE(t *testing.T, e *Engine, id state.ObjID, grantorName strin
 
 func countGrantTriggerPush(e *Engine) int {
 	return countEvents(e, func(ev events.Event) bool { return ev.Kind == events.GrantTriggerPush })
-}
-
-// copyNotes returns every Note text in the log, for a diagnostic failure.
-func copyNotes(e *Engine) []string {
-	var out []string
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note {
-			out = append(out, ev.Text)
-		}
-	}
-	return out
 }
 
 // TestShelobFoodCopy uses Brenard, Ginger Sculptor --
@@ -483,7 +472,7 @@ func TestZndrspltNoHostCopy(t *testing.T) {
 		}
 	}
 	if !sawNote {
-		t.Fatalf("the no-host fallback recorded no stand-in Note (notes: %v)", copyNotes(e))
+		t.Fatalf("the no-host fallback recorded no stand-in Note (notes: %v)", effectNoteTexts(e))
 	}
 	replayCheck(t, e, cfg)
 }
