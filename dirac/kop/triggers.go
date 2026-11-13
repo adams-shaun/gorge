@@ -183,14 +183,14 @@ type Trigger struct {
 	Whose  Whose    // for player events and TrigPhase
 	Step   Step     // TrigPhase
 	Flags  TrigFlags
-	From   Zone // TrigLeaves / TrigToGraveyard origin restriction (ZoneNone = any)
+	From   Zone // TrigLeaves origin restriction (ZoneNone = any); ToGraveyard reads N instead (its origin set is a mask)
 
 	// Appended by dirac/kgen.
 	Filter2 FilterID   // DamageDone: the damaged object/player must match; AttackersDeclared: the attackers
 	Flags2  TrigFlags2 // more qualifiers
 	Cond    CondID     // intervening-if (0 = none): checked when the event happens and on resolution
 	Zone    Zone       // the zone the source must be in (ZoneNone = battlefield)
-	N       int16      // AttackersDeclared: minimum attackers; CounterAddedOnce: the counter kind (TrigNAnyCounter = every kind); BecomesTarget: TrigNValiant; AbilityCast: TrigAbCast*; LandPlayed: origin mask 1<<kop.Zone, 0 = any; Leaves: destination mask 1<<kop.Zone, 0 = any
+	N       int16      // AttackersDeclared: minimum attackers; CounterAddedOnce: the counter kind (TrigNAnyCounter = every kind); BecomesTarget: TrigNValiant; AbilityCast: TrigAbCast*; LandPlayed: origin mask 1<<kop.Zone, 0 = any; Leaves: destination mask 1<<kop.Zone, 0 = any; ToGraveyard: origin mask 1<<kop.Zone, 0 = any
 	Flags3  TrigFlags3 // still more qualifiers (values.go; a padding byte)
 	Flags4  TrigFlags4 // single-target qualifiers (triggers.go)
 	Flags5  TrigFlags5 // Drawn: the draw-step position (FirstCardInDrawStep$)

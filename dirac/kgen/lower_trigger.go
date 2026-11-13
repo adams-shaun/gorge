@@ -166,6 +166,17 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	giftSelf := false
 	switch t.Mode {
 	case "ChangesZone":
+		if raw := strings.TrimSpace(tp.str("Origin")); strings.Contains(raw, ",") {
+			// an Origin$ set on a trigger: gorge matches the move's from-zone
+			// against the set (trigmatch ZoneChangeMatchesWithCapture). Only
+			// the "put into a graveyard from anywhere other than the
+			// battlefield" shape lowers, onto the kernel's TrigToGraveyard
+			// event fired by the placement itself (dirac/zones.go placeFromK).
+			if err := lc.trigToGraveyardSet(tp, tr, t, raw, readF); err != nil {
+				return err
+			}
+			break
+		}
 		if tr.Origin, err = zoneOf(tp, "Origin", zAny); err != nil {
 			return err
 		}
@@ -1691,6 +1702,49 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 }
 
 // lowerStatic lowers an S: line.
+// trigToGraveyardSet lowers a ChangesZone trigger whose Origin$ is a comma
+// set, the "put into a graveyard from anywhere other than the battlefield"
+// family (Syr Konrad, the Grim; Disa the Restless; Ultron the Annihilator).
+// gorge matches the move's from-zone against the Origin$ set and its to-zone
+// against Destination$ (trigmatch ZoneChangeMatchesWithCapture) as the move
+// completes, from the listener on the battlefield; the kernel is one
+// TrigToGraveyard ability that placeFromK fires when a card is placed into a
+// graveyard, Trigger.N carrying the origin zones as a 1<<kop.Zone mask
+// (0 = any), TrigLandPlayed's origin-mask pattern. The battlefield origin is
+// out of the family: a battlefield->graveyard move is a Dies line, its own
+// event and its own firing site.
+func (lc *lowerCtx) trigToGraveyardSet(tp *params, tr *lTrigger, t cards.Trigger, raw string, readF func(string) (*lFilter, error)) error {
+	var mask int16
+	for _, w := range strings.Split(raw, ",") {
+		z, ok := zoneNames[strings.TrimSpace(w)]
+		if !ok {
+			return refuse("ChangesZone Origin$ %q", raw)
+		}
+		if z == zBattlefield {
+			return refuse("ChangesZone Origin$ %q includes Battlefield", raw)
+		}
+		mask |= 1 << uint(zoneMap[z])
+	}
+	if dst := strings.TrimSpace(tp.str("Destination")); dst != "Graveyard" {
+		return refuse("ChangesZone Origin$ %s to %s", raw, dst)
+	}
+	if czCostBody(t) {
+		return refuse("ChangesZone Origin$ %s to Graveyard with a cost body", raw)
+	}
+	if tc, ok := tp.get("TriggerController"); ok && tc != "TriggeredCardController" {
+		return refuse("TriggerController %q", tc)
+	}
+	tr.Origin, tr.Dest = zAny, zGraveyard
+	tr.Event, tr.N = "ToGraveyard", mask
+	lc.wasCastOK = false
+	f, err := readF("ValidCard")
+	if err != nil {
+		return err
+	}
+	tr.F = f
+	return nil
+}
+
 func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 	if s.Mode == "FlipCoinMod" {
 		return lc.flipCoinModStatic(s) // lower_turnfacts.go
