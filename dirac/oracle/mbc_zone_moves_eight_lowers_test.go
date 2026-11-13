@@ -20,7 +20,9 @@ import (
 //     the discard's target player;
 //   - mbcwumpus: Hunted Wumpus's "each other player may put a creature card
 //     from their hand onto the battlefield" (hand move DefinedPlayer$
-//     Player.Other), a RepeatEach over the opponents.
+//     Player.Other), a RepeatEach over the opponents; Yarok's Fenlurker's
+//     mandatory "each opponent exiles a card from their hand" (Player.Opponent)
+//     on the other side is the same loop's required arm.
 //
 // Each case asserts the lowered shape is in the table, plays clean, and then
 // diverges with that shape broken (the pool reaches what it tests).
@@ -79,10 +81,14 @@ var mbcZoneMoves8Cases = []mbcZoneMoves8Case{
 				{Name: "Hunted Wumpus", Count: 10}, {Name: "Grizzly Bears", Count: 10}, {Name: "Forest", Count: 20},
 			},
 			{
-				{Name: "Raging Goblin", Count: 10}, {Name: "Hill Giant", Count: 10}, {Name: "Mountain", Count: 20},
+				{Name: "Raging Goblin", Count: 8}, {Name: "Hill Giant", Count: 6}, {Name: "Yarok's Fenlurker", Count: 8},
+				{Name: "Mountain", Count: 10}, {Name: "Swamp", Count: 8},
 			},
 		},
 		shape: func(t *testing.T, tbl *kop.Table) {
+			if mbcCard(tbl, "Yarok's Fenlurker") == nil {
+				t.Fatal("Yarok's Fenlurker is not in the mbcwumpus table")
+			}
 			if mbcWumpusLoop(tbl) == nil {
 				t.Fatal("Hunted Wumpus has no RepeatEachPlayer over the opponents around a RefEach ChooseMove: the spelling did not lower")
 			}

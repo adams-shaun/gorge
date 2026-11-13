@@ -1,7 +1,7 @@
 # the Go Blank pool: the target player discards two, then only THAT
 # player's graveyard is exiled (ChangeZoneAll Defined$ ParentTarget), with
 # cards in both graveyards from Thought Scour and Shock
-# (dirac/oracle/mbc_zone_moves_lowers_test.go)
+# (dirac/oracle/mbc_zone_moves_eight_lowers_test.go)
 Go Blank
 Thought Scour
 Walking Corpse
