@@ -175,11 +175,9 @@ func (lc *lowerCtx) animateChosenLandType(ps *params, obj lRef) error {
 			// CR 305.7: the land's land types become the chosen one and it
 			// loses its rules-text abilities, keeping the intrinsic mana
 			// ability of the type (kop.Override.LandSet)
-			r.HasSetSubtypes, r.SetSubtypes = true, []string{w}
 			r.LandSet, r.LoseAbilities = true, true
-		} else {
-			r.AddSubtypes = []string{w}
 		}
+		r.AddSubtypes = []string{w}
 		lc.out.overrides = append(lc.out.overrides, &r)
 	}
 	in := lInstr{Op: "Override", Obj: obj, CS: dur + "|chosenType"}
@@ -190,8 +188,7 @@ func (lc *lowerCtx) animateChosenLandType(ps *params, obj lRef) error {
 }
 
 // chosenTypeOverridesOK asserts the OvChosenType contract: the five records
-// from first are identical apart from their one added (or, for a CR 305.7
-// land-type setter, set) subtype, which is
+// from first are identical apart from their one added subtype, which is
 // basicLandChoice's in order, as subIndexes stores it. A subtype the pool
 // table does not hold yet (the first build pass) is not compared.
 func (cb *cardBuilder) chosenTypeOverridesOK(first int) error {
@@ -203,13 +200,9 @@ func (cb *cardBuilder) chosenTypeOverridesOK(first int) error {
 		if cb.pt.overrides[first+i] != base {
 			return fmt.Errorf("chosen-type override %d differs beyond its subtype", first+i)
 		}
-		// the one subtype: the record's AddSub, or a land-type setter's SetSub
-		add, other := cb.pt.ovSubs[first+i].add, cb.pt.ovSubs[first+i].set
-		if base.LandSet {
-			add, other = other, add
-		}
-		if len(add) != 1 || len(other) != 0 {
-			return fmt.Errorf("chosen-type override %d names %d subtypes, want one", first+i, len(add))
+		add := cb.pt.ovSubs[first+i].add
+		if len(add) != 1 || len(cb.pt.ovSubs[first+i].set) != 0 {
+			return fmt.Errorf("chosen-type override %d adds %d subtypes, want one", first+i, len(add))
 		}
 		if j, ok := cb.pt.subIdx[w]; ok && add[0] != uint8(j) {
 			return fmt.Errorf("chosen-type override %d adds subtype %d, want %s", first+i, add[0], w)

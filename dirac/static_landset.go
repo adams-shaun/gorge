@@ -1,10 +1,33 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"sort"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
+
+// landTypeWords are the land types of CR 205.3i, gorge's chooseLandTypes
+// (engine/effects/type_choices.go): the subtypes a CR 305.7 setter drops.
+var landTypeWords = map[string]bool{
+	"Forest": true, "Island": true, "Mountain": true, "Plains": true, "Swamp": true,
+	"Cave": true, "Desert": true, "Gate": true, "Lair": true, "Locus": true, "Mine": true, "Omenpath": true,
+	"Planet": true, "Power-Plant": true, "Sphere": true, "Tower": true, "Town": true, "Urza's": true,
+}
+
+// LandTypeWords is the list, sorted, for the test that holds it to gorge's
+// vocabulary.
+func LandTypeWords() []string {
+	out := make([]string, 0, len(landTypeWords))
+	for w := range landTypeWords {
+		out = append(out, w)
+	}
+	sort.Strings(out)
+	return out
+}
 
 // A CR 305.7 land-subtype setter (kop.Override.LandSet; Dream Thrush's
 // RemoveLandTypes$ Animate): the land's land types become the chosen basic
-// land type (HasSub, SetSub, KeepSub: the layer-4 walk's), and it loses every
+// land type (AddSub after the land types are dropped, layer 4), and it loses every
 // ability its rules text generates (LoseAbilities), but not the intrinsic mana
 // ability of the type it was set to (CR 305.6). gorge's loss is a layer-4
 // effect, so the land keeps abilities another effect granted; a loss by any
@@ -20,6 +43,18 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // DebugLandSetLosesMana (TestDreamThrushMutation) takes the intrinsic mana
 // ability away with the printed ones, as any other loss of abilities does.
 var DebugLandSetLosesMana bool
+
+// lossTs is the timestamp o's loss of abilities takes in layer 6: the record's,
+// but a CR 305.7 setter's is zero. gorge's loss is part of the layer-4 effect,
+// before any layer-6 grant, so no grant is older than it (abilityloss.go
+// abilityLoss: lost with a zero timestamp), and it removes no keyword an
+// earlier effect granted (loseAllOnset is not run for it).
+func lossTs(o *kop.Override, ts uint16) uint16 {
+	if o.LandSet {
+		return 0
+	}
+	return ts
+}
 
 // landSetOnly reports whether sl lost its abilities to CR 305.7 setter
 // records alone: it has one and no other effect removes its abilities. A loss

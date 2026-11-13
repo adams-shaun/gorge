@@ -938,8 +938,7 @@ type lOverride struct {
 	SetColors         string
 	HasSetColors      bool
 	LoseAbilities     bool
-	// LandSet: the CR 305.7 land-subtype setter (kop.Override.LandSet): Kept
-	// is every non-land subtype (build.go override)
+	// LandSet: the CR 305.7 land-subtype setter (kop.Override.LandSet)
 	LandSet         bool
 	AddKw           []string
 	GrantAbility    []int    // latent ability indexes granted

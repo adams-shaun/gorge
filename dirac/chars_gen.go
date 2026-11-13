@@ -127,7 +127,7 @@ func (s *State) lossAt(k *prep, sl Slot) (ts uint16, lost bool) {
 		for i := 0; i < int(s.g.nfx); i++ {
 			if r := &s.g.fx[i]; r.sl == sl && r.kind == fxOverride && k.t.Overrides[r.r.idx-1].LoseAbilities {
 				lost = true
-				ts = max(ts, r.r.ts)
+				ts = max(ts, lossTs(&k.t.Overrides[r.r.idx-1], r.r.ts))
 			}
 		}
 	}
@@ -440,6 +440,9 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 		if o.RemoveCreatureSub && !DebugRmCreatSubKeep {
 			m, all = m.AndNot(k.gen.creatSub), false
 		}
+		if o.LandSet {
+			m = m.AndNot(k.gen.landSub) // CR 305.7 (static_landset.go)
+		}
 		m = m.Or(o.AddSub)
 		if ovrAllCreat(o) {
 			all = true
@@ -512,6 +515,9 @@ func (s *State) subsGen(k *prep, sl Slot) (subs kop.SubMask, all bool) {
 					m = m.AndNot(k.gen.creatSub)
 					mAll = false
 				}
+			}
+			if o.LandSet {
+				m = m.AndNot(k.gen.landSub)
 			}
 			m = m.Or(o.AddSub)
 			if ovrAllCreat(o) {
@@ -1121,7 +1127,7 @@ func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8,
 		s.stall(StallTables)
 		return
 	}
-	if k.t.Overrides[idx].LoseAbilities {
+	if k.t.Overrides[idx].LoseAbilities && !k.t.Overrides[idx].LandSet {
 		s.loseAllOnset(k, NoSlot, sl)
 	}
 	s.subscribeGrants(k, sl)

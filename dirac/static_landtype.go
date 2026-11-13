@@ -62,7 +62,7 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 		}
 	}
 	for i := range t.Overrides {
-		on = on || meets(t.Overrides[i].AddSub) || meets(t.Overrides[i].SetSub)
+		on = on || meets(t.Overrides[i].AddSub)
 		g.anyLandSet = g.anyLandSet || t.Overrides[i].LandSet
 	}
 	if !on {

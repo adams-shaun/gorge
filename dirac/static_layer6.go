@@ -160,7 +160,7 @@ func (s *State) l6Walk(k *prep, sl Slot, w *l6walk) (kw kop.KwMask, lts uint16, 
 			continue
 		}
 		if e.a == nil {
-			w.l6add(l6e{add: o.AddKw, rem: o.RemoveKw, lose: o.LoseAbilities, ts: e.ts, kind: l6Rec, reps: e.reps})
+			w.l6add(l6e{add: o.AddKw, rem: o.RemoveKw, lose: o.LoseAbilities, ts: lossTs(o, e.ts), kind: l6Rec, reps: e.reps})
 		} else if s.lfxLocked(k, sl, e, &c) {
 			w.l6add(l6e{add: o.AddKw, rem: o.RemoveKw, lose: o.LoseAbilities, ts: e.ts, kind: l6Stat, reps: 1})
 		}

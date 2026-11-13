@@ -179,11 +179,12 @@ type Override struct {
 	// Duration$ UntilYourNextTurn NumAtt$/NumDef$ (V'Ger, the Intruder).
 	PTDelta bool
 	// LandSet: the record is a CR 305.7 land-subtype setter (Dream Thrush's
-	// RemoveLandTypes$ Animate, Blood Moon's static): HasSub with SetSub the
-	// basic land type and KeepSub every non-land subtype, and LoseAbilities,
-	// but the land keeps the intrinsic mana ability of the type it was set to
-	// (CR 305.6), which the planner reads (static_landset.go). A loss from
-	// any other effect takes that ability too.
+	// RemoveLandTypes$ Animate, Blood Moon's static): it drops the land
+	// subtypes (genPrep.landSub) before AddSub adds the basic land type, with
+	// LoseAbilities, but the land keeps the intrinsic mana ability of the
+	// type it was set to (CR 305.6), which the planner reads
+	// (static_landset.go). A loss from any other effect takes that ability
+	// too.
 	LandSet bool
 }
 

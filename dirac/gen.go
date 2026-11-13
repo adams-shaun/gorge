@@ -14,14 +14,15 @@ type genPrep struct {
 	// creatSub: the matchup subtypes that are creature types (CR 205.3m):
 	// "all creature types" (an animated Soulstone Sanctuary) is no Forest
 	creatSub    kop.SubMask
-	graveTrig   []CardID // cards with a triggered ability that works from the graveyard
-	graveDies   bool     // one of them is a Dies trigger (Furious Forebear; fireGraveDies)
-	graveDrawn  bool     // some graveyard trigger is a Drawn (trig_gravedrawn.go)
-	graveDmg    bool     // some graveyard trigger is a DamageDone (trig_gravedamage.go)
-	graveETB    bool     // some graveyard trigger is an ETB (Fear of Infinity; face_fullyunlock.go)
-	graveSac    bool     // some graveyard trigger is a Sacrificed (Curious Cadaver; act_sweeps.go)
-	anyCastProv bool     // some trigger reads a spell's cast provenance (Tf2CastFromHand, Tf2Convoked): pushBuild records stackEntry.prov (trig_gravedrawn.go)
-	anyCastBF   bool     // some card reads Count$LastStateBattlefieldWithFallback (CardDef.CastBF): beginCast freezes the count into the spell entry's trigMV (value_castbattlefield.go)
+	landSub     kop.SubMask // the matchup subtypes that are land types (CR 205.3i), a CR 305.7 setter drops them
+	graveTrig   []CardID    // cards with a triggered ability that works from the graveyard
+	graveDies   bool        // one of them is a Dies trigger (Furious Forebear; fireGraveDies)
+	graveDrawn  bool        // some graveyard trigger is a Drawn (trig_gravedrawn.go)
+	graveDmg    bool        // some graveyard trigger is a DamageDone (trig_gravedamage.go)
+	graveETB    bool        // some graveyard trigger is an ETB (Fear of Infinity; face_fullyunlock.go)
+	graveSac    bool        // some graveyard trigger is a Sacrificed (Curious Cadaver; act_sweeps.go)
+	anyCastProv bool        // some trigger reads a spell's cast provenance (Tf2CastFromHand, Tf2Convoked): pushBuild records stackEntry.prov (trig_gravedrawn.go)
+	anyCastBF   bool        // some card reads Count$LastStateBattlefieldWithFallback (CardDef.CastBF): beginCast freezes the count into the spell entry's trigMV (value_castbattlefield.go)
 	// flags and the sparse small values (cardflags.go): the
 	// eleven per-card bools and the dense int8/int16 sentinel arrays this
 	// struct used to carry are one uint32 per card plus a record per card
@@ -605,6 +606,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	for i, n := range t.Subtypes {
 		if creatureTypeWords[n] {
 			g.creatSub = g.creatSub.With(i)
+		}
+		if landTypeWords[n] {
+			g.landSub = g.landSub.With(i)
 		}
 	}
 	for i := range t.Overrides {
