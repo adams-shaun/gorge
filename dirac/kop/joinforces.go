@@ -10,7 +10,7 @@ package kop
 // starts at 0 with each resolution, so a read is exact only within the chain
 // that wrote it; kgen refuses any other read. Saturates at 32767.
 // dirac/extop.go.
-const ExtJoinForces ExtOp = 320
+const ExtJoinForces ExtOp = 301
 
 // JoinForcesReset is ExtJoinForces C's reset flag.
 const JoinForcesReset = 1
