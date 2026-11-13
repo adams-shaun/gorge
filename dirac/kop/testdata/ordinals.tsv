@@ -1384,6 +1384,7 @@ TgtSpellTgting	TargetKind	239
 TgtStackAb	TargetKind	7
 TgtStackObj	TargetKind	6
 TgtStackObjTrig	TargetKind	238
+TgtStackTgting	TargetKind	242
 TimingInstant	Timing	1
 TimingLand	Timing	2
 TimingSorcery	Timing	0
