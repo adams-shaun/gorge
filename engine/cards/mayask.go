@@ -466,7 +466,13 @@ func changeZoneMayAsk(s *SA, self *Face) bool {
 		// itself, whose face is known.
 		return defined != "Self" || self == nil || FaceEntryMayAsk(self) || faceEnchants(self)
 	case "Library":
-		return s.ParamStr(PKLibraryPosition) == "" // a top/bottom order may ask
+		// A top/bottom order may ask, and so may CR 401.4's arrangement of two
+		// or more cards put at one position: a Defined$ set or a multi-target
+		// pick (TargetMax$ past 1) can move several of one owner's cards.
+		if s.ParamStr(PKLibraryPosition) == "" {
+			return true
+		}
+		return defined != "" && defined != "Self" || s.ParamStr(PKTargetMax) != "" && s.ParamStr(PKTargetMax) != "1"
 	}
 	return false
 }

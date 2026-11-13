@@ -133,6 +133,18 @@ func (s *State) monarchLeft(k *prep, p uint8) {
 	}
 }
 
+// designationHeir is who inherits a designation from departing seat p: the
+// active player, else the next player in turn order still in the game (gorge
+// designationHeir). ok is false when no other seat is left; the designation
+// stays rather than naming a departed seat.
+func (s *State) designationHeir(p uint8) (uint8, bool) {
+	h := s.active
+	if h == p || s.out(h) {
+		h = s.nextAlive(p)
+	}
+	return h, h != p && !s.out(h)
+}
+
 // monarchHandoff is CR 725.4 for the departed monarch p: the active player
 // becomes the monarch, else the next player in turn order still in the game
 // (gorge designationHeir); with nobody else left the designation stays.
@@ -142,11 +154,8 @@ func (s *State) monarchHandoff(k *prep, p uint8) {
 	if DebugNoMonarchHandoff {
 		return
 	}
-	h := s.active
-	if h == p || s.out(h) {
-		h = s.nextAlive(p)
-	}
-	if h == p || s.out(h) {
+	h, ok := s.designationHeir(p)
+	if !ok {
 		return
 	}
 	if st := DebugMonarchStats; st != nil {
