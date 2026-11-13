@@ -189,6 +189,9 @@ func (e *Engine) combatDamageToughnessMatches(id state.ObjID) bool {
 // A NEGATIVE power assigns as though it were positive -- its absolute value
 // -- while a CombatDamageNegatePower static applies (Loot, the Anomaly).
 func (e *Engine) combatDamageAmount(id state.ObjID) int32 {
+	if e.assignsNoCombatDamage(id) {
+		return 0
+	}
 	if e.combatDamageToughnessMatches(id) {
 		return e.Toughness(id)
 	}

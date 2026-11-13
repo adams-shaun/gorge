@@ -32,7 +32,13 @@ func CanBlock(b Board, blocker, attacker state.ObjID) bool {
 	if bf == nil || !b.IsCreature(blocker) || bo.BestowedAttached() {
 		return false
 	}
-	if bo.Tapped || bo.Controller != a.Attacking {
+	if bo.Controller != a.Attacking {
+		return false
+	}
+	// CR 509.1a: only an untapped creature can block, unless a BlockTapped
+	// static lets it block as though it were untapped (Masako the
+	// Humorless).
+	if bo.Tapped && !blockTappedAllowed(b, blocker) {
 		return false
 	}
 	// CR 702.157b: a suspected creature can't block. The designation is the

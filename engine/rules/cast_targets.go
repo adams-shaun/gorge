@@ -608,6 +608,7 @@ func (e *Engine) targetAsk() bool {
 		e.poseOpponentPick(pc.player, pc.card, sa, oppPickCastRoot)
 		return true
 	}
+	e.applyMustTarget(d, pc)
 	effects.RandomTargetsAsk(e, d, sa)
 	e.ask(d)
 	return true
@@ -945,6 +946,7 @@ func (e *Engine) subTargetAsk(pc *pendingCast) bool {
 			e.poseOpponentPick(pc.player, pc.card, sub, oppPickCastSub)
 			return true
 		}
+		e.applyMustTarget(d, pc)
 		effects.RandomTargetsAsk(e, d, sub)
 		e.ask(d)
 		return true
