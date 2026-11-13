@@ -581,6 +581,7 @@ GcRemember	untyped int	4
 GcUntap	untyped int	1
 HybPhyrexian	ColorMask	64
 HybTwobrid	ColorMask	128
+JoinForcesReset	untyped int	1
 KwAffinity	KwMask	8388608
 KwCantBlock	KwMask	524288
 KwDeathtouch	KwMask	16

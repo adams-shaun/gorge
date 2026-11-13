@@ -97,13 +97,13 @@ SVar:TrigX:DB$ Pump | Defined$ Remembered | NumAtt$ +1
 const joinForcesMinds = `Name:Probe Aglow
 ManaCost:U
 Types:Sorcery
-A:SP$ RepeatEach | RepeatPlayers$ %s | StartingWith$ You | RepeatSubAbility$ DBPay | SubAbility$ DBDraw | SpellDescription$ x
-SVar:DBPay:DB$ ChooseNumber | Defined$ Player.IsRemembered | ChooseAnyNumber$ True | SubAbility$ DBStore
-SVar:DBStore:DB$ StoreSVar | SVar$ JoinForcesAmount | Type$ CountSVar | Expression$ JoinForcesAmount/Plus.Y | UnlessCost$ Y | UnlessPayer$ %s | UnlessSwitched$ True
-SVar:DBDraw:DB$ Draw | Defined$ Player | NumCards$ JoinForcesAmount | SubAbility$ DBReset
-SVar:DBReset:DB$ StoreSVar | SVar$ JoinForcesAmount | Type$ Number | Expression$ 0
+A:SP$ RepeatEach | RepeatPlayers$ %s | StartingWith$ You | RepeatSubAbility$ DBPay | SubAbility$ DBCards | SpellDescription$ x
+SVar:DBPay:DB$ ChooseNumber | ChooseAnyNumber$ True | Defined$ Player.IsRemembered | SubAbility$ DBAdd
+SVar:DBAdd:DB$ StoreSVar | UnlessSwitched$ True | UnlessPayer$ %s | UnlessCost$ Y | Type$ CountSVar | SVar$ PoolTotal | Expression$ PoolTotal/Plus.Y
+SVar:DBCards:DB$ Draw | NumCards$ PoolTotal | Defined$ Player | SubAbility$ DBReset
+SVar:DBReset:DB$ StoreSVar | Type$ Number | SVar$ PoolTotal | Expression$ 0
 SVar:Y:%s
-SVar:JoinForcesAmount:Number$0
+SVar:PoolTotal:Number$0
 `
 
 // TestJoinForcesAccumulatorRefusesOtherShapes: only the one exact shape
@@ -123,10 +123,10 @@ func TestJoinForcesAccumulatorRefusesOtherShapes(t *testing.T) {
 		{"outside a player RepeatEach", `Name:Probe Lone
 ManaCost:U
 Types:Sorcery
-A:SP$ StoreSVar | SVar$ JoinForcesAmount | Type$ CountSVar | Expression$ JoinForcesAmount/Plus.Y | UnlessCost$ Y | UnlessPayer$ Player.IsRemembered | UnlessSwitched$ True | SubAbility$ DBDraw
-SVar:DBDraw:DB$ Draw | Defined$ You | NumCards$ JoinForcesAmount
+A:SP$ StoreSVar | UnlessSwitched$ True | UnlessPayer$ Player.IsRemembered | UnlessCost$ Y | Type$ CountSVar | SVar$ PoolTotal | Expression$ PoolTotal/Plus.Y | SubAbility$ DBCards
+SVar:DBCards:DB$ Draw | Defined$ You | NumCards$ PoolTotal
 SVar:Y:Count$ChosenNumber
-SVar:JoinForcesAmount:Number$0
+SVar:PoolTotal:Number$0
 `, "api StoreSVar"},
 		{"opponents only", probe("Player.Opponent", "Player.IsRemembered", "Count$ChosenNumber"), "api StoreSVar"},
 		{"UnlessPayer You", probe("Player", "You", "Count$ChosenNumber"), "api StoreSVar"},
@@ -134,18 +134,18 @@ SVar:JoinForcesAmount:Number$0
 ManaCost:U
 Types:Creature Bear
 PT:1/1
-A:AB$ RepeatEach | Cost$ T | RepeatPlayers$ Player | StartingWith$ You | RepeatSubAbility$ DBPay | SubAbility$ DBDraw | SpellDescription$ x
-SVar:DBPay:DB$ ChooseNumber | Defined$ Player.IsRemembered | ChooseAnyNumber$ True | SubAbility$ DBStore
-SVar:DBStore:DB$ StoreSVar | SVar$ JoinForcesAmount | Type$ CountSVar | Expression$ JoinForcesAmount/Plus.Y | UnlessCost$ Y | UnlessPayer$ Player.IsRemembered | UnlessSwitched$ True
-SVar:DBDraw:DB$ Draw | Defined$ Player | NumCards$ JoinForcesAmount | SubAbility$ DBReset
-SVar:DBReset:DB$ StoreSVar | SVar$ JoinForcesAmount | Type$ Number | Expression$ 0
-A:AB$ Draw | Cost$ 1 | Defined$ You | NumCards$ JoinForcesAmount | SpellDescription$ y
+A:AB$ RepeatEach | Cost$ T | RepeatPlayers$ Player | StartingWith$ You | RepeatSubAbility$ DBPay | SubAbility$ DBCards | SpellDescription$ x
+SVar:DBPay:DB$ ChooseNumber | ChooseAnyNumber$ True | Defined$ Player.IsRemembered | SubAbility$ DBAdd
+SVar:DBAdd:DB$ StoreSVar | UnlessSwitched$ True | UnlessPayer$ Player.IsRemembered | UnlessCost$ Y | Type$ CountSVar | SVar$ PoolTotal | Expression$ PoolTotal/Plus.Y
+SVar:DBCards:DB$ Draw | NumCards$ PoolTotal | Defined$ Player | SubAbility$ DBReset
+SVar:DBReset:DB$ StoreSVar | Type$ Number | SVar$ PoolTotal | Expression$ 0
+A:AB$ Draw | Cost$ 1 | Defined$ You | NumCards$ PoolTotal | SpellDescription$ y
 SVar:Y:Count$ChosenNumber
-SVar:JoinForcesAmount:Number$0
+SVar:PoolTotal:Number$0
 `, "outside the chain that writes it"},
 		{"read after the reset", strings.Replace(probe("Player", "Player.IsRemembered", "Count$ChosenNumber"),
-			"SVar:DBReset:DB$ StoreSVar | SVar$ JoinForcesAmount | Type$ Number | Expression$ 0",
-			"SVar:DBReset:DB$ StoreSVar | SVar$ JoinForcesAmount | Type$ Number | Expression$ 0 | SubAbility$ DBAgain\nSVar:DBAgain:DB$ Draw | Defined$ You | NumCards$ JoinForcesAmount", 1), "after its reset"},
+			"SVar:DBReset:DB$ StoreSVar | Type$ Number | SVar$ PoolTotal | Expression$ 0",
+			"SVar:DBReset:DB$ StoreSVar | Type$ Number | SVar$ PoolTotal | Expression$ 0 | SubAbility$ DBAgain\nSVar:DBAgain:DB$ Draw | Defined$ You | NumCards$ PoolTotal", 1), "after its reset"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
