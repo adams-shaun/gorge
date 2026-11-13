@@ -589,8 +589,10 @@ func (s *State) sba(k *prep) bool {
 				// infect hit marks no damage (gorge destroyLethalDamage).
 				if (int(p.damage) >= tough || p.flags&pfDeathtouched != 0) &&
 					s.kw(k, sl)&kop.KwIndestructible == 0 {
-					if s.destroyHeal(k, sl) {
-						s.cfgx |= cfgxDestroyHealPass // CR 614.1: the counters leave, so a 0-toughness creature still dies next pass
+					if r := s.destroyLine(k, sl, true); r != drNone {
+						if r == drHeal {
+							s.cfgx |= cfgxDestroyHealPass // CR 614.1: the counters leave, so a 0-toughness creature still dies next pass
+						}
 						continue
 					}
 					if s.canRegen(sl) {
@@ -1001,11 +1003,19 @@ func (s *State) battlefieldOrder(p uint8, mask slotMask, out []Slot, n int) int 
 
 func (s *State) regenerate(sl Slot) {
 	s.touchSl(sl)
+	s.spendRegenShield(sl)
+	s.regenerateBody(sl)
+}
+
+// regenerateBody is the regeneration itself (CR 701.19a: heal it, tap it,
+// remove it from combat), with no shield involved: gorge's regenerate, which
+// both ReplaceDestruction and a Regeneration$ destroy line's body run. The
+// caller touched sl.
+func (s *State) regenerateBody(sl Slot) {
 	p := &s.perms[sl]
 	if p.flags&pfDeathtouched != 0 {
 		p.cseen |= cseenDT // gorge lists the removed mark at 0
 	}
-	s.spendRegenShield(sl)
 	s.leaveCombat(sl) // CR 701.19b: regeneration removes it from combat
 	p.flags &^= pfDeathtouched | pfDtMore
 	wasUntapped := p.flags&pfTapped == 0

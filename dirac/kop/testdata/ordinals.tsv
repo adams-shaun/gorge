@@ -1119,12 +1119,13 @@ ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
 ReplCopyFirstToken	ReplKind	38
-ReplCount	ReplKind	40
+ReplCount	ReplKind	41
 ReplCtrAny	int16	-1
 ReplCtrAnyYou	int16	-2
 ReplDamageHealFirst	ReplKind	37
 ReplDamagePlus	ReplKind	16
 ReplDestroyHeal	ReplKind	32
+ReplDestroyRegenerate	ReplKind	40
 ReplDiscardOppToBattlefield	ReplKind	33
 ReplDmgCombat	untyped int	512
 ReplDmgCtrHost	untyped int	128

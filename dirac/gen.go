@@ -557,6 +557,7 @@ const (
 	rbPrevCtrSelf                     // ReplPreventDamageCounters (repl_selfdamage.go)
 	rbHealSelf                        // ReplDamageHealFirst (repl_selfdamage.go)
 	rbPayETB                          // ReplPayBeforeETB (repl_paybeforeetb.go)
+	rbDestroyRegen                    // ReplDestroyRegenerate (repl_destroyheal.go destroyLine)
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -1199,6 +1200,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 						g.destroyHeal = make([]kop.FilterID, len(t.Cards))
 					}
 					g.destroyHeal[i] = a.Repl.Filter
+				case kop.ReplDestroyRegenerate:
+					g.replBits[i] |= rbDestroyRegen
+					pc.hasStat = true // scanned through statM with the destroy-heal lines (destroyLine)
 				case kop.ReplDiscardOppToBattlefield:
 					g.replBits[i] |= rbDiscETB
 				case kop.ReplPayBeforeETB:

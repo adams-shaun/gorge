@@ -2648,6 +2648,8 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
 			return ka, err
 		}
+	case "DestroyRegenerate":
+		rp.Kind = kop.ReplDestroyRegenerate // lower_destroyregen.go
 	case "ExileOnLeave":
 		rp.Kind = kop.ReplExileOnLeave
 		// the filter has no zone gate either way (ZoneBattlefield compiles to

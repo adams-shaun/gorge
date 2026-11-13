@@ -509,7 +509,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				hit = hit.with(sl)
 			}
 		}
-		hit = s.destroyHealAll(k, hit)
+		hit = s.destroyLineAll(k, hit, true)
 		if s.anyRegen(hit) {
 			hit = s.regenAll(hit)
 		}
@@ -749,7 +749,7 @@ func (s *State) destroySpared(k *prep, sl Slot, noRegen bool) bool {
 	if s.kw(k, sl)&kop.KwIndestructible != 0 {
 		return true
 	}
-	if s.destroyHeal(k, sl) {
+	if s.destroyLine(k, sl, !noRegen) != drNone {
 		return true
 	}
 	if !noRegen && s.canRegen(sl) {
