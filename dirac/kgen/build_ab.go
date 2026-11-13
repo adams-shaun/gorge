@@ -3951,7 +3951,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 	case "TurnFaceUp":
 		// (CR 708.6; gorge effSetState Mode$ TurnFaceUp) OpExt ExtTurnFaceUp:
-		// C 0 the target in Obj, C 1 the up-to-one pick over F
+		// C 0 the target in Obj, C 1 the up-to-one pick over F, C 2 the
+		// mandatory Transform pick over F (lower_setstate.go)
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtTurnFaceUp)), int16(in.C)
 		if in.F != nil {
 			if err := objFilter(kop.ZoneBattlefield); err != nil {
