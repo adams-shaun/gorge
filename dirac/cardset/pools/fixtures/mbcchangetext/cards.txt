@@ -1,0 +1,13 @@
+# the MBC ChangeText family: Mind Bend, a GenericChoice whose two bodies are
+# DB$ ChangeText (a colour word, a basic land type), beside creatures and the
+# basic lands to cast it and to be its targets
+# (dirac/oracle/mbc_changetext_test.go)
+Mind Bend
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Pacifism
+Island
+Forest
+Mountain
+Plains

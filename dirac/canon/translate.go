@@ -1017,6 +1017,13 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 	case dirac.ChGenPlayer:
 		// gorge effChoosePlayer's "player" option names the seat
 		return Pack(kind("player"), RefNone, RefPlayer+Ref(mode), 0), true
+	case dirac.ChGenTextWord:
+		// gorge's changetext KChoose: one option per word, kind
+		// changetext_from / changetext_to, valued by the word index
+		if mode >= 16 {
+			return Pack(kind("changetext_to"), RefNone, RefNone, mode-16), true
+		}
+		return Pack(kind("changetext_from"), RefNone, RefNone, mode), true
 	case dirac.ChGenColor:
 		// gorge indexes its colour options densely: with an Exclude$
 		// colour dropped (Citadel Gate) the index is the colour's rank

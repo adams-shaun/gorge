@@ -72,6 +72,8 @@ CfManifestRemembered	untyped int	64
 CfRemember	untyped int	4
 CfShuffle	untyped int	2
 CfTapped	untyped int	1
+ChangeTextColour	int16	1
+ChangeTextLand	int16	2
 CharmRepeat	untyped int	256
 ChooseOpp	untyped int	2
 ChooseRandom	untyped int	1
@@ -451,6 +453,7 @@ ExtBlocksIfAble	ExtOp	256
 ExtBreachChoose	ExtOp	160
 ExtBreachReturn	ExtOp	161
 ExtChangeTargets	ExtOp	225
+ExtChangeText	ExtOp	261
 ExtChooseCardEnter	ExtOp	297
 ExtChooseColorRes	ExtOp	5
 ExtChooseName	ExtOp	251

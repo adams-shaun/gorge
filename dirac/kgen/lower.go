@@ -747,6 +747,7 @@ func (lc *lowerCtx) lowerRecord() {
 		}
 		out.Subtypes = append(out.Subtypes, t)
 	}
+	out.TextWords = textWordsOf(lc.card)
 	out.NoAbilities = effects.FaceHasNoAbilities(f, out.Types&tLand != 0)
 	out.HasManaAbility = effects.FaceHasManaAbility(f)
 	out.Colors = colorsOf(f)

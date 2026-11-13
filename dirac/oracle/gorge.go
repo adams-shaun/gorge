@@ -1414,6 +1414,12 @@ func (g *GorgeSide) admissible(fr *frame, chosen []int, i int) bool {
 		if c == o.Index && !d.Repeatable {
 			return false
 		}
+		if d.ResumeKind == "changetext" && optByIndex(d, c).Kind == o.Kind {
+			// one "from" and one "to" word: gorge's answer binds each list
+			// from its own picks and defaults the other half if a list is
+			// picked twice, a malformed answer the kernel's two picks never ask
+			return false
+		}
 		if o.Group == "" && (d.Kind == decision.KAttackers || d.Kind == decision.KBlockers) && optByIndex(d, c).Obj == o.Obj {
 			return false
 		}

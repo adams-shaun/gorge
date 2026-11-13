@@ -2136,6 +2136,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.choosePlayer(ps) // lower_definedheads.go
 	case "GenericChoice":
 		return lc.genericChoice(ps)
+	case "ChangeText":
+		return lc.changeText(ps) // textreach.go
 	case "PeekAndReveal":
 		return lc.peekAndReveal(ps)
 	case "TwoPiles":
