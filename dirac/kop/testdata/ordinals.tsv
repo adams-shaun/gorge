@@ -307,6 +307,7 @@ DmgDivideEvenly	untyped int	64
 DmgEQ	DmgCmp	3
 DmgExileIfDealt	untyped int	16
 DmgExileIfDiesThisTurn	untyped int	2
+DmgFromEachCtrl	untyped int	2
 DmgGE	DmgCmp	1
 DmgGT	DmgCmp	5
 DmgLE	DmgCmp	2

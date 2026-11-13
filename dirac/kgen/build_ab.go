@@ -3109,6 +3109,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			ki.C, ki.B = int16(kop.RefDefendingPlayer), kop.Const(1)
 			break
 		}
+		if in.CS == "eachctrl" {
+			// the RepeatEach card deals to its own controller
+			// (lower_repeatcardsdamage.go): the player mode's B.N DmgFromEachCtrl
+			ki.C, ki.B = 0, kop.Const(kop.DmgFromEachCtrl)
+			break
+		}
 		if in.CS == "anytgt" {
 			// the slot may name a player or a permanent (lower_damagesourceplayers.go)
 			r, err := cb.ref(lRef{Kind: rTarget, N: in.C})
