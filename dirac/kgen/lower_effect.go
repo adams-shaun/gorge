@@ -3504,6 +3504,10 @@ func (lc *lowerCtx) putCounter(ps *params) error {
 	if ps.is("ETB", "True") {
 		return refuse("ETB counters outside a replacement")
 	}
+	// Forge's AI hint for which mana to leave open (Outmuscle); gorge reads it
+	// nowhere. Scoped to PutCounter: an Untap carrying it (Basalt Monolith)
+	// diverges from gorge on which permanents pay, and stays refused.
+	ps.consume("AIManaPref")
 	if _, ok := ps.m["Bolster"]; ok {
 		return lc.bolster(ps)
 	}
