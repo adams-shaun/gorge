@@ -863,6 +863,7 @@ OppExtGrave	untyped int	4
 OppExtHand	untyped int	3
 OppExtLife	untyped int	2
 OppExtLowest	untyped int	256
+OppExtNonTrigPl	untyped int	512
 OppExtValid	untyped int	5
 OppsHitLegendary	untyped int	1
 OptAll	untyped int	16
