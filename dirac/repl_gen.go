@@ -1148,9 +1148,6 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 	if c < 2 {
 		return false
 	}
-	if shld != 0 && g.anyRepl&rbPlusDmg != 0 && s.replPlus(k, ctrl, srcSl, srcCard, rcp, sl, false, n) != n {
-		return false // a plus-N candidate is not modelled here: let replDamage stall
-	}
 	// A shield candidate (or another prevention) stops the whole event, so
 	// skip replDamage: it would spend the counter while parking and stall on
 	// the very competition being asked. A pure-plus competition is a sum,

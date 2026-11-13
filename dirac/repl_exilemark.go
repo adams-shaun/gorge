@@ -611,7 +611,7 @@ func (s *State) parkCost(k *prep, o Obj, kind parkKind, x uint8) bool {
 // elsewhere first and is not parked.
 func (s *State) parkSpellExit(k *prep, fizzled bool) bool {
 	e := &s.res.e
-	if e.kind != seSpell || s.objs[e.obj].zone != kop.ZoneStack || e.exilesOnLeave() || e.markExiles(fizzled) || s.g.nfq > 0 && !fizzled || s.reboundRests(k, e, fizzled) {
+	if e.kind != seSpell || s.objs[e.obj].zone != kop.ZoneStack || s.spellRestExiles(e) || e.markExiles(fizzled) || s.g.nfq > 0 && !fizzled || s.reboundRests(k, e, fizzled) {
 		return false
 	}
 	if cd := &k.t.Cards[s.objs[e.obj].card]; cd.Face != 0 || cd.Paradigm != 0 {
