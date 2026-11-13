@@ -425,16 +425,17 @@ func TestFuzzGenericHangIsAFailure(t *testing.T) {
 	if sum.Games != 2 {
 		t.Errorf("%d games, want the hang and the pair before it (pair 2 belongs to the continuation)", sum.Games)
 	}
-	if sum.SkipAt != len(ps) {
-		t.Errorf("SkipAt %d, want %d (one worker: nothing was skipped)", sum.SkipAt, len(ps))
+	if sum.SkipAt != 2 {
+		t.Errorf("SkipAt %d, want 2 (the feed was already blocked sending pair 2 when the hang stopped it)",
+			sum.SkipAt)
 	}
 	if played := playedPrefix(sum, len(ps)); played != 2 {
-		t.Errorf("played prefix %d, want 2 (Games + Errors with nothing skipped)", played)
+		t.Errorf("played prefix %d, want 2", played)
 	}
-	// With two workers, a pair a worker receives after the feed's stop is
-	// skipped, and the summary records the lowest such index: both leading
-	// pairs hang, so pair 2 is only ever received after both watchdogs fired
-	// and the stop was set, and SkipAt names where the next attempt starts.
+	// With two workers, both leading pairs hang and pair 2 is only ever
+	// received after both watchdogs fired: the summary records the lowest pair
+	// index a worker received after the feed's stop, which names where the
+	// next attempt starts.
 	mk2 := func(m *oracle.Matchup, seed uint64) (oracle.Side, error) {
 		if seed == ps[0].Seed || seed == ps[1].Seed {
 			return &blockSide{name: "kernel", release: release}, nil
@@ -449,7 +450,7 @@ func TestFuzzGenericHangIsAFailure(t *testing.T) {
 		t.Errorf("SkipAt %d, want 2 (pair 2 was received only after the feed stopped)", sum2.SkipAt)
 	}
 	if played := playedPrefix(sum2, len(ps)); played != 2 {
-		t.Errorf("played prefix %d, want 2 (the pair 2 the count would name was skipped)", played)
+		t.Errorf("played prefix %d, want 2", played)
 	}
 }
 

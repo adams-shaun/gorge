@@ -62,12 +62,15 @@ Bad flags exit 2. `-absolute` prints `absolute: OK` or `absolute: FAIL: <what>`.
 paths also exit 1 on a divergence or a hang.
 
 `-game-timeout` (default 30 s, 0 turns it off, on every path) records a game with no result in that
-time as a `hang` with its decks and seed, and the run moves on — to a child process: a hung game's
-goroutine cannot be stopped and would hold a core until the run exits, so the first hang ends the
-segment (the verdict lines cover the pairs it played) and kfuzz re-executes itself for the remaining
-pairs; the hang line's `rerun with: <cmd>` names the child's command, and the segment-level file flags
+time as a `hang` with its decks and seed, and the run moves on — by replacing its own process image:
+a hung game's goroutine cannot be stopped and would hold a core until the process exits, so the first
+hang ends the segment (the verdict lines cover the pairs it played) and kfuzz execs itself for the
+remaining pairs (same pid, new image — the hung goroutine dies with the old one), which fails the run
+even when its own segment is clean; the hang line's `rerun with: <cmd>` names the command that replays
+one pair, and the segment-level file flags
 (`-coverage`, `-evidence`, `-reach`, `-out/repro.json`, `-cpuprofile`, `-memprofile`) are inherited
-unchanged, so the last segment's file wins — a hang already fails the run, and the per-pair files
+unchanged, so the last segment's file wins (a `-cpuprofile`/`-memprofile` is not flushed past the
+exec) — a hang already fails the run, and the per-pair files
 under `-out` are pair-numbered and survive. `-surface autopay|full` picks the option
 surface (default `full`; `-autopay-surface` means `-surface autopay`). `-pairs-file F` plays
 `deckA<TAB>deckB[<TAB>seed]` lines instead of drawing from `pool.tsv`. `-coverage F` and `-evidence F`
