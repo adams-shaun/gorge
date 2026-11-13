@@ -1,0 +1,11 @@
+# Mystery Booster Commander costs-10 spellings for the oracle's constructed
+# lockstep (dirac/oracle/mbccosts10_test.go): Nils, Discipline Enforcer's
+# TargetsForEachPlayer$ True over a permanent of any controller (Nils, Battle at the Helvault)
+Nils, Discipline Enforcer
+Savannah Lions
+Memnite
+Ornithopter
+Grizzly Bears
+Plains
+Forest
+Battle at the Helvault
