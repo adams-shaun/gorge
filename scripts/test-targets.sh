@@ -278,8 +278,9 @@ sk=$(git diff -U0 "$BASE" HEAD -- 'dirac/oracle/*_test.go' | grep -E '^\+[^+].*\
 
 echo "== 3 census and coverage tests, unrefusal proof"
 dirac_tables
-C='Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrinks|IotaBlock|NoVerbatim|PublicBoundary|Acceptance|ReprosLockstep|EnumConst|^TestHeads$|^TestSetHeads$'
-cpk=$(git grep -lE "^func Test[A-Za-z0-9_]*($C)" -- '*_test.go' | xargs -n1 dirname | sort -u | sed 's|^|./|')
+C='Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrinks|IotaBlock|NoVerbatim|PublicBoundary|Acceptance|ReprosLockstep|EnumConst|^TestHeads$|^TestSetHeads$|^TestKopOrdinalsUnchanged$|^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$'
+# The anchored names cannot match inside the Test[A-Za-z0-9_]*($C) grep, so their packages come from their own.
+cpk=$({ git grep -lE "^func Test[A-Za-z0-9_]*($C)" -- '*_test.go'; git grep -lE '^func (TestKopOrdinalsUnchanged|TestReproCompactRoundTrip|TestReproGlobMatchesTable)\(' -- '*_test.go'; } | xargs -n1 dirname | sort -u | sed 's|^|./|')
 capped 8G 400% env GOMAXPROCS=4 GOMEMLIMIT=6GiB go test -json -failfast -timeout 10m -run "$C" -skip '^TestStd[A-Za-z]*ReprosLockstep' $cpk ./internal/archtest >>"$json" 2>&1
 rc=$?
 if [ "$rc" = 0 ]; then
