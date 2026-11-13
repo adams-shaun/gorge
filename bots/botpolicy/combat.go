@@ -55,6 +55,61 @@ func effectiveTypeWords(f *cards.Face, id state.ObjID, ch any) []string {
 	return f.Types
 }
 
+// currentNamer is an optional Chars capability: the object's current
+// layer-3 name (rules.Engine.CurrentName), the name a projected CardView.Name
+// carries. bound is true when an effect binds the name, so the empty string
+// is a real name (a both-locked Room, CR 709.5).
+type currentNamer interface {
+	CurrentName(state.ObjID) (name string, bound bool)
+}
+
+// cardName is the name a Card carries for id: its current name, the one the
+// view half reads as CardView.Name. A transformed or back-face-played
+// double-faced card has its current face's name (CR 712.8d-e), a copy its
+// copiable name (CR 707.2) -- o.Face() already answers both -- and a SetName$
+// effect or a Room's doors bind a layer-3 name over it (nm). Without nm the
+// face's name stands.
+func cardName(nm currentNamer, id state.ObjID, f *cards.Face) string {
+	if nm != nil {
+		if name, bound := nm.CurrentName(id); bound || name != "" {
+			return name
+		}
+	}
+	return f.Name
+}
+
+// faceDownTypes is a face-down permanent's type line when no type-changing
+// effect applies (CR 708.2a).
+var faceDownTypes = []string{"Creature"}
+
+// faceDownTypeWords is the type line a seat that may not look at face-down
+// id reads: the layer-4 line when a type-changing effect applies (Yedora's
+// returned Forest), else a plain Creature -- the view's faceDownCard rule.
+func faceDownTypeWords(id state.ObjID, ch any) []string {
+	if v, ok := ch.(derivedTypeReader); ok {
+		if types, changed := v.ViewTypes(id); changed {
+			return types
+		}
+	}
+	return faceDownTypes
+}
+
+// faceDownCard is the Card a seat that may not look at a face-down permanent
+// reads (CR 708.2): no name, cost or colour, but the public characteristics
+// of the face-down object -- its derived type line, power and toughness --
+// exactly what the view half reads off the redacted CardView
+// (engine/view/card.go faceDownCard). Nothing printed reaches it.
+func faceDownCard(words []string, power, toughness int32) Card {
+	return Card{
+		Creature:  hasTypeWord(words, "Creature"),
+		Power:     power,
+		Toughness: toughness,
+		Basic:     hasTypeWord(words, "Basic"),
+		Land:      hasTypeWord(words, "Land"),
+		TypeSig:   TypeSigOf(words),
+	}
+}
+
 // derivedReadScoper is an optional Chars fast path: an implementation that
 // memoizes derived characteristics for the duration of a pure read
 // (*rules.Engine: BeginDerivedReads/EndDerivedReads) lets the board build
@@ -185,6 +240,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 		defer sc.EndDerivedReads()
 	}
 	combined, hasCombined := ch.(combinedChars)
+	namer, _ := ch.(currentNamer)
 	b.Creatures.Reset()
 	b.Life.Reset()
 	b.Cards.Reset()
@@ -209,7 +265,13 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 		var cmc int32
 		var manaCost string
 		var pumpPower, pumpToughness int32
-		if f := o.Face(); f != nil {
+		// A face-down spell's printed facts -- its mana cost and value and
+		// its pump bonus -- are hidden from every viewer but its controller
+		// (CR 708.4: it has no mana cost). The view half projects the
+		// printed card for the controller and no card for anyone else, so
+		// the game half fills them for the controller and zero for an
+		// opponent -- the same split.
+		if f := o.Face(); f != nil && (!o.FaceDown || o.Controller == me) {
 			cmc = cmcOfFace(f)
 			// Only a spell carries a printed payment; an ability object is
 			// Face-less anyway, and the view half's StackView.Card is nil for
@@ -217,14 +279,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 			// in step even if a face ever rides an ability stack object.
 			if o.Ability == nil {
 				manaCost = f.ManaCost
-				// A face-down spell's printed pump bonus is hidden from every
-				// viewer but its controller (CR 708.4). The view half keeps
-				// the printed CardView for the controller and a stripped one
-				// for everyone else, so the game half fills the bonus for the
-				// controller and zero for an opponent -- the same split.
-				if !o.FaceDown || o.Controller == me {
-					pumpPower, pumpToughness = effects.CastPumpBonus(f.SpellAbility())
-				}
+				pumpPower, pumpToughness = effects.CastPumpBonus(f.SpellAbility())
 			}
 		}
 		b.Stack = append(b.Stack, StackEntry{ID: id, Controller: o.Controller, IsSpell: o.Ability == nil, CMC: cmc, ManaCost: manaCost, PumpPower: pumpPower, PumpToughness: pumpToughness})
@@ -407,7 +462,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 			pumpOwnCombatants := effects.CastPumpOwnCombatants(f.SpellAbility())
 			power, toughness = cardPT(f, o, hasTypeWord(words, "Creature"), power, toughness)
 			*b.Cards.slot(id) = Card{
-				PrintedName:       f.Name,
+				PrintedName:       cardName(namer, id, f),
 				Creature:          hasTypeWord(words, "Creature"),
 				Power:             power,
 				Toughness:         toughness,
@@ -479,17 +534,19 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 			if o == nil || o.Face() == nil || o.Ephemeral() || o.PhasedOut {
 				continue
 			}
-			if o.FaceDown {
+			var power, toughness int32
+			cr := b.Creatures.Ref(id)
+			if o.FaceDown && !mayLookFaceDown(o, nil, me) {
 				// CR 708.5 redaction parity: another seat's facedown
-				// permanent projects as a stripped CardView (ID, Controller,
-				// Owner, nothing printed), so the view half's fillZone lands
-				// a zero-fact entry for it and this half writes the same
-				// entry, never a printed-face fact the voter cannot see.
-				b.Cards.Set(id, Card{})
+				// permanent projects as a stripped CardView carrying only
+				// its public face-down characteristics (CR 708.2), so this
+				// half writes the same, never a printed-face fact the voter
+				// cannot see. The creature census above holds every
+				// face-down permanent, so cr is its derived P/T.
+				*b.Cards.slot(id) = faceDownCard(faceDownTypeWords(id, ch), cr.Power, cr.Toughness)
 				continue
 			}
-			var power, toughness int32
-			if cr := b.Creatures.Ref(id); cr != nil {
+			if cr != nil {
 				// The public creature census above (the ZBattlefield pass that
 				// walks every seat) already queried this object's combined
 				// characteristics; reuse them rather than querying the same
@@ -505,8 +562,15 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 			f := o.Face()
 			words := effectiveTypeWords(f, id, ch)
 			power, toughness = cardPT(f, o, hasTypeWord(words, "Creature"), power, toughness)
+			// A face-down permanent the deciding seat may look at (one it
+			// controls, CR 708.5) shows its face, but the view half names
+			// no face-down card on another seat's battlefield.
+			var name string
+			if !o.FaceDown {
+				name = cardName(namer, id, f)
+			}
 			*b.Cards.slot(id) = Card{
-				PrintedName:       f.Name,
+				PrintedName:       name,
 				Creature:          hasTypeWord(words, "Creature"),
 				Power:             power,
 				CMC:               cmcOfFace(f),

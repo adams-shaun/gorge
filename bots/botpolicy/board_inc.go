@@ -255,6 +255,7 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 		return false
 	}
 	vtypes, _ := ch.(derivedTypeReader)
+	namer, _ := ch.(currentNamer)
 	inc := b.inc
 	if inc == nil {
 		// A Board's first refill is a scratch fill; the cache starts with
@@ -326,7 +327,7 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 			pumpOwnCombatants := effects.CastPumpOwnCombatants(f.SpellAbility())
 			power, toughness := cardPT(f, o, r.creature, r.power, r.toughness)
 			*b.Cards.slot(id) = Card{
-				PrintedName:       f.Name,
+				PrintedName:       cardName(namer, id, f),
 				Creature:          r.creature,
 				Power:             power,
 				Toughness:         toughness,
@@ -377,15 +378,19 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 			if f == nil || o.Ephemeral() {
 				continue
 			}
-			if o.FaceDown {
-				b.Cards.Set(id, Card{})
-				continue
-			}
 			r := inc.face(id, f, k)
 			inc.derive(r, id, combined, vtypes)
+			if o.FaceDown && !mayLookFaceDown(o, nil, me) {
+				*b.Cards.slot(id) = faceDownCard(faceDownTypeWords(id, ch), r.power, r.toughness)
+				continue
+			}
 			power, toughness := cardPT(f, o, r.creature, r.power, r.toughness)
+			var name string
+			if !o.FaceDown {
+				name = cardName(namer, id, f)
+			}
 			*b.Cards.slot(id) = Card{
-				PrintedName:       f.Name,
+				PrintedName:       name,
 				Creature:          r.creature,
 				Power:             power,
 				CMC:               r.cmc,
