@@ -1059,7 +1059,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		// Elementalist Adept picked before Arcane Epiphany enters the hand
 		// first), the face-up pile in the revealed order; then the other
 		// pile to the graveyard in the revealed order (pair 111), or an
-		// unchosen pile A in pick order (pilesUnchosenPicks).
+		// unchosen pile A in pick order (pilesToGraveyard).
 		np := bits.OnesCount32(s.g.lookSel)
 		pickA := a.Mode() == 0
 		if pickA {
@@ -1072,12 +1072,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				s.pileMove(s.g.rem[i], kop.Zone(s.g.pickZ))
 			}
 		}
-		if !pickA {
-			s.pilesUnchosenPicks(&s.prog(k)[r.pc], np)
-		}
-		for i := 0; i < int(s.g.nrem); i++ {
-			s.pileMove(s.g.rem[i], kop.ZoneGraveyard)
-		}
+		s.pilesToGraveyard(k, &s.prog(k)[r.pc], np, pickA) // act_twopiles.go
 		s.continueRes(k, 0)
 	case raGenChooseEach:
 		o := Obj(a.Source())
