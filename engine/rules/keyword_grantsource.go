@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"strings"
-
-	"github.com/adams-shaun/gorge/engine/state"
-)
+import "github.com/adams-shaun/gorge/engine/state"
 
 // KeywordGrantSource is the source of the first active layer-6 effect that
 // grants object id the keyword line (CR 613.1f), 0 when none does. The first
@@ -19,7 +15,6 @@ func (e *Engine) KeywordGrantSource(id state.ObjID, line string) state.ObjID {
 	if o == nil {
 		return 0
 	}
-	line = strings.TrimSpace(line)
 	statics := e.active()
 	for i := range statics {
 		ce := &statics[i]
@@ -27,7 +22,7 @@ func (e *Engine) KeywordGrantSource(id state.ObjID, line string) state.ObjID {
 			continue
 		}
 		for _, kw := range ce.AddKeywords {
-			if strings.EqualFold(strings.TrimSpace(kw), line) {
+			if kw == line { // the oracle passes the derived line a grant added, byte for byte
 				return ce.Source
 			}
 		}
