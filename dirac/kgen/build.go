@@ -140,6 +140,7 @@ type cardBuilder struct {
 	markPerm    bool     // ThisTurnEntered's dest=Battlefield card form: mark Permanent-base clauses
 	keepOwner   bool     // a filter over this turn's departures: "you own" stays Owner, apart from "you control"
 	selfCast    bool     // building a SpellCast self trigger's stack filter: sneaked is readable
+	entrant     bool     // building an other-object ETB replacement's entrant filter: the cast-provenance words read the spell still resolving into it
 }
 
 func buildCard(pt *poolTables, c *lCard) built {
@@ -1766,8 +1767,15 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred, kf.PredN = kop.PredWasCastEnter, int16(c.CmpN)
 	case cmpWasCastSpell:
 		// a spell on the stack (kernel wasCastSpell reads
-		// its entry); a permanent is never read here
-		if zone == kop.ZoneBattlefield {
+		// its entry); a permanent is never read here. The exception is an
+		// other-object ETB replacement's entrant filter (cb.entrant, the
+		// ReplOthersEnterProgram match): gorge matches the entering object
+		// while its own spell still resolves into it, so the kernel's
+		// wasCastSpell reads the same entry through spellEntryOf -- a
+		// battlefield permanent that entered any other way (a token, a
+		// reanimation) has no entry and reads not cast, as gorge's dead
+		// ledger record does (dirac/turn_gen.go runOthersEnterPrograms).
+		if zone == kop.ZoneBattlefield && !cb.entrant {
 			return kf, refuse("spell cast provenance on the battlefield")
 		}
 		kf.Pred, kf.PredN = kop.PredWasCastSpell, int16(c.CmpN)

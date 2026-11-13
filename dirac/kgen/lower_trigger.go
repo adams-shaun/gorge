@@ -3277,10 +3277,23 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 			if rp.str("ActiveZones") != "Battlefield" {
 				return refuse("other-object ETB replacement without ActiveZones Battlefield")
 			}
+			// the entrant's cast-provenance words (wasCastFromExile,
+			// !wasCastFromYourHand): gorge matches the entering object at the
+			// Moved replacement window, where the spell resolving into it is
+			// still on the stack and the record is alive (gorge
+			// castProvenanceAdmits); the kernel reads the same spell entry at
+			// the ReplOthersEnterProgram match (runOthersEnterPrograms, inside
+			// enterGen; dirac/cast_wascastspell.go). An entrant that arrived
+			// any other way has no entry and reads not cast, as gorge's dead
+			// ledger record does.
+			save := lc.spellProvOK
+			lc.spellProvOK = true
 			var err error
 			if rl.F, err = lc.filter(vc); err != nil {
+				lc.spellProvOK = save
 				return err
 			}
+			lc.spellProvOK = save
 		} else if vc != "Card.Self" {
 			// Card.Self+wasCastByYou: a condition on the entering object.
 			if rl.Cond.Kind != cNone {

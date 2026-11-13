@@ -2477,7 +2477,15 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		}
 	case "OthersEnterWith":
 		rp.Kind = kop.ReplOthersEnterProgram
-		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
+		// the entrant filter may carry the cast-provenance words: gorge
+		// matches the entering object while the spell that resolves into it
+		// is still on the stack, so the cast-provenance read is live there
+		// (cb.entrant widens build.go's battlefield refusal)
+		save := cb.entrant
+		cb.entrant = true
+		rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield)
+		cb.entrant = save
+		if err != nil {
 			return ka, err
 		}
 		if ka.Prog, err = cb.prog(r.Prog); err != nil {
