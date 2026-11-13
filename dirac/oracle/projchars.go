@@ -266,10 +266,26 @@ func gorgeChars(e *rules.Engine, v *charVocab, oid state.ObjID) (CharsProj, stri
 		}
 	}
 	kws := d.Keywords
-	if len(printed) > 0 {
+	eachColor := false
+	for _, k := range kws {
+		eachColor = eachColor || k == "Protection from each color"
+	}
+	if len(printed) > 0 || eachColor {
 		kws = make([]string, 0, len(d.Keywords))
 		for _, k := range d.Keywords {
 			if printed[k] && strings.HasPrefix(k, "Protection from ") && k != "Protection from everything" {
+				continue
+			}
+			if k == "Protection from each color" {
+				// a PumpAll's grant (Akroma's Will): all five arena marks
+				// (ExtColorGrant cgProtAll), read as the black and red bits
+				// the kernel's keyword view has, less a colour the card
+				// prints (ProtColors)
+				for _, c := range [...]string{"Protection from black", "Protection from red"} {
+					if !printed[c] {
+						kws = append(kws, c)
+					}
+				}
 				continue
 			}
 			kws = append(kws, k)

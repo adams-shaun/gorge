@@ -1002,6 +1002,13 @@ func plainQuality(f *lFilter) error {
 		return fmt.Errorf("quality %s", f)
 	}
 	for _, c := range f.Clauses {
+		if c.CmpStat == cmpCMC && c.CmpV == nil && c.CmpX == "" && (c.CmpOp == opGE || c.CmpOp == opLE) {
+			// gorge sourceHasQuality's protectionCMC (Card.cmcGE<N> / cmcLE<N>,
+			// Mistmeadow Skulk): the source's mana value (on the stack, with
+			// its announced X) against a constant. The rest of the clause is
+			// judged as for any other quality below.
+			c.CmpStat, c.CmpOp, c.CmpN = 0, 0, 0
+		}
 		if c.CmpStat == cmpMonoColor && c.Types == 0 && c.Ctrl == 0 && c.Owner == 0 && c.Flags == 0 && c.Subtype == "" && c.NotSubtype == "" && c.Colors == "" && c.NotColors == "" {
 			// gorge sourceHasQuality's monocolored class (Guardian of the
 			// Guildpact): exactly one colour of the source

@@ -28,6 +28,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // cgProt, in an ExtColorGrant's C: protection from the chosen colour.
 const cgProt uint8 = 4
 
+// cgProtAll, beside cgProt: protection from each colour (a mark for all
+// five), the grant of gorge's "Protection from each color" Pump keyword
+// (Akroma's Will) rather than of the resolution's chosen colour.
+const cgProtAll uint8 = 8
+
 // prepColProt arms the protection-from-a-colour reads (anyProtCol) and the
 // damage sites (rbProtCol) for card i's protection grant.
 func prepColProt(in *kop.Instr, g *genPrep, i int) {
@@ -50,21 +55,30 @@ func colProtUses(in *kop.Instr, u *[numMech]bool) {
 // permanent matching F (the sweep fixed before any mark lands), gains
 // protection from res.chosen's colour.
 func (s *State) colProtGrant(k *prep, in *kop.Instr) {
-	c := s.res.chosen
-	if c == 0 || c > 5 {
-		return
+	first, last := mech(0), mech(0)
+	if uint8(in.C)&cgProtAll != 0 {
+		last = 4 // every colour
+	} else {
+		c := s.res.chosen
+		if c == 0 || c > 5 {
+			return
+		}
+		first, last = mech(c-1), mech(c-1)
 	}
-	m := mech(c - 1)
 	if in.F != 0 {
 		var ord [MaxPerm]Slot
 		n := s.sweepHits(k, in.F, &ord)
 		for _, sl := range ord[:n] {
-			s.colProtMark(k, sl, m)
+			for m := first; m <= last; m++ {
+				s.colProtMark(k, sl, m)
+			}
 		}
 		return
 	}
 	if sl := s.objRef(k, in.Obj); sl != NoSlot {
-		s.colProtMark(k, sl, m)
+		for m := first; m <= last; m++ {
+			s.colProtMark(k, sl, m)
+		}
 	}
 }
 
