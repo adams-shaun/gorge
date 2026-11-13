@@ -4027,6 +4027,10 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			if err := lc.etbChooseName(ps, node, sa, other, cond); err != nil { // lower_choosename.go
 				return err
 			}
+		case "ChooseCard":
+			if err := lc.etbChooseCard(ps, node, sa, other, cond); err != nil { // lower_choosecardenter.go
+				return err
+			}
 		case "ChooseType":
 			// gorge effChooseType: an absent Defined$ is the controller
 			if d, ok := ps.get("Defined"); ok && strings.TrimSpace(d) != "You" || ps.str("Type") != "Creature" {

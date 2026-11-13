@@ -1662,6 +1662,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if _, ok := ps.get("DefinedKW"); ok {
 			return lc.colorGrantPump(ps) // (Skrelv)
 		}
+		lc.chosenStrictPump(ps) // lower_choosecardenter.go
 		if done, err := lc.pumpYouAndValid(ps); done || err != nil {
 			return err // lower_definedheads.go
 		}

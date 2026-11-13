@@ -4860,6 +4860,11 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.C = kop.OpChooseType, int16(in.C) // C: a card-type category's offered types (lower_choosetype.go)
 	case "ChooseName":
 		buildChooseName(&ki, in.B.N) // an as-enters card name (lower_choosename.go)
+	case "ChooseCardEnter":
+		buildChooseCardEnter(&ki) // an as-enters object choice (lower_choosecardenter.go)
+		if err := objFilter(kop.ZoneBattlefield); err != nil {
+			return ki, err
+		}
 	case "ChooseNumber":
 		// an as-enters number from B to C (lower_choosenumber.go)
 		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumber)), kop.Const(in.B.N), int16(in.C)

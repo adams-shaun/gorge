@@ -238,6 +238,12 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 			}
 		}
 		return true, true
+	case kop.ExtChooseCardEnter:
+		// the same, for the as-enters object choice (repl_choosecard.go)
+		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield && !s.enterCardNone(k, s.objs[o].slot, s.cardAt(s.objs[o].slot)) {
+			s.queueAsk(s.objs[o].slot, akCard)
+		}
+		return true, true
 	case kop.ExtTurnFaceUp:
 		return s.extTurnFaceUp(k, in), true // face_turnupeffect.go
 	case kop.ExtJoinForces:
