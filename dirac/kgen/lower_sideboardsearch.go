@@ -87,6 +87,14 @@ func (lc *lowerCtx) sideboardToHand(ps *params, from string) error {
 	if !ps.is("Hidden", "True") {
 		return refuse("ChangeZone Origin$ Sideboard without Hidden$ True")
 	}
+	// Reveal$ True (the Wishes: Cunning Wish, Burning Wish, Golden Wish):
+	// gorge's search reveals the moved card as a public Note
+	// (applyLibrarySearch, zone_search.go: cz.Reveal overrides Hidden$),
+	// no state change and no decision -- the library search's own reading
+	// (lower_zone.go's "search Reveal$").
+	if v, ok := ps.get("Reveal"); ok && v != "True" {
+		return refuse("ChangeZone Origin$ Sideboard Reveal$ %q", v)
+	}
 	ps.consume("Destination")
 	f, n, ct, err := lc.sideboardFilter(ps, from)
 	if err != nil {
