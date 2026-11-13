@@ -45,8 +45,8 @@ func (s *State) replNIn(k *prep, m slotMask, b uint32) int {
 // creature whose controller controls another Crystal Barricade.
 func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, code TCode, combat bool, n int) int {
 	g := k.gen
-	if n <= 0 || srcCtrl > 1 {
-		return n
+	if n <= 0 || srcCtrl >= MaxSeats {
+		return n // no seat controls the source
 	}
 	rcp := uint8(255) // the recipient's controller
 	sl := NoSlot

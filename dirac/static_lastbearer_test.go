@@ -13,10 +13,12 @@ import (
 // reclaim it.
 func TestLastBearClearLeavesNoPhantomRecord(t *testing.T) {
 	var s State
-	// Object 0 is a real card. The pad's first entry is already empty, so
-	// the insertion below reclaims that slot and leaves the cleared
-	// versioned record in place.
-	s.g.attLKI[0] = attLKIRec{obj: NoObj, host: NoObj}
+	// Object 0 is a real card. The pad's entries start empty, as a new game
+	// lays them out (one per seat slot), so the insertion below reclaims the
+	// first and leaves the cleared versioned record in place.
+	for i := range s.g.attLKI {
+		s.g.attLKI[i] = attLKIRec{obj: NoObj, host: NoObj}
+	}
 	s.g.attLKI[1] = attLKIRec{obj: 5, host: 42, ver: 7}
 	s.objs[42].zone = kop.ZoneGraveyard // the old bearer had already left
 	s.recordLastBearLKI(5, 42)
