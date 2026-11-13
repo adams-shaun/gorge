@@ -31,6 +31,17 @@ var mbcZoneMoves1Elda = [2][]cardset.Entry{
 	},
 }
 
+// Silverquill Lecturer's ungated "Creature spells you cast have demonstrate" is
+// the same grant without the gate: every creature spell its controller casts
+// poses the election.
+var mbcZoneMoves1Lecturer = [2][]cardset.Entry{
+	{
+		{Name: "Silverquill Lecturer", Count: 6}, {Name: "Grizzly Bears", Count: 8}, {Name: "Savannah Lions", Count: 8},
+		{Name: "Plains", Count: 9}, {Name: "Forest", Count: 9},
+	},
+	mbcZoneMoves1Elda[1],
+}
+
 // Siphon Insight (Brainstealer Dragon's grant: "you may play those cards for as
 // long as they remain exiled, and you may spend mana as though it were mana of
 // any color"): a blue-black deck exiles a green or red card of the other deck's
@@ -116,6 +127,25 @@ func TestMBCZoneMoves1Lowers(t *testing.T) {
 		t.Parallel()
 		var minted int
 		div := mbcZoneMoves1Run(t, mbcZoneMoves1Elda, 24, nil, func(int) func(*GorgeSide, Side) *Divergence {
+			tal := &kdemoTally{live: map[int]uint8{}}
+			return func(g *GorgeSide, k Side) *Divergence {
+				d := tal.check(g, k)
+				minted = max(minted, tal.minted[0]+tal.minted[1])
+				return d
+			}
+		})
+		if div != 0 {
+			t.Fatalf("%d divergent games", div)
+		}
+		t.Logf("%d demonstrate copies minted at most in one game", minted)
+		if minted < 1 {
+			t.Fatalf("no demonstrate copy was minted")
+		}
+	})
+	t.Run("Lecturer", func(t *testing.T) {
+		t.Parallel()
+		var minted int
+		div := mbcZoneMoves1Run(t, mbcZoneMoves1Lecturer, 24, nil, func(int) func(*GorgeSide, Side) *Divergence {
 			tal := &kdemoTally{live: map[int]uint8{}}
 			return func(g *GorgeSide, k Side) *Divergence {
 				d := tal.check(g, k)
