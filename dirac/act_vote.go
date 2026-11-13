@@ -96,7 +96,7 @@ func (s *State) voteAnswer(k *prep, a Action) {
 			won = won.with(ord[i])
 		}
 	}
-	if in.C&1 != 0 && won.any() {
+	if in.C&1 != 0 && won.any() { // seat-ok: an instruction flag bit
 		s.leaveAll(k, won, kop.ZoneExile) // one simultaneous departure (gorge's departure batch)
 	}
 	s.continueRes(k, 0)

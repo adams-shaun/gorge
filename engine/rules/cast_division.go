@@ -139,7 +139,7 @@ func (e *Engine) divisionAsk(pc *pendingCast) bool {
 			pc.divisionDone = true
 			return false
 		}
-		total, ok := e.castDivisionTotal(pc, e.castStageSA(pc, o, o.Face()))
+		total, ok := e.castDivisionTotal(pc, e.castBaseSA(pc, o, o.Face()))
 		n := len(pc.targets)
 		if !ok || n == 0 || total < int32(n) {
 			// Nothing to divide, or (unreachable past targetAsk's CR 601.2d

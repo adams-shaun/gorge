@@ -94,7 +94,7 @@ func (s *State) payPlotRestr(k *prep, p uint8, cost *kop.ManaCost, o Obj) {
 //
 //go:noinline
 func (s *State) nonSpellRestrAffords(k *prep, p uint8, cost *kop.ManaCost) bool {
-	if k.gen == nil || !k.restrSrc && !s.rbAny(p&1) {
+	if k.gen == nil || !k.restrSrc && !s.rbAny(SeatIx(p)) {
 		return false
 	}
 	var av avail

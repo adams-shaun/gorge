@@ -12,7 +12,7 @@ func (e *Encoder) DebugView() string {
 		e.eachKw(c, func(k *kwInfo) { kws += string(k.raw) + "," })
 		return fmt.Sprintf("%s#%d[z%d c%d t%v s%v a%v blk%v %d/%d d%d kw=%s att=%d mana=%v]", c.c.name, c.obj, c.zone, c.ctrl, c.tapped, c.sick, c.attacking, c.blocked, c.power, c.tough, c.damage, kws, c.attached, c.manaSrc)
 	}
-	for p := 0; p < 2; p++ {
+	for p := 0; p < int(v.n); p++ {
 		pl := &v.players[p]
 		s += fmt.Sprintf(" p%d life %d hand %d lib %d grave %d avail %d\n  bf:", p, pl.life, pl.handN, pl.libN, pl.graveN, pl.avail)
 		for _, ci := range pl.bf {

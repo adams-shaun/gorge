@@ -299,6 +299,9 @@ func TestCountHeadsCastSacrificeCrewLockstep(t *testing.T) {
 // TestCountHeadsCastSacrificeCrewMutation zeroes every kernel read of the four heads: the
 // games must diverge.
 func TestCountHeadsCastSacrificeCrewMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runCountledgers(t, 64, true)
 	if divs == 0 {
 		t.Fatalf("mutation zeroed the four heads in %d games with no divergence", games)

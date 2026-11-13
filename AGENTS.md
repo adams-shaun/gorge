@@ -101,7 +101,8 @@ make test-targeted                               # each iteration: the diff's pa
 make test-smart                                  # once, before DONE: the landing gate's steps, on a committed tree
 ```
 
-`make precheck` is an alias for `test-smart`. The full suite runs after merge, in CI.
+`make precheck` is an alias for `test-smart`. The full suite runs in CI, never locally: every pull request
+runs the six test shards, and a pull request to `main` also runs the whole `dirac/oracle` in ten parts.
 Rules and rationale: [invariants.md](docs/agents/invariants.md#workflow).
 
 Acceptance commands:

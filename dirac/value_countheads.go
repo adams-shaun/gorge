@@ -191,7 +191,7 @@ func (s *State) exprPow(k *prep, x *kop.Expr, ctx evalCtx) int {
 	}
 	r := 1
 	for exp > 0 {
-		if exp&1 != 0 {
+		if exp&1 != 0 { // seat-ok: an exponent bit
 			r = satMulCount(r, base)
 		}
 		exp >>= 1

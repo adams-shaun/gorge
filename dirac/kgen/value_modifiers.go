@@ -50,6 +50,14 @@ func rememberedModSplit(rest string) (body, mod string, split bool, err error) {
 // or Add is wrapped in a sum with zero: (Y/7)*2 and (Y-1)*2 lower exactly,
 // where one Expr could not carry the order. A value with Mul or Neg still
 // refuses in the caller (its multiply would compose the wrong way).
+// limitValue is gorge applyCountOp's LimitMin.N (op opGE: max(v, N)) and
+// LimitMax.N (op opLE: min(v, N)) as ExCompare: v keeps its own value when
+// it passes the bound, else N. Shared by the /LimitMin /LimitMax modifiers
+// and FlipCoin's Amount$ clamp (lower_dice.go).
+func limitValue(v lValue, op uint8, n int) lValue {
+	return lValue{Kind: vCompare, N: n, Op: op, Sub: []lValue{v, {Kind: vBranches, Sub: []lValue{v, cst(n)}}}}
+}
+
 func kvModMultiply(v lValue, k int) lValue {
 	if v.Mul == 0 && !v.Neg && (v.Div != 0 || v.Add != 0) {
 		v = lValue{Kind: vSum, Sub: []lValue{v, cst(0)}}

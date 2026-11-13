@@ -1,9 +1,7 @@
 package policynet
 
 import (
-	"bufio"
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,6 +12,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
+
+	"github.com/adams-shaun/gorge/testkit/recstream"
 )
 
 // LabelExtras is the label-record extension (schema 3): enough raw
@@ -104,15 +104,10 @@ func LoadWith(path string, lo LoadOptions) ([]Example, Stats, error) {
 		return nil, Stats{}, fmt.Errorf("opening label corpus: %w", err)
 	}
 	defer f.Close()
-	r := bufio.NewReaderSize(f, 1<<20)
-	var stream io.Reader = r
-	if magic, err := r.Peek(2); err == nil && magic[0] == 0x1f && magic[1] == 0x8b {
-		zr, err := gzip.NewReader(r)
-		if err != nil {
-			return nil, Stats{}, fmt.Errorf("reading gzipped label corpus: %w", err)
-		}
-		defer zr.Close()
-		stream = zr
+	// Plain, gzipped or condensed (testkit/recstream) JSON Lines.
+	stream, err := recstream.NewReader(f)
+	if err != nil {
+		return nil, Stats{}, fmt.Errorf("reading label corpus: %w", err)
 	}
 	dec := json.NewDecoder(stream)
 	var out []Example

@@ -138,9 +138,14 @@ type vview struct {
 	active   uint8
 	priority uint8
 	cards    []vcard
-	players  [2]vplayer
-	stack    []vstack
-	hosts    [256]uint8 // obj -> how many battlefield permanents are attached to it
+	n        uint8 // the game's seats, a departed seat included (it keeps its place)
+	players  [dirac.MaxSeats]vplayer
+	// others is every seat but the viewer's as one side, in ascending seat
+	// order (policynet's everyOther), built at more than two seats: what
+	// the encodings read as "the opponent" there (sides).
+	others vplayer
+	stack  []vstack
+	hosts  [256]uint8 // obj -> how many battlefield permanents are attached to it
 }
 
 // stepIndex maps kop.Step onto gorge's 12 step names (the kernel splits
@@ -249,7 +254,7 @@ func sourceHidden(po *dirac.ProjObj, seat uint8) bool {
 // build fills e.v from s for seat. Each card view comes from the content
 // cache (cachedCard), keyed by the object's content hash -- the base's
 // for an object unmarked since it, else the line cache's or computed.
-func (e *Encoder) build(s *dirac.State, seat uint8, dk dirac.DecisionKind) {
+func (e *Encoder) build(s *dirac.State, seat uint8, dk dirac.DecisionKind, decider uint8) {
 	v := &e.v
 	kp := &e.kp
 	e.st0 = s
@@ -280,7 +285,8 @@ func (e *Encoder) build(s *dirac.State, seat uint8, dk dirac.DecisionKind) {
 	}
 	v.phase = phaseOf(v.step)
 	v.active, v.priority = kp.Active, kp.Prio
-	for p := 0; p < 2; p++ {
+	v.n = s.NumSeats()
+	for p := 0; p < int(v.n); p++ {
 		pl := &v.players[p]
 		pl.life = int32(kp.Life[p])
 		pl.handN, pl.libN, pl.graveN = int32(kp.HandN[p]), int32(kp.LibN[p]), int32(kp.GraveN[p])
@@ -290,19 +296,19 @@ func (e *Encoder) build(s *dirac.State, seat uint8, dk dirac.DecisionKind) {
 		pl.bf, pl.hand, pl.grave, pl.exile = pl.bf[:0], pl.hand[:0], pl.grave[:0], pl.exile[:0]
 	}
 	// Battlefields in entry order, per controller.
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < v.n; p++ {
 		e.objs = s.FeatBattlefield(p, e.objs[:0])
 		pl := &v.players[p]
 		for _, o := range e.objs {
 			pl.bf = append(pl.bf, e.addCard(s, uint8(o), zBattlefield))
 		}
 	}
-	for p := 0; p < 2; p++ {
+	for p := 0; p < int(v.n); p++ {
 		for _, ci := range v.players[p].bf {
 			v.hosts[v.cards[ci].obj] = 0
 		}
 	}
-	for p := 0; p < 2; p++ {
+	for p := 0; p < int(v.n); p++ {
 		for _, ci := range v.players[p].bf {
 			if a := v.cards[ci].attached; a != noObj {
 				v.hosts[a]++
@@ -311,31 +317,44 @@ func (e *Encoder) build(s *dirac.State, seat uint8, dk dirac.DecisionKind) {
 	}
 	// A declaration in progress is not yet game state in gorge, which poses
 	// it as one decision: the attackers (blockers) picked so far are not
-	// attacking (blocking) until AkDone.
+	// attacking (blocking) until AkDone. At more than two seats each
+	// defending player declares in turn (CR 509.1, 802.4): an earlier
+	// defender's blocks are game state, only the decider's are in progress.
 	if dk == dirac.DkAttackers || dk == dirac.DkBlockers {
 		for i := range v.cards {
 			c := &v.cards[i]
 			if dk == dirac.DkAttackers {
 				c.attacking = false
-			} else {
+			} else if v.n <= 2 || c.ctrl == decider {
 				c.blocks = noObj
 			}
 		}
 	}
 	// Blocked attackers (policynet: len(BlockedBy) > 0, which keeps a
-	// blocker that has died).
+	// blocker that has died); while blockers are declared, an attacker an
+	// earlier defender blocked.
 	if dk != dirac.DkBlockers {
-		for p := 0; p < 2; p++ {
+		for p := 0; p < int(v.n); p++ {
 			for _, bi := range v.players[p].bf {
 				c := &v.cards[bi]
 				c.blocked = s.FeatBlocked(dirac.Obj(c.obj))
+			}
+		}
+	} else if v.n > 2 {
+		for i := range v.cards {
+			if b := v.cards[i].blocks; b != noObj {
+				for j := range v.cards {
+					if v.cards[j].obj == b {
+						v.cards[j].blocked = true
+					}
+				}
 			}
 		}
 	}
 	// Hand (the viewer's), graveyards and exiles in arrival order: one pass
 	// buckets the objects, each bucket sorted by zone position.
 	for z := 0; z < 3; z++ {
-		for p := 0; p < 2; p++ {
+		for p := 0; p < int(v.n); p++ {
 			if z == 0 && uint8(p) != seat {
 				continue
 			}
@@ -382,7 +401,7 @@ func (e *Encoder) build(s *dirac.State, seat uint8, dk dirac.DecisionKind) {
 	}
 	e.buildRel(s)
 	// Available mana: the pool plus every untapped source that can tap.
-	for p := 0; p < 2; p++ {
+	for p := 0; p < int(v.n); p++ {
 		pl := &v.players[p]
 		t := int32(0)
 		for _, n := range pl.pool {
@@ -417,6 +436,89 @@ func (e *Encoder) build(s *dirac.State, seat uint8, dk dirac.DecisionKind) {
 		}
 		pl.avail = t
 	}
+	if v.n > 2 {
+		v.mergeOthers()
+	}
+}
+
+// sides is the viewer's player block and the side the encodings read as
+// "the opponent": the other seat at two seats, every other seat merged
+// (others) at more, as policynet's everyOther reads them.
+func (v *vview) sides() (me, opp *vplayer) {
+	if v.n <= 2 {
+		return &v.players[v.seat&1], &v.players[1-v.seat&1]
+	}
+	return &v.players[v.seat], &v.others
+}
+
+// mergeOthers builds others: every seat but the viewer's, ascending (the
+// order policynet's bags and entity lists walk everyOther). Its lists are
+// the seats' lists concatenated; its counts and available mana are summed
+// (policynet's "opp|avail" sums every other seat); its life is the first
+// other seat's (policynet's mz life rows read others[0]).
+func (v *vview) mergeOthers() {
+	o := &v.others
+	o.bf, o.hand, o.grave, o.exile = o.bf[:0], o.hand[:0], o.grave[:0], o.exile[:0]
+	o.life, o.handN, o.libN, o.graveN, o.avail = 0, 0, 0, 0, 0
+	o.pool = [6]int32{}
+	first := true
+	for p := uint8(0); p < v.n; p++ {
+		if p == v.seat {
+			continue
+		}
+		pl := &v.players[p]
+		if first {
+			o.life, first = pl.life, false
+		}
+		o.handN += pl.handN
+		o.libN += pl.libN
+		o.graveN += pl.graveN
+		o.avail += pl.avail
+		for k := range o.pool {
+			o.pool[k] += pl.pool[k]
+		}
+		o.bf = append(o.bf, pl.bf...)
+		o.grave = append(o.grave, pl.grave...)
+		o.exile = append(o.exile, pl.exile...)
+	}
+}
+
+// relPlayer is the seat at relative seat r (policynet's relPlayer: turn
+// order from the viewer, wrapping).
+func (v *vview) relPlayer(r int) uint8 { return v.seatFrom(v.seat, r) }
+
+// seatFrom is the seat r places after p in turn order, wrapping.
+func (v *vview) seatFrom(p uint8, r int) uint8 {
+	if v.n <= 2 {
+		return (p + uint8(r)) & 1
+	}
+	return uint8((int(p) + r) % int(v.n))
+}
+
+// lastToPass is the seat a priority round that began with the active
+// player ends with (CR 117.4): the last seat before it in turn order still
+// in the game; the non-active player at two seats.
+func (v *vview) lastToPass(s *dirac.State) uint8 {
+	if v.n <= 2 {
+		return 1 - v.active
+	}
+	p := v.active
+	for i := uint8(1); i < v.n; i++ {
+		p = (p + v.n - 1) % v.n
+		if !s.FeatLost(p) {
+			return p
+		}
+	}
+	return v.active
+}
+
+// relSeat is seat p relative to the viewer in turn order (policynet
+// relSeat): 0 the viewer, 1 the next seat to take a turn, and so on.
+func (v *vview) relSeat(p uint8) int {
+	if v.n <= 2 {
+		return int((p - v.seat) & 1)
+	}
+	return (int(p) - int(v.seat) + int(v.n)) % int(v.n)
 }
 
 // addCard appends obj's card view in zone z and returns its index.

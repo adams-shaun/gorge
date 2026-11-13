@@ -111,9 +111,9 @@ func (g *grantSrch) painBranch(t *State, i int, sl Slot, pc *pcard, ask bool) bo
 		u.pl[SeatIx(g.p)].pool[o.col] += n
 		u.artTag(g.k, g.p, sl, int(o.col))
 		xv := u.srcExtraPick(g.k, sl, xpc, int(o.col))
-		u.addXv(g.p&1, &xv)
+		u.addXv(SeatIx(g.p), &xv)
 		if o.pain {
-			u.painDamage(g.k, sl, g.p&1, int(pc.painN))
+			u.painDamage(g.k, sl, SeatIx(g.p), int(pc.painN))
 		}
 		g.path[g.np] = grantStep{i: uint8(i), col: o.col, n: n, gi: -1, sl: sl, pain: o.pain}
 		g.np++

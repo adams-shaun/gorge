@@ -112,6 +112,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Beam me up":               "CardDef.BeamMeUp (a graveyard cast for AltCost with a return; kw_beammeup.go)",
 	"Harmonize":                "CardDef.Harmonize (a graveyard cast for AltCost; kw_harmonize.go)",
 	"Mayhem":                   "CardDef.Mayhem (a graveyard cast for AltCost if discarded this turn; kw_mayhem.go)",
+	"Escape":                   "CardDef.Escape and CardDef.EscCost (a graveyard cast for AltCost while exiling the printed part; kw_escape.go), no battlefield characteristic",
 	"Offspring":                "CardDef.Offspring (an optional additional cost and its enters trigger)",
 	"Multikicker":              "CardDef.HasMultikicker/Multikicker (CR 702.43; kw_multikicker.go)",
 	"Buyback":                  "CardDef.Buyback (an optional additional cost; the spell returns to hand as it resolves, dirac/kw_buyback.go)",

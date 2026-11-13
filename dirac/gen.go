@@ -66,6 +66,7 @@ type genPrep struct {
 	ctrlSBA         bool  // the state-based check settles control (a control static, a source-bound OpGainControl)
 	anyPTDelta      bool  // some Override is a +N/+M pump record (kop.Override.PTDelta): ptGen adds it (static_ptdelta.go)
 	anyPlProtAll    bool  // some emblem static is a StatPlayerProtAll player protection grant (static_plprot.go)
+	anyEmbPlHex     bool  // some emblem static is a StatPlayerHexproof player hexproof grant (static_emblemphex.go)
 	anyNTOv         bool  // an OpOverride / OpOverrideAll lasts until its controller's next turn
 	legendGrant     bool  // some Override adds or sets the Legendary supertype (legendRule reads derived types)
 	anyMayPlay      bool
@@ -159,6 +160,8 @@ type genPrep struct {
 	twoSeatOnly     bool           // a card plays only two seats (stallclass.go prepTwoSeat): StallTwoSeat in a larger game
 	fbStampOwnCost  bool           // a stamped flashback grant beside an own-cost flashback static (kw_fbgrant.go prepFbStamp): StallFbGrantStamp
 	anyAtkTax       bool           // a card has a StatAttackTax static (combat_attacktax.go)
+	anyBlkTax       bool           // a card has a StatBlockTax static (combat_blocktax.go)
+	blkTaxStall     bool           // a block tax beside a part its walk does not model (combat_blocktax.go prepBlkTax): StallBlkTax
 	atkTaxStall     bool           // an attack tax beside a part its walk does not model (combat_attacktax.go prepAtkTax): StallAtkTax
 	anyWitherGrant  bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
 	anyEOTEmb       bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
@@ -295,7 +298,8 @@ type genPrep struct {
 	anyPermMark     bool           // the table gives some kop.PredPermMark mark an arena mask (filter_permmarks.go)
 	anyTappedTurn   bool           // the table gives mechTappedTurn an arena mask (a Taps FirstTime$ line; filter_permmarks.go)
 	anyCombatHit    bool           // some card records its combat hits on players (cdRec) or some expression reads the legendary-hit bit (value_turntallies.go)
-	cdLegOn         bool           // some expression is ExOppsLostLife N 1: record cdLeg
+	cdLegOn         bool           // some expression is ExOppsLostLife N 1: record cdLeg bits 0-3
+	cdDamOn         bool           // some expression is ExOppsLostLife N 2: record cdLeg bits 4-7
 	anyAddPhase     bool           // some program is ExtAddPhase, some trigger is Tf3FirstAttack or some expression is ExPhaseCount (act_addphase.go)
 	anySkipPhase    bool           // some program is ExtSkipPhase (act_skipphase.go)
 	anyMonarch      bool           // some program is ExtBecomeMonarch (act_monarch.go)
@@ -565,7 +569,7 @@ func tableHasMultikicker(t *kop.Table) bool {
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasStatic(t, kop.StatAttackTax) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) {
 		return nil
 	}
 	enteredNeed := tableHasEnteredFrom(t)
@@ -945,7 +949,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				}
 			}
 			for ti := 0; ti < int(a.NTargets); ti++ {
-				if k := a.Targets[ti].Kind; k == kop.TgtStackObj || k == kop.TgtStackAb || k == kop.TgtStackObjTrig {
+				if k := a.Targets[ti].Kind; k == kop.TgtStackObj || k == kop.TgtStackAb || k == kop.TgtStackObjTrig || k == kop.TgtStackTgting {
 					g.anyStackTgt = true // tgt_stackability.go
 				} else if copyAbKind(k) {
 					g.anyStackTgt, g.anyCopyAb = true, true // copy_ability.go
@@ -1541,6 +1545,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepReplMult(t, g)
 	prepDmgMark(t, g)   // repl_dmgmark.go
 	prepPlProtAll(t, g) // static_plprot.go
+	prepEmbPlHex(t, g)  // static_emblemphex.go
 	if g.anyPlProtAll {
 		// open every replDamage site the way rbPlProt does above: no card
 		// carries the player-protection bit (the emblem is created at
@@ -1589,6 +1594,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepBatchPool(t, g) // trig_batchmembers.go
 	g.anyCopyElect = g.anyCopyElect || p.casualty
 	prepAtkTax(t, g) // combat_attacktax.go: after the requirement, Taps and land-type reads it checks
+	prepBlkTax(t, g) // combat_blocktax.go: the same reads
 	prepCold(g, &p.cold)
 	return g
 }
@@ -1613,8 +1619,9 @@ const (
 // from the card src (whose abilities its Grant indexes name).
 type ovRec struct {
 	idx uint8 // Table.Overrides index + 1 (0 = empty)
-	// fl: bit 7 = until end of turn; bits 5-6 = ovNT/ovNTYou (ovNTYou alone: ovCopyGrant);
-	// bits 0-4 = further identical
+	// fl: bit 7 = until end of turn; bit 6 = ovNT (ovNTWho, seats_*.go,
+	// holds the controller that record waits for); bit 5 = ovCopyGrant; the
+	// ovReps bits (seats_*.go) = further identical
 	// applications merged into this record (Soulstone Sanctuary activated
 	// again: gorge lists its keyword once per application)
 	fl  uint8
@@ -1631,18 +1638,16 @@ type ovRec struct {
 const ovEOT = 0x80
 
 // ovNT: the record lasts until its controller's next turn begins (CR 613,
-// Duration$ UntilYourNextTurn); ovNTYou is that controller.
-// ovReps is the merge count's mask.
+// Duration$ UntilYourNextTurn); ovNTWho (seats_*.go) is that controller.
+// ovReps is the merge count's mask (seats_*.go).
 const (
-	ovNT    = 0x40
-	ovNTYou = 0x20
-	ovReps  = 0x1F
-	// ovCopyGrant (ovNTYou without ovNT, a combination no next-turn record
-	// has) marks the record of an as-enters copy's AddAbilities$ (Mercurial
+	ovNT = 0x40
+	// ovCopyGrant (read only when ovNT is clear: a next-turn record always
+	// sets ovNT) marks the record of an as-enters copy's AddAbilities$ (Mercurial
 	// Pretender): the ability is a copiable value in gorge (CR 707.9b), so a
 	// copy of the copy inherits the record (copyGrantsAdd), and the card the
 	// ability indexes is src, not the copy's own printed card.
-	ovCopyGrant = ovNTYou
+	ovCopyGrant = 0x20
 )
 
 // copyGrant reports whether r is an as-enters copy's grant record.
@@ -1913,7 +1918,7 @@ type genState struct {
 	poison   [MaxSeats]uint8 // each player's poison counters (CR 122.1f; infect and toxic, kw_infect.go; padding before lingerM)
 	poolArt  [MaxSeats]uint8 // per player, the pool slots holding mana an artifact produced (mana_artifact.go; padding)
 	defSrc   [MaxSeats]uint8 // per player, the slot + 1 of the deferred source whose {R} floats in the pool (mana_deferred.go; padding)
-	speed    uint8           // both seats' speed (3 bits each) and the once-per-turn speed trigger latch (bit 6; kw_speed.go; padding)
+	speed    seatWord        // each seat's speed (3 bits each) and the once-per-turn speed trigger latch above them (kw_speed.go; padding)
 	noPoison uint8           // bit p: player p can't get additional poison counters this turn (Melira's replacement; trig_leavereturn.go; padding)
 	plusCtr  [MaxSeats]uint8 // per player, how many Brad Boimler counter-plus-one effects are active this turn (ctr_pluseot.go; padding)
 	plusSrc  [MaxSeats]Obj   // per player, the Boimler that made them (NoObj: more than one; the order ask's source, repl_ctrorder.go; padding)
@@ -1967,8 +1972,8 @@ type genState struct {
 	nfreeAll uint8
 	freeQ    [8]Obj // chosen to be cast after the resolution
 	nfq      uint8
-	freeP    uint8 // who casts the queued cards
-	hold     bool  // an sfHold entry is on the stack
+	freeP    seatWord // who casts the queued cards, their zone and flags (cast_freecast.go)
+	hold     bool     // an sfHold entry is on the stack
 
 	// OpChooseBranch's answer
 	branch uint8
@@ -2091,7 +2096,7 @@ type genState struct {
 	// CtrlHitBySrc (genPrep.cdRec): o the source, pl bit p = player p
 	// was hit by it this turn (value_turntallies.go).
 	// cdLeg bit p = player p was dealt combat damage this turn by a source
-	// matching Creature.Legendary.
+	// matching Creature.Legendary; bit 4+p = by any source (genPrep.cdDamOn).
 	cdh [4]struct {
 		o  Obj
 		pl uint8

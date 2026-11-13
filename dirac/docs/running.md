@@ -117,6 +117,8 @@ from after the first pair's table is built. The games file depends only on the f
 | `-skip-refused` | off | skip a pair the set refuses and count it, instead of failing |
 | `-sample-replay` | 0 | fraction of games also written as `koracle-game-2` records under `<out>.replays`, which `kfuzz -replay` re-executes in gorge; needs `-out` |
 | `-config` | `lockstep-autopay` | the verified surface: `lockstep-autopay` or `lockstep-full` |
+| `-cpuprofile` | none | write a CPU profile to this file |
+| `-memprofile` | none | write an allocation profile to this file and print the run's allocation totals |
 
 `random` picks uniformly from its own stream, seeded from the game's seed. `first` takes the first
 option offered. `hbot` is `dirac/search/hbot`, the port of gorge's auto-pay heuristic bot, and `sbt` is

@@ -6,7 +6,7 @@ func (s *State) FeatCommander(p uint8) Obj { return s.pl[SeatIx(p)].cmd }
 
 // FeatCommanderN is seat p's commander in slot j (0 or 1; slot 1 is a
 // partner, CR 702.124), NoObj when the slot is empty.
-func (s *State) FeatCommanderN(p, j uint8) Obj { return s.cmdObj(SeatIx(p), int(j&1)) }
+func (s *State) FeatCommanderN(p, j uint8) Obj { return s.cmdObj(SeatIx(p), int(j&1)) } // seat-ok: a commander slot, not a seat
 
 // FeatCommanderGame reports whether s is a Commander game (Config.Commander).
 func (s *State) FeatCommanderGame() bool { return s.cfg&cfgCommander != 0 }
@@ -22,7 +22,7 @@ func (s *State) FeatCommanderCast(p uint8) uint8 {
 // commander in slot j: its own tax count (CR 903.8); 0 for an empty slot 1,
 // as in every game without a partner record.
 func (s *State) FeatCommanderCastN(p, j uint8) uint8 {
-	if j&1 == 0 {
+	if j&1 == 0 { // seat-ok: a commander slot, not a seat
 		return s.pl[SeatIx(p)].cmdCast
 	}
 	return s.cmdCast2(SeatIx(p))
@@ -41,7 +41,7 @@ func (s *State) FeatCommanderDamage(p, q uint8) uint8 {
 // empty slot 1, as in every game without a partner record.
 func (s *State) FeatCommanderDamageN(p, q, j uint8) uint8 {
 	p, q = SeatIx(p), SeatIx(q)
-	if j&1 == 0 {
+	if j&1 == 0 { // seat-ok: a commander slot, not a seat
 		return s.pl[p].cmdDmg[q]
 	}
 	return s.cmdDmg2(p, q)

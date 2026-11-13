@@ -53,7 +53,7 @@ func (s *State) persistAdd(p uint8, col, n int) {
 // min(CombatMana, d)), so for red the persistent total P = fbR + pm[R] drops
 // to P' = min(P, pool[R]) and the drop comes out of fbR before pm[R].
 func (s *State) persistSync(p uint8) {
-	p &= 1
+	p = SeatIx(p)
 	pool := &s.pl[p].pool
 	red := int(s.fbR[p]) + int(s.pm[p][kop.R])
 	left := min(red, int(pool[kop.R]))

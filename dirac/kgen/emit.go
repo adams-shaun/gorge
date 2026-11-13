@@ -254,7 +254,7 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 		filt(ab.Cost.Filter)
 		for _, t := range ab.Targets {
 			filt(t.Filter)
-			filt(t.SpellF) // TgtSpellTgting's spell-side filter
+			filt(t.SpellF) // TgtSpellTgting's and TgtStackTgting's spell-side filter
 			val(t.MinV)    // TargetMax$ Count$Valid <subtype>.YouCtrl (Agility Bobblehead)
 			val(t.MaxV)
 		}

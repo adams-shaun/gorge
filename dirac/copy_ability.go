@@ -131,7 +131,7 @@ func (s *State) copyAbilityN(k *prep, in *kop.Instr, n int) bool {
 		s.stack[top+1] = s.stack[top]
 		s.stack[top] = ce
 		s.sp++
-		if in.C&1 != 0 && !DebugCopyAbNoRetarget && s.copyDeclSlot(k, &ce) >= 0 && s.copyElect(k, uint8(c)) {
+		if in.C&1 != 0 && !DebugCopyAbNoRetarget && s.copyDeclSlot(k, &ce) >= 0 && s.copyElect(k, uint8(c)) { // seat-ok: an instruction flag bit
 			return false
 		}
 	}

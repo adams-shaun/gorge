@@ -701,6 +701,20 @@ func restrictValidMatchesAsFace(e Engine, p state.PlayerID, d Descriptor, valid 
 	return e.AsFace(dc.ID, int(d.FaceIdx)-1, func() bool { return RestrictValidMatches(e, p, dc, valid, src) })
 }
 
+// UnlessRestrictionAdmitsOther reports whether a mana ability's RestrictValid$
+// restriction leaves a class-PurposeOther payment free to spend its mana
+// (CR 106.6: CantCastNonArtifactSpells bars casting a nonartifact spell, not
+// the unless tax, ward or attack cost a payment window prices). It is the
+// same predicate AvailableFor applies to a floating batch, reused over a
+// deliberately cost-blind descriptor: the census runs before any one cost is
+// named, and every cost-keyed term (CostContainsX, CostContainsC,
+// CantPayGenericCosts) fails closed on a nil Cost -- so a source admitted
+// here is admitted for every PurposeOther cost the window may price, never
+// more than the payment's own admission read.
+func UnlessRestrictionAdmitsOther(e Engine, p state.PlayerID, valid string, src state.ObjID) bool {
+	return RestrictValidMatches(e, p, Descriptor{Class: PurposeOther}, valid, src)
+}
+
 func restrictValidTermMatches(e Engine, p state.PlayerID, d Descriptor, term string, src state.ObjID) bool {
 	kind, spec, dotted := strings.Cut(term, ".")
 	if !dotted {

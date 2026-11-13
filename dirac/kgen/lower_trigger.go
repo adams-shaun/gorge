@@ -1720,6 +1720,11 @@ func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 			return err // lower_attacktax.go: before the EffectZone$ strip below
 		}
 	}
+	if s.Mode == "CantBlockUnless" {
+		if err := blockTaxReadable(s.Params); err != nil {
+			return err // lower_blocktax.go: before the EffectZone$ strip below
+		}
+	}
 	if s.Params["EffectZone"] == "Battlefield" {
 		// a printed static's default zone spelled out (gorge
 		// EffectZoneOK: the battlefield, as with no EffectZone$)
@@ -2080,6 +2085,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 	case "CantAttackUnless":
 		if err := lc.cantAttackUnless(sp, &st); err != nil {
 			return nil, err // lower_attacktax.go
+		}
+	case "CantBlockUnless":
+		if err := lc.cantBlockUnless(sp, &st); err != nil {
+			return nil, err // lower_blocktax.go
 		}
 	case "CanAttackDefender":
 		// gorge combat.AttackAllowedThroughDefender: ValidCard$ (or
@@ -2608,6 +2617,10 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		rest, melee := splitMeleeGrant(rest)
 		rest, exalted := splitExaltedGrant(rest)
+		rest, err = lc.grantEvolve(rest, st) // lower_evolvegrant.go
+		if err != nil {
+			return nil, err
+		}
 		rest, extort := splitExtortGrant(rest)           // lower_extortgrant.go
 		rest, myriad := splitMyriadGrant(rest)           // lower_myriad.go
 		rest, st.ProtFrom, err = lc.splitProtGrant(rest) // lower_protgrant.go
@@ -4104,16 +4117,23 @@ func (lc *lowerCtx) byCreatureReadsRemembered(sa *cards.SA) bool {
 	return false
 }
 
+// rememberRead reports whether s mentions a remembered object. The exact
+// token Player.IsRemembered is the RepeatEach player binding (join forces'
+// UnlessPayer$), not a remembered object, so it does not count.
+func rememberRead(s string) bool {
+	return strings.Contains(strings.ReplaceAll(s, "Player.IsRemembered", ""), "Remember")
+}
+
 // saReadsRemembered reports whether an ability chain (or any SVar of the
 // face, which its values may name) mentions a remembered object.
 func (lc *lowerCtx) saReadsRemembered(sa *cards.SA) bool {
 	for ; sa != nil; sa = sa.Sub {
-		if strings.Contains(sa.Line, "Remember") {
+		if rememberRead(sa.Line) {
 			return true
 		}
 	}
 	for _, v := range lc.face.SVars {
-		if strings.Contains(v, "Remember") {
+		if rememberRead(v) {
 			return true
 		}
 	}
@@ -4178,13 +4198,31 @@ func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 			}
 		}
 	}
-	exc, hasExc, err := lc.copyExceptions(ps)
+	exc, hasExc, myriads, err := lc.copyExceptionsMyriad(ps, true)
 	if err != nil {
 		return err
 	}
 	grant, err := lc.cloneEnterGrant(ps) // lower_cloneentergrant.go
 	if err != nil {
 		return err
+	}
+	if myriads > 0 {
+		// "except it has myriad" (Auton Soldier; CR 707.9b, 702.116a-b):
+		// one granted-Myriad trigger per instance rides in the grant record
+		// beside any AddAbilities$ (lower_myriad.go); at most two grants
+		if grant == nil {
+			grant = &lOverride{}
+		}
+		for ; myriads > 0; myriads-- {
+			idx, err := lc.myriadGrantTrigger()
+			if err != nil {
+				return err
+			}
+			grant.GrantAbility = append(grant.GrantAbility, idx)
+		}
+		if len(grant.GrantAbility) > 2 {
+			return refuse("ETB copy grants %d abilities (Myriad included): more than two", len(grant.GrantAbility))
+		}
 	}
 	in := lInstr{Op: "BecomeCopy", Obj: lRef{Kind: rReplaced}, F: f}
 	if grant != nil {

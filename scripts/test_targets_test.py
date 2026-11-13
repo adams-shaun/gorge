@@ -194,7 +194,48 @@ def test_heavy_package_with_named_tests_adds_the_census_tests():
 
 def test_docs_only_diff_selects_just_the_structural_packages():
     got, _ = planned({"docs/agents/invariants.md": None, "AGENTS.md": None})
-    assert sorted(got) == ["./internal/archtest", "./internal/codeshape"]
+    assert sorted(got) == ["./dirac/kop", "./dirac/oracle", "./internal/archtest", "./internal/codeshape"]
+    assert got["./internal/archtest"][0] == got["./internal/codeshape"][0] == "whole"
+
+
+def test_docs_only_diff_still_selects_the_three_guard_tests_as_named():
+    got, _ = planned({"docs/agents/invariants.md": None, "AGENTS.md": None})
+    assert got["./dirac/kop"] == ("named", "^TestKopOrdinalsUnchanged$")
+    kind, rx = got["./dirac/oracle"]
+    assert kind == "named" and rx.split("|") == ["^TestReproCompactRoundTrip$", "^TestReproGlobMatchesTable$"]
+
+
+def test_guards_join_a_heavy_packages_regex_and_yield_to_a_whole_run():
+    kind, rx = planned({"dirac/oracle/x_test.go": [(7, 7)]}, {"dirac/oracle/x_test.go": LEAF_TEST})[0]["./dirac/oracle"]
+    assert kind == "named" and rx.startswith("^(TestOne)$|") and rx.endswith("|^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$")
+    assert planned({"dirac/oracle/testdata/x.txt": None})[0]["./dirac/oracle"] == ("whole", "")
+
+
+CENSUS_CANDS = ["./engine/rules", "./engine/game/gorgegame", "./dirac/oracle", "./leaf", "./internal/archtest",
+                "./internal/codeshape"]
+
+
+def census(changes):
+    return tt.census_pkgs(changes, dict(DIRMAP, **{".": "m"}), DEPS, CENSUS_CANDS)
+
+
+def test_census_runs_the_importers_and_the_touched_packages_only():
+    assert census({"engine/rules/engine.go": None}) == [
+        "./engine/game/gorgegame", "./engine/rules", "./internal/archtest", "./internal/codeshape"]
+    assert census({"dirac/oracle/x_test.go": None}) == ["./dirac/oracle", "./internal/archtest", "./internal/codeshape"]
+    assert census({"dirac/oracle/testdata/repro/a.json": None}) == [
+        "./dirac/oracle", "./internal/archtest", "./internal/codeshape"]
+
+
+def test_census_maps_a_package_less_directory_to_the_nearest_package_above():
+    assert census({"dirac/oracle/fixtures/deep/cards.txt": None}) == [
+        "./dirac/oracle", "./internal/archtest", "./internal/codeshape"]
+
+
+def test_census_runs_everything_for_a_root_level_or_unmapped_change():
+    assert census({"Makefile": None}) == sorted(CENSUS_CANDS)
+    assert census({"decks/x.dck": None}) == sorted(CENSUS_CANDS)
+    assert census({"docs/agents/invariants.md": None}) == ["./internal/archtest", "./internal/codeshape"]
 
 
 def test_go_graph_reads_the_real_test_binaries():
@@ -510,3 +551,13 @@ def test_smart_lane_wait_above_1500_is_clamped(tmp_path, smart_repo):
     # a value the environment cannot make sense of falls back to 1500 silently
     _, _, err2 = wrapper(repo, "smart", env=dict(env, GORGE_TEST_LANE_WAIT="soon", FORCE="1"))
     assert "clamped" not in err2
+
+
+def test_smart_step_3_names_the_guard_tests_and_finds_their_packages():
+    sh = (HERE / "test-targets.sh").read_text()
+    c = [l for l in sh.splitlines() if l.startswith("C='Census|")][0]
+    for _, rx in tt.GUARDS:
+        for name in rx.split("|"):
+            assert name in c
+    # the anchored names cannot match inside the Test...($C) grep, so cpk needs its own for them
+    assert "TestKopOrdinalsUnchanged|TestReproCompactRoundTrip|TestReproGlobMatchesTable" in sh

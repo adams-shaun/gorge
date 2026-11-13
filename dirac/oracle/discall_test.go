@@ -118,6 +118,9 @@ func TestDiscallLockstep(t *testing.T) {
 // TestDiscallMutation queues one instance per card: the amounts differ
 // from gorge's batches, so the games must diverge.
 func TestDiscallMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _, _, _, _ := runDiscall(t, 64, true)
 	if divs == 0 {
 		t.Fatalf("per-card mutation in %d games with no divergence", games)

@@ -16,7 +16,7 @@ package kop
 //	    nearest the top; Min == Max == the count, no Done), then the tally ends.
 //
 // Nothing is asked when no owner received two cards. dirac/act_libplace.go.
-const ExtLibPlace ExtOp = 301
+const ExtLibPlace ExtOp = 300
 
 // ExtLibPlace's C: the arm and the ask.
 const (

@@ -349,8 +349,8 @@ func (s *State) availTappedSac(k *prep, p uint8, a *avail) {
 // empty intent: the fewest, first options), and stays pending here for the
 // ordinary stack path; so do a program that adds mana (the lowering's pool
 // check would end the witness) and an optional trigger. A trigger that
-// mills, loses life, gains life or draws for a target player is answered
-// with the first player gorge's default answer names.
+// mills, loses life, gains life, draws or damages for a target player is
+// answered with the first player gorge's default answer names.
 //
 // The caller states whether the cast being lowered is instant-speed: the offer
 // path walks this on a fork with no build live (bld holds the build only in
@@ -377,12 +377,14 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 		if len(a.Prog) == 1 {
 			op = a.Prog[0].Op
 		}
-		// a one-op program with no ask: the counter, the mill and the life or draw of a player
-		// (a target player gorge's default answer names)
+		// a one-op program with no ask: the counter, the mill, the life or draw
+		// of a player (a target player gorge's default answer names) and the
+		// damage of a player (Biotech Specialist: 2 damage to target opponent)
 		plTgt := a.NTargets == 1 && a.Targets[0].Kind == kop.TgtPlayer
 		mills := op == kop.OpMill && plTgt && a.Prog[0].C&kop.MvMayMill == 0
 		lifeDraw := (op == kop.OpLoseLife || op == kop.OpGainLife || op == kop.OpDraw) && (a.NTargets == 0 || plTgt)
-		single := len(a.Prog) == 1 && (op == kop.OpPutCounter && a.NTargets == 0 || mills || lifeDraw)
+		single := len(a.Prog) == 1 && (op == kop.OpPutCounter && a.NTargets == 0 || mills || lifeDraw ||
+			op == kop.OpDealDamage && plTgt)
 		// a straight run of life losses, gains and draws, one of them aimed at a target
 		// player gorge's default answer names (Al Bhed Salvagers: target opponent loses
 		// 1 life and you gain 1)

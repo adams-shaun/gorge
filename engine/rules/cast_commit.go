@@ -686,6 +686,7 @@ func (e *Engine) payCast() {
 		}
 		e.fuseTargets[pc.stackObj] = pc.stageTargets
 	}
+	e.publishSplice(pc)
 	if len(pc.charmTargets) > 0 {
 		if e.charmTargets == nil {
 			e.charmTargets = make(map[state.ObjID][][]state.Target)

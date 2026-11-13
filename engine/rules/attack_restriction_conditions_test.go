@@ -12,9 +12,11 @@ package rules
 // Every UnlessDefender$/CheckSVar$ leaf below drives a REAL corpus card
 // through e.attackBlocked (the pure per-(attacker, defender) read the offer
 // filter and the validator share). The Condition$ leaf uses a synthetic face
-// because no corpus CantAttack carrier spells an evaluable Condition$ (the
-// two carriers, ExtraTurn and Monarch, are values continuousConditionHolds
-// deliberately fails closed on) -- it pins the gate extension itself.
+// because no corpus CantAttack carrier spells an evaluable Condition$
+// PlayerTurn (the other corpus Condition$ CantAttack carrier, Monarch, now
+// reads the real CR 719.2 designation -- see
+// TestQueenMotherRamondaCantAttackWhileMonarch) -- it pins the gate extension
+// itself. ExtraTurn stays failed closed on.
 //
 // Each test asserts its own precondition (the carrier is on the battlefield,
 // the discriminating value is actually absent/present) so a vacuous fixture
@@ -211,5 +213,45 @@ func TestCantAttackConditionGate(t *testing.T) {
 	}
 	if e.attackBlocked(bear, 1, 0) {
 		t.Fatal("the CantAttack static stayed enforced although its Condition$ PlayerTurn gate no longer holds")
+	}
+}
+
+// TestQueenMotherRamondaCantAttackWhileMonarch drives Queen Mother Ramonda's
+// real corpus static
+// `S:Mode$ CantAttack | ValidCard$ Creature.powerLE2 | Condition$ Monarch | Target$ You`
+// through e.attackBlocked: while seat 0 (the static's controller) is the
+// monarch, a power-2 creature cannot attack them but a power-3 creature can;
+// before the events.MonarchChange that grants the designation both attack
+// freely (the precondition that pins the Condition$ as the discriminating
+// value). Corpus card loaded through testutil.CorpusRegistry.
+func TestQueenMotherRamondaCantAttackWhileMonarch(t *testing.T) {
+	t.Parallel()
+	e := attackBlockedRegressionEngine(t)
+	ramonda := onBoardCard(t, e, 0, corpusCard(t, "Queen Mother Ramonda"))
+	if o := e.G.Obj(ramonda); o == nil || o.Zone != state.ZBattlefield || o.Controller != 0 {
+		t.Fatalf("precondition: Queen Mother Ramonda is not on seat 0's battlefield: %+v", e.G.Obj(ramonda))
+	}
+	bear := onBoard(t, e, 1, "Name:P2 Attacker\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	ogre := onBoard(t, e, 1, "Name:P3 Attacker\nManaCost:2 G\nTypes:Creature Ogre\nPT:3/3\nOracle:x\n")
+	if e.G.IsMonarch(0) {
+		t.Fatal("precondition: no one should hold the monarch designation yet")
+	}
+	if e.attackBlocked(bear, 0, 0) || e.attackBlocked(ogre, 0, 0) {
+		t.Fatal("precondition: both attackers were blocked while seat 0 was not the monarch")
+	}
+	e.emit(events.Event{Kind: events.MonarchChange, Player: 0})
+	if !e.G.IsMonarch(0) {
+		t.Fatal("precondition: the MonarchChange did not make seat 0 the monarch")
+	}
+	if !e.attackBlocked(bear, 0, 0) {
+		t.Fatal("a 2/2 attacked seat 0 while seat 0 was the monarch (Condition$ Monarch unread)")
+	}
+	if e.attackBlocked(ogre, 0, 0) {
+		t.Fatal("a 3/3 was blocked although Ramonda only restricts power 2 or less")
+	}
+	// The designation moves away and the restriction lifts entirely.
+	e.emit(events.Event{Kind: events.MonarchChange, Player: 1})
+	if e.attackBlocked(bear, 0, 0) {
+		t.Fatal("a 2/2 stayed blocked after seat 0 lost the monarch designation")
 	}
 }

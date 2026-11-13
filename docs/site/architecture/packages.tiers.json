@@ -218,6 +218,10 @@
       "tier": "cmd",
       "status": "TOOL"
     },
+    "cmd/recstream": {
+      "tier": "cmd",
+      "status": "TOOL"
+    },
     "cmd/pkgmap": {
       "tier": "cmd",
       "status": "TOOL"
@@ -510,6 +514,10 @@
     "testkit/paymirror": {
       "tier": "tooling",
       "status": "TOOL"
+    },
+    "testkit/recstream": {
+      "tier": "tooling",
+      "status": "TOOL/SUPP"
     },
     "testkit/testutil": {
       "tier": "tooling",

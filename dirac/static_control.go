@@ -84,7 +84,7 @@ func (r *fxRec) setPrev(p uint8) {
 		r.r.fl = r.r.fl&^(3<<2) | (p&3)<<2
 		return
 	}
-	r.r.idx = r.r.idx&^fcPrev | (p&1)<<1
+	r.r.idx = r.r.idx&^fcPrev | (p&1)<<1 // seat-ok: the two-seat packing; MaxSeats > 2 packs two bits in fl above
 }
 
 // prepCtrl derives the control gates: ctrlStat per card (a StatControl
@@ -136,7 +136,7 @@ func (s *State) gainControl(sl Slot, to, you, dur uint8, src Obj, srcVer uint8, 
 		r.r.idx = (dur & 7) << fcDurShift
 		r.r.fl = to&3 | (p.ctrl&3)<<2 | (you&3)<<4
 	} else {
-		r.r.idx = to&1 | (p.ctrl&1)<<1 | (you&1)<<2 | (dur&7)<<fcDurShift
+		r.r.idx = to&1 | (p.ctrl&1)<<1 | (you&1)<<2 | (dur&7)<<fcDurShift // seat-ok: the two-seat packing; MaxSeats > 2 packs two bits each in fl above
 	}
 	if static {
 		r.r.idx |= fcStatic
@@ -577,7 +577,7 @@ func (s *State) ovDurFl(dur int16) uint8 {
 	case kop.DurEOT:
 		return ovEOT
 	case kop.DurUntilYourNextTurn:
-		return ovNT | (s.res.e.ctrl&1)*ovNTYou
+		return ovNT | (s.res.e.ctrl<<ovNTWhoShift)&ovNTWho
 	}
 	return 0
 }
@@ -592,7 +592,7 @@ func (s *State) dropNextTurnOv() (ended slotMask) {
 	s.fxM = slotMask{}
 	for i := 0; i < int(s.g.nfx); i++ {
 		r := &s.g.fx[i]
-		if r.kind == fxOverride && r.r.fl&ovNT != 0 && (r.r.fl&ovNTYou)>>5 == nt {
+		if r.kind == fxOverride && r.r.fl&ovNT != 0 && (r.r.fl&ovNTWho)>>ovNTWhoShift == nt {
 			s.touchSl(r.sl)
 			ended = ended.with(r.sl)
 			continue

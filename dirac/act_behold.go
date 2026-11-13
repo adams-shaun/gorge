@@ -105,7 +105,7 @@ func (s *State) fbBeholdUnplanned(k *prep, p uint8, o Obj, mode uint8) bool {
 	if mode&2 == 0 || !k.t.Cards[s.objs[o].card].FbBehold {
 		return false
 	}
-	_, _, granted := s.fbInstances(k, p&1, o)
+	_, _, granted := s.fbInstances(k, SeatIx(p), o)
 	return !granted
 }
 

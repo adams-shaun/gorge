@@ -104,8 +104,8 @@ what to do.
 ## Commits and pull requests
 
 **Branches.** Changes land on `develop` by pull request. The maintainers
-periodically merge a `develop → main` snapshot when its checks are green; nothing
-is pushed to `main` directly. Open your PR **against `develop`**. ([Branch flow](../repos/index.md#branch-flow).)
+promote landed work to `main` in batches, through pull requests whose CI is the
+full gate (below); nothing is pushed to `main` directly. Open your PR **against `develop`**. ([Branch flow](../repos/index.md#branch-flow).)
 
 **Commit messages.**
 

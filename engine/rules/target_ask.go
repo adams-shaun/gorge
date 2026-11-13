@@ -752,6 +752,12 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 				pc.stageTargets = append(pc.stageTargets, nil)
 			}
 			pc.stageTargets[pc.targetStage] = append(pc.stageTargets[pc.targetStage], targetOptions(chosen)...)
+		} else if pc.targetStage > 0 && len(pc.spliced) > 0 {
+			// CR 702.47d: a splice stage records the spliced text's own targets.
+			for len(pc.spliceTargets) < len(pc.spliced) {
+				pc.spliceTargets = append(pc.spliceTargets, nil)
+			}
+			pc.spliceTargets[pc.targetStage-1] = append(pc.spliceTargets[pc.targetStage-1], targetOptions(chosen)...)
 		}
 		e.repriceForTargets(pc)
 		// CR 601.2c: the chosen objects are targets of the spell or ability
@@ -766,7 +772,7 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 			// CR 702.101b: after the front half's targets, ask the alternate
 			// half's before payment. targetAsk skips a targetless half and the
 			// cast pays once every target stage is settled.
-			if e.castHasNextTargetStage(pc, e.G.Obj(pc.card)) {
+			for e.castHasNextTargetStage(pc, e.G.Obj(pc.card)) {
 				pc.targetStage++
 				if e.targetAsk() {
 					return
@@ -785,7 +791,7 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 		// (pushCast / pushActivation, CR 602.2a). The CR 608.2b recheck
 		// (legalTargets) reads this record off the resolving object.
 		if po := e.G.Obj(pc.card); po != nil {
-			if tsa := e.castStageSA(pc, po, po.Face()); tsa != nil {
+			if tsa := e.castBaseSA(pc, po, po.Face()); tsa != nil {
 				e.recordTpControlsChooser(pc.stackObj, tsa, in.Player)
 			}
 		}

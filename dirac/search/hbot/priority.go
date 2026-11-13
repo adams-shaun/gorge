@@ -491,7 +491,7 @@ func (bt *Bot) abilityKey(s *dirac.State, o dirac.Obj, ab uint8) uint32 {
 	default:
 		zr = 5
 	}
-	return secAbility<<24 | zr<<20 | (seat&1)<<16 | idx<<8 | uint32(ab)
+	return secAbility<<24 | zr<<20 | (seat%dirac.MaxSeats)<<16 | idx<<8 | uint32(ab)
 }
 
 func sortCands(cs []cand) {

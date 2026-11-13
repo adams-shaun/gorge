@@ -827,7 +827,7 @@ func (e *Engine) subTargetAsk(pc *pendingCast) bool {
 			if pc.isAbility() {
 				root = e.pcAbility(pc)
 			} else if f := o.Face(); f != nil {
-				root = e.castStageSA(pc, o, f)
+				root = e.castBaseSA(pc, o, f)
 			}
 		}
 		// CR 601.2c: every target of the spell or ability is chosen as it is

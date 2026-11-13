@@ -446,7 +446,10 @@ func (e *Engine) continuousGateHolds(sv staticView) bool {
 // - MaxSpeed: the static's controller has max speed (CR 702.179e,
 // state.Player.Speed, folded by events.SpeedChange).
 //
-// Every other value -- FatefulHour, Monarch and anything new -- FAILS CLOSED
+// - Monarch: the static's controller is the monarch (CR 719.2,
+// state.Game.IsMonarch, folded by events.MonarchChange).
+//
+// Every other value -- FatefulHour and anything new -- FAILS CLOSED
 // (the gate never holds), matching every sibling gate's documented deny
 // direction. An absent or empty Condition$ keeps holding, as before. MaxSpeed
 // must hold here: a "Max speed --" static can nest an AddStaticAbility$,
@@ -483,6 +486,8 @@ func (e *Engine) continuousConditionHolds(sv staticView) bool {
 		return e.playerHasEnduringStory(sv.Controller)
 	case condMaxSpeed:
 		return int(sv.Controller) < len(e.G.Players) && e.G.Players[sv.Controller].Speed >= maxSpeed
+	case condMonarch:
+		return e.G.IsMonarch(sv.Controller)
 	}
 	return false
 }

@@ -324,6 +324,9 @@ func runSpiritGuideDeck(t *testing.T, deck []string, seeds int, mode tapMode) *s
 // battlefield sources left) and once every source (the forced state: nothing
 // on the battlefield can pay).
 func TestSpiritGuideGorgeWindow(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	for _, guide := range []string{"Elvish Spirit Guide", "Simian Spirit Guide"} {
 		nat := runSpiritGuideProbe(t, guide, 120, tapNone)
 		t.Logf("natural   %s: %+v", guide, *nat)
@@ -365,6 +368,9 @@ func TestSpiritGuideGorgeWindow(t *testing.T) {
 // land among them (the permanents are Bears and creature-cast guides, which
 // have no mana ability on the battlefield).
 func TestSpiritGuideWindowOrder(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	for _, guide := range []string{"Elvish Spirit Guide", "Simian Spirit Guide"} {
 		land := "Forest"
 		if strings.HasPrefix(guide, "Simian") {
@@ -409,6 +415,9 @@ func TestSpiritGuideWindowOrder(t *testing.T) {
 // tapped at the target ask (tapAll). The Giant Growth deck adds Grizzly Bears,
 // the only creatures it can target.
 func TestSpiritGuideOffColour(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	for _, c := range []struct {
 		guide, spell, land string
 		listed             bool // the guide's colour can pay what the cast owes
@@ -459,6 +468,9 @@ func TestSpiritGuideOffColour(t *testing.T) {
 // (2 of 200 seeds here), so a later shuffle, card or policy change could move
 // it to 0 without a regression, and an asserted 0 would be a false alarm.
 func TestSpiritGuideXWindow(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	for _, guide := range []string{"Simian Spirit Guide", "Elvish Spirit Guide"} {
 		var deck []string
 		for range 8 {

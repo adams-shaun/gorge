@@ -475,7 +475,9 @@ const ExAttackedTurn ExprKind = 235
 // ExSacrificedThisTurn N 2 is the Food cards (printed subtype) sacrificed
 // this turn; ExOppsLostLife N 1 is the opponent dealt combat damage this turn
 // by a legendary creature (gorge PlayerCountRegisteredOpponents$
-// HasPropertywasDealtCombatDamageThisTurnBy Creature.Legendary GE1).
+// HasPropertywasDealtCombatDamageThisTurnBy Creature.Legendary GE1), N 2 the
+// opponent dealt combat damage this turn by any source (the bare head
+// HasPropertywasDealtCombatDamageThisTurn, Tymna the Weaver).
 const (
 	SacrificedFood   = 2
 	OppsHitLegendary = 1
@@ -569,6 +571,11 @@ const ExCounterKinds ExprKind = 225
 // opponents-only ValidTgts$ in a two-player game, where the slot holds at
 // most the one opponent. Explicit ordinal, the iota tail stays untouched.
 const ExTargetPlayers ExprKind = 223
+
+// ExJoinForces: the resolution's join-forces total, the sum of every
+// ExtJoinForces B since the last reset (0 at the start of each resolution).
+// Explicit ordinal in the free low range; the iota tail stays untouched.
+const ExJoinForces ExprKind = 64
 
 // ExNotOwnLibMV: the summed mana value of the library cards in the
 // resolution's remembered set that the repeated player (an OpRepeatEachPlayer

@@ -1,0 +1,13 @@
+# the planned-cast on-stack lockstep pool: a mana source whose amount counts
+# the distinct powers among its controller's creatures, beside creatures whose
+# power counts the hand, so moving a spell from the hand to the stack (CR
+# 601.2a) changes what the source makes (dirac/oracle/planonstack_test.go).
+Selvala, Eager Trailblazer
+Stingerback Terror
+Syr Elenora, the Discerning
+Llanowar Elves
+Grizzly Bears
+Hill Giant
+Forest
+Plains
+Mountain

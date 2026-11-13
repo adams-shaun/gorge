@@ -27,6 +27,7 @@ const (
 	condFerocious
 	condEvolve
 	condMaxSpeed
+	condMonarch
 )
 
 var staticConditionCodes = state.NewStrCodes(
@@ -42,6 +43,7 @@ var staticConditionCodes = state.NewStrCodes(
 	state.StrEntry[staticCondition]{Key: "Ferocious", Val: condFerocious},
 	state.StrEntry[staticCondition]{Key: "Evolve", Val: condEvolve},
 	state.StrEntry[staticCondition]{Key: "MaxSpeed", Val: condMaxSpeed},
+	state.StrEntry[staticCondition]{Key: "Monarch", Val: condMonarch},
 )
 
 func init() {

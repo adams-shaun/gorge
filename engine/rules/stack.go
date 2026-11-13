@@ -612,6 +612,13 @@ func (e *Engine) resolveTop() {
 		return
 	}
 	targets := o.Targets
+	// CR 702.47: the flat target list is the union of every stage; the spell's
+	// own text resolves against its own (first) slice, each spliced text
+	// against the slice chosen for it (runSplicedSegments).
+	spliceSegs, spliceChosen, spliceAlive := e.spliceLegal(o)
+	if len(spliceSegs) > 0 {
+		targets = e.spliceMainTargets(o, targets)
+	}
 	if unbestowed || unmutated {
 		// The creature spell it became has no target (CR 702.103e/702.140b).
 		targets = nil
@@ -670,7 +677,7 @@ func (e *Engine) resolveTop() {
 			if charmModeTargets != nil {
 				legal = nil // each mode judged its own targets, and none held
 			}
-			if len(legal) == 0 && subLegal == 0 {
+			if len(legal) == 0 && subLegal == 0 && !spliceAlive {
 				// CR 608.2b: every target became illegal. This spell does
 				// not resolve -- no Resolve event, no script runs -- it goes
 				// straight to its normal resting place, the same zone it
@@ -693,7 +700,13 @@ func (e *Engine) resolveTop() {
 			targets = legal
 		}
 	}
-	if len(targets) == 0 && subChosen > 0 && subLegal == 0 {
+	if spliceChosen && !spliceAlive && len(targets) == 0 && subChosen == 0 {
+		// Every target the spell has belongs to spliced text and none is
+		// legal any more (CR 608.2b).
+		e.fizzleSplicedSpell(o)
+		return
+	}
+	if len(targets) == 0 && subChosen > 0 && subLegal == 0 && !spliceAlive {
 		rest := spellFizzleZone(o)
 		e.stackLeave = stackLeaveFizzled
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: rest,
@@ -790,6 +803,7 @@ func (e *Engine) resolveTop() {
 		e.endTurnRequested, e.endCombatRequested = false, false
 		effects.Resolve(e, ctx, resolveSA)
 		e.damaging = 0
+		e.runSplicedSegments(o, spliceSegs)
 		if e.restart != nil {
 			e.finishRestart()
 			return

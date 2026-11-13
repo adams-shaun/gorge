@@ -46,7 +46,7 @@ func (s *State) affordsUngrantedReserving(k *prep, p uint8, cost *kop.ManaCost, 
 		if b.affords(cost, pm, 0) && s.costPartDisjoint(k, p, src, c, cost, &b, pm) {
 			return true
 		}
-		if k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, p&1, d, cost, &b, ex, 0) {
+		if k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, SeatIx(p), d, cost, &b, ex, 0) {
 			// restricted mana the plain avail cannot show: keep the old answer
 			return true
 		}

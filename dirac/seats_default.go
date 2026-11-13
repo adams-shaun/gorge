@@ -28,6 +28,14 @@ const (
 	objOwnerShift       = 7
 )
 
+// ovRec.fl (gen.go) packs the controller an UntilYourNextTurn override
+// record waits for (one seat bit) above the merge count.
+const (
+	ovNTWho      uint8 = 0x20 // ovNT record: the waiting controller (0 or 1)
+	ovNTWhoShift       = 5
+	ovReps       uint8 = 0x1f // the merge count's mask
+)
+
 // embRemSlots is how many objects one emblem remembers (static_emblemrem.go):
 // the frozen-number byte, embR and embX's two.
 const embRemSlots = 4
@@ -35,3 +43,7 @@ const embRemSlots = 4
 // linkPadN pads genState after its sixteen exile-until-leaves links so perms
 // keeps its cache-line phase (statelayout_test.go).
 const linkPadN = 16
+
+// seatWord is a packed field holding a few bits per seat beside its other
+// bits (genState.speed, genState.freeP): a byte at two seats.
+type seatWord = uint8

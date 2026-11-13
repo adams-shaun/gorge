@@ -130,6 +130,7 @@ const (
 	ChGenTokCopy                              // mode 0 = decline; mode 1, source = the permanent the token is instead a copy of (gorge's chosen-copy token replacement election, options "decline" then "creature"; repl_tokcopy.go)
 	ChSuspendCast                             // source = a suspended card in exile; mode 1 = cast it free (gorge's suspend_cast_yes), 0 = leave it (suspend_cast_no); CR 702.62a
 	ChGenImprint                              // source = the hand card the imprint mox exiles (gorge's "imprint" KChoose, Min=Max=ChangeNum$, asked only with more candidates; mana_imprint.go)
+	ChEchoActionPick                          // source = a card/permanent chosen to pay an echo cost (gorge echoActionAsk's "echo_action_pick", Min=Max=N)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -244,7 +245,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		s.repeatEachCards(k, in) // act_repeatcards.go
 	case kop.OpRepeatEachPlayer:
 		q := s.eachPlayers(k, in.Obj)
-		if in.C&1 == 0 && in.Obj == kop.RefEachPlayer {
+		if in.C&1 == 0 && in.Obj == kop.RefEachPlayer { // seat-ok: an instruction flag bit
 			// the C=0 form keeps APNAP, also when the controller is the
 			// active player (C&1: gorge RepeatEach's AliveFrom)
 			q = s.aliveFrom(s.active)
@@ -653,23 +654,23 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if s.g.nfree == 0 {
 			break
 		}
-		// freeP: bit 0 caster, bits 1-3 zone, bit 4 ReplaceGraveyard, bit 7
-		// ForgetPlayed (the freeQ drain reads them; turn_gen masks the player)
-		s.g.freeP = e.ctrl | uint8(in.C&7)<<1
+		// freeP: the caster, the zone, ReplaceGraveyard and ForgetPlayed
+		// (cast_freecast.go; the freeQ drain reads them)
+		s.g.freeP = seatWord(e.ctrl) | seatWord(in.C&7)<<freeZoneShift
 		if in.C&32 != 0 {
-			s.g.freeP |= 16
+			s.g.freeP |= freeGY
 		}
 		if in.C&64 != 0 {
-			s.g.freeP |= 32 // Play CopyCard$ True: the cast is of a copy (cast_copycast.go)
+			s.g.freeP |= freeCopy // Play CopyCard$ True: the cast is of a copy (cast_copycast.go)
 		}
 		if in.C&256 != 0 {
-			s.g.freeP |= 64 // the copy pays its mana cost (cast_exilegrant.go)
+			s.g.freeP |= freePaid // the copy pays its mana cost (cast_exilegrant.go)
 		}
 		if in.C&16 != 0 {
 			// ForgetPlayed$ True: drop the card once its cast commits. The
 			// marker rides freeP to the drain; a refused or reversed cast
 			// never commits, so the card stays remembered (CR 733.1-2).
-			s.g.freeP |= 128
+			s.g.freeP |= freeForget
 		}
 		s.res.ask, s.res.askP = raGenCastFree, e.ctrl
 		return false, true

@@ -61,7 +61,7 @@ func (s *State) copySpells(k *prep, in *kop.Instr, n int) bool {
 	if in.Obj == kop.RefSelf {
 		return s.copyParentSpell(k, in, n) // kw_madness.go
 	}
-	return s.copySpell(k, s.objRefObj(in.Obj), n, in.C&1 != 0)
+	return s.copySpell(k, s.objRefObj(in.Obj), n, in.C&1 != 0) // seat-ok: an instruction flag bit
 }
 
 // copySpell copies the spell src (on the stack below the resolving entry) n
@@ -148,6 +148,9 @@ func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
 	// provenance flag): it enters as an ordinary permanent
 	if ce.trigPl == trigPlMayhem {
 		ce.trigPl = 0 // nor mayhem-cast (kw_mayhem.go)
+	}
+	if ce.trigPl == trigPlEscape {
+		ce.trigPl = 0 // nor escape-cast (CR 707.10: gorge's FlagEscaped; kw_escape.go)
 	}
 	if ce.trigPl == trigPlRetrace {
 		ce.trigPl = 0 // nor retrace-cast (kw_retrace.go)

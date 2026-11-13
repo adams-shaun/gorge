@@ -97,8 +97,10 @@ type krgTally struct {
 }
 
 // krgRun plays seeds 1..n of every matchup; it returns the number of divergent
-// games. mut edits each lowered instruction (the mutation test).
-func krgRun(t *testing.T, n uint64, report bool, tal *krgTally, mut func(name string, in *kop.Instr)) int {
+// games. mut edits each lowered instruction (the mutation test). A non-empty
+// only plays just the matchups whose decks carry that card: a mutation of one
+// card's program is a no-op in a matchup without it.
+func krgRun(t *testing.T, n uint64, report bool, tal *krgTally, only string, mut func(name string, in *kop.Instr)) int {
 	t.Helper()
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
@@ -111,6 +113,9 @@ func krgRun(t *testing.T, n uint64, report bool, tal *krgTally, mut func(name st
 	}
 	div := 0
 	for mi, md := range krgDecks {
+		if only != "" && !krgCarries(md, only) {
+			continue
+		}
 		var decks [2][]*cards.Card
 		for s, d := range md {
 			for _, e := range d {
@@ -188,10 +193,22 @@ func krgRun(t *testing.T, n uint64, report bool, tal *krgTally, mut func(name st
 	return div
 }
 
+// krgCarries reports whether either deck of a matchup lists the card.
+func krgCarries(md [2][]cardset.Entry, name string) bool {
+	for _, d := range md {
+		for _, e := range d {
+			if e.Name == name {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func TestRandGraveLockstep(t *testing.T) {
 	t.Parallel()
 	var tal krgTally
-	krgRun(t, 150, true, &tal, nil)
+	krgRun(t, 150, true, &tal, "", nil)
 	t.Logf("%d games: graveyard cards returned to hand %d, to the battlefield %d", tal.games, tal.toHand, tal.toBattlefield)
 	if tal.toHand < 40 || tal.toBattlefield < 6 {
 		t.Errorf("to hand %d, to battlefield %d; want at least 40 and 6", tal.toHand, tal.toBattlefield)
@@ -200,10 +217,11 @@ func TestRandGraveLockstep(t *testing.T) {
 
 // TestRandGraveLockstepMutation: for each of the six carriers alone, with its
 // pick no longer random (the kernel asks instead of drawing), some seed
-// diverges.
+// diverges. Each carrier plays only the matchups that hold it.
 func TestRandGraveLockstepMutation(t *testing.T) {
+	t.Parallel()
 	carriers := map[string]bool{}
-	krgRun(t, 0, false, nil, func(name string, in *kop.Instr) {
+	krgRun(t, 0, false, nil, "", func(name string, in *kop.Instr) {
 		if in.Op == kop.OpChooseMove && uint16(in.B.N)&kop.SrRandom != 0 {
 			carriers[name] = true
 		}
@@ -212,7 +230,7 @@ func TestRandGraveLockstepMutation(t *testing.T) {
 		if !carriers[want] {
 			t.Fatalf("%s carries no random pick (carriers %v)", want, carriers)
 		}
-		n := krgRun(t, 150, false, nil, func(name string, in *kop.Instr) {
+		n := krgRun(t, 150, false, nil, want, func(name string, in *kop.Instr) {
 			if name == want && in.Op == kop.OpChooseMove {
 				in.B = kop.Const(0)
 			}

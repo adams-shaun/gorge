@@ -199,7 +199,26 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 				}
 				continue
 			}
-			if !mf.Any || !mf.FreeCost || mf.RestrictValid || mf.Amount <= 0 ||
+			if mf.RestrictValid {
+				// CR 106.6: a restriction on the ability's batch bars only the
+				// payment classes it names. CantCastNonArtifactSpells bars
+				// casting a nonartifact spell -- not the unless tax, ward or
+				// attack cost this census prices -- so an admitted source
+				// joins the census its unrestricted siblings join; a
+				// restriction naming no PurposeOther payment keeps its units
+				// out (fail closed). The read is pay.UnlessRestrictionAdmitsOther,
+				// the same predicate AvailableFor applies to a floating
+				// batch, and the tap ask offers the alt for the same
+				// membership -- the offer gate cannot promise more than the
+				// window can tap.
+				if pay.UnlessRestrictionAdmitsOther(asPayer(e), p, effects.ManaOf(ma).RestrictValid, id) {
+					if a, ok := unlessRestrictedAlt(ma, o.Tapped, mf); ok {
+						units = pay.AppendUnitAlt(units, id, a)
+					}
+				}
+				continue
+			}
+			if !mf.Any || !mf.FreeCost || mf.Amount <= 0 ||
 				(mf.Tap && o.Tapped) || (mf.Untap && !o.Tapped) {
 				continue
 			}
@@ -226,6 +245,36 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 		units = e.windowTapExtras(units)
 	}
 	return units
+}
+
+// unlessRestrictedAlt prices one PurposeOther-admitted restricted mana
+// ability as the shared census prices its unrestricted siblings
+// (windowManaUnitsWith): a deterministic production only -- a fixed colour
+// set, or the executor's one-colourless default -- on a free cost the source
+// can pay right now. A colour-choosing production stays out: the payer's
+// colour choice is a sub-ask this census does not price, so counting it
+// would promise mana the tap cannot commit without one.
+func unlessRestrictedAlt(ma *cards.SA, tapped bool, mf pay.ManaStatic) (windowManaAlt, bool) {
+	if !mf.FreeCost || (mf.Tap && tapped) || (mf.Untap && !tapped) {
+		return windowManaAlt{}, false
+	}
+	if mf.Amount <= 0 {
+		return windowManaAlt{}, false
+	}
+	counts, any := mf.Counts, mf.Any
+	total := int32(0)
+	for _, n := range counts {
+		total += n
+	}
+	if any {
+		// Only the executor's deterministic one-colourless default counts.
+		if total != 1 || counts[5] != 1 {
+			return windowManaAlt{}, false
+		}
+	} else if total <= 0 {
+		return windowManaAlt{}, false
+	}
+	return windowManaAlt{Ma: ma, Counts: counts, Amt: mf.Amount, Any: any}, true
 }
 
 // availablePaidAbilities is AvailableMana's paid-cost extension: the

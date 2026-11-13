@@ -71,15 +71,16 @@ func TestFilterWordClasses(t *testing.T) {
 func TestValueHeadClasses(t *testing.T) {
 	lc := &lowerCtx{face: &cards.Face{SVars: map[string]string{}}, known: func(s string) bool { return false }}
 	for body, want := range map[string]valKind{
-		"PlayerCountOpponents$HighestLifeTotal":                      vOppExtreme,
-		"PlayerCountOpponents$HighestCardsInHand":                    vOppExtreme,
-		"PlayerCountOpponents$LowestLifeTotal":                       vOppExtreme,
-		"PlayerCountOpponents$HighestValid Land.YouCtrl":             vOppExtreme,
-		"PlayerCountOpponents$HighestCounters.Poison":                vHighestOppPoison,
-		"PlayerCountRegisteredOpponents$HasPropertyLostLifeThisTurn": vOppsLostLife,
-		"Count$CardsInYourHand":                                      vHandSizeOf,
-		"Count$ValidExile Creature.YouOwn":                           vCountExile,
-		"Count$ValidGraveyard,Exile Creature.YouOwn":                 vSum,
+		"PlayerCountOpponents$HighestLifeTotal":                                  vOppExtreme,
+		"PlayerCountOpponents$HighestCardsInHand":                                vOppExtreme,
+		"PlayerCountOpponents$LowestLifeTotal":                                   vOppExtreme,
+		"PlayerCountOpponents$HighestValid Land.YouCtrl":                         vOppExtreme,
+		"PlayerCountOpponents$HighestCounters.Poison":                            vHighestOppPoison,
+		"PlayerCountRegisteredOpponents$HasPropertyLostLifeThisTurn":             vOppsLostLife,
+		"PlayerCountRegisteredOpponents$HasPropertywasDealtCombatDamageThisTurn": vOppsLostLife,
+		"Count$CardsInYourHand":                                                  vHandSizeOf,
+		"Count$ValidExile Creature.YouOwn":                                       vCountExile,
+		"Count$ValidGraveyard,Exile Creature.YouOwn":                             vSum,
 	} {
 		v, err := lc.svarValue(body, 0)
 		if err != nil || v.Kind != want {
@@ -106,7 +107,9 @@ func TestValueHeadClasses(t *testing.T) {
 		"PlayerCountOpponents$HighestCounters.Experience",          // only Counters.Poison is read
 		"PlayerCountOpponents$LowestCounters.Poison",               // only the Highest extreme
 		"PlayerCountRegisteredOpponents$HasPropertyGainedLife",
-		"Count$ValidExile Card.ExiledWithSource$CardPower", // only $CardTypes is read
+		"PlayerCountRegisteredOpponents$HasPropertywasDealtCombatDamageThisTurnBy Creature GE1", // only the exact legendary spec is read
+		"PlayerCountRegisteredOpponents$HasPropertywasDealtCombatDamageThisTurn GE1",            // the bare head only
+		"Count$ValidExile Card.ExiledWithSource$CardPower",                                      // only $CardTypes is read
 		"Targeted$CardManaCost",
 	} {
 		if v, err := lc.svarValue(bad, 0); err == nil {

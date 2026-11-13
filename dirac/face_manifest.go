@@ -189,7 +189,7 @@ func (s *State) faceDownRiders(k *prep, o Obj, sl Slot, tapped, remember bool) {
 // resolution's remembered set. Cloak's Shuffle$ is gorge's pile shuffle: it
 // shuffles no library and draws no RNG.
 func (s *State) faceDownFromTop(k *prep, p, ctrl uint8, n int, cloaked, tapped, remember bool) {
-	p &= 1
+	p = SeatIx(p)
 	if n <= 0 {
 		return
 	}
@@ -225,7 +225,7 @@ func (s *State) manifestDread(k *prep, in *kop.Instr) bool {
 	if n <= 0 {
 		return true
 	}
-	s.res.askP = p & 1
+	s.res.askP = SeatIx(p)
 	s.res.left = uint8(min(n, 255))
 	return s.dreadAsk(k)
 }

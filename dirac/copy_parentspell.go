@@ -27,7 +27,7 @@ func (s *State) copyParentSpell(k *prep, in *kop.Instr, n int) bool {
 		if !s.mintSpellCopy(k, si, ctrl) {
 			return true
 		}
-		if in.C&1 != 0 && s.copyElect(k, uint8(c)) {
+		if in.C&1 != 0 && s.copyElect(k, uint8(c)) { // seat-ok: an instruction flag bit
 			return false
 		}
 		si++ // the original moved up one

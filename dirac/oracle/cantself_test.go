@@ -175,6 +175,9 @@ func TestCantselfLockstep(t *testing.T) {
 // TestCantselfMutation ignores the self statics: the kernel then offers
 // Jace / Proft where gorge withholds them, so the games must diverge.
 func TestCantselfMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	st := runCantself(t, 64, true)
 	if st.divs == 0 {
 		t.Fatalf("mutation left the statics off in %d games with no divergence", st.games)

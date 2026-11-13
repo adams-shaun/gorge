@@ -36,7 +36,7 @@ func (s *State) seek(k *prep, in *kop.Instr) {
 		copy(elig[j:ne-1], elig[j+1:ne])
 		ne--
 	}
-	if in.C&1 != 0 {
+	if in.C&1 != 0 { // seat-ok: an instruction flag bit
 		// RememberFound$: the found cards REPLACE the remembered set,
 		// emptied even when nothing is found
 		s.g.nrem, s.g.remCnt = 0, 0
@@ -44,7 +44,7 @@ func (s *State) seek(k *prep, in *kop.Instr) {
 	for _, o := range sel[:max(n, 0)] {
 		from := s.detach(o)
 		s.placeFrom(o, kop.ZoneHand, false, from, false)
-		if in.C&1 != 0 {
+		if in.C&1 != 0 { // seat-ok: an instruction flag bit
 			s.remember(o)
 		}
 	}
