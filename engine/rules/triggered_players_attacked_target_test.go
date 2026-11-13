@@ -16,8 +16,8 @@ func TestTriggeredPlayersAttackedTargetAmountDeclaration(t *testing.T) {
 	t.Parallel()
 	const watcher = "Name:Watcher\nManaCost:1 W\nTypes:Creature Human\nPT:1/1\n" +
 		"T:Mode$ AttackersDeclared | AttackingPlayer$ You | Execute$ TrigGain | TriggerZones$ Battlefield | TriggerDescription$ Whenever you attack, gain life for each player attacked.\n" +
-		"SVar:TrigGain:DB$ GainLife | Defined$ You | LifeAmount$ X\n" +
-		"SVar:X:TriggeredPlayersAttackedTarget$Amount\n" +
+		"SVar:TrigGain:DB$ GainLife | LifeAmount$ Y | Defined$ You | SpellDescription$ Gain X life.\n" +
+		"SVar:Y:TriggeredPlayersAttackedTarget$Amount\n" +
 		"Oracle:x\n"
 	const bear = "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 	for _, tc := range []struct {
