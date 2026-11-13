@@ -102,7 +102,7 @@ type Ability struct {
 	Once uint8
 	// AnyActivator: "any player may activate this ability" (Activator$
 	// Player; Feral Hydra): the kernel also offers it to the permanent's
-	// controller's opponents (dirac/legal_anyact.go). Only a mana-only
+	// controller's opponents (dirac/cast_anyactivator.go). Only a mana-only
 	// battlefield PutCounter on the source carries it (kgen
 	// lower_anyactivator.go). A table byte: AbilityFlags has no free bit.
 	AnyActivator bool

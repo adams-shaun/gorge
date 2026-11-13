@@ -19,7 +19,7 @@ import (
 //     and its enchanted creature gets +1/+0 for each), kop.CtrScream;
 //   - PutCounter Activator$ Player (Feral Hydra: "any player may activate
 //     this ability"), kop.Ability.AnyActivator, offered to the opponent of
-//     the Hydra's controller by dirac/legal_anyact.go.
+//     the Hydra's controller by dirac/cast_anyactivator.go.
 //
 // The Cytoplast Root-Kin spelling (MoveCounter with no Source$ and a Defined$
 // destination) and Consul's Lieutenant's Renown$ have no playable carrier

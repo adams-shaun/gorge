@@ -2,7 +2,7 @@ package kgen
 
 // anyActivatorKeys are the only parameters an `Activator$ Player` ability may
 // carry: the kernel offers it to every player (kop.Ability.AnyActivator,
-// dirac/legal_anyact.go) through a deliberately narrow path, so everything
+// dirac/cast_anyactivator.go) through a deliberately narrow path, so everything
 // that reads "the activator" beyond paying a mana cost is refused here.
 var anyActivatorKeys = map[string]bool{
 	"Cost": true, "Activator": true, "CounterType": true, "CounterNum": true,

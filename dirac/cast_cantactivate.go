@@ -57,7 +57,7 @@ func (s *State) actForbiddenAb(k *prep, sl Slot, mana, loyal bool) bool {
 
 // actForbiddenBy is actForbiddenAb for the player p activating (the
 // permanent's controller, or another player of an any-player ability:
-// legal_anyact.go).
+// cast_anyactivator.go).
 func (s *State) actForbiddenBy(k *prep, sl Slot, p uint8, mana, loyal bool) bool {
 	if mana && DebugCantActMana {
 		return false

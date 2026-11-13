@@ -382,7 +382,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 	}
 	if k.gen != nil && k.gen.anyAnyAct {
-		s.offerAnyActivations(k, d, p, sorc, &av, &haveAv) // legal_anyact.go
+		s.offerAnyActivations(k, d, p, sorc, &av, &haveAv) // cast_anyactivator.go
 	}
 	if k.gen != nil {
 		s.priorityGen(k, d, p, sorc, &av, haveAv)
