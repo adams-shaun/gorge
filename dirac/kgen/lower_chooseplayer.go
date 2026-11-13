@@ -16,7 +16,7 @@ import "github.com/adams-shaun/gorge/engine/cards"
 // poses nothing: the chosen player IS the opponent. That path emits no
 // instruction and arms ChosenPlayer for the rest of this ability; any other
 // shape refuses.
-func (lc *lowerCtx) choosePlayer(ps *params, node *cards.SA) error {
+func (lc *lowerCtx) choosePlayer(ps *params, node *cards.SA, mid bool) error {
 	switch ps.str("Choices") {
 	case "Player.Opponent", "Opponent", "Player.Other":
 	default:
@@ -27,7 +27,7 @@ func (lc *lowerCtx) choosePlayer(ps *params, node *cards.SA) error {
 	}
 	// prompt and AI only
 	ps.consume("ChoiceTitle", "AILogic")
-	if chainReadsChosenPlayer(node.Sub) {
+	if mid && chainReadsChosenPlayer(node.Sub) {
 		// the chain reads the choice: gorge asks it mid-resolution whatever
 		// the seat count, so the kernel does too (OpExt ExtChoosePlayerMid,
 		// a sole opponent recorded unasked) and the card holds at any pod

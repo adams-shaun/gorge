@@ -4051,7 +4051,7 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			if other || node != sa || !spyglassChain(sa) {
 				return refuse("ETB replacement api ChoosePlayer")
 			}
-			if err := lc.choosePlayer(ps, node); err != nil {
+			if err := lc.choosePlayer(ps, node, false); err != nil {
 				return err
 			}
 		case "RevealHand":
