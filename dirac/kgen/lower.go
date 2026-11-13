@@ -3963,6 +3963,22 @@ func (lc *lowerCtx) probeParam(k, v string) error {
 		_, err := lc.value(v)
 		return err
 	case probeFilterKeys[k] || strings.HasPrefix(k, "Valid"):
+		if k == "ValidZone" {
+			// ValidZone$ is a zone list, never a filter: gorge reads it
+			// with ZoneFromString per comma part (effects/play.go), and
+			// every kgen reader of the key (play's Hand/Graveyard/Exile/
+			// Library cases, the counters' refusal, the drain-mana
+			// context) reads zone names. Probing it as a filter reported
+			// every zone-named value as `filter head "Hand"` and hid the
+			// real readers' refusals behind a spelling that is not one
+			// (Kuroki, Thief of Talents' DB$ Play ValidZone$ Hand).
+			for part := range strings.SplitSeq(v, ",") {
+				if _, ok := zoneNames[strings.TrimSpace(part)]; !ok {
+					return fmt.Errorf("unknown zone %q", strings.TrimSpace(part))
+				}
+			}
+			return nil
+		}
 		_, err := lc.filter(v)
 		return err
 	}
