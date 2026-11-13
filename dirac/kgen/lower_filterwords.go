@@ -112,6 +112,8 @@ func filterWordPred3(p string) (n int, ok bool) {
 		return int(kop.W7IsCommander), true
 	case "ThisTurnEnteredFrom_Battlefield":
 		return int(kop.W7EnteredFromBF), true
+	case "ThisTurnEnteredFrom_Library":
+		return int(kop.W7EnteredFromLib), true
 	case "BottomLibrary":
 		return int(kop.W7BottomLibrary), true
 	case "IsImprinted":

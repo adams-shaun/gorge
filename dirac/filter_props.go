@@ -197,8 +197,12 @@ func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctr
 	if fl.PredN&0xff == kop.W7Imprinted {
 		return o != NoObj && s.impHas(o) != DebugWord7Flip
 	}
-	if fl.PredN&0xff == kop.W7EnteredFromBF {
-		return o != NoObj && s.enteredFromBattlefield(o) != DebugWord7Flip
+	if n := fl.PredN & 0xff; n == kop.W7EnteredFromBF || n == kop.W7EnteredFromLib {
+		from := kop.ZoneBattlefield
+		if n == kop.W7EnteredFromLib {
+			from = kop.ZoneLibrary
+		}
+		return o != NoObj && s.enteredFrom(o, from) != DebugWord7Flip
 	}
 	if fl.PredN&0xff == kop.W7NoNameTwinGrave {
 		// off the battlefield the card has no other self to skip; in the

@@ -471,6 +471,13 @@ const W7WithInfect int16 = 28
 // a creature not attacking, and an attack on a planeswalker or battle.
 const W7AttackingEnchTrig int16 = 29
 
+// W7EnteredFromLib (PredWord7 sub-kind 30): W7EnteredFromBF's library
+// sibling, gorge's ThisTurnEnteredFrom_Library: the card was put into the
+// zone it is in now from a library this turn (the object's latest arrival,
+// read off the entered ledger). Read off the battlefield only: kgen refuses
+// it on a permanent. The Weaver King, Captain N'ghathrod.
+const W7EnteredFromLib int16 = 30
+
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
 // dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go
