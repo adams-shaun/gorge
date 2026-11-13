@@ -2317,7 +2317,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if err != nil {
 			return err
 		}
-		if !n.isConst() || n.N < 1 || n.N > 8 {
+		if !(n.isConst() && n.N >= 1 && n.N <= 8) && !rearrangeWholeLibrary(n) {
 			return refuse("RearrangeTopOfLibrary NumCards %v", n)
 		}
 		who, err := lc.objOrTarget(ps, "You", zNone)
