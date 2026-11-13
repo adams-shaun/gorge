@@ -110,8 +110,8 @@ type costs9Counts struct{ turnUps, p1p1 int }
 // It never activates Emiel the Blessed's blink over a non-empty stack: a
 // creature blinked in response to its own enter trigger returns as a new
 // object (CR 400.7), which the kernel's stale trigger no longer counters
-// while gorge's TriggeredCardLKICopy still does (a gorge defect, filed as
-// .ds4/new-tickets/gorge-putcounter-lkicopy-new-object.md).
+// while gorge's TriggeredCardLKICopy still does (a gorge defect:
+// effects/counters_put.go putCounterReferentLeft reads no incarnation).
 func costs9Policy(seed uint64) Policy {
 	rnd := RandomPolicy(seed)
 	prng := rand.New(rand.NewPCG(seed, 0x636f3973)) // "co9s"
