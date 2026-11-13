@@ -66,11 +66,14 @@ func TestFuzzSynthFlags(t *testing.T) {
 	}
 }
 
-// TestFuzzAutopayXCastPaysThroughTheWindow replays the std-sos pair whose
+// TestFuzzAutopayXCastPaysThroughTheWindow replays the std-sos game whose
 // Traumatic Critique, offered because the floating restricted {U}{R} pays its
 // pips at X = 0, is cast with X = 6. gorge's planner prices no {X} spell, so
 // the seat's cast pays the six through the manual window in battlefield order;
 // dirac used to tap a witness plan (three Mountains, three Islands).
+//
+// The game is a recording (pinnedReplay): std-sos pair 1104 as dealt when the
+// cast was fixed.
 func TestFuzzAutopayXCastPaysThroughTheWindow(t *testing.T) {
 	corpus, err := cardset.CorpusDir()
 	if err != nil {
@@ -80,12 +83,21 @@ func TestFuzzAutopayXCastPaysThroughTheWindow(t *testing.T) {
 		t.Skipf("gorge corpus has no cardsfolder: %v", err)
 	}
 	cardsettest.Synth(t, "std-sos")
-	code, stdout, stderr := runKFuzz(t, "-synth", "std-sos", "-first-pair", "1104", "-pairs", "1", "-seed", "1", "-surface", "autopay", "-shrink", "0", "-absolute")
-	if code != 0 {
-		t.Fatalf("exit %d, stderr %q\n%s", code, stderr, stdout)
+	out := pinnedReplay(t, "std-sos", "testdata/autopay_x_cast_pays_through_window.repro.json", "-surface", "autopay")
+	m, rest := eventAfter(t, out, `stack_push (p\d) obj=Traumatic Critique#(\d+) zone 1>5`)
+	p, id := m[1], m[2]
+	m, _ = eventAfter(t, rest, `(?s)^(.*?)cast_info `+p+` obj=Traumatic Critique#`+id+` n=(\d+)\n`)
+	window, x := m[1], m[2]
+	if x != "6" {
+		t.Fatalf("Traumatic Critique cast with X = %s, want 6", x)
 	}
-	if !strings.Contains(stdout, "1 clean, 0 divergent") {
-		t.Errorf("pair 1104 diverged:\n%s", stdout)
+	// the six through the manual window: one land tapped for one mana each,
+	// beside the restricted floating {U}{R} spent on the pips
+	if n := len(regexp.MustCompile(`(?m)^\s*ev \d+ mana_add `+p+` n=1 ctr=[WUBRGC]$`).FindAllString(window, -1)); n != 6 {
+		t.Errorf("%d mana tapped in the cast's window, want 6:\n%s", n, window)
+	}
+	if n := strings.Count(window, `"mana-restriction:`); n != 2 {
+		t.Errorf("%d restricted floating mana spent, want 2 ({U}{R}):\n%s", n, window)
 	}
 }
 
@@ -187,4 +199,41 @@ func TestFuzzPlottedCastSpendIsNotAResponseCastsPayment(t *testing.T) {
 		}
 		rest = rest[loc[1]:]
 	}
+}
+
+// pinnedReplay replays a recorded game (a kfuzz repro in testdata: decks,
+// seed and actions) against the synthetic pool's kernel with gorge's events,
+// so a re-deal of the pool cannot move a pinned scenario away. It fails
+// unless the whole recording plays in lockstep, and returns kfuzz's output.
+func pinnedReplay(t *testing.T, pool, path string, args ...string) string {
+	t.Helper()
+	rep, err := oracle.ReadRepro(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	code, stdout, stderr := runKFuzz(t, append([]string{"-synth", pool, "-repro", path, "-events", "100000"}, args...)...)
+	if code != 0 {
+		t.Fatalf("exit %d, stderr %q\n%s", code, stderr, stdout)
+	}
+	if want := fmt.Sprintf("repro: no divergence in %d decisions", len(rep.Actions)); !strings.Contains(stdout, want) {
+		t.Fatalf("want %q:\n%s", want, stdout)
+	}
+	return stdout
+}
+
+// eventAfter finds the first match of re in out and returns its submatches
+// and the text after it; it fails the test when there is none.
+func eventAfter(t *testing.T, out, re string) ([]string, string) {
+	t.Helper()
+	loc := regexp.MustCompile(re).FindStringSubmatchIndex(out)
+	if loc == nil {
+		t.Fatalf("no event matching %q in:\n%s", re, out)
+	}
+	m := make([]string, len(loc)/2)
+	for i := range m {
+		if loc[2*i] >= 0 {
+			m[i] = out[loc[2*i]:loc[2*i+1]]
+		}
+	}
+	return m, out[loc[1]:]
 }
