@@ -504,7 +504,7 @@ func FeatScenarios(set cardset.Set, c *Corpus) ([]FeatScenario, error) {
 				k := g.id["bigkill"]
 				return g.one("removal-at-my-creature", seed, pols, func(v *sview) bool {
 					t := v.top()
-					return v.atPrio(0) && t != nil && t.Card == k && t.Ctrl == 1 && t.Targets[0] < uint8(dirac.MaxObj) && mineOnBf(kop.TCreature)(v, t.Targets[0])
+					return v.atPrio(0) && t != nil && t.Card == k && t.Ctrl == 1 && t.Targets[0] < dirac.TCode(uint8(dirac.MaxObj)) && mineOnBf(kop.TCreature)(v, uint8(t.Targets[0]))
 				}, "oneone", "bigkill")
 			}},
 		{"removal-at-my-land", []string{"removal-at-my-land"},
@@ -528,7 +528,7 @@ func FeatScenarios(set cardset.Set, c *Corpus) ([]FeatScenario, error) {
 				k := g.id["landkill"]
 				out, ok := g.one("removal-at-my-land", seed, pols, func(v *sview) bool {
 					t := v.top()
-					return v.atPrio(0) && t != nil && t.Card == k && t.Ctrl == 1 && t.Targets[0] < uint8(dirac.MaxObj) && mineOnBf(want)(v, t.Targets[0])
+					return v.atPrio(0) && t != nil && t.Card == k && t.Ctrl == 1 && t.Targets[0] < dirac.TCode(uint8(dirac.MaxObj)) && mineOnBf(want)(v, uint8(t.Targets[0]))
 				}, "landkill")
 				if ok {
 					out[0].Roles["landkill-target"] = cls
@@ -565,8 +565,8 @@ func FeatScenarios(set cardset.Set, c *Corpus) ([]FeatScenario, error) {
 					})}}
 				return g.one("cheapkill-on-oneone", seed, pols, func(v *sview) bool {
 					t := v.top()
-					return v.atPrio(0) && t != nil && t.Card == kill && t.Ctrl == 1 && t.Targets[0] < uint8(dirac.MaxObj) &&
-						mineOnBf(kop.TCreature)(v, t.Targets[0]) && v.p.Objs[t.Targets[0]].Card == one && v.find(0, kop.ZoneHand, ctr) >= 0 && v.castable(ctr)
+					return v.atPrio(0) && t != nil && t.Card == kill && t.Ctrl == 1 && t.Targets[0] < dirac.TCode(uint8(dirac.MaxObj)) &&
+						mineOnBf(kop.TCreature)(v, uint8(t.Targets[0])) && v.p.Objs[t.Targets[0]].Card == one && v.find(0, kop.ZoneHand, ctr) >= 0 && v.castable(ctr)
 				}, "cheapkill", "oneone", "counter")
 			}},
 		{"bigkill-on-bomb", []string{"bigkill-on-bomb"},
@@ -582,8 +582,8 @@ func FeatScenarios(set cardset.Set, c *Corpus) ([]FeatScenario, error) {
 					})}}
 				return g.one("bigkill-on-bomb", seed, pols, func(v *sview) bool {
 					t := v.top()
-					return v.atPrio(0) && t != nil && t.Card == kill && t.Ctrl == 1 && t.Targets[0] < uint8(dirac.MaxObj) &&
-						mineOnBf(kop.TCreature)(v, t.Targets[0]) && v.p.Objs[t.Targets[0]].Card == bomb && v.castable(ctr)
+					return v.atPrio(0) && t != nil && t.Card == kill && t.Ctrl == 1 && t.Targets[0] < dirac.TCode(uint8(dirac.MaxObj)) &&
+						mineOnBf(kop.TCreature)(v, uint8(t.Targets[0])) && v.p.Objs[t.Targets[0]].Card == bomb && v.castable(ctr)
 				}, "bigkill", "bomb", "counter")
 			}},
 		{"counter-prevents-lethal", []string{"counter-prevents-lethal"},

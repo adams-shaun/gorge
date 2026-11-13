@@ -47,9 +47,11 @@ func (f *killFix) spell(ctrl, src uint8, ef EffectSpec, tgt ...uint8) int {
 	se := &f.e.kp.Stack[f.e.kp.NStack]
 	se.Kind, se.Source, se.Ctrl = 0, dirac.Obj(src), ctrl
 	for i := range se.Targets {
-		se.Targets[i] = uint8(dirac.NoTarget)
+		se.Targets[i] = dirac.TCode(dirac.NoTarget)
 	}
-	copy(se.Targets[:], tgt)
+	for i, c := range tgt {
+		se.Targets[i] = dirac.TCode(c)
+	}
 	f.e.kp.NStack++
 	return int(f.e.kp.NStack) - 1
 }

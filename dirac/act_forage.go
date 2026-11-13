@@ -311,7 +311,7 @@ func (s *State) graveActOK(k *prep, a *kop.Ability, p uint8, o Obj) bool {
 		if t.UpTo || t.TFlags&kop.TgfAtResolution != 0 || t.Kind != kop.TgtCard || t.Filter == 0 || k.t.Filters[t.Filter].Flags&kop.FOther == 0 {
 			continue
 		}
-		var buf [MaxOptions]uint8
+		var buf [MaxOptions]TCode
 		if s.targetCands(k, t, p, NoSlot, o, &buf) < int(max8(t.Min, 1)) {
 			return false
 		}

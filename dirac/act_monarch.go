@@ -202,7 +202,7 @@ func (s *State) monarchCombat(r *dmgRec) {
 	}
 	for i := 0; i < r.nev; i++ {
 		ev := &r.ev[i]
-		if ev.dst == NoSlot && ev.n > 0 && TCode(s.perms[ev.src].atk) == PlayerCode(mon) {
+		if ev.dst == NoSlot && ev.n > 0 && s.perms[ev.src].atk == PlayerCode(mon) {
 			s.enqueue(NoObj, 0, 0, abDelayed, mon, NoObj, s.perms[ev.src].ctrl, monStealAmt)
 			if st := DebugMonarchStats; st != nil {
 				st.Steals++

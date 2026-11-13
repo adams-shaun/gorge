@@ -92,15 +92,15 @@ func (s *State) askOptionsCzParams(k *prep, d *Decision) bool {
 		d.add(MakeAction(AkChoose, 0, 0, 0))
 	case raGenEnterDefender:
 		d.Sub = ChGenEnterDefender
-		var buf [MaxOptions]uint8
+		var buf [MaxOptions]TCode
 		n := s.enteringDefenderCands(k, s.res.askP, &buf)
 		if MaxSeats > 2 && s.res.e.kind == seTrigger {
-			if fb := s.enterDefenderFallback(k, s.res.askP); TCode(fb) != NoTarget {
+			if fb := s.enterDefenderFallback(k, s.res.askP); fb != NoTarget {
 				n = enterDefenderOrder(&buf, n, fb) // gorge chooseEnteringDefender: fallback first
 			}
 		}
 		for i := 0; i < n; i++ {
-			d.add(MakeAction(AkChoose, TCode(buf[i]), 0, 0))
+			d.add(MakeAction(AkChoose, buf[i], 0, 0))
 		}
 	default:
 		return false
@@ -130,12 +130,12 @@ func (s *State) applyAskCzParams(k *prep, a Action) bool {
 		s.res.ask = raNone
 		sl := Slot(s.res.chosen)
 		if sl == NoSlot { // a TokenAttacking$ True mint's pick, asked before it (filter_combatwords.go)
-			s.g.tokDef, s.g.tokDefSet = uint8(a.Source()), true
+			s.g.tokDef, s.g.tokDefSet = a.Source(), true
 			s.runProg(k) // re-run the mint instruction with the answer
 			return true
 		}
 		if s.occ.has(sl) {
-			s.setEnterAttacker(k, sl, uint8(a.Source()))
+			s.setEnterAttacker(k, sl, a.Source())
 		}
 		if s.unparkTail(k) {
 			return true
@@ -171,7 +171,7 @@ func (s *State) enterAttacking(k *prep, sl Slot, ctrl uint8) bool {
 		s.step < kop.StepAttackers || s.step > kop.StepEndCombat {
 		return false
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	n := s.enteringDefenderCands(k, ctrl, &buf)
 	if n == 0 {
 		return false // no CR 508.4 defender: it enters but does not attack
@@ -190,7 +190,7 @@ func (s *State) enterAttacking(k *prep, sl Slot, ctrl uint8) bool {
 
 // setEnterAttacker applies the attacking entry to the permanent at sl, the
 // fold for Attacking$ True (CR 508.4).
-func (s *State) setEnterAttacker(k *prep, sl Slot, atk uint8) {
+func (s *State) setEnterAttacker(k *prep, sl Slot, atk TCode) {
 	pp := &s.perms[sl]
 	if pp.flags&pfAttacking != 0 {
 		pp.atk = atk // already attacking (Kira's entry beside a token's own): no second slot
@@ -210,11 +210,11 @@ func (s *State) setEnterAttacker(k *prep, sl Slot, atk uint8) {
 // front), then each face-up planeswalker the opponent controls, then every
 // battle it protects (gorge battleDefenders, CR 310.7), each seat's
 // battlefield in entry order.
-func (s *State) enteringDefenderCands(k *prep, ctrl uint8, buf *[MaxOptions]uint8) int {
+func (s *State) enteringDefenderCands(k *prep, ctrl uint8, buf *[MaxOptions]TCode) int {
 	n := 0
 	for opp := uint8(0); opp < s.nSeats(); opp++ {
 		if opp != ctrl && !s.pl[opp].lost {
-			buf[n] = uint8(PlayerCode(opp)) // each opponent player, AliveFrom(0)
+			buf[n] = PlayerCode(opp) // each opponent player, AliveFrom(0)
 			n++
 		}
 	}
@@ -235,7 +235,7 @@ func (s *State) enteringDefenderCands(k *prep, ctrl uint8, buf *[MaxOptions]uint
 		c := s.battlefieldOrder(opp, m, order[:], 0)
 		for _, sl := range order[:c] {
 			if n < MaxOptions {
-				buf[n] = uint8(s.perms[sl].obj)
+				buf[n] = TCode(s.perms[sl].obj)
 				n++
 			}
 		}
@@ -252,7 +252,7 @@ func (s *State) enteringDefenderCands(k *prep, ctrl uint8, buf *[MaxOptions]uint
 		}
 		c := s.battlefieldOrder(p, bm, order[:], 0)
 		for _, sl := range order[:c] {
-			buf[n] = uint8(s.perms[sl].obj)
+			buf[n] = TCode(s.perms[sl].obj)
 			n++
 		}
 	}

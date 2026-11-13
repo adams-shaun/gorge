@@ -145,7 +145,7 @@ func predCardKind(k *prep, fl *kop.Filter, c CardID) bool {
 // (Tf2Attacked: attackedMatch on this event group's defender def).
 //
 //go:noinline
-func (s *State) attacksGate(f kop.TrigFlags2, ctrl uint8, def uint8) bool {
+func (s *State) attacksGate(f kop.TrigFlags2, ctrl uint8, def TCode) bool {
 	if f&kop.Tf2Alone != 0 && s.nAttackers != 1 {
 		return false
 	}
@@ -157,9 +157,9 @@ func (s *State) attacksGate(f kop.TrigFlags2, ctrl uint8, def uint8) bool {
 // planeswalker Obj) is the trigger controller ctrl (Tf2AtkYou), a
 // planeswalker ctrl controls (Tf2AtkYourPW), or an opponent player
 // (Tf2AtkOpp).
-func (s *State) attackedMatch(f kop.TrigFlags2, ctrl uint8, def uint8) bool {
-	if isPlayerOrNone(TCode(def)) {
-		p := CodeSeat(TCode(def))
+func (s *State) attackedMatch(f kop.TrigFlags2, ctrl uint8, def TCode) bool {
+	if isPlayerOrNone(def) {
+		p := CodeSeat(def)
 		return p == ctrl && f&kop.Tf2AtkYou != 0 || p != ctrl && f&kop.Tf2AtkOpp != 0
 	}
 	if f&kop.Tf2AtkYourPW == 0 {

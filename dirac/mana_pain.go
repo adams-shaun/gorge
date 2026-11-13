@@ -190,7 +190,7 @@ func (s *State) painDamage(k *prep, sl Slot, p uint8, n int) {
 	// rider cap StallReplPlus loudly (replPlus): safe-side; the pool cannot
 	// reach two candidates for a land's self-damage today.
 	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 {
-		if n = s.replDamage(k, p, sl, s.cardAt(sl), uint8(code), false, n); n <= 0 {
+		if n = s.replDamage(k, p, sl, s.cardAt(sl), code, false, n); n <= 0 {
 			return
 		}
 	}
@@ -199,7 +199,7 @@ func (s *State) painDamage(k *prep, sl Slot, p uint8, n int) {
 		s.markDealt(k, sl, false) // filter_permmarks.go
 	}
 	if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) {
-		s.fireDamage(k, sl, int16(n), true, false, uint8(code))
+		s.fireDamage(k, sl, int16(n), true, false, code)
 	}
 }
 

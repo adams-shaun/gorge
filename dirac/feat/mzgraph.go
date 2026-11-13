@@ -335,10 +335,10 @@ func (e *Encoder) AppendMZGraph(dst []byte, g *MZGraph, d *dirac.Decision, opts 
 			}
 		}
 		for _, t := range se.Targets {
-			add(t)
+			add(uint8(t))
 		}
 		for j := 0; j < int(se.NExtra); j++ {
-			add(se.Extra[j])
+			add(uint8(se.Extra[j]))
 		}
 	}
 	// options: the record's used ones, in decision order

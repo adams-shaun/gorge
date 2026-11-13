@@ -273,7 +273,7 @@ func (a *SBT) buildView(s *dirac.State, me uint8, potential []decision.Potential
 			case dirac.TCode(t) >= dirac.PlayerTarget0:
 				sv.Targets = append(sv.Targets, view.TargetView{Player: state.PlayerID(dirac.TCode(t) - dirac.PlayerTarget0), IsPlayer: true})
 			default:
-				sv.Targets = append(sv.Targets, view.TargetView{Obj: sbtObjID(t)})
+				sv.Targets = append(sv.Targets, view.TargetView{Obj: sbtObjID(uint8(t))})
 			}
 		}
 		v.Stack = append(v.Stack, sv)

@@ -42,9 +42,9 @@ func (s *State) ctrlRoleF2(k *prep, f kop.FilterFlags2, ctrl uint8) bool {
 		}
 		// the slots and a multi-pick slot's extras (Officious Interrogation's
 		// second player)
-		var codes [kop.MaxTargets + maxXTgt]uint8
+		var codes [kop.MaxTargets + maxXTgt]TCode
 		for _, c := range codes[:s.chainTargets(e, &codes)] {
-			if TCode(c) == PlayerCode(ctrl) {
+			if c == PlayerCode(ctrl) {
 				return true
 			}
 		}
@@ -72,11 +72,11 @@ func (s *State) ctrlRoleTgt(k *prep, slot int, ctrl uint8) bool {
 	// the later link's target recheck, which gorge does not do
 	t := e.tgt[slot]
 	switch {
-	case TCode(t) == NoTarget:
+	case t == NoTarget:
 		return false
-	case isPlayerTarget(TCode(t)):
-		return ctrl == CodeSeat(TCode(t))
-	case isStackTarget(TCode(t)):
+	case isPlayerTarget(t):
+		return ctrl == CodeSeat(t)
+	case isStackTarget(t):
 		if s.res.active {
 			return ctrl == s.stackTgtCtrl(slot)
 		}
@@ -84,7 +84,7 @@ func (s *State) ctrlRoleTgt(k *prep, slot int, ctrl uint8) bool {
 			return ctrl == s.stack[j].ctrl
 		}
 		return false
-	case !isObjTarget(TCode(t)):
+	case !isObjTarget(t):
 		return false // 0xFE, a departed stack target, names no controller
 	case s.objs[t].zone == kop.ZoneStack:
 		if j := s.stackIndexOf(Obj(t)); j >= 0 {
@@ -125,14 +125,14 @@ var DebugDefendingActiveOpp bool
 // Spell.Creature) a spell on the stack, read like a TgtSpell target
 // (legal.go targetOK). Every Filter2 reader (costTargetOK's build and probe
 // branches, affordableTargets) goes through it.
-func (s *State) costTargetMatch(k *prep, f kop.FilterID, p uint8, t uint8) bool {
+func (s *State) costTargetMatch(k *prep, f kop.FilterID, p uint8, t TCode) bool {
 	return s.costTargetMatchSrc(k, f, p, t, NoSlot)
 }
 
 // costTargetMatchSrc is costTargetMatch for a filter read against the cost
 // static's source permanent src (a Card.Self ValidTarget$: Terror of the Peaks).
-func (s *State) costTargetMatchSrc(k *prep, f kop.FilterID, p uint8, t uint8, src Slot) bool {
-	if isPlayerOrNone(TCode(t)) {
+func (s *State) costTargetMatchSrc(k *prep, f kop.FilterID, p uint8, t TCode, src Slot) bool {
+	if isPlayerOrNone(t) {
 		return false
 	}
 	ob := &s.objs[t]

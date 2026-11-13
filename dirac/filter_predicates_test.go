@@ -228,7 +228,7 @@ func TestAttacksAlone(t *testing.T) {
 		for _, o := range objs {
 			p := &sc.s.perms[sc.slot(o)]
 			p.flags |= pfAttacking
-			p.atk = uint8(PlayerTarget1)
+			p.atk = TCode(PlayerTarget1)
 		}
 		sc.s.nAttackers = uint8(len(objs))
 		sc.s.npend = 0

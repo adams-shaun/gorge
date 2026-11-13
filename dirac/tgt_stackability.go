@@ -50,9 +50,9 @@ func (s *State) stackSid(e *stackEntry) {
 
 // stackTgtIdx is the stack index of the ability entry target byte c with
 // identity sid names, or -1 when it is no longer on the stack.
-func (s *State) stackTgtIdx(c, sid uint8) int {
+func (s *State) stackTgtIdx(c TCode, sid uint8) int {
 	if DebugStackTgtByIndex {
-		if i := int(TCode(c) - StackTarget0); i < int(s.sp) && s.stack[i].kind != seSpell {
+		if i := int(c - StackTarget0); i < int(s.sp) && s.stack[i].kind != seSpell {
 			return i
 		}
 		return -1
@@ -82,15 +82,15 @@ func (s *State) stackTgtSelf() int {
 // stackTgtOK is targetOK for a TgtStackObj slot.
 //
 //go:noinline
-func (s *State) stackTgtOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, code uint8) bool {
+func (s *State) stackTgtOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, code TCode) bool {
 	if t.Kind == kop.TgtSpellTgting {
 		return s.spellTgtingOK(k, t, p, self, code) // tgt_countershapes.go
 	}
 	if t.Kind == kop.TgtStackTgting {
 		return s.stackTgtingOK(k, t, p, self, code) // tgt_countershapes.go
 	}
-	if isStackTarget(TCode(code)) {
-		i := int(TCode(code) - StackTarget0)
+	if isStackTarget(code) {
+		i := int(code - StackTarget0)
 		if i >= int(s.sp) || i == s.stackTgtSelf() {
 			return false
 		}
@@ -105,7 +105,7 @@ func (s *State) stackTgtOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, code u
 		}
 		return s.stack[i].kind != seSpell && (t.TFlags&kop.TgfSingleTgt == 0 || s.ksrSingle(&s.stack[i]))
 	}
-	if !isObjTarget(TCode(code)) || t.Kind == kop.TgtStackAb || copyAbKind(t.Kind) {
+	if !isObjTarget(code) || t.Kind == kop.TgtStackAb || copyAbKind(t.Kind) {
 		return false
 	}
 	o := Obj(code)
@@ -120,16 +120,16 @@ func (s *State) stackTgtOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, code u
 // as targetCands lists spells.
 //
 //go:noinline
-func (s *State) stackTgtCands(k *prep, t *kop.TargetSpec, p uint8, self Obj, out *[MaxOptions]uint8, n int) int {
+func (s *State) stackTgtCands(k *prep, t *kop.TargetSpec, p uint8, self Obj, out *[MaxOptions]TCode, n int) int {
 	for i := int(s.sp) - 1; i >= 0 && n < MaxOptions; i-- {
 		e := &s.stack[i]
-		code := uint8(e.obj)
+		code := TCode(e.obj)
 		if e.kind != seSpell {
 			if i >= maxStackTgt {
 				s.stall(StallTables) // beyond gorge's canonical stack range
 				continue
 			}
-			code = uint8(StackTarget0 + TCode(uint8(i)))
+			code = (StackTarget0 + TCode(uint8(i)))
 		}
 		if s.stackTgtOK(k, t, p, self, code) {
 			out[n] = code
@@ -149,8 +149,8 @@ func (s *State) stackTgtPicked(e *stackEntry, ti uint8, code uint8) {
 
 // stackTgtSid is the stack identity of the ability entry stack-ability target
 // byte c names (0 when it is not on the stack).
-func (s *State) stackTgtSid(c uint8) uint8 {
-	if i := int(TCode(c) - StackTarget0); i < int(s.sp) {
+func (s *State) stackTgtSid(c TCode) uint8 {
+	if i := int(c - StackTarget0); i < int(s.sp) {
 		return s.stack[i].sid
 	}
 	return 0
@@ -174,7 +174,7 @@ func (s *State) counterStackTgt(k *prep, in *kop.Instr) bool {
 		return false
 	}
 	c := s.tgtCode(slot)
-	if !isStackTarget(TCode(c)) {
+	if !isStackTarget(c) {
 		return false
 	}
 	if i := s.stackTgtIdx(c, s.res.e.tver[slot]); i >= 0 {
@@ -200,14 +200,14 @@ func (s *State) stackTgtCtrl(i int) uint8 {
 // StackTargetGone is a projected stack-ability target that has left the
 // stack: still a target, naming nothing (gorge's RefNone for the vanished
 // stack object; the oracle maps it so).
-const StackTargetGone uint8 = 0xFE
+const StackTargetGone TCode = 0xFE
 
 // stackTgtProj is a stack-ability target byte as the projection names it:
 // StackTarget0 + the entry's current index (gorge's live RefStack), or
 // StackTargetGone.
-func (s *State) stackTgtProj(c, sid uint8) uint8 {
+func (s *State) stackTgtProj(c TCode, sid uint8) TCode {
 	if i := s.stackTgtIdx(c, sid); i >= 0 && i < maxStackTgt {
-		return uint8(StackTarget0 + TCode(uint8(i)))
+		return StackTarget0 + TCode(i)
 	}
 	return StackTargetGone
 }
@@ -220,13 +220,13 @@ func (s *State) stackTgtProj(c, sid uint8) uint8 {
 func (s *State) tgtCtrlSlot(k *prep, i int) uint8 {
 	e := &s.res.e
 	t := s.tgtCode(i)
-	if TCode(t) == NoTarget {
+	if t == NoTarget {
 		return 255
 	}
-	if isPlayerOrNone(TCode(t)) {
-		return CodeSeat(TCode(t))
+	if isPlayerOrNone(t) {
+		return CodeSeat(t)
 	}
-	if isStackTarget(TCode(t)) {
+	if isStackTarget(t) {
 		return s.stackTgtCtrl(i)
 	}
 	if ob := &s.objs[t]; ob.zone == kop.ZoneStack {

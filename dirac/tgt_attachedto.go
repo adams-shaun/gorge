@@ -28,7 +28,7 @@ const raGenCzBearer = raGenManifestDread + 72
 // by the filter in.F, in slot order, and returns their number. The filter's
 // "You" is the resolving controller; the Aura's Enchant restriction is read
 // for the controller it enters under (its owner, as czAttachHost).
-func (s *State) czBearerCands(k *prep, in *kop.Instr, o Obj, out *[MaxOptions]uint8) int {
+func (s *State) czBearerCands(k *prep, in *kop.Instr, o Obj, out *[MaxOptions]TCode) int {
 	c := s.objs[o].card
 	ctrl, you := s.objs[o].owner(), s.res.e.ctrl
 	n := 0
@@ -36,7 +36,7 @@ func (s *State) czBearerCands(k *prep, in *kop.Instr, o Obj, out *[MaxOptions]ui
 		if k.t.Cards[c].Enchant.Kind != kop.TgtObject {
 			return 0
 		}
-		var buf [MaxOptions]uint8
+		var buf [MaxOptions]TCode
 		for i, m := 0, s.enchantCands(k, c, ctrl, &buf); i < m; i++ {
 			if s.matchPerm(k, in.F, s.objs[buf[i]].slot, you, NoSlot) {
 				out[n] = buf[i]
@@ -51,7 +51,7 @@ func (s *State) czBearerCands(k *prep, in *kop.Instr, o Obj, out *[MaxOptions]ui
 			continue
 		}
 		if s.matchPerm(k, in.F, sl, you, NoSlot) {
-			out[n] = uint8(s.perms[sl].obj)
+			out[n] = TCode(s.perms[sl].obj)
 			n++
 		}
 	}
@@ -64,7 +64,7 @@ func (s *State) czBearerCands(k *prep, in *kop.Instr, o Obj, out *[MaxOptions]ui
 //
 //go:noinline
 func (s *State) czBearerHost(k *prep, in *kop.Instr, o Obj) (host Slot, stay bool) {
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	n := s.czBearerCands(k, in, o, &buf)
 	switch {
 	case n == 0:
@@ -85,7 +85,7 @@ func (s *State) czBearerHost(k *prep, in *kop.Instr, o Obj) (host Slot, stay boo
 //
 //go:noinline
 func (s *State) czBearerAfter(k *prep, in *kop.Instr, o Obj) bool {
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	if s.objs[o].zone != kop.ZoneBattlefield || s.czBearerCands(k, in, o, &buf) < 2 {
 		return false
 	}
@@ -102,10 +102,10 @@ func (s *State) askOptionsBearer(k *prep, d *Decision) bool {
 	}
 	in := &s.prog(k)[s.res.pc]
 	d.Sub = ChGenChooseCard
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	n := s.czBearerCands(k, in, s.objRefObj(in.Obj), &buf)
 	for i := 0; i < n; i++ {
-		d.add(MakeAction(AkChoose, TCode(buf[i]), 0, 0))
+		d.add(MakeAction(AkChoose, buf[i], 0, 0))
 	}
 	return true
 }

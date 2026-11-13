@@ -118,10 +118,10 @@ func (s *State) wordPerm2(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Slot
 	case kop.W7AttackingOpp:
 		// attacking a PLAYER who is an opponent of ctrl; a planeswalker defender matches nothing
 		if MaxSeats == 2 {
-			ans = s.perms[sl].flags&pfAttacking != 0 && TCode(s.perms[sl].atk) == PlayerCode(NextSeat(ctrl))
+			ans = s.perms[sl].flags&pfAttacking != 0 && s.perms[sl].atk == PlayerCode(NextSeat(ctrl))
 		} else {
 			t := s.perms[sl].atk
-			ans = s.perms[sl].flags&pfAttacking != 0 && isPlayerTarget(TCode(t)) && IsOpponent(ctrl, CodeSeat(TCode(t)))
+			ans = s.perms[sl].flags&pfAttacking != 0 && isPlayerTarget(t) && IsOpponent(ctrl, CodeSeat(t))
 		}
 	case kop.W7EnchantedByYours:
 		// some Aura attached to the candidate is controlled by ctrl (CR 303.4)
@@ -390,7 +390,7 @@ func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 // TgtCard slot whose filter zone is exile reaches it.
 //
 //go:noinline
-func (s *State) exileCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]uint8, n int) int {
+func (s *State) exileCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]TCode, n int) int {
 	for pp := 0; pp < int(s.nSeats()); pp++ {
 		if s.out(uint8(pp)) {
 			continue
@@ -401,8 +401,8 @@ func (s *State) exileCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, se
 			if uint8(o)+1 == s.g.tgtSelf {
 				continue
 			}
-			if s.targetOK(k, t, p, src, self, uint8(o)) && n < MaxOptions-1 {
-				out[n] = uint8(o)
+			if s.targetOK(k, t, p, src, self, TCode(o)) && n < MaxOptions-1 {
+				out[n] = TCode(o)
 				n++
 			}
 		}

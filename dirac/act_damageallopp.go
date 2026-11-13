@@ -45,12 +45,12 @@ func (s *State) damageAllOpp(k *prep, in *kop.Instr, ctrl uint8, n int) {
 		hi = s.battlefieldOrder(p, hit.and(s.ctrlM[p]), ord[:], hi)
 	}
 	for _, sl := range ord[:hi] {
-		s.damageTo(k, uint8(s.perms[sl].obj), n)
+		s.damageTo(k, TCode(s.perms[sl].obj), n)
 	}
 	if pl != 0 {
 		q := s.oppsFrom(ctrl)
 		for i := uint8(0); i < q.n; i++ {
-			s.damageTo(k, uint8(PlayerCode(q.s[i])), n)
+			s.damageTo(k, PlayerCode(q.s[i]), n)
 		}
 	}
 }

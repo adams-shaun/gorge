@@ -34,8 +34,8 @@ func (s *State) noteCmdDamagePass(r *dmgRec) {
 	}
 	for m := s.occ; m.any(); m = m.rest() {
 		a := m.first()
-		if n := r.dealtPl[a]; n > 0 && isPlayerOrNone(TCode(s.perms[a].atk)) {
-			s.noteCmdDamage(a, CodeSeat(TCode(s.perms[a].atk)), int(n))
+		if n := r.dealtPl[a]; n > 0 && isPlayerOrNone(s.perms[a].atk) {
+			s.noteCmdDamage(a, CodeSeat(s.perms[a].atk), int(n))
 		}
 	}
 }

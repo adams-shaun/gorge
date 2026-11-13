@@ -144,7 +144,7 @@ func runMap(t *testing.T, sc *scen, src Obj, card CardID, ents ...struct {
 }) {
 	t.Helper()
 	for i, e := range ents {
-		sc.s.g.dmg[i].code, sc.s.g.dmg[i].amt = e.code, e.amt
+		sc.s.g.dmg[i].code, sc.s.g.dmg[i].amt = TCode(e.code), e.amt
 	}
 	sc.s.g.ndmg = uint8(len(ents))
 	runTrig(t, sc, src, card)
@@ -259,9 +259,9 @@ func TestReplPlusSiteAnswerDivideStallsLoud(t *testing.T) {
 	sc.s.push(e)
 	sc.s.res.e = e
 	sc.s.res.pc = 0
-	sc.s.res.e.tgt[0] = uint8(b1)
+	sc.s.res.e.tgt[0] = TCode(b1)
 	x := sc.s.xtMut(&sc.s.res.e)
-	x.n, x.slot[0], x.code[0], x.ver[0] = 1, 0, uint8(b2), sc.s.objs[b2].ver
+	x.n, x.slot[0], x.code[0], x.ver[0] = 1, 0, TCode(b2), sc.s.objs[b2].ver
 	sc.s.runProg(sc.k)
 	if sc.s.res.ask != raGenDivide {
 		t.Fatalf("ask %d, want the divide ask over the two bears", sc.s.res.ask)

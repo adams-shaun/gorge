@@ -43,15 +43,15 @@ func (s *State) replNIn(k *prep, m slotMask, b uint32) int {
 // controls when the recipient is that player's opponent or a permanent the
 // opponent controls, then prevented (0) when it is noncombat damage to a
 // creature whose controller controls another Crystal Barricade.
-func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, code uint8, combat bool, n int) int {
+func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, code TCode, combat bool, n int) int {
 	g := k.gen
 	if n <= 0 || srcCtrl > 1 {
 		return n
 	}
 	rcp := uint8(255) // the recipient's controller
 	sl := NoSlot
-	if isPlayerTarget(TCode(code)) {
-		rcp = CodeSeat(TCode(code))
+	if isPlayerTarget(code) {
+		rcp = CodeSeat(code)
 	} else if int(code) < MaxObj && s.objs[code].zone == kop.ZoneBattlefield {
 		sl = s.objs[code].slot
 		rcp = s.perms[sl].ctrl
@@ -229,11 +229,11 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 			continue
 		}
 		src := &s.perms[ev.src]
-		var code uint8
+		var code TCode
 		if ev.dst == NoSlot {
 			code = src.atk // an attacker's damage to the player it attacks
 		} else {
-			code = uint8(s.perms[ev.dst].obj)
+			code = TCode(s.perms[ev.dst].obj)
 		}
 		if ordered {
 			if m, ok := s.prevNextTake(k, src.ctrl, ev.src, s.cardAt(ev.src), code, s.recipientCtl(ev.dst, code), ev.dst, true, int(ev.n)); ok {
@@ -273,7 +273,7 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 		ev.n = s.sat16(n)
 		r.dealt[ev.src] = s.addSat16(r.dealt[ev.src], d)
 		if ev.dst == NoSlot {
-			r.toPl[CodeSeat(TCode(code))] = s.addSat16(r.toPl[CodeSeat(TCode(code))], d)
+			r.toPl[CodeSeat(code)] = s.addSat16(r.toPl[CodeSeat(code)], d)
 			r.dealtPl[ev.src] = s.addSat16(r.dealtPl[ev.src], d)
 		} else {
 			r.toPerm[ev.dst] = s.addSat16(r.toPerm[ev.dst], d)
@@ -505,7 +505,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 			code = TCode(s.perms[fe.dst].obj)
 		}
 		ro.pnx = 0
-		if n = s.prevNextCands(k, uint8(code), true, &ro.cand, n, &ro.pnx); n < 0 {
+		if n = s.prevNextCands(k, code, true, &ro.cand, n, &ro.pnx); n < 0 {
 			return 0
 		}
 		ro.prev &^= ro.pnx
@@ -536,7 +536,7 @@ func (s *State) replOrderFreeze(k *prep, r *dmgRec, first bool) {
 		fe.card = s.cardAt(ev.src)
 		fe.ctrl = s.perms[ev.src].ctrl
 		if ev.dst == NoSlot {
-			fe.apl = CodeSeat(TCode(s.perms[ev.src].atk))
+			fe.apl = CodeSeat(s.perms[ev.src].atk)
 		}
 		kw := s.kw(k, ev.src)
 		fe.ll, fe.dt = kw&kop.KwLifelink != 0, kw&kop.KwDeathtouch != 0
@@ -757,7 +757,7 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 					code = TCode(s.perms[ro.askD].obj)
 				}
 				if d := int(e.n) - n; d > 0 {
-					s.combatEvLess(r, e, uint8(code), d)
+					s.combatEvLess(r, e, code, d)
 				}
 				break
 			}
@@ -801,7 +801,7 @@ func (s *State) dealCombatEvent(k *prep, r *dmgRec, i int, fe *fzEv) int {
 		// a lone Ext PreventNext shield, spent as the event is dealt (repl_prevnext.go)
 		code := src.atk // the player the source attacks
 		if ev.dst != NoSlot {
-			code = uint8(s.perms[ev.dst].obj)
+			code = TCode(s.perms[ev.dst].obj)
 		}
 		if m, ok := s.prevNextTake(k, src.ctrl, ev.src, s.cardAt(ev.src), code, s.recipientCtl(ev.dst, code), ev.dst, true, n); ok {
 			if m == 0 {
@@ -813,8 +813,8 @@ func (s *State) dealCombatEvent(k *prep, r *dmgRec, i int, fe *fzEv) int {
 		}
 	}
 	if ev.dst == NoSlot {
-		s.noteCmdDamage(ev.src, CodeSeat(TCode(src.atk)), n)
-		s.loseLife(k, CodeSeat(TCode(src.atk)), n)
+		s.noteCmdDamage(ev.src, CodeSeat(src.atk), n)
+		s.loseLife(k, CodeSeat(src.atk), n)
 	} else {
 		sl := ev.dst
 		p := &s.perms[sl]
@@ -902,7 +902,7 @@ func (s *State) applyReplOrder(a Action) {
 // event parked outside a program step (no raGenReplOrder pause) is asked
 // once the resolution is done, before priority (stepGen, ro.nca).
 type ncDmg struct {
-	code  uint8 // the recipient (an Obj or PlayerTarget*); n == 0: none parked
+	code  TCode // the recipient (an Obj or PlayerTarget*); n == 0: none parked
 	src   Obj   // the source: a permanent's object, or the resolving spell's (spell)
 	ctrl  uint8
 	ll    bool // lifelink, deathtouch: the source's, when the event happened
@@ -963,7 +963,7 @@ func (s *State) damageSeqNext(k *prep, n int) {
 		if s.g.dmgSeqI < s.g.dmgSeqN {
 			sl := s.resArm().dmgSeqOrd[s.g.dmgSeqI]
 			s.g.dmgSeqI++
-			s.damageTo(k, uint8(s.perms[sl].obj), n)
+			s.damageTo(k, TCode(s.perms[sl].obj), n)
 			if s.g.nc.n != 0 {
 				return // parked: resume after the answer
 			}
@@ -974,7 +974,7 @@ func (s *State) damageSeqNext(k *prep, n int) {
 			for i := uint8(0); i < q.n; i++ {
 				if p := q.s[i]; s.g.dmgSeqPl&(1<<p) != 0 {
 					s.g.dmgSeqPl &^= 1 << p
-					s.damageTo(k, uint8(PlayerCode(p)), n)
+					s.damageTo(k, PlayerCode(p), n)
 					break
 				}
 			}
@@ -998,7 +998,7 @@ func (s *State) damageSeqNext(k *prep, n int) {
 			if b == 2 {
 				p = NextSeat(s.active)
 			}
-			s.damageTo(k, uint8(PlayerCode(p)), n)
+			s.damageTo(k, PlayerCode(p), n)
 			if s.g.nc.n != 0 {
 				return
 			}
@@ -1023,7 +1023,7 @@ func (s *State) damageSeqNext(k *prep, n int) {
 // matches: it is collected in the scan too, so it is a candidate here before
 // the shield. Protection prevents the damage before the replacements
 // (gorge emit).
-func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uint8, n int, kw kop.KwMask) bool {
+func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCode, n int, kw kop.KwMask) bool {
 	g := k.gen
 	ro := &s.g.ro
 	plusOnly := replPlusOnly(g)
@@ -1035,8 +1035,8 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 	}
 	rcp := uint8(255)
 	sl := NoSlot
-	if isPlayerTarget(TCode(code)) {
-		rcp = CodeSeat(TCode(code))
+	if isPlayerTarget(code) {
+		rcp = CodeSeat(code)
 		if g.anyRepl&rbPlProt != 0 && s.plProtected(k, ctrl, rcp, false) {
 			return false // prevented before the replacements (replDamage)
 		}
@@ -1205,8 +1205,8 @@ func (s *State) dealNC(k *prep) {
 		return
 	}
 	code := nc.code
-	if isPlayerOrNone(TCode(code)) {
-		s.loseLife(k, CodeSeat(TCode(code)), n)
+	if isPlayerOrNone(code) {
+		s.loseLife(k, CodeSeat(code), n)
 	} else {
 		ob := &s.objs[code]
 		if ob.zone != kop.ZoneBattlefield {
@@ -1230,7 +1230,7 @@ func (s *State) dealNC(k *prep) {
 	}
 	if s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any() || k.gen != nil && k.gen.graveDmg {
 		if ob := &s.objs[nc.src]; !nc.spell && ob.zone == kop.ZoneBattlefield {
-			s.fireDamage(k, ob.slot, int16(n), isPlayerOrNone(TCode(code)), false, code)
+			s.fireDamage(k, ob.slot, int16(n), isPlayerOrNone(code), false, code)
 		} else if nc.spell || ob.zone != kop.ZoneBattlefield { // an ability whose source is gone too (pair 3334)
 			s.fireDamageSrc(k, nc.src, nc.ctrl, int16(n), dmgPl(code), code, nil)
 		}

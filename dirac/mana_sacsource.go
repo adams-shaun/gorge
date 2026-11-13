@@ -74,7 +74,7 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 		return false
 	}
 	if bestowed {
-		var buf [MaxOptions]uint8
+		var buf [MaxOptions]TCode
 		if t.targetCands(k, &k.t.Cards[c].BestowTgt, p, NoSlot, t.bld().e.obj, &buf) == 0 {
 			return true
 		}
@@ -164,7 +164,7 @@ func (s *State) smallerXWitness(k *prep, p uint8, c CardID, cost *kop.ManaCost, 
 		found := pk.found
 		ok := found && (!stacked || int(t.npend)-int(n0) <= witnessWaits)
 		if ok && bestowed {
-			var buf [MaxOptions]uint8
+			var buf [MaxOptions]TCode
 			ok = t.targetCands(k, &k.t.Cards[c].BestowTgt, p, NoSlot, t.bld().e.obj, &buf) != 0
 		} else if ok && targeted {
 			ok = t.spellTargetsFeasible(k, c, p) && t.spellXBoundPayable(k, c, p, cost)
@@ -408,7 +408,7 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 				continue
 			}
 			if plTgt {
-				e.tgt[0], e.nt = s.firstPlayerTgt(k, &a.Targets[0], pt), 1
+				e.tgt[0], e.nt = TCode(s.firstPlayerTgt(k, &a.Targets[0], pt)), 1
 			}
 			s.pushBelowCast(k, e, pt)
 			copy(s.pend[i:], s.pend[i+1:s.npend])
@@ -416,7 +416,7 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 			continue
 		}
 		if plRun {
-			e.tgt[0], e.nt = s.firstPlayerTgt(k, &a.Targets[0], pt), 1
+			e.tgt[0], e.nt = TCode(s.firstPlayerTgt(k, &a.Targets[0], pt)), 1
 		}
 		if !single && (a.NTargets != 0 && !plRun || !s.runsPreCast(k, e, a.Prog)) {
 			i++
@@ -430,7 +430,7 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 			s.putCounterProg(k, &a.Prog[0])
 		case single:
 			if plTgt {
-				s.res.e.tgt[0] = s.firstPlayerTgt(k, &a.Targets[0], pt)
+				s.res.e.tgt[0] = TCode(s.firstPlayerTgt(k, &a.Targets[0], pt))
 			}
 			s.exec(k, &a.Prog[0])
 		default:
@@ -770,7 +770,7 @@ func (s *State) resolvePrefixStack(k *prep, sp0 uint8, resolve bool) {
 func (s *State) firstPlayerTgt(k *prep, ts *kop.TargetSpec, pt *pendingTrig) uint8 {
 	q := uint8(0)
 	for ; q+1 < s.nSeats(); q++ {
-		if s.targetOK(k, ts, pt.ctrl, NoSlot, pt.obj, uint8(PlayerCode(q))) {
+		if s.targetOK(k, ts, pt.ctrl, NoSlot, pt.obj, PlayerCode(q)) {
 			break
 		}
 	}

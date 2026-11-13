@@ -271,7 +271,7 @@ func (s *State) execMcombat(k *prep, in *kop.Instr) (ok, done bool) {
 		// it attacks the trigger's own controller, whom gorge's
 		// TriggeredDefender.Opponent names nobody for (an attacker the
 		// controller does not control: Mage Slayer on a stolen creature)
-		if sl := s.objRef(k, kop.RefTriggerObj); sl == NoSlot || isObjTarget(TCode(s.perms[sl].atk)) || s.atkSeat(k, sl) == s.res.e.ctrl {
+		if sl := s.objRef(k, kop.RefTriggerObj); sl == NoSlot || isObjTarget(s.perms[sl].atk) || s.atkSeat(k, sl) == s.res.e.ctrl {
 			s.capFull(StallDefenderPW)
 		}
 	default:
@@ -304,13 +304,13 @@ func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
 	}
 	atk := PlayerCode(s.nextAlive(SeatIx(p)))
 	if s.g.tokDefSet {
-		atk = TCode(s.g.tokDef)
+		atk = s.g.tokDef
 	} else if MaxSeats > 2 && in.B.N&kop.TokAttackAsk != 0 {
-		if atk = TCode(s.enterDefenderFallback(k, p)); atk == NoTarget || s.out(CodeSeat(atk)) {
+		if atk = s.enterDefenderFallback(k, p); atk == NoTarget || s.out(CodeSeat(atk)) {
 			return // no defender, or the captured one left the game (gorge EnteringAttackLegal)
 		}
 	}
-	s.setEnterAttacker(k, sl, uint8(atk))
+	s.setEnterAttacker(k, sl, atk)
 }
 
 // enterDefenderFallback is gorge's enteringDefenderFallback past two seats:
@@ -318,17 +318,17 @@ func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
 // trigger's event seat), else the first CR 508.4 candidate. A trigger with
 // no bound defending player (an event other than an attack declaration)
 // stalls (StallDefenderPW). NoTarget: none.
-func (s *State) enterDefenderFallback(k *prep, p uint8) uint8 {
+func (s *State) enterDefenderFallback(k *prep, p uint8) TCode {
 	if e := &s.res.e; s.res.active && e.kind == seTrigger {
 		if e.defSeat != 0 {
-			return uint8(PlayerCode(e.defSeat - 1))
+			return PlayerCode(e.defSeat - 1)
 		}
 		s.capFull(StallDefenderPW)
-		return uint8(NoTarget)
+		return TCode(NoTarget)
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	if s.enteringDefenderCands(k, p, &buf) == 0 {
-		return uint8(NoTarget)
+		return TCode(NoTarget)
 	}
 	return buf[0]
 }
@@ -336,7 +336,7 @@ func (s *State) enterDefenderFallback(k *prep, p uint8) uint8 {
 // enterDefenderOrder puts fb first among the n candidates in buf, as gorge's
 // chooseEnteringDefender orders its ask (fallback first, the rest in
 // enteringDefenders order); fb absent is inserted. It returns the new count.
-func enterDefenderOrder(buf *[MaxOptions]uint8, n int, fb uint8) int {
+func enterDefenderOrder(buf *[MaxOptions]TCode, n int, fb TCode) int {
 	i := 0
 	for i < n && buf[i] != fb {
 		i++
@@ -372,11 +372,11 @@ func (s *State) tokenDefenderAsk(k *prep, in *kop.Instr, p uint8) bool {
 	if in.B.N&(kop.TokAttacking|kop.TokAttackAsk) != kop.TokAttacking|kop.TokAttackAsk || s.g.tokDefSet || !s.tokenCombatWindow(p) {
 		return false
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	n := s.enteringDefenderCands(k, p, &buf)
 	if MaxSeats > 2 {
 		fb := s.enterDefenderFallback(k, p)
-		if TCode(fb) == NoTarget {
+		if fb == NoTarget {
 			return false
 		}
 		n = enterDefenderOrder(&buf, n, fb)

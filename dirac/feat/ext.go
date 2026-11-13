@@ -188,7 +188,7 @@ func (e *Encoder) entryTarget(seat uint8, se *dirac.ProjStack) (cre *vcard, play
 		}
 		dup := false
 		for k := 0; k < nseen; k++ {
-			if seen[k] == t {
+			if dirac.TCode(seen[k]) == t {
 				dup = true
 				break
 			}
@@ -196,10 +196,10 @@ func (e *Encoder) entryTarget(seat uint8, se *dirac.ProjStack) (cre *vcard, play
 		if dup {
 			continue
 		}
-		seen[nseen] = t
+		seen[nseen] = uint8(t)
 		nseen++
 		n++
-		tc, host := e.targetClass(seat, t)
+		tc, host := e.targetClass(seat, uint8(t))
 		switch {
 		case host != nil && (tc == tcCreatureMe || tc == tcCreatureOpp):
 			if cre == nil {
@@ -211,7 +211,7 @@ func (e *Encoder) entryTarget(seat uint8, se *dirac.ProjStack) (cre *vcard, play
 			}
 		case tc == tcStack:
 			if stack < 0 {
-				stack = e.stackEntryOf(t)
+				stack = e.stackEntryOf(uint8(t))
 			}
 		}
 	}
@@ -852,7 +852,7 @@ func (e *Encoder) hitsPlayer(seat uint8, i, tc int) bool {
 			t = se.Targets[j]
 		}
 		if dirac.TCode(t) != dirac.NoTarget {
-			if tc2, _ := e.targetClass(seat, t); tc2 == tc {
+			if tc2, _ := e.targetClass(seat, uint8(t)); tc2 == tc {
 				return true
 			}
 		}
@@ -869,8 +869,8 @@ func (e *Encoder) hitsObj(seat uint8, i int, obj uint8, want int) bool {
 		if j < len(se.Targets) {
 			t = se.Targets[j]
 		}
-		if dirac.TCode(t) != dirac.NoTarget && t == obj {
-			if tc, host := e.targetClass(seat, t); tc == want && host != nil {
+		if dirac.TCode(t) != dirac.NoTarget && t == dirac.TCode(obj) {
+			if tc, host := e.targetClass(seat, uint8(t)); tc == want && host != nil {
 				return true
 			}
 		}
@@ -982,7 +982,7 @@ func (e *Encoder) extKill(seat uint8, me, opp *vplayer, mine, theirs *agg) {
 				if j < len(se.Targets) {
 					t = se.Targets[j]
 				}
-				k := e.stackEntryOf(t)
+				k := e.stackEntryOf(uint8(t))
 				if k < 0 {
 					continue
 				}

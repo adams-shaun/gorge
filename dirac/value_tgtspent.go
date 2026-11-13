@@ -15,7 +15,7 @@ func (s *State) snapTgtSpent(e *stackEntry) {
 		return
 	}
 	t := e.tgt[0]
-	if !isObjTarget(TCode(t)) || s.objs[t].zone != kop.ZoneStack {
+	if !isObjTarget(t) || s.objs[t].zone != kop.ZoneStack {
 		return
 	}
 	spent := int(s.castSpent(Obj(t)))

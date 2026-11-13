@@ -730,13 +730,13 @@ func (e *Encoder) AppendMZX(dst []byte, g *MZX, s *dirac.State, d *dirac.Decisio
 		}
 		for _, t := range se.Targets {
 			if dirac.TCode(t) != dirac.NoTarget {
-				add(t)
+				add(uint8(t))
 			}
 			slot++
 		}
 		for j := 0; j < int(se.NExtra); j++ {
 			slot = int(se.ExtraSlot[j])
-			add(se.Extra[j])
+			add(uint8(se.Extra[j]))
 		}
 	}
 	// the decision's source

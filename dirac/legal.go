@@ -1208,10 +1208,10 @@ func (s *State) abilityTargetsFeasible(k *prep, a *kop.Ability, p uint8, src Slo
 
 // hasTargetBut is hasTarget with the permanent but not counted.
 func (s *State) hasTargetBut(k *prep, t *kop.TargetSpec, p uint8, src Slot, but Obj) bool {
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	n := s.targetCands(k, t, p, src, but, &buf)
 	for i := 0; i < n; i++ {
-		if buf[i] != uint8(but) {
+		if buf[i] != TCode(but) {
 			return true
 		}
 	}
@@ -1235,12 +1235,12 @@ func (s *State) objTargetable(k *prep, sl Slot, p uint8) bool {
 }
 
 // targetOK reports whether code is a legal choice for spec.
-func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, code uint8) bool {
+func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, code TCode) bool {
 	if t.ParentPlus1 != 0 && !s.parentTargetOK(t, code) {
 		return false
 	}
-	if isPlayerTarget(TCode(code)) {
-		pp := CodeSeat(TCode(code))
+	if isPlayerTarget(code) {
+		pp := CodeSeat(code)
 		if pp != p && k.gen != nil && (k.gen.anyRepl&rbPlHex != 0 || k.gen.anyEmbPlHex) && s.playerHexproof(k, pp) {
 			return false
 		}
@@ -1332,14 +1332,14 @@ func (s *State) stackCtrl(o Obj) uint8 {
 
 // targetCands writes every legal choice for spec into out (players first,
 // then battlefield in slot order, then the stack top-down, then cards).
-func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]uint8) int {
+func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]TCode) int {
 	n := 0
 	if t.Kind == kop.TgtAny || t.Kind == kop.TgtPlayer {
 		// every seat still in the game, in seat order (gorge offers
 		// AliveFrom(0), target_legal.go)
 		for pp := uint8(0); pp < s.nSeats(); pp++ {
-			if !s.out(pp) && s.targetOK(k, t, p, src, self, uint8(PlayerCode(pp))) {
-				out[n] = uint8(PlayerCode(pp))
+			if !s.out(pp) && s.targetOK(k, t, p, src, self, PlayerCode(pp)) {
+				out[n] = PlayerCode(pp)
 				n++
 			}
 		}
@@ -1351,16 +1351,16 @@ func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self 
 			sl := m.first()
 			m = m.rest()
 			o := s.perms[sl].obj
-			if s.targetOK(k, t, p, src, self, uint8(o)) {
-				out[n] = uint8(o)
+			if s.targetOK(k, t, p, src, self, TCode(o)) {
+				out[n] = TCode(o)
 				n++
 			}
 		}
 	case kop.TgtSpell, kop.TgtSpellTgting:
 		for i := int(s.sp) - 1; i >= 0; i-- {
 			e := &s.stack[i]
-			if e.kind == seSpell && s.targetOK(k, t, p, src, self, uint8(e.obj)) {
-				out[n] = uint8(e.obj)
+			if e.kind == seSpell && s.targetOK(k, t, p, src, self, TCode(e.obj)) {
+				out[n] = TCode(e.obj)
 				n++
 			}
 		}
@@ -1383,8 +1383,8 @@ func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self 
 				if uint8(o)+1 == s.g.tgtSelf {
 					continue
 				}
-				if s.targetOK(k, t, p, src, self, uint8(o)) && n < MaxOptions-1 {
-					out[n] = uint8(o)
+				if s.targetOK(k, t, p, src, self, TCode(o)) && n < MaxOptions-1 {
+					out[n] = TCode(o)
 					n++
 				}
 			}
@@ -1407,13 +1407,13 @@ func (s *State) hasTarget(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Ob
 		}
 	case kop.TgtObject:
 		for m := s.occ; m.any(); m = m.rest() {
-			if s.targetOK(k, t, p, src, self, uint8(s.perms[m.first()].obj)) {
+			if s.targetOK(k, t, p, src, self, TCode(s.perms[m.first()].obj)) {
 				return true
 			}
 		}
 		return false
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	return s.targetCands(k, t, p, src, self, &buf) > 0
 }
 

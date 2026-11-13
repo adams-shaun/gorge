@@ -20,7 +20,7 @@ func TestCodeSpaceDisjoint(t *testing.T) {
 	for c := 0; c < 256; c++ {
 		b := uint8(c)
 		n := 0
-		for _, in := range []bool{isObjTarget(TCode(b)), isStackTarget(TCode(b)), isPlayerTarget(TCode(b)), b == StackTargetGone, TCode(b) == NoTarget} {
+		for _, in := range []bool{isObjTarget(TCode(b)), isStackTarget(TCode(b)), isPlayerTarget(TCode(b)), TCode(b) == StackTargetGone, TCode(b) == NoTarget} {
 			if in {
 				n++
 			}

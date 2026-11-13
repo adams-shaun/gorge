@@ -17,7 +17,7 @@ func TestPlayerTargetHandWrittenTable(t *testing.T) {
 	for _, kind := range []kop.TargetKind{kop.TgtAny, kop.TgtPlayer} {
 		spec := kop.TargetSpec{Kind: kind}
 		for p := uint8(0); p < 2; p++ {
-			if !sc.s.targetOK(sc.k, &spec, 0, NoSlot, NoObj, uint8(PlayerCode(p))) {
+			if !sc.s.targetOK(sc.k, &spec, 0, NoSlot, NoObj, TCode(PlayerCode(p))) {
 				t.Errorf("kind %v: player %d rejected as a target", kind, p)
 			}
 		}

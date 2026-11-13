@@ -78,7 +78,7 @@ func TestClearCounters(t *testing.T) {
 	p.addCtrN(s, int(kop.CtrStun), 1)
 	p.addCtrN(s, int(kop.CtrM1M1), 3)
 	p.addCtrN(s, int(kop.CtrLevel), 1)
-	s.res.e.tgt[0] = uint8(bear)
+	s.res.e.tgt[0] = TCode(bear)
 	in := kop.Instr{Op: kop.OpClearCounters, Obj: kop.RefTarget0}
 	s.clearCounters(sc.k, &in)
 	if p.ctrLow(int(kop.CtrP1P1)) != 0 || p.ctrLow(int(kop.CtrStun)) != 0 || p.ctrLow(int(kop.CtrM1M1)) != 0 {

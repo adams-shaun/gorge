@@ -81,10 +81,10 @@ func (e *Encoder) buildRel(s *dirac.State) {
 			}
 		}
 		for _, t := range se.Targets {
-			add(t)
+			add(uint8(t))
 		}
 		for j := 0; j < int(se.NExtra); j++ {
-			add(se.Extra[j])
+			add(uint8(se.Extra[j]))
 		}
 	}
 	// A stack card's own entry: what its targets are, its X, its kicked bit.
@@ -124,10 +124,10 @@ func (e *Encoder) buildRel(s *dirac.State) {
 			}
 		}
 		for _, t := range se.Targets {
-			classify(t)
+			classify(uint8(t))
 		}
 		for j := 0; j < int(se.NExtra); j++ {
-			classify(se.Extra[j])
+			classify(uint8(se.Extra[j]))
 		}
 		if _, _, building := s.BuildingCast(); !building || i < int(e.kp.NStack)-1 {
 			c.rel.x = se.X // gorge writes Object.X as the cast commits, not as X is announced

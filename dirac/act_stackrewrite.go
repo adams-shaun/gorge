@@ -55,11 +55,11 @@ func (s *State) ksrSubject(k *prep, in *kop.Instr) int {
 	if slot, ok := tgtSlot(in.Obj); ok {
 		c := s.tgtCode(slot)
 		switch {
-		case TCode(c) == NoTarget:
+		case c == NoTarget:
 			return -1
-		case isStackTarget(TCode(c)):
+		case isStackTarget(c):
 			return s.stackTgtIdx(c, s.res.e.tver[slot])
-		case isObjTarget(TCode(c)):
+		case isObjTarget(c):
 			ob := &s.objs[c]
 			if ob.zone != kop.ZoneStack || ob.ver != s.res.e.tver[slot] {
 				return -1
@@ -78,7 +78,7 @@ func (s *State) ksrSubject(k *prep, in *kop.Instr) int {
 // ksrTotal is the number of targets e holds, extras of a multi-object slot
 // included.
 func (s *State) ksrTotal(e *stackEntry) int {
-	var codes [kop.MaxTargets + maxXTgt]uint8
+	var codes [kop.MaxTargets + maxXTgt]TCode
 	return s.chainTargets(e, &codes)
 }
 
@@ -143,7 +143,7 @@ func (s *State) ksrPicksFor(d int) int {
 // index idx. The census reads the entry as the one being targeted for: a
 // filter's entry is the subject, whose parent slot holds the answer already
 // given for it. must leaves its current targets out.
-func (s *State) ksrOffered(k *prep, idx, d int, must bool, out *[MaxOptions]uint8) int {
+func (s *State) ksrOffered(k *prep, idx, d int, must bool, out *[MaxOptions]TCode) int {
 	e := &s.stack[idx]
 	t := tspecE(k, e, d)
 	if t == nil {
@@ -160,7 +160,7 @@ func (s *State) ksrOffered(k *prep, idx, d int, must bool, out *[MaxOptions]uint
 	s.res.e = *e
 	for i := int(s.res.peekN) - 1; i >= 0; i-- {
 		if sl := int(s.res.peek[i]); sl < kop.MaxTargets && s.ksrPicksFor(sl) == 1 {
-			s.res.e.tgt[sl] = uint8(s.res.arr[i])
+			s.res.e.tgt[sl] = TCode(s.res.arr[i])
 		}
 	}
 	n := s.targetCands(k, t, e.ctrl, src, e.obj, out)
@@ -170,7 +170,7 @@ func (s *State) ksrOffered(k *prep, idx, d int, must bool, out *[MaxOptions]uint
 		// stack code (a spell's own object is the self targetCands skips)
 		self, m := StackTarget0+TCode(uint8(idx)), 0
 		for _, c := range out[:n] {
-			if TCode(c) != self {
+			if c != self {
 				out[m] = c
 				m++
 			}
@@ -180,7 +180,7 @@ func (s *State) ksrOffered(k *prep, idx, d int, must bool, out *[MaxOptions]uint
 	if !must {
 		return n
 	}
-	var old [MaxOptions]uint8
+	var old [MaxOptions]TCode
 	nold := s.copySlotTargets(e, d, &old)
 	m := 0
 next:
@@ -212,7 +212,7 @@ func (s *State) changeTargets(k *prep, in *kop.Instr) bool {
 	must := in.C&1 == 0 // seat-ok: an instruction flag bit
 	magnet := in.C&2 != 0
 	s.res.peekN = 0
-	var old, buf [MaxOptions]uint8
+	var old, buf [MaxOptions]TCode
 	covered := 0
 	for d := ksrFirstDecl(k, e); d >= 0; d = ksrNextDecl(k, e, d) {
 		nold := s.copySlotTargets(e, d, &old)
@@ -243,20 +243,20 @@ func (s *State) changeTargets(k *prep, in *kop.Instr) bool {
 // targets must change). A target an earlier place names is not listed again.
 // codes, decl and pos name each place's target, declaration slot and position
 // in the slot.
-func (s *State) ksrMagnetPlaces(k *prep, e *stackEntry, must bool, codes, decl, pos *[MaxOptions]uint8) int {
+func (s *State) ksrMagnetPlaces(k *prep, e *stackEntry, must bool, codes *[MaxOptions]TCode, decl, pos *[MaxOptions]uint8) int {
 	r := &s.res
 	src := r.e.obj
 	if ob := &s.objs[src]; ob.zone != kop.ZoneBattlefield || ob.ver != r.e.srcVer {
 		return 0
 	}
 	n := 0
-	var old, buf [MaxOptions]uint8
+	var old, buf [MaxOptions]TCode
 	for d := ksrFirstDecl(k, e); d >= 0; d = ksrNextDecl(k, e, d) {
 		nold := s.copySlotTargets(e, d, &old)
-		if nold == 0 || ksrHas(old[:nold], uint8(src)) {
+		if nold == 0 || ksrHas(old[:nold], TCode(src)) {
 			continue
 		}
-		if m := s.ksrOffered(k, int(r.left)-1, d, must, &buf); !ksrHas(buf[:m], uint8(src)) {
+		if m := s.ksrOffered(k, int(r.left)-1, d, must, &buf); !ksrHas(buf[:m], TCode(src)) {
 			continue
 		}
 		for j := 0; j < nold; j++ {
@@ -272,7 +272,8 @@ func (s *State) ksrMagnetPlaces(k *prep, e *stackEntry, must bool, codes, decl, 
 // ksrMagnet is the magnet walk (gorge changeTargetMagnet): one place moves to
 // the source unasked, none moves nothing, and two or more pose raKsrMagnet.
 func (s *State) ksrMagnet(k *prep, e *stackEntry, must bool) bool {
-	var codes, decl, pos [MaxOptions]uint8
+	var codes [MaxOptions]TCode
+	var decl, pos [MaxOptions]uint8
 	n := s.ksrMagnetPlaces(k, e, must, &codes, &decl, &pos)
 	if n >= 2 {
 		s.res.ask, s.res.askP = raKsrMagnet, s.res.e.ctrl
@@ -289,10 +290,10 @@ func (s *State) ksrMagnet(k *prep, e *stackEntry, must bool) bool {
 // else: the slot keeps its other targets in their order, so a divided
 // allotment stays with the position.
 func (s *State) ksrMagnetWrite(k *prep, e *stackEntry, d, j uint8) {
-	var old, out [MaxOptions]uint8
+	var old, out [MaxOptions]TCode
 	nold := s.copySlotTargets(e, int(d), &old)
 	out = old
-	out[j] = uint8(s.res.e.obj)
+	out[j] = TCode(s.res.e.obj)
 	s.ksrCommit(k, e, int(d), &old, nold, &out)
 }
 
@@ -301,7 +302,7 @@ func (s *State) ksrMagnetWrite(k *prep, e *stackEntry, d, j uint8) {
 func (s *State) ksrAskFrom(k *prep, d int, must bool) bool {
 	idx := int(s.res.left) - 1
 	e := &s.stack[idx]
-	var old, buf [MaxOptions]uint8
+	var old, buf [MaxOptions]TCode
 	for ; d >= 0; d = ksrNextDecl(k, e, d) {
 		if s.copySlotTargets(e, d, &old) > 0 && s.ksrOffered(k, idx, d, must, &buf) > 0 {
 			s.res.chosen = uint8(d)
@@ -320,12 +321,12 @@ func (s *State) ksrAskFrom(k *prep, d int, must bool) bool {
 // arrivals on a chain link (RetargetLink).
 func (s *State) ksrApply(k *prep, e *stackEntry) {
 	for d := ksrFirstDecl(k, e); d >= 0; d = ksrNextDecl(k, e, d) {
-		var old, out [MaxOptions]uint8
-		var picks [8]uint8
+		var old, out [MaxOptions]TCode
+		var picks [8]TCode
 		np := 0
 		for i := 0; i < int(s.res.peekN); i++ {
 			if int(s.res.peek[i]) == d {
-				picks[np] = uint8(s.res.arr[i])
+				picks[np] = TCode(s.res.arr[i])
 				np++
 			}
 		}
@@ -341,7 +342,7 @@ func (s *State) ksrApply(k *prep, e *stackEntry) {
 // ksrCommit writes out into declaration slot d of e and reports each target that
 // became one: every target of a root declaration (gorge recordTargets), and only
 // the arrivals on a chain link (RetargetLink).
-func (s *State) ksrCommit(k *prep, e *stackEntry, d int, old *[MaxOptions]uint8, nold int, out *[MaxOptions]uint8) {
+func (s *State) ksrCommit(k *prep, e *stackEntry, d int, old *[MaxOptions]TCode, nold int, out *[MaxOptions]TCode) {
 	if DebugChangeTargetsOff {
 		return
 	}
@@ -354,7 +355,7 @@ func (s *State) ksrCommit(k *prep, e *stackEntry, d int, old *[MaxOptions]uint8,
 }
 
 // ksrHas reports whether c is among codes.
-func ksrHas(codes []uint8, c uint8) bool {
+func ksrHas(codes []TCode, c TCode) bool {
 	for _, o := range codes {
 		if o == c {
 			return true
@@ -366,8 +367,8 @@ func ksrHas(codes []uint8, c uint8) bool {
 // ksrRetargeted is gorge's retargeted: a pick that is already a target stays
 // where it is, the others take the remaining places in order, and a place no
 // pick reaches keeps its target (CR 115.7e).
-func ksrRetargeted(old *[MaxOptions]uint8, nold int, picks *[8]uint8, np int, out *[MaxOptions]uint8) {
-	var moved [8]uint8
+func ksrRetargeted(old *[MaxOptions]TCode, nold int, picks *[8]TCode, np int, out *[MaxOptions]TCode) {
+	var moved [8]TCode
 	nm := 0
 	for _, c := range picks[:np] {
 		if !ksrHas(old[:nold], c) {
@@ -387,9 +388,9 @@ func ksrRetargeted(old *[MaxOptions]uint8, nold int, picks *[8]uint8, np int, ou
 
 // ksrWrite writes out into slot d's places in the order copySlotTargets reads
 // them.
-func (s *State) ksrWrite(e *stackEntry, d int, out *[MaxOptions]uint8) {
+func (s *State) ksrWrite(e *stackEntry, d int, out *[MaxOptions]TCode) {
 	n := 0
-	if d < int(e.nt) && TCode(e.tgt[d]) != NoTarget {
+	if d < int(e.nt) && e.tgt[d] != NoTarget {
 		c := out[0]
 		e.tgt[d] = c
 		e.tver[d] = s.ksrVer(c)
@@ -408,11 +409,11 @@ func (s *State) ksrWrite(e *stackEntry, d int, out *[MaxOptions]uint8) {
 }
 
 // ksrVer is the version a target code records.
-func (s *State) ksrVer(c uint8) uint8 {
+func (s *State) ksrVer(c TCode) uint8 {
 	switch {
-	case isObjTarget(TCode(c)):
+	case isObjTarget(c):
 		return s.objs[c].ver
-	case isStackTarget(TCode(c)):
+	case isStackTarget(c):
 		return s.stackTgtSid(c)
 	}
 	return 0
@@ -429,17 +430,17 @@ func (s *State) askOptionsStackRewrite(k *prep, d *Decision) bool {
 		return false
 	}
 	optional := s.prog(k)[s.res.pc].C&1 != 0 // seat-ok: an instruction flag bit
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	n := s.ksrOffered(k, int(s.res.left)-1, int(s.res.chosen), !optional, &buf)
 	d.Sub = ChKsrTarget
 next:
 	for i := 0; i < n; i++ {
 		for j := 0; j < int(s.res.peekN); j++ {
-			if s.res.peek[j] == Obj(s.res.chosen) && uint8(s.res.arr[j]) == buf[i] {
+			if s.res.peek[j] == Obj(s.res.chosen) && TCode(s.res.arr[j]) == buf[i] {
 				continue next
 			}
 		}
-		d.add(MakeAction(AkChoose, TCode(buf[i]), 0, 0))
+		d.add(MakeAction(AkChoose, buf[i], 0, 0))
 	}
 	if optional {
 		d.add(MakeAction(AkDone, 0, 0, 0))
@@ -471,7 +472,7 @@ func (s *State) applyAskStackRewrite(k *prep, a Action) bool {
 		}
 		r.peek[r.peekN], r.arr[r.peekN] = Obj(d), Obj(a.Source())
 		r.peekN++
-		var old, buf [MaxOptions]uint8
+		var old, buf [MaxOptions]TCode
 		limit := min(s.copySlotTargets(&s.stack[idx], d, &old), s.ksrOffered(k, idx, d, must, &buf))
 		if s.ksrPicksFor(d) < limit {
 			return true // the next pick of this declaration (Step poses it)
@@ -489,11 +490,12 @@ func (s *State) applyAskStackRewrite(k *prep, a Action) bool {
 // target when the redirect is Optional$.
 func (s *State) askOptionsKsrMagnet(k *prep, d *Decision) bool {
 	optional := s.prog(k)[s.res.pc].C&1 != 0 // seat-ok: an instruction flag bit
-	var codes, decl, pos [MaxOptions]uint8
+	var codes [MaxOptions]TCode
+	var decl, pos [MaxOptions]uint8
 	n := s.ksrMagnetPlaces(k, &s.stack[int(s.res.left)-1], !optional, &codes, &decl, &pos)
 	d.Sub = ChKsrTarget
 	for i := 0; i < n; i++ {
-		d.add(MakeAction(AkChoose, TCode(codes[i]), 0, 0))
+		d.add(MakeAction(AkChoose, codes[i], 0, 0))
 	}
 	if optional {
 		d.add(MakeAction(AkDone, 0, 0, 0))
@@ -507,11 +509,12 @@ func (s *State) applyAskKsrMagnet(k *prep, a Action) {
 	r := &s.res
 	if a.Kind() == AkChoose {
 		optional := s.prog(k)[r.pc].C&1 != 0 // seat-ok: an instruction flag bit
-		var codes, decl, pos [MaxOptions]uint8
+		var codes [MaxOptions]TCode
+		var decl, pos [MaxOptions]uint8
 		e := &s.stack[int(r.left)-1]
 		n := s.ksrMagnetPlaces(k, e, !optional, &codes, &decl, &pos)
 		for i := 0; i < n; i++ {
-			if TCode(codes[i]) == a.Source() {
+			if codes[i] == a.Source() {
 				s.ksrMagnetWrite(k, e, decl[i], pos[i])
 				break
 			}

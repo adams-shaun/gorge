@@ -80,7 +80,7 @@ func TestCrimeTargetKinds(t *testing.T) {
 	}
 	for _, c := range cases {
 		s.g.crime = 0
-		if got := s.noteCrime(sc.k, 0, c.t); got != c.want {
+		if got := s.noteCrime(sc.k, 0, TCode(c.t)); got != c.want {
 			t.Errorf("%s: crime %v, want %v", c.name, got, c.want)
 		}
 		if bit := s.g.crime != 0; bit != c.want {
@@ -89,7 +89,7 @@ func TestCrimeTargetKinds(t *testing.T) {
 	}
 	// the other seat: my permanent is theirs to attack
 	s.g.crime = 0
-	if !s.noteCrime(sc.k, 1, uint8(myPerm)) || s.g.crime != 2 {
+	if !s.noteCrime(sc.k, 1, TCode(myPerm)) || s.g.crime != 2 {
 		t.Errorf("player 1 targeting player 0's permanent: ledger %b, want 10", s.g.crime)
 	}
 }
@@ -106,7 +106,7 @@ func TestCrimeOncePerObject(t *testing.T) {
 	run := func() int {
 		s.npend, s.g.crime = 0, 0
 		e := stackEntry{kind: seAbility, ctrl: 0, nt: 2, obj: march, trigObj: NoObj}
-		e.tgt = [kop.MaxTargets]uint8{uint8(a), uint8(b), uint8(NoTarget)}
+		e.tgt = [kop.MaxTargets]TCode{TCode(a), TCode(b), TCode(NoTarget)}
 		s.checkWard(sc.k, &e)
 		return int(s.npend)
 	}
@@ -156,7 +156,7 @@ func TestCrimeCopyRetarget(t *testing.T) {
 	burst := id("Burst Lightning")
 	o := sc.crimeStackSpell(burst, 0)
 	e := &s.stack[s.sp-1]
-	e.nt, e.tgt[0] = 1, uint8(PlayerTarget0) // aimed at its own controller
+	e.nt, e.tgt[0] = 1, TCode(PlayerTarget0) // aimed at its own controller
 	s.g.crime, s.npend = 0, 0
 	s.setCopyTargetsQ(sc.k, e, 0, []Obj{Obj(PlayerTarget0 + 1)})
 	s.crimeCopy(sc.k, e)
@@ -224,7 +224,7 @@ func TestCrimeModalAbilityFiresOnce(t *testing.T) {
 	a := sc.perm(id("Hardbristle Bandit"), 1)
 	s.npend, s.g.crime = 0, 0
 	e := stackEntry{kind: seAbility, ctrl: 0, nt: 1, mode: 1, obj: march, trigObj: NoObj}
-	e.tgt = [kop.MaxTargets]uint8{uint8(a), uint8(NoTarget), uint8(NoTarget), uint8(NoTarget), uint8(NoTarget)}
+	e.tgt = [kop.MaxTargets]TCode{TCode(a), TCode(NoTarget), TCode(NoTarget), TCode(NoTarget), TCode(NoTarget)}
 	s.checkWard(sc.k, &e)
 	if s.npend != 1 || s.g.crime != 1 {
 		t.Fatalf("modal ability queued %d (ledger %b), want 1 (ledger 1)", s.npend, s.g.crime)

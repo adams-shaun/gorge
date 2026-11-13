@@ -68,14 +68,14 @@ func TestChandrasPhoenixFromGraveyard(t *testing.T) {
 		fire func()
 		want int
 	}{
-		{"red instant spell to the opponent", func() { s.fireDamageSrc(sc.k, bolt, 0, 3, 1<<1, uint8(opp), nil) }, 1},
-		{"red planeswalker to the opponent", func() { s.fireDamage(sc.k, sc.slot(pw), 2, true, false, uint8(opp)) }, 1},
-		{"a creature's noncombat damage", func() { s.fireDamage(sc.k, sc.slot(ogre), 2, true, false, uint8(opp)) }, 0},
-		{"a creature's combat damage", func() { s.fireDamage(sc.k, sc.slot(ogre), 2, true, true, uint8(opp)) }, 0},
-		{"a blue spell", func() { s.fireDamageSrc(sc.k, spell, 0, 3, 1<<1, uint8(opp), nil) }, 0},
-		{"the opponent's red spell to the Phoenix's owner", func() { s.fireDamageSrc(sc.k, oppBolt, 1, 3, 1<<0, uint8(PlayerTarget0), nil) }, 0},
-		{"the controller's own spell to the controller", func() { s.fireDamageSrc(sc.k, bolt, 0, 3, 1<<0, uint8(PlayerTarget0), nil) }, 0},
-		{"the red planeswalker's damage to a creature", func() { s.fireDamage(sc.k, sc.slot(pw), 2, false, false, uint8(ogre)) }, 0},
+		{"red instant spell to the opponent", func() { s.fireDamageSrc(sc.k, bolt, 0, 3, 1<<1, TCode(opp), nil) }, 1},
+		{"red planeswalker to the opponent", func() { s.fireDamage(sc.k, sc.slot(pw), 2, true, false, TCode(opp)) }, 1},
+		{"a creature's noncombat damage", func() { s.fireDamage(sc.k, sc.slot(ogre), 2, true, false, TCode(opp)) }, 0},
+		{"a creature's combat damage", func() { s.fireDamage(sc.k, sc.slot(ogre), 2, true, true, TCode(opp)) }, 0},
+		{"a blue spell", func() { s.fireDamageSrc(sc.k, spell, 0, 3, 1<<1, TCode(opp), nil) }, 0},
+		{"the opponent's red spell to the Phoenix's owner", func() { s.fireDamageSrc(sc.k, oppBolt, 1, 3, 1<<0, TCode(PlayerTarget0), nil) }, 0},
+		{"the controller's own spell to the controller", func() { s.fireDamageSrc(sc.k, bolt, 0, 3, 1<<0, TCode(PlayerTarget0), nil) }, 0},
+		{"the red planeswalker's damage to a creature", func() { s.fireDamage(sc.k, sc.slot(pw), 2, false, false, TCode(ogre)) }, 0},
 	} {
 		s.npend = 0
 		c.fire()
@@ -87,7 +87,7 @@ func TestChandrasPhoenixFromGraveyard(t *testing.T) {
 	s.detach(ph)
 	s.objs[ph].zone = kop.ZoneBattlefield
 	s.npend = 0
-	s.fireDamageSrc(sc.k, bolt, 0, 3, 1<<1, uint8(opp), nil)
+	s.fireDamageSrc(sc.k, bolt, 0, 3, 1<<1, TCode(opp), nil)
 	if got := queuedFor(s, ph); got != 0 {
 		t.Errorf("a Phoenix off the graveyard queued %d", got)
 	}

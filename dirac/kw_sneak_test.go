@@ -224,7 +224,7 @@ func TestSneakCastCreature(t *testing.T) {
 	if untapped != 1 {
 		t.Fatalf("%d untapped Plains after the cast, want 1 (sneak cost {W})", untapped)
 	}
-	if e := &s.stack[s.sp-1]; e.trigPl != trigPlSneak || uint8(e.trigObj) != atk {
+	if e := &s.stack[s.sp-1]; e.trigPl != trigPlSneak || TCode(uint8(e.trigObj)) != atk {
 		t.Fatalf("stack entry trigPl %#x trigObj %#x, want %#x %#x", e.trigPl, e.trigObj, trigPlSneak, atk)
 	}
 	sc.passBoth(t)

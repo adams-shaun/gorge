@@ -64,11 +64,11 @@ func (s *State) prevNextAdd(k *prep, in *kop.Instr) {
 		return // a shield that prevents nothing is no decision (gorge: total <= 0)
 	}
 	code := s.refCode(k, in.Obj)
-	if TCode(code) == NoTarget {
+	if code == NoTarget {
 		return
 	}
-	if isPlayerOrNone(TCode(code)) {
-		if s.out(CodeSeat(TCode(code))) {
+	if isPlayerOrNone(code) {
+		if s.out(CodeSeat(code)) {
 			return // gorge: a player no longer in the game takes no shield
 		}
 	} else if int(code) >= MaxObj || s.objs[code].zone != kop.ZoneBattlefield {
@@ -105,7 +105,7 @@ func (s *State) pnxLive() bool {
 // at srcSl (card srcCard when it is no permanent) controlled by srcCtrl. It
 // reports the damage left and whether a shield applied; false leaves the
 // event to the other prevention and replacement arms.
-func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, code, rcp uint8, sl Slot, combat bool, n int) (int, bool) {
+func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, code TCode, rcp uint8, sl Slot, combat bool, n int) (int, bool) {
 	hit, at := 0, -1
 	for i := range s.g.prevCol {
 		if r := &s.g.prevCol[i]; r.sc&prevNextSc != 0 && r.col != 0 && r.ctl == code && (combat || r.sc&prevNextCmb == 0) {
@@ -138,11 +138,11 @@ func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID,
 // combatEvLess takes d damage out of combat event ev of r (a partial
 // prevention): the source's dealt totals and the recipient's assigned damage
 // lose it, the event stays.
-func (s *State) combatEvLess(r *dmgRec, ev *dmgEv, code uint8, d int) {
+func (s *State) combatEvLess(r *dmgRec, ev *dmgEv, code TCode, d int) {
 	ev.n = s.sat16(int(ev.n) - d)
 	r.dealt[ev.src] = s.addSat16(r.dealt[ev.src], -d)
 	if ev.dst == NoSlot {
-		r.toPl[CodeSeat(TCode(code))] = s.addSat16(r.toPl[CodeSeat(TCode(code))], -d)
+		r.toPl[CodeSeat(code)] = s.addSat16(r.toPl[CodeSeat(code)], -d)
 		r.dealtPl[ev.src] = s.addSat16(r.dealtPl[ev.src], -d)
 	} else {
 		r.toPerm[ev.dst] = s.addSat16(r.toPerm[ev.dst], -d)
@@ -189,7 +189,7 @@ func (s *State) prevNextCompetes(k *prep, srcSl Slot, srcCard CardID, rcp uint8,
 // in *pm; the new count, or -1 (a loud stall) when another replacement is also
 // a candidate or the candidates overflow. With no shield on the recipient, or
 // under CR 615.12, it adds nothing.
-func (s *State) prevNextCands(k *prep, code uint8, combat bool, cand *[4]Obj, c int, pm *uint8) int {
+func (s *State) prevNextCands(k *prep, code TCode, combat bool, cand *[4]Obj, c int, pm *uint8) int {
 	if s.noPrev(k, combat) {
 		return c
 	}

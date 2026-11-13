@@ -34,11 +34,11 @@ func (s *State) targetOKPermOrGraveCard(k *prep, t *kop.TargetSpec, p uint8, src
 // each graveyard in order (targetCands' TgtCard walk).
 //
 //go:noinline
-func (s *State) permOrGraveCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]uint8, n int) int {
+func (s *State) permOrGraveCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]TCode, n int) int {
 	for m := s.occ; m.any(); m = m.rest() {
 		o := s.perms[m.first()].obj
-		if s.targetOK(k, t, p, src, self, uint8(o)) {
-			out[n] = uint8(o)
+		if s.targetOK(k, t, p, src, self, TCode(o)) {
+			out[n] = TCode(o)
 			n++
 		}
 	}
@@ -52,8 +52,8 @@ func (s *State) permOrGraveCardCands(k *prep, t *kop.TargetSpec, p uint8, src Sl
 			if uint8(o)+1 == s.g.tgtSelf {
 				continue
 			}
-			if s.targetOK(k, t, p, src, self, uint8(o)) && n < MaxOptions-1 {
-				out[n] = uint8(o)
+			if s.targetOK(k, t, p, src, self, TCode(o)) && n < MaxOptions-1 {
+				out[n] = TCode(o)
 				n++
 			}
 		}

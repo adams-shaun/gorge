@@ -192,7 +192,7 @@ func TestEnterAttackingMarksAttacker(t *testing.T) {
 	}
 	sc.s.applyAskCold1(sc.k, d.Options[1]) // answer: the walker
 	p = &sc.s.perms[sc.slot(o)]
-	if p.flags&pfAttacking == 0 || p.atk != uint8(walk) || p.bord != 0 || sc.s.nAttackers != 1 {
+	if p.flags&pfAttacking == 0 || p.atk != TCode(uint8(walk)) || p.bord != 0 || sc.s.nAttackers != 1 {
 		t.Fatalf("attacking %v atk %d bord %d nAttackers %d, want attacking the walker", p.flags&pfAttacking != 0, p.atk, p.bord, sc.s.nAttackers)
 	}
 }
@@ -257,7 +257,7 @@ func TestThisDefinedAndTgtsSelf(t *testing.T) {
 		land := sc.s.objs[sc.s.pl[0].lib[sc.s.pl[0].libLo]].card
 		tgt, src := sc.grave(land, 0, 1)[0], sc.grave(land, 0, 1)[0]
 		sc.s.res.e.obj = src
-		sc.s.res.e.tgt[0], sc.s.res.e.nt = uint8(tgt), 1
+		sc.s.res.e.tgt[0], sc.s.res.e.nt = TCode(tgt), 1
 		return sc, prog, tgt, src
 	}
 	sc, prog, tgt, src := build()

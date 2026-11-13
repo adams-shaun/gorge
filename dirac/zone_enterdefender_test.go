@@ -116,7 +116,7 @@ func TestEnteringDefenderAnswers(t *testing.T) {
 		}
 		s.applyAskCzParams(sc.k, a)
 		p := &s.perms[sc.slot(o)]
-		if p.flags&pfAttacking == 0 || p.atk != want || p.bord != s.nAttackers-1 {
+		if p.flags&pfAttacking == 0 || p.atk != TCode(want) || p.bord != s.nAttackers-1 {
 			t.Fatalf("pickWalker=%v: atk %d bord %d attacking %v, want atk %d", pickWalker, p.atk, p.bord, p.flags&pfAttacking != 0, want)
 		}
 	}
@@ -181,7 +181,7 @@ func TestEnteringDefenderCloneReturn(t *testing.T) {
 		t.Fatal("the defender was asked a second time after the clone answer")
 	}
 	sl := s.objs[o].slot
-	if p := &s.perms[sl]; !s.occ.has(sl) || p.obj != o || p.flags&pfAttacking == 0 || p.atk != uint8(walk) {
+	if p := &s.perms[sl]; !s.occ.has(sl) || p.obj != o || p.flags&pfAttacking == 0 || p.atk != TCode(uint8(walk)) {
 		t.Fatalf("atk %d attacking %v, want the entered clone attacking the planeswalker %d", s.perms[sl].atk, s.perms[sl].flags&pfAttacking != 0, walk)
 	}
 }

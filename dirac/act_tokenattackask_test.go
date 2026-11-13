@@ -39,7 +39,7 @@ func tokenAttackDefenders(s *State) []uint8 {
 	var out []uint8
 	for m := s.occ; m.any(); m = m.rest() {
 		if p := &s.perms[m.first()]; p.flags&pfAttacking != 0 && p.flags&pfTapped == 0 {
-			out = append(out, p.atk)
+			out = append(out, uint8(p.atk))
 		}
 	}
 	return out

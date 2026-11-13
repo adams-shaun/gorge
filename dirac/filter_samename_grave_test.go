@@ -43,9 +43,9 @@ func (sc *scen) resolveAt(o Obj, ver uint8) {
 	s.res = resCtx{active: true, lastTok: NoObj, eachObj: NoObj}
 	s.res.e = stackEntry{kind: seAbility, ctrl: 0, nt: 1}
 	for i := range s.res.e.tgt {
-		s.res.e.tgt[i] = uint8(NoTarget)
+		s.res.e.tgt[i] = TCode(NoTarget)
 	}
-	s.res.e.tgt[0], s.res.e.tver[0] = uint8(o), ver
+	s.res.e.tgt[0], s.res.e.tver[0] = TCode(o), ver
 	if s.objs[o].ver != ver {
 		s.res.bad |= 1
 	}

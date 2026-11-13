@@ -62,10 +62,10 @@ func (s *State) eachCardList(k *prep, in *kop.Instr, list *[MaxPerm]Obj) int {
 	e := &s.res.e
 	n := 0
 	if sl, ok := tgtSlot(in.Obj); ok {
-		var codes [maxXTgt + 1]uint8
+		var codes [maxXTgt + 1]TCode
 		m := s.divTargets(k, e, uint8(sl), &codes)
 		for i := 0; i < m && n < len(list); i++ {
-			if isObjTarget(TCode(codes[i])) {
+			if isObjTarget(codes[i]) {
 				list[n] = Obj(codes[i])
 				n++
 			}

@@ -34,7 +34,7 @@ func (s *State) targetOKGraveExileCard(k *prep, t *kop.TargetSpec, p uint8, src 
 // TgtCard walk), then each exile list in order (gorge's zone-then-seat walk).
 //
 //go:noinline
-func (s *State) graveExileCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]uint8, n int) int {
+func (s *State) graveExileCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]TCode, n int) int {
 	for pp := 0; pp < MaxSeats; pp++ {
 		pl := &s.pl[pp]
 		for i := 0; i < int(pl.graveN); i++ {
@@ -42,8 +42,8 @@ func (s *State) graveExileCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slo
 			if uint8(o)+1 == s.g.tgtSelf {
 				continue
 			}
-			if s.targetOK(k, t, p, src, self, uint8(o)) && n < MaxOptions-1 {
-				out[n] = uint8(o)
+			if s.targetOK(k, t, p, src, self, TCode(o)) && n < MaxOptions-1 {
+				out[n] = TCode(o)
 				n++
 			}
 		}

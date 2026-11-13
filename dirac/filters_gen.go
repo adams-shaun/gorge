@@ -320,7 +320,7 @@ func (s *State) flags2Obj(f kop.FilterFlags2, o Obj) bool {
 		if f&kop.F2AttachedToT0 != 0 {
 			t := e.tgt[0]
 			ob := &s.objs[o]
-			if isPlayerOrNone(TCode(t)) || ob.zone != kop.ZoneBattlefield || s.objs[t].zone != kop.ZoneBattlefield || s.perms[ob.slot].attached != s.objs[t].slot {
+			if isPlayerOrNone(t) || ob.zone != kop.ZoneBattlefield || s.objs[t].zone != kop.ZoneBattlefield || s.perms[ob.slot].attached != s.objs[t].slot {
 				return false
 			}
 		}
@@ -336,12 +336,12 @@ func (s *State) flags2Obj(f kop.FilterFlags2, o Obj) bool {
 
 func (s *State) entryTargets(e *stackEntry, o Obj) bool {
 	for i := 0; i < kop.MaxTargets; i++ {
-		if e.tgt[i] == uint8(o) {
+		if e.tgt[i] == TCode(uint8(o)) {
 			return true
 		}
 	}
 	for i := 0; i < int(s.xtOf(e).n); i++ {
-		if s.xtOf(e).code[i] == uint8(o) {
+		if s.xtOf(e).code[i] == TCode(o) {
 			return true
 		}
 	}

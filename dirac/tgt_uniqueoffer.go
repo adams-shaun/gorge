@@ -49,16 +49,16 @@ func (s *State) distinctCastFeasible(k *prep, a *kop.Ability, p uint8, src Slot,
 	if !later || ns < 2 {
 		return true
 	}
-	var pools [kop.MaxTargets][MaxOptions]uint8
+	var pools [kop.MaxTargets][MaxOptions]TCode
 	var ln [kop.MaxTargets]int
 	var need [kop.MaxTargets]uint8
 	for j := 0; j < ns; j++ {
 		t := &a.Targets[slots[j]]
-		var all [MaxOptions]uint8
+		var all [MaxOptions]TCode
 		c := s.targetCands(k, t, p, src, excl, &all)
 		w := 0
 		for i := 0; i < c; i++ {
-			if x := all[i]; TCode(x) != NoTarget && (excl == NoObj || x != uint8(excl)) {
+			if x := all[i]; x != NoTarget && (excl == NoObj || x != TCode(excl)) {
 				pools[j][w] = x
 				w++
 			}
@@ -71,5 +71,5 @@ func (s *State) distinctCastFeasible(k *prep, a *kop.Ability, p uint8, src Slot,
 	}
 	// uniqueFeasible with no pick taken and no current-slot remainder:
 	// every collected slot is a "later" pool of the shared matching
-	return s.uniqueFeasible(uint8(NoTarget), nil, 0, &pools, &ln, &need, ns)
+	return s.uniqueFeasible(TCode(NoTarget), nil, 0, &pools, &ln, &need, ns)
 }

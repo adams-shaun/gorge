@@ -9,11 +9,11 @@ import (
 // targetStillLegal rechecks target i of e at resolution (CR 608.2b).
 func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 	code := e.tgt[i]
-	if TCode(code) == NoTarget {
+	if code == NoTarget {
 		return false
 	}
-	if isPlayerOrNone(TCode(code)) {
-		pp := CodeSeat(TCode(code))
+	if isPlayerOrNone(code) {
+		pp := CodeSeat(code)
 		if s.g.on && pp != e.ctrl && s.playerHexproof(s.k(), pp) {
 			return false
 		}
@@ -25,7 +25,7 @@ func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 		}
 		return !s.pl[pp].lost
 	}
-	if isStackTarget(TCode(code)) {
+	if isStackTarget(code) {
 		return s.stackTgtStillLegal(e, i) // tgt_stackability.go
 	}
 	if s.objs[code].ver != e.tver[i] {
@@ -36,7 +36,7 @@ func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 		return false
 	}
 	if t.Kind == kop.TgtSpellTgting || t.Kind == kop.TgtStackTgting {
-		return s.spellTgtingStill(e, code) // tgt_countershapes.go
+		return s.spellTgtingStill(e, uint8(code)) // tgt_countershapes.go
 	}
 	src := NoSlot
 	if e.kind != seSpell {
@@ -85,7 +85,7 @@ func (s *State) resolveTop(k *prep) {
 	if e.mode&modeBestowed != 0 && e.bestowedEntry() {
 		s.bestowResolve(k, &e) // CR 702.103e (kw_bestow.go)
 	}
-	if k.gen != nil && e.kind == seSpell && isObjTarget(TCode(e.tgt[0])) && e.li == 0 {
+	if k.gen != nil && e.kind == seSpell && isObjTarget(e.tgt[0]) && e.li == 0 {
 		// the target's last known P/T (Condemn); a sacrificed cost's LKI,
 		// already held, is kept (RefSacrificed: Kazuul's Fury deals the
 		// sacrificed creature's power, not its target's)
@@ -96,7 +96,7 @@ func (s *State) resolveTop(k *prep) {
 		any := false
 		chosen := false
 		for i := 0; i < int(e.nt); i++ {
-			if TCode(e.tgt[i]) == NoTarget {
+			if e.tgt[i] == NoTarget {
 				continue
 			}
 			chosen = true
@@ -462,10 +462,10 @@ func (s *State) wardedIndex(e *stackEntry) int {
 		if se.obj != e.trigObj || se.kind == seSpell || e.tver[0] != 0 && se.sid != e.tver[0] {
 			continue
 		}
-		var codes [kop.MaxTargets + maxXTgt]uint8
+		var codes [kop.MaxTargets + maxXTgt]TCode
 		n := s.chainTargets(se, &codes)
 		for _, c := range codes[:n] {
-			if c == uint8(e.obj) {
+			if c == TCode(e.obj) {
 				return j
 			}
 		}
@@ -645,7 +645,7 @@ func (s *State) objRefObj(r kop.Ref) Obj {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		t := s.tgtCode(sl)
-		if TCode(t) == NoTarget || isPlayerOrNone(TCode(t)) {
+		if t == NoTarget || isPlayerOrNone(t) {
 			return NoObj
 		}
 		return Obj(t)
@@ -684,10 +684,10 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		t := s.tgtCode(sl)
-		if isPlayerOrNone(TCode(t)) && TCode(t) != NoTarget {
-			return CodeSeat(TCode(t))
+		if isPlayerOrNone(t) && t != NoTarget {
+			return CodeSeat(t)
 		}
-		if TCode(t) != NoTarget {
+		if t != NoTarget {
 			return s.ctrlOfObj(Obj(t))
 		}
 		return 255
@@ -708,7 +708,7 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.tgtCtrlSlot(k, int(r-kop.RefTgtCtrl1)+1) // tgt_stackability.go
 	case kop.RefTargetOwner:
 		t := s.tgtCode(0)
-		if TCode(t) == NoTarget || isPlayerOrNone(TCode(t)) {
+		if t == NoTarget || isPlayerOrNone(t) {
 			return 255
 		}
 		return s.objs[t].owner()
@@ -920,7 +920,7 @@ func (s *State) grantSpellKw(o Obj, kw kop.KwMask) {
 // damage deals n damage from the resolving source to an object or player
 // target code and returns the amount dealt after prevention and replacement
 // (0: none; CR 120.1).
-func (s *State) damageTo(k *prep, code uint8, n int) int {
+func (s *State) damageTo(k *prep, code TCode, n int) int {
 	if n <= 0 {
 		return 0
 	}
@@ -934,12 +934,12 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 		}
 	}
 	kw := s.srcKw(k)
-	if k.gen != nil && k.gen.anyInfect && (s.srcInfect(k) || isObjTarget(TCode(code)) && s.srcWither(k, kw)) {
+	if k.gen != nil && k.gen.anyInfect && (s.srcInfect(k) || isObjTarget(code) && s.srcWither(k, kw)) {
 		s.infectDamageTo(k, code, n, kw) // wither is infect's creature half (a player takes ordinary damage)
 		return n
 	}
-	if isPlayerOrNone(TCode(code)) {
-		s.loseLife(k, CodeSeat(TCode(code)), n)
+	if isPlayerOrNone(code) {
+		s.loseLife(k, CodeSeat(code), n)
 	} else {
 		ob := &s.objs[code]
 		if ob.zone != kop.ZoneBattlefield {
@@ -965,7 +965,7 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 	}
 	if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) {
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
-			s.fireDamage(k, sl, int16(n), isPlayerOrNone(TCode(code)), false, code)
+			s.fireDamage(k, sl, int16(n), isPlayerOrNone(code), false, code)
 		} else if k.gen != nil && e.obj != NoObj {
 			// a spell's damage, or an ability's whose source is gone
 			// (Niv-Mizzet: the sacrificed Fanatical Firebrand's, pair 3334)
@@ -976,7 +976,7 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 }
 
 // refCode turns an object/player Ref into a damage target code.
-func (s *State) refCode(k *prep, r kop.Ref) uint8 {
+func (s *State) refCode(k *prep, r kop.Ref) TCode {
 	switch r {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
@@ -984,15 +984,15 @@ func (s *State) refCode(k *prep, r kop.Ref) uint8 {
 	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer:
 		p := s.playerRef(k, r)
 		if p == 255 {
-			return uint8(NoTarget)
+			return TCode(NoTarget)
 		}
-		return uint8(PlayerCode(p))
+		return PlayerCode(p)
 	}
 	o := s.objRefObj(r)
 	if o == NoObj {
-		return uint8(NoTarget)
+		return TCode(NoTarget)
 	}
-	return uint8(o)
+	return TCode(o)
 }
 
 // forPlayers runs f for the player(s) a Ref names.
@@ -1047,9 +1047,9 @@ func (s *State) oneOppOf(k *prep, r kop.Ref, e *stackEntry, ctrl uint8, obj Obj)
 
 // tgtCode is the resolving entry's target i, or NoTarget when it was
 // chosen but is illegal now.
-func (s *State) tgtCode(i int) uint8 {
+func (s *State) tgtCode(i int) TCode {
 	if s.res.bad&(1<<i) != 0 {
-		return uint8(NoTarget)
+		return TCode(NoTarget)
 	}
 	return s.res.e.tgt[i]
 }

@@ -269,7 +269,7 @@ func (g *Game) noteExiled(before *[dirac.MaxObj]kop.Zone, top *dirac.ProjStack) 
 
 // targets reports whether a stack entry targets object o.
 func targets(e *dirac.ProjStack, o uint8) bool {
-	return slices.Contains(e.Targets[:], o) || slices.Contains(e.Extra[:e.NExtra], o)
+	return slices.Contains(e.Targets[:], dirac.TCode(o)) || slices.Contains(e.Extra[:e.NExtra], dirac.TCode(o))
 }
 
 // resolvedExile reports whether a stack entry's ability moves objects to exile through
@@ -549,11 +549,11 @@ func (g *Game) boardStack() {
 		o.Targets = o.Targets[:0]
 		for si, t := range e.Targets {
 			if dirac.TCode(t) != dirac.NoTarget {
-				o.Targets = append(o.Targets, g.stateTarget(t))
+				o.Targets = append(o.Targets, g.stateTarget(uint8(t)))
 			}
 			for j := 0; j < int(e.NExtra); j++ {
 				if int(e.ExtraSlot[j]) == si {
-					o.Targets = append(o.Targets, g.stateTarget(e.Extra[j]))
+					o.Targets = append(o.Targets, g.stateTarget(uint8(e.Extra[j])))
 				}
 			}
 		}
@@ -635,7 +635,7 @@ func (g *Game) chosenModes(e *dirac.ProjStack, sa *cards.SA) []string {
 
 func (g *Game) stateTarget(t uint8) state.Target {
 	switch {
-	case t == dirac.StackTargetGone:
+	case dirac.TCode(t) == dirac.StackTargetGone:
 		return state.Target{}
 	case t >= canon.RefPlayer:
 		return state.Target{Player: state.PlayerID(t - canon.RefPlayer), IsPlayer: true}

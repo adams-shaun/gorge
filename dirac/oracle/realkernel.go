@@ -415,7 +415,7 @@ func (r *realSide) Project(p *Projection) {
 		for _, slot := range r.stackTargetOrder(e) {
 			si, t := int(slot), e.Targets[slot]
 			if dirac.TCode(t) != dirac.NoTarget && int(st.NTargets) < MaxTgts {
-				st.Targets[st.NTargets] = t
+				st.Targets[st.NTargets] = Ref(t)
 				if t == dirac.StackTargetGone {
 					st.Targets[st.NTargets] = RefNone // a stack ability that left (gorge's vanished object)
 				}
@@ -423,7 +423,7 @@ func (r *realSide) Project(p *Projection) {
 			}
 			for j := 0; j < int(e.NExtra); j++ {
 				if int(e.ExtraSlot[j]) == si && int(st.NTargets) < MaxTgts {
-					st.Targets[st.NTargets] = e.Extra[j]
+					st.Targets[st.NTargets] = Ref(e.Extra[j])
 					st.NTargets++
 				}
 			}

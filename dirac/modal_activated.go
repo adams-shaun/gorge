@@ -52,9 +52,9 @@ func modalBounds(t *kop.TargetSpec) (lo, hi uint8) {
 }
 
 // modalCands lists slot r.left's candidates not picked yet.
-func (s *State) modalCands(k *prep, out *[MaxOptions]uint8) int {
+func (s *State) modalCands(k *prep, out *[MaxOptions]TCode) int {
 	r := &s.res
-	var all [MaxOptions]uint8
+	var all [MaxOptions]TCode
 	n := s.targetCands(k, &s.modalAb(k).Targets[r.left], r.e.ctrl, s.resSrcSlot(k), r.e.obj, &all)
 	m := 0
 	x := s.xtOf(&r.e)
@@ -88,7 +88,7 @@ func (s *State) modalNextTarget(k *prep) bool {
 			continue
 		}
 		_, hi := modalBounds(t)
-		var buf [MaxOptions]uint8
+		var buf [MaxOptions]TCode
 		n := s.modalCands(k, &buf)
 		if r.peekI >= hi || n == 0 {
 			continue
@@ -115,11 +115,11 @@ func (s *State) askOptionsModalAct(k *prep, d *Decision) bool {
 		}
 	case raGenModalTarget:
 		lo, _ := modalBounds(&s.modalAb(k).Targets[r.left])
-		var buf [MaxOptions]uint8
+		var buf [MaxOptions]TCode
 		n := s.modalCands(k, &buf)
 		d.Sub = ChGenResTarget
 		for i := 0; i < n; i++ {
-			d.add(MakeAction(AkChoose, TCode(buf[i]), 0, 0))
+			d.add(MakeAction(AkChoose, buf[i], 0, 0))
 		}
 		if r.peekI >= lo {
 			d.add(MakeAction(AkDone, 0, 0, 0))
@@ -160,19 +160,19 @@ func (s *State) applyAskModalAct(k *prep, a Action) bool {
 			}
 			// gorge records the pick as the ability's TargetsChosen:
 			// BecomesTarget / ward first, then the crime (checkWard's order)
-			s.targetedOne(k, &r.e, uint8(c))
+			s.targetedOne(k, &r.e, c)
 			if k.gen != nil && k.gen.crimeOn {
-				s.crimeModalPick(k, &r.e, i, r.peekI, uint8(c))
+				s.crimeModalPick(k, &r.e, i, r.peekI, c)
 			}
 			if r.peekI == 0 {
-				r.e.tgt[i], r.e.tver[i] = uint8(c), ver
+				r.e.tgt[i], r.e.tver[i] = c, ver
 				if r.e.nt <= uint8(i) {
 					r.e.nt = uint8(i) + 1
 				}
 			} else if x := s.xtMut(&r.e); x == nil {
 				return true
 			} else if x.n < maxXTgt {
-				x.slot[x.n], x.code[x.n], x.ver[x.n] = uint8(i), uint8(c), ver
+				x.slot[x.n], x.code[x.n], x.ver[x.n] = uint8(i), c, ver
 				x.n++
 			} else {
 				s.capFull(StallXTgt)

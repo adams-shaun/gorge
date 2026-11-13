@@ -67,7 +67,7 @@ func (s *State) eachRun(k *prep, in *kop.Instr, i uint8, j0 int, w eachSusp) boo
 	if w.hold.on {
 		s.holdClose(k, w.hold) // the targets still enter together (CR 603.6a)
 	}
-	e.tgt[i], e.tver[i], s.res.bad = w.t, w.v, w.bad
+	e.tgt[i], e.tver[i], s.res.bad = TCode(w.t), w.v, w.bad
 	s.g.inLoop = false
 	s.g.tokFrzOn = false
 	return false

@@ -203,7 +203,7 @@ func (s *State) copyAnswered(k *prep, i int, picks []Obj) bool {
 	var all [MaxOptions]Obj
 	n := 0
 	for d := s.copyNextDecl(k, e, -1); d >= 0; d = s.copyNextDecl(k, e, d) {
-		var own [MaxOptions]uint8
+		var own [MaxOptions]TCode
 		for _, c := range own[:s.copySlotTargets(e, d, &own)] {
 			if n < len(all) {
 				all[n] = Obj(c)
@@ -234,9 +234,9 @@ func (s *State) copyOwnTargets(k *prep, w *stackEntry) bool {
 }
 
 // copySlotTargets lists slot d's own targets: the first, then its extras.
-func (s *State) copySlotTargets(e *stackEntry, d int, out *[MaxOptions]uint8) int {
+func (s *State) copySlotTargets(e *stackEntry, d int, out *[MaxOptions]TCode) int {
 	n := 0
-	if d < int(e.nt) && TCode(e.tgt[d]) != NoTarget {
+	if d < int(e.nt) && e.tgt[d] != NoTarget {
 		out[n] = e.tgt[d]
 		n++
 	}
@@ -257,7 +257,7 @@ func (s *State) copySlotTargets(e *stackEntry, d int, out *[MaxOptions]uint8) in
 // working entry e holds -- the root's or a mode's, and an earlier distinct
 // link's -- inherited keep-current ones included (CR 707.10c, 115.3; gorge
 // rules/target_modes.go copyUniqueLinkCandidates). It returns the new count.
-func (s *State) copyUniqueLink(k *prep, e *stackEntry, slot int, all *[MaxOptions]uint8, n int) int {
+func (s *State) copyUniqueLink(k *prep, e *stackEntry, slot int, all *[MaxOptions]TCode, n int) int {
 	if e.ab == 255 || e.ab >= abCascade {
 		return n
 	}
@@ -265,7 +265,7 @@ func (s *State) copyUniqueLink(k *prep, e *stackEntry, slot int, all *[MaxOption
 	if a.Targets[slot].TFlags&kop.TgfDistinct == 0 || !copyLinkSlot(a, slot, e.kind == seSpell) {
 		return n
 	}
-	var held [MaxOptions]uint8
+	var held [MaxOptions]TCode
 	nh := 0
 	for j := 0; j < slot; j++ {
 		t := &a.Targets[j]
@@ -275,7 +275,7 @@ func (s *State) copyUniqueLink(k *prep, e *stackEntry, slot int, all *[MaxOption
 		if copyLinkSlot(a, j, e.kind == seSpell) && t.TFlags&kop.TgfDistinct == 0 {
 			continue
 		}
-		var own [MaxOptions]uint8
+		var own [MaxOptions]TCode
 		for _, c := range own[:s.copySlotTargets(e, j, &own)] {
 			if nh < len(held) {
 				held[nh] = c

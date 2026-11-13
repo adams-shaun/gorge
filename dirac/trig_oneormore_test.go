@@ -299,7 +299,7 @@ func TestDamagePlus(t *testing.T) {
 	sc, id = newBLBScen(t, deck)
 	f = sc.perm(fc, 0)
 	sc.perm(fc, 0)
-	sc.s.replDamage(sc.k, 0, sc.slot(f), fc, uint8(PlayerTarget0+1), true, 3)
+	sc.s.replDamage(sc.k, 0, sc.slot(f), fc, TCode(PlayerTarget0+1), true, 3)
 	if sc.s.g.stalled != StallReplPlus {
 		t.Fatalf("two Flamecallers on one event: stalled %q, want replplus", StallName(sc.s.g.stalled))
 	}

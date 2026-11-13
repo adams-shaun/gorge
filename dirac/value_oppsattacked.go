@@ -14,7 +14,7 @@ package dirac
 func (s *State) noteOppsAttacked(m slotMask) {
 	for ; m.any(); m = m.rest() {
 		p := &s.perms[m.first()]
-		if p.flags&pfAttacking != 0 && isPlayerOrNone(TCode(p.atk)) {
+		if p.flags&pfAttacking != 0 && isPlayerOrNone(p.atk) {
 			s.g.oppAtt = 1
 			return
 		}

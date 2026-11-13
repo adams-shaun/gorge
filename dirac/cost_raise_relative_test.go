@@ -43,12 +43,12 @@ func TestRaiseCostPerTargetCost(t *testing.T) {
 		want  kop.ManaCost
 	}{
 		{"no target", func(e *stackEntry) {}, wu},
-		{"one target", func(e *stackEntry) { e.nt, e.tgt[0] = 1, uint8(PlayerTarget0) }, wu},
-		{"two slots", func(e *stackEntry) { e.nt, e.tgt[0], e.tgt[1] = 2, uint8(PlayerTarget0), uint8(PlayerTarget0+1) }, double},
+		{"one target", func(e *stackEntry) { e.nt, e.tgt[0] = 1, TCode(PlayerTarget0) }, wu},
+		{"two slots", func(e *stackEntry) { e.nt, e.tgt[0], e.tgt[1] = 2, TCode(PlayerTarget0), TCode(PlayerTarget0+1) }, double},
 		{"slot plus extra", func(e *stackEntry) {
-			e.nt, e.tgt[0] = 1, uint8(PlayerTarget0)
+			e.nt, e.tgt[0] = 1, TCode(PlayerTarget0)
 			x := sc.s.xtMut(e)
-			x.n, x.code[0] = 1, uint8(PlayerTarget0+1)
+			x.n, x.code[0] = 1, TCode(PlayerTarget0+1)
 		}, double},
 	}
 	for _, c := range cases {

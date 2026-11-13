@@ -21,12 +21,12 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			q := s.oppsFrom(e.ctrl)
 			n := s.value(k, in.A)
 			for i := uint8(0); i < q.n; i++ {
-				s.damageTo(k, uint8(PlayerCode(q.s[i])), n)
+				s.damageTo(k, PlayerCode(q.s[i]), n)
 			}
 			break
 		}
 		code := s.refCode(k, in.Obj)
-		if TCode(code) != NoTarget {
+		if code != NoTarget {
 			s.damageTo(k, code, s.value(k, in.A))
 		}
 	case kop.OpDraw:
@@ -475,14 +475,14 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			hi = s.battlefieldOrder(p, hit.and(s.ctrlM[p]), ord[:], hi)
 		}
 		for _, sl := range ord[:hi] {
-			s.damageTo(k, uint8(s.perms[sl].obj), n)
+			s.damageTo(k, TCode(s.perms[sl].obj), n)
 		}
 		if in.B.N&1 != 0 { // seat-ok: an instruction flag bit
 			// then each player, the controller first (gorge validPlayers:
 			// AliveFrom the controller)
 			q := s.aliveFrom(e.ctrl)
 			for i := uint8(0); i < q.n; i++ {
-				s.damageTo(k, uint8(PlayerCode(q.s[i])), n)
+				s.damageTo(k, PlayerCode(q.s[i]), n)
 			}
 		}
 	case kop.OpDestroyAll:
@@ -714,7 +714,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 func (s *State) cond(k *prep, in *kop.Instr) bool {
 	switch in.C {
 	case 0: // the first target is still legal
-		return TCode(s.tgtCode(0)) != NoTarget
+		return s.tgtCode(0) != NoTarget
 	case 1: // value A > 0
 		return s.value(k, in.A) > 0
 	case 2: // the spell was not kicked

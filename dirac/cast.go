@@ -1143,7 +1143,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				}
 				continue
 			}
-			var buf [MaxOptions]uint8
+			var buf [MaxOptions]TCode
 			n := s.targetCands(k, t, e.ctrl, s.srcSlot(), e.obj, &buf)
 			if k.gen != nil {
 				n = s.affordableTargets(k, &buf, n)
@@ -1202,7 +1202,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				}
 			}
 			for i := 0; i < n; i++ {
-				d.add(MakeAction(AkTarget, 0, TCode(buf[i]), 0))
+				d.add(MakeAction(AkTarget, 0, buf[i], 0))
 			}
 			if t.UpTo {
 				d.add(MakeAction(AkTarget, 0, NoTarget, 0))
@@ -1408,7 +1408,7 @@ func (s *State) applyBuild(k *prep, a Action) {
 			return
 		}
 		if s.bld().stage == bsDivide {
-			s.answerCastDivide(k, uint8(a.Source()))
+			s.answerCastDivide(k, a.Source())
 			s.syncBuild()
 			return
 		}
@@ -1501,7 +1501,7 @@ func (s *State) applyBuild(k *prep, a Action) {
 		}
 	case AkTarget:
 		ti := s.bld().ti
-		e.tgt[ti] = uint8(a.Target())
+		e.tgt[ti] = a.Target()
 		if a.Target() != NoTarget {
 			if isObjTarget(a.Target()) {
 				e.tver[ti] = s.objs[a.Target()].ver
@@ -1514,7 +1514,7 @@ func (s *State) applyBuild(k *prep, a Action) {
 			if k.gen != nil && k.gen.crimeOn {
 				// the plain target step takes one pick per ask: the ask
 				// completes here (act_commitcrime.go crimePick)
-				s.crimePick(k, uint8(a.Target()), true)
+				s.crimePick(k, a.Target(), true)
 			}
 		}
 		s.bld().ti++
@@ -1948,8 +1948,8 @@ func (s *State) castTrigVanilla(k *prep, ls Slot, e *stackEntry) {
 
 // targetedOne is one target code t of entry e chosen: its BecomesTarget
 // triggers, then the ward of a permanent its controller does not control.
-func (s *State) targetedOne(k *prep, e *stackEntry, t uint8) {
-	if !isObjTarget(TCode(t)) {
+func (s *State) targetedOne(k *prep, e *stackEntry, t TCode) {
+	if !isObjTarget(t) {
 		return // a player, or a stack ability (tgt_stackability.go)
 	}
 	ob := &s.objs[t]

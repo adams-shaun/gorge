@@ -88,13 +88,13 @@ func TestPreventKeywordAllDamageTo(t *testing.T) {
 	fog := sc.perm(id["Fog Bank"], 0)
 	bear := sc.perm(id["Grizzly Bears"], 0)
 	shock := id["Shock"]
-	if n := sc.s.replDamage(sc.k, 0, NoSlot, shock, uint8(dawn), false, 3); n != 0 {
+	if n := sc.s.replDamage(sc.k, 0, NoSlot, shock, TCode(dawn), false, 3); n != 0 {
 		t.Fatalf("Dawn Elemental took %d of a 3-damage burn, want 0 (all damage to it is prevented)", n)
 	}
-	if n := sc.s.replDamage(sc.k, 0, NoSlot, shock, uint8(fog), false, 3); n != 3 {
+	if n := sc.s.replDamage(sc.k, 0, NoSlot, shock, TCode(fog), false, 3); n != 3 {
 		t.Fatalf("Fog Bank took %d of a 3-damage burn, want 3 (its sentence is combat-scoped)", n)
 	}
-	if n := sc.s.replDamage(sc.k, 0, NoSlot, shock, uint8(bear), false, 3); n != 3 {
+	if n := sc.s.replDamage(sc.k, 0, NoSlot, shock, TCode(bear), false, 3); n != 3 {
 		t.Fatalf("Grizzly Bears took %d of a 3-damage burn, want 3 (no prevention)", n)
 	}
 }
@@ -124,7 +124,7 @@ func TestPreventKeywordLostAbilities(t *testing.T) {
 	})
 	dawn := sc2.perm(id2["Dawn Elemental"], 0)
 	sc2.s.perms[sc2.slot(dawn)].ovr.flags |= ovLoseAll
-	if n := sc2.s.replDamage(sc2.k, 0, NoSlot, id2["Shock"], uint8(dawn), false, 3); n != 3 {
+	if n := sc2.s.replDamage(sc2.k, 0, NoSlot, id2["Shock"], TCode(dawn), false, 3); n != 3 {
 		t.Fatalf("Dawn Elemental took %d of a 3-damage burn, want 3 (it lost all abilities: no prevention)", n)
 	}
 }

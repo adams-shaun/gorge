@@ -182,7 +182,7 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 		if d.Sub == dirac.SubCopyTarget {
 			// a spell copy's new-target ask: gorge lists the inherited
 			// targets first, then the census in its usual order
-			if i := e.st0.FeatCopyInherited(uint8(tgt)); i >= 0 {
+			if i := e.st0.FeatCopyInherited(dirac.TCode(tgt)); i >= 0 {
 				return uint32(i)
 			}
 			copyAsk = 1 << 30
@@ -208,7 +208,7 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 		case dirac.ChGenMayShuffle:
 			return 1 - uint32(mode&1) // yes, then no
 		case dirac.ChGenDivide, dirac.ChCastDivide:
-			return uint32(e.st0.FeatDivideIndex(uint8(src))) // gorge lists the targets in target order
+			return uint32(e.st0.FeatDivideIndex(dirac.TCode(src))) // gorge lists the targets in target order
 		case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick, dirac.ChDivide, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped, dirac.ChGenDestAlt:
 			return uint32(mode) // ChAltAdd: the payable parts first, as gorge lists them
 		case dirac.ChGenPay, dirac.ChGenPayMode, dirac.ChGenTopBottom, dirac.ChGenLeyline:

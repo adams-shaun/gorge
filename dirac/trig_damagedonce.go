@@ -30,7 +30,7 @@ type refEnt struct {
 	obj  Obj
 	card CardID
 	ab   uint8
-	rcp  uint8
+	rcp  TCode
 	at   uint8 // the combat event (index + 1) that created it
 }
 
@@ -45,7 +45,7 @@ type refLatch struct {
 	n    int
 	e    [maxRefLatch]refEnt
 	// damageBatch's recipients and their damage (only)
-	codes []uint8
+	codes []TCode
 	dn    []int16
 }
 
@@ -64,9 +64,9 @@ var DebugDdoNoGate bool
 var DebugDmgIgnoreFilter2 bool
 
 // recipientPlayer is the player a recipient code names.
-func recipientPlayer(rcp uint8) (uint8, bool) {
-	if isPlayerTarget(TCode(rcp)) {
-		return CodeSeat(TCode(rcp)), true
+func recipientPlayer(rcp TCode) (uint8, bool) {
+	if isPlayerTarget(rcp) {
+		return CodeSeat(rcp), true
 	}
 	return 0, false
 }
@@ -78,12 +78,12 @@ func recipientPlayer(rcp uint8) (uint8, bool) {
 // trigger player. A line without a referent read queues on the event's amount.
 //
 //go:noinline
-func (s *State) ddoLine(k *prep, l trigListener, a *kop.Ability, src Slot, srcObj Obj, srcCtrl uint8, amt int16, rcp uint8, rl *refLatch) (int16, Obj, uint8, bool) {
+func (s *State) ddoLine(k *prep, l trigListener, a *kop.Ability, src Slot, srcObj Obj, srcCtrl uint8, amt int16, rcp TCode, rl *refLatch) (int16, Obj, uint8, bool) {
 	t := &a.Trig
 	if t.Filter2 == 0 && t.Flags2&(kop.Tf2PerReferent|kop.Tf2ToYou) == 0 {
 		return amt, srcObj, s.dmgSeat(rcp, srcCtrl), true
 	}
-	if TCode(rcp) == NoTarget {
+	if rcp == NoTarget {
 		return 0, NoObj, 0, false // damageBatch's aggregate fire: its per-recipient pass handles it
 	}
 	tobj, tpl, ok := s.ddoRecipient(k, l, t, srcObj, rcp)
@@ -158,7 +158,7 @@ func (s *State) ddoLine(k *prep, l trigListener, a *kop.Ability, src Slot, srcOb
 // ddoRecipient applies the recipient half of line t (Filter2, Tf2ToYou) of
 // listener l to recipient rcp, and returns the trigger object and player a
 // per-referent queue carries.
-func (s *State) ddoRecipient(k *prep, l trigListener, t *kop.Trigger, srcObj Obj, rcp uint8) (Obj, uint8, bool) {
+func (s *State) ddoRecipient(k *prep, l trigListener, t *kop.Trigger, srcObj Obj, rcp TCode) (Obj, uint8, bool) {
 	if pl, ok := recipientPlayer(rcp); ok {
 		if t.Filter2 != 0 && t.Flags&kop.TfToPlayer == 0 && !DebugDmgIgnoreFilter2 || t.Flags2&kop.Tf2ToYou != 0 && pl != l.ctrl {
 			return NoObj, 0, false
@@ -177,27 +177,27 @@ func (s *State) ddoRecipient(k *prep, l trigListener, t *kop.Trigger, srcObj Obj
 }
 
 // sameReferent: combat event ev lands on the referent rcp names.
-func (s *State) sameReferent(r *dmgRec, ev *dmgEv, rcp uint8) bool {
+func (s *State) sameReferent(r *dmgRec, ev *dmgEv, rcp TCode) bool {
 	if ev.dst == NoSlot {
 		_, ok := recipientPlayer(rcp)
 		return ok
 	}
-	return isObjTarget(TCode(rcp)) && s.perms[ev.dst].obj == Obj(rcp)
+	return isObjTarget(rcp) && s.perms[ev.dst].obj == Obj(rcp)
 }
 
 // combatRcp is the recipient code of combat event ev (its player the
 // defending player: the player attacker ev.src attacks, CR 510.1).
-func (s *State) combatRcp(k *prep, ev *dmgEv) uint8 {
+func (s *State) combatRcp(k *prep, ev *dmgEv) TCode {
 	if ev.dst == NoSlot {
 		if MaxSeats == 2 {
-			return uint8(PlayerCode(NextSeat(s.active)))
+			return PlayerCode(NextSeat(s.active))
 		}
 		if p := s.atkSeat(k, ev.src); TCode(p) != NoTarget {
-			return uint8(PlayerCode(p))
+			return PlayerCode(p)
 		}
-		return uint8(PlayerCode(s.nextAlive(s.active)))
+		return PlayerCode(s.nextAlive(s.active))
 	}
-	return uint8(s.perms[ev.dst].obj)
+	return TCode(s.perms[ev.dst].obj)
 }
 
 // fireDamageRefs is damageBatch's per-recipient pass: one Damage event per
@@ -205,7 +205,7 @@ func (s *State) combatRcp(k *prep, ev *dmgEv) uint8 {
 // no referent read, which the aggregate fire queued.
 //
 //go:noinline
-func (s *State) fireDamageRefs(k *prep, codes []uint8, dn []int16) {
+func (s *State) fireDamageRefs(k *prep, codes []TCode, dn []int16) {
 	var rl refLatch
 	rl.only = true
 	rl.codes, rl.dn = codes, dn
@@ -214,7 +214,7 @@ func (s *State) fireDamageRefs(k *prep, codes []uint8, dn []int16) {
 			continue
 		}
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
-			s.fireDamageEvGen(k, sl, dn[i], isPlayerOrNone(TCode(code)), false, nil, code, &rl)
+			s.fireDamageEvGen(k, sl, dn[i], isPlayerOrNone(code), false, nil, code, &rl)
 		} else if s.res.e.obj != NoObj {
 			s.fireDamageSrc(k, s.res.e.obj, s.res.e.ctrl, dn[i], dmgPl(code), code, &rl)
 		}

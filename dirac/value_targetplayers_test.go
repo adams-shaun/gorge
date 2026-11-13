@@ -21,16 +21,16 @@ func TestTargetPlayersExpr(t *testing.T) {
 	}
 	e := stackEntry{nt: 2}
 	for i := range e.tgt {
-		e.tgt[i] = uint8(NoTarget)
+		e.tgt[i] = TCode(NoTarget)
 	}
-	e.tgt[1] = uint8(PlayerTarget0 + 1)
+	e.tgt[1] = TCode(PlayerTarget0 + 1)
 	if got := read(kop.RefTarget0, &e); got != 0 {
 		t.Errorf("an unfilled slot reads %d, want 0", got)
 	}
 	if got := read(kop.RefTarget1, &e); got != 1 {
 		t.Errorf("a slot holding the opponent reads %d, want 1", got)
 	}
-	e.tgt[0] = uint8(bears)
+	e.tgt[0] = TCode(bears)
 	if got := read(kop.RefTarget0, &e); got != 0 {
 		t.Errorf("a permanent target reads %d, want 0", got)
 	}

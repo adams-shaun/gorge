@@ -276,7 +276,7 @@ type perm struct {
 	chosen   uint8           // "as this enters" choice
 	bord     uint8           // blocker: declaration order (damage assignment order); attacker: declaration order (Attacks trigger queueing)
 	actUsed  uint8           // OncePerTurn abilities activated this turn (bit per ability index)
-	atk      uint8           // attacker: the defender it attacks (PlayerTarget* or a planeswalker Obj)
+	atk      TCode           // attacker: the defender it attacks (PlayerTarget* or a planeswalker Obj)
 	ck       [ctrSlots]uint8 // general counter slots' kinds (see p1)
 	// cseen records the counter kinds held since it entered, as one is
 	// removed (seeCtr; gorge lists a removed kind at 0): bit i < ctrSlots
@@ -464,7 +464,7 @@ type stackEntry struct {
 	x      uint8
 	flags  uint8
 	nt     uint8
-	tgt    [kop.MaxTargets]uint8
+	tgt    [kop.MaxTargets]TCode
 	tver   [kop.MaxTargets]uint8
 	// crim is CR 700.13's pick-time verdicts for the root target slots
 	// (act_commitcrime.go): bit i says slot i's pick was a crime when it was

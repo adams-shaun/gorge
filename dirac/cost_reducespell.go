@@ -107,17 +107,17 @@ func (s *State) raiseTargetOK(k *prep, f kop.FilterID, p uint8, c CardID) bool {
 // target-dependent raise (StTargetsFilter2 on a StatIncreaseCost) makes the
 // spell unaffordable, each tried as the sole selection (gorge
 // affordableTargetCandidates). A spell with no such raise keeps all n.
-func (s *State) raiseDropTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
+func (s *State) raiseDropTargets(k *prep, buf *[MaxOptions]TCode, n int) int {
 	return s.dropTargetsOwing(k, buf, n, false)
 }
 
 // freeDropTargets is raiseDropTargets for a spell cast without paying its
 // mana cost: the raise lands on the empty cost.
-func (s *State) freeDropTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
+func (s *State) freeDropTargets(k *prep, buf *[MaxOptions]TCode, n int) int {
 	return s.dropTargetsOwing(k, buf, n, true)
 }
 
-func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]uint8, n int, free bool) int {
+func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]TCode, n int, free bool) int {
 	e := &s.bld().e
 	defer s.unmarkCostComposition(s.markCostComposition())
 	cd := &k.t.Cards[e.card]

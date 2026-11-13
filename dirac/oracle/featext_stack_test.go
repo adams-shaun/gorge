@@ -205,7 +205,7 @@ func castCounterOnTop(t *testing.T, sc *FeatScenario) (*dirac.State, *dirac.Deci
 			continue
 		case dirac.DkPriority:
 			if top := p.Stack[p.NStack-1]; p.NStack >= 2 && top.Ctrl == sc.Seat && sc.Pool.Effect(top.Card).Class == feat.EffCounter {
-				if top.Targets[0] != victim {
+				if top.Targets[0] != dirac.TCode(victim) {
 					t.Fatalf("%s: counter targets %d, want %d", sc.Name, top.Targets[0], victim)
 				}
 				return st, d

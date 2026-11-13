@@ -1750,7 +1750,7 @@ type usedRec struct {
 type xTargets struct {
 	n    uint8
 	slot [maxXTgt]uint8
-	code [maxXTgt]uint8
+	code [maxXTgt]TCode
 	ver  [maxXTgt]uint8
 	// crim is CR 700.13's pick-time verdicts for the pool's extra objects
 	// (act_commitcrime.go crimeAskDone): bit j says extra j's pick was a
@@ -1794,11 +1794,14 @@ type genState struct {
 	excess         int16
 	lostAmt        int16
 	tokMade        uint8
-	tokDef         uint8 // the CR 508.4 defender the TokenAttacking$ True ask was answered with (a player or planeswalker/battle target byte), valid while tokDefSet; transient within one mint (filter_combatwords.go)
+	tokDef         TCode // the CR 508.4 defender the TokenAttacking$ True ask was answered with (a player or planeswalker/battle target byte), valid while tokDefSet; transient within one mint (filter_combatwords.go)
 	tokDefSet      bool
 	entHost        uint8 // host slot + 1 of an Aura about to enter attached: enter attaches it before its enters check (zone_handmoveaura.go; transient, 0 between moves)
 
-	dmg  [maxDmgMap]struct{ code, amt uint8 }
+	dmg [maxDmgMap]struct {
+		code TCode
+		amt  uint8
+	}
 	ndmg uint8
 
 	may  [maxMay]mayPlay
@@ -1969,7 +1972,8 @@ type genState struct {
 		// would take; sc holds the kop.PrevScope* bits and col is 0. A record
 		// with sc&prevNextSc is an Ext PreventNext shield: ctl the recipient's
 		// damage code, obj the effect's source, col the damage left (repl_prevnext.go)
-		sc, ctl uint8
+		sc  uint8
+		ctl TCode
 	}
 	lingerM slotMask
 	// declM: the slots declared as attackers earlier this turn (Count$AttackersDeclared

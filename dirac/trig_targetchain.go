@@ -24,17 +24,17 @@ func (s *State) castTargetsAll(k *prep, f kop.FilterID, e *stackEntry, l trigLis
 			break
 		}
 	}
-	var codes [kop.MaxTargets + maxXTgt]uint8
+	var codes [kop.MaxTargets + maxXTgt]TCode
 	n := s.chainTargets(e, &codes)
 	for i := 0; i < n; i++ {
 		t := codes[i]
-		if isPlayerTarget(TCode(t)) {
-			if s.castTargetsPlayer(k, f, CodeSeat(TCode(t)), l.ctrl) {
+		if isPlayerTarget(t) {
+			if s.castTargetsPlayer(k, f, CodeSeat(t), l.ctrl) {
 				return true
 			}
 			continue
 		}
-		if !isObjTarget(TCode(t)) {
+		if !isObjTarget(t) {
 			continue
 		}
 		ob := &s.objs[t]
@@ -76,17 +76,17 @@ func (s *State) castTargetsAll(k *prep, f kop.FilterID, e *stackEntry, l trigLis
 // chosen when a SpellCast trigger is evaluated, so only cast-time slots are set.
 //
 //go:noinline
-func (s *State) chainTargets(e *stackEntry, codes *[kop.MaxTargets + maxXTgt]uint8) int {
+func (s *State) chainTargets(e *stackEntry, codes *[kop.MaxTargets + maxXTgt]TCode) int {
 	n := 0
 	for i := 0; i < int(e.nt); i++ {
-		if c := e.tgt[i]; TCode(c) != NoTarget {
+		if c := e.tgt[i]; c != NoTarget {
 			codes[n] = c
 			n++
 		}
 	}
 	x := s.xtOf(e)
 	for j := 0; j < int(x.n); j++ {
-		if c := x.code[j]; TCode(c) != NoTarget {
+		if c := x.code[j]; c != NoTarget {
 			codes[n] = c
 			n++
 		}
@@ -98,7 +98,7 @@ func (s *State) chainTargets(e *stackEntry, codes *[kop.MaxTargets + maxXTgt]uin
 // target's code is its object index, a player target's its seat code).
 //
 //go:noinline
-func distinctTargets(codes *[kop.MaxTargets + maxXTgt]uint8, n int) int {
+func distinctTargets(codes *[kop.MaxTargets + maxXTgt]TCode, n int) int {
 	d := 0
 	for i := 0; i < n; i++ {
 		dup := false

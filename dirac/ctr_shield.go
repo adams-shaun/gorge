@@ -192,7 +192,7 @@ func (s *State) shieldOrderable(k *prep, src, dst Slot) bool {
 // when it is a player or has left the battlefield.
 func (s *State) ncShieldSlot() Slot {
 	nc := &s.g.nc
-	if isPlayerOrNone(TCode(nc.code)) || int(nc.code) >= MaxObj {
+	if isPlayerOrNone(nc.code) || int(nc.code) >= MaxObj {
 		return NoSlot
 	}
 	if s.objs[nc.code].zone != kop.ZoneBattlefield {

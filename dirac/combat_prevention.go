@@ -52,8 +52,8 @@ func (s *State) preventCombatEv(k *prep, r *dmgRec, ev *dmgEv) {
 	r.dealt[ev.src] -= ev.n
 	if ev.dst == NoSlot {
 		r.dealtPl[ev.src] -= ev.n
-		if a := s.perms[ev.src].atk; isPlayerOrNone(TCode(a)) {
-			r.toPl[CodeSeat(TCode(a))] -= ev.n
+		if a := s.perms[ev.src].atk; isPlayerOrNone(a) {
+			r.toPl[CodeSeat(a)] -= ev.n
 		}
 	} else {
 		r.toPerm[ev.dst] -= ev.n

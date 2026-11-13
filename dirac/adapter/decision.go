@@ -765,7 +765,7 @@ func (g *Game) chooseKey(x dirac.Action) uint32 {
 		dirac.ChGenTopBottom, dirac.ChGenLeyline, dirac.ChGenDiscUnless:
 		return 1 - uint32(mode&1) // yes, pay, top and unless come first
 	case dirac.ChGenDivide, dirac.ChCastDivide:
-		return uint32(g.s.FeatDivideIndex(uint8(src)))
+		return uint32(g.s.FeatDivideIndex(dirac.TCode(src)))
 	case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick, dirac.ChDivide, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChGenManaChoice,
 		dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenReplOrder, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped, dirac.ChGenDestAlt:
 		return uint32(mode)

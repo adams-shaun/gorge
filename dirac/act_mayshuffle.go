@@ -16,7 +16,7 @@ var DebugShuffleOwnOnly bool
 // target chosen earlier in the same cast/resolution entry.
 //
 //go:noinline
-func (s *State) parentTargetOK(t *kop.TargetSpec, code uint8) bool {
+func (s *State) parentTargetOK(t *kop.TargetSpec, code TCode) bool {
 	e := s.curEntry()
 	if e == nil || t.Kind != kop.TgtCard {
 		return false
@@ -31,13 +31,13 @@ func (s *State) parentTargetOK(t *kop.TargetSpec, code uint8) bool {
 		return false
 	}
 	p := e.tgt[i]
-	if !isPlayerTarget(TCode(p)) {
+	if !isPlayerTarget(p) {
 		return false
 	}
-	if TCode(code) == NoTarget || isPlayerOrNone(TCode(code)) {
+	if code == NoTarget || isPlayerOrNone(code) {
 		return false
 	}
-	return s.objs[code].owner() == CodeSeat(TCode(p))
+	return s.objs[code].owner() == CodeSeat(p)
 }
 
 // execOblige runs the oblige ops (execCold7's default branch, cold). done=false
@@ -152,7 +152,7 @@ func (s *State) shuffleRefs(k *prep, e *stackEntry, slot uint8, refs *[maxXTgt +
 	if slot >= kop.MaxTargets {
 		return 0
 	}
-	if c := e.tgt[slot]; TCode(c) != NoTarget && isObjTarget(TCode(c)) && s.objs[c].zone != kop.ZoneNone {
+	if c := e.tgt[slot]; c != NoTarget && isObjTarget(c) && s.objs[c].zone != kop.ZoneNone {
 		refs[n] = Obj(c)
 		legal[n] = s.res.bad&(1<<slot) == 0 && s.objs[c].zone == kop.ZoneGraveyard
 		n++
@@ -163,7 +163,7 @@ func (s *State) shuffleRefs(k *prep, e *stackEntry, slot uint8, refs *[maxXTgt +
 			continue
 		}
 		c := x.code[j]
-		if TCode(c) == NoTarget || isPlayerOrNone(TCode(c)) || s.objs[c].zone == kop.ZoneNone {
+		if c == NoTarget || isPlayerOrNone(c) || s.objs[c].zone == kop.ZoneNone {
 			continue
 		}
 		refs[n] = Obj(c)

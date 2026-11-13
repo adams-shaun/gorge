@@ -26,7 +26,7 @@ type ProjObj struct {
 	Tough     int16
 	Attached  Obj   // the object this Aura/Equipment is attached to
 	Blocks    Obj   // blocker: the attacker it blocks
-	Attacks   uint8 // attacker: the defender (PlayerTarget* or a planeswalker Obj); NoTarget otherwise
+	Attacks   TCode // attacker: the defender (PlayerTarget* or a planeswalker Obj); NoTarget otherwise
 }
 
 // Projection flag bits.
@@ -54,10 +54,10 @@ type ProjStack struct {
 	Card    CardID
 	Ability uint8 // ability index in the CardDef; 255 = permanent spell
 	Ctrl    uint8
-	Targets [kop.MaxTargets]uint8
+	Targets [kop.MaxTargets]TCode
 	// a generated table's multi-object target slots: the objects beyond
 	// the first of slot ExtraSlot[i], in pick order
-	Extra     [maxXTgt]uint8
+	Extra     [maxXTgt]TCode
 	ExtraSlot [maxXTgt]uint8
 	NExtra    uint8
 	Mode      uint8
@@ -191,7 +191,7 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 	ob := &s.objs[i]
 	*po = ProjObj{ZoneIdx: 255}
 	po.Card, po.Owner, po.Ctrl, po.Zone, po.Token = ob.card, ob.owner(), ob.owner(), ob.zone, ob.of&ofToken != 0
-	po.Attached, po.Blocks, po.Attacks = NoObj, NoObj, uint8(NoTarget)
+	po.Attached, po.Blocks, po.Attacks = NoObj, NoObj, TCode(NoTarget)
 	if po.Token && k.anyInit && ob.card == k.gen.dungeon {
 		po.Token = false // a dungeon is no token (act_initiative.go)
 	}
@@ -385,7 +385,7 @@ func (s *State) projRest(p *Projection, lib bool) {
 		}
 		if k.gen != nil && k.gen.anyStackTgt {
 			for j, c := range e.tgt {
-				if isStackTarget(TCode(c)) {
+				if isStackTarget(c) {
 					p.Stack[i].Targets[j] = s.stackTgtProj(c, e.tver[j]) // its live index (tgt_stackability.go)
 				}
 			}

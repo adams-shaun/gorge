@@ -128,7 +128,7 @@ func TestCharmnumTriggerRemoved(t *testing.T) {
 // The combined target ask's occurrence byte counts the earlier chosen slots
 // that list the same candidate.
 func TestCharmnumCombinedTargets(t *testing.T) {
-	var bufs [kop.MaxTargets][MaxOptions]uint8
+	var bufs [kop.MaxTargets][MaxOptions]TCode
 	var ns [kop.MaxTargets]int
 	bufs[0][0], bufs[0][1], ns[0] = 5, 7, 2
 	bufs[1][0], bufs[1][1], ns[1] = 7, 9, 2
@@ -139,7 +139,7 @@ func TestCharmnumCombinedTargets(t *testing.T) {
 		cand uint8
 		want uint8
 	}{{0, 7, 0}, {1, 7, 1}, {1, 9, 0}, {2, 7, 2}} {
-		if got := charmOcc(mask, c.slot, c.cand, &bufs, &ns); got != c.want {
+		if got := charmOcc(mask, c.slot, TCode(c.cand), &bufs, &ns); got != c.want {
 			t.Errorf("slot %d candidate %d: occurrence %d, want %d", c.slot, c.cand, got, c.want)
 		}
 	}
@@ -264,7 +264,7 @@ func TestCharmnumCombinedTargetsScenario(t *testing.T) {
 		t.Fatalf("shared creature occurrences 0/1 offered %v/%v, want both: %+v", seen0, seen1, d.Options[:d.N])
 	}
 	sc.s.applyCharmTarget(sc.k, occ1)
-	if sc.s.bld().e.tgt[1] != uint8(bear) || TCode(sc.s.bld().e.tgt[0]) != NoTarget {
+	if sc.s.bld().e.tgt[1] != TCode(uint8(bear)) || TCode(sc.s.bld().e.tgt[0]) != NoTarget {
 		t.Fatalf("after occurrence 1: tgt %v, want slot 1 only", sc.s.bld().e.tgt)
 	}
 	for i := 0; i < int(d.N); i++ {
@@ -273,7 +273,7 @@ func TestCharmnumCombinedTargetsScenario(t *testing.T) {
 			break
 		}
 	}
-	if sc.s.bld().e.tgt[0] != uint8(bear) || sc.s.bld().e.tgt[1] != uint8(bear) {
+	if sc.s.bld().e.tgt[0] != TCode(uint8(bear)) || sc.s.bld().e.tgt[1] != TCode(uint8(bear)) {
 		t.Fatalf("after occurrence 0: tgt %v, want both slots", sc.s.bld().e.tgt)
 	}
 }

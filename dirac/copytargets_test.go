@@ -67,9 +67,9 @@ func TestCopyMultiTargetAsk(t *testing.T) {
 		t.Fatalf("stack at the ask: %+v, want the copy above the resolving trigger", s.stack[:s.sp])
 	}
 	// inherited a0, b0 first; no Done below the minimum of two
-	if d.N != 4 || s.FeatCopyInherited(uint8(a0)) != 0 || s.FeatCopyInherited(uint8(b0)) != 1 || s.FeatCopyInherited(uint8(b1)) != -1 {
+	if d.N != 4 || s.FeatCopyInherited(TCode(a0)) != 0 || s.FeatCopyInherited(TCode(b0)) != 1 || s.FeatCopyInherited(TCode(b1)) != -1 {
 		t.Fatalf("first pick options %v, inherited positions %d %d %d", d.Options[:d.N],
-			s.FeatCopyInherited(uint8(a0)), s.FeatCopyInherited(uint8(b0)), s.FeatCopyInherited(uint8(b1)))
+			s.FeatCopyInherited(TCode(a0)), s.FeatCopyInherited(TCode(b0)), s.FeatCopyInherited(TCode(b1)))
 	}
 	for i := 0; i < int(d.N); i++ {
 		if d.Options[i].Kind() == AkDone {

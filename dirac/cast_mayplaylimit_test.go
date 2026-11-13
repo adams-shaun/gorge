@@ -212,10 +212,10 @@ func TestRememberDamagedDealt(t *testing.T) {
 	bear := sc.perm(v.GrizzlyBears, 1)
 	s.res.e = stackEntry{kind: seSpell, ctrl: 0, card: prot + 1, trigObj: NoObj, obj: NoObj}
 	for i := range s.res.e.tgt {
-		s.res.e.tgt[i] = uint8(NoTarget)
+		s.res.e.tgt[i] = TCode(NoTarget)
 	}
 	deal := func(flags int16, x Obj) {
-		s.res.e.tgt[0] = uint8(x)
+		s.res.e.tgt[0] = TCode(x)
 		in := kop.Instr{Op: kop.OpDealDamageEx, Obj: kop.RefTarget0, A: kop.Const(2), C: flags}
 		s.execDamageEx(k, &in)
 	}
@@ -274,10 +274,10 @@ func TestTwoExileMarksStall(t *testing.T) {
 			b := sc.perm(v.GrizzlyBears, 1)
 			s.res.e = stackEntry{kind: seSpell, ctrl: 0, card: spell, trigObj: NoObj, obj: NoObj}
 			for i := range s.res.e.tgt {
-				s.res.e.tgt[i] = uint8(NoTarget)
+				s.res.e.tgt[i] = TCode(NoTarget)
 			}
 			deal := func(flags int16, x Obj) {
-				s.res.e.tgt[0] = uint8(x)
+				s.res.e.tgt[0] = TCode(x)
 				in := kop.Instr{Op: kop.OpDealDamageEx, Obj: kop.RefTarget0, A: kop.Const(1), C: flags}
 				s.execDamageEx(k, &in)
 			}

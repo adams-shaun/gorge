@@ -435,7 +435,7 @@ func (s *State) queueAskRet(o Obj) {
 func (s *State) retAuraAsk(k *prep, d *Decision, a *askRec) bool {
 	o := Obj(a.ab)
 	x := &s.objs[o]
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	n := 0
 	if x.zone == kop.ZoneExile && x.ver == a.ver {
 		m := s.enchantCands(k, x.card, x.owner(), &buf)
@@ -449,7 +449,7 @@ func (s *State) retAuraAsk(k *prep, d *Decision, a *askRec) bool {
 	if n > 1 {
 		d.Player, d.Kind, d.Sub = x.owner(), DkChoose, ChGenEnchant
 		for i := 0; i < n; i++ {
-			d.add(MakeAction(AkChoose, TCode(buf[i]), 0, 0))
+			d.add(MakeAction(AkChoose, buf[i], 0, 0))
 		}
 		return true
 	}
@@ -606,7 +606,7 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 // in gorge's battlefield order (player 0's list, then player 1's, each in
 // entry order), NoSlot when none.
 func (s *State) firstHost(k *prep, o Obj) Slot {
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	host := NoSlot
 	n := s.enchantCands(k, s.objs[o].card, s.objs[o].owner(), &buf)
 	for i := 0; i < n; i++ {
@@ -629,7 +629,7 @@ func (s *State) auraWithHosts(k *prep, o Obj) int {
 	if k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
 		return 0
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	return s.enchantCands(k, c, s.objs[o].owner(), &buf)
 }
 
@@ -1315,22 +1315,23 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 	if kind == akEnchant {
 		d.Sub = ChGenEnchant
 		o := s.g.pre.obj
-		var buf [MaxOptions]uint8
 		who := s.objs[o].owner()
 		if s.g.pre.state == preDigEnchant {
 			who = s.res.askP
 		}
 		if s.g.pre.state == preDigEnchPlayer {
 			who = s.res.askP
-			n := s.playerEnchCands(k, s.objs[o].card, who, &buf)
+			var seats [MaxOptions]uint8
+			n := s.playerEnchCands(k, s.objs[o].card, who, &seats)
 			for i := 0; i < n; i++ {
-				d.add(MakeAction(AkChoose, PlayerCode(buf[i]), 0, 0))
+				d.add(MakeAction(AkChoose, PlayerCode(seats[i]), 0, 0))
 			}
 			return
 		}
+		var buf [MaxOptions]TCode
 		n := s.enchantCands(k, s.objs[o].card, who, &buf)
 		for i := 0; i < n; i++ {
-			d.add(MakeAction(AkChoose, TCode(buf[i]), 0, 0))
+			d.add(MakeAction(AkChoose, buf[i], 0, 0))
 		}
 		return
 	}

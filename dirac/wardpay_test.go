@@ -275,7 +275,7 @@ func TestWardGrantedKeepsPrintedLifeWard(t *testing.T) {
 	shock := sc.obj(id["Shock"], 1)
 	e := &stackEntry{obj: shock, ctrl: 1}
 	s.npend = 0
-	s.targetedOne(k, e, uint8(z))
+	s.targetedOne(k, e, TCode(z))
 	if s.npend != 2 || s.pend[0].ab != abWard || s.pend[0].trigAmt != -2 || s.pend[1].trigAmt != 1|wardGrantedBits {
 		t.Fatalf("pending %d: %+v, want the pay-2-life ward, then the granted ward {1}", s.npend, s.pend[:s.npend])
 	}

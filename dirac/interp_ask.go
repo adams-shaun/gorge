@@ -426,24 +426,24 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 	case raGenResTarget:
 		in := &s.prog(k)[r.pc]
 		t := tspecE(k, &r.e, int(in.C))
-		var buf [MaxOptions]uint8
+		var buf [MaxOptions]TCode
 		n := s.targetCands(k, t, r.e.ctrl, s.resSrcSlot(k), r.e.obj, &buf)
 		// gorge's mid-resolution target ask: a KChoose over the cards
 		// ("card"), closed by done for an up-to slot
 		d.Sub = ChGenResTarget
 		for i := 0; i < n; i++ {
-			d.add(MakeAction(AkChoose, TCode(buf[i]), 0, 0))
+			d.add(MakeAction(AkChoose, buf[i], 0, 0))
 		}
 		if t.UpTo {
 			d.add(MakeAction(AkDone, 0, 0, 0))
 		}
 	case raGenDivide:
 		d.Sub = ChGenDivide
-		var codes [maxXTgt + 1]uint8
+		var codes [maxXTgt + 1]TCode
 		in := &s.prog(k)[r.pc]
 		m := s.divTargets(k, &r.e, uint8(tgtSlotOf(in.Obj)), &codes)
 		for i := 0; i < m; i++ {
-			d.add(MakeAction(AkChoose, TCode(codes[i]), 0, 0))
+			d.add(MakeAction(AkChoose, codes[i], 0, 0))
 		}
 	case raGenForage:
 		s.forageResOptions(k, d)
@@ -579,10 +579,10 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		s.copyTargetOptions(k, d, int(r.left))
 	case raGenEnchant:
 		d.Sub = ChGenEnchant
-		var buf [MaxOptions]uint8
+		var buf [MaxOptions]TCode
 		n := s.enchantCands(k, s.enchantingCard(k), r.askP, &buf)
 		for i := 0; i < n; i++ {
-			d.add(MakeAction(AkChoose, TCode(buf[i]), 0, 0))
+			d.add(MakeAction(AkChoose, buf[i], 0, 0))
 		}
 	case raGenCmdZone:
 		s.cmdZoneOptions(d) // zone_cmdzone.go
@@ -938,7 +938,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if a.Kind() == AkChoose {
 			c = uint8(a.Source())
 		}
-		r.e.tgt[i] = c
+		r.e.tgt[i] = TCode(c)
 		if r.e.nt <= uint8(i) {
 			r.e.nt = uint8(i) + 1
 		}
@@ -948,7 +948,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		r.bad &^= 1 << i
 		s.continueRes(k, 0)
 	case raGenDivide:
-		s.answerDivide(k, uint8(a.Source()))
+		s.answerDivide(k, a.Source())
 	case raGenForage:
 		s.answerForageRes(k, a)
 	case raGenLookAck:
@@ -2319,7 +2319,7 @@ func (s *State) digAuraHost(k *prep, o Obj, p uint8) Slot {
 	if k.gen == nil || k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
 		return NoSlot
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	if s.enchantCands(k, c, p, &buf) != 1 {
 		return NoSlot
 	}
@@ -2337,7 +2337,7 @@ func (s *State) digAuraPark(k *prep, o Obj, p uint8) bool {
 		k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
 		return false
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	if s.enchantCands(k, c, p, &buf) < 2 {
 		return false
 	}
@@ -2353,7 +2353,7 @@ func (s *State) digAuraStays(k *prep, o Obj, p uint8) bool {
 	if k.gen == nil || k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
 		return false
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	return s.enchantCands(k, c, p, &buf) == 0
 }
 
@@ -2707,8 +2707,8 @@ func (s *State) targetedExiler(ctrl uint8) uint8 {
 		return NextSeat(ctrl)
 	}
 	for i := range s.res.e.tgt {
-		if t := s.tgtCode(i); isPlayerTarget(TCode(t)) {
-			return CodeSeat(TCode(t))
+		if t := s.tgtCode(i); isPlayerTarget(t) {
+			return CodeSeat(t)
 		}
 	}
 	return NextSeat(ctrl)

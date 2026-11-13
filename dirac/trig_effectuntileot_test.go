@@ -52,7 +52,7 @@ func TestEffectEOTEmblemPlayerCapture(t *testing.T) {
 		sc.s.embSetNum(0, 0, num)
 		sc.s.npend = 0
 		var latch dmgLatch
-		sc.s.fireEmblemsDmg(sc.k, sc.slot(src), 2, toPlayer, true, rcp, false, &latch)
+		sc.s.fireEmblemsDmg(sc.k, sc.slot(src), 2, toPlayer, true, TCode(rcp), false, &latch)
 		return int(sc.s.npend)
 	}
 	toP0, toP1 := PlayerCode(0), PlayerCode(1)

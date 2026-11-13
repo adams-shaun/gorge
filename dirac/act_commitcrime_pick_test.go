@@ -29,11 +29,11 @@ func TestCrimeAbilityPickSetsLedger(t *testing.T) {
 		t.Fatal("precondition: the ledger is clear before the picks")
 	}
 	// a single-pick ask (the plain target step) completes at the pick
-	s.crimePick(sc.k, uint8(march), true)
+	s.crimePick(sc.k, TCode(march), true)
 	if s.g.crime != 0 {
 		t.Fatalf("a pick at your own permanent set the ledger: %b", s.g.crime)
 	}
-	s.crimePick(sc.k, uint8(theirs), true)
+	s.crimePick(sc.k, TCode(theirs), true)
 	if s.g.crime != 1 {
 		t.Fatalf("after the criminal pick of a completed ask: ledger %b, want bit 0", s.g.crime)
 	}
@@ -63,7 +63,7 @@ func TestCrimeAbilityPickSetsLedger(t *testing.T) {
 	}
 	// placement: the walk judges the entry and queues each listener once
 	e := stackEntry{kind: seAbility, ctrl: 0, nt: 2, obj: march, trigObj: NoObj}
-	e.tgt = [kop.MaxTargets]uint8{uint8(theirs), uint8(march), uint8(NoTarget)}
+	e.tgt = [kop.MaxTargets]TCode{TCode(theirs), TCode(march), TCode(NoTarget)}
 	s.checkWard(sc.k, &e)
 	if s.npend != 1 || s.g.crime != 1 {
 		t.Fatalf("placement queued %d triggers (ledger %b), want 1 (ledger 1)", s.npend, s.g.crime)

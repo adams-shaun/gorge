@@ -21,7 +21,7 @@ func (s *State) counterLose(k *prep, in *kop.Instr) {
 		return
 	}
 	c := s.tgtCode(slot)
-	if !isStackTarget(TCode(c)) {
+	if !isStackTarget(c) {
 		return
 	}
 	i := s.stackTgtIdx(c, s.res.e.tver[slot])

@@ -151,8 +151,8 @@ func (s *State) atkSeat(k *prep, a Slot) uint8 {
 		return 1 - s.active
 	}
 	t := s.perms[a].atk
-	if isPlayerTarget(TCode(t)) {
-		return CodeSeat(TCode(t))
+	if isPlayerTarget(t) {
+		return CodeSeat(t)
 	}
 	q := s.attackedPerm(k, a)
 	if q == NoSlot {
@@ -320,14 +320,14 @@ func (s *State) repPending() bool { return s.g.repNext != 255 }
 // TriggeredTargetController reads it). A batch's aggregate (NoTarget) names
 // no single damaged seat; the next seat stands in there, and every line that
 // reads a recipient's player skips the aggregate fire (ddoLine).
-func (s *State) dmgSeat(rcp, srcCtrl uint8) uint8 {
+func (s *State) dmgSeat(rcp TCode, srcCtrl uint8) uint8 {
 	if MaxSeats == 2 {
 		return 1 - srcCtrl
 	}
-	if isPlayerTarget(TCode(rcp)) {
-		return CodeSeat(TCode(rcp))
+	if isPlayerTarget(rcp) {
+		return CodeSeat(rcp)
 	}
-	if isObjTarget(TCode(rcp)) && s.objs[rcp].zone == kop.ZoneBattlefield {
+	if isObjTarget(rcp) && s.objs[rcp].zone == kop.ZoneBattlefield {
 		return s.perms[s.objs[rcp].slot].ctrl
 	}
 	return NextSeat(srcCtrl)

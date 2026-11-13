@@ -25,7 +25,7 @@ func newRemParamsScen(t *testing.T) (*scen, map[string]CardID) {
 	sc := newScenTableLib(t, tbl, id["Plains"], Config{NoElide: true})
 	e := stackEntry{card: id["Plains"], ctrl: 0, obj: NoObj, kind: seSpell, trigObj: NoObj}
 	for i := range e.tgt {
-		e.tgt[i] = uint8(NoTarget)
+		e.tgt[i] = TCode(NoTarget)
 	}
 	sc.s.res = resCtx{e: e, active: true, lastTok: NoObj, eachObj: NoObj}
 	return sc, id
@@ -127,7 +127,7 @@ func TestRememberLKIController(t *testing.T) {
 	sl := s.enter(sc.k, o, 1, false, kop.ZoneNone)
 	s.perms[sl].flags &^= pfSick
 	s.npend = 0
-	s.res.e.tgt[0], s.res.e.tver[0], s.res.e.nt = uint8(o), s.objs[o].ver, 1
+	s.res.e.tgt[0], s.res.e.tver[0], s.res.e.nt = TCode(o), s.objs[o].ver, 1
 	in := kop.Instr{Op: kop.OpBounce, Obj: kop.RefTarget0, C: kop.MvRemember | kop.MvLKI}
 	s.execGen(sc.k, &in)
 	if s.objs[o].zone != kop.ZoneHand || s.g.nrem != 1 || s.g.rem[0] != o {
@@ -184,7 +184,7 @@ func TestDiscardUnlessType(t *testing.T) {
 			}
 			e := stackEntry{kind: seAbility, obj: src, srcVer: s.objs[src].ver, card: pl, ab: uint8(len(k.t.Cards[pl].Abilities) - 1), trigObj: NoObj}
 			for i := range e.tgt {
-				e.tgt[i] = uint8(NoTarget)
+				e.tgt[i] = TCode(NoTarget)
 			}
 			s.stack[0], s.sp = e, 1
 			s.resolveTop(k)

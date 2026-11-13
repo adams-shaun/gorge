@@ -28,7 +28,7 @@ func cmdZoneReplScen(t *testing.T, op kop.Op, c int16) (*scen, Obj) {
 	sl := s.enter(sc.k, o, 0, false, kop.ZoneCommand)
 	s.perms[sl].flags &^= pfSick
 	e := stackEntry{kind: seSpell, card: card, ctrl: 0}
-	e.nt, e.tgt[0], e.tver[0] = 1, uint8(o), s.objs[o].ver
+	e.nt, e.tgt[0], e.tver[0] = 1, TCode(o), s.objs[o].ver
 	s.res = resCtx{e: e, active: true, lastTok: NoObj, eachObj: NoObj}
 	s.ctl = ctlResolve
 	s.runProg(sc.k)

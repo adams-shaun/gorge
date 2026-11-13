@@ -36,7 +36,7 @@ func (s *State) damageAsks(k *prep, next *kop.Instr) bool {
 		return false
 	}
 	if sl, ok := tgtSlot(next.Obj); ok {
-		if t := s.tgtCode(sl); isPlayerOrNone(TCode(t)) && TCode(t) != NoTarget {
+		if t := s.tgtCode(sl); isPlayerOrNone(t) && t != NoTarget {
 			return true
 		}
 	} else if next.Obj == kop.RefController {

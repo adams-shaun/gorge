@@ -57,7 +57,7 @@ func (s *State) slotMinNow(e *stackEntry, t *kop.TargetSpec) uint8 {
 // root, the answers so far for a unique link's ask).
 //
 //go:noinline
-func (s *State) uniqueChainViable(k *prep, ti uint8, buf *[MaxOptions]uint8, n int) int {
+func (s *State) uniqueChainViable(k *prep, ti uint8, buf *[MaxOptions]TCode, n int) int {
 	e := &s.bld().e
 	cur := tspecE(k, e, int(ti))
 	if n == 0 || cur == nil || ti != 0 && cur.TFlags&kop.TgfDistinct == 0 {
@@ -66,7 +66,7 @@ func (s *State) uniqueChainViable(k *prep, ti uint8, buf *[MaxOptions]uint8, n i
 	a := s.buildAbility(k)
 	// the units to assign: the current slot's remaining minimum after this
 	// pick, then each later mandatory distinct slot's minimum
-	var later [kop.MaxTargets][MaxOptions]uint8
+	var later [kop.MaxTargets][MaxOptions]TCode
 	var ln [kop.MaxTargets]int
 	var need [kop.MaxTargets]uint8
 	nl := 0
@@ -84,11 +84,11 @@ func (s *State) uniqueChainViable(k *prep, ti uint8, buf *[MaxOptions]uint8, n i
 		if m == 0 {
 			continue
 		}
-		var all [MaxOptions]uint8
+		var all [MaxOptions]TCode
 		c := s.targetCands(k, t, e.ctrl, s.srcSlot(), e.obj, &all)
 		w := 0
 		for i := 0; i < c; i++ {
-			if x := all[i]; TCode(x) != NoTarget && !s.pickedBefore(e, ti, x) {
+			if x := all[i]; x != NoTarget && !s.pickedBefore(e, ti, x) {
 				later[nl][w] = x
 				w++
 			}
@@ -103,7 +103,7 @@ func (s *State) uniqueChainViable(k *prep, ti uint8, buf *[MaxOptions]uint8, n i
 	// with no pick made (the later slots avoid only the earlier slots'
 	// answers): the slot's own picks so far rejoin its pool
 	rest := int(s.slotMinNow(e, cur)) - 1
-	var pool [MaxOptions + maxXTgt + 1]uint8
+	var pool [MaxOptions + maxXTgt + 1]TCode
 	np := copy(pool[:], buf[:n])
 	if mt := &s.g.mt; mt.active && mt.slot == ti {
 		rest = int(mt.min) - 1
@@ -121,7 +121,7 @@ func (s *State) uniqueChainViable(k *prep, ti uint8, buf *[MaxOptions]uint8, n i
 	}
 	rest = max(rest, 0)
 	out := 0
-	var keep [MaxOptions]uint8
+	var keep [MaxOptions]TCode
 	for i := 0; i < n; i++ {
 		c := buf[i]
 		if s.uniqueFeasible(c, pool[:np], rest, &later, &ln, &need, nl) {
@@ -140,7 +140,7 @@ func (s *State) uniqueChainViable(k *prep, ti uint8, buf *[MaxOptions]uint8, n i
 // slot's rest further picks (from cur less c) and each later slot's need
 // (from its candidates less c) can all be distinct (gorge
 // distinctTargetsFeasible): Kuhn's matching of the units to target codes.
-func (s *State) uniqueFeasible(c uint8, cur []uint8, rest int, later *[kop.MaxTargets][MaxOptions]uint8, ln *[kop.MaxTargets]int, need *[kop.MaxTargets]uint8, nl int) bool {
+func (s *State) uniqueFeasible(c TCode, cur []TCode, rest int, later *[kop.MaxTargets][MaxOptions]TCode, ln *[kop.MaxTargets]int, need *[kop.MaxTargets]uint8, nl int) bool {
 	var m uniqMatch
 	m.c, m.cur, m.later, m.ln = c, cur, later, ln
 	for i := 0; i < rest; i++ {
@@ -172,9 +172,9 @@ const maxUniqUnits = 16
 
 // uniqMatch is uniqueFeasible's matching scratch (stack only).
 type uniqMatch struct {
-	c     uint8
-	cur   []uint8
-	later *[kop.MaxTargets][MaxOptions]uint8
+	c     TCode
+	cur   []TCode
+	later *[kop.MaxTargets][MaxOptions]TCode
 	ln    *[kop.MaxTargets]int
 	unit  [maxUniqUnits]int8 // the slot a unit fills: -1 the current one, else a later index
 	nu    int
@@ -182,7 +182,7 @@ type uniqMatch struct {
 	seen  [256]bool
 }
 
-func (m *uniqMatch) cands(u int) []uint8 {
+func (m *uniqMatch) cands(u int) []TCode {
 	if j := m.unit[u]; j >= 0 {
 		return m.later[j][:m.ln[j]]
 	}
@@ -192,7 +192,7 @@ func (m *uniqMatch) cands(u int) []uint8 {
 // try finds unit u a code by an augmenting path.
 func (m *uniqMatch) try(u int) bool {
 	for _, x := range m.cands(u) {
-		if x == m.c || TCode(x) == NoTarget || m.seen[x] {
+		if x == m.c || x == NoTarget || m.seen[x] {
 			continue
 		}
 		m.seen[x] = true

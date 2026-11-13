@@ -274,7 +274,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		// on the pure plus-N order ask (repl_plus.go) pauses here and
 		// the answer re-executes this op, which re-reads the same map.
 		n := s.g.ndmg
-		var codes [maxDmgMap]uint8
+		var codes [maxDmgMap]TCode
 		var amts [maxDmgMap]int
 		for i := 0; i < int(n); i++ {
 			codes[i], amts[i] = s.g.dmg[i].code, int(s.g.dmg[i].amt)
@@ -291,7 +291,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C&kop.DmgDivideEvenly != 0 {
 			// no division: each legal target takes total / count, rounded down
 			// (Fireball; gorge effects divideEvenlyDown), one damage batch
-			var ec [maxXTgt + 1]uint8
+			var ec [maxXTgt + 1]TCode
 			n := s.divTargets(k, e, uint8(tgtSlotOf(in.Obj)), &ec)
 			per := 0
 			if n > 0 {
@@ -309,7 +309,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if s.dealAnnouncedDivision(k, e, uint8(tgtSlotOf(in.Obj))) {
 			break
 		}
-		var codes [maxXTgt + 1]uint8
+		var codes [maxXTgt + 1]TCode
 		m := s.divTargets(k, e, uint8(tgtSlotOf(in.Obj)), &codes)
 		total := s.value(k, in.A)
 		if m == 0 || total <= 0 {
@@ -586,7 +586,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if t == nil || t.TFlags&kop.TgfGiftRange != 0 && s.giftNoSlot(t, e) {
 			break
 		}
-		var buf [MaxOptions]uint8
+		var buf [MaxOptions]TCode
 		if s.targetCands(k, t, e.ctrl, s.resSrcSlot(k), e.obj, &buf) == 0 {
 			break // nothing to choose: gorge asks no empty target
 		}
@@ -1013,9 +1013,9 @@ func (s *State) slotHasExtra(e *stackEntry, i uint8) bool {
 // xtLegal rechecks extra target j at resolution.
 // divTargets lists the divided slot's legal targets in pick order (the
 // first in tgt[slot], then its extra objects).
-func (s *State) divTargets(k *prep, e *stackEntry, slot uint8, codes *[maxXTgt + 1]uint8) int {
+func (s *State) divTargets(k *prep, e *stackEntry, slot uint8, codes *[maxXTgt + 1]TCode) int {
 	m := 0
-	if c := s.tgtCode(int(slot)); TCode(c) != NoTarget {
+	if c := s.tgtCode(int(slot)); c != NoTarget {
 		codes[m] = c
 		m++
 	}
@@ -1032,9 +1032,9 @@ func (s *State) divTargets(k *prep, e *stackEntry, slot uint8, codes *[maxXTgt +
 // targets in pick order: while casting/activating (bsDivide, gorge's
 // cast-time division ask) or among the resolving slot's legal targets
 // (gorge's division option order). 0 when no division is being asked.
-func (s *State) FeatDivideIndex(c uint8) int {
+func (s *State) FeatDivideIndex(c TCode) int {
 	if s.ctl == ctlBuild && s.bld().stage == bsDivide {
-		var codes [maxXTgt + 1]uint8
+		var codes [maxXTgt + 1]TCode
 		n := s.divPicks(&s.bld().e, s.bld().divSlot, &codes)
 		for i := 0; i < n; i++ {
 			if codes[i] == c {
@@ -1048,7 +1048,7 @@ func (s *State) FeatDivideIndex(c uint8) int {
 	}
 	k := s.k()
 	in := &s.prog(k)[s.res.pc]
-	var codes [maxXTgt + 1]uint8
+	var codes [maxXTgt + 1]TCode
 	m := s.divTargets(k, &s.res.e, uint8(tgtSlotOf(in.Obj)), &codes)
 	for i := 0; i < m; i++ {
 		if codes[i] == c {
@@ -1060,10 +1060,10 @@ func (s *State) FeatDivideIndex(c uint8) int {
 
 // answerDivide records one damage for the picked target; the last pick
 // deals the division.
-func (s *State) answerDivide(k *prep, c uint8) {
+func (s *State) answerDivide(k *prep, c TCode) {
 	e := &s.res.e
 	in := &s.prog(k)[s.res.pc]
-	var codes [maxXTgt + 1]uint8
+	var codes [maxXTgt + 1]TCode
 	m := s.divTargets(k, e, uint8(tgtSlotOf(in.Obj)), &codes)
 	x := s.xtOf(e)
 	for i := 0; i < m; i++ {
@@ -1098,11 +1098,11 @@ func (s *State) xtLegal(k *prep, e *stackEntry, j int) bool {
 
 func (s *State) xtLegalBase(k *prep, e *stackEntry, j int) bool {
 	c := s.xtOf(e).code[j]
-	if TCode(c) == NoTarget {
+	if c == NoTarget {
 		return false
 	}
-	if isPlayerOrNone(TCode(c)) {
-		return !s.pl[CodeSeat(TCode(c))].lost
+	if isPlayerOrNone(c) {
+		return !s.pl[CodeSeat(c)].lost
 	}
 	if s.objs[c].ver != s.xtOf(e).ver[j] {
 		return false
@@ -1152,7 +1152,7 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) bool {
 		s.g.tokFrz, s.g.tokFrzOn = s.statM, true // copy_eachtarget.go tokSrcM
 	}
 	s.g.inLoop = true
-	w := eachSusp{slot: i, t: saveT, v: saveV, bad: saveBad, hold: hr}
+	w := eachSusp{slot: i, t: uint8(saveT), v: saveV, bad: saveBad, hold: hr}
 	n0 := s.g.nask
 	if ok := s.exec(k, in); !ok && (s.eachParks(in) || s.eachReturnParked(in)) || ok && s.eachReturnParks(k, in, n0) {
 		w.j = 1 // the extra targets wait for the answer (copy_eachtarget.go, zone_eachreturnask.go)
@@ -1197,14 +1197,14 @@ func (s *State) eachPlayersDiscard(k *prep, in *kop.Instr, slot uint8) (ok, done
 // slotPlayers lists the seats target slot holds as player targets, in pick order;
 // the same seat twice is one. over: more seats than ps holds.
 func (s *State) slotPlayers(k *prep, slot uint8) (ps seatSeq, over bool) {
-	var codes [maxXTgt + 1]uint8
+	var codes [maxXTgt + 1]TCode
 	m := s.divTargets(k, &s.res.e, slot, &codes)
 	for i := 0; i < m; i++ {
 		c := codes[i]
-		if !isPlayerTarget(TCode(c)) {
+		if !isPlayerTarget(c) {
 			continue
 		}
-		p := CodeSeat(TCode(c))
+		p := CodeSeat(c)
 		dup := false
 		for j := uint8(0); j < ps.n; j++ {
 			if ps.s[j] == p {
@@ -1351,20 +1351,23 @@ func (s *State) execDamageEx(k *prep, in *kop.Instr) {
 		s.g.excess = 0 // an unbound read is 0, never a stale record
 	}
 	code := s.refCode(k, in.Obj)
-	if TCode(code) == NoTarget {
+	if code == NoTarget {
 		return
 	}
 	n := s.value(k, in.A)
 	if in.C&kop.DmgMapped != 0 {
 		if s.g.ndmg < maxDmgMap && n > 0 {
-			s.g.dmg[s.g.ndmg] = struct{ code, amt uint8 }{code, uint8(n)}
+			s.g.dmg[s.g.ndmg] = struct {
+				code TCode
+				amt  uint8
+			}{code, uint8(n)}
 			s.g.ndmg++
 		} else if n > 0 {
 			s.capFull(StallDmgMap)
 		}
 		return
 	}
-	if isObjTarget(TCode(code)) && s.objs[code].zone == kop.ZoneBattlefield {
+	if isObjTarget(code) && s.objs[code].zone == kop.ZoneBattlefield {
 		sl := s.objs[code].slot
 		lethal := 0
 		if in.C&kop.DmgTrackExcess != 0 {
@@ -1471,7 +1474,7 @@ func (s *State) auraEntry(k *prep, o Obj, ctrl uint8) (host Slot, ask, stay bool
 	if k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
 		return NoSlot, false, false
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	switch s.enchantCands(k, c, ctrl, &buf) {
 	case 0:
 		return NoSlot, false, true
@@ -2345,7 +2348,7 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 // entering under p's control may enchant (its enchant ability's filter, not
 // targeting: hexproof and shroud do not count, protection does, CR
 // 303.4f, 702.16c) into out, and returns their number.
-func (s *State) enchantCands(k *prep, c CardID, p uint8, out *[MaxOptions]uint8) int {
+func (s *State) enchantCands(k *prep, c CardID, p uint8, out *[MaxOptions]TCode) int {
 	t := &k.t.Cards[c].Enchant
 	n := 0
 	for m := s.occ; m.any() && n < MaxOptions; m = m.rest() {
@@ -2356,7 +2359,7 @@ func (s *State) enchantCands(k *prep, c CardID, p uint8, out *[MaxOptions]uint8)
 		if s.matchPerm(k, t.Filter, sl, p, NoSlot) && s.kw(k, sl)&kop.KwProtectionAll == 0 &&
 			!(k.gen.anyProtCol && s.protPrinted(k, sl)&k.t.Cards[c].Colors != 0) &&
 			!(k.gen.anyProtF && s.protQuality(k, sl, NoSlot, c)) {
-			out[n] = uint8(s.perms[sl].obj)
+			out[n] = TCode(s.perms[sl].obj)
 			n++
 		}
 	}
@@ -2375,7 +2378,7 @@ const NoSubtypeIdx = 254
 // whether the batch was parked on that ask (or a multi-event batch's loud stall
 // latched) instead of dealt, so the caller's op pauses on the parked event for
 // the answer to re-execute it.
-func (s *State) damageBatch(k *prep, codes []uint8, amts []int, park bool) bool {
+func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool {
 	kw := s.srcKw(k)
 	if park && s.replPlusSrcPass(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), s.res.e.card, kw, codes, amts) {
 		return true
@@ -2392,14 +2395,14 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int, park bool) bool 
 		if n <= 0 {
 			continue
 		}
-		if isPlayerOrNone(TCode(code)) {
+		if isPlayerOrNone(code) {
 			if inf {
-				s.addPoison(CodeSeat(TCode(code)), n) // CR 702.90b
+				s.addPoison(CodeSeat(code), n) // CR 702.90b
 			} else {
-				s.loseLife(k, CodeSeat(TCode(code)), n)
+				s.loseLife(k, CodeSeat(code), n)
 			}
 			toPl = true
-			plM |= 1 << CodeSeat(TCode(code))
+			plM |= 1 << CodeSeat(code)
 		} else {
 			ob := &s.objs[code]
 			if ob.zone != kop.ZoneBattlefield {
@@ -2439,9 +2442,9 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int, park bool) bool 
 	if s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() || k.gen.graveDmg {
 		agg := refLatch{agg: true} // the once-per-batch lines take the total, the rest wait for the pass below
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
-			s.fireDamageEvGen(k, sl, int16(total), toPl, false, nil, uint8(NoTarget), &agg)
+			s.fireDamageEvGen(k, sl, int16(total), toPl, false, nil, TCode(NoTarget), &agg)
 		} else if s.res.e.obj != NoObj { // a spell, or an ability whose source is gone (pair 3334)
-			s.fireDamageSrc(k, s.res.e.obj, s.res.e.ctrl, int16(total), plM, uint8(NoTarget), &agg)
+			s.fireDamageSrc(k, s.res.e.obj, s.res.e.ctrl, int16(total), plM, TCode(NoTarget), &agg)
 		}
 		s.fireDamageRefs(k, codes, dn[:len(codes)]) // one Damage event per recipient
 	}

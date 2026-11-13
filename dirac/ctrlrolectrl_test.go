@@ -27,8 +27,8 @@ func TestCtrlRoleTgtDepartedOwner(t *testing.T) {
 	e := &sc.s.res.e
 	e.ctrl, e.obj, e.card = 0, pw, fc
 	e.nt = 2
-	e.tgt[0], e.tver[0] = uint8(pw), sc.s.objs[pw].ver
-	e.tgt[1], e.tver[1] = uint8(creature), sc.s.objs[creature].ver
+	e.tgt[0], e.tver[0] = TCode(pw), sc.s.objs[pw].ver
+	e.tgt[1], e.tver[1] = TCode(creature), sc.s.objs[creature].ver
 	sc.s.res.active = true
 	if !sc.s.ctrlRoleTgt(sc.k, 0, 1) || sc.s.ctrlRoleTgt(sc.k, 0, 0) {
 		t.Fatalf("before departure: slot 0 ctrl 1 %v, ctrl 0 %v; want true, false",
@@ -59,7 +59,7 @@ func TestCtrlRoleTgtStackSlot(t *testing.T) {
 	sc.s.stackSid(&sc.s.stack[0])
 	sc.s.ctl = ctlBuild
 	*sc.s.bld() = build{e: stackEntry{kind: seAbility, ctrl: 0, obj: src, nt: 1, trigObj: NoObj}}
-	sc.s.bld().e.tgt[0] = uint8(StackTarget0)
+	sc.s.bld().e.tgt[0] = TCode(StackTarget0)
 	sc.s.bld().e.tver[0] = sc.s.stack[0].sid
 	if !sc.s.ctrlRoleTgt(sc.k, 0, 1) {
 		t.Fatal("a stack ability slot did not name its controller 1")

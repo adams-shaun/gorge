@@ -50,7 +50,7 @@ func newEBScen(t *testing.T) (sc *scen, id map[string]CardID, ebIn kop.Instr) {
 func ebCast(sc *scen, id map[string]CardID, in kop.Instr, o Obj) {
 	e := &sc.s.res.e
 	e.kind, e.ctrl, e.card, e.ab = seSpell, 0, id["Earthbending Lesson"], 0
-	e.tgt[0], e.nt, e.tver[0] = uint8(o), 1, sc.s.objs[o].ver
+	e.tgt[0], e.nt, e.tver[0] = TCode(o), 1, sc.s.objs[o].ver
 	sc.s.exec(sc.k, &in)
 }
 

@@ -17,7 +17,7 @@ func TestPreventCombatDamageFrom(t *testing.T) {
 	a, b, c := sc.perm(fc, 0), sc.perm(fc, 0), sc.perm(fc, 1)
 	sa, sb, scl := sc.slot(a), sc.slot(b), sc.slot(c)
 	sc.s.perms[sa].eotKw |= kop.KwPreventCombatDamageFrom
-	sc.s.perms[sa].atk = uint8(PlayerTarget0 + 1)
+	sc.s.perms[sa].atk = TCode(PlayerTarget0 + 1)
 	var r dmgRec
 	add := func(src, dst Slot, n int16) {
 		if dst == NoSlot {

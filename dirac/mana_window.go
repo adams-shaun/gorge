@@ -2604,9 +2604,9 @@ func (s *State) digMove(k *prep, p uint8, o Obj, z kop.Zone, next, after []Obj) 
 
 // divPicks lists entry e's target slot's picked objects in pick order (the
 // first in tgt[slot], then its extra objects), legal or not.
-func (s *State) divPicks(e *stackEntry, slot uint8, codes *[maxXTgt + 1]uint8) int {
+func (s *State) divPicks(e *stackEntry, slot uint8, codes *[maxXTgt + 1]TCode) int {
 	m := 0
-	if c := e.tgt[slot]; TCode(c) != NoTarget {
+	if c := e.tgt[slot]; c != NoTarget {
 		codes[m] = c
 		m++
 	}
@@ -2640,7 +2640,7 @@ func (s *State) startCastDivide(k *prep) {
 				continue
 			}
 		}
-		var codes [maxXTgt + 1]uint8
+		var codes [maxXTgt + 1]TCode
 		n := s.divPicks(e, uint8(ti), &codes)
 		tot := int(t.Divide)
 		if t.Divide == kop.DivLKIP1P1 {
@@ -2681,18 +2681,18 @@ func (s *State) startCastDivide(k *prep) {
 // ChCastDivide option per target, in pick order (gorge divisionDecision).
 func (s *State) castDivideOptions(k *prep, d *Decision) {
 	e := &s.bld().e
-	var codes [maxXTgt + 1]uint8
+	var codes [maxXTgt + 1]TCode
 	n := s.divPicks(e, s.bld().divSlot, &codes)
 	d.Kind, d.Sub, d.Player = DkChoose, ChCastDivide, e.ctrl
 	for i := 0; i < n; i++ {
-		d.add(MakeAction(AkChoose, TCode(codes[i]), 0, 0))
+		d.add(MakeAction(AkChoose, codes[i], 0, 0))
 	}
 }
 
 // answerCastDivide gives target c one more point.
-func (s *State) answerCastDivide(k *prep, c uint8) {
+func (s *State) answerCastDivide(k *prep, c TCode) {
 	e := &s.bld().e
-	var codes [maxXTgt + 1]uint8
+	var codes [maxXTgt + 1]TCode
 	n := s.divPicks(e, s.bld().divSlot, &codes)
 	x := s.xtMut(e)
 	for i := 0; i < n; i++ {
@@ -2715,11 +2715,11 @@ func (s *State) dealAnnouncedDivision(k *prep, e *stackEntry, slot uint8) bool {
 	if x.div[0] == 0 {
 		return false
 	}
-	var codes [maxXTgt + 1]uint8
+	var codes [maxXTgt + 1]TCode
 	var amts [maxXTgt + 1]int
 	m, i := 0, 0
-	if TCode(e.tgt[slot]) != NoTarget {
-		if c := s.tgtCode(int(slot)); TCode(c) != NoTarget {
+	if e.tgt[slot] != NoTarget {
+		if c := s.tgtCode(int(slot)); c != NoTarget {
 			codes[m], amts[m] = c, int(x.div[0])
 			m++
 		}

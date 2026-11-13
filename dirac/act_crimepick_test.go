@@ -99,7 +99,7 @@ func TestCrimeSubLinkPick(t *testing.T) {
 		s.g.crime, s.npend, st.BySpell = 0, 0, 0
 		*s.bld() = build{e: stackEntry{kind: kind, ctrl: 0}}
 		s.bld().e.tgt = noTargets
-		s.crimePick(sc.k, theirPerm, done)
+		s.crimePick(sc.k, TCode(theirPerm), done)
 		return s.g.crime, st.BySpell, int(s.npend), s.bld().bfl&bflCrime != 0
 	}
 	// an ability's completed ask: the bit, no spell stat, no queued trigger
