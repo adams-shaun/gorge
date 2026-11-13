@@ -31,6 +31,15 @@ const (
 	objOwnerShift       = 6
 )
 
+// ovRec.fl (gen.go) packs the controller an UntilYourNextTurn override
+// record waits for (two seat bits) above the merge count, which then caps at
+// 16 (addOvRec moves on to a new record once the count saturates).
+const (
+	ovNTWho      uint8 = 0x30 // ovNT record: the waiting controller (0..3)
+	ovNTWhoShift       = 4
+	ovReps       uint8 = 0x0f // the merge count's mask
+)
+
 // embRemSlots is how many objects one emblem remembers (static_emblemrem.go):
 // the frozen-number byte and embR. The four-seat class has no reserved bytes
 // left for embX, so it holds two and a larger set stalls (StallEmbRem).

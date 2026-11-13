@@ -129,6 +129,7 @@ const (
 	ChGenTokCopy                              // mode 0 = decline; mode 1, source = the permanent the token is instead a copy of (gorge's chosen-copy token replacement election, options "decline" then "creature"; repl_tokcopy.go)
 	ChSuspendCast                             // source = a suspended card in exile; mode 1 = cast it free (gorge's suspend_cast_yes), 0 = leave it (suspend_cast_no); CR 702.62a
 	ChGenImprint                              // source = the hand card the imprint mox exiles (gorge's "imprint" KChoose, Min=Max=ChangeNum$, asked only with more candidates; mana_imprint.go)
+	ChEchoActionPick                          // source = a card/permanent chosen to pay an echo cost (gorge echoActionAsk's "echo_action_pick", Min=Max=N)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);

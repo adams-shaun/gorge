@@ -220,6 +220,9 @@ func TestActytLockstep(t *testing.T) {
 // CondYourTurn half (the kernel then offers the token on your turn with
 // nothing gone from the graveyard) must make the lockstep diverge.
 func TestActytMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg, set := kactytSetup(t)
 	var tot kactytTally
 	_, div, _ := kactytRun(t, reg, set, 64, true, &tot)

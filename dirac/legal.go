@@ -158,7 +158,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
 				s.offerOptCostOnly(k, d, p, o, c, &av)
 			}
-			continue
+			if k.gen == nil || !k.gen.anySacX || !s.sacXPoolOffer(k, p, o) {
+				continue // (an announced Sac<X> the floating pool pays at some X is offered, cost_sacx.go)
+			}
 		}
 		tgtOK, twOK := true, false
 		if k.teamwork && k.t.Cards[c].Teamwork != 0 {
@@ -740,6 +742,9 @@ func (s *State) gorgeOffers(p uint8, o Obj, mode uint8) bool {
 	}
 	if mode&1 != 0 || s.FeatPlannedCast(p, o, mode) || s.FeatPoolPays(p, o, mode) {
 		return true
+	}
+	if k := s.k(); mode == 0 && k.gen != nil && k.gen.anySacX && s.sacXPoolOffer(k, p, o) {
+		return true // the floating pool pays it at some announced Sac<X> count (cost_sacx.go)
 	}
 	return s.cfg&cfgGorgeAutopay == 0 && s.gorgeLowers(p, o, false)
 }

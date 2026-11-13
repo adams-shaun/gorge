@@ -3,7 +3,7 @@ package dirac
 import "github.com/adams-shaun/gorge/dirac/kop"
 
 // Pump / PumpAll Duration$ UntilYourNextTurn (CR 611.2b): a keyword grant
-// recorded as an override with the next-turn boundary (ovNT, ovNTYou), which
+// recorded as an override with the next-turn boundary (ovNT, ovNTWho), which
 // dropNextTurnOv ends at the cleanup before the controller's next turn. The
 // lowering is kgen's (lower_effect.go); this file only
 // carries the mutation switch the oracle's lockstep test flips.

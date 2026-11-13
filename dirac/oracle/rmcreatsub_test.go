@@ -200,6 +200,9 @@ func TestRmcreatsubLockstep(t *testing.T) {
 // reading): an enchanted creature keeps its Elf / Goblin / Merfolk types
 // and the lords still count it, so the games must diverge.
 func TestRmcreatsubMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runRmcreatsub(t, 64, true)
 	if divs == 0 {
 		t.Fatalf("mutation kept the creature types in %d games with no divergence", games)

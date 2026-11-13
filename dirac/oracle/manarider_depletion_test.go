@@ -182,6 +182,9 @@ func TestManaRiderDepletionRecord(t *testing.T) {
 // both option surfaces' full form: no divergence, and the card is used up in
 // at least one of them (so the games are not all idle).
 func TestManaRiderDepletionSeeds(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg := synthReg(t)
 	for _, c := range manaRiderDepletionCases() {
 		t.Run(c.name, func(t *testing.T) {

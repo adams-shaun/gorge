@@ -206,6 +206,9 @@ func TestVrefhLockstep(t *testing.T) {
 // TestVrefhMutation counts the remembered objects instead of their distinct
 // card types: Kefka then draws too many cards, so the games must diverge.
 func TestVrefhMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	st := runVrefh(t, 64, true)
 	if st.divs == 0 {
 		t.Fatalf("mutation left Remembered$CardTypes counting objects in %d games with no divergence", st.games)

@@ -204,6 +204,9 @@ func TestPoisonhighLockstep(t *testing.T) {
 // diverge. A green mutation (no divergence) means the lockstep never reaches
 // a Corrupted decision.
 func TestPoisonhighMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runPoisonhigh(t, 16, true)
 	if divs == 0 {
 		t.Fatalf("mutation read the controller's own poison in %d games with no divergence", games)
