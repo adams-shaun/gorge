@@ -7,7 +7,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // readers effects/conditions.go's Blessing condition, layers_static.go's
 // condBlessing and count_body_heads.go's Count$Blessing.<yes>.<no>). Cold and
 // out of line: a table without a printed Ascend card (CardDef.Ascend) never
-// takes these paths (genPrep.anyAscend).
+// takes these paths (prep.ascend).
 //
 // State: the blessing is one bit per seat that never clears, bit
 // blessShift+p of genState.cast1 (its low nibble is the first-cast bits,
@@ -66,9 +66,6 @@ func (s *State) blessed(p uint8) bool { return s.g.cast1&blessMask(p) != 0 }
 
 // Blessed reports whether seat p has the city's blessing (oracle / tests).
 func (s *State) Blessed(p uint8) bool { return s.blessed(p) }
-
-// prepAscend sets anyAscend: some card prints Ascend.
-func prepAscend(t *kop.Table, g *genPrep) { g.anyAscend = tableHasAscend(t) }
 
 // tableHasAscend reports whether some card of t prints Ascend.
 func tableHasAscend(t *kop.Table) bool {

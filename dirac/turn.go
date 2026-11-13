@@ -693,7 +693,7 @@ func (s *State) sba(k *prep) bool {
 				}
 			}
 		}
-		if k.gen != nil && k.gen.anyAscend {
+		if k.ascend {
 			s.blessScan(k) // CR 702.131b "any time": after the pass's checks, before its batch (gorge sba.go; kw_ascend.go)
 		}
 		all := die.or(gy)

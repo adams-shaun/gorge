@@ -312,7 +312,6 @@ type genPrep struct {
 	anyAddPhase     bool           // some program is ExtAddPhase, some trigger is Tf3FirstAttack or some expression is ExPhaseCount (act_addphase.go)
 	anySkipPhase    bool           // some program is ExtSkipPhase (act_skipphase.go)
 	anyMonarch      bool           // some program is ExtBecomeMonarch (act_monarch.go)
-	anyAscend       bool           // some card prints Ascend: the city's blessing scans run (kw_ascend.go)
 	anyAttackedObj  bool           // the table gives mechAttackedObj an arena mask: finishAttacks marks the declared attackers
 	anySuspect      bool           // the table gives mechSuspected an arena mask (act_suspect.go)
 	anySacSub       bool           // some ExRefCount is a Sacrificed$Valid type read (N 1): snapLKI captures the subtype set (value_countheads.go, zone_lki.go)
@@ -1594,7 +1593,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepAddPhase(t, g)       // act_addphase.go
 	prepSkipPhase(t, g)      // act_skipphase.go
 	prepMonarch(t, g)        // act_monarch.go
-	prepAscend(t, g)         // kw_ascend.go
 	prepAirbend(t, g)
 	prepMayWhileSrc(t, g) // cast_whilesource.go
 	prepInit(t, g)        // act_initiative.go

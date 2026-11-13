@@ -187,7 +187,7 @@ func (s *State) ctrlMove(sl Slot, to uint8) {
 	if k.engines {
 		s.speedControl(k) // kw_speed.go
 	}
-	if k.gen != nil && k.gen.anyAscend {
+	if k.ascend {
 		s.blessScan(k) // CR 702.131b (kw_ascend.go)
 	}
 	if k.gen != nil && k.gen.anyMayWhileSrc {
