@@ -1264,6 +1264,7 @@ StatOverride	StaticKind	14
 StatPanharmonicon	StaticKind	18
 StatPlayerHexproof	StaticKind	15
 StatPlayerProtAll	StaticKind	20
+StatProtYourColors	StaticKind	257
 StatReduceAbility	StaticKind	233
 StatReduceCost	StaticKind	2
 StatStackKw	StaticKind	251

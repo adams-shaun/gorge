@@ -1537,6 +1537,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 	}
 	prepProtGrant(t, g) // kw_protection.go
+	prepProtYours(t, g) // kw_protyours.go
 	for _, b := range g.replBits {
 		g.anyRepl |= b
 	}

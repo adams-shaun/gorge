@@ -43,7 +43,7 @@ func (s *State) protQuality(k *prep, sl, srcSl Slot, srcCard CardID) bool {
 	if f := k.t.Cards[s.cardAt(sl)].ProtFrom; f != 0 && !s.genLost(k, sl) && s.protMatch(k, f, sl, srcSl, srcCard) {
 		return true
 	}
-	return k.gen.anyProtGrant && s.protGranted(k, sl, srcSl, srcCard)
+	return k.gen.anyProtGrant && (s.protGranted(k, sl, srcSl, srcCard) || s.protYours(k, sl, srcSl, srcCard))
 }
 
 // protMatch: the protection quality filter f matches the source, read for

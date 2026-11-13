@@ -2369,6 +2369,12 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 // quality is the recipient's own current colours, not the source's.
 const hexproofOwnColorsKW = "Hexproof:CardColors"
 
+// protYourColorsKW is the granted keyword lowered to kop.StatProtYourColors:
+// the quality is the colours of the permanents the recipient's controller
+// controls, not a filter over the source (gorge rules/protection.go
+// protectedFrom, protection_colors_you_ctrl.go).
+const protYourColorsKW = "Protection from colorsYouCtrl"
+
 // continuous lowers a Mode$ Continuous static.
 func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 	aff := sp.str("Affected")
@@ -2397,6 +2403,23 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		st.F = f
 		st.Kind = "HexproofOwnColors"
+		return nil, nil
+	}
+	if kw := sp.str("AddKeyword"); kw == protYourColorsKW {
+		// Empty-Shrine Kannushi's self grant: the exact Affected$ shape only,
+		// and nothing beside it (a condition or any unread key refuses).
+		if aff != "Card.Self" {
+			return nil, refuse("%s Affected %q", protYourColorsKW, aff)
+		}
+		if st.Cond.Kind != cNone {
+			return nil, refuse("%s static with a condition", protYourColorsKW)
+		}
+		f, err := lc.filter(aff)
+		if err != nil {
+			return nil, err
+		}
+		st.F = f
+		st.Kind = "ProtYourColors"
 		return nil, nil
 	}
 	// the view-only top-of-library look. gorge reads
