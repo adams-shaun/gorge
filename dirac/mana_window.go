@@ -359,12 +359,12 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				return true, held
 			}
 			s.leave(k, sl, kop.ZoneGraveyard, false)
-			// a token sacrificed to pay a cast ceases at once, as gorge pays (a
-			// Treasure: payCast's tail reaches gorge's priority-boundary check,
-			// engine.go checkStateBased); one sacrificed to pay mid-resolution or
-			// by a planned activation's mana step (bflManaStep) waits for the
-			// state-based action at the next priority (CR 704.3, 704.5d)
-			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && s.buildLive() && (s.ctl != ctlBuild || s.bld().bfl&bflManaStep == 0) {
+			// a token sacrificed to pay a spell waits in the graveyard for the
+			// state-based check after the cast (gorge's Submit checks only with no
+			// cast pending, so a later choice of the payment still sees it there);
+			// likewise one sacrificed mid-resolution or by a planned activation's
+			// mana step (bflManaStep). Another cast's token ceases at once (CR 704.3, 704.5d)
+			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && s.buildLive() && (s.ctl != ctlBuild || s.bld().bfl&bflManaStep == 0) && s.bld().e.kind != seSpell {
 				s.ceaseManaToken(o)
 			}
 		}
@@ -738,6 +738,19 @@ func (s *State) windowColOwed(k *prep, p uint8, cost, owed *kop.ManaCost, sl Slo
 					if all&(1<<c) != 0 && owed.Pips[c] > s.pl[p].pool[c] {
 						return int(c)
 					}
+				}
+			}
+		}
+		if pc.blgFirst != 0 {
+			// a basic under a granted type lists its own colour before the granted ones
+			// (chars.appendLandTypes, owedAbilitiesFirst): an Island owing {W}{U} answers {U}
+			own := uint8(k.cards[s.cardAt(sl)].manaCol) & 0x1f & uint8(all)
+			if f := uint(pc.blgFirst - 1); f < 5 && own&(1<<f) != 0 && owed.Pips[f] > s.pl[p].pool[f] {
+				return int(f)
+			}
+			for c := 0; c < 5; c++ {
+				if own&(1<<c) != 0 && owed.Pips[c] > s.pl[p].pool[c] {
+					return c
 				}
 			}
 		}
@@ -2330,7 +2343,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			x = restrWitnessXPlus(x, t, multi[:nm], &cost, s.restrWithheldMana(k, p, d)+int(L)) // (mana_restrwithheld.go)
 		}
 	}
-	if cost.X != 0 && s.bld().e.kind == seSpell && s.xWitnessEats(k, p, s.bld().e.card, &cost, x, excl) {
+	if cost.X != 0 && s.bld().e.kind == seSpell && s.xWitnessEats(k, p, s.bld().e.card, &cost, x, excl, L) {
 		s.lowerXEats(k, p, &cost, x, excl, anyColor)
 		return
 	}
@@ -3173,6 +3186,23 @@ func (s *State) paymentStranded(k *prep, e *stackEntry, cost *kop.ManaCost) bool
 		ok, _ = s.windowTapRider(k, e.ctrl, &c, false, anyColor)
 		s.CopyFrom(saved)
 		return !ok
+	}
+	if known && !ok && k.gen.anyFilt && s.scriptFilt(k, e.ctrl).any() {
+		// The greedy walk never activates a paid-fee filter ({1},{T}: any
+		// colour); gorge's census (castWindowReachable) searches them, so the
+		// window opens when some filter set pays the cost (CR 601.2g-h).
+		// availFor and scriptFilt read ctrlM, which still holds the committed
+		// picks s.occ withholds: a pick with a mana ability would count a second
+		// time, after convokeApplyPicks already paid its share (gorge's census
+		// skips convokeCommitted). Take them out of the seat's mask meanwhile.
+		c := *cost
+		var av avail
+		held := s.ctrlM[e.ctrl]
+		s.ctrlM[e.ctrl] = held.and(s.occ)
+		s.availForBuilt(k, e, &av)
+		reach := s.faceReachable(k, e.ctrl, &av, &c, 0)
+		s.ctrlM[e.ctrl] = held
+		return !reach
 	}
 	return known && !ok
 }

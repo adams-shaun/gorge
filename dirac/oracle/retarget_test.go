@@ -21,7 +21,8 @@ import (
 // single target, then a draw), Sideswipe (an Arcane spell, optional), and
 // Spellskite and Hydroelectric Specimen, which take a target of a spell or
 // ability (Hydroelectric's of an instant or sorcery with a single target) for
-// themselves.
+// themselves. Arc Lightning gives Spellskite a spell with several targets, where
+// its controller picks which one it takes (CR 115.7b).
 //
 // R1 is a blue-red deck holding all of them but Imp's Mischief against a
 // black-red burn deck that holds Imp's Mischief; both sides cast and activate
@@ -34,14 +35,15 @@ var kretargetDecks = [2][]cardset.Entry{
 		{Name: "Sideswipe", Count: 3}, {Name: "Essence Scatter", Count: 2}, {Name: "Opt", Count: 1},
 		{Name: "Lightning Bolt", Count: 3}, {Name: "Shock", Count: 2}, {Name: "Rod of Ruin", Count: 2},
 		{Name: "Prodigal Sorcerer", Count: 1}, {Name: "Spellskite", Count: 2}, {Name: "Hydroelectric Specimen", Count: 2},
-		{Name: "Island", Count: 7}, {Name: "Mountain", Count: 6},
+		{Name: "Arc Lightning", Count: 3},
+		{Name: "Island", Count: 5}, {Name: "Mountain", Count: 5},
 	},
 	{
 		{Name: "Imp's Mischief", Count: 4}, {Name: "Lava Spike", Count: 3}, {Name: "First Volley", Count: 3},
 		{Name: "Rend Flesh", Count: 3}, {Name: "Lightning Bolt", Count: 3}, {Name: "Shock", Count: 3},
 		{Name: "Flametongue Kavu", Count: 3}, {Name: "Rod of Ruin", Count: 2}, {Name: "Hill Giant", Count: 1},
-		{Name: "Spellskite", Count: 2},
-		{Name: "Mountain", Count: 7}, {Name: "Swamp", Count: 6},
+		{Name: "Spellskite", Count: 2}, {Name: "Arc Lightning", Count: 3},
+		{Name: "Mountain", Count: 5}, {Name: "Swamp", Count: 5},
 	},
 }
 
@@ -72,6 +74,9 @@ func kretargetMagnets(g *GorgeSide, snap map[state.ObjID][]state.Target, into ma
 				switch nm := tg.Face().Name; nm {
 				case "Spellskite", "Hydroelectric Specimen":
 					into["->"+nm]++
+					if nm == "Spellskite" && len(snap[id]) == 3 && o.Face().Name == "Arc Lightning" {
+						into["->Spellskite on Arc Lightning x3"]++
+					}
 				}
 			}
 		}
@@ -196,12 +201,12 @@ func TestRetargetLockstep(t *testing.T) {
 	if divs != 0 {
 		t.Fatalf("%d divergences", divs)
 	}
-	for _, n := range []string{"Deflecting Swat", "Misdirection", "Imp's Mischief", "Reroute", "Sideswipe", "Spellskite", "Hydroelectric Specimen"} {
+	for _, n := range []string{"Deflecting Swat", "Misdirection", "Imp's Mischief", "Reroute", "Sideswipe", "Spellskite", "Hydroelectric Specimen", "Arc Lightning"} {
 		if st.cast[n] < 4 {
 			t.Errorf("%s cast %d times (want >= 4)", n, st.cast[n])
 		}
 	}
-	for _, n := range []string{"->Spellskite", "->Hydroelectric Specimen"} {
+	for _, n := range []string{"->Spellskite", "->Hydroelectric Specimen", "->Spellskite on Arc Lightning x3"} {
 		if st.cast[n] < 1 {
 			t.Errorf("redirects that moved a target onto %s: %d (want >= 1)", n[2:], st.cast[n])
 		}

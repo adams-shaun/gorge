@@ -213,3 +213,53 @@ func firstFail(out []byte) string {
 	}
 	return "(no failure line)"
 }
+
+// actModeOffered reports whether d offers activation mode of permanent o.
+func actModeOffered(d *Decision, o Obj, mode uint8) bool {
+	for _, a := range d.Options[:d.N] {
+		if a.Kind() == AkActivate && a.Source() == uint8(o) && a.Mode() == mode {
+			return true
+		}
+	}
+	return false
+}
+
+// TestRestrictedAnyOneColourSourcePaysOneColour (CR 106.1a, 605.3b):
+// Shang-Chi's restricted "{T}: Add two mana of any one color" makes both
+// mana one chosen colour, not two independent any-colour mana. {2}{R}{R}{G}{G}
+// therefore needs one colour twice from Shang-Chi and the other from two
+// lands: with one Forest, one Mountain and two Islands it is unpayable, and a
+// second Forest pays it.
+func TestRestrictedAnyOneColourSourcePaysOneColour(t *testing.T) {
+	sc, id := stdMshScen(t, "Bruce Banner", "Shang-Chi, Master of Kung Fu", "Forest", "Mountain", "Island")
+	bruce := sc.perm(id["Bruce Banner"], 0)
+	shang := sc.perm(id["Shang-Chi, Master of Kung Fu"], 0)
+	sc.perm(id["Forest"], 0)
+	sc.perm(id["Mountain"], 0)
+	sc.perm(id["Island"], 0)
+	sc.perm(id["Island"], 0)
+	if z := sc.s.objs[bruce].zone; z != kop.ZoneBattlefield {
+		t.Fatalf("Bruce Banner is in zone %v, not the battlefield", z)
+	}
+	if sc.s.perms[sc.slot(shang)].flags&pfTapped != 0 {
+		t.Fatal("Shang-Chi is tapped; its mana ability is not available")
+	}
+	d := sc.s.Step()
+	if actModeOffered(&d, bruce, 1) {
+		t.Fatal("Bruce Banner's transform offered by Shang-Chi (RR or GG), Forest, Mountain, Island, Island; want it withheld")
+	}
+
+	// Control: the second Forest pays GG beside Shang-Chi's RR, and the
+	// Mountain and one Island pay the {2}.
+	sc, id = stdMshScen(t, "Bruce Banner", "Shang-Chi, Master of Kung Fu", "Forest", "Mountain", "Island")
+	bruce = sc.perm(id["Bruce Banner"], 0)
+	sc.perm(id["Shang-Chi, Master of Kung Fu"], 0)
+	sc.perm(id["Forest"], 0)
+	sc.perm(id["Forest"], 0)
+	sc.perm(id["Mountain"], 0)
+	sc.perm(id["Island"], 0)
+	d = sc.s.Step()
+	if !actModeOffered(&d, bruce, 1) {
+		t.Fatal("Bruce Banner's transform withheld by Shang-Chi RR, two Forests GG, Mountain and Island; want it offered")
+	}
+}

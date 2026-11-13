@@ -121,10 +121,9 @@ func (e *Engine) finishEnteredStep() {
 		return
 	}
 	if e.G.Step == state.StepUpkeep {
-		// CR 702.62: only a card that entered exile through the Suspend action
-		// loses TIME counters. The final-counter trigger then casts it if able;
-		// it is not an optional priority action and arbitrary exiled Suspend
-		// cards never acquire that permission. Gated on the step actually
+		// CR 702.62b: a card in exile with Suspend and a time counter is
+		// suspended and loses a counter each upkeep. The final-counter trigger
+		// then offers its free cast if able; it is not a priority action. Gated on the step actually
 		// entered, so a BeginPhase replacement that skipped the upkeep step
 		// (landing directly on the draw) does not decrement.
 		for _, id := range e.G.Zone(state.ZExile, e.G.Active) {
@@ -132,12 +131,13 @@ func (e *Engine) finishEnteredStep() {
 			if o == nil || o.Counter("TIME") <= 0 {
 				continue
 			}
-			if o.CastFlags&state.FlagSuspend == 0 && !o.SuspendGranted {
-				// Only a card that entered exile through the Suspend action,
-				// or received a real Suspend grant while in exile, loses TIME
-				// counters. A plotted card carries none -- CR 701.34's timing
-				// is "on a later turn", not an upkeep count (engine/rules/legal.go's
-				// exile walk reads Object.PlottedTurn).
+			if !hasSuspendAbility(o) {
+				// Only a card with the Suspend ability loses TIME counters
+				// (CR 702.62b): a printed keyword, the suspend action's
+				// provenance or a real grant. A plotted card carries none --
+				// CR 701.34's timing is "on a later turn", not an upkeep
+				// count (engine/rules/legal.go's exile walk reads
+				// Object.PlottedTurn).
 				continue
 			}
 			e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})
@@ -533,7 +533,7 @@ func (e *Engine) startSuspendedCast() bool {
 		e.suspendedCasts = e.suspendedCasts[1:]
 		o := e.G.Obj(id)
 		if o == nil || o.Zone != state.ZExile ||
-			(o.CastFlags&state.FlagSuspend == 0 && !o.SuspendGranted) || o.Face() == nil {
+			!hasSuspendAbility(o) || o.Face() == nil {
 			continue
 		}
 		// "If able" includes every restriction that makes casting illegal,
@@ -550,6 +550,12 @@ func (e *Engine) startSuspendedCast() bool {
 		if f := o.Face(); f != nil && f.Name != "" {
 			name = f.Name
 		}
+		// CR 117.3b: the final-counter trigger's resolution ends with the
+		// active player receiving priority and a fresh pass count, which the
+		// step entry's own reset (the Priority emit closing advanceStep)
+		// would have given had the ask not cut the entry short. Without it
+		// the answer hands priority to the stale holder of the previous step.
+		e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
 		e.choosing = chooseSuspendCast
 		e.ask(decision.New(o.Owner, decision.KChoose, "Cast "+name+" without paying its mana cost?", 1, 1,
 			[]decision.Option{{Index: 0, Kind: "suspend_cast_yes", Obj: id, Label: "Cast it"},
@@ -575,7 +581,7 @@ func (e *Engine) suspendCastAnswer(chosen []decision.Option) {
 	id := chosen[0].Obj
 	o := e.G.Obj(id)
 	if chosen[0].Kind == "suspend_cast_yes" && o != nil && o.Zone == state.ZExile &&
-		(o.CastFlags&state.FlagSuspend != 0 || o.SuspendGranted) && o.Face() != nil {
+		hasSuspendAbility(o) && o.Face() != nil {
 		e.beginCast(o.Owner, decision.Option{Kind: "cast", Obj: id, Mode: "suspend_cast"})
 		return
 	}

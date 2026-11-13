@@ -536,6 +536,15 @@ func castHasX(o *state.Object) bool {
 	return o != nil && o.Face() != nil && pay.FaceCostOf(o.Face()).X > 0
 }
 
+// hasMultikicker reports whether o's face carries K:Multikicker (CR 702.43).
+func hasMultikicker(o *state.Object) bool {
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	_, ok := o.Face().KeywordCostParam("Multikicker")
+	return ok
+}
+
 // convokeFrameFor is the absorption frame of a convoke announcement d, or
 // nil when d is not one. An uncached cast cost is gated by gorge itself.
 func (g *GorgeSide) convokeFrameFor(d *decision.Decision) *convokeFrame {
@@ -661,7 +670,9 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 					g.castX[o.Obj] = castHasX(e.G.Obj(o.Obj))
 				}
 			}
-			if o.Mode == "" && o.AltCostIndex == 0 {
+			if o.Mode == "" && o.AltCostIndex == 0 && !hasMultikicker(e.G.Obj(o.Obj)) {
+				// (a Multikicker card's announcement prices the multikicked total,
+				// not the plain cost cached here: gorge's own gate answers it)
 				if pc, ok := e.CastPaymentCost(d.Player, o.Obj); ok {
 					if g.castCost == nil {
 						g.castCost = map[state.ObjID]decision.PaymentCost{}
@@ -745,6 +756,17 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
 				continue
 			}
+			if o.Mode == "suspend" {
+				// CR 702.62a: the kernel's suspend special action (AkPlot,
+				// mode 1) canonicalises to castModeOther, like "mayflash"
+				// (kw_suspend.go)
+				if o.AltCostIndex > 15 {
+					note("cast/suspend")
+					continue
+				}
+				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
+				continue
+			}
 			if o.Mode == "mayflash" {
 				// CR 702.8: the kernel's AkMayFlash canonicalises to
 				// castModeOther, like "web-slinging" (kw_mayflash.go)
@@ -817,6 +839,18 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 					continue
 				}
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
+				continue
+			}
+			if o.Mode == "multikicked" {
+				// CR 702.43: the kernel's multikicked cast is its kicked cast
+				// (AkCast mode bit 0) plus the count ask that follows, so the
+				// priority option canonicalises as "kicked"
+				if o.AltCostIndex > 15 {
+					note("cast/multikicked")
+					continue
+				}
+				mc, _ := castModeCode("kicked")
+				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, mc|uint8(o.AltCostIndex)<<4), opt: o.Index})
 				continue
 			}
 			mc, ok := castModeCode(o.Mode)
@@ -900,7 +934,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			a = Pack(ActCastImpended, ref(pa.Cast.Object), RefNone, 0)
 		} else if pa.Cast.CastMode() == "conspired" {
 			a = Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther|15<<4)
-		} else if pa.Cast.CastMode() == "bargained" || pa.Cast.CastMode() == "teamworked" || pa.Cast.CastMode() == "harmonize" || pa.Cast.CastMode() == "mayhem" || pa.Cast.CastMode() == "buyback" || pa.Cast.CastMode() == "optionalcost" || pa.Cast.CastMode() == "web-slinging" || pa.Cast.CastMode() == "overloaded" {
+		} else if pa.Cast.CastMode() == "suspend" || pa.Cast.CastMode() == "bargained" || pa.Cast.CastMode() == "teamworked" || pa.Cast.CastMode() == "harmonize" || pa.Cast.CastMode() == "mayhem" || pa.Cast.CastMode() == "buyback" || pa.Cast.CastMode() == "optionalcost" || pa.Cast.CastMode() == "web-slinging" || pa.Cast.CastMode() == "overloaded" {
 			// CR 702.166: the full cast-mode table's castModeOther code, the
 			// same canonical form the offered option uses
 			a = Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther)
@@ -941,6 +975,13 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				a = Pack(ActCastFace, ref(pa.Obj), RefNone, fc)
 			} else if pa.Mode == "impended" {
 				a = Pack(ActCastImpended, ref(pa.Obj), RefNone, 0) // kw_impending.go
+			} else if pa.Mode == "multikicked" {
+				// CR 702.43: the kernel's multikicked cast is its kicked cast
+				// plus the count ask that follows, canonical "kicked"
+				mc, _ := castModeCode("kicked")
+				a = Pack(ActCast, ref(pa.Obj), RefNone, mc)
+			} else if pa.Mode == "suspend" {
+				a = Pack(ActCast, ref(pa.Obj), RefNone, castModeOther) // kw_suspend.go
 			} else if pa.Mode == "overloaded" {
 				a = Pack(ActCast, ref(pa.Obj), RefNone, castModeOther) // CR 702.96a, kw_overload.go
 			} else if pa.Mode == "buyback" {
@@ -1117,6 +1158,10 @@ func (g *GorgeSide) repose(fr *frame) {
 	for _, x := range es {
 		fr.cur.Options = append(fr.cur.Options, x.a)
 		fr.curAt = append(fr.curAt, x.at)
+	}
+	if d.Kind == decision.KTarget && d.AffordableTargets > 0 {
+		fr.cur.TargetLimited = true
+		fr.cur.TargetLeft = max(0, d.AffordableTargets-len(fr.chosen))
 	}
 	if len(es) > MaxOptions {
 		g.Stats.Overflow++

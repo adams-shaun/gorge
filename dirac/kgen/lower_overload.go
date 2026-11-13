@@ -1,6 +1,10 @@
 package kgen
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // K:Overload:<cost> (CR 702.96a; dirac/kw_overload.go).
 //
@@ -124,6 +128,14 @@ func overloadInstr(in lInstr, t lTarget) (lInstr, error) {
 		return in, refuse("Overload of %s with no object filter", in.Op)
 	}
 	in.Obj = lRef{}
+	// A RememberLKI$ move carries |LKI in CS (lower_zone.go's lki arm). The
+	// kernel's RememberLKI$ capture covers one targeted move (markRemLKI); a
+	// ChangeZoneAll sweep records no per-object controller, so its
+	// RefRemembered read would see the exiled card's live controller. gorge
+	// captures each moved object's controller; refuse rather than diverge.
+	if hasCSToken(in.CS, "LKI") {
+		return in, refuse("Overload of a RememberLKI$ %s: the sweep has no per-object controller capture", in.Op)
+	}
 	switch in.Op {
 	case "Destroy":
 		if in.C&^1 != 0 {
@@ -188,6 +200,16 @@ func overloadInstr(in lInstr, t lTarget) (lInstr, error) {
 	}
 	in.Note = ""
 	return in, nil
+}
+
+// hasCSToken reports whether the |-separated symbolic constant cs has tok.
+func hasCSToken(cs, tok string) bool {
+	for _, t := range strings.Split(cs, "|") {
+		if t == tok {
+			return true
+		}
+	}
+	return false
 }
 
 // refTargets reports whether r names a target slot or a target's property.

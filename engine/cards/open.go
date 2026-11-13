@@ -172,6 +172,10 @@ func loadFreshCache(dir, cache string) (*Registry, bool) {
 // reader comparing only the lock would serve the OLD corpus silently;
 // comparing the corpus folders as well closes the window without hashing the
 // corpus at open time (which would recompile on every open).
+//
+// The immediate subfolders of cardsfolder (one per first letter) are inputs
+// too: adding, removing or renaming a card script moves its letter folder's
+// mtime, not cardsfolder's.
 func cacheFresh(dir, cache string) bool {
 	ci, err := os.Stat(cache)
 	if err != nil {
@@ -194,6 +198,10 @@ func cacheFresh(dir, cache string) bool {
 // a fetched corpus, so its cache is still served; requiring cardsfolder there
 // would turn a legitimate cache-only open into a CompileDir error.
 //
+// The immediate subfolders of cardsfolder are inputs as well (see
+// anySubdirNewerThan): a card script added to or removed from one moves that
+// folder's mtime and nothing above it.
+//
 // It takes an os.FileInfo (not a time.Time) so the cards package imports no
 // clock: see internal/archtest's TestTimeIsImportedOnlyByTheHost.
 func corpusInputNewerThan(dir string, ref os.FileInfo) bool {
@@ -206,7 +214,7 @@ func corpusInputNewerThan(dir string, ref os.FileInfo) bool {
 		if hasLock {
 			return true
 		}
-	} else if fi.ModTime().After(refTime) {
+	} else if fi.ModTime().After(refTime) || anySubdirNewerThan(CorpusDir(dir), ref) {
 		return true
 	}
 	if fi, err := os.Stat(TokensDir(dir)); err == nil && fi.ModTime().After(refTime) {
@@ -214,6 +222,27 @@ func corpusInputNewerThan(dir string, ref os.FileInfo) bool {
 	}
 	if hasLock {
 		if li, err := os.Stat(lockPath(dir)); err == nil && li.ModTime().After(refTime) {
+			return true
+		}
+	}
+	return false
+}
+
+// anySubdirNewerThan reports whether any immediate subfolder of folder has a
+// modification time after ref's. One ReadDir plus one Stat per subfolder (a
+// few dozen letter folders), not a walk of the card files. An unreadable
+// folder reports false: the absent-cardsfolder case is decided by the caller.
+func anySubdirNewerThan(folder string, ref os.FileInfo) bool {
+	ents, err := os.ReadDir(folder)
+	if err != nil {
+		return false
+	}
+	refTime := ref.ModTime()
+	for _, e := range ents {
+		if !e.IsDir() {
+			continue
+		}
+		if fi, err := os.Stat(filepath.Join(folder, e.Name())); err == nil && fi.ModTime().After(refTime) {
 			return true
 		}
 	}

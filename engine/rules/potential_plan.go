@@ -1224,6 +1224,15 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 			return Cost{}, false
 		}
 		return ParseCost(raw), true
+	case potentialModeBaseCostSuspend:
+		// The suspend special action pays the K:Suspend cost (CR 702.62a), the
+		// plot action's shape: an X-time suspend announces its count and is
+		// not witnessed.
+		sc, ok := suspendCost(f)
+		if !ok || sc.timeX {
+			return Cost{}, false
+		}
+		return sc.cost, true
 	case potentialModeBaseCostPrototype:
 		// CR 718.3a: the prototyped cast pays the K:Prototype inset cost,
 		// with the spell's own additional costs folded exactly as beginCast
@@ -1238,6 +1247,12 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 	case potentialModeBaseCostKicked:
 		kc, ok := kickerCost(f)
 		return cost.Plus(kc), ok
+	case potentialModeBaseCostMultikick:
+		// CR 702.43: the offer prices the base plus ONE payment; the count
+		// ask (multikickAsk) settles how many afterwards, exactly the kicked
+		// offer's shape.
+		mc, ok := multikickerCost(f)
+		return cost.Plus(mc), ok
 	case potentialModeBaseCostBuyback:
 		bc, ok := buybackCost(f)
 		return cost.Plus(bc), ok
@@ -2230,6 +2245,8 @@ const (
 	potentialModeBaseCostPreparedCopy
 	potentialModeBaseCostSneak
 	potentialModeBaseCostPrototype
+	potentialModeBaseCostMultikick
+	potentialModeBaseCostSuspend
 )
 
 var potentialModeBaseCostCodes = state.NewStrCodes(
@@ -2238,6 +2255,7 @@ var potentialModeBaseCostCodes = state.NewStrCodes(
 	state.StrEntry[potentialModeBaseCostCode]{Key: "plot", Val: potentialModeBaseCostPlot},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "flashback", Val: potentialModeBaseCostFlashback},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "kicked", Val: potentialModeBaseCostKicked},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "multikicked", Val: potentialModeBaseCostMultikick},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "buyback", Val: potentialModeBaseCostBuyback},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "offspring", Val: potentialModeBaseCostOffspring},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "entwined", Val: potentialModeBaseCostEntwined},
@@ -2253,6 +2271,7 @@ var potentialModeBaseCostCodes = state.NewStrCodes(
 	state.StrEntry[potentialModeBaseCostCode]{Key: "prepared_copy", Val: potentialModeBaseCostPreparedCopy},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "sneak", Val: potentialModeBaseCostSneak},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "prototype", Val: potentialModeBaseCostPrototype},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "suspend", Val: potentialModeBaseCostSuspend},
 )
 
 // planFaceIdx is the Descriptor.FaceIdx of e.planFace on object id: 1 + its

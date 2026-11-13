@@ -22,9 +22,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     ask as its last candidate (gorge appends shieldCounterDamageMatches
 //     after the printed and granted-keyword matches), so a doubler or the
 //     recipient's combat-damage prevention gets the ask (shieldCombat,
-//     shieldFrozen, replOrderCandsFz, parkNC). A plus-N replacement or the
-//     source's combat prevention is not one of the ask's candidates, so that
-//     competition still stalls (StallShield). Damage that can't be prevented
+//     shieldFrozen, replOrderCandsFz, parkNC). A noncombat plus-N (Hawkeye,
+//     Young Avenger) is a candidate too: parkNC asks, and a sweep deals its
+//     events one at a time so the ask lands mid-sweep (shieldBesidePlus).
+//     A combat plus-N or the source's combat prevention is not one of the
+//     ask's candidates, so that competition still stalls (StallShield). Damage that can't be prevented
 //     skips it, as in gorge (noPrev, static_cantprevent.go).
 //
 // Combat damage is a sequence of events in gorge (runCombatAssignments,
@@ -131,6 +133,15 @@ func (s *State) shieldAll(hit slotMask) slotMask {
 		out = out.with(sl)
 	}
 	return out
+}
+
+// shieldBesidePlus reports whether the deck holds both a SHIELD counter and a
+// plus-N damage replacement: a noncombat sweep must then deal its events one
+// at a time (damageSeqStart), because parkNC asks the CR 616.1 order on the
+// event where both match, as gorge does, not after the rest of the sweep.
+func shieldBesidePlus(g *genPrep) bool {
+	const both = rbShield | rbPlusDmg
+	return g.anyRepl&both == both
 }
 
 // shieldOther reports whether a damage replacement other than the shield

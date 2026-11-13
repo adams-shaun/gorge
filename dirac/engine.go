@@ -284,6 +284,9 @@ func (s *State) stepRaw(d *Decision) {
 			if k.gen != nil && k.gen.anyBattle && s.g.nmay > 0 && s.defeatAsk(k, d) {
 				return
 			}
+			if k.gen != nil && k.gen.anySuspend && s.g.nmay > 0 && s.suspendAsk(k, d) {
+				return // CR 702.62a: the may-cast ask of a card whose last counter went (kw_suspend.go)
+			}
 			// state-based actions and triggers repeat until neither has anything
 			// left, and only then does a player receive priority (CR 117.5): a
 			// final chapter removed for want of a legal target (CR 603.3d) leaves

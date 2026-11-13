@@ -49,16 +49,23 @@ func delayedAmt(d delayed) int16 {
 
 // resolveSacUntracked: gorge's __kwEncoreSacrifice (AtEOT$ Sacrifice) is
 // untracked (events foldDelayedRegister tracks only the __kwDash/__kwWarp/
-// __kwUnearth/__kwAtEOT/__kwMayFlashSac/__kwDecayed bodies). It sacrifices
-// its object by id, whichever incarnation is on the battlefield when it
-// resolves: a card reanimated twice has the first promise sacrifice the
-// second incarnation at once (even in response to its own reanimation, at the
-// end step the promise fired in), and the second promise then finds it gone.
+// __kwUnearth/__kwAtEOT/__kwMayFlashSac/__kwDecayed bodies). A record the
+// affected object registered on itself (gorge's Creator == 0, no |CR=) names
+// that object's incarnation at registration through Defined$ Self, so a card
+// that left and returned is a new object and is not sacrificed (CR 603.7c,
+// 400.7); the stale trigger is still put on the stack and does nothing. A
+// creator-sourced record (a reanimation spell, a CopyPermanent token, a sweep)
+// sacrifices its affected object by id, whichever incarnation is on the
+// battlefield when it resolves: a card reanimated twice has the first promise
+// sacrifice the second incarnation at once (even in response to its own
+// reanimation, at the end step the promise fired in), and the second promise
+// then finds it gone.
 func (s *State) resolveSacUntracked(k *prep, e *stackEntry) {
 	head := dlyRef(e.obj, e.trigObj)
 	ob := &s.objs[head]
 	var hit slotMask
-	if ob.zone == kop.ZoneBattlefield && !s.sacBlocked(k, ob.slot) {
+	if ob.zone == kop.ZoneBattlefield && !s.sacBlocked(k, ob.slot) &&
+		!(head == e.obj && ob.ver != e.srcVer) {
 		hit = hit.with(ob.slot)
 	}
 	s.sacAtEndFollowers(k, head, hit)

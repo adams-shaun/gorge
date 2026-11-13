@@ -386,6 +386,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = lValue{Kind: vPowerOf, Ref: ref}
 		case "CardToughness":
 			v = lValue{Kind: vToughnessOf, Ref: ref}
+		case "CardSumPT":
+			// its power plus its toughness (Phthisis, Predator's Rapport;
+			// gorge count_ref_property.go's CardSumPT): the two reads, summed
+			v = lValue{Kind: vSum, Sub: []lValue{{Kind: vPowerOf, Ref: ref}, {Kind: vToughnessOf, Ref: ref}}}
 		case "Converge":
 			// the spell's colours spent, snapshotted as the
 			// trigger fires (gorge TriggerConverge)
@@ -1354,13 +1358,22 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lValue{Kind: vCompare, N: 0, Op: opLE, Sub: []lValue{{Kind: vHandSizeOf, Ref: lRef{Kind: rYou}}, {Kind: vBranches, Sub: br[:]}}}, nil
 	}
 	if rest == "TimesKicked" {
-		// the count of kicker payments: a card with one Kicker keyword is
-		// kicked once or not at all, so it reads as the kicked bit (gorge
-		// count_body_paid.go's TimesKicked)
-		if lc.out.Kicker == nil {
-			return lValue{}, refuse("Count$TimesKicked without a Kicker keyword")
+		// the count of kicker payments. A plain Kicker is paid once or not
+		// at all, so it reads as the kicked bit; a Multikicker reads the
+		// repeated payment count (gorge count_body_paid.go's TimesKicked).
+		switch {
+		case lc.out.Multikicker != nil && lc.out.Kicker != nil:
+			return lValue{}, refuse("Count$TimesKicked with both Kicker and Multikicker")
+		case lc.out.Multikicker != nil:
+			return lValue{Kind: vTimesKicked}, nil
+		case lc.out.Kicker != nil:
+			return lValue{Kind: vKicked, Sub: []lValue{cst(1), cst(0)}}, nil
+		case faceHasKeyword(lc.face, "Multikicker"):
+			// the keyword itself refused (an {X} base cost, a non-mana
+			// payment): name the refused Multikicker, not a missing Kicker
+			return lValue{}, refuse("Count$TimesKicked with a refused Multikicker")
 		}
-		return lValue{Kind: vKicked, Sub: []lValue{cst(1), cst(0)}}, nil
+		return lValue{}, refuse("Count$TimesKicked without a Kicker keyword")
 	}
 	for _, cv := range []struct {
 		pre     string
