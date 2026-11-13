@@ -4334,6 +4334,15 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 		}
 		flags |= kop.MayPlayAnyType
 	}
+	if v, ok := may.get("MayPlayIgnoreColor"); ok {
+		// "you may spend mana as though it were mana of any color to cast
+		// it" (Brainstealer Dragon, Siphon Insight): the record's any-colour
+		// rider, as the end-of-turn grant above carries it
+		if strings.TrimSpace(v) != "True" || owner {
+			return true, refuse("Effect MayPlayIgnoreColor %q beside a %s permission", v, map[bool]string{true: "card-owner", false: "controller"}[owner])
+		}
+		flags |= kop.MayPlayIgnoreColor
+	}
 	var valid *lFilter
 	if name, ok := may.get("CheckSVar"); ok && !owner {
 		spec, isValid := strings.CutPrefix(lc.face.SVars[name], "Count$Valid ")

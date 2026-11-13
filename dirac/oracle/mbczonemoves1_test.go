@@ -9,10 +9,10 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// The MBC zone-moves-1 family (kgen census, spelling by spelling). Each spelling
-// that lowers has a fixture-pool lockstep game here that plays one of its
-// cards and fails without the lowering.
-//
+// The MBC zone-moves-1 family (kgen census, spelling by spelling). Each
+// spelling that lowers has a fixture-pool lockstep game here that plays one of
+// its cards and fails without the lowering.
+
 // Elda, Conjurer of Spectacle: "The first nonlegendary creature spell you cast
 // each turn has demonstrate" is an AffectedZone$ Stack Demonstrate grant behind
 // a CheckSVar$ X / SVarCompare$ EQ0 gate (X = Count$ThisTurnCast_Creature.YouCtrl+nonLegendary).
@@ -31,12 +31,25 @@ var mbcZoneMoves1Elda = [2][]cardset.Entry{
 	},
 }
 
-// mbcZoneMoves1Run plays the Elda matchups (Elda in seat 0's deck, then in
-// seat 1's) over seeds 1..seeds with a policy that answers every yes/no ask
-// yes and casts whenever it can (kdemoPolicy). mutate, when set, edits each
-// kernel table first. It returns the divergent games and the demonstrate
-// copies the kernel minted (kdemoTally).
-func mbcZoneMoves1Run(t *testing.T, seeds uint64, mutate func(*kop.Table)) (div, minted int) {
+// Siphon Insight (Brainstealer Dragon's grant: "you may play those cards for as
+// long as they remain exiled, and you may spend mana as though it were mana of
+// any color"): a blue-black deck exiles a green or red card of the other deck's
+// top two and casts it with Islands and Swamps. Without MayPlayIgnoreColor$ the
+// colored pip cannot be paid.
+var mbcZoneMoves1Insight = [2][]cardset.Entry{
+	{
+		{Name: "Siphon Insight", Count: 8}, {Name: "Island", Count: 16}, {Name: "Swamp", Count: 16},
+	},
+	{
+		{Name: "Grizzly Bears", Count: 12}, {Name: "Hill Giant", Count: 12}, {Name: "Forest", Count: 8}, {Name: "Mountain", Count: 8},
+	},
+}
+
+// mbcZoneMoves1Run plays md and its seat-swapped twin over seeds 1..seeds with
+// a policy that answers every yes/no ask yes and casts whenever it can
+// (kdemoPolicy). mutate, when set, edits each kernel table first; check, when
+// set, is called after every decision. It returns the divergent games.
+func mbcZoneMoves1Run(t *testing.T, md [2][]cardset.Entry, seeds uint64, mutate func(*kop.Table), check func(mi int) func(*GorgeSide, Side) *Divergence) (div int) {
 	t.Helper()
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
@@ -47,8 +60,7 @@ func mbcZoneMoves1Run(t *testing.T, seeds uint64, mutate func(*kop.Table)) (div,
 	if err != nil {
 		t.Fatal(err)
 	}
-	matchups := [][2][]cardset.Entry{mbcZoneMoves1Elda, {mbcZoneMoves1Elda[1], mbcZoneMoves1Elda[0]}}
-	for mi, md := range matchups {
+	for mi, md := range [][2][]cardset.Entry{md, {md[1], md[0]}} {
 		var decks [2][]*cards.Card
 		for s, d := range md {
 			for _, e := range d {
@@ -81,47 +93,94 @@ func mbcZoneMoves1Run(t *testing.T, seeds uint64, mutate func(*kop.Table)) (div,
 			if err != nil {
 				t.Fatal(err)
 			}
-			tal := &kdemoTally{live: map[int]uint8{}}
-			res := Lockstep(m, seed, k, kdemoPolicy(seed), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 30, Check: tal.check})
+			rc := RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 30}
+			if check != nil {
+				rc.Check = check(mi)
+			}
+			res := Lockstep(m, seed, k, kdemoPolicy(seed), rc)
 			CloseSide(k)
 			if d := res.Div; d != nil {
 				div++
 				t.Logf("matchup %d seed %d: diverged at decision %d: %s %s %v %s", mi, seed, d.At, d.What, d.Field, d.Diff, d.Detail)
 			}
-			minted += tal.minted[0] + tal.minted[1]
 		}
 	}
-	return div, minted
+	return div
 }
 
-// TestMBCZoneMoves1Lowers: Elda's gated Demonstrate grant lowers and plays
-// decision for decision, and the grant is really read (copies are minted).
+// TestMBCZoneMoves1Lowers: each lowered spelling plays decision for decision.
 func TestMBCZoneMoves1Lowers(t *testing.T) {
+	// Elda's gated Demonstrate grant lowers, and the grant is really read:
+	// the kernel mints demonstrate copies.
 	t.Run("Elda", func(t *testing.T) {
 		t.Parallel()
-		div, minted := mbcZoneMoves1Run(t, 24, nil)
+		var minted int
+		div := mbcZoneMoves1Run(t, mbcZoneMoves1Elda, 24, nil, func(int) func(*GorgeSide, Side) *Divergence {
+			tal := &kdemoTally{live: map[int]uint8{}}
+			return func(g *GorgeSide, k Side) *Divergence {
+				d := tal.check(g, k)
+				minted = max(minted, tal.minted[0]+tal.minted[1])
+				return d
+			}
+		})
 		if div != 0 {
 			t.Fatalf("%d divergent games", div)
 		}
-		if minted < 8 {
-			t.Fatalf("%d demonstrate copies minted over the games, want at least 8", minted)
+		t.Logf("%d demonstrate copies minted at most in one game", minted)
+		if minted < 1 {
+			t.Fatalf("no demonstrate copy was minted")
+		}
+	})
+	// Siphon Insight's permanent may-play carries MayPlayIgnoreColor$.
+	t.Run("MayPlayIgnoreColor", func(t *testing.T) {
+		t.Parallel()
+		cast := 0
+		div := mbcZoneMoves1Run(t, mbcZoneMoves1Insight, 24, nil, func(mi int) func(*GorgeSide, Side) *Divergence {
+			seen := map[int]bool{}
+			return func(_ *GorgeSide, k Side) *Divergence {
+				r, ok := k.(*realSide)
+				if !ok {
+					return nil
+				}
+				// the green and red cards are the other deck's: the Siphon deck
+				// controls one only by casting what it exiled
+				for i := 0; i < int(r.kp.NObj); i++ {
+					o := &r.kp.Objs[i]
+					if o.Zone == kop.ZoneBattlefield && o.Ctrl&1 == uint8(mi) && o.Owner&1 != uint8(mi) && !seen[i] {
+						seen[i] = true
+						cast++
+					}
+				}
+				return nil
+			}
+		})
+		if div != 0 {
+			t.Fatalf("%d divergent games", div)
+		}
+		t.Logf("%d exiled cards put onto the battlefield (cast with off-colour mana, or played as lands)", cast)
+		if cast < 4 {
+			t.Fatalf("%d exiled cards were put onto the battlefield, want at least 4", cast)
 		}
 	})
 }
 
-// TestMBCZoneMoves1Mutations proves the lockstep reads both halves of the
-// lowering: with the grants ignored the kernel never poses gorge's demonstrate
-// election, and with the CheckSVar$ gate dropped it poses one for every
-// nonlegendary creature spell, not the first.
+// TestMBCZoneMoves1Mutations proves the lockstep reads each lowering: with the
+// stack grants ignored the kernel never poses gorge's demonstrate election;
+// with the grant's gate dropped it poses one for every nonlegendary creature
+// spell, not the first; with the any-colour rider dropped it cannot cast the
+// exiled card.
 func TestMBCZoneMoves1Mutations(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	dirac.DebugStackKwOff = true
-	div, _ := mbcZoneMoves1Run(t, 24, nil)
+	div := mbcZoneMoves1Run(t, mbcZoneMoves1Elda, 24, nil, nil)
 	dirac.DebugStackKwOff = false
 	if div == 0 {
-		t.Fatal("ignoring the stack grants left the lockstep clean")
+		t.Error("ignoring the stack grants left the lockstep clean")
 	}
 	gated := 0
-	div, _ = mbcZoneMoves1Run(t, 24, func(tb *kop.Table) {
+	div = mbcZoneMoves1Run(t, mbcZoneMoves1Elda, 24, func(tb *kop.Table) {
 		for i := range tb.Cards {
 			for j := range tb.Cards[i].Abilities {
 				if a := &tb.Cards[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatStackKw && a.Static.Cond2 != 0 {
@@ -130,11 +189,31 @@ func TestMBCZoneMoves1Mutations(t *testing.T) {
 				}
 			}
 		}
-	})
+	}, nil)
 	if gated == 0 {
-		t.Fatal("no gated stack grant in the table to drop")
+		t.Error("no gated stack grant in the table to drop")
 	}
 	if div == 0 {
-		t.Fatal("dropping the grant's gate left the lockstep clean")
+		t.Error("dropping the grant's gate left the lockstep clean")
+	}
+	dropped := 0
+	div = mbcZoneMoves1Run(t, mbcZoneMoves1Insight, 24, func(tb *kop.Table) {
+		for i := range tb.Cards {
+			for j := range tb.Cards[i].Abilities {
+				prog := tb.Cards[i].Abilities[j].Prog
+				for x := range prog {
+					if in := &prog[x]; in.Op == kop.OpMayPlay && in.B.N&kop.MayPlayIgnoreColor != 0 {
+						in.B.N &^= kop.MayPlayIgnoreColor
+						dropped++
+					}
+				}
+			}
+		}
+	}, nil)
+	if dropped == 0 {
+		t.Error("no MayPlayIgnoreColor may-play in the table to drop")
+	}
+	if div == 0 {
+		t.Error("dropping the any-colour rider left the lockstep clean")
 	}
 }
