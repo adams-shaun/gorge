@@ -43,9 +43,10 @@ func joinForcesShape(t *testing.T, c *lCard) []lInstr {
 }
 
 // TestJoinForcesAccumulatorLowers: the join-forces cards lower with no
-// refusal (Collective Voyage keeps only its each-player library search).
+// refusal (Collective Voyage's each-player library search lowers through
+// lower_eachsearch.go).
 func TestJoinForcesAccumulatorLowers(t *testing.T) {
-	for _, name := range []string{"Minds Aglow", "Alliance of Arms", "Shared Trauma"} {
+	for _, name := range []string{"Minds Aglow", "Alliance of Arms", "Shared Trauma", "Collective Voyage"} {
 		c := lowerCorpusCard(t, name)
 		for _, rf := range c.Refusals {
 			t.Errorf("%s refused: %s", name, rf.Reason)
@@ -56,10 +57,6 @@ func TestJoinForcesAccumulatorLowers(t *testing.T) {
 	prog := joinForcesProg(lowerCorpusCard(t, "Shared Trauma"))
 	if last := prog[len(prog)-1]; last.Op != "ExtJoinForces" || last.C != kop.JoinForcesReset {
 		t.Errorf("Shared Trauma's last op = %s C=%d, want the ExtJoinForces reset (C %d)", last.Op, last.C, kop.JoinForcesReset)
-	}
-	cv := lowerCorpusCard(t, "Collective Voyage")
-	if len(cv.Refusals) != 1 || !strings.Contains(cv.Refusals[0].Reason, "ChangeZone DefinedPlayer$ Player") {
-		t.Fatalf("Collective Voyage refusals = %v, want only ChangeZone DefinedPlayer$ Player", cv.Refusals)
 	}
 }
 

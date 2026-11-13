@@ -25,6 +25,7 @@ func TestJoinForcesLockstep(t *testing.T) {
 		{"Alliance of Arms", "Plains"},
 		{"Shared Trauma", "Swamp"},
 		{"Mana-Charged Dragon", "Mountain"},
+		{"Collective Voyage", "Forest"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			deck := []cardset.Entry{{Name: c.name, Count: 8}, {Name: c.basic, Count: 32}}
