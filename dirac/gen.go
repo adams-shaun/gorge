@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"unsafe"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -1721,8 +1723,16 @@ type mayPlay struct {
 	ctrl  uint8
 	until uint8 // DurEOT / DurYourNextTurn
 	kind  uint8 // kop.MayPlayKinds riders (free, mana of any type)
-	turn  uint16
+	turn  mayWord
 }
+
+// mayHeld packs a while-source or prepared record's source object and its
+// version into mayPlay.turn (cast_whilesource.go, face_prepare.go).
+func mayHeld(o Obj, ver uint8) mayWord { return mayWord(o) | mayWord(ver)<<mayVerShift }
+
+// heldObj and heldVer read back mayHeld's object and version.
+func (r *mayPlay) heldObj() Obj   { return Obj(r.turn & (1<<mayVerShift - 1)) }
+func (r *mayPlay) heldVer() uint8 { return uint8(r.turn >> mayVerShift) }
 
 // dprog is a delayed program: at the next end step run ability ab of card
 // with RefDelayedRemembered = objs.
@@ -1750,7 +1760,7 @@ type usedRec struct {
 type xTargets struct {
 	n    uint8
 	slot [maxXTgt]uint8
-	code [maxXTgt]uint8
+	code [maxXTgt]TCode
 	ver  [maxXTgt]uint8
 	// crim is CR 700.13's pick-time verdicts for the pool's extra objects
 	// (act_commitcrime.go crimeAskDone): bit j says extra j's pick was a
@@ -1794,11 +1804,14 @@ type genState struct {
 	excess         int16
 	lostAmt        int16
 	tokMade        uint8
-	tokDef         uint8 // the CR 508.4 defender the TokenAttacking$ True ask was answered with (a player or planeswalker/battle target byte), valid while tokDefSet; transient within one mint (filter_combatwords.go)
+	tokDef         TCode // the CR 508.4 defender the TokenAttacking$ True ask was answered with (a player or planeswalker/battle target byte), valid while tokDefSet; transient within one mint (filter_combatwords.go)
 	tokDefSet      bool
 	entHost        uint8 // host slot + 1 of an Aura about to enter attached: enter attaches it before its enters check (zone_handmoveaura.go; transient, 0 between moves)
 
-	dmg  [maxDmgMap]struct{ code, amt uint8 }
+	dmg [maxDmgMap]struct {
+		code TCode
+		amt  uint8
+	}
 	ndmg uint8
 
 	may  [maxMay]mayPlay
@@ -1813,18 +1826,18 @@ type genState struct {
 	ndp   uint8
 	stkCt uint8 // a countered stack ability's controller+1, for its "its controller" (tgt_stackability.go)
 
-	emb  [MaxSeats][maxEmb]uint8  // emblem index+1
-	embC [MaxSeats][maxEmb]CardID // the card that created it (its latent abilities run the emblem's triggers)
-	embO [MaxSeats][maxEmb]Obj    // that card's object (the source of the emblem's triggers)
-	embN [MaxSeats][maxEmb]uint8  // the Effect's frozen SetChosenNumber$
-	embT [MaxSeats][maxEmb]uint16 // the emblem's CR 613.7 layer timestamp, set at creation (static_layer6.go)
+	emb  [MaxSeats][maxEmb]uint8   // emblem index+1
+	embC [MaxSeats][maxEmb]CardID  // the card that created it (its latent abilities run the emblem's triggers)
+	embO [MaxSeats][maxEmb]Obj     // that card's object (the source of the emblem's triggers)
+	embN [MaxSeats][maxEmb]objWord // the Effect's frozen SetChosenNumber$
+	embT [MaxSeats][maxEmb]uint16  // the emblem's CR 613.7 layer timestamp, set at creation (static_layer6.go)
 	nemb [MaxSeats]uint8
-	qgO  [qgN]uint8      // exile grants (Q, Stacking the Deck): the granted exiled object+1, 0 = free (cast_exilegrant.go)
-	qgV  [qgN]uint8      // each grant's object version: stale once the card left exile
-	qgH  [qgN]uint8      // each grant's host (the card whose ability was granted) object+1
-	pgT  [pgN]uint8      // Panharmonicon grants: the granted object+1, compacted (act_grantpanharm.go)
-	pgH  [pgN]uint8      // each grant's host (the tapped source) object+1
-	nlA  [MaxSeats]uint8 // locked permanents, object+1, compacted (act_lockpermanent.go; fills the padding before lki)
+	qgO  [qgN]Obj      // exile grants (Q, Stacking the Deck): the granted exiled object+1, 0 = free (cast_exilegrant.go)
+	qgV  [qgN]uint8    // each grant's object version: stale once the card left exile
+	qgH  [qgN]Obj      // each grant's host (the card whose ability was granted) object+1
+	pgT  [pgN]Obj      // Panharmonicon grants: the granted object+1, compacted (act_grantpanharm.go)
+	pgH  [pgN]Obj      // each grant's host (the tapped source) object+1
+	nlA  [MaxSeats]Obj // locked permanents, object+1, compacted (act_lockpermanent.go; fills the padding before lki)
 	// the untap step suspended on a keep-tapped ask (repl_untapchoice.go):
 	// untapUp the slots untapped so far, untapNext the scan index of the
 	// asked permanent, untapSl its slot, untapAns its answer (0 unanswered,
@@ -1852,7 +1865,7 @@ type genState struct {
 	// casting spells (expend). Kept only when genPrep.anyHist.
 	hist [MaxSeats][3]uint8
 	// actRing: per activator, the first actRingN abilities activated this turn, each as the source Obj+1 (0 = empty), actN the counts. Written only when genPrep.actRingOn; in no hash (cast_activationledger.go).
-	actRing [MaxSeats][actRingN]uint8
+	actRing [MaxSeats][actRingN]Obj
 	actN    [MaxSeats]uint8
 
 	// pending as-enters choices (colour / creature type) and the leyline ask
@@ -1886,7 +1899,7 @@ type genState struct {
 	noTgtRed   bool            // cost computation without target-dependent reductions
 	mayPlayAny bool            // the may-play cast being priced is under the any-type rider
 	probe      probe           // the spell / ability a priority feasibility check is for
-	tgtSelf    uint8           // the graveyard or exile card a feasibility check is for, plus one (0: none): it leaves that zone for the stack when cast, so it is no target of its own cast
+	tgtSelf    Obj             // the graveyard or exile card a feasibility check is for, plus one (0: none): it leaves that zone for the stack when cast, so it is no target of its own cast
 	inLoop     bool            // executing one object of a multi-object target slot
 	each       eachSusp        // an each-target loop parked on a copy token's as-enters ask (copy_eachtarget.go)
 	tokFrz     slotMask        // the permanents whose CreateToken replacements an each-target copy loop reads, fixed when it began (tokSrcM)
@@ -1894,14 +1907,14 @@ type genState struct {
 	sweep      sweepSusp       // a copy-all sweep parked on a copy's as-enters ask (copy_allpark.go)
 	mt         multiTgt        // the multi-object target slot being chosen
 	lastCK     kop.CounterKind
-	disc       Obj             // the card being discarded (TrigDiscarded)
-	nlB        [MaxSeats]uint8 // locked permanents 3 and 4 (nlA; fills the padding before kicked)
+	disc       Obj           // the card being discarded (TrigDiscarded)
+	nlB        [MaxSeats]Obj // locked permanents 3 and 4 (nlA; fills the padding before kicked)
 
 	redNC [MaxSeats]uint8 // ExRedNCDmg: the noncombat damage each player's red sources dealt this turn, saturating (prep.anyRedNC only; value_damagetally.go; fills the pad before kicked)
 	// grantSrc is the granting permanent plus one (0 = none) while a grant
 	// walk (grantedAbilitiesN) reports one ability to its callback; it fills
 	// the pad after redNC.
-	grantSrc uint8
+	grantSrc Obj
 	cast     slotMask // slots whose permanent was cast by its controller
 	zoneTurn objBits  // objects put into their current zone this turn
 	// dmgTurn is gorge Object.WasDealtDamageThisTurn (CR 120.3a): it survives a
@@ -1969,7 +1982,8 @@ type genState struct {
 		// would take; sc holds the kop.PrevScope* bits and col is 0. A record
 		// with sc&prevNextSc is an Ext PreventNext shield: ctl the recipient's
 		// damage code, obj the effect's source, col the damage left (repl_prevnext.go)
-		sc, ctl uint8
+		sc  uint8
+		ctl TCode
 	}
 	lingerM slotMask
 	// declM: the slots declared as attackers earlier this turn (Count$AttackersDeclared
@@ -2167,10 +2181,10 @@ type genState struct {
 	// received this turn, o = Obj+1 (0 empty) and n saturating at 255
 	// (value_dmgamount.go). Written only under genPrep.anyDmgAmt; cleared at the
 	// turn change. Taken from rsv.
-	dmgAmt [dmgAmtN]struct{ o, n uint8 }
+	dmgAmt [dmgAmtN]dmgAmtRec
 	rsv    [rsvN]uint8
 	// embX: an emblem's remembered slots 2 and 3, object + 1 (static_emblemrem.go); embR is slot 1, embN slot 0. Taken from rsv.
-	embX [MaxSeats][maxEmb][embRemSlots - 2]uint8
+	embX [MaxSeats][maxEmb][embRemSlots - 2]objWord
 	// atkDef is the defending seat + 1 of the attack event whose triggers are
 	// being checked (fireAttacksGen), 0 outside it: gorge binds a trigger's
 	// DefendingPlayer from that event, and an IsPresent$ checked as the
@@ -2187,13 +2201,21 @@ const (
 	maxImp      = 16
 	turnFBytes  = 1 // genState.turnF, taken from rsv
 	dmgAmtN     = 4 // genState.dmgAmt: reader-card records (value_dmgamount.go)
-	dmgAmtBytes = dmgAmtN * 2
+	dmgAmtBytes = dmgAmtN * int(unsafe.Sizeof(dmgAmtRec{}))
 	// rsvN pads the reserved block to 80 bytes (genState's tail padding
 	// absorbs the rest of the alignment, including tgtSpent): 64, plus the 16
 	// that carry State's growth for MaxObj 236 to a multiple of 64 so perms
-	// keeps its phase.
-	rsvN = max(0, 80-maxImp-2-MaxSeats-MaxSeats*maxEmb-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-MaxSeats*maxEmb*(embRemSlots-2)-1-turnFBytes-dmgAmtBytes)
+	// keeps its phase. It counts bytes: an object-wide field takes its width
+	// in the class.
+	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes)
 )
+
+// dmgAmtRec is one genState.dmgAmt record: the reader card's object+1 (0
+// empty) and the damage it received this turn, saturating at 255.
+type dmgAmtRec struct {
+	o Obj
+	n uint8
+}
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).
 // kind: 0 empty, 1 "except by creatures with haste", 0x80|cmp<<4|N the
@@ -2817,7 +2839,8 @@ type askRec struct {
 	sl        Slot
 	ver, kind uint8
 	card      CardID
-	ab, pc    uint8
+	ab        objWord // the ability index; an akEnchant ask's returning Aura object
+	pc        uint8
 	ts        uint16
 }
 
@@ -2859,7 +2882,7 @@ type preAsk struct {
 	obj   Obj
 	kind  uint8
 	state uint8
-	val   uint8
+	val   objWord
 	land  bool // a land being played (asked while it is still in the hand)
 	// link: the clone park is an until-leaves link return (returnLinked), not
 	// a resolution's return op; the answer enters the card from exile instead

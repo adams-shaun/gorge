@@ -96,7 +96,7 @@ func (s *State) offerBestowHand(k *prep, d *Decision, p uint8, o Obj, c CardID, 
 	if s.castHeldOut(o) {
 		return
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	if k.gen != nil && s.g.probe.kind == 0 {
 		// the spell's colours decide what it may enchant: a monocolored Hydra cannot
 		// enchant a creature with protection from monocolored (CR 702.16b)
@@ -106,7 +106,7 @@ func (s *State) offerBestowHand(k *prep, d *Decision, p uint8, o Obj, c CardID, 
 	if s.targetCands(k, &cd.BestowTgt, p, NoSlot, o, &buf) == 0 {
 		return
 	}
-	d.add(MakeAction(AkBestow, uint8(o), 0, 0))
+	d.add(MakeAction(AkBestow, TCode(o), 0, 0))
 }
 
 // beginBestow casts hand card o bestowed. gorge prices the bestowed cast as
@@ -185,9 +185,9 @@ func (s *State) bestowResolve(k *prep, e *stackEntry) {
 	}
 	e.mode &^= modeBestowed
 	e.nt = 0
-	e.tgt[0] = NoTarget
+	e.tgt[0] = TCode(NoTarget)
 	s.res.e = *e
-	s.stack[s.sp-1].mode, s.stack[s.sp-1].nt, s.stack[s.sp-1].tgt[0] = e.mode, 0, NoTarget
+	s.stack[s.sp-1].mode, s.stack[s.sp-1].nt, s.stack[s.sp-1].tgt[0] = e.mode, 0, TCode(NoTarget)
 	if ob := &s.objs[e.obj]; ob.slot == slotBestowSpell {
 		s.touch(e.obj)
 		ob.slot = NoSlot

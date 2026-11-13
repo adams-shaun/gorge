@@ -170,7 +170,7 @@ var DebugTrigParams4Flip bool
 //
 //go:noinline
 func (s *State) singleTargetOK(k *prep, e *stackEntry) bool {
-	var codes [kop.MaxTargets + maxXTgt]uint8
+	var codes [kop.MaxTargets + maxXTgt]TCode
 	return (distinctTargets(&codes, s.chainTargets(e, &codes)) == 1) != DebugTrigParams4Flip
 }
 
@@ -178,7 +178,7 @@ func (s *State) singleTargetOK(k *prep, e *stackEntry) bool {
 // recipient and carries exactly one target, the recipient among it.
 //
 //go:noinline
-func (s *State) singleCauseOK(k *prep, recipient uint8) bool {
+func (s *State) singleCauseOK(k *prep, recipient TCode) bool {
 	ok := false
 	if s.res.active && s.res.e.kind == seSpell && isObjTarget(recipient) {
 		ob := &s.objs[recipient]

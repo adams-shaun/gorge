@@ -23,7 +23,7 @@ func TestParkNCSecondEventStalls(t *testing.T) {
 	s := sc.s
 	sc.perm(id["Twinflame Tyrant"], 0)
 	sc.perm(id["Twinflame Tyrant"], 0)
-	d := burnToAsk(t, sc, id, PlayerTarget1)
+	d := burnToAsk(t, sc, id, TCode(PlayerTarget1))
 	if d.Kind != DkChoose || d.Sub != ChGenReplOrder || s.g.nc.n == 0 || s.g.ro.n != 2 {
 		t.Fatalf("precondition: want the first event parked on its order ask (nc.n %d ro.n %d)", s.g.nc.n, s.g.ro.n)
 	}
@@ -52,11 +52,11 @@ func TestDmgSrcOrderStalls(t *testing.T) {
 	s := sc.s
 	sc.perm(id["Twinflame Tyrant"], 0)
 	src := id["Erudite Wizard"]
-	if s.dmgSrcOrderStalls(sc.k, 0, NoSlot, src, 0, []uint8{PlayerTarget1}, []int{2}) || s.Stalled() {
+	if s.dmgSrcOrderStalls(sc.k, 0, NoSlot, src, 0, []TCode{PlayerTarget1}, []int{2}) || s.Stalled() {
 		t.Fatalf("one Tyrant: stalled (reason %d), want no ask", s.StallReason())
 	}
 	sc.perm(id["Twinflame Tyrant"], 0)
-	if !s.dmgSrcOrderStalls(sc.k, 0, NoSlot, src, 0, []uint8{PlayerTarget1}, []int{2}) {
+	if !s.dmgSrcOrderStalls(sc.k, 0, NoSlot, src, 0, []TCode{PlayerTarget1}, []int{2}) {
 		t.Fatal("two Tyrants: the event gorge asks was not reported")
 	}
 	if s.StallReason() != StallReplPlus {

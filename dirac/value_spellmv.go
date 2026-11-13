@@ -24,7 +24,7 @@ func (s *State) snapshotTrigSpellMV(i uint8, c CardID, ab uint8, tobj Obj) {
 	if int(ab) >= len(cd.Abilities) || cd.Abilities[ab].Trig.Event != kop.TrigSpellCast {
 		return
 	}
-	s.pend[i].trigMV = s.triggerSpellMVLKI(k, &stackEntry{kind: seSpell, obj: tobj, card: s.objs[tobj].card})
+	s.pend[i].trigMV = objWord(s.triggerSpellMVLKI(k, &stackEntry{kind: seSpell, obj: tobj, card: s.objs[tobj].card}))
 }
 
 func (s *State) triggerSpellMVLKI(k *prep, e *stackEntry) uint8 {

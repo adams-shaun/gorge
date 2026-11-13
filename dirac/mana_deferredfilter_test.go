@@ -37,7 +37,7 @@ func deferredGapScen(t *testing.T, names ...string) (*scen, map[string]CardID) {
 
 func deferGapOffered(d *Decision, kind ActionKind, o Obj) bool {
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == kind && a.Source() == uint8(o) {
+		if a := d.Options[i]; a.Kind() == kind && a.Source() == TCode(uint8(o)) {
 			return true
 		}
 	}

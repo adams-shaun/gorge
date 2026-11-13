@@ -28,13 +28,13 @@ const protSeat = MaxSeats - 1
 // protector returns the protector recorded on the battle at sl.
 func (s *State) protector(sl Slot) (uint8, bool) {
 	ch := s.perms[sl].chosen
-	return ch & protSeat, ch&^protSeat == protChosen
+	return uint8(ch & protSeat), ch&^protSeat == protChosen
 }
 
 // FeatAttackDefender is the defending player an attack declared at target
 // code tgt names (gorge's attacker option Player, CR 508.1b): the player
 // itself, a planeswalker's controller, or a battle's protector (CR 310.7).
-func (s *State) FeatAttackDefender(tgt uint8) uint8 {
+func (s *State) FeatAttackDefender(tgt TCode) uint8 {
 	if isPlayerTarget(tgt) {
 		return CodeSeat(tgt)
 	}
@@ -99,7 +99,7 @@ func (s *State) enterBattle(k *prep, sl Slot, ctrl uint8) {
 	if DebugBattleOwnProtector {
 		pr = ctrl
 	}
-	s.perms[sl].chosen = protChosen | pr
+	s.perms[sl].chosen = objWord(protChosen | pr)
 }
 
 // enterDefense puts the printed Defense counters on the battle at sl through
@@ -115,7 +115,7 @@ func (s *State) enterDefense(k *prep, sl Slot, c CardID) {
 // addBattleOffers appends the attack of attacker o on each attackable
 // battle: ascending seat, then battlefield order (gorge attackOffersCompute
 // walks every seat's battlefield).
-func (s *State) addBattleOffers(k *prep, d *Decision, o uint8) {
+func (s *State) addBattleOffers(k *prep, d *Decision, o Obj) {
 	var order [MaxPerm]Slot
 	n := 0
 	for p := uint8(0); p < s.nSeats(); p++ {
@@ -131,7 +131,7 @@ func (s *State) addBattleOffers(k *prep, d *Decision, o uint8) {
 		n = s.battlefieldOrder(p, m, order[:], n)
 	}
 	for _, sl := range order[:n] {
-		d.add(MakeAction(AkAttack, o, uint8(s.perms[sl].obj), 0))
+		d.add(MakeAction(AkAttack, TCode(o), TCode(s.perms[sl].obj), 0))
 	}
 }
 
@@ -297,8 +297,8 @@ func (s *State) defeatPosedOptions(d *Decision) bool {
 	}
 	r := *s.mayAt(i)
 	d.Kind, d.Sub, d.Player = DkChoose, ChDefeatCast, r.ctrl
-	d.add(MakeAction(AkChoose, uint8(r.obj), 0, 1))
-	d.add(MakeAction(AkChoose, uint8(r.obj), 0, 0))
+	d.add(MakeAction(AkChoose, TCode(r.obj), 0, 1))
+	d.add(MakeAction(AkChoose, TCode(r.obj), 0, 0))
 	return true
 }
 

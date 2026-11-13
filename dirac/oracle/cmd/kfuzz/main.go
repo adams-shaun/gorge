@@ -1026,6 +1026,9 @@ func vanillaSweep(first, games, n, seats int, seed uint64, timeout time.Duration
 	fmt.Printf("vanilla: %d games, %d without divergence (lead %s); first divergences: %s\n", played, clean, lead, sortedCounts(classes))
 	if feat != nil {
 		fmt.Printf("features: %d decisions and %d options compared byte-for-byte\n", feat.Decisions, feat.Options)
+		if feat.ObjOverflow > 0 {
+			fmt.Printf("features: %d decisions not compared: an object past the encoders' byte (declared dirac_mp limit)\n", feat.ObjOverflow)
+		}
 	}
 	for _, gap := range oracle.RealKernelGaps {
 		fmt.Println("adapter gap:", gap)
@@ -1615,6 +1618,9 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 	}
 	if feat != nil {
 		fmt.Printf("features: %d decisions and %d options compared byte-for-byte\n", feat.Decisions, feat.Options)
+		if feat.ObjOverflow > 0 {
+			fmt.Printf("features: %d decisions not compared: an object past the encoders' byte (declared dirac_mp limit)\n", feat.ObjOverflow)
+		}
 	}
 	if coveragePath != "" {
 		if err := writeCoverage(coveragePath, cov); err != nil {

@@ -97,4 +97,4 @@ func TestFxPoolHashStable(t *testing.T) {
 // The pin moved when ovRec grew P/T and a repeated P/T setter became the
 // newest record: the hash covers the override records,
 // so the extra fields and their order change the digest.
-const fxPoolHashPin = 0x7064c1bf93a60b58
+const fxPoolHashPin = 0x653f405b2cffb158

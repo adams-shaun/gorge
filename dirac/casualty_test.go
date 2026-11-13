@@ -43,7 +43,7 @@ func casualtyScen(t *testing.T, n uint8, names ...string) (*scen, map[string]Car
 func (sc *scen) castOptions(o Obj) (acts []Action) {
 	d := sc.s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; (a.Kind() == AkCast || a.Kind() == AkCastCasualty) && a.Source() == uint8(o) {
+		if a := d.Options[i]; (a.Kind() == AkCast || a.Kind() == AkCastCasualty) && a.Source() == TCode(uint8(o)) {
 			acts = append(acts, a)
 		}
 	}
@@ -54,7 +54,7 @@ func (sc *scen) castOption(t *testing.T, o Obj, kind ActionKind, mode uint8) {
 	t.Helper()
 	d := sc.s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == kind && a.Source() == uint8(o) && a.Mode() == mode {
+		if a := d.Options[i]; a.Kind() == kind && a.Source() == TCode(uint8(o)) && a.Mode() == mode {
 			sc.s.Apply(a)
 			return
 		}
@@ -80,14 +80,14 @@ func TestCasualtySacrificePaidCopyResolvesFirst(t *testing.T) {
 		sc.s.Apply(MakeAction(AkChoose, 0, 0, 0)) // decline the gift
 		d = sc.s.Step()
 	}
-	if d.Kind != DkChoose || d.Sub != ChGenCasualty || d.N != 1 || d.Options[0].Source() != uint8(gerbils) {
+	if d.Kind != DkChoose || d.Sub != ChGenCasualty || d.N != 1 || d.Options[0].Source() != TCode(uint8(gerbils)) {
 		t.Fatalf("decision kind %d sub %d n %d, want the casualty election over the Gerbils", d.Kind, d.Sub, d.N)
 	}
 	if !sc.onBF(gerbils) {
 		t.Fatal("the creature is sacrificed at the election; gorge keeps it until payment")
 	}
 	sc.s.Apply(d.Options[0])
-	sc.do(t, AkTarget, 0xff, uint8(bell))
+	sc.do(t, AkTarget, scAny, TCode(bell))
 	for i := 0; i < 20 && sc.s.sp < 2; i++ {
 		d = sc.s.Step()
 		if d.Kind == DkPriority {

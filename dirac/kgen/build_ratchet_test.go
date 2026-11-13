@@ -256,7 +256,6 @@ import (
 // +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL build-level 23251 -> 23252 measured).
 // +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source, DamagePlus ValidTarget$ Player.Opponent: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL build-level 23253 -> 23261 measured).
 // +1 (Foil's two-part discard alternative cost lowered, kop.Cost.Discard2N/Discard2F; ALL build-level merged against land's MBC work 23347 -> 23348 measured).
-// +4 (Exploit family beyond the exploiter's own line: a non-Self ValidSource$ and nontoken ValidCard$ on Mode$ Exploited, OptionalDecider$, TriggeredExploited$CardPower/CardToughness as the sacrifice's last-known amount, an inert AbilityCount$ X on ChangeZoneAll; ALL merged against land's Exploit family 23483 -> 23487 measured).
 var buildAcceptancePin = [2]int{23487, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {

@@ -11,14 +11,37 @@ const MaxSeats = 2
 // activations (4-7 stay free; static_turnbits.go).
 const turnExhaustShift = 2
 
+// TCode is a target code: an Obj, a stack ability, a player or none, as an
+// Action's source and target fields and the stack's target records hold it.
+// Its width is the class's object width, so a code never passes through a
+// narrower integer (TestObjCodeCastsOnlyShrink).
+type TCode uint8
+
+// Action's packing (types.go): kind<<24 | source<<16 | target<<8 | mode,
+// eight bits for each code.
+const (
+	actKindShift = 24
+	actSrcShift  = 16
+	actTgtShift  = 8
+	actCodeMask  = 0xff
+)
+
 // The target-code space (types.go): objects 0..MaxObj-1, stack abilities
 // StackTarget0..PlayerTarget0-1 (16 codes), players PlayerTarget0.. (one
 // code per seat), 0xFE a departed stack target and 0xFF none.
 const (
-	MaxObj              = 236  // card instances: both decks + tokens (at most StackTarget0)
-	StackTarget0  uint8 = 0xEC // the bottom stack ability's target code
-	PlayerTarget0 uint8 = 0xFC // seat 0's target code
+	MaxObj                = 236  // card instances: both decks + tokens (at most StackTarget0)
+	StackTarget0    TCode = 0xEC // the bottom stack ability's target code
+	PlayerTarget0   TCode = 0xFC // seat 0's target code
+	StackTargetGone TCode = 0xFE // a departed stack target (tgt_stackability.go)
+	NoTarget        TCode = 0xFF // no target
 )
+
+// Obj is a card instance (types.go): a byte in the default class.
+type Obj uint8
+
+// NoObj is no object.
+const NoObj Obj = 255
 
 // object.acts packs the owner above this turn's activation count: one owner
 // bit for two seats.
@@ -54,3 +77,17 @@ const linkPadN = 16
 // seatWord is a packed field holding a few bits per seat beside its other
 // bits (genState.speed, genState.freeP): a byte at two seats.
 type seatWord = uint8
+
+// objWord is a multi-use field that may hold an object (or object+1) as well
+// as a byte-sized value: a version, flags, a paid X. It is the object width,
+// a byte here and wider under dirac_mp, so an object stored in it is never
+// truncated; a conversion to or from it is no narrowing
+// (TestObjCodeCastsOnlyShrink). It is an alias, so the default class's code
+// is unchanged.
+type objWord = uint8
+
+// mayWord is mayPlay.turn: a turn number, a cost surcharge, or a source
+// object below its version (mayHeld), mayVerShift bits up.
+type mayWord = uint16
+
+const mayVerShift = 8

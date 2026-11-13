@@ -18,7 +18,7 @@ type trigListener struct {
 	ctrl uint8
 	card CardID
 	ab   uint8
-	host uint8 // the granting permanent plus one (stackEntry.trigHost); 0 = none
+	host Obj // the granting permanent plus one (stackEntry.trigHost); 0 = none
 }
 
 // eachTrigger calls f for every triggered ability of event ev on the
@@ -227,7 +227,7 @@ func (s *State) queueTrig(k *prep, l trigListener, a *kop.Ability, tobj Obj, tpl
 	n := s.npend
 	s.enqueueLKI(l.obj, s.objs[l.obj].ver, l.card, l.ab, l.ctrl, tobj, tpl, amt)
 	if s.npend > n {
-		s.pend[n].remVer = l.host // a granted trigger's host rides remVer (stackEntry.trigHost)
+		s.pend[n].remVer = objWord(l.host) // a granted trigger's host rides remVer (stackEntry.trigHost)
 	}
 	if a.Trig.Flags2&(kop.Tf2XBound|kop.Tf2SpentBound|kop.Tf2Convoked) != 0 {
 		s.bindTrigProv(a, tobj) // trig_xpaid.go, trig_gravedrawn.go
@@ -547,7 +547,7 @@ func (s *State) fireEmblemsAmt(k *prep, ev kop.TrigEvent, who uint8, tobj Obj, a
 // fireDamageGen is the core's fireDamage on a generated table: one damage event
 // of amt from src, which outside a damage batch is its own batch, so
 // DamageDealtOnce fires per event too.
-func (s *State) fireDamageGen(k *prep, src Slot, amt int16, toPlayer, combat bool, rcp uint8) {
+func (s *State) fireDamageGen(k *prep, src Slot, amt int16, toPlayer, combat bool, rcp TCode) {
 	s.fireDamageEvGen(k, src, amt, toPlayer, combat, nil, rcp, nil)
 }
 
@@ -580,7 +580,7 @@ func (d *dmgLatch) has(l trigListener, seen int) bool {
 // listeners once per event). With a latch (a combat damage batch) a
 // DamageDealtOnce line queues at its first matching event of the batch and
 // carries the batch total; without one the event is its own batch.
-func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat bool, latch *dmgLatch, rcp uint8, rl *refLatch) {
+func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat bool, latch *dmgLatch, rcp TCode, rl *refLatch) {
 	m := s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).and(s.occ)
 	if k.gen.grantTrigEv&(1<<kop.TrigDamageDone|1<<kop.TrigDamageDealtOnce) != 0 {
 		m = s.grantTrigHosts(k, m)
@@ -677,7 +677,7 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 // dmgPlayers is the player mask a permanent-source damage event names: the
 // damaged player when rcp is one, else (an aggregate event to players) the
 // source controller's opponent.
-func dmgPlayers(toPlayer bool, srcCtrl uint8, rcp uint8) uint8 {
+func dmgPlayers(toPlayer bool, srcCtrl uint8, rcp TCode) uint8 {
 	if !toPlayer {
 		return 0
 	}
@@ -688,7 +688,7 @@ func dmgPlayers(toPlayer bool, srcCtrl uint8, rcp uint8) uint8 {
 }
 
 // dmgPl is the player mask fireDamageSrc takes for one damage target code.
-func dmgPl(code uint8) uint8 {
+func dmgPl(code TCode) uint8 {
 	if isPlayerOrNone(code) {
 		return 1 << CodeSeat(code)
 	}
@@ -700,7 +700,7 @@ func dmgPl(code uint8) uint8 {
 // you control deals noncombat damage to an opponent"), or an ability whose
 // source left the battlefield (gorge reads its last known information:
 // a sacrificed Fanatical Firebrand's ping, pair 3334), matched by its card.
-func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, rcp uint8, rl *refLatch) {
+func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, rcp TCode, rl *refLatch) {
 	toPlayer := plM != 0 // plM: the players dealt damage (bit p)
 	if o == NoObj {
 		return
