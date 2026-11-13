@@ -536,7 +536,7 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 		return true
 	}
 	if len(k.gen.grantPC) != 0 && !s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
-		return false // with no granted mana sources the kernel's own offer gate decided
+		return false // payable only with a granted mana ability (the V1 exclusion above)
 	}
 	return s.planHoldsOnStack(k, p, o, &cost) // cast_planholdsonstack.go
 }
