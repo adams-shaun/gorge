@@ -971,6 +971,10 @@ var expandedKeywords = map[string]bool{
 	// Echo (CR 702.30a): gorge kwEcho's upkeep trigger, gated by Echo$ True,
 	// whose body is DB$ Echo (lower_echo.go)
 	"Echo": true,
+	// Renown (CR 702.112a): gorge kwRenown's combat-damage trigger, intervening
+	// if Card.Self+!IsRenowned, whose body is DB$ PutCounter | Renown$ N
+	// (lower_effect.go renown; the designation is act_renown.go)
+	"Renown": true,
 }
 
 // protColourLetters maps a "Protection from <q>" colour quality to its

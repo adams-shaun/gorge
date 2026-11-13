@@ -3785,7 +3785,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			}
 		}
 	case "Monstrosity":
-		ki.Op = kop.OpMonstrosity
+		ki.Op, ki.C = kop.OpMonstrosity, int16(in.C) // C: kop.MonstrosityRenown for K:Renown (lower_effect.go renown)
 	case "Earthbend":
 		ki.Op = kop.OpEarthbend
 		i, err := cb.override(cb.c.overrides[in.C])

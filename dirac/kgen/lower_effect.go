@@ -3523,6 +3523,9 @@ func (lc *lowerCtx) putCounter(ps *params) error {
 	if mono, ok := ps.get("Monstrosity"); ok {
 		return lc.monstrosity(ps, obj, mono)
 	}
+	if rn, ok := ps.get("Renown"); ok {
+		return lc.renown(ps, obj, rn)
+	}
 	n, err := lc.amount(ps, "CounterNum", 1)
 	if err != nil {
 		return err
@@ -3674,6 +3677,33 @@ func (lc *lowerCtx) monstrosity(ps *params, obj lRef, raw string) error {
 		lc.ab.ActCond = none
 	}
 	lc.emit(lInstr{Op: "Monstrosity", Obj: obj, A: n})
+	return nil
+}
+
+// renown lowers the Renown$ N body of the K:Renown expansion (CR 702.112a;
+// gorge effPutCounter's RenownSet arm): N +1/+1 counters on the source if it
+// is not renowned, then the renowned designation, no event. It is
+// OpMonstrosity's C = MonstrosityRenown variant, whose guard (not renowned,
+// still on the battlefield) is the op's own, so the trigger's
+// `IsPresent$ Card.Self+!IsRenowned` intervening-if and the resolve-time read
+// agree. Only the source itself with CounterType$ P1P1 (the expansion's own
+// shape); any other recipient, a CounterNum$ beside it or another counter
+// kind refuses.
+func (lc *lowerCtx) renown(ps *params, obj lRef, raw string) error {
+	if obj.Kind != rSelf {
+		return refuse("Renown$ recipient %v", obj)
+	}
+	if _, ok := ps.m["CounterNum"]; ok {
+		return refuse("Renown$ with CounterNum$")
+	}
+	if ct := ps.str("CounterType"); ct != "P1P1" {
+		return refuse("Renown$ with CounterType$ %q", ct)
+	}
+	n, err := lc.value(raw)
+	if err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "Monstrosity", Obj: obj, A: n, C: int(kop.MonstrosityRenown)})
 	return nil
 }
 
