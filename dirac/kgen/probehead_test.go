@@ -48,10 +48,11 @@ func TestProbeBodySkipsActivationHead(t *testing.T) {
 			want: []string{"Bogus$Head"},
 		},
 		{
-			// the head refuses (ActivationLimit$ 2) before its chain; the
+			// the head refuses (ActivationZone$ Nowhere, a zone kgen has no
+			// name for) before its chain; the
 			// body's own Defined$ blocker is the probe's to find
 			name: "activated",
-			src:  head("A:AB$ Draw | Cost$ 1 T | ActivationLimit$ 2 | SorcerySpeed$ True | Defined$ Bogus$Head | NumCards$ 1 | SpellDescription$ Probe."),
+			src:  head("A:AB$ Draw | Cost$ 1 T | ActivationZone$ Nowhere | SorcerySpeed$ True | Defined$ Bogus$Head | NumCards$ 1 | SpellDescription$ Probe."),
 			want: []string{"Bogus$Head"},
 		},
 	}
