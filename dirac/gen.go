@@ -949,7 +949,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				}
 			}
 			for ti := 0; ti < int(a.NTargets); ti++ {
-				if k := a.Targets[ti].Kind; k == kop.TgtStackObj || k == kop.TgtStackAb || k == kop.TgtStackObjTrig {
+				if k := a.Targets[ti].Kind; k == kop.TgtStackObj || k == kop.TgtStackAb || k == kop.TgtStackObjTrig || k == kop.TgtStackTgting {
 					g.anyStackTgt = true // tgt_stackability.go
 				} else if copyAbKind(k) {
 					g.anyStackTgt, g.anyCopyAb = true, true // copy_ability.go

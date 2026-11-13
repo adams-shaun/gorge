@@ -1,0 +1,18 @@
+# the TargetValidTargeting$ pool for a spell OR ability counter: Diplomatic
+# Escort ("Counter target spell or ability that targets a creature") against
+# the opponent's activations aimed at a creature or a player (Prodigal
+# Pyromancer), enters triggers aimed at a creature (Man-o'-War), draws with no
+# target (Elvish Visionary, Divination) and burn at a creature or a player
+# (Shock). (dirac/oracle/ctrabtgt_lockstep_test.go)
+Diplomatic Escort
+Prodigal Pyromancer
+Elvish Visionary
+Man-o'-War
+Shock
+Divination
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Island
+Mountain
+Forest

@@ -1372,7 +1372,7 @@ func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self 
 				n++
 			}
 		}
-	case kop.TgtStackObj, kop.TgtStackAb, kop.TgtCopyAb, kop.TgtCopyTrig, kop.TgtStackObjTrig:
+	case kop.TgtStackObj, kop.TgtStackAb, kop.TgtCopyAb, kop.TgtCopyTrig, kop.TgtStackObjTrig, kop.TgtStackTgting:
 		n = s.stackTgtCands(k, t, p, self, out, n) // tgt_stackability.go
 	case kop.TgtPermOrSpell:
 		n = s.permOrSpellCands(k, t, p, src, self, out, n) // tgt_permorspell.go

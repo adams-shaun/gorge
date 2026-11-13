@@ -1801,14 +1801,14 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		var vtg, vspell *lFilter
 		vyou := false
 		if v, ok := ps.get("TargetValidTargeting"); ok {
-			if tt != "Spell" {
-				return refuse("Counter TargetValidTargeting beside TargetType %q: a stack ability's targets live in its trigger/activation roles, which gorge's filterTargetValidTargeting does not read (Diplomatic Escort, Siren Stormtamer, Not of This World)", tt)
+			if tt != "Spell" && tt != "Spell,Activated,Triggered" {
+				return refuse("Counter TargetValidTargeting beside TargetType %q: only a spell, or a spell or ability (Diplomatic Escort), has a lowered targeting clause", tt)
 			}
 			var verr error
 			if vtg, vyou, verr = lc.counterValidTargeting(strings.TrimSpace(v)); verr != nil {
 				return verr
 			}
-			if vt := ps.str("ValidTgts"); vt != "Card" {
+			if vt := ps.str("ValidTgts"); tt == "Spell" && vt != "Card" {
 				// the spell side's own filter (Avoid Fate: Instant,Aura)
 				if vspell, verr = lc.filter(vt); verr != nil {
 					return verr
