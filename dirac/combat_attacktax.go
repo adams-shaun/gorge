@@ -239,7 +239,12 @@ func (s *State) atkTaxCharge(k *prep, sl Slot, tgt uint8) (n int, ok bool) {
 		}
 		v := int(a.Static.A)
 		if a.Static.StFlags&kop.StDynamic != 0 {
-			v = s.evalV(k, a.Static.VA, s.ctxStatic(st))
+			// A RememberingAttacker$ charge (kop.RefTaxedAttacker) reads the
+			// priced creature's own counters: gorge attackUnlessCharge binds
+			// ctx.Remembered = [{Obj: attacker}] and evaluates X live.
+			c := s.ctxStatic(st)
+			c.taxed1 = s.perms[sl].obj + 1
+			v = s.evalV(k, a.Static.VA, c)
 		}
 		if v < 0 {
 			ok = false

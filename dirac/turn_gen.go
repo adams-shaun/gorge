@@ -721,6 +721,7 @@ func (s *State) cleanupGen(k *prep) {
 			r.until == kop.DurWarp && s.warpRecastLive(r) ||
 			r.until == kop.DurAirbend && s.warpRecastLive(r) ||
 			r.until == kop.DurPlot && s.plotLive(r) ||
+			r.until == kop.DurSuspend && s.suspendLive(r) || // a suspended card stays while exiled, its haste while it stays (kw_suspend.go)
 			r.until == kop.DurForetell && s.plotLive(r) ||
 			r.until == kop.DurPrepared && s.preparedSrc(r) ||
 			r.dur() == kop.DurWhileSrcMay && s.mayWhileSrcKeep(r) || // cast_whilesource.go
@@ -948,6 +949,9 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 	if k.gen.anyBattle && s.g.nmay > 0 && s.defeatPosedOptions(d) {
 		return true
 	}
+	if k.gen.anySuspend && s.g.nmay > 0 && s.suspendPosedOptions(d) {
+		return true
+	}
 	if s.entryAsked(k) {
 		s.entryOrderOptions(k, d)
 		return true
@@ -1036,6 +1040,9 @@ func (s *State) applyGen(k *prep, a Action) {
 		return
 	}
 	if k.gen.anyBattle && s.g.nmay > 0 && s.applyDefeat(k, a) {
+		return
+	}
+	if k.gen.anySuspend && s.g.nmay > 0 && s.applySuspendAnswer(k, a) {
 		return
 	}
 	if s.entryAsked(k) {

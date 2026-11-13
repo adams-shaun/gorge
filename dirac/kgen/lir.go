@@ -53,12 +53,13 @@ const (
 	rPromised                     // the opponent the gift was promised to (Defined$ / TokenOwner$ Promised)
 	rAttachedCtrl                 // the controller of the object the source is attached to, read live (Contaminated Bond's blocker)
 	rLastCreated                  // the token(s) the previous CreateToken/copy op minted (kop.RefLastCreated; Encore's duty on the minted copy)
+	rTaxedAttacker                // the creature an attack tax is being priced for (kop.RefTaxedAttacker; Nils's RememberingAttacker$ charge, lower_attacktax.go)
 	rCount
 )
 
 var refNames = [...]string{"None", "Target", "Self", "You", "EachOpp", "EachPlayer", "TargetController",
 	"TargetOwner", "Triggered", "TriggeredNew", "TriggeredSource", "TriggeredPlayer", "TriggeredTgtCtrl", "Equipped", "Remembered",
-	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted", "Promised", "AttachedCtrl", "LastCreated"}
+	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted", "Promised", "AttachedCtrl", "LastCreated", "TaxedAttacker"}
 
 type lRef struct {
 	Kind refKind
@@ -1010,6 +1011,8 @@ type lCard struct {
 	Impending      *manaCost     // K:Impending:<N>:<cost> (CR 702.176a): the hand's alternate cost; ImpendingN time counters
 	ImpendingN     int
 	Plot           *manaCost // K:Plot:<cost> (CR 702.170a): the sorcery-speed special action's cost
+	Suspend        *manaCost // K:Suspend:<N>:<cost> (CR 702.62a): the hand's special action cost; SuspendN time counters
+	SuspendN       int
 	Foretell       *manaCost // K:Foretell:<cost> (CR 702.143a): the later cast's cost (the {2} special action is fixed; CardDef.ForetellCost)
 	Paradigm       bool      // K:Paradigm (SOS): resolved -> exile, a free cast from exile each first main phase
 	Sneak          *manaCost // K:Sneak:<cost> (CR 702.190a): the declare-blockers alternative cost (plus the return)

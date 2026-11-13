@@ -177,6 +177,9 @@ func (s *State) beginStep(k *prep) {
 		}
 		s.step = kop.StepUpkeep
 	case kop.StepUpkeep:
+		if k.gen != nil && k.gen.anySuspend {
+			s.suspendTick(k) // CR 702.62a: gorge ticks as the step is entered (kw_suspend.go)
+		}
 		s.firePhase(k, kop.StepUpkeep)
 		if k.gen != nil && k.gen.anyDelayUp {
 			s.fireDelayedUpkeep(k)
@@ -1197,6 +1200,16 @@ func (s *State) legendOptions(k *prep, d *Decision) {
 
 // applyLegend keeps the chosen permanent; the others go to the graveyard.
 func (s *State) applyLegend(k *prep, a Action) {
+	// the pose pass's out-of-battlefield tokens and copies ride the legend
+	// batch (gorge parkLegendChoice parks ceaseDeadTokens' finds with the
+	// ask and applyLegendBatch applies them with the answer): they cease
+	// here, before the next pass poses a further group, whose graveyard
+	// order they would otherwise shift (CR 704.3, 704.5d). A token this
+	// batch itself removes is still on the battlefield here and ceases on
+	// the pass after the answer, as in gorge.
+	if k.gen != nil || s.cfg&cfgCommander != 0 {
+		s.ceaseTokensGen()
+	}
 	keep := Obj(a.Source())
 	var out slotMask
 	for m := s.ctrlM[s.legP]; m.any(); m = m.rest() {
