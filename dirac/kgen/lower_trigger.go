@@ -1653,38 +1653,8 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		conds = append(conds, deliriumCond())
 	}
-	if v, ok := tp.get("ManaNotSpent"); ok {
-		// "sacrifice it unless {W} was spent to cast it" (CR 601.2h): the
-		// trigger fires only while the gate reads unspent, gorge
-		// trigger_condition.go manaColourSpendHolds
-		c, err := lc.trigManaSpendCond(v, true)
-		if err != nil {
-			return err
-		}
-		conds = append(conds, c)
-	}
-	if v, ok := tp.get("ManaSpent"); ok {
-		// "if {G} was spent to cast it, destroy target artifact" (CR 601.2h)
-		c, err := lc.trigManaSpendCond(v, false)
-		if err != nil {
-			return err
-		}
-		conds = append(conds, c)
-	}
-	if v, ok := tp.get("Phase"); ok && t.Mode != "Phase" {
-		// "Whenever you cast an instant during your main phase" (Dovin's
-		// Acuity), "enters during combat" (The Blue Spirit): Forge's Phase$
-		// gate, read as the trigger fires (gorge trigger_phase_gate.go
-		// phaseGate, before the mode switch). It is never re-checked at
-		// resolution because nothing needs to be: CR 117.5 ends a step only
-		// with an empty stack, so a trigger resolves in the step it fired in
-		// and the same shared phase-name parser answers again. Mode$ Phase
-		// names its own step in the mode switch (tr.Step), so it skips this.
-		c, err := lc.phasesCondition(v)
-		if err != nil {
-			return err
-		}
-		conds = append(conds, c)
+	if err := lc.spendPhaseConds(tp, t.Mode, &conds); err != nil { // lower_trigphase.go
+		return err
 	}
 	if err := echoGate(tp, tr, ab, &conds, noResolve || fireOnly || giftSelf); err != nil { // lower_echo.go
 		return err

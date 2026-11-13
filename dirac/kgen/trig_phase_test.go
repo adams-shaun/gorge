@@ -21,8 +21,9 @@ func phaseProbeScript(phase string) string {
 }
 
 // TestTriggerPhaseCond: a trigger's Phase$ list or range lowers to the shared
-// vStepIn step gate the kernel reads as the trigger fires (and, the step being
-// stack-invariant, at resolution); the name set and the mask come from the one
+// vStepIn step gate the kernel reads as the trigger fires (and at resolution,
+// which agrees for every step with priority; an untap-step set refuses, see
+// TestTriggerPhaseRefusals); the name set and the mask come from the one
 // shared phase parser (state.ParsePhases, gorge phaseGate's own read).
 func TestTriggerPhaseCond(t *testing.T) {
 	for _, c := range []struct {
@@ -74,6 +75,8 @@ func TestTriggerPhaseRefusals(t *testing.T) {
 		{"unknown phase", "NotAPhase", "unknown phase"},
 		{"backwards range", "EndCombat->BeginCombat", "unknown phase"},
 		{"empty element", "Main1,,Main2", "unknown phase"},
+		{"untap", "Untap", "untap step"},
+		{"range from untap", "Untap->Draw", "untap step"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			_, _, refs := kdiscfiltBuild(t, c.name, phaseProbeScript(c.phase))
