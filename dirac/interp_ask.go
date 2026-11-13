@@ -383,9 +383,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		}
 		if s.g.pickZ == kop.PayDiscard {
 			d.Sub = ChCostDiscard
-			if s.afterCumulative(k) {
-				// an echo action cost: gorge echoActionAsk's one kind for
-				// cards and lands alike, not the generic cost-discard pick
+			if s.echoActionPick(k) {
 				d.Sub = ChEchoActionPick
 			}
 			pl := &s.pl[p]
@@ -405,8 +403,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			}
 		}
 		sac := r.ask == raGenSac || s.g.pickZ == kop.PaySac
-		if sac && s.g.pickZ == kop.PaySac && s.afterCumulative(k) {
-			// an echo action cost: the same kind as the discard arm
+		if s.echoActionPick(k) {
 			d.Sub = ChEchoActionPick
 		}
 		for m := s.ctrlM[p].andNot(s.g.sacM); m.any(); m = m.rest() {
@@ -620,10 +617,18 @@ func (s *State) enchantReturnObj(k *prep) Obj {
 	return NoObj
 }
 
+// echoActionPick: the pending pick pays an echo action cost (Deepcavern Imp's
+// discard, Skizzik Surger's land sacrifice). gorge's echoActionAsk poses one
+// choose-exactly-N kind (ChEchoActionPick) for cards and lands alike, not the
+// generic cost-discard pick.
+func (s *State) echoActionPick(k *prep) bool {
+	return (s.g.pickZ == kop.PayDiscard || s.g.pickZ == kop.PaySac) && s.afterCumulative(k)
+}
+
 // autoPayPick pays the pending pick at once when its candidates are
 // exactly the number owed (in battlefield order); false leaves it asked.
 func (s *State) autoPayPick(k *prep) bool {
-	if s.afterCumulative(k) && (s.g.pickZ == kop.PayDiscard || s.g.pickZ == kop.PaySac) {
+	if s.echoActionPick(k) {
 		// gorge's echoActionAsk poses the object choice even when exactly the
 		// owed N candidates exist (echoActionAsk never elides it); the generic
 		// trigger-cost pick elides that decision.
