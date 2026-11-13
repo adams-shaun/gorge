@@ -1,7 +1,7 @@
 # the Pox pool: a RepeatEach over players whose body reads each player's own
 # life total, hand and permanents through /ThirdUp, beside creatures and
 # basics, for the oracle's constructed lockstep
-# (dirac/oracle/mbcrepeateach3_test.go)
+# (dirac/oracle/mbc_repeateach_thirdup_test.go)
 Pox
 Walking Corpse
 Dark Ritual
