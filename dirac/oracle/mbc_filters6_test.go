@@ -47,7 +47,7 @@ var mbcf6Decks = [2]struct {
 		deck: []cardset.Entry{
 			{Name: "Molten Birth", Count: 8}, {Name: "Mountain", Count: 32},
 		},
-		card:  "Molten Birth",
+		card:   "Molten Birth",
 		tokens: 2,
 	},
 }
