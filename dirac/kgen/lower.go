@@ -314,6 +314,10 @@ type lowerCtx struct {
 	// chosenOppAb is the ability whose one-opponent ChoosePlayer is lowered
 	// ChosenPlayer reads the opponent in that ability only.
 	chosenOppAb *lAbility
+	// chosenPlAb is the ability whose random-pool ChoosePlayer (kop
+	// OpChoosePlayer) is lowered: ChosenPlayer reads the resolution's chosen
+	// player (kop RefChosenPlayer), not the opponent (Maddening Hex's Attach)
+	chosenPlAb *lAbility
 	// remOppLinks are the chain links after a Pump RememberObjects$
 	// TargetedController whose Defined$ Remembered reads the one opponent
 	// (lower_remembered.go pumpRememberOppController).

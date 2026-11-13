@@ -4524,6 +4524,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.C = kop.OpCreateEmblem, int16(in.C)
 	case "RollDie":
 		ki.Op, ki.C = kop.OpRollDie, int16(in.C)
+	case "ChoosePlayer":
+		ki.Op = kop.OpChoosePlayer
+		if in.CS != "Random" {
+			return ki, fmt.Errorf("ChoosePlayer build %q", in.CS)
+		}
+		ki.C = kop.ChPlRandom
 	case "OverrideAll":
 		ki.Op = kop.OpOverrideAll
 		i, err := cb.override(cb.c.overrides[in.C])

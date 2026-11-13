@@ -965,6 +965,8 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		s.res.ask, s.res.askP = raGenChooseCard, p
 		return false, true
+	case kop.OpChoosePlayer:
+		s.choosePlayerOp(k, in) // act_chooseplayer.go
 	case kop.OpAttach:
 		if in.W != 0 {
 			s.attachSelfToPlayer(k, in) // static_attachtimestamp.go

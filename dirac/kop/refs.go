@@ -76,6 +76,12 @@ const (
 	// (gorge Defined$ TriggeredBlockerController over a Card.AttachedBy
 	// Blocks trigger).
 	RefAttachedCtrl Ref = 37
+	// RefChosenPlayer is a player ref: the resolution's chosen player, the
+	// pick OpChoosePlayer recorded (gorge Ctx.Chosen's player entry, Forge's
+	// chosen player field). 255 when that resolution made no pick (gorge
+	// effChoosePlayer's random branch with an empty pool records nothing, so
+	// a following ChosenPlayer destination walk attaches nothing).
+	RefChosenPlayer Ref = 38
 )
 
 // RefTgtCtrl1 / RefTgtCtrl2 are RefTargetController for target slot 1 / 2

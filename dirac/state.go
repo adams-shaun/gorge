@@ -857,8 +857,13 @@ type resCtx struct {
 	// col is the resolution's mid-resolution ChooseColor answer (colour
 	// index + 1, 0 none; ExtChooseColorRes), which a ChosenColor filter
 	// reads (static_colourprot.go resColour)
-	col   uint8
-	remLK int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)
+	col uint8
+	// chosenPl is the resolution's chosen player (gorge Ctx.Chosen's player
+	// entry, Forge's chosen player field): OpChoosePlayer's pick, seat, or
+	// 255 when the resolution recorded no choice (an empty pool). Read
+	// through RefChosenPlayer (Maddening Hex's Attach to the chosen player).
+	chosenPl uint8
+	remLK    int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)
 }
 
 // State is a whole game. Copy one with CopyFrom, or probe on a fork; go vet

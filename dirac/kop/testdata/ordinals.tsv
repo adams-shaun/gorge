@@ -72,6 +72,7 @@ CfManifestRemembered	untyped int	64
 CfRemember	untyped int	4
 CfShuffle	untyped int	2
 CfTapped	untyped int	1
+ChPlRandom	int16	1
 CharmRepeat	untyped int	256
 ChooseOpp	untyped int	2
 ChooseRandom	untyped int	1
@@ -715,6 +716,7 @@ OpChooseCard	Op	42
 OpChooseColor	Op	40
 OpChooseEachType	Op	79
 OpChooseMove	Op	73
+OpChoosePlayer	Op	157
 OpChooseTargets	Op	96
 OpChooseType	Op	41
 OpClassLevelUp	Op	103
@@ -1002,6 +1004,7 @@ ReduceColorBits	untyped int	2
 RefAttached	Ref	11
 RefAttachedCtrl	Ref	37
 RefChosen	Ref	13
+RefChosenPlayer	Ref	38
 RefController	Ref	5
 RefDefendingPlayer	Ref	15
 RefDelayedRemembered	Ref	19
