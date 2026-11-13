@@ -34,11 +34,12 @@ func MiniCommanderDeck(f deck.File, n int) (deck.File, error) {
 	var cmds []deck.Entry
 	var rest []string
 	for _, e := range f.Cards {
+		n := e.Count
 		if isCmd(e.Name) {
 			cmds = append(cmds, deck.Entry{Name: e.Name, Count: 1})
-			continue
+			n-- // a drafted deck may hold a second copy of its commander (not singleton): it stays a deck card
 		}
-		for range e.Count {
+		for range n {
 			rest = append(rest, e.Name)
 		}
 	}

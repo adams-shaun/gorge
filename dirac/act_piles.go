@@ -63,7 +63,7 @@ func (s *State) askOptionsPiles(k *prep, d *Decision) bool {
 		d.Sub = ChGenPileSplit
 		in := &s.prog(k)[s.res.pc]
 		for m := s.pilesPool(k, in, s.g.pickP).andNot(s.g.sacM); m.any(); m = m.rest() {
-			d.add(MakeAction(AkChoose, uint8(s.perms[m.first()].obj), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(s.perms[m.first()].obj), 0, 0))
 		}
 		d.add(MakeAction(AkDone, 0, 0, 0))
 	case raPileChooseSac:

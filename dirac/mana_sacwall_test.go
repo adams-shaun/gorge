@@ -37,12 +37,12 @@ func TestEveryUnitNeededPlanIsFound(t *testing.T) {
 		d := sc.s.Step()
 		offered := false
 		for _, a := range d.Options[:d.N] {
-			offered = offered || a.Kind() == AkActivate && a.Source() == uint8(tl)
+			offered = offered || a.Kind() == AkActivate && a.Source() == TCode(uint8(tl))
 		}
 		if !offered {
 			t.Fatalf("cfg %+v: the Landscape's cycling is not offered: B, R (the Wall's sacrifice) and G are all there", cfg)
 		}
-		sc.do(t, AkActivate, uint8(tl), 0)
+		sc.do(t, AkActivate, TCode(tl), 0)
 		sc.s.Step() // the payment: no "autopay found no plan"
 		if z := sc.s.objs[tl].zone; z != kop.ZoneGraveyard {
 			t.Fatalf("cfg %+v: the cycled card is in zone %d, want the graveyard", cfg, z)

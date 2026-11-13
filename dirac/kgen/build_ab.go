@@ -811,6 +811,7 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		ka.NModes, ka.ModesPick = uint8(a.Modes), uint8(a.ModesPick)
 		ka.ModesFew = uint8(a.ModesPick - a.ModesMin)
 		ka.ModeRestrict = a.ModeRestrict
+		ka.ChainModes = a.ChainModes
 		ka.RepMax, ka.RepCost, ka.RepBudget = a.RepMax, a.RepCost, a.RepBudget
 	}
 	if a.Mana != nil {
@@ -834,6 +835,10 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		}
 		if ka.Trig, err = cb.trigger(a.Trigger); err != nil {
 			return ka, err
+		}
+		if ka.Trig.Whose == kop.WhoseChosen && (a.Latent || a.Trigger.Event != "Phase" || a.Trigger.Zone != zBattlefield) {
+			// the kernel reads it only for a printed battlefield Phase listener (chosenIs)
+			return ka, fmt.Errorf("Player.Chosen outside a printed battlefield Phase trigger")
 		}
 		if ka.Trig.Whose == kop.WhoseEnchCtrl && (a.Latent || a.Trigger.Event != "Phase" || a.Trigger.Zone != zNone && a.Trigger.Zone != zBattlefield) {
 			// the kernel reads it only for a printed battlefield Phase listener
@@ -1118,10 +1123,10 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 var stepMap = map[string]kop.Step{"Upkeep": kop.StepUpkeep, "End": kop.StepEnd, "BeginCombat": kop.StepBeginCombat,
 	"Draw": kop.StepDraw, "Main1": kop.StepMain1, "Main2": kop.StepMain2, "EndCombat": kop.StepEndCombat}
 
-var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies, "Leaves": kop.TrigLeaves, "Blocks": kop.TrigBlocks, "Taps": kop.TrigTaps, "Attacks": kop.TrigAttacks,
+var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies, "Leaves": kop.TrigLeaves, "ToGraveyard": kop.TrigToGraveyard, "Blocks": kop.TrigBlocks, "Taps": kop.TrigTaps, "Attacks": kop.TrigAttacks,
 	"AttackersDeclared": kop.TrigAttackersDeclared, "Phase": kop.TrigPhase, "SpellCast": kop.TrigSpellCast,
 	"LifeGained": kop.TrigLifeGained, "LifeLost": kop.TrigLifeLost, "DamageDone": kop.TrigDamageDone,
-	"DamageDealtOnce": kop.TrigDamageDealtOnce, "Drawn": kop.TrigDrawn, "Discarded": kop.TrigDiscarded, "DiscardedAll": kop.TrigDiscardedAll, "AbilityCast": kop.TrigAbilityCast, "Scry": kop.TrigScry, "Surveil": kop.TrigSurveil, "Explores": kop.TrigExplores, "CollectEvidence": kop.TrigCollectEvidence,
+	"DamageDealtOnce": kop.TrigDamageDealtOnce, "Drawn": kop.TrigDrawn, "Discarded": kop.TrigDiscarded, "DiscardedAll": kop.TrigDiscardedAll, "AbilityCast": kop.TrigAbilityCast, "Scry": kop.TrigScry, "Surveil": kop.TrigSurveil, "Explores": kop.TrigExplores, "CollectEvidence": kop.TrigCollectEvidence, "Exploited": kop.TrigExploited,
 	"LandPlayed": kop.TrigLandPlayed, "SearchedLibrary": kop.TrigSearchedLibrary, "Forage": kop.TrigForage, "Discover": kop.TrigDiscover, "ManifestDread": kop.TrigManifestDread,
 	"CounterAddedOnce": kop.TrigCounterAddedOnce, "CounterAdded": kop.TrigCounterAddedOnce, "Untaps": kop.TrigUntaps,
 	"Sacrificed": kop.TrigSacrificed, "GiveGift": kop.TrigGiveGift, "Proliferate": kop.TrigProliferate, "FacesDilemma": kop.TrigFacesDilemma, "BecomeMonarch": kop.TrigBecomeMonarch, "TokenCreated": kop.TrigTokenCreated, "BecomeMonstrous": kop.TrigBecomeMonstrous, "ManaExpend": kop.TrigManaExpend, "AttackerBlocked": kop.TrigBecomesBlocked, "TurnFaceUp": kop.TrigTurnFaceUp, "Transformed": kop.TrigTransformed, "CommitCrime": kop.TrigCommitCrime, "UnlockDoor": kop.TrigUnlockDoor, "FullyUnlock": kop.TrigFullyUnlock,
@@ -1140,7 +1145,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	}
 	kt.Event = ev
 	kt.Whose = kop.Whose(t.Whose)
-	if t.Event == "Leaves" {
+	if t.Event == "Leaves" || t.Event == "ToGraveyard" {
 		kt.From = zoneMap[t.From]
 	}
 	var err error
@@ -1345,7 +1350,10 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		// ): the trigger builder set TfSelf only when the
 		// whole filter was the bare self clause, so that flag is the
 		// structural test -- no second combination can carry it.
-		if !t.Watch || kt.Whose != kop.WhoseOpp {
+		// a watcher (opponent-source gated or not) or the plain self form
+		// (TfSelf, no gate: "becomes the target of a spell or ability")
+		selfPlain := !t.Watch && kt.Flags&kop.TfSelf != 0 && kt.Whose == kop.WhoseAny
+		if !selfPlain && !(t.Watch && (kt.Whose == kop.WhoseOpp || kt.Whose == kop.WhoseAny)) {
 			return kt, fmt.Errorf("BecomesTarget without Valiant")
 		}
 		if t.SpellToo {
@@ -1604,6 +1612,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		kt.Flags3 |= kop.Tf3FirstAttack
 	}
 	kt.Flags5 = drawStepFlags(t)
+	if t.OppCause {
+		if t.Event != "Discarded" || kt.Flags&kop.TfSelf == 0 || t.Cycled {
+			return kt, fmt.Errorf("discard cause on a %s trigger", t.Event)
+		}
+		kt.Flags5 |= kop.Tf5OppCause
+	}
 	if t.GameOnce {
 		kt.Flags3 |= kop.Tf3GameOnce
 	}
@@ -2250,7 +2264,12 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, fmt.Errorf("alternative cost with a forage / exile-from-graveyard part")
 		}
 		sacAlt := ka.Cost.Flags == kop.CostSac && ka.Cost.N > 0 && ka.Cost.Mana == (kop.ManaCost{}) && cb.altSacOK()
-		if !sacAlt && !cb.altHandExileOK(&ka.Cost) && (ka.Cost.Flags != 0 || ka.Cost.N != 0 || ka.Cost.Mana.X != 0) {
+		// the return alternative (Gush's "return two Islands you control to
+		// their owner's hand rather than pay this spell's mana cost"): the
+		// sacrifice shape with the permanents returned (kernel cast_altfree.go
+		// altReturnCost, the cast's pkReturn picks)
+		sacAlt = sacAlt || ka.Cost.Flags == kop.CostReturn && ka.Cost.N > 0 && ka.Cost.Mana == (kop.ManaCost{}) && cb.altSacOK()
+		if !sacAlt && !cb.altHandExileOK(&ka.Cost) && !(altDiscardTwoShape(&ka.Cost) && cb.altSacOK()) && (ka.Cost.Flags != 0 || ka.Cost.N != 0 || ka.Cost.Mana.X != 0) {
 			// the kernel offers a mana-only alternative cost
 			// (prepAltFree); a Return / Sac / PayLife / exile-from-hand
 			// part (Daze, Force of Will) would never be offered
@@ -2393,12 +2412,14 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			case "Convoke":
 				st.A = kop.StackKwConvoke
 			}
-		case "Lifelink", "Storm", "Split second", "Conspire", "Delve":
+		case "Lifelink", "Storm", "Split second", "Conspire", "Delve", "Demonstrate":
 			if param != "" {
 				return ka, nil, fmt.Errorf("stack keyword grant %q with a parameter", s.Kw[0])
 			}
 			st.A = kop.StackKwLifelink
 			switch head {
+			case "Demonstrate":
+				st.A = kop.StackKwDemonstrate
 			case "Conspire":
 				st.A = kop.StackKwConspire
 			case "Storm":
@@ -3032,6 +3053,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			// each-opponent recipients (lower_damagesourceplayers.go): B.N 1 is the
 			// kernel's player mode (dirac/act_damagefrom.go)
 			ki.C, ki.B = int16(kop.RefEachOpponent), kop.Const(1)
+			break
+		}
+		if in.CS == "defending" {
+			// the Attacks trigger's defending player (lower_damagesourceplayers.go):
+			// the player mode over RefDefendingPlayer (dirac eachPlayers -> oneOpp)
+			ki.C, ki.B = int16(kop.RefDefendingPlayer), kop.Const(1)
 			break
 		}
 		if in.CS == "anytgt" {
@@ -3930,7 +3957,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 	case "TurnFaceUp":
 		// (CR 708.6; gorge effSetState Mode$ TurnFaceUp) OpExt ExtTurnFaceUp:
-		// C 0 the target in Obj, C 1 the up-to-one pick over F
+		// C 0 the target in Obj, C 1 the up-to-one pick over F, C 2 the
+		// mandatory Transform pick over F (lower_setstate.go)
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtTurnFaceUp)), int16(in.C)
 		if in.F != nil {
 			if err := objFilter(kop.ZoneBattlefield); err != nil {
@@ -4036,6 +4064,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "BlocksIfAble":
 		// OpExt ExtBlocksIfAble, Obj the target that blocks this turn if able
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtBlocksIfAble))
+	case "RemoveFromCombat":
+		// OpExt ExtRemoveFromCombat, Obj the one object removed (lower_removefromcombat.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRemoveFromCombat))
 	case "MustBeBlocked":
 		// OpExt ExtMustBeBlocked, Obj the subject (RefNone
 		// with F: every battlefield permanent matching F)
@@ -4306,6 +4337,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 	case "Extort":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtExtort)) // dirac/act_extort.go
+	case "Exploit":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtExploit)) // dirac/kw_exploit.go
 	case "Fog":
 		ki.Op = kop.OpFog
 	case "LoseGame":
@@ -4464,6 +4497,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			ki.C = 7 // chooseFaceDownPick: the cloak-from-hand pick (gorge's face_down_choice)
 		case "CopyPick":
 			ki.C = 8 // chooseCopyPick: the CopyPermanent Choices$ pick (gorge's copypermanent_choice)
+		case "PopulatePick":
+			ki.C = 9 // choosePopulatePick: the Populate$ token pick, a lone candidate taken unasked
 		}
 	case "ChooseEachType":
 		ki.Op = kop.OpChooseEachType
@@ -4860,6 +4895,14 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.C = kop.OpChooseType, int16(in.C) // C: a card-type category's offered types (lower_choosetype.go)
 	case "ChooseName":
 		buildChooseName(&ki, in.B.N) // an as-enters card name (lower_choosename.go)
+	case "ChooseCardEnter":
+		buildChooseCardEnter(&ki) // an as-enters object choice (lower_choosecardenter.go)
+		if err := objFilter(kop.ZoneBattlefield); err != nil {
+			return ki, err
+		}
+	case "ChoosePlayerEnter":
+		// an as-enters opponent (lower_chooseplayerenter.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtChoosePlayer))
 	case "ChooseNumber":
 		// an as-enters number from B to C (lower_choosenumber.go)
 		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumber)), kop.Const(in.B.N), int16(in.C)

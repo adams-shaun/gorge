@@ -17,7 +17,7 @@ func TestRepeatEachTargetedOrder(t *testing.T) {
 	in := kop.Instr{Op: kop.OpRepeatEachPlayer, Obj: kop.RefTarget0, A: kop.Const(0), C: 1}
 
 	// one target, the opponent: the loop runs once over it
-	s.res.e.tgt[0] = PlayerTarget0 + 1
+	s.res.e.tgt[0] = TCode(PlayerTarget0 + 1)
 	s.exec(sc.k, &in)
 	if s.g.eachPl != 1 || s.g.repNext != 255 {
 		t.Fatalf("one target: eachPl %d next %d, want 1 then none", s.g.eachPl, s.g.repNext)
@@ -27,7 +27,7 @@ func TestRepeatEachTargetedOrder(t *testing.T) {
 	xt := s.xtMut(&s.res.e)
 	xt.n = 1
 	xt.slot[0] = 0
-	xt.code[0] = PlayerTarget0 // the controller, picked second
+	xt.code[0] = TCode(PlayerTarget0) // the controller, picked second
 	s.g.repEnd = 0
 	s.exec(sc.k, &in)
 	if s.g.eachPl != 0 || s.g.repNext != 1 {
@@ -37,7 +37,7 @@ func TestRepeatEachTargetedOrder(t *testing.T) {
 	// no player target left: the body is skipped through the
 	// no-first-player path
 	xt.n = 0
-	s.res.e.tgt[0] = NoTarget
+	s.res.e.tgt[0] = TCode(NoTarget)
 	s.g.eachPl, s.g.repNext, s.g.repEnd = 0, 0, 0
 	in.A = kop.Const(3)
 	pc := s.res.pc

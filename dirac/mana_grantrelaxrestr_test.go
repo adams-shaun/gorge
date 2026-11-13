@@ -44,7 +44,7 @@ func TestRelaxRestrCountsRelaxableFilters(t *testing.T) {
 	if ai < 0 {
 		t.Fatal("Lilypad Village's {U} ability not found in the table")
 	}
-	a := MakeAction(AkActivate, uint8(s.perms[sl["Lilypad Village"]].obj), 0, uint8(ai))
+	a := MakeAction(AkActivate, TCode(s.perms[sl["Lilypad Village"]].obj), 0, uint8(ai))
 	cost, _, _, ok := s.grantPlayCost(k, 0, a, true)
 	if !ok {
 		t.Fatal("grantPlayCost refused the surveil activation")

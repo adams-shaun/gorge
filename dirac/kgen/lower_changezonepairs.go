@@ -74,6 +74,18 @@ func czPair(tr *lTrigger, mask int16, zone string, giftSelf, costBody bool) (ok 
 		// permanent (PredWasCastEnter, not negated: kernel enterCast), which
 		// moves from the stack, so Origin$ Stack adds nothing to the enter
 		tr.Event = "ETB"
+	case tr.Origin == zLibrary && tr.Dest == zGraveyard:
+		// "a creature card is put into a graveyard from a library"
+		// (Dreadhound): gorge matches ValidCard$ against each card the move
+		// puts into a graveyard from a library (trigmatch
+		// ZoneChangeMatchesWithCapture, one trigger per card); the kernel
+		// fires TrigToGraveyard From Library where the card is placed
+		// (trig_libtograve.go). The card's own line (Narcomoeba) listens
+		// from the graveyard it lands in, which no battlefield walk sees.
+		if czReadsSelf(tr.F) {
+			return false, refuse("ChangesZone Library->Graveyard of the card itself")
+		}
+		tr.Event, tr.From = "ToGraveyard", zLibrary
 	case tr.Dest == zBattlefield && tr.Origin == zExile:
 		// gorge matches a source that enters itself against its LKI snapshot,
 		// still in Exile, so a bare Permanent ValidCard$ never reads true of
@@ -100,6 +112,19 @@ func czReadsOwnCast(f *lFilter) bool {
 		}
 	}
 	return true
+}
+
+// czReadsSelf reports a filter clause that names the trigger's own card.
+func czReadsSelf(f *lFilter) bool {
+	if f == nil {
+		return false
+	}
+	for _, c := range f.Clauses {
+		if c.Flags&fSelf != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // czReadsAttachment reports a filter clause that reads attachment to the

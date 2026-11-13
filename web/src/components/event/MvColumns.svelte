@@ -13,17 +13,25 @@
    * With `onactivate` the strips are buttons — click, tap or Enter moves the
    * card — and with `draggable` they also start an HTML5 drag carrying the
    * card's instance id; the drop target is the zone around this grid.
+   * `muted` greys out a card the caller wants read as unavailable (a
+   * Commander draft's card outside the commanders' colour identity) and
+   * names why in its title; activating it still calls `onactivate`, whose
+   * owner refuses and says so.
    */
   let {
     cards,
     draggable = false,
     onactivate,
     label,
+    muted = null,
+    mutedWhy = '',
   }: {
     cards: DraftCard[];
     draggable?: boolean;
     onactivate?: (id: string) => void;
     label?: string;
+    muted?: ((c: DraftCard) => boolean) | null;
+    mutedWhy?: string;
   } = $props();
 
   const cols = $derived(mvColumns(cards, factsOf));
@@ -54,7 +62,10 @@
             type="button"
             class="strip ev-tint-{tint(f)}"
             class:dragging={dragging === c.id}
+            class:muted={muted?.(c) ?? false}
+            title={muted?.(c) ? mutedWhy || undefined : undefined}
             data-id={c.id}
+            data-muted={muted?.(c) ? '' : undefined}
             {draggable}
             ondragstart={(e) => dragstart(e, c.id)}
             ondragend={() => (dragging = null)}
@@ -72,6 +83,7 @@
         {:else}
           <div
             class="strip ev-tint-{tint(f)}"
+            class:muted={muted?.(c) ?? false}
             data-id={c.id}
             role="listitem"
             onpointerenter={(e) => detail.enter(c, e.currentTarget)}
@@ -143,6 +155,10 @@
   }
   .strip.dragging {
     opacity: 0.4;
+  }
+  .strip.muted {
+    opacity: 0.38;
+    filter: grayscale(0.8);
   }
   .nm {
     min-width: 0;

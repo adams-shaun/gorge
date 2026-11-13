@@ -30,7 +30,7 @@ func imprintScen(t *testing.T, prog []kop.Instr) (sc *scen, a, b Obj) {
 	a, b = sc.perm(id["Savannah Lions"], 0), sc.perm(id["Savannah Lions"], 0)
 	srcObj := sc.perm(src, 0)
 	e := stackEntry{kind: seTrigger, obj: srcObj, srcVer: s.objs[srcObj].ver, card: src, ab: 0, ctrl: 0, trigObj: NoObj, nt: 2}
-	e.tgt = [kop.MaxTargets]uint8{uint8(a), uint8(b), NoTarget}
+	e.tgt = [kop.MaxTargets]TCode{TCode(a), TCode(b), TCode(NoTarget)}
 	e.tver = [kop.MaxTargets]uint8{s.objs[a].ver, s.objs[b].ver, 0}
 	s.sp = 1
 	s.stack[0] = e

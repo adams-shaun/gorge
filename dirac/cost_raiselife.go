@@ -106,7 +106,7 @@ func (s *State) payRaiseLife(k *prep) {
 // raiseLifeDropTargets drops from the target menu the candidates whose life
 // raise the caster cannot pay on top of the spell's own life, each tried as
 // the sole selection (gorge affordableTargetCandidates).
-func (s *State) raiseLifeDropTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
+func (s *State) raiseLifeDropTargets(k *prep, buf *[MaxOptions]TCode, n int) int {
 	e := &s.bld().e
 	own := 0
 	if ac := spellAddCost(k, e.card); ac.Flags&kop.CostPayLife != 0 {

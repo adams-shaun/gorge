@@ -59,12 +59,17 @@ func (s *State) resolveTop(k *prep) {
 		s.g.nimp = 0
 		s.g.nrem, s.g.remCnt, s.g.tli = 0, 0, 0 // a resolution remembers afresh (gorge's per-resolution Ctx)
 		s.g.stkCt = 0                           // tgt_stackability.go
-		if k.anyStateCtr && e.kind == seTrigger && e.ab < abCascade &&
-			k.t.Cards[e.card].Abilities[e.ab].Trig.Flags4&kop.Tf4StateCtr != 0 {
-			s.remember(e.obj) // a state trigger's Remembered is its source alone (gorge stateTriggerRemembered, CR 603.8)
-		}
+		// A state trigger (Tf4StateCtr) starts with nothing remembered too.
+		// gorge seeds its Ctx with the source (stateTriggerRemembered), but
+		// as the fire-time capture, which a plain Remembered read leaves out
+		// (rememberedExcludingCapture): Mazemind Tome's "exile it. If you do"
+		// gate holds only when the exile's RememberChanged$ added the Tome,
+		// not when the Tome had already left the battlefield (CR 603.8, 608.2c).
 		if k.gen.anyRemPersist && remPersistSeeds(k, &e) {
 			s.remPersistSeed(k) // its source's kept set (zone_rememberpersist.go)
+		}
+		if k.gen.has(e.card, gfEnterRepl) {
+			s.seedEnterChosen(k, &e) // its source's as-enters chosen object (repl_choosecard.go)
 		}
 		// a damage sequence belongs to the resolution that started it: a new
 		// resolution drops any left over by an aborted one (repl_gen.go); the
@@ -457,10 +462,10 @@ func (s *State) wardedIndex(e *stackEntry) int {
 		if se.obj != e.trigObj || se.kind == seSpell || e.tver[0] != 0 && se.sid != e.tver[0] {
 			continue
 		}
-		var codes [kop.MaxTargets + maxXTgt]uint8
+		var codes [kop.MaxTargets + maxXTgt]TCode
 		n := s.chainTargets(se, &codes)
 		for _, c := range codes[:n] {
-			if c == uint8(e.obj) {
+			if c == TCode(e.obj) {
 				return j
 			}
 		}
@@ -521,6 +526,9 @@ func (s *State) prog(k *prep) []kop.Instr {
 			return cascadeProg[:]
 		}
 		if e.ab == abStorm {
+			if e.trigAmt == stormDemonstrate {
+				return demonstrateProg[:]
+			}
 			return stormProg[:]
 		}
 		return nil
@@ -712,6 +720,8 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.srcOwner()
 	case kop.RefPromised:
 		return s.promisedSeat(k, e) // kw_gift.go
+	case kop.RefChosenPlayer:
+		return s.chosenPlayerSeat(e) // repl_chooseplayer.go
 	case kop.RefAttachedCtrl:
 		return s.attachedCtrl(s.objRefObj(kop.RefAttached))
 	}
@@ -910,7 +920,7 @@ func (s *State) grantSpellKw(o Obj, kw kop.KwMask) {
 // damage deals n damage from the resolving source to an object or player
 // target code and returns the amount dealt after prevention and replacement
 // (0: none; CR 120.1).
-func (s *State) damageTo(k *prep, code uint8, n int) int {
+func (s *State) damageTo(k *prep, code TCode, n int) int {
 	if n <= 0 {
 		return 0
 	}
@@ -966,23 +976,23 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 }
 
 // refCode turns an object/player Ref into a damage target code.
-func (s *State) refCode(k *prep, r kop.Ref) uint8 {
+func (s *State) refCode(k *prep, r kop.Ref) TCode {
 	switch r {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		return s.tgtCode(sl)
-	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised:
+	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer:
 		p := s.playerRef(k, r)
 		if p == 255 {
-			return NoTarget
+			return TCode(NoTarget)
 		}
 		return PlayerCode(p)
 	}
 	o := s.objRefObj(r)
 	if o == NoObj {
-		return NoTarget
+		return TCode(NoTarget)
 	}
-	return uint8(o)
+	return TCode(o)
 }
 
 // forPlayers runs f for the player(s) a Ref names.
@@ -1027,7 +1037,7 @@ func (s *State) oneOppOf(k *prep, r kop.Ref, e *stackEntry, ctrl uint8, obj Obj)
 	}
 	if r == kop.RefDefendingPlayer && obj != NoObj {
 		if ob := &s.objs[obj]; ob.zone == kop.ZoneBattlefield && s.perms[ob.slot].flags&pfAttacking != 0 {
-			if p := s.atkSeat(k, ob.slot); p != NoTarget {
+			if p := s.atkSeat(k, ob.slot); p != noSeat {
 				return p
 			}
 		}
@@ -1037,9 +1047,9 @@ func (s *State) oneOppOf(k *prep, r kop.Ref, e *stackEntry, ctrl uint8, obj Obj)
 
 // tgtCode is the resolving entry's target i, or NoTarget when it was
 // chosen but is illegal now.
-func (s *State) tgtCode(i int) uint8 {
+func (s *State) tgtCode(i int) TCode {
 	if s.res.bad&(1<<i) != 0 {
-		return NoTarget
+		return TCode(NoTarget)
 	}
 	return s.res.e.tgt[i]
 }

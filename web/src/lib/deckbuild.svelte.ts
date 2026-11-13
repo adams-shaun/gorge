@@ -2,7 +2,8 @@ import type { DeckCheck, DeckRequest, DraftCard, EventPool, EventState } from '.
 import type { EventApi } from './eventapi';
 import { eventApi } from './eventapi';
 import { message } from './draftevent.svelte';
-import type { ColourFilter } from './draftcards';
+import { COLOURS, type ColourFilter } from './draftcards';
+import { isBasicLand, unionIdentity, withinIdentity } from './commanderdraft';
 
 export type Basics = [number, number, number, number, number];
 
@@ -21,6 +22,12 @@ export type Zone = 'deck' | 'side';
  * auto_lands for the current main; "Reset" is the server's bot suggestion.
  * Ready saves the working copy (a new revision, which the server validates
  * again) and readies exactly that revision.
+ *
+ * In a Commander draft (`commanderMode`) the working copy also names one or
+ * two commanders, which are always maindecked. The commanders' colour
+ * identity (read off the wire's DraftCard.identity) greys out pool cards
+ * outside it, and the builder refuses to add them: the server would reject
+ * the deck anyway, and its DeckCheck still rules.
  */
 export class DeckBuilder {
   pool = $state<DraftCard[]>([]);
@@ -35,6 +42,12 @@ export class DeckBuilder {
   busy = $state(false);
   error = $state<string | null>(null);
   suggestion = $state<DeckRequest | null>(null);
+  /** commanderMode is set for a Commander-draft event (EventState.format "commander"), before load. */
+  commanderMode = $state(false);
+  /** commanders is the working copy's one or two commander ids (each also in main). */
+  commanders = $state<string[]>([]);
+  /** notice is a refused client-side move, said once (a card outside the identity). */
+  notice = $state<string | null>(null);
   /** onstate receives the EventState a Ready answers with (the event page adopts it: the last Ready opens round 1). */
   onstate: ((st: EventState) => void) | null = null;
   #saved = $state<string>('');
@@ -65,7 +78,9 @@ export class DeckBuilder {
     this.pool = p.pool ?? [];
     this.rev = p.rev;
     this.ready = p.ready;
-    this.suggestion = p.suggestion ? { main: p.suggestion.main ?? [], basics: p.suggestion.basics } : null;
+    this.suggestion = p.suggestion
+      ? { main: p.suggestion.main ?? [], basics: p.suggestion.basics, ...(p.suggestion.commanders ? { commanders: p.suggestion.commanders } : {}) }
+      : null;
     const start = p.deck ?? this.suggestion;
     this.setDeck(start ?? { main: [], basics: [0, 0, 0, 0, 0] });
     this.#saved = p.deck ? key(p.deck) : '';
@@ -86,7 +101,75 @@ export class DeckBuilder {
   }
 
   get deck(): DeckRequest {
-    return { main: [...this.main], basics: [...this.basics] as Basics };
+    const d: DeckRequest = { main: [...this.main], basics: [...this.basics] as Basics };
+    if (this.commanderMode) d.commanders = [...this.commanders];
+    return d;
+  }
+
+  /** commanderCards are the chosen commanders' pool cards, in slot order. */
+  get commanderCards(): DraftCard[] {
+    return this.commanders.map((id) => this.pool.find((c) => c.id === id)).filter((c): c is DraftCard => c !== undefined);
+  }
+
+  /**
+   * identity is the chosen commanders' combined colour identity, or null
+   * with no commander chosen (nothing is greyed out then). The server's
+   * DeckCheck.identity is the same union, computed server-side.
+   */
+  get identity(): string | null {
+    if (!this.commanderMode || this.commanders.length === 0) return null;
+    return unionIdentity(this.commanderCards);
+  }
+
+  /** offIdentity reports a card the chosen commanders' identity excludes (basics never are). */
+  offIdentity(c: DraftCard): boolean {
+    const id = this.identity;
+    return id !== null && !isBasicLand(c) && !withinIdentity(c, id);
+  }
+
+  /** offIdentityMain lists the maindeck cards outside the identity (left behind by a commander change). */
+  get offIdentityMain(): DraftCard[] {
+    return this.deckCards.filter((c) => this.offIdentity(c));
+  }
+
+  /**
+   * setCommander fills slot 0 or 1 with a pool card (null empties it). The
+   * card joins the main deck; a replaced commander stays maindecked as an
+   * ordinary card. Emptying slot 0 empties slot 1 too (a partner needs a
+   * first commander), and so does a first commander that cannot partner.
+   * Basics outside the new identity are cleared.
+   */
+  setCommander(slot: 0 | 1, id: string | null): void {
+    const next = [...this.commanders];
+    if (id !== null && !this.pool.some((c) => c.id === id)) return;
+    if (slot === 0) {
+      if (id === null) next.length = 0;
+      else next[0] = id;
+      const first = this.pool.find((c) => c.id === next[0]);
+      if (next.length > 1 && (first?.partner !== true || next[1] === next[0])) next.length = 1;
+    } else {
+      if (next.length === 0) return;
+      if (id === null || id === next[0]) next.length = 1;
+      else next[1] = id;
+    }
+    this.commanders = next;
+    for (const c of next) if (!this.main.includes(c)) this.main = [...this.main, c];
+    const id2 = this.identity;
+    if (id2 !== null) {
+      const b = this.basics.map((n, i) => (id2.includes(COLOURS[i]) ? n : 0)) as Basics;
+      if (b.some((n, i) => n !== this.basics[i])) this.basics = b;
+    }
+    this.notice = null;
+    void this.recheck();
+  }
+
+  /** dropOffIdentity sends every maindeck card outside the identity back to the pool. */
+  dropOffIdentity(): void {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- a throwaway lookup inside one write
+    const off = new Set(this.offIdentityMain.map((c) => c.id));
+    if (off.size === 0) return;
+    this.main = this.main.filter((id) => !off.has(id));
+    void this.recheck();
   }
 
   /** dirty is true when the working copy differs from the latest saved revision (or nothing is saved). */
@@ -114,7 +197,15 @@ export class DeckBuilder {
     const there = this.main.includes(id);
     const want = to === undefined ? !there : to === 'deck';
     if (want === there) return;
+    const card = this.pool.find((c) => c.id === id)!;
+    if (want && this.offIdentity(card)) {
+      this.notice = `${card.name} is outside your commanders' colour identity.`;
+      return;
+    }
+    this.notice = null;
     this.main = want ? [...this.main, id] : this.main.filter((x) => x !== id);
+    // A commander sent to the sideboard is no longer a commander.
+    if (!want && this.commanders.includes(id)) this.setCommander(this.commanders[0] === id ? 0 : 1, this.commanders[0] === id ? (this.commanders[1] ?? null) : null);
     void this.recheck();
   }
 
@@ -193,11 +284,13 @@ export class DeckBuilder {
     const ids = new Set(this.pool.map((c) => c.id));
     this.main = (d.main ?? []).filter((id) => ids.has(id));
     this.basics = [...(d.basics ?? [0, 0, 0, 0, 0])] as Basics;
+    this.commanders = (d.commanders ?? []).filter((id) => ids.has(id)).slice(0, 2);
+    for (const c of this.commanders) if (!this.main.includes(c)) this.main = [...this.main, c];
   }
 }
 
 function key(d: DeckRequest): string {
-  return JSON.stringify({ m: [...(d.main ?? [])].sort(), b: d.basics });
+  return JSON.stringify({ m: [...(d.main ?? [])].sort(), b: d.basics, c: d.commanders ?? [] });
 }
 
 /** basicsTotal sums a basics array. */

@@ -802,7 +802,14 @@ func BoardFromView(v view.View) botpolicy.Board {
 		// source CardView for display, but the game half's fillPublicCards
 		// skips the face-less ability object, so including it here would make
 		// the two public-card censuses disagree.
-		if sv.Kind != "spell" || sv.Card == nil {
+		if sv.Kind != "spell" {
+			continue
+		}
+		if sv.Card == nil {
+			// A face-down spell the viewer may not look at projects with
+			// no Card (CR 708.4), but it is a public object all the same:
+			// the game half lists it as FaceDown with a zero colour.
+			b.PublicCards.Set(sv.ID, botpolicy.PublicCard{Controller: sv.Controller, FaceDown: true})
 			continue
 		}
 		pc := botpolicy.PublicCard{Controller: sv.Controller, FaceDown: sv.Card.FaceDown}
@@ -866,12 +873,8 @@ func BoardFromView(v view.View) botpolicy.Board {
 			if cv.Produces != nil {
 				produces = *cv.Produces
 			}
-			printedName := cv.CardName
-			if printedName == "" {
-				printedName = cv.Name
-			}
 			b.Cards.Set(cv.ID, botpolicy.Card{
-				PrintedName:       printedName,
+				PrintedName:       cv.Name,
 				Creature:          isCreatureView(cv),
 				Power:             cv.Power,
 				Toughness:         cv.Toughness,
@@ -927,12 +930,11 @@ func BoardFromView(v view.View) botpolicy.Board {
 	for _, p := range v.Players {
 		if p.ID != v.Viewer {
 			for _, cv := range p.Battlefield {
+				// A face-down permanent is named on no other seat's
+				// battlefield, not even one the viewer may look at.
 				printedName := ""
 				if !cv.FaceDown {
-					printedName = cv.CardName
-					if printedName == "" {
-						printedName = cv.Name
-					}
+					printedName = cv.Name
 				}
 				b.Cards.Set(cv.ID, botpolicy.Card{
 					PrintedName:       printedName,

@@ -302,10 +302,10 @@ type Searcher struct {
 	// PerCreature's chain state (percreature.go): chainCur and
 	// chainRoot are 1+obj of the creature a point decides (0 none)
 	chainOn, inChain bool
-	chainCur         uint8
-	chainRoot        uint8
-	chainX           uint8
-	chainFrom        uint8 // 1+obj of the blocker scan's start at the root (0 the chain's start)
+	chainCur         dirac.Obj
+	chainRoot        dirac.Obj
+	chainX           dirac.Obj
+	chainFrom        dirac.Obj // 1+obj of the blocker scan's start at the root (0 the chain's start)
 	chainForced      [MaxPerm]uint32
 	nForced          int
 	chainPt          point

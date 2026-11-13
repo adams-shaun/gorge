@@ -267,7 +267,7 @@ type czallCarry struct {
 func (c *czallCarry) load(pre *preAsk) {
 	if pre.kind == akCmdZone && (pre.state == preCmdZoneMove || pre.state == preCmdZoneCmd) {
 		c.k[0], c.k[1] = int(pre.val&0x7f), int(pre.val2&0x7f)
-		c.first = pre.val>>7 | pre.val2>>7<<1
+		c.first = uint8(pre.val>>7) | pre.val2>>7<<1
 		if MaxSeats > 2 {
 			for p := 2; p < MaxSeats; p++ {
 				c.k[p] = int(pre.ordPick[p-2])
@@ -279,7 +279,7 @@ func (c *czallCarry) load(pre *preAsk) {
 
 // store writes the carried prefix for the next park.
 func (c *czallCarry) store(pre *preAsk) {
-	pre.val, pre.val2 = uint8(c.k[0])|c.first&1<<7, uint8(c.k[1])|c.first>>1<<7
+	pre.val, pre.val2 = objWord(uint8(c.k[0])|c.first&1<<7), uint8(c.k[1])|c.first>>1<<7
 	if MaxSeats > 2 {
 		for p := 2; p < MaxSeats; p++ {
 			pre.ordPick[p-2] = Obj(c.k[p])

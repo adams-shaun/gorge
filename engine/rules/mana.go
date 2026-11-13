@@ -12,24 +12,18 @@ import (
 )
 
 // commanderTaxFor composes base with the CR 903.8 commander tax: an
-// additional generic {2} -- on top of everything else -- for each previous
-// time id has been cast from the command zone this game. It is the ONE place
-// a command-zone cast's extra cost is composed, and BOTH sides of the
-// two-sided gate apply it to the same base: the legality offer (the
-// command-zone walk in engine/rules/legal.go calls commanderTaxFor(base) before
-// castable) and the payment (engine/rules/cast.go's beginCast applies
-// commanderTaxFor to the cost it resolves). Because both derive the taxed
-// cost from this same function over
-// the same board, an offered command-zone cast and the cost it charges are
-// structurally incapable of disagreeing -- the no-progress spin
-// stalledCastLimit bounds is exactly what that disagreement used to cause.
+// additional generic {2} for each previous time id has been cast from the
+// command zone this game. The amount is commanderTaxAmount, the one read both
+// sides of the two-sided gate take over the same board: the legality offer
+// (composedOfferCostInto) and the payment (beginCast captures it as
+// taxGeneric), so an offered command-zone cast and the cost it charges cannot
+// disagree -- the no-progress spin stalledCastLimit bounds is exactly what
+// that disagreement used to cause.
 //
-// base is expected to be the already-reduced output of adjustedCost (kicker/
-// surge/flashback recast it afterwards, but a card in the command zone is
-// only ever cast here by its plain cost). Applying the tax to base means cost
-// reductions land BEFORE it and never spill onto it: an additional cost is
-// outside a plain "cost to cast" reduction, exactly how Kicker's own
-// additional {N} composes in beginCast. Colored requirements are untouched.
+// The tax is an additional cost, so CR 601.2f counts it in the total cost the
+// increases and reductions compose over: every composition site joins it to
+// the RAW generic before the modifiers (pay.CostMods.ApplyTaxedTo), never
+// after them. Colored requirements are untouched.
 //
 // The Commander-format gate is explicit, not incidental: outside the format
 // -- even when a card sits in the (usually empty) command zone -- base passes
@@ -88,9 +82,10 @@ func (e *Engine) castOfferBase(p state.PlayerID, id state.ObjID) Cost {
 
 // offerCostFor is the CR 601.2f-composed cost an offer is gated on: the
 // selected base cost (a spell's printed mana cost, or an alternative/
-// flashback/surge/kicker cost) with RaiseCost then ReduceCost applied to
-// Generic, and (for a spell) the CR 903.8 commander tax added last because an
-// additional cost is never reduced. {X} is not yet chosen at offer time, so it
+// flashback/surge/kicker cost) plus (for a spell) the CR 903.8 commander tax,
+// with RaiseCost then ReduceCost applied to that total's Generic: the tax is
+// an additional cost, part of the total the reductions apply to
+// (pay.CostMods.ApplyTaxedTo). {X} is not yet chosen at offer time, so it
 // contributes zero generic here and is not reduced; the offer stays
 // conservative (a spell offering itself is withheld only when even X=0 is
 // unpayable) while the actual charge (manaToPay) applies the modifiers after
@@ -116,10 +111,11 @@ func (e *Engine) composedOfferCost(p state.PlayerID, id state.ObjID, base Cost, 
 // *dst, reading *base and *mods in place (neither is written).
 func (e *Engine) composedOfferCostInto(dst *Cost, p state.PlayerID, id state.ObjID, base *Cost, mods *costMods, scope costScope) {
 	*dst = *base
-	mods.ApplyTo(dst)
+	tax := int32(0)
 	if scope.Kind != "Ability" && scope.Kind != "Foretell" && scope.Kind != "Static" {
-		*dst = e.commanderTaxFor(p, id, *dst)
+		tax = e.commanderTaxAmount(p, id)
 	}
+	mods.ApplyTaxedTo(dst, tax)
 }
 
 // creatureManaOfferCredit is the conservative generic credit Heirloom Epic's
@@ -148,8 +144,8 @@ func (e *Engine) creatureManaOfferCredit(p state.PlayerID, id state.ObjID, base 
 // on. base is the RAW (pre-modifier) cost beginCast stores in pendingCast
 // for this exact option and scope the costScope its modifiers are collected
 // with, so the gate composes the very charge the payment will make: the
-// scope's CR 601.2f modifiers over base, then (for a spell) the CR 903.8
-// commander tax, never reduced by either.
+// scope's CR 601.2f modifiers over base plus (for a spell) the CR 903.8
+// commander tax, which is part of the total they compose over.
 //
 // The mana feasibility question is posed over the still-unresolved flexible
 // pip faces (costMods.feasibleAny): with a SetCost/MinMana floor in the
@@ -350,7 +346,7 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 // legal announcement (1..the matching permanents the payer can sacrifice,
 // the same bound xAsk computes) and reprices exactly the way manaToPay's
 // post-announcement recomputation does: the announced cost (base folded at X)
-// under the X-bound modifiers, then the commander tax. It returns the
+// plus the commander tax, under the X-bound modifiers. It returns the
 // modifier snapshot of the first feasible announcement, so the caller's
 // composed cost and payment agree; ok=false means no legal announcement is
 // payable and the cast must stay withheld (the fail-closed direction, never

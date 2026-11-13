@@ -1,0 +1,15 @@
+# an announced X beside depletion lands: Skeletal Scrying (X B, exile X cards
+# from your graveyard) and Lunar Frenzy ({X}{R}) beside Peat Bog and Sandstone
+# Needle, whose {T}, SubCounter cost gorge's X window never counts
+# (dirac/oracle/mbc_xwindow_depletion_test.go)
+Skeletal Scrying
+Lunar Frenzy
+Peat Bog
+Sandstone Needle
+Lightning Bolt
+Terror
+Shock
+Grizzly Bears
+Hill Giant
+Swamp
+Mountain
