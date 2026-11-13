@@ -97,7 +97,8 @@ func (lc *lowerCtx) forEachOpp(ps *params, f *lFilter, t *lTarget) error {
 // kernel's different-controllers slot (TgfDiffController: no two chosen
 // objects share a controller) whose bound is the living players' count, an
 // "up to" the distinct controllers can never exceed; livingBound (lower.go's
-// addTarget) reads that count as the two seats of the two-player kernel.
+// addTarget) reads that count as the two seats of the two-player kernel
+// (twoSeat-at-caller: livingBound marks the card).
 func (lc *lowerCtx) livingEach(ps *params, f *lFilter, t *lTarget) bool {
 	mn, _ := ps.get("TargetMin")
 	mx, _ := ps.get("TargetMax")
