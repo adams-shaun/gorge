@@ -2134,6 +2134,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "CantGainLife":
 		st.Kind = kop.StatCantGainLife
+		if err := banOppFlag(s.Flags, st); err != nil {
+			return ka, nil, err
+		}
 	case "ActivateAbilityAsIfHaste":
 		st.Kind = kop.StatAsIfHaste // static_asifhaste.go
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -2148,6 +2151,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		st.Kind = kop.StatAnyTypeCreatures // lower_manaconvert.go
 	case "CantDraw":
 		st.Kind = kop.StatCantDraw
+		if err := banOppFlag(s.Flags, st); err != nil {
+			return ka, nil, err
+		}
 	case "CantPreventDamage":
 		st.Kind = kop.StatCantPreventDamage // static_cantprevent.go
 		for _, fl := range s.Flags {
