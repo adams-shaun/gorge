@@ -42,6 +42,10 @@ func (s *State) monstrousAt(sl Slot) bool {
 // An already-monstrous permanent does nothing (gorge's resolve-time skip);
 // A <= 0 places no counters and never marks (gorge's n > 0 gate).
 func (s *State) monstrosity(k *prep, in *kop.Instr) {
+	if in.C == kop.MonstrosityRenown {
+		s.renown(k, in) // act_renown.go
+		return
+	}
 	sl := s.objRef(k, in.Obj)
 	if sl == NoSlot || s.monstrousAt(sl) {
 		return

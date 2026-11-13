@@ -668,6 +668,7 @@ MayPlayPayLife	untyped int	-32768
 MayPlayRaiseShift	untyped int	10
 MinBlockersAll	uint8	255
 MonarchOpp	untyped int	1
+MonstrosityRenown	int16	1
 MorphDisguise	uint8	3
 MorphMegamorph	uint8	2
 MorphMorph	uint8	1
@@ -921,6 +922,7 @@ PermMarkDealtAny	untyped int	2
 PermMarkDealtCombat	untyped int	3
 PermMarkDealtTurn	untyped int	1
 PermMarkNot	untyped int	16
+PermMarkRenowned	untyped int	4
 PhaseCountCombats	untyped int	0
 PhaseCountEndSteps	untyped int	1
 PlExtExile	untyped int	1024

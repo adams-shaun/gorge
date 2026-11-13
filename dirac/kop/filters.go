@@ -509,7 +509,7 @@ const (
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
 // dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go
 // DamageDealtThisTurn, DealtDamageToAnyGame, DealtCombatDamageToAnyGame).
-// PredN bits 0-3 name the mark (PermMark*), bit 4 (PermMarkNot) negates it.
+// PredN bits 0-2 name the mark (PermMark*), bit 4 (PermMarkNot) negates it.
 // Each mark is an arena slot bit; a card off the battlefield has none, so
 // the negated word is true there.
 const PredPermMark Pred = 244
@@ -519,6 +519,7 @@ const (
 	PermMarkDealtTurn   = 1 // dealt damage this turn (CR 120.1; cleared as the turn changes)
 	PermMarkDealtAny    = 2 // dealt damage since it entered (game-long)
 	PermMarkDealtCombat = 3 // dealt combat damage since it entered (game-long)
+	PermMarkRenowned    = 4 // the CR 702.112b renowned designation (IsRenowned; set by OpMonstrosity C = MonstrosityRenown, ends with the permanent)
 	PermMarkNot         = 16
 )
 
