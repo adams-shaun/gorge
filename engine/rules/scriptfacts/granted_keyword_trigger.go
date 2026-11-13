@@ -82,9 +82,17 @@ func GrantedKeywordTrigger(line string) *cards.Trigger {
 	return &cards.Trigger{Mode: "SpellCast", Params: map[string]string{
 		"Mode": "SpellCast", "ValidCard": "Card.nonCreature",
 		"ValidActivatingPlayer": "You", "TriggerDescription": "Prowess",
-	}, Effect: &cards.SA{Kind: "DB", API: "Pump", Params: map[string]string{
-		"Defined": "Self", "NumAtt": "+1", "NumDef": "+1",
-	}}}
+	}, Effect: grantedBodySA("Pump", "Defined", "Self", "NumAtt", "+1", "NumDef", "+1")}
+}
+
+// grantedBodySA is the DB$ body a synthesized trigger carries inline: api
+// and its key/value params, in pairs.
+func grantedBodySA(api string, kv ...string) *cards.SA {
+	p := make(map[string]string, len(kv)/2)
+	for i := 0; i+1 < len(kv); i += 2 {
+		p[kv[i]] = kv[i+1]
+	}
+	return &cards.SA{Kind: "DB", API: api, Params: p}
 }
 
 // grantedMyriadTrigger is the trigger a granted Myriad gives its holder
@@ -124,7 +132,6 @@ func grantedEvolveTrigger(line, head string) *cards.Trigger {
 	if !ok {
 		return nil
 	}
-	t.Effect = &cards.SA{Kind: "DB", API: "PutCounter", Params: map[string]string{
-		"Defined": "Self", "CounterType": "P1P1", "CounterNum": "1"}}
+	t.Effect = grantedBodySA("PutCounter", "Defined", "Self", "CounterType", "P1P1", "CounterNum", "1")
 	return &t
 }
