@@ -1506,6 +1506,8 @@ W7AttachedTo	int16	19
 W7AttackingAlone	int16	3
 W7AttackingEnchTrig	int16	29
 W7AttackingOpp	int16	7
+W7BlockedBySrc	int16	33
+W7BlockingSrc	int16	32
 W7BlockingTrigObj	int16	31
 W7BottomLibrary	int16	17
 W7CostBlue	int16	14

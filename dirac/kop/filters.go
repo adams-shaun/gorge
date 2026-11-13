@@ -486,6 +486,18 @@ const W7NotBlocking int16 = 30
 // only in an AttackerBlocked trigger's body. General Marhault Elsdragon.
 const W7BlockingTrigObj int16 = 31
 
+// W7BlockingSrc (PredWord7 sub-kind 32): gorge's blockingSource, a
+// battlefield creature blocking the filter's source (the source's own
+// BlockedBy list names it). No source on the battlefield and a card off the
+// battlefield fail closed. Master of Arms, Cromat.
+const W7BlockingSrc int16 = 32
+
+// W7BlockedBySrc (PredWord7 sub-kind 33): gorge's blockedBySource, a
+// battlefield creature the filter's source is blocking (the candidate's own
+// BlockedBy list names the source). No source on the battlefield and a card
+// off the battlefield fail closed. Cromat.
+const W7BlockedBySrc int16 = 33
+
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
 // dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go

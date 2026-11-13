@@ -311,6 +311,10 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		ans = s.perms[sl].flags&pfBlocking == 0
 	case kop.W7BlockingTrigObj:
 		ans = s.blockingTrigObj(sl)
+	case kop.W7BlockingSrc:
+		ans = src != NoSlot && s.blocks(sl, src) // gorge blockingSource: the source's BlockedBy names sl
+	case kop.W7BlockedBySrc:
+		ans = src != NoSlot && s.blocks(src, sl) // gorge blockedBySource: sl's BlockedBy names the source
 	case kop.W7GreatestPowerTgt:
 		// gorge greatestPowerControlledByTargeted: a battlefield creature a
 		// player target of the current entry controls that no OTHER such
