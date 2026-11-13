@@ -18,7 +18,8 @@ import (
 //     would otherwise prevent it (no Damage event of 5 then);
 //   - param:Sacrifice.ConditionManaNotSpent: Azorius Herald sacrificed by its
 //     own enters trigger when no {U} was spent to cast it, and kept when {U}
-//     was (the opponent has nothing that can kill it).
+//     was (the opponent has nothing that can kill it); the same lowering's
+//     ConditionManaSpent$ half on Steamcore Weird.
 //
 // Ardenn's Attach Object$ Valid ... Optional$ and Burrenton Forge-Tender's
 // ChooseSource stay refused (see the report), so they have no game here.
@@ -68,6 +69,39 @@ func TestMBCApiParams5Lowers(t *testing.T) {
 		if sacrificed < 3 || kept < 3 {
 			t.Fatalf("Herald sacrificed in %d games and kept in %d: both reads must be met", sacrificed, kept)
 		}
+	})
+
+	t.Run("steamcore_weird_damage_if_red_spent", func(t *testing.T) {
+		// the same gate's ConditionManaSpent$ half: the enters trigger targets
+		// as it triggers and deals 2 only if {R} was spent (the opponent has
+		// only lands, so a Damage of 2 is the trigger's)
+		var dealt, quiet int
+		c := effectLongCase{
+			name:   "steamcore_weird",
+			prefer: []string{"Steamcore Weird"},
+			decks:  [2][]string{append(deckOf(8, "Steamcore Weird"), append(deckOf(8, "Island"), deckOf(8, "Mountain")...)...), deckOf(24, "Plains")},
+			reached: func(g *GorgeSide) bool {
+				entered, hit := false, false
+				for _, e := range g.E.L.Events {
+					switch {
+					case e.Kind == events.Damage && e.Amount == 2:
+						hit = true
+					case e.Kind == events.MoveZone && e.To == state.ZBattlefield:
+						if o := g.E.G.Obj(e.Obj); o != nil && o.Face() != nil && o.Face().Name == "Steamcore Weird" {
+							entered = true
+						}
+					}
+				}
+				if hit {
+					dealt++
+				} else if entered && len(g.E.G.Stack) == 0 {
+					quiet++
+				}
+				return hit || entered
+			},
+		}
+		mbcPlayUntil(t, reg, c, effectLongPolicy, 200, func(int) bool { return dealt >= 3 && quiet >= 1 })
+		t.Logf("games with the trigger's 2 damage: %d, with a Weird entered and none dealt: %d", dealt, quiet)
 	})
 }
 
