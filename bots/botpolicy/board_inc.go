@@ -109,6 +109,11 @@ type boardRow struct {
 	// lookup per card per refill.
 	removeDeck           bool
 	playMain1, auraLogic string
+	// selfMill and emptyWin are the face's self-mill guard facts
+	// (Card.NameKeyedSelfMill/EmptyLibraryWin), cached per face like the
+	// hints above.
+	selfMill bool
+	emptyWin uint8
 	// derived facts (valid per gen/fill). kw is the derived keyword list:
 	// the face's own printed list when the derivation answered with exactly
 	// that (immutable compiled data, so it is carried, not copied), else a
@@ -177,6 +182,7 @@ func (inc *boardInc) face(id state.ObjID, f *cards.Face, k boardReadKeyer) *boar
 		r.cmc = cmcOfFace(f)
 		r.pflash, r.pflashback = hasFlash(f.Keywords), hasFlashback(f.Keywords)
 		r.removeDeck, r.playMain1, r.auraLogic = f.RemoveDeck != "", f.PlayMain1Hint(), effects.CastAuraLogic(f)
+		r.selfMill, r.emptyWin = effects.CastNameKeyedSelfMill(f), effects.EmptyLibraryWin(f)
 		r.reusable = k.CharacteristicsReusable(id)
 		r.gen, r.fill = 0, 0
 	}
@@ -318,37 +324,39 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 			pumpOwnCombatants := effects.CastPumpOwnCombatants(f.SpellAbility())
 			power, toughness := cardPT(f, o, r.creature, r.power, r.toughness)
 			*b.Cards.slot(id) = Card{
-				PrintedName:    f.Name,
-				Creature:       r.creature,
-				Power:          power,
-				Toughness:      toughness,
-				CMC:            r.cmc,
-				Basic:          r.basic,
-				Land:           r.land,
-				Colour:         r.colour,
-				TypeSig:        r.typeSig,
-				AttachedTo:     o.AttachedTo,
-				Activated:      o.ActivatedThisTurn,
-				ManaCost:       f.ManaCost,
-				Castable:       z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && r.flashback),
-				OnBattlefield:  z == state.ZBattlefield,
-				Tapped:         o.Tapped,
-				Sick:           o.SummonSick,
-				Produces:       f.ManaProduction(),
-				InstantSpeed:   r.instant || r.flash,
-				Counter:        r.counter,
-				Draw:           spellAPIIs(f, "Draw"),
-				Token:          spellAPIIs(f, "Token"),
-				RemovalKind:    effects.CastRemovalKind(f.SpellAbility()),
-				RemovalTargets: effects.CastRemovalTargets(f.SpellAbility()),
-				RemovalDamage:  effects.CastRemovalDamage(f.SpellAbility()),
-				PumpPower:      pumpPower,
-				PumpToughness:  pumpToughness,
-				PumpOwn:        pumpOwnCombatants,
-				CombatTrick:    effects.CastCombatTrick(f.SpellAbility()),
-				PlayMain1:      r.playMain1,
-				RemoveDeck:     r.removeDeck,
-				AuraLogic:      r.auraLogic,
+				PrintedName:       f.Name,
+				Creature:          r.creature,
+				Power:             power,
+				Toughness:         toughness,
+				CMC:               r.cmc,
+				Basic:             r.basic,
+				Land:              r.land,
+				Colour:            r.colour,
+				TypeSig:           r.typeSig,
+				AttachedTo:        o.AttachedTo,
+				Activated:         o.ActivatedThisTurn,
+				ManaCost:          f.ManaCost,
+				Castable:          z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && r.flashback),
+				OnBattlefield:     z == state.ZBattlefield,
+				Tapped:            o.Tapped,
+				Sick:              o.SummonSick,
+				Produces:          f.ManaProduction(),
+				InstantSpeed:      r.instant || r.flash,
+				Counter:           r.counter,
+				Draw:              spellAPIIs(f, "Draw"),
+				Token:             spellAPIIs(f, "Token"),
+				RemovalKind:       effects.CastRemovalKind(f.SpellAbility()),
+				RemovalTargets:    effects.CastRemovalTargets(f.SpellAbility()),
+				RemovalDamage:     effects.CastRemovalDamage(f.SpellAbility()),
+				PumpPower:         pumpPower,
+				PumpToughness:     pumpToughness,
+				PumpOwn:           pumpOwnCombatants,
+				CombatTrick:       effects.CastCombatTrick(f.SpellAbility()),
+				PlayMain1:         r.playMain1,
+				RemoveDeck:        r.removeDeck,
+				AuraLogic:         r.auraLogic,
+				NameKeyedSelfMill: r.selfMill,
+				EmptyLibraryWin:   r.emptyWin,
 			}
 		}
 	}
@@ -374,23 +382,25 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 			inc.derive(r, id, combined, vtypes)
 			power, toughness := cardPT(f, o, r.creature, r.power, r.toughness)
 			*b.Cards.slot(id) = Card{
-				PrintedName:    f.Name,
-				Creature:       r.creature,
-				Power:          power,
-				CMC:            r.cmc,
-				Basic:          r.basic,
-				Land:           r.land,
-				Colour:         r.colour,
-				TypeSig:        r.typeSig,
-				ManaCost:       f.ManaCost,
-				Toughness:      toughness,
-				Activated:      o.ActivatedThisTurn, // public; A5 (BoardFromGameInto's foreign walk)
-				RemovalKind:    effects.CastRemovalKind(f.SpellAbility()),
-				RemovalTargets: effects.CastRemovalTargets(f.SpellAbility()),
-				RemovalDamage:  effects.CastRemovalDamage(f.SpellAbility()),
-				PlayMain1:      r.playMain1,
-				RemoveDeck:     r.removeDeck,
-				AuraLogic:      r.auraLogic,
+				PrintedName:       f.Name,
+				Creature:          r.creature,
+				Power:             power,
+				CMC:               r.cmc,
+				Basic:             r.basic,
+				Land:              r.land,
+				Colour:            r.colour,
+				TypeSig:           r.typeSig,
+				ManaCost:          f.ManaCost,
+				Toughness:         toughness,
+				Activated:         o.ActivatedThisTurn, // public; A5 (BoardFromGameInto's foreign walk)
+				RemovalKind:       effects.CastRemovalKind(f.SpellAbility()),
+				RemovalTargets:    effects.CastRemovalTargets(f.SpellAbility()),
+				RemovalDamage:     effects.CastRemovalDamage(f.SpellAbility()),
+				PlayMain1:         r.playMain1,
+				RemoveDeck:        r.removeDeck,
+				AuraLogic:         r.auraLogic,
+				NameKeyedSelfMill: r.selfMill,
+				EmptyLibraryWin:   r.emptyWin,
 			}
 		}
 	}

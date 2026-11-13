@@ -1572,11 +1572,21 @@ func (b Board) facingLethal(p state.PlayerID) bool {
 // unlessManaPayOffer answers a payable UnlessCost$ election. It returns nil
 // for a single-option ask (leaving the ordinary KModes arm in charge), and
 // otherwise declines only when the payer faces lethal board damage -- the one
-// case where spending the pool cannot win the race. The Sacrifice-damage
-// offer is handled by unlessSacrificeOffer before this arm, so this reads
-// only the plain pay/decline shape.
+// case where spending the pool cannot win the race -- unless declining loses
+// the game outright (payOrLose: Summoner's Pact's upkeep trigger), where
+// paying is the only answer that survives the turn, lethal board or not.
+// The Sacrifice-damage offer is handled by unlessSacrificeOffer before this
+// arm, so this reads only the plain pay/decline shape.
 func (b Board) unlessManaPayOffer(d *decision.Decision) []int {
 	if d.ResumeKind != "unless_pay" || d.ResumeSA == nil || len(d.Options) < 2 {
+		return nil
+	}
+	if payOrLose(d.ResumeSA) {
+		for _, option := range d.Options {
+			if option.Mode == decision.ModeUnlessPay {
+				return []int{option.Index}
+			}
+		}
 		return nil
 	}
 	if b.facingLethal(d.Player) {
@@ -1587,6 +1597,17 @@ func (b Board) unlessManaPayOffer(d *decision.Decision) []int {
 		}
 	}
 	return nil
+}
+
+// payOrLose reports an unless-pay whose unpaid branch makes the payer lose
+// the game: a LosesGame for its own controller (Defined$ You or unset) paid
+// by that controller (UnlessPayer$ You or unset), read off the ability's IR.
+func payOrLose(sa *cards.SA) bool {
+	if sa.API != "LosesGame" {
+		return false
+	}
+	d, p := sa.Params["Defined"], sa.Params["UnlessPayer"]
+	return (d == "" || d == "You") && (p == "" || p == "You")
 }
 
 // unlessSacrificeOffer answers the Sacrifice unless-pay damage offer —

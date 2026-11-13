@@ -133,6 +133,13 @@ type CardView struct {
 	// attach rules read it to hold a boon Aura while the caster controls no
 	// creature that could use it.
 	AuraLogic string `json:"aura_logic,omitempty"`
+	// NameKeyedSelfMill reports a spell that digs its caster's own library
+	// away until a card matches a name (effects.CastNameKeyedSelfMill), and
+	// EmptyLibraryWin how the card wins for a player with an empty library
+	// (effects.EmptyLibraryWin). Printed-face facts the bot's self-mill
+	// guard reads.
+	NameKeyedSelfMill bool  `json:"name_keyed_self_mill,omitempty"`
+	EmptyLibraryWin   uint8 `json:"empty_library_win,omitempty"`
 	// ColourIdentity is the card's colour IDENTITY mask (cards.ColourMask:
 	// the printed cost's pips, the colour indicator and every colour-naming
 	// mana symbol in the rules text -- CR 903.4's definition, the same one
@@ -814,6 +821,7 @@ func (p *projector) cardView(cv *CardView, id state.ObjID) {
 		cv.ColourIdentity = cards.ColourMask(f.ColourIdentity())
 		cv.PlayMain1 = f.PlayMain1Hint()
 		cv.RemoveDeck = f.RemoveDeck != ""
+		cv.NameKeyedSelfMill, cv.EmptyLibraryWin = effects.CastNameKeyedSelfMill(f), effects.EmptyLibraryWin(f)
 		// The spell-ability API projection: the card's own SP$ line, the
 		// same fact boardFromGame reads for the casting census. Empty when
 		// the card has no spell ability (a creature, a land, a permanent

@@ -1976,6 +1976,13 @@ var handEffectsRoots = []string{
 	// engine rng (Haktos the Unscarred's Random$ True). It reads only that
 	// rider, so it joins no API's read set.
 	"ChooseNumberAtRandom",
+	// engine/effects/castselfmill.go: the bots' self-mill guard
+	// (bots/botpolicy combat.go, board_inc.go) and the card view call these
+	// advisory classifiers directly on a printed face; their Dig/DigUntil/
+	// Repeat/WinsGame reads are a heuristic over the printed chain, not a
+	// resolution consumer, so they join no API's read set.
+	"CastNameKeyedSelfMill",
+	"EmptyLibraryWin",
 }
 
 // apiSpecificRulesSA names the rules functions whose SA (bSA) reads execute
