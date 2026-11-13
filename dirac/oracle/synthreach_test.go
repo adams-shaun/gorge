@@ -152,4 +152,3 @@ func activated(name string) func(ref *GorgeSide) bool {
 		return false
 	}
 }
-

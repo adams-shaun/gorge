@@ -136,4 +136,3 @@ func TestCleanupDiscardAsksReplacementOrder(t *testing.T) {
 func TestCleanupDiscardPicksBeforeOrderAsks(t *testing.T) {
 	parkedPairs(t)
 }
-
