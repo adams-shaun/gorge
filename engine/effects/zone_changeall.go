@@ -506,23 +506,9 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		// apply. Any other value is loud rather than silently inert.
 		switch effChangeZoneAllCodes.Code(string(position)) {
 		case effChangeZoneAllBottom:
-			// MoveZone appended in settle order, so the bottom needs an event
-			// only when the owner's CR 401.4 answer reorders the pile.
-			for _, pm := range placements {
-				if randomOrder || shuffle {
-					continue
-				}
-				if order := libraryPlacementOrder(h, c, sa, pm.owner, pm.ids, true); !slices.Equal(order, pm.ids) {
-					libraryOrderPlacement(h, pm.owner, order, true)
-				}
-			}
 		case effChangeZoneAllTop:
 			for _, pm := range placements {
-				ids := pm.ids
-				if !randomOrder && !shuffle {
-					ids = libraryPlacementOrder(h, c, sa, pm.owner, ids, false)
-				}
-				libraryOrderPlacement(h, pm.owner, ids, false)
+				libraryOrderPlacement(h, pm.owner, pm.ids, false)
 			}
 		default:
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
