@@ -37,6 +37,12 @@ type Ability struct {
 	// been chosen [this turn]" (gorge CharmEligibleModes): 0 none, 1 ThisTurn,
 	// 2 ThisGame. The kernel reads it only behind prep.anyCharmPick.
 	ModeRestrict uint8
+	// ChainModes: the modes (bit per mode) whose targets are all chain links
+	// because the mode's own root declares none (Grab the Reins' "sacrifice a
+	// creature, then deal damage equal to its power to any target"). gorge's
+	// combined mode ask is over the roots only, so charmRootSlots skips them
+	// and their links follow the roots' ask (dirac/modal_charmtwotgt.go).
+	ChainModes uint8
 	// TgtModes[i] is the set of modes (bit per mode) that use target slot i;
 	// 0 = every mode. A slot none of whose modes was chosen is not chosen.
 	TgtModes [MaxTargets]uint8

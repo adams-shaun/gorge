@@ -4144,6 +4144,8 @@ func (lc *lowerCtx) charm(ps *params) error {
 		if rp != nil {
 			return lc.charmRepeatTargets(rp, len(choices))
 		}
+	} else if lc.out.Entwine != nil {
+		return lc.entwineTargets(len(choices), rootTargeted) // lower_entwine.go
 	}
 	return nil
 }

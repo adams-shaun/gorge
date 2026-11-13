@@ -1,0 +1,18 @@
+# the MBC Entwine pool: Unbounded Potential, Stir the Pride, Grab the Reins,
+# Betrayal of Flesh, Goblin War Party (K:Entwine, a mana cost or Sac<3/Land>)
+# beside creatures to hit, pump and sacrifice, and basics
+# (dirac/oracle/mbccosts2_test.go)
+Unbounded Potential
+Stir the Pride
+Grab the Reins
+Betrayal of Flesh
+Goblin War Party
+Grizzly Bears
+Savannah Lions
+Hill Giant
+Elite Vanguard
+Llanowar Elves
+Plains
+Swamp
+Mountain
+Forest

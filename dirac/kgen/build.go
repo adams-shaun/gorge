@@ -598,6 +598,23 @@ func (cb *cardBuilder) record() error {
 			}
 		}
 	}
+	if c.Entwine != nil {
+		// Entwine rides the kicked cast (sfKicked, CardDef.Kicker) with
+		// CardDef.Entwine naming it (dirac/kw_entwine.go); refuseEntwineCombos
+		// keeps every other optional cost off the card
+		if c.Kicker != nil || c.Offspring != nil || c.Buyback != nil {
+			return fmt.Errorf("entwine with a kicker/offspring/buyback")
+		}
+		d.Entwine = true
+		if d.Kicker, err = manaCostOf(*c.Entwine); err != nil {
+			return err
+		}
+		if c.KickerCost != nil {
+			if d.KickerCost, err = cb.cost(*c.KickerCost); err != nil {
+				return err
+			}
+		}
+	}
 	if c.Spree {
 		d.HasModeCost = true
 		for i := range c.ModeCost {

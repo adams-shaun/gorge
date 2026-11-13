@@ -253,6 +253,12 @@ type CardDef struct {
 	// mode bit 0, sfKicked) is gorge's "buyback" cast; Keywords has no
 	// KwKicker. The spell returns to its owner's hand as it resolves.
 	Buyback bool
+	// Entwine: K:Entwine (CR 702.42a) on a single-pick instant/sorcery charm:
+	// Kicker holds the entwine cost (zero mana with KickerCost for a Sac part)
+	// and the kicked cast (AkCast mode bit 0, sfKicked) is gorge's "entwined"
+	// cast, which announces every feasible mode (dirac/kw_entwine.go);
+	// Keywords has no KwKicker.
+	Entwine bool
 	// Landwalk is the printed landwalk keyword's land filter (CR 702.14,
 	// 0 = none): the creature can't be blocked while the defending player
 	// controls a land matching it.

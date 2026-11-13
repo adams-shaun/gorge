@@ -934,6 +934,17 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 					pick = tw // the teamworked cast's "choose both" (kw_teamwork.go)
 				}
 			}
+			if k.entwine {
+				if n, ok := s.entwineModes(k); ok {
+					if n == 0 {
+						// an entwined cast with no mode that has a target is no legal
+						// announcement (gorge castModeAsk: CR 733.1 reversal)
+						s.reverseCast(k)
+						return false
+					}
+					pick = n // every feasible mode (kw_entwine.go)
+				}
+			}
 			if k.gen != nil && k.gen.anyCharmV {
 				if c, dyn := s.charmCap(k); dyn {
 					pick = c // CharmNum$ over a dynamic count (modal_charmcmp.go)

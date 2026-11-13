@@ -228,6 +228,8 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ = CastModeCode("offspring") // the kicked cast of an Offspring card (kw_offspring.go)
 		case mode&1 != 0 && r.S.FeatBuybackCast(dirac.Obj(src)):
 			cm, _ = CastModeCode("buyback") // the kicked cast of a Buyback card (kw_buyback.go): CastModeOther, as "offspring"
+		case mode&1 != 0 && r.S.FeatEntwineCast(dirac.Obj(src)):
+			cm, _ = CastModeCode("entwined") // the kicked cast of an Entwine card (kw_entwine.go): CastModeOther, as "buyback"
 		case mode&1 != 0:
 			cm, _ = CastModeCode("kicked")
 		case mode&2 != 0 && tgt == dirac.FeatEscapeTgt:

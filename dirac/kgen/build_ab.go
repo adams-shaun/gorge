@@ -811,6 +811,7 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		ka.NModes, ka.ModesPick = uint8(a.Modes), uint8(a.ModesPick)
 		ka.ModesFew = uint8(a.ModesPick - a.ModesMin)
 		ka.ModeRestrict = a.ModeRestrict
+		ka.ChainModes = a.ChainModes
 		ka.RepMax, ka.RepCost, ka.RepBudget = a.RepMax, a.RepCost, a.RepBudget
 	}
 	if a.Mana != nil {

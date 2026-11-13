@@ -794,6 +794,7 @@ type lAbility struct {
 	ModesPick, ModesMin int
 	RepMax, RepCost     [4]uint8 // charm CanRepeatModes$ (lower_charmrepeat.go): the most each mode is chosen, its pawprint price
 	RepBudget           uint8    // charm Pawprint$
+	ChainModes          uint8    // charm modes whose targets are all chain links (the mode root declares none; lower_entwine.go): Ability.ChainModes
 	ModeRestrict        uint8    // charm ChoiceRestriction$: 0 none, 1 ThisTurn, 2 ThisGame (lower_charmrestrict.go)
 	Trigger             *lTrigger
 	Prog                []lInstr
@@ -1056,6 +1057,7 @@ type lCard struct {
 	Changeling     bool      // K:Changeling: every creature type (CR 702.73a), in every zone
 	Offspring      *manaCost // K:Offspring:<cost> (CR 702.175): the kernel's kicked cast and Kicker cost, CardDef.Offspring
 	Buyback        *manaCost // K:Buyback:<cost> (CR 702.27a): the kernel's kicked cast and Kicker cost, CardDef.Buyback; a Sac<1/..> cost is zero mana plus KickerCost
+	Entwine        *manaCost // K:Entwine:<cost> (CR 702.42a): the kernel's kicked cast and Kicker cost, CardDef.Entwine; a Sac<N/..> cost is zero mana plus KickerCost (lower_entwine.go)
 	Casualty       int       // printed K:Casualty:<N> (CR 702.153a, fixed N >= 1), CardDef.Casualty
 	Bargain        bool      // printed K:Bargain (CR 702.166), CardDef.Bargain
 	Storm          bool      // printed K:Storm (CR 702.40a), CardDef.Storm: the kernel's own native cast trigger (dirac/kw_storm.go)

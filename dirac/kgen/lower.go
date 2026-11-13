@@ -481,6 +481,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseBeamCombos()
 	lc.refuseSneakCombos()
 	lc.refuseBuybackCombos() // lower_buyback.go
+	lc.refuseEntwineCombos() // lower_entwine.go
 	lc.refuseWebSlingCombos()
 	lc.refuseMayFlashCombos()
 	lc.refuseEvokeCombos()
@@ -1366,6 +1367,13 @@ func (lc *lowerCtx) lowerKeywords() {
 			// resolving spell returns to hand (lower_buyback.go)
 			if !lc.lowerBuyback(param) {
 				lc.refuseNode(node, "buyback cost %q", param)
+			}
+		case head == "Entwine":
+			// CR 702.42a: an optional additional cost, offered as its own cast
+			// option (gorge's "(entwined)" mode, the Buyback shape); the paid
+			// cast announces every feasible mode (lower_entwine.go)
+			if !lc.lowerEntwine(param) {
+				lc.refuseNode(node, "entwine cost %q", param)
 			}
 		case head == "Casualty":
 			// CR 702.153a: the optional creature sacrifice and the copy
