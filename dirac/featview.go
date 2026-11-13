@@ -656,6 +656,29 @@ func (s *State) FeatPlanDeclinesShape(p uint8, o Obj) bool {
 	return !ok
 }
 
+// FeatAltAddMana is the mana p's cast of o adds for its either-or additional
+// cost as gorge's offer gate prices it (legal_walk_hand.go altAddOfferCastable:
+// the cast is offered when some part is payable with the mana cost): nothing
+// when the card has no such cost or a part without mana is payable (a creature
+// to sacrifice for Eaten Alive), else the part's mana. ok is false when no part's
+// non-mana picks are payable either, so no amount of mana offers the cast.
+func (s *State) FeatAltAddMana(p uint8, o Obj) (kop.ManaCost, bool) {
+	k := s.k()
+	c := s.objs[o].card
+	cd := &k.t.Cards[c]
+	if !cd.HasAltAdd || s.altAddFreePart(k, p, c, o) {
+		return kop.ManaCost{}, true
+	}
+	part := spellAddCost(k, c)
+	if manaEmpty(&part.Mana) {
+		part = &cd.AltAddCost
+	}
+	if !s.pickCostPayable(k, p, part, o) {
+		return kop.ManaCost{}, false
+	}
+	return part.Mana, true
+}
+
 // planNeverPricesCore is planNeverPricesOf with the shapes gorge's planner
 // admits for a cast payable only by paying with its own only target lifted when
 // modal is set (targetPaidPlanned): a Spree or Tiered face, an either-or or

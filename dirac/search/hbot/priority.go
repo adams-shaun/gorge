@@ -1011,9 +1011,15 @@ func (bt *Bot) tapTarget(d *dirac.Decision, c *cardF) bool {
 // colour listed, for each), so a coloured pip the sources cannot make (Eaten
 // Alive's {B} beside a Forest and Thornwood Falls, Goblin Negotiation's {R}{R}
 // on one Swiftwater Cliffs) or a mana value beyond their sum keeps it out
-// however much is floated.
+// however much is floated. An either-or additional cost is priced as the walk
+// prices it (FeatAltAddMana): Eaten Alive with no creature to sacrifice costs
+// {3}{B}{B}, not {B}.
 func (bt *Bot) potential(c *cardF) bool {
 	b := &bt.b
+	part, ok := b.s.FeatAltAddMana(b.me, c.obj)
+	if !ok {
+		return false
+	}
 	var avail [6]int32
 	for k := 0; k < 6; k++ {
 		avail[k] = b.pool[k]
@@ -1037,11 +1043,11 @@ func (bt *Bot) potential(c *cardF) bool {
 	var total int32
 	for k := 0; k < 6; k++ {
 		total += avail[k]
-		if k < 5 && int32(c.f.Pips[k]) > avail[k] {
+		if k < 5 && int32(c.f.Pips[k])+int32(part.Pips[k]) > avail[k] {
 			return false
 		}
 	}
-	return c.cmc <= total
+	return c.cmc+int32(part.MV()) <= total
 }
 
 // poolPaysCard is tap.go's poolPays.
