@@ -343,6 +343,10 @@ type FeatStats struct {
 	Decisions, Options int
 	// IncFallback counts incremental encodes that took the full rebuild.
 	IncFallback int
+	// ObjOverflow counts the decisions not compared because the position
+	// held an object past the encoders' byte (feat.Encoder.ObjOverflow, a
+	// declared dirac_mp limit).
+	ObjOverflow int
 	// First is the first mismatch.
 	First *FeatMismatch
 	// Rel marks the relational entity slots seen nonzero (index i is raw
@@ -379,7 +383,12 @@ func FeatCheck(pool *feat.Pool, st *FeatStats) func(ref *GorgeSide, k Side) *Div
 			return nil
 		}
 		gd := ref.fr.d
+		over := enc.ObjOverflow()
 		kst := enc.EncodeState(&r.s, &r.d)
+		if enc.ObjOverflow() != over {
+			st.ObjOverflow++
+			return nil
+		}
 		// The incremental encoder must reproduce the full rebuild exactly.
 		if m := CompareFeat(kst, inc.EncodeStateInc(&r.s, &r.d)); m != nil {
 			m.Where = "incremental " + m.Where

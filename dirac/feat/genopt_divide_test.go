@@ -31,11 +31,11 @@ func TestGenDividePlayerOptionNamesSeat(t *testing.T) {
 		v.Players = append(v.Players, view.PlayerView{ID: state.PlayerID(p), Life: 20})
 	}
 	e := &Encoder{}
-	for p, target := range []uint8{uint8(dirac.PlayerTarget0), uint8(dirac.PlayerTarget1)} {
+	for p, target := range []dirac.TCode{dirac.PlayerTarget0, dirac.PlayerTarget1} {
 		a := d.Options[p]
 		// Precondition: the option really is the player-target pick the fix
 		// keys on, not an object pick that happens to sort after it.
-		if a.Source() != dirac.TCode(target) || dirac.TCode(target) < dirac.PlayerTarget0 {
+		if a.Source() != target || target < dirac.PlayerTarget0 {
 			t.Fatalf("setup: option %d source %d is not player target %d", p, a.Source(), target)
 		}
 		o := e.optionOf(&d, a)
