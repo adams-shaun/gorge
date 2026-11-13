@@ -841,6 +841,9 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 			}
 			c = lCond{Kind: cAnd, Sub: []lCond{c, {Kind: cValue, A: v, Op: op, B: b}}}
 		}
+		if c, err = lc.presentSecondGroup(ps, c); err != nil { // lower_condpresent2.go
+			return lCond{}, err
+		}
 		// A self-referencing present check ("Card.Self+Scout") is a
 		// property of the source.
 		return c, nil
