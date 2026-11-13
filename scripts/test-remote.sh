@@ -12,6 +12,12 @@
 #   GORGE_REMOTE_REPO       the bare repository on the box (its sibling tt-wt/ holds the scratch worktrees)
 #   GORGE_REMOTE_MIN_IDLE   fewest idle cores on the box worth shipping for (default 24)
 #   GORGE_REMOTE_OFF        1 turns the remote runner off
+#   GORGE_REMOTE_MODES      the modes that go to the box (default "one targeted smart"); "targeted smart" keeps
+#                           the light test-one here
+#   GORGE_REMOTE_WAIT       seconds to wait for a free run slot on a busy box before running here (default 0: at
+#                           once); GORGE_REMOTE_POLL is the re-probe interval (20)
+#   GORGE_REMOTE_FALLBACK_CPU  the CPUQuota percent of a run that fell back here (default 200: -p 2, GOMAXPROCS 2),
+#                           so a box outage does not put every seat's heavy run on this machine at the full cap
 # Optional: GORGE_REMOTE_MAX_RUNS (concurrent remote runs, default 4), GORGE_REMOTE_WEIGHT (CPUWeight, default
 # 20; the landing gate's rgate.scope runs at 100), GORGE_REMOTE_CPU (CPUQuota percent, 2400), GORGE_REMOTE_MEM
 # (48G), GORGE_REMOTE_PROCS (GOMAXPROCS, 16), GORGE_REMOTE_CARDS (the corpus path on the box, default this
@@ -19,6 +25,10 @@
 #
 # Not shipped remotely (they run here): list, a smart run on a dirty tree, and any run that writes files
 # (UPDATE, TESTENV). Output streams back; the box's own verdict line is held until the result is trusted.
+# A BUDGET answer is trusted (the box has more cores than a run here); a red or a BUDGET while the landing gate
+# shared the box is rerun there once, and the second answer is trusted.
+# A run that falls back exports TEST_TARGETS_FALLBACK=1: test-targets.sh then caps it at GORGE_REMOTE_FALLBACK_CPU,
+# and its capped re-exec does not try the box again.
 
 rt_note() { echo "test-targets: note: $*" >&2; }
 
@@ -52,39 +62,68 @@ rt_filter() { # rt_filter VERDICT_FILE LOG: stream the box's output, holding its
 
 rt_cleanup() { [ -z "${rt_run:-}" ] || rt_box cleanup "$rt_run" >/dev/null 2>&1; }
 
+rt_fallback() { # rt_fallback MSG: run here, at the fallback cap, and never try the box again in this run
+	rt_note "$1"
+	export TEST_TARGETS_FALLBACK=1
+	return 0
+}
+
 remote_try() {
 	[ -z "${TEST_TARGETS_REMOTE:-}" ] || return 0 # this IS the remote run
+	[ -z "${TEST_TARGETS_FALLBACK:-}" ] || return 0 # the capped re-exec of a run that already fell back
 	[ "${GORGE_REMOTE_OFF:-}" != 1 ] || return 0
 	[ "$mode" != list ] || return 0
+	case " ${GORGE_REMOTE_MODES:-one targeted smart} " in *" $mode "*) ;; *) return 0 ;; esac
+	[ -n "${GORGE_REMOTE_HOST:-}${GORGE_REMOTE_HOST_FILE:-}" ] && [ -n "${GORGE_REMOTE_KEY:-}" ] && [ -n "${GORGE_REMOTE_REPO:-}" ] || return 0 # not configured
+	# Runs that write files into the worktree, and a smart run that will refuse a dirty tree, stay here.
+	[ -z "${UPDATE:-}${TESTENV:-}" ] || return 0
+	if [ "$mode" = smart ] && [ -n "$(git status --porcelain --untracked-files=no 2>/dev/null)" ]; then return 0; fi
 	rt_host=${GORGE_REMOTE_HOST:-}
-	if [ -z "$rt_host" ] && [ -n "${GORGE_REMOTE_HOST_FILE:-}" ]; then
+	if [ -z "$rt_host" ]; then
 		local st ip
 		read -r st _ _ ip _ <"$GORGE_REMOTE_HOST_FILE" 2>/dev/null
 		if [ "$st" = running ] && [ -n "$ip" ]; then
 			rt_host=${GORGE_REMOTE_USER:-ubuntu}@$ip
 		else
-			rt_note "remote: $GORGE_REMOTE_HOST_FILE says the box is '${st:-missing}'; running locally"
+			rt_fallback "remote: $GORGE_REMOTE_HOST_FILE says the box is '${st:-missing}'; running locally"
 			return 0
 		fi
 	fi
-	[ -n "$rt_host" ] && [ -n "${GORGE_REMOTE_KEY:-}" ] && [ -n "${GORGE_REMOTE_REPO:-}" ] || return 0 # not configured
-	# Runs that write files into the worktree, and a smart run that will refuse a dirty tree, stay here.
-	[ -z "${UPDATE:-}${TESTENV:-}" ] || return 0
-	if [ "$mode" = smart ] && [ -n "$(git status --porcelain --untracked-files=no 2>/dev/null)" ]; then return 0; fi
-	[ -r "$GORGE_REMOTE_KEY" ] || { rt_note "remote: key $GORGE_REMOTE_KEY is not readable; running locally"; return 0; }
+	[ -r "$GORGE_REMOTE_KEY" ] || { rt_fallback "remote: key $GORGE_REMOTE_KEY is not readable; running locally"; return 0; }
 	rt_script=$(dirname "${BASH_SOURCE[0]}")/test-remote-box.sh
-	[ -r "$rt_script" ] || { rt_note "remote: no $rt_script; running locally"; return 0; }
+	[ -r "$rt_script" ] || { rt_fallback "remote: no $rt_script; running locally"; return 0; }
 	rt_maxruns=${GORGE_REMOTE_MAX_RUNS:-4}
 	rt_cards=${GORGE_REMOTE_CARDS:-$(readlink -f .cards 2>/dev/null)}
-	rt_run=
-	rt_why=
-	rt_code=
-	if rt_try_run; then
-		echo "$rt_vline"
-		exit "$rt_code"
-	fi
-	rt_note "remote $rt_host: $rt_why; running locally"
-	rt_cleanup
+	local wait=${GORGE_REMOTE_WAIT:-0} poll=${GORGE_REMOTE_POLL:-20} waited=0
+	rt_reruns_left=1
+	case $wait in '' | *[!0-9]*) wait=0 ;; esac
+	case $poll in '' | *[!0-9]* | 0) poll=20 ;; esac
+	while :; do
+		rt_run=
+		rt_why=
+		rt_code=
+		if rt_try_run; then
+			echo "$rt_vline"
+			exit "$rt_code"
+		fi
+		rt_cleanup
+		case $rt_why in
+		busy:*)
+			# A busy box is still the runner: wait for a slot (the box's weights keep the landing gate first).
+			[ "$waited" -lt "$wait" ] || break
+			rt_note "remote $rt_host: $rt_why; waiting for a slot (${waited}s of ${wait}s)"
+			sleep "$poll"
+			waited=$((waited + poll))
+			;;
+		contended:*)
+			# Red while the landing gate shared the box: once more there, then that answer stands.
+			rt_reruns_left=0
+			rt_note "remote $rt_host: ${rt_why#contended: }; running it on the box again"
+			;;
+		*) break ;;
+		esac
+	done
+	rt_fallback "remote $rt_host: $rt_why; running locally"
 	rt_run=
 	return 0
 }
@@ -148,12 +187,14 @@ rt_try_run() {
 		case $vst in
 		PASS) rt_code=0 ;;
 		EMPTY) rt_code=4 ;;
-		FAIL)
+		FAIL | BUDGET)
 			rt_code=1
+			[ "$vst" = FAIL ] || rt_code=5
 			# Neither a box that shared its cores with the landing gate nor the dirac gate's own infrastructure
-			# exit (rc 2) says anything about this change; rgate.sh trusts neither.
-			if [ "${contended:-0}" != 0 ]; then rt_why="red on the box while the landing gate shared it"
-			elif grep -q 'dirac gate rc=2' "$lg"; then rt_why="the dirac gate reported an infrastructure failure"; fi
+			# exit (rc 2) says anything about this change; rgate.sh trusts neither. A BUDGET on the box (more
+			# cores than here) would be a BUDGET here too, so it stands unless the gate shared the box.
+			if [ "${contended:-0}" != 0 ] && [ "${rt_reruns_left:-1}" != 0 ]; then rt_why="contended: ${vst} on the box while the landing gate shared it"
+			elif [ "$vst" = FAIL ] && grep -q 'dirac gate rc=2' "$lg"; then rt_why="the dirac gate reported an infrastructure failure"; fi
 			;;
 		*) rt_why="the box answered ${vst:-nothing} (${rt_vline:-no verdict line})" ;;
 		esac
