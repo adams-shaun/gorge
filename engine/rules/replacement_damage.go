@@ -42,6 +42,28 @@ func damageReplacementPreventsWithRider(r cards.Repl) bool {
 		!damageReplacementPrevents(r) && r.With != nil
 }
 
+// allBarePreventions reports whether every competing damage replacement is
+// a bare, mandatory "prevent all of it" line: Prevent$ True with no
+// ReplaceWith$ body, not Optional$, not a counted PreventionShield and not a
+// shield counter (which is spent when it applies). Whichever of them applies
+// first prevents the whole event and logs the same prevention Note, and the
+// rest then have nothing to apply to (CR 616.1e), so no order the affected
+// player could pick differs: the competition is applied in scan order
+// without the CR 616.1 ask. Two Cephalid Illusionist activations (or two
+// Maze of Ith) on one attacker are the case.
+func allBarePreventions(matches []replMatch) bool {
+	for _, m := range matches {
+		r := m.repl
+		if r == shieldCounterDamageRepl || r.With != nil ||
+			!strings.EqualFold(r.ParamStr(cards.PKPrevent), "True") ||
+			strings.EqualFold(r.ParamStr(cards.PKOptional), "True") ||
+			strings.EqualFold(strings.TrimSpace(r.ParamStr(cards.PKPreventionShield)), "True") {
+			return false
+		}
+	}
+	return true
+}
+
 func (e *Engine) applicableDamageReplacements(ev events.Event, matches []replMatch) []replMatch {
 	out := matches[:0]
 	for _, m := range matches {

@@ -419,7 +419,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		if len(matches) == 0 {
 			return ev, false
 		}
-		if len(matches) > 1 || hasOptionalReplacement(matches) {
+		if (len(matches) > 1 && !allBarePreventions(matches)) || hasOptionalReplacement(matches) {
 			if p, ok := e.damageAffectedPlayer(ev); ok && !e.G.Players[p].Lost {
 				if applied, served := e.poseDamageReplacementChoice(ev, matches, e.replacementAskPlayer(matches, p)); served {
 					// Under the resolution kernel the ask was answered in place

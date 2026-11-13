@@ -179,20 +179,22 @@ func TestReplOrderEachPlayerTwoTwinflames(t *testing.T) {
 }
 
 // TestDamageAllReplOrderEveryEvent: Seismic Rupture sweeps a board where one
-// player has two Crystal Barricades. Gorge parks EVERY damage event two
-// replacements match, asking the affected player once per event in sweep
+// player has a Crystal Barricade and the caster a (flying) Twinflame Tyrant.
+// Gorge parks EVERY damage event two replacements match, asking the affected player once per event in sweep
 // order (CR 616.1), and the spell stays on the stack until the last answer.
 // The kernel's OpDamageAll must park and resume between events, not ask only
 // for the first one.
 func TestDamageAllReplOrderEveryEvent(t *testing.T) {
-	deck := []cardset.Entry{{Name: "Seismic Rupture", Count: 1}, {Name: "Crystal Barricade", Count: 2},
-		{Name: "Savannah Lions", Count: 4}, {Name: "Mountain", Count: 10}}
+	// Two Barricades would be two bare preventions, which neither engine
+	// orders (repl_bareprev.go); the Tyrant's doubling does not commute.
+	deck := []cardset.Entry{{Name: "Seismic Rupture", Count: 1}, {Name: "Crystal Barricade", Count: 1},
+		{Name: "Twinflame Tyrant", Count: 1}, {Name: "Savannah Lions", Count: 4}, {Name: "Mountain", Count: 10}}
 	sc, id := replScen(t, deck)
 	s := sc.s
+	tyrant := sc.perm(id["Twinflame Tyrant"], 0)
 	b0 := sc.perm(id["Crystal Barricade"], 1)
 	l0 := sc.perm(id["Savannah Lions"], 1)
 	l1 := sc.perm(id["Savannah Lions"], 1)
-	b1 := sc.perm(id["Crystal Barricade"], 1)
 	sc.perm(id["Savannah Lions"], 0) // no Barricade: no ask for its event
 	sc.lands(0, id["Mountain"], 3)
 	sr := sc.hand(id["Seismic Rupture"], 0)
@@ -209,8 +211,8 @@ func TestDamageAllReplOrderEveryEvent(t *testing.T) {
 			if d.Player != 1 || d.N != 2 {
 				t.Fatalf("ask: kind %d sub %d player %d opts %v, want the Barricade controller's two options", d.Kind, d.Sub, d.Player, d.Options[:d.N])
 			}
-			if Obj(d.Options[0].Source()) != b0 || Obj(d.Options[1].Source()) != b1 {
-				t.Fatalf("ask options %d, %d, want the Barricades in entry order (%d, %d)", d.Options[0].Source(), d.Options[1].Source(), b0, b1)
+			if Obj(d.Options[0].Source()) != tyrant || Obj(d.Options[1].Source()) != b0 {
+				t.Fatalf("ask options %d, %d, want gorge's scan order: the Tyrant, then the Barricade (%d, %d)", d.Options[0].Source(), d.Options[1].Source(), tyrant, b0)
 			}
 			if s.sp != 1 || s.objs[sr].zone != kop.ZoneStack {
 				t.Fatalf("before the answer: stack %d spell zone %d, want the spell still resolving", s.sp, s.objs[sr].zone)
