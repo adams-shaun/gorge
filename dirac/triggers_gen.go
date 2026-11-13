@@ -627,6 +627,9 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 			if t.Flags2&kop.Tf2YourTurn != 0 && s.active != l.ctrl {
 				return
 			}
+			if t.Flags5&kop.Tf5DmgAttackedYouLastTurn != 0 && (!toPlayer || !s.attackedYouLastTurn(dpl, l.ctrl)) {
+				return // trig_atklastturn.go
+			}
 			once := t.Event == kop.TrigDamageDealtOnce && latch != nil
 			if once && latch.has(l, seen) {
 				return

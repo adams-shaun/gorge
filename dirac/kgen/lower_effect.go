@@ -80,6 +80,11 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredCards":
 		// gorge definedSpecTriggeredCard reads the card forms
 		return lRef{Kind: rTriggered}, nil
+	case "TriggeredCardOwner":
+		// gorge definedSpecTriggeredCardOwner: the triggering card's
+		// immutable owner (CR 108.3), the player kernel RefTriggerObjOwner
+		// reads off the trigger object
+		return lRef{Kind: rTriggeredOwner}, nil
 	case "TriggeredAttacker", "TriggeredAttackerLKICopy":
 		// gorge binds the one attacker that raised the event: an Attacks
 		// trigger queues one trigger per matching attacker
@@ -1557,6 +1562,12 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 	case "Assimilate":
 		return lc.assimilate(ps) // lower_assimilate.go
 	case "ChangeZoneAll":
+		// AbilityCount$ X names the SVar the ChangeType$ X-comparison reads;
+		// gorge reads the comparison's own SVar and never this param
+		// (Profaner of the Dead), so it is inert here too
+		if ps.str("AbilityCount") == "X" {
+			ps.consume("AbilityCount")
+		}
 		return lc.changeZoneAll(ps)
 	case "Draw":
 		remDrawn, remAll, err := rememberDrawn(ps)
@@ -2312,7 +2323,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if err != nil {
 			return err
 		}
-		if !n.isConst() || n.N < 1 || n.N > 8 {
+		if !(n.isConst() && n.N >= 1 && n.N <= 8) && !rearrangeWholeLibrary(n) {
 			return refuse("RearrangeTopOfLibrary NumCards %v", n)
 		}
 		who, err := lc.objOrTarget(ps, "You", zNone)

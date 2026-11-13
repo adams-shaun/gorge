@@ -115,12 +115,16 @@ func (s *State) enterDefense(k *prep, sl Slot, c CardID) {
 // addBattleOffers appends the attack of attacker o on each attackable
 // battle: ascending seat, then battlefield order (gorge attackOffersCompute
 // walks every seat's battlefield).
-func (s *State) addBattleOffers(k *prep, d *Decision, o Obj) {
+func (s *State) addBattleOffers(k *prep, d *Decision, o Obj, atk Slot) {
 	var order [MaxPerm]Slot
 	n := 0
+	sick := s.atkHasteSick(k, atk)
 	for p := uint8(0); p < s.nSeats(); p++ {
 		if s.out(p) {
 			continue
+		}
+		if sick && !s.atkHasteOK(k, atk, p) {
+			continue // a CanAttackIfHaste exemption names the defender seat (static_canattackifhaste.go)
 		}
 		var m slotMask
 		for q := s.ctrlM[p]; q.any(); q = q.rest() {

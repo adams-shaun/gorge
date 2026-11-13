@@ -622,6 +622,11 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 		return s.attachedCtrl(s.refObjCtx(kop.RefAttached, ctx))
 	case kop.RefTriggerPlayer:
 		return e.trigPl
+	case kop.RefTriggerObjOwner:
+		if o := e.trigObj; o != NoObj {
+			return s.objs[o].owner() // CR 108.3 (resolve.go playerRef)
+		}
+		return 255
 	case kop.RefTriggerTgtCtrl:
 		// gorge TriggeredTargetController, read live (resolve.go playerRef)
 		if o := e.trigObj; o != NoObj {
