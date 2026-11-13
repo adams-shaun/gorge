@@ -115,6 +115,7 @@ func GameConfig(cfg rules.Config) game.Config {
 		Format:                game.Format(cfg.Format),
 		StartingLife:          cfg.StartingLife,
 		Commanders:            cfg.Commanders,
+		DraftPartners:         cfg.DraftPartners,
 		StartChooser:          cfg.StartChooser,
 		GuardDisabled:         cfg.LoopGuard != nil && cfg.LoopGuard.Disabled,
 		NoObjectCap:           cfg.LoopGuard == nil,
