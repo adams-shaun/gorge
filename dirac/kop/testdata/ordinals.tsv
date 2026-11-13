@@ -76,6 +76,7 @@ CharmRepeat	untyped int	256
 ChooseOpp	untyped int	2
 ChooseRandom	untyped int	1
 ChooseSelf	untyped int	0
+ChooseTypeBasicLand	untyped int	2
 CloneBatch	untyped int	64
 CloneEOT	untyped int	1
 CloneExclTmpl	untyped int	2
@@ -870,6 +871,7 @@ OptAll	untyped int	16
 OptAny	untyped int	8
 OptAsk	int16	4
 OvChosenColor	untyped int	1
+OvChosenType	untyped int	3
 OvEnterWith	untyped int	2
 PanhModeDrawn	int16	2
 PanhModeLifeGained	int16	1
