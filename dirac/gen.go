@@ -297,7 +297,8 @@ type genPrep struct {
 	anyPermMark     bool           // the table gives some kop.PredPermMark mark an arena mask (filter_permmarks.go)
 	anyTappedTurn   bool           // the table gives mechTappedTurn an arena mask (a Taps FirstTime$ line; filter_permmarks.go)
 	anyCombatHit    bool           // some card records its combat hits on players (cdRec) or some expression reads the legendary-hit bit (value_turntallies.go)
-	cdLegOn         bool           // some expression is ExOppsLostLife N 1: record cdLeg
+	cdLegOn         bool           // some expression is ExOppsLostLife N 1: record cdLeg bits 0-3
+	cdDamOn         bool           // some expression is ExOppsLostLife N 2: record cdLeg bits 4-7
 	anyAddPhase     bool           // some program is ExtAddPhase, some trigger is Tf3FirstAttack or some expression is ExPhaseCount (act_addphase.go)
 	anySkipPhase    bool           // some program is ExtSkipPhase (act_skipphase.go)
 	anyMonarch      bool           // some program is ExtBecomeMonarch (act_monarch.go)
@@ -2093,7 +2094,7 @@ type genState struct {
 	// CtrlHitBySrc (genPrep.cdRec): o the source, pl bit p = player p
 	// was hit by it this turn (value_turntallies.go).
 	// cdLeg bit p = player p was dealt combat damage this turn by a source
-	// matching Creature.Legendary.
+	// matching Creature.Legendary; bit 4+p = by any source (genPrep.cdDamOn).
 	cdh [4]struct {
 		o  Obj
 		pl uint8

@@ -475,7 +475,9 @@ const ExAttackedTurn ExprKind = 235
 // ExSacrificedThisTurn N 2 is the Food cards (printed subtype) sacrificed
 // this turn; ExOppsLostLife N 1 is the opponent dealt combat damage this turn
 // by a legendary creature (gorge PlayerCountRegisteredOpponents$
-// HasPropertywasDealtCombatDamageThisTurnBy Creature.Legendary GE1).
+// HasPropertywasDealtCombatDamageThisTurnBy Creature.Legendary GE1), N 2 the
+// opponent dealt combat damage this turn by any source (the bare head
+// HasPropertywasDealtCombatDamageThisTurn, Tymna the Weaver).
 const (
 	SacrificedFood   = 2
 	OppsHitLegendary = 1

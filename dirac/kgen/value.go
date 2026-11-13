@@ -300,6 +300,8 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = lValue{Kind: vOppsLostLife}
 		} else if hv, ok := oppsHitByLegendaryValue(rest); ok {
 			v = hv // value_turntallies.go
+		} else if rest == oppsDealtCombatDamageBody {
+			v = lValue{Kind: vOppsLostLife, N: 2}
 		} else {
 			err = fmt.Errorf("PlayerCountRegisteredOpponents$%s", rest)
 		}

@@ -87,11 +87,17 @@ var kpkSeats = [...]kpkSeat{
 		{Name: "Kamahl, Heart of Krosa", Count: 2}, {Name: "Coral Merfolk", Count: 4}, {Name: "Gray Ogre", Count: 3},
 		{Name: "Island", Count: 8}, {Name: "Mountain", Count: 7}, {Name: "Forest", Count: 5},
 	}},
+	// Tymna's postcombat PayLife<X> draw, X the opponents dealt combat damage
+	// this turn: creatures to attack with, a black partner to pair her with
+	{"partner-tymna-ravos", [2]string{"Tymna the Weaver", "Ravos, Soultender"}, []cardset.Entry{
+		{Name: "Savannah Lions", Count: 5}, {Name: "Typhoid Rats", Count: 4}, {Name: "Gray Ogre", Count: 3},
+		{Name: "Ornithopter", Count: 4}, {Name: "Plains", Count: 12}, {Name: "Swamp", Count: 12},
+	}},
 }
 
 // kpkDuels are the seat pairs played: plain partner pairs against each other,
 // the partner—Character select pairs, and the partner—Friends forever pairs.
-var kpkDuels = [...][2]int{{0, 1}, {2, 3}, {4, 5}, {6, 7}, {8, 9}}
+var kpkDuels = [...][2]int{{0, 1}, {2, 3}, {4, 5}, {6, 7}, {8, 9}, {10, 4}}
 
 // kpkLowered are the corpus cards kgen refused for the printed Partner
 // keyword alone: the 22 the Commander precon and cEDH decks carry, then the
@@ -104,7 +110,7 @@ var kpkLowered = []string{
 	"Prava of the Steel Legion", "Raphael, the Muscle", "Ravos, Soultender",
 	"Reyhan, Last of the Abzan", "Rograkh, Son of Rohgahh", "Slurrk, All-Ingesting",
 	"Splinter, the Mentor", "Tana, the Bloodsower", "Thrasios, Triton Hero",
-	"Yoshimaru, Ever Faithful",
+	"Yoshimaru, Ever Faithful", "Tymna the Weaver",
 
 	"Alena, Kessig Trapper", "Anara, Wolvid Familiar", "Brinelin, the Moon Kraken",
 	"Chief Jim Hopper", "Dustin, Gadget Genius", "Esior, Wardwing Familiar",
@@ -153,6 +159,29 @@ func kpkScan(g *GorgeSide, class map[string]bool, casts, abil, mana map[string]i
 	}
 }
 
+// kpkTymnaPaid counts the games' Tymna triggers whose controller paid life
+// to resolve it: a life loss within the events after the push, before the
+// next push.
+func kpkTymnaPaid(g *GorgeSide) int {
+	evs := g.E.L.Events
+	paid := 0
+	for i, ev := range evs {
+		if ev.Kind != events.TriggerPush {
+			continue
+		}
+		if ob := g.E.G.Obj(ev.Obj); ob == nil || ob.Face() == nil || ob.Face().Name != "Tymna the Weaver" {
+			continue
+		}
+		for j := i + 1; j < len(evs) && evs[j].Kind != events.TriggerPush; j++ {
+			if evs[j].Kind == events.LifeChange && evs[j].Amount < 0 {
+				paid++
+				break
+			}
+		}
+	}
+	return paid
+}
+
 func TestPartnerKeywordLockstep(t *testing.T) {
 	if isolate(t) {
 		return
@@ -172,7 +201,7 @@ func TestPartnerKeywordLockstep(t *testing.T) {
 		class[n] = true
 	}
 	casts, abil, mana := map[string]int{}, map[string]int{}, map[string]int{}
-	games, stalls := 0, 0
+	games, stalls, tymnaPaid := 0, 0, 0
 	for _, du := range kpkDuels {
 		var decks [2][]*cards.Card
 		var ents [2][]cardset.Entry
@@ -229,6 +258,7 @@ func TestPartnerKeywordLockstep(t *testing.T) {
 			CloseSide(k)
 			games++
 			kpkScan(g, class, casts, abil, mana)
+			tymnaPaid += kpkTymnaPaid(g)
 			if strings.HasPrefix(res.Stall, KernelStallPrefix) {
 				stalls++
 				t.Logf("%s v %s seed %d: %s", names[0], names[1], seed, res.Stall)
@@ -243,7 +273,7 @@ func TestPartnerKeywordLockstep(t *testing.T) {
 		rows = append(rows, n+": "+strconv.Itoa(casts[n])+" casts, "+strconv.Itoa(abil[n])+" abilities, "+strconv.Itoa(mana[n])+" mana")
 	}
 	sort.Strings(rows)
-	t.Logf("%d games, %d kernel stalls\n%s", games, stalls, strings.Join(rows, "\n"))
+	t.Logf("%d games, %d kernel stalls, %d Tymna payments\n%s", games, stalls, tymnaPaid, strings.Join(rows, "\n"))
 	if stalls != 0 {
 		t.Fatalf("%d kernel stalls", stalls)
 	}
@@ -258,6 +288,10 @@ func TestPartnerKeywordLockstep(t *testing.T) {
 		case !kpkNoStackAbility[n] && abil[n] == 0:
 			t.Errorf("%s: no ability of it went on the stack", n)
 		}
+	}
+	// Tymna's draw is played at X > 0, not only declined at X = 0
+	if tymnaPaid == 0 {
+		t.Errorf("no game paid life to Tymna the Weaver's trigger")
 	}
 	for _, n := range kpkManaAbility {
 		if mana[n] == 0 {
