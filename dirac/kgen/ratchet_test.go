@@ -146,7 +146,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
 	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
-	"ALL": {23407, 34442},
+	// +14 (MBC costs-4: a PayLife<N>-only or tapXType-only alternative cost, PayLife<N> beside Sac<N/Spec>, and Discard<N> beside Sac<N/Spec> of the same count: Snuff Out, Ramosian Rally, Strands of Night, Dreamscape Artist, plus Ellie Vengeful Hunter, Falkenrath Pit Fighter, Orim's Cure, Razaketh the Foulblooded, Rouse, Ruthless Disposal, Susur Secundi Void Altar, The Lady of Otaria, Warren Soultrader, Yawgmoth Thran Physician; ALL 23407 -> 23421, MBC 1717 -> 1721 (the four named first), EOE 250 -> 251 measured).
+	"ALL": {23421, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {219, 280},
@@ -154,14 +155,14 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"DMU": {197, 270},
 	"DSK": {251, 276},
 	"ECL": {244, 273},
-	"EOE": {250, 266},
+	"EOE": {251, 266},
 	"FDN": {517, 517},
 	"FIN": {276, 312},
 	"FRA": {255, 269},
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
-	"MBC": {1717, 2188},
+	"MBC": {1721, 2188},
 	"MKM": {251, 279},
 	"MOM": {201, 296},
 	"MSH": {246, 276},
