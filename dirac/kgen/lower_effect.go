@@ -3515,6 +3515,9 @@ func (lc *lowerCtx) putCounter(ps *params) error {
 	if mono, ok := ps.get("Monstrosity"); ok {
 		return lc.monstrosity(ps, obj, mono)
 	}
+	if rn, ok := ps.get("Renown"); ok {
+		return lc.renown(ps, obj, rn) // lower_renown.go
+	}
 	n, err := lc.amount(ps, "CounterNum", 1)
 	if err != nil {
 		return err

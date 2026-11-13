@@ -684,6 +684,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	if k.gen != nil && k.gen.anyMonstrosity {
 		s.mSlClr(k, mechMonstrous, sl) // act_monstrosity.go
 	}
+	s.mSlClr(k, mechRenowned, sl) // act_renown.go; a no-op without the mask
 	if goadOn(k) {
 		s.goadLeave(k, sl) // act_goad.go
 	}

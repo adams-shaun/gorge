@@ -1156,6 +1156,15 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !faceHasMyriadTrigger(lc.face) {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
+		case head == "Renown":
+			// CR 702.112a: gorge kwRenown expands it into a combat-damage
+			// self trigger (IsPresent$ Card.Self+!IsRenowned) whose body is
+			// DB$ PutCounter | Renown$ N, lowered from that line
+			// (lower_renown.go). Not in expandedKeywords: a granted Renown
+			// stays refused.
+			if !faceHasRenownTrigger(lc.face) {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
 		case head == "Training":
 			// CR 702.149a: gorge kwTraining expands it into an Attacks
 			// trigger (Training$ True), lowered from that line

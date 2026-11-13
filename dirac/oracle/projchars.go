@@ -170,6 +170,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Impending":                         "CardDef.Impending (a hand alt cost, the entry time counters and the not-a-creature switch, compared through the cast options and the types)",
 	"Unearth":                           "a graveyard activated ability (Return of itself then OpUnearth: haste, the end-step exile and the exile-instead promise; gorge kwUnearth's expansion), no battlefield characteristic",
 	"Training":                          "an Attacks trigger with Trigger.N TrigNTraining (gorge kwTraining's expansion), no battlefield characteristic",
+	"Renown":                            "a combat-damage self trigger under Card.Self+!IsRenowned whose body is OpExt ExtRenown (gorge kwRenown's expansion, CR 702.112a; act_renown.go), no battlefield characteristic; the designation is compared through FRenowned",
 	"Firebending":                       "an Attacks trigger whose AddMana has B = 1 (State.fbR; gorge kwFirebending's expansion, CR 702.189a), no battlefield characteristic",
 	"Melee":                             "an Attacks Self trigger pumping its holder: a printed one from gorge kwMelee's expansion, a static's granted one kop.Ability.MeleeGrant (kw_melee.go; CR 702.121a), no battlefield characteristic",
 	"Myriad":                            "an Attacks Self trigger with an empty program, two-seat (no opponent other than the defending player): a printed one from gorge kwMyriad's expansion, a static's granted one (kgen lower_myriad.go; CR 702.116a), no battlefield characteristic",

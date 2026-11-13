@@ -170,6 +170,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtSuspect:
 		s.suspectExt(k, in) // act_suspect.go
 		return true, true
+	case kop.ExtRenown:
+		s.renown(k, in) // act_renown.go
+		return true, true
 	case kop.ExtCopyAllEach:
 		// the sweep's park halts the program at the OpExt (a copy's
 		// as-enters ask, copy_allpark.go); the answer arm resumes it

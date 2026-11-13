@@ -1,7 +1,8 @@
 # the MBC keywords-5 family: an Effect's Mode$ Continuous static granting
 # "Prevent all combat damage that would be dealt by CARDNAME." to every
-# nongreen creature (Hunter's Ambush) -- beside green and nongreen creatures
-# to attack and block (dirac/oracle/mbc_keywords5_lowers_test.go)
+# nongreen creature (Hunter's Ambush); Renown 1 and its renowned attack
+# trigger (Consul's Lieutenant) -- beside green and nongreen creatures to
+# attack and block (dirac/oracle/mbc_keywords5_lowers_test.go)
 Hunter's Ambush
 Grizzly Bears
 Hill Giant
@@ -9,3 +10,4 @@ Savannah Lions
 Forest
 Mountain
 Plains
+Consul's Lieutenant

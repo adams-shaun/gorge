@@ -511,6 +511,7 @@ ExtRememberImprinted	ExtOp	307
 ExtRememberSearcher	ExtOp	304
 ExtRemoveCounterAny	ExtOp	3
 ExtRemoveFromCombat	ExtOp	260
+ExtRenown	ExtOp	298
 ExtSacDelayed	ExtOp	32
 ExtSearchCounters	ExtOp	252
 ExtSkipPhase	ExtOp	313
@@ -969,6 +970,7 @@ PredPowerGEV	Pred	14
 PredPowerGTBase	Pred	243
 PredPowerLE	Pred	1
 PredPowerLTToughness	Pred	17
+PredRenowned	Pred	236
 PredSameNameRem	Pred	238
 PredSameNameT0	Pred	32
 PredSolved	Pred	252

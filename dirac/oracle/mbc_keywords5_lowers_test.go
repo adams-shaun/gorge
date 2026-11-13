@@ -14,13 +14,19 @@ import (
 // gorge rules/replacement_prevent_kw.go's by-combat head, the kernel's
 // KwPreventCombatDamageFrom read by preventFromGen).
 //
-// Renown, Mutate and Exploit (Consul's Lieutenant, Dreamtail Heron, Fell
-// Stinger) stay refused: each card's other blockers are its own families.
+// Renown 1 (Consul's Lieutenant; gorge cards/kw_renown.go's combat-damage
+// trigger under Card.Self+!IsRenowned, its PutCounter Renown$ body, and the
+// card's "if it's renowned" attack trigger): the kernel's OpExt ExtRenown and
+// PredRenowned (dirac/act_renown.go).
 //
-// The subtest asserts the deck is playable naming the card, then plays the
-// lockstep games and asserts the kernel prevented combat damage through the
-// granted bit, so a pool that never reaches the mechanism cannot pass; with
-// the lowering reverted the card is refused and the assertion fails.
+// Mutate and Exploit (Dreamtail Heron, Fell Stinger) stay refused: each
+// card's other blockers are its own families.
+//
+// Each subtest asserts the deck is playable naming the card, then plays the
+// lockstep games and asserts the kernel reached the mechanism (prevented
+// combat damage through the granted bit; made a permanent renowned), so a
+// pool that never reaches it cannot pass; with the lowering reverted the card
+// is refused and the assertion fails.
 
 const mbcKeywords5Pool = "mbckeywords5"
 
@@ -35,6 +41,17 @@ var mbcHuntersAmbushDecks = [2][]cardset.Entry{
 	},
 }
 
+var mbcConsulsLieutenantDecks = [2][]cardset.Entry{
+	{
+		{Name: "Consul's Lieutenant", Count: 10}, {Name: "Savannah Lions", Count: 6},
+		{Name: "Plains", Count: 24},
+	},
+	{
+		{Name: "Grizzly Bears", Count: 8}, {Name: "Hill Giant", Count: 6},
+		{Name: "Forest", Count: 12}, {Name: "Mountain", Count: 14},
+	},
+}
+
 var mbcKeywords5Decks = []struct {
 	card     string
 	decks    [2][]cardset.Entry
@@ -44,6 +61,8 @@ var mbcKeywords5Decks = []struct {
 }{
 	{"Hunter's Ambush", mbcHuntersAmbushDecks, func() int64 { return dirac.PrevFromStats.Events.Load() }, 10,
 		"combat damage events prevented from a granted source"},
+	{"Consul's Lieutenant", mbcConsulsLieutenantDecks, func() int64 { return dirac.RenownStats.Marked.Load() }, 10,
+		"permanents made renowned"},
 }
 
 func TestMBCKeywords5Lowers(t *testing.T) {

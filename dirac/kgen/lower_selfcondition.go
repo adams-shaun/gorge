@@ -95,7 +95,7 @@ func filterRd(f *lFilter) condRd {
 			r.types |= tArtifact | tLegendary
 			r.sub = true // Saga
 		case cmpNone, cmpCMC, cmpCounters, cmpHasX, cmpEquipped, cmpEnchanted, cmpAttached,
-			cmpActiveCtrl, cmpModified, cmpHasCounters, cmpMonstrous:
+			cmpActiveCtrl, cmpModified, cmpHasCounters, cmpMonstrous, cmpRenowned:
 			// no layer-3..7 characteristic: mana value, counters,
 			// attachment, designation or the active player
 		default:

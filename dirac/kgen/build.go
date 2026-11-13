@@ -1737,6 +1737,10 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		// off the battlefield nothing is solved (gorge clears Solved on
 		// the zone move)
 		kf.Pred, kf.PredN = kop.PredSolved, int16(c.CmpN)
+	case cmpRenowned:
+		// the arena designation bit (kernel act_renown.go); off the
+		// battlefield nothing is renowned (predCardCold)
+		kf.Pred, kf.PredN = kop.PredRenowned, int16(c.CmpN)
 	case cmpSuspected:
 		// the arena designation bit (kernel predPermCold); off
 		// the battlefield nothing is suspected (predCardCold)

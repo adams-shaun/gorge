@@ -803,3 +803,15 @@ func init() { extOpNames[ExtRememberImprinted] = "RememberImprinted" }
 const ExtPreventNext ExtOp = 305
 
 func init() { extOpNames[ExtPreventNext] = "PreventNext" }
+
+// ExtRenown (CR 702.112): the renown trigger's resolution (gorge
+// effPutCounter's RenownSet arm, the K:Renown expansion body DB$ PutCounter |
+// Defined$ Self | Renown$ N). The battlefield permanent Obj (the source),
+// unless it is already renowned, gets B +1/+1 counters through OpPutCounter's
+// path, then the renowned designation (gorge AlterAttribute "Renowned"). A
+// source that left the battlefield, or B <= 0, does nothing. The designation
+// is the arena slot bit mechRenowned, cleared when the permanent leaves.
+// dirac/act_renown.go.
+const ExtRenown ExtOp = 298
+
+func init() { extOpNames[ExtRenown] = "Renown" }

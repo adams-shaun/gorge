@@ -64,6 +64,7 @@ const (
 	mechAtch3                       // seat 3
 	mechGoad2                       // goad[2]: slots whose permanent seat 2 goaded (read only when MaxSeats > 2; act_goad.go)
 	mechGoad3                       // goad[3]: the same, seat 3
+	mechRenowned                    // slots whose permanent is renowned (CR 702.112b; act_renown.go)
 	numMech
 )
 
@@ -127,9 +128,10 @@ var mechWidth = [numMech]uint8{
 	mechAtch3:           wSlot,
 	mechGoad2:           wSlot,
 	mechGoad3:           wSlot,
+	mechRenowned:        wSlot,
 }
 
-var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen", "sbaChain", "once2", "once3", "tappedTurn", "escaped", "lure", "lurePost", "protW", "protU", "protB", "protR", "protG", "protPostW", "protPostU", "protPostB", "protPostR", "protPostG", "echoOwed", "hexUB", "atch0", "atch1", "atch2", "atch3", "goad2", "goad3"}
+var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen", "sbaChain", "once2", "once3", "tappedTurn", "escaped", "lure", "lurePost", "protW", "protU", "protB", "protR", "protG", "protPostW", "protPostU", "protPostB", "protPostR", "protPostG", "echoOwed", "hexUB", "atch0", "atch1", "atch2", "atch3", "goad2", "goad3", "renowned"}
 
 // arenaNone is the index of a mechanic the table does not use.
 const arenaNone = 0xFF
@@ -214,6 +216,9 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 					}
 					if in.Ext() == kop.ExtSuspect && in.C&1 == 0 { // seat-ok: an instruction flag bit
 						u[mechSuspected] = true // a suspect; an un-suspect or a read needs no mask
+					}
+					if in.Ext() == kop.ExtRenown {
+						u[mechRenowned] = true // the only writer; a read alone needs no mask (act_renown.go)
 					}
 				case kop.OpGrantKeyword:
 					// grantFB is the only writer of the flashback planes, so a pool

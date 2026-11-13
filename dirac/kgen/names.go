@@ -116,7 +116,7 @@ func init() {
 		"kop.PredMultiColor", kop.PredMultiColor, "kop.PredHistoric", kop.PredHistoric, "kop.PredEquipped", kop.PredEquipped,
 		"kop.PredEnchanted", kop.PredEnchanted, "kop.PredAttached", kop.PredAttached, "kop.PredActiveCtrl", kop.PredActiveCtrl,
 		"kop.PredTypesAll", kop.PredTypesAll, "kop.PredTypesAllCMCLE", kop.PredTypesAllCMCLE, "kop.PredModified", kop.PredModified, "kop.PredHasCounters", kop.PredHasCounters,
-		"kop.PredMonstrous", kop.PredMonstrous, "kop.PredNoCounters", kop.PredNoCounters, "kop.PredLacksKeyword", kop.PredLacksKeyword,
+		"kop.PredMonstrous", kop.PredMonstrous, "kop.PredRenowned", kop.PredRenowned, "kop.PredNoCounters", kop.PredNoCounters, "kop.PredLacksKeyword", kop.PredLacksKeyword,
 		"kop.PredOutlaw", kop.PredOutlaw, "kop.PredMonoColor", kop.PredMonoColor,
 		"kop.PredSameNameT0", kop.PredSameNameT0, "kop.PredCountersLT", kop.PredCountersLT, "kop.PredToughnessLEV", kop.PredToughnessLEV,
 		"kop.PredTotalPT", kop.PredTotalPT, "kop.PredBlocked", kop.PredBlocked, "kop.PredSolved", kop.PredSolved,
