@@ -151,6 +151,19 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 		}
 	} else {
 		walk(p, true)
+		// A battlefield grant naming no owner ("play a land from among cards
+		// in graveyards", Coram, the Undertaker) reaches an OPPONENT's
+		// graveyard too. mayPlayGrant's self-grant half never hands p
+		// another seat's own statics (mayPlayOwnStatics), so the walk can
+		// visit them; only a board grant that matches (Affected$ decides
+		// ownership) offers one.
+		if e.mayPlayBoardGrantsOpen(p) {
+			for _, q := range e.G.AliveFrom(0) {
+				if q != p {
+					walk(q, false)
+				}
+			}
+		}
 	}
 	if lib := e.G.Zone(state.ZLibrary, p); len(lib) > 0 {
 		if o := e.G.Obj(lib[0]); o != nil && o.Face() != nil && o.Face().IsLand() && o.Controller == p {
