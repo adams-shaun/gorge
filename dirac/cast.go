@@ -1700,6 +1700,19 @@ func (s *State) finishBuild(k *prep) {
 		if early {
 			pre = s.buildCostCharge(k)
 		}
+		// CR 119.4, 733.1: the mana window's mana abilities may have paid life
+		// (Starting Town's {T}, Pay 1 life) after the offer priced this
+		// activation's fixed PayLife<N> payable. gorge charges the life at
+		// payment and reverses the activation when it no longer is
+		// (cast_commit.go), leaving the taps and floating mana; the spell
+		// build rechecks the same at bsCosts. The PayLife<X> form (owed 0) is
+		// bounded by the X ask.
+		if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayLife != 0 {
+			if owed := lifeCostOwed(pc); owed > 0 && int(s.pl[SeatIx(e.ctrl)].life) < owed {
+				s.reverseCast(k)
+				return
+			}
+		}
 		s.payAbilityCosts(k, &e)
 		if k.phyMana {
 			s.payPhyrexianLife(k) // an activation's two-life faces

@@ -1244,6 +1244,15 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !faceHasMeleeTrigger(lc.face) {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
+		case head == "Extort" && param == "":
+			// CR 702.101a: gorge kwExtort expands the keyword into a
+			// SpellCast trigger (DB$ Extort), lowered from that line
+			// (lower_effect.go's Extort arm). The keyword itself has no
+			// CardDef bit; a face whose expansion is missing would lose
+			// the trigger silently.
+			if !faceHasExtortTrigger(lc.face) {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
 		case head == "Partner with":
 			// CR 702.124j: the commander-pair marker (no game characteristic)
 			// and gorge kwPartnerWith's enters trigger, lowered from that
