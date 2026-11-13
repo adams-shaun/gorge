@@ -569,11 +569,6 @@ func (s *State) buildCost0(k *prep) kop.ManaCost {
 // folded, so the caller resolves nothing more.
 func (s *State) buildCostPre(k *prep, pre, charge bool) (kop.ManaCost, bool) {
 	c, done := s.buildCostPreRaw(k, pre, charge)
-	if s.cfg&cfgCommander != 0 && s.bld().e.kind == seSpell {
-		// CR 903.8: the command-zone tax, after the cost statics, so a
-		// reduction never takes it off
-		addCommanderTax(&c, s.commanderTax(s.bld().e.ctrl, s.bld().e.obj))
-	}
 	if s.bld().e.flags&sfAnyMana != 0 && s.bld().e.kind == seSpell {
 		c = anyTypePips(c) // a hand cast under Vizier's conversion too (mana_convertcreature.go); idempotent
 	}
@@ -658,8 +653,14 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if cd.HasModeCost {
 			c = spreeCost(cd, e.mode, c) // kw_spree.go
 		}
+		if s.cfg&cfgCommander != 0 {
+			// CR 903.8: the command-zone tax, an additional cost. A
+			// command-zone cast is only ever this plain cast
+			// (offerCommanderSlot), so this is the one path it reaches.
+			addCommanderTax(&c, s.commanderTax(e.ctrl, e.obj))
+		}
 		// a reduction applies to the total cost, a flashback or kicked one
-		// too (CR 601.2f)
+		// or a taxed one too (CR 601.2f)
 		done := false
 		if pre {
 			c, done = s.foldTb(k, c)

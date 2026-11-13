@@ -1003,8 +1003,7 @@ func (e *Engine) striveAffordableTargets(pc *pendingCast, max int) int {
 		for i := int(pc.striveUnits); i < n-1; i++ {
 			cost = cost.Plus(sc)
 		}
-		cost = pc.mods.Apply(cost)
-		cost.Generic = addClampedGeneric(cost.Generic, int64(pc.taxGeneric))
+		cost = pc.mods.ApplyTaxed(cost, pc.taxGeneric)
 		cost.Generic -= int32(len(pc.delve))
 		if cost.Generic < 0 {
 			cost.Generic = 0

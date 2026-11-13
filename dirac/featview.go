@@ -349,6 +349,11 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	if mode == 0 && k.gen != nil && k.gen.anyConvoke {
 		cost = s.convokeCredit(k, SeatIx(p), c, o, cost)
 	}
+	// the pool pays the taxed cast (CR 903.8), and the tax is part of the
+	// total cost the reductions apply to (CR 601.2f; gorge ApplyTaxedTo); the
+	// convoke credit came off the printed cost (gorge castOfferBase), the
+	// delve credit comes after
+	addCommanderTax(&cost, s.commanderTax(SeatIx(p), o))
 	tb := false
 	if mode&4 != 0 || mode&1 != 0 && k.bargainRed && k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) { // seat-ok: a cast-mode bit
 		cost = s.bargainedPrice(k, SeatIx(p), c, o, cost) // the bargained cast's price, or the optional-cost cast's (cost_reducespell.go)
@@ -370,7 +375,6 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	if mode&2 != 0 && k.t.Cards[c].Harmonize {
 		cost = s.harmonizeCredit(k, SeatIx(p), cost) // gorge harmonizePayment prices the offer after the reductions
 	}
-	addCommanderTax(&cost, s.commanderTax(SeatIx(p), o)) // the pool pays the taxed cast (CR 903.8), its delve credit after
 	if cd := &k.t.Cards[c]; cd.HasAltAdd && mode&2 == 0 {
 		pre := cost
 		// gorge's gate is existential over the either-or parts: one whose
@@ -628,14 +632,16 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 		reserved = s.improviseReserved(k, p, cost.Generic)
 		cost = s.convokeCredit(k, SeatIx(p), c, o, cost)
 	}
-	if s.statM.any() || k.gen != nil {
-		cost = s.featCost(k, SeatIx(p), c, o, cost) // a flashback cost is reduced too
-	}
 	// gorge's planner prices a command-zone cast with its CR 903.8 tax
 	// (offerCostForUsing composes it), so a cast whose untaxed price the
 	// printed sources pay but whose taxed one needs a granted source is the
-	// grant search's, not the planner's (pairs 636, 789: Ghalta)
+	// grant search's, not the planner's (pairs 636, 789: Ghalta). The tax is
+	// part of the total the reductions apply to (CR 601.2f; gorge
+	// ApplyTaxedTo).
 	addCommanderTax(&cost, s.commanderTax(SeatIx(p), o))
+	if s.statM.any() || k.gen != nil {
+		cost = s.featCost(k, SeatIx(p), c, o, cost) // a flashback cost is reduced too
+	}
 	if k.gen != nil && (s.g.mayPlayAny || mode&castMayPlay != 0 && s.mayPlayAnyType(k, p, o) || s.convAnyType(k, SeatIx(p), o)) {
 		cost = anyTypePips(cost) // gorge's planner funds these pips as generic (pay.PlanManaUnderRider)
 	}
