@@ -22,7 +22,12 @@ import (
 //     both graveyards fill; the precondition is that Pit Keeper entered both
 //     with four creature cards in its controller's graveyard and with fewer
 //     there but four or more across both graveyards (the entries an unscoped
-//     count would fire on), and that the trigger was put on the stack.
+//     count would fire on), and that the trigger was put on the stack. The
+//     second matchup plays the Battlefield,Graveyard sum (Sand Strangler: a
+//     Desert you control or a Desert card in your graveyard, both decks
+//     cycling Deserts) and the Battlefield-only form (Eiganjo Free-Riders);
+//     the precondition is Sand Strangler entering both with a Desert of its
+//     controller's and with Deserts only on the other side.
 //   - EachDamage: Nissa's Judgment's DB$ EachDamage | ValidCards$
 //     Creature.YouCtrl+counters_GE1_P1P1 is the DefinedDamagers$ Valid sweep
 //     (gorge effEachDamage); the precondition is that it resolved and dealt
@@ -38,7 +43,7 @@ func TestMBCApiParams11Lowers(t *testing.T) {
 	}
 	t.Run("lockstep", func(t *testing.T) {
 		run, st := runAP11Lockstep(t, 24, true, nil)
-		t.Logf("%d games, %d divergences, %d stalls; Pit Keeper entries %+v, Nissa's Judgment %+v", run.games, run.divs, run.stalls, st.keeper, st.nissa)
+		t.Logf("%d games, %d divergences, %d stalls; Pit Keeper entries %+v, Nissa's Judgment %+v, Sand Strangler entries %+v", run.games, run.divs, run.stalls, st.keeper, st.nissa, st.strangler)
 		if st.keeper.own < 2 {
 			t.Errorf("Pit Keeper entered with four creature cards in its controller's graveyard %d times, want at least 2", st.keeper.own)
 		}
@@ -51,10 +56,17 @@ func TestMBCApiParams11Lowers(t *testing.T) {
 		if st.nissa.dealt < 3 {
 			t.Errorf("Nissa's Judgment resolved and dealt damage %d times, want at least 3", st.nissa.dealt)
 		}
+		if st.strangler.own < 2 || st.strangler.scoped < 2 || st.strangler.pushed < 2 {
+			t.Errorf("Sand Strangler entries %+v: want at least 2 with a Desert of its controller's, 2 with Deserts only on the other side, and 2 triggers pushed", st.strangler)
+		}
 	})
 	t.Run("mutation-PresentPlayer", func(t *testing.T) {
-		run, _ := runAP11Lockstep(t, 24, false, func(tbl *kop.Table) {
-			for _, name := range [...]string{"Pit Keeper", "Gixian Skullflayer"} {
+		run, _ := runAP11Lockstep(t, 24, false, func(tbl *kop.Table, mi int) {
+			names := []string{"Pit Keeper", "Gixian Skullflayer"}
+			if mi == 1 {
+				names = []string{"Sand Strangler"}
+			}
+			for _, name := range names {
 				mutateCard(t, tbl, name, func(a *kop.Ability, _ *kop.Instr) {
 					if a.Kind == kop.AbTriggered {
 						a.Trig.Cond = 0
@@ -65,7 +77,10 @@ func TestMBCApiParams11Lowers(t *testing.T) {
 		run.requireDivergence(t, "a graveyard-count intervening-if dropped")
 	})
 	t.Run("mutation-EachDamage", func(t *testing.T) {
-		run, _ := runAP11Lockstep(t, 24, false, func(tbl *kop.Table) {
+		run, _ := runAP11Lockstep(t, 24, false, func(tbl *kop.Table, mi int) {
+			if mi != 0 {
+				return
+			}
 			mutateCard(t, tbl, "Nissa's Judgment", func(_ *kop.Ability, in *kop.Instr) {
 				if in.Ext() == kop.ExtEachDamage {
 					*in = kop.Instr{Op: kop.OpNop}
@@ -76,17 +91,23 @@ func TestMBCApiParams11Lowers(t *testing.T) {
 	})
 }
 
-var ap11Decks = fixtureDecks{
+var ap11Decks = []fixtureDecks{{
 	{{Name: "Pit Keeper", Count: 8}, {Name: "Gixian Skullflayer", Count: 4}, {Name: "Walking Corpse", Count: 6}, {Name: "Typhoid Rats", Count: 6}, {Name: "Swamp", Count: 16}},
 	{{Name: "Nissa's Judgment", Count: 8}, {Name: "Grizzly Bears", Count: 14}, {Name: "Forest", Count: 18}},
-}
+}, {
+	{{Name: "Sand Strangler", Count: 10}, {Name: "Raging Goblin", Count: 12}, {Name: "Desert of the Fervent", Count: 5}, {Name: "Mountain", Count: 13}},
+	{{Name: "Eiganjo Free-Riders", Count: 8}, {Name: "Savannah Lions", Count: 14}, {Name: "Desert of the True", Count: 5}, {Name: "Plains", Count: 13}},
+}}
 
-var ap11Watch = map[string]bool{"Pit Keeper": true, "Gixian Skullflayer": true, "Nissa's Judgment": true}
+var ap11Watch = map[string]bool{"Pit Keeper": true, "Gixian Skullflayer": true, "Nissa's Judgment": true, "Sand Strangler": true, "Eiganjo Free-Riders": true}
 
 // ap11Stats are the preconditions measured from gorge's side.
 type ap11Stats struct {
 	keeper struct {
 		own, scoped, under, pushed int // entries with >= 4 in its controller's graveyard; < 4 there, >= 4 in all; < 4 in all; triggers pushed
+	}
+	strangler struct {
+		own, scoped, none, pushed int // entries with a Desert of its controller's; Deserts only on the other side; none anywhere; triggers pushed
 	}
 	nissa struct {
 		resolved, dealt int // resolutions; resolutions that dealt damage to a permanent
@@ -98,6 +119,26 @@ func creatureCards(g *state.Game, p state.PlayerID) int {
 	n := 0
 	for _, id := range g.Zone(state.ZGraveyard, p) {
 		if o := g.Obj(id); o != nil && o.Face() != nil && o.Face().IsCreature() {
+			n++
+		}
+	}
+	return n
+}
+
+// deserts counts the Desert permanents p controls plus the Desert cards in
+// p's graveyard (Sand Strangler's PresentZone$ Battlefield,Graveyard read).
+func deserts(g *state.Game, p state.PlayerID) int {
+	n := 0
+	desert := func(o *state.Object) bool { return o != nil && o.Face() != nil && o.Face().HasTypeWord("Desert") }
+	for _, q := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, q) {
+			if o := g.Obj(id); desert(o) && o.Controller == p {
+				n++
+			}
+		}
+	}
+	for _, id := range g.Zone(state.ZGraveyard, p) {
+		if desert(g.Obj(id)) {
 			n++
 		}
 	}
@@ -131,6 +172,21 @@ func ap11Observe(ref *GorgeSide, seen *int, nissaOn *state.ObjID, nissaHit *bool
 			}
 		case e.Kind == events.TriggerPush && name == "Pit Keeper":
 			st.keeper.pushed++
+		case e.Kind == events.MoveZone && e.To == state.ZBattlefield && name == "Sand Strangler":
+			own, all := deserts(g, o.Controller), 0
+			for p := range g.Players {
+				all += deserts(g, state.PlayerID(p))
+			}
+			switch {
+			case own > 0:
+				st.strangler.own++
+			case all > 0:
+				st.strangler.scoped++
+			default:
+				st.strangler.none++
+			}
+		case e.Kind == events.TriggerPush && name == "Sand Strangler":
+			st.strangler.pushed++
 		case e.Kind == events.Resolve && e.Text == "Nissa's Judgment":
 			*nissaOn, *nissaHit = e.Obj, false
 			st.nissa.resolved++
@@ -145,9 +201,10 @@ func ap11Observe(ref *GorgeSide, seen *int, nissaOn *state.ObjID, nissaHit *bool
 	}
 }
 
-// runAP11Lockstep plays seeds 1..seeds of the mbcapiparams11 matchup, gorge
-// leading, measuring the preconditions; mutate rewrites the table first.
-func runAP11Lockstep(t *testing.T, seeds int, report bool, mutate func(*kop.Table)) (fixtureRun, ap11Stats) {
+// runAP11Lockstep plays seeds 1..seeds of the mbcapiparams11 matchups, gorge
+// leading, alternating the matchup and the option surface by seed and
+// measuring the preconditions; mutate rewrites each matchup's table first.
+func runAP11Lockstep(t *testing.T, seeds int, report bool, mutate func(tbl *kop.Table, matchup int)) (fixtureRun, ap11Stats) {
 	t.Helper()
 	reg, err := cards.SharedCorpus(corpusDirOrSkip(t))
 	if err != nil {
@@ -157,37 +214,42 @@ func runAP11Lockstep(t *testing.T, seeds int, report bool, mutate func(*kop.Tabl
 	if err != nil {
 		t.Fatal(err)
 	}
-	var decks [2][]*cards.Card
-	for s, d := range ap11Decks {
-		for _, e := range d {
-			c, ok := reg.Lookup(e.Name)
-			if !ok {
-				t.Fatalf("%s not in the corpus", e.Name)
+	decks := make([][2][]*cards.Card, len(ap11Decks))
+	tbls := make([]*kop.Table, len(ap11Decks))
+	for mi, md := range ap11Decks {
+		for s, d := range md {
+			for _, e := range d {
+				c, ok := reg.Lookup(e.Name)
+				if !ok {
+					t.Fatalf("%s not in the corpus", e.Name)
+				}
+				for range e.Count {
+					decks[mi][s] = append(decks[mi][s], c)
+				}
 			}
-			for range e.Count {
-				decks[s] = append(decks[s], c)
+			if len(decks[mi][s]) != 40 {
+				t.Fatalf("matchup %d deck %d: %d cards", mi, s, len(decks[mi][s]))
 			}
 		}
-		if len(decks[s]) != 40 {
-			t.Fatalf("deck %d: %d cards", s, len(decks[s]))
+		tbl, _, _, err := set.Matchup(md[0], md[1])
+		if err != nil {
+			t.Fatal(err)
 		}
-	}
-	tbl, _, _, err := set.Matchup(ap11Decks[0], ap11Decks[1])
-	if err != nil {
-		t.Fatal(err)
-	}
-	if mutate != nil {
-		mutate(tbl)
+		if mutate != nil {
+			mutate(tbl, mi)
+		}
+		tbls[mi] = tbl
 	}
 	run := fixtureRun{casts: map[string]int{}}
 	var st ap11Stats
 	for seed := uint64(1); seed <= uint64(seeds); seed++ {
+		mi := int(seed/2) % len(ap11Decks)
 		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
-		m, err := NewMatchup(reg, [2]string{"ap11-a", "ap11-b"}, decks, 1)
+		m, err := NewMatchup(reg, [2]string{"ap11-a", "ap11-b"}, decks[mi], 1)
 		if err != nil {
 			t.Fatal(err)
 		}
-		k, err := SetSide(set, tbl, cfg)(m, seed)
+		k, err := SetSide(set, tbls[mi], cfg)(m, seed)
 		if err != nil {
 			t.Fatal(err)
 		}
