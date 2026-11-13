@@ -2253,6 +2253,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.chooseColorPrevent(ps) // Prismatic Strands
 	case "ProtectionAll":
 		return lc.protectionAllChosen(ps) // lower_choosecolorres.go
+	case "Protection":
+		return lc.protection(ps) // lower_protection.go
 	case "ChooseType":
 		return lc.chooseType(ps)
 	case "ChooseNumber":
