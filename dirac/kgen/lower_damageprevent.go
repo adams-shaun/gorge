@@ -102,10 +102,13 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 
 // effectPreventScope lowers the this-turn prevention Effect that names no
 // remembered object: one bodyless Event$ DamageDone | Prevent$ True line in
-// the Command zone whose ValidTarget$ is You, Creature.YouCtrl or both, with
-// ValidSource$ Creature.inZoneBattlefield or none, and no IsCombat$ (combat
-// and noncombat alike). One OpExt PreventDamageScope. It reports false for
-// any other shape so effectPrevent's own arms read it.
+// the Command zone (or ActiveZones$ Battlefield, which gorge does not read for
+// an Effect-created line) whose ValidTarget$ is You, Creature.YouCtrl, both,
+// or none (any recipient: Ethereal Haze), with ValidSource$ Creature.
+// inZoneBattlefield, a Card.<Colour> list (Surge of Salvation) or none, and
+// IsCombat$ True (combat damage only: Loyal Unicorn) or none (combat and
+// noncombat alike). One OpExt PreventDamageScope. It reports false for any
+// other shape so effectPrevent's own arms read it.
 func (lc *lowerCtx) effectPreventScope(ps *params) (bool, error) {
 	if _, ok := ps.get("RememberObjects"); ok {
 		return false, nil
@@ -123,15 +126,22 @@ func (lc *lowerCtx) effectPreventScope(ps *params) (bool, error) {
 	}
 	rp := newParams(r.Params)
 	rp.consume("Event")
-	if !rp.is("Prevent", "True") || !rp.is("ActiveZones", "Command") {
-		return false, nil
-	}
-	if _, ok := rp.get("IsCombat"); ok {
+	if !rp.is("Prevent", "True") || !rp.is("ActiveZones", "Command") && !rp.is("ActiveZones", "Battlefield") {
 		return false, nil
 	}
 	bits := 0
+	if v, ok := rp.get("IsCombat"); ok {
+		if strings.TrimSpace(v) != "True" {
+			return false, nil
+		}
+		bits |= kop.PrevScopeCombat
+	}
+	if rp.str("ValidTarget") == "" {
+		bits |= kop.PrevScopeAll
+	}
 	for _, w := range strings.Split(rp.str("ValidTarget"), ",") {
 		switch strings.TrimSpace(w) {
+		case "":
 		case "You":
 			bits |= kop.PrevScopePlayer
 		case "Creature.YouCtrl":
@@ -140,20 +150,37 @@ func (lc *lowerCtx) effectPreventScope(ps *params) (bool, error) {
 			return false, nil
 		}
 	}
-	if bits == 0 {
-		return false, nil
-	}
-	switch rp.str("ValidSource") {
+	switch vs := rp.str("ValidSource"); vs {
 	case "":
 	case "Creature.inZoneBattlefield":
 		bits |= kop.PrevScopeSrcCreature
 	default:
-		return false, nil
+		var col kop.ColorMask
+		for _, w := range strings.Split(vs, ",") {
+			c, ok := scopeSourceColours[strings.TrimSpace(w)]
+			if !ok {
+				return false, nil
+			}
+			col |= c
+		}
+		bits |= int(col) << kop.PrevScopeColourShift
 	}
 	if left := rp.unread(); len(left) > 0 {
 		return true, refuse("Effect replacement unread %v", left)
 	}
+	if v, ok := ps.get("ExileOnLost"); ok && strings.TrimSpace(v) == "True" {
+		// Surge of Salvation: it ends the Effect when its remembered card is
+		// lost, and a scope Effect remembers nothing (gorge reads no ExileOnLost$)
+		ps.consume("ExileOnLost")
+	}
 	ps.consume("ReplacementEffects", "AILogic")
 	lc.emit(lInstr{Op: "PreventDamageScope", C: bits, Note: "prevent the damage the controller and their creatures would take this turn"})
 	return true, nil
+}
+
+// scopeSourceColours are the ValidSource$ words of a colour-filtered scoped
+// prevention (Surge of Salvation: Card.Red,Card.Black).
+var scopeSourceColours = map[string]kop.ColorMask{
+	"Card.White": kop.ColW, "Card.Blue": kop.ColU, "Card.Black": kop.ColB,
+	"Card.Red": kop.ColR, "Card.Green": kop.ColG,
 }

@@ -714,7 +714,7 @@ func (s *State) applyAskStdmech(k *prep, a Action) bool {
 	free := -1
 	for i := range s.g.prevCol {
 		r := &s.g.prevCol[i]
-		if DebugPrevColRecolor && r.col != 0 && r.obj == o {
+		if DebugPrevColRecolor && r.sc == 0 && r.col != 0 && r.obj == o {
 			r.col = col // the pre-690ed17f0 reading: the card's live ChosenColor
 		} else if r.col == 0 && r.sc == 0 && free < 0 {
 			free = i
