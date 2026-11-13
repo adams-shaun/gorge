@@ -24,7 +24,7 @@ import (
 //     Return<1/Permanent>: a returned land has already paid mana) and on
 //     Devour in Flames (a sorcery) is played beside it.
 //   - param:Draw.Reveal (Fa'adiyah Seer's "draw a card and reveal it") has no
-//     MBC card that lowers whole yet, so dirac/kgen/draw_reveal_test.go holds it.
+//     MBC card that lowers whole yet, so dirac/kgen/mbc_returncost_reveal_test.go holds it.
 
 var mbcApiParams7Decks = []fixtureDecks{{
 	{

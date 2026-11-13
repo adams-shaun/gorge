@@ -2,7 +2,7 @@
 # Ruse (Return<1/Creature> as an additional spell cost) and its kin Deprive,
 # Disappearing Act and Devour in Flames (Return<1/Land>, Return<1/Permanent>)
 # beside creatures to attack and return, burn that kills the tokens, and basics
-# (dirac/oracle/mbc_apiparams7_test.go)
+# (dirac/oracle/mbc_returncost_mobilize_test.go)
 Dalkovan Packbeasts
 Familiar's Ruse
 Deprive
