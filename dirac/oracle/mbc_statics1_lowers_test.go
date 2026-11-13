@@ -33,6 +33,7 @@ func TestMBCStatics1Lowers(t *testing.T) {
 		{"Wonder", "Flying", "Island"},
 		{"Filth", "Landwalk", "Swamp"}, // HasKeyword compares the head: Landwalk:Swamp is "Landwalk"
 		{"Valor", "First Strike", "Plains"},
+		{"Brawn", "Trample", "Forest"}, // lowers with the family; the fifth Incarnation (not in the MBC lists)
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			deck := []cardset.Entry{{Name: tc.name, Count: 10}, {Name: "Phyrexian Walker", Count: 10}, {Name: tc.land, Count: 20}}

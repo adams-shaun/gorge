@@ -33,16 +33,21 @@ func (lc *lowerCtx) graveContinuous(s cards.Static) (cards.Static, bool, error) 
 	if !ok || strings.TrimSpace(ez) != "Graveyard" {
 		return s, false, nil
 	}
+	if _, kw := s.Params["AddKeyword"]; !kw {
+		return s, false, nil // a graveyard MayPlay grant and the rest keep their own routes
+	}
+	for _, k := range []string{"MayPlay", "AffectedZone"} {
+		if _, has := s.Params[k]; has {
+			return s, false, nil // the graveyard grants of cards (flashback, escape, may-play) keep their own routes
+		}
+	}
 	if len(lc.face.Statics) != 1 {
 		return s, true, refuse("EffectZone$ Graveyard static beside another static of the face")
 	}
-	for _, k := range []string{"AddPower", "AddToughness", "AddType", "AddAbility", "AddTrigger", "AddStaticAbility", "RemoveKeyword", "RemoveAllAbilities", "AffectedZone", "AffectedDefined", "Goad", "ExcludeZone"} {
+	for _, k := range []string{"AddPower", "AddToughness", "AddType", "AddAbility", "AddTrigger", "AddStaticAbility", "RemoveKeyword", "RemoveAllAbilities", "AffectedDefined", "Goad", "ExcludeZone"} {
 		if _, has := s.Params[k]; has {
 			return s, true, refuse("EffectZone$ Graveyard static reading %s (only a keyword grant is read)", k)
 		}
-	}
-	if _, has := s.Params["AddKeyword"]; !has {
-		return s, true, refuse("EffectZone$ Graveyard static without AddKeyword$")
 	}
 	ps := make(map[string]string, len(s.Params))
 	for k, v := range s.Params {
