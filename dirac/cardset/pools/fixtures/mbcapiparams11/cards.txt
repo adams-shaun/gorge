@@ -1,0 +1,12 @@
+# the MBC api-params-11 pool: Pit Keeper and Gixian Skullflayer (a trigger's
+# IsPresent$ in your graveyard, PresentPlayer$ You), Nissa's Judgment
+# (EachDamage ValidCards$) beside vanilla creatures and basics
+# (dirac/oracle/mbc_api_params11_lowers_test.go)
+Pit Keeper
+Gixian Skullflayer
+Walking Corpse
+Typhoid Rats
+Nissa's Judgment
+Grizzly Bears
+Swamp
+Forest
