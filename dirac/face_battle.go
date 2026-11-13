@@ -115,7 +115,7 @@ func (s *State) enterDefense(k *prep, sl Slot, c CardID) {
 // addBattleOffers appends the attack of attacker o on each attackable
 // battle: ascending seat, then battlefield order (gorge attackOffersCompute
 // walks every seat's battlefield).
-func (s *State) addBattleOffers(k *prep, d *Decision, o uint8) {
+func (s *State) addBattleOffers(k *prep, d *Decision, o Obj) {
 	var order [MaxPerm]Slot
 	n := 0
 	for p := uint8(0); p < s.nSeats(); p++ {

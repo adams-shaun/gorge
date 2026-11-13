@@ -192,7 +192,7 @@ func (s *State) combatRcp(k *prep, ev *dmgEv) TCode {
 		if MaxSeats == 2 {
 			return PlayerCode(NextSeat(s.active))
 		}
-		if p := s.atkSeat(k, ev.src); TCode(p) != NoTarget {
+		if p := s.atkSeat(k, ev.src); p != noSeat {
 			return PlayerCode(p)
 		}
 		return PlayerCode(s.nextAlive(s.active))

@@ -168,7 +168,7 @@ func (s *State) ksrOffered(k *prep, idx, d int, must bool, out *[MaxOptions]TCod
 	if e.kind != seSpell {
 		// an ability is no legal target for itself (CR 115.5): the entry's own
 		// stack code (a spell's own object is the self targetCands skips)
-		self, m := StackTarget0+TCode(uint8(idx)), 0
+		self, m := StackTarget0+TCode(idx), 0
 		for _, c := range out[:n] {
 			if c != self {
 				out[m] = c

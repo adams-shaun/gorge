@@ -216,7 +216,7 @@ func (s *State) askOptionsCold2(k *prep, d *Decision) bool {
 		d.Sub = ChGenTapOrUntap
 		in := &s.prog(k)[s.res.pc]
 		sl := s.objRef(k, in.Obj)
-		o := uint8(s.perms[sl].obj)
+		o := s.perms[sl].obj
 		first, second := uint8(1), uint8(0)
 		if s.perms[sl].flags&pfTapped != 0 {
 			first, second = 0, 1
@@ -248,7 +248,7 @@ func (s *State) askOptionsCold2(k *prep, d *Decision) bool {
 		// gorge's options: the graveyard (option 0), back on top
 		d.Sub = ChGenExplore
 		pl := &s.pl[s.res.askP]
-		top := uint8(pl.lib[pl.libLo])
+		top := pl.lib[pl.libLo]
 		d.add(MakeAction(AkChoose, TCode(top), 0, 0))
 		d.add(MakeAction(AkChoose, TCode(top), 0, 1))
 	default:

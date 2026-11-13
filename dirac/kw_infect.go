@@ -258,7 +258,7 @@ func (s *State) combatFoe(k *prep, sl Slot) uint8 {
 	if c != s.active {
 		return s.active
 	}
-	if p := s.atkSeat(k, sl); TCode(p) != NoTarget {
+	if p := s.atkSeat(k, sl); p != noSeat {
 		return p
 	}
 	return s.nextAlive(c)

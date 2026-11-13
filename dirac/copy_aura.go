@@ -40,12 +40,12 @@ func (s *State) auraCopyDeclSlot(k *prep, e *stackEntry) int {
 func (s *State) setAuraCopyTarget(e *stackEntry, picks []Obj) {
 	e.tgt[0] = TCode(NoTarget)
 	for _, o := range picks[:min(len(picks), 1)] {
-		c := uint8(o)
+		c := TCode(o)
 		var ver uint8
-		if isObjTarget(TCode(c)) {
+		if isObjTarget(c) {
 			ver = s.objs[c].ver
 		}
-		e.tgt[0], e.tver[0] = TCode(c), ver
+		e.tgt[0], e.tver[0] = c, ver
 	}
 	if e.nt == 0 {
 		e.nt = 1

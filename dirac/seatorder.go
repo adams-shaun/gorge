@@ -33,7 +33,7 @@ func SeatIx(p uint8) uint8 { return p % MaxSeats }
 
 // PlayerCode is seat p's target code (CR 115.1: a player can be a target).
 // Every seat has one: the code space holds MaxSeats player codes.
-func PlayerCode(p uint8) TCode { return PlayerTarget0 + TCode(p) }
+func PlayerCode(p uint8) TCode { return PlayerTarget0 + TCode(p) } // code-ok: a seat's offset
 
 // isPlayerOrNone reports whether target byte c is at or above the player
 // codes: a player, a departed stack target (0xFE) or NoTarget. It is the raw
@@ -145,7 +145,7 @@ func (s *State) oppsM(p uint8) slotMask {
 // atkSeat is the player attacker a's attack is against (CR 506.2): the
 // attacked player, or the controller of the attacked planeswalker, or the
 // protector of the attacked battle (CR 310.8). A walker that has left
-// leaves its attacker with no defending player here, NoTarget.
+// leaves its attacker with no defending player here, noSeat.
 func (s *State) atkSeat(k *prep, a Slot) uint8 {
 	if MaxSeats == 2 {
 		return 1 - s.active
@@ -156,7 +156,7 @@ func (s *State) atkSeat(k *prep, a Slot) uint8 {
 	}
 	q := s.attackedPerm(k, a)
 	if q == NoSlot {
-		return uint8(NoTarget)
+		return noSeat
 	}
 	if s.typesAt(k, q)&kop.TBattle != 0 && s.perms[q].chosen&protChosen == protChosen {
 		return s.perms[q].chosen &^ protChosen

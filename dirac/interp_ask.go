@@ -934,15 +934,15 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 	case raGenResTarget:
 		in := &s.prog(k)[r.pc]
 		i := int(in.C)
-		c := uint8(NoTarget)
+		c := NoTarget
 		if a.Kind() == AkChoose {
-			c = uint8(a.Source())
+			c = a.Source()
 		}
-		r.e.tgt[i] = TCode(c)
+		r.e.tgt[i] = c
 		if r.e.nt <= uint8(i) {
 			r.e.nt = uint8(i) + 1
 		}
-		if TCode(c) != NoTarget && isObjTarget(TCode(c)) {
+		if c != NoTarget && isObjTarget(c) {
 			r.e.tver[i] = s.objs[c].ver
 		}
 		r.bad &^= 1 << i

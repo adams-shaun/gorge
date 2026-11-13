@@ -120,8 +120,8 @@ func (s *State) tgtBattlefieldMatch(k *prep, f kop.FilterID, p uint8, c TCode) b
 // spellTgtingStill is targetStillLegal for a TgtSpellTgting slot: gorge does
 // not reread the targeting clause at resolution, so the target is a plain
 // spell target (still a spell on the stack, never the entry itself).
-func (s *State) spellTgtingStill(e *stackEntry, code uint8) bool {
-	if !isObjTarget(TCode(code)) || Obj(code) == e.obj || s.objs[code].zone != kop.ZoneStack {
+func (s *State) spellTgtingStill(e *stackEntry, code TCode) bool {
+	if !isObjTarget(code) || Obj(code) == e.obj || s.objs[code].zone != kop.ZoneStack {
 		return false
 	}
 	i := s.stackIndexOf(Obj(code))

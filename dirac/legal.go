@@ -1764,7 +1764,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 	case AkCast:
 		face := a.Mode()&castFace != 0
 		if face && (a.Target() != 0 || k.anyRoom && roomDef(k, s.objs[a.Source()].card)) {
-			s.turnFaceCast(k, Obj(a.Source()), uint8(a.Target())) // a face cast (face_castface.go)
+			s.turnFaceCast(k, Obj(a.Source()), uint8(a.Target())) // code-ok: a face cast's face (face_castface.go)
 		}
 		if a.Target() == castImpTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyImpending {
 			s.g.impCast = true // the impending cost (kw_impending.go)
@@ -1791,7 +1791,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 			// the warp instance the action names (kw_warpgrant.go): a grant's
 			// marks the entry for the cost builder
 			wi := s.warpInstances(k, s.prio, Obj(a.Source()))
-			s.g.warpGrant = a.Target() < TCode(wi.n) && wi.grant[a.Target()]
+			s.g.warpGrant = a.Target() < TCode(wi.n) && wi.grant[a.Target()] // code-ok: a warp instance index
 		}
 		if a.Mode() == 2 && k.gen != nil && k.gen.anyBeam {
 			s.noteBeamCast(k, a) // kw_beammeup.go
@@ -1799,7 +1799,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if a.Mode()&2 != 0 && a.Target() == TCode(castEscapeTgt) && k.gen != nil && k.gen.anyEscapeGrant {
 			s.g.escapeCast = true // the escape cast the action names (kw_escape.go)
 		}
-		s.beginCast(k, Obj(a.Source()), a.Mode(), uint8(a.Target())) // the target byte names a retrace cast (kw_retrace.go)
+		s.beginCast(k, Obj(a.Source()), a.Mode(), uint8(a.Target())) // code-ok: the target field names a retrace cast (kw_retrace.go)
 		if face {
 			s.lowerFaceCast(k, p, Obj(a.Source())) // cast_faceroute.go
 		}

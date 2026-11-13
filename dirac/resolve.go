@@ -36,7 +36,7 @@ func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 		return false
 	}
 	if t.Kind == kop.TgtSpellTgting || t.Kind == kop.TgtStackTgting {
-		return s.spellTgtingStill(e, uint8(code)) // tgt_countershapes.go
+		return s.spellTgtingStill(e, code) // tgt_countershapes.go
 	}
 	src := NoSlot
 	if e.kind != seSpell {
@@ -1037,7 +1037,7 @@ func (s *State) oneOppOf(k *prep, r kop.Ref, e *stackEntry, ctrl uint8, obj Obj)
 	}
 	if r == kop.RefDefendingPlayer && obj != NoObj {
 		if ob := &s.objs[obj]; ob.zone == kop.ZoneBattlefield && s.perms[ob.slot].flags&pfAttacking != 0 {
-			if p := s.atkSeat(k, ob.slot); TCode(p) != NoTarget {
+			if p := s.atkSeat(k, ob.slot); p != noSeat {
 				return p
 			}
 		}

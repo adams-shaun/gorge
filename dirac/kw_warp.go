@@ -76,7 +76,7 @@ func (s *State) offerWarpHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av
 		if !s.altAddCastable(k, c, p, o, &wc, av) {
 			continue
 		}
-		d.add(MakeAction(AkCast, TCode(o), TCode(i), castWarp))
+		d.add(MakeAction(AkCast, TCode(o), TCode(i), castWarp)) // code-ok: a warp instance index
 	}
 }
 

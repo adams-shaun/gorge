@@ -1384,10 +1384,10 @@ func (s *State) applyBuild(k *prep, a Action) {
 			break
 		}
 		if s.bld().stage == bsAltAdd {
-			part := a.Target()
-			s.bld().altAdd = uint8(part)
+			part := uint8(a.Target()) // code-ok: the either-or part (0 or 1)
+			s.bld().altAdd = part
 			s.nextStage(k)
-			if !s.altAddPayable(k, uint8(part)) && !s.altAddOpenTargets(k) && !s.altAddPipsFirst(k) {
+			if !s.altAddPayable(k, part) && !s.altAddOpenTargets(k) && !s.altAddPipsFirst(k) {
 				if k.t.Cards[e.card].BeholdN != 0 && !s.requiredTarget(k) {
 					// The seat chose an unpayable part of a behold-or-mana
 					// cost: gorge pays through its fallback CR 601.2g
@@ -1506,7 +1506,7 @@ func (s *State) applyBuild(k *prep, a Action) {
 			if isObjTarget(a.Target()) {
 				e.tver[ti] = s.objs[a.Target()].ver
 			} else if isStackTarget(a.Target()) {
-				s.stackTgtPicked(e, ti, uint8(a.Target())) // its stack identity (tgt_stackability.go)
+				s.stackTgtPicked(e, ti, a.Target()) // its stack identity (tgt_stackability.go)
 			}
 			if ti+1 > e.nt {
 				e.nt = ti + 1
@@ -2125,7 +2125,7 @@ func (s *State) ordered(i uint8) bool {
 }
 
 func (s *State) applyTriggerOrder(k *prep, a Action) {
-	s.ordList[s.orderN] = uint8(a.Target())
+	s.ordList[s.orderN] = uint8(a.Target()) // code-ok: a pending-trigger index (AkOrder)
 	s.orderN++
 	s.orderLeft--
 	if s.orderLeft == 0 {
@@ -2609,7 +2609,7 @@ func (s *State) altAddOptions(k *prep, d *Decision) {
 	for pass := 0; pass < passes; pass++ {
 		for part := uint8(0); part < 2; part++ {
 			if ok[part] == (pass == 0) {
-				d.add(MakeAction(AkChoose, 0, TCode(part), pos))
+				d.add(MakeAction(AkChoose, 0, TCode(part), pos)) // code-ok: the either-or part
 				pos++
 			}
 		}

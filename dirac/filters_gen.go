@@ -336,7 +336,7 @@ func (s *State) flags2Obj(f kop.FilterFlags2, o Obj) bool {
 
 func (s *State) entryTargets(e *stackEntry, o Obj) bool {
 	for i := 0; i < kop.MaxTargets; i++ {
-		if e.tgt[i] == TCode(uint8(o)) {
+		if e.tgt[i] == TCode(o) {
 			return true
 		}
 	}

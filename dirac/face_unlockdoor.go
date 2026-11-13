@@ -45,7 +45,7 @@ func (s *State) extUnlockDoor(k *prep, in *kop.Instr) bool {
 	if pm.ctrl != s.res.e.ctrl || !roomDef(k, pm.card) || s.objs[pm.obj].card != pm.card || s.faceDown(k, sl) {
 		return true
 	}
-	s.res.peek[0] = Obj(sl)
+	s.res.peek[0] = Obj(sl) // code-ok: a slot rides the peek list
 	if in.C&1 != 0 { // seat-ok: an instruction flag bit
 		s.res.ask, s.res.askP = raUnlockHalf, s.res.e.ctrl
 		return false
@@ -62,7 +62,7 @@ func (s *State) extUnlockDoor(k *prep, in *kop.Instr) bool {
 //
 //go:noinline
 func (s *State) unlockDoorHalf(k *prep, a Action) {
-	sl := Slot(s.res.peek[0])
+	sl := Slot(s.res.peek[0]) // code-ok: the slot unlockDoorAsk parked
 	s.res.ask = raNone
 	if !s.unlockDoorStep(k, sl, a.Mode() == 1) {
 		s.continueRes(k, 0)
@@ -177,7 +177,7 @@ func (s *State) askOptionsUnlockDoor(k *prep, d *Decision) bool {
 		return true
 	}
 	d.Sub = ChRoomDoor
-	sl := Slot(s.res.peek[0])
+	sl := Slot(s.res.peek[0]) // code-ok: the slot unlockDoorAsk parked
 	if sl == NoSlot {
 		return true
 	}
@@ -189,7 +189,7 @@ func (s *State) askOptionsUnlockDoor(k *prep, d *Decision) bool {
 		if !s.unlockDoorFi(m, fi, lock) {
 			continue
 		}
-		d.add(MakeAction(AkChoose, TCode(pm.obj), TCode(ord), fi))
+		d.add(MakeAction(AkChoose, TCode(pm.obj), TCode(ord), fi)) // code-ok: the door's place in the options
 		ord++
 	}
 	return true
@@ -208,7 +208,7 @@ func (s *State) applyAskUnlockDoor(k *prep, a Action) bool {
 		return true
 	}
 	s.res.ask = raNone
-	sl := Slot(s.res.peek[0])
+	sl := Slot(s.res.peek[0]) // code-ok: the slot unlockDoorAsk parked
 	lock := s.res.left != 0
 	fi := a.Mode()
 	if sl != NoSlot && fi < 2 && s.unlockDoorCand(k, sl, lock) && s.unlockDoorFi(roomMask(k, s.perms[sl].card), fi, lock) {

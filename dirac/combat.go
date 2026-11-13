@@ -114,7 +114,7 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 		if int(d.N) > room {
 			return s.optionsFull(d)
 		}
-		o := uint8(s.perms[sl].obj)
+		o := s.perms[sl].obj
 		if MaxSeats > 2 {
 			s.attackOffersN(k, d, o, sl, gd && s.goadedAt(k, sl))
 			if k.gen != nil && k.gen.anyBattle {
@@ -165,7 +165,7 @@ func (s *State) mustAttackAsked() bool {
 // seat goaded it too (CR 701.15b; gorge combat.GoadMayAttack).
 //
 //go:noinline
-func (s *State) attackOffersN(k *prep, d *Decision, o uint8, sl Slot, goaded bool) {
+func (s *State) attackOffersN(k *prep, d *Decision, o Obj, sl Slot, goaded bool) {
 	for q := uint8(0); q < s.nSeats(); q++ {
 		if q == s.active || s.out(q) {
 			continue
@@ -423,9 +423,9 @@ func (s *State) fireAttacksGen(k *prep) {
 }
 
 // firstAtkSeat is the lowest seat an attacker attacks (gorge's first
-// DeclareAttackers event of the declaration), NoTarget with none.
+// DeclareAttackers event of the declaration), noSeat with none.
 func (s *State) firstAtkSeat(k *prep) uint8 {
-	q := uint8(NoTarget)
+	q := noSeat
 	for x := s.ctrlM[s.active].and(s.occ); x.any(); x = x.rest() {
 		if sl := x.first(); s.perms[sl].flags&pfAttacking != 0 {
 			q = min(q, s.atkSeat(k, sl))
@@ -435,9 +435,9 @@ func (s *State) firstAtkSeat(k *prep) uint8 {
 }
 
 // stampDefSeat binds defending seat q to the pending triggers from n0 on
-// (pendingTrig.defSeat); NoTarget binds none.
+// (pendingTrig.defSeat); noSeat binds none.
 func (s *State) stampDefSeat(n0 uint8, q uint8) {
-	if TCode(q) == NoTarget {
+	if q == noSeat {
 		return
 	}
 	for i := n0; i < s.npend; i++ {
@@ -1507,7 +1507,7 @@ func (s *State) divideOptions(k *prep, d *Decision) {
 	nb := s.liveBlockers(s.divA, &bl)
 	d.Kind, d.Sub, d.Player = DkChoose, ChDivide, s.active
 	n := splits(int(s.divRem), nb)
-	o := uint8(s.perms[s.divA].obj)
+	o := s.perms[s.divA].obj
 	for i := 0; i < n; i++ {
 		d.add(MakeAction(AkChoose, TCode(o), 0, uint8(i)))
 	}

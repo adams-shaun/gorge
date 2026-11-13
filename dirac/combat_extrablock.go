@@ -301,7 +301,7 @@ func (s *State) nextBlockerDivision(k *prep, first bool, order *[MaxPerm]Slot, n
 // share (SplitAt with two recipients).
 func (s *State) blockerDivideOptions(d *Decision) {
 	d.Kind, d.Sub, d.Player = DkChoose, ChDivide, s.perms[s.divA].ctrl
-	o := uint8(s.perms[s.divA].obj)
+	o := s.perms[s.divA].obj
 	for i, n := 0, splits(int(s.divRem), 2); i < n; i++ {
 		d.add(MakeAction(AkChoose, TCode(o), 0, uint8(i)))
 	}

@@ -252,9 +252,9 @@ func (s *State) sneakEnter(k *prep, sl Slot, e *stackEntry) {
 // zone check catching it. A pool that gains such a card must add that
 // check (or refuse the card) before it can be lowered.
 func (s *State) enteringAttackLegal(k *prep, ctrl uint8, d Obj) bool {
-	t := uint8(d)
-	if isPlayerTarget(TCode(t)) {
-		return CodeSeat(TCode(t)) != SeatIx(ctrl)
+	t := TCode(d)
+	if isPlayerTarget(t) {
+		return CodeSeat(t) != SeatIx(ctrl)
 	}
 	if d == NoObj {
 		return false

@@ -129,7 +129,7 @@ func (s *State) stackTgtCands(k *prep, t *kop.TargetSpec, p uint8, self Obj, out
 				s.stall(StallTables) // beyond gorge's canonical stack range
 				continue
 			}
-			code = (StackTarget0 + TCode(uint8(i)))
+			code = StackTarget0 + TCode(i)
 		}
 		if s.stackTgtOK(k, t, p, self, code) {
 			out[n] = code
@@ -141,8 +141,8 @@ func (s *State) stackTgtCands(k *prep, t *kop.TargetSpec, p uint8, self Obj, out
 
 // stackTgtPicked records the identity of a picked stack-ability target in
 // its slot's tver.
-func (s *State) stackTgtPicked(e *stackEntry, ti uint8, code uint8) {
-	if i := int(TCode(code) - StackTarget0); i < int(s.sp) {
+func (s *State) stackTgtPicked(e *stackEntry, ti uint8, code TCode) {
+	if i := int(code - StackTarget0); i < int(s.sp) {
 		e.tver[ti] = s.stack[i].sid
 	}
 }

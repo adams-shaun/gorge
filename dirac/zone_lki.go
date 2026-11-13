@@ -261,7 +261,7 @@ const (
 func (s *State) snapResTarget(o Obj) {
 	e := &s.res.e
 	for i := 0; i < len(e.tgt); i++ {
-		if e.tgt[i] == TCode(uint8(o)) {
+		if e.tgt[i] == TCode(o) {
 			if li := s.snapLKI(o); li != 0 {
 				s.g.tli = li
 			}
