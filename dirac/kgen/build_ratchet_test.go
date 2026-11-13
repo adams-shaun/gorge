@@ -254,7 +254,8 @@ import (
 // +16 (the merge with land at 1acc5919d9: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering beside land's later work; merged ALL build-level 23115 -> 23131 measured).
 // +14 (Extort lowered, the keyword and its SpellCast trigger, against land's corpus; merged ALL build-level 23177 -> 23191 measured).
 // +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL build-level 23251 -> 23252 measured).
-var buildAcceptancePin = [2]int{23253, 34442} // {built, cards}
+// +5 (the MBC zone-moves-6 spellings lower: the search's AttachedTo$ named bearer (Boonweaver Giant, Runed Crown, Arachnus Spinner), the inert LimitSearchLibrary player grant (Aven Mindcensor) and the library position 2 of Self from its own graveyard (Bookwurm); ALL build-level 23253 -> 23258 measured).
+var buildAcceptancePin = [2]int{23258, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)

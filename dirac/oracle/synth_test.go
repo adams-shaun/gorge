@@ -317,7 +317,8 @@ func TestTailBucketsPartitionAll(t *testing.T) {
 	for _, pool := range names {
 		set := cardsettest.Synth(t, pool)
 		std := strings.HasPrefix(pool, "std-")
-		if !std {
+		draft := strings.HasPrefix(pool, cardset.SynthDraftPrefix)
+		if !std && !draft {
 			buckets++
 			if set.NumCards() > cardset.TailBucket+len(cardset.SynthBasics) {
 				t.Errorf("%s holds %d cards", pool, set.NumCards())
@@ -331,10 +332,14 @@ func TestTailBucketsPartitionAll(t *testing.T) {
 					t.Errorf("%q is in %s and %s", n, pool, where[n])
 				}
 				inStd[n] = true
+			case draft:
+				// a draft pool (dr-<code>) replays a dealt list whose names
+				// live in the Standard and tail buckets: it partitions
+				// nothing and its not-lowered names are no one's refusal.
 			case where[n] != "":
 				t.Errorf("%q is in %s and %s", n, pool, where[n])
 			}
-			if !cardset.IsSynthBasic(n) && !std {
+			if !cardset.IsSynthBasic(n) && !std && !draft {
 				where[n] = pool
 			}
 		}
