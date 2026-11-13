@@ -2119,6 +2119,14 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			}
 			continue
 		}
+		if head == "ExileFromGrave" && parts[0] == "X" {
+			// ExileFromGrave<X/Spec> (lower_exilex.go): the announced count
+			parts = strings.SplitN(arg, "/", 3)
+			if err := lc.exileXCost(&c, parts, t); err != nil {
+				return c, err
+			}
+			continue
+		}
 		if head == "CollectEvidence" {
 			// CollectEvidence<N> (CR 701.59a): exile graveyard cards with
 			// total mana value N or greater (gorge cost.parse's Evidence

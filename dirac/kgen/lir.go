@@ -559,6 +559,7 @@ type lCost struct {
 	Forage         *lFilter // forage: exile three cards from your graveyard or sacrifice a Food matching (CR 701.61a)
 	ExileG         *lFilter // ExileFromGrave<N/Spec>: exile ExileGN cards matching from your graveyard (CARDNAME: Self)
 	ExileGN        int
+	ExileGX        bool     // ExileFromGrave<X/Spec>: exile the announced X cards matching ExileG (kop.CostExileGrave with N 0; a spell's own cost beside a printed {X}; lower_exilex.go)
 	ExileGSelf     bool     // ExileFromGrave<1/CARDNAME> first, then ExileFromGrave<N/Other spec> (kop.Cost.ExileGSelf; a graveyard activated ability's cost)
 	exileGCard     bool     // ExileG is the CARDNAME singleton part (a second ExileFromGrave part may follow)
 	ExileHandN     int      // ExileFromHand<N/Card>: exile N cards from your hand (a trigger's own cost only; cost_exilefromhand.go)

@@ -35,10 +35,38 @@ var mbcEntwineDecks = []fixtureDecks{{
 	},
 }}
 
+//   - cost:ExileFromGrave (CR 601.2b): Skeletal Scrying's X B ExileFromGrave<X/Card>.
+//     gorge announces X bounded by the mana and the graveyard's cards, then
+//     asks exactly X graveyard cards to exile; the kernel's X ask is
+//     min-clamped by the candidates and its cost-pick stage walks X picks
+//     (dirac/cost_exilex.go).
+
+var mbcExileXWatch = map[string]bool{"Skeletal Scrying": true}
+
+var mbcExileXDecks = []fixtureDecks{{
+	{
+		{Name: "Skeletal Scrying", Count: 4}, {Name: "Lightning Bolt", Count: 4}, {Name: "Terror", Count: 3},
+		{Name: "Grizzly Bears", Count: 4}, {Name: "Hill Giant", Count: 3}, {Name: "Shock", Count: 2},
+		{Name: "Swamp", Count: 10}, {Name: "Mountain", Count: 10},
+	},
+	{
+		{Name: "Skeletal Scrying", Count: 4}, {Name: "Terror", Count: 4}, {Name: "Shock", Count: 4},
+		{Name: "Savannah Lions", Count: 4}, {Name: "Elite Vanguard", Count: 3}, {Name: "Hill Giant", Count: 3},
+		{Name: "Swamp", Count: 8}, {Name: "Plains", Count: 5}, {Name: "Mountain", Count: 5},
+	},
+}}
+
 func TestMBCCosts2Lowers(t *testing.T) {
 	if isolate(t) {
 		return
 	}
+	t.Run("cost:ExileFromGrave", func(t *testing.T) {
+		run := runFixtureLockstep(t, "mbcexilex", mbcExileXDecks, mbcExileXWatch, 120, true, nil)
+		t.Logf("%d games, %d divergences, %d stalls, casts %v", run.games, run.divs, run.stalls, run.casts)
+		if run.casts["Skeletal Scrying"] < 10 {
+			t.Errorf("Skeletal Scrying cast %d times", run.casts["Skeletal Scrying"])
+		}
+	})
 	t.Run("kw:Entwine", func(t *testing.T) {
 		run := runFixtureLockstep(t, "mbcentwine", mbcEntwineDecks, mbcEntwineWatch, 120, true, nil)
 		t.Logf("%d games, %d divergences, %d stalls, casts %v", run.games, run.divs, run.stalls, run.casts)

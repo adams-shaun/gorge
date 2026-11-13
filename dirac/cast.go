@@ -871,8 +871,14 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if k.gen != nil && k.gen.anySacX {
 				mx = s.sacXClamp(k, &cost, mx) // Sac<X/Spec> bounds the ask by the sacrifice candidates
 			}
+			if k.gen != nil && k.gen.anyExileX {
+				mx = s.exileXClamp(k, mx) // ExileFromGrave<X/Spec> bounds the ask by the graveyard candidates
+			}
 			d.Kind, d.Sub, d.Player = DkChoose, ChX, e.ctrl
 			hi := s.xReducedCeiling(k, e, &cost, &av, mx)
+			if k.gen != nil && k.gen.anyExileX {
+				hi = s.exileXClamp(k, hi)
+			}
 			if np := s.convokeXCredit(k); np > 0 {
 				hi = min(maxXAsk, max(hi, mx+np)) // each announced pick pays one generic (a harmonize pick its power) of the X total
 			}
