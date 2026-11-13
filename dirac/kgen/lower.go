@@ -3138,7 +3138,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			// (Cryptex); a hand / graveyard ability is not modelled
 			return refuse("evidence cost on a mana ability or outside a battlefield ability")
 		}
-		if ps.is("Planeswalker", "True") {
+		if loyaltyMarked(ps.str("Planeswalker")) {
 			ab.Loyalty = true
 			ab.Sorcery = true
 		}
