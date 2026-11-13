@@ -17,11 +17,16 @@ import (
 // other ActivationFirstCombat$ value refuse (gorge fails the latter closed);
 // ActivationAfterBlockers$ stays unread, so it refuses with its name.
 func (lc *lowerCtx) activationWindow(ps *params, sa *cards.SA, ab *lAbility) error {
-	spec, hasPhases := ps.get("ActivationPhases")
-	fc, hasFirst := ps.get("ActivationFirstCombat")
+	if ab.Ninjutsu || ab.PutSelf {
+		return nil // the ninjutsu expansion's own window (lower_ninjutsu.go)
+	}
+	_, hasPhases := ps.m["ActivationPhases"]
+	_, hasFirst := ps.m["ActivationFirstCombat"]
 	if !hasPhases && !hasFirst {
 		return nil
 	}
+	spec, _ := ps.get("ActivationPhases")
+	fc, _ := ps.get("ActivationFirstCombat")
 	if sa.API == "Mana" || ab.Kind != akActivated {
 		return refuse("ActivationPhases$ / ActivationFirstCombat$ outside a non-mana activated ability")
 	}
