@@ -101,11 +101,14 @@ func TestFuzzAutopayXCastPaysThroughTheWindow(t *testing.T) {
 	}
 }
 
-// TestFuzzFullSpreeCastPaysThroughAFilter replays the std-otj pair whose
+// TestFuzzFullSpreeCastPaysThroughAFilter replays the std-otj game whose
 // Unfortunate Accident is cast with both modes, {3}{B}{B} in all, when the
 // second {B} can come only from Conduit Pylons' {1}, {T} any-colour ability.
 // gorge's target menu keeps the destroy mode's target (the window can pay),
 // where dirac used to reverse the cast at that ask for lack of the filter.
+//
+// The game is a recording (pinnedReplay): std-otj pair 707 as dealt when the
+// cast was fixed.
 func TestFuzzFullSpreeCastPaysThroughAFilter(t *testing.T) {
 	corpus, err := cardset.CorpusDir()
 	if err != nil {
@@ -115,13 +118,14 @@ func TestFuzzFullSpreeCastPaysThroughAFilter(t *testing.T) {
 		t.Skipf("gorge corpus has no cardsfolder: %v", err)
 	}
 	cardsettest.Synth(t, "std-otj")
-	code, stdout, stderr := runKFuzz(t, "-synth", "std-otj", "-first-pair", "707", "-pairs", "1", "-seed", "1", "-surface", "full", "-shrink", "0", "-absolute")
-	if code != 0 {
-		t.Fatalf("exit %d, stderr %q\n%s", code, stderr, stdout)
-	}
-	if !strings.Contains(stdout, "1 clean, 0 divergent") {
-		t.Errorf("pair 707 diverged:\n%s", stdout)
-	}
+	out := pinnedReplay(t, "std-otj", "testdata/spree_full_cast_pays_through_filter.repro.json")
+	m, rest := eventAfter(t, out, `stack_push (p\d) obj=Unfortunate Accident#(\d+) zone 1>5`)
+	p, id := m[1], m[2]
+	// both modes, then the destroy mode's target, then the window taps the
+	// caster's Conduit Pylons
+	_, rest = eventAfter(t, rest, `mode_chosen `+p+` obj=Unfortunate Accident#`+id+` "Create a 1/1 red Mercenary[^\n]*,Destroy target creature\."`)
+	_, rest = eventAfter(t, rest, `targets_chosen p\d obj=Unfortunate Accident#`+id+` `)
+	eventAfter(t, rest, `^(?s:.*?)tap p\d obj=Conduit Pylons#\d+\n\s*ev \d+ mana_add `+p+` n=1 `)
 }
 
 // TestFuzzCleanupLegendRuleGivesPriority replays the std-otj pair where an
