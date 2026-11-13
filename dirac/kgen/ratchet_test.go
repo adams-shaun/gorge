@@ -144,7 +144,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +16 (the merge with land at 1acc5919d9: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering beside land's later work; merged ALL 23115 -> 23131, WOE stays 264 measured).
 	// +14 (the merge with land at 6014a11d54: this branch's Extort lowering, the printed K:Extort expansion and the granted trigger, beside land's 23177; merged ALL 23177 -> 23191 measured).
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
-	"ALL": {23253, 34442},
+	// +41 (Defined$ TriggeredCardOpponent on a SpellCast trigger's Draw behind a Cost$ Mandatory Sac<1/CARDNAME> (no pay/decline ask): Standstill; and an activated battlefield ability's ActivationPhases$ / ActivationFirstCombat$ window: Alaborn Veteran, Angus Mackenzie, Apprentice Sorcerer, Augur il-Vec, Augur of Skulls, Aven Augur, Black Carriage, Cao Cao Lord of Wei, Capricious Sorcerer, Colossus of Sardia, Cunning Advisor, Desert, Djinn of Infinite Deceits, Dwarven Weaponsmith, Emberwilde Augur, Fire Bowman, Gate to Phyrexia, Goblin Firestarter, Hell's Caretaker, Hua Tuo Honored Physician, King's Assassin, Life Chisel, Llanowar Augur, Loyal Retainers, Lu Su Wu Advisor, Mtenda Griffin, Norwood Priestess, Pang Tong Young Phoenix, Scourglass, Shu Farmer, Steam Catapult, Stern Marshal, Stone Catapult, Svyelunite Priest, Talas Researcher, Temple Elder, Wu Longbowman, Xiahou Dun the One-Eyed, Xun Yu Wei Advisor, Zhuge Jin Wu Strategist; ALL 23253 -> 23294 measured). MBC +4: Standstill, Apprentice Sorcerer, Augur of Skulls, Norwood Priestess (1678 -> 1682).
+	"ALL": {23294, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {218, 280},
@@ -159,7 +160,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
-	"MBC": {1678, 2188},
+	"MBC": {1682, 2188},
 	"MKM": {251, 279},
 	"MOM": {201, 296},
 	"MSH": {246, 276},
