@@ -409,12 +409,12 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 	}
 	var deferGap slotMask
 	if s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0 {
-		deferGap = s.scriptTapsDefer(k, p&1) // as availFor: gorge's census never lists a planner-deferred source (a counter rider, a Taps watcher), so the witness never pays with it
+		deferGap = s.scriptTapsDefer(k, SeatIx(p)) // as availFor: gorge's census never lists a planner-deferred source (a counter rider, a Taps watcher), so the witness never pays with it
 	}
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		pm := &s.perms[sl]
-		if pm.flags&pfTapped != 0 || s.manaGranted(k, sl) || deferGap.has(sl) && s.planDeferred(k, p&1, sl) {
+		if pm.flags&pfTapped != 0 || s.manaGranted(k, sl) || deferGap.has(sl) && s.planDeferred(k, SeatIx(p), sl) {
 			continue
 		}
 		pc := s.manaPCGen(k, sl)
@@ -422,7 +422,7 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 			continue
 		}
 		if k.painMana && pc.painCol != 0 {
-			s.addPainAvail(k, sl, pc, p&1, a, nil, false) // the planner's census has a pain ability (Spire of Industry's any colour for 1 life), as ungrAvail counts it
+			s.addPainAvail(k, sl, pc, SeatIx(p), a, nil, false) // the planner's census has a pain ability (Spire of Industry's any colour for 1 life), as ungrAvail counts it
 			continue
 		}
 		a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
@@ -1199,7 +1199,7 @@ func (g *grantSrch) branchSel(t *State, i int, sl Slot, gi int16, mask, n uint8,
 				g.ghost[j] += gx[j]
 			}
 		}
-		t.addXv(g.p&1, &xv)
+		t.addXv(SeatIx(g.p), &xv)
 		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl, restr: gi >= 0 && !skip && g.k.gen.grantRestr[gi] != 0}
 		g.np++
 		if g.next(t, sl) {
@@ -1209,7 +1209,7 @@ func (g *grantSrch) branchSel(t *State, i int, sl Slot, gi int16, mask, n uint8,
 		for j := range gx {
 			g.ghost[j] -= gx[j]
 		}
-		t.subXv(g.p&1, &xv)
+		t.subXv(SeatIx(g.p), &xv)
 		t.pl[SeatIx(g.p)].pool[c] -= pn
 		t.g.poolArt[SeatIx(g.p)] = preBit
 		t.perms[sl].flags &^= pfTapped
@@ -1491,25 +1491,25 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		s.manaTapped(k, sl)
 		if ra := s.ownRestrAb(k, sl); st.gi < 0 && ra != nil && !s.ownManaUsable(k, sl) {
 			// the printed restricted ability (mana_grantrestrictedown.go)
-			if !s.floatRestrAb(k, g.p&1, sl, ra, int(st.col), st.n) {
+			if !s.floatRestrAb(k, SeatIx(g.p), sl, ra, int(st.col), st.n) {
 				s.capFull(StallRestrSrc)
 			}
 		} else if ab := restrAbOfStep(k, st); ab != nil {
 			// a restricted grant floats beside the pool (State.rb), spendable only
 			// as its restriction allows (both halves, spells and activated
 			// abilities); never a silent spill into the pool
-			if !s.floatRestrAb(k, g.p&1, sl, ab, int(st.col), st.n) {
+			if !s.floatRestrAb(k, SeatIx(g.p), sl, ab, int(st.col), st.n) {
 				s.capFull(StallRestrSrc)
 			}
 		} else {
 			s.pl[SeatIx(g.p)].pool[st.col] += st.n
 		}
 		if st.pain {
-			s.painDamage(k, sl, g.p&1, int(s.manaPCGen(k, sl).painN)) // its life or damage (mana_grantpain.go)
+			s.painDamage(k, sl, SeatIx(g.p), int(s.manaPCGen(k, sl).painN)) // its life or damage (mana_grantpain.go)
 		}
 		if k.gen.anyTapExtra {
 			xv := s.srcExtraPick(k, sl, s.stepView(k, sl, st.gi), int(st.col))
-			s.addXv(g.p&1, &xv)
+			s.addXv(SeatIx(g.p), &xv)
 		}
 		if sacrifice {
 			// at priority, outside the build's and a resolution's mana steps, so the
@@ -1604,10 +1604,10 @@ func (s *State) tapGrantedGap(k *prep, p uint8, sl Slot) {
 	n := max(pc.manaN, 1)
 	if k.gen.anyTapExtra {
 		xv := s.srcExtraPick(k, sl, pc, int(order[0]))
-		s.addXv(p&1, &xv)
+		s.addXv(SeatIx(p), &xv)
 	}
 	if ab := restrAbOfGrant(k, gi[0]); ab != nil {
-		if !s.floatRestrAb(k, p&1, sl, ab, int(order[0]), n) {
+		if !s.floatRestrAb(k, SeatIx(p), sl, ab, int(order[0]), n) {
 			s.capFull(StallRestrSrc)
 		}
 		return
@@ -1759,8 +1759,8 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			}
 			// the composed cost (pair 8638)
 			c := s.objs[a.Source()].card
-			cost = s.featCost(k, p&1, c, Obj(a.Source()), addCost(k.cards[c].cost, k.t.Cards[c].Kicker))
-			if s.convAnyType(k, p&1, Obj(a.Source())) {
+			cost = s.featCost(k, SeatIx(p), c, Obj(a.Source()), addCost(k.cards[c].cost, k.t.Cards[c].Kicker))
+			if s.convAnyType(k, SeatIx(p), Obj(a.Source())) {
 				cost = anyTypePips(cost) // a creature's kicked total under Vizier's conversion, as plannedCastCostOf prices the plain one (featview.go)
 			}
 			return cost, ex, need, true
@@ -1774,7 +1774,7 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			// Rage from Outrageous Robbery's exile), its pips generic under
 			// an any-type rider (pay.PlanManaUnderRider, CR 609.4b): the
 			// search's first colour then pays it (CR 601.2g-h)
-			cost := s.featCost(k, p&1, c, Obj(a.Source()), k.cards[c].cost)
+			cost := s.featCost(k, SeatIx(p), c, Obj(a.Source()), k.cards[c].cost)
 			if a.Mode() == castMayPlay && (s.g.mayPlayAny || s.mayPlayAnyType(k, p, Obj(a.Source()))) {
 				cost = anyTypePips(cost)
 			}
@@ -1791,7 +1791,7 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			// cost from its census and the prefix search taps a granted source the
 			// census misses (CR 601.2g); the mode costs are added at the cast
 			// (CR 702.172a)
-			cost := s.featCost(k, p&1, c, Obj(a.Source()), k.cards[c].cost)
+			cost := s.featCost(k, SeatIx(p), c, Obj(a.Source()), k.cards[c].cost)
 			if s.g.mayPlayAny {
 				cost = anyType(cost)
 			}
@@ -1801,7 +1801,7 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			// a fixed tap of other permanents beside the printed cost: gorge's
 			// potential planner prices the composed cost (cost_fixedtaps.go), so
 			// the prefix search taps a granted source the census misses (CR 601.2g-h)
-			cost := s.featCost(k, p&1, c, Obj(a.Source()), k.cards[c].cost)
+			cost := s.featCost(k, SeatIx(p), c, Obj(a.Source()), k.cards[c].cost)
 			if s.g.mayPlayAny {
 				cost = anyType(cost)
 			}

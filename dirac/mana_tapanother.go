@@ -431,7 +431,7 @@ func (t *State) tapXNext(p uint8, d *Decision) bool {
 		if t.over || d.Kind == DkNone || d.N == 0 {
 			return false
 		}
-		if d.Player == p&1 {
+		if d.Player == SeatIx(p) {
 			return true
 		}
 		pass := MakeAction(AkPass, 0, 0, 0)

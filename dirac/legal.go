@@ -916,7 +916,7 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 			// may spend) pays the reduced price on its own
 			a := s.poolAvailPlus(p, nil)
 			if s.rbAny(p) {
-				s.restrAvail(k, p&1, c, s.restrOriginOfObj(o), &a)
+				s.restrAvail(k, SeatIx(p), c, s.restrOriginOfObj(o), &a)
 			}
 			return a.affords(&cost, pipMaskOf(&cost), 0)
 		}

@@ -329,7 +329,7 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	a := s.poolAvailPlus(p, extra)
 	c := s.objs[o].card
 	if s.rbAny(p) {
-		s.restrAvail(k, p&1, c, s.restrOriginOfObj(o), &a) // a spell its restriction allows sees it (gorge AvailableFor)
+		s.restrAvail(k, SeatIx(p), c, s.restrOriginOfObj(o), &a) // a spell its restriction allows sees it (gorge AvailableFor)
 	}
 	cost := k.cards[c].cost
 	if mode&8 != 0 {
@@ -340,50 +340,50 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 		cost = addCost(cost, kickerPayment(&k.t.Cards[c]))
 	}
 	if mode == 0 && k.gen != nil && k.gen.anyConvoke {
-		cost = s.convokeCredit(k, p&1, c, o, cost)
+		cost = s.convokeCredit(k, SeatIx(p), c, o, cost)
 	}
 	tb := false
 	if mode&4 != 0 || mode&1 != 0 && k.bargainRed && k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) { // seat-ok: a cast-mode bit
-		cost = s.bargainedPrice(k, p&1, c, o, cost) // the bargained cast's price, or the optional-cost cast's (cost_reducespell.go)
+		cost = s.bargainedPrice(k, SeatIx(p), c, o, cost) // the bargained cast's price, or the optional-cost cast's (cost_reducespell.go)
 	} else if s.statM.any() || k.gen != nil {
 		// a reduction applies to the total cost, a flashback or kicked one
 		// too (CR 601.2f; the kernel's buildCost): Archmage of Runes on a
 		// flashback Inspiration from Beyond
 		tb = cost.Hyb[0] == kop.HybTwobrid
-		a.delve = s.tbDelveCredit(k, p&1, c, o, mode&2 == 0) // the faces' credit (CR 702.66a)
-		cost = s.adjustFit(k, &a, p&1, c, o, cost, false)    // a twobrid cost is priced on the face the pool pays
+		a.delve = s.tbDelveCredit(k, SeatIx(p), c, o, mode&2 == 0) // the faces' credit (CR 702.66a)
+		cost = s.adjustFit(k, &a, SeatIx(p), c, o, cost, false)    // a twobrid cost is priced on the face the pool pays
 	}
 	if k.gen != nil && k.t.Cards[c].SpellWaterbend != 0 {
-		cost = s.waterbendSpellCredit(k, p&1, c, o, cost) // act_waterbend.go
+		cost = s.waterbendSpellCredit(k, SeatIx(p), c, o, cost) // act_waterbend.go
 	}
 	if mode&1 != 0 && k.gen != nil && k.t.Cards[c].OptWaterbend != 0 { // seat-ok: a cast-mode bit
 		// the kicked cast's OptionalCost Waterbend<N> credits with the own part (act_waterbend.go)
-		cost = s.waterbendCreditN(k, p&1, NoSlot, s.waterbendOwnPart(k, p&1, c, o)+int(k.t.Cards[c].OptWaterbend), cost)
+		cost = s.waterbendCreditN(k, SeatIx(p), NoSlot, s.waterbendOwnPart(k, SeatIx(p), c, o)+int(k.t.Cards[c].OptWaterbend), cost)
 	}
 	if mode&2 != 0 && k.t.Cards[c].Harmonize {
-		cost = s.harmonizeCredit(k, p&1, cost) // gorge harmonizePayment prices the offer after the reductions
+		cost = s.harmonizeCredit(k, SeatIx(p), cost) // gorge harmonizePayment prices the offer after the reductions
 	}
 	if cd := &k.t.Cards[c]; cd.HasAltAdd && mode&2 == 0 {
 		pre := cost
 		// gorge's gate is existential over the either-or parts: one whose
 		// picks can be paid and whose mana the pool pays with the spell's
 		ac := spellAddCost(k, c)
-		if s.pickCostPayable(k, p&1, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(pl.handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p&1, c, o) {
+		if s.pickCostPayable(k, SeatIx(p), ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(pl.handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, SeatIx(p), c, o) {
 			t := addCost(pre, ac.Mana)
 			if a.delve == 0 || !tb { // the faces took the credit (tb: adjustFit priced them)
-				t = s.delveOfferCredit(k, p&1, c, o, true, t)
+				t = s.delveOfferCredit(k, SeatIx(p), c, o, true, t)
 			}
 			if a.affords(&t, pipMaskOf(&t), 0) {
 				return true
 			}
 		}
-		if !s.pickCostPayable(k, p&1, &cd.AltAddCost, o) {
+		if !s.pickCostPayable(k, SeatIx(p), &cd.AltAddCost, o) {
 			return false
 		}
 		cost = addCost(cost, cd.AltAddCost.Mana)
 	}
 	if mode&4 == 0 && (a.delve == 0 || !tb) {
-		cost = s.delveOfferCredit(k, p&1, c, o, mode&2 == 0, cost)
+		cost = s.delveOfferCredit(k, SeatIx(p), c, o, mode&2 == 0, cost)
 	}
 	return a.affords(&cost, pipMaskOf(&cost), 0)
 }
@@ -413,7 +413,7 @@ func (s *State) FeatFacePoolPays(p uint8, o Obj, face uint8, extra *[6]int32) bo
 	if fs := k.t.Cards[c].Faces; int(face) < len(fs) && face != 0 {
 		c = fs[face]
 	}
-	cost := s.adjustCost(k, p&1, c, o, k.cards[c].cost)
+	cost := s.adjustCost(k, SeatIx(p), c, o, k.cards[c].cost)
 	a := s.poolAvailPlus(p, extra)
 	return a.affords(&cost, pipMaskOf(&cost), 0)
 }
@@ -509,7 +509,7 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 		return false // gorge plans the hand, command, exile and graveyard origins only (payment_plan.go): a top-of-library cast is always lowered
 	}
 	if mode&2 != 0 {
-		if two, _, g := s.fbInstances(k, p&1, o); two && g {
+		if two, _, g := s.fbInstances(k, SeatIx(p), o); two && g {
 			// the granted instance beside a printed one carries its own
 			// cost (Option.Cost), which the payment-action builder never
 			// plans (planCastFlashbackOption; pair 1841)
@@ -618,12 +618,12 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 		// gorge's planImprovise: the artifacts' credit comes off the printed cost
 		// before the reductions, and they are no mana source of the plan
 		reserved = s.improviseReserved(k, p, cost.Generic)
-		cost = s.convokeCredit(k, p&1, c, o, cost)
+		cost = s.convokeCredit(k, SeatIx(p), c, o, cost)
 	}
 	if s.statM.any() || k.gen != nil {
-		cost = s.featCost(k, p&1, c, o, cost) // a flashback cost is reduced too
+		cost = s.featCost(k, SeatIx(p), c, o, cost) // a flashback cost is reduced too
 	}
-	if k.gen != nil && (s.g.mayPlayAny || mode&castMayPlay != 0 && s.mayPlayAnyType(k, p, o) || s.convAnyType(k, p&1, o)) {
+	if k.gen != nil && (s.g.mayPlayAny || mode&castMayPlay != 0 && s.mayPlayAnyType(k, p, o) || s.convAnyType(k, SeatIx(p), o)) {
 		cost = anyTypePips(cost) // gorge's planner funds these pips as generic (pay.PlanManaUnderRider)
 	}
 	if lifted && !s.improviseSourcesPay(k, p, o, reserved, &cost) {
@@ -764,16 +764,16 @@ func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slo
 	var av avail
 	var ms modalSet
 	s.ungrAvail(k, p, ex, &av, &ms)
-	rm := s.restrFloatAdmits(k, p&1, &d)
+	rm := s.restrFloatAdmits(k, SeatIx(p), &d)
 	// restrSrcNone precondition: restrSrcAffords runs only once av.affords failed (||).
 	for c := 0; c < 1<<ms.n; c++ {
 		b := ms.modes(av, c)
-		if b.affords(cost, pipMaskOf(cost), 0) || k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, p&1, d, cost, &b, ex, 0) {
+		if b.affords(cost, pipMaskOf(cost), 0) || k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, SeatIx(p), d, cost, &b, ex, 0) {
 			return true
 		}
 		if rm != 0 {
 			t := b
-			s.restrAvailAdd(p&1, rm, &t)
+			s.restrAvailAdd(SeatIx(p), rm, &t)
 			if t.affords(cost, pipMaskOf(cost), 0) {
 				return true
 			}
@@ -781,7 +781,7 @@ func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slo
 			// pay together, as the cast window counts them (castAffordsR):
 			// Helga's floating creature mana beside Oakhollow Village's
 			// creature-only {G} (CR 106.6)
-			if k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, p&1, d, cost, &t, ex, 0) {
+			if k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, SeatIx(p), d, cost, &t, ex, 0) {
 				return true
 			}
 		}
@@ -814,7 +814,7 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet) {
 			continue
 		}
 		if k.painMana && pc.painCol != 0 {
-			s.addPainAvail(k, sl, pc, p&1, av, ms, false) // the planner's census has a pain ability (mana_pain.go)
+			s.addPainAvail(k, sl, pc, SeatIx(p), av, ms, false) // the planner's census has a pain ability (mana_pain.go)
 			continue
 		}
 		av.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))

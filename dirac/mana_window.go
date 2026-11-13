@@ -346,7 +346,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		s.addExtraCol(k, p, sl, pc, col)
 		s.artTag(k, p, sl, col)
 		if life > 0 {
-			s.loseLife(k, p&1, int(life)) // a granted ability's life cost, not damage (mana_grantcost.go)
+			s.loseLife(k, SeatIx(p), int(life)) // a granted ability's life cost, not damage (mana_grantcost.go)
 		}
 		if k.painMana && pc.painCol != 0 && (pc.painOnly || uint8(pc.manaCol)&(1<<col) == 0) {
 			s.painDamage(k, sl, p, int(pc.painN)) // the painful ability's rider (mana_pain.go)
@@ -1308,7 +1308,7 @@ func (s *State) restrSpendableB(k *prep, p uint8, b *rbatch, c CardID, og restrO
 		fl.Zone = kop.ZoneNone // the spell is matched before it moves to the stack
 		chosen := fl.Flags2&kop.F2ChosenType != 0
 		fl.Flags2 &^= kop.F2ChosenType
-		if !s.restrFilterMatch(k, &fl, c, p&1, og) {
+		if !s.restrFilterMatch(k, &fl, c, SeatIx(p), og) {
 			continue
 		}
 		if !chosen || int(b.chosen) < len(k.t.Subtypes) && k.t.Cards[c].Subtypes.Has(int(b.chosen)) {
@@ -1377,7 +1377,7 @@ func (s *State) wideAdmits(k *prep, a Action, p uint8, anyR slotMask) bool {
 				continue // a Static.* alternative: only a special action may spend it
 			}
 			fl.Zone = kop.ZoneNone // the spell is matched before it moves to the stack
-			if s.restrFilterMatch(k, &fl, c, p&1, og) {
+			if s.restrFilterMatch(k, &fl, c, SeatIx(p), og) {
 				return true
 			}
 		}
@@ -1857,7 +1857,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			}
 			if found {
 				*dead = false
-				if t.rbAny(p&1) || spill != ([kop.NumManaKinds]uint8{}) {
+				if t.rbAny(SeatIx(p)) || spill != ([kop.NumManaKinds]uint8{}) {
 					for c := range spill {
 						t.pl[SeatIx(p)].pool[c] -= spill[c] // restricted mana the byte spilled pays nothing either
 					}
@@ -2279,7 +2279,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 	s.g.noTgtRed = false
 	s.witnessAtCheapest(k, p, &cost, &av)
 	var L uint8
-	if s.rbAny(p&1) && s.bld().e.kind == seSpell {
+	if s.rbAny(SeatIx(p)) && s.bld().e.kind == seSpell {
 		// the witness starts from the mana this payment may spend (pay.PlanPool)
 		if m := s.restrSpendable(k, p, s.bld().e.card, s.restrOriginOfObj(s.bld().e.obj)); m != 0 && cost.Hyb[0] != 0 && cost.Hyb[0] != kop.HybTwobrid {
 			// a hybrid pip resolves in gorge's planHybridCost order over that

@@ -259,7 +259,7 @@ func (s *State) grantSacDo(k *prep, sl Slot) {
 // on s: the mana, the sacrifice, the state-based check.
 func (s *State) grantSacApply(k *prep, p uint8, st *grantStep) {
 	if ab := restrAbOfStep(k, st); ab != nil {
-		if !s.floatRestrAb(k, p&1, st.sl, ab, int(st.col), st.n) {
+		if !s.floatRestrAb(k, SeatIx(p), st.sl, ab, int(st.col), st.n) {
 			s.capFull(StallRestrSrc) // never a silent spill
 		}
 	} else {
@@ -335,7 +335,7 @@ func (g *grantSrch) costBranch(t *State, i int, sl Slot, gi int16, pc *pcard, ma
 		u.artTag(g.k, g.p, sl, int(c))
 		if g.k.gen.anyTapExtra && !skip {
 			xv := u.srcExtraPick(g.k, sl, pc, int(c))
-			u.addXv(g.p&1, &xv)
+			u.addXv(SeatIx(g.p), &xv)
 		}
 		u.grantCostPay(g.k, g.p, pc)
 		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl}
@@ -360,7 +360,7 @@ func (g *grantSrch) costBranch(t *State, i int, sl Slot, gi int16, pc *pcard, ma
 // painLife arm).
 func (s *State) grantCostPay(k *prep, p uint8, pc *pcard) {
 	if n := grantCostLife(pc); n > 0 {
-		s.loseLife(k, p&1, int(n))
+		s.loseLife(k, SeatIx(p), int(n))
 	}
 }
 
@@ -373,7 +373,7 @@ func (s *State) grantCostApply(k *prep, p uint8, st *grantStep) {
 	s.touchSl(sl)
 	s.manaTapped(k, sl)
 	if ab := restrAbOfStep(k, st); ab != nil {
-		if !s.floatRestrAb(k, p&1, sl, ab, int(st.col), st.n) {
+		if !s.floatRestrAb(k, SeatIx(p), sl, ab, int(st.col), st.n) {
 			s.capFull(StallRestrSrc) // never a silent spill
 		}
 	} else {
@@ -381,7 +381,7 @@ func (s *State) grantCostApply(k *prep, p uint8, st *grantStep) {
 	}
 	if k.gen.anyTapExtra {
 		xv := s.srcExtraPick(k, sl, pc, int(st.col))
-		s.addXv(p&1, &xv)
+		s.addXv(SeatIx(p), &xv)
 	}
 	s.grantCostPay(k, p, pc)
 }

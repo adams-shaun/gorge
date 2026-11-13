@@ -28,7 +28,7 @@ func (s *State) improviseLifted(k *prep, p uint8, c CardID, o Obj, fromHand bool
 func (s *State) improviseReserved(k *prep, p uint8, gen uint8) slotMask {
 	var used slotMask
 	var ord [MaxPerm]Slot
-	n := s.battlefieldOrder(p&1, s.ctrlM[SeatIx(p)].and(s.occ), ord[:], 0)
+	n := s.battlefieldOrder(SeatIx(p), s.ctrlM[SeatIx(p)].and(s.occ), ord[:], 0)
 	for _, sl := range ord[:n] {
 		if gen == 0 {
 			break

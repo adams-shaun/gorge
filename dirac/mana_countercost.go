@@ -197,7 +197,7 @@ func (s *State) ctrGap(k *prep, p uint8, sl Slot, col int) {
 	}
 	for c := 0; c < kop.NumManaKinds; c++ {
 		if cols&(1<<c) != 0 {
-			s.poolAdd(p&1, c, int(n))
+			s.poolAdd(SeatIx(p), c, int(n))
 			if taps {
 				s.artTag(k, p, sl, c)
 			}
@@ -311,7 +311,7 @@ func (s *State) ctrAb1(k *prep, p uint8, sl Slot, col int) {
 	}
 	for cc := 0; cc < kop.NumManaKinds; cc++ {
 		if cols&(1<<cc) != 0 {
-			s.poolAdd(p&1, cc, int(n))
+			s.poolAdd(SeatIx(p), cc, int(n))
 			s.artTag(k, p, sl, cc)
 		}
 	}
@@ -431,7 +431,7 @@ func (s *State) storeGap(k *prep, p uint8, sl Slot, a *kop.Ability) {
 	pm.seeCtr(s)
 	pm.subCtrN(s, int(a.Cost.Ctr), n)
 	col := bits.TrailingZeros8(uint8(a.ManaColors) & 0x3f)
-	s.poolAdd(p&1, col, n)
+	s.poolAdd(SeatIx(p), col, n)
 	if taps {
 		s.artTag(k, p, sl, col)
 		s.tapExtraStall(k, sl)

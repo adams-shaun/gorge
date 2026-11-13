@@ -835,7 +835,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				if m := s.restrActNow(k, e.ctrl); m != 0 {
 					s.restrAvailAdd(e.ctrl, m, &av)
 				}
-			} else if s.rbAny(e.ctrl & 1) {
+			} else if s.rbAny(SeatIx(e.ctrl)) {
 				// restricted mana a spell may spend (Secluded Courtyard's
 				// chosen type, tapped by the play's script prefix) is in
 				// gorge's AvailableFor pool, which its xAsk reads; the
@@ -1253,7 +1253,7 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 	s.availCastWindowFor(k, e.ctrl, &av)
 	if e.kind == seAbility {
 		s.excludeTapSource(k, &av)
-	} else if s.rbAny(e.ctrl & 1) {
+	} else if s.rbAny(SeatIx(e.ctrl)) {
 		s.restrAvail(k, e.ctrl, e.card, restrOriginOfEntry(e), &av) // the restricted mana the spell may spend, as the X ask reads it
 	}
 	d.Kind, d.Sub, d.Player = DkChoose, ChGenPip, e.ctrl
@@ -2720,7 +2720,7 @@ func (s *State) recordSubCtr(o Obj, c uint8) {
 func (s *State) poolRPays(k *prep, p uint8, c CardID, o Obj) bool {
 	var av avail
 	s.availPool(p, &av)
-	if s.rbAny(p & 1) {
+	if s.rbAny(SeatIx(p)) {
 		s.restrAvail(k, p, c, s.restrOriginOfObj(o), &av)
 	}
 	if av.total == 0 {
