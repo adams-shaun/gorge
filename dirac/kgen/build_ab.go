@@ -1369,6 +1369,9 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 		kt.N = kop.TrigNTeamworkTap
 	}
+	if t.TapsForMana && (t.Event != "Taps" || kt.Flags&kop.TfSelf != 0) {
+		return kt, fmt.Errorf("TapsForMana on a %s trigger", t.Event)
+	}
 	if t.BlockedBySelf {
 		kt.Flags2 |= kop.Tf2BlockedBySelf
 	}
@@ -4033,6 +4036,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "ExHaste":
 		// Agility Bobblehead: OpExt ExtExHaste, C the power form (Instr.C is int16)
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtExHaste)), int16(in.C)
+	case "AsgnGrant":
+		// (Plagon, Outmaneuver) OpExt ExtAsgnGrant, C 0 toughness / 1 as-unblocked
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtAsgnGrant)), int16(in.C)
 	case "ColorGrant":
 		// (Skrelv) OpExt ExtColorGrant, B the toxic amount
 		v, err := cb.value(in.A)
@@ -4255,6 +4261,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "SacrificeDelayed":
 		// OpExt ExtSacDelayed over the group's survivors
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtSacDelayed))
+		if in.CS == "Many" {
+			ki.C = 1 // the DpMany program's up to four objects (Mobilize 3-4)
+		}
 	case "PreventColor":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtPreventColor)) // (Prismatic Strands)
 	case "PreventDamageScope":

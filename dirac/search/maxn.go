@@ -51,11 +51,13 @@ func (sr *Searcher) overVec(s *dirac.State) {
 
 // liveVec writes the value vector of a leaf whose game plays on to sr.vec
 // and returns the searching seat's entry, the value the scalar backups take:
-// the evaluator's own vector (VecEvaluator), else its value at the searching
-// seat (0 when it has lost, lost) with the rest split over the living
-// opponents (splitVec).
+// the evaluator's own vector (VecEvaluator, when its VecReporter, if any,
+// covers the root's seats: sr.veOn), else its value at the searching seat
+// (0 when it has lost, lost) with the rest split over the living opponents
+// (splitVec).
 func (sr *Searcher) liveVec(s *dirac.State, d *dirac.Decision, lost bool) float64 {
-	if sr.ve != nil {
+	if sr.veOn {
+		sr.St.VecLeaves++
 		sr.ve.ValueVec(s, d, sr.seat, &sr.vec)
 		return sr.vec[0]
 	}

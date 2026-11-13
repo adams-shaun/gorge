@@ -239,11 +239,16 @@ func TestOverrideRecordsFitEight(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		hsc.s.applyOverridePT(hsc.k, hsl, base+i, vanilla.GrizzlyBears, 0, 10, 10)
 	}
-	// Computed with the base [4]ovRec layout, after perm.actUsed moved beside nblock (the mp State bar).
-	const (
-		wantObjHash  uint64 = 0x2d0ade365d42834a
-		wantViewHash uint64 = 0x34fa39b5c54075dd
-	)
+	// Computed with the base [4]ovRec layout, after perm.actUsed moved beside
+	// nblock (the mp State bar). Both hashes read the build's layout: the
+	// object hash a perm whose code fields are MaxSeats-dependent widths, the
+	// view hash the generated state's per-seat banks (emblems, turn history)
+	// whole, MaxSeats wide. So the dirac_mp build (four seat slots) has its
+	// own pins.
+	wantObjHash, wantViewHash := uint64(0x2d0ade365d42834a), uint64(0x34fa39b5c54075dd)
+	if MaxSeats > 2 {
+		wantObjHash, wantViewHash = 0xd5db2e2b1192a6be, 0x7ef8d43bac6f80a
+	}
 	if got := hsc.s.ObjHash(ht); got != wantObjHash {
 		t.Fatalf("ObjHash %#x, want %#x", got, wantObjHash)
 	}

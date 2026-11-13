@@ -85,6 +85,15 @@ const (
 	// trigmatch.DiscardCauseAdmits: a cost discard has no cause). Orvar, the
 	// All-Form; Guerrilla Tactics.
 	Tf5OppCause TrigFlags5 = 1 << 2
+	// Tf5TapsForMana: a TrigTaps line lowered from Mode$ TapsForMana (a
+	// non-Static$ trigger, Price of Glory): it fires only for a permanent
+	// tapped as the cost of a mana ability (gorge trigmatch tapsMatches'
+	// forMana flag), never for an attack, cost or effect tap. Bit 4.
+	Tf5TapsForMana TrigFlags5 = 1 << 4
+	// Tf5TapperNonActive: with Tf5TapsForMana, Activator$ Player.NonActive --
+	// the tapping player is not the turn's active player (gorge
+	// effects.MatchesPlayerSpec over TapActor). Bit 5.
+	Tf5TapperNonActive TrigFlags5 = 1 << 5
 )
 
 // TrigEvent is a triggered ability's subscription: the event kind it listens

@@ -1574,6 +1574,11 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if err != nil {
 			return err
 		}
+		// Reveal$ (Fa'adiyah Seer's "draw a card and reveal it"): gorge's
+		// compileDraw reads no Reveal key (it is an unread Note) and its draw
+		// emits no reveal event, so the drawn card changes nothing a later
+		// node reads; the remembered card (RememberDrawn$) is the whole effect.
+		ps.consume("Reveal")
 		if who, ok, err := lc.targetedAndYou(ps, "Defined"); err != nil {
 			return err
 		} else if ok {
@@ -1926,7 +1931,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			if !lc.inGroup {
 				return refuse("Sacrifice Defined$ DelayTriggerRememberedLKI outside a Mobilize group")
 			}
-			lc.emit(lInstr{Op: "SacrificeDelayed", Obj: lRef{Kind: rDelayedRemembered}})
+			lc.emitSacDelayed()
 			return nil
 		}
 		if ps.str("Mode") == "TgtChoose" {
@@ -1996,7 +2001,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			if !lc.inGroup {
 				return refuse("SacrificeAll Defined$ DelayTriggerRememberedLKI outside a delayed group")
 			}
-			lc.emit(lInstr{Op: "SacrificeDelayed", Obj: lRef{Kind: rDelayedRemembered}})
+			lc.emitSacDelayed()
 			return nil
 		}
 		if _, ok := ps.get("ValidCards"); !ok {

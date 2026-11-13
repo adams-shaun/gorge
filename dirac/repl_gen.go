@@ -45,11 +45,8 @@ func (s *State) replNIn(k *prep, m slotMask, b uint32) int {
 // creature whose controller controls another Crystal Barricade.
 func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, code TCode, combat bool, n int) int {
 	g := k.gen
-	// srcCtrl beyond MaxSeats is a source with no controller (a spell's card
-	// with none on the battlefield); a real seat is never out of range, and
-	// its damage takes the replacements like any other seat's (seats_mp.go).
 	if n <= 0 || srcCtrl >= MaxSeats {
-		return n
+		return n // no seat controls the source
 	}
 	rcp := uint8(255) // the recipient's controller
 	sl := NoSlot
@@ -443,7 +440,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 	}
 	n := 0
 	ro.prev, ro.shld, ro.plus, ro.pnx = 0, 0, 0, 0
-	if (rcp != sc || g.anyFiltRepl) && sc <= 1 {
+	if (rcp != sc || g.anyFiltRepl) && sc < MaxSeats {
 		// gorge's scan order: the controller's battlefield in entry order.
 		// A table whose only damage replacement is a plus-N addition competes
 		// on commuting sums (replPlusOnly): collect it here so the order walk

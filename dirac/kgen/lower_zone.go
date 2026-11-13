@@ -356,6 +356,13 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				if pos != 0 {
 					return refuse("library-to-library search position %d", pos)
 				}
+				// Reorder$ True: gorge placeLibraryObjects pins the found
+				// cards on top in the answer order, the same placement a
+				// top LibraryPosition$ makes without it (zone_library.go;
+				// Goblin Recruiter, Congregation at Dawn)
+				if v, ok := ps.get("Reorder"); ok && strings.TrimSpace(v) != "True" {
+					return refuse("search Reorder$ %q", v)
+				}
 				if !noShuffle {
 					flags = append(flags, "ThenTop")
 				}
@@ -2331,6 +2338,8 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 			break
 		}
 		lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: "Unblockable"})
+	case "CanAttackDefender":
+		return lc.targetedCanAttack(ps, s, obj) // lower_effectcaptured.go
 	case "MustAttack":
 		if err := lc.attacksIfAble(ps, sp, obj); err != nil { // lower_effectattacksifable.go
 			return err
@@ -2353,6 +2362,10 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		ps.consume("Duration", "ForgetOnMoved")
 		sp.consume("ValidCard", "ValidSA")
 		lc.emit(lInstr{Op: "LockActs", Obj: obj, Note: "its activated abilities can't be activated while it stays tapped"})
+	case "CombatDamageToughness", "AssignCombatDamageAsUnblocked":
+		if err := lc.asgnGrant(ps, sp, s.Mode, obj); err != nil { // lower_asgngrant.go
+			return err
+		}
 	case "Panharmonicon":
 		// (Lwaxana Troi, Charming Guest) "for as long as this remains tapped,
 		// if a triggered ability of that creature triggers, that ability
@@ -3415,15 +3428,17 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	var obj lRef
 	group := false
 	sacGroup := false
+	groupMany := false
 	lkiMany := false
 	if ps.str("RememberChain") == "False" {
 		if ro != "" {
 			return refuse("RememberChain$ False delayed trigger shape")
 		}
-		if err := lc.groupDelayed(exec); err != nil {
+		many, err := lc.groupDelayed(exec)
+		if err != nil {
 			return err
 		}
-		group = true
+		group, groupMany = true, many
 	}
 	if !group && ro == "Remembered" && delayedGroupSac(exec) {
 		// a remembered set sacrificed as one group at the delayed step
@@ -3460,15 +3475,19 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	lat.DelayedSelf = delayedSelf(lc.ab.Trigger, ro)
 	if group || sacGroup {
 		lc.inGroup = true
+		lc.groupMany = groupMany
 	}
 	err := lc.withAbility(lat, func() error { return lc.chain(exec, nil) })
-	lc.inGroup = false
+	lc.inGroup, lc.groupMany = false, false
 	if err != nil {
 		return err
 	}
 	in := lInstr{Op: "DelayedTrigger", Obj: obj, C: lat.Index, CS: when}
 	if group || sacGroup {
 		in.B = cst(1)
+		if groupMany {
+			in.B = cst(3) // the many-object program (dirac/trig_delayedmany.go)
+		}
 	}
 	if ro == "Remembered" && lc.czForgetSet {
 		// delayedRemember checked the body is one Bounce of the delayed set
@@ -3496,18 +3515,31 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 
 // groupDelayed checks a RememberChain$ False delayed trigger is Mobilize's
 // (CR 702.181a): the chain so far is exactly one remembering Token of the
-// constant 1 or 2 and the body one Sacrifice of the delayed-remembered set.
-func (lc *lowerCtx) groupDelayed(exec *cards.SA) error {
+// constant 1..4 and the body one Sacrifice of the delayed-remembered set.
+// many reports the group is of 3 or 4: the kernel's DpMany program carries up
+// to four objects where DpGroup carries two (dirac/kw_mobilize.go sacDelayed).
+func (lc *lowerCtx) groupDelayed(exec *cards.SA) (many bool, err error) {
 	pr := lc.ab.Prog
 	if len(pr) != 1 || pr[0].Op != "CreateToken" || pr[0].C&4 == 0 || !pr[0].A.isConst() ||
 		exec.API != "Sacrifice" || exec.Sub != nil || len(exec.Params) != 1 ||
 		exec.Params["Defined"] != "DelayTriggerRememberedLKI" {
-		return refuse("RememberChain$ False delayed trigger shape")
+		return false, refuse("RememberChain$ False delayed trigger shape")
 	}
-	if n := pr[0].A.N; n != 1 && n != 2 {
-		return refuse("Mobilize group of %d: a delayed program carries two objects", n)
+	n := pr[0].A.N
+	if n < 1 || n > 4 {
+		return false, refuse("Mobilize group of %d: a delayed program carries at most four objects", n)
 	}
-	return nil
+	return n > 2, nil
+}
+
+// emitSacDelayed emits the group program's body: the ExtSacDelayed batch over
+// the delayed-remembered set (the many-object form for Mobilize 3-4).
+func (lc *lowerCtx) emitSacDelayed() {
+	in := lInstr{Op: "SacrificeDelayed", Obj: lRef{Kind: rDelayedRemembered}}
+	if lc.groupMany {
+		in.CS = "Many"
+	}
+	lc.emit(in)
 }
 
 // delayedGroupSac reports whether a remembered-set delayed trigger's body is

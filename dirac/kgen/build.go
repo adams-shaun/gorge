@@ -1771,6 +1771,9 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			// the word reads a card's latest arrival; a permanent has none to read
 			return kf, refuse("ThisTurnEnteredFrom_Battlefield on the battlefield")
 		}
+		if c.CmpN == int(kop.W7EnteredFromLib) && zone == kop.ZoneBattlefield {
+			return kf, refuse("ThisTurnEnteredFrom_Library on the battlefield")
+		}
 		kf.Pred, kf.PredN = kop.PredWord7, int16(c.CmpN) // (kernel wordPerm / wordCard)
 	case cmpNotF2:
 		// !targetedBy / !ThisTurnEntered / !wasDealtDamageThisTurn
@@ -2414,6 +2417,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 		ko.AddTypes |= subtypeTypeBits(o.SetSubtypes)
 	}
 	ko.HasSub = o.HasSetSubtypes
+	ko.RemoveTypes = typeMask(o.RemoveTypes)
 	ko.AllCreatureTypes = o.AllCreatureTypes
 	ko.RemoveCreatureSub = o.RemoveCreatureSub
 	ko.HasColors, ko.SetColors = o.HasSetColors, colorMask(o.SetColors)
