@@ -3,8 +3,11 @@
 #
 #   make test-one PKG=./p RUN='^TestX$'   one package, named tests: debugging, regeneration, scratch probes
 #   make test-targeted [BASE=land]        packages the diff touches, plus every package whose tests import them
-#   make test-smart [BASE=land]           what the landing gate runs, fail-fast, on a committed tree
+#   make test-smart [BASE=land]           the steps a seat can act on, fail-fast, on a committed tree
 #   make precheck                         an alias for test-smart
+#
+# GORGE_TEST_SMART_GATES=1 adds the affected-package and dirac gates to test-smart; by default the
+# lander runs them, so a seat does not pay for them twice.
 #
 # Each run sits in one user systemd scope (MemoryMax, CPUQuota, GOMAXPROCS, GOMEMLIMIT) and exports
 # GORGE_TEST_WRAPPER=1. With no user systemd it says so and runs uncapped.
@@ -188,32 +191,38 @@ if [ "$mode" = targeted ]; then
 fi
 
 # ---- test-smart --------------------------------------------------------------------------------------
-# The gate's own steps, in its order, fail-fast (fleet/land/tools/wland2.sh and g-land.sh): gofmt, the docs
-# snapshot, history hygiene, the oracle skip lint; the census tests; then the affected-package gate
-# (the affected-package gate script, read from GATE_AFFECTED_REPO's GATE_REF) and the dirac gate (BASE's scripts/dirac-gate.sh) side by
-# side in a heavy lane; the repro tables when the dirac gate skipped; then the wire goldens. precheck.sh's
-# census, unrefusal and 3b repro steps stay in, so the alias loses nothing. Not run here (follow-ups in the
-# report): wland2's pinrise re-pin and g-land's remote/farm (rgate) path.
+# The steps a seat can act on, fail-fast (fleet/land/tools/wland2.sh and g-land.sh): gofmt, the docs
+# snapshot, history hygiene, the oracle skip lint; the census tests; the repro tables when the diff touches
+# dirac/oracle/testdata/repro/; then the wire goldens. The affected-package gate (GATE_AFFECTED_REPO's
+# GATE_REF) and the dirac gate (BASE's scripts/dirac-gate.sh), side by side in a heavy lane, are the lander's
+# job: GORGE_TEST_SMART_GATES=1 opts back in to them, and then the repro tables also run when the dirac gate
+# skipped. precheck.sh's census, unrefusal and 3b repro steps stay in, so the alias loses nothing. Not run
+# here (follow-ups in the report): wland2's pinrise re-pin and g-land's remote/farm (rgate) path.
 [ -z "$(git status --porcelain --untracked-files=no)" ] || verdict ENV "commit first: test-smart checks a commit, not a dirty tree"
-# The affected-package gate lives in another repository; the operator's env file names it. With no setting,
-# look for a local checkout one level under $HOME that carries the gate at GATE_REF, so `make precheck`
-# still runs on a box whose environment file is not provisioned.
-GATE_AFFECTED_PATH=${GATE_AFFECTED_PATH:-ops/scripts/gate_affected.sh}
-GATE_REF=${GATE_REF:-main}
-if [ -z "${GATE_AFFECTED_REPO:-}" ] && [ -n "${HOME:-}" ]; then
-	for d in "$HOME"/*/*; do
-		[ -e "$d/.git" ] || continue
-		if git -C "$d" cat-file -e "$GATE_REF:$GATE_AFFECTED_PATH" 2>/dev/null; then GATE_AFFECTED_REPO=$d; break; fi
-	done
-fi
-[ -n "${GATE_AFFECTED_REPO:-}" ] || verdict ENV "GATE_AFFECTED_REPO is not set and no local checkout under \$HOME carries $GATE_AFFECTED_PATH at $GATE_REF (set it in $envfile)"
-aff_sha=$(git -C "$GATE_AFFECTED_REPO" rev-parse --short=7 "$GATE_REF:$GATE_AFFECTED_PATH" 2>/dev/null) ||
-	verdict ENV "$GATE_AFFECTED_PATH not found in $GATE_AFFECTED_REPO at $GATE_REF: set GATE_AFFECTED_REPO, GATE_AFFECTED_PATH, GATE_REF"
-dg_sha=$(git rev-parse --short=7 "$BASE:scripts/dirac-gate.sh" 2>/dev/null) || verdict ENV "$BASE has no scripts/dirac-gate.sh"
-pkgs_label=affected@$aff_sha,dirac-gate@$dg_sha
-echo "gate scripts: gate_affected=$aff_sha dirac-gate=$dg_sha"
 mb=$(git merge-base "$BASE" HEAD)
 bad() { echo "test-targets: smart: $*" >&2; verdict FAIL "$*"; }
+if [ "${GORGE_TEST_SMART_GATES:-}" = 1 ]; then
+	# The affected-package gate lives in another repository; the operator's env file names it. With no
+	# setting, look for a local checkout one level under $HOME that carries the gate at GATE_REF, so
+	# `make precheck` still runs on a box whose environment file is not provisioned.
+	GATE_AFFECTED_PATH=${GATE_AFFECTED_PATH:-ops/scripts/gate_affected.sh}
+	GATE_REF=${GATE_REF:-main}
+	if [ -z "${GATE_AFFECTED_REPO:-}" ] && [ -n "${HOME:-}" ]; then
+		for d in "$HOME"/*/*; do
+			[ -e "$d/.git" ] || continue
+			if git -C "$d" cat-file -e "$GATE_REF:$GATE_AFFECTED_PATH" 2>/dev/null; then GATE_AFFECTED_REPO=$d; break; fi
+		done
+	fi
+	[ -n "${GATE_AFFECTED_REPO:-}" ] || verdict ENV "GATE_AFFECTED_REPO is not set and no local checkout under \$HOME carries $GATE_AFFECTED_PATH at $GATE_REF (set it in $envfile)"
+	aff_sha=$(git -C "$GATE_AFFECTED_REPO" rev-parse --short=7 "$GATE_REF:$GATE_AFFECTED_PATH" 2>/dev/null) ||
+		verdict ENV "$GATE_AFFECTED_PATH not found in $GATE_AFFECTED_REPO at $GATE_REF: set GATE_AFFECTED_REPO, GATE_AFFECTED_PATH, GATE_REF"
+	dg_sha=$(git rev-parse --short=7 "$BASE:scripts/dirac-gate.sh" 2>/dev/null) || verdict ENV "$BASE has no scripts/dirac-gate.sh"
+	pkgs_label=affected@$aff_sha,dirac-gate@$dg_sha
+	echo "gate scripts: gate_affected=$aff_sha dirac-gate=$dg_sha"
+else
+	pkgs_label=affected=skipped,dirac-gate=skipped
+	echo "gate scripts: gate_affected=skipped dirac-gate=skipped"
+fi
 
 echo "== 1 gofmt, vet"
 files=$(git diff --name-only --diff-filter=d "$mb" HEAD -- '*.go')
@@ -244,103 +253,113 @@ if [ "$rc" = 0 ]; then
 fi
 [ "$rc" = 0 ] || finish ""
 
-echo "== 4 affected gate and dirac gate, side by side"
-lock=${GORGE_HEAVY_LOCK:-}
-lanes=${GORGE_HEAVY_LANES:-3}
-wait_s=${GORGE_TEST_LANE_WAIT:-1500}
-if [ -n "${TEST_TARGETS_REMOTE:-}" ]; then
-	: # the box caps its concurrent runs itself (test-remote-box.sh)
-elif [ -n "$lock" ] && { : >>"$lock"; } 2>/dev/null; then
-	deadline=$((SECONDS + wait_s))
-	got=
-	while [ -z "$got" ]; do
-		for i in $(seq 1 "$lanes"); do
-			f=$lock
-			[ "$i" = 1 ] || f=$lock.lane$i
-			{ : >>"$f"; } 2>/dev/null || continue
-			exec 9>>"$f"
-			if flock -n 9; then got=$i; break; fi
+if [ "${GORGE_TEST_SMART_GATES:-}" = 1 ]; then
+	echo "== 4 affected gate and dirac gate, side by side"
+	lock=${GORGE_HEAVY_LOCK:-}
+	lanes=${GORGE_HEAVY_LANES:-3}
+	wait_s=${GORGE_TEST_LANE_WAIT:-1500}
+	if [ -n "${TEST_TARGETS_REMOTE:-}" ]; then
+		: # the box caps its concurrent runs itself (test-remote-box.sh)
+	elif [ -n "$lock" ] && { : >>"$lock"; } 2>/dev/null; then
+		deadline=$((SECONDS + wait_s))
+		got=
+		while [ -z "$got" ]; do
+			for i in $(seq 1 "$lanes"); do
+				f=$lock
+				[ "$i" = 1 ] || f=$lock.lane$i
+				{ : >>"$f"; } 2>/dev/null || continue
+				exec 9>>"$f"
+				if flock -n 9; then got=$i; break; fi
+			done
+			[ -n "$got" ] && break
+			[ "$SECONDS" -lt "$deadline" ] || verdict BUSY "no heavy lane in ${wait_s}s"
+			sleep 5
 		done
-		[ -n "$got" ] && break
-		[ "$SECONDS" -lt "$deadline" ] || verdict BUSY "no heavy lane in ${wait_s}s"
-		sleep 5
+	else
+		echo "test-targets: note: GORGE_HEAVY_LOCK is unset or not writable; running without a heavy lane" >&2
+	fi
+	dgs=$(mktemp "${TMPDIR:-/tmp}/test-smart-dirac-gate.XXXXXX") && git show "$BASE:scripts/dirac-gate.sh" >"$dgs" || verdict ENV "cannot read $BASE:scripts/dirac-gate.sh"
+	S=$(mktemp -d "${TMPDIR:-/tmp}/test-smart.XXXXXX")
+	trap 'rm -rf -- "$S" "$dgs"' EXIT
+	ncpu=$(nproc)
+	cpu_a=$((ncpu * 100)); [ "$cpu_a" -le 1600 ] || cpu_a=1600
+	cpu_d=$((ncpu * 100)); [ "$cpu_d" -le 800 ] || cpu_d=800
+	U=tsmart-$$-$(date +%s)
+	{
+		if [ -n "$have_sd" ]; then
+			systemd-run --user --scope -q --unit="$U-aff" -p MemoryMax=16G -p CPUQuota=$cpu_a% env GOFLAGS=-trimpath T="$BASE" bash -c 'set -o pipefail; git -C "$0" show "$1:$2" | bash -s "$T"' "$GATE_AFFECTED_REPO" "$GATE_REF" "$GATE_AFFECTED_PATH" >"$S/aff" 2>&1
+		else
+			GOFLAGS=-trimpath T="$BASE" bash -c 'set -o pipefail; git -C "$0" show "$1:$2" | bash -s "$T"' "$GATE_AFFECTED_REPO" "$GATE_REF" "$GATE_AFFECTED_PATH" >"$S/aff" 2>&1
+		fi
+		echo $? >"$S/aff.rc"
+	} 9>&- &
+	{
+		if [ -n "${PRECHECK_DIRAC_GATE:-}" ] && [ -x "$PRECHECK_DIRAC_GATE" ]; then
+			"$PRECHECK_DIRAC_GATE" "$BASE" >"$S/dg" 2>&1
+		elif [ -n "$have_sd" ]; then
+			systemd-run --user --scope -q --unit="$U-dirac" -p MemoryMax=16G -p CPUQuota=$cpu_d% env GOFLAGS=-trimpath GOMAXPROCS=8 GOMEMLIMIT=13GiB bash "$dgs" "$BASE" >"$S/dg" 2>&1
+		else
+			GOFLAGS=-trimpath bash "$dgs" "$BASE" >"$S/dg" 2>&1
+		fi
+		echo $? >"$S/dg.rc"
+	} 9>&- &
+	stopped=
+	while :; do
+		ra=$(cat "$S/aff.rc" 2>/dev/null)
+		rd=$(cat "$S/dg.rc" 2>/dev/null)
+		if { [ -n "$ra" ] && [ "$ra" != 0 ]; } || grep -qE '^(--- FAIL|FAIL[[:space:]]|panic:)' "$S/aff" 2>/dev/null; then stopped="affected tests failed"; break; fi
+		if [ -n "$rd" ] && [ "$rd" != 0 ]; then stopped="dirac gate failed"; break; fi
+		[ -n "$ra" ] && [ -n "$rd" ] && break
+		sleep 2
 	done
-else
-	echo "test-targets: note: GORGE_HEAVY_LOCK is unset or not writable; running without a heavy lane" >&2
-fi
-dgs=$(mktemp "${TMPDIR:-/tmp}/test-smart-dirac-gate.XXXXXX") && git show "$BASE:scripts/dirac-gate.sh" >"$dgs" || verdict ENV "cannot read $BASE:scripts/dirac-gate.sh"
-S=$(mktemp -d "${TMPDIR:-/tmp}/test-smart.XXXXXX")
-trap 'rm -rf -- "$S" "$dgs"' EXIT
-ncpu=$(nproc)
-cpu_a=$((ncpu * 100)); [ "$cpu_a" -le 1600 ] || cpu_a=1600
-cpu_d=$((ncpu * 100)); [ "$cpu_d" -le 800 ] || cpu_d=800
-U=tsmart-$$-$(date +%s)
-{
-	if [ -n "$have_sd" ]; then
-		systemd-run --user --scope -q --unit="$U-aff" -p MemoryMax=16G -p CPUQuota=$cpu_a% env GOFLAGS=-trimpath T="$BASE" bash -c 'set -o pipefail; git -C "$0" show "$1:$2" | bash -s "$T"' "$GATE_AFFECTED_REPO" "$GATE_REF" "$GATE_AFFECTED_PATH" >"$S/aff" 2>&1
-	else
-		GOFLAGS=-trimpath T="$BASE" bash -c 'set -o pipefail; git -C "$0" show "$1:$2" | bash -s "$T"' "$GATE_AFFECTED_REPO" "$GATE_REF" "$GATE_AFFECTED_PATH" >"$S/aff" 2>&1
+	if [ -n "$stopped" ]; then
+		systemctl --user stop "$U-aff.scope" "$U-dirac.scope" >/dev/null 2>&1
+		kill $(jobs -p) >/dev/null 2>&1
 	fi
-	echo $? >"$S/aff.rc"
-} 9>&- &
-{
-	if [ -n "${PRECHECK_DIRAC_GATE:-}" ] && [ -x "$PRECHECK_DIRAC_GATE" ]; then
-		"$PRECHECK_DIRAC_GATE" "$BASE" >"$S/dg" 2>&1
-	elif [ -n "$have_sd" ]; then
-		systemd-run --user --scope -q --unit="$U-dirac" -p MemoryMax=16G -p CPUQuota=$cpu_d% env GOFLAGS=-trimpath GOMAXPROCS=8 GOMEMLIMIT=13GiB bash "$dgs" "$BASE" >"$S/dg" 2>&1
-	else
-		GOFLAGS=-trimpath bash "$dgs" "$BASE" >"$S/dg" 2>&1
-	fi
-	echo $? >"$S/dg.rc"
-} 9>&- &
-stopped=
-while :; do
+	wait
 	ra=$(cat "$S/aff.rc" 2>/dev/null)
 	rd=$(cat "$S/dg.rc" 2>/dev/null)
-	if { [ -n "$ra" ] && [ "$ra" != 0 ]; } || grep -qE '^(--- FAIL|FAIL[[:space:]]|panic:)' "$S/aff" 2>/dev/null; then stopped="affected tests failed"; break; fi
-	if [ -n "$rd" ] && [ "$rd" != 0 ]; then stopped="dirac gate failed"; break; fi
-	[ -n "$ra" ] && [ -n "$rd" ] && break
-	sleep 2
-done
-if [ -n "$stopped" ]; then
-	systemctl --user stop "$U-aff.scope" "$U-dirac.scope" >/dev/null 2>&1
-	kill $(jobs -p) >/dev/null 2>&1
-fi
-wait
-ra=$(cat "$S/aff.rc" 2>/dev/null)
-rd=$(cat "$S/dg.rc" 2>/dev/null)
-grep -qE '^(--- FAIL|FAIL[[:space:]]|panic:)' "$S/aff" && ra=1
-keep=.ds4/scratch/test/smart-${sha%+dirty}
-cp "$S/aff" "$keep.affected.log" 2>/dev/null
-cp "$S/dg" "$keep.dirac.log" 2>/dev/null
-aff_fail=0 dirac_fail=0
-{ [ -z "$ra" ] || [ "$ra" != 0 ]; } && aff_fail=1
-{ [ -z "$rd" ] || [ "$rd" != 0 ]; } && dirac_fail=1
-# Report both gates, as g-land does. The dirac gate often fails first; stopping the affected scope then
-# leaves it at 137/143 (or with no rc file), and that must neither hide the dirac failure nor be read as
-# the budget: the dirac failure decides the landing.
-if [ "$aff_fail" = 1 ]; then
-	grep -E -A8 -- '^--- FAIL|^FAIL|panic:' "$S/aff" | head -40
-	echo "affected gate rc=${ra:-missing}${stopped:+ ($stopped)}"
-	echo "full output: $keep.affected.log"
-fi
-grep -E '^(==|dirac gate|State|Benchmark|fdn:|blb:|std-|  )' "$S/dg" | head -60
-if [ "$dirac_fail" = 1 ]; then
-	tail -30 "$S/dg"
-	echo "dirac gate rc=${rd:-missing}${stopped:+ ($stopped)}"
-	echo "full output: $keep.dirac.log"
-	bad "dirac gate rc=${rd:-missing}; affected gate rc=${ra:-missing}${stopped:+ ($stopped)}"
-fi
-if [ "${ra:-}" = 137 ] || [ "${ra:-}" = 143 ]; then
-	verdict BUDGET "affected gate killed (rc=$ra)"
-fi
-[ "$aff_fail" = 0 ] || bad "affected gate rc=${ra:-missing}${stopped:+ ($stopped)}"
+	grep -qE '^(--- FAIL|FAIL[[:space:]]|panic:)' "$S/aff" && ra=1
+	keep=.ds4/scratch/test/smart-${sha%+dirty}
+	cp "$S/aff" "$keep.affected.log" 2>/dev/null
+	cp "$S/dg" "$keep.dirac.log" 2>/dev/null
+	aff_fail=0 dirac_fail=0
+	{ [ -z "$ra" ] || [ "$ra" != 0 ]; } && aff_fail=1
+	{ [ -z "$rd" ] || [ "$rd" != 0 ]; } && dirac_fail=1
+	# Report both gates, as g-land does. The dirac gate often fails first; stopping the affected scope then
+	# leaves it at 137/143 (or with no rc file), and that must neither hide the dirac failure nor be read as
+	# the budget: the dirac failure decides the landing.
+	if [ "$aff_fail" = 1 ]; then
+		grep -E -A8 -- '^--- FAIL|^FAIL|panic:' "$S/aff" | head -40
+		echo "affected gate rc=${ra:-missing}${stopped:+ ($stopped)}"
+		echo "full output: $keep.affected.log"
+	fi
+	grep -E '^(==|dirac gate|State|Benchmark|fdn:|blb:|std-|  )' "$S/dg" | head -60
+	if [ "$dirac_fail" = 1 ]; then
+		tail -30 "$S/dg"
+		echo "dirac gate rc=${rd:-missing}${stopped:+ ($stopped)}"
+		echo "full output: $keep.dirac.log"
+		bad "dirac gate rc=${rd:-missing}; affected gate rc=${ra:-missing}${stopped:+ ($stopped)}"
+	fi
+	if [ "${ra:-}" = 137 ] || [ "${ra:-}" = 143 ]; then
+		verdict BUDGET "affected gate killed (rc=$ra)"
+	fi
+	[ "$aff_fail" = 0 ] || bad "affected gate rc=${ra:-missing}${stopped:+ ($stopped)}"
 
-if grep -q 'dirac gate: skipped' "$S/dg"; then
-	echo "== 4b repro tables (the dirac gate skipped)"
-	capped 8G 400% env GOMAXPROCS=4 GOMEMLIMIT=6GiB go test -json -failfast -timeout 10m -run '^TestStd[A-Za-z]*ReprosLockstep' ./dirac/oracle >>"$json" 2>&1
-	rc=$?
-	[ "$rc" = 0 ] || finish ""
+	if grep -q 'dirac gate: skipped' "$S/dg"; then
+		echo "== 4b repro tables (the dirac gate skipped)"
+		capped 8G 400% env GOMAXPROCS=4 GOMEMLIMIT=6GiB go test -json -failfast -timeout 10m -run '^TestStd[A-Za-z]*ReprosLockstep' ./dirac/oracle >>"$json" 2>&1
+		rc=$?
+		[ "$rc" = 0 ] || finish ""
+	fi
+else
+	echo "== 4 skipped (the lander runs the affected and dirac gates)"
+	if [ -n "$(git diff --name-only "$mb" HEAD -- 'dirac/oracle/testdata/repro/')" ]; then
+		echo "== 4b repro tables (the diff touches dirac/oracle/testdata/repro/)"
+		capped 8G 400% env GOMAXPROCS=4 GOMEMLIMIT=6GiB go test -json -failfast -timeout 10m -run '^TestStd[A-Za-z]*ReprosLockstep' ./dirac/oracle >>"$json" 2>&1
+		rc=$?
+		[ "$rc" = 0 ] || finish ""
+	fi
 fi
 
 echo "== 5 wire goldens"
