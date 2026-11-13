@@ -69,9 +69,10 @@ func countCmdPodFeatures(g *GorgeSide) cmdPodFeatures {
 // Commander decks, each cut to its commander and 39 more cards
 // (MiniCommanderDeck), dirac against gorge, as kfuzz -kernel cmd5 -seats 4
 // -cmd-mini 40 does: no pod diverges, and across them a commander is asked
-// back to the command zone, cast a second time (with tax), damaged by the
-// commanders of two or more opponents, and still on the battlefield when
-// its owner leaves the game. Pods 8 and 32 carry a seat-2 permanent whose
+// back to the command zone, cast a second time (with tax), and still on the
+// battlefield when its owner leaves the game, and one player takes combat
+// damage from the commanders of all three opponents (pod 194; CR 903.10a
+// keeps a tally per commander). Pods 8 and 32 carry a seat-2 permanent whose
 // mana ability a seat-2 static grants (Rishkar, Peema Renegade): the grant
 // walk read only seats 0 and 1.
 func TestFourSeatCommanderMiniPodsLockstep(t *testing.T) {
@@ -86,7 +87,7 @@ func TestFourSeatCommanderMiniPodsLockstep(t *testing.T) {
 		pool[i] = PoolDeck{Name: n}
 	}
 	var sum cmdPodFeatures
-	for _, i := range []int{8, 32, 0, 1, 2, 3, 4, 5, 6, 7} {
+	for _, i := range []int{8, 32, 194, 0, 1, 2, 3, 4, 5, 6, 7} {
 		p := PodAt(pool, i, 1, 4)
 		m, tbl, err := SetMatchupN(set, c, p.Decks(), 0)
 		if err != nil {
@@ -110,7 +111,7 @@ func TestFourSeatCommanderMiniPodsLockstep(t *testing.T) {
 		sum.maxDamagers = max(sum.maxDamagers, f.maxDamagers)
 		sum.leftInPlay += f.leftInPlay
 	}
-	if sum.asks == 0 || sum.maxCasts < 2 || sum.maxDamagers < 2 || sum.leftInPlay == 0 {
+	if sum.asks == 0 || sum.maxCasts < 2 || sum.maxDamagers < 3 || sum.leftInPlay == 0 {
 		t.Fatalf("Commander rules not all exercised: %+v", sum)
 	}
 }
