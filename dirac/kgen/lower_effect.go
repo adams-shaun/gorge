@@ -802,10 +802,12 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 		if c, err = lc.nodeConditionZone(ps, c, cp); err != nil { // lower_condkeys.go
 			return lCond{}, err
 		}
-		// ConditionCheckSVar$ beside the present check (H.M.S. Bounty:
-		// ConditionPresent$ Whale.YouCtrl with Count$YourExtraTurns EQ0).
-		// Only that exact SVar and an equality-with-zero compare are read;
-		// any other pair refuses rather than dropping the SVar gate.
+		// ConditionCheckSVar$ beside the present check is a conjunction
+		// (gorge conditionMetCore: a denying SVar skips, a passing one leaves
+		// the present group to decide). H.M.S. Bounty: ConditionPresent$
+		// Whale.YouCtrl with Count$YourExtraTurns EQ0; Abzan Beastmaster:
+		// Creature.YouCtrl with YourTough GEOppsTough. The extra-turn count
+		// is read only against zero.
 		if cs, ok := ps.get("ConditionCheckSVar"); ok {
 			v, err := lc.value(cs)
 			if err != nil {
@@ -819,7 +821,7 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 			if err != nil {
 				return lCond{}, err
 			}
-			if v.Kind != vYourExtraTurns || op != opEQ || !b.isConst() || b.N != 0 {
+			if v.Kind == vYourExtraTurns && (op != opEQ || !b.isConst() || b.N != 0) {
 				return lCond{}, refuse("ConditionCheckSVar$ %q with ConditionSVarCompare$ %q beside ConditionPresent$ %q", cs, cmp, cp)
 			}
 			c = lCond{Kind: cAnd, Sub: []lCond{c, {Kind: cValue, A: v, Op: op, B: b}}}
@@ -3467,11 +3469,11 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	}
 	_, hasAtt := ps.m["NumAtt"]
 	_, hasDef := ps.m["NumDef"]
-	if !(mustBlock || eachColor) || in.CS != "" || hasAtt || hasDef {
-		lc.emit(in)
 	if err := pumpAllHighKw(&in, hasAtt || hasDef); err != nil { // lower_pumpallhighkw.go
 		return err
 	}
+	if !(mustBlock || eachColor) || in.CS != "" || hasAtt || hasDef {
+		lc.emit(in)
 	}
 	if eachColor {
 		// CR 702.16 + 611.2c: the permanents matching ValidCards$ as this
