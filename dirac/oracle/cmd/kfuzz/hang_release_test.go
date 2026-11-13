@@ -212,11 +212,11 @@ func helperHang(t *testing.T) {
 	go func() {
 		for i := 0; ; i++ {
 			fmt.Fprintf(f, "tick %d\n", i)
-			time.Sleep(2 * time.Millisecond)
+			time.Sleep(time.Millisecond)
 		}
 	}()
 	for spinSize(spin) == 0 {
-		time.Sleep(5 * time.Millisecond) // precondition: the marker is growing before the exec
+		time.Sleep(time.Millisecond) // precondition: the marker is growing before the exec
 	}
 	if spinSize(spin) == 0 {
 		t.Fatal("the spin marker never grew")
@@ -252,9 +252,12 @@ func helperAfter() {
 	if before == 0 {
 		fail("the spin marker did not survive the exec")
 	}
-	time.Sleep(150 * time.Millisecond)
-	if after := spinSize(spin); after != before {
-		fail("the hung game's goroutine still runs: the spin marker grew %d -> %d bytes", before, after)
+	// A live spinner ticks every millisecond; 150 looks catch it growing the marker.
+	for i := 0; i < 150; i++ {
+		time.Sleep(time.Millisecond)
+		if after := spinSize(spin); after != before {
+			fail("the hung game's goroutine still runs: the spin marker grew %d -> %d bytes", before, after)
+		}
 	}
 	os.RemoveAll(filepath.Dir(spin))
 	fmt.Println(helperAfterOK)
