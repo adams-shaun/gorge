@@ -64,6 +64,15 @@ type Config struct {
 	// scenario's) changes nothing, and a replay that is handed the same
 	// Config seeds the same counts.
 	CommanderCasts [][]int32
+	// DraftPartners admits the Commander-draft pairing rule (Commander
+	// Legends / Mystery Booster Commander drafts): a commander of at most one
+	// colour with no partner-family ability may be treated as having
+	// partner, so two such commanders, or one and a plain-Partner card, may
+	// share a seat (deck.IsDraftCommanderPair). It only widens which
+	// two-card seats FormatCommander accepts; false (every Config before
+	// the field) keeps CR 903.13 exactly. Genesis configuration: replay must
+	// pass the same value.
+	DraftPartners bool
 	// Mulligans is the number of London mulligans each player may take in the
 	// pre-game round between the opening deal and turn 1. 0 (the zero value)
 	// skips the round entirely, so every Config that never sets it is
