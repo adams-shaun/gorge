@@ -9,7 +9,7 @@ import (
 
 // The multi-origin ChangesZone trigger (lower_trigger.go's Origin$ set):
 // "put into a graveyard from anywhere other than the battlefield" — Syr
-// Konrad, the Grim, Disa the Restless. gorge matches the move's from-zone
+// Konrad, the Grim, Ultron the Annihilator. gorge matches the move's from-zone
 // against the Origin$ set as the move completes (trigmatch
 // ZoneChangeMatchesWithCapture); the kernel is one TrigToGraveyard ability
 // the placement itself fires (dirac/trig_tograve.go from dirac/zones.go

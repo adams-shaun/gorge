@@ -4,7 +4,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // "a creature card is put into a graveyard from anywhere other than the
 // battlefield" (ChangesZone with an Origin$ set that leaves the battlefield
-// out: Syr Konrad, the Grim, Disa the Restless, Ultron the Annihilator). The
+// out: Syr Konrad, the Grim, Ultron the Annihilator, Ultron's Auxiliary). The
 // line is one TrigToGraveyard ability whose Trigger.N carries the origin
 // zones as a 1<<kop.Zone mask (0 = any), mirroring TrigLandPlayed's origin
 // mask. The battlefield origin is not part of the family: a Dies line and a

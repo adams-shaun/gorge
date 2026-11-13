@@ -40,17 +40,17 @@ const (
 
 var konradDecks = [2][]string{
 	append(deckOf(4, "Syr Konrad, the Grim"), append(deckOf(16, "Swamp"), deckOf(20, "Blood Artist")...)...),
-	append(deckOf(40, "Blood Artist")),
+	deckOf(40, "Blood Artist"),
 }
 
 var grizzlyDecks = [2][]string{
 	append(deckOf(4, "Vivien's Grizzly"), deckOf(36, "Forest")...),
-	append(deckOf(40, "Mountain")),
+	deckOf(40, "Mountain"),
 }
 
 var clockDecks = [2][]string{
 	append(deckOf(4, "Blood Clock"), deckOf(36, "Swamp")...),
-	append(deckOf(40, "Swamp")),
+	deckOf(40, "Swamp"),
 }
 
 // mbcZoneCase is one spelling's fixture: its pool half, decks, the card its

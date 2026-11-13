@@ -1704,7 +1704,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 // lowerStatic lowers an S: line.
 // trigToGraveyardSet lowers a ChangesZone trigger whose Origin$ is a comma
 // set, the "put into a graveyard from anywhere other than the battlefield"
-// family (Syr Konrad, the Grim; Disa the Restless; Ultron the Annihilator).
+// family (Syr Konrad, the Grim; Ultron the Annihilator; Ultron's Auxiliary).
 // gorge matches the move's from-zone against the Origin$ set and its to-zone
 // against Destination$ (trigmatch ZoneChangeMatchesWithCapture) as the move
 // completes, from the listener on the battlefield; the kernel is one
