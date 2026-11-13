@@ -874,6 +874,7 @@ OvChosenColor	untyped int	1
 OvEnterWith	untyped int	2
 PanhModeDrawn	int16	2
 PanhModeLifeGained	int16	1
+ParentTrigPl	uint8	255
 PayAddCounter	untyped int	16
 PayBBehold	untyped int	6
 PayBRemember	untyped int	4

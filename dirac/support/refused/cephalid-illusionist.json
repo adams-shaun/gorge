@@ -1,6 +1,6 @@
 {
   "card": "Cephalid Illusionist",
-  "class": "lockstep",
+  "class": "projection",
   "why": "its activated prevention of combat damage to and by the target is applied by the kernel's grant and not by gorge (a creature the grant names deals and takes damage in gorge); the BecomesTarget mill trigger lowers and is not the divergence",
   "repro": {
     "pool": "custom",

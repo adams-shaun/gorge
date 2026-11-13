@@ -79,7 +79,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | decision | 1 |
 | options | 4 |
 | options-options | 1 |
-| projection | 1 |
+| projection | 2 |
 | projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Damage | 1 |
 | projection-Cards.Flags | 2 |
