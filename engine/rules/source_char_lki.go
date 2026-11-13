@@ -48,6 +48,11 @@ type sourceCharSnapshot struct {
 	// manaColorSpent is the cast-time spend ("if {W}{W} was spent to cast
 	// it"); the live object loses it on leaving the battlefield (CR 400.7).
 	manaColorSpent state.Mana
+	// tapped is the source's battlefield status, read by an intervening-if
+	// whose PresentDefined$ Self spec asks Card.tapped/Card.untapped (House
+	// Cartographer's Survival, its trigger killed by Bear Trap in response;
+	// CR 608.2h reads the departed source's last known status).
+	tapped bool
 }
 
 // sourceCharSnapshotOf reads src's characteristics now; src must still be on
@@ -59,7 +64,7 @@ func (e *Engine) sourceCharSnapshotOf(src state.ObjID) sourceCharSnapshot {
 	}
 	return sourceCharSnapshot{power: e.Power(src), toughness: e.Toughness(src),
 		counters:   append([]state.Counter(nil), o.Counters...),
-		chosenType: o.ChosenType, chosenColor: o.ChosenColor, manaColorSpent: o.ManaColorSpent}
+		chosenType: o.ChosenType, chosenColor: o.ChosenColor, manaColorSpent: o.ManaColorSpent, tapped: o.Tapped}
 }
 
 // bindSourceLKI binds the departed source's snapshot for the stack object id
@@ -75,6 +80,7 @@ func (e *Engine) bindSourceLKI(tc *effects.TriggerContext, id, source state.ObjI
 	tc.SourceChosenType, tc.SourceChosenColor = snap.chosenType, snap.chosenColor
 	tc.SourceManaColorSpent = snap.manaColorSpent
 	tc.SourcePower, tc.SourceToughness, tc.SourceCounters = snap.power, snap.toughness, snap.counters
+	tc.SourceTapped = snap.tapped
 }
 
 // captureSourceCharLKI records src's snapshot, immediately before it leaves
@@ -238,7 +244,8 @@ func (e *Engine) sourceCharLKIFor(stack, source state.ObjID, lki *state.Object, 
 		return sourceCharSnapshot{}, false
 	}
 	return sourceCharSnapshot{power: lkiPower, toughness: lkiToughness, counters: lki.Counters,
-		chosenType: lki.ChosenType, chosenColor: lki.ChosenColor, manaColorSpent: lki.ManaColorSpent}, true
+		chosenType: lki.ChosenType, chosenColor: lki.ChosenColor, manaColorSpent: lki.ManaColorSpent,
+		tapped: lki.Tapped}, true
 }
 
 // count answers a source-characteristic Count$ body from the snapshot:

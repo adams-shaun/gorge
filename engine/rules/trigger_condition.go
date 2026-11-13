@@ -583,6 +583,26 @@ func (e *Engine) presentClauseHolds(t cards.Trigger, source state.ObjID, you sta
 			return comparePresent(0, cmp)
 		}
 		if pd == "Self" {
+			// CR 603.4 rechecks the clause as the ability resolves, and CR
+			// 608.2h has a source that left the battlefield answer from its
+			// last known information: the zone, the tapped status and the
+			// counters it had when the trigger fired. House Cartographer
+			// attacked, Bear Trap killed it in response to its Survival
+			// trigger, and the recheck must still see the tapped creature the
+			// clause held for -- not a graveyard card (Forge reads "Self" as
+			// the held host card, with no zone gate). bindSourceLKI seeded
+			// the snapshot only for an ability whose source departed, so a
+			// source still on the battlefield keeps the live read.
+			if tc != nil && tc.SourceLKIValid {
+				lki := *o
+				lki.Zone = state.ZBattlefield
+				lki.Tapped = tc.SourceTapped
+				lki.Counters = tc.SourceCounters
+				if effects.MatchesObjectCtx(e.G, spec, &lki, sc) {
+					return comparePresent(1, cmp)
+				}
+				return comparePresent(0, cmp)
+			}
 			if o.Zone != state.ZBattlefield || !e.matchesSpec(spec, source, sc) {
 				return comparePresent(0, cmp)
 			}
