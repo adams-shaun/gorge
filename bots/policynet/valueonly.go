@@ -29,6 +29,9 @@ func (m *Model) ValueGrad(st State, target float64, g *Grads) (loss float64) {
 	if m.EntK != 0 {
 		panic("policynet.ValueGrad on an entity model (refuse it in the trainer)")
 	}
+	if m.ValueK > 0 {
+		panic("policynet.ValueGrad on a K-way value model (the vector head has no training path; refuse it in the trainer)")
+	}
 	s := m.StateTrunk(st)
 	z := m.valueForward(s, g.va)
 	var dz float64

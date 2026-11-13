@@ -33,8 +33,10 @@ type Scorer struct {
 	x []float32
 	a []float32
 	// va is the value head's hidden activations (ValueHidden; empty when the
-	// model has no value head).
+	// model has no value head), vz the K-way head's logits (ValueK; empty
+	// without a K-way head).
 	va []float32
+	vz []float32
 	// ec is the loaded state's entity forward (entity models only).
 	ec *entCache
 }
@@ -51,6 +53,7 @@ func NewScorer(m *Model) *Scorer {
 		x:  make([]float32, m.InW),
 		a:  make([]float32, m.Hidden),
 		va: make([]float32, m.ValueHidden),
+		vz: make([]float32, m.ValueK),
 	}
 }
 
@@ -61,11 +64,17 @@ func (sc *Scorer) HasValue() bool { return sc.m.HasValue() }
 // it loads st as the scorer's state (exactly SetState, so a following
 // ScoreOption scores against it) and returns V(s) ∈ (0,1), bit-identical to
 // Model.Value (TestScorerValueMatchesModelValue). 0.5 on a model without a
-// value head.
+// value head. A K-way head returns component 0 of the softmax, Model.Value's
+// K-way answer, through the same valueHidden/valueVecOut/softmaxVec order.
 func (sc *Scorer) Value(st State) float32 {
 	sc.SetState(st)
 	if !sc.m.HasValue() {
 		return 0.5
+	}
+	if sc.m.ValueK > 0 {
+		sc.m.valueHidden(sc.s, sc.va)
+		sc.m.valueVecOut(sc.va, sc.vz)
+		return softmaxVec(sc.vz)[0]
 	}
 	return float32(sigmoidFloat(float64(sc.m.valueForward(sc.s, sc.va))))
 }
