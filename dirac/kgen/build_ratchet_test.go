@@ -256,7 +256,8 @@ import (
 // +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL build-level 23251 -> 23252 measured).
 // +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source, DamagePlus ValidTarget$ Player.Opponent: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL build-level 23253 -> 23261 measured).
 // +1 (Foil's two-part discard alternative cost lowered, kop.Cost.Discard2N/Discard2F; ALL build-level merged against land's MBC work 23347 -> 23348 measured).
-var buildAcceptancePin = [2]int{23407, 34442} // {built, cards}
+// +14 (MBC costs-4: a PayLife<N>-only or tapXType-only alternative cost, PayLife<N> beside Sac<N/Spec>, and Discard<N> beside Sac<N/Spec> of the same count: Snuff Out, Ramosian Rally, Strands of Night, Dreamscape Artist, plus Ellie Vengeful Hunter, Falkenrath Pit Fighter, Orim's Cure, Razaketh the Foulblooded, Rouse, Ruthless Disposal, Susur Secundi Void Altar, The Lady of Otaria, Warren Soultrader, Yawgmoth Thran Physician; ALL build-level 23407 -> 23421 measured).
+var buildAcceptancePin = [2]int{23421, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)
