@@ -673,7 +673,9 @@ func (r *specResolveEnv) resolve(name string) (int32, bool) {
 // the same permanent cannot inherit one another's bindings. A prospective cast
 // or an ordinary static has no entry and therefore no trigger context.
 //
-// Resolve reads numeric bounds from the source face's SVar table. In
+// Resolve reads numeric bounds from the SVar table pushTrigger recorded for
+// this stack object's line (the grantor's or delayed owner's table), falling
+// back to the source face's SVar table when the trigger is printed. In
 // particular, SVar:X follows the same two-shape contract as resolving
 // effects: Count$xPaid reads the announced/captured X, while another body is
 // evaluated as a fixed count with the trigger's captured Remembered, LKI and
