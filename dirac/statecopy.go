@@ -67,6 +67,8 @@ type coldLayout struct {
 	partner                                                                         int // cmdPartner records (0 or 1), right after the xblk records (zone_cmdpartner.go)
 	mk                                                                              int // multikicker counts per slot (CR 702.43; cast.go)
 	mkObj                                                                           int // multikicker counts per object while on the stack (cast.go)
+	exper                                                                           int // per-seat experience counters (0 or MaxSeats), the last thing in the buffer; experCold reads them at experAt (act_energy.go)
+	experAt                                                                         int // byte offset of the experience counters, set by place's count pass
 	words                                                                           int
 }
 
@@ -120,6 +122,9 @@ func prepCold(g *genPrep, l *coldLayout) {
 	if g.anyHexUB {
 		l.hexUB = MaxPerm
 	}
+	if g.anyExper {
+		l.exper = MaxSeats
+	}
 }
 
 // place points c's arrays into b, or just counts them if b is nil, and returns
@@ -145,6 +150,10 @@ func (l *coldLayout) place(c *coldArrays, b []uint64) int {
 	c.mk = coldView[uint8](b, &at, l.mk)
 	c.mkObj = coldView[uint8](b, &at, l.mkObj)
 	c.hexUB = coldView[uint16](b, &at, l.hexUB)
+	if b == nil {
+		l.experAt = at // a view would add a slice header to State: experCold finds the bytes by offset
+	}
+	_ = coldView[uint8](b, &at, l.exper)
 	return (at + 7) / 8
 }
 

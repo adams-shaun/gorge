@@ -32,7 +32,7 @@ func (s *State) exprKvf(k *prep, x *kop.Expr, ctx evalCtx) int {
 		// Count$YourCountersExperience reads the experience counters (N).
 		v := 0
 		if p := s.refPlayer(k, x.Ref, ctx); p != 255 {
-			v = int(*s.plCtr(SeatIx(p), int(x.N)))
+			v = s.plCtr(SeatIx(p), int(x.N))
 		}
 		return v
 	case kop.ExProduct:
