@@ -265,7 +265,7 @@ func (bt *Bot) effectRank(r *tgtRank, tg uint8, me uint8, dmg int32, spare bool)
 			r.score, r.ours = 0, true
 			return
 		}
-		if b.life[pl&1] <= dmg {
+		if b.life[pl] <= dmg {
 			r.score = tierFaceLethal
 		}
 		return
@@ -282,7 +282,7 @@ func (bt *Bot) effectRank(r *tgtRank, tg uint8, me uint8, dmg int32, spare bool)
 		return
 	}
 	if c.remTough() <= dmg {
-		if c.power > 0 && !c.tapped && c.power >= b.life[me&1] {
+		if c.power > 0 && !c.tapped && c.power >= b.life[me] {
 			r.score = tierThreat + c.threat()
 			return
 		}

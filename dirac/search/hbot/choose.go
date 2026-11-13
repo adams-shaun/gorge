@@ -288,7 +288,7 @@ func (b *board) facingLethal(p uint8) bool {
 		}
 		total += c.power
 	}
-	return total >= b.life[p&1]
+	return total >= b.life[p]
 }
 
 // modes is KModes: the first Min options in order, so nothing more once the
@@ -337,7 +337,7 @@ func (bt *Bot) mulligan(s *dirac.State, d *dirac.Decision) int {
 // fillPos refreshes the battlefield positions objKey reads (without the
 // whole board).
 func (b *board) fillPos(s *dirac.State) {
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.NumSeats(); p++ {
 		for i, o := range s.FeatBattlefield(p, b.objs[:0]) {
 			b.bfPos[o] = uint8(i)
 		}

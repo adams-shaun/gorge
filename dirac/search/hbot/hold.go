@@ -19,7 +19,7 @@ func (b *board) instantHeld(me uint8, c *cardF) bool {
 	if !c.instant {
 		return false
 	}
-	if c.f.FaceDmg > 0 && b.life[1-me] <= int32(c.f.FaceDmg) {
+	if c.f.FaceDmg > 0 && b.oppLifeAtMost(me, int32(c.f.FaceDmg)) {
 		return false
 	}
 	if b.nStack > 0 && b.stack[b.nStack-1].ctrl != me {

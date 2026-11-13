@@ -8,17 +8,18 @@ import (
 // board is botpolicy.Board read off a kernel State for the deciding seat:
 // fixed arrays, refilled per decision, no allocation. Its tables keep
 // gorge's insertion orders (botpolicy IDTable iterates in insertion order):
-// creatures seat 0's battlefield then seat 1's, each in entry order; cards
-// the seat's hand, graveyard, battlefield, then the other seats'
-// battlefields.
+// creatures every seat's battlefield in ascending seat order, each in entry
+// order; cards the seat's hand, graveyard, battlefield, then every other
+// seat's battlefield in ascending seat order.
 type board struct {
 	s  *dirac.State
 	f  *Facts
 	me uint8
+	n  uint8 // the game's seats (gorge's Players, departed seats included)
 
 	step                     kop.Step
 	isMain, firstMain, myTur bool
-	life                     [2]int32
+	life                     [dirac.MaxSeats]int32
 	pool                     [6]int32 // W U B R G C
 	poolR                    [6]int32 // the restricted part
 	libSize, handSize        int32
@@ -39,8 +40,8 @@ type board struct {
 	// bf holds each seat's battlefield list (entry order) for the duration
 	// of one fill, so the creature census and the card census read one
 	// FeatBattlefield walk per seat, not two.
-	bf  [2][dirac.MaxPerm]dirac.Obj
-	nbf [2]int
+	bf  [dirac.MaxSeats][dirac.MaxPerm]dirac.Obj
+	nbf [dirac.MaxSeats]int
 
 	// creOnly: fillCombat's creature-only census.
 	creOnly bool
@@ -125,7 +126,8 @@ func (b *board) fillAs(s *dirac.State, f *Facts, me uint8, full bool) {
 	b.isMain = b.step == kop.StepMain1 || b.step == kop.StepMain2
 	b.firstMain = b.step == kop.StepMain1
 	b.myTur = s.ActivePlayer() == me
-	for p := uint8(0); p < 2; p++ {
+	b.n = s.NumSeats()
+	for p := uint8(0); p < b.n; p++ {
 		b.life[p] = int32(s.LifeOf(p))
 	}
 	pool, restr := s.PoolOf(me)
@@ -157,7 +159,7 @@ func (b *board) fillAs(s *dirac.State, f *Facts, me uint8, full bool) {
 	}
 	b.nCre = 0
 	b.nCard = 0
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < b.n; p++ {
 		objs := s.FeatBattlefield(p, b.bf[p][:0])
 		b.nbf[p] = len(objs)
 		for i, o := range objs {
@@ -207,19 +209,36 @@ func (b *board) fillAs(s *dirac.State, f *Facts, me uint8, full bool) {
 	for _, o := range b.bf[me][:b.nbf[me]] {
 		b.addOwn(o, kop.ZoneBattlefield, full)
 	}
-	// the other seat's battlefield: worth facts only
-	for _, o := range b.bf[1-me][:b.nbf[1-me]] {
-		cid := s.ObjCard(o)
-		cf := f.card(cid)
-		c := cardF{obj: o, f: cf, creature: b.creX[o] > 0, cmc: int32(cf.CMC), basic: cf.Basic,
-			activated: int32(s.FeatActivations(o)), attached: dirac.NoObj}
-		if i := b.creX[o]; i > 0 {
-			c.power, c.tough = b.cre[i-1].power, b.cre[i-1].tough
+	// every other seat's battlefield: worth facts only
+	for p := uint8(0); p < b.n; p++ {
+		if p == me {
+			continue
 		}
-		b.card[b.nCard] = c
-		b.nCard++
-		b.cardX[o] = int16(b.nCard)
+		for _, o := range b.bf[p][:b.nbf[p]] {
+			cid := s.ObjCard(o)
+			cf := f.card(cid)
+			c := cardF{obj: o, f: cf, creature: b.creX[o] > 0, cmc: int32(cf.CMC), basic: cf.Basic,
+				activated: int32(s.FeatActivations(o)), attached: dirac.NoObj}
+			if i := b.creX[o]; i > 0 {
+				c.power, c.tough = b.cre[i-1].power, b.cre[i-1].tough
+			}
+			b.card[b.nCard] = c
+			b.nCard++
+			b.cardX[o] = int16(b.nCard)
+		}
 	}
+}
+
+// oppLifeAtMost reports whether some seat other than me has life at or
+// below n (botpolicy's lethalFace fold over the whole Life table, departed
+// seats included).
+func (b *board) oppLifeAtMost(me uint8, n int32) bool {
+	for p := uint8(0); p < b.n; p++ {
+		if p != me && b.life[p] <= n {
+			return true
+		}
+	}
+	return false
 }
 
 // addOwn adds the seat's own object o (in zone z) to the card census.
