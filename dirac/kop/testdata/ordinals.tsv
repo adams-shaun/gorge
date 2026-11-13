@@ -649,6 +649,7 @@ MayGuardAnimateAll	untyped int	7
 MayGuardAttach	untyped int	1
 MayGuardCloneCopy	untyped int	8
 MayGuardDamage	untyped int	6
+MayGuardDigUntil	untyped int	12
 MayGuardDraw	untyped int	5
 MayGuardLibraryTop	untyped int	4
 MayGuardMill	untyped int	0
@@ -1404,9 +1405,13 @@ TgfGiftRange	TargetFlags	128
 TgfKickedRange	TargetFlags	8
 TgfMaxTotalMV	TargetFlags	4096
 TgfOppOnly	TargetFlags	16384
+TgfOppToActive	TargetFlags	131072
+TgfPlayerCompareOK	TargetFlags	1966080
 TgfSameController	TargetFlags	2
 TgfSharedCrType	TargetFlags	1024
 TgfSingleTgt	TargetFlags	8192
+TgfThanMask	TargetFlags	1835008
+TgfThanShift	untyped int	18
 TgfTrigChooser	TargetFlags	65536
 TgtAny	TargetKind	3
 TgtCard	TargetKind	5
@@ -1424,6 +1429,11 @@ TgtStackAb	TargetKind	7
 TgtStackObj	TargetKind	6
 TgtStackObjTrig	TargetKind	238
 TgtStackTgting	TargetKind	242
+ThanCreatures	untyped int	1
+ThanHandCards	untyped int	3
+ThanLands	untyped int	2
+ThanLife	untyped int	4
+ThanYardFewer	untyped int	5
 TimingInstant	Timing	1
 TimingLand	Timing	2
 TimingSorcery	Timing	0

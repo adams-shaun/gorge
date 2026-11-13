@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Oath of Druids against gorge in a fixture-table lockstep game
+// The Oath cycle (Druids, Scholars, Mages) against gorge in a fixture-table lockstep game
 // (printedDelveSet). Its upkeep trigger's target is ValidTgts$
 // Player.OpponentToActive+withMoreCreaturesThanActive, answered by the player
 // whose upkeep it is (TargetingPlayer$ TriggeredPlayer), and its DigUntil is
@@ -19,12 +19,14 @@ import (
 // the trigger is removed on some upkeeps (the active player does not trail)
 // and fires on others. The mutation drops the target's active-player reading
 // from the table, so the trigger fires on every upkeep and must diverge.
-var oathDecks = [2][]cardset.Entry{
-	{
-		{Name: "Oath of Druids", Count: 8}, {Name: "Craw Wurm", Count: 6},
-		{Name: "Forest", Count: 18}, {Name: "Island", Count: 8},
-	},
-	okagachiDecks[1],
+func oathDecks(oath string) [2][]cardset.Entry {
+	return [2][]cardset.Entry{
+		{
+			{Name: oath, Count: 8}, {Name: "Craw Wurm", Count: 6},
+			{Name: "Forest", Count: 8}, {Name: "Island", Count: 8}, {Name: "Mountain", Count: 10},
+		},
+		okagachiDecks[1],
+	}
 }
 
 // oathTally counts, from gorge's events, the Oath triggers pushed at an
@@ -36,7 +38,7 @@ type oathTally struct {
 	pushed, resolved, dug int
 }
 
-func oathCheck(tal *oathTally) func(*GorgeSide, Side) *Divergence {
+func oathCheck(oath string, tal *oathTally) func(*GorgeSide, Side) *Divergence {
 	var cur *GorgeSide
 	seen := 0
 	return func(ref *GorgeSide, _ Side) *Divergence {
@@ -45,7 +47,7 @@ func oathCheck(tal *oathTally) func(*GorgeSide, Side) *Divergence {
 		}
 		isOath := func(id state.ObjID) bool {
 			o := ref.E.G.Obj(id)
-			return o != nil && o.Face() != nil && o.Face().Name == "Oath of Druids"
+			return o != nil && o.Face() != nil && o.Face().Name == oath
 		}
 		evs := ref.E.L.Events
 		for ; seen < len(evs); seen++ {
@@ -70,7 +72,7 @@ func oathCheck(tal *oathTally) func(*GorgeSide, Side) *Divergence {
 
 // oathRun plays n seeds of oathDecks and returns the divergences; with mut
 // set it stops at the first one.
-func oathRun(t *testing.T, n uint64, tal *oathTally, mut func(*kop.Table)) int {
+func oathRun(t *testing.T, oath string, n uint64, tal *oathTally, mut func(*kop.Table)) int {
 	t.Helper()
 	reg, err := cards.SharedCorpus(corpusDirOrSkip(t))
 	if err != nil {
@@ -78,7 +80,8 @@ func oathRun(t *testing.T, n uint64, tal *oathTally, mut func(*kop.Table)) int {
 	}
 	var gd [2][]*cards.Card
 	var names [2][]string
-	for s, d := range oathDecks {
+	decks := oathDecks(oath)
+	for s, d := range decks {
 		for _, e := range d {
 			card, ok := reg.Lookup(e.Name)
 			if !ok {
@@ -91,7 +94,7 @@ func oathRun(t *testing.T, n uint64, tal *oathTally, mut func(*kop.Table)) int {
 		}
 	}
 	set := printedDelveSet(t, names)
-	tbl, _, _, err := set.Matchup(oathDecks[0], oathDecks[1])
+	tbl, _, _, err := set.Matchup(decks[0], decks[1])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +115,7 @@ func oathRun(t *testing.T, n uint64, tal *oathTally, mut func(*kop.Table)) int {
 		if seed%8 == 0 {
 			pol = RandomPolicy(seed)
 		}
-		res := Lockstep(m, seed, k, pol, RunConfig{MaxDecisions: 6000, MaxTurns: 40, Check: oathCheck(tal)})
+		res := Lockstep(m, seed, k, pol, RunConfig{MaxDecisions: 6000, MaxTurns: 40, Check: oathCheck(oath, tal)})
 		CloseSide(k)
 		if d := res.Div; d != nil {
 			div++
