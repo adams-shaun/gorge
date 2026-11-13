@@ -75,7 +75,12 @@ func (s *State) deferSnap(p uint8) (col int, n uint8) {
 // colour (gorge spends the source's batch first, so its unit is gone even when
 // same-colour mana from other sources still floats). A creature source such as
 // Gilanra sets no poolArt bit, so artSync's gate never sees its spend; every
-// pool spend takes the snapshot.
+// live spend of floating mana takes the snapshot: payFromPool,
+// payFromPoolAnyColor (and payConvPips under it), payFromPoolRider, filtDo's
+// fee and pip, eachProduce's fee. The other pool decrements spend nothing: they
+// take back mana a source just added (a restricted or parked unit, a fixed
+// extra, a witness tap's), return units rbTake lent to their batches, or run on
+// a dry probe whose pool is restored (windowDryFilter, windowFiltFirstFallback).
 func (s *State) deferSync(p uint8, col int, n uint8) {
 	if n != 0 && s.pl[SeatIx(p)].pool[col] < n {
 		s.g.defSrc[SeatIx(p)] = 0
