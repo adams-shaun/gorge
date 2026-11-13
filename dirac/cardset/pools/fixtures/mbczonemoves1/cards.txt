@@ -1,0 +1,8 @@
+# the MBC zone-moves-1 family (dirac/oracle/mbczonemoves1_test.go): Elda, Conjurer of Spectacle's gated AffectedZone$ Stack Demonstrate grant, over nonlegendary and legendary creature spells
+Elda, Conjurer of Spectacle
+Isamaru, Hound of Konda
+Grizzly Bears
+Savannah Lions
+Giant Spider
+Plains
+Forest

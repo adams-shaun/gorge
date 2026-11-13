@@ -521,6 +521,9 @@ func (s *State) prog(k *prep) []kop.Instr {
 			return cascadeProg[:]
 		}
 		if e.ab == abStorm {
+			if e.trigAmt == stormDemonstrate {
+				return demonstrateProg[:]
+			}
 			return stormProg[:]
 		}
 		return nil

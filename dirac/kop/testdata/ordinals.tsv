@@ -1207,6 +1207,7 @@ StackKwCasualty	int16	2
 StackKwConspire	int16	8
 StackKwConvoke	int16	7
 StackKwDelve	int16	9
+StackKwDemonstrate	int16	10
 StackKwImprovise	int16	1
 StackKwLifelink	int16	4
 StackKwSplitSecond	int16	6
