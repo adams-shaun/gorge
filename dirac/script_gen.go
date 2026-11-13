@@ -208,7 +208,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// the gaps walk's alone (one walk, not two).
 	twoLive := k.tapMana && s.tapXTwoLive(k, p) // (a live Baylen makes the census unrelaxable: gorge paymentPlanRelaxedAlternatives, no once-only cost; every walk play is searched)
 	// A fourth filter, or a dynamic one out of bounds, makes it unrelaxable too (mana_filter.go filtRelaxable).
-	relax := !s.scriptGaps(k, p).any() && !twoLive && s.filtRelaxable(k, filt)
+	sacAny := k.tapMana && s.tapXSacAnyLive(k, p) // (a live Krark-Clan Ironworks: unrelaxable, its bound its fixed production once)
+	relax := !s.scriptGaps(k, p).any() && !twoLive && !sacAny && s.filtRelaxable(k, filt)
 	// A live repeatable fee-only filter (Nomadic Elf) has no relaxed or bounded
 	// proof in gorge either: it searches every insufficient play, and the gaps
 	// walk (one conversion per filter) cannot say which a many-times-activated
@@ -217,7 +218,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	var any, gaps Decision
 	s.plainOptions(k, &gaps, availGaps)
 	src := &gaps
-	if !relax {
+	if !relax && !sacAny {
 		s.plainOptions(k, &any, availAny)
 		src = &any
 	}
