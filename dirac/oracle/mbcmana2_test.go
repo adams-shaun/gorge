@@ -17,7 +17,11 @@ import (
 // (Air Elemental, Serra Angel, Juggernaut); the second is a plain creature
 // deck. Every tracked card's mana ability must be activated on gorge's side,
 // so the lockstep compares the kernel's walk of it.
-var kmbc2Names = []string{"Apprentice Wizard"}
+var kmbc2Names = []string{"Apprentice Wizard", "Relic of Legends"}
+
+// kmbc2Cost: the cost text of the tracked mana ability, so the count is of that
+// ability's activations and not of Relic of Legends' own {T} one.
+var kmbc2Cost = map[string]string{"Relic of Legends": "tapXType", "Krark-Clan Ironworks": "Sac<", "Apprentice Wizard": "T"}
 
 var kmbc2Opp = []cardset.Entry{
 	{Name: "Hill Giant", Count: 2}, {Name: "Wind Drake", Count: 4}, {Name: "Grizzly Bears", Count: 4},
@@ -95,6 +99,9 @@ func kmbc2Run(t *testing.T, kd [2][]cardset.Entry, tracked string, pol func(uint
 			if ref.E.ManaAbilityHook == nil && byName != nil {
 				e := ref.E
 				e.ManaAbilityHook = func(_ state.PlayerID, src state.ObjID, sa *cards.SA) {
+					if !strings.Contains(sa.ParamStr(cards.PKCost), kmbc2Cost[tracked]) {
+						return
+					}
 					if o := e.G.Obj(src); o != nil && o.Face() != nil && o.Face().Name == tracked {
 						byName[o.Face().Name]++
 					}

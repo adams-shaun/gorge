@@ -284,8 +284,20 @@ func TapXManaTwo(a *Ability) bool {
 		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
 }
 
+// TapXManaOne reports whether mana ability a is "Tap an untapped <spec> you
+// control: Add one mana of any color" with no {T} (Relic of Legends' second
+// ability, "Tap an untapped legendary creature you control"): exactly one
+// tapped permanent, no mana, a plain unrestricted any-colour unit. The source
+// itself neither taps nor needs to be unsick. It is modelled only as a later
+// ability beside a plain {T} first one (SecondTapXManaAb).
+func TapXManaOne(a *Ability) bool {
+	return a.Cost.Flags == CostTapX && a.Cost.N == 1 && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
+		a.AFlags == 0 && a.ManaRestrict == 0 && a.ManaColors == ColAny && a.ManaN <= 1 && len(a.Prog) == 0 &&
+		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
+}
+
 // TapXMana is either tap-other-permanents mana shape.
-func TapXMana(a *Ability) bool { return TapXManaAb(a) || TapXManaTwo(a) }
+func TapXMana(a *Ability) bool { return TapXManaAb(a) || TapXManaTwo(a) || TapXManaOne(a) }
 
 // PipFeeManaAb reports whether a is an activate-only-once mana ability whose
 // fee is exactly one coloured pip (with a {T}) and no generic part, and the
@@ -556,7 +568,8 @@ func SecondTapXManaAb(cd *CardDef, first, j int) bool {
 	if first < 0 || j <= first || j >= len(cd.Abilities) || cd.Abilities[j].Kind != AbMana {
 		return false
 	}
-	return TapXManaAb(&cd.Abilities[j]) && plainFixedTapAb(&cd.Abilities[first])
+	a, f := &cd.Abilities[j], &cd.Abilities[first]
+	return TapXManaAb(a) && plainFixedTapAb(f) || TapXManaOne(a) && plainTapAb(f)
 }
 
 // CtrTapSecondManaAb reports whether mana ability a is "{T}, Remove N counters

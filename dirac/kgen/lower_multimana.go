@@ -320,6 +320,12 @@ func manaGapModelled(first, a *lAbility) bool {
 		// its prefix search activates (the kernel's tap-another gap kind,
 		// read at the card's tapX ability, mana_tapanother.go tapXAb)
 		return a.Mana.Colors == "WUBRG" && !a.Mana.Choice && unrestrictedOne(a) && len(first.Mana.Colors) == 1 && !first.Mana.Choice
+	case tapOneGapMana(a):
+		// tap an untapped <spec> you control, no {T}: one mana of any colour,
+		// unrestricted, beside a plain {T} first ability of one colour or any
+		// (Relic of Legends): the same tap-another gap kind, its source
+		// neither tapping nor needing to be unsick (kop.TapXManaOne)
+		return a.Mana.Colors == "WUBRG" && !a.Mana.Choice && unrestrictedOne(a) && (len(first.Mana.Colors) == 1 || first.Mana.Colors == "WUBRG") && !first.Mana.Choice
 	case ctrTapGapMana(a):
 		// {T}, remove N counters from this: a fixed colour of ManaN mana,
 		// unrestricted, beside a plain {T} first ability of one colour or
@@ -387,6 +393,17 @@ func tapXGapMana(a *lAbility) bool {
 	}
 	b := *a
 	b.Cost.TapN, b.Cost.TapF = 0, nil
+	return plainTapMana(&b, false)
+}
+
+// tapOneGapMana: a is a mana ability whose whole cost taps exactly one untapped
+// permanent the controller controls (no {T} of its own), otherwise plain.
+func tapOneGapMana(a *lAbility) bool {
+	if a.Cost.TapN != 1 || a.Cost.TapPowN != 0 || a.Cost.Tap {
+		return false
+	}
+	b := *a
+	b.Cost.TapN, b.Cost.TapF, b.Cost.Tap = 0, nil, true
 	return plainTapMana(&b, false)
 }
 
