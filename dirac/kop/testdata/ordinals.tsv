@@ -1352,6 +1352,7 @@ Tf4PerCounter	TrigFlags4	128
 Tf4SingleCauseTarget	TrigFlags4	2
 Tf4SingleTarget	TrigFlags4	1
 Tf4StateCtr	TrigFlags4	64
+Tf5DmgAttackedYouLastTurn	TrigFlags5	4
 Tf5FirstCardInDrawStep	TrigFlags5	1
 Tf5NotFirstCardInDrawStep	TrigFlags5	2
 TfCombat	TrigFlags	4

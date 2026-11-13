@@ -60,6 +60,8 @@ type Player struct {
 	// (DeclareAttackers) and cleared at TurnChange with the other watchers.
 	AttackedPlayersThisTurn       uint64
 	AttackedPlaneswalkersThisTurn uint64
+	Pool                          Mana
+
 	// AttackedSeatsThisTurn has bit d set when this seat declared an attack
 	// this turn whose defending seat is d -- the player itself, a
 	// planeswalker d controls or a battle d protects: every non-empty
@@ -71,7 +73,6 @@ type Player struct {
 	// Both are folded only by events.Apply.
 	AttackedSeatsThisTurn uint64
 	AttackedSeatsLastTurn uint64
-	Pool                          Mana
 
 	// RestrictedMana retains the spend restriction on mana produced by a
 	// RestrictValid$ mana ability. It is cleared with the pool at step/phase
