@@ -50,18 +50,27 @@ func seedTokenCorpus(t *testing.T, tokenName string) (string, string, *Registry)
 
 // copyCachePair copies the poisoned world's cache and digest sidecar from
 // poisonDir (a compile that saw no tokenscripts) over dir's, so dir's next
-// open is offered exactly what a seat worktree's save would leave in the
-// shared .cards: a token-less cache whose sidecar records the empty digest.
+// open is offered exactly what a seat worktree's save leaves in the shared
+// .cards: a token-less cache. The sidecar may be absent (a build that records
+// no digest); the cache itself is the poisoning artifact and must be there.
 func copyCachePair(t *testing.T, poisonDir, dir string) {
 	t.Helper()
+	copied := 0
 	for _, name := range []string{filepath.Base(cachePathFor(dir, CompilerFingerprint)), filepath.Base(TokenDigestPath(cachePathFor(dir, CompilerFingerprint)))} {
 		b, err := os.ReadFile(filepath.Join(poisonDir, name))
+		if os.IsNotExist(err) {
+			continue
+		}
 		if err != nil {
 			t.Fatalf("precondition: reading poisoned %s: %v", name, err)
 		}
 		if err := os.WriteFile(filepath.Join(dir, name), b, 0o644); err != nil {
 			t.Fatal(err)
 		}
+		copied++
+	}
+	if copied == 0 {
+		t.Fatal("precondition: the token-less view wrote no cache to copy")
 	}
 }
 
