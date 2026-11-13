@@ -1,0 +1,12 @@
+# The as-enters chosen opponent: The Rack, Black Vise (ValidPlayer$
+# Player.Chosen upkeep damage), Entropic Specter and Nyxathid (the chosen
+# player's hand size as P/T) (dirac/oracle/mbc_chosenplayer2_test.go)
+The Rack
+Black Vise
+Entropic Specter
+Nyxathid
+Hill Giant
+Grizzly Bears
+Swamp
+Mountain
+Forest

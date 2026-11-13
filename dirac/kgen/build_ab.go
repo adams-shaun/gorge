@@ -835,9 +835,9 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		if ka.Trig, err = cb.trigger(a.Trigger); err != nil {
 			return ka, err
 		}
-		if ka.Trig.Whose == kop.WhoseEnchCtrl && (a.Latent || a.Trigger.Event != "Phase" || a.Trigger.Zone != zNone && a.Trigger.Zone != zBattlefield) {
+		if (ka.Trig.Whose == kop.WhoseEnchCtrl || ka.Trig.Whose == kop.WhoseChosenPl) && (a.Latent || a.Trigger.Event != "Phase" || a.Trigger.Zone != zNone && a.Trigger.Zone != zBattlefield) {
 			// the kernel reads it only for a printed battlefield Phase listener
-			return ka, fmt.Errorf("EnchantedController outside a printed battlefield Phase trigger")
+			return ka, fmt.Errorf("EnchantedController or Player.Chosen outside a printed battlefield Phase trigger")
 		}
 		if a.Name == "CheckOnTriggerOnly" {
 			ka.AFlags |= kop.AfCheckOnTrigger
@@ -3880,6 +3880,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op = kop.OpUnearth
 	case "EnterUntapped":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtEnterUntapped))
+	case "ChosenOpp":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtChosenOpp)) // lower_chosenopp.go
 	case "EnterAttacking":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtEnterAttacking))
 	case "ExchangeControl":

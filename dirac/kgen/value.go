@@ -1176,6 +1176,14 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lValue{Kind: vCreaturesDied}, nil
 	case "NonCombatDamageThisTurn Card.Red+YouCtrl Any":
 		return lValue{Kind: vRedNCDmg}, nil // gorge evalDamageHistory
+	case "ValidHand Card.ChosenCtrl":
+		// gorge chosenCtrlMatches over every hand: a hand card's controller
+		// is its owner, so the source's as-enters chosen player's hand cards
+		// (no chosen player: none; lower_chosenopp.go)
+		if !entersChoosingOpp(lc.face) {
+			return lValue{}, fmt.Errorf("Count$ValidHand Card.ChosenCtrl on a card that chooses no player as it enters")
+		}
+		return lValue{Kind: vHandSizeOf, N: 1, Ref: lRef{Kind: rSrcChosenPl}}, nil
 	case "ValidHand Card.YouOwn":
 		// gorge's zone count over every hand: the cards you own there are
 		// exactly your hand. N 1: the cards, not the zone length -- a token

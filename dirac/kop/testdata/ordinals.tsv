@@ -454,6 +454,7 @@ ExtChooseColorRes	ExtOp	5
 ExtChooseName	ExtOp	251
 ExtChooseNumber	ExtOp	230
 ExtChooseNumberMid	ExtOp	303
+ExtChosenOpp	ExtOp	245
 ExtClearImprinted	ExtOp	257
 ExtCloneCopy	ExtOp	81
 ExtColorGrant	ExtOp	6
@@ -1023,6 +1024,7 @@ RefRememberedOwner	Ref	34
 RefReplaced	Ref	20
 RefSacrificed	Ref	22
 RefSelf	Ref	4
+RefSrcChosenPl	Ref	39
 RefSrcOwner	Ref	246
 RefTarget0	Ref	1
 RefTarget1	Ref	2
@@ -1526,6 +1528,7 @@ W7WithFlashback	int16	26
 W7WithInfect	int16	28
 W7WithWarp	int16	11
 WhoseAny	Whose	0
+WhoseChosenPl	Whose	201
 WhoseEnchCtrl	Whose	3
 WhoseNonActive	Whose	200
 WhoseOpp	Whose	2
