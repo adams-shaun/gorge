@@ -10,8 +10,7 @@ import (
 var DebugDmgSrcPlNoLifelink bool
 
 // DebugDmgSrcPlLKI corrupts the last-known-information read of the player
-// mode: 1 drops the snapshot's keywords, 2 flips its controller, 3 reads
-// infect from the printed card instead of the snapshot. Test-only.
+// mode: 1 drops the snapshot's keywords, 2 flips its controller. Test-only.
 var DebugDmgSrcPlLKI uint8
 
 // dmgSrcPlayers is OpDealDamageFrom with B.N = 1:
@@ -64,8 +63,6 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 			kw = 0
 		case 2:
 			ctrl = 1 - ctrl // seat-ok: a test-only mutation (DebugDmgSrcPlLKI)
-		case 3:
-			infect = k.t.Cards[s.objs[o].card].Infect
 		}
 	default:
 		kw, ctrl = k.cards[s.objs[o].card].kw, s.ctrlOfObj(o)

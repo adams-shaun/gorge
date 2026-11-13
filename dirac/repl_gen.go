@@ -12,10 +12,11 @@ import (
 // abilities, genLost) as they are, two copies apply twice (x4), and a
 // table without these cards (genPrep.anyRepl == 0) never walks.
 //
-// The fixed order when several apply to one damage event (CR 616.1 lets
-// the affected player or controller choose; gorge applies them in a fixed
-// order, see GORGE-FINDINGS.md): amount changes first (doubling), then
-// prevention.
+// The computation order when several apply to one damage event: amount
+// changes first (doubling), then prevention. CR 616.1 lets the affected
+// player or controller choose the order, and gorge asks it even when every
+// order gives the same result: parkNC (noncombat) and the combat pass pose
+// that ask, and an event they cannot park stalls.
 
 // replN counts the permanents controlled by p whose card has replacement
 // bit b and still has its abilities.
