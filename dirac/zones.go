@@ -321,6 +321,7 @@ func (s *State) lose(p uint8) {
 		return
 	}
 	s.pl[p].lost = true
+	s.initLeft(k, p)    // CR 726.4 (act_initiative.go)
 	s.monarchLeft(k, p) // CR 725.4 (act_monarch.go)
 	s.checkOver()
 }

@@ -516,11 +516,12 @@ func (s *State) sba(k *prep) bool {
 			s.lingerDrain(k)
 		}
 		// gorge's loss order (checkLoseConditions): every life loss, then
-		// every empty-library one; a departing monarch hands off as it is
-		// marked (CR 725.4, act_monarch.go)
+		// every empty-library one; a departing holder hands off as it is
+		// marked (CR 726.4, act_initiative.go, before CR 725.4, act_monarch.go)
 		for p := uint8(0); p < s.nSeats(); p++ {
 			if s.pl[p].life <= 0 && !s.pl[p].lost && !s.cantLoseLife(k, p) {
 				s.pl[p].lost = true
+				s.initLeft(k, p) // CR 726.4 (act_initiative.go)
 				s.monarchLeft(k, p)
 			}
 		}
