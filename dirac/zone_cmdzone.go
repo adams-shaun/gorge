@@ -24,22 +24,30 @@ func (s *State) cmdZoneDue(p uint8, j int) bool {
 	return (z == kop.ZoneGraveyard || z == kop.ZoneExile) && s.objs[o].ver != *s.cmdAskAt(p, j)
 }
 
-// cmdZoneFirstDue returns the due commander (as ctlCmdZone0's offset: seat +
-// 2*slot) that arrived first, as gorge asks in arrival order. The per-object
-// stamp is the low 8 bits of the touch count at its last write: among a
-// burst of moves (well under 256 object writes) the larger distance from the
-// current count is the earlier arrival. A tie keeps seat order, then slot
-// order.
+// cmdZoneCode is the ask code of seat p's commander in slot j: ctlCmdZone0's
+// offset, seat + MaxSeats*slot. cmdZoneSeat decodes it.
+func cmdZoneCode(p uint8, j int) uint8 { return p + MaxSeats*uint8(j) }
+
+// cmdZoneSeat is ask code c's seat and slot.
+func cmdZoneSeat(c uint8) (uint8, int) { return c % MaxSeats, int(c / MaxSeats) }
+
+// cmdZoneFirstDue returns the due commander (cmdZoneCode) that arrived
+// first, as gorge asks in arrival order. The per-object stamp is the low 8
+// bits of the touch count at its last write: among a burst of moves (well
+// under 256 object writes) the larger distance from the current count is the
+// earlier arrival. A tie keeps seat order, then slot order. A seat that has
+// left the game is never asked (gorge commanderZoneSBA drops a departed
+// owner's entry).
 func (s *State) cmdZoneFirstDue() (uint8, bool) {
 	best, bestD, ok := uint8(0), uint8(0), false
 	for j := 0; j < 2; j++ {
-		for p := uint8(0); p < 2; p++ {
-			if !s.cmdZoneDue(p, j) {
+		for p := uint8(0); p < s.nSeats(); p++ {
+			if s.out(p) || !s.cmdZoneDue(p, j) {
 				continue
 			}
-			c := p + 2*uint8(j)
+			c := cmdZoneCode(p, j)
 			d := uint8(s.touchN) - s.stamp[s.cmdObj(p, j)]
-			if !ok || d > bestD || (d == bestD && c&1 < best&1) {
+			if bp, _ := cmdZoneSeat(best); !ok || d > bestD || (d == bestD && p < bp) {
 				best, bestD, ok = c, d, true
 			}
 		}
@@ -77,10 +85,10 @@ func (s *State) cmdZoneAsk() bool {
 }
 
 // askCmdZone builds the owner's two-option decision about the commander c
-// names (ctlCmdZone0's offset: seat + 2*slot) and records the asked object's
-// version, so a decline is not re-asked until the card moves again.
+// names (cmdZoneCode) and records the asked object's version, so a decline
+// is not re-asked until the card moves again.
 func (s *State) askCmdZone(_ *prep, d *Decision, c uint8) {
-	p, j := c&1, int(c>>1&1)
+	p, j := cmdZoneSeat(c)
 	o := s.cmdObj(p, j)
 	*s.cmdAskAt(p, j) = s.objs[o].ver
 	d.Kind, d.Sub, d.Player = DkChoose, ChCommanderZone, p
@@ -96,7 +104,7 @@ func (s *State) applyCmdZone(k *prep, c, mode uint8) {
 	if mode != 0 {
 		return
 	}
-	p, j := c&1, int(c>>1&1)
+	p, j := cmdZoneSeat(c)
 	o := s.cmdObj(p, j)
 	if o == NoObj {
 		return

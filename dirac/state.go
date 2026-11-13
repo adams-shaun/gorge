@@ -666,11 +666,20 @@ const (
 	ctlOver
 	ctlExileOrder // a parked move to a graveyard with several exile-instead effects: which applies (CR 616.1)
 	ctlTurnUpX    // a keyword turn-up awaiting its announced X (face_turnfaceup.go; parked in genState.pick*)
-	ctlCmdZone0   // the CR 903.9a commander-zone ask to seat 0 (zone_cmdzone.go)
-	ctlCmdZone1   // the CR 903.9a commander-zone ask to seat 1
-	ctlCmdZone2   // the CR 903.9a ask to seat 0 about its partner (ctlCmdZone0 + seat + 2*slot)
-	ctlCmdZone3   // the CR 903.9a ask to seat 1 about its partner
+	// the CR 903.9a commander-zone ask: ctlCmdZone0 + seat + MaxSeats*slot
+	// (zone_cmdzone.go cmdZoneCode); 4..7 are reached only past two seats
+	ctlCmdZone0
+	ctlCmdZone1
+	ctlCmdZone2
+	ctlCmdZone3
+	ctlCmdZone4
+	ctlCmdZone5
+	ctlCmdZone6
+	ctlCmdZone7
 )
+
+// every seat's two command-zone ask states fit ctlCmdZone0..7
+const _ = uint8(ctlCmdZone7 - ctlCmdZone0 - (2*MaxSeats - 1))
 
 // build stages.
 const (

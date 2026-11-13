@@ -35,9 +35,6 @@ func (s *State) InitN(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed uint64
 	if n < 2 || n > MaxSeats {
 		panic("kernel: seat count out of range")
 	}
-	if n > 2 && cfg.Commander {
-		panic("kernel: Commander plays two seats")
-	}
 	clear(s.perms[:s.permHi])
 	s.stateCore = stateCore{}
 	// the last-bearer pad's empty sentinel: a zero
@@ -107,6 +104,9 @@ func (s *State) InitN(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed uint64
 	}
 	for p := 0; p < ns; p++ {
 		for _, c := range decks[p] {
+			if int(s.nobj) >= MaxObj {
+				panic("kernel: decks larger than MaxObj") // a pod of full Commander decks, past the four-seat build's objects
+			}
 			o := Obj(s.nobj)
 			s.nobj++
 			s.objs[o] = object{card: c, chosen: 255, zone: kop.ZoneLibrary, slot: NoSlot, acts: uint8(p) << objOwnerShift}
@@ -354,7 +354,7 @@ func (s *State) stepRaw(d *Decision) {
 		case ctlTurnUpX:
 			s.turnUpXOptions(d) // face_turnfaceup.go
 			return
-		case ctlCmdZone0, ctlCmdZone1, ctlCmdZone2, ctlCmdZone3:
+		case ctlCmdZone0, ctlCmdZone1, ctlCmdZone2, ctlCmdZone3, ctlCmdZone4, ctlCmdZone5, ctlCmdZone6, ctlCmdZone7:
 			s.askCmdZone(k, d, s.ctl-ctlCmdZone0) // CR 903.9a (zone_cmdzone.go)
 			return
 		case ctlDivide:
@@ -415,7 +415,7 @@ func (s *State) Apply(a Action) {
 		s.applyExileOrder(k, a)
 	case ctlTurnUpX:
 		s.applyTurnUpX(k, a) // face_turnfaceup.go
-	case ctlCmdZone0, ctlCmdZone1, ctlCmdZone2, ctlCmdZone3:
+	case ctlCmdZone0, ctlCmdZone1, ctlCmdZone2, ctlCmdZone3, ctlCmdZone4, ctlCmdZone5, ctlCmdZone6, ctlCmdZone7:
 		s.applyCmdZone(k, s.ctl-ctlCmdZone0, a.Mode()) // CR 903.9a (zone_cmdzone.go)
 	case ctlDivide:
 		s.applyDivide(k, a)

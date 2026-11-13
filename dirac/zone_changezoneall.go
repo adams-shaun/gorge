@@ -252,8 +252,7 @@ func (c *czallPend) place(s *State, carry *czallCarry) {
 // would make them new objects, CR 400.7). k is carried in the parked ask's
 // spare bytes across the answer, so the sweep needs no State field.
 type czallCarry struct {
-	// k is per owner; a commander park carries seats 0 and 1 only (the
-	// kernel plays Commander at two seats)
+	// k is per owner
 	k [MaxSeats]int
 	// first is the seat whose card moved first plus one (0: none yet), read by
 	// a CzShuffleEach sweep to shuffle the receiving libraries in gorge's order.
@@ -262,17 +261,31 @@ type czallCarry struct {
 }
 
 // load reads the carried prefix of an answered commander park at the
-// instruction's re-run.
+// instruction's re-run. Past two seats, seats 2 and 3 ride in the park's
+// first two entry-order picks and the first mover in its pick count, which a
+// commander park never uses.
 func (c *czallCarry) load(pre *preAsk) {
 	if pre.kind == akCmdZone && (pre.state == preCmdZoneMove || pre.state == preCmdZoneCmd) {
 		c.k[0], c.k[1] = int(pre.val&0x7f), int(pre.val2&0x7f)
 		c.first = pre.val>>7 | pre.val2>>7<<1
+		if MaxSeats > 2 {
+			for p := 2; p < MaxSeats; p++ {
+				c.k[p] = int(pre.ordPick[p-2])
+			}
+			c.first = pre.ordN
+		}
 	}
 }
 
 // store writes the carried prefix for the next park.
 func (c *czallCarry) store(pre *preAsk) {
 	pre.val, pre.val2 = uint8(c.k[0])|c.first&1<<7, uint8(c.k[1])|c.first>>1<<7
+	if MaxSeats > 2 {
+		for p := 2; p < MaxSeats; p++ {
+			pre.ordPick[p-2] = Obj(c.k[p])
+		}
+		pre.ordN = c.first
+	}
 }
 
 // noteFirst records o's owner as the first mover of a sweep that shuffles
