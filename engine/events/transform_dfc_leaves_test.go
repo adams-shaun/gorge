@@ -45,11 +45,12 @@ func TestTransformDFCLeavesBattlefieldFrontFace(t *testing.T) {
 	}
 }
 
-// A Flip-layout card is not a transforming DFC; its face index is not touched
-// by the CR 712.8a reset.
+// An Adventure-layout card is not a transforming DFC; its face index is not
+// touched by the CR 712.8a reset as it leaves the battlefield (a flip card has
+// its own CR 710.4 reset: flip_card_leaves_test.go).
 func TestTransformDFCResetIgnoresOtherLayouts(t *testing.T) {
 	g, l := twoPlayer(t)
-	o := g.AddObject(dfcFixture(t, "Flip"), 0)
+	o := g.AddObject(dfcFixture(t, "Adventure"), 0)
 	o.Zone = state.ZBattlefield
 	g.SetZone(state.ZBattlefield, 0, append(g.Zone(state.ZBattlefield, 0), o.ID))
 	Emit(g, l, Event{Kind: FlipFace, Obj: o.ID, Amount: 1})
@@ -58,7 +59,7 @@ func TestTransformDFCResetIgnoresOtherLayouts(t *testing.T) {
 	}
 	Emit(g, l, Event{Kind: MoveZone, Obj: o.ID, From: state.ZBattlefield, To: state.ZGraveyard})
 	if o.FaceIdx != 1 {
-		t.Fatalf("Flip layout FaceIdx=%d after leaving, want it untouched (1)", o.FaceIdx)
+		t.Fatalf("Adventure layout FaceIdx=%d after leaving, want it untouched (1)", o.FaceIdx)
 	}
 }
 
