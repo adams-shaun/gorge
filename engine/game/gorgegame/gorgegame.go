@@ -80,6 +80,7 @@ func RulesConfig(c game.Config) rules.Config {
 		Format:                rules.Format(c.Format),
 		StartingLife:          c.StartingLife,
 		Commanders:            c.Commanders,
+		DraftPartners:         c.DraftPartners,
 		StartChooser:          c.StartChooser,
 		ExpectedEvents:        c.ExpectedEvents,
 	}
