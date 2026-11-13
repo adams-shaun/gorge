@@ -71,6 +71,12 @@ const (
 	// Tf5NotFirstCardInDrawStep: FirstCardInDrawStep$ False -- the draw is
 	// any card except that first one (Orcish Bowmasters, Xyris, Leela).
 	Tf5NotFirstCardInDrawStep TrigFlags5 = 1 << 1
+	// Tf5OppCause: Discarded with TfSelf (Zone graveyard): ValidCause$
+	// SpellAbility.OppCtrl -- the discard was caused by a resolving spell or
+	// ability an opponent of the discarded card's owner controls (gorge
+	// trigmatch.DiscardCauseAdmits: a cost discard has no cause). Orvar, the
+	// All-Form; Guerrilla Tactics.
+	Tf5OppCause TrigFlags5 = 1 << 2
 )
 
 // TrigEvent is a triggered ability's subscription: the event kind it listens

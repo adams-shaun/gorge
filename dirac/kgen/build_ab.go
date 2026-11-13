@@ -1612,6 +1612,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		kt.Flags3 |= kop.Tf3FirstAttack
 	}
 	kt.Flags5 = drawStepFlags(t)
+	if t.OppCause {
+		if t.Event != "Discarded" || kt.Flags&kop.TfSelf == 0 || t.Cycled {
+			return kt, fmt.Errorf("discard cause on a %s trigger", t.Event)
+		}
+		kt.Flags5 |= kop.Tf5OppCause
+	}
 	if t.GameOnce {
 		kt.Flags3 |= kop.Tf3GameOnce
 	}

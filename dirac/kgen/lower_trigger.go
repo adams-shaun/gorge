@@ -917,6 +917,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			tr.Zone = zGraveyard
 		}
+		if err := lowerDiscardedCause(tp, tr); err != nil { // lower_trigparams.go
+			return err
+		}
 	case "DiscardedAll":
 		// "whenever you discard one or more cards" (gorge trigmatch
 		// discardedAllMatches, rules discard batch): once per discard
