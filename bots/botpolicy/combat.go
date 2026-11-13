@@ -252,9 +252,12 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 	// IsMain alone cannot say it). Same function of the same engine state
 	// the view half reads off the projected View (v.Phase == "main1",
 	// v.Active == v.Viewer), so the halves agree wherever they agree on
-	// IsMain itself.
+	// IsMain itself. Before turn 1 (the CR 103.1 choice and the opening
+	// mulligans) no turn has begun and no player is active (CR 102.1):
+	// g.Active is only a placeholder there, and the view half's Active is
+	// the starting seat (for display), so both halves read false.
 	b.FirstMain = g.Step == state.StepMain1
-	b.MyTurn = g.Active == me
+	b.MyTurn = g.Turn > 0 && g.Active == me
 	// The exact engine step (the cast scorer's timing features): the game
 	// half reads g.Step directly; the view half parses the projected
 	// View.Step string (engine/view/view.go sets it to g.Step.String()) back

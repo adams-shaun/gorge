@@ -217,6 +217,13 @@ func agreeOverCommanderGame(t testing.TB, newBot func(uint64) *Bot) {
 		}
 		boardGame := botpolicy.BoardFromGame(eGame.G, eGame, d.Player)
 		boardView := BoardFromView(v)
+		// Every fact, every table in entry order: the per-field pins below
+		// compare tables as maps, which two adapters that order a table
+		// differently both pass while the policy (which reads the order)
+		// plays differently.
+		if dd := botpolicy.AdaptersDiffer(boardView, boardGame); dd != "" {
+			t.Fatalf("intent %d: boards differ (step %s): %s", n, eGame.G.Step, dd)
+		}
 		if !reflect.DeepEqual(boardView.OwnDeck, boardGame.OwnDeck) {
 			t.Fatalf("intent %d: own deck manifest diverged: view=%#v game=%#v", n, boardView.OwnDeck, boardGame.OwnDeck)
 		}
@@ -384,6 +391,85 @@ func agreeOverWholeGame(t testing.TB, newBot func(uint64) *Bot) {
 	agreeOverGame(t, names2, decks2, 3, true, false, newBot)
 }
 
+// TestBotAdaptersAgreeOverPregamePod is the whole-game pin in the shape
+// the host and mtgsim actually deal: a four-seat Commander pod built with
+// rules.NewStartingPlayerChoice, the CR 103.1 ask posed, and London
+// mulligans, so the decisions before turn 1 are covered too. The game half
+// refills one reused Board (BoardFromGameInto, the host's route); the view
+// half projects a View every decision. Both Boards must agree on every
+// fact, table order included, and the bots on every intent. It is pinned
+// non-vacuous on the two disagreements the older games could not see: a
+// pregame decision whose seat is the starting seat but not the
+// placeholder active seat (MyTurn), and a decision whose seat sits after
+// another seat with permanents (the Cards table's own-zones-first order).
+func TestBotAdaptersAgreeOverPregamePod(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	names, decks, cmds, err := testutil.CommanderAcceptanceDecks(reg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Seed 1 hands the CR 103.1 choice to seat 3, so the starting seat and
+	// the engine's placeholder active seat (0) differ for the whole pregame.
+	cfg := rules.Config{Seed: 1, Names: names, Decks: decks, Commanders: cmds, StartingLife: 40,
+		Format: rules.FormatCommander, Tokens: reg.Tokens, NameUniverse: reg.Universe(), Mulligans: 1}
+	eView := rules.NewStartingPlayerChoice(cfg)
+	eGame := rules.NewStartingPlayerChoice(cfg)
+	eView.AskStartingPlayer()
+	eGame.AskStartingPlayer()
+	botView, botGame := NewBot(7), NewBot(7)
+	brd := botpolicy.NewBoard(len(names))
+	starterPregame, laterSeat := 0, 0
+	n := 0
+	for !eView.G.Over && !eGame.G.Over && eView.Pending() != nil && eGame.Pending() != nil && n < 200000 {
+		d := eView.Pending()
+		v := view.Project(eView.G, eView, d.Player, d)
+		boardView := BoardFromView(v)
+		boardGame := botpolicy.BoardFromGameInto(eGame.G, eGame, d.Player, &brd)
+		if !reflect.DeepEqual(boardView.OwnDeck, boardGame.OwnDeck) {
+			t.Fatalf("intent %d: own deck manifest diverged", n)
+		}
+		if dd := botpolicy.AdaptersDiffer(boardView, boardGame); dd != "" {
+			t.Fatalf("intent %d (%s, seat %d, turn %d, step %s): boards differ: %s", n, d.Kind, d.Player, eGame.G.Turn, eGame.G.Step, dd)
+		}
+		if eGame.G.Turn == 0 && v.Active == d.Player && eGame.G.Active != d.Player {
+			starterPregame++
+		}
+		if d.Player > 0 && boardGame.Cards.Len() > 0 && len(eGame.G.Zone(state.ZBattlefield, d.Player-1)) > 0 {
+			laterSeat++
+		}
+		inView, err := botView.Decide(context.Background(), v, *d)
+		if err != nil {
+			t.Fatalf("intent %d: view-shaped Decide: %v", n, err)
+		}
+		inGame, err := botGame.DecideBoard(context.Background(), boardGame, *eGame.Pending())
+		if err != nil {
+			t.Fatalf("intent %d: game-shaped DecideBoard: %v", n, err)
+		}
+		if inView.Seq != inGame.Seq || inView.Player != inGame.Player || !slices.Equal(inView.Choices, inGame.Choices) {
+			t.Fatalf("intent %d: adapters diverged: view %+v vs game %+v (step %s)", n, inView, inGame, eGame.G.Step)
+		}
+		if err := eView.Submit(inView); err != nil {
+			t.Fatalf("intent %d: view-shaped Submit: %v", n, err)
+		}
+		if err := eGame.Submit(inGame); err != nil {
+			t.Fatalf("intent %d: game-shaped Submit: %v", n, err)
+		}
+		n++
+	}
+	if !eView.G.Over || !eGame.G.Over {
+		t.Fatalf("game did not terminate after %d intents", n)
+	}
+	if starterPregame == 0 {
+		t.Fatal("no pregame decision went to a starting seat other than the placeholder active seat: MyTurn before turn 1 was never exercised")
+	}
+	if laterSeat == 0 {
+		t.Fatal("no decision went to a seat after one with permanents: the Cards table order was never exercised")
+	}
+	if h1, h2 := eView.L.Head(), eGame.L.Head(); h1 != h2 {
+		t.Fatalf("chains diverged: view %s, game %s", h1, h2)
+	}
+}
+
 // TestGreavesEquipLoopTerminates is a measured regression test: a
 // whole two-seat game of foundations-keen-engineering (seat 0) vs
 // mono-red-goblins (seat 1) at engine seed 13 must TERMINATE. Without the A1
@@ -497,6 +583,9 @@ func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uin
 		// BoardFromGame off state.Object.AttachedTo, so a divergence here is
 		// the two adapters reading different attachment facts.
 		boardView := BoardFromView(view.Project(eView.G, eView, d.Player, d))
+		if dd := botpolicy.AdaptersDiffer(boardView, boardGame); dd != "" {
+			t.Fatalf("intent %d: boards differ (step %s): %s", n, eGame.G.Step, dd)
+		}
 		if boardGame.OwnDeck == nil || boardView.OwnDeck == nil || !reflect.DeepEqual(boardView.OwnDeck, boardGame.OwnDeck) {
 			t.Fatalf("intent %d: own deck manifest diverged: view=%#v game=%#v", n, boardView.OwnDeck, boardGame.OwnDeck)
 		}
