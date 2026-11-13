@@ -1,8 +1,11 @@
 package kgen
 
 import (
+	"maps"
+	"strconv"
 	"strings"
 
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -19,6 +22,13 @@ import (
 func (lc *lowerCtx) tapExtraStatic(t cards.Trigger) error {
 	if handled, err := lc.tapExtraChosen(t); handled {
 		return err
+	}
+	cond, gated, gerr := lc.tapExtraGate(t)
+	if gerr != nil {
+		return gerr
+	}
+	if gated {
+		return lc.tapExtraGated(t, cond)
 	}
 	tm, ok := pay.PaymentPlanFoldableTapMana(lc.face, t)
 	if !ok {
@@ -72,6 +82,128 @@ func (lc *lowerCtx) tapExtraStatic(t cards.Trigger) error {
 		return refuse("TapsForMana adding several colours")
 	}
 	lc.out.Statics = append(lc.out.Statics, st)
+	return nil
+}
+
+// tapExtraGate parses t's IsPresent$ as the gated tap-extra's shape:
+// `Card.Self+counters_GE<N>_<KIND>`, N a literal 1..127 and KIND a counter
+// kind, with no PresentCompare$ beyond the default GE1, no PresentDefined$ and
+// no PresentZone$ (a battlefield cPresent, kop.Static.Cond2). gated is false
+// when IsPresent$ is absent; err refuses every present-but-other shape.
+func (lc *lowerCtx) tapExtraGate(t cards.Trigger) (lCond, bool, error) {
+	ip, ok := t.Param(cards.PKIsPresent)
+	if !ok {
+		return lCond{}, false, nil
+	}
+	if v, ok := t.Param(cards.PKPresentCompare); ok && strings.TrimSpace(v) != "GE1" {
+		return lCond{}, true, refuse("TapsForMana IsPresent$ %q with PresentCompare$ %q", ip, v)
+	}
+	if _, ok := t.Param(cards.PKPresentDefined); ok {
+		return lCond{}, true, refuse("TapsForMana IsPresent$ %q with PresentDefined$", ip)
+	}
+	if _, ok := t.Param(cards.PKPresentZone); ok {
+		return lCond{}, true, refuse("TapsForMana IsPresent$ %q with PresentZone$", ip)
+	}
+	rest, ok := strings.CutPrefix(strings.TrimSpace(ip), "Card.Self+counters_GE")
+	if !ok {
+		return lCond{}, true, refuse("TapsForMana IsPresent$ %q", ip)
+	}
+	thr, kind, ok := strings.Cut(rest, "_")
+	if !ok {
+		return lCond{}, true, refuse("TapsForMana IsPresent$ %q", ip)
+	}
+	n, err := strconv.Atoi(thr)
+	if err != nil || n < 1 || n > 127 {
+		return lCond{}, true, refuse("TapsForMana IsPresent$ %q (threshold %q)", ip, thr)
+	}
+	if _, err := counterKind(kind); err != nil {
+		return lCond{}, true, refuse("TapsForMana IsPresent$ %q (%v)", ip, err)
+	}
+	f, err := lc.filter(strings.TrimSpace(ip))
+	if err != nil {
+		return lCond{}, true, err
+	}
+	return lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)}, true, nil
+}
+
+// tapExtraGated lowers a foldable literal tap-extra body under an IsPresent$
+// counter gate (Rikala, Homarid King: "whenever you tap an Island for mana, if
+// there are three or more tide counters on Rikala, add an additional {U}").
+//
+// gorge's planner cannot fold a gated trigger: the gate is no
+// paymentPlanTapManaTriggerCodes key, so paymentPlanStaticTapManaBody rejects
+// the line and paymentPlanTapObservers' real matcher instead classes every
+// Island the gate reaches as TierDeferred (deferBy), with the potential bound
+// (paymentPlanTapExtraMana, whole=true) summing only folded triggers. The
+// kernel mirrors both halves: the static carries the gate as lStatic.Cond
+// (kop.Static.Cond2) and a class-only Taps line (kop.Tf5TapsClassOnly) whose
+// Trigger.Cond is the same gate defers the same sources
+// (mana_tapsdefer.go tapsWatchClass) while the gate holds; the extra itself is
+// never priced into the census or the potential (mana_tapextra.go
+// tapExtraReaches skips a Cond2-gated static) and floats at the tap itself
+// (addGatedExtra), exactly the trigger's resolution at the tap.
+func (lc *lowerCtx) tapExtraGated(t cards.Trigger, cond lCond) error {
+	// gorge's classifier over the line without the gate decides the body's
+	// shape: only the foldable literal lowers here, anything else keeps the
+	// generic refusal (a reflected or chosen body under a gate is no shape
+	// this model holds).
+	stripped := t
+	stripped.Params = maps.Clone(t.Params)
+	delete(stripped.Params, "IsPresent")
+	tm, ok := pay.PaymentPlanFoldableTapMana(lc.face, stripped)
+	if !ok {
+		return refuse("trigger mode TapsForMana")
+	}
+	tp := newParams(t.Params)
+	tp.consume("Mode", "Execute", "Static", "TriggerZones", "TriggerDescription", "IsPresent")
+	// Activator$ You, the trigger controller's own taps: the deferral and the
+	// extra are the controller's (Islands of Rikala's controller). A body
+	// naming the tapped permanent's controller stays the generic refusal.
+	if v := strings.TrimSpace(tp.str("Activator")); v != "You" || tm.ToTapped {
+		return refuse("trigger mode TapsForMana")
+	}
+	tp.consume("Activator")
+	var err error
+	vc := strings.TrimSpace(tp.str("ValidCard"))
+	if vc == "" {
+		return refuse("trigger mode TapsForMana")
+	}
+	f, err := lc.filter(vc)
+	if err != nil {
+		return err
+	}
+	tp.consume("ValidCard")
+	if len(tp.unread()) != 0 {
+		return refuse("trigger mode TapsForMana")
+	}
+	st := lStatic{Kind: "TapExtra", Cond: cond, F: f}
+	n := 0
+	for i, c := range tm.Mana {
+		if c > 0 {
+			n++
+			st.TapCol, st.TapAmt = uint8(i), uint8(c)
+		}
+	}
+	if n != 1 {
+		return refuse("TapsForMana adding several colours")
+	}
+	lc.out.Statics = append(lc.out.Statics, st)
+	// The class-only line: a TrigTaps watcher of the same filter, the
+	// controller's own taps (Whose You), Defer-class, gated by the same
+	// condition, and no body -- the static is the extra's whole effect and
+	// objTrigGen never queues the line (tapsManaOK).
+	tr := &lTrigger{
+		Event:       "Taps",
+		F:           f,
+		Whose:       whoYou,
+		Zone:        zBattlefield,
+		Cond:        cond,
+		TapPlan:     uint8(kop.TapPlanDefer),
+		TapsForMana: true,
+		ClassOnly:   true,
+	}
+	ab := &lAbility{Kind: akTriggered, Index: len(lc.out.Abilities), Trigger: tr}
+	lc.out.Abilities = append(lc.out.Abilities, ab)
 	return nil
 }
 

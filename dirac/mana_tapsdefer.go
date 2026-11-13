@@ -71,6 +71,12 @@ func (s *State) tapsWatchClass(k *prep, p uint8, sl Slot) (painN int, deferSrc b
 			if a.Trig.Flags2&kop.Tf2YourTurn != 0 && s.active != s.perms[w].ctrl {
 				continue // not the watcher's controller's turn
 			}
+			// The class-only gated Taps line (Rikala, Homarid King): the Island
+			// defers only while Trigger.Cond holds (gorge's real matcher,
+			// paymentPlanTapObservers' triggerMatches over the IsPresent gate).
+			if a.Trig.Cond != 0 && !s.condEval(k, a.Trig.Cond, evalCtx{src: s.perms[w].obj, srcSl: w, ctrl: s.perms[w].ctrl}) {
+				continue
+			}
 			if a.Trig.TapPlan == kop.TapPlanDefer {
 				deferSrc = true
 			} else {

@@ -761,6 +761,11 @@ type lTrigger struct {
 	// player other than the active one (Activator$ Player.NonActive,
 	// kop.Tf5TapperNonActive).
 	TapsForMana, TapperNonActive bool
+	// ClassOnly: a Static$ True TapsForMana lowered under an IsPresent$ gate
+	// (lower_tapextra.go tapExtraGated, Rikala, Homarid King): the paired
+	// StatTapExtra static's class-only line (kop.Tf5TapsClassOnly), whose
+	// Trigger.Cond is the gate and no body.
+	ClassOnly bool
 }
 
 // lTrigger.Attacked bits.

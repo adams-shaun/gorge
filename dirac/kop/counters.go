@@ -319,6 +319,11 @@ const (
 	// counter with no inherent rules meaning (CR 122.1) that its own mana
 	// ability removes.
 	CtrStorage
+	// CtrTide is Rikala, Homarid King's tide counter, a named counter with no
+	// inherent rules meaning (CR 122.1): its count gates the card's own
+	// remove-when-four line and tap extra, and drives its +1/+0 read
+	// (Count$CardCounters.TIDE).
+	CtrTide
 	NumCounterKinds3
 )
 
@@ -337,7 +342,7 @@ var CtrXNames = [NumCounterKindsX]string{"CHARGE", "OIL", "SPORE", "QUEST", "VER
 	"Reach", "Shadow", "Trample", "Vigilance", "SUPPLY", "LORE", "LANDMARK", "DREAD", "DEFENSE", "CHORUS", "M0M1", "FINALITY", "TIME", "VALOR", "NET", "PLAN",
 	"INVASION", "LOOT", "REV", "PAGE", "INGENUITY", "FILM", "FIRE", "HONE", "COIN",
 	"DIVINITY", "IMPOSTOR", "BORE", "POINT", "BLOODSTAIN", "POSSESSION", "PROMOTION", "PEACE", "WISH", "SKEWER", "NEST", "AGE", "LUCK",
-	"DEPLETION", "MINING", "FADE", "BURDEN", "STORAGE"}
+	"DEPLETION", "MINING", "FADE", "BURDEN", "STORAGE", "TIDE"}
 
 // IsCounterKind reports whether c is a real counter kind (a featurized one
 // or an unfeaturized one; CtrLevel and the gap at NumCounterKinds2 are not).

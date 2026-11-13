@@ -80,6 +80,13 @@ const (
 	// the tapping player is not the turn's active player (gorge
 	// effects.MatchesPlayerSpec over TapActor). Bit 3.
 	Tf5TapperNonActive TrigFlags5 = 1 << 3
+	// Tf5TapsClassOnly: with Tf5TapsForMana, a Static$ True TapsForMana trigger
+	// lowered under an IsPresent$ counter gate (Rikala, Homarid King): a
+	// class-only line the planner's deferral class reads (tapsWatchClass, the
+	// Island deferring only while Trigger.Cond holds), objTrigGen never queues
+	// it (tapsManaOK), and the tap's extra mana is the paired StatTapExtra
+	// static's, which carries the gate as Cond2. Bit 4.
+	Tf5TapsClassOnly TrigFlags5 = 1 << 4
 )
 
 // TrigEvent is a triggered ability's subscription: the event kind it listens

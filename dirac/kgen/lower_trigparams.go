@@ -176,5 +176,8 @@ func drawStepFlags(t *lTrigger) kop.TrigFlags5 {
 	if t.TapperNonActive {
 		f |= kop.Tf5TapperNonActive
 	}
+	if t.ClassOnly {
+		f |= kop.Tf5TapsClassOnly
+	}
 	return f
 }

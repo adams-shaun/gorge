@@ -146,7 +146,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
 	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
-	"ALL": {23443, 34442},
+	// +2 (the non-static TapsForMana trigger lowered beside its Tf5TapsForMana line (Price of Glory, ported from wt/agent-20261113T091008Z-94433976) and Rikala, Homarid King's IsPresent$ Card.Self+counters_GE3_TIDE-gated tap extra beside the TIDE counter kind; ALL 23443 -> 23445, MBC 1727 -> 1729 measured).
+	"ALL": {23445, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {219, 280},
@@ -161,7 +162,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
-	"MBC": {1727, 2188},
+	// +2 (the non-static TapsForMana trigger lowered beside its Tf5TapsForMana line (Price of Glory) and Rikala, Homarid King's gated tap extra; measured with the +2 ALL row above).
+	"MBC": {1729, 2188},
 	"MKM": {251, 279},
 	"MOM": {202, 296},
 	"MSH": {246, 276},
