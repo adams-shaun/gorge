@@ -3055,7 +3055,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			if cost.Energy != 0 {
 				return refuse("energy cost on a spell")
 			}
-			if cost.Return != nil {
+			if cost.Return != nil && !lc.spellReturnOnly(&cost) {
 				return refuse("return cost on a spell")
 			}
 			if cost.EvidenceX {
