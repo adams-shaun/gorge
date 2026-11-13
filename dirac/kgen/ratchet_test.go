@@ -146,7 +146,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
 	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
-	"ALL": {23525, 34442},
+	// +8 (MBC costs-9: a Morph turn-up cost of PayLife<N> as CardDef.MorphLife, and a printed trigger's own hybrid mana cost as kop.PayManaF with the pip announced first: Zombie Cutthroat, Emiel the Blessed, Alesha, Who Smiles at Death, Kels, Fight Fixer, Rodolf Duskbringer, Shu Yun, the Silent Tempest, Slinza, the Spiked Stampede, Taeko, the Patient Avalanche; ALL 23525 -> 23533, MBC 1740 -> 1742 measured).
+	"ALL": {23533, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {220, 280},
@@ -161,7 +162,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
-	"MBC": {1740, 2188},
+	// +2 (MBC costs-9: Zombie Cutthroat's Morph--Pay 5 life, Emiel the Blessed's "you may pay {G/W}"; 1740 -> 1742 measured).
+	"MBC": {1742, 2188},
 	"MKM": {251, 279},
 	"MOM": {203, 296},
 	"MSH": {246, 276},
