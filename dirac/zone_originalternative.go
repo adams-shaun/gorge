@@ -235,7 +235,20 @@ func (s *State) czAttachHost(k *prep, in *kop.Instr, o Obj, ctrl uint8) (host Sl
 	if in.F != 0 {
 		return s.czBearerHost(k, in, o) // a filter bearer: the controller chooses (tgt_attachedto.go)
 	}
-	b := s.objRefObj(kop.Ref(in.B.N >> kop.RetAttachShift & 7))
+	return s.czAttachBearerHost(k, s.objRefObj(kop.Ref(in.B.N>>kop.RetAttachShift&7)), o, ctrl)
+}
+
+// czAttachBearerHost is czAttachHost's named-bearer core with the bearer
+// resolved: the found or returned card o enters attached to b -- an Aura to
+// it when it is among the Aura's legal objects to enchant, else it stays in
+// its zone (CR 303.4f/g); anything else enters, then attaches when b is a
+// creature on the battlefield (gorge changeZoneAttachedTo, whose attach the
+// CR 704.5n/704.5q state-based actions would undo for any other bearer).
+// OpSearchEx's SrSearchAttach reads it with the Ref from W
+// (interp_ask.go's moveFoundAns).
+//
+//go:noinline
+func (s *State) czAttachBearerHost(k *prep, b Obj, o Obj, ctrl uint8) (host Slot, stay bool) {
 	c := s.objs[o].card
 	if k.cards[c].types&kop.TAura != 0 {
 		if b == NoObj || k.t.Cards[c].Enchant.Kind != kop.TgtObject {

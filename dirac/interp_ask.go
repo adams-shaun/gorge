@@ -1867,11 +1867,16 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 	// The current instruction is only needed for a library destination; a
 	// direct moveFound (no resolving program) has none.
 	var in *kop.Instr
-	if z == kop.ZoneLibrary {
+	if z == kop.ZoneLibrary || z == kop.ZoneBattlefield {
+		// the library destination reads the instruction for its order; a
+		// battlefield destination for OpSearchEx's SrSearchAttach bearer
+		// (zone_originalternative.go's czAttachBearerHost)
 		if prog := s.prog(k); int(s.res.pc) < len(prog) {
 			in = &prog[s.res.pc]
 		}
 	}
+	attach := z == kop.ZoneBattlefield && in != nil && in.Op == kop.OpSearchEx &&
+		in.B.N&kop.SrSearchAttach != 0 && !DebugCzAttachOff
 	handBottom := in != nil && in.Op == kop.OpChooseMove && in.B.N&kop.SrHandBottom != 0 && s.searchZone(k) == kop.ZoneHand
 	if z == kop.ZoneLibrary && s.g.nlook > 1 && !handBottom && (s.searchZone(k) == kop.ZoneHand || fl&kop.SrNoShuffle != 0) {
 		s.reverseLook() // act_mayask.go: the first answered ends on top (an unshuffled search too)
@@ -1910,6 +1915,21 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			}
 			if DebugGyBfOwnerEntry && fl&kop.SrUnderYourControl != 0 {
 				ep = s.objs[o].owner() // mutation: a GainControl$ graveyard pick keeps its owner
+			}
+			if attach {
+				// AttachedTo$ on a search (kop.SrSearchAttach): the named
+				// bearer replaces the plain CR 303.4f enchant ask -- the Aura
+				// enters attached to it when it may legally enchant it, else
+				// it stays in its zone and the search's later cards move on
+				// (gorge markChangeZoneAttach and the entry gate); anything
+				// else enters, then attaches when the bearer is a creature
+				// (czAttachBearerHost).
+				var host Slot
+				var stay bool
+				if host, stay = s.czAttachBearerHost(k, s.objRefObj(kop.Ref(in.W)), o, ep); stay {
+					continue
+				}
+				s.enterOnto(host)
 			}
 		}
 		if z == kop.ZoneBattlefield && s.handAuraArmed(k) {

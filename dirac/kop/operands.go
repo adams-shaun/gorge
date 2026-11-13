@@ -270,6 +270,18 @@ const SrAltAll = 1 << 3
 // SrAltZoneShift is the shift of SrAltOrigin's alternative zone in B.N.
 const SrAltZoneShift = 5
 
+// SrSearchAttach (OpSearchEx B, with W as the bearer Ref):
+// AttachedTo$ on a search (Boonweaver Giant's, Runed Crown's and Arachnus
+// Spinner's "put it onto the battlefield attached to ..."). The found card
+// enters attached to the bearer the W Ref names -- an Aura to it when it is
+// among the Aura's legal objects to enchant, else it stays in its zone (CR
+// 303.4f/g, gorge markChangeZoneAttach and the entry gate); anything else
+// enters, then attaches when the bearer is a creature on the battlefield
+// (gorge changeZoneAttachedTo). The named-bearer settle replaces the plain
+// CR 303.4f enchant ask (czAttachBearerHost), and no ask is posed. Read from
+// the instruction, never ORed into pickF.
+const SrSearchAttach = 1 << 8
+
 // SrAltGraveHand is the SrAltOrigin zone code for the OriginAlternative$
 // pair Graveyard then Hand (Agency Outfitter). The library is never an
 // alternative zone, so its code is free to name the pair; the election then

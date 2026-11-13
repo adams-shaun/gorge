@@ -430,6 +430,47 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				}
 				flags = append(flags, "alt="+alt)
 			}
+			// AttachedTo$ on a search (Boonweaver Giant's, Runed Crown's
+			// "put it onto the battlefield attached to CARDNAME", Arachnus
+			// Spinner's ParentTarget): gorge marks the entry with the named
+			// bearers before the move (effects/zone_change.go
+			// markChangeZoneAttach) and its entry gate settles it -- an Aura
+			// enters attached to the first named bearer it can legally
+			// enchant, or stays in its zone when none is (CR 303.4f/g,
+			// rules/aura_entry.go); anything else enters, then attaches when
+			// the bearer is a creature on the battlefield
+			// (changeZoneAttachedTo). The kernel's OpSearchEx reads the
+			// bearer from W (kop.SrSearchAttach) and settles with the same
+			// two branches (czAttachBearerHost). Only the two single-object
+			// spellings lower: a card-filter bearer (One Last Job's
+			// Creature.YouCtrl, Runed Crown's shared-type filter, Retether's
+			// mass return) has the controller choose among the legal ones,
+			// which the search path does not model; a Defined$ spelling
+			// beside it refuses. On a destination that does not enter the
+			// battlefield the param has no CR meaning and gorge leaves it
+			// unread (changeZoneAttachedTo's battlefield gate), so it
+			// consumes as inert there.
+			var attachTo lRef
+			if at, ok := ps.get("AttachedTo"); ok && dest == zBattlefield {
+				if !isConstN(n, 1) {
+					return refuse("AttachedTo$ with ChangeNum$ %v", n)
+				}
+				if counterKind != "" || arm != nil {
+					return refuse("AttachedTo$ beside a counter rider")
+				}
+				if override != nil {
+					return refuse("AttachedTo$ beside StaticEffect$")
+				}
+				switch strings.TrimSpace(at) {
+				case "Self", "ParentTarget":
+					if attachTo, err = lc.defined(strings.TrimSpace(at)); err != nil {
+						return err
+					}
+				default:
+					return refuse("AttachedTo$ %q on a search", at)
+				}
+				flags = append(flags, "AttachTo")
+			}
 			if lg {
 				if flags, err = libGraveFlags(ps, dest, n, obj, arm != nil, flags); err != nil { // lower_libgrave.go
 					return err
@@ -459,7 +500,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				return err
 			}
 			lc.eachSearchLoop(obj) // lower_eachsearch.go
-			lc.emit(lInstr{Op: "Search", Obj: obj, A: n, F: f, C: dest, CS: strings.Join(flags, "|")})
+			lc.emit(lInstr{Op: "Search", Obj: obj, A: n, F: f, C: dest, CS: strings.Join(flags, "|"), Obj2: attachTo})
 			if clear != nil {
 				lc.emit(*clear)
 			}
