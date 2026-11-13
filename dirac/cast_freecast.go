@@ -21,7 +21,8 @@ func (s *State) freeQueued(o Obj) bool {
 // instruction, so nothing here reads it).
 //
 // OpCastFree's operands:
-//   - C low 3 bits: the population zone (Exile / Hand / Graveyard / Library).
+//   - C low 3 bits: the population zone (Exile / Hand / Graveyard / Library /
+//     Command: the resolving controller's own commanders).
 //   - C bit 3: Amount$ 1 (close the ask after one pick).
 //   - C bit 4: ForgetPlayed$ True (drop the card from s.g.rem once its cast
 //     commits; a refused or reversed cast never commits and keeps it).
@@ -130,6 +131,15 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 		pl := &s.pl[e.ctrl]
 		for i := 0; i < int(pl.handN); i++ {
 			if !add(pl.hand[i]) {
+				return
+			}
+		}
+	case zone == kop.ZoneCommand:
+		// P5: the resolving controller's own commanders, in its command-zone
+		// order (gorge effPlay walks that seat's command zone; Geode Golem)
+		first, second := s.cmdZoneOrder(e.ctrl)
+		for _, o := range [2]Obj{first, second} {
+			if o != NoObj && !add(o) {
 				return
 			}
 		}
