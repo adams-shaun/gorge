@@ -803,6 +803,11 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			}
 		}
 	}
+	for i := range t.Overrides {
+		if t.Overrides[i].Landwalk != 0 {
+			g.anyLandwalk = true // a Pump's granted landwalk rides an override record (kw_evasion.go landwalkPumped)
+		}
+	}
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		pc := &p.cards[i]

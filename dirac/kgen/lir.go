@@ -950,6 +950,7 @@ type lOverride struct {
 	RemoveLegendary   bool     // a copy exception's NonLegendary$ (CR 707.9b)
 	PTDelta           bool     // PVal/TVal are a +N/+M pump (layer 7c), not a base P/T: PumpAll Duration$ UntilYourNextTurn NumAtt$/NumDef$ (kop.Override.PTDelta)
 	GrantStatics      uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
+	Landwalk          *lFilter // a Pump KW$ Landwalk:<spec> grant's land filter (kop.Override.Landwalk)
 }
 
 // Replacement-lite kinds.

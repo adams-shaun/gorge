@@ -1024,7 +1024,7 @@ func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8,
 	// (CR 613.1f, 613.7), like a granted ability: it merges with the newest record only, or
 	// a repeat of The Fire Nation Drill's removal resolved after Enter the Avatar State would
 	// sit before it and leave the hexproof the Avatar gave.
-	if !s.addOvRec(sl, r, merge, ov.Grant[0] != 0 || ov.AddKw != 0 || ov.RemoveKw != 0 || ov.LoseAbilities) {
+	if !s.addOvRec(sl, r, merge, ov.Grant[0] != 0 || ov.AddKw != 0 || ov.RemoveKw != 0 || ov.LoseAbilities || ov.Landwalk != 0) {
 		s.stall(StallTables)
 		return
 	}

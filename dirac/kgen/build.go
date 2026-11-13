@@ -2382,6 +2382,14 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.RemoveLegendary = o.RemoveLegendary
 	ko.GrantStatics = o.GrantStatics
 	ko.PTDelta = o.PTDelta
+	if o.Landwalk != nil {
+		if ko.Landwalk, err = cb.filter(o.Landwalk, kop.ZoneBattlefield); err != nil {
+			return 0, err
+		}
+		// the land filter's subtypes must survive the matchup remap like any
+		// value's filter does (refSubs walks ovVals)
+		cb.out.ovVals = append(cb.out.ovVals, kop.ValueRef{K: kop.VCountFilter, N: int16(ko.Landwalk)})
+	}
 	ko.AddColors = colorMask(o.AddColors)
 	if ko.AddKw, err = kwMask(o.AddKw); err != nil {
 		return 0, err

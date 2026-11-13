@@ -3165,7 +3165,14 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		if myriads > 0 && (zone != zBattlefield || lc.pumpPlayerRef(obj)) {
 			return refuse("granted Myriad to a non-battlefield object")
 		}
-		if rest != "" || len(fbs)+myriads == 0 {
+		rest, landwalk, err := lc.splitLandwalkPump(rest) // lower_landwalkgrant.go
+		if err != nil {
+			return err
+		}
+		if landwalk != nil && (zone != zBattlefield || !lc.pumpObjectRef(obj)) {
+			return refuse("granted landwalk to a non-permanent subject")
+		}
+		if rest != "" || len(fbs)+myriads == 0 && landwalk == nil {
 			ks, err := pumpKeywords(rest)
 			if err != nil {
 				return err
@@ -3177,6 +3184,11 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 			} else {
 				lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: strings.Join(ks, "&")})
 			}
+		}
+		if landwalk != nil {
+			// CR 702.14 granted until end of turn: an end-of-turn override
+			// record carrying the land filter (kop.Override.Landwalk)
+			lc.emitOverride(obj, &lOverride{Landwalk: landwalk}, "EOT")
 		}
 		for _, n := range fbs {
 			// CR 702.189a granted until end of turn: the latent Attacks

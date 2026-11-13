@@ -15,7 +15,27 @@ func (s *State) landwalkEvades(k *prep, b, a Slot) bool {
 	if f := k.t.Cards[s.cardAt(a)].Landwalk; f != 0 && !s.genLost(k, a) && s.landwalkHit(k, f, b, a) {
 		return true
 	}
-	return s.landwalkGranted(k, b, a)
+	return s.landwalkGranted(k, b, a) || s.landwalkPumped(k, b, a)
+}
+
+// landwalkPumped: an override record on attacker a carrying a Landwalk filter
+// (a Pump KW$ Landwalk:<spec>, Piracy Charm) matches a land the defending
+// player controls. Like a static's grant it is a layer-6 effect, so a record
+// older than a's loss of all abilities grants nothing.
+//
+//go:noinline
+func (s *State) landwalkPumped(k *prep, b, a Slot) bool {
+	if !s.fxM.has(a) {
+		return false
+	}
+	lts, lost := s.lossAt(k, a)
+	hit := false
+	s.eachOvRec(a, func(r ovRec) {
+		if f := k.t.Overrides[r.idx-1].Landwalk; f != 0 && !hit && (!lost || r.ts >= lts) && s.landwalkHit(k, f, b, a) {
+			hit = true
+		}
+	})
+	return hit
 }
 
 // landwalkHit: the defending player (blocker b's controller) controls a land
@@ -89,7 +109,8 @@ func landwalkNames(t *kop.Table, f kop.FilterID, sub uint8) bool {
 // hasIslandwalk: the permanent at sl has a Landwalk keyword naming the
 // subtype sub-1 among its derived keywords (gorge keywordPredicateMatches
 // over the layer-6 keyword list): its printed landwalk unless it lost its
-// abilities, or a Continuous static's grant (the rules landwalkGranted reads).
+// abilities, or a Continuous static's grant (the rules landwalkGranted reads),
+// or a Pump's override record (landwalkPumped).
 //
 //go:noinline
 func (s *State) hasIslandwalk(k *prep, sl Slot) bool {
@@ -111,6 +132,14 @@ func (s *State) hasIslandwalk(k *prep, sl Slot) bool {
 		}
 		return true
 	})
+	if !hit && s.fxM.has(sl) {
+		// a Pump's granted landwalk (landwalkPumped)
+		s.eachOvRec(sl, func(r ovRec) {
+			if f := k.t.Overrides[r.idx-1].Landwalk; f != 0 && (!lost || r.ts >= lts) && landwalkNames(k.t, f, sub) {
+				hit = true
+			}
+		})
+	}
 	return hit
 }
 

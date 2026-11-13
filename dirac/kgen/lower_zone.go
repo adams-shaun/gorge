@@ -1083,6 +1083,9 @@ func overrideString(o *lOverride) string {
 	if o.GrantStatics != 0 {
 		p = append(p, "grantstatics="+strconv.Itoa(int(o.GrantStatics)))
 	}
+	if o.Landwalk != nil {
+		p = append(p, "landwalk="+o.Landwalk.String())
+	}
 	if o.LoseAbilities {
 		p = append(p, "loseabilities")
 	}
