@@ -170,5 +170,8 @@ func drawStepFlags(t *lTrigger) kop.TrigFlags5 {
 	if t.NotFirstInDrawStep {
 		f |= kop.Tf5NotFirstCardInDrawStep
 	}
+	if t.AtkYouLastTurn {
+		f |= kop.Tf5DmgAttackedYouLastTurn // lower_atklastturn.go
+	}
 	return f
 }

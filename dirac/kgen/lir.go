@@ -751,6 +751,11 @@ type lTrigger struct {
 	// own draw step (gorge trigmatch.firstCardInDrawStep, CR 504.1).
 	FirstInDrawStep    bool // FirstCardInDrawStep$ True (kop.Tf5FirstCardInDrawStep)
 	NotFirstInDrawStep bool // FirstCardInDrawStep$ False (kop.Tf5NotFirstCardInDrawStep)
+
+	// DamageDone: ValidTarget$ Player.attackedYouTheirLastTurn, the damaged
+	// player attacked the controller during their last turn
+	// (kop.Tf5DmgAttackedYouLastTurn; lower_atklastturn.go).
+	AtkYouLastTurn bool
 }
 
 // lTrigger.Attacked bits.

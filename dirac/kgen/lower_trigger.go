@@ -761,7 +761,11 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				return err
 			}
 		}
-		if tr.F2, err = readF("ValidTarget"); err != nil {
+		if tp.str("ValidTarget") == atkLastTurnSpec {
+			if err := atkYouLastTurn(tp, tr, t); err != nil { // lower_atklastturn.go
+				return err
+			}
+		} else if tr.F2, err = readF("ValidTarget"); err != nil {
 			return err
 		}
 		if cd, ok := tp.get("CombatDamage"); ok {
