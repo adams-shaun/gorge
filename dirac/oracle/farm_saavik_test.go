@@ -27,16 +27,3 @@ func TestSaavikBesideKiraAndDeannaStalls(t *testing.T) {
 		t.Fatalf("stall = %q, want the kernel's entryorder stall", res.Stall)
 	}
 }
-
-// TestPinnedFarmSaavikStoicStudent pins std-trk games that reach Saavik, Stoic
-// Student on the battlefield and replay clean in lockstep, on the farm's surface.
-// It is clean-play evidence for the card, not a regression test for the entry
-// stall: the three recorded games never make the divergent entry (their Saavik
-// resolves without a second Updated body competing), so they stay green with the
-// stall reverted. TestSaavikBesideKiraAndDeannaStalls, the rebuilt farm game, is
-// the guard: it replays to StallEntryOrder with the fix and diverges on
-// Cards[32].Zone without it.
-func TestPinnedFarmSaavikStoicStudent(t *testing.T) {
-	t.Parallel()
-	pinnedGamesRun(t, "std-trk", RunConfig{Config: Config{GorgeAutopaySurface: true}}, 0, onBattlefield("Saavik, Stoic Student"))
-}

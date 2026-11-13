@@ -143,10 +143,12 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// -1 (Gilded Light refuses: its until-end-of-turn player shroud lowered to a keyword grant that lands on no permanent; ALL 23105 -> 23104 measured).
 	// +16 (the merge with land at 1acc5919d9: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering beside land's later work; merged ALL 23115 -> 23131, WOE stays 264 measured).
 	// +14 (the merge with land at 6014a11d54: this branch's Extort lowering, the printed K:Extort expansion and the granted trigger, beside land's 23177; merged ALL 23177 -> 23191 measured).
-	"ALL": {23251, 34442},
+	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
+	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
+	"ALL": {23321, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
-	"BRO": {218, 280},
+	"BRO": {219, 280},
 	"DFT": {255, 276},
 	"DMU": {197, 270},
 	"DSK": {251, 276},
@@ -157,6 +159,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"FRA": {255, 269},
 	"HOB": {159, 172},
 	"LCI": {260, 290},
+	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
+	"MBC": {1694, 2188},
 	"MKM": {251, 279},
 	"MOM": {201, 296},
 	"MSH": {246, 276},
@@ -231,6 +235,7 @@ func checkAcceptance(t *testing.T, cardsDir, list string) {
 
 // TestCorpusAcceptance is the corpus ratchet (the generated ALL list, ~3 s).
 func TestCorpusAcceptance(t *testing.T) {
+	heavyParallel(t)
 	checkAcceptance(t, ratchetCards(t), "ALL")
 }
 

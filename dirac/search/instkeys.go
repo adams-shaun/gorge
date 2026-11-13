@@ -507,7 +507,7 @@ func boardSig(s *dirac.State, seat uint8) uint64 {
 		k, src, card, ctrl := s.StackEntry(i)
 		h = mix(h, uint64(k)|uint64(src)<<8|uint64(card)<<24|uint64(ctrl)<<56)
 	}
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.NumSeats(); p++ {
 		h = mix(h, uint64(uint32(s.LifeOf(p))))
 		pool, restr := s.PoolOf(p)
 		for i, m := range pool {
@@ -600,38 +600,48 @@ func (sr *Searcher) seatSearchKeys(root *dirac.State, d *dirac.Decision, seatSee
 
 // infoSeed is InfoSeed's world seed at the root for seatSeed: a hash of
 // the seat's information -- its hand's cards (as a multiset), its library
-// size, the opponent's seen cards (a multiset), hand and library sizes, and
-// the opponent's hand where it is revealed to the seat.
+// size, each opponent's seen cards (a multiset), hand and library sizes, and
+// each opponent's hand where it is revealed to the seat (opponents in seat
+// order).
 func (sr *Searcher) infoSeed(seatSeed uint64) uint64 {
 	s := &sr.root
 	p := sr.seat
-	q := 1 - p
-	var hand, rev uint64
-	for i, n := 0, s.NumObjs(); i < n; i++ {
+	n := s.NumSeats()
+	var hand uint64
+	var rev [dirac.MaxSeats]uint64
+	for i, no := 0, s.NumObjs(); i < no; i++ {
 		o := dirac.Obj(i)
 		if s.ObjZone(o) != kop.ZoneHand {
 			continue
 		}
-		switch s.ObjOwner(o) {
-		case p:
+		switch q := s.ObjOwner(o); {
+		case q == p:
 			hand += splitmix(uint64(s.ObjCard(o)) + 0x68616e64)
-		case q:
-			if s.HandRevealed(q, p) {
-				rev += splitmix(uint64(s.ObjCard(o)) + 0x72657665)
-			}
+		case s.HandRevealed(q, p):
+			rev[q] += splitmix(uint64(s.ObjCard(o)) + 0x72657665)
 		}
-	}
-	var seen uint64
-	ns := s.SeenCards(q, p, sr.seenC[:])
-	for _, c := range sr.seenC[:ns] {
-		seen += splitmix(uint64(c) + 0x7365656e)
 	}
 	h := splitmix(seatSeed ^ 0x696e666f73656564) // "infoseed"
 	h = mix(h, hand)
 	h = mix(h, uint64(s.LibrarySize(p)))
-	h = mix(h, seen)
-	h = mix(h, uint64(s.HandSize(q))<<16|uint64(s.LibrarySize(q)))
-	return mix(h, rev)
+	for q := uint8(0); q < n; q++ {
+		if q == p {
+			continue
+		}
+		var seen uint64
+		ns := s.SeenCards(q, p, sr.seenC[:])
+		for _, c := range sr.seenC[:ns] {
+			seen += splitmix(uint64(c) + 0x7365656e)
+		}
+		h = mix(h, seen)
+		h = mix(h, uint64(s.HandSize(q))<<16|uint64(s.LibrarySize(q)))
+	}
+	for q := uint8(0); q < n; q++ {
+		if q != p {
+			h = mix(h, rev[q])
+		}
+	}
+	return h
 }
 
 // ---- ReactAim ------------------------------------------------------------------

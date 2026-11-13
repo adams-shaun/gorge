@@ -22,7 +22,7 @@ import (
 // testNamesGrandfatheredMax is that list's exact length, which is what makes
 // the shrink-only promise enforceable: lower it in the same commit a file
 // leaves the list, never raise it.
-const testNamesGrandfatheredMax = 1
+const testNamesGrandfatheredMax = 0
 
 var (
 	roundToken = regexp.MustCompile(`(^|_)(followup|round[0-9]*|r[0-9]+|s[0-9]+|cs[0-9]+|fix|fixes|pair[0-9]+)$`)

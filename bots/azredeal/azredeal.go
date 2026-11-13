@@ -38,6 +38,9 @@ import (
 // Policy is the registry key.
 const Policy = "az-redeal"
 
+// PolicyMaxN is the registry key of the max^n variant.
+const PolicyMaxN = "az-redeal-maxn"
+
 func init() {
 	bots.Register(bots.Entry{Info: bots.Info{
 		Name:        Policy,
@@ -54,6 +57,21 @@ func init() {
 		MaxSeats:  4,
 		Caretaker: "bot",
 	}, New: newAZRedeal})
+	bots.Register(bots.Entry{Info: bots.Info{
+		Name:        PolicyMaxN,
+		Label:       "az-redeal-maxn (AlphaZero search, max^n)",
+		Description: "az-redeal with the opponents in its tree: at the opponents' decision points its search models each opponent maximising its own value (max^n) instead of assuming they all gang up on the searching seat (paranoid). Everything else, including the cost, is exactly az-redeal. Meant for Commander pods of up to four seats.",
+		Tier:        bots.Experimental,
+		Cost: bots.Cost{
+			MeanMS: 247, P95MS: 465, Scope: "per searched decision",
+			Note:   "the az-redeal numbers at 100 simulations, uncontended, in 2-seat constructed; 4-seat cost unmeasured; contention raises it, and the host never cuts the search",
+			Source: "docs/design/2026-09-28-spellbench-agent-design.md §12.5",
+		},
+		Env: true, Search: true,
+		Formats:   []string{"constructed", "commander"},
+		MaxSeats:  4,
+		Caretaker: "bot",
+	}, New: newAZRedealMaxN})
 }
 
 // Hosted is the hosted config (spec §4.3, §11): exactly azmcts's eval seat —
@@ -74,6 +92,26 @@ func Hosted() azmcts.SeatConfig {
 // Options and a nil net (generation 0).
 func newAZRedeal(o bots.Options) (seat.Seat, error) {
 	return New(o, Hosted())
+}
+
+// HostedMaxN is Hosted with the opponents in the tree and max^n at their
+// points (azmcts Options.OpponentNodes and Options.MaxN): at an opponent's
+// decision point the tree maximises the acting opponent's own value instead
+// of every opponent minimising the searching seat's. In a game of more than
+// maxVecSeats living seats, or with at most two, the search falls back to
+// az-redeal's own paranoid read (azmcts Stats.MaxNFallbacks), so a 2-seat
+// table and one with a fifth seat play az-redeal's game unchanged.
+func HostedMaxN() azmcts.SeatConfig {
+	cfg := Hosted()
+	cfg.Search.OpponentNodes = true
+	cfg.Search.MaxN = true
+	return cfg
+}
+
+// newAZRedealMaxN is the az-redeal-maxn registry factory: HostedMaxN() with
+// the per-seat seed from Options and a nil net (generation 0).
+func newAZRedealMaxN(o bots.Options) (seat.Seat, error) {
+	return New(o, HostedMaxN())
 }
 
 // New builds the adapter over an explicit config overlay. It is botbench's
@@ -244,11 +282,23 @@ func (s *hostedSeat) DecideSearch(ctx context.Context, env searchseat.Env, d dec
 	return s.bot.DecideSearch(ctx, env, d)
 }
 
-// DecideBoard is the game-shaped half: the wrapped bot. It is the fallback
-// the Env branch plays (root refused, feed stopped) and the whole answer for
-// every non-searched decision.
+// DecideBoard is the game-shaped half: the wrapped bot, the whole answer for
+// every decision WantsEnv declines (the host and mtgsim ask it there). It is
+// played through the wrapped seat's uncounted half when it has one: the Env
+// branch's fallbacks (root refused, feed stopped) call the wrapped
+// DecideBoard themselves and are counted there, but a kind this seat never
+// searches was routed around nothing.
 func (s *hostedSeat) DecideBoard(ctx context.Context, b botpolicy.Board, d decision.Decision) (decision.Intent, error) {
+	if u, ok := s.bot.(unsearchedDecider); ok {
+		return u.DecideUnsearched(ctx, b, d)
+	}
 	return s.bot.DecideBoard(ctx, b, d)
+}
+
+// unsearchedDecider is the wrapped seat's uncounted bot half (*azmcts.Seat's
+// DecideUnsearched); a delegate without it plays DecideBoard.
+type unsearchedDecider interface {
+	DecideUnsearched(ctx context.Context, b botpolicy.Board, d decision.Decision) (decision.Intent, error)
 }
 
 // WantsEnv reports whether this decision is one of the az seat's searched

@@ -109,13 +109,14 @@ type prep struct {
 	escape   bool // some card has Escape (kw_escape.go): guards the escape cast mark and the graveyard offer
 	retrace  bool // some card has Retrace (kw_retrace.go): guards the graveyard offer
 	bargain  bool // some card has Bargain (kw_bargain.go): guards the bargained cast offer
+	entwine  bool // some card has Entwine (kw_entwine.go): guards the entwined cast's charm pick count
 	teamwork bool // some card has Teamwork (kw_teamwork.go): guards the teamworked cast offer and the charm pick count
 	gift     bool // some card has Gift (kw_gift.go): guards the gift paths on the hot cast/trigger path
 	// bargainRed: some card carries a StBargained cost static
 	// (cost_reducespell.go): guards the bargained pricing
 	bargainRed bool
-	// offspring: some card has Offspring or Buyback (kw_offspring.go,
-	// kw_buyback.go): guards the extra-cost cast offer on the priority walk
+	// offspring: some card has Offspring, Buyback or Entwine (kw_offspring.go,
+	// kw_buyback.go, kw_entwine.go): guards the extra-cost cast offer on the priority walk
 	offspring bool
 	// anyGate: some ability has a threshold gate (Ability.Gate, kw_class.go):
 	// guards the gated trigger/activation checks on the hot paths
@@ -300,8 +301,9 @@ func prepare(t *kop.Table) *prep {
 		p.escape = p.escape || c.Escape
 		p.retrace = p.retrace || c.Retrace
 		p.teamwork = p.teamwork || c.Teamwork != 0
-		p.offspring = p.offspring || c.Offspring || c.Buyback
-		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.OptCost.Flags|c.KickerCost.Flags|c.FbCost.Flags|c.EscCost.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.HasSneak || c.HasWebSling // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go)
+		p.entwine = p.entwine || c.Entwine
+		p.offspring = p.offspring || c.Offspring || c.Buyback || c.Entwine
+		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.OptCost.Flags|c.KickerCost.Flags|c.FbCost.Flags|c.EscCost.Flags|c.EscBfCost.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.HasSneak || c.HasWebSling // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go)
 		pc.spellAb, pc.manaAb = -1, -1
 		p.tapXAb[i], p.ctrAb[i], p.riderAb[i] = -1, -1, -1
 		// the card's mana is typed by its types (mana_artifact.go) whether

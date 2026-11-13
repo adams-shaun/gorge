@@ -123,11 +123,19 @@ func BeliefClass(t *kop.Table, c dirac.CardID) uint8 {
 }
 
 // BeliefFeatureVector writes the belief features of seat's opponent at s,
-// from seat's view (the order above).
+// from seat's view (the order above): with more than two seats, the next
+// seat in turn order (beliefOpp).
 func BeliefFeatureVector(s *dirac.State, seat uint8, f *[BeliefFeatures]float64) {
 	var seen [2 * dirac.MaxDeck]dirac.CardID
-	ns := s.SeenCards(1-seat, seat, seen[:])
+	ns := s.SeenCards(beliefOpp(s, seat), seat, seen[:])
 	beliefFeatures(s, seat, seen[:ns], f)
+}
+
+// beliefOpp is the opponent the belief features describe: with two seats the
+// other seat, with more the next seat in turn order. The learned beliefs are a
+// two-seat model, so a search deals by them only with two seats (beliefRoot).
+func beliefOpp(s *dirac.State, seat uint8) uint8 {
+	return (seat + 1) % s.NumSeats()
 }
 
 // HandFeatures is BeliefFeatureVector appended to out[:0] (the contract's
@@ -140,7 +148,7 @@ func HandFeatures(s *dirac.State, seat uint8, out []float64) []float64 {
 
 // beliefFeatures is BeliefFeatureVector given the opponent's seen cards.
 func beliefFeatures(s *dirac.State, seat uint8, seen []dirac.CardID, f *[BeliefFeatures]float64) {
-	opp := 1 - seat
+	opp := beliefOpp(s, seat)
 	t := s.Table()
 	var lands, untapped, perms, creatures, gy, gyLand, gyInst, exile float64
 	for i := 0; i < s.NumObjs(); i++ {
@@ -569,11 +577,13 @@ func softmax3(n *BeliefNet, z []float64) (q [3]float64) {
 
 // beliefRoot computes the beliefs' prediction for seat's opponent at s,
 // once per search: only under ClosedList with a corpus, never under
-// Clairvoyant (handOK and deckOK false: the plain deal).
+// Clairvoyant (handOK and deckOK false: the plain deal). The beliefs read one
+// opponent's features, so with more than two seats they predict nothing and
+// each opponent is dealt from the corpus by its own seen cards.
 func (sr *Searcher) beliefRoot(s *dirac.State, seat uint8) {
 	b := sr.bel
 	b.handOK, b.deckOK = false, false
-	if !sr.Opts.ClosedList || sr.Belief == nil || sr.Opts.Clairvoyant {
+	if !sr.Opts.ClosedList || sr.Belief == nil || sr.Opts.Clairvoyant || s.NumSeats() > 2 {
 		return
 	}
 	ns := s.SeenCards(1-seat, seat, sr.seenC[:])
@@ -819,7 +829,7 @@ func (sr *Searcher) handFirst(t *kop.Table, r *dirac.Rand, pool []dirac.CardID, 
 }
 
 // DealtHandMix is the mean class shares (land, instant-speed, other) of
-// the opponent's hand over k worlds this Searcher deals at s for seat (its
+// the opponent's (beliefOpp) hand over k worlds this Searcher deals at s for seat (its
 // configured deal: open list, corpus, or the learned beliefs), from seed
 // alone (a belief data row's "dealt"). It leaves s
 // and the game alone; it overwrites the Searcher's scratch, so call it
@@ -830,7 +840,7 @@ func (sr *Searcher) DealtHandMix(s *dirac.State, seat uint8, k int, seed uint64)
 	if sr.bel != nil {
 		sr.beliefRoot(s, seat)
 	}
-	opp := 1 - seat
+	opp := beliefOpp(s, seat)
 	t := s.Table()
 	n := 0
 	for i := 0; i < k; i++ {
@@ -864,7 +874,7 @@ func (sr *Searcher) DealtPool(s *dirac.State, seat uint8, i int, seed uint64, ou
 	sr.tmp.CopyFrom(s)
 	a, b := redealSeed(seed, i)
 	sr.redeal(&sr.tmp, a, b)
-	n := sr.tmp.HiddenCards(1-seat, out)
+	n := sr.tmp.HiddenCards(beliefOpp(s, seat), out)
 	sr.seat, sr.St = saveSeat, saveSt
 	return n
 }

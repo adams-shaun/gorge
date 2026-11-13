@@ -693,14 +693,39 @@ func (s *State) optionsFull(d *Decision) bool {
 // menace (CR 702.111b), a printed MinMaxBlocker Min$ (CR 509.1b,
 // CardDef.MinBlockers) unless a has lost its abilities, the larger of the
 // two (gorge blockPairScopeFor folds menace into the bound); 0 for none.
+// Min$ All (kop.MinBlockersAll) is the attacked player's creature count.
 func (s *State) minBlockers(k *prep, a Slot) int {
 	n := 0
 	if s.kw(k, a)&kop.KwMenace != 0 {
 		n = 2
 	}
 	if k.gen != nil && k.gen.anyMinBlk {
-		if m := int(k.t.Cards[s.cardAt(a)].MinBlockers); m > n && !s.genLost(k, a) {
+		m := int(k.t.Cards[s.cardAt(a)].MinBlockers)
+		if m == int(kop.MinBlockersAll) {
+			m = s.defCreatures(k, a)
+		}
+		if m > n && !s.genLost(k, a) {
 			n = m
+		}
+	}
+	return n
+}
+
+// defCreatures is Min$ All's floor: every creature the player attacker a
+// attacks controls, tapped or able to block or not (gorge
+// combat.DefenderCreatureCount: a creature that cannot block still does not
+// block, so menaceImpossible's able-blocker count falls short of it and the
+// attacker is not offered, gorge blockPairScopeFor's minImpossible). An
+// attacker with no defending player has none.
+func (s *State) defCreatures(k *prep, a Slot) int {
+	def := s.atkSeat(k, a)
+	if def == NoTarget {
+		return 0
+	}
+	n := 0
+	for m := s.ctrlM[def]; m.any(); m = m.rest() {
+		if s.isCreature(k, m.first()) {
+			n++
 		}
 	}
 	return n
@@ -1376,7 +1401,7 @@ func (s *State) damageStep(k *prep, first, ans bool) {
 		}
 		// a casualty's order ask is posed inside the check (CR 616.1)
 		switch s.ctl {
-		case ctlExileOrder, ctlCmdZone0, ctlCmdZone1, ctlCmdZone2, ctlCmdZone3:
+		case ctlExileOrder, ctlCmdZone0, ctlCmdZone1, ctlCmdZone2, ctlCmdZone3, ctlCmdZone4, ctlCmdZone5, ctlCmdZone6, ctlCmdZone7:
 			ask = s.ctl
 		}
 		s.ctl = ctl

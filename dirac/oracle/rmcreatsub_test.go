@@ -2,6 +2,7 @@ package oracle
 
 import (
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -126,7 +127,12 @@ func runRmcreatsub(t *testing.T, seeds int, keep bool) (games, divs, stalls int,
 	old := dirac.DebugRmCreatSubKeep
 	dirac.DebugRmCreatSubKeep = keep
 	defer func() { dirac.DebugRmCreatSubKeep = old }()
-	for mi, md := range krmcreatsubDecks {
+	// the matchups' seeds play as parallel chunks (seedChunks); the flag
+	// above is set for all of them
+	matchupChunks(t, len(krmcreatsubDecks), 1, uint64(seeds), 64, func(t *testing.T, c seedChunk, mu *sync.Mutex) {
+		mi, md := c.mi, krmcreatsubDecks[c.mi]
+		var g, dv, sl int
+		var cst krmcreatsubStats
 		var decks [2][]*cards.Card
 		for s, d := range md {
 			for _, e := range d {
@@ -146,7 +152,7 @@ func runRmcreatsub(t *testing.T, seeds int, keep bool) (games, divs, stalls int,
 		if err != nil {
 			t.Fatal(err)
 		}
-		for seed := uint64(1); seed <= uint64(seeds); seed++ {
+		for seed := c.lo; seed <= c.hi; seed++ {
 			cfg := Config{GorgeAutopaySurface: seed%2 == 0}
 			m, err := NewMatchup(reg, [2]string{"krmcreatsub-a", "krmcreatsub-b"}, decks, 1)
 			if err != nil {
@@ -156,25 +162,30 @@ func runRmcreatsub(t *testing.T, seeds int, keep bool) (games, divs, stalls int,
 			if err != nil {
 				t.Fatal(err)
 			}
-			pol := krmcreatsubPolicy(seed, &st, map[state.ObjID]bool{})
-			g, err := NewGorgeSide(m, seed, cfg, nil)
+			pol := krmcreatsubPolicy(seed, &cst, map[state.ObjID]bool{})
+			gs, err := NewGorgeSide(m, seed, cfg, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
-			res := LockstepLed(m, seed, g, k, pol, RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 20})
+			res := LockstepLed(m, seed, gs, k, pol, RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 20})
 			CloseSide(k)
-			games++
+			g++
 			if strings.HasPrefix(res.Stall, KernelStallPrefix) {
-				stalls++
+				sl++
 			}
 			if d := res.Div; d != nil {
-				divs++
+				dv++
 				if !keep {
 					t.Errorf("matchup %d seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", mi, seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
 				}
 			}
 		}
-	}
+		mu.Lock()
+		defer mu.Unlock()
+		games, divs, stalls = games+g, divs+dv, stalls+sl
+		st.onOpp += cst.onOpp
+		st.typeReads += cst.typeReads
+	})
 	return games, divs, stalls, st
 }
 

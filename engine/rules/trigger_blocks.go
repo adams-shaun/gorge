@@ -65,6 +65,13 @@ func (e *Engine) attackerBlockedCandidates(t cards.Trigger, source state.ObjID, 
 		if !e.pairMemberMatches(cardSpec, a, sc) {
 			continue
 		}
+		if ev.Obj != 0 && e.blockedBeforeEffect(a, ev) {
+			// An effect's block (api:Block, the event's Obj its source) on
+			// an attacker already blocked is no "becomes blocked" (CR
+			// 509.3c): Forge's BlockEffect fires it only for an attacker
+			// that was not blocked.
+			continue
+		}
 		var first state.ObjID
 		matched := 0
 		// The first occurrence of an attacker is at i (earlier ones would have
@@ -84,6 +91,23 @@ func (e *Engine) attackerBlockedCandidates(t cards.Trigger, source state.ObjID, 
 		out = append(out, [2]state.ObjID{a, first})
 	}
 	return out
+}
+
+// blockedBeforeEffect reports whether attacker a already had a blocker
+// before effect-made block event ev folded: its block list holds more
+// entries than ev added for it.
+func (e *Engine) blockedBeforeEffect(a state.ObjID, ev events.Event) bool {
+	o := e.G.Obj(a)
+	if o == nil {
+		return false
+	}
+	added := 0
+	for _, pr := range ev.Pairs {
+		if pr[0] == a {
+			added++
+		}
+	}
+	return len(o.BlockedBy) > added
 }
 
 // attackerBlockedByPairCandidates lists the (attacker, blocker) pairs one

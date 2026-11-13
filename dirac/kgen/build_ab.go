@@ -811,6 +811,7 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		ka.NModes, ka.ModesPick = uint8(a.Modes), uint8(a.ModesPick)
 		ka.ModesFew = uint8(a.ModesPick - a.ModesMin)
 		ka.ModeRestrict = a.ModeRestrict
+		ka.ChainModes = a.ChainModes
 		ka.RepMax, ka.RepCost, ka.RepBudget = a.RepMax, a.RepCost, a.RepBudget
 	}
 	if a.Mana != nil {
@@ -834,6 +835,10 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		}
 		if ka.Trig, err = cb.trigger(a.Trigger); err != nil {
 			return ka, err
+		}
+		if ka.Trig.Whose == kop.WhoseChosen && (a.Latent || a.Trigger.Event != "Phase" || a.Trigger.Zone != zBattlefield) {
+			// the kernel reads it only for a printed battlefield Phase listener (chosenIs)
+			return ka, fmt.Errorf("Player.Chosen outside a printed battlefield Phase trigger")
 		}
 		if ka.Trig.Whose == kop.WhoseEnchCtrl && (a.Latent || a.Trigger.Event != "Phase" || a.Trigger.Zone != zNone && a.Trigger.Zone != zBattlefield) {
 			// the kernel reads it only for a printed battlefield Phase listener
@@ -2393,12 +2398,14 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			case "Convoke":
 				st.A = kop.StackKwConvoke
 			}
-		case "Lifelink", "Storm", "Split second", "Conspire", "Delve":
+		case "Lifelink", "Storm", "Split second", "Conspire", "Delve", "Demonstrate":
 			if param != "" {
 				return ka, nil, fmt.Errorf("stack keyword grant %q with a parameter", s.Kw[0])
 			}
 			st.A = kop.StackKwLifelink
 			switch head {
+			case "Demonstrate":
+				st.A = kop.StackKwDemonstrate
 			case "Conspire":
 				st.A = kop.StackKwConspire
 			case "Storm":
@@ -3032,6 +3039,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			// each-opponent recipients (lower_damagesourceplayers.go): B.N 1 is the
 			// kernel's player mode (dirac/act_damagefrom.go)
 			ki.C, ki.B = int16(kop.RefEachOpponent), kop.Const(1)
+			break
+		}
+		if in.CS == "defending" {
+			// the Attacks trigger's defending player (lower_damagesourceplayers.go):
+			// the player mode over RefDefendingPlayer (dirac eachPlayers -> oneOpp)
+			ki.C, ki.B = int16(kop.RefDefendingPlayer), kop.Const(1)
 			break
 		}
 		if in.CS == "anytgt" {
@@ -4027,12 +4040,18 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "SpellToLib":
 		// OpExt ExtSpellToLib: the resolving spell to its owner's library, shuffled
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtSpellToLib))
+	case "LibPlace":
+		// OpExt ExtLibPlace, C the arm (top / bottom) or the ask (lower_libplace.go)
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtLibPlace)), int16(in.C)
 	case "AttacksIfAble":
 		// OpExt ExtAttacksIfAble, Obj the target that attacks this turn if able
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtAttacksIfAble))
 	case "BlocksIfAble":
 		// OpExt ExtBlocksIfAble, Obj the target that blocks this turn if able
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtBlocksIfAble))
+	case "RemoveFromCombat":
+		// OpExt ExtRemoveFromCombat, Obj the one object removed (lower_removefromcombat.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRemoveFromCombat))
 	case "MustBeBlocked":
 		// OpExt ExtMustBeBlocked, Obj the subject (RefNone
 		// with F: every battlefield permanent matching F)
@@ -4857,6 +4876,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.C = kop.OpChooseType, int16(in.C) // C: a card-type category's offered types (lower_choosetype.go)
 	case "ChooseName":
 		buildChooseName(&ki, in.B.N) // an as-enters card name (lower_choosename.go)
+	case "ChoosePlayerEnter":
+		// an as-enters opponent (lower_chooseplayerenter.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtChoosePlayer))
 	case "ChooseNumber":
 		// an as-enters number from B to C (lower_choosenumber.go)
 		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumber)), kop.Const(in.B.N), int16(in.C)

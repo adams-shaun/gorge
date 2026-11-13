@@ -408,6 +408,7 @@ ExProduct	ExprKind	54
 ExPromisedGift	ExprKind	31
 ExRedNCDmg	ExprKind	253
 ExRefCount	ExprKind	56
+ExRemEachOwnNonLand	ExprKind	65
 ExRemLKIPT	ExprKind	240
 ExRememberedCount	ExprKind	20
 ExResolvedThisTurn	ExprKind	32
@@ -453,6 +454,7 @@ ExtChooseColorRes	ExtOp	5
 ExtChooseName	ExtOp	251
 ExtChooseNumber	ExtOp	230
 ExtChooseNumberMid	ExtOp	303
+ExtChoosePlayer	ExtOp	299
 ExtClearImprinted	ExtOp	257
 ExtCloneCopy	ExtOp	81
 ExtColorGrant	ExtOp	6
@@ -488,6 +490,7 @@ ExtGrantExile	ExtOp	249
 ExtGrantPanharm	ExtOp	248
 ExtHideaway	ExtOp	8
 ExtJoinForces	ExtOp	301
+ExtLibPlace	ExtOp	300
 ExtLibSweep	ExtOp	101
 ExtLockActs	ExtOp	140
 ExtManaChoice	ExtOp	100
@@ -506,6 +509,7 @@ ExtRememberAll	ExtOp	306
 ExtRememberImprinted	ExtOp	307
 ExtRememberSearcher	ExtOp	304
 ExtRemoveCounterAny	ExtOp	3
+ExtRemoveFromCombat	ExtOp	260
 ExtSacDelayed	ExtOp	32
 ExtSearchCounters	ExtOp	252
 ExtSkipPhase	ExtOp	313
@@ -659,6 +663,7 @@ MayPlayOpponent	untyped int	16384
 MayPlayOwner	untyped int	512
 MayPlayPayLife	untyped int	-32768
 MayPlayRaiseShift	untyped int	10
+MinBlockersAll	uint8	255
 MonarchOpp	untyped int	1
 MorphDisguise	uint8	3
 MorphMegamorph	uint8	2
@@ -915,6 +920,9 @@ PlExtGrave	untyped int	256
 PlExtLibrary	untyped int	512
 PlExtOpponents	untyped int	1
 PlExtPlayers	untyped int	0
+PlaceArmBottom	untyped int	1
+PlaceArmTop	untyped int	0
+PlaceAsk	untyped int	2
 PlayerPredArtOrEnch	untyped int	4
 PlayerPredControlsCreature	untyped int	1
 PlayerPredCorrupted	untyped int	3
@@ -997,6 +1005,7 @@ ReduceColorBits	untyped int	2
 RefAttached	Ref	11
 RefAttachedCtrl	Ref	37
 RefChosen	Ref	13
+RefChosenPlayer	Ref	39
 RefController	Ref	5
 RefDefendingPlayer	Ref	15
 RefDelayedRemembered	Ref	19
@@ -1202,6 +1211,7 @@ StackKwCasualty	int16	2
 StackKwConspire	int16	8
 StackKwConvoke	int16	7
 StackKwDelve	int16	9
+StackKwDemonstrate	int16	10
 StackKwImprovise	int16	1
 StackKwLifelink	int16	4
 StackKwSplitSecond	int16	6
@@ -1495,6 +1505,7 @@ W7AttachedTo	int16	19
 W7AttackingAlone	int16	3
 W7AttackingEnchTrig	int16	29
 W7AttackingOpp	int16	7
+W7BlockingTrigObj	int16	31
 W7BottomLibrary	int16	17
 W7CostBlue	int16	14
 W7CrewedBySrc	int16	13
@@ -1512,6 +1523,7 @@ W7NoAbilities	int16	15
 W7NoName	int16	1
 W7NoNameTwin	int16	9
 W7NoNameTwinGrave	int16	20
+W7NotBlocking	int16	30
 W7NotBottomLibrary	int16	18
 W7NotChosenType	int16	6
 W7SharesCrTrigObj	int16	21
@@ -1521,6 +1533,7 @@ W7WithFlashback	int16	26
 W7WithInfect	int16	28
 W7WithWarp	int16	11
 WhoseAny	Whose	0
+WhoseChosen	Whose	201
 WhoseEnchCtrl	Whose	3
 WhoseNonActive	Whose	200
 WhoseOpp	Whose	2

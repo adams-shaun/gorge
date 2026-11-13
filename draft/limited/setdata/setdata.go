@@ -3,7 +3,8 @@
 // trimmed MTGJSON booster inputs (draft/limited/setdata/mtgjson/<SET>.json, MIT)
 // and committed. Each file carries every collation MTGJSON publishes for
 // the set — "play", the paper Play Booster, and "play-arena", the MTG Arena
-// variant — and LoadCollation picks one.
+// variant, or for Mystery Booster Commander Edition its one "draft"
+// booster — and LoadCollation picks one.
 //
 // The package is pure: it reads nothing but its embedded files and imports
 // nothing but the standard library and limited.
@@ -20,7 +21,7 @@ import (
 	"github.com/adams-shaun/gorge/draft/limited"
 )
 
-//go:embed sets/*.json
+//go:embed sets/*.json sets/*.substitute.txt
 var sets embed.FS
 
 // Collation names one booster collation of a set, the key MTGJSON spells
@@ -28,16 +29,37 @@ var sets embed.FS
 type Collation string
 
 // The collations the embedded data carries: Play is the paper Play Booster,
-// Arena the MTG Arena variant of the same product.
+// Arena the MTG Arena variant of the same product, Draft the Draft Booster
+// of a set that publishes only that (MBC).
 const (
 	Play  Collation = "play"
 	Arena Collation = "play-arena"
+	Draft Collation = "draft"
 )
 
 // DefaultCollation is the collation Load (and so every caller that does not
 // name one) serves: MTG Arena, because the pick ratings are 17Lands Arena
-// data.
+// data. A set that carries no Arena collation defaults to its only one
+// (DefaultCollationFor).
 const DefaultCollation = Arena
+
+// DefaultCollationFor returns the collation Load serves for the set:
+// DefaultCollation when the set carries it, otherwise the set's single
+// collation (MBC's "draft"). A set carrying several collations but not
+// DefaultCollation, or an unknown set, yields DefaultCollation, so the
+// load that follows fails naming what the file carries.
+func DefaultCollationFor(code string) Collation {
+	cs := Collations(code)
+	for _, c := range cs {
+		if c == DefaultCollation {
+			return c
+		}
+	}
+	if len(cs) == 1 {
+		return cs[0]
+	}
+	return DefaultCollation
+}
 
 // SheetCard is one card on a booster sheet: a printing the pack generator
 // draws, carrying the MTGJSON facts. Weight is the card's collation weight;
@@ -94,12 +116,21 @@ type Spec struct {
 	PackSize  int       `json:"pack_size"`
 	Source    string    `json:"source"`
 	Config    Config    `json:"config"`
+	// Unplayable names the sheet cards the booster deals a substitute for
+	// (booster.Open: a playable card of the same sheet, every swap
+	// recorded): the cards the engine cannot play, for a set whose sheets
+	// draw from a wider pool than the engine supports (MBC's Alchemy sheet
+	// and a few unsupported mechanics). It is the embedded sets/<SET>.substitute.txt, one
+	// name a line, which setdata's support test holds equal to what the
+	// corpus cannot play; nil for a set that carries no such file. Like
+	// Collation it is filled by LoadCollation, not read from the JSON.
+	Unplayable map[string]bool `json:"-"`
 }
 
 // Load returns the embedded, validated booster spec for the set code
-// ("FDN", "BLB", ...) at the default collation.
+// ("FDN", "BLB", ...) at the set's default collation (DefaultCollationFor).
 func Load(code string) (Spec, error) {
-	return LoadCollation(code, DefaultCollation)
+	return LoadCollation(code, DefaultCollationFor(code))
 }
 
 // LoadCollation returns the embedded, validated booster spec for the set
@@ -131,7 +162,25 @@ func LoadCollation(code string, c Collation) (Spec, error) {
 	if err != nil {
 		return Spec{}, fmt.Errorf("setdata: %s %s: %w", code, c, err)
 	}
+	spec.Unplayable = unplayable(code)
 	return spec, nil
+}
+
+// unplayable reads the set's embedded substitute list
+// (sets/<SET>.substitute.txt): one card name a line, blank lines ignored.
+// A set without the file yields nil.
+func unplayable(code string) map[string]bool {
+	b, err := sets.ReadFile("sets/" + code + ".substitute.txt")
+	if err != nil {
+		return nil
+	}
+	out := map[string]bool{}
+	for _, line := range strings.Split(string(b), "\n") {
+		if name := strings.TrimSpace(line); name != "" {
+			out[name] = true
+		}
+	}
+	return out
 }
 
 // specFor builds and validates the Spec one embedded file's config yields,

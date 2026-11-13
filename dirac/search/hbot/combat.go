@@ -12,8 +12,10 @@ import (
 // over gorge's whole option list in gorge's order:
 //
 //   - attackers: one option per (creature, defender), defender-major --
-//     the attacking creatures in battlefield entry order, each creature's
-//     player pair before its planeswalker pairs (walkers in entry order);
+//     each opponent still in the game in ascending seat order, then the
+//     attacking creatures in battlefield entry order, each creature's
+//     player pair before its pairs with that opponent's planeswalkers
+//     (walkers in entry order);
 //   - blockers: one option per (blocker, attacker), each blocker in its
 //     controller's battlefield entry order, then each attacker in the
 //     active player's.
@@ -31,6 +33,7 @@ const maxCOpts = 1024
 type copt struct {
 	src dirac.Obj // the attacker (attackers) / the blocker (blockers)
 	tgt uint8     // the attack target byte / the attacker blocked
+	def uint8     // attackers: the defending seat (the walker's controller for a walker pair)
 	req bool      // attackers: the creature must attack (gorge's Required)
 }
 
@@ -59,6 +62,7 @@ type combatScratch struct {
 	nSw    int
 	swAt   [maxCOpts]int // atk index
 	swOi   [maxCOpts]int
+	swIn   [maxCOpts]bool // the pair counts toward its defender's subset
 	forced [maxCOpts]bool
 	ar8For [dirac.MaxPerm]int // per atk index: forced option + 1, 0 none
 
@@ -177,12 +181,12 @@ func (cs *combatScratch) blockCombat(a *creature, team []*creature) bool {
 	return aLethal()
 }
 
-// killBlockCost is botpolicy's killBlockCost over the defending creatures
-// cs.def[:cs.nDef].
-func (cs *combatScratch) killBlockCost(a *creature) (int32, bool) {
+// killBlockCost is botpolicy's killBlockCost over defender def's creatures
+// in cs.def[:cs.nDef].
+func (cs *combatScratch) killBlockCost(a *creature, def uint8) (int32, bool) {
 	nc := 0
 	for i := 0; i < cs.nDef; i++ {
-		if canBlockLike(a, cs.def[i]) {
+		if cs.def[i].ctrl == def && canBlockLike(a, cs.def[i]) {
 			cs.canIx[nc] = i
 			nc++
 		}
@@ -284,16 +288,34 @@ func (bt *Bot) attackers(s *dirac.State, d *dirac.Decision) int {
 // defending player then each planeswalker the defender controls.
 func (cs *combatScratch) buildAttackOpts(b *board, s *dirac.State, d *dirac.Decision) {
 	me := d.Player
-	opp := 1 - me
+	cs.n = 0
+	if s.NumSeats() > 2 {
+		for q := uint8(0); q < s.NumSeats(); q++ {
+			if q != me && !s.FeatLost(q) {
+				cs.attackOptsAt(b, s, d, q, true)
+			}
+		}
+	} else {
+		cs.attackOptsAt(b, s, d, 1-me, false)
+	}
+	cs.groupAttackers()
+}
+
+// attackOptsAt appends defender q's block of attack options: each attacking
+// creature (offered, or declared already) in battlefield entry order, its
+// player pair then a pair with each planeswalker q controls. pairs keeps
+// an undeclared creature's pairs to those offered (gorge drops a pair its
+// creature cannot attack, a goaded creature's goader among them, CR
+// 701.15b); a declared creature's pairs are all listed, as at two seats.
+func (cs *combatScratch) attackOptsAt(b *board, s *dirac.State, d *dirac.Decision, q uint8, pairs bool) {
 	cs.nWalk = 0
-	for _, o := range s.FeatBattlefield(opp, b.objs[:0]) {
+	for _, o := range s.FeatBattlefield(q, b.objs[:0]) {
 		if s.HBotIsPlaneswalker(o) && cs.nWalk < len(cs.walkers) {
 			cs.walkers[cs.nWalk] = o
 			cs.nWalk++
 		}
 	}
-	cs.n = 0
-	for _, o := range s.FeatBattlefield(me, b.objs[:0]) {
+	for _, o := range s.FeatBattlefield(d.Player, b.objs[:0]) {
 		_, declared := s.HBotAttackTarget(o)
 		if !declared {
 			offered := false
@@ -312,14 +334,18 @@ func (cs *combatScratch) buildAttackOpts(b *board, s *dirac.State, d *dirac.Deci
 			break
 		}
 		req := s.MustAttack(o)
-		cs.opts[cs.n] = copt{src: o, tgt: dirac.PlayerTarget0 + opp, req: req}
-		cs.n++
-		for w := 0; w < cs.nWalk; w++ {
-			cs.opts[cs.n] = copt{src: o, tgt: uint8(cs.walkers[w]), req: req}
+		all := declared || !pairs
+		if pt := dirac.PlayerTarget0 + q; all || optIndex(d, dirac.MakeAction(dirac.AkAttack, uint8(o), pt, 0)) >= 0 {
+			cs.opts[cs.n] = copt{src: o, tgt: pt, def: q, req: req}
 			cs.n++
 		}
+		for w := 0; w < cs.nWalk; w++ {
+			if wt := uint8(cs.walkers[w]); all || optIndex(d, dirac.MakeAction(dirac.AkAttack, uint8(o), wt, 0)) >= 0 {
+				cs.opts[cs.n] = copt{src: o, tgt: wt, def: q, req: req}
+				cs.n++
+			}
+		}
 	}
-	cs.groupAttackers()
 }
 
 // groupAttackers groups cs.opts by attacking creature, in first-occurrence
@@ -327,18 +353,25 @@ func (cs *combatScratch) buildAttackOpts(b *board, s *dirac.State, d *dirac.Deci
 func (cs *combatScratch) groupAttackers() {
 	cs.na = 0
 	for i := 0; i < cs.n; i++ {
-		if cs.na == 0 || cs.atObj[cs.na-1] != cs.opts[i].src {
-			if cs.na >= dirac.MaxPerm {
+		at := -1
+		for j := cs.na - 1; j >= 0; j-- {
+			if cs.atObj[j] == cs.opts[i].src {
+				at = j
 				break
 			}
-			cs.atObj[cs.na] = cs.opts[i].src
-			cs.atReq[cs.na] = cs.opts[i].req
-			cs.atPos[cs.na] = i
-			cs.atOpt0[cs.na] = i
-			cs.atNOpt[cs.na] = 0
+		}
+		if at < 0 {
+			if cs.na >= dirac.MaxPerm {
+				continue
+			}
+			at = cs.na
+			cs.atObj[at] = cs.opts[i].src
+			cs.atReq[at] = cs.opts[i].req
+			cs.atPos[at] = i
+			cs.atOpt0[at] = i
+			cs.atNOpt[at] = 0
 			cs.na++
 		}
-		at := cs.na - 1
 		if cs.atNOpt[at] < len(cs.atOpts[at]) {
 			cs.atOpts[at][cs.atNOpt[at]] = int16(i)
 			cs.atNOpt[at]++
@@ -346,23 +379,29 @@ func (cs *combatScratch) groupAttackers() {
 	}
 }
 
-// blockRisk is chooseAttackersMode's blockRisk against the defending
-// creatures.
-func (cs *combatScratch) blockRisk(a *creature) int {
-	t := 1
-	blockers := 0
+// blockersOf counts defender def's creatures that can block a.
+func (cs *combatScratch) blockersOf(a *creature, def uint8) int {
+	n := 0
 	for i := 0; i < cs.nDef; i++ {
-		if canBlockLike(a, cs.def[i]) {
-			blockers++
+		if cs.def[i].ctrl == def && canBlockLike(a, cs.def[i]) {
+			n++
 		}
 	}
+	return n
+}
+
+// blockRisk is chooseAttackersMode's blockRisk against defender def's
+// creatures.
+func (cs *combatScratch) blockRisk(a *creature, def uint8) int {
+	t := 1
+	blockers := cs.blockersOf(a, def)
 	blockable := blockers > 0
 	if a.has(kop.KwMenace) {
 		blockable = blockers >= 2
 	}
 	if !blockable {
 		t = 2
-	} else if cost, ok := cs.killBlockCost(a); ok && cost < a.pt() {
+	} else if cost, ok := cs.killBlockCost(a, def); ok && cost < a.pt() {
 		t = 0
 	}
 	return t
@@ -375,9 +414,7 @@ func (cs *combatScratch) chooseAttackers(b *board, me uint8) {
 	if cs.n == 0 {
 		return
 	}
-	opp := 1 - me
-	life := b.life[opp]
-	lethal := func(power int32) bool { return power > 0 && power >= life }
+	lethal := func(def uint8, power int32) bool { return power > 0 && power >= b.life[def] }
 	cs.nDef = 0
 	threat := false
 	for i := 0; i < b.nCre; i++ {
@@ -391,64 +428,19 @@ func (cs *combatScratch) chooseAttackers(b *board, me uint8) {
 			threat = true
 		}
 	}
-	// swarm: every (creature, option) pair, sorted by power desc, id asc
-	// (stable), then the swarm subset against the defender's life
-	cs.nSw = 0
-	for at := 0; at < cs.na; at++ {
-		for j := 0; j < cs.atNOpt[at]; j++ {
-			cs.swAt[cs.nSw] = at
-			cs.swOi[cs.nSw] = int(cs.atOpts[at][j])
-			cs.nSw++
-		}
-	}
-	for i := 1; i < cs.nSw; i++ {
-		xa, xo := cs.swAt[i], cs.swOi[i]
-		px, ix := b.creGet(cs.atObj[xa]).power, cs.atObj[xa]
-		j := i
-		for j > 0 {
-			ya := cs.swAt[j-1]
-			py, iy := b.creGet(cs.atObj[ya]).power, cs.atObj[ya]
-			if py > px || py == px && iy <= ix {
-				break
-			}
-			cs.swAt[j], cs.swOi[j] = cs.swAt[j-1], cs.swOi[j-1]
-			j--
-		}
-		cs.swAt[j], cs.swOi[j] = xa, xo
-	}
+	// swarm: per defender, in first-seen option order, the subset of its
+	// (creature, option) pairs whose damage gets through its best blocks
 	for i := 0; i < cs.n; i++ {
 		cs.forced[i] = false
 	}
 	for at := 0; at < cs.na; at++ {
 		cs.ar8For[at] = 0
 	}
-	if life > 0 {
-		k := 0
-		for i := 0; i < cs.nDef; i++ {
-			if !cs.def[i].tapped {
-				k++
-			}
-		}
-		out := 0
-		var through int64
-		hit := -1
-		for i := 0; i < cs.nSw; i++ {
-			a := b.creGet(cs.atObj[cs.swAt[i]])
-			if a.power <= 0 {
-				break
-			}
-			out++
-			if out > k {
-				through += int64(a.power)
-				if through >= int64(life) {
-					hit = i
-					break
-				}
-			}
-		}
-		for i := 0; i <= hit; i++ {
-			cs.ar8For[cs.swAt[i]] = cs.swOi[i] + 1
-			cs.forced[cs.swOi[i]] = true
+	var seen [dirac.MaxSeats]bool
+	for i := 0; i < cs.n; i++ {
+		if def := cs.opts[i].def; !seen[def] {
+			seen[def] = true
+			cs.swarm(b, def)
 		}
 	}
 	for at := 0; at < cs.na; at++ {
@@ -466,13 +458,14 @@ func (cs *combatScratch) chooseAttackers(b *board, me uint8) {
 		var bestLife int32
 		for j := 0; j < cs.atNOpt[at]; j++ {
 			oi := int(cs.atOpts[at][j])
+			def := cs.opts[oi].def
 			var t int
-			if lethal(a.power) {
+			if lethal(def, a.power) {
 				t = 3
-			} else if t = cs.blockRisk(a); t <= 0 {
+			} else if t = cs.blockRisk(a, def); t <= 0 {
 				continue
 			}
-			l := b.life[opp]
+			l := b.life[def]
 			if t > bestTier || (t == bestTier && l < bestLife) {
 				best, bestTier, bestLife = oi, t, l
 			}
@@ -518,16 +511,20 @@ func (cs *combatScratch) chooseAttackers(b *board, me uint8) {
 					req = cs.atReq[at]
 				}
 			}
-			blockers := 0
-			for i := 0; i < cs.nDef; i++ {
-				if canBlockLike(a, cs.def[i]) {
-					blockers++
+			// blockable by some opponent's creatures (an any-match over
+			// the defenders)
+			blockable := false
+			for q := uint8(0); q < b.n && !blockable; q++ {
+				if q == me {
+					continue
 				}
+				blockers := cs.blockersOf(a, q)
+				blockable = blockers > 0 && (!a.has(kop.KwMenace) || blockers >= 2)
 			}
-			if !(blockers > 0 && (!a.has(kop.KwMenace) || blockers >= 2)) {
+			if !blockable {
 				continue
 			}
-			if req || lethal(a.power) || cs.forced[oi] {
+			if req || lethal(cs.opts[oi].def, a.power) || cs.forced[oi] {
 				continue
 			}
 			if a.pt() > holdScore || (a.pt() == holdScore && o < holdID) {
@@ -538,6 +535,76 @@ func (cs *combatScratch) chooseAttackers(b *board, me uint8) {
 			copy(cs.chosen[hold:cs.nCh-1], cs.chosen[hold+1:cs.nCh])
 			cs.nCh--
 		}
+	}
+}
+
+// swarm is chooseAttackersMode's swarmLethalSubset for defender def: its
+// pairs sorted by power desc, id asc (stable), skipping a creature an
+// earlier defender's subset took, until the damage past its untapped
+// creatures reaches its life; the subset's options are forced.
+func (cs *combatScratch) swarm(b *board, def uint8) {
+	cs.nSw = 0
+	for at := 0; at < cs.na; at++ {
+		for j := 0; j < cs.atNOpt[at]; j++ {
+			if oi := int(cs.atOpts[at][j]); cs.opts[oi].def == def {
+				cs.swAt[cs.nSw] = at
+				cs.swOi[cs.nSw] = oi
+				cs.nSw++
+			}
+		}
+	}
+	for i := 1; i < cs.nSw; i++ {
+		xa, xo := cs.swAt[i], cs.swOi[i]
+		px, ix := b.creGet(cs.atObj[xa]).power, cs.atObj[xa]
+		j := i
+		for j > 0 {
+			ya := cs.swAt[j-1]
+			py, iy := b.creGet(cs.atObj[ya]).power, cs.atObj[ya]
+			if py > px || py == px && iy <= ix {
+				break
+			}
+			cs.swAt[j], cs.swOi[j] = cs.swAt[j-1], cs.swOi[j-1]
+			j--
+		}
+		cs.swAt[j], cs.swOi[j] = xa, xo
+	}
+	life := b.life[def]
+	if life <= 0 {
+		return
+	}
+	k := 0
+	for i := 0; i < cs.nDef; i++ {
+		if cs.def[i].ctrl == def && !cs.def[i].tapped {
+			k++
+		}
+	}
+	out := 0
+	var through int64
+	hit := -1
+	for i := 0; i < cs.nSw; i++ {
+		a := b.creGet(cs.atObj[cs.swAt[i]])
+		if a.power <= 0 {
+			break
+		}
+		cs.swIn[i] = cs.ar8For[cs.swAt[i]] == 0 // an earlier defender's subset took it
+		if !cs.swIn[i] {
+			continue
+		}
+		out++
+		if out > k {
+			through += int64(a.power)
+			if through >= int64(life) {
+				hit = i
+				break
+			}
+		}
+	}
+	for i := 0; i <= hit; i++ {
+		if !cs.swIn[i] {
+			continue
+		}
+		cs.ar8For[cs.swAt[i]] = cs.swOi[i] + 1
+		cs.forced[cs.swOi[i]] = true
 	}
 }
 
@@ -566,12 +633,15 @@ func (bt *Bot) blockers(s *dirac.State, d *dirac.Decision) int {
 }
 
 // buildBlockOpts lists gorge's block options: each blocker in the
-// defender's battlefield entry order, each attacker in the active player's.
+// defender's battlefield entry order, each attacker in the active player's
+// attacking me, a planeswalker I control or a battle I protect (CR 509.1a,
+// 802.4a: at more than two seats the others are not mine to block).
 func (cs *combatScratch) buildBlockOpts(b *board, s *dirac.State, me uint8) {
 	var atks [dirac.MaxPerm]dirac.Obj
 	na := 0
-	for _, o := range s.FeatBattlefield(1-me, b.objs[:0]) {
-		if _, ok := s.HBotAttackTarget(o); ok && na < len(atks) {
+	pod := s.NumSeats() > 2
+	for _, o := range s.FeatBattlefield(s.ActivePlayer(), b.objs[:0]) {
+		if tgt, ok := s.HBotAttackTarget(o); ok && na < len(atks) && (!pod || s.FeatAttackDefender(tgt) == me) {
 			atks[na] = o
 			na++
 		}

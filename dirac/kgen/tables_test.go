@@ -56,6 +56,7 @@ func buildAll(t *testing.T, cards string) *tableBuild {
 // key, which leaves out the kernel functions kgen calls and any gorge package outside
 // the embedded list: a change there alters a table without re-keying it.
 func TestTablesUpToDate(t *testing.T) {
+	heavyParallel(t)
 	cards := tableCorpus(t)
 	key, err := cardset.KeyFor(cards)
 	if errors.Is(err, cardset.ErrNoCorpus) {
@@ -146,6 +147,7 @@ func pathLeaks(data []byte, needles []string) []string {
 // The poison gorge fixed in c09b82ba0: a cache that holds absolute paths from
 // whichever worktree built it. No table, coverage report or manifest may hold one.
 func TestTablesCarryNoPaths(t *testing.T) {
+	heavyParallel(t)
 	cards := tableCorpus(t)
 	abs, err := filepath.Abs(cards)
 	if err != nil {

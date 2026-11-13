@@ -34,6 +34,12 @@ type HiddenKeywordFlags struct {
 	// so." (Lure): a per-attacker requirement binding every offered,
 	// cost-free blocker pair, read by askBlockers.
 	AllMustBlock bool
+	// MustBeBlockedByTwo is CR 509.1c's "CARDNAME must be blocked by two or
+	// more creatures if able." (Gorm the Great): the defending player obeys
+	// it by declaring at least two blockers against the attacker. One
+	// blocker obeys none of it; it is a separate unit from MustBlock, which
+	// the same attacker usually carries too.
+	MustBeBlockedByTwo bool
 }
 
 // ParseHiddenKeyword reads one derived keyword line into its combat meaning.
@@ -88,6 +94,8 @@ func ParseHiddenKeyword(k string) HiddenKeywordFlags {
 		// CR 509.1c: every creature able to block this attacker must block
 		// it; a per-pair duty read by askBlockers.
 		return HiddenKeywordFlags{AllMustBlock: true}
+	case cards.HiddenKeywordMustBeBlockedByTwo:
+		return HiddenKeywordFlags{MustBeBlockedByTwo: true}
 	}
 	return HiddenKeywordFlags{}
 }
@@ -107,6 +115,7 @@ func DerivedHiddenFlags(b Board, id state.ObjID) HiddenKeywordFlags {
 		f.CantAttackAlone = f.CantAttackAlone || g.CantAttackAlone
 		f.CantBlockAlone = f.CantBlockAlone || g.CantBlockAlone
 		f.AllMustBlock = f.AllMustBlock || g.AllMustBlock
+		f.MustBeBlockedByTwo = f.MustBeBlockedByTwo || g.MustBeBlockedByTwo
 	}
 	return f
 }

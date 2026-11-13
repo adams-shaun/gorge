@@ -187,21 +187,31 @@ func (m *Matchup) commanderFields() (bool, []int, []int) {
 	if !m.Commander {
 		return false, nil, nil
 	}
-	var partners []int
-	if m.Partners[0] >= 0 || m.Partners[1] >= 0 {
-		partners = []int{m.Partners[0], m.Partners[1]}
+	n := m.NSeat()
+	ix, partners := make([]int, n), make([]int, n)
+	anyPartner := false
+	for s := range n {
+		ix[s], partners[s] = m.SeatCommanders(s)
+		anyPartner = anyPartner || partners[s] >= 0
 	}
-	return true, []int{m.Commanders[0], m.Commanders[1]}, partners
+	if !anyPartner {
+		partners = nil
+	}
+	return true, ix, partners
 }
 
 // setCommander restores what commanderFields recorded.
 func (m *Matchup) setCommander(on bool, ix, partners []int) {
-	m.Commander, m.Commanders, m.Partners = on, [2]int{-1, -1}, [2]int{-1, -1}
-	for s := 0; s < 2 && s < len(ix); s++ {
-		m.Commanders[s] = ix[s]
-	}
-	for s := 0; s < 2 && s < len(partners); s++ {
-		m.Partners[s] = partners[s]
+	m.Commander = on
+	for s := range m.NSeat() {
+		c, p := -1, -1
+		if s < len(ix) {
+			c = ix[s]
+		}
+		if s < len(partners) {
+			p = partners[s]
+		}
+		m.setSeatCommanders(s, c, p)
 	}
 }
 

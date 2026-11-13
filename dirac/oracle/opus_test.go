@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -206,55 +207,65 @@ func kopusSetup(t *testing.T) (*cards.Registry, cardset.Set) {
 // stalls.
 func kopusRun(t *testing.T, reg *cards.Registry, set cardset.Set, seeds uint64, n map[string]int, stopOnDiv bool) (games int, div bool, stalls int) {
 	t.Helper()
-	for mi, md := range kopusDecks {
-		decks := kcastDeck(t, reg, md)
-		tbl, _, _, err := set.Matchup(md[0], md[1])
+	for mi := range kopusDecks {
+		g, d, s := kopusMatchup(t, reg, set, mi, 1, seeds, n, stopOnDiv)
+		games, stalls = games+g, stalls+s
+		if d {
+			return games, true, stalls
+		}
+	}
+	return
+}
+
+// kopusMatchup plays seeds lo..hi of matchup mi of kopusRun, stopping at its
+// first divergence.
+func kopusMatchup(t *testing.T, reg *cards.Registry, set cardset.Set, mi int, lo, hi uint64, n map[string]int, stopOnDiv bool) (games int, div bool, stalls int) {
+	t.Helper()
+	md := kopusDecks[mi]
+	decks := kcastDeck(t, reg, md)
+	tbl, _, _, err := set.Matchup(md[0], md[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	for seed := lo; seed <= hi; seed++ {
+		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
+		m, err := NewMatchup(reg, [2]string{"kopus-a", "kopus-b"}, decks, 1)
 		if err != nil {
 			t.Fatal(err)
 		}
-		for seed := uint64(1); seed <= seeds; seed++ {
-			cfg := Config{GorgeAutopaySurface: seed%2 == 0}
-			m, err := NewMatchup(reg, [2]string{"kopus-a", "kopus-b"}, decks, 1)
-			if err != nil {
-				t.Fatal(err)
+		k, err := SetSide(set, tbl, cfg)(m, seed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		base := Policy(HeuristicPolicy(seed))
+		if seed%3 == 0 {
+			base = RandomPolicy(seed)
+		}
+		probe := &kopusProbe{n: n, base: base, rs: k.(*realSide), done: map[kopusKey]bool{}}
+		if cfg.GorgeAutopaySurface {
+			probe.surf = 1
+		}
+		res := Lockstep(m, seed, k, PolicyFunc(probe.pick), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40})
+		CloseSide(k)
+		games++
+		if res.Stall != "" && len(res.Stall) >= len(KernelStallPrefix) && res.Stall[:len(KernelStallPrefix)] == KernelStallPrefix {
+			stalls++
+			// A declared capacity is an outcome the game agreed up to (Rite of
+			// Replication's copies of the readers can put 16 triggers on a live
+			// stack); a rule gap is not.
+			if res.StallUnmodelled {
+				t.Errorf("matchup %d seed %d: kernel stall %s", mi, seed, res.Stall)
 			}
-			k, err := SetSide(set, tbl, cfg)(m, seed)
-			if err != nil {
-				t.Fatal(err)
-			}
-			base := Policy(HeuristicPolicy(seed))
-			if seed%3 == 0 {
-				base = RandomPolicy(seed)
-			}
-			probe := &kopusProbe{n: n, base: base, rs: k.(*realSide), done: map[kopusKey]bool{}}
-			if cfg.GorgeAutopaySurface {
-				probe.surf = 1
-			}
-			res := Lockstep(m, seed, k, PolicyFunc(probe.pick), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40})
-			CloseSide(k)
-			games++
-			if res.Stall != "" && len(res.Stall) >= len(KernelStallPrefix) && res.Stall[:len(KernelStallPrefix)] == KernelStallPrefix {
-				stalls++
-				// A declared capacity is an outcome the game agreed up to (Rite of
-				// Replication's copies of the readers can put 16 triggers on a live
-				// stack); a rule gap is not.
-				if res.StallUnmodelled {
-					t.Errorf("matchup %d seed %d: kernel stall %s", mi, seed, res.Stall)
-				}
-			}
-			if d := res.Div; d != nil {
-				div = true
-				lo := d.At - 12
-				if lo < 0 {
-					lo = 0
-				}
-				if !stopOnDiv {
-					return
-				}
-				t.Logf("matchup %d seed %d last actions %v", mi, seed, actionStrings(res.Actions[lo:d.At]))
-				t.Errorf("matchup %d seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", mi, seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
+		}
+		if d := res.Div; d != nil {
+			div = true
+			from := max(d.At-12, 0)
+			if !stopOnDiv {
 				return
 			}
+			t.Logf("matchup %d seed %d last actions %v", mi, seed, actionStrings(res.Actions[from:d.At]))
+			t.Errorf("matchup %d seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", mi, seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
+			return
 		}
 	}
 	return
@@ -265,7 +276,17 @@ func TestOpusLockstep(t *testing.T) {
 
 	reg, set := kopusSetup(t)
 	n := map[string]int{}
-	games, div, stalls := kopusRun(t, reg, set, 512, n, true)
+	games, div, stalls := 0, false, 0
+	matchupChunks(t, len(kopusDecks), 1, 512, 128, func(t *testing.T, c seedChunk, mu *sync.Mutex) {
+		part := map[string]int{}
+		g, d, s := kopusMatchup(t, reg, set, c.mi, c.lo, c.hi, part, true)
+		mu.Lock()
+		defer mu.Unlock()
+		games, div, stalls = games+g, div || d, stalls+s
+		for k, v := range part {
+			n[k] += v
+		}
+	})
 	t.Logf("%d games, diverged %v, capacity stalls %d, counts %v", games, div, stalls, n)
 	if div {
 		return

@@ -1,7 +1,9 @@
 package oracle
 
 import (
+	"fmt"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -225,6 +227,28 @@ func kexwRun(t *testing.T, seeds uint64, report bool) (diverged bool, stalls int
 // kexwRunPairs is kexwRun over the given deck pairs.
 func kexwRunPairs(t *testing.T, pairs []kexwPair, seeds uint64, report bool) (diverged bool, stalls int, tot kexwTotals) {
 	t.Helper()
+	reg, set := kexwPool(t)
+	tot.ByCard = map[string][2]int{}
+	for _, pair := range pairs {
+		n := seeds
+		if pair.seeds != 0 && pair.seeds < n {
+			n = pair.seeds
+		}
+		div, st := kexwPlayPair(t, reg, set, pair, 1, n, report, &tot)
+		stalls += st
+		if div {
+			diverged = true
+			if !report {
+				return
+			}
+		}
+	}
+	return
+}
+
+// kexwPool loads the corpus and the generated exw set.
+func kexwPool(t *testing.T) (*cards.Registry, cardset.Set) {
+	t.Helper()
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {
@@ -234,93 +258,144 @@ func kexwRunPairs(t *testing.T, pairs []kexwPair, seeds uint64, report bool) (di
 	if err != nil {
 		t.Fatal(err)
 	}
-	tot.ByCard = map[string][2]int{}
-	for _, pair := range pairs {
-		var decks [2][]*cards.Card
-		for s, d := range pair.decks {
-			for _, e := range d {
-				c, ok := reg.Lookup(e.Name)
-				if !ok {
-					t.Fatalf("%s not in the corpus", e.Name)
-				}
-				for i := 0; i < e.Count; i++ {
-					decks[s] = append(decks[s], c)
-				}
+	return reg, set
+}
+
+// kexwPlayPair plays seeds lo..hi of one pair, stopping at its first
+// divergence, and adds the link's counters into tot unless a game diverged
+// without report. It sets DebugExwStats, a process global the kernel writes
+// unsynchronised, so two calls never play side by side in one process.
+func kexwPlayPair(t *testing.T, reg *cards.Registry, set cardset.Set, pair kexwPair, lo, hi uint64, report bool, tot *kexwTotals) (diverged bool, stalls int) {
+	t.Helper()
+	var decks [2][]*cards.Card
+	for s, d := range pair.decks {
+		for _, e := range d {
+			c, ok := reg.Lookup(e.Name)
+			if !ok {
+				t.Fatalf("%s not in the corpus", e.Name)
 			}
-			if len(decks[s]) != 40 {
-				t.Fatalf("%s deck %d: %d cards", pair.name, s, len(decks[s]))
+			for i := 0; i < e.Count; i++ {
+				decks[s] = append(decks[s], c)
 			}
 		}
-		tbl, _, _, err := set.Matchup(pair.decks[0], pair.decks[1])
+		if len(decks[s]) != 40 {
+			t.Fatalf("%s deck %d: %d cards", pair.name, s, len(decks[s]))
+		}
+	}
+	tbl, _, _, err := set.Matchup(pair.decks[0], pair.decks[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	var st dirac.ExwStats
+	dirac.DebugExwStats = &st
+	defer func() { dirac.DebugExwStats = nil }()
+	for seed := lo; seed <= hi; seed++ {
+		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
+		m, err := NewMatchup(reg, [2]string{"kexw-a", "kexw-b"}, decks, 1)
 		if err != nil {
 			t.Fatal(err)
 		}
-		var st dirac.ExwStats
-		dirac.DebugExwStats = &st
-		n := seeds
-		if pair.seeds != 0 && pair.seeds < n {
-			n = pair.seeds
+		k, err := SetSide(set, tbl, cfg)(m, seed)
+		if err != nil {
+			t.Fatal(err)
 		}
-		for seed := uint64(1); seed <= n; seed++ {
-			cfg := Config{GorgeAutopaySurface: seed%2 == 0}
-			m, err := NewMatchup(reg, [2]string{"kexw-a", "kexw-b"}, decks, 1)
-			if err != nil {
-				t.Fatal(err)
-			}
-			k, err := SetSide(set, tbl, cfg)(m, seed)
-			if err != nil {
-				t.Fatal(err)
-			}
-			var pol Policy = RandomPolicy(seed)
-			if kexwHasStorm(pair) {
-				pol = kexwObserve(pol, &tot.Storm)
-			}
-			res := Lockstep(m, seed, k, pol, RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 20})
-			CloseSide(k)
-			if strings.HasPrefix(res.Stall, KernelStallPrefix) {
-				stalls++
-				t.Logf("%s seed %d: %s", pair.name, seed, res.Stall)
-			}
-			if d := res.Div; d != nil {
-				diverged = true
-				if report {
-					lo := d.At - 400
-					if lo < 0 {
-						lo = 0
-					}
-					t.Logf("%s seed %d last actions %v", pair.name, seed, actionStrings(res.Actions[lo:d.At]))
-					t.Errorf("%s seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", pair.name, seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
+		var pol Policy = RandomPolicy(seed)
+		if kexwHasStorm(pair) {
+			pol = kexwObserve(pol, &tot.Storm)
+		}
+		res := Lockstep(m, seed, k, pol, RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 20})
+		CloseSide(k)
+		if strings.HasPrefix(res.Stall, KernelStallPrefix) {
+			stalls++
+			t.Logf("%s seed %d: %s", pair.name, seed, res.Stall)
+		}
+		if d := res.Div; d != nil {
+			diverged = true
+			if report {
+				lo := d.At - 400
+				if lo < 0 {
+					lo = 0
 				}
-				break
+				t.Logf("%s seed %d last actions %v", pair.name, seed, actionStrings(res.Actions[lo:d.At]))
+				t.Errorf("%s seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", pair.name, seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
 			}
+			break
 		}
-		dirac.DebugExwStats = nil
-		if diverged && !report {
-			return
-		}
-		tot.Recorded += st.Recorded
-		tot.Reads += st.Reads
-		tot.Matched += st.Matched
-		tot.Rejected += st.Rejected
-		tot.AfterLeft += st.AfterLeft
-		tot.FwdCleared += st.FwdCleared
-		tot.RevCleared += st.RevCleared
-		tot.CountPos += st.CountPos
-		for i := range tbl.Cards {
-			if i < len(st.RecBy) && (st.RecBy[i] != 0 || st.MatchBy[i] != 0) {
-				v := tot.ByCard[tbl.Cards[i].Name]
-				tot.ByCard[tbl.Cards[i].Name] = [2]int{v[0] + st.RecBy[i], v[1] + st.MatchBy[i]}
-			}
+	}
+	if diverged && !report {
+		return
+	}
+	tot.Recorded += st.Recorded
+	tot.Reads += st.Reads
+	tot.Matched += st.Matched
+	tot.Rejected += st.Rejected
+	tot.AfterLeft += st.AfterLeft
+	tot.FwdCleared += st.FwdCleared
+	tot.RevCleared += st.RevCleared
+	tot.CountPos += st.CountPos
+	for i := range tbl.Cards {
+		if i < len(st.RecBy) && (st.RecBy[i] != 0 || st.MatchBy[i] != 0) {
+			v := tot.ByCard[tbl.Cards[i].Name]
+			tot.ByCard[tbl.Cards[i].Name] = [2]int{v[0] + st.RecBy[i], v[1] + st.MatchBy[i]}
 		}
 	}
 	return
 }
 
+// kexwTally is one isolated chunk's (or the summed run's) result.
+type kexwTally struct {
+	Divs, Stalls int
+	Tot          kexwTotals
+}
+
+// kexwRunIsolated is kexwRunPairs with report: each pair's seeds play in
+// chunks of chunk seeds as parallel subtests "seeds/<pair>_<lo>-<hi>", each
+// alone in a child process (DebugExwStats is the process's), and the parent
+// sums the tallies the children log. In a child it plays its one chunk and
+// returns ok false: the caller skips its whole-run checks.
+func kexwRunIsolated(t *testing.T, pairs []kexwPair, seeds, chunk uint64) (diverged bool, stalls int, tot kexwTotals, ok bool) {
+	t.Helper()
+	var sum kexwTally
+	sum.Tot.ByCard = map[string][2]int{}
+	var mu sync.Mutex
+	t.Run("seeds", func(t *testing.T) {
+		for _, pair := range pairs {
+			n := seeds
+			if pair.seeds != 0 && pair.seeds < n {
+				n = pair.seeds
+			}
+			for lo := uint64(1); lo <= n; lo += chunk {
+				hi := min(lo+chunk-1, n)
+				t.Run(fmt.Sprintf("%s_%d-%d", pair.name, lo, hi), func(t *testing.T) {
+					t.Parallel()
+					var part kexwTally
+					if isolateTally(t, &part) {
+						mu.Lock()
+						addTally(&sum, &part)
+						mu.Unlock()
+						return
+					}
+					part.Tot.ByCard = map[string][2]int{}
+					reg, set := kexwPool(t)
+					div, st := kexwPlayPair(t, reg, set, pair, lo, hi, true, &part.Tot)
+					part.Divs, part.Stalls = b2i(div), st
+					logTally(t, &part)
+				})
+			}
+		}
+	})
+	return sum.Divs > 0, sum.Stalls, sum.Tot, !isolatedChild()
+}
+
 func TestExwLockstep(t *testing.T) {
-	if isolate(t) {
+	// A fresh clone has no corpus: skip here, before the chunks (each would
+	// skip alone and leave this test's totals empty).
+	corpusDirOrSkip(t)
+	t.Parallel()
+	div, stalls, tot, ok := kexwRunIsolated(t, kexwPairs, 256, kexwChunk)
+	if !ok || t.Failed() {
 		return
 	}
-	div, stalls, tot := kexwRun(t, 256, true)
 	st := tot.ExwStats
 	t.Logf("%d games per pair, exw {Recorded:%d Reads:%d Matched:%d Rejected:%d AfterLeft:%d FwdCleared:%d RevCleared:%d CountPos:%d}, %d divergences, %d stalls",
 		256, st.Recorded, st.Reads, st.Matched, st.Rejected, st.AfterLeft, st.FwdCleared, st.RevCleared, st.CountPos, b2i(div), stalls)
@@ -353,6 +428,9 @@ func TestExwLockstep(t *testing.T) {
 		}
 	}
 }
+
+// kexwChunk is the seeds one isolated subtest of TestExwLockstep plays.
+const kexwChunk = 128
 
 // kexwReaders are the cards that read the link and lower (the pool's
 // ExiledWith readers; the other pool cards only exile, kill or fill).
@@ -482,11 +560,15 @@ var kexwStaticPairs = []kexwPair{
 var kexwStaticReaders = []string{"Keen-Eyed Curator", "Dawnhand Dissident", "Maralen, Fae Ascendant", "Pick Up the Pace", "Hedonist's Trove", "Rona, Disciple of Gix"}
 
 func TestExwStaticsLockstep(t *testing.T) {
-	if isolate(t) {
+	// A fresh clone has no corpus: skip here, before the chunks (each would
+	// skip alone and leave this test's totals empty).
+	corpusDirOrSkip(t)
+	t.Parallel()
+	const seeds = 192
+	div, stalls, tot, ok := kexwRunIsolated(t, kexwStaticPairs, seeds, kexwChunk)
+	if !ok || t.Failed() {
 		return
 	}
-	const seeds = 192
-	div, stalls, tot := kexwRunPairs(t, kexwStaticPairs, seeds, true)
 	st := tot.ExwStats
 	t.Logf("%d games per pair, exw {Recorded:%d Reads:%d Matched:%d Rejected:%d AfterLeft:%d}, %d divergences, %d stalls",
 		seeds, st.Recorded, st.Reads, st.Matched, st.Rejected, st.AfterLeft, b2i(div), stalls)

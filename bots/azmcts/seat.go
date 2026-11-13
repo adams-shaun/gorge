@@ -298,6 +298,20 @@ func (s *Seat) DecideBoard(ctx context.Context, b botpolicy.Board, d decision.De
 	return in, err
 }
 
+// DecideUnsearched answers a decision of a kind this seat never searches
+// (its config leaves the kind off, so the host and mtgsim ask DecideBoard
+// rather than DecideEnv): the wrapped bot, as DecideBoard plays it, but
+// with no Watch record. Nothing was routed around the search, so counting
+// it FeedStopped (as DecideBoard does) would report a fallback that never
+// happened.
+func (s *Seat) DecideUnsearched(ctx context.Context, b botpolicy.Board, d decision.Decision) (decision.Intent, error) {
+	in, err := s.def.DecideBoard(ctx, b, d)
+	if s.note != nil && err == nil {
+		s.noteBot(d.Player, explain.Heuristic, "", in)
+	}
+	return in, err
+}
+
 // DecideRootRefused is DecideBoard for a decision whose feed is live but
 // whose honest root refused to build (reason is the builder's): the wrapped
 // bot, counted as FeedStopped (its historical meaning: the driver routed

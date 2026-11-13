@@ -16,6 +16,7 @@ import (
 // corpus it marks and the Standard cards among them. It logs the ranking
 // and checks only that every two-seat card names a reason.
 func TestTwoSeatReasons(t *testing.T) {
+	heavyParallel(t)
 	cardsDir := ratchetCards(t)
 	s, err := embeddedSupport()
 	if err != nil {

@@ -20,9 +20,11 @@
 #   7. escapes: no dirac local moves to the heap.
 #   8. tests: ./dirac, ./dirac/crcoverage, internal/archtest; and, whatever the change touched,
 #      every refused entry still diverges, every committed repro table (TestStd*ReprosLockstep)
-#      plays in lockstep, and every pinned game (the tests with a file under
-#      dirac/oracle/testdata/pins) still reaches what its test is named for, about 35 s together: a
-#      gorge fix can break any of them as easily as a dirac one.
+#      plays in lockstep, and every pinned game still reaches what its pin is named for: the
+#      data-driven pins in dirac/oracle/testdata/pins play under TestPinManifest (one subtest per
+#      pin), and the pins a Go test still drives by their file names (<test>.<n>.json, a subtest's
+#      "/" written "__"), about 35 s together: a gorge fix can break any of them as easily as a
+#      dirac one.
 #   9. synthetic pools: a short kfuzz -synth on the cards the slices of step 4 don't reach. A pair
 #      divergent on the merge base and the head is an open divergence, counted and not failed; a
 #      pair newly divergent fails.
@@ -193,15 +195,17 @@ fi
 
 # The whole refused list, the committed repro tables and the pinned games, whatever changed: a gorge
 # fix leaves a refusal stale, moves a fixed repro off lockstep, or stops a pinned game reaching its
-# condition as easily as a dirac one, and each otherwise first fails in the hourly train. The pinned
-# tests are named by their files (<test>.<n>.json, a subtest's "/" written "__"), so a new pin is
-# gated with no edit here. A skip is a pool or table missing on this machine, not a pass.
+# condition as easily as a dirac one, and each otherwise first fails in the hourly train. A
+# data-driven pin is a document under dirac/oracle/testdata/pins and plays as a TestPinManifest
+# subtest, so a new one is gated with no edit here. The pins a Go test still drives are named by
+# their files (<test>.<n>.json, a subtest's "/" written "__"). A skip is a pool or table missing on
+# this machine, not a pass.
 # TestChoosesHaveNoOther rides along: a choose kind posed outside the shared list passes every package the
 # landing gate picks by diff and first failed in the hourly train (2026-11-09).
 [ -n "$dirac_changed" ] || echo "== 8 tests (refused entries, repro tables, pinned games)"
 pins=$(git ls-tree --name-only HEAD dirac/oracle/testdata/pins/ | sed -E 's|.*/||; s/__.*//; s/\.[0-9]+\.json$//' | sort -u | paste -sd'|')
 [ -n "$pins" ] || bad "no pinned games under dirac/oracle/testdata/pins"
-out=$(go test -v -timeout 5m -run "^TestRefusedEntriesStillDiverge\$|^TestChoosesHaveNoOther\$|^TestStd[A-Za-z]*ReprosLockstep|^($pins)\$" ./dirac/oracle 2>&1) || bad "a refused entry no longer diverges, a committed repro left lockstep, or a pinned game no longer reaches its condition: $(named=$(grep -E -- '--- FAIL|divergen|never reaches' <<<"$out" | head -20); if [ -n "$named" ]; then echo "$named"; else echo "(no test failed by name: the test binary died or did not build)"; grep -m1 -A14 -E '^(panic:|fatal error:|# |FAIL[[:space:]])' <<<"$out"; tail -6 <<<"$out"; fi)"
+out=$(go test -v -timeout 5m -run "^TestRefusedEntriesStillDiverge\$|^TestChoosesHaveNoOther\$|^TestStd[A-Za-z]*ReprosLockstep|^TestPinManifest\$|^TestPinManifestCoversOldPins\$|^($pins)\$" ./dirac/oracle 2>&1) || bad "a refused entry no longer diverges, a committed repro left lockstep, or a pinned game no longer reaches its condition: $(named=$(grep -E -- '--- FAIL|divergen|never reaches' <<<"$out" | head -20); if [ -n "$named" ]; then echo "$named"; else echo "(no test failed by name: the test binary died or did not build)"; grep -m1 -A14 -E '^(panic:|fatal error:|# |FAIL[[:space:]])' <<<"$out"; tail -6 <<<"$out"; fi)"
 skip=$(grep -F -- '--- SKIP' <<<"$out")
 [ -z "$skip" ] || bad "a refused entry, repro or pinned game was not played, since its pool or tables are not on this machine (set GORGE_POOLS, make dirac-tables): $skip"
 

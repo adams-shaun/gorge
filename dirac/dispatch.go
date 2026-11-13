@@ -233,6 +233,8 @@ func (s *State) askOptionsCold2(k *prep, d *Decision) bool {
 				d.add(MakeAction(AkChoose, uint8(r.peek[i]), 0, 0))
 			}
 		}
+	case raGenLibPlace:
+		s.libPlaceOptions(d) // act_libplace.go
 	case raGenRearrShuffle:
 		d.Sub = ChGenConfirm // gorge's options: yes, no
 		d.add(MakeAction(AkChoose, 0, 0, 1))
@@ -285,6 +287,8 @@ func (s *State) applyAskCold2(k *prep, a Action) bool {
 		if s.rearrangeDone(k) {
 			s.continueRes(k, 0)
 		}
+	case raGenLibPlace:
+		s.libPlaceAnswer(k, a) // act_libplace.go
 	case raGenRearrShuffle:
 		s.res.ask = raNone
 		if a.Mode() == 1 {

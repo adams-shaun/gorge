@@ -68,8 +68,21 @@ type Options struct {
 	// OpponentNodes puts the opponent's searched decisions in the tree;
 	// OpponentMirror gives them the seat's settings (topk).
 	OpponentNodes, OpponentMirror bool
-	AbsoluteUnvisitedQ            bool
-	UnvisitedQ                    float64
+	// MaxN replaces paranoid search at the opponents' points (OpponentNodes)
+	// with max^n (gorge bots/azmcts Options.MaxN). Off (the default), every
+	// opponent maximises 1 - Q, so with more than two seats the opponents act
+	// as one coalition against the searching seat. On, in a game with more
+	// than two living seats, every leaf also carries a value vector over the
+	// seats (relative to the searching seat in turn order; a VecEvaluator's,
+	// else splitVec's), backed up beside the scalar, and an opponent's point
+	// maximises its own entry; the scalar is the vector's searching-seat
+	// entry. With two living seats the two coincide and the scalar path runs
+	// unchanged (Stats.MaxN stays 0). It acts only with OpponentNodes, and
+	// Validate refuses it with NodeCache or Batch, whose backups carry the
+	// scalar alone.
+	MaxN               bool
+	AbsoluteUnvisitedQ bool
+	UnvisitedQ         float64
 	// NodeCache > 0 enables the per-world node-state cache (only with
 	// CachedWorlds: a fixed world per tree). Default off.
 	NodeCache int

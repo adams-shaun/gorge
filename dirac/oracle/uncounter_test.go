@@ -52,7 +52,8 @@ func TestUncounterLockstep(t *testing.T) {
 	defer func() { dirac.DebugUncounterStats = false }()
 	dirac.UncounterHeld, dirac.UncounterPassed, dirac.UncounterStalls = 0, 0, 0
 	for _, src := range kuncounterSources {
-		lockstepSet(t, "uncounter", kuncounterDecks(src), 300, "KUNCOUNTER_SEEDS")
+		// serial: the Uncounter* counters are plain package ints
+		lockstepSetSerial(t, "uncounter", kuncounterDecks(src), 300, "KUNCOUNTER_SEEDS")
 	}
 	t.Logf("counters stopped by a battlefield source: %d; let through on a table with one: %d; order stalls: %d",
 		dirac.UncounterHeld, dirac.UncounterPassed, dirac.UncounterStalls)

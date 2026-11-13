@@ -13,7 +13,7 @@ import (
 // tricks.
 func TestHBotHoldRule(t *testing.T) {
 	base := func() (*board, *CardFacts, *cardF) {
-		b := &board{me: 0, myTur: true, isMain: true, step: kop.StepMain1, life: [2]int32{20, 20}}
+		b := &board{me: 0, myTur: true, isMain: true, step: kop.StepMain1, life: [dirac.MaxSeats]int32{20, 20}, n: 2}
 		cf := &CardFacts{}
 		c := &cardF{obj: 10, f: cf, castable: true, instant: true, cmc: 1, own: true}
 		return b, cf, c
@@ -70,7 +70,7 @@ func TestHBotHoldRule(t *testing.T) {
 			t.Errorf("%s: instantHeld = %v, want %v", x.name, got, x.held)
 		}
 	}
-	nb := &board{me: 0, myTur: true, isMain: true, step: kop.StepMain1, life: [2]int32{20, 20}}
+	nb := &board{me: 0, myTur: true, isMain: true, step: kop.StepMain1, life: [dirac.MaxSeats]int32{20, 20}, n: 2}
 	if nb.instantHeld(0, &noCardF) {
 		t.Error("noCardF: instantHeld = true, want false")
 	}
@@ -89,7 +89,7 @@ func TestHBotHoldChooseCast(t *testing.T) {
 		bt.b.cardX[10] = 1
 		bt.b.nCard = 1
 		bt.b.me = 0
-		bt.b.life = [2]int32{20, 20}
+		bt.b.life, bt.b.n = [dirac.MaxSeats]int32{20, 20}, 2
 		bt.b.myTur = true
 		bt.b.isMain = true
 		bt.b.step = kop.StepMain1
@@ -127,7 +127,7 @@ func holdCensusBot(hold bool) *Bot {
 	b.myTur = true
 	b.isMain = true
 	b.step = kop.StepMain1
-	b.life = [2]int32{20, 20}
+	b.life, b.n = [dirac.MaxSeats]int32{20, 20}, 2
 	b.card[0] = cardF{obj: 10, f: &CardFacts{}, castable: true, instant: true, cmc: 1, own: true}
 	b.card[1] = cardF{obj: 20, f: &CardFacts{Produces: [6]int8{1}}, own: true, onBF: true}
 	b.cardX[10] = 1

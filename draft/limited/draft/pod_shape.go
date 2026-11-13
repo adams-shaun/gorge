@@ -24,6 +24,22 @@ var ErrPodShape = errors.New("draft: bad pod shape")
 // rounds this is exactly New. The packs are copied; the caller may reuse
 // its slices.
 func NewPod(seed uint64, packs [][][]limited.CardRef) (*Pod, error) {
+	return NewPodPicks(seed, packs, 1)
+}
+
+// MaxPicksPerPass bounds NewPodPicks' picks per pass.
+const MaxPicksPerPass = 4
+
+// NewPodPicks is NewPod with picksPerPass cards taken from each pack before
+// it passes: 1 is NewPod's booster draft, 2 the Commander Legends draft
+// (each Pick call still takes one card, and the
+// pack stays at the head of the seat's queue until the seat has taken
+// picksPerPass cards or emptied it). The pick numbers run 1.. per round
+// whatever the pass size.
+func NewPodPicks(seed uint64, packs [][][]limited.CardRef, picksPerPass int) (*Pod, error) {
+	if picksPerPass < 1 || picksPerPass > MaxPicksPerPass {
+		return nil, fmt.Errorf("%w: %d picks per pass, want 1..%d", ErrPodShape, picksPerPass, MaxPicksPerPass)
+	}
 	seats := len(packs)
 	if seats < MinSeats || seats > MaxSeats {
 		return nil, fmt.Errorf("%w: %d seats, want %d..%d", ErrPodShape, seats, MinSeats, MaxSeats)
@@ -47,6 +63,9 @@ func NewPod(seed uint64, packs [][][]limited.CardRef) (*Pod, error) {
 		pickNo: make([]int, seats),
 		seats:  seats,
 		rounds: rounds,
+
+		picksPerPass: picksPerPass,
+		passPicks:    make([]int, seats),
 	}
 	for s := 0; s < seats; s++ {
 		p.packs[s] = make([][]limited.CardRef, rounds)
@@ -57,6 +76,10 @@ func NewPod(seed uint64, packs [][][]limited.CardRef) (*Pod, error) {
 	}
 	return p, nil
 }
+
+// PicksPerPass reports how many cards a seat takes from a pack before
+// passing it.
+func (p *Pod) PicksPerPass() int { return p.picksPerPass }
 
 // Seats reports the pod size.
 func (p *Pod) Seats() int { return p.seats }

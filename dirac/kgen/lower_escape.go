@@ -1,21 +1,26 @@
 package kgen
 
+import "strings"
+
 // escapeCost lowers K:Escape:<cost> (gorge escapeCost, CR 702.138a): the
 // graveyard cast's mana is CardDef.AltCost and its printed exile part
 // CardDef.EscCost, paid through the cast's pick stage in place of the spell's
 // additional cost (dirac/kw_escape.go). The corpus shape is mana plus one
 // ExileFromGrave<N/Card.Other/other> part (exiling OTHER cards from your
-// graveyard). A bare keyword, an {X} mana part, a sacrifice or tap part, a
-// CARDNAME self-exile and every other cost token is not read exactly.
+// graveyard), optionally led by one Exile<N/Spec> battlefield part (Lunar
+// Hatchling's Exile<1/Land>, CardDef.EscBfCost: a counted part of its own, so
+// a second Cost value; the exile token must precede the grave one, gorge asks
+// in token order). A bare keyword, an {X} mana part, a sacrifice or tap part,
+// a CARDNAME self-exile and every other cost token is not read exactly.
 func (lc *lowerCtx) escapeCost(node, param string) {
 	if param == "" {
 		lc.refuseNode(node, "escape cost %q", param)
 		return
 	}
 	actCost := lc.actCost
-	lc.actCost = true // Exile<N/Spec> is a spell's own cost part here (lower.go's token gate)
+	lc.actCost, lc.escCost = true, true // Exile<N/Spec> is a spell's own cost part here (lower.go's token gate)
 	c, err := lc.cost(param)
-	lc.actCost = actCost
+	lc.actCost, lc.escCost = actCost, false
 	if err != nil {
 		lc.refuseNode(node, "escape cost %q: %v", param, err)
 		return
@@ -34,13 +39,27 @@ func (lc *lowerCtx) escapeCost(node, param string) {
 		lc.refuseNode(node, "escape cost part other than an exile part")
 		return
 	}
+	var bf *lCost
 	if rest.Sac != nil || rest.SacN > 0 {
-		// Exile<1/Land>, the printed battlefield-exile part (Lunar
-		// Hatchling, the corpus's only escape card with one): a counted part
-		// of its own (kop.Cost.N/Filter), and the cast carries one counted
-		// part, the grave exile (kernel pick cost, build.go cost's census)
-		lc.refuseNode(node, "escape cost's battlefield-exile part: the cast's pick cost is one counted part, the grave exile")
-		return
+		// Exile<N/Spec>, the printed battlefield-exile part (Lunar Hatchling's
+		// Exile<1/Land>): its own Cost (CardDef.EscBfCost), picked before the
+		// grave exile as gorge's exAsk walks the parts in token order. Only an
+		// exile beside the grave exile, exile token first, is read.
+		if !rest.SacExile || rest.Sac == nil || rest.SacN < 1 || rest.SacSelf || rest.SacHost || rest.HostExile {
+			lc.refuseNode(node, "escape cost's sacrifice part (only an Exile<N/Spec> battlefield part is read)")
+			return
+		}
+		ib, ig := strings.Index(param, "Exile<"), strings.Index(param, "ExileFromGrave<")
+		if ig < 0 {
+			lc.refuseNode(node, "escape cost without an ExileFromGrave<N/Card.Other> part")
+			return
+		}
+		if ib < 0 || ib > ig {
+			lc.refuseNode(node, "escape cost's battlefield-exile part after the ExileFromGrave part (gorge asks in token order)")
+			return
+		}
+		bf = &lCost{Sac: rest.Sac, SacN: rest.SacN, SacExile: true}
+		rest.Sac, rest.SacN, rest.SacExile = nil, 0, false
 	}
 	if rest.ExileG == nil || rest.ExileGN == 0 || rest.ExileGSelf || rest.exileGCard || rest.ExileHand || rest.ExileGBf {
 		lc.refuseNode(node, "escape cost without an ExileFromGrave<N/Card.Other> part")
@@ -59,7 +78,7 @@ func (lc *lowerCtx) escapeCost(node, param string) {
 		lc.refuseNode(node, "escape beside a spell additional cost (one pick cost per cast)")
 		return
 	}
-	lc.out.Escape, lc.out.EscCost = &mana, &rest
+	lc.out.Escape, lc.out.EscCost, lc.out.EscBf = &mana, &rest, bf
 }
 
 // refuseEscapeCombos refuses the escape keyword beside any other cast route

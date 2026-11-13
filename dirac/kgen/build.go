@@ -598,6 +598,23 @@ func (cb *cardBuilder) record() error {
 			}
 		}
 	}
+	if c.Entwine != nil {
+		// Entwine rides the kicked cast (sfKicked, CardDef.Kicker) with
+		// CardDef.Entwine naming it (dirac/kw_entwine.go); refuseEntwineCombos
+		// keeps every other optional cost off the card
+		if c.Kicker != nil || c.Offspring != nil || c.Buyback != nil {
+			return fmt.Errorf("entwine with a kicker/offspring/buyback")
+		}
+		d.Entwine = true
+		if d.Kicker, err = manaCostOf(*c.Entwine); err != nil {
+			return err
+		}
+		if c.KickerCost != nil {
+			if d.KickerCost, err = cb.cost(*c.KickerCost); err != nil {
+				return err
+			}
+		}
+	}
 	if c.Spree {
 		d.HasModeCost = true
 		for i := range c.ModeCost {
@@ -857,6 +874,11 @@ func (cb *cardBuilder) record() error {
 		}
 		if d.EscCost, err = cb.cost(*c.EscCost); err != nil {
 			return err
+		}
+		if c.EscBf != nil {
+			if d.EscBfCost, err = cb.cost(*c.EscBf); err != nil {
+				return err
+			}
 		}
 	}
 	if c.Escape != nil {
@@ -1195,7 +1217,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		}
 	}
 	if c.ExileG != nil {
-		set(kop.CostExileGrave, c.ExileGN)
+		set(kop.CostExileGrave, c.ExileGN) // ExileGN 0 (ExileGX): the announced X (kernel cost_exilex.go)
 		if c.ExileGBf {
 			out.Flags |= kop.CostExileCtrlOrGrave
 		}
@@ -2016,6 +2038,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefPromised, nil
 	case rAttachedCtrl:
 		return kop.RefAttachedCtrl, nil
+	case rChosenPlayer:
+		return kop.RefChosenPlayer, nil
 	case rLastCreated:
 		return kop.RefLastCreated, nil
 	case rTaxedAttacker:
@@ -2106,7 +2130,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vOppLifeLostThisTurn: kop.ExOppLifeLostThisTurn, vCountersOn: kop.ExCountersOn, vCreaturesDied: kop.ExCreaturesDied,
 	vRememberedCount: kop.ExRememberedCount, vExcessDamage: kop.ExExcessDamage, vLastLifeLost: kop.ExLastLifeLost,
 	vTokensCreated: kop.ExTokensCreated, vLifeLostThisTurn: kop.ExLifeLostThisTurn, vSum: kop.ExSum,
-	vHandSizeOf: kop.ExHandSizeOf, vCountExile: kop.ExCountExile, vExileTypes: kop.ExCountExile, vOppsLostLife: kop.ExOppsLostLife, vMVOf: kop.ExMVOf, vNotOwnLibMV: kop.ExNotOwnLibMV,
+	vHandSizeOf: kop.ExHandSizeOf, vCountExile: kop.ExCountExile, vExileTypes: kop.ExCountExile, vOppsLostLife: kop.ExOppsLostLife, vMVOf: kop.ExMVOf, vNotOwnLibMV: kop.ExNotOwnLibMV, vRemEachOwnNonLand: kop.ExRemEachOwnNonLand,
 	vCountAtLeast: kop.ExCountAtLeast,
 	vPromisedGift: kop.ExPromisedGift, vResolvedThisTurn: kop.ExResolvedThisTurn,
 	vThisTurnCast: kop.ExThisTurnCast,

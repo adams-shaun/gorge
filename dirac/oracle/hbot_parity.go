@@ -83,10 +83,39 @@ func HBotParityGameOpts(c *Corpus, a, b string, seed uint64, cfg Config, maxDeci
 	if err != nil {
 		return HBotParityResult{}, err
 	}
+	return hbotParity(c, m, tbl, side, 2, seed, cfg, maxDecisions, mk, opt)
+}
+
+// HBotParityPod is HBotParityGameOpts for a pod of len(names) decks
+// (2..dirac.MaxSeats, SetMatchupN; opt.Set nil is the FDN pool): gorge's
+// heuristic autopay bot chooses at every seat, and the kernel bot is asked
+// every decision in shadow.
+func HBotParityPod(c *Corpus, names []string, seed uint64, cfg Config, maxDecisions int, mk func(tbl *kop.Table) KernelBot, opt HBotParityOptions) (HBotParityResult, error) {
+	if len(names) < 2 || len(names) > dirac.MaxSeats {
+		return HBotParityResult{}, fmt.Errorf("a pod of %d decks (2..%d)", len(names), dirac.MaxSeats)
+	}
+	set := opt.Set
+	if set == nil {
+		set = fdnSet()
+	}
+	m, tbl, err := SetMatchupN(set, c, names, 0)
+	if err != nil {
+		return HBotParityResult{}, err
+	}
+	side, err := SetSide(set, tbl, cfg)(m, seed)
+	if err != nil {
+		return HBotParityResult{}, err
+	}
+	return hbotParity(c, m, tbl, side, len(names), seed, cfg, maxDecisions, mk, opt)
+}
+
+// hbotParity plays the lockstep game on side, gorge's bot choosing at each
+// of the n seats.
+func hbotParity(c *Corpus, m *Matchup, tbl *kop.Table, side Side, n int, seed uint64, cfg Config, maxDecisions int, mk func(tbl *kop.Table) KernelBot, opt HBotParityOptions) (HBotParityResult, error) {
 	defer CloseSide(side)
 	k := side.(*realSide)
 	pol := &hbotParityPol{k: k, bot: mk(tbl), names: NewSBTCards(c.Reg, tbl, nil), observe: opt.Observe}
-	for p := 0; p < 2; p++ {
+	for p := 0; p < n; p++ {
 		pol.gbots[p] = heuristic.NewBot(SeatSeed(seed, p)).EnableAutoPayMana()
 		if opt.HoldInstant {
 			pol.gbots[p].EnableTimingRules(botpolicy.TimingRules{HoldInstant: true})
@@ -104,7 +133,7 @@ type hbotParityPol struct {
 	k         *realSide
 	bot       KernelBot
 	names     *SBTCards
-	gbots     [2]*heuristic.Bot
+	gbots     [dirac.MaxSeats]*heuristic.Bot
 	brd       botpolicy.Board
 	gseq      uint64
 	queue     []Canon
@@ -174,7 +203,7 @@ func (p *hbotParityPol) gorgeAnswer(c *PickCtx, gd *decision.Decision) ([]Canon,
 			gd = ed
 		}
 	}
-	bot := p.gbots[gd.Player&1]
+	bot := p.gbots[gd.Player]
 	brd := botpolicy.BoardFromGameInto(e.G, e, gd.Player, &p.brd)
 	if os.Getenv("KHBOT_DEBUG") != "" && gd.Kind == decision.KPriority {
 		id, ok := brd.CastableNow(gd.Player, gd)
@@ -274,7 +303,7 @@ func (p *hbotParityPol) followManual(c *PickCtx, in decision.Intent) []Canon {
 		}
 		b := botpolicy.BoardFromGameInto(e.G, e, d.Player, &brd)
 		var err error
-		in, err = p.gbots[me&1].DecideBoard(context.Background(), b, *d)
+		in, err = p.gbots[me].DecideBoard(context.Background(), b, *d)
 		if err != nil {
 			return []Canon{Pack(ActPass, RefNone, RefNone, 0)}
 		}

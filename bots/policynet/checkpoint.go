@@ -64,10 +64,40 @@ import (
 // The hidden layer's input width is then 2H + slots + dense + 2·entK. A
 // version 4 checkpoint must carry the entity encoder hash, and a version 3
 // one must not.
+//
+// Schema version 5 adds the K-way value head, and is written ONLY for a
+// model with Model.ValueK > 0 (every other model is still written as
+// version 3, byte for byte): one more geometry word after valueHidden,
+// valueK (0 is refused — the version exists to say the head is there), and
+// two blocks after VOutB:
+//
+//	float32 × valueK·valueHidden   VOutWK
+//	float32 × valueK               VOutBK
+//
+// The scalar head's blocks keep their unconditional shapes (VOutW
+// valueHidden floats, VOutB one): a K-way head does not read them, so what
+// they carry is inert — the writer writes the model's, the loader loads it
+// back, and the forward passes read only the K-way blocks. A valueK-way
+// head needs a value hidden layer (valueHidden > 0), so VOutWK's rows are
+// whole.
+//
+// Schema version 6 is version 5's entity layout, written ONLY for a model
+// with both ValueK > 0 and EntK > 0: valueK sits between valueHidden and
+// the entity words, and VOutWK/VOutBK between VOutB and the entity blocks:
+//
+//	geom   hidden, stateDenseW, optSlotW, optDenseW, valueHidden, valueK,
+//	       entK, entRaw
+//	blocks ..., VOutB, VOutWK, VOutBK, EntW, EntB, EntP
+//
+// Version 6 must carry the entity encoder hash and version 5 must not. The
+// K-way head changes no encoding, so every version's encoder hash is the
+// feature set's ordinary one.
 const (
-	CheckpointMagic         = "GPOL"
-	CheckpointVersion       = 3
-	CheckpointVersionEntity = 4
+	CheckpointMagic                 = "GPOL"
+	CheckpointVersion               = 3
+	CheckpointVersionEntity         = 4
+	CheckpointVersionValueVec       = 5
+	CheckpointVersionValueVecEntity = 6
 )
 
 // EncoderHash is the encoder contract's golden hash id: a FNV-1a 64 over
@@ -173,6 +203,12 @@ func writeCheckpointAs(m *Model, w io.Writer, hash uint64, entRaw int, entW []fl
 	if m.EntK > 0 {
 		version = CheckpointVersionEntity
 	}
+	if m.ValueK > 0 {
+		version = CheckpointVersionValueVec
+		if m.EntK > 0 {
+			version = CheckpointVersionValueVecEntity
+		}
+	}
 	binary.LittleEndian.PutUint32(hdr[4:8], version)
 	binary.LittleEndian.PutUint64(hdr[8:16], hash)
 	binary.LittleEndian.PutUint32(hdr[16:20], uint32(m.Rows))
@@ -188,6 +224,10 @@ func writeCheckpointAs(m *Model, w io.Writer, hash uint64, entRaw int, entW []fl
 	}
 	geom := []uint32{uint32(m.Hidden), uint32(m.StateDenseW()), uint32(OptionSlotWidth), uint32(m.OptDenseW()), uint32(m.ValueHidden)}
 	blocks := [][]float32{m.Table, m.StateW, m.StateB, m.HidW, m.HidB, m.OutW, {m.OutB}, {m.ResidualW}, m.VHidW, m.VHidB, m.VOutW, {m.VOutB}}
+	if m.ValueK > 0 {
+		geom = append(geom, uint32(m.ValueK))
+		blocks = append(blocks, m.VOutWK, m.VOutBK)
+	}
 	if m.EntK > 0 {
 		geom = append(geom, uint32(m.EntK), uint32(entRaw))
 		blocks = append(blocks, entW, m.EntB, m.EntP)
@@ -277,7 +317,8 @@ func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
 		return nil, fmt.Errorf("checkpoint: bad magic %q, want %q", hdr[0:4], CheckpointMagic)
 	}
 	version := binary.LittleEndian.Uint32(hdr[4:8])
-	if version != CheckpointVersion && version != CheckpointVersionEntity {
+	if version != CheckpointVersion && version != CheckpointVersionEntity &&
+		version != CheckpointVersionValueVec && version != CheckpointVersionValueVecEntity {
 		return nil, fmt.Errorf("checkpoint: unsupported schema version %d, want %d", version, CheckpointVersion)
 	}
 	h := binary.LittleEndian.Uint64(hdr[8:16])
@@ -300,8 +341,8 @@ func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
 	if !ok {
 		return nil, fmt.Errorf("checkpoint: encoder hash %#x does not match this build's encoder %#x — the encoder drifted since this checkpoint was trained", h, EncoderHash())
 	}
-	if (version == CheckpointVersionEntity) != (features == FeaturesEntity) {
-		return nil, fmt.Errorf("checkpoint: schema version %d does not match feature set %s (version %d is the entity layout only)", version, features, CheckpointVersionEntity)
+	if (version == CheckpointVersionEntity || version == CheckpointVersionValueVecEntity) != (features == FeaturesEntity) {
+		return nil, fmt.Errorf("checkpoint: schema version %d does not match feature set %s (versions %d and %d are the entity layouts only)", version, features, CheckpointVersionEntity, CheckpointVersionValueVecEntity)
 	}
 	rows := int(binary.LittleEndian.Uint32(hdr[16:20]))
 	hh := int(binary.LittleEndian.Uint32(hdr[20:24]))
@@ -332,9 +373,30 @@ func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
 	if err != nil {
 		return nil, err
 	}
+	// A value width large enough to overflow the block size is corrupt, not a
+	// model; bound it by the hidden-layer scale any trainer would use.
+	if valueHidden < 0 || valueHidden > 1<<16 {
+		return nil, fmt.Errorf("checkpoint geometry: value hidden %d", valueHidden)
+	}
+	// Version 5/6's valueK word sits right after valueHidden (before the
+	// entity words in version 6's layout). The version exists to say the
+	// K-way head is there, so 0 is refused, and a K-way head needs a value
+	// hidden layer for VOutWK's rows to be whole.
+	valueK := 0
+	if version == CheckpointVersionValueVec || version == CheckpointVersionValueVecEntity {
+		if valueK, err = get32("value components"); err != nil {
+			return nil, err
+		}
+		if valueK <= 0 || valueK > 1<<16 {
+			return nil, fmt.Errorf("checkpoint geometry: value components %d", valueK)
+		}
+		if valueHidden == 0 {
+			return nil, fmt.Errorf("checkpoint geometry: a %d-way value head without a value hidden layer", valueK)
+		}
+	}
 	entK := 0
 	entRaw := EntityRawWidth
-	if version == CheckpointVersionEntity {
+	if version == CheckpointVersionEntity || version == CheckpointVersionValueVecEntity {
 		if entK, err = get32("entity width"); err != nil {
 			return nil, err
 		}
@@ -368,11 +430,6 @@ func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
 	if hh <= 0 || hidden <= 0 {
 		return nil, fmt.Errorf("checkpoint geometry: h %d hidden %d", hh, hidden)
 	}
-	// A value width large enough to overflow the block size is corrupt, not a
-	// model; bound it by the hidden-layer scale any trainer would use.
-	if valueHidden < 0 || valueHidden > 1<<16 {
-		return nil, fmt.Errorf("checkpoint geometry: value hidden %d", valueHidden)
-	}
 	m := &Model{
 		Rows:   rows,
 		H:      hh,
@@ -383,9 +440,12 @@ func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
 		stateDenseW: stateW,
 
 		ValueHidden: valueHidden,
+		ValueK:      valueK,
 		Features:    features,
 		EntK:        entK,
 	}
+	// A K-way head's scalar output blocks are inert (the format doc): read
+	// back whatever the writer wrote, the forward passes never read them.
 	blocks := []struct {
 		name string
 		n    int
@@ -403,6 +463,20 @@ func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
 		{"value hidden bias", valueHidden, func(fs []float32) { m.VHidB = fs }},
 		{"value output", valueHidden, func(fs []float32) { m.VOutW = fs }},
 		{"value output bias", 1, func(fs []float32) { m.VOutB = fs[0] }},
+	}
+	// Version 5/6's K-way head blocks follow VOutB, before the entity
+	// blocks; the scalar head's blocks stay in place, inert (the format
+	// doc).
+	if valueK > 0 {
+		blocks = append(blocks,
+			[]struct {
+				name string
+				n    int
+				set  func(fs []float32)
+			}{
+				{"value vector output", valueK * valueHidden, func(fs []float32) { m.VOutWK = fs }},
+				{"value vector output bias", valueK, func(fs []float32) { m.VOutBK = fs }},
+			}...)
 	}
 	if entK > 0 {
 		blocks = append(blocks, []struct {

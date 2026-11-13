@@ -233,6 +233,9 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 		} else {
 			pl.libTop(o)
 		}
+		if s.res.active && s.resArm().plc.arm != 0 && !s.buildLive() && !s.scrCombatLive() {
+			s.libPlaceNote(ob.owner()) // act_libplace.go
+		}
 	case kop.ZoneHand:
 		pl.hand[pl.handN] = o
 		ob.of |= ofInHand
@@ -846,8 +849,8 @@ func whoseOK(w kop.Whose, ctrl, who uint8) bool {
 		return who == ctrl
 	case kop.WhoseOpp:
 		return who != ctrl
-	case kop.WhoseEnchCtrl:
-		return false // read with the listener's slot (enchCtrlIs); elsewhere it fails closed
+	case kop.WhoseEnchCtrl, kop.WhoseChosen:
+		return false // read with the listener's slot (enchCtrlIs, chosenIs); elsewhere it fails closed
 	}
 	return true
 }

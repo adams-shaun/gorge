@@ -85,7 +85,11 @@ func (Heuristic) Pick(s *dirac.State, d *dirac.Decision) int {
 			if a.Kind() != dirac.AkAttack || dirac.IsObjTarget(a.Target()) {
 				continue
 			}
-			if safeAttack(s, dirac.Obj(a.Source()), 1-p) {
+			def := 1 - p
+			if s.NumSeats() > 2 {
+				def = s.FeatAttackDefender(a.Target()) // the option names the attacked player (CR 802.4a)
+			}
+			if safeAttack(s, dirac.Obj(a.Source()), def) {
 				return i
 			}
 		}

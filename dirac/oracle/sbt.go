@@ -272,6 +272,8 @@ func (a *SBT) priority(s *dirac.State, d *dirac.Decision, seat *builtins.Seat) [
 				cm = "offspring"
 			case mode&1 != 0 && s.FeatBuybackCast(dirac.Obj(src)):
 				cm = "buyback" // CR 702.27a: gorge's "buyback" cast option
+			case mode&1 != 0 && s.FeatEntwineCast(dirac.Obj(src)):
+				cm = "entwined" // CR 702.42a: gorge's "entwined" cast option
 			case mode&1 != 0:
 				cm = "kicked"
 			case mode&2 != 0 && x.Target() == dirac.FeatEscapeTgt:

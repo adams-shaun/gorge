@@ -16,7 +16,7 @@ import (
 // linkedPolicies are exactly the always-registered entries this binary links:
 // bots/all's built-ins and the experimental search and SpellBench policies.
 var linkedPolicies = []string{
-	"bot", "lethal-pressure", "az-redeal", "sb-tactical", "forge-heuristic", "forge-heuristic-hold",
+	"bot", "lethal-pressure", "az-redeal", "az-redeal-maxn", "sb-tactical", "forge-heuristic", "forge-heuristic-hold",
 	"cast-profile", "search", "sb-search-lite-atk", "sb-heuristic", "sb-uniform", "sb-first",
 }
 

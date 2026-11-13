@@ -33,7 +33,7 @@ for it. `make deploy-demo` serves the demo (`deploy/demo.env.example`). The guid
 | `-bot-config` | none | read a bot policy's options from a JSON object file: <policy>=<file.json> (repeatable; overrides built-in defaults, below -bot-opt and the environment) |
 | `-bot-opt` | none | set a bot policy option: <policy>.<key>=<value> (repeatable; overrides -bot-config and the environment) |
 | `-bot-policies` | none | comma-separated set of bot policies this server OFFERS (the /api/bot-policies listing and accepted POST /api/games names); empty offers every registered entry that does not read opponents' decklists (a decklist-reading policy can never be offered: vs-bot always seats a human) |
-| `-bot-policy` | `lethal-pressure` | default hosted bot policy for a vs-bot request that omits bot_policy; must be registered, offered, and support both formats (registered: az-redeal, bot, cast-profile, forge-heuristic, forge-heuristic-hold, lethal-pressure, sb-first, sb-heuristic, sb-search-lite-atk, sb-tactical, sb-uniform, search) |
+| `-bot-policy` | `lethal-pressure` | default hosted bot policy for a vs-bot request that omits bot_policy; must be registered, offered, and support both formats (registered: az-redeal, az-redeal-maxn, bot, cast-profile, forge-heuristic, forge-heuristic-hold, lethal-pressure, sb-first, sb-heuristic, sb-search-lite-atk, sb-tactical, sb-uniform, search) |
 | `-bot-search-parallelism` | `1` | goroutines within one searched decision (latency only, never an answer; >= 1) |
 | `-bot-search-slots` | `max(1, GOMAXPROCS/2)` | maximum concurrent searched bot decisions across the process; decisions queue, never degrade (>= 1; default max(1, GOMAXPROCS/2)) |
 | `-cards` | `.cards` | corpus directory (ir.gob.gz / cardsfolder) |

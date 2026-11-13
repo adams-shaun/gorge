@@ -83,6 +83,9 @@ type Stats struct {
 	// run, walk points built per creature, and declarations the bot had to
 	// complete because AkDone was not offered.
 	ChainSteps, ChainPoints, ChainFallbacks int
+	// MaxN is 1 when this search ran its tree under max^n (Options.MaxN,
+	// maxNApplies).
+	MaxN int
 }
 
 // Result is one Search: the root candidates (index 0 the bot's answer),
@@ -193,6 +196,9 @@ type Searcher struct {
 	wr     WorldReset
 	bs     BaseSetter
 	be     BatchEvaluator // Options.Batch's batched leaf value (nil: serial)
+	ve     VecEvaluator   // Options.MaxN's leaf value vector (nil: splitVec)
+	// vec is the last leaf's value vector under max^n (maxn.go)
+	vec [dirac.MaxSeats]float64
 	// RootEval's hooks, asserted once per RootEval value; atRoot is true
 	// only while the root point is built with RootEval; rootV/haveRootV
 	// are the root's initial value from RootEval for this Search.
@@ -333,6 +339,7 @@ func (sr *Searcher) hooks() {
 	sr.wr, _ = sr.Eval.(WorldReset)
 	sr.bs, _ = sr.Eval.(BaseSetter)
 	sr.be, _ = sr.Eval.(BatchEvaluator)
+	sr.ve, _ = sr.Eval.(VecEvaluator)
 }
 
 // BaseSetter is an evaluator that keys on dirac's change marks: it is
@@ -359,6 +366,10 @@ func NewSearcher(opts Options, eval Evaluator, bot Bot) *Searcher {
 	nodes := MaxSims(&opts) + 2
 	sr.t.nodes = make([]node, nodes)
 	sr.t.edges = make([]edge, nodes*MaxCands)
+	if opts.MaxN {
+		sr.t.nwv = make([][dirac.MaxSeats]float64, nodes)
+		sr.t.ewv = make([][dirac.MaxSeats]float64, nodes*MaxCands)
+	}
 	if opts.NodeCache > 0 {
 		sr.cache.init(opts.NodeCache)
 	}
@@ -431,6 +442,7 @@ func (sr *Searcher) Search(root *dirac.State, seatSeed uint64) *Result {
 		}
 	}
 	sr.seat = d.Player
+	sr.t.vec = sr.maxNApplies() // maxn.go
 	sr.nHeld = 0
 	sr.hidOn, sr.hidMode, sr.hidDealtCommits = sr.Opts.infoOn(), hidAll, 0
 	react := sr.Opts.InstWin == InstWinReact
@@ -510,6 +522,9 @@ func (sr *Searcher) Search(root *dirac.State, seatSeed uint64) *Result {
 		sr.rootV, sr.haveRootV = float64(sr.RootEval.Value(&sr.root, d, sr.seat)), true
 	}
 	sr.St.Searched = 1
+	if sr.t.vec {
+		sr.St.MaxN = 1
+	}
 	if sr.nHeld > 0 {
 		sr.St.ReactHeld = 1
 		sr.nHeld = min(sr.nHeld, MaxCands-sr.rootPt.n)
@@ -748,7 +763,7 @@ func sameDecision(a, b *dirac.Decision) bool {
 // under ClosedList); the world's chance is re-seeded with b.
 func (sr *Searcher) redeal(s *dirac.State, a, b uint64) {
 	r := dirac.NewRand(a, b)
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.NumSeats(); p++ {
 		if p == sr.seat || sr.Opts.Clairvoyant {
 			// the seat's own library; under Clairvoyant the opponent's
 			// real hand stays and its real library is re-shuffled
@@ -802,6 +817,9 @@ func (sr *Searcher) redeal(s *dirac.State, a, b uint64) {
 func (sr *Searcher) leaf(w *world) (v float64, terminal bool) {
 	s := &w.s
 	if s.Over() {
+		if sr.t.vec {
+			sr.overVec(s) // maxn.go
+		}
 		switch s.Winner() {
 		case -1:
 			return 0.5, true
@@ -810,9 +828,20 @@ func (sr *Searcher) leaf(w *world) (v float64, terminal bool) {
 		}
 		return 0, true
 	}
-	v = float64(sr.Eval.Value(s, &w.d, sr.seat))
+	if s.NumSeats() > 2 && s.FeatLost(sr.seat) {
+		if sr.t.vec {
+			sr.liveVec(s, &w.d, true)
+		}
+		return 0, true // the game plays on without the searching seat (CR 800.4a)
+	}
+	if sr.t.vec {
+		v = sr.liveVec(s, &w.d, false)
+	} else {
+		v = float64(sr.Eval.Value(s, &w.d, sr.seat))
+	}
 	if sr.Opts.HoldBonus != 0 {
 		v += sr.holdBonus(s)
+		sr.vec[0] = v // only read under max^n: the bonus shapes the seat's entry as it shapes v
 	}
 	return v, false
 }
@@ -912,8 +941,13 @@ func (sr *Searcher) simulate(ni int32, pt *point) bool {
 		v := sr.rootV
 		if !sr.haveRootV {
 			v, _ = sr.leaf(&sr.w)
+		} else if t.vec {
+			splitVec(&sr.w.s, sr.seat, v, &sr.vec) // RootEval values the seat alone
 		}
 		t.nodes[0].n, t.nodes[0].w = 1, v
+		if t.vec {
+			t.nwv[0] = sr.vec
+		}
 	}
 	return sr.walk(ni, pt, 0, 0, 0, 0)
 }
@@ -1030,6 +1064,9 @@ func (sr *Searcher) walk(ni int32, pt *point, depth, nm, unavail, cur int) bool 
 			ed.next = nn
 			if !sr.hidOn || sr.hidWants(nextPt.opp) {
 				t.nodes[nn].n, t.nodes[nn].w = 1, v
+				if t.vec {
+					t.nwv[nn] = sr.vec
+				}
 			}
 			sr.St.Expanded++
 			if nextPt.opp {
@@ -1048,7 +1085,8 @@ func (sr *Searcher) walk(ni int32, pt *point, depth, nm, unavail, cur int) bool 
 	}
 }
 
-// commit backs v up the walk (no discount: azmcts's default).
+// commit backs v up the walk (no discount: azmcts's default), and under
+// max^n the leaf's value vector sr.vec beside it.
 func (sr *Searcher) commit(depth, nm int, v float64) {
 	t0 := profStart()
 	if sr.hidOn && sr.hidMode != hidAll {
@@ -1064,6 +1102,11 @@ func (sr *Searcher) commit(depth, nm int, v float64) {
 		e := &t.edges[sr.pathE[i]]
 		e.n++
 		e.w += v
+	}
+	if t.vec {
+		for i := 0; i < depth; i++ {
+			t.addVec(sr.pathN[i], sr.pathE[i], &sr.vec)
+		}
 	}
 	for i := 0; i < nm; i++ {
 		t.edges[sr.marks[i]].avail++

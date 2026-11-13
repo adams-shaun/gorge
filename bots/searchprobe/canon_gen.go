@@ -946,6 +946,28 @@ func (e *canonEncoder) encview_CardView(v *view.CardView) error {
 		e.buf = append(e.buf, 1)
 		e.appendString(string(v.AuraLogic))
 	}
+	if !v.NameKeyedSelfMill {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		if v.NameKeyedSelfMill {
+			e.buf = append(e.buf, 1)
+		} else {
+			e.buf = append(e.buf, 0)
+		}
+	}
+	if v.EmptyLibraryWin == 0 {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		e.buf = binary.AppendUvarint(e.buf, uint64(v.EmptyLibraryWin))
+	}
+	if len(v.PayOrLoseCost) == 0 {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		e.appendString(string(v.PayOrLoseCost))
+	}
 	if v.ColourIdentity == 0 {
 		e.buf = append(e.buf, 0)
 	} else {

@@ -23,11 +23,11 @@ func mustLoadCollation(t *testing.T, code string, c setdata.Collation) setdata.S
 }
 
 // TestSetdataCodesAreExactlyTheEmbeddedSets pins the loader's universe: exactly
-// the three embedded sets, sorted, and unknown or hostile codes refuse.
+// the four embedded sets, sorted, and unknown or hostile codes refuse.
 func TestSetdataCodesAreExactlyTheEmbeddedSets(t *testing.T) {
 	codes := setdata.Codes()
-	if len(codes) != 3 || codes[0] != "BLB" || codes[1] != "FDN" || codes[2] != "TRK" {
-		t.Fatalf("setdata.Codes() = %v, want [BLB FDN TRK]", codes)
+	if len(codes) != 4 || codes[0] != "BLB" || codes[1] != "FDN" || codes[2] != "MBC" || codes[3] != "TRK" {
+		t.Fatalf("setdata.Codes() = %v, want [BLB FDN MBC TRK]", codes)
 	}
 	if _, err := setdata.Load("NOPE"); err == nil {
 		t.Error("Load(NOP) succeeded for an unembedded set")
@@ -40,11 +40,15 @@ func TestSetdataCodesAreExactlyTheEmbeddedSets(t *testing.T) {
 	}
 }
 
-// TestSetdataCollationsArePlayAndArena pins the collation surface of both
-// embedded sets and refuses an unknown collation with the carried ones in
-// the message.
+// TestSetdataCollationsArePlayAndArena pins the collation surface of the
+// play-booster sets (MBC carries only its draft booster,
+// TestMBCDraftBoosterShape) and refuses an unknown collation with the
+// carried ones in the message.
 func TestSetdataCollationsArePlayAndArena(t *testing.T) {
 	for _, code := range setdata.Codes() {
+		if code == "MBC" {
+			continue
+		}
 		got := setdata.Collations(code)
 		if len(got) != 2 || got[0] != setdata.Play || got[1] != setdata.Arena {
 			t.Errorf("Collations(%s) = %v, want [play play-arena]", code, got)
@@ -301,5 +305,88 @@ func TestTRKPlayBoosterShape(t *testing.T) {
 		if share := float64(mythic) / float64(spec.Config.Sheets["rareMythic"].TotalWeight); share < 0.12 || share > 0.15 {
 			t.Errorf("TRK %s mythic share of the rare slot = %.4f, want about 0.13", c, share)
 		}
+	}
+}
+
+// TestMBCDraftBoosterShape pins Mystery Booster Commander Edition as
+// MTGJSON publishes it, less the playtest sheet: one "draft" collation (so
+// Load serves it), 20-card packs of 3 cards from each colour sheet, a
+// commander, a new commander, two wildcards (the second in the playtest
+// card's place) and a Future Sight card, the last swapped for a foil or an
+// Alchemy acorn card and the new commander for a foil in the six variants,
+// weighted to 400000.
+func TestMBCDraftBoosterShape(t *testing.T) {
+	if got := setdata.Collations("MBC"); len(got) != 1 || got[0] != setdata.Draft {
+		t.Fatalf("Collations(MBC) = %v, want [draft]", got)
+	}
+	if got := setdata.DefaultCollationFor("MBC"); got != setdata.Draft {
+		t.Errorf("DefaultCollationFor(MBC) = %q, want draft", got)
+	}
+	if got := setdata.DefaultCollationFor("FDN"); got != setdata.Arena {
+		t.Errorf("DefaultCollationFor(FDN) = %q, want play-arena", got)
+	}
+	spec, err := setdata.Load("MBC")
+	if err != nil {
+		t.Fatalf("Load(MBC): %v", err)
+	}
+	if spec.Collation != setdata.Draft || spec.PackSize != 20 || len(spec.Config.Variants) != 6 || spec.Config.TotalWeight != 400000 {
+		t.Fatalf("MBC = %s pack %d, %d variants, total %d; want draft, 20, 6, 400000",
+			spec.Collation, spec.PackSize, len(spec.Config.Variants), spec.Config.TotalWeight)
+	}
+	type key struct{ fs, nc string }
+	want := map[key]int{
+		{"futureSight", "newCommander"}: 363093, {"futureSightFoil", "newCommander"}: 16764, {"alchemyAcorn", "newCommander"}: 1143,
+		{"futureSight", "newCommanderFoil"}: 18107, {"futureSightFoil", "newCommanderFoil"}: 836, {"alchemyAcorn", "newCommanderFoil"}: 57,
+	}
+	for i, v := range spec.Config.Variants {
+		for _, sheet := range []string{"white", "blue", "black", "red", "green"} {
+			if v.Contents[sheet] != 3 {
+				t.Errorf("MBC variant %d draws %d from %s, want 3", i, v.Contents[sheet], sheet)
+			}
+		}
+		var k key
+		for sheet := range v.Contents {
+			switch sheet {
+			case "futureSight", "futureSightFoil", "alchemyAcorn":
+				k.fs = sheet
+			case "newCommander", "newCommanderFoil":
+				k.nc = sheet
+			}
+		}
+		if v.Contents["commander"] != 1 || v.Contents["wildcard"] != 2 || len(v.Contents) != 9 {
+			t.Errorf("MBC variant %d contents %v, want the colour sheets, a commander, two wildcards and the two swapped slots", i, v.Contents)
+		}
+		if w, ok := want[k]; !ok || w != v.Weight {
+			t.Errorf("MBC variant %d (%s, %s) weighs %d, want %d", i, k.fs, k.nc, v.Weight, w)
+		}
+		delete(want, k)
+	}
+	sizes := map[string]int{"white": 358, "blue": 358, "black": 358, "red": 358, "green": 358, "commander": 121,
+		"newCommander": 60, "newCommanderFoil": 60, "wildcard": 111, "futureSight": 119,
+		"futureSightFoil": 134, "alchemyAcorn": 10}
+	if len(spec.Config.Sheets) != len(sizes) {
+		t.Errorf("MBC carries %d sheets, want %d (no playtest sheet)", len(spec.Config.Sheets), len(sizes))
+	}
+	for name, n := range sizes {
+		sh, ok := spec.Config.Sheets[name]
+		if !ok || len(sh.Cards) != n {
+			t.Errorf("MBC sheet %s has %d cards, want %d", name, len(sh.Cards), n)
+		}
+		if wantFoil := name == "futureSightFoil" || name == "newCommanderFoil" || name == "alchemyAcorn"; sh.Foil != wantFoil {
+			t.Errorf("MBC sheet %s foil = %v, want %v", name, sh.Foil, wantFoil)
+		}
+	}
+	// The substitute list covers the whole Alchemy sheet (no acorn card is
+	// playable) and no card of the new-commander sheet's playable majority.
+	for _, sc := range spec.Config.Sheets["alchemyAcorn"].Cards {
+		if !spec.Unplayable[sc.Name] {
+			t.Errorf("alchemy acorn card %q is not on the substitute list", sc.Name)
+		}
+	}
+	if len(spec.Unplayable) == 0 {
+		t.Fatal("MBC carries no substitute list")
+	}
+	if fdn := mustLoadCollation(t, "FDN", setdata.Arena); fdn.Unplayable != nil {
+		t.Errorf("FDN carries a substitute list of %d cards, want none", len(fdn.Unplayable))
 	}
 }

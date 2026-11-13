@@ -35,7 +35,7 @@ hidden zones, never the opponent's hand or the library order.
 |---|---|
 | `gorged`, play-vs-bot | `POST /api/games` with `"bot_policy": "<name>"`; omit it to get the server's `-bot-policy`. `-bot-policies a,b,…` limits what the server offers |
 | `gorged`, bot-only tables | `-bot-policy <name>` seats that policy in every bot seat of the startup tables |
-| `mtgsim` | `-a <name>` on seat 0, `-b <name>` on seat 1; every other seat plays the plain heuristic |
+| `mtgsim` | `-policies a,b,…` names one policy per seat (`-` keeps the plain heuristic); without it `-a <name>` is seat 0 and `-b <name>` seat 1 |
 | A Go program | `bots.New(name, bots.Options{Seed, AutoPayMana, Deps: bots.Deps{Cards: reg}})` after a blank import of `bots/all`; [`testkit/bench`](https://github.com/adams-shaun/gorge/blob/main/testkit/bench/bench.go) drives it |
 | SpellBench v2 | `spellbench-gorge-agent -policy <name>` serves it as a v2 agent ([SpellBench v2 agents](spellbench.md)) |
 
@@ -43,8 +43,8 @@ hidden zones, never the opponent's hand or the library order.
 hostile removal that could only hit the bot's own permanents.
 
 `sb-tactical` and `az-redeal` need a driver that supplies their honest roots and the card registry.
-`testkit/bench.PlayGame` with `Hooks{EnvSeats: true, HonestRoot: true}` does. `mtgsim` doesn't: `-a sb-tactical` fails with
-`Deps.Cards is nil`, and `-a az-redeal` runs but never searches.
+`gorged`, `mtgsim` and `testkit/bench.PlayGame` with `Hooks{EnvSeats: true, HonestRoot: true}` do. A driver that only
+calls `Seat.Decide` gets `az-redeal`'s wrapped heuristic bot, which never searches.
 
 As the opponent for an HTTP bot, or the baseline for your own policy, use `bot`, with a `bot`-against-`bot` control on the
 same seeds. Start `gorged` with `-bot-policy bot` to make it the default.

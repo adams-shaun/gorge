@@ -28,7 +28,7 @@ func TestVariantSharesFollowWeights(t *testing.T) {
 		counts := make([]int, len(spec.Config.Variants))
 		guests := 0
 		for i := 0; i < packs; i++ {
-			_, v, err := openPack(spec, rand.New(rand.NewPCG(seed, uint64(i))), &IDs{}, nil)
+			_, v, err := openPack(spec, rand.New(rand.NewPCG(seed, uint64(i))), &IDs{}, nil, nil)
 			if err != nil {
 				t.Fatalf("%s: openPack %d: %v", c, i, err)
 			}

@@ -145,6 +145,10 @@ func (s *State) crimeModalPick(k *prep, e *stackEntry, i int, peekI uint8, c uin
 // since have become.
 const crimRec uint8 = 1 << 7
 
+// xCrimRec is crimRec for a pool's extras (xTargets.crim): the bit above the
+// last extra's.
+const xCrimRec xtMask = 1 << maxXTgt
+
 // crimePick is S1: one target ask's pick. A spell's pick is judged at the
 // pick (gorge records a spell's targets at the target answer). An ability's
 // ask is recorded with its TargetsChosen when the ask's picks complete --
@@ -217,7 +221,7 @@ func (s *State) crimeAskDone(k *prep) {
 			}
 		}
 	}
-	x.crim |= crimRec
+	x.crim |= xCrimRec
 }
 
 // crimeSt is checkWard's per-entry crime walk state.
@@ -247,7 +251,7 @@ func (s *State) pickCriminal(e *stackEntry, slot, xj int8) (crime, ok bool) {
 		return false, false
 	}
 	x := s.xtOf(e)
-	if x.crim&crimRec == 0 {
+	if x.crim&xCrimRec == 0 {
 		return false, false
 	}
 	return x.crim&(1<<uint(xj)) != 0, true

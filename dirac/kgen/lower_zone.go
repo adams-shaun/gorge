@@ -26,6 +26,9 @@ func zoneOf(ps *params, key string, dflt int) (int, error) {
 // changeZone lowers api:ChangeZone: targeted moves, defined moves, and the
 // hidden-zone searches (library, or a graveyard choice without targeting).
 func (lc *lowerCtx) changeZoneMove(ps *params) error {
+	if err := libPlaceManyDefined(ps); err != nil { // lower_libplace.go
+		return err
+	}
 	if _, ok := ps.m["DestAltSVar"]; ok {
 		return lc.czAltDest(ps) // lower_czaltdest.go
 	}
@@ -868,7 +871,15 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		lc.emit(lInstr{Op: "MayAsk", C: guard, Skip: 1, Note: "you may move it"})
 	}
-	lc.emit(in)
+	arm, bracket, err := lc.libPlaceTargets(ps, obj, in, pos) // lower_libplace.go
+	if err != nil {
+		return err
+	}
+	if bracket {
+		lc.emitLibPlace(arm, in)
+	} else {
+		lc.emit(in)
+	}
 	if override != nil {
 		if in.Op != "Return" || in.C != zBattlefield {
 			return refuse("StaticEffect on a %s", in.Op)
@@ -1088,6 +1099,22 @@ func overrideString(o *lOverride) string {
 }
 
 func (lc *lowerCtx) changeZoneAll(ps *params) error {
+	bracket, err := libPlaceAll(ps) // lower_libplace.go
+	if err != nil || !bracket {
+		if err != nil {
+			return err
+		}
+		return lc.changeZoneAllSweep(ps)
+	}
+	lc.emit(lInstr{Op: "LibPlace", C: kop.PlaceArmTop, Note: "count the cards this sweep puts into libraries"})
+	if err := lc.changeZoneAllSweep(ps); err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "LibPlace", C: kop.PlaceAsk, Note: "each owner of two or more orders them (CR 401.4)"})
+	return nil
+}
+
+func (lc *lowerCtx) changeZoneAllSweep(ps *params) error {
 	if lc.digImprinted && ps.is("RandomOrder", "True") {
 		return lc.digImprintBottom(ps) // lower_digimprint.go
 	}
@@ -2544,6 +2571,9 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	}
 	if t.Mode == "BecomeMonarch" {
 		return monarchEffectTrigger() // lower_monarch.go
+	}
+	if eot && t.Mode == "TapsForMana" {
+		return effectTapExtraRefuse() // lower_tapextra.go
 	}
 	if (eot || next) && t.Mode != "SpellCast" && t.Mode != "ChangesZone" && t.Mode != "Sacrificed" && t.Mode != "DamageDone" && !(t.Mode == "DamageDealtOnce" && lc.pairCap != nil) &&
 		t.Mode != "AttackersDeclared" && t.Mode != "AttackersDeclaredOneTarget" && t.Mode != "Attacks" {
@@ -4306,6 +4336,15 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 			return true, refuse("Effect MayPlayIgnoreType %q beside a %s permission", v, map[bool]string{true: "card-owner", false: "controller"}[owner])
 		}
 		flags |= kop.MayPlayAnyType
+	}
+	if v, ok := may.get("MayPlayIgnoreColor"); ok {
+		// "you may spend mana as though it were mana of any color to cast
+		// it" (Brainstealer Dragon, Siphon Insight): the record's any-colour
+		// rider, as the end-of-turn grant above carries it
+		if strings.TrimSpace(v) != "True" || owner {
+			return true, refuse("Effect MayPlayIgnoreColor %q beside a %s permission", v, map[bool]string{true: "card-owner", false: "controller"}[owner])
+		}
+		flags |= kop.MayPlayIgnoreColor
 	}
 	var valid *lFilter
 	if name, ok := may.get("CheckSVar"); ok && !owner {

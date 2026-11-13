@@ -25,6 +25,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/oracle"
 	"github.com/adams-shaun/gorge/engine/deck"
@@ -494,6 +495,10 @@ func (r *runner) playAll(k *sink) error {
 		}()
 	}
 	wg.Wait()
+	for _, b := range r.bases { // the run is over: free every pair's table
+		dirac.ReleaseTable(b.tbl)
+	}
+	r.bases = nil
 	k.sum.CPUSeconds, k.sum.WallSeconds = cpuSeconds()-c0, time.Since(t0).Seconds()
 	if e := fatal.Load(); e != nil {
 		return *e

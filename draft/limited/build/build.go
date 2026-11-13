@@ -41,7 +41,15 @@ type Deck struct {
 	// is a no-op on an array; the all-zero Basics block stays visible,
 	// exactly as before the tags.
 	Basics [5]int `json:"basics"`
+	// Commanders names a Commander-draft deck's commander or commander
+	// pair, as IDs that Main also carries (CommanderDeckSize counts them).
+	// Empty in every other deck; omitempty keeps those lines unchanged.
+	Commanders []string `json:"commanders,omitempty"`
 }
+
+// CommanderDeckSize is a Commander-draft deck's minimum size, commanders
+// and basics included (Commander Legends draft: at least 60 cards).
+const CommanderDeckSize = 60
 
 // Total is the deck's card count: maindeck cards plus basics. It saturates at
 // the int limits rather than overflowing, so it is safe to call on an
@@ -66,6 +74,46 @@ func (d Deck) Total() int {
 // no copy limit on non-basics (MTR 7.1); basics are free and unlimited under
 // the rules, so the per-type and total caps are hosting bounds.
 func Validate(pool []limited.CardRef, d Deck) error {
+	if len(d.Commanders) > 0 {
+		return fmt.Errorf("build: a limited deck names no commanders")
+	}
+	return validate(pool, d, 40)
+}
+
+// ValidateCommander checks a Commander-draft deck against its pool: Validate's
+// pool, duplicate and hosting-bound checks with a CommanderDeckSize minimum,
+// plus one or two distinct commanders, each maindecked. Whether a commander
+// is eligible, whether two make a pair and whether every card fits their
+// colour identity are card facts; the caller checks them where the card
+// data lives (the engine seats only a legal commander configuration).
+func ValidateCommander(pool []limited.CardRef, d Deck) error {
+	switch len(d.Commanders) {
+	case 1:
+	case 2:
+		if d.Commanders[0] == d.Commanders[1] {
+			return fmt.Errorf("build: commander %q named twice", d.Commanders[0])
+		}
+	default:
+		return fmt.Errorf("build: %d commanders, want 1 or 2", len(d.Commanders))
+	}
+	for _, id := range d.Commanders {
+		found := false
+		for _, m := range d.Main {
+			if m == id {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("build: commander %q is not in the main deck", id)
+		}
+	}
+	return validate(pool, d, CommanderDeckSize)
+}
+
+// validate is the shared body of Validate and ValidateCommander, with the
+// deck's minimum size.
+func validate(pool []limited.CardRef, d Deck, minSize int) error {
 	for i, n := range d.Basics {
 		if n < 0 {
 			return fmt.Errorf("build: %s count %d is negative", BasicNames[i], n)
@@ -79,8 +127,8 @@ func Validate(pool []limited.CardRef, d Deck) error {
 		inPool[c.ID] = struct{}{}
 	}
 	switch total := d.Total(); {
-	case total < 40:
-		return fmt.Errorf("build: deck has %d cards, want at least 40", total)
+	case total < minSize:
+		return fmt.Errorf("build: deck has %d cards, want at least %d", total, minSize)
 	case total > MaxDeckSize:
 		return fmt.Errorf("build: deck has %d cards, want at most %d", total, MaxDeckSize)
 	}
@@ -104,8 +152,14 @@ func Validate(pool []limited.CardRef, d Deck) error {
 // with no coloured pips — all colourless spells, or no land slots to fill —
 // splits its share over nothing and gets zero basics back.
 func AutoLands(main []string, colourOf func(id string) [5]int) [5]int {
+	return AutoLandsTo(main, colourOf, 40)
+}
+
+// AutoLandsTo is AutoLands filling the deck to size cards instead of 40 (a
+// Commander-draft deck's CommanderDeckSize).
+func AutoLandsTo(main []string, colourOf func(id string) [5]int, size int) [5]int {
 	var out [5]int
-	lands := 40 - len(main)
+	lands := size - len(main)
 	if lands <= 0 {
 		return out
 	}
@@ -154,6 +208,7 @@ func AutoLands(main []string, colourOf func(id string) [5]int) [5]int {
 // ToDeckFile writes the deck out as an engine-loadable deck file, with the
 // basics as ordinary entries. Card names come from the pool by ID; an ID
 // the pool does not carry yields an empty name, so run Validate first.
+// A Commander-draft deck's commanders become the file's Commanders.
 // The file's Format and Archetype stay empty: they are authoring metadata
 // the caller may fill in.
 func ToDeckFile(pool []limited.CardRef, d Deck, name string) deck.File {
@@ -169,6 +224,9 @@ func ToDeckFile(pool []limited.CardRef, d Deck, name string) deck.File {
 		if n > 0 {
 			f.Cards = append(f.Cards, deck.Entry{Name: BasicNames[i], Count: n})
 		}
+	}
+	for _, id := range d.Commanders {
+		f.Commanders = append(f.Commanders, nameOf[id])
 	}
 	return f
 }

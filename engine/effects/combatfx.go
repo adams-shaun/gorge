@@ -52,11 +52,13 @@ func init() {
 // (Illusionist's Gambit) remembers each removed object in both halves -- the
 // resolution's ctx set, so the chained `DB$ Untap | Defined$ Remembered`
 // untaps exactly the removed set, and the source's event-backed list, so
-// Card.IsRemembered reads it later. UnblockCreaturesBlockedOnlyBy$ (4 corpus
-// lines) is NOT read: making the attackers a removed blocker was blocking
-// become unblocked needs an operation no event currently expresses.
+// Card.IsRemembered reads it later. UnblockCreaturesBlockedOnlyBy$ (Balduvian
+// Warlord, False Orders, Imprison, Ydwen Efreet: "creatures it was blocking
+// that hadn't become blocked by another creature this combat become
+// unblocked") is read by unblockOnlyBlockedBy.
 func effRemoveFromCombat(h Host, c *Ctx, sa *cards.SA) {
 	remember := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberRemovedFromCombat)), "True")
+	unblock := unblockedByRemoval(h, c, sa.Params["UnblockCreaturesBlockedOnlyBy"])
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -68,6 +70,13 @@ func effRemoveFromCombat(h Host, c *Ctx, sa *cards.SA) {
 		if remember {
 			c.Remembered = append(c.Remembered, state.Target{Obj: t.Obj})
 			eventRemember(h, c, t.Obj)
+		}
+	}
+	for _, a := range unblock {
+		if o := h.Game().Obj(a); o != nil && o.IsAttacking {
+			// The attack keeps its defender and loses its blocks: the
+			// CombatRetarget fold to the same defender is exactly that.
+			h.Emit(events.Event{Kind: events.CombatRetarget, Obj: a, Player: o.Attacking})
 		}
 	}
 }
@@ -82,6 +91,38 @@ func effRemoveFromCombat(h Host, c *Ctx, sa *cards.SA) {
 // card in it -- tapped or not, every listed card is remembered).
 // TapperController$ hands the tap provenance to each card's own controller
 // (Forge's per-card tapper), the resolving controller otherwise.
+// unblockedByRemoval lists, in battlefield-object order, the attacking
+// creatures every one of whose blockers is named by spec: once those leave
+// combat the attacker was blocked by no other creature this combat, so it
+// becomes unblocked (CR 506.4 keeps it blocked otherwise). A zero entry is a
+// blocker already gone, another creature that blocked it, so its attacker
+// stays blocked. An empty spec lists nothing.
+func unblockedByRemoval(h Host, c *Ctx, spec string) []state.ObjID {
+	if spec == "" {
+		return nil
+	}
+	named := DefinedSpec(h, c, spec)
+	var out []state.ObjID
+	g := h.Game()
+	for i := range g.Objs {
+		o := &g.Objs[i]
+		if !o.IsAttacking || o.Zone != state.ZBattlefield || len(o.BlockedBy) == 0 {
+			continue
+		}
+		only := true
+		for _, b := range o.BlockedBy {
+			if b == 0 || !slices.ContainsFunc(named, func(t state.Target) bool { return !t.IsPlayer && t.Obj == b }) {
+				only = false
+				break
+			}
+		}
+		if only {
+			out = append(out, o.ID)
+		}
+	}
+	return out
+}
+
 func effTapAll(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	spec := sa.ParamStr(cards.PKValidCards)

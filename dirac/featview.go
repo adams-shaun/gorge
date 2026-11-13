@@ -296,6 +296,13 @@ func (s *State) FeatArrangeDig() bool {
 	return s.ctl == ctlResolve && s.res.ask == raGenDigArrange
 }
 
+// FeatArrangePlace reports whether the ChArrange decision is an owner ordering
+// the cards one effect put at a library position (gorge's "library_placement"
+// options, CR 401.4).
+func (s *State) FeatArrangePlace() bool {
+	return s.ctl == ctlResolve && s.res.ask == raGenLibPlace
+}
+
 // FeatFirstStrikeCombat reports whether this combat has a first-strike
 // damage step.
 func (s *State) FeatFirstStrikeCombat() bool { return s.fsStep }
@@ -342,6 +349,11 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	if mode == 0 && k.gen != nil && k.gen.anyConvoke {
 		cost = s.convokeCredit(k, SeatIx(p), c, o, cost)
 	}
+	// the pool pays the taxed cast (CR 903.8), and the tax is part of the
+	// total cost the reductions apply to (CR 601.2f; gorge ApplyTaxedTo); the
+	// convoke credit came off the printed cost (gorge castOfferBase), the
+	// delve credit comes after
+	addCommanderTax(&cost, s.commanderTax(SeatIx(p), o))
 	tb := false
 	if mode&4 != 0 || mode&1 != 0 && k.bargainRed && k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) { // seat-ok: a cast-mode bit
 		cost = s.bargainedPrice(k, SeatIx(p), c, o, cost) // the bargained cast's price, or the optional-cost cast's (cost_reducespell.go)
@@ -620,6 +632,13 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 		reserved = s.improviseReserved(k, p, cost.Generic)
 		cost = s.convokeCredit(k, SeatIx(p), c, o, cost)
 	}
+	// gorge's planner prices a command-zone cast with its CR 903.8 tax
+	// (offerCostForUsing composes it), so a cast whose untaxed price the
+	// printed sources pay but whose taxed one needs a granted source is the
+	// grant search's, not the planner's (pairs 636, 789: Ghalta). The tax is
+	// part of the total the reductions apply to (CR 601.2f; gorge
+	// ApplyTaxedTo).
+	addCommanderTax(&cost, s.commanderTax(SeatIx(p), o))
 	if s.statM.any() || k.gen != nil {
 		cost = s.featCost(k, SeatIx(p), c, o, cost) // a flashback cost is reduced too
 	}
@@ -647,6 +666,29 @@ func (s *State) FeatFaceDown(o Obj) bool {
 func (s *State) FeatPlanDeclinesShape(p uint8, o Obj) bool {
 	_, ok := s.plannedCastCost(s.k(), p, o, 0)
 	return !ok
+}
+
+// FeatAltAddMana is the mana p's cast of o adds for its either-or additional
+// cost as gorge's offer gate prices it (legal_walk_hand.go altAddOfferCastable:
+// the cast is offered when some part is payable with the mana cost): nothing
+// when the card has no such cost or a part without mana is payable (a creature
+// to sacrifice for Eaten Alive), else the part's mana. ok is false when no part's
+// non-mana picks are payable either, so no amount of mana offers the cast.
+func (s *State) FeatAltAddMana(p uint8, o Obj) (kop.ManaCost, bool) {
+	k := s.k()
+	c := s.objs[o].card
+	cd := &k.t.Cards[c]
+	if !cd.HasAltAdd || s.altAddFreePart(k, p, c, o) {
+		return kop.ManaCost{}, true
+	}
+	part := spellAddCost(k, c)
+	if manaEmpty(&part.Mana) {
+		part = &cd.AltAddCost
+	}
+	if !s.pickCostPayable(k, p, part, o) {
+		return kop.ManaCost{}, false
+	}
+	return part.Mana, true
 }
 
 // planNeverPricesCore is planNeverPricesOf with the shapes gorge's planner
@@ -1157,7 +1199,7 @@ func (s *State) FeatObjHash(o Obj, base *[MaxObj]uint64, c *ObjHashCache) uint64
 	if c.line != s.line {
 		c.line = s.line
 		c.ok = [MaxObj]bool{}
-		c.part = [2]objPart{}
+		c.part = [MaxSeats]objPart{}
 	}
 	if c.ok[o] && !s.ChangedSince(o, c.at[o]) {
 		return c.h[o]

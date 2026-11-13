@@ -164,6 +164,9 @@ func (p *projector) stackViews(buf []StackView, ids []state.ObjID, revealFaceDow
 				card = new(CardView)
 			}
 			p.cardView(card, id)
+			// The controller's own face-down spell shows its face, marked
+			// face-down as a zone CardView is (zoneCard).
+			card.FaceDown = o.FaceDown
 			sv.Card = card
 		}
 	}

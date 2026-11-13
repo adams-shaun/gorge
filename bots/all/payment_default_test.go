@@ -15,8 +15,9 @@ import (
 // (seat.PaymentPlanConsumer's bot default): a bot that does not silently
 // plays its fallback's manual mana taps.
 var paymentOptOut = map[string]string{
-	"az-redeal": "the generation-0 hosted config (azredeal.Hosted) searches the manual option list (Search.AutoPayment off); a checkpoint-backed successor searches the payment vocabulary and consumes plans",
-	"search":    "the searchteacher seat searches the manual option list over a manual-tap default bot; neither reads a payment plan",
+	"az-redeal":      "the generation-0 hosted config (azredeal.Hosted) searches the manual option list (Search.AutoPayment off); a checkpoint-backed successor searches the payment vocabulary and consumes plans",
+	"az-redeal-maxn": "the same generation-0 hosted config (azredeal.HostedMaxN, az-redeal plus OpponentNodes and MaxN) searches the manual option list (Search.AutoPayment off); a checkpoint-backed successor searches the payment vocabulary and consumes plans",
+	"search":         "the searchteacher seat searches the manual option list over a manual-tap default bot; neither reads a payment plan",
 }
 
 // TestRegisteredBotsConsumePaymentPlans builds every registered policy with

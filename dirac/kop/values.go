@@ -499,6 +499,14 @@ const ExChromaOf ExprKind = 231
 // value is 0 or 1.
 const ExOppsAttacked ExprKind = 229
 
+// ExRemEachOwnNonLand (an explicit ordinal in the free low range): the cards
+// in the resolution's remembered set that are nonland and owned by the
+// repeated player (an OpRepeatEachPlayer in progress) -- Kroxa, Titan of
+// Death's Hunger's RepeatEach body gate, Remembered$Valid
+// Card.nonLand+RememberedPlayerOwn, read 1 when that opponent discarded a
+// nonland card this way. No parameters. The iota tail stays untouched.
+const ExRemEachOwnNonLand ExprKind = 65
+
 // ExIfCastOwnMain (high expr kind): Sub[0] if the resolving or announcing
 // spell was cast, is read in a main phase and its controller is the active
 // player, else Sub[1] (gorge Count$IfCastInOwnMainPhase.<yes>.<no>). The read

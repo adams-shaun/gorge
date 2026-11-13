@@ -290,6 +290,11 @@ func countSupport(t *testing.T, cardsDir, list string, s *supportLists) supportC
 	return r
 }
 
+// supportDraftLists are the tracked lists in dirac/cardset/setlists that are a
+// draft pool rather than a Standard set: the support page counts them beside the
+// Standard sets.
+var supportDraftLists = []string{"MBC"}
+
 // supportDoc renders the support page from this binary's lists and a lowering of
 // every Standard list and the whole corpus.
 func supportDoc(t *testing.T, cardsDir string) []byte {
@@ -313,11 +318,11 @@ func supportDoc(t *testing.T, cardsDir string) []byte {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, list := range append(codes, "ALL") {
+	for _, list := range append(append(codes, supportDraftLists...), "ALL") {
 		r := countSupport(t, cardsDir, list, s)
 		fmt.Fprintf(&b, "| %s | %d | %d | %d | %d | %d | %d |\n", r.list, r.cards, r.lowered, r.refused, r.unverified, r.supported, r.fourSeat)
 	}
-	b.WriteString("\n`ALL` is the whole corpus; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.\n\n## What supported covers\n\n")
+	b.WriteString("\n`ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.\n\n## What supported covers\n\n")
 	b.WriteString("Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per Standard set: 1,500 pairs each, seed 1, the random policy, both surfaces, mulligans 0 and 1, every run passing `kfuzz -absolute`. A synthetic pool deals its decks from the cards it plays, so no pair is lost to a refused card; it skips only a pair the kernel refuses together, so it can play fewer games, and its cards met the floor in these:\n\n| pool | games per run |\n|---|---:|\n")
 	games, err := os.ReadFile(filepath.Join(testRoot, "dirac", "support", "evidence-games.tsv"))
 	if err != nil {
@@ -348,6 +353,7 @@ func supportDoc(t *testing.T, cardsDir string) []byte {
 }
 
 func TestSupportDocIsCurrent(t *testing.T) {
+	heavyParallel(t)
 	cardsDir := ratchetCards(t)
 	got := supportDoc(t, cardsDir)
 	file := path.Join(testRoot, supportDocPath)

@@ -246,12 +246,13 @@ func (lc *lowerCtx) checkEachPlCtrl(expr string, f *lFilter) error {
 }
 
 // eachPlSVarOK reports whether the SVar body named by a RepeatEach body
-// param reads the Remembered player only through the two reads above:
-// <PlayerCountRemembered$... | Count$Valid[Hand|Library|Graveyard]
-// ...RememberedPlayerCtrl|RememberedPlayerOwn...> with at most one
-// /HalfDown, /HalfUp or /Minus.N tail, and that it lowers inside the body.
-// Anything else (Remembered$Amount, an operand SVar, ...) is not admitted
-// and keeps the caller's refusal.
+// param reads the Remembered player only through the reads above plus the
+// two exact parameterless reads: <PlayerCountRemembered$... |
+// Count$Valid[Hand|Library|Graveyard] ...RememberedPlayerCtrl|
+// RememberedPlayerOwn... | Remembered$Valid Card.nonLand+
+// RememberedPlayerOwn> with at most one /HalfDown, /HalfUp or /Minus.N
+// tail, and that it lowers inside the body. Anything else (Remembered$Amount,
+// an operand SVar, ...) is not admitted and keeps the caller's refusal.
 func (lc *lowerCtx) eachPlSVarOK(body string) bool {
 	b := strings.TrimSpace(body)
 	for _, t := range []string{"/HalfDown", "/HalfUp"} {
@@ -260,7 +261,12 @@ func (lc *lowerCtx) eachPlSVarOK(body string) bool {
 	if head, n, ok := strings.Cut(b, "/Minus."); ok && n != "" && strings.Trim(n, "0123456789") == "" {
 		b = head // Doomsday Excruciator's all-but-six
 	}
+	admitRem := false
+	if _, ok := remEachOwnNonLand(strings.TrimPrefix(b, "Remembered$")); ok {
+		admitRem, b = true, "" // Kroxa's exact read; the trial below proves it lowers
+	}
 	switch {
+	case admitRem:
 	case strings.HasPrefix(b, "PlayerCountRemembered$"):
 		b = strings.TrimPrefix(b, "PlayerCountRemembered$")
 	case strings.HasPrefix(b, "Count$Valid "), strings.HasPrefix(b, "Count$ValidHand "), strings.HasPrefix(b, "Count$ValidLibrary "), strings.HasPrefix(b, "Count$ValidGraveyard "):
@@ -282,6 +288,21 @@ func (lc *lowerCtx) eachPlSVarOK(body string) bool {
 	defer func() { lc.repeatPl-- }()
 	_, err := lc.svarValue(body, 0)
 	return err == nil
+}
+
+// remEachOwnNonLand matches exactly the gate read of Kroxa, Titan of Death's
+// Hunger's RepeatEach body: "the remembered cards that are nonland and owned
+// by the repeated opponent" (Remembered$Valid
+// Card.nonLand+RememberedPlayerOwn; gorge effRepeatEach binds the repeated
+// player as Remembered, so X is 1 exactly when that opponent discarded a
+// nonland card this way). It returns the parameterless vRemEachOwnNonLand
+// read, admitted only inside a RepeatEach player body. Nothing else is
+// admitted.
+func remEachOwnNonLand(rest string) (lValue, bool) {
+	if rest == "Valid Card.nonLand+RememberedPlayerOwn" {
+		return lValue{Kind: vRemEachOwnNonLand}, true
+	}
+	return lValue{}, false
 }
 
 // eachOtherRevealMV matches exactly the two spellings of "the mana value of

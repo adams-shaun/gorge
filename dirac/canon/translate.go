@@ -228,6 +228,8 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ = CastModeCode("offspring") // the kicked cast of an Offspring card (kw_offspring.go)
 		case mode&1 != 0 && r.S.FeatBuybackCast(dirac.Obj(src)):
 			cm, _ = CastModeCode("buyback") // the kicked cast of a Buyback card (kw_buyback.go): CastModeOther, as "offspring"
+		case mode&1 != 0 && r.S.FeatEntwineCast(dirac.Obj(src)):
+			cm, _ = CastModeCode("entwined") // the kicked cast of an Entwine card (kw_entwine.go): CastModeOther, as "buyback"
 		case mode&1 != 0:
 			cm, _ = CastModeCode("kicked")
 		case mode&2 != 0 && tgt == dirac.FeatEscapeTgt:
@@ -1003,6 +1005,9 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		// gorge's counter_kind pick (removeCounterAny), compared by the
 		// counter kind (mode), not gorge's carrier-order position
 		return Pack(kind("counter"), RefNone, RefNone, mode), true
+	case dirac.ChGenPlayer:
+		// gorge effChoosePlayer's "player" option names the seat
+		return Pack(kind("player"), RefNone, RefPlayer+Ref(mode), 0), true
 	case dirac.ChGenColor:
 		// gorge indexes its colour options densely: with an Exclude$
 		// colour dropped (Citadel Gate) the index is the colour's rank

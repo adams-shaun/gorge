@@ -1040,7 +1040,12 @@ func (e *Engine) validateBlockers(d *decision.Decision, in decision.Intent) erro
 	if err := e.validateAloneDeclaration(chosen, false); err != nil {
 		return err
 	}
-	return nil
+	// CR 509.1b: a BlockRestrict ceiling on the defender's blocker count.
+	ids := make([]state.ObjID, 0, len(chosen))
+	for _, o := range chosen {
+		ids = append(ids, o.Obj)
+	}
+	return combat.ValidateBlockRestrict(asBoard(e), d.Player, ids)
 }
 
 // blockPairScope is the per-defender pair admissibility ONE declare-blockers
@@ -1201,12 +1206,19 @@ func (e *Engine) askBlockers() {
 		// "if able" half is decided by the offer, never asserted here.
 		// The Lure sentence (CR 509.1c) is the per-pair sibling: every
 		// offered pair with no block charge is a duty to block that attacker.
+		// "must be blocked by two or more creatures if able" (Gorm the
+		// Great) is the attacker's second unit: obeyed by a second blocker,
+		// counted per attacker by the same solver.
 		mustBeBlocked := make(map[state.ObjID]bool, len(scope.attackers))
+		mustBeBlockedTwo := make(map[state.ObjID]bool, len(scope.attackers))
 		lure := make(map[state.ObjID]bool, len(scope.attackers))
 		for _, aid := range scope.attackers {
 			fl := combat.DerivedHiddenFlags(asBoard(e), aid)
 			if fl.MustBlock {
 				mustBeBlocked[aid] = true
+			}
+			if fl.MustBeBlockedByTwo {
+				mustBeBlockedTwo[aid] = true
 			}
 			if fl.AllMustBlock {
 				lure[aid] = true
@@ -1242,7 +1254,7 @@ func (e *Engine) askBlockers() {
 					Label: e.G.Obj(bid).Face().Name + " blocks " + e.G.Obj(aid).Face().Name,
 					Obj:   bid, Attacker: aid, Player: defender,
 					Group: "blocker:" + strconv.FormatUint(uint64(bid), 10), Required: mustBlockPair, BlockMust: mustBlockPair, BlockMustAll: mustBlockAllPair,
-					AttackMust: mustBeBlocked[aid],
+					AttackMust: mustBeBlocked[aid], AttackMustTwo: mustBeBlockedTwo[aid],
 					// CR 506.5: this blocker can't be declared ALONE. One
 					// fact per blocker on each of its pairs; the declaration
 					// rule counts it per declaration, not per pair.
@@ -1321,6 +1333,10 @@ func (e *Engine) askBlockers() {
 		}
 		d := &decision.Decision{Player: defender, Kind: decision.KBlockers, Min: 0, Max: len(opts),
 			Prompt: "turn " + strconv.Itoa(int(e.G.Turn)) + " — declare blockers", Options: opts, MaxSum: maxSum, PayerLife: payerLife, GroupLimits: groupLimits}
+		if !e.capBlockRestrict(d) {
+			br.cursor++
+			continue
+		}
 		// First find the maximum legal declaration with every candidate
 		// duty flagged. Publish only the required pairs in that team; the
 		// other members remain optional helpers needed to meet a Min$ bound.

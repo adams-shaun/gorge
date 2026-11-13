@@ -1,6 +1,6 @@
 # Bot comparison
 
-Every bot `gorged` serves, side by side. The registry is `bots/registry.go`, as `cmd/gorged` links it: the six built-ins of
+Every bot `gorged` serves, side by side. The registry is `bots/registry.go`, as `cmd/gorged` links it: the seven built-ins of
 `bots/all`, the experimental search, SpellBench and cast-profile policies, and the three network policies, which register only when
 a server names their network. A test keeps this table in step with it (`cmd/gorged/docs_table_test.go`). Costs are measured on gorge, 2026-10-31, from [Bot speed](../performance/bots.md). The code behind each verdict is on
 [Each bot in detail](catalogue.md).
@@ -13,6 +13,7 @@ a server names their network. A test keeps this table in step with it (`cmd/gorg
 | `lethal-pressure` | The older heuristic: an attack-into-lethal rule, no combat simulation, a coin-flip mulligan | gorge, dirac | any, human or bot | not measured | fair |
 | `sb-tactical` | SpellBench's scored tactical heuristic, pricing plays through a redealt root | gorge, dirac | bot-only, 2 seats | not measured | fair on hidden cards, but reads every seat's decklist |
 | `az-redeal` | AlphaZero-style tree search, 100 simulations per decision, no network | gorge only | bot-only, 2 seats | about 106 ms per searched decision | fair on hidden cards (determinised redeal), but reads every seat's decklist |
+| `az-redeal-maxn` | `az-redeal` with the opponents' decision points in its tree, each opponent maximising its own value there (max^n), not all of them ganging up | gorge only | bot-only, up to 4 seats | about 106 ms per searched decision (2-seat; 4-seat pod cost unmeasured) | fair on hidden cards (determinised redeal), but reads every seat's decklist |
 | `cast-profile` | `bot` playing from a cast profile; the embedded default is intent-identical to `bot` | gorge | any, human or bot | as `bot` (declared) | fair: sees only its redacted view |
 | `sb-first` | SpellBench's first-option builtin | gorge | bot-only, 2 seats | negligible (declared) | fair on hidden cards, but reads every seat's decklist |
 | `sb-uniform` | SpellBench's uniform-random builtin | gorge | bot-only, 2 seats | negligible (declared) | fair on hidden cards, but reads every seat's decklist |
@@ -41,6 +42,7 @@ packages offer them.
 | `lethal-pressure` | constructed and Commander, any | yes; `gorged`'s default `-bot-policy` | [`bots/lethalpressure`](https://github.com/adams-shaun/gorge/blob/main/bots/lethalpressure/lethalpressure.go) |
 | `sb-tactical` | constructed, 2 | no: reads every seat's decklist | [`bots/sbtactical`](https://github.com/adams-shaun/gorge/blob/main/bots/sbtactical/sbtactical.go) |
 | `az-redeal` | constructed, 2 | no: reads every seat's decklist | [`bots/azredeal`](https://github.com/adams-shaun/gorge/blob/main/bots/azredeal/azredeal.go) |
+| `az-redeal-maxn` | constructed and Commander, up to 4 | no: reads every seat's decklist | [`bots/azredeal`](https://github.com/adams-shaun/gorge/blob/main/bots/azredeal/azredeal.go) |
 | `cast-profile` | constructed and Commander, any | yes | [`bots/castprofile`](https://github.com/adams-shaun/gorge/blob/main/bots/castprofile/castprofile.go) |
 | `sb-first`, `sb-uniform`, `sb-heuristic` | constructed, 2 | no: reads every seat's decklist | [`bots/sbbuiltin`](https://github.com/adams-shaun/gorge/blob/main/bots/sbbuiltin/sbbuiltin.go) |
 | `sb-search-lite-atk` | constructed, 2 | no: reads every seat's decklist | [`bots/sbsearch`](https://github.com/adams-shaun/gorge/blob/main/bots/sbsearch/sbsearch.go) |

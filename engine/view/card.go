@@ -133,6 +133,16 @@ type CardView struct {
 	// attach rules read it to hold a boon Aura while the caster controls no
 	// creature that could use it.
 	AuraLogic string `json:"aura_logic,omitempty"`
+	// NameKeyedSelfMill reports a spell that digs its caster's own library
+	// away until a card matches a name (effects.CastNameKeyedSelfMill), and
+	// EmptyLibraryWin how the card wins for a player with an empty library
+	// (effects.EmptyLibraryWin). Printed-face facts the bot's self-mill
+	// guard reads.
+	NameKeyedSelfMill bool  `json:"name_keyed_self_mill,omitempty"`
+	EmptyLibraryWin   uint8 `json:"empty_library_win,omitempty"`
+	// PayOrLoseCost is the mana the caster must pay at their next upkeep or
+	// lose the game (effects.CastPayOrLoseCost: the Pact cycle).
+	PayOrLoseCost string `json:"pay_or_lose_cost,omitempty"`
 	// ColourIdentity is the card's colour IDENTITY mask (cards.ColourMask:
 	// the printed cost's pips, the colour indicator and every colour-naming
 	// mana symbol in the rules text -- CR 903.4's definition, the same one
@@ -353,6 +363,8 @@ type projector struct {
 	// memo (projScratch).
 	types *typeCache
 	text  *textMemo
+	// perm is the projection's reusable index scratch (projScratch.perm).
+	perm *[]int32
 	// looker is ch's optional MayLookAt$ read over a face-down exiled card
 	// (rules.Engine.MayLookAtFaceDown: a live Continuous MayLookAt$ static
 	// whose Affected$ spec matches the card names that seat), nil when ch
@@ -375,7 +387,7 @@ type projector struct {
 }
 
 func newProjector(g *state.Game, ch Chars, viewer state.PlayerID, sc *projScratch) projector {
-	p := projector{g: g, ch: ch, viewer: viewer, types: &sc.types, text: &sc.text}
+	p := projector{g: g, ch: ch, viewer: viewer, types: &sc.types, text: &sc.text, perm: &sc.perm}
 	p.effective, _ = ch.(interface {
 		SpellEffectiveCost(state.PlayerID, state.ObjID) string
 	})
@@ -814,6 +826,8 @@ func (p *projector) cardView(cv *CardView, id state.ObjID) {
 		cv.ColourIdentity = cards.ColourMask(f.ColourIdentity())
 		cv.PlayMain1 = f.PlayMain1Hint()
 		cv.RemoveDeck = f.RemoveDeck != ""
+		cv.NameKeyedSelfMill, cv.EmptyLibraryWin = effects.CastNameKeyedSelfMill(f), effects.EmptyLibraryWin(f)
+		cv.PayOrLoseCost = effects.CastPayOrLoseCost(f)
 		// The spell-ability API projection: the card's own SP$ line, the
 		// same fact boardFromGame reads for the casting census. Empty when
 		// the card has no spell ability (a creature, a land, a permanent
@@ -951,6 +965,9 @@ func (c *typeCache) join(parts []string) string {
 type projScratch struct {
 	types typeCache
 	text  textMemo
+	// perm is unorderedLibrary's sort permutation: plain indices, every
+	// entry rewritten before it is read.
+	perm []int32
 }
 
 // textMemo is a small direct-mapped memo of derived display text (a

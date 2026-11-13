@@ -39,6 +39,12 @@ import (
 // the other leaves zero would be a bot that casts differently depending on
 // who asked.
 type Card struct {
+	// PrintedName is the card's CURRENT name (CardView.Name): a transformed
+	// or back-face-played double-faced card's current face (CR 712.8d-e), a
+	// copy's copiable name (CR 707.2), a layer-3 SetName$ binding. Empty
+	// for a face-down permanent on another seat's battlefield. Its readers
+	// compare it with a card's name as a rule does (Obstinate Familiar's
+	// replacement; the mulligan's hand-card copies).
 	PrintedName string
 	Creature    bool
 	Power       int32
@@ -266,6 +272,21 @@ type Card struct {
 	// effects.CastAuraLogic on the game half); the opt-in A5 HoldOwnAura
 	// rule reads it.
 	AuraLogic string
+	// NameKeyedSelfMill reports a spell that digs its caster's own library
+	// away until a card matches a name (effects.CastNameKeyedSelfMill:
+	// Demonic Consultation, Tainted Pact), and EmptyLibraryWin how the card
+	// wins for a player with an empty library (effects.EmptyLibraryWin:
+	// Thassa's Oracle, Laboratory Maniac). Both adapter halves fill them from
+	// the same printed-face facts (CardView.NameKeyedSelfMill and
+	// CardView.EmptyLibraryWin on the view half); the self-mill guard
+	// (selfmill.go) reads them.
+	NameKeyedSelfMill bool
+	EmptyLibraryWin   uint8
+	// PayOrLoseCost is the mana the caster must pay at their next upkeep or
+	// lose the game (effects.CastPayOrLoseCost: Summoner's Pact), empty for
+	// any other card; CardView.PayOrLoseCost on the view half. The pay-or-
+	// lose guard (selfmill.go) reads it.
+	PayOrLoseCost string
 }
 
 // braceForm normalises a brace-form mana cost ("{2}{U}{U}") to the
@@ -889,9 +910,10 @@ func (b Board) chooseCast(d *decision.Decision) int {
 			continue
 		}
 		// AIHints: a card carrying Forge's RemoveDeck hint is never chosen
-		// while the opt-in rule is armed. The zero value reads no hint and
-		// leaves the ranking untouched.
-		if b.aiHintsVetoCast(card) {
+		// while the opt-in rule is armed (the zero value reads no hint); the
+		// self-mill guard (selfmill.go) refuses a name-keyed self-mill that
+		// cannot win.
+		if b.castVetoed(card) {
 			continue
 		}
 		if b.diesAtZeroX(*o) {
@@ -1256,7 +1278,7 @@ func (b Board) castEntries(d *decision.Decision, foreignSpell bool) []castEntry 
 		}
 		// AIHints: the cast veto applies to C11's candidate table too, so a
 		// SetValue subset search cannot price a card chooseCast refuses.
-		if b.aiHintsVetoCast(b.Cards.Get(o.Obj)) || b.diesAtZeroX(*o) {
+		if b.castVetoed(b.Cards.Get(o.Obj)) || b.diesAtZeroX(*o) {
 			continue
 		}
 		if !b.removalNow(d, *o) {

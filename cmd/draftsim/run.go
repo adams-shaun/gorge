@@ -11,6 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/bots"
 	_ "github.com/adams-shaun/gorge/bots/all" // link every built-in hosted policy
 	"github.com/adams-shaun/gorge/draft/event"
+	"github.com/adams-shaun/gorge/draft/limited"
 	"github.com/adams-shaun/gorge/draft/limited/pickbot"
 	"github.com/adams-shaun/gorge/draft/limited/setdata"
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -36,6 +37,11 @@ type runner struct {
 	// never sets it.
 	noGames bool
 	out     io.Writer
+	// packs, when non-nil, replaces openPacks as the event's pack source:
+	// the tests' synthetic 20-card Commander-draft packs.
+	packs func(r *runner, seed uint64) ([][][]limited.CardRef, error)
+	// valueLog, when non-nil, takes one -valuelog line per pod game.
+	valueLog io.Writer
 }
 
 // result is what one run produced, in the shape the tests assert on.
@@ -139,8 +145,28 @@ func run(o options, out io.Writer) (*result, error) {
 	if err != nil {
 		return nil, err
 	}
+	if sh.format == event.FormatCommander {
+		r.drafter, r.builder = commanderPersona(lookup)
+	}
 	if err := applyRatingsOverride(o, r, out); err != nil {
 		return nil, err
+	}
+	if o.pickExplore < 0 || o.pickExplore > 1 {
+		return nil, fmt.Errorf("-pick-explore must be in [0, 1], got %g", o.pickExplore)
+	}
+	if o.pickExplore > 0 {
+		r.drafter = &exploreDrafter{inner: r.drafter, p: o.pickExplore}
+	}
+	if o.valueLog != "" {
+		if sh.format != event.FormatCommander {
+			return nil, fmt.Errorf("-valuelog needs -format commander")
+		}
+		vf, err := os.OpenFile(o.valueLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+		if err != nil {
+			return nil, fmt.Errorf("opening -valuelog %s: %w", o.valueLog, err)
+		}
+		defer vf.Close()
+		r.valueLog = vf
 	}
 
 	var csvOut *os.File
@@ -167,16 +193,23 @@ func run(o options, out io.Writer) (*result, error) {
 		// The header line is the stable contract the tests parse. The
 		// default flags keep it exactly as it has always been; the
 		// non-default shape values are appended as `, key value` pairs.
-		fmt.Fprintf(out, "event %d: seed %d, set %s (%s), %s", n+1, seed, spec.Code, spec.Collation, personaHeader(o.drafter, dLabel, o.builder, bLabel))
+		if sh.format == event.FormatCommander {
+			fmt.Fprintf(out, "event %d: seed %d, set %s (%s), format commander, seats %d, %d picks per pass, %d game(s)", n+1, seed, spec.Code, spec.Collation, sh.seats, sh.picks, sh.rounds)
+		} else {
+			fmt.Fprintf(out, "event %d: seed %d, set %s (%s), %s", n+1, seed, spec.Code, spec.Collation, personaHeader(o.drafter, dLabel, o.builder, bLabel))
+		}
 		if sh.promos > 0 {
 			fmt.Fprint(out, ", mode prerelease")
 		} else if sh.mode == event.ModeSealed {
 			fmt.Fprint(out, ", mode sealed")
 		}
-		if sh.seats != 4 {
+		if sh.seats != 4 && sh.format == "" {
 			fmt.Fprintf(out, ", seats %d", sh.seats)
 		}
-		if sh.structure != event.StructureRoundRobin {
+		if sh.picks > 1 && sh.format == "" {
+			fmt.Fprintf(out, ", %d picks per pass", sh.picks)
+		}
+		if sh.structure != event.StructureRoundRobin && sh.format == "" {
 			fmt.Fprintf(out, ", structure %s", sh.structure)
 		}
 		fmt.Fprintln(out)
@@ -318,6 +351,16 @@ func verifyEvent(r *runner, seed uint64, logBytes []byte) error {
 		return fmt.Errorf("event log replay carries seed %d, want %d", ev.Seed(), seed)
 	}
 	for _, en := range ev.Log() {
+		if en.Kind == event.KindPodGameEnded {
+			head, err := replayPodGameHead(r, ev, en.Round)
+			if err != nil {
+				return fmt.Errorf("pod game %d: %w", en.Round, err)
+			}
+			if head != en.Head {
+				return fmt.Errorf("pod game %d: replayed chain head %s, log has %s", en.Round, head, en.Head)
+			}
+			continue
+		}
 		if en.Kind != event.KindGameEnded {
 			continue
 		}

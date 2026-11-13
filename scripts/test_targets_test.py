@@ -146,8 +146,8 @@ LEAF_TEST = ["package leaf", "", "import \"testing\"", "", "func helper() {}", "
              "// TestTwo does it.", "func TestTwo(t *testing.T) {", "\tb()", "}"]
 
 
-def planned(changes, files=None):
-    res, skipped = tt.plan(changes, DIRMAP, DEPS, lambda p: (files or {}).get(p, []))
+def planned(changes, files=None, repro_names=None):
+    res, skipped = tt.plan(changes, DIRMAP, DEPS, lambda p: (files or {}).get(p, []), repro_names)
     return {p: (k, rx) for k, p, rx in res}, skipped
 
 
@@ -551,6 +551,81 @@ def test_smart_lane_wait_above_1500_is_clamped(tmp_path, smart_repo):
     # a value the environment cannot make sense of falls back to 1500 silently
     _, _, err2 = wrapper(repo, "smart", env=dict(env, GORGE_TEST_LANE_WAIT="soon", FORCE="1"))
     assert "clamped" not in err2
+
+
+# ---- oracle repro recordings run their own tests, not the whole package -----------------------------
+
+def test_oracle_repro_recording_change_runs_the_repro_tests_not_the_whole_package():
+    path = "dirac/oracle/testdata/repro/x.repro.json"
+    assert tt.pkg_of(path, DIRMAP) == "m/dirac/oracle"  # the precondition: the file maps to the heavy package
+    got, _ = planned({path: None})
+    kind, rx = got["./dirac/oracle"]
+    assert kind == "named"
+    for family in ("TestReproCompactRoundTrip", "TestReproGlobMatchesTable", "ReprosLockstep"):
+        assert family in rx
+    assert "Census" in rx
+
+
+def test_oracle_repro_change_beside_a_named_test_keeps_both():
+    got, _ = planned({"dirac/oracle/testdata/repro/x.repro.json": None, "dirac/oracle/x_test.go": [(7, 7)]},
+                     {"dirac/oracle/x_test.go": LEAF_TEST})
+    kind, rx = got["./dirac/oracle"]
+    assert kind == "named" and rx.startswith("^(TestOne)$|") and "ReprosLockstep" in rx
+
+
+def test_oracle_non_repro_fixture_still_runs_whole():
+    path = "dirac/oracle/testdata/pins/x.json"
+    assert tt.pkg_of(path, DIRMAP) == "m/dirac/oracle"
+    assert planned({path: None})[0]["./dirac/oracle"][0] == "whole"
+    # a repro change alongside such a fixture still needs the whole package
+    both = planned({path: None, "dirac/oracle/testdata/repro/x.repro.json": None})[0]
+    assert both["./dirac/oracle"][0] == "whole"
+
+
+def test_engine_rules_testdata_change_still_runs_whole():
+    path = "engine/rules/testdata/repro/x.repro.json"
+    assert tt.pkg_of(path, DIRMAP) == "m/engine/rules"
+    assert planned({path: None})[0]["./engine/rules"][0] == "whole"
+
+
+def test_oracle_repro_change_runs_the_tests_that_name_the_recording():
+    # A re-recorded custom-pool recording leaves its reader's _test.go unchanged, so plan() takes the
+    # reader's tests from repro_named (repro_named itself is pinned in the repo test below).
+    recording = "dirac/oracle/testdata/repro/a_ready_to_rumble_damages_a_shielded_creature.repro.json"
+    reader = (HERE.parent / "dirac/oracle/cantprevent_test.go").read_text()
+    assert "a_ready_to_rumble_damages_a_shielded_creature" in reader  # the precondition: a reader names it
+    got, _ = planned({recording: None}, repro_names={"m/dirac/oracle": {"TestCantPreventRecord", "TestCantPreventReprosReach"}})
+    kind, rx = got["./dirac/oracle"]
+    assert kind == "named"
+    for name in ("TestCantPreventRecord", "TestCantPreventReprosReach", "TestReproCompactRoundTrip", "TestReproGlobMatchesTable", "ReprosLockstep"):
+        assert name in rx
+    assert "Census" in rx
+
+
+def test_repro_names_for_a_untouched_package_add_nothing():
+    got, _ = planned({}, repro_names={"m/dirac/oracle": {"TestOne"}})
+    # names merge only into a package the diff touched; the always-run guards still name the oracle package
+    assert "TestOne" not in got.get("./dirac/oracle", ("", ""))[1]
+
+
+def test_repro_named_maps_a_recording_to_its_reader(repo):
+    (repo / "dirac/oracle/testdata/repro").mkdir(parents=True)
+    (repo / "dirac/oracle/testdata/repro/foo.repro.json").write_text("{}")
+    (repo / "dirac/oracle").mkdir(parents=True, exist_ok=True)
+    (repo / "dirac/oracle/x_test.go").write_text(
+        "package oracle\n\nvar cases = []struct{ name string }{{\"foo\"}}\n\nfunc TestFooReprosReach(t *testing.T) {}\n")
+    (repo / "dirac/oracle/other_test.go").write_text("package oracle\n\nfunc TestBarReprosReach(t *testing.T) {}\n")
+    sh = lambda *a: subprocess.run(a, cwd=repo, check=True, capture_output=True)
+    sh("git", "add", "dirac/oracle")
+    changes = {"dirac/oracle/testdata/repro/foo.repro.json": None}
+    got = tt.repro_named(changes, {"dirac/oracle": "m/dirac/oracle"},
+                         lambda p: (repo / p).read_text().splitlines(), cwd=str(repo))
+    assert got == {"m/dirac/oracle": {"TestFooReprosReach"}}  # the reader file's tests, not the other file's
+    # a recording no test file names maps to nothing: the fallback families cover it
+    (repo / "dirac/oracle/testdata/repro/bar.repro.json").write_text("{}")
+    got = tt.repro_named({"dirac/oracle/testdata/repro/bar.repro.json": None}, {"dirac/oracle": "m/dirac/oracle"},
+                         lambda p: (repo / p).read_text().splitlines(), cwd=str(repo))
+    assert got == {}
 
 
 def test_smart_step_3_names_the_guard_tests_and_finds_their_packages():

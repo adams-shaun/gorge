@@ -154,6 +154,25 @@ type Model struct {
 	VOutW       []float32 // ValueHidden
 	VOutB       float32
 
+	// The K-way value head, on top of the same hidden layer (VHidW/VHidB):
+	// a softmax over ValueK components read off the same trunk, component c
+	// the probability of the c-th outcome. ValueK 0 means the scalar head
+	// above (VOutW/VOutB) and the two slices here are empty. ValueK > 0
+	// means the scalar blocks are UNUSED — the forward passes never read
+	// them, whatever they carry (a model that grew the K-way head out of a
+	// scalar one, or a loaded checkpoint, keeps the stale values) — Value
+	// is component 0 of the softmax (P(me), the viewer's own relative seat)
+	// and ValueVec is the whole vector. The head's outcome order is the
+	// TRAINING target's contract (set by the trainer's checkpoint, not
+	// here): components 0..K-2 in relative seat order from the viewer —
+	// component c the seat c seats after the viewer in turn order — and
+	// component K-1 that no seat wins. Until a component exists it is
+	// trained to ~0, so a game with fewer seats than K-1 loses no mass it
+	// carries (Model.ValueVec's doc).
+	ValueK int
+	VOutWK []float32 // ValueK*ValueHidden, row-major: VOutWK[c*ValueHidden+k]
+	VOutBK []float32 // ValueK
+
 	// The ENTITY encoder (entity.go; FeaturesEntity only):
 	// EntK 0 means none, and then the three blocks are empty and InW is the
 	// pinned geometry. With EntK > 0 the hidden input grows by 2·EntK (the
@@ -177,6 +196,18 @@ type Model struct {
 type External interface {
 	Score(st State, opts []Option) []float32
 	Value(st State) float32
+}
+
+// VectorValuer is the optional extension of External for a scorer with a
+// K-way value head: ValueVec is Model.ValueVec's contract on the same
+// encoded state. A Model's Ext is checked for it by type assertion
+// (Model.ValueVec), so every existing External — with only Score and Value,
+// a scalar value head — keeps compiling and behaving unchanged, and a
+// caller that wants the vector falls back to the scalar when the assertion
+// fails.
+type VectorValuer interface {
+	External
+	ValueVec(st State) []float32
 }
 
 // NewExternal is a Model whose Score and Value are ext's, encoding under fs.
@@ -203,12 +234,11 @@ func (m *Model) InitValue(valueHidden int, rng *rand.Rand) {
 	fillUniform(m.VOutW, glorot(valueHidden, 1), rng)
 }
 
-// valueForward runs the value head on a state trunk s, writing the hidden
-// activations into a (len ValueHidden) and returning the pre-sigmoid logit.
-// The summation order is fixed (VHidB first, then j ascending; VOutB first,
-// then k ascending) and shared by Model.Value, the loss and Scorer.Value, so
-// all three read bit-identical logits.
-func (m *Model) valueForward(s, a []float32) float32 {
+// valueHidden runs the value head's hidden layer on a state trunk s,
+// writing the activations into a (len ValueHidden). The summation order is
+// fixed (VHidB first, then j ascending) and shared by the scalar and the
+// K-way head, so both read the same activations.
+func (m *Model) valueHidden(s, a []float32) {
 	for k := 0; k < m.ValueHidden; k++ {
 		sum := m.VHidB[k]
 		row := m.VHidW[k*m.H : (k+1)*m.H]
@@ -221,6 +251,17 @@ func (m *Model) valueForward(s, a []float32) float32 {
 			a[k] = 0
 		}
 	}
+}
+
+// valueForward runs the scalar value head on a state trunk s, writing the
+// hidden activations into a (len ValueHidden) and returning the pre-sigmoid
+// logit. The summation order is fixed (VHidB first, then j ascending; VOutB
+// first, then k ascending) and shared by Model.Value, the loss and
+// Scorer.Value, so all three read bit-identical logits. A K-way head model
+// never reaches here: its scalar blocks are unused (ValueK's doc), and
+// every caller branches to the vector head first.
+func (m *Model) valueForward(s, a []float32) float32 {
+	m.valueHidden(s, a)
 	z := m.VOutB
 	for k, ak := range a {
 		if ak != 0 {
@@ -230,11 +271,65 @@ func (m *Model) valueForward(s, a []float32) float32 {
 	return z
 }
 
+// valueVecOut writes the K-way head's K pre-softmax logits into z (len
+// ValueK) from the hidden activations a: component c's logit sums VOutBK[c]
+// first, then the hidden units ascending, skipping zero activations — the
+// same order valueForward fixes for the scalar head.
+func (m *Model) valueVecOut(a, z []float32) {
+	for c := range z {
+		sum := m.VOutBK[c]
+		base := c * m.ValueHidden
+		for k, ak := range a {
+			if ak != 0 {
+				sum += m.VOutWK[base+k] * ak
+			}
+		}
+		z[c] = sum
+	}
+}
+
+// valueVecForward runs the K-way value head on a state trunk s, writing the
+// hidden activations into a (len ValueHidden) and returning the K
+// pre-softmax logits in a fresh slice.
+func (m *Model) valueVecForward(s, a []float32) []float32 {
+	m.valueHidden(s, a)
+	z := make([]float32, m.ValueK)
+	m.valueVecOut(a, z)
+	return z
+}
+
+// softmaxVec is the softmax over z in float64 (the loss arithmetic's
+// precision), each logit clamped first (clampScore, so a diverged forward
+// pass stays finite the way the loss's scores do) and the max subtracted
+// (logSumExp's stability). The returned float32 probabilities sum to 1 up
+// to the float32 rounding of the division.
+func softmaxVec(z []float32) []float32 {
+	p := make([]float32, len(z))
+	max := math.Inf(-1)
+	for _, x := range z {
+		if f := clampScore(float64(x)); f > max {
+			max = f
+		}
+	}
+	sum := 0.0
+	for i, x := range z {
+		e := math.Exp(clampScore(float64(x)) - max)
+		p[i] = float32(e)
+		sum += e
+	}
+	for i := range p {
+		p[i] = float32(float64(p[i]) / sum)
+	}
+	return p
+}
+
 // Value is the value head's output V(s) ∈ (0,1): the deciding seat's win
 // probability from its own encoded (redacted) view. It allocates its own
 // scratch, so it is safe to call concurrently on a shared read-only Model. A
 // model without a value head (HasValue false) returns 0.5, the no-information
-// answer.
+// answer. A K-way head (ValueK > 0) returns component 0 of ValueVec —
+// P(me), the viewer's own relative seat's probability — bit-identical to
+// ValueVec's first entry.
 func (m *Model) Value(st State) float32 {
 	if m.Ext != nil {
 		return m.Ext.Value(st)
@@ -243,8 +338,37 @@ func (m *Model) Value(st State) float32 {
 		return 0.5
 	}
 	s := m.StateTrunk(st)
+	if m.ValueK > 0 {
+		a := make([]float32, m.ValueHidden)
+		return softmaxVec(m.valueVecForward(s, a))[0]
+	}
 	a := make([]float32, m.ValueHidden)
 	return float32(sigmoidFloat(float64(m.valueForward(s, a))))
+}
+
+// ValueVec is the K-way value head's output (ValueK > 0): K probabilities
+// in float32 summing to 1, read off the viewer's own encoded (redacted)
+// view, in the head's outcome order — components 0..K-2 the relative seats
+// from the viewer in turn order (component c the seat c seats after the
+// viewer) and component K-1 that no seat wins (the checkpoint's K set by
+// the trainer; Model's doc). It allocates its own scratch, so it is safe to
+// call concurrently on a shared read-only Model. A model without a K-way
+// head returns nil — the scalar head's answer is Value — and a Model whose
+// External is not a VectorValuer does too, so a caller falls back to the
+// scalar.
+func (m *Model) ValueVec(st State) []float32 {
+	if m.Ext != nil {
+		if vv, ok := m.Ext.(VectorValuer); ok {
+			return vv.ValueVec(st)
+		}
+		return nil
+	}
+	if m.ValueK == 0 {
+		return nil
+	}
+	s := m.StateTrunk(st)
+	a := make([]float32, m.ValueHidden)
+	return softmaxVec(m.valueVecForward(s, a))
 }
 
 // LossConfig carries the loss weights and the mode. HuberDelta is the Huber
@@ -1168,9 +1292,12 @@ func (m *Model) Loss(ex Example, lc LossConfig) StepStat {
 }
 
 // valueTermOn reports whether ex trains the value head under lc, and its
-// target.
+// target. A K-way head trains no value term yet (the vector head's loss and
+// backward are the queued trainer ticket, not this change): the guard also
+// keeps backValue, which descends the scalar output blocks, off a model
+// whose scalar blocks are inert (ValueK's doc).
 func (m *Model) valueTermOn(lc LossConfig, ex Example) (float64, bool) {
-	if lc.ValueWeight == 0 || !m.HasValue() {
+	if lc.ValueWeight == 0 || !m.HasValue() || m.ValueK > 0 {
 		return 0, false
 	}
 	return lc.ValueTarget(ex)
@@ -1187,9 +1314,11 @@ func valueBCE(w float64, z32 float32, t float64) (loss, dz float64) {
 
 // ValueLogLoss is the unweighted BCE of the model's value on ex against t
 // (the holdout readout's log loss), computed as valueBCE does. 0 on a model
-// without a value head.
+// without a value head, and on a K-way head (its readout is a
+// cross-entropy over the K outcomes, not a BCE against one target — the
+// vector head's training is out of scope).
 func (m *Model) ValueLogLoss(st State, t float64) float64 {
-	if !m.HasValue() {
+	if !m.HasValue() || m.ValueK > 0 {
 		return 0
 	}
 	z := m.valueForward(m.StateTrunk(st), make([]float32, m.ValueHidden))

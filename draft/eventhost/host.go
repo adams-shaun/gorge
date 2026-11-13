@@ -107,6 +107,13 @@ type run struct {
 	// Each human seat's armed pick timer, guarded by mu. A timer
 	// with stop == nil is not armed.
 	timers [4]pickTimer
+	// A Commander-draft event's in-flight pod game (nil when none), the
+	// attempts started per event round and each ended round's last
+	// table. Run memory, guarded by mu: a restart starts the pending
+	// round's game again.
+	pod         *podLive
+	podAttempts map[int]int
+	podTables   map[int]string
 }
 
 // subscriber is one SSE session watching this event, at its seat (-1 for a
@@ -241,7 +248,17 @@ func (r *run) prepare(lookup pickbotCardLookup) error {
 		return fmt.Errorf("set %q: %w", r.meta.Set, err)
 	}
 	r.spec = spec
+	if r.podAttempts == nil {
+		r.podAttempts = map[int]int{}
+	}
 	for s, ms := range r.meta.Seats {
+		if r.meta.commander() {
+			// Every Commander-draft seat drafts and builds with the
+			// Commander persona (a human's is its suggestion and its
+			// timed-out pick).
+			r.drafters[s], r.builders[s] = commanderPersona(lookup)
+			continue
+		}
 		persona := ms.Drafter
 		if persona == "" {
 			persona = "rating-colour"
@@ -366,9 +383,26 @@ func (h *Host) CreateEvent(req protocol.CreateEventRequest) (protocol.CreateEven
 	}
 	switch req.Format {
 	case "", formatDraft, formatSealed, formatPrerelease:
+		if hostsCommander(req.Set) {
+			h.mu.Unlock()
+			return protocol.CreateEventResponse{}, errBadRequest("eventhost: set %s is drafted only as format %s", req.Set, formatCommander)
+		}
+	case formatCommander:
+		if !hostsCommander(req.Set) {
+			h.mu.Unlock()
+			return protocol.CreateEventResponse{}, errBadRequest("eventhost: set %s has no Commander draft (sets: %s)", req.Set, strings.Join(commanderSets, ", "))
+		}
+		if req.BestOf > 1 {
+			h.mu.Unlock()
+			return protocol.CreateEventResponse{}, errBadRequest("eventhost: a Commander draft plays one free-for-all game per round, not best_of %d", req.BestOf)
+		}
+		if req.Rebuild != nil && *req.Rebuild {
+			h.mu.Unlock()
+			return protocol.CreateEventResponse{}, errBadRequest("eventhost: a Commander draft does not rebuild")
+		}
 	default:
 		h.mu.Unlock()
-		return protocol.CreateEventResponse{}, errBadRequest("eventhost: format must be draft, sealed or prerelease, got %q", req.Format)
+		return protocol.CreateEventResponse{}, errBadRequest("eventhost: format must be draft, sealed, prerelease or commander, got %q", req.Format)
 	}
 	// The pick-timer mode is a bounded create option, decided here
 	// from the seat list, never echoed straight into the meta.
@@ -422,9 +456,17 @@ func (h *Host) CreateEvent(req protocol.CreateEventRequest) (protocol.CreateEven
 				name = h.opts.DefaultPolicy
 			}
 			policy, perr := h.botPolicy(name)
+			if perr == nil && req.Format == formatCommander {
+				perr = h.podPolicy(policy)
+			}
 			if perr != nil {
 				h.mu.Unlock()
 				return protocol.CreateEventResponse{}, perr
+			}
+			if req.Format == formatCommander {
+				ms.Policy, ms.Drafter = policy, commanderDrafter
+				ms.Name = fmt.Sprintf("Bot %d (%s)", s+1, policy)
+				break
 			}
 			drafter := cs.Drafter
 			if drafter == "" {
@@ -478,6 +520,7 @@ func (h *Host) CreateEvent(req protocol.CreateEventRequest) (protocol.CreateEven
 		seriesTable: map[[2]int]host.TableID{},
 		waiters:     map[host.TableID]waiter{},
 		justDraft:   false,
+		podAttempts: map[int]int{},
 	}
 	r.createdAt = m.CreatedAt
 	r.lastAct = [draft.Seats]time.Time{m.CreatedAt, m.CreatedAt, m.CreatedAt, m.CreatedAt}

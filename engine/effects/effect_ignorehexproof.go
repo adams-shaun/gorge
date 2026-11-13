@@ -10,6 +10,9 @@ import (
 // Tower's targeting exception and Hall of Echoes' legend-rule exemption are
 // two supported modes delivered this way.
 func effectUnsupportedStatic(h Host, c *Ctx, mode string, params staticLineParams, name, rawDur, dur, what string, remembered []state.ObjID, sa *cards.SA) bool {
+	if effectCombatStatic(h, c, mode, params, name, rawDur, dur, remembered) {
+		return true
+	}
 	if mode == ModeIgnoreHexproof && len(params["ValidEntity"]) > 0 &&
 		staticKeysReadable(params, "Mode", "Activator", "ValidEntity", "Description") {
 		effectContinuous(h, state.ContinuousEffect{

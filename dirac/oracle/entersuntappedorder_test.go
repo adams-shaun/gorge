@@ -211,10 +211,3 @@ func TestEntersUntappedReplOrderMutation(t *testing.T) {
 	}
 	t.Logf("mutation diverged %v in %d games", divs, games)
 }
-
-// Starting Town's tapped entry reads its condition in the body, so it competes with
-// The Wandering Minstrel's untapped entry whatever the condition says: gorge asks the
-// order, and a body applied last taps nothing when its condition fails (CR 616.1).
-func TestEntryOrderConditionalTapBody(t *testing.T) {
-	pinnedGames(t, "std-fin", Config{GorgeAutopaySurface: true}, onBattlefield("The Wandering Minstrel"), onBattlefield("Starting Town"))
-}

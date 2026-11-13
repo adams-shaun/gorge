@@ -46,6 +46,13 @@ func commanderPairOK(a, b *cards.Card) bool {
 	return deck.IsCommanderPair(a, b)
 }
 
+// draftCommanderPairOK is the Commander-draft seating gate Config.
+// DraftPartners opts into: any legal pair, or two commanders that each have
+// plain partner or may be treated as having it (deck.IsDraftCommanderPair).
+func draftCommanderPairOK(a, b *cards.Card) bool {
+	return deck.IsDraftCommanderPair(a, b)
+}
+
 // legalCommandersFor validates seat i's configured commander list against
 // the deck-construction rules (CR 903.4/903.13) and returns the indices
 // that MAY be seated, in Config order: a single commander must be a
@@ -91,7 +98,7 @@ func (c *Config) legalCommandersFor(i, deckLen int, deck []*cards.Card) []int {
 		inRange := func(x int) bool { return x >= 0 && x < len(deck) && deck[x] != nil }
 		if !inRange(a) || !inRange(b) {
 			_, reject = bad("is not a card this deck carries")
-		} else if !commanderPairOK(deck[a], deck[b]) {
+		} else if !commanderPairOK(deck[a], deck[b]) && !(c.DraftPartners && draftCommanderPairOK(deck[a], deck[b])) {
 			_, reject = bad("is not a legal commander pair")
 		}
 	default:

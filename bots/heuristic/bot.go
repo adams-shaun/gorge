@@ -649,9 +649,13 @@ func BoardFromView(v view.View) botpolicy.Board {
 		// InstantOnOwnTurn feature's "own main phase" half — a main phase can
 		// belong to another seat, so IsMain alone cannot say it). Same facts
 		// the game half derives from g.Step == state.StepMain1 and
-		// g.Active == me.
+		// g.Active == me. Before turn 1 (the CR 103.1 choice and the
+		// opening mulligans) no turn has begun, so no player is active
+		// (CR 102.1): the View names the starting seat as Active there for
+		// display, and the game holds a placeholder, so both halves read
+		// MyTurn false until the first turn starts.
 		FirstMain: v.Phase == "main1",
-		MyTurn:    v.Active == v.Viewer,
+		MyTurn:    v.Turn > 0 && v.Active == v.Viewer,
 		// The exact engine step (the cast scorer's timing features): the
 		// projected View.Step is g.Step.String() (engine/view/view.go), so parsing
 		// it back names the same state.Step the game half reads off g.Step
@@ -661,8 +665,14 @@ func BoardFromView(v view.View) botpolicy.Board {
 	}
 	// The honest own-library composition (Board.OwnLibrary): folded off
 	// this View alone by view.OwnLibrary, the same per-card rules the game
-	// half's fillOwnLibrary applies to state.Game.
-	view.OwnLibrary(v, v.Viewer, &b.OwnLibrary)
+	// half's fillOwnLibrary applies to state.Game. While the CR 103.1
+	// choice is pending the projection withholds the viewer's own hand
+	// (CR 103.5: its Hand lists fewer cards than its HandSize), and the
+	// game half leaves the composition zero then rather than fold around a
+	// hand it may not see; so does this half.
+	if !ownHandWithheld(v) {
+		view.OwnLibrary(v, v.Viewer, &b.OwnLibrary)
+	}
 	// The public stack census: the projected StackView list is
 	// the stack's own bottom-to-top order, so the census slice is that same
 	// order and every read of it is deterministic. IsSpell mirrors the
@@ -792,7 +802,14 @@ func BoardFromView(v view.View) botpolicy.Board {
 		// source CardView for display, but the game half's fillPublicCards
 		// skips the face-less ability object, so including it here would make
 		// the two public-card censuses disagree.
-		if sv.Kind != "spell" || sv.Card == nil {
+		if sv.Kind != "spell" {
+			continue
+		}
+		if sv.Card == nil {
+			// A face-down spell the viewer may not look at projects with
+			// no Card (CR 708.4), but it is a public object all the same:
+			// the game half lists it as FaceDown with a zero colour.
+			b.PublicCards.Set(sv.ID, botpolicy.PublicCard{Controller: sv.Controller, FaceDown: true})
 			continue
 		}
 		pc := botpolicy.PublicCard{Controller: sv.Controller, FaceDown: sv.Card.FaceDown}
@@ -856,85 +873,107 @@ func BoardFromView(v view.View) botpolicy.Board {
 			if cv.Produces != nil {
 				produces = *cv.Produces
 			}
-			printedName := cv.CardName
-			if printedName == "" {
-				printedName = cv.Name
-			}
 			b.Cards.Set(cv.ID, botpolicy.Card{
-				PrintedName:    printedName,
-				Creature:       isCreatureView(cv),
-				Power:          cv.Power,
-				Toughness:      cv.Toughness,
-				CMC:            botpolicy.CmcOf(cv.ManaCost),
-				Basic:          hasBasicView(cv),
-				Land:           hasTypeView(cv, "Land"),
-				Colour:         cv.ColourIdentity,
-				TypeSig:        botpolicy.TypeSigOf(strings.Fields(cv.Types)),
-				AttachedTo:     cv.AttachedTo,
-				Activated:      cv.ActivatedThisTurn,
-				ManaCost:       cv.ManaCost,
-				Castable:       castable(cv),
-				OnBattlefield:  battlefield,
-				Tapped:         cv.Tapped,
-				Sick:           cv.SummonSick,
-				Produces:       produces,
-				InstantSpeed:   instantSpeedView(cv),
-				Counter:        cv.SpellAPI == "Counter",
-				Draw:           cv.SpellAPI == "Draw",
-				Token:          cv.SpellAPI == "Token",
-				RemovalKind:    cv.RemovalKind,
-				RemovalTargets: cv.RemovalTargets,
-				RemovalDamage:  cv.RemovalDamage,
-				PumpPower:      cv.PumpPower,
-				PumpToughness:  cv.PumpToughness,
-				PumpOwn:        cv.PumpOwn,
-				CombatTrick:    cv.CombatTrick,
-				PlayMain1:      cv.PlayMain1,
-				RemoveDeck:     cv.RemoveDeck,
-				AuraLogic:      cv.AuraLogic,
+				PrintedName:       cv.Name,
+				Creature:          isCreatureView(cv),
+				Power:             cv.Power,
+				Toughness:         cv.Toughness,
+				CMC:               botpolicy.CmcOf(cv.ManaCost),
+				Basic:             hasBasicView(cv),
+				Land:              hasTypeView(cv, "Land"),
+				Colour:            cv.ColourIdentity,
+				TypeSig:           botpolicy.TypeSigOf(strings.Fields(cv.Types)),
+				AttachedTo:        cv.AttachedTo,
+				Activated:         cv.ActivatedThisTurn,
+				ManaCost:          cv.ManaCost,
+				Castable:          castable(cv),
+				OnBattlefield:     battlefield,
+				Tapped:            cv.Tapped,
+				Sick:              cv.SummonSick,
+				Produces:          produces,
+				InstantSpeed:      instantSpeedView(cv),
+				Counter:           cv.SpellAPI == "Counter",
+				Draw:              cv.SpellAPI == "Draw",
+				Token:             cv.SpellAPI == "Token",
+				RemovalKind:       cv.RemovalKind,
+				RemovalTargets:    cv.RemovalTargets,
+				RemovalDamage:     cv.RemovalDamage,
+				PumpPower:         cv.PumpPower,
+				PumpToughness:     cv.PumpToughness,
+				PumpOwn:           cv.PumpOwn,
+				CombatTrick:       cv.CombatTrick,
+				PlayMain1:         cv.PlayMain1,
+				RemoveDeck:        cv.RemoveDeck,
+				AuraLogic:         cv.AuraLogic,
+				NameKeyedSelfMill: cv.NameKeyedSelfMill,
+				EmptyLibraryWin:   cv.EmptyLibraryWin,
+				PayOrLoseCost:     cv.PayOrLoseCost,
 			})
 		}
 	}
 	aCastable := func(view.CardView) bool { return true }
 	notCastable := func(view.CardView) bool { return false }
+	// The deciding seat's own zones first, then every other seat's
+	// battlefield in seat order: BoardFromGameInto's insertion order, which
+	// readers see (forgeHand takes the table's order as the hand's, and the
+	// tap and target folds keep the first of equal entries). Walking
+	// v.Players once in seat order put a lower seat's permanents ahead of
+	// the viewer's hand.
+	for _, p := range v.Players {
+		if p.ID == v.Viewer {
+			fillZone(p.Hand, aCastable, false)
+			fillZone(p.Graveyard, hasFlashbackView, false)
+			fillZone(p.Battlefield, notCastable, true)
+			fillZone(p.Command, aCastable, false)
+		}
+	}
 	for _, p := range v.Players {
 		if p.ID != v.Viewer {
 			for _, cv := range p.Battlefield {
+				// A face-down permanent is named on no other seat's
+				// battlefield, not even one the viewer may look at.
 				printedName := ""
 				if !cv.FaceDown {
-					printedName = cv.CardName
-					if printedName == "" {
-						printedName = cv.Name
-					}
+					printedName = cv.Name
 				}
 				b.Cards.Set(cv.ID, botpolicy.Card{
-					PrintedName:    printedName,
-					Creature:       isCreatureView(cv),
-					Power:          cv.Power,
-					Toughness:      cv.Toughness,
-					CMC:            botpolicy.CmcOf(cv.ManaCost),
-					Basic:          hasBasicView(cv),
-					Land:           hasTypeView(cv, "Land"),
-					Colour:         cv.ColourIdentity,
-					TypeSig:        botpolicy.TypeSigOf(strings.Fields(cv.Types)),
-					ManaCost:       cv.ManaCost,
-					Activated:      cv.ActivatedThisTurn,
-					RemovalKind:    cv.RemovalKind,
-					RemovalTargets: cv.RemovalTargets,
-					RemovalDamage:  cv.RemovalDamage,
-					PlayMain1:      cv.PlayMain1,
-					RemoveDeck:     cv.RemoveDeck,
-					AuraLogic:      cv.AuraLogic,
+					PrintedName:       printedName,
+					Creature:          isCreatureView(cv),
+					Power:             cv.Power,
+					Toughness:         cv.Toughness,
+					CMC:               botpolicy.CmcOf(cv.ManaCost),
+					Basic:             hasBasicView(cv),
+					Land:              hasTypeView(cv, "Land"),
+					Colour:            cv.ColourIdentity,
+					TypeSig:           botpolicy.TypeSigOf(strings.Fields(cv.Types)),
+					ManaCost:          cv.ManaCost,
+					Activated:         cv.ActivatedThisTurn,
+					RemovalKind:       cv.RemovalKind,
+					RemovalTargets:    cv.RemovalTargets,
+					RemovalDamage:     cv.RemovalDamage,
+					PlayMain1:         cv.PlayMain1,
+					RemoveDeck:        cv.RemoveDeck,
+					AuraLogic:         cv.AuraLogic,
+					NameKeyedSelfMill: cv.NameKeyedSelfMill,
+					EmptyLibraryWin:   cv.EmptyLibraryWin,
+					PayOrLoseCost:     cv.PayOrLoseCost,
 				})
 			}
-			continue
 		}
-		fillZone(p.Hand, aCastable, false)
-		fillZone(p.Graveyard, hasFlashbackView, false)
-		fillZone(p.Battlefield, notCastable, true)
-		fillZone(p.Command, aCastable, false)
 	}
 	return b
+}
+
+// ownHandWithheld reports whether v withholds the viewer's own hand: the
+// CR 103.5 blind while the play/draw choice is pending, the only time a
+// seat's own projection lists fewer hand cards than its HandSize.
+func ownHandWithheld(v view.View) bool {
+	for i := range v.Players {
+		if p := &v.Players[i]; p.ID == v.Viewer {
+			return len(p.Hand) < p.HandSize
+		}
+	}
+	return false
 }
 
 // hasFlashbackView is the view-shaped half of the tap gate's

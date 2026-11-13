@@ -19,6 +19,9 @@ import (
 type MZLeaf struct{}
 
 func (MZLeaf) Value(s *dirac.State, _ *dirac.Decision, seat uint8) float32 {
+	if s.NumSeats() > 2 {
+		return mzValueN(s, seat)
+	}
 	if s.Over() {
 		switch s.Winner() {
 		case int8(seat):
@@ -38,6 +41,28 @@ func (MZLeaf) Value(s *dirac.State, _ *dirac.Decision, seat uint8) float32 {
 		perm[s.Controller(ob)] += 1 + float64(t.Cards[s.ObjCard(ob)].Cost.MV())
 	}
 	return mzValue(mzScore(s.LifeOf(seat), s.HandSize(seat), perm[seat]), mzScore(s.LifeOf(1-seat), s.HandSize(1-seat), perm[1-seat]))
+}
+
+// mzValueN is MZLeaf's value with more than two seats: theirs is the
+// strongest living opponent's score, as HeuristicLeaf reads it at N seats.
+func mzValueN(s *dirac.State, seat uint8) float32 {
+	if v, done := decidedValue(s, seat); done {
+		return v
+	}
+	var perm [dirac.MaxSeats]float64
+	t := s.Table()
+	for o := 0; o < s.NumObjs(); o++ {
+		ob := dirac.Obj(o)
+		if s.ObjZone(ob) != kop.ZoneBattlefield {
+			continue
+		}
+		perm[s.Controller(ob)] += 1 + float64(t.Cards[s.ObjCard(ob)].Cost.MV())
+	}
+	var score [dirac.MaxSeats]float64
+	for p := uint8(0); p < s.NumSeats(); p++ {
+		score[p] = mzScore(s.LifeOf(p), s.HandSize(p), perm[p])
+	}
+	return mzValue(score[seat], maxOpponent(s, seat, &score))
 }
 
 // mzScore is GameStateEvaluator3.evaluateResources: perm is the sum of

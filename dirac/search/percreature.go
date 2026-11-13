@@ -306,7 +306,7 @@ func (sr *Searcher) chainSearch(seatSeed uint64) *Result {
 	c := uint8(0) // 1+obj; 0 the first creature
 	for {
 		bot := sr.pickBot(&sr.root, d)
-		sr.chainPt.n, sr.chainPt.opp, sr.chainPt.off[0] = 0, false, 0
+		sr.chainPt.n, sr.chainPt.opp, sr.chainPt.seat, sr.chainPt.off[0] = 0, false, 0, 0
 		sr.nForced, sr.chainFrom = 0, 0
 		sr.chainCur = c
 		sr.chainCands(&sr.root, d, bot, MaxCands, &sr.chainPt)
@@ -473,6 +473,9 @@ func newBlockModel(s *dirac.State, d *dirac.Decision, m *blockModel) {
 	for i := 0; i < m.n; i++ {
 		a := dirac.Obj(m.atk[i])
 		need := int(tab.Cards[s.ObjCard(a)].MinBlockers)
+		if need == int(kop.MinBlockersAll) {
+			need = s.MinBlockersOf(a)
+		}
 		if s.HasKeyword(a, kop.KwMenace) && need < 2 {
 			need = 2
 		}

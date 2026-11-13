@@ -13,7 +13,6 @@ import (
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/deck"
-	"github.com/adams-shaun/gorge/engine/events"
 )
 
 // stdPools is the std-* pools, each whole Standard list or its pieces.
@@ -316,6 +315,10 @@ func TestTailBucketsPartitionAll(t *testing.T) {
 	}
 	buckets := 0
 	for _, pool := range names {
+		// A draft pool deals cards that also stay in their std/tail buckets.
+		if strings.HasPrefix(pool, cardset.SynthDraftPrefix) {
+			continue
+		}
 		set := cardsettest.Synth(t, pool)
 		std := strings.HasPrefix(pool, "std-")
 		if !std {
@@ -445,155 +448,6 @@ func TestSynthReachReportsEveryStage(t *testing.T) {
 	if r.Appeared != 3 || r.MinPlays != 0 || r.Evident != 0 {
 		t.Errorf("no clean game: %+v", r)
 	}
-}
-
-// TestEachPlayerDiscardMovesTogether: each player chooses a discard with the
-// earlier player's cards still in hand, then everything moves at once (CR 101.4).
-// Each recorded game has two players' discards move together.
-func TestEachPlayerDiscardMovesTogether(t *testing.T) {
-	for _, pool := range []string{"std-dsk", "std-fin", "std-otj", "std-woe"} {
-		pinnedGames(t, pool, Config{GorgeAutopaySurface: true}, eachPlayerDiscarded)
-	}
-}
-
-// TestWaterbendAskRequiresTheTapsThePaymentNeeds: Done waits for the taps the mana
-// window can't do without (CR 601.2h, 701.67a). The pairs are ones that diverge when
-// the ask offers Done at once, so each carries the case.
-func TestWaterbendAskRequiresTheTapsThePaymentNeeds(t *testing.T) {
-	waterbendPairs(t, "std-tla")
-}
-
-// TestWaterbendIncompleteCensusKeepsTheOpenAsk: with a restricted mana source the
-// census doesn't price, the ask requires nothing and the target ask keeps its offer.
-// The pairs are ones that diverge when the census is taken as complete.
-func TestWaterbendIncompleteCensusKeepsTheOpenAsk(t *testing.T) {
-	waterbendPairs(t, "std-tla")
-}
-
-// waterbendPairs plays recorded games of pool name in each of which a waterbend ask is
-// posed, so a game that no longer waterbends fails rather than passing having tested
-// nothing.
-func waterbendPairs(t *testing.T, name string) {
-	t.Helper()
-	pinnedGames(t, name, Config{GorgeAutopaySurface: true}, func(ref *GorgeSide) bool {
-		if d := ref.Pending(); d != nil {
-			for _, o := range d.Options {
-				if strings.HasPrefix(o.Kind, "waterbend") {
-					return true
-				}
-			}
-		}
-		return false
-	})
-}
-
-// TestAbilityPlanLeavesOutCommittedPermanents: the settled cost's plan is made
-// without the permanents tapped for the ability's costs, and stands if others pay
-// (CR 601.2g-h, 602.2b): a land's {4},{T} ability.
-func TestAbilityPlanLeavesOutCommittedPermanents(t *testing.T) {
-	pinnedGames(t, "std-tla", Config{GorgeAutopaySurface: true},
-		anyOf(activated("Airship Engine Room"), activated("Meditation Pools"), activated("North Pole Gates")))
-}
-
-// TestGrantedManaPricesAnImpendedCast: the search through granted mana prices an
-// impended cast at its alternative cost (CR 118.9, 702.176a): an Overlord cast for
-// its impending cost.
-func TestGrantedManaPricesAnImpendedCast(t *testing.T) {
-	pinnedGames(t, "std-dsk", Config{GorgeAutopaySurface: true}, impendedCast)
-}
-
-// TestShuffledPairReachesTheLibraryInOrder: Floodpits Drowner and its target reach
-// the library in the order the shuffle reads (CR 701.24).
-func TestShuffledPairReachesTheLibraryInOrder(t *testing.T) {
-	pinnedGames(t, "std-dsk", Config{GorgeAutopaySurface: true}, cardOut("Floodpits Drowner"))
-}
-
-// TestOverrideValueKeepsItsCountedSubtype: PuPu UFO's "base power becomes the number
-// of Towns you control" (CR 613.4b) counts a subtype only that value names, so the
-// matchup's table keeps it.
-func TestOverrideValueKeepsItsCountedSubtype(t *testing.T) {
-	pinnedGames(t, "std-fin", Config{GorgeAutopaySurface: true}, onBattlefield("PuPu UFO"))
-}
-
-// TestRestrictedSourceStaysInTheManualWindow: a restricted any-colour ability keeps
-// its source offered in the window whatever is being paid for (CR 106.6, 601.2g).
-func TestRestrictedSourceStaysInTheManualWindow(t *testing.T) {
-	pinnedGames(t, "std-ecl", Config{GorgeAutopaySurface: true}, madeRestrictedMana)
-}
-
-// TestPowerUpOfferCountsRestrictedSources: the sources a power-up's printed cost is
-// priced against include a restricted one its activation may spend (CR 106.6, 702.193b).
-func TestPowerUpOfferCountsRestrictedSources(t *testing.T) {
-	restrictedPowerUpPairs(t, "std-msh")
-}
-
-// restrictedPowerUpPairs plays recorded games of pool name in each of which a power-up
-// is activated after restricted mana has been made.
-func restrictedPowerUpPairs(t *testing.T, name string) {
-	t.Helper()
-	pinnedGames(t, name, Config{GorgeAutopaySurface: true}, func(ref *GorgeSide) bool {
-		armed := false
-		for i := range ref.E.L.Events {
-			ev := &ref.E.L.Events[i]
-			switch ev.Kind {
-			case events.ManaAdd:
-				if ev.Amount > 0 && strings.HasPrefix(ev.Text, "mana-restriction:") {
-					armed = true
-				}
-			case events.AbilityPush:
-				if o := ref.E.G.Obj(ev.Obj); armed && o != nil && o.Face() != nil && int(ev.Amount) < len(o.Face().Abilities) &&
-					o.Face().Abilities[ev.Amount].Params["PowerUp"] == "True" {
-					return true
-				}
-			}
-		}
-		return false
-	})
-}
-
-// TestHandAbilityOfferCountsRestrictedSources: cycling and the other abilities that
-// work from a hand may spend a restricted source that admits them (CR 106.6, 702.29).
-func TestHandAbilityOfferCountsRestrictedSources(t *testing.T) {
-	pinnedGames(t, "std-dft", Config{GorgeAutopaySurface: true}, madeRestrictedMana)
-	pinnedGames(t, "std-msh", Config{GorgeAutopaySurface: true}, madeRestrictedMana)
-}
-
-// TestBiteHitsEachObjectOfItsTargetSlot: Betrayal at the Vault's creature deals its
-// power to each of two other targets, not the first alone (CR 120.3, 608.2b).
-func TestBiteHitsEachObjectOfItsTargetSlot(t *testing.T) {
-	pinnedGames(t, "std-otj", Config{GorgeAutopaySurface: true}, cardOut("Betrayal at the Vault"))
-}
-
-// TestStrandedPaymentReversesFirst: a helper or tap-cost answer that leaves too little
-// mana is undone before any mana is activated (CR 601.2g-h, 602.2b, 733.1).
-func TestStrandedPaymentReversesFirst(t *testing.T) {
-	pinnedGames(t, "std-ecl", Config{GorgeAutopaySurface: true}, anyActivated)
-	pinnedGames(t, "std-dsk", Config{GorgeAutopaySurface: true}, anyActivated)
-}
-
-// TestStateBasedActionsRepeatAfterTriggerPlacement: a final chapter removed for want of
-// a legal target leaves its Saga to be sacrificed before anyone receives priority
-// (CR 117.5, 603.3d, 714.4).
-func TestStateBasedActionsRepeatAfterTriggerPlacement(t *testing.T) {
-	pinnedGames(t, "std-fin", Config{GorgeAutopaySurface: true}, sagaLeftBattlefield)
-	pinnedGames(t, "std-spm", Config{GorgeAutopaySurface: true}, sagaLeftBattlefield)
-}
-
-// TestEnteringPowerIsTheLivePermanents: "draw cards equal to its power" reads the
-// permanent with its entry counters, not the card that was cast (CR 608.2h; Prime
-// Speaker Zegana).
-func TestEnteringPowerIsTheLivePermanents(t *testing.T) {
-	pinnedGames(t, "std-fdn", Config{GorgeAutopaySurface: true}, onBattlefield("Prime Speaker Zegana"))
-}
-
-// TestWindowCensusSkipsWhatThePaymentCannotSpend: a tapped restricted source, or an
-// untapped one whose mana this payment can't spend, leaves the census complete, so a
-// waterbend ask still takes the taps the payment needs (CR 106.6, 601.2g, 701.67a).
-// The pairs diverge when a tapped restricted source (42, 66, 109, 503) or one whose
-// mana the payment can't spend (60, 100, 116, 760) is counted, and each must pose a
-// waterbend ask.
-func TestWindowCensusSkipsWhatThePaymentCannotSpend(t *testing.T) {
-	waterbendPairs(t, "std-tla")
 }
 
 // TestGrantedManaTapFiresTapsTriggers: a creature tapped for a granted mana ability

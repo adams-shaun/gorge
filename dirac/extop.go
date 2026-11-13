@@ -144,6 +144,11 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtBlocksIfAble:
 		s.blocksIfAbleExt(k, in) // combat_blocksifable.go
 		return true, true
+	case kop.ExtRemoveFromCombat:
+		if sl := s.objRef(k, in.Obj); sl != NoSlot {
+			s.leaveCombat(sl) // combat_noncreature.go
+		}
+		return true, true
 	case kop.ExtClearImprinted:
 		s.g.nimp = 0
 		return true, true
@@ -221,6 +226,19 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtUnlockDoor:
 		return s.extUnlockDoor(k, in), true // face_unlockdoor.go
+	case kop.ExtChoosePlayer:
+		// inside an as-enters program (runReplProgAs poses it); elsewhere
+		// the queued ask, as ExtChooseNumber
+		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
+			sl := s.objs[o].slot
+			if p := s.soleOpponent(s.perms[sl].ctrl); p != 255 {
+				s.perms[sl].chosen = p
+				s.touchSl(sl)
+			} else {
+				s.queueAsk(sl, akPlayer)
+			}
+		}
+		return true, true
 	case kop.ExtChooseNumber:
 		// inside an as-enters program: asked before the next priority
 		// (the OpChooseColor arm of execGen)
@@ -255,6 +273,8 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtTurnRepl:
 		s.turnRepl(k, in) // repl_turnrepl.go
 		return true, true
+	case kop.ExtLibPlace:
+		return s.libPlaceExt(k, in), true // act_libplace.go
 	case kop.ExtExtort:
 		// CR 702.101a: the trigger's controller may pay {W/B}; both
 		// options are always offered (gorge effExtort), the ask answered
@@ -356,7 +376,7 @@ func (s *State) eachDamageSlots(k *prep, mask uint8, f kop.FilterID, out *[MaxPe
 // xtIllegal is the bit set of e's multi-object extras illegal now.
 //
 //go:noinline
-func (s *State) xtIllegal(k *prep, e *stackEntry) (m uint8) {
+func (s *State) xtIllegal(k *prep, e *stackEntry) (m xtMask) {
 	x := s.xtOf(e)
 	for j := 0; j < int(x.n); j++ {
 		if !s.xtLegal(k, e, j) {

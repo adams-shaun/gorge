@@ -23,7 +23,7 @@ func NewEpoch() uint32 {
 	return e
 }
 
-// DealUnseen deals every hidden card of s, both seats' hands and libraries,
+// DealUnseen deals every hidden card of s, every seat's hand and library,
 // for a chooser (seat) that has seen neither hand: the coin toss's winner
 // choosing to play or draw. Seat's own hand and library are dealt from its
 // own cards; the opponent's from the closed-list corpus under ClosedList
@@ -34,7 +34,7 @@ func NewEpoch() uint32 {
 // beliefs (beliefnet.go) are not used here: they deal a Search's worlds only.
 func (sr *Searcher) DealUnseen(s *dirac.State, seat uint8, a, b uint64) {
 	r := dirac.NewRand(a, b)
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.NumSeats(); p++ {
 		n := s.HiddenCards(p, sr.pool[:])
 		pool := sr.pool[:n]
 		if p != seat && sr.Opts.ClosedList && sr.Belief != nil {

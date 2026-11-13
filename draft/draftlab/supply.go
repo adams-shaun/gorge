@@ -11,11 +11,11 @@ import (
 )
 
 // loadSpec loads the set's booster spec at the collation. An empty
-// collation means setdata's default (play-arena, because
-// the pick ratings are 17Lands Arena data).
+// collation means setdata's default for the set (play-arena, because
+// the pick ratings are 17Lands Arena data; MBC's only collation, draft).
 func (l *Lab) loadSpec(set string, c setdata.Collation) (setdata.Spec, error) {
 	if c == "" {
-		c = setdata.DefaultCollation
+		c = setdata.DefaultCollationFor(set)
 	}
 	spec, err := setdata.LoadCollation(set, c)
 	if err != nil {

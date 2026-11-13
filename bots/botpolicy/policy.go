@@ -1483,10 +1483,25 @@ func (b Board) announcedSpell(d *decision.Decision) *StackEntry {
 // the pool pays first, and what it leaves pays generic. The answer doesn't depend on
 // the order of the Board's tables.
 func (b Board) manaReaches(pips [5]int32, generic int32) bool {
-	spare := b.Pool[5] - b.PoolRestricted[5]
+	return b.manaReachesFrom(pips, generic, false)
+}
+
+// manaReachesFrom is manaReaches, or with nextTurn the same question asked of
+// the seat's next upkeep: the pool is empty then and every land it controls
+// has untapped, so only its lands count, tapped or not. Lands alone, because
+// a rock or token may be sacrificed or tapped out of play before then; no
+// land in hand counts either, because it may never be played.
+func (b Board) manaReachesFrom(pips [5]int32, generic int32, nextTurn bool) bool {
+	var spare int32
+	if !nextTurn {
+		spare = b.Pool[5] - b.PoolRestricted[5]
+	}
 	var short int32
 	for slot, n := range pips {
 		pool := b.Pool[slot] - b.PoolRestricted[slot]
+		if nextTurn {
+			pool = 0
+		}
 		spare += max(pool-n, 0)
 		pips[slot] = max(n-pool, 0)
 		short += pips[slot]
@@ -1503,6 +1518,9 @@ func (b Board) manaReaches(pips [5]int32, generic int32) bool {
 	}
 	usable := func(i int) bool {
 		c := &cs[i]
+		if nextTurn {
+			return c.OnBattlefield && c.Land
+		}
 		return c.OnBattlefield && !c.Tapped && !(c.Creature && c.Sick)
 	}
 	for set := 1; set < 1<<5; set++ {
@@ -1572,11 +1590,21 @@ func (b Board) facingLethal(p state.PlayerID) bool {
 // unlessManaPayOffer answers a payable UnlessCost$ election. It returns nil
 // for a single-option ask (leaving the ordinary KModes arm in charge), and
 // otherwise declines only when the payer faces lethal board damage -- the one
-// case where spending the pool cannot win the race. The Sacrifice-damage
-// offer is handled by unlessSacrificeOffer before this arm, so this reads
-// only the plain pay/decline shape.
+// case where spending the pool cannot win the race -- unless declining loses
+// the game outright (payOrLose: Summoner's Pact's upkeep trigger), where
+// paying is the only answer that survives the turn, lethal board or not.
+// The Sacrifice-damage offer is handled by unlessSacrificeOffer before this
+// arm, so this reads only the plain pay/decline shape.
 func (b Board) unlessManaPayOffer(d *decision.Decision) []int {
 	if d.ResumeKind != "unless_pay" || d.ResumeSA == nil || len(d.Options) < 2 {
+		return nil
+	}
+	if payOrLose(d.ResumeSA) {
+		for _, option := range d.Options {
+			if option.Mode == decision.ModeUnlessPay {
+				return []int{option.Index}
+			}
+		}
 		return nil
 	}
 	if b.facingLethal(d.Player) {
@@ -1587,6 +1615,17 @@ func (b Board) unlessManaPayOffer(d *decision.Decision) []int {
 		}
 	}
 	return nil
+}
+
+// payOrLose reports an unless-pay whose unpaid branch makes the payer lose
+// the game: a LosesGame for its own controller (Defined$ You or unset) paid
+// by that controller (UnlessPayer$ You or unset), read off the ability's IR.
+func payOrLose(sa *cards.SA) bool {
+	if sa.API != "LosesGame" {
+		return false
+	}
+	d, p := sa.Params["Defined"], sa.Params["UnlessPayer"]
+	return (d == "" || d == "You") && (p == "" || p == "You")
 }
 
 // unlessSacrificeOffer answers the Sacrifice unless-pay damage offer —

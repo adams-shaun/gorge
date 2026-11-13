@@ -102,7 +102,8 @@ func TestDriveMatchBuildsPaymentPlansForAgentSeat(t *testing.T) {
 	}
 	defer bots.EndMatch(rec, bots.MatchResult{Classification: "halted"})
 
-	if _, err := driveMatch(e, []engineseat.Seat{rec, heuristic.NewBot(8)}, nil); err != nil {
+	seats := []engineseat.Seat{rec, heuristic.NewBot(8)}
+	if _, err := driveMatch(e, seats, newSeatRoute(rules.Config{}, seats), nil); err != nil {
 		t.Fatalf("driveMatch: %v", err)
 	}
 	if f := a.Forfeit(); f != "" {

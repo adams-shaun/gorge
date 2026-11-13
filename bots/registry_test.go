@@ -8,7 +8,7 @@ import (
 )
 
 func TestRegister(t *testing.T) {
-	for _, name := range []string{"bot", "lethal-pressure", "az-redeal", "sb-tactical", "forge-heuristic", "forge-heuristic-hold"} {
+	for _, name := range []string{"bot", "lethal-pressure", "az-redeal", "az-redeal-maxn", "sb-tactical", "forge-heuristic", "forge-heuristic-hold"} {
 		if _, ok := bots.Lookup(name); !ok {
 			t.Fatalf("built-in %q was not registered", name)
 		}
@@ -29,11 +29,11 @@ func TestNormalize(t *testing.T) {
 
 func TestEntries(t *testing.T) {
 	entries := bots.Entries()
-	// gorge links six built-ins (bots/all); other policies register from
+	// gorge links seven built-ins (bots/all); other policies register from
 	// companion modules. The count pin and name-based blocks below move together
 	// with the built-in set; update this test deliberately on the next policy.
-	if len(entries) != 6 {
-		t.Fatalf("Entries() has %d entries, want 6", len(entries))
+	if len(entries) != 7 {
+		t.Fatalf("Entries() has %d entries, want 7", len(entries))
 	}
 	if entries[0].Name != "bot" || entries[0].Tier != bots.Production {
 		t.Fatalf("production entry is not first: %+v", entries[0])
@@ -49,6 +49,21 @@ func TestEntries(t *testing.T) {
 	}
 	if azEntry.Tier != bots.Experimental || !azEntry.Env || !azEntry.Search {
 		t.Errorf("az-redeal entry is not the experimental Env policy: %+v", azEntry.Info)
+	}
+	var maxnEntry *bots.Entry
+	for i := range entries {
+		if entries[i].Name == "az-redeal-maxn" {
+			maxnEntry = &entries[i]
+		}
+	}
+	if maxnEntry == nil {
+		t.Fatal("no az-redeal-maxn entry in Entries()")
+	}
+	if maxnEntry.Tier != bots.Experimental || !maxnEntry.Env || !maxnEntry.Search {
+		t.Errorf("az-redeal-maxn entry is not the experimental Env policy: %+v", maxnEntry.Info)
+	}
+	if maxnEntry.MaxSeats != 4 {
+		t.Errorf("az-redeal-maxn entry is not the 4-seat pod policy: %+v", maxnEntry.Info)
 	}
 	var sbEntry *bots.Entry
 	for i := range entries {

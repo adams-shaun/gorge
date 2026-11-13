@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/adams-shaun/gorge/bots"
@@ -21,12 +22,12 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/deck"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/replay"
 	"github.com/adams-shaun/gorge/engine/rules"
 	engineseat "github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/matchrecord"
 	sbenv "github.com/adams-shaun/gorge/server/spellbench/env"
 	sbseat "github.com/adams-shaun/gorge/server/spellbench/seat"
@@ -56,8 +57,10 @@ func main() {
 	dir := flag.String("dir", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
 	policyA := flag.String("a", "", "bot policy name for seat 0 (default: heuristic)")
 	policyB := flag.String("b", "", "bot policy name for seat 1 (default: heuristic)")
+	policies := flag.String("policies", "", "comma-separated bot policy per seat, from seat 0; \"-\" or empty keeps a seat's default heuristic; overrides -a/-b")
 	format := flag.String("format", "constructed", "game format: constructed or commander (40 life, commanders in the command zone)")
 	mulligans := flag.Int("mulligans", 0, "London mulligans each seat may take before turn 1 (default 0, none)")
+	deckDir := flag.String("deckdir", "", "read each -decks name from <deckdir>/<name>.json instead of the embedded repo decks")
 	shape := flag.String("shape", "", "write a JSON game-shape census to this file (game rows, then one aggregate)")
 	cpuProf := flag.String("cpuprofile", "", "write a CPU profile here")
 	memProf := flag.String("memprofile", "", "write an allocation profile here and print the run's allocation totals")
@@ -71,13 +74,20 @@ func main() {
 	o := simOptions{
 		Decks: *decksFlag, Seats: *seats, Seed: *seed, Games: *games,
 		Verify: *verify, Verbose: *verbose, Dir: *dir,
-		PolicyA: *policyA, PolicyB: *policyB, SBAgents: sbAgents, Format: *format, Mulligans: *mulligans, Shape: *shape,
+		PolicyA: *policyA, PolicyB: *policyB, SBAgents: sbAgents, Format: *format, Mulligans: *mulligans, Shape: *shape, DeckDir: *deckDir,
+	}
+	if *policies != "" {
+		o.Policies = strings.Split(*policies, ",")
 	}
 	stop := startProfile(*cpuProf, *memProf)
 	err := runSim(o, os.Stdout)
 	stop()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "mtgsim:", err)
+		var ue usageError
+		if errors.As(err, &ue) {
+			os.Exit(2)
+		}
 		os.Exit(1)
 	}
 }
@@ -105,13 +115,21 @@ type simOptions struct {
 	Dir             string
 	PolicyA         string
 	PolicyB         string
-	SBAgents        []string
+	// Policies, when non-nil, names each seat's bot policy from seat 0
+	// ("" or "-" keeps a seat's default heuristic) and overrides
+	// PolicyA/PolicyB. It may be shorter than Seats, never longer.
+	Policies []string
+	SBAgents []string
 	// Format is "constructed" or "commander".
 	Format string
 	// Mulligans is the London mulligans each seat may take before turn 1.
 	Mulligans int
 	// Shape, when non-empty, is the path of the JSON game-shape census.
 	Shape string
+	// DeckDir, when non-empty, is a directory of deck files: each -decks
+	// name is read from <DeckDir>/<name>.json (an outside pool, such as
+	// cEDH lists) instead of the embedded repo decks. It requires -decks.
+	DeckDir string
 }
 
 func runAgents(decksFlag string, seats int, baseSeed uint64, games int, verify, verbose bool, dir, policyA, policyB string, sbAgents []string, out io.Writer) error {
@@ -144,10 +162,14 @@ func runSim(o simOptions, out io.Writer) error {
 	if games < 1 {
 		return fmt.Errorf("-games must be at least 1, got %d", games)
 	}
-	if seats < 2 && (policyA != "" || policyB != "") {
+	if seats < 2 && (policyA != "" || policyB != "") && o.Policies == nil {
 		return fmt.Errorf("-a/-b name seats 0 and 1, but -seats is %d", seats)
 	}
 	if err := registerSBAgents(sbAgents); err != nil {
+		return err
+	}
+	policies, err := seatPolicies(o.Policies, policyA, policyB, seats)
+	if err != nil {
 		return err
 	}
 
@@ -161,7 +183,7 @@ func runSim(o simOptions, out io.Writer) error {
 		cmds = make([][]int, len(names))
 		files = make([]deck.File, len(names))
 		for i, name := range names {
-			f, err := testutil.LoadRepoDeckFile(name)
+			f, err := o.deckFile(name)
 			if err != nil {
 				return err
 			}
@@ -180,7 +202,7 @@ func runSim(o simOptions, out io.Writer) error {
 
 	decks := make([][]*cards.Card, seats)
 	for i, name := range names {
-		d, err := testutil.LoadRepoDeck(reg, name)
+		d, err := o.deck(reg, name)
 		if err != nil {
 			return err
 		}
@@ -219,7 +241,7 @@ func runSim(o simOptions, out io.Writer) error {
 		if shapes != nil {
 			sg = &shapeGame{}
 		}
-		if !playOne(out, gameSeed, names, decks, reg, verify, policyA, policyB, format, cmds, o.Mulligans, sg) {
+		if !playOne(out, gameSeed, names, decks, reg, verify, policies, format, cmds, o.Mulligans, sg) {
 			failures++
 		}
 		if sg != nil {
@@ -238,6 +260,40 @@ func runSim(o simOptions, out io.Writer) error {
 		return fmt.Errorf("%d of %d games failed to terminate or verify", failures, games)
 	}
 	return nil
+}
+
+// deckFile reads one deck file un-resolved: from o.DeckDir when set, else
+// the embedded repo decks.
+func (o simOptions) deckFile(name string) (deck.File, error) {
+	if o.DeckDir == "" {
+		return testutil.LoadRepoDeckFile(name)
+	}
+	raw, err := os.ReadFile(filepath.Join(o.DeckDir, name+".json"))
+	if err != nil {
+		return deck.File{}, fmt.Errorf("deck %q: %w", name, err)
+	}
+	f, err := deck.Parse(raw)
+	if err != nil {
+		return deck.File{}, fmt.Errorf("deck %q: %w", name, err)
+	}
+	return f, nil
+}
+
+// deck resolves one deck into the flat card list rules.Config.Decks wants,
+// as testutil.LoadRepoDeck does, from o.DeckDir when set.
+func (o simOptions) deck(reg *cards.Registry, name string) ([]*cards.Card, error) {
+	if o.DeckDir == "" {
+		return testutil.LoadRepoDeck(reg, name)
+	}
+	f, err := o.deckFile(name)
+	if err != nil {
+		return nil, err
+	}
+	cs, err := f.Resolve(reg)
+	if err != nil {
+		return nil, fmt.Errorf("deck %q: %w", name, err)
+	}
+	return cs, nil
 }
 
 // deckNames resolves the -decks flag against the embedded repo decks: an
@@ -312,7 +368,7 @@ func gameConfig(seed uint64, names []string, decks [][]*cards.Card, reg *cards.R
 // the replay outcome. It returns false for anything counted as
 // failure: non-termination, a replay error or a chain divergence. shape,
 // when non-nil, observes every decision and records the game's final shape.
-func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, verify bool, policyA, policyB string, format rules.Format, cmds [][]int, mulligans int, shape *shapeGame) (ok bool) {
+func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, verify bool, policies []string, format rules.Format, cmds [][]int, mulligans int, shape *shapeGame) (ok bool) {
 	cfg := gameConfig(seed, names, decks, reg, format, cmds, mulligans)
 	// The default object cap, the same volume bound the shared drive
 	// loop arms: a degenerate token storm here ends as a LIVELOCK failure
@@ -346,7 +402,7 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	// runs the no-host default underneath it.
 	e.AskStartingPlayer()
 
-	seats, err := matchSeats(e, reg, seed, names, policyA, policyB, matchFormat(format), mulligans, out)
+	seats, err := matchSeats(e, reg, seed, names, policies, matchFormat(format), mulligans, out)
 	if err != nil {
 		finish(0, "failed")
 		fmt.Fprintf(out, "seed %d: %d seats -- FAILED: %v\n", seed, len(names), err)
@@ -369,7 +425,9 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 		}
 	}()
 
-	n, err := driveMatch(e, seats, observe)
+	search := watchSearch(seed, policies)
+	defer search.stop()
+	n, err := driveMatch(e, seats, newSeatRoute(cfg, seats), observe)
 	if err != nil {
 		status := "failed"
 		if _, ok := err.(*rules.LivelockError); ok {
@@ -393,8 +451,10 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	if !e.G.Draw {
 		result = e.G.Players[e.G.Winner].Name
 	}
-	fmt.Fprintf(out, "seed %d: %d seats, %6d intents, %6d events, %3d turns, winner=%s, chain=%s\n",
-		seed, len(names), n, len(e.L.Events), e.G.Turn, result, e.L.Head())
+	fmt.Fprintf(out, "seed %d: %d seats, %6d intents, %6d events, %3d turns, winner=%s, chain=%s, policies=%s\n",
+		seed, len(names), n, len(e.L.Events), e.G.Turn, result, e.L.Head(), policyList(policies))
+	search.print(out, policies)
+	printLosses(out, e.L.Events, e.G)
 	finish(n, "over")
 
 	if !verify {
@@ -431,13 +491,14 @@ func reportDriveFailure(out io.Writer, seed uint64, seats, n int, err error) boo
 // either way -- crashing loudly. The engine is abandoned once it has
 // livelocked; nothing may drive it again.
 func driveGame(e *rules.Engine, s engineseat.Seat) (int, error) {
-	return driveMatch(e, []engineseat.Seat{s}, nil)
+	seats := []engineseat.Seat{s}
+	return driveMatch(e, seats, newSeatRoute(rules.Config{}, seats), nil)
 }
 
-// driveMatch submits intents for a table until the game ends. observe, when
-// non-nil, is called with every decision before the seat is asked; it only
-// reads the engine.
-func driveMatch(e *rules.Engine, seats []engineseat.Seat, observe func(*rules.Engine, *decision.Decision)) (n int, err error) {
+// driveMatch submits intents for a table until the game ends, asking each
+// seat the way the host does (route). observe, when non-nil, is called with
+// every decision before the seat is asked; it only reads the engine.
+func driveMatch(e *rules.Engine, seats []engineseat.Seat, route *seatRoute, observe func(*rules.Engine, *decision.Decision)) (n int, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if lle, ok := r.(*rules.LivelockError); ok {
@@ -459,18 +520,24 @@ func driveMatch(e *rules.Engine, seats []engineseat.Seat, observe func(*rules.En
 		// A consumer seat (the SpellBench v2 agent) sees the planner's cast
 		// candidates only through Decision.PaymentActions; build them before
 		// the projection copies the decision.
+		// Every EnvSeat's feed observes every decision of every player
+		// before anything is built for it, as the host's projectNext does.
+		route.observe(e)
 		if consumer, ok := seats[d.Player].(engineseat.PaymentPlanConsumer); ok && consumer.WantsPaymentActions() {
 			e.EnsurePaymentActions()
 		}
-		v := view.Project(e.G, e, d.Player, d)
-		v.Round = view.RoundOf(e.G, e.L.Events)
-		in, err := seats[d.Player].Decide(ctx, v, *d)
+		if consumer, ok := seats[d.Player].(engineseat.TargetHintConsumer); ok && consumer.WantsTargetHints() {
+			e.EnsureTargetHints()
+		}
+		in, err := route.decide(ctx, e, seats[d.Player], d)
 		if err != nil {
 			return n, fmt.Errorf("bot error at intent %d: %w", n, err)
 		}
+		route.prepareRecord(e, d, in)
 		if err := e.Submit(in); err != nil {
 			return n, fmt.Errorf("intent %d rejected: %w", n, err)
 		}
+		route.record(in)
 		n++
 	}
 	return n, nil
@@ -535,15 +602,12 @@ func registerSBAgents(specs []string) error {
 	return nil
 }
 
-func matchSeats(e *rules.Engine, reg *cards.Registry, seed uint64, names []string, policyA, policyB, format string, mulligans int, logOut io.Writer) ([]engineseat.Seat, error) {
+func matchSeats(e *rules.Engine, reg *cards.Registry, seed uint64, names []string, policies []string, format string, mulligans int, logOut io.Writer) ([]engineseat.Seat, error) {
 	seatsOut := make([]engineseat.Seat, len(names))
 	for i := range names {
 		policy := ""
-		switch i {
-		case 0:
-			policy = policyA
-		case 1:
-			policy = policyB
+		if i < len(policies) {
+			policy = policies[i]
 		}
 		if policy == "" {
 			// Preserve mtgsim's pre-SB history: every default heuristic
@@ -602,4 +666,33 @@ func matchMulligan(n int) string {
 		return "london"
 	}
 	return "none"
+}
+
+// printLosses writes one line per PlayerLost event, in event order: the seat,
+// its deck and the engine's loss text, so a run can tell a seat that died to
+// damage from one that decked or lost to its own card. A loss that follows
+// the seat's fired delayed trigger names the card that made it ("via Summoner's
+// Pact"), the nearest one in the 400 events before the loss.
+func printLosses(out io.Writer, evs []events.Event, g *state.Game) {
+	for i := range evs {
+		if evs[i].Kind != events.PlayerLost {
+			continue
+		}
+		p := int(evs[i].Player)
+		name := ""
+		if p >= 0 && p < len(g.Players) {
+			name = g.Players[p].Name
+		}
+		via := ""
+		for j := i - 1; j >= 0 && j >= i-400; j-- {
+			if evs[j].Kind != events.DelayedPush || evs[j].Player != evs[i].Player {
+				continue
+			}
+			if o := g.Obj(evs[j].Obj); o != nil && o.Face() != nil {
+				via = " via " + o.Face().Name
+			}
+			break
+		}
+		fmt.Fprintf(out, "  loss seat %d (%s) at event %d: %s%s\n", p, name, evs[i].Seq, evs[i].Text, via)
+	}
 }

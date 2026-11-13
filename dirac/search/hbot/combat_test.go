@@ -8,9 +8,10 @@ import (
 )
 
 // testBoard is a board holding just creatures (obj, ctrl, power, toughness,
-// keywords) and the life totals: what the combat policy reads.
-func testBoard(me uint8, life [2]int32, cres ...creature) *board {
-	b := &board{me: me, life: life}
+// keywords) and the life totals, one per seat: what the combat policy reads.
+func testBoard(me uint8, life []int32, cres ...creature) *board {
+	b := &board{me: me, n: uint8(len(life))}
+	copy(b.life[:], life)
 	for i, c := range cres {
 		b.cre[i] = c
 		b.creX[c.obj] = int16(i + 1)
@@ -45,7 +46,7 @@ func TestBlockCombat(t *testing.T) {
 // TestChooseBlockers: the cheapest block that kills the attacker and is
 // not a trade down; a menace attacker gets the support blocker too.
 func TestChooseBlockers(t *testing.T) {
-	b := testBoard(1, [2]int32{20, 20},
+	b := testBoard(1, []int32{20, 20},
 		cr(10, 0, 2, 2, 0), cr(11, 0, 2, 2, kop.KwMenace),
 		cr(1, 1, 3, 3, 0), cr(2, 1, 1, 1, 0), cr(3, 1, 4, 4, 0))
 	cs := &b.cs
@@ -82,11 +83,11 @@ func TestChooseBlockers(t *testing.T) {
 func TestChooseAttackers(t *testing.T) {
 	run := func(life int32, mine ...creature) []dirac.Obj {
 		cres := append([]creature{cr(20, 1, 3, 3, 0)}, mine...)
-		b := testBoard(0, [2]int32{20, life}, cres...)
+		b := testBoard(0, []int32{20, life}, cres...)
 		cs := &b.cs
 		cs.n = 0
 		for _, c := range mine {
-			cs.opts[cs.n] = copt{src: c.obj, tgt: dirac.PlayerTarget0 + 1}
+			cs.opts[cs.n] = copt{src: c.obj, tgt: dirac.PlayerTarget0 + 1, def: 1}
 			cs.n++
 		}
 		cs.groupAttackers()

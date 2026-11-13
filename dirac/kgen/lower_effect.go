@@ -316,6 +316,9 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 	if r, ok := lc.chosenPlayerDefined(v); ok {
 		return r, nil // lower_definedheads.go
 	}
+	if r, ok := lc.chosenPlayerEnterDefined(v); ok {
+		return r, nil // lower_chooseplayerenter.go
+	}
 	switch v {
 	case "OppNonRememberedController":
 		// gorge definedSpecNonRememberedController: the opponents minus every
@@ -1767,6 +1770,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		lc.emit(lInstr{Op: sa.API, Obj: obj})
 	case "Fight":
 		return lc.fight(ps)
+	case "RemoveFromCombat":
+		return lc.removeFromCombat(ps) // lower_removefromcombat.go
 	case "Earthbend":
 		return lc.earthbend(ps)
 	case "Endure":
@@ -2499,7 +2504,7 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 			// plus a second node's "any other target" that may be a player)
 			return refuse("DamageMap$ True with DamageSource$: the kernel has no damage-map flush")
 		}
-		if obj.Kind == rEachOpp {
+		if obj.Kind == rEachOpp || obj.Kind == rDefending {
 			return lc.dmgSrcPlayers(ps, dmgSrc, obj, n) // lower_damagesourceplayers.go
 		}
 		if obj.Kind == rTarget {
@@ -4139,6 +4144,8 @@ func (lc *lowerCtx) charm(ps *params) error {
 		if rp != nil {
 			return lc.charmRepeatTargets(rp, len(choices))
 		}
+	} else if lc.out.Entwine != nil {
+		return lc.entwineTargets(len(choices), rootTargeted) // lower_entwine.go
 	}
 	return nil
 }

@@ -292,18 +292,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	//     the yes/no to the named decider when the minted ability resolves.
 	//   - a body with no Execute$ has nothing to resolve.
 	for name := range strings.FieldsSeq(ep.Triggers) {
-		raw := ""
-		if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
-			raw = o.Face().SVars[name]
-		}
-		if raw == "" {
-			// The resolving ability's OWN SVar table. A DB$ Effect reached
-			// from a face that is not the object's current one -- Sephiroth,
-			// One-Winged Angel's `R:Event$ Transform | ReplaceWith$ DBEffect`
-			// resolves while the object still shows the front face -- cannot
-			// find its trigger body on Face().SVars at all.
-			raw = c.SVars[name]
-		}
+		raw := effectTriggerBody(h, c, name)
 		tr, ok := cards.ParseTriggerLine(raw)
 		if !ok {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
@@ -414,9 +403,14 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// halves of that relation. (EffectOwner$ still applies to
 			// every other arm; TargetedOwner itself is a supported
 			// Defined$ selector.)
-			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
-				Player: c.Controller, Step: h.Game().Step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: "BecomeMonarch:" + name + odSuffix + cnSuffix})
+			// Only a remembered card that is in exile is jailed: a creature
+			// CR 610.3b kept on the battlefield (or one that left before the
+			// exile) must not be returned by a later crown change.
+			if jailed, ok := monarchJailRemembered(h.Game(), c.Remembered, refTargetUnion(c)); ok {
+				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
+					Player: c.Controller, Step: h.Game().Step, Counter: exec,
+					IDs: encodeRemembered(jailed), Text: "BecomeMonarch:" + name + odSuffix + cnSuffix})
+			}
 			registered = true
 			continue
 		}
@@ -1771,4 +1765,57 @@ func GrantedStaticModes(sa *cards.SA, svars map[string]string) []string {
 		return nil
 	}
 	return out
+}
+
+// effectNamesBecomeMonarchTrigger reports whether the Effect sa's Triggers$
+// list names a Mode$ BecomeMonarch body (Palace Jailer's ComeBack), looked
+// up as effEffect does.
+func effectNamesBecomeMonarchTrigger(h Host, c *Ctx, sa *cards.SA) bool {
+	if !isEffectSA(sa) {
+		return false
+	}
+	for name := range strings.FieldsSeq(EffectOf(sa).Triggers) {
+		if tr, ok := cards.ParseTriggerLine(effectTriggerBody(h, c, name)); ok && tr.Mode == "BecomeMonarch" {
+			return true
+		}
+	}
+	return false
+}
+
+// monarchJailRemembered builds a BecomeMonarch registration's remembered
+// set from the context's memory and the chain's targets (Palace Jailer's
+// `RememberObjects$ You & Targeted`: the exile trigger's target, which the
+// context's memory does not name and which the Effect's own Targeted read
+// drops once the exile made it a new object, CR 400.7). Players in the
+// memory are kept (the monarch relation's anchor), objects only while they
+// are in exile. ok is false when no object survives, so nothing is
+// registered for a creature that was never exiled (CR 610.3b).
+func monarchJailRemembered(g *state.Game, remembered, targets []state.Target) ([]state.Target, bool) {
+	out := make([]state.Target, 0, len(remembered)+len(targets))
+	jailed := false
+	add := func(id state.ObjID) {
+		if o := g.Obj(id); o == nil || o.Zone != state.ZExile {
+			return
+		}
+		for _, t := range out {
+			if !t.IsPlayer && t.Obj == id {
+				return
+			}
+		}
+		out = append(out, state.Target{Obj: id})
+		jailed = true
+	}
+	for _, t := range remembered {
+		if t.IsPlayer {
+			out = append(out, t)
+			continue
+		}
+		add(t.Obj)
+	}
+	for _, t := range targets {
+		if !t.IsPlayer {
+			add(t.Obj)
+		}
+	}
+	return out, jailed
 }

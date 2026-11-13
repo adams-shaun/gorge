@@ -17,8 +17,9 @@ var _ = [0 - unsafe.Offsetof(State{}.perms)%64]struct{}{}
 // pinned, as TestStateLayoutPinned pins the default class's.
 func TestStateLayoutPinnedMP(t *testing.T) {
 	// +24: coldArrays.hexUB's slice header, as in the default class; +48:
-	// coldArrays.mk and mkObj, the multikicker counts.
-	const want = 21304
+	// coldArrays.mk and mkObj, the multikicker counts; +128: the class's
+	// sixteen-object xTargets (+132) less eight bytes of linkPad.
+	const want = 21432
 	if sz := unsafe.Sizeof(State{}); sz != want {
 		t.Fatalf("State is %d bytes, pinned at %d", sz, want)
 	}

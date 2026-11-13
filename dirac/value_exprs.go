@@ -188,6 +188,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.oppsLostLife(ctx.ctrl, x.N) // N 1 legendary hit, N 2 any hit (value_turntallies.go)
 	case kop.ExNotOwnLibMV:
 		return s.notOwnLibMV(k) // value_objectmv.go
+	case kop.ExRemEachOwnNonLand:
+		return s.remEachOwnNonLand(k) // value_remeachown.go
 	case kop.ExCounterKinds:
 		return s.counterKinds(k, x, ctx) // value_counterkinds.go
 	case kop.ExMVOf:

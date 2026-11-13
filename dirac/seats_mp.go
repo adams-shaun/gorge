@@ -40,6 +40,17 @@ const (
 	ovReps       uint8 = 0x0f // the merge count's mask
 )
 
+// maxXTgt is how many objects a stack entry's multi-object target slots hold
+// beyond the first (xTargets); a pick past it stalls StallXTgt. xtMask holds
+// a bit per extra and one more (xCrimRec). Four seats put three opponents'
+// boards in reach: a "divided as you choose among any number of target
+// creatures" spell (Monstrous Onslaught, X = the greatest power you control)
+// cast by the heuristic bot into a four-seat Commander pod picked a ninth
+// creature in 18 of 300 pods, so the class holds sixteen objects.
+const maxXTgt = 15
+
+type xtMask = uint16
+
 // embRemSlots is how many objects one emblem remembers (static_emblemrem.go):
 // the frozen-number byte and embR. The four-seat class has no reserved bytes
 // left for embX, so it holds two and a larger set stalls (StallEmbRem).
@@ -47,10 +58,10 @@ const embRemSlots = 2
 
 // linkPadN pads genState after its sixteen exile-until-leaves links so perms
 // keeps its cache-line phase (statelayout_mp_test.go). Four seats of
-// player.lastLost moved perms eight bytes past phase 0 and the two-byte
-// seatWord fields eight more; forty-eight bytes here bring it round to the
-// next line.
-const linkPadN = 48
+// player.lastLost moved perms eight bytes past phase 0, the two-byte seatWord
+// fields eight more, and the sixteen-object xTargets eight more; forty bytes
+// here bring it round to the next line.
+const linkPadN = 40
 
 // seatWord is a packed field holding a few bits per seat beside its other
 // bits (genState.speed, genState.freeP): two bytes at four seats.

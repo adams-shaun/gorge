@@ -883,9 +883,10 @@ func (e *engineEnv) Leaf() (l Leaf) {
 // leafVec fills l's value vector (Leaf.Vec): a stalled world is a draw,
 // uniform over the living seats (only the seats' Lost flags are read: the
 // engine is mid-abort); a heuristic leaf, or a game that is over, is
-// heuristicLeafVec's; a network leaf, until the network has a vector head,
-// keeps its value at the searching seat and splits the rest evenly over the
-// living opponents (splitLeafVec).
+// heuristicLeafVec's; a network leaf with a K-way value head is the head's
+// own vector (netLeafVec); any other network leaf keeps its value at the
+// searching seat and splits the rest evenly over the living opponents
+// (splitLeafVec).
 func (e *engineEnv) leafVec(l *Leaf) {
 	switch {
 	case e.stalled:
@@ -905,7 +906,11 @@ func (e *engineEnv) leafVec(l *Leaf) {
 	case e.e.G.Over || e.cfg.net == nil || e.cfg.heuristicLeaf:
 		l.Vec, l.NVec = heuristicLeafVec(e.e, e.cfg.actor)
 	default:
-		l.Vec, l.NVec = splitLeafVec(e.e.G, e.cfg.actor, l.V)
+		if vec, nv, has := netLeafVec(e.cfg.net, e.e, e.cfg.actor, e.cfg.views); has {
+			l.Vec, l.NVec = vec, nv
+		} else {
+			l.Vec, l.NVec = splitLeafVec(e.e.G, e.cfg.actor, l.V)
+		}
 	}
 	l.V = l.Vec[0]
 }
@@ -1172,4 +1177,65 @@ func leafMaterial(e *rules.Engine, o *state.Object, actor state.PlayerID) float6
 		score += 2 * float64(e.Power(o.ID)+e.Toughness(o.ID))
 	}
 	return score
+}
+
+// netLeafVec is a network leaf's own value vector (Options.MaxN) when the
+// network has a K-way value head: policynet.Model.ValueVec's K softmax
+// probabilities on the actor's REDACTED view (the same projection, encoding
+// and trunk leafValue's scalar reads), component c the probability that the
+// seat c seats after the actor in turn order wins and component K-1 that no
+// seat does. The probabilities map onto Leaf.Vec's contract (each entry in
+// [0,1], a lost seat's 0, a living seat's the position's value to it): a
+// living seat's entry is its win component plus the no-winner probability
+// divided evenly over the living seats — a draw is worth to every seat what
+// a finished one is (heuristicLeafVec's uniform) — and a component of a
+// relative seat the game does not have, or of a seat that is already lost,
+// is ignored: a trained head assigns both no mass (a seat that does not
+// exist or has lost cannot win), so a trained head's entries sum to 1 over
+// the living seats. A random head does not, which is why only a trained
+// checkpoint should carry a K-way head.
+//
+// ok is false — the leaf falls back to splitLeafVec — when the network has
+// no vector head (ValueK 0, and its External, if any, is not a
+// policynet.VectorValuer), or the head has fewer seat components than the
+// game has seats. The projection and encoding are this leaf's own, on top
+// of the scalar leaf() already paid: the vector leaf reads the head twice
+// when the walk stands on a point whose prior carried the scalar out
+// (leafShared), the price of the cached scalar not carrying the vector.
+func netLeafVec(net *policynet.Model, e *rules.Engine, actor state.PlayerID, sc *viewScratch) (vec [maxVecSeats]float64, nv uint8, ok bool) {
+	g := e.G
+	n := len(g.Players)
+	if net.ValueK < n+1 {
+		return vec, 0, false
+	}
+	if sc == nil {
+		sc = new(viewScratch)
+	}
+	v := &sc.leaf
+	view.ProjectLeanInto(v, e.G, e, actor, e.Pending(), net.Features.ViewOmit())
+	sb := policynet.AcquireStateBuf()
+	p := net.ValueVec(policynet.EncodeStateWithInto(sb, net.Features, v, actor, nil))
+	policynet.ReleaseStateBuf(sb)
+	if len(p) < n+1 {
+		return vec, 0, false
+	}
+	living := 0
+	for i := range g.Players {
+		if !g.Players[i].Lost {
+			living++
+		}
+	}
+	nv = uint8(n)
+	for i := range g.Players {
+		pl := &g.Players[i]
+		if pl.Lost {
+			continue
+		}
+		r := relSeatOf(n, actor, pl.ID)
+		vec[r] = float64(p[r])
+		if living > 0 {
+			vec[r] += float64(p[len(p)-1]) / float64(living)
+		}
+	}
+	return vec, nv, true
 }

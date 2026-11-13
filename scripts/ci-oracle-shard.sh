@@ -63,8 +63,12 @@ go test "$@" -v -run "^($re)\$" "$pkg" >"$tmp/log" 2>&1 || rc=$?
 if [ "$rc" -ne 0 ]; then cat "$tmp/log"; fi
 sed -nE 's/^ *--- SKIP: ([^ ]+) .*/\1/p' "$tmp/log" | sort -u >"$tmp/skipped"
 grep -E '^(ok|FAIL|panic:)' "$tmp/log" || true
-echo "ci-oracle-shard: slowest tests of part $i (refresh $weights from these):"
-sed -nE 's/^--- (PASS|FAIL): (Test[^ ]*) \(([0-9.]+)s\)$/\2 \3/p' "$tmp/log" | sort -k2,2gr | sed -n 1,15p | sed 's/^/  /'
+echo "ci-oracle-shard: slowest tests of part $i, summed over their leaf subtests (refresh $weights from these):"
+# a test that plays its seeds as parallel subtests reports its wall, queueing included: weigh its leaves
+sed -nE 's/^ *--- (PASS|FAIL): (Test[^ ]*) \(([0-9.]+)s\)$/\2 \3/p' "$tmp/log" |
+	awk '{ d[$1] = $2; n = split($1, p, "/"); s = p[1]; for (k = 2; k <= n; k++) { par[s] = 1; s = s "/" p[k] } }
+		END { for (t in d) if (!(t in par)) { split(t, p, "/"); w[p[1]] += d[t] }; for (t in w) printf "%s %.1f\n", t, w[t] }' |
+	sort -k2,2gr | sed -n 1,15p | sed 's/^/  /'
 echo "ci-oracle-shard: $(wc -l <"$tmp/skipped") skips, $(wc -l <"$tmp/allowed") expected"
 unexpected=$(comm -23 "$tmp/skipped" "$tmp/allowed")
 ran=$(comm -13 "$tmp/skipped" "$tmp/allowed")
