@@ -66,6 +66,7 @@ type genPrep struct {
 	ctrlSBA         bool  // the state-based check settles control (a control static, a source-bound OpGainControl)
 	anyPTDelta      bool  // some Override is a +N/+M pump record (kop.Override.PTDelta): ptGen adds it (static_ptdelta.go)
 	anyPlProtAll    bool  // some emblem static is a StatPlayerProtAll player protection grant (static_plprot.go)
+	anyEmbPlHex     bool  // some emblem static is a StatPlayerHexproof player hexproof grant (static_emblemphex.go)
 	anyNTOv         bool  // an OpOverride / OpOverrideAll lasts until its controller's next turn
 	legendGrant     bool  // some Override adds or sets the Legendary supertype (legendRule reads derived types)
 	anyMayPlay      bool
@@ -1544,6 +1545,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepReplMult(t, g)
 	prepDmgMark(t, g)   // repl_dmgmark.go
 	prepPlProtAll(t, g) // static_plprot.go
+	prepEmbPlHex(t, g)  // static_emblemphex.go
 	if g.anyPlProtAll {
 		// open every replDamage site the way rbPlProt does above: no card
 		// carries the player-protection bit (the emblem is created at
