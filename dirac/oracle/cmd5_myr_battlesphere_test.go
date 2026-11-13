@@ -18,6 +18,9 @@ func TestCmd5MyrBattlesphereReprosLockstep(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if r.Divergence == nil || r.Divergence.At != 732 || r.Divergence.Field != "Cards[69].Power" {
+		t.Fatalf("the recording is not the tap-election divergence at 732: %+v", r.Divergence)
+	}
 	has := false
 	for _, deck := range r.Cards {
 		for _, c := range deck {
