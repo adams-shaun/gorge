@@ -14,7 +14,15 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 	switch v {
 	case "RememberedController":
 		return lc.rememberedController() // lower_stacktgt.go
-	case "Self":
+	case "Self", "Parent":
+		// gorge's defined-spec table reads "Parent" as definedSpecSelf
+		// (effects/context.go), the same one alias it gives "Self" and
+		// "EffectSource": the parent of a resolving sub-ability is the
+		// ability itself, and Defined() names its source -- for View from
+		// Above's and Molten Birth's DB$ ChangeZone Origin$ Stack
+		// Destination$ Hand the spell on the stack returns to its owner's
+		// hand. ParentTarget(ed) above is the different, target-reading
+		// spelling.
 		return lRef{Kind: rSelf}, nil
 	case "OriginalHost":
 		return lRef{Kind: rHost}, nil
