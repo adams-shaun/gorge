@@ -180,8 +180,11 @@ func run() int {
 		focusPer   = flag.Int("focus-per-deck", oracle.FocusPerDeck, "-focus: focus cards per deck")
 		reachPath  = flag.String("reach", "", "-synth: write one row per card of the list here: card, how far it got, decks, games, plays in clean games")
 		v2RandFull = flag.Bool("v2-rand-full", false, "-v2 transcript: no-op (a rand game is always compared whole; the flag keeps the old spelling working)")
+		cpuProf    = flag.String("cpuprofile", "", "write a CPU profile here")
+		memProf    = flag.String("memprofile", "", "write an allocation profile here and print the run's allocation totals")
 	)
 	flag.Parse()
+	defer startProfile(*cpuProf, *memProf)()
 	verboseFDN = *verbose
 	reproEvents = *eventTail
 	coveragePath = *covPath

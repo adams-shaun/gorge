@@ -59,6 +59,8 @@ func main() {
 	format := flag.String("format", "constructed", "game format: constructed or commander (40 life, commanders in the command zone)")
 	mulligans := flag.Int("mulligans", 0, "London mulligans each seat may take before turn 1 (default 0, none)")
 	shape := flag.String("shape", "", "write a JSON game-shape census to this file (game rows, then one aggregate)")
+	cpuProf := flag.String("cpuprofile", "", "write a CPU profile here")
+	memProf := flag.String("memprofile", "", "write an allocation profile here and print the run's allocation totals")
 	var sbAgents []string
 	flag.Func("sb-agent", "register a SpellBench v2 stdio agent: name=/path/to/agent (repeatable)", func(arg string) error {
 		sbAgents = append(sbAgents, arg)
@@ -71,7 +73,10 @@ func main() {
 		Verify: *verify, Verbose: *verbose, Dir: *dir,
 		PolicyA: *policyA, PolicyB: *policyB, SBAgents: sbAgents, Format: *format, Mulligans: *mulligans, Shape: *shape,
 	}
-	if err := runSim(o, os.Stdout); err != nil {
+	stop := startProfile(*cpuProf, *memProf)
+	err := runSim(o, os.Stdout)
+	stop()
+	if err != nil {
 		fmt.Fprintln(os.Stderr, "mtgsim:", err)
 		os.Exit(1)
 	}
