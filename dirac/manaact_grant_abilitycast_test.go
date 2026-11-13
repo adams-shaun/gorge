@@ -18,7 +18,7 @@ import (
 // No pool holds both cards, so the FDN table is given the two printed lines.
 func TestGrantedManaAbilityFiresNoAbilityCast(t *testing.T) {
 	deck := []cardset.Entry{{Name: "Imprisoned in the Moon", Count: 1}, {Name: "Eager Trufflesnout", Count: 2}, {Name: "Island", Count: 10}}
-	tbl, da, _, err := cardsettest.Synth(t, "std-fdn").Matchup(deck, deck)
+	tbl, da, _, err := cardsettest.Set(t, "fdn").Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
 	}
