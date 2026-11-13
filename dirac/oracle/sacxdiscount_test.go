@@ -21,7 +21,7 @@ import (
 // sacxdiscount_test.go).
 const sacDiscountScript = "Name:Sac Discount Probe\nManaCost:6 R\nTypes:Creature\nPT:7/5\n" +
 	"A:SP$ PermanentCreature | Cost$ 6 R Sac<X/Artifact;Creature/any number of artifacts and/or creatures> | AdditionalDesc$ This spell costs {2} less to cast for each permanent sacrificed this way.\n" +
-	"S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | Amount$ Y | EffectZone$ All | Relative$ True\n" +
+	"S:Mode$ ReduceCost | Type$ Spell | Relative$ True | ValidCard$ Card.Self | Amount$ Y | EffectZone$ All\n" +
 	"SVar:X:Count$xPaid\nSVar:Y:SVar$X/Times.2\nOracle:x\n"
 
 // sacRitualScript floats {R}{R}: gorge offers a Sac<X> cast only from a
