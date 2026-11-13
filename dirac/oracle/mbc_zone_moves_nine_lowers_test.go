@@ -17,7 +17,7 @@ import (
 //     kop.DigRestTopAsk;
 //   - digtoporder: the same spelling's class over the controller's own
 //     library and a target player's (Ransack, Cruel Fate, Diabolic Vision,
-//     Dimir Machinations, Bamboozle);
+//     Dimir Machinations, Bamboozle; Ancestral Knowledge's enters trigger);
 //   - mbcmindclaw: Mindclaw Shaman's free cast of an instant or sorcery from
 //     the target opponent's revealed hand (Play Valid$
 //     Card.TargetedPlayerCtrl ValidZone$ Hand): CastFree over the player
@@ -66,8 +66,8 @@ var mbcZoneMoves9Cases = []mbcZoneMoves9Case{
 		pool: "digtoporder",
 		decks: [2][]cardset.Entry{
 			{
-				{Name: "Ransack", Count: 6}, {Name: "Cruel Fate", Count: 4}, {Name: "Diabolic Vision", Count: 6},
-				{Name: "Dimir Machinations", Count: 4}, {Name: "Bamboozle", Count: 4},
+				{Name: "Ransack", Count: 5}, {Name: "Cruel Fate", Count: 3}, {Name: "Diabolic Vision", Count: 5},
+				{Name: "Dimir Machinations", Count: 3}, {Name: "Bamboozle", Count: 4}, {Name: "Ancestral Knowledge", Count: 4},
 				{Name: "Island", Count: 10}, {Name: "Swamp", Count: 6},
 			},
 			{
@@ -75,7 +75,7 @@ var mbcZoneMoves9Cases = []mbcZoneMoves9Case{
 			},
 		},
 		shape: func(t *testing.T, tbl *kop.Table) {
-			for _, name := range []string{"Ransack", "Cruel Fate", "Diabolic Vision", "Dimir Machinations", "Bamboozle"} {
+			for _, name := range []string{"Ransack", "Cruel Fate", "Diabolic Vision", "Dimir Machinations", "Bamboozle", "Ancestral Knowledge"} {
 				if len(digTopAskInstrs(tbl, name)) == 0 {
 					t.Fatalf("%s has no DigEx with DigRestTopAsk: the spelling did not lower", name)
 				}
