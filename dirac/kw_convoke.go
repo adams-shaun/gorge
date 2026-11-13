@@ -77,10 +77,16 @@ func isConvokePick(f pickKind) bool { return f&convokePickMask == convokePickMas
 // convokeCost then improviseCost). Hybrid and {C} pips are never paid. A
 // spell with both keywords is priced like gorge's offer too.
 func (s *State) convokeCredit(k *prep, p uint8, c CardID, o Obj, cost kop.ManaCost) kop.ManaCost {
+	return s.convokeCreditFrom(k, p, c, o, s.objs[o].zone == kop.ZoneHand, cost) // the offer: the card is still in the hand
+}
+
+// convokeCreditFrom is convokeCredit with the cast's origin given: a spell
+// already on the stack (the multikicker count ask) is no longer in the hand,
+// so its caller passes castFromHandBy.
+func (s *State) convokeCreditFrom(k *prep, p uint8, c CardID, o Obj, fromHand bool, cost kop.ManaCost) kop.ManaCost {
 	if k.gen == nil || !k.gen.anyConvoke {
 		return cost
 	}
-	fromHand := s.objs[o].zone == kop.ZoneHand // the offer: the card is still in the hand
 	convoke := s.hasConvoke(k, p, c, o, fromHand)
 	improvise := s.isImprovise(k, p, c, o, fromHand)
 	if !convoke && !improvise {

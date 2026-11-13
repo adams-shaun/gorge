@@ -111,7 +111,7 @@ func valueRd(v lValue) condRd {
 	case vNone, vConst, vX, vCountGraveyard, vAttackedThisTurn, vLifeOf, vLibrarySizeOf, vStartingLife,
 		vLifeGainedThisTurn, vOppLifeLostThisTurn, vCreaturesDied, vLifeLostThisTurn, vLifeLostLastTurn, vHandSizeOf,
 		vOppsLostLife, vDrawnThisTurn, vGraveTypes, vGraveAgg, vYourSpeed, vHighestOppPoison,
-		vKicked, vMorbid, vSum, vPromisedGift, vCompare, vBranches, vCommittedCrime, vCountersOn,
+		vKicked, vTimesKicked, vMorbid, vSum, vPromisedGift, vCompare, vBranches, vCommittedCrime, vCountersOn,
 		vLowestLife, vOppsAttacked:
 	case vCount, vCountAtLeast:
 		r = filterRd(v.F)

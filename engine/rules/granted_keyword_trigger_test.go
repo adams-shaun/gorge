@@ -87,6 +87,7 @@ var grantedTriggerKeywordWalk = map[string]string{
 	"Prowess": "checkGrantedStaticTriggersUsing",
 	"Myriad":  "checkGrantedStaticTriggersUsing",
 	"Evolve":  "checkGrantedStaticTriggersUsing",
+	"Extort":  "checkGrantedStaticTriggersUsing",
 	// Dedicated per-keyword walks.
 	"Afflict":           "checkGrantedAfflictTriggers",
 	"Cumulative upkeep": "checkGrantedCumulativeUpkeepTriggers",

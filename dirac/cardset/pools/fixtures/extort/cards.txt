@@ -1,0 +1,11 @@
+# kernel: Extort lowers to a SpellCast trigger; a granted Extort fires per granting static (dirac/oracle/extort_lockstep_test.go)
+Blind Obedience
+Crypt Ghast
+Dark Ritual
+Life Insurance
+Plains
+Pontiff of Blight
+Sign in Blood
+Swamp
+Tithe Drinker
+Treasury Thrull

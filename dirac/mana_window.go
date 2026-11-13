@@ -741,6 +741,19 @@ func (s *State) windowColOwed(k *prep, p uint8, cost, owed *kop.ManaCost, sl Slo
 				}
 			}
 		}
+		if pc.blgFirst != 0 {
+			// a basic under a granted type lists its own colour before the granted ones
+			// (chars.appendLandTypes, owedAbilitiesFirst): an Island owing {W}{U} answers {U}
+			own := uint8(k.cards[s.cardAt(sl)].manaCol) & 0x1f & uint8(all)
+			if f := uint(pc.blgFirst - 1); f < 5 && own&(1<<f) != 0 && owed.Pips[f] > s.pl[p].pool[f] {
+				return int(f)
+			}
+			for c := 0; c < 5; c++ {
+				if own&(1<<c) != 0 && owed.Pips[c] > s.pl[p].pool[c] {
+					return c
+				}
+			}
+		}
 		for c := 0; c < 5; c++ {
 			if all&(1<<c) != 0 && seen&(1<<c) == 0 && owed.Pips[c] > s.pl[p].pool[c] {
 				return c // a granted ability's colour follows the source's own
