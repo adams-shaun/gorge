@@ -21,7 +21,12 @@ import (
 //   - mbcmindclaw: Mindclaw Shaman's free cast of an instant or sorcery from
 //     the target opponent's revealed hand (Play Valid$
 //     Card.TargetedPlayerCtrl ValidZone$ Hand): CastFree over the player
-//     target's hand.
+//     target's hand;
+//   - mbcghostform: Kaya's Ghostform's "when enchanted permanent dies or is
+//     put into exile" (ChangesZone Battlefield->Graveyard,Exile ValidCard$
+//     Card.AttachedBy), a Leaves line over the destination set read on the
+//     host as it leaves (CR 603.10a), killed by Shock and exiled by Swords
+//     to Plowshares.
 //
 // Each case asserts the lowered shape is in the table, plays clean, and then
 // diverges with that shape broken (the pool reaches what it tests).
@@ -99,6 +104,25 @@ var mbcZoneMoves9Cases = []mbcZoneMoves9Case{
 		// the controller's own hand instead of the target's
 		mutate: func(tbl *kop.Table) { mbcTgtPlayerCast(tbl, "Mindclaw Shaman").Obj = kop.RefNone },
 	},
+	{
+		pool: "mbcghostform",
+		decks: [2][]cardset.Entry{
+			{
+				{Name: "Kaya's Ghostform", Count: 12}, {Name: "Walking Corpse", Count: 12}, {Name: "Swamp", Count: 16},
+			},
+			{
+				{Name: "Shock", Count: 8}, {Name: "Swords to Plowshares", Count: 8}, {Name: "Raging Goblin", Count: 6},
+				{Name: "Mountain", Count: 10}, {Name: "Plains", Count: 8},
+			},
+		},
+		shape: func(t *testing.T, tbl *kop.Table) {
+			if mbcGhostformLine(tbl) == nil {
+				t.Fatal("Kaya's Ghostform has no Leaves line over graveyard and exile: the spelling did not lower")
+			}
+		},
+		// the exile half dropped: an exiled host returns in gorge only
+		mutate: func(tbl *kop.Table) { mbcGhostformLine(tbl).Trig.N &^= 1 << kop.ZoneExile },
+	},
 }
 
 func TestMBCZoneMoves9Lowers(t *testing.T) {
@@ -168,6 +192,23 @@ func mbcTgtPlayerCast(tbl *kop.Table, name string) *kop.Instr {
 			if prog[k].Op == kop.OpCastFree && prog[k].Obj == kop.RefTarget0 {
 				return &prog[k]
 			}
+		}
+	}
+	return nil
+}
+
+// mbcGhostformLine is Kaya's Ghostform's leave line: a Leaves trigger whose
+// destination set holds the graveyard and exile.
+func mbcGhostformLine(tbl *kop.Table) *kop.Ability {
+	cd := mbcCard(tbl, "Kaya's Ghostform")
+	if cd == nil {
+		return nil
+	}
+	const want = 1<<kop.ZoneGraveyard | 1<<kop.ZoneExile
+	for j := range cd.Abilities {
+		a := &cd.Abilities[j]
+		if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigLeaves && a.Trig.N&want == want {
+			return a
 		}
 	}
 	return nil
