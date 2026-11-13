@@ -50,7 +50,6 @@ var kpouchDecks = [2][]cardset.Entry{
 // counters through the dead chain steps a scripted play activates. Each
 // carrier must be played by some game.
 func TestComponentPouchLowers(t *testing.T) {
-	t.Parallel()
 	if isolate(t) {
 		return
 	}
