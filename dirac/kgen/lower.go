@@ -288,6 +288,10 @@ type lowerCtx struct {
 	// actCost while a printed activated ability's own Cost$ is lowered
 	// (RemoveAnyCounter<N/Kind/Filter>, kop.CostSubAmong)
 	actCost bool
+	// escCost while a printed escape cost is lowered (lower_escape.go): its
+	// Exile<N/Spec> battlefield part may stand beside the ExileFromGrave part
+	// (CardDef.EscBfCost is a Cost of its own)
+	escCost bool
 	// lifeXSpell while a spell's own Cost$ is lowered: PayLife<X> (an
 	// announced life part) may lower on a spell or an
 	// activated ability (actCost) and nowhere else
@@ -2696,7 +2700,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		// Cost.Filter: alone among the counted parts (dirac/kgen/build.go
 		// cost)
 		parts := 0
-		for _, on := range []bool{c.Forage != nil, c.ExileG != nil, c.Sac != nil, c.DiscardN > 0, c.Loyalty != 0, c.SubCtr > 0, c.SubAmongN > 0, c.PayLife > 0 && !lc.altLifeShared(&c), c.TapN > 0, c.EvidenceN > 0} {
+		for _, on := range []bool{c.Forage != nil, c.ExileG != nil, c.Sac != nil && !(lc.escCost && c.SacExile), c.DiscardN > 0, c.Loyalty != 0, c.SubCtr > 0, c.SubAmongN > 0, c.PayLife > 0 && !lc.altLifeShared(&c), c.TapN > 0, c.EvidenceN > 0} {
 			if on {
 				parts++
 			}

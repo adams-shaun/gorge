@@ -2315,7 +2315,7 @@ func (s *State) payPicks(k *prep) {
 		}
 	}
 	for _, f := range [3]pickKind{pkDiscard, pkTapX, pkSac} {
-		if f == pkTapX && k.costObj {
+		if f == pkTapX && k.costObj && !s.escBfEntry(k) {
 			s.payExilePicks() // after the discards (gorge payCast)
 		}
 		// the cost's tap parts are one tapping action (gorge paidcost.go's
@@ -2372,6 +2372,9 @@ func (s *State) payPicks(k *prep) {
 			}
 		}
 		s.tapBatchClose(tb)
+	}
+	if k.gen == nil && s.escBfEntry(k) {
+		s.payExilePicks() // the escape cast's graveyard exiles follow its permanent's (paySacsGen otherwise)
 	}
 }
 
@@ -2439,6 +2442,9 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 			return &cd.FbCost // a non-mana flashback cost (CR 702.34a; kgen lower_fbcost.go)
 		}
 		if cd.Escape && e.trigPl == trigPlEscape && cd.EscCost.Flags != 0 && !DebugEscapeSkipExiles {
+			if cd.EscBfCost.Flags != 0 && s.bld().donePicks&pkSac == 0 {
+				return &cd.EscBfCost // the battlefield exile part, asked before the grave exile (gorge exAsk's token order)
+			}
 			return &cd.EscCost // the escape cost's exile parts (CR 702.138a; kw_escape.go)
 		}
 		if k.gen != nil && k.gen.anyKickCost {

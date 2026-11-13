@@ -60,6 +60,7 @@ const (
 	raGenDigAllOpt = raGenManifestDread + 4 // OpDigEx ChangeNum$ All beside Optional$: the yes/no take-all election (ChGenDigOpt)
 	raGenCmdZone   = raGenManifestDread + 5 // a commander's CR 903.9b move parked at a hand/library destination (zone_cmdzone.go)
 	raGenExtort    = raGenManifestDread + 6 // OpExt ExtExtort: pay {W/B}? (ChGenPayMode mode 1 = pay; act_extort.go)
+	raGenLibPlace  = raGenExtort + 1        // OpExt ExtLibPlace: the owner orders the cards one effect put at a library position (ChArrange; act_libplace.go)
 )
 
 // ChoiceKinds of the generated table's DkChoose decisions (above the core's).

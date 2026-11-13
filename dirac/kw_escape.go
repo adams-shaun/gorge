@@ -12,8 +12,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // altcast.go escapeCost, legal_walk_alt.go's graveyard walk, Option Kind
 // "cast" Mode "escape"). Lunar Hatchling's printed cost adds one
 // Exile<1/Land> part from the battlefield, a counted part of its own beside
-// the grave exile; the kernel's cast carries one counted part, so kgen
-// refuses that cost shape (kgen refuses Lunar Hatchling at its K:Escape node).
+// the grave exile: it is CardDef.EscBfCost (one CostSac+ExileBf part), picked
+// first (buildPickCost returns it until its pkSac bit is in donePicks, then
+// EscCost), as gorge's exAsk walks the parts in token order.
 //
 // Granted escape: a card in its owner's graveyard granted escape by a
 // battlefield static (kop.StatEscapeGrant, Underworld Breach's AffectedZone$
@@ -195,7 +196,7 @@ func (s *State) offerEscapeCasts(k *prep, d *Decision, p uint8, sorc bool, av *a
 		tgt := castEscapeTgt
 		if printed {
 			tgt = castPrintedEscapeTgt
-			if !s.costObjPayable(k, p, &cd.EscCost, o, o) {
+			if !s.costObjPayable(k, p, &cd.EscCost, o, o) || cd.EscBfCost.Flags != 0 && !s.pickCostPayable(k, p, &cd.EscBfCost, o) {
 				continue // the printed exile parts: no option that cannot be paid is ever offered
 			}
 			fc = s.adjustCost(k, p, c, o, cd.AltCost)

@@ -233,6 +233,9 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 		} else {
 			pl.libTop(o)
 		}
+		if s.res.active && s.resArm().plc.arm != 0 && !s.buildLive() && !s.scrCombatLive() {
+			s.libPlaceNote(ob.owner()) // act_libplace.go
+		}
 	case kop.ZoneHand:
 		pl.hand[pl.handN] = o
 		ob.of |= ofInHand

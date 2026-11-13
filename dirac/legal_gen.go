@@ -611,6 +611,9 @@ func (s *State) paySacsGen(k *prep) {
 			}
 		}
 	}
+	if s.escBfEntry(k) {
+		s.payExilePicks() // after the escape cast's exiled permanent (payPicks held them back)
+	}
 	// a "sacrifice this" source that could tap for mana (Cathar Commando
 	// under Imprisoned in the Moon)
 	e := &s.bld().e

@@ -1939,6 +1939,11 @@ func (s *scan) closureReads(fi *fnInfo, exclude map[string]bool, visited map[str
 // unread rider. The rot guard fails on an entry naming no effects function.
 var foreignAbilityReaders = map[string]bool{
 	"producibleSymbols": true,
+	// engine/effects/effect.go: effChangeZone's CR 610.3b guard
+	// (exileUntilOpponentMonarchMet) reads its SubAbility$ Effect's
+	// Triggers$ through effects.EffectOf (Palace Jailer's DBEffect), never a
+	// ChangeZone parameter.
+	"effectNamesBecomeMonarchTrigger": true,
 }
 
 // handEffectsRoots are effects functions registered by function value rather

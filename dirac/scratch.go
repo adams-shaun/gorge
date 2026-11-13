@@ -39,6 +39,7 @@ type armRes struct {
 	lookOrig  [24]uint8     // each look slot's window index: digPick reorders look to pick order, rest keeps window order
 	pileOrd   [12]uint8     // OpTwoPiles: the face-down pile's rem indices in pick order
 	dmgSeqOrd [MaxPerm]Slot // a multi-event damage op's recipients, frozen (dmgSeqOn / N / I / Pl, outside scr)
+	plc       libTally      // kop.ExtLibPlace's tally of the cards put into libraries (act_libplace.go); live from its arm op to its ask op, zeroed by scrResEnter
 	jf        int16         // the resolution's join-forces total (ExtJoinForces / ExJoinForces); zeroed by scrResEnter
 }
 
@@ -100,7 +101,8 @@ func (s *State) scrResEnter() {
 	s.g.nlook, s.g.lookSel = 0, 0
 	s.g.dmgSeqOn, s.g.dmgSeqN, s.g.dmgSeqI, s.g.dmgSeqPl = false, 0, 0, 0
 	s.g.plusBatchAsked = false // a new resolution cannot inherit a parked batch
-	s.resArm().jf = 0          // the join-forces total is per resolution
+	s.resArm().plc = libTally{}
+	s.resArm().jf = 0 // the join-forces total is per resolution
 }
 
 // joinForcesAdd runs ExtJoinForces: it adds b to the resolution's join-forces

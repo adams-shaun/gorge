@@ -301,7 +301,7 @@ func prepare(t *kop.Table) *prep {
 		p.retrace = p.retrace || c.Retrace
 		p.teamwork = p.teamwork || c.Teamwork != 0
 		p.offspring = p.offspring || c.Offspring || c.Buyback
-		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.OptCost.Flags|c.KickerCost.Flags|c.FbCost.Flags|c.EscCost.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.HasSneak || c.HasWebSling // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go)
+		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.OptCost.Flags|c.KickerCost.Flags|c.FbCost.Flags|c.EscCost.Flags|c.EscBfCost.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.HasSneak || c.HasWebSling // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go)
 		pc.spellAb, pc.manaAb = -1, -1
 		p.tapXAb[i], p.ctrAb[i], p.riderAb[i] = -1, -1, -1
 		// the card's mana is typed by its types (mana_artifact.go) whether

@@ -296,6 +296,13 @@ func (s *State) FeatArrangeDig() bool {
 	return s.ctl == ctlResolve && s.res.ask == raGenDigArrange
 }
 
+// FeatArrangePlace reports whether the ChArrange decision is an owner ordering
+// the cards one effect put at a library position (gorge's "library_placement"
+// options, CR 401.4).
+func (s *State) FeatArrangePlace() bool {
+	return s.ctl == ctlResolve && s.res.ask == raGenLibPlace
+}
+
 // FeatFirstStrikeCombat reports whether this combat has a first-strike
 // damage step.
 func (s *State) FeatFirstStrikeCombat() bool { return s.fsStep }
