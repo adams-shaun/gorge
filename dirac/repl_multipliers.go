@@ -85,7 +85,7 @@ func (s *State) dblDmgMatch(k *prep, b Slot, srcCtrl uint8, srcSl Slot, srcCard 
 			}
 			continue
 		}
-		if r.C&kop.ReplDmgNonCombat != 0 && combat || r.C&kop.ReplDmgSrcInPlay != 0 && srcSl == NoSlot {
+		if r.C&kop.ReplDmgNonCombat != 0 && combat || r.C&kop.ReplDmgCombat != 0 && !combat || r.C&kop.ReplDmgSrcInPlay != 0 && srcSl == NoSlot {
 			continue
 		}
 		var to int16

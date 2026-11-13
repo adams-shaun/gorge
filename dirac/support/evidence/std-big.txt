@@ -1,3 +1,4 @@
+Ancient Cornucopia
 Bristlebud Farmer
 Collector's Cage
 Esoteric Duplicator
@@ -11,6 +12,7 @@ Island
 Legion Extruder
 Loot, the Key to Everything
 Lost Jitte
+Lotus Ring
 Molten Duplication
 Mountain
 Nexus of Becoming
@@ -22,5 +24,7 @@ Rest in Peace
 Sandstorm Salvager
 Simulacrum Synthesizer
 Swamp
+Sword of Wealth and Power
 Torpor Orb
 Vaultborn Tyrant
+Worldwalker Helm

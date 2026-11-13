@@ -1073,6 +1073,7 @@ ReplDamageHealFirst	ReplKind	37
 ReplDamagePlus	ReplKind	16
 ReplDestroyHeal	ReplKind	32
 ReplDiscardOppToBattlefield	ReplKind	33
+ReplDmgCombat	untyped int	512
 ReplDmgCtrHost	untyped int	128
 ReplDmgNonCombat	untyped int	16
 ReplDmgOppPerm	untyped int	2
