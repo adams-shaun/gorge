@@ -435,7 +435,7 @@ func prepWord9(t *kop.Table, g *genPrep) {
 				reads = reads || chainWord7(t, ts.Filter, kop.W7CrewedBySrc)
 			}
 			for _, in := range a.Prog {
-				reads = reads || chainWord7(t, in.F, kop.W7CrewedBySrc)
+				reads = reads || chainWord7(t, kop.InstrFilter(&in), kop.W7CrewedBySrc)
 			}
 			if reads {
 				if g.crewerRec == nil {

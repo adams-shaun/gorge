@@ -993,8 +993,7 @@ func (s *State) FeatPayManual() bool {
 		return false
 	}
 	k := s.k()
-	in := &s.prog(k)[s.res.pc]
-	c := manaOf(int(s.g.pickLeft), s.numTimesPips(k, in.B.N))
+	c := s.resPayCost(k) // cost_trighybrid.go
 	var av avail
 	pl := &s.pl[SeatIx(s.g.pickP)]
 	for i := 0; i < kop.NumManaKinds; i++ {

@@ -2181,6 +2181,10 @@ type genState struct {
 	// flipped a coin. Bit 2+p: player p activated an Exhaust ability. Bits
 	// 4-7 are free. Cleared at the turn change. Taken from rsv.
 	turnF uint8
+	// payHyb: a trigger's own hybrid PayMana cost's announced faces, three
+	// bits per pip from bit 0, colour+1 (cost_trighybrid.go). Cleared when
+	// the ask settles. Taken from rsv.
+	payHyb uint8
 	// dmgAmt: the positive damage each reader card's object (CardDef.DmgAmt)
 	// received this turn, o = Obj+1 (0 empty) and n saturating at 255
 	// (value_dmgamount.go). Written only under genPrep.anyDmgAmt; cleared at the
@@ -2204,6 +2208,7 @@ type genState struct {
 const (
 	maxImp      = 16
 	turnFBytes  = 1 // genState.turnF, taken from rsv
+	payHybBytes = 1 // genState.payHyb, taken from rsv
 	dmgAmtN     = 4 // genState.dmgAmt: reader-card records (value_dmgamount.go)
 	dmgAmtBytes = dmgAmtN * int(unsafe.Sizeof(dmgAmtRec{}))
 	// rsvN pads the reserved block to 80 bytes (genState's tail padding
@@ -2211,7 +2216,7 @@ const (
 	// that carry State's growth for MaxObj 236 to a multiple of 64 so perms
 	// keeps its phase. It counts bytes: an object-wide field takes its width
 	// in the class.
-	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes)
+	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-payHybBytes-dmgAmtBytes)
 )
 
 // dmgAmtRec is one genState.dmgAmt record: the reader card's object+1 (0

@@ -2938,13 +2938,15 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(z); err != nil {
 			return ki, err
 		}
-		if pk == kop.PayMana && in.C > 0 {
-			// PayMana's F is the life paid beside the mana
-			// (a trigger's own mana-and-life cost, Zoraline)
-			if in.F != nil || in.C > 255 {
+		if pk == kop.PayMana && (in.C > 0 || len(in.Hyb) != 0) {
+			// PayMana's F is the life paid beside the mana (a trigger's own
+			// mana-and-life cost, Zoraline) and its hybrid pips (Emiel the
+			// Blessed's {G/W}; kop.PayManaF)
+			f, ok := payManaF(in.C, in.Hyb) // lower_trighybrid.go
+			if in.F != nil || !ok {
 				return ki, fmt.Errorf("mana-and-life pay shape")
 			}
-			ki.F = kop.FilterID(in.C)
+			ki.F = f
 		}
 	case "DealDamage":
 		ki.Op = kop.OpDealDamage
