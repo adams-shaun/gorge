@@ -22,7 +22,7 @@ import (
 var strictlySelfCards = map[string]bool{
 	"Arahbo, Roar of the World": true, "Arden Angel": true, "Charforger": true,
 	"Edgar Markov": true, "Emergent Woodwurm": true, "Genesis": true,
-	"Gigapede": true, "Inalla, Archmage Ritualist": true,
+	"Gigapede": true, "Guardian Scalelord": true, "Inalla, Archmage Ritualist": true,
 	"Jocasta, Automaton Avenger": true, "Level Up": true, "Lothlórien Blade": true,
 	"Master of Death": true, "Old One Eye": true, "Pyre Zombie": true,
 	"Sidar Jabari of Zhalfir": true, "Skyclave Shade": true,
@@ -30,6 +30,7 @@ var strictlySelfCards = map[string]bool{
 
 var strictlySelfDeckSets = []struct {
 	name  string
+	seeds uint64 // 0 means the default 300; a set that reaches its divergence early uses fewer
 	decks [2][]cardset.Entry
 }{
 	{
@@ -49,6 +50,22 @@ var strictlySelfDeckSets = []struct {
 				{Name: "Sidar Jabari of Zhalfir", Count: 2}, {Name: "Skyclave Shade", Count: 2},
 				{Name: "Thought Scour", Count: 4}, {Name: "Walking Corpse", Count: 4},
 				{Name: "Plains", Count: 5}, {Name: "Island", Count: 4}, {Name: "Swamp", Count: 5}, {Name: "Mountain", Count: 4},
+			},
+		},
+	},
+	{
+		// The Backup-granted attack trigger's SVar:X reads the recipient's
+		// live power; the divergence it guards appears by seed 7, so 60 seeds
+		// keep the regression inside the one-minute test budget.
+		name:  "strictlyself-backup-grant-vs-bears",
+		seeds: 60,
+		decks: [2][]cardset.Entry{
+			{
+				{Name: "Guardian Scalelord", Count: 4}, {Name: "Old One Eye", Count: 4},
+				{Name: "Grizzly Bears", Count: 2}, {Name: "Plains", Count: 15}, {Name: "Forest", Count: 15},
+			},
+			{
+				{Name: "Grizzly Bears", Count: 8}, {Name: "Plains", Count: 32},
 			},
 		},
 	},
@@ -101,7 +118,11 @@ func TestStrictlySelfLockstep(t *testing.T) {
 	t.Parallel()
 	played := map[string]int{}
 	for _, ds := range strictlySelfDeckSets {
-		if n := lockstepRunPolicy(t, "strictlyself", ds.decks, 300, true, nil, nil,
+		seeds := ds.seeds
+		if seeds == 0 {
+			seeds = 300
+		}
+		if n := lockstepRunPolicy(t, "strictlyself", ds.decks, seeds, true, nil, nil,
 			func(seed uint64) Policy { return strictlySelfPolicy(seed, played) }); n != 0 {
 			t.Fatalf("%s: %d divergent seeds", ds.name, n)
 		}

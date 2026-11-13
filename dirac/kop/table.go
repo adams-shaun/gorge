@@ -134,6 +134,12 @@ type CardDef struct {
 	// zero mana; a kicked cast pays this through the cost stages (kernel
 	// kw_kicker.go).
 	KickerCost Cost
+	// Multikicker, HasMultikicker: K:Multikicker:<cost> (CR 702.43). The
+	// per-payment cost is paid any number of times as the spell is cast; a
+	// Multikicker card's kicked cast asks the count before X and targets
+	// (kernel cast.go's bsMulti). HasMultikicker distinguishes a zero cost.
+	Multikicker    ManaCost
+	HasMultikicker bool
 	// BeholdN, BeholdF: part one of the either-or additional cost is
 	// "behold a <type>" (Behold<1/Type>, CR 701.4a): BeholdN (1) of the
 	// payer's permanents or hand cards matching BeholdF. Table data, not a

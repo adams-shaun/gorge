@@ -341,6 +341,9 @@ var kwBits = map[string]kop.KwMask{
 	"PreventCombatDamageFrom": kop.KwPreventCombatDamageFrom, "Shroud": kop.KwShroud,
 	"Fear": kop.KwFear, "Shadow": kop.KwShadow, "Prowess": kop.KwProwess, "Wither": kop.KwWither, // a GRANTED wither only (printed: CardDef.Wither)
 	"Ward": kop.KwWard, // a static's granted ward only (lStatic.Ward; splitWardGrant)
+	// Multikicker has no free KwMask bit (all 32 are used); the keyword is
+	// carried by CardDef.HasMultikicker/Multikicker instead (CR 702.43).
+	"Multikicker": 0,
 }
 
 func kwMask(ks []string) (kop.KwMask, error) {
@@ -616,6 +619,12 @@ func (cb *cardBuilder) record() error {
 			if d.KickerCost, err = cb.cost(*c.KickerCost); err != nil {
 				return err
 			}
+		}
+	}
+	if c.Multikicker != nil {
+		d.HasMultikicker = true
+		if d.Multikicker, err = manaCostOf(*c.Multikicker); err != nil {
+			return err
 		}
 	}
 	if c.MorphCost != nil {
@@ -2154,6 +2163,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vActivations:        kop.ExActivations,
 	vLifeLostLastTurn:   kop.ExLifeLostLastTurn,
 	vDmgAmount:          kop.ExDmgAmountReceived,
+	vTimesKicked:        kop.ExKicked, // Expr.N 1: the multikicker count, not the kicked bit
 	vEnergyOf:           kop.ExEnergyOf,
 	vMonarch:            kop.ExMonarch, // lower_monarch.go
 }
@@ -2179,6 +2189,9 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 	}
 	if v.Kind == vPWTypes {
 		e.N = 1 // ExCount N 1: the distinct planeswalker subtypes, not the count
+	}
+	if v.Kind == vTimesKicked {
+		e.N = 1 // ExKicked N 1: the multikicker payment count (eval's timesKicked)
 	}
 	if v.Kind == vThisTurnEntered {
 		e.N = int16(v.Zone)

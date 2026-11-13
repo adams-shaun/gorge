@@ -114,6 +114,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Mayhem":                   "CardDef.Mayhem (a graveyard cast for AltCost if discarded this turn; kw_mayhem.go)",
 	"Escape":                   "CardDef.Escape and CardDef.EscCost (a graveyard cast for AltCost while exiling the printed part; kw_escape.go), no battlefield characteristic",
 	"Offspring":                "CardDef.Offspring (an optional additional cost and its enters trigger)",
+	"Multikicker":              "CardDef.HasMultikicker/Multikicker (CR 702.43; kw_multikicker.go)",
 	"Buyback":                  "CardDef.Buyback (an optional additional cost; the spell returns to hand as it resolves, dirac/kw_buyback.go)",
 	"Storm":                    "CardDef.Storm (the printed keyword's native cast trigger, dirac/kw_storm.go; a StatStackKw grant, static_stackkeyword.go)",
 	"Mobilize":                 "gorge kwMobilize's Attacks trigger: a remembering Token plus a group DelayedTrigger (kgen lowers the expansion's nodes; OpDelayedProgram DpGroup, ExtSacDelayed)",

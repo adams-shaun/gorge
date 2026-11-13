@@ -88,6 +88,9 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		}
 		if s.res.e.flags&sfKicked != 0 && !(k.gen.anyOptCost && castCollectedNever(k, &s.res.e)) {
 			s.mSlSet(k, mechKicked, sl)
+			if k.t.Cards[s.res.e.card].HasMultikicker && int(sl) < len(s.cold.mk) {
+				s.cold.mk[sl] = uint8(s.multikickCount(&s.res.e)) // CR 702.43: the permanent reads its spell's count
+			}
 		}
 		if sneakMarks(&s.res.e) {
 			s.mSlSet(k, mechSneaked, sl) // kw_sneak.go
@@ -95,6 +98,11 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		if escapeMarks(&s.res.e) {
 			s.mSlSet(k, mechEscaped, sl) // kw_escape.go
 		}
+	} else if int(o) < len(s.cold.mkObj) {
+		// an entry that is not the resolving spell (reanimate, blink, return)
+		// is a new object with no payments (CR 400.7, 702.43): the last cast's
+		// count must not survive to the ETB trigger's target bound (exprs.go)
+		s.cold.mkObj[o] = 0
 	}
 	s.g.zoneTurn.set(o)
 	if s.g.enteredOn {

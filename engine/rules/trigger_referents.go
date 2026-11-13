@@ -673,7 +673,9 @@ func (r *specResolveEnv) resolve(name string) (int32, bool) {
 // the same permanent cannot inherit one another's bindings. A prospective cast
 // or an ordinary static has no entry and therefore no trigger context.
 //
-// Resolve reads numeric bounds from the source face's SVar table. In
+// Resolve reads numeric bounds from the SVar table pushTrigger recorded for
+// this stack object's line (the grantor's or delayed owner's table), falling
+// back to the source face's SVar table when the trigger is printed. In
 // particular, SVar:X follows the same two-shape contract as resolving
 // effects: Count$xPaid reads the announced/captured X, while another body is
 // evaluated as a fixed count with the trigger's captured Remembered, LKI and
@@ -693,7 +695,20 @@ func (e *Engine) targetSpecContext(source, stack state.ObjID, you state.PlayerID
 		lkiPower, lkiToughness, lkiPTValid = snapshot.power, snapshot.toughness, snapshot.ptValid
 	}
 	var svars map[string]string
-	if o := e.G.Obj(source); o != nil && o.Face() != nil {
+	// A granted (AddTrigger$) or Effect-delivered delayed trigger's body is
+	// the GRANTOR's SVar-named line, so the table pushTrigger recorded with
+	// that line (Engine.triggerLineSVars) wins here exactly as
+	// abilityResolutionSVars wins it at resolution: the recipient's face does
+	// not define the body's SVars, and reading them there resolves every
+	// numeric bound to the authored-body fallback (X stays the paid/stack 0).
+	// Guardian Scalelord's Backup-granted Attacks trigger reads SVar:X at the
+	// CR 603.3d placement offer through this table; on the recipient's face
+	// the read finds no X and the trigger is dropped for having no legal
+	// target (Old One Eye's token attacking with mana value 6 Old One Eye in
+	// the graveyard).
+	if owned, ok := e.triggerLineSVars[stack]; ok {
+		svars = owned
+	} else if o := e.G.Obj(source); o != nil && o.Face() != nil {
 		svars = o.Face().SVars
 	}
 	var stackObj *state.Object
