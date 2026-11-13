@@ -2219,6 +2219,17 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if err := amounts(s.Amount, lValue{}); err != nil {
 			return ka, nil, err
 		}
+	case "CanAttackIfHaste":
+		st.Kind = kop.StatCanAttackIfHaste // static_canattackifhaste.go
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		for _, fl := range s.Flags {
+			if fl != "OppDef" {
+				return ka, nil, fmt.Errorf("CanAttackIfHaste flag %q", fl)
+			}
+			st.StFlags |= kop.StHasteOppDef
+		}
 	case "CanAttackDefender":
 		st.Kind = kop.StatCanAttackDefender
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {

@@ -1180,6 +1180,7 @@ StFreeOnly	StaticFlags	128
 StFunctionsInExile	StaticFlags	1024
 StFunctionsInGraveyard	StaticFlags	16
 StHandOpp	StaticFlags	256
+StHasteOppDef	StaticFlags	1
 StMayPayLife	StaticFlags	8192
 StMayRaise	StaticFlags	32768
 StNoPrevCombat	StaticFlags	2
@@ -1228,6 +1229,7 @@ StatBeamGrant	StaticKind	253
 StatBlockTax	StaticKind	256
 StatCDAPT	StaticKind	10
 StatCanAttackDefender	StaticKind	250
+StatCanAttackIfHaste	StaticKind	257
 StatCantActivate	StaticKind	236
 StatCantAttack	StaticKind	8
 StatCantBeBeamedUp	StaticKind	244

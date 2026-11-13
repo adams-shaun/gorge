@@ -2123,6 +2123,38 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		if err := lc.cantBlockUnless(sp, &st); err != nil {
 			return nil, err // lower_blocktax.go
 		}
+	case "CanAttackIfHaste":
+		// gorge canAttackIfHaste (rules/combat/attack.go): ValidCard$ (absent:
+		// every creature) scopes the exempt creatures; a present ValidTarget$
+		// is tried as a player spec on the defender, then as the attacked
+		// permanent. Only the Frenzied Saddlebrute spelling lowers: it names
+		// the defender player (an opponent of the static's controller) and the
+		// planeswalkers that player controls, so the exemption depends on the
+		// defender seat alone. gorge skips the line (inert) when it carries
+		// a param outside its whitelist, so any other param refuses here
+		// rather than lower a condition gorge never reads.
+		sp.consume("Description", "Secondary")
+		for k := range s.Params {
+			switch k {
+			case "Mode", "ValidCard", "ValidTarget", "Description", "Secondary":
+			default:
+				return nil, refuse("CanAttackIfHaste %s$ (gorge reads the line only over ValidCard$ and ValidTarget$)", k)
+			}
+		}
+		if vc, ok := sp.get("ValidCard"); ok {
+			if st.F, err = readF("ValidCard"); err != nil {
+				return nil, err
+			}
+			if st.F == nil || len(st.F.Clauses) == 0 || st.F.Players != 0 {
+				return nil, refuse("CanAttackIfHaste ValidCard %q", vc)
+			}
+		}
+		if tv, ok := sp.get("ValidTarget"); ok {
+			if strings.TrimSpace(tv) != "Opponent,Planeswalker.OppCtrl" {
+				return nil, refuse("CanAttackIfHaste ValidTarget %q", tv)
+			}
+			st.Flags = append(st.Flags, "OppDef")
+		}
 	case "CanAttackDefender":
 		// gorge combat.AttackAllowedThroughDefender: ValidCard$ (or
 		// ValidCards$) must match the creature, ValidAttacked$ must admit
