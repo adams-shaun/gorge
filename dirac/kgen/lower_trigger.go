@@ -1532,6 +1532,13 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			ip = strings.Join(alts, ",")
 		}
+		if strings.Contains(ip, "blockingSource") || strings.Contains(ip, "blockedBySource") {
+			// the block relation read when the trigger fires: Lairwatch
+			// Giant's Blocks trigger (IsPresent$ Creature.blockedBySource,
+			// GE2) diverges from gorge in a lockstep game (the damage
+			// division asked of another creature), so it stays refused
+			return refuse("trigger IsPresent$ %q reads the block relation at trigger time", ip)
+		}
 		lc.atkPresent = tr.Event == "Attacks"
 		f, err := lc.filter(ip)
 		lc.atkPresent = false

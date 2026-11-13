@@ -1,8 +1,9 @@
 # the MBC combat-4 spelling family (dirac/oracle/mbc_combatfour_test.go):
 # K:CantAttackOrBlock (Grakk the Pacifist), blockingSource (Master of Arms,
-# Cromat, Rampaging Cyclops), blockedBySource (Cromat, Alms Beast) and a
-# targeted Effect's CanAttackDefender grant (Assault Formation over Wall of
-# Wood)
+# Cromat, Rampaging Cyclops, Plague Wight) and blockedBySource (Cromat, Alms
+# Beast, Abu Ja'far, Steadfast Armasaur) in a target, a static, a trigger
+# body and a present-count, and a targeted Effect's CanAttackDefender grant
+# (Assault Formation over Wall of Wood)
 Grakk the Pacifist
 Master of Arms
 Cromat
@@ -12,6 +13,9 @@ Grizzly Bears
 Assault Formation
 Wall of Wood
 Savannah Lions
+Plague Wight
+Abu Ja'far
+Steadfast Armasaur
 Plains
 Forest
 Island

@@ -30,13 +30,15 @@ import (
 
 var kcombat4Decks = [2][]cardset.Entry{
 	{
-		{Name: "Grakk the Pacifist", Count: 4}, {Name: "Master of Arms", Count: 4}, {Name: "Cromat", Count: 4},
-		{Name: "Alms Beast", Count: 2}, {Name: "Rampaging Cyclops", Count: 2}, {Name: "Grizzly Bears", Count: 4},
+		{Name: "Grakk the Pacifist", Count: 3}, {Name: "Master of Arms", Count: 3}, {Name: "Cromat", Count: 3},
+		{Name: "Alms Beast", Count: 2}, {Name: "Rampaging Cyclops", Count: 2}, {Name: "Plague Wight", Count: 3},
+		{Name: "Abu Ja'far", Count: 3}, {Name: "Grizzly Bears", Count: 1},
 		{Name: "Plains", Count: 8}, {Name: "Forest", Count: 4}, {Name: "Island", Count: 2}, {Name: "Swamp", Count: 4}, {Name: "Mountain", Count: 2},
 	},
 	{
-		{Name: "Assault Formation", Count: 4}, {Name: "Wall of Wood", Count: 6}, {Name: "Savannah Lions", Count: 4},
-		{Name: "Master of Arms", Count: 2}, {Name: "Cromat", Count: 2}, {Name: "Alms Beast", Count: 2},
+		{Name: "Assault Formation", Count: 4}, {Name: "Wall of Wood", Count: 4}, {Name: "Savannah Lions", Count: 3},
+		{Name: "Master of Arms", Count: 1}, {Name: "Cromat", Count: 1}, {Name: "Alms Beast", Count: 1},
+		{Name: "Steadfast Armasaur", Count: 6},
 		{Name: "Forest", Count: 10}, {Name: "Plains", Count: 8}, {Name: "Swamp", Count: 2},
 	},
 }
