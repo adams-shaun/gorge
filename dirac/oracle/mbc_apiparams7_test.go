@@ -20,18 +20,22 @@ import (
 //   - other:return cost on a spell (CR 601.2b, 601.2h): Familiar's Ruse's
 //     "Return<1/Creature>" additional cost is picked while casting, one
 //     pick per permanent, and paid after the mana (dirac/cost_return.go).
+//     The same cost on Deprive and Disappearing Act (Return<1/Land>,
+//     Return<1/Permanent>: a returned land has already paid mana) and on
+//     Devour in Flames (a sorcery) is played beside it.
 //   - param:Draw.Reveal (Fa'adiyah Seer's "draw a card and reveal it") has no
 //     MBC card that lowers whole yet, so dirac/kgen/draw_reveal_test.go holds it.
 
 var mbcApiParams7Decks = []fixtureDecks{{
 	{
-		{Name: "Dalkovan Packbeasts", Count: 4}, {Name: "Familiar's Ruse", Count: 4}, {Name: "Merfolk of the Pearl Trident", Count: 4},
-		{Name: "Savannah Lions", Count: 4}, {Name: "Elite Vanguard", Count: 4}, {Name: "Air Elemental", Count: 2},
-		{Name: "Plains", Count: 9}, {Name: "Island", Count: 9},
+		{Name: "Dalkovan Packbeasts", Count: 4}, {Name: "Familiar's Ruse", Count: 3}, {Name: "Deprive", Count: 3},
+		{Name: "Disappearing Act", Count: 2}, {Name: "Merfolk of the Pearl Trident", Count: 4}, {Name: "Savannah Lions", Count: 3},
+		{Name: "Elite Vanguard", Count: 3}, {Name: "Air Elemental", Count: 2},
+		{Name: "Plains", Count: 7}, {Name: "Island", Count: 9},
 	},
 	{
-		{Name: "Grizzly Bears", Count: 4}, {Name: "Hill Giant", Count: 4}, {Name: "Raging Goblin", Count: 4},
-		{Name: "Lightning Bolt", Count: 4}, {Name: "Shock", Count: 4},
+		{Name: "Grizzly Bears", Count: 4}, {Name: "Hill Giant", Count: 4}, {Name: "Raging Goblin", Count: 2},
+		{Name: "Lightning Bolt", Count: 4}, {Name: "Shock", Count: 3}, {Name: "Devour in Flames", Count: 3},
 		{Name: "Mountain", Count: 10}, {Name: "Forest", Count: 10},
 	},
 }, {
@@ -41,9 +45,10 @@ var mbcApiParams7Decks = []fixtureDecks{{
 		{Name: "Plains", Count: 9}, {Name: "Island", Count: 9},
 	},
 	{
-		{Name: "Dalkovan Packbeasts", Count: 4}, {Name: "Familiar's Ruse", Count: 4}, {Name: "Merfolk of the Pearl Trident", Count: 4},
-		{Name: "Hill Giant", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Lightning Bolt", Count: 2},
-		{Name: "Plains", Count: 8}, {Name: "Island", Count: 7}, {Name: "Mountain", Count: 3},
+		{Name: "Dalkovan Packbeasts", Count: 4}, {Name: "Familiar's Ruse", Count: 3}, {Name: "Deprive", Count: 3},
+		{Name: "Merfolk of the Pearl Trident", Count: 4}, {Name: "Hill Giant", Count: 4}, {Name: "Shock", Count: 4},
+		{Name: "Devour in Flames", Count: 3}, {Name: "Lightning Bolt", Count: 2},
+		{Name: "Plains", Count: 5}, {Name: "Island", Count: 5}, {Name: "Mountain", Count: 3},
 	},
 }}
 
@@ -51,10 +56,11 @@ var mbcApiParams7Decks = []fixtureDecks{{
 // between decisions.
 type mbcApiParams7Tally struct {
 	games, divs, stalls int
-	ruse, packbeasts    int // casts of Familiar's Ruse and Dalkovan Packbeasts
-	minted3             int // Warrior tokens minted three at a time
-	sacked3             int // three tokens sacrificed in one end step
-	partial             int // a group sacrificed short of three (a token died first)
+	ruse, packbeasts    int            // casts of Familiar's Ruse and Dalkovan Packbeasts
+	returns             map[string]int // casts of the other Return-cost spells, by name
+	minted3             int            // Warrior tokens minted three at a time
+	sacked3             int            // three tokens sacrificed in one end step
+	partial             int            // a group sacrificed short of three (a token died first)
 }
 
 // mbcApiParams7Policy plays randomly but casts Packbeasts and Ruse when offered
@@ -90,6 +96,11 @@ func mbcApiParams7Policy(seed uint64, tal *mbcApiParams7Tally) Policy {
 						tal.ruse++
 						return a
 					}
+				case "Deprive", "Disappearing Act", "Devour in Flames":
+					if prng.IntN(4) != 0 {
+						tal.returns[refCardName(c.G, a.Src())]++
+						return a
+					}
 				}
 			}
 		}
@@ -120,7 +131,7 @@ func TestMBCApiParams7Lowers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var tal mbcApiParams7Tally
+	tal := mbcApiParams7Tally{returns: map[string]int{}}
 	for mi, md := range mbcApiParams7Decks {
 		var decks [2][]*cards.Card
 		for s, d := range md {
@@ -181,12 +192,13 @@ func TestMBCApiParams7Lowers(t *testing.T) {
 			}
 		}
 	}
-	t.Logf("%d games, %d divergences, %d stalls: Packbeasts cast %d, groups of three minted %d and sacrificed whole %d, partial %d; Ruse cast %d",
-		tal.games, tal.divs, tal.stalls, tal.packbeasts, tal.minted3, tal.sacked3, tal.partial, tal.ruse)
+	t.Logf("%d games, %d divergences, %d stalls: Packbeasts cast %d, groups of three minted %d and sacrificed whole %d, partial %d; Ruse cast %d, others %v",
+		tal.games, tal.divs, tal.stalls, tal.packbeasts, tal.minted3, tal.sacked3, tal.partial, tal.ruse, tal.returns)
 	for _, c := range []struct {
 		name string
 		n    int
-	}{{"Packbeasts casts", tal.packbeasts}, {"groups of three minted", tal.minted3}, {"groups of three sacrificed", tal.sacked3}, {"Ruse casts", tal.ruse}} {
+	}{{"Packbeasts casts", tal.packbeasts}, {"groups of three minted", tal.minted3}, {"groups of three sacrificed", tal.sacked3}, {"Ruse casts", tal.ruse},
+		{"Deprive casts", tal.returns["Deprive"]}, {"Devour in Flames casts", tal.returns["Devour in Flames"]}, {"Disappearing Act casts", tal.returns["Disappearing Act"]}} {
 		if c.n < 10 {
 			t.Errorf("%s: %d, want at least 10", c.name, c.n)
 		}
