@@ -454,7 +454,7 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	fmt.Fprintf(out, "seed %d: %d seats, %6d intents, %6d events, %3d turns, winner=%s, chain=%s, policies=%s\n",
 		seed, len(names), n, len(e.L.Events), e.G.Turn, result, e.L.Head(), policyList(policies))
 	search.print(out, policies)
-	printLosses(out, e.L.Events, e.G.Players)
+	printLosses(out, e.L.Events, e.G)
 	finish(n, "over")
 
 	if !verify {
@@ -670,17 +670,29 @@ func matchMulligan(n int) string {
 
 // printLosses writes one line per PlayerLost event, in event order: the seat,
 // its deck and the engine's loss text, so a run can tell a seat that died to
-// damage from one that decked or lost to its own card.
-func printLosses(out io.Writer, evs []events.Event, players []state.Player) {
+// damage from one that decked or lost to its own card. A loss that follows
+// the seat's fired delayed trigger names the card that made it ("via Summoner's
+// Pact"), the nearest one in the 400 events before the loss.
+func printLosses(out io.Writer, evs []events.Event, g *state.Game) {
 	for i := range evs {
 		if evs[i].Kind != events.PlayerLost {
 			continue
 		}
 		p := int(evs[i].Player)
 		name := ""
-		if p >= 0 && p < len(players) {
-			name = players[p].Name
+		if p >= 0 && p < len(g.Players) {
+			name = g.Players[p].Name
 		}
-		fmt.Fprintf(out, "  loss seat %d (%s) at event %d: %s\n", p, name, evs[i].Seq, evs[i].Text)
+		via := ""
+		for j := i - 1; j >= 0 && j >= i-400; j-- {
+			if evs[j].Kind != events.DelayedPush || evs[j].Player != evs[i].Player {
+				continue
+			}
+			if o := g.Obj(evs[j].Obj); o != nil && o.Face() != nil {
+				via = " via " + o.Face().Name
+			}
+			break
+		}
+		fmt.Fprintf(out, "  loss seat %d (%s) at event %d: %s%s\n", p, name, evs[i].Seq, evs[i].Text, via)
 	}
 }
