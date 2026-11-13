@@ -1758,6 +1758,10 @@ func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 			return err // lower_blocktax.go: before the EffectZone$ strip below
 		}
 	}
+	s, inGrave, err := lc.graveContinuous(s) // lower_gycontinuous.go
+	if err != nil {
+		return err
+	}
 	if s.Params["EffectZone"] == "Battlefield" {
 		// a printed static's default zone spelled out (gorge
 		// EffectZoneOK: the battlefield, as with no EffectZone$)
@@ -1777,6 +1781,11 @@ func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 	lc.exwStatic = false
 	if err != nil {
 		return err
+	}
+	if inGrave {
+		if sts, err = graveContinuousFlag(sts); err != nil {
+			return err
+		}
 	}
 	for _, st := range sts {
 		if st.Kind == "" {

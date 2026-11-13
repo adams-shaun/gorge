@@ -1762,6 +1762,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			}
 			st.StFlags |= kop.StYouHexproof
 		}
+		if slices.Contains(s.Flags, "FunctionsInGraveyard") {
+			st.StFlags |= kop.StFunctionsInGraveyard // lower_gycontinuous.go: works from its owner's graveyard
+		}
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}

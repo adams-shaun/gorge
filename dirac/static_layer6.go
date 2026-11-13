@@ -192,6 +192,12 @@ func (s *State) l6Walk(k *prep, sl Slot, w *l6walk) (kw kop.KwMask, lts uint16, 
 			}
 		}
 	}
+	s.eachGyStatic(k, sclsKw, func(st statSrc) bool { // a graveyard card's keyword grant (static_gycont.go)
+		if st.a.Static.Kw != 0 || st.a.Static.Override > 0 {
+			s.l6static(k, sl, w, st, 0)
+		}
+		return true
+	})
 	// until-end-of-turn grants; a copy's keyword exceptions are layer 1
 	var cpKw kop.KwMask
 	if s.fxM.has(sl) {

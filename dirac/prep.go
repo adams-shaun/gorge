@@ -388,6 +388,9 @@ func prepare(t *kop.Table) *prep {
 			case kop.AbTriggered:
 				pc.trigMask |= 1 << a.Trig.Event & (1<<nSubEvents - 1) // TrigGiveGift: no subscription (kw_gift.go)
 			case kop.AbStatic:
+				if gyContOf(a) {
+					break // works from the graveyard, not a battlefield static (static_gycont.go)
+				}
 				pc.hasStat = true
 				if a.Static.Kind == kop.StatOverride || (a.Static.Kind == kop.StatContinuous && a.Static.Grant != 0) {
 					pc.grantStat = true // a source grantedAbilitiesN's static walk can reach

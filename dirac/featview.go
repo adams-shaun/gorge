@@ -1115,7 +1115,8 @@ func (s *State) FeatStaticKey() uint64 {
 			h = hmix(h, uint64(s.embStamp(p, i))) // the layer timestamp
 		}
 	}
-	if s.statM.any() || s.g.nemb[0]+s.g.nemb[1] != 0 {
+	h = s.gyStaticKey(k, h) // static_gycont.go
+	if s.statM.any() || s.g.nemb[0]+s.g.nemb[1] != 0 || k.gen.anyGyCont {
 		s.eachStatic(k, func(st statSrc) bool {
 			a := st.a
 			if a.Kind != kop.AbStatic {

@@ -175,6 +175,7 @@ type genPrep struct {
 	meleeGrant      bool           // some static grants Melee (kop.Ability.MeleeGrant): slotTriggers places it as gorge's keyword walk does (kw_melee.go)
 	anyWard         bool           // some card has printed ward: abilities get a stack identity (cast.go push; wardedIndex)
 	anyWardGrant    bool           // some Continuous static grants ward {N} (kop.Static.Ward; kw_ward.go)
+	anyGyCont       bool           // some Continuous static works from its card's graveyard (kop.StFunctionsInGraveyard; static_gycont.go)
 	btWatch         bool           // some BecomesTarget trigger watches other objects (Pawpatch Recruit; trig_becomestarget.go)
 	btSpell         bool           // ... and one counts a creature spell on the stack (kop.Tf2SpellToo: Surrak)
 	anyContGrant    bool           // some card has contGrant: the grant walk and availFor read it
@@ -1190,6 +1191,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.StatReduceAbility:
 					g.anyAbReduce = true
 				case kop.StatContinuous:
+					if a.Static.StFlags&kop.StFunctionsInGraveyard != 0 {
+						g.anyGyCont = true
+					}
 					if a.Static.Ward != 0 || a.Static.WardLife != 0 {
 						g.anyWardGrant = true
 					}

@@ -22,6 +22,7 @@ const (
 	sclsFbGrant                    // StatFbGrant (kw_fbgrant.go)
 	sclsWarpG                      // StatWarpGrant (kw_warpgrant.go)
 	sclsEscapeG                    // StatEscapeGrant (kw_escape.go)
+	sclsGyCont                     // the card's own StatContinuous that works from its graveyard (static_gycont.go)
 )
 
 // prepStaticClasses fills g.sCls.
@@ -38,6 +39,9 @@ func prepStaticClasses(t *kop.Table, g *genPrep) {
 			sa := &a.Static
 			switch sa.Kind {
 			case kop.StatContinuous:
+				if sa.StFlags&kop.StFunctionsInGraveyard != 0 {
+					m |= sclsGyCont
+				}
 				m |= sclsCont
 				if sa.StFlags&kop.StDynamic != 0 || sa.A != 0 || sa.B != 0 {
 					m |= sclsPT | sclsPTRel
@@ -117,6 +121,7 @@ func (s *State) eachStaticC(k *prep, cls uint16, f func(st statSrc) bool) {
 			}
 		}
 	}
+	s.eachGyStatic(k, cls, f) // static_gycont.go
 }
 
 // mayPlayZones is the zones (bit per kop.Zone) from which some
