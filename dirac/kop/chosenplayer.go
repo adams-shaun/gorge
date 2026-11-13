@@ -4,7 +4,7 @@ package kop
 // K:ETBReplacement:Other with DB$ ChoosePlayer | Choices$ Player.Opponent).
 // gorge records the answer on the entering object (Object.Chosen, cleared
 // when it leaves the battlefield); the kernel keeps the seat in the
-// permanent's chosen byte (dirac/chosenplayer.go).
+// permanent's chosen byte (dirac/repl_chosenopp.go).
 
 // ExtChosenOpp is the enters program's choice of an opponent: the entering
 // permanent's chosen byte becomes the one opponent of its controller (a

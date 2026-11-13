@@ -713,7 +713,7 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 	case kop.RefSrcOwner:
 		return s.srcOwner()
 	case kop.RefSrcChosenPl:
-		return s.srcChosenPl(e) // chosenplayer.go
+		return s.srcChosenPl(e) // repl_chosenopp.go
 	case kop.RefPromised:
 		return s.promisedSeat(k, e) // kw_gift.go
 	case kop.RefAttachedCtrl:

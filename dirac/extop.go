@@ -23,7 +23,7 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		s.prevScopeAdd(k, in) // repl_preventscope.go
 		return true, true
 	case kop.ExtChosenOpp:
-		s.enterChosenOpp() // chosenplayer.go
+		s.enterChosenOpp() // repl_chosenopp.go
 		return true, true
 	case kop.ExtCounterPlusEOT:
 		s.ctrPlusEOT(k) // ctr_pluseot.go

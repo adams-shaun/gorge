@@ -11,7 +11,7 @@ import (
 // | Choices$ Player.Opponent. gorge effChoosePlayer asks a KChoose over the
 // living opponents and records the answer on the entering object
 // (Object.Chosen, cleared when it leaves the battlefield). In two players
-// the ask has one option, answered in place, so the enters program is
+// (twoSeat-at-caller: etbChosenOpp) the ask has one option, answered in place, so the enters program is
 // kop.ExtChosenOpp: the kernel stores the one opponent in the permanent's
 // chosen byte. The card's other abilities read it live: a Phase trigger's
 // ValidPlayer$ Player.Chosen (kop.WhoseChosenPl), Defined$ ChosenPlayer /

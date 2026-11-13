@@ -608,7 +608,7 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 	case kop.RefEach:
 		return s.g.eachPl // the player of the OpRepeatEachPlayer in progress
 	case kop.RefSrcChosenPl:
-		return s.ctxChosenPl(ctx) // chosenplayer.go: a static's host too
+		return s.ctxChosenPl(ctx) // repl_chosenopp.go: a static's host too
 	}
 	e := ctx.e
 	if e == nil {
