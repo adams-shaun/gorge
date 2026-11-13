@@ -116,6 +116,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Offspring":                "CardDef.Offspring (an optional additional cost and its enters trigger)",
 	"Multikicker":              "CardDef.HasMultikicker/Multikicker (CR 702.43; kw_multikicker.go)",
 	"Buyback":                  "CardDef.Buyback (an optional additional cost; the spell returns to hand as it resolves, dirac/kw_buyback.go)",
+	"Entwine":                  "CardDef.Entwine (an optional additional cost; the kicked cast announces every feasible mode, dirac/kw_entwine.go)",
 	"Storm":                    "CardDef.Storm (the printed keyword's native cast trigger, dirac/kw_storm.go; a StatStackKw grant, static_stackkeyword.go)",
 	"Extort":                   "an ability (the printed or granted SpellCast trigger; kgen lowers DB$ Extort as OpExt ExtExtort, act_extort.go)",
 	"Mobilize":                 "gorge kwMobilize's Attacks trigger: a remembering Token plus a group DelayedTrigger (kgen lowers the expansion's nodes; OpDelayedProgram DpGroup, ExtSacDelayed)",
@@ -152,6 +153,7 @@ var gorgeKwElsewhere = map[string]string{
 	"MayFlashCost":           "CardDef.HasMayFlash (an instant-timing hand cast for the mana cost plus the extra; compared through the cast options; kw_mayflash.go)",
 	"Web-slinging":           "CardDef.HasWebSling (a hand alt cost plus returning a tapped creature; compared through the cast options and the return; kw_websling.go)",
 	"Dash":                   "CardDef.HasDash (a hand alt cost, haste and the end-step return to hand; compared through the cast options, the stack and the battlefield; kw_dash.go)",
+	"Surge":                  "CardDef.HasSurge (a hand alt cost once another spell was cast this turn, no battlefield characteristic; compared through the cast options; kw_surge.go)",
 	"Evoke":                  "CardDef.HasEvoke (a hand alt cost and the sacrifice trigger queued as it enters; compared through the cast options and the stack; kw_evoke.go)",
 	"Start your engines":     "CardDef.Engines (CR 702.179a; compared through the speed projection)",
 	"Bargain":                "CardDef.Bargain (an optional additional cost, no battlefield characteristic; compared through the cast options; kw_bargain.go)",
@@ -264,10 +266,26 @@ func gorgeChars(e *rules.Engine, v *charVocab, oid state.ObjID) (CharsProj, stri
 		}
 	}
 	kws := d.Keywords
-	if len(printed) > 0 {
+	eachColor := false
+	for _, k := range kws {
+		eachColor = eachColor || k == "Protection from each color"
+	}
+	if len(printed) > 0 || eachColor {
 		kws = make([]string, 0, len(d.Keywords))
 		for _, k := range d.Keywords {
 			if printed[k] && strings.HasPrefix(k, "Protection from ") && k != "Protection from everything" {
+				continue
+			}
+			if k == "Protection from each color" {
+				// a PumpAll's grant (Akroma's Will): all five arena marks
+				// (ExtColorGrant cgProtAll), read as the black and red bits
+				// the kernel's keyword view has, less a colour the card
+				// prints (ProtColors)
+				for _, c := range [...]string{"Protection from black", "Protection from red"} {
+					if !printed[c] {
+						kws = append(kws, c)
+					}
+				}
 				continue
 			}
 			kws = append(kws, k)

@@ -28,7 +28,7 @@ var (
 		"shield", "replctr", "replleave", "copyface", "rolemulti", "defenderpw", "tokatkask", "enterdefender",
 		"endure", "linkctr", "numtimes", "aegis", "sacother", "copycast", "netmana", "tokenpt", "staticask", "handsize",
 		"mayraise", "uncounterorder", "entryorder", "copyallask", "clonelayer", "gravepower", "landgrant",
-		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering", "tokrewrite", "stackkwgrant", "paylifeshared", "noprevent", "dmgmarkorder", "fbgrantstamp", "restrdefer", "diamondmix", "extrablockreq", "paybeforeetb", "atktax", "blktax", "prevnext"}
+		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering", "tokrewrite", "stackkwgrant", "paylifeshared", "noprevent", "dmgmarkorder", "fbgrantstamp", "restrdefer", "diamondmix", "extrablockreq", "paybeforeetb", "atktax", "blktax", "prevnext", "chooseplayerorder"}
 )
 
 // Every registered reason has a class, and it is the one the lists above name.
@@ -143,7 +143,7 @@ func stallPool(name string, halves []kop.CardDef, overrides []kop.Override, filt
 		defs[i].Name = ""
 		d.Defs = append(d.Defs, defs[i])
 	}
-	d.CardSubs = make([]kop.SubMask, len(defs))
+	d.CardSubs = make([]cardset.PoolSubMask, len(defs))
 	d.CardTokens = make([][]uint16, len(defs))
 	d.CardRefSubs = make([][]uint8, len(defs))
 	d.AbilityOrigin = make([][]uint8, len(defs))

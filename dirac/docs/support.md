@@ -30,8 +30,8 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 301 | 0 | 32 | 269 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 | 306 |
 | WOE | 281 | 264 | 0 | 18 | 246 | 245 |
-| MBC | 2188 | 1678 | 0 | 1429 | 249 | 248 |
-| ALL | 34442 | 23256 | 20 | 17954 | 5282 | 5249 |
+| MBC | 2188 | 1728 | 1 | 1478 | 249 | 248 |
+| ALL | 34442 | 23447 | 21 | 18144 | 5282 | 5249 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.
 
@@ -72,14 +72,14 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-20 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+21 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | decision | 1 |
 | options | 4 |
 | options-options | 1 |
-| projection | 1 |
+| projection | 2 |
 | projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Damage | 1 |
 | projection-Cards.Flags | 2 |

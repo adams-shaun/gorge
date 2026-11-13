@@ -63,6 +63,9 @@ func (lc *lowerCtx) kvfHead(head, rest string) (lValue, error) {
 		}
 		return lValue{Kind: vPoisonOf, Ref: lRef{Kind: rTargetController, N: t}}, nil
 	case "TriggeredTarget":
+		if rest == "CardsInHand" || strings.HasPrefix(rest, "Valid ") {
+			return lc.trigTargetPlayerValue(rest) // value_trigreferents.go
+		}
 		if rest != "LifeTotal" {
 			break
 		}

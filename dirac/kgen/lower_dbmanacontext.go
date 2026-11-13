@@ -27,7 +27,7 @@ func (lc *lowerCtx) dbManaActivatedOK() bool {
 	if root == nil || root.Kind != "AB" || root.API == "ChooseColor" {
 		return false
 	}
-	if strings.TrimSpace(root.Params["Planeswalker"]) == "True" {
+	if loyaltyMarked(root.Params["Planeswalker"]) {
 		return true
 	}
 	if dbManaCostMovesLibrary(root.Params["Cost"]) {

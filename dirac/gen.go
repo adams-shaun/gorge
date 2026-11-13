@@ -118,6 +118,7 @@ type genPrep struct {
 	anyNoPrev                bool // a StatCantPreventDamage static, printed or on an emblem (static_cantprevent.go)
 	anyTypeCreat             bool // a StatAnyTypeCreatures static (mana_convertcreature.go)
 	anyCdmgTough             bool // a card has a StatCombatDmgToughness static (combat_toughnessassign.go)
+	anyOvGateStat            bool // a card has an OvGate-gated static a grant record switches on (static_ovgate.go)
 	anyDisETB                bool // a card has a DisableTriggers enters static (kop.StatDisableETB; trig_disable.go)
 	anyLatentDies            bool // a card has a latent dies trigger an override or static can grant (trig_diesleaves.go)
 	anyMadness               bool // a card has printed madness (CardDef.HasMadness; kw_madness.go)
@@ -163,6 +164,7 @@ type genPrep struct {
 	anyBlkTax       bool           // a card has a StatBlockTax static (combat_blocktax.go)
 	blkTaxStall     bool           // a block tax beside a part its walk does not model (combat_blocktax.go prepBlkTax): StallBlkTax
 	atkTaxStall     bool           // an attack tax beside a part its walk does not model (combat_attacktax.go prepAtkTax): StallAtkTax
+	chPlOrder       bool           // an as-enters opponent choice beside another object's enters replacement (repl_chooseplayer.go prepChoosePlayer): StallChoosePlayerOrder
 	anyWitherGrant  bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
 	anyEOTEmb       bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
 	anyNTEmb        bool           // some emblem ends at its controller's next turn (kop.Emblem.UntilNextTurn; static_effectdelivered.go)
@@ -230,6 +232,7 @@ type genPrep struct {
 	anyFaces        bool           // some card has faces (CardDef.Faces; face_multiface.go)
 	anyWarp         bool           // some card has warp (CardDef.HasWarp; kw_warp.go)
 	anyDash         bool           // some card has dash (CardDef.HasDash; kw_dash.go)
+	anySurge        bool           // some card has surge (CardDef.HasSurge; kw_surge.go)
 	anyEvoke        bool           // some card has evoke (CardDef.HasEvoke) or some expression is ExAdamant (kw_evoke.go)
 	anyOverload     bool           // some card has overload (CardDef.HasOverload; kw_overload.go)
 	anyImpending    bool           // some card has impending (CardDef.Impending; kw_impending.go)
@@ -258,6 +261,7 @@ type genPrep struct {
 	anyStackKw      bool           // some card has a StatStackKw: AffectedZone$ Stack keyword grant (static_stackkeyword.go)
 	anyConspire     bool           // some card has a StatStackKw Conspire grant (kw_conspire.go)
 	anyStorm        bool           // some card has a StatStackKw Storm grant (kw_storm.go)
+	anyDemoGrant    bool           // some card has a StatStackKw Demonstrate grant (kw_demonstrate.go)
 	anySplitSecond  bool           // some card has a StatStackKw Split second grant (kw_splitsecond.go)
 	anyStackLife    bool           // some card has a StatStackKw Lifelink grant (static_stacklifelink.go)
 	anySplit        bool           // some card is a split card (kop.FaceSplit: its mana value off the stack; face_castface.go)
@@ -287,6 +291,7 @@ type genPrep struct {
 	anyLandPlayed   bool           // a trigger is TrigLandPlayed (trig_modes.go)
 	anyCzPair       bool           // a TrigLeaves line has a destination mask (N) (trig_zonepairs.go)
 	anyLeavesGrave  bool           // a TrigLeaves line also fires for a graveyard leave (kop.Tf2LeavesGrave; trig_leavesgrave.go)
+	anyLibToGrave   bool           // a TrigToGraveyard line: a card put into a graveyard from a library (trig_libtograve.go)
 	anyKwAct        bool           // a trigger is TrigSearchedLibrary, TrigForage, TrigDiscover or TrigManifestDread
 	anyDilemma      bool           // some table reads ExDilemmasFaced or TrigFacesDilemma (trig_dilemma.go)
 	anyScryTally    bool           // some expr is ExScriedThisTurn (value_scrytally.go)
@@ -336,6 +341,7 @@ type genPrep struct {
 	anyHideaway     bool           // some program is ExtHideaway (kw_hideaway.go)
 	anyLoyaltyX     bool           // some ability costs a planeswalker's [-X] (CostLoyaltyX; cost_loyaltyx.go)
 	anyLifeX        bool           // some spell or ability costs an announced PayLife<X> (Cost.N 0; cost_paylifex.go)
+	anyExileX       bool           // some spell costs an announced ExileFromGrave<X/Spec> (CostExileGrave with Cost.N 0; cost_exilex.go)
 	anySacX         bool           // some spell or ability costs an announced Sac<X/Spec> (CostSac with Cost.N 0; cost_sacx.go)
 	anyXMin         bool           // some spell or ability floors its announced X (Cost.XMin; cost_sacx.go)
 	anyCopyCast     bool           // some OpCastFree casts a copy (C bit 6; cast_copycast.go)
@@ -727,6 +733,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepNumTimes(t, g)
 	prepLoyaltyX(t, g)
 	prepLifeX(t, g)
+	prepExileX(t, g)
 	prepSacX(t, g)
 	prepDiscarded(t, g)
 	prepUniqueChain(t, g)
@@ -748,6 +755,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepPrevCol(t, g)    // cast_altfree.go
 	prepStackKw(t, g, p) // static_stackkeyword.go
 	g.anyCdmgTough = tableHasStatic(t, kop.StatCombatDmgToughness)
+	g.anyOvGateStat = tableHasOvGate(t)
 	g.anyRaise = tableRaises(t)
 	g.anyRaiseLife = tableRaiseLife(t)
 	g.anyTwobrid = tableTwobrid(t)
@@ -843,6 +851,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.HasDash {
 			g.anyDash = true
 			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
+		}
+		if c.HasSurge {
+			g.anySurge, g.anyHist = true, true // the gate reads the history bank's spell count
+			p.cards[i].altCost = true          // the hand walk's one-byte gate (offerAltHand)
 		}
 		if c.HasOverload {
 			g.anyOverload = true
@@ -983,6 +995,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					if a.Trig.Flags2&kop.Tf2LeavesGrave != 0 {
 						g.anyLeavesGrave = true
 					}
+				}
+				if a.Trig.Event == kop.TrigToGraveyard {
+					g.anyLibToGrave = true
 				}
 				if a.Trig.Event == kop.TrigSearchedLibrary || a.Trig.Event == kop.TrigForage || a.Trig.Event == kop.TrigDiscover || a.Trig.Event == kop.TrigManifestDread {
 					g.anyKwAct = true
@@ -1593,8 +1608,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepTrigAtk(t, g)   // trig_attackers.go
 	prepBatchPool(t, g) // trig_batchmembers.go
 	g.anyCopyElect = g.anyCopyElect || p.casualty
-	prepAtkTax(t, g) // combat_attacktax.go: after the requirement, Taps and land-type reads it checks
-	prepBlkTax(t, g) // combat_blocktax.go: the same reads
+	prepAtkTax(t, g)       // combat_attacktax.go: after the requirement, Taps and land-type reads it checks
+	prepBlkTax(t, g)       // combat_blocktax.go: the same reads
+	prepChoosePlayer(t, g) // repl_chooseplayer.go
 	prepCold(g, &p.cold)
 	return g
 }

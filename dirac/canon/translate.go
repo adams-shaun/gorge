@@ -206,6 +206,12 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ := CastModeCode("foretell_cast")
 			return Pack(ActCast, src, RefNone, cm)
 		}
+		if mode == 0 && tgt == dirac.FeatCastSurgeTgt && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
+			// the surged cast (CR 702.117a; kernel kw_surge.go
+			// castSurgeTgt): gorge's "surged" cast option, AltCostIndex 0
+			cm, _ := CastModeCode("surged")
+			return Pack(ActCast, src, RefNone, cm)
+		}
 		if mode == 0 && tgt == 5 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
 			// the overloaded cast (CR 702.96a; kernel kw_overload.go
 			// castOverloadTgt): gorge's "overloaded" cast option, AltCostIndex
@@ -228,6 +234,8 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ = CastModeCode("offspring") // the kicked cast of an Offspring card (kw_offspring.go)
 		case mode&1 != 0 && r.S.FeatBuybackCast(dirac.Obj(src)):
 			cm, _ = CastModeCode("buyback") // the kicked cast of a Buyback card (kw_buyback.go): CastModeOther, as "offspring"
+		case mode&1 != 0 && r.S.FeatEntwineCast(dirac.Obj(src)):
+			cm, _ = CastModeCode("entwined") // the kicked cast of an Entwine card (kw_entwine.go): CastModeOther, as "buyback"
 		case mode&1 != 0:
 			cm, _ = CastModeCode("kicked")
 		case mode&2 != 0 && tgt == dirac.FeatEscapeTgt:
@@ -251,6 +259,9 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			// separates it from a granted flashback instance of the same
 			// card, which stays the plain mode-2 cast below.
 			cm, _ = CastModeCode("retrace")
+			if r.S.FeatJumpStartCard(dirac.Obj(src)) {
+				cm, _ = CastModeCode("jumpstart") // CR 702.84a: gorge's "jumpstart" option, CastModeOther as "retrace" (kw_jumpstart.go)
+			}
 		case mode&2 != 0 && tgt != 0:
 			cm, _ = CastModeCode("beam_me_up") // CastModeOther, as "harmonize"
 			if tgt == dirac.FeatBeamGrantTgt && r.S.FeatBeamPrinted(dirac.Obj(src)) {
@@ -1003,6 +1014,9 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		// gorge's counter_kind pick (removeCounterAny), compared by the
 		// counter kind (mode), not gorge's carrier-order position
 		return Pack(kind("counter"), RefNone, RefNone, mode), true
+	case dirac.ChGenPlayer:
+		// gorge effChoosePlayer's "player" option names the seat
+		return Pack(kind("player"), RefNone, RefPlayer+Ref(mode), 0), true
 	case dirac.ChGenColor:
 		// gorge indexes its colour options densely: with an Exclude$
 		// colour dropped (Citadel Gate) the index is the colour's rank

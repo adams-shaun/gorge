@@ -1,111 +1,117 @@
 package oracle
 
 import (
-	"strings"
+	"slices"
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// The MBC trigger-referents-3 spelling family. Only Defined$
-// TriggeredCardOwner lowers: the card is read off the trigger object's owner
-// (kop.RefTriggerObjOwner; CR 108.3, gorge definedSpecTriggeredCardOwner).
-// The other three spellings (TriggeredPlayersAttackedTarget$Amount, AbilityCast
-// ValidSA$ SpellAbility, trigger mode Unattached) stay refused with their
-// reasons; see the report.
+// TestMBCTriggerReferents1Lowers plays fixture pools of the dr-mbc halves in
+// lockstep with gorge leading, one per spelling the mbc-trigger-referents-1
+// family lowers, each deck pair holding the carrier beside what makes its
+// trigger fire:
 //
-// Liability ("whenever a nontoken permanent is put into a player's graveyard
-// from the battlefield, that player loses 1 life") and Warped Devotion
-// ("whenever a permanent is returned to a player's hand, that player discards
-// a card") both address the owner of the permanent that moved. Each deck casts
-// removal and bounce at the other side's permanents, so the permanent's owner
-// is not the trigger's controller and the lockstep compares who loses the
-// life or discards.
-
-var kTrigOwnerDecks = [2][]cardset.Entry{
-	{
-		{Name: "Liability", Count: 4}, {Name: "Warped Devotion", Count: 4}, {Name: "Shock", Count: 3},
-		{Name: "Doom Blade", Count: 3}, {Name: "Unsummon", Count: 3}, {Name: "Grizzly Bears", Count: 3},
-		{Name: "Island", Count: 7}, {Name: "Swamp", Count: 7}, {Name: "Mountain", Count: 6},
-	},
-	{
-		{Name: "Liability", Count: 2}, {Name: "Warped Devotion", Count: 2}, {Name: "Shock", Count: 3},
-		{Name: "Doom Blade", Count: 3}, {Name: "Unsummon", Count: 3}, {Name: "Coral Merfolk", Count: 4},
-		{Name: "Wind Drake", Count: 4}, {Name: "Island", Count: 9}, {Name: "Swamp", Count: 9}, {Name: "Plains", Count: 1},
-	},
-}
-
-func TestMBCTriggerReferents3Lowers(t *testing.T) {
-	t.Parallel()
-	reg, err := cards.SharedCorpus(corpusDirOrSkip(t))
-	if err != nil {
-		t.Fatal(err)
+//   - BecomesTarget with no source restriction (Angelic Protector:
+//     Card.Self; Daru Spiritualist: Cleric.Creature+YouCtrl, the targeted
+//     permanent as TriggeredTarget): burn aimed at them. Cephalid Illusionist,
+//     the family's other Card.Self card, is refused by name for its own
+//     prevention ability (dirac/support/refused/cephalid-illusionist.json).
+//   - TargetsWithDefinedController$ TriggeredTarget under ValidTarget$ Player
+//     (Soltari Visionary's enchantment, Sigil of Sleep's creature, which an
+//     opponent's enchanted creature can aim at its own side) and its
+//     graveyard card slot (Skullsnatcher).
+//
+// Each carrier must be played by some game, so the pool reaches the card; the
+// comparison at every decision is gorge's.
+func TestMBCTriggerReferents1Lowers(t *testing.T) {
+	if isolate(t) {
+		return
 	}
-	set, err := cardset.RawByName("trigowner")
-	if err != nil {
-		t.Fatal(err)
+	e := func(n string, c int) cardset.Entry { return cardset.Entry{Name: n, Count: c} }
+	cases := []struct {
+		pool     string
+		a, b     []cardset.Entry
+		carriers []string
+	}{
+		{"dr-mbc-aa", // Card.Self, any source
+			[]cardset.Entry{e("Angelic Protector", 8), e("Adanto Vanguard", 4), e("Aven Squire", 4), e("Plains", 12), e("Island", 12)},
+			[]cardset.Entry{e("Lightning Bolt", 4), e("Abrade", 4), e("Chandra's Pyrohelix", 4), e("Fireball", 3), e("Axgard Cavalry", 4), e("Blood Knight", 4), e("Mountain", 17)},
+			[]string{"Angelic Protector"}},
+		{"dr-mbc-ab", // a Cleric watcher, and Skullsnatcher's graveyard slot
+			[]cardset.Entry{e("Daru Spiritualist", 4), e("Skullsnatcher", 4), e("Swords to Plowshares", 4), e("Beloved Chaplain", 4), e("Cast Down", 4), e("Plains", 10), e("Swamp", 10)},
+			[]cardset.Entry{e("Galvanic Blast", 4), e("Bombard", 4), e("Staggershock", 3), e("Battle Cry Goblin", 4), e("Burning Prophet", 4), e("Ardent Elementalist", 3), e("Mountain", 18)},
+			[]string{"Daru Spiritualist", "Skullsnatcher"}},
+		{"dr-mbc-ba", // Soltari Visionary destroys the damaged player's enchantment
+			[]cardset.Entry{e("Soltari Visionary", 4), e("Accorder Paladin", 4), e("Ajani's Pridemate", 4), e("Aerial Responder", 4), e("Angelic Page", 4), e("Plains", 20)},
+			[]cardset.Entry{e("Narcolepsy", 4), e("Seal of Removal", 4), e("Augur of Bolas", 4), e("Battlewing Mystic", 4), e("Amphin Pathmage", 4), e("Cerulean Wyvern", 3), e("Roiling Dragonstorm", 3), e("Island", 14)},
+			[]string{"Soltari Visionary"}},
+		{"dr-mbc-bb", // Sigil of Sleep bounces a creature of the damaged player, on either side
+			[]cardset.Entry{e("Sigil of Sleep", 4), e("Amoeboid Changeling", 4), e("Academy Journeymage", 4), e("Aethersnipe", 3), e("Essence Scatter", 4), e("Reality Shift", 4), e("Island", 17)},
+			[]cardset.Entry{e("Angel of Vitality", 4), e("Blessed Spirits", 4), e("Ballynock Cohort", 4), e("Akroan Phalanx", 4), e("Spirited Companion", 4), e("Condemn", 3), e("Plains", 17)},
+			[]string{"Sigil of Sleep"}},
 	}
-	var decks [2][]*cards.Card
-	for s, d := range kTrigOwnerDecks {
-		for _, e := range d {
-			c, ok := reg.Lookup(e.Name)
-			if !ok {
-				t.Fatalf("%s not in the corpus", e.Name)
+	reg := synthReg(t)
+	for _, c := range cases {
+		t.Run(c.pool, func(t *testing.T) {
+			t.Parallel()
+			decks := [2][]cardset.Entry{c.a, c.b}
+			set := cardsettest.Synth(t, c.pool)
+			var cs [2][]*cards.Card
+			for s, d := range decks {
+				n := 0
+				for _, en := range d {
+					card, ok := reg.Lookup(en.Name)
+					if !ok {
+						t.Fatalf("%s not in the corpus", en.Name)
+					}
+					for i := 0; i < en.Count; i++ {
+						cs[s] = append(cs[s], card)
+					}
+					n += en.Count
+				}
+				if n != 40 {
+					t.Fatalf("deck %d has %d cards", s, n)
+				}
 			}
-			for i := 0; i < e.Count; i++ {
-				decks[s] = append(decks[s], c)
+			var mu sync.Mutex
+			played := map[string]int{}
+			tbl, _, _, err := set.Matchup(decks[0], decks[1])
+			if err != nil {
+				t.Fatalf("%s: %v", c.pool, err)
 			}
-		}
-		if len(decks[s]) != 40 {
-			t.Fatalf("deck %d: %d cards", s, len(decks[s]))
-		}
-	}
-	// the cards lower: Matchup refuses a card the pool's table lacks
-	tbl, _, _, err := set.Matchup(kTrigOwnerDecks[0], kTrigOwnerDecks[1])
-	if err != nil {
-		t.Fatal(err)
-	}
-	liability, devotion, games := 0, 0, 0
-	for seed := uint64(1); seed <= 120; seed++ {
-		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
-		m, err := NewMatchup(reg, [2]string{"trigowner-a", "trigowner-b"}, decks, 1)
-		if err != nil {
-			t.Fatal(err)
-		}
-		k, err := SetSide(set, tbl, cfg)(m, seed)
-		if err != nil {
-			t.Fatal(err)
-		}
-		g, err := NewGorgeSide(m, seed, cfg, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		res := LockstepLed(m, seed, g, k, castActivatePlayedPolicy(seed, map[string]int{}), RunConfig{Config: cfg, MaxDecisions: 3000, MaxTurns: 25})
-		CloseSide(k)
-		games++
-		if strings.HasPrefix(res.Stall, KernelStallPrefix) {
-			t.Errorf("seed %d: %s", seed, res.Stall)
-		}
-		if d := res.Div; d != nil {
-			t.Fatalf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
-		}
-		for i := range g.E.G.Objs {
-			o := &g.E.G.Objs[i]
-			if o.Ability == nil {
-				continue
+			for seed := uint64(1); seed <= 60; seed++ {
+				cfg := Config{GorgeAutopaySurface: seed%2 == 0}
+				m, err := NewMatchup(reg, [2]string{"fixture-a", "fixture-b"}, cs, 0)
+				if err != nil {
+					t.Fatal(err)
+				}
+				k, err := SetSide(set, tbl, cfg)(m, seed)
+				if err != nil {
+					t.Fatal(err)
+				}
+				res := Lockstep(m, seed, k, RandomPolicy(seed), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40})
+				CloseSide(k)
+				if d := res.Div; d != nil {
+					t.Fatalf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v\nrecent %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions, res.RecentSources(m, 6))
+				}
+				for _, name := range res.RecentSources(m, len(res.Actions)) {
+					if slices.Contains(c.carriers, name) {
+						mu.Lock()
+						played[name]++
+						mu.Unlock()
+					}
+				}
 			}
-			switch src := g.E.G.Obj(o.Source); {
-			case src == nil || src.Card == nil:
-			case o.Ability.API == "LoseLife" && src.Card.Faces[0].Name == "Liability":
-				liability++
-			case o.Ability.API == "Discard" && src.Card.Faces[0].Name == "Warped Devotion":
-				devotion++
+			for _, name := range c.carriers {
+				if played[name] == 0 {
+					t.Errorf("%s was never played in 60 games: the pool does not reach it", name)
+				}
 			}
-		}
-	}
-	t.Logf("%d games; Liability triggers %d, Warped Devotion triggers %d", games, liability, devotion)
-	if liability < 10 || devotion < 5 {
-		t.Errorf("only %d Liability and %d Warped Devotion triggers reached the stack (need 10 and 5)", liability, devotion)
+			t.Logf("%s: carriers played %v", c.pool, played)
+		})
 	}
 }

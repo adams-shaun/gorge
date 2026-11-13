@@ -20,9 +20,10 @@ func sampleData() *PoolData {
 		Status:        []Status{StatusSupported, StatusNotLowered, StatusUnverified},
 		Reason:        []string{"", "not lowered: no", "unverified: in no evidence list"},
 		Defs:          []kop.CardDef{{Power: -3, Toughness: 7}, {}, {Power: 1}},
-		CardSubs:      []kop.SubMask{{5, 0, 0}, {0, 1 << 63, 0}, kop.SubMask{}.With(191)}, // trailing-zero, leading-zero and third-word arrays
-		CardTokens:    [][]uint16{nil, {2}, {}},                                           // nil and empty in one slice
+		CardSubs:      []PoolSubMask{{5, 0, 0, 0}, {0, 1 << 63, 0, 0}, PoolSubMask{}.With(191).With(253)}, // trailing-zero, leading-zero and fourth-word arrays
+		CardTokens:    [][]uint16{nil, {2}, {}},                                                           // nil and empty in one slice
 		CardRefSubs:   [][]uint8{nil, nil, {}},
+		CardPrinted:   [][]uint8{nil, {3, 250}, nil},
 		AbilityOrigin: [][]uint8{{0xFF, 0x80}, nil, nil},
 		StaticSubs:    [][]AbSubs{nil, {{Ab: 1, Subs: []uint8{4}}}, nil},
 		OverrideSubs:  []OvSubs{{Set: []uint8{1}}, {}},
@@ -40,8 +41,8 @@ func sampleData() *PoolData {
 
 func TestTableRoundTrip(t *testing.T) {
 	want := sampleData()
-	if !want.CardSubs[2].Has(191) {
-		t.Fatal("precondition: the sample card holds subtype 191, beyond the old 128-bit mask")
+	if !want.CardSubs[2].Has(191) || !want.CardSubs[2].Has(253) {
+		t.Fatal("precondition: the sample card holds subtypes 191 and 253, beyond the old 128-bit mask and one table's 192")
 	}
 	b := EncodeTable(want, "somekey")
 	if !bytes.Equal(b, EncodeTable(sampleData(), "somekey")) {
@@ -67,7 +68,7 @@ func TestTableRoundTrip(t *testing.T) {
 	if got.Defs[0].Power != -3 || got.RoomCards[0] != -1 || got.RoomCards[2] != 1<<40 {
 		t.Error("ints did not survive")
 	}
-	if got.CardSubs[1][1] != 1<<63 || got.CardSubs[0] != (kop.SubMask{5, 0, 0}) || !got.CardSubs[2].Has(191) {
+	if got.CardSubs[1][1] != 1<<63 || got.CardSubs[0] != (PoolSubMask{5, 0, 0, 0}) || !got.CardSubs[2].Has(191) || !got.CardSubs[2].Has(253) {
 		t.Error("arrays did not survive")
 	}
 }

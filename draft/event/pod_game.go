@@ -9,8 +9,9 @@ import (
 
 // The Commander-draft event shape (Commander Legends / Mystery Booster
 // Commander drafts): FormatCommander decks are built around one or two
-// drafted commanders (build.ValidateCommander), and StructurePod plays the
-// whole pod at one multiplayer free-for-all table per event round.
+// drafted commanders (build.ValidateCommanderSize, at least DeckSize
+// cards), and StructurePod plays the whole pod at one multiplayer
+// free-for-all table per event round.
 const (
 	// FormatCommander is the EventCreated Format of a Commander draft.
 	FormatCommander = "commander"
@@ -31,6 +32,19 @@ type podResult struct {
 // Format reports the event's construction format: FormatCommander, or ""
 // for a limited (40-card) event.
 func (e *Event) Format() string { return e.format }
+
+// DeckSize reports a Commander-draft event's minimum deck size: the
+// EventCreated DeckSize, or build.CommanderDeckSize when it named none. A
+// limited event reports 0 (its decks follow build.Validate).
+func (e *Event) DeckSize() int {
+	if e.format != FormatCommander {
+		return 0
+	}
+	if e.deckSize == 0 {
+		return build.CommanderDeckSize
+	}
+	return e.deckSize
+}
 
 // PicksPerPass reports how many cards a seat takes from a pack before
 // passing it: 1 unless the EventCreated entry named more.
@@ -58,7 +72,7 @@ func (e *Event) PendingPodGame() (round int, ok bool) {
 // event's format.
 func (e *Event) validateDeck(seat int, d build.Deck) error {
 	if e.format == FormatCommander {
-		return build.ValidateCommander(e.Pool(seat), d)
+		return build.ValidateCommanderSize(e.Pool(seat), d, e.DeckSize())
 	}
 	return build.Validate(e.Pool(seat), d)
 }

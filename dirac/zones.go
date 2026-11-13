@@ -263,6 +263,9 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	if from == kop.ZoneGraveyard && k != nil && k.gen != nil && k.gen.anyLeavesGrave {
 		s.fireLeavesGraveTo(k, o, z) // trig_leavesgrave.go
 	}
+	if from == kop.ZoneLibrary && z == kop.ZoneGraveyard && k != nil && k.gen != nil && k.gen.anyLibToGrave {
+		s.fireLibToGrave(k, o) // trig_libtograve.go
+	}
 }
 
 // draw draws one card for p. Drawing from an empty library loses at once
@@ -849,8 +852,8 @@ func whoseOK(w kop.Whose, ctrl, who uint8) bool {
 		return who == ctrl
 	case kop.WhoseOpp:
 		return who != ctrl
-	case kop.WhoseEnchCtrl:
-		return false // read with the listener's slot (enchCtrlIs); elsewhere it fails closed
+	case kop.WhoseEnchCtrl, kop.WhoseChosen:
+		return false // read with the listener's slot (enchCtrlIs, chosenIs); elsewhere it fails closed
 	}
 	return true
 }
