@@ -3391,6 +3391,16 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			}
 			ab.ActCond = andCond(ab.ActCond, lCond{Kind: cYourTurn})
 		}
+		if v, ok := ps.get("ActivationFirstCombat"); ok {
+			// gorge activationPhasesOK: ActivationFirstCombat$ True withholds
+			// the offer once a second combat phase has begun this turn
+			// (CombatsThisTurn > 1), the turn's first combat and every step
+			// before it passing. Only an activated, non-mana ability.
+			if strings.TrimSpace(v) != "True" || sa.API == "Mana" {
+				return refuse("activation ActivationFirstCombat$ %q", v)
+			}
+			ab.ActCond = andCond(ab.ActCond, lCond{Kind: cValue, A: lValue{Kind: vPhaseCount, N: kop.PhaseCountCombats}, Op: opLE, B: cst(1)})
+		}
 	default:
 		return refuse("ability kind %s", sa.Kind)
 	}
