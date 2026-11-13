@@ -1925,7 +1925,10 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				// else enters, then attaches when the bearer is a creature
 				// (czAttachBearerHost).
 				var stay bool
-				bb := s.objRefObj(kop.Ref(in.W))
+				var bb Obj
+				if bsl := s.objRef(k, kop.Ref(in.W)); bsl != NoSlot {
+					bb = s.perms[bsl].obj // objRef's CR 400.7 ver guard: a bearer that left and returned since the ability went on the stack is a new object (gorge SourceReturned), so Self names nobody
+				}
 				host, stay = s.czAttachBearerHost(k, bb, o, ep)
 				if stay {
 					continue

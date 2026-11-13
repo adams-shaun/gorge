@@ -235,7 +235,11 @@ func (s *State) czAttachHost(k *prep, in *kop.Instr, o Obj, ctrl uint8) (host Sl
 	if in.F != 0 {
 		return s.czBearerHost(k, in, o) // a filter bearer: the controller chooses (tgt_attachedto.go)
 	}
-	return s.czAttachBearerHost(k, s.objRefObj(kop.Ref(in.B.N>>kop.RetAttachShift&7)), o, ctrl)
+	var b Obj
+	if bsl := s.objRef(k, kop.Ref(in.B.N>>kop.RetAttachShift&7)); bsl != NoSlot {
+		b = s.perms[bsl].obj // objRef's CR 400.7 ver guard: a bearer that left and returned since the ability went on the stack is a new object (gorge SourceReturned), so Self names nobody
+	}
+	return s.czAttachBearerHost(k, b, o, ctrl)
 }
 
 // czAttachBearerHost is czAttachHost's named-bearer core with the bearer
