@@ -845,14 +845,22 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet) {
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		pm := &s.perms[sl]
-		if sl == ex || pm.flags&pfTapped != 0 || s.grantMay(k, sl) && s.manaGranted(k, sl) {
+		pc := s.manaPCGen(k, sl)
+		// gorge's census lists a sacrifice-only mana ability beside the
+		// tapped ones: only a {T} cost needs the source untapped, and a
+		// tapped Eldrazi Spawn still sacrifices for {C} (payment_plan.go).
+		// The planner census (availFor) counts it; the leaf that prices a
+		// prefix's remainder must too, or the shortfall grows by the token
+		// and the prefix taps a second granted source (dr-mbc-bb pair 248,
+		// Mothdust Changeling implicated).
+		sacOnly := k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)
+		if sl == ex || pm.flags&pfTapped != 0 && !sacOnly || s.grantMay(k, sl) && s.manaGranted(k, sl) {
 			continue
 		}
 		if defer_ && s.planDeferred(k, p, sl) {
 			continue // the census never lists a deferred source (mana_rider.go)
 		}
-		pc := s.manaPCGen(k, sl)
-		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || !s.canTapForManaPC(k, sl, pc) {
+		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || !s.canTapForManaPC(k, sl, pc) && !sacOnly {
 			continue
 		}
 		if k.painMana && pc.painCol != 0 {
