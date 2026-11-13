@@ -1153,6 +1153,7 @@ SrOwnZone	untyped int	256
 SrRandom	untyped int	32768
 SrRemember	untyped int	32
 SrReveal	untyped int	128
+SrSearchAttach	untyped int	256
 SrShareLandType	untyped int	512
 SrShuffleOptional	untyped int	8
 SrSideboard	untyped int	1024
