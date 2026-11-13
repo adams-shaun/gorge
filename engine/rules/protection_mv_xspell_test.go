@@ -9,7 +9,7 @@ import (
 
 const (
 	protMVTorch = "Name:Test Torch\nManaCost:X R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Creature | NumDmg$ X\nSVar:X:Count$xPaid\nOracle:x\n"
-	protMVSkulk = "Name:Test Skulk\nManaCost:2\nTypes:Creature Human\nPT:3/3\nK:Protection:Card.cmcGE3:mana value 3 or greater\nOracle:x\n"
+	protMVSkulk = "Name:Test Skulk\nManaCost:2\nTypes:Creature Human\nPT:3/3\nK:Protection:Card.cmcGE3:spells and permanents of mana value three or more\nOracle:x\n"
 )
 
 // protMVTargetsAt casts Test Torch at announced X and reports whether the
