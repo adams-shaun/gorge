@@ -236,6 +236,9 @@ func (e *Engine) matchesWithCharsPTSlow(ce *ContinuousEffect, id state.ObjID, ty
 	// ordering. This is the same deferral the PredicatePrograms clear below
 	// practises, and it leaves the walk's printed-face/Changeling fallback
 	// (hasTypeCtx -> hasType) exactly as it was.
+	// The equipped/enchanted scan reads the ATTACHED object's derived types
+	// (CR 613.1d), not the candidate's, so it keeps a snapshot of the table.
+	sc.AttachmentTypes = sc.Layers.DerivedTypes
 	sc.Layers.DerivedTypes = nil
 	// An Effect-delivered grant's Affected$ spec may name the objects the
 	// Effect remembered (`Affected$ Permanent.IsRemembered`, energybending's
