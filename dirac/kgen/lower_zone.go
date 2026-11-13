@@ -1179,6 +1179,8 @@ func (lc *lowerCtx) changeZoneAllSweep(ps *params) error {
 		t := lc.addTarget(lt)
 		in.Obj = lRef{Kind: rTarget, N: t}
 		in.Note = "only the target player's zone"
+	} else if err := lc.czallDefinedScope(ps, &in); err != nil { // lower_czalldefined.go
+		return err
 	}
 	if ps.is("GainControl", "True") {
 		in.CS += "|UnderYourControl"
