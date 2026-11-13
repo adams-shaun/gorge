@@ -103,7 +103,7 @@ func TestMBCZoneMoves1Lowers(t *testing.T) {
 		if div != 0 {
 			t.Fatalf("%d divergent games", div)
 		}
-	if minted < 8 {
+		if minted < 8 {
 			t.Fatalf("%d demonstrate copies minted over the games, want at least 8", minted)
 		}
 	})
