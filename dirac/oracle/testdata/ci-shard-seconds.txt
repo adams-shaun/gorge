@@ -71,7 +71,6 @@ TestAttackTaxOrderMutation 2.0
 TestAttackTaxVigilantMutation 1.9
 TestAttacksPerAttackerLockstep 37.3
 TestAttremLockstep 26.0
-TestAuraLeavesInThePassAfterItsHostLockstep 1.2
 TestAuraLossSilencesHostEnterTrigger 52.7
 TestAuracopyLockstep 10.8
 TestAuracopyMutation 2.5
@@ -379,7 +378,6 @@ TestEachColourManaLockstep 25.5
 TestEachDamageTargetedLockstep 123.0
 TestEachFromSourceAndModifiedLockstep 74.7
 TestEachPickPlaysInLockstep 54.2
-TestEachPlayerDiscardMovesTogether 1.6
 TestEachPlayerTokenLockstep 9.4
 TestEachdmgLockstep 144.9
 TestEarthbendLockstep 91.2
@@ -420,11 +418,6 @@ TestEnterpriseDLockstep 4.2
 TestEnterpriseDMutation 3.4
 TestEntersUntappedReplOrderLockstep 25.0
 TestEntersUntappedReplOrderMutation 9.3
-TestEntryOrderDigLockstep 2.8
-TestEntryOrderDigUntilLockstep 3.0
-TestEntryOrderDigUntilReaskLockstep 2.9
-TestEntryOrderMassMoveLockstep 3.0
-TestEntryOrderSearchLockstep 3.0
 TestEntryctrLockstep 73.3
 TestEntryctrMutation 12.8
 TestEquipshufLockstep 21.6
@@ -589,7 +582,6 @@ TestHoundLockstep 16.5
 TestHybOrderLockstep 4.1
 TestHybrestrNoPlanPanic 19.2
 TestHybrestrPipOptions 19.2
-TestHybridCastTakesASearchSlotWhenUnrelaxable 1.1
 TestHybridFaceThroughFilterLockstep 3.1
 TestHybridPlanPrefersPrintedResolutionLockstep 8.4
 TestHybridnLockstep 26.1
@@ -1060,7 +1052,6 @@ TestStacktgtLockstepMutation 7.0
 TestStalegorgeLockstep 31.5
 TestStandardSweepClassesLockstep 21.7
 TestStartenginesLockstep 49.1
-TestStateBasedActionsRepeatAfterTriggerPlacement 1.4
 TestStationLockstep 30.6
 TestStationgrantLockstep 63.6
 TestStdBigReprosLockstep 8.5
@@ -1304,3 +1295,4 @@ TestZeroIncorporealSensateMutation 2.1
 TestZonebatchcloneLockstep 30.5
 TestZoralineLockstep 109.3
 TestZpBalladLockstep 19.3
+TestPinManifest 20.0
