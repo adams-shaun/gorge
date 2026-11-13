@@ -712,6 +712,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepExileGrant(t, g) // cast_exilegrant.go
 	prepWaterbend(t, g)
 	prepCostEvidence(t, g)
+	prepArena(t, g, &p.cold) // arena.go; fills g.ix, read by prepLure/prepMustBlock below
 	prepLure(t, g)
 	prepMustBlock(t, g) // combat_mustbeblocked.go
 	prepColGrant(t, g)
@@ -1560,7 +1561,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepDiscAll(t, g)
 	prepAbilityCast(t, g)
 	prepGoad(t, g)           // act_goad.go
-	prepArena(t, g, &p.cold) // arena.go
 	prepSuspect(g)           // act_suspect.go; reads g.ix
 	prepPermMark(g)          // filter_permmarks.go; reads g.ix
 	prepTurnTallies(t, p, g) // value_turntallies.go; reads g.ix
