@@ -12,8 +12,12 @@ package dirac
 // and the body to
 //
 //	ExtCumulative B=EchoNoCounter C=2   skips the rest when the source is gone
-//	UnlessPaid You Mana cost            the pay-or-decline ask, skipping the sacrifice when paid
+//	UnlessPaid You <cost>               the pay-or-decline ask, skipping the sacrifice when paid
 //	Sacrifice self                      a decline
+//
+// The cost is Mana, or the action echo cost's own PayDiscard / PaySac
+// (Deepcavern Imp, Rakdos Headliner, Skizzik Surger): execPay poses the
+// trigger-cost election and the pick asks which N cards or lands are chosen.
 //
 // The gate. gorge stamps a permanent's acquisition (entry or control change)
 // and compares it with the controller's last recorded upkeep. A permanent is

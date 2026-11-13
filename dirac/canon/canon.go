@@ -160,6 +160,7 @@ var ChooseKinds = []string{
 	"multikick",        // CR 702.43: gorge multikickAsk's count pick (kw_multikicker.go)
 	"suspend_cast_yes", // CR 702.62a: gorge startSuspendedCast's may-cast ask (kw_suspend.go)
 	"suspend_cast_no",
+	"echo_action_pick", // gorge echoActionAsk's choose-exactly-N cards or lands an action echo cost pays
 }
 
 // ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks.

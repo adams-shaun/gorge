@@ -184,6 +184,10 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		if !s.poolRPays(k, p, c, o) {
 			s.lowerWitness(k, p)
 		}
+	} else if mode == 0 && ob.zone == kop.ZoneHand && k.gen != nil && k.gen.anySacX && s.sacXPoolOffer(k, p, o) {
+		// an announced Sac<X> the floating pool pays at some count: gorge offers
+		// it from the pool (offerSacXMods) and plans nothing, so nothing is
+		// lowered (cost_sacx.go)
 	} else if !(k.gen != nil && s.contribPays(k, p, c, o, ob.zone == kop.ZoneHand)) && mode&(castFace|castFaceDown|castWarpRecast) == 0 && (s.cfg&cfgGorgeLowering != 0 && mode&3 == 0 && mode != castFree && ob.zone == kop.ZoneHand ||
 		s.cfg&(cfgGorgeLowering|cfgGorgeAutopay) != 0 && (mode&castMayPlay != 0 && mode&castFree == 0 || mode&3 == 2)) &&
 		(typed || fl&sfFbGranted != 0 || !s.plannedUnderRider(p, o, mode&3)) {
@@ -873,6 +877,8 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			}
 			if k.gen != nil && k.gen.anySacX && cost.X != 0 {
 				hi = s.sacXClamp(k, &cost, hi) // (announced only, hi is the clamped mx already)
+			} else if k.gen != nil && k.gen.anySacX {
+				mx, hi = s.sacXDiscountBounds(k, &cost, &av, mx, hi) // announced only, priced at each count (cost_sacx.go)
 			}
 			if !s.addXOptions(k, d, e, mx, hi, &av) {
 				return s.ctl == ctlBuild // false: no X above the floor is payable, the cast reversed (cost_sacx.go)

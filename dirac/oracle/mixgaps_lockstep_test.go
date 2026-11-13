@@ -1,10 +1,14 @@
 package oracle
 
 import (
+	"fmt"
+	"runtime"
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -18,6 +22,7 @@ import (
 // (dirac mana_mixsrc.go). Each matchup plays 150 seeds, the two option
 // surfaces alternating, and asserts the payments it is about happened.
 func TestMixGapsCombinedSourceLockstep(t *testing.T) {
+	t.Parallel() // its subtests run isolated, so the parent need not hold the serial phase
 	lessonB := []cardset.Entry{{Name: "Firebending Lesson", Count: 8}, {Name: "Appa, Loyal Sky Bison", Count: 4}, {Name: "Island", Count: 12}, {Name: "Plains", Count: 16}}
 	for _, mu := range []struct {
 		name               string
@@ -90,55 +95,112 @@ func mixSrcLockstep(t *testing.T, decks [2][]cardset.Entry, seeds int) mixSrcSta
 			t.Fatalf("deck %d has %d cards", s, n)
 		}
 	}
-	tbl, _, _, err := set.Matchup(decks[0], decks[1])
-	if err != nil {
-		t.Fatal(err)
+	// The seeds are independent games, so they play on a few goroutines, each with its own table;
+	// the counts are sums, and a divergence reports the lowest divergent seed, as a serial run would.
+	workers := min(4, runtime.GOMAXPROCS(0), seeds)
+	tbls := make([]*kop.Table, workers)
+	for w := range tbls {
+		tbl, _, _, err := set.Matchup(decks[0], decks[1])
+		if err != nil {
+			t.Fatal(err)
+		}
+		tbls[w] = tbl
 	}
-	var st mixSrcStats
+	var (
+		mu    sync.Mutex
+		st    mixSrcStats
+		fails = map[uint64]string{}
+		wg    sync.WaitGroup
+	)
+	next := make(chan uint64)
+	for _, tbl := range tbls {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for seed := range next {
+				s, fail := mixSrcSeed(reg, set, tbl, cs, seed)
+				mu.Lock()
+				st.add(s)
+				if fail != "" {
+					fails[seed] = fail
+				}
+				mu.Unlock()
+			}
+		}()
+	}
 	for seed := uint64(1); seed <= uint64(seeds); seed++ {
-		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
-		var acts []mixSrcAct
-		m, err := NewMatchup(reg, [2]string{"fixture-a", "fixture-b"}, cs, 0)
-		if err != nil {
-			t.Fatal(err)
+		next <- seed
+	}
+	close(next)
+	wg.Wait()
+	if len(fails) > 0 {
+		low := uint64(0)
+		for seed := range fails {
+			if low == 0 || seed < low {
+				low = seed
+			}
 		}
-		k, err := SetSide(set, tbl, cfg)(m, seed)
-		if err != nil {
-			t.Fatal(err)
-		}
-		res := Lockstep(m, seed, k, RandomPolicy(seed), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40,
-			Check: func(ref *GorgeSide, _ Side) *Divergence {
-				if ref.E.ManaAbilityHook == nil {
-					e := ref.E
-					e.ManaAbilityHook = func(p state.PlayerID, src state.ObjID, sa *cards.SA) {
-						if o := e.G.Obj(src); o != nil && isHideout(o) {
-							acts = append(acts, mixSrcAct{at: len(e.L.Events), p: int(p) & 1, kind: hideoutAbility(sa)})
-						}
-					}
-				}
-				for p := 0; p < 2; p++ {
-					n := 0
-					for _, id := range ref.E.G.Zone(state.ZBattlefield, state.PlayerID(p)) {
-						if o := ref.E.G.Obj(id); o != nil && isHideout(o) && !o.Tapped && o.Controller == state.PlayerID(p) {
-							n++
-						}
-					}
-					if n > 0 {
-						st.inPlayUntapped++
-					}
-					if n > 1 {
-						st.bothUntapped++
-					}
-				}
-				return nil
-			},
-			Finish: func(g *GorgeSide) { mixSrcScan(g, acts, &st) }})
-		CloseSide(k)
-		if d := res.Div; d != nil {
-			t.Fatalf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v\nrecent %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions, res.RecentSources(m, 6))
-		}
+		t.Fatal(fails[low])
 	}
 	return st
+}
+
+func (s *mixSrcStats) add(o mixSrcStats) {
+	s.inPlayUntapped += o.inPlayUntapped
+	s.bothUntapped += o.bothUntapped
+	s.restricted += o.restricted
+	s.filter += o.filter
+	s.restrictedCasts += o.restrictedCasts
+	s.filterCasts += o.filterCasts
+	s.bothPaid += o.bothPaid
+}
+
+// mixSrcSeed plays one seed of mixSrcLockstep and returns its counts, and a failure message for a
+// game that could not be built or diverged.
+func mixSrcSeed(reg *cards.Registry, set cardset.Set, tbl *kop.Table, cs [2][]*cards.Card, seed uint64) (mixSrcStats, string) {
+	var st mixSrcStats
+	cfg := Config{GorgeAutopaySurface: seed%2 == 0}
+	var acts []mixSrcAct
+	m, err := NewMatchup(reg, [2]string{"fixture-a", "fixture-b"}, cs, 0)
+	if err != nil {
+		return st, err.Error()
+	}
+	k, err := SetSide(set, tbl, cfg)(m, seed)
+	if err != nil {
+		return st, err.Error()
+	}
+	res := Lockstep(m, seed, k, RandomPolicy(seed), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40,
+		Check: func(ref *GorgeSide, _ Side) *Divergence {
+			if ref.E.ManaAbilityHook == nil {
+				e := ref.E
+				e.ManaAbilityHook = func(p state.PlayerID, src state.ObjID, sa *cards.SA) {
+					if o := e.G.Obj(src); o != nil && isHideout(o) {
+						acts = append(acts, mixSrcAct{at: len(e.L.Events), p: int(p) & 1, kind: hideoutAbility(sa)})
+					}
+				}
+			}
+			for p := 0; p < 2; p++ {
+				n := 0
+				for _, id := range ref.E.G.Zone(state.ZBattlefield, state.PlayerID(p)) {
+					if o := ref.E.G.Obj(id); o != nil && isHideout(o) && !o.Tapped && o.Controller == state.PlayerID(p) {
+						n++
+					}
+				}
+				if n > 0 {
+					st.inPlayUntapped++
+				}
+				if n > 1 {
+					st.bothUntapped++
+				}
+			}
+			return nil
+		},
+		Finish: func(g *GorgeSide) { mixSrcScan(g, acts, &st) }})
+	CloseSide(k)
+	if d := res.Div; d != nil {
+		return st, fmt.Sprintf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v\nrecent %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions, res.RecentSources(m, 6))
+	}
+	return st, ""
 }
 
 func isHideout(o *state.Object) bool {

@@ -446,6 +446,9 @@ func TestReducespellLockstep(t *testing.T) {
 // TestReducespellMutation: with the discount, the colour reduction and the
 // Dragon raise all dropped, each matchup must diverge.
 func TestReducespellMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	dirac.DebugReduceSpellFlip = true
 	defer func() { dirac.DebugReduceSpellFlip = false }()
 	for _, m := range krsMatches {

@@ -86,6 +86,7 @@ var grantedTriggerKeywordWalk = map[string]string{
 	// Synthesized from the keyword line by grantedKeywordTrigger.
 	"Prowess": "checkGrantedStaticTriggersUsing",
 	"Myriad":  "checkGrantedStaticTriggersUsing",
+	"Evolve":  "checkGrantedStaticTriggersUsing",
 	"Extort":  "checkGrantedStaticTriggersUsing",
 	// Dedicated per-keyword walks.
 	"Afflict":           "checkGrantedAfflictTriggers",
@@ -206,7 +207,7 @@ func TestEquipAuraGrantedTriggerKeywordCensus(t *testing.T) {
 		if v[1] != "covered" {
 			continue
 		}
-		if v[0] == "Prowess" || v[0] == "Myriad" {
+		if v[0] == "Prowess" || v[0] == "Myriad" || v[0] == "Evolve" {
 			if grantedKeywordTrigger(v[0]) == nil {
 				t.Errorf("%s: census calls %s covered but grantedKeywordTrigger returns nil", name, v[0])
 			}

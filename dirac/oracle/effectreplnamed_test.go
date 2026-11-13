@@ -238,6 +238,9 @@ func TestEffectReplNamedRecord(t *testing.T) {
 // game to its end (a stall is not agreement), and the pool reaches both (the
 // plus-one made a placement larger, a creature went to exile for the scope).
 func TestEffectReplNamedPoolLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg := synthReg(t)
 	cat := func(ds ...[]string) []string {
 		var o []string

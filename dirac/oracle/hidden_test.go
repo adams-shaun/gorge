@@ -192,6 +192,9 @@ func TestHiddenMutation(t *testing.T) {
 // With nothing elided gorge still poses Zuko's "choose an opponent" over its one
 // opponent, and the kernel asks nothing: the oracle answers the forced choice.
 func TestForcedPlayerChoiceLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	deck := []cardset.Entry{
 		{Name: "Zuko, Conflicted", Count: 16}, {Name: "Grizzly Bears", Count: 4},
 		{Name: "Swamp", Count: 10}, {Name: "Mountain", Count: 10},

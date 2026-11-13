@@ -345,6 +345,9 @@ func TestCopyabAmountLockstep(t *testing.T) {
 // and one that copies an ability that can't be copied, must each make the
 // lockstep diverge.
 func TestCopyabAmountMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	for _, m := range []struct {
 		name string
 		flag *bool

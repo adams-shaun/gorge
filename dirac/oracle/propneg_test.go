@@ -309,6 +309,9 @@ func TestPropnegLockstep(t *testing.T) {
 // negation is the opposite, so the games must diverge. A green mutation
 // means the lockstep never reaches a decision the negation shapes.
 func TestPropnegMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runPropneg(t, 64, true)
 	if divs == 0 {
 		t.Fatalf("mutation answered positive in %d games with no divergence", games)
