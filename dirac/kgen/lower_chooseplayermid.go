@@ -66,25 +66,48 @@ func (lc *lowerCtx) chosenPlayerMidDefined(v string) (lRef, bool) {
 // property is implied and drops. Only the exact `<word>.ChosenCtrl`
 // alternative is rewritten; anything else keeps the spec (and refuses, the
 // property being otherwise unknown).
-func (lc *lowerCtx) chosenCtrlImplied(ps *params, origin int, ct string) (string, bool) {
+func (lc *lowerCtx) chosenCtrlImplied(ps *params, origin int, ct string) string {
 	if lc.chosenMidAb == nil || lc.chosenMidAb != lc.ab || origin != zGraveyard {
-		return "", false
+		return ct
 	}
 	switch strings.TrimSpace(ps.m["DefinedPlayer"]) {
 	case "ChosenPlayer", "Player.Chosen":
 	default:
-		return "", false
+		return ct
 	}
 	if !strings.Contains(ct, "ChosenCtrl") {
-		return "", false
+		return ct
 	}
 	alts := strings.Split(ct, ",")
 	for i, p := range alts {
 		w, prop, ok := strings.Cut(strings.TrimSpace(p), ".")
 		if !ok || prop != "ChosenCtrl" || strings.Contains(w, ".") {
-			return "", false
+			return ct
 		}
 		alts[i] = w
 	}
-	return strings.Join(alts, ","), true
+	return strings.Join(alts, ",")
+}
+
+// chosenMidPool decides a hidden graveyard -> hand pick's pool while this
+// ability's mid-resolution ChoosePlayer is armed (Skullwinder: DefinedPlayer$
+// ChosenPlayer, Chooser$ ChosenPlayer): the pool is the chosen player's own
+// graveyard and they pick from it, so the pick's clauses need no owner of
+// their own. It consumes DefinedPlayer$ and returns the ChooseMove's player
+// Ref (the chosen player, else the controller) and whether the pool is the
+// chosen player's.
+func (lc *lowerCtx) chosenMidPool(ps *params, dest int) (lRef, bool, error) {
+	owner := lRef{Kind: rYou}
+	if lc.chosenMidAb == nil || lc.chosenMidAb != lc.ab || dest != zHand {
+		return owner, false, nil
+	}
+	switch strings.TrimSpace(ps.m["DefinedPlayer"]) {
+	case "ChosenPlayer", "Player.Chosen":
+		ps.consume("DefinedPlayer")
+		if ch, ok := ps.get("Chooser"); ok && strings.TrimSpace(ch) != "ChosenPlayer" {
+			return owner, false, refuse("graveyard choice Chooser$ %q", ch)
+		}
+		return lRef{Kind: rChosenPlayer}, true, nil
+	}
+	return owner, false, nil
 }

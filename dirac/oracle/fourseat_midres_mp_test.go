@@ -43,22 +43,33 @@ func TestSkullwinderMidResLowers(t *testing.T) {
 
 // midResDecks are the mid-resolution choice's matchups: the Skullwinder deck
 // (lands to cast it and a cycling spell to fill its graveyard, the target its
-// enters trigger returns) against three decks of lands and the same cycling
-// spell, so whichever opponent the choice names has a card to return. The
-// decks alternate down the pod, as chosenOppDecks does.
+// enters trigger returns) against decks of lands and the same cycling spell,
+// so whichever opponent the choice names has a card to return. A pod has one
+// Skullwinder seat, so the chooser of every ask in it is known; a four-seat
+// run plays two pods, the Skullwinder at seat 0 (it lists 1 2 3, AliveFrom
+// order) and at seat 2 (it lists 3 0 1). The pod's Skullwinder seat is
+// midResSeat(pod, seats).
 func midResDecks(seats int) [][]string {
 	winder := deckOf(2, "Skullwinder", deckOf(8, "Go for Blood", deckOf(10, "Forest", deckOf(20, "Island")...)...)...)
 	other := deckOf(8, "Go for Blood", deckOf(32, "Island")...)
 	var out [][]string
-	for i := 0; i < seats; i++ {
-		if i%2 == 0 {
-			out = append(out, winder)
-		} else {
-			out = append(out, other)
+	for pod := 0; pod < midResPods(seats); pod++ {
+		for i := 0; i < seats; i++ {
+			if i == midResSeat(pod) {
+				out = append(out, winder)
+			} else {
+				out = append(out, other)
+			}
 		}
 	}
 	return out
 }
+
+// midResPods is the pod count of a run: one two-seat pod, two four-seat pods.
+func midResPods(seats int) int { return seats / 2 }
+
+// midResSeat is pod p's Skullwinder seat.
+func midResSeat(pod int) int { return 2 * pod }
 
 // midResTally counts Skullwinder's battlefield entries and the
 // graveyard-to-hand moves on gorge's side: the controller's returned card,
@@ -79,15 +90,16 @@ func (y *midResTally) read(g *GorgeSide) {
 	}
 }
 
-// playMidRes plays every seats-sized matchup of midResDecks over seeds 1..seeds
-// in lockstep, failing on a divergence or a kernel stop.
-func playMidRes(t *testing.T, seats int, seeds uint64) (midResTally, []Canon) {
+// playMidRes plays every seats-sized matchup (pod) of midResDecks over seeds
+// 1..seeds in lockstep, failing on a divergence or a kernel stop; the actions
+// are grouped by pod.
+func playMidRes(t *testing.T, seats int, seeds uint64) (midResTally, [][]Canon) {
 	t.Helper()
 	reg := synthReg(t)
 	set := chosenOppPool(t)
 	all := midResDecks(seats)
 	var y midResTally
-	var acts []Canon
+	acts := make([][]Canon, midResPods(seats)) // the applied actions of each pod
 	for m0 := 0; m0 < len(all); m0 += seats {
 		decks := all[m0 : m0+seats]
 		var lists [][]cardset.Entry
@@ -127,7 +139,7 @@ func playMidRes(t *testing.T, seats int, seeds uint64) (midResTally, []Canon) {
 			if res.StallUnmodelled || strings.HasPrefix(res.Stall, KernelStallPrefix) {
 				t.Fatalf("matchup %d seed %d: kernel stopped: %s", m0/seats, seed, res.Stall)
 			}
-			acts = append(acts, res.Actions...)
+			acts[m0/seats] = append(acts[m0/seats], res.Actions...)
 			t.Logf("matchup %d seed %d: %d decisions, over %v winner %d turns %d %s", m0/seats, seed, res.Decisions, res.Over, res.Winner, res.Turns, res.Stall)
 		}
 	}
@@ -149,7 +161,7 @@ func TestMidResChoosePlayerTwoSeatLockstep(t *testing.T) {
 	}
 	code, _ := chooseCode("player")
 	pick := ActChoose + CanonKind(code)
-	for _, a := range acts {
+	for _, a := range acts[0] {
 		if a.Kind() == pick {
 			t.Fatalf("a player ask was posed over the sole opponent: %v", a)
 		}
@@ -162,29 +174,30 @@ func TestMidResChoosePlayerTwoSeatLockstep(t *testing.T) {
 // controller chooses one of three opponents (gorge effChoosePlayer's "player"
 // options in AliveFrom order; the kernel's mid-resolution ask,
 // ExtChoosePlayerMid), and that player returns a card from their own
-// graveyard. No divergence, no stall, the choice was asked and some pick is
-// not the first opponent listed, and both halves of the chain returned a card
-// from a graveyard.
+// graveyard. No divergence, no stall, the choice was asked, some pick is not
+// the first opponent its chooser lists, and the chain returned more cards than
+// Skullwinder entered (the controller's, and the chosen opponent's).
 func TestFourSeatMidResChoosePlayerLockstep(t *testing.T) {
-	y, acts := playMidRes(t, 4, 6)
+	y, pods := playMidRes(t, 4, 8)
 	if y.entered == 0 {
 		t.Fatal("Skullwinder never entered the battlefield")
 	}
-	if y.returned < 2 {
-		t.Fatalf("graveyard returns %d, want at least the controller's and the chosen opponent's", y.returned)
+	if y.returned <= y.entered {
+		t.Fatalf("graveyard returns %d for %d entries, want the controller's and the chosen opponent's each time", y.returned, y.entered)
 	}
 	code, _ := chooseCode("player")
 	pick := ActChoose + CanonKind(code)
 	asks, farther := 0, 0
-	for _, a := range acts {
-		if a.Kind() != pick {
-			continue
-		}
-		asks++
-		// seats 0 and 2 choose, and each lists the other second (AliveFrom
-		// order: 1 2 3 from seat 0, 3 0 1 from seat 2)
-		if p := a.Tgt() - RefPlayer; p != 1 && p != 3 {
-			farther++
+	for pod, acts := range pods {
+		first := (midResSeat(pod) + 1) % 4 // the chooser's first-listed opponent
+		for _, a := range acts {
+			if a.Kind() != pick {
+				continue
+			}
+			asks++
+			if p := a.Tgt() - RefPlayer; int(p) != first {
+				farther++
+			}
 		}
 	}
 	if asks == 0 || farther == 0 {

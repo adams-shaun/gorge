@@ -1,7 +1,5 @@
 package kgen
 
-import "github.com/adams-shaun/gorge/engine/cards"
-
 // the cold lowering helpers for ChoosePlayer's one
 // opponent, and the qualified and joined TriggeredCard Defined$ spellings.
 
@@ -16,7 +14,7 @@ import "github.com/adams-shaun/gorge/engine/cards"
 // poses nothing: the chosen player IS the opponent. That path emits no
 // instruction and arms ChosenPlayer for the rest of this ability; any other
 // shape refuses.
-func (lc *lowerCtx) choosePlayer(ps *params, node *cards.SA, mid bool) error {
+func (lc *lowerCtx) choosePlayer(ps *params, mid bool) error {
 	switch ps.str("Choices") {
 	case "Player.Opponent", "Opponent", "Player.Other":
 	default:
@@ -29,7 +27,7 @@ func (lc *lowerCtx) choosePlayer(ps *params, node *cards.SA, mid bool) error {
 	ps.consume("ChoiceTitle", "AILogic")
 	// the mid-resolution ask is among the OPPONENTS (kop.oppsFrom); a
 	// Player.Other pool is any other player, still two-seat-only
-	if ps.str("Choices") != "Player.Other" && mid && chainReadsChosenPlayer(node.Sub) {
+	if ps.str("Choices") != "Player.Other" && mid {
 		// the chain reads the choice: gorge asks it mid-resolution whatever
 		// the seat count, so the kernel does too (OpExt ExtChoosePlayerMid,
 		// a sole opponent recorded unasked) and the card holds at any pod

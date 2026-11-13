@@ -276,13 +276,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			origin == zExile && dest == zGraveyard && ps.is("Hidden", "True")) {
 			return refuse("ChangeType$ with ValidTgts$")
 		}
+		ct = lc.chosenCtrlImplied(ps, origin, ct) // lower_chooseplayermid.go
 		exwPick := origin == zExile && dest == zBattlefield && ps.is("Hidden", "True")
-		// a hidden pick out of exile is a resolution-time mover:
-		// ExiledWithSource reads the resolving source
-		lc.exwOK = exwPick
-		if ctd, ok := lc.chosenCtrlImplied(ps, origin, ct); ok { // lower_chooseplayermid.go
-			ct = ctd // the pick's own player is the chosen player: ChosenCtrl is implied (lower_chooseplayermid.go)
-		}
+		lc.exwOK = exwPick          // a hidden pick out of exile is a resolution-time mover: ExiledWithSource reads the resolving source
 		f, err := lc.pickFilter(ct) // lower_each.go
 		lc.exwOK = false
 		if err != nil {
@@ -492,21 +488,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		graveBF := dest == zBattlefield && override == nil && graveToBattlefieldFlags(flags)
 		if origin == zGraveyard && (dest == zHand || graveBF) {
-			// The resolution's mid-resolution choice scopes the pool and is
-			// the chooser (lower_chooseplayermid.go, Skullwinder's hidden
-			// graveyard pick: DefinedPlayer$ ChosenPlayer, Chooser$
-			// ChosenPlayer): the pool is the chosen player's own graveyard,
-			// so its clauses need no owner of their own.
-			chosenPool := false
-			if lc.chosenMidAb == lc.ab && dest == zHand {
-				switch strings.TrimSpace(ps.m["DefinedPlayer"]) {
-				case "ChosenPlayer", "Player.Chosen":
-					ps.consume("DefinedPlayer")
-					if ch, ok := ps.get("Chooser"); ok && strings.TrimSpace(ch) != "ChosenPlayer" {
-						return refuse("graveyard choice Chooser$ %q", ch)
-					}
-					chosenPool = true
-				}
+			owner, chosenPool, err := lc.chosenMidPool(ps, dest) // lower_chooseplayermid.go
+			if err != nil {
+				return err
 			}
 			for i := range f.Clauses {
 				if chosenPool || f.Clauses[i].Owner != whoAny {
@@ -563,10 +547,6 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			cs := "from=Graveyard|" + strings.Join(flags, "|")
 			if counterKind != "" && dest == zBattlefield {
 				cs += "|counters=" + counterKind
-			}
-			owner := lRef{Kind: rYou}
-			if chosenPool {
-				owner = lRef{Kind: rChosenPlayer} // the chosen player's own graveyard, the chosen player picking (lower_chooseplayermid.go)
 			}
 			lc.emit(lInstr{Op: "ChooseMove", Obj: owner, A: n, F: f, C: dest, CS: cs})
 			return nil

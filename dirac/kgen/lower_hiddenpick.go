@@ -107,9 +107,6 @@ func (lc *lowerCtx) publicPick(ps *params, f *lFilter, n lValue, flags []string,
 			case rYou:
 				// gorge's fetch player is the controller: the pool is its own
 				// graveyard, the kernel's default
-			case rChosenPlayer:
-				// the resolution's mid-resolution choice (lower_chooseplayermid.go)
-				owner = o
 			default:
 				return refuse("public pick DefinedPlayer$ %q is not a player Ref", dp)
 			}
@@ -125,9 +122,6 @@ func (lc *lowerCtx) publicPick(ps *params, f *lFilter, n lValue, flags []string,
 		case ch == "You" && owner.Kind == rTarget:
 			cs = append(cs, "ChooserYou")
 		case ch == "Targeted" && owner.Kind == rTarget, ch == "You" && owner.Kind == rYou:
-		case ch == "ChosenPlayer" && owner.Kind == rChosenPlayer:
-			// the pick's own player is the chosen player, the kernel pick's
-			// default chooser (lower_chooseplayermid.go)
 		default:
 			return refuse("public pick Chooser$ %q", ch)
 		}
