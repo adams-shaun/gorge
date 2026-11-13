@@ -4143,6 +4143,9 @@ func (lc *lowerCtx) animateRemoveKeywords(ps *params, o *lOverride, obj lRef) er
 		}
 		return lc.animateLivePT(name, ss[0], o, obj)
 	}
+	if ok && len(ss) == 1 && ss[0].Mode == "CombatDamageToughness" {
+		return lc.animateGrantedStatic(ps, name, ss[0], o, obj)
+	}
 	if !ok || len(ss) != 1 || ss[0].Mode != "CantBlockBy" {
 		return refuse("Animate staticAbilities$ %q", name)
 	}
@@ -4158,6 +4161,52 @@ func (lc *lowerCtx) animateRemoveKeywords(ps *params, o *lOverride, obj lRef) er
 		return refuse("Animate staticAbilities$ with a host-bound duration")
 	}
 	o.AddKw = append(o.AddKw, "Unblockable")
+	return nil
+}
+
+// animateGrantedStatic lowers an Animate staticAbilities$ grant whose one
+// body is Mode$ CombatDamageToughness (Streetwise Negotiator's Backup rider:
+// SVar:BackupAbility = DB$ Animate | staticAbilities$ CDT, over CDT =
+// Mode$ CombatDamageToughness | ValidCard$ Card.Self; CR 702.165: the target
+// gains the following ability until end of turn). The static lowers as the
+// source's own assignment static (kop.StatCombatDmgToughness) with an OvGate
+// bit, and the Animate record on the animated object carries the matching
+// kop.Override.GrantStatics bit: the kernel reads it on the record's holder
+// (static_ovgate.go grantedStaticFlag) while the record is live. gorge
+// registerAnimateStaticAbilities registers the granted assignment static
+// scoped to the animated object, riding the animation's own lifetime, so
+// every duration the Animate accepts rides the record unchanged.
+func (lc *lowerCtx) animateGrantedStatic(ps *params, name string, st cards.Static, o *lOverride, obj lRef) error {
+	if obj.Kind != rSelf && obj.Kind != rTarget {
+		return refuse("Animate staticAbilities$ %q on a non-permanent object", name)
+	}
+	sp := newParams(st.Params)
+	sp.consume("Mode", "Description")
+	if sp.str("ValidCard") != "Card.Self" {
+		return refuse("Animate staticAbilities$ %q ValidCard$ %q", name, sp.str("ValidCard"))
+	}
+	if u := sp.unread(); len(u) > 0 {
+		return refuse("Animate staticAbilities$ %q unread params %v", name, u)
+	}
+	gated := 0
+	for _, ost := range lc.out.Statics {
+		if ost.OvGate != 0 {
+			gated++
+		}
+	}
+	if gated >= 8 {
+		return refuse("Animate staticAbilities$ grants more than 8 statics")
+	}
+	before := len(lc.out.Statics)
+	if err := lc.lowerStatic(st); err != nil {
+		return err
+	}
+	if len(lc.out.Statics) != before+1 {
+		return refuse("Animate staticAbilities$ %q lowered to %d statics", name, len(lc.out.Statics)-before)
+	}
+	bit := uint8(1) << gated
+	lc.out.Statics[before].OvGate = bit
+	o.GrantStatics |= bit
 	return nil
 }
 
