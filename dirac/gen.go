@@ -241,6 +241,7 @@ type genPrep struct {
 	anyFinality     bool           // some program puts finality counters (kop.CtrFinality): dieZone exiles their creatures
 	anyHone         bool           // some program puts hone counters (kop.CtrHone): ptGen adds +1/+0 per hone counter on an attached permanent (CR 122.1j; ctr_hone.go)
 	anyBattle       bool           // some card is a Battle (kop.TBattle front; face_battle.go)
+	anyWorld        bool           // some card is a World (CardDef.World): the CR 704.5k arm (sba_world.go)
 	anySneak        bool           // some card has sneak (CardDef.HasSneak; kw_sneak.go)
 	anyWebSling     bool           // some card has web-slinging (CardDef.HasWebSling; kw_websling.go)
 	anyMayFlash     bool           // some card has K:MayFlashCost (CardDef.HasMayFlash; kw_mayflash.go)
@@ -868,6 +869,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.Types&kop.TBattle != 0 {
 			g.anyBattle = true
+		}
+		if c.World {
+			g.anyWorld = true
 		}
 		if c.HasSneak {
 			g.anySneak = true
