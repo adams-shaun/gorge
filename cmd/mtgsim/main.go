@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/adams-shaun/gorge/bots"
@@ -58,6 +59,7 @@ func main() {
 	policies := flag.String("policies", "", "comma-separated bot policy per seat, from seat 0; \"-\" or empty keeps a seat's default heuristic; overrides -a/-b")
 	format := flag.String("format", "constructed", "game format: constructed or commander (40 life, commanders in the command zone)")
 	mulligans := flag.Int("mulligans", 0, "London mulligans each seat may take before turn 1 (default 0, none)")
+	deckDir := flag.String("deckdir", "", "read each -decks name from <deckdir>/<name>.json instead of the embedded repo decks")
 	shape := flag.String("shape", "", "write a JSON game-shape census to this file (game rows, then one aggregate)")
 	cpuProf := flag.String("cpuprofile", "", "write a CPU profile here")
 	memProf := flag.String("memprofile", "", "write an allocation profile here and print the run's allocation totals")
@@ -71,7 +73,7 @@ func main() {
 	o := simOptions{
 		Decks: *decksFlag, Seats: *seats, Seed: *seed, Games: *games,
 		Verify: *verify, Verbose: *verbose, Dir: *dir,
-		PolicyA: *policyA, PolicyB: *policyB, SBAgents: sbAgents, Format: *format, Mulligans: *mulligans, Shape: *shape,
+		PolicyA: *policyA, PolicyB: *policyB, SBAgents: sbAgents, Format: *format, Mulligans: *mulligans, Shape: *shape, DeckDir: *deckDir,
 	}
 	if *policies != "" {
 		o.Policies = strings.Split(*policies, ",")
@@ -123,6 +125,10 @@ type simOptions struct {
 	Mulligans int
 	// Shape, when non-empty, is the path of the JSON game-shape census.
 	Shape string
+	// DeckDir, when non-empty, is a directory of deck files: each -decks
+	// name is read from <DeckDir>/<name>.json (an outside pool, such as
+	// cEDH lists) instead of the embedded repo decks. It requires -decks.
+	DeckDir string
 }
 
 func runAgents(decksFlag string, seats int, baseSeed uint64, games int, verify, verbose bool, dir, policyA, policyB string, sbAgents []string, out io.Writer) error {
@@ -176,7 +182,7 @@ func runSim(o simOptions, out io.Writer) error {
 		cmds = make([][]int, len(names))
 		files = make([]deck.File, len(names))
 		for i, name := range names {
-			f, err := testutil.LoadRepoDeckFile(name)
+			f, err := o.deckFile(name)
 			if err != nil {
 				return err
 			}
@@ -195,7 +201,7 @@ func runSim(o simOptions, out io.Writer) error {
 
 	decks := make([][]*cards.Card, seats)
 	for i, name := range names {
-		d, err := testutil.LoadRepoDeck(reg, name)
+		d, err := o.deck(reg, name)
 		if err != nil {
 			return err
 		}
@@ -253,6 +259,40 @@ func runSim(o simOptions, out io.Writer) error {
 		return fmt.Errorf("%d of %d games failed to terminate or verify", failures, games)
 	}
 	return nil
+}
+
+// deckFile reads one deck file un-resolved: from o.DeckDir when set, else
+// the embedded repo decks.
+func (o simOptions) deckFile(name string) (deck.File, error) {
+	if o.DeckDir == "" {
+		return testutil.LoadRepoDeckFile(name)
+	}
+	raw, err := os.ReadFile(filepath.Join(o.DeckDir, name+".json"))
+	if err != nil {
+		return deck.File{}, fmt.Errorf("deck %q: %w", name, err)
+	}
+	f, err := deck.Parse(raw)
+	if err != nil {
+		return deck.File{}, fmt.Errorf("deck %q: %w", name, err)
+	}
+	return f, nil
+}
+
+// deck resolves one deck into the flat card list rules.Config.Decks wants,
+// as testutil.LoadRepoDeck does, from o.DeckDir when set.
+func (o simOptions) deck(reg *cards.Registry, name string) ([]*cards.Card, error) {
+	if o.DeckDir == "" {
+		return testutil.LoadRepoDeck(reg, name)
+	}
+	f, err := o.deckFile(name)
+	if err != nil {
+		return nil, err
+	}
+	cs, err := f.Resolve(reg)
+	if err != nil {
+		return nil, fmt.Errorf("deck %q: %w", name, err)
+	}
+	return cs, nil
 }
 
 // deckNames resolves the -decks flag against the embedded repo decks: an
