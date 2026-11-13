@@ -57,12 +57,22 @@ func (Uniform) Priors(_ *dirac.State, d *dirac.Decision, _ []bool, out []float32
 // HeuristicLeaf is azmcts's generation-0 leaf (searchprobe.LeafValue):
 // per player life + 2*hand + the battlefield's material (a land 3, any
 // other permanent 10 + 2*(power+toughness) for a creature); the value is
-// 1/(1+exp(-(mine-theirs)/20)). Uniform prior.
+// 1/(1+exp(-(mine-theirs)/20)). Uniform prior. With more than two seats
+// theirs is the strongest living opponent's score, as gorge's
+// heuristicLeafValue reads it (bots/azmcts env.go): a lost seat is skipped,
+// a lost searching seat is 0 while the game plays on, and a game that is over
+// is 1 for its winner, 0 for every other seat and 0.5 drawn.
 type HeuristicLeaf struct{}
 
 func (HeuristicLeaf) Value(s *dirac.State, _ *dirac.Decision, seat uint8) float32 {
-	var score [2]float64
-	for p := uint8(0); p < 2; p++ {
+	n := s.NumSeats()
+	if n > 2 {
+		if v, done := decidedValue(s, seat); done {
+			return v
+		}
+	}
+	var score [dirac.MaxSeats]float64
+	for p := uint8(0); p < n; p++ {
 		score[p] = float64(s.LifeOf(p) + 2*s.HandSize(p))
 	}
 	t := s.Table()
@@ -83,8 +93,47 @@ func (HeuristicLeaf) Value(s *dirac.State, _ *dirac.Decision, seat uint8) float3
 		}
 		score[p] += m
 	}
-	v := score[seat] - score[1-seat]
+	var v float64
+	if n == 2 {
+		v = score[seat] - score[1-seat]
+	} else {
+		v = score[seat] - maxOpponent(s, seat, &score)
+	}
 	return float32(1 / (1 + math.Exp(-v/20)))
+}
+
+// decidedValue is a leaf's value to seat when the game has decided it: the
+// game's end (1 to its winner, 0 to every other seat, 0.5 drawn), or seat's
+// own loss while the game plays on for the other seats (CR 800.4a).
+func decidedValue(s *dirac.State, seat uint8) (float32, bool) {
+	if s.Over() {
+		switch w := s.Winner(); {
+		case w == int8(seat):
+			return 1, true
+		case w >= 0:
+			return 0, true
+		}
+		return 0.5, true
+	}
+	if s.FeatLost(seat) {
+		return 0, true
+	}
+	return 0, false
+}
+
+// maxOpponent is the largest score among seat's living opponents (0 when
+// none lives).
+func maxOpponent(s *dirac.State, seat uint8, score *[dirac.MaxSeats]float64) float64 {
+	top, have := 0.0, false
+	for p := uint8(0); p < s.NumSeats(); p++ {
+		if p == seat || s.FeatLost(p) {
+			continue
+		}
+		if !have || score[p] > top {
+			top, have = score[p], true
+		}
+	}
+	return top
 }
 
 func (HeuristicLeaf) Priors(_ *dirac.State, d *dirac.Decision, _ []bool, out []float32) {

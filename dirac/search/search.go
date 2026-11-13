@@ -748,7 +748,7 @@ func sameDecision(a, b *dirac.Decision) bool {
 // under ClosedList); the world's chance is re-seeded with b.
 func (sr *Searcher) redeal(s *dirac.State, a, b uint64) {
 	r := dirac.NewRand(a, b)
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.NumSeats(); p++ {
 		if p == sr.seat || sr.Opts.Clairvoyant {
 			// the seat's own library; under Clairvoyant the opponent's
 			// real hand stays and its real library is re-shuffled
@@ -809,6 +809,9 @@ func (sr *Searcher) leaf(w *world) (v float64, terminal bool) {
 			return 1, true
 		}
 		return 0, true
+	}
+	if s.NumSeats() > 2 && s.FeatLost(sr.seat) {
+		return 0, true // the game plays on without the searching seat (CR 800.4a)
 	}
 	v = float64(sr.Eval.Value(s, &w.d, sr.seat))
 	if sr.Opts.HoldBonus != 0 {

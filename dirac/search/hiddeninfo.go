@@ -94,12 +94,24 @@ func (sr *Searcher) hidRedeal(s *dirac.State) {
 	a := splitmix(sr.seed ^ 0x7265646561c0ffee ^ splitmix(sr.hidN+11))
 	r := dirac.NewRand(a, splitmix(a^0x9e3779b97f4a7c15))
 	p := sr.seat
-	if s.HandRevealed(p, 1-p) {
+	if revealedToOpponent(s, p) {
 		s.RedealOwnLibrary(p, &r)
 		return
 	}
 	n := s.HiddenCards(p, sr.pool[:])
 	s.DealHidden(p, &r, sr.pool[:n])
+}
+
+// revealedToOpponent reports whether seat p's hand is revealed to an opponent
+// that is still in the game: the opponents' view keeps the hand an opponent
+// already sees (with two seats, the one opponent).
+func revealedToOpponent(s *dirac.State, p uint8) bool {
+	for q := uint8(0); q < s.NumSeats(); q++ {
+		if q != p && !s.FeatLost(q) && s.HandRevealed(p, q) {
+			return true
+		}
+	}
+	return false
 }
 
 // hidWants reports whether the current simulation updates a point owned by
