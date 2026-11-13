@@ -779,9 +779,13 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 			return lCond{}, err
 		}
 		// ConditionCheckSVar$ beside the present check (H.M.S. Bounty:
-		// ConditionPresent$ Whale.YouCtrl with Count$YourExtraTurns EQ0).
-		// Only that exact SVar and an equality-with-zero compare are read;
-		// any other pair refuses rather than dropping the SVar gate.
+		// ConditionPresent$ Whale.YouCtrl with Count$YourExtraTurns EQ0;
+		// Triumph of Ferocity: ConditionPresent$ Creature.YouCtrl with
+		// YourFerocity GE OppsFerocity, the two Count$Valid
+		// <creatures>$GreatestCardPower aggregates). The SVar gate lowers
+		// whenever its value and compare lower (the kernel's CondValue evalV's
+		// both sides in the same resolution context, exprs.go); anything
+		// else refuses rather than dropping the SVar gate.
 		if cs, ok := ps.get("ConditionCheckSVar"); ok {
 			v, err := lc.value(cs)
 			if err != nil {
@@ -794,9 +798,6 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 			op, b, err := lc.cmpSpec(cmp)
 			if err != nil {
 				return lCond{}, err
-			}
-			if v.Kind != vYourExtraTurns || op != opEQ || !b.isConst() || b.N != 0 {
-				return lCond{}, refuse("ConditionCheckSVar$ %q with ConditionSVarCompare$ %q beside ConditionPresent$ %q", cs, cmp, cp)
 			}
 			c = lCond{Kind: cAnd, Sub: []lCond{c, {Kind: cValue, A: v, Op: op, B: b}}}
 		}
