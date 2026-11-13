@@ -134,6 +134,29 @@ func playMidRes(t *testing.T, seats int, seeds uint64) (midResTally, []Canon) {
 	return y, acts
 }
 
+// TestMidResChoosePlayerTwoSeatLockstep plays two-seat Skullwinder games: the
+// sole opponent is recorded unasked on both sides (gorge's single-option
+// ChoosePlayer is answered in place, the kernel's soleOpponent arm), and the
+// chain still returns one card from each graveyard. This is the only lockstep
+// that reaches the unasked arm.
+func TestMidResChoosePlayerTwoSeatLockstep(t *testing.T) {
+	y, acts := playMidRes(t, 2, 6)
+	if y.entered == 0 {
+		t.Fatal("Skullwinder never entered the battlefield")
+	}
+	if y.returned < 2 {
+		t.Fatalf("graveyard returns %d, want at least the controller's and the opponent's", y.returned)
+	}
+	code, _ := chooseCode("player")
+	pick := ActChoose + CanonKind(code)
+	for _, a := range acts {
+		if a.Kind() == pick {
+			t.Fatalf("a player ask was posed over the sole opponent: %v", a)
+		}
+	}
+	t.Logf("entered %d, graveyard returns %d, no player ask posed", y.entered, y.returned)
+}
+
 // TestFourSeatMidResChoosePlayerLockstep plays four-seat pods of Skullwinder:
 // its enters trigger returns a card from its controller's graveyard, then the
 // controller chooses one of three opponents (gorge effChoosePlayer's "player"
