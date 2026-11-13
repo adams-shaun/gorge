@@ -268,6 +268,7 @@ type genPrep struct {
 	anyDemoGrant    bool           // some card has a StatStackKw Demonstrate grant (kw_demonstrate.go)
 	anySplitSecond  bool           // some card has a StatStackKw Split second grant (kw_splitsecond.go)
 	anyStackLife    bool           // some card has a StatStackKw Lifelink grant (static_stacklifelink.go)
+	anyOffZonePT    bool           // some card has a StatOffZonePT: an AffectedZone$ All P/T grant (static_offzonept.go)
 	anySplit        bool           // some card is a split card (kop.FaceSplit: its mana value off the stack; face_castface.go)
 	anyAftermath    bool           // some split card's right half has aftermath (CardDef.Aftermath; face_aftermath.go)
 	anyFuse         bool           // some split card has fuse (CardDef.FuseDef; face_fuse.go)
@@ -759,6 +760,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepPrevCol(t, g)    // cast_altfree.go
 	prepStackKw(t, g, p) // static_stackkeyword.go
 	g.anyCdmgTough = tableHasStatic(t, kop.StatCombatDmgToughness)
+	g.anyOffZonePT = tableHasStatic(t, kop.StatOffZonePT) // static_offzonept.go
 	g.anyOvGateStat = tableHasOvGate(t)
 	g.anyRaise = tableRaises(t)
 	g.anyRaiseLife = tableRaiseLife(t)

@@ -291,6 +291,9 @@ func (s *State) enteredValue(k *prep, e *zoneEntry, prop uint8) int {
 		c = s.cardAt(ob.slot)
 	}
 	cd := &k.t.Cards[c]
+	if !live && (prop == kop.PropCardPower || prop == kop.PropCardToughness) {
+		s.offZonePTRead(k, c, ob.owner(), e.o) // static_offzonept.go
+	}
 	switch prop {
 	case kop.PropCardPower:
 		n := int(cd.Power)

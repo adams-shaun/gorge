@@ -2225,6 +2225,13 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if err := amounts(s.Amount, lValue{}); err != nil {
 			return ka, nil, err
 		}
+	case "OffZonePT":
+		// AffectedZone$ All P/T grant (lower_offzonept.go): a marker the
+		// kernel's off-battlefield P/T readers stall on (static_offzonept.go)
+		st.Kind = kop.StatOffZonePT
+		if err := amounts(s.Power, s.Tough); err != nil {
+			return ka, nil, err
+		}
 	case "CanAttackIfHaste":
 		st.Kind = kop.StatCanAttackIfHaste // static_canattackifhaste.go
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {

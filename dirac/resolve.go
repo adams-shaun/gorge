@@ -811,6 +811,10 @@ func (s *State) value(k *prep, v kop.ValueRef) int {
 	case kop.VSelfPower, kop.VSelfToughness:
 		sl := s.objRef(k, kop.RefSelf)
 		if sl == NoSlot {
+			if e.obj != NoObj && (e.kind == seSpell || s.objs[e.obj].ver != e.srcVer+1) {
+				// not a departed source's last known P/T: the card itself
+				s.offZonePTRead(k, e.card, s.objs[e.obj].owner(), e.obj) // static_offzonept.go
+			}
 			c := &k.cards[e.card]
 			pw, t := int(c.power), int(c.tough)
 			if e.kind != seSpell && e.obj != NoObj {

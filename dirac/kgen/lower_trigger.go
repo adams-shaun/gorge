@@ -2544,6 +2544,8 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			return nil, graveCountAsStatic(sp, st) // lower_escapegrant.go
 		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && sp.str("AddKeyword") != "" {
 			return nil, refuseGraveKwGrant(sp, az) // lower_escapegrant.go
+		} else if az == "All" && offZonePTShape(sp, aff) {
+			return nil, offZonePTStatic(sp, st) // lower_offzonept.go
 		} else if !sp.is("MayPlay", "True") {
 			return nil, refuse("AffectedZone %q without MayPlay", az)
 		}

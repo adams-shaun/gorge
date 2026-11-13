@@ -1270,6 +1270,7 @@ StatMayPlayFrom	StaticKind	13
 StatMustAttack	StaticKind	7
 StatNoMaxHandSize	StaticKind	11
 StatNone	StaticKind	0
+StatOffZonePT	StaticKind	258
 StatOverride	StaticKind	14
 StatPanharmonicon	StaticKind	18
 StatPlayerHexproof	StaticKind	15
