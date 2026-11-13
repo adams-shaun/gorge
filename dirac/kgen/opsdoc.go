@@ -289,7 +289,7 @@ var opsEntries = []opsDoc{
 	{"pred:CountersGE", "PredCountersGE (PredN = n<<8 | kind)", "At least n counters of the kind."},
 	{"pred:ToughnessGE", "PredToughnessGE (PredN)", "Toughness >= PredN (current on the battlefield; printed or CDA off it). Gorge `toughnessGE<n>`. Repel Calamity."},
 	{"pred:HasXCost", "PredHasXCost", "The printed mana cost has {X}. Gorge `hasXCost` (effects/filter.go). Helga's mana restriction."},
-	{"pred:PowerLTToughness", "PredPowerLTToughness", "Power < toughness. Gorge `powerLTtoughness`. Fecund Greenshell."},
+	{"pred:PowerLTToughness", "PredPowerLTToughness (PredN = PTRelLT, PTRelEQ, PTRelNE)", "Power < toughness (PredN 0; gorge `powerLTtoughness`, Fecund Greenshell), power == toughness (PTRelEQ; gorge `equalPT`, Forge net power equal to net toughness) or its `!equalPT` negation (PTRelNE; Gilt-Leaf Winnower), the last two only over a creature-only type head."},
 	{"pred:MultiColor", "PredMultiColor", "Two or more colours (current on the battlefield, printed off it). Gorge `wordMultiColor`."},
 	{"pred:TypesAllCMCLE", "PredTypesAllCMCLE (PredN = the conjunction, PredV = the constant mana-value bound)", "Has every card type in PredN and a mana value at most PredV.N: kgen's cmcLE/cmcLT beside an all-of type conjunction, LT lowering the bound by one. The battlefield arm reads the derived types and the current mana value; the card arm the printed types and mana value (a split card off the stack sums its halves, CR 709.4b; a face-down card has none, CR 708.4). Resistance Is Futile."},
 	{"pred:Historic", "PredHistoric (PredN = Saga subtype index+1)", "Artifact, legendary or Saga. Gorge `historicMatches`."},

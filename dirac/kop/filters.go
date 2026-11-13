@@ -471,6 +471,25 @@ const W7WithInfect int16 = 28
 // a creature not attacking, and an attack on a planeswalker or battle.
 const W7AttackingEnchTrig int16 = 29
 
+// W7AttackingSame (PredWord7 sub-kind 30): an attacking creature attacking
+// the same defender (player, or planeswalker) the evaluating source attacks
+// (gorge's attackingSame, Forge's combat.isAttacking(card,
+// getDefenderByAttacker(source))). The source itself matches; a source that
+// is not attacking, or gone (NoSlot), leaves the set empty; nothing off the
+// battlefield attacks. Kitesail Skirmisher.
+const W7AttackingSame int16 = 30
+
+// PredPowerLTToughness's PredN: the power/toughness relation it reads. 0 is
+// power < toughness (gorge powerLTtoughness); PTRelEQ is gorge's equalPT
+// (net power equal to net toughness) and PTRelNE its negation !equalPT, each
+// lowered only over a creature-only type head (gorge reads no P/T of a
+// non-creature without a printed one).
+const (
+	PTRelLT int16 = 0
+	PTRelEQ int16 = 1
+	PTRelNE int16 = 2
+)
+
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
 // dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go

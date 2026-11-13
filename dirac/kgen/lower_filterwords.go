@@ -104,6 +104,11 @@ func filterWordPred3(p string) (n int, ok bool) {
 		return int(kop.W7WithFlashback), true
 	case "withInfect":
 		return int(kop.W7WithInfect), true
+	case "attackingSame":
+		// the source's own defender (gorge attackingSame; Kitesail
+		// Skirmisher). Read where a source slot exists: a spell's source is
+		// on the stack and attacks nothing, so the word matches nobody there
+		return int(kop.W7AttackingSame), true
 	case "ManaCostPartialBlue":
 		return int(kop.W7CostBlue), true
 	case "NoAbilities":

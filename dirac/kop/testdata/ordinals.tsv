@@ -867,6 +867,9 @@ OptAny	untyped int	8
 OptAsk	int16	4
 OvChosenColor	untyped int	1
 OvEnterWith	untyped int	2
+PTRelEQ	int16	1
+PTRelLT	int16	0
+PTRelNE	int16	2
 PanhModeDrawn	int16	2
 PanhModeLifeGained	int16	1
 PayAddCounter	untyped int	16
@@ -1500,6 +1503,7 @@ W7AttachedTo	int16	19
 W7AttackingAlone	int16	3
 W7AttackingEnchTrig	int16	29
 W7AttackingOpp	int16	7
+W7AttackingSame	int16	30
 W7BottomLibrary	int16	17
 W7CostBlue	int16	14
 W7CrewedBySrc	int16	13

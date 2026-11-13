@@ -307,6 +307,11 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		ans = !s.hasIslandwalk(k, sl)
 	case kop.W7AttackingEnchTrig:
 		ans = s.attackingEnchTrig(k, sl, src) // filter_attackenchanted.go
+	case kop.W7AttackingSame:
+		// both attack the same defender entity: the player, or the same
+		// planeswalker (the atk code names either); no source fails closed
+		ans = src != NoSlot && s.perms[sl].flags&pfAttacking != 0 && s.perms[src].flags&pfAttacking != 0 &&
+			s.perms[sl].atk == s.perms[src].atk
 	case kop.W7GreatestPowerTgt:
 		// gorge greatestPowerControlledByTargeted: a battlefield creature a
 		// player target of the current entry controls that no OTHER such

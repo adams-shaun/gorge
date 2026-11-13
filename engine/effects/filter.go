@@ -219,6 +219,22 @@ var predicates = map[string]predFn{
 		}
 		return count == 1
 	},
+	// attackingSame is Forge's CardProperty attackingSame (Kitesail
+	// Skirmisher's "another target creature attacking the same player or
+	// planeswalker"): the candidate attacks the defender ENTITY the spec's
+	// source attacks, combat.isAttacking(card, getDefenderByAttacker(source)).
+	// The entity is the player (Attacking) unless the source attacks a
+	// planeswalker or battle (AttackingBattle), which both must then name.
+	// A source that is not attacking has no defender, and the word fails
+	// closed (Forge's null defender), never "every attacker" (CR 506.2).
+	"attackingSame": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+		s := g.Obj(src)
+		if s == nil || !s.IsAttacking || s.Zone != state.ZBattlefield || s.PhasedOut {
+			return false
+		}
+		return o.IsAttacking && o.Zone == state.ZBattlefield && !o.PhasedOut &&
+			o.Attacking == s.Attacking && o.AttackingBattle == s.AttackingBattle
+	},
 	// blockingAlone is "blocking alone" (Thijarian Witness's death
 	// specification): the object blocks at least one attacker, and every
 	// attacker it blocks is blocked only by it.
@@ -1694,7 +1710,7 @@ func ptNumericField(name string) bool {
 // vocabulary, in the evaluator's own order. cmc is the evaluator's other
 // field and reads the printed mana cost, never a derived characteristic, so
 // it does not belong here. totalPT is current power plus current toughness.
-var ptNumericFields = [...]string{"power", "toughness", "basePower", "baseToughness", "totalPT"}
+var ptNumericFields = [...]string{"power", "toughness", "basePower", "baseToughness", "totalPT", "equalPT"}
 
 // SpecReadsPT reports whether the spec consults the candidate's layer-derived
 // power/toughness when a caller binds SpecContext.DerivedPower /
@@ -1719,7 +1735,7 @@ func SpecReadsPT(spec string) bool {
 	// and baseToughness carry the same lowercase tails) except totalPT, so a
 	// spec with none of those substrings can never read one -- one reject on
 	// the hot path.
-	if !strings.Contains(spec, "ower") && !strings.Contains(spec, "oughness") && !strings.Contains(spec, "totalPT") {
+	if !strings.Contains(spec, "ower") && !strings.Contains(spec, "oughness") && !strings.Contains(spec, "totalPT") && !strings.Contains(spec, "equalPT") {
 		return false
 	}
 	for alt := range filterAlternatives(spec) {
