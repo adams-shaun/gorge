@@ -148,10 +148,10 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
 	// +2 (MBC replacements-2: a DamageDone doubler with no ValidTarget$ reads any recipient, Fire Servant; ValidSource$ Card.Self with IsCombat$ True as FSelf + ReplDmgCombat, Charging Tuskodon; ALL merged against land 23559 -> 23561 measured).
 	// +11 (MBC zone-moves-5: Count$TopOfLibraryCMC as ExMVOf RefLibTop, Reorder$ on a library-to-top search, the AIRespondsToOwnAbility$ hint and the ThisTurnEnteredFrom_Library word: Counterbalance, Riddle of Lightning, Judge Unworthy, Putrid Cyclops, Stormchaser Chimera, Goblin Recruiter, Dwarven Recruiter, Congregation at Dawn, Scouting Trek, Sensei's Divining Top, Captain N'ghathrod; ALL 23253 -> 23264 measured).
-	"ALL": {23586, 34442},
+	"ALL": {23605, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
-	"BRO": {220, 280},
+	"BRO": {221, 280},
 	"DFT": {255, 276},
 	"DMU": {198, 270},
 	"DSK": {251, 276},
@@ -165,7 +165,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
 	// +2 (MBC replacements-2: Fire Servant, Charging Tuskodon; MBC merged against land 1748 -> 1750 measured).
 	// +3 (MBC zone-moves-5: Counterbalance, Goblin Recruiter, Sensei's Divining Top; The Weaver King still refuses on its per-opponent pick; MBC 1678 -> 1681 measured).
-	"MBC": {1760, 2188},
+	"MBC": {1765, 2188},
 	"MKM": {251, 279},
 	"MOM": {203, 296},
 	"MSH": {246, 276},
