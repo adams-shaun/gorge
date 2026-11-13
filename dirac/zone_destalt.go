@@ -29,8 +29,8 @@ func (s *State) destAltPark(k *prep) bool {
 
 func (s *State) destAltOptions(d *Decision) {
 	d.Sub = ChGenDestAlt
-	d.add(MakeAction(AkChoose, uint8(NoObj), 0, 0))
-	d.add(MakeAction(AkChoose, uint8(NoObj), 0, 1))
+	d.add(MakeAction(AkChoose, TCode(NoObj), 0, 0))
+	d.add(MakeAction(AkChoose, TCode(NoObj), 0, 1))
 }
 
 // destAltAnswer moves the found cards to the answered zone and finishes the

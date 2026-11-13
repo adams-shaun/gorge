@@ -1,0 +1,8 @@
+# the MBC counters-2 pool: Feral Hydra ("any player may activate this
+# ability", Activator$ Player) and Endless Scream (SCREAM counters) beside
+# basics (dirac/oracle/mbc_counters2_lowers_test.go)
+Endless Scream
+Feral Hydra
+Forest
+Plains
+Swamp

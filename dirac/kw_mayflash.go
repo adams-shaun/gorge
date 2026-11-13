@@ -73,7 +73,7 @@ func (s *State) offerMayFlashHand(k *prep, d *Decision, p uint8, o Obj, c CardID
 		// is offered only when the floating pool pays (web-slinging's rule)
 		return
 	}
-	d.add(MakeAction(AkMayFlash, uint8(o), 0, 0))
+	d.add(MakeAction(AkMayFlash, TCode(o), 0, 0))
 }
 
 // beginMayFlash casts hand card o through its may-flash permission (gorge

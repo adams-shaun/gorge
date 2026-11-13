@@ -165,7 +165,7 @@ func (s *State) charmCombined(k *prep) bool {
 // charmCands lists each chosen slot's candidates (the ordinary per-slot
 // census: targetCands, then affordableTargets). A slot of a repeated mode's
 // extra instance takes its mode's spec (kop.Ability.SlotOwner).
-func (s *State) charmCands(k *prep, a *kop.Ability, mask uint8, bufs *[kop.MaxTargets][MaxOptions]uint8, ns *[kop.MaxTargets]int) {
+func (s *State) charmCands(k *prep, a *kop.Ability, mask uint8, bufs *[kop.MaxTargets][MaxOptions]TCode, ns *[kop.MaxTargets]int) {
 	e := &s.bld().e
 	for j := 0; j < kop.MaxTargets; j++ {
 		if mask&(1<<j) == 0 {
@@ -186,7 +186,7 @@ func (s *State) charmCands(k *prep, a *kop.Ability, mask uint8, bufs *[kop.MaxTa
 // charmOcc is the occurrence byte of candidate c in slot j: how many chosen
 // earlier slots (mask, ascending) list it too (the oracle's disambiguate over
 // gorge's group-major listing).
-func charmOcc(mask uint8, j int, c uint8, bufs *[kop.MaxTargets][MaxOptions]uint8, ns *[kop.MaxTargets]int) uint8 {
+func charmOcc(mask uint8, j int, c TCode, bufs *[kop.MaxTargets][MaxOptions]TCode, ns *[kop.MaxTargets]int) uint8 {
 	var order [kop.MaxTargets]uint8
 	n := 0
 	for i := 0; i < j; i++ {
@@ -199,7 +199,7 @@ func charmOcc(mask uint8, j int, c uint8, bufs *[kop.MaxTargets][MaxOptions]uint
 }
 
 // charmOccOrder is charmOcc over the first p slots of order.
-func charmOccOrder(order *[kop.MaxTargets]uint8, p int, c uint8, bufs *[kop.MaxTargets][MaxOptions]uint8, ns *[kop.MaxTargets]int) uint8 {
+func charmOccOrder(order *[kop.MaxTargets]uint8, p int, c TCode, bufs *[kop.MaxTargets][MaxOptions]TCode, ns *[kop.MaxTargets]int) uint8 {
 	occ := uint8(0)
 	for q := 0; q < p; q++ {
 		i := order[q]
@@ -235,7 +235,7 @@ func (s *State) charmTargetsStep(k *prep, d *Decision) bool {
 	}
 	order, no := charmAskOrder(a, s.bld().e.mode)
 	mask, _ := charmRootSlots(a, s.bld().e.mode)
-	var bufs [kop.MaxTargets][MaxOptions]uint8
+	var bufs [kop.MaxTargets][MaxOptions]TCode
 	var ns [kop.MaxTargets]int
 	s.charmCands(k, a, mask, &bufs, &ns)
 	total := 0
@@ -272,7 +272,7 @@ func (s *State) applyCharmTarget(k *prep, a Action) {
 	ab := s.buildAbility(k)
 	order, no := charmAskOrder(ab, e.mode)
 	mask, _ := charmRootSlots(ab, e.mode)
-	var bufs [kop.MaxTargets][MaxOptions]uint8
+	var bufs [kop.MaxTargets][MaxOptions]TCode
 	var ns [kop.MaxTargets]int
 	s.charmCands(k, ab, mask, &bufs, &ns)
 	c := a.Target()

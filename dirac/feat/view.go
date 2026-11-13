@@ -21,7 +21,18 @@ const (
 	zStack       = 4
 )
 
-const noObj = uint8(dirac.NoObj)
+// noObj is the encoder's no-object byte. The encoders hold objects in a byte
+// (policynet's two-seat views). Under dirac_mp (MaxObj past 255) an object
+// at noObj or past it has no encoding: a declared limit, counted per build
+// (ObjOverflow), never a silent truncation.
+const noObj = uint8(dirac.NoObj & 0xff)
+
+// ObjOverflow counts the encodes (full and incremental) whose position held
+// an object the encoders cannot name: an index at noObj or past it, which
+// only the dirac_mp size class reaches. Such an encode names those objects
+// wrongly, so a caller that compares or learns from its output skips it.
+// The default class never counts one (MaxObj is under noObj there).
+func (e *Encoder) ObjOverflow() int { return e.objOverflow }
 
 // vcard is one visible card (policynet's view.CardView) as one encode
 // lists it: its content (vcore, shared from the content cache, never
@@ -264,6 +275,9 @@ func (e *Encoder) build(s *dirac.State, seat uint8, dk dirac.DecisionKind, decid
 		e.kgen = 1
 	}
 	s.FeatProjGlobals(kp)
+	if int(kp.NObj) > int(noObj) {
+		e.objOverflow++
+	}
 	if e.hbase = e.BaseHashes(s); e.hbase != nil {
 		e.IncStats.BaseBuilds++
 	}

@@ -80,6 +80,11 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredCards":
 		// gorge definedSpecTriggeredCard reads the card forms
 		return lRef{Kind: rTriggered}, nil
+	case "TriggeredCardOwner":
+		// gorge definedSpecTriggeredCardOwner: the triggering card's
+		// immutable owner (CR 108.3), the player kernel RefTriggerObjOwner
+		// reads off the trigger object
+		return lRef{Kind: rTriggeredOwner}, nil
 	case "TriggeredAttacker", "TriggeredAttackerLKICopy":
 		// gorge binds the one attacker that raised the event: an Attacks
 		// trigger queues one trigger per matching attacker
@@ -855,7 +860,13 @@ func (lc *lowerCtx) node(sa *cards.SA, ps *params) error {
 	guard := lCond{}
 	// Peek, not get: get marks Defined$ read for every node, and the
 	// effect must still read (or leave unread) its own Defined$.
-	if d, ok := ps.m["Defined"]; ok && strings.HasPrefix(d, "Targeted.") && sa.API != "Animate" {
+	ownTgt := false
+	if g, ok, err := lc.ownTargetedGuard(sa, ps); ok || err != nil { // lower_targetedown.go
+		if err != nil {
+			return err
+		}
+		guard, ownTgt = g, true
+	} else if d, ok := ps.m["Defined"]; ok && strings.HasPrefix(d, "Targeted.") && sa.API != "Animate" {
 		// Defined$ Targeted.<qualifier> (graveexile): gorge definedSpec
 		// (context.go:440-452) keeps the chain targets the qualifier
 		// admits. Lower only exactly one target slot, so the node's
@@ -921,6 +932,11 @@ func (lc *lowerCtx) node(sa *cards.SA, ps *params) error {
 		return err
 	}
 	lc.targetedDefined = ""
+	if ownTgt {
+		if err := lc.ownTargetedSlot(guard); err != nil { // lower_targetedown.go
+			return err
+		}
+	}
 	if setPred != nil {
 		if err := lc.wrapPlayerSet(sa.API, effAt, *setPred); err != nil {
 			return err
@@ -1560,12 +1576,23 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 	case "Assimilate":
 		return lc.assimilate(ps) // lower_assimilate.go
 	case "ChangeZoneAll":
+		// AbilityCount$ X names the SVar the ChangeType$ X-comparison reads;
+		// gorge reads the comparison's own SVar and never this param
+		// (Profaner of the Dead), so it is inert here too
+		if ps.str("AbilityCount") == "X" {
+			ps.consume("AbilityCount")
+		}
 		return lc.changeZoneAll(ps)
 	case "Draw":
 		remDrawn, remAll, err := rememberDrawn(ps)
 		if err != nil {
 			return err
 		}
+		// Reveal$ (Fa'adiyah Seer's "draw a card and reveal it"): gorge's
+		// compileDraw reads no Reveal key (it is an unread Note) and its draw
+		// emits no reveal event, so the drawn card changes nothing a later
+		// node reads; the remembered card (RememberDrawn$) is the whole effect.
+		ps.consume("Reveal")
 		if who, ok, err := lc.targetedAndYou(ps, "Defined"); err != nil {
 			return err
 		} else if ok {
@@ -1918,7 +1945,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			if !lc.inGroup {
 				return refuse("Sacrifice Defined$ DelayTriggerRememberedLKI outside a Mobilize group")
 			}
-			lc.emit(lInstr{Op: "SacrificeDelayed", Obj: lRef{Kind: rDelayedRemembered}})
+			lc.emitSacDelayed()
 			return nil
 		}
 		if ps.str("Mode") == "TgtChoose" {
@@ -1988,7 +2015,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			if !lc.inGroup {
 				return refuse("SacrificeAll Defined$ DelayTriggerRememberedLKI outside a delayed group")
 			}
-			lc.emit(lInstr{Op: "SacrificeDelayed", Obj: lRef{Kind: rDelayedRemembered}})
+			lc.emitSacDelayed()
 			return nil
 		}
 		if _, ok := ps.get("ValidCards"); !ok {
@@ -2289,6 +2316,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.debuff(ps)
 	case "Explore":
 		return lc.explore(ps)
+	case "Exploit":
+		return lc.exploit(ps) // lower_exploit.go
 	case "Discover":
 		return lc.discover(ps)
 	case "Hideaway":
@@ -2313,7 +2342,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if err != nil {
 			return err
 		}
-		if !n.isConst() || n.N < 1 || n.N > 8 {
+		if !(n.isConst() && n.N >= 1 && n.N <= 8) && !rearrangeWholeLibrary(n) {
 			return refuse("RearrangeTopOfLibrary NumCards %v", n)
 		}
 		who, err := lc.objOrTarget(ps, "You", zNone)
@@ -2871,11 +2900,10 @@ func (lc *lowerCtx) chooseType(ps *params) error {
 	if ps.str("Type") == "Card" {
 		return lc.chooseCardType(ps) // lower_choosetype.go
 	}
-	if ps.str("Defined") != "You" || ps.str("Type") != "Creature" {
+	if ps.str("Type") != "Creature" {
 		return refuse("ChooseType shape")
 	}
-	lc.emit(lInstr{Op: "ChooseType", Obj: lRef{Kind: rYou}})
-	return nil
+	return lc.chooseCreatureTypeMid(ps) // lower_choosetype.go
 }
 
 func (lc *lowerCtx) pump(ps *params) error {
@@ -4771,16 +4799,24 @@ func (lc *lowerCtx) preventColorEffect(ps *params) error {
 // refTargetUnion) or Targeted.YouCtrl (that union narrowed to the
 // controller's permanents, gorge eachDamagerTargets). Each deals NumDmg$
 // (a constant, or Count$CardPower: its own power) to the recipient: the
-// node's own single object target, or Defined$ Self. EachToItself$,
-// ToEachOther$, ValidCards$ damagers, DamageSource$, division and player
-// recipients refuse.
+// node's own single object target, or Defined$ Self. A ValidCards$ <filter>
+// without DefinedDamagers$ is gorge's same battlefield sweep as
+// DefinedDamagers$ Valid <filter> (effEachDamage, Nissa's Judgment).
+// EachToItself$, ToEachOther$, DamageSource$, division and player recipients
+// refuse.
 func (lc *lowerCtx) eachDamage(ps *params) error {
-	for _, k := range [...]string{"EachToItself", "ToEachOther", "ValidCards", "DamageSource", "DividedAsYouChoose"} {
+	for _, k := range [...]string{"EachToItself", "ToEachOther", "DamageSource", "DividedAsYouChoose"} {
 		if _, ok := ps.get(k); ok {
 			return refuse("EachDamage %s$", k)
 		}
 	}
 	dd := strings.TrimSpace(ps.str("DefinedDamagers"))
+	if vc, ok := ps.get("ValidCards"); ok {
+		if dd != "" {
+			return refuse("EachDamage ValidCards$ beside DefinedDamagers$")
+		}
+		dd = "Valid " + strings.TrimSpace(vc)
+	}
 	var f *lFilter
 	mask := 0 // damager target slots (bit per slot); 0 = the Valid sweep
 	if spec, ok := strings.CutPrefix(dd, "Valid "); ok {

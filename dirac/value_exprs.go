@@ -202,6 +202,9 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		if x.Ref == kop.RefRemembered {
 			return s.rememberedMVAgg(k, x.N == kop.AggGreatestMV)
 		}
+		if x.Ref == kop.RefLibTop {
+			return s.libTopMV(k, ctx) // zone_toplibrary.go
+		}
 		if _, ok := tgtSlot(x.Ref); ok {
 			return s.targetMV(k, x.Ref, ctx)
 		}
@@ -246,6 +249,9 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExThisTurnActExhaust:
 		return s.thisTurnActExhaust(ctx)
 	case kop.ExActivations:
+		if x.N == 1 {
+			return s.activationsOfSource(ctx) // value_activations.go
+		}
 		return s.activationsOfResolving() // value_activations.go
 	case kop.ExThisTurnCastSpec:
 		return s.thisTurnCastSpec(k, x, ctx)

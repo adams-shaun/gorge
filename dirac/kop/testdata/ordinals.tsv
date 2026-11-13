@@ -233,6 +233,7 @@ CtrRemMV	untyped int	1
 CtrRemember	untyped int	2
 CtrRev	CounterKind	49
 CtrRevival	CounterKind	11
+CtrScream	CounterKind	74
 CtrShadow	CounterKind	32
 CtrShield	CounterKind	4
 CtrSkewer	CounterKind	65
@@ -255,6 +256,7 @@ CtrlHitBySrc	CtrlSel	4
 CtrlOpp	CtrlSel	2
 CtrlYou	CtrlSel	1
 CzBattleGrave	untyped int	8
+CzGraveLibrary	untyped int	128
 CzHandGrave	untyped int	32
 CzLibrarySideboard	untyped int	16
 CzShuffleEach	untyped int	64
@@ -276,6 +278,7 @@ DigRandomOrder	untyped int	16
 DigRemember	untyped int	64
 DigRestShift	untyped int	0
 DigRestTop	untyped int	256
+DigRestTopAsk	untyped int	272
 DigReveal	untyped int	32
 DigRevealToCtrl	untyped int	512
 DigTakeToTop	untyped int	128
@@ -444,6 +447,7 @@ ExYourTurns	ExprKind	251
 ExtAddPhase	ExtOp	193
 ExtAegisClone	ExtOp	80
 ExtAirbend	ExtOp	95
+ExtAsgnGrant	ExtOp	173
 ExtAttacksIfAble	ExtOp	255
 ExtBecomeMonarch	ExtOp	259
 ExtBlocksIfAble	ExtOp	256
@@ -485,6 +489,7 @@ ExtExchangeControl	ExtOp	244
 ExtExileEmbRem	ExtOp	319
 ExtExileExMark	ExtOp	51
 ExtExileLandChoose	ExtOp	162
+ExtExploit	ExtOp	298
 ExtExtort	ExtOp	302
 ExtFinalityCtr	ExtOp	198
 ExtGrantExile	ExtOp	249
@@ -690,8 +695,8 @@ MvUnderYourControl	untyped int	4
 NoCard	CardID	65535
 NumCounterKinds	CounterKind	7
 NumCounterKinds2	CounterKind	13
-NumCounterKinds3	CounterKind	74
-NumCounterKindsX	int	59
+NumCounterKinds3	CounterKind	75
+NumCounterKindsX	int	60
 NumExtOps	ExtOp	320
 NumManaKinds	untyped int	6
 NumSteps	Step	13
@@ -872,6 +877,9 @@ OptAny	untyped int	8
 OptAsk	int16	4
 OvChosenColor	untyped int	1
 OvEnterWith	untyped int	2
+PTRelEQ	int16	1
+PTRelLT	int16	0
+PTRelNE	int16	2
 PanhModeDrawn	int16	2
 PanhModeLifeGained	int16	1
 ParentTrigPl	uint8	255
@@ -1048,6 +1056,7 @@ RefTgtCtrl1	Ref	241
 RefTgtCtrl2	Ref	242
 RefTriggerAttackers	Ref	31
 RefTriggerObj	Ref	9
+RefTriggerObjOwner	Ref	40
 RefTriggerPlayer	Ref	10
 RefTriggerSource	Ref	21
 RefTriggerTgtCtrl	Ref	33
@@ -1067,6 +1076,7 @@ ReplDamageHealFirst	ReplKind	37
 ReplDamagePlus	ReplKind	16
 ReplDestroyHeal	ReplKind	32
 ReplDiscardOppToBattlefield	ReplKind	33
+ReplDmgCombat	untyped int	512
 ReplDmgCtrHost	untyped int	128
 ReplDmgNonCombat	untyped int	16
 ReplDmgOppPerm	untyped int	2
@@ -1180,6 +1190,7 @@ StFreeOnly	StaticFlags	128
 StFunctionsInExile	StaticFlags	1024
 StFunctionsInGraveyard	StaticFlags	16
 StHandOpp	StaticFlags	256
+StHasteOppDef	StaticFlags	1
 StMayPayLife	StaticFlags	8192
 StMayRaise	StaticFlags	32768
 StNoPrevCombat	StaticFlags	2
@@ -1228,6 +1239,7 @@ StatBeamGrant	StaticKind	253
 StatBlockTax	StaticKind	256
 StatCDAPT	StaticKind	10
 StatCanAttackDefender	StaticKind	250
+StatCanAttackIfHaste	StaticKind	257
 StatCantActivate	StaticKind	236
 StatCantAttack	StaticKind	8
 StatCantBeBeamedUp	StaticKind	244
@@ -1360,9 +1372,13 @@ Tf4PerCounter	TrigFlags4	128
 Tf4SingleCauseTarget	TrigFlags4	2
 Tf4SingleTarget	TrigFlags4	1
 Tf4StateCtr	TrigFlags4	64
+Tf5DmgAttackedYouLastTurn	TrigFlags5	8
 Tf5FirstCardInDrawStep	TrigFlags5	1
 Tf5NotFirstCardInDrawStep	TrigFlags5	2
-Tf5OptSrcCtrl	TrigFlags5	4
+Tf5OppCause	TrigFlags5	4
+Tf5OptSrcCtrl	TrigFlags5	64
+Tf5TapperNonActive	TrigFlags5	32
+Tf5TapsForMana	TrigFlags5	16
 TfCombat	TrigFlags	4
 TfNontokenSrc	TrigFlags	64
 TfNotToGrave	TrigFlags	128
@@ -1449,8 +1465,9 @@ TrigDiscardedAll	TrigEvent	35
 TrigDiscover	TrigEvent	44
 TrigDrawn	TrigEvent	14
 TrigETB	TrigEvent	1
-TrigEventCount	TrigEvent	49
+TrigEventCount	TrigEvent	50
 TrigEvolved	TrigEvent	47
+TrigExploited	TrigEvent	49
 TrigExplores	TrigEvent	39
 TrigFacesDilemma	TrigEvent	46
 TrigForage	TrigEvent	43
@@ -1509,12 +1526,16 @@ W7AttachedTo	int16	19
 W7AttackingAlone	int16	3
 W7AttackingEnchTrig	int16	29
 W7AttackingOpp	int16	7
+W7AttackingSame	int16	32
+W7BlockedBySrc	int16	34
+W7BlockingSrc	int16	33
 W7BlockingTrigObj	int16	31
 W7BottomLibrary	int16	17
 W7CostBlue	int16	14
 W7CrewedBySrc	int16	13
 W7EnchantedByYours	int16	8
 W7EnteredFromBF	int16	24
+W7EnteredFromLib	int16	35
 W7FaceUp	int16	5
 W7FaceUpDisguise	int16	23
 W7GreatestPower	int16	2

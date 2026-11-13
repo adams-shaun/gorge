@@ -118,7 +118,7 @@ func (a *crAcc) merge(m kop.SubMask, all bool) {
 
 // tgtSetCap is the most objects of cands the shared or distinct slot t can
 // take together (gorge decision.SetPropCapacity).
-func (s *State) tgtSetCap(k *prep, t *kop.TargetSpec, cands []uint8) uint8 {
+func (s *State) tgtSetCap(k *prep, t *kop.TargetSpec, cands []TCode) uint8 {
 	if DebugTgtSetOff {
 		return 255
 	}
@@ -176,7 +176,7 @@ func (s *State) tgtSetBounds(k *prep, t *kop.TargetSpec, e *stackEntry, mt *mult
 	if t.TFlags&(kop.TgfSharedCrType|kop.TgfDistinctNames) == 0 {
 		return
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	n := s.targetCands(k, t, e.ctrl, s.srcSlot(), e.obj, &buf)
 	if c := s.tgtSetCap(k, t, buf[:n]); c < mt.max {
 		mt.max = max8(c, mt.min)
@@ -185,7 +185,7 @@ func (s *State) tgtSetBounds(k *prep, t *kop.TargetSpec, e *stackEntry, mt *mult
 
 // tgtSetAdmit reports whether candidate c may join the picks of slot ti of the
 // entry being built; cands is the slot's whole candidate list.
-func (s *State) tgtSetAdmit(k *prep, t *kop.TargetSpec, e *stackEntry, ti uint8, c uint8, cands []uint8) bool {
+func (s *State) tgtSetAdmit(k *prep, t *kop.TargetSpec, e *stackEntry, ti uint8, c TCode, cands []TCode) bool {
 	if DebugTgtSetOff || !isObjTarget(c) {
 		return true
 	}
@@ -258,7 +258,7 @@ func (s *State) xtSetNarrowed(k *prep, e *stackEntry, j int) bool {
 	slot := x.slot[j]
 	var acc crAcc
 	for i := -1; i <= j; i++ {
-		var c uint8
+		var c TCode
 		if i < 0 {
 			c = e.tgt[slot]
 			if !s.targetStillLegal(k, e, int(slot)) {
