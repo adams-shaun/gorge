@@ -3,7 +3,7 @@
 # Recruiter (a library-to-top search with Reorder$), and Captain N'ghathrod
 # (the ThisTurnEnteredFrom_Library word)
 # beside creatures, burn and basics, for the oracle's constructed lockstep
-# (dirac/oracle/mbczonemoves5_test.go)
+# (dirac/oracle/mbc_zonemoves_lowers_test.go)
 Counterbalance
 Sensei's Divining Top
 Goblin Recruiter
