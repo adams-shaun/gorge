@@ -11,11 +11,11 @@ import (
 // opponent must have at most Y creature cards in their graveyard, Y being the
 // controller's creature-card count minus two, judged as the ability is
 // activated (CR 602.2b). K:Haste stands in for the card's summoning-sick
-// {T} cost; the ability line is the printed one.
+// {T} cost; the ability is the printed one, reworded.
 const keeperFixture = "Name:Keeper Fixture\nManaCost:B B\nTypes:Creature Human Wizard\nPT:1/2\nK:Haste\n" +
-	"A:AB$ Pump | Cost$ B T | ValidTgts$ Opponent | ValidAfterStack$ Ability.IsTargeting Player.HasCardsInGraveyard_Creature_LEY | TgtPrompt$ Choose target opponent with at least two fewer creature cards in their graveyard than you | SubAbility$ DeadKeepersDestroy | StackDescription$ None | SpellDescription$ Choose target opponent.\n" +
-	"SVar:DeadKeepersDestroy:DB$ Destroy | ValidTgts$ Creature.nonBlack+TargetedPlayerCtrl | TgtPrompt$ Select target nonblack creature targeted player controls\n" +
-	"SVar:Y:Count$ValidGraveyard Creature.YouOwn/Minus.2\n" +
+	"A:AB$ Pump | ValidTgts$ Opponent | Cost$ B T | SubAbility$ KillIt | ValidAfterStack$ Ability.IsTargeting Player.HasCardsInGraveyard_Creature_LEY | SpellDescription$ Pick an opponent.\n" +
+	"SVar:KillIt:DB$ Destroy | ValidTgts$ Creature.nonBlack+TargetedPlayerCtrl\n" +
+	"SVar:Y:Count$ValidGraveyard Card.Creature+YouOwn/Minus.2\n" +
 	"Oracle:x\n"
 
 const keeperDead = "Name:Dead Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
