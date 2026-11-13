@@ -86,6 +86,7 @@ func TestStdMetaReprosLockstep(t *testing.T) {
 		"stdmeta_prepared_beside_enters_tapped_s90p11",
 		"stdmeta_prepared_beside_enters_tapped_s97p33",
 		"stdmeta_aang_delayed_transform_s97p14",
+		"stdmeta_airbend_restricted_pool_s59p28",
 		"stdmeta_life_cost_below_zero_s54p16",
 		"stdmeta_life_cost_below_zero_s73p37",
 		"stdmeta_life_cost_below_zero_s83p36",

@@ -1,0 +1,27 @@
+# Myriad (CR 702.116a) granted until end of turn by a Pump (Duke Ulder
+# Ravengard, Mass of Mysteries, Corporeal Projection, Ironwill Forger), for
+# dirac/oracle/myriad_pump_test.go
+Duke Ulder Ravengard
+Mass of Mysteries
+Corporeal Projection
+Ironwill Forger
+Fire Elemental
+Earth Elemental
+Air Elemental
+Water Elemental
+Savannah Lions
+Raging Goblin
+Birds of Paradise
+Manalith
+City of Brass
+Coral Merfolk
+Wind Drake
+Goblin Piker
+Gray Ogre
+Hill Giant
+Glory Seeker
+Plains
+Island
+Swamp
+Mountain
+Forest

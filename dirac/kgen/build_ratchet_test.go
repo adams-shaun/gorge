@@ -253,8 +253,7 @@ import (
 // -1 (Gilded Light refuses: its until-end-of-turn player shroud lowered to a keyword grant that lands on no permanent; ALL build-level 23105 -> 23104 measured).
 // +16 (the merge with land at 1acc5919d9: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering beside land's later work; merged ALL build-level 23115 -> 23131 measured).
 // +14 (Extort lowered, the keyword and its SpellCast trigger, against land's corpus; merged ALL build-level 23177 -> 23191 measured).
-// +3 (Deepcavern Imp, Rakdos Headliner and Skizzik Surger: the echo Discard<1/Card> and Sac<2/Land> costs lower; the merge with land: ALL build-level 23198 -> 23201 measured).
-var buildAcceptancePin = [2]int{23201, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{23204, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

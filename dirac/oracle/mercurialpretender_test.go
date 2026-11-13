@@ -107,6 +107,9 @@ func kmercurialPolicy(m *Matchup, seed uint64, offers *int) Policy {
 // TestMercurialPretenderLockstep: 50 games, 0 divergences, with Pretenders
 // entering as copies and their granted bounce offered and resolving.
 func TestMercurialPretenderLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {

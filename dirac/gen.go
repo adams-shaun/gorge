@@ -1613,8 +1613,9 @@ const (
 // from the card src (whose abilities its Grant indexes name).
 type ovRec struct {
 	idx uint8 // Table.Overrides index + 1 (0 = empty)
-	// fl: bit 7 = until end of turn; bits 5-6 = ovNT/ovNTYou (ovNTYou alone: ovCopyGrant);
-	// bits 0-4 = further identical
+	// fl: bit 7 = until end of turn; bit 6 = ovNT (ovNTWho, seats_*.go,
+	// holds the controller that record waits for); bit 5 = ovCopyGrant; the
+	// ovReps bits (seats_*.go) = further identical
 	// applications merged into this record (Soulstone Sanctuary activated
 	// again: gorge lists its keyword once per application)
 	fl  uint8
@@ -1631,18 +1632,16 @@ type ovRec struct {
 const ovEOT = 0x80
 
 // ovNT: the record lasts until its controller's next turn begins (CR 613,
-// Duration$ UntilYourNextTurn); ovNTYou is that controller.
-// ovReps is the merge count's mask.
+// Duration$ UntilYourNextTurn); ovNTWho (seats_*.go) is that controller.
+// ovReps is the merge count's mask (seats_*.go).
 const (
-	ovNT    = 0x40
-	ovNTYou = 0x20
-	ovReps  = 0x1F
-	// ovCopyGrant (ovNTYou without ovNT, a combination no next-turn record
-	// has) marks the record of an as-enters copy's AddAbilities$ (Mercurial
+	ovNT = 0x40
+	// ovCopyGrant (read only when ovNT is clear: a next-turn record always
+	// sets ovNT) marks the record of an as-enters copy's AddAbilities$ (Mercurial
 	// Pretender): the ability is a copiable value in gorge (CR 707.9b), so a
 	// copy of the copy inherits the record (copyGrantsAdd), and the card the
 	// ability indexes is src, not the copy's own printed card.
-	ovCopyGrant = ovNTYou
+	ovCopyGrant = 0x20
 )
 
 // copyGrant reports whether r is an as-enters copy's grant record.

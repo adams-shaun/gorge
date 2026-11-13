@@ -323,6 +323,9 @@ func TestCountHeadsLeftAndModLockstep(t *testing.T) {
 // TestCountHeadsLeftAndModMutation turns /Mod.N off in the kernel (ExMod returns its
 // operand): Sab-Sunen's parity reads then differ from gorge's.
 func TestCountHeadsLeftAndModMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	_, games, divs, _ := runCountmod(t, 64, true)
 	if divs == 0 {
 		t.Fatalf("DebugModOff: no divergence in %d games", games)

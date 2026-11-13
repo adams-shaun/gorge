@@ -223,6 +223,9 @@ func TestRememberWritesMutation(t *testing.T) {
 // plain mana the lockstep must diverge (the kernel offers a creature cast
 // the restricted mana cannot pay; gorge withholds it).
 func TestRememberWritesRestrictedManaMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	dirac.DebugPlainLoyaltyMana = true
 	defer func() { dirac.DebugPlainLoyaltyMana = false }()
 	if _, diverged, _ := kremw3Run(t, 128, true); !diverged {
