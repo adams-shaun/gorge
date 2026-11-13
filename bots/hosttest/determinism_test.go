@@ -31,7 +31,7 @@ var linkedPolicies = []string{"cast-profile", "sb-first", "sb-uniform", "sb-heur
 
 // builtinPolicies are the ones bots/all links that server/host's own tests
 // gate.
-var builtinPolicies = []string{"bot", "lethal-pressure", "az-redeal", "sb-tactical"}
+var builtinPolicies = []string{"bot", "lethal-pressure", "az-redeal", "az-redeal-maxn", "sb-tactical"}
 
 // TestEveryRegisteredPolicyIsGated keeps linkedPolicies honest: every
 // entry this binary registers is gated here or in server/host.
