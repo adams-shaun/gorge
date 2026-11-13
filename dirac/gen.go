@@ -2070,9 +2070,11 @@ type genState struct {
 	// effect-borne entry counters.
 	entrySelf uint8
 	// tokPT: the P/T set the token entering next takes with its entry
-	// (act_tokenpt.go): on, the override index, the evaluated P/T
+	// (act_tokenpt.go): on, how many more entering tokens take it after the
+	// next (a mint of X), the override index, the evaluated P/T
 	tokPT struct {
 		on   bool
+		left uint8
 		idx  uint16
 		p, t int16
 	}

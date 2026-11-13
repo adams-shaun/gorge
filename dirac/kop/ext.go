@@ -209,8 +209,9 @@ const (
 	// before the mint loop), runs that CreateToken in place and skips it, then
 	// sets the token it minted (res.lastTok) to those values as a permanent
 	// layer-7b set stamped at the mint (gorge effects/token.go: one SubSet
-	// effect sourced to the token). The Ex form counts the mint: no mint does
-	// nothing, more than one stalls StallTokenPT.
+	// effect sourced to the token). The Ex form counts the mints: no mint does
+	// nothing, each of an X mint takes the set, and a count that is not the
+	// op's amount (a token doubler) stalls StallTokenPT.
 	// dirac/act_tokenpt.go.
 	ExtTokenPT ExtOp = 170
 	// ExtExHaste (Agility Bobblehead): the object in Obj (RefTarget runs once
