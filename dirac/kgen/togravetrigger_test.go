@@ -22,7 +22,7 @@ ManaCost:3 B B
 Types:Legendary Creature Human Knight
 PT:5/4
 T:Mode$ ChangesZone | Origin$ Hand,Graveyard,Exile,Stack,Library,Command | Destination$ Graveyard | ValidCard$ Creature.Other | TriggerZones$ Battlefield | Execute$ TrigDmg | TriggerDescription$ probe
-SVar:TrigDmg:DB$ DealDamage | Defined$ Player.Opponent | NumDmg$ 1
+SVar:TrigDmg:DB$ DealDamage | Defined$ Player.Opponent | NumDmg$ 2
 Oracle:probe
 `
 
