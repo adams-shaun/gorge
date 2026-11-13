@@ -901,6 +901,7 @@ func (cb *cardBuilder) record() error {
 			return fmt.Errorf("Retrace without its discard cost")
 		}
 		d.Retrace = true
+		d.JumpStart = c.JumpStart // CR 702.84a: Discard<1/Card> and the exile (dirac/kw_jumpstart.go)
 		if d.RetraceCost, err = cb.cost(*c.RetraceCost); err != nil {
 			return err
 		}

@@ -286,6 +286,9 @@ func (a *SBT) priority(s *dirac.State, d *dirac.Decision, seat *builtins.Seat) [
 				cm = "harmonize"
 			case mode&2 != 0 && x.Target() == dirac.FeatRetraceTgt && s.FeatRetraceCard(dirac.Obj(src)):
 				cm = "retrace" // CR 702.81a: the printed cost plus the discard-a-land cost (kw_retrace.go)
+				if s.FeatJumpStartCard(dirac.Obj(src)) {
+					cm = "jumpstart" // CR 702.84a: the same cast with any card discarded (kw_jumpstart.go)
+				}
 			case mode&2 != 0 && x.Target() != 0:
 				cm = "beam_me_up"
 			case mode&2 != 0:

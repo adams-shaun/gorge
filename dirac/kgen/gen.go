@@ -341,6 +341,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	}
 	if c.Retrace {
 		fmt.Fprintf(w, " retrace")
+		if c.JumpStart {
+			fmt.Fprintf(w, " jumpstart")
+		}
 		if c.RetraceCost != nil {
 			fmt.Fprintf(w, " retracecost=%s", costString(*c.RetraceCost))
 		}

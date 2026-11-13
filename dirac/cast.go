@@ -1685,6 +1685,12 @@ func (s *State) finishBuild(k *prep) {
 		if s.bld().e.flags&sfFree != 0 && s.g.freeP&freeGY != 0 && s.bld().bfl&bflPushed != 0 {
 			s.stack[s.sp-1].flags |= sfFreeGY
 		}
+		if k.retrace && s.bld().bfl&bflPushed != 0 && jumpStartEntry(k, &e) && !DebugJumpStartNoExile {
+			// a paid jump-start cast is exiled whenever it leaves the stack
+			// (CR 702.84a; gorge FlagJumpstart): the flashback family's mark,
+			// stamped only now (kw_jumpstart.go)
+			s.stack[s.sp-1].flags |= sfFlashback
+		}
 		// ForgetPlayed$ True: this free cast now sits on the stack
 		// (CR 601.2a), the point where gorge's PlayDone pass sees it and
 		// drops it from the remembered set. A cast refused before the push,

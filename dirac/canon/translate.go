@@ -253,6 +253,9 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			// separates it from a granted flashback instance of the same
 			// card, which stays the plain mode-2 cast below.
 			cm, _ = CastModeCode("retrace")
+			if r.S.FeatJumpStartCard(dirac.Obj(src)) {
+				cm, _ = CastModeCode("jumpstart") // CR 702.84a: gorge's "jumpstart" option, CastModeOther as "retrace" (kw_jumpstart.go)
+			}
 		case mode&2 != 0 && tgt != 0:
 			cm, _ = CastModeCode("beam_me_up") // CastModeOther, as "harmonize"
 			if tgt == dirac.FeatBeamGrantTgt && r.S.FeatBeamPrinted(dirac.Obj(src)) {

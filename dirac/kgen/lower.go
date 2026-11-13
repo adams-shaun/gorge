@@ -602,27 +602,35 @@ func (lc *lowerCtx) refuseMayhemCombos() {
 // prices the printed base and the discard alone): Convoke, Improvise and
 // Delve fold credits into the base (gorge offerCastable), {X} needs the
 // cast's xAsk, and the rest carry their own pick or mana cost on the cast.
+//
+// Jump-start (CR 702.84a) is the same cast with Discard<1/Card> in place of
+// Discard<1/Land> (out.JumpStart; dirac/kw_jumpstart.go).
 func (lc *lowerCtx) lowerRetrace() {
 	out := lc.out
 	if !out.Retrace {
 		return
 	}
+	node, spec := "K:Retrace", "Discard<1/Land>"
+	if out.JumpStart {
+		node, spec = "K:Jump-start", "Discard<1/Card>"
+	}
 	if out.Flashback != nil || out.Harmonize != nil || out.Mayhem != nil || out.BeamMeUp != nil {
-		lc.refuseNode("K:Retrace", "Retrace beside a mode-2 graveyard-cast keyword (canon/translate.go reads one)")
+		lc.refuseNode(node, "%s beside a mode-2 graveyard-cast keyword (canon/translate.go reads one)", strings.TrimPrefix(node, "K:"))
 	}
 	if out.Convoke || out.Improvise || out.Delve || out.Kicker != nil || out.Warp != nil || out.Plot != nil || out.Sneak != nil || out.Impending != nil ||
 		out.Bestow != nil || out.SpellCost != nil || out.AltAddCost != nil || out.Offspring != nil || out.Gift || out.MorphCost != nil ||
 		out.Casualty != 0 || out.Bargain || out.OptCost != nil || out.Teamwork != 0 || out.Spree || out.Madness != nil || out.Cost.X {
-		lc.refuseNode("K:Retrace", "Retrace beside another cast route, additional cost or an {X} cost (the offer walk prices the printed base and the discard alone)")
+		lc.refuseNode(node, "%s beside another cast route, additional cost or an {X} cost (the offer walk prices the printed base and the discard alone)", strings.TrimPrefix(node, "K:"))
 	}
 	// The discard part is built directly (lc.cost's costParts refuses a
 	// filtered discard outside an activated ability): a bare Discard<1/Land>
-	// is the whole cost, no other part can ride beside it.
-	c, err := lc.costHand("Discard<1/Land>")
-	if err != nil || c.DiscardF == nil || c.DiscardN != 1 ||
+	// (or Jump-start's unfiltered Discard<1/Card>) is the whole cost, no
+	// other part can ride beside it.
+	c, err := lc.costHand(spec)
+	if err != nil || (c.DiscardF == nil) != out.JumpStart || c.DiscardN != 1 || c.DiscardSelf ||
 		c.Mana.Generic != 0 || c.Mana.Pips != [5]int{} || c.Mana.C != 0 || c.Mana.X || c.Mana.XX ||
 		len(c.Mana.Hybrid) != 0 || len(c.Mana.Twobrid) != 0 || len(c.Mana.Phyrexian) != 0 || c.Mana.XColor != 0 {
-		lc.refuseNode("K:Retrace", "retrace additional cost %q", "Discard<1/Land>")
+		lc.refuseNode(node, "%s additional cost %q", strings.ToLower(strings.TrimPrefix(node, "K:")), spec)
 		return
 	}
 	out.RetraceCost = &c
@@ -1489,7 +1497,25 @@ func (lc *lowerCtx) lowerKeywords() {
 			// mode bit 2 beside the mode-2 graveyard-cast keywords rather
 			// than claiming CardDef.AltCost. lowerRetrace refuses the
 			// collisions and builds the discard cost.
+			if lc.out.Retrace {
+				lc.refuseNode(node, "Retrace beside Jump-start (one graveyard discard cast per card)")
+				continue
+			}
 			lc.out.Retrace = true
+		case head == "Jump-start" && param == "":
+			// CR 702.84a: the retrace shape (gorge legal_walk_alt.go's
+			// jump-start walk and beginCast's "jumpstart" mode fold
+			// jumpstartExtra onto the printed base exactly as retraceExtra)
+			// with any card discarded and the spell exiled leaving the stack
+			// (gorge FlagJumpstart, one of state.ExilesLeavingStack's flags).
+			// It rides the kernel's retrace cast (dirac/kw_jumpstart.go):
+			// lowerRetrace refuses the same collisions and builds the
+			// Discard<1/Card> cost.
+			if lc.out.Retrace {
+				lc.refuseNode(node, "Jump-start beside Retrace or a second Jump-start")
+				continue
+			}
+			lc.out.Retrace, lc.out.JumpStart = true, true
 		case head == "Spree" && param == "":
 			// CR 702.172a: a modal spell whose modes carry ModeCost$
 			// additional costs (lower_modecost.go reads them)

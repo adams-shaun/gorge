@@ -1049,6 +1049,7 @@ type lCard struct {
 	Harmonize      *manaCost // K:Harmonize:<cost> (CR 702.180a): a graveyard cast for this cost, one creature tapped for its power off the generic part
 	Retrace        bool      // K:Retrace (CR 702.81a): a graveyard cast paying the PRINTED cost plus the additional discard-a-land cost (dirac/kw_retrace.go); never a substitution
 	RetraceCost    *lCost    // the retrace cast's additional cost: Discard<1/Land> (CardDef.RetraceCost)
+	JumpStart      bool      // K:Jump-start (CR 702.84a): the retrace cast with Discard<1/Card> and the flashback exile (Retrace set beside it; dirac/kw_jumpstart.go)
 	AltAddCost     *lCost    // AlternateAdditionalCost: pay this instead of the printed additional cost
 	SpellCost      *lCost    // additional costs on the spell (Sac/Discard)
 	AltAddOne      bool      // SpellCost is a one-part AlternateAdditionalCost (gorge's planner: shape:optional_cost)

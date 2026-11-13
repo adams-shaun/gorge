@@ -456,6 +456,12 @@ type CardDef struct {
 	// spell additional cost (kgen refuses them; no corpus card carries one).
 	Retrace     bool
 	RetraceCost Cost
+	// JumpStart is printed K:Jump-start (CR 702.84a), set with Retrace: the
+	// same graveyard cast with RetraceCost a discard of any one card
+	// (CostDiscard), and the spell exiled whenever it leaves the stack (the
+	// flashback family's sfFlashback, stamped once the cast is paid;
+	// dirac/kw_jumpstart.go).
+	JumpStart bool
 	// MorphCost is the turn-face-up cost of a printed Morph, Megamorph or
 	// Disguise keyword (CR 702.37e, 702.168c, 702.169b; zero with
 	// MorphFamily 0). MorphFamily says which (CardDef.Face*Family).
