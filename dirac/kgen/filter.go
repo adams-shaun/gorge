@@ -590,6 +590,9 @@ func parseClause(alt string, knownSub func(string) bool) (lClause, error) {
 }
 
 func (c *lClause) prop(p string, knownSub func(string) bool) error {
+	if q, ok := filterPropAlias(p); ok {
+		p = q
+	}
 	switch p {
 	case "nonLegendary":
 		c.NotTypes |= tLegendary
