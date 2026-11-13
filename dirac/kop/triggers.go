@@ -71,12 +71,29 @@ const (
 	// Tf5NotFirstCardInDrawStep: FirstCardInDrawStep$ False -- the draw is
 	// any card except that first one (Orcish Bowmasters, Xyris, Leela).
 	Tf5NotFirstCardInDrawStep TrigFlags5 = 1 << 1
+	// Tf5DmgAttackedYouLastTurn: a combat DamageDone line's damaged player
+	// declared an attack on the listener's controller (that player, a
+	// planeswalker they control or a battle they protect) during the damaged
+	// player's most recent completed turn (ValidTarget$
+	// Player.attackedYouTheirLastTurn, O-Kagachi, Vengeful Kami; gorge
+	// state.Player.AttackedSeatsLastTurn; kernel trig_atklastturn.go). The
+	// Drawn bits above are never on a DamageDone line.
+	Tf5DmgAttackedYouLastTurn TrigFlags5 = 1 << 3
 	// Tf5OppCause: Discarded with TfSelf (Zone graveyard): ValidCause$
 	// SpellAbility.OppCtrl -- the discard was caused by a resolving spell or
 	// ability an opponent of the discarded card's owner controls (gorge
 	// trigmatch.DiscardCauseAdmits: a cost discard has no cause). Orvar, the
 	// All-Form; Guerrilla Tactics.
 	Tf5OppCause TrigFlags5 = 1 << 2
+	// Tf5TapsForMana: a TrigTaps line lowered from Mode$ TapsForMana (a
+	// non-Static$ trigger, Price of Glory): it fires only for a permanent
+	// tapped as the cost of a mana ability (gorge trigmatch tapsMatches'
+	// forMana flag), never for an attack, cost or effect tap. Bit 4.
+	Tf5TapsForMana TrigFlags5 = 1 << 4
+	// Tf5TapperNonActive: with Tf5TapsForMana, Activator$ Player.NonActive --
+	// the tapping player is not the turn's active player (gorge
+	// effects.MatchesPlayerSpec over TapActor). Bit 5.
+	Tf5TapperNonActive TrigFlags5 = 1 << 5
 )
 
 // TrigEvent is a triggered ability's subscription: the event kind it listens

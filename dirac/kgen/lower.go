@@ -32,6 +32,8 @@ var ignoredParams = map[string]bool{
 	"AINoRecursiveCheck": true, // Forge AI hint: only in gorge's accepted-key lists (params/mana.go, params/dealdamage.go, changezone_params.go), never read
 	"AIXMax":             true, // Forge AI hint for the X it announces: only in gorge's accepted-key lists (changezone_params.go, params/*.go), never read
 	"UnlessAI":           true, // Forge AI hint (CopySpellAbilityAi / the unless-cost AI: whether the AI pays or copies); gorge never reads it (engine/rules/paramcensus_test.go records it as an AI hint)
+
+	"AIRespondsToOwnAbility": true, // Forge AI hint (Sensei's Divining Top: the AI may respond to its own activation); gorge never reads it
 }
 
 // params tracks which parameters of one IR node the lowering read, so an
@@ -164,6 +166,7 @@ type lowerCtx struct {
 	depth          int       // chain nesting (1: the ability's own chain)
 	head           bool      // the node being lowered heads its chain
 	inGroup        bool      // lowering a Mobilize group program's body (SacrificeDelayed is legal)
+	groupMany      bool      // ... of Mobilize 3-4: the DpMany program, SacrificeDelayed reads up to four objects
 	czForgetSet    bool      // a ChangeZoneAll ForgetOtherRemembered$ ran in this ability: Remembered is a many-object set (lower_changezoneall.go)
 	chains         int       // chain entries so far (every-blocker census: did a node's body get read?)
 	guardNode      string    // the top-level node guard is lowering (every-blocker census names extra refusals by it)
@@ -417,7 +420,7 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 		if lc.imprintMox && i > 0 {
 			continue // the imprint mox's static Cleanup / ForgetImprinted$ bookkeeping: the kernel's exiled-with record (lower_imprintmox.go)
 		}
-		if t.Mode == "TapsForMana" {
+		if t.Mode == "TapsForMana" && strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKStatic)), "True") {
 			lc.guard(fmt.Sprintf("T[%d] Mode=%s", i, t.Mode), func() error { return lc.tapExtraStatic(t) })
 			continue
 		}
@@ -1040,6 +1043,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.out.Flash = true
 		case head == "Decayed" && param == "":
 			lc.lowerDecayed() // lower_decayed.go
+		case head == "CantAttackOrBlock" && param == "":
+			lc.lowerCantAttackOrBlock() // lower_cantattackorblock.go
 		case head == "Infect" && param == "":
 			// CR 702.90: gorge damage riders read HasKeyword(source, "Infect")
 			lc.out.Infect = true
@@ -3052,7 +3057,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			if cost.Energy != 0 {
 				return refuse("energy cost on a spell")
 			}
-			if cost.Return != nil {
+			if cost.Return != nil && !lc.spellReturnOnly(&cost) {
 				return refuse("return cost on a spell")
 			}
 			if cost.EvidenceX {
@@ -3327,11 +3332,12 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				return err
 			}
 		}
-		if v, ok := ps.get("ActivationLimit"); ok {
-			if v != "1" {
-				return refuse("ActivationLimit %q", v)
-			}
-			ab.TurnOnce = true
+		actLimit, err := lc.activationLimit(sa, ps, ab) // lower_activationlimitn.go
+		if err != nil {
+			return err
+		}
+		if err := lc.anyActivator(sa.API, ps, ab, cost); err != nil { // lower_anyactivator.go
+			return err
 		}
 		if cost.AddCtr > 0 {
 			// a counter put on the source as a cost (CR 118.3): the
@@ -3455,6 +3461,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			}
 			ab.ActCond = andCond(ab.ActCond, lCond{Kind: cYourTurn})
 		}
+		ab.ActCond = andCond(ab.ActCond, actLimit)
 	default:
 		return refuse("ability kind %s", sa.Kind)
 	}

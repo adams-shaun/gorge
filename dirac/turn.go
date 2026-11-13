@@ -28,6 +28,9 @@ func (s *State) beginTurn(p uint8) {
 	if s.k().anyDayNight {
 		s.dnTurn() // CR 731.2's count, before the bank resets (kw_daynight.go)
 	}
+	if k := s.k(); k.gen != nil && k.gen.anyAtkLast {
+		s.atkLastTurnEnd() // the outgoing seat's attacks become its last turn's (trig_atklastturn.go)
+	}
 	s.newTurnGen()
 	if k := s.k(); k.gen != nil && k.gen.anySaddle {
 		s.unsaddleAll(k)

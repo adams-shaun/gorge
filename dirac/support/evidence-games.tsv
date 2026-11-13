@@ -5,8 +5,8 @@ pauper	1500
 std-big	1500
 std-blb	1500
 std-dft	1500
-std-dsk	1464
-std-ecl	1455
+std-dsk	1207
+std-ecl	1471
 std-eoe	1500
 std-fdn	1474
 std-fin	1500
@@ -20,7 +20,7 @@ std-sos	1500
 std-spm	1500
 std-tdm	1500
 std-tla	1500
-std-tmt	1500
+std-tmt	1430
 std-trc	1500
 std-trk	1500
 std-woe	1500

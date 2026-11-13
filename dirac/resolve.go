@@ -702,6 +702,11 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 			return s.ctrlOfObj(o)
 		}
 		return e.trigPl
+	case kop.RefTriggerObjOwner:
+		if o := e.trigObj; o != NoObj {
+			return s.objs[o].owner() // CR 108.3
+		}
+		return 255
 	case kop.RefTargetController:
 		return s.tgtCtrlSlot(k, 0)
 	case kop.RefTgtCtrl1, kop.RefTgtCtrl2:
@@ -981,7 +986,7 @@ func (s *State) refCode(k *prep, r kop.Ref) TCode {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		return s.tgtCode(sl)
-	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer:
+	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefTriggerObjOwner:
 		p := s.playerRef(k, r)
 		if p == 255 {
 			return TCode(NoTarget)
