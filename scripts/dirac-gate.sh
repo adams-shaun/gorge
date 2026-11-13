@@ -209,6 +209,30 @@ out=$(go test -v -timeout 5m -run "^TestRefusedEntriesStillDiverge\$|^TestChoose
 skip=$(grep -F -- '--- SKIP' <<<"$out")
 [ -z "$skip" ] || bad "a refused entry, repro or pinned game was not played, since its pool or tables are not on this machine (set GORGE_POOLS, make dirac-tables): $skip"
 
+# 8b. The fast tier: the oracle tests that cost 0.5 s or less (scripts/oracle_fasttier.py, from the
+# train's -v logs), run at every landing. The set is committed as data so the cost stays bounded; a
+# name that no longer exists is a stale list and fails here, not as a vacuous `ok`.
+echo "== 8b oracle fast tier"
+fast=dirac/oracle/testdata/fasttier.txt
+t8b=$SECONDS
+[ -f "$fast" ] || bad "no fast tier list at $fast"
+tier=$(sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*$/d' "$fast") || bad "cannot read the fast tier list $fast"
+[ -n "$tier" ] || bad "the fast tier list $fast is empty"
+listed=$(go test -list '.*' ./dirac/oracle 2>&1) || bad "cannot list ./dirac/oracle tests: $(tail -10 <<<"$listed")"
+missing=$(comm -23 <(printf '%s\n' "$tier" | sort -u) <(printf '%s\n' "$listed" | grep -E '^Test' | sort -u)) || bad "cannot compare the fast tier list with ./dirac/oracle's tests"
+[ -z "$missing" ] || bad "the fast tier names tests that no longer exist in ./dirac/oracle: $(tr '\n' ' ' <<<"$missing")"
+re=$(printf '%s\n' "$tier" | sort -u | paste -sd'|') || bad "cannot build the fast tier pattern"
+[ -n "$re" ] || bad "the fast tier pattern is empty"
+out=$(go test -v -failfast -timeout 120s -run "^($re)\$" ./dirac/oracle 2>&1) || bad "oracle fast tier failed: $(grep -E -- '--- FAIL|^FAIL|panic:|^=== RUN' <<<"$out" | tail -20)"
+ran=$(sed -nE 's/^--- PASS: ([^/ ]+) .*/\1/p' <<<"$out") || bad "cannot read the fast tier's PASS lines"
+ran=$(sort -u <<<"$ran") || bad "cannot sort the fast tier's PASS lines"
+notrun=$(comm -23 <(printf '%s\n' "$tier" | sort -u) <(printf '%s\n' "$ran")) || bad "cannot compare the fast tier list with its PASS lines"
+[ -z "$notrun" ] || bad "the fast tier did not run or pass: $(tr '\n' ' ' <<<"$notrun")"
+skipped=$(grep -F -- '--- SKIP' <<<"$out"); skip_rc=$?
+[ "$skip_rc" -le 1 ] || bad "cannot read the fast tier output for skips"
+[ -z "$skipped" ] || bad "the fast tier skipped a test, since its pool or tables are not on this machine: $(head -10 <<<"$skipped")"
+echo "8b: ok ($((SECONDS - t8b)) s, $(wc -l <<<"$tier") tests)"
+
 echo "== 4 lockstep, absolute"
 lockstep() {
 	"$S/kfuzz" -kernel "$1" -first-pair 0 -pairs 1500 -seed 1 -keep-going -surface "$2" -mulligans 1 -shrink 0 -workers "${GATE_KFUZZ_WORKERS:-4}" -absolute -v >"$S/lockstep-$1-$2.log" 2>&1
