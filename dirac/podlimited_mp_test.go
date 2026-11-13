@@ -17,7 +17,7 @@ import (
 func TestCardPodLimitedIsPrepTwoSeat(t *testing.T) {
 	limited, n := 0, 0
 	for _, name := range []string{"mbc", "cmd5"} {
-		set, err := cardset.RawByName(name)
+		set, err := cardset.ByName(name)
 		if err != nil {
 			t.Skipf("no %s table (make dirac-tables): %v", name, err)
 		}
