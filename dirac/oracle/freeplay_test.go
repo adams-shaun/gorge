@@ -2,6 +2,7 @@ package oracle
 
 import (
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -69,6 +70,22 @@ type m11Tally struct {
 }
 
 func newM11Tally() *m11Tally { return &m11Tally{plays: map[string]int{}} }
+
+// add sums o's counts into t; the per-game l1_game flag is taken from o only
+// when last (o holds the run's last game).
+func (t *m11Tally) add(o *m11Tally, last bool) {
+	t.p1, t.p2, t.p3, t.p4 = t.p1+o.p1, t.p2+o.p2, t.p3+o.p3, t.p4+o.p4
+	t.one, t.gy, t.skip, t.l1 = t.one+o.one, t.gy+o.gy, t.skip+o.skip, t.l1+o.l1
+	for k, v := range o.plays {
+		if k == "l1_game" {
+			if last {
+				t.plays[k] = v
+			}
+			continue
+		}
+		t.plays[k] += v
+	}
+}
 
 // m11Policy casts or activates whenever it can and takes a free-cast pick
 // (ActMode) over stopping (ActDone), so the games reach the carriers. It
@@ -199,16 +216,17 @@ func TestFreePlaySpellingsLockstep(t *testing.T) {
 	}
 	tally := newM11Tally()
 	games := 0
-	for mi, md := range m11Decks {
+	matchupChunks(t, len(m11Decks), 1, 512, 128, func(t *testing.T, c seedChunk, mu *sync.Mutex) {
+		mi, md := c.mi, m11Decks[c.mi]
 		var decks [2][]*cards.Card
 		for s, d := range md {
 			for _, e := range d {
-				c, ok := reg.Lookup(e.Name)
+				card, ok := reg.Lookup(e.Name)
 				if !ok {
 					t.Fatalf("%s not in the corpus", e.Name)
 				}
 				for i := 0; i < e.Count; i++ {
-					decks[s] = append(decks[s], c)
+					decks[s] = append(decks[s], card)
 				}
 			}
 			if len(decks[s]) != 40 {
@@ -219,7 +237,8 @@ func TestFreePlaySpellingsLockstep(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for seed := uint64(1); seed <= 512; seed++ {
+		part := newM11Tally()
+		for seed := c.lo; seed <= c.hi; seed++ {
 			m, err := NewMatchup(reg, [2]string{"m11-a", "m11-b"}, decks, 1)
 			if err != nil {
 				t.Fatal(err)
@@ -229,23 +248,24 @@ func TestFreePlaySpellingsLockstep(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			tally.plays["l1_game"] = 0
-			res := Lockstep(m, seed, k, m11Policy(seed, tally), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40})
+			part.plays["l1_game"] = 0
+			res := Lockstep(m, seed, k, m11Policy(seed, part), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40})
 			CloseSide(k)
-			games++
 			if strings.HasPrefix(res.Stall, KernelStallPrefix) {
 				t.Errorf("matchup %d seed %d: kernel stalled: %s", mi, seed, res.Stall)
 			}
 			if d := res.Div; d != nil {
-				lo := d.At - 12
-				if lo < 0 {
-					lo = 0
-				}
+				lo := max(d.At-12, 0)
 				t.Logf("matchup %d seed %d last actions %v", mi, seed, actionStrings(res.Actions[lo:d.At]))
 				t.Errorf("matchup %d seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", mi, seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
 			}
 		}
-	}
+		mu.Lock()
+		defer mu.Unlock()
+		games += int(c.hi - c.lo + 1)
+		// l1_game is the game's flag: the run's is its last game's
+		tally.add(part, c.mi == len(m11Decks)-1 && c.hi == 512)
+	})
 	t.Logf("%d games, carrier plays %v, L1 battlefield games %d, free [%d %d %d %d] one %d gy %d skip %d",
 		games, tally.plays, tally.l1, tally.p1, tally.p2, tally.p3, tally.p4,
 		tally.one, tally.gy, tally.skip)

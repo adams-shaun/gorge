@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -203,13 +204,61 @@ func (c *facesCensus) scan(acts []Canon) {
 // (32 seeds for matchups 0-1, 512 for 2-4) and returns their counts.
 func runFacesLockstep(t *testing.T, mis []int) facesCounts {
 	t.Helper()
-	got, _ := runFacesSeeds(t, mis, false)
+	reg, set := facesPool(t)
+	// each matchup's seeds as parallel chunks; the per-matchup lines log
+	// after the whole run
+	var cs []seedChunk
+	for _, mi := range mis {
+		n := facesSeeds(mi)
+		for lo := uint64(1); lo <= n; lo += facesChunk {
+			cs = append(cs, seedChunk{mi: mi, lo: lo, hi: min(lo+facesChunk-1, n)})
+		}
+	}
+	per := map[int]*facesCounts{}
+	for _, mi := range mis {
+		per[mi] = &facesCounts{}
+	}
+	runChunks(t, cs, true, func(t *testing.T, c seedChunk, mu *sync.Mutex) {
+		var part facesCounts
+		facesPlay(t, reg, set, c.mi, c.lo, c.hi, false, &part)
+		mu.Lock()
+		defer mu.Unlock()
+		per[c.mi].add(&part)
+	})
+	var got facesCounts
+	for _, mi := range mis {
+		p := per[mi]
+		got.add(p)
+		t.Logf("matchup %d: %d back-face land plays, %d land-front Adventure casts, face casts %v", mi, p.backs, p.landAdventures, p.faceCasts)
+	}
 	return got
 }
 
-// runFacesSeeds is runFacesLockstep; with mutation set a divergence is not
-// an error: the run stops at the first one and reports it.
-func runFacesSeeds(t *testing.T, mis []int, mutation bool) (facesCounts, bool) {
+// facesChunk is the seeds one parallel subtest of runFacesLockstep plays.
+const facesChunk = 128
+
+// facesSeeds is matchup mi's established seed count.
+func facesSeeds(mi int) uint64 {
+	if mi >= 2 {
+		return 512 // a face cast needs mana left floating: rarer
+	}
+	return 32
+}
+
+// add sums o's counts into c.
+func (c *facesCounts) add(o *facesCounts) {
+	c.backs += o.backs
+	c.landAdventures += o.landAdventures
+	c.landFromExile += o.landFromExile
+	for i := range c.faceCasts {
+		c.faceCasts[i] += o.faceCasts[i]
+		c.emptyOffers[i] += o.emptyOffers[i]
+		c.emptyTaken[i] += o.emptyTaken[i]
+	}
+}
+
+// facesPool loads the corpus and the generated faces set.
+func facesPool(t *testing.T) (*cards.Registry, cardset.Set) {
 	t.Helper()
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
@@ -220,116 +269,130 @@ func runFacesSeeds(t *testing.T, mis []int, mutation bool) (facesCounts, bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg := Config{GorgeAutopaySurface: true}
+	return reg, set
+}
+
+// runFacesSeeds is runFacesLockstep in one loop; with mutation set a
+// divergence is not an error: the run stops at the first one and reports it.
+func runFacesSeeds(t *testing.T, mis []int, mutation bool) (facesCounts, bool) {
+	t.Helper()
+	reg, set := facesPool(t)
 	var got facesCounts
-	var cen facesCensus
 	for _, mi := range mis {
 		before := got
-		md := facesDecks[mi]
-		var decks [2][]*cards.Card
-		for s, d := range md {
-			for _, e := range d {
-				c, ok := reg.Lookup(e.Name)
-				if !ok {
-					t.Fatalf("%s not in the corpus", e.Name)
-				}
-				for i := 0; i < e.Count; i++ {
-					decks[s] = append(decks[s], c)
-				}
-			}
-			if len(decks[s]) != 40 {
-				t.Fatalf("matchup %d deck %d: %d cards", mi, s, len(decks[s]))
-			}
-		}
-		tbl, _, _, err := set.Matchup(md[0], md[1])
-		if err != nil {
-			t.Fatal(err)
-		}
-		seeds := uint64(32)
-		if mi >= 2 {
-			seeds = 512 // a face cast needs mana left floating: rarer
-		}
-		for seed := uint64(1); seed <= seeds; seed++ {
-			m, err := NewMatchup(reg, [2]string{"faces-a", "faces-b"}, decks, 1)
-			if err != nil {
-				t.Fatal(err)
-			}
-			cfg := cfg
-			if mi >= 2 && seed <= 480 {
-				// gorge's lowering surface: the autopay surface has no
-				// floating mana to pay a face cast with (it drops every
-				// plain cast its planner does not price: gorge.go); the
-				// last seeds play the autopay surface
-				cfg = Config{}
-			}
-			k, err := SetSide(set, tbl, cfg)(m, seed)
-			if err != nil {
-				t.Fatal(err)
-			}
-			pol := facesPolicy(seed)
-			if mi >= 2 {
-				pol = faceCastPolicy(seed)
-			}
-			if seed%4 == 0 {
-				pol = RandomPolicy(seed) // the back land only as often as chance picks it
-			}
-			cen.begin()
-			res := Lockstep(m, seed, k, pol, RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40, Check: cen.check})
-			cen.scan(res.Actions)
-			for code := range cen.offers {
-				got.emptyOffers[code] += cen.offers[code]
-				got.emptyTaken[code] += cen.taken[code]
-			}
-			CloseSide(k)
-			// onAdventure tracks a card cast as its Adventure: after that
-			// cast resolves it rests in exile, so a later play_land of the
-			// same object is the CR 715.3d play from exile (a recast or a
-			// land play takes it off the adventure).
-			var onAdventure [MaxInst]bool
-			for _, a := range res.Actions {
-				switch a.Kind() {
-				case ActCastFace:
-					switch a.Mode() & 15 {
-					case faceCodeAdventure:
-						onAdventure[a.Src()] = true
-					case faceCodeRecast:
-						onAdventure[a.Src()] = false
-					}
-				case ActPlayLand:
-					if onAdventure[a.Src()] {
-						got.landFromExile++
-						onAdventure[a.Src()] = false
-					}
-				}
-				if a.Kind() == ActPlayLand && a.Mode() == 1 {
-					got.backs++
-				}
-				if a.Kind() == ActCastFace {
-					got.faceCasts[a.Mode()&15]++
-					if mi == 3 && a.Mode()&15 == faceCodeAdventure {
-						got.landAdventures++ // every Adventure card of matchup 3 has a land front
-					}
-					if mi == 3 && a.Mode()&15 == faceCodeRecast {
-						t.Errorf("matchup %d seed %d: a land main face recast from exile", mi, seed)
-					}
-				}
-			}
-			if d := res.Div; d != nil && mutation {
-				t.Logf("matchup %d seed %d diverged at decision %d: %s %s", mi, seed, d.At, d.What, d.Field)
-				return got, true
-			} else if d != nil {
-				lo := d.At - 12
-				if lo < 0 {
-					lo = 0
-				}
-				t.Logf("matchup %d seed %d last actions %v", mi, seed, actionStrings(res.Actions[lo:d.At]))
-				t.Errorf("matchup %d seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", mi, seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
-			}
+		if facesPlay(t, reg, set, mi, 1, facesSeeds(mi), mutation, &got) {
+			return got, true
 		}
 		t.Logf("matchup %d: %d back-face land plays, %d land-front Adventure casts, face casts %v", mi,
 			got.backs-before.backs, got.landAdventures-before.landAdventures, faceCastDelta(got.faceCasts, before.faceCasts))
 	}
 	return got, false
+}
+
+// facesPlay plays seeds lo..hi of matchup mi into got; with mutation it
+// stops at the first divergence and reports it.
+func facesPlay(t *testing.T, reg *cards.Registry, set cardset.Set, mi int, lo, hi uint64, mutation bool, got *facesCounts) bool {
+	t.Helper()
+	cfg := Config{GorgeAutopaySurface: true}
+	var cen facesCensus
+	md := facesDecks[mi]
+	var decks [2][]*cards.Card
+	for s, d := range md {
+		for _, e := range d {
+			c, ok := reg.Lookup(e.Name)
+			if !ok {
+				t.Fatalf("%s not in the corpus", e.Name)
+			}
+			for i := 0; i < e.Count; i++ {
+				decks[s] = append(decks[s], c)
+			}
+		}
+		if len(decks[s]) != 40 {
+			t.Fatalf("matchup %d deck %d: %d cards", mi, s, len(decks[s]))
+		}
+	}
+	tbl, _, _, err := set.Matchup(md[0], md[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	for seed := lo; seed <= hi; seed++ {
+		m, err := NewMatchup(reg, [2]string{"faces-a", "faces-b"}, decks, 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg := cfg
+		if mi >= 2 && seed <= 480 {
+			// gorge's lowering surface: the autopay surface has no
+			// floating mana to pay a face cast with (it drops every
+			// plain cast its planner does not price: gorge.go); the
+			// last seeds play the autopay surface
+			cfg = Config{}
+		}
+		k, err := SetSide(set, tbl, cfg)(m, seed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		pol := facesPolicy(seed)
+		if mi >= 2 {
+			pol = faceCastPolicy(seed)
+		}
+		if seed%4 == 0 {
+			pol = RandomPolicy(seed) // the back land only as often as chance picks it
+		}
+		cen.begin()
+		res := Lockstep(m, seed, k, pol, RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40, Check: cen.check})
+		cen.scan(res.Actions)
+		for code := range cen.offers {
+			got.emptyOffers[code] += cen.offers[code]
+			got.emptyTaken[code] += cen.taken[code]
+		}
+		CloseSide(k)
+		// onAdventure tracks a card cast as its Adventure: after that
+		// cast resolves it rests in exile, so a later play_land of the
+		// same object is the CR 715.3d play from exile (a recast or a
+		// land play takes it off the adventure).
+		var onAdventure [MaxInst]bool
+		for _, a := range res.Actions {
+			switch a.Kind() {
+			case ActCastFace:
+				switch a.Mode() & 15 {
+				case faceCodeAdventure:
+					onAdventure[a.Src()] = true
+				case faceCodeRecast:
+					onAdventure[a.Src()] = false
+				}
+			case ActPlayLand:
+				if onAdventure[a.Src()] {
+					got.landFromExile++
+					onAdventure[a.Src()] = false
+				}
+			}
+			if a.Kind() == ActPlayLand && a.Mode() == 1 {
+				got.backs++
+			}
+			if a.Kind() == ActCastFace {
+				got.faceCasts[a.Mode()&15]++
+				if mi == 3 && a.Mode()&15 == faceCodeAdventure {
+					got.landAdventures++ // every Adventure card of matchup 3 has a land front
+				}
+				if mi == 3 && a.Mode()&15 == faceCodeRecast {
+					t.Errorf("matchup %d seed %d: a land main face recast from exile", mi, seed)
+				}
+			}
+		}
+		if d := res.Div; d != nil && mutation {
+			t.Logf("matchup %d seed %d diverged at decision %d: %s %s", mi, seed, d.At, d.What, d.Field)
+			return true
+		} else if d != nil {
+			lo := d.At - 12
+			if lo < 0 {
+				lo = 0
+			}
+			t.Logf("matchup %d seed %d last actions %v", mi, seed, actionStrings(res.Actions[lo:d.At]))
+			t.Errorf("matchup %d seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", mi, seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
+		}
+	}
+	return false
 }
 
 // faceCastDelta is the per-code difference of two face cast tallies.

@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -77,16 +78,17 @@ func TestThisTurnEnteredLockstep(t *testing.T) {
 	}
 	games := 0
 	played := map[string]int{}
-	for mi, md := range kenteredDecks {
+	matchupChunks(t, len(kenteredDecks), 1, 1024, 128, func(t *testing.T, c seedChunk, mu *sync.Mutex) {
+		mi, md := c.mi, kenteredDecks[c.mi]
 		var decks [2][]*cards.Card
 		for s, d := range md {
 			for _, e := range d {
-				c, ok := reg.Lookup(e.Name)
+				card, ok := reg.Lookup(e.Name)
 				if !ok {
 					t.Fatalf("matchup %d: %s not in the corpus", mi, e.Name)
 				}
 				for i := 0; i < e.Count; i++ {
-					decks[s] = append(decks[s], c)
+					decks[s] = append(decks[s], card)
 				}
 			}
 			if len(decks[s]) != 40 {
@@ -97,7 +99,16 @@ func TestThisTurnEnteredLockstep(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for seed := uint64(1); seed <= 1024; seed++ {
+		n, part := 0, map[string]int{}
+		defer func() {
+			mu.Lock()
+			defer mu.Unlock()
+			games += n
+			for k, v := range part {
+				played[k] += v
+			}
+		}()
+		for seed := c.lo; seed <= c.hi; seed++ {
 			cfg := Config{GorgeAutopaySurface: seed%2 == 0}
 			m, err := NewMatchup(reg, [2]string{"kentered-a", "kentered-b"}, decks, 1)
 			if err != nil {
@@ -107,13 +118,13 @@ func TestThisTurnEnteredLockstep(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			pol := eagerPolicy(seed, played)
+			pol := eagerPolicy(seed, part)
 			if seed%4 == 0 {
 				pol = RandomPolicy(seed)
 			}
 			res := Lockstep(m, seed, k, pol, RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40})
 			CloseSide(k)
-			games++
+			n++
 			if d := res.Div; d != nil {
 				lo := d.At - 12
 				if lo < 0 {
@@ -124,6 +135,9 @@ func TestThisTurnEnteredLockstep(t *testing.T) {
 				return
 			}
 		}
+	})
+	if t.Failed() {
+		return
 	}
 	t.Logf("%d games, carrier plays %v", games, played)
 	for _, n := range kenteredCarriers {
