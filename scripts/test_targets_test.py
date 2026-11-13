@@ -197,6 +197,33 @@ def test_docs_only_diff_selects_just_the_structural_packages():
     assert sorted(got) == ["./internal/archtest", "./internal/codeshape"]
 
 
+CENSUS_CANDS = ["./engine/rules", "./engine/game/gorgegame", "./dirac/oracle", "./leaf", "./internal/archtest",
+                "./internal/codeshape"]
+
+
+def census(changes):
+    return tt.census_pkgs(changes, dict(DIRMAP, **{".": "m"}), DEPS, CENSUS_CANDS)
+
+
+def test_census_runs_the_importers_and_the_touched_packages_only():
+    assert census({"engine/rules/engine.go": None}) == [
+        "./engine/game/gorgegame", "./engine/rules", "./internal/archtest", "./internal/codeshape"]
+    assert census({"dirac/oracle/x_test.go": None}) == ["./dirac/oracle", "./internal/archtest", "./internal/codeshape"]
+    assert census({"dirac/oracle/testdata/repro/a.json": None}) == [
+        "./dirac/oracle", "./internal/archtest", "./internal/codeshape"]
+
+
+def test_census_maps_a_package_less_directory_to_the_nearest_package_above():
+    assert census({"dirac/oracle/fixtures/deep/cards.txt": None}) == [
+        "./dirac/oracle", "./internal/archtest", "./internal/codeshape"]
+
+
+def test_census_runs_everything_for_a_root_level_or_unmapped_change():
+    assert census({"Makefile": None}) == sorted(CENSUS_CANDS)
+    assert census({"decks/x.dck": None}) == sorted(CENSUS_CANDS)
+    assert census({"docs/agents/invariants.md": None}) == ["./internal/archtest", "./internal/codeshape"]
+
+
 def test_go_graph_reads_the_real_test_binaries():
     # The real `go list -e -test` path (not the hand-built DEPS): `.test` entries are the reverse-dep graph
     # that made engine/rules/engine.go select gorgegame on 2026-11-11.

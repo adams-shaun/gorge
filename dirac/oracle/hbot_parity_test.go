@@ -237,6 +237,9 @@ func BenchmarkHBotCombatPick(b *testing.B) {
 // doesn't count (Enduring Vitality), and a resolution's tap payment asks the same way
 // (std-eoe).
 func TestHBotTapsHelpersThatMakeNoManaFirst(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	const helper = "Choose permanents to tap"
 	tapcost := func(also ...hbotCond) hbotCond { return answersWith("choose:tapcost", also...) }
 	for _, tc := range []struct {

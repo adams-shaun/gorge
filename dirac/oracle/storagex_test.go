@@ -63,6 +63,9 @@ func storageXFixtures(t *testing.T) []storageXFixture {
 // pool, alternating the two option surfaces, and fails on the first
 // divergence.
 func TestStorageXLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	for _, f := range storageXFixtures(t) {
 		t.Run(f.card, func(t *testing.T) {
 			t.Logf("%s: pool %s", f.card, f.pool)

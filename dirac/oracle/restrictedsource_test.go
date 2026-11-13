@@ -395,6 +395,9 @@ func restrSourceMutation(t *testing.T, mut uint8) {
 // source admitted for every payment, 2 none, 3 Secluded Courtyard moved to
 // the choice-shaped pass) must diverge from gorge.
 func TestRestrictedSourceMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	for _, mut := range []uint8{1, 2, 3} {
 		restrSourceMutation(t, mut)
 	}

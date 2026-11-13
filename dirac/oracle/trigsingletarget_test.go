@@ -369,6 +369,9 @@ func TestSingleTargetTriggerLockstep(t *testing.T) {
 // diverge. A green mutation means the lockstep never reaches a cast or a
 // damage event the qualifiers shape.
 func TestSingleTargetTriggerMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runTrigsingletarget(t, 16, true)
 	if divs == 0 {
 		t.Fatalf("mutation inverted both single-target checks in %d games with no divergence", games)

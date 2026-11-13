@@ -16,6 +16,9 @@ func TestEchoFadingLowering(t *testing.T) {
 		"Cradle Guard":     {"cond=EchoOwed()", "Cumulative B=1 C=2", "UnlessPaid obj=You A=1 B=8192 CS=Mana skip=1", "Sacrifice obj=You A=1 F={types=0x0 Self}"},
 		"Mogg War Marshal": {"cond=EchoOwed()", "UnlessPaid obj=You A=1 B=512 CS=Mana skip=1"},
 		"Avalanche Riders": {"cond=EchoOwed()", "UnlessPaid obj=You A=3 B=512 CS=Mana skip=1"},
+		"Deepcavern Imp":   {"cond=EchoOwed()", "Cumulative B=1 C=2", "UnlessPaid obj=You A=1 CS=Discard skip=1", "Sacrifice obj=You A=1 F={types=0x0 Self}"},
+		"Rakdos Headliner": {"cond=EchoOwed()", "Cumulative B=1 C=2", "UnlessPaid obj=You A=1 CS=Discard skip=1", "Sacrifice obj=You A=1 F={types=0x0 Self}"},
+		"Skizzik Surger":   {"cond=EchoOwed()", "Cumulative B=1 C=2", "UnlessPaid obj=You A=2 CS=Sacrifice F={types=0x1 ctrl=1} skip=1", "Sacrifice obj=You A=1 F={types=0x0 Self}"},
 		"Blastoderm": {"EnterWithCounters obj=Replaced A=3 CS=FADE", "Sacrifice obj=You A=1 F={types=0x0 Self}",
 			"RemoveCounter obj=Self A=1 CS=FADE"},
 	}
@@ -61,11 +64,13 @@ func TestEchoGateFiresOnly(t *testing.T) {
 	}
 }
 
-// TestEchoRefusesOtherCosts: an echo cost that is not plain mana stays refused
-// by name, never read as a mana one: {X} (Volcano Hellion), a discard (Deepcavern Imp) and a sacrifice of lands (Skizzik Surger).
+// TestEchoRefusesOtherCosts: an echo cost that is not a plain mana cost, a
+// default discard or a land sacrifice stays refused by name, never read as a
+// mana one: {X} (Volcano Hellion). The action costs lower (Deepcavern Imp,
+// Rakdos Headliner, Skizzik Surger); Pouncing Jaguar's plain {G} lowers.
 func TestEchoRefusesOtherCosts(t *testing.T) {
 	refused := map[string]bool{}
-	for _, name := range []string{"Volcano Hellion", "Pouncing Jaguar", "Skizzik Surger", "Deepcavern Imp"} {
+	for _, name := range []string{"Volcano Hellion", "Pouncing Jaguar", "Skizzik Surger", "Deepcavern Imp", "Rakdos Headliner"} {
 		for _, c := range lowerNamed(t, []string{name}) {
 			for _, r := range c.Refusals {
 				if strings.Contains(r.Reason, "echo cost") {
@@ -77,8 +82,8 @@ func TestEchoRefusesOtherCosts(t *testing.T) {
 	if !refused["Volcano Hellion"] {
 		t.Errorf("Volcano Hellion's {X} echo should refuse by name; refusals: %v", refused)
 	}
-	if !refused["Skizzik Surger"] || !refused["Deepcavern Imp"] {
-		t.Errorf("the discard and sacrifice echo costs should refuse by name; refusals: %v", refused)
+	if refused["Skizzik Surger"] || refused["Deepcavern Imp"] || refused["Rakdos Headliner"] {
+		t.Errorf("the discard and land-sacrifice echo costs should lower; refusals: %v", refused)
 	}
 	if refused["Pouncing Jaguar"] {
 		t.Errorf("Pouncing Jaguar's plain {G} echo should lower")

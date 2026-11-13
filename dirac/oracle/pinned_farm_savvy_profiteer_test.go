@@ -17,6 +17,9 @@ import (
 // deals its recorded hands at its seed. It reaches Savvy Profiteer on the
 // battlefield and a token copy entering attacking, and must replay clean.
 func TestPinnedFarmSavvyProfiteer(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	pinnedGames(t, "std-trk", Config{GorgeAutopaySurface: true}, onBattlefield("Savvy Profiteer"), copyTokenAttacking)
 }
 
