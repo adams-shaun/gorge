@@ -367,6 +367,7 @@ ExDilemmasFaced	ExprKind	239
 ExDiscardedThisTurn	ExprKind	241
 ExDistinctCMC	ExprKind	6
 ExDmgAmountReceived	ExprKind	219
+ExDmgOppsTaken	ExprKind	66
 ExDrawnThisTurn	ExprKind	40
 ExEnergyOf	ExprKind	63
 ExExcessDamage	ExprKind	21
@@ -603,6 +604,8 @@ KwHexproofFromInstants	KwMask	16777216
 KwIndestructible	KwMask	8192
 KwKicker	KwMask	2097152
 KwLifelink	KwMask	32
+KwMarkInfect	untyped int	2
+KwMarkIntimidate	untyped int	1
 KwMenace	KwMask	512
 KwPreventCombatDamageFrom	KwMask	536870912
 KwPreventCombatDamageTo	KwMask	134217728

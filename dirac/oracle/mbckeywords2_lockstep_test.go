@@ -29,7 +29,7 @@ var mbcKw2GrantDeck = []cardset.Entry{
 var mbcKw2RedDeck = []cardset.Entry{
 	{Name: "Raging Goblin", Count: 4}, {Name: "Goblin Piker", Count: 4},
 	{Name: "Shock", Count: 4}, {Name: "Ornithopter", Count: 4},
-	{Name: "Raging Goblin", Count: 4}, {Name: "Goblin Piker", Count: 4},
+	{Name: "Blood Ogre", Count: 4}, {Name: "Gorehorn Minotaurs", Count: 4},
 	{Name: "Mountain", Count: 16},
 }
 
@@ -37,14 +37,20 @@ var mbcKw2RedDeck = []cardset.Entry{
 var mbcKw2Cards = map[string]bool{
 	"Tainted Strike": true, "Vector Asp": true, "Phyresis": true, "Vow of Malice": true,
 	"Bellowing Tanglewurm": true, "Hideous Visage": true,
+	"Blood Ogre": true, "Gorehorn Minotaurs": true,
 }
+
+// mbcKw2Bloodthirsty are the printed-bloodthirst carriers.
+var mbcKw2Bloodthirsty = map[string]bool{"Blood Ogre": true, "Gorehorn Minotaurs": true}
 
 // TestMBCKeywords2Lowers plays the family's fixture pool in lockstep (both
 // seatings, both option surfaces) and asserts each spelling was reached on
 // the gorge side, so its decisions were compared: infect (a player got a
-// poison counter: only a granted infect gives one here) and intimidate (a
+// poison counter: only a granted infect gives one here), intimidate (a
 // declare-blockers decision with an attacker gorge derives intimidate for,
-// the defender holding a creature it restricts).
+// the defender holding a creature it restricts) and bloodthirst (a carrier
+// on the battlefield with +1/+1 counters, the gate open, and one without,
+// the gate shut: nothing else in the pool puts +1/+1 counters).
 func TestMBCKeywords2Lowers(t *testing.T) {
 	t.Parallel()
 	matchups := []fixtureDecks{{mbcKw2GrantDeck, mbcKw2RedDeck}, {mbcKw2RedDeck, mbcKw2GrantDeck}}
@@ -57,7 +63,7 @@ func TestMBCKeywords2Lowers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	poisoned, intimidating := 0, 0
+	poisoned, intimidating, fed, starved := 0, 0, 0, 0
 	casts := map[string]int{}
 	const seeds = 60
 	for seed := uint64(1); seed <= seeds; seed++ {
@@ -94,7 +100,7 @@ func TestMBCKeywords2Lowers(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		gamePoison, gameIntim := false, false
+		gamePoison, gameIntim, gameFed, gameStarved := false, false, false, false
 		res := LockstepLed(m, seed, g, k, fixtureWatchPolicy(seed, mbcKw2Cards, casts), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 30,
 			Check: func(ref *GorgeSide, _ Side) *Divergence {
 				if ref.E == nil {
@@ -102,6 +108,8 @@ func TestMBCKeywords2Lowers(t *testing.T) {
 				}
 				gamePoison = gamePoison || mbcKw2Poisoned(ref.E.G)
 				gameIntim = gameIntim || mbcKw2IntimidateBlock(ref)
+				f, st := mbcKw2Bloodthirst(ref.E.G)
+				gameFed, gameStarved = gameFed || f, gameStarved || st
 				return nil
 			}})
 		CloseSide(k)
@@ -110,6 +118,12 @@ func TestMBCKeywords2Lowers(t *testing.T) {
 		}
 		if gameIntim {
 			intimidating++
+		}
+		if gameFed {
+			fed++
+		}
+		if gameStarved {
+			starved++
 		}
 		if err := unmodelledStallError(t.Name(), &res); err != nil {
 			t.Errorf("seed %d: %v", seed, err)
@@ -129,12 +143,16 @@ func TestMBCKeywords2Lowers(t *testing.T) {
 	if intimidating == 0 {
 		t.Error("precondition: intimidate: no blocker declaration faced an attacker with a granted intimidate")
 	}
+	if fed == 0 || starved == 0 {
+		t.Errorf("precondition: bloodthirst: %d games with a fed carrier, %d with a starved one: both gates must be reached", fed, starved)
+	}
 	for n := range mbcKw2Cards {
 		if casts[n] == 0 {
 			t.Errorf("%s: never cast in %d seeds", n, seeds)
 		}
 	}
-	t.Logf("mbckw2: %d games with poison, %d with an intimidate attacker facing blockers; casts %v", poisoned, intimidating, casts)
+	t.Logf("mbckw2: %d games with poison, %d with an intimidate attacker facing blockers, %d with a fed and %d with a starved bloodthirst carrier; casts %v",
+		poisoned, intimidating, fed, starved, casts)
 }
 
 // mbcKw2Poisoned: some player has a poison counter.
@@ -183,4 +201,27 @@ func mbcKw2Battlefield(g *state.Game) []state.ObjID {
 		out = append(out, g.Zone(state.ZBattlefield, state.PlayerID(i))...)
 	}
 	return out
+}
+
+// mbcKw2Bloodthirst reports a bloodthirst carrier on the battlefield with
+// +1/+1 counters (fed) and one without (starved).
+func mbcKw2Bloodthirst(g *state.Game) (fed, starved bool) {
+	for _, id := range mbcKw2Battlefield(g) {
+		o := g.Obj(id)
+		if o == nil || o.Card == nil || len(o.Card.Faces) == 0 || !mbcKw2Bloodthirsty[o.Card.Faces[0].Name] {
+			continue
+		}
+		n := int32(0)
+		for _, c := range o.Counters {
+			if c.Kind == "P1P1" {
+				n += c.N
+			}
+		}
+		if n > 0 {
+			fed = true
+		} else {
+			starved = true
+		}
+	}
+	return fed, starved
 }

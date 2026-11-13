@@ -124,6 +124,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Enchant":                  "CardDef.Enchant (the Aura's target spec)",
 	"etbCounter":               "an enters-with-counters replacement (ability)",
 	"Sunburst":                 "an enters-with-counters replacement (ability; gorge kwSunburst's Count$Converge counters)",
+	"Bloodthirst":              "an enters-with-counters replacement gated on, or counting, ExDmgOppsTaken (gorge bloodthirstEntryMatch's synthetic Moved replacement; kgen lower_bloodthirst.go), no battlefield characteristic",
 	"ETBReplacement":           "an as-enters replacement (ability)",
 	"MayEffectFromOpeningHand": "CardDef.Leyline",
 	"Crew":                     "an activated ability with a CostTapPower cost (gorge kwCrew's expansion; C6)",

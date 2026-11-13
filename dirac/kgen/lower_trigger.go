@@ -3304,8 +3304,9 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 			// gorge replacementMatches: splitCompare/applyCompare on the
 			// value; read only for the converge count (Steel Exemplar),
 			// every other SVarCompare$ stays unread; the
-			// spend too (Freestrider Commando's EQ0)
-			if cmp, ok := rp.m["SVarCompare"]; ok && (v.Kind == vConverge || v.Kind == vCastManaSpent) {
+			// spend too (Freestrider Commando's EQ0), and bloodthirst's GT0
+			// (lower_bloodthirst.go)
+			if cmp, ok := rp.m["SVarCompare"]; ok && (v.Kind == vConverge || v.Kind == vCastManaSpent || v.Kind == vDmgOppsTaken) {
 				rp.used["SVarCompare"] = true
 				op, b, err := lc.cmpSpec(cmp)
 				if err != nil {

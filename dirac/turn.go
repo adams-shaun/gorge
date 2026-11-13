@@ -101,6 +101,7 @@ func (s *State) beginTurn(p uint8) {
 			pl.disc = 0
 		}
 	}
+	s.dmgTakenNewTurn() // gorge DamageTakenThisTurn folds back to the last TurnChange (kw_bloodthirst.go)
 }
 
 // openPriority starts the step's priority round.

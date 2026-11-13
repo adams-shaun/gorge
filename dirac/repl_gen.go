@@ -765,6 +765,7 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 	}
 	if ro.askD == NoSlot {
 		s.noteCmdDamage(ro.askS, ro.apl, n)
+		s.noteDmgTaken(ro.apl, n) // kw_bloodthirst.go
 		s.loseLife(k, ro.apl, n)
 	} else if sl := ro.askD; s.occ.has(sl) {
 		p := &s.perms[sl]
@@ -814,6 +815,7 @@ func (s *State) dealCombatEvent(k *prep, r *dmgRec, i int, fe *fzEv) int {
 	}
 	if ev.dst == NoSlot {
 		s.noteCmdDamage(ev.src, CodeSeat(src.atk), n)
+		s.noteDmgTaken(CodeSeat(src.atk), n) // kw_bloodthirst.go
 		s.loseLife(k, CodeSeat(src.atk), n)
 	} else {
 		sl := ev.dst
@@ -1206,6 +1208,7 @@ func (s *State) dealNC(k *prep) {
 	}
 	code := nc.code
 	if isPlayerOrNone(code) {
+		s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
 		s.loseLife(k, CodeSeat(code), n)
 	} else {
 		ob := &s.objs[code]

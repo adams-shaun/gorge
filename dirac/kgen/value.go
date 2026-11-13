@@ -1146,6 +1146,10 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lValue{Kind: vYourExtraTurns}, nil // gorge ExtraTurnsBegun
 	case "LifeOppsLostThisTurn":
 		return lValue{Kind: vOppLifeLostThisTurn}, nil
+	case "DamageOppsTakenThisTurn":
+		// gorge count_body_paid.go: the damage the living opponents were
+		// dealt this turn (bloodthirst's reader, lower_bloodthirst.go)
+		return lValue{Kind: vDmgOppsTaken}, nil
 	case "RememberedSize":
 		return lValue{Kind: vRememberedCount}, nil
 	case "RememberedNumber":

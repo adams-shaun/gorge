@@ -2387,6 +2387,7 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int, park bool) bool 
 			continue
 		}
 		if isPlayerOrNone(code) {
+			s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
 			if inf {
 				s.addPoison(CodeSeat(code), n) // CR 702.90b
 			} else {

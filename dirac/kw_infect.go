@@ -145,6 +145,7 @@ func (s *State) infectCounters(k *prep, sl Slot, n int) {
 func (s *State) infectDamageTo(k *prep, code uint8, n int, kw kop.KwMask) {
 	e := &s.res.e
 	if isPlayerOrNone(code) {
+		s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
 		s.addPoison(CodeSeat(code), n)
 	} else {
 		ob := &s.objs[code]
