@@ -1293,9 +1293,9 @@ func (m *Model) Loss(ex Example, lc LossConfig) StepStat {
 
 // valueTermOn reports whether ex trains the value head under lc, and its
 // target. A K-way head trains no value term yet (the vector head's loss and
-// backward are out of scope — the trainer change is four-yay J4): the guard
-// also keeps backValue, which descends the scalar output blocks, off a
-// model whose scalar blocks are inert (ValueK's doc).
+// backward are the queued trainer ticket, not this change): the guard also
+// keeps backValue, which descends the scalar output blocks, off a model
+// whose scalar blocks are inert (ValueK's doc).
 func (m *Model) valueTermOn(lc LossConfig, ex Example) (float64, bool) {
 	if lc.ValueWeight == 0 || !m.HasValue() || m.ValueK > 0 {
 		return 0, false
