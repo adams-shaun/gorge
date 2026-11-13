@@ -3038,6 +3038,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			ki.C, ki.B = int16(kop.RefEachOpponent), kop.Const(1)
 			break
 		}
+		if in.CS == "defending" {
+			// the Attacks trigger's defending player (lower_damagesourceplayers.go):
+			// the player mode over RefDefendingPlayer (dirac eachPlayers -> oneOpp)
+			ki.C, ki.B = int16(kop.RefDefendingPlayer), kop.Const(1)
+			break
+		}
 		if in.CS == "anytgt" {
 			// the slot may name a player or a permanent (lower_damagesourceplayers.go)
 			r, err := cb.ref(lRef{Kind: rTarget, N: in.C})
@@ -4040,6 +4046,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "BlocksIfAble":
 		// OpExt ExtBlocksIfAble, Obj the target that blocks this turn if able
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtBlocksIfAble))
+	case "RemoveFromCombat":
+		// OpExt ExtRemoveFromCombat, Obj the one object removed (lower_removefromcombat.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRemoveFromCombat))
 	case "MustBeBlocked":
 		// OpExt ExtMustBeBlocked, Obj the subject (RefNone
 		// with F: every battlefield permanent matching F)

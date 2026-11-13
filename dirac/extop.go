@@ -144,6 +144,11 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtBlocksIfAble:
 		s.blocksIfAbleExt(k, in) // combat_blocksifable.go
 		return true, true
+	case kop.ExtRemoveFromCombat:
+		if sl := s.objRef(k, in.Obj); sl != NoSlot {
+			s.leaveCombat(sl) // combat_noncreature.go
+		}
+		return true, true
 	case kop.ExtClearImprinted:
 		s.g.nimp = 0
 		return true, true

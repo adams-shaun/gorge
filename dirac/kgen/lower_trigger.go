@@ -228,6 +228,12 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// no arena designation bit
 			return refuse("IsSuspected in a battlefield-origin ChangesZone ValidCard$")
 		}
+		if tr.Origin == zBattlefield && filterReadsNotBlocking(tr.F) {
+			// gorge matches a leave on the LKI, where isBlocking reads the
+			// live object's record and the attackers' BlockedBy lists; the
+			// kernel's off-battlefield W7NotBlocking always holds
+			return refuse("!blocking in a battlefield-origin ChangesZone ValidCard$")
+		}
 		if tc, ok := tp.get("TriggerController"); ok && tc != "TriggeredCardController" {
 			return refuse("TriggerController %q", tc)
 		}

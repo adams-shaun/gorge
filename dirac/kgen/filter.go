@@ -1003,6 +1003,11 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		if w == "BottomLibrary" {
 			return c.setCmp(cmpWord7, 0, int(kop.W7NotBottomLibrary), "", "") // lower_filterwords.go
 		}
+		if w == "blocking" {
+			// gorge's '!' of isBlocking (kop.W7NotBlocking: FilterFlags
+			// has no bit left for an FNotBlocking beside FNotAttacking)
+			return c.setCmp(cmpWord7, 0, int(kop.W7NotBlocking), "", "")
+		}
 		if i, ok := notF2Bit(w); ok {
 			return c.setCmp(cmpNotF2, 0, i, "", "") // lower_filterwords.go
 		}

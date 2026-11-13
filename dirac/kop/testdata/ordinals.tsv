@@ -509,6 +509,7 @@ ExtRememberAll	ExtOp	306
 ExtRememberImprinted	ExtOp	307
 ExtRememberSearcher	ExtOp	304
 ExtRemoveCounterAny	ExtOp	3
+ExtRemoveFromCombat	ExtOp	260
 ExtSacDelayed	ExtOp	32
 ExtSearchCounters	ExtOp	252
 ExtSkipPhase	ExtOp	313
@@ -1502,6 +1503,7 @@ W7AttachedTo	int16	19
 W7AttackingAlone	int16	3
 W7AttackingEnchTrig	int16	29
 W7AttackingOpp	int16	7
+W7BlockingTrigObj	int16	31
 W7BottomLibrary	int16	17
 W7CostBlue	int16	14
 W7CrewedBySrc	int16	13
@@ -1519,6 +1521,7 @@ W7NoAbilities	int16	15
 W7NoName	int16	1
 W7NoNameTwin	int16	9
 W7NoNameTwinGrave	int16	20
+W7NotBlocking	int16	30
 W7NotBottomLibrary	int16	18
 W7NotChosenType	int16	6
 W7SharesCrTrigObj	int16	21

@@ -1,0 +1,18 @@
+# the combat-2 spelling family (dirac/oracle/mbc_combat2_test.go):
+# blockingTriggeredAttacker (General Marhault Elsdragon, Spined Sliver),
+# a TriggeredDefender damage from an equipped attacker (Mage Slayer),
+# !blocking (Intrepid Ace, Unlikely Alliance) and RemoveFromCombat
+# (Reconnaissance, Gustcloak Sentinel, Gustcloak Runner)
+General Marhault Elsdragon
+Mage Slayer
+Intrepid Ace
+Spined Sliver
+Grizzly Bears
+Reconnaissance
+Gustcloak Sentinel
+Gustcloak Runner
+Unlikely Alliance
+Savannah Lions
+Mountain
+Forest
+Plains

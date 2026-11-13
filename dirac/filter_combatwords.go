@@ -267,7 +267,11 @@ func (s *State) noteCrewPick(k *prep, sl Slot) {
 func (s *State) execMcombat(k *prep, in *kop.Instr) (ok, done bool) {
 	switch in.Op {
 	case kop.OpAtkPWGuard:
-		if sl := s.objRef(k, kop.RefTriggerObj); sl == NoSlot || isObjTarget(s.perms[sl].atk) {
+		// the attacker attacks a planeswalker or battle, or is gone; or
+		// it attacks the trigger's own controller, whom gorge's
+		// TriggeredDefender.Opponent names nobody for (an attacker the
+		// controller does not control: Mage Slayer on a stolen creature)
+		if sl := s.objRef(k, kop.RefTriggerObj); sl == NoSlot || isObjTarget(s.perms[sl].atk) || s.atkSeat(k, sl) == s.res.e.ctrl {
 			s.capFull(StallDefenderPW)
 		}
 	default:
