@@ -30,7 +30,7 @@ func TestBotDeclarationStopsAtTurnBoundary(t *testing.T) {
 	var d dirac.Decision
 	for i, a := range script {
 		s.StepInto(&d)
-		want := twoSeatPlayerCode(dirac.Action(a))
+		want := twoSeatAction(a)
 		offered := false
 		for j := 0; j < int(d.N); j++ {
 			if d.Options[j] == want {
@@ -399,12 +399,23 @@ func TestDeclarerLazyPriors(t *testing.T) {
 	}
 }
 
-// twoSeatPlayerCode rewrites a scripted action's player target code, written
-// as the two-seat build numbers it (PlayerTarget0 0xFC, a seat per code), to
-// this build's: the seat count moves PlayerTarget0.
-func twoSeatPlayerCode(a dirac.Action) dirac.Action {
-	if t := a.Target(); t == 0xFC || t == 0xFD {
-		return a&^0xFF00 | dirac.Action(dirac.PlayerTarget0+t-0xFC)<<8
+// twoSeatAction builds this build's Action from a scripted action written as
+// the two-seat build packs it (kind<<24 | source<<16 | target<<8 | mode, a
+// byte a code, StackTarget0 0xEC, PlayerTarget0 0xFC): the four-seat class
+// packs sixteen-bit codes and moves the stack and player codes.
+func twoSeatAction(a uint32) dirac.Action {
+	code := func(c uint32) dirac.TCode {
+		switch {
+		case c < 0xEC:
+			return dirac.TCode(c)
+		case c < 0xFC:
+			return dirac.StackTarget0 + dirac.TCode(c-0xEC)
+		case c == 0xFE:
+			return dirac.StackTargetGone
+		case c == 0xFF:
+			return dirac.NoTarget
+		}
+		return dirac.PlayerTarget0 + dirac.TCode(c-0xFC)
 	}
-	return a
+	return dirac.MakeAction(dirac.ActionKind(a>>24), code(a>>16&0xFF), code(a>>8&0xFF), uint8(a))
 }
