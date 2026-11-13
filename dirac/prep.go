@@ -357,7 +357,7 @@ func prepare(t *kop.Table) *prep {
 						p.ctrMana = true
 						p.ctrAb[i] = int8(j)
 					}
-					if kop.TapXMana(a) || kop.SacXMana(a) { // (a sacrifice-another one is the tap-another search's too)
+					if kop.TapXMana(a) || kop.SacXEachManaAb(a) { // (a sacrifice-another one is the tap-another search's too)
 						p.tapMana = true // (read per card through p.tapXAb, not a pcard field: the hot record stays as it was)
 						p.tapXAb[i] = int8(j)
 					}

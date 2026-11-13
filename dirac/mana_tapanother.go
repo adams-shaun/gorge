@@ -63,7 +63,7 @@ var DebugNoSacXMana bool
 // (kop.SacXEachManaAb: Bolg's Company).
 func (k *prep) sacXOf(c CardID) bool {
 	a := k.tapXAbOf(c)
-	return a != nil && kop.SacXMana(a)
+	return a != nil && kop.SacXEachManaAb(a)
 }
 
 // debugTapXMutate selects a lockstep mutation: 1 = the first colour always
@@ -112,7 +112,7 @@ func (s *State) tapXSources(k *prep, p uint8, cands bool) slotMask {
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
 		a := k.tapXAbOf(s.cardAt(sl))
-		if a == nil || DebugNoSacXMana && kop.SacXMana(a) {
+		if a == nil || DebugNoSacXMana && kop.SacXEachManaAb(a) {
 			continue
 		}
 		pm := &s.perms[sl]
@@ -146,26 +146,7 @@ func (s *State) sacXLive(k *prep, p uint8) bool {
 //go:noinline
 func (s *State) tapXTwoLive(k *prep, p uint8) bool {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
-		if ab := k.tapXAbOf(s.cardAt(b.first())); ab.Cost.Flags&kop.CostTap == 0 && !kop.SacAnyManaAb(ab) {
-			return true
-		}
-	}
-	return false
-}
-
-// tapXSacAnyLive: a no-{T} sacrifice source with a fixed production
-// (kop.SacAnyManaAb: Krark-Clan Ironworks) is activatable now on a board the
-// search models. Like Baylen's, its cost is not once-only, so gorge's census is
-// unrelaxable (a repeatable cost that is not a bounded tap part) and every
-// census-incomplete insufficient play takes a search slot; unlike Baylen's
-// any-colour production, its potential bound is its fixed production once
-// (PotentialMana admits the ability a single time), so the plays searched are
-// the gaps walk's, not every play an open bound would list.
-//
-//go:noinline
-func (s *State) tapXSacAnyLive(k *prep, p uint8) bool {
-	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
-		if kop.SacAnyManaAb(k.tapXAbOf(s.cardAt(b.first()))) {
+		if k.tapXAbOf(s.cardAt(b.first())).Cost.Flags&kop.CostTap == 0 {
 			return true
 		}
 	}
@@ -233,7 +214,7 @@ func (s *State) sacXCands(k *prep, p uint8, sl Slot, ab *kop.Ability, out *[MaxP
 	}
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		x := b.first()
-		if x == sl && !kop.SacAnyManaAb(ab) || spoken.has(x) || !s.matchPerm(k, ab.Cost.Filter, x, p, sl) || s.sacBlocked(k, x) {
+		if x == sl || spoken.has(x) || !s.matchPerm(k, ab.Cost.Filter, x, p, sl) || s.sacBlocked(k, x) {
 			continue
 		}
 		m = m.with(x)
@@ -694,11 +675,9 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 // the queued triggers settle before the next node (as ctrGap's step does).
 func (s *State) sacXDo(k *prep, p uint8, sl, cand Slot) {
 	ab := k.tapXAbOf(s.cardAt(sl))
-	if ab.Cost.Flags&kop.CostTap != 0 { // (Krark-Clan Ironworks has no {T})
-		s.perms[sl].flags |= pfTapped
-		s.touchSl(sl)
-		s.manaTapped(k, sl)
-	}
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	s.manaTapped(k, sl)
 	s.sacFilterSource(k, cand)
 	cols, n := tapXUnit(ab)
 	for col := 0; col < kop.NumManaKinds; col++ {

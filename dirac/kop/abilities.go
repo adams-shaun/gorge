@@ -433,25 +433,6 @@ func SacXEachManaAb(a *Ability) bool {
 		c&^ColAny == 0 && c&(c-1) != 0
 }
 
-// SacAnyManaAb reports whether mana ability a is "Sacrifice a <spec>: Add
-// <one fixed colour>" with no {T} (Krark-Clan Ironworks' "Sacrifice an artifact:
-// Add {C}{C}"): exactly one sacrificed permanent matching Cost.Filter, the
-// source itself among the candidates unless the filter's Other clause leaves
-// it out, no mana, a fixed unrestricted production of one colour ({C} counts),
-// ManaN of it. Its cost is not once-only, so gorge's census is unrelaxable
-// (potential_plan.go paymentPlanRelaxedAlternatives: repeatable and not a
-// bounded tap part); the kernel activates it in the tap-another search
-// (mana_tapanother.go), as it does Bolg's Company.
-func SacAnyManaAb(a *Ability) bool {
-	c := a.ManaColors
-	return a.Kind == AbMana && a.Cost.Flags == CostSac && a.Cost.N == 1 && a.Cost.Filter != 0 && !a.Cost.ExileBf && !a.Cost.DiscardHand &&
-		a.Cost.Mana == (ManaCost{}) && a.ManaRestrict == 0 && !a.ManaEach && a.ManaN >= 1 && c != 0 && c&(c-1) == 0 && a.AFlags == 0 && len(a.Prog) == 0 &&
-		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
-}
-
-// SacXMana is either sacrifice-another-permanent mana shape.
-func SacXMana(a *Ability) bool { return SacXEachManaAb(a) || SacAnyManaAb(a) }
-
 // riderManaCostOK reports whether a's cost is one the kernel's rider
 // activation pays (never a payment witness unit: gorge defers the source):
 //   - a bare {T} (Grove of the Burnwillows' life rider, Twitching Doll's
@@ -540,7 +521,7 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	switch {
 	case plain && (f == CostTap || f == CostTap|CostOncePerGame || f == CostTap|CostSacSelf || f == CostSacSelf):
 		return true
-	case CtrManaAb(a), TapXManaAb(a), TapXManaTwo(a), FilterManaAb(a), SacXEachManaAb(a), SacAnyManaAb(a), SoleLifeManaAb(cd, j), StoreManaAb(a):
+	case CtrManaAb(a), TapXManaAb(a), TapXManaTwo(a), FilterManaAb(a), SacXEachManaAb(a), SoleLifeManaAb(cd, j), StoreManaAb(a):
 		return true
 	case ManaRiderAb(a) && riderManaCostOK(a):
 		return true
