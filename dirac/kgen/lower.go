@@ -3376,6 +3376,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			}
 			ab.ActCond = andCond(ab.ActCond, lCond{Kind: cYourTurn})
 		}
+		if err := lc.activationWindow(ps, sa, ab); err != nil { // lower_actwindow.go
+			return err
+		}
 	default:
 		return refuse("ability kind %s", sa.Kind)
 	}
