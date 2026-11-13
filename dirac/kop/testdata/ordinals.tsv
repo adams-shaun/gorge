@@ -295,6 +295,7 @@ DmgLE	DmgCmp	2
 DmgLT	DmgCmp	6
 DmgMapped	untyped int	4
 DmgNE	DmgCmp	4
+DmgNoPrevention	untyped int	256
 DmgNoRegen	untyped int	32
 DmgNoRegenTarget	untyped int	128
 DmgRemember	untyped int	8
