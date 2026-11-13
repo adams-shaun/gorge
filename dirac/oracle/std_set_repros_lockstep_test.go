@@ -170,7 +170,10 @@ func TestStdTmtReprosLockstep(t *testing.T) {
 		"second_ability_counter_cost_taps_source_for_generic",
 		"second_ability_counter_gap_tries_plain_ability_first",
 		"entry_body_rider_own_counter_replacement_excluded",
-		"attach_triggered_card_moved_skips_ninja")
+		"attach_triggered_card_moved_skips_ninja",
+		// CR 603.10, 608.2h: a triggered cost's X read over the triggering
+		// card after it left the battlefield is its last-known power there.
+		"trigger_cost_x_reads_departed_lki")
 }
 
 // std-dsk's, on the same terms (this one recorded on the full surface).

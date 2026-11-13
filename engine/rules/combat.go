@@ -790,9 +790,9 @@ func attackedCreature(o decision.Option) state.ObjID {
 //
 // A creature is required when its combat.RequirementSet is non-empty (an
 // encore designation, any applicable Effect-registered or face Mode$
-// MustAttack static, or a live goad) AND at least one offered pair actually
-// DISCHARGES one of those duties (attackDutyDischargeable) -- CR 508.1d's
-// "attacks if able". The requirement set
+// MustAttack static, or a live goad) AND at least one offered pair that
+// costs nothing to declare actually DISCHARGES one of those duties
+// (attackDutyDischargeable) -- CR 508.1d's "attacks if able". The requirement set
 // is the board-wide collection (which includes the creature's own face,
 // source-bound through the same specCtx the face walk used), so an
 // AURA-carried requirement -- Fealty to the Realm's `S:Mode$ MustAttack |
@@ -831,13 +831,19 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 }
 
 // attackDutyDischargeable reports whether creature id has at least one
-// offered (attacker, defender) pair that actually DISCHARGES a requirement in
-// s. It is the "if able" half of CR 508.1d read as a duty, not merely as the
-// existence of some legal pair.
+// offered (attacker, defender) pair that costs nothing to declare and
+// actually DISCHARGES a requirement in s. It is the "if able" half of CR
+// 508.1d read as a duty, not merely as the existence of some legal pair --
+// read together with CR 508.1d's last sentence: a player is never required to
+// pay a cost to attack, even to obey a requirement. A pair whose charge is
+// nonzero (a Ghostly Prison, a Propaganda, a Phyrexian attack tax) therefore
+// never discharges a duty and never makes the creature required: declaring it
+// is always the controller's choice, and the no-attack declaration stays
+// legal.
 //
 // A BROAD requirement (an unconditional Mode$ MustAttack) is discharged by
-// any surviving pair. A goad requires a surviving PLAYER pair; only then is
-// attacking mandatory. A NAMED
+// any surviving free pair. A goad requires a surviving free PLAYER pair; only
+// then is attacking mandatory. A NAMED
 // requirement names its defender, so only a pair against that player
 // discharges it: when every such pair is gone -- a CantAttack static or
 // restriction scoped to that one defender, a goad restriction, or an
@@ -860,6 +866,11 @@ func (e *Engine) attackDutyDischargeable(id state.ObjID, s combat.RequirementSet
 	anyPair := false
 	for _, of := range e.attackOffers() {
 		if of.id != id {
+			continue
+		}
+		// CR 508.1d's last sentence: paying an attack cost is never required,
+		// so a charged pair neither discharges a duty nor makes id required.
+		if !of.charge.zero() {
 			continue
 		}
 		if s.SatisfiedByOffer(of.def, of.battle) > 0 {

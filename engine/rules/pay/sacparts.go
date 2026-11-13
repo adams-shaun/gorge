@@ -448,10 +448,38 @@ func PaymentPlanProducedExactly(e Engine, p state.PlayerID, from int, want decis
 // (manaDiscardActivation) sacrifices it without a further ask. Any other Sac
 // shape (multi-part, overlapping, multiple candidates) is refused.
 func CastWindowSelfSacCost(e Engine, p state.PlayerID, source state.ObjID, c costvocab.Cost) bool {
+	if c.Generic != 0 || c.Colored != (state.Mana{}) {
+		return false
+	}
+	return castWindowSelfSacOnly(e, p, source, c)
+}
+
+// CastWindowSelfSacFeeCost is CastWindowSelfSacCost for a source whose
+// activation also charges a literal mana fee -- generic, coloured, or both
+// ("{1}, {T}, Sacrifice this artifact: Add one mana of any color", Omni-Cheese
+// Pizza): the CR 601.2g cast window funds the fee from mana it has already
+// accumulated before activating, so the shape is one deterministic activation.
+// The fee is paid from the window's mana, the same way castWindowGenericCostShape
+// prices a fee on a source it keeps. The shared paid-cost census keeps refusing
+// the shape (CastWindowSelfSacCost): its readers cannot fund a fee from floating
+// mana, so only the cast window's own probe (cast_window.go's
+// castWindowProbeUnits) asks this one. Any other cost part is still refused by
+// CastWindowOtherPartsAbsent, and the sacrifice must still be the source alone.
+func CastWindowSelfSacFeeCost(e Engine, p state.PlayerID, source state.ObjID, c costvocab.Cost) bool {
+	if c.Generic == 0 && c.Colored == (state.Mana{}) {
+		return false
+	}
+	return castWindowSelfSacOnly(e, p, source, c)
+}
+
+// castWindowSelfSacOnly is the shared body of the two self-sacrifice shapes:
+// one Sac<1/CARDNAME> whose only matching permanent is the source, beside no
+// cost part the window does not price.
+func castWindowSelfSacOnly(e Engine, p state.PlayerID, source state.ObjID, c costvocab.Cost) bool {
 	if len(c.Sac) != 1 || c.Sac[0].N != 1 || !strings.EqualFold(SacrificeMatchSpec(c.Sac[0].Spec), "CARDNAME") {
 		return false
 	}
-	if c.Generic != 0 || c.Life != 0 || c.Colored != (state.Mana{}) || !CastWindowOtherPartsAbsent(c) {
+	if c.Life != 0 || !CastWindowOtherPartsAbsent(c) {
 		return false
 	}
 	n := 0

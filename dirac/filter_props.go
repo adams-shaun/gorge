@@ -392,6 +392,9 @@ func (s *State) exileCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, se
 		pl := &s.pl[pp]
 		for i := 0; i < int(pl.exileN); i++ {
 			o := pl.exile[i]
+			if uint8(o)+1 == s.g.tgtSelf {
+				continue
+			}
 			if s.targetOK(k, t, p, src, self, uint8(o)) && n < MaxOptions-1 {
 				out[n] = uint8(o)
 				n++

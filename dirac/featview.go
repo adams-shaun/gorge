@@ -623,7 +623,7 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 	if k.gen != nil && (s.g.mayPlayAny || mode&castMayPlay != 0 && s.mayPlayAnyType(k, p, o) || s.convAnyType(k, p&1, o)) {
 		cost = anyTypePips(cost) // gorge's planner funds these pips as generic (pay.PlanManaUnderRider)
 	}
-	if lifted && !s.improviseSourcesPay(k, p, reserved, &cost) {
+	if lifted && !s.improviseSourcesPay(k, p, o, reserved, &cost) {
 		return kop.ManaCost{}, false // "cost:credit": the greedy credit is no proof, the manual window pays
 	}
 	return cost, true
@@ -818,6 +818,7 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet) {
 		if pc.manaOne {
 			s.addOneColour(av, pc.manaN)
 		}
+		s.addReflectOne(k, av, sl, pc)
 		if k.gen.anyTapExtra {
 			xv := s.srcExtra(k, sl, pc) // the planner prices a tap's extra too
 			for c := range xv {

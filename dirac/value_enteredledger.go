@@ -132,10 +132,12 @@ func (s *State) enteredReferenced(o Obj) bool {
 //     Card and gated on the entry's WasCreature bit;
 //   - every other entry is matched against the destination zone, and a copy
 //     that is neither on the stack nor on the battlefield has ceased to
-//     exist (CR 707.10h) and matches nothing;
+//     exist (CR 707.10h) and matches nothing there -- a battlefield
+//     DESTINATION is not "there": the entry proves the copy was a permanent;
 //   - dest=Battlefield matches the live permanent when the object is still
 //     there; otherwise it matches the card form, where the Permanent base
 //     means a permanent CARD (printed permanent type), not a live permanent.
+//     A copy that entered and has since ceased still matches its card form.
 //
 // Prop sums the face value plus P/T counter deltas (counters exist only on
 // the battlefield) or the mana value.
@@ -196,13 +198,16 @@ func (s *State) thisTurnEntered(k *prep, x *kop.Expr, ctx evalCtx) int {
 }
 
 // matchBattlefieldEntry matches a dest=Battlefield entry: the live permanent while the
-// object is still there, else its card form.
+// object is still there, else its card form. The entry itself proves the object
+// was a permanent on the battlefield, so a copy that has since ceased still
+// matches its card form; CR 707.10h's rejection is for an off-battlefield
+// destination, applied by thisTurnEntered's other branch.
 func (s *State) matchBattlefieldEntry(k *prep, perm, card kop.FilterID, e *zoneEntry, ctx evalCtx) bool {
 	ob := &s.objs[e.o]
 	if ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot {
 		return s.matchPermGen(k, perm, ob.slot, ctx.ctrl, ctx.srcSl, layerFull)
 	}
-	return !s.ceasedCopy(ob) && s.matchCardEntered(k, card, ob.card, ob.owner(), ctx.ctrl, e.o, ctx.src)
+	return s.matchCardEntered(k, card, ob.card, ob.owner(), ctx.ctrl, e.o, ctx.src)
 }
 
 // DebugEnteredLive is the mutation test's switch: it makes thisTurnEntered

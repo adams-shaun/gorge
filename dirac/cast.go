@@ -2501,7 +2501,9 @@ func (s *State) altAddPayable(k *prep, part uint8) bool {
 	c := s.buildCost(k)
 	s.bld().altAdd = saved
 	// the restricted sources the payment may spend (CR 106.6): gorge's window prices them
-	return av.affords(&c, pipMaskOf(&c), 0) || k.restrSrc && s.restrSrcAffords(k, e.ctrl, s.payDescNow(NoObj), &c, &av, NoSlot, 0)
+	// and the filters the window activates, each paying its fee from the other mana (CR 601.2g-h)
+	return av.affords(&c, pipMaskOf(&c), 0) || k.restrSrc && s.restrSrcAffords(k, e.ctrl, s.payDescNow(NoObj), &c, &av, NoSlot, 0) ||
+		k.gen != nil && k.gen.anyFilt && s.faceReachable(k, e.ctrl, &av, &c, 0)
 }
 
 // altAddPickPayable: the part's costs that are no mana (a discard, a sacrifice,

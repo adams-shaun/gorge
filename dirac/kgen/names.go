@@ -54,7 +54,7 @@ func init() {
 		"kop.RefTargets012", kop.RefTargets012, "kop.RefTargets12", kop.RefTargets12, "kop.RefTargets0123", kop.RefTargets0123,
 		"kop.RefRememberedController", kop.RefRememberedController, "kop.RefDiscarded", kop.RefDiscarded, "kop.RefTgtCtrl1", kop.RefTgtCtrl1, "kop.RefTgtCtrl2", kop.RefTgtCtrl2, "kop.RefLibTop", kop.RefLibTop,
 		"kop.RefOppNonRemCtrl", kop.RefOppNonRemCtrl, "kop.RefSrcOwner", kop.RefSrcOwner, "kop.RefPromised", kop.RefPromised, "kop.RefTriggerAttackers", kop.RefTriggerAttackers,
-		"kop.RefRememberedOwner", kop.RefRememberedOwner, "kop.RefImprinted", kop.RefImprinted, "kop.RefTriggerTgtCtrl", kop.RefTriggerTgtCtrl, "kop.RefAttachedCtrl", kop.RefAttachedCtrl)
+		"kop.RefRememberedOwner", kop.RefRememberedOwner, "kop.RefImprinted", kop.RefImprinted, "kop.RefTriggerTgtCtrl", kop.RefTriggerTgtCtrl, "kop.RefAttachedCtrl", kop.RefAttachedCtrl, "kop.RefTaxedAttacker", kop.RefTaxedAttacker)
 	enum[kop.VKind]("kop.VConst", kop.VConst, "kop.VX", kop.VX, "kop.VCountFilter", kop.VCountFilter,
 		"kop.VLastDamage", kop.VLastDamage, "kop.VTargetPower", kop.VTargetPower, "kop.VSelfPower", kop.VSelfPower,
 		"kop.VCountersSelf", kop.VCountersSelf, "kop.VCardsInHand", kop.VCardsInHand, "kop.VTriggerAmount", kop.VTriggerAmount,

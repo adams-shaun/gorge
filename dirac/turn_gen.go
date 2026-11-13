@@ -724,6 +724,7 @@ func (s *State) cleanupGen(k *prep) {
 			r.until == kop.DurWarp && s.warpRecastLive(r) ||
 			r.until == kop.DurAirbend && s.warpRecastLive(r) ||
 			r.until == kop.DurPlot && s.plotLive(r) ||
+			r.until == kop.DurSuspend && s.suspendLive(r) || // a suspended card stays while exiled, its haste while it stays (kw_suspend.go)
 			r.until == kop.DurForetell && s.plotLive(r) ||
 			r.until == kop.DurPrepared && s.preparedSrc(r) ||
 			r.dur() == kop.DurWhileSrcMay && s.mayWhileSrcKeep(r) || // cast_whilesource.go
@@ -951,6 +952,9 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 	if k.gen.anyBattle && s.g.nmay > 0 && s.defeatPosedOptions(d) {
 		return true
 	}
+	if k.gen.anySuspend && s.g.nmay > 0 && s.suspendPosedOptions(d) {
+		return true
+	}
 	if s.entryAsked(k) {
 		s.entryOrderOptions(k, d)
 		return true
@@ -1041,6 +1045,9 @@ func (s *State) applyGen(k *prep, a Action) {
 	if k.gen.anyBattle && s.g.nmay > 0 && s.applyDefeat(k, a) {
 		return
 	}
+	if k.gen.anySuspend && s.g.nmay > 0 && s.applySuspendAnswer(k, a) {
+		return
+	}
 	if s.entryAsked(k) {
 		s.applyEntryLand(k, a)
 		return
@@ -1092,8 +1099,11 @@ func (s *State) applyGen(k *prep, a Action) {
 			s.resolveTop(k) // the permanent enters with the choice made
 		}
 		// a second pre-ask posed by the resolution (the entry order) stays
-		// posed; otherwise the answered choice is done
-		if s.g.pre.state != 1 {
+		// posed; otherwise the answered choice is done. The CR 616.1
+		// entry-order ask parked the play instead: the answer stays put
+		// (state 2) and the entering program's record body applies it once
+		// the order is picked (repl_entryorder.go, runReplProgAs).
+		if s.g.pre.state != 1 && !s.entryAsked(k) {
 			s.g.pre = preAsk{}
 		}
 		return

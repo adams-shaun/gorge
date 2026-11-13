@@ -248,7 +248,7 @@ import (
 // +12 (the merge with land: the storage-battery abilities above against land's corpus; merged ALL build-level 22971 -> 22983 measured).
 // +24 (mid-resolution ChooseNumber lowers: ChooseNumberMid, with Count$ChosenNumber and the dynamic PayEnergy<X> unless cost; an activated {X} energy cost stays refused rather than losing its amount; merged onto land c70201715c: ALL build-level 23076 -> 23100 measured).
 // -1 (Gilded Light refuses: its until-end-of-turn player shroud lowered to a keyword grant that lands on no permanent; ALL build-level 23105 -> 23104 measured).
-var buildAcceptancePin = [2]int{23138, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{23161, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

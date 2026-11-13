@@ -77,6 +77,9 @@ type payDesc struct {
 	// search, which leaves a tapped source's watcher trigger stacked, can fund
 	// it (restrSrcAffords)
 	instant bool
+	// noPair prices the census alone: a chosen-colour widened pair stays its
+	// census unit (mana_chosenprefix.go)
+	noPair bool
 }
 
 // restrRec is one restricted mana ability of the table: card c's ability
@@ -106,6 +109,10 @@ type restrData struct {
 	// {U}{U}): a tap of it can overpay too, so its unit floats restricted
 	// and the window payment takes payRestrX's route
 	over bool
+	// chosenPair: some record is a chosen-colour widened pair (Sunken
+	// Citadel's {C}{C}), a census gap of gorge's prefix search
+	// (mana_chosenprefix.go)
+	chosenPair bool
 }
 
 // restrSrcAb: a is a plain tap mana ability with a spend restriction that
@@ -160,7 +167,7 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 				// larger type takes the permanent's chosen colour at runtime
 				// (restrPairUnit, srcMaskAt)
 				v.wideN, v.wideCol, v.wideChosen = n, a.ManaColors&kop.ColAny, true
-				g.rs.wide = true
+				g.rs.wide, g.rs.chosenPair = true, true
 			case n > pc.manaN && a.AFlags&kop.AfManaChoice == 0 &&
 				(a.ManaColors&kop.ColAny == kop.ColAny ||
 					!a.ManaEach && oneColour(a.ManaColors&kop.ColAny) && a.ManaColors&kop.ColAny == pc.manaCol&kop.ColAny):
@@ -174,7 +181,7 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 			g.rs.views = append(g.rs.views, v)
 		default:
 			rec.kind = rkExt
-			v := pcard{manaAb: int8(j), manaCol: a.ManaColors, manaN: n, manaTap: true}
+			v := pcard{manaAb: int8(j), manaCol: a.ManaColors, manaN: n, manaTap: true, manaOne: manaOneColour(a, n)}
 			if a.AFlags&kop.AfManaChosen != 0 {
 				v.manaChosen = true
 			}
@@ -558,6 +565,9 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 		}
 		switch kind {
 		case rkWiden:
+			if d.noPair && v.wideChosen {
+				break // the census alone: the pair is no unit of it
+			}
 			t.remove(s.srcMaskAt(own, sl), own.manaN)
 			if v.wideN != 0 && DebugRestrictedSource != 4 {
 				// the larger alternative holds everything the census one
@@ -574,6 +584,9 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 			t.addXv(v)
 		case rkExt:
 			t.addUnits(s.srcMaskAt(v, sl), v.manaN)
+			if v.manaOne {
+				s.addOneColour(&t, v.manaN) // all of it is one colour (Shang-Chi)
+			}
 			t.addXv(v)
 		case rkDyn:
 			if nm == len(multi) {
@@ -709,14 +722,33 @@ func (s *State) filtRestrDo(k *prep, p uint8, st filtStep) {
 // plays the script only when the play stays offered once it has run (gorge.go
 // scriptCompletes).
 func (s *State) filtDeadEnd(k *prep, p uint8, a Action, fs *filtSearch) bool {
-	restr := false
+	restr, passed, sp0 := false, false, s.sp
 	for i := 0; i < fs.n; i++ {
 		restr = restr || fs.path[i].restr
+		switch fs.path[i].other.kind {
+		case otherAnswer, otherPass:
+			passed = true
+		}
 	}
 	t := s.fork()
 	defer s.unfork()
 	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 	t.filtPlay(k, p, fs.path[:fs.n])
+	if !passed {
+		passed = t.npend != 0 || t.sp != sp0 // a step the search settled through (try's npend grew)
+	}
+	if passed {
+		// The search found the play at the node its settle reached: after the
+		// replay's last pass or answer (the Pizza's sacrifice triggering Super
+		// Shredder's leaves-the-battlefield counter) the position is answered
+		// with the trigger still on the stack, where the sorcery gate drops
+		// the play. Settle to p's next decision, as the replay of every other
+		// search's path does (tapXPlay's trailing tapXNext, grantApply's).
+		var settled Decision
+		if !t.tapXNext(p, &settled) {
+			return true // the replay cannot settle: the play is not offered
+		}
+	}
 	var d Decision
 	if !restr {
 		t.restrOptions(k, &d, p)

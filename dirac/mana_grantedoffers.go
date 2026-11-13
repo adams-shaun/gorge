@@ -429,6 +429,7 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 		if pc.manaOne {
 			s.addOneColour(a, pc.manaN)
 		}
+		s.addReflectOne(k, a, sl, pc)
 		if k.gen.anyTapExtra {
 			xv := s.srcExtra(k, sl, pc) // the planner prices a tap's extra too
 			for c := range xv {
@@ -453,7 +454,12 @@ type grantSrch struct {
 	// node (gorge's potentialPlayVerdict -> withWaterbendOfferCredit).
 	full kop.ManaCost
 	dyn  bool
-	ex   Slot // the play's own {T} source (an activation's), never tapped
+	// cheaper: a repriced leaf asked less mana than the root price (a trigger
+	// the path answered moved a card the price reads, Gran-Gran's loot
+	// discarding a Lesson into the graveyard, CR 601.2f): grantCap offers the
+	// walk play the root price refused (grantCostCheaper)
+	cheaper bool
+	ex      Slot // the play's own {T} source (an activation's), never tapped
 	// d is the payment the play makes, read by a granted source's spend
 	// restriction (Mm'menon's Spell.!wasCastFromYourHand): the payment read,
 	// the cast's origin known and the spell on the stack when paid
@@ -679,12 +685,20 @@ func (s *State) tappedOf(p uint8) slotMask {
 	return m
 }
 
-// bfObjKey hashes p's battlefield objects, each with its slot (FNV-1a).
+// bfObjKey hashes p's battlefield objects, each with its slot and counters
+// (FNV-1a): gorge's scriptStateKey lists each permanent's id and counters, so
+// an Army a resolved amass grew is a new payer state though its stack, hand
+// and graveyard sizes are those of an earlier node (CR 701.47a).
 func (s *State) bfObjKey(p uint8) uint64 {
 	h := uint64(14695981039346656037)
 	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
 		sl := b.first()
-		h = (h ^ uint64(sl)<<16 ^ uint64(s.perms[sl].obj)) * 1099511628211
+		pm := &s.perms[sl]
+		h = (h ^ uint64(sl)<<16 ^ uint64(pm.obj)) * 1099511628211
+		h = (h ^ uint64(pm.p1)) * 1099511628211
+		for i := range pm.cn {
+			h = (h ^ uint64(pm.ck[i])<<16 ^ uint64(pm.cn[i])) * 1099511628211
+		}
 	}
 	return h
 }
@@ -707,8 +721,25 @@ func (g *grantSrch) visit(t *State) bool {
 		return false
 	}
 	cost := g.cost
+	cheap := false // this node's price asks less than the root's (set on success only)
 	if g.dyn {
 		cost = t.grantDynamicCost(g.k, g.p, g.d.play, g.full)
+	}
+	if g.d.hasPlay && isCastKind(g.d.play.Kind()) && g.answered() {
+		// gorge's planner prices the play again at every node
+		// (potentialPlayVerdict, scriptSearch.priced): a trigger the path
+		// answered can have moved a card the price reads (Gran-Gran's loot
+		// discarding a Lesson into the graveyard, CR 601.2f). Price again on
+		// this copy; when the fresh price asks less mana than the root price,
+		// the play is payable where the walk's root price refused it
+		// (grantCostCheaper), and grantCap keeps the play on the offer. The
+		// flag is set at the success returns below, never here: a node or a
+		// branch that fails must not leave a later root-priced success looking
+		// repriced
+		if fc, _, _, ok := t.grantPlayCost(g.k, g.p, g.d.play, true); ok && grantCostCheaper(fc, g.cost) {
+			cost = fc
+			cheap = true
+		}
 	}
 	pl := &t.pl[SeatIx(g.p)]
 	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, ghost: g.ghost, sp: t.sp, hand: pl.handN, gy: pl.graveN, bf: t.bfObjKey(g.p)}
@@ -734,10 +765,15 @@ func (g *grantSrch) visit(t *State) bool {
 			same = true
 		case e.folded() == fk:
 			// (gorge's seen check precedes its pricing: scriptSearch.visit)
-			return t.floatPaysPlay(g.k, g.p, &cost, g.d) && !g.waitsForStack(t)
+			if t.floatPaysPlay(g.k, g.p, &cost, g.d) && !g.waitsForStack(t) {
+				g.cheaper = cheap
+				return true
+			}
+			return false
 		}
 	}
 	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &cost, g.ex, g.d) && !g.waitsForStack(t) {
+		g.cheaper = cheap
 		return true
 	}
 	if same {
@@ -877,6 +913,12 @@ func (g *grantSrch) visit(t *State) bool {
 					if g.branch(t, i, sl, -1, uint8(ra.ManaColors)&0x3f, t.restrAbN(g.k, sl, ra), ra.ManaColors&kop.ColAny == kop.ColAny) {
 						return true
 					}
+				} else if t.wideSecond(g.k, sl) && g.sel != 1 && g.wide2Branch(t, i, sl) {
+					// the wide second ability beside the usable one (Hermitic
+					// Herbalist's Lesson-only two mana): its option follows the
+					// printed pair's first ability in gorge's ask, the grant's
+					// colours after (CR 106.6, 601.2g)
+					return true
 				}
 			}
 			if fok && g.filtBranch(t, i, sl) { // (listed after the printed ability, before the grants)
@@ -1633,6 +1675,28 @@ func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop
 	return cost, ex, need, ok
 }
 
+// grantCostCheaper reports whether cost c asks strictly less mana than the
+// root price root, kind for kind: a pool that pays root pays c, so a leaf
+// priced at c is payable where the walk priced the play with root (visit).
+// A repricing never reshapes the flexible pips (hybrid, twobrid, X, a
+// reduction's excess), so costs that differ there are not comparable
+// (false: the root price stands).
+func grantCostCheaper(c, root kop.ManaCost) bool {
+	if c.Hyb != root.Hyb || c.Tb != root.Tb || c.HybOrd != root.HybOrd ||
+		c.X != root.X || c.XPip != root.XPip || c.XRed != root.XRed {
+		return false
+	}
+	if c.Generic > root.Generic {
+		return false
+	}
+	for i := range c.Pips {
+		if c.Pips[i] > root.Pips[i] {
+			return false
+		}
+	}
+	return c != root // every kind at most root's, one strictly under
+}
+
 // castFaceCard is the card cast action a puts on the stack: for a face cast
 // (an Adventure or split half from the hand, a Room's other door) the face,
 // else the object's card.
@@ -1887,15 +1951,20 @@ func (s *State) FeatGrantAvail(o Obj) (w int32, ok bool) {
 	return w, true
 }
 
-// grantsFixedMana reports whether an effect grants sl a mana ability of fixed
-// production (a plain tap for a set colour): gorge's shared census lists such a
-// source at its battlefield position whatever shape its own ability has.
+// grantsFixedMana reports whether an effect grants sl an unrestricted mana
+// ability of fixed production (a plain tap for a set colour): gorge's shared
+// census lists such a source at its battlefield position whatever shape its
+// own ability has. A spend-restricted grant is never in that census, whether
+// or not this payment's descriptor admits it (Mm'menon's "{U} to cast from
+// anywhere but your hand" beside an artifact's own any-colour ability): the
+// source keeps its own ability's census position, in the planner's
+// restricted layer.
 func (s *State) grantsFixedMana(k *prep, sl Slot) bool {
 	var gi [maxGrants]int16
 	n := s.grantIdxs(k, sl, &gi)
 	for _, i := range gi[:n] {
 		gp := &k.gen.grantPC[i]
-		if gp.manaTap && !gp.manaSac && !gp.manaSacOnly && !gp.manaChosen && !gp.manaDyn && !gp.manaMulti && gp.manaCol != kop.ColAny && srcMask(gp) != 0 {
+		if gp.manaTap && !gp.manaSac && !gp.manaSacOnly && !gp.manaChosen && !gp.manaDyn && !gp.manaMulti && gp.manaCol != kop.ColAny && srcMask(gp) != 0 && k.gen.grantRestr[i] == 0 {
 			return true
 		}
 	}

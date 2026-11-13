@@ -53,7 +53,9 @@ func (s *State) filterSplitSecond(k *prep, d *Decision) {
 
 func (s *State) splitSecondBars(k *prep, a Action) bool {
 	switch a.Kind() {
-	case AkCast, AkCastCasualty, AkCastConspire, AkPlot, AkSneak, AkWebSling, AkBestow, AkActivate:
+	case AkPlot:
+		return a.Mode() != plotModeSuspend // suspend exiles a card, it casts no spell (CR 702.62a)
+	case AkCast, AkCastCasualty, AkCastConspire, AkSneak, AkWebSling, AkBestow, AkActivate:
 		return true
 	}
 	return false

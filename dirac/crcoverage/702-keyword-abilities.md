@@ -110,7 +110,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 702.59a | n/a | - | - | LOUD (7) |
 | 702.60a,b | n/a | - | - | LOUD printed (5); SILENT granted (Thrumming Stone) |
 | 702.61a-c | partial | `dirac/kw_splitsecond.go#State.splitSecondHolds` `dirac/kw_splitsecond.go#State.filterSplitSecond` | `TestSplitSecondGrantPlaysInLockstep` `TestSplitSecondGrantMutation` `TestSplitSecondStackGrant` | a StatStackKw split second grant to a controller's instants and sorceries (Samut, Tyrant of Naktamun), read live off each spell on the stack; while one holds it the priority offer drops every cast and non-mana ability, keeping land plays, the Station and face-up special actions and mana abilities (gorge filterSplitSecondActions); a printed Split second keyword has no kernel form and stays refused |
-| 702.62a-d | n/a | - | - | not audited in depth |
+| 702.62a-d | partial | `dirac/kw_suspend.go#State.suspendAction` `dirac/kw_suspend.go#State.suspendTick` `dirac/kw_suspend.go#State.suspendAsk` `dirac/kw_suspend.go#State.suspendEnter` | `TestSuspendLockstep` | inherits gorge: the special action from the hand under the card's cast timing, the upkeep counter removal without the stack, the may-cast ask of the last counter (a legal target and no CantBeCast static) and a creature's haste until its caster loses control (it resumes if control returns, as gorge's Card.Self+YouCtrl grant does); a spell that exiles itself with time counters is suspended (702.62b); an X time, a suspended-card filter and counter-removed triggers from exile stay refused |
 | 702.63a-c | n/a | - | - | works; kw:Vanishing unregistered gates 21 printed |
 | 702.64a-c | n/a | - | - | SILENT (granted-only in corpus) |
 | 702.65a,b | n/a | - | - | LOUD (1) |

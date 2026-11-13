@@ -320,6 +320,7 @@ DurForetell	untyped int	13
 DurPermanent	untyped int	1
 DurPlot	untyped int	7
 DurPrepared	untyped int	8
+DurSuspend	untyped int	14
 DurUntilYourNextTurn	untyped int	5
 DurWarp	untyped int	6
 DurWhileControlSource	untyped int	4
@@ -1026,6 +1027,7 @@ RefTargets01	Ref	25
 RefTargets012	Ref	26
 RefTargets0123	Ref	32
 RefTargets12	Ref	27
+RefTaxedAttacker	Ref	38
 RefTgtCtrl1	Ref	241
 RefTgtCtrl2	Ref	242
 RefTriggerAttackers	Ref	31

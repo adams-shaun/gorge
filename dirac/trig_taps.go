@@ -26,6 +26,11 @@ func (s *State) manaTapped(k *prep, sl Slot) {
 			if cd := &k.t.Cards[s.cardAt(sl)]; int(pc.manaAb) < len(cd.Abilities) {
 				if a := &cd.Abilities[pc.manaAb]; a.Cost.Flags&kop.CostOncePerGame != 0 {
 					s.onceUse(k, sl, a)
+					if a.Exhaust && k.gen.anyAbilityCast {
+						// activating a mana ability is an activation (CR 605.3);
+						// gorge queues it before the Taps triggers
+						s.fireManaAbilityCast(k, s.cardAt(sl), uint8(pc.manaAb), s.perms[sl].ctrl)
+					}
 				}
 			}
 		}
@@ -49,14 +54,27 @@ func (s *State) fireTapsBy(k *prep, sl Slot, tapper uint8) {
 	s.fireObj(k, kop.TrigTaps, sl, p.obj, p.ctrl, int16(tapper))
 }
 
-// fireTapsMask is fireTaps over the permanents of m, in battlefield order
-// (the attacking player's list: gorge emits a Tap per attacker of the
-// declaration).
+// fireTapsMask is fireTaps over the permanents of m, the declaration's
+// attackers, in the order they were declared (bord, the same order
+// fireAttacksGen puts the per-attacker Attacks triggers in): gorge emits a
+// Tap per attacker in handleAttackers' chosen order (rules/combat.go
+// finishAttackers), and the Taps triggers the taps queue keep that discovery
+// order for the CR 603.3b trigger_order ask (canon occurrence).
 //
 //go:noinline
 func (s *State) fireTapsMask(k *prep, m slotMask) {
 	var ord [MaxPerm]Slot
-	n := s.listenerOrder(m, &ord)
+	n := 0
+	for x := m; x.any(); x = x.rest() {
+		sl := x.first()
+		j := n
+		for j > 0 && s.perms[ord[j-1]].bord > s.perms[sl].bord {
+			ord[j] = ord[j-1]
+			j--
+		}
+		ord[j] = sl
+		n++
+	}
 	for _, sl := range ord[:n] {
 		s.fireTaps(k, sl)
 	}

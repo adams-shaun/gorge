@@ -289,3 +289,118 @@ def test_one_runs_go_and_maps_the_stream(repo, tmp_path):
     stream.write_text(ev("fail", "m/p", "TestA") + "\n" + ev("fail", "m/p"))
     rc, lines, _ = wrapper(repo, "one", env=dict(env, GORC="1"))
     assert rc == 1 and lines[0].startswith("test-one: FAIL ")
+
+
+# ---- test-smart: the recorded verdict is reused, the lane wait is clamped ----------------------------
+
+@pytest.fixture
+def smart_repo(tmp_path):
+    """A committed repo whose smart run reaches a verdict without running any gate: step 2 fails because
+    scripts/docs_sets_test.py does not exist here, so the run is a FAIL before any go test or gate runs."""
+    d = tmp_path / "repo"
+    d.mkdir()
+    sh = lambda *a: subprocess.run(a, cwd=d, check=True, capture_output=True)
+    sh("git", "init", "-q", "-b", "land")
+    (d / "scripts").mkdir()
+    for n in ("test-targets.sh", "test_targets.py"):
+        shutil.copy(HERE / n, d / "scripts" / n)
+    (d / "scripts" / "dirac-gate.sh").write_text("#!/bin/sh\nexit 0\n")  # read, never run, on this path
+    (d / "go.mod").write_text("module m\n\ngo 1.22\n")
+    (d / ".cards" / "cardsfolder").mkdir(parents=True)
+    (d / ".cards" / "cardsfolder" / "a.txt").write_text("card\n")
+    # The repo the affected-gate blob is read from (GATE_REF=main, GATE_AFFECTED_PATH, the defaults).
+    g = tmp_path / "gate"
+    g.mkdir()
+    gg = lambda *a: subprocess.run(a, cwd=g, check=True, capture_output=True)
+    gg("git", "init", "-q", "-b", "main")
+    (g / "ops" / "scripts").mkdir(parents=True)
+    (g / "ops" / "scripts" / "gate_affected.sh").write_text("#!/bin/sh\nexit 0\n")
+    gg("git", "add", "ops")
+    gg("git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "gate")
+    sh("git", "add", "scripts", "go.mod")
+    sh("git", "add", "-f", ".cards")  # the fixture's gitignore (like the real repo's) excludes .cards
+    sh("git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "x")
+    return d, g
+
+
+def smart_env(tmp_path, repo, gate, **extra):
+    fake = tmp_path / "smartbin"
+    fake.mkdir(exist_ok=True)
+    go = fake / "go"
+    # Every invocation is logged, so a test can see whether the gates' go test ran.
+    go.write_text('#!/bin/sh\necho "$1" >>"$CALLS"\n'
+                  'case "$1" in list) echo m;; env) echo /usr/local/go;; test) cat "$STREAM"; exit "${GORC:-0}";; esac\n')
+    go.chmod(0o755)
+    env = dict(os.environ,  # wrapper() adds TEST_TARGETS_SCOPED and BASE
+               GATE_AFFECTED_REPO=str(gate), PATH="%s:%s" % (fake, os.environ["PATH"]),
+               CALLS=str(tmp_path / "go-calls"), STREAM=str(tmp_path / "stream.json"),
+               GORGE_TEST_TARGETS_ENV=str(tmp_path / "no-machine.env"), **extra)
+    env.pop("GORGE_CARDS", None)
+    return env
+
+
+def smart_verdict_file(repo):
+    sha = subprocess.run(["git", "rev-parse", "--short=10", "HEAD"], cwd=repo, check=True,
+                         capture_output=True, text=True).stdout.strip()
+    return repo / ".ds4" / "scratch" / "test" / ("smart-%s.verdict" % sha), sha
+
+
+def go_calls(tmp_path):
+    p = tmp_path / "go-calls"
+    return p.read_text().splitlines() if p.exists() else []
+
+
+def test_smart_second_run_reuses_the_recorded_verdict_without_rerunning_the_gates(tmp_path, smart_repo):
+    repo, gate = smart_repo
+    env = smart_env(tmp_path, repo, gate)
+    rc1, lines1, _ = wrapper(repo, "smart", env=env)
+    assert rc1 == 1 and len(lines1) == 1 and lines1[0].startswith("test-smart: FAIL ")
+    vfile, sha = smart_verdict_file(repo)
+    assert vfile.exists() and vfile.read_text() == lines1[0] + "\n"
+    assert "test" not in go_calls(tmp_path)  # the run failed before any go test, so nothing to reuse yet
+    rc2, lines2, err2 = wrapper(repo, "smart", env=env)
+    assert rc2 == 1
+    assert "reused verdict for %s; make test-smart FORCE=1 to rerun" % sha in err2
+    assert lines2 == lines1  # the recorded verdict line, not a new run's
+    assert "test" not in go_calls(tmp_path)  # the fake go never ran a test again
+
+
+def test_smart_force_reruns_instead_of_reusing(tmp_path, smart_repo):
+    repo, gate = smart_repo
+    env = smart_env(tmp_path, repo, gate)
+    wrapper(repo, "smart", env=env)
+    vfile, _ = smart_verdict_file(repo)
+    # A stale record with a label no gate script could produce: FORCE must rerun and re-record over it.
+    vfile.write_text("test-smart: FAIL 0000000000 stale-label 1\n")
+    rc, lines, err = wrapper(repo, "smart", env=dict(env, FORCE="1"))
+    assert rc == 1 and len(lines) == 1 and lines[0].startswith("test-smart: FAIL ")
+    assert "reused verdict" not in err  # FORCE reran the gates, which failed again
+    assert "affected@" in vfile.read_text()  # the rerun re-recorded with the real pkgs label
+    assert "test" not in go_calls(tmp_path)
+
+
+@pytest.mark.parametrize("stored", ["BUSY", "ENV"])
+def test_smart_a_stored_busy_or_env_verdict_is_not_reused(tmp_path, smart_repo, stored):
+    # BUSY, ENV, EMPTY and BUDGET describe the box, not the commit: recorded or not, they must rerun.
+    repo, gate = smart_repo
+    env = smart_env(tmp_path, repo, gate)
+    _, lines, _ = wrapper(repo, "smart", env=env)
+    vfile, _ = smart_verdict_file(repo)
+    f = lines[0].split()
+    vfile.write_text("test-smart: %s %s %s 9\n" % (stored, f[2], f[3]))
+    rc, lines2, err = wrapper(repo, "smart", env=env)
+    assert rc == 1
+    assert "reused verdict" not in err
+    assert lines2[0].startswith("test-smart: FAIL ")  # the gates reran and failed again
+    assert vfile.read_text().startswith("test-smart: FAIL ")  # and its own verdict replaced the stored one
+
+
+def test_smart_lane_wait_above_1500_is_clamped(tmp_path, smart_repo):
+    repo, gate = smart_repo
+    env = smart_env(tmp_path, repo, gate, GORGE_TEST_LANE_WAIT="14400")
+    rc, lines, err = wrapper(repo, "smart", env=env)
+    assert rc == 1 and lines[0].startswith("test-smart: FAIL ")
+    assert "GORGE_TEST_LANE_WAIT=14400 clamped to 1500" in err
+    # a value the environment cannot make sense of falls back to 1500 silently
+    _, _, err2 = wrapper(repo, "smart", env=dict(env, GORGE_TEST_LANE_WAIT="soon", FORCE="1"))
+    assert "clamped" not in err2

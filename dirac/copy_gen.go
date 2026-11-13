@@ -156,6 +156,9 @@ func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
 	if ce.trigPl == trigPlSneak {
 		ce.trigPl, ce.trigObj = 0, NoObj
 	}
+	if ce.trigPl == trigPlSuspend {
+		ce.trigPl = 0 // nor cast by suspend (CR 707.10: gorge's FlagSuspend is cast provenance; kw_suspend.go)
+	}
 	if ce.trigPl == trigPlWebSling {
 		ce.trigPl = 0 // nor web-slinged (CR 707.10: gorge's FlagWebSlinged; kw_websling.go)
 	}

@@ -213,6 +213,11 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 	if ob.zone == kop.ZoneExile && s.g.on && s.mObj(k, mechStash, i) {
 		po.Counters[kop.CtrStash] = 1 // Tinybones' stash counter on an exiled card
 	}
+	if k.gen != nil && k.gen.anySuspend && ob.zone == kop.ZoneExile {
+		if n := s.suspendTime(i); n != 0 {
+			projCtr(po, uint8(kop.CtrTime), uint16(n)) // a suspended card's time counters (kw_suspend.go)
+		}
+	}
 	if s.res.ask == raGenRetChoice && s.g.pre.obj == i && ob.zone != kop.ZoneBattlefield {
 		po.Ctrl = s.res.askP // a card entering under another player, its as-enters choice asked first (cloneReturnPark): gorge changed control before the move
 	}
