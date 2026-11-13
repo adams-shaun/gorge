@@ -33,6 +33,65 @@ func (s *State) soleOpponent(p uint8) uint8 {
 	return 255
 }
 
+// The mid-resolution opponent choice (Skullwinder: a battlefield trigger
+// whose DB chain is `ChoosePlayer | Defined$ You | Choices$ Player.Opponent`
+// and whose later links read the choice, kgen lower_chooseplayer.go): gorge
+// runs effChoosePlayer mid-resolution, an ask of one "player" option per
+// opponent of the resolving controller in AliveFrom order, answered in place
+// with a single opponent (forcedPlayerChoice) and recorded on the resolution
+// (Ctx.Chosen, and on the source's Object.Chosen until the chain's
+// ClearChosenPlayer$ Cleanup clears it). OpExt ExtChoosePlayerMid asks it
+// (or records a sole opponent unasked) into res.chPl; RefChosenPlayer reads
+// it while the resolution holds it, and a reader past the Cleanup finds
+// none, as gorge's cleared choice is.
+
+// raChoosePlayerMid: ExtChoosePlayerMid's resolution ask (ChGenPlayer, mode
+// = the seat; interp_ask.go poses and applies it).
+const raChoosePlayerMid = raGenManifestDread + 7
+
+// choosePlayerMid is OpExt ExtChoosePlayerMid: false = the ask suspended the
+// program (a sole opponent is recorded unasked).
+func (s *State) choosePlayerMid(k *prep) bool {
+	if p := s.soleOpponent(s.res.e.ctrl); p != 255 {
+		s.res.chPl = p + 1
+		return true
+	}
+	s.res.ask, s.res.askP = raChoosePlayerMid, s.res.e.ctrl
+	return false
+}
+
+// chosenPlayerMidOptions fills the mid-resolution ChoosePlayer ask: one
+// option per opponent of the asker in AliveFrom order (gorge effChoosePlayer's
+// "player" options), mode = the seat.
+func (s *State) chosenPlayerMidOptions(d *Decision) {
+	if s.res.ask != raChoosePlayerMid {
+		panic("kernel: bad resolution ask")
+	}
+	d.Sub = ChGenPlayer
+	q := s.oppsFrom(s.res.askP)
+	for i := uint8(0); i < q.n; i++ {
+		d.add(MakeAction(AkChoose, 0, 0, q.s[i]))
+	}
+}
+
+// applyAskChosenPlayerMid keeps the seat for the resolution.
+func (s *State) applyAskChosenPlayerMid(k *prep, a Action) {
+	if s.res.ask != raChoosePlayerMid {
+		panic("kernel: bad resolution answer")
+	}
+	s.res.chPl = a.Mode() + 1
+	s.continueRes(k, 0)
+}
+
+// resChosenPlayer is the mid-resolution ChoosePlayer's seat (255 none): the
+// one the live resolution chose.
+func (s *State) resChosenPlayer() uint8 {
+	if s.res.active && s.res.chPl != 0 {
+		return s.res.chPl - 1
+	}
+	return 255
+}
+
 // chosenPlayerOf is the seat the permanent at sl chose as it entered (255 =
 // none).
 func (s *State) chosenPlayerOf(sl Slot) uint8 {
@@ -45,11 +104,16 @@ func (s *State) chosenPlayerOf(sl Slot) uint8 {
 	return 255
 }
 
-// chosenPlayerSeat is kop.RefChosenPlayer for entry e: the seat its source
-// permanent chose, while the source is still that permanent on the
-// battlefield (gorge reads the source's live Object.Chosen, which it clears
-// as the permanent leaves, CR 400.7).
+// chosenPlayerSeat is kop.RefChosenPlayer for entry e: the seat the live
+// resolution chose mid-resolution (ExtChoosePlayerMid), else the seat e's
+// source permanent chose as it entered, while the source is still that
+// permanent on the battlefield (gorge reads the in-flight Ctx.Chosen, else
+// the source's live Object.Chosen, which it clears as the permanent leaves,
+// CR 400.7).
 func (s *State) chosenPlayerSeat(e *stackEntry) uint8 {
+	if p := s.resChosenPlayer(); p != 255 {
+		return p
+	}
 	if e == nil || e.obj == NoObj {
 		return 255
 	}

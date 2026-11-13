@@ -4892,6 +4892,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "ChoosePlayerEnter":
 		// an as-enters opponent (lower_chooseplayerenter.go)
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtChoosePlayer))
+	case "ChoosePlayerMid":
+		// a mid-resolution opponent choice (lower_chooseplayermid.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtChoosePlayerMid))
 	case "ChooseNumber":
 		// an as-enters number from B to C (lower_choosenumber.go)
 		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumber)), kop.Const(in.B.N), int16(in.C)

@@ -54,6 +54,13 @@ func (lc *lowerCtx) definedPlayer(v string) (lRef, error) {
 			return lRef{}, refuse("ChangeZone DefinedPlayer$ %s outside the remembered-persist shape", v)
 		}
 		return lRef{Kind: rRememberedOwner}, nil
+	case "ChosenPlayer", "Player.Chosen":
+		// the resolution's own choice (lower_chooseplayermid.go): the chain's
+		// mid-resolution ChoosePlayer is armed
+		if r, ok := lc.chosenPlayerMidDefined(v); ok {
+			return r, nil
+		}
+		return lRef{}, refuse("ChangeZone DefinedPlayer$ %s", v)
 	}
 	return lRef{}, refuse("ChangeZone DefinedPlayer$ %s", v)
 }

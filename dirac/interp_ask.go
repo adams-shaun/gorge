@@ -588,6 +588,8 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		s.cmdZoneOptions(d) // zone_cmdzone.go
 	case raRecruitDiscard:
 		s.recruitOptions(k, d) // act_recruit.go
+	case raChoosePlayerMid:
+		s.chosenPlayerMidOptions(d) // repl_chooseplayer.go
 	default:
 		if !s.askOptionsCold1(k, d) {
 			panic("kernel: bad resolution ask")
@@ -1372,6 +1374,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 	case raRecruitDiscard:
 		s.recruitPick(k, a) // act_recruit.go
 		s.continueRes(k, 0)
+	case raChoosePlayerMid:
+		s.applyAskChosenPlayerMid(k, a) // repl_chooseplayer.go
 	default:
 		if !s.applyAskCold1(k, a) {
 			panic("kernel: bad resolution answer")
