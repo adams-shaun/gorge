@@ -354,6 +354,7 @@ ExCastManaSpent	ExprKind	35
 ExChosenMode	ExprKind	233
 ExChosenNumber	ExprKind	228
 ExChromaOf	ExprKind	231
+ExCmdGreatestMV	ExprKind	217
 ExCommittedCrime	ExprKind	48
 ExCompare	ExprKind	36
 ExConst	ExprKind	1

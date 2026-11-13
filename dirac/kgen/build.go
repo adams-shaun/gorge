@@ -2250,6 +2250,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vEnergyOf:           kop.ExEnergyOf,
 	vMonarch:            kop.ExMonarch,    // lower_monarch.go
 	vJoinForces:         kop.ExJoinForces, // lower_storesvar.go
+	vCmdGreatestMV:      kop.ExCmdGreatestMV,
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {

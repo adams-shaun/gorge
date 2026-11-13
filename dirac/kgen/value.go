@@ -1531,6 +1531,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	if strings.HasPrefix(rest, "ValidStack ") {
 		return lValue{}, refuse("Count$%s: only ValidStack Card.Self+sneaked is read", rest)
 	}
+	if spec, ok := strings.CutPrefix(rest, "ValidBattlefield,Command "); ok {
+		return cmdGreatestMVValue(spec) // value_cmdmv.go
+	}
 	for _, zc := range []struct {
 		pre  string
 		kind []valKind
