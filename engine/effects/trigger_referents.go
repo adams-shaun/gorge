@@ -44,6 +44,11 @@ type TriggerContext struct {
 	SourceLeftBeforePush bool
 	SourceChosenType     string
 	SourceChosenColor    string
+	// SourceChosen is the departed source's card/player choice (its
+	// Object.Chosen as it last stood on the battlefield): Dauntless
+	// Bodyguard's sacrifice-cost Pump still names the creature it chose
+	// (CR 607.2a/608.2h). Meaningful only with SourceLKIValid; never written.
+	SourceChosen []state.Target
 	// SourceManaColorSpent is the last-known cast-time spend of a source
 	// that has left the battlefield, read by Count$Adamant (an evoked
 	// Incarnation sacrificed before its enter trigger's intervening-if is

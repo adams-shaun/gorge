@@ -144,6 +144,11 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtBlocksIfAble:
 		s.blocksIfAbleExt(k, in) // combat_blocksifable.go
 		return true, true
+	case kop.ExtRemoveFromCombat:
+		if sl := s.objRef(k, in.Obj); sl != NoSlot {
+			s.leaveCombat(sl) // combat_noncreature.go
+		}
+		return true, true
 	case kop.ExtClearImprinted:
 		s.g.nimp = 0
 		return true, true
@@ -221,6 +226,19 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtUnlockDoor:
 		return s.extUnlockDoor(k, in), true // face_unlockdoor.go
+	case kop.ExtChoosePlayer:
+		// inside an as-enters program (runReplProgAs poses it); elsewhere
+		// the queued ask, as ExtChooseNumber
+		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
+			sl := s.objs[o].slot
+			if p := s.soleOpponent(s.perms[sl].ctrl); p != 255 {
+				s.perms[sl].chosen = p
+				s.touchSl(sl)
+			} else {
+				s.queueAsk(sl, akPlayer)
+			}
+		}
+		return true, true
 	case kop.ExtChooseNumber:
 		// inside an as-enters program: asked before the next priority
 		// (the OpChooseColor arm of execGen)
@@ -236,6 +254,12 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 			if kind := nameAskKind(in); kind != akNameHand || !s.nameHandNone(k, s.perms[s.objs[o].slot].ctrl) {
 				s.queueAsk(s.objs[o].slot, kind)
 			}
+		}
+		return true, true
+	case kop.ExtChooseCardEnter:
+		// the same, for the as-enters object choice (repl_choosecard.go)
+		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield && !s.enterCardNone(k, s.objs[o].slot, s.cardAt(s.objs[o].slot)) {
+			s.queueAsk(s.objs[o].slot, akCard)
 		}
 		return true, true
 	case kop.ExtTurnFaceUp:

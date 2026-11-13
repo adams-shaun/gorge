@@ -47,6 +47,12 @@ type Matchup struct {
 	Commander  bool
 	Commanders [2]int
 	Partners   [2]int
+	// DraftPartners is Config.DraftPartners: a seat's two commanders are a
+	// Commander-draft pair (deck.IsDraftCommanderPair, the rule Mystery
+	// Booster Commander drafts play by) and not a constructed one, which
+	// gorge would otherwise reject whole while the kernel seats both.
+	// readCommanders sets it from the deck files.
+	DraftPartners bool
 	// NameUniverse, when set, replaces the registry's name universe in the
 	// gorge game's Config: a name ask (a card choosing a card name as it
 	// enters) offers only these cards' names. NewMatchup sets it to the
@@ -255,6 +261,9 @@ func (c *Corpus) readCommanders(m *Matchup) error {
 			p := -1
 			if len(ix) > 1 {
 				p = ix[1]
+				if d := m.SeatDeck(s); ix[0] < len(d) && p < len(d) && !deck.IsCommanderPair(d[ix[0]], d[p]) && deck.IsDraftCommanderPair(d[ix[0]], d[p]) {
+					m.DraftPartners = true
+				}
 			}
 			m.setSeatCommanders(s, ix[0], p)
 		}
@@ -451,6 +460,7 @@ func (m *Matchup) Config(seed uint64) rules.Config {
 	}
 	if m.Commander {
 		cfg.Format, cfg.StartingLife = rules.FormatCommander, 40
+		cfg.DraftPartners = m.DraftPartners
 		cfg.Commanders = make([][]int, m.NSeat())
 		for s := range cfg.Commanders {
 			if ix, p := m.SeatCommanders(s); ix >= 0 {

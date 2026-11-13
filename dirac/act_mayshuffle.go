@@ -21,6 +21,11 @@ func (s *State) parentTargetOK(t *kop.TargetSpec, code uint8) bool {
 	if e == nil || t.Kind != kop.TgtCard {
 		return false
 	}
+	if t.ParentPlus1 == kop.ParentTrigPl {
+		// the trigger entry's trigger player (kop.ParentTrigPl): the
+		// damaged seat of a damage trigger
+		return e.kind == seTrigger && code != NoTarget && !isPlayerOrNone(code) && s.objs[code].owner() == e.trigPl
+	}
 	i := int(t.ParentPlus1) - 1
 	if i < 0 || i >= kop.MaxTargets {
 		return false

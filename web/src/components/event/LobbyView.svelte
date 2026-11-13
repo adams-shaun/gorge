@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { EventState } from '../../protocol';
   import { seatLabel } from '../../lib/draftcards';
-  import { timerLabel } from '../../lib/newevent';
+  import { commanderFormat, timerLabel } from '../../lib/newevent';
 
   /**
    * LOBBY: the pod waits for every human seat to type a display name. The
@@ -26,6 +26,13 @@
   } = $props();
 
   const you = $derived(ev.you ?? null);
+  const picks = $derived(ev.picks_per_pass ?? 1);
+  // The summary's middle: how cards are taken and what the rounds are.
+  const shape = $derived(
+    commanderFormat(ev.format)
+      ? `Commander draft · ${ev.seats.length} seats · ${picks === 1 ? 'pick one' : `take ${picks} from each pack`} · ${ev.deck_size ? `${ev.deck_size}-card decks` : 'decks'} around drafted commanders · one free-for-all`
+      : `draft · ${ev.seats.length} seats · pick one · best of ${ev.best_of === 3 ? 3 : 1}`,
+  );
 
   function submit(e: SubmitEvent) {
     e.preventDefault();
@@ -35,7 +42,7 @@
 
 <section class="lobby ev-main">
   <h2>Waiting for the pod</h2>
-  <p class="dim" data-testid="lobby-summary">{ev.set} draft · {ev.seats.length} seats · pick one · best of {ev.best_of === 3 ? 3 : 1} · {timerLabel(ev.pick_timer)}. The packs open once every human seat has joined.</p>
+  <p class="dim" data-testid="lobby-summary">{ev.set} {shape} · {timerLabel(ev.pick_timer)}. The packs open once every human seat has joined.</p>
   {#if canJoin}
     <form class="join" onsubmit={submit} data-testid="join-form">
       <label>

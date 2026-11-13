@@ -228,6 +228,12 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// no arena designation bit
 			return refuse("IsSuspected in a battlefield-origin ChangesZone ValidCard$")
 		}
+		if tr.Origin == zBattlefield && filterReadsNotBlocking(tr.F) {
+			// gorge matches a leave on the LKI, where isBlocking reads the
+			// live object's record and the attackers' BlockedBy lists; the
+			// kernel's off-battlefield W7NotBlocking always holds
+			return refuse("!blocking in a battlefield-origin ChangesZone ValidCard$")
+		}
 		if tc, ok := tp.get("TriggerController"); ok && tc != "TriggeredCardController" {
 			return refuse("TriggerController %q", tc)
 		}
@@ -539,6 +545,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// gorge playerEnchantedController: the bearer's controller
 			w, ok = whoEnchCtrl, true
 		}
+		if tp.str("ValidPlayer") == "Player.Chosen" && lc.granted == 0 && tr.Zone == zBattlefield && entersChoosingPlayer(lc.face) {
+			// the opponent the source chose as it entered (lower_chooseplayerenter.go)
+			w, ok = whoChosen, true
+		}
 		if tp.str("ValidPlayer") == "You.descended" {
 			// gorge playerSpecQualifierDescended (CR 700.11): a permanent
 			// card entered your graveyard this turn, read as the trigger
@@ -829,6 +839,29 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				return err
 			}
 			tr.Whose = whoOpp
+			tr.Watch = true
+		case tp.str("ValidSource") == "" && tp.str("ValidTarget") == "Card.Self" &&
+			!tp.is("Ward", "True") && !tp.is("Valiant", "True") && !tp.is("FirstTime", "True"):
+			// "Whenever this becomes the target of a spell or ability" with
+			// no source restriction (CR 603.2; gorge becomesTargetMatches
+			// with ValidTarget$ Card.Self and no ValidSource$): every
+			// TargetsChosen naming the permanent fires it, its controller's
+			// own included. A TfSelf line with no Whose gate: the kernel's
+			// becameTarget fires it through the plain per-object walk
+			// (fireObjGen), no opponent gate.
+			tr.F = &lFilter{Clauses: []lClause{{Flags: fSelf}}}
+		case tp.str("ValidSource") == "" && tp.str("ValidTarget") != "" &&
+			!strings.Contains(tp.str("ValidTarget"), "Card.Self") && !strings.Contains(tp.str("ValidTarget"), ",") &&
+			!tp.is("Ward", "True") && !tp.is("Valiant", "True") && !tp.is("FirstTime", "True"):
+			// the watcher with no source restriction (Daru Spiritualist:
+			// "whenever a Cleric creature you control becomes the target of
+			// a spell or ability"): the opponent-source watcher's arm
+			// without its Whose gate; one trigger per matching chosen
+			// target, the targeted permanent as the trigger object
+			// (gorge becomesTargetReferent)
+			if tr.F, err = lc.filter(tp.str("ValidTarget")); err != nil {
+				return err
+			}
 			tr.Watch = true
 		default:
 			return refuse("BecomesTarget shape")
@@ -2149,7 +2182,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		} else if st.Cost, err = lc.altCostCost(sp.str("Cost")); err != nil {
 			return nil, err
 		}
-		if st.Cost.Forage != nil || st.Cost.ExileG != nil && !st.Cost.ExileHand || st.Cost.Energy != 0 || st.Cost.Return != nil {
+		// a Return<N/Spec> part lowers alone (Gush, Thwart, Daze: the
+		// kernel's return alternative, build_ab.go altReturnOK); beside any
+		// other part build_ab.go refuses it as a non-mana alternative
+		if st.Cost.Forage != nil || st.Cost.ExileG != nil && !st.Cost.ExileHand || st.Cost.Energy != 0 {
 			return nil, refuse("alternative cost with a forage / exile-from-graveyard part")
 		}
 	case "Activations":
@@ -4004,6 +4040,13 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 				return err
 			}
 		case "ChoosePlayer":
+			if !other && node == sa && !spyglassChain(sa) {
+				// the as-enters opponent (lower_chooseplayerenter.go)
+				if err := lc.etbChoosePlayer(ps, node, sa, other, cond); err != nil {
+					return err
+				}
+				break
+			}
 			// Sorcerous Spyglass's chain head (lower_choosename.go spyglassChain)
 			if other || node != sa || !spyglassChain(sa) {
 				return refuse("ETB replacement api ChoosePlayer")
@@ -4025,6 +4068,10 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			ps.consume("ClearRemembered") // Alhammarret's chain: the revealed set was never kept
 		case "NameCard":
 			if err := lc.etbChooseName(ps, node, sa, other, cond); err != nil { // lower_choosename.go
+				return err
+			}
+		case "ChooseCard":
+			if err := lc.etbChooseCard(ps, node, sa, other, cond); err != nil { // lower_choosecardenter.go
 				return err
 			}
 		case "ChooseType":
