@@ -1065,6 +1065,9 @@ func overrideString(o *lOverride) string {
 	if o.RemoveCreatureSub {
 		p = append(p, "rmcreaturesub")
 	}
+	if o.LandSet {
+		p = append(p, "landset")
+	}
 	if o.AllCreatureTypes {
 		p = append(p, "allcreaturetypes")
 	}

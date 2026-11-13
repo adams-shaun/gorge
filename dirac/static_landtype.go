@@ -62,7 +62,8 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 		}
 	}
 	for i := range t.Overrides {
-		on = on || meets(t.Overrides[i].AddSub)
+		on = on || meets(t.Overrides[i].AddSub) || meets(t.Overrides[i].SetSub)
+		g.anyLandSet = g.anyLandSet || t.Overrides[i].LandSet
 	}
 	if !on {
 		return
@@ -96,6 +97,18 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 			v.manaMulti = bits.OnesCount8(uint8(v.manaCol&0x3f)) > 1
 			v.blgFirst = uint8(first + 1)
 			g.blgPC = append(g.blgPC, v)
+		}
+		if g.anyLandSet {
+			// the land set to a basic type (static_landset.go): only the
+			// intrinsic ability of the colours in m, the printed one gone
+			for m := 0; m < 32; m++ {
+				v := base
+				v.manaAb, v.manaCol, v.manaN, v.manaTap = 0, kop.ColorMask(m), 1, true
+				v.manaTyped, v.rankCol, v.restrU, v.restrFloat = false, 0, 0, false
+				v.manaMulti = bits.OnesCount8(uint8(m)) > 1
+				v.blgFirst = uint8(bits.TrailingZeros8(uint8(m)) + 1)
+				g.blgIPC = append(g.blgIPC, v)
+			}
 		}
 	}
 }

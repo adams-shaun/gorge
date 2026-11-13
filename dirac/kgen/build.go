@@ -2374,6 +2374,10 @@ func (cb *cardBuilder) cond(c lCond) (kop.CondID, error) {
 	return id, nil
 }
 
+// landTypeWords is every land subtype word (gorge's CR 305.7 strip removes
+// these and keeps the rest of a land's subtypes).
+var landTypeWords = effects.TypeChoiceLabels("Land", "", "")
+
 // override interns an override record and returns its index.
 func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	var ko kop.Override
@@ -2402,7 +2406,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.AllCreatureTypes = o.AllCreatureTypes
 	ko.RemoveCreatureSub = o.RemoveCreatureSub
 	ko.HasColors, ko.SetColors = o.HasSetColors, colorMask(o.SetColors)
-	ko.LoseAbilities = o.LoseAbilities
+	ko.LoseAbilities, ko.LandSet = o.LoseAbilities, o.LandSet
 	ko.KeepP, ko.KeepT = o.KeepP, o.KeepT
 	ko.WhileHost, ko.CantAttack = o.WhileHost, o.CantAttack
 	ko.WhileTapped = o.WhileTapped
@@ -2440,7 +2444,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	}
 	var keep []uint8
 	for i, w := range cb.pt.subtypes {
-		if o.Kept.Has(w) {
+		if o.Kept.Has(w) || o.LandSet && !slices.Contains(landTypeWords, w) {
 			keep = append(keep, uint8(i))
 		}
 	}

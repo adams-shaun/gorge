@@ -185,6 +185,8 @@ type genPrep struct {
 	blgSub          [5]uint8       // the Plains Island Swamp Mountain Forest subtype indexes (subOutside: not in the matchup)
 	blgIdx          []int16        // per card: its block of 32 views in blgPC, -1 when not a plain-shaped land
 	blgPC           []pcard        // a plain land's planner view per granted colour mask
+	blgIPC          []pcard        // a plain land set to a basic type (CR 305.7): its intrinsic-only view per colour mask, blgIdx's blocks
+	anyLandSet      bool           // some override record is a CR 305.7 land-subtype setter (kop.Override.LandSet)
 	globGrant       bool           // a global override static grants an ability (Ygra; static_layerwalk.go globalGrants)
 	anyHist         bool           // some trigger reads the turn history bank (expend, the N-th spell; value_turnhistory.go)
 	anyPrevFrom     bool           // some program grants KwPreventCombatDamageFrom (repl_regenerate.go)
@@ -2402,6 +2404,9 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 	vi := int16(-1)
 	if k.gen.flags[c]&gfManaVar != 0 {
 		vi = k.gen.manaVar(c)
+	}
+	if k.gen.anyLandSet && s.landSetOnly(k, sl) {
+		return s.landSetView(k, sl, c) // CR 305.7: the printed abilities are gone, the intrinsic one stays
 	}
 	if (pc.manaAb >= 0 || vi >= 0) && s.genLost(k, sl) {
 		return &noManaPC // genLost covers a face-down permanent (CR 708.2)

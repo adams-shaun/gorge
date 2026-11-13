@@ -178,6 +178,13 @@ type Override struct {
 	// 7c, CR 613.4c) instead of a base P/T; HasPT is false. A PumpAll
 	// Duration$ UntilYourNextTurn NumAtt$/NumDef$ (V'Ger, the Intruder).
 	PTDelta bool
+	// LandSet: the record is a CR 305.7 land-subtype setter (Dream Thrush's
+	// RemoveLandTypes$ Animate, Blood Moon's static): HasSub with SetSub the
+	// basic land type and KeepSub every non-land subtype, and LoseAbilities,
+	// but the land keeps the intrinsic mana ability of the type it was set to
+	// (CR 305.6), which the planner reads (static_landset.go). A loss from
+	// any other effect takes that ability too.
+	LandSet bool
 }
 
 // Emblem is a command-zone object with abilities (triggered or static).

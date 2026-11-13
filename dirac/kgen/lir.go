@@ -938,21 +938,24 @@ type lOverride struct {
 	SetColors         string
 	HasSetColors      bool
 	LoseAbilities     bool
-	AddKw             []string
-	GrantAbility      []int    // latent ability indexes granted
-	Name              string   // SetName: the layer-3 name (a name card, lowerPool)
-	KeepP, KeepT      bool     // a set of base toughness / power only (Maha)
-	RemoveKw          []string // RemoveKeyword$: keywords removed (layer 6)
-	Dedup             bool     // share a byte-identical pool record across cards (Earthbend)
-	WhileHost         bool     // Duration$ UntilHostLeavesPlay / AsLongAsInPlay
-	WhileTapped       bool     // Duration$ UntilUntaps: WhileHost, and the host's untap ends it too
-	CantAttack        bool     // HiddenKeywords$ CARDNAME can't attack or block. (with AddKw CantBlock)
-	MustBeBlocked     bool     // HiddenKeywords$ CARDNAME must be blocked if able.: emitOverride follows the record with ExtMustBeBlocked on the same ref (not a record field)
-	NoCost            bool     // a copy exception's "with no mana cost" (RemoveCost$)
-	AddColors         string   // a copy exception's AddColors$: colour letters added after any set
-	RemoveLegendary   bool     // a copy exception's NonLegendary$ (CR 707.9b)
-	PTDelta           bool     // PVal/TVal are a +N/+M pump (layer 7c), not a base P/T: PumpAll Duration$ UntilYourNextTurn NumAtt$/NumDef$ (kop.Override.PTDelta)
-	GrantStatics      uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
+	// LandSet: the CR 305.7 land-subtype setter (kop.Override.LandSet): Kept
+	// is every non-land subtype (build.go override)
+	LandSet         bool
+	AddKw           []string
+	GrantAbility    []int    // latent ability indexes granted
+	Name            string   // SetName: the layer-3 name (a name card, lowerPool)
+	KeepP, KeepT    bool     // a set of base toughness / power only (Maha)
+	RemoveKw        []string // RemoveKeyword$: keywords removed (layer 6)
+	Dedup           bool     // share a byte-identical pool record across cards (Earthbend)
+	WhileHost       bool     // Duration$ UntilHostLeavesPlay / AsLongAsInPlay
+	WhileTapped     bool     // Duration$ UntilUntaps: WhileHost, and the host's untap ends it too
+	CantAttack      bool     // HiddenKeywords$ CARDNAME can't attack or block. (with AddKw CantBlock)
+	MustBeBlocked   bool     // HiddenKeywords$ CARDNAME must be blocked if able.: emitOverride follows the record with ExtMustBeBlocked on the same ref (not a record field)
+	NoCost          bool     // a copy exception's "with no mana cost" (RemoveCost$)
+	AddColors       string   // a copy exception's AddColors$: colour letters added after any set
+	RemoveLegendary bool     // a copy exception's NonLegendary$ (CR 707.9b)
+	PTDelta         bool     // PVal/TVal are a +N/+M pump (layer 7c), not a base P/T: PumpAll Duration$ UntilYourNextTurn NumAtt$/NumDef$ (kop.Override.PTDelta)
+	GrantStatics    uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
 }
 
 // Replacement-lite kinds.

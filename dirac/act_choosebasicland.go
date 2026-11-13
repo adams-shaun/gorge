@@ -100,7 +100,7 @@ func (s *State) ovChosenType(k *prep, sl Slot, C int, card CardID, fl uint8) {
 		return
 	}
 	for i := 0; i < len(basicLandChoice) && C+i < len(k.t.Overrides); i++ {
-		if k.t.Overrides[C+i].AddSub.Has(int(s.res.chosen)) {
+		if o := &k.t.Overrides[C+i]; o.AddSub.Or(o.SetSub).Has(int(s.res.chosen)) { // a CR 305.7 setter names it in SetSub
 			s.applyOverrideFl(k, sl, C+i, card, fl)
 			return
 		}
