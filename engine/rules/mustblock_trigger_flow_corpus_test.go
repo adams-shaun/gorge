@@ -16,7 +16,7 @@ import (
 // only, and the declare-blockers offer and validator agree on it.
 func TestMustBlockCorpusAvalancheTuskerAttackTriggerFlow(t *testing.T) {
 	e := threeSeatEngine(t)
-	tusker := onBoardReadyCard(t, e, 1, mshCorpusCard(t, "Avalanche Tusker"))
+	tusker := onBoardReadyCard(t, e, 1, corpusAlternativeCard(t, "Avalanche Tusker"))
 	otherAttacker := onBoardReady(t, e, 1, "Name:Other attacker\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	chosen := onBoard(t, e, 0, "Name:Chosen defender\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	bystander := onBoard(t, e, 0, "Name:Defender bystander\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")

@@ -153,16 +153,16 @@ func foretellPolicy(seed uint64, w *foretellTally) Policy {
 				if a.Kind() != ActCast {
 					continue
 				}
-				if o := c.G.E.G.Obj(c.G.id.obj[a.Src()]); a.Src() < RefStack && o != nil && o.Zone == state.ZExile && wasCastFromExileCards[kbargainName(c.G, a.Src())] && prng.IntN(4) != 0 {
-					w.exileCast[kbargainName(c.G, a.Src())]++
+				if o := c.G.E.G.Obj(c.G.id.obj[a.Src()]); a.Src() < RefStack && o != nil && o.Zone == state.ZExile && wasCastFromExileCards[refCardName(c.G, a.Src())] && prng.IntN(4) != 0 {
+					w.exileCast[refCardName(c.G, a.Src())]++
 					return a // the arm that reads wasCastFromExile
 				}
-				if foretellRituals[kbargainName(c.G, a.Src())] && a.Mode()&15 == 0 && len(c.G.E.G.Stack) == 0 && prng.IntN(3) != 0 {
+				if foretellRituals[refCardName(c.G, a.Src())] && a.Mode()&15 == 0 && len(c.G.E.G.Stack) == 0 && prng.IntN(3) != 0 {
 					return a // float mana for the actions
 				}
 				m := a.Mode() & 15
-				isAction := m == foretellMode && foretellWatch[kbargainName(c.G, a.Src())]
-				isCast := m == 15 && foretellWatch[kbargainName(c.G, a.Src())]
+				isAction := m == foretellMode && foretellWatch[refCardName(c.G, a.Src())]
+				isCast := m == 15 && foretellWatch[refCardName(c.G, a.Src())]
 				if !isAction && !isCast || prng.IntN(4) == 0 {
 					continue
 				}
@@ -173,7 +173,7 @@ func foretellPolicy(seed uint64, w *foretellTally) Policy {
 					}
 				} else {
 					w.casts++
-					w.castBy[kbargainName(c.G, a.Src())]++
+					w.castBy[refCardName(c.G, a.Src())]++
 				}
 				return a
 			}

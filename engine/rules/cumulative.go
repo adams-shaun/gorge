@@ -366,7 +366,7 @@ func parseCumulativeAction(label string) (*cumulativeAction, bool) {
 func (e *Engine) startCumulativeUpkeep(stackObj, source state.ObjID, sa *cards.SA) {
 	o := e.G.Obj(source)
 	stack := e.G.Obj(stackObj)
-	if o == nil || o.Zone != state.ZBattlefield || stack == nil {
+	if !pay.ExistsOnBattlefield(o) || stack == nil {
 		e.finishResumption(stackObj)
 		return
 	}
@@ -620,7 +620,7 @@ func (e *Engine) cumulativePaymentAsk() {
 		return
 	}
 	o := e.G.Obj(cu.source)
-	if o == nil || o.Zone != state.ZBattlefield {
+	if !pay.ExistsOnBattlefield(o) {
 		e.finishCumulative()
 		return
 	}
@@ -915,11 +915,28 @@ func (e *Engine) evalTriggerCostFixedX(tc *triggeredEffectCost, o *state.Object,
 	// (refTargets' refTargetsTriggeredCard arm), not Ctx.TriggerCard, so bind
 	// the parked trigger's own capture exactly as the resumed body will.
 	ctx.Remembered = tc.costRemembered
+	lki, ok := e.triggerLKI[tc.resume.obj]
+	bindTriggerObjectLKI(ctx, lki, ok)
 	n, resolvable := effects.EvalCountOK(e, ctx, body)
 	if !resolvable || n < 0 {
 		return 0, false
 	}
 	return n, true
+}
+
+// bindTriggerObjectLKI binds a trigger's object LKI record (when one is held)
+// for the resolving body and for a triggered-cost window's SVar read alike: a
+// TriggeredCard$ referent naming a card that left the battlefield after the
+// trigger fired is read as it last stood there, its counters and continuous
+// effects applied (CR 603.10, 608.2h), not as the copy it now is. Madame
+// Null, Power Broker's "pay life equal to its power" read the sacrificed
+// creature's graveyard face (its static +1/+0 gone) instead of the LKI.
+func bindTriggerObjectLKI(ctx *effects.Ctx, held triggerObjectLKI, ok bool) {
+	if ok && held.object != nil {
+		ctx.LKI = held.object
+		ctx.Snap.Power, ctx.Snap.Toughness, ctx.Snap.PTValid =
+			held.power, held.toughness, held.ptValid
+	}
 }
 
 // triggeredCostXAsk is the X arm of the payment ask: a cost carrying an
@@ -1028,6 +1045,10 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 			ctx.TriggerContext = tcx
 		}
 		ctx.Remembered = tc.costRemembered
+		// The cap body reads the same captured referents a fixed X body does,
+		// LKI binding included.
+		lki, ok := e.triggerLKI[tc.resume.obj]
+		bindTriggerObjectLKI(ctx, lki, ok)
 		if cap, ok := effects.NumResolved(e, ctx, sa, "XMax", 0); ok {
 			if cap < 0 {
 				cap = 0
@@ -1688,7 +1709,7 @@ func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
 		e.continueCumulativeAction()
 		return
 	}
-	if o := e.G.Obj(cu.source); o != nil && o.Zone == state.ZBattlefield {
+	if pay.ExistsOnBattlefield(e.G.Obj(cu.source)) {
 		pay.PaySacrificeCost(asPayer(e), []state.ObjID{cu.source})
 	}
 	e.finishCumulative()

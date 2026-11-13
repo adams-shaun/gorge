@@ -90,10 +90,10 @@ func kfcScan(g *GorgeSide, n map[string]int) {
 			continue
 		}
 		so := gm.Obj(evs[i].Obj)
-		if so == nil || so.Ability == nil && !strings.HasSuffix(kremName(gm, evs[i].Obj), "Charm") {
+		if so == nil || so.Ability == nil && !strings.HasSuffix(sourceCardName(gm, evs[i].Obj), "Charm") {
 			continue
 		}
-		name := kremName(gm, evs[i].Obj)
+		name := sourceCardName(gm, evs[i].Obj)
 		libBf, libHand, exHand := 0, 0, 0
 		for j := i + 1; j < len(evs) && evs[j].Kind != events.Priority && evs[j].Kind != events.Resolve; j++ {
 			if evs[j].Kind != events.MoveZone {

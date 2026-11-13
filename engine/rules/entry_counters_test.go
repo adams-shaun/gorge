@@ -86,7 +86,7 @@ func TestEntryCounterMoveFoldIsReplacementVisible(t *testing.T) {
 	// Vorinclex doubles every counter its controller puts. The entry loyalty
 	// must therefore be 8, and the doubled value must be a REAL event (8 !=
 	// the printed 4).
-	vori := tokenReplCorpusCard(t, "Vorinclex, Monstrous Raider")
+	vori := corpusAlternativeCard(t, "Vorinclex, Monstrous Raider")
 	walker = entryCounterWalker(t)
 	e, cfg = tokenReplGame(t, 137, vori, walker)
 	voriID := moveSeededCard(t, e, 0, vori, state.ZBattlefield)
@@ -128,7 +128,7 @@ func TestReplacementBodyCounterIsBlockedByCantPutCounter(t *testing.T) {
 
 	// Solemnity's object line names creatures, so the body's placement on the
 	// entering creature must be swallowed: 2 -> 0.
-	sol := tokenReplCorpusCard(t, "Solemnity")
+	sol := corpusAlternativeCard(t, "Solemnity")
 	cre = entryCounterEtbCreature(t)
 	e, cfg = tokenReplGame(t, 149, sol, cre)
 	moveSeededCard(t, e, 0, sol, state.ZBattlefield)

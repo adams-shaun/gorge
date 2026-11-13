@@ -158,18 +158,6 @@ func (c *kbargainTally) reset() {
 	c.pendingFlag = map[state.ObjID]bool{}
 }
 
-// kbargainName is the canonical card's printed name through the gorge side.
-func kbargainName(g *GorgeSide, ref Ref) string {
-	if g == nil || ref >= RefStack || int(ref) >= len(g.id.obj) {
-		return ""
-	}
-	o := g.E.G.Obj(g.id.obj[ref])
-	if o == nil || o.Card == nil || len(o.Card.Faces) == 0 {
-		return ""
-	}
-	return o.Card.Faces[0].Name
-}
-
 // kbargainIsToken reports whether the canonical object a sacrifice election
 // offers is a token.
 func kbargainIsToken(g *GorgeSide, ref Ref) bool {
@@ -191,7 +179,7 @@ func kbargainCastOption(g *GorgeSide, d *CDecision) int {
 func kbargainCastWhere(g *GorgeSide, d *CDecision, want func(string) bool) int {
 	for i, a := range d.Options {
 		if a.Kind() == ActCast && a.Mode()>>4 == 0 && a.Mode()&0xf == kbargainCastOther &&
-			want(kbargainName(g, a.Src())) {
+			want(refCardName(g, a.Src())) {
 			return i
 		}
 	}
@@ -203,7 +191,7 @@ func kbargainCastWhere(g *GorgeSide, d *CDecision, want func(string) bool) int {
 // counting the arm it chose.
 func kbargainArm(p *PickCtx, pref int, c *kbargainTally, prng *rand.Rand) Canon {
 	src := p.D.Options[pref].Src()
-	name := kbargainName(p.G, src)
+	name := refCardName(p.G, src)
 	plain := -1
 	for i, a := range p.D.Options {
 		if a.Kind() == ActCast && a.Mode() == 0 && a.Src() == src {
@@ -281,18 +269,18 @@ func kbargainPolicy(seed uint64, c *kbargainTally) Policy {
 			// two) is the floating pool the surface prices a coloured
 			// carrier from.
 			for _, a := range p.D.Options {
-				if a.Kind() == ActCast && kbargainPay[kbargainName(p.G, a.Src())] {
+				if a.Kind() == ActCast && kbargainPay[refCardName(p.G, a.Src())] {
 					return a
 				}
 			}
 			for _, a := range p.D.Options {
 				if a.Kind() == ActCastFace && a.Mode()&0xf == faceCodeAdventure &&
-					kbargainName(p.G, a.Src()) == "Curious Pair" {
+					refCardName(p.G, a.Src()) == "Curious Pair" {
 					return a // Treats to Share: the Food token candidate
 				}
 			}
 			for _, a := range p.D.Options {
-				if a.Kind() == ActCast && kbargainName(p.G, a.Src()) == "Ornithopter" {
+				if a.Kind() == ActCast && refCardName(p.G, a.Src()) == "Ornithopter" {
 					return a // a free artifact candidate
 				}
 			}
@@ -301,14 +289,14 @@ func kbargainPolicy(seed uint64, c *kbargainTally) Policy {
 			var offers []int
 			for i, a := range p.D.Options {
 				if a.Kind() == ActCast && a.Mode()>>4 == 0 && a.Mode()&0xf == kbargainCastOther &&
-					kbargainCarrier[kbargainName(p.G, a.Src())] {
+					kbargainCarrier[refCardName(p.G, a.Src())] {
 					offers = append(offers, i)
 				}
 			}
 			if len(offers) > 0 {
 				c.offers++
 				score := func(i int) (int, bool) {
-					n := kbargainName(p.G, p.D.Options[i].Src())
+					n := refCardName(p.G, p.D.Options[i].Src())
 					return c.castNames[n] + c.plainNames[n], kbargainETB[n]
 				}
 				pref := offers[0]

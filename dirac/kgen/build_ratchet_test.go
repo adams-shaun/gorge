@@ -230,9 +230,6 @@ import (
 // Vine Dryad; the six new ones are Force of Negation, Force of Vigor, Force of
 // Despair, Monstrous Hound, Mogg Toady and Goblin Goon; merged ALL build-level
 // 22392 -> 22584).
-// +14 (Extort: the printed K:Extort expansion's SpellCast trigger lowers its DB$ Extort body as OpExt ExtExtort, and Pontiff of Blight's AddKeyword$ Extort grant becomes a latent trigger; ALL build-level 22350 -> 22364).
-// +14 (the merge with land: this branch's Extort lowering beside land's 22641; merged ALL build-level 22641 -> 22655).
-// +14 (the second merge with land: this branch's Extort lowering beside land's 22706; merged ALL build-level 22706 -> 22720).
 // +31 (K:Partner with: the carriers listed at ratchet_test.go's ALL pin; ALL build-level 22381 -> 22412; merged ALL build-level 22706 -> 22737).
 // +12 from the single-colour storage-battery mana abilities (SubCounter<X/KIND>,
 // Amount$ X, no generic fee): Bottomless Vault, Mercadian Bazaar, Mage-Ring
@@ -247,10 +244,16 @@ import (
 // +29 (api BecomeMonarch, Mode$ BecomeMonarch, Count$Monarch, CheckDefinedPlayer$ You|Opponent.isMonarch and a monarch-gated Effect lower: Aragorn, King of Gondor, Chief Magistrate of Mercadia, Court of Ardenvale, Court of Bounty, Court of Cunning, Court of Embereth, Court of Garenbrig, Court of Grace, Court of Ire, Crimson Fleet Commodore, Custodi Lich, Faramir, Steward of Gondor, Feast of Succession, Garrulous Sycophant, Grave Venerations, Keeper of Keys, Knights of the Black Rose, Marchesa's Decree, Nakia, Wakandan Operative, Oath of Eorl, Palace Sentinels, Queen Marchesa, Regal Sliver, Skyline Despot, Staunch Throneguard, Thorn of the Black Rose, Throne Warden, Throne of the High City, Éomer, King of Rohan; ALL build-level 22381 -> 22410).
 // +30 (the merge with land: the monarch lowering above against land's corpus; merged ALL build-level 22868 -> 22898).
 // +16 (the merge with land: land's later work after f486bfb466, the zone-scoped PlayerCount extreme and Pump/UntilYourNextTurn lowering at 0d7bfabead, DSK 250 -> 251; merged ALL build-level 22898 -> 22914 measured).
+// +16 (the merge with land: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering against the merged corpus; merged ALL build-level 22929 -> 22945 measured).
+// +16 (the merge with land at 065ba12671b7: the same CR 702.43 Multikicker and Count$TimesKicked lowering against land's later corpus; merged ALL build-level 22971 -> 22987 measured).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
 // +12 (the merge with land: the storage-battery abilities above against land's corpus; merged ALL build-level 22971 -> 22983 measured).
-// +14 (the merge with land: this branch's Extort lowering beside land's 23076; merged ALL build-level 23076 -> 23090 measured).
-var buildAcceptancePin = [2]int{23090, 34442} // {built, cards}
+// +16 (the merge with land at bcd3c03ad118: the same CR 702.43 Multikicker and Count$TimesKicked lowering against land's later corpus; merged ALL build-level 23052 -> 23068 measured).
+// +24 (mid-resolution ChooseNumber lowers: ChooseNumberMid, with Count$ChosenNumber and the dynamic PayEnergy<X> unless cost; an activated {X} energy cost stays refused rather than losing its amount; merged onto land c70201715c: ALL build-level 23076 -> 23100 measured).
+// -1 (Gilded Light refuses: its until-end-of-turn player shroud lowered to a keyword grant that lands on no permanent; ALL build-level 23105 -> 23104 measured).
+// +16 (the merge with land at 1acc5919d9: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering beside land's later work; merged ALL build-level 23115 -> 23131 measured).
+// +14 (Extort lowered, the keyword and its SpellCast trigger, against land's corpus; merged ALL build-level 23177 -> 23191 measured).
+var buildAcceptancePin = [2]int{23191, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

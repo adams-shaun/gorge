@@ -165,7 +165,7 @@ func (bt *Bot) choose(s *dirac.State, d *dirac.Decision) int {
 		// a dig's rest (min = max): Clamp tops up in gorge's offered order
 		b.fillPos(s)
 		return bt.firstObj(s, d)
-	case dirac.ChX, dirac.ChTrigX:
+	case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick:
 		// "x": the most it can pay for
 		best := 0
 		for i := 1; i < int(d.N); i++ {

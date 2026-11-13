@@ -63,7 +63,7 @@ func (y *kactytTally) check(ref *GorgeSide, _ Side) *Divergence {
 		case events.TurnChange:
 			y.turn++
 		case events.AbilityPush:
-			if kremFace(g, ev.Obj) == kactytAnchor {
+			if firstFaceName(g, ev.Obj) == kactytAnchor {
 				y.acts++
 			}
 		}
@@ -84,7 +84,7 @@ func (y *kactytTally) check(ref *GorgeSide, _ Side) *Divergence {
 	}
 	for p := range untapped {
 		for _, id := range g.Zone(state.ZBattlefield, state.PlayerID(p)) {
-			if o := g.Obj(id); o != nil && o.Controller == state.PlayerID(p) && !o.Tapped && kremFace(g, id) == kactytAnchor {
+			if o := g.Obj(id); o != nil && o.Controller == state.PlayerID(p) && !o.Tapped && firstFaceName(g, id) == kactytAnchor {
 				untapped[p] = true
 			}
 		}
@@ -151,7 +151,7 @@ func kactytMutate(tbl *kop.Table) int {
 // condition first. It returns the first divergence's seed (0 none).
 func kactytRun(t *testing.T, reg *cards.Registry, set cardset.Set, seeds uint64, mutate bool, tot *kactytTally) (games int, divSeed uint64, stalls int) {
 	t.Helper()
-	decks := kctrnamedDecksOf(t, reg, kactytDecks)
+	decks := kcastDeck(t, reg, kactytDecks)
 	tbl, _, _, err := set.Matchup(kactytDecks[0], kactytDecks[1])
 	if err != nil {
 		t.Fatal(err)

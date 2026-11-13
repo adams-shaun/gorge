@@ -14,8 +14,8 @@ import (
 // per card moved or shuffled, and queues exactly one SearchedLibrary trigger.
 func TestRiverSongOpponentSearchFiresOnce(t *testing.T) {
 	t.Parallel()
-	wilds := tokenReplCorpusCard(t, "Evolving Wilds")
-	river := tokenReplCorpusCard(t, "River Song")
+	wilds := corpusAlternativeCard(t, "Evolving Wilds")
+	river := corpusAlternativeCard(t, "River Song")
 	e, cfg := tokenReplGameSeats(t, 109, []*cards.Card{wilds}, []*cards.Card{river})
 	riverID := moveSeededCard(t, e, 1, river, state.ZBattlefield)
 	if o := e.G.Obj(riverID); o == nil || o.Zone != state.ZBattlefield || o.Controller != 1 {

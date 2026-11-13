@@ -220,6 +220,12 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	// each means and which corpus card carries it).
 	revealWin := dp.RevealWin
 	noLooking := dp.NoLooking
+	// NoLooking$ is Forge's presentation rider, not a blind dig on its own:
+	// only a face-down exile or the random-change take actually withholds the
+	// window from the chooser. Every other carrier spells "Look at the top"
+	// and both names the cards and records the private look, so gate the
+	// hides on the blind shape and leave a bare NoLooking$ inert.
+	blind := noLooking && (dp.ExileFaceDown || dp.RandomChange)
 	forceReveal := dp.ForceReveal
 	// ForceRevealToController$ over a face-down exile (Vulcan Mind-Meld: "You
 	// look at the top two cards of their library, then exile them face
@@ -519,7 +525,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				}
 				for i, id := range ids {
 					name := "a card"
-					if !noLooking || revealWin {
+					if !blind || revealWin {
 						if o := g.Obj(id); o != nil && o.Face() != nil {
 							name = o.Face().Name
 						}
@@ -541,7 +547,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				return
 			}
 			if dest2 == state.ZLibrary && (pos2 == "" || pos2 == "0") && !restRandomOrder && !fromBottom && len(ids) >= 2 && libraryTopIs(g, p, ids) {
-				digTopOrderAsk(h, c, sa, chooser, p, ids, targetIndex, libPhrase, !noLooking || revealWin)
+				digTopOrderAsk(h, c, sa, chooser, p, ids, targetIndex, libPhrase, !blind || revealWin)
 				return
 			}
 			for _, id := range ids {
@@ -654,7 +660,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if revealWin {
 				h.Emit(events.Event{Kind: events.Note, Player: p, IDs: top})
 				saw = true
-			} else if !noLooking {
+			} else if !blind {
 				emitLook(h, []state.PlayerID{looker}, state.ZLibrary, top, lookText)
 				saw = true
 			}
@@ -678,7 +684,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				verb = "put "
 			}
 			look := "Look at the " + lookWhere + " " + strconv.Itoa(int(n)) + " card(s) of " + libPhrase
-			if noLooking && !revealWin {
+			if blind && !revealWin {
 				look = "Choose from the " + lookWhere + " " + strconv.Itoa(int(n)) + " card(s) of " + libPhrase
 			}
 			// A self-contained library move (Jace, the Mind Sculptor's "you
@@ -710,7 +716,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			}
 			for _, id := range budgetEligible {
 				name := "a card"
-				if !noLooking || revealWin {
+				if !blind || revealWin {
 					if o := g.Obj(id); o != nil && o.Face() != nil {
 						name = o.Face().Name
 					}
@@ -801,18 +807,18 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Note, Player: p, IDs: top})
 			saw = true
 		}
-		if bottomRest && !revealWin && !noLooking && int32(len(top)-len(greedy)) >= 2 {
+		if bottomRest && !revealWin && !blind && int32(len(top)-len(greedy)) >= 2 {
 			// The ordered-bottom ask is coming: the look that authorises it is
 			// recorded here, the same Secret chooser's Note the take-ask path
 			// emits before ITS ask (a Reveal$ window is already public).
 			emitLook(h, []state.PlayerID{looker}, state.ZLibrary, top, lookText)
 			saw = true
-		} else if (forced || faceDownLook) && !revealWin && !noLooking && len(top) > 0 {
+		} else if (forced || faceDownLook) && !revealWin && !blind && len(top) > 0 {
 			// ForceReveal$ names the player who sees the window (Gonti, Night
 			// Minister): their look is recorded even though no ask follows.
 			emitLook(h, []state.PlayerID{looker}, state.ZLibrary, top, lookText)
 			saw = true
-		} else if chooser != p && dest == state.ZLibrary && !revealWin && !noLooking && len(top) > 0 {
+		} else if chooser != p && dest == state.ZLibrary && !revealWin && !blind && len(top) > 0 {
 			// A pure look (no take) at another player's library still records
 			// the look for the chooser (Rootwater Mystic, Moonring Island).
 			emitLook(h, []state.PlayerID{looker}, state.ZLibrary, top, lookText)

@@ -133,7 +133,7 @@ func TestPhenomenonInvestigatorsDoubtMayReturn(t *testing.T) {
 			if d.Min != 0 || d.Max != 1 || d.Player != 0 {
 				t.Fatalf("ChoiceOptional bounds/player = %d..%d seat %d, want 0..1 seat 0", d.Min, d.Max, d.Player)
 			}
-			if !slices.Contains(optionIDs(d), bear) || !slices.Contains(optionIDs(d), id) {
+			if !slices.Contains(optionObjIDs(d), bear) || !slices.Contains(optionObjIDs(d), id) {
 				t.Fatalf("hidden pick missing owned nonland permanents: %+v", d.Options)
 			}
 			for _, opt := range d.Options {

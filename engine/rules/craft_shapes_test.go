@@ -33,16 +33,6 @@ func craftTestMaterial(name, types string) string {
 	return "Name:" + name + "\nManaCost:0\nTypes:" + types + "\nPT:1/1\nA:AB$ Mana | Cost$ T | Produced$ C\nOracle:x\n"
 }
 
-// craftIndexOfKind reports the first offered option of a kind.
-func craftIndexOfKind(d *decision.Decision, kind string) int {
-	for _, o := range d.Options {
-		if o.Kind == kind {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 // craftIndexOfAmount reports the offered "x" option whose announced value is
 // want, or -1.
 func craftIndexOfAmount(d *decision.Decision, want int32) int {
@@ -78,13 +68,13 @@ func driveCraftActivation(t *testing.T, e *Engine, source state.ObjID, xWant int
 			continue
 		}
 		switch {
-		case d.Kind == decision.KChoose && craftIndexOfKind(d, "x") >= 0:
+		case d.Kind == decision.KChoose && optionIndexForKind(d, "x") >= 0:
 			idx := craftIndexOfAmount(d, xWant)
 			if idx < 0 {
 				t.Fatalf("no offered X = %d option: %+v", xWant, d.Options)
 			}
 			submitChoices(t, e, idx)
-		case d.Kind == decision.KChoose && craftIndexOfKind(d, "exilecost") >= 0:
+		case d.Kind == decision.KChoose && optionIndexForKind(d, "exilecost") >= 0:
 			// An announced material part asks for X cards in ONE decision
 			// (Min == Max == X); a fixed slot asks for its literal count.
 			// Pay d.Min distinct picks, taking each wanted object where it is
@@ -216,21 +206,21 @@ func TestCraftEnigmaJewelTooFewMaterialsRefused(t *testing.T) {
 		submitChoices(t, e, option.Index)
 		for i := 0; i < 20 && e.Pending() != nil; i++ {
 			d := e.Pending()
-			if d.Kind == decision.KChoose && craftIndexOfKind(d, "x") >= 0 {
+			if d.Kind == decision.KChoose && optionIndexForKind(d, "x") >= 0 {
 				for _, o := range d.Options {
 					if o.Kind == "x" && int32(o.Amount) >= 4 {
 						t.Fatalf("XMin4 floor violated: three materials offered X = %d", o.Amount)
 					}
 				}
-				submitChoices(t, e, craftIndexOfKind(d, "x"))
+				submitChoices(t, e, optionIndexForKind(d, "x"))
 				continue
 			}
-			if d.Kind == decision.KChoose && craftIndexOfKind(d, "exilecost") >= 0 {
-				submitChoices(t, e, craftIndexOfKind(d, "exilecost"))
+			if d.Kind == decision.KChoose && optionIndexForKind(d, "exilecost") >= 0 {
+				submitChoices(t, e, optionIndexForKind(d, "exilecost"))
 				continue
 			}
 			if d.Kind == decision.KPriority {
-				if idx := craftIndexOfKind(d, "pass"); idx >= 0 {
+				if idx := optionIndexForKind(d, "pass"); idx >= 0 {
 					submitChoices(t, e, idx)
 					continue
 				}

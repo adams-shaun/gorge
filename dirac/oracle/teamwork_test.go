@@ -115,18 +115,6 @@ func (c *kteamworkTally) reset() {
 	c.inElect = false
 }
 
-// kteamworkName is the canonical card's printed name through the gorge side.
-func kteamworkName(g *GorgeSide, ref Ref) string {
-	if g == nil || ref >= RefStack || int(ref) >= len(g.id.obj) {
-		return ""
-	}
-	o := g.E.G.Obj(g.id.obj[ref])
-	if o == nil || o.Card == nil || len(o.Card.Faces) == 0 {
-		return ""
-	}
-	return o.Card.Faces[0].Name
-}
-
 // kteamworkPolicy takes the teamworked cast half the time and the plain
 // cast of the same card on the other half, then answers the tap election:
 // Done before any creature one time in four (a decline), otherwise random
@@ -179,10 +167,10 @@ func kteamworkPolicy(seed uint64, c *kteamworkTally) Policy {
 		if p.D.Kind == DPriority {
 			for i, a := range p.D.Options {
 				if a.Kind() != ActCast || a.Mode()>>4 != 0 || a.Mode()&0xf != kteamworkCastOther ||
-					!kteamworkCarrier[kteamworkName(p.G, a.Src())] {
+					!kteamworkCarrier[refCardName(p.G, a.Src())] {
 					continue
 				}
-				name := kteamworkName(p.G, a.Src())
+				name := refCardName(p.G, a.Src())
 				plain := -1
 				for j, b := range p.D.Options {
 					if b.Kind() == ActCast && b.Mode() == 0 && b.Src() == a.Src() {
@@ -204,7 +192,7 @@ func kteamworkPolicy(seed uint64, c *kteamworkTally) Policy {
 				return p.D.Options[plain]
 			}
 			for _, a := range p.D.Options {
-				if a.Kind() == ActCast && kteamworkPay[kteamworkName(p.G, a.Src())] {
+				if a.Kind() == ActCast && kteamworkPay[refCardName(p.G, a.Src())] {
 					return a // the ETB mana first: the floating pool prices a teamworked cast
 				}
 			}

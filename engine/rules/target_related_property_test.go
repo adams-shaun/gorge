@@ -36,7 +36,7 @@ func relatedOffered(t *testing.T, e *Engine, src state.ObjID, sa *cards.SA, id s
 	if d == nil {
 		t.Fatal("no target decision posed")
 	}
-	return setPropOptionIndex(d, id) != -1
+	return indexOfObjOption(d, id) != -1
 }
 
 func TestTargetRelatedPropertySpawnbroker(t *testing.T) {

@@ -63,7 +63,7 @@ func kremw4Scan(g *GorgeSide, c *kremw4Counts) {
 			zone[ev.Obj] = ev.To
 			continue
 		case events.DelayedPush:
-			if ev.Counter == "TrigFight" && kremw4Fighters[kremFace(gm, ev.Obj)] && len(ev.IDs) == 1 {
+			if ev.Counter == "TrigFight" && kremw4Fighters[firstFaceName(gm, ev.Obj)] && len(ev.IDs) == 1 {
 				captured[ev.Obj] = ev.IDs[0]
 			}
 			continue
@@ -78,7 +78,7 @@ func kremw4Scan(g *GorgeSide, c *kremw4Counts) {
 			}
 		}
 		o := gm.Obj(ev.Obj)
-		if o != nil && o.Ability == nil && kremFace(gm, ev.Obj) == "Graceful Takedown" {
+		if o != nil && o.Ability == nil && firstFaceName(gm, ev.Obj) == "Graceful Takedown" {
 			// one Damage event per damager (the single target)
 			c.takedowns++
 			if dmg >= 2 {
@@ -86,7 +86,7 @@ func kremw4Scan(g *GorgeSide, c *kremw4Counts) {
 			}
 			continue
 		}
-		if o == nil || o.Ability == nil || o.Ability.API != "Fight" || !kremw4Fighters[kremName(gm, ev.Obj)] {
+		if o == nil || o.Ability == nil || o.Ability.API != "Fight" || !kremw4Fighters[sourceCardName(gm, ev.Obj)] {
 			continue
 		}
 		cap, ok := captured[o.Source]

@@ -141,27 +141,6 @@ func (t *ftTally) check(ref *GorgeSide, _ Side) *Divergence {
 	return nil
 }
 
-// ftPolicy casts or activates whenever it can (so the games reach the
-// carriers), else random.
-func ftPolicy(seed uint64) Policy {
-	rnd := RandomPolicy(seed)
-	var buf []Canon
-	return PolicyFunc(func(c *PickCtx) Canon {
-		buf = buf[:0]
-		for _, a := range c.D.Options {
-			if k := a.Kind(); k == ActCast || k == ActActivate {
-				buf = append(buf, a)
-			}
-		}
-		if len(buf) == 0 {
-			return rnd.Pick(c)
-		}
-		d := *c.D
-		d.Options = buf
-		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
-	})
-}
-
 // ftPrep is one matchup's decks and kernel table, built once: the table is
 // read-only across games, so 1024 games do not rebuild it.
 type ftPrep struct {
@@ -237,7 +216,7 @@ func TestFacesTransformLockstep(t *testing.T) {
 			}
 			tally.reset()
 			rc := RunConfig{Config: cfg, MaxDecisions: 3000, MaxTurns: 30, Check: tally.check}
-			res := Lockstep(m, seed, k, ftPolicy(seed), rc)
+			res := Lockstep(m, seed, k, castActivatePolicy(seed), rc)
 			CloseSide(k)
 			if d := res.Div; d != nil {
 				r := NewRepro(m, seed, rc, &res)
@@ -331,7 +310,7 @@ func TestFacesTransformMutation(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		res := Lockstep(m, seed, k, ftPolicy(seed), RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 30})
+		res := Lockstep(m, seed, k, castActivatePolicy(seed), RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 30})
 		CloseSide(k)
 		if res.Div != nil {
 			t.Logf("seed %d: the mutation diverges at decision %d (%s %s)", seed, res.Div.At, res.Div.What, res.Div.Field)

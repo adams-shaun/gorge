@@ -25,7 +25,7 @@ func mustBlockCorpusBody(t *testing.T, e *Engine, source state.ObjID, sVar strin
 // never Defined's ordinary no-target fallback to the source creature.
 func TestMustBlockCorpusFighterClassOptionalTarget(t *testing.T) {
 	e := threeSeatEngine(t)
-	class := onBoardCard(t, e, 0, mshCorpusCard(t, "Fighter Class"))
+	class := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Fighter Class"))
 	attacker := onBoard(t, e, 1, "Name:Attacker\nTypes:Creature\nPT:2/2\nOracle:x\n")
 	blocker := onBoard(t, e, 0, "Name:Blocker\nTypes:Creature\nPT:2/2\nOracle:x\n")
 	e.G.Obj(attacker).IsAttacking, e.G.Obj(attacker).Attacking = true, 0
@@ -48,7 +48,7 @@ func TestMustBlockCorpusFighterClassOptionalTarget(t *testing.T) {
 // only creatures carrying the printed magnet counter become blockers.
 func TestMustBlockCorpusMagneticWebDefinedSet(t *testing.T) {
 	e := threeSeatEngine(t)
-	web := onBoardCard(t, e, 0, mshCorpusCard(t, "Magnetic Web"))
+	web := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Magnetic Web"))
 	attacker := onBoard(t, e, 1, "Name:Magnet attacker\nTypes:Creature\nPT:2/2\nOracle:x\n")
 	blocker := onBoard(t, e, 0, "Name:Magnet blocker\nTypes:Creature\nPT:2/2\nOracle:x\n")
 	bystander := onBoard(t, e, 0, "Name:Unmarked blocker\nTypes:Creature\nPT:2/2\nOracle:x\n")
@@ -71,7 +71,7 @@ func TestMustBlockCorpusMagneticWebDefinedSet(t *testing.T) {
 // as a separate pair duty. The pair oracle feeds declaration validation too.
 func TestMustBlockCorpusBlazeOfGloryAllDefinedAttackers(t *testing.T) {
 	e := threeSeatEngine(t)
-	blaze := onBoardCard(t, e, 1, mshCorpusCard(t, "Blaze of Glory"))
+	blaze := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Blaze of Glory"))
 	blocker := onBoard(t, e, 0, "Name:Chosen blocker\nTypes:Creature\nPT:2/2\nOracle:x\n")
 	bystander := onBoard(t, e, 0, "Name:Other blocker\nTypes:Creature\nPT:2/2\nOracle:x\n")
 	a1 := onBoard(t, e, 1, "Name:Attacker one\nTypes:Creature\nPT:2/2\nOracle:x\n")

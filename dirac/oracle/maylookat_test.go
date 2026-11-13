@@ -64,7 +64,7 @@ func kmaylookatPolicy(seed uint64, c *kmaylookatCounts) Policy {
 				hasMode = true
 			case ActActivate:
 				if ctx.G != nil {
-					switch kfacedownName(ctx, a) {
+					switch optionFaceName(ctx, a) {
 					case "Found Footage":
 						footage, haveFootage = a, true
 					case "Lumbering Laundry":

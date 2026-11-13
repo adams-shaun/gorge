@@ -25,8 +25,15 @@ func init() {
 // both are DB$ ChangeZone | Defined$ Remembered bodies, so the existing
 // movement path emits the MoveZone events and nothing here touches state.
 //
-// Two asks, each answered in place: the split ask (pile A; pile B is the
-// offered-order rest) and then the pile pick.
+// The Separator$/Chooser$ player selectors resolve through twoPilesPlayer,
+// whose literal "Opponent" spec is CR 801.5b: the spell's controller chooses
+// WHICH opponent, so at three or more seats the caster is asked before the
+// split.
+//
+// Up to three asks, each answered in place: the opponent ask (only when a
+// Separator$/Chooser$ spec names Opponent and more than one opponent is
+// live), the split ask (pile A; pile B is the offered-order rest) and then
+// the pile pick.
 //
 // The no-host stand-in: pile A is the FIRST card of the set and the
 // chooser takes pile A — silent, byte-identical run to run, straight from
@@ -135,17 +142,20 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 		// "that player's choice": the pool player picks the pile.
 		chooser = pool
 	} else {
-		chooser, ok = twoPilesPlayer(h, c, chooseSpec)
+		chooser, ok = twoPilesPlayer(h, c, sa, "Chooser", chooseSpec)
 	}
 	if !ok {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "unimplemented TwoPiles shape: Chooser$ " + chooseSpec + " names no player this engine can resolve"})
 		return
 	}
-	if battlefield && sepSpec == "" {
+	// The same player for both roles never resolves twice: with sepSpec
+	// defaulted to chooseSpec the Separator$ ask IS the Chooser$ ask -- one
+	// CR 801.5b opponent ask, never two.
+	if (battlefield && sepSpec == "") || sepSpec == chooseSpec {
 		sep = chooser
 	} else {
-		sep, ok = twoPilesPlayer(h, c, sepSpec)
+		sep, ok = twoPilesPlayer(h, c, sa, "Separator", sepSpec)
 	}
 	if !ok {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
@@ -281,7 +291,7 @@ func effTwoPilesDefined(h Host, c *Ctx, sa *cards.SA) {
 	}
 	chooser := c.Controller
 	if spec := twoPilesChooserSpec(sa); spec != "" {
-		if chooser, ok = twoPilesPlayer(h, c, spec); !ok {
+		if chooser, ok = twoPilesPlayer(h, c, sa, "Chooser", spec); !ok {
 			loud("Chooser$ " + spec + " names no player this engine can resolve")
 			return
 		}
@@ -320,10 +330,11 @@ func twoPilesPileObjs(h Host, c *Ctx, sel string) ([]state.ObjID, bool) {
 
 // twoPilesPoolPlayer is the player whose permanents the battlefield shape
 // separates: Defined$ when the script names one, else the first player the
-// resolution targeted (Liliana's "target player").
+// resolution targeted (Liliana's "target player"). It forwards sa so a
+// Defined$ Opponent pool ask goes through the same CR 801.5b path.
 func twoPilesPoolPlayer(h Host, c *Ctx, sa *cards.SA) (state.PlayerID, bool) {
 	if spec := DefinedRefOf(sa).Text; spec != "" {
-		return twoPilesPlayer(h, c, spec)
+		return twoPilesPlayer(h, c, sa, "Pool", spec)
 	}
 	for _, t := range c.Targets {
 		if t.IsPlayer && int(t.Player) < len(h.Game().Players) && !h.Game().Players[t.Player].Lost {
@@ -406,24 +417,74 @@ func twoPilesPosePick(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID) (pic
 
 // twoPilesPlayer resolves one Separator$/Chooser$ selector to a single
 // seat. "You" is the controller; everything else goes through the shared
-// knownDefinedTargets resolver (Opponent → the first alive opponent in seat
-// order, ChosenPlayer/TriggeredPlayer when bound) and takes the first player
-// entry, deterministic in that order. An unresolvable spec reports false and
-// the caller goes loud.
-func twoPilesPlayer(h Host, c *Ctx, spec string) (state.PlayerID, bool) {
+// knownDefinedTargets resolver (ChosenPlayer/TriggeredPlayer when bound) and
+// takes the first player entry, deterministic in that order. The literal
+// "Opponent" spec is CR 801.5b -- "an opponent of your choice": with more
+// than one live opponent the caster is ASKED which one (twoPilesAskOpponent);
+// with exactly one, no ask is posed, so the two-seat games and the goldens
+// stay byte-identical. An unresolvable spec reports false and the caller
+// goes loud.
+func twoPilesPlayer(h Host, c *Ctx, sa *cards.SA, role, spec string) (state.PlayerID, bool) {
 	if spec == "You" {
 		return c.Controller, true
 	}
+	g := h.Game()
 	ts, ok := knownDefinedTargets(h, c, spec)
 	if !ok {
 		return 0, false
 	}
+	if spec == "Opponent" {
+		cands := make([]state.PlayerID, 0, 2)
+		for _, t := range ts {
+			if t.IsPlayer && int(t.Player) < len(g.Players) && !g.Players[t.Player].Lost {
+				cands = append(cands, t.Player)
+			}
+		}
+		switch len(cands) {
+		case 0:
+			return 0, false
+		case 1:
+			return cands[0], true
+		}
+		return twoPilesAskOpponent(h, c, sa, role, cands), true
+	}
 	for _, t := range ts {
-		if t.IsPlayer && int(t.Player) < len(h.Game().Players) && !h.Game().Players[t.Player].Lost {
+		if t.IsPlayer && int(t.Player) < len(g.Players) && !g.Players[t.Player].Lost {
 			return t.Player, true
 		}
 	}
 	return 0, false
+}
+
+// twoPilesAskOpponent is the CR 801.5b ask: the spell's controller picks
+// WHICH opponent separates or picks (Forge's chooseSingleEntityForEffect
+// over activator.getOpponents(), the same shape putCounterTribute's
+// tribute-payer ask). Options are the live opponents in seat order. The
+// no-host stand-in and the fallback for a non-candidate answer are the
+// first candidate -- the exact pick botpolicy's clamp answers (its "player"
+// arm only overrides "vote").
+func twoPilesAskOpponent(h Host, c *Ctx, sa *cards.SA, role string, cands []state.PlayerID) state.PlayerID {
+	g := h.Game()
+	prompt := "Choose an opponent to separate the piles"
+	if role == "Chooser" {
+		prompt = "Choose an opponent to pick a pile"
+	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
+		Min: 1, Max: 1, Source: c.Source, ResumeKind: "twopiles_opponent",
+		ResumeSA: sa, Prompt: prompt}
+	for _, p := range cands {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+			Kind: "player", Label: g.SeatFacingName(p), Player: p})
+	}
+	pick := cands[0]
+	if ans, ok := AskTape(h, d); ok && len(ans) > 0 {
+		for _, p := range cands {
+			if ans[0].Player == p {
+				return p
+			}
+		}
+	}
+	return pick
 }
 
 // splitSet splits the offered-order card set on the answered pile-A ids:

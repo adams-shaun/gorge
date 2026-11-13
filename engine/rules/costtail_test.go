@@ -99,7 +99,7 @@ func TestCosttailHinataRaisesPerTarget(t *testing.T) {
 	setup := func(t *testing.T, pool int32) (*Engine, state.ObjID, state.ObjID) {
 		e := handEngine(t, card(t, costtailBolt))
 		costtailPermCard(t, e, 1, corpusAlternativeCard(t, "Hinata, Dawn-Crowned"))
-		bear := costredPerm(t, e, 1, costredBear)
+		bear := battlefieldFixture(t, e, 1, costredBear)
 		e.G.Players[0].Pool[state.MR] = 1
 		e.G.Players[0].Pool[state.MC] = pool
 		return e, e.G.Zone(state.ZHand, 0)[0], bear
@@ -228,7 +228,7 @@ func TestCosttailCemeteryProwlerReducesBySharedTypes(t *testing.T) {
 func TestCosttailCountHeadsResolve(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t)
-	src := costredPerm(t, e, 0, costredBear)
+	src := battlefieldFixture(t, e, 0, costredBear)
 	ctx := &effects.Ctx{Source: src, Controller: 0}
 	eval := func(body string) int32 {
 		t.Helper()
@@ -260,8 +260,8 @@ func TestCosttailCountHeadsResolve(t *testing.T) {
 		t.Errorf("OpponentsAttackedThisTurn = %d, want 1", n)
 	}
 	// Korvold: distinct card types among permanents sacrificed this turn.
-	art := costredPerm(t, e, 0, "Name:Test Beast Relic\nTypes:Artifact Creature Beast\nPT:1/1\nOracle:x\n")
-	land := costredPerm(t, e, 0, costredMountain)
+	art := battlefieldFixture(t, e, 0, "Name:Test Beast Relic\nTypes:Artifact Creature Beast\nPT:1/1\nOracle:x\n")
+	land := battlefieldFixture(t, e, 0, costredMountain)
 	for _, id := range []state.ObjID{art, land} {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
 	}
@@ -279,7 +279,7 @@ func TestCosttailCountHeadsResolve(t *testing.T) {
 	if n := eval("Count$MostProminentCreatureType Creature.YouCtrl"); n != 1 {
 		t.Errorf("MostProminentCreatureType = %d, want 1 (one Bear)", n)
 	}
-	costredPerm(t, e, 0, costredBear)
+	battlefieldFixture(t, e, 0, costredBear)
 	if n := eval("Count$MostProminentCreatureType Creature.YouCtrl"); n != 2 {
 		t.Errorf("MostProminentCreatureType = %d, want 2 (two Bears)", n)
 	}
@@ -291,7 +291,7 @@ func TestCosttailGlamdringReducesByEquippedPower(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t, card(t, "Name:Test Bolt\nManaCost:2 R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n"))
 	glam := costtailPermCard(t, e, 0, corpusAlternativeCard(t, "Glamdring, Foe-hammer"))
-	bear := costredPerm(t, e, 0, costredBear)
+	bear := battlefieldFixture(t, e, 0, costredBear)
 	spell := e.G.Zone(state.ZHand, 0)[0]
 	e.G.Players[0].Pool[state.MR] = 1
 	if hasCastOption(e.legalActions(0), spell) {
@@ -313,15 +313,15 @@ func TestCosttailGlamdringReducesByEquippedPower(t *testing.T) {
 func TestCosttailSynchronizedEvictionSharedType(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t, corpusAlternativeCard(t, "Synchronized Eviction"))
-	target := costredPerm(t, e, 1, costredBear)
-	costredPerm(t, e, 0, costredBear)
+	target := battlefieldFixture(t, e, 1, costredBear)
+	battlefieldFixture(t, e, 0, costredBear)
 	spell := e.G.Zone(state.ZHand, 0)[0]
 	e.G.Players[0].Pool[state.MU] = 1
 	e.G.Players[0].Pool[state.MC] = 2
 	if hasCastOption(e.legalActions(0), spell) {
 		t.Fatalf("Eviction offered on 3 mana with one Bear")
 	}
-	costredPerm(t, e, 0, costredBear)
+	battlefieldFixture(t, e, 0, costredBear)
 	if !hasCastOption(e.legalActions(0), spell) {
 		t.Fatalf("Eviction not offered on {2}{U} with two Bears")
 	}
@@ -337,7 +337,7 @@ func TestCosttailSynchronizedEvictionSharedType(t *testing.T) {
 func TestCosttailSeizeTheSecretsAfterACrime(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t, corpusAlternativeCard(t, "Seize the Secrets"), card(t, costtailBolt))
-	opp := costredPerm(t, e, 1, costredBear)
+	opp := battlefieldFixture(t, e, 1, costredBear)
 	seize, zap := e.G.Zone(state.ZHand, 0)[0], e.G.Zone(state.ZHand, 0)[1]
 	e.G.Players[0].Pool[state.MU] = 1
 	e.G.Players[0].Pool[state.MC] = 1
@@ -365,7 +365,7 @@ func TestCosttailTezzeretFirstArtifactActivation(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t)
 	costtailPermCard(t, e, 0, corpusAlternativeCard(t, "Tezzeret, Betrayer of Flesh"))
-	engine := costredPerm(t, e, 0, "Name:Test Engine\nTypes:Artifact\nA:AB$ GainLife | Cost$ 2 | LifeAmount$ 1 | SpellDescription$ gain 1\nOracle:x\n")
+	engine := battlefieldFixture(t, e, 0, "Name:Test Engine\nTypes:Artifact\nA:AB$ GainLife | Cost$ 2 | LifeAmount$ 1 | SpellDescription$ gain 1\nOracle:x\n")
 	if !hasAbilityOptionFor(e.legalActions(0), engine) {
 		t.Fatalf("the first artifact activation is not offered for {0}")
 	}
@@ -459,7 +459,7 @@ func TestCosttailAffectedZoneGatesTheCastFromZone(t *testing.T) {
 func TestCosttailClosingStatementEndStepOnly(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t, corpusAlternativeCard(t, "Closing Statement"))
-	costredPerm(t, e, 1, costredBear)
+	battlefieldFixture(t, e, 1, costredBear)
 	spell := e.G.Zone(state.ZHand, 0)[0]
 	pool := &e.G.Players[0].Pool
 	pool[state.MW], pool[state.MB], pool[state.MC] = 1, 1, 1
@@ -484,8 +484,8 @@ func TestCosttailUnlessValidTargetInverts(t *testing.T) {
 	setup := func(t *testing.T) (*Engine, state.ObjID, state.ObjID, state.ObjID) {
 		e := handEngine(t, card(t, costtailBolt))
 		costtailPermCard(t, e, 0, tax)
-		mine := costredPerm(t, e, 0, costredBear)
-		theirs := costredPerm(t, e, 1, costredBear)
+		mine := battlefieldFixture(t, e, 0, costredBear)
+		theirs := battlefieldFixture(t, e, 1, costredBear)
 		e.G.Players[0].Pool[state.MR] = 1
 		return e, e.G.Zone(state.ZHand, 0)[0], mine, theirs
 	}

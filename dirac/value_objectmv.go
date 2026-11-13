@@ -75,18 +75,30 @@ func (s *State) objTargetMV(k *prep, o Obj) int {
 // announced X for one that is a spell on the stack (CR 202.3e; objMV).
 //
 //go:noinline
-func (s *State) rememberedMV(k *prep) int {
+func (s *State) rememberedMV(k *prep) int { return s.rememberedMVAgg(k, false) }
+
+// rememberedMVAgg is rememberedMV, or with greatest the largest single mana
+// value (TriggerRemembered$GreatestCardManaCost; ExMVOf N == AggGreatestMV).
+//
+//go:noinline
+func (s *State) rememberedMVAgg(k *prep, greatest bool) int {
 	n := 0
 	for _, o := range s.g.rem[:s.g.nrem] {
 		if s.faceDownAt(k, o) {
 			continue // CR 708.2: a face-down permanent or spell has no mana cost
 		}
 		ob := &s.objs[o]
+		mv := 0
 		if ob.zone == kop.ZoneBattlefield {
-			n += s.objMV(k, s.cardAt(ob.slot), o) // static_cda.go
-			continue
+			mv = s.objMV(k, s.cardAt(ob.slot), o) // static_cda.go
+		} else {
+			mv = s.objMV(k, ob.card, o) // static_cda.go
 		}
-		n += s.objMV(k, ob.card, o) // static_cda.go
+		if greatest {
+			n = max(n, mv)
+		} else {
+			n += mv
+		}
 	}
 	return n
 }

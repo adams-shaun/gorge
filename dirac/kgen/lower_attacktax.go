@@ -14,8 +14,11 @@ import (
 // or an SVar of the face, read from the static's source and controller), the
 // matching statics summing. The kernel's half is dirac/combat_attacktax.go
 // (kop.StatAttackTax). The other Cost$ shapes gorge's chargeFromCost reads
-// (Sac<>, Return<>, tapXType<>, PayLife<>, a Phyrexian pip: Norn's Annex) and
-// RememberingAttacker$ (Nils, Discipline Enforcer) stay refused.
+// (Sac<>, Return<>, tapXType<>, PayLife<>, a Phyrexian pip: Norn's Annex)
+// stay refused. RememberingAttacker$ (Nils, Discipline Enforcer) lowers only
+// as its corpus carrier: RememberingAttacker$ True whose Cost$ SVar body is
+// exactly Remembered$CardCounters.ALL, the priced creature's own counters
+// (kop.RefTaxedAttacker, combat_attacktax.go atkTaxCharge).
 
 // attackTaxKeys are the parameters gorge reads on a CantAttackUnless static
 // (effects.CantAttackUnlessRestrictionParamsReadable): one carrying any other
@@ -57,8 +60,25 @@ func (lc *lowerCtx) cantAttackUnless(sp *params, st *lStatic) error {
 	if !ok {
 		return refuse("CantAttackUnless without ValidCard$") // gorge attackPairCharge skips it
 	}
-	if v, ok := sp.get("RememberingAttacker"); ok {
-		return refuse("CantAttackUnless RememberingAttacker$ %q: a charge read off the attacking creature is not lowered", v)
+	// RememberingAttacker$ (Nils, Discipline Enforcer): gorge's
+	// attackUnlessCharge binds ctx.Remembered = [{Obj: attacker}] and
+	// evaluates X live, so a charge that reads the attacking creature's own
+	// counters lowers onto kop.RefTaxedAttacker. The kernel's atkTaxCharge
+	// binds the priced creature the same way (evalCtx.taxed1) and
+	// refCountersAll reads it live. The carrier is the only one the corpus
+	// has: RememberingAttacker$ True with Cost$'s SVar body exactly
+	// Remembered$CardCounters.ALL.
+	rem, hasRem := sp.get("RememberingAttacker")
+	if hasRem {
+		if rem != "True" {
+			return refuse("CantAttackUnless RememberingAttacker$ %q: a charge read off the attacking creature is lowered only with RememberingAttacker$ True", rem)
+		}
+		raw := sp.str("Cost")
+		body := strings.TrimSpace(lc.face.SVars[raw])
+		if raw == "" || body != "Remembered$CardCounters.ALL" {
+			return refuse("CantAttackUnless RememberingAttacker$ %q with Cost$ body %q: a charge read off the attacking creature is lowered only as Remembered$CardCounters.ALL", rem, body)
+		}
+		st.Amount = lValue{Kind: vCountersOn, Ref: lRef{Kind: rTaxedAttacker}, S: "ALL", N: 1} // N 1: the live read (kernel refCountersAll)
 	}
 	f, err := lc.filter(vc)
 	if err != nil {
@@ -81,10 +101,13 @@ func (lc *lowerCtx) cantAttackUnless(sp *params, st *lStatic) error {
 		}
 	}
 	// gorge attackUnlessCharge: a literal integer, then an inline Count$, then
-	// an SVar of the face; anything else is the cost-token grammar
+	// an SVar of the face; anything else is the cost-token grammar. A
+	// RememberingAttacker$ charge read off the attacker has set Amount above.
 	raw := sp.str("Cost")
 	_, svar := lc.face.SVars[raw]
 	switch n, err := strconv.Atoi(raw); {
+	case hasRem:
+		// RememberingAttacker$ set the charge; Cost$ has been checked.
 	case raw == "":
 		return refuse("CantAttackUnless without Cost$")
 	case err == nil:

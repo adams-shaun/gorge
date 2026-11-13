@@ -59,6 +59,7 @@ type DigParams struct {
 	// SkipReorder$, Tapped$, FromBottom$, RestRandomOrder$, Imprint$,
 	// GainControl$ and RememberChanged$ True.
 	NoLooking       bool
+	RandomChange    bool
 	ForceReveal     bool
 	ExileFaceDown   bool
 	SkipReorder     bool
@@ -237,6 +238,7 @@ var digKnownKeys = [...]string{
 	"PresentZone",
 	"PrimaryPrompt",
 	"PromptToSkipOptionalAbility",
+	"RandomChange",
 	"RandomNumTargets",
 	"ReduceAmount",
 	"ReduceCost",
@@ -381,6 +383,7 @@ func compileDig(sa *cards.SA) *DigParams {
 		strings.TrimSpace(rawParamText(sa, "OptionalAbilityPrompt").Text) != ""
 	p.RevealWin = isTrue(sa.ParamStr(cards.PKReveal)) && !isTrue(sa.ParamStr(cards.PKNoReveal))
 	p.NoLooking = isTrue(sa.ParamStr(cards.PKNoLooking))
+	p.RandomChange = isTrue(sa.ParamStr(cards.PKRandomChange))
 	p.ForceReveal = isTrue(rawParamText(sa, "ForceRevealToController").Text)
 	p.ExileFaceDown = isTrue(sa.ParamStr(cards.PKExileFaceDown))
 	p.SkipReorder = isTrue(rawParamText(sa, "SkipReorder").Text)

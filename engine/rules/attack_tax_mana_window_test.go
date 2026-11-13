@@ -375,7 +375,7 @@ const manaWindowForest = "Name:Window Forest\nTypes:Basic Land Forest\n" +
 func attackWindowSeat(t *testing.T, counters int32, dorks, forests int) (*Engine, state.ObjID, []state.ObjID) {
 	t.Helper()
 	e := layerEngine(t)
-	myr := onBoardReadyCard(t, e, 0, mshCorpusCard(t, "Myr Prototype"))
+	myr := onBoardReadyCard(t, e, 0, corpusAlternativeCard(t, "Myr Prototype"))
 	e.G.Obj(myr).AddCounter("P1P1", counters)
 	ids := make([]state.ObjID, 0, dorks)
 	for i := 0; i < dorks; i++ {

@@ -54,36 +54,6 @@ func bargainEngine(t *testing.T, headline *cards.Card) (*Engine, Config, *cards.
 	return e, cfg, reg
 }
 
-// bargainCastMode returns the "cast" option casting id in the given mode, or
-// fails when it is absent.
-func bargainCastMode(t *testing.T, e *Engine, id state.ObjID, mode string) decision.Option {
-	t.Helper()
-	d := e.Pending()
-	if d == nil {
-		t.Fatal("no decision pending")
-	}
-	for _, o := range d.Options {
-		if o.Kind == "cast" && o.Obj == id && o.Mode == mode {
-			return o
-		}
-	}
-	t.Fatalf("no %q cast option for %d: %+v", mode, id, d.Options)
-	return decision.Option{}
-}
-
-func bargainHasCastMode(e *Engine, id state.ObjID, mode string) bool {
-	d := e.Pending()
-	if d == nil {
-		return false
-	}
-	for _, o := range d.Options {
-		if o.Kind == "cast" && o.Obj == id && o.Mode == mode {
-			return true
-		}
-	}
-	return false
-}
-
 // bargainAnswer submits the bargain sacrifice of want from the pending ask,
 // asserting the ask is a genuine bargain election and that want is offered.
 func bargainAnswer(t *testing.T, e *Engine, want state.ObjID) {
@@ -138,7 +108,7 @@ func TestBargainCandyGrapplePaysForFiveMinusFive(t *testing.T) {
 			if pay {
 				mode = "bargained"
 			}
-			submitChoices(t, e, bargainCastMode(t, e, candy, mode).Index)
+			submitChoices(t, e, replicateOption(t, e, candy, mode).Index)
 			if pay {
 				bargainAnswer(t, e, sol)
 			}
@@ -205,7 +175,7 @@ func TestBargainEligibilityOffersArtifactEnchantmentTokenOnly(t *testing.T) {
 		t.Fatal("precondition: Candy Grapple must be in hand")
 	}
 	addMana(t, e, 0, "BB")
-	submitChoices(t, e, bargainCastMode(t, e, candy, "bargained").Index)
+	submitChoices(t, e, replicateOption(t, e, candy, "bargained").Index)
 	d := e.Pending()
 	if d == nil || len(d.Options) == 0 || d.Options[0].Kind != "bargain" {
 		t.Fatalf("missing bargain ask: %+v", d)
@@ -254,7 +224,7 @@ func TestBargainHamletGluttonReducesCostByTwo(t *testing.T) {
 	if bargainHasCastMode(e, glutton, "") {
 		t.Fatal("plain cast offered on only the reduced pool")
 	}
-	submitChoices(t, e, bargainCastMode(t, e, glutton, "bargained").Index)
+	submitChoices(t, e, replicateOption(t, e, glutton, "bargained").Index)
 	bargainAnswer(t, e, sol)
 	passUntilStackEmpty(t, e, 60)
 	if e.G.Obj(glutton).Zone != state.ZBattlefield {
@@ -297,7 +267,7 @@ func TestBargainConditionGateScriesOnlyWhenBargained(t *testing.T) {
 			if pay {
 				mode = "bargained"
 			}
-			submitChoices(t, e, bargainCastMode(t, e, torch, mode).Index)
+			submitChoices(t, e, replicateOption(t, e, torch, mode).Index)
 			if pay {
 				bargainAnswer(t, e, sol)
 			}

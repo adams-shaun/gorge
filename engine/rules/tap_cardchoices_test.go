@@ -15,7 +15,7 @@ import (
 func tapChoicesBoard(t *testing.T) (e *Engine, cfg Config, orphans, a, b, foe state.ObjID, d func() *effects.Ctx) {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
-	orph := selectionCard(t, reg, "Orphans of the Wheat")
+	orph := registryCardByName(t, reg, "Orphans of the Wheat")
 	bear := card(t, "Name:Fixture Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e, ids, cfg := selectionStage(t, reg, Stage{
 		Turn: 1, Active: 0, Starting: 0, Step: state.StepMain2,

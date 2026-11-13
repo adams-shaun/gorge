@@ -3508,7 +3508,10 @@ func matchesEnteredEntry(g *state.Game, spec string, e state.ZoneEntry, sc SpecC
 		// match the card where it now lies, as a card, since the battlefield
 		// matcher rejects an object that is no longer a permanent.
 		if o := g.Obj(e.Obj); o != nil && o.Zone != state.ZBattlefield && o.Zone != state.ZStack {
-			return matchesZoneSpecCtx(g, spec, e.Obj, sc, o.Zone)
+			// The entry itself proves the object was a permanent on the
+			// battlefield, so CR 707.10h's ceased-copy rejection (meant for a
+			// spell copy parked off the stack) does not apply to it.
+			return matchesZoneSpecObj(g, spec, o, sc, o.Zone)
 		}
 	}
 	if e.From != state.ZBattlefield {

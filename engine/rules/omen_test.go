@@ -43,20 +43,6 @@ const omenTaxSrc = "Name:Dusk Ledger\nManaCost:1 B\nTypes:Sorcery\n" +
 const omenTaxWardenSrc = "Name:Omen Tax Warden\nManaCost:1 W\nTypes:Creature Human Soldier\nPT:2/1\n" +
 	"S:Mode$ RaiseCost | ValidCard$ Card.nonCreature | Type$ Spell | Amount$ 1\nOracle:x\n"
 
-// omenOption returns the cast option for id whose Mode is exactly mode, or
-// nil when none is offered.
-func omenOption(t *testing.T, e *Engine, id state.ObjID, mode string) *decision.Option {
-	t.Helper()
-	opts := castOptions(t, e)
-	for i := range opts {
-		o := &opts[i]
-		if o.Obj == id && o.Mode == mode {
-			return o
-		}
-	}
-	return nil
-}
-
 // omenCorpusEngine deals seat 0 a 40-card deck led by Twinmaw Stormbrood and
 // all Forests, and seat 1 a deck of Grizzly Bears, one of which is moved onto
 // the battlefield as Charring Bite's target. The returned id is the Twinmaw
@@ -98,8 +84,8 @@ func TestOmenFaceOfferedFromHandAndShuffledOnResolve(t *testing.T) {
 	reg := searchTestRegistry(t)
 	e, cfg, id, oppBear := omenCorpusEngine(t, reg)
 	addMana(t, e, 0, "RR")
-	plain := omenOption(t, e, id, "")
-	alt := omenOption(t, e, id, "omen_alt")
+	plain := adventureOption(t, e, id, "")
+	alt := adventureOption(t, e, id, "omen_alt")
 	if plain != nil {
 		t.Fatalf("the {5}{W} front must not be offered with only {R}{R}: %+v", plain)
 	}
@@ -166,13 +152,13 @@ func TestOmenUsesOmenTimingAndCost(t *testing.T) {
 	t.Run("sorcery", func(t *testing.T) {
 		e, cfg, id, _ := omenCorpusEngine(t, reg)
 		addMana(t, e, 0, "WWRR")
-		if got := omenOption(t, e, id, "omen_alt"); got == nil {
+		if got := adventureOption(t, e, id, "omen_alt"); got == nil {
 			t.Fatalf("the Sorcery Omen face must be offered on its controller's turn: %+v", castOptions(t, e))
 		}
 		driveToStep(t, e, 2, 1, state.StepMain1)
 		passOnce(t, e)
 		addMana(t, e, 0, "WWRR")
-		if got := omenOption(t, e, id, "omen_alt"); got != nil {
+		if got := adventureOption(t, e, id, "omen_alt"); got != nil {
 			t.Fatalf("the Sorcery Omen face was offered on the opponent's turn: %+v", got)
 		}
 		replayCheck(t, e, cfg)
@@ -205,7 +191,7 @@ func TestOmenUsesOmenTimingAndCost(t *testing.T) {
 		id := searchMoveByName(t, e, "Runescale Stormbrood", state.ZHand)
 		boltID := searchMoveByName(t, e, "Lightning Bolt", state.ZHand)
 		addMana(t, e, 0, "UUR")
-		if got := omenOption(t, e, id, ""); got != nil {
+		if got := adventureOption(t, e, id, ""); got != nil {
 			t.Fatalf("the {3}{R} front was offered with only {U}{U}{R}: %+v", got)
 		}
 
@@ -226,11 +212,11 @@ func TestOmenUsesOmenTimingAndCost(t *testing.T) {
 			t.Fatalf("no option targeting the bear: %+v", d.Options)
 		}
 		submitChoices(t, e, tgt)
-		alt := omenOption(t, e, id, "omen_alt")
+		alt := adventureOption(t, e, id, "omen_alt")
 		if alt == nil || alt.Label != "Cast Chilling Screech" {
 			t.Fatalf("the Instant Omen face must be offered while a spell is on the stack: %+v", castOptions(t, e))
 		}
-		if got := omenOption(t, e, id, ""); got != nil {
+		if got := adventureOption(t, e, id, ""); got != nil {
 			t.Fatalf("the {3}{R} front was offered with only {U}{R} left: %+v", got)
 		}
 		replayCheck(t, e, cfg)
@@ -246,7 +232,7 @@ func TestOmenCounteredGoesToGraveyard(t *testing.T) {
 	cancelID := addToHand(t, e, 0, omenCancelSrc)
 	bearID := putCreature(t, e, 0, omenBearSrc)
 	addMana(t, e, 0, "BBUUU")
-	alt := omenOption(t, e, id, "omen_alt")
+	alt := adventureOption(t, e, id, "omen_alt")
 	if alt == nil {
 		t.Fatalf("omen_alt offer missing: %+v", castOptions(t, e))
 	}
@@ -315,7 +301,7 @@ func TestOmenCardIsMainFaceOffTheStack(t *testing.T) {
 		reg := searchTestRegistry(t)
 		e, cfg, id, oppBear := omenCorpusEngine(t, reg)
 		addMana(t, e, 0, "RR")
-		alt := omenOption(t, e, id, "omen_alt")
+		alt := adventureOption(t, e, id, "omen_alt")
 		if alt == nil {
 			t.Fatalf("omen_alt offer missing: %+v", castOptions(t, e))
 		}
@@ -344,7 +330,7 @@ func TestOmenCardIsMainFaceOffTheStack(t *testing.T) {
 		e, cfg, id := newFixtureDeck(t, 7204, omenTaxSrc, omenTaxWardenSrc)
 		putCreature(t, e, 0, omenTaxWardenSrc)
 		addMana(t, e, 0, "BB")
-		if got := omenOption(t, e, id, "omen_alt"); got != nil {
+		if got := adventureOption(t, e, id, "omen_alt"); got != nil {
 			t.Fatalf("the taxed Omen face ({2}{B}) was offered with only {B}{B}: %+v", got)
 		}
 		opt := decision.Option{Kind: "cast", Obj: id, Mode: "omen_alt"}
@@ -530,7 +516,7 @@ func TestEveryOmenFaceCastsInCorpus(t *testing.T) {
 				}
 				submitChoices(t, e, tgt)
 			}
-			alt := omenOption(t, e, id, "omen_alt")
+			alt := adventureOption(t, e, id, "omen_alt")
 			if alt == nil {
 				t.Fatalf("%s: Omen face %q not offered; options: %+v", omen.Faces[0].Name, face.Name, castOptions(t, e))
 			}

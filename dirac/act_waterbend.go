@@ -287,16 +287,6 @@ func (s *State) waterbendPlanCost(k *prep, p uint8, o Obj, ab uint8, cost kop.Ma
 	return s.waterbendCredit(k, p, ob.slot, a, cost)
 }
 
-// waterbendPoolPaidOffer reports whether the activation being built is a
-// waterbend ability whose offer credit (waterbendCredit) the floating pool
-// alone pays: gorge's offer gate priced that credited cost, so it is an
-// offered option, not a potential play the witness lowers. The picks are
-// asked next and waterbendManualPay settles or aborts the payment.
-func (s *State) waterbendPoolPaidOffer(k *prep, p uint8, cost kop.ManaCost) bool {
-	credited, ok := s.waterbendBuildCredit(k, p, cost)
-	return ok && s.poolPays(p, &credited)
-}
-
 // waterbendBuildCredit is waterbendCredit for the activation being built; false when
 // it isn't a waterbend ability, and cost goes back as it came. A witness is priced on
 // the credit too (gorge planAbilityPaymentLifePips).
@@ -719,11 +709,15 @@ func (s *State) waterbendCastWindow(k *prep, e *stackEntry, cost, full *kop.Mana
 			hide = hide.with(s.objs[o].slot)
 		}
 	}
-	occ := s.occ
 	s.occ = s.occ.andNot(hide)
 	s.windowTapUseful(k, e.ctrl, cost, full, true, anyColor, s.bld().pipN == 0, false)
-	s.occ = occ
+	s.unhide(hide)
 }
+
+// unhide makes the slots a payment window withheld from s.occ visible again.
+// Only those bits come back: a permanent the window itself sacrificed stays
+// off the battlefield, which restoring the pre-window mask would undo.
+func (s *State) unhide(h slotMask) { s.occ = s.occ.or(h) }
 
 // payWaterbend taps the announced permanents in pick order after the mana
 // cost is paid (gorge EmitConvokeTaps); a pick that has left the

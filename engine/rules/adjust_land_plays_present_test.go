@@ -26,7 +26,7 @@ const elfSrc = "Name:Test Elf\nManaCost:G\nTypes:Creature Elf\nPT:1/1\nOracle:x\
 // the gate never sees.
 func TestAdjustLandPlaysIsPresentGateHoldsWithAnotherElf(t *testing.T) {
 	t.Parallel()
-	e := landBase(t)
+	e := mayPlayBase(t)
 	src := onBoardGrant(t, e, 0, azusaIsPresentSrc)
 	elf := onBoardGrant(t, e, 0, elfSrc)
 	if e.G.Obj(src).Zone != state.ZBattlefield || e.G.Obj(elf).Zone != state.ZBattlefield || src == elf {
@@ -61,7 +61,7 @@ func TestAdjustLandPlaysIsPresentGateHoldsWithAnotherElf(t *testing.T) {
 // Other excludes it) grants nothing, so the second drop is not offered.
 func TestAdjustLandPlaysIsPresentGateNeedsAnotherElf(t *testing.T) {
 	t.Parallel()
-	e := landBase(t)
+	e := mayPlayBase(t)
 	src := onBoardGrant(t, e, 0, azusaIsPresentSrc)
 	if e.G.Obj(src).Zone != state.ZBattlefield {
 		t.Fatalf("precondition: source not on the battlefield")

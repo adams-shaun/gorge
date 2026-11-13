@@ -155,11 +155,11 @@ func kdreadPolicyA(seed uint64, counts *kdreadCounts) Policy {
 		var mox, analyst, dread, up Canon
 		haveMox, haveAnalyst, haveDread, haveUp, havePick := false, false, false, false, false
 		for _, a := range c.D.Options {
-			n := kmanifestName(c, a)
+			n := optionFaceName(c, a)
 			switch {
 			case a.Kind() == ActChoose && graves[n]:
 				return a // the milled card: the mandatory hidden pick
-			case a.Kind() == ActCast && kmanifestMox(n):
+			case a.Kind() == ActCast && isMoxName(n):
 				mox, haveMox = a, true
 			case a.Kind() == ActCast && n == "Paranormal Analyst":
 				analyst, haveAnalyst = a, true
@@ -216,12 +216,12 @@ func kdreadPolicyB(seed uint64, counts *kdreadCounts) Policy {
 		// the crew pick: an ActChoose naming a battlefield Grizzly Bears
 		// while seat 0 controls the Hovership
 		for _, a := range c.D.Options {
-			n := kmanifestName(c, a)
+			n := optionFaceName(c, a)
 			k := a.Kind()
 			switch {
 			case k == ActChoose && n == "Grizzly Bears" && kdreadHas(c, 0, "Grizzly Bears"):
 				chooseBear, haveChooseBear = a, true
-			case k == ActCast && kmanifestMox(n):
+			case k == ActCast && isMoxName(n):
 				mox, haveMox = a, true
 			case k == ActCast && n == "Unidentified Hovership":
 				ship, haveShip = a, true
@@ -242,7 +242,7 @@ func kdreadPolicyB(seed uint64, counts *kdreadCounts) Policy {
 		shipGate := kdreadHas(c, 0, "Unidentified Hovership")
 		if c.D.Kind == DTarget {
 			for _, a := range c.D.Options {
-				n := kmanifestName(c, a)
+				n := optionFaceName(c, a)
 				switch {
 				case n == "Innocuous Rat" && seat == 0:
 					tgtRat, haveTgtRat = a, true

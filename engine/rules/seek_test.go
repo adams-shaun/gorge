@@ -58,7 +58,7 @@ func seekEligibleInLibrary(t *testing.T, e *Engine, p state.PlayerID, typeName s
 
 func TestVexyrRealSeekEmitsOneMarkerForMultiCardSeek(t *testing.T) {
 	t.Parallel()
-	vexyr := tokenReplCorpusCard(t, "Vexyr, Ich-Tekik's Heir")
+	vexyr := corpusAlternativeCard(t, "Vexyr, Ich-Tekik's Heir")
 	relic := cardByName(t, seekRelicSrc("Creature", 3))
 	bear := cardByName(t, "Name:Grizzly Bears\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	seat0 := []*cards.Card{vexyr, relic}
@@ -104,7 +104,7 @@ func TestVexyrRealSeekEmitsOneMarkerForMultiCardSeek(t *testing.T) {
 // resolved to an empty set and both cards stayed in hand.
 func TestSignatureSpellsRealSeekImprintsHandForItsExileContinuation(t *testing.T) {
 	t.Parallel()
-	spells := tokenReplCorpusCard(t, "Signature Spells")
+	spells := corpusAlternativeCard(t, "Signature Spells")
 	// Authored cmc-3 instants/sorceries (never a corpus .txt): ManaCost 2R is
 	// mana value 3, so they satisfy Card.Instant/Sorcery+cmcEQ3.
 	bolt := cardByName(t, "Name:Test Bolt\nManaCost:2 R\nTypes:Instant\nOracle:x\n")
@@ -171,7 +171,7 @@ func seekFaceHasType(types []string, want string) bool {
 
 func TestVexyrRealSeekWithNoMatchEmitsNeitherMarkerNorTrigger(t *testing.T) {
 	t.Parallel()
-	vexyr := tokenReplCorpusCard(t, "Vexyr, Ich-Tekik's Heir")
+	vexyr := corpusAlternativeCard(t, "Vexyr, Ich-Tekik's Heir")
 	relic := cardByName(t, seekRelicSrc("Enchantment", 3))
 	bear := cardByName(t, "Name:Grizzly Bears\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	seat0 := []*cards.Card{vexyr, relic}

@@ -54,26 +54,6 @@ var unreadDecks = [][2][]cardset.Entry{{
 	},
 }}
 
-// unreadPolicy casts or activates whenever it can, else random.
-func unreadPolicy(seed uint64) Policy {
-	rnd := RandomPolicy(seed)
-	var buf []Canon
-	return PolicyFunc(func(c *PickCtx) Canon {
-		buf = buf[:0]
-		for _, a := range c.D.Options {
-			if a.Kind() == ActCast || a.Kind() == ActActivate {
-				buf = append(buf, a)
-			}
-		}
-		if len(buf) == 0 {
-			return rnd.Pick(c)
-		}
-		d := *c.D
-		d.Options = buf
-		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
-	})
-}
-
 // unreadTally counts, on the gorge side, each carrier ability that left
 // the stack (source name / API, a spell as name / Spell) and each gorge
 // ask by ResumeKind.
@@ -164,7 +144,7 @@ func TestUnreadLockstep(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			pol := unreadPolicy(seed)
+			pol := castActivateKindPolicy(seed)
 			if seed%4 == 0 {
 				pol = RandomPolicy(seed)
 			}

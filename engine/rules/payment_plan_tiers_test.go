@@ -5,7 +5,6 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 
-	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -61,7 +60,7 @@ func TestPaymentPlanTiers(t *testing.T) {
 	e, _, _ := newFixtureDeck(t, 9810, "Name:Probe\nManaCost:1\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			c := corpusTierFixture(t, tc.name)
+			c := corpusCardOrFatal(t, tc.name)
 			id := onBoardCard(t, e, 0, c)
 			if o := e.G.Obj(id); o.Zone != state.ZBattlefield {
 				t.Fatalf("precondition: source is not on battlefield (zone %s)", o.Zone)
@@ -130,7 +129,7 @@ func TestPaymentPlanDoesNotUseLastResortSources(t *testing.T) {
 	t.Parallel()
 	for _, basics := range []int{0, 2} {
 		e, _, spell := newFixtureDeck(t, uint64(9820+basics), "Name:Two Probe\nManaCost:2\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
-		tomb := onBoardCard(t, e, 0, corpusTierFixture(t, "Ancient Tomb"))
+		tomb := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Ancient Tomb"))
 		for i := 0; i < basics; i++ {
 			onBoard(t, e, 0, "Name:Swamp\nTypes:Basic Land Swamp\nOracle:x\n")
 		}
@@ -161,7 +160,7 @@ func TestPaymentPlanDoesNotUseLastResortSources(t *testing.T) {
 func TestPaymentPlanNormalSourceRejectsRider(t *testing.T) {
 	t.Parallel()
 	e, _, _ := newFixtureDeck(t, 9811, "Name:Probe\nManaCost:1\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
-	id := onBoardCard(t, e, 0, corpusTierFixture(t, "Ancient Tomb"))
+	id := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Ancient Tomb"))
 	for _, ma := range e.G.Obj(id).Face().ManaAbilities() {
 		if ma.API != "Mana" {
 			t.Fatalf("precondition: expected Mana ability, got %q", ma.API)
@@ -176,19 +175,6 @@ func TestPaymentPlanNormalSourceRejectsRider(t *testing.T) {
 // ---------------------------------------------------------------------------
 // Proofs ported from an audit (see the Evidence
 // section), converted to plain assertions of the tiered contract.
-
-// tierPlanUses reports whether a plan outcome's witness activates id.
-func tierPlanUses(got PaymentPlanOutcome, id state.ObjID) (decision.PaymentActivation, bool) {
-	if got.Plan == nil {
-		return decision.PaymentActivation{}, false
-	}
-	for _, a := range got.Plan.Activations {
-		if a.Source == id {
-			return a, true
-		}
-	}
-	return decision.PaymentActivation{}, false
-}
 
 // tierSubmitPlan publishes the priority decision's PaymentActions and submits
 // the plan for spell, the way a client that enabled Auto-pay would.
@@ -236,12 +222,12 @@ func TestPaymentPlanTiersFPAncientTomb(t *testing.T) {
 	t.Parallel()
 	// Tomb only: the damage is announced in the witness.
 	e, _, spell := newFixtureDeck(t, 9840, "Name:Two Probe\nManaCost:2\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
-	tomb := onBoardCard(t, e, 0, corpusTierFixture(t, "Ancient Tomb"))
+	tomb := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Ancient Tomb"))
 	if tomb == 0 {
 		t.Fatal("precondition: Ancient Tomb not on the battlefield")
 	}
 	out := e.PlanCastPayment(0, paymentCast(spell))
-	if a, ok := tierPlanUses(out, tomb); !ok || a.Consequence == nil || *a.Consequence != (decision.PaymentConsequence{Damage: 2}) {
+	if a, ok := fpPlanUses(out, tomb); !ok || a.Consequence == nil || *a.Consequence != (decision.PaymentConsequence{Damage: 2}) {
 		t.Fatalf("tomb-only plan = %+v, want the Tomb with its 2 damage disclosed", out)
 	}
 	if out.Reason != "" {
@@ -250,7 +236,7 @@ func TestPaymentPlanTiersFPAncientTomb(t *testing.T) {
 
 	// Tomb + two Swamps: the Swamps fund the plan, life unchanged on execution.
 	e2, _, spell2 := newFixtureDeck(t, 9841, "Name:Two Probe\nManaCost:2\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
-	tomb2 := onBoardCard(t, e2, 0, corpusTierFixture(t, "Ancient Tomb"))
+	tomb2 := onBoardCard(t, e2, 0, corpusCardOrFatal(t, "Ancient Tomb"))
 	swamps := []state.ObjID{
 		onBoard(t, e2, 0, "Name:Swamp\nTypes:Basic Land Swamp\nOracle:x\n"),
 		onBoard(t, e2, 0, "Name:Swamp\nTypes:Basic Land Swamp\nOracle:x\n"),
@@ -259,7 +245,7 @@ func TestPaymentPlanTiersFPAncientTomb(t *testing.T) {
 	if out2.Plan == nil {
 		t.Fatalf("two Swamps should fund the {2} plan: %+v", out2)
 	}
-	if a, ok := tierPlanUses(out2, tomb2); ok {
+	if a, ok := fpPlanUses(out2, tomb2); ok {
 		t.Fatalf("plan taps Ancient Tomb (2 unannounced damage): %+v", a)
 	}
 	if len(out2.Plan.Activations) != 2 {
@@ -299,7 +285,7 @@ func TestPaymentPlanTiersFPHarmfulRiderFamily(t *testing.T) {
 		"Rainbow Vale", "Undiscovered Paradise", "Cabal Pit"} {
 		t.Run(name, func(t *testing.T) {
 			e, _, spell := newFixtureDeck(t, 9842, "Name:One Probe\nManaCost:1\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
-			id := onBoardCard(t, e, 0, corpusTierFixture(t, name))
+			id := onBoardCard(t, e, 0, corpusCardOrFatal(t, name))
 			e.G.Obj(id).SummonSick = false
 			tierFillGraveyard(t, e, 7)
 			// Precondition: the card carries at least one non-normal mana ability
@@ -349,7 +335,7 @@ func TestPaymentPlanTiersFPHarmfulRiderFamily(t *testing.T) {
 func TestPaymentPlanTiersFPConditionalProduction(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9843, "Name:Blue Probe\nManaCost:U\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
-	if river := onBoardCard(t, e, 0, corpusTierFixture(t, "River of Tears")); river == 0 {
+	if river := onBoardCard(t, e, 0, corpusCardOrFatal(t, "River of Tears")); river == 0 {
 		t.Fatal("precondition: River of Tears not on the battlefield")
 	}
 	e.G.Players[0].LandsPlayed = 1
@@ -367,9 +353,9 @@ func TestPaymentPlanTiersFPConditionalProduction(t *testing.T) {
 func TestPaymentPlanTiersFPTriggersWhenSpent(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9844, "Name:Red Probe\nManaCost:R\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
-	goggles := onBoardCard(t, e, 0, corpusTierFixture(t, "Pyromancer's Goggles"))
+	goggles := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Pyromancer's Goggles"))
 	out := e.PlanCastPayment(0, paymentCast(spell))
-	if a, ok := tierPlanUses(out, goggles); ok {
+	if a, ok := fpPlanUses(out, goggles); ok {
 		t.Errorf("plan spends TriggersWhenSpent mana: %+v", a)
 	}
 	if out.Plan != nil {
@@ -412,7 +398,7 @@ func TestPaymentPlanTiersUnannouncedLifeAtOneLife(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9846, "Name:Black Probe\nManaCost:2 B\nTypes:Sorcery\nA:SP$ Draw | Num$ 1\nOracle:x\n")
 	toMain1(t, e)
-	tomb := onBoardCard(t, e, 0, corpusTierFixture(t, "Ancient Tomb"))
+	tomb := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Ancient Tomb"))
 	for i := 0; i < 3; i++ {
 		onBoard(t, e, 0, "Name:Swamp\nTypes:Basic Land Swamp\nOracle:x\n")
 	}
@@ -424,7 +410,7 @@ func TestPaymentPlanTiersUnannouncedLifeAtOneLife(t *testing.T) {
 	if out.Plan == nil {
 		t.Fatalf("three Swamps should fund the {2}{B} plan without the Tomb: %+v", out)
 	}
-	if a, ok := tierPlanUses(out, tomb); ok {
+	if a, ok := fpPlanUses(out, tomb); ok {
 		t.Fatalf("plan taps Ancient Tomb (2 unannounced damage) at 1 life: %+v", a)
 	}
 	e.pending = nil
@@ -458,7 +444,7 @@ func TestPaymentPlanTiersGemstoneCavernsLuck(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9847, "Name:Colorless Probe\nManaCost:C\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
 	toMain1(t, e)
-	caverns := onBoardCard(t, e, 0, corpusTierFixture(t, "Gemstone Caverns"))
+	caverns := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Gemstone Caverns"))
 	if caverns == 0 {
 		t.Fatal("precondition: Gemstone Caverns not on the battlefield")
 	}
@@ -477,12 +463,12 @@ func TestPaymentPlanTiersExecutedPlanSpendsOnlyAnnouncedSources(t *testing.T) {
 	e, _, spell := newFixtureDeck(t, 9848, "Name:Two Generic\nManaCost:2\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
 	m1 := onBoard(t, e, 0, "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n")
 	m2 := onBoard(t, e, 0, "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n")
-	tomb := onBoardCard(t, e, 0, corpusTierFixture(t, "Ancient Tomb"))
+	tomb := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Ancient Tomb"))
 	out := e.PlanCastPayment(0, paymentCast(spell))
 	if out.Plan == nil {
 		t.Fatalf("two Mountains should fund the {2} plan: %+v", out)
 	}
-	if a, ok := tierPlanUses(out, tomb); ok {
+	if a, ok := fpPlanUses(out, tomb); ok {
 		t.Fatalf("plan %#v uses Ancient Tomb", a)
 	}
 	before := e.G.Players[0].Life
@@ -501,13 +487,4 @@ func TestPaymentPlanTiersExecutedPlanSpendsOnlyAnnouncedSources(t *testing.T) {
 			t.Errorf("Mountain %d was not tapped by the executed plan", m)
 		}
 	}
-}
-
-func corpusTierFixture(t *testing.T, name string) *cards.Card {
-	t.Helper()
-	c, ok := testutil.CorpusRegistry(t).Lookup(name)
-	if !ok {
-		t.Fatalf("corpus card %q missing", name)
-	}
-	return c
 }

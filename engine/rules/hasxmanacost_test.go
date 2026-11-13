@@ -108,19 +108,6 @@ const gatePairSrc = "Name:Gate Pair\nManaCost:1 G\nTypes:Enchantment\n" +
 	"SVar:TrigAny:DB$ GainLife | Defined$ You | LifeAmount$ 1\n" +
 	"Oracle:x\n"
 
-// pushCount counts TriggerPush events naming id as the trigger source. Events
-// are emitted at PLACEMENT (putTriggersOnStack), after any trigger_order ask
-// has been answered -- count only after the drain helpers below.
-func pushCount(e *Engine, id state.ObjID) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.TriggerPush && ev.Obj == id {
-			n++
-		}
-	}
-	return n
-}
-
 // drainStack passes priority until the stack is empty, answering the two
 // trigger-drain decisions passUntilStackEmpty does not know: a trigger_order
 // ask (two same-controller triggers, CR 603.3b -- option 0 puts that one on

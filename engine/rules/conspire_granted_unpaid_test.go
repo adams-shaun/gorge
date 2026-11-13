@@ -35,7 +35,7 @@ func TestGrantedConspireUnpaidDoesNotTrigger(t *testing.T) {
 		if n := triggersPushedFrom(e, bolt); n != 0 {
 			t.Fatalf("an unpaid granted conspire cast pushed %d triggers, want 0", n)
 		}
-		if n := countStackCopies(e, bolt); n != 0 {
+		if n := copyCount(e, bolt); n != 0 {
 			t.Fatalf("an unpaid granted conspire cast made %d copies, want 0", n)
 		}
 		if life := e.G.Players[1].Life; life != 17 {
@@ -61,7 +61,7 @@ func TestGrantedConspireUnpaidDoesNotTrigger(t *testing.T) {
 		if n := triggersPushedFrom(e, bolt); n != 1 {
 			t.Fatalf("a paid granted conspire cast pushed %d triggers, want 1", n)
 		}
-		if n := countStackCopies(e, bolt); n != 1 {
+		if n := copyCount(e, bolt); n != 1 {
 			t.Fatalf("a paid granted conspire cast made %d copies, want 1", n)
 		}
 		if life := e.G.Players[1].Life; life != 14 {

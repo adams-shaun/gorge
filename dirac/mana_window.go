@@ -359,12 +359,12 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				return true, held
 			}
 			s.leave(k, sl, kop.ZoneGraveyard, false)
-			// a token sacrificed to pay a cast ceases at once, as gorge pays (a
-			// Treasure: payCast's tail reaches gorge's priority-boundary check,
-			// engine.go checkStateBased); one sacrificed to pay mid-resolution or
-			// by a planned activation's mana step (bflManaStep) waits for the
-			// state-based action at the next priority (CR 704.3, 704.5d)
-			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && s.buildLive() && (s.ctl != ctlBuild || s.bld().bfl&bflManaStep == 0) {
+			// a token sacrificed to pay a spell waits in the graveyard for the
+			// state-based check after the cast (gorge's Submit checks only with no
+			// cast pending, so a later choice of the payment still sees it there);
+			// likewise one sacrificed mid-resolution or by a planned activation's
+			// mana step (bflManaStep). Another cast's token ceases at once (CR 704.3, 704.5d)
+			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && s.buildLive() && (s.ctl != ctlBuild || s.bld().bfl&bflManaStep == 0) && s.bld().e.kind != seSpell {
 				s.ceaseManaToken(o)
 			}
 		}
@@ -1401,12 +1401,6 @@ func (s *State) floatRestrV(k *prep, p uint8, sl Slot, f kop.FilterID, v uint8, 
 	return s.addRestrSrcV(k, p, sl, f, v, col, n)
 }
 
-// addRestrSrc is addRestr for mana source sl, whose chosen creature type the
-// batch keeps when restriction f reads one.
-func (s *State) addRestrSrc(k *prep, p uint8, sl Slot, f kop.FilterID, col int, n uint8) bool {
-	return s.addRestrSrcV(k, p, sl, f, 0, col, n)
-}
-
 // addRestrSrcV is addRestrSrc for restriction variant v.
 func (s *State) addRestrSrcV(k *prep, p uint8, sl Slot, f kop.FilterID, v uint8, col int, n uint8) bool {
 	if k.artMana && k.cards[s.cardAt(sl)].manaTyped {
@@ -1454,16 +1448,22 @@ func (s *State) restrAvailAdd(p, m uint8, av *avail) {
 //
 //go:noinline
 func (s *State) restrShort(k *prep, p uint8, c CardID, og restrOrigin, cost kop.ManaCost) kop.ManaCost {
-	m := s.restrSpendable(k, p, c, og)
-	if m == 0 {
-		return cost
-	}
-	return s.restrShortAdm(p, m, cost)
+	short, _ := s.restrShortL(k, p, c, og, cost)
+	return short
 }
 
 // restrShortAdm is cost less p's restricted mana in the batches of mask m,
 // known spendable on it: each colour's pips, then generic.
 func (s *State) restrShortAdm(p, m uint8, cost kop.ManaCost) kop.ManaCost {
+	c, _ := s.restrShortLeft(p, m, cost)
+	return c
+}
+
+// restrShortLeft is restrShortAdm returning the leftover L: the restricted
+// units it could not fold into the cost's pips or generic. They may still pay
+// any part of the cost, {X} included (CR 106.6), so an {X} witness credits
+// them (lowerWitnessEx).
+func (s *State) restrShortLeft(p, m uint8, cost kop.ManaCost) (kop.ManaCost, uint8) {
 	var t [kop.NumManaKinds]uint8
 	s.rbUnits(p, m, &t)
 	var n uint8
@@ -1472,28 +1472,18 @@ func (s *State) restrShortAdm(p, m uint8, cost kop.ManaCost) kop.ManaCost {
 		cost.Pips[c] -= d
 		n += u - d
 	}
+	L := n - min(n, cost.Generic)
 	cost.Generic -= min(n, cost.Generic)
-	return cost
+	return cost, L
 }
 
-// restrAffords: av (p's pool and sources) lacks cost, but p's restricted
-// mana makes it up for the cast of card c, which may spend it (gorge's
-// pool for that payment, AvailableFor, holds it).
-//
-//go:noinline
-func (s *State) restrAffords(k *prep, p uint8, c CardID, og restrOrigin, cost *kop.ManaCost, av *avail) bool {
-	t := *av
-	return s.restrAvail(k, p, c, og, &t) && t.affords(cost, pipMaskOf(cost), 0)
-}
-
-// payRestr is pay for p's cast of object o while restricted mana floats:
-// a spell that may spend it sees it in its pool and spends it before the
-// ordinary mana of its colour (gorge emitRestrictedManaSpend carves the
-// matching batches first); otherwise it stays beside the pool.
-//
-//go:noinline
-func (s *State) payRestr(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj) {
-	s.payRestrRider(k, p, cost, x, o, false)
+// restrShortL is restrShort returning the leftover L (restrShortLeft).
+func (s *State) restrShortL(k *prep, p uint8, c CardID, og restrOrigin, cost kop.ManaCost) (kop.ManaCost, uint8) {
+	m := s.restrSpendable(k, p, c, og)
+	if m == 0 {
+		return cost, 0
+	}
+	return s.restrShortLeft(p, m, cost)
 }
 
 // payRestrRider is payRestr with the may-play any-colour rider.
@@ -2275,6 +2265,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 	}
 	s.g.noTgtRed = false
 	s.witnessAtCheapest(k, p, &cost, &av)
+	var L uint8
 	if s.rbAny(p&1) && s.bld().e.kind == seSpell {
 		// the witness starts from the mana this payment may spend (pay.PlanPool)
 		if m := s.restrSpendable(k, p, s.bld().e.card, s.restrOriginOfObj(s.bld().e.obj)); m != 0 && cost.Hyb[0] != 0 && cost.Hyb[0] != kop.HybTwobrid {
@@ -2300,7 +2291,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 				}
 			}()
 		} else {
-			cost = s.restrShort(k, p, s.bld().e.card, s.restrOriginOfObj(s.bld().e.obj), cost)
+			cost, L = s.restrShortL(k, p, s.bld().e.card, s.restrOriginOfObj(s.bld().e.obj), cost)
 		}
 	}
 	cost, _ = s.waterbendBuildCredit(k, p, cost)
@@ -2313,15 +2304,20 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			s.availUngranted(k, p, &av)
 		}
 		if anyColor {
-			x = max(0, av.maxXAnyColor(&cost))
+			// the leftover L is the restricted mana the fixed pips and
+			// generic could not fold: it still pays any part of the cost, so
+			// the witness prices each X with it credited (CR 106.6); with
+			// L = 0 maxXAnyColorLeft is the plain maxXAnyColor
+			x = max(0, av.maxXAnyColorLeft(&cost, L))
 		} else {
-			x = max(0, av.maxX(&cost, pipMaskOf(&cost)))
+			x = max(0, av.maxXLeft(&cost, L, pipMaskOf(&cost)))
 		}
 		// the search is bounded by the mana the pool and every source can
 		// hold, over the X count, before any reduction (rules
 		// potentialModeCastPlan: hi = paymentPlanCensusTotal / base.X): a
-		// reduction paying into {X} cannot lift the witness past it
-		x = min(x, av.total/int(cost.X))
+		// reduction paying into {X} cannot lift the witness past it; L is
+		// pool mana gorge's census total counts
+		x = min(x, (av.total+int(L))/int(cost.X))
 		// the restricted sources the payment may spend (the Emperor of
 		// Palamecia's {U} or {R}) are census sources of gorge's witness
 		// too: tapForRider's plan taps them, so count them and cap on the
@@ -2329,12 +2325,20 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		if k.restrSrc {
 			d := s.payDescNow(excl)
 			t, multi, nm := s.restrSrcAvail(k, p, d, &av, NoSlot)
-			x = restrWitnessXPlus(x, t, multi[:nm], &cost, s.restrWithheldMana(k, p, d)) // (mana_restrwithheld.go)
+			// L is pool mana gorge's census total counts, as the
+			// (av.total+L) bound above; withheld is the sources' own
+			x = restrWitnessXPlus(x, t, multi[:nm], &cost, s.restrWithheldMana(k, p, d)+int(L)) // (mana_restrwithheld.go)
 		}
 	}
-	if cost.X != 0 && s.bld().e.kind == seSpell && s.xWitnessEats(k, p, s.bld().e.card, &cost, x, excl) {
+	if cost.X != 0 && s.bld().e.kind == seSpell && s.xWitnessEats(k, p, s.bld().e.card, &cost, x, excl, L) {
 		s.lowerXEats(k, p, &cost, x, excl, anyColor)
 		return
+	}
+	if L != 0 && cost.X != 0 {
+		// the taps price the {X} folded at the witness's x with L generic
+		// off: the payment spends L on it (payRestr, CR 106.6)
+		cost = xLcredit(cost, x, L)
+		x = 0
 	}
 	untapped := s.untappedRestrSrcs(k, p)
 	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd && cost.Hyb[0] == 0 && !s.anyRestrEach(k, untapped) {
@@ -2489,14 +2493,6 @@ func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]
 		}
 	}
 }
-
-// lkiCtrl is the controller of the resolving entry's first target o, which
-// has left since it was targeted (once: ver is its targeted ver + 1), as
-// it last existed (CR 608.2h; gorge's TargetedController): a permanent
-// target's departed battlefield record (the newest one naming o), else o's
-// owner. Stroke of Midnight's token for the destroyed permanent's
-// controller (pair 84472), Condemn's life gain.
-func (s *State) lkiCtrl(k *prep, o Obj) uint8 { return s.lkiCtrlSlot(k, o, 0) }
 
 // lkiCtrlSlot is lkiCtrl for target slot i's object.
 func (s *State) lkiCtrlSlot(k *prep, o Obj, i int) uint8 {
@@ -2844,18 +2840,18 @@ func (s *State) manaStep(k *prep) bool {
 			// refuses a convoke cast (payment_plan.go "shape:contribution"),
 			// so the payment runs through the manual CR 601.2g window: the
 			// first untapped source, repeat until the pool pays.
-			occ := s.occ
-			s.occ = s.occ.andNot(s.convokeHidden())
+			hidden := s.convokeHidden()
+			s.occ = s.occ.andNot(hidden)
 			raw := xFolded(cost, int(e.x))
 			cost = s.convokeApplyPicks(k, raw)
 			if s.bld().bfl&bflMsDone == 0 && s.paymentStranded(k, e, &cost) {
-				s.occ = occ
+				s.unhide(hidden)
 				s.releaseCostTaps(k, &saved)
 				s.reverseCast(k)
 				return true
 			}
 			s.windowTapUseful(k, e.ctrl, &cost, &raw, true, anyColor, s.bld().pipN == 0, false)
-			s.occ = occ
+			s.unhide(hidden)
 		} else if wbCast && cost.X == 0 {
 			s.waterbendCastWindow(k, e, &cost, &wbFull, anyColor) // act_waterbend.go
 		} else if planCut {
@@ -2933,8 +2929,9 @@ func (s *State) manaStep(k *prep) bool {
 			// order (pay.ManaSourceIDs). When the offer priced a mana-free
 			// part instead, the seat's choice of the mana part changes the
 			// cost the plan was armed for, so fall back to the window as
-			// gorge's plan does.
-			if cd.BeholdN == 0 || s.altAddFreePart(k, e.ctrl, e.card, e.obj) {
+			// gorge's plan does. A cost static can make the two equal (a
+			// reduction taking the mana part's {1}), and then the plan stands.
+			if cd.BeholdN == 0 || s.altAddFreePart(k, e.ctrl, e.card, e.obj) && s.altAddPlanCostDiffers(k, cost) {
 				c := xFolded(cost, int(e.x))
 				// a behold carrier's fallback window has no ManaPayment: a source answers
 				// its lowest colour, not the owed pip (windowCol)
@@ -3176,6 +3173,23 @@ func (s *State) paymentStranded(k *prep, e *stackEntry, cost *kop.ManaCost) bool
 		ok, _ = s.windowTapRider(k, e.ctrl, &c, false, anyColor)
 		s.CopyFrom(saved)
 		return !ok
+	}
+	if known && !ok && k.gen.anyFilt && s.scriptFilt(k, e.ctrl).any() {
+		// The greedy walk never activates a paid-fee filter ({1},{T}: any
+		// colour); gorge's census (castWindowReachable) searches them, so the
+		// window opens when some filter set pays the cost (CR 601.2g-h).
+		// availFor and scriptFilt read ctrlM, which still holds the committed
+		// picks s.occ withholds: a pick with a mana ability would count a second
+		// time, after convokeApplyPicks already paid its share (gorge's census
+		// skips convokeCommitted). Take them out of the seat's mask meanwhile.
+		c := *cost
+		var av avail
+		held := s.ctrlM[e.ctrl]
+		s.ctrlM[e.ctrl] = held.and(s.occ)
+		s.availForBuilt(k, e, &av)
+		reach := s.faceReachable(k, e.ctrl, &av, &c, 0)
+		s.ctrlM[e.ctrl] = held
+		return !reach
 	}
 	return known && !ok
 }
@@ -3457,4 +3471,20 @@ func (s *State) applyCastWinTap(k *prep, a Action) {
 // (a larger alternative of a pair unit).
 func (s *State) floatRestrOnly(k *prep, p uint8, sl Slot, ab *kop.Ability, col int, n uint8) bool {
 	return s.addRestrSrcV(k, p, sl, ab.ManaRestrict, k.gen.restrVarOf(ab), col, n)
+}
+
+// altAddPlanCostDiffers: the mana part chosen beside a payable mana-free part
+// composes a cost other than the one the plan was armed for (the free part's,
+// planCastAltAdd). Gorge falls back to the window only then (paymentPlanCheckUnits:
+// plan.Cost != the actual cost), so a reduction that makes them equal keeps the plan.
+func (s *State) altAddPlanCostDiffers(k *prep, cost kop.ManaCost) bool {
+	b := s.bld()
+	fl, bf, fg, saved := b.e.flags, b.bfl, b.fixedGen, b.altAdd
+	b.e.flags &^= sfAnyMana
+	b.bfl &^= bflAnyColor | bflCostFixed
+	b.altAdd = 0
+	armed := s.buildCost(k)
+	b.altAdd = saved
+	b.e.flags, b.bfl, b.fixedGen = fl, bf, fg
+	return armed != cost
 }

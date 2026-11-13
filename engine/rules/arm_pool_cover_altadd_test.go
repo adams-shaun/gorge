@@ -55,7 +55,7 @@ func TestArmPoolCoverKeepsAlternateAdditionalCostArms(t *testing.T) {
 	if !ppHasAction(d, spell) {
 		t.Fatal("no planned payment for the cast whose either-or part sacrifices its target")
 	}
-	ppSubmitPlan(t, e, d, ppAction(t, d, spell))
+	submitPaymentPlan(t, e, d, ppAction(t, d, spell))
 	for guard := 0; guard < 20; guard++ {
 		d := e.Pending()
 		if d == nil || d.Kind == decision.KPriority {

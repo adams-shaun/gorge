@@ -108,7 +108,7 @@ func TestAttackManaWindowRetainsChosenAndLimitIdentity(t *testing.T) {
 func TestBlockManaWindowRetainsChosenAndLimitIdentity(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	blocker := onBoardCard(t, e, 0, mshCorpusCard(t, "Qal Sisma Behemoth"))
+	blocker := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Qal Sisma Behemoth"))
 	land := onBoardCard(t, e, 0, card(t, limitedComboChosenLand))
 	attacker := onBoardReady(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:0/4\nOracle:x\n")
 	recordChosenGreen(t, e, land)

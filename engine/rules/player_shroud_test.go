@@ -41,14 +41,6 @@ const sparkMixScript = "Name:Spark Mix\nManaCost:R\nTypes:Instant\n" +
 const sparkPlayerScript = "Name:Spark Player\nManaCost:R\nTypes:Instant\n" +
 	"A:SP$ DealDamage | ValidTgts$ Player | NumDmg$ 2\nOracle:x\n"
 
-func addScriptToHand(t *testing.T, e *Engine, p state.PlayerID, src string) state.ObjID {
-	t.Helper()
-	o := e.G.AddObject(card(t, src), p)
-	o.Zone = state.ZHand
-	e.G.SetZone(state.ZHand, p, append(e.G.Zone(state.ZHand, p), o.ID))
-	return o.ID
-}
-
 // wantPlayerKeyword asserts the precondition every shroud/hexproof assertion
 // below stands on: the granting card's static was parsed, emitted by the
 // layer walk and matched the seat as a PLAYER spec — without it the cast
@@ -86,7 +78,7 @@ func TestTrueBelieverPlayerShroudWithholdsTargetOffer(t *testing.T) {
 		t.Fatalf("control engine granted seat 0 player keywords: %v", eA.playerKeywords(0))
 	}
 	before := eA.G.Players[0].Life
-	spA := addScriptToHand(t, eA, 1, sparkOpponentScript)
+	spA := onHand(t, eA, 1, sparkOpponentScript)
 	addMana(t, eA, 1, "R")
 	eA.askPriority(1)
 	if d := eA.Pending(); !castOffered(eA, spA) {
@@ -110,7 +102,7 @@ func TestTrueBelieverPlayerShroudWithholdsTargetOffer(t *testing.T) {
 	if eB.playerShroudBlocksTarget(1) {
 		t.Fatalf("shroud bled to seat 1 — the Affected$ You grant matched the wrong seat: %v", eB.playerKeywords(1))
 	}
-	spB := addScriptToHand(t, eB, 1, sparkOpponentScript)
+	spB := onHand(t, eB, 1, sparkOpponentScript)
 	addMana(t, eB, 1, "R")
 	eB.askPriority(1)
 	if d := eB.Pending(); castOffered(eB, spB) {
@@ -121,7 +113,7 @@ func TestTrueBelieverPlayerShroudWithholdsTargetOffer(t *testing.T) {
 	// offered but the shrouded seat is not in the target decision. The
 	// control creature is a 2/2 Grizzly Bears — Spark's 2 damage kills it,
 	// so the resolution leg proves the cast actually went through.
-	spMix := addScriptToHand(t, eB, 1, sparkMixScript)
+	spMix := onHand(t, eB, 1, sparkMixScript)
 	addMana(t, eB, 1, "R")
 	eB.askPriority(1)
 	if d := eB.Pending(); !castOffered(eB, spMix) {
@@ -170,7 +162,7 @@ func TestIvoryMaskPlayerShroudWithholdsTargetOffer(t *testing.T) {
 		t.Fatal("Ivory Mask is not on the battlefield — precondition broken")
 	}
 	wantPlayerKeyword(t, e, 0, "Shroud")
-	sp := addScriptToHand(t, e, 1, sparkOpponentScript)
+	sp := onHand(t, e, 1, sparkOpponentScript)
 	addMana(t, e, 1, "R")
 	e.askPriority(1)
 	if d := e.Pending(); castOffered(e, sp) {
@@ -208,7 +200,7 @@ func TestLeylineOfSanctityPlayerHexproof(t *testing.T) {
 	}
 
 	// The opponent cannot cast at the hexproof seat (sole target).
-	sp := addScriptToHand(t, e, 1, sparkOpponentScript)
+	sp := onHand(t, e, 1, sparkOpponentScript)
 	addMana(t, e, 1, "R")
 	e.askPriority(1)
 	if d := e.Pending(); castOffered(e, sp) {
@@ -217,7 +209,7 @@ func TestLeylineOfSanctityPlayerHexproof(t *testing.T) {
 
 	// The controller's own Player-targeting Spark still offers seat 0 and
 	// bites — the compared values (withheld vs offered) actually differ.
-	sp2 := addScriptToHand(t, e, 0, sparkPlayerScript)
+	sp2 := onHand(t, e, 0, sparkPlayerScript)
 	addMana(t, e, 0, "R")
 	e.askPriority(0)
 	if d := e.Pending(); !castOffered(e, sp2) {

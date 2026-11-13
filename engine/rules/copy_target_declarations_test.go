@@ -51,7 +51,7 @@ func TestCopyOfFusedSpellAsksPerDeclaration(t *testing.T) {
 	addMana(t, eng, 0, "RWCCCG")
 
 	wearObj := miscHandObj(t, eng, 0, "Wear")
-	fuse := splitOption(t, eng, wearObj, "fuse")
+	fuse := adventureOption(t, eng, wearObj, "fuse")
 	if fuse == nil {
 		t.Fatalf("Wear // Tear fused cast not offered: %+v", castOptions(t, eng))
 	}

@@ -47,22 +47,6 @@ func squadEngine(t *testing.T) (*Engine, Config, *cards.Registry) {
 	return e, cfg, reg
 }
 
-// squadOption returns the priority option casting id in the given mode.
-func squadOption(t *testing.T, e *Engine, id state.ObjID, mode string) decision.Option {
-	t.Helper()
-	d := e.Pending()
-	if d == nil {
-		t.Fatal("no decision pending")
-	}
-	for _, o := range d.Options {
-		if o.Kind == "cast" && o.Obj == id && o.Mode == mode {
-			return o
-		}
-	}
-	t.Fatalf("no %q cast option for %d: %+v", mode, id, d.Options)
-	return decision.Option{}
-}
-
 // chooseSquad submits the count decision's option whose Amount is want.
 func chooseSquad(t *testing.T, e *Engine, want int) {
 	t.Helper()
@@ -131,8 +115,8 @@ func TestSquadSecuritronSquadronPaidTwiceMintsTwoCopies(t *testing.T) {
 	addMana(t, e, 0, "WWWWWWWW")
 
 	// The plain and squadded cast options are both offered.
-	squadOption(t, e, hero, "")
-	opt := squadOption(t, e, hero, "squadded")
+	replicateOption(t, e, hero, "")
+	opt := replicateOption(t, e, hero, "squadded")
 	submitChoices(t, e, opt.Index)
 
 	// The count ask: ascending 0..max, here exactly 0..2.
@@ -174,7 +158,7 @@ func TestSquadSecuritronDeclinedIsAPlainCast(t *testing.T) {
 	hero := searchMoveByName(t, e, "Securitron Squadron", state.ZHand)
 	addMana(t, e, 0, "WWWWWWWW")
 
-	opt := squadOption(t, e, hero, "squadded")
+	opt := replicateOption(t, e, hero, "squadded")
 	submitChoices(t, e, opt.Index)
 	chooseSquad(t, e, 0)
 	passUntilStackEmpty(t, e, 40)
@@ -203,7 +187,7 @@ func TestSquadSecuritronPlainCastUnchanged(t *testing.T) {
 	hero := searchMoveByName(t, e, "Securitron Squadron", state.ZHand)
 	addMana(t, e, 0, "WW")
 
-	opt := squadOption(t, e, hero, "")
+	opt := replicateOption(t, e, hero, "")
 	submitChoices(t, e, opt.Index)
 	passUntilStackEmpty(t, e, 40)
 
@@ -290,7 +274,7 @@ func TestSquadThrillKillDisciplePaysTheDiscardEndToEnd(t *testing.T) {
 		t.Fatalf("need a second card in hand to discard, hand has %d", len(e.G.Zone(state.ZHand, 0)))
 	}
 
-	opt := squadOption(t, e, hero, "squadded")
+	opt := replicateOption(t, e, hero, "squadded")
 	submitChoices(t, e, opt.Index)
 	// The count ask: max is bounded by BOTH the pool and the number of
 	// discardable cards, so answer 1 explicitly.
@@ -374,7 +358,7 @@ func TestSquadSourceThatLeftStillMints(t *testing.T) {
 	e, cfg, _ := squadEngine(t)
 	hero := searchMoveByName(t, e, "Securitron Squadron", state.ZHand)
 	addMana(t, e, 0, "WWWWWWWW")
-	submitChoices(t, e, squadOption(t, e, hero, "squadded").Index)
+	submitChoices(t, e, replicateOption(t, e, hero, "squadded").Index)
 	chooseSquad(t, e, 2)
 	for i := 0; i < 8 && e.G.Obj(hero).Zone != state.ZBattlefield; i++ {
 		passOnce(t, e)

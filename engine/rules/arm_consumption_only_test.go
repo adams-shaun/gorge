@@ -96,7 +96,7 @@ func TestArmConsumptionOnlyWaivesOfferGate(t *testing.T) {
 			if !ppHasAction(d, spell) {
 				t.Fatal("no planned payment for the cast whose only white mana is its own target")
 			}
-			ppSubmitPlan(t, te, d, ppAction(t, d, spell))
+			submitPaymentPlan(t, te, d, ppAction(t, d, spell))
 			for guard := 0; guard < 20; guard++ {
 				d := te.Pending()
 				if d == nil || d.Kind == decision.KPriority {

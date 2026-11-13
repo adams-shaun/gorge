@@ -43,7 +43,7 @@ const (
 	ExCountGraveyard               // graveyard cards matching F (all graveyards; F.Owner narrows); N 1 also counts tokens
 	ExSumPower                     // total power of battlefield creatures matching F
 	ExDistinctCMC                  // distinct mana values among battlefield objects matching F
-	ExKicked                       // Sub[0] if the spell was kicked, else Sub[1]
+	ExKicked                       // Sub[0] if the spell was kicked, else Sub[1]; N 1: the multikicker payment count instead (CardDef.HasMultikicker)
 	ExMorbid                       // Sub[0] if a creature died this turn, else Sub[1]
 	ExAttackedThisTurn             // creatures the controller attacked with this turn
 	ExPowerOf                      // power of Ref (Slot: target slot for RefTarget0)
@@ -65,7 +65,7 @@ const (
 	ExHandSizeOf                   // cards in player Ref's hand
 	ExCountExile                   // exiled cards matching F (all exile zones; F.Owner narrows)
 	ExOppsLostLife                 // the number of the controller's opponents who lost life this turn
-	ExMVOf                         // the mana value of object Ref's card (printed; X counts 0)
+	ExMVOf                         // the mana value of object Ref's card (printed; X counts 0); RefRemembered sums the set, or with N == AggGreatestMV takes the largest
 	ExCountAtLeast                 // Sub[0] if battlefield objects matching F number at least N, else Sub[1] (Count$Compare)
 	ExPromisedGift                 // Sub[0] if the gift was promised (the spell, or the permanent's spell as it enters), else Sub[1] (Count$PromisedGift)
 	ExResolvedThisTurn             // times the resolving ability (source object, ability) resolved this turn, this one included (AfResolveCount)
@@ -576,6 +576,13 @@ const ExTargetPlayers ExprKind = 223
 // Card.IsRemembered+!RememberedPlayerOwn$CardManaCost. No parameters.
 // Explicit ordinal, the iota tail stays untouched.
 const ExNotOwnLibMV ExprKind = 226
+
+// ExEnergyOf: the energy counters (CR 122.1) of player Ref, read by
+// Count$YourCountersEnergy (the "pay one or more {E}" ChooseNumber bounds of
+// Aether Refinery, Localized Destruction, Pia Nalaar, Rampaging Aetherhood,
+// Territorial Aetherkite and Vault 112). Explicit ordinal in the free
+// low range; the iota tail stays untouched.
+const ExEnergyOf ExprKind = 63
 
 // ExDmgAmountReceived: the positive damage the source object received this
 // turn, saturating at 255 (gorge Object.DamageReceivedThisTurn,

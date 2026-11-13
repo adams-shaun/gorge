@@ -52,15 +52,6 @@ func subCounterCostAsk(t *testing.T, e *Engine) *decision.Decision {
 	return nil
 }
 
-func subCounterPayIndex(d *decision.Decision) int {
-	for _, o := range d.Options {
-		if o.Kind == "trigger_cost_pay" {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 // subCounterFixture builds the corpus engine with src on seat 0's
 // battlefield carrying n counters of kind (any etbCounter replacement is
 // bypassed by the direct move, so the count is exactly n).
@@ -93,7 +84,7 @@ func TestTriggeredCostSubCounterPayable(t *testing.T) {
 		if e.G.Step != state.StepEnd {
 			t.Fatalf("cost ask posed in step %s, want the end step", e.G.Step)
 		}
-		payIdx := subCounterPayIndex(d)
+		payIdx := optionIndexForKind(d, "trigger_cost_pay")
 		if payIdx < 0 {
 			t.Fatalf("RemoveAnyCounter<1/Any/CARDNAME> with 2 -1/-1 counters offers no pay: %+v", d.Options)
 		}
@@ -121,7 +112,7 @@ func TestTriggeredCostSubCounterPayable(t *testing.T) {
 			t.Fatal("Slumbering Walker does not hold one M1M1 and one CHARGE counter (fixture)")
 		}
 		d := subCounterCostAsk(t, e)
-		payIdx := subCounterPayIndex(d)
+		payIdx := optionIndexForKind(d, "trigger_cost_pay")
 		if payIdx < 0 {
 			t.Fatalf("RemoveAnyCounter with two counters offers no pay: %+v", d.Options)
 		}
@@ -154,7 +145,7 @@ func TestTriggeredCostSubCounterPayable(t *testing.T) {
 			t.Fatal("Grizzly Bears starts with a +1/+1 counter (fixture)")
 		}
 		d := subCounterCostAsk(t, e)
-		payIdx := subCounterPayIndex(d)
+		payIdx := optionIndexForKind(d, "trigger_cost_pay")
 		if payIdx < 0 {
 			t.Fatalf("SubCounter<1/P1P1> with 2 +1/+1 counters offers no pay: %+v", d.Options)
 		}
@@ -202,7 +193,7 @@ func TestTriggeredCostSubCounterAmongPermanents(t *testing.T) {
 	e.pending = nil
 	e.priorityRound()
 	d := subCounterCostAsk(t, e)
-	payIdx := subCounterPayIndex(d)
+	payIdx := optionIndexForKind(d, "trigger_cost_pay")
 	if payIdx < 0 {
 		t.Fatalf("RemoveAnyCounter<3/QUEST/Permanent> with three quest counters among two permanents offers no pay: %+v", d.Options)
 	}

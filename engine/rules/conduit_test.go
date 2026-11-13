@@ -26,23 +26,6 @@ func creatureSrc(name string) string {
 	return "Name:" + name + "\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 }
 
-// mayPlayBase builds a 2-seat engine sitting at seat 0's main phase with both
-// hands and graveyards empty, so a fixture can place a may-play grant on the
-// battlefield and lands in a graveyard and assert the resulting offer.
-func mayPlayBase(t *testing.T) *Engine {
-	t.Helper()
-	e := New(Config{Seed: 1, Names: []string{"a", "b"},
-		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}})
-	for p := state.PlayerID(0); p < 2; p++ {
-		e.G.SetZone(state.ZHand, p, nil)
-		e.G.SetZone(state.ZGraveyard, p, nil)
-	}
-	e.G.Step = state.StepMain1
-	e.G.Active, e.G.Priority = 0, 0
-	e.G.Turn = 1
-	return e
-}
-
 // onBoardGrant places a may-play granting permanent onto seat owner's
 // battlefield THROUGH a MoveZone event, because staticEffects() results are
 // memoized on the event-log length and a direct zone write would not refresh

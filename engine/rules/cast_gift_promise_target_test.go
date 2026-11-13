@@ -35,7 +35,7 @@ func TestIntoTheFloodMawPromisedGiftCastsAndBounces(t *testing.T) {
 
 	// The nonland-permanent link is announced on cast too (CR 601.2c).
 	ask := castSubAsk(t, e)
-	if targetOptionIndex(ask, theirBear) < 0 {
+	if indexOfObjOption(ask, theirBear) < 0 {
 		t.Fatalf("the opponent's nonland permanent is not offered: %+v", ask.Options)
 	}
 	answerCastSubObj(t, e, theirBear)

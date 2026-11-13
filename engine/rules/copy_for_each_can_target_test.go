@@ -5,19 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
-
-// runForEachScenario runs one inline XMage-port scenario and requires a clean
-// audit: no fails and an empty replay diff.
-func runForEachScenario(t *testing.T, sc string) {
-	t.Helper()
-	reg := testutil.CorpusRegistry(t)
-	res, err := RunOracleAuditScenarioJSON(reg, []byte(sc), true)
-	if err != nil || len(res.Fails) != 0 {
-		t.Fatalf("scenario: err=%v fails=%v", err, res.Fails)
-	}
-}
 
 // TestZadaCopiesForEachOtherCreature pins CR 707.10d for CopyForEachCanTarget$
 // (XMage ZadaHedronGrinderTest#testTargetsByAI): Arbor Armament targeting only

@@ -26,12 +26,24 @@ import (
 // returns the permanent's id.
 func echoEntryEngine(t *testing.T, fixture string, plains int) (*Engine, state.ObjID) {
 	t.Helper()
+	e, id, _ := echoEntryEngineWith(t, fixture, "", plains)
+	return e, id
+}
+
+// echoEntryEngineWith is echoEntryEngine that also decks `second` (when
+// non-empty) and moves it to the battlefield alongside the echo fixture,
+// returning its id (zero when second is empty).
+func echoEntryEngineWith(t *testing.T, fixture, second string, plains int) (*Engine, state.ObjID, state.ObjID) {
+	t.Helper()
 	reg := searchTestRegistry(t)
 	card := searchCorpusCard(t, reg, fixture)
 	forest := searchCorpusCard(t, reg, "Forest")
 	plainsCard := searchCorpusCard(t, reg, "Plains")
 	bear := searchCorpusCard(t, reg, "Grizzly Bears")
 	deck := []*cards.Card{card}
+	if second != "" {
+		deck = append(deck, searchCorpusCard(t, reg, second))
+	}
 	for i := 0; i < 8; i++ {
 		deck = append(deck, plainsCard, forest)
 	}
@@ -48,10 +60,14 @@ func echoEntryEngine(t *testing.T, fixture string, plains int) (*Engine, state.O
 	e.Advance()
 	toMain1(t, e)
 	id := searchMoveByName(t, e, fixture, state.ZBattlefield)
+	var secondID state.ObjID
+	if second != "" {
+		secondID = searchMoveByName(t, e, second, state.ZBattlefield)
+	}
 	for i := 0; i < plains; i++ {
 		searchMoveByName(t, e, "Plains", state.ZBattlefield)
 	}
-	return e, id
+	return e, id, secondID
 }
 
 // driveEchoQuiet passes priority (answering any cleanup discard, attacker or

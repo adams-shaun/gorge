@@ -143,7 +143,7 @@ func kczaltdestScan(g *GorgeSide, k *kczaltdestTally) {
 // divergence.
 func kczaltdestRun(t *testing.T, reg *cards.Registry, set cardset.Set, tbl *kop.Table, seeds uint64, k *kczaltdestTally, stopOnDiv bool) (games int, div bool, stalls int) {
 	t.Helper()
-	decks := kincrementDecksOf(t, reg, kczaltdestDecks)
+	decks := kcastDeck(t, reg, kczaltdestDecks)
 	for seed := uint64(1); seed <= seeds; seed++ {
 		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
 		m, err := NewMatchup(reg, [2]string{"kczaltdest-a", "kczaltdest-b"}, decks, 1)

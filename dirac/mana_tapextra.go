@@ -289,6 +289,19 @@ func (s *State) srcYieldAt(k *prep, sl Slot, pc *pcard) uint8 {
 	return srcYield(pc) + s.srcReflectPick(k, sl, pc)
 }
 
+// addReflectOne registers the one-colour limit of a plain any-colour source
+// under a reflect carrier (Roxanne over a Meteorite): its tap is srcYieldAt mana
+// of the ONE colour picked (CR 106.12a), not independent units of any colour.
+// manaOne sources already registered theirs. Registering srcYieldAt keeps
+// removeSrc's dropOneColour matching the census. A several-colour source that
+// is not ColAny (a dual under Mana Flare) is left as independent units.
+func (s *State) addReflectOne(k *prep, a *avail, sl Slot, pc *pcard) {
+	if pc.manaOne || s.srcReflectPick(k, sl, pc) == 0 || s.srcMaskAt(pc, sl) != uint8(kop.ColAny) {
+		return
+	}
+	s.addOneColour(a, s.srcYieldAt(k, sl, pc))
+}
+
 // addExtra floats the extra mana of sl's tap in p's pool. A reflected extra of
 // a several-colour source depends on the pick this caller does not know.
 func (s *State) addExtra(k *prep, p uint8, sl Slot, pc *pcard) {

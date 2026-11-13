@@ -14,16 +14,16 @@ import (
 // source, so the Compass reflects {W} plus second's colour.
 func reflectedDownsize(t *testing.T, second string) (*Engine, state.ObjID, state.ObjID) {
 	t.Helper()
-	e := handEngine(t, choiceCard(t, "Downsize"))
+	e := handEngine(t, corpusCardOrFatal(t, "Downsize"))
 	down := e.G.Zone(state.ZHand, 0)[0]
 	bear := e.G.AddObject(card(t, "Name:Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), 1)
 	bear.Zone = state.ZBattlefield
 	e.G.SetZone(state.ZBattlefield, 1, append(e.G.Zone(state.ZBattlefield, 1), bear.ID))
 	for _, n := range []string{"Savannah", "Plains", "Plains", second, second} {
-		id := onBoardCard(t, e, 0, choiceCard(t, n))
+		id := onBoardCard(t, e, 0, corpusCardOrFatal(t, n))
 		e.G.Obj(id).Tapped = true
 	}
-	compass := onBoardCard(t, e, 0, choiceCard(t, "Star Compass"))
+	compass := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Star Compass"))
 	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
 		if o := e.G.Obj(id); o.Tapped != (id != compass) {
 			t.Fatalf("precondition: %s tapped=%v", o.Face().Name, o.Tapped)

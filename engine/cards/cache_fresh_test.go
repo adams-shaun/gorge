@@ -266,3 +266,115 @@ func TestSubsetSegmentFollowsTheCorpusFolderRule(t *testing.T) {
 		t.Fatal("subset open did not see the new corpus card")
 	}
 }
+
+// writeLetterScript writes name under cardsfolder/<letter>/ (the real
+// layout: every card lives in a one-level subfolder).
+func writeLetterScript(t *testing.T, dir, letter, name, body string) {
+	t.Helper()
+	sub := filepath.Join(CorpusDir(dir), letter)
+	if err := os.MkdirAll(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sub, name), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// backdate sets every path's mtime two hours back.
+func backdate(t *testing.T, paths ...string) {
+	t.Helper()
+	past := time.Now().Add(-2 * time.Hour)
+	for _, p := range paths {
+		if err := os.Chtimes(p, past, past); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// TestCacheIsStaleWhenACardIsAddedToACorpusSubfolder: creating a file in
+// cardsfolder/b moves b's mtime, not cardsfolder's, so the old rule served
+// the previous corpus.
+func TestCacheIsStaleWhenACardIsAddedToACorpusSubfolder(t *testing.T) {
+	dir := t.TempDir()
+	writeLetterScript(t, dir, "b", "bog.txt", cardBody("Bog", "Artifact"))
+	lock := writeOldLock(t, dir)
+	folder := CorpusDir(dir)
+	backdate(t, filepath.Join(folder, "b", "bog.txt"), filepath.Join(folder, "b"), folder, lock)
+
+	first, err := OpenCorpus(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := first.Lookup("Bog"); !ok {
+		t.Fatal("precondition: first open lacks Bog")
+	}
+	if _, ok := first.Lookup("Bespoke Bo"); ok {
+		t.Fatal("precondition: first open already holds Bespoke Bo")
+	}
+	cache := cachePathFor(dir, CompilerFingerprint)
+	// The cache is one hour old: newer than the backdated corpus, older than
+	// the add below.
+	hourAgo := time.Now().Add(-time.Hour)
+	if err := os.Chtimes(cache, hourAgo, hourAgo); err != nil {
+		t.Fatal(err)
+	}
+	if !cacheFresh(dir, cache) {
+		t.Fatal("precondition: cache is not fresh before the add")
+	}
+
+	writeLetterScript(t, dir, "b", "bespoke.txt", cardBody("Bespoke Bo", "Artifact"))
+	backdate(t, filepath.Join(folder, "b", "bespoke.txt"))
+	// Preconditions: the rule's only signal is b/, and cardsfolder/ is old.
+	ci, _ := os.Stat(cache)
+	bi, _ := os.Stat(filepath.Join(folder, "b"))
+	fi, _ := os.Stat(folder)
+	if !bi.ModTime().After(ci.ModTime()) {
+		t.Fatal("precondition: b/ is not newer than the cache")
+	}
+	if fi.ModTime().After(ci.ModTime()) {
+		t.Fatal("precondition: cardsfolder itself is newer than the cache")
+	}
+
+	if cacheFresh(dir, cache) {
+		t.Fatal("cache is fresh though a card was added to cardsfolder/b")
+	}
+	got, err := OpenCorpus(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, n := range []string{"Bog", "Bespoke Bo"} {
+		if _, ok := got.Lookup(n); !ok {
+			t.Fatalf("reopened corpus is missing %s", n)
+		}
+	}
+}
+
+// TestCacheStaysFreshWhenNoCorpusSubfolderChanged: the subfolder rule must not
+// turn every open into a recompile.
+func TestCacheStaysFreshWhenNoCorpusSubfolderChanged(t *testing.T) {
+	dir := t.TempDir()
+	writeLetterScript(t, dir, "b", "bog.txt", cardBody("Bog", "Artifact"))
+	writeLetterScript(t, dir, "m", "mountain.txt", cardBody("Mountain", "Basic Land Mountain"))
+	lock := writeOldLock(t, dir)
+	folder := CorpusDir(dir)
+	backdate(t, filepath.Join(folder, "b", "bog.txt"), filepath.Join(folder, "m", "mountain.txt"),
+		filepath.Join(folder, "b"), filepath.Join(folder, "m"), folder, lock)
+
+	compiles := 0
+	compile := func(d string) (*Registry, []Diag, error) {
+		compiles++
+		return CompileDir(d)
+	}
+	for i := range 2 {
+		r, err := openCorpusWith(dir, "subfp", compile)
+		if err != nil {
+			t.Fatalf("open %d: %v", i, err)
+		}
+		if _, ok := r.Lookup("Bog"); !ok {
+			t.Fatalf("open %d: registry lacks Bog", i)
+		}
+	}
+	if compiles != 1 {
+		t.Fatalf("two opens of an unchanged layout compiled %d times, want 1", compiles)
+	}
+}

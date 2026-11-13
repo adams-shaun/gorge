@@ -34,6 +34,7 @@ type pcard struct {
 	// Tf2ManaFromSelf SpellCast trigger (mana_spendtrigger.go)
 	castSrc   uint8
 	manaMulti bool          // several plain fixed-colour mana abilities folded into manaCol (mana_multicolour.go)
+	manaIdent bool          // a commander-identity source's view (kop.Ability.ManaIdentity): gorge's planner appends its unit with the choice-shaped sources even when the identity is one colour (mana_reflected.go identityColours)
 	manaRefl  bool          // an imprint mox's view: gorge's census keeps its unit at the source's battlefield position even when it is a colour choice (mana_imprint.go)
 	blgFirst  uint8         // a granted basic land type's view: 1 + its first ability's colour, the payment window's answer (static_landtype.go); 0 otherwise
 	rankCol   kop.ColorMask // a restricted source's colours as gorge's rank keys read them (all its alternatives', admitted or not); 0: manaCol
@@ -446,7 +447,8 @@ func prepare(t *kop.Table) *prep {
 	// and cost path to the generated forms (value_tappower.go)
 	p.anyTapPowerStatic = tableHasStatic(t, kop.StatTapPower)
 	p.gen = prepareGen(t, p)
-	p.painMana = p.painMana || p.gen != nil && p.gen.anyTapsPain // a Pain-class Taps watcher prices its tapped source (mana_tapsdefer.go)
+	p.painMana = p.painMana || p.gen != nil && p.gen.anyTapsPain  // a Pain-class Taps watcher prices its tapped source (mana_tapsdefer.go)
+	p.costObj = p.costObj || p.gen != nil && p.gen.anyEscapeGrant // an escape cast's exile-fodder picks (kw_escape.go)
 	p.availExt = p.painMana || p.phyMana
 	p.restrSrc = p.gen != nil && p.gen.anyRestrSrc
 	p.embComb = prepEmbComb(t, p)

@@ -57,7 +57,7 @@ func TestCounterAddedAllCarrierCensus(t *testing.T) {
 func TestCounterAddedAllBioessenceHydraBatchAmount(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	hydra := onBoardCard(t, e, 0, mshCorpusCard(t, "Bioessence Hydra"))
+	hydra := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Bioessence Hydra"))
 	pw1 := onBoard(t, e, 0, "Name:Walker One\nTypes:Planeswalker\nPT:4\nOracle:x\n")
 	pw2 := onBoard(t, e, 0, "Name:Walker Two\nTypes:Planeswalker\nPT:4\nOracle:x\n")
 	if e.G.Obj(hydra).Zone != state.ZBattlefield || e.G.Obj(pw1).Zone != state.ZBattlefield || e.G.Obj(pw2).Zone != state.ZBattlefield {
@@ -84,7 +84,7 @@ func TestCounterAddedAllBioessenceHydraBatchAmount(t *testing.T) {
 func TestCounterTypeAddedAllDannyFirstTimePerRecipient(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	danny := onBoardCard(t, e, 0, mshCorpusCard(t, "Danny Pink"))
+	danny := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Danny Pink"))
 	if e.G.Obj(danny).Zone != state.ZBattlefield {
 		t.Fatal("precondition: Danny must be on the battlefield")
 	}

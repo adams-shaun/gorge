@@ -77,10 +77,16 @@ func isConvokePick(f pickKind) bool { return f&convokePickMask == convokePickMas
 // convokeCost then improviseCost). Hybrid and {C} pips are never paid. A
 // spell with both keywords is priced like gorge's offer too.
 func (s *State) convokeCredit(k *prep, p uint8, c CardID, o Obj, cost kop.ManaCost) kop.ManaCost {
+	return s.convokeCreditFrom(k, p, c, o, s.objs[o].zone == kop.ZoneHand, cost) // the offer: the card is still in the hand
+}
+
+// convokeCreditFrom is convokeCredit with the cast's origin given: a spell
+// already on the stack (the multikicker count ask) is no longer in the hand,
+// so its caller passes castFromHandBy.
+func (s *State) convokeCreditFrom(k *prep, p uint8, c CardID, o Obj, fromHand bool, cost kop.ManaCost) kop.ManaCost {
 	if k.gen == nil || !k.gen.anyConvoke {
 		return cost
 	}
-	fromHand := s.objs[o].zone == kop.ZoneHand // the offer: the card is still in the hand
 	convoke := s.hasConvoke(k, p, c, o, fromHand)
 	improvise := s.isImprovise(k, p, c, o, fromHand)
 	if !convoke && !improvise {
@@ -212,17 +218,6 @@ func (s *State) improvisePickCount() int {
 	n := 0
 	for i := 0; i < int(s.bld().pickN); i++ {
 		if isConvokePick(s.bld().pickKs[i]) && s.bld().pickKs[i]&7 == 6 {
-			n++
-		}
-	}
-	return n
-}
-
-// convokePickN counts the announced convoke picks.
-func (s *State) convokePickN() int {
-	n := 0
-	for i := 0; i < int(s.bld().pickN); i++ {
-		if isConvokePick(s.bld().pickKs[i]) {
 			n++
 		}
 	}
@@ -448,7 +443,8 @@ func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, 
 	red := s.convokeApplyPicks(k, folded)
 	saved := s.fork()
 	defer s.unfork()
-	s.occ = s.occ.andNot(s.convokeHidden())
+	hidden := s.convokeHidden()
+	s.occ = s.occ.andNot(hidden)
 	ok, held := s.windowTapUseful(k, e.ctrl, &red, &folded, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
 	if !ok {
 		s.CopyFrom(saved)
@@ -459,14 +455,14 @@ func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, 
 		for c := range held {
 			s.pl[e.ctrl].pool[c] += held[c]
 		}
-		s.occ = saved.occ
+		s.unhide(hidden)
 		return true // the pick is posed; the announced creatures tap when the window ends (mana_window.go)
 	}
 	s.payConvokeFromPool(k, e, &red, anyColor)
 	for c := range held {
 		s.pl[e.ctrl].pool[c] += held[c]
 	}
-	s.occ = saved.occ
+	s.unhide(hidden)
 	tb := false
 	for i := 0; i < int(s.bld().pickN); i++ {
 		if !isConvokePick(s.bld().pickKs[i]) {
@@ -535,24 +531,18 @@ func (s *State) targetWindowShort(k *prep, e *stackEntry, cost *kop.ManaCost, hi
 		}
 	}
 	s.occ = s.occ.andNot(hide)
-	// gorge's affordableTargetCandidates prices the window from its census,
-	// which leaves a tap-another source (Springleaf Drum) unpriced: the census
-	// is incomplete, so the menu keeps its candidates however short the
-	// window is (CR 601.2g; castWindowCensusComplete). A tap-another source
-	// with a creature left to tap is such a source.
-	if s.scriptTapX(k, e.ctrl).any() {
+	// gorge's affordableTargetCandidates prices the window from its census;
+	// any source the census cannot price (a tap-another one with no creature
+	// to tap, a restricted mana ability the payment admits but the probe does
+	// not price, an each-colour source, a TapsForMana watcher that changes a
+	// source's production) leaves it incomplete, and the menu keeps its
+	// candidates however short the window is (CR 601.2c: targets are chosen,
+	// and a cast only reverses at 601.2h when the payment cannot be met;
+	// castWindowCensusComplete). This is the arm waterbendTargetAbort and
+	// tapXTargetAbort share.
+	if !s.windowCensusComplete(k, e) {
 		s.CopyFrom(saved)
 		return false
-	}
-	if k.gen.anyWindowGap {
-		// a window-gap source (Bloom Tender) is one gorge's census cannot
-		// price, so the menu keeps its candidates (the census-incomplete arm).
-		for m := s.ctrlM[e.ctrl].and(s.occ); m.any(); m = m.rest() {
-			if s.windowGap(k, e.ctrl, m.first()) {
-				s.CopyFrom(saved)
-				return false
-			}
-		}
 	}
 	ok, _ := s.windowTapRider(k, e.ctrl, cost, false, s.bld().bfl&bflAnyColor != 0)
 	s.CopyFrom(saved)

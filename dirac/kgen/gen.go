@@ -254,6 +254,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Kicker != nil {
 		fmt.Fprintf(w, " kicker=%s", c.Kicker)
 	}
+	if c.Multikicker != nil {
+		fmt.Fprintf(w, " multikicker=%s", c.Multikicker)
+	}
 	if c.Flashback != nil {
 		fmt.Fprintf(w, " flashback=%s", c.Flashback)
 	}
@@ -289,6 +292,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	}
 	if c.Plot != nil {
 		fmt.Fprintf(w, " plot=%s", c.Plot)
+	}
+	if c.Suspend != nil {
+		fmt.Fprintf(w, " suspend=%d:%s", c.SuspendN, c.Suspend)
 	}
 	if c.Foretell != nil {
 		fmt.Fprintf(w, " foretell=%s", c.Foretell)
@@ -475,6 +481,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 				i, t.Mode, t.Zone, t.Min, t.Max, t.F, t.Unique, t.SameCtrl, t.DiffCtrl, t.Divided, t.Spell, tgtSetLIR(t))
 			if t.TrigOnly {
 				fmt.Fprintf(w, "      trigonly=true\n")
+			}
+			if t.TrigChooser {
+				fmt.Fprintf(w, "      trigchooser=true\n")
 			}
 			if t.VTgt != nil {
 				fmt.Fprintf(w, "      vtgting=true F=%s\n", t.VTgt)

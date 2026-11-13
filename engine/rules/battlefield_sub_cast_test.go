@@ -36,7 +36,7 @@ func g122PickRoot(t *testing.T, e *Engine, id state.ObjID) {
 	if d == nil || d.Kind != decision.KTarget || d.ResumeKind == "cast_sub" {
 		t.Fatalf("pending = %+v, want the ROOT target ask", d)
 	}
-	i := targetOptionIndex(d, id)
+	i := indexOfObjOption(d, id)
 	if i < 0 {
 		t.Fatalf("object %d is not offered by the root ask: %+v", id, d.Options)
 	}

@@ -206,24 +206,14 @@ func TestBatterskullGermHasVigilanceAndLifelink(t *testing.T) {
 	if germ == 0 || e.G.Obj(germ).Zone != state.ZBattlefield {
 		t.Fatal("Batterskull's germ token is not on the battlefield")
 	}
-	if e.G.Obj(skullID(e, "Batterskull")).AttachedTo != germ {
-		t.Fatalf("Batterskull attached to %d, want germ %d", e.G.Obj(skullID(e, "Batterskull")).AttachedTo, germ)
+	if e.G.Obj(battlefieldObjIDByName(e, "Batterskull")).AttachedTo != germ {
+		t.Fatalf("Batterskull attached to %d, want germ %d", e.G.Obj(battlefieldObjIDByName(e, "Batterskull")).AttachedTo, germ)
 	}
 	if p := e.Power(germ); p != 4 {
 		t.Fatalf("germ power = %d, want 4 (0 + Batterskull's AddPower$ 4)", p)
 	}
 	assertGrants(t, e, germ, []string{"Vigilance", "Lifelink"})
 	replayCheck(t, e, cfg)
-}
-
-// skullID finds seat 0's battlefield Batterskull.
-func skullID(e *Engine, name string) state.ObjID {
-	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
-		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
-			return id
-		}
-	}
-	return 0
 }
 
 // TestKeywordListReadersShareTheParser enumerates the implemented readers of

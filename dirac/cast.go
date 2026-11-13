@@ -24,16 +24,21 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	ob := &s.objs[o]
 	p := s.prio
 	c := ob.card
+	if int(o) < len(s.cold.mkObj) {
+		s.cold.mkObj[o] = 0 // a card cast again starts with no payments (CR 702.43; kw_multikicker.go)
+	}
 	var fl uint8
 	if mode&1 != 0 {
 		fl |= sfKicked
 	}
-	mayhem := mayhemCast(k, c, mode) // a graveyard cast that is no flashback (kw_mayhem.go)
+	esc := mode&2 != 0 && s.g.escapeCast // the target byte's escape cast (kw_escape.go)
+	s.g.escapeCast = false
+	mayhem := mayhemCast(k, c, mode) && !esc // a graveyard cast that is no flashback (kw_mayhem.go)
 	if k.gen != nil && k.gen.anyAftermath {
 		fl |= s.aftermathCastFlags(k, o, c, mode) // exiled leaving the stack (face_aftermath.go)
 	}
 	retrace := mode&2 != 0 && !mayhem && tgt == retraceTgt && k.t.Cards[c].Retrace // kw_retrace.go
-	if mode&2 != 0 && !mayhem && !retrace {
+	if mode&2 != 0 && !mayhem && !esc && !retrace {
 		fl |= sfFlashback
 		if two, _, g := s.fbInstances(k, p, o); two && g {
 			fl |= sfFbGranted // the granted instance (fbInstances)
@@ -52,6 +57,9 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	}
 	if mayhem {
 		e.trigPl = trigPlMayhem
+	}
+	if esc {
+		e.trigPl = trigPlEscape // the cost builder's escape cast (kw_escape.go)
 	}
 	if retrace {
 		e.trigPl = trigPlRetrace // the retrace cast's pick cost (kw_retrace.go)
@@ -149,11 +157,22 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		// which plans with PlannedCast{}: its hand demand (rank key 6)
 		// counts the card being cast too, so nothing is excluded.
 		cost := s.buildCost(k)
+		if k.t.Cards[c].HasMultikicker {
+			// the count is asked after the cast action: the witness plans the
+			// offer's own base + one payment (gorge's composed potential play)
+			cost = addCost(cost, k.t.Cards[c].Multikicker)
+		}
 		if s.rbAny(p) {
 			// restricted mana the spell may spend (Secluded Courtyard's
 			// {R} for a Goblin, tapped by the play's script prefix) is in
 			// the witness's pool: tap only for the rest
 			cost = s.restrShort(k, p, c, s.restrOriginOfObj(o), cost)
+		}
+		if k.t.Cards[c].HasMultikicker {
+			// gorge's composed witness prices the delve credit (granted or
+			// printed) that kickedAffords / multikickMax offer on: the same
+			// helper, or the witness taps and floats that much extra
+			cost = s.gateDelveCredit(k, p, c, o, ob.zone == kop.ZoneHand, cost)
 		}
 		s.tapFor(k, p, &cost, 0, NoObj)
 	} else if mode&castWarp != 0 || k.gen != nil && (k.gen.anyImpending && s.bld().e.impended() || k.gen.anyEvoke && s.bld().e.evoked() || k.gen.anyDash && s.bld().e.dashed(k) || k.gen.anyOverload && s.bld().e.overloaded(k)) {
@@ -407,7 +426,7 @@ func (s *State) syncBuild() {
 // these rows. A triggered ability is pushed by takePending before its
 // program starts.
 var buildProgram = [3][]uint8{
-	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsConspire, bsConvoke, bsX, bsDelve, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
+	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsMulti, bsConspire, bsConvoke, bsX, bsDelve, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seAbility: {bsPush, bsModes, bsTapCost, bsX, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seTrigger: {bsModes, bsPips, bsTargets, bsDivide, bsPay},
 }
@@ -621,7 +640,7 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 			c = cd.WebSlingCost // the web-slinging cost (CR 702.188a; kw_websling.go)
 		}
 		if e.flags&sfKicked != 0 {
-			c = addCost(c, cd.Kicker)
+			c = s.addKickerPayments(cd, e, c)
 		}
 		if k.gen != nil && k.gen.anyMayFlash && mayFlashEntry(e) && cd.HasMayFlash && !DebugMayFlashFree {
 			c = addCost(c, cd.MayFlashCost) // the mana cost plus the extra (CR 702.8; kw_mayflash.go)
@@ -741,6 +760,12 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				return s.ctl == ctlBuild // false: a short tap cost reversed the build (sacShort)
 			}
 			if k.gen != nil && k.gen.anyWaterbend && s.waterbendOptions(k, d) {
+				return true
+			}
+			s.nextStage(k)
+			continue
+		case bsMulti:
+			if s.multikickOptions(k, d) {
 				return true
 			}
 			s.nextStage(k)
@@ -876,7 +901,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			// gorge's order: sacrifice, the counter removals, discard
 			// (the forage either-or first: gorge forageAsk; an exile
 			// part is the only counted one of its cost: act_forage.go)
-			if k.costObj && s.costObjOptions(k, d) || s.costPickOptions(k, d, kop.CostSac) || s.subCtrOptions(k, d) || k.subAmong && s.subAmongOptions(k, d) || s.costPickOptions(k, d, kop.CostDiscard) {
+			if s.buildCostAsks(k, d, e) {
 				return s.ctl == ctlBuild // false: a short sacrifice reversed the build (sacShort)
 			}
 			if k.gen != nil && (k.gen.anySneak && sneakEntry(e) || k.gen.anyWebSling && webSlingEntry(e)) && s.sneakReturnOptions(k, d) {
@@ -1133,6 +1158,16 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				panic("kernel: spell/ability without a legal target")
 			}
 			d.Kind, d.Player = DkTarget, e.ctrl
+			if e.kind == seTrigger && t.TFlags&kop.TgfTrigChooser != 0 {
+				// gorge TargetingPlayer$ (targetChooserCore / engine/rules/
+				// target_modes.go): only the decision's Player moves to the
+				// chooser — the queue-time trigger player here — while
+				// target legality stays judged from the controller; a referent
+				// that left the game fails closed to the controller
+				if !s.out(e.trigPl) {
+					d.Player = e.trigPl
+				}
+			}
 			for i := 0; i < n; i++ {
 				d.add(MakeAction(AkTarget, 0, buf[i], 0))
 			}
@@ -1375,6 +1410,10 @@ func (s *State) applyBuild(k *prep, a Action) {
 			}
 			s.bld().setPipCol(s.bld().pipN, a.Mode())
 			s.bld().pipN++
+			return
+		}
+		if s.bld().stage == bsMulti {
+			s.answerMultikick(k, a)
 			return
 		}
 		e.x = a.Mode() // X
@@ -2087,6 +2126,20 @@ func (s *State) takePending(k *prep, i int) {
 // pickCosts are the cost flags paid by choosing objects.
 const pickCosts = kop.CostDiscard | kop.CostSac | kop.CostTapX
 
+// buildCostAsks poses bsCosts' next cost-object pick of the entry e being
+// built (costObjOptions' forage / exile pick, then sacrifice, the counter
+// removals, discard): false when none is owed. An escape cast (trigPlEscape,
+// kw_escape.go) follows gorge's costObjectAsks order (cast_begin.go): its
+// behold and the spell's own sacrifice / discard asks first, then exAsk's
+// escape fodder (costObjOptions) last.
+func (s *State) buildCostAsks(k *prep, d *Decision, e *stackEntry) bool {
+	return k.costObj && e.trigPl != trigPlEscape && s.costObjOptions(k, d) ||
+		e.trigPl == trigPlEscape && s.beholdOptions(k, d) ||
+		s.costPickOptions(k, d, kop.CostSac) || s.subCtrOptions(k, d) ||
+		k.subAmong && s.subAmongOptions(k, d) || s.costPickOptions(k, d, kop.CostDiscard) ||
+		e.trigPl == trigPlEscape && k.costObj && s.costObjOptions(k, d)
+}
+
 // costPickOptions poses the next pick for the pick costs in allowed of the
 // entry being built (a spell's additional costs live on its spell
 // ability). gorge's order: the tap-creatures cost before X (continueCast's
@@ -2378,6 +2431,22 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 				return rc // a may-play cast's non-mana RaiseCost$ (cost_mayplayraise.go)
 			}
 		}
+		if e.trigPl == trigPlEscape {
+			// the escape cast's own Sac/Discard additional parts come before
+			// its fodder (gorge costObjectAsks: sacrifice, subcounter,
+			// discard, then exAsk), so the fodder is owed only once they are
+			// posed and paid; while one is owed buildPickCost keeps returning
+			// the spell's own cost (CR 702.42a; kw_escape.go)
+			own := spellAddCost(k, e.card)
+			if pickKind(own.Flags)&pickKind(pickCosts)&^s.bld().donePicks == 0 {
+				if ga := s.escapeStatic(k, e.ctrl, s.objs[e.obj].owner(), e.card); ga != nil {
+					if ec := escapeFodder(ga); int(ec.N) > s.exilePicks() {
+						return ec
+					}
+				}
+			}
+			return own
+		}
 		if retraceEntry(cd, e) {
 			// the retrace cast's additional discard-a-land cost (CR 702.81a;
 			// kw_retrace.go). kgen refuses a Retrace card a spell additional
@@ -2450,7 +2519,9 @@ func (s *State) altAddPayable(k *prep, part uint8) bool {
 	c := s.buildCost(k)
 	s.bld().altAdd = saved
 	// the restricted sources the payment may spend (CR 106.6): gorge's window prices them
-	return av.affords(&c, pipMaskOf(&c), 0) || k.restrSrc && s.restrSrcAffords(k, e.ctrl, s.payDescNow(NoObj), &c, &av, NoSlot, 0)
+	// and the filters the window activates, each paying its fee from the other mana (CR 601.2g-h)
+	return av.affords(&c, pipMaskOf(&c), 0) || k.restrSrc && s.restrSrcAffords(k, e.ctrl, s.payDescNow(NoObj), &c, &av, NoSlot, 0) ||
+		k.gen != nil && k.gen.anyFilt && s.faceReachable(k, e.ctrl, &av, &c, 0)
 }
 
 // altAddPickPayable: the part's costs that are no mana (a discard, a sacrifice,

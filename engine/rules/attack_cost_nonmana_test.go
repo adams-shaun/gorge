@@ -26,7 +26,7 @@ import (
 func attackTaxSeat(t *testing.T, propName string) (*Engine, state.ObjID) {
 	t.Helper()
 	e := threeSeatEngine(t)
-	onBoardCard(t, e, 0, mshCorpusCard(t, propName))
+	onBoardCard(t, e, 0, corpusAlternativeCard(t, propName))
 	bear := onBoardReady(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:0/4\nOracle:x\n")
 	e.G.Active = 1
 	e.G.Step = state.StepDeclareAttackers
@@ -48,7 +48,7 @@ const enchantFixture = "Name:Test Aura\nTypes:Enchantment\nOracle:x\n"
 func TestExaltedDragonAttackSacrificesALand(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	dragon := onBoardReadyCard(t, e, 0, mshCorpusCard(t, "Exalted Dragon"))
+	dragon := onBoardReadyCard(t, e, 0, corpusAlternativeCard(t, "Exalted Dragon"))
 	land := onBoardCard(t, e, 0, card(t, landFixture))
 	sea := onBoardReady(t, e, 0, "Name:Test Serpent\nManaCost:1 U\nTypes:Creature Serpent\nPT:2/4\nOracle:x\n")
 	e.G.Active = 0
@@ -110,7 +110,7 @@ func TestExaltedDragonAttackSacrificesALand(t *testing.T) {
 func TestExaltedDragonWithoutALandIsNeverOffered(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	dragon := onBoardReadyCard(t, e, 0, mshCorpusCard(t, "Exalted Dragon"))
+	dragon := onBoardReadyCard(t, e, 0, corpusAlternativeCard(t, "Exalted Dragon"))
 	e.G.Active = 0
 	e.G.Step = state.StepDeclareAttackers
 
@@ -137,7 +137,7 @@ func TestExaltedDragonWithoutALandIsNeverOffered(t *testing.T) {
 func TestFloodtideSerpentAttackReturnsAnEnchantment(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	serpent := onBoardReadyCard(t, e, 0, mshCorpusCard(t, "Floodtide Serpent"))
+	serpent := onBoardReadyCard(t, e, 0, corpusAlternativeCard(t, "Floodtide Serpent"))
 	aura := onBoardCard(t, e, 0, card(t, enchantFixture))
 	e.G.Active = 0
 	e.G.Step = state.StepDeclareAttackers
@@ -179,7 +179,7 @@ func TestFloodtideSerpentAttackReturnsAnEnchantment(t *testing.T) {
 func TestHollowWarriorAttackTapsANonAttacker(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	warrior := onBoardReadyCard(t, e, 0, mshCorpusCard(t, "Hollow Warrior"))
+	warrior := onBoardReadyCard(t, e, 0, corpusAlternativeCard(t, "Hollow Warrior"))
 	other := onBoardReady(t, e, 0, "Name:Test Helper\nManaCost:1 G\nTypes:Creature Bear\nPT:1/1\nOracle:x\n")
 	e.G.Active = 0
 	e.G.Step = state.StepDeclareAttackers
@@ -227,7 +227,7 @@ func TestHollowWarriorAttackTapsANonAttacker(t *testing.T) {
 func TestHollowWarriorAttackWithoutATapperIsNeverOffered(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	warrior := onBoardReadyCard(t, e, 0, mshCorpusCard(t, "Hollow Warrior"))
+	warrior := onBoardReadyCard(t, e, 0, corpusAlternativeCard(t, "Hollow Warrior"))
 	e.G.Active = 0
 	e.G.Step = state.StepDeclareAttackers
 
@@ -379,8 +379,15 @@ func TestNornsAnnexPhyrexianColourVersusLifeChoice(t *testing.T) {
 	if n := len(e.windowManaUnits(1)); n != 1 {
 		t.Fatalf("precondition: windowManaUnits(1) = %d, want 1 (the Plains)", n)
 	}
-	both, canColour, canLife := e.combatPhyBothBranches(1, e.attackPairCharge(bear, 0, 0))
-	if !both || !canColour || !canLife {
+	plan, ok := e.openCombatPayPlan(1, e.attackPairCharge(bear, 0, 0), nil, nil)
+	if !ok {
+		t.Fatal("precondition: the plan must open with both branches owed")
+	}
+	if plan.phyDone != 0 {
+		t.Fatalf("precondition: plan done=%d, want both branches still owed", plan.phyDone)
+	}
+	canColour, canLife := e.combatPhyPipBranches(plan, nil)
+	if !canColour || !canLife {
 		t.Fatalf("precondition: colour branch %v, life branch %v, want both true", canColour, canLife)
 	}
 

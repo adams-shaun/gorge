@@ -94,17 +94,6 @@ func corpusEngineCfg(t *testing.T, reg *cards.Registry, extras0, extras1 []*card
 	return e, cfg
 }
 
-// lookup is reg.Lookup or the test fails: a corpus card these tests
-// depend on being absent is a corpus-pin change, not something to paper over.
-func lookup(t *testing.T, reg *cards.Registry, name string) *cards.Card {
-	t.Helper()
-	c, ok := reg.Lookup(name)
-	if !ok {
-		t.Fatalf("corpus fixture: %q missing from the registry", name)
-	}
-	return c
-}
-
 // countEvents counts events matching pred in the engine's whole log.
 func countEvents(e *Engine, pred func(events.Event) bool) int {
 	n := 0
@@ -214,16 +203,6 @@ func castNamed(t *testing.T, e *Engine, name string) {
 		}
 	}
 	t.Fatalf("no cast option for %q in %+v", name, d.Options)
-}
-
-// findInHand returns the id of the card named name in seat p's hand, or 0.
-func findInHand(e *Engine, p state.PlayerID, name string) state.ObjID {
-	for _, id := range e.G.Zone(state.ZHand, p) {
-		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
-			return id
-		}
-	}
-	return 0
 }
 
 // TestFogPreventsThisTurnsCombatDamageOnly is api:Fog's leaf: real corpus Fog

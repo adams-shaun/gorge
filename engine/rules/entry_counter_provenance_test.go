@@ -45,7 +45,7 @@ func assertEntryCounterLedger(t *testing.T, e *Engine, id state.ObjID, kind stri
 // the entrant's controller as actor.
 func TestCastEntryCounterProvenanceNotifiesTriggerAndLedger(t *testing.T) {
 	t.Parallel()
-	ds := tokenReplCorpusCard(t, "Doubling Season")
+	ds := corpusAlternativeCard(t, "Doubling Season")
 	walker := entryCounterWalker(t)
 	patron := card(t, "Name:Entry Patron\nTypes:Creature\nPT:1/1\n"+
 		"T:Mode$ CounterPlayerAddedAll | ValidSource$ Opponent | TriggerZones$ Battlefield | Execute$ Draw\n"+
@@ -97,7 +97,7 @@ func TestCastEntryCounterProvenanceNotifiesTriggerAndLedger(t *testing.T) {
 // the AddCounter matcher's EffectOnly$ gate keeps Doubling Season off it.
 func TestDoublingSeasonSagaEntryAndProgressionCounts(t *testing.T) {
 	t.Parallel()
-	ds := tokenReplCorpusCard(t, "Doubling Season")
+	ds := corpusAlternativeCard(t, "Doubling Season")
 	// Three chapters so the doubled 2-lore entry (2 < 3) survives the CR
 	// 704.5s sacrifice long enough to measure the turn-based counter.
 	saga := card(t, "Name:Triage Saga\nTypes:Enchantment Saga\nK:Chapter:3:D1,D2,D3\n"+
@@ -158,8 +158,8 @@ func TestEntryBodyCounterFinalEmitPublishesAdder(t *testing.T) {
 // row appears (measured: empty ledger, patron silent).
 func TestEntryBodyRewrittenFinalEmitPublishesAdder(t *testing.T) {
 	t.Parallel()
-	hs := tokenReplCorpusCard(t, "Hardened Scales")
-	be := tokenReplCorpusCard(t, "Branching Evolution")
+	hs := corpusAlternativeCard(t, "Hardened Scales")
+	be := corpusAlternativeCard(t, "Branching Evolution")
 	patron := card(t, "Name:Rewritten Patron\nTypes:Creature\nPT:1/1\n"+
 		"T:Mode$ CounterPlayerAddedAll | ValidObject$ Permanent.inRealZoneBattlefield | ValidSource$ Opponent | TriggerZones$ Battlefield | Execute$ Draw\n"+
 		"SVar:Draw:DB$ Draw | Defined$ You | NumCards$ 1\nOracle:x\n")

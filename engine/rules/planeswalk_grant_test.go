@@ -15,17 +15,6 @@ import (
 // creature that satisfies the gate is a fixture.
 const timeLordSrc = "Name:Time Lord Fixture\nManaCost:1 U\nTypes:Legendary Creature Time Lord\nPT:1/1\nOracle:x\n"
 
-// planeswalkElectionIDX returns the index of the yes/no option with the given
-// Kind in a pending planeswalk election, or -1.
-func planeswalkElectionIDX(d *decision.Decision, kind string) int {
-	for _, o := range d.Options {
-		if o.Kind == kind {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 // TestPlaneswalkProbeAskResolvesChain is the synthetic complement to the
 // carrier pin: the same Optional$ Planeswalk shape on an authored probe,
 // cast through the ordinary cast path so the mid-resolution election and the
@@ -51,7 +40,7 @@ func TestPlaneswalkProbeAskResolvesChain(t *testing.T) {
 			if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "planeswalk_optional" {
 				t.Fatalf("planeswalk decision = %+v", d)
 			}
-			idx := planeswalkElectionIDX(d, want)
+			idx := optionIndexForKind(d, want)
 			if idx < 0 {
 				t.Fatalf("no %q option in %+v", want, d.Options)
 			}

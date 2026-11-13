@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -163,27 +162,8 @@ func TestReproSilenceRangerCaptainReach(t *testing.T) {
 	reg := synthReg(t)
 	for _, c := range silenceCases() {
 		t.Run(c.name, func(t *testing.T) {
-			silenceReplay(t, reg, c)
+			replayEffectLongCase(t, reg, c)
 		})
-	}
-}
-
-func silenceReplay(t *testing.T, reg *cards.Registry, c effectLongCase) {
-	t.Helper()
-	r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	script := &ScriptPolicy{Actions: r.Actions}
-	res, reached := effectLongPlay(t, reg, c, r, printedDelveSet(t, r.Cards), script)
-	if res.Div != nil {
-		t.Fatalf("divergence at %d: %s %s %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
-	}
-	if script.Skipped != 0 {
-		t.Errorf("%d scripted actions were not offered", script.Skipped)
-	}
-	if !reached {
-		t.Fatalf("the recorded game never reaches %s", c.name)
 	}
 }
 

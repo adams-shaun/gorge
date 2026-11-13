@@ -323,7 +323,16 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.touchSl(sl)
 			if was == 0 {
 				if k.gen != nil && s.subs[kop.TrigTaps].any() {
-					s.fireTapsBy(k, sl, s.effTapper(sl))
+					who := s.effTapper(sl)
+					if in.W != 0 {
+						// the instruction's Tapper$ provenance (gorge
+						// effTapOrUntap's Tapper$ read; the election ask
+						// is the controller's, the tap's is the ref's)
+						if p := s.playerRef(k, in.W); p < s.nSeats() {
+							who = p
+						}
+					}
+					s.fireTapsBy(k, sl, who)
 				}
 				s.markTapped(k, sl) // only a tap that happens marks
 			}
@@ -385,16 +394,27 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		}
 		o := s.objRefObj(in.Obj)
 		if o != NoObj {
-			if i := s.stackIndexOf(o); i >= 0 && (in.C&kop.CtrDestMove != 0 || !(s.stack[i].kind == seSpell && s.uncounterable(k, i))) {
-				s.g.stkCt = s.stack[i].ctrl + 1 // "its controller" reads the spell as it last existed (CR 608.2h)
-				if in.B.N != 0 {
-					s.counterRiders(k, i, int(in.B.N)) // tgt_countershapes.go
+			if i := s.stackIndexOf(o); i >= 0 {
+				unc, park := false, false
+				if s.stack[i].kind == seSpell && in.C&kop.CtrDestMove == 0 {
+					// gorge effCounter's counterStopped: a spell two or more
+					// uncounter replacements protect asks CR 616.1's order
+					// (repl_uncounterable.go) before it is skipped
+					if unc, park = s.uncGate(k, i); park {
+						return false
+					}
 				}
-				if in.C != 0 {
-					s.counterTo(k, i, in.C&^kop.CtrDestMove)
-					break
+				if !unc {
+					s.g.stkCt = s.stack[i].ctrl + 1 // "its controller" reads the spell as it last existed (CR 608.2h)
+					if in.B.N != 0 {
+						s.counterRiders(k, i, int(in.B.N)) // tgt_countershapes.go
+					}
+					if in.C != 0 {
+						s.counterTo(k, i, in.C&^kop.CtrDestMove)
+						break
+					}
+					s.counterAt(k, i)
 				}
-				s.counterAt(k, i)
 			}
 		}
 	case kop.OpAttach:
@@ -434,7 +454,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				hit = hit.with(sl)
 			}
 		}
-		if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 {
+		if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 || shieldBesidePlus(k.gen)) {
 			// a sweep's events are dealt one at a time: park on each event two
 			// replacements match (CR 616.1) and resume the rest after the
 			// answer. The recipients freeze in gorge's sweep order
@@ -704,20 +724,30 @@ func (s *State) cond(k *prep, in *kop.Instr) bool {
 }
 
 func (s *State) destroy(k *prep, sl Slot) {
-	if s.kw(k, sl)&kop.KwIndestructible != 0 {
+	if s.destroySpared(k, sl, false) {
 		return
-	}
-	if s.destroyHeal(k, sl) {
-		return
-	}
-	if s.canRegen(sl) {
-		s.regenerate(sl)
-		return
-	}
-	if k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(sl) {
-		return // CR 122.1c, after regeneration (gorge effDestroy)
 	}
 	s.leaveParked(k, sl)
+}
+
+// destroySpared reports whether the permanent at sl survives a destroy
+// instruction (indestructible, healed, regenerated unless noRegen, shielded),
+// applying the survival's effect; the one home of destroy, destroyNoRegen and
+// the simultaneous multi-target destroy (zone_leavetogether.go).
+func (s *State) destroySpared(k *prep, sl Slot, noRegen bool) bool {
+	if s.kw(k, sl)&kop.KwIndestructible != 0 {
+		return true
+	}
+	if s.destroyHeal(k, sl) {
+		return true
+	}
+	if !noRegen && s.canRegen(sl) {
+		s.regenerate(sl)
+		return true
+	}
+	// CR 122.1c, after regeneration (gorge effDestroy); NoRegen$ suppresses
+	// regeneration, not the shield counter
+	return k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(sl)
 }
 
 // moveRef moves the object a Ref names to zone z (its owner's).
@@ -978,6 +1008,9 @@ func (s *State) applyResolve(k *prep, a Action) {
 			return
 		}
 		s.finishPeek(k)
+	case raChooseNumber:
+		o, sl := s.resolutionTypeSource()
+		s.storeChosenNumber(o, sl, int(a.Mode()))
 	case raChooseType:
 		if k.gen != nil && s.prog(k)[r.pc].C != 0 {
 			r.chosen = cardTypeAnswer(a)

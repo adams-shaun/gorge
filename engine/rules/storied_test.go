@@ -145,7 +145,7 @@ func TestFiliContinuousPumpNeedsEnduringStory(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
 	// Fíli is Storied AND legendary, so it counts toward CR 702.175a itself.
-	fili := onBoardCard(t, e, 0, mshCorpusCard(t, "Fíli the Pathfinder"))
+	fili := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Fíli the Pathfinder"))
 	bear := onBoard(t, e, 0, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	first := onBoard(t, e, 0, qualifyingArtifact)
 	onBoard(t, e, 0, qualifyingArtifact)

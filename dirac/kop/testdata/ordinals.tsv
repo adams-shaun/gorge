@@ -320,6 +320,7 @@ DurForetell	untyped int	13
 DurPermanent	untyped int	1
 DurPlot	untyped int	7
 DurPrepared	untyped int	8
+DurSuspend	untyped int	14
 DurUntilYourNextTurn	untyped int	5
 DurWarp	untyped int	6
 DurWhileControlSource	untyped int	4
@@ -367,6 +368,7 @@ ExDiscardedThisTurn	ExprKind	241
 ExDistinctCMC	ExprKind	6
 ExDmgAmountReceived	ExprKind	219
 ExDrawnThisTurn	ExprKind	40
+ExEnergyOf	ExprKind	63
 ExExcessDamage	ExprKind	21
 ExExiledWithN	ExprKind	246
 ExFirstCast	ExprKind	255
@@ -449,6 +451,7 @@ ExtChangeTargets	ExtOp	225
 ExtChooseColorRes	ExtOp	5
 ExtChooseName	ExtOp	251
 ExtChooseNumber	ExtOp	230
+ExtChooseNumberMid	ExtOp	303
 ExtClearImprinted	ExtOp	257
 ExtCloneCopy	ExtOp	81
 ExtColorGrant	ExtOp	6
@@ -478,7 +481,7 @@ ExtExchangeControl	ExtOp	244
 ExtExileEmbRem	ExtOp	319
 ExtExileExMark	ExtOp	51
 ExtExileLandChoose	ExtOp	162
-ExtExtort	ExtOp	303
+ExtExtort	ExtOp	302
 ExtFinalityCtr	ExtOp	198
 ExtGrantExile	ExtOp	249
 ExtGrantPanharm	ExtOp	248
@@ -1024,6 +1027,7 @@ RefTargets01	Ref	25
 RefTargets012	Ref	26
 RefTargets0123	Ref	32
 RefTargets12	Ref	27
+RefTaxedAttacker	Ref	38
 RefTgtCtrl1	Ref	241
 RefTgtCtrl2	Ref	242
 RefTriggerAttackers	Ref	31
@@ -1218,12 +1222,14 @@ StatCantPreventDamage	StaticKind	232
 StatCantPutCounter	StaticKind	252
 StatCantSacrifice	StaticKind	237
 StatCantTarget	StaticKind	235
+StatCantTgtGrave	StaticKind	229
 StatCastWithFlash	StaticKind	6
 StatCombatDmgToughness	StaticKind	245
 StatContinuous	StaticKind	1
 StatControl	StaticKind	17
 StatCount	StaticKind	21
 StatDisableETB	StaticKind	234
+StatEscapeGrant	StaticKind	225
 StatExtraLandPlay	StaticKind	12
 StatFbGrant	StaticKind	242
 StatFlipCoinMod	StaticKind	226
@@ -1326,6 +1332,7 @@ Tf3MayPlaySrc	TrigFlags3	32
 Tf3OrTargets	TrigFlags3	8
 Tf3Static	TrigFlags3	16
 Tf4CounterCell	TrigFlags4	4
+Tf4DefEnch	TrigFlags4	128
 Tf4NamedCast	TrigFlags4	16
 Tf4NthFiltered	TrigFlags4	8
 Tf4OptTrigPlayer	TrigFlags4	32
@@ -1359,6 +1366,7 @@ TgfOppOnly	TargetFlags	16384
 TgfSameController	TargetFlags	2
 TgfSharedCrType	TargetFlags	1024
 TgfSingleTgt	TargetFlags	8192
+TgfTrigChooser	TargetFlags	65536
 TgtAny	TargetKind	3
 TgtCard	TargetKind	5
 TgtCopyAb	TargetKind	236
@@ -1477,6 +1485,7 @@ VX	VKind	1
 W	untyped int	0
 W7AttachedTo	int16	19
 W7AttackingAlone	int16	3
+W7AttackingEnchTrig	int16	29
 W7AttackingOpp	int16	7
 W7BottomLibrary	int16	17
 W7CostBlue	int16	14

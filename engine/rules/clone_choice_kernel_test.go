@@ -95,7 +95,7 @@ func TestCloneChoiceOptionalDeclineMakesNoCopyKernel(t *testing.T) {
 	if !sawToken {
 		t.Fatalf("the token is not offered in %+v", d.Options)
 	}
-	answerAsk(t, e, optionOfKind(t, d, "decline"))
+	answerAsk(t, e, optionKindIndex(t, d, "decline"))
 	evs := eventsSince(e, start)
 	if n := countEventKind(evs, events.ClonePermanent); n != 0 {
 		t.Fatalf("an answered decline still copied (%d ClonePermanent)", n)
@@ -160,7 +160,7 @@ func cloneElectBoard(t *testing.T, line, kind string) (*Engine, state.ObjID, []e
 	if d == nil || d.ResumeKind != "clone" || len(d.Options) != 2 {
 		t.Fatalf("Optional$ Clone posed %+v, want the clone yes/no", d)
 	}
-	answerAsk(t, e, optionOfKind(t, d, kind))
+	answerAsk(t, e, optionKindIndex(t, d, kind))
 	return e, sark, eventsSince(e, start)
 }
 

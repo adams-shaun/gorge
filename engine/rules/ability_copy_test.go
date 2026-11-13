@@ -214,17 +214,6 @@ func drainCopyPayAsks(t *testing.T, e *Engine, limit int, mode string) {
 	}
 }
 
-// copyCount counts StackCopy events naming id.
-func copyCount(e *Engine, id state.ObjID) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.StackCopy && ev.Obj == id {
-			n++
-		}
-	}
-	return n
-}
-
 // allStackCopies lists every StackCopy event's (Obj, Player) pair.
 func allStackCopies(e *Engine) []state.ObjID {
 	var out []state.ObjID

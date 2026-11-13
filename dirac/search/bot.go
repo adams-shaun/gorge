@@ -148,7 +148,7 @@ func (Heuristic) Pick(s *dirac.State, d *dirac.Decision) int {
 		return best
 	case dirac.DkChoose:
 		switch d.Sub {
-		case dirac.ChX, dirac.ChTrigX:
+		case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick:
 			return int(d.N) - 1
 		case dirac.ChCostDiscard, dirac.ChCostSacrifice, dirac.ChDiscard, dirac.ChSacrifice, dirac.ChCleanupDiscard, dirac.ChBottom:
 			best, bestV := 0, 1<<30

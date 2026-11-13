@@ -38,7 +38,7 @@ func TestDoublingSeasonDoublesEntryCounterBodyPlacement(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 
-	ds := tokenReplCorpusCard(t, "Doubling Season")
+	ds := corpusAlternativeCard(t, "Doubling Season")
 	cre = entryCounterEtbCreature(t)
 	e, cfg = tokenReplGame(t, 222, ds, cre)
 	did := moveSeededCard(t, e, 0, ds, state.ZBattlefield)
@@ -62,7 +62,7 @@ func TestDoublingSeasonDoublesEntryCounterBodyPlacement(t *testing.T) {
 // through the exact same gate.
 func TestDoublingSeasonDoublesCastEntryCounterBody(t *testing.T) {
 	t.Parallel()
-	ds := tokenReplCorpusCard(t, "Doubling Season")
+	ds := corpusAlternativeCard(t, "Doubling Season")
 	cre := entryCounterEtbCreature(t)
 	e, cfg := tokenReplGame(t, 223, ds, cre)
 	moveSeededCard(t, e, 0, ds, state.ZBattlefield)
@@ -98,7 +98,7 @@ func TestDoublingSeasonDoublesCastEntryCounterBody(t *testing.T) {
 func TestVorinclexReadsCastEntryCounterBodySource(t *testing.T) {
 	t.Parallel()
 	cre := entryCounterEtbCreature(t)
-	vori := tokenReplCorpusCard(t, "Vorinclex, Monstrous Raider")
+	vori := corpusAlternativeCard(t, "Vorinclex, Monstrous Raider")
 
 	// Own Vorinclex: the body's adder is the entering creature's controller,
 	// which is Vorinclex's controller too -- ValidSource$ You doubles 2 to 4.

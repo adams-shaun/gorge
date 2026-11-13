@@ -2,7 +2,6 @@ package rules
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -179,16 +178,6 @@ func castObj(t *testing.T, e *Engine, id state.ObjID) {
 func hasEvent(e *Engine, kind events.Kind, obj state.ObjID) bool {
 	for _, ev := range e.L.Events {
 		if ev.Kind == kind && ev.Obj == obj {
-			return true
-		}
-	}
-	return false
-}
-
-// hasNote reports whether the log carries a Note event whose Text contains substr.
-func hasNote(e *Engine, substr string) bool {
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note && strings.Contains(ev.Text, substr) {
 			return true
 		}
 	}

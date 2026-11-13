@@ -90,7 +90,7 @@ func TestDiscardHandOptionalWithAskableHostPosesTheElectionKernel(t *testing.T) 
 			t.Fatalf("hand card %d left the hand before the election was answered", i)
 		}
 	}
-	answerAsk(t, e, optionOfKind(t, d, "no"))
+	answerAsk(t, e, optionKindIndex(t, d, "no"))
 	for i, id := range ids {
 		if !objectInZone(e, state.ZHand, 1, id) {
 			t.Fatalf("hand card %d was discarded despite a DECLINED election", i)
@@ -177,14 +177,14 @@ func TestDiscardHandOptionalAsksEachPlayerAndDeclineDiscardsNothingKernel(t *tes
 	if d == nil || d.Player != 0 || d.ResumeKind != "discard_hand" || len(d.Options) != 2 {
 		t.Fatalf("first election = %+v, want seat 0's yes/no discard_hand", d)
 	}
-	d = answerAsk(t, e, optionOfKind(t, d, "no"))
+	d = answerAsk(t, e, optionKindIndex(t, d, "no"))
 	if d == nil || d.Player != 1 || d.ResumeKind != "discard_hand" {
 		t.Fatalf("second election = %+v, want seat 1's own election", d)
 	}
 	if !objectInZone(e, state.ZHand, 0, frog) {
 		t.Fatal("a DECLINED election still discarded the hand")
 	}
-	answerAsk(t, e, optionOfKind(t, d, "yes"))
+	answerAsk(t, e, optionKindIndex(t, d, "yes"))
 	if !objectInZone(e, state.ZHand, 0, frog) {
 		t.Fatal("the declining player's card left the hand")
 	}

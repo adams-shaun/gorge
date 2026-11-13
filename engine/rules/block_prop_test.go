@@ -70,7 +70,7 @@ const memniteSrc = "Name:Memnite\nManaCost:0\nTypes:Artifact Creature Construct\
 func TestQalSismaBehemothBlockCharge(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	qal := onBoardCard(t, e, 0, mshCorpusCard(t, "Qal Sisma Behemoth"))
+	qal := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Qal Sisma Behemoth"))
 	bear := onBoardReady(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:0/4\nOracle:x\n")
 	attackSeat0(t, e, bear)
 
@@ -127,7 +127,7 @@ func TestQalSismaBehemothBlockCharge(t *testing.T) {
 func TestQalSismaBehemothBlockTapWindow(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	qal := onBoardCard(t, e, 0, mshCorpusCard(t, "Qal Sisma Behemoth"))
+	qal := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Qal Sisma Behemoth"))
 	var mountains []state.ObjID
 	for i := 0; i < 2; i++ {
 		mountains = append(mountains, onBoardCard(t, e, 0,
@@ -201,10 +201,10 @@ func TestAwesomePresencePricesItsEnchantedAttacker(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
 	bear := onBoardReady(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:0/4\nOracle:x\n")
-	wurm := onBoardCard(t, e, 1, mshCorpusCard(t, "Craw Wurm"))
+	wurm := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Craw Wurm"))
 	e.G.Obj(wurm).SummonSick = false
 	blocker := onBoardCard(t, e, 0, card(t, memniteSrc))
-	aura := onBoardCard(t, e, 0, mshCorpusCard(t, "Awesome Presence"))
+	aura := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Awesome Presence"))
 	e.G.Obj(aura).AttachedTo = bear
 	attackSeat0(t, e, bear, wurm)
 
@@ -267,9 +267,9 @@ func TestAwesomePresencePricesItsEnchantedAttacker(t *testing.T) {
 func TestHipparionPricesOnlyPowerGE3Attackers(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	hip := onBoardCard(t, e, 0, mshCorpusCard(t, "Hipparion"))
+	hip := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Hipparion"))
 	bear := onBoardReady(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:0/4\nOracle:x\n")
-	wurm := onBoardCard(t, e, 1, mshCorpusCard(t, "Craw Wurm"))
+	wurm := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Craw Wurm"))
 	e.G.Obj(wurm).SummonSick = false
 	attackSeat0(t, e, bear, wurm)
 
@@ -327,8 +327,8 @@ func TestHipparionPricesOnlyPowerGE3Attackers(t *testing.T) {
 func TestMyrPrototypePricesPerCounter(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	counted := onBoardCard(t, e, 0, mshCorpusCard(t, "Myr Prototype"))
-	plain := onBoardCard(t, e, 0, mshCorpusCard(t, "Myr Prototype"))
+	counted := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Myr Prototype"))
+	plain := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Myr Prototype"))
 	e.emit(events.Event{Kind: events.CounterChange, Obj: counted, Counter: "P1P1", Amount: 2})
 	bear := onBoardReady(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:0/4\nOracle:x\n")
 	attackSeat0(t, e, bear)
@@ -391,7 +391,7 @@ func TestCowedByWisdomPricesPerHandCard(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
 	blocker := onBoardCard(t, e, 0, card(t, memniteSrc))
-	aura := onBoardCard(t, e, 0, mshCorpusCard(t, "Cowed by Wisdom"))
+	aura := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Cowed by Wisdom"))
 	e.G.Obj(aura).AttachedTo = blocker
 	bear := onBoardReady(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:0/4\nOracle:x\n")
 	attackSeat0(t, e, bear)
@@ -445,8 +445,8 @@ func TestCowedByWisdomPricesPerHandCard(t *testing.T) {
 func TestBlockPropDeclarationTotalBounded(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	first := onBoardCard(t, e, 0, mshCorpusCard(t, "Qal Sisma Behemoth"))
-	second := onBoardCard(t, e, 0, mshCorpusCard(t, "Qal Sisma Behemoth"))
+	first := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Qal Sisma Behemoth"))
+	second := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Qal Sisma Behemoth"))
 	bear := onBoardReady(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:0/4\nOracle:x\n")
 	attackSeat0(t, e, bear)
 	floatMana(t, e, 0, "RR")
@@ -495,9 +495,9 @@ func TestBlockPropBotAnswerNeverLivelocks(t *testing.T) {
 	e := threeSeatEngine(t)
 	var qals []state.ObjID
 	for i := 0; i < 2; i++ {
-		qals = append(qals, onBoardCard(t, e, 0, mshCorpusCard(t, "Qal Sisma Behemoth")))
+		qals = append(qals, onBoardCard(t, e, 0, corpusAlternativeCard(t, "Qal Sisma Behemoth")))
 	}
-	wurm := onBoardCard(t, e, 1, mshCorpusCard(t, "Craw Wurm"))
+	wurm := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Craw Wurm"))
 	e.G.Obj(wurm).SummonSick = false
 	mountain := onBoardCard(t, e, 0, card(t, "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n"))
 	floatMana(t, e, 0, "R")

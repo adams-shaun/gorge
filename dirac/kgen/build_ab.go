@@ -535,6 +535,12 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 	if t.DiffCtrl {
 		ts.TFlags |= kop.TgfDiffController
 	}
+	if t.TrigChooser {
+		if ts.Min|ts.Max != 0 || ts.Divide != 0 {
+			return ts, fmt.Errorf("trigger-player chooser on a several-object slot")
+		}
+		ts.TFlags |= kop.TgfTrigChooser
+	}
 	if err := tgtSetSpec(t, &ts); err != nil { // lower_targetset.go
 		return ts, err
 	}
@@ -628,7 +634,7 @@ func divTotalReads(v lValue) bool {
 
 func tgtBoundReads(v lValue) bool {
 	switch v.Kind {
-	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked, vIfCastOwnMain:
+	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked, vIfCastOwnMain, vTimesKicked:
 		return true
 	case vOppExtreme:
 		// the asking player's living opponents (PlayerCountPlayers$Amount
@@ -971,6 +977,16 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 		// reads the colours of the cards its source imprinted (kernel
 		// mana_imprint.go; lower_imprintmox.go)
 		ka.AFlags |= kop.AfManaChoice | kop.AfManaReflect
+		ka.ManaColors = kop.ColAny
+		ka.ManaN = 1
+		return nil
+	}
+	if m.Special == "ReflectedIdentity" && m.Restrict == nil && m.RestrictAb == nil && m.Amount.isConst() && m.Amount.N == 1 {
+		// (Arcane Signet) a printed AfManaReflect with no ManaAmong filter and
+		// ManaIdentity reads the controller's commanders' colour identity
+		// (kernel mana_reflected.go identityColours; lower_zone.go lowerMana)
+		ka.AFlags |= kop.AfManaChoice | kop.AfManaReflect
+		ka.ManaIdentity = true
 		ka.ManaColors = kop.ColAny
 		ka.ManaN = 1
 		return nil
@@ -1407,6 +1423,11 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 			kt.Flags2 |= kop.Tf2AtkOpp
 		case 3:
 			kt.Flags2 |= kop.Tf2AtkYou // AttackedTarget$ You: the defender is the controller (kernel fireDefPlayer)
+		case 4:
+			// AttackedTarget$ Player.EnchantedBy: the defender is enchanted
+			// by any enchantment (gorge playerSpecQualifierEnchantedBy); the
+			// kernel scans the player-attached auras' seats (fireDefPlayer)
+			kt.Flags4 |= kop.Tf4DefEnch
 		}
 	}
 	if t.OrCopy {
@@ -1600,10 +1621,10 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		kt.Flags4 |= kop.Tf4CounterCell
 	}
 	if t.OptTrigPlayer {
-		if !t.Optional || t.Event != "Phase" {
+		if !t.Optional || (t.Event != "Phase" && t.Event != "AttackersDeclared") {
 			return kt, fmt.Errorf("optional trigger player on a %s trigger", t.Event)
 		}
-		if t.Whose != whoAny {
+		if t.Event == "Phase" && t.Whose != whoAny {
 			// only the every-player's-turn shape is played against gorge
 			// (Peace in Our Time); Apathy's ValidPlayer$ enchanted-controller
 			// line has no lockstep yet
@@ -1913,6 +1934,29 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.GrantCost, err = manaCostOf(s.Cost.Mana); err != nil {
 			return ka, nil, err
 		}
+	case "EscapeGrant":
+		// an AffectedZone$ Graveyard AddKeyword$ Escape static: each matching
+		// card in its controller's graveyard has escape at its mana cost plus
+		// N other cards from the same graveyard (kop.StatEscapeGrant;
+		// kw_escape.go; CR 702.42a; Underworld Breach). Filter is the affected
+		// cards; the ability's own Cost is the fodder part, as an
+		// AlternativeCost static's is: CostExileGrave of N cards matching
+		// Cost.Filter (the grant's ExileFromGrave spec), a table cost the
+		// kernel's cost builder returns in place. The mana part is the card's
+		// own cost, priced at the offer like any spell's.
+		st.Kind = kop.StatEscapeGrant // kw_escape.go
+		if st.Filter, err = filter(s.F, kop.ZoneGraveyard); err != nil {
+			return ka, nil, err
+		}
+		if s.Cost.ExileG == nil || s.Cost.ExileGN < 1 || s.Cost.ExileGN > 15 {
+			return ka, nil, fmt.Errorf("escape grant without an exile cost")
+		}
+		if ka.Cost, err = cb.cost(s.Cost); err != nil {
+			return ka, nil, err
+		}
+		if ka.Cost.Flags != kop.CostExileGrave || ka.Cost.Mana != (kop.ManaCost{}) {
+			return ka, nil, fmt.Errorf("escape grant cost beside its exile part")
+		}
 	case "TapExtra":
 		st.Kind = kop.StatTapExtra
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -1984,6 +2028,10 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				return ka, nil, fmt.Errorf("cant be activated flag %q", fl)
 			}
 		}
+	case "CantTgtGrave":
+		// Ground Seal's class (lower_canttarget.go): every card in every
+		// graveyard untargetable (kw_canttgtgrave.go). No operands.
+		st.Kind = kop.StatCantTgtGrave
 	case "CantTarget":
 		st.Kind = kop.StatCantTarget // lower_canttarget.go
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -2632,6 +2680,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	var err error
 	if ki.Obj, err = cb.ref(in.Obj); err != nil {
 		return ki, err
+	}
+	if in.W.Kind != rNone {
+		// the player side input (lir.go lInstr.W: a Tapper$ provenance or an
+		// OpAttach player destination)
+		if ki.W, err = cb.ref(in.W); err != nil {
+			return ki, err
+		}
 	}
 	if in.Op != "Bite" && in.Op != "Fight" {
 		if ki.A, err = cb.value(in.A); err != nil {
@@ -4787,6 +4842,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "ChooseNumber":
 		// an as-enters number from B to C (lower_choosenumber.go)
 		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumber)), kop.Const(in.B.N), int16(in.C)
+	case "ChooseNumberMid":
+		// a resolution-time number (lower_choosenumber.go): B the Max$
+		// value, C the Min$ floor plus the has-Max / Random flags
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumberMid)), int16(in.C)
 	default:
 		return ki, fmt.Errorf("op %s has no kop form", in.Op)
 	}

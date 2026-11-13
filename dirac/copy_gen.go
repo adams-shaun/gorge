@@ -108,6 +108,7 @@ func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
 		return false
 	}
 	ce := s.stack[si]
+	mk := s.multikickCount(&ce) // CR 707.10: the copy keeps the spell's kicked status, the count included
 	if k.gen.anyPermCopy && s.permCopyBlocked(k, &ce) {
 		return false
 	}
@@ -115,6 +116,7 @@ func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
 	s.objs[o].of = ofCopy
 	s.objs[o].zone = kop.ZoneStack
 	ce.obj, ce.ctrl, ce.srcVer = o, ctrl, s.objs[o].ver
+	s.setMultikick(&ce, mk)
 	ce.flags &= sfKicked | sfPromised // the copy keeps the gift election (CR 707.10)
 	if cd := &k.t.Cards[ce.card]; cd.Bargain || cd.Teamwork != 0 {
 		// a copy is never cast, so it carries no FlagBargained or
@@ -153,8 +155,14 @@ func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
 	if ce.trigPl == trigPlSneak {
 		ce.trigPl, ce.trigObj = 0, NoObj
 	}
+	if ce.trigPl == trigPlSuspend {
+		ce.trigPl = 0 // nor cast by suspend (CR 707.10: gorge's FlagSuspend is cast provenance; kw_suspend.go)
+	}
 	if ce.trigPl == trigPlWebSling {
 		ce.trigPl = 0 // nor web-slinged (CR 707.10: gorge's FlagWebSlinged; kw_websling.go)
+	}
+	if ce.trigPl == trigPlEscape {
+		ce.trigPl = 0 // nor escape-cast (CR 707.10: gorge's FlagEscaped is cast provenance; kw_escape.go)
 	}
 	if ce.xi != 0 {
 		from := s.g.xtp[ce.xi-1]

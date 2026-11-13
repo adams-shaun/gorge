@@ -52,15 +52,6 @@ func forageCostAsk(t *testing.T, e *Engine) *decision.Decision {
 	return nil
 }
 
-func foragePayIndex(d *decision.Decision) int {
-	for _, o := range d.Options {
-		if o.Kind == "trigger_cost_pay" {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 func forageOption(d *decision.Decision, kind string) *decision.Option {
 	for i := range d.Options {
 		if d.Options[i].Kind == kind {
@@ -155,7 +146,7 @@ func TestTriggeredForageCanBePaid(t *testing.T) {
 			t.Fatalf("fixture: graveyard = %d cards, want 4", len(e.G.Zone(state.ZGraveyard, 0)))
 		}
 		d := forageCostAsk(t, e)
-		payIdx := foragePayIndex(d)
+		payIdx := optionIndexForKind(d, "trigger_cost_pay")
 		if payIdx < 0 {
 			t.Fatalf("Forage cost with 4 graveyard cards and a Food offers no pay: %+v", d.Options)
 		}
@@ -204,7 +195,7 @@ func TestTriggeredForageCanBePaid(t *testing.T) {
 		// deterministic -- no election ask, the Food is sacrificed.
 		e, cfg, bears, food := forageFixture(t, 1, true)
 		d := forageCostAsk(t, e)
-		payIdx := foragePayIndex(d)
+		payIdx := optionIndexForKind(d, "trigger_cost_pay")
 		if payIdx < 0 {
 			t.Fatalf("Forage cost with a Food offers no pay: %+v", d.Options)
 		}
@@ -236,7 +227,7 @@ func TestTriggeredForageCanBePaid(t *testing.T) {
 		// forage, and the body still returns a card.
 		e, cfg, bears, food := forageFixture(t, 4, true)
 		d := forageCostAsk(t, e)
-		payIdx := foragePayIndex(d)
+		payIdx := optionIndexForKind(d, "trigger_cost_pay")
 		if payIdx < 0 {
 			t.Fatalf("Forage cost with 4 graveyard cards and a Food offers no pay: %+v", d.Options)
 		}
@@ -313,14 +304,14 @@ func TestTriggeredForageCanBePaid(t *testing.T) {
 		e, _, _, _ := forageFixture(t, 3, true)
 		tc := forageWindow(t, e)
 		d := e.Pending()
-		if foragePayIndex(d) < 0 {
+		if optionIndexForKind(d, "trigger_cost_pay") < 0 {
 			t.Fatalf("precondition: the forage alone offered no pay: %+v", d.Options)
 		}
 		tc.amount.Evidence = []CostPart{{N: 1}}
 		e.pending = nil
 		e.triggeredCostPaymentAsk()
 		d2 := e.Pending()
-		if foragePayIndex(d2) >= 0 || len(d2.Options) != 1 || d2.Options[0].Kind != "trigger_cost_decline" {
+		if optionIndexForKind(d2, "trigger_cost_pay") >= 0 || len(d2.Options) != 1 || d2.Options[0].Kind != "trigger_cost_decline" {
 			t.Fatalf("Forage + CollectEvidence ask = %+v, want decline-only", d2.Options)
 		}
 	})
@@ -329,7 +320,7 @@ func TestTriggeredForageCanBePaid(t *testing.T) {
 		// not offered, and declining never forages.
 		e, _, _, _ := forageFixture(t, 0, false)
 		d := forageCostAsk(t, e)
-		if foragePayIndex(d) >= 0 || len(d.Options) != 1 || d.Options[0].Kind != "trigger_cost_decline" {
+		if optionIndexForKind(d, "trigger_cost_pay") >= 0 || len(d.Options) != 1 || d.Options[0].Kind != "trigger_cost_decline" {
 			t.Fatalf("unpayable forage ask = %+v, want decline-only", d.Options)
 		}
 		start := len(e.L.Events)

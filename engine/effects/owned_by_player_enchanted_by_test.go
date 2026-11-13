@@ -27,28 +27,28 @@ func TestOwnedByPlayerEnchantedBy(t *testing.T) {
 			t.Fatalf("recognized referent %s reported unknown: %v", spec, unknown)
 		}
 	}
-	if !MatchesObjectCtx(g, "Card.OwnedBy Player.EnchantedBy", ownedBy, SpecContext{}) {
+	if !MatchesObjectCtx(g, "Card.OwnedBy Player.EnchantedBy", ownedBy, SpecContext{Source: aura}) {
 		t.Fatal("the enchanted player's owned card did not match despite different controller")
 	}
-	if MatchesObjectCtx(g, "Card.ControlledBy Player.EnchantedBy", ownedBy, SpecContext{}) {
+	if MatchesObjectCtx(g, "Card.ControlledBy Player.EnchantedBy", ownedBy, SpecContext{Source: aura}) {
 		t.Fatal("OwnedBy referent incorrectly compared the candidate controller")
 	}
-	if MatchesObjectCtx(g, "Card.OwnedBy Player.EnchantedBy", otherOwner, SpecContext{}) {
+	if MatchesObjectCtx(g, "Card.OwnedBy Player.EnchantedBy", otherOwner, SpecContext{Source: aura}) {
 		t.Fatal("card owned by another player matched")
 	}
-	if !MatchesObjectCtx(g, "Card.!OwnedBy Player.EnchantedBy", otherOwner, SpecContext{}) {
+	if !MatchesObjectCtx(g, "Card.!OwnedBy Player.EnchantedBy", otherOwner, SpecContext{Source: aura}) {
 		t.Fatal("negated ownership did not match a bound different owner")
 	}
 	events.Apply(g, events.Event{Kind: events.Attach, Obj: aura})
-	positive := MatchesObjectCtx(g, "Card.OwnedBy Player.EnchantedBy", ownedBy, SpecContext{})
-	negative := MatchesObjectCtx(g, "Card.!OwnedBy Player.EnchantedBy", ownedBy, SpecContext{})
+	positive := MatchesObjectCtx(g, "Card.OwnedBy Player.EnchantedBy", ownedBy, SpecContext{Source: aura})
+	negative := MatchesObjectCtx(g, "Card.!OwnedBy Player.EnchantedBy", ownedBy, SpecContext{Source: aura})
 	if positive || negative {
 		t.Fatalf("detached Aura should leave the referent unbound, including beneath negation: positive=%t negative=%t attached=%t zone=%s", positive, negative, g.Obj(aura).HasAttachedPlayer, g.Obj(aura).Zone)
 	}
 	events.Apply(g, events.Event{Kind: events.Attach, Obj: aura, Player: 0, Text: "attach to player"})
 	events.Apply(g, events.Event{Kind: events.MoveZone, Obj: aura, From: state.ZBattlefield, To: state.ZGraveyard})
-	if MatchesObjectCtx(g, "Card.OwnedBy Player.EnchantedBy", ownedBy, SpecContext{}) ||
-		MatchesObjectCtx(g, "Card.!OwnedBy Player.EnchantedBy", ownedBy, SpecContext{}) {
+	if MatchesObjectCtx(g, "Card.OwnedBy Player.EnchantedBy", ownedBy, SpecContext{Source: aura}) ||
+		MatchesObjectCtx(g, "Card.!OwnedBy Player.EnchantedBy", ownedBy, SpecContext{Source: aura}) {
 		t.Fatal("departed Aura should leave the referent unbound, including beneath negation")
 	}
 }

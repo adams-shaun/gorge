@@ -32,7 +32,7 @@ func TestValiantFiresOncePerTurn(t *testing.T) {
 		[]string{"Seedglaive Mentor", "Prodigal Pyromancer", "Prodigal Pyromancer"},
 		[]string{"Prodigal Pyromancer"})
 	mentor := ids["Seedglaive Mentor"]
-	if o := e.G.Obj(mentor); o == nil || o.Zone != state.ZBattlefield || targetCounterN(o, "P1P1") != 0 {
+	if o := e.G.Obj(mentor); o == nil || o.Zone != state.ZBattlefield || counterN(o, "P1P1") != 0 {
 		t.Fatalf("precondition: Seedglaive Mentor not a counterless battlefield permanent: %+v", o)
 	}
 	// The board holds the mentor and two your-side Pyromancers; seat 1 holds
@@ -52,7 +52,7 @@ func TestValiantFiresOncePerTurn(t *testing.T) {
 	if len(yours) != 2 || theirs == 0 {
 		t.Fatalf("precondition: %d your-side Pyromancers, theirs set: %v", len(yours), theirs)
 	}
-	counters := func() int { return targetCounterN(e.G.Obj(mentor), "P1P1") }
+	counters := func() int { return counterN(e.G.Obj(mentor), "P1P1") }
 	heal := func() { e.G.Obj(mentor).Damage = 0 }
 	// A ping resolves one {T}: deals-1-damage activation of the Pyromancer
 	// `p` against the mentor. The activations tap their sources; each
@@ -181,10 +181,10 @@ func TestValiantCountsCasterNotOwner(t *testing.T) {
 	}
 	e, _ := miscHandsEngine(t, reg, nil, nil, []string{"Seedglaive Mentor"}, nil)
 	mentor := miscBoardObj(t, e, 0, "Seedglaive Mentor")
-	if o := e.G.Obj(mentor); o == nil || o.Zone != state.ZBattlefield || targetCounterN(o, "P1P1") != 0 {
+	if o := e.G.Obj(mentor); o == nil || o.Zone != state.ZBattlefield || counterN(o, "P1P1") != 0 {
 		t.Fatalf("precondition: Seedglaive Mentor not a counterless battlefield permanent: %+v", o)
 	}
-	counters := func() int { return targetCounterN(e.G.Obj(mentor), "P1P1") }
+	counters := func() int { return counterN(e.G.Obj(mentor), "P1P1") }
 
 	// An opponent's SPELL targeting the mentor: rejected by ValidSource$
 	// SpellAbility.YouCtrl, and it must not arm the count either.
@@ -232,10 +232,10 @@ func TestValiantDedupesSameSpellTargets(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e, _ := miscHandsEngine(t, reg, nil, nil, []string{"Seedglaive Mentor"}, nil)
 	mentor := miscBoardObj(t, e, 0, "Seedglaive Mentor")
-	if o := e.G.Obj(mentor); o == nil || o.Zone != state.ZBattlefield || targetCounterN(o, "P1P1") != 0 {
+	if o := e.G.Obj(mentor); o == nil || o.Zone != state.ZBattlefield || counterN(o, "P1P1") != 0 {
 		t.Fatalf("precondition: Seedglaive Mentor not a counterless battlefield permanent: %+v", o)
 	}
-	counters := func() int { return targetCounterN(e.G.Obj(mentor), "P1P1") }
+	counters := func() int { return counterN(e.G.Obj(mentor), "P1P1") }
 	probe := valiantProbeInHand(t, e, 0, 0)
 	addMana(t, e, 0, "RR")
 	e.askPriority(0)
@@ -301,13 +301,13 @@ func TestValiantFiresForTheNewObjectAfterAZoneChange(t *testing.T) {
 		drainQueuedTriggers(t, e)
 	}
 	ping(pingers[0])
-	if got := targetCounterN(e.G.Obj(mentor), "P1P1"); got != 1 {
+	if got := counterN(e.G.Obj(mentor), "P1P1"); got != 1 {
 		t.Fatalf("first targeting: %d counters, want 1", got)
 	}
 	e.emit(events.Event{Kind: events.MoveZone, Obj: mentor, From: state.ZBattlefield, To: state.ZExile})
 	e.emit(events.Event{Kind: events.MoveZone, Obj: mentor, From: state.ZExile, To: state.ZBattlefield})
 	ping(pingers[1])
-	if got := targetCounterN(e.G.Obj(mentor), "P1P1"); got != 1 {
+	if got := counterN(e.G.Obj(mentor), "P1P1"); got != 1 {
 		t.Fatalf("the returned object's first targeting: %d counters, want 1", got)
 	}
 }

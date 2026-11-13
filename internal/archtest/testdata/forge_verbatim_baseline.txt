@@ -112,8 +112,8 @@ engine/rules/derived_push_test.go
 engine/rules/dig_entry_choice_test.go
 engine/rules/dig_imprint_test.go
 engine/rules/dig_withcounters_test.go
-engine/rules/disable_triggers2_test.go
 engine/rules/disable_triggers_destination_test.go
+engine/rules/disable_triggers_nowhere_to_run_test.go
 engine/rules/disable_triggers_test.go
 engine/rules/discard_subability_test.go
 engine/rules/dismantle_lki_test.go

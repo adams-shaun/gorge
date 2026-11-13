@@ -33,16 +33,6 @@ func logHasStackCopyOf(e *Engine, from int, id state.ObjID) bool {
 	return false
 }
 
-func logDrawsFor(e *Engine, from int, p state.PlayerID) int {
-	n := 0
-	for _, ev := range e.L.Events[from:] {
-		if ev.Kind == events.Draw && ev.Player == p {
-			n++
-		}
-	}
-	return n
-}
-
 func TestBanishIntoFableCastFromHandFiresTheCopyTrigger(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t, corpusAlternativeCard(t, "Banish into Fable"))

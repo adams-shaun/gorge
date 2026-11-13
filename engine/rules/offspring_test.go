@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
-	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -54,23 +53,6 @@ func offspringEngine(t *testing.T, headline *cards.Card) (*Engine, Config, *card
 	e.Advance()
 	toMain1(t, e)
 	return e, cfg, reg
-}
-
-// offspringOption returns the "cast" option casting id in the given mode, or
-// fails when it is absent.
-func offspringOption(t *testing.T, e *Engine, id state.ObjID, mode string) decision.Option {
-	t.Helper()
-	d := e.Pending()
-	if d == nil {
-		t.Fatal("no decision pending")
-	}
-	for _, o := range d.Options {
-		if o.Kind == "cast" && o.Obj == id && o.Mode == mode {
-			return o
-		}
-	}
-	t.Fatalf("no %q cast option for %d: %+v", mode, id, d.Options)
-	return decision.Option{}
 }
 
 // offspringCastInfo reports whether the log carries a pay-time CastInfo for
@@ -141,8 +123,8 @@ func TestOffspringPrintedPayMintsOneOneTokenCopy(t *testing.T) {
 
 	// Both the plain and offspring options are offered (the additional cost
 	// is optional, so the plain cast must remain).
-	offspringOption(t, e, hero, "")
-	opt := offspringOption(t, e, hero, "offspring")
+	replicateOption(t, e, hero, "")
+	opt := replicateOption(t, e, hero, "offspring")
 	submitChoices(t, e, opt.Index)
 	passUntilStackEmpty(t, e, 20)
 
@@ -175,7 +157,7 @@ func TestOffspringPrintedPlainCastMintsNothing(t *testing.T) {
 	hero := searchMoveByName(t, e, "Agate Instigator", state.ZHand)
 	addMana(t, e, 0, "RRCCCC")
 
-	plain := offspringOption(t, e, hero, "")
+	plain := replicateOption(t, e, hero, "")
 	submitChoices(t, e, plain.Index)
 	passUntilStackEmpty(t, e, 20)
 
@@ -211,7 +193,7 @@ func TestOffspringGrantedByZinniaReachesTheCast(t *testing.T) {
 	// later {G} base and {2} granted offspring cost are floated up front.
 	zinniaID := searchMoveByName(t, e, "Zinnia, Valley's Voice", state.ZHand)
 	addMana(t, e, 0, "URWCC")
-	submitChoices(t, e, offspringOption(t, e, zinniaID, "").Index)
+	submitChoices(t, e, replicateOption(t, e, zinniaID, "").Index)
 	passUntilStackEmpty(t, e, 20)
 	if z := e.G.Obj(zinniaID); z == nil || z.Zone != state.ZBattlefield {
 		t.Fatalf("precondition: Zinnia must be on the battlefield after her cast, got %v", z)
@@ -238,8 +220,8 @@ func TestOffspringGrantedByZinniaReachesTheCast(t *testing.T) {
 		t.Fatal("Grizzly Bears prints Offspring; the granted path is not under test")
 	}
 
-	plain := offspringOption(t, e, hero, "")
-	opt := offspringOption(t, e, hero, "offspring")
+	plain := replicateOption(t, e, hero, "")
+	opt := replicateOption(t, e, hero, "offspring")
 	if opt.Index == plain.Index {
 		t.Fatal("the offspring option aliases the plain cast")
 	}
@@ -269,12 +251,12 @@ func TestOffspringGrantedPlainCastMintsNothing(t *testing.T) {
 	e, cfg, _ := offspringEngine(t, zinnia)
 	zinniaID := searchMoveByName(t, e, "Zinnia, Valley's Voice", state.ZHand)
 	addMana(t, e, 0, "URWCC")
-	submitChoices(t, e, offspringOption(t, e, zinniaID, "").Index)
+	submitChoices(t, e, replicateOption(t, e, zinniaID, "").Index)
 	passUntilStackEmpty(t, e, 20)
 	addMana(t, e, 0, "GCCCCC")
 
 	hero := searchMoveByName(t, e, "Grizzly Bears", state.ZHand)
-	plain := offspringOption(t, e, hero, "")
+	plain := replicateOption(t, e, hero, "")
 	submitChoices(t, e, plain.Index)
 	passUntilStackEmpty(t, e, 20)
 
@@ -298,7 +280,7 @@ func TestOffspringSourceThatLeftStillMints(t *testing.T) {
 	e, cfg, _ := offspringEngine(t, searchCorpusCard(t, searchTestRegistry(t), "Agate Instigator"))
 	hero := searchMoveByName(t, e, "Agate Instigator", state.ZHand)
 	addMana(t, e, 0, "RRCCCC")
-	submitChoices(t, e, offspringOption(t, e, hero, "offspring").Index)
+	submitChoices(t, e, replicateOption(t, e, hero, "offspring").Index)
 	for i := 0; i < 8 && e.G.Obj(hero).Zone != state.ZBattlefield; i++ {
 		passOnce(t, e)
 	}

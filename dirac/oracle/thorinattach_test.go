@@ -59,7 +59,7 @@ func thorinScan(g *GorgeSide, c *thorinCounts) {
 			zone[ev.Obj] = ev.To
 			continue
 		case events.DelayedPush:
-			if ev.Counter == "TrigDamage" && kremFace(gm, ev.Obj) == "Thorin, Mountain-king" && len(ev.IDs) == 1 {
+			if ev.Counter == "TrigDamage" && firstFaceName(gm, ev.Obj) == "Thorin, Mountain-king" && len(ev.IDs) == 1 {
 				captured[ev.Obj] = ev.IDs[0]
 			}
 			continue
@@ -68,7 +68,7 @@ func thorinScan(g *GorgeSide, c *thorinCounts) {
 			continue
 		}
 		o := gm.Obj(ev.Obj)
-		if o == nil || o.Ability == nil || o.Ability.API != "DealDamage" || kremName(gm, ev.Obj) != "Thorin, Mountain-king" {
+		if o == nil || o.Ability == nil || o.Ability.API != "DealDamage" || sourceCardName(gm, ev.Obj) != "Thorin, Mountain-king" {
 			continue
 		}
 		cap, ok := captured[o.Source]
@@ -103,7 +103,7 @@ func thorinReflexWaiting(gm *state.Game) state.ObjID {
 		return 0
 	}
 	o := gm.Obj(gm.Stack[n-1])
-	if o == nil || o.Ability == nil || o.Ability.API != "DealDamage" || kremName(gm, o.ID) != "Thorin, Mountain-king" ||
+	if o == nil || o.Ability == nil || o.Ability.API != "DealDamage" || sourceCardName(gm, o.ID) != "Thorin, Mountain-king" ||
 		len(o.Remembered) != 1 || o.Remembered[0].IsPlayer {
 		return 0
 	}

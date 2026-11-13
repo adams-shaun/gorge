@@ -86,8 +86,8 @@ func entryStagingRiotUnleash(t testing.TB) *cards.Card {
 
 func TestEntryCounterStagingSecondGrantReposesTheStage(t *testing.T) {
 	t.Parallel()
-	scales := tokenReplCorpusCard(t, "Hardened Scales")
-	be := tokenReplCorpusCard(t, "Branching Evolution")
+	scales := corpusAlternativeCard(t, "Hardened Scales")
+	be := corpusAlternativeCard(t, "Branching Evolution")
 	cre := entryStagingRiotUnleash(t)
 	e, cfg := tokenReplGame(t, 225, scales, be, cre)
 	sid := moveSeededCard(t, e, 0, scales, state.ZBattlefield)
@@ -135,9 +135,9 @@ func TestEntryCounterStagingOrderIsDecidedBeforeEntry(t *testing.T) {
 		order string
 	}{{"scales-first", 0, 4, "plus one, then twice"}, {"evolution-first", 1, 3, "twice, then plus one"}} {
 		t.Run(tc.name, func(t *testing.T) {
-			scales := tokenReplCorpusCard(t, "Hardened Scales")
-			be := tokenReplCorpusCard(t, "Branching Evolution")
-			riot := tokenReplCorpusCard(t, "Zhur-Taa Goblin")
+			scales := corpusAlternativeCard(t, "Hardened Scales")
+			be := corpusAlternativeCard(t, "Branching Evolution")
+			riot := corpusAlternativeCard(t, "Zhur-Taa Goblin")
 			e, cfg := tokenReplGame(t, 211, scales, be, riot)
 			sid := moveSeededCard(t, e, 0, scales, state.ZBattlefield)
 			bid := moveSeededCard(t, e, 0, be, state.ZBattlefield)
@@ -166,8 +166,8 @@ func TestEntryCounterStagingOrderIsDecidedBeforeEntry(t *testing.T) {
 // through the same stage: the election is answered, then the non-commuting
 // counter competition asks, and only then does the entry fold atomically.
 func TestEntryCounterStagingUnleashElectionStagesToo(t *testing.T) {
-	scales := tokenReplCorpusCard(t, "Hardened Scales")
-	be := tokenReplCorpusCard(t, "Branching Evolution")
+	scales := corpusAlternativeCard(t, "Hardened Scales")
+	be := corpusAlternativeCard(t, "Branching Evolution")
 	cre := unleashCard(t, "Rakdos Cackler")
 	e, cfg := tokenReplGame(t, 213, scales, be, cre)
 	sid := moveSeededCard(t, e, 0, scales, state.ZBattlefield)
@@ -247,7 +247,7 @@ func TestEntryCounterStagingZeroLoyaltySBASeesCompletedEntry(t *testing.T) {
 // entry still folds atomically.
 func TestEntryCounterStagingVorinclexHalvesOpponentWalker(t *testing.T) {
 	t.Parallel()
-	vori := tokenReplCorpusCard(t, "Vorinclex, Monstrous Raider")
+	vori := corpusAlternativeCard(t, "Vorinclex, Monstrous Raider")
 	walker := entryCounterWalker(t)
 	e, cfg := tokenReplGameSeats(t, 219, []*cards.Card{vori}, []*cards.Card{walker})
 	vid := moveSeededCard(t, e, 0, vori, state.ZBattlefield)
@@ -283,8 +283,8 @@ func TestEntryCounterStagingVorinclexHalvesOpponentWalker(t *testing.T) {
 // pre-pass with no order ask, and the doubled entry still folds atomically.
 func TestEntryCounterStagingDoublingSeasonDoublesRiotElection(t *testing.T) {
 	t.Parallel()
-	ds := tokenReplCorpusCard(t, "Doubling Season")
-	riot := tokenReplCorpusCard(t, "Zhur-Taa Goblin")
+	ds := corpusAlternativeCard(t, "Doubling Season")
+	riot := corpusAlternativeCard(t, "Zhur-Taa Goblin")
 	e, cfg := tokenReplGame(t, 221, ds, riot)
 	did := moveSeededCard(t, e, 0, ds, state.ZBattlefield)
 	if o := e.G.Obj(did); o == nil || o.Zone != state.ZBattlefield {

@@ -32,7 +32,7 @@ func attackPropSeatDual(t *testing.T, propName string, nDuals int) (*Engine, sta
 	cfg := Config{Seed: 717, Names: []string{"a", "b", "c"},
 		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40)}}
 	e := New(cfg)
-	onBoardCard(t, e, 0, mshCorpusCard(t, propName))
+	onBoardCard(t, e, 0, corpusAlternativeCard(t, propName))
 	bear := onBoardReady(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:0/4\nOracle:x\n")
 	for i := 0; i < nDuals; i++ {
 		onBoardCard(t, e, 1, dualFreeLandScript(t))
@@ -178,7 +178,7 @@ func TestNilsPricesPerAttackerCounters(t *testing.T) {
 	cfg := Config{Seed: 718, Names: []string{"a", "b", "c"},
 		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40)}}
 	e := New(cfg)
-	onBoardCard(t, e, 0, mshCorpusCard(t, "Nils, Discipline Enforcer"))
+	onBoardCard(t, e, 0, corpusAlternativeCard(t, "Nils, Discipline Enforcer"))
 	countered := onBoardReady(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	counterless := onBoardReady(t, e, 1, "Name:Grizzly Bears\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	onBoardCard(t, e, 1, card(t, "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n"))

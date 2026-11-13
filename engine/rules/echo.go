@@ -24,9 +24,9 @@ import (
 //     echo would be an observable divergence);
 //   - the provenance the gate reads: Object.AcqTurn/AcqStep stamped by
 //     events.Apply on every battlefield entry and every battlefield control
-//     change, against Player.LastUpkeepTurn recorded when the Draw step
-//     begins (see the StepChange case in engine/events/apply.go for why the record
-//     is the Draw step and not the Upkeep one);
+//     change, against Player.LastUpkeepTurn recorded when the upkeep step
+//     ends (see the StepChange case in engine/events/apply_turn.go for why the
+//     record is the step's end and not its entry);
 //   - the resolution-time election: pay the echo cost through the shared
 //     pool-only payment window (paymentManaAsk/costPayable/payManaConv,
 //     reused verbatim from engine/rules/cumulative.go), or sacrifice. The pay
@@ -73,7 +73,7 @@ type echoFlow struct {
 // The (turn, step) tuple comparison handles the CR-critical turn-granularity
 // counterexample: an acquisition on turn N AFTER that turn's upkeep began
 // (any step from Upkeep on) is still owed at turn N+1, because the record
-// only reaches turn N when the Draw step begins and the AcqStep half counts
+// only reaches turn N when the upkeep step ends and the AcqStep half counts
 // a same-turn acquisition from the Upkeep step onward.
 func (e *Engine) echoGateHolds(source state.ObjID) bool {
 	o := e.G.Obj(source)

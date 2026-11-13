@@ -23,16 +23,6 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// rendmawCorpusCard looks a real corpus card up by NAME.
-func rendmawCorpusCard(t *testing.T, name string) *cards.Card {
-	t.Helper()
-	c, ok := testutil.CorpusRegistry(t).Lookup(name)
-	if !ok {
-		t.Fatalf("corpus missing %s", name)
-	}
-	return c
-}
-
 // rendmawGame builds a 2-seat engine from real corpus cards: Rendmaw, Alloy
 // Myr (Artifact Creature — two card types), Darksteel Citadel (Artifact
 // Land — two card types) and Grizzly Bears (Creature — one card type, the
@@ -42,10 +32,10 @@ func rendmawGame(t *testing.T) (*Engine, Config) {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
 	deck := []*cards.Card{
-		rendmawCorpusCard(t, "Rendmaw, Creaking Nest"),
-		rendmawCorpusCard(t, "Alloy Myr"),
-		rendmawCorpusCard(t, "Darksteel Citadel"),
-		rendmawCorpusCard(t, "Grizzly Bears"),
+		corpusAlternativeCard(t, "Rendmaw, Creaking Nest"),
+		corpusAlternativeCard(t, "Alloy Myr"),
+		corpusAlternativeCard(t, "Darksteel Citadel"),
+		corpusAlternativeCard(t, "Grizzly Bears"),
 	}
 	deck = append(deck, mountainDeck(t, 40-len(deck))...)
 	cfg := Config{Seed: 7, Names: []string{"a", "b"},
@@ -161,7 +151,7 @@ func rendmawSeedToHand(t *testing.T, e *Engine, p state.PlayerID, c *cards.Card)
 func castRendmawSpell(t *testing.T, e *Engine, name, mana string) {
 	t.Helper()
 	addMana(t, e, 0, mana)
-	id := rendmawSeedToHand(t, e, 0, rendmawCorpusCard(t, name))
+	id := rendmawSeedToHand(t, e, 0, corpusAlternativeCard(t, name))
 	castMode(t, e, id, "")
 	if o := e.G.Obj(id); o != nil && o.Zone == state.ZHand {
 		t.Fatalf("%s never left the hand: cast not funded or not offered", name)
@@ -175,7 +165,7 @@ func castRendmawSpell(t *testing.T, e *Engine, name, mana string) {
 func playRendmawLand(t *testing.T, e *Engine, name string) {
 	t.Helper()
 	toMain1(t, e)
-	id := rendmawSeedToHand(t, e, 0, rendmawCorpusCard(t, name))
+	id := rendmawSeedToHand(t, e, 0, corpusAlternativeCard(t, name))
 	e.priorityRound()
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KPriority {
@@ -199,7 +189,7 @@ func playRendmawLand(t *testing.T, e *Engine, name string) {
 func TestRendmawETBCreatesGoadedBirdsForEachPlayer(t *testing.T) {
 	t.Parallel()
 	e, cfg := rendmawGame(t)
-	rendmaw := moveSeededCard(t, e, 0, rendmawCorpusCard(t, "Rendmaw, Creaking Nest"), state.ZBattlefield)
+	rendmaw := moveSeededCard(t, e, 0, corpusAlternativeCard(t, "Rendmaw, Creaking Nest"), state.ZBattlefield)
 	if o := e.G.Obj(rendmaw); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("Rendmaw not on the battlefield: %+v", o)
 	}
@@ -214,7 +204,7 @@ func TestRendmawETBCreatesGoadedBirdsForEachPlayer(t *testing.T) {
 func TestRendmawSpellCastArmFiresOnATwoTypeCard(t *testing.T) {
 	t.Parallel()
 	e, cfg := rendmawGame(t)
-	moveSeededCard(t, e, 0, rendmawCorpusCard(t, "Rendmaw, Creaking Nest"), state.ZBattlefield)
+	moveSeededCard(t, e, 0, corpusAlternativeCard(t, "Rendmaw, Creaking Nest"), state.ZBattlefield)
 	settleTriggers(t, e, "Rendmaw ETB")
 	before0, before1 := birdsOn(t, e, 0), birdsOn(t, e, 1)
 
@@ -239,7 +229,7 @@ func TestRendmawSpellCastArmFiresOnATwoTypeCard(t *testing.T) {
 func TestRendmawLandPlayedArmFiresOnATwoTypeLand(t *testing.T) {
 	t.Parallel()
 	e, cfg := rendmawGame(t)
-	moveSeededCard(t, e, 0, rendmawCorpusCard(t, "Rendmaw, Creaking Nest"), state.ZBattlefield)
+	moveSeededCard(t, e, 0, corpusAlternativeCard(t, "Rendmaw, Creaking Nest"), state.ZBattlefield)
 	settleTriggers(t, e, "Rendmaw ETB")
 	before0, before1 := birdsOn(t, e, 0), birdsOn(t, e, 1)
 

@@ -168,22 +168,6 @@ func (c *mixedarmsCounter) reset() {
 	c.seen, c.asked, c.evAt = map[state.ObjID]bool{}, map[[2]uint64]bool{}, 0
 }
 
-func mixedarmsName(g *state.Game, id state.ObjID) string {
-	o := g.Obj(id)
-	if o == nil {
-		return ""
-	}
-	if o.Ability != nil && o.Source != 0 {
-		if s := g.Obj(o.Source); s != nil && s.Card != nil && len(s.Card.Faces) > 0 {
-			return s.Card.Faces[0].Name
-		}
-	}
-	if o.Card != nil && len(o.Card.Faces) > 0 {
-		return o.Card.Faces[0].Name
-	}
-	return ""
-}
-
 func (c *mixedarmsCounter) check(ref *GorgeSide, _ Side) *Divergence {
 	g := ref.E.G
 	for _, id := range g.Stack {
@@ -195,7 +179,7 @@ func (c *mixedarmsCounter) check(ref *GorgeSide, _ Side) *Divergence {
 		if o := g.Obj(id); o != nil {
 			ab = o.Ability != nil
 		}
-		for _, i := range c.byCard[mixedarmsName(g, id)] {
+		for _, i := range c.byCard[sourceCardName(g, id)] {
 			if mixedarmsArms[i].how == "stack" && (ab || !mixedarmsArms[i].abil) {
 				c.n[i]++
 			}
@@ -208,7 +192,7 @@ func (c *mixedarmsCounter) check(ref *GorgeSide, _ Side) *Divergence {
 	}
 	if ref.fr != nil && ref.fr.d != nil && ref.fr.d.Kind != decision.KPriority && len(g.Stack) > 0 {
 		top := g.Stack[len(g.Stack)-1]
-		for _, i := range c.byCard[mixedarmsName(g, top)] {
+		for _, i := range c.byCard[sourceCardName(g, top)] {
 			k := [2]uint64{uint64(top), uint64(i)}
 			if a := &mixedarmsArms[i]; a.how == "ask" && !c.asked[k] && (a.dk == "" || a.dk == ref.fr.d.Kind) && a.notDk != ref.fr.d.Kind {
 				c.asked[k] = true
@@ -218,7 +202,7 @@ func (c *mixedarmsCounter) check(ref *GorgeSide, _ Side) *Divergence {
 		if len(g.Stack) >= 2 {
 			below := g.Stack[len(g.Stack)-2]
 			if o := g.Obj(below); o != nil && o.Ability == nil {
-				for _, i := range c.byCard[mixedarmsName(g, below)] {
+				for _, i := range c.byCard[sourceCardName(g, below)] {
 					k := [2]uint64{uint64(below), uint64(i)}
 					if mixedarmsArms[i].how == "hold" && !c.asked[k] {
 						c.asked[k] = true
@@ -236,7 +220,7 @@ func (c *mixedarmsCounter) check(ref *GorgeSide, _ Side) *Divergence {
 		e := &evs[j]
 		if e.Kind == events.DeclareAttackers {
 			for _, id := range e.IDs {
-				for _, i := range c.byCard[mixedarmsName(g, id)] {
+				for _, i := range c.byCard[sourceCardName(g, id)] {
 					if mixedarmsArms[i].how == "attack" {
 						c.n[i]++
 					}

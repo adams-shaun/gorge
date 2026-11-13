@@ -353,7 +353,7 @@ func (e *Engine) costTargetsMatchPlan(sv staticView, spec string, targets []stat
 	ctx := e.staticSpecCtxNamed(sv)
 	for _, target := range targets {
 		if target.IsPlayer {
-			if effects.MatchesPlayerSpec(e.G, spec, target.Player, sv.Controller) {
+			if effects.MatchesPlayerSpecFrom(e.G, spec, target.Player, sv.Controller, sv.Source) {
 				return true
 			}
 			continue
@@ -373,20 +373,6 @@ func (e *Engine) costTargetsMatchPlan(sv staticView, spec string, targets []stat
 		}
 	}
 	return false
-}
-
-// costTargetsUnless is the UnlessValidTarget$ True reading of a
-// ValidTarget$ cost requirement: the static applies when the spell or
-// ability targets NOTHING matching spec. An announcement with no targeting
-// at all (an untargeted spell) can never target a match, so it applies from
-// the offer on. A targeting announcement whose targets are not yet known
-// (the nil-target offer phase) does not apply: whether it will is the
-// target choice's to settle, and the offer is existential -- the CR 601.2c
-// reprice charges it for the targets actually chosen, and a target that
-// makes the cast unaffordable is withheld from the target menu
-// (affordableTargetCandidates).
-func (e *Engine) costTargetsUnless(sv staticView, spec string, id state.ObjID, scope costScope, targets []state.Target) bool {
-	return e.costTargetsUnlessPlan(sv, spec, id, scope, targets, nil, 0)
 }
 
 // costTargetsUnlessPlan is costTargetsUnless with the plan's per-(static,

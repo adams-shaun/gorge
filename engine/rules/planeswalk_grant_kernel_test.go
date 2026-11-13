@@ -39,7 +39,7 @@ func TestTardisPlaneswalkAskResolvesChainKernel(t *testing.T) {
 				t.Fatalf("TARDIS chain did not reach the planeswalk election: %+v", d)
 			}
 			life := e.G.Players[0].Life
-			idx := planeswalkElectionIDX(d, want)
+			idx := optionIndexForKind(d, want)
 			if idx < 0 {
 				t.Fatalf("no %q option in %+v", want, d.Options)
 			}

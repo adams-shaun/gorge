@@ -29,15 +29,6 @@ func commanderDeckPair(t *testing.T) (deck0, deck1 []*cards.Card) {
 	return
 }
 
-func zoneHas(ids []state.ObjID, want state.ObjID) bool {
-	for _, id := range ids {
-		if id == want {
-			return true
-		}
-	}
-	return false
-}
-
 // TestCommanderGenesisPlacesCommandersBeforeTheDeal is the genesis
 // contract (and the mutation guard for the ZCommand placement itself): the
 // objects Config.Commanders names for each seat land in ZCommand -- not the
@@ -73,7 +64,7 @@ func TestCommanderGenesisPlacesCommandersBeforeTheDeal(t *testing.T) {
 
 	// (b) not in the library, and not in the opening hand.
 	for seat, id := range map[state.PlayerID]state.ObjID{0: cid0, 1: cid1} {
-		if zoneHas(e.G.Zone(state.ZLibrary, seat), id) || zoneHas(e.G.Zone(state.ZHand, seat), id) {
+		if contains(e.G.Zone(state.ZLibrary, seat), id) || contains(e.G.Zone(state.ZHand, seat), id) {
 			t.Fatalf("seat %d commander is in library or opening hand (zone contains it)", seat)
 		}
 	}

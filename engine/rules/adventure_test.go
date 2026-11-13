@@ -25,20 +25,6 @@ const adventureCancelSrc = "Name:Cancel\nManaCost:1 U U\nTypes:Instant\n" +
 
 const adventureBearSrc = "Name:Fixture Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 
-// adventureOption returns the cast option for id whose Mode is exactly mode,
-// or nil when none is offered.
-func adventureOption(t *testing.T, e *Engine, id state.ObjID, mode string) *decision.Option {
-	t.Helper()
-	opts := castOptions(t, e)
-	for i := range opts {
-		o := &opts[i]
-		if o.Obj == id && o.Mode == mode {
-			return o
-		}
-	}
-	return nil
-}
-
 // adventureCorpusEngine deals seat 0 a 40-card deck led by Brazen Borrower
 // and all Islands, and seat 1 a deck of Grizzly Bears, one of which is moved
 // onto the battlefield as Petty Theft's target (ValidTgts$

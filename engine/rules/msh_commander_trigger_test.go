@@ -1,15 +1,12 @@
 package rules
 
 import (
-	"path/filepath"
 	"reflect"
 	"testing"
 
-	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // The Marvel Super Heroes Commander import's trigger reads, pinned on real
@@ -20,34 +17,13 @@ import (
 // where it is the triggering event's shape alone, the event is emitted
 // directly, the way the trigger_referents tests do.
 
-func mshCorpusCard(t *testing.T, name string) *cards.Card {
-	t.Helper()
-	c, ok := testutil.CorpusRegistry(t).Lookup(name)
-	if !ok {
-		t.Fatalf("corpus missing %s", name)
-	}
-	return c
-}
-
-func mshCorpusCardPath(t *testing.T, name, path string) *cards.Card {
-	t.Helper()
-	c, ds := cards.Parse(filepath.Join("..", "..", ".cards", "cardsfolder", path))
-	if len(ds) != 0 {
-		t.Fatalf("parse %s: %v", name, ds)
-	}
-	if ds = c.Link(); len(ds) != 0 {
-		t.Fatalf("link %s: %v", name, ds)
-	}
-	return c
-}
-
 // TestCycledTriggerFiresOnTheCycleCostDiscard pins trig:Cycled on Dismantling
 // Wave: the cycle activation's cost discard queues the trigger, which resolves
 // above the cycling ability (CR 117.5), sweeps artifacts and enchantments but
 // not creatures, and the cycle's own draw lands beneath it.
 func TestCycledTriggerFiresOnTheCycleCostDiscard(t *testing.T) {
 	t.Parallel()
-	wave := mshCorpusCard(t, "Dismantling Wave")
+	wave := corpusAlternativeCard(t, "Dismantling Wave")
 	e := handEngine(t, wave)
 	ring := onBoard(t, e, 0, "Name:Sol Ring\nManaCost:1\nTypes:Artifact\nOracle:x\n")
 	ench := onBoard(t, e, 1, "Name:Wardust Veil\nManaCost:1 W\nTypes:Enchantment\nOracle:x\n")
@@ -218,7 +194,7 @@ func TestAttackersDeclaredReplaysExactly(t *testing.T) {
 // past it (11+1), and later puts after the crossing, queue nothing.
 func TestCounterAddedTenthCounterFiresOnceOnCrossing(t *testing.T) {
 	t.Parallel()
-	shang := mshCorpusCard(t, "Shang-Chi and the Ten Rings")
+	shang := corpusAlternativeCard(t, "Shang-Chi and the Ten Rings")
 	e := combatEngine(t)
 	id := onBoardCard(t, e, 0, shang)
 	handBefore := len(e.G.Zone(state.ZHand, 0))

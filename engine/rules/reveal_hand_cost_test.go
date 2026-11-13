@@ -82,18 +82,6 @@ func handCardNames(e *Engine, p state.PlayerID) []string {
 	return out
 }
 
-// altCastOptions returns the alternative-cost cast options legalActions
-// offered for id (AltCostIndex > 0; a paid cast carries the zero value).
-func landGrantAltOptions(opts []decision.Option, id state.ObjID) []decision.Option {
-	var out []decision.Option
-	for _, o := range opts {
-		if o.Kind == "cast" && o.Obj == id && o.AltCostIndex > 0 {
-			out = append(out, o)
-		}
-	}
-	return out
-}
-
 // hasPaidCastOption reports whether the paid (zero-alt) cast of id is offered.
 func hasPaidCastOption(opts []decision.Option, id state.ObjID) bool {
 	for _, o := range opts {
@@ -152,7 +140,7 @@ func TestLandGrantRevealHandAltCostCastsForFreeWithALandFreeHand(t *testing.T) {
 	if hasPaidCastOption(e.legalActions(0), grantID) {
 		t.Fatal("precondition: the paid {1}{G} cast is offered from an empty pool")
 	}
-	alts := landGrantAltOptions(e.legalActions(0), grantID)
+	alts := altCastOptions(e.legalActions(0), grantID)
 	if len(alts) != 1 {
 		t.Fatalf("Land Grant reveal-hand alternative not offered with a land-free hand: options=%+v", e.legalActions(0))
 	}
@@ -200,7 +188,7 @@ func TestLandGrantRevealHandAltCostWithheldByItsCheckSVarGate(t *testing.T) {
 	if !held {
 		t.Fatalf("precondition: hand holds no Forest: %v", handCardNames(e, 0))
 	}
-	if alts := landGrantAltOptions(e.legalActions(0), grantID); len(alts) != 0 {
+	if alts := altCastOptions(e.legalActions(0), grantID); len(alts) != 0 {
 		t.Fatalf("reveal-hand alternative offered although the hand holds a land: %+v", alts)
 	}
 }
@@ -216,7 +204,7 @@ func TestLandGrantRevealHandAltCostWithAnEmptyHand(t *testing.T) {
 	grantID := e.G.Zone(state.ZHand, 0)[0]
 	forest := addLibraryCard(t, e, 0, "Name:Forest\nTypes:Basic Land Forest\nOracle:x\n")
 
-	alts := landGrantAltOptions(e.legalActions(0), grantID)
+	alts := altCastOptions(e.legalActions(0), grantID)
 	if len(alts) != 1 {
 		t.Fatalf("reveal-hand alternative not offered for the card's own cast: options=%+v", e.legalActions(0))
 	}

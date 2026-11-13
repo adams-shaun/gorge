@@ -33,7 +33,7 @@ func TestCounterRemovedIsRegistered(t *testing.T) {
 func TestCounterRemovedProteanHydraFiresPerRemovalOnBattlefield(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	id := onBoardCard(t, e, 0, mshCorpusCard(t, "Protean Hydra"))
+	id := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Protean Hydra"))
 	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "P1P1", Amount: 3})
 	if e.G.Obj(id).Counter("P1P1") != 3 {
 		t.Fatalf("setup: hydra counters = %d, want 3", e.G.Obj(id).Counter("P1P1"))
@@ -62,7 +62,7 @@ func TestCounterRemovedProteanHydraFiresPerRemovalOnBattlefield(t *testing.T) {
 func TestCounterRemovedIgnoresCounterAdd(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	id := onBoardCard(t, e, 0, mshCorpusCard(t, "Protean Hydra"))
+	id := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Protean Hydra"))
 	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "P1P1", Amount: 1})
 	if len(e.pendingTriggers) != 0 {
 		t.Fatalf("a counter ADD queued the removal trigger: %d pending", len(e.pendingTriggers))
@@ -74,7 +74,7 @@ func TestCounterRemovedIgnoresCounterAdd(t *testing.T) {
 func TestCounterRemovedIgnoresOtherCounterKind(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	id := onBoardCard(t, e, 0, mshCorpusCard(t, "Orcish Mine"))
+	id := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Orcish Mine"))
 	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "P1P1", Amount: -1})
 	if len(e.pendingTriggers) != 0 {
 		t.Fatalf("a P1P1 removal fired the ORE-only trigger: %d pending", len(e.pendingTriggers))
@@ -88,7 +88,7 @@ func TestCounterRemovedIgnoresOtherCounterKind(t *testing.T) {
 func TestCounterRemovedNewCounterAmountZeroFiresOnlyOnTheLast(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	id := onBoardCard(t, e, 0, mshCorpusCard(t, "Orcish Mine"))
+	id := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Orcish Mine"))
 	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "ORE", Amount: 3})
 	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "ORE", Amount: -1})
 	if len(e.pendingTriggers) != 0 {
@@ -105,7 +105,7 @@ func TestCounterRemovedNewCounterAmountZeroFiresOnlyOnTheLast(t *testing.T) {
 	// A batch that removes the whole remainder in one event crosses the gate
 	// too: the post-event total is the gate.
 	e2 := combatEngine(t)
-	id2 := onBoardCard(t, e2, 0, mshCorpusCard(t, "Orcish Mine"))
+	id2 := onBoardCard(t, e2, 0, corpusAlternativeCard(t, "Orcish Mine"))
 	e2.emit(events.Event{Kind: events.CounterChange, Obj: id2, Counter: "ORE", Amount: 3})
 	e2.emit(events.Event{Kind: events.CounterChange, Obj: id2, Counter: "ORE", Amount: -3})
 	if len(e2.pendingTriggers) != 1 {
@@ -121,7 +121,7 @@ func TestCounterRemovedExileScopedCarrier(t *testing.T) {
 	t.Parallel()
 	// In exile, with TIME counters: the removal fires.
 	e := combatEngine(t)
-	o := e.G.AddObject(mshCorpusCard(t, "Watcher of Hours"), 0)
+	o := e.G.AddObject(corpusAlternativeCard(t, "Watcher of Hours"), 0)
 	id := o.ID
 	o.Zone = state.ZExile
 	e.G.SetZone(state.ZExile, 0, append(e.G.Zone(state.ZExile, 0), id))
@@ -133,7 +133,7 @@ func TestCounterRemovedExileScopedCarrier(t *testing.T) {
 
 	// Zone gate: the same card on the battlefield does not fire.
 	e2 := combatEngine(t)
-	id2 := onBoardCard(t, e2, 0, mshCorpusCard(t, "Watcher of Hours"))
+	id2 := onBoardCard(t, e2, 0, corpusAlternativeCard(t, "Watcher of Hours"))
 	e2.emit(events.Event{Kind: events.CounterChange, Obj: id2, Counter: "TIME", Amount: 6})
 	e2.emit(events.Event{Kind: events.CounterChange, Obj: id2, Counter: "TIME", Amount: -1})
 	if len(e2.pendingTriggers) != 0 {
@@ -143,7 +143,7 @@ func TestCounterRemovedExileScopedCarrier(t *testing.T) {
 	// The exile-scoped firing is also not a CounterAdded mirror-failure: a
 	// positive TIME put on the exiled card queues nothing.
 	e3 := combatEngine(t)
-	o3 := e.G.AddObject(mshCorpusCard(t, "Watcher of Hours"), 0)
+	o3 := e.G.AddObject(corpusAlternativeCard(t, "Watcher of Hours"), 0)
 	id3 := o3.ID
 	o3.Zone = state.ZExile
 	e3.G.SetZone(state.ZExile, 0, append(e3.G.Zone(state.ZExile, 0), id3))

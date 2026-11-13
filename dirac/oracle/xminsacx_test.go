@@ -109,7 +109,7 @@ func kxminsacxPolicy(seed uint64, tl *kxminsacxTally) Policy {
 			tl.techAsks++
 			arts := 0
 			for _, id := range c.G.E.G.Zone(state.ZBattlefield, pd.Player) {
-				if kbeholdHasType(c.G.E.G.Obj(id), "Artifact") {
+				if objectHasType(c.G.E.G.Obj(id), "Artifact") {
 					arts++
 				}
 			}

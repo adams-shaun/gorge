@@ -88,10 +88,18 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		}
 		if s.res.e.flags&sfKicked != 0 && !(k.gen.anyOptCost && castCollectedNever(k, &s.res.e)) {
 			s.mSlSet(k, mechKicked, sl)
+			if k.t.Cards[s.res.e.card].HasMultikicker && int(sl) < len(s.cold.mk) {
+				s.cold.mk[sl] = uint8(s.multikickCount(&s.res.e)) // CR 702.43: the permanent reads its spell's count
+			}
 		}
 		if sneakMarks(&s.res.e) {
 			s.mSlSet(k, mechSneaked, sl) // kw_sneak.go
 		}
+	} else if int(o) < len(s.cold.mkObj) {
+		// an entry that is not the resolving spell (reanimate, blink, return)
+		// is a new object with no payments (CR 400.7, 702.43): the last cast's
+		// count must not survive to the ETB trigger's target bound (exprs.go)
+		s.cold.mkObj[o] = 0
 	}
 	s.g.zoneTurn.set(o)
 	if s.g.enteredOn {
@@ -483,19 +491,18 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 			// sacrificed host is what exiled it -- parks it too: the pending
 			// answer continues the resolution, and runProg poses the host ask
 			// before it ends (pair 1265). Outside a resolution (its source
-			// died to a state-based action) the ask is queued before the next
-			// priority (queueAskRet) instead of entering the Aura unattached
-			// to fall to CR 704.5m.
+			// died to a state-based action) every returning Aura queues its
+			// own host ask before the next priority (queueAskRet) instead of
+			// entering unattached to fall to CR 704.5m: they are asked in
+			// entry order, one answer each.
 			parked, queued := false, false
 			if s.res.active && s.g.pre.state == 0 {
 				s.g.pre = preAsk{obj: l.obj, kind: akEnchant, state: preReturn}
 				parked = true
-			} else if !s.res.active && s.g.nask == 0 {
+			} else if !s.res.active {
 				s.queueAskRet(l.obj)
 				queued = true
 			}
-			// an ask is already queued: gorge parks no second entry; the
-			// later one enters attached to its first candidate below
 			if parked || queued {
 				if k.gen.anyLinkCtr {
 					s.linkRetStall(k, srcCtrl, o, l.obj)
@@ -506,20 +513,12 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 		if n := s.auraWithHosts(k, l.obj); x.zone == kop.ZoneExile && (n == 1 || n > 1 && !s.res.active) {
 			// a returning Aura with one permanent it can enchant enters
 			// attached to it (CR 303.4f; Witness Protection under a
-			// destroyed Banishing Light, pair 64152); so does one with
-			// several while an ask is already pending, to its first
-			// candidate: gorge parks no second entry (applyETBChoiceReplacement
-			// needs no pending decision; auraEntryGate's default, in
-			// gorge's battlefield order: player 0's list, then player 1's,
-			// each in entry order)
+			// destroyed Banishing Light, pair 64152)
 			ctrN := 0
 			if k.gen.anyLinkCtr {
 				ctrN = s.linkRetCtrs(k, srcCtrl, o, l.obj) // before the card takes the source's slot
 			}
 			host := s.firstHost(k, l.obj)
-			if s.g.nask > 0 && s.g.ask[0].sl == NoSlot {
-				s.g.ask[0].pc = 1 // its entry record is overwritten (GORGE-FINDINGS.md D-aura-reask)
-			}
 			from := s.detach(l.obj)
 			nsl := s.enterLinkRet(k, l.obj, x.owner(), from)
 			s.attachTo(k, nsl, host)
@@ -730,6 +729,7 @@ func (s *State) cleanupGen(k *prep) {
 			r.until == kop.DurWarp && s.warpRecastLive(r) ||
 			r.until == kop.DurAirbend && s.warpRecastLive(r) ||
 			r.until == kop.DurPlot && s.plotLive(r) ||
+			r.until == kop.DurSuspend && s.suspendLive(r) || // a suspended card stays while exiled, its haste while it stays (kw_suspend.go)
 			r.until == kop.DurForetell && s.plotLive(r) ||
 			r.until == kop.DurPrepared && s.preparedSrc(r) ||
 			r.dur() == kop.DurWhileSrcMay && s.mayWhileSrcKeep(r) || // cast_whilesource.go
@@ -957,6 +957,9 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 	if k.gen.anyBattle && s.g.nmay > 0 && s.defeatPosedOptions(d) {
 		return true
 	}
+	if k.gen.anySuspend && s.g.nmay > 0 && s.suspendPosedOptions(d) {
+		return true
+	}
 	if s.entryAsked(k) {
 		s.entryOrderOptions(k, d)
 		return true
@@ -1047,6 +1050,9 @@ func (s *State) applyGen(k *prep, a Action) {
 	if k.gen.anyBattle && s.g.nmay > 0 && s.applyDefeat(k, a) {
 		return
 	}
+	if k.gen.anySuspend && s.g.nmay > 0 && s.applySuspendAnswer(k, a) {
+		return
+	}
 	if s.entryAsked(k) {
 		s.applyEntryLand(k, a)
 		return
@@ -1098,8 +1104,11 @@ func (s *State) applyGen(k *prep, a Action) {
 			s.resolveTop(k) // the permanent enters with the choice made
 		}
 		// a second pre-ask posed by the resolution (the entry order) stays
-		// posed; otherwise the answered choice is done
-		if s.g.pre.state != 1 {
+		// posed; otherwise the answered choice is done. The CR 616.1
+		// entry-order ask parked the play instead: the answer stays put
+		// (state 2) and the entering program's record body applies it once
+		// the order is picked (repl_entryorder.go, runReplProgAs).
+		if s.g.pre.state != 1 && !s.entryAsked(k) {
 			s.g.pre = preAsk{}
 		}
 		return
@@ -1142,13 +1151,10 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 	}
 	s.popAsk()
 	if ask.sl == NoSlot {
-		// the host answered (retAuraAsk); gorge drops the answer when
-		// another Aura entered while it was asked (pc set) and attaches its
-		// first candidate (GORGE-FINDINGS.md D-aura-reask)
+		// the host answered (retAuraAsk); every returning Aura has its own
+		// queued ask, so the answer enters that Aura attached to the chosen
+		// host (CR 303.4f)
 		host := s.objs[a.Source()].slot
-		if ask.pc != 0 {
-			host = s.firstHost(k, Obj(ask.ab))
-		}
 		s.enterRetAura(k, Obj(ask.ab), host)
 		return
 	}
@@ -1287,6 +1293,14 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 		who := s.objs[o].owner()
 		if s.g.pre.state == preDigEnchant {
 			who = s.res.askP
+		}
+		if s.g.pre.state == preDigEnchPlayer {
+			who = s.res.askP
+			n := s.playerEnchCands(k, s.objs[o].card, who, &buf)
+			for i := 0; i < n; i++ {
+				d.add(MakeAction(AkChoose, PlayerCode(buf[i]), 0, 0))
+			}
+			return
 		}
 		n := s.enchantCands(k, s.objs[o].card, who, &buf)
 		for i := 0; i < n; i++ {

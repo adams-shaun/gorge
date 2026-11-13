@@ -46,7 +46,7 @@ func (c *kzpbTally) check(ref *GorgeSide, _ Side) *Divergence {
 	g := ref.E.G
 	onStack := map[state.ObjID]bool{}
 	for _, id := range g.Stack {
-		if mixedarmsName(g, id) != "Zero Point Ballad" {
+		if sourceCardName(g, id) != "Zero Point Ballad" {
 			continue
 		}
 		o := g.Obj(id)

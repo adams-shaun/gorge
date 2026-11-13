@@ -692,6 +692,7 @@ const (
 	bsDelve    // the granted-delve graveyard announcement (CR 702.66a: gorge delveAsk, after convoke and X and before the pip asks; kw_delve.go)
 	bsConspire // the granted-conspire tap election (CR 702.78a: gorge conspireAsk, after the tap costs, before convoke; kw_conspire.go)
 	bsMiracle  // the miracle reveal ask of a trigger not yet on the stack (CR 702.94a: gorge askTriggerOptional at placement; kw_miracle.go)
+	bsMulti    // the multikicker count ask (CR 702.43: gorge multikickAsk, after the tap costs and before Convoke/X; kw_multikicker.go)
 	nBuildStages
 )
 
@@ -805,12 +806,13 @@ const (
 	raChooseColor
 	raChooseType
 	raChooseCard
-	raOptional   // "you may" trigger: yes/no
-	raGeneric    // GenericChoice branch
-	raDigPick    // dig: choose a card to keep
-	raOptSac     // optional sacrifice: 0..Amount picks (act_optionalask.go)
-	raOptDiscMay // optional discard election: discard?
-	raOptDisc    // optional discard pick (post-election, or AnyNumber)
+	raOptional     // "you may" trigger: yes/no
+	raGeneric      // GenericChoice branch
+	raDigPick      // dig: choose a card to keep
+	raOptSac       // optional sacrifice: 0..Amount picks (act_optionalask.go)
+	raOptDiscMay   // optional discard election: discard?
+	raOptDisc      // optional discard pick (post-election, or AnyNumber)
+	raChooseNumber // mid-resolution ChooseNumber (ExtChooseNumberMid; repl_choosenumber.go)
 )
 
 // resCtx is a resolution in progress.

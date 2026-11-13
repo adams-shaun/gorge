@@ -3,8 +3,6 @@ package kgen
 import (
 	"strings"
 
-	"github.com/adams-shaun/gorge/engine/cards"
-
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -195,14 +193,6 @@ func (lc *lowerCtx) thisTurnCastValue(spec string) (lValue, error) {
 		bits |= kop.CastSpecTypes
 	}
 	return lValue{Kind: vThisTurnCastSpec, N: bits, F: f}, nil
-}
-
-// faceStatics is the face's static lines (none without a face).
-func (lc *lowerCtx) faceStatics() []cards.Static {
-	if lc.face == nil {
-		return nil
-	}
-	return lc.face.Statics
 }
 
 // stripCastToken is gorge's StripPredicateToken: it removes the exact

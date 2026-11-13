@@ -76,8 +76,8 @@ func countCreatureTokenCopiesNamed(t *testing.T, e *Engine, p state.PlayerID, na
 // offered). The decline answer stands the original token verbatim.
 func TestEsixChosenTokenCopyElectionPins(t *testing.T) {
 	t.Parallel()
-	esix := tokenReplCorpusCard(t, "Esix, Fractal Bloom")
-	bears := tokenReplCorpusCard(t, "Grizzly Bears")
+	esix := corpusAlternativeCard(t, "Esix, Fractal Bloom")
+	bears := corpusAlternativeCard(t, "Grizzly Bears")
 	maker := cardByName(t, tokenForgeSrc("g_1_1_squirrel"))
 	e, cfg := tokenReplGame(t, 61, esix, bears, maker)
 	moveSeededCard(t, e, 0, esix, state.ZBattlefield)
@@ -132,8 +132,8 @@ func esixID(t *testing.T, e *Engine) state.ObjID {
 // creation of the same turn verbatim -- no second election, a plain squirrel.
 func TestEsixChosenTokenCopyAccept(t *testing.T) {
 	t.Parallel()
-	esix := tokenReplCorpusCard(t, "Esix, Fractal Bloom")
-	bears := tokenReplCorpusCard(t, "Grizzly Bears")
+	esix := corpusAlternativeCard(t, "Esix, Fractal Bloom")
+	bears := corpusAlternativeCard(t, "Grizzly Bears")
 	maker := cardByName(t, tokenForgeSrc("g_1_1_squirrel"))
 	e, cfg := tokenReplGame(t, 67, esix, bears, maker)
 	moveSeededCard(t, e, 0, esix, state.ZBattlefield)
@@ -203,8 +203,8 @@ func TestEsixChosenTokenCopyAccept(t *testing.T) {
 // the same predicate body), and the accept mints a copy of it.
 func TestMoonlitChosenTokenCopy(t *testing.T) {
 	t.Parallel()
-	moonlit := tokenReplCorpusCard(t, "Moonlit Meditation")
-	bears := tokenReplCorpusCard(t, "Grizzly Bears")
+	moonlit := corpusAlternativeCard(t, "Moonlit Meditation")
+	bears := corpusAlternativeCard(t, "Grizzly Bears")
 	maker := cardByName(t, tokenForgeSrc("g_1_1_squirrel"))
 	e, cfg := tokenReplGame(t, 71, moonlit, bears, maker)
 	bearsID := moveSeededCard(t, e, 0, bears, state.ZBattlefield)
@@ -241,9 +241,9 @@ func TestMoonlitChosenTokenCopy(t *testing.T) {
 // replace it with its own Angel.
 func TestEsixChosenCopyThenDivineVisitationComposes(t *testing.T) {
 	t.Parallel()
-	esix := tokenReplCorpusCard(t, "Esix, Fractal Bloom")
-	visitation := tokenReplCorpusCard(t, "Divine Visitation")
-	bears := tokenReplCorpusCard(t, "Grizzly Bears")
+	esix := corpusAlternativeCard(t, "Esix, Fractal Bloom")
+	visitation := corpusAlternativeCard(t, "Divine Visitation")
+	bears := corpusAlternativeCard(t, "Grizzly Bears")
 	maker := cardByName(t, tokenForgeSrc("g_1_1_squirrel"))
 	e, cfg := tokenReplGame(t, 73, esix, visitation, bears, maker)
 	moveSeededCard(t, e, 0, esix, state.ZBattlefield)

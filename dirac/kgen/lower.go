@@ -355,6 +355,7 @@ func (lc *lowerCtx) lowerFace() {
 	// ProduceCol; lower_reflectedmana.go producibleMask): a Produce-mode
 	// reflected ability's read
 	lc.out.ProduceCol = producibleMask(lc.face)
+	lc.out.Identity = kop.ColorMask(lc.card.ColourIdentity())
 	lc.scanStorm() // lower_storm.go: K:Storm's expanded trigger, before the lines lower
 	// lower_imprintmox.go: the imprint-mox shape, before the lines lower
 	lc.imprintMox = lc.imprintMoxShape()
@@ -469,6 +470,8 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseMayFlashCombos()
 	lc.refuseEvokeCombos()
 	lc.refuseDashCombos()          // lower_dash.go
+	lc.refuseMultikickerCombos()   // K:Multikicker beside another cast route
+	lc.refuseSuspendCombos()       // lower_suspend.go
 	lc.refuseForetellCombos()      // lower_foretell.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
 	lc.lowerImpending()
@@ -490,6 +493,25 @@ func (lc *lowerCtx) lowerImpending() {
 		return
 	}
 	lc.guard("K:Impending", lc.impendingTick)
+}
+
+// refuseMultikickerCombos refuses Multikicker beside any other cast cost
+// route: the kernel models the multikicker count as the one extra cost of a
+// kicked cast, and a second route (or a plain Kicker, whose count reads
+// differently) would compete for that cast. The keyword itself is lowered
+// by lowerKeywords.
+func (lc *lowerCtx) refuseMultikickerCombos() {
+	out := lc.out
+	if out.Multikicker == nil {
+		return
+	}
+	if out.Kicker != nil || out.Warp != nil || out.Plot != nil || out.Flashback != nil || out.SpellCost != nil ||
+		out.AltAddCost != nil || out.Sneak != nil || out.Impending != nil || out.Bestow != nil || out.Mayhem != nil ||
+		out.Harmonize != nil || out.Madness != nil || out.Offspring != nil || out.Gift || out.MorphCost != nil ||
+		out.Casualty != 0 || out.Bargain || out.OptCost != nil || out.Teamwork != 0 || out.Spree ||
+		out.Convoke || out.Improvise || len(lc.card.Faces) > 1 || lc.card.AlternateMode != "" {
+		lc.refuseNode("K:Multikicker", "Multikicker beside another cast route or additional cost")
+	}
 }
 
 // refusePlotCombos refuses the plot keyword beside any other cast cost
@@ -1262,6 +1284,23 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Kicker = &mc
+		case head == "Multikicker":
+			// CR 702.43: the per-payment additional cost, paid any number of
+			// times as the spell is cast. The kernel's kicked cast asks the
+			// count before X and the targets (multikick, cast.go), so only a
+			// plain mana parameter on a non-{X} spell is modelled; a non-mana,
+			// {X} parameter or {X} base cost refuses (the count bound would be
+			// read before the X announcement).
+			mc, err := parseManaCost(param)
+			if err != nil || param == "" || strings.Contains(param, ":") || mc.None || mc.X {
+				lc.refuseNode(node, "multikicker cost %q", param)
+				continue
+			}
+			if lc.out.Cost.X {
+				lc.refuseNode(node, "multikicker on an {X} spell")
+				continue
+			}
+			lc.out.Multikicker = &mc
 		case head == "Morph" || head == "Megamorph" || head == "Disguise":
 			// CR 702.37/702.168/702.169: the keyword parameter is the
 			// turn-face-up cost. The kernel's turn-up action spends only
@@ -1644,6 +1683,23 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Plot = &mc
+		case head == "Suspend":
+			// CR 702.62a: a hand special action paying this plain mana cost
+			// and exiling the card with N time counters (dirac/kw_suspend.go).
+			// An X time (Aeon Chronicler's), X, hybrid and any non-mana part
+			// have no fixed price or count to plan.
+			ns, cs, ok := strings.Cut(param, ":")
+			n, nerr := strconv.Atoi(strings.TrimSpace(ns))
+			mc, err := parseManaCost(cs)
+			if !ok || nerr != nil || n < 1 || n > 20 || err != nil || strings.TrimSpace(cs) == "" || strings.ContainsAny(cs, ":<") || mc.X || mc.None || len(mc.Hybrid) != 0 {
+				lc.refuseNode(node, "suspend %q", param)
+				continue
+			}
+			if lc.out.Suspend != nil {
+				lc.refuseNode(node, "two Suspend keywords")
+				continue
+			}
+			lc.out.Suspend, lc.out.SuspendN = &mc, n
 		case head == "Foretell":
 			// CR 702.143a: the {2} special action is fixed; the keyword's
 			// cost prices the later cast from exile (dirac/kw_foretell.go).
@@ -1851,24 +1907,6 @@ func (lc *lowerCtx) costUnless(s string) (lCost, error) {
 	return c, lc.costParts(c)
 }
 
-// discardUnlessLifted reports whether every Discard<> token in an UnlessCost$
-// uses a selection method lifts (Random or Hand).
-func discardUnlessLifted(s string) bool {
-	saw := false
-	for _, t := range costTokens(strings.TrimSpace(s)) {
-		head, arg, hasArg := strings.Cut(t, "<")
-		if head != "Discard" || !hasArg {
-			continue
-		}
-		saw = true
-		parts := strings.Split(strings.TrimSuffix(arg, ">"), "/")
-		if len(parts) < 2 || (parts[1] != "Random" && parts[1] != "Hand") {
-			return false
-		}
-	}
-	return saw
-}
-
 // costParts refuses the cost parts only an activated or hand ability may pay.
 func (lc *lowerCtx) costParts(c lCost) error {
 	if c.DiscardSelf {
@@ -1978,6 +2016,27 @@ func putLibSelfGate(ab *lAbility, cost lCost) error {
 	return nil
 }
 
+// energyPayCost parses PayEnergy<X> / PayEnergy<SVar>: the "pay one or more
+// {E}" resolution unless cost (Aether Refinery, Localized Destruction, Pia
+// Nalaar, Rampaging Aetherhood, Territorial Aetherkite, Vault 112). The amount
+// is read when the cost is offered, like PayLife<X>'s LifeBy. An activated
+// ability's printed cost is the constant kop.CostPayEnergy, so a dynamic one
+// there would lose its amount: refuse it.
+func (lc *lowerCtx) energyPayCost(c *lCost, parts []string, tok string) error {
+	if !lc.unlessParse {
+		return refuse("PayEnergy<%s> outside an unless cost", parts[0])
+	}
+	if len(parts) != 1 || c.Energy != 0 || c.EnergyBy != nil {
+		return refuse("energy cost %q", tok)
+	}
+	v, err := lc.value(parts[0])
+	if err != nil {
+		return err
+	}
+	c.EnergyBy = &v
+	return nil
+}
+
 // costHand is cost, also reading Discard<1/CARDNAME> (DiscardSelf).
 func (lc *lowerCtx) costHand(s string) (lCost, error) {
 	var c lCost
@@ -1987,6 +2046,10 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		arg = strings.TrimSuffix(arg, ">")
 		if !hasArg {
 			switch {
+			case t == "Mandatory":
+				// Forge's cost prefix (rules/cost/parse.go skips the same
+				// word): the unless machinery decides pay or decline.
+				continue
 			case t == "T":
 				c.Tap = true
 				continue
@@ -2186,6 +2249,12 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		if head == "tapXType" && parts[0] == "X" {
 			// tapXType<X/Spec>: tap any number, X the count (lower_tapxvar.go)
 			if err := lc.tapXVarCost(&c, parts, t); err != nil {
+				return c, err
+			}
+			continue
+		}
+		if head == "PayEnergy" && (parts[0] == "X" || lc.face.SVars[parts[0]] != "") {
+			if err := lc.energyPayCost(&c, parts, t); err != nil {
 				return c, err
 			}
 			continue
@@ -3415,6 +3484,10 @@ func (lc *lowerCtx) chain(sa *cards.SA, ps *params) error {
 			p = newParams(node.Params)
 		}
 		p.consume("SubAbility")
+		atkGuard, aerr := lc.lowerAttackLeg(node, p) // lower_attackleg.go
+		if aerr != nil {
+			return aerr
+		}
 		at, nt := len(lc.ab.Prog), len(lc.ab.Targets)
 		lc.atRes = node != sa && lc.mode < 0 && (lc.ab.Kind == akSpell || lc.ab.Kind == akActivated) &&
 			sa.API != "Charm" && sa.API != "CopySpellAbility" && subTargetAtResolution(node)
@@ -3454,6 +3527,9 @@ func (lc *lowerCtx) chain(sa *cards.SA, ps *params) error {
 			lc.ab.Prog = append(lc.ab.Prog, lInstr{})
 			copy(lc.ab.Prog[pos+1:], lc.ab.Prog[pos:])
 			lc.ab.Prog[pos] = lInstr{Op: "ChooseTargets", C: i}
+		}
+		if atkGuard >= 0 {
+			lc.ab.Prog[atkGuard].Skip = len(lc.ab.Prog) - atkGuard - 1
 		}
 		if left := p.unread(); len(left) > 0 {
 			err := refuse("%s$ %s: unread params %v", node.Kind, node.API, left)
@@ -3523,13 +3599,6 @@ func (lc *lowerCtx) lastTarget() int {
 		return -1
 	}
 	return lc.chainT[len(lc.chainT)-1]
-}
-
-func (lc *lowerCtx) firstTarget() int {
-	if len(lc.chainT) == 0 {
-		return -1
-	}
-	return lc.chainT[0]
 }
 
 // newLatent starts a latent ability (a program an op reaches by index) and

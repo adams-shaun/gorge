@@ -1,26 +1,8 @@
 package rules
 
 import (
-	"path/filepath"
 	"testing"
-
-	"github.com/adams-shaun/gorge/engine/cards"
 )
-
-// horsemanshipCard parses a live corpus card at test time (GPL scripts stay
-// out of the repo), so the CantBlockBy pin runs against the real Forge script
-// whose ValidBlocker$ spec the predicate serves.
-func horsemanshipCard(t *testing.T, name, path string) *cards.Card {
-	t.Helper()
-	c, ds := cards.Parse(filepath.Join("..", "..", ".cards", "cardsfolder", path))
-	if len(ds) != 0 {
-		t.Fatalf("parse %s: %v", name, ds)
-	}
-	if ds = c.Link(); len(ds) != 0 {
-		t.Fatalf("link %s: %v", name, ds)
-	}
-	return c
-}
 
 // TestCantBlockByHorsemanshipStaticRestrictsBlocking pins the rules-side
 // consumer of the withHorsemanship filter predicate: the CantBlockBy static
@@ -31,10 +13,10 @@ func horsemanshipCard(t *testing.T, name, path string) *cards.Card {
 func TestCantBlockByHorsemanshipStaticRestrictsBlocking(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	mystic := onBoardCard(t, e, 1, horsemanshipCard(t, "Taoist Mystic", "t/taoist_mystic.txt"))
+	mystic := onBoardCard(t, e, 1, mshCorpusCardPath(t, "Taoist Mystic", "t/taoist_mystic.txt"))
 	e.G.Obj(mystic).IsAttacking, e.G.Obj(mystic).Attacking = true, 0
 
-	hsBlocker := onBoardCard(t, e, 0, horsemanshipCard(t, "Zhang Fei, Fierce Warrior", "z/zhang_fei_fierce_warrior.txt"))
+	hsBlocker := onBoardCard(t, e, 0, mshCorpusCardPath(t, "Zhang Fei, Fierce Warrior", "z/zhang_fei_fierce_warrior.txt"))
 	plainBlocker := onBoard(t, e, 0, "Name:White\nManaCost:W\nTypes:Creature\nPT:1/1\nOracle:x\n")
 
 	if !e.blockRestricted(hsBlocker, mystic) {

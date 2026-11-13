@@ -108,6 +108,11 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// even when the mana cost is not payable (CR 702.185a)
 			s.offerWarpHand(k, d, p, o, c, &av) // kw_warp.go
 		}
+		if k.gen != nil && k.gen.anySuspend && k.t.Cards[c].Suspend != 0 {
+			// under the plain cast's timing and prohibition gates, before its
+			// affordability gate and without a target check (CR 702.62a)
+			s.offerSuspendHand(k, d, p, o, c, &av) // kw_suspend.go
+		}
 		if k.gen != nil && k.gen.anyWebSling && k.t.Cards[c].HasWebSling {
 			// under the plain cast's timing and prohibition gates, before
 			// its affordability gate (CR 702.188a)
@@ -199,15 +204,15 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if k.gen != nil && k.gen.anyBestow && k.t.Cards[c].HasBestow {
 			s.offerBestowHand(k, d, p, o, c, &av) // kw_bestow.go
 		}
-		if pc.kw&kop.KwKicker != 0 || k.offspring && offspringOffer(k, c) {
-			kc := addCost(pc.cost, k.t.Cards[c].Kicker)
+		if pc.kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker || k.offspring && offspringOffer(k, c) {
+			kc := addCost(pc.cost, kickerPayment(&k.t.Cards[c]))
 			if s.statM.any() || k.gen != nil {
 				kc = s.adjustCost(k, p, c, o, kc) // the reduction applies to the total (CR 601.2f)
 			}
 			if k.gen != nil && k.gen.anyTypeCreat && s.convAnyType(k, p, o) {
 				kc = anyType(kc) // the kicked total under Vizier's conversion too (mana_convertcreature.go)
 			}
-			if s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &kc, cav) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
+			if s.kickedAffords(k, p, c, o, &kc, cav) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
 				d.add(MakeAction(AkCast, uint8(o), 0, 1))
 			}
 		}
@@ -292,6 +297,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	}
 	if k.gen != nil && k.gen.anyBeam {
 		s.offerBeamCasts(k, d, p, sorc, &av) // kw_beammeup.go
+	}
+	if k.gen != nil && k.gen.anyEscapeGrant {
+		s.offerEscapeCasts(k, d, p, sorc, &av) // kw_escape.go: gorge lists the escape walk before mayhem's (legal_walk_alt.go)
 	}
 	if k.mayhem {
 		s.offerMayhemCasts(k, d, p, sorc, &av) // kw_mayhem.go
@@ -390,6 +398,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	if faces {
 		// after the may-play walks: one land play per object (CR 715.3d)
 		s.offerAdventureLandPlays(k, d, p, sorc) // cast_adventureland.go
+	}
+	if k.gen != nil && k.gen.anyNoManaCost {
+		s.dropNoManaCostCasts(k, d) // CR 118.6 (cast_nomanacost.go)
 	}
 	if k.gen != nil && k.gen.anySplitSecond && s.splitSecondHolds(k) {
 		s.filterSplitSecond(k, d) // kw_splitsecond.go
@@ -968,12 +979,17 @@ func severalTargets(k *prep, c CardID) bool {
 }
 
 // altAddFreePart: card c's either-or additional cost has a part with no mana
-// that can be paid (a creature to sacrifice).
+// that can be paid (a creature to sacrifice). The candidates exclude the card
+// being cast (o): for a cast the card is on the stack while its cost is paid,
+// so it can never pay its own exile or sacrifice fodder (gorge pay
+// NonManaCastable's cast self-skip, CR 601.2a/h) -- a may-play cast from the
+// graveyard (Ark of Hunger's permission) whose only other grave card is a
+// third one must price the mana part, not the exile part.
 func (s *State) altAddFreePart(k *prep, p uint8, c CardID, o Obj) bool {
 	cd := &k.t.Cards[c]
 	ac := spellAddCost(k, c)
-	return manaEmpty(&ac.Mana) && s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p, c, o) && s.altAddPartDisjoint(k, p, c, o, ac) ||
-		manaEmpty(&cd.AltAddCost.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost, NoObj) && s.altAddPartDisjoint(k, p, c, o, &cd.AltAddCost)
+	return manaEmpty(&ac.Mana) && s.pickCostPayable(k, p, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p, c, o) && s.altAddPartDisjoint(k, p, c, o, ac) ||
+		manaEmpty(&cd.AltAddCost.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost, o) && s.altAddPartDisjoint(k, p, c, o, &cd.AltAddCost)
 }
 
 // altAddPartDisjoint: the permanents a part sacrifices or taps are not the
@@ -1107,12 +1123,13 @@ func spellAb(k *prep, c CardID) uint8 {
 }
 
 // spellTargetsFeasibleFrom is spellTargetsFeasible for the spell card o, cast
-// from the graveyard: o is on the stack by the time its targets are chosen, so
-// it is no candidate for them (gorge castTargetsAvailable names the cast card).
+// from the graveyard or exile: o is on the stack by the time its targets are
+// chosen, so it is no candidate for them (CR 115.5, 601.2a; gorge
+// castTargetsAvailable names the cast card in every zone).
 // Flashback under The Dawning Archaic with no other instant or sorcery in the
 // graveyard has no target and is not offered.
 func (s *State) spellTargetsFeasibleFrom(k *prep, c CardID, p uint8, o Obj) bool {
-	if s.objs[o].zone != kop.ZoneGraveyard {
+	if z := s.objs[o].zone; z != kop.ZoneGraveyard && z != kop.ZoneExile {
 		return s.spellTargetsFeasible(k, c, p)
 	}
 	s.g.tgtSelf = uint8(o) + 1
@@ -1294,6 +1311,9 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 		z := k.t.Filters[t.Filter].Zone
 		if z == kop.ZoneNone {
 			z = kop.ZoneGraveyard
+		}
+		if z == kop.ZoneGraveyard && s.graveCantTargetGen(k) {
+			return false // Ground Seal's class (kw_canttgtgrave.go)
 		}
 		if k.gen != nil {
 			// the object's own state too (Abyssal Harvester's "put there this turn")
@@ -1716,6 +1736,12 @@ func (s *State) applyPriority(k *prep, a Action) {
 			s.flushPrefixTriggers(k)
 		}
 	}
+	if a.Kind() == AkActivate && k.gen != nil && k.gen.rs != nil && k.gen.rs.chosenPair {
+		s.chosenPairPrefix(k, a, p) // a play only a chosen-colour pair pays (mana_chosenprefix.go)
+		if s.npend != 0 {
+			s.flushPrefixTriggers(k)
+		}
+	}
 	if s.sp > sp0 || s.npend != 0 {
 		empty := s.playNeedsEmptyStack(k, a)
 		if s.sp > sp0 && empty || s.npend != 0 {
@@ -1770,6 +1796,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if a.Mode() == 2 && k.gen != nil && k.gen.anyBeam {
 			s.noteBeamCast(k, a) // kw_beammeup.go
 		}
+		if a.Mode()&2 != 0 && a.Target() == castEscapeTgt && k.gen != nil && k.gen.anyEscapeGrant {
+			s.g.escapeCast = true // the escape cast the action names (kw_escape.go)
+		}
 		s.beginCast(k, Obj(a.Source()), a.Mode(), a.Target()) // the target byte names a retrace cast (kw_retrace.go)
 		if face {
 			s.lowerFaceCast(k, p, Obj(a.Source())) // cast_faceroute.go
@@ -1788,6 +1817,10 @@ func (s *State) applyPriority(k *prep, a Action) {
 	case AkPlot:
 		if a.Mode() == plotForetell {
 			s.foretellAction(k, Obj(a.Source()), p) // CR 702.143a; kw_foretell.go
+			break
+		}
+		if a.Mode() == plotModeSuspend {
+			s.suspendAction(k, Obj(a.Source()), p) // CR 702.62a; kw_suspend.go
 			break
 		}
 		s.plotAction(k, Obj(a.Source()), p) // CR 702.170a; kw_plot.go

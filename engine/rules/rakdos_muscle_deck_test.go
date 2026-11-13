@@ -16,15 +16,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// battlefieldFixture moves a fixture card straight onto p's battlefield with
-// a logged move.
-func battlefieldFixture(t *testing.T, e *Engine, p state.PlayerID, src string) state.ObjID {
-	t.Helper()
-	o := e.G.AddObject(card(t, src), p)
-	e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZLibrary, To: state.ZBattlefield})
-	return o.ID
-}
-
 // handFixture moves a fixture card straight into p's hand with a logged move
 // (battlefieldFixture's hand sibling — a spell the test will cast).
 func handFixture(t *testing.T, e *Engine, p state.PlayerID, src string) state.ObjID {

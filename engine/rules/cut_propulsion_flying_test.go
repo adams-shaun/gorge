@@ -12,7 +12,7 @@ import (
 // Aura: Sami, Ship's Engineer under Auxiliary Boosters took 3 of the 6.
 func TestCutPropulsionDoublesForGrantedFlying(t *testing.T) {
 	t.Parallel()
-	cut := alltargetedCorpusText(t, "c/cut_propulsion.txt")
+	cut := corpusCardText(t, "c/cut_propulsion.txt")
 	const (
 		plain   = "Name:Plain Ox\nManaCost:1 G\nTypes:Creature Ox\nPT:2/6\nOracle:x\n"
 		printed = "Name:Winged Ox\nManaCost:1 G\nTypes:Creature Ox\nPT:2/6\nK:Flying\nOracle:x\n"

@@ -9,28 +9,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// demonstrateMove moves one corpus card from seat p's hand or library to
-// zone `to` through a logged MoveZone (mobVerdictVoteMove's shape,
-// generalised off its seat-0-only hardcoding), then re-asks priority.
-func demonstrateMove(t *testing.T, e *Engine, p state.PlayerID, name string, to state.Zone) state.ObjID {
-	t.Helper()
-	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
-		for _, id := range e.G.Zone(z, p) {
-			o := e.G.Obj(id)
-			if o != nil && o.Face() != nil && o.Face().Name == name {
-				if z != to {
-					e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: to})
-				}
-				e.pending = nil
-				e.priorityRound()
-				return id
-			}
-		}
-	}
-	t.Fatalf("corpus card %q absent from seat %d hand/library", name, p)
-	return 0
-}
-
 // demonstrateEngine builds a table whose seat 0 opens with the fixture deck
 // seat0 (padded with Mountains) and each other seat the given fixture deck
 // padded with Mountains. Seat 0 is the CR 103.1 toss winner (seatZeroStart),
@@ -105,11 +83,11 @@ func TestSilverquillLecturerDemonstrateCopyAndOpponentToken(t *testing.T) {
 	bear := searchCorpusCard(t, reg, "Grizzly Bears")
 	e, cfg := demonstrateEngine(t, reg, []*cards.Card{lecturer, bear}, nil, nil, nil)
 
-	lect := demonstrateMove(t, e, 0, "Silverquill Lecturer", state.ZBattlefield)
+	lect := mobVerdictVoteMove(t, e, 0, "Silverquill Lecturer", state.ZBattlefield)
 	if o := e.G.Obj(lect); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("Silverquill Lecturer is not on the battlefield: %+v", o)
 	}
-	bearID := demonstrateMove(t, e, 0, "Grizzly Bears", state.ZHand)
+	bearID := mobVerdictVoteMove(t, e, 0, "Grizzly Bears", state.ZHand)
 	if o := e.G.Obj(bearID); o == nil || o.Zone != state.ZHand {
 		t.Fatalf("Grizzly Bears is not in hand: %+v", o)
 	}
@@ -184,8 +162,8 @@ func TestDemonstrateElectionDeclineCopiesNothing(t *testing.T) {
 	bear := searchCorpusCard(t, reg, "Grizzly Bears")
 	e, _ := demonstrateEngine(t, reg, []*cards.Card{lecturer, bear}, nil)
 
-	demonstrateMove(t, e, 0, "Silverquill Lecturer", state.ZBattlefield)
-	bearID := demonstrateMove(t, e, 0, "Grizzly Bears", state.ZHand)
+	mobVerdictVoteMove(t, e, 0, "Silverquill Lecturer", state.ZBattlefield)
+	bearID := mobVerdictVoteMove(t, e, 0, "Grizzly Bears", state.ZHand)
 	addMana(t, e, 0, "GG")
 	castFixture(t, e, bearID, -1)
 
@@ -218,8 +196,8 @@ func TestDemonstrateSoleOpponentAsksNothing(t *testing.T) {
 	bear := searchCorpusCard(t, reg, "Grizzly Bears")
 	e, _ := demonstrateEngine(t, reg, []*cards.Card{lecturer, bear}, nil)
 
-	demonstrateMove(t, e, 0, "Silverquill Lecturer", state.ZBattlefield)
-	bearID := demonstrateMove(t, e, 0, "Grizzly Bears", state.ZHand)
+	mobVerdictVoteMove(t, e, 0, "Silverquill Lecturer", state.ZBattlefield)
+	bearID := mobVerdictVoteMove(t, e, 0, "Grizzly Bears", state.ZHand)
 	addMana(t, e, 0, "GG")
 	castFixture(t, e, bearID, -1)
 
@@ -259,8 +237,8 @@ func TestDemonstrateCasterInSeatOneCopiesForSeatZero(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			e, _ := demonstrateEngine(t, reg, nil, tc.others...)
 			driveToStep(t, e, e.G.Turn+1, 1, state.StepMain1)
-			demonstrateMove(t, e, 1, "Silverquill Lecturer", state.ZBattlefield)
-			bearID := demonstrateMove(t, e, 1, "Grizzly Bears", state.ZHand)
+			mobVerdictVoteMove(t, e, 1, "Silverquill Lecturer", state.ZBattlefield)
+			bearID := mobVerdictVoteMove(t, e, 1, "Grizzly Bears", state.ZHand)
 			addMana(t, e, 1, "GG")
 			castFixture(t, e, bearID, -1)
 
@@ -321,11 +299,11 @@ func TestPrintedDemonstrateCarrierOffersTheElection(t *testing.T) {
 	e, cfg := demonstrateEngine(t, reg, []*cards.Card{et}, []*cards.Card{bear})
 	// Seat 1 gets a nonland permanent to target (the same logged-MoveZone
 	// pattern demonstrateMove uses, via the seat-1 deck's own opening).
-	bearID := demonstrateMove(t, e, 1, "Grizzly Bears", state.ZBattlefield)
+	bearID := mobVerdictVoteMove(t, e, 1, "Grizzly Bears", state.ZBattlefield)
 	if o := e.G.Obj(bearID); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("seat 1's Grizzly Bears is not on the battlefield: %+v", o)
 	}
-	etID := demonstrateMove(t, e, 0, "Excavation Technique", state.ZHand)
+	etID := mobVerdictVoteMove(t, e, 0, "Excavation Technique", state.ZHand)
 	addMana(t, e, 0, "WWWW")
 
 	d := e.Pending()

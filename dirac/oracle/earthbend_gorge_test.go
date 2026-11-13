@@ -19,19 +19,9 @@ import (
 // corpus carrier, then the MoveZone event a Destroy or bounce emits, so the
 // return promise and its matching are gorge's, not a restatement.
 
-func ebgCorpus(t *testing.T) *cards.Registry {
-	t.Helper()
-	dir := corpusDirOrSkip(t)
-	reg, err := cards.SharedCorpus(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return reg
-}
-
 func ebgNew(t *testing.T, seed uint64) (*GorgeSide, state.ObjID, *cards.SA) {
 	t.Helper()
-	reg := ebgCorpus(t)
+	reg := synthReg(t)
 	forest, ok := reg.Lookup("Forest")
 	if !ok {
 		t.Fatal("Forest not in the corpus")

@@ -123,7 +123,7 @@ func TestGrantedStormReplaysFromTheLog(t *testing.T) {
 	prismari := searchCorpusCard(t, reg, "Prismari, the Inspiration")
 	mend := card(t, stormProbeSpell)
 	e, cfg := demonstrateEngine(t, reg, []*cards.Card{prismari, mend, mend}, nil)
-	demonstrateMove(t, e, 0, "Prismari, the Inspiration", state.ZBattlefield)
+	mobVerdictVoteMove(t, e, 0, "Prismari, the Inspiration", state.ZBattlefield)
 	var spells []state.ObjID
 	for _, id := range e.G.Zone(state.ZLibrary, 0) {
 		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Mend" {

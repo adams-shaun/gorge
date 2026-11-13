@@ -98,15 +98,6 @@ func enumerate(obs *searchprobe.Collector, e *rules.Engine, d *decision.Decision
 	return cands, kind, ok
 }
 
-// enumerateInto is enumerate building its boards into scratch
-// (botpolicy.BoardFromGameInto) instead of allocating one per call; nil
-// allocates. The boards are read only inside the call, so a caller may
-// hand the same scratch to every call it makes.
-func enumerateInto(obs *searchprobe.Collector, e *rules.Engine, d *decision.Decision, bot decision.Intent, kinds Kinds, limit int, scratch *boardScratch) ([]cand, string, bool) {
-	cands, kind, _, ok := enumerateWhyInto(obs, e, d, bot, kinds, limit, scratch)
-	return cands, kind, ok
-}
-
 // enumerateWhy is enumerate plus the reason a searched kind was skipped
 // (meaningful only when ok is false and kind is not "").
 func enumerateWhy(obs *searchprobe.Collector, e *rules.Engine, d *decision.Decision, bot decision.Intent, kinds Kinds, limit int) ([]cand, string, SkipReason, bool) {
@@ -926,26 +917,6 @@ func CandidateLabel(d *decision.Decision, in decision.Intent) string {
 		}
 	}
 	return strings.Join(parts, " + ")
-}
-
-// worthOptions is od without the "ability" options the bot's own activation
-// guards decline (botpolicy.Board.AbilityWorthTaking: A1's provable no-ops
-// and A5's per-turn budget), so the priority arm never offers one as a
-// candidate. The bot's termination argument rests on those guards (A4: once
-// nothing is worth activating, the pass ends the turn); a candidate that
-// bypasses them lets the search pick a free no-op -- a re-equip onto the
-// creature already wearing the Equipment -- over the pass at every priority,
-// and the real game's turn never advances (seed
-// 90000003, uw-tempo:mono-white-equipment, Bonesplitter re-equipped onto a
-// Phyrexian Germ until -max-intents). Filtering here covers the root and
-// every in-tree searched decision, since both enumerate.
-//
-// od.Options[i] is d.Options[i] (observeDecision maps them one to one). e
-// nil (a synthetic unit-test decision with no engine) reads the zero Board:
-// no creature, no activation census, exactly what such a decision shows the
-// bot. od is returned unchanged when nothing is dropped.
-func worthOptions(od *searchprobe.ObservedDecision, e *rules.Engine, d *decision.Decision) *searchprobe.ObservedDecision {
-	return worthOptionsInto(od, e, d, nil)
 }
 
 // worthOptionsInto is worthOptions building its board into scratch (nil

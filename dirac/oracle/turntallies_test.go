@@ -64,19 +64,12 @@ type kturntalliesProbe struct {
 	hellTurn int32
 }
 
-func kturntalliesName(g *state.Game, id state.ObjID) string {
-	if o := g.Obj(id); o != nil && o.Card != nil && len(o.Card.Faces) > 0 {
-		return o.Card.Faces[0].Name
-	}
-	return ""
-}
-
 func (p *kturntalliesProbe) observe(gs *GorgeSide) {
 	g := gs.E.G
 	turn := int32(g.Turn)
 	for pl := state.PlayerID(0); pl < 2; pl++ {
 		for _, id := range g.Zone(state.ZBattlefield, pl) {
-			if n := kturntalliesName(g, id); n == "Amateur Hero" || n == "Hero in Training" {
+			if n := firstFaceName(g, id); n == "Amateur Hero" || n == "Hero in Training" {
 				if _, ok := p.seen[id]; !ok {
 					p.seen[id] = turn
 				}
@@ -88,13 +81,13 @@ func (p *kturntalliesProbe) observe(gs *GorgeSide) {
 		if o == nil {
 			continue
 		}
-		if kturntalliesName(g, id) == "Galvanizing Sawship" && !p.avTurn[[2]int32{turn, -1}] {
+		if firstFaceName(g, id) == "Galvanizing Sawship" && !p.avTurn[[2]int32{turn, -1}] {
 			p.avTurn[[2]int32{turn, -1}] = true
 			p.st.spaceAtk++
 		}
-		if n := kturntalliesName(g, id); (n == "Amateur Hero" || n == "Hero in Training") && p.seen[id] < turn && !p.avTurn[[2]int32{turn, int32(o.Controller)}] {
+		if n := firstFaceName(g, id); (n == "Amateur Hero" || n == "Hero in Training") && p.seen[id] < turn && !p.avTurn[[2]int32{turn, int32(o.Controller)}] {
 			for _, bf := range g.Zone(state.ZBattlefield, o.Controller) {
-				if kturntalliesName(g, bf) == "Avengers Assemble!" {
+				if firstFaceName(g, bf) == "Avengers Assemble!" {
 					p.avTurn[[2]int32{turn, int32(o.Controller)}] = true
 					p.st.avengers++
 					break
@@ -129,7 +122,7 @@ func (p *kturntalliesProbe) observe(gs *GorgeSide) {
 // unconnected gates are compared too).
 func (p *kturntalliesProbe) ready(gs *GorgeSide, a Canon) bool {
 	g := gs.E.G
-	switch kbargainName(gs, a.Src()) {
+	switch refCardName(gs, a.Src()) {
 	case "Steel Hellkite":
 		if a.Mode() != 1 {
 			return p.r.IntN(16) == 0 // the {2} pump spends the mana the destruction wants
@@ -142,7 +135,7 @@ func (p *kturntalliesProbe) ready(gs *GorgeSide, a Canon) bool {
 		return g.Step == state.StepMain2 && p.r.IntN(4) == 0 // the limit is once a turn: keep it for after the attack
 	case "Thaumaton Torpedo":
 		for _, id := range gs.E.AttackersDeclaredThisTurn() {
-			if kturntalliesName(g, id) == "Galvanizing Sawship" {
+			if firstFaceName(g, id) == "Galvanizing Sawship" {
 				return true
 			}
 		}
@@ -156,7 +149,7 @@ func (p *kturntalliesProbe) ready(gs *GorgeSide, a Canon) bool {
 func holdsMana(g *state.Game, pl state.PlayerID) bool {
 	var hell, torp, ship bool
 	for _, id := range g.Zone(state.ZBattlefield, pl) {
-		switch kturntalliesName(g, id) {
+		switch firstFaceName(g, id) {
 		case "Steel Hellkite":
 			hell = true
 		case "Thaumaton Torpedo":
@@ -230,16 +223,16 @@ func (p *kturntalliesProbe) pick(c *PickCtx) Canon {
 		a = p.pass(c, a)
 	}
 	for _, o := range c.D.Options {
-		if o.Kind() == ActYes && kbargainName(gs, o.Src()) == "Elanor Gardner" {
+		if o.Kind() == ActYes && refCardName(gs, o.Src()) == "Elanor Gardner" {
 			p.st.elanor++
 			break
 		}
 	}
-	if a.Kind() == ActAttack && kbargainName(gs, a.Src()) == "Steel Hellkite" {
+	if a.Kind() == ActAttack && refCardName(gs, a.Src()) == "Steel Hellkite" {
 		p.st.hellAtk++
 	}
 	if a.Kind() == ActActivate {
-		switch kbargainName(gs, a.Src()) {
+		switch refCardName(gs, a.Src()) {
 		case "Tempting Witch", "Food":
 			p.st.food++
 		case "Blitzball":
@@ -260,7 +253,7 @@ func (p *kturntalliesProbe) pick(c *PickCtx) Canon {
 		case "Thaumaton Torpedo":
 			p.st.torpedo++
 			for _, id := range gs.E.AttackersDeclaredThisTurn() {
-				if kturntalliesName(g, id) == "Galvanizing Sawship" {
+				if firstFaceName(g, id) == "Galvanizing Sawship" {
 					p.st.torpRed++
 					if o := g.Obj(id); o != nil && o.Zone != state.ZBattlefield {
 						p.st.torpDead++

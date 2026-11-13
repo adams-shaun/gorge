@@ -30,8 +30,8 @@ func TestEntryCounterStageReplacementBody(t *testing.T) {
 		want int32
 	}{{"scales-first", 0, 4}, {"evolution-first", 1, 3}} {
 		t.Run(tc.name, func(t *testing.T) {
-			scales := tokenReplCorpusCard(t, "Hardened Scales")
-			evolution := tokenReplCorpusCard(t, "Branching Evolution")
+			scales := corpusAlternativeCard(t, "Hardened Scales")
+			evolution := corpusAlternativeCard(t, "Branching Evolution")
 			// The host permanent's Moved replacement runs a body that CREATES
 			// a token -- a nested entry emitted from inside the replacement --
 			// and then a SubAbility$ rider. Updated keeps the original host

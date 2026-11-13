@@ -40,8 +40,8 @@ const manaTaxLand = "Name:Test Wastes\nTypes:Basic Land\nA:AB$ Mana | Cost$ T | 
 func attackTaxManaSourceSeat(t *testing.T, counters int32, others int) (*Engine, state.ObjID, state.ObjID, state.ObjID) {
 	t.Helper()
 	e := layerEngine(t)
-	myr := onBoardReadyCard(t, e, 0, mshCorpusCard(t, "Myr Prototype"))
-	ritualist := onBoardReadyCard(t, e, 0, mshCorpusCard(t, "Oasis Ritualist"))
+	myr := onBoardReadyCard(t, e, 0, corpusAlternativeCard(t, "Myr Prototype"))
+	ritualist := onBoardReadyCard(t, e, 0, corpusAlternativeCard(t, "Oasis Ritualist"))
 	bear := onBoardReady(t, e, 0, "Name:Tax Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e.G.Obj(myr).AddCounter("P1P1", counters)
 	for i := 0; i < others; i++ {

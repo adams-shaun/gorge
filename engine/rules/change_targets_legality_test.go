@@ -44,7 +44,7 @@ func TestChangeTheTargetOffersAnotherTarget(t *testing.T) {
 	if offersObj(d, a) {
 		t.Fatalf("offered the current target: %+v", d.Options)
 	}
-	submitChoices(t, e, optionOfObj(t, d, b))
+	submitChoices(t, e, objOptionIndex(t, d, b))
 	if got := e.G.Obj(murder.ID).Targets; len(got) != 1 || got[0].Obj != b {
 		t.Fatalf("targets = %+v, want creature %d", got, b)
 	}
