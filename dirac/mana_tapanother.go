@@ -281,10 +281,14 @@ func (s *State) tapXBoard(k *prep, p uint8) bool {
 
 // tapXPrefix plays the search's script for play a at a tapX board; it
 // reports whether it handled the board (the caller then does nothing more).
+// A Taps-deferred rider gap beside the tap-another or counter-cost ones is
+// the scriptDeadEndAny route's (scriptPrefixAny, mana_tapsdefer.go): the
+// search here has no rider step, so a play the rider's mana funds would be
+// left unfunded.
 //
 //go:noinline
 func (s *State) tapXPrefix(k *prep, a Action, p uint8) bool {
-	if !s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).any() {
+	if !s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).any() || s.scriptTapsDefer(k, p).any() {
 		return false
 	}
 	var d Decision

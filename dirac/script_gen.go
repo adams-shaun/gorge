@@ -297,7 +297,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			if !s.filtScript(k, a, p, false) {
 				continue // no script within gorge's search budget
 			}
-		} else if tx.any() && s.tapXBoard(k, p) {
+		} else if tx.any() && !tapsDef.any() && s.tapXBoard(k, p) {
 			if !s.tapXScript(k, a, p, false) && !(s.tapXSecondLive(k, p) && s.liveGrantGap(k, p) && s.grantActScript(k, a, p)) {
 				continue // no script within gorge's budget (mana_tapanother.go), nor in the one search beside the grants (mana_granttapx.go)
 			}
