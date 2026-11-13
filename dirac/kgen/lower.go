@@ -3336,6 +3336,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		if err != nil {
 			return err
 		}
+		if err := lc.anyActivator(sa.API, ps, ab, cost); err != nil { // lower_anyactivator.go
+			return err
+		}
 		if cost.AddCtr > 0 {
 			// a counter put on the source as a cost (CR 118.3): the
 			// -0/-1 mana-ability shape stays as it was (Wall of Roots; the

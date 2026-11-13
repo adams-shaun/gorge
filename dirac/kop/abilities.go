@@ -100,6 +100,12 @@ type Ability struct {
 	// second and third in the arena masks (dirac/legal.go onceUsed). A
 	// table byte, not State.
 	Once uint8
+	// AnyActivator: "any player may activate this ability" (Activator$
+	// Player; Feral Hydra): the kernel also offers it to the permanent's
+	// controller's opponents (dirac/legal_anyact.go). Only a mana-only
+	// battlefield PutCounter on the source carries it (kgen
+	// lower_anyactivator.go). A table byte: AbilityFlags has no free bit.
+	AnyActivator bool
 	// CantCopy: "this ability can't be copied" (CantCopy$ True; gorge
 	// SpellCopyAllowed): an ExtCopyAbility naming its stack entry copies
 	// nothing. A table byte, not State (AbilityFlags has no free bit).

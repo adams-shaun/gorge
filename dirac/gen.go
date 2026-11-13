@@ -303,6 +303,7 @@ type genPrep struct {
 	anyDilemma      bool           // some table reads ExDilemmasFaced or TrigFacesDilemma (trig_dilemma.go)
 	anyScryTally    bool           // some expr is ExScriedThisTurn (value_scrytally.go)
 	anyTokCr        bool           // some trigger is TrigTokenCreated (act_proliferate.go)
+	anyAnyAct       bool           // some ability is activatable by any player (Ability.AnyActivator; legal_anyact.go)
 	anyMonstrosity  bool           // some program is OpMonstrosity or some trigger is TrigBecomeMonstrous (act_monstrosity.go)
 	anyAirbend      bool           // some program is ExtAirbend (act_airbend.go)
 	anyMayWhileSrc  bool           // some OpMayPlay lasts DurWhileSrcMay (cast_whilesource.go)
@@ -1589,6 +1590,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepCtrl(t, g)
 	prepTokMana(t, g)
 	prepMonstrosity(t, g)
+	prepAnyAct(t, g) // legal_anyact.go
 	prepDiscAll(t, g)
 	prepAbilityCast(t, g)
 	prepGoad(t, g)           // act_goad.go

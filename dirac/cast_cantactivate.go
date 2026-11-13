@@ -52,10 +52,16 @@ func (s *State) actForbidden(k *prep, sl Slot, mana bool) bool {
 // Activated.Loyalty, The Immortal Sun; gorge activatedMatchesValidSA)
 // forbids.
 func (s *State) actForbiddenAb(k *prep, sl Slot, mana, loyal bool) bool {
+	return s.actForbiddenBy(k, sl, s.perms[sl].ctrl, mana, loyal)
+}
+
+// actForbiddenBy is actForbiddenAb for the player p activating (the
+// permanent's controller, or another player of an any-player ability:
+// legal_anyact.go).
+func (s *State) actForbiddenBy(k *prep, sl Slot, p uint8, mana, loyal bool) bool {
 	if mana && DebugCantActMana {
 		return false
 	}
-	p := s.perms[sl].ctrl
 	hit, cond := false, false
 	s.eachStatic(k, func(stc statSrc) bool {
 		a := stc.a
