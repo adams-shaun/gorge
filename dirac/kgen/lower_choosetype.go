@@ -185,8 +185,8 @@ func (lc *lowerCtx) animateChosenLandType(ps *params, obj lRef) error {
 
 // chosenTypeOverridesOK asserts the OvChosenType contract: the five records
 // from first are identical apart from their one added subtype, which is
-// basicLandChoice's in order. A subtype the pool table does not hold yet
-// (the first build pass) is not compared.
+// basicLandChoice's in order, as subIndexes stores it. A subtype the pool
+// table does not hold yet (the first build pass) is not compared.
 func (cb *cardBuilder) chosenTypeOverridesOK(first int) error {
 	if first+5 > len(cb.pt.overrides) || len(basicLandChoice) != 5 {
 		return fmt.Errorf("chosen-type override: %d records from %d", len(cb.pt.overrides)-first, first)
@@ -200,7 +200,7 @@ func (cb *cardBuilder) chosenTypeOverridesOK(first int) error {
 		if len(add) != 1 || len(cb.pt.ovSubs[first+i].set) != 0 {
 			return fmt.Errorf("chosen-type override %d adds %d subtypes, want one", first+i, len(add))
 		}
-		if j, ok := cb.pt.subIdx[w]; ok && int(add[0]) != j {
+		if j, ok := cb.pt.subIdx[w]; ok && add[0] != uint8(j) {
 			return fmt.Errorf("chosen-type override %d adds subtype %d, want %s", first+i, add[0], w)
 		}
 	}

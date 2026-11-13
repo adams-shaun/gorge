@@ -145,7 +145,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +14 (the merge with land at 6014a11d54: this branch's Extort lowering, the printed K:Extort expansion and the granted trigger, beside land's 23177; merged ALL 23177 -> 23191 measured).
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
 	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
-	"ALL": {23347, 34442},
+	// +1 (ChooseType Type$ Basic Land and its Types$ ChosenType Animate in addition to the land's types: Navigator's Compass; ALL 23347 -> 23348 measured).
+	"ALL": {23348, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {219, 280},
