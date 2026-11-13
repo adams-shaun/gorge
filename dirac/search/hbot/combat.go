@@ -31,10 +31,10 @@ const maxCOpts = 1024
 
 // copt is one gorge combat option.
 type copt struct {
-	src dirac.Obj // the attacker (attackers) / the blocker (blockers)
-	tgt uint8     // the attack target byte / the attacker blocked
-	def uint8     // attackers: the defending seat (the walker's controller for a walker pair)
-	req bool      // attackers: the creature must attack (gorge's Required)
+	src dirac.Obj   // the attacker (attackers) / the blocker (blockers)
+	tgt dirac.TCode // the attack target code / the attacker blocked
+	def uint8       // attackers: the defending seat (the walker's controller for a walker pair)
+	req bool        // attackers: the creature must attack (gorge's Required)
 }
 
 // combatScratch is the combat policy's fixed scratch (in board).
@@ -336,11 +336,11 @@ func (cs *combatScratch) attackOptsAt(b *board, s *dirac.State, d *dirac.Decisio
 		req := s.MustAttack(o)
 		all := declared || !pairs
 		if pt := dirac.PlayerTarget0 + dirac.TCode(q); all || optIndex(d, dirac.MakeAction(dirac.AkAttack, dirac.TCode(o), pt, 0)) >= 0 {
-			cs.opts[cs.n] = copt{src: o, tgt: uint8(pt), def: q, req: req}
+			cs.opts[cs.n] = copt{src: o, tgt: pt, def: q, req: req}
 			cs.n++
 		}
 		for w := 0; w < cs.nWalk; w++ {
-			if wt := uint8(cs.walkers[w]); all || optIndex(d, dirac.MakeAction(dirac.AkAttack, uint8(o), wt, 0)) >= 0 {
+			if wt := dirac.TCode(cs.walkers[w]); all || optIndex(d, dirac.MakeAction(dirac.AkAttack, dirac.TCode(o), wt, 0)) >= 0 {
 				cs.opts[cs.n] = copt{src: o, tgt: wt, def: q, req: req}
 				cs.n++
 			}
@@ -650,7 +650,7 @@ func (cs *combatScratch) buildBlockOpts(b *board, s *dirac.State, me uint8) {
 	for _, bl := range s.FeatBattlefield(me, b.objs[:0]) {
 		for i := 0; i < na; i++ {
 			if cs.n < maxCOpts && s.HBotBlockPair(bl, atks[i]) {
-				cs.opts[cs.n] = copt{src: bl, tgt: uint8(atks[i])}
+				cs.opts[cs.n] = copt{src: bl, tgt: dirac.TCode(atks[i])}
 				cs.n++
 			}
 		}

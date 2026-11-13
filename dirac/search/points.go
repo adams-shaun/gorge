@@ -75,8 +75,8 @@ func mix(h, v uint64) uint64 {
 // seat saw it at the root (azmcts observer-local references), else by its
 // card (azmcts NameKeys / the opponent's keys: re-dealt objects are named by
 // card, two same-named objects share a key).
-func (sr *Searcher) objCode(s *dirac.State, code uint8, byName bool) uint64 {
-	if dirac.TCode(code) >= dirac.PlayerTarget0 {
+func (sr *Searcher) objCode(s *dirac.State, code dirac.TCode, byName bool) uint64 {
+	if code >= dirac.PlayerTarget0 {
 		return uint64(code)
 	}
 	o := dirac.Obj(code)
@@ -92,11 +92,11 @@ func (sr *Searcher) actKey(s *dirac.State, a dirac.Action, byName bool) uint64 {
 	src, tgt := uint64(a.Source()), uint64(a.Target())
 	switch a.Kind() {
 	case dirac.AkPlayLand, dirac.AkCast, dirac.AkActivate, dirac.AkAttack, dirac.AkBlock, dirac.AkChoose:
-		src = sr.objCode(s, uint8(a.Source()), byName)
+		src = sr.objCode(s, a.Source(), byName)
 	}
 	switch a.Kind() {
 	case dirac.AkAttack, dirac.AkBlock, dirac.AkTarget:
-		tgt = sr.objCode(s, uint8(a.Target()), byName)
+		tgt = sr.objCode(s, a.Target(), byName)
 	}
 	if a.Kind() == dirac.AkChoose && (a.Source() == 0) {
 		src = 0
