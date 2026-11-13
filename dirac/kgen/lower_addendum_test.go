@@ -11,8 +11,8 @@ import (
 const addendumScript = `Name:Test Addendum
 ManaCost:G
 Types:Instant
-A:SP$ Draw | NumCards$ 1 | SubAbility$ DBGain | SpellDescription$ Draw a card.
-SVar:DBGain:DB$ GainLife | LifeAmount$ 2 | ConditionPlayerTurn$ True | ConditionPhases$ Main1,Main2 | ConditionDefined$ Self | ConditionPresent$ Card.wasCast | SpellDescription$ Addendum gain 2 life.
+A:SP$ Draw | NumCards$ 1 | SubAbility$ AddendumLife | SpellDescription$ Draw a card.
+SVar:AddendumLife:DB$ GainLife | LifeAmount$ 3 | ConditionPlayerTurn$ True | ConditionPhases$ Main1,Main2 | ConditionDefined$ Self | ConditionPresent$ Card.wasCast | SpellDescription$ Addendum gain 3 life.
 `
 
 // addendumAbilityScript puts the same gate on an activated ability: the
@@ -20,7 +20,7 @@ SVar:DBGain:DB$ GainLife | LifeAmount$ 2 | ConditionPlayerTurn$ True | Condition
 const addendumAbilityScript = `Name:Test Addendum Relic
 ManaCost:1
 Types:Artifact
-A:AB$ GainLife | Cost$ T | LifeAmount$ 2 | ConditionPlayerTurn$ True | ConditionPhases$ Main1,Main2 | ConditionDefined$ Self | ConditionPresent$ Card.wasCast | SpellDescription$ Gain 2 life.
+A:AB$ GainLife | Cost$ T | LifeAmount$ 3 | ConditionPlayerTurn$ True | ConditionPhases$ Main1,Main2 | ConditionDefined$ Self | ConditionPresent$ Card.wasCast | SpellDescription$ Gain 3 life.
 `
 
 // TestAddendumGateLowers: ConditionPlayerTurn$+ConditionPhases$ beside a
