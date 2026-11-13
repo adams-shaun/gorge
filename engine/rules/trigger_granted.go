@@ -1060,7 +1060,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 				continue // cascade bound: see maxTriggerFires.
 			}
 			e.triggerFireCount[key]++
-			e.queueTrigger(observer, pendingTrigger{
+			pt := pendingTrigger{
 				Source:     id,
 				Controller: o.Controller,
 				Granted:    true,
@@ -1071,7 +1071,15 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 					LKI:            objLKI,
 					TriggerContext: observer.triggerReferents(*t, id, ev, objLKI),
 				}),
-			}, ev, nil)
+			}
+			if t.ParamStr(cards.PKEvolve) != "" {
+				// A granted evolve (CR 702.100a) carries its trigger line and
+				// body: pushTrigger records the line only when SA is set, and
+				// resolution recovers Evolve$ True from it for the CR 603.4
+				// recheck and the Evolved watch.
+				pt.SA, pt.Trigger = t.Effect, *t
+			}
+			e.queueTrigger(observer, pt, ev, nil)
 		}
 	}
 }

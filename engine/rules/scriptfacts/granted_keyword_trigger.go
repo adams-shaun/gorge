@@ -16,7 +16,7 @@ package scriptfacts
 import "github.com/adams-shaun/gorge/engine/cards"
 
 // GrantedTriggerHeads is the set of keyword heads GrantedKeywordTrigger can
-// synthesize a TRIGGERED ability for: Prowess and Myriad, whose bodies read
+// synthesize a TRIGGERED ability for: Prowess, Myriad and Evolve, whose bodies read
 // nothing the walk does not already capture. Every other head returns false (fail
 // closed): the expansion of a keyword like Afflict, Dethrone or Firebending
 // mints a trigger whose body reads keyword-specific state (a defending player,
@@ -28,7 +28,8 @@ import "github.com/adams-shaun/gorge/engine/cards"
 // whitelist; this is the rules-side twin).
 func GrantedTriggerHeads(head string) bool {
 	id := cards.KeywordHeadIDOf(head)
-	return id == cards.KeywordHeadIDOf("Prowess") || id == cards.KeywordHeadIDOf("Myriad")
+	return id == cards.KeywordHeadIDOf("Prowess") || id == cards.KeywordHeadIDOf("Myriad") ||
+		id == cards.KeywordHeadIDOf("Evolve")
 }
 
 // GrantedMyriadPayload is the GrantTriggerPush body name a granted Myriad
@@ -36,12 +37,21 @@ func GrantedTriggerHeads(head string) bool {
 // sibling of the granted Prowess payload.
 const GrantedMyriadPayload = "__kwMyriadGranted"
 
+// GrantedEvolvePayload is the GrantTriggerPush body name a granted Evolve
+// rides (events.foldGrantTriggerPush rebuilds it into the +1/+1 counter body).
+// The "Granted" suffix, with no colon, cannot alias a printed keyword's
+// "__kwEvolve" SVar.
+const GrantedEvolvePayload = "__kwEvolveGranted"
+
 // GrantedKeywordPayload names the GrantTriggerPush body payload the trigger
 // GrantedKeywordTrigger synthesizes for line rides: events.Apply rebuilds the
 // body from that name, so a log-only replay mints the identical ability.
 func GrantedKeywordPayload(line string) string {
-	if cards.KeywordHeadIDOf(cards.KeywordHead(line)) == cards.KeywordHeadIDOf("Myriad") {
+	switch cards.KeywordHeadIDOf(cards.KeywordHead(line)) {
+	case cards.KeywordHeadIDOf("Myriad"):
 		return GrantedMyriadPayload
+	case cards.KeywordHeadIDOf("Evolve"):
+		return GrantedEvolvePayload
 	}
 	return "__kwProwessGranted"
 }
@@ -65,6 +75,9 @@ func GrantedKeywordTrigger(line string) *cards.Trigger {
 	}
 	if cards.KeywordHeadIDOf(head) == cards.KeywordHeadIDOf("Myriad") {
 		return grantedMyriadTrigger(line, head)
+	}
+	if cards.KeywordHeadIDOf(head) == cards.KeywordHeadIDOf("Evolve") {
+		return grantedEvolveTrigger(line, head)
 	}
 	return &cards.Trigger{Mode: "SpellCast", Params: map[string]string{
 		"Mode": "SpellCast", "ValidCard": "Card.nonCreature",
@@ -94,5 +107,24 @@ func grantedMyriadTrigger(line, head string) *cards.Trigger {
 		return nil
 	}
 	t.Effect = &cards.SA{Kind: "DB", API: "Myriad"}
+	return &t
+}
+
+// grantedEvolveTrigger is the trigger a granted Evolve gives its holder
+// (CR 702.100a, 613.1f; Tyranid Prime, Propagator Drone): the printed
+// expansion's exact shape (engine/cards/kw_evolve.go), the body carried inline.
+// Evolve$ True is what drives the CR 603.4 resolution recheck and the
+// events.Evolved watch. Only the bare line is the keyword; any other
+// spelling fails closed.
+func grantedEvolveTrigger(line, head string) *cards.Trigger {
+	if len(line) != len(head) {
+		return nil
+	}
+	t, ok := cards.ParseTriggerLine("Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Creature.YouCtrl+Other | Evolve$ True | TriggerDescription$ Evolve")
+	if !ok {
+		return nil
+	}
+	t.Effect = &cards.SA{Kind: "DB", API: "PutCounter", Params: map[string]string{
+		"Defined": "Self", "CounterType": "P1P1", "CounterNum": "1"}}
 	return &t
 }
