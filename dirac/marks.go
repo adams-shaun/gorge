@@ -428,8 +428,8 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 	h := hmix(0x6465636973696f6e, uint64(d.Kind)|uint64(d.Sub)<<8|uint64(d.Player)<<16|uint64(d.N)<<24|uint64(s.ctl)<<40)
 	for i := 0; i < int(d.N); i++ {
 		a := d.Options[i]
-		h = hmix(h, uint64(a))
-		for _, o := range [2]uint8{uint8(a.Source()), uint8(a.Target())} {
+		h = hmix(h, uint64(a)) // code-ok: hashes the whole word, whatever its layout
+		for _, o := range [2]TCode{a.Source(), a.Target()} {
 			if int(o) >= int(s.nobj) {
 				continue
 			}

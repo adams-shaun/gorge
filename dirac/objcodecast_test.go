@@ -42,7 +42,7 @@ import (
 //
 // A site that is genuinely not a code (a seat decoded from a player code, a
 // byte that a format fixes at eight bits) is exempted by a trailing
-// "// code-ok: <reason>" comment on its line.
+// "// code-ok: <reason>" comment on its line (after a seat-ok, when both apply).
 //
 // The counts are pinned per family and file in testdata/objcodecast.tsv. The
 // test fails when a count rises (naming that file's sites) and when it falls
@@ -176,7 +176,7 @@ func scanObjCodeCasts(t *testing.T) (map[string]int, map[string][]string) {
 		exempt := map[int]bool{}
 		for _, cg := range f.Comments {
 			for _, c := range cg.List {
-				if strings.HasPrefix(strings.TrimSpace(strings.TrimPrefix(c.Text, "//")), "code-ok:") {
+				if strings.Contains(c.Text, "code-ok:") {
 					exempt[fset.Position(c.Pos()).Line] = true
 				}
 			}

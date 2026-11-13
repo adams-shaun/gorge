@@ -18,6 +18,15 @@ const turnExhaustShift = 4
 // narrower integer (TestObjCodeCastsOnlyShrink).
 type TCode uint8
 
+// Action's packing (types.go): kind 5 | source 9 | target 9 | mode 8 bits,
+// kind<<26 | source<<17 | target<<8 | mode, so a code may reach 511.
+const (
+	actKindShift = 26
+	actSrcShift  = 17
+	actTgtShift  = 8
+	actCodeMask  = 0x1ff
+)
+
 // The target-code space (types.go): objects 0..MaxObj-1, stack abilities
 // StackTarget0..PlayerTarget0-1 (16 codes, as in the default class), players
 // PlayerTarget0..PlayerTarget0+3 (one code per seat), 0xFE a departed stack

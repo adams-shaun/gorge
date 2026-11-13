@@ -1,6 +1,4 @@
 # family	file	count: object codes narrowed, laundered or packed by hand in package dirac; shrink only (TestObjCodeCastsOnlyShrink)
-actbits	marks.go	1
-actbits	types.go	2
 launder	act_commitcrime.go	8
 launder	act_counterlose.go	1
 launder	act_damagefrom.go	3
@@ -65,7 +63,6 @@ launder	kw_warp.go	1
 launder	legal.go	4
 launder	mana_grantedoffers.go	1
 launder	mana_window.go	4
-launder	marks.go	1
 launder	modal_activated.go	1
 launder	modal_charmnum.go	2
 launder	project.go	1
@@ -152,7 +149,6 @@ narrow	legal.go	14
 narrow	mana_grantedoffers.go	2
 narrow	mana_pain.go	2
 narrow	mana_sacsource.go	2
-narrow	marks.go	2
 narrow	modal_activated.go	4
 narrow	modal_charmnum.go	3
 narrow	repl_entryorder.go	1
