@@ -22,7 +22,7 @@ import (
 // Each call plays the games stored for the calling test (a test's n-th call reads
 // testdata/pins/<test name>.<n>.json), requires each to reach every condition in
 // reached at some decision, and requires the lockstep to stay clean. A pin whose
-// conditions are all cardOut/onBattlefield/cardSeen lives in the JSON instead, and
+// conditions are all pinCondition kinds lives in the JSON instead, and
 // TestPinManifest plays it (pin_manifest_test.go). A game that no
 // longer reaches a condition fails: the recorded actions no longer lead where the
 // test is named for, and the games are recorded again with
