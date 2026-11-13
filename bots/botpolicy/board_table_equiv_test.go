@@ -40,6 +40,7 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 		defer sc.EndDerivedReads()
 	}
 	combined, hasCombined := ch.(combinedChars)
+	namer, _ := ch.(currentNamer)
 	b.Creatures = make(map[state.ObjID]Creature)
 	b.Life = make(map[state.PlayerID]int32)
 	b.Cards = make(map[state.ObjID]Card)
@@ -63,19 +64,13 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 		var cmc int32
 		var manaCost string
 		var pumpPower, pumpToughness int32
-		if f := o.Face(); f != nil {
+		// CR 708.4: only the controller sees a face-down spell's printed
+		// facts; every other viewer sees no card.
+		if f := o.Face(); f != nil && (!o.FaceDown || o.Controller == me) {
 			cmc = cmcOfFace(f)
-			// Only a spell carries a printed payment; an ability object is
-			// Face-less anyway, and the view half's StackView.Card is nil for
-			// a "trigger"/"ability", so guarding on IsSpell keeps the halves
-			// in step even if a face ever rides an ability stack object.
 			if o.Ability == nil {
 				manaCost = f.ManaCost
-				// CR 708.4: the controller sees a face-down spell's printed
-				// pump bonus; every other viewer sees a stripped CardView.
-				if !o.FaceDown || o.Controller == me {
-					pumpPower, pumpToughness = effects.CastPumpBonus(f.SpellAbility())
-				}
+				pumpPower, pumpToughness = effects.CastPumpBonus(f.SpellAbility())
 			}
 		}
 		b.Stack = append(b.Stack, StackEntry{ID: id, Controller: o.Controller, IsSpell: o.Ability == nil, CMC: cmc, ManaCost: manaCost, PumpPower: pumpPower, PumpToughness: pumpToughness})
@@ -257,7 +252,7 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 			pumpPower, pumpToughness := effects.CastPumpBonus(f.SpellAbility())
 			pumpOwnCombatants := effects.CastPumpOwnCombatants(f.SpellAbility())
 			b.Cards[id] = Card{
-				PrintedName:    f.Name,
+				PrintedName:    cardName(namer, id, f),
 				Creature:       hasTypeWord(words, "Creature"),
 				Power:          power,
 				Toughness:      toughness,
@@ -320,13 +315,10 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 			if o == nil || o.Face() == nil || o.Ephemeral() {
 				continue
 			}
-			if o.FaceDown {
-				// CR 708.5 redaction parity: another seat's facedown
-				// permanent projects as a stripped CardView (ID, Controller,
-				// Owner, nothing printed), so the view half's fillZone lands
-				// a zero-fact entry for it and this half writes the same
-				// entry, never a printed-face fact the voter cannot see.
-				b.Cards[id] = Card{}
+			if o.FaceDown && !mayLookFaceDown(o, nil, me) {
+				// CR 708.2/708.5: only the face-down characteristics show.
+				cr := b.Creatures[id]
+				b.Cards[id] = faceDownCard(faceDownTypeWords(id, ch), cr.Power, cr.Toughness)
 				continue
 			}
 			var power, toughness int32
@@ -345,8 +337,12 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 			}
 			f := o.Face()
 			words := effectiveTypeWords(f, id, ch)
+			var foreignName string
+			if !o.FaceDown {
+				foreignName = cardName(namer, id, f)
+			}
 			b.Cards[id] = Card{
-				PrintedName:    f.Name,
+				PrintedName:    foreignName,
 				Creature:       hasTypeWord(words, "Creature"),
 				Power:          power,
 				CMC:            cmcOfFace(f),

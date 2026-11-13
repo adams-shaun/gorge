@@ -116,7 +116,6 @@ type lowerCtx struct {
 	imprintMox     bool      // the face is the imprint-mox shape: its two static bookkeeping triggers lower to nothing (lower_imprintmox.go)
 	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff; Yue's hand population, playOwnHand)
 	animAll        bool      // lowering an AnimateAll: animateRemoveKeywords accepts a bare RemoveKeywords$ (gorge effAnimateAll reads it)
-	speedRepl      bool      // lowering a max-speed static's granted replacement: damagePlus reads ValidTarget$ Player.Opponent (lower_maxspeedrepl.go)
 	replEnter      bool      // inside an ETB replacement's ReplaceWith chain
 	breachStage    int       // Breach the Multiverse's imprint chain: 1 the ChangeZone of Imprinted is next, 2 the Cleanup (lower_repeatgravechoice.go)
 	exileLandStage int       // Ensign Pavel Chekov's imprint chain: 1 the Imprinted Effect is next, 2 the Cleanup (lower_repeatexilechoice.go)
@@ -3138,7 +3137,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			// (Cryptex); a hand / graveyard ability is not modelled
 			return refuse("evidence cost on a mana ability or outside a battlefield ability")
 		}
-		if ps.is("Planeswalker", "True") {
+		if loyaltyMarked(ps.str("Planeswalker")) {
 			ab.Loyalty = true
 			ab.Sorcery = true
 		}

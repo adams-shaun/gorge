@@ -384,7 +384,7 @@ func (pr *targetCostProbe) verdict(targets, rootTargets, allTargets []state.Targ
 		// the spell's mana value prices this target at it
 		mods = pc.withDefiler(e.costModifiersForTargetsX(pc.player, pc.card, scope, targets, pc.x))
 	}
-	cost := mods.Apply(pc.resolvedMana())
+	cost := mods.ApplyTaxed(pc.resolvedMana(), pc.taxGeneric)
 	if pc.ownReduce > 0 {
 		if n := e.ownReduceCost(pc.player, pc.card, e.pcAbility(pc), rootTargets, allTargets, pc.abilityMerged); n < pc.ownReduce {
 			cost.Generic = addClampedGeneric(cost.Generic, int64(pc.ownReduce-n))
@@ -440,7 +440,6 @@ func (pr *targetCostProbe) verdict(targets, rootTargets, allTargets []state.Targ
 		cost.Exile = kept
 		break
 	}
-	cost.Generic = addClampedGeneric(cost.Generic, int64(pc.taxGeneric))
 	if !pc.isAbility() {
 		cost.Generic -= int32(len(pc.delve))
 		if cost.Generic < 0 {
@@ -514,19 +513,19 @@ func (pr *targetCostProbe) verdict(targets, rootTargets, allTargets []state.Targ
 
 // manaToPay is the CR 601.2f total-cost composition for pc: resolvedMana
 // ({X} folded and flexible-pip announcement recorded), then cost increases
-// and reductions, then the CR 903.8 commander tax. Delve credit is the
-// caller's concern (targetAsk/payCast subtract pc.delve from Generic).
+// plus the CR 903.8 commander tax, then cost increases and reductions over
+// that total (pay.CostMods.ApplyTaxedTo). Delve credit is the caller's
+// concern (targetAsk/payCast subtract pc.delve from Generic).
 func (e *Engine) manaToPay(pc *pendingCast) Cost {
-	m := pc.mods.Apply(pc.resolvedMana())
+	m := pc.mods.ApplyTaxed(pc.resolvedMana(), pc.taxGeneric)
 	if e.costRepricesOnX(pc) {
 		// The announced sacrifice count re-prices the ReduceCost statics that
 		// read the paid X (Dargo's {2}-less-per-sacrifice): the offer-time
 		// pc.mods snapshot was bound to X=0.
 		if scope, ok := e.pendingCastScope(pc); ok {
-			m = pc.withDefiler(e.costModifiersForTargetsX(pc.player, pc.card, scope, pc.allTargets(), pc.x)).Apply(pc.resolvedMana())
+			m = pc.withDefiler(e.costModifiersForTargetsX(pc.player, pc.card, scope, pc.allTargets(), pc.x)).ApplyTaxed(pc.resolvedMana(), pc.taxGeneric)
 		}
 	}
-	m.Generic += pc.taxGeneric
 	return m
 }
 

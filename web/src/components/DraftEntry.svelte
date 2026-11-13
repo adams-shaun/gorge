@@ -1,6 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { fetchCapabilities } from '../lib/api';
+  import { listEventSets } from '../lib/eventapi';
+  import { commanderLabel, commanderSets } from '../lib/newevent';
+  import type { EventSetInfo } from '../protocol';
 
   /**
    * The lobby's draft-event entry point, beside "Play 1v1 vs a bot": a
@@ -10,16 +13,28 @@
    * gate counts any 4xx as a browser failure). A failed fetch leaves it
    * hidden. initialEnabled seeds the answer for the SSR test harness, where
    * onMount never runs.
+   *
+   * With events on, it also reads the set catalogue: a set the server hosts
+   * a Commander draft for (EventSetInfo.commander) adds a second button,
+   * straight to the create screen in that mode.
    */
   let { initialEnabled = false }: { initialEnabled?: boolean } = $props();
   // svelte-ignore state_referenced_locally
   let enabled = $state(initialEnabled);
+  let sets = $state<EventSetInfo[]>([]);
+  const commander = $derived(commanderSets(sets).length > 0);
 
   onMount(async () => {
     try {
       enabled = (await fetchCapabilities()).events;
     } catch {
       enabled = false;
+    }
+    if (!enabled) return;
+    try {
+      sets = (await listEventSets()) ?? [];
+    } catch {
+      sets = [];
     }
   });
 </script>
@@ -32,6 +47,15 @@
     </div>
     <a class="draft" href="/events/new" data-testid="draft-button">Draft</a>
   </div>
+  {#if commander}
+    <div class="draftentry" data-testid="commander-draft-entry">
+      <div class="text">
+        <h2>{commanderLabel(sets)}</h2>
+        <p class="hint">Draft commanders with the pod, build around one or a partnered pair, then play a four-player Commander free-for-all.</p>
+      </div>
+      <a class="draft" href="/events/new?mode=commander" data-testid="commander-draft-button">Commander draft</a>
+    </div>
+  {/if}
 {/if}
 
 <style>

@@ -342,6 +342,10 @@ func (s *State) StackEntry(i int) (kind uint8, src Obj, card CardID, ctrl uint8)
 	return e.kind, e.obj, e.card, e.ctrl
 }
 
+// StackFaceDown reports whether stack entry i is a face-down permanent spell
+// (Morph, Megamorph or Disguise cast face down, CR 708.4).
+func (s *State) StackFaceDown(i int) bool { return s.stack[i].faceDown() }
+
 // Damage is battlefield object o's marked damage.
 func (s *State) Damage(o Obj) int {
 	ob := &s.objs[o]

@@ -1291,10 +1291,14 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				// abilities only): it is appended with the choice-shaped ones,
 				// in battlefield order (paymentPlanManaUnitsOnlyCompute)
 				choice = choice || sac
-				if choice && !sac && k.gen != nil && len(k.gen.grantPC) > 0 && s.grantMay(k, sl) && s.grantsFixedMana(k, sl) {
-					// a grant of fixed production (Rok-Tahk's {G}{G} to a creature) makes the
-					// source's census unit in the shared census, at its battlefield position;
-					// its own choice-shaped ability joins that unit
+				// a grant of fixed production (Rok-Tahk's {G}{G} to a creature,
+				// Rishkar's {G} to a creature with a counter) makes the source's
+				// census unit in the shared census, at its battlefield position;
+				// its own choice-shaped or evaluated-amount ability joins that unit
+				// (pay.AppendUnitAlt: Ilysian Caryatid's two of one colour, pairs
+				// 231, 1120)
+				fixedGrant := (choice || pc.manaDyn) && !sac && k.gen != nil && len(k.gen.grantPC) > 0 && s.grantMay(k, sl) && s.grantsFixedMana(k, sl)
+				if fixedGrant {
 					choice = false
 				}
 				if rk[i] != 0 {
@@ -1319,7 +1323,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 						continue
 					}
 				}
-				if pc.manaDyn {
+				if pc.manaDyn && !fixedGrant {
 					if pass != 2 {
 						continue
 					}

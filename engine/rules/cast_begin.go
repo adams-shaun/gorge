@@ -717,20 +717,18 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		e.cast.altOnlyTag = announceAlt.manaRestriction
 		e.cast.altCostPaid = faceWantsAltCost(e.G.Obj(id).Face())
 	}
-	// CR 903.8: the commander tax, applied to whatever cost this cast pays
+	// CR 903.8: the commander tax, owed on whatever cost this cast pays
 	// (the base/alternative/kicked/flashback/surged/miracle cost resolved
-	// above) -- the exact same commanderTaxFor the command-zone offer in
-	// legal.go gated castable on, over the same board, so this charge and
-	// that offer can never disagree. For a command-zone commander this is the
-	// plain base + the tax; for every other card/zone it passes cost through
-	// unchanged (commanderTaxFor is a no-op outside the Commander format and
-	// off the command zone). It lands AFTER cost modifiers and any keyword
-	// recast, so an additional cost is never reduced by them, in line with how
-	// Kicker's own additional cost composes.
+	// above) -- the exact same commanderTaxAmount the command-zone offer
+	// gated castable on, over the same board, so this charge and that offer
+	// can never disagree. It is 0 outside the Commander format and off the
+	// command zone.
 	//
 	// The tax is captured as a separate generic amount (taxGeneric) rather
-	// than folded into cost, so manaToPay adds it AFTER the 601.2f modifiers
-	// and never lets those spill onto it.
+	// than folded into cost, because every non-mana stage reads pc.cost; each
+	// composition (manaToPay and the window probes) joins it to the total
+	// generic BEFORE the 601.2f modifiers, so a reduction may take it off and
+	// a floor measures it (pay.CostMods.ApplyTaxedTo).
 	if opt.Mode == "suspend" {
 		if sc, ok := suspendCost(f); ok && sc.timeX {
 			e.cast.suspendTimeX, e.cast.suspendMinX = true, sc.minTime

@@ -72,7 +72,7 @@ flowchart TD
   E --> F["targetAsk (CR 601.2c)<br/>+ sub-ability targets"]
   F --> FE{"a legal choice exists<br/>for every mandatory target?"}
   FE -- no --> AB["abortCast: CR 733.1 reversal"]
-  FE -- yes --> G["total cost (CR 601.2f):<br/>increases, reductions, commander tax,<br/>repriced for the chosen targets"]
+  FE -- yes --> G["total cost (CR 601.2f):<br/>commander tax, then increases and reductions,<br/>repriced for the chosen targets"]
   G --> H["payCast: mana-ability window (CR 601.2g),<br/>pay mana and non-mana costs (CR 601.2h)"]
   H -- "cost no longer payable" --> AB
   H --> I["CastInfo events, then<br/>'when you cast' triggers (CR 601.2i)"]

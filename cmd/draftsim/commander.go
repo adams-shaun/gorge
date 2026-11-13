@@ -123,6 +123,11 @@ func playPodGames(r *runner, e *event.Event, verify bool) ([]gameRecord, error) 
 			return nil, fmt.Errorf("pod game %d: %w", round, err)
 		}
 		rec := gameRecord{round: round, head: eng.L.Head(), turns: int(oc.Turns), intents: oc.Intents}
+		if r.valueLog != nil && !bench.IsAbort(oc.StallOn) {
+			if err := writeValueLine(r.valueLog, e.Seed(), round, seed, oc, eng, decks); err != nil {
+				return nil, fmt.Errorf("pod game %d: -valuelog: %w", round, err)
+			}
+		}
 		switch {
 		case bench.IsAbort(oc.StallOn):
 			return nil, fmt.Errorf("pod game %d seed %d: engine aborted (%s): %s", round, seed, oc.StallOn, firstLine(oc.Livelock))

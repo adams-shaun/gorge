@@ -57,12 +57,7 @@ func (lc *lowerCtx) damagePlus(rp *params, w *cards.SA, rl *lRepl) (bool, error)
 	bits := 0
 	for _, t := range strings.Split(rp.str("ValidTarget"), ",") {
 		switch strings.TrimSpace(t) {
-		case "Opponent":
-			bits |= kop.ReplDmgOppPlayer
-		case "Player.Opponent": // gorge's player spec reads both alike; only Far Fortune's granted replacement is lockstep-checked
-			if !lc.speedRepl {
-				return true, refuse("repl-hard: DamageDone plus ValidTarget %q", rp.str("ValidTarget"))
-			}
+		case "Opponent", "Player.Opponent": // gorge's player spec reads both alike (Torbran, Far Fortune's granted replacement)
 			bits |= kop.ReplDmgOppPlayer
 		case "Permanent.OppCtrl":
 			bits |= kop.ReplDmgOppPerm

@@ -1,9 +1,11 @@
 package pickbot
 
 import (
+	"fmt"
 	"math/bits"
 	"math/rand/v2"
 	"sort"
+	"strings"
 
 	"github.com/adams-shaun/gorge/draft/limited"
 	"github.com/adams-shaun/gorge/draft/limited/build"
@@ -160,60 +162,113 @@ func bestOption(cs []cmdrCard) (cmdrOption, bool) {
 }
 
 // CommanderDrafter is the Commander-draft drafter: it rates each pack card
-// by Heuristic, takes a commander while its pool has none, and from
-// cmdrCommitPick picks on drafts inside its best commander option's colour
-// identity, valuing a commander that pairs with that option.
+// by Heuristic (or Value, when set), takes a commander while its pool has
+// none, and from cmdrCommitPick picks on drafts inside its best commander
+// option's colour identity, valuing a commander that pairs with that option.
 type CommanderDrafter struct {
 	Lookup CardLookup
+	// Value, when non-nil, replaces Heuristic as a nonland card's value
+	// (a learned or simulated value table); nil keeps Heuristic.
+	Value func(c *cards.Card, ref limited.CardRef) float64
 }
 
-// Pick returns the pack card the drafter values most; r breaks ties.
-func (d *CommanderDrafter) Pick(v PickView, r *rand.Rand) string {
+// PickAdvice is one pack card's rating by the Commander drafter, split into
+// the terms a player can read: Value (the card's own strength), Commander
+// (the commander bonus: none in the pool yet, or a pair for the plan) and
+// Identity (inside, outside or open to the plan's colour identity). Score is
+// their sum, the number Pick maximises; Reason spells the terms.
+type PickAdvice struct {
+	ID        string
+	Score     float64
+	Value     float64
+	Commander float64
+	Identity  float64
+	Reason    string
+}
+
+// facts is cmdrFacts with the drafter's Value override.
+func (d *CommanderDrafter) facts(ref limited.CardRef) cmdrCard {
+	c := cmdrFacts(d.Lookup, ref)
+	if d.Value != nil && c.card != nil && !c.land {
+		c.value = d.Value(c.card, ref)
+	}
+	return c
+}
+
+// Rank rates every pack card in pack order, and names the plan's colour
+// identity ("" before the pool holds a commander).
+func (d *CommanderDrafter) Rank(v PickView) ([]PickAdvice, uint8) {
 	pool := make([]cmdrCard, len(v.Picks))
 	for i, ref := range v.Picks {
-		pool[i] = cmdrFacts(d.Lookup, ref)
+		pool[i] = d.facts(ref)
 	}
 	plan, committed := bestOption(pool)
 	hasCommander := committed
 	committed = committed && len(pool) >= cmdrCommitPick
 	var lead *cards.Card
+	var planMask uint8
 	if hasCommander {
 		lead = pool[plan.idx[0]].card
+		planMask = plan.mask
 	}
 	// open: the plan is one commander that may still take a partner, so a
 	// card one colour outside its identity may yet be played.
 	open := hasCommander && len(plan.idx) == 1 && (hasPlainPartnerCard(lead) || deck.HasImpliedDraftPartner(lead))
 
-	bestID, bestScore := "", 0.0
+	out := make([]PickAdvice, len(v.Pack))
 	for i, ref := range v.Pack {
-		c := cmdrFacts(d.Lookup, ref)
-		score := c.value
+		c := d.facts(ref)
+		a := PickAdvice{ID: ref.ID, Value: c.value}
+		var why []string
+		why = append(why, fmt.Sprintf("value %.1f", c.value))
 		if c.commander {
 			switch {
 			case !hasCommander:
-				score += cmdrBonus
+				a.Commander = cmdrBonus
+				why = append(why, "a commander, and you have none yet")
 			case len(plan.idx) == 1 && deck.IsDraftCommanderPair(lead, c.card):
-				score += cmdrPairBonus
+				a.Commander = cmdrPairBonus
+				why = append(why, "pairs with "+lead.Faces[0].Name)
 			}
 		}
 		if committed && !c.land {
 			switch {
 			case c.mask&^plan.mask == 0:
-				score += onIdentity
+				a.Identity = onIdentity
+				why = append(why, "inside your commander's colours")
 			case c.commander && len(plan.idx) == 1 && deck.IsDraftCommanderPair(lead, c.card):
 				// a pairing commander widens the identity: no penalty
 			case open && bits.OnesCount8(c.mask&^plan.mask) <= 1:
 				// playable once a partner joins: neither bonus nor penalty
+				why = append(why, "playable if a partner joins")
 			default:
-				score += offIdentity
+				a.Identity = offIdentity
+				why = append(why, "outside your commander's colours")
 			}
 		}
-		if committed && c.land && c.mask&^plan.mask != 0 {
-			score = 0
+		a.Score = c.value + a.Commander + a.Identity
+		if committed && c.land {
+			if c.mask&^plan.mask != 0 {
+				a.Score = 0
+				why = append(why, "land outside your colours")
+			} else if c.mask != 0 {
+				why = append(why, "fixing for your colours")
+			}
 		}
-		score += r.Float64() * 1e-6
+		a.Reason = strings.Join(why, "; ")
+		out[i] = a
+	}
+	return out, planMask
+}
+
+// Pick returns the pack card the drafter values most; r breaks ties.
+func (d *CommanderDrafter) Pick(v PickView, r *rand.Rand) string {
+	ranked, _ := d.Rank(v)
+	bestID, bestScore := "", 0.0
+	for i, a := range ranked {
+		score := a.Score + r.Float64()*1e-6
 		if i == 0 || score > bestScore {
-			bestID, bestScore = ref.ID, score
+			bestID, bestScore = a.ID, score
 		}
 	}
 	return bestID

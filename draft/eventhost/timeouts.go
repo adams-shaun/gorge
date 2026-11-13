@@ -170,6 +170,9 @@ func (r *run) fillLobbyWithBots() bool {
 		ms.Kind = "bot"
 		ms.Policy = policy
 		ms.Drafter = "rating-colour"
+		if r.meta.commander() {
+			ms.Drafter = commanderDrafter
+		}
 		ms.Name = fmt.Sprintf("Bot %d (%s)", s+1, policy)
 		ms.TokenSHA256 = ""
 		r.meta.Seats[s] = ms

@@ -2021,6 +2021,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefPromised, nil
 	case rAttachedCtrl:
 		return kop.RefAttachedCtrl, nil
+	case rChosenPlayer:
+		return kop.RefChosenPlayer, nil
 	case rLastCreated:
 		return kop.RefLastCreated, nil
 	case rTaxedAttacker:
