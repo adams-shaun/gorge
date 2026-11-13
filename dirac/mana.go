@@ -1259,8 +1259,14 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				sacOnly := s.canSacOnlyForMana(k, sl, pc)
 				sac := pc.manaSac || sacOnly
-				if phase == 0 && sac {
-					hasSac = true // last resort: a sacrificing source
+				// a source whose own printed "doesn't untap during your untap
+				// step" (Grim Monolith, Basalt Monolith, Mana Vault) is last
+				// resort too, with consequence no_untap (gorge
+				// paymentPlanSourceInterference over the printed face: an
+				// ability loss does not lift it)
+				noUntap := k.cards[s.cardAt(sl)].noUntap
+				if phase == 0 && (sac || noUntap) {
+					hasSac = true // last resort: a sacrificing or non-untapping source
 					continue
 				}
 				if sac && pk.kept.any() && pk.kept.has(sl) {
@@ -1375,10 +1381,23 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					fl = painFlexAll(pc, xc, xp) // the withheld painful alternative's colours still count
 				}
 				rb := pc.restrFloat
+				// key 1's irreversible cost of one unit (pay.ConsequenceCost:
+				// 10 a sacrificed source, 20 a creature; 25 one that does not
+				// untap next untap step)
+				irr := uint8(0)
+				if sac {
+					irr = 10
+					if cr {
+						irr = 20
+					}
+				}
+				if noUntap {
+					irr += 25
+				}
 				ti := -1
 				for t := 0; t < pk.nt; t++ {
 					ty := &pk.types[t]
-					if ty.mask == mask && ty.dmask == dmk && ty.n == tn && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == 0 && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv && ty.rb == rb {
+					if ty.mask == mask && ty.dmask == dmk && ty.n == tn && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == 0 && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv && ty.rb == rb && ty.irr == irr {
 						ti = t
 						break
 					}
@@ -1389,13 +1408,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					}
 					ti = pk.nt
 					pk.nt++
-					pk.types[ti] = utype{mask: mask, dmask: dmk, n: tn, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: sac, first: first, printed: printed, xv: xv, xmask: xm, xt: xt, rb: rb}
-					if sac {
-						pk.types[ti].irr = 10
-						if cr {
-							pk.types[ti].irr = 20
-						}
-					}
+					pk.types[ti] = utype{mask: mask, dmask: dmk, n: tn, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: sac || noUntap, first: first, printed: printed, xv: xv, xmask: xm, xt: xt, rb: rb, irr: irr}
 					pk.maxXt = pk.maxXt || xt != 0
 					if int(tn)+int(xt) > pk.maxN {
 						pk.maxN = int(tn) + int(xt)
@@ -1419,7 +1432,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					pk.rAb[pk.nu] = ra[i] // the widened view's restricted ability
 				}
 				pk.nu++
-				if sac {
+				if sac || noUntap {
 					// a last-resort source has no normal alternative, so
 					// its colours are 0 in gorge's census: keys 6 and 7
 					// read the untapped NORMAL remainder in both phases
