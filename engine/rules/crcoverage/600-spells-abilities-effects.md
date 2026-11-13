@@ -168,7 +168,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 609.7c | unknown | - | - |  |
 | 610.1 | definition | - | - | - |
 | 610.2 | unknown | - | - | deferred to 603.7 slice |
-| 610.3-610.3b | follows | `engine/effects/zone_change.go#exileHostGoneFor` `engine/effects/zone_change.go#changeZonePrelude` `engine/rules/emit.go#Engine.sweepExileReturn` | `TestCR610_3AuraReturnFindsTheBoardAfterTheDestroyAll` `TestCR610_3AuraReturnEnchantsTheSurvivor` `TestCR610_3AuraReturnFindsTheBoardAfterLethalDamage` | host gone: no exile (610.3a/b); a departure in a zone batch returns its cards when the batch closes |
+| 610.3-610.3b | follows | `engine/effects/zone_change.go#exileHostGoneFor` `engine/effects/zone_change.go#changeZonePrelude` `engine/rules/emit.go#Engine.sweepExileReturn` `engine/effects/zone_change.go#exileUntilOpponentMonarchMet` | `TestCR610_3AuraReturnFindsTheBoardAfterTheDestroyAll` `TestCR610_3AuraReturnEnchantsTheSurvivor` `TestCR610_3AuraReturnFindsTheBoardAfterLethalDamage` `TestPalaceJailerExilesNothingWhenOpponentTookCrownAfterTrigger` `TestPalaceJailerExilesWhenOpponentWasMonarchBeforeTrigger` | host gone: no exile (610.3a/b); an opponent became the monarch after the push: no exile (610.3b, push-time stamp); a departure in a zone batch returns its cards when the batch closes |
 | 610.3c | unknown | - | - | returns under owner |
 | 610.3d | partial | `engine/rules/emit.go#Engine.flushExileReturns` | `TestCR610_3dReturnsFromOneEventAreSimultaneous` | one zone batch for triggers; the moves are ordered, so a returning Aura can choose a creature returning with it |
 | 610.4-610.4d | unknown | - | - | phase out "until" |

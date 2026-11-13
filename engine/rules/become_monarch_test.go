@@ -199,6 +199,13 @@ func TestPalaceJailerComeBackRegistersAndFiresOnOpponentMonarch(t *testing.T) {
 	if body == nil || body.API != "Effect" {
 		t.Fatal("precondition: Palace Jailer DBEffect is missing")
 	}
+	// Complete Palace Jailer’s real ETB consequence: the remembered opponent
+	// creature is in exile when the opponent later takes the crown.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: victim,
+		From: state.ZBattlefield, To: state.ZExile})
+	if got := e.G.Obj(victim).Zone; got != state.ZExile {
+		t.Fatalf("precondition: Palace Jailer victim zone = %s, want exile", got)
+	}
 	// The real ETB effect's remembered target is the creature it exiled.
 	effects.Resolve(e, &effects.Ctx{Source: jailer, Controller: 0,
 		Remembered: []state.Target{{Obj: victim}}, Captured: []state.Target{{Obj: victim}}}, body)
@@ -207,13 +214,6 @@ func TestPalaceJailerComeBackRegistersAndFiresOnOpponentMonarch(t *testing.T) {
 	}
 	if e.G.IsMonarch(1) {
 		t.Fatal("precondition: opponent already held the monarch designation")
-	}
-	// Complete Palace Jailer’s real ETB consequence: the remembered opponent
-	// creature is in exile when the opponent later takes the crown.
-	e.emit(events.Event{Kind: events.MoveZone, Obj: victim,
-		From: state.ZBattlefield, To: state.ZExile})
-	if got := e.G.Obj(victim).Zone; got != state.ZExile {
-		t.Fatalf("precondition: Palace Jailer victim zone = %s, want exile", got)
 	}
 
 	e.emit(events.Event{Kind: events.MonarchChange, Player: 1})

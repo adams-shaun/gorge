@@ -171,7 +171,16 @@ func ApplyPtr(g *state.Game, e *Event) {
 func stampPushedAbilitySources(g *state.Game, n int) {
 	for _, id := range g.Stack[n:] {
 		o := g.Obj(id)
-		if o == nil || o.Ability == nil || o.Source == 0 || o.PushSourceStamped {
+		if o == nil {
+			continue
+		}
+		// CR 610.3a/b's "after it was put on the stack" moment. A copied
+		// ability keeps the original's stamp (apply_copy inherits it with
+		// the PushSource* stamp), so only an uncopied object is stamped.
+		if !o.IsCopy || o.Ability == nil || !o.PushSourceStamped {
+			o.PushMonarchSeq = g.MonarchSeq
+		}
+		if o.Ability == nil || o.Source == 0 || o.PushSourceStamped {
 			continue
 		}
 		o.PushSourceStamped = true

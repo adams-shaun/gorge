@@ -42,6 +42,11 @@ func TestPalaceJailerReturnsToThirdSeatOpponentMonarch(t *testing.T) {
 	if body == nil || body.API != "Effect" {
 		t.Fatal("precondition: Palace Jailer DBEffect is missing")
 	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: victim,
+		From: state.ZBattlefield, To: state.ZExile})
+	if got := e.G.Obj(victim).Zone; got != state.ZExile {
+		t.Fatalf("precondition: victim zone = %s, want exile", got)
+	}
 	// Resolve Palace Jailer's real Effect body (RememberObjects$ You &
 	// Targeted) as its controller seat 0, remembering the creature it exiled.
 	effects.Resolve(e, &effects.Ctx{Source: jailer, Controller: 0,
@@ -51,12 +56,6 @@ func TestPalaceJailerReturnsToThirdSeatOpponentMonarch(t *testing.T) {
 	}
 	if e.G.Delayed[0].Controller != 0 {
 		t.Fatalf("registration controller = %d, want seat 0 (the jailer's controller)", e.G.Delayed[0].Controller)
-	}
-
-	e.emit(events.Event{Kind: events.MoveZone, Obj: victim,
-		From: state.ZBattlefield, To: state.ZExile})
-	if got := e.G.Obj(victim).Zone; got != state.ZExile {
-		t.Fatalf("precondition: victim zone = %s, want exile", got)
 	}
 
 	// Seat 2 -- an opponent of seat 0, but NOT the exiled creature's own
@@ -83,13 +82,13 @@ func TestPalaceJailerStaysExiledWhenJailerControllerTakesCrown(t *testing.T) {
 	if body == nil || body.API != "Effect" {
 		t.Fatal("precondition: Palace Jailer DBEffect is missing")
 	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: victim,
+		From: state.ZBattlefield, To: state.ZExile})
 	effects.Resolve(e, &effects.Ctx{Source: jailer, Controller: 0,
 		Remembered: []state.Target{{Obj: victim}}, Captured: []state.Target{{Obj: victim}}}, body)
 	if len(e.G.Delayed) != 1 || e.G.Delayed[0].EventMode != "BecomeMonarch" {
 		t.Fatalf("precondition: want one BecomeMonarch registration, got %+v", e.G.Delayed)
 	}
-	e.emit(events.Event{Kind: events.MoveZone, Obj: victim,
-		From: state.ZBattlefield, To: state.ZExile})
 
 	// The jailer's own controller (seat 0) becomes the monarch: not an
 	// opponent, so the creature stays exiled.

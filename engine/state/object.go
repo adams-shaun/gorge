@@ -1133,6 +1133,11 @@ type Object struct {
 	// copy inherits both with the other three.
 	PushSourceZoneGen uint32
 	PushSourceZone    Zone
+	// PushMonarchSeq is Game.MonarchSeq when events.Apply put this object
+	// on the stack (a stack copy inherits it): a player whose
+	// BecameMonarchSeq is higher became the monarch after the push (CR
+	// 610.3b, Palace Jailer).
+	PushMonarchSeq uint32
 	// GrantedBy is the GRANTOR of a cross-object granted activated ability
 	// (events.GrantAbilityPush's IDs[0], CR 613.1f): the Equipment or Aura
 	// whose static gives the recipient (Source) the ability. Forge's
