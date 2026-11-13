@@ -146,7 +146,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
 	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
-	"ALL": {23525, 34442},
+	// +13 (MBC api-params-4: GainControl AllValid$ lowered as an object-order OpGainControl sweep, AIManaPref$ ignored as an AI hint: Aura Thief, Basalt Monolith, Brand, Broadcast Takeover, Gruul Charm, Insurrection, Karrthus, Tyrant of Jund, Mob Rule, Rowan, Fearless Sparkmage, Tevesh Szat, Doom of Fools, Tibalt, the Fiend-Blooded, Tribute to Horobi, Varchild, Betrayer of Kjeldor; ALL 23525 -> 23538, MBC 1740 -> 1743, NEO 201 -> 202 (Tribute to Horobi), TMT 183 -> 184 (Broadcast Takeover) measured).
+	"ALL": {23538, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {220, 280},
@@ -161,11 +162,12 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
-	"MBC": {1740, 2188},
+	// +3 (api-params-4: Basalt Monolith, Tevesh Szat, Doom of Fools, Varchild, Betrayer of Kjeldor; 1740 -> 1743 measured).
+	"MBC": {1743, 2188},
 	"MKM": {251, 279},
 	"MOM": {203, 296},
 	"MSH": {246, 276},
-	"NEO": {201, 287},
+	"NEO": {202, 287},
 	"ONE": {201, 271},
 	"OTJ": {252, 276},
 	"SNC": {187, 266},
@@ -173,7 +175,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"SPM": {169, 192},
 	"TDM": {256, 276},
 	"TLA": {261, 285},
-	"TMT": {183, 194},
+	"TMT": {184, 194},
 	"TRC": {301, 337},
 	"TRK": {311, 311},
 	"WOE": {264, 281},
