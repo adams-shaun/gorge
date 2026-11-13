@@ -232,6 +232,9 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 			// Player): with two seats, always the attacker's opponent --
 			// a planeswalker's controller or a battle's protector included
 			o.named = int8(1 - d.Player&1)
+			if e.v.n > 2 {
+				o.named = int8(e.st0.FeatAttackDefender(tgt))
+			}
 			// gorge marks every pair of a creature that attacks each
 			// combat if able Required (rules mustAttackRequired)
 			o.required = e.st0.MustAttack(dirac.Obj(src))
@@ -250,7 +253,7 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 		switch {
 		case a.Kind() == dirac.AkDone || tgt == dirac.NoTarget:
 			o.kind = okDone // closing a multi-object slot / declining "up to one"
-		case tgt == dirac.PlayerTarget0 || tgt == dirac.PlayerTarget1:
+		case tgt >= dirac.PlayerTarget0 && tgt < dirac.PlayerTarget0+dirac.MaxSeats:
 			o.kind, o.player = okPlayer, true
 			o.named = int8(tgt - dirac.PlayerTarget0)
 		default:
@@ -402,7 +405,7 @@ func (e *Encoder) lookup(o uint8) (cref, bool) {
 		return cref{}, false
 	}
 	v := &e.v
-	me, opp := &v.players[v.seat&1], &v.players[1-v.seat&1]
+	me, opp := v.sides()
 	for zi, l := range [4][]int32{me.hand, me.bf, me.grave, me.exile} {
 		zone := [4]int{zHand, zBattlefield, zGraveyard, zExile}[zi]
 		for _, ci := range l {
@@ -457,7 +460,7 @@ func (e *Encoder) entRef(o uint8) int32 {
 		}
 		return false
 	}
-	me, opp := &v.players[v.seat&1], &v.players[1-v.seat&1]
+	me, opp := v.sides()
 	for _, l := range [3][]int32{me.bf, opp.bf, me.hand} {
 		for _, ci := range l {
 			if visit(ci) {
@@ -606,8 +609,11 @@ func (e *Encoder) encodeOption(out *Option, o optIn, idx, n int) {
 	}
 	d[7] = b2f(isPlayer)
 	if o.named >= 0 {
-		// the relative seat: 0 me, 1 the opponent (policynet odSeat0..)
-		d[24+int((o.named-int8(e.v.seat&1))&1)] = 1
+		// the relative seat in turn order from the viewer (policynet
+		// odSeat0..), past the fourth unwritten
+		if r := e.v.relSeat(uint8(o.named)); r < maxSeatBlocks {
+			d[24+r] = 1
+		}
 	}
 	var aref cref
 	haveAtk := false
@@ -623,7 +629,7 @@ func (e *Encoder) encodeOption(out *Option, o optIn, idx, n int) {
 		}
 	}
 	if mv > 0 {
-		avail := float32(e.v.players[e.v.seat&1].avail)
+		avail := float32(e.v.players[e.v.seat].avail)
 		d[12] = float32(mv)
 		d[13] = float32(mv) - avail
 		if float32(mv) > avail {
