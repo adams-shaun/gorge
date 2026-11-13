@@ -1358,6 +1358,10 @@ func (s *State) execDamageEx(k *prep, in *kop.Instr) {
 		}
 		return
 	}
+	if in.C&kop.DmgNoPrevention != 0 {
+		s.res.noPrev = true // static_cantprevent.go: read by every prevention gate during this damage
+		defer func() { s.res.noPrev = false }()
+	}
 	if isObjTarget(code) && s.objs[code].zone == kop.ZoneBattlefield {
 		sl := s.objs[code].slot
 		lethal := 0

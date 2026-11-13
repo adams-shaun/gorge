@@ -919,6 +919,9 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 	e := &s.res.e
 	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
 		if s.parkNC(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, n, s.srcKw(k)) {
+			if s.res.noPrev {
+				s.capFull(StallNoPrevent) // the parked event's later pass would not know its damage can't be prevented
+			}
 			return n // gorge's replacement-order ask, after the resolution
 		}
 		if n = s.replDamage(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, false, n); n <= 0 {

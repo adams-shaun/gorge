@@ -31,8 +31,12 @@ var DebugNoPreventOff bool
 // noPrev reports whether damage can't be prevented now; combat says the
 // damage being prevented is combat damage (a StNoPrevCombat static, IsCombat$
 // True, reaches only that: gorge cantPreventDamage's combatDamaging).
+//
+// A resolving DealDamage NoPrevention$ True (kop.DmgNoPrevention, res.noPrev)
+// says the same for the damage it deals (gorge cantPreventDamage's
+// dmgNoPrevention).
 func (s *State) noPrev(k *prep, combat bool) bool {
-	return k.gen != nil && k.gen.anyNoPrev && s.noPrevLive(k, combat)
+	return k.gen != nil && (s.res.noPrev || k.gen.anyNoPrev && s.noPrevLive(k, combat))
 }
 
 // noPrevLive: a functioning StatCantPreventDamage static (a battlefield

@@ -2602,6 +2602,9 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 			return err
 		}
 	}
+	if err := lc.noPrevention(ps, &in); err != nil { // lower_noprevention.go
+		return err
+	}
 	if err := lc.damageDecider(ps, &in); err != nil { // lower_optional.go
 		return err
 	}
