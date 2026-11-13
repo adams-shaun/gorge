@@ -131,7 +131,7 @@ func TestPriorHungCodeFailsACleanContinuation(t *testing.T) {
 // priorHungEnv, and sees the marker frozen (nothing spins any more).
 func TestContinuationExecReplacesTheImage(t *testing.T) {
 	if os.Getenv(helperEnv) != "" {
-		t.Skip("helper test")
+		return // inside the helper process: only the helper test runs there
 	}
 	exe, err := os.Executable()
 	if err != nil {
@@ -166,7 +166,7 @@ func TestContinuationExecReplacesTheImage(t *testing.T) {
 // the exec'd image checks the release and fails the run (a prior segment hung).
 func TestHangReleasesItsCoreHelper(t *testing.T) {
 	if os.Getenv(helperEnv) == "" {
-		t.Skip("helper test")
+		return // an ordinary run: TestContinuationExecReplacesTheImage drives this
 	}
 	if *helperCont {
 		helperAfter()
