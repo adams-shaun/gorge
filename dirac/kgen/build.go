@@ -2240,6 +2240,9 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 	if v.Kind == vTimesKicked {
 		e.N = 1 // ExKicked N 1: the multikicker payment count (eval's timesKicked)
 	}
+	if v.Kind == vActivations {
+		e.N = int16(v.N) // ExActivations N 1: the evaluating source's count, an ActivationLimit$ gate (lower_activationlimitn.go)
+	}
 	if v.Kind == vThisTurnEntered {
 		e.N = int16(v.Zone)
 		e.From = v.From

@@ -3327,11 +3327,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				return err
 			}
 		}
-		if v, ok := ps.get("ActivationLimit"); ok {
-			if v != "1" {
-				return refuse("ActivationLimit %q", v)
-			}
-			ab.TurnOnce = true
+		actLimit, err := lc.activationLimit(sa, ps, ab) // lower_activationlimitn.go
+		if err != nil {
+			return err
 		}
 		if cost.AddCtr > 0 {
 			// a counter put on the source as a cost (CR 118.3): the
@@ -3455,6 +3453,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			}
 			ab.ActCond = andCond(ab.ActCond, lCond{Kind: cYourTurn})
 		}
+		ab.ActCond = andCond(ab.ActCond, actLimit)
 	default:
 		return refuse("ability kind %s", sa.Kind)
 	}
