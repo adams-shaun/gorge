@@ -1,0 +1,10 @@
+# A trigger's ManaSpent$ / ManaNotSpent$ clause gates on the cast's
+# per-colour spend (CR 601.2h): Court Hussar, Patagia Viper, Gruul Scrapper.
+# For dirac/oracle/mbcapiparams1_lockstep_test.go
+Court Hussar
+Patagia Viper
+Gruul Scrapper
+Island
+Forest
+Plains
+Mountain

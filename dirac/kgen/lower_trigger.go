@@ -1653,6 +1653,24 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		conds = append(conds, deliriumCond())
 	}
+	if v, ok := tp.get("ManaNotSpent"); ok {
+		// "sacrifice it unless {W} was spent to cast it" (CR 601.2h): the
+		// trigger fires only while the gate reads unspent, gorge
+		// trigger_condition.go manaColourSpendHolds
+		c, err := lc.trigManaSpendCond(v, true)
+		if err != nil {
+			return err
+		}
+		conds = append(conds, c)
+	}
+	if v, ok := tp.get("ManaSpent"); ok {
+		// "if {G} was spent to cast it, destroy target artifact" (CR 601.2h)
+		c, err := lc.trigManaSpendCond(v, false)
+		if err != nil {
+			return err
+		}
+		conds = append(conds, c)
+	}
 	if err := echoGate(tp, tr, ab, &conds, noResolve || fireOnly || giftSelf); err != nil { // lower_echo.go
 		return err
 	}
