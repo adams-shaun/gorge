@@ -1590,10 +1590,9 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	}
 	if t.Static {
 		// Static$ True resolves off the stack before
-		// the ordering ask; kgen already proved the body ask-free
-		if t.Event != "SpellCast" || t.OrCopy {
-			return kt, fmt.Errorf("Static$ True on a %s trigger", t.Event)
-		}
+		// the ordering ask; kgen already proved the body ask-free (the
+		// SpellCast arm's rider shapes, or the eventless-body gate every
+		// other mode lowers through)
 		kt.Flags3 |= kop.Tf3Static
 	}
 	if t.ManaFromTreasure {

@@ -73,6 +73,32 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	lc.ab, lc.chainT, lc.mode = ab, nil, -1
 	tp := newParams(t.Params)
 	tp.consume("Mode", "Execute")
+	// gorge resolveStaticTriggers (static_trigger.go) resolves a queued
+	// trigger whose line carries Static$ True off the stack, by the drain,
+	// before the CR 603.3b ordering ask — gated on its ask-free judgement
+	// (staticTriggerAskFree). The SpellCast arm (its mode case) keeps the
+	// stricter rider-shape proof it already lowers. Every other printed
+	// line reads the param here: a line with an optional/unless/cost rider
+	// (gorge TriggerLineMayAsk) never resolves off the stack — gorge keeps
+	// it in the queue and pushes it like any other trigger — so it lowers
+	// as the ordinary trigger it stays; a TapsForMana line is the CR 605.3b
+	// mana path (staticTriggerAskFree refuses it); the rest are the
+	// off-stack candidates the body's proof settles after it lowers. A
+	// registration (zone "Command") belongs to the delayed path
+	// (lower_delayed.go reads its Static$ there; gorge's fire-time
+	// DelayedStatic arm).
+	staticCand := false
+	if zone == "" && t.Mode != "SpellCast" {
+		if v, ok := tp.get("Static"); ok {
+			switch {
+			case v != "True":
+				return refuse("%s Static$ %q", t.Mode, v)
+			case cards.TriggerLineMayAsk(t), t.Mode == "TapsForMana":
+			default:
+				staticCand = true
+			}
+		}
+	}
 	tr := &lTrigger{Event: t.Mode}
 	ab.Trigger = tr
 	if z, ok := tp.get("TriggerZones"); ok {
@@ -1718,6 +1744,42 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if len(ab.Targets) != 0 || len(ab.Prog) != 1 || (ab.Prog[0].Op != "EffEtbCounters" && ab.Prog[0].Op != "EffFinalityCtr") {
 			return refuse("static SpellCast trigger body is not the proven ask-free rider shape")
 		}
+	}
+	if staticCand {
+		// The non-SpellCast off-stack candidate, settled against gorge's
+		// staticTriggerAskFree from text alone. CR 603.3d announces a
+		// triggered ability's targets on the stack; a static trigger never
+		// is, so any target refuses, as does a cost window on the body
+		// (triggerBodyNeedsCostWindow). Every chain API must be one of
+		// staticBodyCompetes' safe list whose mayask entry carries no
+		// replaceable event — {Animate, Cleanup, Effect, Pump, PumpAll,
+		// StoreSVar}: an event-proposing API's gate (a replacement on the
+		// board that can apply to the proposed event) is board-dependent,
+		// gorge keeps such a trigger on the stack when it fires and the
+		// kernel could not know when, so the card refuses rather than lower
+		// wrongly. The text half (SAChainMayAskCond) must also read ask-free
+		// with no conditional reason. Anything else refuses: the card stays
+		// out of the kernel rather than resolve from the wrong place.
+		if len(ab.Targets) != 0 {
+			return refuse("static trigger body carries an unannounced target")
+		}
+		if c := t.Effect.ParamStr(cards.PKCost); c != "" {
+			return refuse("static trigger body Cost$ %q", c)
+		}
+		for sa := t.Effect; sa != nil; sa = sa.Sub {
+			switch sa.API {
+			case "Animate", "Cleanup", "Effect", "Pump", "PumpAll", "StoreSVar":
+				// mayask's eventless APIs that staticBodyCompetes' safe
+				// list also holds: no board gate, no ask
+			default:
+				return refuse("static trigger body api %s resolves from the stack in gorge", sa.API)
+			}
+		}
+		may, cond := cards.SAChainMayAskCond(t.Effect, svars, lc.face, true)
+		if may || cond != 0 {
+			return refuse("static trigger body may ask (may %v cond %#x)", may, cond)
+		}
+		tr.Static = true
 	}
 	patchIfPaidSkips(ab)
 	return nil
