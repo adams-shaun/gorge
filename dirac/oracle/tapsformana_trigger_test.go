@@ -252,7 +252,7 @@ func TestTapsForManaTriggerRecord(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			set := printedDelveSet(t, c.decks)
 			for seed := uint64(1); seed <= 400; seed++ {
-				r := &Repro{Format: reproFormat, Decks: [2]string{c.name + "_0", c.name + "_1"}, Cards: c.decks, Seed: seed, PassElision: true, Surface: c.surface, Kernel: "custom"}
+				r := &Repro{Format: reproFormat, Decks: [2]string{c.name + "_0", c.name + "_1"}, Cards: c.decks, Seed: seed, PassElision: true, Surface: c.surface, Kernel: "custom", Pool: "custom"}
 				m, err := r.Matchup(reg)
 				if err != nil {
 					t.Fatal(err)
