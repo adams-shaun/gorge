@@ -1166,6 +1166,13 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !found {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
+		case head == "Dethrone":
+			// CR 702.105a: gorge kwDethrone expands it into an Attacks
+			// trigger (Dethrone$ True), lowered from that line
+			// (lower_dethrone.go)
+			if !lc.faceHasDethroneTrigger() {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
 		case head == "Evolve":
 			// CR 702.100a: gorge kwEvolve expands it into an ETB trigger
 			// (Evolve$ True) whose body puts a +1/+1 counter on Self,
