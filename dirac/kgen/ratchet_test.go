@@ -144,7 +144,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +16 (the merge with land at 1acc5919d9: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering beside land's later work; merged ALL 23115 -> 23131, WOE stays 264 measured).
 	// +14 (the merge with land at 6014a11d54: this branch's Extort lowering, the printed K:Extort expansion and the granted trigger, beside land's 23177; merged ALL 23177 -> 23191 measured).
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
-	"ALL": {23253, 34442},
+	// +40 (the MBC keywords-2 family: granted intimidate and infect, a static's Static.Evasion / Static.Infect or a Pump / PumpAll ExtKwMark, Akroan Line Breaker, Bellowing Tanglewurm, Cavern Lampad, Corrupted Conscience, Dreadbringer Lampads, Executioner's Hood, Glistening Oil, Grisly Transformation, Gruesome Deformity, Guul Draz Vampire, Hideous Visage, Korozda Guildmage, Pestilent Souleater, Phyresis, Shadow Alley Denizen, Surrakar Marauder, Tainted Strike, Triumph of the Hordes, Vector Asp, Vela the Night-Clad, Vow of Malice, Warchanter of Mogis; printed bloodthirst over ExDmgOppsTaken, Battering Wurm, Blood Ogre, Bloodrage Vampire, Bloodscale Prowler, Carnage Wurm, Duskhunter Bat, Furyborn Hellkite, Ghor-Clan Savage, Gorehorn Minotaurs, Gristleback, Lurking Crocodile, Petrified Wood-Kin, Rabble-Rouser, Scab-Clan Mauler, Skarrgan Pit-Skulk, Skarrgan Skybreaker, Stormblood Berserker, Vampire Outcasts; ALL 23253 -> 23293 measured).
+	"ALL": {23293, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {218, 280},
