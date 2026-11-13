@@ -73,6 +73,12 @@ func (e *Engine) protectedFrom(target, source state.ObjID) bool {
 	kws = append([]string(nil), kws...)
 	for _, kw := range kws {
 		if q, ok := protectionQuality(kw); ok {
+			if strings.EqualFold(q, protectionColorsYouCtrl) {
+				if sourceSharesControlledColor(e.G, e, e.controllerOf(target), source) {
+					return true
+				}
+				continue
+			}
 			if e.sourceHasQuality(source, q) {
 				return true
 			}
