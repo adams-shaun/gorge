@@ -49,6 +49,9 @@ func TestGenBattleRefused(t *testing.T) {
 		// its back face's AffectedZone$ Stack Convoke grant (Invasion of
 		// Segovia lowers to a StackKw static)
 		"Invasion of Segovia": true,
+		// their ETB trigger's "any other target" (TgtAny with an Other
+		// filter)
+		"Invasion of Tarkir": true, "Invasion of Ulgrotha": true,
 	}
 	var battles []string
 	for _, n := range names {

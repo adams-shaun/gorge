@@ -253,6 +253,7 @@ CtrlAny	CtrlSel	0
 CtrlEachPl	CtrlSel	3
 CtrlHitBySrc	CtrlSel	4
 CtrlOpp	CtrlSel	2
+CtrlTgtOwner	untyped int	128
 CtrlYou	CtrlSel	1
 CzBattleGrave	untyped int	8
 CzHandGrave	untyped int	32
@@ -571,6 +572,7 @@ FTapped	FilterFlags	8
 FToken	FilterFlags	4
 FUntapped	FilterFlags	16
 FaceAdventure	untyped int	2
+FaceFlip	untyped int	8
 FaceModal	untyped int	1
 FaceNone	untyped int	0
 FaceOmen	untyped int	7

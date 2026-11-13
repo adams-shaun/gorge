@@ -254,7 +254,8 @@ import (
 // +16 (the merge with land at 1acc5919d9: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering beside land's later work; merged ALL build-level 23115 -> 23131 measured).
 // +14 (Extort lowered, the keyword and its SpellCast trigger, against land's corpus; merged ALL build-level 23177 -> 23191 measured).
 // +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL build-level 23251 -> 23252 measured).
-var buildAcceptancePin = [2]int{23253, 34442} // {built, cards}
+// +11 (flip cards and OwnedBy TargetedController: Orochi Eggwatcher, Nezumi Graverobber, Budoka Gardener, Initiate of Blood, Jushi Apprentice, Kuon, Ogre Ascendant; "any other target" beside AtLeastOneInstance$: Matoc, Lavamancer, Black Panther, Most Dangerous, Red Hulk, Invasion of Tarkir, Invasion of Ulgrotha; ALL build-level 23253 -> 23264 measured).
+var buildAcceptancePin = [2]int{23264, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)
