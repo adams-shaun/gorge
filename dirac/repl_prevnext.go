@@ -125,7 +125,7 @@ func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID,
 	if s.noPrev(k, combat) {
 		return n, false // CR 615.12: the shield is no candidate
 	}
-	if hit > 1 || s.prevNextCompetes(k, srcSl, srcCard, rcp, sl, combat) {
+	if hit > 1 || s.prevNextCompetes(k, srcCtrl, srcSl, srcCard, rcp, sl, combat) {
 		s.capFull(StallPrevNext) // two or more shields on one recipient: only damageTo and a combat pass pose the ask
 		return n, false
 	}
@@ -152,12 +152,12 @@ func (s *State) combatEvLess(r *dmgRec, ev *dmgEv, code uint8, d int) {
 // prevNextCompetes reports whether another damage replacement would also be a
 // candidate for this event (a conservative superset of gorge's collection:
 // the battlefield scan does not read each doubler's own filter).
-func (s *State) prevNextCompetes(k *prep, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, combat bool) bool {
+func (s *State) prevNextCompetes(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, combat bool) bool {
 	g := k.gen
 	if s.prevColHit(k, srcSl, srcCard, prevTgt{rcp, sl}, combat) {
 		return true // a colour or scope record
 	}
-	if g.anyDmgMark && s.dmgMarkN(rcp) > 0 {
+	if g.anyDmgMark && s.dmgMarkEv(rcp, srcCtrl) > 0 {
 		return true
 	}
 	if sl != NoSlot {

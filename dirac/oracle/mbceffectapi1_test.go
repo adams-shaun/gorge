@@ -3,6 +3,7 @@ package oracle
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -27,8 +28,23 @@ var kmbcPreventDecks = [2][]cardset.Entry{
 	},
 }
 
+// Quest for Pure Flame (a this-turn doubling of the damage the controller's
+// sources deal, no Duration$) beside its own burn and creatures, against the
+// same opponent.
+var kmbcDoubleDecks = [2][]cardset.Entry{
+	{
+		{Name: "Quest for Pure Flame", Count: 8}, {Name: "Lightning Bolt", Count: 3}, {Name: "Shock", Count: 3},
+		{Name: "Hill Giant", Count: 4}, {Name: "Raging Goblin", Count: 4}, {Name: "Mountain", Count: 18},
+	},
+	kmbcPreventDecks[1],
+}
+
 func TestMBCEffectApi1Lowers(t *testing.T) {
 	t.Parallel()
+	t.Run("damage-doubling-by-source", func(t *testing.T) {
+		t.Parallel()
+		lockstepSet(t, "mbceffectapi1", kmbcDoubleDecks, 600, "KMBCEFFECTAPI1_SEEDS")
+	})
 	t.Run("prevention-scope", func(t *testing.T) {
 		t.Parallel()
 		lockstepSet(t, "mbceffectapi1", kmbcPreventDecks, 600, "KMBCEFFECTAPI1_SEEDS")
@@ -66,5 +82,18 @@ func TestMBCEffectApi1PreventionMutation(t *testing.T) {
 				t.Fatalf("no seed diverged with %s's prevention dropped: the pool never has its damage prevented", name)
 			}
 		})
+	}
+}
+
+// TestMBCEffectApi1DoublingMutation proves the pool doubles damage: with the
+// source mark never set (the Effect still resolving), some seed diverges.
+func TestMBCEffectApi1DoublingMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	dirac.DebugNoDmgSrcMark = true
+	defer func() { dirac.DebugNoDmgSrcMark = false }()
+	if !lockstepDiverges(t, "mbceffectapi1", kmbcDoubleDecks, 600) {
+		t.Fatal("no seed diverged with the source mark dropped: the pool never doubles damage")
 	}
 }

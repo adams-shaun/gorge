@@ -49,6 +49,9 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 	if ok, err := lc.effectPreventScope(ps); ok || err != nil {
 		return err
 	}
+	if ok, err := lc.effectDmgDoubleBySource(ps); ok || err != nil { // lower_effectdmgmark.go
+		return err
+	}
 	for _, k := range []string{"ExileOnMoved", "ForgetOnMoved"} {
 		if v, ok := ps.get(k); ok && strings.TrimSpace(v) != "Battlefield" {
 			return refuse("Effect replacement %s$ %q", k, v)

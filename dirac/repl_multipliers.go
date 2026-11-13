@@ -158,7 +158,7 @@ func (s *State) dblDmgN(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp 
 func (s *State) dblDmgN2(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, combat bool) int {
 	m := 0
 	if k.gen.anyDmgMark {
-		m = s.dmgMarkN(rcp) // repl_dmgmark.go
+		m = s.dmgMarkEv(rcp, srcCtrl) // repl_dmgmark.go
 	}
 	if k.gen.anyFiltRepl {
 		return m + s.dblDmgN(k, srcCtrl, srcSl, srcCard, rcp, sl, combat)

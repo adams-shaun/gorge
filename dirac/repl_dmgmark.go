@@ -28,7 +28,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // mark is no object, so an event the mark and another replacement both match
 // stalls (StallDmgMarkOrder) rather than answer without that ask.
 
-const dmkBytes = (MaxSeats*MaxSeats + 2*MaxSeats + 7) / 8 // genState.dmk: taken from rsv
+const dmkBytes = (MaxSeats*MaxSeats + 3*MaxSeats + 7) / 8 // genState.dmk: taken from rsv
 
 // StallDmgMark is a second mark of one controller on one player while the
 // first is live (genState.dmk).
@@ -74,6 +74,34 @@ func dmkQ(c uint8) (idx int, sh uint) {
 	return b >> 3, uint(b & 7)
 }
 
+// DebugNoDmgSrcMark (the source-mark lockstep mutation): the source marks are
+// asked for and never set.
+var DebugNoDmgSrcMark bool
+
+// dmkSrc is controller c's source-mark bit in genState.dmk (kop.DmgMarkBySource):
+// after the pair bits and the expiry counters; it ends at the cleanup.
+func dmkSrc(c uint8) (idx int, mask uint8) {
+	b := MaxSeats*MaxSeats + 2*MaxSeats + int(c)
+	return b >> 3, 1 << (b & 7)
+}
+
+// srcMarkN is the number of live source marks of controller c: the doublings
+// every damage event dealt by a source c controls takes (0 or 1).
+func (s *State) srcMarkN(c uint8) int {
+	if c >= MaxSeats {
+		return 0
+	}
+	if i, m := dmkSrc(c); s.g.dmk[i]&m != 0 {
+		return 1
+	}
+	return 0
+}
+
+// dmgMarkEv is the marks an event dealt by a source controlled by src to
+// recipient controller rcp takes: the recipient's pair marks and the source
+// controller's source mark.
+func (s *State) dmgMarkEv(rcp, src uint8) int { return s.dmgMarkN(rcp) + s.srcMarkN(src) }
+
 // dmkLive reports whether controller c has a live mark.
 func (s *State) dmkLive(c uint8) bool {
 	for p := uint8(0); p < MaxSeats; p++ {
@@ -109,8 +137,23 @@ func (s *State) turnsTo(c uint8) uint8 {
 //
 //go:noinline
 func (s *State) dmgMarkAdd(k *prep, in *kop.Instr) {
-	p := s.playerRef(k, in.Obj)
 	c := s.res.e.ctrl
+	if in.C&kop.DmgMarkBySource != 0 {
+		if c >= MaxSeats {
+			return
+		}
+		i, m := dmkSrc(c)
+		if DebugNoDmgSrcMark {
+			return
+		}
+		if s.g.dmk[i]&m != 0 {
+			s.capFull(StallDmgMark) // a second doubling of the same sources: gorge asks their order
+			return
+		}
+		s.g.dmk[i] |= m
+		return
+	}
+	p := s.playerRef(k, in.Obj)
 	if p >= MaxSeats || c >= MaxSeats {
 		return
 	}
@@ -149,6 +192,9 @@ func (s *State) dmgMarkN(p uint8) int {
 // conservative count of the replacements the marks bring to some hit.
 func (s *State) dmgMarkTotal() int {
 	n := 0
+	for c := uint8(0); c < MaxSeats; c++ {
+		n += s.srcMarkN(c)
+	}
 	for p := uint8(0); p < MaxSeats; p++ {
 		n += s.dmgMarkN(p)
 	}
@@ -162,6 +208,10 @@ func (s *State) dmgMarkTotal() int {
 //
 //go:noinline
 func (s *State) dmgMarkEnd() {
+	for c := uint8(0); c < MaxSeats; c++ {
+		i, m := dmkSrc(c)
+		s.g.dmk[i] &^= m // the source marks last the turn
+	}
 	for c := uint8(0); c < MaxSeats; c++ {
 		if !s.dmkLive(c) {
 			continue
@@ -189,7 +239,13 @@ func (s *State) dmgMarkEnd() {
 // and cands other replacements match: two or more matches are gorge's CR 616.1
 // order ask.
 func (s *State) dmgMarkCompetes(rcp uint8, cands int) bool {
-	if n := s.dmgMarkN(rcp); n > 0 && n+cands >= 2 {
+	return s.dmgMarkCompetesEv(rcp, MaxSeats, cands)
+}
+
+// dmgMarkCompetesEv is dmgMarkCompetes for an event dealt by a source
+// controlled by src (MaxSeats: none), which the source mark also matches.
+func (s *State) dmgMarkCompetesEv(rcp, src uint8, cands int) bool {
+	if n := s.dmgMarkEv(rcp, src); n > 0 && n+cands >= 2 {
 		s.capFull(StallDmgMarkOrder)
 		return true
 	}
