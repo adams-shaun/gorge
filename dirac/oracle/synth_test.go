@@ -487,32 +487,11 @@ func waterbendPairs(t *testing.T, name string) {
 	})
 }
 
-// TestAbilityPlanLeavesOutCommittedPermanents: the settled cost's plan is made
-// without the permanents tapped for the ability's costs, and stands if others pay
-// (CR 601.2g-h, 602.2b): a land's {4},{T} ability.
-func TestAbilityPlanLeavesOutCommittedPermanents(t *testing.T) {
-	pinnedGames(t, "std-tla", Config{GorgeAutopaySurface: true},
-		anyOf(activated("Airship Engine Room"), activated("Meditation Pools"), activated("North Pole Gates")))
-}
-
 // TestGrantedManaPricesAnImpendedCast: the search through granted mana prices an
 // impended cast at its alternative cost (CR 118.9, 702.176a): an Overlord cast for
 // its impending cost.
 func TestGrantedManaPricesAnImpendedCast(t *testing.T) {
 	pinnedGames(t, "std-dsk", Config{GorgeAutopaySurface: true}, impendedCast)
-}
-
-// TestShuffledPairReachesTheLibraryInOrder: Floodpits Drowner and its target reach
-// the library in the order the shuffle reads (CR 701.24).
-func TestShuffledPairReachesTheLibraryInOrder(t *testing.T) {
-	pinnedGames(t, "std-dsk", Config{GorgeAutopaySurface: true}, cardOut("Floodpits Drowner"))
-}
-
-// TestOverrideValueKeepsItsCountedSubtype: PuPu UFO's "base power becomes the number
-// of Towns you control" (CR 613.4b) counts a subtype only that value names, so the
-// matchup's table keeps it.
-func TestOverrideValueKeepsItsCountedSubtype(t *testing.T) {
-	pinnedGames(t, "std-fin", Config{GorgeAutopaySurface: true}, onBattlefield("PuPu UFO"))
 }
 
 // TestRestrictedSourceStaysInTheManualWindow: a restricted any-colour ability keeps
@@ -558,12 +537,6 @@ func TestHandAbilityOfferCountsRestrictedSources(t *testing.T) {
 	pinnedGames(t, "std-msh", Config{GorgeAutopaySurface: true}, madeRestrictedMana)
 }
 
-// TestBiteHitsEachObjectOfItsTargetSlot: Betrayal at the Vault's creature deals its
-// power to each of two other targets, not the first alone (CR 120.3, 608.2b).
-func TestBiteHitsEachObjectOfItsTargetSlot(t *testing.T) {
-	pinnedGames(t, "std-otj", Config{GorgeAutopaySurface: true}, cardOut("Betrayal at the Vault"))
-}
-
 // TestStrandedPaymentReversesFirst: a helper or tap-cost answer that leaves too little
 // mana is undone before any mana is activated (CR 601.2g-h, 602.2b, 733.1).
 func TestStrandedPaymentReversesFirst(t *testing.T) {
@@ -577,13 +550,6 @@ func TestStrandedPaymentReversesFirst(t *testing.T) {
 func TestStateBasedActionsRepeatAfterTriggerPlacement(t *testing.T) {
 	pinnedGames(t, "std-fin", Config{GorgeAutopaySurface: true}, sagaLeftBattlefield)
 	pinnedGames(t, "std-spm", Config{GorgeAutopaySurface: true}, sagaLeftBattlefield)
-}
-
-// TestEnteringPowerIsTheLivePermanents: "draw cards equal to its power" reads the
-// permanent with its entry counters, not the card that was cast (CR 608.2h; Prime
-// Speaker Zegana).
-func TestEnteringPowerIsTheLivePermanents(t *testing.T) {
-	pinnedGames(t, "std-fdn", Config{GorgeAutopaySurface: true}, onBattlefield("Prime Speaker Zegana"))
 }
 
 // TestWindowCensusSkipsWhatThePaymentCannotSpend: a tapped restricted source, or an

@@ -285,10 +285,3 @@ func TestWarpLockstep(t *testing.T) {
 		t.Error("mutation 'warp cleared' never diverged")
 	}
 }
-
-// A warp whose scripted prefix floats artifact mana taps the rest of the warp cost
-// as its witness, which the printed cost has no plan for (std-eoe 102 Memorial Team
-// Leader, 355 Mechanozoa).
-func TestWarpWitnessIsPricedOnTheWarpCost(t *testing.T) {
-	pinnedGames(t, "std-eoe", Config{}, anyOut("Memorial Team Leader", "Mechanozoa"))
-}

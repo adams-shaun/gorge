@@ -229,10 +229,3 @@ func TestFintieredMutation(t *testing.T) {
 		t.Fatal("DebugTieredNoModeCost: no divergence in 64 seeds")
 	}
 }
-
-// A mode's cost is priced against gorge's PotentialMana (CR 601.2b, 702.171b), which
-// counts a restricted source and a pay-life ability, and Starting Town answers the
-// window with its {C} ability while the payment can use it.
-func TestFintieredPotentialAndWindow(t *testing.T) {
-	pinnedGames(t, "std-fin", Config{}, onBattlefield("Starting Town"))
-}

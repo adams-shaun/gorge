@@ -87,13 +87,21 @@ func anyOf(conds ...func(ref *GorgeSide) bool) func(ref *GorgeSide) bool {
 	}
 }
 
-// anyOut is the condition that a card of one of the given names was cast or entered.
-func anyOut(names ...string) func(ref *GorgeSide) bool {
-	conds := make([]func(ref *GorgeSide) bool, len(names))
-	for i, n := range names {
-		conds[i] = cardOut(n)
+// counterAtLeast is the condition that a permanent of the given name holds at least
+// n counters of the given kind (a Spacecraft's CHARGE counters reaching its station
+// threshold, CR 702.184a).
+func counterAtLeast(name, counter string, n int) func(ref *GorgeSide) bool {
+	return func(ref *GorgeSide) bool {
+		g := ref.E.G
+		for p := range g.Players {
+			for _, id := range g.Zone(state.ZBattlefield, state.PlayerID(p)) {
+				if o := g.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name && int(o.Counter(counter)) >= n {
+					return true
+				}
+			}
+		}
+		return false
 	}
-	return anyOf(conds...)
 }
 
 // madeRestrictedMana is the condition that mana carrying a spending restriction has
