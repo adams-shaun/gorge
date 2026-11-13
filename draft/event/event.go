@@ -174,7 +174,8 @@ func (e *Event) Log() []Entry {
 // Done reports whether the event reached COMPLETE.
 func (e *Event) Done() bool { return e.phase == PhaseComplete }
 
-// Next returns seat's draft view when a pack waits for it. It is read-only:
+// Next returns seat's draft view when a pack waits for it (in a Commander
+// draft, with the event's set code as the view's Set). It is read-only:
 // the actual pick goes through a Picked entry. A sealed event never offers
 // one.
 func (e *Event) Next(seat int) (draft.PickView, bool) {
@@ -185,7 +186,14 @@ func (e *Event) Next(seat int) (draft.PickView, bool) {
 	if e.pod == nil || seat < 0 || seat >= e.NumSeats() {
 		return draft.PickView{}, false
 	}
-	return e.pod.Next(seat)
+	v, ok := e.pod.Next(seat)
+	if ok && e.format == FormatCommander {
+		// A Commander-draft pack mixes printings (MBC packs carry MBC, MB2
+		// and PLST cards), so the pack's first card does not name the set
+		// being drafted; the event's set code does.
+		v.Set = e.set
+	}
+	return v, ok
 }
 
 // Pool returns seat's cards — a draft's picks through its pod, a sealed

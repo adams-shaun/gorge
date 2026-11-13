@@ -238,7 +238,28 @@ func openPacks(r *runner, seed uint64) ([][][]limited.CardRef, error) {
 	if sh.promos > 0 {
 		return booster.OpenPrereleasePod(r.spec, seed, sh.seats, sh.packs, sh.promos, ids, colourOfRegistry(r.reg))
 	}
-	return booster.OpenPod(r.spec, seed, sh.seats, sh.packs, ids, colourOfRegistry(r.reg))
+	packs, subs, err := booster.OpenPodLog(r.spec, seed, sh.seats, sh.packs, ids, colourOfRegistry(r.reg))
+	if err != nil {
+		return nil, err
+	}
+	reportSubstitutions(r, subs)
+	return packs, nil
+}
+
+// reportSubstitutions surfaces the booster's swaps of unplayable cards
+// for playable ones from the same sheet: a count line whenever there are
+// any, and each swap with -v.
+func reportSubstitutions(r *runner, subs []booster.PodSubstitution) {
+	if len(subs) == 0 {
+		return
+	}
+	fmt.Fprintf(r.out, "  packs: %d unplayable card(s) swapped for playable ones from the same sheet\n", len(subs))
+	if !r.verbose {
+		return
+	}
+	for _, s := range subs {
+		fmt.Fprintf(r.out, "    seat %d pack %d sheet %s: %s -> %s\n", s.Seat, s.Pack+1, s.Sheet, s.Original, s.Substitute)
+	}
 }
 
 // colourOfRegistry adapts the card corpus to booster's ColourOf: the
