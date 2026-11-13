@@ -14,14 +14,16 @@ import (
 )
 
 // The Commander-draft persona (Commander Legends / Mystery Booster Commander
-// drafts: pick two per pass, then a 60-card deck around one or two drafted
-// commanders). The drafter takes a commander early, then drafts inside the
-// commanders' colour identity; the builder chooses the commander option
-// whose identity holds the strongest 60, and fills the land base.
+// drafts: pick two per pass, then a 60-card deck, or the event's other
+// size, around one or two drafted commanders). The drafter takes a
+// commander early, then drafts inside the commanders' colour identity; the
+// builder chooses the commander option whose identity holds the strongest
+// deck, and fills the land base.
 
 // Commander-draft knobs. The scores are on Heuristic's points scale.
 const (
-	// cmdrLands is the deck's land count, nonbasic fixing included.
+	// cmdrLands is a 60-card deck's land count, nonbasic fixing included;
+	// cmdrLandsFor scales it to the deck's size.
 	cmdrLands = 17
 	// cmdrCommitPick is the pool size from which the drafter treats its
 	// best commander option's identity as its colours.
@@ -115,10 +117,26 @@ func commanderOptions(cs []cmdrCard) []cmdrOption {
 	return out
 }
 
-// optionScore rates one commander option: its commanders' values plus the
-// best spells inside its identity that fit the deck's spell slots, minus a
-// point per empty slot and widthPenalty per colour beyond two.
-func optionScore(cs []cmdrCard, o cmdrOption) float64 {
+// cmdrDeckSize resolves a persona's DeckSize: 0 means
+// build.CommanderDeckSize.
+func cmdrDeckSize(size int) int {
+	if size == 0 {
+		return build.CommanderDeckSize
+	}
+	return size
+}
+
+// cmdrLandsFor is a size-card deck's land count: cmdrLands scaled from 60
+// cards, rounded half up (50 cards: 14 lands).
+func cmdrLandsFor(size int) int {
+	return (2*cmdrLands*size + build.CommanderDeckSize) / (2 * build.CommanderDeckSize)
+}
+
+// optionScore rates one commander option for a size-card deck: its
+// commanders' values plus the best spells inside its identity that fit the
+// deck's spell slots, minus a point per empty slot and widthPenalty per
+// colour beyond two.
+func optionScore(cs []cmdrCard, o cmdrOption, size int) float64 {
 	score := 0.0
 	in := map[int]bool{}
 	for _, i := range o.idx {
@@ -132,12 +150,12 @@ func optionScore(cs []cmdrCard, o cmdrOption) float64 {
 		}
 		vals = append(vals, c.value)
 	}
-	// A third colour and beyond strains a 17-land, mostly basic mana base.
+	// A third colour and beyond strains a mostly basic mana base.
 	if n := bits.OnesCount8(o.mask); n > 2 {
 		score -= widthPenalty * float64(n-2)
 	}
 	sort.Sort(sort.Reverse(sort.Float64Slice(vals)))
-	slots := build.CommanderDeckSize - cmdrLands - len(o.idx)
+	slots := size - cmdrLandsFor(size) - len(o.idx)
 	for i := 0; i < slots; i++ {
 		if i < len(vals) {
 			score += vals[i]
@@ -148,13 +166,13 @@ func optionScore(cs []cmdrCard, o cmdrOption) float64 {
 	return score
 }
 
-// bestOption is the highest-scoring commander option, ties to the earlier
-// option; ok is false when cs holds no commander.
-func bestOption(cs []cmdrCard) (cmdrOption, bool) {
+// bestOption is the highest-scoring commander option for a size-card deck,
+// ties to the earlier option; ok is false when cs holds no commander.
+func bestOption(cs []cmdrCard, size int) (cmdrOption, bool) {
 	var best cmdrOption
 	bestScore, ok := 0.0, false
 	for _, o := range commanderOptions(cs) {
-		if s := optionScore(cs, o); !ok || s > bestScore {
+		if s := optionScore(cs, o, size); !ok || s > bestScore {
 			best, bestScore, ok = o, s, true
 		}
 	}
@@ -165,8 +183,11 @@ func bestOption(cs []cmdrCard) (cmdrOption, bool) {
 // by Heuristic (or Value, when set), takes a commander while its pool has
 // none, and from cmdrCommitPick picks on drafts inside its best commander
 // option's colour identity, valuing a commander that pairs with that option.
+// DeckSize is the event's deck size the options are scored for; 0 means
+// build.CommanderDeckSize.
 type CommanderDrafter struct {
-	Lookup CardLookup
+	Lookup   CardLookup
+	DeckSize int
 	// Value, when non-nil, replaces Heuristic as a nonland card's value
 	// (a learned or simulated value table); nil keeps Heuristic.
 	Value func(c *cards.Card, ref limited.CardRef) float64
@@ -202,7 +223,7 @@ func (d *CommanderDrafter) Rank(v PickView) ([]PickAdvice, uint8) {
 	for i, ref := range v.Picks {
 		pool[i] = d.facts(ref)
 	}
-	plan, committed := bestOption(pool)
+	plan, committed := bestOption(pool, cmdrDeckSize(d.DeckSize))
 	hasCommander := committed
 	committed = committed && len(pool) >= cmdrCommitPick
 	var lead *cards.Card
@@ -277,11 +298,14 @@ func (d *CommanderDrafter) Pick(v PickView, r *rand.Rand) string {
 // CommanderBuilder is the Commander-draft builder: it picks the commander
 // option (bestOption) whose identity holds the strongest spells, plays its
 // best on-identity spells and on-identity nonbasic lands, and fills the
-// deck to build.CommanderDeckSize with basics of the identity's colours
-// split by pip share. A pool without a commander yields a deck without
-// one, which ValidateCommander refuses.
+// deck to exactly DeckSize cards, commanders included (0 means
+// build.CommanderDeckSize), with basics of the identity's colours split by
+// pip share. The land count scales with the size (cmdrLandsFor: 17 at 60,
+// 14 at 50). A pool without a commander yields a deck without one, which
+// ValidateCommanderSize refuses.
 type CommanderBuilder struct {
-	Lookup CardLookup
+	Lookup   CardLookup
+	DeckSize int
 }
 
 // Build returns the seat's Commander-draft deck.
@@ -290,7 +314,9 @@ func (b *CommanderBuilder) Build(set string, pool []limited.CardRef) build.Deck 
 	for i, ref := range pool {
 		cs[i] = cmdrFacts(b.Lookup, ref)
 	}
-	plan, ok := bestOption(cs)
+	size := cmdrDeckSize(b.DeckSize)
+	nLands := cmdrLandsFor(size)
+	plan, ok := bestOption(cs, size)
 	var d build.Deck
 	in := map[int]bool{}
 	if ok {
@@ -320,13 +346,13 @@ func (b *CommanderBuilder) Build(set string, pool []limited.CardRef) build.Deck 
 	}
 	byValue(lands)
 	byValue(spells)
-	if len(lands) > cmdrLands/2 {
-		lands = lands[:cmdrLands/2]
+	if len(lands) > nLands/2 {
+		lands = lands[:nLands/2]
 	}
 	for _, i := range lands {
 		d.Main = append(d.Main, cs[i].ref.ID)
 	}
-	slots := build.CommanderDeckSize - cmdrLands - len(d.Commanders)
+	slots := size - nLands - len(d.Commanders)
 	if len(spells) > slots {
 		spells = spells[:slots]
 	}
@@ -339,7 +365,7 @@ func (b *CommanderBuilder) Build(set string, pool []limited.CardRef) build.Deck 
 	for _, i := range spells {
 		d.Main = append(d.Main, cs[i].ref.ID)
 	}
-	d.Basics = splitBasics(build.CommanderDeckSize-len(d.Main), plan.mask, pips)
+	d.Basics = splitBasics(size-len(d.Main), plan.mask, pips)
 	return d
 }
 

@@ -34,7 +34,7 @@ func TestTwoPilesRevealBound(t *testing.T) {
 				return 0, false
 			}
 			for i := 0; i < int(d.N); i++ {
-				if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(c) {
+				if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(c)) {
 					return a, true
 				}
 			}

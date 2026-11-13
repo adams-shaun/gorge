@@ -808,6 +808,14 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Surge != nil {
+		// CR 702.117a: the hand's alternative cost once another spell was
+		// cast this turn (dirac/kw_surge.go)
+		d.HasSurge = true
+		if d.SurgeCost, err = manaCostOf(*c.Surge); err != nil {
+			return err
+		}
+	}
 	if c.Overload != nil {
 		// CR 702.96a: the hand's alternative cost and the resolving program's
 		// each-variant (dirac/kw_overload.go)
@@ -902,6 +910,7 @@ func (cb *cardBuilder) record() error {
 			return fmt.Errorf("Retrace without its discard cost")
 		}
 		d.Retrace = true
+		d.JumpStart = c.JumpStart // CR 702.84a: Discard<1/Card> and the exile (dirac/kw_jumpstart.go)
 		if d.RetraceCost, err = cb.cost(*c.RetraceCost); err != nil {
 			return err
 		}
@@ -1118,6 +1127,16 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	}
 	if c.DiscardSelf {
 		out.Flags |= kop.CostDiscardSelf
+	}
+	if c.Discard2N > 0 {
+		// the second discard part of a spell's alternative cost
+		// (lower_discardtwo.go): its count and filter ride their own bytes
+		out.Discard2N = uint8(c.Discard2N)
+		if c.Discard2F != nil {
+			if out.Discard2F, err = cb.filter(c.Discard2F, kop.ZoneHand); err != nil {
+				return out, err
+			}
+		}
 	}
 	if c.Loyalty > 0 {
 		set(kop.CostAddCtr, c.Loyalty)
@@ -2066,6 +2085,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefTaxedAttacker, nil
 	case rSrcOwner:
 		return kop.RefSrcOwner, nil
+	case rTriggeredOwner:
+		return kop.RefTriggerObjOwner, nil
 	case rTriggerAttackers:
 		return kop.RefTriggerAttackers, nil
 	case rRememberedOwner:

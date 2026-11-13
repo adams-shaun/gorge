@@ -160,11 +160,18 @@ type Entry struct {
 
 	// Format is the EventCreated construction format: "" = limited (40-card
 	// decks), FormatCommander = a Commander draft (DeckSaved decks name
-	// their commanders and hold at least build.CommanderDeckSize cards).
+	// their commanders and hold at least DeckSize cards, by default
+	// build.CommanderDeckSize = 60).
 	Format string `json:"format,omitempty"`
 	// PicksPerPass is the EventCreated cards a seat takes from each pack
 	// before passing it; 0 = 1 (every log before the field).
 	PicksPerPass int `json:"picks_per_pass,omitempty"`
+	// DeckSize is a FormatCommander EventCreated's minimum deck size,
+	// commanders and basics included, in
+	// build.MinCommanderDeckSize..build.MaxDeckSize; 0 =
+	// build.CommanderDeckSize (every log before the field). A limited event
+	// names none.
+	DeckSize int `json:"deck_size,omitempty"`
 }
 
 // cloneEntry deep-copies an entry's slice and pointer fields so the log

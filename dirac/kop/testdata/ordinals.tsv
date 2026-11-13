@@ -450,6 +450,7 @@ ExtBlocksIfAble	ExtOp	256
 ExtBreachChoose	ExtOp	160
 ExtBreachReturn	ExtOp	161
 ExtChangeTargets	ExtOp	225
+ExtChooseCardEnter	ExtOp	297
 ExtChooseColorRes	ExtOp	5
 ExtChooseName	ExtOp	251
 ExtChooseNumber	ExtOp	230
@@ -484,6 +485,7 @@ ExtExchangeControl	ExtOp	244
 ExtExileEmbRem	ExtOp	319
 ExtExileExMark	ExtOp	51
 ExtExileLandChoose	ExtOp	162
+ExtExploit	ExtOp	298
 ExtExtort	ExtOp	302
 ExtFinalityCtr	ExtOp	198
 ExtGrantExile	ExtOp	249
@@ -873,6 +875,7 @@ OvChosenColor	untyped int	1
 OvEnterWith	untyped int	2
 PanhModeDrawn	int16	2
 PanhModeLifeGained	int16	1
+ParentTrigPl	uint8	255
 PayAddCounter	untyped int	16
 PayBBehold	untyped int	6
 PayBRemember	untyped int	4
@@ -1046,6 +1049,7 @@ RefTgtCtrl1	Ref	241
 RefTgtCtrl2	Ref	242
 RefTriggerAttackers	Ref	31
 RefTriggerObj	Ref	9
+RefTriggerObjOwner	Ref	40
 RefTriggerPlayer	Ref	10
 RefTriggerSource	Ref	21
 RefTriggerTgtCtrl	Ref	33
@@ -1361,6 +1365,7 @@ Tf4SingleTarget	TrigFlags4	1
 Tf4StateCtr	TrigFlags4	64
 Tf5FirstCardInDrawStep	TrigFlags5	1
 Tf5NotFirstCardInDrawStep	TrigFlags5	2
+Tf5OppCause	TrigFlags5	4
 TfCombat	TrigFlags	4
 TfNontokenSrc	TrigFlags	64
 TfNotToGrave	TrigFlags	128
@@ -1447,8 +1452,9 @@ TrigDiscardedAll	TrigEvent	35
 TrigDiscover	TrigEvent	44
 TrigDrawn	TrigEvent	14
 TrigETB	TrigEvent	1
-TrigEventCount	TrigEvent	49
+TrigEventCount	TrigEvent	50
 TrigEvolved	TrigEvent	47
+TrigExploited	TrigEvent	49
 TrigExplores	TrigEvent	39
 TrigFacesDilemma	TrigEvent	46
 TrigForage	TrigEvent	43

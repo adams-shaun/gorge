@@ -29,7 +29,7 @@ func (s *State) initSideboards(cfg *Config) {
 			if int(s.nobj) >= MaxObj {
 				panic("kernel: decks and sideboards larger than MaxObj")
 			}
-			o := Obj(s.nobj)
+			o := s.nobj
 			s.nobj++
 			s.objs[o] = object{card: c, chosen: 255, zone: kop.ZoneSideboard, slot: NoSlot, acts: uint8(p) << objOwnerShift}
 			s.touch(o)

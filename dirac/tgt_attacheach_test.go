@@ -27,15 +27,15 @@ func TestAttachObjEachTarget(t *testing.T) {
 		s.res.e.ctrl, s.res.e.obj, s.res.e.card = 0, lions, id["Savannah Lions"]
 		s.res.e.srcVer = s.objs[lions].ver
 		s.res.bad, s.res.xbad = 0, 0
-		s.res.e.tgt[0], s.res.e.tver[0] = uint8(picks[0]), s.objs[picks[0]].ver
-		s.res.e.tgt[1], s.res.e.tver[1] = uint8(lions), s.objs[lions].ver
+		s.res.e.tgt[0], s.res.e.tver[0] = TCode(picks[0]), s.objs[picks[0]].ver
+		s.res.e.tgt[1], s.res.e.tver[1] = TCode(lions), s.objs[lions].ver
 		xt := s.xtMut(&s.res.e)
 		if xt == nil {
 			t.Fatal("setup: no extra-target pool entry")
 		}
 		*xt = xTargets{n: 2}
 		for j, o := range picks[1:] {
-			xt.slot[j], xt.code[j], xt.ver[j] = 0, uint8(o), s.objs[o].ver
+			xt.slot[j], xt.code[j], xt.ver[j] = 0, TCode(o), s.objs[o].ver
 		}
 		s.g.nrem = 0
 		return lions, picks

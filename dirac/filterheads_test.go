@@ -57,11 +57,11 @@ func TestFlags2TgtPlayerCtrl(t *testing.T) {
 	}
 	sc.s.res.active = true
 	sc.s.res.e = stackEntry{kind: seSpell, card: id["Villainous Wrath"], ctrl: 0, nt: 1, trigObj: NoObj}
-	sc.s.res.e.tgt[0] = PlayerTarget0 + 1
+	sc.s.res.e.tgt[0] = TCode(PlayerTarget0 + 1)
 	if m(b0) || !m(b1) {
 		t.Fatalf("targeting player 1: p0's bears %v, p1's bears %v; want p1's only", m(b0), m(b1))
 	}
-	sc.s.res.e.tgt[0] = PlayerTarget0
+	sc.s.res.e.tgt[0] = TCode(PlayerTarget0)
 	if !m(b0) || m(b1) {
 		t.Fatalf("targeting player 0: p0's bears %v, p1's bears %v; want p0's only", m(b0), m(b1))
 	}
@@ -108,7 +108,7 @@ func TestCostTargetOKStackSpell(t *testing.T) {
 		}
 		sc.s.ctl = ctlBuild
 		*sc.s.bld() = build{e: stackEntry{kind: seSpell, obj: o, card: ooa, ctrl: 0, nt: 1, trigObj: NoObj}}
-		sc.s.bld().e.tgt[0] = uint8(sp)
+		sc.s.bld().e.tgt[0] = TCode(sp)
 		if got := sc.s.adjustCostGen(sc.k, 0, ooa, o, base); got.Generic != tc.gen || got.Pips[1] != 2 {
 			t.Fatalf("targeting %s: Out of Air costs %+v, want {%d}{U}{U}", tc.spell, got, tc.gen)
 		}

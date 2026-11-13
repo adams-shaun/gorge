@@ -72,7 +72,7 @@ func (s *State) offerImpendingHand(k *prep, d *Decision, p uint8, o Obj, c CardI
 	if s.castHeldOut(o) {
 		return
 	}
-	d.add(MakeAction(AkCast, uint8(o), castImpTgt, 0))
+	d.add(MakeAction(AkCast, TCode(o), castImpTgt, 0))
 }
 
 // impendEnter readies the resolving impended spell's time counters for its
@@ -186,6 +186,9 @@ func (s *State) offerAltHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av 
 	}
 	if k.t.Cards[c].HasOverload {
 		s.offerOverloadHand(k, d, p, o, c, av) // kw_overload.go
+	}
+	if k.t.Cards[c].HasSurge {
+		s.offerSurgeHand(k, d, p, o, c, av) // kw_surge.go
 	}
 	if k.gen.altFree != nil && k.gen.altFree[c] != 0 {
 		s.offerAltFreeHand(k, d, p, o, c, av) // cast_altfree.go

@@ -68,6 +68,9 @@ func (s *State) resolveTop(k *prep) {
 		if k.gen.anyRemPersist && remPersistSeeds(k, &e) {
 			s.remPersistSeed(k) // its source's kept set (zone_rememberpersist.go)
 		}
+		if k.gen.has(e.card, gfEnterRepl) {
+			s.seedEnterChosen(k, &e) // its source's as-enters chosen object (repl_choosecard.go)
+		}
 		// a damage sequence belongs to the resolution that started it: a new
 		// resolution drops any left over by an aborted one (repl_gen.go); the
 		// looked-at cards are the resolution's too (arm C of scr)
@@ -459,10 +462,10 @@ func (s *State) wardedIndex(e *stackEntry) int {
 		if se.obj != e.trigObj || se.kind == seSpell || e.tver[0] != 0 && se.sid != e.tver[0] {
 			continue
 		}
-		var codes [kop.MaxTargets + maxXTgt]uint8
+		var codes [kop.MaxTargets + maxXTgt]TCode
 		n := s.chainTargets(se, &codes)
 		for _, c := range codes[:n] {
-			if c == uint8(e.obj) {
+			if c == TCode(e.obj) {
 				return j
 			}
 		}
@@ -699,6 +702,11 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 			return s.ctrlOfObj(o)
 		}
 		return e.trigPl
+	case kop.RefTriggerObjOwner:
+		if o := e.trigObj; o != NoObj {
+			return s.objs[o].owner() // CR 108.3
+		}
+		return 255
 	case kop.RefTargetController:
 		return s.tgtCtrlSlot(k, 0)
 	case kop.RefTgtCtrl1, kop.RefTgtCtrl2:
@@ -917,7 +925,7 @@ func (s *State) grantSpellKw(o Obj, kw kop.KwMask) {
 // damage deals n damage from the resolving source to an object or player
 // target code and returns the amount dealt after prevention and replacement
 // (0: none; CR 120.1).
-func (s *State) damageTo(k *prep, code uint8, n int) int {
+func (s *State) damageTo(k *prep, code TCode, n int) int {
 	if n <= 0 {
 		return 0
 	}
@@ -973,23 +981,23 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 }
 
 // refCode turns an object/player Ref into a damage target code.
-func (s *State) refCode(k *prep, r kop.Ref) uint8 {
+func (s *State) refCode(k *prep, r kop.Ref) TCode {
 	switch r {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		return s.tgtCode(sl)
-	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer:
+	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefTriggerObjOwner:
 		p := s.playerRef(k, r)
 		if p == 255 {
-			return NoTarget
+			return TCode(NoTarget)
 		}
 		return PlayerCode(p)
 	}
 	o := s.objRefObj(r)
 	if o == NoObj {
-		return NoTarget
+		return TCode(NoTarget)
 	}
-	return uint8(o)
+	return TCode(o)
 }
 
 // forPlayers runs f for the player(s) a Ref names.
@@ -1034,7 +1042,7 @@ func (s *State) oneOppOf(k *prep, r kop.Ref, e *stackEntry, ctrl uint8, obj Obj)
 	}
 	if r == kop.RefDefendingPlayer && obj != NoObj {
 		if ob := &s.objs[obj]; ob.zone == kop.ZoneBattlefield && s.perms[ob.slot].flags&pfAttacking != 0 {
-			if p := s.atkSeat(k, ob.slot); p != NoTarget {
+			if p := s.atkSeat(k, ob.slot); p != noSeat {
 				return p
 			}
 		}
@@ -1044,9 +1052,9 @@ func (s *State) oneOppOf(k *prep, r kop.Ref, e *stackEntry, ctrl uint8, obj Obj)
 
 // tgtCode is the resolving entry's target i, or NoTarget when it was
 // chosen but is illegal now.
-func (s *State) tgtCode(i int) uint8 {
+func (s *State) tgtCode(i int) TCode {
 	if s.res.bad&(1<<i) != 0 {
-		return NoTarget
+		return TCode(NoTarget)
 	}
 	return s.res.e.tgt[i]
 }
