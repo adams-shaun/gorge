@@ -1247,6 +1247,12 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 	case potentialModeBaseCostKicked:
 		kc, ok := kickerCost(f)
 		return cost.Plus(kc), ok
+	case potentialModeBaseCostMultikick:
+		// CR 702.43: the offer prices the base plus ONE payment; the count
+		// ask (multikickAsk) settles how many afterwards, exactly the kicked
+		// offer's shape.
+		mc, ok := multikickerCost(f)
+		return cost.Plus(mc), ok
 	case potentialModeBaseCostBuyback:
 		bc, ok := buybackCost(f)
 		return cost.Plus(bc), ok
@@ -2239,6 +2245,7 @@ const (
 	potentialModeBaseCostPreparedCopy
 	potentialModeBaseCostSneak
 	potentialModeBaseCostPrototype
+	potentialModeBaseCostMultikick
 	potentialModeBaseCostSuspend
 )
 
@@ -2248,6 +2255,7 @@ var potentialModeBaseCostCodes = state.NewStrCodes(
 	state.StrEntry[potentialModeBaseCostCode]{Key: "plot", Val: potentialModeBaseCostPlot},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "flashback", Val: potentialModeBaseCostFlashback},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "kicked", Val: potentialModeBaseCostKicked},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "multikicked", Val: potentialModeBaseCostMultikick},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "buyback", Val: potentialModeBaseCostBuyback},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "offspring", Val: potentialModeBaseCostOffspring},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "entwined", Val: potentialModeBaseCostEntwined},

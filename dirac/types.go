@@ -152,6 +152,11 @@ const (
 	ChDrawUpto                  // source = a top library card counted toward the cards drawn; AkDone ends the count (gorge's "draw_upto" KChoose, act_drawupto.go)
 )
 
+// ChMultikick is CR 702.43's multikicker count ask (gorge KChoose "multikick",
+// mode = the count; kw_multikicker.go). Explicit ordinal, the iota tail stays
+// untouched.
+const ChMultikick ChoiceKind = 254
+
 // Decision is the next question the game asks a player.
 type Decision struct {
 	Kind    DecisionKind

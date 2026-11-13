@@ -57,8 +57,8 @@ type SeatConfig struct {
 	World string
 	// Source is the clairvoyant world source, required when World is "" or
 	// WorldClairvoyant: at each searched decision it builds the source
-	// (bots/azmcts/clairvoyant's NewClairvoyant under that package's
-	// AllowClairvoyant). azmcts never links the real-engine clone itself, so
+	// (the private companion module's `clairvoyant` package, NewClairvoyant
+	// under that package's AllowClairvoyant). azmcts never links the real-engine clone itself, so
 	// only a bench or training command injects it; NewSeat refuses a
 	// clairvoyant world with a nil Source.
 	Source func(searchseat.Env, *searchprobe.Collector) (WorldSource, error)
@@ -243,7 +243,7 @@ func newSeat(seed uint64, net *policynet.Model, cfg SeatConfig) (*Seat, error) {
 		}
 	case "", WorldClairvoyant:
 		if cfg.Source == nil {
-			return nil, errors.New("azmcts: the clairvoyant world is not linked (bots/azmcts/clairvoyant)")
+			return nil, errors.New("azmcts: the clairvoyant world is not linked (SeatConfig.Source is nil)")
 		}
 	default:
 		return nil, fmt.Errorf("azmcts: world source %q: want %s, %s or %s", cfg.World, WorldClairvoyant, WorldRedeal, WorldRedealClosed)

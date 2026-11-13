@@ -70,15 +70,23 @@ func (s *State) lifeXClamp(k *prep, cost *kop.ManaCost, mx int) int {
 	return min(mx, life)
 }
 
-// payLifeCost pays a cost's life part: Cost.N for a fixed PayLife<N>, the
-// announced x for the PayLife<X> form (N == 0).
+// lifeCostOwed is the amount c's life part charges: Cost.N for a fixed
+// PayLife<N>, Cost.Ctr for a may-play raise's PayLife<N> beside its sacrifice
+// (cost_mayplayraise.go), and 0 for the announced PayLife<X> form (N == 0, no
+// sacrifice), which payLifeCost settles from the announced x instead.
+func lifeCostOwed(c *kop.Cost) int {
+	if c.Flags&kop.CostSac != 0 {
+		return int(c.Ctr)
+	}
+	return int(c.N)
+}
+
+// payLifeCost pays a cost's life part: its fixed amount (lifeCostOwed), or the
+// announced x for the PayLife<X> form (owed == 0).
 //
 //go:noinline
 func (s *State) payLifeCost(k *prep, p uint8, c *kop.Cost, x uint8) {
-	n := int(c.N)
-	if c.Flags&kop.CostSac != 0 {
-		n = int(c.Ctr) // a may-play raise's PayLife<N> beside its sacrifice (cost_mayplayraise.go)
-	}
+	n := lifeCostOwed(c)
 	if n == 0 && !DebugLifeXNoPay {
 		n = int(x)
 	}
