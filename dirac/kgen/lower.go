@@ -3790,7 +3790,7 @@ var probeFilterKeys = map[string]bool{"ChangeType": true, "ChangeValid": true, "
 func (lc *lowerCtx) probeParam(k, v string) error {
 	v = strings.TrimSpace(v)
 	switch {
-	case v == "":
+	case v == "" || k == "ValidMessage": // a prompt string, not a filter
 		return nil
 	case probeAmountKeys[k]:
 		switch v {

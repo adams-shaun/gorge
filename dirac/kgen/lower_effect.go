@@ -2275,6 +2275,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.rollDice(ps)
 	case "TapOrUntap":
 		return lc.tapOrUntap(ps)
+	case "TapOrUntapAll":
+		return lc.tapOrUntapAll(ps) // lower_tapuntap.go
 	case "Debuff":
 		return lc.debuff(ps)
 	case "Explore":

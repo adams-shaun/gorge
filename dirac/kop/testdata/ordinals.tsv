@@ -517,6 +517,7 @@ ExtSpellToLib	ExtOp	308
 ExtStackExileMark	ExtOp	315
 ExtSuspect	ExtOp	190
 ExtSweepFrom	ExtOp	97
+ExtTapOrUntapAll	ExtOp	298
 ExtToGraveyard	ExtOp	192
 ExtTokenPT	ExtOp	170
 ExtTurnFaceUp	ExtOp	254
