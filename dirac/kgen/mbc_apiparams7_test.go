@@ -30,8 +30,8 @@ func TestDrawRevealLowers(t *testing.T) {
 const spellReturnScript = `Name:Test Ruse
 ManaCost:U U
 Types:Instant
-A:SP$ Counter | Cost$ U U Return<1/Creature> | TargetType$ Spell | TgtPrompt$ Select target spell | ValidTgts$ Card | Destination$ Graveyard | SpellDescription$ Counter target spell.
-Oracle:As an additional cost to cast this spell, return a creature you control to its owner's hand.\nCounter target spell.
+A:SP$ Counter | Cost$ U U Return<1/Creature> | ValidTgts$ Card | TargetType$ Spell | Destination$ Graveyard | SpellDescription$ Probe.
+Oracle:Probe.
 `
 
 // TestSpellReturnCostLowers: an instant or sorcery whose Cost$ is its printed
