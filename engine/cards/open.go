@@ -268,7 +268,7 @@ func PruneCaches(dir, keepPath string) {
 	// And an image file (ImagePath).
 	imgs, _ := filepath.Glob(filepath.Join(dir, "ir-*.img"))
 	for _, s := range imgs {
-		if _, err := os.Stat(strings.TrimSuffix(s, ".img") + ".gob.gz"); os.IsNotExist(err) {
+		if _, err := os.Stat(s[:len(s)-len(".img")] + ".gob.gz"); os.IsNotExist(err) {
 			_ = os.Remove(s)
 		}
 	}

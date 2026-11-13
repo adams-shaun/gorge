@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"unsafe"
 )
 
@@ -47,7 +46,8 @@ var imgCRC = crc32.MakeTable(crc32.Castagnoli)
 
 // ImagePath is the image file that sits beside the gob cache at cache.
 func ImagePath(cache string) string {
-	return strings.TrimSuffix(cache, ".gob.gz") + ".img"
+	seg := SegmentPath(cache)
+	return seg[:len(seg)-len(".seg")] + ".img"
 }
 
 // imgSection is one Image slice as raw bytes: its address, element count and
@@ -251,16 +251,13 @@ func hexFingerprint() [16]byte {
 // tokens finished eagerly from the image's raw rows (which
 // TestImageCorpusOracle holds equal to the cache's), the cards left lazy.
 func registryFromImage(im *Image) (*Registry, error) {
-	// An empty token list decodes from the gob cache as a nil map
-	// (cacheFileWire.cacheFile), so it is nil here too.
-	var tokens map[string]*Card
-	if len(im.Tokens) > 0 {
-		tokens = make(map[string]*Card, len(im.Tokens))
-	}
+	// The tokens go through the cache's own wire shape, so the map is built
+	// exactly as a gob load builds it (nil for none: cacheFileWire.cacheFile).
+	var w cacheFileWire
 	for i, t := range im.Tokens {
-		tokens[im.str(t.Key)] = im.rawToken(i)
+		w.Tokens = append(w.Tokens, tokenEntry{Key: im.str(t.Key), Card: im.rawToken(i)})
 	}
-	r, err := finishDecoded(nil, tokens)
+	r, err := finishDecoded(nil, w.cacheFile().Tokens)
 	if err != nil {
 		return nil, err
 	}
