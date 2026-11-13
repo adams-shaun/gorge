@@ -49,11 +49,18 @@ func (d *Decision) blockRequiredSearch(budget int) []int {
 	// atkReq is the set of attackers carrying an attacker-oriented
 	// requirement. Each is satisfied once by ANY chosen option naming it.
 	atkReq := make(map[state.ObjID]bool)
+	// atkReq2 is the set of attackers carrying the two-blocker requirement
+	// (AttackMustTwo). Each is satisfied once, by the SECOND chosen option
+	// naming it, which the per-attacker count below makes exact.
+	atkReq2 := make(map[state.ObjID]bool)
 	for _, o := range d.Options {
 		if o.AttackMust {
 			atkReq[o.Attacker] = true
 		}
-		if (o.BlockMust || o.Required || o.AttackMust) && o.MinBlockers > 1 {
+		if o.AttackMustTwo {
+			atkReq2[o.Attacker] = true
+		}
+		if (o.BlockMust || o.Required || o.AttackMust || o.AttackMustTwo) && o.MinBlockers > 1 {
 			minAttackers[o.Attacker] = true
 		}
 	}
@@ -87,7 +94,7 @@ func (d *Decision) blockRequiredSearch(budget int) []int {
 			if o.BlockMust || o.Required {
 				ordinary.required = true
 			}
-			if minAttackers[o.Attacker] || atkReq[o.Attacker] {
+			if minAttackers[o.Attacker] || atkReq[o.Attacker] || atkReq2[o.Attacker] {
 				ordinary.opts = append(ordinary.opts, i)
 			}
 		}
@@ -105,6 +112,7 @@ func (d *Decision) blockRequiredSearch(budget int) []int {
 	candidates = append(candidates, helpers...)
 	counts := make(map[state.ObjID]int)
 	satAtk := make(map[state.ObjID]bool)
+	satTwo := 0
 	lifeBound := d.PayerLifeBound()
 	var chosen, best []int
 	bestRequired := -1
@@ -140,7 +148,7 @@ func (d *Decision) blockRequiredSearch(budget int) []int {
 	nodes := 0
 	var search func(int, int, int, int32)
 	search = func(at, satisfied, spent int, spentLife int32) {
-		if bestRequired == requiredCount+len(atkReq) {
+		if bestRequired == requiredCount+len(atkReq)+len(atkReq2) {
 			return
 		}
 		if nodes++; nodes > budget {
@@ -175,13 +183,17 @@ func (d *Decision) blockRequiredSearch(budget int) []int {
 		// cap on attackers, more must-be-blocked attackers than blockers
 		// enumerate every assignment.
 		left := max(requiredCount-at, 0)
-		unsat := min(len(atkReq)-len(satAtk), len(candidates)-at)
+		// Each chosen option obeys at most one attacker unit: the first
+		// option naming an attacker its AttackMust unit, the second its
+		// AttackMustTwo unit.
+		twoLeft := len(atkReq2) - satTwo
+		unsat := min(len(atkReq)-len(satAtk)+twoLeft, len(candidates)-at)
 		if len(minAttackers) > 0 {
 			served, ok := teamsWithin(attackers, teamMin, counts, atkReq, satAtk, len(candidates)-at, teamNeeds)
 			if !ok {
 				return
 			}
-			unsat = min(unsat, served)
+			unsat = min(unsat, served+twoLeft)
 		}
 		need := bestRequired - satisfied
 		if need > left+unsat {
@@ -259,7 +271,17 @@ func (d *Decision) blockRequiredSearch(budget int) []int {
 				satAtk[o.Attacker] = true
 				add++
 			}
+			// The two-blocker unit is obeyed exactly when this option is the
+			// second naming its attacker; backtracking the count undoes it.
+			setTwo := atkReq2[o.Attacker] && counts[o.Attacker] == 2
+			if setTwo {
+				satTwo++
+				add++
+			}
 			search(at+1, satisfied+add, spent+o.Value, spentLife+cost)
+			if setTwo {
+				satTwo--
+			}
 			if setAtk {
 				delete(satAtk, o.Attacker)
 			}
@@ -336,7 +358,7 @@ func interchangeableAttackers(d *Decision, candidates []blocker) [][]state.ObjID
 			sig = binary.AppendUvarint(sig, uint64(o.MinBlockers))
 			sig = binary.AppendUvarint(sig, uint64(o.MaxBlockers))
 			var flags uint64
-			for bit, set := range [...]bool{o.AttackMust, o.BlockMust, o.Required} {
+			for bit, set := range [...]bool{o.AttackMust, o.BlockMust, o.Required, o.AttackMustTwo} {
 				if set {
 					flags |= 1 << bit
 				}
@@ -381,7 +403,7 @@ func (d *Decision) blockSearchMemoizable(lifeBound int32) bool {
 
 func (d *Decision) hasRequiredBlocks() bool {
 	for _, o := range d.Options {
-		if o.BlockMust || o.Required || o.AttackMust {
+		if o.BlockMust || o.Required || o.AttackMust || o.AttackMustTwo {
 			return true
 		}
 	}
@@ -391,7 +413,8 @@ func (d *Decision) hasRequiredBlocks() bool {
 // blockRequirementsSatisfied counts the CR 509.1c requirement units the
 // chosen options satisfy: one per required BLOCKER chosen (BlockMust/Required)
 // plus one per required ATTACKER that at least one chosen option blocks
-// (AttackMust). This is the ONE counter blockRequiredQuota reads on the
+// (AttackMust), plus one per two-blocker attacker that at least two chosen
+// options block (AttackMustTwo). This is the ONE counter blockRequiredQuota reads on the
 // solver's team and RequiredChosen reads on a submitted answer, so the engine's
 // declaration check and the client's repair can never disagree about what
 // "the maximum" means. Out-of-range indices are ignored.
@@ -427,6 +450,21 @@ func (d *Decision) blockRequirementsSatisfied(choices []int) int {
 			n++
 		}
 		if atkUnit {
+			n++
+		}
+		if o.AttackMustTwo && namedBefore(d, choices[:k], o.Attacker) == 1 {
+			n++
+		}
+	}
+	return n
+}
+
+// namedBefore counts the in-range choices naming attacker, the map-free read
+// blockRequirementsSatisfied makes for the two-blocker unit.
+func namedBefore(d *Decision, choices []int, attacker state.ObjID) int {
+	n := 0
+	for _, p := range choices {
+		if p >= 0 && p < len(d.Options) && d.Options[p].Attacker == attacker {
 			n++
 		}
 	}

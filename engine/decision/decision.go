@@ -233,6 +233,13 @@ type Option struct {
 	// to enforce it, because the engine's validator rejects an answer that
 	// fails the quota and Clamp/FitRequired repairs one that does.
 	AttackMust bool `json:"-"`
+	// AttackMustTwo marks a block option whose ATTACKER carries CR 509.1c's
+	// "must be blocked by two or more creatures if able" (Gorm the Great):
+	// one more requirement unit, obeyed once a SECOND chosen option names
+	// the attacker. It is counted beside AttackMust, never instead of it, so
+	// an attacker carrying both obeys one unit with one blocker and two with
+	// two. Server-side only, like AttackMust.
+	AttackMustTwo bool `json:"-"`
 	// MinBlockers/MaxBlockers are the CR 509.1a MinMaxBlocker bounds on the
 	// ATTACKER this block option names (Min$ N: the attacker can be blocked
 	// only by 0 or at least N creatures; Max$ N: by at most N; both set)
