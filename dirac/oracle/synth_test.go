@@ -315,6 +315,11 @@ func TestTailBucketsPartitionAll(t *testing.T) {
 	}
 	buckets := 0
 	for _, pool := range names {
+		if strings.HasPrefix(pool, cardset.SynthDraftPrefix) {
+			// A draft pool is dealt from cards that also sit in their tail buckets;
+			// it is neither Standard nor a tail bucket, so it takes no part in the partition.
+			continue
+		}
 		set := cardsettest.Synth(t, pool)
 		std := strings.HasPrefix(pool, "std-")
 		if !std {
