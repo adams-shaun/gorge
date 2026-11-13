@@ -27,7 +27,9 @@ func (lc *lowerCtx) choosePlayer(ps *params, node *cards.SA, mid bool) error {
 	}
 	// prompt and AI only
 	ps.consume("ChoiceTitle", "AILogic")
-	if mid && chainReadsChosenPlayer(node.Sub) {
+	// the mid-resolution ask is among the OPPONENTS (kop.oppsFrom); a
+	// Player.Other pool is any other player, still two-seat-only
+	if ps.str("Choices") != "Player.Other" && mid && chainReadsChosenPlayer(node.Sub) {
 		// the chain reads the choice: gorge asks it mid-resolution whatever
 		// the seat count, so the kernel does too (OpExt ExtChoosePlayerMid,
 		// a sole opponent recorded unasked) and the card holds at any pod
