@@ -23,6 +23,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime/debug"
@@ -31,6 +32,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -578,7 +580,7 @@ func run() int {
 	n := 0
 	t0 := time.Now()
 	sum := oracle.Fuzz(c, ps, mk, oracle.FuzzConfig{Run: rc, Mulligans: *mulligans, Policy: pol, StopAtFirst: !*keepGoing,
-		Shrink: *shrink, Workers: *workers, Coverage: coveragePath != "", GameTimeout: *gameLimit}, func(i int, p oracle.Pairing, r *oracle.Result) {
+		Shrink: *shrink, Workers: *workers, Coverage: coveragePath != "", GameTimeout: *gameLimit, StopOnHang: *gameLimit > 0}, func(i int, p oracle.Pairing, r *oracle.Result) {
 		n++
 		if r.Div != nil {
 			fmt.Fprintf(os.Stderr, "pair %d (%s, seed %d): %v\n", p.Index, strings.Join(p.Decks(), " vs "), p.Seed, r.Div)
@@ -615,8 +617,11 @@ func run() int {
 			return 1
 		}
 	}
+	// Games and Errors each count every attempted pair (a hang counts in Games),
+	// so together they are how many pairs this segment played.
+	played := sum.Games + sum.Errors
 	for _, p := range sum.Hangs {
-		fmt.Printf("pair %d (%s, seed %d): hang: no result after two watchdogs of %s\n", p.Index, vs(p), p.Seed, *gameLimit)
+		fmt.Printf("pair %d (%s, seed %d): hang: no result after two watchdogs of %s; rerun with: %s\n", p.Index, vs(p), p.Seed, *gameLimit, rerunCmd(p.Index))
 	}
 	if sum.First != nil {
 		printDiv(sum.First.Divergence)
@@ -633,9 +638,11 @@ func run() int {
 				}
 			}
 		}
-		return 1
 	}
-	if sum.Hung > 0 {
+	if sum.Hung > 0 && played < len(ps) {
+		runContinuation(ps[played].Index, len(ps)-played)
+	}
+	if sum.First != nil || sum.Hung > 0 {
 		return 1
 	}
 	return 0
@@ -899,10 +906,14 @@ func vanillaSeats(g, n, seats int) []int {
 
 // vanillaSweep plays games first..first+games-1 serially, each under the watchdog
 // (watchGame), and reports them. n is the deck count, for the game's deck indexes.
+// A confirmed hang ends the segment: the report covers the games played, and the
+// rest rerun in a child process (runContinuation), because the hung game's
+// goroutine holds a core until this process exits.
 func vanillaSweep(first, games, n, seats int, seed uint64, timeout time.Duration, rc oracle.RunConfig, out, lead string, feat *oracle.FeatStats, play func(int) played) int {
 	classes := map[string]int{}
 	clean := 0
 	written := map[string]int{}
+	played := 0
 	for g := first; g < first+games; g++ {
 		ix := vanillaSeats(g, n, seats)
 		vs, ds := fmt.Sprint(ix[0]), fmt.Sprint(ix[0])
@@ -911,14 +922,15 @@ func vanillaSweep(first, games, n, seats int, seed uint64, timeout time.Duration
 		}
 		s := seed + uint64(g)
 		o := watchGame(g, timeout, !statsOn && feat == nil, play)
+		played++
 		if o.err != nil {
 			fmt.Fprintln(os.Stderr, "kfuzz:", o.err)
 			return 1
 		}
 		if o.hang {
 			classes["hang"]++
-			fmt.Printf("game %d (vanilla %s, seed %d): hang: no result after two watchdogs of %s\n", g, vs, s, timeout)
-			continue
+			fmt.Printf("game %d (vanilla %s, seed %d): hang: no result after two watchdogs of %s; rerun with: %s\n", g, vs, s, timeout, rerunCmd(g))
+			break
 		}
 		m, res := o.m, o.res
 		if res.Div == nil {
@@ -954,12 +966,18 @@ func vanillaSweep(first, games, n, seats int, seed uint64, timeout time.Duration
 			printDiv(res.Div)
 		}
 	}
-	fmt.Printf("vanilla: %d games, %d without divergence (lead %s); first divergences: %s\n", games, clean, lead, sortedCounts(classes))
+	fmt.Printf("vanilla: %d games, %d without divergence (lead %s); first divergences: %s\n", played, clean, lead, sortedCounts(classes))
 	if feat != nil {
 		fmt.Printf("features: %d decisions and %d options compared byte-for-byte\n", feat.Decisions, feat.Options)
 	}
 	for _, gap := range oracle.RealKernelGaps {
 		fmt.Println("adapter gap:", gap)
+	}
+	if played < games {
+		// The segment ended at the hang (an error path already returned): the
+		// rest belong to a fresh process.
+		runContinuation(first+played, games-played)
+		return 1
 	}
 	if len(classes) > 0 {
 		return 1
@@ -1186,7 +1204,7 @@ func runFDN(c *oracle.Corpus, set cardset.Set, rc oracle.RunConfig, ps []oracle.
 	if statsOn || o.features || workers < 1 {
 		workers = 1
 	}
-	out := playAll(len(ps), workers, o.timeout, !statsOn && !o.features, play)
+	out, playedN := playAll(len(ps), workers, o.timeout, !statsOn && !o.features, play)
 	var feat *oracle.FeatStats
 	if o.features {
 		feat = &fs
@@ -1195,14 +1213,40 @@ func runFDN(c *oracle.Corpus, set cardset.Set, rc oracle.RunConfig, ps []oracle.
 	if focusName != "" {
 		name = focusName
 	}
-	return report(name, ps, out, rc, o, feat)
+	return finishSweep(name, ps, out, playedN, rc, o, feat)
+}
+
+// finishSweep reports the played prefix and reruns what a hang left unplayed.
+// playAll stops feeding at the first confirmed hang and lets the in-flight pairs
+// finish, so the played pairs are exactly ps[:playedN]; the segment's report
+// covers those, and the rest play in a child kfuzz (runContinuation) — the hung
+// game's goroutine holds a core in this process until it exits, so it must not
+// play on. The child's code cannot rescue the segment: a hang fails it as
+// always.
+func finishSweep(name string, ps []oracle.Pairing, out []played, playedN int, rc oracle.RunConfig, o sweepOpts, feat *oracle.FeatStats) int {
+	if playedN < len(ps) {
+		// The floor belongs to the whole form, and the segments' union covers it.
+		o.minGames = 0
+	}
+	code := report(name, ps[:playedN], out[:playedN], rc, o, feat)
+	if playedN < len(ps) {
+		runContinuation(ps[playedN].Index, len(ps)-playedN)
+		return 1
+	}
+	return code
 }
 
 // playAll runs play(0..n-1) on workers goroutines under the per-game watchdog and
-// returns the outcomes by index. retry decides whether a timed-out game is played
-// once more (see watchGame).
-func playAll(n, workers int, timeout time.Duration, retry bool, play func(i int) played) []played {
+// returns the outcomes by index and how many pairs were played: feeding stops at
+// the first confirmed hang, the in-flight pairs finish, a job a worker receives
+// after that is not played (the continuation plays it), and the played pairs are
+// then exactly the prefix [0, playedN) — the rest are zero, never played. retry
+// decides whether a timed-out game is played once more (see watchGame).
+func playAll(n, workers int, timeout time.Duration, retry bool, play func(i int) played) ([]played, int) {
 	out := make([]played, n)
+	var stop atomic.Bool
+	skip := int64(n) // nothing skipped: where the played prefix ends, the first job received past the stop
+	var mu sync.Mutex
 	jobs := make(chan int)
 	var wg sync.WaitGroup
 	for w := 0; w < workers; w++ {
@@ -1210,27 +1254,47 @@ func playAll(n, workers int, timeout time.Duration, retry bool, play func(i int)
 		go func() {
 			defer wg.Done()
 			for i := range jobs {
+				if stop.Load() {
+					mu.Lock()
+					if int64(i) < skip {
+						skip = int64(i)
+					}
+					mu.Unlock()
+					continue // received after a hang stopped the feed: the continuation plays it
+				}
 				out[i] = watchGame(i, timeout, retry, play)
+				if out[i].hang {
+					stop.Store(true)
+				}
 			}
 		}()
 	}
+	fed := 0
 	for i := 0; i < n; i++ {
+		if stop.Load() {
+			break
+		}
+		fed = i + 1
 		jobs <- i
 	}
 	close(jobs)
 	wg.Wait()
-	return out
+	if skip < int64(n) {
+		return out, int(skip)
+	}
+	return out, fed
 }
 
 // watchGame runs play(i) on its own goroutine and waits at most timeout for it,
 // twice when retry is set (oracle.WithinTimeoutRetry: one retry absorbs a host
 // stall). A game past its time on both attempts is a hang: the goroutine cannot
-// be stopped, so it leaks until the process exits, but it only ever touches its
-// own game and its buffered result channel. A -stats or -features run keeps one
-// attempt, because a stalled attempt shares that run's report-only counters and
-// would double-count once its retry finishes. A panic outside the lockstep's own
-// recover (building the game) is a divergence: one bad pair does not end the
-// sweep.
+// be stopped, so it leaks, but it only ever touches its own game and its
+// buffered result channel, and the sweep stops feeding new pairs — the unplayed
+// rest rerun in a child process, so the leak holds a core for a segment, not for
+// the run. A -stats or -features run keeps one attempt, because a stalled
+// attempt shares that run's report-only counters and would double-count once its
+// retry finishes. A panic outside the lockstep's own recover (building the game)
+// is a divergence: one bad pair does not end the sweep.
 func watchGame(i int, timeout time.Duration, retry bool, play func(int) played) played {
 	wrapped := func() (p played) {
 		defer func() {
@@ -1241,6 +1305,73 @@ func watchGame(i int, timeout time.Duration, retry bool, play func(int) played) 
 		return play(i)
 	}
 	return oracle.WithinTimeoutRetry(timeout, retry, wrapped, played{hang: true})
+}
+
+// kfuzzProg names this program the way a rerun command can execute it:
+// os.Args[0], or `go run ./dirac/oracle/cmd/kfuzz` when the binary is a
+// soon-deleted go-build temp (what a `go run` invocation leaves).
+func kfuzzProg() string {
+	if strings.Contains(os.Args[0], "go-build") {
+		return "go run ./dirac/oracle/cmd/kfuzz"
+	}
+	return os.Args[0]
+}
+
+// rerunCmd is the command that replays one pair in a fresh kfuzz: the pair's
+// index and one pair, so it reruns exactly the game the line reports.
+func rerunCmd(pair int) string {
+	return kfuzzProg() + " " + strings.Join(contArgs(pair, 1), " ")
+}
+
+// contArgs is os.Args[1:] with every -pods, -first-pair and -pairs occurrence
+// dropped and -first-pair <firstPair> -pairs <pairs> appended, so a continuation
+// reruns exactly the pairs its caller leaves unplayed, whatever the run drew
+// them from: pool, pod, synth, -pairs-file (whose Index is the line index) and
+// vanilla (whose game index is the pair index) all make pair p a pure function
+// of (seed, p), and last occurrence wins in flag.Parse, so -flag v and -flag=v
+// both drop. -pods drops because a pod run's count is -pairs (oracle.PodAt makes
+// pod p of (seed, p)); the appended -pairs names it.
+func contArgs(firstPair, pairs int) []string {
+	drop := func(name string) bool { return name == "-pods" || name == "-first-pair" || name == "-pairs" }
+	args := os.Args[1:]
+	out := make([]string, 0, len(args)+4)
+	for i := 0; i < len(args); i++ {
+		if name, _, hasVal := strings.Cut(args[i], "="); drop(name) {
+			if !hasVal && i+1 < len(args) {
+				i++ // -pods 3: the value is the next word, as flag.Parse reads it
+			}
+			continue
+		}
+		out = append(out, args[i])
+	}
+	return append(out, "-first-pair", strconv.Itoa(firstPair), "-pairs", strconv.Itoa(pairs))
+}
+
+// runContinuation executes kfuzz for the pairs a hang left unplayed: it re-runs
+// this program with contArgs(firstPair, pairs), inherits stdout and stderr, and
+// returns the child's exit code. The segments' file flags (-coverage, -evidence,
+// -reach, -out/repro.json, -cpuprofile, -memprofile) are inherited unchanged, so
+// the last segment's file wins — acceptable, because a hang already fails the
+// run, and the per-pair files under -out are pair-numbered and survive. Tests
+// stub this var.
+var runContinuation = func(firstPair, pairs int) int {
+	exe, err := os.Executable()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "kfuzz: continuation: %v\n", err)
+		return 1
+	}
+	cmd := exec.Command(exe, contArgs(firstPair, pairs)...)
+	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+	err = cmd.Run()
+	if err == nil {
+		return 0
+	}
+	var ee *exec.ExitError
+	if errors.As(err, &ee) {
+		return max(1, ee.ExitCode())
+	}
+	fmt.Fprintf(os.Stderr, "kfuzz: continuation: %v\n", err)
+	return 1
 }
 
 // writePairRepro writes one bad game's repro as dir/name, so the game replays from
@@ -1281,7 +1412,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 			v.Games++
 			v.Hang++
 			classes["hang"]++
-			fmt.Printf("pair %d (%s, seed %d): hang: no result after two watchdogs of %s\n", p.Index, vs(p), p.Seed, o.timeout)
+			fmt.Printf("pair %d (%s, seed %d): hang: no result after two watchdogs of %s; rerun with: %s\n", p.Index, vs(p), p.Seed, o.timeout, rerunCmd(p.Index))
 			printBadGame(o.corpus, p, "hang", "hang", nil, nil)
 			continue
 		}

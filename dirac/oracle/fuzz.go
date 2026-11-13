@@ -114,9 +114,15 @@ type FuzzConfig struct {
 	Coverage bool
 	// GameTimeout is the per-game watchdog: a game with no result after this long,
 	// twice (one retry absorbs a host stall), is a hang and the worker moves on.
-	// Its goroutine cannot be stopped, so it leaks until the process exits. 0: no
-	// watchdog.
+	// Its goroutine cannot be stopped, so it leaks until the process exits; with
+	// StopOnHang the run stops feeding new pairs and the caller re-executes the
+	// rest elsewhere. 0: no watchdog.
 	GameTimeout time.Duration
+	// StopOnHang stops the feed at the first recorded hang, as StopAtFirst stops
+	// it at the first divergence: the summary's played count is Games + Errors
+	// (both count every attempted pair; a hang counts in Games), and the pairs
+	// after it belong to the caller's next attempt, not to this leaking process.
+	StopOnHang bool
 }
 
 // FuzzSummary is a fuzz run's totals.
@@ -172,6 +178,9 @@ func Fuzz(c *Corpus, pairs []Pairing, mk SideFactory, fc FuzzConfig, progress fu
 		go func() {
 			defer wg.Done()
 			for i := range jobs {
+				if fc.StopOnHang && stopped.Load() {
+					continue // received after a hang stopped the feed: the caller's next attempt plays it
+				}
 				p := pairs[i]
 				// The game owns everything it writes (d, its coverage), so one the
 				// watchdog gave up on touches nothing shared.
@@ -210,6 +219,9 @@ func Fuzz(c *Corpus, pairs []Pairing, mk SideFactory, fc FuzzConfig, progress fu
 					s.Hung++
 					s.ByClass["hang"]++
 					hung = append(hung, i)
+					if fc.StopOnHang {
+						stopped.Store(true)
+					}
 				} else if d.err != nil {
 					s.Errors++
 				} else {
