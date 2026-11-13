@@ -663,6 +663,7 @@ MayPlayOpponent	untyped int	16384
 MayPlayOwner	untyped int	512
 MayPlayPayLife	untyped int	-32768
 MayPlayRaiseShift	untyped int	10
+MinBlockersAll	uint8	255
 MonarchOpp	untyped int	1
 MorphDisguise	uint8	3
 MorphMegamorph	uint8	2
