@@ -144,7 +144,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +16 (the merge with land at 1acc5919d9: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering beside land's later work; merged ALL 23115 -> 23131, WOE stays 264 measured).
 	// +14 (the merge with land at 6014a11d54: this branch's Extort lowering, the printed K:Extort expansion and the granted trigger, beside land's 23177; merged ALL 23177 -> 23191 measured).
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
-	"ALL": {23253, 34442},
+	// +15 (the MBC values-1 lowerings: a ConditionCheckSVar gate beside the present check lowered on its shape (Triumph of Ferocity, Abzan Beastmaster, Summon: Fenrir's chapter), the any-kind and putter AddCounter replacements' plus-one amount and the YourTeamCtrl word (Pir, Imaginative Rascal, the Rush-of family, Combo Attack and kin), a planeswalker's [-X] announcing the X its target bounds read (Dyfed, the Guiding Hand), and the body probe keeping the refused line's printed-ability context (Sahir, Visitor in Darkness stays refused by its trigger-matcher params); ALL 23253 -> 23268 measured).
+	"ALL": {23268, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {218, 280},
@@ -159,7 +160,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
-	"MBC": {1678, 2188},
+	// +5 (the MBC values-1 lowerings: Dyfed, the Guiding Hand (a [-X] target bounds), Pir, Imaginative Rascal (any-kind plus one), Triumph of Ferocity (the CheckSVar gate beside the present check), and the YourTeamCtrl word lowering Combo Attack and Abzan Beastmaster; 1678 -> 1683 measured).
+	"MBC": {1683, 2188},
 	"MKM": {251, 279},
 	"MOM": {201, 296},
 	"MSH": {246, 276},
