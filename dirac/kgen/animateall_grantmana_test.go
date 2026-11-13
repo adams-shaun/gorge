@@ -31,7 +31,7 @@ func lowerSynthOverrides(t *testing.T, src string) []lInstr {
 func TestAnimateAllGrantManaLow(t *testing.T) {
 	const src = "Name:Rain of Filth Probe\nManaCost:B\nTypes:Instant\n" +
 		"A:SP$ AnimateAll | ValidCards$ Land.YouCtrl | Abilities$ ABMana | SpellDescription$ x.\n" +
-		"SVar:ABMana:AB$ Mana | Cost$ Sac<1/CARDNAME> | Produced$ B | SpellDescription$ Add {B}.\n"
+		"SVar:ABMana:AB$ Mana | Cost$ Sac<1/CARDNAME> | Produced$ B | SpellDescription$ probe sac.\n"
 	lc := lowerSynth(t, src)
 	if r := lc.Refusals; len(r) != 0 {
 		t.Fatalf("the probe refuses: %q", keclReason(r))
@@ -57,10 +57,10 @@ func TestAnimateAllGrantManaLow(t *testing.T) {
 // ability.
 func TestAnimateAllGrantManaUntilNextTurn(t *testing.T) {
 	const src = "Name:Song of Freyalise Probe\nManaCost:1 G\nTypes:Enchantment Saga\n" +
-		"K:Chapter:2:DBAnimateAll,DBPutCounterAll\n" +
+		"K:Chapter:2:DBAnimateAll,DBPumpAll\n" +
 		"SVar:DBAnimateAll:DB$ AnimateAll | ValidCards$ Creature.YouCtrl | Abilities$ AnyMana | Duration$ UntilYourNextTurn | SpellDescription$ x.\n" +
-		"SVar:AnyMana:AB$ Mana | Cost$ T | Produced$ Any | Amount$ 1 | SpellDescription$ Add one mana of any color.\n" +
-		"SVar:DBPutCounterAll:DB$ PutCounterAll | ValidCards$ Creature.YouCtrl | CounterType$ P1P1 | CounterNum$ 1 | SpellDescription$ y.\n"
+		"SVar:AnyMana:AB$ Mana | Cost$ T | Produced$ Any | Amount$ 1 | SpellDescription$ probe any.\n" +
+		"SVar:DBPumpAll:DB$ PumpAll | ValidCards$ Creature.YouCtrl | KW$ Flying | SpellDescription$ probe pump.\n"
 	lc := lowerSynth(t, src)
 	if r := lc.Refusals; len(r) != 0 {
 		t.Fatalf("the probe refuses: %q", keclReason(r))
@@ -85,7 +85,7 @@ func TestAnimateAllGrantManaUntilNextTurn(t *testing.T) {
 // TestAnimateAllGrantManaRefused: the shapes the pair cannot carry refuse by
 // name; a single-object Animate keeps refusing Abilities$ as unread.
 func TestAnimateAllGrantManaRefused(t *testing.T) {
-	const sv = "SVar:ABMana:AB$ Mana | Cost$ Sac<1/CARDNAME> | Produced$ B | SpellDescription$ Add {B}.\n"
+	const sv = "SVar:ABMana:AB$ Mana | Cost$ Sac<1/CARDNAME> | Produced$ B | SpellDescription$ probe sac.\n"
 	for _, tc := range []struct{ name, body, want string }{
 		{"three abilities", "A:SP$ AnimateAll | ValidCards$ Creature.YouCtrl | Abilities$ ABMana,ABMana,ABMana | SpellDescription$ x.\n", "more than two granted abilities"},
 		{"with a loss", "A:SP$ AnimateAll | ValidCards$ Creature.YouCtrl | Abilities$ ABMana | RemoveAllAbilities$ True | SpellDescription$ x.\n", "beside RemoveAllAbilities$"},

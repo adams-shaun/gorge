@@ -1517,7 +1517,7 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 			continue
 		}
 		if st.sac {
-			GrantManaStats.Sac.Add(1) // the granted sacrifice-only step (mana_grantcost.go)
+			GrantManaStats.Sac.Add(1)   // the granted sacrifice-only step (mana_grantcost.go)
 			s.grantSacApply(k, g.p, st) // the mana, the sacrifice, the state-based check (mana_grantcost.go)
 			if s.npend != 0 {
 				passed = true
