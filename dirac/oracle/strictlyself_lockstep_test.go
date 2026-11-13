@@ -30,6 +30,7 @@ var strictlySelfCards = map[string]bool{
 
 var strictlySelfDeckSets = []struct {
 	name  string
+	seeds uint64 // 0 means the default 300; a set that reaches its divergence early uses fewer
 	decks [2][]cardset.Entry
 }{
 	{
@@ -53,7 +54,11 @@ var strictlySelfDeckSets = []struct {
 		},
 	},
 	{
-		name: "strictlyself-backup-grant-vs-bears",
+		// The Backup-granted attack trigger's SVar:X reads the recipient's
+		// live power; the divergence it guards appears by seed 7, so 60 seeds
+		// keep the regression inside the one-minute test budget.
+		name:  "strictlyself-backup-grant-vs-bears",
+		seeds: 60,
 		decks: [2][]cardset.Entry{
 			{
 				{Name: "Guardian Scalelord", Count: 4}, {Name: "Old One Eye", Count: 4},
@@ -113,7 +118,11 @@ func TestStrictlySelfLockstep(t *testing.T) {
 	t.Parallel()
 	played := map[string]int{}
 	for _, ds := range strictlySelfDeckSets {
-		if n := lockstepRunPolicy(t, "strictlyself", ds.decks, 300, true, nil, nil,
+		seeds := ds.seeds
+		if seeds == 0 {
+			seeds = 300
+		}
+		if n := lockstepRunPolicy(t, "strictlyself", ds.decks, seeds, true, nil, nil,
 			func(seed uint64) Policy { return strictlySelfPolicy(seed, played) }); n != 0 {
 			t.Fatalf("%s: %d divergent seeds", ds.name, n)
 		}
