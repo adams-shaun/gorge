@@ -146,13 +146,13 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
 	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
-	// +3 (S:Mode$ CanAttackIfHaste lowers over a ValidCard$ scope: Frenzied Saddlebrute, Instill Energy, Chaos Lord lower; ALL 23407 -> 23410, MBC 1717 -> 1718 measured).
-	"ALL": {23410, 34442},
+	// +3 (S:Mode$ CanAttackIfHaste lowers over a ValidCard$ scope: Frenzied Saddlebrute, Instill Energy, Chaos Lord lower; ALL 23483 -> 23486, MBC 1729 -> 1730 beside land's work).
+	"ALL": {23486, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {219, 280},
 	"DFT": {255, 276},
-	"DMU": {197, 270},
+	"DMU": {198, 270},
 	"DSK": {251, 276},
 	"ECL": {244, 273},
 	"EOE": {250, 266},
@@ -162,9 +162,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
-	"MBC": {1718, 2188},
+	"MBC": {1730, 2188},
 	"MKM": {251, 279},
-	"MOM": {201, 296},
+	"MOM": {203, 296},
 	"MSH": {246, 276},
 	"NEO": {201, 287},
 	"ONE": {201, 271},

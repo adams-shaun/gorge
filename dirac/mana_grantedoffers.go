@@ -99,7 +99,7 @@ func (s *State) contGrants(k *prep, sl Slot, lost bool, lts uint16, f func(c Car
 				continue
 			}
 			prev := s.g.grantSrc
-			s.g.grantSrc = uint8(st.obj) + 1 // grantIdxs orders by this source's place in the walk
+			s.g.grantSrc = st.obj + 1 // grantIdxs orders by this source's place in the walk
 			f(cid, a.Static.Grant-1, 1)
 			s.g.grantSrc = prev
 		}
@@ -135,7 +135,7 @@ func (s *State) grantIdxs(k *prep, sl Slot, out *[maxGrants]int16) (n int) {
 	s.grantedAbilities(k, sl, func(c CardID, ab uint8) {
 		pos := uint8(255)
 		for oi := 0; oi < no; oi++ {
-			if s.g.grantSrc != 0 && uint8(s.perms[order[oi]].obj)+1 == s.g.grantSrc {
+			if s.g.grantSrc != 0 && s.perms[order[oi]].obj+1 == s.g.grantSrc {
 				pos = uint8(oi)
 				break
 			}
@@ -337,7 +337,7 @@ func (s *State) castGrantAvail(k *prep, p uint8, o Obj, av, fav *avail) *avail {
 	if k.gen == nil || !k.gen.anyTapExtra || !k.gen.anyGrantRestr() {
 		return av
 	}
-	s.walkHandAvail(k, p, s.grantPayDescOf(k, MakeAction(AkCast, uint8(o), 0, 0)), fav)
+	s.walkHandAvail(k, p, s.grantPayDescOf(k, MakeAction(AkCast, TCode(o), 0, 0)), fav)
 	fav.delve = av.delve
 	return fav
 }
@@ -1701,7 +1701,7 @@ func (s *State) castFaceCard(k *prep, a Action) CardID {
 	}
 	if cd := &k.t.Cards[c]; roomDef(k, c) {
 		return cd.Faces[a.Target()] // a room_alt cast: the other door, whichever door the card shows
-	} else if fd, ok := fusedDef(k, c); ok && a.Target() == FeatFuseFace {
+	} else if fd, ok := fusedDef(k, c); ok && a.Target() == TCode(FeatFuseFace) {
 		return fd // a fused cast: both halves (face_fuse.go)
 	} else if len(cd.Faces) == 2 && a.Target() == 1 {
 		return cd.Faces[1]
@@ -1900,7 +1900,7 @@ func (s *State) altPlayCost(k *prep, p uint8, a Action) (kop.ManaCost, bool) {
 	case m == castAirbend:
 		return s.airbendCost(k, p, c, o), true
 	case m&castWarp != 0:
-		if wi := s.warpInstances(k, p, o); a.Target() < wi.n {
+		if wi := s.warpInstances(k, p, o); a.Target() < TCode(wi.n) { // code-ok: a warp instance index
 			return s.adjustCost(k, p, c, o, wi.cost[a.Target()]), true // the action's warp instance (kw_warpgrant.go)
 		}
 		return s.adjustCost(k, p, c, o, cd.WarpCost), true

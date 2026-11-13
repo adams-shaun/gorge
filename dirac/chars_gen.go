@@ -898,7 +898,7 @@ func (s *State) grantsBetween(k *prep, sl Slot, lo, hi uint32, kinds uint8, lts 
 				for _, g := range k.t.Overrides[a.Static.Override-1].Grant {
 					if g != 0 {
 						prev := s.g.grantSrc
-						s.g.grantSrc = uint8(s.perms[src].obj) + 1
+						s.g.grantSrc = s.perms[src].obj + 1
 						f(cid, g-1, 1)
 						s.g.grantSrc = prev
 					}
@@ -907,7 +907,7 @@ func (s *State) grantsBetween(k *prep, sl Slot, lo, hi uint32, kinds uint8, lts 
 				st := statSrc{a: a, sl: src, ctrl: s.perms[src].ctrl, obj: s.perms[src].obj}
 				if a.Static.Grant != 0 && s.statCond(k, st) && s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, src, layerKw) {
 					prev := s.g.grantSrc
-					s.g.grantSrc = uint8(s.perms[src].obj) + 1
+					s.g.grantSrc = s.perms[src].obj + 1
 					f(cid, a.Static.Grant-1, 1)
 					s.g.grantSrc = prev
 				}

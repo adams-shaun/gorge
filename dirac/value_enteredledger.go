@@ -223,7 +223,7 @@ var DebugEnteredLive bool
 func (s *State) thisTurnEnteredLive(k *prep, x *kop.Expr, ctx evalCtx) int {
 	dest := kop.Zone(x.N)
 	n := 0
-	for o := Obj(0); o < Obj(s.nobj); o++ {
+	for o := Obj(0); o < s.nobj; o++ {
 		ob := &s.objs[o]
 		if ob.zone != dest || !s.g.zoneTurn.has(o) {
 			continue

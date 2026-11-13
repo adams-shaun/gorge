@@ -1166,6 +1166,13 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !found {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
+		case head == "Dethrone":
+			// CR 702.105a: gorge kwDethrone expands it into an Attacks
+			// trigger (Dethrone$ True), lowered from that line
+			// (lower_dethrone.go)
+			if !lc.faceHasDethroneTrigger() {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
 		case head == "Evolve":
 			// CR 702.100a: gorge kwEvolve expands it into an ETB trigger
 			// (Evolve$ True) whose body puts a +1/+1 counter on Self,
@@ -1271,6 +1278,14 @@ func (lc *lowerCtx) lowerKeywords() {
 			// (lower_meleegrant.go), and the only one on a face-down or
 			// ability-less holder (CR 708.2, 613.7).
 			if !faceHasMeleeTrigger(lc.face) {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
+		case head == "Exploit" && param == "":
+			// CR 702.110a: gorge kwExploit expands it into an ETB trigger
+			// (Keyword$ Exploit) whose body is the optional remembering
+			// sacrifice then DB$ Exploit, lowered from that line
+			// (lower_exploit.go)
+			if !faceHasExploitTrigger(lc.face) {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
 		case head == "Extort" && param == "":

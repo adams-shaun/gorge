@@ -41,7 +41,7 @@ func (s *State) embNumAt(emb uint8) uint8 {
 	if p >= MaxSeats || i < 0 || i >= int(s.g.nemb[p]) {
 		return 0
 	}
-	return s.embNum(p, i)
+	return uint8(s.embNum(p, i))
 }
 
 // DebugEmbNumLive is the mutation hook: the read

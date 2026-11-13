@@ -38,9 +38,9 @@ func (s *State) auraCopyDeclSlot(k *prep, e *stackEntry) int {
 //
 //go:noinline
 func (s *State) setAuraCopyTarget(e *stackEntry, picks []Obj) {
-	e.tgt[0] = NoTarget
+	e.tgt[0] = TCode(NoTarget)
 	for _, o := range picks[:min(len(picks), 1)] {
-		c := uint8(o)
+		c := TCode(o)
 		var ver uint8
 		if isObjTarget(c) {
 			ver = s.objs[c].ver

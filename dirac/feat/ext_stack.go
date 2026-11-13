@@ -103,8 +103,8 @@ func (e *Encoder) stackEntryOf(obj uint8) int {
 // targetClass classifies target byte t for seat as buildRel does; host is
 // the battlefield card for classes 2-5.
 func (e *Encoder) targetClass(seat, t uint8) (int, *vcard) {
-	if t >= dirac.PlayerTarget0 {
-		if t == dirac.PlayerTarget0+seat {
+	if dirac.TCode(t) >= dirac.PlayerTarget0 {
+		if dirac.TCode(t) == dirac.PlayerTarget0+dirac.TCode(seat) {
 			return tcPlayerMe, nil
 		}
 		return tcPlayerOpp, nil
@@ -171,19 +171,19 @@ func (e *Encoder) extStack(seat uint8, me, opp *vplayer) {
 			if j < len(se.Targets) {
 				t = se.Targets[j]
 			}
-			if t == dirac.NoTarget {
+			if dirac.TCode(t) == dirac.NoTarget {
 				continue
 			}
 			dup := false
 			for k := 0; k < nseen; k++ {
-				dup = dup || seen[k] == t
+				dup = dup || dirac.TCode(seen[k]) == t
 			}
 			if dup {
 				continue
 			}
-			seen[nseen] = t
+			seen[nseen] = uint8(t)
 			nseen++
-			tc, host := e.targetClass(seat, t)
+			tc, host := e.targetClass(seat, uint8(t))
 			if tc == tcNone {
 				continue
 			}
@@ -192,7 +192,7 @@ func (e *Encoder) extStack(seat uint8, me, opp *vplayer) {
 				continue // an ability: S1 only
 			}
 			if tc == tcStack && eff == EffCounter {
-				if k := e.stackEntryOf(t); k >= 0 && e.kp.Stack[k].Ctrl != se.Ctrl && v.stack[k].cv >= 0 {
+				if k := e.stackEntryOf(uint8(t)); k >= 0 && e.kp.Stack[k].Ctrl != se.Ctrl && v.stack[k].cv >= 0 {
 					b := StrengthBucket(stackPstr(&v.cards[v.stack[k].cv]))
 					e.extAdd(xSCounters+4*side+int(b), 1)
 				}

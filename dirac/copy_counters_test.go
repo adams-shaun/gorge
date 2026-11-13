@@ -30,9 +30,9 @@ func TestCopyTokenCounters(t *testing.T) {
 	if !sc.s.perms[sc.slot(m)].addCtrN(sc.s, int(kop.CtrP1P1), 4) {
 		t.Fatal("counters")
 	}
-	sc.do(t, AkActivate, uint8(m), 0xff)
-	sc.do(t, AkPass, 0xff, 0xff)
-	sc.do(t, AkPass, 0xff, 0xff)
+	sc.do(t, AkActivate, TCode(m), scAny)
+	sc.do(t, AkPass, scAny, scAny)
+	sc.do(t, AkPass, scAny, scAny)
 	var toks []Slot
 	for _, sl := range sc.copiesOf(mirror) {
 		if sl != sc.slot(m) {

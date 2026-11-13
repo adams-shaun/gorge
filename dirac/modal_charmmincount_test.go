@@ -28,7 +28,7 @@ func TestCharmMinCountFollowsTheCount(t *testing.T) {
 	sc := newScenTable(t, charmMinCountTable(1), Config{NoElide: true})
 	sc.lands(0, v.Mountain, 1)
 	fc := sc.hand(v.TestCharm, 0)
-	sc.do(t, AkCast, uint8(fc), 0xff) // offered: one feasible mode meets the gate's minimum 1
+	sc.do(t, AkCast, TCode(fc), scAny) // offered: one feasible mode meets the gate's minimum 1
 	d := sc.s.Step()
 	if d.Kind != DkModes {
 		t.Fatalf("count 1: want the mode ask, got kind %d", d.Kind)
@@ -40,7 +40,7 @@ func TestCharmMinCountFollowsTheCount(t *testing.T) {
 	sc = newScenTable(t, charmMinCountTable(2), Config{NoElide: true})
 	sc.lands(0, v.Mountain, 1)
 	fc = sc.hand(v.TestCharm, 0)
-	sc.do(t, AkCast, uint8(fc), 0xff)
+	sc.do(t, AkCast, TCode(fc), scAny)
 	if d := sc.s.Step(); d.Kind == DkModes {
 		t.Fatalf("count 2 with one feasible mode: a mode ask was posed: %+v", d.Options[:d.N])
 	}

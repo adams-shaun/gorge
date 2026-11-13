@@ -72,7 +72,7 @@ func (s *State) offerImpendingHand(k *prep, d *Decision, p uint8, o Obj, c CardI
 	if s.castHeldOut(o) {
 		return
 	}
-	d.add(MakeAction(AkCast, uint8(o), castImpTgt, 0))
+	d.add(MakeAction(AkCast, TCode(o), castImpTgt, 0))
 }
 
 // impendEnter readies the resolving impended spell's time counters for its

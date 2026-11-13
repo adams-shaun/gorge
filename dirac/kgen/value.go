@@ -624,7 +624,7 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		}
 	case "PlayerCountRemembered":
 		v, err = lc.playerCountRemembered(rest, depth) // lower_repeatplayers.go
-	case "PlayerCountPlayers", "TargetedController", "TriggeredTarget":
+	case "PlayerCountPlayers", "TargetedController", "TriggeredTarget", "TriggeredDefendingPlayer":
 		v, err = lc.kvfHead(head, rest) // value_filterheads.go
 	case "PlayerCountDefinedNonTriggeredTarget":
 		v, err = lc.nonTrigTargetExtreme(rest) // value_trigreferents.go

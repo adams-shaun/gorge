@@ -56,7 +56,7 @@ var graveTriggerModes = map[string]bool{
 }
 
 func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
-	var atkMostLife, descended bool // fire-time player gates
+	var atkMostLife, descended, dethrone bool // fire-time player gates
 	ab := &lAbility{Kind: akTriggered, Index: len(lc.out.Abilities)}
 	defer func(b bool) { lc.trigBody = b }(lc.trigBody)
 	lc.trigBody = false
@@ -262,6 +262,12 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				return refuse("Attacks Training %q", v)
 			}
 			tr.Training = true
+		}
+		if v, ok := tp.get("Dethrone"); ok {
+			// K:Dethrone's expansion (lower_dethrone.go)
+			if dethrone, err = dethroneGate(v, tp, tr); err != nil {
+				return err
+			}
 		}
 		if v, ok := tp.get("Myriad"); ok {
 			// K:Myriad's expansion (gorge kwMyriad; trigmatch
@@ -911,6 +917,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			tr.Zone = zGraveyard
 		}
+		if err := lowerDiscardedCause(tp, tr); err != nil { // lower_trigparams.go
+			return err
+		}
 	case "DiscardedAll":
 		// "whenever you discard one or more cards" (gorge trigmatch
 		// discardedAllMatches, rules discard batch): once per discard
@@ -1134,6 +1143,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 	case "CollectEvidence":
 		if err := lc.collectEvidenceTrigger(tp, tr); err != nil {
+			return err
+		}
+	case "Exploited":
+		if err := lc.exploitedTrigger(tp, tr); err != nil { // lower_exploit.go
 			return err
 		}
 	case "TokenCreatedOnce":
@@ -1491,6 +1504,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	fireOnly, err := lc.kvfTriggerConds(tp, &conds, atkMostLife, descended)
 	if err != nil {
 		return err
+	}
+	if dethrone {
+		conds, fireOnly = append(conds, dethroneCond()), true // lower_dethrone.go
 	}
 	if fc, err := lc.firstAttackCombat(tp, tr, &conds, t.Mode); err != nil { // lower_addphase.go
 		return err
@@ -3174,9 +3190,19 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 		for _, w := range o.SetSubtypes {
 			switch w {
 			case "Plains", "Island", "Swamp", "Mountain", "Forest":
-				// CR 305.6: a basic land type carries its mana ability,
-				// which the kernel's add-only override does not grant
-				return nil, refuse("override adds basic land type %q", w)
+				// CR 305.6: a basic land type carries its mana ability. gorge
+				// appends the intrinsic "{T}: Add [c]" for every derived basic
+				// type word (mana_activation.go's CR 305.6 block), so the
+				// kernel's grant is lowerable exactly when the same AddType$
+				// list also makes the object a LAND (Ashaya, Soul of the Wild's
+				// "nontoken creatures you control are Forest lands", Life and
+				// Limb's Saprolings): the mana walk's blg views (static_landtype.go)
+				// cover any plain-shaped card then. Without the Land type the
+				// intrinsic still applies in gorge but the kernel's blgMask
+				// reads only lands, so that shape stays refused.
+				if o.SetTypes&typeBits["Land"] == 0 {
+					return nil, refuse("override adds basic land type %q", w)
+				}
 			}
 		}
 		o.AddTypes, o.SetTypes = o.SetTypes, 0

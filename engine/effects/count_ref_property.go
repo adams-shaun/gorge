@@ -735,13 +735,19 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 // and the Valid-family heads
 // are modelled ONLY for TriggeredTarget -- the damaged player of a DamageDone
 // trigger reads Battle Angels of Tyr's NumInHand, NumLands, sword-of-war-and-
-// peace-style damage and friends -- so the widening cannot spread to
-// TriggeredPlayer, TriggeredDefendingPlayer or any other ref's unmodelled
-// property. A Valid head is recognised exactly like the property switch below
+// peace-style damage and friends -- and CardsInHand also for
+// TriggeredDefendingPlayer (Mr. Foxglove), so the widening cannot spread to
+// TriggeredPlayer or any other ref's unmodelled property. A Valid head is recognised exactly like the property switch below
 // reads it: the word before the first space satisfies countZone.
 func defaultRefPropertyModelled(ref, prop string) bool {
 	if prop == "LifeTotal" || prop == "DamageToOppsThisTurn" {
 		return true
+	}
+	if ref == "TriggeredDefendingPlayer" {
+		// Mr. Foxglove's "cards in defending player's hand": the attacked
+		// player's hand size (Forge's player-property count resolves the
+		// defining ref to its players, whichever the ref)
+		return prop == "CardsInHand"
 	}
 	if ref != "TriggeredTarget" {
 		return false

@@ -80,7 +80,7 @@ func (s *State) askOptionsBlight(k *prep, d *Decision) bool {
 	var buf [MaxPerm]Slot
 	n := s.blightCands(k, &s.prog(k)[s.res.pc], s.res.askP, &buf)
 	for _, sl := range buf[:n] {
-		d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+		d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 	}
 	return true
 }

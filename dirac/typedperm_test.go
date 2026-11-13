@@ -44,7 +44,7 @@ func TestTypedPermissionCastLowered(t *testing.T) {
 	d := s.Step()
 	found := false
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(wp) {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(wp)) {
 			s.Apply(a)
 			found = true
 			break
@@ -99,7 +99,7 @@ func TestFlashbackUnplannedCastLowered(t *testing.T) {
 	d := s.Step()
 	found := false
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(reb) && a.Mode()&2 != 0 {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(reb)) && a.Mode()&2 != 0 {
 			s.Apply(a)
 			found = true
 			break
