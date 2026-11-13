@@ -2741,9 +2741,9 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		if err != nil {
 			return nil, err
 		}
-		rest, extort := splitExtortGrant(rest)           // lower_extortgrant.go
-		rest, myriad := splitMyriadGrant(rest)           // lower_myriad.go
-		rest, st.ProtFrom, err = lc.splitProtGrant(rest) // lower_protgrant.go
+		rest, extort := splitExtortGrant(rest)  // lower_extortgrant.go
+		rest, myriad := splitMyriadGrant(rest)  // lower_myriad.go
+		rest, err = lc.splitProtGrant(rest, st) // lower_protgrant.go
 		if err != nil {
 			return nil, err
 		}
