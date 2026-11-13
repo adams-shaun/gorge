@@ -255,6 +255,10 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 			}
 		}
 		return true, true
+	case kop.ExtChoosePlayerMid:
+		// a mid-resolution opponent choice (repl_chooseplayer.go); false
+		// suspends the program at its ask
+		return s.choosePlayerMid(k), true
 	case kop.ExtChooseNumber:
 		// inside an as-enters program: asked before the next priority
 		// (the OpChooseColor arm of execGen)

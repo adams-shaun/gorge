@@ -951,7 +951,7 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		// colours while one point of damage is not lethal (Starting Town's W)
 		return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
 	}
-	if cd.BeholdExile || k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
+	if cd.BeholdExile || cd.HasMultikicker && !mayPlay || k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
 		if s.plannerPaysCast(k, p, c, o) { // a shape lowered only on the composed plan's witness
 			return true
 		}
@@ -963,6 +963,9 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		// "shape:additional_cost" or "shape:optional_cost" before any mana
 		// is priced, so its prefix search never runs for one (Bloom Tender
 		// beside Champions of the Perfect, the lone Elf the cost also exiles).
+		// A plain Multikicker hand cast is the same: its granted source (Gemhide
+		// Sliver's any-colour mana) is a gap in the planner's census too, and no
+		// prefix search taps it (the availAny/availGaps rule above).
 		return mayPlay && s.mayPlayPrefixPays(k, p, c, o)
 	}
 	return true

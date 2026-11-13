@@ -16,6 +16,7 @@ type genPrep struct {
 	// creatSub: the matchup subtypes that are creature types (CR 205.3m):
 	// "all creature types" (an animated Soulstone Sanctuary) is no Forest
 	creatSub    kop.SubMask
+	auraSub     int8     // the matchup subtype index of "Aura" (-1: none; kw_bestow.go bestowAuraSub)
 	graveTrig   []CardID // cards with a triggered ability that works from the graveyard
 	graveDies   bool     // one of them is a Dies trigger (Furious Forebear; fireGraveDies)
 	graveDrawn  bool     // some graveyard trigger is a Drawn (trig_gravedrawn.go)
@@ -511,6 +512,14 @@ type genPrep struct {
 	// anyFirstCast: some expression is ExFirstCast, so the cast path stamps the
 	// first spell each seat casts (cast_firstcast.go)
 	anyFirstCast bool
+	// landSet: some override is a CR 305.7 land-type setter
+	// (kop.Override.SetLandSub); landSub is the matchup's land subtypes it
+	// strips, setIdx per card its block of 32 intrinsic-only views in setPC
+	// (-1: not printed as a land; static_landtypesetter.go)
+	landSet bool
+	landSub kop.SubMask
+	setIdx  []int16
+	setPC   []pcard
 }
 
 // Replacement bits (genPrep.replBits).
@@ -627,9 +636,13 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			g.replBits[i] |= rbPrevCombatBy
 		}
 	}
+	g.auraSub = -1
 	for i, n := range t.Subtypes {
 		if creatureTypeWords[n] {
 			g.creatSub = g.creatSub.With(i)
+		}
+		if n == "Aura" {
+			g.auraSub = int8(i)
 		}
 	}
 	for i := range t.Overrides {
@@ -1642,6 +1655,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.lossSlow = g.anyLoseStat // fxNeedL6 alone: loss6 reads only the records (loss6Rec, kperf2), which genLost gates itself
 	prepFaceDown(g)            // face_facedown.go
 	prepLandGrant(t, p, g)     // static_landtype.go
+	prepLandSet(t, p, g)       // static_landtypesetter.go
 	for i := range t.Overrides {
 		o := &t.Overrides[i]
 		if o.AddTypes&kop.TLegendary != 0 || o.HasTypes && o.SetTypes&kop.TLegendary != 0 {
@@ -2491,6 +2505,9 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 		vi = k.gen.manaVar(c)
 	}
 	if (pc.manaAb >= 0 || vi >= 0) && s.genLost(k, sl) {
+		if k.gen.landSet && s.landSetLost(k, sl) {
+			return s.landSetView(k, sl, c) // only the new basic types' intrinsic abilities (static_landtypesetter.go)
+		}
 		return &noManaPC // genLost covers a face-down permanent (CR 708.2)
 	}
 	if vi >= 0 {

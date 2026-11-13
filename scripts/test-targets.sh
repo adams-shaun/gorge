@@ -214,12 +214,13 @@ if [ "$mode" = targeted ]; then
 		vo=$(go vet $vp 2>&1) || { tail -15 <<<"$vo"; verdict FAIL "go vet"; }
 	fi
 	[ "$dirac" = 0 ] || dirac_tables
-	if [ "${#whole[@]}" -gt 0 ]; then
-		gojson 10m -p "$lp" "${whole[@]}" || finish ""
-	fi
+	# The cheap named/census runs first: a whole-package BUDGET below must not hide their failures.
 	for r in "${runs[@]+"${runs[@]}"}"; do
 		gojson 5m -run "${r#*$'\t'}" "${r%%$'\t'*}" || finish ""
 	done
+	if [ "${#whole[@]}" -gt 0 ]; then
+		gojson 10m -p "$lp" "${whole[@]}" || finish ""
+	fi
 	finish "$(IFS=,; echo "${named[*]-}")"
 fi
 
