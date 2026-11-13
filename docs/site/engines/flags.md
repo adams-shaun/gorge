@@ -20,6 +20,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-format` | string | `constructed` | game format: constructed or commander (40 life, commanders in the command zone) |
 | `-games` | int | `1` | number of games to play |
 | `-mulligans` | int | `0` | London mulligans each seat may take before turn 1 (default 0, none) |
+| `-policies` | string | none | comma-separated bot policy per seat, from seat 0; "-" or empty keeps a seat's default heuristic; overrides -a/-b |
 | `-sb-agent` | string | repeatable | register a SpellBench v2 stdio agent: name=/path/to/agent (repeatable) |
 | `-seats` | int | `4` | number of seats |
 | `-seed` | uint64 | `0` | base seed; game i uses seed+i for both the engine and its bot |

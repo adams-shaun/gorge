@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"errors"
+	"slices"
 	"strings"
 	"testing"
 
@@ -56,6 +58,70 @@ func TestRunPlaysEveryKnownPolicy(t *testing.T) {
 				t.Fatalf("policy %s failed:\n%s", name, out)
 			}
 		})
+	}
+}
+
+// TestPoliciesFlagParse pins -policies: one entry per seat from seat 0,
+// "-" or empty for a default seat, a shorter list padded with defaults, and
+// a list longer than -seats or an unknown name refused as a usage error.
+// Without -policies, -a and -b name seats 0 and 1.
+func TestPoliciesFlagParse(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		list  []string
+		a, b  string
+		seats int
+		want  []string
+		usage bool
+	}{
+		{name: "a and b", a: "lethal-pressure", b: "bot", seats: 4, want: []string{"lethal-pressure", "bot", "", ""}},
+		{name: "a only, one seat", a: "", seats: 1, want: []string{""}},
+		{name: "every seat", list: []string{"az-redeal", "lethal-pressure", "-", "forge-heuristic"}, seats: 4,
+			want: []string{"az-redeal", "lethal-pressure", "", "forge-heuristic"}},
+		{name: "beats a and b", list: []string{"-", " bot "}, a: "lethal-pressure", b: "forge-heuristic", seats: 3,
+			want: []string{"", "bot", ""}},
+		{name: "too long", list: []string{"bot", "bot", "bot"}, seats: 2, usage: true},
+		{name: "unknown", list: []string{"bot", "no-such-policy"}, seats: 2, usage: true},
+		{name: "unknown via -a", a: "no-such-policy", seats: 2, usage: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := seatPolicies(tc.list, tc.a, tc.b, tc.seats)
+			if tc.usage {
+				var ue usageError
+				if !errors.As(err, &ue) {
+					t.Fatalf("seatPolicies = %v, %v; want a usage error", got, err)
+				}
+				return
+			}
+			if err != nil || !slices.Equal(got, tc.want) {
+				t.Fatalf("seatPolicies = %q, %v; want %q", got, err, tc.want)
+			}
+		})
+	}
+}
+
+// TestPoliciesFourSeat: a four-seat Commander pod seats every -policies
+// entry, names them on the summary line, and replays; an over-long list is
+// a usage error before any game.
+func TestPoliciesFourSeat(t *testing.T) {
+	dir := testutil.CorpusDirOrSkip(t)
+	o := simOptions{Seats: 4, Games: 1, Verify: true, Dir: dir, Format: "commander",
+		Policies: []string{"lethal-pressure", "-", "forge-heuristic", "bot"}}
+	var buf bytes.Buffer
+	if err := runSim(o, &buf); err != nil {
+		t.Fatalf("runSim: %v\n%s", err, buf.String())
+	}
+	out := buf.String()
+	for _, want := range []string{"4 seats,", "policies=lethal-pressure,-,forge-heuristic,bot\n", "replay OK"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing %q:\n%s", want, out)
+		}
+	}
+	o.Policies = []string{"bot", "bot", "bot", "bot", "bot"}
+	buf.Reset()
+	var ue usageError
+	if err := runSim(o, &buf); !errors.As(err, &ue) {
+		t.Fatalf("five policies for four seats: err %v, want a usage error", err)
 	}
 }
 

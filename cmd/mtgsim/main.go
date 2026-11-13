@@ -55,6 +55,7 @@ func main() {
 	dir := flag.String("dir", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
 	policyA := flag.String("a", "", "bot policy name for seat 0 (default: heuristic)")
 	policyB := flag.String("b", "", "bot policy name for seat 1 (default: heuristic)")
+	policies := flag.String("policies", "", "comma-separated bot policy per seat, from seat 0; \"-\" or empty keeps a seat's default heuristic; overrides -a/-b")
 	format := flag.String("format", "constructed", "game format: constructed or commander (40 life, commanders in the command zone)")
 	mulligans := flag.Int("mulligans", 0, "London mulligans each seat may take before turn 1 (default 0, none)")
 	shape := flag.String("shape", "", "write a JSON game-shape census to this file (game rows, then one aggregate)")
@@ -72,11 +73,18 @@ func main() {
 		Verify: *verify, Verbose: *verbose, Dir: *dir,
 		PolicyA: *policyA, PolicyB: *policyB, SBAgents: sbAgents, Format: *format, Mulligans: *mulligans, Shape: *shape,
 	}
+	if *policies != "" {
+		o.Policies = strings.Split(*policies, ",")
+	}
 	stop := startProfile(*cpuProf, *memProf)
 	err := runSim(o, os.Stdout)
 	stop()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "mtgsim:", err)
+		var ue usageError
+		if errors.As(err, &ue) {
+			os.Exit(2)
+		}
 		os.Exit(1)
 	}
 }
@@ -104,7 +112,11 @@ type simOptions struct {
 	Dir             string
 	PolicyA         string
 	PolicyB         string
-	SBAgents        []string
+	// Policies, when non-nil, names each seat's bot policy from seat 0
+	// ("" or "-" keeps a seat's default heuristic) and overrides
+	// PolicyA/PolicyB. It may be shorter than Seats, never longer.
+	Policies []string
+	SBAgents []string
 	// Format is "constructed" or "commander".
 	Format string
 	// Mulligans is the London mulligans each seat may take before turn 1.
@@ -143,10 +155,14 @@ func runSim(o simOptions, out io.Writer) error {
 	if games < 1 {
 		return fmt.Errorf("-games must be at least 1, got %d", games)
 	}
-	if seats < 2 && (policyA != "" || policyB != "") {
+	if seats < 2 && (policyA != "" || policyB != "") && o.Policies == nil {
 		return fmt.Errorf("-a/-b name seats 0 and 1, but -seats is %d", seats)
 	}
 	if err := registerSBAgents(sbAgents); err != nil {
+		return err
+	}
+	policies, err := seatPolicies(o.Policies, policyA, policyB, seats)
+	if err != nil {
 		return err
 	}
 
@@ -218,7 +234,7 @@ func runSim(o simOptions, out io.Writer) error {
 		if shapes != nil {
 			sg = &shapeGame{}
 		}
-		if !playOne(out, gameSeed, names, decks, reg, verify, policyA, policyB, format, cmds, o.Mulligans, sg) {
+		if !playOne(out, gameSeed, names, decks, reg, verify, policies, format, cmds, o.Mulligans, sg) {
 			failures++
 		}
 		if sg != nil {
@@ -311,7 +327,7 @@ func gameConfig(seed uint64, names []string, decks [][]*cards.Card, reg *cards.R
 // the replay outcome. It returns false for anything counted as
 // failure: non-termination, a replay error or a chain divergence. shape,
 // when non-nil, observes every decision and records the game's final shape.
-func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, verify bool, policyA, policyB string, format rules.Format, cmds [][]int, mulligans int, shape *shapeGame) (ok bool) {
+func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, verify bool, policies []string, format rules.Format, cmds [][]int, mulligans int, shape *shapeGame) (ok bool) {
 	cfg := gameConfig(seed, names, decks, reg, format, cmds, mulligans)
 	// The default object cap, the same volume bound the shared drive
 	// loop arms: a degenerate token storm here ends as a LIVELOCK failure
@@ -345,7 +361,7 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	// runs the no-host default underneath it.
 	e.AskStartingPlayer()
 
-	seats, err := matchSeats(e, reg, seed, names, policyA, policyB, matchFormat(format), mulligans, out)
+	seats, err := matchSeats(e, reg, seed, names, policies, matchFormat(format), mulligans, out)
 	if err != nil {
 		finish(0, "failed")
 		fmt.Fprintf(out, "seed %d: %d seats -- FAILED: %v\n", seed, len(names), err)
@@ -368,6 +384,8 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 		}
 	}()
 
+	search := watchSearch(seed, policies)
+	defer search.stop()
 	n, err := driveMatch(e, seats, newSeatRoute(cfg, seats), observe)
 	if err != nil {
 		status := "failed"
@@ -392,8 +410,9 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	if !e.G.Draw {
 		result = e.G.Players[e.G.Winner].Name
 	}
-	fmt.Fprintf(out, "seed %d: %d seats, %6d intents, %6d events, %3d turns, winner=%s, chain=%s\n",
-		seed, len(names), n, len(e.L.Events), e.G.Turn, result, e.L.Head())
+	fmt.Fprintf(out, "seed %d: %d seats, %6d intents, %6d events, %3d turns, winner=%s, chain=%s, policies=%s\n",
+		seed, len(names), n, len(e.L.Events), e.G.Turn, result, e.L.Head(), policyList(policies))
+	search.print(out, policies)
 	finish(n, "over")
 
 	if !verify {
@@ -541,15 +560,12 @@ func registerSBAgents(specs []string) error {
 	return nil
 }
 
-func matchSeats(e *rules.Engine, reg *cards.Registry, seed uint64, names []string, policyA, policyB, format string, mulligans int, logOut io.Writer) ([]engineseat.Seat, error) {
+func matchSeats(e *rules.Engine, reg *cards.Registry, seed uint64, names []string, policies []string, format string, mulligans int, logOut io.Writer) ([]engineseat.Seat, error) {
 	seatsOut := make([]engineseat.Seat, len(names))
 	for i := range names {
 		policy := ""
-		switch i {
-		case 0:
-			policy = policyA
-		case 1:
-			policy = policyB
+		if i < len(policies) {
+			policy = policies[i]
 		}
 		if policy == "" {
 			// Preserve mtgsim's pre-SB history: every default heuristic

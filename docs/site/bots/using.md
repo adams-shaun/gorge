@@ -35,7 +35,7 @@ hidden zones, never the opponent's hand or the library order.
 |---|---|
 | `gorged`, play-vs-bot | `POST /api/games` with `"bot_policy": "<name>"`; omit it to get the server's `-bot-policy`. `-bot-policies a,b,…` limits what the server offers |
 | `gorged`, bot-only tables | `-bot-policy <name>` seats that policy in every bot seat of the startup tables |
-| `mtgsim` | `-a <name>` on seat 0, `-b <name>` on seat 1; every other seat plays the plain heuristic |
+| `mtgsim` | `-policies a,b,…` names one policy per seat (`-` keeps the plain heuristic); without it `-a <name>` is seat 0 and `-b <name>` seat 1 |
 | A Go program | `bots.New(name, bots.Options{Seed, AutoPayMana, Deps: bots.Deps{Cards: reg}})` after a blank import of `bots/all`; [`testkit/bench`](https://github.com/adams-shaun/gorge/blob/main/testkit/bench/bench.go) drives it |
 | SpellBench v2 | `spellbench-gorge-agent -policy <name>` serves it as a v2 agent ([SpellBench v2 agents](spellbench.md)) |
 
