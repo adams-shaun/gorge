@@ -652,7 +652,7 @@ func (s *State) sba(k *prep) bool {
 		}
 		var wld slotMask
 		if k.gen != nil && k.gen.anyWorld {
-			wld = s.worldLosers(k) // CR 704.5k (sba_world.go)
+			wld = s.worldLosers(k) // CR 704.5k (zone_worldrule.go)
 			gy = gy.or(wld)
 		}
 		if len(s.cold.parked) != 0 && (die.or(gy).any() || s.parkedWaiting()) {

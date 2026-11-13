@@ -717,7 +717,7 @@ func (lc *lowerCtx) lowerRecord() {
 			continue
 		}
 		if t == "World" {
-			out.World = true // CR 704.5k (kernel sba_world.go)
+			out.World = true // CR 704.5k (kernel zone_worldrule.go)
 		}
 		out.Subtypes = append(out.Subtypes, t)
 	}

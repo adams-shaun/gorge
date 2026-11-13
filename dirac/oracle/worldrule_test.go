@@ -11,7 +11,7 @@ import (
 
 // The CR 704.5k world-rule lockstep: four printed World enchantments in each
 // deck, so the newest one cast puts every older one into its owner's
-// graveyard (gorge rules/sba.go worldRule; kernel sba_world.go).
+// graveyard (gorge rules/sba.go worldRule; kernel zone_worldrule.go).
 
 var worldRuleDeck = []cardset.Entry{
 	{Name: "Concordant Crossroads", Count: 4}, {Name: "Storm World", Count: 4},

@@ -122,7 +122,7 @@ type CardDef struct {
 	WardPoison uint8
 	Leyline    bool // may begin the game on the battlefield from the opening hand
 	// World: the printed World supertype (CR 205.4a), read by the CR 704.5k
-	// world rule (kernel sba_world.go). No corpus effect grants or removes it.
+	// world rule (kernel zone_worldrule.go). No corpus effect grants or removes it.
 	World bool
 	// SelfFlash: a CastWithFlash EffectZone$ All self grant ("you may cast this
 	// spell as though it had flash if ..."; Illusion Spinners). The card's own
