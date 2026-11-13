@@ -45,7 +45,7 @@ func TestGreatwurmAsksEachCounter(t *testing.T) {
 	sc.s.perms[sc.slot(boarders)].setCtrN(sc.s, int(kop.CtrP1P1), 1)
 	wurm := sc.obj(id["Quilled Greatwurm"], 0)
 	sc.s.place(wurm, kop.ZoneGraveyard, false)
-	sc.do(t, AkCast, uint8(wurm), 0xff)
+	sc.do(t, AkCast, TCode(wurm), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChCostSubCtr || d.N != 2 {
 		t.Fatalf("decision kind %d sub %d with %d options; want the counter ask over both creatures", d.Kind, d.Sub, d.N)
@@ -100,7 +100,7 @@ func TestGreatwurmThroughMuldrothaNoCounters(t *testing.T) {
 	sc.s.perms[sc.slot(boarders)].setCtrN(sc.s, int(kop.CtrP1P1), 3)
 	wurm := sc.obj(id["Quilled Greatwurm"], 0)
 	sc.s.place(wurm, kop.ZoneGraveyard, false)
-	sc.do(t, AkCast, uint8(wurm), 0xff)
+	sc.do(t, AkCast, TCode(wurm), scAny)
 	for i := 0; i < 8 && sc.s.ctl == ctlBuild; i++ {
 		d := sc.s.Step()
 		if d.Kind == DkChoose && d.Sub == ChCostSubCtr {

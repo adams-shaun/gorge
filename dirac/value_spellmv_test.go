@@ -64,7 +64,7 @@ func TestTriggerSpellMVLKI(t *testing.T) {
 	spell := func(c CardID, x uint8) *stackEntry {
 		o := sc.obj(c, 0)
 		sc.s.objs[o].zone = kop.ZoneStack
-		sc.s.push(stackEntry{kind: seSpell, obj: o, ctrl: 0, card: c, trigObj: NoObj, x: x})
+		sc.s.push(stackEntry{kind: seSpell, obj: o, ctrl: 0, card: c, trigObj: NoObj, x: objWord(x)})
 		return &sc.s.stack[sc.s.sp-1]
 	}
 	copyOf := func(e *stackEntry) *stackEntry {
@@ -106,7 +106,7 @@ func TestTriggerSpellMVLKISnapshot(t *testing.T) {
 	if mv != 2 {
 		t.Fatalf("cast Adventure half: mana value %d, want 2", mv)
 	}
-	trig := stackEntry{kind: seTrigger, ctrl: 0, card: id["Brazen Borrower"], trigObj: o, trigMV: mv}
+	trig := stackEntry{kind: seTrigger, ctrl: 0, card: id["Brazen Borrower"], trigObj: o, trigMV: objWord(mv)}
 	sc.s.stackExitFace(sc.k, o, kop.ZoneGraveyard, false)
 	if c := sc.s.objs[o].card; c != front {
 		t.Fatalf("stack exit did not reset the Adventure card to its front: %d", c)
@@ -237,11 +237,11 @@ func TestCopyDividedRetarget(t *testing.T) {
 	}
 	cast := func(t *testing.T, sc *scen, fire, tc, a, b Obj) {
 		t.Helper()
-		sc.do(t, AkCast, uint8(fire), 0xff)
-		sc.do(t, AkTarget, 0xff, uint8(a))
-		sc.do(t, AkTarget, 0xff, uint8(b))
-		sc.do(t, AkCast, uint8(tc), 0xff)
-		sc.do(t, AkTarget, 0xff, uint8(fire))
+		sc.do(t, AkCast, TCode(fire), scAny)
+		sc.do(t, AkTarget, scAny, TCode(a))
+		sc.do(t, AkTarget, scAny, TCode(b))
+		sc.do(t, AkCast, TCode(tc), scAny)
+		sc.do(t, AkTarget, scAny, TCode(fire))
 	}
 	t.Run("one new target takes the whole total", func(t *testing.T) {
 		sc, fire, tc, a, b, c := copyDividedScen(t)

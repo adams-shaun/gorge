@@ -23,7 +23,7 @@ func TestParkNCSecondEventStalls(t *testing.T) {
 	s := sc.s
 	sc.perm(id["Twinflame Tyrant"], 0)
 	sc.perm(id["Twinflame Tyrant"], 0)
-	d := burnToAsk(t, sc, id, uint8(PlayerTarget1))
+	d := burnToAsk(t, sc, id, TCode(PlayerTarget1))
 	if d.Kind != DkChoose || d.Sub != ChGenReplOrder || s.g.nc.n == 0 || s.g.ro.n != 2 {
 		t.Fatalf("precondition: want the first event parked on its order ask (nc.n %d ro.n %d)", s.g.nc.n, s.g.ro.n)
 	}

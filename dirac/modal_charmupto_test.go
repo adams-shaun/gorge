@@ -36,7 +36,7 @@ func TestCharmUpToDynamic(t *testing.T) {
 	sc.lands(0, v.Mountain, 1)
 	bear := sc.perm(v.GrizzlyBears, 1)
 	fc := sc.hand(v.TestCharm, 0)
-	sc.do(t, AkCast, uint8(fc), 0xff)
+	sc.do(t, AkCast, TCode(fc), scAny)
 	if d := sc.s.Step(); d.Kind != DkModes {
 		t.Fatalf("want the mode ask, got kind %d", d.Kind)
 	} else if m, done := modeOpts(&d); m != 3 || !done {
@@ -58,7 +58,7 @@ func TestCharmUpToDynamic(t *testing.T) {
 	sc.lands(0, v.Mountain, 1)
 	bear = sc.perm(v.GrizzlyBears, 1)
 	fc = sc.hand(v.TestCharm, 0)
-	sc.do(t, AkCast, uint8(fc), 0xff)
+	sc.do(t, AkCast, TCode(fc), scAny)
 	charmnumPickMode(t, sc, 0)
 	if d := sc.s.Step(); d.Kind != DkModes {
 		t.Fatalf("after one pick: want the second mode ask, got kind %d", d.Kind)
@@ -72,12 +72,12 @@ func TestCharmUpToDynamic(t *testing.T) {
 	}
 	// both targets are asked as one decision: the creature for mode 0, the
 	// player for mode 1
-	sc.do(t, AkTarget, 0xff, uint8(bear))
+	sc.do(t, AkTarget, scAny, TCode(bear))
 	d = sc.s.Step()
 	if d.Kind != DkTarget {
 		t.Fatalf("after the creature: decision kind %d, want the player slot", d.Kind)
 	}
-	sc.do(t, AkTarget, 0xff, uint8(PlayerTarget1))
+	sc.do(t, AkTarget, scAny, TCode(PlayerTarget1))
 	sc.resolveAll(t)
 	if sc.s.objs[bear].zone != kop.ZoneGraveyard || sc.s.pl[1].life != 18 {
 		t.Fatalf("both modes did not resolve: bear zone %d, opponent life %d", sc.s.objs[bear].zone, sc.s.pl[1].life)
@@ -88,12 +88,12 @@ func TestCharmUpToDynamic(t *testing.T) {
 	sc.lands(0, v.Mountain, 1)
 	sc.perm(v.GrizzlyBears, 1)
 	fc = sc.hand(v.TestCharm, 0)
-	sc.do(t, AkCast, uint8(fc), 0xff)
+	sc.do(t, AkCast, TCode(fc), scAny)
 	charmnumPickMode(t, sc, 1) // the player-damage mode
 	if d := sc.s.Step(); d.Kind != DkTarget {
 		t.Fatalf("after one pick at V=1: decision kind %d, want no further mode ask", d.Kind)
 	}
-	sc.do(t, AkTarget, 0xff, uint8(PlayerTarget1))
+	sc.do(t, AkTarget, scAny, TCode(PlayerTarget1))
 	sc.resolveAll(t)
 	if sc.s.pl[1].life != 18 {
 		t.Fatalf("opponent life %d, want 18 after the one pick", sc.s.pl[1].life)
@@ -105,7 +105,7 @@ func TestCharmUpToDynamic(t *testing.T) {
 	sc.lands(0, v.Mountain, 1)
 	bear = sc.perm(v.GrizzlyBears, 1)
 	fc = sc.hand(v.TestCharm, 0)
-	sc.do(t, AkCast, uint8(fc), 0xff)
+	sc.do(t, AkCast, TCode(fc), scAny)
 	if d := sc.s.Step(); d.Kind == DkModes {
 		t.Fatalf("V=0: a mode ask was posed: %+v", d.Options[:d.N])
 	}

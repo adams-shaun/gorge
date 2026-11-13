@@ -31,7 +31,7 @@ func TestRestrictedManaPaysXSpell(t *testing.T) {
 	if d := sc.s.Step(); d.Kind == DkChoose { // its as-enters creature type: answered, then set
 		sc.s.Apply(d.Options[0])
 	}
-	sc.s.perms[sc.slot(court)].chosen = uint8(sub)
+	sc.s.perms[sc.slot(court)].chosen = objWord(uint8(sub))
 	hydra := sc.hand(id["Wildwood Scourge"], 0)
 	s := sc.s
 	d := s.Step()
@@ -79,7 +79,7 @@ func TestRestrictedManaPaysKickedCast(t *testing.T) {
 		if d := sc.s.Step(); d.Kind == DkChoose { // its as-enters creature type: answered, then set
 			sc.s.Apply(d.Options[0])
 		}
-		sc.s.perms[sc.slot(court)].chosen = uint8(sub)
+		sc.s.perms[sc.slot(court)].chosen = objWord(uint8(sub))
 		courts = append(courts, court)
 	}
 	sc.perm(id["Plains"], 0)

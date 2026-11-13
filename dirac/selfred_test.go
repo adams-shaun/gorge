@@ -97,7 +97,7 @@ func TestStashCastRiderPipIsGeneric(t *testing.T) {
 				}
 			}
 		}
-		sc.s.perms[cs].chosen = uint8(ch)
+		sc.s.perms[cs].chosen = objWord(uint8(ch))
 		if !hawkOffered() {
 			t.Fatalf("type %d chosen (Bird %d): the stashed Healer's Hawk not offered from the Swamp: %v", ch, bird, d.Options[:d.N])
 		}
@@ -112,7 +112,7 @@ func TestStashCastRiderPipIsGeneric(t *testing.T) {
 		sc.s.perms[sc.slot(swamp)].flags &^= pfTapped
 		sc.s.perms[sc.slot(yard)].flags &^= pfTapped
 	}
-	sc.do(t, AkCast, uint8(hk), 0xff)
+	sc.do(t, AkCast, TCode(hk), scAny)
 	sc.s.Step()
 	if sc.s.objs[hk].zone != kop.ZoneStack || !sc.tapped(swamp) || sc.tapped(yard) {
 		t.Fatalf("zone %d, Swamp tapped %v, Courtyard tapped %v; want the stack and the Swamp alone", sc.s.objs[hk].zone, sc.tapped(swamp), sc.tapped(yard))
@@ -332,7 +332,7 @@ func TestStashCastRiderPlansEverySource(t *testing.T) {
 		t.Fatalf("the stashed Dreadwing Scavenger is offered from two sources: %v", d.Options[:d.N])
 	}
 	sc.s.perms[sc.slot(lands[0])].flags &^= pfTapped
-	sc.do(t, AkCast, uint8(dw), 0xff)
+	sc.do(t, AkCast, TCode(dw), scAny)
 	sc.s.Step()
 	if sc.s.objs[dw].zone != kop.ZoneStack || tappedN(sc, lands) != 3 || sc.s.pl[0].pool != ([kop.NumManaKinds]uint8{}) {
 		t.Fatalf("zone %d, %d lands tapped, pool %v; want the stack, all three and an empty pool", sc.s.objs[dw].zone, tappedN(sc, lands), sc.s.pl[0].pool)

@@ -45,7 +45,7 @@ func TestWardPaysInBattlefieldOrder(t *testing.T) {
 	terror := sc.perm(id["Tolarian Terror"], 1)
 	sc.hand(id["Tolarian Terror"], 0)
 	pie := sc.hand(id["Bake into a Pie"], 0)
-	sc.do(t, AkCast, uint8(pie), 0xff)
+	sc.do(t, AkCast, TCode(pie), scAny)
 	for i := 0; i < 12; i++ {
 		d := s.Step()
 		if d.Kind == DkTarget {
@@ -188,7 +188,7 @@ func TestWardFailedPaySacrificesTreasure(t *testing.T) {
 	s.objs[tr].of |= ofToken
 	terror := sc.perm(id["Tolarian Terror"], 1)
 	pie := sc.hand(id["Bake into a Pie"], 0)
-	sc.do(t, AkCast, uint8(pie), 0xff)
+	sc.do(t, AkCast, TCode(pie), scAny)
 	for i := 0; i < 12; i++ {
 		d := s.Step()
 		if d.Kind == DkTarget {
@@ -359,7 +359,7 @@ func TestStackedWardTriggersLeaveSameStack(t *testing.T) {
 	}
 	// p1 mints the Role on its Admirer, then p0 holds priority with 7 Mountains
 	s.active, s.prio = 1, 1
-	sc.do(t, AkCast, uint8(gen), 0xff)
+	sc.do(t, AkCast, TCode(gen), scAny)
 	for i := 0; i < 40 && !(s.sp == 0 && s.ctl == ctlPriority && s.passes == 0 && s.prio == 1 && s.nobj > 0 && roleOn(sc, adm)); i++ {
 		d := s.Step()
 		switch {

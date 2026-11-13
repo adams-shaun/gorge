@@ -64,7 +64,7 @@ func TestClassLevelsInOrderAtSorcerySpeed(t *testing.T) {
 		t.Fatal("a level-2/3 trigger is live at level 1")
 	}
 	// not at instant speed: with the activator on the stack, no level-up
-	sc.do(t, AkActivate, uint8(ht), 0xff)
+	sc.do(t, AkActivate, TCode(ht), scAny)
 	if sc.classLevel(ht) != 1 {
 		t.Fatal("the level rose on activation; it rises on resolution (gorge effClassLevelUp)")
 	}
@@ -96,7 +96,7 @@ func TestClassLevelsInOrderAtSorcerySpeed(t *testing.T) {
 		}
 		sc.s.Apply(MakeAction(AkPass, 0, 0, 0))
 	}
-	sc.do(t, AkActivate, uint8(ht), 0xff)
+	sc.do(t, AkActivate, TCode(ht), scAny)
 	sc.resolveAll(t)
 	if sc.classLevel(ht) != 3 {
 		t.Fatalf("level %d after the level-3 activation", sc.classLevel(ht))
@@ -116,7 +116,7 @@ func TestClassLevelGainedFiresOnce(t *testing.T) {
 	lr := sc.obj(id["Long River's Pull"], 0)
 	sc.s.place(lr, kop.ZoneGraveyard, false)
 	h := sc.s.pl[0].handN
-	sc.do(t, AkActivate, uint8(st), 0xff)
+	sc.do(t, AkActivate, TCode(st), scAny)
 	sc.resolveAll(t)
 	if sc.classLevel(st) != 2 {
 		t.Fatalf("level %d", sc.classLevel(st))
@@ -127,7 +127,7 @@ func TestClassLevelGainedFiresOnce(t *testing.T) {
 	// level 3: the level-2 trigger does not fire again
 	sc.s.place(sc.obj(id["Long River's Pull"], 0), kop.ZoneGraveyard, false)
 	g := sc.s.pl[0].graveN
-	sc.do(t, AkActivate, uint8(st), 0xff)
+	sc.do(t, AkActivate, TCode(st), scAny)
 	sc.resolveAll(t)
 	if sc.classLevel(st) != 3 || sc.s.pl[0].graveN != g {
 		t.Fatalf("level %d graveyard %d (was %d): \"becomes level 2\" fired at level 3", sc.classLevel(st), sc.s.pl[0].graveN, g)
@@ -144,8 +144,8 @@ func TestClassGatedTriggerRecheckedOnResolution(t *testing.T) {
 		sc.s.perms[sc.slot(ht)].setCtrN(sc.s, int(kop.CtrLevel), 1) // level 2
 		jg := sc.perm(id["Jolly Gerbils"], 0)
 		sc.passUntil(t, kop.StepAttackers)
-		sc.do(t, AkAttack, uint8(jg), 0xff)
-		sc.do(t, AkDone, 0xff, 0xff)
+		sc.do(t, AkAttack, TCode(jg), scAny)
+		sc.do(t, AkDone, scAny, scAny)
 		// the trigger goes on the stack, targeting the only attacker
 		for i := 0; i < 10 && sc.s.sp == 0; i++ {
 			d := sc.s.Step()

@@ -183,7 +183,7 @@ func TestRavenousInterveningIf(t *testing.T) {
 		if got := sc.s.sp > 0; got != tc.want {
 			t.Fatalf("X=%d: stack %d after entering, want a trigger: %v", tc.x, sc.s.sp, tc.want)
 		}
-		if tc.want && sc.s.stack[sc.s.sp-1].x != tc.x {
+		if tc.want && uint8(sc.s.stack[sc.s.sp-1].x) != tc.x {
 			t.Fatalf("X=%d: the trigger binds X=%d", tc.x, sc.s.stack[sc.s.sp-1].x)
 		}
 		sc.resolveAll(t)

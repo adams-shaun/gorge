@@ -183,7 +183,7 @@ func TestEnterAttackingMarksAttacker(t *testing.T) {
 		t.Fatal("the entry should suspend at the CR 508.4 defender ask")
 	}
 	var d Decision
-	if sc.s.res.ask != raGenEnterDefender || sc.s.res.chosen != uint8(sc.slot(o)) {
+	if sc.s.res.ask != raGenEnterDefender || sc.s.res.chosen != objWord(uint8(sc.slot(o))) {
 		t.Fatalf("ask %d slot %d, want the CR 508.4 defender ask for slot %d", sc.s.res.ask, sc.s.res.chosen, sc.slot(o))
 	}
 	if !sc.s.resolveOptionsGen(sc.k, &d) || d.N != 2 || d.Sub != ChGenEnterDefender ||

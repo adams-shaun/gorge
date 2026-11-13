@@ -61,26 +61,26 @@ func TestCrimeTargetKinds(t *testing.T) {
 	s.ctl = ctlPriority
 	cases := []struct {
 		name string
-		t    uint8
+		t    TCode
 		want bool
 	}{
-		{"the opponent", uint8(PlayerTarget0 + 1), true},
-		{"you", uint8(PlayerTarget0), false},
-		{"their permanent", uint8(theirPerm), true},
-		{"your permanent", uint8(myPerm), false},
-		{"their card you control", uint8(stolen), false},
-		{"their spell on the stack", uint8(theirSpell), true},
-		{"your spell on the stack", uint8(mySpell), false},
-		{"a card in their graveyard", uint8(theirGrave), true},
-		{"a card in your graveyard", uint8(myGrave), false},
-		{"your card in exile", uint8(myExile), false},
-		{"their card in exile", uint8(theirExile), false},
-		{"their card in hand", uint8(theirHand), false},
-		{"no target", uint8(NoTarget), false},
+		{"the opponent", TCode(PlayerTarget0 + 1), true},
+		{"you", TCode(PlayerTarget0), false},
+		{"their permanent", TCode(theirPerm), true},
+		{"your permanent", TCode(myPerm), false},
+		{"their card you control", TCode(stolen), false},
+		{"their spell on the stack", TCode(theirSpell), true},
+		{"your spell on the stack", TCode(mySpell), false},
+		{"a card in their graveyard", TCode(theirGrave), true},
+		{"a card in your graveyard", TCode(myGrave), false},
+		{"your card in exile", TCode(myExile), false},
+		{"their card in exile", TCode(theirExile), false},
+		{"their card in hand", TCode(theirHand), false},
+		{"no target", NoTarget, false},
 	}
 	for _, c := range cases {
 		s.g.crime = 0
-		if got := s.noteCrime(sc.k, 0, TCode(c.t)); got != c.want {
+		if got := s.noteCrime(sc.k, 0, c.t); got != c.want {
 			t.Errorf("%s: crime %v, want %v", c.name, got, c.want)
 		}
 		if bit := s.g.crime != 0; bit != c.want {

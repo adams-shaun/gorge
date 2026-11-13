@@ -35,11 +35,11 @@ func tokenAttackAskScen(t *testing.T, n int) (*scen, []kop.Instr, [3]CardID) {
 }
 
 // attackers lists the attacking tokens' defender bytes in slot order.
-func tokenAttackDefenders(s *State) []uint8 {
-	var out []uint8
+func tokenAttackDefenders(s *State) []TCode {
+	var out []TCode
 	for m := s.occ; m.any(); m = m.rest() {
 		if p := &s.perms[m.first()]; p.flags&pfAttacking != 0 && p.flags&pfTapped == 0 {
-			out = append(out, uint8(p.atk))
+			out = append(out, p.atk)
 		}
 	}
 	return out
@@ -65,7 +65,7 @@ func TestTokenAttackingAsksDefenderBeforeMint(t *testing.T) {
 		if s.exec(sc.k, &prog[0]) {
 			t.Fatalf("pickWalker=%v: the mint ran without asking", pickWalker)
 		}
-		if s.res.ask != raGenEnterDefender || s.res.chosen != uint8(NoSlot) || s.res.askP != 0 {
+		if s.res.ask != raGenEnterDefender || s.res.chosen != objWord(uint8(NoSlot)) || s.res.askP != 0 {
 			t.Fatalf("pickWalker=%v: ask %d chosen %d askP %d, want the CR 508.4 defender ask for seat 0", pickWalker, s.res.ask, s.res.chosen, s.res.askP)
 		}
 		if s.nobj != before {
@@ -75,9 +75,9 @@ func TestTokenAttackingAsksDefenderBeforeMint(t *testing.T) {
 		if !s.resolveOptionsGen(sc.k, &d) || d.Sub != ChGenEnterDefender || d.N != 3 {
 			t.Fatalf("pickWalker=%v: options sub %d n %d, want the entering-defender ask with three options", pickWalker, d.Sub, d.N)
 		}
-		a, want := d.Options[0], uint8(PlayerTarget0+1)
+		a, want := d.Options[0], TCode(PlayerTarget0+1)
 		if pickWalker {
-			a, want = d.Options[1], uint8(wa)
+			a, want = d.Options[1], TCode(wa)
 		}
 		s.applyAskCzParams(sc.k, a)
 		if s.res.ask != raNone || s.g.tokDefSet {

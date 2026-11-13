@@ -50,7 +50,7 @@ func TestRaisecostWaterbendCastPaysWithTaps(t *testing.T) {
 			if picked >= 5 {
 				t.Fatalf("a sixth waterbend pick was offered: Waterbend<5> caps at five")
 			}
-			sc.do(t, AkChoose, uint8(bs[picked]), 0xff)
+			sc.do(t, AkChoose, TCode(bs[picked]), scAny)
 			picked++
 			continue
 		}

@@ -64,11 +64,11 @@ func TestDdoFilter2Recipient(t *testing.T) {
 	gh := sc.perm(id["Nested Ghoul"], 0)
 	og := sc.perm(id["Gray Ogre"], 1)
 	for _, c := range []struct {
-		rcp  uint8
+		rcp  TCode
 		want int
-	}{{uint8(gh), 1}, {uint8(og), 0}, {uint8(PlayerTarget0), 0}, {uint8(PlayerTarget0 + 1), 0}} {
+	}{{TCode(gh), 1}, {TCode(og), 0}, {TCode(PlayerTarget0), 0}, {TCode(PlayerTarget0 + 1), 0}} {
 		sc.s.npend = 0
-		sc.s.fireDamage(sc.k, sc.slot(og), 2, TCode(c.rcp) >= PlayerTarget0, false, TCode(c.rcp))
+		sc.s.fireDamage(sc.k, sc.slot(og), 2, c.rcp >= PlayerTarget0, false, c.rcp)
 		if int(sc.s.npend) != c.want {
 			t.Fatalf("recipient %#x: %d queued, want %d", c.rcp, sc.s.npend, c.want)
 		}

@@ -15,7 +15,7 @@ func TestDiscardCostIsChosen(t *testing.T) {
 	th := sc.hand(v.ThrillOfPossibility, 0)
 	a := sc.hand(v.GrizzlyBears, 0)
 	b := sc.hand(v.HillGiant, 0)
-	sc.do(t, AkCast, uint8(th), 0xff)
+	sc.do(t, AkCast, TCode(th), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.N != 2 {
 		t.Fatalf("discard-cost decision kind %d n %d", d.Kind, d.N)
@@ -37,7 +37,7 @@ func TestSacrificeCostIsChosen(t *testing.T) {
 	g := sc.perm(v.HungryGhoul, 0)
 	x := sc.perm(v.GrizzlyBears, 0)
 	y := sc.perm(v.SavannahLions, 0)
-	sc.do(t, AkActivate, uint8(g), 0xff)
+	sc.do(t, AkActivate, TCode(g), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.N != 2 { // the ghoul itself is not "another creature"
 		t.Fatalf("sac-cost decision kind %d n %d", d.Kind, d.N)
@@ -55,7 +55,7 @@ func TestEitherOrAdditionalCost(t *testing.T) {
 	sc.lands(0, v.Swamp, 5)
 	ea := sc.hand(v.EatenAlive, 0)
 	tg := sc.perm(v.GrizzlyBears, 1)
-	sc.do(t, AkCast, uint8(ea), 0xff)
+	sc.do(t, AkCast, TCode(ea), scAny)
 	d := sc.s.Step()
 	// no creature of ours to sacrifice: the {3}{B} part first, then the
 	// unpayable sacrifice part
@@ -63,7 +63,7 @@ func TestEitherOrAdditionalCost(t *testing.T) {
 		t.Fatalf("altadd decision %v", d.Options[:d.N])
 	}
 	sc.s.Apply(d.Options[0])
-	sc.do(t, AkTarget, 0xff, uint8(tg))
+	sc.do(t, AkTarget, scAny, TCode(tg))
 	sc.s.Step()
 	n := 0
 	for m := sc.s.ctrlM[0]; m.any(); m = m.rest() {
@@ -80,7 +80,7 @@ func TestEitherOrAdditionalCost(t *testing.T) {
 	ea2 := sc2.hand(v.EatenAlive, 0)
 	sc2.perm(v.GrizzlyBears, 1)
 	sc2.perm(v.SavannahLions, 0)
-	sc2.do(t, AkCast, uint8(ea2), 0xff)
+	sc2.do(t, AkCast, TCode(ea2), scAny)
 	d = sc2.s.Step()
 	if d.N != 2 || d.Options[0].Target() != 0 {
 		t.Fatalf("altadd decision %v", d.Options[:d.N])
@@ -105,7 +105,7 @@ func TestEitherOrPayableOnly(t *testing.T) {
 	ea := sc.hand(v.EatenAlive, 0)
 	sc.perm(v.GrizzlyBears, 1)
 	sc.perm(v.SavannahLions, 0)
-	sc.do(t, AkCast, uint8(ea), 0xff)
+	sc.do(t, AkCast, TCode(ea), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChAltAdd || d.N != 1 || d.Options[0].Target() != 0 {
 		t.Fatalf("altadd decision %v, want the sacrifice part alone", d.Options[:d.N])

@@ -41,7 +41,7 @@ func TestCharmnumDone(t *testing.T) {
 	sc.lands(0, v.Mountain, 1)
 	sc.perm(v.GrizzlyBears, 1)
 	fc := sc.hand(v.TestCharm, 0)
-	sc.do(t, AkCast, uint8(fc), 0xff)
+	sc.do(t, AkCast, TCode(fc), scAny)
 	d := sc.s.Step()
 	if m, done := modeOpts(&d); d.Kind != DkModes || m != 3 || done {
 		t.Fatalf("first pose %+v: modes %b done %v, want both modes and no Done", d.Options[:d.N], m, done)
@@ -67,7 +67,7 @@ func TestCharmnumUpToZero(t *testing.T) {
 	sc.lands(0, v.Mountain, 1)
 	sc.perm(v.GrizzlyBears, 1)
 	fc := sc.hand(v.TestCharm, 0)
-	sc.do(t, AkCast, uint8(fc), 0xff)
+	sc.do(t, AkCast, TCode(fc), scAny)
 	d := sc.s.Step()
 	if m, done := modeOpts(&d); d.Kind != DkModes || m != 3 || !done {
 		t.Fatalf("first pose %+v: modes %b done %v, want both modes and Done", d.Options[:d.N], m, done)
@@ -114,7 +114,7 @@ func TestCharmnumTriggerRemoved(t *testing.T) {
 	sc := newScenTable(t, charmnumTable(2, 0), Config{NoElide: true})
 	sc.lands(0, v.Forest, 2)
 	ev := sc.hand(v.ElvishVisionary, 0)
-	sc.do(t, AkCast, uint8(ev), 0xff)
+	sc.do(t, AkCast, TCode(ev), scAny)
 	sc.passBoth(t) // the creature resolves; its trigger finds one eligible mode (no opposing creature)
 	d := sc.s.Step()
 	if d.Kind == DkModes {
@@ -195,10 +195,10 @@ func TestCharmnumPrintedOrder(t *testing.T) {
 	sc.lands(0, v.Mountain, 1)
 	bear := sc.perm(v.GrizzlyBears, 1)
 	fc := sc.hand(v.TestCharm, 0)
-	sc.do(t, AkCast, uint8(fc), 0xff)
+	sc.do(t, AkCast, TCode(fc), scAny)
 	charmnumPickMode(t, sc, 1) // the answer picks the later printed mode first
 	charmnumPickMode(t, sc, 0)
-	sc.do(t, AkTarget, 0xff, uint8(bear))
+	sc.do(t, AkTarget, scAny, TCode(bear))
 	sc.resolveAll(t)
 	if sc.s.objs[bear].zone != kop.ZoneGraveyard {
 		t.Fatalf("bear zone %d, want the graveyard: the modes resolved in answer order", sc.s.objs[bear].zone)
@@ -236,7 +236,7 @@ func TestCharmnumCombinedTargetsScenario(t *testing.T) {
 	sc.lands(0, v.Mountain, 1)
 	bear := sc.perm(v.GrizzlyBears, 1)
 	fc := sc.hand(v.TestCharm, 0)
-	sc.do(t, AkCast, uint8(fc), 0xff)
+	sc.do(t, AkCast, TCode(fc), scAny)
 	charmnumPickMode(t, sc, 0)
 	charmnumPickMode(t, sc, 1)
 	// The combined step is the generated path; call its two halves directly,

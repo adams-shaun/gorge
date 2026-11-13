@@ -186,7 +186,7 @@ func TestPreventKeywordOrderAsk(t *testing.T) {
 	sc.lands(0, id["Plains"], 2)
 	sc.lands(1, id["Mountain"], 3)
 	sc.castCard(t, sc.hand(id["Boon of Safety"], 0))
-	sc.do(t, AkTarget, 0xff, uint8(dawn))
+	sc.do(t, AkTarget, scAny, TCode(dawn))
 	sc.resolveAll(t)
 	if n := s.Counters(dawn, kop.CtrShield); n != 1 {
 		t.Fatalf("Dawn Elemental holds %d SHIELD after Boon of Safety, want 1", n)
@@ -196,7 +196,7 @@ func TestPreventKeywordOrderAsk(t *testing.T) {
 	// and appends the shield last, so the modes run 0, 1)
 	passPriority(t, sc, 1)
 	sc.castCard(t, sc.hand(id["Shock"], 1))
-	sc.do(t, AkTarget, 0xff, uint8(dawn))
+	sc.do(t, AkTarget, scAny, TCode(dawn))
 	d := preventKWAsk(t, sc, dawn)
 	if d.Player != 0 || d.N != 2 {
 		t.Fatalf("order ask player %d n %d opts %v, want the controller's two-option ask", d.Player, d.N, d.Options[:d.N])
@@ -217,7 +217,7 @@ func TestPreventKeywordOrderAsk(t *testing.T) {
 
 	passPriority(t, sc, 1)
 	sc.castCard(t, sc.hand(id["Shock"], 1))
-	sc.do(t, AkTarget, 0xff, uint8(dawn))
+	sc.do(t, AkTarget, scAny, TCode(dawn))
 	d = preventKWAsk(t, sc, dawn)
 	for i := 0; i < int(d.N); i++ {
 		opts[d.Options[i].Mode()] = d.Options[i]
@@ -230,7 +230,7 @@ func TestPreventKeywordOrderAsk(t *testing.T) {
 
 	passPriority(t, sc, 1)
 	sc.castCard(t, sc.hand(id["Shock"], 1))
-	sc.do(t, AkTarget, 0xff, uint8(dawn))
+	sc.do(t, AkTarget, scAny, TCode(dawn))
 	for i := 0; i < 12; i++ {
 		d := sc.s.Step()
 		if d.Kind == DkChoose && d.Sub == ChGenReplOrder {

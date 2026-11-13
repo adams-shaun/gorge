@@ -42,9 +42,9 @@ func ksneakToBlockers(t *testing.T, sc *scen, attackers []Obj, blocks [][2]Obj) 
 	t.Helper()
 	sc.passUntil(t, kop.StepAttackers)
 	for _, a := range attackers {
-		sc.do(t, AkAttack, uint8(a), 0xff)
+		sc.do(t, AkAttack, TCode(a), scAny)
 	}
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkDone, scAny, scAny)
 	for i := 0; i < 16; i++ {
 		d := sc.s.Step()
 		if d.Kind == DkPriority && d.Player == 0 && sc.s.step == kop.StepBlockers {
@@ -55,9 +55,9 @@ func ksneakToBlockers(t *testing.T, sc *scen, attackers []Obj, blocks [][2]Obj) 
 			sc.s.Apply(MakeAction(AkPass, 0, 0, 0))
 		case DkBlockers:
 			for _, b := range blocks {
-				sc.do(t, AkBlock, uint8(b[0]), uint8(b[1]))
+				sc.do(t, AkBlock, TCode(b[0]), TCode(b[1]))
 			}
-			sc.do(t, AkDone, 0xff, 0xff)
+			sc.do(t, AkDone, scAny, scAny)
 		default:
 			t.Fatalf("decision kind %d before seat 0's blockers priority", d.Kind)
 		}
@@ -78,7 +78,7 @@ func ksneakOffered(d *Decision, o Obj) bool {
 // ret, returning the pick's candidate count.
 func ksneakCast(t *testing.T, sc *scen, o, ret Obj) int {
 	t.Helper()
-	sc.do(t, AkSneak, uint8(o), 0xff)
+	sc.do(t, AkSneak, TCode(o), scAny)
 	for i := 0; i < 8; i++ {
 		d := sc.s.Step()
 		if d.Kind == DkChoose && d.Sub == ChCostReturn {
@@ -287,7 +287,7 @@ func TestSneakReversal(t *testing.T) {
 	bear := sc.perm(v.GrizzlyBears, 0)
 	ksneakToBlockers(t, sc, []Obj{bear}, nil)
 	s := sc.s
-	sc.do(t, AkSneak, uint8(o), 0xff)
+	sc.do(t, AkSneak, TCode(o), scAny)
 	d := s.Step()
 	if d.Kind != DkChoose || d.Sub != ChCostReturn {
 		t.Fatalf("decision kind %d sub %d, want the return pick", d.Kind, d.Sub)
@@ -362,7 +362,7 @@ func TestSneakCarrierCoverage(t *testing.T) {
 			if !ksneakOffered(&d, o) {
 				t.Fatalf("sneak not offered: %v", d.Options[:d.N])
 			}
-			sc.do(t, AkSneak, uint8(o), 0xff)
+			sc.do(t, AkSneak, TCode(o), scAny)
 			ksneakReturn(t, sc, atk)
 			if e := &s.stack[s.sp-1]; e.trigPl != trigPlSneak {
 				t.Fatalf("stack entry trigPl %#x, want sneak", e.trigPl)

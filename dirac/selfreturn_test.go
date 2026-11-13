@@ -19,7 +19,7 @@ func TestSelfReturnFindsNoNewObject(t *testing.T) {
 	sc.perm(id["Swamp"], 0)
 	sk := sc.obj(id["Reassembling Skeleton"], 0)
 	sc.s.place(sk, kop.ZoneGraveyard, false)
-	sc.do(t, AkActivate, uint8(sk), 0xff)
+	sc.do(t, AkActivate, TCode(sk), scAny)
 	sc.stepTo(t, 6, func() bool { return sc.s.sp > 0 && sc.s.ctl == ctlPriority }, nil)
 	if sc.s.sp == 0 {
 		t.Fatal("the ability is not on the stack")

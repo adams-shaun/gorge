@@ -218,7 +218,7 @@ func TestPowerUpOncePerStint(t *testing.T) {
 	sc, id := powerupScen(t, "Brave Brawler")
 	b := sc.perm(id["Brave Brawler"], 0)
 	sc.s.pl[0].pool[kop.W] = 3 // pays the entry-turn {3}
-	sc.do(t, AkActivate, uint8(b), 0xff)
+	sc.do(t, AkActivate, TCode(b), scAny)
 	d := sc.s.Step()
 	if powerupActivation(&d, b) {
 		t.Fatalf("a used power-up was offered again: %v", d.Options[:d.N])

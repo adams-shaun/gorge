@@ -53,16 +53,16 @@ func ctrClearScenHears(t *testing.T, hears int16) (*scen, ctrClearCards) {
 // trigger's target with the bear, then resolves everything.
 func (sc *scen) ctrClearKill(t *testing.T, c ctrClearCards, pupil, bear Obj) {
 	t.Helper()
-	sc.do(t, AkCast, uint8(sc.hand(c.destroy, 0)), 0xff)
-	sc.do(t, AkTarget, 0xff, uint8(pupil))
-	sc.do(t, AkPass, 0xff, 0xff)
-	sc.do(t, AkPass, 0xff, 0xff)
+	sc.do(t, AkCast, TCode(sc.hand(c.destroy, 0)), scAny)
+	sc.do(t, AkTarget, scAny, TCode(pupil))
+	sc.do(t, AkPass, scAny, scAny)
+	sc.do(t, AkPass, scAny, scAny)
 	if sc.onBF(pupil) {
 		t.Fatal("the pupil survived the destroy")
 	}
-	sc.do(t, AkTarget, 0xff, uint8(bear))
+	sc.do(t, AkTarget, scAny, TCode(bear))
 	for i := 0; i < 6 && sc.s.StallReason() == 0; i++ {
-		sc.do(t, AkPass, 0xff, 0xff)
+		sc.do(t, AkPass, scAny, scAny)
 	}
 }
 

@@ -49,7 +49,7 @@ func TestEffectEOTEmblemPlayerCapture(t *testing.T) {
 	queued := func(emb, num uint8, toPlayer bool, rcp uint8) int {
 		sc.s.g.emb[0][0], sc.s.g.embC[0][0], sc.s.g.embO[0][0] = emb, spell, src
 		sc.s.g.nemb[0] = 1
-		sc.s.embSetNum(0, 0, num)
+		sc.s.embSetNum(0, 0, objWord(num))
 		sc.s.npend = 0
 		var latch dmgLatch
 		sc.s.fireEmblemsDmg(sc.k, sc.slot(src), 2, toPlayer, true, TCode(rcp), false, &latch)

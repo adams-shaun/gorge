@@ -36,7 +36,7 @@ func TestStackedWardTriggeredDoublesLeaveSameStack(t *testing.T) {
 	}
 	recluse := sc.hand(id["Rimekin Recluse"], 0)
 	s.active, s.prio, s.passes, s.ctl = 0, 0, 0, ctlPriority
-	sc.do(t, AkCast, uint8(recluse), 0xff)
+	sc.do(t, AkCast, TCode(recluse), scAny)
 	var asks, sizes []int
 	targets := 0
 	cast := false

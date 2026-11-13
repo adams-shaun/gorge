@@ -42,7 +42,7 @@ func courtScen(t *testing.T, chosen string) (sc *scen, court, hawk Obj) {
 	if d := sc.s.Step(); d.Kind == DkChoose { // its as-enters creature type: answered, then set
 		sc.s.Apply(d.Options[0])
 	}
-	sc.s.perms[sc.slot(court)].chosen = uint8(sub)
+	sc.s.perms[sc.slot(court)].chosen = objWord(uint8(sub))
 	hawk = sc.hand(id["Healer's Hawk"], 0)
 	if sc.s.scriptAnyR(sc.k, 0).any() || !sc.k.restrSrc {
 		t.Fatal("the Courtyard is an any-colour gap, not a restricted planner unit")
@@ -140,7 +140,7 @@ func TestCourtyardsKeepTheirOwnChoice(t *testing.T) {
 			bird = i
 		}
 	}
-	s.perms[sc.slot(other)].chosen = uint8(bird)
+	s.perms[sc.slot(other)].chosen = objWord(uint8(bird))
 	var f kop.FilterID
 	for _, a := range sc.k.t.Cards[s.objs[court].card].Abilities {
 		if a.Kind == kop.AbMana && a.ManaRestrict != 0 {

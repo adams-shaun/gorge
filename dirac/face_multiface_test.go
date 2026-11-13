@@ -143,10 +143,10 @@ func TestSacrificedPowerOverTarget(t *testing.T) {
 	hg := sc.perm(id["Hill Giant"], 1)
 	kf := sc.hand(id["Kazuul's Fury"], 0)
 	sc.castCard(t, kf)
-	sc.do(t, AkTarget, 0xff, uint8(hg))
-	sc.do(t, AkChoose, uint8(gb), 0xff)
+	sc.do(t, AkTarget, scAny, TCode(hg))
+	sc.do(t, AkChoose, TCode(gb), scAny)
 	for i := 0; i < 4 && sc.s.sp > 0; i++ {
-		sc.do(t, AkPass, 0xff, 0xff)
+		sc.do(t, AkPass, scAny, scAny)
 	}
 	if !sc.onBF(hg) || sc.s.perms[sc.slot(hg)].damage != 2 {
 		t.Fatalf("Hill Giant on the battlefield %v, want 2 damage", sc.onBF(hg))

@@ -63,16 +63,16 @@ func TestEnteringDefenderCandidates(t *testing.T) {
 		t.Fatal("the battle has no protector")
 	}
 	s.exec(sc.k, &prog[0])
-	if s.res.ask != raGenEnterDefender || s.res.chosen != uint8(NoSlot) || s.objs[o].zone != kop.ZoneGraveyard {
+	if s.res.ask != raGenEnterDefender || s.res.chosen != objWord(uint8(NoSlot)) || s.objs[o].zone != kop.ZoneGraveyard {
 		t.Fatalf("ask %d slot %d zone %d, want the CR 508.4 defender ask posed before the card leaves its graveyard", s.res.ask, s.res.chosen, s.objs[o].zone)
 	}
 	var d Decision
 	if !s.resolveOptionsGen(sc.k, &d) || d.Sub != ChGenEnterDefender || d.N != 4 {
 		t.Fatalf("options sub %d n %d, want the entering-defender ask with four options", d.Sub, d.N)
 	}
-	want := []uint8{uint8(PlayerTarget0 + 1), uint8(wa), uint8(wb), uint8(bat)}
+	want := []TCode{PlayerTarget0 + 1, TCode(wa), TCode(wb), TCode(bat)}
 	for i, w := range want {
-		if d.Options[i].Source() != TCode(w) {
+		if d.Options[i].Source() != w {
 			t.Fatalf("option %d = %d, want %d (%v)", i, d.Options[i].Source(), w, want)
 		}
 	}
@@ -110,13 +110,13 @@ func TestEnteringDefenderAnswers(t *testing.T) {
 		var d Decision
 		s.resolveOptionsGen(sc.k, &d)
 		a := d.Options[0]
-		want := uint8(PlayerTarget0 + 1)
+		want := TCode(PlayerTarget0 + 1)
 		if pickWalker {
-			a, want = d.Options[1], uint8(walk)
+			a, want = d.Options[1], TCode(walk)
 		}
 		s.applyAskCzParams(sc.k, a)
 		p := &s.perms[sc.slot(o)]
-		if p.flags&pfAttacking == 0 || p.atk != TCode(want) || p.bord != s.nAttackers-1 {
+		if p.flags&pfAttacking == 0 || p.atk != TCode(want) || p.bord != objWord(s.nAttackers-1) {
 			t.Fatalf("pickWalker=%v: atk %d bord %d attacking %v, want atk %d", pickWalker, p.atk, p.bord, p.flags&pfAttacking != 0, want)
 		}
 	}
@@ -152,7 +152,7 @@ func TestEnteringDefenderCloneReturn(t *testing.T) {
 	s.active, s.prio = 0, 0
 
 	s.exec(sc.k, &prog[0])
-	if s.res.ask != raGenEnterDefender || s.res.chosen != uint8(NoSlot) || s.objs[o].zone != kop.ZoneGraveyard {
+	if s.res.ask != raGenEnterDefender || s.res.chosen != objWord(uint8(NoSlot)) || s.objs[o].zone != kop.ZoneGraveyard {
 		t.Fatalf("ask %d slot %d zone %d, want the CR 508.4 defender ask first, with the card in its graveyard", s.res.ask, s.res.chosen, s.objs[o].zone)
 	}
 	var d Decision
@@ -181,7 +181,7 @@ func TestEnteringDefenderCloneReturn(t *testing.T) {
 		t.Fatal("the defender was asked a second time after the clone answer")
 	}
 	sl := s.objs[o].slot
-	if p := &s.perms[sl]; !s.occ.has(sl) || p.obj != o || p.flags&pfAttacking == 0 || p.atk != TCode(uint8(walk)) {
+	if p := &s.perms[sl]; !s.occ.has(sl) || p.obj != o || p.flags&pfAttacking == 0 || p.atk != TCode(TCode(walk)) {
 		t.Fatalf("atk %d attacking %v, want the entered clone attacking the planeswalker %d", s.perms[sl].atk, s.perms[sl].flags&pfAttacking != 0, walk)
 	}
 }

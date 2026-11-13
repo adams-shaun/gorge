@@ -42,9 +42,9 @@ func actProliferateScen(t *testing.T) (*scen, actProliferateCards) {
 func (sc *scen) actProliferateCast(t *testing.T, c CardID) {
 	t.Helper()
 	o := sc.hand(c, 0)
-	sc.do(t, AkCast, uint8(o), 0xff)
-	sc.do(t, AkPass, 0xff, 0xff)
-	sc.do(t, AkPass, 0xff, 0xff)
+	sc.do(t, AkCast, TCode(o), scAny)
+	sc.do(t, AkPass, scAny, scAny)
+	sc.do(t, AkPass, scAny, scAny)
 }
 
 // TestProliferate: the any-number pick over the permanents and players
@@ -64,12 +64,12 @@ func TestProliferate(t *testing.T) {
 	if d.Kind != DkChoose || d.Sub != ChGenProlif || d.N != 5 {
 		t.Fatalf("decision kind %d sub %d with %d options, want the proliferate pick (b1, the opponent's bear, both players, Done)", d.Kind, d.Sub, d.N)
 	}
-	sc.do(t, AkChoose, uint8(b1), 0xff)
+	sc.do(t, AkChoose, TCode(b1), scAny)
 	if d := sc.s.Step(); d.Sub != ChGenProlif || d.N != 4 {
 		t.Fatalf("after one pick: sub %d with %d options, want 4", d.Sub, d.N)
 	}
-	sc.do(t, AkChoose, uint8(PlayerTarget0+1), 0xff)
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkChoose, TCode(PlayerTarget0+1), scAny)
+	sc.do(t, AkDone, scAny, scAny)
 	if n := sc.s.perms[sc.slot(b1)].ctrLow(int(kop.CtrP1P1)); n != 2 {
 		t.Fatalf("b1 has %d +1/+1 counters, want 2", n)
 	}
@@ -80,8 +80,8 @@ func TestProliferate(t *testing.T) {
 		t.Fatalf("poison %d energy %d, want 3 and 1", sc.s.g.poison[1], sc.s.g.energy[0])
 	}
 	life := sc.s.pl[0].life
-	sc.do(t, AkPass, 0xff, 0xff)
-	sc.do(t, AkPass, 0xff, 0xff)
+	sc.do(t, AkPass, scAny, scAny)
+	sc.do(t, AkPass, scAny, scAny)
 	if sc.s.pl[0].life != life+1 {
 		t.Fatalf("life %d, want %d: the proliferate trigger", sc.s.pl[0].life, life+1)
 	}

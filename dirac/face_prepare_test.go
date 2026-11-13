@@ -102,7 +102,7 @@ func TestPrepareEntersPrepared(t *testing.T) {
 	if ob.of&ofCopy == 0 || ob.zone != kop.ZoneExile || ob.card != sc.k.t.Cards[front].Faces[1] || s.pl[0].exile[s.pl[0].exileN-1] != cp {
 		t.Fatalf("copy %+v exile %v", *ob, s.pl[0].exile[:s.pl[0].exileN])
 	}
-	if rs[0].turn != uint16(eater)|uint16(s.objs[eater].ver)<<8 || rs[0].ver != ob.ver {
+	if rs[0].turn != mayHeld(eater, s.objs[eater].ver) || rs[0].ver != ob.ver {
 		t.Fatalf("record %+v", rs[0])
 	}
 }

@@ -36,7 +36,7 @@ func TestXAskCountsPoolAndWindow(t *testing.T) {
 	sc.perm(id["Savannah Lions"], 1)
 	s.pl[0].pool[kop.R] = 3
 	gn := sc.hand(id["Goblin Negotiation"], 0)
-	sc.do(t, AkCast, uint8(gn), 0xff)
+	sc.do(t, AkCast, TCode(gn), scAny)
 	for i := 0; i < 6; i++ {
 		d := s.Step()
 		if d.Kind == DkChoose && d.Sub == ChX {

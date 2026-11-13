@@ -36,8 +36,8 @@ func TestCastTriggersInBattlefieldOrder(t *testing.T) {
 	pa, pb := &sc.s.perms[sc.slot(a)], &sc.s.perms[sc.slot(b)]
 	pa.ts, pb.ts = pb.ts, pa.ts
 	bolt := sc.hand(v.LightningBolt, 0)
-	sc.do(t, AkCast, uint8(bolt), 0xff)
-	sc.do(t, AkTarget, 0xff, uint8(PlayerTarget1))
+	sc.do(t, AkCast, TCode(bolt), scAny)
+	sc.do(t, AkTarget, scAny, TCode(PlayerTarget1))
 	got := orderSources(t, sc.s, sc.s.Step())
 	if len(got) != 2 || got[0] != uint8(b) || got[1] != uint8(a) {
 		t.Fatalf("prowess order %v, want [%d %d]", got, b, a)
@@ -72,8 +72,8 @@ func TestAttackTriggersInBattlefieldOrder(t *testing.T) {
 	drak := sc.perm(id["Drakuseth, Maw of Flames"], 0)
 	b2 := sc.perm(id["Battlesong Berserker"], 0)
 	sc.passUntil(t, kop.StepAttackers)
-	sc.do(t, AkAttack, uint8(drak), 0xff)
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkAttack, TCode(drak), scAny)
+	sc.do(t, AkDone, scAny, scAny)
 	got := orderSources(t, sc.s, sc.s.Step())
 	want := []uint8{uint8(b1), uint8(drak), uint8(b2)}
 	if len(got) != 3 || got[0] != want[0] || got[1] != want[1] || got[2] != want[2] {
@@ -112,9 +112,9 @@ func TestCombatDamageTriggersInEventOrder(t *testing.T) {
 	pa, pb := &sc.s.perms[sc.slot(ta)], &sc.s.perms[sc.slot(tb)]
 	pa.ts, pb.ts = pb.ts, pa.ts
 	sc.passUntil(t, kop.StepAttackers)
-	sc.do(t, AkAttack, uint8(ta), 0xff)
-	sc.do(t, AkAttack, uint8(tb), 0xff)
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkAttack, TCode(ta), scAny)
+	sc.do(t, AkAttack, TCode(tb), scAny)
+	sc.do(t, AkDone, scAny, scAny)
 	sc.passUntil(t, kop.StepDamage)
 	var d Decision
 	for i := 0; i < 20; i++ {
@@ -186,9 +186,9 @@ func TestCombatDamageOneWalkPerEvent(t *testing.T) {
 	qg := sc.perm(id["Quilled Greatwurm"], 0)
 	et := sc.perm(id["Eager Trufflesnout"], 0)
 	sc.passUntil(t, kop.StepAttackers)
-	sc.do(t, AkAttack, uint8(qg), 0xff)
-	sc.do(t, AkAttack, uint8(et), 0xff)
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkAttack, TCode(qg), scAny)
+	sc.do(t, AkAttack, TCode(et), scAny)
+	sc.do(t, AkDone, scAny, scAny)
 	sc.passUntil(t, kop.StepDamage)
 	var d Decision
 	for i := 0; i < 20; i++ {
@@ -240,7 +240,7 @@ func TestEachPlayerSacrificeActiveFirst(t *testing.T) {
 		sc.perm(id["Swamp"], 1)
 	}
 	edict := sc.hand(id["Blasphemous Edict"], 1)
-	sc.do(t, AkCast, uint8(edict), 0xff)
+	sc.do(t, AkCast, TCode(edict), scAny)
 	var d Decision
 	for i := 0; i < 20; i++ {
 		if d = sc.s.Step(); d.Kind != DkPriority {
@@ -371,7 +371,7 @@ func TestChangeZoneAllWalksSeatZeroFirst(t *testing.T) {
 		sc.perm(id["Swamp"], 1)
 	}
 	rise := sc.hand(id["Rise of the Dark Realms"], 1)
-	sc.do(t, AkCast, uint8(rise), 0xff)
+	sc.do(t, AkCast, TCode(rise), scAny)
 	for i := 0; i < 10 && !sc.onBF(g0); i++ {
 		if d := sc.s.Step(); d.Kind != DkPriority {
 			break
@@ -416,11 +416,11 @@ func TestMergedGrantTriggersPerApplication(t *testing.T) {
 	}
 	for i := 0; i < 2; i++ {
 		f := sc.hand(id["Fake Your Own Death"], 0)
-		sc.do(t, AkCast, uint8(f), 0xff)
+		sc.do(t, AkCast, TCode(f), scAny)
 		for j := 0; j < 10 && sc.s.objs[f].zone != kop.ZoneGraveyard; j++ {
 			d := sc.s.Step()
 			if d.Kind == DkTarget {
-				sc.do(t, AkTarget, 0xff, uint8(x))
+				sc.do(t, AkTarget, scAny, TCode(x))
 				continue
 			}
 			if d.Kind != DkPriority {
@@ -445,8 +445,8 @@ func TestCombatDamageLifeLossListenerOrder(t *testing.T) {
 	conq := sc.perm(id["Bloodthirsty Conqueror"], 0)
 	ta := sc.perm(id["Eager Trufflesnout"], 0)
 	sc.passUntil(t, kop.StepAttackers)
-	sc.do(t, AkAttack, uint8(ta), 0xff)
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkAttack, TCode(ta), scAny)
+	sc.do(t, AkDone, scAny, scAny)
 	sc.passUntil(t, kop.StepDamage)
 	var d Decision
 	for i := 0; i < 20; i++ {
@@ -489,7 +489,7 @@ func TestDelayedEndStepTriggerListenerOrder(t *testing.T) {
 	a := sc.perm(id["Sylvan Scavenging"], 0)
 	tok := sc.perm(id["Llanowar Elves"], 0)
 	b := sc.perm(id["Sylvan Scavenging"], 0)
-	sc.s.dly[0] = delayed{act: uint8(kop.OpSacrifice), ctrl: 0, obj: tok, ver: sc.s.objs[tok].ver, creator: NoObj}
+	sc.s.dly[0] = delayed{act: uint8(kop.OpSacrifice), ctrl: 0, obj: tok, ver: objWord(sc.s.objs[tok].ver), creator: NoObj}
 	sc.s.ndly = 1
 	sc.s.npend = 0
 	sc.s.firePhase(sc.k, kop.StepEnd)

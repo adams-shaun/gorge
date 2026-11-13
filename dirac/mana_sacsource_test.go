@@ -65,7 +65,7 @@ func xAsk(t *testing.T, sc *scen, d Decision, what string) Decision {
 func TestSpawnSacManaOffersCast(t *testing.T) {
 	sc, id, _ := spawnScen(t, Config{NoElide: true, GorgeLowering: true}, "c_0_1_eldrazi_spawn_sac", "Swamp", "Forest")
 	os := sc.hand(id["Old Stickfingers"], 0)
-	sc.do(t, AkCast, uint8(os), 0xff)
+	sc.do(t, AkCast, TCode(os), scAny)
 	d := xAsk(t, sc, sc.s.Step(), "the cast")
 	if d.N != 2 || d.Options[1].Mode() != 1 {
 		t.Fatalf("X options %v, want X = 0 and 1 (the Spawn's {C})", d.Options[:d.N])
@@ -73,7 +73,7 @@ func TestSpawnSacManaOffersCast(t *testing.T) {
 	sc2, id2, objs2 := spawnScen(t, Config{NoElide: true, GorgeLowering: true}, "c_0_1_eldrazi_spawn_sac", "Swamp", "Forest")
 	os2 := sc2.hand(id2["Old Stickfingers"], 0)
 	sc2.s.perms[sc2.slot(objs2[0])].flags |= pfSick
-	sc2.do(t, AkCast, uint8(os2), 0xff)
+	sc2.do(t, AkCast, TCode(os2), scAny)
 	d = xAsk(t, sc2, sc2.s.Step(), "the sick cast")
 	if d.N != 2 || d.Options[1].Mode() != 1 {
 		t.Fatalf("sick: X options %v, want X = 0 and 1 (the Spawn's {C})", d.Options[:d.N])
@@ -131,7 +131,7 @@ func TestSpawnSacManaPaysCast(t *testing.T) {
 	sc, id, objs := spawnScen(t, Config{NoElide: true}, "c_0_1_eldrazi_spawn_sac", "Swamp", "Forest")
 	spawn, swamp := objs[0], objs[1]
 	os := sc.hand(id["Old Stickfingers"], 0)
-	sc.do(t, AkCast, uint8(os), 0xff)
+	sc.do(t, AkCast, TCode(os), scAny)
 	xAsk(t, sc, sc.s.Step(), "the cast")
 	sc.s.Apply(MakeAction(AkChoose, 0, 0, 1)) // X = 1
 	sc.passBoth(t)
@@ -163,7 +163,7 @@ func testSpawnSacFiresSacTrigger(t *testing.T, cfg Config) {
 	sc, id, objs := spawnScen(t, cfg, "Writhing Chrysalis", "c_0_1_eldrazi_spawn_sac", "Swamp", "Forest")
 	ch, spawn := objs[0], objs[1]
 	os := sc.hand(id["Old Stickfingers"], 0)
-	sc.do(t, AkCast, uint8(os), 0xff)
+	sc.do(t, AkCast, TCode(os), scAny)
 	xAsk(t, sc, sc.s.Step(), "the cast")
 	sc.s.Apply(MakeAction(AkChoose, 0, 0, 1)) // X = 1
 	d := sc.s.Step()
@@ -192,7 +192,7 @@ func TestSpawnSacManaTappedPays(t *testing.T) {
 	sc, id, objs := spawnScen(t, Config{NoElide: true}, "c_0_1_eldrazi_spawn_sac", "Swamp", "Forest")
 	sc.s.perms[sc.slot(objs[0])].flags |= pfTapped
 	os := sc.hand(id["Old Stickfingers"], 0)
-	sc.do(t, AkCast, uint8(os), 0xff)
+	sc.do(t, AkCast, TCode(os), scAny)
 	d := xAsk(t, sc, sc.s.Step(), "the tapped cast")
 	if d.N != 2 || d.Options[0].Mode() != 0 || d.Options[1].Mode() != 1 {
 		t.Fatalf("X options %v, want X = 0 and X = 1 (the tapped Spawn pays)", d.Options[:d.N])

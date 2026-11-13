@@ -93,13 +93,13 @@ func TestWaterbendPicksCapN(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		bears = append(bears, sc.perm(id["Grizzly Bears"], 0))
 	}
-	sc.do(t, AkActivate, uint8(fw), 0xff)
+	sc.do(t, AkActivate, TCode(fw), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChWaterbend {
 		t.Fatalf("first decision %v/%d, want the waterbend ask", d.Kind, d.Sub)
 	}
 	for i := 0; i < 3; i++ {
-		sc.do(t, AkChoose, uint8(bears[i]), 0xff)
+		sc.do(t, AkChoose, TCode(bears[i]), scAny)
 		d = sc.s.Step()
 	}
 	if d.Kind == DkChoose && d.Sub == ChWaterbend {
@@ -123,7 +123,7 @@ func TestWaterbendNoAskWithoutCandidates(t *testing.T) {
 	sc := newScenTableLib(t, tbl, id["Plains"], Config{NoElide: true})
 	ib := sc.perm(id["Aang's Iceberg"], 0)
 	sc.lands(0, id["Plains"], 3)
-	sc.do(t, AkActivate, uint8(ib), 0xff)
+	sc.do(t, AkActivate, TCode(ib), scAny)
 	d := sc.s.Step()
 	if d.Kind == DkChoose && d.Sub == ChWaterbend {
 		t.Fatalf("waterbend asked with no artifact or creature candidate: %v", d.Options[:d.N])
@@ -138,19 +138,19 @@ func TestWaterbendPickedManaCreatureNotTappedForMana(t *testing.T) {
 	b1 := sc.perm(id["Grizzly Bears"], 0)
 	b2 := sc.perm(id["Grizzly Bears"], 0)
 	forest := sc.perm(id["Forest"], 0)
-	sc.do(t, AkActivate, uint8(fw), 0xff)
+	sc.do(t, AkActivate, TCode(fw), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChWaterbend {
 		t.Fatalf("first decision %v/%d, want the waterbend ask", d.Kind, d.Sub)
 	}
-	sc.do(t, AkChoose, uint8(elf), 0xff)
+	sc.do(t, AkChoose, TCode(elf), scAny)
 	sc.s.Step()
-	sc.do(t, AkChoose, uint8(b1), 0xff)
+	sc.do(t, AkChoose, TCode(b1), scAny)
 	d = sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChWaterbend {
 		t.Fatalf("decision after two picks %v/%d, want the waterbend ask", d.Kind, d.Sub)
 	}
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkDone, scAny, scAny)
 	sc.s.Step()
 	if sc.s.perms[sc.slot(forest)].flags&pfTapped == 0 {
 		t.Fatal("the plan did not tap the Forest; it tapped the picked mana creature instead")

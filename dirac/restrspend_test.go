@@ -64,7 +64,7 @@ func TestRestrictedManaPaysAngel(t *testing.T) {
 	// the kernel's own surface: the Valkyrie from one Plains and Giada's {W}
 	sc, valk, _, plains := restrScen(t, Config{NoElide: true})
 	s := sc.s
-	sc.do(t, AkCast, uint8(valk), 0xff)
+	sc.do(t, AkCast, TCode(valk), scAny)
 	s.Step() // the build pays
 	if s.rbAny(0) || s.pl[0].pool != ([kop.NumManaKinds]uint8{}) {
 		t.Fatalf("after the Valkyrie: restricted %v pool %v, want both empty", s.rb[0], s.pl[0].pool)
@@ -143,7 +143,7 @@ func TestHybridWitnessFloatsRestrictedMana(t *testing.T) {
 	sc.perm(id["Plains"], 0)
 	sc.perm(id["Plains"], 0)
 	cit := sc.hand(id["Gallant Citizen"], 0)
-	sc.do(t, AkCast, uint8(cit), 0xff)
+	sc.do(t, AkCast, TCode(cit), scAny)
 	for d := sc.s.Step(); d.Kind == DkChoose; d = sc.s.Step() {
 		sc.s.Apply(d.Options[0])
 	}
@@ -181,7 +181,7 @@ func TestHybridWitnessKeepsPlainTapPlain(t *testing.T) {
 	sc.perm(id["Island"], 0)
 	sc.perm(id["Island"], 0)
 	cry := sc.hand(id["Slithering Cryptid"], 0)
-	sc.do(t, AkCast, uint8(cry), 0xff)
+	sc.do(t, AkCast, TCode(cry), scAny)
 	for d := sc.s.Step(); d.Kind == DkChoose; d = sc.s.Step() {
 		sc.s.Apply(d.Options[0])
 	}

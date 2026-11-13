@@ -66,7 +66,7 @@ func voteAsk(t *testing.T, sc *scen, p uint8, pick Obj, want ...Obj) {
 			t.Fatalf("object %d not on the ballot", w)
 		}
 	}
-	sc.do(t, AkChoose, uint8(pick), 0xff)
+	sc.do(t, AkChoose, TCode(pick), scAny)
 }
 
 // TestVoteSplitExilesBoth: the caster votes first, then the opponent; one

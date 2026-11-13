@@ -57,15 +57,15 @@ func battleCombat(t *testing.T, sc *scen, atk []Obj, tgt Obj, blocks [][2]Obj) {
 	t.Helper()
 	sc.passUntil(t, kop.StepAttackers)
 	for _, a := range atk {
-		sc.do(t, AkAttack, uint8(a), uint8(tgt))
+		sc.do(t, AkAttack, TCode(a), TCode(tgt))
 	}
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkDone, scAny, scAny)
 	sc.passUntil(t, kop.StepBlockers)
 	if len(blocks) > 0 {
 		for _, b := range blocks {
-			sc.do(t, AkBlock, uint8(b[0]), uint8(b[1]))
+			sc.do(t, AkBlock, TCode(b[0]), TCode(b[1]))
 		}
-		sc.do(t, AkDone, 0xff, 0xff)
+		sc.do(t, AkDone, scAny, scAny)
 	}
 	sc.passUntil(t, kop.StepMain2)
 }
@@ -152,8 +152,8 @@ func TestBattleSpellDamage(t *testing.T) {
 	sc.lands(0, v.Mountain, 1)
 	b := sc.perm(front, 0)
 	shock := sc.hand(v.Shock, 0)
-	sc.do(t, AkCast, uint8(shock), 0xff)
-	sc.do(t, AkTarget, 0xff, uint8(b))
+	sc.do(t, AkCast, TCode(shock), scAny)
+	sc.do(t, AkTarget, scAny, TCode(b))
 	sc.passBoth(t)
 	if sc.defense(b) != 1 || sc.s.perms[sc.slot(b)].damage != 0 {
 		t.Fatalf("Shock: defense %d damage %d, want 1 and 0", sc.defense(b), sc.s.perms[sc.slot(b)].damage)
@@ -165,8 +165,8 @@ func TestBattleDefeatExiles(t *testing.T) {
 	sc.lands(0, v.Mountain, 1)
 	b := sc.perm(front, 1)
 	shock := sc.hand(v.Shock, 0)
-	sc.do(t, AkCast, uint8(shock), 0xff)
-	sc.do(t, AkTarget, 0xff, uint8(b))
+	sc.do(t, AkCast, TCode(shock), scAny)
+	sc.do(t, AkTarget, scAny, TCode(b))
 	sc.passBoth(t)
 	s := sc.s
 	s.Step() // the state-based actions run before the next priority
@@ -192,8 +192,8 @@ func defeatToAsk(t *testing.T, sc *scen, front CardID) Obj {
 	sc.lands(0, v.Mountain, 1)
 	b := sc.perm(front, 1)
 	shock := sc.hand(v.Shock, 0)
-	sc.do(t, AkCast, uint8(shock), 0xff)
-	sc.do(t, AkTarget, 0xff, uint8(b))
+	sc.do(t, AkCast, TCode(shock), scAny)
+	sc.do(t, AkTarget, scAny, TCode(b))
 	sc.passBoth(t)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChDefeatCast || d.Player != 1 {

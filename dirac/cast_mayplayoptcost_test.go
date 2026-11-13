@@ -45,7 +45,7 @@ func mpocScen(t *testing.T, pool string, carrier kop.CardDef, cfg Config, may bo
 	o := sc.obj(c, 0)
 	s := sc.s
 	s.objs[o].zone = kop.ZoneExile
-	s.g.may[0] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurEOT), turn: s.turn}
+	s.g.may[0] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurEOT), turn: mayWord(s.turn)}
 	s.g.nmay = 1
 	return sc, o
 }

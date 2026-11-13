@@ -32,7 +32,7 @@ func TestImproviseExpend(t *testing.T) {
 	m := sc.hand(id["Foundry Assembler"], 0)
 	sc.perm(id["Ornithopter"], 0)
 	sc.perm(id["Ornithopter"], 0)
-	sc.do(t, AkCast, uint8(m), 0xff)
+	sc.do(t, AkCast, TCode(m), scAny)
 	d := sc.s.Step()
 	for picks := 0; picks < 2; picks++ {
 		if d.Kind != DkChoose || d.Sub != ChGenConvoke {
@@ -119,7 +119,7 @@ func TestImproviseLandPip(t *testing.T) {
 	mtn := sc.perm(id["Mountain"], 0)
 	opt1, opt2 := sc.perm(id["Ornithopter"], 0), sc.perm(id["Ornithopter"], 0)
 	m := sc.hand(id["Maverick Thopterist"], 0)
-	sc.do(t, AkCast, uint8(m), 0xff)
+	sc.do(t, AkCast, TCode(m), scAny)
 	d := sc.s.Step()
 	for picks := 0; picks < 2; picks++ {
 		if d.Kind != DkChoose || d.Sub != ChGenConvoke {
@@ -153,7 +153,7 @@ func TestImproviseLandPip(t *testing.T) {
 	isl5, isl6 := sc2.perm(id["Island"], 0), sc2.perm(id["Island"], 0)
 	mtn2 := sc2.perm(id["Mountain"], 0)
 	m2 := sc2.hand(id["Maverick Thopterist"], 0)
-	sc2.do(t, AkCast, uint8(m2), 0xff)
+	sc2.do(t, AkCast, TCode(m2), scAny)
 	if d2 := sc2.s.Step(); d2.Kind != DkPriority {
 		t.Fatalf("printed cast: decision %v/%d, want priority with no improvise ask", d2.Kind, d2.Sub)
 	}

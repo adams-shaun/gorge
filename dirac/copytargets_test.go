@@ -52,9 +52,9 @@ func TestCopyMultiTargetAsk(t *testing.T) {
 	a1 := sc.perm(id["Eager Trufflesnout"], 0)
 	b0 := sc.perm(id["Eager Trufflesnout"], 1)
 	b1 := sc.perm(id["Eager Trufflesnout"], 1)
-	sc.do(t, AkCast, uint8(rat), 0xff)
-	sc.do(t, AkTarget, 0xff, uint8(a0))
-	sc.do(t, AkTarget, 0xff, uint8(b0))
+	sc.do(t, AkCast, TCode(rat), scAny)
+	sc.do(t, AkTarget, scAny, TCode(a0))
+	sc.do(t, AkTarget, scAny, TCode(b0))
 	// Storm's trigger on the cast; it resolves and puts the copy above
 	d := passToCopyAsk(t, s)
 	if d.Kind != DkTarget || d.Sub != SubCopyTarget || d.Player != 0 {

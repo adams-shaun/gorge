@@ -49,7 +49,7 @@ func restrSourceChose(t *testing.T, sc *scen, c Obj, typ string) {
 	}
 	for i, n := range sc.k.t.Subtypes {
 		if n == typ {
-			sc.s.perms[sc.slot(c)].chosen = uint8(i)
+			sc.s.perms[sc.slot(c)].chosen = objWord(uint8(i))
 			return
 		}
 	}

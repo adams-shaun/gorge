@@ -28,7 +28,7 @@ func TestReplOrdBodyUntouchedByHeaderResets(t *testing.T) {
 			t.Fatalf("%s: the body is not all-zero", when)
 		}
 	}
-	d := burnToAsk(t, sc, id, uint8(PlayerTarget1))
+	d := burnToAsk(t, sc, id, TCode(PlayerTarget1))
 	if d.Kind != DkChoose || d.Sub != ChGenReplOrder || s.g.ro.on || s.g.ro.n != 2 {
 		t.Fatalf("want the noncombat order ask parked (on %v n %d)", s.g.ro.on, s.g.ro.n)
 	}
@@ -44,8 +44,8 @@ func TestReplOrdBodyUntouchedByHeaderResets(t *testing.T) {
 	s.roBody().srcDone = s.roBody().srcDone.with(5)
 
 	sc.passUntil(t, kop.StepAttackers)
-	sc.do(t, AkAttack, uint8(w), 0xff)
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkAttack, TCode(w), scAny)
+	sc.do(t, AkDone, scAny, scAny)
 	asks := 0
 	for i := 0; i < 40; i++ {
 		d := s.Step()

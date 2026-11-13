@@ -60,7 +60,7 @@ func TestCharmRepeatModes(t *testing.T) {
 		sc.lands(0, v.Mountain, 1)
 		a := sc.perm(v.GrizzlyBears, 1)
 		b := sc.perm(v.GrizzlyBears, 1)
-		sc.do(t, AkCast, uint8(sc.hand(v.TestCharm, 0)), 0xff)
+		sc.do(t, AkCast, TCode(sc.hand(v.TestCharm, 0)), scAny)
 		return sc, a, b
 	}
 	t.Run("twice resolves twice with two targets", func(t *testing.T) {
@@ -73,12 +73,12 @@ func TestCharmRepeatModes(t *testing.T) {
 			t.Fatalf("after one pick: modes %b done %v, want both modes again and Done at the minimum", m, done)
 		}
 		charmnumPickMode(t, sc, 0)
-		sc.do(t, AkDone, 0xff, 0xff)
+		sc.do(t, AkDone, scAny, scAny)
 		if got := sc.s.BuildModes(); sc.s.buildAbility(sc.k).ModeCount(got, 0) != 2 {
 			t.Fatalf("chosen modes %b: mode 0 not counted twice", got)
 		}
-		sc.do(t, AkTarget, 0xff, uint8(a))
-		sc.do(t, AkTarget, 0xff, uint8(b))
+		sc.do(t, AkTarget, scAny, TCode(a))
+		sc.do(t, AkTarget, scAny, TCode(b))
 		sc.resolveAll(t)
 		if sc.onBF(a) || sc.onBF(b) {
 			t.Fatalf("bears on the battlefield: %v %v; each instance of the repeated mode must hit its own target", sc.onBF(a), sc.onBF(b))
@@ -93,9 +93,9 @@ func TestCharmRepeatModes(t *testing.T) {
 		}
 		charmnumPickMode(t, sc, 0)
 		// the extra instance of mode 0 owns the overflow slot after the template slots
-		sc.do(t, AkTarget, 0xff, uint8(a))               // mode 0, instance 0 (slot 0)
-		sc.do(t, AkTarget, 0xff, uint8(PlayerTarget0+1)) // mode 1 (slot 1)
-		sc.do(t, AkTarget, 0xff, uint8(b))               // mode 0, instance 1 (slot 2)
+		sc.do(t, AkTarget, scAny, TCode(a))               // mode 0, instance 0 (slot 0)
+		sc.do(t, AkTarget, scAny, TCode(PlayerTarget0+1)) // mode 1 (slot 1)
+		sc.do(t, AkTarget, scAny, TCode(b))               // mode 0, instance 1 (slot 2)
 		sc.resolveAll(t)
 		if sc.onBF(a) || sc.onBF(b) || sc.s.pl[1].life != 18 {
 			t.Fatalf("a on %v, b on %v, life %d: want both bears dead and 18 life", sc.onBF(a), sc.onBF(b), sc.s.pl[1].life)
@@ -138,9 +138,9 @@ func TestCharmRepeatModes(t *testing.T) {
 		if m, done, n := charmRepeatPose(t, sc); m != 0 || !done || n != 1 {
 			t.Fatalf("budget spent: modes %b done %v options %d, want Done alone", m, done, n)
 		}
-		sc.do(t, AkDone, 0xff, 0xff)
-		sc.do(t, AkTarget, 0xff, uint8(a))
-		sc.do(t, AkTarget, 0xff, uint8(PlayerTarget0+1))
+		sc.do(t, AkDone, scAny, scAny)
+		sc.do(t, AkTarget, scAny, TCode(a))
+		sc.do(t, AkTarget, scAny, TCode(PlayerTarget0+1))
 		sc.resolveAll(t)
 		if sc.onBF(a) || sc.s.pl[1].life != 18 {
 			t.Fatalf("a on %v, life %d: want the bear dead and 18 life", sc.onBF(a), sc.s.pl[1].life)

@@ -22,7 +22,7 @@ func TestPanicNativeEntryProgram(t *testing.T) {
 	g := sc.perm(fc, 0)
 	s.sacAtEndUntracked(g, 0)
 	sc.passUntil(t, kop.StepAttackers)
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkDone, scAny, scAny)
 	sc.passUntil(t, kop.StepEnd)
 	if d := s.Step(); d.Kind != DkPriority || s.sp != 1 || s.stack[0].ab != abDelayed {
 		t.Fatalf("the end-step sacrifice is not on the stack: sp %d", s.sp)
@@ -121,7 +121,7 @@ func TestPanicAffinityTreasure(t *testing.T) {
 	sc.s.objs[tr].of |= ofToken
 	sc.enterAs(tr, 0)
 	unit := sc.hand(id["Valkyrie Aerial Unit"], 0)
-	sc.do(t, AkCast, uint8(unit), 0xff)
+	sc.do(t, AkCast, TCode(unit), scAny)
 	sc.s.Step()
 	if sc.s.sp != 1 || sc.s.stack[0].obj != unit || sc.onBF(tr) {
 		t.Fatalf("stack %d, Treasure on the battlefield %v; want the spell cast and the Treasure gone", sc.s.sp, sc.onBF(tr))

@@ -234,8 +234,8 @@ func TestDelveGrantRecastCredit(t *testing.T) {
 			ninja := sc.hand(id["Shredder, Unrelenting"], 0)
 			bear := sc.perm(id["Grizzly Bears"], 0)
 			sc.passUntil(t, kop.StepAttackers)
-			sc.do(t, AkAttack, uint8(bear), 0xff)
-			sc.do(t, AkDone, 0xff, 0xff)
+			sc.do(t, AkAttack, TCode(bear), scAny)
+			sc.do(t, AkDone, scAny, scAny)
 			for i := 0; i < 16; i++ {
 				d := sc.s.Step()
 				if d.Kind == DkPriority && d.Player == 0 && sc.s.step == kop.StepBlockers {
@@ -310,7 +310,7 @@ func TestDelveGrantRecastCredit(t *testing.T) {
 				switch d.Kind {
 				case DkPriority:
 				case DkAttackers, DkBlockers:
-					sc.do(t, AkDone, 0xff, 0xff) // no attackers, no blocks
+					sc.do(t, AkDone, scAny, scAny) // no attackers, no blocks
 					continue
 				default:
 					t.Fatalf("opponent turn: decision %v/%d, want priority", d.Kind, d.Sub)

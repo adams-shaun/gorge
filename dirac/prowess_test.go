@@ -51,8 +51,8 @@ func TestProwessGrantsPerStatic(t *testing.T) {
 			t.Errorf("%s: %d granted prowess, want %d", w.name, got, w.want)
 		}
 	}
-	sc.do(t, AkCast, uint8(shock), 0xff)
-	sc.do(t, AkTarget, 0xff, uint8(PlayerTarget1))
+	sc.do(t, AkCast, TCode(shock), scAny)
+	sc.do(t, AkTarget, scAny, TCode(PlayerTarget1))
 	sc.s.Step()
 	per := map[Obj]int{}
 	printed := map[Obj]int{}

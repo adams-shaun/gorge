@@ -87,7 +87,7 @@ func TestCasualtySacrificePaidCopyResolvesFirst(t *testing.T) {
 		t.Fatal("the creature is sacrificed at the election; gorge keeps it until payment")
 	}
 	sc.s.Apply(d.Options[0])
-	sc.do(t, AkTarget, 0xff, uint8(bell))
+	sc.do(t, AkTarget, scAny, TCode(bell))
 	for i := 0; i < 20 && sc.s.sp < 2; i++ {
 		d = sc.s.Step()
 		if d.Kind == DkPriority {

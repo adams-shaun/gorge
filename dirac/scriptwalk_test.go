@@ -40,7 +40,7 @@ func TestMayPlayRecordAndStaticOnce(t *testing.T) {
 	}
 	z := sc.obj(id["Soul-Shackled Zombie"], 0)
 	sc.s.place(z, kop.ZoneGraveyard, false)
-	sc.s.g.may[0] = mayPlay{obj: z, ver: sc.s.objs[z].ver, ctrl: 0, turn: sc.s.turn}
+	sc.s.g.may[0] = mayPlay{obj: z, ver: sc.s.objs[z].ver, ctrl: 0, turn: mayWord(sc.s.turn)}
 	sc.s.g.nmay = 1
 	d := sc.s.Step()
 	n := 0

@@ -44,9 +44,9 @@ func xbAttack(t *testing.T, sc *scen, atk ...Obj) {
 	t.Helper()
 	sc.passUntil(t, kop.StepAttackers)
 	for _, a := range atk {
-		sc.do(t, AkAttack, uint8(a), 0xff)
+		sc.do(t, AkAttack, TCode(a), scAny)
 	}
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkDone, scAny, scAny)
 	sc.passUntil(t, kop.StepBlockers)
 }
 
@@ -87,7 +87,7 @@ func TestExtraBlockSecondBlockOffered(t *testing.T) {
 	if d := sc.s.Step(); !xbOffered(d, tw, a1) || !xbOffered(d, tw, a2) {
 		t.Fatalf("first picks not offered: %v", d.Options[:d.N])
 	}
-	sc.do(t, AkBlock, uint8(tw), uint8(a1))
+	sc.do(t, AkBlock, TCode(tw), TCode(a1))
 	d := sc.s.Step()
 	if !xbOffered(d, tw, a2) {
 		t.Fatalf("the second block is not offered: %v", d.Options[:d.N])
@@ -95,7 +95,7 @@ func TestExtraBlockSecondBlockOffered(t *testing.T) {
 	if xbOffered(d, tw, a1) {
 		t.Fatal("the same pair is offered twice")
 	}
-	sc.do(t, AkBlock, uint8(tw), uint8(a2))
+	sc.do(t, AkBlock, TCode(tw), TCode(a2))
 	s, b, x, y := sc.s, sc.slot(tw), sc.slot(a1), sc.slot(a2)
 	if !s.blocks(b, x) || !s.blocks(b, y) {
 		t.Fatalf("blocks(tw,a1)=%v blocks(tw,a2)=%v", s.blocks(b, x), s.blocks(b, y))
@@ -115,8 +115,8 @@ func TestExtraBlockNoThirdBlock(t *testing.T) {
 	a1, a2, a3 := sc.perm(xbBear, 0), sc.perm(xbBear, 0), sc.perm(xbBear, 0)
 	tw, pl := sc.perm(xbTwins, 1), sc.perm(xbPlain, 1)
 	xbAttack(t, sc, a1, a2, a3)
-	sc.do(t, AkBlock, uint8(tw), uint8(a1))
-	sc.do(t, AkBlock, uint8(pl), uint8(a1))
+	sc.do(t, AkBlock, TCode(tw), TCode(a1))
+	sc.do(t, AkBlock, TCode(pl), TCode(a1))
 	d := sc.s.Step()
 	if !xbOffered(d, tw, a2) || !xbOffered(d, tw, a3) {
 		t.Fatalf("the Twins' second block is not offered: %v", d.Options[:d.N])
@@ -124,7 +124,7 @@ func TestExtraBlockNoThirdBlock(t *testing.T) {
 	if xbOffered(d, pl, a2) || xbOffered(d, pl, a3) {
 		t.Fatal("a plain blocker is offered a second block")
 	}
-	sc.do(t, AkBlock, uint8(tw), uint8(a2))
+	sc.do(t, AkBlock, TCode(tw), TCode(a2))
 	d = sc.s.Step()
 	for _, a := range []Obj{a1, a2, a3} {
 		if xbOffered(d, tw, a) {
@@ -149,9 +149,9 @@ func TestExtraBlockDivisionAskedOfBlocker(t *testing.T) {
 			t.Fatal("the 3/3 is not the lower-ts attacker")
 		}
 		xbAttack(t, sc, a3, a4)
-		sc.do(t, AkBlock, uint8(tw), uint8(a4)) // declared in the other order: recipients still go by ts
-		sc.do(t, AkBlock, uint8(tw), uint8(a3))
-		sc.do(t, AkDone, 0xff, 0xff)
+		sc.do(t, AkBlock, TCode(tw), TCode(a4)) // declared in the other order: recipients still go by ts
+		sc.do(t, AkBlock, TCode(tw), TCode(a3))
+		sc.do(t, AkDone, scAny, scAny)
 		d := xbToDivide(t, sc)
 		if d.Player != 1 || d.N != 8 || d.Options[0].Source() != TCode(uint8(tw)) {
 			t.Fatalf("division: player %d, N %d, source %d; want player 1, N 8, source %d", d.Player, d.N, d.Options[0].Source(), tw)
@@ -193,13 +193,13 @@ func TestExtraBlockAttackerLeavesPromotes(t *testing.T) {
 	a1, a2 := sc.perm(xbBear, 0), sc.perm(xbBear, 0)
 	tw := sc.perm(xbTwins, 1)
 	xbAttack(t, sc, a1, a2)
-	sc.do(t, AkBlock, uint8(tw), uint8(a1))
-	sc.do(t, AkBlock, uint8(tw), uint8(a2))
+	sc.do(t, AkBlock, TCode(tw), TCode(a1))
+	sc.do(t, AkBlock, TCode(tw), TCode(a2))
 	b, s2 := sc.slot(tw), sc.slot(a2)
 	if sc.s.perms[b].blocking != sc.slot(a1) || sc.s.xblkOf(b) != s2 {
 		t.Fatalf("blocking %d, xblk %d; want the first and second attackers", sc.s.perms[b].blocking, sc.s.xblkOf(b))
 	}
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkDone, scAny, scAny)
 	sc.s.removePerm(sc.k, sc.slot(a1), kop.ZoneGraveyard, false)
 	if sc.s.perms[b].blocking != s2 || sc.s.xblkOf(b) != NoSlot || sc.s.perms[b].flags&pfBlocking == 0 {
 		t.Fatalf("after the first attacker left: blocking %d, xblk %d, pfBlocking %v", sc.s.perms[b].blocking, sc.s.xblkOf(b), sc.s.perms[b].flags&pfBlocking != 0)
@@ -232,7 +232,7 @@ func TestExtraBlockLostAbilitiesOneBlock(t *testing.T) {
 		t.Fatal("a Twins that lost its abilities has capacity above 1")
 	}
 	xbAttack(t, sc, a1, a2)
-	sc.do(t, AkBlock, uint8(tw), uint8(a1))
+	sc.do(t, AkBlock, TCode(tw), TCode(a1))
 	if d := sc.s.Step(); xbOffered(d, tw, a2) {
 		t.Fatalf("a second block is offered: %v", d.Options[:d.N])
 	}
@@ -267,9 +267,9 @@ func TestExtraBlockBothAttackersDivide(t *testing.T) {
 	tw, c1, c2 := sc.perm(xbTwins, 1), sc.perm(xbBear, 1), sc.perm(xbBear, 1)
 	xbAttack(t, sc, a3, a4)
 	for _, p := range [][2]Obj{{tw, a3}, {c1, a3}, {tw, a4}, {c2, a4}} {
-		sc.do(t, AkBlock, uint8(p[0]), uint8(p[1]))
+		sc.do(t, AkBlock, TCode(p[0]), TCode(p[1]))
 	}
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkDone, scAny, scAny)
 	// mode i gives i to the first blocker in block order (the Twins, declared
 	// first for both attackers) and the rest to the other
 	modes := map[Obj]uint8{a3: 1, a4: 3, tw: 0}

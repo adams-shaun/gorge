@@ -155,10 +155,10 @@ func TestEarthbendRecordSurvivesEndStep(t *testing.T) {
 	sc, id, in := newEBScen(t)
 	s, k := sc.s, sc.k
 	f, g := sc.perm(id["Forest"], 0), sc.perm(id["Forest"], 0)
-	s.dly[0] = delayed{act: uint8(kop.OpBounce), ctrl: 0, obj: g, ver: s.objs[g].ver, creator: NoObj}
+	s.dly[0] = delayed{act: uint8(kop.OpBounce), ctrl: 0, obj: g, ver: objWord(s.objs[g].ver), creator: NoObj}
 	s.ndly = 1
 	ebCast(sc, id, in, f)
-	s.dly[s.ndly] = delayed{act: uint8(kop.OpBounce), ctrl: 0, obj: g, ver: s.objs[g].ver, creator: NoObj}
+	s.dly[s.ndly] = delayed{act: uint8(kop.OpBounce), ctrl: 0, obj: g, ver: objWord(s.objs[g].ver), creator: NoObj}
 	s.ndly++
 	s.fireDelayed(k)
 	if s.npend != 2 {

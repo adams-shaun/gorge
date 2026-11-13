@@ -306,7 +306,7 @@ func TestReturnFromExileAsEntersChoiceFirst(t *testing.T) {
 	l.src, l.sver, l.obj = a, s.objs[a].ver, banner
 	s.g.nlinks++
 	b := sc.hand(id["Banishing Light"], 0)
-	sc.do(t, AkCast, uint8(b), 0xff)
+	sc.do(t, AkCast, TCode(b), scAny)
 	for i := 0; i < 40; i++ {
 		d := s.Step()
 		switch {
@@ -348,7 +348,7 @@ func TestReturnedAuraAsksHostInExile(t *testing.T) {
 	sc.s.place(wp, kop.ZoneExile, false)
 	sc.s.g.links[0].src, sc.s.g.links[0].sver, sc.s.g.links[0].obj = bl, sc.s.objs[bl].ver, wp
 	sc.s.g.nlinks = 1
-	sc.do(t, AkActivate, uint8(cc), 0xff)
+	sc.do(t, AkActivate, TCode(cc), scAny)
 	for i := 0; i < 12 && sc.s.objs[bl].zone == kop.ZoneBattlefield; i++ {
 		d := sc.s.Step()
 		a := d.Options[0]
@@ -394,7 +394,7 @@ func TestReturnFromExileAfterEnterChoiceMidResolution(t *testing.T) {
 	l.src, l.sver, l.obj = a, s.objs[a].ver, banner
 	s.g.nlinks++
 	b := sc.hand(id["Banishing Light"], 0)
-	sc.do(t, AkCast, uint8(b), 0xff)
+	sc.do(t, AkCast, TCode(b), scAny)
 	for i := 0; i < 40; i++ {
 		d := s.Step()
 		switch {
@@ -443,7 +443,7 @@ func TestEquipmentFallsOffNoncreature(t *testing.T) {
 	pick := sc.perm(id["Goldvein Pick"], 1)
 	s.perms[sc.slot(pick)].attached = sc.slot(lions)
 	moon := sc.hand(id["Imprisoned in the Moon"], 0)
-	sc.do(t, AkCast, uint8(moon), 0xff)
+	sc.do(t, AkCast, TCode(moon), scAny)
 	for i := 0; i < 20 && !(sc.onBF(moon) && s.sp == 0); i++ {
 		d := s.Step()
 		switch d.Kind {
@@ -516,7 +516,7 @@ func TestReturnedAuraOneHostAttaches(t *testing.T) {
 	sc.s.place(wp, kop.ZoneExile, false)
 	sc.s.g.links[0].src, sc.s.g.links[0].sver, sc.s.g.links[0].obj = bl, sc.s.objs[bl].ver, wp
 	sc.s.g.nlinks = 1
-	sc.do(t, AkActivate, uint8(cc), 0xff)
+	sc.do(t, AkActivate, TCode(cc), scAny)
 	for i := 0; i < 12 && sc.s.objs[bl].zone == kop.ZoneBattlefield; i++ {
 		d := sc.s.Step()
 		a := d.Options[0]
@@ -570,7 +570,7 @@ func TestReturnedAuraNoHostStaysExiled(t *testing.T) {
 	sc.s.place(wp, kop.ZoneExile, false)
 	sc.s.g.links[0].src, sc.s.g.links[0].sver, sc.s.g.links[0].obj = bl, sc.s.objs[bl].ver, wp
 	sc.s.g.nlinks = 1
-	sc.do(t, AkActivate, uint8(cc), 0xff)
+	sc.do(t, AkActivate, TCode(cc), scAny)
 	for i := 0; i < 12 && sc.s.objs[bl].zone == kop.ZoneBattlefield; i++ {
 		d := sc.s.Step()
 		a := d.Options[0]
