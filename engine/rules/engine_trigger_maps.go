@@ -154,4 +154,11 @@ type engineTriggerMaps struct {
 	// target groups, in target-bearing mode order. It is engine scratch like
 	// fuseTargets: the cast/placement target answer rebuilds it during replay.
 	charmTargets map[state.ObjID][][]state.Target `clone:"deep"`
+	// spliceFor maps a spell on the stack to the cards spliced onto it
+	// (CR 702.47a), in resolution order; spliceTargets holds each spliced
+	// card's own chosen targets, index-aligned. Published by payCast beside
+	// fuseTargets, copied for a stack copy (CR 707.10) and removed with the
+	// stack object. Engine scratch rebuilt by replay.
+	spliceFor     map[state.ObjID][]state.ObjID    `clone:"deep"`
+	spliceTargets map[state.ObjID][][]state.Target `clone:"deep"`
 }

@@ -963,3 +963,25 @@ func twobridManaValue(sym string) (int32, bool) {
 	}
 	return int32(v), true
 }
+
+// Splice reports a printed `K:Splice:<quality>:<cost>` line (CR 702.47a): the
+// quality names the spell types it may splice onto ("Arcane", or a
+// comma-separated type list), the cost is the splice cost. The grammar keeps
+// the cost after the FIRST colon, so a cost with its own colons survives
+// whole. KeywordCostParam/KeywordCostField return the quality, not the cost,
+// and are not used here.
+func (f *Face) Splice() (quality, cost string, ok bool) {
+	param, found := f.KeywordParam("Splice")
+	if !found {
+		return "", "", false
+	}
+	q, c, hasCost := strings.Cut(param, ":")
+	if !hasCost {
+		return "", "", false
+	}
+	return strings.TrimSpace(q), strings.TrimSpace(c), true
+}
+
+// HasTypeWord reports whether the face has the card type or subtype t (Types
+// holds both, so "Arcane" answers).
+func (f *Face) HasTypeWord(t string) bool { return f.hasType(t) }
