@@ -467,6 +467,99 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 	return found
 }
 
+// subsGen is hasSubGen reduced to one pass per slot, for ProjectChars: it
+// asks every matchup subtype of every battlefield permanent (and
+// subOutside), and hasSubGen recomputes the same per-slot work per question.
+// The per-slot reduction is i-independent -- the layer walk, the copy
+// exceptions, the override pass and the static scan -- only the final mask
+// tests vary with i. The contract is hasSubGen's: for every i in
+// 0..len(Subtypes)-1 with i < MaxSubtypes, subs.Has(i) is
+// s.hasSubGen(k, sl, i), and all is s.hasSubGen(k, sl, subOutside) (the
+// outside branch's all creature types; the mask's own changeling arm, the
+// non-outside one, is folded into the mask as the creature subtypes it
+// covers). It answers all the questions hasSubGen can: only ProjectChars
+// calls it (hasSubGen stays the single-subtype query for its other callers
+// -- delegating it would slow every single-i query). k.gen must be non-nil.
+func (s *State) subsGen(k *prep, sl Slot) (subs kop.SubMask, all bool) {
+	dormant := k.gen.anyImpending && s.impendDormant(k, sl)
+	if k.gen.fxNeed != 0 && s.walkSlot(k, sl) {
+		c := s.chars(k, sl, upTo4) // one walk, not one per subtype
+		for i := range k.t.Subtypes {
+			if i < kop.MaxSubtypes && hasSubCur(k, &c, uint8(i)) {
+				subs = subs.With(i)
+			}
+		}
+		all = hasSubCur(k, &c, subOutside)
+	} else {
+		cd := &k.t.Cards[s.cardAt(sl)]
+		m := cd.Subtypes
+		copyAll := s.fxM.has(sl) && k.gen.cpxSub && s.copyExcAll(k, sl)
+		mAll := copyAll                          // the matchup subtypes' changeling: a copy's (a printed one is outside-only)
+		allOut := cd.AllCreatureTypes || copyAll // subOutside's: printed or copy changeling
+		if s.fxM.has(sl) && k.gen.cpxSub {
+			// a copy's added subtype is a copiable value (layer 1): a later
+			// subtype-setting effect replaces it
+			m = m.Or(s.copyExcSubs(k, sl))
+		}
+		s.eachOverride(k, sl, func(o *kop.Override, _ CardID) {
+			if o.HasSub {
+				m = m.And(o.KeepSub).Or(o.SetSub)
+				mAll, allOut = false, false
+			}
+			if o.RemoveCreatureSub {
+				allOut = false // the outside branch clears it on the record, mutation switch or not
+				if !DebugRmCreatSubKeep {
+					m = m.AndNot(k.gen.creatSub)
+					mAll = false
+				}
+			}
+			m = m.Or(o.AddSub)
+			if ovrAllCreat(o) {
+				mAll, allOut = true, true
+			}
+		})
+		subs = m
+		if mAll {
+			subs = subs.Or(k.gen.creatSub) // every creature type until a setter (CR 702.73a)
+		}
+		// static subtype grants (Skyknight Squire): one scan, not one per
+		// subtype. Each grant's mask (AddSub plus its own chosen type), keep
+		// mask and condition are i-independent, so its contribution unions
+		// in once: for i, a grant holds exactly when i is in its mask, i is
+		// kept and its condition held -- what hasSubGen's per-subtype scan
+		// tests.
+		s.eachStaticC(k, sclsSub, func(st statSrc) bool {
+			a := st.a
+			if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous {
+				return true
+			}
+			add := a.Static.AddSub
+			if k.gen.anyAddChosen {
+				add = s.chosenGrantMask(k, a, st.sl, add)
+			}
+			if add == (kop.SubMask{}) {
+				return true
+			}
+			keep, _ := s.selfGrantKept(k, sl, st.sl)
+			if !s.statCond(k, st) || !s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerSub) {
+				return true
+			}
+			subs = subs.Or(add.And(keep))
+			return true
+		})
+		all = allOut
+	}
+	if dormant {
+		// CR 205.1a: gone with the creature type -- dormant kills the
+		// creature subtypes and subOutside (all), never a non-creature
+		// subtype, so it applies on the final union, not by skipping the
+		// grants
+		subs = subs.AndNot(k.gen.creatSub)
+		all = false
+	}
+	return subs, all
+}
+
 // basePTGen is sl's base power/toughness before counters and pumps.
 func (s *State) basePTGen(k *prep, sl Slot) (int, int) {
 	if k.gen.fxNeed != 0 && s.walkSlot(k, sl) {
