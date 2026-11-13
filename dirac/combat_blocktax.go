@@ -52,30 +52,85 @@ func prepBlkTax(t *kop.Table, g *genPrep) {
 	if !g.anyBlkTax {
 		return
 	}
-	g.blkTaxStall = g.anyGoad || g.ix[mechAttacksIfAble] != arenaNone || g.blgOn || g.manaTaps
+	g.blkTaxStall = g.anyGoad || g.ix[mechAttacksIfAble] != arenaNone || g.blgOn || g.manaTaps ||
+		g.anyMinBlk || g.anyAloneBlk || g.anySuspect ||
+		// the arena masks, not anyLure/anyMustBlock: those are set before
+		// prepArena fills g.ix, so they hold on every table
+		g.ix[mechLure] != arenaNone || g.ix[mechMustBlocked] != arenaNone || g.ix[mechBlocksIfAble] != arenaNone
 	for i := range t.Cards {
 		g.blkTaxStall = g.blkTaxStall || blkTaxGap(&t.Cards[i])
 	}
 	for i := range t.Emblems {
 		for j := range t.Emblems[i].Abilities {
-			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMustAttack {
+			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && (a.Static.Kind == kop.StatMustAttack || blkTaxFloorStatic(a)) {
 				g.blkTaxStall = true
 			}
 		}
 	}
+	for i := range t.Overrides {
+		g.blkTaxStall = g.blkTaxStall || t.Overrides[i].AddKw&kop.KwMenace != 0
+	}
 }
 
-// blkTaxGap reports whether card c holds a part the block window's source walk
-// does not model: the walk is the attack window's, so exactly what atkTaxGap
-// refuses. Over-refusing is safe; admitting a shape the window misprices is not.
-func blkTaxGap(c *kop.CardDef) bool { return atkTaxGap(c) }
+// blkTaxFloorPart reports whether card c can make a block floor or a block
+// duty: menace (printed, granted, a static's, a counter's, a suspect's), a
+// MinMaxBlocker floor, can't-block-alone, a lure, must-be-blocked or
+// blocks-if-able. The option builders decide Done from those rules without the
+// defender's mana (blocksCompletable, menaceDeficit, blockerOptionsLure's owed,
+// mbReach), while gorge's KBlockers completes a declaration within
+// Decision.MaxSum: a budget that covers the first blocker of a menace attacker
+// but not the second strands the declaration (no pick fits, Done is withheld).
+// The kernel does not model the budgeted completion, so the table is refused.
+func blkTaxFloorPart(c *kop.CardDef) bool {
+	if c.Keywords&kop.KwMenace != 0 || c.MinBlockers != 0 || c.AloneBlk || c.Lure || c.MustBeBlocked {
+		return true
+	}
+	for j := range c.Abilities {
+		a := &c.Abilities[j]
+		if blkTaxFloorStatic(a) {
+			return true
+		}
+		if progHas(a, blkTaxFloorInstr) {
+			return true
+		}
+	}
+	return false
+}
+
+// blkTaxFloorStatic: a lure static, or a continuous static granting menace.
+func blkTaxFloorStatic(a *kop.Ability) bool {
+	return a.Kind == kop.AbStatic && (a.Static.Kind == kop.StatLure || a.Static.Kind == kop.StatContinuous && a.Static.Kw&kop.KwMenace != 0)
+}
+
+// blkTaxFloorInstr: an instruction granting menace (a keyword grant, a menace
+// counter, a suspect) or a block duty (must-be-blocked, a lure, blocks-if-able).
+func blkTaxFloorInstr(in *kop.Instr) bool {
+	switch in.Op {
+	case kop.OpGrantKeyword:
+		return (kop.KwMask(uint16(in.C))|kop.KwMask(uint16(in.B.N))<<16)&kop.KwMenace != 0
+	case kop.OpPutCounter, kop.OpPutCounterAll, kop.OpEnterWithCounters:
+		return kop.CounterKind(in.C) == kop.CtrMenace
+	case kop.OpMoveCounter:
+		return kop.CounterKind(in.B.N) == kop.CtrMenace
+	case kop.OpExt:
+		return in.Ext() == kop.ExtMustBeBlocked || in.Ext() == kop.ExtBlocksIfAble || in.Ext() == kop.ExtSuspect
+	}
+	return false
+}
+
+// blkTaxGap reports whether card c holds a part the block tax does not model:
+// what the attack window's source walk refuses (atkTaxGap: the block window
+// walks the same sources), and a block floor or duty (blkTaxFloorPart).
+// Over-refusing is safe; admitting a shape the window misprices is not.
+func blkTaxGap(c *kop.CardDef) bool { return atkTaxGap(c) || blkTaxFloorPart(c) }
 
 // blkTaxStallPair is pairRefusalN's StallBlkTax half: the text and the two
 // sides, the cards with a block tax and the cards with a gap.
 func blkTaxStallPair(t *kop.Table, g *genPrep) (string, func(*kop.CardDef, int) bool, func(*kop.CardDef, int) bool) {
-	_, _, b := atkTaxStallPair(t, g)
-	text := "a block tax beside an attack requirement, a can't-attack-alone creature, a Taps watcher, a land-type grant or a mana source of another shape: gorge's budget and payment window for that part are not modelled (combat_blocktax.go)"
+	_, _, atkB := atkTaxStallPair(t, g)
+	text := "a block tax beside an attack requirement, a can't-attack-alone creature, a Taps watcher, a land-type grant, a mana source of another shape, menace, a blocker floor or a block duty: gorge's budget, budgeted block completion and payment window for that part are not modelled (combat_blocktax.go)"
 	a := abilityOn(func(x *kop.Ability) bool { return x.Kind == kop.AbStatic && x.Static.Kind == kop.StatBlockTax })
+	b := func(c *kop.CardDef, i int) bool { return atkB(c, i) || blkTaxFloorPart(c) }
 	return text, a, b
 }
 
@@ -166,6 +221,13 @@ func (s *State) blkTaxFilter(k *prep, d *Decision) {
 		j++
 	}
 	d.N = uint16(j)
+	if j == 0 {
+		// Done withheld and every pick priced out: a budgeted completion the
+		// kernel does not model (blkTaxFloorPart refuses every table known to
+		// reach it). Stall, never pose an empty decision.
+		s.stall(StallBlkTax)
+		d.Kind = DkNone
+	}
 }
 
 // blkTaxPay pays the declaration's block tax as Done is answered (CR 509.1d,
