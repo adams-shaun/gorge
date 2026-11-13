@@ -19,6 +19,11 @@ strict pool.
   python3 dirac/oracle/pools/decks.py --set <SET> <dir>/game_data_public.<SET>.PremierDraft.csv.gz \
       <pools>/<set>
 
+--from-decks keeps a Commander deck's commanders (a draftsim -decks-out deck's "commanders" list; a deck whose
+commander is refused is skipped). --four-seat also replaces the cards the kernel plays at two seats only, which
+stall a four-seat pod at its start (the mbc pool: draftsim -set MBC -collation draft -format commander
+-deck-size 50 -structure none -decks-out DIR, then --from-decks DIR --deck-size 50 --allow-unverified --four-seat).
+
 --emit-cards PATH writes the sorted card names of the CSV header (the kgen -card-list input for a
 new set) and exits. --from-decks DIR applies the same rule to gorge deck JSONs in DIR instead of a
 CSV (sim pools); pass --label sim, or --label mtggoldfish for the scraped Standard decks. --min-deck-size N
@@ -88,10 +93,11 @@ def file_sha256(path):
     return h.hexdigest()
 
 
-def supported(pool, unverified=False):
+def supported(pool, unverified=False, four_seat=False):
     """card name -> supported, from the pool's binary table (make dirac-tables)."""
     env = dict(os.environ, GOWORK="off")
-    out = subprocess.run(["go", "run", "-trimpath", "./dirac/cmd/kgen", "-supported", pool] + (["-unverified"] if unverified else []), cwd=REPO, env=env, capture_output=True, text=True)
+    out = subprocess.run(["go", "run", "-trimpath", "./dirac/cmd/kgen", "-supported", pool] + (["-unverified"] if unverified else [])
+                         + (["-four-seat"] if four_seat else []), cwd=REPO, env=env, capture_output=True, text=True)
     if out.returncode != 0:
         sys.exit(f"kgen -supported {pool}: {out.stderr.strip()}")
     return {n: s == "true" for n, s in (line.split("\t") for line in out.stdout.splitlines())}
@@ -131,7 +137,8 @@ def from_decks(dirpath):
         for c in j["cards"]:
             cards[c["name"]] = cards.get(c["name"], 0) + c["count"]
         out.append({"name": j["name"], "notes": j.get("notes", ""), "main_colors": j.get("main_colors", "C"),
-                    "splash_colors": "", "format": j.get("format", "limited"), "commander": j.get("commander", ""), "maindeck_size": sum(cards.values()), "cards": dict(sorted(cards.items()))})
+                    "splash_colors": "", "format": j.get("format", "limited"), "commander": j.get("commander", ""),
+                    "commanders": j.get("commanders") or [], "maindeck_size": sum(cards.values()), "cards": dict(sorted(cards.items()))})
     return out
 
 
@@ -191,6 +198,7 @@ def main():
     ap.add_argument("--deck-size", type=int, default=40, help="maindeck cards a deck must hold (100 for Commander)")
     ap.add_argument("--min-deck-size", type=int, default=0, help="maindeck cards a deck must hold at least (60 for Standard); replaces the exact --deck-size check")
     ap.add_argument("--allow-unverified", action="store_true", help="count cards without lockstep evidence as playable (kfuzz -allow-unverified); a refused card stays refused")
+    ap.add_argument("--four-seat", action="store_true", help="count a card the kernel plays at two seats only as refused (kgen -supported -four-seat): a pool for kfuzz -seats 4")
     ap.add_argument("--emit-cards", metavar="PATH", help="write the CSV's card names (kgen -card-list input) and exit")
     ap.add_argument("--from-decks", metavar="DIR", help="gorge deck JSONs instead of a CSV")
     ap.add_argument("--label", choices=["17lands", "sim", "mtggoldfish"], default="17lands")
@@ -217,7 +225,7 @@ def main():
             ap.error("want <csv> <out>")
         source, outdir = args.paths
 
-    sup = supported(SET.lower(), args.allow_unverified)
+    sup = supported(SET.lower(), args.allow_unverified, args.four_seat)
     decks = from_decks(args.from_decks) if args.from_decks else extract(source, args.min_winrate)
     os.makedirs(os.path.join(outdir, "decks"), exist_ok=True)
     in_decks = collections.Counter()
@@ -247,7 +255,7 @@ def main():
         if k > args.max_refused:
             skipped[f"more than {args.max_refused} refused copies"] += 1
             continue
-        if d.get("commander") and not sup.get(d["commander"], False):
+        if any(not sup.get(c, False) for c in [d.get("commander")] + d.get("commanders", []) if c):
             skipped["commander refused"] += 1
             continue
         cards = {c: n for c, n in d["cards"].items() if sup[c]}
@@ -271,6 +279,8 @@ def main():
         deck = {"name": s, "format": d.get("format", "limited"), "notes": note}
         if d.get("commander"):
             deck["commander"] = d["commander"]
+        if d.get("commanders"):
+            deck["commanders"] = d["commanders"]  # a Commander draft's commander (and partner), draftsim -decks-out
         deck.update({"cards": [{"name": c, "count": n} for c, n in sorted(cards.items())]})
         with open(os.path.join(outdir, "decks", s + ".json"), "w") as g:
             json.dump(deck, g, indent=0)
@@ -296,7 +306,7 @@ def main():
     manifest = [
         ("set", SET), ("label", args.label),
         ("source", source), ("source_sha256", src_sha),
-        ("recipe", f"min_winrate={args.min_winrate:.2f} max_refused={args.max_refused}"),
+        ("recipe", f"min_winrate={args.min_winrate:.2f} max_refused={args.max_refused}" + (" four_seat" if args.four_seat else "")),
         ("pool_cards_sha256", file_sha256(os.path.join(REPO, "dirac", "cardset", "pools", SET.lower(), "cards.txt"))),
         ("pool_supported", f"{sum(sup.values())} of {len(sup)}"),
         ("decks", str(len(rows))), ("tree_sha256", tree_digest(outdir)),

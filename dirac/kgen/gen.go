@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/adams-shaun/gorge/dirac"
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 )
@@ -340,6 +341,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	}
 	if c.Retrace {
 		fmt.Fprintf(w, " retrace")
+		if c.JumpStart {
+			fmt.Fprintf(w, " jumpstart")
+		}
 		if c.RetraceCost != nil {
 			fmt.Fprintf(w, " retracecost=%s", costString(*c.RetraceCost))
 		}
@@ -413,7 +417,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.MustBeBlocked {
 		fmt.Fprintf(w, " mustbeblocked=true")
 	}
-	if c.MinBlockers != 0 {
+	if c.MinBlockers == int(kop.MinBlockersAll) {
+		fmt.Fprintf(w, " minblockers=all")
+	} else if c.MinBlockers != 0 {
 		fmt.Fprintf(w, " minblockers=%d", c.MinBlockers)
 	}
 	if c.ExtraBlocks != 0 {
@@ -611,6 +617,13 @@ func costString(c lCost) string {
 	}
 	if c.DiscardF != nil {
 		p = append(p, fmt.Sprintf("Discard%d%s", c.DiscardN, c.DiscardF))
+	}
+	if c.Discard2N > 0 {
+		f := "Card"
+		if c.Discard2F != nil {
+			f = c.Discard2F.String()
+		}
+		p = append(p, fmt.Sprintf("DiscardTwo%d%s", c.Discard2N, f))
 	}
 	if c.Loyalty != 0 {
 		p = append(p, fmt.Sprintf("Loyalty%+d", c.Loyalty))

@@ -346,12 +346,9 @@ func (w *legalWalk) handWalk() {
 			return taOK
 		}
 		// offerCastable prices the MANA the offer will charge (601.2f
-		// modifiers, then the commander tax) over the RAW base beginCast will
-		// store; withSpellAbilityExtras adds the spell's own ADDITIONAL
-		// non-mana parts on top. Both are needed and they compose in this
-		// order: an additional cost is never reduced by a cost modifier, the
-		// same reason the commander tax lands after the modifiers rather than
-		// before them.
+		// modifiers over the RAW base beginCast will store plus the commander
+		// tax); withSpellAbilityExtras adds the spell's own ADDITIONAL
+		// non-mana parts on top. Both are needed.
 		//
 		// The gate must see the SAME cost beginCast will charge, additional
 		// non-mana parts included, or an unpayable cast gets offered and then

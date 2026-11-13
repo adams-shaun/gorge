@@ -473,6 +473,9 @@ func newBlockModel(s *dirac.State, d *dirac.Decision, m *blockModel) {
 	for i := 0; i < m.n; i++ {
 		a := dirac.Obj(m.atk[i])
 		need := int(tab.Cards[s.ObjCard(a)].MinBlockers)
+		if need == int(kop.MinBlockersAll) {
+			need = s.MinBlockersOf(a)
+		}
 		if s.HasKeyword(a, kop.KwMenace) && need < 2 {
 			need = 2
 		}

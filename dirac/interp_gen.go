@@ -131,6 +131,7 @@ const (
 	ChSuspendCast                             // source = a suspended card in exile; mode 1 = cast it free (gorge's suspend_cast_yes), 0 = leave it (suspend_cast_no); CR 702.62a
 	ChGenImprint                              // source = the hand card the imprint mox exiles (gorge's "imprint" KChoose, Min=Max=ChangeNum$, asked only with more candidates; mana_imprint.go)
 	ChEchoActionPick                          // source = a card/permanent chosen to pay an echo cost (gorge echoActionAsk's "echo_action_pick", Min=Max=N)
+	ChGenPlayer                               // mode = the seat of the opponent a permanent chooses as it enters (gorge effChoosePlayer's "player" option; repl_chooseplayer.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -960,6 +961,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C == choosePutCounterPick {
 			return s.putCounterPick(k, in, p) // ctr_putparams.go
 		}
+		if in.C == choosePopulatePick {
+			return s.populatePick(k, in, p) // copy_picked.go
+		}
 		if s.cardCands(k, in.F, p, nil) == 0 {
 			break
 		}
@@ -1236,6 +1240,8 @@ func (s *State) eachPlayers(k *prep, r kop.Ref) seatSeq {
 		return seatOne(s.srcOwner())
 	case kop.RefPromised:
 		return seatOne(s.promisedSeat(k, &s.res.e)) // kw_gift.go
+	case kop.RefChosenPlayer:
+		return seatOne(s.chosenPlayerSeat(&s.res.e)) // repl_chooseplayer.go
 	}
 	if sl, ok := tgtSlot(r); ok {
 		// the slot's player targets (gorge repeatPlayers' Targeted arm:

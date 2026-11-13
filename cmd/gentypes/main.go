@@ -41,6 +41,7 @@ func Render() (string, error) {
 		{protoPkg, "SideboardRequest"},
 		{protoPkg, "EventLog"}, {protoPkg, "EventSubscribe"},
 		{protoPkg, "EventSetInfo"}, {protoPkg, "EventPersonas"},
+		{protoPkg, "DraftAdvice"},
 		// The review server's decision index (gorged review only).
 		{protoPkg, "ReviewDecision"},
 		// The paired bot's status and advice.

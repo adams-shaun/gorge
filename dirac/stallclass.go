@@ -106,8 +106,9 @@ var stallUnmodelledReasons = [...]uint8{
 	StallPayETB,
 	// an attack tax beside a part its walk does not model: an attack requirement, a Taps watcher, a mana source of another shape (combat_attacktax.go)
 	StallAtkTax,
-	StallBlkTax,   // a block tax beside a part its source walk does not model (combat_blocktax.go)
-	StallPrevNext, // a depleting prevent-the-next-N shield and another damage replacement match one event, or a shield amount past 255 (repl_prevnext.go)
+	StallBlkTax,            // a block tax beside a part its source walk does not model (combat_blocktax.go)
+	StallChoosePlayerOrder, // an as-enters opponent choice beside another object's enters replacement: gorge asks the CR 616.1 order (repl_chooseplayer.go)
+	StallPrevNext,          // a depleting prevent-the-next-N shield and another damage replacement match one event, or a shield amount past 255 (repl_prevnext.go)
 }
 
 // initStall is the reason a game of nseat players on this table stalls at its
@@ -137,6 +138,8 @@ func (g *genPrep) initStall(nseat uint8) uint8 {
 		return StallAtkTax // combat_attacktax.go prepAtkTax
 	case g.blkTaxStall:
 		return StallBlkTax // combat_blocktax.go prepBlkTax
+	case g.chPlOrder:
+		return StallChoosePlayerOrder // repl_chooseplayer.go prepChoosePlayer
 	}
 	return StallNone
 }
@@ -232,6 +235,8 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 		text, a, b = atkTaxStallPair(t, g) // combat_attacktax.go
 	case StallBlkTax:
 		text, a, b = blkTaxStallPair(t, g) // combat_blocktax.go
+	case StallChoosePlayerOrder:
+		text, a, b = choosePlayerStallPair() // repl_chooseplayer.go
 	case StallDiamondMix:
 		text = "a Lion's Eye Diamond beside another mana census-gap kind (a filter, a restricted or any-colour restricted source, a counter-cost or tap-another source, a deferred source, a granted mana ability, an each-colour source): gorge's one prefix search activates both and the kernel models the Diamond alone"
 		a = abilityOn(kop.DiscardHandManaAb)

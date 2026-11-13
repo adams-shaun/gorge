@@ -26,11 +26,12 @@ const (
 	podMaxIntents = 150000
 )
 
-// commanderPersona is the -format commander drafter and builder: the
-// Commander-draft persona, whatever -drafter and -builder name (they rate
-// limited picks and 40-card builds).
-func commanderPersona(lookup pickbot.CardLookup) (pickbot.Drafter, pickbot.Builder) {
-	return &pickbot.CommanderDrafter{Lookup: lookup}, &pickbot.CommanderBuilder{Lookup: lookup}
+// commanderPersona is the -format commander drafter and builder for
+// deckSize-card decks (0 = build.CommanderDeckSize): the Commander-draft
+// persona, whatever -drafter and -builder name (they rate limited picks and
+// 40-card builds).
+func commanderPersona(lookup pickbot.CardLookup, deckSize int) (pickbot.Drafter, pickbot.Builder) {
+	return &pickbot.CommanderDrafter{Lookup: lookup, DeckSize: deckSize}, &pickbot.CommanderBuilder{Lookup: lookup, DeckSize: deckSize}
 }
 
 // podGameSeed is a pod game's engine seed: gameSeed with both seats 0, a
@@ -123,6 +124,11 @@ func playPodGames(r *runner, e *event.Event, verify bool) ([]gameRecord, error) 
 			return nil, fmt.Errorf("pod game %d: %w", round, err)
 		}
 		rec := gameRecord{round: round, head: eng.L.Head(), turns: int(oc.Turns), intents: oc.Intents}
+		if r.valueLog != nil && !bench.IsAbort(oc.StallOn) {
+			if err := writeValueLine(r.valueLog, e.Seed(), round, seed, oc, eng, decks); err != nil {
+				return nil, fmt.Errorf("pod game %d: -valuelog: %w", round, err)
+			}
+		}
 		switch {
 		case bench.IsAbort(oc.StallOn):
 			return nil, fmt.Errorf("pod game %d seed %d: engine aborted (%s): %s", round, seed, oc.StallOn, firstLine(oc.Livelock))
