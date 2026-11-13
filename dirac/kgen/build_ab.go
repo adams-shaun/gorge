@@ -4330,6 +4330,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 	case "Extort":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtExtort)) // dirac/act_extort.go
+	case "Exploit":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtExploit)) // dirac/kw_exploit.go
 	case "Fog":
 		ki.Op = kop.OpFog
 	case "LoseGame":

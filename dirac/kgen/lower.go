@@ -1273,6 +1273,14 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !faceHasMeleeTrigger(lc.face) {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
+		case head == "Exploit" && param == "":
+			// CR 702.110a: gorge kwExploit expands it into an ETB trigger
+			// (Keyword$ Exploit) whose body is the optional remembering
+			// sacrifice then DB$ Exploit, lowered from that line
+			// (lower_exploit.go)
+			if !faceHasExploitTrigger(lc.face) {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
 		case head == "Extort" && param == "":
 			// CR 702.101a: gorge kwExtort expands the keyword into a
 			// SpellCast trigger (DB$ Extort), lowered from that line

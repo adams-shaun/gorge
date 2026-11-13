@@ -128,6 +128,7 @@ const (
 	TrigFacesDilemma                // a player (Whose) chooses one or more modes for a spell or ability (gorge Mode$ FacesDilemma, trigmatch facesDilemmaMatches on the ModeChosen marker)
 	TrigEvolved                     // this creature evolves (CR 702.100b; gorge Mode$ Evolved, ValidCard$ Card.Self, trigmatch evolvedMatches on the events.Evolved marker its evolve ability emits once the +1/+1 counter lands): no slot subscription, fired as the evolve trigger finishes resolving (kw_evolve.go)
 	TrigBecomeMonarch               // a player (Whose) becomes the monarch (CR 725.3; gorge Mode$ BecomeMonarch, trigmatch BecomeMonarchMatches on events.MonarchChange; N TrigNMonarchBeganTurn: BeginTurn$ You); no slot subscription: the battlefield is scanned (act_monarch.go)
+	TrigExploited                   // a creature matching Filter exploits a creature matching Filter2 (CR 702.110b; gorge Mode$ Exploited, trigmatch exploitedMatches on the events.Exploit marker effExploit emits per sacrificed object: Filter = the exploiter, Filter2 = the exploited creature, type predicates only); no slot subscription: fired by ExtExploit over the battlefield (kw_exploit.go)
 	TrigEventCount                  // number of trigger events; append above
 )
 

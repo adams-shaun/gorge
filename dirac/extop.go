@@ -262,6 +262,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 			s.queueAsk(s.objs[o].slot, akCard)
 		}
 		return true, true
+	case kop.ExtExploit:
+		s.exploitOp(k) // kw_exploit.go
+		return true, true
 	case kop.ExtTurnFaceUp:
 		return s.extTurnFaceUp(k, in), true // face_turnupeffect.go
 	case kop.ExtJoinForces:
