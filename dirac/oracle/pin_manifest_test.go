@@ -13,8 +13,8 @@ import (
 )
 
 // A data-driven pin is a pin whose conditions name only the standard
-// cardOut/onBattlefield/cardSeen conditions, so they can live in the recording
-// instead of in a Go test. testdata/pins then holds a document:
+// conditions pinCondition knows, so they can live in the recording instead of
+// in a Go test. testdata/pins then holds a document:
 //
 //	{"pool":"std-fin","config":{"gorge_autopay_surface":true},
 //	 "mulligans":1,"conditions":[{"kind":"onBattlefield","card":"..."}],
