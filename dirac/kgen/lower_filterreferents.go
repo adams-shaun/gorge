@@ -236,3 +236,10 @@ func (lc *lowerCtx) targetedPlayerView(f *lFilter) *lFilter {
 	}
 	return out
 }
+
+// offFieldCardSlot reports a target slot of zone z (lTarget.Zone) that names
+// a card off the battlefield, never a player or a permanent: the slot an
+// OwnedBy TargetedController role reads (kop.CtrlTgtOwner).
+func offFieldCardSlot(z int) bool {
+	return z == zGraveyard || z == zExile || z == zHand || z == zLibrary
+}

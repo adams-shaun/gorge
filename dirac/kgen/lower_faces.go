@@ -63,6 +63,8 @@ func faceLayout(c *cards.Card, token bool) uint8 {
 		return kop.FaceModal
 	case cards.AlternateDoubleFaced:
 		return kop.FaceTransform
+	case "Flip":
+		return kop.FaceFlip // CR 710: cast as its top half, flipped in place by SetState Mode$ Flip
 	}
 	m := castableFaceLayout(c) // lower_faces.go
 	if m == kop.FaceOmen && token {

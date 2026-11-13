@@ -144,9 +144,17 @@ type Filter struct {
 	// target the controller of its permanent or, once it has left the
 	// battlefield, its owner (gorge controlReferentPlayers
 	// TargetedOrController). Battlefield only; the card matchers fail
-	// closed on it.
+	// closed on it, but for CtrlTgtOwner.
 	CtrlTgt uint8
 }
+
+// CtrlTgtOwner marks a Filter.CtrlTgt read on the card's OWNER, off the
+// battlefield (gorge controlReferentPlayers OwnedBy TargetedController: the
+// card's owner is the controller of the target, a card target off the
+// battlefield read as its owner): the card matcher compares the owner with
+// slot (CtrlTgt&^CtrlTgtOwner)-1; the perm matcher, whose slot it never names,
+// fails closed. Nezumi Graverobber.
+const CtrlTgtOwner = 0x80
 
 // SpecialMask is a set of CR 116.2 special actions a RestrictValid$ Static.*
 // clause admits (gorge pay.Special).

@@ -719,6 +719,12 @@ const (
 	// countered or fizzled, it goes to the graveyard; off the stack it is
 	// its front (dirac/face_omen.go).
 	FaceOmen
+	// FaceFlip is a flip card (CR 710, gorge's "Flip"): it is cast and
+	// enters as its top half; a SetState Mode$ Flip turns a permanent that
+	// is not yet flipped to face 1 in place, one-way (CR 710.4), with no new
+	// layer timestamp and no Mode$ Transformed trigger; leaving the
+	// battlefield it is its top half again (CR 710.2).
+	FaceFlip
 )
 
 // RoomState is the Faces index of a Room's battlefield state showing face

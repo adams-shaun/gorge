@@ -1,0 +1,12 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Forest
+1	card	Grizzly Bears
+2	card	Llanowar Elves
+3	card	Mountain
+4	card	Nezumi Graverobber
+5	card	Orochi Eggwatcher
+6	card	Shock
+7	card	Swamp
+8	card	face:Nezumi Graverobber#1
+9	card	face:Orochi Eggwatcher#1
+10	token	g_1_1_snake

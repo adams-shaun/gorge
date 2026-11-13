@@ -2893,6 +2893,17 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 		}
 	}
 	for i := range f.Clauses {
+		if f.Clauses[i].Owner == whoTgtCtrl {
+			// the referent is the current link's target, a card off the
+			// battlefield: gorge binds an object target's controller only
+			// (a player target binds nothing), so the slot names no player
+			t := lc.lastTarget()
+			if t < 0 || !offFieldCardSlot(lc.ab.Targets[t].Zone) {
+				return nil, refuse("filter %q: OwnedBy TargetedController without an earlier off-battlefield card target", expr)
+			}
+			f.Clauses[i].CtrlTgt = uint8(t + 1)
+			continue
+		}
 		if f.Clauses[i].Ctrl != whoTgtOrCtrl {
 			continue
 		}

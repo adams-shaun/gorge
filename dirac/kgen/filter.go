@@ -129,6 +129,11 @@ const (
 	// current link's target -- a player target is that player, an object
 	// target its controller (kop.Filter.CtrlTgt, battlefield only)
 	whoTgtOrCtrl
+	// whoTgtCtrl: OwnedBy TargetedController (gorge controlReferentPlayers
+	// TargetedController, op OwnedBy), on the Owner side only: the card's
+	// owner is the controller of the current link's card target, which
+	// lies off the battlefield (kop.CtrlTgtOwner; off the battlefield only)
+	whoTgtCtrl
 )
 
 // Compare statistics (lClause.CmpStat).
@@ -669,6 +674,12 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// (build.go ownerRoleF2), in an Attacks trigger's body as the
 		// ControlledBy twin is
 		return c.setWho(&c.Owner, whoDefending)
+	case "OwnedBy TargetedController":
+		// gorge controlReferentPlayers TargetedController: the controller of
+		// the current link's object target (a player target binds nothing),
+		// compared with the candidate's owner; kgen binds the slot in
+		// lowerCtx.filter and the card matcher reads it (kop.CtrlTgtOwner)
+		return c.setWho(&c.Owner, whoTgtCtrl)
 	case "OwnedBy Targeted", "TargetedPlayerOwn":
 		// TargetedPlayerOwn is gorge wordTargetedPlayerOwn
 		// (matchTargetedPlayerOwn): same referent as OwnedBy Targeted --

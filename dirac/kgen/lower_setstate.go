@@ -17,10 +17,17 @@ func (lc *lowerCtx) setState(ps *params) error {
 	if m == "TurnFaceUp" {
 		return lc.setStateTurnUp(ps) // lower_setstateturnup.go
 	}
-	if m != "Transform" {
+	switch {
+	case m == "Flip":
+		// CR 710: a flip card flips itself (gorge effSetState's Flip arm,
+		// setStateFlipGate: a permanent not yet flipped, one-way); the
+		// kernel's OpTransform reads the FaceFlip layout for that gate.
+		if lc.out.FaceMode != kop.FaceFlip || lc.out.Face != 0 {
+			return refuse("SetState Flip on a layout that is not a flip card's top half (%d)", lc.out.FaceMode)
+		}
+	case m != "Transform":
 		return refuse("SetState Mode$ %q", m)
-	}
-	if lc.out.FaceMode != kop.FaceModal && lc.out.FaceMode != kop.FaceTransform {
+	case lc.out.FaceMode != kop.FaceModal && lc.out.FaceMode != kop.FaceTransform:
 		return refuse("SetState Transform on a layout the kernel does not turn (%d)", lc.out.FaceMode)
 	}
 	d, hasDef := ps.get("Defined")

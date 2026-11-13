@@ -1449,6 +1449,19 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	default:
 		kf.Owner = kop.CtrlSel(c.Owner)
 	}
+	if c.Owner == whoTgtCtrl {
+		// off the battlefield a card's controller is its owner, so the
+		// owner role is the only relation the card matcher reads
+		// (kop.CtrlTgtOwner)
+		if zone != kop.ZoneGraveyard && zone != kop.ZoneHand && zone != kop.ZoneLibrary && zone != kop.ZoneExile {
+			return kf, refuse("OwnedBy TargetedController on the battlefield or stack")
+		}
+		if c.Ctrl != whoAny || c.CtrlTgt == 0 {
+			return kf, refuse("OwnedBy TargetedController beside a controller role or without a target slot")
+		}
+		kf.CtrlTgt = c.CtrlTgt | kop.CtrlTgtOwner
+		kf.Owner = kop.CtrlAny
+	}
 	if c.Owner == whoTgtPlayer || c.Owner == whoDefending {
 		f2, err := ownerRoleF2(c, zone) // lower_filterreferents.go
 		if err != nil {
