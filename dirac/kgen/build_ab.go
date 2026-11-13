@@ -1134,8 +1134,9 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"ClassLevelGained": kop.TrigCounterAddedOnce, // N = CtrLevel (lower_class.go)
 	"BecomesPlotted":   kop.TrigBecomesPlotted,   // the card's own
 	"BecomesSaddled":   kop.TrigBecomesSaddled,
-	"Evolved":          kop.TrigEvolved,  // the source's own, after its evolve counter lands
-	"Attached":         kop.TrigAttached} // the attachment's own, Creature bearer (Assimilation Aegis) // the Mount's own
+	"Exploited":        kop.TrigExploited, // the exploiter against Filter, the exploited creature against Filter2
+	"Evolved":          kop.TrigEvolved,   // the source's own, after its evolve counter lands
+	"Attached":         kop.TrigAttached}  // the attachment's own, Creature bearer (Assimilation Aegis) // the Mount's own
 
 func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	var kt kop.Trigger
@@ -4318,6 +4319,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op = kop.OpTapOrUntap
 	case "Explore":
 		ki.Op = kop.OpExplore
+	case "Exploit":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtExploit)) // dirac/trig_exploited.go
 	case "Poison":
 		ki.Op = kop.OpPoison
 	case "Blight":

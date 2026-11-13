@@ -275,6 +275,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtLibPlace:
 		return s.libPlaceExt(k, in), true // act_libplace.go
+	case kop.ExtExploit:
+		s.exploitMarker(k) // trig_exploited.go
+		return true, true
 	case kop.ExtExtort:
 		// CR 702.101a: the trigger's controller may pay {W/B}; both
 		// options are always offered (gorge effExtort), the ask answered

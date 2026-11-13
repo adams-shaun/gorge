@@ -1551,6 +1551,12 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 	case "Assimilate":
 		return lc.assimilate(ps) // lower_assimilate.go
 	case "ChangeZoneAll":
+		// AbilityCount$ X names the SVar the ChangeType$ X-comparison reads;
+		// gorge reads the comparison's own SVar and never this param
+		// (Profaner of the Dead), so it is inert here too
+		if ps.str("AbilityCount") == "X" {
+			ps.consume("AbilityCount")
+		}
 		return lc.changeZoneAll(ps)
 	case "Draw":
 		remDrawn, remAll, err := rememberDrawn(ps)
@@ -2279,6 +2285,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.debuff(ps)
 	case "Explore":
 		return lc.explore(ps)
+	case "Exploit":
+		return lc.exploitMarker(ps) // lower_trigexploited.go
 	case "Discover":
 		return lc.discover(ps)
 	case "Hideaway":

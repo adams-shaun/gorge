@@ -235,6 +235,17 @@ const (
 	NumExtOps ExtOp = 320
 )
 
+// ExtExploit (CR 702.58a/c): the marker half of the K:Exploit expansion, run
+// after its optional Sacrifice (B.N bit SacExploit). When that sacrifice took a
+// creature the exploiting creature (the resolving ability's source) has
+// exploited it: every TrigExploited line fires, carrying the exploited
+// creature's last-known power or toughness (Trigger.N 1 / 2) as its amount. A
+// declined or empty sacrifice fires nothing. dirac/trig_exploited.go.
+// 298: the next free ordinal below NumExtOps.
+const ExtExploit ExtOp = 298
+
+func init() { extOpNames[ExtExploit] = "Exploit" }
+
 // ExtDrainMana: the player in Obj loses all unspent mana (gorge
 // effDrainMana: one events.ManaClear for that seat; Power Sink's
 // unless-payment decline, Mana Short). The pool and its side tallies empty.
