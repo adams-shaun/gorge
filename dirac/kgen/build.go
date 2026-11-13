@@ -170,6 +170,16 @@ func buildCard(pt *poolTables, c *lCard) built {
 			cb.out.def.Abilities = nil
 		}
 	}
+	if len(c.Refusals) == 0 && c.Cleave != nil {
+		// CR 702.148a: the cleave line's latent spell ability (dirac/kw_cleave.go);
+		// the ability map is filled by abilities()
+		if j, ok := cb.abMap[c.CleaveAb-1]; ok && j+1 <= 255 {
+			cb.out.def.CleaveAb = uint8(j + 1)
+		} else {
+			cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "emit A:SP$ NonBasicSpell", Reason: "the cleave ability was not emitted"})
+			cb.out.def.Abilities = nil
+		}
+	}
 	if len(c.Refusals) == 0 && c.Overload != nil && c.OverloadProg != nil {
 		p, err := cb.prog(c.OverloadProg)
 		if err != nil {
@@ -821,6 +831,13 @@ func (cb *cardBuilder) record() error {
 		// each-variant (dirac/kw_overload.go)
 		d.HasOverload = true
 		if d.OverloadCost, err = manaCostOf(*c.Overload); err != nil {
+			return err
+		}
+	}
+	if c.Cleave != nil {
+		// CR 702.148a: the hand's alternative cost of the cleaved cast
+		// (dirac/kw_cleave.go; CleaveAb is set where the abilities map)
+		if d.CleaveCost, err = manaCostOf(*c.Cleave); err != nil {
 			return err
 		}
 	}

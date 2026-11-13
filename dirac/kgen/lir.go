@@ -1053,6 +1053,8 @@ type lCard struct {
 	// OverloadProg is the overloaded cast's program: the printed spell with
 	// each targeted instruction rewritten to its "each" sweep (CR 702.96a).
 	OverloadProg   []lInstr
+	Cleave         *manaCost // the second SP line's NonBasicSpell$ True Cost$ (CR 702.148a): the hand's alternative cost; the cleaved cast resolves that line (lower_cleave.go)
+	CleaveAb       int       // 1 + the LIR index of the cleave line's ability (Cleave != nil)
 	Bestow         *manaCost // K:Bestow:<cost> (CR 702.103a): the hand's alternative cost of the Aura cast
 	BestowT        *lTarget  // the bestowed Aura's enchant creature target (gorge bestowedAttachSA)
 	Convoke        bool      // K:Convoke (CR 702.51a): the cast may tap creatures for its mana cost
