@@ -304,7 +304,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 		b.Life.Set(p.ID, p.Life)
 		for _, id := range g.Zone(state.ZBattlefield, p.ID) {
 			o := g.Obj(id)
-			if o == nil || o.Face() == nil || o.Ephemeral() {
+			if o == nil || o.Face() == nil || o.Ephemeral() || o.PhasedOut {
 				continue
 			}
 			f := o.Face()
@@ -375,7 +375,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 		}
 		for _, id := range g.Zone(z, me) {
 			o := g.Obj(id)
-			if o == nil || o.Ephemeral() {
+			if o == nil || o.Ephemeral() || o.PhasedOut {
 				continue
 			}
 			f := o.Face()
@@ -476,7 +476,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 		}
 		for _, id := range g.Zone(state.ZBattlefield, p.ID) {
 			o := g.Obj(id)
-			if o == nil || o.Face() == nil || o.Ephemeral() {
+			if o == nil || o.Face() == nil || o.Ephemeral() || o.PhasedOut {
 				continue
 			}
 			if o.FaceDown {
@@ -549,7 +549,7 @@ func fillPublicCards(g *state.Game, b *Board, colourOf func(*state.Object, *card
 		for _, z := range [...]state.Zone{state.ZBattlefield, state.ZGraveyard, state.ZExile} {
 			for _, id := range g.Zone(z, p.ID) {
 				o := g.Obj(id)
-				if o == nil || o.Ephemeral() {
+				if o == nil || o.Ephemeral() || o.PhasedOut {
 					continue
 				}
 				f := o.Face()
@@ -605,7 +605,7 @@ func fillBlocks(g *state.Game, b *Board) {
 	for i := range g.Players {
 		for _, id := range g.Zone(state.ZBattlefield, g.Players[i].ID) {
 			o := g.Obj(id)
-			if o == nil || !o.IsAttacking {
+			if o == nil || o.PhasedOut || !o.IsAttacking {
 				continue
 			}
 			for _, blocker := range o.BlockedBy {

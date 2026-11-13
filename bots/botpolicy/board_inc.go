@@ -277,7 +277,7 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 		b.Life.Set(p.ID, p.Life)
 		for _, id := range g.Zone(state.ZBattlefield, p.ID) {
 			o := g.Obj(id)
-			if o == nil {
+			if o == nil || o.PhasedOut {
 				continue
 			}
 			f := o.Face()
@@ -313,7 +313,7 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 		}
 		for _, id := range g.Zone(z, me) {
 			o := g.Obj(id)
-			if o == nil || o.Ephemeral() {
+			if o == nil || o.Ephemeral() || o.PhasedOut {
 				continue
 			}
 			f := o.Face()
@@ -370,7 +370,7 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 		}
 		for _, id := range g.Zone(state.ZBattlefield, p.ID) {
 			o := g.Obj(id)
-			if o == nil {
+			if o == nil || o.PhasedOut {
 				continue
 			}
 			f := o.Face()
