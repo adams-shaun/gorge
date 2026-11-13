@@ -76,6 +76,7 @@ func TestStdMetaReprosLockstep(t *testing.T) {
 		"stdmeta_prepared_beside_enters_tapped_s90p11",
 		"stdmeta_prepared_beside_enters_tapped_s97p33",
 		"stdmeta_aang_delayed_transform_s97p14",
+		"stdmeta_airbend_restricted_pool_s59p28",
 	} {
 		t.Run(name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", name+".repro.json"))
