@@ -8,3 +8,12 @@ Island
 Forest
 Plains
 Mountain
+# The param:trigger.Phase spelling (gorge trigger_phase_gate.go, fire-time):
+# Dovin's Acuity, Sentinel's Mark, The Blue Spirit.
+Dovin's Acuity
+Sentinel's Mark
+The Blue Spirit
+Zephyr Charge
+Divination
+Giant Growth
+Shock
