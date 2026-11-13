@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -125,6 +126,70 @@ func TestOpponentEntersTappedTapsKaitoOnHisTurn(t *testing.T) {
 	}
 	if !o.Tapped {
 		t.Fatal("Kaito enters untapped: his loyalty-counter static makes him a creature as he enters, so Authority of the Consuls applies (CR 614.12)")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestOpponentEntersTappedSkipsEnduringInnocenceReentry pins the other half
+// of the entry-basis gate: Enduring Innocence dies and returns through its
+// own death trigger, whose StaticEffect$ Animate rider (AddType Enchantment,
+// RemoveCardTypes) is registered just before the entry move folds. As it
+// re-enters it is an enchantment, NOT a creature, so the opponent's Authority
+// of the Consuls must not tap it. Without the as-enters-static half of the
+// gate the fallback judges the graveyard card, still a creature (the rider is
+// stamped against the next incarnation and only goes live once the entry
+// folds), and Authority taps it.
+func TestOpponentEntersTappedSkipsEnduringInnocenceReentry(t *testing.T) {
+	t.Parallel()
+	innocence := corpusAlternativeCard(t, "Enduring Innocence")
+	shock := corpusAlternativeCard(t, "Shock")
+	authority := corpusAlternativeCard(t, "Authority of the Consuls")
+	e, cfg := tokenReplGameSeats(t, 9883, []*cards.Card{innocence}, []*cards.Card{authority, shock})
+	authorityOnSeat1(t, e, authority)
+	iid := moveSeededCard(t, e, 0, innocence, state.ZBattlefield)
+	if o := e.G.Obj(iid); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: Enduring Innocence is not on seat 0's battlefield: %+v", o)
+	}
+	if !e.IsCreature(iid) {
+		t.Fatal("precondition: Enduring Innocence is not a creature on the battlefield")
+	}
+	shockID := moveSeededCard(t, e, 1, shock, state.ZHand)
+	addMana(t, e, 1, "R")
+	passPriorityOnce(t, e) // seat 0 passes; seat 1 holds priority
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority || d.Player != 1 {
+		t.Fatalf("precondition: seat 1 does not hold priority: %+v", d)
+	}
+	idx := -1
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == shockID {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("precondition: seat 1 is not offered Shock: %+v", d.Options)
+	}
+	submitChoices(t, e, idx)
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("precondition: no Shock target ask: %+v", d)
+	}
+	ti := indexOfObjOption(d, iid)
+	if ti < 0 {
+		t.Fatalf("precondition: Shock does not offer Enduring Innocence: %+v", d.Options)
+	}
+	submitChoices(t, e, ti)
+	passUntilStackEmpty(t, e, 20)
+
+	o := e.G.Obj(iid)
+	if o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: Enduring Innocence did not return to the battlefield: %+v", o)
+	}
+	if e.IsCreature(iid) {
+		t.Fatal("precondition: the returned Enduring Innocence is still a creature, so its Animate rider did not apply")
+	}
+	if o.Tapped {
+		t.Fatal("the returning Enduring Innocence enters untapped: it re-enters an enchantment, not a creature, so Authority of the Consuls must not apply (CR 614.12)")
 	}
 	replayCheck(t, e, cfg)
 }
