@@ -33,7 +33,6 @@ func TestLowerGraveyardPickDefinedPlayer(t *testing.T) {
 		{"each player with a chooser", exhume + " | Chooser$ You", "DefinedPlayer$ Player with Chooser$"},
 		{"each player may", strings.Replace(exhume, " | Mandatory$ True", " | Optional$ True", 1), "DefinedPlayer$ Player with Optional$"},
 		{"each player tapped", exhume + " | Tapped$ True", "DefinedPlayer$ Player with Tapped"},
-		{"another fetch player", strings.Replace(exhume, "DefinedPlayer$ Player", "DefinedPlayer$ Opponent", 1), `DefinedPlayer$ "Opponent"`},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			got, _ := czLowered(t, c.root)

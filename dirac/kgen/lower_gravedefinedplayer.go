@@ -59,7 +59,7 @@ func graveDefinedPlayer(ps *params, lc *lowerCtx, dest int, flags []string, coun
 		ps.consume("DefinedPlayer")
 		return dpPlayer, nil
 	}
-	return dpNone, refuse("graveyard pick DefinedPlayer$ %q", dp)
+	return dpNone, nil // every other spelling keeps the lowering it had (a target player, an opponent's own zone)
 }
 
 // emitGravePick emits the ChooseMove, inside a one-instruction each-player
