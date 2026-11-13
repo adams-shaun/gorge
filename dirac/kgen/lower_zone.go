@@ -26,6 +26,9 @@ func zoneOf(ps *params, key string, dflt int) (int, error) {
 // changeZone lowers api:ChangeZone: targeted moves, defined moves, and the
 // hidden-zone searches (library, or a graveyard choice without targeting).
 func (lc *lowerCtx) changeZoneMove(ps *params) error {
+	if err := libraryArrangeRefusal(ps, "ChangeZone"); err != nil { // lower_libraryarrange.go
+		return err
+	}
 	if _, ok := ps.m["DestAltSVar"]; ok {
 		return lc.czAltDest(ps) // lower_czaltdest.go
 	}
@@ -1088,6 +1091,9 @@ func overrideString(o *lOverride) string {
 }
 
 func (lc *lowerCtx) changeZoneAll(ps *params) error {
+	if err := libraryArrangeRefusal(ps, "ChangeZoneAll"); err != nil { // lower_libraryarrange.go
+		return err
+	}
 	if lc.digImprinted && ps.is("RandomOrder", "True") {
 		return lc.digImprintBottom(ps) // lower_digimprint.go
 	}
