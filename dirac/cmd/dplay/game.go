@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -32,6 +33,9 @@ type runner struct {
 	pairs  []oracle.Pairing
 	decks  map[string]*deckEntry
 	corp   *oracle.Corpus // the gorge cards hbot and sbt read; nil for seats that read none
+	baseMu sync.Mutex     // guards bases and built
+	bases  map[[2]string]*pairBase
+	built  int // real fills so far; a revisit is a cache hit, not a fill
 	stderr io.Writer
 }
 
@@ -42,7 +46,7 @@ func newRunner(o *options, set cardset.Set, ps []oracle.Pairing, decks map[strin
 	}
 	cfg := dirac.LockstepConfig(surface)
 	cfg.Mulligans = uint8(o.mulligans)
-	r := &runner{o: o, set: set, cfg: cfg, pairs: ps, decks: decks, stderr: stderr}
+	r := &runner{o: o, set: set, cfg: cfg, pairs: ps, decks: decks, bases: map[[2]string]*pairBase{}, stderr: stderr}
 	cards := o.cards
 	if cards == "" && (o.sampleReplay > 0 || o.reads()) {
 		d, err := cardset.CorpusDir()
@@ -82,6 +86,18 @@ type row struct {
 	turns, intents int32
 	stall, class   string
 	err, refused   string
+}
+
+// pairBase is a pair's shared build: the part that depends only on the two decks. Every
+// worker that plays the pair wraps one in its own bots; it is filled at most once per run
+// and its table stays registered until playAll releases it.
+type pairBase struct {
+	lo, hi   string
+	tbl      *kop.Table
+	decks    [2][]kop.CardID // lo's, hi's
+	lands    [2]int
+	facts    *hbot.Facts      // nil unless a seat reads it
+	sbtCards *oracle.SBTCards // nil unless a seat reads it
 }
 
 // pairTable is the two decks' table with what the seats built over it. Both seat orders
@@ -124,40 +140,60 @@ func (w *worker) table(p *oracle.Pairing) (t *pairTable, swapped bool, err error
 	if t = w.tab; t != nil && t.lo == lo && t.hi == hi {
 		return t, swapped, nil
 	}
-	if t != nil {
-		dirac.ReleaseTable(t.tbl)
-		w.tab = nil
-	}
-	r := w.r
-	tbl, dl, dh, err := r.set.Matchup(r.decks[lo].lines, r.decks[hi].lines)
+	b, err := w.r.base(lo, hi)
 	if err != nil {
 		return nil, false, err
 	}
-	dirac.Register(tbl)
-	t = &pairTable{lo: lo, hi: hi, tbl: tbl, decks: [2][]kop.CardID{dl, dh}}
-	for i, ids := range t.decks {
-		for _, id := range ids {
-			if tbl.Cards[id].Types&kop.TLand != 0 {
-				t.lands[i]++
-			}
-		}
-	}
-	var facts *hbot.Facts
+	t = &pairTable{lo: lo, hi: hi, tbl: b.tbl, decks: b.decks, lands: b.lands}
 	for seat, kind := range w.seats {
 		switch kind {
 		case seatHBot:
-			if facts == nil {
-				facts = oracle.HBotFactsSet(r.corp.Reg, tbl, nil, r.set)
-			}
-			t.hb[seat] = hbot.New(facts)
+			t.hb[seat] = hbot.New(b.facts)
 		case seatSBT:
-			if t.sbt == nil {
-				t.sbt = oracle.NewSBT(oracle.NewSBTCardsSet(r.corp.Reg, tbl, nil, r.set))
-			}
+			t.sbt = oracle.NewSBT(b.sbtCards)
 		}
 	}
 	w.tab = t
 	return t, swapped, nil
+}
+
+// base returns the pair's shared build, filling it under baseMu when absent. Its table is
+// registered for the whole run; playAll releases the bases.
+func (r *runner) base(lo, hi string) (*pairBase, error) {
+	key := [2]string{lo, hi}
+	r.baseMu.Lock()
+	defer r.baseMu.Unlock()
+	if b := r.bases[key]; b != nil {
+		return b, nil
+	}
+	tbl, dl, dh, err := r.set.Matchup(r.decks[lo].lines, r.decks[hi].lines)
+	if err != nil {
+		return nil, err // a refused pair is not cached: it is refused again next time
+	}
+	dirac.Register(tbl)
+	b := &pairBase{lo: lo, hi: hi, tbl: tbl, decks: [2][]kop.CardID{dl, dh}}
+	for i, ids := range b.decks {
+		for _, id := range ids {
+			if tbl.Cards[id].Types&kop.TLand != 0 {
+				b.lands[i]++
+			}
+		}
+	}
+	for _, kind := range []string{r.o.a, r.o.b} { // the seats are run-constant
+		switch kind {
+		case seatHBot:
+			if b.facts == nil {
+				b.facts = oracle.HBotFactsSet(r.corp.Reg, tbl, nil, r.set)
+			}
+		case seatSBT:
+			if b.sbtCards == nil {
+				b.sbtCards = oracle.NewSBTCardsSet(r.corp.Reg, tbl, nil, r.set)
+			}
+		}
+	}
+	r.bases[key] = b
+	r.built++
+	return b, nil
 }
 
 // play plays p into rw. A panic is the game's error: one bad game does not end the run.
