@@ -88,8 +88,8 @@ func (g *Game) priorityEntry(p uint8, x dirac.Action) entry {
 	src, mode := x.Source(), x.Mode()
 	po := &g.kp.Objs[src]
 	zidx := uint64(po.ZoneIdx)
-	e := entry{act: x, c: c, opt: decision.Option{Obj: g.ids.obj(uint8(src))}}
-	e.opt.Label = g.cardName(uint8(src))
+	e := entry{act: x, c: c, opt: decision.Option{Obj: g.ids.obj(canon.Ref(src))}}
+	e.opt.Label = g.cardName(canon.Ref(src))
 	switch c.Kind() {
 	case canon.ActPlayLand:
 		e.opt.Kind = "play_land"
@@ -103,7 +103,7 @@ func (g *Game) priorityEntry(p uint8, x dirac.Action) entry {
 		if x.Mode()&0x80 != 0 { // a granted ability has no index of its own (rules' Option.SVar)
 			e.opt.Ability = 0
 			if name, sa := g.grantedSA(g.kp.Objs[x.Target()].Card, x.Mode()&^0x80); sa != nil {
-				e.opt.SVar, e.opt.GrantSource = name, g.ids.obj(uint8(x.Target()))
+				e.opt.SVar, e.opt.GrantSource = name, g.ids.obj(canon.Ref(x.Target()))
 				e.opt.Cost = offerCost(sa)
 			}
 		} else if sa := g.faceSA(po.Card, c.Mode()); sa != nil {
@@ -204,7 +204,7 @@ func (g *Game) tapsOf(a dirac.Action) []decision.PaymentActivation {
 	out := []decision.PaymentActivation{}
 	for o := 0; o < int(g.kp.NObj) && len(out) < decision.MaxPaymentActivations; o++ {
 		if g.wkp.Objs[o].Flags&^g.kp.Objs[o].Flags&dirac.ProjTapped != 0 {
-			out = append(out, decision.PaymentActivation{Source: g.ids.obj(uint8(o))})
+			out = append(out, decision.PaymentActivation{Source: g.ids.obj(canon.Ref(o))})
 		}
 	}
 	return out
@@ -378,7 +378,7 @@ func (g *Game) askSource(d *decision.Decision) state.ObjID {
 	if src == dirac.NoObj {
 		return 0
 	}
-	return g.ids.obj(uint8(src))
+	return g.ids.obj(canon.Ref(src))
 }
 
 // arrangeKind names where a scry or surveil's unchosen cards go, which every option
@@ -520,11 +520,11 @@ func (g *Game) askOption(x dirac.Action, c canon.Canon, i uint32) (o decision.Op
 		o.Label = "Mode " + strconv.Itoa(int(c.Mode())+1)
 		o.Player = state.PlayerID(me)
 		if src := g.s.FeatSource(); src != dirac.NoObj && g.d.Sub != dirac.ChWardPay {
-			o.Obj = g.ids.obj(uint8(src))
+			o.Obj = g.ids.obj(canon.Ref(src))
 		}
 		if g.d.Sub == dirac.ChGenCastFree {
-			o.Obj = g.ids.obj(uint8(x.Source()))
-			o.Label = "Play " + g.cardName(uint8(x.Source()))
+			o.Obj = g.ids.obj(canon.Ref(x.Source()))
+			o.Label = "Play " + g.cardName(canon.Ref(x.Source()))
 		}
 		key = uint32(c.Mode())
 		if g.d.Sub == dirac.ChWardPay || g.d.Sub == dirac.ChGenPayMode {
@@ -774,7 +774,7 @@ func (g *Game) chooseKey(x dirac.Action) uint32 {
 	case dirac.ChGenChooseCard, dirac.ChGenChooseEach, dirac.ChGenCastFree:
 		return uint32(src)
 	}
-	if src == dirac.TCode(uint8(dirac.NoObj)) || src >= dirac.PlayerTarget0 {
+	if src == dirac.TCode(dirac.NoObj) || src >= dirac.PlayerTarget0 {
 		return uint32(mode)
 	}
 	return g.zoneKey(canon.Ref(src))
@@ -805,7 +805,7 @@ func (g *Game) fillTargetEffect(d *decision.Decision) {
 		g.targets = targetSlot{key: key}
 	}
 	if src != dirac.NoObj {
-		d.Source = g.ids.obj(uint8(src))
+		d.Source = g.ids.obj(canon.Ref(src))
 	}
 	if !building {
 		if top := int(g.kp.NStack) - 1; top >= 0 {
@@ -824,7 +824,7 @@ func (g *Game) fillTargetEffect(d *decision.Decision) {
 	// gorge's TargetEffect.Host: the object casting or activating, which the
 	// bot never adds past Min to an up-to removal of its own
 	if d.TargetEffect != nil && src != dirac.NoObj {
-		d.TargetEffect.Host = g.ids.obj(uint8(src))
+		d.TargetEffect.Host = g.ids.obj(canon.Ref(src))
 	}
 	// gorge's cast-time ask names no source for an activated ability, whose object
 	// is not yet minted, an Attach excepted

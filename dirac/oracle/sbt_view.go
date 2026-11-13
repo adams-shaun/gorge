@@ -23,7 +23,7 @@ import (
 // sbtObjID is kernel object o's gorge object id in the agent's views: the
 // canonical instance plus one (gorge's genesis ids for deck cards; tokens
 // keep their creation order).
-func sbtObjID(o uint8) state.ObjID { return state.ObjID(o) + 1 }
+func sbtObjID(o dirac.Obj) state.ObjID { return state.ObjID(o) + 1 }
 
 // sbtKernelObj inverts sbtObjID.
 func sbtKernelObj(id state.ObjID) dirac.Obj { return dirac.Obj(id - 1) }
@@ -56,7 +56,7 @@ func sbtPhase(s kop.Step) string {
 var sbtManaSyms = [6]string{"W", "U", "B", "R", "G", "C"}
 
 // card fills cv for object o (its projection po).
-func (a *SBT) card(s *dirac.State, o uint8, cv *view.CardView) {
+func (a *SBT) card(s *dirac.State, o dirac.Obj, cv *view.CardView) {
 	c := a.c
 	po := &a.rs.kp.Objs[o]
 	cid := po.Card
@@ -92,7 +92,7 @@ func (a *SBT) card(s *dirac.State, o uint8, cv *view.CardView) {
 	cv.Damage = int32(po.Damage)
 	cv.Power, cv.Toughness = int32(po.Power), int32(po.Tough)
 	if po.Attached != dirac.NoObj {
-		cv.AttachedTo = sbtObjID(uint8(po.Attached))
+		cv.AttachedTo = sbtObjID(po.Attached)
 	}
 	cv.ActivatedThisTurn = int32(s.FeatActivations(ob))
 	if cv.Attacking && dirac.TCode(po.Attacks) >= dirac.PlayerTarget0 && dirac.TCode(po.Attacks) != dirac.NoTarget {
@@ -189,10 +189,10 @@ func (a *SBT) buildView(s *dirac.State, me uint8, potential []decision.Potential
 		default:
 			continue
 		}
-		a.zone = append(a.zone, uint8(o))
+		a.zone = append(a.zone, dirac.Obj(o))
 	}
 	// insertion sort by (zone, seat, index): a few dozen objects
-	key := func(o uint8) uint32 {
+	key := func(o dirac.Obj) uint32 {
 		po := &kp.Objs[o]
 		seat := po.Owner
 		if po.Zone == kop.ZoneBattlefield {
@@ -231,11 +231,11 @@ func (a *SBT) buildView(s *dirac.State, me uint8, potential []decision.Potential
 		if po.Zone != kop.ZoneBattlefield || po.Flags&dirac.ProjBlocking == 0 || po.Blocks == dirac.NoObj {
 			continue
 		}
-		att := sbtObjID(uint8(po.Blocks))
+		att := sbtObjID(po.Blocks)
 		for p := range v.Players {
 			for i := range v.Players[p].Battlefield {
 				if cv := &v.Players[p].Battlefield[i]; cv.ID == att {
-					cv.BlockedBy = append(cv.BlockedBy, sbtObjID(uint8(o)))
+					cv.BlockedBy = append(cv.BlockedBy, sbtObjID(dirac.Obj(o)))
 				}
 			}
 		}
@@ -255,16 +255,16 @@ func (a *SBT) buildView(s *dirac.State, me uint8, potential []decision.Potential
 		}
 		switch e.Kind {
 		case 0:
-			sv.Kind, sv.ID = "spell", sbtObjID(uint8(e.Source))
+			sv.Kind, sv.ID = "spell", sbtObjID(e.Source)
 			if int(e.Source) < int(kp.NObj) && !hiddenFD {
 				cv := new(view.CardView)
-				a.card(s, uint8(e.Source), cv)
+				a.card(s, e.Source, cv)
 				sv.Card = cv
 			}
 		case 1:
-			sv.Kind, sv.ID, sv.Source = "ability", sbtStackID(i), sbtObjID(uint8(e.Source))
+			sv.Kind, sv.ID, sv.Source = "ability", sbtStackID(i), sbtObjID(e.Source)
 		default:
-			sv.Kind, sv.ID, sv.Source = "trigger", sbtStackID(i), sbtObjID(uint8(e.Source))
+			sv.Kind, sv.ID, sv.Source = "trigger", sbtStackID(i), sbtObjID(e.Source)
 		}
 		sv.X = int32(e.X)
 		for _, t := range e.Targets {
@@ -273,7 +273,7 @@ func (a *SBT) buildView(s *dirac.State, me uint8, potential []decision.Potential
 			case dirac.TCode(t) >= dirac.PlayerTarget0:
 				sv.Targets = append(sv.Targets, view.TargetView{Player: state.PlayerID(dirac.TCode(t) - dirac.PlayerTarget0), IsPlayer: true})
 			default:
-				sv.Targets = append(sv.Targets, view.TargetView{Obj: sbtObjID(uint8(t))})
+				sv.Targets = append(sv.Targets, view.TargetView{Obj: sbtObjID(dirac.Obj(t))})
 			}
 		}
 		v.Stack = append(v.Stack, sv)

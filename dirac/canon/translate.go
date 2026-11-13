@@ -227,7 +227,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm = 1 << 4
 		case mode&dirac.FeatCastWarp != 0:
 			cm, _ = CastModeCode("warped") // a hand cast for its warp cost (kw_warp.go)
-			cm |= tgt << 4                 // the warp instance, gorge's AltCostIndex (kw_warpgrant.go)
+			cm |= uint8(tgt) << 4          // the warp instance, gorge's AltCostIndex (kw_warpgrant.go)
 		case mode&1 != 0 && r.S.FeatOptCostCard(dirac.Obj(src)):
 			cm = CastModeOther | 1<<4 // gorge's "optionalcost" cast, AltCostIndex 1 (CR 601.2b; cost_optional.go)
 		case mode&1 != 0 && r.S.FeatOffspringCast(dirac.Obj(src)):
@@ -238,7 +238,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ = CastModeCode("entwined") // the kicked cast of an Entwine card (kw_entwine.go): CastModeOther, as "buyback"
 		case mode&1 != 0:
 			cm, _ = CastModeCode("kicked")
-		case mode&2 != 0 && tgt == dirac.FeatEscapeTgt:
+		case mode&2 != 0 && tgt == Ref(dirac.FeatEscapeTgt):
 			// CR 702.138a: the escape cast a StatEscapeGrant static gives
 			// (kw_escape.go); gorge's "escape" cast option, CastModeOther
 			// like "mayhem" and the printed escape cast below.
@@ -247,12 +247,12 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ = CastModeCode("mayhem") // CR 702.187a: CastModeOther, as "harmonize"
 		case mode&2 != 0 && r.S.FeatHarmonizeCast(dirac.Obj(src)):
 			cm, _ = CastModeCode("harmonize") // CR 702.180a: CastModeOther, as "bargained"
-		case mode&2 != 0 && tgt == dirac.FeatCastEscapeTgt:
+		case mode&2 != 0 && tgt == Ref(dirac.FeatCastEscapeTgt):
 			// CR 702.138a: the mode-2 escape cast (kw_escape.go); gorge's
 			// "escape" cast option, CastModeOther as "mayhem". The target
 			// byte marks it apart from a granted flashback on the same card.
 			cm = CastModeOther
-		case mode&2 != 0 && tgt == dirac.FeatRetraceTgt && r.S.FeatRetraceCard(dirac.Obj(src)):
+		case mode&2 != 0 && tgt == Ref(dirac.FeatRetraceTgt) && r.S.FeatRetraceCard(dirac.Obj(src)):
 			// the retrace cast (CR 702.81a; kw_retrace.go): the printed cost
 			// plus the discard-a-land additional cost; gorge's "retrace"
 			// option, CastModeOther as "harmonize". The target byte
@@ -287,7 +287,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			if idx == 0 {
 				idx = 1
 			}
-			cm |= idx << 4
+			cm |= uint8(idx) << 4
 		case mode&8 != 0:
 			cm, _ = CastModeCode("mayplay") // a generated table's play permission (castMayPlay)
 		}

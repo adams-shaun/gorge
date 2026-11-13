@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
+	"github.com/adams-shaun/gorge/dirac/canon"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
@@ -56,7 +57,7 @@ func TestCommanderZoneAskReachesWire(t *testing.T) {
 	}
 	var obj dirac.Obj = dirac.NoObj
 	for i := 0; i < int(g.kp.NObj); i++ {
-		if g.ids.obj(uint8(i)) == cmd[0] {
+		if g.ids.obj(canon.Ref(i)) == cmd[0] {
 			obj = dirac.Obj(i)
 		}
 	}

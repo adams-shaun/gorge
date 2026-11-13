@@ -255,7 +255,7 @@ func (v *sview) top() *dirac.ProjStack {
 	return &v.p.Stack[v.p.NStack-1]
 }
 
-func (v *sview) types(o uint8) kop.TypeMask { return v.g.tbl.Cards[v.p.Objs[o].Card].Types }
+func (v *sview) types(o dirac.Obj) kop.TypeMask { return v.g.tbl.Cards[v.p.Objs[o].Card].Types }
 
 // find returns the first object of card id in zone z owned by seat, -1 for none.
 func (v *sview) find(seat uint8, z kop.Zone, id kop.CardID) int {
@@ -274,7 +274,7 @@ func (v *sview) count(seat uint8, t kop.TypeMask, untapped bool) int {
 	n := 0
 	for i := 0; i < int(v.p.NObj); i++ {
 		o := &v.p.Objs[i]
-		if o.Zone == kop.ZoneBattlefield && o.Ctrl == seat && v.types(uint8(i))&t != 0 && !(untapped && o.Flags&dirac.ProjTapped != 0) {
+		if o.Zone == kop.ZoneBattlefield && o.Ctrl == seat && v.types(dirac.Obj(i))&t != 0 && !(untapped && o.Flags&dirac.ProjTapped != 0) {
 			n++
 		}
 	}
@@ -300,7 +300,7 @@ func (v *sview) atPrio(seat uint8) bool { return v.d.Kind == dirac.DkPriority &&
 // one spell at a time; tgt scores a target byte (the best is chosen).
 type seatPol struct {
 	cast func(v *sview, id kop.CardID) bool
-	tgt  func(v *sview, t uint8) int
+	tgt  func(v *sview, t dirac.TCode) int
 }
 
 func (v *sview) choose(pols *[2]seatPol) dirac.Action {
@@ -335,9 +335,9 @@ func (v *sview) choose(pols *[2]seatPol) dirac.Action {
 		}
 	case dirac.DkTarget:
 		if pol.tgt != nil {
-			best, bs := opts[0], pol.tgt(v, uint8(opts[0].Target()))
+			best, bs := opts[0], pol.tgt(v, opts[0].Target())
 			for _, a := range opts[1:] {
-				if sc := pol.tgt(v, uint8(a.Target())); sc > bs {
+				if sc := pol.tgt(v, a.Target()); sc > bs {
 					best, bs = a, sc
 				}
 			}
@@ -415,17 +415,17 @@ func castOnly(id kop.CardID) func(*sview, kop.CardID) bool {
 }
 
 // score is a target scorer: 100 for a target byte t of seat 0 meeting want.
-func targetObj(want func(v *sview, o uint8) bool) func(*sview, uint8) int {
-	return func(v *sview, t uint8) int {
-		if t < uint8(dirac.MaxObj) && want(v, t) {
+func targetObj(want func(v *sview, o dirac.Obj) bool) func(*sview, dirac.TCode) int {
+	return func(v *sview, t dirac.TCode) int {
+		if t < dirac.TCode(dirac.MaxObj) && want(v, dirac.Obj(t)) {
 			return 100
 		}
 		return 0
 	}
 }
 
-func mineOnBf(types kop.TypeMask) func(v *sview, o uint8) bool {
-	return func(v *sview, o uint8) bool {
+func mineOnBf(types kop.TypeMask) func(v *sview, o dirac.Obj) bool {
+	return func(v *sview, o dirac.Obj) bool {
 		ob := &v.p.Objs[o]
 		return ob.Zone == kop.ZoneBattlefield && ob.Ctrl == 0 && v.types(o)&types != 0
 	}
@@ -504,7 +504,7 @@ func FeatScenarios(set cardset.Set, c *Corpus) ([]FeatScenario, error) {
 				k := g.id["bigkill"]
 				return g.one("removal-at-my-creature", seed, pols, func(v *sview) bool {
 					t := v.top()
-					return v.atPrio(0) && t != nil && t.Card == k && t.Ctrl == 1 && t.Targets[0] < dirac.TCode(uint8(dirac.MaxObj)) && mineOnBf(kop.TCreature)(v, uint8(t.Targets[0]))
+					return v.atPrio(0) && t != nil && t.Card == k && t.Ctrl == 1 && t.Targets[0] < dirac.TCode(dirac.MaxObj) && mineOnBf(kop.TCreature)(v, dirac.Obj(t.Targets[0]))
 				}, "oneone", "bigkill")
 			}},
 		{"removal-at-my-land", []string{"removal-at-my-land"},
@@ -528,7 +528,7 @@ func FeatScenarios(set cardset.Set, c *Corpus) ([]FeatScenario, error) {
 				k := g.id["landkill"]
 				out, ok := g.one("removal-at-my-land", seed, pols, func(v *sview) bool {
 					t := v.top()
-					return v.atPrio(0) && t != nil && t.Card == k && t.Ctrl == 1 && t.Targets[0] < dirac.TCode(uint8(dirac.MaxObj)) && mineOnBf(want)(v, uint8(t.Targets[0]))
+					return v.atPrio(0) && t != nil && t.Card == k && t.Ctrl == 1 && t.Targets[0] < dirac.TCode(dirac.MaxObj) && mineOnBf(want)(v, dirac.Obj(t.Targets[0]))
 				}, "landkill")
 				if ok {
 					out[0].Roles["landkill-target"] = cls
@@ -541,8 +541,8 @@ func FeatScenarios(set cardset.Set, c *Corpus) ([]FeatScenario, error) {
 		{"damage-at-me", []string{"damage-at-me"},
 			func(int) [2]featSide { return [2]featSide{{"counter"}, {"chip"}} },
 			func(g *featGame, seed uint64) ([]FeatScenario, bool) {
-				pols := &[2]seatPol{{}, {cast: castAlways, tgt: func(_ *sview, t uint8) int {
-					if dirac.TCode(t) == dirac.PlayerTarget0 {
+				pols := &[2]seatPol{{}, {cast: castAlways, tgt: func(_ *sview, t dirac.TCode) int {
+					if t == dirac.PlayerTarget0 {
 						return 100
 					}
 					return 0
@@ -560,13 +560,13 @@ func FeatScenarios(set cardset.Set, c *Corpus) ([]FeatScenario, error) {
 				// the kill is cast on its own turn, so my counter's lands are untapped
 				pols := &[2]seatPol{{cast: castOnly(one)}, {
 					cast: func(v *sview, _ kop.CardID) bool { return v.p.Active == 1 && v.count(0, kop.TCreature, false) > 0 },
-					tgt: targetObj(func(v *sview, o uint8) bool {
+					tgt: targetObj(func(v *sview, o dirac.Obj) bool {
 						return mineOnBf(kop.TCreature)(v, o) && v.p.Objs[o].Card == one
 					})}}
 				return g.one("cheapkill-on-oneone", seed, pols, func(v *sview) bool {
 					t := v.top()
-					return v.atPrio(0) && t != nil && t.Card == kill && t.Ctrl == 1 && t.Targets[0] < dirac.TCode(uint8(dirac.MaxObj)) &&
-						mineOnBf(kop.TCreature)(v, uint8(t.Targets[0])) && v.p.Objs[t.Targets[0]].Card == one && v.find(0, kop.ZoneHand, ctr) >= 0 && v.castable(ctr)
+					return v.atPrio(0) && t != nil && t.Card == kill && t.Ctrl == 1 && t.Targets[0] < dirac.TCode(dirac.MaxObj) &&
+						mineOnBf(kop.TCreature)(v, dirac.Obj(t.Targets[0])) && v.p.Objs[t.Targets[0]].Card == one && v.find(0, kop.ZoneHand, ctr) >= 0 && v.castable(ctr)
 				}, "cheapkill", "oneone", "counter")
 			}},
 		{"bigkill-on-bomb", []string{"bigkill-on-bomb"},
@@ -577,13 +577,13 @@ func FeatScenarios(set cardset.Set, c *Corpus) ([]FeatScenario, error) {
 				// counter's lands are untapped
 				pols := &[2]seatPol{{cast: func(v *sview, id kop.CardID) bool { return id == bomb && v.count(0, kop.TCreature, false) == 0 }}, {
 					cast: func(v *sview, _ kop.CardID) bool { return v.p.Active == 1 && v.count(0, kop.TCreature, false) > 0 },
-					tgt: targetObj(func(v *sview, o uint8) bool {
+					tgt: targetObj(func(v *sview, o dirac.Obj) bool {
 						return mineOnBf(kop.TCreature)(v, o) && v.p.Objs[o].Card == bomb
 					})}}
 				return g.one("bigkill-on-bomb", seed, pols, func(v *sview) bool {
 					t := v.top()
-					return v.atPrio(0) && t != nil && t.Card == kill && t.Ctrl == 1 && t.Targets[0] < dirac.TCode(uint8(dirac.MaxObj)) &&
-						mineOnBf(kop.TCreature)(v, uint8(t.Targets[0])) && v.p.Objs[t.Targets[0]].Card == bomb && v.castable(ctr)
+					return v.atPrio(0) && t != nil && t.Card == kill && t.Ctrl == 1 && t.Targets[0] < dirac.TCode(dirac.MaxObj) &&
+						mineOnBf(kop.TCreature)(v, dirac.Obj(t.Targets[0])) && v.p.Objs[t.Targets[0]].Card == bomb && v.castable(ctr)
 				}, "bigkill", "bomb", "counter")
 			}},
 		{"counter-prevents-lethal", []string{"counter-prevents-lethal"},
@@ -598,8 +598,8 @@ func FeatScenarios(set cardset.Set, c *Corpus) ([]FeatScenario, error) {
 						}
 						return id == chip
 					},
-					tgt: func(_ *sview, t uint8) int {
-						if dirac.TCode(t) == dirac.PlayerTarget0 {
+					tgt: func(_ *sview, t dirac.TCode) int {
+						if t == dirac.PlayerTarget0 {
 							return 100
 						}
 						return 0
@@ -675,7 +675,7 @@ func (g *featGame) lowOnly(name string, seed uint64, oppRole string) ([]FeatScen
 			return false
 		}
 		for i := 0; i < int(v.p.NObj); i++ {
-			if o := &v.p.Objs[i]; o.Zone == kop.ZoneBattlefield && o.Ctrl == 1 && v.types(uint8(i))&kop.TCreature != 0 {
+			if o := &v.p.Objs[i]; o.Zone == kop.ZoneBattlefield && o.Ctrl == 1 && v.types(dirac.Obj(i))&kop.TCreature != 0 {
 				return o.Card == opp
 			}
 		}
@@ -688,8 +688,8 @@ func (g *featGame) lowOnly(name string, seed uint64, oppRole string) ([]FeatScen
 func buildBomb(g *featGame, seed uint64) ([]FeatScenario, bool) {
 	bomb, ctr := g.id["bomb"], g.id["counter-creature"]
 	pols := &[2]seatPol{{}, {cast: castOnly(bomb)}}
-	pols[0].tgt = func(v *sview, t uint8) int {
-		if t < uint8(dirac.MaxObj) && v.p.Objs[t].Zone == kop.ZoneStack && v.p.Objs[t].Card == bomb {
+	pols[0].tgt = func(v *sview, t dirac.TCode) int {
+		if t < dirac.TCode(dirac.MaxObj) && v.p.Objs[t].Zone == kop.ZoneStack && v.p.Objs[t].Card == bomb {
 			return 100
 		}
 		return 0

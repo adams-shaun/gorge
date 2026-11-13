@@ -101,7 +101,7 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 		r := &realSide{tbl: tbl, m: m, n: uint8(n)}
 		m.chars = newCharVocab(tbl)
 		r.gname = make([]string, len(tbl.Cards))
-		r.tidx = make([]uint8, len(tbl.Cards))
+		r.tidx = make([]CardIndex, len(tbl.Cards))
 		for i, c := range tbl.Cards {
 			n := c.Name
 			if len(c.Faces) > 0 {
@@ -112,7 +112,7 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 			r.tidx[i] = NoCardIndex
 			for j, t := range m.Table {
 				if t == n {
-					r.tidx[i] = uint8(j)
+					r.tidx[i] = CardIndex(j)
 				}
 			}
 		}
@@ -146,9 +146,9 @@ type realSide struct {
 	kcfg  dirac.Config // what s was built with
 	tbl   *kop.Table
 	m     *Matchup
-	n     uint8    // seats
-	gname []string // per kernel CardID: the gorge card name
-	tidx  []uint8  // per kernel CardID: the matchup table index
+	n     uint8       // seats
+	gname []string    // per kernel CardID: the gorge card name
+	tidx  []CardIndex // per kernel CardID: the matchup table index
 	d     dirac.Decision
 	opts  []Canon
 	kp    dirac.Projection

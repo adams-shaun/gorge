@@ -12,18 +12,20 @@ import (
 // Ref is a canonical reference, the source/target byte of a Canon and the
 // reference fields of a Projection: 0..MaxInst-1 a card instance (doc.go,
 // "Card identity"), RefStack+i the i-th stack object from the bottom (an
-// ability, which is no card), RefPlayer+p seat p, RefNone nothing.
-type Ref = uint8
+// ability, which is no card), RefPlayer+p seat p, RefNone nothing. Ref is
+// set per size class (canon_default.go, canon_mp.go): a byte, and nine bits
+// in a uint16 under dirac_mp, as dirac.TCode.
 
 const (
 	RefStack  Ref = Ref(dirac.StackTarget0)  // one definition per size class (dirac seats_*.go)
 	RefPlayer Ref = Ref(dirac.PlayerTarget0) // seat p is RefPlayer+p
-	RefNone   Ref = 0xFF
+	RefNone   Ref = Ref(dirac.NoTarget)
 )
 
 // Canon is a canonical option tuple (doc.go's grammar), packed
-// kind<<24 | source<<16 | target<<8 | mode. Source and target are Refs.
-type Canon uint32
+// kind | source | target | mode, laid out per size class (canonKindShift and
+// the rest, canon_*.go; kind<<24 | source<<16 | target<<8 | mode in the
+// default class). Source and target are Refs.
 
 // CanonKind is a Canon's top byte.
 type CanonKind uint8
@@ -59,15 +61,15 @@ const (
 
 // Pack builds a Canon.
 func Pack(k CanonKind, src, tgt Ref, mode uint8) Canon {
-	return Canon(uint32(k)<<24 | uint32(src)<<16 | uint32(tgt)<<8 | uint32(mode))
+	return Canon(k)<<canonKindShift | Canon(src)<<canonSrcShift | Canon(tgt)<<canonTgtShift | Canon(mode)
 }
 
 // Kind, Src, Tgt and Mode unpack a Canon.
-func (a Canon) Kind() CanonKind { return CanonKind(a >> 24) }
+func (a Canon) Kind() CanonKind { return CanonKind(a >> canonKindShift) }
 
-func (a Canon) Src() Ref { return Ref(a >> 16) }
+func (a Canon) Src() Ref { return Ref(a >> canonSrcShift & canonRefMask) }
 
-func (a Canon) Tgt() Ref { return Ref(a >> 8) }
+func (a Canon) Tgt() Ref { return Ref(a >> canonTgtShift & canonRefMask) }
 
 func (a Canon) Mode() uint8 { return uint8(a) }
 

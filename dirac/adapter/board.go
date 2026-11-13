@@ -94,7 +94,7 @@ func (g *Game) materialise() {
 		b.zone[0][z], b.zone[1][z] = b.zone[0][z][:0], b.zone[1][z][:0]
 	}
 	for i := 0; i < int(kp.NObj); i++ {
-		g.boardObject(uint8(i))
+		g.boardObject(canon.Ref(i))
 	}
 	g.boardRenames()
 	g.boardZones()
@@ -121,7 +121,7 @@ func (g *Game) boardPending() {
 
 func (g *Game) addPending(i int) {
 	src, card, ab, ctrl, _ := g.s.PendingTrigger(i)
-	pt := state.PendingTrigger{Source: g.ids.obj(uint8(src)), Controller: state.PlayerID(ctrl), Label: g.cardName(uint8(src))}
+	pt := state.PendingTrigger{Source: g.ids.obj(canon.Ref(src)), Controller: state.PlayerID(ctrl), Label: g.cardName(canon.Ref(src))}
 	if gi, ok := g.tr.Origin(card, ab); ok {
 		if g.triggerOptional(card, gi) {
 			pt.Optional, pt.Decider = true, state.PlayerID(ctrl)
@@ -195,7 +195,7 @@ func (g *Game) boardRenames() {
 		}
 		for j := range f.Statics {
 			st := &f.Statics[j]
-			host := &b.facts[g.ids.obj(uint8(po.Attached))-1]
+			host := &b.facts[g.ids.obj(canon.Ref(po.Attached))-1]
 			if name := st.ParamStr(cards.PKSetName); name != "" {
 				host.name = name
 			}
@@ -245,11 +245,11 @@ func (g *Game) noteExiled(before *[dirac.MaxObj]kop.Zone, top *dirac.ProjStack) 
 		po := &g.kp.Objs[o]
 		switch {
 		case po.Zone == kop.ZoneExile && before[o] != kop.ZoneExile:
-			if src >= 0 && !po.Token && (!targetedOnly || targets(top, uint8(o))) {
-				g.exiled[src] = append(g.exiled[src], g.ids.obj(uint8(o)))
+			if src >= 0 && !po.Token && (!targetedOnly || targets(top, dirac.Obj(o))) {
+				g.exiled[src] = append(g.exiled[src], g.ids.obj(canon.Ref(o)))
 			}
 		case po.Zone != kop.ZoneExile && before[o] == kop.ZoneExile:
-			id := g.ids.obj(uint8(o))
+			id := g.ids.obj(canon.Ref(o))
 			for s := range g.exiled {
 				g.exiled[s] = slices.DeleteFunc(g.exiled[s], func(x state.ObjID) bool { return x == id })
 			}
@@ -268,7 +268,7 @@ func (g *Game) noteExiled(before *[dirac.MaxObj]kop.Zone, top *dirac.ProjStack) 
 }
 
 // targets reports whether a stack entry targets object o.
-func targets(e *dirac.ProjStack, o uint8) bool {
+func targets(e *dirac.ProjStack, o dirac.Obj) bool {
 	return slices.Contains(e.Targets[:], dirac.TCode(o)) || slices.Contains(e.Extra[:e.NExtra], dirac.TCode(o))
 }
 
@@ -363,7 +363,7 @@ func (g *Game) boardGame() {
 		}
 		for j := uint8(0); j < 2; j++ {
 			if c := g.s.FeatCommanderN(uint8(p), j); c != dirac.NoObj {
-				pl.Commanders = append(pl.Commanders, g.ids.obj(uint8(c)))
+				pl.Commanders = append(pl.Commanders, g.ids.obj(canon.Ref(c)))
 				pl.CmdCasts = append(pl.CmdCasts, part(kp.CmdCast[p], func(j uint8) uint8 { return g.s.FeatCommanderCastN(uint8(p), j) }, j))
 			}
 		}
@@ -393,7 +393,7 @@ func (g *Game) boardGame() {
 }
 
 // boardObject writes kernel object o into the board.
-func (g *Game) boardObject(i uint8) {
+func (g *Game) boardObject(i canon.Ref) {
 	b := &g.board
 	po := &g.kp.Objs[i]
 	id := g.ids.obj(i)
@@ -417,7 +417,7 @@ func (g *Game) boardObject(i uint8) {
 		o.ExiledCards = g.exiled[i]
 	}
 	if po.Attached != dirac.NoObj {
-		o.AttachedTo = g.ids.obj(uint8(po.Attached))
+		o.AttachedTo = g.ids.obj(canon.Ref(po.Attached))
 	}
 	if o.IsAttacking && dirac.TCode(po.Attacks) >= dirac.PlayerTarget0 && dirac.TCode(po.Attacks) != dirac.NoTarget {
 		o.Attacking = state.PlayerID(dirac.TCode(po.Attacks) - dirac.PlayerTarget0)
@@ -450,7 +450,7 @@ func (g *Game) boardObject(i uint8) {
 		if o.Zone == state.ZBattlefield {
 			seat = po.Ctrl
 		}
-		b.place(o.Zone, seat, i, id)
+		b.place(o.Zone, seat, id)
 	}
 }
 
@@ -475,7 +475,7 @@ func zoneOf(z kop.Zone) state.Zone {
 }
 
 // place records id at its position in its zone; boardZones orders them.
-func (b *board) place(z state.Zone, seat, i uint8, id state.ObjID) {
+func (b *board) place(z state.Zone, seat uint8, id state.ObjID) {
 	list := b.zone[seat&1][z]
 	b.zone[seat&1][z] = append(list, id)
 }
@@ -516,7 +516,7 @@ func (g *Game) boardStack() {
 		e := &kp.Stack[i]
 		var o *state.Object
 		if e.Kind == 0 {
-			id := g.ids.obj(uint8(e.Source))
+			id := g.ids.obj(canon.Ref(e.Source))
 			o = &gm.Objs[id-1]
 			gm.Stack = append(gm.Stack, id)
 			if sa := g.stackSA(e); sa != latentSA {
@@ -526,7 +526,7 @@ func (g *Game) boardStack() {
 			id := g.ids.stack[i]
 			o = &gm.Objs[id-1]
 			*o = state.Object{ID: id, Zone: state.ZStack, Controller: state.PlayerID(e.Ctrl), Owner: state.PlayerID(e.Ctrl),
-				Source: g.ids.obj(uint8(e.Source)), Ability: g.stackSA(e), StackKindKnown: true, StackKind: state.StackKindActivated}
+				Source: g.ids.obj(canon.Ref(e.Source)), Ability: g.stackSA(e), StackKindKnown: true, StackKind: state.StackKindActivated}
 			if e.Kind == 2 {
 				o.StackKind = state.StackKindTriggered
 			}
@@ -549,11 +549,11 @@ func (g *Game) boardStack() {
 		o.Targets = o.Targets[:0]
 		for si, t := range e.Targets {
 			if dirac.TCode(t) != dirac.NoTarget {
-				o.Targets = append(o.Targets, g.stateTarget(uint8(t)))
+				o.Targets = append(o.Targets, g.stateTarget(canon.Ref(t)))
 			}
 			for j := 0; j < int(e.NExtra); j++ {
 				if int(e.ExtraSlot[j]) == si {
-					o.Targets = append(o.Targets, g.stateTarget(uint8(e.Extra[j])))
+					o.Targets = append(o.Targets, g.stateTarget(canon.Ref(e.Extra[j])))
 				}
 			}
 		}
@@ -633,7 +633,7 @@ func (g *Game) chosenModes(e *dirac.ProjStack, sa *cards.SA) []string {
 	return out
 }
 
-func (g *Game) stateTarget(t uint8) state.Target {
+func (g *Game) stateTarget(t canon.Ref) state.Target {
 	switch {
 	case dirac.TCode(t) == dirac.StackTargetGone:
 		return state.Target{}
@@ -670,7 +670,7 @@ func (g *Game) boardCombat() {
 	for i := 0; i < int(kp.NObj); i++ {
 		po := &kp.Objs[i]
 		if po.Zone == kop.ZoneBattlefield && po.Flags&dirac.ProjBlocking != 0 && po.Blocks != dirac.NoObj {
-			if id := g.ids.obj(uint8(i)); !slices.Contains(b.blockers[po.Blocks], id) {
+			if id := g.ids.obj(canon.Ref(i)); !slices.Contains(b.blockers[po.Blocks], id) {
 				b.blockers[po.Blocks] = append(b.blockers[po.Blocks], id)
 				slices.SortStableFunc(b.blockers[po.Blocks], func(x, y state.ObjID) int { return cmp.Compare(g.blockOrder(x), g.blockOrder(y)) })
 			}
@@ -678,7 +678,7 @@ func (g *Game) boardCombat() {
 	}
 	for i := 0; i < int(kp.NObj); i++ {
 		if len(b.blockers[i]) > 0 {
-			b.g.Objs[g.ids.obj(uint8(i))-1].BlockedBy = append(b.g.Objs[g.ids.obj(uint8(i))-1].BlockedBy, b.blockers[i]...)
+			b.g.Objs[g.ids.obj(canon.Ref(i))-1].BlockedBy = append(b.g.Objs[g.ids.obj(canon.Ref(i))-1].BlockedBy, b.blockers[i]...)
 		}
 	}
 }
