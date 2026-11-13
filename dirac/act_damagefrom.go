@@ -200,10 +200,6 @@ func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl u
 	}
 }
 
-// DebugDmgSrcOrderNoStall switches dmgSrcOrderStalls off (a mutation: the
-// event is dealt in the kernel's fixed order with no ask). Test-only.
-var DebugDmgSrcOrderNoStall bool
-
 // dmgSrcOrderStalls reports, stalling loudly, that an event of this
 // DealDamageFrom pass is one gorge parks on its CR 616.1 order ask (gorge
 // newDamageRider deals through the ordinary replacement collection; parkNC
@@ -212,7 +208,7 @@ var DebugDmgSrcOrderNoStall bool
 // parks it. parkNC is probed with the ask state saved and restored; it can
 // change nothing else before it reports the park, and a park stops the game.
 func (s *State) dmgSrcOrderStalls(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, kw kop.KwMask, codes []uint8, amts []int) bool {
-	if k.gen == nil || replPlusOnly(k.gen) || DebugDmgSrcOrderNoStall {
+	if k.gen == nil || replPlusOnly(k.gen) {
 		return false
 	}
 	saveRO, saveNC := s.g.ro, s.g.nc
