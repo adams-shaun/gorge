@@ -212,6 +212,9 @@ func kaurPick(c *PickCtx, st *kaurState, rnd Policy) Canon {
 }
 
 func TestAureliaVindicatorLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg, set, decks, tbl := kfacedownDeckEnv(t, kaurDeck)
 	seeds := uint64(16)
 	if testing.Short() {

@@ -90,6 +90,9 @@ func kcloneReturnAbilities(o *state.Object) (n int) {
 // Clones copying a Pretender copy, the grant offered on the Clone and
 // resolving.
 func TestMercurialPretenderCloneLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {

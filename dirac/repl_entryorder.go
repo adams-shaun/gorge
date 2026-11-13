@@ -18,7 +18,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // in its zone when exactly one tap and one untap compete (entryParkDig,
 // entryParkFound); a longer competition there, and every other route that
 // meets a pair, stalls (StallEntryOrder), so nothing ever applies a fixed
-// order (GORGE-FINDINGS.md, D-entry-order).
+// order.
 
 // DebugEntryOrderTapLast skips the ask and always applies the tap last (the
 // mutation test: gorge poses the order, so the lockstep must diverge).

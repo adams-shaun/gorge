@@ -179,6 +179,9 @@ func TestCopynonlegLockstep(t *testing.T) {
 // (dirac.DebugCopyNonLegKeep): the kernel's legend rule then kills them and
 // the games must diverge within 64 seeds.
 func TestCopynonlegMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, first, _ := runCopynonleg(t, 64,
 		func() { dirac.DebugCopyNonLegKeep = true },
 		func() { dirac.DebugCopyNonLegKeep = false })

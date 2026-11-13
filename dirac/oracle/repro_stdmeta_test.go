@@ -14,8 +14,11 @@ import (
 // asks, a Treasure's Sacrificed trigger is placed before priority and survives
 // the cast it was queued in being reversed, and a prepared creature entering beside
 // the cast it was queued in being reversed, a prepared creature entering beside
-// an opponent's enters-tapped replacement asks the CR 616.1 order, and a plot's
-// potential plan prices its mana as the CR 116.2k special action it is. Each repro runs on the repro's own
+// an opponent's enters-tapped replacement asks the CR 616.1 order, a plot's
+// potential plan prices its mana as the CR 116.2k special action it is, and an
+// activation's fixed PayLife<N> is rechecked after the window's life-paying mana
+// ability left too little life, so it reverses instead of paying into negative
+// life (CR 119.4, 733.1). Each repro runs on the repro's own
 // surface; a missing generated table fails rather than skips.
 func TestStdMetaReprosLockstep(t *testing.T) {
 	t.Parallel()
@@ -46,6 +49,13 @@ func TestStdMetaReprosLockstep(t *testing.T) {
 		"stdmeta_pool_unnamed_colours_s84p9",
 		"stdmeta_plot_special_restricted_mana_s14p20",
 		"stdmeta_plot_special_restricted_mana_s46p17",
+		"stdmeta_tapx_spree_window_s23p10",
+		"stdmeta_tapx_spree_window_s44p43",
+		"stdmeta_tapx_spree_window_s51p35",
+		"stdmeta_tapx_spree_window_s70p2",
+		"stdmeta_tapx_spree_window_s72p40",
+		"stdmeta_tapx_spree_window_s7p33",
+		"stdmeta_tapx_spree_window_s95p17",
 		"stdmeta_web_watch_beside_grant_s37p11",
 		"stdmeta_web_watch_beside_grant_s41p37",
 		"stdmeta_web_watch_beside_grant_s49p43",
@@ -76,6 +86,10 @@ func TestStdMetaReprosLockstep(t *testing.T) {
 		"stdmeta_prepared_beside_enters_tapped_s90p11",
 		"stdmeta_prepared_beside_enters_tapped_s97p33",
 		"stdmeta_aang_delayed_transform_s97p14",
+		"stdmeta_airbend_restricted_pool_s59p28",
+		"stdmeta_life_cost_below_zero_s54p16",
+		"stdmeta_life_cost_below_zero_s73p37",
+		"stdmeta_life_cost_below_zero_s83p36",
 	} {
 		t.Run(name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", name+".repro.json"))

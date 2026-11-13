@@ -9,7 +9,7 @@ import (
 
 func init() { Register("Extort", effExtort) }
 
-// effExtort implements CR 702.100: "Whenever you cast a spell, you may pay
+// effExtort implements CR 702.101: "Whenever you cast a spell, you may pay
 // {W/B}. If you do, each opponent loses 1 life and you gain that much life."
 //
 // The keyword expands (engine/cards/keywords.go) to a SpellCast trigger whose body

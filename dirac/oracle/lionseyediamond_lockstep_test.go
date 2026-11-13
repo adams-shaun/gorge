@@ -47,6 +47,9 @@ func ledPolicy(seed uint64) Policy {
 // activation identically, and the games do activate it (a Diamond reaches a
 // graveyard while its controller's hand empties into it).
 func TestLionsEyeDiamondLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {

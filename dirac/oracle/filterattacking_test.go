@@ -346,6 +346,9 @@ func TestFilterWordsAttackingEnchantedLockstep(t *testing.T) {
 // diverge. A green mutation means the lockstep never reaches a decision the
 // words shape.
 func TestFilterWordsAttackingEnchantedMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runFilterattacking(t, 32, true)
 	if divs == 0 {
 		t.Fatalf("mutation negated every PredWord7 answer in %d games with no divergence", games)

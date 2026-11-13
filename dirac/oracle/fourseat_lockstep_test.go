@@ -18,6 +18,9 @@ import (
 // distinct decks gorge against gorge: every game reaches its end with no
 // divergence, and the projection carries all four seats.
 func TestFourSeatGorgeLockstepRunsClean(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg := synthReg(t)
 	set := cardsettest.Synth(t, "std-fdn")
 	pool, files, err := SynthPool(reg, set, 1, SynthDecks)

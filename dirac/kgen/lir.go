@@ -1047,6 +1047,7 @@ type lCard struct {
 	SpellCost      *lCost    // additional costs on the spell (Sac/Discard)
 	AltAddOne      bool      // SpellCost is a one-part AlternateAdditionalCost (gorge's planner: shape:optional_cost)
 	Leyline        bool
+	World          bool      // the printed World supertype (CR 205.4a, 704.5k): CardDef.World
 	SelfFlash      bool      // a CastWithFlash EffectZone$ All self grant (Illusion Spinners; CardDef.SelfFlash)
 	Changeling     bool      // K:Changeling: every creature type (CR 702.73a), in every zone
 	Offspring      *manaCost // K:Offspring:<cost> (CR 702.175): the kernel's kicked cast and Kicker cost, CardDef.Offspring

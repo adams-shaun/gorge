@@ -932,6 +932,7 @@ func (cb *cardBuilder) record() error {
 		d.HasAltAdd = true
 	}
 	d.Leyline = c.Leyline
+	d.World = c.World
 	d.SelfFlash = c.SelfFlash
 	d.Gift = c.Gift
 	d.SpentSelf = c.SpentSelf

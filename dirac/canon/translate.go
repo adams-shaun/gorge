@@ -831,6 +831,10 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return Pack(kind("clone"), RefNone, RefNone, 0), true
 		}
 		return Pack(kind("clone"), src, RefNone, 0), true
+	case dirac.ChEchoActionPick:
+		// gorge echoActionAsk's one choose-exactly-N kind for a discard or a
+		// land sacrifice paying an echo cost
+		return Pack(kind("echo_action_pick"), src, RefNone, 0), true
 	case dirac.ChGenPayPick:
 		if blight, modes := r.S.FeatPayBlight(); blight {
 			if modes {

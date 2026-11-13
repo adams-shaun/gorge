@@ -220,6 +220,11 @@ func (s *State) objPT(k *prep, o Obj, sl Slot) (int, int) {
 }
 
 func (s *State) countPerm(k *prep, f kop.FilterID, ctx evalCtx) int {
+	if ctx.srcSl == NoSlot && ctx.e != nil {
+		if n, ok := s.selfDepartTappedCount(k, f, ctx); ok {
+			return n
+		}
+	}
 	n := 0
 	for m := s.occ; m.any(); m = m.rest() {
 		if s.matchPermGen(k, f, m.first(), ctx.ctrl, ctx.srcSl, layerFull) {
@@ -227,6 +232,40 @@ func (s *State) countPerm(k *prep, f kop.FilterID, ctx evalCtx) int {
 		}
 	}
 	return n
+}
+
+// selfDepartTappedCount answers the CR 603.4 intervening-if whose
+// PresentDefined$ Self source has left the battlefield (CR 608.2h reads the
+// departed source by its last known information): the lowered filter is the
+// source alone narrowed by its tapped status -- gorge presentClauseHolds'
+// SourceLKIValid branch (House Cartographer's Survival, the Cartographer
+// killed by Bear Trap while its own trigger waited). The departure snapshot's
+// lkiTapped bit is the answer. ok is false for every other filter shape and
+// for a source with no departure snapshot, which countPerm counts live as
+// before.
+func (s *State) selfDepartTappedCount(k *prep, f kop.FilterID, ctx evalCtx) (int, bool) {
+	if f == 0 {
+		return 0, false
+	}
+	fl := k.t.Filters[f]
+	const selfTapped = kop.FSelf | kop.FTapped | kop.FUntapped
+	if fl.Flags&^selfTapped != 0 || fl.Flags&kop.FSelf == 0 || fl.Flags&(kop.FTapped|kop.FUntapped) == 0 ||
+		fl.Or != 0 || fl.Types != 0 || fl.NotTypes != 0 || fl.Ctrl != 0 ||
+		fl.Colors != 0 || fl.NotColors != 0 || fl.Pred != 0 || fl.PredN != 0 || fl.Zone != 0 ||
+		fl.Owner != 0 || fl.Sub != 0 || fl.NotSub != 0 || fl.NotSubs != [4]uint8{} ||
+		fl.Flags2 != 0 || fl.PredV != (kop.ValueRef{}) || fl.Special != 0 || fl.Each ||
+		fl.PickSumMax != (kop.ValueRef{}) || fl.PickDistinctPower || fl.CtrlTgt != 0 {
+		return 0, false
+	}
+	r := s.srcDepartRec(ctx.e)
+	if r == nil {
+		return 0, false
+	}
+	tapped := r.bits&lkiTapped != 0
+	if (fl.Flags&kop.FTapped != 0 && !tapped) || (fl.Flags&kop.FUntapped != 0 && tapped) {
+		return 0, true
+	}
+	return 1, true
 }
 
 // pwTypeCount is ExCount with N 1: the number of distinct planeswalker types
@@ -263,7 +302,9 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 	case kop.ExConst:
 		v = int(x.N)
 	case kop.ExX:
-		if e != nil {
+		if px := s.g.probe.x; px != 0 {
+			v = int(px) - 1 // an offer's sweep at this X (sacXPoolOffer; evalV's VX reads it first too)
+		} else if e != nil {
 			v = int(e.x)
 		} else if ctx.src != NoObj {
 			v = int(s.spellX(ctx.src)) // a self-enters condition, before its trigger binds X

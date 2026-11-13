@@ -173,6 +173,9 @@ func TestWascastrestrictLockstep(t *testing.T) {
 // reads on the restriction path only (never a SpellCast trigger or a spell's
 // condition).
 func TestWascastrestrictMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg, set, decks := kwrSetup(t)
 	tbl, _, _, err := set.Matchup(kwrDecks[0], kwrDecks[1])
 	if err != nil {
@@ -342,6 +345,9 @@ func TestWascastrestrictWebWatch(t *testing.T) {
 // only through the prefix search). The mutation reads on that source's
 // classification alone, never the provenance helper or the Mm'menon grant.
 func TestWascastrestrictWebWatchMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	old := dirac.DebugWideAnyPriced
 	dirac.DebugWideAnyPriced = true
 	defer func() { dirac.DebugWideAnyPriced = old }()

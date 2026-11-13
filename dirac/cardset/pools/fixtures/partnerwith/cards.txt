@@ -1,5 +1,6 @@
 # Partner with [name] (CR 702.124j): every corpus carrier kgen lowers and
-# builds and does not refuse by name (Krav, the Unredeemed is refused), whose
+# builds and does not refuse by name (Krav, the Unredeemed was refused until
+# its Sac<X> activation was offered; it is not in this list), whose
 # enters trigger lets the target player search their own library for the
 # named partner (gorge cards/kw_partner_with.go), basics and vanilla
 # creatures, for dirac/oracle/partnerwith_test.go
