@@ -119,8 +119,8 @@ type Spec struct {
 	// Unplayable names the sheet cards the booster deals a substitute for
 	// (booster.Open: a playable card of the same sheet, every swap
 	// recorded): the cards the engine cannot play, for a set whose sheets
-	// draw from a wider pool than the engine supports (MBC's playtest and
-	// Alchemy sheets). It is the embedded sets/<SET>.substitute.txt, one
+	// draw from a wider pool than the engine supports (MBC's Alchemy sheet
+	// and a few unsupported mechanics). It is the embedded sets/<SET>.substitute.txt, one
 	// name a line, which setdata's support test holds equal to what the
 	// corpus cannot play; nil for a set that carries no such file. Like
 	// Collation it is filled by LoadCollation, not read from the JSON.

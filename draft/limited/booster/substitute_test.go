@@ -117,8 +117,9 @@ func TestBoosterMBCPodDealsOnlyPlayableCards(t *testing.T) {
 		}
 		swaps += len(log)
 	}
-	// The playtest slot alone is unplayable in about 3 packs of 4.
-	if swaps < 150 {
-		t.Errorf("%d swaps over 300 packs, want the playtest slot's ~225 and more", swaps)
+	// About one pack in four draws an unplayable card (a colour sheet's
+	// unsupported mechanics, a new commander, a Future Sight card).
+	if swaps < 30 || swaps > 150 {
+		t.Errorf("%d swaps over 300 packs, want about 70", swaps)
 	}
 }

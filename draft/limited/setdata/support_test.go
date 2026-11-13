@@ -16,7 +16,7 @@ import (
 // sheetEntries are the measured card entries (a card on one sheet of one
 // collation counts once) of each embedded set across every collation; for a
 // substitute set (MBC) the entries off its substitute list.
-var sheetEntries = map[string]int{"FDN": 1896, "BLB": 1809, "MBC": 2390}
+var sheetEntries = map[string]int{"FDN": 1896, "BLB": 1809, "MBC": 2363}
 
 // TestSupportEverySheetCard is the support gate for the embedded specs:
 // every card on every sheet of every collation resolves in the card corpus
@@ -88,8 +88,8 @@ func TestSupportEverySheetCard(t *testing.T) {
 var pendingSets = map[string]bool{"TRK": true}
 
 // substituteSets are the embedded sets whose sheets draw from a wider pool
-// than the engine plays (MBC: Mystery Booster playtest cards, Alchemy
-// acorn cards and a few unsupported mechanics). Their unplayable cards are
+// than the engine plays (MBC: Alchemy acorn cards and a few unsupported
+// mechanics; its playtest sheet is left out by the generator). Their unplayable cards are
 // the embedded sets/<SET>.substitute.txt, which the booster deals a
 // playable same-sheet substitute for, every swap recorded.
 // TestPendingSetCards holds that file to exactly the cards the corpus

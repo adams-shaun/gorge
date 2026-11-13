@@ -309,11 +309,12 @@ func TestTRKPlayBoosterShape(t *testing.T) {
 }
 
 // TestMBCDraftBoosterShape pins Mystery Booster Commander Edition as
-// MTGJSON publishes it: one "draft" collation (so Load serves it), 20-card
-// packs of 3 cards from each colour sheet, a commander, a new commander, a
-// playtest card, a wildcard and a Future Sight card, the last swapped for a
-// foil or an Alchemy acorn card and the new commander for a foil in the
-// six variants, weighted to 400000.
+// MTGJSON publishes it, less the playtest sheet: one "draft" collation (so
+// Load serves it), 20-card packs of 3 cards from each colour sheet, a
+// commander, a new commander, two wildcards (the second in the playtest
+// card's place) and a Future Sight card, the last swapped for a foil or an
+// Alchemy acorn card and the new commander for a foil in the six variants,
+// weighted to 400000.
 func TestMBCDraftBoosterShape(t *testing.T) {
 	if got := setdata.Collations("MBC"); len(got) != 1 || got[0] != setdata.Draft {
 		t.Fatalf("Collations(MBC) = %v, want [draft]", got)
@@ -344,19 +345,16 @@ func TestMBCDraftBoosterShape(t *testing.T) {
 			}
 		}
 		var k key
-		for sheet, n := range v.Contents {
+		for sheet := range v.Contents {
 			switch sheet {
 			case "futureSight", "futureSightFoil", "alchemyAcorn":
 				k.fs = sheet
 			case "newCommander", "newCommanderFoil":
 				k.nc = sheet
 			}
-			if n != 1 && n != 3 {
-				t.Errorf("MBC variant %d draws %d from %s", i, n, sheet)
-			}
 		}
-		if v.Contents["commander"] != 1 || v.Contents["playtest"] != 1 || v.Contents["wildcard"] != 1 {
-			t.Errorf("MBC variant %d contents %v lack a commander, playtest or wildcard slot", i, v.Contents)
+		if v.Contents["commander"] != 1 || v.Contents["wildcard"] != 2 || len(v.Contents) != 9 {
+			t.Errorf("MBC variant %d contents %v, want the colour sheets, a commander, two wildcards and the two swapped slots", i, v.Contents)
 		}
 		if w, ok := want[k]; !ok || w != v.Weight {
 			t.Errorf("MBC variant %d (%s, %s) weighs %d, want %d", i, k.fs, k.nc, v.Weight, w)
@@ -364,8 +362,11 @@ func TestMBCDraftBoosterShape(t *testing.T) {
 		delete(want, k)
 	}
 	sizes := map[string]int{"white": 358, "blue": 358, "black": 358, "red": 358, "green": 358, "commander": 121,
-		"newCommander": 60, "newCommanderFoil": 60, "playtest": 120, "wildcard": 111, "futureSight": 119,
+		"newCommander": 60, "newCommanderFoil": 60, "wildcard": 111, "futureSight": 119,
 		"futureSightFoil": 134, "alchemyAcorn": 10}
+	if len(spec.Config.Sheets) != len(sizes) {
+		t.Errorf("MBC carries %d sheets, want %d (no playtest sheet)", len(spec.Config.Sheets), len(sizes))
+	}
 	for name, n := range sizes {
 		sh, ok := spec.Config.Sheets[name]
 		if !ok || len(sh.Cards) != n {
