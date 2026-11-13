@@ -19,8 +19,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     nothing moves. With Optional$ (CR 115.7d) the current ones are offered,
 //     Done keeps the rest, and a pick that is already a target stays in place.
 //     C bit 1 (DefinedMagnet$ Self with ChangeSingleTarget$ True, Spellskite)
-//     asks nothing: ksrMagnet moves the first target of the first declaration
-//     that offers the source to the source.
+//     moves one target to the source (CR 115.7b). A place is one current target
+//     of a declaration whose offer holds the source; places naming one target
+//     collapse to the first. One place moves unasked; with two or more the
+//     redirect's controller picks which target changes (raKsrMagnet).
 //   - ExtCounterAll (CR 701.5; gorge effCounter over Defined$ ValidStack
 //     Spell.OppCtrl,Activated.OppCtrl,Triggered.OppCtrl, validStackTargets
 //     L2576: the stack zone's arena order, bottom first): every entry an
@@ -42,6 +44,10 @@ const raKsr uint8 = 238
 // source = the object or stack ability chosen (a player: PlayerTarget0+p);
 // AkDone keeps the old target (Optional$).
 const ChKsrTarget ChoiceKind = 244
+
+// raKsrMagnet is the ask of which target a magnet takes the place of (CR
+// 115.7b). Its options are the places' targets, its answer a ChKsrTarget pick.
+const raKsrMagnet uint8 = 237
 
 // ksrSubject is the stack index of the entry ExtChangeTargets rewrites, -1
 // when there is none (it left the stack, or has no object to name).
@@ -229,32 +235,65 @@ func (s *State) changeTargets(k *prep, in *kop.Instr) bool {
 	return s.ksrAskFrom(k, ksrFirstDecl(k, e), must)
 }
 
-// ksrMagnet is the DefinedMagnet$ Self with ChangeSingleTarget$ True walk
-// (gorge effChangeTargets' magnet and single arms): no ask. The first
-// declaration, in the walk's order, whose offer holds the resolving ability's
-// source (a creature or player-less object on the battlefield, as the source
-// still is) takes it in place of its first target, and the walk stops there;
-// a declaration whose offer lacks it is passed over (a source that is already a
-// target is not offered when the targets must change).
-func (s *State) ksrMagnet(k *prep, e *stackEntry, must bool) bool {
+// ksrMagnetPlaces lists the places of the DefinedMagnet$ Self with
+// ChangeSingleTarget$ True redirect (gorge changeTargetMagnet) in the walk's
+// order: each target of each declaration whose offer holds the resolving
+// ability's source (a creature or player-less object on the battlefield, as the
+// source still is; a source that is already a target is not offered when the
+// targets must change). A target an earlier place names is not listed again.
+// codes, decl and pos name each place's target, declaration slot and position
+// in the slot.
+func (s *State) ksrMagnetPlaces(k *prep, e *stackEntry, must bool, codes, decl, pos *[MaxOptions]uint8) int {
 	r := &s.res
-	idx := int(r.left) - 1
 	src := r.e.obj
+	if ob := &s.objs[src]; ob.zone != kop.ZoneBattlefield || ob.ver != r.e.srcVer {
+		return 0
+	}
+	n := 0
 	var old, buf [MaxOptions]uint8
-	if ob := &s.objs[src]; ob.zone == kop.ZoneBattlefield && ob.ver == r.e.srcVer {
-		for d := ksrFirstDecl(k, e); d >= 0; d = ksrNextDecl(k, e, d) {
-			if s.copySlotTargets(e, d, &old) == 0 {
-				continue
-			}
-			if n := s.ksrOffered(k, idx, d, must, &buf); ksrHas(buf[:n], uint8(src)) {
-				r.peek[0], r.arr[0], r.peekN = Obj(d), src, 1
-				break
+	for d := ksrFirstDecl(k, e); d >= 0; d = ksrNextDecl(k, e, d) {
+		nold := s.copySlotTargets(e, d, &old)
+		if nold == 0 || ksrHas(old[:nold], uint8(src)) {
+			continue
+		}
+		if m := s.ksrOffered(k, int(r.left)-1, d, must, &buf); !ksrHas(buf[:m], uint8(src)) {
+			continue
+		}
+		for j := 0; j < nold; j++ {
+			if !ksrHas(codes[:n], old[j]) {
+				codes[n], decl[n], pos[n] = old[j], uint8(d), uint8(j)
+				n++
 			}
 		}
 	}
-	s.ksrApply(k, &s.stack[idx])
-	r.left, r.peekN = 0, 0
+	return n
+}
+
+// ksrMagnet is the magnet walk (gorge changeTargetMagnet): one place moves to
+// the source unasked, none moves nothing, and two or more pose raKsrMagnet.
+func (s *State) ksrMagnet(k *prep, e *stackEntry, must bool) bool {
+	var codes, decl, pos [MaxOptions]uint8
+	n := s.ksrMagnetPlaces(k, e, must, &codes, &decl, &pos)
+	if n >= 2 {
+		s.res.ask, s.res.askP = raKsrMagnet, s.res.e.ctrl
+		return false
+	}
+	if n == 1 {
+		s.ksrMagnetWrite(k, &s.stack[int(s.res.left)-1], decl[0], pos[0])
+	}
+	s.res.left, s.res.peekN = 0, 0
 	return true
+}
+
+// ksrMagnetWrite puts the source in place j of declaration slot d and nowhere
+// else: the slot keeps its other targets in their order, so a divided
+// allotment stays with the position.
+func (s *State) ksrMagnetWrite(k *prep, e *stackEntry, d, j uint8) {
+	var old, out [MaxOptions]uint8
+	nold := s.copySlotTargets(e, int(d), &old)
+	out = old
+	out[j] = uint8(s.res.e.obj)
+	s.ksrCommit(k, e, int(d), &old, nold, &out)
 }
 
 // ksrAskFrom poses the first declaration at or after slot d with something to
@@ -280,9 +319,6 @@ func (s *State) ksrAskFrom(k *prep, d int, must bool) bool {
 // declaration an answer was given for (gorge recordTargets), and only the
 // arrivals on a chain link (RetargetLink).
 func (s *State) ksrApply(k *prep, e *stackEntry) {
-	if DebugChangeTargetsOff {
-		return
-	}
 	for d := ksrFirstDecl(k, e); d >= 0; d = ksrNextDecl(k, e, d) {
 		var old, out [MaxOptions]uint8
 		var picks [8]uint8
@@ -298,11 +334,21 @@ func (s *State) ksrApply(k *prep, e *stackEntry) {
 		}
 		nold := s.copySlotTargets(e, d, &old)
 		ksrRetargeted(&old, nold, &picks, np, &out)
-		s.ksrWrite(e, d, &out)
-		for i := 0; i < nold; i++ {
-			if tspecE(k, e, d).TFlags&kop.TgfDeclSub == 0 || !ksrHas(old[:nold], out[i]) {
-				s.targetedOne(k, e, out[i])
-			}
+		s.ksrCommit(k, e, d, &old, nold, &out)
+	}
+}
+
+// ksrCommit writes out into declaration slot d of e and reports each target that
+// became one: every target of a root declaration (gorge recordTargets), and only
+// the arrivals on a chain link (RetargetLink).
+func (s *State) ksrCommit(k *prep, e *stackEntry, d int, old *[MaxOptions]uint8, nold int, out *[MaxOptions]uint8) {
+	if DebugChangeTargetsOff {
+		return
+	}
+	s.ksrWrite(e, d, out)
+	for i := 0; i < nold; i++ {
+		if tspecE(k, e, d).TFlags&kop.TgfDeclSub == 0 || !ksrHas(old[:nold], out[i]) {
+			s.targetedOne(k, e, out[i])
 		}
 	}
 }
@@ -376,6 +422,9 @@ func (s *State) ksrVer(c uint8) uint8 {
 //
 //go:noinline
 func (s *State) askOptionsStackRewrite(k *prep, d *Decision) bool {
+	if s.res.ask == raKsrMagnet {
+		return s.askOptionsKsrMagnet(k, d)
+	}
 	if s.res.ask != raKsr {
 		return false
 	}
@@ -404,6 +453,10 @@ next:
 //
 //go:noinline
 func (s *State) applyAskStackRewrite(k *prep, a Action) bool {
+	if s.res.ask == raKsrMagnet {
+		s.applyAskKsrMagnet(k, a)
+		return true
+	}
 	if s.res.ask != raKsr {
 		return false
 	}
@@ -430,6 +483,43 @@ func (s *State) applyAskStackRewrite(k *prep, a Action) bool {
 	}
 	s.continueRes(k, 0)
 	return true
+}
+
+// askOptionsKsrMagnet lists the places' targets (ChKsrTarget); Done leaves every
+// target when the redirect is Optional$.
+func (s *State) askOptionsKsrMagnet(k *prep, d *Decision) bool {
+	optional := s.prog(k)[s.res.pc].C&1 != 0
+	var codes, decl, pos [MaxOptions]uint8
+	n := s.ksrMagnetPlaces(k, &s.stack[int(s.res.left)-1], !optional, &codes, &decl, &pos)
+	d.Sub = ChKsrTarget
+	for i := 0; i < n; i++ {
+		d.add(MakeAction(AkChoose, codes[i], 0, 0))
+	}
+	if optional {
+		d.add(MakeAction(AkDone, 0, 0, 0))
+	}
+	return true
+}
+
+// applyAskKsrMagnet takes the pick: the source replaces the picked target in
+// its place, and the resolution goes on.
+func (s *State) applyAskKsrMagnet(k *prep, a Action) {
+	r := &s.res
+	if a.Kind() == AkChoose {
+		optional := s.prog(k)[r.pc].C&1 != 0
+		var codes, decl, pos [MaxOptions]uint8
+		e := &s.stack[int(r.left)-1]
+		n := s.ksrMagnetPlaces(k, e, !optional, &codes, &decl, &pos)
+		for i := 0; i < n; i++ {
+			if codes[i] == a.Source() {
+				s.ksrMagnetWrite(k, e, decl[i], pos[i])
+				break
+			}
+		}
+	}
+	r.ask = raNone
+	r.left, r.peekN = 0, 0
+	s.continueRes(k, 0)
 }
 
 // counterAll is ExtCounterAll.
