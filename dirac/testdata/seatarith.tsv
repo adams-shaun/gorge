@@ -1,7 +1,5 @@
 # family	file	count: raw two-seat sites in package dirac; shrink only (TestSeatArithmeticOnlyShrinks)
 and1val	act_goad.go	3
-and1val	kw_speed.go	2
 and1val	static_control.go	1
-and1val	turn_gen.go	1
 and1val	zone_changezoneall.go	1
 and1val	zone_cmdzone.go	4

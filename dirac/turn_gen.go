@@ -896,11 +896,11 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		copy(s.g.freeQ[:], s.g.freeQ[1:s.g.nfq])
 		s.g.nfq--
 		c := s.objs[o].card
-		// freeP: bit 0 caster, bits 1-3 zone, bit 4 ReplaceGraveyard,
-		// bit 5 CopyCard, bit 6 paid, bit 7 ForgetPlayed
-		ctrl := s.g.freeP & 1
-		if s.g.freeP&32 != 0 {
-			paid := s.g.freeP&64 != 0
+		// freeP: the caster, the zone, ReplaceGraveyard, CopyCard, paid and
+		// ForgetPlayed (cast_freecast.go)
+		ctrl := uint8(s.g.freeP & freeSeatMask)
+		if s.g.freeP&freeCopy != 0 {
+			paid := s.g.freeP&freePaid != 0
 			// gorge casts the copy whatever became of the original and mints
 			// it at the cast's start, so begin first: a paid cast the pool
 			// cannot cover is begun and reversed after its mana window
@@ -929,7 +929,7 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 			}
 			return false
 		}
-		if s.objs[o].zone != kop.Zone((s.g.freeP>>1)&7) || !s.spellTargetsFeasibleFrom(k, c, ctrl, o) {
+		if s.objs[o].zone != kop.Zone((s.g.freeP>>freeZoneShift)&7) || !s.spellTargetsFeasibleFrom(k, c, ctrl, o) {
 			continue // no legal target any more: the card stays in its zone
 		}
 		holder := s.prio
@@ -941,7 +941,7 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 	// the queue is drained: the ForgetPlayed$ marker has served its casts
 	// (cast.go finishBuild drops a committed card; a refused or reversed one
 	// stays remembered)
-	s.g.freeP &^= 128
+	s.g.freeP &^= freeForget
 	if s.res.ask == raGenFreeParked {
 		s.resumeFreeCast(k) // the rest were refused: the parked tail runs
 		return false

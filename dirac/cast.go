@@ -1664,7 +1664,7 @@ func (s *State) finishBuild(k *prep) {
 		// a free cast with ReplaceGraveyard$ Exile carries bit 4
 		// as sfFreeGY once the build bit is gone (a non-copy spell entry;
 		// resolveTop tests it only on a copy)
-		if s.bld().e.flags&sfFree != 0 && s.g.freeP&16 != 0 && s.bld().bfl&bflPushed != 0 {
+		if s.bld().e.flags&sfFree != 0 && s.g.freeP&freeGY != 0 && s.bld().bfl&bflPushed != 0 {
 			s.stack[s.sp-1].flags |= sfFreeGY
 		}
 		// ForgetPlayed$ True: this free cast now sits on the stack
@@ -1672,7 +1672,7 @@ func (s *State) finishBuild(k *prep) {
 		// drops it from the remembered set. A cast refused before the push,
 		// or reversed while its cost was being paid (CR 733.1), never
 		// reaches this commit and keeps its card remembered.
-		if s.bld().e.flags&sfFree != 0 && s.g.freeP&128 != 0 && s.bld().bfl&bflPushed != 0 {
+		if s.bld().e.flags&sfFree != 0 && s.g.freeP&freeForget != 0 && s.bld().bfl&bflPushed != 0 {
 			s.forgetRemGen(e.obj)
 		}
 		if k.gen != nil && k.gen.anyHist {
