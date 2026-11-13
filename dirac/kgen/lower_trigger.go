@@ -1136,6 +1136,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if err := lc.collectEvidenceTrigger(tp, tr); err != nil {
 			return err
 		}
+	case "Exploited":
+		if err := lc.exploitedTrigger(tp, tr); err != nil { // lower_exploit.go
+			return err
+		}
 	case "TokenCreatedOnce":
 		if err := lc.tokenCreatedOnce(tp, tr, t); err != nil {
 			return err
