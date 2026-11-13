@@ -780,6 +780,22 @@ func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
 		if s.cmdZoneReplace(k, o, &z, &bottom) {
 			return // a CR 903.9b commander move parked before it happens
 		}
+		if o == s.res.e.obj && s.res.e.kind == seSpell {
+			// the resolving spell's own move off the stack (View from
+			// Above's and Molten Birth's return-to-hand): gorge removes it
+			// from g.Stack at the move (events apply_state_helpers.go), but
+			// the kernel's stack entry stays until finishResolve pops it --
+			// the same no-pop read moveObj's self-exile arm takes
+			// (interp_gen.go); popping here would underflow s.sp when
+			// finishResolve pops again
+			s.touch(o)
+			ob.zone = kop.ZoneNone
+			if k.gen != nil && k.gen.anyFaces {
+				z = s.stackExitFace(k, o, z, false) // face_castface.go
+			}
+			s.placeFromK(k, o, z, bottom, kop.ZoneStack, false)
+			return
+		}
 		if i := s.stackIndexOf(o); i >= 0 {
 			copy(s.stack[i:s.sp-1], s.stack[i+1:s.sp])
 			s.sp--
