@@ -29,7 +29,7 @@ func TestUnlessWindowOmitsSourceWhoseManaCannotPayIt(t *testing.T) {
 	if d == nil || d.ResumeKind != "unless_mana" {
 		t.Fatalf("no mana window after choosing to pay: %+v", d)
 	}
-	if optionForObj(d, land) < 0 {
+	if indexOfObjOption(d, land) < 0 {
 		t.Errorf("the plain land is not offered: %+v", d.Options)
 	}
 	for _, o := range d.Options {

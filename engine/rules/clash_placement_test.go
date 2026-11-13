@@ -18,7 +18,7 @@ import (
 func TestClashPlacementOneCardAndReverseChoices(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
-	marvo := onBoardCard(t, e, 0, unblockedCorpusCard(t, "m/marvo_deep_operative.txt"))
+	marvo := onBoardCard(t, e, 0, corpusCardAtPath(t, "m/marvo_deep_operative.txt"))
 	e.G.Obj(marvo).SummonSick = false
 
 	// Seat 0: a two-card library so BOTTOM is observable.

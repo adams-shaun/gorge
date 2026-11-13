@@ -11,20 +11,6 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// runRememberScenario runs one oracle-scenario JSON against the corpus and
-// fails the test with its transcript on any expectation mismatch.
-func runRememberScenario(t *testing.T, raw string) {
-	t.Helper()
-	reg := testutil.CorpusRegistry(t)
-	var sc oracleScenario
-	if err := json.Unmarshal([]byte(raw), &sc); err != nil {
-		t.Fatal(err)
-	}
-	if fails, tr, _ := runOracleScenario(reg, sc); len(fails) > 0 {
-		t.Fatalf("%s\n  transcript:\n    %s", strings.Join(fails, "\n"), strings.Join(tr, "\n    "))
-	}
-}
-
 // TestSurveilRememberMovedReturnsCard pins RememberMoved$ (CR 607.2a):
 // Enlightened Confidant's surveil remembers the card it binned, so the
 // linked ChangeZoneAll returns it to hand when its mana value is at most the

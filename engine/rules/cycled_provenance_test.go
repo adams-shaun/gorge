@@ -105,9 +105,9 @@ func TestCycledIgnoresABareCostDiscardOfAPrintedCycler(t *testing.T) {
 // no-fire assertion cannot pass because the trigger is unregistered.
 func TestCycledIgnoresADiscardCostPaidForADifferentAbility(t *testing.T) {
 	t.Parallel()
-	rescuer := mshCorpusCard(t, "Valiant Rescuer")
-	aven := mshCorpusCard(t, "Windcaller Aven")
-	tusker := mshCorpusCard(t, "Warped Tusker")
+	rescuer := corpusAlternativeCard(t, "Valiant Rescuer")
+	aven := corpusAlternativeCard(t, "Windcaller Aven")
+	tusker := corpusAlternativeCard(t, "Warped Tusker")
 	e := handEngine(t, aven, tusker)
 	hand := e.G.Zone(state.ZHand, 0)
 	if len(hand) != 2 {

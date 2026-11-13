@@ -175,8 +175,11 @@ func TestCombatPhyrexianColourBranchHidesUnadmittedRestrictedMana(t *testing.T) 
 	}
 	m := map[state.ObjID]bool{bear: true}
 	plan, ok := e.openCombatPayPlan(1, ch, m, m)
-	if !ok || plan.phyElection || plan.phyToLife != 1 {
-		t.Fatalf("plan ok=%v election=%v toLife=%d, want life route", ok, plan != nil && plan.phyElection, plan.phyToLife)
+	if !ok {
+		t.Fatal("precondition: the plan must open for the life branch")
+	}
+	if plan.phyDone != 1 || plan.phyLifePips() != 1 {
+		t.Fatalf("plan done=%d life=%d, want the one-pip life route", plan.phyDone, plan.phyLifePips())
 	}
 	e.askAttackers()
 	d := e.Pending()

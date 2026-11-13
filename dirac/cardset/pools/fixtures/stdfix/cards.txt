@@ -1,6 +1,6 @@
 # the MageZero gorge-fix pool: Siege Dragon, Tactical
 # Advantage, Cut Down, Sleep, which play only on a recent gorge
-# (dirac/oracle/stdfix_test.go skips below it)
+# (dirac/oracle/std_magezero_lockstep_test.go skips below it)
 Siege Dragon
 Tactical Advantage
 Raging Goblin

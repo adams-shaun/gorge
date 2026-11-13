@@ -618,14 +618,4 @@ func windowBridgeHand(t *testing.T, e *Engine, name string) state.ObjID {
 	return 0
 }
 
-// addManaQuiet adds mana and re-asks without driving a step (the caller is
-// already at the right step).
-func addManaQuiet(t *testing.T, e *Engine, p state.PlayerID, symbols string) {
-	t.Helper()
-	for _, r := range symbols {
-		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: string(r), Amount: 1})
-	}
-	e.priorityRound()
-}
-
 var _ = events.MoveZone

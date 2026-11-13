@@ -22,7 +22,7 @@ func TestSacellumGodspeakerIsManaAbility(t *testing.T) {
 	}
 	small := card(t, "Name:Small Fry\nManaCost:1\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e := handEngine(t, big("Big One"), big("Big Two"), small)
-	id := battlefieldCorpusCard(t, e, 0, lookup(t, reg, "Sacellum Godspeaker"))
+	id := putOnBattlefield(t, e, 0, lookup(t, reg, "Sacellum Godspeaker"))
 	e.G.Obj(id).SummonSick = false
 
 	o := e.G.Obj(id)

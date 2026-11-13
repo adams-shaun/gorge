@@ -164,22 +164,22 @@ func krsPolicy(seed uint64, c *krsTally) Policy {
 			c.noteTargets(p)
 		case DPriority:
 			for _, a := range p.D.Options {
-				if a.Kind() == ActCast && krsPay[kbargainName(p.G, a.Src())] {
+				if a.Kind() == ActCast && krsPay[refCardName(p.G, a.Src())] {
 					return a
 				}
 			}
 			for _, a := range p.D.Options {
-				if a.Kind() == ActCastFace && a.Mode()&0xf == faceCodeAdventure && kbargainName(p.G, a.Src()) == "Curious Pair" {
+				if a.Kind() == ActCastFace && a.Mode()&0xf == faceCodeAdventure && refCardName(p.G, a.Src()) == "Curious Pair" {
 					return a
 				}
 			}
 			for _, a := range p.D.Options {
-				if a.Kind() == ActCast && kbargainName(p.G, a.Src()) == "Ornithopter" {
+				if a.Kind() == ActCast && refCardName(p.G, a.Src()) == "Ornithopter" {
 					return a
 				}
 			}
 			for _, a := range p.D.Options {
-				if n := kbargainName(p.G, a.Src()); a.Kind() == ActCast && a.Mode() == 0 && (n == "Brush Off" || n == "Dragon's Prey") {
+				if n := refCardName(p.G, a.Src()); a.Kind() == ActCast && a.Mode() == 0 && (n == "Brush Off" || n == "Dragon's Prey") {
 					return a
 				}
 			}
@@ -198,12 +198,12 @@ func krsPolicy(seed uint64, c *krsTally) Policy {
 					// spend a little of the pool first: a cheap spell leaves
 					// the pool short of the plain price but not the bargained
 					for _, a := range p.D.Options {
-						if n := kbargainName(p.G, a.Src()); a.Kind() == ActCast && a.Mode() == 0 && (n == "Shock" || n == "Lightning Bolt") {
+						if n := refCardName(p.G, a.Src()); a.Kind() == ActCast && a.Mode() == 0 && (n == "Shock" || n == "Lightning Bolt") {
 							return a
 						}
 					}
 				}
-				name := kbargainName(p.G, src)
+				name := refCardName(p.G, src)
 				if plain < 0 || prng.IntN(4) != 0 {
 					c.bargained[name]++
 					return p.D.Options[i]

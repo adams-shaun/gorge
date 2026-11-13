@@ -14,7 +14,7 @@ import (
 // trigger fires and then copies no counter.
 func TestTheOzolithIgnoresInternalMarkers(t *testing.T) {
 	t.Parallel()
-	oz := mustCorpusCardT(t, "The Ozolith")
+	oz := corpusAlternativeCard(t, "The Ozolith")
 	leaver := card(t, "Name:Leaving Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e, cfg := tokenReplGame(t, 451, oz, leaver)
 	ozID := moveSeededCard(t, e, 0, oz, state.ZBattlefield)

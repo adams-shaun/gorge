@@ -60,7 +60,7 @@ func kcantselfPolicy(seed uint64, st *kcantselfStats) Policy {
 		if gm.Active == p && gm.Step.IsMain() && len(gm.Stack) == 0 {
 			islands, lands := 0, 0
 			for _, id := range gm.Zone(state.ZBattlefield, p) {
-				if o := gm.Obj(id); o != nil && !o.Tapped && kbeholdHasType(o, "Land") {
+				if o := gm.Obj(id); o != nil && !o.Tapped && objectHasType(o, "Land") {
 					lands++
 					if o.Face().Name == "Island" {
 						islands++

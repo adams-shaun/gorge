@@ -16,6 +16,16 @@ type CDecision struct {
 	Kind    DKind
 	Player  uint8
 	Options []Canon
+	// TargetLimited marks a cast-time target ask whose price reads the
+	// number of targets (gorge's Decision.AffordableTargets: a Strive spell,
+	// Fireball, Officious Interrogation), with TargetLeft the further picks
+	// the caster can provably pay. An unattended policy closes the answer at
+	// zero: one more target only reverses the cast (CR 733.1, gorge
+	// abortCast), and the two engines undo the payment window's taps
+	// differently, so the reversal's floating pool diverges. Both sides
+	// still offer the same options; only the policy's answer changes.
+	TargetLimited bool
+	TargetLeft    int
 }
 
 // Side is one side of a lockstep run in the canonical vocabulary: gorge

@@ -145,25 +145,6 @@ func aorTargetOption(t *testing.T, e *Engine, target state.ObjID) bool {
 	return false
 }
 
-// aorPassPriorityOnce answers one pending priority decision with its pass
-// option (passUntilNonPriority's step, inlined for a loop that must also
-// answer other decision kinds).
-func aorPassPriorityOnce(t *testing.T, e *Engine, d *decision.Decision) {
-	t.Helper()
-	idx := -1
-	for _, o := range d.Options {
-		if o.Kind == "pass" {
-			idx = o.Index
-		}
-	}
-	if idx < 0 {
-		t.Fatalf("priority decision with no pass option: %+v", d)
-	}
-	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
-		t.Fatalf("submit pass: %v", err)
-	}
-}
-
 // clockspinningFixtureBear is the authored battlefield counter carrier.
 const clockspinningFixtureBear = "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 
@@ -394,7 +375,7 @@ func amyPondAttack(t *testing.T, e *Engine, amyID state.ObjID) *decision.Decisio
 		if d.Kind != decision.KPriority {
 			t.Fatalf("unexpected non-priority decision while driving Amy's trigger: %+v", d)
 		}
-		aorPassPriorityOnce(t, e, d)
+		cfdPass(t, e, d)
 		if len(e.G.Stack) == 0 {
 			return nil
 		}
@@ -470,7 +451,7 @@ func TestAmyPondFinalCounterOffersSuspendCast(t *testing.T) {
 			break
 		}
 		if d.Kind == decision.KPriority {
-			aorPassPriorityOnce(t, e, d)
+			cfdPass(t, e, d)
 			continue
 		}
 		submitChoices(t, e, d.Options[0].Index)

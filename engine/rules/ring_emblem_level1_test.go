@@ -92,7 +92,7 @@ func TestCR70154cRingLevel1LegendaryFollowsTheBearer(t *testing.T) {
 	if d == nil || d.ResumeKind != "ring_bearer" {
 		t.Fatalf("decision = %+v, want a ring_bearer ask", d)
 	}
-	answerChoices(t, e, optionObjOrFail(t, d, gorilla))
+	answerChoices(t, e, objOptionIndex(t, d, gorilla))
 	registered := 0
 	for i := range e.continuous {
 		if e.continuous[i].Affects == "Card.IsRingbearer+YouCtrl" {
@@ -118,7 +118,7 @@ func TestCR70154cRingLevel1LegendaryFollowsTheBearer(t *testing.T) {
 	if d == nil || d.ResumeKind != "ring_bearer" {
 		t.Fatalf("second decision = %+v, want a ring_bearer ask", d)
 	}
-	answerChoices(t, e, optionObjOrFail(t, d, bear))
+	answerChoices(t, e, objOptionIndex(t, d, bear))
 	if legendaryUnderLayers(e, gorilla) || !legendaryUnderLayers(e, bear) {
 		t.Fatalf("after choosing the bear: legendary gorilla=%v bear=%v, want false/true",
 			legendaryUnderLayers(e, gorilla), legendaryUnderLayers(e, bear))

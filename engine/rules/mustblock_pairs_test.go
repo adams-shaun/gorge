@@ -93,9 +93,9 @@ func TestMustBlockIgnoresUnaffordableBlockPrice(t *testing.T) {
 func TestMustBlockIgnoresMinImpossibleAttacker(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	req := onBoardCard(t, e, 0, mshCorpusCard(t, "Watchdog"))
+	req := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Watchdog"))
 	falcon := onBoardCard(t, e, 0, card(t, "Name:Runeclaw Falcon\nManaCost:2 W\nTypes:Creature Bird\nPT:1/1\nK:Flying\nOracle:x\n"))
-	cerberus := onBoardCard(t, e, 1, mshCorpusCard(t, "Underworld Cerberus"))
+	cerberus := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Underworld Cerberus"))
 	flier := onBoardCard(t, e, 1, card(t, "Name:Test Sprite\nManaCost:1 U\nTypes:Creature Faerie\nPT:1/1\nK:Flying\nOracle:x\n"))
 	attackSeat0(t, e, cerberus, flier)
 

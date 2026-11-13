@@ -80,27 +80,6 @@ func castNoDrain(t *testing.T, e *Engine, id state.ObjID) {
 	}
 }
 
-// mordorMove is searchMoveByName for any seat: the named card moves from
-// hand (or library) to the target zone through a logged MoveZone.
-func mordorMove(t *testing.T, e *Engine, p state.PlayerID, name string, to state.Zone) state.ObjID {
-	t.Helper()
-	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
-		for _, id := range e.G.Zone(z, p) {
-			o := e.G.Obj(id)
-			if o != nil && o.Face() != nil && o.Face().Name == name {
-				if z != to {
-					e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: to})
-				}
-				e.pending = nil
-				e.priorityRound()
-				return id
-			}
-		}
-	}
-	t.Fatalf("corpus fixture %q absent from seat %d's hand/library", name, p)
-	return 0
-}
-
 // driveMordor drives across turns to the named step, answering the
 // bookkeeping decisions the drive crosses: passes, empty declarations, and
 // cleanup-step discards (CR 514.1 — the first Max options in hand order).
@@ -398,7 +377,7 @@ func TestTruceOffersEachPlayerAnUptoDraw(t *testing.T) {
 	e, cfg := mordorEngine(t, reg, 4107, "Truce")
 	truce := searchMoveByName(t, e, "Truce", state.ZHand)
 	addMana(t, e, 0, "WWW")
-	before0, before1 := countDrawFor(e, 0), countDrawFor(e, 1)
+	before0, before1 := countDraws(e, 0), countDraws(e, 1)
 	lib0 := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 0)...)
 	castNoDrain(t, e, truce)
 
@@ -420,23 +399,13 @@ func TestTruceOffersEachPlayerAnUptoDraw(t *testing.T) {
 	submitChoices(t, e)
 	passUntilStackEmpty(t, e, 30)
 
-	if got := countDrawFor(e, 0) - before0; got != 2 {
+	if got := countDraws(e, 0) - before0; got != 2 {
 		t.Fatalf("seat 0 answered both and drew %d, want 2", got)
 	}
-	if got := countDrawFor(e, 1) - before1; got != 0 {
+	if got := countDraws(e, 1) - before1; got != 0 {
 		t.Fatalf("seat 1 declined and drew %d, want 0", got)
 	}
 	replayCheck(t, e, cfg)
-}
-
-func countDrawFor(e *Engine, p state.PlayerID) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Draw && ev.Player == p {
-			n++
-		}
-	}
-	return n
 }
 
 // --- item 4: RandomOrder$ True on ChangeZoneAll ---
@@ -560,13 +529,13 @@ func TestGilanraCallerOfWirewoodSpentManaDraws(t *testing.T) {
 		}
 		addMana(t, e, 0, "GGGRR")
 		shivan := searchMoveByName(t, e, "Shivan Dragon", state.ZHand)
-		drawsBefore := countDrawFor(e, 0)
+		drawsBefore := countDraws(e, 0)
 		castNoDrain(t, e, shivan)
 		passUntilStackEmpty(t, e, 30)
 		if n := countGrantPushes(e, gilanra); n != 1 {
 			t.Fatalf("GrantTriggerPush count = %d, want exactly 1", n)
 		}
-		if got := countDrawFor(e, 0) - drawsBefore; got != 1 {
+		if got := countDraws(e, 0) - drawsBefore; got != 1 {
 			t.Fatalf("the fired trigger drew %d, want 1", got)
 		}
 		if got := e.G.Players[0].Pool.Total(); got != 0 {
@@ -652,7 +621,7 @@ func TestPathOfAncestrySpentManaScrOne(t *testing.T) {
 		}
 		// The ws unit alone pays the Elves' {G}; the pool empties.
 		elves := searchMoveByName(t, e, "Llanowar Elves", state.ZHand)
-		drawsBefore := countDrawFor(e, 0)
+		drawsBefore := countDraws(e, 0)
 		castNoDrain(t, e, elves)
 		if n := countGrantPushes(e, path); n != 1 {
 			t.Fatalf("GrantTriggerPush count = %d, want exactly 1", n)
@@ -667,7 +636,7 @@ func TestPathOfAncestrySpentManaScrOne(t *testing.T) {
 		}
 		submitChoices(t, e, d.Options[0].Index)
 		passUntilStackEmpty(t, e, 30)
-		if got := countDrawFor(e, 0) - drawsBefore; got != 0 {
+		if got := countDraws(e, 0) - drawsBefore; got != 0 {
 			t.Fatalf("the scry trigger drew %d card(s), want 0", got)
 		}
 		commanderReplayCheck(t, e, cfg)

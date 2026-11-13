@@ -10,15 +10,6 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-func hasPriorityOption(d *decision.Decision, kind string) bool {
-	for _, o := range d.Options {
-		if o.Kind == kind {
-			return true
-		}
-	}
-	return false
-}
-
 func submitPriorityPass(t *testing.T, e *Engine, d *decision.Decision) {
 	t.Helper()
 	for _, o := range d.Options {
@@ -75,7 +66,7 @@ func TestStartingPlayerChoiceScheduleKeepsLandOffersAnchoredToTheActiveSeat(t *t
 				if got := e.G.Players[0].LandsPlayed; got != 0 {
 					t.Fatalf("precondition: seat 0 land drop already used on own turn 2: %d", got)
 				}
-				if !hasPriorityOption(d, "play_land") {
+				if !optionKindOffered(d, "play_land") {
 					t.Fatalf("chosen seat's own turn-2 main1 (active=%d turn=%d): play_land MISSING", e.G.Active, e.G.Turn)
 				}
 			case e.G.Active == 0 && e.G.Turn == 5:
@@ -83,7 +74,7 @@ func TestStartingPlayerChoiceScheduleKeepsLandOffersAnchoredToTheActiveSeat(t *t
 				if len(e.G.Zone(state.ZHand, 0)) == 0 || e.G.Obj(e.G.Zone(state.ZHand, 0)[0]).Face().Name != "Mountain" || e.G.Players[0].LandsPlayed != 0 {
 					t.Fatalf("precondition: seat 0 must retain a Mountain and unused land drop on own turn 3")
 				}
-				if !hasPriorityOption(d, "play_land") {
+				if !optionKindOffered(d, "play_land") {
 					t.Fatalf("chosen seat's own turn-3 main1 (active=%d turn=%d): play_land MISSING", e.G.Active, e.G.Turn)
 				}
 			case e.G.Active == 1 && e.G.Turn == 2:
@@ -91,7 +82,7 @@ func TestStartingPlayerChoiceScheduleKeepsLandOffersAnchoredToTheActiveSeat(t *t
 				if hand := e.G.Zone(state.ZHand, 0); len(hand) == 0 || e.G.Obj(hand[0]).Face().Name != "Mountain" || e.G.Players[0].LandsPlayed != 0 {
 					t.Fatalf("precondition: seat 0 must hold a Mountain with an unused land drop at the non-active turn-2 window")
 				}
-				if hasPriorityOption(d, "play_land") {
+				if optionKindOffered(d, "play_land") {
 					t.Fatalf("non-active seat was offered play_land at turn=%d active=%d", e.G.Turn, e.G.Active)
 				}
 			}

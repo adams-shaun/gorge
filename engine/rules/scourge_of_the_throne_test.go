@@ -35,7 +35,7 @@ func scourgeSeat(t *testing.T, lives [3]int32) (*Engine, state.ObjID) {
 	for i, l := range lives {
 		e.G.Players[i].Life = l
 	}
-	scourge := onBoardCard(t, e, 1, mshCorpusCard(t, "Scourge of the Throne"))
+	scourge := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Scourge of the Throne"))
 	e.G.Obj(scourge).SummonSick = false
 	e.G.Active = 1
 	e.G.Step = state.StepDeclareAttackers
@@ -260,7 +260,7 @@ func TestScourgeOfTheThroneInterveningIfRecheckedAtResolution(t *testing.T) {
 func TestAttacksConditionMostLifeMatcher(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	scourge := onBoardCard(t, e, 1, mshCorpusCard(t, "Scourge of the Throne"))
+	scourge := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Scourge of the Throne"))
 	e.G.Obj(scourge).SummonSick = false
 
 	trig := cards.Trigger{Mode: "Attacks", Params: map[string]string{

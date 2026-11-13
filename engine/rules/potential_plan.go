@@ -611,10 +611,16 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out
 		// a RestrictValid$ source admits the payment by the cast face's
 		// characteristics (The Ringhart Crest's "legendary creature
 		// spell" mana cannot pay its own back face), the rest of the plan
-		// reads the board as it is
+		// reads the board as it is. A mode that is a CR 116.2 special
+		// action (plot, foretell, suspend) is not a spell: its plan pays
+		// under the special-action class, exactly as the offer gate and the
+		// payment do.
 		prev := e.planFace
 		e.planFace = castFace
 		defer func() { e.planFace = prev }()
+		prevSpecial := e.planSpecial
+		e.planSpecial = pay.SpecialOfCastMode(o.Mode)
+		defer func() { e.planSpecial = prevSpecial }()
 		got := e.planComposedCost(p, id, pay.PlanManaUnderRider(composed, rider), false, false)
 		if e.planKeepSources && got.Plan != nil && paymentPlanConsumes(*got.Plan) {
 			return PaymentPlanOutcome{Reason: "insufficient"}
@@ -712,8 +718,14 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out
 // potentialTargetPriced reports whether o is a cast a ValidTarget$ cost static may
 // price lower for some target. No prefix is searched for one: the search replays the
 // play's price, and a target's is not known until the targets are.
+//
+// The PLOT action is exempt (CR 701.34a): plotting exiles the card and poses
+// no target ask -- the cast from exile announces the enchant target later,
+// at its own price. A ValidTarget$ static prices a target-bearing play, so
+// it cannot price the target-free plot action, and a fee-funded plot (the
+// only colour a paid mana ability produces) must stay script-searchable.
 func (e *Engine) potentialTargetPriced(p state.PlayerID, o decision.Option) bool {
-	return o.Kind == "cast" && e.paymentPlanTargetDependentFor(e.collectCostStatics(), p, o.Obj, spellScope(o.Mode))
+	return o.Kind == "cast" && o.Mode != "plot" && e.paymentPlanTargetDependentFor(e.collectCostStatics(), p, o.Obj, spellScope(o.Mode))
 }
 
 // potentialTargetPricedPlan is a witness for a cast whose ValidTarget$ cost
@@ -1542,6 +1554,12 @@ func (e *Engine) planComposedCostFor(p state.PlayerID, id state.ObjID, cast deci
 	kept = append(kept, selfKept...)
 	manaOnly := Cost{Colored: mana.Colored, Generic: mana.Generic}
 	desc := pay.DescriptorFor(id, ability, composed)
+	if e.planSpecial != pay.SpecialNone && !ability {
+		// The mode is a CR 116.2 special action, not a spell: a
+		// RestrictValid$ "spend only to cast spells" leaves its mana free,
+		// as the offer gate and the payment already read it.
+		desc = pay.SpecialDescriptor(id, e.planSpecial, composed)
+	}
 	desc.FaceIdx = e.planFaceIdx(id) // an alternate-face route's restriction reads the cast face
 	return e.planReserving(p, id, composed, ability, selfSource, parts, func(tapR, keptR []state.ObjID) PaymentPlanOutcome {
 		out := pay.PlanPaymentCostWithout(asPayer(e), p, cast, manaOnly, &desc, append(slices.Clone(tapped), tapR...), nil, append(slices.Clone(kept), keptR...))

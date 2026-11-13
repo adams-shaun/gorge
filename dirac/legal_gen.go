@@ -52,6 +52,11 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 			s.offerMayKind(k, d, p, r, sorc, landOK, &av)
 			continue
 		}
+		// a Paradigm card the offer covers is cast free instead (kw_paradigm.go:
+		// gorge offers the card once, the free permission dominating the grant)
+		if k.gen.anyParadigm && s.paradigmOffered(k, p, r.obj, sorc) {
+			continue
+		}
 		s.offerPlay(k, d, p, r.obj, castMayPlay, sorc, landOK, false, false, false, &av)
 	}
 	// play-from-zone statics: graveyards, exile, and the hand (free casts)
@@ -149,8 +154,8 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 	if !pc.instant && !sorc && !s.castFlash(k, p, c) {
 		return
 	}
-	if k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
-		return
+	if k.gen.anyCantCast && s.castForbidden(k, p, c, o) || s.castHeldOut(o) {
+		return // a card twice reversed for no progress is held out of every cast route (CR 733.2), not only a paid one
 	}
 	s.offerBargainPlay(k, d, p, o, c, mode, anyMana, av) // kw_bargain.go
 	if mode&castFree == 0 {

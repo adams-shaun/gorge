@@ -127,7 +127,7 @@ func kfullyPolicy(seed uint64) Policy {
 					buf = append(buf, a)
 				}
 			case ActCast:
-				if kfullyRoom(c, a) || kfullyName(c, a) == "Careful Study" {
+				if kfullyRoom(c, a) || gorgeOptionName(c, a) == "Careful Study" {
 					buf = append(buf, a)
 				}
 			}
@@ -143,21 +143,6 @@ func kfullyPolicy(seed uint64) Policy {
 		}
 		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
 	})
-}
-
-// kfullyName is the name of the card action a casts or chooses.
-func kfullyName(c *PickCtx, a Canon) string {
-	if c.G == nil {
-		return ""
-	}
-	o, ok := c.G.GorgeOption(a)
-	if !ok {
-		return ""
-	}
-	if ob := c.G.E.G.Obj(o.Obj); ob != nil && ob.Face() != nil {
-		return ob.Face().Name
-	}
-	return ""
 }
 
 // kfullyRoom reports whether action a casts the card in hand as a Room.

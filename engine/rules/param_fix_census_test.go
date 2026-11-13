@@ -167,7 +167,7 @@ func checkFixedParamCensus(t *testing.T, label, dir, mustCarry string) {
 		t.Fatalf("%s: census found no carriers at all; the corpus walk is broken", label)
 	}
 	if mustCarry != "" && !got[mustCarry] {
-		t.Fatalf("%s: precondition: %q is not a measured carrier, got %v", label, mustCarry, sortedCensusNames(got))
+		t.Fatalf("%s: precondition: %q is not a measured carrier, got %v", label, mustCarry, sortedSetKeys(got))
 	}
 	var gotNames, wantNames []string
 	for n := range got {

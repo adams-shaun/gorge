@@ -355,6 +355,7 @@ func (lc *lowerCtx) lowerFace() {
 	// ProduceCol; lower_reflectedmana.go producibleMask): a Produce-mode
 	// reflected ability's read
 	lc.out.ProduceCol = producibleMask(lc.face)
+	lc.out.Identity = kop.ColorMask(lc.card.ColourIdentity())
 	lc.scanStorm() // lower_storm.go: K:Storm's expanded trigger, before the lines lower
 	// lower_imprintmox.go: the imprint-mox shape, before the lines lower
 	lc.imprintMox = lc.imprintMoxShape()
@@ -3456,6 +3457,10 @@ func (lc *lowerCtx) chain(sa *cards.SA, ps *params) error {
 			p = newParams(node.Params)
 		}
 		p.consume("SubAbility")
+		atkGuard, aerr := lc.lowerAttackLeg(node, p) // lower_attackleg.go
+		if aerr != nil {
+			return aerr
+		}
 		at, nt := len(lc.ab.Prog), len(lc.ab.Targets)
 		lc.atRes = node != sa && lc.mode < 0 && (lc.ab.Kind == akSpell || lc.ab.Kind == akActivated) &&
 			sa.API != "Charm" && sa.API != "CopySpellAbility" && subTargetAtResolution(node)
@@ -3495,6 +3500,9 @@ func (lc *lowerCtx) chain(sa *cards.SA, ps *params) error {
 			lc.ab.Prog = append(lc.ab.Prog, lInstr{})
 			copy(lc.ab.Prog[pos+1:], lc.ab.Prog[pos:])
 			lc.ab.Prog[pos] = lInstr{Op: "ChooseTargets", C: i}
+		}
+		if atkGuard >= 0 {
+			lc.ab.Prog[atkGuard].Skip = len(lc.ab.Prog) - atkGuard - 1
 		}
 		if left := p.unread(); len(left) > 0 {
 			err := refuse("%s$ %s: unread params %v", node.Kind, node.API, left)

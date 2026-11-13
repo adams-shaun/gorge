@@ -73,7 +73,7 @@ func lureVerdicts(t *testing.T, e *Engine, d *decision.Decision, lured, plain st
 func TestCR509_1cLurePrintedKeyword(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	unicorn := onBoardCard(t, e, 1, mustCorpusCardT(t, "Prized Unicorn"))
+	unicorn := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Prized Unicorn"))
 	d, plain, blockers := lureBlockers(t, e, unicorn)
 	lureVerdicts(t, e, d, unicorn, plain, blockers)
 }
@@ -82,7 +82,7 @@ func TestCR509_1cLureRuntimeGrant(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
 	host := onBoard(t, e, 1, lureHostSrc)
-	challenge := mustCorpusCardT(t, "Taunting Challenge")
+	challenge := corpusAlternativeCard(t, "Taunting Challenge")
 	src := onBoardCard(t, e, 1, challenge)
 	f := e.G.Obj(src).Face()
 	if len(f.Abilities) == 0 {
@@ -106,11 +106,11 @@ func TestCR509_1cLureRuntimeGrant(t *testing.T) {
 func TestCR509_1cLureExemptsTappedAndCostedBlockers(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	unicorn := onBoardCard(t, e, 1, mustCorpusCardT(t, "Prized Unicorn"))
+	unicorn := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Prized Unicorn"))
 	free := onBoard(t, e, 0, lureBlockerSrc)
 	tapped := onBoard(t, e, 0, lureBlockerSrc)
 	e.G.Obj(tapped).Tapped = true
-	qal := onBoardCard(t, e, 0, mustCorpusCardT(t, "Qal Sisma Behemoth"))
+	qal := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Qal Sisma Behemoth"))
 	floatMana(t, e, 0, "RR")
 	attackSeat0(t, e, unicorn)
 	d := askBlockersFresh(t, e)
@@ -178,7 +178,7 @@ func TestLureKeywordIsRegistered(t *testing.T) {
 	if !sup["kw:AllMustBlock"] {
 		t.Fatal("kw:AllMustBlock is not registered")
 	}
-	for _, p := range mustCorpusCardT(t, "Prized Unicorn").Primitives() {
+	for _, p := range corpusAlternativeCard(t, "Prized Unicorn").Primitives() {
 		if !sup[p] {
 			t.Errorf("Prized Unicorn primitive %q unsupported", p)
 		}

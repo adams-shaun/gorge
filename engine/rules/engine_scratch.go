@@ -6,6 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules/chars"
+	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -52,6 +53,11 @@ type engineScratch struct {
 	// planFace is the face an alternate-face potential plan casts as, read
 	// by planComposedCost's descriptor (potential_plan.go); nil otherwise.
 	planFace *cards.Face `clone:"reset"`
+	// planSpecial is the CR 116.2 special action a potential plan pays for
+	// (plot, foretell, suspend, ...), read by planComposedCostFor's
+	// descriptor so a spell-cast restriction cannot refuse its mana; none
+	// otherwise.
+	planSpecial pay.Special `clone:"reset"`
 	// planKeepSources makes a potential cast's plan refuse a step that
 	// sacrifices or returns its source (potentialWitnessKeeping).
 	planKeepSources bool `clone:"reset"`

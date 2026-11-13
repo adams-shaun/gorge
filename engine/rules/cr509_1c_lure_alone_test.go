@@ -13,8 +13,8 @@ import (
 func lureAloneDecision(t *testing.T, withPartner bool) (*Engine, *decision.Decision, state.ObjID, state.ObjID, state.ObjID) {
 	t.Helper()
 	e := threeSeatEngine(t)
-	unicorn := onBoardCard(t, e, 1, mustCorpusCardT(t, "Prized Unicorn"))
-	flunkies := onBoardCard(t, e, 0, mustCorpusCardT(t, "Mogg Flunkies"))
+	unicorn := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Prized Unicorn"))
+	flunkies := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Mogg Flunkies"))
 	var partner state.ObjID
 	if withPartner {
 		partner = onBoard(t, e, 0, lureBlockerSrc)

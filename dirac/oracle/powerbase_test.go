@@ -112,7 +112,7 @@ func kpowerbaseRun(t *testing.T, seeds uint64, mutate bool) (div bool, stalls in
 	if err != nil {
 		t.Fatal(err)
 	}
-	decks := katkamountDecksOf(t, reg, kpowerbaseDecks)
+	decks := kcastDeck(t, reg, kpowerbaseDecks)
 	tbl, _, _, err := set.Matchup(kpowerbaseDecks[0], kpowerbaseDecks[1])
 	if err != nil {
 		t.Fatal(err)

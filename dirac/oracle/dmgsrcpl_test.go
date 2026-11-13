@@ -117,12 +117,12 @@ func kdmgsrcplPolicy(seed uint64) Policy {
 				up = append(up, a)
 			case k == ActCastFace:
 				down = append(down, a)
-			case k == ActCast && kfacedownName(c, a) == "Shock" && c.G != nil && len(c.G.E.G.Stack) > 0:
+			case k == ActCast && optionFaceName(c, a) == "Shock" && c.G != nil && len(c.G.E.G.Stack) > 0:
 				shock = append(shock, a) // in response: the trigger's source may die before it resolves
-			case k == ActCast && kfacedownName(c, a) == "Priest of Urabrask":
+			case k == ActCast && optionFaceName(c, a) == "Priest of Urabrask":
 				priest = append(priest, a)
 				buf = append(buf, a)
-			case k == ActCast && kfacedownName(c, a) == "Shock":
+			case k == ActCast && optionFaceName(c, a) == "Shock":
 				// held for a response; with an empty stack it stays in hand
 			case k == ActCast || k == ActActivate || k == ActPlayLand:
 				buf = append(buf, a)

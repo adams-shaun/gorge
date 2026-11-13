@@ -91,18 +91,6 @@ func mindslaverControlledTurn(t *testing.T, hand ...string) (*Engine, Config, []
 	return e, cfg, ids
 }
 
-// handByName returns seat p's card named name, moving it from the library
-// into the hand when it was not drawn.
-func handByName(t *testing.T, e *Engine, p state.PlayerID, name string) state.ObjID {
-	t.Helper()
-	for _, id := range e.G.Zone(state.ZHand, p) {
-		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
-			return id
-		}
-	}
-	return moveByName(t, e, p, name, state.ZHand)
-}
-
 func priorityOptionFor(t *testing.T, d *decision.Decision, kind string, obj state.ObjID) decision.Option {
 	t.Helper()
 	for _, o := range d.Options {

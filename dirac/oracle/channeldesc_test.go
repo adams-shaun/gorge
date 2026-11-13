@@ -121,7 +121,7 @@ func kchanneldescRun(t *testing.T, n uint64, tal *kchanneldescTally) int {
 				}
 				for ; gm.evAt < len(evs); gm.evAt++ {
 					e := &evs[gm.evAt]
-					name := cpName(g, e.Obj)
+					name := chName(g, e.Obj)
 					switch e.Kind {
 					case events.MoveZone:
 						// the channel cost: the carrier discarded from hand

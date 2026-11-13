@@ -32,7 +32,7 @@ func TestSpreeMayPayWithItsOwnOnlyTarget(t *testing.T) {
 	if !ppHasAction(d, spell) {
 		t.Fatalf("no planned cast for the Spree spell whose only target is the gem it pays with")
 	}
-	ppSubmitPlan(t, e, d, ppAction(t, d, spell))
+	submitPaymentPlan(t, e, d, ppAction(t, d, spell))
 	for guard := 0; guard < 20; guard++ {
 		d := e.Pending()
 		if d == nil || d.Kind == decision.KPriority {

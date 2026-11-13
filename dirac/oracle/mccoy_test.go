@@ -167,7 +167,7 @@ func (p *mccoyScenario) Pick(c *PickCtx) Canon {
 		}
 		return c.D.Options[0]
 	case DTarget:
-		if hol := mccoyFind(g, "Emergency Medical Hologram", 0); hol != nil {
+		if hol := reproBattlefieldObj(g, "Emergency Medical Hologram", 0); hol != nil {
 			ref := c.G.InstRef(hol.ID)
 			if a, ok := findAction(c, func(a Canon) bool { return a.Kind() == ActTarget && a.Tgt() == ref }); ok {
 				return a
@@ -191,58 +191,28 @@ func (p *mccoyScenario) priority(c *PickCtx, g *state.Game) Canon {
 	if c.D.Player != 0 {
 		return pickKind(c, ActPass)
 	}
-	hol := mccoyFind(g, "Emergency Medical Hologram", 0)
-	mccoy := mccoyFind(g, "Dr. McCoy, Surly Surgeon", 0)
+	hol := reproBattlefieldObj(g, "Emergency Medical Hologram", 0)
+	mccoy := reproBattlefieldObj(g, "Dr. McCoy, Surly Surgeon", 0)
 	if a, ok := findAction(c, func(a Canon) bool { return a.Kind() == ActPlayLand }); ok {
 		return a
 	}
 	if hol == nil {
-		if a, ok := mccoyCast(c, g, 0, "Emergency Medical Hologram"); ok {
+		if a, ok := reproHandCastAction(c, g, 0, "Emergency Medical Hologram"); ok {
 			return a
 		}
 	}
 	if hol != nil && mccoy == nil {
-		if a, ok := mccoyCast(c, g, 0, "Dr. McCoy, Surly Surgeon"); ok {
+		if a, ok := reproHandCastAction(c, g, 0, "Dr. McCoy, Surly Surgeon"); ok {
 			return a
 		}
 	}
 	if hol != nil && mccoy != nil && hol.Counter("P1P1") > 0 {
-		if a, ok := mccoyCast(c, g, 0, p.finisher); ok {
+		if a, ok := reproHandCastAction(c, g, 0, p.finisher); ok {
 			p.fired++
 			return a
 		}
 	}
 	return pickKind(c, ActPass)
-}
-
-func mccoyFind(g *state.Game, name string, ctrl state.PlayerID) *state.Object {
-	for i := range g.Objs {
-		o := &g.Objs[i]
-		if o.Zone != state.ZBattlefield || o.Controller != ctrl || o.Card == nil {
-			continue
-		}
-		if f := o.Face(); f != nil && f.Name == name {
-			return o
-		}
-	}
-	return nil
-}
-
-func mccoyCast(c *PickCtx, g *state.Game, ctrl state.PlayerID, name string) (Canon, bool) {
-	for i := range g.Objs {
-		o := &g.Objs[i]
-		if o.Zone != state.ZHand || o.Owner != ctrl || o.Card == nil {
-			continue
-		}
-		if f := o.Face(); f == nil || f.Name != name {
-			continue
-		}
-		ref := c.G.InstRef(o.ID)
-		if a, ok := findAction(c, func(a Canon) bool { return a.Kind() == ActCast && a.Src() == ref }); ok {
-			return a, true
-		}
-	}
-	return 0, false
 }
 
 type mccoyTally struct {

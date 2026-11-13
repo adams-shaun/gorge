@@ -6,17 +6,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-func findBattlefieldCard(t *testing.T, e *Engine, name string) state.ObjID {
-	t.Helper()
-	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
-		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
-			return id
-		}
-	}
-	t.Fatalf("%s is not on seat 0's battlefield", name)
-	return 0
-}
-
 func castFromHand(t *testing.T, e *Engine, name, mana string) state.ObjID {
 	t.Helper()
 	id := searchMoveByName(t, e, name, state.ZHand)

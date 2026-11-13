@@ -99,7 +99,7 @@ func TestDrawXCostSVarFoldsAndDraws(t *testing.T) {
 
 	// The window must actually offer the election, or the fold is unreachable.
 	pay := witsPayAsk(t, e)
-	if witsPayOption(pay) < 0 {
+	if optionIndexForKind(pay, "trigger_cost_pay") < 0 {
 		t.Fatalf("the resolvable Draw<X/You> cost was not offered as payable: %+v", pay.Options)
 	}
 }

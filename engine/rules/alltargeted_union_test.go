@@ -1,8 +1,6 @@
 package rules
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -17,15 +15,6 @@ import (
 // CollectEvidence payment. Every test asserts its own preconditions (the
 // board the rule reads, the asks' order and shape) so a vacuous setup fails
 // loudly, and each new assertion fails with the fix reverted.
-
-func alltargetedCorpusText(t *testing.T, rel string) string {
-	t.Helper()
-	b, err := os.ReadFile(filepath.Join("..", "..", ".cards", "cardsfolder", rel))
-	if err != nil {
-		t.Fatalf("read corpus card %s: %v", rel, err)
-	}
-	return string(b)
-}
 
 // drainNoPostAsk passes priority until the stack is empty, failing if any
 // mid-resolution targeting ask appears: after the cast-time pre-ask the
@@ -104,7 +93,7 @@ func newFixtureDeckWithOpponentCard(t *testing.T, seed uint64, fixtureSrc, extra
 // creatures.
 func TestWaytaPreasksFightTargetAndReduces(t *testing.T) {
 	t.Parallel()
-	waytaSrc := alltargetedCorpusText(t, "w/wayta_trainer_prodigy.txt")
+	waytaSrc := corpusCardText(t, "w/wayta_trainer_prodigy.txt")
 
 	t.Run("two_creatures_you_control_reduces_two", func(t *testing.T) {
 		e, cfg, _ := newFixtureDeck(t, 71, waytaSrc, atBearSrc)
@@ -241,7 +230,7 @@ func TestWaytaPreasksFightTargetAndReduces(t *testing.T) {
 // as a regression test; the Wayta and Urgent Necropsy cases prove this change.
 func TestRaftSecurityOfficerReduction(t *testing.T) {
 	t.Parallel()
-	raftSrc := alltargetedCorpusText(t, "r/raft_security_officer.txt")
+	raftSrc := corpusCardText(t, "r/raft_security_officer.txt")
 	e, cfg, _ := newFixtureDeck(t, 73, raftSrc, atBearSrc)
 	raft := moveSeeded(t, e, 0, raftSrc, state.ZBattlefield)
 	bear := putCreature(t, e, 0, atBearSrc)
@@ -302,7 +291,7 @@ func TestRaftSecurityOfficerReduction(t *testing.T) {
 // owed or asked.
 func TestUrgentNecropsyCollectsEvidenceOnTheTargetUnion(t *testing.T) {
 	t.Parallel()
-	necropsySrc := alltargetedCorpusText(t, "u/urgent_necropsy.txt")
+	necropsySrc := corpusCardText(t, "u/urgent_necropsy.txt")
 	artifactSrc := "Name:Gold Myr\nManaCost:2\nTypes:Artifact Creature Myr\nPT:1/1\nOracle:x\n"
 	grave3Src := "Name:Big Bones\nManaCost:3\nTypes:Artifact\nOracle:x\n"
 	grave2Src := "Name:Small Bones\nManaCost:2\nTypes:Artifact\nOracle:x\n"

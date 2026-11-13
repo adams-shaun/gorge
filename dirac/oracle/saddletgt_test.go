@@ -56,13 +56,6 @@ type ksaddletgtTally struct {
 	attacks int
 }
 
-func ksaddletgtName(g *state.Game, id state.ObjID) string {
-	if o := g.Obj(id); o != nil && o.Face() != nil {
-		return o.Face().Name
-	}
-	return ""
-}
-
 func (p *ksaddletgtTally) check(ref *GorgeSide, _ Side) *Divergence {
 	g := ref.E.G
 	evs := ref.E.L.Events
@@ -80,7 +73,7 @@ func (p *ksaddletgtTally) check(ref *GorgeSide, _ Side) *Divergence {
 			if !events.IsAlterAttribute(*e, "Saddled") || e.Amount < 1 {
 				continue
 			}
-			if name := ksaddletgtName(g, p.src); ksaddletgtCarriers[name] {
+			if name := chName(g, p.src); ksaddletgtCarriers[name] {
 				p.saddles[name]++
 				p.saddled[e.Obj] = true
 			}

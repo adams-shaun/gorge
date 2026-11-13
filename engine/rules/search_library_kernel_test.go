@@ -25,8 +25,8 @@ func TestEvolvingWildsSearchPosesHiddenChoose(t *testing.T) {
 	if d.Min != 0 || d.Max != 1 {
 		t.Fatalf("Min/Max = %d/%d, want 0/1", d.Min, d.Max)
 	}
-	if !slices.Equal(optionIDs(d), want) {
-		t.Fatalf("option ids = %v, want exactly basic lands %v", optionIDs(d), want)
+	if !slices.Equal(optionObjIDs(d), want) {
+		t.Fatalf("option ids = %v, want exactly basic lands %v", optionObjIDs(d), want)
 	}
 	if e.G.Obj(wilds).Zone != state.ZGraveyard {
 		t.Fatalf("Evolving Wilds zone = %s, want graveyard (the sacrifice cost was paid)", e.G.Obj(wilds).Zone)

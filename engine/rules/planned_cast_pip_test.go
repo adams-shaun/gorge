@@ -30,7 +30,7 @@ func TestPlannedCastPaysAPhyrexianPipWithMana(t *testing.T) {
 		}
 		d := ppPriority(t, e)
 		e.EnsurePaymentActions()
-		ppSubmitPlan(t, e, d, ppAction(t, e.Pending(), spell))
+		submitPaymentPlan(t, e, d, ppAction(t, e.Pending(), spell))
 		ask := e.Pending()
 		if ask == nil || ask.Kind != decision.KChoose {
 			t.Fatalf("%s: pending %+v, want the pip ask", tc.kind, ask)
@@ -85,7 +85,7 @@ func TestPlannedCastSurvivesAConvokeAnswer(t *testing.T) {
 	e.EnsurePaymentActions()
 	sink := &PaymentPlanStats{}
 	e.SetPaymentPlanStats(sink)
-	ppSubmitPlan(t, e, d, ppAction(t, e.Pending(), spell))
+	submitPaymentPlan(t, e, d, ppAction(t, e.Pending(), spell))
 	ask := e.Pending()
 	if ask == nil || ask.Kind != decision.KChoose || ask.Source != spell {
 		t.Fatalf("pending %+v, want the convoke ask", ask)

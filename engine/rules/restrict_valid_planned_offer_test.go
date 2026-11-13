@@ -58,12 +58,12 @@ func TestRestrictedSourceFundsPlannedOffer(t *testing.T) {
 		e, cfg, ids := plannedOfferSetup(t, reg, []*cards.Card{searchCorpusCard(t, reg, "Ancient Ziggurat"),
 			searchCorpusCard(t, reg, "Llanowar Elves")}, "Ancient Ziggurat")
 		elves := searchMoveByName(t, e, "Llanowar Elves", state.ZHand)
-		d := ppAsk(t, e)
+		d := paymentPlanReask(t, e)
 		a := ppAction(t, d, elves)
 		if len(a.Plans[0].Activations) != 1 || a.Plans[0].Activations[0].Source != ids["Ancient Ziggurat"] {
 			t.Fatalf("plan = %+v, want Ancient Ziggurat alone", a.Plans[0])
 		}
-		ppSubmitPlan(t, e, d, a)
+		submitPaymentPlan(t, e, d, a)
 		if o := e.G.Obj(elves); o.Zone != state.ZStack {
 			t.Fatalf("Llanowar Elves is in zone %v, want the stack", o.Zone)
 		}
@@ -78,7 +78,7 @@ func TestRestrictedSourceFundsPlannedOffer(t *testing.T) {
 		e, cfg, _ := plannedOfferSetup(t, reg, []*cards.Card{searchCorpusCard(t, reg, "Ancient Ziggurat"),
 			card(t, greenToll)}, "Ancient Ziggurat")
 		toll := searchMoveByName(t, e, "Green Toll", state.ZHand)
-		d := ppAsk(t, e)
+		d := paymentPlanReask(t, e)
 		if ppHasAction(d, toll) {
 			t.Fatalf("Green Toll has a payment action on a creature-only source: %+v", d.PaymentActions)
 		}
@@ -97,7 +97,7 @@ func TestRestrictedSourceFundsPlannedOffer(t *testing.T) {
 			searchCorpusCard(t, reg, "Grizzly Bears"), card(t, dotlessCharge2)}, "Ancient Ziggurat", "Forest")
 		bears := searchMoveByName(t, e, "Grizzly Bears", state.ZHand)
 		charge := searchMoveByName(t, e, "Splash Tithe", state.ZHand)
-		d := ppAsk(t, e)
+		d := paymentPlanReask(t, e)
 		if ppHasAction(d, charge) {
 			t.Fatalf("the {2} instant has a payment action: it can use only Forest: %+v", d.PaymentActions)
 		}
@@ -107,7 +107,7 @@ func TestRestrictedSourceFundsPlannedOffer(t *testing.T) {
 		if got := plannedOfferSources(a); !slices.Equal(got, want) {
 			t.Fatalf("plan sources = %v, want Ziggurat and Forest %v", got, want)
 		}
-		ppSubmitPlan(t, e, d, a)
+		submitPaymentPlan(t, e, d, a)
 		if o := e.G.Obj(bears); o.Zone != state.ZStack {
 			t.Fatalf("Grizzly Bears is in zone %v, want the stack", o.Zone)
 		}
@@ -123,7 +123,7 @@ func TestRestrictedSourceFundsPlannedOffer(t *testing.T) {
 			searchCorpusCard(t, reg, "Bonesplitter"), card(t, dotlessCreatureU)}, "Hydraulic Helper")
 		splitter := searchMoveByName(t, e, "Bonesplitter", state.ZHand)
 		whelp := searchMoveByName(t, e, "Blue Whelp", state.ZHand)
-		d := ppAsk(t, e)
+		d := paymentPlanReask(t, e)
 		if ppHasAction(d, whelp) {
 			t.Fatalf("the nonartifact {U} creature has a payment action: %+v", d.PaymentActions)
 		}
@@ -131,7 +131,7 @@ func TestRestrictedSourceFundsPlannedOffer(t *testing.T) {
 		if got := plannedOfferSources(a); !slices.Equal(got, []state.ObjID{ids["Hydraulic Helper"]}) {
 			t.Fatalf("plan sources = %v, want Hydraulic Helper alone", got)
 		}
-		ppSubmitPlan(t, e, d, a)
+		submitPaymentPlan(t, e, d, a)
 		if o := e.G.Obj(splitter); o.Zone != state.ZStack {
 			t.Fatalf("Bonesplitter is in zone %v, want the stack", o.Zone)
 		}
@@ -146,7 +146,7 @@ func TestRestrictedSourceFundsPlannedOffer(t *testing.T) {
 		e, cfg, ids := plannedOfferSetup(t, reg, []*cards.Card{searchCorpusCard(t, reg, "Pit Automaton"),
 			card(t, dotlessClerk), card(t, dotlessCharge1)}, "Pit Automaton", "Sunrise Clerk")
 		charge := searchMoveByName(t, e, "One Toll", state.ZHand)
-		d := ppAsk(t, e)
+		d := paymentPlanReask(t, e)
 		if ppHasAction(d, charge) {
 			t.Fatalf("the {1} instant has a payment action on an activated-only source: %+v", d.PaymentActions)
 		}
@@ -181,7 +181,7 @@ func TestRestrictedSourceFundsPlannedOffer(t *testing.T) {
 			for _, name := range order {
 				ids[name] = searchMoveByName(t, e, name, state.ZHand)
 			}
-			d := ppAsk(t, e)
+			d := paymentPlanReask(t, e)
 			if !ppHasAction(d, ids["Llanowar Elves"]) {
 				t.Fatalf("order %v: Llanowar Elves has no payment action", order)
 			}

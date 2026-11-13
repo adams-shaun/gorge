@@ -239,7 +239,7 @@ func kcharmtwotgtPolicy(seed uint64, c *kcharmtwotgtTally) Policy {
 		if p.D.Kind == DPriority {
 			for i, a := range p.D.Options {
 				if a.Kind() != ActCast || a.Mode()>>4 != 0 || a.Mode()&0xf != kteamworkCastOther ||
-					!kcharmtwotgtTeamwork[kteamworkName(p.G, a.Src())] {
+					!kcharmtwotgtTeamwork[refCardName(p.G, a.Src())] {
 					continue
 				}
 				for _, b := range p.D.Options {
@@ -253,13 +253,13 @@ func kcharmtwotgtPolicy(seed uint64, c *kcharmtwotgtTally) Policy {
 				return p.D.Options[i]
 			}
 			for _, a := range p.D.Options {
-				if a.Kind() == ActCast && kcharmtwotgtPay[kteamworkName(p.G, a.Src())] {
+				if a.Kind() == ActCast && kcharmtwotgtPay[refCardName(p.G, a.Src())] {
 					return a
 				}
 			}
 			buf = buf[:0]
 			for _, a := range p.D.Options {
-				if a.Kind() == ActCast && a.Mode() == 0 && kcharmtwotgtCarrier[kteamworkName(p.G, a.Src())] {
+				if a.Kind() == ActCast && a.Mode() == 0 && kcharmtwotgtCarrier[refCardName(p.G, a.Src())] {
 					buf = append(buf, a)
 				}
 			}

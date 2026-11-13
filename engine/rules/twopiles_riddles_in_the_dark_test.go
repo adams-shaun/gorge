@@ -40,7 +40,7 @@ func TestRiddlesInTheDarkRememberedPeekMovesBothPiles(t *testing.T) {
 	lib := e.G.Zone(state.ZLibrary, 0)
 	order := append([]state.ObjID(nil), reveal...)
 	for _, id := range lib {
-		if !fofContainsID(reveal, id) {
+		if !contains(reveal, id) {
 			order = append(order, id)
 		}
 	}

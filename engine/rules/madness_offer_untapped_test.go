@@ -35,15 +35,6 @@ func madnessAskAfterDiscard(t *testing.T, seed uint64, cardName string, heroFixt
 	return e, cfg, d, id
 }
 
-func madnessOption(d *decision.Decision, kind string) int {
-	for _, o := range d.Options {
-		if o.Kind == kind {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 // TestMadnessOfferedWithUntappedLands: CR 702.35b with CR 601.2g -- the
 // madness cast is offered whenever untapped sources can pay for it, not only
 // against floating mana; the cast then taps a Mountain for the {R}.
@@ -51,7 +42,7 @@ func TestMadnessOfferedWithUntappedLands(t *testing.T) {
 	t.Parallel()
 	t.Run("two untapped Mountains", func(t *testing.T) {
 		e, cfg, d, temper := madnessAskAfterDiscard(t, 935, "Fiery Temper", nil, []string{"Mountain", "Mountain"})
-		yes, no := madnessOption(d, "yes"), madnessOption(d, "no")
+		yes, no := optionIndexForKind(d, "yes"), optionIndexForKind(d, "no")
 		if yes < 0 || no < 0 || len(d.Options) != 2 {
 			t.Fatalf("madness ask options = %+v, want yes and no", d.Options)
 		}
@@ -95,7 +86,7 @@ func TestMadnessOfferedWithUntappedLands(t *testing.T) {
 		if len(d.Options) != 1 || d.Options[0].Kind != "no" {
 			t.Fatalf("madness ask options = %+v, want only no from a creature-only source", d.Options)
 		}
-		submitChoices(t, e, madnessOption(d, "no"))
+		submitChoices(t, e, optionIndexForKind(d, "no"))
 		if z := e.G.Obj(temper).Zone; z != state.ZGraveyard {
 			t.Fatalf("Fiery Temper in %s after declining, want graveyard", z)
 		}
@@ -109,7 +100,7 @@ func TestMadnessOfferedWithUntappedLands(t *testing.T) {
 		if len(d.Options) != 1 || d.Options[0].Kind != "no" {
 			t.Fatalf("madness ask options = %+v, want only no with no creatures to target", d.Options)
 		}
-		submitChoices(t, e, madnessOption(d, "no"))
+		submitChoices(t, e, optionIndexForKind(d, "no"))
 		if z := e.G.Obj(whispers).Zone; z != state.ZGraveyard {
 			t.Fatalf("Malevolent Whispers in %s after declining, want graveyard", z)
 		}
@@ -119,7 +110,7 @@ func TestMadnessOfferedWithUntappedLands(t *testing.T) {
 	// so the card goes to the graveyard rather than staying in exile.
 	t.Run("aborted cast goes to the graveyard", func(t *testing.T) {
 		e, cfg, d, temper := madnessAskAfterDiscard(t, 939, "Fiery Temper", nil, []string{"Mountain", "Mountain"})
-		submitChoices(t, e, madnessOption(d, "yes"))
+		submitChoices(t, e, optionIndexForKind(d, "yes"))
 		if e.cast == nil {
 			t.Fatalf("precondition: no in-flight madness cast after choosing yes; pending %+v", e.Pending())
 		}

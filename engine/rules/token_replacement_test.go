@@ -20,16 +20,6 @@ import (
 // emit path and the replacements intercept exactly where the live game's
 // would.
 
-// tokenReplCorpusCard looks a real corpus card up by NAME.
-func tokenReplCorpusCard(t *testing.T, name string) *cards.Card {
-	t.Helper()
-	c, ok := testutil.CorpusRegistry(t).Lookup(name)
-	if !ok {
-		t.Fatalf("corpus missing %s", name)
-	}
-	return c
-}
-
 // tokenReplGame builds a 2-seat engine whose seat 0 deck carries the given
 // cards (so they can be moved to the battlefield through real logged
 // MoveZone events) and whose token registry is the real corpus one. The
@@ -146,7 +136,7 @@ func countTokensNamedOnSeat(t *testing.T, e *Engine, p state.PlayerID, name stri
 // NON-creature token (a Treasure) is untouched.
 func TestDivineVisitationReplacesCreatureTokens(t *testing.T) {
 	t.Parallel()
-	dv := tokenReplCorpusCard(t, "Divine Visitation")
+	dv := corpusAlternativeCard(t, "Divine Visitation")
 	squirrelMaker := cardByName(t, tokenForgeSrc("g_1_1_squirrel"))
 	treasureMaker := cardByName(t, tokenForgeSrc("c_a_treasure_sac"))
 
@@ -207,7 +197,7 @@ func TestDivineVisitationReplacesCreatureTokens(t *testing.T) {
 // token becomes two identical mints.
 func TestDoublingSeasonDoublesTokens(t *testing.T) {
 	t.Parallel()
-	ds := tokenReplCorpusCard(t, "Doubling Season")
+	ds := corpusAlternativeCard(t, "Doubling Season")
 	maker := cardByName(t, tokenForgeSrc("g_1_1_squirrel"))
 	e, cfg := tokenReplGame(t, 47, ds, maker)
 	moveSeededCard(t, e, 0, ds, state.ZBattlefield)
@@ -223,7 +213,7 @@ func TestDoublingSeasonDoublesTokens(t *testing.T) {
 // Clue becomes one Clue, one Food and one Treasure.
 func TestAcademyManufactorClueFoodTreasure(t *testing.T) {
 	t.Parallel()
-	am := tokenReplCorpusCard(t, "Academy Manufactor")
+	am := corpusAlternativeCard(t, "Academy Manufactor")
 	maker := cardByName(t, tokenForgeSrc("c_a_clue_draw"))
 	e, cfg := tokenReplGame(t, 53, am, maker)
 	moveSeededCard(t, e, 0, am, state.ZBattlefield)
@@ -243,7 +233,7 @@ func TestAcademyManufactorClueFoodTreasure(t *testing.T) {
 // that Treasure PLUS one more Treasure.
 func TestXornAddsTreasure(t *testing.T) {
 	t.Parallel()
-	xorn := tokenReplCorpusCard(t, "Xorn")
+	xorn := corpusAlternativeCard(t, "Xorn")
 	maker := cardByName(t, tokenForgeSrc("c_a_treasure_sac"))
 	e, cfg := tokenReplGame(t, 59, xorn, maker)
 	moveSeededCard(t, e, 0, xorn, state.ZBattlefield)
@@ -261,8 +251,8 @@ func TestXornAddsTreasure(t *testing.T) {
 // once, no infinite loop.
 func TestTokenReplacementsComposeScanOrder(t *testing.T) {
 	t.Parallel()
-	dv := tokenReplCorpusCard(t, "Divine Visitation")
-	ds := tokenReplCorpusCard(t, "Doubling Season")
+	dv := corpusAlternativeCard(t, "Divine Visitation")
+	ds := corpusAlternativeCard(t, "Doubling Season")
 	maker := cardByName(t, tokenForgeSrc("g_1_1_squirrel"))
 	e, cfg := tokenReplGame(t, 61, ds, dv, maker)
 	moveSeededCard(t, e, 0, ds, state.ZBattlefield)
@@ -284,8 +274,8 @@ func TestTokenReplacementsComposeScanOrder(t *testing.T) {
 // events.Emit path and can never re-match.
 func TestTokenReplacementExtrasNeverRematch(t *testing.T) {
 	t.Parallel()
-	ds := tokenReplCorpusCard(t, "Doubling Season")
-	pl := tokenReplCorpusCard(t, "Parallel Lives")
+	ds := corpusAlternativeCard(t, "Doubling Season")
+	pl := corpusAlternativeCard(t, "Parallel Lives")
 	maker := cardByName(t, tokenForgeSrc("g_1_1_squirrel"))
 	e, cfg := tokenReplGame(t, 67, ds, pl, maker)
 	moveSeededCard(t, e, 0, ds, state.ZBattlefield)
@@ -307,7 +297,7 @@ func TestTokenReplacementExtrasNeverRematch(t *testing.T) {
 // g.Obj(want) and skips).
 func TestHalvingSeasonRoundsOpponentTokensDownToZero(t *testing.T) {
 	t.Parallel()
-	hs := tokenReplCorpusCard(t, "Halving Season")
+	hs := corpusAlternativeCard(t, "Halving Season")
 	maker := cardByName(t, tokenForgeSrc("g_1_1_squirrel"))
 	e, cfg := tokenReplGameSeats(t, 73, []*cards.Card{hs}, []*cards.Card{maker})
 	moveSeededCard(t, e, 0, hs, state.ZBattlefield)
@@ -349,7 +339,7 @@ func TestHalvingSeasonRoundsOpponentTokensDownToZero(t *testing.T) {
 // token_replacement_standins_test.go.
 func TestTokenReplacementOptionalDeclines(t *testing.T) {
 	t.Parallel()
-	lyev := tokenReplCorpusCard(t, "Flitwing, Lyev Detective")
+	lyev := corpusAlternativeCard(t, "Flitwing, Lyev Detective")
 	maker := cardByName(t, tokenForgeSrc("c_a_treasure_sac"))
 	e, cfg := tokenReplGame(t, 71, lyev, maker)
 	moveSeededCard(t, e, 0, lyev, state.ZBattlefield)

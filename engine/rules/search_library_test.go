@@ -161,14 +161,6 @@ func basicLibraryIDs(e *Engine) []state.ObjID {
 	return out
 }
 
-func optionIDs(d *decision.Decision) []state.ObjID {
-	out := make([]state.ObjID, 0, len(d.Options))
-	for _, o := range d.Options {
-		out = append(out, o.Obj)
-	}
-	return out
-}
-
 func searchEvents(log []events.Event, start int, player state.PlayerID) []events.Event {
 	var out []events.Event
 	for _, ev := range log[start:] {

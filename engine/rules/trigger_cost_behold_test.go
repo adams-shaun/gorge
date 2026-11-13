@@ -78,7 +78,7 @@ func TestTriggeredBeholdCost(t *testing.T) {
 		if tc := e.triggerCost; tc == nil || len(tc.amount.Behold) != 1 {
 			t.Fatalf("precondition: pending window is not the Behold cost (ask %+v)", d)
 		}
-		payIdx := foragePayIndex(d)
+		payIdx := optionIndexForKind(d, "trigger_cost_pay")
 		if payIdx < 0 {
 			t.Fatalf("Behold<1/Dragon> with %d Dragon(s) offers no pay: %+v", len(dragons), d.Options)
 		}

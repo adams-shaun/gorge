@@ -353,7 +353,7 @@ func (e *Engine) costTargetsMatchPlan(sv staticView, spec string, targets []stat
 	ctx := e.staticSpecCtxNamed(sv)
 	for _, target := range targets {
 		if target.IsPlayer {
-			if effects.MatchesPlayerSpec(e.G, spec, target.Player, sv.Controller) {
+			if effects.MatchesPlayerSpecFrom(e.G, spec, target.Player, sv.Controller, sv.Source) {
 				return true
 			}
 			continue

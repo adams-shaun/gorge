@@ -44,12 +44,12 @@ func TestCastPlanPlansNonzeroFace(t *testing.T) {
 	if len(got.Plan.Activations) != 1 || got.Plan.Activations[0].Source != swamp {
 		t.Fatalf("witness %s, want the Swamp %d", lrPlanString(got.Plan.Activations), swamp)
 	}
-	d := ppAsk(t, e)
+	d := paymentPlanReask(t, e)
 	a := ppAction(t, d, id)
 	if a.Cast.Face != 1 {
 		t.Fatalf("planned cast face = %d, want the shown face 1", a.Cast.Face)
 	}
-	ppSubmitPlan(t, e, d, a)
+	submitPaymentPlan(t, e, d, a)
 	for guard := 0; guard < 20; guard++ {
 		cur := e.Pending()
 		if cur == nil || cur.Kind == decision.KPriority {

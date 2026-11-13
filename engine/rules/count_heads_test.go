@@ -106,24 +106,13 @@ func g280DamageDealt(o *state.Object) int32 {
 	return n
 }
 
-// g280DiscardsBy counts the log's discards attributed to player p.
-func g280DiscardsBy(e *Engine, p state.PlayerID) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if events.IsDiscard(ev) && ev.Player == p {
-			n++
-		}
-	}
-	return n
-}
-
 // g280ActivateDiscardAndDrain activates the pending ability, answers the
 // opponent's discard ask, and drains priority until the discard has landed
 // and the stack is empty.
 func g280ActivateDiscardAndDrain(t *testing.T, e *Engine) {
 	t.Helper()
 	for i := 0; i < 60; i++ {
-		if g280DiscardsBy(e, 1) > 0 && len(e.G.Stack) == 0 {
+		if countPlayerDiscards(e, 1) > 0 && len(e.G.Stack) == 0 {
 			return
 		}
 		d := e.Pending()
@@ -144,7 +133,7 @@ func g280ActivateDiscardAndDrain(t *testing.T, e *Engine) {
 		}
 		t.Fatalf("unexpected decision %+v while resolving the discard ability", d)
 	}
-	t.Fatalf("the discard ability did not discard (discards=%d, stack=%v)", g280DiscardsBy(e, 1), e.G.Stack)
+	t.Fatalf("the discard ability did not discard (discards=%d, stack=%v)", countPlayerDiscards(e, 1), e.G.Stack)
 }
 
 // TestEachSpentToCastBladecoilDrawsPerBluePair: with X=4 paid as {U}{U}{U}{U}
@@ -371,14 +360,14 @@ func TestRavenManSeesAnyPlayersDiscard(t *testing.T) {
 	}
 	e.priorityRound()
 	addMana(t, e, 0, "BBBB")
-	discardsBefore := g280DiscardsBy(e, 1)
+	discardsBefore := countPlayerDiscards(e, 1)
 	opt, ok := findAbilityOption(e, ravenID, 0)
 	if !ok {
 		t.Fatalf("The Raven Man's discard ability not offered: %+v", e.Pending())
 	}
 	submitChoices(t, e, opt.Index)
 	g280ActivateDiscardAndDrain(t, e)
-	if got := g280DiscardsBy(e, 1) - discardsBefore; got != 1 {
+	if got := countPlayerDiscards(e, 1) - discardsBefore; got != 1 {
 		t.Fatalf("precondition: the ability made the opponent discard %d cards, want 1", got)
 	}
 

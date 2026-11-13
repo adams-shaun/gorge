@@ -40,26 +40,6 @@ func unlessFamilyEngine(t *testing.T, seed uint64) *Engine {
 	return e
 }
 
-// seekUnlessPay passes every priority decision until a mid-resolution
-// unless_pay ask becomes pending, and returns it.
-func seekUnlessPay(t *testing.T, e *Engine, limit int) *decision.Decision {
-	t.Helper()
-	for i := 0; i < limit && !e.G.Over; i++ {
-		d := e.Pending()
-		if d == nil {
-			return nil
-		}
-		if d.Kind == decision.KModes && d.ResumeKind == "unless_pay" {
-			return d
-		}
-		if d.Kind != decision.KPriority {
-			t.Fatalf("unexpected decision kind %v (seat %d) while seeking the unless-pay ask: %+v", d.Kind, d.Player, d)
-		}
-		castFirst(t, e, "pass")
-	}
-	return nil
-}
-
 // ---------------------------------------------------------------------------
 // Tap: Blood Crypt's ETB shock-land shape (UnlessCost$ PayLife<2>,
 // UnlessPayer$ You), resolved through the R:Event$ Moved ReplaceWith$ body.

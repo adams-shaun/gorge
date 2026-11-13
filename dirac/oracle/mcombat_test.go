@@ -43,27 +43,6 @@ var kmcombatDecks = [][2][]cardset.Entry{{
 	},
 }}
 
-// kmcombatPolicy casts or activates whenever it can (so the Vehicles are
-// crewed, the Walls sacrificed and the Dragons cast), else random.
-func kmcombatPolicy(seed uint64) Policy {
-	rnd := RandomPolicy(seed)
-	var buf []Canon
-	return PolicyFunc(func(c *PickCtx) Canon {
-		buf = buf[:0]
-		for _, a := range c.D.Options {
-			if a.Kind() == ActCast || a.Kind() == ActActivate {
-				buf = append(buf, a)
-			}
-		}
-		if len(buf) == 0 {
-			return rnd.Pick(c)
-		}
-		d := *c.D
-		d.Options = buf
-		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
-	})
-}
-
 // kmcombatTally counts, on the gorge side, the lifted mechanics: each
 // carrier ability put on the stack (source name / API: the filter matched
 // or the condition held there) and each one that left it, and the +1/+1
@@ -166,7 +145,7 @@ func TestMcombatLockstep(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			pol := kmcombatPolicy(seed)
+			pol := castActivateKindPolicy(seed)
 			if seed%4 == 0 {
 				pol = RandomPolicy(seed)
 			}

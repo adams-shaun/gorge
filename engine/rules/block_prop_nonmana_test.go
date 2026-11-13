@@ -53,7 +53,7 @@ func countRestrictionEntries(e *Engine) int {
 func TestHeatWaveBlockChargesLife(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	heat := onBoardCard(t, e, 1, mshCorpusCard(t, "Heat Wave"))
+	heat := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Heat Wave"))
 	bear := onBoardReady(t, e, 1, bearBlockSrc)
 	memnite := onBoardReady(t, e, 0, memniteSrc)
 	attackSeat0(t, e, bear)
@@ -108,7 +108,7 @@ func TestHeatWaveBlockChargesLife(t *testing.T) {
 func TestHeatWaveInsufficientLifeIsNeverOffered(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	heat := onBoardCard(t, e, 1, mshCorpusCard(t, "Heat Wave"))
+	heat := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Heat Wave"))
 	bear := onBoardReady(t, e, 1, bearBlockSrc)
 	memnite := onBoardReady(t, e, 0, memniteSrc)
 	attackSeat0(t, e, bear)
@@ -133,7 +133,7 @@ func TestHeatWaveInsufficientLifeIsNeverOffered(t *testing.T) {
 func TestHollowWarriorBlockTapsAnUntappedNonblocker(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	warrior := onBoardCard(t, e, 0, mshCorpusCard(t, "Hollow Warrior"))
+	warrior := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Hollow Warrior"))
 	bear := onBoardReady(t, e, 0, bearBlockSrc)
 	memnite := onBoardReady(t, e, 1, memniteSrc)
 	attackSeat0(t, e, memnite)
@@ -189,7 +189,7 @@ func TestHollowWarriorBlockTapsAnUntappedNonblocker(t *testing.T) {
 func TestHollowWarriorWithoutATapperIsNeverOffered(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	warrior := onBoardCard(t, e, 0, mshCorpusCard(t, "Hollow Warrior"))
+	warrior := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Hollow Warrior"))
 	memnite := onBoardReady(t, e, 1, memniteSrc)
 	attackSeat0(t, e, memnite)
 
@@ -209,7 +209,7 @@ func TestHollowWarriorWithoutATapperIsNeverOffered(t *testing.T) {
 // consult time).
 func TestWhipgrassEntanglerDeliveredStaticChargesPerCleric(t *testing.T) {
 	t.Parallel()
-	whipCard := mshCorpusCard(t, "Whipgrass Entangler")
+	whipCard := corpusAlternativeCard(t, "Whipgrass Entangler")
 	e := chargeEngine(t, 8101, whipCard)
 	bear := onBoardReady(t, e, 0, bearBlockSrc)
 	memnite := onBoardReady(t, e, 1, memniteSrc)
@@ -283,7 +283,7 @@ func TestWhipgrassEntanglerDeliveredStaticChargesPerCleric(t *testing.T) {
 // Count$ChosenNumber SVar resolved against the frozen binding).
 func TestWarCadenceEffectDeliveredChargesTheChosenX(t *testing.T) {
 	t.Parallel()
-	cadCard := mshCorpusCard(t, "War Cadence")
+	cadCard := corpusAlternativeCard(t, "War Cadence")
 	e := chargeEngine(t, 8102, cadCard)
 	bear := onBoardReady(t, e, 0, bearBlockSrc)
 	memnite := onBoardReady(t, e, 1, memniteSrc)
@@ -358,7 +358,7 @@ func TestWarCadenceEffectDeliveredChargesTheChosenX(t *testing.T) {
 func TestBlockChargeBotAnswerNeverRejected(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	heat := onBoardCard(t, e, 1, mshCorpusCard(t, "Heat Wave"))
+	heat := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Heat Wave"))
 	a1 := onBoardReady(t, e, 1, bearBlockSrc)
 	a2 := onBoardReady(t, e, 1, bearBlockSrc)
 	b1 := onBoardReady(t, e, 0, memniteSrc)
@@ -411,7 +411,7 @@ func TestBlockChargeBotAnswerNeverRejected(t *testing.T) {
 func TestBlockChargeReplays(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	warrior := onBoardCard(t, e, 0, mshCorpusCard(t, "Hollow Warrior"))
+	warrior := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Hollow Warrior"))
 	bear := onBoardReady(t, e, 0, bearBlockSrc)
 	memnite := onBoardReady(t, e, 1, memniteSrc)
 	attackSeat0(t, e, memnite)

@@ -16,7 +16,7 @@ func thorAttacks(t *testing.T, target func(*Engine) state.ObjID) (*Engine, state
 	t.Helper()
 	e := New(Config{Seed: 717, Names: []string{"a", "b"},
 		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}})
-	thor := onBoardCard(t, e, 0, mshCorpusCard(t, "The Mighty Thor, Jane Foster"))
+	thor := onBoardCard(t, e, 0, corpusAlternativeCard(t, "The Mighty Thor, Jane Foster"))
 	e.G.Obj(thor).SummonSick = false
 	var tgt state.ObjID
 	if target != nil {

@@ -7,17 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
-
-func corpusAlternativeCard(t *testing.T, name string) *cards.Card {
-	t.Helper()
-	c, ok := testutil.CorpusRegistry(t).Lookup(name)
-	if !ok {
-		t.Fatalf("corpus missing %s", name)
-	}
-	return c
-}
 
 func castMode(t *testing.T, e *Engine, id state.ObjID, mode string) {
 	t.Helper()
@@ -755,18 +745,6 @@ func TestOpeningHandRevealActionAndPlayFirstGate(t *testing.T) {
 // hand-writing state mutation; this compile-time assertion documents that all
 // alternative-cost tests use the event boundary for game changes.
 var _ = events.Event{}
-
-// altCastOptions returns the alternative-cost cast options legalActions
-// offered for id (AltCostIndex > 0; the paid cast carries the zero value).
-func altCastOptions(opts []decision.Option, id state.ObjID) []decision.Option {
-	var out []decision.Option
-	for _, o := range opts {
-		if o.Kind == "cast" && o.Obj == id && o.AltCostIndex > 0 {
-			out = append(out, o)
-		}
-	}
-	return out
-}
 
 // TestDazeAltCostGatedOnAnIslandToReturn pins the two-param shape: Daze's
 // EffectZone$ All + ValidSA$ Spell.Self self-carried static reaches the

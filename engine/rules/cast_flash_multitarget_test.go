@@ -65,11 +65,11 @@ func TestFlashMultitargetMixedCompletionIsOfferedAndCasts(t *testing.T) {
 	if d.Min != 2 || d.Max != 2 {
 		t.Fatalf("precondition: target ask bounds = %d..%d, want 2..2", d.Min, d.Max)
 	}
-	if targetOptionIndex(d, myBear) < 0 || targetOptionIndex(d, theirBear) < 0 {
+	if indexOfObjOption(d, myBear) < 0 || indexOfObjOption(d, theirBear) < 0 {
 		t.Fatalf("precondition: both creatures must be offered: %+v", d.Options)
 	}
 	// Selecting the mixed completion must complete the cast, not reverse it.
-	submitChoices(t, e, targetOptionIndex(d, myBear), targetOptionIndex(d, theirBear))
+	submitChoices(t, e, indexOfObjOption(d, myBear), indexOfObjOption(d, theirBear))
 	if hasNote(e, "cast aborted") {
 		t.Fatal("a mixed covered/uncovered completion was reversed; the permission judges the whole announced set")
 	}
@@ -102,11 +102,11 @@ func TestFlashMultitargetQualifyingPairAnnouncesBoth(t *testing.T) {
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("pending = %+v, want the two-target ask", d)
 	}
-	if targetOptionIndex(d, theirBear) < 0 {
+	if indexOfObjOption(d, theirBear) < 0 {
 		t.Fatalf("the uncovered opponent creature was hidden although pairings with an own creature are legal: %+v", d.Options)
 	}
 	// And a pairing of qualifying + uncovered completes.
-	submitChoices(t, e, targetOptionIndex(d, bearOne), targetOptionIndex(d, theirBear))
+	submitChoices(t, e, indexOfObjOption(d, bearOne), indexOfObjOption(d, theirBear))
 	if hasNote(e, "cast aborted") {
 		t.Fatal("the qualifying-pair-with-uncovered completion was reversed")
 	}

@@ -53,7 +53,7 @@ func investigateClueIDs(t *testing.T, e *Engine, p state.PlayerID) []state.ObjID
 // owned by the controller.
 func TestMarthaJonesInvestigatesCreatesClue(t *testing.T) {
 	t.Parallel()
-	martha := tokenReplCorpusCard(t, "Martha Jones")
+	martha := corpusAlternativeCard(t, "Martha Jones")
 	e, cfg := tokenReplGame(t, 73, martha)
 	moveSeededCard(t, e, 0, martha, state.ZBattlefield)
 	addMana(t, e, 0, "") // a priority round flushes the queued ETB trigger
@@ -71,7 +71,7 @@ func TestMarthaJonesInvestigatesCreatesClue(t *testing.T) {
 // creates two Clue tokens.
 func TestWavesifterInvestigatesTwice(t *testing.T) {
 	t.Parallel()
-	wave := tokenReplCorpusCard(t, "Wavesifter")
+	wave := corpusAlternativeCard(t, "Wavesifter")
 	e, cfg := tokenReplGame(t, 74, wave)
 	moveSeededCard(t, e, 0, wave, state.ZBattlefield)
 	addMana(t, e, 0, "") // a priority round flushes the queued ETB trigger
@@ -87,8 +87,8 @@ func TestWavesifterInvestigatesTwice(t *testing.T) {
 // loses 1 life") responds to an investigate with exactly one life loss.
 func TestInvestigateFiresTokenCreatedTrigger(t *testing.T) {
 	t.Parallel()
-	bats := tokenReplCorpusCard(t, "Mirkwood Bats")
-	martha := tokenReplCorpusCard(t, "Martha Jones")
+	bats := corpusAlternativeCard(t, "Mirkwood Bats")
+	martha := corpusAlternativeCard(t, "Martha Jones")
 	e, cfg := tokenReplGame(t, 75, bats, martha)
 	moveSeededCard(t, e, 0, bats, state.ZBattlefield)
 	before := e.G.Players[1].Life // Bats has no ETB; no loss yet
@@ -109,7 +109,7 @@ func TestInvestigateFiresTokenCreatedTrigger(t *testing.T) {
 // and the Clue left the battlefield.
 func TestClueSacDraws(t *testing.T) {
 	t.Parallel()
-	martha := tokenReplCorpusCard(t, "Martha Jones")
+	martha := corpusAlternativeCard(t, "Martha Jones")
 	e, cfg := tokenReplGame(t, 76, martha)
 	moveSeededCard(t, e, 0, martha, state.ZBattlefield)
 	addMana(t, e, 0, "") // a priority round flushes the queued ETB trigger

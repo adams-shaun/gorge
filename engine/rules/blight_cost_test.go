@@ -22,7 +22,7 @@ func TestDoublingSeasonLeavesBlightActivationCostUndoubled(t *testing.T) {
 	idol := card(t, "Name:Blight Idol\nTypes:Artifact\n"+
 		"A:AB$ GainLife | Cost$ Blight<2> | LifeAmount$ 1 | SpellDescription$ You gain 1 life.\nOracle:x\n")
 	victim := card(t, blightCreatureSrc)
-	ds := tokenReplCorpusCard(t, "Doubling Season")
+	ds := corpusAlternativeCard(t, "Doubling Season")
 	e, cfg := tokenReplGame(t, 301, idol, victim, ds)
 	id := moveSeededCard(t, e, 0, idol, state.ZBattlefield)
 	cr := moveSeededCard(t, e, 0, victim, state.ZBattlefield)
@@ -47,7 +47,7 @@ func TestDoublingSeasonLeavesBlightSpellCostUndoubled(t *testing.T) {
 	spell := card(t, "Name:Blight Rite\nTypes:Sorcery\nManaCost:R\n"+
 		"A:SP$ GainLife | Cost$ Blight<2> | LifeAmount$ 1 | SpellDescription$ You gain 1 life.\nOracle:x\n")
 	victim := card(t, blightCreatureSrc)
-	ds := tokenReplCorpusCard(t, "Doubling Season")
+	ds := corpusAlternativeCard(t, "Doubling Season")
 	e, cfg := tokenReplGame(t, 302, spell, victim, ds)
 	sp := moveSeededCard(t, e, 0, spell, state.ZHand)
 	cr := moveSeededCard(t, e, 0, victim, state.ZBattlefield)

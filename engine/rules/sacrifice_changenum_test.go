@@ -56,7 +56,7 @@ func TestSacrificeChangeNumIsInert(t *testing.T) {
 	if !slices.Contains(offered, mountain) || !slices.Contains(offered, chasmID) {
 		t.Fatalf("sacrifice options = %v, want both lands %d and %d", offered, mountain, chasmID)
 	}
-	if d := answerChoices(t, e, optionObjOrFail(t, d, mountain)); d != nil {
+	if d := answerChoices(t, e, objOptionIndex(t, d, mountain)); d != nil {
 		t.Fatalf("unexpected follow-up after the sacrifice = %+v", d)
 	}
 	if got := e.G.Obj(mountain).Zone; got != state.ZGraveyard {

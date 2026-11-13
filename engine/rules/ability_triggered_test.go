@@ -35,7 +35,7 @@ func atTable(t *testing.T) (*Engine, state.ObjID) {
 	t.Helper()
 	e := New(Config{Seed: 717, Names: []string{"a", "b"},
 		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}})
-	fb := onBoardCard(t, e, 0, mshCorpusCard(t, "Firebender Ascension"))
+	fb := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Firebender Ascension"))
 	if o := e.G.Obj(fb); o.Zone != state.ZBattlefield || o.Counter("QUEST") != 0 {
 		t.Fatalf("precondition: Firebender Ascension on battlefield with no quest counters, got zone %v", o.Zone)
 	}

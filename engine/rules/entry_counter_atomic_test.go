@@ -29,7 +29,7 @@ func TestEntryUnleashCountersAreAtomicUnderScalesAndSolemnity(t *testing.T) {
 		want int32
 	}{{"Hardened Scales", 2}, {"Solemnity", 0}} {
 		t.Run(tc.name, func(t *testing.T) {
-			rider := tokenReplCorpusCard(t, tc.name)
+			rider := corpusAlternativeCard(t, tc.name)
 			cre := unleashCard(t, "Rakdos Cackler")
 			e, cfg := tokenReplGame(t, 165, rider, cre)
 			rid := moveSeededCard(t, e, 0, rider, state.ZBattlefield)
@@ -66,7 +66,7 @@ func TestEntryUnleashCountersAreAtomicUnderScalesAndSolemnity(t *testing.T) {
 
 func TestRedirectedEntryLeavesNoEntryCounters(t *testing.T) {
 	t.Parallel()
-	priest := tokenReplCorpusCard(t, "Containment Priest")
+	priest := corpusAlternativeCard(t, "Containment Priest")
 	cre := card(t, "Name:Entry Creature Walker\nTypes:Creature Planeswalker Entry\nPT:2/2\nLoyalty:4\nOracle:x\n")
 	control, controlCfg := tokenReplGame(t, 174, cre)
 	base := seededEntryID(t, control, cre)
@@ -116,7 +116,7 @@ func TestRedirectedEntryLeavesNoEntryCounters(t *testing.T) {
 
 func TestSagaEntryLoreReplacementChaptersExactlyOnce(t *testing.T) {
 	t.Parallel()
-	saga := tokenReplCorpusCard(t, "Urza's Saga")
+	saga := corpusAlternativeCard(t, "Urza's Saga")
 	for _, tc := range []struct {
 		name     string
 		want     int32
@@ -126,7 +126,7 @@ func TestSagaEntryLoreReplacementChaptersExactlyOnce(t *testing.T) {
 		{"Solemnity", 0, nil},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			rider := tokenReplCorpusCard(t, tc.name)
+			rider := corpusAlternativeCard(t, tc.name)
 			e, cfg := tokenReplGame(t, 169, rider, saga)
 			rid := moveSeededCard(t, e, 0, rider, state.ZBattlefield)
 			if o := e.G.Obj(rid); o == nil || o.Zone != state.ZBattlefield {

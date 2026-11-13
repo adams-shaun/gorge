@@ -65,16 +65,6 @@ func zbcSetup(t *testing.T) (*cards.Registry, cardset.Set, [2][]*cards.Card, *ko
 	return reg, set, decks, tbl
 }
 
-func zbcPolicy(seed uint64, played map[string]int, gs **GorgeSide) Policy {
-	inner := eagerPolicy(seed, played)
-	return PolicyFunc(func(c *PickCtx) Canon {
-		if c.G != nil {
-			*gs = c.G
-		}
-		return inner.Pick(c)
-	})
-}
-
 // zbcScan counts, from gorge's event log, what Kaya's abilities did: the
 // latest pushed trigger or ability is Kaya's, and the event is its move.
 func zbcScan(g *GorgeSide, n map[string]int) {
@@ -147,7 +137,7 @@ func TestZonebatchcloneLockstep(t *testing.T) {
 			t.Fatal(err)
 		}
 		var gs *GorgeSide
-		res := Lockstep(m, seed, k, zbcPolicy(seed, played, &gs), RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 25})
+		res := Lockstep(m, seed, k, trackingEagerPolicy(seed, played, &gs), RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 25})
 		CloseSide(k)
 		games++
 		if strings.HasPrefix(res.Stall, KernelStallPrefix) {
@@ -216,7 +206,7 @@ func TestZonebatchcloneMutation(t *testing.T) {
 			t.Fatal(err)
 		}
 		var gs *GorgeSide
-		res := Lockstep(m, seed, k, zbcPolicy(seed, map[string]int{}, &gs), RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 25})
+		res := Lockstep(m, seed, k, trackingEagerPolicy(seed, map[string]int{}, &gs), RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 25})
 		CloseSide(k)
 		if res.Div != nil {
 			t.Logf("diverged at seed %d decision %d: %s %s", seed, res.Div.At, res.Div.What, res.Div.Field)

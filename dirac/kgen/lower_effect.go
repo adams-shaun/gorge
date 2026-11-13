@@ -165,6 +165,10 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			}
 		}
 		return lRef{}, refuse("Defined$ %q outside a Phase/Drawn/LifeGained/LifeLost/SpellCast/FacesDilemma/BecomeMonarch trigger", v)
+	case "TriggeredAttackingPlayer":
+		return lc.triggeredAttackingPlayerDefined(v)
+	case "TriggeredAttackedTarget":
+		return lc.triggeredAttackedTargetDefined(v)
 	case "TriggeredTarget", "TriggeredTargetLKICopy":
 		// gorge definedSpecTriggeredTarget of a damage trigger: the damaged
 		// object or player. A per-referent DamageDone line whose ValidTarget$
@@ -211,17 +215,6 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			return lRef{Kind: rEachOpp}, nil
 		}
 		return lRef{}, refuse("Defined$ %q outside an opponent-source BecomesTarget watcher", v)
-	case "TriggeredAttackingPlayer":
-		// gorge trigger_referents.go: the controller of the in-flight
-		// combat source when it is attacking. A per-referent DamageDone
-		// line with CombatDamage$ True and ValidTarget$ You is combat
-		// damage to this listener's controller, so with two players the
-		// source is an attacker the one opponent controls.
-		if tr := lc.ab.Trigger; ddoAttackingPlayer(tr) {
-			lc.twoSeat("TriggeredAttackingPlayer read as the one opponent")
-			return lRef{Kind: rEachOpp}, nil
-		}
-		return lRef{}, refuse("Defined$ %q outside a combat damage-to-you trigger the kernel's attacking player names", v)
 	case "TriggeredCardController", "TriggeredActivator":
 		return lRef{Kind: rTriggeredPlayer}, nil
 	case "Equipped", "Enchanted", "AttachedTo":
@@ -333,6 +326,39 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		return lRef{Kind: rSrcOwner}, nil // gorge definedSpecCardOwner
 	}
 	return lRef{}, refuse("Defined$ %q", v)
+}
+
+// triggeredAttackingPlayerDefined is Defined$ TriggeredAttackingPlayer:
+// gorge binds AttackingPlayer on a DeclareAttackers event to the declaring
+// player, who is the game's active player (CR 508.1: only the active player
+// declares attackers) -- the kernel's queue-time trigger player at every seat
+// count (fireAtkDecl's who, fireDefPlayer's, combat.go stampDefSeat). The
+// combat-damage arm keeps its two-seat reading (the combat source's
+// controller is the one opponent).
+func (lc *lowerCtx) triggeredAttackingPlayerDefined(v string) (lRef, error) {
+	if tr := lc.ab.Trigger; tr != nil && tr.Event == "AttackersDeclared" {
+		return lRef{Kind: rTriggeredPlayer}, nil
+	}
+	if tr := lc.ab.Trigger; ddoAttackingPlayer(tr) {
+		lc.twoSeat("TriggeredAttackingPlayer read as the one opponent")
+		return lRef{Kind: rEachOpp}, nil
+	}
+	return lRef{}, refuse("Defined$ %q outside a combat damage-to-you trigger the kernel's attacking player names or an AttackersDeclared trigger", v)
+}
+
+// triggeredAttackedTargetDefined is Defined$ TriggeredAttackedTarget: gorge
+// binds AttackedTarget on a DeclareAttackers event to the event's defender.
+// The kernel names the seat RefDefendingPlayer: the queue-time defending seat
+// (combat.go stampDefSeat, every seat count past two) and the one opponent at
+// two (resolve.go oneOppOf: the active player is the only possible attacker,
+// CR 508.1). A per-defender line only (Trigger.DefPlayer set): a batch line
+// queues once for the whole declaration, whose stamp names only the first
+// defender group.
+func (lc *lowerCtx) triggeredAttackedTargetDefined(v string) (lRef, error) {
+	if tr := lc.ab.Trigger; tr != nil && tr.Event == "AttackersDeclared" && tr.DefPlayer != 0 {
+		return lRef{Kind: rDefending}, nil
+	}
+	return lRef{}, refuse("Defined$ %q outside a per-defender AttackersDeclared trigger", v)
 }
 
 // damagedPlayerIsTriggerPlayer reports whether the ability is a DamageDone
@@ -2975,6 +3001,25 @@ func (lc *lowerCtx) playerGrantStatics(kw string) ([]lStatic, error) {
 	return sts, nil
 }
 
+// pumpPlayerEOT lowers the keywords of an until-end-of-turn Pump grant to the
+// resolving controller (The Needs of the Many, Earthshape: "you gain
+// hexproof until end of turn"). gorge registers the grant as a Player.You
+// keyword static (registerPlayerPumpGrant) that its playerKeywords gates
+// read, so hexproof stops an opponent's targeting until cleanup: the
+// kernel's TurnReplPlayerHex record, the player half pumpYouAndValid emits
+// for Dawn's Truce. Any other keyword refuses by name: a kernel keyword
+// grant lands on a permanent and never on a player, and the kernel has no
+// player read for shroud (CR 702.18a) or a player's protection.
+func (lc *lowerCtx) pumpPlayerEOT(ks []string) error {
+	for _, k := range ks {
+		if k != "Hexproof" {
+			return refuse("player-scoped Pump grant keyword %q until end of turn", k)
+		}
+	}
+	lc.emit(lInstr{Op: "TurnRepl", C: kop.TurnReplPlayerHex, Note: "you have hexproof this turn"})
+	return nil
+}
+
 // pumpNextTurnObject lowers a battlefield object's Pump Duration$
 // UntilYourNextTurn: a keyword grant is the ovNT override record (gorge's
 // durationTiming UntilTurn boundary, CR 611.2b; The Undercity's Throne), a
@@ -3115,7 +3160,13 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 			if err != nil {
 				return err
 			}
-			lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: strings.Join(ks, "&")})
+			if lc.pumpPlayerRef(obj) {
+				if err := lc.pumpPlayerEOT(ks); err != nil {
+					return err
+				}
+			} else {
+				lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: strings.Join(ks, "&")})
+			}
 		}
 		for _, n := range fbs {
 			// CR 702.189a granted until end of turn: the latent Attacks
@@ -3129,6 +3180,9 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		}
 	}
 	if len(extra) > 0 {
+		if lc.pumpPlayerRef(obj) {
+			return refuse("player-scoped Pump KWChoice$ grant")
+		}
 		lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: strings.Join(extra, "&")})
 	}
 	if mustBlock {
@@ -3901,6 +3955,40 @@ func (lc *lowerCtx) fight(ps *params) error {
 func (lc *lowerCtx) attach(ps *params) error {
 	if o, ok := ps.get("Object"); ok && o != "Self" {
 		return lc.attachObject(ps, o)
+	}
+	// A player DESTINATION (Archnemesis's "you may attach Archnemesis to
+	// that player": DB$ Attach | Defined$ TriggeredAttackingPlayer |
+	// Object$ Self): gorge's effAttach EnchantSelf branch
+	// (engine/effects/attach.go) walks the Defined$ player set and attaches
+	// the aura to the first legal seat — alive, not lost, an Opponent
+	// Enchant word excluding the aura's controller — emitting the "attach to
+	// player" event, the no-legal-player Note when none is. The kernel's
+	// OpAttach W arm is that walk, gated by attachPlayerLegal
+	// (interp_gen.go). Only a triggered player referent is accepted here;
+	// any other Defined$ falls through to the ordinary object walk.
+	// Peek (not get) and gate on the one spelling: every other Defined$ (the
+	// ordinary Targeted attach object) must still resolve in the walk below,
+	// after its own target slot exists.
+	if d, ok := ps.m["Defined"]; ok && strings.TrimSpace(d) == "TriggeredAttackingPlayer" {
+		r, err := lc.defined("TriggeredAttackingPlayer")
+		if err != nil {
+			return err
+		}
+		if r.Kind == rTriggeredPlayer {
+			ps.consume("Defined")
+			in := lInstr{Op: "Attach", W: r}
+			if v, ok := ps.m["RememberAttached"]; ok {
+				// gorge attachTo: the attaching object joins the remembered set
+				// when the attach happens
+				if v = strings.TrimSpace(v); v != "True" {
+					return refuse("Attach RememberAttached$ %q", v)
+				}
+				ps.consume("RememberAttached")
+				in.CS = "Remember"
+			}
+			lc.emit(in)
+			return nil
+		}
 	}
 	if _, ok := ps.get("Choices"); ok {
 		if _, ok := ps.get("Object"); !ok {

@@ -27,7 +27,7 @@ import (
 // aura's `ValidCard$ Creature.AttachedBy`).
 func raysOn(t *testing.T, e *Engine, p state.PlayerID, bearer state.ObjID) state.ObjID {
 	t.Helper()
-	rays := onBoardCard(t, e, p, mshCorpusCard(t, "Oppressive Rays"))
+	rays := onBoardCard(t, e, p, corpusAlternativeCard(t, "Oppressive Rays"))
 	e.emit(events.Event{Kind: events.Attach, Obj: rays, IDs: []state.ObjID{bearer}})
 	if got := e.G.Obj(rays).AttachedTo; got != bearer {
 		t.Fatalf("precondition: Oppressive Rays %d not attached to %d (AttachedTo %d)", rays, bearer, got)
@@ -56,7 +56,7 @@ func levyOn(t *testing.T, e *Engine, p state.PlayerID, bearer state.ObjID) state
 // sickness is cleared as if it had been under its controller since turn 1).
 func llanowarOn(t *testing.T, e *Engine, p state.PlayerID) state.ObjID {
 	t.Helper()
-	id := onBoardCard(t, e, p, mshCorpusCard(t, "Llanowar Elves"))
+	id := onBoardCard(t, e, p, corpusAlternativeCard(t, "Llanowar Elves"))
 	e.G.Obj(id).SummonSick = false
 	return id
 }

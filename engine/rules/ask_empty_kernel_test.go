@@ -32,7 +32,7 @@ func TestBucolicRanchBottomContinuationKernel(t *testing.T) {
 	if n := countEventKind(eventsSince(e, start), events.MoveZone); n != 0 {
 		t.Fatalf("DBChangeZone2 moved %d card(s) before its answer", n)
 	}
-	answerAsk(t, e, optionOfKind(t, d, "yes"))
+	answerAsk(t, e, optionKindIndex(t, d, "yes"))
 	lib := e.G.Zone(state.ZLibrary, 0)
 	if len(lib) != len(ids) || lib[len(lib)-1] != ids[0] {
 		t.Fatalf("accepted DBChangeZone2 library = %v, want top %d on bottom", lib, ids[0])
@@ -70,7 +70,7 @@ func TestDefinedLibraryOptionalDeclineLeavesTheFetchListAloneKernel(t *testing.T
 	if n := countEventKind(eventsSince(e, start), events.MoveZone); n != 0 {
 		t.Fatalf("optional direct fetch moved before its answer")
 	}
-	answerAsk(t, e, optionOfKind(t, d, "no"))
+	answerAsk(t, e, optionKindIndex(t, d, "no"))
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZLibrary {
 		t.Fatalf("declined DBBottom left card %+v, want it in the library", o)
 	}

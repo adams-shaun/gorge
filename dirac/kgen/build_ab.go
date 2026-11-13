@@ -535,6 +535,12 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 	if t.DiffCtrl {
 		ts.TFlags |= kop.TgfDiffController
 	}
+	if t.TrigChooser {
+		if ts.Min|ts.Max != 0 || ts.Divide != 0 {
+			return ts, fmt.Errorf("trigger-player chooser on a several-object slot")
+		}
+		ts.TFlags |= kop.TgfTrigChooser
+	}
 	if err := tgtSetSpec(t, &ts); err != nil { // lower_targetset.go
 		return ts, err
 	}
@@ -975,6 +981,16 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 		ka.ManaN = 1
 		return nil
 	}
+	if m.Special == "ReflectedIdentity" && m.Restrict == nil && m.RestrictAb == nil && m.Amount.isConst() && m.Amount.N == 1 {
+		// (Arcane Signet) a printed AfManaReflect with no ManaAmong filter and
+		// ManaIdentity reads the controller's commanders' colour identity
+		// (kernel mana_reflected.go identityColours; lower_zone.go lowerMana)
+		ka.AFlags |= kop.AfManaChoice | kop.AfManaReflect
+		ka.ManaIdentity = true
+		ka.ManaColors = kop.ColAny
+		ka.ManaN = 1
+		return nil
+	}
 	if m.Special == "ReflectedSelf" && m.Restrict == nil && m.RestrictAb == nil && m.Amount.isConst() && m.Amount.N == 1 {
 		// a granted "any of this creature's colors" (Katilda): AfManaReflect
 		// with no ManaAmong filter reads the grantee's own colours
@@ -1407,6 +1423,11 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 			kt.Flags2 |= kop.Tf2AtkOpp
 		case 3:
 			kt.Flags2 |= kop.Tf2AtkYou // AttackedTarget$ You: the defender is the controller (kernel fireDefPlayer)
+		case 4:
+			// AttackedTarget$ Player.EnchantedBy: the defender is enchanted
+			// by any enchantment (gorge playerSpecQualifierEnchantedBy); the
+			// kernel scans the player-attached auras' seats (fireDefPlayer)
+			kt.Flags4 |= kop.Tf4DefEnch
 		}
 	}
 	if t.OrCopy {
@@ -1600,10 +1621,10 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		kt.Flags4 |= kop.Tf4CounterCell
 	}
 	if t.OptTrigPlayer {
-		if !t.Optional || t.Event != "Phase" {
+		if !t.Optional || (t.Event != "Phase" && t.Event != "AttackersDeclared") {
 			return kt, fmt.Errorf("optional trigger player on a %s trigger", t.Event)
 		}
-		if t.Whose != whoAny {
+		if t.Event == "Phase" && t.Whose != whoAny {
 			// only the every-player's-turn shape is played against gorge
 			// (Peace in Our Time); Apathy's ValidPlayer$ enchanted-controller
 			// line has no lockstep yet
@@ -2659,6 +2680,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	var err error
 	if ki.Obj, err = cb.ref(in.Obj); err != nil {
 		return ki, err
+	}
+	if in.W.Kind != rNone {
+		// the player side input (lir.go lInstr.W: a Tapper$ provenance or an
+		// OpAttach player destination)
+		if ki.W, err = cb.ref(in.W); err != nil {
+			return ki, err
+		}
 	}
 	if in.Op != "Bite" && in.Op != "Fight" {
 		if ki.A, err = cb.value(in.A); err != nil {

@@ -126,7 +126,7 @@ func TestFeeFilterSourceFundsCastOffer(t *testing.T) {
 	// Preconditions: the Devotee's fee ability is activatable and its cost is
 	// bare generic mana (no tap), the fee is payable from one Plains, and
 	// nothing is floating yet.
-	dev := boundBattlefieldID(t, e, "Mardu Devotee")
+	dev := findBattlefieldCard(t, e, "Mardu Devotee")
 	ma := boundManaAbility(t, e, dev)
 	if c := e.abilityCompiledCost(ma).Cost; c.Generic != 1 || c.Tap {
 		t.Fatalf("precondition: Mardu Devotee's mana ability cost = %+v, want a bare {1}", c)

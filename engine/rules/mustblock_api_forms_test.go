@@ -16,7 +16,7 @@ import (
 // path used by a seat, not just the pair-duty helper.
 func TestMustBlockCorpusVortexImplicitAttackerDeclaration(t *testing.T) {
 	e := threeSeatEngine(t)
-	vortex := onBoardCard(t, e, 1, mshCorpusCard(t, "Vortex Elemental"))
+	vortex := onBoardCard(t, e, 1, corpusAlternativeCard(t, "Vortex Elemental"))
 	blocker := onBoard(t, e, 0, "Name:Blocker\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	bystander := onBoard(t, e, 0, "Name:Bystander\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	otherAttacker := onBoard(t, e, 1, "Name:Other attacker\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")

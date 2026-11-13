@@ -99,9 +99,9 @@ func TestReplaceDyingWaitsOutAMidBatchChoice(t *testing.T) {
 func TestFaceDownCasualtyReplacesNothingInItsBatch(t *testing.T) {
 	e := New(Config{Seed: 717, Names: []string{"a", "b"},
 		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}})
-	ley := onBoardReadyCard(t, e, 0, mshCorpusCard(t, "Leyline of the Void"))
+	ley := onBoardReadyCard(t, e, 0, corpusAlternativeCard(t, "Leyline of the Void"))
 	e.G.Obj(ley).FaceDown = true
-	bear := onBoardReadyCard(t, e, 1, mshCorpusCard(t, "Grizzly Bears"))
+	bear := onBoardReadyCard(t, e, 1, corpusAlternativeCard(t, "Grizzly Bears"))
 	e.G.Obj(ley).Damage, e.G.Obj(bear).Damage = 2, 2
 	e.checkStateBased()
 	if z := e.G.Obj(bear).Zone; z != state.ZGraveyard {

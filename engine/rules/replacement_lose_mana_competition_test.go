@@ -55,10 +55,10 @@ func TestLoseManaCompetingCarriersApplyOnlyTheChosenReplacement(t *testing.T) {
 					chosen = id
 				}
 			}
-			if chosen == 0 || optionForObj(d, chosen) < 0 {
+			if chosen == 0 || indexOfObjOption(d, chosen) < 0 {
 				t.Fatalf("precondition: %s not among replacement options: %+v", tc.chosen, d.Options)
 			}
-			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{optionForObj(d, chosen)}}); err != nil {
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{indexOfObjOption(d, chosen)}}); err != nil {
 				t.Fatal(err)
 			}
 			if d := e.Pending(); d != nil && d.Kind == decision.KReplacement {

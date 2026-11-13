@@ -632,6 +632,10 @@ type CardDef struct {
 	// unions it over the matched permanents at each use (kernel
 	// mana_reflected.go produceColours).
 	ProduceCol ColorMask
+	// Identity is the card's colour identity (cards.Card.ColourIdentity, every
+	// face's union, WUBRG in bits 0..4 as ColorMask): a commander-identity mana
+	// ability (Ability.ManaIdentity) unions it over its controller's commanders.
+	Identity ColorMask
 }
 
 // CardDef.MorphFamily values: the face-down keyword the card was printed with.

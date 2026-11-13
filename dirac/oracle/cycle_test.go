@@ -92,7 +92,7 @@ func TestCycleLockstep(t *testing.T) {
 			// every other seed casts or activates whenever it can (the
 			// cycles); the rest are random, so cyclers also resolve onto
 			// the battlefield and their keywords are projected
-			pol := validaggsPolicy(seed)
+			pol := castActivatePolicy(seed)
 			if seed%2 == 1 {
 				pol = RandomPolicy(seed)
 			}

@@ -20,8 +20,8 @@ import (
 // activation of the recipient.
 func TestGainedActivationCountsOnTheRecipientsCensus(t *testing.T) {
 	t.Parallel()
-	welder := tokenReplCorpusCard(t, "Myr Welder")
-	vault := tokenReplCorpusCard(t, "Knowledge Vault")
+	welder := corpusAlternativeCard(t, "Myr Welder")
+	vault := corpusAlternativeCard(t, "Knowledge Vault")
 	e, cfg := tokenReplGame(t, 9131, welder, vault)
 	welderID := moveSeededCard(t, e, 0, welder, state.ZBattlefield)
 	vaultID := moveSeededCard(t, e, 0, vault, state.ZGraveyard)

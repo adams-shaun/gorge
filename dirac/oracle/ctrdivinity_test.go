@@ -1,7 +1,6 @@
 package oracle
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -96,13 +95,6 @@ type kctrnamed3Watch struct {
 	nStack int
 }
 
-func kctrnamed3Name(tbl *kop.Table, c dirac.CardID) string {
-	if int(c) >= len(tbl.Cards) {
-		return ""
-	}
-	return strings.ToLower(tbl.Cards[c].Name)
-}
-
 func (w *kctrnamed3Watch) observe(s *dirac.State, seen *kctrnamed3Seen) {
 	tbl := s.Table()
 	var p dirac.Projection
@@ -111,7 +103,7 @@ func (w *kctrnamed3Watch) observe(s *dirac.State, seen *kctrnamed3Seen) {
 		o := &p.Objs[i]
 		on := o.Zone == kop.ZoneBattlefield
 		if on && !w.on[i] {
-			switch kctrnamed3Name(tbl, o.Card) {
+			switch kopCardNameLower(tbl, o.Card) {
 			case "myojin of night's reach":
 				// The etbCounter replacement fires only for a hand cast,
 				// so a Myojin that appears with the counter was cast from
@@ -136,11 +128,11 @@ func (w *kctrnamed3Watch) observe(s *dirac.State, seen *kctrnamed3Seen) {
 		}
 		switch e.Kind {
 		case 1: // an activated ability
-			if kctrnamed3Name(tbl, e.Card) == "myojin of night's reach" {
+			if kopCardNameLower(tbl, e.Card) == "myojin of night's reach" {
 				seen.myojinActivate++
 			}
 		case 2: // a triggered ability
-			if kctrnamed3Name(tbl, e.Card) != "illicit masquerade" || int(e.Card) >= len(tbl.Cards) {
+			if kopCardNameLower(tbl, e.Card) != "illicit masquerade" || int(e.Card) >= len(tbl.Cards) {
 				continue
 			}
 			abs := tbl.Cards[e.Card].Abilities

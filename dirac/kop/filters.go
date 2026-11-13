@@ -460,6 +460,17 @@ const W7LacksIslandwalk int16 = 27
 // zone. Corpse Cur, Hand of the Praetors, Burn the Impure.
 const W7WithInfect int16 = 28
 
+// W7AttackingEnchTrig (PredWord7 sub-kind 29): a creature the current
+// trigger entry's trigger player controls that is attacking the PLAYER the
+// evaluating source Aura is attached to (gorge's resolution-time read of the
+// Commander curses' second-leg selector `TriggeredAttackingPlayer.Opponent+
+// controlsCreature.attacking Player.EnchantedBy`: the controlsCreature clause
+// holds when that player controls a creature attacking the source-relative
+// Player.EnchantedBy seat). It fails closed with no source (the Aura left
+// the battlefield), an unattached source, no trigger entry, a non-creature,
+// a creature not attacking, and an attack on a planeswalker or battle.
+const W7AttackingEnchTrig int16 = 29
+
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
 // dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go

@@ -126,6 +126,11 @@ func (s *State) ObjHash(o Obj) uint64 {
 		x := r[ob.slot]
 		h = hmix(h, 0x78626c6b<<24|uint64(x.a)<<16|uint64(x.ord)<<8|uint64(x.div)|uint64(x.adiv)<<56) // combat_extrablock.go
 	}
+	if s.g.on {
+		if a := s.atchSeat(s.k(), ob.slot); a != 0 {
+			h = hmix(h, 0x61746368<<8|uint64(a)) // a player-attached Aura's seat (static_attachtimestamp.go)
+		}
+	}
 	if s.perms[ob.slot].ck[ctrSlots-1] != 0 {
 		h = s.ctrOverHash(h, o)
 	}
@@ -404,8 +409,9 @@ func (s *State) zoneIndex(o Obj) uint8 {
 
 // DecisionHash is the hash of decision d and the State it is posed in
 // beyond ViewHash: the decision's kind, sub-kind, player and options; for
-// each object an option names in a hidden zone, its zone, owner and
-// position there (gorge's option list orders by them); the control state
+// each object an option names in a hand, library, graveyard or exile, its
+// zone, owner and position there (gorge's option list orders by them); the
+// control state
 // (the spell or ability being put on the stack, the resolution in
 // progress, pending triggers and the trigger order owed, the mulligan,
 // legend-rule and damage-division rounds, the cleanup discard). With
@@ -421,7 +427,7 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 				continue
 			}
 			switch z := s.objs[o].zone; z {
-			case kop.ZoneHand, kop.ZoneLibrary:
+			case kop.ZoneHand, kop.ZoneLibrary, kop.ZoneGraveyard, kop.ZoneExile:
 				h = hmix(h, uint64(o)|uint64(z)<<8|uint64(s.objs[o].owner())<<16|uint64(s.zoneIndex(Obj(o)))<<24)
 			}
 		}

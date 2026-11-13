@@ -201,7 +201,7 @@ func driveCountingReplacementAsks(t *testing.T, e *Engine, target state.ObjID) i
 			asks++
 		case decision.KTarget:
 			if target != 0 {
-				if pick = optionForObj(d, target); pick < 0 {
+				if pick = indexOfObjOption(d, target); pick < 0 {
 					t.Fatalf("target ask does not offer %d: %+v", target, d.Options)
 				}
 			}

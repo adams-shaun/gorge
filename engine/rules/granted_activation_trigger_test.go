@@ -73,8 +73,8 @@ func TestGrantedActivationFiresActivationTriggers(t *testing.T) {
 		}
 	})
 	t.Run("gained from a foreign card", func(t *testing.T) {
-		welder := tokenReplCorpusCard(t, "Myr Welder")
-		vault := tokenReplCorpusCard(t, "Knowledge Vault")
+		welder := corpusAlternativeCard(t, "Myr Welder")
+		vault := corpusAlternativeCard(t, "Knowledge Vault")
 		e, _ := tokenReplGame(t, 9131, welder, vault)
 		welderID := moveSeededCard(t, e, 0, welder, state.ZBattlefield)
 		vaultID := moveSeededCard(t, e, 0, vault, state.ZGraveyard)

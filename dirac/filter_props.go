@@ -305,6 +305,8 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		// !hasKeywordLandwalk:Island over the derived keywords: printed
 		// (kw_evasion.go), granted by a Continuous static, none once lost
 		ans = !s.hasIslandwalk(k, sl)
+	case kop.W7AttackingEnchTrig:
+		ans = s.attackingEnchTrig(k, sl, src) // filter_attackenchanted.go
 	case kop.W7GreatestPowerTgt:
 		// gorge greatestPowerControlledByTargeted: a battlefield creature a
 		// player target of the current entry controls that no OTHER such
@@ -390,6 +392,9 @@ func (s *State) exileCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, se
 		pl := &s.pl[pp]
 		for i := 0; i < int(pl.exileN); i++ {
 			o := pl.exile[i]
+			if uint8(o)+1 == s.g.tgtSelf {
+				continue
+			}
 			if s.targetOK(k, t, p, src, self, uint8(o)) && n < MaxOptions-1 {
 				out[n] = uint8(o)
 				n++

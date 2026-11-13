@@ -42,15 +42,6 @@ func tfkArtifact(spec string) string {
 	return "Name:" + spec + "\nManaCost:0\nTypes:Artifact\nOracle:x\n"
 }
 
-func tfkOptionFor(d *decision.Decision, id state.ObjID) int {
-	for _, o := range d.Options {
-		if o.Obj == id {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 // TestThirstForKnowledgeDiscardsTheArtifactInstead drives the unless arm:
 // the election is posed (an artifact is in hand), answered "unless", and the
 // single artifact leaves the hand -- the two ordinary cards stay.
@@ -166,7 +157,7 @@ func TestThirstForKnowledgeChoosesAmongArtifacts(t *testing.T) {
 	}
 	keep := firstHandObj(t, e, "Mox B")
 	take := firstHandObj(t, e, "Mox A")
-	pick := tfkOptionFor(d2, take)
+	pick := indexOfObjOption(d2, take)
 	if pick < 0 {
 		t.Fatalf("Mox A not offered: %+v", d2.Options)
 	}

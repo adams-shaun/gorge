@@ -78,21 +78,6 @@ type kcountheads11Tally struct {
 	draws int
 }
 
-// kcountheads11ResolveName names a resolving stack object: an ability's source
-// permanent, else the stack card itself.
-func kcountheads11ResolveName(g *state.Game, id state.ObjID) string {
-	o := g.Obj(id)
-	if o == nil {
-		return ""
-	}
-	if o.Source != 0 {
-		if n := chName(g, o.Source); n != "" {
-			return n
-		}
-	}
-	return chName(g, id)
-}
-
 func (p *kcountheads11Tally) flush(st *kcountheads11Stats) {
 	switch p.cur {
 	case "Mathemagics":
@@ -122,7 +107,7 @@ func (p *kcountheads11Tally) scan(ref *GorgeSide, st *kcountheads11Stats) {
 			p.flush(st)
 		case events.Resolve:
 			p.flush(st)
-			p.cur = kcountheads11ResolveName(g, e.Obj)
+			p.cur = resolveSourceName(g, e.Obj)
 			if p.cur == "Spider-Man Noir" {
 				// the lone attacker's counters BEFORE this trigger's own
 				// PutCounter: the surveil X is the live CardCounters.ALL read

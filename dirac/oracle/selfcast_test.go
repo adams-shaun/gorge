@@ -81,31 +81,6 @@ func (c *selfCastCounter) check(ref *GorgeSide, _ Side) *Divergence {
 	return nil
 }
 
-// kickHoldPolicy (kfix-cast) takes a kicked cast whenever one is offered
-// and otherwise never casts a held card unkicked, so Sowing Mycospawn waits
-// for its {1}{C} kicker (Mind Stone) instead of being cast at four mana.
-func kickHoldPolicy(base Policy, hold map[Ref]bool) Policy {
-	var buf []Canon
-	return PolicyFunc(func(c *PickCtx) Canon {
-		buf = buf[:0]
-		for _, a := range c.D.Options {
-			if a.Kind() == ActCast && a.Mode()&0xF == 1 {
-				return a
-			}
-			if a.Kind() == ActCast && hold[a.Src()] {
-				continue
-			}
-			buf = append(buf, a)
-		}
-		if len(buf) == len(c.D.Options) || len(buf) == 0 {
-			return base.Pick(c)
-		}
-		d := *c.D
-		d.Options = buf
-		return base.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
-	})
-}
-
 func TestSelfcastLockstep(t *testing.T) {
 	t.Parallel()
 

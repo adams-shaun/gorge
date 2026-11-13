@@ -1,50 +1,13 @@
 package rules
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
-	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 )
-
-// mobVerdictVoteNotes counts the deferred "votes for" reveal Notes emitted
-// so far (the player ballot defers them until every voter has answered).
-func mobVerdictVoteNotes(e *Engine) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note && strings.HasPrefix(ev.Text, "votes for ") {
-			n++
-		}
-	}
-	return n
-}
-
-// mobVerdictVoteMove moves the corpus card named by `name` from seat p's hand
-// or library to zone `to` (search_library_test.go's helper is seat-0 only, and
-// this scenario needs seat 1's creature for Mob Verdict's "each creature that
-// player controls" half).
-func mobVerdictVoteMove(t *testing.T, e *Engine, p state.PlayerID, name string, to state.Zone) state.ObjID {
-	t.Helper()
-	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
-		for _, id := range e.G.Zone(z, p) {
-			o := e.G.Obj(id)
-			if o != nil && o.Face() != nil && o.Face().Name == name {
-				if z != to {
-					e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: to})
-				}
-				e.pending = nil
-				e.priorityRound()
-				return id
-			}
-		}
-	}
-	t.Fatalf("corpus card %q absent from seat %d hand/library", name, p)
-	return 0
-}
 
 // mobVerdictEngine builds a four-seat table whose seat 0 holds Mob Verdict and
 // whose seat 1 has an Ancient Brontodon (9/9, so it survives the votes and its
@@ -172,7 +135,7 @@ func TestMobVerdictPlayerBallotDamageAndDrawPerVote(t *testing.T) {
 		if i == len(wantPick)-1 {
 			wantNotes = len(wantPick)
 		}
-		if got := mobVerdictVoteNotes(e); got != wantNotes {
+		if got := countVoteReveals(e); got != wantNotes {
 			t.Fatalf("after voter %d: %d reveal Notes, want %d", i, got, wantNotes)
 		}
 		d = e.Pending()

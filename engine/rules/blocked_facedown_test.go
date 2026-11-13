@@ -12,7 +12,7 @@ import (
 // queues its "may exile it" trigger, so the scan is live.
 func TestFaceDownCreatureSeesNoBlockedTrigger(t *testing.T) {
 	t.Parallel()
-	norin := mshCorpusCard(t, "Norin, Swift Survivalist")
+	norin := corpusAlternativeCard(t, "Norin, Swift Survivalist")
 	for _, down := range []bool{false, true} {
 		e := blocksCombatEngine(t, 0)
 		n := onBoardCard(t, e, 0, norin)

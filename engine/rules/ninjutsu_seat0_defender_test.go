@@ -5,7 +5,6 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
-	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -73,7 +72,7 @@ func TestNinjutsuAgainstSeatZeroDefender(t *testing.T) {
 		t.Fatalf("precondition: Bear should be an UNBLOCKED attacker of seat 0, got %+v", o)
 	}
 
-	fundPoolSeat(t, e, 1, "CU") // Walker's ninjutsu cost is {1}{U}
+	addManaQuiet(t, e, 1, "CU") // Walker's ninjutsu cost is {1}{U}
 	opt := abilityFor(t, e, 1, ninjaID)
 	if opt == nil {
 		t.Fatalf("ninjutsu ability not offered at seat 1's declare-blockers step: %+v", e.Pending())
@@ -111,40 +110,6 @@ func TestNinjutsuAgainstSeatZeroDefender(t *testing.T) {
 			o.IsAttacking, o.Attacking)
 	}
 	replayCheck(t, e, cfg)
-}
-
-// fundPoolSeat is fundPool for a named seat: it emits ManaAdd events into
-// seat p's pool without driving anywhere, then re-asks priority so the
-// pending decision reflects the funded pool.
-func fundPoolSeat(t *testing.T, e *Engine, p state.PlayerID, symbols string) {
-	t.Helper()
-	for _, r := range symbols {
-		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: string(r), Amount: 1})
-	}
-	e.priorityRound()
-}
-
-// searchMoveByNameSeat is searchMoveByName for a named seat: it finds the
-// card in seat p's own hand or library and logs a MoveZone to the requested
-// zone. searchMoveByName is hardwired to seat 0, which is the seat the
-// regression below deliberately does NOT use.
-func searchMoveByNameSeat(t *testing.T, e *Engine, p state.PlayerID, name string, to state.Zone) state.ObjID {
-	t.Helper()
-	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
-		for _, id := range e.G.Zone(z, p) {
-			o := e.G.Obj(id)
-			if o != nil && o.Face() != nil && o.Face().Name == name {
-				if z != to {
-					e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: to})
-				}
-				e.pending = nil
-				e.priorityRound()
-				return id
-			}
-		}
-	}
-	t.Fatalf("corpus fixture %q absent from seat %d's hand/library", name, p)
-	return 0
 }
 
 // ninjutsuBlockerSrc is the inline 0/4 blocker the real-block withholding

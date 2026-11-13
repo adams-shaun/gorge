@@ -81,7 +81,7 @@ func TestCassHandOfVengeanceReturnsOnlyTheWereAttachedAurasKernel(t *testing.T) 
 	if offersObj(d, ids["decoy"]) {
 		t.Fatalf("the decoy Aura %d was offered by ChooseFromDefined", ids["decoy"])
 	}
-	submitChoices(t, e, optionOfObj(t, d, ids["aura"]))
+	submitChoices(t, e, objOptionIndex(t, d, ids["aura"]))
 	if z := e.G.Obj(ids["aura"]).Zone; z != state.ZBattlefield {
 		t.Fatalf("the returned Aura zone = %s, want battlefield", z)
 	}

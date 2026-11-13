@@ -10,23 +10,8 @@ package rules
 // each scenario seeds the pool with a "mana" op at p0's priority in p1's turn.
 
 import (
-	"strings"
 	"testing"
-
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
-
-func runFlashZoneScenario(t *testing.T, raw string) {
-	t.Helper()
-	reg := testutil.CorpusRegistry(t)
-	res, err := RunOracleScenarioJSON(reg, []byte(raw))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res.Fails) != 0 {
-		t.Fatalf("scenario failed: %v\n%s", res.Fails, strings.Join(res.Transcript, "\n"))
-	}
-}
 
 // flashZoneToP0Priority walks to p1's upkeep and has p1 pass, so p0 holds
 // priority there with pool mana; expect is checked at that decision.
