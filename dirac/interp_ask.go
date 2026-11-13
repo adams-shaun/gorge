@@ -1873,8 +1873,11 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 		}
 	}
 	handBottom := in != nil && in.Op == kop.OpChooseMove && in.B.N&kop.SrHandBottom != 0 && s.searchZone(k) == kop.ZoneHand
-	if z == kop.ZoneLibrary && s.g.nlook > 1 && !handBottom && (s.searchZone(k) == kop.ZoneHand || fl&kop.SrNoShuffle != 0) {
-		s.reverseLook() // act_mayask.go: the first answered ends on top (an unshuffled search too)
+	if z == kop.ZoneLibrary && s.g.nlook > 1 && !handBottom && (s.searchZone(k) == kop.ZoneHand || fl&(kop.SrNoShuffle|kop.SrThenTop) != 0) {
+		// act_mayask.go: the first answered ends on top (an unshuffled
+		// search too, and a shuffled one's ThenTop cards: gorge
+		// placeLibraryObjects pins them in the answer order, Goblin Recruiter)
+		s.reverseLook()
 	}
 	// CR 603.6a: the cards a search puts onto the battlefield enter together, so
 	// each one's enters check sees the whole batch (gorge's zone batch): Roiling
