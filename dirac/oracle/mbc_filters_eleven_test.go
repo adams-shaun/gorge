@@ -23,7 +23,11 @@ import (
 //     one life. Nothing else in those decks changes life by exactly one, so a
 //     LifeChange of -1 is the trigger. Gorge did not know the word before this
 //     change (Forge's CardProperty "EnchantedPlayer" + Ctrl): the Curse
-//     matched nothing there.
+//     matched nothing there. The word lowers three more Curses, each played
+//     in its own subtest: Curse of Death's Hold (a Continuous static's
+//     Affected$, the opponent's Bears are 1/1), Curse of the Nightly Hunt (a
+//     MustAttack ValidCreature$) and Curse of the Restless Dead (a
+//     land-entering trigger, a Zombie token for the Curse's controller).
 //   - Card.!wasCastFromTheirHand as a Counter slot's ValidTgts$ (Wash Away's
 //     front half, inline: the card's cleave half stays refused for its cost):
 //     the counter is offered a spell only when it was not cast from a hand, so
@@ -59,6 +63,79 @@ func TestMBCFilters11Lowers(t *testing.T) {
 			t.Errorf("the Curse drained in %d of 16 games, want at least 3", reached)
 		}
 	})
+	// The other Curses the word now lowers: a Continuous static's Affected$
+	// (Curse of Death's Hold), a MustAttack ValidCreature$ (Curse of the
+	// Nightly Hunt) and a land-entering trigger (Curse of the Restless Dead),
+	// each read against the source Aura's enchanted seat.
+	curseOn := func(g *state.Game, name string) bool {
+		for i := range g.Objs {
+			o := &g.Objs[i]
+			if o.Zone == state.ZBattlefield && o.Face() != nil && o.Face().Name == name && o.HasAttachedPlayer && o.AttachedPlayer == 1 {
+				return true
+			}
+		}
+		return false
+	}
+	for _, tc := range []struct {
+		name, curse, land string
+		newReached        func() func(ref *GorgeSide) bool
+	}{
+		{"Curse_of_Death's_Hold", "Curse of Death's Hold", "Swamp", func() func(ref *GorgeSide) bool {
+			return func(ref *GorgeSide) bool {
+				g := ref.E.G
+				if !curseOn(g, "Curse of Death's Hold") {
+					return false
+				}
+				for i := range g.Objs {
+					o := &g.Objs[i]
+					if o.Zone == state.ZBattlefield && o.Controller == 1 && o.Face() != nil && o.Face().Name == "Grizzly Bears" && ref.E.Power(state.ObjID(i+1)) == 1 {
+						return true
+					}
+				}
+				return false
+			}
+		}},
+		{"Curse_of_the_Nightly_Hunt", "Curse of the Nightly Hunt", "Mountain", func() func(ref *GorgeSide) bool {
+			seen := 0
+			return func(ref *GorgeSide) bool {
+				hit := false
+				for _, e := range ref.E.L.Events[min(seen, len(ref.E.L.Events)):] {
+					if e.Kind == events.DeclareAttackers && e.Player == 1 && curseOn(ref.E.G, "Curse of the Nightly Hunt") {
+						hit = true
+					}
+				}
+				seen = len(ref.E.L.Events)
+				return hit
+			}
+		}},
+		{"Curse_of_the_Restless_Dead", "Curse of the Restless Dead", "Swamp", func() func(ref *GorgeSide) bool {
+			return func(ref *GorgeSide) bool {
+				g := ref.E.G
+				for i := range g.Objs {
+					o := &g.Objs[i]
+					if o.Zone == state.ZBattlefield && o.Controller == 0 && o.Face() != nil && strings.Contains(o.Face().Name, "Zombie") {
+						return true
+					}
+				}
+				return false
+			}
+		}},
+	} {
+		t.Run("EnchantedPlayerCtrl/"+tc.name, func(t *testing.T) {
+			decks := [2][]cardset.Entry{{{Name: tc.curse, Count: 14}, {Name: tc.land, Count: 26}}, bears}
+			reg, err := cards.SharedCorpus(corpusDirOrSkip(t))
+			if err != nil {
+				t.Fatal(err)
+			}
+			cs, names := filters11Decks(t, reg, decks)
+			set := printedDelveSet(t, names)
+			reached := filters11RunGames(t, reg, set, decks, cs, tc.newReached, true)
+			t.Logf("%s: the mechanism reached in %d of 16 games", tc.name, reached)
+			if reached < 3 {
+				t.Errorf("the mechanism reached in %d of 16 games, want at least 3", reached)
+			}
+		})
+	}
 	t.Run("wasCastFromTheirHand/Counter_target", func(t *testing.T) {
 		dir := filters11Corpus(t, map[string]string{
 			"Counter Probe": "Name:Counter Probe\nManaCost:U\nTypes:Instant\n" +
@@ -131,6 +208,14 @@ func filters11Decks(t *testing.T, reg *cards.Registry, decks [2][]cardset.Entry)
 // reached(ref) held at the end. A divergence or an unmodelled stall fails.
 func filters11Run(t *testing.T, reg *cards.Registry, set cardset.Set, decks [2][]cardset.Entry, cs [2][]*cards.Card, reached func(ref *GorgeSide) bool) int {
 	t.Helper()
+	return filters11RunGames(t, reg, set, decks, cs, func() func(ref *GorgeSide) bool { return reached }, false)
+}
+
+// filters11RunGames is filters11Run with a fresh reached predicate per game
+// (it may keep state) and, when live, evaluated after every decision instead
+// of once at the game's end.
+func filters11RunGames(t *testing.T, reg *cards.Registry, set cardset.Set, decks [2][]cardset.Entry, cs [2][]*cards.Card, newReached func() func(ref *GorgeSide) bool, live bool) int {
+	t.Helper()
 	tbl, _, _, err := set.Matchup(decks[0], decks[1])
 	if err != nil {
 		t.Fatal(err)
@@ -147,8 +232,16 @@ func filters11Run(t *testing.T, reg *cards.Registry, set cardset.Set, decks [2][
 			t.Fatal(err)
 		}
 		hit := false
+		reached := newReached()
 		rc := RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40}
-		rc.Finish = func(ref *GorgeSide) { hit = reached(ref) }
+		if live {
+			rc.Check = func(ref *GorgeSide, _ Side) *Divergence {
+				hit = hit || reached(ref)
+				return nil
+			}
+		} else {
+			rc.Finish = func(ref *GorgeSide) { hit = reached(ref) }
+		}
 		res := Lockstep(m, seed, k, RandomPolicy(seed), rc)
 		CloseSide(k)
 		if err := unmodelledStallError(t.Name(), &res); err != nil {
