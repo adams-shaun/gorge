@@ -452,10 +452,12 @@ func TestSpiritGuideOffColour(t *testing.T) {
 // Banefire announces an {X}, whose window (gorge's announcedManaWindowAsk) is
 // the one natural window shape the decks here reach. Both guides sit beside
 // Banefire and Mountains (the Elvish guide's {G} could pay the generic X). The
-// Simian guide's decks open such windows, and it asserts that they list the
-// guide and are never answered with it (a battlefield source is listed ahead of
-// it, and the plan covers what is owed); the Elvish guide's decks opened none
-// in the seeds run, which the log records without asserting.
+// Simian guide's decks open such windows, and it asserts that they are never
+// answered with the guide (a battlefield source is listed ahead of it, and the
+// plan covers what is owed). The Elvish guide's decks opened none in the seeds
+// run. The listing count is logged, not asserted: a natural listing is rare
+// (2 of 200 seeds here), so a later shuffle, card or policy change could move
+// it to 0 without a regression, and an asserted 0 would be a false alarm.
 func TestSpiritGuideXWindow(t *testing.T) {
 	for _, guide := range []string{"Simian Spirit Guide", "Elvish Spirit Guide"} {
 		var deck []string
@@ -467,11 +469,11 @@ func TestSpiritGuideXWindow(t *testing.T) {
 		}
 		o := runSpiritGuideDeck(t, deck, 200, tapNone)
 		t.Logf("%s with Banefire: windows=%d holdGuide=%d lists=%d picks=%d shapes=%v byPool=%v", guide, o.windows, o.windowsHoldGuide, o.windowListsGuide, o.windowPicksGuide, o.shapes, o.byPool)
+		if o.guideInHand == 0 {
+			t.Fatalf("%s: no priority held the guide in hand: the probe measured nothing", guide)
+		}
 		if guide[0] == 'E' {
 			continue
-		}
-		if o.windowListsGuide == 0 {
-			t.Errorf("%s: no natural window listed the guide (%d windows held one): the probe measured nothing", guide, o.windowsHoldGuide)
 		}
 		if o.windowPicksGuide != 0 {
 			t.Errorf("%s: the oracle answered a natural window with the guide %d times", guide, o.windowPicksGuide)
