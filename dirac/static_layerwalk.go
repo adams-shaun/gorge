@@ -159,7 +159,7 @@ func (s *State) lfxCollect(k *prep, sl Slot, fx *[maxLfx]lfx) int {
 				e = lfx{o: &k.t.Overrides[a.Static.Override-1], a: a, ts: ts, src: src, ctrl: sp.ctrl, obj: sp.obj}
 				e.p, e.t = int16(e.o.SetP), int16(e.o.SetT)
 			case sub && a.Static.Kind == kop.StatContinuous && (a.Static.AddSub.Any() || a.Static.AddChosen):
-				e = lfx{a: a, ts: ts, src: src, ctrl: sp.ctrl, obj: sp.obj, ch: sp.chosen}
+				e = lfx{a: a, ts: ts, src: src, ctrl: sp.ctrl, obj: sp.obj, ch: uint8(sp.chosen)}
 			default:
 				continue
 			}
@@ -230,7 +230,7 @@ func keptOnLoss(t *kop.Table, a *kop.Ability) bool {
 
 // ovrKeptOnLoss reports whether override o has a part in layers 1 to 5.
 func ovrKeptOnLoss(o *kop.Override) bool {
-	return o.HasTypes || o.AddTypes != 0 || o.HasSub || o.AddSub.Any() || o.AllCreatureTypes || o.RemoveCreatureSub ||
+	return o.HasTypes || o.AddTypes != 0 || o.HasSub || o.AddSub.Any() || o.AllCreatureTypes || o.RemoveCreatureSub || o.RemoveTypes != 0 ||
 		o.HasColors || o.AddColors != 0 || o.NameCard != 0
 }
 
@@ -247,7 +247,7 @@ func l4part(e *lfx) bool {
 		return true
 	}
 	o := e.o
-	return o.HasTypes || o.AddTypes != 0 || o.HasSub || o.AddSub.Any() || o.AllCreatureTypes || o.RemoveCreatureSub
+	return o.HasTypes || o.AddTypes != 0 || o.HasSub || o.AddSub.Any() || o.AllCreatureTypes || o.RemoveCreatureSub || o.RemoveTypes != 0
 }
 
 // lfxApplies reports whether e applies to sl given the characteristics
@@ -276,6 +276,7 @@ func lfxApply4(k *prep, e *lfx, c *dchars) {
 	if o.HasTypes {
 		c.types = c.types&(keep|o.KeepTypes) | o.SetTypes
 	}
+	c.types &^= o.RemoveTypes
 	c.types |= o.AddTypes
 	if o.HasSub {
 		c.subs = c.subs.And(o.KeepSub).Or(o.SetSub)
@@ -617,7 +618,7 @@ func (s *State) matchCurOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Sl
 				return false
 			}
 			ch := s.perms[src].chosen
-			if f2&kop.F2ChosenType != 0 && (ch == 255 || !hasSubCur(k, cur, ch) && !(outsideSub(k, ch) && s.curOutsideHas(k, cur, src))) {
+			if f2&kop.F2ChosenType != 0 && (ch == 255 || !hasSubCur(k, cur, uint8(ch)) && !(outsideSub(k, uint8(ch)) && s.curOutsideHas(k, cur, src))) {
 				return false
 			}
 			if f2&kop.F2ChosenColor != 0 && (ch > 4 || cur.cols&(1<<ch) == 0) {
@@ -758,7 +759,7 @@ func prepLayerWalk(t *kop.Table, g *genPrep) {
 			return false
 		}
 		ov := &t.Overrides[o-1]
-		return ov.HasTypes || ov.HasSub || ov.RemoveCreatureSub
+		return ov.HasTypes || ov.HasSub || ov.RemoveCreatureSub || ov.RemoveTypes != 0
 	}
 	var grantOther, setAny, setOtherKeep bool
 	var grantSelf, setSelf []bool

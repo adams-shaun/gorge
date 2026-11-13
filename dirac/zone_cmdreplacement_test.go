@@ -28,7 +28,7 @@ func cmdZoneReplScen(t *testing.T, op kop.Op, c int16) (*scen, Obj) {
 	sl := s.enter(sc.k, o, 0, false, kop.ZoneCommand)
 	s.perms[sl].flags &^= pfSick
 	e := stackEntry{kind: seSpell, card: card, ctrl: 0}
-	e.nt, e.tgt[0], e.tver[0] = 1, uint8(o), s.objs[o].ver
+	e.nt, e.tgt[0], e.tver[0] = 1, TCode(o), s.objs[o].ver
 	s.res = resCtx{e: e, active: true, lastTok: NoObj, eachObj: NoObj}
 	s.ctl = ctlResolve
 	s.runProg(sc.k)
@@ -54,7 +54,7 @@ func assertCmdZoneReplaceAsk(t *testing.T, sc *scen, o Obj, from kop.Zone) Decis
 	}
 	for i, wantMode := range [2]uint8{0, 1} {
 		a := d.Options[i]
-		if a.Kind() != AkChoose || a.Source() != uint8(o) || a.Mode() != wantMode {
+		if a.Kind() != AkChoose || a.Source() != TCode(uint8(o)) || a.Mode() != wantMode {
 			t.Fatalf("option %d = kind %d src %d mode %d, want AkChoose src %d mode %d", i, a.Kind(), a.Source(), a.Mode(), o, wantMode)
 		}
 	}

@@ -40,9 +40,9 @@ func digAllOptionalScen(t *testing.T) (*scen, CardID, [2]Obj) {
 func digAllOptionalAsk(t *testing.T, sc *scen, c CardID) *Decision {
 	t.Helper()
 	o := sc.hand(c, 0)
-	sc.do(t, AkCast, uint8(o), 0xff)
-	sc.do(t, AkPass, 0xff, 0xff)
-	sc.do(t, AkPass, 0xff, 0xff)
+	sc.do(t, AkCast, TCode(o), scAny)
+	sc.do(t, AkPass, scAny, scAny)
+	sc.do(t, AkPass, scAny, scAny)
 	d := sc.s.Step()
 	return &d
 }
@@ -78,7 +78,7 @@ func TestDigAllOptionalAsksYesNo(t *testing.T) {
 			for i := 0; i < 4; i++ {
 				nd := sc.s.Step()
 				if nd.Kind == DkPriority {
-					sc.do(t, AkPass, 0xff, 0xff)
+					sc.do(t, AkPass, scAny, scAny)
 					continue
 				}
 				break

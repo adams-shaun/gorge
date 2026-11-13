@@ -36,6 +36,15 @@ func altSacCost(c *kop.Cost) bool {
 	return c.Flags == kop.CostSac && c.N > 0 && c.Mana == (kop.ManaCost{})
 }
 
+// altReturnCost: the alternative cost is returning N permanents matching its
+// filter to their owners' hands and nothing else (Gush's Return<2/Island>,
+// Thwart's Return<3/Island>, Daze's Return<1/Island>; gorge cost.go
+// returnCost, the pick posed as returnAsk; kgen altSacOK keeps it to an
+// instant or sorcery with no other cost).
+func altReturnCost(c *kop.Cost) bool {
+	return c.Flags == kop.CostReturn && c.N > 0 && c.Mana == (kop.ManaCost{})
+}
+
 // altHandExileCost: the alternative cost is exiling N hand cards matching its
 // filter, and paying N life beside it or not, nothing else (Force of Will's
 // PayLife<1> and ExileFromHand<1/Card.Blue+Other>, Misdirection's exile alone,
@@ -47,9 +56,21 @@ func altHandExileCost(c *kop.Cost) bool {
 	return (shared || bare) && c.ExileHand && c.N > 0 && c.Mana == (kop.ManaCost{})
 }
 
+// altDiscardTwoCost: the alternative cost is two discard parts and nothing
+// else (Foil's Discard<1/Island> then Discard<1/Card.Other>, CR 118.3; kgen
+// altDiscardTwoShape): the CostDiscard part, filtered or not, then
+// Cost.Discard2N cards (cost_discardfiltered.go).
+func altDiscardTwoCost(c *kop.Cost) bool {
+	return c.Flags&^kop.CostDiscardFiltered == kop.CostDiscard && c.N > 0 && c.Discard2N > 0 &&
+		!c.DiscardHand && c.Mana == (kop.ManaCost{})
+}
+
 // altPickCost: the alternative cost's non-mana parts are picks the cast asks
-// (the sacrifice or the hand exile) rather than a bare mana price.
-func altPickCost(c *kop.Cost) bool { return altSacCost(c) || altHandExileCost(c) }
+// (the sacrifice, the return, the hand exile or the two discards) rather than a
+// bare mana price.
+func altPickCost(c *kop.Cost) bool {
+	return altSacCost(c) || altReturnCost(c) || altHandExileCost(c) || altDiscardTwoCost(c)
+}
 
 // offerAltFreeHand offers hand card o's cast for its own free alternative
 // cost (gorge rules alternativeCosts' face walk, legal_walk_hand.go: an
@@ -70,20 +91,20 @@ func (s *State) offerAltFreeHand(k *prep, d *Decision, p uint8, o Obj, c CardID,
 		return
 	}
 	if altPickCost(&a.Cost) {
-		// the sacrifice alternative (Fireblast), or the pay-life and
-		// hand-exile one (Force of Will): gorge's hand walk offers its
-		// AltCostIndex 1 cast while the permanents can be sacrificed / the
-		// life paid and the cards exiled; the cast asks the targets, then
+		// the sacrifice alternative (Fireblast), the return one (Gush), or
+		// the pay-life and hand-exile one (Force of Will): gorge's hand walk
+		// offers its AltCostIndex 1 cast while the permanents can be
+		// sacrificed or returned / the life paid and the cards exiled; the cast asks the targets, then
 		// the picks (CR 601.2b-h; buildPickCost serves the static's cost)
 		ac := s.adjustCost(k, p, c, o, a.Cost.Mana)
 		if !s.pickCostPayable(k, p, &a.Cost, o) || !av.affords(&ac, pipMaskOf(&ac), 0) || !s.windowPoolPays(p, &ac, false) {
 			return
 		}
-		d.add(MakeAction(AkCast, uint8(o), castAltTgt, 0))
+		d.add(MakeAction(AkCast, TCode(o), castAltTgt, 0))
 		return
 	}
 	if a.Cost.Mana == (kop.ManaCost{}) {
-		d.add(MakeAction(AkCast, uint8(o), 0, castMayPlay|castFree))
+		d.add(MakeAction(AkCast, TCode(o), 0, castMayPlay|castFree))
 		return
 	}
 	// a mana alternative (Blasphemous Edict's {B}): the cost modifiers
@@ -96,7 +117,7 @@ func (s *State) offerAltFreeHand(k *prep, d *Decision, p uint8, o Obj, c CardID,
 	if !av.affords(&ac, pipMaskOf(&ac), 0) || !s.windowPoolPays(p, &ac, false) {
 		return
 	}
-	d.add(MakeAction(AkCast, uint8(o), castAltTgt, 0))
+	d.add(MakeAction(AkCast, TCode(o), castAltTgt, 0))
 }
 
 // castAltTgt in an AkCast's target byte (mode 0, from the hand) is the

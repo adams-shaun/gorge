@@ -94,7 +94,7 @@ func (s *State) offerMayhemCasts(k *prep, d *Decision, p uint8, sorc bool, av *a
 			// floating pool pays the cost
 			continue
 		}
-		d.add(MakeAction(AkCast, uint8(o), 0, 2))
+		d.add(MakeAction(AkCast, TCode(o), 0, 2))
 	}
 }
 

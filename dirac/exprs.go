@@ -575,7 +575,7 @@ func (s *State) refObjCtx(r kop.Ref, ctx evalCtx) Obj {
 		return Obj(t)
 	case kop.RefTriggerObj, kop.RefTriggerSource, kop.RefDelayedRemembered, kop.RefHost:
 		if r == kop.RefDelayedRemembered && e.remSet && e.trigObj != NoObj &&
-			s.objs[e.trigObj].ver != e.remVer {
+			objWord(s.objs[e.trigObj].ver) != e.remVer {
 			return NoObj // a new object since registration (CR 400.7; gorge dropDelayedRememberedMoved)
 		}
 		return e.trigObj
@@ -622,6 +622,11 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 		return s.attachedCtrl(s.refObjCtx(kop.RefAttached, ctx))
 	case kop.RefTriggerPlayer:
 		return e.trigPl
+	case kop.RefTriggerObjOwner:
+		if o := e.trigObj; o != NoObj {
+			return s.objs[o].owner() // CR 108.3 (resolve.go playerRef)
+		}
+		return 255
 	case kop.RefTriggerTgtCtrl:
 		// gorge TriggeredTargetController, read live (resolve.go playerRef)
 		if o := e.trigObj; o != NoObj {

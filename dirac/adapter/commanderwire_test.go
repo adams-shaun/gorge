@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
+	"github.com/adams-shaun/gorge/dirac/canon"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
@@ -56,7 +57,7 @@ func TestCommanderZoneAskReachesWire(t *testing.T) {
 	}
 	var obj dirac.Obj = dirac.NoObj
 	for i := 0; i < int(g.kp.NObj); i++ {
-		if g.ids.obj(uint8(i)) == cmd[0] {
+		if g.ids.obj(canon.Ref(i)) == cmd[0] {
 			obj = dirac.Obj(i)
 		}
 	}
@@ -64,8 +65,8 @@ func TestCommanderZoneAskReachesWire(t *testing.T) {
 		t.Fatal("the commander has no kernel object")
 	}
 	g.d = dirac.Decision{Kind: dirac.DkChoose, Sub: dirac.ChCommanderZone, Player: 0, N: 2}
-	g.d.Options[0] = dirac.MakeAction(dirac.AkChoose, uint8(obj), 0, 0)
-	g.d.Options[1] = dirac.MakeAction(dirac.AkChoose, uint8(obj), 0, 1)
+	g.d.Options[0] = dirac.MakeAction(dirac.AkChoose, dirac.TCode(obj), 0, 0)
+	g.d.Options[1] = dirac.MakeAction(dirac.AkChoose, dirac.TCode(obj), 0, 1)
 	g.pose()
 	d := g.Pending()
 	if d == nil || d.Kind != decision.KCommanderZone || d.Player != 0 {

@@ -29,10 +29,10 @@ func (s *State) HBotBlockPair(b, a Obj) bool {
 
 // HBotAttackTarget is battlefield object o's declared attack target
 // (PlayerTarget* or a planeswalker object) and whether it is attacking.
-func (s *State) HBotAttackTarget(o Obj) (uint8, bool) {
+func (s *State) HBotAttackTarget(o Obj) (TCode, bool) {
 	ob := &s.objs[o]
 	if ob.zone != kop.ZoneBattlefield || ob.slot == NoSlot || s.perms[ob.slot].flags&pfAttacking == 0 {
-		return NoTarget, false
+		return TCode(NoTarget), false
 	}
 	return s.perms[ob.slot].atk, true
 }

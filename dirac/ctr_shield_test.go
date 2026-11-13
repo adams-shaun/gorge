@@ -68,7 +68,7 @@ func (sc *scen) castAt(t *testing.T, o, tgt Obj) {
 	t.Helper()
 	sc.castCard(t, o)
 	if d := sc.s.Step(); d.Kind != DkPriority {
-		sc.s.Apply(MakeAction(AkTarget, 0, uint8(tgt), 0))
+		sc.s.Apply(MakeAction(AkTarget, 0, TCode(tgt), 0))
 	}
 	sc.resolveAll(t)
 }
@@ -133,17 +133,17 @@ func TestYouHexproofWhileShielded(t *testing.T) {
 // shockToAsk casts Shock from player 0 at code and returns the next
 // decision (the CR 616.1 order ask when the shield competes with another
 // replacement).
-func shockToAsk(t *testing.T, sc *scen, id map[string]CardID, code uint8) Decision {
+func shockToAsk(t *testing.T, sc *scen, id map[string]CardID, code TCode) Decision {
 	t.Helper()
 	s := sc.s
 	sc.lands(0, id["Mountain"], 1)
 	sh := sc.hand(id["Shock"], 0)
-	sc.do(t, AkCast, uint8(sh), 0xff)
+	sc.do(t, AkCast, TCode(sh), scAny)
 	for i := 0; i < 8; i++ {
 		d := s.Step()
 		switch {
 		case d.Kind == DkTarget:
-			sc.do(t, AkTarget, 0xff, code)
+			sc.do(t, AkTarget, scAny, code)
 		case d.Kind == DkPriority && s.sp > 0:
 			s.Apply(MakeAction(AkPass, 0, 0, 0))
 		case d.Kind == DkChoose && d.Sub != ChGenReplOrder:
@@ -166,7 +166,7 @@ func TestShieldNoncombatOrder(t *testing.T) {
 		s := sc.s
 		rhox := sc.perm(id["Rhox Pummeler"], 1)
 		bar := sc.perm(id["Crystal Barricade"], 1)
-		d := shockToAsk(t, sc, id, uint8(rhox))
+		d := shockToAsk(t, sc, id, TCode(rhox))
 		if d.Kind != DkChoose || d.Sub != ChGenReplOrder || d.Player != 1 || d.N != 2 {
 			t.Fatalf("pick %s: want the controller's two-option order ask, got kind %d sub %d player %d opts %v", pick, d.Kind, d.Sub, d.Player, d.Options[:d.N])
 		}

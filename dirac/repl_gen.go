@@ -43,10 +43,10 @@ func (s *State) replNIn(k *prep, m slotMask, b uint32) int {
 // controls when the recipient is that player's opponent or a permanent the
 // opponent controls, then prevented (0) when it is noncombat damage to a
 // creature whose controller controls another Crystal Barricade.
-func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, code uint8, combat bool, n int) int {
+func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, code TCode, combat bool, n int) int {
 	g := k.gen
 	if n <= 0 || srcCtrl >= MaxSeats {
-		return n
+		return n // no seat controls the source
 	}
 	rcp := uint8(255) // the recipient's controller
 	sl := NoSlot
@@ -229,11 +229,11 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 			continue
 		}
 		src := &s.perms[ev.src]
-		var code uint8
+		var code TCode
 		if ev.dst == NoSlot {
 			code = src.atk // an attacker's damage to the player it attacks
 		} else {
-			code = uint8(s.perms[ev.dst].obj)
+			code = TCode(s.perms[ev.dst].obj)
 		}
 		if ordered {
 			if m, ok := s.prevNextTake(k, src.ctrl, ev.src, s.cardAt(ev.src), code, s.recipientCtl(ev.dst, code), ev.dst, true, int(ev.n)); ok {
@@ -331,7 +331,10 @@ type replHdr struct {
 	// gives a trampler whose blockers died its whole power to the player:
 	// no such event is dealt or triggers); a source's events are
 	// consecutive in gorge's order
-	cur, askS, askD Slot
+	// cur is a Slot here; the entry-order ask keeps its entering object in it
+	// (entObj), so it is an objWord
+	cur        objWord
+	askS, askD Slot
 }
 
 // replBody is the combat damage pass's bulk: all-zero outside a pass (it is
@@ -502,7 +505,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		// Ext PreventNext's shields on the recipient (repl_prevnext.go)
 		code := PlayerCode(rcp)
 		if fe.dst != NoSlot {
-			code = uint8(s.perms[fe.dst].obj)
+			code = TCode(s.perms[fe.dst].obj)
 		}
 		ro.pnx = 0
 		if n = s.prevNextCands(k, code, true, &ro.cand, n, &ro.pnx); n < 0 {
@@ -568,7 +571,7 @@ func (s *State) replOrderFreeze(k *prep, r *dmgRec, first bool) {
 			*s.divAmtFor(ev.dst, ev.src) += uint8(ev.n)
 		}
 	}
-	ro.replHdr = replHdr{on: true, nfz: nfz, cur: NoSlot}
+	ro.replHdr = replHdr{on: true, nfz: nfz, cur: objWord(NoSlot)}
 }
 
 // replOrderCombat deals the paused pass's frozen events not yet dealt in
@@ -589,7 +592,7 @@ func (s *State) replOrderCombat(k *prep, r *dmgRec) bool {
 	}
 	for j := 0; j < int(ro.nfz); j++ {
 		fe := &bd.fz[bd.ord[j]]
-		if bd.srcDone.has(fe.src) || fe.dst == NoSlot && bd.plDone.has(fe.src) || fe.src == ro.cur && fe.dst != NoSlot && bd.dstDone.has(fe.dst) {
+		if bd.srcDone.has(fe.src) || fe.dst == NoSlot && bd.plDone.has(fe.src) || fe.src == Slot(ro.cur) && fe.dst != NoSlot && bd.dstDone.has(fe.dst) {
 			s.preventFrozenEv(k, r, fe) // dealt (or prevented): fe holds what it dealt
 			continue
 		}
@@ -636,11 +639,11 @@ func (s *State) replOrderCombat(k *prep, r *dmgRec) bool {
 func (s *State) replOrderMark(src, dst Slot) {
 	ro := &s.g.ro
 	bd := s.roBody()
-	if src != ro.cur {
-		if ro.cur != NoSlot {
-			bd.srcDone.set(ro.cur)
+	if src != Slot(ro.cur) {
+		if Slot(ro.cur) != NoSlot {
+			bd.srcDone.set(Slot(ro.cur))
 		}
-		ro.cur, bd.dstDone = src, slotMask{}
+		ro.cur, bd.dstDone = objWord(src), slotMask{}
 	}
 	if dst == NoSlot {
 		bd.plDone.set(src)
@@ -754,7 +757,7 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 			if e := &r.ev[i]; e.src == ro.askS && e.dst == ro.askD {
 				code := PlayerCode(ro.apl)
 				if ro.askD != NoSlot {
-					code = uint8(s.perms[ro.askD].obj)
+					code = TCode(s.perms[ro.askD].obj)
 				}
 				if d := int(e.n) - n; d > 0 {
 					s.combatEvLess(r, e, code, d)
@@ -801,7 +804,7 @@ func (s *State) dealCombatEvent(k *prep, r *dmgRec, i int, fe *fzEv) int {
 		// a lone Ext PreventNext shield, spent as the event is dealt (repl_prevnext.go)
 		code := src.atk // the player the source attacks
 		if ev.dst != NoSlot {
-			code = uint8(s.perms[ev.dst].obj)
+			code = TCode(s.perms[ev.dst].obj)
 		}
 		if m, ok := s.prevNextTake(k, src.ctrl, ev.src, s.cardAt(ev.src), code, s.recipientCtl(ev.dst, code), ev.dst, true, n); ok {
 			if m == 0 {
@@ -839,7 +842,7 @@ func (s *State) replOrderOptions(d *Decision) {
 			if ro.pnx&(1<<i) != 0 {
 				o = s.g.prevCol[o].obj // a shield's option names its source
 			}
-			d.add(MakeAction(AkChoose, uint8(o), 0, uint8(i))) // mode: gorge's scan index
+			d.add(MakeAction(AkChoose, TCode(o), 0, uint8(i))) // mode: gorge's scan index
 		}
 	}
 }
@@ -902,7 +905,7 @@ func (s *State) applyReplOrder(a Action) {
 // event parked outside a program step (no raGenReplOrder pause) is asked
 // once the resolution is done, before priority (stepGen, ro.nca).
 type ncDmg struct {
-	code  uint8 // the recipient (an Obj or PlayerTarget*); n == 0: none parked
+	code  TCode // the recipient (an Obj or PlayerTarget*); n == 0: none parked
 	src   Obj   // the source: a permanent's object, or the resolving spell's (spell)
 	ctrl  uint8
 	ll    bool // lifelink, deathtouch: the source's, when the event happened
@@ -963,7 +966,7 @@ func (s *State) damageSeqNext(k *prep, n int) {
 		if s.g.dmgSeqI < s.g.dmgSeqN {
 			sl := s.resArm().dmgSeqOrd[s.g.dmgSeqI]
 			s.g.dmgSeqI++
-			s.damageTo(k, uint8(s.perms[sl].obj), n)
+			s.damageTo(k, TCode(s.perms[sl].obj), n)
 			if s.g.nc.n != 0 {
 				return // parked: resume after the answer
 			}
@@ -1023,7 +1026,7 @@ func (s *State) damageSeqNext(k *prep, n int) {
 // matches: it is collected in the scan too, so it is a candidate here before
 // the shield. Protection prevents the damage before the replacements
 // (gorge emit).
-func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uint8, n int, kw kop.KwMask) bool {
+func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCode, n int, kw kop.KwMask) bool {
 	g := k.gen
 	ro := &s.g.ro
 	plusOnly := replPlusOnly(g)

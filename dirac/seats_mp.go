@@ -12,15 +12,40 @@ const MaxSeats = 4
 // activations (static_turnbits.go).
 const turnExhaustShift = 4
 
-// The target-code space (types.go): objects 0..MaxObj-1, stack abilities
-// StackTarget0..PlayerTarget0-1 (16 codes, as in the default class), players
-// PlayerTarget0..PlayerTarget0+3 (one code per seat), 0xFE a departed stack
-// target and 0xFF none. Four player codes cost two object slots.
+// TCode is a target code: an Obj, a stack ability, a player or none, as an
+// Action's source and target fields and the stack's target records hold it.
+// Its width is the class's object width, so a code never passes through a
+// narrower integer (TestObjCodeCastsOnlyShrink).
+type TCode uint16
+
+// Action's packing (types.go): kind 5 | source 9 | target 9 | mode 8 bits,
+// kind<<26 | source<<17 | target<<8 | mode, so a code may reach 511.
 const (
-	MaxObj              = 234  // card instances: the decks + tokens (at most StackTarget0)
-	StackTarget0  uint8 = 0xEA // the bottom stack ability's target code
-	PlayerTarget0 uint8 = 0xFA // seat 0's target code
+	actKindShift = 26
+	actSrcShift  = 17
+	actTgtShift  = 8
+	actCodeMask  = 0x1ff
 )
+
+// The target-code space (types.go), nine bits: objects 0..MaxObj-1, stack
+// abilities StackTarget0..StackTarget0+15 (16 codes, as in the default
+// class), players PlayerTarget0..PlayerTarget0+3 (one code per seat), 508
+// and 509 unused, 510 a departed stack target and 511 none. MaxObj 488 is a
+// four-seat Commander pod's measured object peak (480; p99 452) with
+// headroom, and keeps [MaxObj] byte arrays 8-aligned.
+const (
+	MaxObj                = 488 // card instances: the decks + tokens (at most StackTarget0)
+	StackTarget0    TCode = 488 // the bottom stack ability's target code
+	PlayerTarget0   TCode = 504 // seat 0's target code
+	StackTargetGone TCode = 510 // a departed stack target (tgt_stackability.go)
+	NoTarget        TCode = 511 // no target
+)
+
+// Obj is a card instance (types.go): nine bits under dirac_mp.
+type Obj uint16
+
+// NoObj is no object, the same value as NoTarget.
+const NoObj Obj = 511
 
 // object.acts packs the owner above this turn's activation count: two owner
 // bits for four seats, so the count saturates at 63 (cast.go stalls with
@@ -57,12 +82,21 @@ type xtMask = uint16
 const embRemSlots = 2
 
 // linkPadN pads genState after its sixteen exile-until-leaves links so perms
-// keeps its cache-line phase (statelayout_mp_test.go). Four seats of
-// player.lastLost moved perms eight bytes past phase 0, the two-byte seatWord
-// fields eight more, and the sixteen-object xTargets eight more; forty bytes
-// here bring it round to the next line.
-const linkPadN = 40
+// keeps its cache-line phase (statelayout_mp_test.go): thirty-two bytes here
+// bring four seats of player.lastLost, the two-byte seatWord fields, the
+// sixteen-object xTargets and the class's sixteen-bit codes round to phase 0.
+const linkPadN = 32
 
 // seatWord is a packed field holding a few bits per seat beside its other
 // bits (genState.speed, genState.freeP): two bytes at four seats.
 type seatWord = uint16
+
+// objWord is a multi-use field that may hold an object (or object+1) as well
+// as a byte-sized value (seats_default.go); the object width.
+type objWord = uint16
+
+// mayWord is mayPlay.turn (seats_default.go); mayHeld keeps an object below
+// its version, mayVerShift bits up.
+type mayWord = uint32
+
+const mayVerShift = 16

@@ -79,7 +79,7 @@ func (s *State) offerOptCostOnly(k *prep, d *Decision, p uint8, o Obj, c CardID,
 		return
 	}
 	if s.optCostOffer(k, p, c, o) {
-		d.add(MakeAction(AkCast, uint8(o), 0, 1))
+		d.add(MakeAction(AkCast, TCode(o), 0, 1))
 	}
 }
 
@@ -107,17 +107,17 @@ func (s *State) raiseTargetOK(k *prep, f kop.FilterID, p uint8, c CardID) bool {
 // target-dependent raise (StTargetsFilter2 on a StatIncreaseCost) makes the
 // spell unaffordable, each tried as the sole selection (gorge
 // affordableTargetCandidates). A spell with no such raise keeps all n.
-func (s *State) raiseDropTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
+func (s *State) raiseDropTargets(k *prep, buf *[MaxOptions]TCode, n int) int {
 	return s.dropTargetsOwing(k, buf, n, false)
 }
 
 // freeDropTargets is raiseDropTargets for a spell cast without paying its
 // mana cost: the raise lands on the empty cost.
-func (s *State) freeDropTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
+func (s *State) freeDropTargets(k *prep, buf *[MaxOptions]TCode, n int) int {
 	return s.dropTargetsOwing(k, buf, n, true)
 }
 
-func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]uint8, n int, free bool) int {
+func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]TCode, n int, free bool) int {
 	e := &s.bld().e
 	defer s.unmarkCostComposition(s.markCostComposition())
 	cd := &k.t.Cards[e.card]
@@ -203,7 +203,7 @@ func (s *State) offerBargainOnly(k *prep, d *Decision, p uint8, o Obj, c CardID,
 		return
 	}
 	if s.bargainOffers(k, p, o) {
-		d.add(MakeAction(AkCastCasualty, uint8(o), 0, 0))
+		d.add(MakeAction(AkCastCasualty, TCode(o), 0, 0))
 	}
 }
 

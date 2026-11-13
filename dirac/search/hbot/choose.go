@@ -244,7 +244,7 @@ func (bt *Bot) choose(s *dirac.State, d *dirac.Decision) int {
 	case dirac.ChGenChooseCard:
 		return bt.firstBy(s, d, func(a dirac.Action) uint32 { return uint32(a.Source()) })
 	case dirac.ChGenDivide, dirac.ChCastDivide:
-		return bt.firstBy(s, d, func(a dirac.Action) uint32 { return uint32(s.FeatDivideIndex(a.Source())) })
+		return bt.firstBy(s, d, func(a dirac.Action) uint32 { return uint32(s.FeatDivideIndex(dirac.TCode(a.Source()))) })
 	case dirac.ChGenReplOrder:
 		b.fill(s, bt.f, d.Player)
 		best := -1

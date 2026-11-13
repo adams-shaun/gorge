@@ -62,6 +62,18 @@ type Player struct {
 	AttackedPlaneswalkersThisTurn uint64
 	Pool                          Mana
 
+	// AttackedSeatsThisTurn has bit d set when this seat declared an attack
+	// this turn whose defending seat is d -- the player itself, a
+	// planeswalker d controls or a battle d protects: every non-empty
+	// DeclareAttackers event, the reading Engine.AttackedDuringLastTurn's
+	// log scan takes. AttackedSeatsLastTurn is its value at the end of this
+	// seat's most recent completed turn, copied at the TurnChange that ends
+	// it, so a turn in progress never shows (Forge's
+	// attackedYouTheirLastTurn player property: O-Kagachi, Vengeful Kami).
+	// Both are folded only by events.Apply.
+	AttackedSeatsThisTurn uint64
+	AttackedSeatsLastTurn uint64
+
 	// RestrictedMana retains the spend restriction on mana produced by a
 	// RestrictValid$ mana ability. It is cleared with the pool at step/phase
 	// cleanup and is reconstructed from ManaAdd events.
