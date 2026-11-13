@@ -2657,10 +2657,11 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		if err != nil {
 			return nil, err
 		}
-		rest, saddles := splitSaddleGrant(rest)          // lower_saddlegrant.go
-		rest, extort := splitExtortGrant(rest)           // lower_extortgrant.go
-		rest, myriad := splitMyriadGrant(rest)           // lower_myriad.go
-		rest, st.ProtFrom, err = lc.splitProtGrant(rest) // lower_protgrant.go
+		rest, saddles := splitSaddleGrant(rest)            // lower_saddlegrant.go
+		rest, livingWeapon := splitLivingWeaponGrant(rest) // lower_livingweapongrant.go
+		rest, extort := splitExtortGrant(rest)             // lower_extortgrant.go
+		rest, myriad := splitMyriadGrant(rest)             // lower_myriad.go
+		rest, st.ProtFrom, err = lc.splitProtGrant(rest)   // lower_protgrant.go
 		if err != nil {
 			return nil, err
 		}
@@ -2708,6 +2709,16 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			// CR 702.171a granted: one latent AB$ AlterAttribute per grant
 			// (lower_saddlegrant.go; gorge cards.GrantedKeywordAbility)
 			idx, err := lc.saddleGrantAbility(line)
+			if err != nil {
+				return nil, err
+			}
+			st.Grant = append(st.Grant, idx)
+		}
+		for ; livingWeapon > 0; livingWeapon-- {
+			// CR 702.92a granted: one latent ChangesZone Self trigger, listed
+			// once per instance (lower_livingweapongrant.go; gorge
+			// scriptfacts.GrantedKeywordTrigger)
+			idx, err := lc.livingWeaponGrantTrigger()
 			if err != nil {
 				return nil, err
 			}
