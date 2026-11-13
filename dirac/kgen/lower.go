@@ -962,6 +962,9 @@ var expandedKeywords = map[string]bool{
 	// Echo (CR 702.30a): gorge kwEcho's upkeep trigger, gated by Echo$ True,
 	// whose body is DB$ Echo (lower_echo.go)
 	"Echo": true,
+	// Level up (CR 702.87a): gorge kwLevelUp appends one sorcery-speed
+	// AB$ PutCounter LEVEL line; the level bands are ordinary statics
+	"Level up": true,
 }
 
 // protColourLetters maps a "Protection from <q>" colour quality to its
