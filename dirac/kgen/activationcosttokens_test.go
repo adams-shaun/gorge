@@ -14,6 +14,7 @@ import (
 // Each is named by the corpus card that carries it, as the neighbouring
 // cost-shape tests do.
 func TestActivationCostTokens(t *testing.T) {
+	heavyParallel(t)
 	checkForms(t, []formCase{
 		{card: "The Astonishing Ant-Man", form: "SubCounter<X/P1P1> announces X up to the counters", lir: "CreateToken obj=You A=X CS=g_1_1_insect"},
 		{card: "Basri, Tomorrow's Champion", form: "Exert<1/NICKNAME> as the activated cost", lir: "Activated  cost={0W} T"},

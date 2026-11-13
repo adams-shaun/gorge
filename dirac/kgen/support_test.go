@@ -348,6 +348,7 @@ func supportDoc(t *testing.T, cardsDir string) []byte {
 }
 
 func TestSupportDocIsCurrent(t *testing.T) {
+	heavyParallel(t)
 	cardsDir := ratchetCards(t)
 	got := supportDoc(t, cardsDir)
 	file := path.Join(testRoot, supportDocPath)

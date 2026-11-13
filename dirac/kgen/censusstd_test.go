@@ -14,6 +14,7 @@ import (
 // the short-of-90 total follows from the pins. Class orders, steps and
 // bundle rows are pinned on constructed tables (TestStd*Constructed).
 func TestStdCensus(t *testing.T) {
+	heavyParallel(t)
 	std, err := readCardList(filepath.Join("../../", standardListPath))
 	if err != nil {
 		t.Fatal(err)
@@ -241,6 +242,7 @@ func TestStdCensusTokenUnpack(t *testing.T) {
 // TestStdCensusRealDeterministic computes the real census twice and requires
 // byte-equal markdown and TSV, so map-order nondeterminism cannot return.
 func TestStdCensusRealDeterministic(t *testing.T) {
+	heavyParallel(t)
 	std, err := readCardList(filepath.Join("../../", standardListPath))
 	if err != nil {
 		t.Fatal(err)
@@ -553,6 +555,7 @@ func TestStdSetsFlag(t *testing.T) {
 }
 
 func TestStdCensusMatchesRatchet(t *testing.T) {
+	heavyParallel(t)
 	std, err := readCardList(filepath.Join("../../", standardListPath))
 	if err != nil {
 		t.Fatal(err)

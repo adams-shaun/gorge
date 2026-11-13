@@ -257,6 +257,7 @@ import (
 var buildAcceptancePin = [2]int{23252, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
+	heavyParallel(t)
 	cardsDir := ratchetCards(t)
 	start := time.Now()
 	p, err := loadCardList(testSetlistPath(t, "ALL"), cardsDir)

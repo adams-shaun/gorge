@@ -232,6 +232,7 @@ func checkAcceptance(t *testing.T, cardsDir, list string) {
 
 // TestCorpusAcceptance is the corpus ratchet (the generated ALL list, ~3 s).
 func TestCorpusAcceptance(t *testing.T) {
+	heavyParallel(t)
 	checkAcceptance(t, ratchetCards(t), "ALL")
 }
 
