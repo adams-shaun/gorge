@@ -77,6 +77,18 @@ func (lc *lowerCtx) etbChoosePlayer(ps *params, node, sa *cards.SA, other bool, 
 	if other || node != sa || cond.Kind != cNone || len(lc.ab.Prog) != 0 || !isEnterChoosePlayer(sa) {
 		return refuse("ETB replacement api ChoosePlayer")
 	}
+	moved := 0
+	for i := range lc.face.Repls {
+		if lc.face.Repls[i].Event == "Moved" {
+			moved++
+		}
+	}
+	if moved != 1 {
+		// two of the card's own entry replacements: gorge asks their CR
+		// 616.1 order (a ChoosePlayer body never commutes there), which
+		// the kernel does not pose (dirac StallChoosePlayerOrder)
+		return refuse("ETB ChoosePlayer beside another entry replacement of the card")
+	}
 	ps.consume("Choices", "Defined", "ChoiceTitle", "AILogic", "SpellDescription") // AI and prompt only
 	lc.emit(lInstr{Op: "ChoosePlayerEnter", Obj: lRef{Kind: rYou}, Note: "choice of an opponent as it enters"})
 	return nil

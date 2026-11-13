@@ -66,3 +66,59 @@ func (s *State) chosenIs(sl Slot, p uint8) bool {
 	ch := s.chosenPlayerOf(sl)
 	return ch != 255 && ch == p
 }
+
+// StallChoosePlayerOrder: a card that chooses an opponent as it enters
+// beside another object's enters replacement (kop.ReplOthersEnterProgram: Orb
+// of Dreams' enters tapped, Grumgully's counter). gorge composes two Updated
+// replacements over one entry by asking the CR 616.1 order unless every body
+// commutes (rules/replacement_updated.go composeUpdatedReplacements), and its
+// commute classification does not name a ChoosePlayer body
+// (updatedNeutralBodySet), so it asks the order before the move. The kernel's
+// entry-order ask cannot be posed on a resolving spell's route (StallEntryOrder),
+// so such a pair is refused before its game (initStall).
+const StallChoosePlayerOrder = 187
+
+func init() { stallNames[StallChoosePlayerOrder] = "chooseplayerorder" }
+
+// prepChoosePlayer marks a table with both halves of StallChoosePlayerOrder.
+func prepChoosePlayer(t *kop.Table, g *genPrep) {
+	g.chPlOrder = cardsWith(t, choosesPlayerEntering) && cardsWith(t, othersEnterRepl)
+}
+
+// cardsWith reports whether some card of t has pred.
+func cardsWith(t *kop.Table, pred func(*kop.CardDef) bool) bool {
+	for i := range t.Cards {
+		if pred(&t.Cards[i]) {
+			return true
+		}
+	}
+	return false
+}
+
+// choosesPlayerEntering: c's enters program chooses an opponent.
+func choosesPlayerEntering(c *kop.CardDef) bool {
+	for j := range c.Abilities {
+		a := &c.Abilities[j]
+		if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplEntersProgram && len(a.Prog) > 0 && a.Prog[0].Ext() == kop.ExtChoosePlayer {
+			return true
+		}
+	}
+	return false
+}
+
+// othersEnterRepl: c has an enters replacement over other objects.
+func othersEnterRepl(c *kop.CardDef) bool {
+	for j := range c.Abilities {
+		if a := &c.Abilities[j]; a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplOthersEnterProgram {
+			return true
+		}
+	}
+	return false
+}
+
+// choosePlayerStallPair is StallChoosePlayerOrder's refusal text and halves.
+func choosePlayerStallPair() (string, func(*kop.CardDef, int) bool, func(*kop.CardDef, int) bool) {
+	return "an as-enters opponent choice beside another object's enters replacement: gorge asks the CR 616.1 order of the two, which the kernel does not pose on a resolving spell's entry",
+		func(c *kop.CardDef, _ int) bool { return choosesPlayerEntering(c) },
+		func(c *kop.CardDef, _ int) bool { return othersEnterRepl(c) }
+}

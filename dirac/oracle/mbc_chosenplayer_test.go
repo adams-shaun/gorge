@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"errors"
 	"slices"
 	"strings"
 	"testing"
@@ -172,4 +173,36 @@ func TestMBCChosenPlayerCard1Lowers(t *testing.T) {
 	}
 	y, _ := playChosenOpp(t, 2, 6)
 	checkChosenOpp(t, y)
+}
+
+// TestChoosePlayerOrderPairRefused: a card that chooses an opponent as it
+// enters beside Orb of Dreams (permanents enter tapped, an enters replacement
+// over other objects) is refused as a pair before its game, since gorge asks
+// the CR 616.1 order of the two Updated replacements and the kernel does not
+// pose it (StallChoosePlayerOrder). Either half plays without the other.
+func TestChoosePlayerOrderPairRefused(t *testing.T) {
+	set := chosenOppPool(t)
+	entries := func(d []string) []cardset.Entry {
+		es := make([]cardset.Entry, len(d))
+		for i, n := range d {
+			es[i] = cardset.Entry{Name: n, Count: 1}
+		}
+		return es
+	}
+	vise := entries(deckOf(10, "Black Vise", deckOf(30, "Island")...))
+	orb := entries(deckOf(10, "Orb of Dreams", deckOf(30, "Plains")...))
+	lands := entries(deckOf(40, "Plains"))
+	for _, ok := range [][2][]cardset.Entry{{vise, lands}, {orb, lands}} {
+		if _, _, err := set.MatchupN([][]cardset.Entry{ok[0], ok[1]}); err != nil {
+			t.Fatalf("precondition: one half alone must build: %v", err)
+		}
+	}
+	_, _, err := set.MatchupN([][]cardset.Entry{vise, orb})
+	var ir *cardset.InteractionRefusal
+	if !errors.As(err, &ir) || ir.Reason != "chooseplayerorder" {
+		t.Fatalf("Black Vise beside Orb of Dreams: got %v, want the chooseplayerorder interaction refusal", err)
+	}
+	if !slices.Contains(ir.Cards, "Black Vise") || !slices.Contains(ir.Cards, "Orb of Dreams") {
+		t.Fatalf("refusal names %v, want both halves", ir.Cards)
+	}
 }
