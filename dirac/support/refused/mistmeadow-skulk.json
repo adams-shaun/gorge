@@ -1,0 +1,13 @@
+{
+  "card": "Mistmeadow Skulk",
+  "class": "lockstep",
+  "why": "protection from mana value 3 or greater reads the source's mana value with the announced X once a spell resolves (gorge state.ManaValue, CR 202.3e; a Torch Breath cast for X=2 fizzles on the Skulk), while gorge offers the Skulk as that spell's target at announcement with X still 0 and the kernel reads the printed total throughout: the two sides need one announcement-time rule (CR 601.2b before 601.2c) and the kernel an X-aware card mana value in the protection source read",
+  "repro": {
+    "pool": "dr-mbc-ba",
+    "surface": "full",
+    "seed": 1,
+    "pair": 10,
+    "policy": "random",
+    "mulligans": 1
+  }
+}
