@@ -1384,6 +1384,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !lc.lowerEntwine(param) {
 				lc.refuseNode(node, "entwine cost %q", param)
 			}
+		case head == "Escalate":
+			lc.lowerEscalate(node, param) // lower_escalate.go
 		case head == "Casualty":
 			// CR 702.153a: the optional creature sacrifice and the copy
 			// trigger are the kernel's casualty cast (kw_casualty.go). The

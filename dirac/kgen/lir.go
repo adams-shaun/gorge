@@ -998,6 +998,7 @@ type lCard struct {
 	KickerCost     *lCost      // K:Kicker with one Sac<1/..> or Return<1/..> part: Kicker is then zero mana (lower_kickercost.go)
 	Spree          bool        // K:Spree (CR 702.172) or K:Tiered (CR 702.183): ModeCost holds each mode's additional mana cost
 	ModeCost       [4]manaCost // Spree/Tiered: mode i's ModeCost$
+	Escalate       *manaCost   // K:Escalate:<mana> (CR 702.120): paid once per mode chosen beyond the first; Spree is set with it (lower_escalate.go)
 	MorphCost      *manaCost   // K:Morph / K:Megamorph / K:Disguise turn-face-up cost
 	MorphFamily    uint8       // kop.Morph*: which face-down keyword the cost belongs to
 	MorphReduce    lValue      // the turn-up cost's printed generic reduction (lower_morphreduce.go)

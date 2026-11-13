@@ -623,6 +623,14 @@ func (cb *cardBuilder) record() error {
 			}
 		}
 	}
+	if c.Escalate != nil {
+		// Escalate rides Spree's per-mode-cost path (HasModeCost, every
+		// ModeCost zero) with the count-priced cost beside it (dirac/kw_escalate.go)
+		d.HasEscalate = true
+		if d.Escalate, err = manaCostOf(*c.Escalate); err != nil {
+			return err
+		}
+	}
 	if c.Kicker != nil {
 		d.Keywords |= kop.KwKicker
 		cb.kicked = true

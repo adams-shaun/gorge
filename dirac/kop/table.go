@@ -574,6 +574,11 @@ type CardDef struct {
 	// kw_spree.go).
 	HasModeCost bool
 	ModeCost    [4]ManaCost
+	// HasEscalate: Escalate (CR 702.120a) rides HasModeCost with every
+	// ModeCost zero: the chosen modes add Escalate once for each mode beyond
+	// the first (kernel kw_escalate.go).
+	HasEscalate bool
+	Escalate    ManaCost
 	// FbCost is a printed flashback cost's non-mana part (KwFlashback;
 	// AltCost holds its mana, {0} when none): Sac<N/Spec> or
 	// tapXType<N/Spec>, paid through the cast's pick stages in place of
