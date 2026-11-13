@@ -4011,6 +4011,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "SpellToLib":
 		// OpExt ExtSpellToLib: the resolving spell to its owner's library, shuffled
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtSpellToLib))
+	case "LibPlace":
+		// OpExt ExtLibPlace, C the arm (top / bottom) or the ask (lower_libplace.go)
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtLibPlace)), int16(in.C)
 	case "AttacksIfAble":
 		// OpExt ExtAttacksIfAble, Obj the target that attacks this turn if able
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtAttacksIfAble))

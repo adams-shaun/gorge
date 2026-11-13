@@ -486,6 +486,7 @@ ExtFinalityCtr	ExtOp	198
 ExtGrantExile	ExtOp	249
 ExtGrantPanharm	ExtOp	248
 ExtHideaway	ExtOp	8
+ExtLibPlace	ExtOp	301
 ExtLibSweep	ExtOp	101
 ExtLockActs	ExtOp	140
 ExtManaChoice	ExtOp	100
@@ -912,6 +913,9 @@ PlExtGrave	untyped int	256
 PlExtLibrary	untyped int	512
 PlExtOpponents	untyped int	1
 PlExtPlayers	untyped int	0
+PlaceArmBottom	untyped int	1
+PlaceArmTop	untyped int	0
+PlaceAsk	untyped int	2
 PlayerPredArtOrEnch	untyped int	4
 PlayerPredControlsCreature	untyped int	1
 PlayerPredCorrupted	untyped int	3

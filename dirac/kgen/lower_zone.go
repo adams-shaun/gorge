@@ -868,7 +868,15 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		lc.emit(lInstr{Op: "MayAsk", C: guard, Skip: 1, Note: "you may move it"})
 	}
-	lc.emit(in)
+	arm, bracket, err := lc.libPlaceTargets(ps, obj, in, pos, optional) // lower_libplace.go
+	if err != nil {
+		return err
+	}
+	if bracket {
+		lc.emitLibPlace(arm, in)
+	} else {
+		lc.emit(in)
+	}
 	if override != nil {
 		if in.Op != "Return" || in.C != zBattlefield {
 			return refuse("StaticEffect on a %s", in.Op)
@@ -1088,6 +1096,22 @@ func overrideString(o *lOverride) string {
 }
 
 func (lc *lowerCtx) changeZoneAll(ps *params) error {
+	bracket, err := libPlaceAll(ps) // lower_libplace.go
+	if err != nil || !bracket {
+		if err != nil {
+			return err
+		}
+		return lc.changeZoneAllSweep(ps)
+	}
+	lc.emit(lInstr{Op: "LibPlace", C: kop.PlaceArmTop, Note: "count the cards this sweep puts into libraries"})
+	if err := lc.changeZoneAllSweep(ps); err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "LibPlace", C: kop.PlaceAsk, Note: "each owner of two or more orders them (CR 401.4)"})
+	return nil
+}
+
+func (lc *lowerCtx) changeZoneAllSweep(ps *params) error {
 	if lc.digImprinted && ps.is("RandomOrder", "True") {
 		return lc.digImprintBottom(ps) // lower_digimprint.go
 	}
