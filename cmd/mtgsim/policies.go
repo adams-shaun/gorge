@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"io"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/bots"
@@ -69,6 +71,11 @@ type searchTally struct {
 
 type searchSeatTally struct {
 	decisions, searched, sims, completed, nodes, fallback, refused int
+	// skips counts the decisions of a searched kind the search left alone,
+	// by "kind/reason" (priority splits further by the bot's own answer:
+	// "priority/few-candidates/pass"), from Stats.KindSkipped,
+	// ExtraSkipped and PrioritySkipped.
+	skips map[string]int
 }
 
 // watchSearch installs azmcts.Watch for one game. A named policy's seat i
@@ -100,8 +107,37 @@ func watchSearch(seed uint64, policies []string) *searchTally {
 		s.nodes += d.Stats.Expanded
 		s.fallback += d.Stats.FeedStopped
 		s.refused += d.Stats.RootRefused
+		s.noteSkips(&d.Stats)
 	}
 	return t
+}
+
+// noteSkips adds the skip rows of one decision's Stats to the seat's tally.
+func (s *searchSeatTally) noteSkips(st *azmcts.Stats) {
+	add := func(key string, n int) {
+		if n == 0 {
+			return
+		}
+		if s.skips == nil {
+			s.skips = map[string]int{}
+		}
+		s.skips[key] += n
+	}
+	for k := range st.KindSkipped {
+		for r, n := range st.KindSkipped[k] {
+			add(azmcts.KindNames[k]+"/"+azmcts.SkipReasonNames[r], n)
+		}
+	}
+	for k := range st.ExtraSkipped {
+		for r, n := range st.ExtraSkipped[k] {
+			add(azmcts.ExtraKindNames[k]+"/"+azmcts.SkipReasonNames[r], n)
+		}
+	}
+	for k := range st.PrioritySkipped {
+		for r, n := range st.PrioritySkipped[k] {
+			add("priority/"+azmcts.SkipReasonNames[r]+"/"+azmcts.BaseKindNames[k], n)
+		}
+	}
 }
 
 // stop restores the previous Watch.
@@ -122,5 +158,13 @@ func (t *searchTally) print(out io.Writer, policies []string) {
 		}
 		fmt.Fprintf(out, "  search seat %d (%s): decisions=%d searched=%d sims=%d completed=%d nodes=%d fallback=%d root-refused=%d\n",
 			i, policies[i], s.decisions, s.searched, s.sims, s.completed, s.nodes, s.fallback, s.refused)
+		if len(s.skips) > 0 {
+			keys := slices.Sorted(maps.Keys(s.skips))
+			parts := make([]string, len(keys))
+			for j, k := range keys {
+				parts[j] = fmt.Sprintf("%s=%d", k, s.skips[k])
+			}
+			fmt.Fprintf(out, "    skipped: %s\n", strings.Join(parts, " "))
+		}
 	}
 }

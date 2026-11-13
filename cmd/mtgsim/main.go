@@ -22,6 +22,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/deck"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/replay"
 	"github.com/adams-shaun/gorge/engine/rules"
@@ -453,6 +454,7 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	fmt.Fprintf(out, "seed %d: %d seats, %6d intents, %6d events, %3d turns, winner=%s, chain=%s, policies=%s\n",
 		seed, len(names), n, len(e.L.Events), e.G.Turn, result, e.L.Head(), policyList(policies))
 	search.print(out, policies)
+	printLosses(out, e.L.Events, e.G.Players)
 	finish(n, "over")
 
 	if !verify {
@@ -664,4 +666,21 @@ func matchMulligan(n int) string {
 		return "london"
 	}
 	return "none"
+}
+
+// printLosses writes one line per PlayerLost event, in event order: the seat,
+// its deck and the engine's loss text, so a run can tell a seat that died to
+// damage from one that decked or lost to its own card.
+func printLosses(out io.Writer, evs []events.Event, players []state.Player) {
+	for i := range evs {
+		if evs[i].Kind != events.PlayerLost {
+			continue
+		}
+		p := int(evs[i].Player)
+		name := ""
+		if p >= 0 && p < len(players) {
+			name = players[p].Name
+		}
+		fmt.Fprintf(out, "  loss seat %d (%s) at event %d: %s\n", p, name, evs[i].Seq, evs[i].Text)
+	}
 }
