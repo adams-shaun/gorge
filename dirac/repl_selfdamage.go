@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"sync/atomic"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // A permanent's own DamageDone replacement on damage to itself
 // (ValidTarget$ Card.Self):
@@ -11,6 +15,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     body at the proposal and hands back a stopped event: no damage, no
 //     lifelink, no damage trigger. Under a can't-prevent static the body
 //     still runs and the damage stands (CR 615.12).
+//   - ReplPreventDamageCounters with C = ReplPrevSelfRemoveOne (the Phantom
+//     creatures: Phantom Tiger, Unbreathing Horde): the damage is prevented
+//     and one +1/+1 counter is removed from it (none when it has none), the
+//     same gorge path as Anti-Venom's: the body runs at the proposal, and
+//     under a can't-prevent static it runs and the damage stands.
 //   - ReplDamageHealFirst (Wolverine, Fierce Fighter): the HealDamage body
 //     heals the damage already marked on it (and its deathtouch mark) and,
 //     ReplacementResult$ Updated, the held event is still dealt: lifelink and
@@ -25,8 +34,15 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // oracle mutation test); false in normal play.
 var DebugSelfDamageReplOff bool
 
-// rbSelfDmg is either self-damage replacement.
-const rbSelfDmg = rbPrevCtrSelf | rbHealSelf
+// rbSelfDmg is any self-damage replacement.
+const rbSelfDmg = rbPrevCtrSelf | rbHealSelf | rbPrevRmSelf | rbPrevToSelf
+
+// rbPrevSelf are the self-damage replacements that prevent the damage, each
+// event on its own (replCombatGen).
+const rbPrevSelf = rbPrevCtrSelf | rbPrevRmSelf | rbPrevToSelf
+
+// rbPrevBody are the preventions with a body (selfDamage runs it).
+const rbPrevBody = rbPrevCtrSelf | rbPrevRmSelf
 
 // rbSelfDmgCompete are the damage replacements that can match an event to a
 // self-damage host beside its own: gorge asks their CR 616.1 order.
@@ -36,19 +52,37 @@ const rbSelfDmgCompete = rbDblDmg | rbPlusDmg | rbPrevNC | rbPrevDmgTo | rbPrevC
 // damage it would be dealt; the amount dealt.
 func (s *State) selfDamage(k *prep, sl Slot, combat bool, n int) int {
 	b := k.gen.replBits[s.cardAt(sl)]
-	if DebugSelfDamageReplOff || b&rbSelfDmg == 0 || n <= 0 || s.genLost(k, sl) {
+	if DebugSelfDamageReplOff || b&(rbHealSelf|rbPrevBody) == 0 || n <= 0 || s.genLost(k, sl) {
 		return n
 	}
 	if b&rbHealSelf != 0 {
 		s.healMarked(sl)
 	}
-	if b&rbPrevCtrSelf != 0 {
-		s.selfDamageCounters(k, sl, n)
+	if b&rbPrevBody != 0 {
+		if b&rbPrevCtrSelf != 0 {
+			s.selfDamageCounters(k, sl, n)
+		} else {
+			s.selfDamageRemoveOne(sl)
+		}
 		if !s.noPrev(k, combat) {
 			return 0
 		}
 	}
 	return n
+}
+
+// SelfDamageStats counts the Phantom bodies run (the oracle test's proof the
+// pool reaches the replacement).
+var SelfDamageStats struct{ RemoveOne atomic.Int64 }
+
+// selfDamageRemoveOne is the Phantom body: remove one +1/+1 counter from sl
+// (gorge DB$ RemoveCounter | Defined$ Self | CounterNum$ 1, as OpRemoveCounter
+// does it: a kind removed to none is listed at 0).
+func (s *State) selfDamageRemoveOne(sl Slot) {
+	SelfDamageStats.RemoveOne.Add(1)
+	s.touchSl(sl)
+	s.perms[sl].seeCtr(s)
+	s.perms[sl].subCtrN(s, int(kop.CtrP1P1), 1)
 }
 
 // selfDamageHost: the permanent at sl carries a self-damage replacement
@@ -184,7 +218,7 @@ func (s *State) healDealtAfter(r *dmgRec, i int) bool {
 // replacement that can compete with them (a doubler, plus-N, prevention, a
 // prevention spell, a SHIELD counter placer).
 func selfDamagePair(g *genPrep) (string, func(*kop.CardDef, int) bool, func(*kop.CardDef, int) bool) {
-	text := "a self-damage replacement (prevent-and-counters, heal-then-deal) beside another damage replacement: gorge asks the CR 616.1 order of the two"
+	text := "a self-damage replacement (prevent-and-counters, prevent-and-remove-a-counter, a self prevention, heal-then-deal) beside another damage replacement: gorge asks the CR 616.1 order of the two"
 	a := func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbSelfDmg != 0 }
 	b := func(c *kop.CardDef, i int) bool {
 		return g.replBits[i]&rbSelfDmgCompete != 0 || abilityOn(func(x *kop.Ability) bool {

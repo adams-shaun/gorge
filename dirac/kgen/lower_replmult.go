@@ -279,6 +279,9 @@ func (lc *lowerCtx) preventMillRepl(rp *params, w *cards.SA, rl *lRepl) (bool, e
 //     proposal and hands back a stopped event (no damage, no lifelink, no
 //     damage trigger); under a can't-prevent effect the counters are put and
 //     the damage stands (CR 615.12). AlwaysReplace$ is not read there.
+//   - the Phantom creatures (Phantom Tiger, Unbreathing Horde): the same
+//     prevention with a DB$ RemoveCounter | Defined$ Self | CounterType$
+//     P1P1 | CounterNum$ 1 body (preventRemoveCounter).
 //   - Wolverine, Fierce Fighter: ReplacementResult$ Updated with a DB$
 //     HealDamage | Defined$ ReplacedTarget body: the marked damage is healed
 //     and the held event is still dealt (the damage, its lifelink and its
@@ -286,7 +289,7 @@ func (lc *lowerCtx) preventMillRepl(rp *params, w *cards.SA, rl *lRepl) (bool, e
 //
 // false: not this shape (ValidTarget$ is not Card.Self).
 func (lc *lowerCtx) selfDamageRepl(rp *params, w *cards.SA, rl *lRepl) (bool, error) {
-	if rp.peek("ValidTarget") != "Card.Self" || w == nil || w.API != "PutCounter" && w.API != "HealDamage" {
+	if rp.peek("ValidTarget") != "Card.Self" || w == nil || w.API != "PutCounter" && w.API != "HealDamage" && w.API != "RemoveCounter" {
 		return false, nil
 	}
 	rp.consume("ValidTarget")
@@ -312,6 +315,9 @@ func (lc *lowerCtx) selfDamageRepl(rp *params, w *cards.SA, rl *lRepl) (bool, er
 		return true, refuse("repl-hard: DamageDone prevent-and-counters shape")
 	}
 	rp.consume("AlwaysReplace") // not read by gorge
+	if w.API == "RemoveCounter" {
+		return true, lc.preventRemoveCounter(w, rl)
+	}
 	bp.consume("Defined", "CounterType", "CounterNum")
 	cn := strings.TrimSpace(w.Params["CounterNum"])
 	if sv, ok := lc.face.SVars[cn]; ok {
@@ -388,5 +394,24 @@ func (lc *lowerCtx) tokenCopyFirst(rp *params, w *cards.SA, rl *lRepl) error {
 	}
 	rl.Cond = lCond{Kind: cValue, A: v, Op: op, B: b}
 	rl.Kind = "CopyFirstToken"
+	return nil
+}
+
+// preventRemoveCounter lowers the Phantom body: "if damage would be dealt to
+// CARDNAME, prevent that damage. Remove a +1/+1 counter from CARDNAME"
+// (DB$ RemoveCounter | Defined$ Self or ReplacedTarget, both the host here
+// since ValidTarget$ is Card.Self | CounterType$ P1P1 | CounterNum$ 1). gorge
+// runs it as the prevent-and-counters body: the body at the proposal, a
+// stopped event, the body still run and the damage standing under a
+// can't-prevent static (CR 615.12). It lowers to ReplPreventDamageCounters
+// with Repl.C = kop.ReplPrevSelfRemoveOne.
+func (lc *lowerCtx) preventRemoveCounter(w *cards.SA, rl *lRepl) error {
+	bp := newParams(w.Params)
+	bp.consume("Defined", "CounterType", "CounterNum")
+	if d := bp.str("Defined"); w.Sub != nil || d != "Self" && d != "ReplacedTarget" || bp.str("CounterType") != "P1P1" ||
+		bp.str("CounterNum") != "1" || len(bp.unread()) != 0 {
+		return refuse("repl-hard: DamageDone prevent-and-remove-counter body")
+	}
+	rl.Kind, rl.Bits = "PreventDamageCounters", kop.ReplPrevSelfRemoveOne
 	return nil
 }

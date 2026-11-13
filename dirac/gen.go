@@ -527,6 +527,8 @@ const (
 	rbPrevCtrSelf                     // ReplPreventDamageCounters (repl_selfdamage.go)
 	rbHealSelf                        // ReplDamageHealFirst (repl_selfdamage.go)
 	rbPayETB                          // ReplPayBeforeETB (repl_paybeforeetb.go)
+	rbPrevRmSelf                      // ReplPreventDamageCounters with C = ReplPrevSelfRemoveOne (repl_selfdamage.go)
+	rbPrevToSelf                      // ReplPreventDamageToSelf (repl_preventtoself.go); the last bit of the uint32
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -1097,10 +1099,17 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.replBits[i] |= rbPrevMill
 					pc.hasStat = true
 				case kop.ReplPreventDamageCounters:
-					g.replBits[i] |= rbPrevCtrSelf
+					if a.Repl.C == kop.ReplPrevSelfRemoveOne {
+						g.replBits[i] |= rbPrevRmSelf
+					} else {
+						g.replBits[i] |= rbPrevCtrSelf
+					}
 					pc.hasStat = true
 				case kop.ReplDamageHealFirst:
 					g.replBits[i] |= rbHealSelf
+					pc.hasStat = true
+				case kop.ReplPreventDamageToSelf:
+					g.replBits[i] |= rbPrevToSelf
 					pc.hasStat = true
 				case kop.ReplDoubleTokens, kop.ReplRewriteTokens, kop.ReplAddToken, kop.ReplCopyFirstToken:
 					g.replBits[i] |= rbDblTok

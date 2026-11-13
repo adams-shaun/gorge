@@ -3529,6 +3529,8 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 			if err := lc.othersDoesntUntap(rp, &rl, vc); err != nil {
 				return err
 			}
+		} else if err := lc.selfDoesntUntapGate(rp, &rl); err != nil { // lower_untaprepl.go
+			return err
 		}
 	case "GameLoss", "GameWin":
 		if rp.str("Layer") != "CantHappen" || rp.str("ActiveZones") != "Battlefield" {
@@ -3682,6 +3684,9 @@ func (lc *lowerCtx) destroyHealRepl(rp *params, w *cards.SA, rl *lRepl) error {
 // and Crystal Barricade's prevention (noncombat damage to your other
 // creatures).
 func (lc *lowerCtx) damageRepl(rp *params, w *cards.SA, rl *lRepl) error {
+	if ok, err := lc.preventToSelf(rp, w, rl); ok || err != nil { // lower_preventtoself.go
+		return err
+	}
 	if rp.str("ActiveZones") != "Battlefield" {
 		return refuse("repl-hard: DamageDone ActiveZones")
 	}

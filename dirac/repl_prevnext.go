@@ -171,7 +171,7 @@ func (s *State) prevNextCompetes(k *prep, srcSl Slot, srcCard CardID, rcp uint8,
 	if combat && g.anyPrevFrom && srcSl != NoSlot && s.prevCombatFrom(k, srcSl) {
 		return true
 	}
-	const others = rbDblDmg | rbPlusDmg | rbPrevNC | rbPrevMill | rbPrevCtrSelf | rbHealSelf
+	const others = rbDblDmg | rbPlusDmg | rbPrevNC | rbPrevMill | rbSelfDmg
 	if g.anyRepl&others != 0 {
 		for m := s.statM; m.any(); m = m.rest() {
 			b := m.first()

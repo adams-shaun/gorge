@@ -88,9 +88,12 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	if g.anyRepl&rbPrevMill != 0 && sl == NoSlot && rcp != srcCtrl && s.preventMill(k, srcCtrl, rcp, combat, n) {
 		return 0 // The Mindskinner: prevented, the opponent mills that many (repl_preventmill.go)
 	}
+	if g.anyRepl&rbPrevToSelf != 0 && sl != NoSlot && s.prevToSelf(k, sl, srcCtrl, srcSl, srcCard, combat) {
+		return 0 // Istvan, Guardian Naga: prevented (repl_preventtoself.go)
+	}
 	if g.anyRepl&rbSelfDmg != 0 && sl != NoSlot {
 		if n = s.selfDamage(k, sl, combat, n); n <= 0 {
-			return 0 // Anti-Venom: prevented, that many +1/+1 counters (repl_selfdamage.go)
+			return 0 // Anti-Venom: prevented, that many +1/+1 counters; a Phantom: one removed (repl_selfdamage.go)
 		}
 	}
 	if g.anyRepl&rbShield != 0 && !combat && sl != NoSlot && s.shieldN(sl) > 0 && !s.noPrev(k, combat) {
@@ -258,7 +261,7 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 			return // a heal host's second event of an ordered-walk pass (repl_selfdamage.go)
 		}
 		n := s.replDamage(k, src.ctrl, ev.src, s.cardAt(ev.src), code, true, int(ev.n))
-		if n == 0 && ev.dst != NoSlot && k.gen.anyRepl&rbPrevCtrSelf != 0 && s.selfDamageHost(k, ev.dst, rbPrevCtrSelf) {
+		if n == 0 && ev.dst != NoSlot && k.gen.anyRepl&rbPrevSelf != 0 && s.selfDamageHost(k, ev.dst, rbPrevSelf) {
 			s.preventCombatEv(k, r, ev) // this event only: each puts its own counters (repl_selfdamage.go)
 			continue
 		}
