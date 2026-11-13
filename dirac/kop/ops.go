@@ -382,3 +382,14 @@ func (o Op) Known() bool {
 // kernel records the flip on the turn facts and applies a FlipCoinMod static
 // (dirac/static_turnbits.go). A die roll leaves C 0.
 const RollDieCoin int16 = 1
+
+// RollDieCoinBatch and RollDieCoinMark are bits beside RollDieCoin for a
+// multi-coin flip (gorge effFlipCoin's Amount$, one batch that reads
+// FlipCoinForced once): a Batch flip leaves the flipper's turn bit alone, so
+// every flip in the batch reads the same FlipCoinMod answer, and the Mark
+// that closes the batch draws nothing and keeps the roll, only setting the
+// turn bit.
+const (
+	RollDieCoinBatch int16 = 2
+	RollDieCoinMark  int16 = 4
+)

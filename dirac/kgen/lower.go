@@ -149,6 +149,8 @@ type lowerCtx struct {
 	numTimesK      int       // lowering a NumTimes latent for the announced count k: Count$TriggerRememberAmount is k (lower_numtimes.go)
 	remLKMVN       int       // RememberedLKI$CardManaCost reads admitted (value_remlkimv.go)
 	remLKN         int       // RememberedLKI$ P/T reads lc.value produced: refuseRemLKIPT refuses unless each one sits in an ability program (value_remlki.go)
+	flipSide       uint8     // lowering a FlipCoin branch: 1 the win block, 2 the lose block; a bare Wins/Losses read is that flip's 1/0 (lower_dice.go flipCoin)
+	flipTallyAb    *lAbility // the ability whose FlipCoin consumed RememberNumber$: its Count$RememberedNumber is the unlowered flip tally, refused (value.go)
 	p              *pool
 	name           string
 	card           *cards.Card

@@ -60,6 +60,12 @@ func (lc *lowerCtx) value(raw string) (lValue, error) {
 		return lValue{Kind: vX}, nil
 	}
 	if !ok {
+		if v, fok := lc.flipSideValue(raw); fok {
+			if neg {
+				v.N = -v.N
+			}
+			return v, nil
+		}
 		return lValue{}, fmt.Errorf("amount %q names no SVar", raw)
 	}
 	v, err := lc.svarValue(body, 0)
@@ -611,6 +617,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 	case "SVar":
 		// gorge count.go: SVar$<name>[/Op] reads another SVar on the face
 		body, ok := lc.face.SVars[rest]
+		if fv, fok := lc.flipSideValue(rest); !ok && fok {
+			v = fv
+			break
+		}
 		if !ok {
 			return lValue{}, fmt.Errorf("value head SVar$%s names no SVar", rest)
 		}
@@ -842,11 +852,10 @@ func (lc *lowerCtx) applyModifier(v lValue, m string, depth int) (lValue, error)
 		if !hasArg || aerr != nil {
 			return lValue{}, fmt.Errorf("value modifier %q", m)
 		}
-		op := uint8(opGE)
 		if name == "LimitMax" {
-			op = opLE
+			return limitValue(v, opLE, n), nil
 		}
-		return lValue{Kind: vCompare, N: n, Op: op, Sub: []lValue{v, {Kind: vBranches, Sub: []lValue{v, cst(n)}}}}, nil
+		return limitValue(v, opGE, n), nil
 	case "NMinus":
 		// gorge applyCountOp: NMinus.N is N - v (operand-first). The
 		// kernel applies v*Mul/Div + Add then Neg, so Add = -N and Neg make
@@ -1115,6 +1124,11 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	case "RememberedSize":
 		return lValue{Kind: vRememberedCount}, nil
 	case "RememberedNumber":
+		if lc.flipTallyAb != nil && lc.flipTallyAb == lc.ab {
+			// gorge: a FlipCoin RememberNumber$ tally (Ctx.FlipMemory), not
+			// the remembered-object count this head lowers to below
+			return lValue{}, fmt.Errorf("Count$RememberedNumber of a FlipCoin RememberNumber$ tally")
+		}
 		// gorge count_body_paid.go evalCountBodyPaidRememberedNumber: the
 		// resolution's capture-excluded remembered count, the list
 		// Remembered$Amount reads (its ExchangeLife / FlipCoin bindings are ops
