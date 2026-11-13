@@ -212,11 +212,11 @@ func TestMBCTriggerReferents10Lowers(t *testing.T) {
 // creature enters, its controller may draw a card if its power is greater
 // than each other creature's power.
 const selvalaProbe = "Name:Wilds Draw Probe\nManaCost:1 G G\nTypes:Creature Elf Scout\nPT:2/3\n" +
-	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Creature.Other | TriggerZones$ Battlefield | Execute$ TrigDraw | TriggerDescription$ Whenever another creature enters, its controller may draw a card if its power is greater than each other creature's power.\n" +
-	"SVar:TrigDraw:DB$ Draw | OptionalDecider$ TriggeredCardController | Defined$ TriggeredCardController | NumCards$ 1 | ConditionCheckSVar$ Z | ConditionSVarCompare$ EQY\n" +
-	"SVar:Z:TriggeredCard$Valid Card.greatestPower\n" +
-	"SVar:Y:Count$Valid Card.greatestPower\n" +
-	"Oracle:Whenever another creature enters, its controller may draw a card if its power is greater than each other creature's power.\n"
+	"T:Mode$ ChangesZone | Destination$ Battlefield | Origin$ Any | TriggerZones$ Battlefield | ValidCard$ Creature.Other | Execute$ ProbeDraw | TriggerDescription$ Probe: another creature enters; its controller may draw if it has the greatest power.\n" +
+	"SVar:ProbeDraw:DB$ Draw | NumCards$ 1 | Defined$ TriggeredCardController | OptionalDecider$ TriggeredCardController | ConditionCheckSVar$ EnteredPower | ConditionSVarCompare$ EQBestPower\n" +
+	"SVar:EnteredPower:TriggeredCard$Valid Card.greatestPower\n" +
+	"SVar:BestPower:Count$Valid Card.greatestPower\n" +
+	"Oracle:Probe.\n"
 
 // probeCorpus is a corpus directory holding the probe script and the real
 // cards the decks need (copied from the shared corpus into a temp dir, never
