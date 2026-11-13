@@ -3573,7 +3573,7 @@ func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 	}
 	m.Split = split
 	prod := ps.str("Produced")
-	if v := ps.peek("TriggersWhenSpent"); v != "" && prod == "R" {
+	if v := ps.peek("TriggersWhenSpent"); v != "" && len(prod) == 1 && strings.Contains("WUBRG", prod) {
 		if err := lc.deferredMana(ab, ps, v); err != nil {
 			return err
 		}

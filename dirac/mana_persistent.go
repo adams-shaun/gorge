@@ -99,7 +99,7 @@ func (s *State) persistEmpty(ec bool) {
 		s.pl[p].pool = keep
 		s.rbClear(uint8(p))
 	}
-	s.g.poolArt, s.g.defSrc = [MaxSeats]uint8{}, [MaxSeats]uint8{}
+	s.g.poolArt, s.g.defSrc, s.g.defCol = [MaxSeats]uint8{}, [MaxSeats]uint8{}, [MaxSeats]uint8{}
 	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
 }
 
@@ -114,7 +114,7 @@ func (s *State) persistTurn() {
 		s.pl[p].pool = [kop.NumManaKinds]uint8{}
 		s.rbClear(uint8(p))
 	}
-	s.g.poolArt, s.g.defSrc = [MaxSeats]uint8{}, [MaxSeats]uint8{}
+	s.g.poolArt, s.g.defSrc, s.g.defCol = [MaxSeats]uint8{}, [MaxSeats]uint8{}, [MaxSeats]uint8{}
 	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
 }
 

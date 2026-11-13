@@ -1917,7 +1917,8 @@ type genState struct {
 	nlinger  uint8
 	poison   [MaxSeats]uint8 // each player's poison counters (CR 122.1f; infect and toxic, kw_infect.go; padding before lingerM)
 	poolArt  [MaxSeats]uint8 // per player, the pool slots holding mana an artifact produced (mana_artifact.go; padding)
-	defSrc   [MaxSeats]uint8 // per player, the slot + 1 of the deferred source whose {R} floats in the pool (mana_deferred.go; padding)
+	defSrc   [MaxSeats]uint8 // per player, the slot + 1 of the deferred source whose mana floats in the pool (mana_deferred.go; padding)
+	defCol   [MaxSeats]uint8 // per player, that deferred mana's colour index (valid while defSrc is nonzero; mana_deferred.go; padding)
 	speed    seatWord        // each seat's speed (3 bits each) and the once-per-turn speed trigger latch above them (kw_speed.go; padding)
 	noPoison uint8           // bit p: player p can't get additional poison counters this turn (Melira's replacement; trig_leavereturn.go; padding)
 	plusCtr  [MaxSeats]uint8 // per player, how many Brad Boimler counter-plus-one effects are active this turn (ctr_pluseot.go; padding)

@@ -63,7 +63,14 @@ func (s *State) deferredPool(k *prep, p uint8) (r uint8, src uint8) {
 //
 //go:noinline
 func (s *State) deferredSpent(k *prep, p uint8, r0, src uint8) {
-	if s.pl[SeatIx(p)].pool[s.g.defCol[SeatIx(p)]] >= r0 || !s.buildLive() || s.bld().e.kind != seSpell {
+	if s.pl[SeatIx(p)].pool[s.g.defCol[SeatIx(p)]] >= r0 {
+		return
+	}
+	// gorge spends the source's batch first, so its unit is gone now even when
+	// same-colour mana from other sources still floats (Gilanra's {G} beside
+	// Forests'): a later payment of that colour is not the source's
+	s.g.defSrc[SeatIx(p)], s.g.defCol[SeatIx(p)] = 0, 0
+	if !s.buildLive() || s.bld().e.kind != seSpell {
 		return
 	}
 	sl := Slot(src - 1)
