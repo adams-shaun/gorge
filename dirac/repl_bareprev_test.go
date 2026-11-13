@@ -28,7 +28,7 @@ func TestBarePreventionsNoOrderAsk(t *testing.T) {
 	}
 	sc.lands(0, id["Mountain"], 3)
 	sr := sc.hand(id["Seismic Rupture"], 0)
-	sc.do(t, AkCast, uint8(sr), 0xff)
+	sc.do(t, AkCast, TCode(sr), scAny)
 
 	for i := 0; i < 12; i++ {
 		d := s.Step()
