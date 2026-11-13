@@ -326,6 +326,8 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = lValue{Kind: vHighestOppPoison}
 		case strings.HasPrefix(rest, "Condition"):
 			v, err = lc.oppCastCondValue(rest) // value_oppcondition.go
+		case rest == oppsDealtDamageBody:
+			v = lValue{Kind: vOppsLostLife, N: 3} // value_turntallies.go
 		default:
 			err = fmt.Errorf("PlayerCountOpponents$%s", rest)
 		}
@@ -338,6 +340,8 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = hv // value_turntallies.go
 		} else if rest == oppsDealtCombatDamageBody {
 			v = lValue{Kind: vOppsLostLife, N: 2}
+		} else if rest == oppsDealtDamageBody {
+			v = lValue{Kind: vOppsLostLife, N: 3} // value_turntallies.go
 		} else {
 			err = fmt.Errorf("PlayerCountRegisteredOpponents$%s", rest)
 		}
