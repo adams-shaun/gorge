@@ -3440,6 +3440,24 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		}
 		rl.Prog = ab.Prog
 		rl.Kind = "EntersWith"
+		// the entry's own resolution wrote nothing before this move: a
+		// remembered-set read here sees gorge's ctx unioned with the
+		// spell's persistent event-backed list (rememberedWithSource) —
+		// the write another ability's resolution made — where the kernel's
+		// per-resolution set is empty (Naya Soulbeast's "X is the total
+		// mana value of all cards revealed this way"). A program that
+		// writes the set it reads is its own resolution's and lowers.
+		writesRem := false
+		for _, in := range ab.Prog {
+			writesRem = writesRem || kremWrites(in)
+		}
+		if !writesRem {
+			for _, in := range ab.Prog {
+				if kremReads(in.String()) {
+					return refuse("the ETB replacement reads Remembered written by another ability (the kernel's remembered set is per resolution; gorge's persists on the source)")
+				}
+			}
+		}
 		if spyglassChain(r.With) || handNameChain(r.With) {
 			// gorge runs this chain (not a bare NameCard body) once the permanent
 			// is on the battlefield: the queued ask, not the stack pre-ask

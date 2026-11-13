@@ -147,7 +147,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
 	// +5 (MBC statics-1: a Continuous keyword grant printed EffectZone$ Graveyard, kop.StFunctionsInGraveyard on a StatContinuous, the Mirage Incarnations: Anger, Wonder, Filth, Valor and Brawn; ALL 23437 -> 23442, MBC 1724 -> 1728 (Anger, Wonder, Filth, Valor) measured).
-	"ALL": {23443, 34442},
+	// -1 (the ETB replacement's remembered-set read now refuses: the kernel's remembered set is per resolution, gorge's read unions the source's persistent event-backed list — Naya Soulbeast's "X is the total mana value of all cards revealed this way", unlocked by the Static$ True lowering and refused again beside it; ALL 23443 -> 23442 measured).
+	"ALL": {23442, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {219, 280},
