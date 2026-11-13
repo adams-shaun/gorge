@@ -939,6 +939,7 @@ type lOverride struct {
 	SetTypes         uint16
 	HasSetTypes      bool
 	AddTypes         uint16
+	RemoveTypes      uint16 // RemoveType$: card types removed (kop.Override.RemoveTypes)
 	SetSubtypes      []string
 	HasSetSubtypes   bool
 	AddSubtypes      []string
