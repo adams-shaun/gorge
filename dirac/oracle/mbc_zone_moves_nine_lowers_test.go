@@ -26,7 +26,11 @@ import (
 //     put into exile" (ChangesZone Battlefield->Graveyard,Exile ValidCard$
 //     Card.AttachedBy), a Leaves line over the destination set read on the
 //     host as it leaves (CR 603.10a), killed by Shock and exiled by Swords
-//     to Plowshares.
+//     to Plowshares;
+//   - mbciwamori: Iwamori of the Open Fist's "each opponent may put a
+//     legendary creature card from their hand onto the battlefield" (hand
+//     move DefinedPlayer$ Player.Opponent), a RepeatEach over the opponents
+//     around the repeated player's may-move.
 //
 // Each case asserts the lowered shape is in the table, plays clean, and then
 // diverges with that shape broken (the pool reaches what it tests).
@@ -123,6 +127,24 @@ var mbcZoneMoves9Cases = []mbcZoneMoves9Case{
 		// the exile half dropped: an exiled host returns in gorge only
 		mutate: func(tbl *kop.Table) { mbcGhostformLine(tbl).Trig.N &^= 1 << kop.ZoneExile },
 	},
+	{
+		pool: "mbciwamori",
+		decks: [2][]cardset.Entry{
+			{
+				{Name: "Iwamori of the Open Fist", Count: 12}, {Name: "Forest", Count: 28},
+			},
+			{
+				{Name: "Isamaru, Hound of Konda", Count: 14}, {Name: "Plains", Count: 26},
+			},
+		},
+		shape: func(t *testing.T, tbl *kop.Table) {
+			if mbcIwamoriLoop(tbl) == nil {
+				t.Fatal("Iwamori of the Open Fist has no RepeatEachPlayer over the opponents around a RefEach ChooseMove: the spelling did not lower")
+			}
+		},
+		// every player, the controller too: gorge never asks the controller
+		mutate: func(tbl *kop.Table) { mbcIwamoriLoop(tbl).Obj = kop.RefEachPlayer },
+	},
 }
 
 func TestMBCZoneMoves9Lowers(t *testing.T) {
@@ -209,6 +231,25 @@ func mbcGhostformLine(tbl *kop.Table) *kop.Ability {
 		a := &cd.Abilities[j]
 		if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigLeaves && a.Trig.N&want == want {
 			return a
+		}
+	}
+	return nil
+}
+
+// mbcIwamoriLoop is Iwamori of the Open Fist's per-opponent loop head, its
+// body the repeated player's hand move.
+func mbcIwamoriLoop(tbl *kop.Table) *kop.Instr {
+	cd := mbcCard(tbl, "Iwamori of the Open Fist")
+	if cd == nil {
+		return nil
+	}
+	for j := range cd.Abilities {
+		prog := cd.Abilities[j].Prog
+		for k := 0; k+1 < len(prog); k++ {
+			if prog[k].Op == kop.OpRepeatEachPlayer && prog[k].Obj == kop.RefEachOpponent &&
+				prog[k+1].Op == kop.OpChooseMove && prog[k+1].Obj == kop.RefEach {
+				return &prog[k]
+			}
 		}
 	}
 	return nil
