@@ -19,7 +19,13 @@ type evalCtx struct {
 	// zone counts skip: CR 601.2a has it on the stack by the time CR 601.2f
 	// determines the total cost. 0 skips nothing, and NoObj+1 wraps to 0.
 	uncounted Obj
-	e         *stackEntry
+	// taxed1 is one more than the creature an attack-tax static's charge is
+	// being priced for (combat_attacktax.go atkTaxCharge, kop.RefTaxedAttacker;
+	// Nils, Discipline Enforcer's RememberingAttacker$): the charge
+	// Remembered$CardCounters.ALL reads the priced creature's live counters.
+	// 0 reads none (the uncounted convention).
+	taxed1 Obj
+	e      *stackEntry
 	// bounds marks a target-bound evaluation (tgtBoundsEval): an ETB
 	// trigger's TargetMax$ may read its cast's count even after the permanent
 	// left the battlefield (CR 704.5j before 603.3b), where a later effect
@@ -501,6 +507,11 @@ func (s *State) refObjCtx(r kop.Ref, ctx evalCtx) Obj {
 		return NoObj
 	case kop.RefReplaced:
 		return s.g.replaced
+	case kop.RefTaxedAttacker:
+		if ctx.taxed1 == 0 {
+			return NoObj
+		}
+		return ctx.taxed1 - 1
 	}
 	if e == nil {
 		return NoObj
