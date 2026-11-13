@@ -219,7 +219,7 @@ const (
 	PredCMCEQ            Pred = PredWithPowerLEX + 1 + iota // mana value == PredN
 	PredCMCLEV                                              // mana value <= the value PredV (== when PredN is 1)
 	PredCountersGE                                          // at least PredN>>8 counters of kind PredN&0xff
-	PredPowerGEV                                            // a battlefield permanent's power >= the value PredV; PredN 1: a spell's power == PredV; PredN 2: a card in a graveyard whose printed power <= PredV (dirac/filter_ptvalue.go); PredN 3: a battlefield permanent's power == PredV (Amalia's powerEQ20)
+	PredPowerGEV                                            // a battlefield permanent's power >= the value PredV; PredN 1: a spell's power == PredV; PredN 2: power <= PredV, a battlefield permanent's current power (Legacy's Allure's powerLEX) or a card off it by its printed or last known power (Ruthless Technomancer's graveyard powerLEX; dirac/filter_ptvalue.go); PredN 3: a battlefield permanent's power == PredV (Amalia's powerEQ20)
 	PredToughnessGE                                         // toughness >= PredN
 	PredHasXCost                                            // the printed mana cost contains {X}
 	PredPowerLTToughness                                    // power < toughness

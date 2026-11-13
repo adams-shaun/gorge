@@ -319,6 +319,9 @@ const (
 	// counter with no inherent rules meaning (CR 122.1) that its own mana
 	// ability removes.
 	CtrStorage
+	// CtrTreasure is a treasure counter, a named counter with no inherent
+	// rules meaning (CR 122.1; Legacy's Allure's Count$CardCounters.TREASURE).
+	CtrTreasure
 	NumCounterKinds3
 )
 
@@ -337,7 +340,7 @@ var CtrXNames = [NumCounterKindsX]string{"CHARGE", "OIL", "SPORE", "QUEST", "VER
 	"Reach", "Shadow", "Trample", "Vigilance", "SUPPLY", "LORE", "LANDMARK", "DREAD", "DEFENSE", "CHORUS", "M0M1", "FINALITY", "TIME", "VALOR", "NET", "PLAN",
 	"INVASION", "LOOT", "REV", "PAGE", "INGENUITY", "FILM", "FIRE", "HONE", "COIN",
 	"DIVINITY", "IMPOSTOR", "BORE", "POINT", "BLOODSTAIN", "POSSESSION", "PROMOTION", "PEACE", "WISH", "SKEWER", "NEST", "AGE", "LUCK",
-	"DEPLETION", "MINING", "FADE", "BURDEN", "STORAGE"}
+	"DEPLETION", "MINING", "FADE", "BURDEN", "STORAGE", "TREASURE"}
 
 // IsCounterKind reports whether c is a real counter kind (a featurized one
 // or an unfeaturized one; CtrLevel and the gap at NumCounterKinds2 are not).
