@@ -807,6 +807,14 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Surge != nil {
+		// CR 702.117a: the hand's alternative cost once another spell was
+		// cast this turn (dirac/kw_surge.go)
+		d.HasSurge = true
+		if d.SurgeCost, err = manaCostOf(*c.Surge); err != nil {
+			return err
+		}
+	}
 	if c.Overload != nil {
 		// CR 702.96a: the hand's alternative cost and the resolving program's
 		// each-variant (dirac/kw_overload.go)

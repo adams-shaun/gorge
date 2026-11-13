@@ -206,6 +206,12 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ := CastModeCode("foretell_cast")
 			return Pack(ActCast, src, RefNone, cm)
 		}
+		if mode == 0 && tgt == dirac.FeatCastSurgeTgt && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
+			// the surged cast (CR 702.117a; kernel kw_surge.go
+			// castSurgeTgt): gorge's "surged" cast option, AltCostIndex 0
+			cm, _ := CastModeCode("surged")
+			return Pack(ActCast, src, RefNone, cm)
+		}
 		if mode == 0 && tgt == 5 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
 			// the overloaded cast (CR 702.96a; kernel kw_overload.go
 			// castOverloadTgt): gorge's "overloaded" cast option, AltCostIndex

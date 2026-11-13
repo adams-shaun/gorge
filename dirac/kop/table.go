@@ -550,6 +550,12 @@ type CardDef struct {
 	// spell runs OverloadProg, the "each" variant of its printed program
 	// (dirac/kw_overload.go).
 	HasOverload bool
+	// HasSurge is printed surge (CR 702.117a; no KwMask bit is free): the
+	// hand offers the surged cast at SurgeCost once its caster has cast
+	// another spell this turn (dirac/kw_surge.go).
+	HasSurge bool
+	// SurgeCost is the printed surge cost (HasSurge).
+	SurgeCost ManaCost
 	// OverloadCost is the printed overload cost (HasOverload).
 	OverloadCost ManaCost
 	// OverloadProg is the overloaded cast's program (CR 702.96a): the

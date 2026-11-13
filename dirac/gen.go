@@ -231,6 +231,7 @@ type genPrep struct {
 	anyFaces        bool           // some card has faces (CardDef.Faces; face_multiface.go)
 	anyWarp         bool           // some card has warp (CardDef.HasWarp; kw_warp.go)
 	anyDash         bool           // some card has dash (CardDef.HasDash; kw_dash.go)
+	anySurge        bool           // some card has surge (CardDef.HasSurge; kw_surge.go)
 	anyEvoke        bool           // some card has evoke (CardDef.HasEvoke) or some expression is ExAdamant (kw_evoke.go)
 	anyOverload     bool           // some card has overload (CardDef.HasOverload; kw_overload.go)
 	anyImpending    bool           // some card has impending (CardDef.Impending; kw_impending.go)
@@ -847,6 +848,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.HasDash {
 			g.anyDash = true
 			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
+		}
+		if c.HasSurge {
+			g.anySurge, g.anyHist = true, true // the gate reads the history bank's spell count
+			p.cards[i].altCost = true          // the hand walk's one-byte gate (offerAltHand)
 		}
 		if c.HasOverload {
 			g.anyOverload = true

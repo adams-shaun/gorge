@@ -93,7 +93,9 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 			s.g.impCast = false
 		}
 		if s.g.impCast {
-			if k.t.Cards[c].HasOverload {
+			if k.t.Cards[c].HasSurge {
+				e.mode |= modeImpended // the surged cast (kw_surge.go: the bit reads as surged on a HasSurge card)
+			} else if k.t.Cards[c].HasOverload {
 				e.mode |= modeImpended // the overloaded cast (kw_overload.go: the bit reads as overloaded on a HasOverload card)
 			} else if k.t.Cards[c].HasEvoke {
 				e.spc |= spcEvoked // the evoked cast (kw_evoke.go)
@@ -146,10 +148,11 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		}
 	}
 	n0 := s.npend
-	if fl&sfKicked != 0 && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
+	if (fl&sfKicked != 0 || k.gen != nil && k.gen.anySurge && s.bld().e.surged(k)) && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
 		// (an optional waterbend cast taps nothing here: its window pays after
 		// the picks, manaStep's waterbendCastWindow, as gorge's convokeAsk
 		// precedes its manual window)
+		// (a surged cast is the same potential play: kw_surge.go)
 		// gorge has no planned kicked cast: the oracle lowers it by tapping
 		// the witness's sources at priority, then casts from the floating
 		// pool; the mana is spent at payment as usual. The witness is
@@ -616,6 +619,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		}
 		if cd.HasDash && e.impended() {
 			c = cd.DashCost // the dash cost (CR 702.109a; kw_dash.go)
+		}
+		if cd.HasSurge && e.surged(k) {
+			c = surgeCostOf(cd) // the surge cost (CR 702.117a; kw_surge.go)
 		}
 		if cd.HasOverload && e.overloaded(k) {
 			c = cd.OverloadCost // the overload cost (CR 702.96a; kw_overload.go)

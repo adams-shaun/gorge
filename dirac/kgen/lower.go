@@ -491,7 +491,8 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseForetellCombos()      // lower_foretell.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
 	lc.lowerImpending()
-	lc.lowerOverload() // lower_overload.go
+	lc.lowerOverload()     // lower_overload.go
+	lc.refuseSurgeCombos() // lower_surge.go
 }
 
 // lowerImpending appends Impending's end-step tick after the printed lines
@@ -1703,6 +1704,21 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Evoke = &mc
+		case head == "Surge":
+			// CR 702.117a: an alternative hand cost offered once the caster
+			// has cast another spell this turn (dirac/kw_surge.go). X, a ":"
+			// or "<" rider and any non-mana part are refused; hybrid pips are
+			// announced as for any cost.
+			mc, err := parseManaCost(param)
+			if err != nil || param == "" || strings.ContainsAny(param, ":<") || mc.X || mc.None {
+				lc.refuseNode(node, "surge cost %q", param)
+				continue
+			}
+			if lc.out.Surge != nil {
+				lc.refuseNode(node, "two Surge keywords")
+				continue
+			}
+			lc.out.Surge = &mc
 		case head == "Overload":
 			// CR 702.96a: an alternative hand cost; if paid, every
 			// "target" in the spell's text reads "each" (dirac/kw_overload.go).

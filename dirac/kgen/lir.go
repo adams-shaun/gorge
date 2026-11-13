@@ -1030,6 +1030,7 @@ type lCard struct {
 	FbBeholdF      *lFilter
 	Dash           *manaCost // K:Dash:<cost> (CR 702.109a): the hand's alternative cost; the permanent gains haste and returns to its owner's hand at the next end step
 	Evoke          *manaCost // K:Evoke:<cost> (CR 702.74a): the hand's alternative cost; the permanent is sacrificed as it enters
+	Surge          *manaCost // K:Surge:<cost> (CR 702.117a): the hand's alternative cost once its caster has cast another spell this turn
 	Overload       *manaCost // K:Overload:<cost> (CR 702.96a): the hand's alternative cost; the spell reads "target" as "each"
 	// OverloadProg is the overloaded cast's program: the printed spell with
 	// each targeted instruction rewritten to its "each" sweep (CR 702.96a).
