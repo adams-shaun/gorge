@@ -197,13 +197,6 @@ func TestPrintedAbilityBesideAGrantLockstep(t *testing.T) {
 	synthReproLockstep(t, "printed_beside_equipment_grant", "std-tla", Config{GorgeAutopaySurface: true})
 }
 
-// On the autopay surface a Gift spell is an ordinary plain cast: the promise costs no
-// mana and is asked after the planner's witness is tapped.
-func TestGiftCastIsPlannedOnAutopayLockstep(t *testing.T) {
-	t.Parallel()
-	pinnedGames(t, "std-blb", Config{GorgeAutopaySurface: true}, anyOf(onStack("Longstalk Brawl"), onStack("Scrapshooter")))
-}
-
 // A land animated the turn it entered is no creature that entered: Mishra's Factory
 // leaves Bristlebane Outrider's "another creature entered" unmet (CR 603.10a's reasoning,
 // read at the entry), and a Grizzly Bears meets it.

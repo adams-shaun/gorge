@@ -487,14 +487,6 @@ func waterbendPairs(t *testing.T, name string) {
 	})
 }
 
-// TestAbilityPlanLeavesOutCommittedPermanents: the settled cost's plan is made
-// without the permanents tapped for the ability's costs, and stands if others pay
-// (CR 601.2g-h, 602.2b): a land's {4},{T} ability.
-func TestAbilityPlanLeavesOutCommittedPermanents(t *testing.T) {
-	pinnedGames(t, "std-tla", Config{GorgeAutopaySurface: true},
-		anyOf(activated("Airship Engine Room"), activated("Meditation Pools"), activated("North Pole Gates")))
-}
-
 // TestGrantedManaPricesAnImpendedCast: the search through granted mana prices an
 // impended cast at its alternative cost (CR 118.9, 702.176a): an Overlord cast for
 // its impending cost.

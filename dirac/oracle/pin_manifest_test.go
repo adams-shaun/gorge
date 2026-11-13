@@ -51,12 +51,47 @@ func (c pinConfig) config() Config {
 }
 
 // pinCondition is one reached condition as data. Kind is "cardOut",
-// "onBattlefield", "cardSeen" or "anyOf"; Card names the card, and anyOf
-// nests its alternatives in Conditions.
+// "onBattlefield", "cardSeen", "onStack", "activated", "counterAtLeast" or
+// "anyOf"; Card names the card, counterAtLeast reads the Counter kind against
+// N, and anyOf nests its alternatives in Conditions.
 type pinCondition struct {
 	Kind       string         `json:"kind"`
 	Card       string         `json:"card,omitempty"`
+	Counter    string         `json:"counter,omitempty"`
+	N          int            `json:"n,omitempty"`
 	Conditions []pinCondition `json:"conditions,omitempty"`
+}
+
+// validate reports a condition the manifest could not judge, so a bad document
+// fails as it is read rather than after its games are played.
+func (c pinCondition) validate() error {
+	switch c.Kind {
+	case "anyOf":
+		if len(c.Conditions) == 0 {
+			return fmt.Errorf("pin condition anyOf: no conditions")
+		}
+		for i := range c.Conditions {
+			if err := c.Conditions[i].validate(); err != nil {
+				return fmt.Errorf("anyOf condition %d: %w", i, err)
+			}
+		}
+		return nil
+	case "cardOut", "onBattlefield", "cardSeen", "onStack", "activated", "counterAtLeast":
+	default:
+		return fmt.Errorf("pin condition %q: unknown kind", c.Kind)
+	}
+	if c.Card == "" {
+		return fmt.Errorf("pin condition %s: no card", c.Kind)
+	}
+	if c.Kind == "counterAtLeast" {
+		if c.Counter == "" {
+			return fmt.Errorf("pin condition counterAtLeast %q: no counter", c.Card)
+		}
+		if c.N < 1 {
+			return fmt.Errorf("pin condition counterAtLeast %q: n %d, want at least 1", c.Card, c.N)
+		}
+	}
+	return nil
 }
 
 func (c pinCondition) reached(t *testing.T) func(ref *GorgeSide) bool {
@@ -68,6 +103,12 @@ func (c pinCondition) reached(t *testing.T) func(ref *GorgeSide) bool {
 		return onBattlefield(c.Card)
 	case "cardSeen":
 		return cardSeen(c.Card)
+	case "onStack":
+		return onStack(c.Card)
+	case "activated":
+		return activated(c.Card)
+	case "counterAtLeast":
+		return counterAtLeast(c.Card, c.Counter, c.N)
 	case "anyOf":
 		conds := make([]func(ref *GorgeSide) bool, len(c.Conditions))
 		for i := range c.Conditions {
@@ -106,6 +147,11 @@ func readPinDoc(path string) (*pinDoc, bool, error) {
 	}
 	if doc.Pool == "" || len(doc.Conditions) == 0 || len(doc.Games) == 0 {
 		return nil, false, fmt.Errorf("%s: a pin document needs a pool, conditions and at least one game", path)
+	}
+	for i := range doc.Conditions {
+		if err := doc.Conditions[i].validate(); err != nil {
+			return nil, false, fmt.Errorf("%s: condition %d: %w", path, i, err)
+		}
 	}
 	return &doc, true, nil
 }
@@ -240,8 +286,8 @@ func TestPinManifestCoversOldPins(t *testing.T) {
 		}
 		old = append(old, string(bytes.TrimSpace(line)))
 	}
-	if len(old) < 50 {
-		t.Fatalf("%d old pin files, want at least the pre-change 50", len(old))
+	if len(old) < 66 {
+		t.Fatalf("%d old pin files, want at least the pre-change 66", len(old))
 	}
 	manifest := make(map[string]bool)
 	for _, path := range pinManifestFiles(t) {

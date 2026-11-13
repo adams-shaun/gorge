@@ -137,13 +137,6 @@ func TestCleanupDiscardPicksBeforeOrderAsks(t *testing.T) {
 	parkedPairs(t)
 }
 
-// A gift trigger is the keyword's, not one of the card's printed triggers: the two
-// engines name it alike on the stack (CR 702.174c; Starforged Sword, Scrapshooter).
-func TestGiftTriggerOnTheStack(t *testing.T) {
-	t.Parallel()
-	pinnedGames(t, "std-blb", Config{}, anyOut("Starforged Sword", "Scrapshooter"))
-}
-
 // Two Rests in Peace: a Treasure in a resolution's mana payment waits for its order
 // ask, the plan's next source waits for that, and a mass destroy and a mill ask once a
 // card, each going where its answer says.

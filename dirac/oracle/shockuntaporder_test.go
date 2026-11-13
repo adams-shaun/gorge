@@ -62,11 +62,3 @@ func TestShockLandUnderEntersUntappedOrder(t *testing.T) {
 		t.Fatal("no land's entry-order ask was posed: the recorded game no longer reaches the competition")
 	}
 }
-
-// Spock, Voice of Reason draws a card for each nontoken permanent its
-// controller has that entered this turn. gorge read the nonToken property as
-// unknown and drew none, the kernel drew for each.
-func TestNonTokenEnteredThisTurnCount(t *testing.T) {
-	t.Parallel()
-	pinnedGamesRun(t, "std-trc", RunConfig{Config: Config{GorgeAutopaySurface: true}}, 0, activated("Spock, Voice of Reason"))
-}
