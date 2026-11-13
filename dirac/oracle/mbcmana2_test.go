@@ -17,7 +17,7 @@ import (
 // (Air Elemental, Serra Angel, Juggernaut); the second is a plain creature
 // deck. Every tracked card's mana ability must be activated on gorge's side,
 // so the lockstep compares the kernel's walk of it.
-var kmbc2Names = []string{"Apprentice Wizard", "Relic of Legends"}
+var kmbc2Names = []string{"Apprentice Wizard", "Krark-Clan Ironworks", "Relic of Legends"}
 
 // kmbc2Cost: the cost text of the tracked mana ability, so the count is of that
 // ability's activations and not of Relic of Legends' own {T} one.
