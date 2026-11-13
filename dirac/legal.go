@@ -1041,10 +1041,10 @@ func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base
 		return true
 	}
 	ac := spellAddCost(k, c)
-	if s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p, c, o) {
+	if s.pickCostPayable(k, p, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p, c, o) {
 		return true
 	}
-	if !s.pickCostPayable(k, p, &cd.AltAddCost, NoObj) {
+	if !s.pickCostPayable(k, p, &cd.AltAddCost, o) {
 		return false
 	}
 	t := addCost(*cost, cd.AltAddCost.Mana)
