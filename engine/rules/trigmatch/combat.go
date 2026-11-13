@@ -552,19 +552,16 @@ func DamageAmountMatches(e Board, t cards.Trigger, source, recipient state.ObjID
 // some share passes. An absent parameter admits everything; one whose operand
 // is not a literal fails closed, as DamageAmountMatches' unreadable operand.
 func AtLeastOneInstanceMatches(t cards.Trigger, amounts []int32) bool {
-	spec := strings.TrimSpace(t.ParamStr(cards.PKAtLeastOneInstance))
-	if spec == "" {
+	spec, has := t.Param(cards.PKAtLeastOneInstance)
+	if !has {
 		return true
 	}
-	if len(spec) < 3 {
-		return false
-	}
-	n, err := strconv.ParseInt(strings.TrimSpace(spec[2:]), 10, 32)
-	if err != nil {
+	op, n, ok := SplitCompare(spec)
+	if !ok {
 		return false
 	}
 	for _, a := range amounts {
-		if ApplyCompare(int(a), spec[:2], int(n)) {
+		if ApplyCompare(int(a), op, n) {
 			return true
 		}
 	}
