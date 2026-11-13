@@ -174,7 +174,7 @@ func (s *State) genViewHash(h uint64) uint64 {
 	h = hbytes(h, unsafe.Pointer(&g.embO[0]), uintptr(len(g.embO))*unsafe.Sizeof(g.embO[0]))
 	h = hbytes(h, unsafe.Pointer(&g.embN[0]), uintptr(len(g.embN))*unsafe.Sizeof(g.embN[0])) // the frozen chosen number
 	h = hbytes(h, unsafe.Pointer(&g.embT[0]), uintptr(len(g.embT))*unsafe.Sizeof(g.embT[0])) // the layer timestamp
-	if g.embR != [MaxSeats][maxEmb]Obj{} || g.embX != [MaxSeats][maxEmb][embRemSlots - 2]uint8{} {
+	if g.embR != [MaxSeats][maxEmb]Obj{} || g.embX != [MaxSeats][maxEmb][embRemSlots - 2]objWord{} {
 		// an emblem's remembered slots (static_emblemrem.go): only a table whose emblems remember keeps them
 		h = hbytes(h, unsafe.Pointer(&g.embR[0]), uintptr(len(g.embR))*unsafe.Sizeof(g.embR[0]))
 		h = hbytes(h, unsafe.Pointer(&g.embX[0]), uintptr(len(g.embX))*unsafe.Sizeof(g.embX[0]))
@@ -186,6 +186,10 @@ func (s *State) genViewHash(h uint64) uint64 {
 	}
 	h = hmix(h, uint64(g.nemb[0])|uint64(g.nemb[1])<<8|uint64(g.died)<<16|uint64(g.attacked[0])<<24|
 		uint64(g.attacked[1])<<32|uint64(g.nused)<<40|uint64(g.oppAtt)<<48)
+	for i := 2; i < MaxSeats; i++ {
+		// the seats past the second (none at two seats)
+		h = hmix(h, uint64(g.nemb[i])|uint64(g.attacked[i])<<8)
+	}
 	if g.spent != [MaxSeats]uint16{} || g.hist != [MaxSeats][3]uint8{} {
 		// the turn history bank: only a table that reads it keeps it
 		h = hbytes(h, unsafe.Pointer(&g.hist), unsafe.Sizeof(g.hist))
@@ -195,6 +199,9 @@ func (s *State) genViewHash(h uint64) uint64 {
 			}
 		}
 		h = hmix(h, uint64(g.spent[0])|uint64(g.spent[1])<<16)
+		for i := 2; i < MaxSeats; i++ {
+			h = hmix(h, uint64(g.spent[i])) // the seats past the second (none at two seats)
+		}
 	}
 	if g.crime != 0 {
 		h = hmix(h, 0x6372696d65<<8|uint64(g.crime))
@@ -237,7 +244,7 @@ func (s *State) ViewHashCached(seat uint8, base *[MaxObj]uint64, c *ObjHashCache
 	if c != nil && (c.line != s.line || s.line == 0) {
 		c.line = s.line
 		c.ok = [MaxObj]bool{}
-		c.part = [2]objPart{}
+		c.part = [MaxSeats]objPart{}
 	}
 	var o uint64
 	if pc := c; pc != nil && s.line != 0 && pc.part[SeatIx(seat)].ok && pc.part[SeatIx(seat)].at == s.touchN {
@@ -358,7 +365,7 @@ type ObjHashCache struct {
 	ok   [MaxObj]bool
 	at   [MaxObj]uint32 // Touches() when computed
 	h    [MaxObj]uint64
-	part [2]objPart
+	part [MaxSeats]objPart // per seat's view (SeatIx)
 }
 
 type objPart struct {
@@ -421,8 +428,8 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 	h := hmix(0x6465636973696f6e, uint64(d.Kind)|uint64(d.Sub)<<8|uint64(d.Player)<<16|uint64(d.N)<<24|uint64(s.ctl)<<40)
 	for i := 0; i < int(d.N); i++ {
 		a := d.Options[i]
-		h = hmix(h, uint64(a))
-		for _, o := range [2]uint8{a.Source(), a.Target()} {
+		h = hmix(h, uint64(a)) // code-ok: hashes the whole word, whatever its layout
+		for _, o := range [2]TCode{a.Source(), a.Target()} {
 			if int(o) >= int(s.nobj) {
 				continue
 			}

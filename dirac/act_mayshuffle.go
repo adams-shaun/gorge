@@ -16,10 +16,15 @@ var DebugShuffleOwnOnly bool
 // target chosen earlier in the same cast/resolution entry.
 //
 //go:noinline
-func (s *State) parentTargetOK(t *kop.TargetSpec, code uint8) bool {
+func (s *State) parentTargetOK(t *kop.TargetSpec, code TCode) bool {
 	e := s.curEntry()
 	if e == nil || t.Kind != kop.TgtCard {
 		return false
+	}
+	if t.ParentPlus1 == kop.ParentTrigPl {
+		// the trigger entry's trigger player (kop.ParentTrigPl): the
+		// damaged seat of a damage trigger
+		return e.kind == seTrigger && code != NoTarget && !isPlayerOrNone(code) && s.objs[code].owner() == e.trigPl
 	}
 	i := int(t.ParentPlus1) - 1
 	if i < 0 || i >= kop.MaxTargets {
@@ -66,7 +71,7 @@ func (s *State) askOptionsOblige(k *prep, d *Decision) bool {
 		// gorge's manifest_dread options: the top-two window in library order
 		d.Sub = ChGenManifestDread
 		for i := 0; i < int(s.res.peekN); i++ {
-			d.add(MakeAction(AkChoose, uint8(s.res.peek[i]), 0, uint8(i)))
+			d.add(MakeAction(AkChoose, TCode(s.res.peek[i]), 0, uint8(i)))
 		}
 	default:
 		return s.askOptionsModalAct(k, d)

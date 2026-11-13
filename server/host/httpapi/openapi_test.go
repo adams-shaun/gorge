@@ -293,6 +293,9 @@ func (stubEvents) JoinEvent(string, string, protocol.JoinEventRequest) (protocol
 func (stubEvents) DraftPack(string, string) (protocol.DraftPack, error) {
 	return protocol.DraftPack{}, nil
 }
+func (stubEvents) DraftAdvice(string, string) (protocol.DraftAdvice, error) {
+	return protocol.DraftAdvice{}, nil
+}
 func (stubEvents) Pick(string, string, protocol.PickRequest) (protocol.DraftPack, error) {
 	return protocol.DraftPack{}, nil
 }

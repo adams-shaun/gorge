@@ -130,7 +130,7 @@ func (Heuristic) Pick(s *dirac.State, d *dirac.Decision) int {
 			case tg == dirac.NoTarget:
 				v = -1 << 20
 			case tg >= dirac.PlayerTarget0:
-				mine := tg-dirac.PlayerTarget0 == ctrl
+				mine := tg-dirac.PlayerTarget0 == dirac.TCode(ctrl)
 				if mine == own {
 					v = 1
 				} else {

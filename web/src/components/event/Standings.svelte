@@ -8,8 +8,10 @@
    * rows until it has logged the first result (results log in pairing
    * order, so a finished series can wait on its round-mate), and until then
    * this says so instead of drawing an empty (or all-zero) table.
+   * A Commander draft (`pod`) ranks free-for-all games, which have no
+   * opponents' or game-win percentages: those columns are dropped.
    */
-  let { rows, final = false }: { rows: StandingRow[]; final?: boolean } = $props();
+  let { rows, final = false, pod = false }: { rows: StandingRow[]; final?: boolean; pod?: boolean } = $props();
 </script>
 
 {#if rows.length === 0}
@@ -24,10 +26,12 @@
         <th scope="col">#</th>
         <th scope="col">Seat</th>
         <th scope="col" title="Match points">Pts</th>
-        <th scope="col" title="Match record (wins-losses)">W-L</th>
-        <th scope="col" title="Opponents' match-win percentage">OMW%</th>
-        <th scope="col" title="Game-win percentage">GW%</th>
-        <th scope="col" title="Opponents' game-win percentage">OGW%</th>
+        <th scope="col" title={pod ? 'Pod games won and lost' : 'Match record (wins-losses)'}>W-L</th>
+        {#if !pod}
+          <th scope="col" title="Opponents' match-win percentage">OMW%</th>
+          <th scope="col" title="Game-win percentage">GW%</th>
+          <th scope="col" title="Opponents' game-win percentage">OGW%</th>
+        {/if}
       </tr>
     </thead>
     <tbody>
@@ -37,15 +41,21 @@
           <td class="name">{#if r.you}<b>{r.label}</b>{:else}{r.label}{/if}</td>
           <td class="data">{r.points}</td>
           <td class="data">{r.record}</td>
-          <td class="data">{r.omw}</td>
-          <td class="data">{r.gw}</td>
-          <td class="data">{r.ogw}</td>
+          {#if !pod}
+            <td class="data">{r.omw}</td>
+            <td class="data">{r.gw}</td>
+            <td class="data">{r.ogw}</td>
+          {/if}
         </tr>
       {/each}
     </tbody>
   </table>
 </div>
-<p class="note">Order: match points, then OMW%, GW%, OGW% (MTR Appendix C, with the 33% floor).</p>
+{#if pod}
+  <p class="note">Points and order are the server's: points for each free-for-all win.</p>
+{:else}
+  <p class="note">Order: match points, then OMW%, GW%, OGW% (MTR Appendix C, with the 33% floor).</p>
+{/if}
 {/if}
 
 <style>

@@ -41,7 +41,7 @@ func TestDealDamageNoRegenMark(t *testing.T) {
 		s.exec(k, &regen)
 	}
 	// a zero hit marks nothing
-	s.res.e.tgt[0] = uint8(marked)
+	s.res.e.tgt[0] = TCode(marked)
 	zero := hit(0)
 	s.exec(k, &zero)
 	if s.mSl(k, mechNoRegen, sc.slot(marked)) {
@@ -72,7 +72,7 @@ func TestDealDamageNoRegenMark(t *testing.T) {
 	again := sc.perm(fc, 1)
 	s.res.e.obj = again
 	s.exec(k, &regen)
-	s.res.e.tgt[0] = uint8(again)
+	s.res.e.tgt[0] = TCode(again)
 	three := hit(3)
 	s.exec(k, &three)
 	s.sba(k)
@@ -82,7 +82,7 @@ func TestDealDamageNoRegenMark(t *testing.T) {
 	// the cleanup ends the mark
 	other := sc.perm(fc, 1)
 	s.res.e.obj = other
-	s.res.e.tgt[0] = uint8(other)
+	s.res.e.tgt[0] = TCode(other)
 	s.exec(k, &h)
 	if !s.mSl(k, mechNoRegen, sc.slot(other)) {
 		t.Fatal("setup: the mark is not set")
@@ -108,7 +108,7 @@ func TestDealDamageFromAnyTarget(t *testing.T) {
 	s.res.e.srcVer, s.res.e.nt = s.objs[src].ver, 1
 
 	// to a player
-	s.res.e.tgt[0] = PlayerTarget0 + 1
+	s.res.e.tgt[0] = TCode(PlayerTarget0 + 1)
 	life := s.pl[1].life
 	s.exec(k, &deal)
 	if s.pl[1].life != life-2 {
@@ -116,7 +116,7 @@ func TestDealDamageFromAnyTarget(t *testing.T) {
 	}
 
 	// to a permanent, from the live source
-	s.res.e.tgt[0] = uint8(victim)
+	s.res.e.tgt[0] = TCode(victim)
 	s.exec(k, &deal)
 	if d := s.perms[sc.slot(victim)].damage; d != 2 {
 		t.Errorf("permanent target: damage %d, want 2", d)

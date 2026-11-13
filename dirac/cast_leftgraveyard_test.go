@@ -37,7 +37,7 @@ func kactytReversedCast(t *testing.T) (s *State, ea Obj, ringAtPush int, ringBef
 	ringBefore = sc.s.g.enteredN
 	sc.stepTo(t, 1, func() bool { return false }, func(d *Decision) (Action, bool) {
 		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(ea) {
+			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(ea)) {
 				return a, true
 			}
 		}

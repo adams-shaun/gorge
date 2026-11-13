@@ -185,6 +185,26 @@ func (m *CostMods) ApplyTo(c *Cost) {
 	}
 }
 
+// ApplyTaxedTo is ApplyTo over a cost that also owes tax generic of CR 903.8
+// commander tax. The tax is an additional cost, and CR 601.2f totals the cost
+// as the mana cost plus additional costs and increases, minus reductions: the
+// tax joins the generic BEFORE the modifiers compose, so a generic reduction
+// may take it off and a MinMana$/SetCost floor measures a total that already
+// carries it (Ghalta, Primal Hunger at power 12 with tax {2} costs {G}{G}).
+// Forge's CostAdjustment.adjust composes the same way.
+func (m *CostMods) ApplyTaxedTo(c *Cost, tax int32) {
+	if tax != 0 {
+		c.Generic = cost.AddClampedGeneric(c.Generic, int64(tax))
+	}
+	m.ApplyTo(c)
+}
+
+// ApplyTaxed is ApplyTaxedTo over a value.
+func (m CostMods) ApplyTaxed(c Cost, tax int32) Cost {
+	m.ApplyTaxedTo(&c, tax)
+	return c
+}
+
 // totalMana counts the mana a cost demands, pip by pip — every symbol CR
 // 107.4 knows counts one, and numeric tokens count their value. This is the
 // total the MinMana$ and SetCost floors are measured against.
@@ -226,8 +246,9 @@ func (m *CostMods) FaceSensitiveP(c *Cost) bool {
 }
 
 // ComposeFeasible is feasibleAny's leaf composition of the cost it prices:
-// the XMin announcement floor, the modifiers, the commander tax and the delve
-// credit, in that order.
+// the XMin announcement floor, the commander tax joined to the generic, the
+// modifiers over that total (ApplyTaxedTo), and the delve credit, in that
+// order.
 func (m CostMods) ComposeFeasible(c Cost, taxGeneric, delve int32) Cost {
 	return ComposeFeasibleP(&m, &c, taxGeneric, delve)
 }
@@ -248,8 +269,7 @@ func ComposeFeasibleP(m *CostMods, c *Cost, taxGeneric, delve int32) Cost {
 	} else {
 		cc = *c
 	}
-	m.ApplyTo(&cc)
-	cc.Generic = cost.AddClampedGeneric(cc.Generic, int64(taxGeneric))
+	m.ApplyTaxedTo(&cc, taxGeneric)
 	if cc.Generic > delve {
 		cc.Generic -= delve
 	} else {
@@ -266,8 +286,9 @@ func ComposeFeasibleP(m *CostMods, c *Cost, taxGeneric, delve int32) Cost {
 // with no live pip, where it degenerates to the composed payable check): is
 // there SOME legal face assignment of the remaining announcement pips
 // (two-colour hybrid, monocolour hybrid, Phyrexian, hybrid-Phyrexian) that,
-// with m composed onto the RESOLVED faces at the leaf of the walk and
-// taxGeneric added after (an additional cost is never reduced), is payable
+// with taxGeneric joined to the RESOLVED faces at the leaf of the walk and m
+// composed onto that total (CR 601.2f: the tax is part of the total cost the
+// reductions apply to), is payable
 // from pool/snow/life? Because the offer gate, every announcement menu and
 // the charge (manaToPay/payMana) compose the same modifiers through this one
 // primitive, an offered cast, an offered announcement face and the charged

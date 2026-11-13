@@ -213,7 +213,7 @@ func (s *State) uncOrderOptions(d *Decision) {
 	ro := &s.g.ro
 	d.Kind, d.Sub, d.Player = DkChoose, ChGenReplOrder, ro.p
 	for i := 0; i < int(ro.n); i++ {
-		d.add(MakeAction(AkChoose, uint8(ro.cand[i]), 0, uint8(i))) // mode: gorge's scan index
+		d.add(MakeAction(AkChoose, TCode(ro.cand[i]), 0, uint8(i))) // mode: gorge's scan index
 	}
 }
 

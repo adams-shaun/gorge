@@ -193,6 +193,9 @@ func (r *run) policyOrEmpty(seat int) string {
 // series per pass — its series' tables start one at a time, and advance's
 // loop drains the rest.
 func (r *run) advanceRounds() bool {
+	if r.meta.commander() {
+		return r.advancePod()
+	}
 	switch r.ev.Phase() {
 	case event.RoundPhase(1), event.RoundPhase(2), event.RoundPhase(3):
 	default:

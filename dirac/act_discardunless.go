@@ -21,7 +21,7 @@ func (s *State) discardUnless(k *prep, in *kop.Instr) bool {
 	if _, n := s.unlessMatch(k, in, p); n == 0 {
 		return s.discardOrdinary(k, in, p)
 	}
-	s.res.ask, s.res.askP, s.res.chosen = raGenDiscUnless, p, p
+	s.res.ask, s.res.askP, s.res.chosen = raGenDiscUnless, p, objWord(p)
 	return false
 }
 
@@ -58,7 +58,7 @@ func (s *State) discardOrdinary(k *prep, in *kop.Instr, p uint8) bool {
 		return true
 	}
 	s.res.ask, s.res.peekI, s.res.askP = raDiscard, 0, p
-	s.res.left, s.res.chosen = uint8(n), p
+	s.res.left, s.res.chosen = uint8(n), objWord(p)
 	s.ctl = ctlResolve
 	return false
 }
