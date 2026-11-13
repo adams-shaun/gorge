@@ -4036,6 +4036,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "ExHaste":
 		// Agility Bobblehead: OpExt ExtExHaste, C the power form (Instr.C is int16)
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtExHaste)), int16(in.C)
+	case "AsgnGrant":
+		// (Plagon, Outmaneuver) OpExt ExtAsgnGrant, C 0 toughness / 1 as-unblocked
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtAsgnGrant)), int16(in.C)
 	case "ColorGrant":
 		// (Skrelv) OpExt ExtColorGrant, B the toxic amount
 		v, err := cb.value(in.A)
