@@ -501,6 +501,17 @@ func parseFilter(expr string, knownSub, isType func(string) bool) (*lFilter, err
 	if expr == "" {
 		return nil, fmt.Errorf("empty filter")
 	}
+	// gorge's spec normalisation reads a WHOLE spec of exactly "Self" or
+	// "Other" as "Card.Self"/"Card.Other" (effects/filter.go): the bare
+	// word is not a base, so without it the spec fails closed as an
+	// unknown head -- Forge's SacValid$ Self (Tresserhorn's Lord,
+	// Returned's own sacrifice) is the corpus carrier. The normalisation
+	// sits here, the one home every lc.filter call -- a probe of an unread
+	// param included -- shares, so the census cannot disagree with a real
+	// reader about the spelling.
+	if expr == "Self" || expr == "Other" {
+		expr = "Card." + expr
+	}
 	f := &lFilter{}
 	for _, alt := range splitAlternatives(expr, isType) {
 		alt = strings.TrimSpace(alt)
