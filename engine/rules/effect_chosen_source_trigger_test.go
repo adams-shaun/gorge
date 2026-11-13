@@ -17,10 +17,10 @@ func TestAzraOddsmakerEffectKeepsChosenCreature(t *testing.T) {
 	t.Parallel()
 	promise := card(t, "Name:ChosenPromise\nManaCost:U\nTypes:Sorcery\n"+
 		"A:SP$ ChooseCard | Choices$ Creature | ChoiceZone$ Battlefield | SubAbility$ DBEffect\n"+
-		"SVar:DBEffect:DB$ Effect | Triggers$ TrigDamage | SubAbility$ DBCleanup\n"+
-		"SVar:TrigDamage:Mode$ DamageDone | ValidSource$ Card.ChosenCardStrict | ValidTarget$ Player | Execute$ TrigDraw | CombatDamage$ True\n"+
-		"SVar:TrigDraw:DB$ Draw | Defined$ You | NumCards$ 2\n"+
-		"SVar:DBCleanup:DB$ Cleanup | ClearChosenCard$ True\nOracle:x\n")
+		"SVar:DBEffect:DB$ Effect | SubAbility$ DBWipe | Triggers$ TrigDamage\n"+
+		"SVar:TrigDamage:Mode$ DamageDone | ValidSource$ Card.ChosenCardStrict | ValidTarget$ Player | Execute$ TrigPull | CombatDamage$ True\n"+
+		"SVar:TrigPull:DB$ Draw | Defined$ You | NumCards$ 2\n"+
+		"SVar:DBWipe:DB$ Cleanup | ClearChosenCard$ True\nOracle:x\n")
 	bear := card(t, "Name:Bear\nManaCost:1\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e := handEngine(t, promise)
 	chosen := putOnBattlefield(t, e, 0, bear)
