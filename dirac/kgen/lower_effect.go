@@ -2983,11 +2983,11 @@ func (lc *lowerCtx) pumpPlayerGrant(ps *params, obj lRef, zone int, d string, na
 // playerGrantStatics lowers the keywords of a player-scoped Pump grant to
 // the emblem player statics the kernel reads: "Protection from everything"
 // to StatPlayerProtAll (CR 702.16j; static_plprot.go's plProtAll walks the
-// player's emblems). Anything else refuses. Hexproof (Blossoming Calm, CR
-// 702.11c) has no emblem reader: playerHexproof and youHexproof read a
-// StatPlayerHexproof off the permanents the player controls, so an emblem
-// carrying it would leave the player a legal target for an opponent's spell
-// where gorge's playerKeywords refuses it. A shroud has no symmetric kernel
+// player's emblems), and "Hexproof" (Blossoming Calm, CR 702.11c) to a plain
+// StatPlayerHexproof with no Amount (A == 0: hexproof alone; A == 1 would add
+// protection from each opponent), which playerHexproof reads off the
+// player's emblems (static_emblemphex.go's embPlHex). Anything else refuses.
+// A shroud has no symmetric kernel
 // player read (playerHexproof keeps hexproof's own-controller exemption, CR
 // 702.11c, which shroud must not: CR 702.18a), and a Protection:<spec>
 // quality (Eon Frolicker's Player.PlayerUID_ChosenPlayerUID) names a player
@@ -2999,7 +2999,7 @@ func (lc *lowerCtx) playerGrantStatics(kw string) ([]lStatic, error) {
 		case "Protection from everything":
 			sts = append(sts, lStatic{Kind: "PlayerProtAll"})
 		case "Hexproof":
-			return nil, refuse("player-scoped Pump grant keyword %q: the kernel reads a player's hexproof off the permanents they control, never off a runtime emblem", k)
+			sts = append(sts, lStatic{Kind: "PlayerHexproof"})
 		default:
 			return nil, refuse("player-scoped Pump grant keyword %q", k)
 		}
