@@ -1671,7 +1671,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		conds = append(conds, c)
 	}
-	if v, ok := tp.get("Phase"); ok {
+	if v, ok := tp.get("Phase"); ok && t.Mode != "Phase" {
 		// "Whenever you cast an instant during your main phase" (Dovin's
 		// Acuity), "enters during combat" (The Blue Spirit): Forge's Phase$
 		// gate, read as the trigger fires (gorge trigger_phase_gate.go
@@ -1679,7 +1679,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// resolution because nothing needs to be: CR 117.5 ends a step only
 		// with an empty stack, so a trigger resolves in the step it fired in
 		// and the same shared phase-name parser answers again. Mode$ Phase
-		// consumes Phase$ itself in the mode switch before this block.
+		// names its own step in the mode switch (tr.Step), so it skips this.
 		c, err := lc.phasesCondition(v)
 		if err != nil {
 			return err
