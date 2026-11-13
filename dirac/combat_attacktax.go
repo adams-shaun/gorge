@@ -226,7 +226,7 @@ func atkTaxStallPair(t *kop.Table, g *genPrep) (string, func(*kop.CardDef, int) 
 // atkTaxCharge is the generic mana the creature at sl attacking tgt (a
 // player code or a battlefield object) is charged, and false when a
 // matching static's charge is negative (gorge's unpriceable pair).
-func (s *State) atkTaxCharge(k *prep, sl Slot, tgt uint8) (n int, ok bool) {
+func (s *State) atkTaxCharge(k *prep, sl Slot, tgt TCode) (n int, ok bool) {
 	ok = true
 	if DebugAtkTaxFree {
 		return 0, true
@@ -260,7 +260,7 @@ func (s *State) atkTaxCharge(k *prep, sl Slot, tgt uint8) (n int, ok bool) {
 // combat.RestrictionTargetMatches): StAtkTaxPlayer an attack on the static's
 // controller, StAtkTaxWalker one on a face-up permanent with a printed
 // planeswalker type that player controls, neither every defender.
-func (s *State) atkTaxScope(k *prep, st *kop.Static, ctrl, tgt uint8) bool {
+func (s *State) atkTaxScope(k *prep, st *kop.Static, ctrl uint8, tgt TCode) bool {
 	sc := st.StFlags & (kop.StAtkTaxPlayer | kop.StAtkTaxWalker)
 	switch {
 	case sc == 0:
@@ -290,7 +290,24 @@ func (s *State) atkTaxShape(k *prep, sl Slot) (col, n int, fixed, ok bool) {
 	if !s.canTapForMana(k, sl) {
 		return 0, 0, false, false
 	}
-	a := &k.t.Cards[s.cardAt(sl)].Abilities[s.manaPCGen(k, sl).manaAb]
+	pc := s.manaPCGen(k, sl)
+	cd := &k.t.Cards[s.cardAt(sl)]
+	a := manaAbView(cd, pc)
+	if a == nil || a.Kind != kop.AbMana {
+		// a granted basic land type's intrinsic view (a card whose own
+		// abilities name no mana ability: manaAb 0 marks the intrinsic slot,
+		// and ability 0 of a card with abilities is not one — Ashaya's own
+		// statics): the view's facts name the production, and the window
+		// lists it as the fixed single colour it is
+		if pc.blgFirst == 0 {
+			return 0, 0, false, false
+		}
+		m := uint8(pc.manaCol) & 0x3f
+		if m == 0 {
+			return 0, 0, false, false
+		}
+		return bits.TrailingZeros8(m), int(pc.manaN), true, true
+	}
 	if a.ManaIdentity {
 		// gorge's attack window excludes the commander-identity shape: the
 		// parser claims no colour for it (rules attackChoiceManaSources)
@@ -326,7 +343,7 @@ func (s *State) atkTaxUnits(k *prep, sl Slot) int {
 // atkTaxTargets fills tg with the defenders attackerOptions offers the
 // active player's creatures (each other seat still in the game, the
 // planeswalkers it controls, the attackable battles) and returns how many.
-func (s *State) atkTaxTargets(k *prep, tg *[MaxPerm + MaxSeats]uint8) int {
+func (s *State) atkTaxTargets(k *prep, tg *[MaxPerm + MaxSeats]TCode) int {
 	n := 0
 	for q := uint8(0); q < s.nSeats(); q++ {
 		if q == s.active || s.out(q) {
@@ -336,7 +353,7 @@ func (s *State) atkTaxTargets(k *prep, tg *[MaxPerm + MaxSeats]uint8) int {
 		n++
 		for pm := s.ctrlM[q]; pm.any(); pm = pm.rest() {
 			if w := pm.first(); s.typesAt(k, w)&kop.TPlaneswalker != 0 {
-				tg[n] = uint8(s.perms[w].obj)
+				tg[n] = TCode(s.perms[w].obj)
 				n++
 			}
 		}
@@ -348,7 +365,7 @@ func (s *State) atkTaxTargets(k *prep, tg *[MaxPerm + MaxSeats]uint8) int {
 			}
 			for q := s.ctrlM[p]; q.any(); q = q.rest() {
 				if sl := q.first(); s.battleAttackable(k, sl, s.active) {
-					tg[n] = uint8(s.perms[sl].obj)
+					tg[n] = TCode(s.perms[sl].obj)
 					n++
 				}
 			}
@@ -366,7 +383,7 @@ func (s *State) atkTaxCandidate(k *prep, sl Slot) bool {
 // atkTaxRead is the declaration's budget at a pick: budget (MaxSum), taxed
 // (some offered pair is charged: each Value then folds in its creature's
 // own units, gorge attackTaxed) and spent (the declared picks' Values).
-func (s *State) atkTaxRead(k *prep, tg []uint8) (budget int, taxed bool, spent int) {
+func (s *State) atkTaxRead(k *prep, tg []TCode) (budget int, taxed bool, spent int) {
 	budget = s.manaBudget(k, s.active)
 	for m := s.ctrlM[s.active]; m.any() && !taxed; m = m.rest() {
 		sl := m.first()
@@ -401,7 +418,7 @@ func (s *State) atkTaxRead(k *prep, tg []uint8) (budget int, taxed bool, spent i
 //
 //go:noinline
 func (s *State) atkTaxFilter(k *prep, d *Decision) {
-	var tg [MaxPerm + MaxSeats]uint8
+	var tg [MaxPerm + MaxSeats]TCode
 	budget, taxed, spent := s.atkTaxRead(k, tg[:s.atkTaxTargets(k, &tg)])
 	j := 0
 	for i := 0; i < int(d.N); i++ {
@@ -426,7 +443,7 @@ func (s *State) atkTaxFilter(k *prep, d *Decision) {
 //
 //go:noinline
 func (s *State) atkTaxAnyOffer(k *prep) bool {
-	var tg [MaxPerm + MaxSeats]uint8
+	var tg [MaxPerm + MaxSeats]TCode
 	nt := s.atkTaxTargets(k, &tg)
 	budget := s.manaBudget(k, s.active)
 	for m := s.ctrlM[s.active]; m.any(); m = m.rest() {

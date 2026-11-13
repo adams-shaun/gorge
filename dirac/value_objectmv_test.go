@@ -54,7 +54,7 @@ func TestTargetMV(t *testing.T) {
 	a := sc.perm(fc, 1)
 	want := sc.k.t.Cards[fc].Cost.MV()
 	sc.s.res = resCtx{e: stackEntry{kind: seSpell, card: fc, ctrl: 0, nt: 1, trigObj: NoObj}, active: true, lastTok: NoObj, eachObj: NoObj}
-	sc.s.res.e.tgt[0] = uint8(a)
+	sc.s.res.e.tgt[0] = TCode(a)
 	ctx := sc.s.ctxEntry(&sc.s.res.e)
 	if got := sc.s.targetMV(sc.k, kop.RefTarget0, ctx); got != want || want == 0 {
 		t.Fatalf("on the battlefield: %d, want %d", got, want)
@@ -100,7 +100,7 @@ func TestMVOfStackSpellCountsX(t *testing.T) {
 	o := sc.hand(sg, 0)
 	sc.s.objs[o].zone = kop.ZoneStack
 	e := stackEntry{kind: seSpell, obj: o, card: sg, ctrl: 0, trigObj: o, x: 3}
-	e.tgt[0] = uint8(o)
+	e.tgt[0] = TCode(o)
 	sc.s.push(e)
 	ctx := evalCtx{src: NoObj, ctrl: 0, e: &sc.s.stack[sc.s.sp-1]}
 	for _, tc := range []struct {

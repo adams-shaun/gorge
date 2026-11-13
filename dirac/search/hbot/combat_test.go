@@ -53,7 +53,7 @@ func TestChooseBlockers(t *testing.T) {
 	cs.n = 0
 	for _, bl := range []dirac.Obj{1, 2, 3} {
 		for _, a := range []dirac.Obj{10, 11} {
-			cs.opts[cs.n] = copt{src: bl, tgt: uint8(a)}
+			cs.opts[cs.n] = copt{src: bl, tgt: dirac.TCode(a)}
 			cs.n++
 		}
 	}

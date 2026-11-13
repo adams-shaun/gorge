@@ -157,6 +157,7 @@ var gorgeKwElsewhere = map[string]string{
 	"MayFlashCost":           "CardDef.HasMayFlash (an instant-timing hand cast for the mana cost plus the extra; compared through the cast options; kw_mayflash.go)",
 	"Web-slinging":           "CardDef.HasWebSling (a hand alt cost plus returning a tapped creature; compared through the cast options and the return; kw_websling.go)",
 	"Dash":                   "CardDef.HasDash (a hand alt cost, haste and the end-step return to hand; compared through the cast options, the stack and the battlefield; kw_dash.go)",
+	"Surge":                  "CardDef.HasSurge (a hand alt cost once another spell was cast this turn, no battlefield characteristic; compared through the cast options; kw_surge.go)",
 	"Evoke":                  "CardDef.HasEvoke (a hand alt cost and the sacrifice trigger queued as it enters; compared through the cast options and the stack; kw_evoke.go)",
 	"Start your engines":     "CardDef.Engines (CR 702.179a; compared through the speed projection)",
 	"Bargain":                "CardDef.Bargain (an optional additional cost, no battlefield characteristic; compared through the cast options; kw_bargain.go)",
@@ -172,10 +173,12 @@ var gorgeKwElsewhere = map[string]string{
 	"Impending":                         "CardDef.Impending (a hand alt cost, the entry time counters and the not-a-creature switch, compared through the cast options and the types)",
 	"Unearth":                           "a graveyard activated ability (Return of itself then OpUnearth: haste, the end-step exile and the exile-instead promise; gorge kwUnearth's expansion), no battlefield characteristic",
 	"Training":                          "an Attacks trigger with Trigger.N TrigNTraining (gorge kwTraining's expansion), no battlefield characteristic",
+	"Dethrone":                          "an Attacks Self trigger with Tf2AtkOpp and a fire-time most-life condition over the defending player (gorge kwDethrone's expansion, CR 702.105a; kgen lower_dethrone.go), no battlefield characteristic",
 	"Firebending":                       "an Attacks trigger whose AddMana has B = 1 (State.fbR; gorge kwFirebending's expansion, CR 702.189a), no battlefield characteristic",
 	"Melee":                             "an Attacks Self trigger pumping its holder: a printed one from gorge kwMelee's expansion, a static's granted one kop.Ability.MeleeGrant (kw_melee.go; CR 702.121a), no battlefield characteristic",
 	"Myriad":                            "an Attacks Self trigger with an empty program, two-seat (no opponent other than the defending player): a printed one from gorge kwMyriad's expansion, a static's granted one (kgen lower_myriad.go; CR 702.116a), no battlefield characteristic",
 	"Evolve":                            "an ETB trigger with Tf2Evolve (gorge kwEvolve's expansion, CR 702.100a; kw_evolve.go), no battlefield characteristic",
+	"Exploit":                           "an ETB trigger whose optional remembering Sacrifice is followed by OpExt ExtExploit (gorge kwExploit's expansion, CR 702.110a; kw_exploit.go), no battlefield characteristic",
 	"Increment":                         "a SpellCast trigger with Tf2Increment (gorge kwIncrement's expansion), no battlefield characteristic",
 	"Craft":                             "a battlefield activated ability (the ExileCtrlOrGrave material and Exile<1/CARDNAME> costs, then the transformed Return; gorge kwCraft's expansion), no battlefield characteristic",
 	"Embalm":                            "a graveyard activated ability (CostExileGrave of itself, OpCopyAsTokenEx with a white / Zombie / no-mana-cost exception; gorge kwEmbalm's expansion), no battlefield characteristic",
@@ -269,10 +272,26 @@ func gorgeChars(e *rules.Engine, v *charVocab, oid state.ObjID) (CharsProj, stri
 		}
 	}
 	kws := d.Keywords
-	if len(printed) > 0 {
+	eachColor := false
+	for _, k := range kws {
+		eachColor = eachColor || k == "Protection from each color"
+	}
+	if len(printed) > 0 || eachColor {
 		kws = make([]string, 0, len(d.Keywords))
 		for _, k := range d.Keywords {
 			if printed[k] && strings.HasPrefix(k, "Protection from ") && k != "Protection from everything" {
+				continue
+			}
+			if k == "Protection from each color" {
+				// a PumpAll's grant (Akroma's Will): all five arena marks
+				// (ExtColorGrant cgProtAll), read as the black and red bits
+				// the kernel's keyword view has, less a colour the card
+				// prints (ProtColors)
+				for _, c := range [...]string{"Protection from black", "Protection from red"} {
+					if !printed[c] {
+						kws = append(kws, c)
+					}
+				}
 				continue
 			}
 			kws = append(kws, k)

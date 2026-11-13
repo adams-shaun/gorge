@@ -107,7 +107,7 @@ func (s *State) InitN(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed uint64
 			if int(s.nobj) >= MaxObj {
 				panic("kernel: decks larger than MaxObj") // a pod of full Commander decks, past the four-seat build's objects
 			}
-			o := Obj(s.nobj)
+			o := s.nobj
 			s.nobj++
 			s.objs[o] = object{card: c, chosen: 255, zone: kop.ZoneLibrary, slot: NoSlot, acts: uint8(p) << objOwnerShift}
 			s.touch(o)
@@ -263,7 +263,7 @@ func (s *State) stepRaw(d *Decision) {
 			d.Kind, d.Sub, d.Player = DkChoose, ChBottom, p
 			pl := &s.pl[p]
 			for i := 0; i < int(pl.handN); i++ {
-				d.add(MakeAction(AkChoose, uint8(pl.hand[i]), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(pl.hand[i]), 0, 0))
 			}
 			return
 		case ctlStepBegin:
@@ -369,7 +369,7 @@ func (s *State) stepRaw(d *Decision) {
 			pl := &s.pl[p]
 			for i := 0; i < int(pl.handN); i++ {
 				if len(s.cold.parked) == 0 || !s.parked(pl.hand[i]) {
-					d.add(MakeAction(AkChoose, uint8(pl.hand[i]), 0, 0))
+					d.add(MakeAction(AkChoose, TCode(pl.hand[i]), 0, 0))
 				}
 			}
 			return

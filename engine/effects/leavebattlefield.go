@@ -202,6 +202,32 @@ func registerAnimateStaticAbilities(h Host, c *Ctx, id state.ObjID, names []stri
 				continue
 			}
 		}
+		if mode == "CombatDamageToughness" &&
+			strings.EqualFold(strings.TrimSpace(params["ValidCard"]), "Card.Self") &&
+			staticKeysReadable(params, "Mode", "ValidCard", "Description", "IsPresent", "PresentZone",
+				"CheckSVar", "SVarCompare", "ClassBand", "AffectedZone", "Phases", "Condition") {
+			// A granted assignment static (Streetwise Negotiator's Backup
+			// rider: SVar:BackupAbility = DB$ Animate | staticAbilities$ CDT
+			// over CDT = Mode$ CombatDamageToughness | ValidCard$ Card.Self):
+			// CR 702.165's "it gains the following ability until end of turn"
+			// -- the animated object HAS the static, so it registers the same
+			// ContinuousEffect an Effect-delivered CombatDamageToughness body
+			// does (effChangeText's sibling case in effEffect), scoped to the
+			// animated object and riding the animation's own lifetime, read by
+			// rules' assignment collector (assignmentStatics) exactly like a
+			// printed one. The whitelist is the keys the assignment walk
+			// evaluates (rules restrictionGateHolds, checkSVarHolds,
+			// classBandGateHolds, the IsPresent$ count and ValidCard$); a
+			// further scoping key must not register blanket.
+			h.AddContinuous(state.ContinuousEffect{
+				Source: id, Controller: c.Controller, Duration: dur,
+				Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource,
+				ExileOnMoved: exileOn, ExileOnMovedAlso: exileAlso, Remembered: remembered,
+				AssignmentStaticMode: mode, AssignmentStaticParams: params,
+				AssignmentStaticSVars: c.SVars,
+			})
+			continue
+		}
 		if mode == ModeNoCleanupDamage && len(params["ValidCard"]) > 0 &&
 			staticKeysReadable(params, "Mode", "ValidCard", "Description") {
 			h.AddContinuous(state.ContinuousEffect{

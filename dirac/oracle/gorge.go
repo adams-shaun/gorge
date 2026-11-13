@@ -733,12 +733,14 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(alt)<<4), opt: o.Index})
 				continue
 			}
-			if o.Mode == "retrace" {
+			if o.Mode == "retrace" || o.Mode == "jumpstart" {
 				// CR 702.81a: the kernel's retrace cast (the printed cost
 				// plus the discard-a-land additional cost) canonicalises to
-				// castModeOther, like "harmonize" (kw_retrace.go)
+				// castModeOther, like "harmonize" (kw_retrace.go); CR
+				// 702.84a: so does the jump-start cast, the same cast with
+				// any card discarded (kw_jumpstart.go)
 				if o.AltCostIndex > 15 {
-					note("cast/retrace")
+					note("cast/" + o.Mode)
 					continue
 				}
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})

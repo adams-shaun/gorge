@@ -486,17 +486,36 @@ const W7NotBlocking int16 = 30
 // only in an AttackerBlocked trigger's body. General Marhault Elsdragon.
 const W7BlockingTrigObj int16 = 31
 
-// W7BlockingSrc (PredWord7 sub-kind 32): gorge's blockingSource, a
+// W7AttackingSame (PredWord7 sub-kind 32): an attacking creature attacking
+// the same defender (player, or planeswalker) the evaluating source attacks
+// (gorge's attackingSame, Forge's combat.isAttacking(card,
+// getDefenderByAttacker(source))). The source itself matches; a source that
+// is not attacking, or gone (NoSlot), leaves the set empty; nothing off the
+// battlefield attacks. Kitesail Skirmisher.
+const W7AttackingSame int16 = 32
+
+// W7BlockingSrc (PredWord7 sub-kind 33): gorge's blockingSource, a
 // battlefield creature blocking the filter's source (the source's own
 // BlockedBy list names it). No source on the battlefield and a card off the
 // battlefield fail closed. Master of Arms, Cromat.
-const W7BlockingSrc int16 = 32
+const W7BlockingSrc int16 = 33
 
-// W7BlockedBySrc (PredWord7 sub-kind 33): gorge's blockedBySource, a
+// W7BlockedBySrc (PredWord7 sub-kind 34): gorge's blockedBySource, a
 // battlefield creature the filter's source is blocking (the candidate's own
 // BlockedBy list names the source). No source on the battlefield and a card
 // off the battlefield fail closed. Cromat.
-const W7BlockedBySrc int16 = 33
+const W7BlockedBySrc int16 = 34
+
+// PredPowerLTToughness's PredN: the power/toughness relation it reads. 0 is
+// power < toughness (gorge powerLTtoughness); PTRelEQ is gorge's equalPT
+// (net power equal to net toughness) and PTRelNE its negation !equalPT, each
+// lowered only over a creature-only type head (gorge reads no P/T of a
+// non-creature without a printed one).
+const (
+	PTRelLT int16 = 0
+	PTRelEQ int16 = 1
+	PTRelNE int16 = 2
+)
 
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and

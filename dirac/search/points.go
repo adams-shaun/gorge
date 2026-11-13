@@ -75,7 +75,7 @@ func mix(h, v uint64) uint64 {
 // seat saw it at the root (azmcts observer-local references), else by its
 // card (azmcts NameKeys / the opponent's keys: re-dealt objects are named by
 // card, two same-named objects share a key).
-func (sr *Searcher) objCode(s *dirac.State, code uint8, byName bool) uint64 {
+func (sr *Searcher) objCode(s *dirac.State, code dirac.TCode, byName bool) uint64 {
 	if code >= dirac.PlayerTarget0 {
 		return uint64(code)
 	}

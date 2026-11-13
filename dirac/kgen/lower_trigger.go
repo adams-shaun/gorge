@@ -56,7 +56,7 @@ var graveTriggerModes = map[string]bool{
 }
 
 func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
-	var atkMostLife, descended bool // fire-time player gates
+	var atkMostLife, descended, dethrone bool // fire-time player gates
 	ab := &lAbility{Kind: akTriggered, Index: len(lc.out.Abilities)}
 	defer func(b bool) { lc.trigBody = b }(lc.trigBody)
 	lc.trigBody = false
@@ -262,6 +262,12 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				return refuse("Attacks Training %q", v)
 			}
 			tr.Training = true
+		}
+		if v, ok := tp.get("Dethrone"); ok {
+			// K:Dethrone's expansion (lower_dethrone.go)
+			if dethrone, err = dethroneGate(v, tp, tr); err != nil {
+				return err
+			}
 		}
 		if v, ok := tp.get("Myriad"); ok {
 			// K:Myriad's expansion (gorge kwMyriad; trigmatch
@@ -771,7 +777,11 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				return err
 			}
 		}
-		if tr.F2, err = readF("ValidTarget"); err != nil {
+		if tp.str("ValidTarget") == atkLastTurnSpec {
+			if err := atkYouLastTurn(tp, tr, t); err != nil { // lower_atklastturn.go
+				return err
+			}
+		} else if tr.F2, err = readF("ValidTarget"); err != nil {
 			return err
 		}
 		if cd, ok := tp.get("CombatDamage"); ok {
@@ -840,6 +850,29 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			tr.Whose = whoOpp
 			tr.Watch = true
+		case tp.str("ValidSource") == "" && tp.str("ValidTarget") == "Card.Self" &&
+			!tp.is("Ward", "True") && !tp.is("Valiant", "True") && !tp.is("FirstTime", "True"):
+			// "Whenever this becomes the target of a spell or ability" with
+			// no source restriction (CR 603.2; gorge becomesTargetMatches
+			// with ValidTarget$ Card.Self and no ValidSource$): every
+			// TargetsChosen naming the permanent fires it, its controller's
+			// own included. A TfSelf line with no Whose gate: the kernel's
+			// becameTarget fires it through the plain per-object walk
+			// (fireObjGen), no opponent gate.
+			tr.F = &lFilter{Clauses: []lClause{{Flags: fSelf}}}
+		case tp.str("ValidSource") == "" && tp.str("ValidTarget") != "" &&
+			!strings.Contains(tp.str("ValidTarget"), "Card.Self") && !strings.Contains(tp.str("ValidTarget"), ",") &&
+			!tp.is("Ward", "True") && !tp.is("Valiant", "True") && !tp.is("FirstTime", "True"):
+			// the watcher with no source restriction (Daru Spiritualist:
+			// "whenever a Cleric creature you control becomes the target of
+			// a spell or ability"): the opponent-source watcher's arm
+			// without its Whose gate; one trigger per matching chosen
+			// target, the targeted permanent as the trigger object
+			// (gorge becomesTargetReferent)
+			if tr.F, err = lc.filter(tp.str("ValidTarget")); err != nil {
+				return err
+			}
+			tr.Watch = true
 		default:
 			return refuse("BecomesTarget shape")
 		}
@@ -887,6 +920,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				return refuse("Discarded Card.Self TriggerZones %q", tp.str("TriggerZones"))
 			}
 			tr.Zone = zGraveyard
+		}
+		if err := lowerDiscardedCause(tp, tr); err != nil { // lower_trigparams.go
+			return err
 		}
 	case "DiscardedAll":
 		// "whenever you discard one or more cards" (gorge trigmatch
@@ -1111,6 +1147,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 	case "CollectEvidence":
 		if err := lc.collectEvidenceTrigger(tp, tr); err != nil {
+			return err
+		}
+	case "Exploited":
+		if err := lc.exploitedTrigger(tp, tr); err != nil { // lower_exploit.go
 			return err
 		}
 	case "TokenCreatedOnce":
@@ -1469,6 +1509,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	if err != nil {
 		return err
 	}
+	if dethrone {
+		conds, fireOnly = append(conds, dethroneCond()), true // lower_dethrone.go
+	}
 	if fc, err := lc.firstAttackCombat(tp, tr, &conds, t.Mode); err != nil { // lower_addphase.go
 		return err
 	} else if fc {
@@ -1616,6 +1659,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			return refuse("Delirium %q", v)
 		}
 		conds = append(conds, deliriumCond())
+	}
+	if err := lc.spendPhaseConds(tp, t.Mode, &conds); err != nil { // lower_trigphase.go
+		return err
 	}
 	if err := echoGate(tp, tr, ab, &conds, noResolve || fireOnly || giftSelf); err != nil { // lower_echo.go
 		return err
@@ -2107,6 +2153,38 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		if err := lc.cantBlockUnless(sp, &st); err != nil {
 			return nil, err // lower_blocktax.go
 		}
+	case "CanAttackIfHaste":
+		// gorge canAttackIfHaste (rules/combat/attack.go): ValidCard$ (absent:
+		// every creature) scopes the exempt creatures; a present ValidTarget$
+		// is tried as a player spec on the defender, then as the attacked
+		// permanent. Only the Frenzied Saddlebrute spelling lowers: it names
+		// the defender player (an opponent of the static's controller) and the
+		// planeswalkers that player controls, so the exemption depends on the
+		// defender seat alone. gorge skips the line (inert) when it carries
+		// a param outside its whitelist, so any other param refuses here
+		// rather than lower a condition gorge never reads.
+		sp.consume("Description", "Secondary")
+		for k := range s.Params {
+			switch k {
+			case "Mode", "ValidCard", "ValidTarget", "Description", "Secondary":
+			default:
+				return nil, refuse("CanAttackIfHaste %s$ (gorge reads the line only over ValidCard$ and ValidTarget$)", k)
+			}
+		}
+		if vc, ok := sp.get("ValidCard"); ok {
+			if st.F, err = readF("ValidCard"); err != nil {
+				return nil, err
+			}
+			if st.F == nil || len(st.F.Clauses) == 0 || st.F.Players != 0 {
+				return nil, refuse("CanAttackIfHaste ValidCard %q", vc)
+			}
+		}
+		if tv, ok := sp.get("ValidTarget"); ok {
+			if strings.TrimSpace(tv) != "Opponent,Planeswalker.OppCtrl" {
+				return nil, refuse("CanAttackIfHaste ValidTarget %q", tv)
+			}
+			st.Flags = append(st.Flags, "OppDef")
+		}
 	case "CanAttackDefender":
 		// gorge combat.AttackAllowedThroughDefender: ValidCard$ (or
 		// ValidCards$) must match the creature, ValidAttacked$ must admit
@@ -2166,7 +2244,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		} else if st.Cost, err = lc.altCostCost(sp.str("Cost")); err != nil {
 			return nil, err
 		}
-		if st.Cost.Forage != nil || st.Cost.ExileG != nil && !st.Cost.ExileHand || st.Cost.Energy != 0 || st.Cost.Return != nil {
+		// a Return<N/Spec> part lowers alone (Gush, Thwart, Daze: the
+		// kernel's return alternative, build_ab.go altReturnOK); beside any
+		// other part build_ab.go refuses it as a non-mana alternative
+		if st.Cost.Forage != nil || st.Cost.ExileG != nil && !st.Cost.ExileHand || st.Cost.Energy != 0 {
 			return nil, refuse("alternative cost with a forage / exile-from-graveyard part")
 		}
 	case "Activations":
@@ -2427,7 +2508,8 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 	if ml, ok := sp.get("MayLookAt"); ok {
 		az, _ := sp.get("AffectedZone")
 		exactAffected := aff == "Card.TopLibrary+YouCtrl" || aff == "Card.TopLibrary+YouOwn"
-		if exactAffected && az == "Library" && (ml == "You" || ml == "True" || ml == "Player") && !sp.is("MayPlay", "True") {
+		libLook := exactAffected && az == "Library" && (ml == "You" || ml == "True" || ml == "Player")
+		if libLook && !sp.is("MayPlay", "True") {
 			if ez, ok := sp.get("EffectZone"); ok && ez != "Battlefield" {
 				return nil, refuse("MayLookAt EffectZone %q", ez)
 			}
@@ -2440,7 +2522,16 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			st.Kind = "" // view-only: lower to nothing
 			return nil, nil
 		}
-		return nil, refuse("MayLookAt shape")
+		// Future Sight / Magus of the Future: the library-top look beside
+		// MayPlay$ True on the same line. gorge's static scan emits the look
+		// as its own view-only ContinuousEffect (layers.go's MayLookAt
+		// branch copies base, which carries no MayPlay) next to the MayPlay
+		// grant, so the line is the Courser of Kruphix pair on one line: the
+		// look lowers to nothing and the permission takes the MayPlay path
+		// below (mayPlayStatic, the same library-top rules).
+		if !libLook {
+			return nil, refuse("MayLookAt shape")
+		}
 	}
 	if kw, _ := sp.get("AddKeyword"); kw == "Beam me up" {
 		return nil, lc.beamGrant(sp, st, aff) // lower_beammeup.go
@@ -3123,9 +3214,19 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 		for _, w := range o.SetSubtypes {
 			switch w {
 			case "Plains", "Island", "Swamp", "Mountain", "Forest":
-				// CR 305.6: a basic land type carries its mana ability,
-				// which the kernel's add-only override does not grant
-				return nil, refuse("override adds basic land type %q", w)
+				// CR 305.6: a basic land type carries its mana ability. gorge
+				// appends the intrinsic "{T}: Add [c]" for every derived basic
+				// type word (mana_activation.go's CR 305.6 block), so the
+				// kernel's grant is lowerable exactly when the same AddType$
+				// list also makes the object a LAND (Ashaya, Soul of the Wild's
+				// "nontoken creatures you control are Forest lands", Life and
+				// Limb's Saprolings): the mana walk's blg views (static_landtype.go)
+				// cover any plain-shaped card then. Without the Land type the
+				// intrinsic still applies in gorge but the kernel's blgMask
+				// reads only lands, so that shape stays refused.
+				if o.SetTypes&typeBits["Land"] == 0 {
+					return nil, refuse("override adds basic land type %q", w)
+				}
 			}
 		}
 		o.AddTypes, o.SetTypes = o.SetTypes, 0
@@ -4049,6 +4150,10 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			ps.consume("ClearRemembered") // Alhammarret's chain: the revealed set was never kept
 		case "NameCard":
 			if err := lc.etbChooseName(ps, node, sa, other, cond); err != nil { // lower_choosename.go
+				return err
+			}
+		case "ChooseCard":
+			if err := lc.etbChooseCard(ps, node, sa, other, cond); err != nil { // lower_choosecardenter.go
 				return err
 			}
 		case "ChooseType":

@@ -137,7 +137,7 @@ func TestSecondTapXPaysAColouredPip(t *testing.T) {
 	if !castOffered(&d, smuggler) {
 		t.Fatal("Bubble Smuggler not offered: Scene of the Crime tapping the Analyst makes its {U}")
 	}
-	sc.s.Apply(MakeAction(AkCast, uint8(smuggler), 0, 0))
+	sc.s.Apply(MakeAction(AkCast, TCode(smuggler), 0, 0))
 	sc.s.Step()
 	if sc.s.sp != 1 {
 		t.Fatalf("stack %d after the cast, want 1", sc.s.sp)
