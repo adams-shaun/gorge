@@ -880,6 +880,7 @@ OppsHitLegendary	untyped int	1
 OptAll	untyped int	16
 OptAny	untyped int	8
 OptAsk	int16	4
+OptDefined	untyped int	32
 OvChosenColor	untyped int	1
 OvEnterWith	untyped int	2
 PTRelEQ	int16	1

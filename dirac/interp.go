@@ -177,6 +177,13 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			}
 			break
 		}
+		if in.C&kop.OptDefined != 0 { // gorge effDiscard's Mode$ Defined arm
+			// the cards DefinedCards$ names that are still in the discarder's
+			// hand move, no ask, the amount never read
+			// (act_discarddefined.go)
+			s.discardDefinedAll(k, p, in.F)
+			break
+		}
 		if n < 1 {
 			// gorge discardBounds keeps a resolved zero at zero: an X of 0
 			// (Last Rites, Death Cloud) discards nothing and asks nothing
