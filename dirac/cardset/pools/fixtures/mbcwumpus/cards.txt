@@ -1,0 +1,9 @@
+# the Hunted Wumpus pool: each other player may put a creature card from
+# their hand onto the battlefield (hand move DefinedPlayer$ Player.Other),
+# the controller never asked (dirac/oracle/mbc_zone_moves_lowers_test.go)
+Hunted Wumpus
+Grizzly Bears
+Forest
+Raging Goblin
+Hill Giant
+Mountain

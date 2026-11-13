@@ -1,0 +1,12 @@
+# the Dreadhound pool: its ChangesZone Library->Graveyard watcher fires once
+# per creature card milled from any library (its own enters mill, Thought
+# Scour on either player), beside its dies line against Shock
+# (dirac/oracle/mbc_zone_moves_lowers_test.go)
+Dreadhound
+Thought Scour
+Walking Corpse
+Swamp
+Island
+Raging Goblin
+Shock
+Mountain
