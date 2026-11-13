@@ -249,9 +249,9 @@ type prep struct {
 	// kop.SecondTapXManaAb), -1 none: cold, read through tapXAbOf
 	tapXAb []int8
 	// ctrAb: per card, the index of its counter-cost mana ability (the first
-	// mana ability, kop.CtrManaAb, or a later {T} one beside a plain {T}
-	// first, kop.SecondCtrTapManaAb), -1 none: cold, read through ctrAbOf
-	// (mana_countercost.go)
+	// mana ability, kop.CtrManaAb or the dead gap kop.CtrDeadManaAb, or a
+	// later {T} one beside a plain {T} first, kop.SecondCtrTapManaAb), -1
+	// none: cold, read through ctrAbOf (mana_countercost.go)
 	ctrAb []int8
 	// riderAb: per card, the index of its bounded mana-ability rider (the
 	// first kop.ManaRiderAb ability), -1 none. Cold; read through riderAbOf
@@ -354,7 +354,7 @@ func prepare(t *kop.Table) *prep {
 					pc.manaSacOnly = !DebugIgnoreSpawnMana && a.AFlags&kop.AfLatent == 0 && a.Cost.Flags == kop.CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && !a.Cost.DiscardHand // (Lion's Eye Diamond is no planner unit: mana_discardhand.go)
 					p.sacMana = p.sacMana || pc.manaSac || pc.manaSacOnly
 					p.sacOnlyMana = p.sacOnlyMana || pc.manaSacOnly
-					if ctrManaAb(a) || kop.StoreManaAb(a) {
+					if ctrManaAb(a) || kop.StoreManaAb(a) || kop.CtrDeadManaAb(a) {
 						pc.ctrMana = true
 						p.ctrMana = true
 						p.ctrAb[i] = int8(j)
