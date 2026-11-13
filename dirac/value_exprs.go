@@ -91,7 +91,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		}
 		return int(s.g.yourTurns[SeatIx(ctx.ctrl)])
 	case kop.ExYourExtraTurns:
-		return int(s.g.extraTurnBegun>>(ctx.ctrl&1)) & 1
+		return int(s.g.extraTurnBegun>>SeatIx(ctx.ctrl)) & 1
 	case kop.ExRedNCDmg:
 		if DebugNoRedNC {
 			return 0

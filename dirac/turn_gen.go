@@ -1035,7 +1035,7 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 	}
 	s.ctl = s.g.ctlRet
 	if s.g.priSave != 0 {
-		s.prio, s.g.priSave = s.g.priSave&1, 0
+		s.prio, s.g.priSave = SeatIx(s.g.priSave), 0
 	}
 	return false
 }
@@ -1134,7 +1134,7 @@ func (s *State) applyGen(k *prep, a Action) {
 	if s.g.nask == 0 {
 		s.ctl = s.g.ctlRet
 		if s.g.priSave != 0 {
-			s.prio, s.g.priSave = s.g.priSave&1, 0
+			s.prio, s.g.priSave = SeatIx(s.g.priSave), 0
 		}
 	}
 }
@@ -1351,6 +1351,6 @@ func (s *State) dropHold(k *prep) {
 	}
 	s.g.hold = false
 	if s.g.priSave != 0 {
-		s.prio, s.g.priSave = s.g.priSave&1, 0
+		s.prio, s.g.priSave = SeatIx(s.g.priSave), 0
 	}
 }

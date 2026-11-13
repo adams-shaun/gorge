@@ -65,7 +65,7 @@ func (s *State) resumeFreeCast(k *prep) {
 	// a later stepGen (a pass taken before it would be restored over)
 	s.g.hold = false
 	if s.g.priSave != 0 {
-		s.prio, s.g.priSave = s.g.priSave&1, 0
+		s.prio, s.g.priSave = SeatIx(s.g.priSave), 0
 	}
 	if int(s.sp) >= MaxStack {
 		s.capFull(StallFree)

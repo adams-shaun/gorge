@@ -28,7 +28,7 @@ import (
 //     choice or a loop), so leave it raw rather than invent one.
 //   - xor1: an XOR with the literal 1 on either side, or "^= 1". As opp1minus.
 //   - and1: an index expression whose index is an AND with the literal 1
-//     (a[p&1], a[1&p]). Use SeatIx(p). Bare parity (in.C&1) is not counted.
+//     (a[p&1], a[1&p]). Use SeatIx(p). An AND that is not an index is and1val's.
 //   - seatloop2: a for loop bounded by the literal 2 ("< 2", "<= 1") or a
 //     "range 2" loop whose variable indexes a [MaxSeats] field of a struct
 //     in this package (s.pl[p], s.g.poison[p]). Bound it by MaxSeats.
@@ -36,13 +36,13 @@ import (
 //     the seats files that define them.
 //     Use PlayerCode(p), CodeSeat(c) and isPlayerTarget(c).
 //   - and1val: an AND with the literal 1 whose other side is an identifier
-//     or a selector (p&1, s.res.e.ctrl&1, 1&q), used as a value rather than
-//     as the index of an index expression (the and1 family counts those). At
-//     more than two seats it folds seats 2 and 3 onto 0 and 1. Pass the seat
-//     itself (callees index with SeatIx) or widen the packed field it goes
-//     into. A bit read (x>>p&1) has a shift on its other side and is not
-//     counted; the parity of something that is not a seat (a mode, a face,
-//     a flag bit) takes "seat-ok".
+//     or a selector (p&1, s.res.e.ctrl&1, 1&q) and which is not an index (the
+//     and1 family counts those), and the assignment "p &= 1". At more than
+//     two seats it folds seats 2 and 3 onto 0 and 1. Pass the seat itself
+//     (callees index with SeatIx) or widen the packed field it goes into. A
+//     bit read (x>>p&1) has a shift on its other side and is not counted; the
+//     parity of something that is not a seat (a mode, a face, a flag bit)
+//     takes "seat-ok".
 //
 // A site that is genuinely not seat arithmetic is exempted by a trailing
 // "// seat-ok: <reason>" comment on its line.
@@ -281,6 +281,9 @@ func scanSeatArithmetic(t *testing.T) (map[string]int, map[string][]string) {
 			case *ast.AssignStmt:
 				if x.Tok == token.XOR_ASSIGN && len(x.Rhs) == 1 && isLitOne(x.Rhs[0]) {
 					add("xor1", x.Pos())
+				}
+				if x.Tok == token.AND_ASSIGN && len(x.Rhs) == 1 && isLitOne(x.Rhs[0]) {
+					add("and1val", x.Pos())
 				}
 			case *ast.ForStmt:
 				if c, ok := x.Cond.(*ast.BinaryExpr); ok &&
