@@ -235,7 +235,7 @@ const (
 	NumExtOps ExtOp = 320
 )
 
-// ExtExploit (CR 702.58a/c): the marker half of the K:Exploit expansion, run
+// ExtExploit (CR 702.110a/b): the marker half of the K:Exploit expansion, run
 // after its optional Sacrifice (B.N bit SacExploit). When that sacrifice took a
 // creature the exploiting creature (the resolving ability's source) has
 // exploited it: every TrigExploited line fires, carrying the exploited

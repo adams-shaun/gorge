@@ -971,7 +971,7 @@ var expandedKeywords = map[string]bool{
 	// Echo (CR 702.30a): gorge kwEcho's upkeep trigger, gated by Echo$ True,
 	// whose body is DB$ Echo (lower_echo.go)
 	"Echo": true,
-	// Exploit (CR 702.58a): gorge kwExploit's enters trigger, an optional
+	// Exploit (CR 702.110a): gorge kwExploit's enters trigger, an optional
 	// Sacrifice then DB$ Exploit (lower_trigexploited.go)
 	"Exploit": true,
 }
