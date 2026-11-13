@@ -256,7 +256,8 @@ import (
 // +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL build-level 23251 -> 23252 measured).
 // +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source, DamagePlus ValidTarget$ Player.Opponent: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL build-level 23253 -> 23261 measured).
 // +1 (Foil's two-part discard alternative cost lowered, kop.Cost.Discard2N/Discard2F; ALL build-level merged against land's MBC work 23347 -> 23348 measured).
-var buildAcceptancePin = [2]int{23525, 34442} // {built, cards}
+// +9 (the city's blessing gates lower: a trigger's Blessing$ True -- Deadeye Brawler, Mausoleum Harpy, Resplendent Griffin, Twilight Prophet; a node's bare Condition$ Blessing -- Ocelot Pride; a CantBlockBy static's Condition$ Blessing -- Detective of the Month, Slippery Scoundrel; an ability's Activation$ Blessing -- Arch of Orazca, Orazca Relic; the gates add no build-level refusal, so the build pin moves with the LIR pin; ALL build-level 23541 -> 23550 measured).
+var buildAcceptancePin = [2]int{23550, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)
