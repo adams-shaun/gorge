@@ -104,7 +104,7 @@ func init() {
 	enum[kop.TargetKind]("kop.TgtNone", kop.TgtNone, "kop.TgtObject", kop.TgtObject, "kop.TgtPlayer", kop.TgtPlayer,
 		"kop.TgtAny", kop.TgtAny, "kop.TgtSpell", kop.TgtSpell, "kop.TgtCard", kop.TgtCard, "kop.TgtStackObj", kop.TgtStackObj, "kop.TgtStackAb", kop.TgtStackAb,
 		"kop.TgtPermOrSpell", kop.TgtPermOrSpell, "kop.TgtCopyAb", kop.TgtCopyAb, "kop.TgtCopyTrig", kop.TgtCopyTrig,
-		"kop.TgtStackObjTrig", kop.TgtStackObjTrig, "kop.TgtSpellTgting", kop.TgtSpellTgting, "kop.TgtPermOrGraveCard", kop.TgtPermOrGraveCard, "kop.TgtGraveExileCard", kop.TgtGraveExileCard)
+		"kop.TgtStackObjTrig", kop.TgtStackObjTrig, "kop.TgtSpellTgting", kop.TgtSpellTgting, "kop.TgtPermOrGraveCard", kop.TgtPermOrGraveCard, "kop.TgtGraveExileCard", kop.TgtGraveExileCard, "kop.TgtStackTgting", kop.TgtStackTgting)
 	enum[kop.CtrlSel]("kop.CtrlAny", kop.CtrlAny, "kop.CtrlYou", kop.CtrlYou, "kop.CtrlOpp", kop.CtrlOpp, "kop.CtrlEachPl", kop.CtrlEachPl, "kop.CtrlHitBySrc", kop.CtrlHitBySrc)
 	enum[kop.Pred]("kop.PredNone", kop.PredNone, "kop.PredPowerLE", kop.PredPowerLE, "kop.PredPowerGE", kop.PredPowerGE,
 		"kop.PredToughnessLE", kop.PredToughnessLE, "kop.PredCMCLE", kop.PredCMCLE, "kop.PredCMCGE", kop.PredCMCGE,

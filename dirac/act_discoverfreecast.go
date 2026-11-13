@@ -56,7 +56,7 @@ func (s *State) resumeFreeCast(k *prep) {
 	// the drained queue's ForgetPlayed$ marker has served its casts (a
 	// committed card was dropped in cast.go finishBuild; a refused or
 	// reversed one kept its place)
-	s.g.freeP &^= 128
+	s.g.freeP &^= freeForget
 	if i := s.holdIndex(); i >= 0 {
 		copy(s.stack[i:s.sp], s.stack[i+1:s.sp])
 		s.sp--
@@ -65,7 +65,7 @@ func (s *State) resumeFreeCast(k *prep) {
 	// a later stepGen (a pass taken before it would be restored over)
 	s.g.hold = false
 	if s.g.priSave != 0 {
-		s.prio, s.g.priSave = s.g.priSave&1, 0
+		s.prio, s.g.priSave = SeatIx(s.g.priSave), 0
 	}
 	if int(s.sp) >= MaxStack {
 		s.capFull(StallFree)

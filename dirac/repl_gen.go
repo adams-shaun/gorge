@@ -179,13 +179,19 @@ func (s *State) replCounters(k *prep, sl Slot, kind, n int) int {
 }
 
 // playerHexproof: player p has hexproof (controls a permanent with
-// StatPlayerHexproof).
+// StatPlayerHexproof, or carries one on a runtime emblem).
 func (s *State) playerHexproof(k *prep, p uint8) bool {
-	if k.gen == nil || k.gen.anyRepl&rbPlHex == 0 {
+	if k.gen == nil {
 		return false
 	}
 	if k.gen.anyPlHexRec && s.turnPlayerHex(k, p) {
 		return true // a Pump's this-turn player grant (repl_turnrepl.go)
+	}
+	if k.gen.anyEmbPlHex && s.embPlHex(k, p) {
+		return true // a Pump's until-next-turn player grant (static_emblemphex.go)
+	}
+	if k.gen.anyRepl&rbPlHex == 0 {
+		return false
 	}
 	if k.gen.anyYouHex {
 		return s.youHexproof(k, p) // ctr_shield.go
@@ -984,7 +990,7 @@ func (s *State) damageSeqNext(k *prep, n int) {
 			// bit 0 the active player, bit 1 the other; bit 2 deals the
 			// other first (the controller first off its turn: dmgSeqCtrlFirst)
 			b := uint8(1)
-			if pl&1 == 0 || pl&2 != 0 && s.g.dmgSeqPl&4 != 0 {
+			if pl&1 == 0 || pl&2 != 0 && s.g.dmgSeqPl&4 != 0 { // seat-ok: a damage-order position bit in a MaxSeats == 2 branch
 				b = 2
 			}
 			s.g.dmgSeqPl &^= b

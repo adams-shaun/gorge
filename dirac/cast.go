@@ -28,7 +28,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		s.cold.mkObj[o] = 0 // a card cast again starts with no payments (CR 702.43; kw_multikicker.go)
 	}
 	var fl uint8
-	if mode&1 != 0 {
+	if mode&1 != 0 { // seat-ok: a cast-mode bit
 		fl |= sfKicked
 	}
 	esc := escapeCast(k, c, mode, tgt) || s.g.escapeCast // a printed escape cast, or the target byte's granted escape (kw_escape.go)
@@ -835,7 +835,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				if m := s.restrActNow(k, e.ctrl); m != 0 {
 					s.restrAvailAdd(e.ctrl, m, &av)
 				}
-			} else if s.rbAny(e.ctrl & 1) {
+			} else if s.rbAny(SeatIx(e.ctrl)) {
 				// restricted mana a spell may spend (Secluded Courtyard's
 				// chosen type, tapped by the play's script prefix) is in
 				// gorge's AvailableFor pool, which its xAsk reads; the
@@ -1253,7 +1253,7 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 	s.availCastWindowFor(k, e.ctrl, &av)
 	if e.kind == seAbility {
 		s.excludeTapSource(k, &av)
-	} else if s.rbAny(e.ctrl & 1) {
+	} else if s.rbAny(SeatIx(e.ctrl)) {
 		s.restrAvail(k, e.ctrl, e.card, restrOriginOfEntry(e), &av) // the restricted mana the spell may spend, as the X ask reads it
 	}
 	d.Kind, d.Sub, d.Player = DkChoose, ChGenPip, e.ctrl
@@ -1664,7 +1664,7 @@ func (s *State) finishBuild(k *prep) {
 		// a free cast with ReplaceGraveyard$ Exile carries bit 4
 		// as sfFreeGY once the build bit is gone (a non-copy spell entry;
 		// resolveTop tests it only on a copy)
-		if s.bld().e.flags&sfFree != 0 && s.g.freeP&16 != 0 && s.bld().bfl&bflPushed != 0 {
+		if s.bld().e.flags&sfFree != 0 && s.g.freeP&freeGY != 0 && s.bld().bfl&bflPushed != 0 {
 			s.stack[s.sp-1].flags |= sfFreeGY
 		}
 		// ForgetPlayed$ True: this free cast now sits on the stack
@@ -1672,7 +1672,7 @@ func (s *State) finishBuild(k *prep) {
 		// drops it from the remembered set. A cast refused before the push,
 		// or reversed while its cost was being paid (CR 733.1), never
 		// reaches this commit and keeps its card remembered.
-		if s.bld().e.flags&sfFree != 0 && s.g.freeP&128 != 0 && s.bld().bfl&bflPushed != 0 {
+		if s.bld().e.flags&sfFree != 0 && s.g.freeP&freeForget != 0 && s.bld().bfl&bflPushed != 0 {
 			s.forgetRemGen(e.obj)
 		}
 		if k.gen != nil && k.gen.anyHist {
@@ -2720,7 +2720,7 @@ func (s *State) recordSubCtr(o Obj, c uint8) {
 func (s *State) poolRPays(k *prep, p uint8, c CardID, o Obj) bool {
 	var av avail
 	s.availPool(p, &av)
-	if s.rbAny(p & 1) {
+	if s.rbAny(SeatIx(p)) {
 		s.restrAvail(k, p, c, s.restrOriginOfObj(o), &av)
 	}
 	if av.total == 0 {

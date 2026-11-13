@@ -48,7 +48,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				s.destroyRemember(k, sl, in.C) // RememberDestroyed$ (act_remember.go)
 				break
 			}
-			if in.C&1 != 0 {
+			if in.C&1 != 0 { // seat-ok: an instruction flag bit
 				s.destroyNoRegen(k, sl)
 				break
 			}
@@ -460,7 +460,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			// answer. The recipients freeze in gorge's sweep order
 			// (effDamageAll: seat 0's battlefield in entry order, then seat
 			// 1's, then the players).
-			s.damageSeqStart(k, hit, in.B.N&1 != 0)
+			s.damageSeqStart(k, hit, in.B.N&1 != 0) // seat-ok: an instruction flag bit
 			s.dmgSeqCtrlFirst(e.ctrl)
 			s.damageSeqNext(k, n)
 			break
@@ -477,7 +477,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		for _, sl := range ord[:hi] {
 			s.damageTo(k, uint8(s.perms[sl].obj), n)
 		}
-		if in.B.N&1 != 0 {
+		if in.B.N&1 != 0 { // seat-ok: an instruction flag bit
 			// then each player, the controller first (gorge validPlayers:
 			// AliveFrom the controller)
 			q := s.aliveFrom(e.ctrl)

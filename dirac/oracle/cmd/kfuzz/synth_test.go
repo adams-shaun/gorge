@@ -1,13 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
+	"github.com/adams-shaun/gorge/dirac/oracle"
 )
 
 // TestFuzzSynthRuns plays a dealt pool from memory: the verdict and the reach line
@@ -132,11 +135,16 @@ func TestFuzzCleanupLegendRuleGivesPriority(t *testing.T) {
 	}
 }
 
-// TestFuzzPlottedCastSpendIsNotAResponseCastsPayment replays the std-otj pair
-// where a plotted Slickshot Lockpicker is cast for no mana and the same
-// player then casts This Town Ain't Big Enough in response, paying with
-// floating mana: no mana was spent to cast the Lockpicker, so Satoru, the
-// Infiltrator's second alternative holds when it enters (CR 601.2h).
+// TestFuzzPlottedCastSpendIsNotAResponseCastsPayment replays the game where
+// a plotted Slickshot Lockpicker is cast for no mana and the same player then
+// casts This Town Ain't Big Enough in response, paying with floating mana: no
+// mana was spent to cast the Lockpicker, so Satoru, the Infiltrator's second
+// alternative holds when it enters and Satoru triggers (CR 601.2h).
+//
+// The game is a recording (std-otj pair 806 as dealt when the rule was fixed),
+// replayed with its own decks and actions, so a re-deal of the synthetic pool
+// cannot move the scenario away; the test asserts the event sequence, not
+// only a clean verdict.
 func TestFuzzPlottedCastSpendIsNotAResponseCastsPayment(t *testing.T) {
 	corpus, err := cardset.CorpusDir()
 	if err != nil {
@@ -146,11 +154,37 @@ func TestFuzzPlottedCastSpendIsNotAResponseCastsPayment(t *testing.T) {
 		t.Skipf("gorge corpus has no cardsfolder: %v", err)
 	}
 	cardsettest.Synth(t, "std-otj")
-	code, stdout, stderr := runKFuzz(t, "-synth", "std-otj", "-first-pair", "806", "-pairs", "1", "-seed", "1", "-surface", "full", "-shrink", "0", "-absolute")
+	const repro = "testdata/plotted_cast_response_payment.repro.json"
+	rep, err := oracle.ReadRepro(repro)
+	if err != nil {
+		t.Fatal(err)
+	}
+	code, stdout, stderr := runKFuzz(t, "-synth", "std-otj", "-repro", repro, "-events", "100000")
 	if code != 0 {
 		t.Fatalf("exit %d, stderr %q\n%s", code, stderr, stdout)
 	}
-	if !strings.Contains(stdout, "1 clean, 0 divergent") {
-		t.Errorf("pair 806 diverged:\n%s", stdout)
+	// the whole recording played, in lockstep
+	if want := fmt.Sprintf("repro: no divergence in %d decisions", len(rep.Actions)); !strings.Contains(stdout, want) {
+		t.Fatalf("want %q:\n%s", want, stdout)
+	}
+	// the scenario, in order, in gorge's event log: the plotted Lockpicker
+	// cast from exile, This Town cast in response by the same player and paid
+	// from the pool, the Lockpicker resolving, and Satoru's trigger on it
+	lock := regexp.MustCompile(`stack_push (p\d) obj=Slickshot Lockpicker#\d+ zone 4>5`).FindStringSubmatchIndex(stdout)
+	if lock == nil {
+		t.Fatalf("no plotted Slickshot Lockpicker cast from exile:\n%s", stdout)
+	}
+	p, rest := stdout[lock[2]:lock[3]], stdout[lock[1]:]
+	for _, step := range []string{
+		`stack_push ` + p + ` obj=This Town Ain't Big Enough#\d+ zone 1>5`,
+		`mana_add ` + p + ` n=-\d`,
+		`stack_resolve p\d obj=Slickshot Lockpicker#\d+`,
+		`trigger_push ` + p + ` obj=Satoru, the Infiltrator#\d+ "triggered ability" Slickshot Lockpicker#\d+`,
+	} {
+		loc := regexp.MustCompile(step).FindStringIndex(rest)
+		if loc == nil {
+			t.Fatalf("after the plotted cast, no %q:\n%s", step, stdout)
+		}
+		rest = rest[loc[1]:]
 	}
 }

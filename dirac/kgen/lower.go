@@ -149,6 +149,8 @@ type lowerCtx struct {
 	numTimesK      int       // lowering a NumTimes latent for the announced count k: Count$TriggerRememberAmount is k (lower_numtimes.go)
 	remLKMVN       int       // RememberedLKI$CardManaCost reads admitted (value_remlkimv.go)
 	remLKN         int       // RememberedLKI$ P/T reads lc.value produced: refuseRemLKIPT refuses unless each one sits in an ability program (value_remlki.go)
+	flipSide       uint8     // lowering a FlipCoin branch: 1 the win block, 2 the lose block; a bare Wins/Losses read is that flip's 1/0 (lower_dice.go flipCoin)
+	flipTallyAb    *lAbility // the ability whose FlipCoin consumed RememberNumber$: its Count$RememberedNumber is the unlowered flip tally, refused (value.go)
 	p              *pool
 	name           string
 	card           *cards.Card
@@ -2621,9 +2623,11 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 					// folds the body into a fixed amount as the cost window opens
 					// (evalTriggerCostFixedX), so the kernel reads the same value as
 					// the payment is offered. Only the power of the card an enters
-					// trigger fires for lowers (the shape played against gorge); every
-					// other body or trigger refuses by name.
-					if lc.trigBodyCost && lc.ab.Trigger != nil && lc.ab.Trigger.Event == "ETB" && strings.TrimSpace(x) == "TriggeredCard$CardPower" &&
+					// trigger fires for lowers (the shape played against gorge), and the
+					// opponents dealt combat damage this turn on a postcombat-main Phase
+					// trigger (Tymna the Weaver); every other body or trigger refuses
+					// by name.
+					if lc.trigBodyCost && lc.ab.Trigger != nil && triggerCostXShape(lc.ab.Trigger, strings.TrimSpace(x)) &&
 						c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.LoyaltyX {
 						v, verr := lc.svarValue(x, 0)
 						if verr != nil {

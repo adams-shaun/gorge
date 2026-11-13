@@ -112,7 +112,7 @@ func (s *State) cloneOptions(k *prep, d *Decision) {
 		}
 	}
 	s.res = saved
-	if in.C&1 != 0 || d.N == 0 {
+	if in.C&1 != 0 || d.N == 0 { // seat-ok: an instruction flag bit
 		d.add(MakeAction(AkChoose, uint8(o), 0, 1)) // "enter as itself"
 	}
 }

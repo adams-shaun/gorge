@@ -123,7 +123,7 @@ func (s *State) setFBGrants(k *prep, o Obj, n uint8) {
 	lo, hi := &s.cold.mo[i], &s.cold.mo[i+1]
 	lo.clr(o)
 	hi.clr(o)
-	if n&1 != 0 {
+	if n&1 != 0 { // seat-ok: a count's low bit
 		lo.set(o)
 	}
 	if n&2 != 0 {

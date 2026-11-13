@@ -65,7 +65,7 @@ func (s *State) removeCounterAll(k *prep, in *kop.Instr) {
 	if n < 0 {
 		n = 0
 	}
-	all := in.B.N&1 != 0
+	all := in.B.N&1 != 0 // seat-ok: an instruction flag bit
 	var ord [MaxPerm]Slot
 	cnt := s.sweepHits(k, in.F, &ord)
 	for _, sl := range ord[:cnt] {

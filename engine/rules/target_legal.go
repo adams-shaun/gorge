@@ -1180,9 +1180,11 @@ zoneLoop:
 // files carry the parameter, every one a counter or retarget of a spell).
 // A player candidate has no targets to check, and an object candidate with
 // no recorded targets matches nothing -- both fail the filter, the narrower
-// direction (an ability whose per-stack target bindings live in the
-// trigger/activation roles this filter cannot see is never offered, never
-// wrongly offered).
+// direction. A stack ability is such an object candidate too: it is a real
+// Object in ZStack and recordChosenTargets (target_ask.go) records its chosen
+// targets on Targets/SubTargets, so an activated or triggered ability aimed at
+// a matching object is offered like a spell
+// (TestTargetValidTargetingOffersStackAbilities).
 func (e *Engine) filterTargetValidTargeting(in []targetCandidate, sa *cards.SA, sc effects.SpecContext) []targetCandidate {
 	spec := effects.TargetsOf(sa).ValidTargeting
 	if spec == "" {

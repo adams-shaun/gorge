@@ -471,7 +471,7 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 		s.manaTapped(k, st.sl)
 		if o.gi >= 0 {
 			if ab := restrAbOfGrant(k, o.gi); ab != nil {
-				if !s.floatRestrAb(k, p&1, st.sl, ab, int(o.ans), o.n) {
+				if !s.floatRestrAb(k, SeatIx(p), st.sl, ab, int(o.ans), o.n) {
 					s.capFull(StallRestrSrc)
 				}
 				return
@@ -483,9 +483,9 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 		// tapped under Badgermole Cub). The search priced the prefix without
 		// it, so adding it can only leave the payment payable.
 		if o.gi >= 0 {
-			s.addExtra(k, p&1, st.sl, s.grantView(k.gen, o.gi, st.sl))
+			s.addExtra(k, SeatIx(p), st.sl, s.grantView(k.gen, o.gi, st.sl))
 		} else {
-			s.addExtra(k, p&1, st.sl, s.manaPCGen(k, st.sl))
+			s.addExtra(k, SeatIx(p), st.sl, s.manaPCGen(k, st.sl))
 		}
 		s.artTag(k, p, st.sl, int(o.ans))
 	}

@@ -266,7 +266,7 @@ func (s *State) hidePlay(k *prep, in *kop.Instr) bool {
 	if s.g.nfree == 0 {
 		return true
 	}
-	s.g.freeP = e.ctrl | uint8(kop.ZoneExile)<<1
+	s.g.freeP = seatWord(e.ctrl) | seatWord(kop.ZoneExile)<<freeZoneShift
 	s.res.ask, s.res.askP = raGenCastFree, e.ctrl
 	return false
 }

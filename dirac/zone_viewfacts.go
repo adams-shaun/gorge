@@ -62,7 +62,7 @@ func (s *State) FeatHandCost(p uint8, o Obj) (kop.ManaCost, bool) {
 	}
 	was := s.g.noTgtRed
 	s.g.noTgtRed = true
-	got := s.featCost(k, p&1, c, o, cost)
+	got := s.featCost(k, SeatIx(p), c, o, cost)
 	s.g.noTgtRed = was
 	return got, got != cost
 }

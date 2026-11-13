@@ -119,11 +119,11 @@ func (e *Encoder) EncodeStateInc(s *dirac.State, d *dirac.Decision) *State {
 // EncodeStateIncFor is EncodeStateFor, incrementally.
 func (e *Encoder) EncodeStateIncFor(s *dirac.State, d *dirac.Decision, seat uint8) *State {
 	seat, me, opp := e.prelude(s, d, seat)
-	if e.inc[seat&1] == nil {
-		e.inc[seat&1] = &seatInc{fresh: make([]Feature, 0, 256),
+	if e.inc[dirac.SeatIx(seat)] == nil {
+		e.inc[dirac.SeatIx(seat)] = &seatInc{fresh: make([]Feature, 0, 256),
 			sp: make([]Feature, 0, 512), cards: make([]Card, 0, 64)}
 	}
-	si := e.inc[seat&1]
+	si := e.inc[dirac.SeatIx(seat)]
 	si.gen++
 	e.IncStats.Encodes++
 	v := &e.v

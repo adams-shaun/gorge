@@ -257,7 +257,7 @@ func (v lValue) String() string {
 			args = append(args, fmt.Sprintf("n=%d", v.N))
 		case vCountGraveyard, vHandSizeOf, vOppsLostLife:
 			if v.N != 0 {
-				args = append(args, fmt.Sprintf("n=%d", v.N)) // N 1: the cards, not the raw zone length (a hand token is no card)
+				args = append(args, fmt.Sprintf("n=%d", v.N)) // N 1: the cards, not the raw zone length (a hand token is no card); vOppsLostLife N 1 legendary hit, N 2 any combat hit
 			}
 		}
 		if v.Ref.Kind != rNone {

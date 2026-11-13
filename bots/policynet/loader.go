@@ -1,9 +1,7 @@
 package policynet
 
 import (
-	"bufio"
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,6 +11,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
+
+	"github.com/adams-shaun/gorge/testkit/recstream"
 )
 
 // LabelSchemaVersion and LabelRecordType mirror the search teacher's
@@ -170,15 +170,10 @@ func Load(path string) ([]Example, Stats, error) {
 	}
 	defer f.Close()
 
-	r := bufio.NewReader(f)
-	var stream io.Reader = r
-	if magic, err := r.Peek(2); err == nil && magic[0] == 0x1f && magic[1] == 0x8b {
-		zr, err := gzip.NewReader(r)
-		if err != nil {
-			return nil, Stats{}, fmt.Errorf("reading gzipped label corpus: %w", err)
-		}
-		defer zr.Close()
-		stream = zr
+	// Plain, gzipped or condensed (testkit/recstream) JSON Lines.
+	stream, err := recstream.NewReader(f)
+	if err != nil {
+		return nil, Stats{}, fmt.Errorf("reading label corpus: %w", err)
 	}
 
 	dec := json.NewDecoder(stream)

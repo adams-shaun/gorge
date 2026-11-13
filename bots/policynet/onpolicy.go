@@ -1,14 +1,14 @@
 package policynet
 
 import (
-	"bufio"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 
 	"github.com/adams-shaun/gorge/engine/decision"
+
+	"github.com/adams-shaun/gorge/testkit/recstream"
 )
 
 // The on-policy corpus: one JSONL record per decision the
@@ -253,15 +253,10 @@ func LoadOnPolicy(path string) ([]Example, []OnPolicyRecord, OnPolicyStats, erro
 		return nil, nil, OnPolicyStats{}, fmt.Errorf("opening on-policy corpus: %w", err)
 	}
 	defer f.Close()
-	r := bufio.NewReader(f)
-	var stream io.Reader = r
-	if magic, err := r.Peek(2); err == nil && magic[0] == 0x1f && magic[1] == 0x8b {
-		zr, err := gzip.NewReader(r)
-		if err != nil {
-			return nil, nil, OnPolicyStats{}, fmt.Errorf("reading gzipped on-policy corpus: %w", err)
-		}
-		defer zr.Close()
-		stream = zr
+	// Plain, gzipped or condensed (testkit/recstream) JSON Lines.
+	stream, err := recstream.NewReader(f)
+	if err != nil {
+		return nil, nil, OnPolicyStats{}, fmt.Errorf("reading on-policy corpus: %w", err)
 	}
 	want := ""
 	dec := json.NewDecoder(stream)

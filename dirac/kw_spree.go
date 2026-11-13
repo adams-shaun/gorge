@@ -154,7 +154,7 @@ func (s *State) charmTargetAskDead(k *prep) bool {
 	if s.windowPoolPays(e.ctrl, &cost, anyColor) {
 		return false
 	}
-	if s.rbAny(e.ctrl & 1) {
+	if s.rbAny(SeatIx(e.ctrl)) {
 		// the floating restricted mana this cast may spend is in gorge's
 		// payment pool (its AvailableFor holds the batches the spell's
 		// restriction admits, CR 106.6), which this gate's payable check
@@ -216,7 +216,7 @@ func (s *State) targetPaidPlanned(k *prep, p uint8, o Obj) bool {
 	}
 	c := s.objs[o].card
 	cd := &k.t.Cards[c]
-	cost := s.featCost(k, p&1, c, o, k.cards[c].cost)
+	cost := s.featCost(k, SeatIx(p), c, o, k.cards[c].cost)
 	if cd.HasAltAdd {
 		// gorge's witness floats the spell's mana with the first either-or
 		// part that has mana (potentialAltAddPlan), so the lowering reaches

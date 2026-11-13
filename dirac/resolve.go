@@ -35,7 +35,7 @@ func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 	if t == nil {
 		return false
 	}
-	if t.Kind == kop.TgtSpellTgting {
+	if t.Kind == kop.TgtSpellTgting || t.Kind == kop.TgtStackTgting {
 		return s.spellTgtingStill(e, code) // tgt_countershapes.go
 	}
 	src := NoSlot

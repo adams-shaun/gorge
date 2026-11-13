@@ -4198,13 +4198,31 @@ func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 			}
 		}
 	}
-	exc, hasExc, err := lc.copyExceptions(ps)
+	exc, hasExc, myriads, err := lc.copyExceptionsMyriad(ps, true)
 	if err != nil {
 		return err
 	}
 	grant, err := lc.cloneEnterGrant(ps) // lower_cloneentergrant.go
 	if err != nil {
 		return err
+	}
+	if myriads > 0 {
+		// "except it has myriad" (Auton Soldier; CR 707.9b, 702.116a-b):
+		// one granted-Myriad trigger per instance rides in the grant record
+		// beside any AddAbilities$ (lower_myriad.go); at most two grants
+		if grant == nil {
+			grant = &lOverride{}
+		}
+		for ; myriads > 0; myriads-- {
+			idx, err := lc.myriadGrantTrigger()
+			if err != nil {
+				return err
+			}
+			grant.GrantAbility = append(grant.GrantAbility, idx)
+		}
+		if len(grant.GrantAbility) > 2 {
+			return refuse("ETB copy grants %d abilities (Myriad included): more than two", len(grant.GrantAbility))
+		}
 	}
 	in := lInstr{Op: "BecomeCopy", Obj: lRef{Kind: rReplaced}, F: f}
 	if grant != nil {

@@ -36,3 +36,24 @@ func oppsHitByLegendaryValue(rest string) (lValue, bool) {
 	}
 	return lValue{}, false
 }
+
+// oppsDealtCombatDamageBody is the bare head PlayerCountRegisteredOpponents$
+// HasPropertywasDealtCombatDamageThisTurn (Tymna the Weaver): the opponents
+// dealt combat damage this turn by any source, the same hit ledger as the
+// legendary arm with no source condition (vOppsLostLife N 2).
+const oppsDealtCombatDamageBody = "HasPropertywasDealtCombatDamageThisTurn"
+
+// triggerCostXShape reports whether a printed trigger's own PayLife<X> cost
+// carries an SVar X body gorge folds at the cost window and the kernel reads
+// at the same moment (evalTriggerCostFixedX): the entering card's power on an
+// enters trigger (Madame Null), the opponents dealt combat damage this turn on
+// a Phase trigger at the postcombat main (Tymna the Weaver).
+func triggerCostXShape(tr *lTrigger, x string) bool {
+	switch {
+	case tr.Event == "ETB":
+		return x == "TriggeredCard$CardPower"
+	case tr.Event == "Phase" && tr.Step == "Main2":
+		return x == "PlayerCountRegisteredOpponents$"+oppsDealtCombatDamageBody
+	}
+	return false
+}

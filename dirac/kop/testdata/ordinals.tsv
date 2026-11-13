@@ -1102,6 +1102,8 @@ RetFromLibrary	untyped int	16384
 RetShuffleOwed	untyped int	8192
 RetUnderOpponent	untyped int	4096
 RollDieCoin	int16	1
+RollDieCoinBatch	int16	2
+RollDieCoinMark	int16	4
 SacSumMV	untyped int	8
 SacSumPower	untyped int	2
 SacSumToughness	untyped int	4
@@ -1387,6 +1389,7 @@ TgtSpellTgting	TargetKind	239
 TgtStackAb	TargetKind	7
 TgtStackObj	TargetKind	6
 TgtStackObjTrig	TargetKind	238
+TgtStackTgting	TargetKind	242
 TimingInstant	Timing	1
 TimingLand	Timing	2
 TimingSorcery	Timing	0

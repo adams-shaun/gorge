@@ -25,8 +25,9 @@ const maxEntered = 64
 
 // zoneEntry is one add. to/from are kop.Zone values (gorge's ZoneEntry.To
 // and .From); flags bit 0 is gorge's WasCreature, the creature status at a
-// departure (CR 603.10a) or the card's face at a battlefield entry; bit 1 is the controller a battlefield departure left
-// under, gorge's Controller. Owner, PermanentCard and Sacrificed are not read by
+// departure (CR 603.10a) or the card's face at a battlefield entry; the bits
+// from enteredLeftShift up (one at two seats, two at four) are the controller
+// a battlefield departure left under, gorge's Controller. Owner, PermanentCard and Sacrificed are not read by
 // any Count$ThisTurnEntered head and are not ported.
 type zoneEntry struct {
 	o     Obj
@@ -37,7 +38,7 @@ type zoneEntry struct {
 
 const (
 	enteredWasCreature uint8 = 1
-	enteredLeftCtrl1   uint8 = 2
+	enteredLeftShift         = 1 // zoneEntry.flags: the departure's controller, MaxSeats-1 wide
 )
 
 // noteLeftController records on o's battlefield departure, just added, the
@@ -45,9 +46,9 @@ const (
 //
 //go:noinline
 func (s *State) noteLeftController(o Obj, ctrl uint8) {
-	if n := s.g.enteredN; n != 0 && !s.g.enteredFull && ctrl&1 != 0 {
+	if n := s.g.enteredN; n != 0 && !s.g.enteredFull && SeatIx(ctrl) != 0 {
 		if e := &s.cold.entered[n-1]; e.o == o && e.from == uint8(kop.ZoneBattlefield) {
-			e.flags |= enteredLeftCtrl1
+			e.flags |= SeatIx(ctrl) << enteredLeftShift
 		}
 	}
 }
@@ -78,10 +79,7 @@ func (s *State) matchDeparture(k *prep, f kop.FilterID, e *zoneEntry, ctx evalCt
 
 // leftController is the controller a battlefield departure's entry left under.
 func (e *zoneEntry) leftController() uint8 {
-	if e.flags&enteredLeftCtrl1 != 0 {
-		return 1
-	}
-	return 0
+	return e.flags >> enteredLeftShift & (MaxSeats - 1)
 }
 
 // noteEnter appends one add. The ring never overwrites: once maxEntered

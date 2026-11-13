@@ -26,7 +26,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 //go:noinline
 func (s *State) revoltHolds(p uint8) bool {
-	p &= 1
+	p = SeatIx(p)
 	for i := uint8(0); i < s.g.enteredN; i++ {
 		e := &s.cold.entered[i]
 		if e.from != uint8(kop.ZoneBattlefield) {
@@ -36,7 +36,7 @@ func (s *State) revoltHolds(p uint8) bool {
 		if DebugRevoltOwner {
 			c = s.objs[e.o].owner()
 		}
-		if DebugRevoltAnyone || c&1 == p {
+		if DebugRevoltAnyone || SeatIx(c) == p {
 			return true
 		}
 	}

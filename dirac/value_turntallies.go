@@ -15,7 +15,8 @@ import (
 //     rules/host_turn_ledger.go): every landed hit records the player, the
 //     source's ObjID and its card/controller at the hit. The kernel keeps
 //     the two shapes gorge reads. genState.cdLeg bit p: player p was hit by a
-//     source matching Creature.Legendary (Blitzball; gorge matches the hit's
+//     source matching Creature.Legendary (Blitzball; bit 4+p: player p was
+//     hit by any source, Tymna the Weaver; gorge matches the hit's
 //     snapshot, the printed face unless a layer-4 entry exists for the ID at
 //     the read: the kernel reads the source's types at the hit, which is the
 //     same unless that entry appears or ends between the hit and the read,
@@ -61,6 +62,8 @@ func prepTurnTallies(t *kop.Table, p *prep, g *genPrep) {
 		switch x := &t.Exprs[i]; {
 		case x.Kind == kop.ExOppsLostLife && x.N == 1:
 			g.anyCombatHit, g.cdLegOn = true, true
+		case x.Kind == kop.ExOppsLostLife && x.N == 2:
+			g.anyCombatHit, g.cdDamOn = true, true
 		case x.Kind == kop.ExSacrificedThisTurn && x.N == kop.SacrificedFood && food >= 0:
 			for c := range t.Cards {
 				if t.Cards[c].Subtypes.Has(food) {
@@ -156,6 +159,9 @@ func (s *State) noteCombatHits(k *prep, r *dmgRec) {
 		pl := CodeSeat(s.perms[ev.src].atk)
 		if pl >= MaxSeats {
 			continue
+		}
+		if k.gen.cdDamOn {
+			s.g.cdLeg |= 0x10 << pl // dealt combat damage by any source (Tymna)
 		}
 		if k.gen.cdLegOn {
 			if ty := s.typesAt(k, ev.src); ty&kop.TCreature != 0 && ty&kop.TLegendary != 0 {

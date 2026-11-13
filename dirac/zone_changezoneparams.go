@@ -71,7 +71,7 @@ func millParkX(c int) (x uint8) {
 }
 
 func millParkFlags(x uint8) (c int) {
-	if x&1 != 0 {
+	if x&1 != 0 { // seat-ok: a park flag bit
 		c |= kop.MvRemember
 	}
 	if x&2 != 0 {
