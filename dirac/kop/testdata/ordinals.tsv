@@ -110,6 +110,7 @@ CondSourceZone	CondKind	10
 CondThreshold	CondKind	4
 CondValue	CondKind	2
 CondYourTurn	CondKind	5
+CopyAbTriggering	untyped int	16383
 CopyAttacking	untyped int	16384
 CopyCardKeyPrefix	untyped string	"copycard:"
 CopyNamedExcShift	untyped int	8
@@ -1460,6 +1461,7 @@ TrAttacking	untyped int	2
 TrHasteEOT	untyped int	4
 TrList	untyped int	8
 TrTapped	untyped int	1
+TrigAbCastAny	int16	4
 TrigAbCastExhaust	int16	1
 TrigAbCastLoyalty	int16	2
 TrigAbCastLoyaltyOpp	int16	3
