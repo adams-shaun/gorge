@@ -3293,6 +3293,11 @@ func pumpKeywords(kw string) ([]string, error) {
 			out = append(out, "CantBlock")
 		case k == "Prevent all combat damage that would be dealt to CARDNAME.":
 			out = append(out, "PreventCombatDamageTo")
+		case k == "Prevent all combat damage that would be dealt by CARDNAME.":
+			// a granted "dealt by" sentence (Hunter's Ambush's nongreen
+			// creatures, Feint's target): gorge's preventKWs by-combat head
+			// (rules/replacement_prevent_kw.go), the kernel's prevCombatFrom
+			out = append(out, "PreventCombatDamageFrom")
 		case k == "Wither":
 			out = append(out, "Wither") // CR 702.80 granted; not in simpleKeywords (that map also drives the printed K: switch)
 		case k == "Flashback":

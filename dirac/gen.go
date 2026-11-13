@@ -1556,7 +1556,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyScriptGap = g.anyEachCol || g.anyRestrScript || g.anyAnyR || g.anyFilt || p.tapMana // (a tap-another-permanent mana gap: mana_tapanother.go)
 	// a Diamond beside another census-gap kind (mana_diamondmix.go)
 	prepDiamondMix(t, g, p)
-	g.anyPrevFrom = grantsKw(t, kop.KwPreventCombatDamageFrom) || g.anyRepl&rbPrevCombatBy != 0
+	g.anyPrevFrom = tableGrantsKw(t, kop.KwPreventCombatDamageFrom) || g.anyRepl&rbPrevCombatBy != 0
 	prepReplMult(t, g)
 	prepDmgMark(t, g)   // repl_dmgmark.go
 	prepPlProtAll(t, g) // static_plprot.go

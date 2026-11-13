@@ -90,6 +90,7 @@ var gorgeKwExact = map[string]kop.KwMask{
 	"Protection from red": kop.KwProtRed, "ProtectionFromRed": kop.KwProtRed,
 	"Prevent all combat damage that would be dealt to CARDNAME.":              kop.KwPreventCombatDamageTo,
 	"Prevent all combat damage that would be dealt to and dealt by CARDNAME.": kop.KwPreventCombatDamageTo | kop.KwPreventCombatDamageFrom,
+	"Prevent all combat damage that would be dealt by CARDNAME.":              kop.KwPreventCombatDamageFrom,
 	"PreventCombatDamageTo": kop.KwPreventCombatDamageTo, "PreventCombatDamageFrom": kop.KwPreventCombatDamageFrom,
 	"FlashbackOwnCost": kop.KwFlashbackOwnCost,
 	"Fear":             kop.KwFear, "Shadow": kop.KwShadow,
