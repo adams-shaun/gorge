@@ -81,3 +81,14 @@ func TestCmd5MazemindSacrificedBeforeItsExile(t *testing.T) {
 	res := replayCmd5Repro(t, "cmd5_mazemind_sacrificed_before_its_exile", 324, "Life[1]")
 	requireCmd5ReproClean(t, res, 324)
 }
+
+// TestCmd5ChargerPayUnreachableBySignet: Hellkite Charger attacks with every
+// land tapped and one Arcane Signet untapped. "You may pay {5}{R}{R}" cannot
+// be paid from one mana (CR 118.3), so gorge offers only the decline, as the
+// kernel does; gorge's payment bound used to price the Signet's
+// commander-identity mana unbounded in every colour and offered the pay.
+func TestCmd5ChargerPayUnreachableBySignet(t *testing.T) {
+	t.Parallel()
+	res := replayCmd5Repro(t, "cmd5_charger_pay_unreachable_by_signet", 497, "options")
+	requireCmd5ReproClean(t, res, 497)
+}
