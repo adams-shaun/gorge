@@ -16,8 +16,8 @@ const dpTriggerProbe = `Name:Defined Player Probe
 ManaCost:2 U
 Types:Creature
 PT:2/2
-T:Mode$ Phase | Phase$ Upkeep | TriggerZones$ Battlefield | Execute$ TrigBounce | TriggerDescription$ probe
-SVar:TrigBounce:DB$ ChangeZone | Origin$ Battlefield | Destination$ Hand | ChangeType$ Permanent | DefinedPlayer$ TriggeredPlayer | ChangeNum$ 1 | Hidden$ True | Mandatory$ True | UnlessCost$ PayLife<2> | UnlessPayer$ TriggeredPlayer
+T:Mode$ Phase | Phase$ Upkeep | TriggerZones$ Battlefield | Execute$ TrigShove | TriggerDescription$ probe
+SVar:TrigShove:DB$ ChangeZone | Origin$ Battlefield | Destination$ Hand | ChangeType$ Permanent | DefinedPlayer$ TriggeredPlayer | ChangeNum$ 1 | Hidden$ True | Mandatory$ True | UnlessCost$ PayLife<2> | UnlessPayer$ TriggeredPlayer
 Oracle:probe
 `
 
@@ -41,8 +41,8 @@ const dpNamedProbe = `Name:Defined Named Probe
 ManaCost:1 W B
 Types:Legendary Enchantment Creature God
 PT:5/4
-T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Creature.YouOwn+Other | TriggerZones$ Battlefield | Execute$ TrigReturn | TriggerDescription$ probe
-SVar:TrigReturn:DB$ ChangeZone | Defined$ TriggeredNewCardLKICopy | Origin$ Graveyard | Destination$ Hand | UnlessCost$ PayLife<3> | UnlessPayer$ Targeted | ValidTgts$ Opponent | IsCurse$ True | Hidden$ True | DefinedPlayer$ You
+T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Creature.YouOwn+Other | TriggerZones$ Battlefield | Execute$ TrigFetch | TriggerDescription$ probe
+SVar:TrigFetch:DB$ ChangeZone | Defined$ TriggeredNewCardLKICopy | Origin$ Graveyard | Destination$ Hand | UnlessCost$ PayLife<3> | UnlessPayer$ Targeted | ValidTgts$ Opponent | IsCurse$ True | Hidden$ True | DefinedPlayer$ You
 Oracle:probe
 `
 

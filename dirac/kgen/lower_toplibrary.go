@@ -78,10 +78,12 @@ func (lc *lowerCtx) topLibraryMove(ps *params, origin, dest, pos int, flags []st
 	if !optional {
 		// gorge: an empty library's TopOfLibrary fetch moves nothing, with
 		// no ask; the gate is the controller's library size, read at the
-		// move (the same moment gorge resolves the selector).
+		// move (the same moment gorge resolves the selector). The SkipIf
+		// runs what follows while its condition holds, so the proceed
+		// condition is the non-empty library.
 		lc.emit(lInstr{Op: "SkipIf", Cond: lCond{Kind: cValue,
 			A:  lValue{Kind: vLibrarySizeOf, Ref: lRef{Kind: rYou}},
-			Op: opLE, B: cst(0)}, Skip: 1, Note: "the library is empty: nothing moves"})
+			Op: opGT, B: cst(0)}, Skip: 1, Note: "the library is empty: nothing moves"})
 	}
 	if err := lc.mayGate(ps, kop.MayGuardLibraryTop, lRef{Kind: rYou}); err != nil {
 		return err

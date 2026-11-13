@@ -16,9 +16,9 @@ ManaCost:2 G
 Types:Creature Bear Spirit
 PT:2/3
 A:AB$ PeekAndReveal | Cost$ 3 G | PeekAmount$ 1 | RevealValid$ Creature,Planeswalker | RevealOptional$ True | RememberRevealed$ True | SubAbility$ DBTake | SpellDescription$ probe
-SVar:DBTake:DB$ ChangeZone | Defined$ TopOfLibrary | Origin$ Library | Destination$ Hand | ConditionDefined$ Remembered | ConditionPresent$ Creature,Planeswalker | ConditionCompare$ EQ1 | SubAbility$ DBBottom
-SVar:DBBottom:DB$ ChangeZone | Defined$ TopOfLibrary | Origin$ Library | Destination$ Library | ConditionDefined$ Remembered | ConditionPresent$ Creature,Planeswalker | ConditionCompare$ EQ0 | LibraryPosition$ -1 | SubAbility$ DBCleanup
-SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True
+SVar:DBTake:DB$ ChangeZone | Defined$ TopOfLibrary | Origin$ Library | Destination$ Hand | ConditionDefined$ Remembered | ConditionPresent$ Creature,Planeswalker | ConditionCompare$ EQ1 | SubAbility$ DBTail
+SVar:DBTail:DB$ ChangeZone | Defined$ TopOfLibrary | Origin$ Library | Destination$ Library | ConditionDefined$ Remembered | ConditionPresent$ Creature,Planeswalker | ConditionCompare$ EQ0 | LibraryPosition$ -1 | SubAbility$ DBWipe
+SVar:DBWipe:DB$ Cleanup | ClearRemembered$ True
 Oracle:probe
 `
 
@@ -39,7 +39,7 @@ func TestTopLibraryNoOptionalLowers(t *testing.T) {
 		}
 	}
 	// DBTake: the Condition$ gate, the empty-library skip, then the move;
-	// DBBottom: the EQ0 gate, the skip, the bottom move.
+	// DBTail: the EQ0 gate, the skip, the bottom move.
 	want := strings.Join([]string{"SkipIf", "SkipIf", "Return", "SkipIf", "SkipIf", "ToLibrary"}, ",")
 	if got := strings.Join(ops, ","); !strings.Contains(got, want) {
 		t.Errorf("Vivien's Grizzly ops %s, want %s inside", got, want)
