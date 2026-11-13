@@ -16,3 +16,23 @@ Savannah Lions
 Plains
 Mountain
 Forest
+# the same spellings' other cards: Continuous statics granting an ability
+# beside an AddSVar$, and the CantGainLife statics scoped Player.Opponent
+Animal Boneyard
+Burning Anger
+Hard Cover
+Elemental Mastery
+Dragon Throne of Tarkir
+Knight of Dusk's Shadow
+Arlinn Kord
+Oracle's Insight
+Sisay's Ingenuity
+Quicksilver Dagger
+Sinstriker's Will
+Sorcerer's Wand
+Pathway Arrows
+Quakebringer
+Archfiend of Despair
+Gríma Wormtongue
+Island
+Swamp

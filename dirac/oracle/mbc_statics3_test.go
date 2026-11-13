@@ -49,12 +49,54 @@ var mbcHeliodDecks = [2][]cardset.Entry{
 	},
 }
 
+// the same spellings' other cards, lowered by the same two changes
+var mbcStatics3UR = [2][]cardset.Entry{
+	{
+		{Name: "Oracle's Insight", Count: 3}, {Name: "Sisay's Ingenuity", Count: 3}, {Name: "Hard Cover", Count: 3},
+		{Name: "Quicksilver Dagger", Count: 3}, {Name: "Burning Anger", Count: 3}, {Name: "Elemental Mastery", Count: 3},
+		{Name: "Grizzly Bears", Count: 4}, {Name: "Hill Giant", Count: 2},
+		{Name: "Island", Count: 8}, {Name: "Mountain", Count: 8},
+	},
+	{
+		{Name: "Grizzly Bears", Count: 8}, {Name: "Hill Giant", Count: 6},
+		{Name: "Forest", Count: 14}, {Name: "Mountain", Count: 12},
+	},
+}
+
+var mbcStatics3W = [2][]cardset.Entry{
+	{
+		{Name: "Animal Boneyard", Count: 4}, {Name: "Sinstriker's Will", Count: 4}, {Name: "Sorcerer's Wand", Count: 4},
+		{Name: "Pathway Arrows", Count: 4}, {Name: "Dragon Throne of Tarkir", Count: 2}, {Name: "Savannah Lions", Count: 8},
+		{Name: "Plains", Count: 14},
+	},
+	{
+		{Name: "Grizzly Bears", Count: 8}, {Name: "Hill Giant", Count: 6},
+		{Name: "Forest", Count: 14}, {Name: "Mountain", Count: 12},
+	},
+}
+
+var mbcStatics3Ban = [2][]cardset.Entry{
+	{
+		{Name: "Quakebringer", Count: 4}, {Name: "Archfiend of Despair", Count: 2}, {Name: "Gríma Wormtongue", Count: 4},
+		{Name: "Knight of Dusk's Shadow", Count: 4}, {Name: "Arlinn Kord", Count: 2}, {Name: "Grizzly Bears", Count: 4},
+		{Name: "Swamp", Count: 10}, {Name: "Mountain", Count: 10},
+	},
+	{
+		{Name: "Lone Missionary", Count: 8}, {Name: "Healer's Hawk", Count: 6},
+		{Name: "Soulmender", Count: 6}, {Name: "Savannah Lions", Count: 4},
+		{Name: "Plains", Count: 16},
+	},
+}
+
 var mbcStatics3Cases = []struct {
 	card  string
 	decks [2][]cardset.Entry
 }{
 	{"Tibalt, Rakish Instigator", mbcTibaltDecks},
 	{"Heliod's Punishment", mbcHeliodDecks},
+	{"Oracle's Insight", mbcStatics3UR},
+	{"Sorcerer's Wand", mbcStatics3W},
+	{"Quakebringer", mbcStatics3Ban},
 }
 
 func TestMBCStatics3Lowers(t *testing.T) {
