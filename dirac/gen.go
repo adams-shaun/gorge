@@ -1610,6 +1610,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepL6(t, g)
 	prepCtrl(t, g)
 	prepTokMana(t, g)
+	prepOvrManaGrant(t, g) // mana_grantedoffers.go: an override record's mana grant is the dual census too
 	prepMonstrosity(t, g)
 	prepAnyAct(t, g) // cast_anyactivator.go
 	prepDiscAll(t, g)

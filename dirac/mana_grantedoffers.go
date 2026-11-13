@@ -1,8 +1,20 @@
 package dirac
 
 import (
+	"sync/atomic"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
+
+// GrantManaStats counts the granted mana abilities a play's prefix
+// activated: the taps replayed at the play (grantApply) and the
+// sacrifice-only steps the search branches on (grantSacDo, its forks
+// included). Pool tests read it so a deck that never funds a play through a
+// granted source cannot pass vacuously.
+var GrantManaStats struct {
+	Taps atomic.Int64
+	Sac  atomic.Int64
+}
 
 // Granted mana abilities in the cast offers (tokmana). A Continuous
 // static's AddAbility$ grant of a mana ability reaches permanents its
@@ -61,6 +73,36 @@ func prepTokMana(t *kop.Table, g *genPrep) {
 			}
 			g.setFlag(CardID(i), gfContGrant)
 			g.anyContGrant = true
+		}
+	}
+}
+
+// prepOvrManaGrant marks beside prepTokMana the tables whose override
+// records grant a mana ability: an AnimateAll's Abilities$ grant (Rain of
+// Filth's "lands you control gain 'Sacrifice this land: Add {B}'") is a
+// record grant (ovGrantsBetween), which grantIdxs lists beside the statics'
+// as the walk's tail (a grant without a source in it keeps its place after
+// them), so availFor's dual census must run for its sources too. The Grant
+// indexes name abilities of the record's own card, so the sweep is
+// per-card: only a record the card's own programs apply counts.
+func prepOvrManaGrant(t *kop.Table, g *genPrep) {
+	for i := range t.Cards {
+		c := &t.Cards[i]
+		for j := range c.Abilities {
+			for _, in := range c.Abilities[j].Prog {
+				if in.Op != kop.OpOverride && in.Op != kop.OpOverrideAll {
+					continue
+				}
+				if int(in.C) >= len(t.Overrides) {
+					continue
+				}
+				for _, gr := range t.Overrides[in.C].Grant {
+					if gr != 0 && int(gr-1) < len(c.Abilities) && c.Abilities[gr-1].Kind == kop.AbMana {
+						g.anyContGrant = true // the record grant is availFor's dual census (mana_grantedoffers.go)
+						return
+					}
+				}
+			}
 		}
 	}
 }
@@ -1475,6 +1517,7 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 			continue
 		}
 		if st.sac {
+			GrantManaStats.Sac.Add(1) // the granted sacrifice-only step (mana_grantcost.go)
 			s.grantSacApply(k, g.p, st) // the mana, the sacrifice, the state-based check (mana_grantcost.go)
 			if s.npend != 0 {
 				passed = true
@@ -1501,6 +1544,9 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
 		s.manaTapped(k, sl)
+		if st.gi >= 0 {
+			GrantManaStats.Taps.Add(1) // the granted {T} step's mana (a life-cost step took the arm above)
+		}
 		if ra := s.ownRestrAb(k, sl); st.gi < 0 && ra != nil && !s.ownManaUsable(k, sl) {
 			// the printed restricted ability (mana_grantrestrictedown.go)
 			if !s.floatRestrAb(k, SeatIx(g.p), sl, ra, int(st.col), st.n) {

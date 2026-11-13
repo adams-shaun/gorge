@@ -13,8 +13,13 @@ import (
 // controls": gorge targetPlayerKindScope) rides Obj and limits the sweep to
 // that player's permanents. Refused: Zone$ (a non-battlefield sweep),
 // Defined$, host-bound durations (AsLongAsInPlay, UntilHostLeavesPlay,
-// UntilUntaps: OverrideAll has no host anchor), and HiddenKeywords$, Replacements$, CantHaveKeyword$, or
-// parameters gorge does not read here (Colors$, Abilities$, ...: unread).
+// UntilUntaps: OverrideAll has no host anchor), and HiddenKeywords$,
+// Replacements$, CantHaveKeyword$. Abilities$ lowers: each named SVar is one
+// granted ability of the casting card (gorge parseAnimateGrant reads the
+// names through the source face's SVar table, rules grantedAbilities), at
+// most two as kop.Override.Grant holds, never beside RemoveAllAbilities$
+// (the record's loss and grant would need a layer-6 order the pair does not
+// carry).
 func (lc *lowerCtx) animateAll(ps *params) error {
 	for _, k := range []string{"Zone", "Defined", "HiddenKeywords", "Replacements", "CantHaveKeyword"} {
 		if _, ok := ps.get(k); ok {
@@ -59,6 +64,9 @@ func (lc *lowerCtx) animateAll(ps *params) error {
 	if err != nil {
 		return err
 	}
+	if err := lc.animateAllGranted(ps, o); err != nil {
+		return err
+	}
 	if o.WhileHost {
 		return refuse("AnimateAll host-bound duration")
 	}
@@ -71,6 +79,45 @@ func (lc *lowerCtx) animateAll(ps *params) error {
 	lc.out.overrides = append(lc.out.overrides, o)
 	in.C = len(lc.out.overrides) - 1
 	lc.emit(in)
+	return nil
+}
+
+// animateAllGranted reads an AnimateAll's Abilities$ (gorge parseAnimateGrant
+// ag.abilities): each comma-separated name is one SVar on the casting face
+// whose body is an activated ability every swept permanent gains for the
+// grant's duration (Rain of Filth's "lands you control gain 'Sacrifice this
+// land: Add {B}'", Song of Freyalise's "{T}: Add one mana of any color").
+// grantedAbility lowers it off the source face, so the record's Grant names
+// the ability the grantee sees (rules grantedAbilities). One or two names,
+// as kop.Override.Grant holds; a loss in the same record would need a
+// layer-6 order the pair does not carry.
+func (lc *lowerCtx) animateAllGranted(ps *params, o *lOverride) error {
+	ab, ok := ps.get("Abilities")
+	if !ok {
+		return nil
+	}
+	if o.LoseAbilities {
+		return refuse("AnimateAll Abilities$ beside RemoveAllAbilities$")
+	}
+	n := 0
+	for _, nm := range strings.Split(ab, ",") {
+		nm = strings.TrimSpace(nm)
+		if nm == "" {
+			continue
+		}
+		idx, err := lc.grantedAbility(nm)
+		if err != nil {
+			return err
+		}
+		o.GrantAbility = append(o.GrantAbility, idx)
+		n++
+	}
+	if n == 0 {
+		return refuse("AnimateAll Abilities$ %q names no ability", ab)
+	}
+	if n > 2 {
+		return refuse("AnimateAll Abilities$ %q: more than two granted abilities", ab)
+	}
 	return nil
 }
 
