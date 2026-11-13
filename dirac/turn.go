@@ -651,7 +651,10 @@ func (s *State) sba(k *prep) bool {
 			}
 		}
 		if k.ctrMana {
-			s.sbaCtrTough(k, &die, &gy) // -0/-1 counters (mana_countercost.go)
+			s.sbaCtrTough(k, kop.CtrM0M1, &die, &gy) // -0/-1 counters (mana_countercost.go)
+		}
+		if k.gen != nil && k.gen.anyM2M1 {
+			s.sbaCtrTough(k, kop.CtrM2M1, &die, &gy) // -2/-1 counters (ctr_hone.go prepM2M1)
 		}
 		var wld slotMask
 		if k.gen != nil && k.gen.anyWorld {

@@ -29,9 +29,10 @@ func (s *State) exprKvf(k *prep, x *kop.Expr, ctx evalCtx) int {
 		// Count$YourCountersEnergy: the energy counters of the referenced
 		// player (the resolving controller for the "pay {E}" ChooseNumber
 		// bound; CR 122.1).
+		// Count$YourCountersExperience reads the experience counters (N).
 		v := 0
 		if p := s.refPlayer(k, x.Ref, ctx); p != 255 {
-			v = int(s.g.energy[SeatIx(p)])
+			v = int(*s.plCtr(SeatIx(p), int(x.N)))
 		}
 		return v
 	case kop.ExProduct:
