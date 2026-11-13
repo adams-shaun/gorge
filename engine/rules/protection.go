@@ -82,7 +82,7 @@ func protectedFromKW(e protectionOracle, g *state.Game, target, source state.Obj
 	for _, kw := range kws {
 		if q, ok := protectionQuality(kw); ok {
 			if e.sourceHasQuality(source, q) {
-				if protectionExempt(e, kw, source, sba) {
+				if effects.ProtectionExempt(kw, source, sba, e.controllerOf, func(spec string) bool { return e.sourceHasQuality(source, spec) }) {
 					continue
 				}
 				return true
