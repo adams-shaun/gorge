@@ -350,8 +350,8 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				s.availFor(k, p, &av)
 				haveAv = true
 			}
-			if (a.Cost.Mana.X > 0 || sacXCost(&a.Cost)) && s.cfg&cfgGorgeUnpriced != 0 {
-				m := xFloorCost(a.Cost.Mana, costXMin(&a.Cost)) // (an announced Sac<X> is "cost:x" to the planner too; the pool pays the cheapest legal announcement; cost_sacx.go)
+			if (a.Cost.Mana.X > 0 || a.Cost.XMin != 0) && s.cfg&cfgGorgeUnpriced != 0 {
+				m := xFloorCost(a.Cost.Mana, costXMin(&a.Cost)) // (gorge's cost:x is X != 0 || XMin != 0 (pay.PlanCostDetail); an announced Sac<X> part without {X} or XMin is planned like any other cost (Krav, the Unredeemed's {B}); the pool pays the cheapest legal announcement; cost_sacx.go)
 				if k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 {
 					m = s.powerUpReduced(k, s.perms[sl].obj, m) // CR 702.193b: gorge prices the reduced cost (legal_walk_battlefield.go)
 				}
