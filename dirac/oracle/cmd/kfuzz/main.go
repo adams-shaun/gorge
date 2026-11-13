@@ -476,7 +476,12 @@ func run() int {
 			// before ReadPool: a repro carries its own deck names and needs
 			// no -pool/pool.tsv.
 			return runRepro(c, *reproPath, *lead, rc, func(rep *oracle.Repro, rrc oracle.RunConfig) (oracle.SideFactory, error) {
-				tbl, _, _, err := set.Matchup(reproEntries(rep.Cards[0]), reproEntries(rep.Cards[1]))
+				// one table over every seat's deck: at two seats, set.Matchup's
+				es := [][]cardset.Entry{reproEntries(rep.Cards[0]), reproEntries(rep.Cards[1])}
+				for _, d := range rep.MoreCards {
+					es = append(es, reproEntries(d))
+				}
+				tbl, _, err := set.MatchupN(es)
 				if err != nil {
 					return nil, err
 				}
@@ -713,7 +718,7 @@ func printEventTail(n int) func(*oracle.GorgeSide) {
 			}
 			return fmt.Sprintf("#%d", id)
 		}
-		for pl := state.PlayerID(0); pl < 2; pl++ {
+		for pl := state.PlayerID(0); int(pl) < len(g.E.G.Players); pl++ {
 			for _, id := range g.E.G.Zone(state.ZHand, pl) {
 				fmt.Printf("  hand p%d %s\n", pl, name(id))
 			}
