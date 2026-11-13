@@ -324,6 +324,13 @@ const PayBSubEvidenceX = 11
 // grants the trigger is sacrificed, not the creature carrying it (CR 701.21a).
 const PayBSubSacHost = 7
 
+// PayBSubSacSelfMust: an OpIfPaid PaySacSelf whose B.N carries this sentinel
+// is a trigger's Cost$ Mandatory Sac<1/CARDNAME> (gorge's mandatory
+// triggered-cost window, cumulative.go advanceTriggeredMandatory: no "may", so
+// no pay/decline ask). The source is sacrificed unasked when it can be, else
+// the body is skipped. Standstill.
+const PayBSubSacSelfMust = 4
+
 // PayBSubStackSelf: a PayExileGrave whose B.N carries this sentinel also
 // exiles the resolving spell itself from the stack, after the graveyard
 // cards (UnlessCost$ ExileFromGrave<N/Spec> ExileFromStack<1/Card.Self>;

@@ -1433,11 +1433,15 @@ func (lc *lowerCtx) effect(sa *cards.SA, ps *params) error {
 					return err
 				}
 			}
+			ownCost := lc.trigOwnCost
 			in, err := lc.payInstr(cost, lRef{Kind: rYou}, lc.trigOwnCost)
 			lc.trigOwnCost = false
 			lc.trigXMax = nil
 			if err != nil {
 				return err
+			}
+			if ownCost && in.CS == "SacrificeSelf" && strings.HasPrefix(c, "Mandatory") {
+				in.CS = "SacrificeSelfMust" // no "may": gorge settles it unasked (cost_mandatorysac.go)
 			}
 			if _, ok := ps.m["UnlessResolveSubs"]; ok {
 				return refuse("UnlessResolveSubs$ with a trigger's own cost")
@@ -1545,6 +1549,9 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 	case "ChangeZoneAll":
 		return lc.changeZoneAll(ps)
 	case "Draw":
+		if ps.is("Defined", "TriggeredCardOpponent") {
+			return lc.drawTriggerOpps(ps) // lower_triggeropps.go
+		}
 		remDrawn, remAll, err := rememberDrawn(ps)
 		if err != nil {
 			return err

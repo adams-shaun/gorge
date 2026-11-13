@@ -121,6 +121,10 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	skip := uint16(in.C >> 4)
 	amt := s.value(k, in.A)
 	pips := in.B.N
+	if kind == kop.PaySacSelf && pips == kop.PayBSubSacSelfMust && in.Op == kop.OpIfPaid && p != 255 {
+		s.payMandatorySacSelf(k, p, uint8(skip)) // cost_mandatorysac.go
+		return true
+	}
 	if kind == kop.PayMana && amt > 255 && s.afterCumulative(k) {
 		amt = 255 // n age counters of a generic cost: no pool pays more, and the ask holds a byte (trig_cumulative.go)
 	}
