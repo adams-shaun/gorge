@@ -78,7 +78,7 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		s.plotGrant(k) // kw_plot.go
 		return true, true
 	case kop.ExtSacDelayed:
-		s.sacDelayed(k) // kw_mobilize.go
+		s.sacDelayed(k, in) // kw_mobilize.go
 		return true, true
 	case kop.ExtCounterLose:
 		s.counterLose(k, in) // act_counterlose.go

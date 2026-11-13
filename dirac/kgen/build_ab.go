@@ -4255,6 +4255,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "SacrificeDelayed":
 		// OpExt ExtSacDelayed over the group's survivors
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtSacDelayed))
+		if in.CS == "Many" {
+			ki.C = 1 // the DpMany program's up to four objects (Mobilize 3-4)
+		}
 	case "PreventColor":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtPreventColor)) // (Prismatic Strands)
 	case "PreventDamageScope":
