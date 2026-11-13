@@ -398,7 +398,11 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 			entered := lc.chains
 			err := lc.lowerAbility(a)
 			if err != nil {
-				lc.probeBody(a, entered)
+				var fab *lAbility
+				if len(out.Abilities) > n {
+					fab = out.Abilities[n] // the line's own ability, appended before any refusal
+				}
+				lc.probeBody(a, entered, fab)
 			}
 			return err
 		})
@@ -426,7 +430,11 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 			entered := lc.chains
 			err := lc.lowerTriggered(t, "")
 			if err != nil {
-				lc.probeBody(t.Effect, entered)
+				var fab *lAbility
+				if len(out.Abilities) > n {
+					fab = out.Abilities[n] // the trigger's own ability, appended before any refusal
+				}
+				lc.probeBody(t.Effect, entered, fab)
 			}
 			return err
 		})
@@ -3751,13 +3759,23 @@ func (lc *lowerCtx) probeParam(k, v string) error {
 
 // probeBody lowers a refused ability's or trigger's body on its own when the
 // refusal came before the body was read, so its blockers are listed too.
-func (lc *lowerCtx) probeBody(sa *cards.SA, entered int) {
+// fab, when set, is the refused line's own ability: the probe carries its
+// kind and printedness so a body value that needs a printed triggered or
+// activated ability (Count$ResolvedThisTurn, Sahir, Visitor in Darkness) is
+// read the way the real lowering would read it -- the trigger refused for an
+// unrelated matcher reason, not because the body sits outside a printed
+// ability. A latent or granted line's probe keeps Latent and refuses.
+func (lc *lowerCtx) probeBody(sa *cards.SA, entered int, fab *lAbility) {
 	if lc.p == nil || !lc.p.allBlockers || sa == nil || lc.chains != entered {
 		return
 	}
+	probe := lc.newLatent("Probe")
+	if fab != nil {
+		probe.Kind, probe.Latent, probe.Trigger = fab.Kind, fab.Latent, fab.Trigger
+	}
 	saved := lc.guardNode
 	lc.guardNode = saved + " body"
-	err := lc.withAbility(lc.newLatent("Probe"), func() error { return lc.chain(sa, nil) })
+	err := lc.withAbility(probe, func() error { return lc.chain(sa, nil) })
 	if err != nil {
 		lc.refuseNode(lc.guardNode, "%s", err.Error())
 	}
