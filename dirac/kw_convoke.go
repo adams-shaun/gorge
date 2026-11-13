@@ -437,7 +437,8 @@ func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, 
 	red := s.convokeApplyPicks(k, folded)
 	saved := s.fork()
 	defer s.unfork()
-	s.occ = s.occ.andNot(s.convokeHidden())
+	hidden := s.convokeHidden()
+	s.occ = s.occ.andNot(hidden)
 	ok, held := s.windowTapUseful(k, e.ctrl, &red, &folded, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
 	if !ok {
 		s.CopyFrom(saved)
@@ -448,14 +449,14 @@ func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, 
 		for c := range held {
 			s.pl[e.ctrl].pool[c] += held[c]
 		}
-		s.occ = saved.occ
+		s.unhide(hidden)
 		return true // the pick is posed; the announced creatures tap when the window ends (mana_window.go)
 	}
 	s.payConvokeFromPool(k, e, &red, anyColor)
 	for c := range held {
 		s.pl[e.ctrl].pool[c] += held[c]
 	}
-	s.occ = saved.occ
+	s.unhide(hidden)
 	tb := false
 	for i := 0; i < int(s.bld().pickN); i++ {
 		if !isConvokePick(s.bld().pickKs[i]) {

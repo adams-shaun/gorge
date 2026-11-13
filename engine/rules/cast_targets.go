@@ -1732,6 +1732,9 @@ var modeFlagsCodes = state.NewStrCodes(
 	state.StrEntry[modeFlagsCode]{Key: "offspring", Val: modeFlagsOffspring},
 	state.StrEntry[modeFlagsCode]{Key: "optionalcost", Val: modeFlagsOptionalcost},
 	state.StrEntry[modeFlagsCode]{Key: "suspend", Val: modeFlagsSuspend},
+	// The final-counter cast keeps the Suspend provenance on the spell and
+	// the permanent it becomes (altCostEnter's haste grant, CR 702.62a).
+	state.StrEntry[modeFlagsCode]{Key: "suspend_cast", Val: modeFlagsSuspend},
 	state.StrEntry[modeFlagsCode]{Key: "foretell_cast", Val: modeFlagsForetellCast},
 	state.StrEntry[modeFlagsCode]{Key: "mayhem", Val: modeFlagsMayhem},
 	state.StrEntry[modeFlagsCode]{Key: "web-slinging", Val: modeFlagsWebSlinging},

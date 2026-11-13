@@ -7,9 +7,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // separator's picks (armRes.pileOrd, in pick order, under lookSel), pile B the
 // rest in the revealed order.
 
-// pilesSeats is the separator and the chooser, as gorge's twoPilesPlayer reads
-// Separator$ and Chooser$: the resolving controller and the first live
-// opponent, swapped under kop.TpOppSeparates (Fact or Fiction).
+// pilesSeats is the separator and the chooser, as gorge's twoPilesPlayer
+// reads Separator$ and Chooser$ at TWO seats: the resolving controller and
+// the first live opponent, swapped under kop.TpOppSeparates (Fact or
+// Fiction). Every TwoPiles carrier lowers two-seat: at three or more seats
+// gorge asks the spell's controller WHICH opponent separates or picks (CR
+// 801.5b, twoPilesAskOpponent), a decision dirac does not model, so the
+// kernel stalls StallTwoSeat on the carrier instead of playing it.
 func (s *State) pilesSeats(in *kop.Instr, ctrl uint8) (sep, chooser uint8) {
 	opp := s.nextAlive(ctrl)
 	if in.B.N&kop.TpOppSeparates != 0 {

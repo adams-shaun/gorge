@@ -1,0 +1,7 @@
+# A counter-cost mana gap (Weather Maker) beside a filter (Omni-Cheese Pizza)
+# and the activated ability only the two together pay (Leonardo, Leader in
+# Blue's {1}{W}): dirac/mana_ctrfilter_test.go
+Weather Maker
+Omni-Cheese Pizza
+Leonardo, Leader in Blue
+Plains

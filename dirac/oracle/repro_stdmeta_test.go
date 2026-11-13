@@ -8,12 +8,14 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestStdMetaReprosLockstep replays the standard-meta hunt's NStack divergences
-// (five mechanisms): a prepared copy's cast reads as cast (Appa's cast-from-exile
+// TestStdMetaReprosLockstep replays the standard-meta hunt's NStack divergences:
+// a prepared copy's cast reads as cast (Appa's cast-from-exile
 // trigger), the delayed earthbend return keeps its stack entry while the shock land
 // asks, a Treasure's Sacrificed trigger is placed before priority and survives
+// the cast it was queued in being reversed, and a prepared creature entering beside
 // the cast it was queued in being reversed, a prepared creature entering beside
-// an opponent's enters-tapped replacement asks the CR 616.1 order, and an
+// an opponent's enters-tapped replacement asks the CR 616.1 order, a plot's
+// potential plan prices its mana as the CR 116.2k special action it is, and an
 // activation's fixed PayLife<N> is rechecked after the window's life-paying mana
 // ability left too little life, so it reverses instead of paying into negative
 // life (CR 119.4, 733.1). Each repro runs on the repro's own
@@ -45,12 +47,17 @@ func TestStdMetaReprosLockstep(t *testing.T) {
 		"stdmeta_pool_unnamed_colours_s51p31",
 		"stdmeta_pool_unnamed_colours_s79p32",
 		"stdmeta_pool_unnamed_colours_s84p9",
+		"stdmeta_plot_special_restricted_mana_s14p20",
+		"stdmeta_plot_special_restricted_mana_s46p17",
 		"stdmeta_web_watch_beside_grant_s37p11",
 		"stdmeta_web_watch_beside_grant_s41p37",
 		"stdmeta_web_watch_beside_grant_s49p43",
 		"stdmeta_web_watch_beside_grant_s58p46",
 		"stdmeta_web_watch_beside_grant_s71p25",
 		"stdmeta_web_watch_beside_grant_s72p25",
+		"stdmeta_web_watch_exile_cast_s14p12",
+		"stdmeta_web_watch_exile_cast_s90p46",
+		"stdmeta_verge_ability0_first_s16p24",
 		"stdmeta_verge_ability0_first_s19p46",
 		"stdmeta_verge_ability0_first_s60p6",
 		"stdmeta_verge_ability0_first_s76p19",
@@ -67,9 +74,11 @@ func TestStdMetaReprosLockstep(t *testing.T) {
 		"stdmeta_prepared_beside_enters_tapped_s67p34",
 		"stdmeta_prepared_beside_enters_tapped_s68p22",
 		"stdmeta_prepared_beside_enters_tapped_s68p46",
+		"stdmeta_ill_timed_explosion_s81p32",
 		"stdmeta_prepared_beside_enters_tapped_s69p19",
 		"stdmeta_prepared_beside_enters_tapped_s90p11",
 		"stdmeta_prepared_beside_enters_tapped_s97p33",
+		"stdmeta_aang_delayed_transform_s97p14",
 		"stdmeta_life_cost_below_zero_s54p16",
 		"stdmeta_life_cost_below_zero_s73p37",
 		"stdmeta_life_cost_below_zero_s83p36",

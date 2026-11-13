@@ -88,6 +88,7 @@ const (
 	entClsTap = iota + 1
 	entClsUntap
 	entClsOther
+	entClsRecord
 )
 
 // entBodyClass classes a replacement program by its effect on the tapped bit.
@@ -101,6 +102,29 @@ func entBodyClass(prog []kop.Instr) uint8 {
 		}
 	}
 	return entClsOther
+}
+
+// entBodyRecord reports whether a replacement program is one of the
+// as-enters choice records the entry ask poses (enterChoiceKind: a colour,
+// a type, a number or a name): gorge classes such a body "record"
+// (replacement_updated.go, updatedNeutralBodySet), which commutes with any
+// other body, so it joins the CR 616.1 order ask without competing for a
+// tapped bit. Never OpUnlessPaid (a shock land's gate is a tap behind its
+// election, not a record).
+func entBodyRecord(prog []kop.Instr) bool {
+	if len(prog) != 1 {
+		return false
+	}
+	switch prog[0].Op {
+	case kop.OpChooseColor, kop.OpChooseType:
+		return true
+	case kop.OpExt:
+		switch prog[0].Ext() {
+		case kop.ExtChooseNumber, kop.ExtChooseName:
+			return true
+		}
+	}
+	return false
 }
 
 // entBodyInert reports whether a replacement program only adds counters to the
@@ -157,7 +181,7 @@ type entComp struct {
 	anyTap     bool  // some body taps / untaps, kept when the candidate list is full
 	anyUntap   bool
 	over       bool  // more than eight candidates
-	other      bool  // a body this ask cannot class (a self enters program, counters, a choice)
+	other      bool  // a body this ask cannot class (a self enters program, counters)
 	hard       bool  // some live body enters the entrant attacking (entBodyHard): it fails to commute with any other body
 	selfLive   uint8 // the entrant's own classless bodies entryComp leaves out of cand (counters, another enter program): they still compete for the stall decision
 }
@@ -178,6 +202,9 @@ func (c *entComp) add(src Obj, cls uint8) {
 		c.tap |= 1 << c.n
 	case entClsUntap:
 		c.untap |= 1 << c.n
+	case entClsRecord:
+		// no tap or untap bit: the body records an as-enters choice asked
+		// before the move (preLandAsk), it changes no tapped bit here
 	default:
 		c.other = true
 	}
@@ -209,11 +236,32 @@ func (s *State) entryComp(k *prep, o Obj, ctrl uint8, skip Slot, fixEarly bool) 
 			c.selfLive++ // gorge composes it as its own With body: it competes, but entryComp cannot list it in cand
 		}
 		if g.has(cid, gfEnterRepl) {
-			if s.condEnterTapped(k, cid) != nil || s.shockCardAmount(k, cid) > 0 {
-				c.add(o, entClsTap) // a shock land's body is a Tap behind its pay-life gate: gorge classes it a tap
-			} else {
-				c.other = true
-				c.selfLive++ // a self enters program this ask cannot class, as gorge's "other" candidate
+			// The card's own as-enters choice records (Sunken Citadel's "As
+			// it enters, choose a color") join the ask as record candidates:
+			// gorge classes each body "record" and lists it in the ask, and
+			// the choice was already taken before the move (preLandAsk), so
+			// a record pick changes no tapped bit here. enterTap stays
+			// first, gorge's face order (kw_etbreplacement.go appends the
+			// record bodies after the R: lines).
+			nonRec := false
+			for i := range k.t.Cards[cid].Abilities {
+				a := &k.t.Cards[cid].Abilities[i]
+				if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplEntersProgram {
+					continue
+				}
+				if entBodyRecord(a.Prog) {
+					c.add(o, entClsRecord)
+				} else {
+					nonRec = true
+				}
+			}
+			if nonRec {
+				if s.condEnterTapped(k, cid) != nil || s.shockCardAmount(k, cid) > 0 {
+					c.add(o, entClsTap) // a shock land's body is a Tap behind its pay-life gate: gorge classes it a tap
+				} else {
+					c.other = true
+					c.selfLive++ // a self enters program this ask cannot class, as gorge's "other" candidate
+				}
 			}
 		}
 	}
@@ -345,9 +393,11 @@ func (s *State) entryOrderPick(k *prep, a Action) int {
 	}
 	ro.used |= 1 << i
 	late := ro.pcol&entLate != 0
-	cls := uint8(entOvrUntap)
+	cls := uint8(0) // a record candidate (no tap, no untap bit): the pick changes no tapped bit
 	if ro.prev&(1<<i) != 0 {
 		cls = entOvrTap
+	} else if ro.shld&(1<<i) != 0 {
+		cls = entOvrUntap
 	}
 	left := (uint8(1)<<ro.n - 1) &^ ro.used
 	if left&ro.prev != 0 && left&ro.shld != 0 {
@@ -360,12 +410,16 @@ func (s *State) entryOrderPick(k *prep, a Action) int {
 	}
 	last := i
 	for j := uint8(0); j < ro.n; j++ {
-		if left&(1<<j) != 0 {
-			last = j
-			cls = entOvrUntap
-			if ro.prev&(1<<j) != 0 {
-				cls = entOvrTap
-			}
+		// the rest applies in scan order (CR 616.1e): the last of it that
+		// touches the tapped bit decides; a record candidate in between
+		// re-applies the choice asked before the move and changes nothing
+		if left&(1<<j) == 0 || ro.prev&(1<<j) == 0 && ro.shld&(1<<j) == 0 {
+			continue
+		}
+		last = j
+		cls = entOvrUntap
+		if ro.prev&(1<<j) != 0 {
+			cls = entOvrTap
 		}
 	}
 	if late {
@@ -384,6 +438,9 @@ func (s *State) entryOrderPick(k *prep, a Action) int {
 // condition as it applies, as entryOrderEnter's first answer does, and taps
 // nothing when it fails.
 func (s *State) entryLateSet(k *prep, idx, cls uint8) {
+	if cls == 0 {
+		return // a record pick: the choice was asked before the move, it changes no tapped bit
+	}
 	o := s.g.ro.entObj()
 	if s.objs[o].zone != kop.ZoneBattlefield {
 		return

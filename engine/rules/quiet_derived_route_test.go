@@ -6,7 +6,7 @@ package rules
 // (Snapcaster Mage's Flashback, Underworld Breach's Escape, Dream Devourer's
 // Foretell) reaches an object whose printed face lacks the head, and the walk
 // offers the recast -- so a printed-only proof calls the window quiet while
-// the walk offers, and the verify arm panics (the TestKernelWorldsInFuzzGames
+// the walk offers, and the verify arm panics (the TestKernelWorldsInFuzzGame0..5
 // Brainstorm-flashback class). Each fixture asserts the printed face does NOT
 // carry the head, the derived list DOES, the proof blocks with the route
 // blocker, and -- where the walk can offer -- the offer is real.
