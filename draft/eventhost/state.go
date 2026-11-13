@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/adams-shaun/gorge/draft/event"
-	"github.com/adams-shaun/gorge/draft/limited/build"
 	"github.com/adams-shaun/gorge/draft/limited/draft"
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/protocol"
@@ -41,7 +40,7 @@ func (r *run) stateFor(seat int) protocol.EventState {
 	}
 	if r.meta.commander() {
 		st.PicksPerPass = commanderPicksPerPass
-		st.DeckSize = build.CommanderDeckSize
+		st.DeckSize = r.commanderDeckSize()
 		if r.ev.Phase() != event.PhaseLobby {
 			st.Pod = r.podRows(seat)
 		}

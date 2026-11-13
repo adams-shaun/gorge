@@ -42,14 +42,20 @@ type Deck struct {
 	// exactly as before the tags.
 	Basics [5]int `json:"basics"`
 	// Commanders names a Commander-draft deck's commander or commander
-	// pair, as IDs that Main also carries (CommanderDeckSize counts them).
+	// pair, as IDs that Main also carries (the deck size counts them).
 	// Empty in every other deck; omitempty keeps those lines unchanged.
 	Commanders []string `json:"commanders,omitempty"`
 }
 
-// CommanderDeckSize is a Commander-draft deck's minimum size, commanders
-// and basics included (Commander Legends draft: at least 60 cards).
+// CommanderDeckSize is a Commander-draft deck's default minimum size,
+// commanders and basics included (Commander Legends draft: at least 60
+// cards). An event may name another minimum (ValidateCommanderSize), between
+// MinCommanderDeckSize and MaxDeckSize.
 const CommanderDeckSize = 60
+
+// MinCommanderDeckSize is the smallest minimum a Commander-draft event may
+// name: the limited deck's 40.
+const MinCommanderDeckSize = 40
 
 // Total is the deck's card count: maindeck cards plus basics. It saturates at
 // the int limits rather than overflowing, so it is safe to call on an
@@ -80,13 +86,23 @@ func Validate(pool []limited.CardRef, d Deck) error {
 	return validate(pool, d, 40)
 }
 
-// ValidateCommander checks a Commander-draft deck against its pool: Validate's
-// pool, duplicate and hosting-bound checks with a CommanderDeckSize minimum,
-// plus one or two distinct commanders, each maindecked. Whether a commander
-// is eligible, whether two make a pair and whether every card fits their
+// ValidateCommander checks a Commander-draft deck against its pool with the
+// default CommanderDeckSize minimum (ValidateCommanderSize).
+func ValidateCommander(pool []limited.CardRef, d Deck) error {
+	return ValidateCommanderSize(pool, d, CommanderDeckSize)
+}
+
+// ValidateCommanderSize checks a Commander-draft deck against its pool:
+// Validate's pool, duplicate and hosting-bound checks with a minSize
+// minimum, plus one or two distinct commanders, each maindecked. minSize
+// must lie in MinCommanderDeckSize..MaxDeckSize. Whether a commander is
+// eligible, whether two make a pair and whether every card fits their
 // colour identity are card facts; the caller checks them where the card
 // data lives (the engine seats only a legal commander configuration).
-func ValidateCommander(pool []limited.CardRef, d Deck) error {
+func ValidateCommanderSize(pool []limited.CardRef, d Deck, minSize int) error {
+	if minSize < MinCommanderDeckSize || minSize > MaxDeckSize {
+		return fmt.Errorf("build: commander deck size %d, want %d..%d", minSize, MinCommanderDeckSize, MaxDeckSize)
+	}
 	switch len(d.Commanders) {
 	case 1:
 	case 2:
@@ -108,11 +124,11 @@ func ValidateCommander(pool []limited.CardRef, d Deck) error {
 			return fmt.Errorf("build: commander %q is not in the main deck", id)
 		}
 	}
-	return validate(pool, d, CommanderDeckSize)
+	return validate(pool, d, minSize)
 }
 
-// validate is the shared body of Validate and ValidateCommander, with the
-// deck's minimum size.
+// validate is the shared body of Validate and ValidateCommanderSize, with
+// the deck's minimum size.
 func validate(pool []limited.CardRef, d Deck, minSize int) error {
 	for i, n := range d.Basics {
 		if n < 0 {
