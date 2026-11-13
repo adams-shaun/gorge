@@ -539,11 +539,36 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				return err
 			}
 			f = pickConstraintFilter(f, budget, hasBudget, false)
+			// DefinedPlayer$ names the fetch player whose graveyard the pool
+			// is (gorge effHiddenPick's players; the plain graveyard walk is
+			// that player's zone already); Chooser$ Opponent asks the
+			// resolving controller's first living opponent (gorge
+			// hiddenPickChooser: Chooser$ Opponent through chooserPlayer),
+			// the kernel's SrChooserOpp read. You is the default fetch
+			// player (Forge's getDefinedPlayers(null) is "You") and the
+			// default chooser.
+			pickOwner := lRef{Kind: rYou}
+			pickLoop := lRef{}
+			if dp := ps.str("DefinedPlayer"); dp != "" {
+				if pickOwner, pickLoop, err = lc.pickFetchPlayer(dp); err != nil {
+					return refuse("graveyard pick %v", err)
+				}
+			}
 			cs := "from=Graveyard|" + strings.Join(flags, "|")
 			if counterKind != "" && dest == zBattlefield {
 				cs += "|counters=" + counterKind
 			}
-			lc.emit(lInstr{Op: "ChooseMove", Obj: lRef{Kind: rYou}, A: n, F: f, C: dest, CS: cs})
+			if ch, ok := ps.get("Chooser"); ok {
+				switch {
+				case ch == "You", ch == "":
+				case ch == "Opponent" && pickOwner.Kind == rYou && pickLoop.Kind == rNone:
+					cs += "|ChooserOpp"
+				default:
+					return refuse("graveyard pick Chooser$ %q", ch)
+				}
+			}
+			lc.pickEachLoop(pickLoop)
+			lc.emit(lInstr{Op: "ChooseMove", Obj: pickOwner, A: n, F: f, C: dest, CS: cs})
 			return nil
 		}
 		if exwPick {

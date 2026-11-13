@@ -3300,6 +3300,20 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			}
 			sb |= kop.SrGameGrave
 		}
+		if _, ok := fl["ChooserOpp"]; ok && in.Op == "ChooseMove" {
+			// Chooser$ Opponent on a pick (Tasigur's "of an opponent's
+			// choice"): the resolving controller's first living opponent
+			// answers (gorge hiddenPickChooser: chooserPlayer's first of the
+			// alive opponents); the kernel reads SrChooserOpp off the
+			// ChooseMove's B beside its other readers. B bit 0 is the
+			// UntilLeaves hand-exile link, which never co-occurs: the link
+			// is a host-gone arm with no Chooser$, and a search's ChooserOpp
+			// rides sideSearchFlags instead.
+			if _, leaves := fl["UntilLeaves"]; leaves {
+				return ki, fmt.Errorf("ChooserOpp beside UntilLeaves")
+			}
+			sb |= kop.SrChooserOpp
+		}
 		if _, ok := fl["Bottom"]; ok {
 			// LibraryPosition$ -1 on a hand move: the picked cards go to the
 			// bottom of the library (gorge handLibraryTail's

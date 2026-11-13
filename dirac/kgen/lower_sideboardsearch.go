@@ -189,13 +189,18 @@ func (lc *lowerCtx) originLibrarySideboard(ps *params) error {
 // sideSearchFlags packs a sideboard search's flags into the OpSearchEx B word
 // (ChangeZone Origin$ Sideboard / Library,Sideboard): the pool is the library
 // (unless SideOnly) and the sideboard, so the filter matches cards of either
-// zone and the zone becomes ZoneNone. The Side-only flags refuse without Side.
+// zone and the zone becomes ZoneNone. The Side-only flags refuse without Side
+// (a ChooseMove's ChooserOpp is its own flag, a plain pick's chooser, not a
+// sideboard search's).
 func sideSearchFlags(op string, fl map[string]string, sb int, zone kop.Zone) (int, kop.Zone, error) {
 	if _, ok := fl["Side"]; !ok {
-		for _, bad := range []string{"SideOnly", "Exactly", "ChooserOpp"} {
+		for _, bad := range []string{"SideOnly", "Exactly"} {
 			if _, ok := fl[bad]; ok {
 				return sb, zone, fmt.Errorf("%s without Side", bad)
 			}
+		}
+		if _, ok := fl["ChooserOpp"]; ok && op != "ChooseMove" {
+			return sb, zone, fmt.Errorf("ChooserOpp without Side")
 		}
 		return sb, zone, nil
 	}
