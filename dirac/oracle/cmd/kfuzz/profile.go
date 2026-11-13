@@ -5,7 +5,12 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
+	"sync/atomic"
 )
+
+// profDecisions counts the canonical decisions of every finished pool game, for
+// -memprofile's per-decision figures.
+var profDecisions atomic.Int64
 
 // startProfile starts the -cpuprofile CPU profile and arms the -memprofile
 // heap profile; the returned stop writes both and, with -memprofile, prints
@@ -33,7 +38,7 @@ func startProfile(cpu, mem string) (stop func()) {
 		}
 		var ms runtime.MemStats
 		runtime.ReadMemStats(&ms)
-		fmt.Fprintf(os.Stderr, "memstats: mallocs=%d total_alloc=%d num_gc=%d heap_sys=%d\n", ms.Mallocs, ms.TotalAlloc, ms.NumGC, ms.HeapSys)
+		fmt.Fprintf(os.Stderr, "memstats: mallocs=%d total_alloc=%d num_gc=%d heap_sys=%d decisions=%d\n", ms.Mallocs, ms.TotalAlloc, ms.NumGC, ms.HeapSys, profDecisions.Load())
 		f, err := os.Create(mem)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "memprofile:", err)

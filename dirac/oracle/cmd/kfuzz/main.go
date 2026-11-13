@@ -1134,6 +1134,7 @@ func runFDN(c *oracle.Corpus, set cardset.Set, rc oracle.RunConfig, ps []oracle.
 			cov.Games, cov.Decisions, cov.Fallbacks = 1, res.Decisions, oracle.PolicyFallbacks(gp)
 		}
 		oracle.CloseSide(k)
+		profDecisions.Add(int64(res.Decisions))
 		if o.onGame != nil {
 			o.onGame(&res)
 		}
