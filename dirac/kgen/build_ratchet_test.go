@@ -257,7 +257,8 @@ import (
 // +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source, DamagePlus ValidTarget$ Player.Opponent: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL build-level 23253 -> 23261 measured).
 // +1 (Foil's two-part discard alternative cost lowered, kop.Cost.Discard2N/Discard2F; ALL build-level merged against land's MBC work 23347 -> 23348 measured).
 // +12 (MBC counters-1: the Experience player counter and Count$YourCountersExperience, the DESCENT counter kind, DividedAsYouChoose$ over any counter kind: Aang, Atreus, Daxos, Ezuri, Claw of Progress, Kalemne, Kelsien, Kratos, Otharri, Suns' Glory, Toph, Descent into Avernus, Contagion, Splendid Agony; ALL build-level 23407 -> 23419 measured).
-var buildAcceptancePin = [2]int{23419, 34442} // {built, cards}
+// +200 (the dead mana-ability census gap lowers Component Pouch, kop.CtrDeadManaAb; ALL build-level 23419 -> 23619 measured).
+var buildAcceptancePin = [2]int{23619, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)
