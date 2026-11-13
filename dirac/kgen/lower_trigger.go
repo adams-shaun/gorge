@@ -1966,6 +1966,9 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		if opt, err := lc.reduceOptPaid(sp, &st); err != nil {
 			return nil, err // lower_optcost.go
 		} else if !opt {
+			if sp.str("ValidCard") == "Card.Self" {
+				sp.consume("Relative") // gorge lists Relative$ as readable and never reads it (as reduceOptPaid)
+			}
 			if st.Amount, err = lc.value(sp.str("Amount")); err != nil {
 				return nil, err
 			}

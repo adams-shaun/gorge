@@ -121,3 +121,64 @@ func (s *State) sacXTargetsFeasible(k *prep, a *kop.Ability, p uint8, sl Slot) b
 	s.g.probe = probe{}
 	return ok
 }
+
+// sacXPoolOffer: the cast of card c from o, whose additional cost is an
+// announced Sac<X/Spec> and whose printed cost has no {X}, is offered when
+// the floating pool pays the cost at some announcement 1..n of the n
+// permanents it could sacrifice, though the unreduced X = 0 cost is out of
+// reach. gorge sweeps the announcements (offerSacXMods: a cost it can only
+// afford AFTER the sacrifice reduces it, Dargo, the Shipwrecker) and prices
+// each from the floating pool; the untapped sources stay out of it, as its
+// planner declines the composition (gorgeLowers). The reduction reads the
+// swept X through the offer probe (probe.x).
+//
+//go:noinline
+func (s *State) sacXPoolOffer(k *prep, p uint8, o Obj) bool {
+	c := s.objs[o].card
+	ac := spellAddCost(k, c)
+	if !sacXCost(ac) || k.cards[c].cost.X != 0 {
+		return false
+	}
+	n := min(s.countSac(k, p, ac.Filter, NoSlot), 255)
+	a := s.poolAvailPlus(p, nil)
+	if a.total == 0 {
+		return false
+	}
+	ok := false
+	for x := 1; !ok && x <= n; x++ {
+		s.g.probe = probe{kind: probeSpell, src: NoSlot, card: c, ctrl: p, x: uint8(x + 1)}
+		cost := s.adjustFit(k, &a, p, c, o, k.cards[c].cost, false)
+		s.g.probe = probe{}
+		ok = a.affords(&cost, pipMaskOf(&cost), 0)
+	}
+	return ok
+}
+
+// sacXDiscountBounds is the X ask's range for an announced Sac<X/Spec> whose
+// printed cost has no {X}, when the window cannot pay the cost at X = 0 but
+// the cost falls with the announced count (a ReduceCost reading X: Dargo, the
+// Shipwrecker): the announcements 1..n the window pays at their reduced cost
+// (xReducedPays, gorge's xAsk prices each X through the cost composed at it),
+// not the one X = 0 sacXClamp leaves for gorge's empty-range fallback. mx
+// comes back -1, so addXOptions prices every X through xReducedPays. A window
+// that pays no announcement keeps mx and hi.
+//
+//go:noinline
+func (s *State) sacXDiscountBounds(k *prep, cost *kop.ManaCost, av *avail, mx, hi int) (int, int) {
+	pc := s.buildPickCost(k)
+	if !sacXCost(pc) || cost.X != 0 || s.xReducedPays(k, av, 0) {
+		return mx, hi
+	}
+	e := &s.bld().e
+	src := NoSlot
+	if e.kind == seAbility {
+		src = s.srcSlot()
+	}
+	n := min(s.countSac(k, e.ctrl, pc.Filter, src), 255)
+	for x := max(1, costXMin(pc)); x <= n; x++ {
+		if s.xReducedPays(k, av, x) {
+			return -1, n
+		}
+	}
+	return mx, hi
+}
