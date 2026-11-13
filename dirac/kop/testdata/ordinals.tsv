@@ -905,6 +905,7 @@ PayEnergy	untyped int	5
 PayEvidence	untyped int	15
 PayExileGrave	untyped int	14
 PayForage	untyped int	7
+PayHybMax	untyped int	2
 PayLife	untyped int	4
 PayMana	untyped int	1
 PayManaX	untyped int	15
@@ -1565,3 +1566,5 @@ ZonePhased	Zone	8
 ZonePhasedInd	Zone	9
 ZoneSideboard	Zone	10
 ZoneStack	Zone	6
+payFLifeBits	untyped int	6
+payFLifeMask	untyped int	63
