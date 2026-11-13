@@ -44,7 +44,7 @@ func (s *State) voidHolds(k *prep) bool {
 	}
 	for p := uint8(0); p < MaxSeats; p++ {
 		ring := s.castPushes(p)
-		if p == hideP && len(ring) > 0 && Obj(ring[len(ring)-1].obj-1) == hide {
+		if p == hideP && len(ring) > 0 && ring[len(ring)-1].obj-1 == hide {
 			ring = ring[:len(ring)-1]
 		}
 		for _, r := range ring {

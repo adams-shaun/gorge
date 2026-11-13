@@ -92,7 +92,8 @@ const (
 	ExtDividedCounters ExtOp = 30
 	// ExtSacDelayed (Mobilize): sacrifice, as one batch, the
 	// group program's remembered objects (trigObj and the one packed in
-	// trigAmt) still on the battlefield. dirac/kw_mobilize.go.
+	// trigAmt) still on the battlefield. C == 1: the DpMany program's up to
+	// four objects (Mobilize 3-4). dirac/kw_mobilize.go.
 	ExtSacDelayed ExtOp = 32
 	// ExtPlotGrant (Kellan Joins Up): every object in the
 	// resolution's remembered set that is in exile becomes plotted (CR

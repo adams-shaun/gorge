@@ -89,12 +89,21 @@ func TestFxPoolHashStable(t *testing.T) {
 	digest()
 	lose(w1, false)
 	digest()
-	if h != fxPoolHashPin {
-		t.Fatalf("hash digest %#x, want %#x", h, uint64(fxPoolHashPin))
+	want := uint64(fxPoolHashPin)
+	if MaxSeats > 2 {
+		want = fxPoolHashPinMP
+	}
+	if h != want {
+		t.Fatalf("hash digest %#x, want %#x", h, want)
 	}
 }
 
 // The pin moved when ovRec grew P/T and a repeated P/T setter became the
 // newest record: the hash covers the override records,
 // so the extra fields and their order change the digest.
-const fxPoolHashPin = 0x7064c1bf93a60b58
+const fxPoolHashPin = 0x653f405b2cffb158
+
+// fxPoolHashPinMP is the dirac_mp build's pin: ObjHash reads the permanent
+// whole, and its code fields are MaxSeats-dependent widths (TestPermSize), as
+// TestOverrideRecordsFitEight's ObjHash pin.
+const fxPoolHashPinMP = 0x5924b07694b5a87a

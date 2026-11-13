@@ -164,6 +164,7 @@ type lowerCtx struct {
 	depth          int       // chain nesting (1: the ability's own chain)
 	head           bool      // the node being lowered heads its chain
 	inGroup        bool      // lowering a Mobilize group program's body (SacrificeDelayed is legal)
+	groupMany      bool      // ... of Mobilize 3-4: the DpMany program, SacrificeDelayed reads up to four objects
 	czForgetSet    bool      // a ChangeZoneAll ForgetOtherRemembered$ ran in this ability: Remembered is a many-object set (lower_changezoneall.go)
 	chains         int       // chain entries so far (every-blocker census: did a node's body get read?)
 	guardNode      string    // the top-level node guard is lowering (every-blocker census names extra refusals by it)
@@ -1040,6 +1041,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.out.Flash = true
 		case head == "Decayed" && param == "":
 			lc.lowerDecayed() // lower_decayed.go
+		case head == "CantAttackOrBlock" && param == "":
+			lc.lowerCantAttackOrBlock() // lower_cantattackorblock.go
 		case head == "Infect" && param == "":
 			// CR 702.90: gorge damage riders read HasKeyword(source, "Infect")
 			lc.out.Infect = true
@@ -3052,7 +3055,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			if cost.Energy != 0 {
 				return refuse("energy cost on a spell")
 			}
-			if cost.Return != nil {
+			if cost.Return != nil && !lc.spellReturnOnly(&cost) {
 				return refuse("return cost on a spell")
 			}
 			if cost.EvidenceX {
@@ -3327,11 +3330,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				return err
 			}
 		}
-		if v, ok := ps.get("ActivationLimit"); ok {
-			if v != "1" {
-				return refuse("ActivationLimit %q", v)
-			}
-			ab.TurnOnce = true
+		actLimit, err := lc.activationLimit(sa, ps, ab) // lower_activationlimitn.go
+		if err != nil {
+			return err
 		}
 		if cost.AddCtr > 0 {
 			// a counter put on the source as a cost (CR 118.3): the
@@ -3455,6 +3456,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			}
 			ab.ActCond = andCond(ab.ActCond, lCond{Kind: cYourTurn})
 		}
+		ab.ActCond = andCond(ab.ActCond, actLimit)
 	default:
 		return refuse("ability kind %s", sa.Kind)
 	}

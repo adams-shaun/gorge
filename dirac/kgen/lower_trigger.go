@@ -777,7 +777,11 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				return err
 			}
 		}
-		if tr.F2, err = readF("ValidTarget"); err != nil {
+		if tp.str("ValidTarget") == atkLastTurnSpec {
+			if err := atkYouLastTurn(tp, tr, t); err != nil { // lower_atklastturn.go
+				return err
+			}
+		} else if tr.F2, err = readF("ValidTarget"); err != nil {
 			return err
 		}
 		if cd, ok := tp.get("CombatDamage"); ok {
@@ -1571,6 +1575,13 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			ip = strings.Join(alts, ",")
 		}
+		if strings.Contains(ip, "blockingSource") || strings.Contains(ip, "blockedBySource") {
+			// the block relation read when the trigger fires: Lairwatch
+			// Giant's Blocks trigger (IsPresent$ Creature.blockedBySource,
+			// GE2) diverges from gorge in a lockstep game (the damage
+			// division asked of another creature), so it stays refused
+			return refuse("trigger IsPresent$ %q reads the block relation at trigger time", ip)
+		}
 		lc.atkPresent = tr.Event == "Attacks"
 		f, err := lc.filter(ip)
 		lc.atkPresent = false
@@ -1648,6 +1659,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			return refuse("Delirium %q", v)
 		}
 		conds = append(conds, deliriumCond())
+	}
+	if err := lc.spendPhaseConds(tp, t.Mode, &conds); err != nil { // lower_trigphase.go
+		return err
 	}
 	if err := echoGate(tp, tr, ab, &conds, noResolve || fireOnly || giftSelf); err != nil { // lower_echo.go
 		return err
@@ -2139,6 +2153,38 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		if err := lc.cantBlockUnless(sp, &st); err != nil {
 			return nil, err // lower_blocktax.go
 		}
+	case "CanAttackIfHaste":
+		// gorge canAttackIfHaste (rules/combat/attack.go): ValidCard$ (absent:
+		// every creature) scopes the exempt creatures; a present ValidTarget$
+		// is tried as a player spec on the defender, then as the attacked
+		// permanent. Only the Frenzied Saddlebrute spelling lowers: it names
+		// the defender player (an opponent of the static's controller) and the
+		// planeswalkers that player controls, so the exemption depends on the
+		// defender seat alone. gorge skips the line (inert) when it carries
+		// a param outside its whitelist, so any other param refuses here
+		// rather than lower a condition gorge never reads.
+		sp.consume("Description", "Secondary")
+		for k := range s.Params {
+			switch k {
+			case "Mode", "ValidCard", "ValidTarget", "Description", "Secondary":
+			default:
+				return nil, refuse("CanAttackIfHaste %s$ (gorge reads the line only over ValidCard$ and ValidTarget$)", k)
+			}
+		}
+		if vc, ok := sp.get("ValidCard"); ok {
+			if st.F, err = readF("ValidCard"); err != nil {
+				return nil, err
+			}
+			if st.F == nil || len(st.F.Clauses) == 0 || st.F.Players != 0 {
+				return nil, refuse("CanAttackIfHaste ValidCard %q", vc)
+			}
+		}
+		if tv, ok := sp.get("ValidTarget"); ok {
+			if strings.TrimSpace(tv) != "Opponent,Planeswalker.OppCtrl" {
+				return nil, refuse("CanAttackIfHaste ValidTarget %q", tv)
+			}
+			st.Flags = append(st.Flags, "OppDef")
+		}
 	case "CanAttackDefender":
 		// gorge combat.AttackAllowedThroughDefender: ValidCard$ (or
 		// ValidCards$) must match the creature, ValidAttacked$ must admit
@@ -2462,7 +2508,8 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 	if ml, ok := sp.get("MayLookAt"); ok {
 		az, _ := sp.get("AffectedZone")
 		exactAffected := aff == "Card.TopLibrary+YouCtrl" || aff == "Card.TopLibrary+YouOwn"
-		if exactAffected && az == "Library" && (ml == "You" || ml == "True" || ml == "Player") && !sp.is("MayPlay", "True") {
+		libLook := exactAffected && az == "Library" && (ml == "You" || ml == "True" || ml == "Player")
+		if libLook && !sp.is("MayPlay", "True") {
 			if ez, ok := sp.get("EffectZone"); ok && ez != "Battlefield" {
 				return nil, refuse("MayLookAt EffectZone %q", ez)
 			}
@@ -2475,7 +2522,16 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			st.Kind = "" // view-only: lower to nothing
 			return nil, nil
 		}
-		return nil, refuse("MayLookAt shape")
+		// Future Sight / Magus of the Future: the library-top look beside
+		// MayPlay$ True on the same line. gorge's static scan emits the look
+		// as its own view-only ContinuousEffect (layers.go's MayLookAt
+		// branch copies base, which carries no MayPlay) next to the MayPlay
+		// grant, so the line is the Courser of Kruphix pair on one line: the
+		// look lowers to nothing and the permission takes the MayPlay path
+		// below (mayPlayStatic, the same library-top rules).
+		if !libLook {
+			return nil, refuse("MayLookAt shape")
+		}
 	}
 	if kw, _ := sp.get("AddKeyword"); kw == "Beam me up" {
 		return nil, lc.beamGrant(sp, st, aff) // lower_beammeup.go
@@ -2617,7 +2673,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		return nil, err
 	}
 	hard := false
-	for _, k := range []string{"SetPower", "SetToughness", "SetColor", "RemoveAllAbilities", "RemoveCardTypes", "RemoveCreatureTypes", "SetName", "AddAllCreatureTypes"} {
+	for _, k := range []string{"SetPower", "SetToughness", "SetColor", "RemoveAllAbilities", "RemoveCardTypes", "RemoveCreatureTypes", "RemoveType", "SetName", "AddAllCreatureTypes"} {
 		if _, ok := sp.m[k]; ok {
 			hard = true
 		}
@@ -3103,6 +3159,16 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 	}
 	removeCard := sp.is("RemoveCardTypes", "True")
 	removeCreature := sp.is("RemoveCreatureTypes", "True")
+	if v, ok := sp.get("RemoveType"); ok {
+		// layer 4 (CR 613.1d, 205.1b): the devotion gods' "isn't a creature".
+		// Only the exact Creature word is lowered (gorge applyTypeEffect
+		// RemoveTypes strips the named word from the type list, before this
+		// effect's AddType$ words); any other value stays refused by name.
+		if strings.TrimSpace(v) != "Creature" {
+			return nil, refuse("RemoveType %q", v)
+		}
+		o.RemoveTypes = uint16(typeBits["Creature"])
+	}
 	if v, ok := sp.get("AddAllCreatureTypes"); ok {
 		// layer 4 (CR 205.3m / 702.73a): the object has every creature
 		// type. Only the exact True shape is lowered; any other value
@@ -3221,7 +3287,7 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 // reading of ovrKeptOnLoss in the kernel, for a lowered override).
 func (o *lOverride) beginsBeforeLayer6() bool {
 	return o.HasSetTypes || o.SetTypes != 0 || o.AddTypes != 0 || o.HasSetSubtypes || len(o.SetSubtypes) > 0 ||
-		len(o.AddSubtypes) > 0 || o.AllCreatureTypes || o.RemoveCreatureSub || o.HasSetColors || o.AddColors != "" || o.Name != ""
+		len(o.AddSubtypes) > 0 || o.AllCreatureTypes || o.RemoveCreatureSub || o.RemoveTypes != 0 || o.HasSetColors || o.AddColors != "" || o.Name != ""
 }
 
 // keepSubtypes records what removing o's card types leaves, from the words the

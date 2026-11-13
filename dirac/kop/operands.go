@@ -309,6 +309,12 @@ const (
 	CzShuffleEach = 64
 )
 
+// CzGraveLibrary is OpChangeZoneAllEx's B for a MvGraveExile sweep whose
+// origin is Graveyard,Library (Doomsday's "exile the rest"): every seat's
+// graveyard, then every seat's library, top first (gorge effChangeZoneAll's
+// zone-major walk). Clear of every Cz* code above.
+const CzGraveLibrary = 128
+
 // RetAttachTo (OpReturnEx B.N, A counters absent):
 // AttachedTo$ -- the returned permanent enters attached to the permanent the
 // Ref in B.N bits 8..10 names (RefSelf, or a target slot; the low byte stays

@@ -93,7 +93,7 @@ func partnerCastOffered(sc *scen, p uint8, o Obj) bool {
 	var d Decision
 	sc.s.priorityOptions(sc.k, &d)
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(o) {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(o)) {
 			return true
 		}
 	}

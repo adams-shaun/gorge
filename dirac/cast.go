@@ -53,7 +53,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		// freeze the count the moment the spell reaches the stack, before
 		// targets, divisions and costs (CR 601.2a; gorge castBattlefieldEvent):
 		// a permanent a cost then sacrifices still counts (value_castbattlefield.go)
-		e.trigMV = s.castBFLiveCount(k, p, NoSlot, k.t.Cards[c].CastBF)
+		e.trigMV = objWord(s.castBFLiveCount(k, p, NoSlot, k.t.Cards[c].CastBF))
 	}
 	if mayhem {
 		e.trigPl = trigPlMayhem
@@ -1143,7 +1143,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				}
 				continue
 			}
-			var buf [MaxOptions]uint8
+			var buf [MaxOptions]TCode
 			n := s.targetCands(k, t, e.ctrl, s.srcSlot(), e.obj, &buf)
 			if k.gen != nil {
 				n = s.affordableTargets(k, &buf, n)
@@ -1384,7 +1384,7 @@ func (s *State) applyBuild(k *prep, a Action) {
 			break
 		}
 		if s.bld().stage == bsAltAdd {
-			part := a.Target()
+			part := uint8(a.Target()) // code-ok: the either-or part (0 or 1)
 			s.bld().altAdd = part
 			s.nextStage(k)
 			if !s.altAddPayable(k, part) && !s.altAddOpenTargets(k) && !s.altAddPipsFirst(k) {
@@ -1449,7 +1449,7 @@ func (s *State) applyBuild(k *prep, a Action) {
 			s.answerMultikick(k, a)
 			return
 		}
-		e.x = a.Mode() // X
+		e.x = objWord(a.Mode()) // X
 		s.nextStage(k)
 	case AkDone:
 		if s.bld().stage == bsModes {
@@ -1554,7 +1554,7 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 		s.payTargetsEvidence(k) // a spell's mandatory evidence part (cost_collectevidencex.go)
 	}
 	if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayLife != 0 {
-		s.payLifeCost(k, e.ctrl, pc, e.x)
+		s.payLifeCost(k, e.ctrl, pc, uint8(e.x))
 	}
 	if k.gen != nil && k.gen.anyRaiseLife {
 		s.payRaiseLife(k) // a RaiseCost PayLife<N> the chosen target owes (cost_raiselife.go)
@@ -1948,7 +1948,7 @@ func (s *State) castTrigVanilla(k *prep, ls Slot, e *stackEntry) {
 
 // targetedOne is one target code t of entry e chosen: its BecomesTarget
 // triggers, then the ward of a permanent its controller does not control.
-func (s *State) targetedOne(k *prep, e *stackEntry, t uint8) {
+func (s *State) targetedOne(k *prep, e *stackEntry, t TCode) {
 	if !isObjTarget(t) {
 		return // a player, or a stack ability (tgt_stackability.go)
 	}
@@ -2101,7 +2101,7 @@ func (s *State) placeTriggers(k *prep, d *Decision) bool {
 		d.Kind, d.Player = DkTriggerOrder, p
 		for i := 0; i < int(s.npend); i++ {
 			if pt := &s.pend[i]; pt.ctrl == p && !s.ordered(uint8(i)) {
-				d.add(MakeAction(AkOrder, uint8(pt.obj), uint8(i), s.occurrence(i)))
+				d.add(MakeAction(AkOrder, TCode(pt.obj), TCode(i), s.occurrence(i)))
 			}
 		}
 		return true
@@ -2125,7 +2125,7 @@ func (s *State) ordered(i uint8) bool {
 }
 
 func (s *State) applyTriggerOrder(k *prep, a Action) {
-	s.ordList[s.orderN] = a.Target()
+	s.ordList[s.orderN] = uint8(a.Target()) // code-ok: a pending-trigger index (AkOrder)
 	s.orderN++
 	s.orderLeft--
 	if s.orderLeft == 0 {
@@ -2222,7 +2222,7 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 				s.bld().pickLeft += pc.Discard2N // the second discard part's picks follow (cost_discardfiltered.go)
 			}
 			if s.bld().pickK == pkSac && pc.N == 0 {
-				s.bld().pickLeft = e.x // Sac<X/Spec>: the announced X (cost_sacx.go; 0 asks nothing)
+				s.bld().pickLeft = uint8(e.x) // Sac<X/Spec>: the announced X (cost_sacx.go; 0 asks nothing)
 			}
 		}
 		if s.bld().pickLeft == 0 {
@@ -2280,7 +2280,7 @@ func (s *State) costCands(k *prep, c *kop.Cost, src Slot, d *Decision) {
 		for i := 0; i < int(pl.handN); i++ {
 			if o := pl.hand[i]; !s.picked(o) && o != e.obj &&
 				!(fmatch && !s.matchCardGen(k, f, s.objs[o].card, e.ctrl, e.ctrl, o)) {
-				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 	case pkSac, pkTapX:
@@ -2293,7 +2293,7 @@ func (s *State) costCands(k *prep, c *kop.Cost, src Slot, d *Decision) {
 			if s.bld().pickK == pkTapX && (s.perms[sl].flags&pfTapped != 0 || (sl == src && c.Flags&kop.CostTap != 0)) {
 				continue
 			}
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 }
@@ -2609,7 +2609,7 @@ func (s *State) altAddOptions(k *prep, d *Decision) {
 	for pass := 0; pass < passes; pass++ {
 		for part := uint8(0); part < 2; part++ {
 			if ok[part] == (pass == 0) {
-				d.add(MakeAction(AkChoose, 0, part, pos))
+				d.add(MakeAction(AkChoose, 0, TCode(part), pos)) // code-ok: the either-or part
 				pos++
 			}
 		}
@@ -2705,7 +2705,7 @@ func (s *State) subCtrOptions(k *prep, d *Decision) bool {
 					continue // CtrLevel is no counter (kw_class.go)
 				}
 				if p.ctrN(s, c) > s.subCtrPicked(o, uint8(c)) {
-					d.add(MakeAction(AkChoose, uint8(o), 0, uint8(c)))
+					d.add(MakeAction(AkChoose, TCode(o), 0, uint8(c)))
 				}
 			}
 		}

@@ -54,7 +54,7 @@ func TestPutCountersFromLive(t *testing.T) {
 	s.res.e.trigObj = pupil
 	s.res.e.li = s.snapLKI(pupil)
 	s.perms[sc.slot(pupil)].addCtrN(s, int(kop.CtrP1P1), 1)
-	s.res.e.tgt[0] = uint8(bear)
+	s.res.e.tgt[0] = TCode(bear)
 	in := kop.Instr{Op: kop.OpPutCountersFrom, Obj: kop.RefTarget0, A: kop.Const(2), C: int16(kop.RefTriggerObj)}
 	s.putCountersFrom(sc.k, &in)
 	if n := s.perms[sc.slot(bear)].ctrLow(int(kop.CtrP1P1)); n != 6 {

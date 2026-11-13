@@ -71,6 +71,14 @@ const (
 	// Tf5NotFirstCardInDrawStep: FirstCardInDrawStep$ False -- the draw is
 	// any card except that first one (Orcish Bowmasters, Xyris, Leela).
 	Tf5NotFirstCardInDrawStep TrigFlags5 = 1 << 1
+	// Tf5DmgAttackedYouLastTurn: a combat DamageDone line's damaged player
+	// declared an attack on the listener's controller (that player, a
+	// planeswalker they control or a battle they protect) during the damaged
+	// player's most recent completed turn (ValidTarget$
+	// Player.attackedYouTheirLastTurn, O-Kagachi, Vengeful Kami; gorge
+	// state.Player.AttackedSeatsLastTurn; kernel trig_atklastturn.go). The
+	// Drawn bits above are never on a DamageDone line.
+	Tf5DmgAttackedYouLastTurn TrigFlags5 = 1 << 3
 	// Tf5OppCause: Discarded with TfSelf (Zone graveyard): ValidCause$
 	// SpellAbility.OppCtrl -- the discard was caused by a resolving spell or
 	// ability an opponent of the discarded card's owner controls (gorge

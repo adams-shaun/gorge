@@ -1133,6 +1133,9 @@ func (lc *lowerCtx) changeZoneAllSweep(ps *params) error {
 	if strings.TrimSpace(ps.str("Origin")) == "Library,Sideboard" {
 		return lc.originLibrarySideboard(ps) // lower_sideboardsearch.go
 	}
+	if strings.TrimSpace(ps.str("Origin")) == "Graveyard,Library" {
+		return lc.originGraveLibrary(ps) // lower_gravelibsweep.go
+	}
 	lc.exwOK = true // a ChangeZoneAll sweep is a resolution-time mover: ExiledWithSource reads the resolving source
 	f, err := lc.changeZoneAllFilter(ps)
 	lc.exwOK = false
@@ -2328,6 +2331,8 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 			break
 		}
 		lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: "Unblockable"})
+	case "CanAttackDefender":
+		return lc.targetedCanAttack(ps, s, obj) // lower_effectcaptured.go
 	case "MustAttack":
 		if err := lc.attacksIfAble(ps, sp, obj); err != nil { // lower_effectattacksifable.go
 			return err
@@ -3262,22 +3267,28 @@ func (lc *lowerCtx) gainControl(ps *params) error {
 	// NewController$ first: ParentTarget names the earlier link's player
 	// target, not this node's own (Donate)
 	to := lRef{}
-	if nc, ok := ps.get("NewController"); ok && nc != "You" {
-		r, err := lc.defined(nc)
-		if err != nil {
-			return err
-		}
-		if r.Kind != rTarget && r.Kind != rEachOpp {
-			return refuse("GainControl NewController %q", nc)
-		}
-		if r.Kind == rTarget {
-			t := lc.ab.Targets[r.N]
-			if t.F == nil || t.F.Players == 0 || len(t.F.Clauses) != 0 {
-				return refuse("GainControl NewController %q: not a player target", nc)
+	ncYou := false
+	if nc, ok := ps.get("NewController"); ok {
+		if nc == "You" {
+			ncYou = true // gorge controlPlayerSimpleYou: the resolving controller
+		} else {
+			r, err := lc.defined(nc)
+			if err != nil {
+				return err
 			}
+			if r.Kind != rTarget && r.Kind != rEachOpp {
+				return refuse("GainControl NewController %q", nc)
+			}
+			if r.Kind == rTarget {
+				t := lc.ab.Targets[r.N]
+				if t.F == nil || t.F.Players == 0 || len(t.F.Clauses) != 0 {
+					return refuse("GainControl NewController %q: not a player target", nc)
+				}
+			}
+			to = r
 		}
-		to = r
 	}
+	hadTgts := ps.peek("ValidTgts") != ""
 	// No ValidTgts$ and no Defined$: gorge's DefinedRef falls back to the
 	// source ("an ability declaring ValidTgts$ acts on its chosen targets,
 	// any other on its source"; effects/context.go DefinedRef), which is the
@@ -3287,6 +3298,27 @@ func (lc *lowerCtx) gainControl(ps *params) error {
 	obj, err := lc.objOrTarget(ps, "Self", zBattlefield)
 	if err != nil {
 		return err
+	}
+	// gorge controlPlayer (effects/choose_control.go): with no NewController$
+	// the new controller is the node's own chosen player target (Chaos Lord's
+	// ValidTgts$ Opponent: "target opponent gains control of CARDNAME"), else
+	// the resolving controller. The slot objOrTarget just added is the last
+	// one; a player slot only -- the kernel's RefTargetN player read.
+	if to.Kind == rNone && !ncYou && hadTgts {
+		slot := lc.lastTarget()
+		if slot < 0 {
+			return refuse("GainControl ValidTgts$ %q with no target slot", ps.str("ValidTgts"))
+		}
+		t := &lc.ab.Targets[slot]
+		if t.F != nil && t.F.Players != 0 && len(t.F.Clauses) == 0 {
+			if slot > 4 {
+				return refuse("GainControl ValidTgts$ %q: target slot %d beyond the kernel's player refs", ps.str("ValidTgts"), slot)
+			}
+			if !t.Min.isConst() || t.Min.N != 1 || !t.Max.isConst() || t.Max.N != 1 {
+				return refuse("GainControl ValidTgts$ %q: the new-controller target must be exactly one required player", ps.str("ValidTgts"))
+			}
+			to = lRef{Kind: rTarget, N: slot}
+		}
 	}
 	// LoseControl$ (gorge ParseControlDuration): the effect lasts until the
 	// first listed end; the kernel's layer-2 records (CR 613.1b) model
@@ -3385,15 +3417,17 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	var obj lRef
 	group := false
 	sacGroup := false
+	groupMany := false
 	lkiMany := false
 	if ps.str("RememberChain") == "False" {
 		if ro != "" {
 			return refuse("RememberChain$ False delayed trigger shape")
 		}
-		if err := lc.groupDelayed(exec); err != nil {
+		many, err := lc.groupDelayed(exec)
+		if err != nil {
 			return err
 		}
-		group = true
+		group, groupMany = true, many
 	}
 	if !group && ro == "Remembered" && delayedGroupSac(exec) {
 		// a remembered set sacrificed as one group at the delayed step
@@ -3430,15 +3464,19 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	lat.DelayedSelf = delayedSelf(lc.ab.Trigger, ro)
 	if group || sacGroup {
 		lc.inGroup = true
+		lc.groupMany = groupMany
 	}
 	err := lc.withAbility(lat, func() error { return lc.chain(exec, nil) })
-	lc.inGroup = false
+	lc.inGroup, lc.groupMany = false, false
 	if err != nil {
 		return err
 	}
 	in := lInstr{Op: "DelayedTrigger", Obj: obj, C: lat.Index, CS: when}
 	if group || sacGroup {
 		in.B = cst(1)
+		if groupMany {
+			in.B = cst(3) // the many-object program (dirac/trig_delayedmany.go)
+		}
 	}
 	if ro == "Remembered" && lc.czForgetSet {
 		// delayedRemember checked the body is one Bounce of the delayed set
@@ -3466,18 +3504,31 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 
 // groupDelayed checks a RememberChain$ False delayed trigger is Mobilize's
 // (CR 702.181a): the chain so far is exactly one remembering Token of the
-// constant 1 or 2 and the body one Sacrifice of the delayed-remembered set.
-func (lc *lowerCtx) groupDelayed(exec *cards.SA) error {
+// constant 1..4 and the body one Sacrifice of the delayed-remembered set.
+// many reports the group is of 3 or 4: the kernel's DpMany program carries up
+// to four objects where DpGroup carries two (dirac/kw_mobilize.go sacDelayed).
+func (lc *lowerCtx) groupDelayed(exec *cards.SA) (many bool, err error) {
 	pr := lc.ab.Prog
 	if len(pr) != 1 || pr[0].Op != "CreateToken" || pr[0].C&4 == 0 || !pr[0].A.isConst() ||
 		exec.API != "Sacrifice" || exec.Sub != nil || len(exec.Params) != 1 ||
 		exec.Params["Defined"] != "DelayTriggerRememberedLKI" {
-		return refuse("RememberChain$ False delayed trigger shape")
+		return false, refuse("RememberChain$ False delayed trigger shape")
 	}
-	if n := pr[0].A.N; n != 1 && n != 2 {
-		return refuse("Mobilize group of %d: a delayed program carries two objects", n)
+	n := pr[0].A.N
+	if n < 1 || n > 4 {
+		return false, refuse("Mobilize group of %d: a delayed program carries at most four objects", n)
 	}
-	return nil
+	return n > 2, nil
+}
+
+// emitSacDelayed emits the group program's body: the ExtSacDelayed batch over
+// the delayed-remembered set (the many-object form for Mobilize 3-4).
+func (lc *lowerCtx) emitSacDelayed() {
+	in := lInstr{Op: "SacrificeDelayed", Obj: lRef{Kind: rDelayedRemembered}}
+	if lc.groupMany {
+		in.CS = "Many"
+	}
+	lc.emit(in)
 }
 
 // delayedGroupSac reports whether a remembered-set delayed trigger's body is
@@ -3585,7 +3636,7 @@ func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 	}
 	m.Split = split
 	prod := ps.str("Produced")
-	if v := ps.peek("TriggersWhenSpent"); v != "" && prod == "R" {
+	if v := ps.peek("TriggersWhenSpent"); v != "" && len(prod) == 1 && strings.Contains("WUBRG", prod) {
 		if err := lc.deferredMana(ab, ps, v); err != nil {
 			return err
 		}

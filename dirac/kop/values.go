@@ -117,7 +117,9 @@ const (
 	// own count). It reads the object's per-turn census (object.acts), which
 	// counts every non-mana activation of the object, so the lowering admits
 	// only a card whose one non-mana activated ability is the counted one.
-	// Dragon Whelp.
+	// Dragon Whelp. N 1 reads the evaluating source's count instead, the
+	// one being offered not included: the ActivationLimit$ N offer gate
+	// (gorge activationLimitBlocked; Fire-Belly Changeling).
 	ExActivations
 	// ExLifeLostLastTurn: the life the evaluating controller lost during the
 	// previous turn (gorge PlayerCountPropertyYou$LifeLostLastTurn, the

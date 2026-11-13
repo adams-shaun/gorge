@@ -48,7 +48,7 @@ func TestFreeCastWordFourSeats(t *testing.T) {
 func TestBattleProtectorFourSeats(t *testing.T) {
 	s := new(State)
 	for p := uint8(0); p < MaxSeats; p++ {
-		s.perms[0].chosen = protChosen | p
+		s.perms[0].chosen = objWord(protChosen | p)
 		if got, ok := s.protector(0); !ok || got != p {
 			t.Fatalf("protector seat %d: got %d, %t", p, got, ok)
 		}

@@ -34,7 +34,7 @@ func TestCrimeAbilityPickActivation(t *testing.T) {
 	found := false
 	d := s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(maker) {
+		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == TCode(uint8(maker)) {
 			s.Apply(a)
 			found = true
 			break
@@ -54,7 +54,7 @@ func TestCrimeAbilityPickActivation(t *testing.T) {
 	found = false
 	d = s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkTarget && a.Target() == uint8(bandit) {
+		if a := d.Options[i]; a.Kind() == AkTarget && a.Target() == TCode(uint8(bandit)) {
 			s.Apply(a)
 			found = true
 			break
@@ -99,7 +99,7 @@ func TestCrimeSubLinkPick(t *testing.T) {
 		s.g.crime, s.npend, st.BySpell = 0, 0, 0
 		*s.bld() = build{e: stackEntry{kind: kind, ctrl: 0}}
 		s.bld().e.tgt = noTargets
-		s.crimePick(sc.k, theirPerm, done)
+		s.crimePick(sc.k, TCode(theirPerm), done)
 		return s.g.crime, st.BySpell, int(s.npend), s.bld().bfl&bflCrime != 0
 	}
 	// an ability's completed ask: the bit, no spell stat, no queued trigger
