@@ -532,10 +532,13 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 			return false
 		}
 	}
-	if k.gen == nil || len(k.gen.grantPC) == 0 {
-		return true // no granted mana sources: the kernel's own offer gate decided
+	if k.gen == nil {
+		return true
 	}
-	return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)})
+	if len(k.gen.grantPC) != 0 && !s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
+		return false // with no granted mana sources the kernel's own offer gate decided
+	}
+	return s.planHoldsOnStack(k, p, o, &cost) // cast_planholdsonstack.go
 }
 
 // planDeclinesAddCost reports a spell gorge's planner never prices: rules
