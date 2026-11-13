@@ -45,6 +45,7 @@ type ovSub struct {
 type built struct {
 	def      kop.CardDef
 	subs     []uint8        // pool subtype indexes of the printed type line
+	printed  []uint8        // a changeling's printed subs, before changelingSubs (cardset.PoolData.CardPrinted)
 	stAddSub [][]uint8      // per ability: the static's granted subtypes (pool indexes)
 	tokens   []int          // pool indexes of the tokens it creates
 	refSubs  []uint8        // pool subtypes the card's filters name
@@ -474,9 +475,8 @@ func (cb *cardBuilder) record() error {
 		return err
 	}
 	if c.Changeling {
-		for _, i := range cb.out.subs {
-			d.PrintedSubtypes = d.PrintedSubtypes.With(int(i))
-		}
+		// pool indexes, which a matchup renumbers into d.PrintedSubtypes
+		cb.out.printed = append([]uint8{}, cb.out.subs...)
 		cb.out.subs = changelingSubs(cb.pt, cb.out.subs)
 	}
 	if d.Keywords, err = kwMask(c.Kw); err != nil {

@@ -2,6 +2,7 @@ package cardset
 
 import (
 	"fmt"
+	"math/bits"
 	"slices"
 	"sort"
 
@@ -46,8 +47,8 @@ type PoolData struct {
 	Absent              []AbsentID
 	Status              []Status
 	Reason              []string      // why an entry is not StatusSupported; "" when it is
-	Defs                []kop.CardDef // Name blank: Names holds them
-	CardSubs            []kop.SubMask
+	Defs                []kop.CardDef // Name blank: Names holds them; PrintedSubtypes blank: CardPrinted holds them
+	CardSubs            []PoolSubMask
 	CardTokens          [][]uint16
 	CardRefSubs         [][]uint8
 	AbilityOrigin       [][]uint8
@@ -70,6 +71,51 @@ type PoolData struct {
 	AbManaCosted        []int
 	AbManaCostedMV      []uint8  // AbManaCosted's dearest mana-ability mana cost
 	AbManaCostedTypes   []uint16 // AbManaCosted's card types
+	// CardPrinted is a changeling's printed subtypes (pool indexes), before
+	// kgen adds every pool creature type to its CardSubs; nil for any other
+	// card. A matchup renumbers them into CardDef.PrintedSubtypes.
+	CardPrinted [][]uint8
+}
+
+// PoolMaxSubtypes bounds a pool table's subtype list (PoolData.Subtypes). The
+// pool data carries a subtype as a byte index (CardRefSubs, StaticSubs,
+// OverrideSubs, CardPrinted) and a filter's Sub, NotSub and NotSubs as the
+// index+1 below the matchup sentinel NoSubtype, so a pool holds 254. A
+// matchup's table holds at most kop.MaxSubtypes: it keeps only the subtypes its
+// own cards print or name (matchup), so a pool wider than one table (MBC's
+// 246) plays every game whose cards fit, and a game that needs more is refused
+// (a SubtypeRefusal).
+const PoolMaxSubtypes = 254
+
+// PoolSubMask is a set of pool subtype indexes (PoolData.Subtypes).
+type PoolSubMask [4]uint64
+
+// Has reports whether pool subtype index i is in m.
+func (m PoolSubMask) Has(i int) bool { return uint(i) < 256 && m[i>>6]&(1<<(i&63)) != 0 }
+
+// With is m with pool subtype index i added (out of range: m).
+func (m PoolSubMask) With(i int) PoolSubMask {
+	if uint(i) < 256 {
+		m[i>>6] |= 1 << (i & 63)
+	}
+	return m
+}
+
+// Or is the union of m and o.
+func (m PoolSubMask) Or(o PoolSubMask) PoolSubMask {
+	return PoolSubMask{m[0] | o[0], m[1] | o[1], m[2] | o[2], m[3] | o[3]}
+}
+
+// Count is the number of indexes in m.
+func (m PoolSubMask) Count() int {
+	return bits.OnesCount64(m[0]) + bits.OnesCount64(m[1]) + bits.OnesCount64(m[2]) + bits.OnesCount64(m[3])
+}
+
+// SubtypeRefusal refuses a matchup whose cards need more subtypes than one
+// table holds (kop.MaxSubtypes): a declared capacity of the per-game subtype
+// table, reason "subtypes". The decks are fine alone.
+func SubtypeRefusal(n int) error {
+	return &InteractionRefusal{Reason: "subtypes", Why: fmt.Sprintf("the matchup's cards print or name %d subtypes, a table holds %d", n, kop.MaxSubtypes)}
 }
 
 // NoSubtype is the matchup filter sentinel for a subtype no object in the
@@ -288,7 +334,7 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 	// the masks -- unless a card chooses a creature type, when every
 	// printed subtype is kept (any of them may be chosen), or the kernel
 	// reads one by name (Role below, Army for amass).
-	var subSet kop.SubMask
+	var subSet PoolSubMask
 	mark := func(s uint8) { subSet = subSet.With(int(s)) }
 	choosesType := false
 	usesOverride := map[int]bool{}
@@ -390,9 +436,30 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 		}
 	}
 	if choosesType {
+		all := subSet
 		for _, i := range pool {
-			subSet = subSet.Or(dd.CardSubs[i])
+			all = all.Or(dd.CardSubs[i])
 		}
+		if all.Count() > kop.MaxSubtypes {
+			// A changeling's subtypes are every pool creature type (kgen
+			// changelingSubs), which a wide pool's (MBC's) cannot fit in one
+			// game's table. Then a changeling keeps its printed ones only: the
+			// kernel reads a type outside the table as one an all-creature-types
+			// object has and nothing else does (outsideSub, subOutside), which
+			// is what each dropped type is, since no other card here prints or
+			// names it. A matchup that fits keeps every one.
+			all = subSet
+			for _, i := range pool {
+				if dd.Defs[i].AllCreatureTypes {
+					for _, s := range dd.CardPrinted[i] {
+						all = all.With(int(s))
+					}
+				} else {
+					all = all.Or(dd.CardSubs[i])
+				}
+			}
+		}
+		subSet = all
 	}
 	// The kernel's Role exclusivity keys on the printed Role subtype by
 	// name (dirac/gen.go prepRoles), not on a filter, so keep Role in the
@@ -428,7 +495,7 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 		}
 	}
 	if len(t.Subtypes) > kop.MaxSubtypes {
-		return nil, nil, fmt.Errorf("matchup needs %d subtypes", len(t.Subtypes))
+		return nil, nil, SubtypeRefusal(len(t.Subtypes))
 	}
 	// A filter naming a subtype no object in this matchup can have keeps
 	// the sentinel NoSubtype: Sub never matches, NotSub always passes.
@@ -542,6 +609,9 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 			}
 		}
 		d.Subtypes = mask(subs)
+		if len(dd.CardPrinted) > i && len(dd.CardPrinted[i]) > 0 {
+			d.PrintedSubtypes = mask(dd.CardPrinted[i])
+		}
 		d.Abilities = remap(d.Abilities)
 		if len(d.Faces) > 0 {
 			fs := make([]kop.CardID, len(d.Faces))
