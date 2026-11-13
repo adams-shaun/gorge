@@ -46,8 +46,10 @@ func (s *State) soleOpponent(p uint8) uint8 {
 // none, as gorge's cleared choice is.
 
 // raChoosePlayerMid: ExtChoosePlayerMid's resolution ask (ChGenPlayer, mode
-// = the seat; interp_ask.go poses and applies it).
-const raChoosePlayerMid = raGenManifestDread + 7
+// = the seat; interp_ask.go poses and applies it). +8: the offsets above
+// raGenManifestDread are claimed by addition (+1..+7 modal/mill/dig/cmdzone/
+// extort/libplace, +40.. act_mayask.go, ...), so the next free one is taken.
+const raChoosePlayerMid = raGenManifestDread + 8
 
 // choosePlayerMid is OpExt ExtChoosePlayerMid: false = the ask suspended the
 // program (a sole opponent is recorded unasked).

@@ -277,7 +277,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			return refuse("ChangeType$ with ValidTgts$")
 		}
 		exwPick := origin == zExile && dest == zBattlefield && ps.is("Hidden", "True")
-		lc.exwOK = exwPick          // a hidden pick out of exile is a resolution-time mover: ExiledWithSource reads the resolving source
+		// a hidden pick out of exile is a resolution-time mover:
+		// ExiledWithSource reads the resolving source
+		lc.exwOK = exwPick
 		if ctd, ok := lc.chosenCtrlImplied(ps, origin, ct); ok { // lower_chooseplayermid.go
 			ct = ctd // the pick's own player is the chosen player: ChosenCtrl is implied (lower_chooseplayermid.go)
 		}

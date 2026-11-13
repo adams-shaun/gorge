@@ -11,8 +11,9 @@ import (
 // and whose later links read the choice). gorge runs effChoosePlayer
 // mid-resolution and the chain's readers resolve the choice while the
 // resolution holds it; the kernel asks it too (OpExt ExtChoosePlayerMid, one
-// opponent recorded unasked), so the chain lowers at any seat count instead
-// of the two-seat path. The readers:
+// opponent recorded unasked), so the chain lowers at any seat count. The
+// lowering is seat-exact: the ask and the readers hold with any number of
+// players, and no lc.twoSeat call is made here. The readers:
 //
 //   - Defined$ ChosenPlayer / Player.Chosen and DefinedPlayer$ the same:
 //     kop.RefChosenPlayer
