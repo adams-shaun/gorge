@@ -45,7 +45,10 @@ func (s *State) replNIn(k *prep, m slotMask, b uint32) int {
 // creature whose controller controls another Crystal Barricade.
 func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, code TCode, combat bool, n int) int {
 	g := k.gen
-	if n <= 0 || srcCtrl > 1 {
+	// srcCtrl beyond MaxSeats is a source with no controller (a spell's card
+	// with none on the battlefield); a real seat is never out of range, and
+	// its damage takes the replacements like any other seat's (seats_mp.go).
+	if n <= 0 || srcCtrl >= MaxSeats {
 		return n
 	}
 	rcp := uint8(255) // the recipient's controller
