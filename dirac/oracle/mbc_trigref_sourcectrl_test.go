@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"slices"
 	"sync"
 	"testing"
 
@@ -22,9 +23,13 @@ import (
 //     goes third from the top (kop.LibThird), killed by Doom Blade and
 //     exiled by Swords to Plowshares.
 //   - TargetsWithDefinedController$ TriggeredAttackedTarget (Gornog, the Red
-//     Reaper: "target creature that player controls becomes a Coward"): the
-//     target slot is held to the defending player's creatures
-//     (kop.F2DefendingCtrl).
+//     Reaper: "target creature that player controls becomes a Coward"; the
+//     same slot of Whirlwind, Killer Cyclone): the target is held to the
+//     defending player's creatures (kop.F2DefendingCtrl).
+//   - the other cards that read the damage source's controller: Brood Sliver
+//     and Synapse Sliver (a Sliver of either seat), Backfire (damage to the
+//     enchanted creature's controller), Michiko Konda (that player
+//     sacrifices); and God-Eternal Rhonas and Bontu beside Oketra.
 //
 // Each subtest first asserts the carrier is playable in the pool (it is
 // refused without the lowering), then plays the lockstep games with the
@@ -61,12 +66,7 @@ var mbcTrigRef6Cases = []struct {
 			{Name: "Swords to Plowshares", Count: 6}, {Name: "Doom Blade", Count: 6}, {Name: "Glory Seeker", Count: 6},
 			{Name: "Plains", Count: 11}, {Name: "Swamp", Count: 11},
 		},
-	}, func(ref *GorgeSide, e events.Event) bool {
-		// the card itself goes from the graveyard or exile into a library
-		o := ref.E.G.Obj(e.Obj)
-		return e.Kind == events.MoveZone && e.To == state.ZLibrary && (e.From == state.ZGraveyard || e.From == state.ZExile) &&
-			o != nil && o.Face() != nil && o.Face().Name == "God-Eternal Oketra"
-	}},
+	}, libraryFromGraveOrExile("God-Eternal Oketra")},
 	{"Gornog, the Red Reaper", [2][]cardset.Entry{
 		{
 			{Name: "Gornog, the Red Reaper", Count: 4}, {Name: "Minotaur Warrior", Count: 8}, {Name: "Fearless Halberdier", Count: 8},
@@ -76,15 +76,77 @@ var mbcTrigRef6Cases = []struct {
 			{Name: "Grizzly Bears", Count: 8}, {Name: "Giant Spider", Count: 6}, {Name: "Forest", Count: 26},
 		},
 	}, trigQueuedBy("Gornog, the Red Reaper")},
+	{"Whirlwind, Killer Cyclone", [2][]cardset.Entry{
+		{
+			{Name: "Whirlwind, Killer Cyclone", Count: 4}, {Name: "Minotaur Warrior", Count: 8}, {Name: "Fearless Halberdier", Count: 8},
+			{Name: "Mountain", Count: 20},
+		},
+		{
+			{Name: "Grizzly Bears", Count: 8}, {Name: "Giant Spider", Count: 6}, {Name: "Forest", Count: 26},
+		},
+	}, trigQueuedBy("Whirlwind, Killer Cyclone")},
+	// both seats hold Slivers: a Sliver of the other seat hits the watcher's
+	// controller, so the source's controller is not the trigger's
+	{"Brood Sliver", [2][]cardset.Entry{
+		{
+			{Name: "Brood Sliver", Count: 6}, {Name: "Synapse Sliver", Count: 6}, {Name: "Grizzly Bears", Count: 4},
+			{Name: "Forest", Count: 12}, {Name: "Island", Count: 12},
+		},
+		{
+			{Name: "Brood Sliver", Count: 6}, {Name: "Synapse Sliver", Count: 6}, {Name: "Giant Spider", Count: 4},
+			{Name: "Forest", Count: 12}, {Name: "Island", Count: 12},
+		},
+	}, trigQueuedBy("Brood Sliver", "Synapse Sliver")},
+	{"Backfire", [2][]cardset.Entry{
+		{
+			{Name: "Backfire", Count: 8}, {Name: "Coral Merfolk", Count: 8}, {Name: "Island", Count: 24},
+		},
+		{
+			{Name: "Hill Giant", Count: 8}, {Name: "Mogg Flunkies", Count: 6}, {Name: "Lightning Bolt", Count: 4},
+			{Name: "Mountain", Count: 22},
+		},
+	}, trigQueuedBy("Backfire")},
+	{"Michiko Konda, Truth Seeker", [2][]cardset.Entry{
+		{
+			{Name: "Michiko Konda, Truth Seeker", Count: 4}, {Name: "Savannah Lions", Count: 8}, {Name: "Glory Seeker", Count: 6},
+			{Name: "Plains", Count: 22},
+		},
+		{
+			{Name: "Hill Giant", Count: 8}, {Name: "Mogg Flunkies", Count: 8}, {Name: "Mountain", Count: 24},
+		},
+	}, trigQueuedBy("Michiko Konda, Truth Seeker")},
+	{"God-Eternal Rhonas", [2][]cardset.Entry{
+		{
+			{Name: "God-Eternal Rhonas", Count: 3}, {Name: "God-Eternal Bontu", Count: 3}, {Name: "Grizzly Bears", Count: 8},
+			{Name: "Giant Spider", Count: 6}, {Name: "Forest", Count: 10}, {Name: "Swamp", Count: 10},
+		},
+		{
+			{Name: "Swords to Plowshares", Count: 6}, {Name: "Doom Blade", Count: 6}, {Name: "Glory Seeker", Count: 6},
+			{Name: "Plains", Count: 11}, {Name: "Swamp", Count: 11},
+		},
+	}, libraryFromGraveOrExile("God-Eternal Rhonas", "God-Eternal Bontu")},
 }
 
 // trigQueuedBy is the seen test of a carrier whose only triggered ability is
-// the one under test: a trigger of that card was put on the stack.
-func trigQueuedBy(name string) func(*GorgeSide, events.Event) bool {
+// the one under test: a trigger of one of those cards was put on the stack.
+func trigQueuedBy(names ...string) func(*GorgeSide, events.Event) bool {
 	return func(ref *GorgeSide, e events.Event) bool {
-		o := ref.E.G.Obj(e.Obj)
-		return e.Kind == events.TriggerPush && o != nil && o.Face() != nil && o.Face().Name == name
+		return e.Kind == events.TriggerPush && isCardNamed(ref, e.Obj, names)
 	}
+}
+
+// libraryFromGraveOrExile is the seen test of a dies-or-exiled-to-library
+// carrier: one of those cards goes from the graveyard or exile into a library.
+func libraryFromGraveOrExile(names ...string) func(*GorgeSide, events.Event) bool {
+	return func(ref *GorgeSide, e events.Event) bool {
+		return e.Kind == events.MoveZone && e.To == state.ZLibrary && (e.From == state.ZGraveyard || e.From == state.ZExile) &&
+			isCardNamed(ref, e.Obj, names)
+	}
+}
+
+func isCardNamed(ref *GorgeSide, id state.ObjID, names []string) bool {
+	o := ref.E.G.Obj(id)
+	return o != nil && o.Face() != nil && slices.Contains(names, o.Face().Name)
 }
 
 func TestMBCTriggerReferents6Lowers(t *testing.T) {
@@ -136,7 +198,7 @@ func TestMBCTriggerReferents6Lowers(t *testing.T) {
 				}
 				if d := res.Div; d != nil {
 					from := max(d.At-12, 0)
-					t.Fatalf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v\nlast actions %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions, actionStrings(res.Actions[from:d.At]))
+					t.Fatalf("%s seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v\nlast actions %v", tc.carrier, seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions, actionStrings(res.Actions[from:d.At]))
 				}
 				if hit {
 					mu.Lock()

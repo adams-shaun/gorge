@@ -4,10 +4,22 @@
 # was exiled (God-Eternal Oketra), and a per-defender attack trigger whose
 # target is a creature the attacked player controls (Gornog, the Red
 # Reaper) -- beside creatures to attack and removal to kill and exile
+# Every other card the spellings lower is here too: Brood Sliver and Synapse
+# Sliver (their Slivers' controllers answer, whoever controls the watcher),
+# Backfire and Michiko Konda (the damage source's controller takes the
+# damage, sacrifices), Whirlwind (Gornog's target shape), God-Eternal Rhonas
+# and Bontu (Oketra's dies-or-exiled trigger).
 # (dirac/oracle/mbc_trigref_sourcectrl_test.go)
 Edric, Spymaster of Trest
 God-Eternal Oketra
 Gornog, the Red Reaper
+Brood Sliver
+Synapse Sliver
+Backfire
+Michiko Konda, Truth Seeker
+Whirlwind, Killer Cyclone
+God-Eternal Rhonas
+God-Eternal Bontu
 Grizzly Bears
 Giant Spider
 Coral Merfolk
