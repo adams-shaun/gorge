@@ -313,31 +313,73 @@ func TestKernelHeadsCheckpointAll(t *testing.T) {
 // §7.3 at scale: the clone-fidelity fuzz, and at every posed tape decision a
 // hypothetical world (CloneHypothetical plus a redeal of every other seat's
 // hand and library) driven a few random intents. A prefix divergence panics.
-// GORGE_TAPE_WORLD_GAMES sets the game count (default 6).
 //
-// The wall budget is per top-level test, so the checks are sharded into
-// separate top-level tests. The main line (~32 s on game 5) is replayed by
-// every shard and the partitionable checks are ~19 s, so 3 shards give about
-// 32 + 19/3 = 38 s for game 5; each shard past 3 saves under 2 s.
-const kernelWorldShards = 3
+// The wall budget is per top-level test, so each of the first six games is its
+// own top-level test. The per-decision checks draw from a side stream that
+// does not depend on the shard count, so shards=1 plays a game's main line
+// once and probes every decision; game 5 (the longest) alone is split in two,
+// each half replaying its main line and probing half the decisions.
+// GORGE_TAPE_WORLD_GAMES (above 6) sets how many games the Sweep plays: games
+// 6..N-1.
+const kernelWorldDefaultGames = 6
 
-func TestKernelWorldsInFuzzGamesShard0(t *testing.T) { kernelWorldsInFuzzGames(t, 0) }
-func TestKernelWorldsInFuzzGamesShard1(t *testing.T) { kernelWorldsInFuzzGames(t, 1) }
-func TestKernelWorldsInFuzzGamesShard2(t *testing.T) { kernelWorldsInFuzzGames(t, 2) }
+func TestKernelWorldsInFuzzGame0(t *testing.T)       { kernelWorldsInFuzzGame(t, 0, 1, 0) }
+func TestKernelWorldsInFuzzGame1(t *testing.T)       { kernelWorldsInFuzzGame(t, 1, 1, 0) }
+func TestKernelWorldsInFuzzGame2(t *testing.T)       { kernelWorldsInFuzzGame(t, 2, 1, 0) }
+func TestKernelWorldsInFuzzGame3(t *testing.T)       { kernelWorldsInFuzzGame(t, 3, 1, 0) }
+func TestKernelWorldsInFuzzGame4(t *testing.T)       { kernelWorldsInFuzzGame(t, 4, 1, 0) }
+func TestKernelWorldsInFuzzGame5Shard0(t *testing.T) { kernelWorldsInFuzzGame(t, 5, 2, 0) }
+func TestKernelWorldsInFuzzGame5Shard1(t *testing.T) { kernelWorldsInFuzzGame(t, 5, 2, 1) }
 
-func kernelWorldsInFuzzGames(t *testing.T, k int) {
+// TestKernelWorldsInFuzzGamesSweep plays games 6..GORGE_TAPE_WORLD_GAMES-1
+// under the same world probe; it skips unless the variable is above 6.
+func TestKernelWorldsInFuzzGamesSweep(t *testing.T) {
+	games := cloneFuzzEnvInt("GORGE_TAPE_WORLD_GAMES", kernelWorldDefaultGames)
+	if games <= kernelWorldDefaultGames {
+		t.Skip("set GORGE_TAPE_WORLD_GAMES above 6 to play games 6..N-1 under the world probe")
+	}
+	reg := testutil.CorpusRegistry(t)
+	var worlds, steps atomic.Int64
+	var st cloneFuzzStats
+	o := kernelWorldsOpts(&worlds, &steps, 1, 0)
+	t.Run("games", func(t *testing.T) {
+		for g := kernelWorldDefaultGames; g < games; g++ {
+			g := g
+			t.Run(strconv.Itoa(g), func(t *testing.T) {
+				t.Parallel()
+				cfg, label := cloneFuzzConfig(t, reg, g)
+				playCloneFuzzGame(t, cfg, label, o, &st)
+			})
+		}
+	})
+	if worlds.Load() == 0 {
+		t.Fatal("no posed tape decision was reached: the world probe measured nothing")
+	}
+	t.Logf("%d games, %d intents; %d tape worlds, %d world intents", st.games.Load(), st.intents.Load(), worlds.Load(), steps.Load())
+}
+
+func kernelWorldsInFuzzGame(t *testing.T, g, shards, shard int) {
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("long")
 	}
 	reg := testutil.CorpusRegistry(t)
-	// The games run as parallel subtests (TestCloneFidelityShort's shape):
-	// the counters are atomic, each call's engine and rand are its own game's,
-	// and each game carries its own world hook, so no package state is shared.
 	var worlds, steps atomic.Int64
 	var st cloneFuzzStats
+	o := kernelWorldsOpts(&worlds, &steps, shards, shard)
+	cfg, label := cloneFuzzConfig(t, reg, g)
+	playCloneFuzzGame(t, cfg, label, o, &st)
+	if worlds.Load() == 0 {
+		t.Fatal("no posed tape decision was reached: the world probe measured nothing")
+	}
+	t.Logf("game %d shard %d/%d: %d intents; %d tape worlds, %d world intents", g, shard, shards, st.intents.Load(), worlds.Load(), steps.Load())
+}
+
+// kernelWorldsOpts is the world probe: the counters are atomic and each call's
+// engine and rand are its own game's, so no package state is shared.
+func kernelWorldsOpts(worlds, steps *atomic.Int64, shards, shard int) cloneFuzzOpts {
 	o := cloneFuzzOpts{every: 4, lockstep: 4, diverge: 4, randomPct: 10}
-	o.shards, o.shard = kernelWorldShards, k
+	o.shards, o.shard = shards, shard
 	o.worldHook = func(t *testing.T, e *Engine, r *rand.Rand) {
 		if !TapePosed(e) {
 			return
@@ -360,20 +402,7 @@ func kernelWorldsInFuzzGames(t *testing.T, k int) {
 			}
 		}
 	}
-	games := cloneFuzzEnvInt("GORGE_TAPE_WORLD_GAMES", 6)
-	t.Run("games", func(t *testing.T) {
-		for g := 0; g < games; g++ {
-			t.Run(strconv.Itoa(g), func(t *testing.T) {
-				t.Parallel()
-				cfg, label := cloneFuzzConfig(t, reg, g)
-				playCloneFuzzGame(t, cfg, label, o, &st)
-			})
-		}
-	})
-	if worlds.Load() == 0 {
-		t.Fatal("no posed tape decision was reached: the world probe measured nothing")
-	}
-	t.Logf("%d games, %d intents; %d tape worlds, %d world intents", st.games.Load(), st.intents.Load(), worlds.Load(), steps.Load())
+	return o
 }
 
 // The shards partition the per-decision checks: every decision is probed by

@@ -24,6 +24,9 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	ob := &s.objs[o]
 	p := s.prio
 	c := ob.card
+	if int(o) < len(s.cold.mkObj) {
+		s.cold.mkObj[o] = 0 // a card cast again starts with no payments (CR 702.43; kw_multikicker.go)
+	}
 	var fl uint8
 	if mode&1 != 0 {
 		fl |= sfKicked
@@ -154,11 +157,22 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		// which plans with PlannedCast{}: its hand demand (rank key 6)
 		// counts the card being cast too, so nothing is excluded.
 		cost := s.buildCost(k)
+		if k.t.Cards[c].HasMultikicker {
+			// the count is asked after the cast action: the witness plans the
+			// offer's own base + one payment (gorge's composed potential play)
+			cost = addCost(cost, k.t.Cards[c].Multikicker)
+		}
 		if s.rbAny(p) {
 			// restricted mana the spell may spend (Secluded Courtyard's
 			// {R} for a Goblin, tapped by the play's script prefix) is in
 			// the witness's pool: tap only for the rest
 			cost = s.restrShort(k, p, c, s.restrOriginOfObj(o), cost)
+		}
+		if k.t.Cards[c].HasMultikicker {
+			// gorge's composed witness prices the delve credit (granted or
+			// printed) that kickedAffords / multikickMax offer on: the same
+			// helper, or the witness taps and floats that much extra
+			cost = s.gateDelveCredit(k, p, c, o, ob.zone == kop.ZoneHand, cost)
 		}
 		s.tapFor(k, p, &cost, 0, NoObj)
 	} else if mode&castWarp != 0 || k.gen != nil && (k.gen.anyImpending && s.bld().e.impended() || k.gen.anyEvoke && s.bld().e.evoked() || k.gen.anyDash && s.bld().e.dashed(k) || k.gen.anyOverload && s.bld().e.overloaded(k)) {
@@ -412,7 +426,7 @@ func (s *State) syncBuild() {
 // these rows. A triggered ability is pushed by takePending before its
 // program starts.
 var buildProgram = [3][]uint8{
-	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsConspire, bsConvoke, bsX, bsDelve, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
+	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsMulti, bsConspire, bsConvoke, bsX, bsDelve, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seAbility: {bsPush, bsModes, bsTapCost, bsX, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seTrigger: {bsModes, bsPips, bsTargets, bsDivide, bsPay},
 }
@@ -626,7 +640,7 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 			c = cd.WebSlingCost // the web-slinging cost (CR 702.188a; kw_websling.go)
 		}
 		if e.flags&sfKicked != 0 {
-			c = addCost(c, cd.Kicker)
+			c = s.addKickerPayments(cd, e, c)
 		}
 		if k.gen != nil && k.gen.anyMayFlash && mayFlashEntry(e) && cd.HasMayFlash && !DebugMayFlashFree {
 			c = addCost(c, cd.MayFlashCost) // the mana cost plus the extra (CR 702.8; kw_mayflash.go)
@@ -746,6 +760,12 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				return s.ctl == ctlBuild // false: a short tap cost reversed the build (sacShort)
 			}
 			if k.gen != nil && k.gen.anyWaterbend && s.waterbendOptions(k, d) {
+				return true
+			}
+			s.nextStage(k)
+			continue
+		case bsMulti:
+			if s.multikickOptions(k, d) {
 				return true
 			}
 			s.nextStage(k)
@@ -1392,6 +1412,10 @@ func (s *State) applyBuild(k *prep, a Action) {
 			s.bld().pipN++
 			return
 		}
+		if s.bld().stage == bsMulti {
+			s.answerMultikick(k, a)
+			return
+		}
 		e.x = a.Mode() // X
 		s.nextStage(k)
 	case AkDone:
@@ -1675,6 +1699,19 @@ func (s *State) finishBuild(k *prep) {
 		early := k.gen != nil && k.gen.anyAbReduce
 		if early {
 			pre = s.buildCostCharge(k)
+		}
+		// CR 119.4, 733.1: the mana window's mana abilities may have paid life
+		// (Starting Town's {T}, Pay 1 life) after the offer priced this
+		// activation's fixed PayLife<N> payable. gorge charges the life at
+		// payment and reverses the activation when it no longer is
+		// (cast_commit.go), leaving the taps and floating mana; the spell
+		// build rechecks the same at bsCosts. The PayLife<X> form (owed 0) is
+		// bounded by the X ask.
+		if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayLife != 0 {
+			if owed := lifeCostOwed(pc); owed > 0 && int(s.pl[SeatIx(e.ctrl)].life) < owed {
+				s.reverseCast(k)
+				return
+			}
 		}
 		s.payAbilityCosts(k, &e)
 		if k.phyMana {
@@ -2495,7 +2532,9 @@ func (s *State) altAddPayable(k *prep, part uint8) bool {
 	c := s.buildCost(k)
 	s.bld().altAdd = saved
 	// the restricted sources the payment may spend (CR 106.6): gorge's window prices them
-	return av.affords(&c, pipMaskOf(&c), 0) || k.restrSrc && s.restrSrcAffords(k, e.ctrl, s.payDescNow(NoObj), &c, &av, NoSlot, 0)
+	// and the filters the window activates, each paying its fee from the other mana (CR 601.2g-h)
+	return av.affords(&c, pipMaskOf(&c), 0) || k.restrSrc && s.restrSrcAffords(k, e.ctrl, s.payDescNow(NoObj), &c, &av, NoSlot, 0) ||
+		k.gen != nil && k.gen.anyFilt && s.faceReachable(k, e.ctrl, &av, &c, 0)
 }
 
 // altAddPickPayable: the part's costs that are no mana (a discard, a sacrifice,

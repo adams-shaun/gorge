@@ -379,8 +379,15 @@ func TestNornsAnnexPhyrexianColourVersusLifeChoice(t *testing.T) {
 	if n := len(e.windowManaUnits(1)); n != 1 {
 		t.Fatalf("precondition: windowManaUnits(1) = %d, want 1 (the Plains)", n)
 	}
-	both, canColour, canLife := e.combatPhyBothBranches(1, e.attackPairCharge(bear, 0, 0))
-	if !both || !canColour || !canLife {
+	plan, ok := e.openCombatPayPlan(1, e.attackPairCharge(bear, 0, 0), nil, nil)
+	if !ok {
+		t.Fatal("precondition: the plan must open with both branches owed")
+	}
+	if plan.phyDone != 0 {
+		t.Fatalf("precondition: plan done=%d, want both branches still owed", plan.phyDone)
+	}
+	canColour, canLife := e.combatPhyPipBranches(plan, nil)
+	if !canColour || !canLife {
 		t.Fatalf("precondition: colour branch %v, life branch %v, want both true", canColour, canLife)
 	}
 

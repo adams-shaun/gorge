@@ -1817,6 +1817,10 @@ func effChangeTargets(h Host, c *Ctx, sa *cards.SA) {
 		link *cards.SA // nil for the root's own targets
 		ts   []state.Target
 	}
+	if magnet != "" && single {
+		changeTargetMagnet(h, c, sa, chooser, magnet, subject, target.ID, declared, offered)
+		return
+	}
 	var changes []retarget
 	var parent []state.Target // nil while judging the root
 	for link := subject; link != nil; link = link.Sub {
@@ -1908,7 +1912,13 @@ func askNewTargets(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID, candida
 			min = max
 		}
 	}
-	d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Source: c.Source, Min: min, Max: max, ResumeKind: "choice", ResumeSA: sa, Prompt: "Choose new target"}
+	return askTargetChoice(h, c, sa, chooser, "Choose new target", candidates, min, max)
+}
+
+// askTargetChoice poses a redirect's one KChoose over targets: a "player" option for a
+// player, a "card" option for an object. An empty answer, or none served, is nil.
+func askTargetChoice(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID, prompt string, candidates []state.Target, min, max int) []state.Target {
+	d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Source: c.Source, Min: min, Max: max, ResumeKind: "choice", ResumeSA: sa, Prompt: prompt}
 	for _, t := range candidates {
 		o := decision.Option{Index: len(d.Options)}
 		if t.IsPlayer {
@@ -1926,6 +1936,86 @@ func askNewTargets(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID, candida
 		return nil
 	}
 	return ChoiceAnswerTargets(ans)
+}
+
+// changeTargetMagnet is "change a target to the magnet" (DefinedMagnet$ with
+// ChangeSingleTarget$, CR 115.7b). A place is one current target of one
+// declaration whose offer holds the magnet; the redirect's controller chooses which
+// place's target changes. One place moves with no ask. Places naming the same target
+// collapse to the first, and the magnet takes the chosen place alone: the
+// declaration keeps the rest of its targets in their order (a divided allotment
+// follows the position). A declaration already targeting the magnet has no place.
+func changeTargetMagnet(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID, magnet string, subject *cards.SA, subjectID state.ObjID,
+	declared func(*cards.SA) []state.Target, offered func(link *cards.SA, old, parent []state.Target) []state.Target) {
+	type place struct {
+		link *cards.SA // nil for the root's own targets
+		old  []state.Target
+		slot int
+		mag  state.Target
+	}
+	var places []place
+	var distinct []state.Target
+	var parent []state.Target // nil while judging the root
+	for link := subject; link != nil; link = link.Sub {
+		old := declared(link)
+		if len(old) == 0 {
+			if link == subject {
+				parent = []state.Target{}
+			}
+			continue
+		}
+		candidates := offered(link, old, parent)
+		parent = old
+		var mag state.Target
+		found := false
+		for _, t := range DefinedSpec(h, c, magnet) {
+			if targetIn(candidates, t) && !targetIn(old, t) {
+				mag, found = t, true
+				break
+			}
+		}
+		if !found {
+			continue
+		}
+		l := link
+		if link == subject {
+			l = nil
+		}
+		for i, t := range old {
+			if !targetIn(distinct, t) {
+				distinct = append(distinct, t)
+				places = append(places, place{link: l, old: old, slot: i, mag: mag})
+			}
+		}
+	}
+	var at place
+	switch len(places) {
+	case 0:
+		return
+	case 1:
+		at = places[0]
+	default:
+		min := 1
+		if strings.EqualFold(sa.ParamStr(cards.PKOptional), "True") {
+			min = 0
+		}
+		picked := askTargetChoice(h, c, sa, chooser, "Choose target to change", distinct, min, 1)
+		if len(picked) == 0 {
+			return
+		}
+		i := indexTarget(distinct, picked[0])
+		if i < 0 {
+			return
+		}
+		at = places[i]
+	}
+	out := slices.Clone(at.old)
+	out[at.slot] = at.mag
+	if at.link == nil {
+		recordTargets(h, subjectID, out)
+	} else {
+		h.RetargetLink(subjectID, at.link, out)
+	}
 }
 
 func repeatPlayers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {

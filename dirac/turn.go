@@ -177,6 +177,9 @@ func (s *State) beginStep(k *prep) {
 		}
 		s.step = kop.StepUpkeep
 	case kop.StepUpkeep:
+		if k.gen != nil && k.gen.anySuspend {
+			s.suspendTick(k) // CR 702.62a: gorge ticks as the step is entered (kw_suspend.go)
+		}
 		s.firePhase(k, kop.StepUpkeep)
 		if k.gen != nil && k.gen.anyDelayUp {
 			s.fireDelayedUpkeep(k)
@@ -516,11 +519,12 @@ func (s *State) sba(k *prep) bool {
 			s.lingerDrain(k)
 		}
 		// gorge's loss order (checkLoseConditions): every life loss, then
-		// every empty-library one; a departing monarch hands off as it is
-		// marked (CR 725.4, act_monarch.go)
+		// every empty-library one; a departing holder hands off as it is
+		// marked (CR 726.4, act_initiative.go, before CR 725.4, act_monarch.go)
 		for p := uint8(0); p < s.nSeats(); p++ {
 			if s.pl[p].life <= 0 && !s.pl[p].lost && !s.cantLoseLife(k, p) {
 				s.pl[p].lost = true
+				s.initLeft(k, p) // CR 726.4 (act_initiative.go)
 				s.monarchLeft(k, p)
 			}
 		}
@@ -646,6 +650,11 @@ func (s *State) sba(k *prep) bool {
 		if k.ctrMana {
 			s.sbaCtrTough(k, &die, &gy) // -0/-1 counters (mana_countercost.go)
 		}
+		var wld slotMask
+		if k.gen != nil && k.gen.anyWorld {
+			wld = s.worldLosers(k) // CR 704.5k (zone_worldrule.go)
+			gy = gy.or(wld)
+		}
 		if len(s.cold.parked) != 0 && (die.or(gy).any() || s.parkedWaiting()) {
 			// the legend ask comes first (parkLegendChoice below); its answer
 			// parks what competes
@@ -657,6 +666,7 @@ func (s *State) sba(k *prep) bool {
 				return true
 			}
 		}
+		wld = wld.and(gy) // a parked casualty left gy (exileOrderAsk)
 		var bat slotMask
 		if k.gen != nil && k.gen.anyBattle {
 			// CR 704.5v as gorge models it (battleZeroDefense): exiled in a
@@ -738,12 +748,14 @@ func (s *State) sba(k *prep) bool {
 			s.ceaseTokensGen()
 		}
 		// gorge's order (rules/sba.go): the creature casualties (lethal
-		// damage, zero toughness), then planeswalkers with no loyalty, then
+		// damage, zero toughness), then the world rule's losers, then
+		// planeswalkers with no loyalty, then
 		// defeated battles (to exile), then unattached Auras; within each, each seat's battlefield
 		// list in seat order. The graveyard and the pending triggers follow it.
 		var order [MaxPerm]Slot
 		n := 0
-		for _, gm := range [4]slotMask{die, pwz.andNot(die), bat.andNot(die.or(pwz)), aur.andNot(die.or(pwz).or(bat))} {
+		dw := die.or(wld)
+		for _, gm := range [5]slotMask{die, wld.andNot(die), pwz.andNot(dw), bat.andNot(dw.or(pwz)), aur.andNot(dw.or(pwz).or(bat))} {
 			for p := uint8(0); p < MaxSeats; p++ {
 				n = s.battlefieldOrder(p, gm.and(s.ctrlM[p]), order[:], n)
 			}
@@ -1196,6 +1208,16 @@ func (s *State) legendOptions(k *prep, d *Decision) {
 
 // applyLegend keeps the chosen permanent; the others go to the graveyard.
 func (s *State) applyLegend(k *prep, a Action) {
+	// the pose pass's out-of-battlefield tokens and copies ride the legend
+	// batch (gorge parkLegendChoice parks ceaseDeadTokens' finds with the
+	// ask and applyLegendBatch applies them with the answer): they cease
+	// here, before the next pass poses a further group, whose graveyard
+	// order they would otherwise shift (CR 704.3, 704.5d). A token this
+	// batch itself removes is still on the battlefield here and ceases on
+	// the pass after the answer, as in gorge.
+	if k.gen != nil || s.cfg&cfgCommander != 0 {
+		s.ceaseTokensGen()
+	}
 	keep := Obj(a.Source())
 	var out slotMask
 	for m := s.ctrlM[s.legP]; m.any(); m = m.rest() {

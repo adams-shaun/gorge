@@ -205,6 +205,14 @@ func (g *GorgeSide) GorgeOption(a Canon) (decision.Option, bool) {
 			return *optByIndex(fr.d, pe.opt), true
 		case prPlan:
 			return decision.Option{Kind: "cast", Obj: pe.pay.Cast.Object, Mode: pe.pay.Cast.CastMode()}, true
+		case prLower:
+			// a lowered potential play knows its own mode: the multikicked
+			// cast canonicalises as "kicked", so the canonical name alone
+			// would hide the count ask (CR 702.43)
+			if pe.play.Kind == "ability" {
+				return decision.Option{Kind: "ability", Obj: pe.play.Obj, Ability: pe.play.Ability}, true
+			}
+			return decision.Option{Kind: pe.play.Kind, Obj: pe.play.Obj, Mode: pe.play.Mode}, true
 		default:
 			obj := g.id.obj[a.Src()]
 			if a.Kind() == ActActivate {

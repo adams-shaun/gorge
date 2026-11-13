@@ -634,7 +634,7 @@ func divTotalReads(v lValue) bool {
 
 func tgtBoundReads(v lValue) bool {
 	switch v.Kind {
-	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked, vIfCastOwnMain:
+	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked, vIfCastOwnMain, vTimesKicked:
 		return true
 	case vOppExtreme:
 		// the asking player's living opponents (PlayerCountPlayers$Amount
@@ -977,6 +977,16 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 		// reads the colours of the cards its source imprinted (kernel
 		// mana_imprint.go; lower_imprintmox.go)
 		ka.AFlags |= kop.AfManaChoice | kop.AfManaReflect
+		ka.ManaColors = kop.ColAny
+		ka.ManaN = 1
+		return nil
+	}
+	if m.Special == "ReflectedIdentity" && m.Restrict == nil && m.RestrictAb == nil && m.Amount.isConst() && m.Amount.N == 1 {
+		// (Arcane Signet) a printed AfManaReflect with no ManaAmong filter and
+		// ManaIdentity reads the controller's commanders' colour identity
+		// (kernel mana_reflected.go identityColours; lower_zone.go lowerMana)
+		ka.AFlags |= kop.AfManaChoice | kop.AfManaReflect
+		ka.ManaIdentity = true
 		ka.ManaColors = kop.ColAny
 		ka.ManaN = 1
 		return nil
@@ -4275,6 +4285,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
+	case "Extort":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtExtort)) // dirac/act_extort.go
 	case "Fog":
 		ki.Op = kop.OpFog
 	case "LoseGame":

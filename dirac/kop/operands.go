@@ -189,6 +189,7 @@ const (
 	DurDefeated           = 9  // a defeated battle in exile awaiting its owner's CR 310.11 transformed-cast ask: obj/ver = the exiled card, ctrl = its owner; consumed by the ask
 	DurAirbend            = 10 // an airbent card (CR 701.65a): its owner may cast it from exile for {2} for as long as obj/ver stays exiled
 	DurForetell           = 13 // (11 and 12 are DurWhileSrcMay and DurWhileValid) a foretold card (CR 702.143a): its owner may cast it from exile for its foretell cost, only on a later turn than turn
+	DurSuspend            = 14 // a suspended card (CR 702.62b): obj/ver = the exiled card, ctrl = its owner, turn = its time counters; kind marks the final-counter cast ask (kw_suspend.go)
 )
 
 // MoveFlags (OpExileEx C, OpReturnEx C>>3, OpChangeZoneAllEx C>>3).

@@ -28,6 +28,41 @@ type PolicyFunc func(c *PickCtx) Canon
 
 func (f PolicyFunc) Pick(c *PickCtx) Canon { return f(c) }
 
+// AffordableTargetPolicy wraps p so a cast-time target ask whose price reads
+// the target count (CDecision.TargetLeft from gorge's
+// Decision.AffordableTargets) is closed with Done once the affordable picks
+// are spent. Firing one more target only reverses the cast (CR 733.1): the
+// caster cannot pay the final cost, so gorge's abortCast and the kernel's
+// payment window both leave their taps in place, and the two engines choose
+// the window's last source colour differently, so the floating pool diverges.
+// gorge's botpolicy stays within the same count; a policy that does not is
+// proposing a play the engine will undo. kfuzz's random policy wraps itself
+// in this; a test that deliberately drives a CR 733.1 reversal keeps the raw
+// policy.
+func AffordableTargetPolicy(p Policy) Policy {
+	return PolicyFunc(func(c *PickCtx) Canon {
+		if done, ok := affordableDone(c.D); ok {
+			return done
+		}
+		return p.Pick(c)
+	})
+}
+
+// affordableDone returns the Done canon when an unattended policy has spent
+// a per-target-priced cast ask's affordable target count
+// (CDecision.TargetLeft reaches zero).
+func affordableDone(d *CDecision) (Canon, bool) {
+	if d == nil || !d.TargetLimited || d.TargetLeft > 0 {
+		return 0, false
+	}
+	for _, o := range d.Options {
+		if o.Kind() == ActDone {
+			return o, true
+		}
+	}
+	return 0, false
+}
+
 // RandomPolicy picks uniformly among the options from its own PCG stream
 // (never gorge's or the kernel's RNG).
 func RandomPolicy(seed uint64) Policy {

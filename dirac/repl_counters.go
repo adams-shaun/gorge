@@ -10,6 +10,9 @@ import (
 // ctrKw is the keywords p's keyword counters grant (CR 122.1b).
 func ctrKw(s *State, p *perm) kop.KwMask {
 	var m kop.KwMask
+	if s.g.nmay != 0 && s.suspendHasteAt(p) {
+		m = kop.KwHaste // suspend's grant (kw_suspend.go)
+	}
 	for i := range p.ck {
 		k := p.ck[i]
 		if k == 0 {

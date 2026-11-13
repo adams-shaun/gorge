@@ -45,6 +45,9 @@ func (s *State) transform(k *prep, in *kop.Instr) {
 	if o == NoObj {
 		return
 	}
+	if e := &s.res.e; in.Obj == kop.RefSelf && e.kind != seSpell && s.objs[o].ver != e.srcVer {
+		return // the ability's source left and returned: a new object (CR 400.7, 603.7c)
+	}
 	if k.anyDayNight && s.dnBound(k, o) {
 		return // CR 702.145b/e: only its own daybound/nightbound turns it
 	}

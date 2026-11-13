@@ -82,7 +82,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.19c | follows | `engine/effects/regeneration.go#ReplaceDestruction` | - | Incinerate stat:CantRegenerate still on ratchet |
 | 701.20a-c,e | follows | `engine/effects/cardflow.go#effReveal` `engine/effects/dig.go#digSecretTo` | `TestJacePlusTwoBottomedCardIsHiddenFromItsOwner` |  |
 | 701.20d | unknown | - | - | not reached |
-| 701.21a | partial | `engine/effects/zone_bulk.go#sacrificeObjectEligible` `engine/effects/zone_bulk.go#effSacrifice` | - | gorge object path lacks controller check |
+| 701.21a | partial | `engine/effects/zone_bulk.go#sacrificeObjectEligible` `engine/effects/zone_bulk.go#effSacrifice` | `TestSelfSacrificeNeedsTheAbilityController` | gorge: non-source object targets lack controller check |
 | 701.22a | follows | `engine/effects/cardflow.go#effLookAndArrange` | - |  |
 | 701.22b | follows | `engine/effects/cardflow.go#effLookAndArrange` | `TestScryZeroIsNoScryEvent` `TestScryOneStillTriggersOnEmptyLibrary` | scry 0 records nothing; scry N>0 over an empty library still records |
 | 701.22c | partial | `engine/effects/cardflow.go#effLookAndArrange` | - | players scry sequentially |

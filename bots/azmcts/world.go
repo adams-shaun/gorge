@@ -26,7 +26,7 @@ type World struct {
 // the search touches hidden information. An error wrapping ErrNoWorld means
 // no world could be produced (the sampler starving with no redeal).
 // The clairvoyant source (a clone of the REAL engine) lives in
-// bots/azmcts/clairvoyant and reaches the seat only through
+// the private companion module's `clairvoyant` package and reaches the seat only through
 // SeatConfig.Source; this package keeps only the honest RedealSource.
 type WorldSource interface {
 	World(sim int) (World, error)

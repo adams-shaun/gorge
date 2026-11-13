@@ -386,6 +386,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = lValue{Kind: vPowerOf, Ref: ref}
 		case "CardToughness":
 			v = lValue{Kind: vToughnessOf, Ref: ref}
+		case "CardSumPT":
+			// its power plus its toughness (Phthisis, Predator's Rapport;
+			// gorge count_ref_property.go's CardSumPT): the two reads, summed
+			v = lValue{Kind: vSum, Sub: []lValue{{Kind: vPowerOf, Ref: ref}, {Kind: vToughnessOf, Ref: ref}}}
 		case "Converge":
 			// the spell's colours spent, snapshotted as the
 			// trigger fires (gorge TriggerConverge)
@@ -1133,16 +1137,18 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lValue{Kind: vRedNCDmg}, nil // gorge evalDamageHistory
 	case "ValidHand Card.YouOwn":
 		// gorge's zone count over every hand: the cards you own there are
-		// exactly your hand
-		return lValue{Kind: vHandSizeOf, Ref: lRef{Kind: rYou}}, nil
+		// exactly your hand. N 1: the cards, not the zone length -- a token
+		// bounced into the hand waits there (CR 704.5d) and is no card (CR
+		// 111.6), as gorge's zoneCountFold.visit reads.
+		return lValue{Kind: vHandSizeOf, N: 1, Ref: lRef{Kind: rYou}}, nil
 	case "ValidHand Card":
 		// gorge's zone count over every hand: both players' hand sizes
-		return lValue{Kind: vSum, Sub: []lValue{{Kind: vHandSizeOf, Ref: lRef{Kind: rYou}}, {Kind: vHandSizeOf, Ref: lRef{Kind: rEachOpp}}}}, nil
+		return lValue{Kind: vSum, Sub: []lValue{{Kind: vHandSizeOf, N: 1, Ref: lRef{Kind: rYou}}, {Kind: vHandSizeOf, N: 1, Ref: lRef{Kind: rEachOpp}}}}, nil
 	case "ValidHand Card.ActivePlayerCtrl":
 		// gorge's zone count over every hand, each card controlled by its
 		// owner: the active player's hand size, yours on your turn and the
 		// opponent's otherwise
-		hand := func(r refKind) lValue { return lValue{Kind: vHandSizeOf, Ref: lRef{Kind: r}} }
+		hand := func(r refKind) lValue { return lValue{Kind: vHandSizeOf, N: 1, Ref: lRef{Kind: r}} }
 		return lValue{Kind: vCompare, N: 1, Op: opGE, Sub: []lValue{{Kind: vYourTurns, N: 1}, {Kind: vBranches, Sub: []lValue{hand(rYou), hand(rEachOpp)}}}}, nil
 	case "ValidHand Land.YouOwn":
 		// gorge's zone count over every hand (Land Grant): a
@@ -1352,13 +1358,22 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lValue{Kind: vCompare, N: 0, Op: opLE, Sub: []lValue{{Kind: vHandSizeOf, Ref: lRef{Kind: rYou}}, {Kind: vBranches, Sub: br[:]}}}, nil
 	}
 	if rest == "TimesKicked" {
-		// the count of kicker payments: a card with one Kicker keyword is
-		// kicked once or not at all, so it reads as the kicked bit (gorge
-		// count_body_paid.go's TimesKicked)
-		if lc.out.Kicker == nil {
-			return lValue{}, refuse("Count$TimesKicked without a Kicker keyword")
+		// the count of kicker payments. A plain Kicker is paid once or not
+		// at all, so it reads as the kicked bit; a Multikicker reads the
+		// repeated payment count (gorge count_body_paid.go's TimesKicked).
+		switch {
+		case lc.out.Multikicker != nil && lc.out.Kicker != nil:
+			return lValue{}, refuse("Count$TimesKicked with both Kicker and Multikicker")
+		case lc.out.Multikicker != nil:
+			return lValue{Kind: vTimesKicked}, nil
+		case lc.out.Kicker != nil:
+			return lValue{Kind: vKicked, Sub: []lValue{cst(1), cst(0)}}, nil
+		case faceHasKeyword(lc.face, "Multikicker"):
+			// the keyword itself refused (an {X} base cost, a non-mana
+			// payment): name the refused Multikicker, not a missing Kicker
+			return lValue{}, refuse("Count$TimesKicked with a refused Multikicker")
 		}
-		return lValue{Kind: vKicked, Sub: []lValue{cst(1), cst(0)}}, nil
+		return lValue{}, refuse("Count$TimesKicked without a Kicker keyword")
 	}
 	for _, cv := range []struct {
 		pre     string

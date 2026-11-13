@@ -592,34 +592,32 @@ const combatPhyLife = decision.PhyrexianLife
 // once, against the board as it stood when the window opened, and paid
 // verbatim at completion -- the mana window's own taps can remove a
 // candidate (tapping a creature land), so re-deriving would drift.
-// phyToLife is the number of Phyrexian pips paid with life rather than
-// colour; phyDecided records whether that election was made; phyElection is
-// TRUE when BOTH branches are affordable, so the CR 107.4f colour-versus-life
-// choice is owed and the window must pose it (a charge with no Phyrexian
-// pips, or one where only a single branch is affordable, settles
-// deterministically).
+// phyDone is the number of Phyrexian pips routed so far, in charge.phyrexian
+// order; phyLife counts the pips among them paid with life, per colour.
+// Routing a pip to life spends two life (CR 107.4f); routing it to colour
+// leaves it in manaCost. A pip with only one feasible branch is routed as
+// soon as the window sees it; a pip with both branches is left for the ask.
 type combatPayPlan struct {
-	player      state.PlayerID
-	charge      blockCharge
-	taps        []state.ObjID
-	sacs        []state.ObjID
-	returns     []state.ObjID
-	phyToLife   int32
-	phyDecided  bool
-	phyElection bool
+	player  state.PlayerID
+	charge  blockCharge
+	taps    []state.ObjID
+	sacs    []state.ObjID
+	returns []state.ObjID
+	phyDone int32
+	phyLife state.Mana
 }
 
 // openCombatPayPlan freezes the plan for a charge against the payer's board
-// and applies the DETERMINISTIC Phyrexian routing when no election is owed:
-// a charge whose only affordable pip branch is life has its pips routed to
-// life up front, so the inline/coverage read and the payment window both see
-// the same mana requirement. A charge with BOTH branches affordable sets
-// phyElection and leaves phyToLife 0, so the window poses the real choice.
-// excluded holds the declaration's own committed creatures for the OBLIGATION
-// half; manaExcluded holds the mana-half withholdings beyond the plan's own
-// tap reservations (the attack direction's declared attackers; nil on the
-// block side, where a committed blocker is still a mana source). Returns nil,
-// false when an obligation cannot be met (the caller declines).
+// and applies the DETERMINISTIC Phyrexian routing (a pip whose only affordable
+// branch is colour or life is routed immediately) so the inline/coverage read
+// and the payment window see the same mana requirement. A pip with BOTH
+// branches affordable is left routed-so-far for the window to ask. excluded
+// holds the declaration's own committed creatures for the OBLIGATION half;
+// manaExcluded holds the mana-half withholdings beyond the plan's own tap
+// reservations (the attack direction's declared attackers; nil on the block
+// side, where a committed blocker is still a mana source). Returns nil, false
+// when an obligation cannot be met or no pip routing is feasible (the caller
+// declines).
 func (e *Engine) openCombatPayPlan(p state.PlayerID, c blockCharge, excluded, manaExcluded map[state.ObjID]bool) (*combatPayPlan, bool) {
 	if !c.payable() {
 		return nil, false
@@ -629,12 +627,8 @@ func (e *Engine) openCombatPayPlan(p state.PlayerID, c blockCharge, excluded, ma
 		return nil, false
 	}
 	plan := &combatPayPlan{player: p, charge: c, taps: taps, sacs: sacs, returns: returns}
-	if len(c.phyrexian) > 0 {
-		both, canColour, canLife := e.combatPhyBothBranches(p, c, plan.tapExclude(), manaExcluded)
-		plan.phyElection = both
-		if !both && !canColour && canLife {
-			plan.phyToLife = int32(len(c.phyrexian))
-		}
+	if !e.routeForcedPhy(plan, manaExcluded) {
+		return nil, false
 	}
 	return plan, true
 }
@@ -643,22 +637,65 @@ func (e *Engine) openCombatPayPlan(p state.PlayerID, c blockCharge, excluded, ma
 // generic component plus every Phyrexian pip not routed to life (CR 107.4f).
 func (pl *combatPayPlan) manaCost() Cost {
 	out := Cost{Generic: pl.charge.mana}
-	for i, col := range pl.charge.phyrexian {
-		if int32(i) < pl.phyToLife {
-			continue
-		}
+	for _, col := range pl.charge.phyrexian {
 		// The pip is paid with one mana of its colour on the colour branch.
 		// Modelled as a coloured pip (not a Phyrexian pip) so the mana window
 		// requires REAL colour mana: a Phyrexian Cost entry would let
-		// resolveManaWith satisfy it with life, which is the branch this
-		// decision already made not to take.
+		// resolveManaWith satisfy it with life, which is the branch the plan
+		// already decided not to take for this pip.
 		out.Colored[state.ManaIndex(col)]++
+	}
+	for c, n := range pl.phyLife {
+		out.Colored[c] -= n
 	}
 	return out
 }
 
 // lifeExtra is the life the life-routed Phyrexian pips charge (two per pip).
-func (pl *combatPayPlan) lifeExtra() int32 { return pl.phyToLife * combatPhyLife }
+func (pl *combatPayPlan) lifeExtra() int32 { return pl.phyLifePips() * combatPhyLife }
+
+// phyLifePips is the number of Phyrexian pips routed to life so far.
+func (pl *combatPayPlan) phyLifePips() int32 {
+	var n int32
+	for _, v := range pl.phyLife {
+		n += v
+	}
+	return n
+}
+
+// routePhyPip commits the next unrouted Phyrexian pip (charge order) to
+// colour or life.
+func (pl *combatPayPlan) routePhyPip(toLife bool) {
+	if pl.phyDone >= int32(len(pl.charge.phyrexian)) {
+		return
+	}
+	if toLife {
+		pl.phyLife[state.ManaIndex(pl.charge.phyrexian[pl.phyDone])]++
+	}
+	pl.phyDone++
+}
+
+// routeForcedPhy routes every Phyrexian pip whose branch is forced, stopping
+// at the first pip where BOTH colour and life are feasible (the window owes
+// the CR 107.4f ask), and failing closed when neither branch is feasible.
+// Counting the fixed life charge and the pips already routed to life, only
+// as many further pips as the payer's remaining life can buy may be life.
+func (e *Engine) routeForcedPhy(pl *combatPayPlan, manaExcluded map[state.ObjID]bool) bool {
+	for pl.phyDone < int32(len(pl.charge.phyrexian)) {
+		canColour, canLife := e.combatPhyPipBranches(pl, manaExcluded)
+		switch {
+		case canColour && canLife:
+			return true
+		case canColour:
+			pl.routePhyPip(false)
+		case canLife:
+			pl.routePhyPip(true)
+		default:
+			return false
+		}
+	}
+	return true
+}
 
 // tapExclude is the set of permanents the plan reserves for its tap
 // obligations. The mana window withholds them from its tap list: a permanent
@@ -701,54 +738,102 @@ func (e *Engine) manaSatisfied(pl *combatPayPlan) bool {
 	return ok
 }
 
-// combatPhyBothBranches reports whether BOTH the colour branch and the life
-// branch of a charge's Phyrexian pips are individually affordable, so the
-// payer may be offered the real CR 107.4f choice. A charge with a single
-// affordable branch skips the ask and settles deterministically.
-//
-// Both branches price the charge's GENERIC component JOINTLY with the pips:
-// a `Cost$ 2 WP` with only two white mana in reach is affordable in NEITHER
-// branch, because the two white must also cover the two generic, so the pips
-// and the generic cannot be checked independently against the same sources.
+// combatPhyPipBranches reports, for the NEXT unrouted Phyrexian pip, whether
+// routing it to colour and whether routing it to life leaves the rest of the
+// charge feasible. It is the per-pip CR 107.4f choice: the colour branch
+// fixes this pip to one mana of its colour, the life branch fixes it to two
+// life, and combatPhyFeasible prices the LATER pips (which may be split
+// freely) jointly with the generic component.
 //
 // manaExcluded holds only permanents withheld from the MANA HALF -- the
-// plan's own tap reservations, plus (attack direction only) the declared
-// attackers, which CR 508.1f genuinely taps. A committed BLOCKER is not
-// withheld here: declaring a block never taps it (CR 509.1), so it is a
-// legitimate mana source for its own pair's tax. The obligation half is a
-// separate exclusion owned by chargeObjPlan.
-func (e *Engine) combatPhyBothBranches(p state.PlayerID, c blockCharge, manaExcluded ...map[state.ObjID]bool) (both bool, canColour, canLife bool) {
-	if len(c.phyrexian) == 0 {
-		return false, false, false
+// plan's own tap reservations are always merged in, plus (attack direction
+// only) the declared attackers, which CR 508.1f genuinely taps. A committed
+// BLOCKER is not withheld here: declaring a block never taps it (CR 509.1),
+// so it is a legitimate mana source for its own pair's tax. The obligation
+// half is a separate exclusion owned by chargeObjPlan.
+func (e *Engine) combatPhyPipBranches(pl *combatPayPlan, manaExcluded map[state.ObjID]bool) (canColour, canLife bool) {
+	c := pl.charge
+	i := pl.phyDone
+	if i < 0 || i >= int32(len(c.phyrexian)) {
+		return false, false
 	}
+	exclude := make(map[state.ObjID]bool, len(manaExcluded)+len(pl.taps))
+	for id := range pl.tapExclude() {
+		exclude[id] = true
+	}
+	for id := range manaExcluded {
+		exclude[id] = true
+	}
+	// colour holds the pips before i already fixed to colour mana: every pip
+	// before i, minus the life-routed counts.
+	var colour state.Mana
+	for j := int32(0); j < i; j++ {
+		colour[state.ManaIndex(c.phyrexian[j])]++
+	}
+	for s, n := range pl.phyLife {
+		colour[s] -= n
+	}
+	lifePips := pl.phyLifePips()
+	rest := c.phyrexian[i+1:]
+	colourNow := colour
+	colourNow[state.ManaIndex(c.phyrexian[i])]++
+	canColour = e.combatPhyFeasible(pl.player, c, colourNow, lifePips, rest, exclude)
+	canLife = e.combatPhyFeasible(pl.player, c, colour, lifePips+1, rest, exclude)
+	return canColour, canLife
+}
+
+// combatPhyFeasible reports whether the charge is payable when colour holds
+// the pips already fixed to colour mana, lifePips pips are already routed to
+// life, and the pips in rest may be split freely. Only as many further pips
+// as the payer's life can buy after the fixed life charge may be life
+// (CR 107.4f), so at most k = min((Life-c.life)/2 - lifePips, len(rest)) of
+// rest go to life; using ALL k is the least colour-demanding split, so the
+// search tries every per-colour allocation of k life pips over rest and asks
+// whether the resulting Cost is reachable with the same joint arguments the
+// old all-colour branch used.
+func (e *Engine) combatPhyFeasible(p state.PlayerID, c blockCharge, colour state.Mana, lifePips int32, rest []byte, manaExcluded map[state.ObjID]bool) bool {
 	player := e.G.Players[p]
+	k := (player.Life-c.life)/combatPhyLife - lifePips
+	if k < 0 {
+		return false
+	}
+	if k > int32(len(rest)) {
+		k = int32(len(rest))
+	}
+	var restCol, lifeCol state.Mana
+	for _, col := range rest {
+		restCol[state.ManaIndex(col)]++
+	}
 	conv := asEval(e).Conv(p, 0, pay.SAOther)
-	exclude := make(map[state.ObjID]bool)
-	for _, set := range manaExcluded {
-		for id := range set {
-			exclude[id] = true
+	units := e.attackWindowUnits(p, manaExcluded)
+	var rec func(slot int, remaining int32) bool
+	rec = func(slot int, remaining int32) bool {
+		if slot == len(lifeCol) {
+			if remaining != 0 {
+				return false
+			}
+			cost := Cost{Generic: c.mana}
+			for s := range cost.Colored {
+				cost.Colored[s] = colour[s] + restCol[s] - lifeCol[s]
+			}
+			av := combatManaAvailable(asPayer(e), p, cost)
+			return pay.UnlessManaReachable(asPayer(e), p, cost, av.Pool, player.Snow, av.Typed,
+				player.Life-c.life, conv, units)
 		}
+		max := restCol[slot]
+		if max > remaining {
+			max = remaining
+		}
+		for n := int32(0); n <= max; n++ {
+			lifeCol[slot] = n
+			if rec(slot+1, remaining-n) {
+				return true
+			}
+		}
+		lifeCol[slot] = 0
+		return false
 	}
-	units := e.attackWindowUnits(p, exclude)
-	// Colour branch: the generic plus every pip in its own colour, no pip paid
-	// with life. A coloured Cost entry, not a Phyrexian one, so this probes
-	// REAL colour mana; unlessManaReachable counts the payer's untapped
-	// sources (the pool alone would miss a Plains the payer has not tapped).
-	colourCost := Cost{Generic: c.mana}
-	for _, col := range c.phyrexian {
-		colourCost.Colored[state.ManaIndex(col)]++
-	}
-	avColour := combatManaAvailable(asPayer(e), p, colourCost)
-	canColour = pay.UnlessManaReachable(asPayer(e), p, colourCost, avColour.Pool, player.Snow, avColour.Typed,
-		player.Life-c.life, conv, units)
-	// Life branch: the generic reachable with no life spent on pips, and the
-	// payer's life after the fixed life charge covers two per pip.
-	lifeCost := Cost{Generic: c.mana}
-	avLife := combatManaAvailable(asPayer(e), p, lifeCost)
-	canLife = player.Life-c.life >= int32(len(c.phyrexian))*combatPhyLife &&
-		pay.UnlessManaReachable(asPayer(e), p, lifeCost, avLife.Pool, player.Snow, avLife.Typed,
-			player.Life-c.life, conv, units)
-	return canColour && canLife, canColour, canLife
+	return rec(0, k)
 }
 
 // combatChargeAffordable reports whether the payer can pay every component of
@@ -817,11 +902,9 @@ func (e *Engine) combatChargeAffordable(p state.PlayerID, c blockCharge, exclude
 	if !reachable || len(c.phyrexian) == 0 {
 		return reachable
 	}
-	// The current choice contract routes all Phyrexian pips together. Do not
-	// offer a mixed-only multi-pip charge that the payment continuation cannot
-	// settle; a future per-pip chooser can widen this safely.
-	_, canColour, canLife := e.combatPhyBothBranches(p, c, exclude)
-	return canColour || canLife
+	// Every Phyrexian pip must be payable with colour or life (CR 107.4f),
+	// each independently: the per-pip split may mix the two branches.
+	return e.combatPhyFeasible(p, c, state.Mana{}, 0, c.phyrexian, exclude)
 }
 
 // blockChargeAffordable is the block-direction alias of the shared
@@ -858,12 +941,12 @@ func (e *Engine) payCombatExtras(p state.PlayerID, c blockCharge, taps, sacs, re
 }
 
 // combatPlanSettlesInline reports whether the plan can settle without
-// opening the payment window: no Phyrexian election is owed and the pool
-// already covers the (deterministically routed) mana requirement. An
+// opening the payment window: every Phyrexian pip has been routed and the
+// pool already covers the (deterministically routed) mana requirement. An
 // obligation/life component is settled inline either way, so it does not
 // affect this read.
 func (e *Engine) combatPlanSettlesInline(plan *combatPayPlan) bool {
-	if plan.phyElection {
+	if plan.phyDone < int32(len(plan.charge.phyrexian)) {
 		return false
 	}
 	return e.manaSatisfied(plan)
@@ -873,7 +956,7 @@ func (e *Engine) combatPlanSettlesInline(plan *combatPayPlan) bool {
 // non-mana components, without opening a payment window.
 func (e *Engine) payCombatChargeInline(plan *combatPayPlan) {
 	cost := plan.manaCost()
-	if cost.Generic > 0 || len(cost.Phyrexian) > 0 {
+	if cost.Generic > 0 || len(cost.Phyrexian) > 0 || cost.Colored.Total() > 0 {
 		pay.PayManaConv(asPayer(e), plan.player, cost, asEval(e).Conv(plan.player, 0, pay.SAOther))
 	}
 	e.payCombatExtras(plan.player, plan.charge, plan.taps, plan.sacs, plan.returns, plan.lifeExtra())
@@ -942,7 +1025,7 @@ func (e *Engine) declineBlockDeclaration(player state.PlayerID) {
 // the parked DeclareBlockers declaration.
 func (e *Engine) completeBlockPay(chosen []decision.Option, plan *combatPayPlan) {
 	cost := plan.manaCost()
-	if cost.Generic > 0 || len(cost.Phyrexian) > 0 {
+	if cost.Generic > 0 || len(cost.Phyrexian) > 0 || cost.Colored.Total() > 0 {
 		pay.PayManaConv(asPayer(e), plan.player, cost, asEval(e).Conv(plan.player, 0, pay.SAOther))
 	}
 	e.payCombatExtras(plan.player, plan.charge, plan.taps, plan.sacs, plan.returns, plan.lifeExtra())
@@ -964,12 +1047,16 @@ func (e *Engine) askNextBlockPay() bool {
 		return false
 	}
 	plan := st.plan
-	if plan.phyElection && !plan.phyDecided {
+	if plan.phyDone < int32(len(plan.charge.phyrexian)) {
+		pip := plan.charge.phyrexian[plan.phyDone]
+		label := fmt.Sprintf("Pay {%c/P} (%d of %d)", pip, plan.phyDone+1, len(plan.charge.phyrexian))
 		d := &decision.Decision{Player: plan.player, Kind: decision.KChoose, Min: 1, Max: 1,
 			Prompt: "Pay the Phyrexian cost with mana or life"}
 		d.Options = append(d.Options,
-			decision.Option{Index: 0, Kind: "block_phy_colour", Label: "Pay the Phyrexian symbols with mana"},
-			decision.Option{Index: 1, Kind: "block_phy_life", Label: fmt.Sprintf("Pay %d life", int32(len(plan.charge.phyrexian))*combatPhyLife)})
+			decision.Option{Index: 0, Kind: "block_phy_colour",
+				Label: label + " with " + string(pip)},
+			decision.Option{Index: 1, Kind: "block_phy_life",
+				Label: label + " with 2 life"})
 		e.choosing = chooseBlockPay
 		e.ask(d)
 		return true
@@ -1016,16 +1103,20 @@ func (e *Engine) blockPayAnswer(d *decision.Decision, in decision.Intent) {
 	if len(chosen) == 1 {
 		switch blockPayAnswerCodes.Code(string(chosen[0].Kind)) {
 		case blockPayAnswerBlockPhyColour:
-			st.plan.phyDecided = true
-			st.plan.phyToLife = 0
+			st.plan.routePhyPip(false)
 		case blockPayAnswerBlockPhyLife:
-			st.plan.phyDecided = true
-			st.plan.phyToLife = int32(len(st.plan.charge.phyrexian))
+			st.plan.routePhyPip(true)
 		default:
 			if s, ok := paySourceForAnswer(st.sources, chosen[0]); ok {
 				e.resolveManaAbilityRefOriginal(st.plan.player, s.id, s.ma, s.original, s.gained, false, false, false)
 			}
 		}
+	}
+	if !e.routeForcedPhy(st.plan, nil) {
+		// The remaining pips admit no branch at all: decline rather than
+		// committing a declaration whose Phyrexian cost cannot be paid.
+		e.declineBlockDeclaration(st.plan.player)
+		return
 	}
 	if !e.askNextBlockPay() {
 		plan := st.plan
@@ -1447,7 +1538,12 @@ type attackOfferKey struct {
 // CR 508.1d's "satisfy as many requirements as possible": once the legal,
 // affordable pairs are known, every pair of a creature that satisfies FEWER
 // player-attack duties (named or goad) than the creature's best available
-// defender is dropped.
+// defender is dropped. CR 508.1d's last sentence bounds that comparison: a
+// player is never required to pay a cost to attack, so the best is read over
+// ZERO-charge pairs only -- a charged pair that satisfies more duties than
+// every free pair cannot push the free pairs out (a Ghostly Prison beside a
+// MustAttack requirement must not turn the creature's free pairs into a
+// dropped remainder), it merely stays offered as an optional pair.
 // That is what keeps a named MustAttack$ duty and a goad from cancelling each
 // other out into "the creature attacks nobody": the earlier single-defender
 // filter removed the non-named pairs while combat.GoadMayAttack removed the named
@@ -1618,8 +1714,18 @@ func (e *Engine) attackOffersCompute() []attackOffer {
 		}
 	}
 	// Best player-attack duty satisfaction per creature over surviving pairs.
+	// CR 508.1d's last sentence: a player is never required to pay a cost to
+	// attack, so a charged pair never raises the bar -- best reads only
+	// zero-charge pairs. A creature whose every pair is charged keeps best 0
+	// and loses nothing; a charged pair above a lower free best stays offered
+	// (the keep loop below drops only pairs BELOW best), merely optional --
+	// attackDutyDischargeable (engine/rules/combat.go) reads the same list and
+	// skips charged pairs, so such a creature is never marked Required.
 	best := make(map[state.ObjID]int)
 	for _, of := range out {
+		if !of.charge.zero() {
+			continue
+		}
 		if n := reqs[of.id].SatisfiedByOffer(of.def, of.battle); n > best[of.id] {
 			best[of.id] = n
 		}
@@ -1812,7 +1918,7 @@ func chosenAttackers(chosen []decision.Option) map[state.ObjID]bool {
 // (the enlist election, or finishAttackers when no attacker enlists).
 func (e *Engine) completeAttackPay(chosen []decision.Option, plan *combatPayPlan) {
 	cost := plan.manaCost()
-	if cost.Generic > 0 || len(cost.Phyrexian) > 0 {
+	if cost.Generic > 0 || len(cost.Phyrexian) > 0 || cost.Colored.Total() > 0 {
 		pay.PayManaConv(asPayer(e), plan.player, cost, asEval(e).Conv(plan.player, 0, pay.SAOther))
 	}
 	e.payCombatExtras(plan.player, plan.charge, plan.taps, plan.sacs, plan.returns, plan.lifeExtra())
@@ -1836,12 +1942,16 @@ func (e *Engine) askNextAttackPay() bool {
 		return false
 	}
 	plan := st.plan
-	if plan.phyElection && !plan.phyDecided {
+	if plan.phyDone < int32(len(plan.charge.phyrexian)) {
+		pip := plan.charge.phyrexian[plan.phyDone]
+		label := fmt.Sprintf("Pay {%c/P} (%d of %d)", pip, plan.phyDone+1, len(plan.charge.phyrexian))
 		d := &decision.Decision{Player: plan.player, Kind: decision.KChoose, Min: 1, Max: 1,
 			Prompt: "Pay the Phyrexian cost with mana or life"}
 		d.Options = append(d.Options,
-			decision.Option{Index: 0, Kind: "attack_phy_colour", Label: "Pay the Phyrexian symbols with mana"},
-			decision.Option{Index: 1, Kind: "attack_phy_life", Label: fmt.Sprintf("Pay %d life", int32(len(plan.charge.phyrexian))*combatPhyLife)})
+			decision.Option{Index: 0, Kind: "attack_phy_colour",
+				Label: label + " with " + string(pip)},
+			decision.Option{Index: 1, Kind: "attack_phy_life",
+				Label: label + " with 2 life"})
 		e.choosing = chooseAttackPay
 		e.ask(d)
 		return true
@@ -1914,11 +2024,9 @@ func (e *Engine) attackPayAnswer(d *decision.Decision, in decision.Intent) {
 	if len(chosen) == 1 {
 		switch attackPayAnswerCodes.Code(string(chosen[0].Kind)) {
 		case attackPayAnswerAttackPhyColour:
-			st.plan.phyDecided = true
-			st.plan.phyToLife = 0
+			st.plan.routePhyPip(false)
 		case attackPayAnswerAttackPhyLife:
-			st.plan.phyDecided = true
-			st.plan.phyToLife = int32(len(st.plan.charge.phyrexian))
+			st.plan.routePhyPip(true)
 		default:
 			if chosen[0].Obj != 0 {
 				if s, ok := paySourceForAnswer(st.sources, chosen[0]); ok {
@@ -1926,6 +2034,14 @@ func (e *Engine) attackPayAnswer(d *decision.Decision, in decision.Intent) {
 				}
 			}
 		}
+	}
+	if !e.routeForcedPhy(st.plan, chosenAttackers(st.chosen)) {
+		plan := st.plan
+		e.attackPay = nil
+		e.emit(events.Event{Kind: events.Note, Player: plan.player,
+			Text: "could not pay the attack cost"})
+		e.emit(events.Event{Kind: events.DeclareAttackers, Player: e.G.NextAlive(e.G.Active)})
+		return
 	}
 	if !e.askNextAttackPay() {
 		if !e.manaSatisfied(st.plan) {

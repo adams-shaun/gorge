@@ -130,7 +130,7 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 	turnTalliesUses(t, &u) // value_turntallies.go
 	addPhaseUses(t, &u)    // act_addphase.go
 	for i := range t.Cards {
-		if cd := &t.Cards[i]; cd.Keywords&kop.KwKicker != 0 || cd.Bargain || cd.Offspring || cd.OptEvidence != 0 && cd.Types&(kop.TInstant|kop.TSorcery) == 0 {
+		if cd := &t.Cards[i]; cd.Keywords&kop.KwKicker != 0 || cd.HasMultikicker || cd.Bargain || cd.Offspring || cd.OptEvidence != 0 && cd.Types&(kop.TInstant|kop.TSorcery) == 0 {
 			u[mechKicked] = true
 		}
 		if cd := &t.Cards[i]; cd.Types&kop.TAura != 0 && cd.Enchant.Kind == kop.TgtPlayer {
@@ -297,6 +297,9 @@ func (s *State) arenaClrSlot(sl Slot) {
 	}
 	if r := s.xblkRecs(); len(r) > 0 {
 		r[sl] = xblkRec{}
+	}
+	if int(sl) < len(s.cold.mk) {
+		s.cold.mk[sl] = 0 // the last permanent's multikicker count ends with it (CR 702.43; cast.go)
 	}
 	if int(sl) < len(s.cold.hexUB) {
 		s.cold.hexUB[sl] = 0 // a new permanent takes no mark from the last one (repl_turnrepl.go)

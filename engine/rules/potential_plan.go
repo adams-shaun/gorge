@@ -611,10 +611,16 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out
 		// a RestrictValid$ source admits the payment by the cast face's
 		// characteristics (The Ringhart Crest's "legendary creature
 		// spell" mana cannot pay its own back face), the rest of the plan
-		// reads the board as it is
+		// reads the board as it is. A mode that is a CR 116.2 special
+		// action (plot, foretell, suspend) is not a spell: its plan pays
+		// under the special-action class, exactly as the offer gate and the
+		// payment do.
 		prev := e.planFace
 		e.planFace = castFace
 		defer func() { e.planFace = prev }()
+		prevSpecial := e.planSpecial
+		e.planSpecial = pay.SpecialOfCastMode(o.Mode)
+		defer func() { e.planSpecial = prevSpecial }()
 		got := e.planComposedCost(p, id, pay.PlanManaUnderRider(composed, rider), false, false)
 		if e.planKeepSources && got.Plan != nil && paymentPlanConsumes(*got.Plan) {
 			return PaymentPlanOutcome{Reason: "insufficient"}
@@ -712,8 +718,14 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out
 // potentialTargetPriced reports whether o is a cast a ValidTarget$ cost static may
 // price lower for some target. No prefix is searched for one: the search replays the
 // play's price, and a target's is not known until the targets are.
+//
+// The PLOT action is exempt (CR 701.34a): plotting exiles the card and poses
+// no target ask -- the cast from exile announces the enchant target later,
+// at its own price. A ValidTarget$ static prices a target-bearing play, so
+// it cannot price the target-free plot action, and a fee-funded plot (the
+// only colour a paid mana ability produces) must stay script-searchable.
 func (e *Engine) potentialTargetPriced(p state.PlayerID, o decision.Option) bool {
-	return o.Kind == "cast" && e.paymentPlanTargetDependentFor(e.collectCostStatics(), p, o.Obj, spellScope(o.Mode))
+	return o.Kind == "cast" && o.Mode != "plot" && e.paymentPlanTargetDependentFor(e.collectCostStatics(), p, o.Obj, spellScope(o.Mode))
 }
 
 // potentialTargetPricedPlan is a witness for a cast whose ValidTarget$ cost
@@ -1212,6 +1224,15 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 			return Cost{}, false
 		}
 		return ParseCost(raw), true
+	case potentialModeBaseCostSuspend:
+		// The suspend special action pays the K:Suspend cost (CR 702.62a), the
+		// plot action's shape: an X-time suspend announces its count and is
+		// not witnessed.
+		sc, ok := suspendCost(f)
+		if !ok || sc.timeX {
+			return Cost{}, false
+		}
+		return sc.cost, true
 	case potentialModeBaseCostPrototype:
 		// CR 718.3a: the prototyped cast pays the K:Prototype inset cost,
 		// with the spell's own additional costs folded exactly as beginCast
@@ -1226,6 +1247,12 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 	case potentialModeBaseCostKicked:
 		kc, ok := kickerCost(f)
 		return cost.Plus(kc), ok
+	case potentialModeBaseCostMultikick:
+		// CR 702.43: the offer prices the base plus ONE payment; the count
+		// ask (multikickAsk) settles how many afterwards, exactly the kicked
+		// offer's shape.
+		mc, ok := multikickerCost(f)
+		return cost.Plus(mc), ok
 	case potentialModeBaseCostBuyback:
 		bc, ok := buybackCost(f)
 		return cost.Plus(bc), ok
@@ -1536,6 +1563,12 @@ func (e *Engine) planComposedCostFor(p state.PlayerID, id state.ObjID, cast deci
 	kept = append(kept, selfKept...)
 	manaOnly := Cost{Colored: mana.Colored, Generic: mana.Generic}
 	desc := pay.DescriptorFor(id, ability, composed)
+	if e.planSpecial != pay.SpecialNone && !ability {
+		// The mode is a CR 116.2 special action, not a spell: a
+		// RestrictValid$ "spend only to cast spells" leaves its mana free,
+		// as the offer gate and the payment already read it.
+		desc = pay.SpecialDescriptor(id, e.planSpecial, composed)
+	}
 	desc.FaceIdx = e.planFaceIdx(id) // an alternate-face route's restriction reads the cast face
 	return e.planReserving(p, id, composed, ability, selfSource, parts, func(tapR, keptR []state.ObjID) PaymentPlanOutcome {
 		out := pay.PlanPaymentCostWithout(asPayer(e), p, cast, manaOnly, &desc, append(slices.Clone(tapped), tapR...), nil, append(slices.Clone(kept), keptR...))
@@ -2212,6 +2245,8 @@ const (
 	potentialModeBaseCostPreparedCopy
 	potentialModeBaseCostSneak
 	potentialModeBaseCostPrototype
+	potentialModeBaseCostMultikick
+	potentialModeBaseCostSuspend
 )
 
 var potentialModeBaseCostCodes = state.NewStrCodes(
@@ -2220,6 +2255,7 @@ var potentialModeBaseCostCodes = state.NewStrCodes(
 	state.StrEntry[potentialModeBaseCostCode]{Key: "plot", Val: potentialModeBaseCostPlot},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "flashback", Val: potentialModeBaseCostFlashback},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "kicked", Val: potentialModeBaseCostKicked},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "multikicked", Val: potentialModeBaseCostMultikick},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "buyback", Val: potentialModeBaseCostBuyback},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "offspring", Val: potentialModeBaseCostOffspring},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "entwined", Val: potentialModeBaseCostEntwined},
@@ -2235,6 +2271,7 @@ var potentialModeBaseCostCodes = state.NewStrCodes(
 	state.StrEntry[potentialModeBaseCostCode]{Key: "prepared_copy", Val: potentialModeBaseCostPreparedCopy},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "sneak", Val: potentialModeBaseCostSneak},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "prototype", Val: potentialModeBaseCostPrototype},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "suspend", Val: potentialModeBaseCostSuspend},
 )
 
 // planFaceIdx is the Descriptor.FaceIdx of e.planFace on object id: 1 + its

@@ -2380,6 +2380,12 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			return refuse("SetLife without LifeAmount$")
 		}
 		lc.emit(lInstr{Op: "SetLife", Obj: who, A: n})
+	case "Extort":
+		// CR 702.101a: the printed K:Extort expansion's body, and the
+		// latent body a layer-6 AddKeyword$ Extort grant carries
+		// (lower_extortgrant.go). The op poses the {W/B} pay/decline
+		// election and drains on a pay (dirac/act_extort.go).
+		lc.emit(lInstr{Op: "Extort"})
 	case "Fog":
 		// gorge effFog: a turn-long restriction the combat damage passes
 		// read (fogActive); Duration$ refuses
