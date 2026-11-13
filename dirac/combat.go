@@ -270,6 +270,9 @@ func (s *State) finishAttacks(k *prep) {
 	if k.anyOppsAtt {
 		s.noteOppsAttacked(m) // before any Attacks trigger reads it
 	}
+	if k.gen != nil && k.gen.anyAtkLast {
+		s.noteAtkSeats(k, m) // trig_atklastturn.go
+	}
 	for m.any() {
 		sl := m.first()
 		m = m.rest()

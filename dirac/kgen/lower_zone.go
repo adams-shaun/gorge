@@ -1133,6 +1133,9 @@ func (lc *lowerCtx) changeZoneAllSweep(ps *params) error {
 	if strings.TrimSpace(ps.str("Origin")) == "Library,Sideboard" {
 		return lc.originLibrarySideboard(ps) // lower_sideboardsearch.go
 	}
+	if strings.TrimSpace(ps.str("Origin")) == "Graveyard,Library" {
+		return lc.originGraveLibrary(ps) // lower_gravelibsweep.go
+	}
 	lc.exwOK = true // a ChangeZoneAll sweep is a resolution-time mover: ExiledWithSource reads the resolving source
 	f, err := lc.changeZoneAllFilter(ps)
 	lc.exwOK = false
