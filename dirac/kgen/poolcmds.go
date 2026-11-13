@@ -8,18 +8,21 @@ import (
 	"os"
 	"reflect"
 	"slices"
-	"strings"
 
 	"github.com/adams-shaun/gorge"
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // runSupported is kgen -supported: every entry of a pool's table, tokens included.
-func runSupported(pool string, w io.Writer) error { return runSupportedView(pool, false, w) }
+func runSupported(pool string, w io.Writer) error { return runSupportedView(pool, false, false, w) }
 
 // runSupportedView is runSupported; allowUnverified counts the cards with no lockstep
 // evidence yet as playable, as kfuzz -allow-unverified plays them. A refused card stays false.
-func runSupportedView(pool string, allowUnverified bool, w io.Writer) error {
+// fourSeat also counts a card a pod cannot hold (kop.CardPodLimited) as false: a
+// pod holding one stalls StallTwoSeat at its start, so a four-seat deck pool
+// (decks.py --four-seat) replaces it as it replaces a refused card.
+func runSupportedView(pool string, allowUnverified, fourSeat bool, w io.Writer) error {
 	s, err := cardset.ByName(pool)
 	if err != nil {
 		return err
@@ -29,7 +32,7 @@ func runSupportedView(pool string, allowUnverified bool, w io.Writer) error {
 	}
 	sup := s.Supported()
 	for i, n := range s.Names() {
-		fmt.Fprintf(w, "%s\t%v\n", n, sup[i])
+		fmt.Fprintf(w, "%s\t%v\n", n, sup[i] && !(fourSeat && kop.CardPodLimited(s.Def(i))))
 	}
 	return nil
 }
@@ -41,7 +44,7 @@ func runShow(pool, card string, w io.Writer) error {
 		return errors.New("-show wants a card name argument")
 	}
 	s, err := cardset.RawByName(pool)
-	if err != nil && (strings.HasPrefix(pool, "std-") || strings.HasPrefix(pool, "tail-")) {
+	if err != nil && cardset.IsSynthName(pool) {
 		s, err = cardset.SynthByName(pool)
 	}
 	if err != nil {

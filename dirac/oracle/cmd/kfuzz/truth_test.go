@@ -68,34 +68,42 @@ func reportOf(t *testing.T, out []played, absolute bool) (int, string) {
 	return capture(t, func() int { return report("fdn", ps, out, oracle.RunConfig{}, o, nil) })
 }
 
-// A game that never returns is recorded by name and seed and the worker moves
-// on: the one worker here also plays the pair after it.
+// A game that never returns is recorded by name and seed and the segment ends
+// there: the feed stops, the pair after it is not played in-process (it reruns
+// in the continuation), and the played prefix is what the report counts.
 func TestFuzzHangIsAFailure(t *testing.T) {
 	release := make(chan struct{})
 	t.Cleanup(func() { close(release) })
 	var calls atomic.Int32
-	out := playAll(3, 1, time.Second, true, func(i int) played {
+	out, playedN := playAll(3, 1, time.Second, true, func(i int) played {
 		if i == 1 {
 			calls.Add(1)
 			return lockstepStub(release)
 		}
 		return lockstepStub(nil)
 	})
-	if !out[1].hang || out[0].hang || out[2].hang {
-		t.Fatalf("hang flags %v %v %v, want only pair 1", out[0].hang, out[1].hang, out[2].hang)
+	if !out[1].hang || out[0].hang {
+		t.Fatalf("hang flags %v %v, want only pair 1", out[0].hang, out[1].hang)
+	}
+	if out[2].hang || out[2].m != nil || out[2].skip != nil || out[2].err != nil || out[2].res.Decisions != 0 {
+		t.Errorf("pair 2 played in-process: %+v", out[2])
+	}
+	if playedN != 2 {
+		t.Errorf("fed %d pairs, want 2 (the feed stopped at the hang)", playedN)
 	}
 	if n := calls.Load(); n != 2 {
 		t.Errorf("pair 1 played %d times, want 2 (one retry, no more)", n)
 	}
 	for _, absolute := range []bool{false, true} {
-		code, stdout := reportOf(t, out, absolute)
+		code, stdout := reportOf(t, out[:playedN], absolute)
 		if code != 1 {
 			t.Errorf("absolute=%v: exit %d, want 1\n%s", absolute, code, stdout)
 		}
 		for _, want := range []string{
 			"pair 1 (deckA1 vs deckB1, seed 101): hang",
-			"fdn: 3 games (0 refused-card, 0 refused-pair, 0 error), 2 clean, 0 divergent, 0 unmodelled [], 0 capacity [], 1 hang (lead gorge, surface autopay)",
-			"fdn: 3 games (0 skipped as unsupported), 2 without divergence, 0 kernel capacity stalls [] (lead gorge); first divergences: hang=1",
+			"; rerun with: ",
+			"fdn: 2 games (0 refused-card, 0 refused-pair, 0 error), 1 clean, 0 divergent, 0 unmodelled [], 0 capacity [], 1 hang (lead gorge, surface autopay)",
+			"fdn: 2 games (0 skipped as unsupported), 1 without divergence, 0 kernel capacity stalls [] (lead gorge); first divergences: hang=1",
 		} {
 			if !strings.Contains(stdout, want) {
 				t.Errorf("absolute=%v: no %q in\n%s", absolute, want, stdout)
@@ -110,12 +118,15 @@ func TestFuzzHangRetryRecovers(t *testing.T) {
 	release := make(chan struct{})
 	t.Cleanup(func() { close(release) })
 	var calls atomic.Int32
-	out := playAll(3, 1, time.Second, true, func(i int) played {
+	out, playedN := playAll(3, 1, time.Second, true, func(i int) played {
 		if i == 1 && calls.Add(1) == 1 {
 			return lockstepStub(release)
 		}
 		return lockstepStub(nil)
 	})
+	if playedN != 3 {
+		t.Fatalf("fed %d pairs, want 3 (no hang stopped the feed)", playedN)
+	}
 	if n := calls.Load(); n != 2 {
 		t.Fatalf("pair 1 played %d times, want 2 (the first attempt timed out)", n)
 	}
@@ -130,7 +141,10 @@ func TestFuzzHangRetryRecovers(t *testing.T) {
 
 // A watchdog off (-game-timeout 0) still returns the game.
 func TestFuzzNoWatchdogWaits(t *testing.T) {
-	out := playAll(2, 2, 0, true, func(int) played { return lockstepStub(nil) })
+	out, playedN := playAll(2, 2, 0, true, func(int) played { return lockstepStub(nil) })
+	if playedN != 2 {
+		t.Fatalf("fed %d pairs, want 2 (no hang stopped the feed)", playedN)
+	}
 	if out[0].hang || out[1].hang || !out[0].res.Over || !out[1].res.Over {
 		t.Fatalf("outcomes %+v", out)
 	}
@@ -138,12 +152,15 @@ func TestFuzzNoWatchdogWaits(t *testing.T) {
 
 // A panic while building a game fails that pair and leaves the sweep running.
 func TestFuzzSetupPanicIsCounted(t *testing.T) {
-	out := playAll(3, 1, time.Second, true, func(i int) played {
+	out, playedN := playAll(3, 1, time.Second, true, func(i int) played {
 		if i == 0 {
 			panic("table build exploded")
 		}
 		return lockstepStub(nil)
 	})
+	if playedN != 3 {
+		t.Fatalf("fed %d pairs, want 3 (a panic is not a hang)", playedN)
+	}
 	code, stdout := reportOf(t, out, false)
 	if code != 1 || !strings.Contains(stdout, "2 clean, 1 divergent") || !strings.Contains(stdout, "kfuzz panic=1") {
 		t.Errorf("exit %d\n%s", code, stdout)
@@ -322,11 +339,19 @@ func TestSkipClassReadsTheInteractionRefusalType(t *testing.T) {
 	}
 }
 
-// The vanilla path's watchdog: a game that never returns is named, the run moves on
-// and fails, and a clean run still prints the line its parsers read.
+// The vanilla path's watchdog: a game that never returns ends the segment named
+// with the rerun command, the rest rerun in the continuation, and a clean run
+// still prints the line its parsers read.
 func TestFuzzVanillaHangIsAFailure(t *testing.T) {
 	release := make(chan struct{})
 	t.Cleanup(func() { close(release) })
+	var (
+		gotFirst, gotPairs int
+		spawned            bool
+	)
+	saved := runContinuation
+	runContinuation = func(first, pairs int) int { gotFirst, gotPairs, spawned = first, pairs, true; return 0 }
+	t.Cleanup(func() { runContinuation = saved })
 	code, stdout := capture(t, func() int {
 		return vanillaSweep(0, 3, 4, 2, 7, time.Second, oracle.RunConfig{}, "", "gorge", nil, func(g int) played {
 			if g == 1 {
@@ -338,21 +363,29 @@ func TestFuzzVanillaHangIsAFailure(t *testing.T) {
 	if code != 1 {
 		t.Errorf("exit %d, want 1\n%s", code, stdout)
 	}
-	for _, want := range []string{"game 1 (vanilla 1 vs", "hang: no result after two watchdogs of 1s", "vanilla: 3 games, 2 without divergence (lead gorge); first divergences: hang=1"} {
+	if !spawned || gotFirst != 2 || gotPairs != 1 {
+		t.Errorf("continuation (%v, game %d, %d pairs), want game 2, one pair", spawned, gotFirst, gotPairs)
+	}
+	for _, want := range []string{"game 1 (vanilla 1 vs", "hang: no result after two watchdogs of 1s; rerun with: ", "vanilla: 2 games, 1 without divergence (lead gorge); first divergences: hang=1"} {
 		if !strings.Contains(stdout, want) {
 			t.Errorf("no %q in\n%s", want, stdout)
 		}
 	}
+	spawned = false
 	code, stdout = capture(t, func() int {
 		return vanillaSweep(0, 2, 4, 2, 7, time.Second, oracle.RunConfig{}, "", "gorge", nil, func(int) played { return lockstepStub(nil) })
 	})
+	if spawned {
+		t.Errorf("a clean segment spawned a continuation\n%s", stdout)
+	}
 	if code != 0 || !strings.Contains(stdout, "vanilla: 2 games, 2 without divergence") {
 		t.Errorf("clean: exit %d\n%s", code, stdout)
 	}
 }
 
 // The generic path's watchdog (oracle.Fuzz): a side that never answers is a hang,
-// counted and named, the other pairs still play, and it can be switched off.
+// counted and named, and with StopOnHang the feed stops there — the pair after
+// the hang is not played (the caller's next attempt, the continuation, plays it).
 func TestFuzzGenericHangIsAFailure(t *testing.T) {
 	corpus, err := cardset.CorpusDir()
 	if err != nil {
@@ -383,12 +416,41 @@ func TestFuzzGenericHangIsAFailure(t *testing.T) {
 		}
 		return inner(m, seed)
 	}
-	sum := oracle.Fuzz(c, ps, mk, oracle.FuzzConfig{Run: oracle.RunConfig{MaxDecisions: 30}, GameTimeout: 2 * time.Second, Workers: 2}, nil)
+	// One worker: pair 2 is only ever received after the hang was recorded, so
+	// the feed's stop leaves it unplayed deterministically.
+	sum := oracle.Fuzz(c, ps, mk, oracle.FuzzConfig{Run: oracle.RunConfig{MaxDecisions: 30}, GameTimeout: 2 * time.Second, Workers: 1, StopOnHang: true}, nil)
 	if sum.Hung != 1 || len(sum.Hangs) != 1 || sum.Hangs[0].Index != ps[1].Index || sum.ByClass["hang"] != 1 {
 		t.Errorf("hung %d %+v classes %v, want pair %d", sum.Hung, sum.Hangs, sum.ByClass, ps[1].Index)
 	}
-	if sum.Games != 3 {
-		t.Errorf("%d games, want the hang and the two others", sum.Games)
+	if sum.Games != 2 {
+		t.Errorf("%d games, want the hang and the pair before it (pair 2 belongs to the continuation)", sum.Games)
+	}
+	if sum.SkipAt != 2 {
+		t.Errorf("SkipAt %d, want 2 (the feed was already blocked sending pair 2 when the hang stopped it)",
+			sum.SkipAt)
+	}
+	if played := playedPrefix(sum, len(ps)); played != 2 {
+		t.Errorf("played prefix %d, want 2", played)
+	}
+	// With two workers, both leading pairs hang and pair 2 is only ever
+	// received after both watchdogs fired: the summary records the lowest pair
+	// index a worker received after the feed's stop, which names where the
+	// next attempt starts.
+	mk2 := func(m *oracle.Matchup, seed uint64) (oracle.Side, error) {
+		if seed == ps[0].Seed || seed == ps[1].Seed {
+			return &blockSide{name: "kernel", release: release}, nil
+		}
+		return inner(m, seed)
+	}
+	sum2 := oracle.Fuzz(c, ps, mk2, oracle.FuzzConfig{Run: oracle.RunConfig{MaxDecisions: 30}, GameTimeout: 2 * time.Second, Workers: 2, StopOnHang: true}, nil)
+	if sum2.Hung != 2 || sum2.Games != 2 {
+		t.Errorf("hung %d of %d games, want the two leading pairs (pair 2 belongs to the continuation)", sum2.Hung, sum2.Games)
+	}
+	if sum2.SkipAt != 2 {
+		t.Errorf("SkipAt %d, want 2 (pair 2 was received only after the feed stopped)", sum2.SkipAt)
+	}
+	if played := playedPrefix(sum2, len(ps)); played != 2 {
+		t.Errorf("played prefix %d, want 2", played)
 	}
 }
 
@@ -707,10 +769,17 @@ func TestFuzzPoolRunFlags(t *testing.T) {
 		}
 	}
 
-	// A real game that outlives its time is a hang, named, and no pair is lost.
+	// A real game that outlives its time is a hang, named with its rerun command,
+	// and the pairs after it go to the continuation — stubbed, because runKFuzz
+	// drives run() in-process and a real child would be this test binary.
+	var contFirst, contPairs int
+	savedCont := runContinuation
+	runContinuation = func(first, pairs int) int { contFirst, contPairs = first, pairs; return 1 }
+	t.Cleanup(func() { runContinuation = savedCont })
 	code, stdout, _ = runKFuzz(t, withFlags("-surface", "autopay", "-game-timeout", "1ns")...)
-	if code != 1 || !strings.Contains(stdout, "3 hang") || !regexp.MustCompile(`pair 8 \(\S+ vs \S+, seed \d+\): hang`).MatchString(stdout) {
-		t.Errorf("-game-timeout 1ns: exit %d\n%s", code, stdout)
+	if code != 1 || !regexp.MustCompile(`pair 8 \(\S+ vs \S+, seed \d+\): hang`).MatchString(stdout) ||
+		!strings.Contains(stdout, "rerun with: ") || contFirst != 9 || contPairs != 2 {
+		t.Errorf("-game-timeout 1ns: exit %d, continuation (%d, %d)\n%s", code, contFirst, contPairs, stdout)
 	}
 
 	// -pairs-file plays what the pool draws.

@@ -193,6 +193,19 @@ func UnlessCostResolved(h Host, c *Ctx, sa *cards.SA) string {
 					changed = true
 				}
 			}
+			if m := discardSVarToken.FindStringSubmatch(f); m != nil {
+				// Discard<Y/Card> (Court of Ambition: Y = Count$Monarch.2.1,
+				// "unless they discard two cards" for a monarch, one
+				// otherwise) folds its count from the named SVar body like
+				// PayEnergy<N>; a zero or unresolved count stays raw and
+				// hard-declines, the DamageYou<X> rule below.
+				if body, ok := c.SVars[m[1]]; ok {
+					if n, resolved := EvalCountOK(h, c, body); resolved && n > 0 {
+						f = "Discard<" + strconv.Itoa(int(n)) + m[2] + ">"
+						changed = true
+					}
+				}
+			}
 			if m := xAmountToken.FindStringSubmatch(f); m != nil {
 				// DamageYou<X> (Combustion Man: its power) and Draw<X/Spec>
 				// (Armor Wars: the artifacts you control) fold from the face's
@@ -226,6 +239,11 @@ var payLifeXToken = regexp.MustCompile(`^PayLife<X>$`)
 // xAmountToken matches the DamageYou<X> and Draw<X/Spec> unless-cost tokens
 // whose amount is the face's SVar:X (see UnlessCostResolved).
 var xAmountToken = regexp.MustCompile(`^(DamageYou|Draw)<X(/[^>]*)?>$`)
+
+// discardSVarToken matches a Discard<Name/Spec...> unless-cost token whose
+// count names an SVar of the resolving face (Court of Ambition's
+// Discard<Y/Card>); a numeric count is the parser's own.
+var discardSVarToken = regexp.MustCompile(`^Discard<([A-Za-z][A-Za-z0-9]*)(/[^>]*)>$`)
 
 // definedCostToken matches Forge's DefinedCost_<Defined>[_<Modifier>] and
 // DefinedSACost_<Defined> tokens; Modifier is Minus<N>/Plus<N>.

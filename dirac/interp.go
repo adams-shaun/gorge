@@ -830,7 +830,7 @@ func (s *State) discardObjAs(k *prep, o Obj, effect bool) {
 		s.firePlayer(k, kop.TrigDiscarded, s.objs[o].owner(), 1)
 	}
 	if k.gen != nil && k.gen.anySelfDisc {
-		s.fireSelfDisc(k, o) // trig_params.go
+		s.fireSelfDisc(k, o, effect) // trig_params.go
 	}
 	if k.gen != nil && k.gen.anyDiscAll {
 		s.discAllNote(k, o)

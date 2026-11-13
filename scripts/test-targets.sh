@@ -157,8 +157,8 @@ if [ "$mode" = one ]; then
 	[ -z "${TAGS:-}" ] || [[ $TAGS =~ ^[A-Za-z0-9_,]+$ ]] || usage "TAGS is a comma list of build tags"
 	envs=()
 	for kv in ${TESTENV:-}; do
-		case ${kv%%=*} in KGEN_REPIN | DIRAC_UPDATE_SUPPORT | KOP_ORDINALS_REGEN | PINS_RECORD | GORGE_POOLS) envs+=("$kv") ;;
-		*) usage "TESTENV allows only KGEN_REPIN DIRAC_UPDATE_SUPPORT KOP_ORDINALS_REGEN PINS_RECORD GORGE_POOLS (got ${kv%%=*})" ;;
+		case ${kv%%=*} in KGEN_REPIN | DIRAC_UPDATE_SUPPORT | KOP_ORDINALS_REGEN | PINS_RECORD | CMD5_CLEAN_REPIN | GORGE_POOLS) envs+=("$kv") ;;
+		*) usage "TESTENV allows only KGEN_REPIN DIRAC_UPDATE_SUPPORT KOP_ORDINALS_REGEN PINS_RECORD CMD5_CLEAN_REPIN GORGE_POOLS (got ${kv%%=*})" ;;
 		esac
 	done
 	pkgs_label=$pkg

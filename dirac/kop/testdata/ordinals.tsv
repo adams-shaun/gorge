@@ -450,10 +450,12 @@ ExtBlocksIfAble	ExtOp	256
 ExtBreachChoose	ExtOp	160
 ExtBreachReturn	ExtOp	161
 ExtChangeTargets	ExtOp	225
+ExtChooseCardEnter	ExtOp	297
 ExtChooseColorRes	ExtOp	5
 ExtChooseName	ExtOp	251
 ExtChooseNumber	ExtOp	230
 ExtChooseNumberMid	ExtOp	303
+ExtChoosePlayer	ExtOp	299
 ExtClearImprinted	ExtOp	257
 ExtCloneCopy	ExtOp	81
 ExtColorGrant	ExtOp	6
@@ -483,6 +485,7 @@ ExtExchangeControl	ExtOp	244
 ExtExileEmbRem	ExtOp	319
 ExtExileExMark	ExtOp	51
 ExtExileLandChoose	ExtOp	162
+ExtExploit	ExtOp	298
 ExtExtort	ExtOp	302
 ExtFinalityCtr	ExtOp	198
 ExtGrantExile	ExtOp	249
@@ -508,6 +511,7 @@ ExtRememberAll	ExtOp	306
 ExtRememberImprinted	ExtOp	307
 ExtRememberSearcher	ExtOp	304
 ExtRemoveCounterAny	ExtOp	3
+ExtRemoveFromCombat	ExtOp	260
 ExtSacDelayed	ExtOp	32
 ExtSearchCounters	ExtOp	252
 ExtSkipPhase	ExtOp	313
@@ -661,6 +665,7 @@ MayPlayOpponent	untyped int	16384
 MayPlayOwner	untyped int	512
 MayPlayPayLife	untyped int	-32768
 MayPlayRaiseShift	untyped int	10
+MinBlockersAll	uint8	255
 MonarchOpp	untyped int	1
 MorphDisguise	uint8	3
 MorphMegamorph	uint8	2
@@ -860,6 +865,7 @@ OppExtGrave	untyped int	4
 OppExtHand	untyped int	3
 OppExtLife	untyped int	2
 OppExtLowest	untyped int	256
+OppExtNonTrigPl	untyped int	512
 OppExtValid	untyped int	5
 OppsHitLegendary	untyped int	1
 OptAll	untyped int	16
@@ -869,6 +875,7 @@ OvChosenColor	untyped int	1
 OvEnterWith	untyped int	2
 PanhModeDrawn	int16	2
 PanhModeLifeGained	int16	1
+ParentTrigPl	uint8	255
 PayAddCounter	untyped int	16
 PayBBehold	untyped int	6
 PayBRemember	untyped int	4
@@ -1002,6 +1009,7 @@ ReduceColorBits	untyped int	2
 RefAttached	Ref	11
 RefAttachedCtrl	Ref	37
 RefChosen	Ref	13
+RefChosenPlayer	Ref	39
 RefController	Ref	5
 RefDefendingPlayer	Ref	15
 RefDelayedRemembered	Ref	19
@@ -1207,6 +1215,7 @@ StackKwCasualty	int16	2
 StackKwConspire	int16	8
 StackKwConvoke	int16	7
 StackKwDelve	int16	9
+StackKwDemonstrate	int16	10
 StackKwImprovise	int16	1
 StackKwLifelink	int16	4
 StackKwSplitSecond	int16	6
@@ -1352,9 +1361,10 @@ Tf4PerCounter	TrigFlags4	128
 Tf4SingleCauseTarget	TrigFlags4	2
 Tf4SingleTarget	TrigFlags4	1
 Tf4StateCtr	TrigFlags4	64
-Tf5DmgAttackedYouLastTurn	TrigFlags5	4
+Tf5DmgAttackedYouLastTurn	TrigFlags5	8
 Tf5FirstCardInDrawStep	TrigFlags5	1
 Tf5NotFirstCardInDrawStep	TrigFlags5	2
+Tf5OppCause	TrigFlags5	4
 TfCombat	TrigFlags	4
 TfNontokenSrc	TrigFlags	64
 TfNotToGrave	TrigFlags	128
@@ -1441,8 +1451,9 @@ TrigDiscardedAll	TrigEvent	35
 TrigDiscover	TrigEvent	44
 TrigDrawn	TrigEvent	14
 TrigETB	TrigEvent	1
-TrigEventCount	TrigEvent	49
+TrigEventCount	TrigEvent	50
 TrigEvolved	TrigEvent	47
+TrigExploited	TrigEvent	49
 TrigExplores	TrigEvent	39
 TrigFacesDilemma	TrigEvent	46
 TrigForage	TrigEvent	43
@@ -1501,6 +1512,7 @@ W7AttachedTo	int16	19
 W7AttackingAlone	int16	3
 W7AttackingEnchTrig	int16	29
 W7AttackingOpp	int16	7
+W7BlockingTrigObj	int16	31
 W7BottomLibrary	int16	17
 W7CostBlue	int16	14
 W7CrewedBySrc	int16	13
@@ -1518,6 +1530,7 @@ W7NoAbilities	int16	15
 W7NoName	int16	1
 W7NoNameTwin	int16	9
 W7NoNameTwinGrave	int16	20
+W7NotBlocking	int16	30
 W7NotBottomLibrary	int16	18
 W7NotChosenType	int16	6
 W7SharesCrTrigObj	int16	21
@@ -1527,6 +1540,7 @@ W7WithFlashback	int16	26
 W7WithInfect	int16	28
 W7WithWarp	int16	11
 WhoseAny	Whose	0
+WhoseChosen	Whose	201
 WhoseEnchCtrl	Whose	3
 WhoseNonActive	Whose	200
 WhoseOpp	Whose	2

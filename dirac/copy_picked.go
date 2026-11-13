@@ -15,6 +15,36 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // followed by an ExtCopyPicked over RefChosen. The ask is ChGenCopyPick.
 const chooseCopyPick = 8
 
+// choosePopulatePick is OpChooseCard C: populate's pick (CR 701.36a; gorge
+// effects/copypermanent.go's Populate$ arm), always followed by an
+// ExtCopyPicked over RefChosen. The candidates are the F permanents (the
+// chooser's creature tokens): none makes no pick and no ask, a lone candidate
+// is taken unasked, and several are one mandatory ask (no Done) in seat order
+// then battlefield order, whose options gorge names "permanent" (the same
+// copypermanent_choice ask, ChGenCopyPick).
+const choosePopulatePick = 9
+
+// DebugPopulateAlwaysAsk poses the populate ask even for a lone token, which
+// gorge copies unasked. Test-only (TestMBCFilters2PopulateMutation).
+var DebugPopulateAlwaysAsk bool
+
+// populatePick is OpChooseCard C choosePopulatePick for chooser p.
+func (s *State) populatePick(k *prep, in *kop.Instr, p uint8) (ok, done bool) {
+	switch n := s.cardCands(k, in.F, p, nil); {
+	case n == 0:
+		return true, true
+	case n == 1 && !DebugPopulateAlwaysAsk:
+		for m := s.occ; m.any(); m = m.rest() {
+			if sl := m.first(); s.matchPermGen(k, in.F, sl, p, NoSlot, layerFull) {
+				s.g.chosen[0], s.g.nchosen = s.perms[sl].obj, 1
+				return true, true
+			}
+		}
+	}
+	s.res.ask, s.res.askP = raGenChooseCard, p
+	return false, true
+}
+
 // copyPicked is ExtCopyPicked. True when a copy's ask parked the resolution
 // (the shapes that would pose one stall instead, as copyNamed does).
 func (s *State) copyPicked(k *prep, in *kop.Instr) bool {

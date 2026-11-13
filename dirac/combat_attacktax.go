@@ -290,7 +290,24 @@ func (s *State) atkTaxShape(k *prep, sl Slot) (col, n int, fixed, ok bool) {
 	if !s.canTapForMana(k, sl) {
 		return 0, 0, false, false
 	}
-	a := &k.t.Cards[s.cardAt(sl)].Abilities[s.manaPCGen(k, sl).manaAb]
+	pc := s.manaPCGen(k, sl)
+	cd := &k.t.Cards[s.cardAt(sl)]
+	a := manaAbView(cd, pc)
+	if a == nil || a.Kind != kop.AbMana {
+		// a granted basic land type's intrinsic view (a card whose own
+		// abilities name no mana ability: manaAb 0 marks the intrinsic slot,
+		// and ability 0 of a card with abilities is not one — Ashaya's own
+		// statics): the view's facts name the production, and the window
+		// lists it as the fixed single colour it is
+		if pc.blgFirst == 0 {
+			return 0, 0, false, false
+		}
+		m := uint8(pc.manaCol) & 0x3f
+		if m == 0 {
+			return 0, 0, false, false
+		}
+		return bits.TrailingZeros8(m), int(pc.manaN), true, true
+	}
 	if a.ManaIdentity {
 		// gorge's attack window excludes the commander-identity shape: the
 		// parser claims no colour for it (rules attackChoiceManaSources)

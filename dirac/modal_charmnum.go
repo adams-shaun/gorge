@@ -42,7 +42,7 @@ const (
 func prepCharmNum(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
-			g.anyCharmNum = g.anyCharmNum || t.Cards[i].Abilities[j].ModesPick > 1 || t.Cards[i].ModesPickTW > 1 || t.Cards[i].Abilities[j].Repeats()
+			g.anyCharmNum = g.anyCharmNum || t.Cards[i].Abilities[j].ModesPick > 1 || t.Cards[i].ModesPickTW > 1 || t.Cards[i].Entwine || t.Cards[i].Abilities[j].Repeats()
 		}
 	}
 }
