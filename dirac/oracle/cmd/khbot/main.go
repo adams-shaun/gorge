@@ -4,9 +4,12 @@
 // kernel bot asked the same decisions on the kernel's state
 // (oracle.HBotParityGame). The kernel bot is the native port
 // (dirac/search/hbot). It prints the agreement rate per decision kind and
-// the disagreement classes, each with one example.
+// the disagreement classes, each with one example. With -seats 3 or 4
+// (the dirac_mp build) each game is a pod of consecutive pairings' decks
+// (oracle.HBotParityPod).
 //
 //	go run ./dirac/oracle/cmd/khbot -pairs 100 -seed 78 -workers 4
+//	go run -tags dirac_mp ./dirac/oracle/cmd/khbot -seats 4 -pairs 50
 package main
 
 import (
@@ -44,6 +47,7 @@ func run() int {
 		elide     = flag.Bool("pass-elision", true, "elide single-option decisions (the kernel's default configuration does)")
 		verbose   = flag.Bool("v", false, "print every disagreement")
 		hold      = flag.Bool("hold", false, "arm gorge TimingRules.HoldInstant on both sides (hbot must hold too)")
+		seats     = flag.Int("seats", 2, "seats per game; above 2 (the dirac_mp build) a game is a pod of consecutive pairings' decks, -pairs counting pods")
 	)
 	flag.Parse()
 	if *cardsDir == "" {
@@ -107,7 +111,22 @@ func run() int {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	ps := oracle.PairingsFrom(pool, *firstPair, *pairs, *seed)
+	per := (*seats + 1) / 2 // pairings per game
+	all := oracle.PairingsFrom(pool, *firstPair, *pairs*per, *seed)
+	ps := all
+	if per > 1 {
+		ps = make([]oracle.Pairing, 0, *pairs)
+		for i := 0; i+per <= len(all); i += per {
+			ps = append(ps, all[i])
+		}
+	}
+	podOf := func(i int) []string {
+		var names []string
+		for j := i * per; j < (i+1)*per; j++ {
+			names = append(names, all[j].A, all[j].B)
+		}
+		return names[:*seats]
+	}
 	cfg := oracle.Config{GorgeAutopaySurface: *surface, PassElision: *elide}
 	mk := botFactory(c, set, *hold)
 	type res struct {
@@ -124,7 +143,16 @@ func run() int {
 		go func() {
 			defer wg.Done()
 			for i := range next {
-				r, err := oracle.HBotParityGameOpts(c, ps[i].A, ps[i].B, ps[i].Seed, cfg, *maxDec, mk, oracle.HBotParityOptions{HoldInstant: *hold, Set: set})
+				opt := oracle.HBotParityOptions{HoldInstant: *hold, Set: set}
+				var (
+					r   oracle.HBotParityResult
+					err error
+				)
+				if *seats > 2 {
+					r, err = oracle.HBotParityPod(c, podOf(i), ps[i].Seed, cfg, *maxDec, mk, opt)
+				} else {
+					r, err = oracle.HBotParityGameOpts(c, ps[i].A, ps[i].B, ps[i].Seed, cfg, *maxDec, mk, opt)
+				}
 				results[i] = res{ps[i], r, err}
 			}
 		}()
@@ -138,13 +166,16 @@ func run() int {
 	kinds := map[string]*tally{}
 	classes := map[string]int{}
 	example := map[string]string{}
-	games, divs, unoff, total, unoffRec, restr := 0, 0, 0, 0, 0, 0
+	games, divs, unoff, total, unoffRec, restr, stalls := 0, 0, 0, 0, 0, 0, 0
 	for _, x := range results {
 		if x.err != nil {
 			fmt.Fprintf(os.Stderr, "pair %d: %v\n", x.p.Index, x.err)
 			continue
 		}
 		games++
+		if x.r.Res.Stall != "" {
+			stalls++
+		}
 		if x.r.Res.Div != nil {
 			divs++
 			if *verbose {
@@ -198,6 +229,7 @@ func run() int {
 		ks = append(ks, k)
 	}
 	sort.Strings(ks)
+	fmt.Printf("(%d games stopped at a cap or a kernel stall)\n", stalls)
 	fmt.Printf("(%d priority decisions where gorge's bot tapped mana by hand: compared as the cast it taps for)\n", restr)
 	fmt.Printf("%-18s %7s %8s %8s\n", "kind", "n", "agree", "same-card")
 	for _, k := range ks {
