@@ -15,9 +15,10 @@ import (
 
 // The Dig NoLooking$ lockstep (CR 701.20a, 701.40a, 401.4): Telling Time,
 // Moment of Truth and Expressive Iteration split the top three cards over two
-// or three chained Digs whose NoLooking$ only withholds the chooser's look
-// Note and the option labels in gorge's effDig, so the kernel plays them as
-// plain Digs; Write into Being digs two, puts the chosen card on top, then
+// or three chained Digs whose bare NoLooking$ is inert in gorge's effDig (only
+// NoLooking$ with ExileFaceDown$ or RandomChange$ is a blind dig that hides
+// the look and the names), so the kernel plays them as plain Digs; Write into
+// Being digs two, puts the chosen card on top, then
 // manifests that remembered card (Manifest Defined$ Remembered) and offers the
 // other on top of or below the library. Both seats play the same deck over the
 // generated digblind pool, so every card is cast by both engines.

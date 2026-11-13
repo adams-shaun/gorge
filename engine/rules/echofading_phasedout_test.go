@@ -6,6 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // phaseOutNow phases src out (CR 702.26b), as Vodalian Illusionist or
@@ -90,5 +91,36 @@ func TestFadingPhasedOutSourceKeepsCounters(t *testing.T) {
 	o := e.G.Obj(id)
 	if o.Zone != state.ZBattlefield || !o.PhasedOut || o.Counter("FADE") != 3 {
 		t.Fatalf("Blastoderm: zone %s phased out %v FADE %d, want the battlefield, phased out, 3", o.Zone, o.PhasedOut, o.Counter("FADE"))
+	}
+}
+
+// CR 702.24b, 702.26b: a cumulative upkeep trigger whose source phased out in
+// response puts no age counter on it, asks nothing and sacrifices nothing.
+func TestCumulativeUpkeepPhasedOutSourceAsksNothing(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	remora, ok := reg.Lookup("Mystic Remora")
+	if !ok {
+		t.Fatal("corpus fixture: Mystic Remora missing")
+	}
+	e := handEngine(t)
+	id := onBoardCard(t, e, 0, remora)
+	e.G.Active, e.G.Priority = 0, 0
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepUpkeep})
+	e.putTriggersOnStack()
+	if n := len(e.G.Stack); n != 1 {
+		t.Fatalf("precondition: the upkeep stacked %d triggers, want the cumulative upkeep trigger", n)
+	}
+	phaseOutNow(t, e, id)
+	e.resolveTop()
+	if len(e.G.Stack) != 0 {
+		t.Fatalf("the cumulative upkeep trigger is still on the stack (%d objects)", len(e.G.Stack))
+	}
+	if d := e.Pending(); d != nil && d.Kind == decision.KChoose {
+		t.Fatalf("the cumulative upkeep of a phased-out source asked %q, want nothing", d.Prompt)
+	}
+	o := e.G.Obj(id)
+	if o.Zone != state.ZBattlefield || !o.PhasedOut || o.Counter("AGE") != 0 {
+		t.Fatalf("Mystic Remora: zone %s phased out %v AGE %d, want the battlefield, phased out, 0", o.Zone, o.PhasedOut, o.Counter("AGE"))
 	}
 }

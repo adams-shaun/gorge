@@ -85,6 +85,7 @@ type genPrep struct {
 	anyCopyAb       bool // some target slot is a TgtCopyAb or TgtCopyTrig (copy_ability.go)
 	anyBestow       bool // a card has printed bestow (CardDef.HasBestow; kw_bestow.go)
 	anyKickCost     bool // a card has a non-mana kicker cost (CardDef.KickerCost; kw_kicker.go)
+	anyMultikick    bool // a card has Multikicker (CardDef.HasMultikicker; cast.go's bsMulti, cold.mk)
 	anyEvTargets    bool // a spell's CollectEvidence<X> is the targets' total mana value (kop.EvidenceTargetsMV; cost_collectevidencex.go)
 	anyOptCost      bool // a card has an OptionalCost part (CardDef.OptCost/OptBehold; cost_optional.go)
 	equipAnim       bool // an Equip ability and a Creature-adding override: an Equipment can be a creature (CR 704.5p sba arm; static_equipanimated.go)
@@ -240,6 +241,7 @@ type genPrep struct {
 	anyFinality     bool           // some program puts finality counters (kop.CtrFinality): dieZone exiles their creatures
 	anyHone         bool           // some program puts hone counters (kop.CtrHone): ptGen adds +1/+0 per hone counter on an attached permanent (CR 122.1j; ctr_hone.go)
 	anyBattle       bool           // some card is a Battle (kop.TBattle front; face_battle.go)
+	anyWorld        bool           // some card is a World (CardDef.World): the CR 704.5k arm (zone_worldrule.go)
 	anySneak        bool           // some card has sneak (CardDef.HasSneak; kw_sneak.go)
 	anyWebSling     bool           // some card has web-slinging (CardDef.HasWebSling; kw_websling.go)
 	anyMayFlash     bool           // some card has K:MayFlashCost (CardDef.HasMayFlash; kw_mayflash.go)
@@ -548,10 +550,22 @@ func tableHasPrevent(t *kop.Table) bool {
 	return false
 }
 
+// tableHasMultikicker reports whether any card carries K:Multikicker: its
+// count and the permanent's cold mark are cast.go's, so a table without one
+// pays neither.
+func tableHasMultikicker(t *kop.Table) bool {
+	for i := range t.Cards {
+		if t.Cards[i].HasMultikicker {
+			return true
+		}
+	}
+	return false
+}
+
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasStatic(t, kop.StatAttackTax) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasStatic(t, kop.StatAttackTax) {
 		return nil
 	}
 	enteredNeed := tableHasEnteredFrom(t)
@@ -698,6 +712,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepExileGrant(t, g) // cast_exilegrant.go
 	prepWaterbend(t, g)
 	prepCostEvidence(t, g)
+	prepArena(t, g, &p.cold) // arena.go; fills g.ix, read by prepLure/prepMustBlock below
 	prepLure(t, g)
 	prepMustBlock(t, g) // combat_mustbeblocked.go
 	prepColGrant(t, g)
@@ -856,6 +871,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.Types&kop.TBattle != 0 {
 			g.anyBattle = true
 		}
+		if c.World {
+			g.anyWorld = true
+		}
 		if c.HasSneak {
 			g.anySneak = true
 		}
@@ -873,6 +891,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.KickerCost.Flags != 0 {
 			g.anyKickCost = true
+		}
+		if c.HasMultikicker {
+			g.anyMultikick = true
 		}
 		g.anyBeam = g.anyBeam || c.BeamMeUp
 		if c.TapPays() || c.Harmonize {
@@ -1540,7 +1561,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepDiscAll(t, g)
 	prepAbilityCast(t, g)
 	prepGoad(t, g)           // act_goad.go
-	prepArena(t, g, &p.cold) // arena.go
 	prepSuspect(g)           // act_suspect.go; reads g.ix
 	prepPermMark(g)          // filter_permmarks.go; reads g.ix
 	prepTurnTallies(t, p, g) // value_turntallies.go; reads g.ix

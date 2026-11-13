@@ -200,6 +200,9 @@ func (s *State) destroyRemember(k *prep, sl Slot, c int16) {
 	}
 	if DebugRem2Always || s.objs[o].zone == kop.ZoneGraveyard {
 		s.remember(o)
+		if c&4 != 0 {
+			s.markRemLKI(o) // RememberLKI$: a read takes the last controller
+		}
 	}
 }
 

@@ -1,0 +1,12 @@
+# Each player searches their own library (ChangeZone DefinedPlayer$ Player,
+# gorge effSearchLibrary over AliveFrom the controller): Field of Ruin,
+# Veteran Explorer, Jungle Wayfinder, Noble Benefactor; Shock kills the
+# Explorer. For dirac/oracle/eachsearch_lockstep_test.go
+Field of Ruin
+Veteran Explorer
+Jungle Wayfinder
+Noble Benefactor
+Shock
+Forest
+Mountain
+Island

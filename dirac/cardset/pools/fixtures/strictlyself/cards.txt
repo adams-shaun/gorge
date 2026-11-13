@@ -21,6 +21,7 @@ Skyclave Shade
 Thought Scour
 Walking Corpse
 Grizzly Bears
+Guardian Scalelord
 Plains
 Island
 Swamp

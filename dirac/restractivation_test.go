@@ -8,6 +8,25 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
+// synthStdMshScen is an empty scenario over the std-msh synthetic pool with
+// the named cards (and Islands) in both decks, and the card ids by name.
+func synthStdMshScen(t *testing.T, names ...string) (*scen, map[string]CardID) {
+	t.Helper()
+	deck := []cardset.Entry{{Name: "Island", Count: 16}}
+	for _, n := range names {
+		deck = append(deck, cardset.Entry{Name: n, Count: 1})
+	}
+	tbl, da, _, err := cardsettest.Synth(t, "std-msh").Matchup(deck, deck)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := map[string]CardID{}
+	for _, c := range da {
+		id[tbl.Cards[c].Name] = c
+	}
+	return newScenTable(t, tbl, Config{NoElide: true}), id
+}
+
 // helperFloatScen is a board with Hydraulic Helper tapped for its {U}, which
 // can't be spent to cast a nonartifact spell and so floats for an ability.
 func helperFloatScen(t *testing.T, names ...string) (*scen, map[string]CardID) {
