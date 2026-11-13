@@ -507,8 +507,10 @@ func (s *State) restrSrcAffords(k *prep, p uint8, d payDesc, cost *kop.ManaCost,
 		// one-fixed-colour shape, mana_tapsdefer.go restrTapsGap). A source
 		// with a choice between restricted abilities (Steelswarm Operator's
 		// activation-only {U}{U}) the route models no ability choice of:
-		// stall.
-		if t, multi, nm = s.restrSrcAvailD(k, p, d, av, skip, true); t.affordsMulti(cost, extra, multi[:nm]) && !s.restrDeferScriptable(k, p, skip) {
+		// an instant-speed play still stalls (the declared limit), while a
+		// sorcery-speed one keeps the old behaviour and is not offered.
+		if t, multi, nm = s.restrSrcAvailD(k, p, d, av, skip, true); t.affordsMulti(cost, extra, multi[:nm]) &&
+			!s.restrDeferScriptable(k, p, skip) && d.instant {
 			s.capFull(StallRestrDefer)
 		}
 	}
