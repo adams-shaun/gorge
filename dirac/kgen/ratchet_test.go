@@ -145,7 +145,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +14 (the merge with land at 6014a11d54: this branch's Extort lowering, the printed K:Extort expansion and the granted trigger, beside land's 23177; merged ALL 23177 -> 23191 measured).
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
 	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
-	"ALL": {23324, 34442},
+	// +21 (MBC combat-4: K:CantAttackOrBlock as KwCantBlock plus a self CantAttack static, the blockingSource and blockedBySource filter words as PredWord7 W7BlockingSrc / W7BlockedBySrc outside a trigger's IsPresent$, a targeted Effect's CanAttackDefender grant as the capturing end-of-turn emblem: Grakk the Pacifist, Master of Arms, Cromat, Assault Formation, Abu Ja'far, Alms Beast, Arc Spitter, Baneblade Scoundrel, Barbed-Back Wurm, Battle-Scarred Goblin, Flowstone Salamander, Godo's Irregulars, Kjeldoran Frostbeast, Knight of Dusk, Plague Wight, Rampaging Cyclops, Sentinel, Spitting Slug, Steadfast Armasaur, Sworn Defender, Urborg Panther; ALL 23324 -> 23345, MBC 1695 -> 1699, SNC 187 -> 188 (Arc Spitter) measured; Lairwatch Giant stays refused).
+	"ALL": {23345, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {219, 280},
@@ -160,14 +161,14 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
-	"MBC": {1695, 2188},
+	"MBC": {1699, 2188},
 	"MKM": {251, 279},
 	"MOM": {201, 296},
 	"MSH": {246, 276},
 	"NEO": {201, 287},
 	"ONE": {201, 271},
 	"OTJ": {252, 276},
-	"SNC": {187, 266},
+	"SNC": {188, 266},
 	"SOS": {257, 270},
 	"SPM": {169, 192},
 	"TDM": {256, 276},
