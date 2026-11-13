@@ -1,0 +1,17 @@
+{
+  "card": "Falcon's Wing Harness",
+  "class": "options-options",
+  "why": "a restricted, tap-watcher-deferred mana source (Hydraulic Helper: this mana can't be spent to cast a nonartifact spell, and its controller's Captain America untaps it whenever a creature becomes tapped) funds gorge's sorcery-speed equip: gorge's prefix script taps Helper, floats the restricted U while the untap trigger waits on the stack, passes to resolve it, then offers and pays the equip with that mana (CR 106.6, 601.2, 603.3b); dirac's Taps-deferred script route excludes restricted sources and restrSrcAffords counts a deferred restricted source only for instant-speed plays (and only as a stall), so the equip never reaches an offer",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 9960148129591052452,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "restricted_tap_watcher_mana_sorcery_speed"
+  },
+  "evidence": [
+    "std-msh"
+  ]
+}

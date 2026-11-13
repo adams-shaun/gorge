@@ -201,7 +201,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 			return s.sacrificedMV(ctx)
 		}
 		if x.Ref == kop.RefRemembered {
-			return s.rememberedMV(k)
+			return s.rememberedMVAgg(k, x.N == kop.AggGreatestMV)
 		}
 		if _, ok := tgtSlot(x.Ref); ok {
 			return s.targetMV(k, x.Ref, ctx)

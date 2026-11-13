@@ -25,7 +25,7 @@ import (
 // planeswalker (Ajani, Caller of the Pride), Brainwash every attack of the
 // creature it enchants and Phyrexian Marauder its own, {1} per +1/+1
 // counter on it. The payers' sources cover the attack
-// window's shapes: basic lands, a dual's two intrinsic abilities, Sol Ring's
+// window's shapes: basic lands, a dual's two intrinsic abilities, a painland and a Talisman (a fixed {C} first, the painful choice second), Sol Ring's
 // two mana, the choice-shaped Tranquil Cove and Birds of Paradise, the
 // chosen-colour Thriving Isle, Arcane Signet's colour identity outside a
 // commander game, and Llanowar Elves, a mana creature that may attack (its
@@ -39,8 +39,8 @@ var katTaxer = []cardset.Entry{
 	{Name: "Baird, Steward of Argive", Count: 2}, {Name: "Sphere of Safety", Count: 2}, {Name: "Onakke Oathkeeper", Count: 2},
 	{Name: "Archon of Absolution", Count: 1}, {Name: "Brainwash", Count: 2}, {Name: "Collective Restraint", Count: 1},
 	{Name: "Ajani, Caller of the Pride", Count: 2}, {Name: "Grizzly Bears", Count: 2}, {Name: "Serra Angel", Count: 1},
-	{Name: "Mind Stone", Count: 1}, {Name: "Plains", Count: 9}, {Name: "Island", Count: 4}, {Name: "Tundra", Count: 2},
-	{Name: "Tranquil Cove", Count: 2}, {Name: "Thriving Isle", Count: 1},
+	{Name: "Mind Stone", Count: 1}, {Name: "Plains", Count: 7}, {Name: "Island", Count: 4}, {Name: "Tundra", Count: 2},
+	{Name: "Tranquil Cove", Count: 2}, {Name: "Thriving Isle", Count: 1}, {Name: "Adarkar Wastes", Count: 2},
 }
 
 var katPayer = []cardset.Entry{
@@ -49,8 +49,8 @@ var katPayer = []cardset.Entry{
 	{Name: "Serra Angel", Count: 1}, {Name: "Phyrexian Marauder", Count: 2}, {Name: "Koskun Falls", Count: 1},
 	{Name: "Propaganda", Count: 1}, {Name: "Ghostly Prison", Count: 1}, {Name: "Onakke Oathkeeper", Count: 1},
 	{Name: "Ajani, Caller of the Pride", Count: 1}, {Name: "Sol Ring", Count: 2}, {Name: "Arcane Signet", Count: 1},
-	{Name: "Mind Stone", Count: 1}, {Name: "Forest", Count: 5}, {Name: "Plains", Count: 3}, {Name: "Swamp", Count: 3},
-	{Name: "Tundra", Count: 1}, {Name: "Tranquil Cove", Count: 1}, {Name: "Thriving Isle", Count: 2},
+	{Name: "Mind Stone", Count: 1}, {Name: "Forest", Count: 5}, {Name: "Plains", Count: 3}, {Name: "Swamp", Count: 1},
+	{Name: "Tundra", Count: 1}, {Name: "Tranquil Cove", Count: 1}, {Name: "Thriving Isle", Count: 2}, {Name: "Talisman of Progress", Count: 2},
 }
 
 // katTaxes are the newly lowered carriers each game counts the casts of:
@@ -273,7 +273,7 @@ func TestAttackTaxLockstep(t *testing.T) {
 		}
 	}
 	for key, min := range map[string]int{"taxed picks": 40, "taxed planeswalker picks": 2, "window taps": 40,
-		"tap Sol Ring": 2, "tap Tundra": 2, "tap Llanowar Elves": 2, "tap a declared attacker": 1} {
+		"tap Sol Ring": 2, "tap Tundra": 2, "tap Adarkar Wastes": 2, "tap Talisman of Progress": 2, "tap Llanowar Elves": 2, "tap a declared attacker": 1} {
 		if tally[key] < min {
 			t.Errorf("%s %d, want at least %d", key, tally[key], min)
 		}

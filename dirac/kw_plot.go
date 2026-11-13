@@ -107,7 +107,7 @@ var DebugPlotInstant bool
 // own walker (warp's recast, plot's free cast), never by the generic play
 // surfaces.
 func ownWalkerRecord(r mayPlay) bool {
-	return r.until == kop.DurWarp || r.until == kop.DurPlot || r.until == kop.DurPrepared || r.until == kop.DurDefeated || r.until == kop.DurAirbend || r.until == kop.DurForetell
+	return r.until == kop.DurWarp || r.until == kop.DurPlot || r.until == kop.DurPrepared || r.until == kop.DurDefeated || r.until == kop.DurAirbend || r.until == kop.DurSuspend || r.until == kop.DurForetell
 }
 
 // plotRecord reports whether p holds a live DurPlot record for o on a turn
@@ -138,8 +138,13 @@ func (s *State) plotLive(r mayPlay) bool {
 // offered on potential affordability, like the warp cast, so a pool that
 // must be tapped still sees it; the action itself taps then pays.
 func (s *State) offerPlotHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
-	cd := &k.t.Cards[c]
-	pc := s.adjustCost(k, p, c, o, cd.PlotCost) // a Spell-scope modifier applies (CR 601.2f)
+	s.offerSpecialHand(k, d, p, o, c, av, k.t.Cards[c].PlotCost, MakeAction(AkPlot, uint8(o), 0, 0))
+}
+
+// offerSpecialHand offers hand card o's special action act, priced at cost
+// (plot's, and suspend's, kw_suspend.go).
+func (s *State) offerSpecialHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail, cost kop.ManaCost, act Action) {
+	pc := s.adjustCost(k, p, c, o, cost) // a Spell-scope modifier applies (CR 601.2f)
 	if len(k.gen.grantPC) != 0 && s.g.availX&availWalk != 0 {
 		// gorge's potential walk counts a restricted mana ability only for a
 		// payment its restriction admits (potentialRestrictionAdmits): a
@@ -154,7 +159,7 @@ func (s *State) offerPlotHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av
 	if s.castHeldOut(o) || k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
 		return // gorge castSuppressed / castRestricted gate the hand card first
 	}
-	d.add(MakeAction(AkPlot, uint8(o), 0, 0))
+	d.add(act)
 }
 
 // plotAction performs the plot special action (CR 702.170a): pay the plot
@@ -178,11 +183,9 @@ func (s *State) plotAction(k *prep, o Obj, p uint8) {
 	}
 }
 
-// payAndExile pays the special action's cost (the plot action's, or the
-// foretell action's {2}) and moves hand card o to exile. gorge's potential
-// witness: the action's plan taps the sources at priority, then the action
-// pays from the floating pool.
-func (s *State) payAndExile(k *prep, p uint8, o Obj, cost kop.ManaCost) {
+// payHandSpecial pays a hand special action's mana cost: the pool first, tapping
+// the sources it still needs, through restricted mana when p holds some.
+func (s *State) payHandSpecial(k *prep, p uint8, cost kop.ManaCost, o Obj) {
 	if !s.poolPays(p, &cost) {
 		short := cost
 		if m := s.restrPoolNonSpell(k, p); m != 0 {
@@ -195,6 +198,14 @@ func (s *State) payAndExile(k *prep, p uint8, o Obj, cost kop.ManaCost) {
 	} else {
 		s.payFromPool(p, &cost, 0)
 	}
+}
+
+// payAndExile pays the special action's cost (the plot action's, or the
+// foretell action's {2}) and moves hand card o to exile. gorge's potential
+// witness: the action's plan taps the sources at priority, then the action
+// pays from the floating pool.
+func (s *State) payAndExile(k *prep, p uint8, o Obj, cost kop.ManaCost) {
+	s.payHandSpecial(k, p, cost, o)
 	from := s.detach(o)
 	s.placeFrom(o, kop.ZoneExile, false, from, false)
 }

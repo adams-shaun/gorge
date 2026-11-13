@@ -154,8 +154,8 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 	if !pc.instant && !sorc && !s.castFlash(k, p, c) {
 		return
 	}
-	if k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
-		return
+	if k.gen.anyCantCast && s.castForbidden(k, p, c, o) || s.castHeldOut(o) {
+		return // a card twice reversed for no progress is held out of every cast route (CR 733.2), not only a paid one
 	}
 	s.offerBargainPlay(k, d, p, o, c, mode, anyMana, av) // kw_bargain.go
 	if mode&castFree == 0 {
@@ -422,7 +422,7 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 		cd := &k.t.Cards[e.card]
 		c := cd.Cost
 		if e.flags&sfKicked != 0 {
-			c = addCost(c, cd.Kicker)
+			c = s.addKickerPayments(cd, e, c)
 		}
 		if cd.HasAltAdd && s.bld().altAdd == 1 {
 			c = addCost(c, cd.AltAddCost.Mana) // Eaten Alive's {3}{B} part (CR 601.2f)

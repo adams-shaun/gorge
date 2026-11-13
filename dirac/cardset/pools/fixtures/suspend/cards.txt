@@ -1,0 +1,37 @@
+# Suspend (CR 702.62): the hand special action, the owner's upkeep counter
+# removal, the free cast of the last counter and a creature's haste, over the
+# sorcery, instant, creature, artifact and Aura carriers and the spells that
+# exile themselves with time counters, for dirac/oracle/suspend_test.go
+Rift Bolt
+Rift Sower
+Nantuko Shaman
+Search for Tomorrow
+Lotus Bloom
+Shivan Meteor
+Wheel of Fate
+Petrified Plating
+Inspiring Refrain
+Ancestral Vision
+Riftwing Cloudskate
+Infiltrator il-Kor
+Duskrider Peregrine
+Star Whale
+Shade of Trokair
+Profane Tutor
+Charnel Serenade
+Suspended Sentence
+Festering March
+Mox Tantalite
+Sol Talisman
+Deep Dish Pizza
+Atraxi Warden
+Phthisis
+Rousing Refrain
+Grizzly Bears
+Llanowar Elves
+Lightning Bolt
+Island
+Mountain
+Forest
+Plains
+Swamp

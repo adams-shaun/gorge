@@ -70,11 +70,12 @@ func TestEncoreGroupSacrificeIsSimultaneous(t *testing.T) {
 	if !s.subs[kop.TrigSacrificed].any() {
 		t.Fatal("nothing listens for sacrifices: the test sees nothing")
 	}
-	// a's end-step trigger is on the stack; b joined it as a follower
+	// a's end-step trigger is on the stack; b joined it as a follower. The
+	// entry carries a's registration version, as fireDelayed enqueues it.
 	s.dly[0] = delayed{act: uint8(kop.OpSacrifice), ctrl: 0, obj: b, ver: s.objs[b].ver, when: dlyGrpFollow, creator: a}
 	s.ndly = 1
 	s.npend = 0
-	s.resolveSacUntracked(sc.k, &stackEntry{ctrl: 0, obj: a, trigObj: NoObj})
+	s.resolveSacUntracked(sc.k, &stackEntry{ctrl: 0, obj: a, trigObj: NoObj, srcVer: s.objs[a].ver})
 	if s.objs[a].zone == kop.ZoneBattlefield || s.objs[b].zone == kop.ZoneBattlefield {
 		t.Fatalf("both tokens must be sacrificed: zones %v %v", s.objs[a].zone, s.objs[b].zone)
 	}

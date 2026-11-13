@@ -454,7 +454,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				hit = hit.with(sl)
 			}
 		}
-		if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 {
+		if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 || shieldBesidePlus(k.gen)) {
 			// a sweep's events are dealt one at a time: park on each event two
 			// replacements match (CR 616.1) and resume the rest after the
 			// answer. The recipients freeze in gorge's sweep order

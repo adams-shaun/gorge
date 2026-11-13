@@ -19,7 +19,18 @@ type evalCtx struct {
 	// zone counts skip: CR 601.2a has it on the stack by the time CR 601.2f
 	// determines the total cost. 0 skips nothing, and NoObj+1 wraps to 0.
 	uncounted Obj
-	e         *stackEntry
+	// taxed1 is one more than the creature an attack-tax static's charge is
+	// being priced for (combat_attacktax.go atkTaxCharge, kop.RefTaxedAttacker;
+	// Nils, Discipline Enforcer's RememberingAttacker$): the charge
+	// Remembered$CardCounters.ALL reads the priced creature's live counters.
+	// 0 reads none (the uncounted convention).
+	taxed1 Obj
+	e      *stackEntry
+	// bounds marks a target-bound evaluation (tgtBoundsEval): an ETB
+	// trigger's TargetMax$ may read its cast's count even after the permanent
+	// left the battlefield (CR 704.5j before 603.3b), where a later effect
+	// read sees gorge's reset.
+	bounds bool
 }
 
 // ctxCur is the context of the resolving entry, else the one being built.
@@ -50,6 +61,44 @@ func (s *State) ctxEntry(e *stackEntry) evalCtx {
 		c.srcSl = ob.slot
 	}
 	return c
+}
+
+// timesKicked is CR 702.43's count of multikicker payments for the spell
+// resolving (cold.mkObj by object) or the permanent its spell became (cold.mk
+// by slot, written as it entered). A permanent that changed zones reads 0, as
+// gorge's Object.TimesKicked resets.
+func (s *State) timesKicked(ctx evalCtx) int {
+	if ctx.srcSl != NoSlot && int(ctx.srcSl) < len(s.cold.mk) {
+		return int(s.cold.mk[ctx.srcSl])
+	}
+	// A triggered ability's srcVer can predate the permanent's current
+	// version (its ETB trigger is queued as it enters); the source object on
+	// the battlefield is still the permanent that reads its spell's count.
+	if ctx.src != NoObj {
+		if ob := &s.objs[ctx.src]; ob.zone == kop.ZoneBattlefield && int(ob.slot) < len(s.cold.mk) {
+			return int(s.cold.mk[ob.slot])
+		}
+	}
+	if e := ctx.e; e != nil && e.kind == seSpell {
+		return s.multikickCount(e)
+	}
+	// An enters-the-battlefield trigger's count belongs to the spell that
+	// made the permanent, and the permanent can leave the battlefield before
+	// the trigger's targets are chosen (the legend rule's state-based action
+	// fires before the trigger is put on the stack, CR 704.5j/603.3b). Gorge
+	// captures the count when the trigger is created and still asks its
+	// TargetMax$ X; read the cast's count from the trigger's own entry, never
+	// from a later die trigger (whose event is not TrigETB).
+	if ctx.bounds {
+		if e := ctx.e; e != nil && e.kind == seTrigger && ctx.src != NoObj {
+			k := s.k()
+			if k != nil && int(e.card) < len(k.t.Cards) && int(e.ab) < len(k.t.Cards[e.card].Abilities) &&
+				k.t.Cards[e.card].Abilities[e.ab].Trig.Event == kop.TrigETB {
+				return s.multikickCount(e)
+			}
+		}
+	}
+	return 0
 }
 
 // evalV evaluates a ValueRef in ctx.
@@ -265,7 +314,9 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 		}
 		v = bits.OnesCount64(seen)
 	case kop.ExKicked:
-		if e != nil && e.flags&sfKicked != 0 && !optCostUnpaid(k, e) {
+		if x.N == 1 {
+			v = s.timesKicked(ctx)
+		} else if e != nil && e.flags&sfKicked != 0 && !optCostUnpaid(k, e) {
 			v = s.evalV(k, x.Sub[0], ctx)
 		} else {
 			v = s.evalV(k, x.Sub[1], ctx)
@@ -456,6 +507,11 @@ func (s *State) refObjCtx(r kop.Ref, ctx evalCtx) Obj {
 		return NoObj
 	case kop.RefReplaced:
 		return s.g.replaced
+	case kop.RefTaxedAttacker:
+		if ctx.taxed1 == 0 {
+			return NoObj
+		}
+		return ctx.taxed1 - 1
 	}
 	if e == nil {
 		return NoObj

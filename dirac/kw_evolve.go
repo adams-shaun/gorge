@@ -39,6 +39,12 @@ func (s *State) evolveResolves(k *prep, e *stackEntry) bool {
 // before the body runs: trigAmt is -(count+1), a value no ETB trigger's
 // amount takes (evolveDone reads it as the trigger finishes).
 func (s *State) evolveArm(e *stackEntry, src *object) {
+	// The source may have left the battlefield (or be a new object) while
+	// the trigger waited; it still resolves (CR 603.4, 608.2b), but nothing
+	// is counted, so it stays unarmed.
+	if src.zone != kop.ZoneBattlefield || src.ver != e.srcVer {
+		return
+	}
 	e.trigAmt = -int16(s.perms[src.slot].p1) - 1
 }
 

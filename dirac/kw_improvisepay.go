@@ -43,13 +43,15 @@ func (s *State) improviseReserved(k *prep, p uint8, gen uint8) slotMask {
 }
 
 // improviseSourcesPay reports whether p's pool and sources, less the reserved
-// artifacts, pay cost (the plan's census).
-func (s *State) improviseSourcesPay(k *prep, p uint8, res slotMask, cost *kop.ManaCost) bool {
+// artifacts, pay cost (the plan's census), the restricted sources and mana
+// the spell's payment may spend beside it (CR 106.6, 601.2g-h; restrFallback).
+func (s *State) improviseSourcesPay(k *prep, p uint8, o Obj, res slotMask, cost *kop.ManaCost) bool {
 	m := s.ctrlM[SeatIx(p)]
 	s.ctrlM[SeatIx(p)] = m.andNot(res)
 	var av avail
 	s.availFor(k, p, &av)
-	ok := av.affords(cost, pipMaskOf(cost), 0)
+	ok := av.affords(cost, pipMaskOf(cost), 0) ||
+		s.restrFallback(k, p, s.objs[o].card, s.restrOriginOfObj(o), cost, &av)
 	s.ctrlM[SeatIx(p)] = m
 	return ok
 }

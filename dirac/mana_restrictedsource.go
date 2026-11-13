@@ -181,7 +181,7 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 			g.rs.views = append(g.rs.views, v)
 		default:
 			rec.kind = rkExt
-			v := pcard{manaAb: int8(j), manaCol: a.ManaColors, manaN: n, manaTap: true}
+			v := pcard{manaAb: int8(j), manaCol: a.ManaColors, manaN: n, manaTap: true, manaOne: manaOneColour(a, n)}
 			if a.AFlags&kop.AfManaChosen != 0 {
 				v.manaChosen = true
 			}
@@ -613,6 +613,9 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 			t.addXv(v)
 		case rkExt:
 			t.addUnits(s.srcMaskAt(v, sl), v.manaN)
+			if v.manaOne {
+				s.addOneColour(&t, v.manaN) // all of it is one colour (Shang-Chi)
+			}
 			t.addXv(v)
 		case rkDyn:
 			if nm == len(multi) {

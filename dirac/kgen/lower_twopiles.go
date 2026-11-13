@@ -57,6 +57,12 @@ func (lc *lowerCtx) twoPilesRemembered(ps *params) error {
 	default:
 		return refuse("TwoPiles Separator$ %q, chooser %q", sep, chooser)
 	}
+	// Both accepted shapes name an opponent as the separator or the chooser,
+	// and CR 801.5b makes that opponent the spell controller's CHOICE at
+	// three or more seats (gorge twoPilesAskOpponent). dirac reads it as the
+	// next live seat, so this lowering holds only for two players -- the
+	// two-seat marker that 3+-seat games refuse the carrier on.
+	lc.twoSeat("TwoPiles: an opponent separates or chooses, read as the next live seat")
 	chosen := cards.ResolveSVar(lc.face.SVars, ps.str("ChosenPile"))
 	if !pileBody(chosen, "ChangeZone", "Defined", "Remembered", "Destination", "Hand") {
 		return refuse("TwoPiles pile actions")
