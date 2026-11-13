@@ -32,7 +32,7 @@ func (s *State) destroyAllRemember(k *prep, in *kop.Instr) {
 		objs[i] = s.perms[ord[i]].obj
 	}
 	s.leaveAll(k, hit, kop.ZoneGraveyard)
-	if in.C&1 == 0 {
+	if in.C&1 == 0 { // seat-ok: an instruction flag bit
 		return
 	}
 	for _, o := range objs[:n] {
@@ -74,7 +74,7 @@ func (s *State) discardRemember(k *prep, o Obj) {
 	if int(s.res.pc) >= len(prog) {
 		return
 	}
-	if in := &prog[s.res.pc]; in.Op == kop.OpDiscard && in.B.N&1 != 0 || unlessRemembers(in) {
+	if in := &prog[s.res.pc]; in.Op == kop.OpDiscard && in.B.N&1 != 0 || unlessRemembers(in) { // seat-ok: an instruction flag bit
 		s.remember(o)
 	}
 }
@@ -91,7 +91,7 @@ func tableRemembersOp(t *kop.Table, op kop.Op) bool {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			for _, in := range t.Cards[i].Abilities[j].Prog {
-				if in.Op == op && in.B.N&1 != 0 {
+				if in.Op == op && in.B.N&1 != 0 { // seat-ok: an instruction flag bit
 					return true
 				}
 			}
@@ -115,7 +115,7 @@ func (s *State) sacRemember(k *prep, sl Slot) {
 	if int(s.res.pc) >= len(prog) {
 		return
 	}
-	if in := &prog[s.res.pc]; in.Op == kop.OpSacrifice && in.B.N&1 != 0 {
+	if in := &prog[s.res.pc]; in.Op == kop.OpSacrifice && in.B.N&1 != 0 { // seat-ok: an instruction flag bit
 		if in.B.N&(kop.SacSumPower|kop.SacSumToughness|kop.SacSumMV) != 0 {
 			s.remLKAdd(k, sl, int(in.B.N)) // RememberedLKI$CardPower/Toughness (zone_rememberlki.go)
 		}
@@ -193,7 +193,7 @@ var DebugRem2Always bool
 //go:noinline
 func (s *State) destroyRemember(k *prep, sl Slot, c int16) {
 	o := s.perms[sl].obj
-	if c&1 != 0 {
+	if c&1 != 0 { // seat-ok: the NoRegen flag bit
 		s.destroyNoRegen(k, sl)
 	} else {
 		s.destroy(k, sl)

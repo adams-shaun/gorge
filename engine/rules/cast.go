@@ -505,6 +505,14 @@ type pendingCast struct {
 	// misaligns the slices. A Fuse-only field; always empty for every other
 	// cast. Published to Engine.fuseTargets at payment.
 	stageTargets [][]state.Target `clone:"deep"`
+	// spliced is the CR 702.47 Splice onto Arcane selection, in the caster's
+	// chosen resolution order: the hand cards whose text is added to this
+	// spell. Target stage N (N >= 1) asks spliced[N-1]'s root ability, and
+	// spliceTargets[N-1] records its own chosen targets. spliceDone latches
+	// the one-shot ask. Empty for every non-splice cast.
+	spliced       []state.ObjID    `clone:"deep"`
+	spliceTargets [][]state.Target `clone:"deep"`
+	spliceDone    bool             `clone:"deep"`
 	// charmTargets records one target slice for each selected target-bearing
 	// mode INSTANCE of a modal spell (a repeated mode has one per occurrence,
 	// CR 700.2d). The stack object's ordinary Targets is retained as the flat

@@ -69,7 +69,7 @@ func (e *Engine) targetsAnnounceableAt(pc *pendingCast, x int32) bool {
 	if o == nil || pc.faceDown {
 		return true
 	}
-	sa := e.castStageSA(pc, o, o.Face())
+	sa := e.castBaseSA(pc, o, o.Face())
 	if sa == nil || !effects.TargetsOf(sa).Targeted() {
 		return true
 	}

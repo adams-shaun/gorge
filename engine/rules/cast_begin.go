@@ -1116,6 +1116,11 @@ func (e *Engine) continueCast() {
 	if e.castModeAsk() {
 		return
 	}
+	// CR 702.47a: the Splice onto Arcane selection follows the mode
+	// announcement; its costs fold into the total every later stage prices.
+	if e.spliceAsk() {
+		return
+	}
 	// Mutate (CR 702.140b): the over/under placement choice is announced
 	// before payment the same way the replicate count is, so the pay-time
 	// CastInfo can carry FlagMutatedTop.
@@ -1295,7 +1300,7 @@ func (e *Engine) continueCast() {
 	// CR 601.2c: choose targets, now that the object is on the stack. An SA
 	// with no target (or a zero-minimum one with no legal candidate) asks
 	// nothing and the flow proceeds to the chain pre-asks and payCast.
-	if e.targetAsk() {
+	if e.targetAskThroughStages() {
 		return
 	}
 	// alltargeted1: the root had no targets of its own (or none legal), but

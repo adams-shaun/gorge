@@ -4117,16 +4117,23 @@ func (lc *lowerCtx) byCreatureReadsRemembered(sa *cards.SA) bool {
 	return false
 }
 
+// rememberRead reports whether s mentions a remembered object. The exact
+// token Player.IsRemembered is the RepeatEach player binding (join forces'
+// UnlessPayer$), not a remembered object, so it does not count.
+func rememberRead(s string) bool {
+	return strings.Contains(strings.ReplaceAll(s, "Player.IsRemembered", ""), "Remember")
+}
+
 // saReadsRemembered reports whether an ability chain (or any SVar of the
 // face, which its values may name) mentions a remembered object.
 func (lc *lowerCtx) saReadsRemembered(sa *cards.SA) bool {
 	for ; sa != nil; sa = sa.Sub {
-		if strings.Contains(sa.Line, "Remember") {
+		if rememberRead(sa.Line) {
 			return true
 		}
 	}
 	for _, v := range lc.face.SVars {
-		if strings.Contains(v, "Remember") {
+		if rememberRead(v) {
 			return true
 		}
 	}

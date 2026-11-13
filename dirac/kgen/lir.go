@@ -193,6 +193,7 @@ const (
 	vMonarch             // Sub[0] if the controller (N 0) or an opponent (N 1) is the monarch, else Sub[1] (Count$Monarch.<yes>.<no>, CheckDefinedPlayer$ You|Opponent.isMonarch; lower_monarch.go)
 	vEnergyOf            // energy counters of player Ref (Count$YourCountersEnergy)
 	vPlExtreme           // the highest, over a player group, of the member's filtered count in the named zones (PlayerCountPlayers/Opponents$HighestValid<zones>)
+	vJoinForces          // the resolution's join-forces total (kop.ExJoinForces; lower_storesvar.go)
 	vCount_
 )
 
@@ -200,7 +201,7 @@ var valNames = [...]string{"None", "Const", "X", "Count", "CountGraveyard", "Sum
 	"Morbid", "AttackedThisTurn", "PowerOf", "ToughnessOf", "LifeOf", "LibrarySizeOf", "StartingLife",
 	"TriggerAmount", "LifeGainedThisTurn", "OppLifeLostThisTurn", "CountersOn", "CreaturesDied",
 	"RememberedCount", "ExcessDamage", "LastLifeLost", "TokensCreated", "CountCast", "LifeLostThisTurn", "Sum",
-	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast", "YourExtraTurns", "NotOwnLibMV", "CounterKinds", "TargetPlayers", "IfCastOwnMain", "PWTypes", "TapPower", "StepIn", "TgtSpent", "OppExtreme", "ThisTurnActExhaust", "Activations", "LifeLostLastTurn", "LastDamage", "DmgAmount", "TimesKicked", "Monarch", "EnergyOf", "PlExtreme"}
+	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast", "YourExtraTurns", "NotOwnLibMV", "CounterKinds", "TargetPlayers", "IfCastOwnMain", "PWTypes", "TapPower", "StepIn", "TgtSpent", "OppExtreme", "ThisTurnActExhaust", "Activations", "LifeLostLastTurn", "LastDamage", "DmgAmount", "TimesKicked", "Monarch", "EnergyOf", "PlExtreme", "JoinForces"}
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
 // that order, then negated when Neg.
@@ -1039,7 +1040,8 @@ type lCard struct {
 	Aftermath      bool      // K:Aftermath on a split card's right half (CR 702.127a): CardDef.Aftermath (dirac/face_aftermath.go)
 	BeamMeUp       *manaCost // K:Beam me up:<cost>: a graveyard cast for this cost that also returns a creature you control (FbCost)
 	Escape         *manaCost // K:Escape:<cost> (CR 702.138a): a graveyard cast for this cost while exiling the printed exiles (EscCost; dirac/kw_escape.go)
-	EscCost        *lCost    // the escape cost's ExileFromGrave<N/Card.Other> part (lower_escape.go; a battlefield-exile part beside it refuses)
+	EscCost        *lCost    // the escape cost's ExileFromGrave<N/Card.Other> part (lower_escape.go)
+	EscBf          *lCost    // the escape cost's Exile<N/Spec> battlefield part, token-first beside EscCost (CardDef.EscBfCost)
 	Harmonize      *manaCost // K:Harmonize:<cost> (CR 702.180a): a graveyard cast for this cost, one creature tapped for its power off the generic part
 	Retrace        bool      // K:Retrace (CR 702.81a): a graveyard cast paying the PRINTED cost plus the additional discard-a-land cost (dirac/kw_retrace.go); never a substitution
 	RetraceCost    *lCost    // the retrace cast's additional cost: Discard<1/Land> (CardDef.RetraceCost)

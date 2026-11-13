@@ -212,7 +212,7 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 					if in.Ext() == kop.ExtTurnRepl && in.C == kop.TurnReplHexUB {
 						u[mechHexUB] = true // repl_turnrepl.go
 					}
-					if in.Ext() == kop.ExtSuspect && in.C&1 == 0 {
+					if in.Ext() == kop.ExtSuspect && in.C&1 == 0 { // seat-ok: an instruction flag bit
 						u[mechSuspected] = true // a suspect; an un-suspect or a read needs no mask
 					}
 				case kop.OpGrantKeyword:

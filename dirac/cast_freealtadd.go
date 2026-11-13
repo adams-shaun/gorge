@@ -13,7 +13,7 @@ func (s *State) freeAltAddLowers(k *prep, p uint8, c CardID, o Obj) bool {
 	}
 	var av avail
 	s.availPool(p, &av)
-	if s.rbAny(p & 1) {
+	if s.rbAny(SeatIx(p)) {
 		s.restrAvail(k, p, c, s.restrOriginOfObj(o), &av)
 	}
 	cost := s.altAddReduced(k, s.buildCost(k), s.altAddManaPart(k, c))
@@ -32,7 +32,7 @@ func (s *State) altFreePartUnpooled(k *prep, p uint8, c CardID, o Obj) bool {
 	}
 	var av avail
 	s.availPool(p, &av)
-	if s.rbAny(p & 1) {
+	if s.rbAny(SeatIx(p)) {
 		s.restrAvail(k, p, c, s.restrOriginOfObj(o), &av)
 	}
 	cost := s.adjustCostGen(k, p, c, o, s.altAddManaPart(k, c))

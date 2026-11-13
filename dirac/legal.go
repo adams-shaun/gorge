@@ -740,7 +740,7 @@ func (s *State) gorgeOffers(p uint8, o Obj, mode uint8) bool {
 		// runs, the census being unrelaxable
 		return true
 	}
-	if mode&1 != 0 || s.FeatPlannedCast(p, o, mode) || s.FeatPoolPays(p, o, mode) {
+	if mode&1 != 0 || s.FeatPlannedCast(p, o, mode) || s.FeatPoolPays(p, o, mode) { // seat-ok: a cast-mode bit
 		return true
 	}
 	if k := s.k(); mode == 0 && k.gen != nil && k.gen.anySacX && s.sacXPoolOffer(k, p, o) {
@@ -916,7 +916,7 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 			// may spend) pays the reduced price on its own
 			a := s.poolAvailPlus(p, nil)
 			if s.rbAny(p) {
-				s.restrAvail(k, p&1, c, s.restrOriginOfObj(o), &a)
+				s.restrAvail(k, SeatIx(p), c, s.restrOriginOfObj(o), &a)
 			}
 			return a.affords(&cost, pipMaskOf(&cost), 0)
 		}

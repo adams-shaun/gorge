@@ -16,15 +16,19 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // already tests.
 
 // protChosen is perm.chosen's high nibble for a recorded protector; the low
-// bit is the seat. No colour reader (ch > 4) or subtype reader (ch >=
-// len(Subtypes), MaxSubtypes 192) can mistake it for a choice, and the
-// default 255 does not match protector's 0xFE mask.
+// bits, protSeat, are the seat (one bit at two seats, two at four). No colour
+// reader (ch > 4) or subtype reader (ch >= len(Subtypes), MaxSubtypes 192) can
+// mistake it for a choice, and the default 255 does not match (255 &^
+// protSeat is 0xFE or 0xFC).
 const protChosen = 0xF0
+
+// protSeat masks the protector's seat under protChosen.
+const protSeat = MaxSeats - 1
 
 // protector returns the protector recorded on the battle at sl.
 func (s *State) protector(sl Slot) (uint8, bool) {
 	ch := s.perms[sl].chosen
-	return ch & 1, ch&0xFE == protChosen
+	return ch & protSeat, ch&^protSeat == protChosen
 }
 
 // FeatAttackDefender is the defending player an attack declared at target

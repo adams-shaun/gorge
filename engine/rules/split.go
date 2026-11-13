@@ -80,6 +80,10 @@ func (e *Engine) castStageSA(pc *pendingCast, o *state.Object, f *cards.Face) *c
 		}
 		return modalTargetSA(fa, fa.SpellAbility(), o.ChosenModes)
 	}
+	if pc.targetStage > 0 && len(pc.spliced) > 0 {
+		// CR 702.47d: a splice stage asks the spliced card's own text.
+		return e.spliceStageSA(pc.spliced, pc.targetStage)
+	}
 	if f == nil {
 		return nil
 	}
@@ -101,10 +105,14 @@ func (e *Engine) castStageSA(pc *pendingCast, o *state.Object, f *cards.Face) *c
 }
 
 // castHasNextTargetStage reports whether another target stage follows the
-// current one. Only a Fuse cast has more than one stage, and only with the
+// current one. Only a Fuse or Splice cast has more than one stage; Fuse only with the
 // object still at its front face (fusedSplitFaces is non-nil).
 func (e *Engine) castHasNextTargetStage(pc *pendingCast, o *state.Object) bool {
-	if pc.mode != "fuse" || pc.targetStage != 0 {
+	if pc.mode != "fuse" {
+		// A Splice cast (CR 702.47) has one stage per spliced card after its own.
+		return pc.targetStage < len(pc.spliced)
+	}
+	if pc.targetStage != 0 {
 		return false
 	}
 	ff, _ := fusedSplitFaces(o)

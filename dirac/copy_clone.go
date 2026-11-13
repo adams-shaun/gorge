@@ -734,7 +734,7 @@ func (s *State) onceBits(k *prep, sl Slot) uint8 {
 func (s *State) setOnceBits(k *prep, sl Slot, b uint8) {
 	p := &s.perms[sl]
 	p.flags &^= pfOnceGame
-	if b&1 != 0 {
+	if b&1 != 0 { // seat-ok: an activate-once mark bit
 		p.flags |= pfOnceGame
 	}
 	if b&2 != 0 {

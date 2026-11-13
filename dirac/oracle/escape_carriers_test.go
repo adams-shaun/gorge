@@ -30,7 +30,7 @@ type escapeCarrierCase struct {
 	survives bool     // a ConditionNotPresent$ Card.Self+escaped sacrifice rider
 }
 
-// escapeCarrierCases is the whole lowered class (the 23 cards the kgen
+// escapeCarrierCases is the whole lowered class (the 24 cards the kgen
 // ratchet moves). TestEscapeCarrierSetCovered checks it against the escape
 // pool.
 var escapeCarrierCases = []escapeCarrierCase{
@@ -57,6 +57,7 @@ var escapeCarrierCases = []escapeCarrierCase{
 	{name: "Underworld Charger", colours: []string{"Swamp"}, pips: "B", counters: 2},
 	{name: "Sweet Oblivion", colours: []string{"Island"}, pips: "U"},
 	{name: "Cling to Dust", colours: []string{"Swamp"}, pips: "B"},
+	{name: "Lunar Hatchling", colours: []string{"Island"}, pips: "GU"}, // the escape cost's Exile<1/Land> beside the grave exile (CardDef.EscBfCost)
 }
 
 // escapePool loads the escape fixture's set and corpus.

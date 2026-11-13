@@ -71,8 +71,8 @@ const (
 
 const (
 	speedMaxV    = 4
-	speedLatch   = 1 << 6 // the active player's speed trigger was queued this turn
-	speedTrigAmt = -1     // the abDelayed entry's trigAmt marking the speed trigger
+	speedLatch   = 1 << (3 * MaxSeats) // the active player's speed trigger was queued this turn
+	speedTrigAmt = -1                  // the abDelayed entry's trigAmt marking the speed trigger
 )
 
 // prepSpeed reports whether some card carries Start your engines! (engines)
@@ -91,7 +91,7 @@ func prepSpeed(t *kop.Table) (speed, engines bool) {
 	return speed || engines, engines
 }
 
-func (s *State) speedOf(p uint8) int { return int(s.g.speed >> (3 * (p & 1)) & 7) }
+func (s *State) speedOf(p uint8) int { return int(s.g.speed >> (3 * SeatIx(p)) & 7) }
 
 // Speed is player p's speed, 0..4 (oracle / tests).
 func (s *State) Speed(p uint8) int { return s.speedOf(p) }
@@ -100,8 +100,8 @@ func (s *State) Speed(p uint8) int { return s.speedOf(p) }
 // and the result clamped to 0..4.
 func (s *State) speedAdd(p uint8, d int) {
 	v := min(max(s.speedOf(p)+d, 0), speedMaxV)
-	sh := 3 * (p & 1)
-	s.g.speed = s.g.speed&^(7<<sh) | uint8(v)<<sh
+	sh := 3 * SeatIx(p)
+	s.g.speed = s.g.speed&^(7<<sh) | seatWord(v)<<sh
 }
 
 // speedStart is gorge checkSpeedStart: each speed-less seat controlling a
@@ -198,7 +198,7 @@ func (s *State) changeSpeedOp(k *prep, in *kop.Instr) {
 	for i := uint8(0); i < q.n; i++ {
 		p := q.s[i]
 		v := s.speedOf(p)
-		if in.C == 1 && v >= speedMaxV || in.C == 2 && v <= 1 || in.B.N&1 != 0 && v != 0 {
+		if in.C == 1 && v >= speedMaxV || in.C == 2 && v <= 1 || in.B.N&1 != 0 && v != 0 { // seat-ok: an instruction flag bit
 			if SpeedCounting {
 				SpeedCounts[SpeedCntDecreaseHeld].Add(1)
 			}

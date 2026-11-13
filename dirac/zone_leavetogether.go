@@ -77,7 +77,7 @@ func (s *State) leaveTogether(k *prep, in *kop.Instr, i uint8) bool {
 		}
 		m := 0
 		for _, o := range objs[:n] {
-			if !s.destroySpared(k, s.objs[o].slot, in.C&1 != 0) {
+			if !s.destroySpared(k, s.objs[o].slot, in.C&1 != 0) { // seat-ok: an instruction flag bit
 				objs[m] = o
 				m++
 			}

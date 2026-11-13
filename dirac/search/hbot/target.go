@@ -210,7 +210,7 @@ func (bt *Bot) targetKey(s *dirac.State, tg uint8) uint32 {
 	default:
 		zone, seat, idx = 5, uint32(s.ObjOwner(o)), uint32(s.FeatZoneIndex(o))
 	}
-	return 1<<24 | zone<<20 | (seat&1)<<16 | idx
+	return 1<<24 | zone<<20 | (seat%dirac.MaxSeats)<<16 | idx
 }
 
 // optPlayer is the gorge option's Player: the player itself, or the

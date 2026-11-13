@@ -93,7 +93,7 @@ func TestFreeHandCastPlansNoPayment(t *testing.T) {
 	s.cfg |= cfgGorgeLowering
 	land := sc.perm(id["Plains"], 0)
 	sword := sc.hand(id["Starforged Sword"], 0)
-	s.g.freeQ[0], s.g.nfq, s.g.freeP = sword, 1, uint8(kop.ZoneHand)<<1
+	s.g.freeQ[0], s.g.nfq, s.g.freeP = sword, 1, seatWord(kop.ZoneHand)<<freeZoneShift
 	s.g.hold = true
 	s.Step()
 	if s.bld().e.obj != sword || s.bld().e.flags&sfFree == 0 {

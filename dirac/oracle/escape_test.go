@@ -42,7 +42,7 @@ var escapeDecks = [2][]cardset.Entry{
 	},
 	{ // B: G/U/W heavy, the ETB escaped-counter riders, the Elder Giants and
 		// the RG/any-colour floats
-		{Name: "Forest", Count: 5}, {Name: "Mountain", Count: 3}, {Name: "Swamp", Count: 3},
+		{Name: "Forest", Count: 5}, {Name: "Mountain", Count: 2}, {Name: "Swamp", Count: 3},
 		{Name: "Island", Count: 2}, {Name: "Plains", Count: 2},
 		{Name: "Crumbling Vestige", Count: 2},
 		{Name: "Burning-Tree Emissary", Count: 3}, {Name: "Hidden Herbalists", Count: 2},
@@ -54,6 +54,7 @@ var escapeDecks = [2][]cardset.Entry{
 		{Name: "Phlage, Titan of Fire's Fury", Count: 1},
 		{Name: "Glimpse of Freedom", Count: 1}, {Name: "Run for Your Life", Count: 1},
 		{Name: "Underworld Charger", Count: 1}, {Name: "Sweet Oblivion", Count: 1},
+		{Name: "Lunar Hatchling", Count: 1},
 	},
 }
 
@@ -69,7 +70,7 @@ var escapeNames = map[string]bool{
 	// a SpellCast ValidCard$), so it is in no deck.
 	"Voracious Typhon": true, "Uro, Titan of Nature's Wrath": true, "Phlage, Titan of Fire's Fury": true,
 	"Glimpse of Freedom": true, "Run for Your Life": true, "Underworld Charger": true, "Sweet Oblivion": true,
-	"Cling to Dust": true,
+	"Cling to Dust": true, "Lunar Hatchling": true,
 }
 
 // escapeCostColours are each carrier's escape cost's coloured pips: the colour
@@ -81,7 +82,7 @@ var escapeCostColours = map[string]string{
 	"Unbreakable Remnant": "W", "Ox of Agonas": "RR", "Chainweb Aracnir": "G", "Loathsome Chimera": "G",
 	"Voracious Typhon": "G", "Uro, Titan of Nature's Wrath": "GU", "Phlage, Titan of Fire's Fury": "RW",
 	"Glimpse of Freedom": "U", "Run for Your Life": "UR", "Underworld Charger": "B", "Sweet Oblivion": "U",
-	"Cling to Dust": "B",
+	"Cling to Dust": "B", "Lunar Hatchling": "GU",
 }
 
 // escapeCostMana is each carrier's escape cost's total mana (generic plus
@@ -94,7 +95,7 @@ var escapeCostMana = map[string]int{
 	"Unbreakable Remnant": 0, "Ox of Agonas": 2, "Chainweb Aracnir": 5, "Loathsome Chimera": 5,
 	"Voracious Typhon": 7, "Uro, Titan of Nature's Wrath": 4, "Phlage, Titan of Fire's Fury": 4,
 	"Glimpse of Freedom": 3, "Run for Your Life": 4, "Underworld Charger": 5, "Sweet Oblivion": 4,
-	"Cling to Dust": 4,
+	"Cling to Dust": 4, "Lunar Hatchling": 6,
 }
 
 // escapeFloaters are the pool's cards whose entry or attack floats mana; the
