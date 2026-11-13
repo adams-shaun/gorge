@@ -30,10 +30,18 @@ const (
 // StackTarget0..PlayerTarget0-1 (16 codes), players PlayerTarget0.. (one
 // code per seat), 0xFE a departed stack target and 0xFF none.
 const (
-	MaxObj              = 236  // card instances: both decks + tokens (at most StackTarget0)
-	StackTarget0  TCode = 0xEC // the bottom stack ability's target code
-	PlayerTarget0 TCode = 0xFC // seat 0's target code
+	MaxObj                = 236  // card instances: both decks + tokens (at most StackTarget0)
+	StackTarget0    TCode = 0xEC // the bottom stack ability's target code
+	PlayerTarget0   TCode = 0xFC // seat 0's target code
+	StackTargetGone TCode = 0xFE // a departed stack target (tgt_stackability.go)
+	NoTarget        TCode = 0xFF // no target
 )
+
+// Obj is a card instance (types.go): a byte in the default class.
+type Obj uint8
+
+// NoObj is no object.
+const NoObj Obj = 255
 
 // object.acts packs the owner above this turn's activation count: one owner
 // bit for two seats.

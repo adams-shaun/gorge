@@ -197,10 +197,9 @@ func (s *State) stackTgtCtrl(i int) uint8 {
 	return 255
 }
 
-// StackTargetGone is a projected stack-ability target that has left the
-// stack: still a target, naming nothing (gorge's RefNone for the vanished
-// stack object; the oracle maps it so).
-const StackTargetGone TCode = 0xFE
+// StackTargetGone (seats_*.go) is a projected stack-ability target that has
+// left the stack: still a target, naming nothing (gorge's RefNone for the
+// vanished stack object; the oracle maps it so).
 
 // stackTgtProj is a stack-ability target byte as the projection names it:
 // StackTarget0 + the entry's current index (gorge's live RefStack), or

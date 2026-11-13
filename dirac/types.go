@@ -11,20 +11,19 @@ type Table = kop.Table
 // Slot is a battlefield slot index; 255 = none.
 type Slot uint8
 
-// Obj is a card instance (object) index into State.objs; 255 = none. The
+// Obj is a card instance (object) index into State.objs; NoObj = none. The
 // first len(deckA) objects are seat 0's deck in deck order, the next
-// len(deckB) seat 1's; tokens take the remaining indices.
-type Obj uint8
+// len(deckB) seat 1's; tokens take the remaining indices. Obj and NoObj are
+// set per size class (seats_default.go, seats_mp.go): a byte, and nine bits
+// in a uint16 under dirac_mp.
 
 const (
 	NoSlot Slot = 255
-	NoObj  Obj  = 255
 	// PlayerTarget0.. encode a player in an Action's target byte and in
 	// stack target records; PlayerTarget0 and StackTarget0 are set per size
 	// class (seats_default.go, seats_mp.go). PlayerTarget1 is seat 1's code;
 	// PlayerCode(p) is the spelling that holds at every seat count.
 	PlayerTarget1 TCode = PlayerTarget0 + 1
-	NoTarget      TCode = 0xFF
 	// StackTarget0 encodes the activated or triggered ability at stack
 	// index i (from the bottom) as StackTarget0+i in a target byte, the
 	// oracle's canonical RefStack+i (tgt_stackability.go): codes

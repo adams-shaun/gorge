@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"unsafe"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // A source-bound untap lock (OpSkipUntap C kop.SkipUntapLockStep and
 // kop.SkipUntapLockAny): "it doesn't untap during its controller's untap
@@ -22,7 +26,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 const (
 	maxUntapLock = 4
-	ulBytes      = maxUntapLock*3 + 1 // the table and its count: taken from rsv
+	ulBytes      = maxUntapLock*int(unsafe.Sizeof(untapLock{})) + 1 // the table and its count: taken from rsv
 
 	ulAny  uint8 = 1 << 7 // the record is the any-event form
 	ulCtrl uint8 = ulAny - 1

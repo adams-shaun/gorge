@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"unsafe"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -2179,11 +2181,8 @@ type genState struct {
 	// received this turn, o = Obj+1 (0 empty) and n saturating at 255
 	// (value_dmgamount.go). Written only under genPrep.anyDmgAmt; cleared at the
 	// turn change. Taken from rsv.
-	dmgAmt [dmgAmtN]struct {
-		o Obj
-		n uint8
-	}
-	rsv [rsvN]uint8
+	dmgAmt [dmgAmtN]dmgAmtRec
+	rsv    [rsvN]uint8
 	// embX: an emblem's remembered slots 2 and 3, object + 1 (static_emblemrem.go); embR is slot 1, embN slot 0. Taken from rsv.
 	embX [MaxSeats][maxEmb][embRemSlots - 2]objWord
 	// atkDef is the defending seat + 1 of the attack event whose triggers are
@@ -2202,13 +2201,21 @@ const (
 	maxImp      = 16
 	turnFBytes  = 1 // genState.turnF, taken from rsv
 	dmgAmtN     = 4 // genState.dmgAmt: reader-card records (value_dmgamount.go)
-	dmgAmtBytes = dmgAmtN * 2
+	dmgAmtBytes = dmgAmtN * int(unsafe.Sizeof(dmgAmtRec{}))
 	// rsvN pads the reserved block to 80 bytes (genState's tail padding
 	// absorbs the rest of the alignment, including tgtSpent): 64, plus the 16
 	// that carry State's growth for MaxObj 236 to a multiple of 64 so perms
-	// keeps its phase.
-	rsvN = max(0, 80-maxImp-2-MaxSeats-MaxSeats*maxEmb-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-MaxSeats*maxEmb*(embRemSlots-2)-1-turnFBytes-dmgAmtBytes)
+	// keeps its phase. It counts bytes: an object-wide field takes its width
+	// in the class.
+	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes)
 )
+
+// dmgAmtRec is one genState.dmgAmt record: the reader card's object+1 (0
+// empty) and the damage it received this turn, saturating at 255.
+type dmgAmtRec struct {
+	o Obj
+	n uint8
+}
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).
 // kind: 0 empty, 1 "except by creatures with haste", 0x80|cmp<<4|N the
