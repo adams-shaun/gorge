@@ -88,12 +88,12 @@ func TestSeatSearchesAndReplaysExactly(t *testing.T) {
 }
 
 // NewSeat refuses a clairvoyant world whose Source is nil: azmcts never
-// links the real-engine clone (bots/azmcts/clairvoyant), so an az seat
+// links the real-engine clone (the private companion module's `clairvoyant` package), so an az seat
 // without an injected source is refused before any game starts.
 func TestSeatRefusesClairvoyantWhenSourceIsNil(t *testing.T) {
 	cfg := testConfig(t, "mono-red-prowess", "mono-blue-tempo", testSeed)
 	sc := DefaultSeatConfig()
-	if _, err := NewSeat(cfg.Seed^1, nil, sc); err == nil || !strings.Contains(err.Error(), "bots/azmcts/clairvoyant") {
+	if _, err := NewSeat(cfg.Seed^1, nil, sc); err == nil || !strings.Contains(err.Error(), "SeatConfig.Source") {
 		t.Fatalf("NewSeat with no Source: %v, want the clairvoyant-world-not-linked error", err)
 	}
 }

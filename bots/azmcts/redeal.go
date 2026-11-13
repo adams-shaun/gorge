@@ -13,8 +13,8 @@ import (
 const (
 	// WorldClairvoyant clones the REAL engine: bench and training only, and
 	// only through a source injected as SeatConfig.Source
-	// (bots/azmcts/clairvoyant, refused unless that package's
-	// AllowClairvoyant was called). azmcts never links the clone itself.
+	// (the private companion module's `clairvoyant` package, refused unless
+	// that package's AllowClairvoyant was called). azmcts never links the clone itself.
 	WorldClairvoyant = "clairvoyant"
 	// WorldRedeal is the honest source (NewRedeal): every world keeps what
 	// the searching seat can see and re-deals everything it cannot.

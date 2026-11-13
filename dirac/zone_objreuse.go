@@ -54,6 +54,9 @@ func (s *State) reuseObj(o Obj) {
 	for i := range s.cold.mo {
 		s.cold.mo[i].clr(o)
 	}
+	if int(o) < len(s.cold.mkObj) {
+		s.cold.mkObj[o] = 0 // the old object's multikicker count ends with it (CR 702.43)
+	}
 	// a departed attachment's record names the old object; its host is
 	// ver-checked (attLKIHost), the attachment itself is not
 	for i := range s.g.attLKI {
