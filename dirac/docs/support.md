@@ -70,7 +70,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-28 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+23 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
@@ -84,7 +84,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | projection-Cards.Power | 1 |
 | projection-Cards.Zone | 1 |
 | projection-NStack | 2 |
-| unmodelled | 7 |
+| unmodelled | 2 |
 | unmodelled-clonelayer | 1 |
 | unmodelled-tokatkask | 1 |
 | unmodelled-tokenpt | 1 |
