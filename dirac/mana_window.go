@@ -1426,7 +1426,7 @@ func (s *State) addRestrSrcV(k *prep, p uint8, sl Slot, f kop.FilterID, v uint8,
 	var ch uint8
 	for g := f; g != 0; g = k.t.Filters[g].Or {
 		if k.t.Filters[g].Flags2&kop.F2ChosenType != 0 {
-			ch = s.perms[sl].chosen
+			ch = uint8(s.perms[sl].chosen)
 		}
 	}
 	return s.addRestrChV(k, p, f, v, ch, col, n)
@@ -3303,7 +3303,7 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 		s.perms[sl].flags |= pfLoyaltyUsed
 	}
 	if f&kop.CostLoyaltyX != 0 && sl != NoSlot {
-		s.payCounterX(sl, int(a.Cost.Ctr), e.x) // [-X] loyalty or SubCounter<X/KIND>
+		s.payCounterX(sl, int(a.Cost.Ctr), uint8(e.x)) // [-X] loyalty or SubCounter<X/KIND>
 	}
 	if a.Cost.Exert && sl != NoSlot {
 		// Exert<1/NICKNAME> as an activation cost (CR 702.100a): the
@@ -3337,7 +3337,7 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 		}
 	}
 	if f&kop.CostPayLife != 0 {
-		s.payLifeCost(k, e.ctrl, &a.Cost, e.x)
+		s.payLifeCost(k, e.ctrl, &a.Cost, uint8(e.x))
 	}
 	if f&kop.CostPayEnergy != 0 {
 		s.payEnergy(e.ctrl, &a.Cost)

@@ -305,7 +305,7 @@ func (s *State) ksrAskFrom(k *prep, d int, must bool) bool {
 	var old, buf [MaxOptions]TCode
 	for ; d >= 0; d = ksrNextDecl(k, e, d) {
 		if s.copySlotTargets(e, d, &old) > 0 && s.ksrOffered(k, idx, d, must, &buf) > 0 {
-			s.res.chosen = uint8(d)
+			s.res.chosen = objWord(uint8(d))
 			s.res.ask, s.res.askP = raKsr, s.res.e.ctrl
 			return false
 		}

@@ -141,7 +141,7 @@ func (s *State) evokeEnter(k *prep, e *stackEntry) {
 			continue
 		}
 		if x, ok := adamantOf(k.t, k.t.Cards[pt.card].Abilities[pt.ab].Trig.Cond, 0); ok {
-			pt.x = uint8(spcCount(e.spc, uint(x.N&7)))
+			pt.x = objWord(spcCount(e.spc, uint(x.N&7)))
 		}
 	}
 	if st := DebugEvokeStats; st != nil && k.t.Cards[e.card].HasEvoke {

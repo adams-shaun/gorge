@@ -86,7 +86,7 @@ func (s *State) airbend(k *prep, in *kop.Instr) {
 			s.capFull(StallMayPlay)
 			return
 		}
-		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurAirbend, turn: s.turn}
+		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurAirbend, turn: mayWord(s.turn)}
 		s.g.nmay++
 	}
 }

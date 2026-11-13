@@ -143,7 +143,7 @@ func (s *State) applyAskModalAct(k *prep, a Action) bool {
 		if k.gen != nil && k.gen.anyCharmPick {
 			s.charmPickLog(ab, s.resSrcSlot(k), a.Mode()) // modal_charmpick.go
 		}
-		if r.chosen < max8(ab.ModesPick, 1) && int(r.chosen) < int(ab.NModes) {
+		if r.chosen < objWord(max8(ab.ModesPick, 1)) && int(r.chosen) < int(ab.NModes) {
 			return true // the next mode
 		}
 		if k.gen != nil && k.gen.anyDilemma {

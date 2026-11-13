@@ -232,7 +232,7 @@ func (s *State) sneakEnter(k *prep, sl Slot, e *stackEntry) {
 	}
 	pp.flags |= pfAttacking
 	pp.atk = TCode(e.trigObj)
-	pp.bord = s.nAttackers
+	pp.bord = objWord(s.nAttackers)
 	s.nAttackers++
 	s.touchSl(sl)
 }

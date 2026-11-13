@@ -66,7 +66,7 @@ func (s *State) suspendAdd(o Obj, n int) bool {
 		s.capFull(StallMayPlay)
 		return false
 	}
-	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurSuspend, turn: uint16(n)}
+	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurSuspend, turn: mayWord(uint16(n))}
 	s.g.nmay++
 	return true
 }

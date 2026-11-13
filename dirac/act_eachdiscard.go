@@ -55,7 +55,7 @@ func (s *State) discardChain(k *prep, in *kop.Instr, p uint8) bool {
 				s.res.peekI = 0
 				s.res.askP = p
 				s.res.left = uint8(n)
-				s.res.chosen = p
+				s.res.chosen = objWord(p)
 				return false
 			}
 			if s.repPending() {

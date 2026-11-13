@@ -41,6 +41,6 @@ func (s *State) returnDefenderAsk(k *prep, in *kop.Instr, host Slot) bool {
 	if s.enteringDefenderCands(k, ctrl, &buf) < 2 {
 		return false
 	}
-	s.res.ask, s.res.askP, s.res.chosen = raGenEnterDefender, ctrl, uint8(NoSlot)
+	s.res.ask, s.res.askP, s.res.chosen = raGenEnterDefender, ctrl, objWord(uint8(NoSlot))
 	return true
 }

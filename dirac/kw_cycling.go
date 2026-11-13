@@ -82,7 +82,7 @@ func (s *State) fireCycled(k *prep, o Obj, x uint8) {
 			// Mode$ Cycled with Count$xPaid: the X announced for the cycling
 			// activation (gorge trigger_referents.go e.cast.x), not the
 			// graveyard card's spell X
-			s.pend[s.npend-1].x = x
+			s.pend[s.npend-1].x = objWord(x)
 		}
 	}
 }

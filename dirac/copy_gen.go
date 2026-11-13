@@ -436,7 +436,7 @@ next:
 		}
 		d.add(MakeAction(AkTarget, 0, c, 0))
 	}
-	if s.res.peekN >= s.res.chosen && d.N > 0 || d.N == 0 {
+	if objWord(s.res.peekN) >= s.res.chosen && d.N > 0 || d.N == 0 {
 		d.add(MakeAction(AkDone, 0, 0, 0))
 	}
 }

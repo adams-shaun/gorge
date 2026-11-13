@@ -162,7 +162,7 @@ func (s *State) copyAskSlot(k *prep, top *stackEntry, i int) bool {
 	}
 	if multi || lo == 0 { // an "up to" declaration is closed by Done
 		s.res.ask = raGenCopyTargets
-		s.res.chosen, s.res.peekI = lo, hi
+		s.res.chosen, s.res.peekI = objWord(lo), hi
 	} else {
 		s.res.ask = raGenCopyTarget
 	}

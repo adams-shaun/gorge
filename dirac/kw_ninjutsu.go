@@ -113,7 +113,7 @@ func (s *State) handEntryResolve(k *prep, plain bool) {
 	}
 	pp.flags |= pfAttacking
 	pp.atk = TCode(e.trigObj)
-	pp.bord = s.nAttackers
+	pp.bord = objWord(s.nAttackers)
 	s.nAttackers++
 	s.touchSl(sl)
 }

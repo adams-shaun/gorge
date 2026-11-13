@@ -94,7 +94,7 @@ func (s *State) foretellAction(k *prep, o Obj, p uint8) {
 		s.capFull(StallMayPlay)
 		return
 	}
-	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurForetell, turn: s.turn}
+	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurForetell, turn: mayWord(s.turn)}
 	s.g.nmay++
 	s.passes = 0
 }
@@ -106,7 +106,7 @@ func (s *State) foretellRecord(p uint8, o Obj) bool {
 	ob := &s.objs[o]
 	for i := 0; i < int(s.g.nmay); i++ {
 		r := *s.mayAt(i)
-		if r.obj == o && r.ctrl == p && r.ver == ob.ver && r.until == kop.DurForetell && (s.turn > r.turn || DebugForetellSameTurn) {
+		if r.obj == o && r.ctrl == p && r.ver == ob.ver && r.until == kop.DurForetell && (mayWord(s.turn) > r.turn || DebugForetellSameTurn) {
 			return true
 		}
 	}

@@ -384,7 +384,7 @@ func (s *State) tokenDefenderAsk(k *prep, in *kop.Instr, p uint8) bool {
 	if n < 2 {
 		return false
 	}
-	s.res.ask, s.res.askP, s.res.chosen = raGenEnterDefender, p, uint8(NoSlot)
+	s.res.ask, s.res.askP, s.res.chosen = raGenEnterDefender, p, objWord(uint8(NoSlot))
 	return true
 }
 

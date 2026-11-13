@@ -373,7 +373,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 				s.res.askP = e.ctrl // the source's controller chooses (gorge discardChooser)
 			}
 			s.res.left = uint8(min(n, m))
-			s.res.chosen = p
+			s.res.chosen = objWord(p)
 			return false, true
 		}
 		for i := 0; i < int(pl.handN); {
@@ -683,7 +683,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 				s.mayWhileSrcStamp(n0, e.obj) // cast_whilesource.go
 				if in.A.N == kop.DurWhileValid {
 					for i := n0; i < s.g.nmay; i++ {
-						s.mayAt(int(i)).turn = uint16(in.F)
+						s.mayAt(int(i)).turn = mayWord(uint16(in.F))
 					}
 				}
 			}
@@ -702,7 +702,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		headed := false
 		mk := uint8(in.B.N)&kop.MayPlayKinds | uint8(in.B.N>>8)&kop.MayPlayAdvKind
-		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: e.ctrl, until: grantUntil(uint8(in.A.N), mk, &headed) | payLifeMark(in.B.N), kind: mk | payLifeKind(in.B.N), turn: s.turn}
+		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: e.ctrl, until: grantUntil(uint8(in.A.N), mk, &headed) | payLifeMark(in.B.N), kind: mk | payLifeKind(in.B.N), turn: mayWord(s.turn)}
 		s.g.nmay++
 		if k.gen.anyMayWhileSrc {
 			s.mayWhileSrcStamp(s.g.nmay-1, e.obj) // cast_whilesource.go
@@ -738,10 +738,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 				// target seat + 1, read through the same playerRef the creator uses
 				r.num = 0
 				if pp := s.playerRef(k, emb.CapturePlayer); pp != 255 {
-					r.num = pp + 1
+					r.num = objWord(pp + 1)
 				}
 			default:
-				r.num = s.freezeEmbNum(k, in.A, s.ctxEntry(e))
+				r.num = objWord(s.freezeEmbNum(k, in.A, s.ctxEntry(e)))
 			}
 			if em := &k.t.Emblems[in.C]; em.Capture2 != kop.RefNone || em.CaptureRem {
 				if !s.embRemFill(em, &r) { // static_emblemrem.go
@@ -940,7 +940,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			// (gorge apply_zone.go only clears it on a battlefield
 			// leave), so a flashback re-cast reuses the first cast's
 			// answer instead of asking again
-			s.res.chosen = s.objs[o].chosen
+			s.res.chosen = objWord(s.objs[o].chosen)
 			s.res.bad |= resChosenType | card
 		} else {
 			s.res.ask, s.res.askP = raChooseType, e.ctrl
@@ -2316,7 +2316,7 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 			creator = e.obj
 		}
 		if s.ndly < MaxDelayed {
-			s.dly[s.ndly] = delayed{act: uint8(act), ctrl: e.ctrl, obj: t, ver: s.objs[t].ver, creator: creator}
+			s.dly[s.ndly] = delayed{act: uint8(act), ctrl: e.ctrl, obj: t, ver: objWord(s.objs[t].ver), creator: creator}
 			s.ndly++
 		} else {
 			s.capFull(StallDelayed)

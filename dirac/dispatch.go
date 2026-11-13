@@ -564,12 +564,12 @@ func (s *State) applyAskUnread(k *prep, a Action) bool {
 	case raGenDiscUnless:
 		s.res.ask = raNone
 		if a.Mode() == 0 {
-			if s.discardOrdinary(k, &s.prog(k)[s.res.pc], s.res.chosen) {
+			if s.discardOrdinary(k, &s.prog(k)[s.res.pc], uint8(s.res.chosen)) {
 				s.continueRes(k, 0)
 			}
 			break
 		}
-		if o, n := s.unlessMatch(k, &s.prog(k)[s.res.pc], s.res.chosen); n == 1 {
+		if o, n := s.unlessMatch(k, &s.prog(k)[s.res.pc], uint8(s.res.chosen)); n == 1 {
 			s.discardObj(k, o)
 		} else if n > 1 {
 			s.res.ask = raGenDiscUnlessPick

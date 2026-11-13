@@ -63,7 +63,7 @@ func (s *State) blockKey(b, a Slot) uint8 {
 	if p := &s.perms[b]; p.blocking != a && s.xblkOf(b) == a {
 		return s.xblkRecs()[b].ord
 	}
-	return s.perms[b].bord
+	return uint8(s.perms[b].bord)
 }
 
 // blockPairs writes every declared pair of the defenders' blockers, in
@@ -86,7 +86,7 @@ func (s *State) blockPairs(out *[2 * MaxPerm]blkPair) int {
 		if p.flags&pfBlocking == 0 || p.blocking == NoSlot {
 			continue
 		}
-		add(b, p.blocking, p.bord)
+		add(b, p.blocking, uint8(p.bord))
 		if x := s.xblkOf(b); x != NoSlot {
 			add(b, x, s.xblkRecs()[b].ord)
 		}
@@ -115,7 +115,7 @@ func (s *State) forgetBlocked(b, a Slot) bool {
 	case p.blocking == a:
 		p.blocking = NoSlot
 		if x := s.xblkOf(b); x != NoSlot {
-			p.blocking, p.bord = x, s.xblkRecs()[b].ord
+			p.blocking, p.bord = x, objWord(s.xblkRecs()[b].ord)
 			s.xblkRecs()[b] = xblkRec{}
 		}
 	default:

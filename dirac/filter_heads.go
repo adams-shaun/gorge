@@ -99,7 +99,7 @@ func (s *State) ctrlRoleTgt(k *prep, slot int, ctrl uint8) bool {
 // queued: while the trigger fires (an IsPresent$ condition) it is the
 // checked event's seat (g.atkDef), afterwards the current entry's defSeat.
 // A read with neither stalls the game (StallDefenderPW, a declared limit)
-// and answers NoTarget, which matches no seat.
+// and answers noSeat, which matches no seat.
 func (s *State) defendingSeatF2(k *prep) uint8 {
 	if DebugDefendingActiveOpp {
 		return (s.active + 1) % s.nSeats() // seat-ok: a test-only mutation (DebugDefendingActiveOpp)
@@ -111,7 +111,7 @@ func (s *State) defendingSeatF2(k *prep) uint8 {
 		return e.defSeat - 1
 	}
 	s.capFull(StallDefenderPW)
-	return uint8(NoTarget)
+	return noSeat
 }
 
 // DebugDefendingActiveOpp is a test-only mutation: past two seats the

@@ -134,7 +134,7 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 	if s.g.pre.ask2 != 0 {
 		// the template's choice was answered on the stack: its enters
 		// program takes it below (runReplProgAs)
-		s.g.pre.val, s.g.pre.state, s.g.pre.ask2 = s.g.pre.val2, 2, 0
+		s.g.pre.val, s.g.pre.state, s.g.pre.ask2 = objWord(s.g.pre.val2), 2, 0
 	}
 	src := s.objs[t].slot
 	c := s.cardAt(src)

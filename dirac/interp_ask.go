@@ -1217,7 +1217,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		}
 		if s.g.pre.kind == akEnchant && s.g.pre.state == preDigEnchant {
 			s.res.ask = raNone
-			s.g.pre.val = uint8(s.objs[a.Source()].slot)
+			s.g.pre.val = objWord(uint8(s.objs[a.Source()].slot))
 			s.g.pre.state = preDigEnchantDone
 			if s.rerunMove(k, &s.prog(k)[r.pc]) {
 				return // suspended again at another Aura's choice
@@ -1247,9 +1247,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.continueRes(k, 0)
 			return
 		}
-		s.g.pre.val = a.Mode()
+		s.g.pre.val = objWord(a.Mode())
 		if s.g.pre.kind == akType {
-			s.g.pre.val = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
+			s.g.pre.val = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
 		}
 		if s.g.pre.state == preHideLand {
 			s.hideLandAnswer(k) // kw_hideaway.go
@@ -1281,12 +1281,12 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.continueRes(k, 0)
 	case raGenTokChoice:
 		in := &s.prog(k)[r.pc]
-		s.g.pre.val = a.Mode()
+		s.g.pre.val = objWord(a.Mode())
 		if s.g.pre.kind == akClone {
 			s.g.pre.val = cloneAnswer(a) // a copy token's clone election (ctr_entryperkind.go)
 		}
 		if s.g.pre.kind == akType {
-			s.g.pre.val = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
+			s.g.pre.val = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
 		}
 		s.g.pre.state = 2
 		t := r.lastTok
@@ -2241,7 +2241,7 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 			if s.cmdZoneReplace(k, o, &zz, &bb) {
 				deferred = s.heldPark(hr)
 				// resume the take loop at this card after the answer
-				s.g.pre.val = uint8(i)
+				s.g.pre.val = objWord(uint8(i))
 				return true // a CR 903.9b commander move parked before it happens
 			}
 			s.detach(o)
@@ -2430,7 +2430,7 @@ func (s *State) digAuraPlayerPark(k *prep, o Obj, p uint8) bool {
 // or more unanswered candidates (whose choice the dig does not pose yet).
 func (s *State) digAuraPlayerHost(k *prep, o Obj, p uint8) (uint8, bool) {
 	if s.g.pre.obj == o && s.g.pre.kind == akEnchant && s.g.pre.state == preDigEnchPlayerDone {
-		return s.g.pre.val, true // the answered choice among two or more seats
+		return uint8(s.g.pre.val), true // the answered choice among two or more seats
 	}
 	c := s.objs[o].card
 	if k.gen == nil || k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtPlayer {

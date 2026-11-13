@@ -114,7 +114,7 @@ func (s *State) dpManyVers(e *stackEntry) {
 func (e *stackEntry) dpManyCarrier(i int) (Obj, uint8) {
 	switch i {
 	case 0:
-		return e.trigObj, e.remVer
+		return e.trigObj, uint8(e.remVer)
 	case 1:
 		if e.trigAmt > 0 {
 			return Obj(e.trigAmt - 1), e.tver[0]

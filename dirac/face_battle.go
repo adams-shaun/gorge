@@ -28,7 +28,7 @@ const protSeat = MaxSeats - 1
 // protector returns the protector recorded on the battle at sl.
 func (s *State) protector(sl Slot) (uint8, bool) {
 	ch := s.perms[sl].chosen
-	return ch & protSeat, ch&^protSeat == protChosen
+	return uint8(ch & protSeat), ch&^protSeat == protChosen
 }
 
 // FeatAttackDefender is the defending player an attack declared at target
@@ -99,7 +99,7 @@ func (s *State) enterBattle(k *prep, sl Slot, ctrl uint8) {
 	if DebugBattleOwnProtector {
 		pr = ctrl
 	}
-	s.perms[sl].chosen = protChosen | pr
+	s.perms[sl].chosen = objWord(protChosen | pr)
 }
 
 // enterDefense puts the printed Defense counters on the battle at sl through

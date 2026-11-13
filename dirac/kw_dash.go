@@ -87,6 +87,6 @@ func (s *State) dashEnter(sl Slot, e *stackEntry) {
 		s.capFull(StallDelayed)
 		return
 	}
-	s.dly[s.ndly] = delayed{act: opDashReturn, ctrl: e.ctrl, obj: e.obj, ver: ob.ver, creator: NoObj}
+	s.dly[s.ndly] = delayed{act: opDashReturn, ctrl: e.ctrl, obj: e.obj, ver: objWord(ob.ver), creator: NoObj}
 	s.ndly++
 }

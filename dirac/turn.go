@@ -1036,10 +1036,10 @@ func (s *State) fireDelayed(k *prep) {
 		}
 		if d.act == uint8(kop.OpNop) {
 			// an empty-set registration: the source's trigger, doing nothing
-			s.enqueue(d.obj, d.ver, s.objs[d.obj].card, abDelayed, d.ctrl, NoObj, d.ctrl, int16(d.act))
+			s.enqueue(d.obj, uint8(d.ver), s.objs[d.obj].card, abDelayed, d.ctrl, NoObj, d.ctrl, int16(d.act))
 			continue
 		}
-		if k.gen != nil && s.objs[d.obj].ver != d.ver && !staleOrdered(kop.Op(d.act)) && d.when != dlyUntracked {
+		if k.gen != nil && objWord(s.objs[d.obj].ver) != d.ver && !staleOrdered(kop.Op(d.act)) && d.when != dlyUntracked {
 			// gorge drops a generated delayed program whose object left (a
 			// token copy that died). A keyword promise (Warp, Unearth) is not tied to
 			// its source's battlefield incarnation (CR 603.7): it still takes
@@ -1050,7 +1050,7 @@ func (s *State) fireDelayed(k *prep) {
 			continue
 		}
 		m := s.npend
-		s.enqueue(dlySource(&d), d.ver, s.objs[d.obj].card, abDelayed, d.ctrl, d.obj, d.ctrl, delayedAmt(d))
+		s.enqueue(dlySource(&d), uint8(d.ver), s.objs[d.obj].card, abDelayed, d.ctrl, d.obj, d.ctrl, delayedAmt(d))
 		s.echoOwnDelayed(k, &d, m)
 	}
 	if keep != 0 {

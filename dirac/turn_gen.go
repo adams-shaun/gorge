@@ -209,7 +209,7 @@ func (s *State) runOwnEnterPrograms(k *prep, sl Slot, o Obj, cid CardID, ctrl, f
 	// battlefield, never that effect's X (Mind into Matter's)
 	selfX := s.res.e.x
 	if s.res.active {
-		s.res.e.x = s.spellX(o)
+		s.res.e.x = objWord(s.spellX(o))
 	}
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
@@ -406,7 +406,7 @@ func (s *State) queueAskAt(sl Slot, kind uint8, c CardID, ab, pc uint8) {
 		s.g.askPrio = s.prio
 	}
 	a := &s.g.ask[s.g.nask]
-	a.sl, a.ver, a.kind, a.card, a.ab, a.pc, a.ts = sl, s.objs[s.perms[sl].obj].ver, kind, c, ab, pc, 0
+	a.sl, a.ver, a.kind, a.card, a.ab, a.pc, a.ts = sl, s.objs[s.perms[sl].obj].ver, kind, c, objWord(ab), pc, 0
 	s.g.nask++
 }
 
@@ -751,7 +751,7 @@ func (s *State) cleanupGen(k *prep) {
 	n := 0
 	for i := 0; i < int(s.g.nmay); i++ {
 		r := *s.mayAt(i)
-		keep := r.dur() == kop.DurYourNextTurn && !(s.active == r.ctrl && s.turn > r.turn) ||
+		keep := r.dur() == kop.DurYourNextTurn && !(s.active == r.ctrl && mayWord(s.turn) > r.turn) ||
 			r.until == kop.DurWarp && s.warpRecastLive(r) ||
 			r.until == kop.DurAirbend && s.warpRecastLive(r) ||
 			r.until == kop.DurPlot && s.plotLive(r) ||
@@ -793,7 +793,7 @@ func (s *State) fireDelayedGen(k *prep) {
 		s.enqueue(d.src, d.sv, d.card, d.ab, d.ctrl, ro, d.ctrl, amt)
 		if s.npend > m {
 			s.pend[m].li = s.g.dpLKI[i]
-			s.pend[m].remVer, s.pend[m].skw = remVer, s.pend[m].skw&^skwRem|boolBit(remSet, skwRem)
+			s.pend[m].remVer, s.pend[m].skw = objWord(remVer), s.pend[m].skw&^skwRem|boolBit(remSet, skwRem)
 			if d.n&dpMany != 0 {
 				s.dpManyCarry(&d, &s.pend[m]) // trig_delayedmany.go
 			}
@@ -1111,7 +1111,7 @@ func (s *State) applyGen(k *prep, a Action) {
 			}
 			s.g.pre.kind = akClone
 		} else {
-			s.g.pre.val = a.Mode()
+			s.g.pre.val = objWord(a.Mode())
 			if s.g.pre.kind == akClone {
 				s.g.pre.val = cloneAnswer(a)
 				if !s.g.pre.land && s.cloneTemplateAsk(k) {
@@ -1119,7 +1119,7 @@ func (s *State) applyGen(k *prep, a Action) {
 				}
 			}
 			if s.g.pre.kind == akType {
-				s.g.pre.val = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
+				s.g.pre.val = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
 			}
 		}
 		s.g.pre.state = 2
@@ -1204,15 +1204,15 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 	if ask.kind == akMode {
 		s.siegeModeStore(ask.sl, a.Mode())
 	} else if ask.kind == akColor || ask.kind == akNumber || ask.kind == akCard || ask.kind == akPlayer || isNameAsk(ask.kind) {
-		p.chosen = a.Mode()
+		p.chosen = objWord(a.Mode())
 	} else {
 		v := int(a.Target())<<8 | int(a.Mode())
-		p.chosen = typeVocabSub(k, v)
+		p.chosen = objWord(typeVocabSub(k, v))
 	}
 	if ask.card != NoCard {
 		saveRep := s.g.replaced
 		s.g.replaced = p.obj
-		s.runReplProg(k, ask.sl, ask.card, ask.ab, ask.pc)
+		s.runReplProg(k, ask.sl, ask.card, uint8(ask.ab), ask.pc)
 		s.g.replaced = saveRep
 	}
 }

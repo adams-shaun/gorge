@@ -181,7 +181,7 @@ func (s *State) enterAttacking(k *prep, sl Slot, ctrl uint8) bool {
 		return false
 	}
 	if n > 1 {
-		s.res.ask, s.res.askP, s.res.chosen = raGenEnterDefender, ctrl, uint8(sl)
+		s.res.ask, s.res.askP, s.res.chosen = raGenEnterDefender, ctrl, objWord(uint8(sl))
 		return true
 	}
 	s.setEnterAttacker(k, sl, buf[0])
@@ -199,7 +199,7 @@ func (s *State) setEnterAttacker(k *prep, sl Slot, atk TCode) {
 	}
 	pp.flags |= pfAttacking
 	pp.atk = atk
-	pp.bord = s.nAttackers
+	pp.bord = objWord(s.nAttackers)
 	s.nAttackers++
 	s.touchSl(sl)
 }

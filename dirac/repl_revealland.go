@@ -101,7 +101,7 @@ func (s *State) revealAnswer(k *prep, ask askRec, a Action) bool {
 	}
 	saveRep := s.g.replaced
 	s.g.replaced = s.perms[ask.sl].obj
-	s.runReplProg(k, ask.sl, ask.card, ask.ab, uint8(next))
+	s.runReplProg(k, ask.sl, ask.card, uint8(ask.ab), uint8(next))
 	s.g.replaced = saveRep
 	return true
 }

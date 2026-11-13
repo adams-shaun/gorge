@@ -439,7 +439,7 @@ const (
 // spell gained on the stack (OpGrantKeyword at a spell, Judith, Carnage
 // Connoisseur; grantSpellKw, srcKw). A copy does not keep them (CR 707.2).
 const (
-	spellGainedDeathtouch uint8 = 1 << iota
+	spellGainedDeathtouch objWord = 1 << iota
 	spellGainedLifelink
 )
 

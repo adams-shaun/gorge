@@ -53,7 +53,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		// freeze the count the moment the spell reaches the stack, before
 		// targets, divisions and costs (CR 601.2a; gorge castBattlefieldEvent):
 		// a permanent a cost then sacrifices still counts (value_castbattlefield.go)
-		e.trigMV = s.castBFLiveCount(k, p, NoSlot, k.t.Cards[c].CastBF)
+		e.trigMV = objWord(s.castBFLiveCount(k, p, NoSlot, k.t.Cards[c].CastBF))
 	}
 	if mayhem {
 		e.trigPl = trigPlMayhem
@@ -1449,7 +1449,7 @@ func (s *State) applyBuild(k *prep, a Action) {
 			s.answerMultikick(k, a)
 			return
 		}
-		e.x = a.Mode() // X
+		e.x = objWord(a.Mode()) // X
 		s.nextStage(k)
 	case AkDone:
 		if s.bld().stage == bsModes {
@@ -1554,7 +1554,7 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 		s.payTargetsEvidence(k) // a spell's mandatory evidence part (cost_collectevidencex.go)
 	}
 	if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayLife != 0 {
-		s.payLifeCost(k, e.ctrl, pc, e.x)
+		s.payLifeCost(k, e.ctrl, pc, uint8(e.x))
 	}
 	if k.gen != nil && k.gen.anyRaiseLife {
 		s.payRaiseLife(k) // a RaiseCost PayLife<N> the chosen target owes (cost_raiselife.go)
@@ -2222,7 +2222,7 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 				s.bld().pickLeft += pc.Discard2N // the second discard part's picks follow (cost_discardfiltered.go)
 			}
 			if s.bld().pickK == pkSac && pc.N == 0 {
-				s.bld().pickLeft = e.x // Sac<X/Spec>: the announced X (cost_sacx.go; 0 asks nothing)
+				s.bld().pickLeft = uint8(e.x) // Sac<X/Spec>: the announced X (cost_sacx.go; 0 asks nothing)
 			}
 		}
 		if s.bld().pickLeft == 0 {

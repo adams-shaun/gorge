@@ -75,7 +75,7 @@ func (s *State) declareMustAttack(k *prep) {
 			}
 			s.perms[sl].flags |= pfAttacking
 			s.perms[sl].atk = PlayerCode(s.nextAlive(s.active)) // two live seats only: mustAttackAsked asks at more
-			s.perms[sl].bord = s.nAttackers                     // declaration order (fireAttacksGen)
+			s.perms[sl].bord = objWord(s.nAttackers)            // declaration order (fireAttacksGen)
 			s.touchSl(sl)
 			s.nAttackers++
 		}
@@ -246,7 +246,7 @@ func (s *State) applyAttack(k *prep, a Action) {
 	sl := s.objs[a.Source()].slot
 	s.perms[sl].flags |= pfAttacking
 	s.perms[sl].atk = a.Target()
-	s.perms[sl].bord = s.nAttackers // declaration order (fireAttacksGen)
+	s.perms[sl].bord = objWord(s.nAttackers) // declaration order (fireAttacksGen)
 	s.touchSl(sl)
 	s.nAttackers++
 	s.lastPick = sl
@@ -849,7 +849,7 @@ func (s *State) applyBlock(k *prep, a Action) {
 	} else {
 		bp.flags |= pfBlocking
 		bp.blocking = at
-		bp.bord = s.blockSeq
+		bp.bord = objWord(s.blockSeq)
 	}
 	s.perms[at].nblock++
 	s.touchSl(b)

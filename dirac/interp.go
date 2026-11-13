@@ -208,7 +208,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.res.askP = e.ctrl // the source's controller chooses (gorge discardChooser)
 		}
 		s.res.left = uint8(n)
-		s.res.chosen = p
+		s.res.chosen = objWord(p)
 		return false
 	case kop.OpScry, kop.OpSurveil:
 		p := s.playerRef(k, in.Obj)
@@ -640,7 +640,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if o == NoObj {
 			s.delayEmpty(e)
 		} else if s.ndly < MaxDelayed {
-			s.dly[s.ndly] = delayed{act: uint8(in.C), ctrl: e.ctrl, obj: o, ver: s.objs[o].ver, creator: NoObj}
+			s.dly[s.ndly] = delayed{act: uint8(in.C), ctrl: e.ctrl, obj: o, ver: objWord(s.objs[o].ver), creator: NoObj}
 			s.ndly++
 		} else {
 			s.capFull(StallDelayed)
@@ -1013,16 +1013,16 @@ func (s *State) applyResolve(k *prep, a Action) {
 		s.storeChosenNumber(o, sl, int(a.Mode()))
 	case raChooseType:
 		if k.gen != nil && s.prog(k)[r.pc].C != 0 {
-			r.chosen = cardTypeAnswer(a)
+			r.chosen = objWord(cardTypeAnswer(a))
 			r.bad |= resChosenCard
 		} else {
-			r.chosen = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
+			r.chosen = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
 		}
 		r.bad |= resChosenType
 		if o, sl := s.resolutionTypeSource(); sl != NoSlot {
 			s.perms[sl].chosen = r.chosen
 		} else if o != NoObj {
-			s.objs[o].chosen = r.chosen
+			s.objs[o].chosen = uint8(r.chosen)
 			s.touch(o)
 		}
 	case raSacrifice:

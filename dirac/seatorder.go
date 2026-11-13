@@ -159,7 +159,7 @@ func (s *State) atkSeat(k *prep, a Slot) uint8 {
 		return noSeat
 	}
 	if s.typesAt(k, q)&kop.TBattle != 0 && s.perms[q].chosen&protChosen == protChosen {
-		return s.perms[q].chosen &^ protChosen
+		return uint8(s.perms[q].chosen &^ protChosen)
 	}
 	return s.perms[q].ctrl
 }
