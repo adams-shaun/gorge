@@ -239,6 +239,8 @@ func czallTwoZoneB(from string) (int, bool) {
 		return kop.CzBattleGrave, true
 	case "Library,Sideboard":
 		return kop.CzLibrarySideboard, true
+	case "Graveyard,Library":
+		return kop.CzGraveLibrary, true // Doomsday (lower_gravelibsweep.go)
 	}
 	return 0, false
 }
