@@ -370,6 +370,7 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	if mode&2 != 0 && k.t.Cards[c].Harmonize {
 		cost = s.harmonizeCredit(k, SeatIx(p), cost) // gorge harmonizePayment prices the offer after the reductions
 	}
+	addCommanderTax(&cost, s.commanderTax(SeatIx(p), o)) // the pool pays the taxed cast (CR 903.8), its delve credit after
 	if cd := &k.t.Cards[c]; cd.HasAltAdd && mode&2 == 0 {
 		pre := cost
 		// gorge's gate is existential over the either-or parts: one whose
@@ -630,6 +631,11 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 	if s.statM.any() || k.gen != nil {
 		cost = s.featCost(k, SeatIx(p), c, o, cost) // a flashback cost is reduced too
 	}
+	// gorge's planner prices a command-zone cast with its CR 903.8 tax
+	// (offerCostForUsing composes it), so a cast whose untaxed price the
+	// printed sources pay but whose taxed one needs a granted source is the
+	// grant search's, not the planner's (pairs 636, 789: Ghalta)
+	addCommanderTax(&cost, s.commanderTax(SeatIx(p), o))
 	if k.gen != nil && (s.g.mayPlayAny || mode&castMayPlay != 0 && s.mayPlayAnyType(k, p, o) || s.convAnyType(k, SeatIx(p), o)) {
 		cost = anyTypePips(cost) // gorge's planner funds these pips as generic (pay.PlanManaUnderRider)
 	}

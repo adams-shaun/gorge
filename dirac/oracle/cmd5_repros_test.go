@@ -103,3 +103,16 @@ func TestCmd5HellkiteXCountsSignet(t *testing.T) {
 	res := replayCmd5Repro(t, "cmd5_hellkite_x_counts_signet", 250, "options")
 	requireCmd5ReproClean(t, res, 250)
 }
+
+// TestCmd5GhaltaTaxNeedsGrantedMana: Ghalta, Primal Hunger waits in the
+// command zone with one earlier cast, so it costs {10}{G}{G} less six for
+// the creatures' power plus the {2} tax: {6}{G}{G} (CR 601.2f, 903.8). Six
+// Forests pay {6}{G}; the eighth mana is Rishkar's granted creature mana,
+// which gorge's payment planner never witnesses, so under the autopay
+// surface gorge lists no cast. The kernel priced the planner's cost without
+// the tax ({4}{G}{G}, which the Forests pay) and offered it.
+func TestCmd5GhaltaTaxNeedsGrantedMana(t *testing.T) {
+	t.Parallel()
+	res := replayCmd5Repro(t, "cmd5_ghalta_tax_needs_granted_mana", 564, "options")
+	requireCmd5ReproClean(t, res, 564)
+}
