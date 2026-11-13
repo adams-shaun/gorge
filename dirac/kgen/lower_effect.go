@@ -955,6 +955,11 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 	if rerr != nil {
 		return rerr
 	}
+	if !isRes {
+		if ri, isRes, rerr = lc.resUnlessDiscard(strings.TrimSpace(uc)); rerr != nil { // lower_costtokens.go
+			return rerr
+		}
+	}
 	if isRes {
 		in = ri
 	} else if _, isVar := lc.face.SVars[strings.TrimSpace(uc)]; isVar {
