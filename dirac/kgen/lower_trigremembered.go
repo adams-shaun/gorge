@@ -122,10 +122,11 @@ func (lc *lowerCtx) trigRememberedCapture(ps *params, lat *lAbility) (lValue, er
 		return lValue{Kind: vMVOf, Ref: lRef{Kind: rRemembered}}, nil
 	}
 	// GreatestCardManaCost: the largest mana value among the remembered cards,
-	// read by the graveyard aggregate, exact only while they are in a
-	// graveyard: the set must be a Discard<> payment's.
+	// wherever they went (a discard Rest in Peace or madness replaced to exile
+	// still counts): ExMVOf over the remembered set with N == AggGreatestMV.
+	// The set must be a Discard<> payment's.
 	if _, ok := ps.m["RememberDiscarded"]; !ok {
 		return lValue{}, refuse("TriggerRemembered$GreatestCardManaCost without RememberDiscarded$")
 	}
-	return lc.value("Count$ValidGraveyard Card.IsRemembered$GreatestCardManaCost")
+	return lValue{Kind: vMVOf, Ref: lRef{Kind: rRemembered}, N: kop.AggGreatestMV}, nil
 }

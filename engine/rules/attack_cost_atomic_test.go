@@ -89,8 +89,14 @@ func TestAtomicChargePaysGenericAndPipFromOnePool(t *testing.T) {
 	if !e.combatChargeAffordable(1, ch, map[state.ObjID]bool{bear: true}, map[state.ObjID]bool{bear: true}) {
 		t.Fatal("precondition: three white and one life must afford 2 generic + one W pip")
 	}
-	if both, _, _ := e.combatPhyBothBranches(1, ch); both {
-		t.Fatal("precondition: the life branch must be unaffordable at one life")
+	// PRECONDITION: the life branch is unaffordable at one life, so the plan
+	// routes the pip to colour deterministically.
+	plan, ok := e.openCombatPayPlan(1, ch, map[state.ObjID]bool{bear: true}, map[state.ObjID]bool{bear: true})
+	if !ok {
+		t.Fatal("precondition: the plan must open on the colour branch")
+	}
+	if plan.phyLifePips() != 0 || plan.phyDone != 1 {
+		t.Fatalf("precondition: plan done=%d life=%d, want the colour route at one life", plan.phyDone, plan.phyLifePips())
 	}
 
 	e.askAttackers()
@@ -177,8 +183,15 @@ func TestNornsAnnexFloatingColourStillOffersTheLifeChoice(t *testing.T) {
 	if e.G.Players[1].Pool[state.MW] != 1 || e.G.Players[1].Life != 20 {
 		t.Fatalf("precondition: floating W=%d life=%d, want 1 and 20", e.G.Players[1].Pool[state.MW], e.G.Players[1].Life)
 	}
-	both, canColour, canLife := e.combatPhyBothBranches(1, ch)
-	if !both || !canColour || !canLife {
+	plan, ok := e.openCombatPayPlan(1, ch, nil, nil)
+	if !ok {
+		t.Fatal("precondition: the plan must open")
+	}
+	if plan.phyDone != 0 {
+		t.Fatalf("precondition: plan done=%d, want both branches still owed", plan.phyDone)
+	}
+	canColour, canLife := e.combatPhyPipBranches(plan, nil)
+	if !canColour || !canLife {
 		t.Fatalf("precondition: colour=%v life=%v, want both branches affordable", canColour, canLife)
 	}
 

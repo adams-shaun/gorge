@@ -703,6 +703,14 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 				// price it again on a second budget.
 				capSpent.add(a)
 			}
+		} else if g.cheaper && !hasOption(d, a) {
+			// gorge's planner prices the play again at every search node
+			// (potentialPlayVerdict, mana_grantedoffers.go visit): a trigger the
+			// found prefix answered lowered the cost under the root price the
+			// offer builder priced the play with (Gran-Gran's loot discarding a
+			// Lesson into the graveyard, CR 601.2f, 106.4), so gorge's walk
+			// lists what the builder left off
+			d.add(a)
 		}
 	}
 }

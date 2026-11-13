@@ -18,4 +18,5 @@ const (
 	trigPlEscape                       // kw_escape.go: an escape cast of a graveyard card
 	trigPlRetrace                      // kw_retrace.go: the retrace graveyard cast (CR 702.81a)
 	trigPlForetold                     // kw_foretell.go: a cast from exile for the foretell cost
+	trigPlSuspend                      // kw_suspend.go: a spell cast free by suspend's last counter (CR 702.62a)
 )

@@ -25,6 +25,7 @@ const (
 	otherPass      // p passes with a trigger of the path on the stack
 	otherDeferred  // a deferred source tapped for its {R} (mixDeferred)
 	otherTapXPlain // a second-ability tap-another source's plain first ability (tapXPlainDo)
+	otherCtr       // a counter-cost source's ability (mixCtr): the counter one, or plain {T} first
 )
 
 // otherStep is one activation of a gap that is no filter.
@@ -34,19 +35,25 @@ type otherStep struct {
 	n           uint8 // otherGrant: the mana it makes
 	gi          int16 // otherGrant: the grantPC index; -1 the source's own ability
 	cand, cand2 Slot  // otherTapX: the permanents its cost taps
+	// col: otherCtr's colour (-1: the ability asks none); plain: otherCtr's
+	// activation ask answered with the card's plain first {T} ability
+	// (ctrAb1) rather than its counter one (ctrGap)
+	col   int8
+	plain bool
 }
 
-// mixBoard: p's census gaps mix filters, restricted any-colour sources and
-// tap-another-permanent sources, or a filter beside a deferred source
-// (mixDeferred) or beside a sacrifice-another one (Giant's Boulder's {1},{T}
-// beside Bolg's Company: gorge's one prefix search activates every census gap
-// in battlefield order, and the filter search takes the sacrifice as an
-// otherGap step: otherGap's sacrifice-another branch), and hold nothing else.
+// mixBoard: p's census gaps mix filters, restricted any-colour sources,
+// tap-another-permanent sources and counter-cost sources, or a filter beside
+// a deferred source (mixDeferred), a sacrifice-another one (Giant's Boulder's
+// {1},{T} beside Bolg's Company) or a counter-cost one (mixCtr), and hold
+// nothing else. gorge's one prefix search activates every census gap in
+// battlefield order, and the filter search takes the non-filter gaps as
+// otherGap steps: otherGap's sacrifice-another, deferred and counter arms.
 func (s *State) mixBoard(k *prep, p uint8) bool {
 	if k.gen != nil && k.gen.anyMultiR && s.wide2Board(k, p) {
 		return true // any-colour restricted gaps, a second-ability wide one among them (mana_restrictedcombo.go)
 	}
-	if k.gen == nil || !k.gen.anyFilt && !k.tapMana || !k.gen.anyAnyR && !k.tapMana && !k.gen.anyDeferred {
+	if k.gen == nil || !k.gen.anyFilt && !k.tapMana || !k.gen.anyAnyR && !k.tapMana && !k.gen.anyDeferred && !k.ctrMana {
 		return false
 	}
 	filt := s.scriptFilt(k, p).any()
@@ -67,7 +74,14 @@ func (s *State) mixBoard(k *prep, p uint8) bool {
 	if s.scriptTapX(k, p).any() {
 		n++
 	}
-	return n >= 2 && !s.scriptGaps(k, p).or(s.scriptRestr(k, p).andNot(def)).or(s.scriptCtr(k, p)).any()
+	ctr := s.mixCtr(k, p, filt)
+	if ctr.any() {
+		n++
+	}
+	// A counter source beside no filter stays the counter-gap scripts' (a
+	// tap-another or any-colour board): only a counted one is the filter
+	// search's otherGap step.
+	return n >= 2 && !s.scriptGaps(k, p).or(s.scriptRestr(k, p).andNot(def)).or(s.scriptCtr(k, p).andNot(ctr)).any()
 }
 
 // mixDeferred: p's activatable deferred sources (Pyromancer's Goggles,
@@ -85,6 +99,22 @@ func (s *State) mixDeferred(k *prep, p uint8, filt bool) slotMask {
 	return s.scriptDeferred(k, p)
 }
 
+// mixCtr: p's activatable counter-cost sources (mana_countercost.go
+// scriptCtr) when a filter is a gap beside them (filt). gorge's census misses
+// both (a paid filter, a counter-cost source), and its one prefix search
+// activates every census gap in battlefield order, so the filter search takes
+// the counter source as an otherGap step: Weather Maker's "{T}, remove two
+// charge counters: Add {C}{C}" funds Omni-Cheese Pizza's {1} fee for {W} and
+// pays the rest of Leonardo, Leader in Blue's {1}{W} activation (CR 605.3a,
+// 601.2g-h). A counter source short of counters is no gap (scriptCtr), so a
+// filter beside it stays filter-only (gapOthers drops it).
+func (s *State) mixCtr(k *prep, p uint8, filt bool) slotMask {
+	if !filt || !k.ctrMana {
+		return slotMask{}
+	}
+	return s.scriptCtr(k, p)
+}
+
 // otherGaps: the gaps a filter search on p's board activates beside its
 // filters. A play's own granted sources are the grant search's (grantCap /
 // grantPrefix) too, but gorge runs one prefix search over the filters and the
@@ -94,7 +124,8 @@ func (s *State) mixDeferred(k *prep, p uint8, filt bool) slotMask {
 func (s *State) otherGaps(k *prep, p uint8, a Action) slotMask {
 	var m slotMask
 	if s.mixBoard(k, p) {
-		m = s.scriptAnyR(k, p).or(s.scriptTapX(k, p)).or(s.mixDeferred(k, p, true))
+		filt := s.scriptFilt(k, p).any()
+		m = s.scriptAnyR(k, p).or(s.scriptTapX(k, p)).or(s.mixDeferred(k, p, true)).or(s.mixCtr(k, p, filt))
 	}
 	if len(k.gen.grantPC) != 0 && s.grantsLive(k) {
 		for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
@@ -143,6 +174,8 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 	case k.gen.anyDeferred && k.gen.has(t.cardAt(sl), gfDeferred):
 		// a single fixed {R} ability: no ask node (deferBranch)
 		return t.perms[sl].flags&pfTapped == 0 && try(otherStep{kind: otherDeferred})
+	case t.scriptCtr(k, p).has(sl):
+		return fs.ctrOther(k, t, sl, try)
 	case t.scriptAnyR(k, p).has(sl):
 		if !fs.tick() {
 			return false
@@ -359,6 +392,52 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 	return false
 }
 
+// ctrOther branches counter-cost gap sl's answers at a priority node, as
+// ctrScript's chain does: a source with a plain {T} first ability (ctrSecond,
+// Weather Maker) answers the activation ask with that ability first, its
+// colour ask over ctrFirstN's answers (ctrColOrder: the play's announced
+// colours first) and only then the counter ability; a counter ability that
+// asks a colour (Vivid Grove's second) answers it in the same order. Each ask
+// is one node of the search, as gorge's activation ask is.
+func (fs *filtSearch) ctrOther(k *prep, t *State, sl Slot, try func(otherStep) bool) bool {
+	c := t.cardAt(sl)
+	if k.ctrSecond(c) {
+		if !fs.tick() {
+			return false // the "choose a mana ability" ask
+		}
+		off := k.ctrFirstN(c)
+		if off > 1 && !fs.tick() {
+			return false // the plain first ability's colour ask
+		}
+		for ans := 0; ans < off; ans++ {
+			col := int8(-1) // a fixed colour asks nothing
+			if off > 1 {
+				col = int8(t.ctrColOrder(k, fs.a)[ans])
+			}
+			if try(otherStep{kind: otherCtr, col: col, plain: true}) {
+				return true
+			}
+		}
+	}
+	ab := k.ctrAbOf(c)
+	if ab == nil {
+		return false
+	}
+	if ctrAnyColour(ab) {
+		if !fs.tick() {
+			return false // the counter ability's colour ask
+		}
+		order := t.ctrColOrder(k, fs.a)
+		for _, col := range order {
+			if try(otherStep{kind: otherCtr, col: int8(col)}) {
+				return true
+			}
+		}
+		return false
+	}
+	return try(otherStep{kind: otherCtr, col: -1})
+}
+
 // otherDo plays step st of a gap that is no filter.
 func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 	o := &st.other
@@ -375,6 +454,17 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 		s.tapXDo(k, p, tapXStep{sl: st.sl, cand: o.cand, cand2: o.cand2, col: o.ans})
 	case otherTapXPlain:
 		s.tapXPlainDo(k, p, st.sl, o.ans)
+	case otherCtr:
+		if o.plain {
+			// the plain first {T} ability's answer: the counters and the use
+			// stay, as ctrAb1 (gorge's activation: the {T} cost, then the mana)
+			s.ctrAb1(k, p, st.sl, int(o.col))
+			return
+		}
+		// remove counters, tap, add mana, spend the use (ctrGap); the SBA a
+		// -0/-1 counter may kill with
+		s.ctrGap(k, p, st.sl, int(o.col))
+		s.sba(k)
 	case otherGrant:
 		s.perms[st.sl].flags |= pfTapped
 		s.touchSl(st.sl)

@@ -47,8 +47,11 @@ const witnessWaits = 4
 // witness sacrifices the last permanent the spell could target (For the Common Good paid
 // with the Treasure it would copy), and when its sacrifices stack more triggers than the
 // wait budget lets resolve before the play is offered again (kickWitness; Nyxborn Hydra's
-// X paid with three Eldrazi Spawn beside two Writhing Chrysalis).
-func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x int, excl Obj) bool {
+// X paid with three Eldrazi Spawn beside two Writhing Chrysalis). L is the
+// restricted floating mana the fixed pips and generic could not fold: the
+// non-eats plan prices the witness at xLcredit(cost, x, L), so the probe must
+// price the same plan (lowerWitnessEx).
+func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x int, excl Obj, L uint8) bool {
 	bestowed := s.buildLive() && s.bld().e.bestowedEntry() // its one target is the enchant creature
 	targeted := bestowed || tspec(k, c, spellAb(k, c), 0) != nil
 	stacked := s.subs[kop.TrigSacrificed].any()
@@ -60,9 +63,13 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 	t := s.fork()
 	defer s.unfork()
 	n0 := t.npend
+	pc, px := *cost, x
+	if L != 0 {
+		pc, px = xLcredit(*cost, x, L), 0
+	}
 	var pk planner
 	pk.try = true
-	t.tapForPK(k, p, cost, x, excl, false, false, &pk)
+	t.tapForPK(k, p, &pc, px, excl, false, false, &pk)
 	if !pk.found {
 		return false
 	}
@@ -177,7 +184,7 @@ func (s *State) xWitnessOffered(k *prep, p uint8, c CardID, o Obj) bool {
 	var av avail
 	s.availFor(k, p, &av)
 	mx := max(0, av.maxX(&cost, pipMaskOf(&cost)))
-	if !s.xWitnessEats(k, p, c, &cost, mx, o) {
+	if !s.xWitnessEats(k, p, c, &cost, mx, o, 0) {
 		return true
 	}
 	// gorge's potentialWitnessSmallerX: the max X's payment consumes the last

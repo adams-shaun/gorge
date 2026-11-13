@@ -269,8 +269,9 @@ fresh-clone-check:
 BASE ?= land
 export BASE
 .PHONY: test-one test-targeted test-smart precheck
+# $(value …) passes RUN/SKIP/TESTENV verbatim; $(RUN) re-expands and eats $| as a make automatic variable.
 test-one:
-	@PKG='$(PKG)' RUN='$(RUN)' SKIP='$(SKIP)' V='$(V)' TIMEOUT='$(TIMEOUT)' TAGS='$(TAGS)' TESTENV='$(TESTENV)' UPDATE='$(UPDATE)' bash scripts/test-targets.sh one
+	@PKG='$(PKG)' RUN='$(value RUN)' SKIP='$(value SKIP)' V='$(V)' TIMEOUT='$(TIMEOUT)' TAGS='$(TAGS)' TESTENV='$(value TESTENV)' UPDATE='$(UPDATE)' bash scripts/test-targets.sh one
 test-targeted:
 	@bash scripts/test-targets.sh targeted
 test-smart:

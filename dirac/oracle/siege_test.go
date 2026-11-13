@@ -17,7 +17,7 @@ import (
 // Frostcliff (gorge fires its granted combat-damage batch trigger per damage
 // event) and Windcrag (an attack Panharmonicon) stay refused. Hollowmurk
 // (any-kind CounterAdded, ActivationLimit$ 1, granted by its Sultai mode) has
-// its own decks, khollowDecks, capped at two copies: see the note there.
+// its own decks, khollowDecks: see the note there.
 var ksiegeDecks = [2][]cardset.Entry{
 	{
 		{Name: "Barrensteppe Siege", Count: 6}, {Name: "Glacierwood Siege", Count: 6},
@@ -84,22 +84,19 @@ func TestSiegeLockstepMutation(t *testing.T) {
 // control, draw a card; only once each turn" (Mode$ CounterAdded, no
 // CounterType$, ActivationLimit$ 1).
 //
-// At most TWO Hollowmurk Sieges and no Barrensteppe (its Abzan mode puts a
-// counter on each creature, several in one turn): gorge does not enforce ActivationLimit$ on an
-// AddTrigger$-granted trigger (pin b4e6762a27f9, engine/rules/trigger_granted.go
-// checkGrantedStaticTriggersUsing never calls triggerActivationLimitAllows /
-// reserveTriggerLimits; Forge's Trigger.checkActivationLimit does), so with
-// four or more copies a second counter in one turn queues a second draw in
-// gorge only (about half of 1000 seeds diverge, e.g. seed 1 at a
-// trigger_order decision, ref two triggers, kernel none). The kernel keys the
-// limit per (object, ability), which is the card text. This is a
-// gorge finding; the kernel does not emulate it.
+// Both engines hold a granted line's ActivationLimit$ now, so the pool plays
+// FOUR Hollowmurk Sieges beside Barrensteppe (its Abzan mode puts a counter
+// on each creature, several in one turn): gorge's granted walk runs
+// triggerActivationLimitAllows / reserveTriggerLimits after every other gate,
+// keyed by recipient and grantor (pin 6ccef718a3, TestGrantedLineKeepsItsActivationLimit),
+// and the kernel keys the limit per (object, ability), which is the card text.
+// Several counters in one turn draw once for each Siege, the next turn again.
 var khollowDecks = [2][]cardset.Entry{
 	{
-		{Name: "Hollowmurk Siege", Count: 2},
+		{Name: "Hollowmurk Siege", Count: 4}, {Name: "Barrensteppe Siege", Count: 4},
 		{Name: "Grizzly Bears", Count: 8}, {Name: "Raging Goblin", Count: 4}, {Name: "Shock", Count: 4},
-		{Name: "Plains", Count: 5}, {Name: "Swamp", Count: 5}, {Name: "Island", Count: 4},
-		{Name: "Mountain", Count: 4}, {Name: "Forest", Count: 4},
+		{Name: "Plains", Count: 4}, {Name: "Swamp", Count: 4}, {Name: "Island", Count: 3},
+		{Name: "Mountain", Count: 2}, {Name: "Forest", Count: 3},
 	},
 	ksiegeDecks[1],
 }

@@ -159,11 +159,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// this is the resolution-start list resolveTop computes.
 			ctx.TriggerRememberedMoved = e.rememberedMovedSinceFire(ctx.TriggerRememberedStamps)
 		}
-		if lki, ok := e.triggerLKI[rp.obj]; ok && lki.object != nil {
-			ctx.LKI = lki.object
-			ctx.Snap.Power, ctx.Snap.Toughness, ctx.Snap.PTValid =
-				lki.power, lki.toughness, lki.ptValid
-		}
+		lki, lkiHeld := e.triggerLKI[rp.obj]
+		bindTriggerObjectLKI(ctx, lki, lkiHeld)
 		if link, ok := e.sourceLifelinkLKI[rp.obj]; ok {
 			ctx.Snap.SourceLifelink = link
 			ctx.Snap.SourceLifelinkValid = true

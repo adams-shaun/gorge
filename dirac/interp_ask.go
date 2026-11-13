@@ -236,7 +236,10 @@ func (s *State) anyManaSource(k *prep, p uint8, d *payDesc) bool {
 			return true
 		}
 		// a tap-another-permanent or counter-cost source: gorge's walk counts it too
-		if c := s.cardAt(sl); k.cards[c].manaAb >= 0 {
+		// (a commander-identity source whose controller has no commander yields
+		// nothing, CR 903.4f: its view is the no-ability one, gorge
+		// manaAbilityYieldsNothing)
+		if c := s.cardAt(sl); k.cards[c].manaAb >= 0 && !(pc.manaAb < 0 && k.t.Cards[c].Abilities[k.cards[c].manaAb].ManaIdentity) {
 			if j := int(k.cards[c].manaAb); s.potentialAdmits(k, p, sl, j, &k.t.Cards[c].Abilities[j], nil) {
 				return true
 			}
@@ -562,6 +565,8 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		s.entryOrderOptions(k, d)
 	case raGenReplOrder, raGenCtrOrder:
 		s.replOrderOptions(d)
+	case raGenUncOrder:
+		s.uncOrderOptions(d) // repl_uncounterable.go
 	case raGenTokCopy:
 		s.tokCopyOptions(d) // repl_tokcopy.go
 	case raGenCopyTarget, raGenCopyTargets:
@@ -1108,6 +1113,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.applyEntryResolve(k, a) // repl_entryorder.go
 	case raGenCtrOrder:
 		s.applyCtrOrder(k, a) // repl_ctrorder.go
+	case raGenUncOrder:
+		s.applyUncOrder(k, a) // repl_uncounterable.go
 	case raGenTokCopy:
 		s.tokCopyAnswer(k, a) // repl_tokcopy.go
 	case raGenReplOrder:

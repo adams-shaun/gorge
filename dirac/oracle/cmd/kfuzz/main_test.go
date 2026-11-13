@@ -195,6 +195,24 @@ func TestKFuzzFDNReproFlags(t *testing.T) {
 // -synth plays gorge against itself, so it read "no divergence" for a game that
 // diverges; now that is an error naming the flags, and the recorded surface
 // replaces the default one.
+// TestStampReproRecordsSynthPool: a synth run's repro names its pool, so the
+// lockstep tables' glob (which matches on Repro.Pool) picks it up.
+func TestStampReproRecordsSynthPool(t *testing.T) {
+	defer func(k string) { runKernel = k }(runKernel)
+	for _, c := range []struct{ kernel, pool string }{
+		{"synth std-ecl", "std-ecl"},
+		{"set blb", ""},
+		{"gorge", ""},
+		{"vanilla", ""},
+	} {
+		runKernel = c.kernel
+		r := stampRepro(&oracle.Repro{})
+		if r.Kernel != c.kernel || r.Pool != c.pool {
+			t.Errorf("%s: kernel %q, pool %q; want %q, %q", c.kernel, r.Kernel, r.Pool, c.kernel, c.pool)
+		}
+	}
+}
+
 func TestReproRunChecksSideAndSurface(t *testing.T) {
 	path := "found.repro.json"
 	rep := &oracle.Repro{Kernel: "synth std-trk", Surface: "autopay"}

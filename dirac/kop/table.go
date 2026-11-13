@@ -379,6 +379,13 @@ type CardDef struct {
 	HasPlot bool
 	// PlotCost is the printed plot cost (HasPlot).
 	PlotCost ManaCost
+	// Suspend is printed K:Suspend:N:cost's N (CR 702.62a; 0 = none): the
+	// hand offers the suspend special action at SuspendCost, exiling the card
+	// with N time counters (a DurSuspend record); each of its owner's upkeeps
+	// removes one and the last offers a free cast (dirac/kw_suspend.go).
+	Suspend uint8
+	// SuspendCost is the printed suspend cost (Suspend > 0).
+	SuspendCost ManaCost
 	// TapPowerCrew / TapPowerSaddle are the static "this creature crews
 	// Vehicles / saddles Mounts as though its power were N greater"
 	// (graveexile; Mode$ TapPowerValue). Added only while paying a Crew or Saddle
@@ -445,6 +452,13 @@ type CardDef struct {
 	// creature card turns up for its printed mana cost (CR 701.40b/701.58b):
 	// {0} and "no cost" both price as a free cost and are offered.
 	CostEmpty bool
+	// NoManaCost is a printed "no cost" mana cost (CR 118.6, 202.1b: Ancestral
+	// Vision, Lotus Bloom, Living End): the card can't be cast by paying its
+	// mana cost, so the plain hand cast and a play permission that pays it
+	// are not offered (dirac/cast_nomanacost.go; gorge's
+	// filterNoManaCostCasts). A cast that waives or replaces the cost still
+	// is: suspend's last counter, a free cast, an alternative cost.
+	NoManaCost bool
 	// Defense is a Battle's printed Defense (CR 310.4; 0 for any other
 	// card): it enters with that many CtrDefense counters
 	// (dirac/face_battle.go).
@@ -626,6 +640,10 @@ type CardDef struct {
 	// unions it over the matched permanents at each use (kernel
 	// mana_reflected.go produceColours).
 	ProduceCol ColorMask
+	// Identity is the card's colour identity (cards.Card.ColourIdentity, every
+	// face's union, WUBRG in bits 0..4 as ColorMask): a commander-identity mana
+	// ability (Ability.ManaIdentity) unions it over its controller's commanders.
+	Identity ColorMask
 }
 
 // CardDef.MorphFamily values: the face-down keyword the card was printed with.

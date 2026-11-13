@@ -18,7 +18,13 @@
 #
 # Settings that belong to the machine, not the repository, go in ~/.config/gorge/test-targets.env (or
 # $GORGE_TEST_TARGETS_ENV): GORGE_POOLS (dirac's deck pools), GATE_AFFECTED_REPO (+ GATE_AFFECTED_PATH, GATE_REF),
-# GORGE_HEAVY_LOCK (+ GORGE_HEAVY_LANES, GORGE_TEST_LANE_WAIT).
+# GORGE_HEAVY_LOCK (+ GORGE_HEAVY_LANES, GORGE_TEST_LANE_WAIT), and the remote runner's GORGE_REMOTE_HOST,
+# GORGE_REMOTE_KEY, GORGE_REMOTE_REPO, GORGE_REMOTE_MIN_IDLE, GORGE_REMOTE_OFF (scripts/test-remote.sh).
+#
+# Runner: with the GORGE_REMOTE_* settings present, the mode runs on the gate box instead (the worktree's HEAD and
+# its uncommitted diff are shipped; the same verdict line and the same go test -json at the same local path come
+# back). An unreachable or busy box, or any infrastructure failure, runs it here as before, with one note: only a
+# test failure on the box is FAIL. Unset (the default) means local only.
 #
 # exit 0 PASS, 1 FAIL, 2 usage, 3 ENV, 4 EMPTY, 5 BUDGET, 75 BUSY. The full `go test -json` stream is kept
 # at .ds4/scratch/test/<mode>-<sha>.json. Never passes -count (the cache stays on).
@@ -37,14 +43,31 @@ t0=$SECONDS
 sha=$(git rev-parse --short=10 HEAD 2>/dev/null || echo -)
 [ -z "$(git status --porcelain --untracked-files=no 2>/dev/null)" ] || sha=$sha+dirty
 pkgs_label=""
+# shellcheck disable=SC1091
+. "$top/scripts/test-remote.sh"
+
+# record_verdict STATUS LINE: remember a terminal verdict (PASS or FAIL) for the commit, next to the logs, so
+# a rerun on the same commit with the same gate scripts reuses it instead of repeating the work. ENV, EMPTY,
+# BUDGET and BUSY describe the box, not the commit, and are never recorded.
+record_verdict() {
+	case $1 in
+	PASS | FAIL) printf '%s\n' "$2" >.ds4/scratch/test/smart-${sha%+dirty}.verdict ;;
+	esac
+}
 
 # verdict STATUS [msg]: print the verdict line and leave with its exit code.
 verdict() {
-	local st=$1 msg=${2:-}
-	"${py[@]}" verdict --mode "$mode" --status "$st" --sha "$sha" --pkgs "$pkgs_label" --seconds $((SECONDS - t0)) ${msg:+--msg "$msg"}
-	exit $?
+	local st=$1 msg=${2:-} out rc
+	out=$("${py[@]}" verdict --mode "$mode" --status "$st" --sha "$sha" --pkgs "$pkgs_label" --seconds $((SECONDS - t0)) ${msg:+--msg "$msg"})
+	rc=$?
+	printf '%s\n' "$out"
+	[ "$mode" = smart ] && record_verdict "$st" "$out"
+	exit $rc
 }
 usage() { echo "test-targets: $mode: $1" >&2; exit 2; }
+
+# ---- the runner: the gate box when it can, else here --------------------------------------------------
+remote_try
 
 # ---- the cap -----------------------------------------------------------------------------------------
 if [ -z "${TEST_TARGETS_SCOPED:-}" ]; then
@@ -77,7 +100,9 @@ json=.ds4/scratch/test/$mode-${sha%+dirty}.json
 
 # capped MEM CPU cmd...: the command in its own user scope; smart has no outer one. Uncapped without user systemd.
 have_sd=
-systemd-run --user --scope -q true >/dev/null 2>&1 && have_sd=1
+# On the box the whole run is already one scope (CPUWeight below the landing gate's): a scope opened inside it
+# would escape that weight, so nothing here opens one.
+[ -n "${TEST_TARGETS_REMOTE:-}" ] || ! systemd-run --user --scope -q true >/dev/null 2>&1 || have_sd=1
 capped() {
 	if [ -n "$have_sd" ]; then systemd-run --user --scope -q -p MemoryMax="$1" -p CPUQuota="$2" "${@:3}"; else "${@:3}"; fi
 }
@@ -97,8 +122,17 @@ gojson() {
 	return $r
 }
 finish() { # finish NAMED_IMPORT_PATHS: classify $json, print detail and the verdict, exit
-	"${py[@]}" finish --mode "$mode" --json "$json" --rc "$rc" --sha "$sha" --pkgs "$pkgs_label" --seconds $((SECONDS - t0)) --named "$1"
-	exit $?
+	local out pyrc vline st
+	out=$("${py[@]}" finish --mode "$mode" --json "$json" --rc "$rc" --sha "$sha" --pkgs "$pkgs_label" --seconds $((SECONDS - t0)) --named "$1")
+	pyrc=$?
+	printf '%s\n' "$out"
+	if [ "$mode" = smart ]; then
+		vline=${out##*$'\n'}
+		st=${vline#test-smart: }
+		st=${st%% *}
+		record_verdict "$st" "$vline"
+	fi
+	exit $pyrc
 }
 
 # ---- test-one ----------------------------------------------------------------------------------------
@@ -202,6 +236,29 @@ echo "gate scripts: gate_affected=$aff_sha dirac-gate=$dg_sha"
 mb=$(git merge-base "$BASE" HEAD)
 bad() { echo "test-targets: smart: $*" >&2; verdict FAIL "$*"; }
 
+# The step-4 lane wait, clamped to 1500s whatever the environment says: a seat that waits longer than the
+# gate itself would wait better by reporting a BUSY concern than by holding its lane.
+wait_s=${GORGE_TEST_LANE_WAIT:-1500}
+case $wait_s in '' | *[!0-9]*) wait_s=1500 ;; esac
+if [ "$wait_s" -gt 1500 ]; then
+	echo "test-targets: note: GORGE_TEST_LANE_WAIT=$wait_s clamped to 1500; on a full heavy lane report the wait as a BUSY concern, do not wait longer" >&2
+	wait_s=1500
+fi
+
+# A terminal verdict (PASS or FAIL) recorded for this commit with these gate scripts is reused: the commit
+# and the gates did not change, so rerunning would repeat the same work. FORCE=1 reruns anyway.
+keep=.ds4/scratch/test/smart-${sha%+dirty}
+vfile=$keep.verdict
+if [ -z "${FORCE:-}" ] && [ -r "$vfile" ]; then
+	read -r _ rst _ rpk _ <"$vfile"
+	if [ "$rpk" = "$pkgs_label" ] && { [ "$rst" = PASS ] || [ "$rst" = FAIL ]; }; then
+		echo "test-targets: note: reused verdict for $sha; make test-smart FORCE=1 to rerun" >&2
+		printf '%s\n' "$(<"$vfile")"
+		case $rst in PASS) exit 0 ;; esac
+		exit 1
+	fi
+fi
+
 echo "== 1 gofmt, vet"
 files=$(git diff --name-only --diff-filter=d "$mb" HEAD -- '*.go')
 if [ -n "$files" ]; then
@@ -234,8 +291,9 @@ fi
 echo "== 4 affected gate and dirac gate, side by side"
 lock=${GORGE_HEAVY_LOCK:-}
 lanes=${GORGE_HEAVY_LANES:-3}
-wait_s=${GORGE_TEST_LANE_WAIT:-1500}
-if [ -n "$lock" ] && { : >>"$lock"; } 2>/dev/null; then
+if [ -n "${TEST_TARGETS_REMOTE:-}" ]; then
+	: # the box caps its concurrent runs itself (test-remote-box.sh)
+elif [ -n "$lock" ] && { : >>"$lock"; } 2>/dev/null; then
 	deadline=$((SECONDS + wait_s))
 	got=
 	while [ -z "$got" ]; do
@@ -247,7 +305,7 @@ if [ -n "$lock" ] && { : >>"$lock"; } 2>/dev/null; then
 			if flock -n 9; then got=$i; break; fi
 		done
 		[ -n "$got" ] && break
-		[ "$SECONDS" -lt "$deadline" ] || verdict BUSY "no heavy lane in ${wait_s}s"
+		[ "$SECONDS" -lt "$deadline" ] || verdict BUSY "no heavy lane in ${wait_s}s; finish the ticket with a BUSY concern instead of retrying with a longer GORGE_TEST_LANE_WAIT"
 		sleep 5
 	done
 else
@@ -261,7 +319,7 @@ cpu_a=$((ncpu * 100)); [ "$cpu_a" -le 1600 ] || cpu_a=1600
 cpu_d=$((ncpu * 100)); [ "$cpu_d" -le 800 ] || cpu_d=800
 U=tsmart-$$-$(date +%s)
 {
-	if systemd-run --user --scope -q true >/dev/null 2>&1; then
+	if [ -n "$have_sd" ]; then
 		systemd-run --user --scope -q --unit="$U-aff" -p MemoryMax=16G -p CPUQuota=$cpu_a% env GOFLAGS=-trimpath T="$BASE" bash -c 'set -o pipefail; git -C "$0" show "$1:$2" | bash -s "$T"' "$GATE_AFFECTED_REPO" "$GATE_REF" "$GATE_AFFECTED_PATH" >"$S/aff" 2>&1
 	else
 		GOFLAGS=-trimpath T="$BASE" bash -c 'set -o pipefail; git -C "$0" show "$1:$2" | bash -s "$T"' "$GATE_AFFECTED_REPO" "$GATE_REF" "$GATE_AFFECTED_PATH" >"$S/aff" 2>&1
@@ -271,7 +329,7 @@ U=tsmart-$$-$(date +%s)
 {
 	if [ -n "${PRECHECK_DIRAC_GATE:-}" ] && [ -x "$PRECHECK_DIRAC_GATE" ]; then
 		"$PRECHECK_DIRAC_GATE" "$BASE" >"$S/dg" 2>&1
-	elif systemd-run --user --scope -q true >/dev/null 2>&1; then
+	elif [ -n "$have_sd" ]; then
 		systemd-run --user --scope -q --unit="$U-dirac" -p MemoryMax=16G -p CPUQuota=$cpu_d% env GOFLAGS=-trimpath GOMAXPROCS=8 GOMEMLIMIT=13GiB bash "$dgs" "$BASE" >"$S/dg" 2>&1
 	else
 		GOFLAGS=-trimpath bash "$dgs" "$BASE" >"$S/dg" 2>&1
@@ -295,7 +353,6 @@ wait
 ra=$(cat "$S/aff.rc" 2>/dev/null)
 rd=$(cat "$S/dg.rc" 2>/dev/null)
 grep -qE '^(--- FAIL|FAIL[[:space:]]|panic:)' "$S/aff" && ra=1
-keep=.ds4/scratch/test/smart-${sha%+dirty}
 cp "$S/aff" "$keep.affected.log" 2>/dev/null
 cp "$S/dg" "$keep.dirac.log" 2>/dev/null
 aff_fail=0 dirac_fail=0

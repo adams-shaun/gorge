@@ -34,6 +34,29 @@ func graveActScen(t *testing.T, names ...string) (*scen, map[string]CardID) {
 	return newScenTable(t, tbl, Config{NoElide: true}), id
 }
 
+// stdMshScen builds a scenario over the named cards of the std-msh pool; its
+// libraries hold a Forest of that table.
+func stdMshScen(t *testing.T, names ...string) (*scen, map[string]CardID) {
+	t.Helper()
+	var deck []cardset.Entry
+	set := cardsettest.Synth(t, "std-msh")
+	for _, n := range names {
+		if i, ok := set.Lookup(n); !ok || !set.Supported()[i] {
+			t.Fatalf("%s not in the std-msh table", n)
+		}
+		deck = append(deck, cardset.Entry{Name: n, Count: 1})
+	}
+	tbl, da, _, err := set.Matchup(deck, deck)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := map[string]CardID{}
+	for _, c := range da {
+		id[tbl.Cards[c].Name] = c
+	}
+	return newScenTableLib(t, tbl, id["Forest"], Config{NoElide: true}), id
+}
+
 // graveActivations counts the activations of o offered at priority.
 func (sc *scen) graveActivations(o Obj) (n int) {
 	d := sc.s.Step()
