@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 )
 
 // The token-script digest sidecar.
@@ -37,7 +36,9 @@ import (
 // cache. Like SegmentPath and ImagePath it is a derived name, so PruneCaches
 // and the fingerprint keying apply to it the same way.
 func TokenDigestPath(cache string) string {
-	return strings.TrimSuffix(cache, ".gob.gz") + ".tok"
+	// Slice arithmetic like ImagePath's: the caller always passes a
+	// CachePath-shaped ir-*.gob.gz name.
+	return cache[:len(cache)-len(".gob.gz")] + ".tok"
 }
 
 // tokenDigest hashes the token scripts dir compiles from, the way
@@ -56,7 +57,7 @@ func tokenDigest(dir string) (string, error) {
 		if err != nil {
 			return err
 		}
-		if !d.IsDir() && strings.HasSuffix(p, ".txt") {
+		if !d.IsDir() && filepath.Ext(p) == ".txt" {
 			paths = append(paths, p)
 		}
 		return nil
