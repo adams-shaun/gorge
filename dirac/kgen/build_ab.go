@@ -3368,7 +3368,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if az, ok := fl["alt"]; ok {
 			// OriginAlternative$: the library
 			// search's zone election; the alternative zone rides B bits 5..7
-			if in.Op != "Search" || zoneMap[in.C] != kop.ZoneHand && zoneMap[in.C] != kop.ZoneBattlefield {
+			_, altAll := fl["altAll"]
+			_, noShuf := fl["NoShuffle"]
+			libPut := altAll && noShuf && zoneMap[in.C] == kop.ZoneLibrary // Doomsday (lower_libgrave.go)
+			if in.Op != "Search" || zoneMap[in.C] != kop.ZoneHand && zoneMap[in.C] != kop.ZoneBattlefield && !libPut {
 				return ki, fmt.Errorf("alt origin on a %s to zone %d", in.Op, zoneMap[in.C])
 			}
 			var altZ kop.Zone

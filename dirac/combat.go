@@ -75,7 +75,7 @@ func (s *State) declareMustAttack(k *prep) {
 			}
 			s.perms[sl].flags |= pfAttacking
 			s.perms[sl].atk = PlayerCode(s.nextAlive(s.active)) // two live seats only: mustAttackAsked asks at more
-			s.perms[sl].bord = s.nAttackers                     // declaration order (fireAttacksGen)
+			s.perms[sl].bord = objWord(s.nAttackers)            // declaration order (fireAttacksGen)
 			s.touchSl(sl)
 			s.nAttackers++
 		}
@@ -114,7 +114,7 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 		if int(d.N) > room {
 			return s.optionsFull(d)
 		}
-		o := uint8(s.perms[sl].obj)
+		o := s.perms[sl].obj
 		if MaxSeats > 2 {
 			s.attackOffersN(k, d, o, sl, gd && s.goadedAt(k, sl))
 			if k.gen != nil && k.gen.anyBattle {
@@ -124,14 +124,14 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 		}
 		// defenders: the defending player, then each planeswalker they
 		// control in slot order
-		d.add(MakeAction(AkAttack, o, PlayerCode(def), 0))
+		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(def), 0))
 		if gd && s.goadedAt(k, sl) {
 			continue // a goad is satisfied by attacking a player only (act_goad.go)
 		}
 		for pm := s.ctrlM[def]; pm.any(); pm = pm.rest() {
 			q := pm.first()
 			if s.typesAt(k, q)&kop.TPlaneswalker != 0 {
-				d.add(MakeAction(AkAttack, o, uint8(s.perms[q].obj), 0))
+				d.add(MakeAction(AkAttack, TCode(o), TCode(s.perms[q].obj), 0))
 			}
 		}
 		if k.gen != nil && k.gen.anyBattle {
@@ -165,7 +165,7 @@ func (s *State) mustAttackAsked() bool {
 // seat goaded it too (CR 701.15b; gorge combat.GoadMayAttack).
 //
 //go:noinline
-func (s *State) attackOffersN(k *prep, d *Decision, o uint8, sl Slot, goaded bool) {
+func (s *State) attackOffersN(k *prep, d *Decision, o Obj, sl Slot, goaded bool) {
 	for q := uint8(0); q < s.nSeats(); q++ {
 		if q == s.active || s.out(q) {
 			continue
@@ -173,13 +173,13 @@ func (s *State) attackOffersN(k *prep, d *Decision, o uint8, sl Slot, goaded boo
 		if goaded && s.goadDefenderBanned(k, sl, q) {
 			continue
 		}
-		d.add(MakeAction(AkAttack, o, PlayerCode(q), 0))
+		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(q), 0))
 		if goaded {
 			continue
 		}
 		for pm := s.ctrlM[q]; pm.any(); pm = pm.rest() {
 			if w := pm.first(); s.typesAt(k, w)&kop.TPlaneswalker != 0 {
-				d.add(MakeAction(AkAttack, o, uint8(s.perms[w].obj), 0))
+				d.add(MakeAction(AkAttack, TCode(o), TCode(s.perms[w].obj), 0))
 			}
 		}
 	}
@@ -246,7 +246,7 @@ func (s *State) applyAttack(k *prep, a Action) {
 	sl := s.objs[a.Source()].slot
 	s.perms[sl].flags |= pfAttacking
 	s.perms[sl].atk = a.Target()
-	s.perms[sl].bord = s.nAttackers // declaration order (fireAttacksGen)
+	s.perms[sl].bord = objWord(s.nAttackers) // declaration order (fireAttacksGen)
 	s.touchSl(sl)
 	s.nAttackers++
 	s.lastPick = sl
@@ -387,7 +387,7 @@ func (s *State) fireAttacksGen(k *prep) {
 	}
 	first := true
 	for q := uint8(0); q < MaxSeats; q++ {
-		def := uint8(NoTarget)
+		def := TCode(NoTarget)
 		for {
 			var grp [MaxPerm]Slot
 			ng := 0
@@ -411,7 +411,7 @@ func (s *State) fireAttacksGen(k *prep) {
 				}
 				first = false
 			}
-			next := uint8(NoTarget)
+			next := TCode(NoTarget)
 			for i, as := range atk[:na] {
 				if t := s.perms[as].atk; atkQ[i] == q && isObjTarget(t) && (def == NoTarget || t > def) && t < next {
 					next = t
@@ -426,9 +426,9 @@ func (s *State) fireAttacksGen(k *prep) {
 }
 
 // firstAtkSeat is the lowest seat an attacker attacks (gorge's first
-// DeclareAttackers event of the declaration), NoTarget with none.
+// DeclareAttackers event of the declaration), noSeat with none.
 func (s *State) firstAtkSeat(k *prep) uint8 {
-	q := uint8(NoTarget)
+	q := noSeat
 	for x := s.ctrlM[s.active].and(s.occ); x.any(); x = x.rest() {
 		if sl := x.first(); s.perms[sl].flags&pfAttacking != 0 {
 			q = min(q, s.atkSeat(k, sl))
@@ -438,9 +438,9 @@ func (s *State) firstAtkSeat(k *prep) uint8 {
 }
 
 // stampDefSeat binds defending seat q to the pending triggers from n0 on
-// (pendingTrig.defSeat); NoTarget binds none.
+// (pendingTrig.defSeat); noSeat binds none.
 func (s *State) stampDefSeat(n0 uint8, q uint8) {
-	if q == NoTarget {
+	if q == noSeat {
 		return
 	}
 	for i := n0; i < s.npend; i++ {
@@ -668,7 +668,7 @@ func (s *State) blockerOptions(k *prep, d *Decision) bool {
 				if int(d.N) >= MaxOptions-1 { // keep room for Done
 					return s.optionsFull(d)
 				}
-				d.add(MakeAction(AkBlock, uint8(s.perms[b].obj), uint8(s.perms[a].obj), 0))
+				d.add(MakeAction(AkBlock, TCode(s.perms[b].obj), TCode(s.perms[a].obj), 0))
 			}
 		}
 	}
@@ -722,7 +722,7 @@ func (s *State) minBlockers(k *prep, a Slot) int {
 // attacker with no defending player has none.
 func (s *State) defCreatures(k *prep, a Slot) int {
 	def := s.atkSeat(k, a)
-	if def == NoTarget {
+	if def == noSeat {
 		return 0
 	}
 	n := 0
@@ -852,7 +852,7 @@ func (s *State) applyBlock(k *prep, a Action) {
 	} else {
 		bp.flags |= pfBlocking
 		bp.blocking = at
-		bp.bord = s.blockSeq
+		bp.bord = objWord(s.blockSeq)
 	}
 	s.perms[at].nblock++
 	s.touchSl(b)
@@ -1277,7 +1277,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			sl := m.first()
 			m = m.rest()
 			if r.dealt[sl] > 0 {
-				s.fireDamage(k, sl, r.dealt[sl], r.dealtPl[sl] > 0, true, NoTarget)
+				s.fireDamage(k, sl, r.dealt[sl], r.dealtPl[sl] > 0, true, TCode(NoTarget))
 			}
 		}
 	}
@@ -1303,7 +1303,7 @@ func (s *State) toDefender(k *prep, r *dmgRec, a Slot, n int) {
 }
 
 // fireDamage enqueues DamageDone triggers for source sl.
-func (s *State) fireDamage(k *prep, src Slot, amt int16, toPlayer, combat bool, rcp uint8) {
+func (s *State) fireDamage(k *prep, src Slot, amt int16, toPlayer, combat bool, rcp TCode) {
 	if k.gen != nil {
 		s.fireDamageGen(k, src, amt, toPlayer, combat, rcp)
 		return
@@ -1510,9 +1510,9 @@ func (s *State) divideOptions(k *prep, d *Decision) {
 	nb := s.liveBlockers(s.divA, &bl)
 	d.Kind, d.Sub, d.Player = DkChoose, ChDivide, s.active
 	n := splits(int(s.divRem), nb)
-	o := uint8(s.perms[s.divA].obj)
+	o := s.perms[s.divA].obj
 	for i := 0; i < n; i++ {
-		d.add(MakeAction(AkChoose, o, 0, uint8(i)))
+		d.add(MakeAction(AkChoose, TCode(o), 0, uint8(i)))
 	}
 }
 

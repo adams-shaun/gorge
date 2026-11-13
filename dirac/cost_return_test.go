@@ -20,7 +20,7 @@ func TestReturnSelfCost(t *testing.T) {
 		})
 	fc := id["Valley Floodcaller"]
 	a := sc.perm(fc, 0)
-	sc.do(t, AkActivate, uint8(a), 0xff)
+	sc.do(t, AkActivate, TCode(a), scAny)
 	if d := sc.s.Step(); d.Kind != DkPriority {
 		t.Fatalf("decision kind %d after activating, want priority", d.Kind)
 	}
@@ -70,12 +70,12 @@ func TestReturnCostPick(t *testing.T) {
 		})
 	fc := id["Valley Floodcaller"]
 	a, b := sc.perm(fc, 0), sc.perm(fc, 0)
-	sc.do(t, AkActivate, uint8(a), 0xff)
+	sc.do(t, AkActivate, TCode(a), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChCostReturn || d.N != 2 {
 		t.Fatalf("return pick: kind %d sub %d n %d, want ChCostReturn over both Otters", d.Kind, d.Sub, d.N)
 	}
-	sc.s.Apply(MakeAction(AkChoose, uint8(b), 0, 0))
+	sc.s.Apply(MakeAction(AkChoose, TCode(b), 0, 0))
 	if d := sc.s.Step(); d.Kind != DkPriority {
 		t.Fatalf("decision kind %d after the pick, want priority", d.Kind)
 	}

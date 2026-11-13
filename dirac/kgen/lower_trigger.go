@@ -2466,7 +2466,8 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 	if ml, ok := sp.get("MayLookAt"); ok {
 		az, _ := sp.get("AffectedZone")
 		exactAffected := aff == "Card.TopLibrary+YouCtrl" || aff == "Card.TopLibrary+YouOwn"
-		if exactAffected && az == "Library" && (ml == "You" || ml == "True" || ml == "Player") && !sp.is("MayPlay", "True") {
+		libLook := exactAffected && az == "Library" && (ml == "You" || ml == "True" || ml == "Player")
+		if libLook && !sp.is("MayPlay", "True") {
 			if ez, ok := sp.get("EffectZone"); ok && ez != "Battlefield" {
 				return nil, refuse("MayLookAt EffectZone %q", ez)
 			}
@@ -2479,7 +2480,16 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			st.Kind = "" // view-only: lower to nothing
 			return nil, nil
 		}
-		return nil, refuse("MayLookAt shape")
+		// Future Sight / Magus of the Future: the library-top look beside
+		// MayPlay$ True on the same line. gorge's static scan emits the look
+		// as its own view-only ContinuousEffect (layers.go's MayLookAt
+		// branch copies base, which carries no MayPlay) next to the MayPlay
+		// grant, so the line is the Courser of Kruphix pair on one line: the
+		// look lowers to nothing and the permission takes the MayPlay path
+		// below (mayPlayStatic, the same library-top rules).
+		if !libLook {
+			return nil, refuse("MayLookAt shape")
+		}
 	}
 	if kw, _ := sp.get("AddKeyword"); kw == "Beam me up" {
 		return nil, lc.beamGrant(sp, st, aff) // lower_beammeup.go

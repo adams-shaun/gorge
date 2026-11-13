@@ -31,7 +31,7 @@ func TestEachPlayerSacrificeLookBack(t *testing.T) {
 	d := sc.s.Step()
 	act := false
 	for j := 0; j < int(d.N); j++ {
-		if a := d.Options[j]; a.Kind() == AkActivate && a.Source() == uint8(li) && a.Mode() == 1 {
+		if a := d.Options[j]; a.Kind() == AkActivate && a.Source() == TCode(uint8(li)) && a.Mode() == 1 {
 			sc.s.Apply(a) // the -4
 			act = true
 			break

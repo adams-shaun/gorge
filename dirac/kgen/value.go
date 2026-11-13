@@ -226,6 +226,24 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		v = lValue{Kind: vTriggerAmount}
 	case "CastSA>Count":
 		v, err = lc.adamantValue(rest) // lower_evoke.go
+	case "TriggeredExploited":
+		// the exploited creature's last-known power / toughness (CR 608.2g),
+		// the Exploited trigger's amount: the face's own K:Exploit sacrifice
+		// accumulates it (lower_exploit.go), so a face that only grants
+		// Exploit (Henry Wu) stays refused
+		tr := (*lTrigger)(nil)
+		if lc.ab != nil {
+			tr = lc.ab.Trigger
+		}
+		if tr == nil || !lc.trigBody || lc.ab.Latent || tr.Event != "Exploited" || !faceHasExploitTrigger(lc.face) {
+			err = refuse("TriggeredExploited$%s outside an Exploited trigger on a K:Exploit face", rest)
+			break
+		}
+		if rest != "CardPower" && rest != "CardToughness" {
+			err = refuse("TriggeredExploited$%s", rest)
+			break
+		}
+		v = lValue{Kind: vTriggerAmount}
 	case "TriggerRemembered":
 		v, err = lc.triggerRemembered(rest) // lower_trigremembered.go
 	case "TriggerCount":

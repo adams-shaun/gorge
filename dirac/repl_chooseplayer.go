@@ -39,8 +39,8 @@ func (s *State) chosenPlayerOf(sl Slot) uint8 {
 	if sl == NoSlot || !s.occ.has(sl) {
 		return 255
 	}
-	if ch := s.perms[sl].chosen; ch < s.nSeats() {
-		return ch
+	if ch := s.perms[sl].chosen; ch < objWord(s.nSeats()) {
+		return uint8(ch)
 	}
 	return 255
 }

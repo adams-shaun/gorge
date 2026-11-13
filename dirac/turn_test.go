@@ -27,18 +27,18 @@ func TestFirstStrikeStepEmptiesPools(t *testing.T) {
 func TestRetargetedKeepsAPickInPlace(t *testing.T) {
 	for _, c := range []struct {
 		name       string
-		old, picks []uint8
-		want       []uint8
+		old, picks []TCode
+		want       []TCode
 	}{
-		{"one moved", []uint8{1}, []uint8{2}, []uint8{2}},
-		{"one kept", []uint8{1}, []uint8{1}, []uint8{1}},
-		{"second kept, first moved", []uint8{1, 2}, []uint8{2, 3}, []uint8{3, 2}},
-		{"both kept whatever the order", []uint8{1, 2}, []uint8{2, 1}, []uint8{1, 2}},
-		{"partial answer", []uint8{1, 2}, []uint8{3}, []uint8{3, 2}},
-		{"partial answer naming a target", []uint8{1, 2}, []uint8{2}, []uint8{1, 2}},
+		{"one moved", []TCode{1}, []TCode{2}, []TCode{2}},
+		{"one kept", []TCode{1}, []TCode{1}, []TCode{1}},
+		{"second kept, first moved", []TCode{1, 2}, []TCode{2, 3}, []TCode{3, 2}},
+		{"both kept whatever the order", []TCode{1, 2}, []TCode{2, 1}, []TCode{1, 2}},
+		{"partial answer", []TCode{1, 2}, []TCode{3}, []TCode{3, 2}},
+		{"partial answer naming a target", []TCode{1, 2}, []TCode{2}, []TCode{1, 2}},
 	} {
-		var old, out [MaxOptions]uint8
-		var picks [8]uint8
+		var old, out [MaxOptions]TCode
+		var picks [8]TCode
 		copy(old[:], c.old)
 		copy(picks[:], c.picks)
 		ksrRetargeted(&old, len(c.old), &picks, len(c.picks), &out)

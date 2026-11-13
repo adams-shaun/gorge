@@ -19,10 +19,10 @@ const resChosenType uint8 = 0x80
 func (s *State) chosenTypeSub(src Slot) (uint8, bool) {
 	if src != NoSlot {
 		ch := s.perms[src].chosen
-		return ch, ch != 255
+		return uint8(ch), ch != 255
 	}
 	if s.res.active && s.res.bad&resChosenType != 0 {
-		return s.res.chosen, s.res.chosen != 255
+		return uint8(s.res.chosen), s.res.chosen != 255
 	}
 	return 0, false
 }
@@ -91,7 +91,7 @@ func (s *State) typeOptions(k *prep, d *Decision) bool {
 		for j := range a.Prog {
 			if in := &a.Prog[j]; in.Op == kop.OpChooseType && in.B.N != 0 {
 				for _, v := range cd.TypeValid {
-					d.add(MakeAction(AkChoose, 0, uint8(v>>8), uint8(v)))
+					d.add(MakeAction(AkChoose, 0, TCode(v>>8), uint8(v)))
 				}
 				return true
 			}
@@ -144,7 +144,7 @@ func (s *State) chosenGrant(a *kop.Ability, src Slot) (uint8, bool) {
 		return 0, false
 	}
 	ch := s.perms[src].chosen
-	return ch, ch != 255
+	return uint8(ch), ch != 255
 }
 
 // chosenGrants reports whether a (at src) grants matchup subtype i.
@@ -207,10 +207,10 @@ func (s *State) curOutsideHas(k *prep, cur *dchars, src Slot) bool {
 	}
 	ch := s.perms[src].chosen
 	for i := uint8(0); i < cur.nOuts; i++ {
-		if cur.outs[i].code != ch {
+		if objWord(cur.outs[i].code) != ch {
 			continue
 		}
-		if !outsideAliased(k, ch) {
+		if !outsideAliased(k, uint8(ch)) {
 			return true
 		}
 		s.capFull(StallOutsideType) // another source's aliased outside type: equal or not is unknown
@@ -249,7 +249,7 @@ func (s *State) outsideChosenHas(k *prep, sl, src Slot) bool {
 				return false
 			}
 			if sc := s.perms[src].chosen; s.perms[st.sl].chosen == sc {
-				if !outsideAliased(k, sc) {
+				if !outsideAliased(k, uint8(sc)) {
 					found = true
 					return false
 				}
@@ -299,7 +299,7 @@ func (s *State) matchCardTgt(k *prep, f kop.FilterID, c CardID, owner, ctrl uint
 // information of it (gorge sourceChosen reads SourceChosenType); 255 none.
 func (s *State) srcChosen(src Slot, self Obj) uint8 {
 	if src != NoSlot {
-		return s.perms[src].chosen
+		return uint8(s.perms[src].chosen)
 	}
 	if s.res.active && s.res.e.obj == self && self != NoObj && s.res.e.li != 0 {
 		if r := s.lk(s.res.e.li); r.obj == self {
@@ -403,7 +403,7 @@ var cardTypeLabelH = func() (h [len(cardTypeChoice)]uint16) {
 func chooseCardTypeOptions(d *Decision, m kop.TypeMask) {
 	for i, c := range cardTypeChoice {
 		if m&c.bit != 0 {
-			d.add(MakeAction(AkChoose, 0, uint8(cardTypeLabelH[i]>>8), uint8(cardTypeLabelH[i])))
+			d.add(MakeAction(AkChoose, 0, TCode(cardTypeLabelH[i]>>8), uint8(cardTypeLabelH[i])))
 		}
 	}
 }
