@@ -11,7 +11,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // controller an opponent of the listener's controller. The kernel's
 // seAbility arm of finishBuild calls fireAbilityCast once the entry is on
 // the stack and paid, behind genPrep.anyAbilityCast. A mana ability never
-// reaches it (it does not use the stack). No State field: the trigger rides
+// reaches that arm (it does not use the stack), but activating one is still an
+// activation (CR 605.3, 602.2): manaTapped calls fireManaAbilityCast for an
+// Exhaust one (Loot, the Pathfinder). No State field: the trigger rides
 // pend.
 
 // AbilityCastStats counts the lifted mechanic; oracle tests only.
@@ -75,6 +77,14 @@ func abilityCastMatch(k *prep, e *stackEntry, l trigListener, a *kop.Ability) bo
 		return false
 	}
 	return abilityCastClass(k, e, t.N)
+}
+
+// fireManaAbilityCast queues the AbilityCast listeners for the activation of
+// ability ab of card c by ctrl, a mana ability that never builds a stack entry
+// (CR 605.3, 602.2). fireAbilityCast reads only the entry's card, ab and ctrl.
+func (s *State) fireManaAbilityCast(k *prep, c CardID, ab, ctrl uint8) {
+	e := stackEntry{card: c, ab: ab, ctrl: ctrl}
+	s.fireAbilityCast(k, &e)
 }
 
 // fireAbilityCast queues the AbilityCast listeners for the just-activated
