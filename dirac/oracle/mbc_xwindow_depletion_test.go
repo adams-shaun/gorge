@@ -27,17 +27,20 @@ var mbcDepletionXDecks = []fixtureDecks{{
 	},
 }}
 
-// TestMBCXWindowDepletion plays the fixture until the first divergence. A depletion
-// land that gorge's autopay taps where the kernel taps a basic (a projection
+// TestMBCXWindowDepletion plays the fixture to the end. A depletion land that
+// gorge's CR 601.2g window taps where the kernel taps a basic (a projection
 // divergence after the cast's target, Borderland Ranger's too on the dr-mbc
-// pools) is a separate class this test does not cover, so it asks only that the
-// first divergence is no X ask: without the availXWindow rule seeds 1 and 5
+// pools) is the window answer the walk models (windowTapWalk takeDeferred):
+// the window has no auto-fill option, so gorge's answerer
+// (payexec.WindowAnswer) takes the first listed source, a planner-deferred
+// one included. It asks that the games do not diverge and that the first
+// divergence is no options one: without the availXWindow rule seeds 1 and 5
 // offer X above gorge's.
 func TestMBCXWindowDepletion(t *testing.T) {
 	if isolate(t) {
 		return
 	}
-	run := runFixtureLockstep(t, "mbcdepletionx", mbcDepletionXDecks, mbcDepletionXWatch, 150, false, nil)
+	run := runFixtureLockstep(t, "mbcdepletionx", mbcDepletionXDecks, mbcDepletionXWatch, 150, true, nil)
 	t.Logf("%d games, %d divergences, %d stalls, casts %v, first %q", run.games, run.divs, run.stalls, run.casts, run.first)
 	if run.casts["Skeletal Scrying"]+run.casts["Lunar Frenzy"] < 5 {
 		t.Errorf("only %v casts of the X spells: the X ask was barely reached", run.casts)
