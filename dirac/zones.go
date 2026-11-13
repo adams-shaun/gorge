@@ -835,6 +835,9 @@ func (s *State) firePlayer(k *prep, ev kop.TrigEvent, who uint8, amt int16) {
 			if a.Trig.Flags&kop.TfSecondDraw != 0 && !s.nthDrawOK(&a.Trig, who) {
 				continue
 			}
+			if ev == kop.TrigLifeLost && a.Trig.Flags4&kop.Tf4CauseSpellAb != 0 && !s.lifeCauseSpellOK(lp.ctrl, &a.Trig) {
+				continue
+			}
 			if ev == kop.TrigDrawn && !drawStepGateOK(&a.Trig, s.drawStepFirst(who)) {
 				continue
 			}

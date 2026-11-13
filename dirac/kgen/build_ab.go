@@ -1625,6 +1625,18 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 		kt.Flags4 |= kop.Tf4SingleCauseTarget
 	}
+	if t.CauseSpell != 0 {
+		if t.Event != "LifeLost" && t.Event != "LifeLostAll" {
+			return kt, fmt.Errorf("cause-spell flag on a %s trigger", t.Event)
+		}
+		kt.Flags4 |= kop.Tf4CauseSpellAb
+		switch t.CauseSpell {
+		case 2:
+			kt.N = kop.TrigNCauseSpellYouCtrl
+		case 3:
+			kt.N = kop.TrigNCauseSpellOppCtrl
+		}
+	}
 	if t.CounterCell {
 		kt.Flags4 |= kop.Tf4CounterCell
 	}

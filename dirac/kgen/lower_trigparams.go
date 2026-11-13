@@ -127,6 +127,24 @@ func (lc *lowerCtx) trigParams4(tp *params, tr *lTrigger, mode string) error {
 			tr.CauseTarget = true
 		}
 	} else {
+		if v, ok := tp.m["ValidCause"]; ok && !tp.used["ValidCause"] && (mode == "LifeLost" || mode == "LifeLostAll") {
+			// gorge trigmatch/life.go lifeLossCauseMatches: the ValidCause$
+			// grammar of a LifeLost trigger is a comma list of
+			// SpellAbility alternatives, each optionally qualified .YouCtrl
+			// or .OppCtrl -- the loss was caused by a spell or ability the
+			// listener's controller does or doesn't control, resolving at
+			// the moment of the loss (gorge's Facts.Damaging). Combat
+			// damage is never a spell-or-ability cause, and a loss with no
+			// resolution in flight (a cost payment, a mana ability's cost)
+			// matches none, as the kernel's gate reads the resolving entry
+			// (kop.Tf4CauseSpellAb).
+			if n, err := lc.lifeLossCause(v); err != nil {
+				return err
+			} else {
+				tr.CauseSpell = n
+			}
+			tp.used["ValidCause"] = true
+		}
 		for _, k := range [...]string{"ValidCause", "TargetRelativeToCause"} {
 			if v, ok := tp.m[k]; ok && !tp.used[k] {
 				return refuse("%s$ %q on a %s trigger", k, v, mode)
@@ -139,6 +157,47 @@ func (lc *lowerCtx) trigParams4(tp *params, tr *lTrigger, mode string) error {
 		tp.consume("Origin", "Destination")
 	}
 	return nil
+}
+
+// lifeLossCause reads a LifeLost trigger's ValidCause$ (gorge
+// trigmatch/life.go lifeLossCauseMatches): a comma list whose every
+// alternative is SpellAbility, optionally qualified .YouCtrl or .OppCtrl.
+// Any unqualified alternative, or both qualifiers together, makes the whole
+// gate any spell or ability (1); one qualifier only narrows it (2 you, 3
+// the others).
+func (lc *lowerCtx) lifeLossCause(v string) (uint8, error) {
+	const (
+		causeAny uint8 = 1 + iota
+		causeYou
+		causeOpp
+	)
+	any, you, opp := false, false, false
+	for alt := range strings.SplitSeq(v, ",") {
+		base, qual, _ := strings.Cut(strings.TrimSpace(alt), ".")
+		if base != "SpellAbility" {
+			return 0, refuse("ValidCause$ %q on a LifeLost trigger", v)
+		}
+		switch qual {
+		case "":
+			any = true
+		case "YouCtrl":
+			you = true
+		case "OppCtrl":
+			opp = true
+		default:
+			return 0, refuse("ValidCause$ %q on a LifeLost trigger", v)
+		}
+	}
+	switch {
+	case any || you && opp:
+		return causeAny, nil
+	case you:
+		return causeYou, nil
+	case opp:
+		return causeOpp, nil
+	default:
+		return 0, refuse("ValidCause$ %q on a LifeLost trigger", v)
+	}
 }
 
 // lowerDrawnFirstInDrawStep reads a Drawn trigger's FirstCardInDrawStep$,

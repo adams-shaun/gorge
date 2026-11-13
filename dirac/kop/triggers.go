@@ -57,6 +57,27 @@ const (
 	Tf4PerCounter TrigFlags4 = 1 << 7
 )
 
+// Tf4CauseSpellAb (Trigger.Flags4, bit 3, the word's last free bit beside
+// Tf4SingleCauseTarget): LifeLost / LifeLostAll, the line's ValidCause$
+// names a spell or ability (gorge trigmatch/life.go lifeLossCauseMatches:
+// the loss's cause is the spell or ability resolving right now, gorge's
+// Facts.Damaging set; combat damage and any loss with no resolution in
+// flight -- a cost payment, a mana ability -- match none). Trigger.N, when
+// nonzero, carries the cause's controller qualifier:
+// TrigNCauseSpellYouCtrl (the cause is controlled by the listener's
+// controller, ValidCause$ SpellAbility.YouCtrl) or
+// TrigNCauseSpellOppCtrl (by someone else, SpellAbility.OppCtrl); N 0 is
+// any spell or ability (a bare SpellAbility$ alternative). Sahir, Visitor
+// in Darkness.
+const Tf4CauseSpellAb TrigFlags4 = 1 << 3
+
+// Trigger.N of a TrigLifeLost trigger with Tf4CauseSpellAb: the ValidCause$
+// controller qualifier (gorge lifeLossCauseMatches's YouCtrl / OppCtrl).
+const (
+	TrigNCauseSpellYouCtrl int16 = 1
+	TrigNCauseSpellOppCtrl int16 = 2
+)
+
 // TrigFlags5 are the Drawn trigger's draw-step qualifiers (Trigger.Flags5).
 // Flags through Flags4 carry their documented bits, so this family appends a
 // byte after Flags4.
