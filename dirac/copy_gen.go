@@ -149,6 +149,9 @@ func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
 	if ce.trigPl == trigPlMayhem {
 		ce.trigPl = 0 // nor mayhem-cast (kw_mayhem.go)
 	}
+	if ce.trigPl == trigPlEscape {
+		ce.trigPl = 0 // nor escape-cast (CR 707.10: gorge's FlagEscaped; kw_escape.go)
+	}
 	if ce.trigPl == trigPlRetrace {
 		ce.trigPl = 0 // nor retrace-cast (kw_retrace.go)
 	}

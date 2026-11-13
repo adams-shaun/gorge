@@ -38,10 +38,10 @@ func TestOppStateReadsEverySeat(t *testing.T) {
 			if got := s.oppsLifeLost(ctrl); got != want {
 				t.Fatalf("gone%d ctrl%d: opponents lost %d, want %d", gone, ctrl, got, want)
 			}
-			if got := s.oppsLostLife(ctrl, false); got != cnt {
+			if got := s.oppsLostLife(ctrl, 0); got != cnt {
 				t.Fatalf("gone%d ctrl%d: %d opponents lost life, want %d", gone, ctrl, got, cnt)
 			}
-			if got := s.oppsLostLife(ctrl, true); got != leg {
+			if got := s.oppsLostLife(ctrl, 1); got != leg {
 				t.Fatalf("gone%d ctrl%d: %d opponents hit by a legend, want %d", gone, ctrl, got, leg)
 			}
 			opps := aliveFromGorge(e, int(ctrl), int(ctrl))

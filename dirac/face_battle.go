@@ -27,6 +27,21 @@ func (s *State) protector(sl Slot) (uint8, bool) {
 	return ch & 1, ch&0xFE == protChosen
 }
 
+// FeatAttackDefender is the defending player an attack declared at target
+// code tgt names (gorge's attacker option Player, CR 508.1b): the player
+// itself, a planeswalker's controller, or a battle's protector (CR 310.7).
+func (s *State) FeatAttackDefender(tgt uint8) uint8 {
+	if isPlayerTarget(tgt) {
+		return CodeSeat(tgt)
+	}
+	if sl := s.objs[tgt].slot; sl != NoSlot {
+		if pr, ok := s.protector(sl); ok && s.typesAt(s.k(), sl)&kop.TBattle != 0 {
+			return pr
+		}
+	}
+	return s.ctrlOfObj(Obj(tgt))
+}
+
 // battleAttackable reports whether the battle at sl may be attacked by the
 // active player (gorge battleDefenders: a face-up Battle with a protector
 // that is not the attacker). In two players that is a battle the opponent

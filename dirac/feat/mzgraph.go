@@ -198,7 +198,7 @@ func (e *Encoder) AppendMZGraph(dst []byte, g *MZGraph, d *dirac.Decision, opts 
 		g.og = [256]uint32{}
 		g.gen = 1
 	}
-	me := &v.players[seat&1]
+	me := &v.players[dirac.SeatIx(seat)]
 
 	root := g.node(MZRoot)
 	if v.step >= 0 {
@@ -214,9 +214,9 @@ func (e *Encoder) AppendMZGraph(dst []byte, g *MZGraph, d *dirac.Decision, opts 
 	}
 
 	// players (absolute seats) and their zones
-	var pnode [2]int
-	var zone [2][mzZoneKind]int
-	for k := 0; k < 2; k++ {
+	var pnode [dirac.MaxSeats]int
+	var zone [dirac.MaxSeats][mzZoneKind]int
+	for k := 0; k < int(v.n); k++ {
 		p := uint8(k)
 		pl := &v.players[k]
 		n := g.node(MZPlayer)
@@ -256,7 +256,7 @@ func (e *Encoder) AppendMZGraph(dst []byte, g *MZGraph, d *dirac.Decision, opts 
 	g.leaf(stackZ, lfZone, 16+5, int64(len(v.stack)))
 
 	// objects
-	for k := 0; k < 2; k++ {
+	for k := 0; k < int(v.n); k++ {
 		pl := &v.players[k]
 		for _, ci := range pl.bf {
 			c := &v.cards[ci]
@@ -307,7 +307,7 @@ func (e *Encoder) AppendMZGraph(dst []byte, g *MZGraph, d *dirac.Decision, opts 
 		}
 	}
 	// cross edges: attachments, blocks, stack targets
-	for k := 0; k < 2; k++ {
+	for k := 0; k < int(v.n); k++ {
 		for _, ci := range v.players[k].bf {
 			c := &v.cards[ci]
 			n := g.objNode(c.obj)
@@ -364,8 +364,8 @@ func (e *Encoder) AppendMZGraph(dst []byte, g *MZGraph, d *dirac.Decision, opts 
 		if bot[j] {
 			g.leaf(n, lfOBot, 0, 1)
 		}
-		parent, isObj := pnode[seat&1], false
-		if o.player && a.Target() >= dirac.PlayerTarget0 && int(a.Target()-dirac.PlayerTarget0) < 2 {
+		parent, isObj := pnode[dirac.SeatIx(seat)], false
+		if o.player && a.Target() >= dirac.PlayerTarget0 && int(a.Target()-dirac.PlayerTarget0) < int(v.n) {
 			parent = pnode[a.Target()-dirac.PlayerTarget0]
 		} else if on := g.objNode(o.obj); on >= 0 {
 			parent, isObj = on, true

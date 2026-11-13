@@ -848,6 +848,23 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.EscCost != nil {
+		// CR 702.138a: the escape cost's printed exiles (dirac/kw_escape.go),
+		// paid through the cast's pick stages in place of the spell's
+		// additional cost, like FbCost
+		if c.SpellCost != nil {
+			return fmt.Errorf("escape cost beside a spell additional cost (one pick cost per cast)")
+		}
+		if d.EscCost, err = cb.cost(*c.EscCost); err != nil {
+			return err
+		}
+	}
+	if c.Escape != nil {
+		d.Escape = true
+		if d.AltCost, err = manaCostOf(*c.Escape); err != nil {
+			return err
+		}
+	}
 	if c.Aftermath {
 		// CR 702.127a: the right half of a split card, cast only from its
 		// owner's graveyard and exiled leaving the stack (dirac/face_aftermath.go)
@@ -1483,8 +1500,25 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		// and Count$ValidStack Card.Self+sneaked
 		return kf, refuse("sneaked off the battlefield and the stack")
 	}
+	if c.Flags&fEscaped != 0 && !cb.selfCast && zone != kop.ZoneBattlefield {
+		// a battlefield permanent reads the arena's mechEscaped mark
+		// (PredEscaped, PredN 1); the stack read is the SpellCast self
+		// trigger's filter (kernel selfCastFilterOK), off both it fails
+		// closed (predCardCold)
+		return kf, refuse("escaped off the battlefield and the stack")
+	}
 	if c.Unblocked {
 		kf.Flags2 |= kop.F2Unblocked // a battlefield read only (the card matchers fail closed)
+	}
+	if c.Flags&fEscaped != 0 {
+		// Card.Self+escaped (CR 702.138a): the arena's mechEscaped mark as
+		// kop.PredEscaped, the clause's one Pred slot (kernel
+		// predPermCold); FilterFlags2 is full (kernel filter_negations.go)
+		if kf.Pred != kop.PredNone {
+			return kf, refuse("escaped beside another predicate")
+		}
+		kf.Pred, kf.PredN = kop.PredEscaped, 1
+		c.Flags &^= fEscaped // consumed as the Pred, no kop flag of its own
 	}
 	for b := uint64(1); b != 0; b <<= 1 {
 		if c.Flags&b == 0 {

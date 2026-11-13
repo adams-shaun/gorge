@@ -43,6 +43,7 @@ const (
 	mechOnce2                       // slots whose permanent's second activate-only-once ability was activated (legal.go onceUsed)
 	mechOnce3                       // the same for its third such ability
 	mechTappedTurn                  // slots whose permanent has become tapped this turn (Taps FirstTime$; filter_permmarks.go)
+	mechEscaped                     // slots whose permanent's spell was cast for its escape cost (CR 702.138a; kw_escape.go)
 	mechLure                        // slots whose permanent is a lure this turn: all creatures able to block it do so (CR 509.1c; combat_lure.go)
 	mechLurePost                    // slots marked lure while their permanent had lost all abilities: the grant postdates the loss and survives it (CR 613.7)
 	mechProtW                       // slots whose permanent has protection from white until end of turn (a chosen-colour grant; static_colourprot.go)
@@ -61,8 +62,15 @@ const (
 	mechAtch1                       // the same, seat 1
 	mechAtch2                       // seat 2 (read only when MaxSeats > 2)
 	mechAtch3                       // seat 3
+	mechGoad2                       // goad[2]: slots whose permanent seat 2 goaded (read only when MaxSeats > 2; act_goad.go)
+	mechGoad3                       // goad[3]: the same, seat 3
 	numMech
 )
+
+// goadMechs names each seat's goad mech in seat order: mechGoad0 and
+// mechGoad1 first, mechGoad2 and mechGoad3 appended past mechAtch3, so the
+// per-seat goad mech cannot be read by arithmetic off mechGoad0.
+var goadMechs = []mech{mechGoad0, mechGoad1, mechGoad2, mechGoad3}
 
 // mech widths: a slot mask indexes the permanent's slot; an object mask
 // indexes its Obj.
@@ -98,6 +106,7 @@ var mechWidth = [numMech]uint8{
 	mechOnce2:           wSlot,
 	mechOnce3:           wSlot,
 	mechTappedTurn:      wSlot,
+	mechEscaped:         wSlot,
 	mechLure:            wSlot,
 	mechLurePost:        wSlot,
 	mechProtW:           wSlot,
@@ -116,9 +125,11 @@ var mechWidth = [numMech]uint8{
 	mechAtch1:           wSlot,
 	mechAtch2:           wSlot,
 	mechAtch3:           wSlot,
+	mechGoad2:           wSlot,
+	mechGoad3:           wSlot,
 }
 
-var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen", "sbaChain", "once2", "once3", "tappedTurn", "lure", "lurePost", "protW", "protU", "protB", "protR", "protG", "protPostW", "protPostU", "protPostB", "protPostR", "protPostG", "echoOwed", "hexUB", "atch0", "atch1", "atch2", "atch3"}
+var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen", "sbaChain", "once2", "once3", "tappedTurn", "escaped", "lure", "lurePost", "protW", "protU", "protB", "protR", "protG", "protPostW", "protPostU", "protPostB", "protPostR", "protPostG", "echoOwed", "hexUB", "atch0", "atch1", "atch2", "atch3", "goad2", "goad3"}
 
 // arenaNone is the index of a mechanic the table does not use.
 const arenaNone = 0xFF
@@ -145,6 +156,9 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 		if t.Cards[i].HasSneak && !u[mechSneaked] {
 			u[mechSneaked] = sneakFilterRead(t) // cold scan, once per table (kw_sneak.go)
 		}
+		if t.Cards[i].Escape && !u[mechEscaped] {
+			u[mechEscaped] = escapeFilterRead(t) // cold scan, once per table (kw_escape.go)
+		}
 		for j := range t.Cards[i].Abilities {
 			a := &t.Cards[i].Abilities[j]
 			if a.Cost.Flags&kop.CostOncePerGame != 0 {
@@ -165,7 +179,9 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 			for _, in := range a.Prog {
 				switch in.Op {
 				case kop.OpGoad:
-					u[mechGoad0], u[mechGoad1] = true, true // goad[ctrl&1]: either player may goad
+					for sd := 0; sd < MaxSeats; sd++ {
+						u[goadMechs[sd]] = true // goad[sd]: seat sd may goad
+					}
 				case kop.OpMonstrosity:
 					u[mechMonstrous] = true
 				case kop.OpRegenerate:

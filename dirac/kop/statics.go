@@ -1,7 +1,10 @@
 package kop
 
-// StaticKind is a static ability's kind. Append-only.
-type StaticKind uint8
+// StaticKind is a static ability's kind. Append-only. It is 16 bits wide:
+// every ordinal 0..255 is taken (StatTapPower is 255), so a kind past it
+// (StatBlockTax, 256) needs the room. Existing values never change; no State
+// field holds a Static, so the kernel's state size is untouched.
+type StaticKind uint16
 
 const (
 	StatNone            StaticKind = iota

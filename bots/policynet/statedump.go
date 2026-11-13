@@ -1,9 +1,7 @@
 package policynet
 
 import (
-	"bufio"
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +9,8 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
+
+	"github.com/adams-shaun/gorge/testkit/recstream"
 )
 
 // The oracle state/outcome dump: a JSONL corpus of encoded
@@ -94,15 +94,10 @@ func LoadStateOutcome(path string, fs FeatureSet) ([]StateExample, StateDumpStat
 		return nil, StateDumpStats{}, fmt.Errorf("opening state dump: %w", err)
 	}
 	defer f.Close()
-	r := bufio.NewReaderSize(f, 1<<20)
-	var stream io.Reader = r
-	if magic, err := r.Peek(2); err == nil && magic[0] == 0x1f && magic[1] == 0x8b {
-		zr, err := gzip.NewReader(r)
-		if err != nil {
-			return nil, StateDumpStats{}, fmt.Errorf("reading gzipped state dump: %w", err)
-		}
-		defer zr.Close()
-		stream = zr
+	// Plain, gzipped or condensed (testkit/recstream) JSON Lines.
+	stream, err := recstream.NewReader(f)
+	if err != nil {
+		return nil, StateDumpStats{}, fmt.Errorf("reading state dump: %w", err)
 	}
 	dec := json.NewDecoder(stream)
 	var out []StateExample

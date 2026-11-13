@@ -66,6 +66,7 @@ type genPrep struct {
 	ctrlSBA         bool  // the state-based check settles control (a control static, a source-bound OpGainControl)
 	anyPTDelta      bool  // some Override is a +N/+M pump record (kop.Override.PTDelta): ptGen adds it (static_ptdelta.go)
 	anyPlProtAll    bool  // some emblem static is a StatPlayerProtAll player protection grant (static_plprot.go)
+	anyEmbPlHex     bool  // some emblem static is a StatPlayerHexproof player hexproof grant (static_emblemphex.go)
 	anyNTOv         bool  // an OpOverride / OpOverrideAll lasts until its controller's next turn
 	legendGrant     bool  // some Override adds or sets the Legendary supertype (legendRule reads derived types)
 	anyMayPlay      bool
@@ -159,6 +160,8 @@ type genPrep struct {
 	twoSeatOnly     bool           // a card plays only two seats (stallclass.go prepTwoSeat): StallTwoSeat in a larger game
 	fbStampOwnCost  bool           // a stamped flashback grant beside an own-cost flashback static (kw_fbgrant.go prepFbStamp): StallFbGrantStamp
 	anyAtkTax       bool           // a card has a StatAttackTax static (combat_attacktax.go)
+	anyBlkTax       bool           // a card has a StatBlockTax static (combat_blocktax.go)
+	blkTaxStall     bool           // a block tax beside a part its walk does not model (combat_blocktax.go prepBlkTax): StallBlkTax
 	atkTaxStall     bool           // an attack tax beside a part its walk does not model (combat_attacktax.go prepAtkTax): StallAtkTax
 	anyWitherGrant  bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
 	anyEOTEmb       bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
@@ -295,7 +298,8 @@ type genPrep struct {
 	anyPermMark     bool           // the table gives some kop.PredPermMark mark an arena mask (filter_permmarks.go)
 	anyTappedTurn   bool           // the table gives mechTappedTurn an arena mask (a Taps FirstTime$ line; filter_permmarks.go)
 	anyCombatHit    bool           // some card records its combat hits on players (cdRec) or some expression reads the legendary-hit bit (value_turntallies.go)
-	cdLegOn         bool           // some expression is ExOppsLostLife N 1: record cdLeg
+	cdLegOn         bool           // some expression is ExOppsLostLife N 1: record cdLeg bits 0-3
+	cdDamOn         bool           // some expression is ExOppsLostLife N 2: record cdLeg bits 4-7
 	anyAddPhase     bool           // some program is ExtAddPhase, some trigger is Tf3FirstAttack or some expression is ExPhaseCount (act_addphase.go)
 	anySkipPhase    bool           // some program is ExtSkipPhase (act_skipphase.go)
 	anyMonarch      bool           // some program is ExtBecomeMonarch (act_monarch.go)
@@ -565,7 +569,7 @@ func tableHasMultikicker(t *kop.Table) bool {
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasStatic(t, kop.StatAttackTax) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) {
 		return nil
 	}
 	enteredNeed := tableHasEnteredFrom(t)
@@ -1541,6 +1545,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepReplMult(t, g)
 	prepDmgMark(t, g)   // repl_dmgmark.go
 	prepPlProtAll(t, g) // static_plprot.go
+	prepEmbPlHex(t, g)  // static_emblemphex.go
 	if g.anyPlProtAll {
 		// open every replDamage site the way rbPlProt does above: no card
 		// carries the player-protection bit (the emblem is created at
@@ -1589,6 +1594,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepBatchPool(t, g) // trig_batchmembers.go
 	g.anyCopyElect = g.anyCopyElect || p.casualty
 	prepAtkTax(t, g) // combat_attacktax.go: after the requirement, Taps and land-type reads it checks
+	prepBlkTax(t, g) // combat_blocktax.go: the same reads
 	prepCold(g, &p.cold)
 	return g
 }
@@ -2090,7 +2096,7 @@ type genState struct {
 	// CtrlHitBySrc (genPrep.cdRec): o the source, pl bit p = player p
 	// was hit by it this turn (value_turntallies.go).
 	// cdLeg bit p = player p was dealt combat damage this turn by a source
-	// matching Creature.Legendary.
+	// matching Creature.Legendary; bit 4+p = by any source (genPrep.cdDamOn).
 	cdh [4]struct {
 		o  Obj
 		pl uint8

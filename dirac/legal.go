@@ -300,7 +300,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	if k.gen != nil && k.gen.anyBeam {
 		s.offerBeamCasts(k, d, p, sorc, &av) // kw_beammeup.go
 	}
-	if k.gen != nil && k.gen.anyEscapeGrant {
+	if k.escape || k.gen != nil && k.gen.anyEscapeGrant {
 		s.offerEscapeCasts(k, d, p, sorc, &av) // kw_escape.go: gorge lists the escape walk before mayhem's (legal_walk_alt.go)
 	}
 	if k.mayhem {
@@ -1041,10 +1041,10 @@ func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base
 		return true
 	}
 	ac := spellAddCost(k, c)
-	if s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p, c, o) {
+	if s.pickCostPayable(k, p, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p, c, o) {
 		return true
 	}
-	if !s.pickCostPayable(k, p, &cd.AltAddCost, NoObj) {
+	if !s.pickCostPayable(k, p, &cd.AltAddCost, o) {
 		return false
 	}
 	t := addCost(*cost, cd.AltAddCost.Mana)
@@ -1249,7 +1249,7 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 	}
 	if isPlayerTarget(code) {
 		pp := CodeSeat(code)
-		if pp != p && k.gen != nil && k.gen.anyRepl&rbPlHex != 0 && s.playerHexproof(k, pp) {
+		if pp != p && k.gen != nil && (k.gen.anyRepl&rbPlHex != 0 || k.gen.anyEmbPlHex) && s.playerHexproof(k, pp) {
 			return false
 		}
 		if s.plProtAll(k, pp) {

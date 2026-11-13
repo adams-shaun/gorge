@@ -1255,6 +1255,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.hideLandAnswer(k) // kw_hideaway.go
 			return
 		}
+		if s.g.pre.state == preEarthbendRet {
+			s.earthbendReturnAnswer(k) // act_earthbend.go
+			return
+		}
 		if s.g.pre.state == preReturnOp {
 			s.rerunReturn(k)
 			return

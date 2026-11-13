@@ -462,6 +462,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseHarmonizeCombos()
 	lc.refuseReboundCombos() // lower_rebound.go
 	lc.refuseMayhemCombos()
+	lc.refuseEscapeCombos()
 	lc.lowerRetrace()
 	lc.refuseBeamCombos()
 	lc.refuseSneakCombos()
@@ -1444,6 +1445,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.out.Harmonize = &mc
 		case head == "Beam me up":
 			lc.beamMeUp(node, param) // lower_beammeup.go
+		case head == "Escape":
+			lc.escapeCost(node, param) // lower_escape.go (CR 702.138a; dirac/kw_escape.go)
 		case head == "Mayhem":
 			// CR 702.187a: a graveyard cast for the colon parameter, an
 			// alternative mana cost, if the card was discarded this turn
@@ -2608,9 +2611,11 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 					// folds the body into a fixed amount as the cost window opens
 					// (evalTriggerCostFixedX), so the kernel reads the same value as
 					// the payment is offered. Only the power of the card an enters
-					// trigger fires for lowers (the shape played against gorge); every
-					// other body or trigger refuses by name.
-					if lc.trigBodyCost && lc.ab.Trigger != nil && lc.ab.Trigger.Event == "ETB" && strings.TrimSpace(x) == "TriggeredCard$CardPower" &&
+					// trigger fires for lowers (the shape played against gorge), and the
+					// opponents dealt combat damage this turn on a postcombat-main Phase
+					// trigger (Tymna the Weaver); every other body or trigger refuses
+					// by name.
+					if lc.trigBodyCost && lc.ab.Trigger != nil && triggerCostXShape(lc.ab.Trigger, strings.TrimSpace(x)) &&
 						c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.LoyaltyX {
 						v, verr := lc.svarValue(x, 0)
 						if verr != nil {

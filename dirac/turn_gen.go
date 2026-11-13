@@ -95,6 +95,9 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		if sneakMarks(&s.res.e) {
 			s.mSlSet(k, mechSneaked, sl) // kw_sneak.go
 		}
+		if escapeMarks(&s.res.e) {
+			s.mSlSet(k, mechEscaped, sl) // kw_escape.go
+		}
 	} else if int(o) < len(s.cold.mkObj) {
 		// an entry that is not the resolving spell (reanimate, blink, return)
 		// is a new object with no payments (CR 400.7, 702.43): the last cast's

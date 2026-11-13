@@ -30,7 +30,7 @@ import (
 // floated from Mountains, the graveyard is filled by Thrill of Possibility
 // and Mulch.
 
-var escapeDecks = [2][]cardset.Entry{
+var escapeGrantDecks = [2][]cardset.Entry{
 	{ // A: R
 		{Name: "Underworld Breach", Count: 4}, {Name: "Akki Rockspeaker", Count: 4},
 		{Name: "Lightning Bolt", Count: 10}, {Name: "Thrill of Possibility", Count: 8},
@@ -52,20 +52,20 @@ var sealDecks = [2][]cardset.Entry{
 	},
 }
 
-type escapeStats struct {
+type escapeGrantStats struct {
 	offers, casts int
 }
 
-// escapeProbe floats Mountain mana, loots with Thrill of Possibility and
+// escapeGrantProbe floats Mountain mana, loots with Thrill of Possibility and
 // takes the escape casts, counting the offers gorge surfaces and the casts
 // taken.
-type escapeProbe struct {
-	st   *escapeStats
+type escapeGrantProbe struct {
+	st   *escapeGrantStats
 	base Policy
 	r    *rand.Rand
 }
 
-func (p *escapeProbe) pick(c *PickCtx) Canon {
+func (p *escapeGrantProbe) pick(c *PickCtx) Canon {
 	var esc, outlets, lands []Canon
 	if c.G != nil {
 		for _, x := range c.D.Options {
@@ -174,9 +174,9 @@ func deckNames(d []cardset.Entry) []string {
 // requires the escape casts to be offered and taken on both sides identically.
 func TestEscapeGrantLockstep(t *testing.T) {
 	t.Parallel()
-	st := &escapeStats{}
-	div := runDecks(t, 128, escapeDecks, "escape", func(seed uint64) Policy {
-		p := &escapeProbe{st: st, base: RandomPolicy(seed), r: rand.New(rand.NewPCG(seed, 0x65736361))}
+	st := &escapeGrantStats{}
+	div := runDecks(t, 128, escapeGrantDecks, "escape", func(seed uint64) Policy {
+		p := &escapeGrantProbe{st: st, base: RandomPolicy(seed), r: rand.New(rand.NewPCG(seed, 0x65736361))}
 		return PolicyFunc(p.pick)
 	})
 	t.Logf("128 games, escape %+v, %d divergences", *st, b2i(div))

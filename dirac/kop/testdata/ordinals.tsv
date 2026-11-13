@@ -930,6 +930,7 @@ PredCountersGE	Pred	13
 PredCountersLT	Pred	33
 PredEnchanted	Pred	21
 PredEquipped	Pred	20
+PredEscaped	Pred	237
 PredExiledWith	Pred	249
 PredFaceDown	Pred	245
 PredHasCounter	Pred	7
@@ -1206,6 +1207,7 @@ StatAnyTypeCreatures	StaticKind	239
 StatAsIfHaste	StaticKind	231
 StatAttackTax	StaticKind	243
 StatBeamGrant	StaticKind	253
+StatBlockTax	StaticKind	256
 StatCDAPT	StaticKind	10
 StatCanAttackDefender	StaticKind	250
 StatCantActivate	StaticKind	236

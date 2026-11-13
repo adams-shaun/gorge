@@ -70,24 +70,6 @@ func monarchCheck(cdp string) (lCond, bool) {
 	return lCond{Kind: cValue, A: lValue{Kind: vMonarch, N: n, Sub: []lValue{cst(1), cst(0)}}, Op: opGE, B: cst(1)}, true
 }
 
-// monarchGate reports whether an Effect's own condition is the monarch's
-// ConditionCheckSVar$ over Count$Monarch (Aragorn, King of Gondor's "If
-// you're the monarch, creatures can't block this turn"), with no other
-// Condition key: the node's condition read (nodeCondition) then gates the
-// whole Effect on it at resolution, as gorge's sub-ability conditions do.
-func (lc *lowerCtx) monarchGate(ps *params) bool {
-	cs := strings.TrimSpace(ps.peek("ConditionCheckSVar"))
-	if cs == "" || lc.face == nil {
-		return false
-	}
-	for k := range ps.m {
-		if strings.HasPrefix(k, "Condition") && k != "ConditionCheckSVar" && k != "ConditionSVarCompare" {
-			return false
-		}
-	}
-	return strings.HasPrefix(strings.TrimSpace(lc.face.SVars[cs]), "Count$Monarch.")
-}
-
 // monarchEffectTrigger refuses an Effect's Mode$ BecomeMonarch trigger by
 // name: Palace Jailer's "exile target creature an opponent controls until an
 // opponent becomes the monarch" (CR 610.3). gorge registers the trigger as a

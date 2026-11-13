@@ -116,7 +116,7 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 		}
 		o := uint8(s.perms[sl].obj)
 		if MaxSeats > 2 {
-			s.attackOffersN(k, d, o, gd && s.goadedAt(k, sl))
+			s.attackOffersN(k, d, o, sl, gd && s.goadedAt(k, sl))
 			if k.gen != nil && k.gen.anyBattle {
 				s.addBattleOffers(k, d, o) // CR 310.7
 			}
@@ -159,13 +159,18 @@ func (s *State) mustAttackAsked() bool {
 // attackOffersN appends attacker o's offers at more than two seats: each
 // opponent still in the game in ascending seat order (gorge
 // attackOffersCompute walks AliveFrom(0)), the player and then each
-// planeswalker that player controls in slot order. A goaded attacker is
-// offered players only (CR 508.1d, as at two seats).
+// planeswalker that player controls in slot order. A goaded attacker
+// (the permanent at sl) is offered players only (CR 508.1d, as at two
+// seats), and a seat that goaded it is offered only when every other live
+// seat goaded it too (CR 701.15b; gorge combat.GoadMayAttack).
 //
 //go:noinline
-func (s *State) attackOffersN(k *prep, d *Decision, o uint8, goaded bool) {
+func (s *State) attackOffersN(k *prep, d *Decision, o uint8, sl Slot, goaded bool) {
 	for q := uint8(0); q < s.nSeats(); q++ {
 		if q == s.active || s.out(q) {
+			continue
+		}
+		if goaded && s.goadDefenderBanned(k, sl, q) {
 			continue
 		}
 		d.add(MakeAction(AkAttack, o, PlayerCode(q), 0))
@@ -178,6 +183,22 @@ func (s *State) attackOffersN(k *prep, d *Decision, o uint8, goaded bool) {
 			}
 		}
 	}
+}
+
+// goadDefenderBanned reports whether defender seat q is banned for the
+// goaded creature at sl (gorge combat.GoadMayAttack): q goaded it and some
+// live seat other than the attacker's controller did not, so attacking q
+// can satisfy every goad while attacking that other seat would.
+func (s *State) goadDefenderBanned(k *prep, sl Slot, q uint8) bool {
+	if !s.mSl(k, goadMech(q), sl) {
+		return false
+	}
+	for r := uint8(0); r < s.nSeats(); r++ {
+		if r != s.active && !s.out(r) && !s.mSl(k, goadMech(r), sl) {
+			return true
+		}
+	}
+	return false
 }
 
 // mustAttackLeft reports whether a creature that must attack and can is
@@ -601,7 +622,7 @@ func (s *State) anyBlock(k *prep) bool {
 		for am.any() {
 			a := am.first()
 			am = am.rest()
-			if s.perms[a].flags&pfAttacking != 0 && !s.blocks(b, a) && s.canBlock(k, b, a) && !s.menaceImpossible(k, a) {
+			if s.perms[a].flags&pfAttacking != 0 && !s.blocks(b, a) && s.canBlock(k, b, a) && !s.menaceImpossible(k, a) && (!blkTaxOn(k) || s.blkTaxAdmits(k, b, a)) {
 				return true
 			}
 		}
@@ -784,6 +805,9 @@ func (s *State) augment(k *prep, i int, def, free *[MaxPerm]Slot, nf int, match 
 
 func (s *State) applyBlock(k *prep, a Action) {
 	if a.Kind() == AkDone {
+		if blkTaxOn(k) && !s.blkTaxPay(k) {
+			s.dropBlockDeclaration(k) // combat_blocktax.go: CR 509.1d, the unpayable declaration is declined
+		}
 		if MaxSeats > 2 {
 			s.blockRound(k, s.g.blkDef)
 			return
@@ -813,9 +837,25 @@ func (s *State) applyBlock(k *prep, a Action) {
 // finishes the declaration once none is left (gorge askBlockers skips a
 // defender with no attacker or no legal block option).
 //
+// The walk is over seat indices up to the active seat's, skipping departed
+// seats, rather than over nextAlive until it returns the active seat: an
+// active player who has left the game (CR 800.4a: the turn continues without
+// one) is never returned by nextAlive, and that loop never ended -- a spinning
+// goroutine kfuzz's watchdog could report as a hang but never stop.
+//
 //go:noinline
 func (s *State) blockRound(k *prep, from uint8) {
-	for q := s.nextAlive(from); q != s.active; q = s.nextAlive(q) {
+	n := s.nSeats()
+	for q := from; ; {
+		if q++; q >= n {
+			q = 0
+		}
+		if q == s.active || q == from {
+			break
+		}
+		if s.out(q) {
+			continue
+		}
 		s.g.blkDef = q
 		if s.anyBlock(k) {
 			s.ctl = ctlBlockers

@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/state"
@@ -114,6 +115,42 @@ func hasAttachmentOfKind(g *state.Game, id state.ObjID, kind string) bool {
 		}
 	}
 	return false
+}
+
+// hasAttachmentOfKindCtx is hasAttachmentOfKind reading the attached
+// object's layer-4 type line (CR 613.1d): sc.AttachmentTypes when the layer
+// walk bound its snapshot, else the published sc.Layers.DerivedTypes, else
+// the printed face. It scans the same deterministic battlefield slices.
+// CR 301.5a: the equipped creature is the one an Equipment is attached to,
+// whatever made the attached permanent an Equipment.
+func hasAttachmentOfKindCtx(g *state.Game, id state.ObjID, kind string, sc *SpecContext) bool {
+	table := sc.AttachmentTypes
+	if table == nil {
+		table = sc.Layers.DerivedTypes
+	}
+	for _, p := range g.AliveFrom(0) {
+		for _, sid := range g.Zone(state.ZBattlefield, p) {
+			s := g.Obj(sid)
+			if s == nil || s.AttachedTo != id {
+				continue
+			}
+			if attachedHasKind(s, kind, table) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// attachedHasKind answers s's kind from its entry in table when one exists,
+// else from its printed face.
+func attachedHasKind(s *state.Object, kind string, table []ObjectTypes) bool {
+	for i := range table {
+		if table[i].ID == s.ID {
+			return slices.Contains(table[i].Types, kind)
+		}
+	}
+	return s.Face() != nil && hasType(s, kind)
 }
 
 // modifiedPermanent is the CR 700.9 body for the `modified` CardProperty: a

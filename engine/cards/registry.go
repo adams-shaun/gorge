@@ -398,11 +398,21 @@ func (r *Registry) saveGob(path string) error {
 }
 
 func LoadRegistry(path string) (*Registry, error) {
+	// The image file beside the cache (image_file.go) holds the Image this
+	// function would build, as raw rows: served when it is current, it skips
+	// the whole gunzip, gob decode and image build.
+	if im, err := readImageFile(ImagePath(path), path); err == nil {
+		return registryFromImage(im)
+	}
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
 	zr, err := gzip.NewReader(f)
 	if err != nil {
 		return nil, err
@@ -434,7 +444,19 @@ func LoadRegistry(path string) (*Registry, error) {
 	// image and drops the trees; tokens are finished eagerly, as before.
 	var canon [sha256.Size]byte
 	h.Sum(canon[:0])
-	return imagedRegistryHashed(cf.Cards, cf.Tokens, &canon)
+	img, err := buildImageHashed(cf.Cards, cf.Tokens, &canon)
+	if err != nil {
+		return nil, err
+	}
+	// Best effort: a read-only corpus, or a peer's rename winning the race,
+	// only means the next open takes this route again.
+	_ = writeImageFile(ImagePath(path), img, fi.Size())
+	r, err := finishDecoded(nil, cf.Tokens)
+	if err != nil {
+		return nil, err
+	}
+	r.lazy = newLazyCards(img)
+	return r, nil
 }
 
 // finishDecoded is the post-decode half of LoadRegistry: it turns cards and

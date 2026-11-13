@@ -1,8 +1,6 @@
 package policynet
 
 import (
-	"bufio"
-	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +11,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
+
+	"github.com/adams-shaun/gorge/testkit/recstream"
 )
 
 // The visit corpus (the "azgen" corpus): one JSONL
@@ -300,15 +300,10 @@ func LoadVisits(path string, o VisitLoadOptions) ([]Example, []VisitRecord, Visi
 		return nil, nil, stats, fmt.Errorf("opening visit corpus: %w", err)
 	}
 	defer f.Close()
-	r := bufio.NewReaderSize(f, 1<<20)
-	var stream io.Reader = r
-	if magic, err := r.Peek(2); err == nil && magic[0] == 0x1f && magic[1] == 0x8b {
-		zr, err := gzip.NewReader(r)
-		if err != nil {
-			return nil, nil, stats, fmt.Errorf("reading gzipped visit corpus: %w", err)
-		}
-		defer zr.Close()
-		stream = zr
+	// Plain, gzipped or condensed (testkit/recstream) JSON Lines.
+	stream, err := recstream.NewReader(f)
+	if err != nil {
+		return nil, nil, stats, fmt.Errorf("reading visit corpus: %w", err)
 	}
 	label := o.Label
 	if label == "" {
