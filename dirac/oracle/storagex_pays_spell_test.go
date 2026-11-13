@@ -22,6 +22,9 @@ func TestStorageXPaysSpellLockstep(t *testing.T) {
 	const vault = "Bottomless Vault"
 	const spell = "Blightsoil Druid"
 
+	// synthReg skips the test when the corpus is absent (a fresh clone);
+	// printedDelveSet would fail there instead.
+	reg := synthReg(t)
 	decks := [2][]cardset.Entry{
 		{{Name: vault, Count: 30}, {Name: spell, Count: 10}},
 		{{Name: "Plains", Count: 40}},
@@ -34,7 +37,6 @@ func TestStorageXPaysSpellLockstep(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	reg := synthReg(t)
 	var cs [2][]*cards.Card
 	for s, d := range decks {
 		for _, e := range d {
