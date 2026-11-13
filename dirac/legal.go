@@ -552,7 +552,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if f&kop.CostSubAmong != 0 && s.subAmongTotal(k, p.ctrl, &a.Cost, sl) < int(a.Cost.N) {
 		return false // kw_training.go
 	}
-	if f&kop.CostPayLife != 0 && int(s.pl[p.ctrl].life) < int(a.Cost.N) {
+	if f&kop.CostPayLife != 0 && int(s.pl[p.ctrl].life) < lifeCostOwed(&a.Cost) {
 		return false
 	}
 	if f&kop.CostDiscard != 0 && !s.discardPayable(k, p.ctrl, &a.Cost, NoObj) {
@@ -1643,7 +1643,7 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 	if ab.Cost.Flags&kop.CostOncePerGame != 0 && s.onceBlocked(k, sl, ab) {
 		return false // Loot, the Pathfinder's exhaust mana ability
 	}
-	if ab.Cost.Flags&kop.CostPayLife != 0 && int(s.pl[SeatIx(p)].life) < int(ab.Cost.N) {
+	if ab.Cost.Flags&kop.CostPayLife != 0 && int(s.pl[SeatIx(p)].life) < lifeCostOwed(&ab.Cost) {
 		return false
 	}
 	if k.gen.anyCantAct && s.actForbidden(k, sl, true) {

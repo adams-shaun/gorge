@@ -110,7 +110,7 @@ func (s *State) raiseLifeDropTargets(k *prep, buf *[MaxOptions]uint8, n int) int
 	e := &s.bld().e
 	own := 0
 	if ac := spellAddCost(k, e.card); ac.Flags&kop.CostPayLife != 0 {
-		own = int(ac.N)
+		own = lifeCostOwed(ac)
 	}
 	life := int(s.pl[e.ctrl].life)
 	nt, t0 := e.nt, e.tgt[0]
