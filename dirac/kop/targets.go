@@ -53,6 +53,12 @@ type TargetSpec struct {
 	VYou   bool
 }
 
+// ParentTrigPl is the TargetSpec.ParentPlus1 sentinel of a TgtCard slot
+// restricted to the graveyard of the current trigger entry's trigger player
+// (gorge TargetsWithDefinedController$ TriggeredTarget of a damage trigger:
+// the damaged player; a graveyard card is controlled by its owner).
+const ParentTrigPl uint8 = 255
+
 // MaxTargets is the number of target slots an ability may have.
 const MaxTargets = 5
 

@@ -179,6 +179,12 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		if tr := lc.ab.Trigger; ddoObjectReferent(tr) {
 			return lRef{Kind: rTriggered}, nil
 		}
+		// a BecomesTarget watcher: the targeted permanent (gorge
+		// becomesTargetReferent), the trigger object the kernel's
+		// btWatchers queues
+		if tr := lc.ab.Trigger; tr != nil && tr.Event == "BecomesTarget" && tr.Watch && v == "TriggeredTarget" {
+			return lRef{Kind: rTriggered}, nil
+		}
 		// The player dealt the damage. The kernel's trigger player there is
 		// the opponent of the source's controller (two players), which is
 		// the damaged player when the damage is combat damage to a player,

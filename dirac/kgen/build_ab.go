@@ -1350,7 +1350,10 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		// ): the trigger builder set TfSelf only when the
 		// whole filter was the bare self clause, so that flag is the
 		// structural test -- no second combination can carry it.
-		if !t.Watch || kt.Whose != kop.WhoseOpp {
+		// a watcher (opponent-source gated or not) or the plain self form
+		// (TfSelf, no gate: "becomes the target of a spell or ability")
+		selfPlain := !t.Watch && kt.Flags&kop.TfSelf != 0 && kt.Whose == kop.WhoseAny
+		if !selfPlain && !(t.Watch && (kt.Whose == kop.WhoseOpp || kt.Whose == kop.WhoseAny)) {
 			return kt, fmt.Errorf("BecomesTarget without Valiant")
 		}
 		if t.SpellToo {

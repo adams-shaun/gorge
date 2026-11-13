@@ -840,6 +840,29 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			tr.Whose = whoOpp
 			tr.Watch = true
+		case tp.str("ValidSource") == "" && tp.str("ValidTarget") == "Card.Self" &&
+			!tp.is("Ward", "True") && !tp.is("Valiant", "True") && !tp.is("FirstTime", "True"):
+			// "Whenever this becomes the target of a spell or ability" with
+			// no source restriction (CR 603.2; gorge becomesTargetMatches
+			// with ValidTarget$ Card.Self and no ValidSource$): every
+			// TargetsChosen naming the permanent fires it, its controller's
+			// own included. A TfSelf line with no Whose gate: the kernel's
+			// becameTarget fires it through the plain per-object walk
+			// (fireObjGen), no opponent gate.
+			tr.F = &lFilter{Clauses: []lClause{{Flags: fSelf}}}
+		case tp.str("ValidSource") == "" && tp.str("ValidTarget") != "" &&
+			!strings.Contains(tp.str("ValidTarget"), "Card.Self") && !strings.Contains(tp.str("ValidTarget"), ",") &&
+			!tp.is("Ward", "True") && !tp.is("Valiant", "True") && !tp.is("FirstTime", "True"):
+			// the watcher with no source restriction (Daru Spiritualist:
+			// "whenever a Cleric creature you control becomes the target of
+			// a spell or ability"): the opponent-source watcher's arm
+			// without its Whose gate; one trigger per matching chosen
+			// target, the targeted permanent as the trigger object
+			// (gorge becomesTargetReferent)
+			if tr.F, err = lc.filter(tp.str("ValidTarget")); err != nil {
+				return err
+			}
+			tr.Watch = true
 		default:
 			return refuse("BecomesTarget shape")
 		}
