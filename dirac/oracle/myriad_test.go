@@ -115,17 +115,26 @@ func kmyriadScan(g *GorgeSide, byCard, byGrantor map[string]int) {
 
 func runMyriad(t *testing.T, seeds uint64) (games, stalls int, byCard, byGrantor map[string]int) {
 	t.Helper()
+	byCard, byGrantor = map[string]int{}, map[string]int{}
+	games, stalls = runMyriadPool(t, "myriad", kmyriadDecks, seeds, func(g *GorgeSide) { kmyriadScan(g, byCard, byGrantor) })
+	return games, stalls, byCard, byGrantor
+}
+
+// runMyriadPool plays the two decks from pool in lockstep under
+// kmyriadPolicy, handing each finished game's gorge side to scan.
+func runMyriadPool(t *testing.T, pool string, kdecks [2][]cardset.Entry, seeds uint64, scan func(*GorgeSide)) (games, stalls int) {
+	t.Helper()
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	set, err := cardset.RawByName("myriad")
+	set, err := cardset.RawByName(pool)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var decks [2][]*cards.Card
-	for s, d := range kmyriadDecks {
+	for s, d := range kdecks {
 		for _, e := range d {
 			c, ok := reg.Lookup(e.Name)
 			if !ok {
@@ -139,14 +148,13 @@ func runMyriad(t *testing.T, seeds uint64) (games, stalls int, byCard, byGrantor
 			t.Fatalf("deck %d: %d cards", s, len(decks[s]))
 		}
 	}
-	tbl, _, _, err := set.Matchup(kmyriadDecks[0], kmyriadDecks[1])
+	tbl, _, _, err := set.Matchup(kdecks[0], kdecks[1])
 	if err != nil {
 		t.Fatal(err)
 	}
-	byCard, byGrantor = map[string]int{}, map[string]int{}
 	for seed := uint64(1); seed <= seeds; seed++ {
 		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
-		m, err := NewMatchup(reg, [2]string{"myriad-a", "myriad-b"}, decks, 1)
+		m, err := NewMatchup(reg, [2]string{pool + "-a", pool + "-b"}, decks, 1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -161,7 +169,7 @@ func runMyriad(t *testing.T, seeds uint64) (games, stalls int, byCard, byGrantor
 		res := LockstepLed(m, seed, g, k, kmyriadPolicy(seed), RunConfig{Config: cfg, MaxDecisions: 3000, MaxTurns: 25})
 		CloseSide(k)
 		games++
-		kmyriadScan(g, byCard, byGrantor)
+		scan(g)
 		if strings.HasPrefix(res.Stall, KernelStallPrefix) {
 			stalls++
 			t.Logf("seed %d: %s", seed, res.Stall)

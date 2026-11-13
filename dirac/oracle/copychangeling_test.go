@@ -162,6 +162,9 @@ func TestCopychangelingLockstep(t *testing.T) {
 // (dirac.DebugCopyChangelingOff): the tokens then miss the lord's +1/+1 and
 // haste, and the games must diverge within 64 seeds.
 func TestCopychangelingMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, first, _ := runCopychangeling(t, 64,
 		func() { dirac.DebugCopyChangelingOff = true },
 		func() { dirac.DebugCopyChangelingOff = false })

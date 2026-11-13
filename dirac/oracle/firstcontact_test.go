@@ -47,6 +47,9 @@ func TestFirstContactLockstep(t *testing.T) {
 // response takes it from the earlier spell), a game that responds to a first
 // First Contact diverges from gorge.
 func TestFirstContactMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg, set, decks, tbl := p3Setup(t, "firstcontact", kfirstContactDecks)
 	old := dirac.DebugFirstCastLate
 	dirac.DebugFirstCastLate = true

@@ -601,7 +601,7 @@ func (s *State) anyBlock(k *prep) bool {
 		for am.any() {
 			a := am.first()
 			am = am.rest()
-			if s.perms[a].flags&pfAttacking != 0 && !s.blocks(b, a) && s.canBlock(k, b, a) && !s.menaceImpossible(k, a) {
+			if s.perms[a].flags&pfAttacking != 0 && !s.blocks(b, a) && s.canBlock(k, b, a) && !s.menaceImpossible(k, a) && (!blkTaxOn(k) || s.blkTaxAdmits(k, b, a)) {
 				return true
 			}
 		}
@@ -784,6 +784,9 @@ func (s *State) augment(k *prep, i int, def, free *[MaxPerm]Slot, nf int, match 
 
 func (s *State) applyBlock(k *prep, a Action) {
 	if a.Kind() == AkDone {
+		if blkTaxOn(k) && !s.blkTaxPay(k) {
+			s.dropBlockDeclaration(k) // combat_blocktax.go: CR 509.1d, the unpayable declaration is declined
+		}
 		if MaxSeats > 2 {
 			s.blockRound(k, s.g.blkDef)
 			return
@@ -813,9 +816,25 @@ func (s *State) applyBlock(k *prep, a Action) {
 // finishes the declaration once none is left (gorge askBlockers skips a
 // defender with no attacker or no legal block option).
 //
+// The walk is over seat indices up to the active seat's, skipping departed
+// seats, rather than over nextAlive until it returns the active seat: an
+// active player who has left the game (CR 800.4a: the turn continues without
+// one) is never returned by nextAlive, and that loop never ended -- a spinning
+// goroutine kfuzz's watchdog could report as a hang but never stop.
+//
 //go:noinline
 func (s *State) blockRound(k *prep, from uint8) {
-	for q := s.nextAlive(from); q != s.active; q = s.nextAlive(q) {
+	n := s.nSeats()
+	for q := from; ; {
+		if q++; q >= n {
+			q = 0
+		}
+		if q == s.active || q == from {
+			break
+		}
+		if s.out(q) {
+			continue
+		}
 		s.g.blkDef = q
 		if s.anyBlock(k) {
 			s.ctl = ctlBlockers

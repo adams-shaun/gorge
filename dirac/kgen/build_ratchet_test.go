@@ -252,8 +252,9 @@ import (
 // +24 (mid-resolution ChooseNumber lowers: ChooseNumberMid, with Count$ChosenNumber and the dynamic PayEnergy<X> unless cost; an activated {X} energy cost stays refused rather than losing its amount; merged onto land c70201715c: ALL build-level 23076 -> 23100 measured).
 // -1 (Gilded Light refuses: its until-end-of-turn player shroud lowered to a keyword grant that lands on no permanent; ALL build-level 23105 -> 23104 measured).
 // +16 (the merge with land at 1acc5919d9: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering beside land's later work; merged ALL build-level 23115 -> 23131 measured).
-// +4 (the join-forces StoreSVar accumulator lowers: Minds Aglow, Alliance of Arms, Shared Trauma, Mana-Charged Dragon; Collective Voyage stays refused at ChangeZone DefinedPlayer$ Player; ALL build-level 23177 -> 23181 measured).
-var buildAcceptancePin = [2]int{23181, 34442} // {built, cards}
+// +14 (Extort lowered, the keyword and its SpellCast trigger, against land's corpus; merged ALL build-level 23177 -> 23191 measured).
+// +5 (the join-forces StoreSVar accumulator lowers, merged onto land 78d310766b: Minds Aglow, Alliance of Arms, Shared Trauma, Mana-Charged Dragon, and Collective Voyage beside land's each-player library search; ALL build-level 23238 -> 23243 measured).
+var buildAcceptancePin = [2]int{23243, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

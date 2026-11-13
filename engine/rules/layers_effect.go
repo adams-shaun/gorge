@@ -118,7 +118,7 @@ func (e *Engine) AddContinuous(ce ContinuousEffect) {
 		}
 	}
 	e.continuous = append(e.continuous, ce)
-	if ce.AddTrigger != nil || len(ce.GainedTriggerFaces) > 0 {
+	if e.trigGrant.free && continuousGrantsTrigger(&ce) {
 		e.trigGrant.free = false // trigger_grantfree.go
 	}
 	if ce.ReplacementEvent != "" {

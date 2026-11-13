@@ -23,7 +23,6 @@ export GOWORK=off
 
 make dirac-tables >"$out/tables.log" 2>&1 || { tail -5 "$out/tables.log"; exit 2; }
 go build -trimpath -o "$out/kfuzz" ./dirac/oracle/cmd/kfuzz || exit 2
-go build -trimpath -o "$out/kgen" ./dirac/cmd/kgen || exit 2
 
 if [ -n "${POOLS:-}" ]; then
 	pools=$POOLS

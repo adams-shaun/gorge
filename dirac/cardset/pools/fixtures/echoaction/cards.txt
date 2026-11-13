@@ -1,0 +1,11 @@
+# the echo action-cost pool: echo (CR 702.30a) paid with an action rather than
+# mana -- Deepcavern Imp and Rakdos Headliner (Discard<1/Card>), Skizzik
+# Surger (Sac<2/Land>) -- for the oracle's constructed lockstep
+# (dirac/oracle/echoaction_test.go). Hill Giant and Shock are filler.
+Deepcavern Imp
+Hill Giant
+Mountain
+Rakdos Headliner
+Shock
+Skizzik Surger
+Swamp

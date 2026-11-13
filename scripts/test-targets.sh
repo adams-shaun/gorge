@@ -288,6 +288,12 @@ echo "== 3 census and coverage tests, unrefusal proof"
 dirac_tables
 C='Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrinks|IotaBlock|NoVerbatim|PublicBoundary|Acceptance|ReprosLockstep|EnumConst|^TestHeads$|^TestSetHeads$'
 cpk=$(git grep -lE "^func Test[A-Za-z0-9_]*($C)" -- '*_test.go' | xargs -n1 dirname | sort -u | sed 's|^|./|')
+# Only the census packages the change can reach (test_targets.py census: importers of a changed package,
+# touched directories, the tree censuses; every one for a change outside any package). A failed selection
+# runs them all.
+ncpk=$(wc -w <<<"$cpk")
+if sel=$(printf '%s\n' $cpk | "${py[@]}" census --base "$BASE") && [ -n "$sel" ]; then cpk=$sel; fi
+echo "census packages: $(wc -w <<<"$cpk") of $ncpk"
 capped 8G 400% env GOMAXPROCS=4 GOMEMLIMIT=6GiB go test -json -failfast -timeout 10m -run "$C" -skip '^TestStd[A-Za-z]*ReprosLockstep' $cpk ./internal/archtest >>"$json" 2>&1
 rc=$?
 if [ "$rc" = 0 ]; then

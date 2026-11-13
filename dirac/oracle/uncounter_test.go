@@ -18,8 +18,8 @@ import (
 // decision is gorge's.
 //
 // gorge asks a CR 616.1 order question when two such replacements match one
-// Counter event (this spell's own plus a battlefield source, or two sources;
-// GORGE-FINDINGS.md), which dirac poses in uncGate. This pool keeps one source
+// Counter event (this spell's own plus a battlefield source, or two sources),
+// which dirac poses in uncGate. This pool keeps one source
 // per seat (one Chimil each, or one Sphinx each; the Sphinx spell itself is
 // the lone own-replacement, a battlefield Sphinx never meets its own spell) so
 // it also covers the ordinary single-match path; the two-source and own-line

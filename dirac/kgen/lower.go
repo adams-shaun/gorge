@@ -471,6 +471,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseHarmonizeCombos()
 	lc.refuseReboundCombos() // lower_rebound.go
 	lc.refuseMayhemCombos()
+	lc.refuseEscapeCombos()
 	lc.lowerRetrace()
 	lc.refuseBeamCombos()
 	lc.refuseSneakCombos()
@@ -725,6 +726,9 @@ func (lc *lowerCtx) lowerRecord() {
 		if b, ok := typeBits[t]; ok && t != "Card" && t != "Permanent" {
 			out.Types |= b
 			continue
+		}
+		if t == "World" {
+			out.World = true // CR 704.5k (kernel zone_worldrule.go)
 		}
 		out.Subtypes = append(out.Subtypes, t)
 	}
@@ -1254,6 +1258,15 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !faceHasMeleeTrigger(lc.face) {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
+		case head == "Extort" && param == "":
+			// CR 702.101a: gorge kwExtort expands the keyword into a
+			// SpellCast trigger (DB$ Extort), lowered from that line
+			// (lower_effect.go's Extort arm). The keyword itself has no
+			// CardDef bit; a face whose expansion is missing would lose
+			// the trigger silently.
+			if !faceHasExtortTrigger(lc.face) {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
 		case head == "Partner with":
 			// CR 702.124j: the commander-pair marker (no game characteristic)
 			// and gorge kwPartnerWith's enters trigger, lowered from that
@@ -1442,6 +1455,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.out.Harmonize = &mc
 		case head == "Beam me up":
 			lc.beamMeUp(node, param) // lower_beammeup.go
+		case head == "Escape":
+			lc.escapeCost(node, param) // lower_escape.go (CR 702.138a; dirac/kw_escape.go)
 		case head == "Mayhem":
 			// CR 702.187a: a graveyard cast for the colon parameter, an
 			// alternative mana cost, if the card was discarded this turn
@@ -2082,6 +2097,9 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		}
 		parts := strings.Split(arg, "/")
 		if head == "Sac" && parts[0] == "X" {
+			// the third part is prompt text, which may hold a slash
+			// ("any number of artifacts and/or creatures")
+			parts = strings.SplitN(arg, "/", 3)
 			// Sac<X/Spec> (lower_xminsacx.go): the announced count
 			if err := lc.sacXCost(&c, parts, t); err != nil {
 				return c, err
@@ -2971,6 +2989,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		}
 		if sa.API == "PermanentCreature" {
 			// The permanent spell itself: only its additional cost matters.
+			ps.consume("AdditionalDesc") // display text of a self discount (Dargo's "costs {2} less ...")
 			if left := ps.unread(); len(left) > 0 {
 				return refuse("unread params %v", left)
 			}

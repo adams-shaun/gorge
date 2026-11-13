@@ -1435,5 +1435,8 @@ func (e *Engine) enteringObjectMatches(spec string, ev events.Event, sc effects.
 			return effects.MatchesObjectCtx(e.G, spec, b, sc)
 		}
 	}
-	return e.matchesSpec(spec, ev.Obj, sc)
+	// A foreign ValidCard$ judges the entry against the permanent as it would
+	// exist on the battlefield, its intrinsic entry counters already folded
+	// (CR 614.12); only the residual moves keep the plain stack matcher.
+	return enteringCounterBasisMatch(e, spec, ev, sc)
 }

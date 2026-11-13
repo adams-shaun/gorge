@@ -2195,6 +2195,19 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				return ka, nil, fmt.Errorf("CantAttackUnless flag %q", fl)
 			}
 		}
+	case "CantBlockUnless":
+		st.Kind = kop.StatBlockTax // lower_blocktax.go
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		if s.F2 != nil {
+			if st.Filter2, err = filter(s.F2, kop.ZoneBattlefield); err != nil {
+				return ka, nil, err
+			}
+		}
+		if err := amounts(s.Amount, lValue{}); err != nil {
+			return ka, nil, err
+		}
 	case "CanAttackDefender":
 		st.Kind = kop.StatCanAttackDefender
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -4285,6 +4298,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
+	case "Extort":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtExtort)) // dirac/act_extort.go
 	case "Fog":
 		ki.Op = kop.OpFog
 	case "LoseGame":

@@ -38,6 +38,11 @@ const (
 	lkiAttacking                   // CR 608.2h: "if it was attacking"
 )
 
+// lkiInfect (lkiRec.bits; bit 4 is zone_lkisource.go's lkiDepart): the
+// snapshot had infect (infectAt; gorge lki.Infect, CR 113.7a), read by a
+// departed DamageSource$ (act_damagefrom.go).
+const lkiInfect uint8 = 1 << 5
+
 // lkiRec is one snapshot: P/T, controller, every counter, and the derived
 // (layered) types, colours and keywords (CR 608.2h in full).
 type lkiRec struct {
@@ -127,6 +132,9 @@ func (s *State) snapLKI(o Obj) uint8 {
 	}
 	if p.flags&pfAttacking != 0 {
 		r.bits |= lkiAttacking
+	}
+	if k.gen.anyInfect && s.infectAt(k, sl) {
+		r.bits |= lkiInfect
 	}
 	for i := range p.ck {
 		if p.cn[i] > 0 {

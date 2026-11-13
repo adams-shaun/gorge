@@ -256,16 +256,29 @@ func PayManaDescriptorForSpent(e Engine, p state.PlayerID, d Descriptor, cost Co
 // an Extort payment a player genuinely cannot make is a decline rather than
 // a free drain.
 func PayExtortPip(e Engine, p state.PlayerID) bool {
-	// The pip is charged from the raw pool (the extort window carries no
-	// payment id, so the restriction-aware view does not apply here — the
-	// pre-existing, restriction-blind consumption is unchanged), but its
-	// attribution follows the shared payment rule (ordinary units first): a
-	// slot's persistent share is charged only past its non-persistent one,
-	// and the persistent unit's event carries the " pm" marker so the fold
-	// moves the tally with the unit actually consumed.
+	// The pip is neither a spell cast nor an ability activation, so mana a
+	// RestrictValid$ batch limits to those (CR 106.6) cannot pay it: every
+	// restricted batch is hidden from the pool and from the persistent
+	// tally, and only unrestricted units (an empty Valid is an unrestricted
+	// AddsNoCounter$ batch) are charged, by a plain ManaAdd that leaves
+	// RestrictedMana untouched. The attribution follows the shared payment
+	// rule (ordinary units first): a slot's persistent share is charged only
+	// past its non-persistent one, and the persistent unit's event carries
+	// the " pm" marker so the fold moves the tally with the unit consumed.
 	pl := e.Game().Players[p]
-	fresh := pl.Pool
+	pool := pl.Pool
 	per := pl.PersistentMana
+	for _, r := range pl.RestrictedMana {
+		if r.Valid == "" {
+			continue
+		}
+		idx := state.ManaSlot(r.Color)
+		pool[idx] -= r.Amount
+		if r.Persistent {
+			per[idx] -= min(r.Amount, per[idx])
+		}
+	}
+	fresh := pool
 	for i := range fresh {
 		fresh[i] -= per[i]
 	}

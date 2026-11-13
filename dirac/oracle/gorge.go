@@ -441,6 +441,19 @@ func (g *GorgeSide) internal(d *decision.Decision) bool {
 	if manaChoiceResolving(d) {
 		return false
 	}
+	if d.Options[0].Kind == "block_mana" {
+		// The declare-blockers block-tax window (rules/attack_cost.go
+		// askNextBlockPay): one tap per ask, answered with the first source
+		// listed, the order the kernel's atkTaxNext walks.
+		g.Stats.Internal++
+		if g.OnInternal != nil {
+			g.OnInternal(d, d.Options[0].Index)
+		}
+		if err := g.submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}); err != nil {
+			g.fail(fmt.Errorf("oracle: block payment window answer refused: %w", err))
+		}
+		return true
+	}
 	if d.Options[0].Kind == "attack_mana" {
 		// The declare-attackers attack-tax window (rules/attack_cost.go
 		// askNextAttackPay): one tap per ask, answered with the first source
@@ -738,6 +751,17 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				// Buyback card (kw_buyback.go), gorge's "buyback" mode
 				if o.AltCostIndex > 15 {
 					note("cast/" + o.Mode)
+					continue
+				}
+				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
+				continue
+			}
+			if o.Mode == "escape" {
+				// CR 702.138a: the kernel's mode-2 cast of an Escape card
+				// canonicalises to castModeOther, like "mayhem"
+				// (kw_escape.go)
+				if o.AltCostIndex > 15 {
+					note("cast/escape")
 					continue
 				}
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})

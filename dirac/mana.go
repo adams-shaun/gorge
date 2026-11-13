@@ -1493,6 +1493,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		i := int(run[r])
 		u := best[i]
 		sl := pk.units[u]
+		s.fireViewAbilityCast(k, p, sl, pk.rAb[u]) // the activation precedes its cost's tap and sacrifice
 		if k.gen != nil && k.gen.castTapOn && s.buildLive() && s.bld().e.kind == seSpell && k.cards[s.cardAt(sl)].castSrc != 0 {
 			s.noteTapSrc(k, &k.cards[s.cardAt(sl)], sl)
 		}

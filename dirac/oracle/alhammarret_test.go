@@ -110,6 +110,9 @@ func runAlhammarret(t *testing.T, dl [2][]cardset.Entry, seeds int) alhammarretR
 }
 
 func TestAlhammarretLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	run := runAlhammarret(t, alhammarretDecks, 40)
 	if run.named == 0 || run.asks == 0 {
 		t.Fatalf("precondition: %d games named a card, %d name asks posed over %d games", run.named, run.asks, run.games)

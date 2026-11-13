@@ -17,6 +17,9 @@ import (
 // scripted casts on both sides, so they are evidence for the no-divergence
 // half only.
 func TestStorageXPaysSpellLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	const vault = "Bottomless Vault"
 	const spell = "Blightsoil Druid"
 

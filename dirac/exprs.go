@@ -304,7 +304,9 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 	case kop.ExJoinForces:
 		v = int(s.resArm().jf)
 	case kop.ExX:
-		if e != nil {
+		if px := s.g.probe.x; px != 0 {
+			v = int(px) - 1 // an offer's sweep at this X (sacXPoolOffer; evalV's VX reads it first too)
+		} else if e != nil {
 			v = int(e.x)
 		} else if ctx.src != NoObj {
 			v = int(s.spellX(ctx.src)) // a self-enters condition, before its trigger binds X

@@ -26,11 +26,6 @@ func (s *State) manaTapped(k *prep, sl Slot) {
 			if cd := &k.t.Cards[s.cardAt(sl)]; int(pc.manaAb) < len(cd.Abilities) {
 				if a := &cd.Abilities[pc.manaAb]; a.Cost.Flags&kop.CostOncePerGame != 0 {
 					s.onceUse(k, sl, a)
-					if a.Exhaust && k.gen.anyAbilityCast {
-						// activating a mana ability is an activation (CR 605.3);
-						// gorge queues it before the Taps triggers
-						s.fireManaAbilityCast(k, s.cardAt(sl), uint8(pc.manaAb), s.perms[sl].ctrl)
-					}
 				}
 			}
 		}

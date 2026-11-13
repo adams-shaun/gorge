@@ -18,7 +18,9 @@ import (
 // potential plan prices its mana as the CR 116.2k special action it is, and an
 // activation's fixed PayLife<N> is rechecked after the window's life-paying mana
 // ability left too little life, so it reverses instead of paying into negative
-// life (CR 119.4, 733.1). Each repro runs on the repro's own
+// life (CR 119.4, 733.1), and the pre-cast lowering of a sorcery-speed cast resolves
+// a sacrifice's player-targeted damage trigger (Biotech Specialist) where gorge's
+// lowering does. Each repro runs on the repro's own
 // surface; a missing generated table fails rather than skips.
 func TestStdMetaReprosLockstep(t *testing.T) {
 	t.Parallel()
@@ -34,6 +36,10 @@ func TestStdMetaReprosLockstep(t *testing.T) {
 		"stdmeta_appa_cast_from_exile_s16p2",
 		"stdmeta_appa_cast_from_exile_s19p47",
 		"stdmeta_appa_cast_from_exile_s25p34",
+		"stdmeta_authority_counter_typed_s15p36",
+		"stdmeta_authority_counter_typed_s27p16",
+		"stdmeta_authority_counter_typed_s54p18",
+		"stdmeta_authority_counter_typed_s88p47",
 		"stdmeta_earthbend_shock_s14p23",
 		"stdmeta_earthbend_shock_s15p47",
 		"stdmeta_earthbend_shock_s18p17",
@@ -49,6 +55,13 @@ func TestStdMetaReprosLockstep(t *testing.T) {
 		"stdmeta_pool_unnamed_colours_s84p9",
 		"stdmeta_plot_special_restricted_mana_s14p20",
 		"stdmeta_plot_special_restricted_mana_s46p17",
+		"stdmeta_tapx_spree_window_s23p10",
+		"stdmeta_tapx_spree_window_s44p43",
+		"stdmeta_tapx_spree_window_s51p35",
+		"stdmeta_tapx_spree_window_s70p2",
+		"stdmeta_tapx_spree_window_s72p40",
+		"stdmeta_tapx_spree_window_s7p33",
+		"stdmeta_tapx_spree_window_s95p17",
 		"stdmeta_web_watch_beside_grant_s37p11",
 		"stdmeta_web_watch_beside_grant_s41p37",
 		"stdmeta_web_watch_beside_grant_s49p43",
@@ -62,6 +75,7 @@ func TestStdMetaReprosLockstep(t *testing.T) {
 		"stdmeta_verge_ability0_first_s60p6",
 		"stdmeta_verge_ability0_first_s76p19",
 		"stdmeta_verge_ability0_first_s90p18",
+		"stdmeta_everflame_equipped_s36p44",
 		"stdmeta_x_witness_unspendable_census_s11p1",
 		"stdmeta_node_limit_verge_first_s87p22",
 		"stdmeta_sacrificed_pending_s13p16",
@@ -79,9 +93,11 @@ func TestStdMetaReprosLockstep(t *testing.T) {
 		"stdmeta_prepared_beside_enters_tapped_s90p11",
 		"stdmeta_prepared_beside_enters_tapped_s97p33",
 		"stdmeta_aang_delayed_transform_s97p14",
+		"stdmeta_airbend_restricted_pool_s59p28",
 		"stdmeta_life_cost_below_zero_s54p16",
 		"stdmeta_life_cost_below_zero_s73p37",
 		"stdmeta_life_cost_below_zero_s83p36",
+		"stdmeta_precast_player_damage_s61p16",
 	} {
 		t.Run(name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", name+".repro.json"))

@@ -20,17 +20,17 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | HOB | 172 | 159 | 0 | 6 | 153 | 151 |
 | LCI | 290 | 260 | 1 | 30 | 229 | 226 |
 | MKM | 279 | 251 | 2 | 36 | 213 | 209 |
-| MSH | 276 | 246 | 2 | 13 | 231 | 231 |
-| OTJ | 276 | 251 | 1 | 9 | 241 | 241 |
+| MSH | 276 | 246 | 1 | 13 | 232 | 232 |
+| OTJ | 276 | 252 | 1 | 10 | 241 | 241 |
 | SOS | 270 | 257 | 0 | 8 | 249 | 249 |
 | SPM | 192 | 169 | 1 | 10 | 158 | 157 |
 | TDM | 276 | 256 | 3 | 8 | 245 | 245 |
-| TLA | 285 | 261 | 2 | 9 | 250 | 249 |
+| TLA | 285 | 261 | 1 | 9 | 251 | 250 |
 | TMT | 194 | 183 | 0 | 13 | 170 | 169 |
 | TRC | 337 | 301 | 0 | 35 | 266 | 263 |
 | TRK | 311 | 311 | 0 | 0 | 311 | 306 |
 | WOE | 281 | 264 | 0 | 18 | 246 | 245 |
-| ALL | 34442 | 23181 | 23 | 18066 | 5092 | 5061 |
+| ALL | 34442 | 23243 | 20 | 18129 | 5094 | 5063 |
 
 `ALL` is the whole corpus; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.
 
@@ -70,13 +70,13 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-23 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+20 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | decision | 1 |
-| options | 5 |
-| options-options | 3 |
+| options | 4 |
+| options-options | 1 |
 | projection | 1 |
 | projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Damage | 1 |
