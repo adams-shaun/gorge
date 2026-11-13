@@ -1,6 +1,6 @@
 # the MBC ExileFromGrave<X/Card> pool: Skeletal Scrying (X B, exile X cards
 # from your graveyard, draw X and lose X life) beside burn and creatures that
-# fill the graveyard, and basics (dirac/oracle/mbccosts2_test.go)
+# fill the graveyard, and basics (dirac/oracle/mbc_costs_lowering_test.go)
 Skeletal Scrying
 Lightning Bolt
 Terror
