@@ -31,3 +31,15 @@ func (lc *lowerCtx) handMoveEachOpp(in lInstr, counted bool) error {
 	lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
 	return nil
 }
+
+// handOwnersEachOpp reports a DefinedPlayer$ spelling that names every
+// opponent as the hand owners (gorge definedSpecOpponent). Spawner>
+// TriggeredTarget also lowers to the opponent ref but names one player, the
+// damaged one (Biting-Palm Ninja), and keeps its one-owner move.
+func handOwnersEachOpp(dp string) bool {
+	switch strings.TrimSpace(dp) {
+	case "Player.Other", "Player.Opponent", "Opponent":
+		return true
+	}
+	return false
+}
