@@ -816,9 +816,25 @@ func (s *State) applyBlock(k *prep, a Action) {
 // finishes the declaration once none is left (gorge askBlockers skips a
 // defender with no attacker or no legal block option).
 //
+// The walk is over seat indices up to the active seat's, skipping departed
+// seats, rather than over nextAlive until it returns the active seat: an
+// active player who has left the game (CR 800.4a: the turn continues without
+// one) is never returned by nextAlive, and that loop never ended -- a spinning
+// goroutine kfuzz's watchdog could report as a hang but never stop.
+//
 //go:noinline
 func (s *State) blockRound(k *prep, from uint8) {
-	for q := s.nextAlive(from); q != s.active; q = s.nextAlive(q) {
+	n := s.nSeats()
+	for q := from; ; {
+		if q++; q >= n {
+			q = 0
+		}
+		if q == s.active || q == from {
+			break
+		}
+		if s.out(q) {
+			continue
+		}
 		s.g.blkDef = q
 		if s.anyBlock(k) {
 			s.ctl = ctlBlockers
