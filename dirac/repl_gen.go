@@ -12,10 +12,11 @@ import (
 // abilities, genLost) as they are, two copies apply twice (x4), and a
 // table without these cards (genPrep.anyRepl == 0) never walks.
 //
-// The fixed order when several apply to one damage event (CR 616.1 lets
-// the affected player or controller choose; gorge applies them in a fixed
-// order, see GORGE-FINDINGS.md): amount changes first (doubling), then
-// prevention.
+// The computation order when several apply to one damage event: amount
+// changes first (doubling), then prevention. CR 616.1 lets the affected
+// player or controller choose the order, and gorge asks it even when every
+// order gives the same result: parkNC (noncombat) and the combat pass pose
+// that ask, and an event they cannot park stalls.
 
 // replN counts the permanents controlled by p whose card has replacement
 // bit b and still has its abilities.
@@ -1020,7 +1021,10 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 	g := k.gen
 	ro := &s.g.ro
 	plusOnly := replPlusOnly(g)
-	if !plusOnly && g.anyRepl&(rbDblDmg|rbPrevNC|rbShield|rbPrevCol|rbPrevDmgTo) == 0 || n <= 0 || ctrl >= MaxSeats || ro.n > 0 || ro.on || s.g.nc.n > 0 {
+	// parked: an earlier event of this op is parked on its ask (nc.n -1 is a
+	// parked, prevented one), and ro holds that ask
+	parked := s.g.nc.n != 0
+	if !plusOnly && g.anyRepl&(rbDblDmg|rbPrevNC|rbShield|rbPrevCol|rbPrevDmgTo) == 0 || n <= 0 || ctrl >= MaxSeats || ro.on || ro.n > 0 && !parked {
 		return false
 	}
 	rcp := uint8(255)
@@ -1146,6 +1150,13 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 		return false // repl_dmgmark.go
 	}
 	if c < 2 {
+		return false
+	}
+	if parked {
+		// gorge asks this event's order after the parked one is answered and
+		// dealt; one op parks one event, so a second competing event of the
+		// same op is not modelled: loud, never dealt ahead of the first
+		s.capFull(StallReplPlus)
 		return false
 	}
 	// A shield candidate (or another prevention) stops the whole event, so

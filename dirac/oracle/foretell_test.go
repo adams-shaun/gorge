@@ -295,6 +295,9 @@ func TestForetellLockstep(t *testing.T) {
 // diverge (gorge offers the cast only on a later turn and the action at any
 // priority of its controller's turn).
 func TestForetellMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	for _, m := range []struct {
 		what string
 		flag *bool

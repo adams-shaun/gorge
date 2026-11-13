@@ -741,6 +741,19 @@ func (s *State) windowColOwed(k *prep, p uint8, cost, owed *kop.ManaCost, sl Slo
 				}
 			}
 		}
+		if pc.blgFirst != 0 {
+			// a basic under a granted type lists its own colour before the granted ones
+			// (chars.appendLandTypes, owedAbilitiesFirst): an Island owing {W}{U} answers {U}
+			own := uint8(k.cards[s.cardAt(sl)].manaCol) & 0x1f & uint8(all)
+			if f := uint(pc.blgFirst - 1); f < 5 && own&(1<<f) != 0 && owed.Pips[f] > s.pl[p].pool[f] {
+				return int(f)
+			}
+			for c := 0; c < 5; c++ {
+				if own&(1<<c) != 0 && owed.Pips[c] > s.pl[p].pool[c] {
+					return c
+				}
+			}
+		}
 		for c := 0; c < 5; c++ {
 			if all&(1<<c) != 0 && seen&(1<<c) == 0 && owed.Pips[c] > s.pl[p].pool[c] {
 				return c // a granted ability's colour follows the source's own
@@ -2782,6 +2795,21 @@ func (s *State) tapForHyb(k *prep, p uint8, cost *kop.ManaCost, x int, exclude O
 	return true
 }
 
+// lowerTargetDepCostCast sends a cast whose ValidTarget$ cost static waits
+// for the chosen target through the manual CR 601.2g payment window: gorge's
+// planner declines it ("shape:target_dependent_cost"), so no witness prices
+// it and its payment taps the first useful source in battlefield order, not
+// the planner's ObjID-ordered witness. Marking it lowered keeps the plan out
+// of manaStep and sends finishBuild to its lowered window arm. A cast the
+// planner prices as target-paid (targetPaidPlanned, kw_spree.go) keeps its
+// witness.
+func (s *State) lowerTargetDepCostCast(k *prep, e *stackEntry) {
+	if s.bld().bfl&bflLowered != 0 || !cardTgtDepCost(&k.t.Cards[e.card]) || s.targetPaidPlanned(k, e.ctrl, e.obj) {
+		return
+	}
+	s.bld().bfl |= bflLowered
+}
+
 // manaStep is the build's CR 601.2g step (bsMana): before the cost objects
 // are chosen (CR 601.2h, gorge costObjectAsks after manaWindowAsk), the
 // planner's sources for the mana cost are tapped into the pool, so a cost
@@ -2809,6 +2837,7 @@ func (s *State) manaStep(k *prep) bool {
 		if s.bld().bfl&bflLowered != 0 && s.bld().pipN != 0 {
 			s.loweredPipWindow(k, e, &cost)
 		}
+		s.lowerTargetDepCostCast(k, e)
 		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.bld().bfl&bflLowered != 0 || e.trigPl == trigPlMadness && debugMadnessMutate == 0 || e.trigPl == trigPlMiracle {
 			return false
 		}

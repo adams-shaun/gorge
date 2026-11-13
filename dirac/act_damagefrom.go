@@ -19,12 +19,13 @@ var DebugDmgSrcPlLKI uint8
 // the entry's trigger object: live while it is on the battlefield as the
 // same object, else the entry's last known information (CR 113.7a, 608.2h;
 // gorge newDamageRider). Lifelink, infect and the damage's controller are
-// read once; replacements, poison or life loss, lifelink and the damage
-// triggers follow damageTo's order for the resolving source.
+// read once, a departed source's infect from the snapshot's lkiInfect bit
+// (gorge lki.Infect); replacements, poison or life loss, lifelink and the
+// damage triggers follow damageTo's order for the resolving source.
 //
-// Not wired: damageTo's gorge replacement-order ask (parkNC), and infect is
-// the printed flag (the LKI record keeps no infect bit); both are in
-// GORGE-FINDINGS.md.
+// damageTo's CR 616.1 replacement-order ask (parkNC) is posed only for a
+// pure plus-N competition (replPlusSrcPass); any other event two or more
+// replacements match stalls loudly (dmgSrcOrderStalls).
 func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 	e := &s.res.e
 	o := s.objRefObj(in.Obj)
@@ -56,14 +57,13 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		infect = s.infectAt(k, sl)
 	case e.li != 0:
 		l := s.lk(e.li)
-		kw, ctrl = l.kw, l.ctrl
+		kw, ctrl, infect = l.kw, l.ctrl, l.bits&lkiInfect != 0
 		switch DebugDmgSrcPlLKI {
 		case 1:
 			kw = 0
 		case 2:
 			ctrl = 1 - ctrl // seat-ok: a test-only mutation (DebugDmgSrcPlLKI)
 		}
-		infect = k.t.Cards[s.objs[o].card].Infect
 	default:
 		kw, ctrl = k.cards[s.objs[o].card].kw, s.ctrlOfObj(o)
 		infect = k.t.Cards[s.objs[o].card].Infect
@@ -103,6 +103,10 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 	}
 	if s.replPlusSrcPass(k, ctrl, sl, card, kw, plCodes[:ne], plAmts[:ne]) {
 		return // parked: runProg pauses on nc.n; a multi-event pass stalls loud
+	}
+	if s.dmgSrcOrderStalls(k, ctrl, sl, card, kw, plCodes[:ne], plAmts[:ne]) {
+		s.g.plusBatchAsked = false
+		return
 	}
 	for i := uint8(0); i < q.n; i++ {
 		p := q.s[i]
@@ -165,6 +169,10 @@ func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl u
 	if s.replPlusSrcPass(k, ctrl, NoSlot, card, kw, []uint8{code}, []int{n}) {
 		return
 	}
+	if s.dmgSrcOrderStalls(k, ctrl, NoSlot, card, kw, []uint8{code}, []int{n}) {
+		s.g.plusBatchAsked = false
+		return
+	}
 	m := n
 	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
 		m = s.replDamage(k, ctrl, NoSlot, card, code, false, m)
@@ -190,4 +198,27 @@ func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl u
 	if k.gen != nil && (s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any()) {
 		s.fireDamageSrc(k, o, ctrl, int16(m), 0, code, nil)
 	}
+}
+
+// dmgSrcOrderStalls reports, stalling loudly, that an event of this
+// DealDamageFrom pass is one gorge parks on its CR 616.1 order ask (gorge
+// newDamageRider deals through the ordinary replacement collection; parkNC
+// is that collector): the pass deals straight through replDamage, so it
+// never poses the ask. A pure plus-N competition is replPlusSrcPass's, which
+// parks it. parkNC is probed with the ask state saved and restored; it can
+// change nothing else before it reports the park, and a park stops the game.
+func (s *State) dmgSrcOrderStalls(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, kw kop.KwMask, codes []uint8, amts []int) bool {
+	if k.gen == nil || replPlusOnly(k.gen) {
+		return false
+	}
+	saveRO, saveNC := s.g.ro, s.g.nc
+	for i := range codes {
+		asks := amts[i] > 0 && s.parkNC(k, ctrl, srcSl, srcCard, codes[i], amts[i], kw)
+		s.g.ro, s.g.nc = saveRO, saveNC
+		if asks {
+			s.capFull(StallReplPlus)
+			return true
+		}
+	}
+	return false
 }

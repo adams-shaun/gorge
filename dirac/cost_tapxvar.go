@@ -15,7 +15,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // pick is the literal tapXType's (raGenPayPick, ChGenPayTap, one
 // permanent per answer, tapped as it is chosen) with an AkDone closing it: pickLeft
 // counts the taps so far, Done with none declines, Done after some pays with
-// X = pickLeft. Cold and out of line.
+// X = pickLeft. Picking the last untapped candidate closes the cost itself,
+// paid: gorge's answer is complete at Max picks and never asks Done, so the
+// kernel must not either. Cold and out of line.
 
 // tapXVarPick reports whether the pending pick is a tapXType<X/Spec> one.
 func (s *State) tapXVarPick(k *prep) bool {
@@ -61,6 +63,9 @@ func (s *State) applyTapXVarPick(k *prep, a Action) {
 		s.tapCostPerm(k, s.objs[o].slot, o)
 	}
 	s.g.pickLeft++
+	if s.countUntapped(k, s.g.pickP, s.genPickFilter(k), s.resSrcSlot(k)) == 0 {
+		s.payDone(k, true) // every candidate picked: gorge's answer is complete at Max picks (no Done)
+	}
 }
 
 // tapXVarBind makes the count tapped the resolving trigger's Count$xPaid.

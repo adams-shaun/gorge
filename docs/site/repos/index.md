@@ -183,21 +183,26 @@ checkout works; never commit one, because it overrides the pin.
 
 ## Branch flow
 
-All three repositories land work the same way:
+The repositories land work the same way, except where step 2 says otherwise:
 
 ```mermaid
 flowchart LR
   pr["your branch<br/>or fork"] -->|"pull request,<br/>ci green"| develop["develop"]
-  develop -->|"snapshot PR<br/>develop → main"| main["main"]
+  develop -->|"promote PR,<br/>full CI gate"| main["main"]
   main -->|"docs.yml"| site["this site"]
 ```
 
 1. Changes land on **`develop`**, through a pull request whose `ci` workflow
    (lint, a sharded test run with the corpus fetched, the example agents and the
    [wire matrix](../architecture/wires.md)) is green.
-2. The maintainers periodically snapshot `develop` to a `promote/develop-<stamp>`
-   branch and open a `develop → main` pull request from it. It merges when its
-   checks are green.
+2. Work reaches `main` through a promote pull request. In gorge the maintainers
+   stage landed changes and, every few changes, push a snapshot as a
+   `promote/land-<stamp>` branch and open a pull request to `main`. Its CI is
+   the full gate: the six test shards, the whole `dirac/oracle` in ten parts and
+   the wire matrix. The newest green one merges, older open ones close as
+   superseded, and `develop` then moves to the merged snapshot. gorge-compliance
+   snapshots `develop` to a `promote/develop-<stamp>` branch instead; it merges
+   when its checks are green.
 3. Merges use **a merge commit, not a squash**, so
    `develop` and `main` keep sharing history. Nothing pushes `main` directly.
 4. Pushes to `main` publish this site (`docs.yml`) and the card-coverage

@@ -180,8 +180,11 @@ func run() int {
 		focusPer   = flag.Int("focus-per-deck", oracle.FocusPerDeck, "-focus: focus cards per deck")
 		reachPath  = flag.String("reach", "", "-synth: write one row per card of the list here: card, how far it got, decks, games, plays in clean games")
 		v2RandFull = flag.Bool("v2-rand-full", false, "-v2 transcript: no-op (a rand game is always compared whole; the flag keeps the old spelling working)")
+		cpuProf    = flag.String("cpuprofile", "", "write a CPU profile here")
+		memProf    = flag.String("memprofile", "", "write an allocation profile here and print the run's allocation totals")
 	)
 	flag.Parse()
+	defer startProfile(*cpuProf, *memProf)()
 	verboseFDN = *verbose
 	reproEvents = *eventTail
 	coveragePath = *covPath
@@ -1131,6 +1134,7 @@ func runFDN(c *oracle.Corpus, set cardset.Set, rc oracle.RunConfig, ps []oracle.
 			cov.Games, cov.Decisions, cov.Fallbacks = 1, res.Decisions, oracle.PolicyFallbacks(gp)
 		}
 		oracle.CloseSide(k)
+		profDecisions.Add(int64(res.Decisions))
 		if o.onGame != nil {
 			o.onGame(&res)
 		}

@@ -115,6 +115,9 @@ func veilPolicy(m *Matchup, seed uint64) Policy {
 }
 
 func TestVeilOfSummerPoolLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg := synthReg(t)
 	decks := veilPoolDecks()
 	c := effectLongCase{name: "veil_pool", decks: decks, surface: "autopay", reached: func(*GorgeSide) bool { return false }}

@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/rules"
 )
 
-// The test-only clairvoyant source. bots/azmcts/clairvoyant imports
+// The test-only clairvoyant source. The private companion module's `clairvoyant` package imports
 // azmcts, so this package's tests cannot import it; they inject this copy
 // -- the same clones of the real engine and observer, without the
 // AllowClairvoyant gate the real package guards -- through SeatConfig.Source

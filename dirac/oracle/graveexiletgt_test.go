@@ -188,6 +188,9 @@ func kgxRun(t *testing.T, seeds uint64, errf func(string, ...any)) (divs, fromGr
 }
 
 func TestGraveExileTargetedReturnLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	seeds := uint64(24)
 	if testing.Short() {
 		seeds = 8
@@ -202,6 +205,9 @@ func TestGraveExileTargetedReturnLockstep(t *testing.T) {
 // TestGraveExileTargetedReturnMutation: with the kernel's exile walk off the
 // exile arm's targets are missing from its options, so the lockstep diverges.
 func TestGraveExileTargetedReturnMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	dirac.DebugGraveExileNoExile = true
 	defer func() { dirac.DebugGraveExileNoExile = false }()
 	// the divergences are the expected outcome: count them, do not fail

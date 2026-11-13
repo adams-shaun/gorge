@@ -172,6 +172,9 @@ func TestExileanyMutation(t *testing.T) {
 // is still there at the second ask. A discard under both stalls the kernel, which
 // ends that game short of the comparison.
 func TestExileAnyTokenStaysBetweenAsks(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg, err := cards.SharedCorpus(corpusDirOrSkip(t))
 	if err != nil {
 		t.Fatal(err)

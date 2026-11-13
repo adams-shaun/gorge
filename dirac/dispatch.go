@@ -528,6 +528,9 @@ func (s *State) askOptionsUnread(k *prep, d *Decision) bool {
 		if s.askOptionsPauperkw(k, d) { // kw_madness.go
 			return true
 		}
+		if s.askOptionsExtort(k, d) { // act_extort.go
+			return true
+		}
 		return s.askOptionsEvidence(k, d) // kw_wardcost.go
 	}
 	return true
@@ -606,6 +609,9 @@ func (s *State) applyAskUnread(k *prep, a Action) bool {
 			return true
 		}
 		if s.applyAskPauperkw(k, a) { // kw_madness.go
+			return true
+		}
+		if s.applyAskExtort(k, a) { // act_extort.go
 			return true
 		}
 		return s.applyAskEvidence(k, a) // kw_wardcost.go

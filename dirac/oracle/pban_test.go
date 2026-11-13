@@ -156,6 +156,9 @@ func TestPbanLockstep(t *testing.T) {
 // TestPbanMutation turns the bans off in the kernel: it then gains and
 // draws where gorge does not, so the games must diverge.
 func TestPbanMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	st := runPban(t, 64, true)
 	if st.divs == 0 {
 		t.Fatalf("mutation left the bans off in %d games with no divergence", st.games)

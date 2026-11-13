@@ -11,8 +11,11 @@ import (
 // The Taps-deferred script gap is only the plain one-mana tap of any colour
 // (Firdoch Core) or of one fixed colour (Llanowar Elves). A production it does not model keeps its ordinary census
 // unit in availFor (the skip is keyed on the script mask); a restricted one
-// would float plain pool mana; and the anyR arm of tapGapChoice taps and fires
-// the Taps watchers exactly once. Each test mutates a copied tapsdefer table,
+// would float plain pool mana -- except the one-fixed-colour restricted
+// script gap (restrTapsGap, mana_restrictedsource.go), whose mana
+// floatRestrAb floats restricted; and the anyR arm of tapGapChoice taps and
+// fires the Taps watchers exactly once. Each test mutates a copied tapsdefer
+// table,
 // so the shared pool is untouched.
 
 // tapsDeferShapeTable is the tapsdefer pool's table with the deck's cards and

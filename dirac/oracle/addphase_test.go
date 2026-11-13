@@ -223,6 +223,9 @@ func TestAddphaseLockstep(t *testing.T) {
 // TestAddphaseMutation: resuming a completed extra phase at its own
 // successor must make the lockstep diverge.
 func TestAddphaseMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	dirac.DebugAddPhaseResumeWrong = true
 	defer func() { dirac.DebugAddPhaseResumeWrong = false }()
 	games, divs, _, _ := runAddphase(t, 32, false)

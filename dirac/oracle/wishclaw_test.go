@@ -62,6 +62,9 @@ func wishclawPolicy(seed uint64, t *wishclawTally) Policy {
 }
 
 func TestWishclawTalismanLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg, set, decks, tbl := p3Setup(t, "wishclaw", [2][]cardset.Entry{wishclawDeck, wishclawDeck})
 	var tally wishclawTally
 	wished := 0 // games ending with a Talisman holding fewer than three wish counters

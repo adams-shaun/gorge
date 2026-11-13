@@ -196,6 +196,9 @@ func TestToughLockstep(t *testing.T) {
 // power and prices Crew by power, which gorge does not, so the games must
 // diverge. A green mutation means the lockstep never reaches either read.
 func TestToughMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	st := runTough(t, 64, true)
 	if st.divs == 0 {
 		t.Fatalf("mutation left the reads off in %d games with no divergence", st.games)

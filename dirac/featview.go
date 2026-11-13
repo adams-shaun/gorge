@@ -368,7 +368,7 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 		// gorge's gate is existential over the either-or parts: one whose
 		// picks can be paid and whose mana the pool pays with the spell's
 		ac := spellAddCost(k, c)
-		if s.pickCostPayable(k, p&1, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(pl.handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p&1, c, o) {
+		if s.pickCostPayable(k, p&1, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(pl.handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p&1, c, o) {
 			t := addCost(pre, ac.Mana)
 			if a.delve == 0 || !tb { // the faces took the credit (tb: adjustFit priced them)
 				t = s.delveOfferCredit(k, p&1, c, o, true, t)
@@ -377,7 +377,7 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 				return true
 			}
 		}
-		if !s.pickCostPayable(k, p&1, &cd.AltAddCost, NoObj) {
+		if !s.pickCostPayable(k, p&1, &cd.AltAddCost, o) {
 			return false
 		}
 		cost = addCost(cost, cd.AltAddCost.Mana)
@@ -532,10 +532,13 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 			return false
 		}
 	}
-	if k.gen == nil || len(k.gen.grantPC) == 0 {
-		return true // no granted mana sources: the kernel's own offer gate decided
+	if k.gen == nil {
+		return true
 	}
-	return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)})
+	if len(k.gen.grantPC) != 0 && !s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
+		return false // payable only with a granted mana ability (the V1 exclusion above)
+	}
+	return s.planHoldsOnStack(k, p, o, &cost) // cast_planholdsonstack.go
 }
 
 // planDeclinesAddCost reports a spell gorge's planner never prices: rules
@@ -1376,7 +1379,7 @@ func (s *State) CastFreeIndex(o Obj) uint8 {
 // Forgotten Lore), printed beam me up or not.
 func (s *State) flashbackCostOf(k *prep, o Obj) kop.ManaCost {
 	cd := &k.t.Cards[s.objs[o].card]
-	if cd.Keywords&kop.KwFlashback != 0 || cd.Harmonize || cd.Mayhem || cd.BeamMeUp && !s.fbGranted(k, o) {
+	if cd.Keywords&kop.KwFlashback != 0 || cd.Harmonize || cd.Mayhem || cd.Escape || cd.BeamMeUp && !s.fbGranted(k, o) {
 		return cd.AltCost
 	}
 	if cd.Retrace && !s.fbGranted(k, o) && !s.fbLive(k, o) {

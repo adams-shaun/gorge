@@ -193,67 +193,8 @@ func placeTargetedLibraryObjects(h Host, c *Ctx, cz *ChangeZoneParams, moved []s
 		if position < 0 && cz.RandomOrder && cz.NoShuffle {
 			randomizeLibraryPile(h, grp.ids)
 		}
-		ids := grp.ids
-		if len(ids) >= 2 && !cz.RandomOrder && !(cz.ShuffleTrue && !cz.NoShuffle) && !cz.Hidden {
-			ids = libraryPlacementOrder(h, c, nil, grp.owner, ids, position < 0)
-		}
-		libraryOrderPlacementAt(h, grp.owner, ids, position)
+		libraryOrderPlacementAt(h, grp.owner, grp.ids, position)
 	}
-}
-
-// libraryPlacementOrder is the CR 401.4 arrangement of cards of one owner put
-// into the same library position by one effect: "If an effect puts two or more
-// cards in a specific position in a library at the same time, the owner of
-// those cards may arrange them in any order." The moved cards are already in
-// the owner's library; the owner answers a KArrange (Min == Max == the cards
-// offered, Kind "library_placement") and the returned order is the one the
-// caller places. An unserved ask keeps the move order, the cards' current
-// order; fewer than two cards pose nothing.
-func libraryPlacementOrder(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, moved []state.ObjID, bottom bool) []state.ObjID {
-	g := h.Game()
-	lib := g.Zone(state.ZLibrary, owner)
-	var offered []state.ObjID
-	for _, id := range moved {
-		if containsID(lib, id) {
-			offered = append(offered, id)
-		}
-	}
-	if len(offered) < 2 {
-		return moved
-	}
-	pos := "top"
-	if bottom {
-		pos = "bottom"
-	}
-	d := &decision.Decision{Player: owner, Kind: decision.KArrange, Min: len(offered), Max: len(offered),
-		Source: c.Source, ResumeSA: sa,
-		Prompt: "Put these cards on the " + pos + " of your library in any order; the first card you pick goes nearest the top"}
-	for i, id := range offered {
-		name := "a card"
-		if o := g.Obj(id); o != nil && o.Face() != nil {
-			name = o.Face().Name
-		}
-		d.Options = append(d.Options, decision.Option{Index: i, Kind: "library_placement", Label: name, Obj: id, Player: owner})
-	}
-	in, ok := AskTapeIntent(h, d)
-	if !ok {
-		return moved
-	}
-	order := make([]state.ObjID, 0, len(moved))
-	seen := make(map[state.ObjID]bool, len(moved))
-	for _, o := range d.Chosen(in) {
-		if containsID(lib, o.Obj) && !seen[o.Obj] {
-			seen[o.Obj] = true
-			order = append(order, o.Obj)
-		}
-	}
-	for _, id := range moved {
-		if !seen[id] {
-			seen[id] = true
-			order = append(order, id)
-		}
-	}
-	return order
 }
 
 // placeLibraryObjects implements LibraryPosition$ after its source library

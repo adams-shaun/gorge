@@ -83,5 +83,8 @@ func (s *State) selfCastFilterOK(k *prep, f kop.FilterID, e *stackEntry) bool {
 	if fl.Flags2&kop.F2Sneaked != 0 && !sneakEntry(e) {
 		return false
 	}
+	if fl.Pred == kop.PredEscaped {
+		return escapeEntry(e) == (fl.PredN == 1)
+	}
 	return true
 }
