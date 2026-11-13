@@ -1,0 +1,26 @@
+# The MBC mana-abilities-2 family: Relic of Legends' second "tap an untapped
+# legendary creature you control: add one mana of any color" beside its
+# {T} ability, Krark-Clan Ironworks' "sacrifice an artifact: add {C}{C}", and
+# Apprentice Wizard's "{U}, {T}: add {C}{C}{C}", in decks over artifacts,
+# legendary creatures and expensive spells against a plain creature deck
+# (dirac/oracle/mbcmana2_test.go).
+Relic of Legends
+Krark-Clan Ironworks
+Apprentice Wizard
+Isamaru, Hound of Konda
+Ornithopter
+Mind Stone
+Sol Ring
+Juggernaut
+Air Elemental
+Serra Angel
+Grizzly Bears
+Doom Blade
+Lightning Bolt
+Wind Drake
+Hill Giant
+Forest
+Swamp
+Plains
+Mountain
+Island

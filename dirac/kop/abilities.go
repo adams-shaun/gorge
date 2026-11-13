@@ -295,7 +295,7 @@ func TapXMana(a *Ability) bool { return TapXManaAb(a) || TapXManaTwo(a) }
 // that also sacrifices, pays life, or has no once limit is not one.
 func PipFeeManaAb(a *Ability) (col int, ok bool) {
 	m := &a.Cost.Mana
-	if a.Kind != AbMana || a.Cost.Flags != CostTap|CostOncePerGame ||
+	if a.Kind != AbMana || a.Cost.Flags != CostTap|CostOncePerGame && a.Cost.Flags != CostTap ||
 		m.Generic != 0 || m.X != 0 || m.Hyb != ([4]ColorMask{}) || m.Tb != 0 ||
 		a.ManaRestrict != 0 || a.ManaN == 0 || len(a.Prog) != 0 ||
 		a.Gate.Ctr != 0 || a.Trig.Cond != 0 || a.ActZone != ZoneNone && a.ActZone != ZoneBattlefield {

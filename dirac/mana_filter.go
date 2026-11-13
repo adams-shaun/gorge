@@ -1071,8 +1071,13 @@ func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
 		// a fixed production: no colour ask, one activation (mana_filtereach.go)
 		return fs.try(k, t, filtStep{sl: sl, ans: 1, gap: true}, funded, true)
 	}
-	if !t.filtFixedRepeat(k, sl) && !fs.tick() { // (a fixed production asks no colour)
+	if !t.filtFixed(k, sl) && !fs.tick() { // (a fixed production asks no colour)
 		return false
+	}
+	if t.filtFixed(k, sl) {
+		// one fixed colour, {C} included (manaColourOrder names WUBRG only)
+		c := uint8(bits.TrailingZeros8(uint8(t.filtAb(k, sl).ManaColors)))
+		return fs.try(k, t, filtStep{sl: sl, ans: 1 + c, gap: true}, funded, true)
 	}
 	if comboFiltAb(t.filtAb(k, sl)) {
 		return fs.filtCombo(k, t, sl, funded)
