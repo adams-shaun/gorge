@@ -77,7 +77,11 @@ var gorgeKwExact = map[string]kop.KwMask{
 	"CARDNAME can't block.": kop.KwCantBlock,
 	// Decayed (CR 702.147a): kgen lowers it as KwCantBlock plus the
 	// Attacks trigger over the end-of-combat sacrifice (lower_decayed.go)
-	"Decayed":                      kop.KwCantBlock,
+	"Decayed": kop.KwCantBlock,
+	// a printed K:CantAttackOrBlock (Grakk the Pacifist): the kernel's
+	// KwCantBlock plus a self CantAttack static (lower_cantattackorblock.go),
+	// compared through the combat options like the Animate grant below
+	"CantAttackOrBlock":            kop.KwCantBlock,
 	"HIDDEN CARDNAME can't block.": kop.KwCantBlock,
 	// an Animate HiddenKeywords$ grant; the kernel's
 	// KwCantBlock plus the override record's CantAttack (masked like
