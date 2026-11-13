@@ -147,7 +147,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
 	// +5 (MBC keywords-5: a granted "Prevent all combat damage that would be dealt by CARDNAME." lowered to KwPreventCombatDamageFrom: Hunter's Ambush, Mtenda Lion, Subdue, Urza's Science Fair Project, Zealot il-Vec; ALL 23443 -> 23448 measured).
-	"ALL": {23448, 34442},
+	// +18 (MBC keywords-5: Renown lowered from gorge kwRenown's trigger, its PutCounter Renown$ body to OpExt ExtRenown and IsRenowned to PredRenowned: Acolyte of the Inferno, Akroan Sergeant, Citadel Castellan, Constable of the Realm, Consul's Lieutenant, Firefiend Elemental, Goblin Glory Chaser, Honored Hierarch, Knight of the Pilgrim's Road, Kytheon's Irregulars, Outland Colossus, Pharika's Disciple, Rhox Maulers, Scab-Clan Berserker, Stalwart Aven, Topan Freeblade, Undercity Troll, War Oracle; ALL 23448 -> 23466 measured).
+	"ALL": {23466, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {219, 280},
@@ -163,7 +164,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"LCI": {260, 290},
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
 	// +1 (MBC keywords-5: Hunter's Ambush's granted "dealt by" combat prevention; 1727 -> 1728 measured).
-	"MBC": {1728, 2188},
+	// +1 (MBC keywords-5: Renown, Consul's Lieutenant; 1728 -> 1729 measured).
+	"MBC": {1729, 2188},
 	"MKM": {251, 279},
 	"MOM": {202, 296},
 	"MSH": {246, 276},
