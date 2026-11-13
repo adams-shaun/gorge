@@ -28,6 +28,8 @@
 #   9. synthetic pools: a short kfuzz -synth on the cards the slices of step 4 don't reach. A pair
 #      divergent on the merge base and the head is an open divergence, counted and not failed; a
 #      pair newly divergent fails.
+#  8b. the oracle fast tier: the ./dirac/oracle tests of 0.5 s or less (dirac/oracle/testdata/fasttier.txt).
+#  8c. the dirac_mp unit tests (-tags dirac_mp) of ./dirac, canon, neteval, search and search/hbot.
 #  mp. the dirac_mp build (make dirac-mp-check: vet, the State bar and layout pin, then lockstep on
 #      4-seat vanilla pods and the FDN and BLB slices at two seats), about 60 s, only when a non-test
 #      file under dirac/ changed. A failure fails the gate.
@@ -232,6 +234,26 @@ skipped=$(grep -F -- '--- SKIP' <<<"$out"); skip_rc=$?
 [ "$skip_rc" -le 1 ] || bad "cannot read the fast tier output for skips"
 [ -z "$skipped" ] || bad "the fast tier skipped a test, since its pool or tables are not on this machine: $(head -10 <<<"$skipped")"
 echo "8b: ok ($((SECONDS - t8b)) s, $(wc -l <<<"$tier") tests)"
+
+# 8c. The dirac_mp unit tests (-tags dirac_mp): the packages whose tests compile and pass under the
+# four-seat-slot size class. Step mp plays that build in lockstep but runs only three of its unit tests, so
+# an mp-only break (the widths of a perm, a nine-bit object, a seat-count assumption) landed silently and
+# only the promote CI saw it. Not in the list, because each fails under dirac_mp today (a standing mp
+# break, to be fixed and then added here): ./dirac/feat and ./dirac/oracle/cmd/kfuzz. ./dirac/oracle runs
+# its mp-only tests through step 8's pins and repro tables. A package that prints no "ok", a missing mp
+# witness test or any skip but a test that names a KERNEL_ environment variable is a vacuous run and fails.
+echo "== 8c dirac_mp unit tests"
+t8c=$SECONDS
+mp_pkgs="./dirac ./dirac/canon ./dirac/neteval ./dirac/search ./dirac/search/hbot"
+out=$(go test -tags dirac_mp -trimpath -v -failfast -timeout 3m $mp_pkgs 2>&1) || bad "dirac_mp unit tests failed: $(grep -E -- '^(--- FAIL|FAIL|panic:|# )|^[[:space:]]+[A-Za-z0-9_]+_test\.go:[0-9]+:' <<<"$out" | head -20)"
+for p in $mp_pkgs; do
+	grep -qE "^ok[[:space:]]+[^[:space:]]*${p#.}[[:space:]]" <<<"$out" || bad "dirac_mp unit tests: no ok line for $p (the package did not run)"
+done
+grep -qE '^--- PASS: TestStateLayoutPinnedMP ' <<<"$out" || bad "dirac_mp unit tests: TestStateLayoutPinnedMP did not run and pass (is the build tag dirac_mp in effect?)"
+skipped=$(awk '/^--- SKIP: /{ if (prev !~ /: set KERNEL_[A-Z0-9_]+$/) print } { prev=$0 }' <<<"$out"); skip_rc=$?
+[ "$skip_rc" -eq 0 ] || bad "cannot read the dirac_mp unit test output for skips"
+[ -z "$skipped" ] || bad "dirac_mp unit tests skipped a test, since its pool or tables are not on this machine: $(head -10 <<<"$skipped")"
+echo "8c: ok ($((SECONDS - t8c)) s, $(grep -c -- '^--- PASS: ' <<<"$out") tests)"
 
 echo "== 4 lockstep, absolute"
 lockstep() {
