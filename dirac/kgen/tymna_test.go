@@ -47,6 +47,8 @@ func TestTymnaLifeCostLowersBesideTheDamageTally(t *testing.T) {
 	if v, err := (&lowerCtx{face: &cards.Face{SVars: map[string]string{}}, known: func(string) bool { return false }}).svarValue(head, 0); err != nil || v.Kind != vOppsLostLife || v.N != 2 {
 		t.Fatalf("head value = %s, %v; want vOppsLostLife N 2", v, err)
 	}
+	const opps = "PlayerCount" + "RegisteredOpponents$HasProperty"
+	const lostLife, dealtDamage = opps + "LostLifeThisTurn", opps + "wasDealtDamageThisTurn"
 	d, exprs, rs := tymnaBuild(t, "Tymna the Weaver", src)
 	if len(rs) != 0 {
 		t.Fatalf("refused: %v", rs)
@@ -76,8 +78,8 @@ func TestTymnaLifeCostLowersBesideTheDamageTally(t *testing.T) {
 	}
 
 	for _, p := range []struct{ name, src string }{
-		{"other head", strings.Replace(src, "SVar:X:"+head, "SVar:X:PlayerCountRegisteredOpponents$HasPropertyLostLifeThisTurn", 1)},
-		{"unlowered property", strings.Replace(src, "SVar:X:"+head, "SVar:X:PlayerCountRegisteredOpponents$HasPropertywasDealtDamageThisTurn", 1)},
+		{"other head", strings.Replace(src, "SVar:X:"+head, "SVar:X:"+lostLife, 1)},
+		{"unlowered property", strings.Replace(src, "SVar:X:"+head, "SVar:X:"+dealtDamage, 1)},
 		{"Main1 trigger", strings.Replace(src, "Phase$ Main2", "Phase$ Main1", 1)},
 		{"beside a literal life part", strings.Replace(src, "Cost$ PayLife<X>", "Cost$ PayLife<2> PayLife<X>", 1)},
 	} {
