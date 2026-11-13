@@ -7,11 +7,13 @@ import (
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // The MBC chosen-player-card-1 family: the as-enters chosen opponent of The
-// Rack and Black Vise (kgen lower_chooseplayerenter.go, kernel
-// repl_chooseplayer.go), played from the chosenopp fixture pool.
+// Rack and Black Vise, and of Entropic Specter and Nyxathid whose statics
+// read it (kgen lower_chooseplayerenter.go, kernel repl_chooseplayer.go),
+// played from the chosenopp fixture pool.
 
 // chosenOppPool is the chosenopp fixture pool; the test fails when it does
 // not play every card it holds (kgen refuses one).
@@ -23,7 +25,7 @@ func chosenOppPool(t *testing.T) cardset.Set {
 		t.Fatal(err)
 	}
 	sup := set.Supported()
-	for _, name := range []string{"The Rack", "Black Vise", "Island", "Plains"} {
+	for _, name := range append([]string{"Island", "Plains", "Swamp"}, chosenOppCards...) {
 		if i, ok := set.Lookup(name); !ok || i >= len(sup) || !sup[i] {
 			t.Fatalf("the chosenopp pool does not play %s: %s", name, set.Reason(i))
 		}
@@ -31,14 +33,27 @@ func chosenOppPool(t *testing.T) cardset.Set {
 	return set
 }
 
-// chosenOppTally counts, on gorge's side, the watched cards' triggers and the
-// player damage that followed one before the next priority.
-type chosenOppTally struct{ trig, hits int }
+// chosenOppTally counts, on gorge's side, the upkeep triggers of The Rack
+// and Black Vise, the player damage that followed one before the next
+// trigger, and the entries of each card of the pool that chooses an opponent.
+type chosenOppTally struct {
+	trig, hits int
+	entered    map[string]int
+}
 
-func (y *chosenOppTally) read(g *GorgeSide, watch ...string) {
+var chosenOppCards = []string{"The Rack", "Black Vise", "Entropic Specter", "Nyxathid"}
+
+func (y *chosenOppTally) read(g *GorgeSide) {
+	if y.entered == nil {
+		y.entered = map[string]int{}
+	}
 	evs := g.E.L.Events
 	for i := range evs {
-		if evs[i].Kind != events.TriggerPush || !slices.Contains(watch, firstFaceName(g.E.G, evs[i].Obj)) {
+		name := firstFaceName(g.E.G, evs[i].Obj)
+		if evs[i].Kind == events.MoveZone && evs[i].To == state.ZBattlefield && slices.Contains(chosenOppCards, name) {
+			y.entered[name]++
+		}
+		if evs[i].Kind != events.TriggerPush || name != "The Rack" && name != "Black Vise" {
 			continue
 		}
 		y.trig++
@@ -51,61 +66,110 @@ func (y *chosenOppTally) read(g *GorgeSide, watch ...string) {
 	}
 }
 
-// TestMBCChosenPlayerCard1Lowers plays two-seat games of The Rack and Black
-// Vise against a hand that never empties: each chooses the one opponent as
-// it enters (asked of nobody: gorge's single-option ChoosePlayer is answered
-// in place), triggers on that player's upkeep only (ValidPlayer$
-// Player.Chosen) and deals damage from that player's hand size
-// (Count$ValidHand Card.ChosenCtrl). No divergence, and the triggers fired
-// and dealt damage.
+// chosenOppDecks are the matchups: the upkeep artifacts, then the creatures
+// whose statics read the chosen hand, each against a deck of lands only (a
+// hand that never empties). seats is 2 or 4; in four seats the two decks
+// alternate.
+func chosenOppDecks(seats int) [][]string {
+	vise := deckOf(10, "Black Vise", deckOf(10, "The Rack", deckOf(20, "Island")...)...)
+	black := deckOf(8, "Entropic Specter", deckOf(8, "Nyxathid", deckOf(24, "Swamp")...)...)
+	lands := deckOf(40, "Plains")
+	var out [][]string
+	for _, d := range [][]string{vise, black} {
+		for i := 0; i < seats; i++ {
+			if i%2 == 0 {
+				out = append(out, d)
+			} else {
+				out = append(out, lands)
+			}
+		}
+	}
+	return out
+}
+
+// playChosenOpp plays every seats-sized matchup of chosenOppDecks over seeds
+// 1..seeds in lockstep, failing on a divergence or a kernel stop, and returns
+// gorge's tally and the canonical actions taken.
+func playChosenOpp(t *testing.T, seats int, seeds uint64) (chosenOppTally, []Canon) {
+	t.Helper()
+	reg := synthReg(t)
+	set := chosenOppPool(t)
+	all := chosenOppDecks(seats)
+	var y chosenOppTally
+	var acts []Canon
+	for m0 := 0; m0 < len(all); m0 += seats {
+		decks := all[m0 : m0+seats]
+		var lists [][]cardset.Entry
+		for _, d := range decks {
+			es := make([]cardset.Entry, len(d))
+			for i, n := range d {
+				es[i] = cardset.Entry{Name: n, Count: 1}
+			}
+			lists = append(lists, es)
+		}
+		tbl, _, err := set.MatchupN(lists)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for seed := uint64(1); seed <= seeds; seed++ {
+			r := &Repro{Format: reproFormat, Decks: [2]string{"x0", "x1"}, Cards: [2][]string{decks[0], decks[1]}, Seed: seed, PassElision: true, Surface: "full"}
+			for i := 2; i < seats; i++ {
+				r.MoreDecks = append(r.MoreDecks, "x"+string(rune('0'+i)))
+				r.MoreCards = append(r.MoreCards, decks[i])
+			}
+			m, err := r.Matchup(reg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			rc := r.RunConfig()
+			rc.MaxDecisions, rc.MaxTurns = 3000, 30
+			rc.Finish = y.read
+			k, err := SetSide(set, tbl, rc.Config)(m, seed)
+			if err != nil {
+				t.Fatalf("matchup %d seed %d: %v", m0/seats, seed, err)
+			}
+			res := Lockstep(m, seed, k, RandomPolicy(seed), rc)
+			CloseSide(k)
+			if res.Div != nil {
+				t.Fatalf("matchup %d seed %d: divergence at %d: %s %s %v", m0/seats, seed, res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
+			}
+			if res.StallUnmodelled || strings.HasPrefix(res.Stall, KernelStallPrefix) {
+				t.Fatalf("matchup %d seed %d: kernel stopped: %s", m0/seats, seed, res.Stall)
+			}
+			acts = append(acts, res.Actions...)
+			t.Logf("matchup %d seed %d: %d decisions, over %v %s", m0/seats, seed, res.Decisions, res.Over, res.Stall)
+		}
+	}
+	return y, acts
+}
+
+// checkChosenOpp fails unless the upkeep triggers fired and hit and every
+// card of the pool that chooses an opponent entered the battlefield.
+func checkChosenOpp(t *testing.T, y chosenOppTally) {
+	t.Helper()
+	if y.trig == 0 || y.hits == 0 {
+		t.Errorf("the chosen player's upkeep triggers did not fire and hit: %+v", y)
+	}
+	for _, n := range chosenOppCards {
+		if y.entered[n] == 0 {
+			t.Errorf("%s never entered the battlefield", n)
+		}
+	}
+	t.Logf("%+v", y)
+}
+
+// TestMBCChosenPlayerCard1Lowers plays two-seat games of the cards that choose
+// an opponent as they enter, against a hand that never empties. The choice is
+// asked of nobody (gorge's single-option ChoosePlayer is answered in place);
+// The Rack and Black Vise trigger on that player's upkeep only (ValidPlayer$
+// Player.Chosen) and deal damage from that player's hand size
+// (Count$ValidHand Card.ChosenCtrl), and Entropic Specter's and Nyxathid's
+// statics read the same hand. No divergence, the triggers fired and hit, and
+// every card entered.
 func TestMBCChosenPlayerCard1Lowers(t *testing.T) {
 	if isolate(t) {
 		return
 	}
-	reg := synthReg(t)
-	watch := []string{"The Rack", "Black Vise"}
-	set := chosenOppPool(t)
-	vise := deckOf(10, "Black Vise", deckOf(10, "The Rack", deckOf(20, "Island")...)...)
-	lands := deckOf(40, "Plains")
-	decks := [2][]string{vise, lands}
-	var lists [][]cardset.Entry
-	for _, d := range decks {
-		es := make([]cardset.Entry, len(d))
-		for i, n := range d {
-			es[i] = cardset.Entry{Name: n, Count: 1}
-		}
-		lists = append(lists, es)
-	}
-	tbl, _, err := set.MatchupN(lists)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var y chosenOppTally
-	for seed := uint64(1); seed <= 6; seed++ {
-		r := &Repro{Format: reproFormat, Decks: [2]string{"x0", "x1"}, Cards: decks, Seed: seed, PassElision: true, Surface: "full"}
-		m, err := r.Matchup(reg)
-		if err != nil {
-			t.Fatal(err)
-		}
-		rc := r.RunConfig()
-		rc.MaxDecisions, rc.MaxTurns = 3000, 30
-		rc.Finish = func(g *GorgeSide) { y.read(g, watch...) }
-		k, err := SetSide(set, tbl, rc.Config)(m, seed)
-		if err != nil {
-			t.Fatalf("seed %d: %v", seed, err)
-		}
-		res := Lockstep(m, seed, k, RandomPolicy(seed), rc)
-		CloseSide(k)
-		if res.Div != nil {
-			t.Fatalf("seed %d: divergence at %d: %s %s %v", seed, res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
-		}
-		if res.StallUnmodelled || strings.HasPrefix(res.Stall, KernelStallPrefix) {
-			t.Fatalf("seed %d: kernel stopped: %s", seed, res.Stall)
-		}
-		t.Logf("seed %d: %d decisions, over %v %s", seed, res.Decisions, res.Over, res.Stall)
-	}
-	if y.trig == 0 || y.hits == 0 {
-		t.Fatalf("the chosen player's upkeep triggers did not fire and hit: %+v", y)
-	}
-	t.Logf("%+v", y)
+	y, _ := playChosenOpp(t, 2, 6)
+	checkChosenOpp(t, y)
 }

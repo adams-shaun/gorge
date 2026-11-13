@@ -602,6 +602,9 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 		}
 		return s.promisedSeat(k, ctx.e) // kw_gift.go
 	case kop.RefChosenPlayer:
+		if ctx.e == nil {
+			return s.chosenPlayerOf(ctx.srcSl) // a static of the source permanent (repl_chooseplayer.go)
+		}
 		return s.chosenPlayerSeat(ctx.e) // repl_chooseplayer.go
 	case kop.RefController, kop.RefSelf:
 		return ctx.ctrl

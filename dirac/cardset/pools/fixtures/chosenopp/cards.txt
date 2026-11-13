@@ -1,8 +1,13 @@
 # the as-enters chosen opponent pool: The Rack and Black Vise choose an
 # opponent as they enter and trigger on that player's upkeep, dealing damage
-# from that player's hand size; basic lands to cast them and to keep a hand
-# (dirac/oracle/mbc_chosenplayer_test.go, fourseat_chosenplayer_mp_test.go)
+# from that player's hand size; Entropic Specter's power and toughness and
+# Nyxathid's -1/-1 per card read that hand from a static; basic lands to cast
+# them and to keep a hand (dirac/oracle/mbc_chosenplayer_test.go,
+# fourseat_chosenplayer_mp_test.go)
 Black Vise
+Entropic Specter
 Island
+Nyxathid
 Plains
+Swamp
 The Rack

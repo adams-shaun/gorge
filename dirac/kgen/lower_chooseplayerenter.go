@@ -14,7 +14,8 @@ import (
 // records the answer on the permanent's Object.Chosen, cleared when it leaves
 // the battlefield (CR 400.7). It lowers to OpExt ExtChoosePlayer, the enters
 // program's only instruction; the permanent's own battlefield triggers read
-// the choice:
+// the choice, and so do its printed Continuous statics (Entropic Specter,
+// Nyxathid):
 //
 //   - ValidPlayer$ Player.Chosen on a Phase trigger: kop.WhoseChosen
 //   - Defined$ ChosenPlayer: kop.RefChosenPlayer
@@ -82,10 +83,19 @@ func (lc *lowerCtx) etbChoosePlayer(ps *params, node, sa *cards.SA, other bool, 
 }
 
 // enterChosenRead reports whether the ability being lowered is the face's own
-// printed battlefield trigger on a card that chooses an opponent as it
-// enters: its source is that permanent, so the choice reads its chosen byte.
+// printed battlefield trigger or printed Continuous static on a card that
+// chooses an opponent as it enters: its source is that permanent, so the
+// choice reads its chosen byte (a static off the battlefield, a
+// characteristic-defining one in a hand, has no permanent and reads none, as
+// gorge's choice-less object does).
 func (lc *lowerCtx) enterChosenRead() bool {
-	if lc.granted != 0 || !entersChoosingPlayer(lc.face) || lc.ab == nil || lc.ab.Kind != akTriggered || lc.ab.Latent {
+	if lc.granted != 0 || !entersChoosingPlayer(lc.face) {
+		return false
+	}
+	if lc.exwStatic {
+		return true // lowerStatic: a printed Mode$ Continuous static
+	}
+	if lc.ab == nil || lc.ab.Kind != akTriggered || lc.ab.Latent {
 		return false
 	}
 	t := lc.ab.Trigger
