@@ -316,6 +316,21 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 				}
 				counts, any = cards.ProducedCounts(pay.SubstituteChosenProduced(mp.Produced, chosen))
 			}
+			// A commander-identity production (Arcane Signet, Command Tower)
+			// makes one mana of a colour in its controller's commanders' colour
+			// identity (CR 903.4): one alt per identity colour, the same colours
+			// the activation's colour ask offers. The parse claims no mana for
+			// the word itself, and an empty identity makes none (CR 903.4f).
+			if pay.IsColourIdentityProduced(mp.Produced) {
+				counts, any = [6]int32{}, true
+				for _, c := range pay.CommanderIdentityColours(asPayer(e), p) {
+					for i := range 5 {
+						if c[0] == "WUBRG"[i] {
+							counts[i] = 1
+						}
+					}
+				}
+			}
 			total := int32(0)
 			for _, n := range counts {
 				total += n

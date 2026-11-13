@@ -92,3 +92,14 @@ func TestCmd5ChargerPayUnreachableBySignet(t *testing.T) {
 	res := replayCmd5Repro(t, "cmd5_charger_pay_unreachable_by_signet", 497, "options")
 	requireCmd5ReproClean(t, res, 497)
 }
+
+// TestCmd5HellkiteXCountsSignet: Steel Hellkite's {X} ability is activated
+// with an Arcane Signet untapped beside the lands. The Signet makes one mana of
+// a colour in its controller's commander's identity (CR 903.4), which pays
+// generic {X}, so gorge offers X up to the kernel's bound; its cast window
+// used to price the Signet as no mana and offered one less.
+func TestCmd5HellkiteXCountsSignet(t *testing.T) {
+	t.Parallel()
+	res := replayCmd5Repro(t, "cmd5_hellkite_x_counts_signet", 250, "options")
+	requireCmd5ReproClean(t, res, 250)
+}
