@@ -1770,13 +1770,25 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		// its entry); a permanent is never read here. The exception is an
 		// other-object ETB replacement's entrant filter (cb.entrant, the
 		// ReplOthersEnterProgram match): gorge matches the entering object
-		// while its own spell still resolves into it, so the kernel's
-		// wasCastSpell reads the same entry through spellEntryOf -- a
-		// battlefield permanent that entered any other way (a token, a
-		// reanimation) has no entry and reads not cast, as gorge's dead
-		// ledger record does (dirac/turn_gen.go runOthersEnterPrograms).
+		// and answers its own cast provenance from the log, the spell
+		// resolving into it when it IS one -- the kernel's permanent-side
+		// wasCastSpell reads the same entry through spellEntryOf (dirac
+		// filter_typesall.go), so a battlefield permanent that entered any
+		// other way (a token, a reanimation) reads not cast, as gorge's dead
+		// ledger record does. Only the spellings that read is exact on the
+		// entrant lower: the bare hand words, wasCastFromExile and their
+		// wasCast compositions (the caster is never scoped); ByYou would
+		// need the reading player, not the entrant's controller, and the
+		// Mayhem / MayPlaySource flags are spell-side words.
 		if zone == kop.ZoneBattlefield && !cb.entrant {
 			return kf, refuse("spell cast provenance on the battlefield")
+		}
+		if cb.entrant {
+			switch c.CmpN {
+			case spellHand, spellHand | spellNot, spellNotHand, spellExile:
+			default:
+				return kf, refuse("cast provenance %d on an entrant filter", c.CmpN)
+			}
 		}
 		kf.Pred, kf.PredN = kop.PredWasCastSpell, int16(c.CmpN)
 	case cmpTotalPT, cmpBlocked:
