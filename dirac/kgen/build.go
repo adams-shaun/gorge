@@ -2027,6 +2027,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefTaxedAttacker, nil
 	case rSrcOwner:
 		return kop.RefSrcOwner, nil
+	case rTriggeredOwner:
+		return kop.RefTriggerObjOwner, nil
 	case rTriggerAttackers:
 		return kop.RefTriggerAttackers, nil
 	case rRememberedOwner:
