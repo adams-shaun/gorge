@@ -1552,6 +1552,22 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if err != nil {
 			return err
 		}
+		if who, ok, err := lc.manaSpenderYouAnd(ps); err != nil { // lower_manaspender.go
+			return err
+		} else if ok {
+			if remDrawn || remAll {
+				return refuse("RememberDrawn$ on a two-player draw")
+			}
+			if _, ok := ps.get("OptionalDecider"); ok {
+				return refuse("OptionalDecider$ on a two-player draw")
+			}
+			n, err := lc.amount(ps, "NumCards", 1)
+			if err != nil {
+				return err
+			}
+			lc.emit(lInstr{Op: "Draw", Obj: who, A: n})
+			return nil
+		}
 		if who, ok, err := lc.targetedAndYou(ps, "Defined"); err != nil {
 			return err
 		} else if ok {
