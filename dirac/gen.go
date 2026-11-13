@@ -241,6 +241,7 @@ type genPrep struct {
 	anyFinality     bool           // some program puts finality counters (kop.CtrFinality): dieZone exiles their creatures
 	anyHone         bool           // some program puts hone counters (kop.CtrHone): ptGen adds +1/+0 per hone counter on an attached permanent (CR 122.1j; ctr_hone.go)
 	anyBattle       bool           // some card is a Battle (kop.TBattle front; face_battle.go)
+	anyWorld        bool           // some card is a World (CardDef.World): the CR 704.5k arm (zone_worldrule.go)
 	anySneak        bool           // some card has sneak (CardDef.HasSneak; kw_sneak.go)
 	anyWebSling     bool           // some card has web-slinging (CardDef.HasWebSling; kw_websling.go)
 	anyMayFlash     bool           // some card has K:MayFlashCost (CardDef.HasMayFlash; kw_mayflash.go)
@@ -711,6 +712,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepExileGrant(t, g) // cast_exilegrant.go
 	prepWaterbend(t, g)
 	prepCostEvidence(t, g)
+	prepArena(t, g, &p.cold) // arena.go; fills g.ix, read by prepLure/prepMustBlock below
 	prepLure(t, g)
 	prepMustBlock(t, g) // combat_mustbeblocked.go
 	prepColGrant(t, g)
@@ -868,6 +870,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.Types&kop.TBattle != 0 {
 			g.anyBattle = true
+		}
+		if c.World {
+			g.anyWorld = true
 		}
 		if c.HasSneak {
 			g.anySneak = true
@@ -1556,7 +1561,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepDiscAll(t, g)
 	prepAbilityCast(t, g)
 	prepGoad(t, g)           // act_goad.go
-	prepArena(t, g, &p.cold) // arena.go
 	prepSuspect(g)           // act_suspect.go; reads g.ix
 	prepPermMark(g)          // filter_permmarks.go; reads g.ix
 	prepTurnTallies(t, p, g) // value_turntallies.go; reads g.ix

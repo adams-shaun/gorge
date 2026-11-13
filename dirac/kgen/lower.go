@@ -716,6 +716,9 @@ func (lc *lowerCtx) lowerRecord() {
 			out.Types |= b
 			continue
 		}
+		if t == "World" {
+			out.World = true // CR 704.5k (kernel zone_worldrule.go)
+		}
 		out.Subtypes = append(out.Subtypes, t)
 	}
 	out.NoAbilities = effects.FaceHasNoAbilities(f, out.Types&tLand != 0)

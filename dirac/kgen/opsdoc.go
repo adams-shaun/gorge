@@ -630,6 +630,7 @@ var opsEntries = []opsDoc{
 	{"card:Landwalk", "CardDef.Landwalk", "The printed landwalk keyword (CR 702.14): the creature can't be blocked while the defending player controls a land matching this battlefield filter (its printed or granted subtypes). Not when it has lost its abilities. Gorge: rules/combat/block.go LandwalkEvades. Bog Raiders."},
 	{"card:SelfFlash", "CardDef.SelfFlash", "A CastWithFlash EffectZone$ All self grant (\"you may cast this spell as though it had flash if you control a Faerie\"): the card's own StatCastWithFlash ability, gated by IsPresent$ read for the caster with no battlefield source, lets it be cast at instant speed from any zone it is cast from, never granting other spells flash. Gorge: rules/statics_cast.go withSelfStatics + castWithFlashTargets. Illusion Spinners, Bard's Company, Serpent of the Pass."},
 	{"card:Leyline", "CardDef.Leyline", "May begin the game on the battlefield from the opening hand (after mulligans; a decision per such card)."},
+	{"card:World", "CardDef.World", "The printed World supertype (CR 205.4a). The CR 704.5k world rule: with two or more face-up World permanents on the battlefield, every one except the unique youngest (greatest entry timestamp) is put into its owner's graveyard in the state-based pass, after the creature casualties and before the planeswalkers; on a tie for the youngest all go. Gorge: rules/sba.go worldRule. Koskun Falls, Concordant Crossroads."},
 	{"card:SpellCost", "CardDef.SpellCost", "A permanent spell's additional cost (Arbiter of Woe: sacrifice a creature). Instants/sorceries carry theirs on the AbSpell ability's Cost."},
 	{"card:BeamMeUp", "CardDef.BeamMeUp (AltCost the mana, FbCost the return)", "Printed beam me up: a graveyard cast for AltCost that also returns a creature you control to its owner's hand, then exiles the spell."},
 	{"card:FbCost", "CardDef.FbCost (with KwFlashback; AltCost the mana part)", "A printed flashback cost's non-mana part (CR 702.34a; gorge flashbackCost parses the keyword parameter as a whole cost): one Sac<N/Spec> or tapXType<N/Spec>, paid through the flashback cast's sacrifice / tap-creatures picks in place of the spell's additional cost, and its census gates the graveyard offer. Dread Return, Lava Dart."},
@@ -1339,6 +1340,9 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 		}
 		if d.Leyline {
 			add("card:Leyline", name)
+		}
+		if d.World {
+			add("card:World", name)
 		}
 		if d.SelfFlash {
 			add("card:SelfFlash", name)
