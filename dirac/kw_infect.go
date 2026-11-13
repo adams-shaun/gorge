@@ -67,6 +67,7 @@ func (s *State) poisonSBA(k *prep) {
 	for p := uint8(0); p < s.nSeats(); p++ {
 		if s.g.poison[p] >= 10 && !s.pl[p].lost && !s.cantLose(k, p) {
 			s.pl[p].lost = true
+			s.initLeft(k, p)    // CR 726.4 (act_initiative.go)
 			s.monarchLeft(k, p) // CR 725.4 (act_monarch.go)
 		}
 	}

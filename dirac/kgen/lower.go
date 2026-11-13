@@ -470,6 +470,8 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseMayFlashCombos()
 	lc.refuseEvokeCombos()
 	lc.refuseDashCombos()          // lower_dash.go
+	lc.refuseMultikickerCombos()   // K:Multikicker beside another cast route
+	lc.refuseSuspendCombos()       // lower_suspend.go
 	lc.refuseForetellCombos()      // lower_foretell.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
 	lc.lowerImpending()
@@ -491,6 +493,25 @@ func (lc *lowerCtx) lowerImpending() {
 		return
 	}
 	lc.guard("K:Impending", lc.impendingTick)
+}
+
+// refuseMultikickerCombos refuses Multikicker beside any other cast cost
+// route: the kernel models the multikicker count as the one extra cost of a
+// kicked cast, and a second route (or a plain Kicker, whose count reads
+// differently) would compete for that cast. The keyword itself is lowered
+// by lowerKeywords.
+func (lc *lowerCtx) refuseMultikickerCombos() {
+	out := lc.out
+	if out.Multikicker == nil {
+		return
+	}
+	if out.Kicker != nil || out.Warp != nil || out.Plot != nil || out.Flashback != nil || out.SpellCost != nil ||
+		out.AltAddCost != nil || out.Sneak != nil || out.Impending != nil || out.Bestow != nil || out.Mayhem != nil ||
+		out.Harmonize != nil || out.Madness != nil || out.Offspring != nil || out.Gift || out.MorphCost != nil ||
+		out.Casualty != 0 || out.Bargain || out.OptCost != nil || out.Teamwork != 0 || out.Spree ||
+		out.Convoke || out.Improvise || len(lc.card.Faces) > 1 || lc.card.AlternateMode != "" {
+		lc.refuseNode("K:Multikicker", "Multikicker beside another cast route or additional cost")
+	}
 }
 
 // refusePlotCombos refuses the plot keyword beside any other cast cost
@@ -1223,6 +1244,15 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !faceHasMeleeTrigger(lc.face) {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
+		case head == "Extort" && param == "":
+			// CR 702.101a: gorge kwExtort expands the keyword into a
+			// SpellCast trigger (DB$ Extort), lowered from that line
+			// (lower_effect.go's Extort arm). The keyword itself has no
+			// CardDef bit; a face whose expansion is missing would lose
+			// the trigger silently.
+			if !faceHasExtortTrigger(lc.face) {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
 		case head == "Partner with":
 			// CR 702.124j: the commander-pair marker (no game characteristic)
 			// and gorge kwPartnerWith's enters trigger, lowered from that
@@ -1254,6 +1284,23 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Kicker = &mc
+		case head == "Multikicker":
+			// CR 702.43: the per-payment additional cost, paid any number of
+			// times as the spell is cast. The kernel's kicked cast asks the
+			// count before X and the targets (multikick, cast.go), so only a
+			// plain mana parameter on a non-{X} spell is modelled; a non-mana,
+			// {X} parameter or {X} base cost refuses (the count bound would be
+			// read before the X announcement).
+			mc, err := parseManaCost(param)
+			if err != nil || param == "" || strings.Contains(param, ":") || mc.None || mc.X {
+				lc.refuseNode(node, "multikicker cost %q", param)
+				continue
+			}
+			if lc.out.Cost.X {
+				lc.refuseNode(node, "multikicker on an {X} spell")
+				continue
+			}
+			lc.out.Multikicker = &mc
 		case head == "Morph" || head == "Megamorph" || head == "Disguise":
 			// CR 702.37/702.168/702.169: the keyword parameter is the
 			// turn-face-up cost. The kernel's turn-up action spends only
@@ -1636,6 +1683,23 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Plot = &mc
+		case head == "Suspend":
+			// CR 702.62a: a hand special action paying this plain mana cost
+			// and exiling the card with N time counters (dirac/kw_suspend.go).
+			// An X time (Aeon Chronicler's), X, hybrid and any non-mana part
+			// have no fixed price or count to plan.
+			ns, cs, ok := strings.Cut(param, ":")
+			n, nerr := strconv.Atoi(strings.TrimSpace(ns))
+			mc, err := parseManaCost(cs)
+			if !ok || nerr != nil || n < 1 || n > 20 || err != nil || strings.TrimSpace(cs) == "" || strings.ContainsAny(cs, ":<") || mc.X || mc.None || len(mc.Hybrid) != 0 {
+				lc.refuseNode(node, "suspend %q", param)
+				continue
+			}
+			if lc.out.Suspend != nil {
+				lc.refuseNode(node, "two Suspend keywords")
+				continue
+			}
+			lc.out.Suspend, lc.out.SuspendN = &mc, n
 		case head == "Foretell":
 			// CR 702.143a: the {2} special action is fixed; the keyword's
 			// cost prices the later cast from exile (dirac/kw_foretell.go).

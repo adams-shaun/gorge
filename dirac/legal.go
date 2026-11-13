@@ -108,6 +108,11 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// even when the mana cost is not payable (CR 702.185a)
 			s.offerWarpHand(k, d, p, o, c, &av) // kw_warp.go
 		}
+		if k.gen != nil && k.gen.anySuspend && k.t.Cards[c].Suspend != 0 {
+			// under the plain cast's timing and prohibition gates, before its
+			// affordability gate and without a target check (CR 702.62a)
+			s.offerSuspendHand(k, d, p, o, c, &av) // kw_suspend.go
+		}
 		if k.gen != nil && k.gen.anyWebSling && k.t.Cards[c].HasWebSling {
 			// under the plain cast's timing and prohibition gates, before
 			// its affordability gate (CR 702.188a)
@@ -199,15 +204,15 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if k.gen != nil && k.gen.anyBestow && k.t.Cards[c].HasBestow {
 			s.offerBestowHand(k, d, p, o, c, &av) // kw_bestow.go
 		}
-		if pc.kw&kop.KwKicker != 0 || k.offspring && offspringOffer(k, c) {
-			kc := addCost(pc.cost, k.t.Cards[c].Kicker)
+		if pc.kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker || k.offspring && offspringOffer(k, c) {
+			kc := addCost(pc.cost, kickerPayment(&k.t.Cards[c]))
 			if s.statM.any() || k.gen != nil {
 				kc = s.adjustCost(k, p, c, o, kc) // the reduction applies to the total (CR 601.2f)
 			}
 			if k.gen != nil && k.gen.anyTypeCreat && s.convAnyType(k, p, o) {
 				kc = anyType(kc) // the kicked total under Vizier's conversion too (mana_convertcreature.go)
 			}
-			if s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &kc, cav) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
+			if s.kickedAffords(k, p, c, o, &kc, cav) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
 				d.add(MakeAction(AkCast, uint8(o), 0, 1))
 			}
 		}
@@ -345,8 +350,8 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				s.availFor(k, p, &av)
 				haveAv = true
 			}
-			if (a.Cost.Mana.X > 0 || sacXCost(&a.Cost)) && s.cfg&cfgGorgeUnpriced != 0 {
-				m := xFloorCost(a.Cost.Mana, costXMin(&a.Cost)) // (an announced Sac<X> is "cost:x" to the planner too; the pool pays the cheapest legal announcement; cost_sacx.go)
+			if (a.Cost.Mana.X > 0 || a.Cost.XMin != 0) && s.cfg&cfgGorgeUnpriced != 0 {
+				m := xFloorCost(a.Cost.Mana, costXMin(&a.Cost)) // (gorge's cost:x is X != 0 || XMin != 0 (pay.PlanCostDetail); an announced Sac<X> part without {X} or XMin is planned like any other cost (Krav, the Unredeemed's {B}); the pool pays the cheapest legal announcement; cost_sacx.go)
 				if k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 {
 					m = s.powerUpReduced(k, s.perms[sl].obj, m) // CR 702.193b: gorge prices the reduced cost (legal_walk_battlefield.go)
 				}
@@ -393,6 +398,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	if faces {
 		// after the may-play walks: one land play per object (CR 715.3d)
 		s.offerAdventureLandPlays(k, d, p, sorc) // cast_adventureland.go
+	}
+	if k.gen != nil && k.gen.anyNoManaCost {
+		s.dropNoManaCostCasts(k, d) // CR 118.6 (cast_nomanacost.go)
 	}
 	if k.gen != nil && k.gen.anySplitSecond && s.splitSecondHolds(k) {
 		s.filterSplitSecond(k, d) // kw_splitsecond.go
@@ -1809,6 +1817,10 @@ func (s *State) applyPriority(k *prep, a Action) {
 	case AkPlot:
 		if a.Mode() == plotForetell {
 			s.foretellAction(k, Obj(a.Source()), p) // CR 702.143a; kw_foretell.go
+			break
+		}
+		if a.Mode() == plotModeSuspend {
+			s.suspendAction(k, Obj(a.Source()), p) // CR 702.62a; kw_suspend.go
 			break
 		}
 		s.plotAction(k, Obj(a.Source()), p) // CR 702.170a; kw_plot.go

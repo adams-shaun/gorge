@@ -15,10 +15,11 @@ import (
 // cost.
 //
 // Each card lives in a tail synthetic pool. The lockstep plays its land,
-// counter-placement and (City's) production abilities decision for decision;
-// mana abilities are not priority options, so the X activation itself is
-// exercised by dirac's TestStoreManaGap and TestStorePaysSpell, whose fixture
-// pays a {B} spell from Bottomless Vault's stored counters.
+// counter-placement and (City's) production abilities decision for decision.
+// The X activation itself is exercised by dirac's TestStoreManaGap and
+// TestStorePaysSpell, whose fixture pays a {B} spell from Bottomless Vault's
+// stored counters, and by TestStorageXPaysSpellLockstep, whose real-game
+// deck casts a {1}{B} spell paid by the Vault's counters.
 var kStorageX = []string{
 	"Bottomless Vault", "Mercadian Bazaar", "Mage-Ring Network", "Icatian Store",
 	"Dwarven Hold", "Hollow Trees", "Rushwood Grove", "Fountain of Cho",

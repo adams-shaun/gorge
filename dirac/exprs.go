@@ -26,6 +26,11 @@ type evalCtx struct {
 	// 0 reads none (the uncounted convention).
 	taxed1 Obj
 	e      *stackEntry
+	// bounds marks a target-bound evaluation (tgtBoundsEval): an ETB
+	// trigger's TargetMax$ may read its cast's count even after the permanent
+	// left the battlefield (CR 704.5j before 603.3b), where a later effect
+	// read sees gorge's reset.
+	bounds bool
 }
 
 // ctxCur is the context of the resolving entry, else the one being built.
@@ -56,6 +61,44 @@ func (s *State) ctxEntry(e *stackEntry) evalCtx {
 		c.srcSl = ob.slot
 	}
 	return c
+}
+
+// timesKicked is CR 702.43's count of multikicker payments for the spell
+// resolving (cold.mkObj by object) or the permanent its spell became (cold.mk
+// by slot, written as it entered). A permanent that changed zones reads 0, as
+// gorge's Object.TimesKicked resets.
+func (s *State) timesKicked(ctx evalCtx) int {
+	if ctx.srcSl != NoSlot && int(ctx.srcSl) < len(s.cold.mk) {
+		return int(s.cold.mk[ctx.srcSl])
+	}
+	// A triggered ability's srcVer can predate the permanent's current
+	// version (its ETB trigger is queued as it enters); the source object on
+	// the battlefield is still the permanent that reads its spell's count.
+	if ctx.src != NoObj {
+		if ob := &s.objs[ctx.src]; ob.zone == kop.ZoneBattlefield && int(ob.slot) < len(s.cold.mk) {
+			return int(s.cold.mk[ob.slot])
+		}
+	}
+	if e := ctx.e; e != nil && e.kind == seSpell {
+		return s.multikickCount(e)
+	}
+	// An enters-the-battlefield trigger's count belongs to the spell that
+	// made the permanent, and the permanent can leave the battlefield before
+	// the trigger's targets are chosen (the legend rule's state-based action
+	// fires before the trigger is put on the stack, CR 704.5j/603.3b). Gorge
+	// captures the count when the trigger is created and still asks its
+	// TargetMax$ X; read the cast's count from the trigger's own entry, never
+	// from a later die trigger (whose event is not TrigETB).
+	if ctx.bounds {
+		if e := ctx.e; e != nil && e.kind == seTrigger && ctx.src != NoObj {
+			k := s.k()
+			if k != nil && int(e.card) < len(k.t.Cards) && int(e.ab) < len(k.t.Cards[e.card].Abilities) &&
+				k.t.Cards[e.card].Abilities[e.ab].Trig.Event == kop.TrigETB {
+				return s.multikickCount(e)
+			}
+		}
+	}
+	return 0
 }
 
 // evalV evaluates a ValueRef in ctx.
@@ -177,6 +220,11 @@ func (s *State) objPT(k *prep, o Obj, sl Slot) (int, int) {
 }
 
 func (s *State) countPerm(k *prep, f kop.FilterID, ctx evalCtx) int {
+	if ctx.srcSl == NoSlot && ctx.e != nil {
+		if n, ok := s.selfDepartTappedCount(k, f, ctx); ok {
+			return n
+		}
+	}
 	n := 0
 	for m := s.occ; m.any(); m = m.rest() {
 		if s.matchPermGen(k, f, m.first(), ctx.ctrl, ctx.srcSl, layerFull) {
@@ -184,6 +232,40 @@ func (s *State) countPerm(k *prep, f kop.FilterID, ctx evalCtx) int {
 		}
 	}
 	return n
+}
+
+// selfDepartTappedCount answers the CR 603.4 intervening-if whose
+// PresentDefined$ Self source has left the battlefield (CR 608.2h reads the
+// departed source by its last known information): the lowered filter is the
+// source alone narrowed by its tapped status -- gorge presentClauseHolds'
+// SourceLKIValid branch (House Cartographer's Survival, the Cartographer
+// killed by Bear Trap while its own trigger waited). The departure snapshot's
+// lkiTapped bit is the answer. ok is false for every other filter shape and
+// for a source with no departure snapshot, which countPerm counts live as
+// before.
+func (s *State) selfDepartTappedCount(k *prep, f kop.FilterID, ctx evalCtx) (int, bool) {
+	if f == 0 {
+		return 0, false
+	}
+	fl := k.t.Filters[f]
+	const selfTapped = kop.FSelf | kop.FTapped | kop.FUntapped
+	if fl.Flags&^selfTapped != 0 || fl.Flags&kop.FSelf == 0 || fl.Flags&(kop.FTapped|kop.FUntapped) == 0 ||
+		fl.Or != 0 || fl.Types != 0 || fl.NotTypes != 0 || fl.Ctrl != 0 ||
+		fl.Colors != 0 || fl.NotColors != 0 || fl.Pred != 0 || fl.PredN != 0 || fl.Zone != 0 ||
+		fl.Owner != 0 || fl.Sub != 0 || fl.NotSub != 0 || fl.NotSubs != [4]uint8{} ||
+		fl.Flags2 != 0 || fl.PredV != (kop.ValueRef{}) || fl.Special != 0 || fl.Each ||
+		fl.PickSumMax != (kop.ValueRef{}) || fl.PickDistinctPower || fl.CtrlTgt != 0 {
+		return 0, false
+	}
+	r := s.srcDepartRec(ctx.e)
+	if r == nil {
+		return 0, false
+	}
+	tapped := r.bits&lkiTapped != 0
+	if (fl.Flags&kop.FTapped != 0 && !tapped) || (fl.Flags&kop.FUntapped != 0 && tapped) {
+		return 0, true
+	}
+	return 1, true
 }
 
 // pwTypeCount is ExCount with N 1: the number of distinct planeswalker types
@@ -271,7 +353,9 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 		}
 		v = bits.OnesCount64(seen)
 	case kop.ExKicked:
-		if e != nil && e.flags&sfKicked != 0 && !optCostUnpaid(k, e) {
+		if x.N == 1 {
+			v = s.timesKicked(ctx)
+		} else if e != nil && e.flags&sfKicked != 0 && !optCostUnpaid(k, e) {
 			v = s.evalV(k, x.Sub[0], ctx)
 		} else {
 			v = s.evalV(k, x.Sub[1], ctx)

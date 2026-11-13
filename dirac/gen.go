@@ -85,6 +85,7 @@ type genPrep struct {
 	anyCopyAb       bool // some target slot is a TgtCopyAb or TgtCopyTrig (copy_ability.go)
 	anyBestow       bool // a card has printed bestow (CardDef.HasBestow; kw_bestow.go)
 	anyKickCost     bool // a card has a non-mana kicker cost (CardDef.KickerCost; kw_kicker.go)
+	anyMultikick    bool // a card has Multikicker (CardDef.HasMultikicker; cast.go's bsMulti, cold.mk)
 	anyEvTargets    bool // a spell's CollectEvidence<X> is the targets' total mana value (kop.EvidenceTargetsMV; cost_collectevidencex.go)
 	anyOptCost      bool // a card has an OptionalCost part (CardDef.OptCost/OptBehold; cost_optional.go)
 	equipAnim       bool // an Equip ability and a Creature-adding override: an Equipment can be a creature (CR 704.5p sba arm; static_equipanimated.go)
@@ -231,6 +232,8 @@ type genPrep struct {
 	anyImpending    bool           // some card has impending (CardDef.Impending; kw_impending.go)
 	anyPrepare      bool           // some card is a preparation front (FacePrepare; face_prepare.go)
 	anyPlot         bool           // some card has plot (CardDef.HasPlot; kw_plot.go)
+	anySuspend      bool           // some card has suspend (CardDef.Suspend; kw_suspend.go)
+	anyNoManaCost   bool           // some card has a printed "no cost" mana cost (CardDef.NoManaCost; cast_nomanacost.go)
 	anyForetell     bool           // some card has foretell (CardDef.HasForetell; kw_foretell.go)
 	anyParadigm     bool           // some card has Paradigm (CardDef.Paradigm; kw_paradigm.go)
 	anyNetLock      bool           // some program is ExtLockActs: canActivate and the untap/leave sites read the lock list (act_lockpermanent.go)
@@ -546,10 +549,22 @@ func tableHasPrevent(t *kop.Table) bool {
 	return false
 }
 
+// tableHasMultikicker reports whether any card carries K:Multikicker: its
+// count and the permanent's cold mark are cast.go's, so a table without one
+// pays neither.
+func tableHasMultikicker(t *kop.Table) bool {
+	for i := range t.Cards {
+		if t.Cards[i].HasMultikicker {
+			return true
+		}
+	}
+	return false
+}
+
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasStatic(t, kop.StatAttackTax) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasStatic(t, kop.StatAttackTax) {
 		return nil
 	}
 	enteredNeed := tableHasEnteredFrom(t)
@@ -830,6 +845,12 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.HasPlot {
 			g.anyPlot = true
 		}
+		if c.Suspend != 0 {
+			g.anySuspend = true
+		}
+		if c.NoManaCost {
+			g.anyNoManaCost = true
+		}
 		if c.HasForetell {
 			g.anyForetell = true
 		}
@@ -865,6 +886,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.KickerCost.Flags != 0 {
 			g.anyKickCost = true
+		}
+		if c.HasMultikicker {
+			g.anyMultikick = true
 		}
 		g.anyBeam = g.anyBeam || c.BeamMeUp
 		if c.TapPays() || c.Harmonize {
