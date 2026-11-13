@@ -117,6 +117,14 @@ const TgtPermOrGraveCard TargetKind = 240
 // walked before exile, so a chain names its graveyard clauses first.
 const TgtGraveExileCard TargetKind = 241
 
+// TgtStackTgting: TgtSpellTgting, or an activated or triggered ability on the
+// stack (named StackTarget0 + its stack index, as TgtStackObj) whose own
+// targets include a battlefield object matching Filter for the chooser
+// (TargetValidTargeting$ beside TargetType$ Spell,Activated,Triggered:
+// Diplomatic Escort). The offer only: the resolution rechecks a plain spell
+// target, or that the ability is still on the stack.
+const TgtStackTgting TargetKind = 242 // a spell or an activated/triggered ability whose own targets include a battlefield object matching Filter for the chooser (TargetValidTargeting$; offer only)
+
 // TgfSingleTgt (TargetSpec.TFlags): a TgtStackObj, TgtStackAb or TgtSpell slot admits only a spell or
 // an ability whose targets are exactly one distinct target (gorge
 // TargetType$ SpellAbility.singleTarget, the singleTarget property).

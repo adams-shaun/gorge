@@ -86,6 +86,9 @@ func (s *State) stackTgtOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, code u
 	if t.Kind == kop.TgtSpellTgting {
 		return s.spellTgtingOK(k, t, p, self, code) // tgt_countershapes.go
 	}
+	if t.Kind == kop.TgtStackTgting {
+		return s.stackTgtingOK(k, t, p, self, code) // tgt_countershapes.go
+	}
 	if isStackTarget(code) {
 		i := int(code - StackTarget0)
 		if i >= int(s.sp) || i == s.stackTgtSelf() {

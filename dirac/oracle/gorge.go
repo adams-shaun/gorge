@@ -1919,6 +1919,34 @@ func (g *GorgeSide) copyGrantedAbility(id state.ObjID, i int) bool {
 	return copyGrantedAbilityOf(g.E.G.Obj(id), i)
 }
 
+// copyGrantedTriggerOf reports whether trigger i of o's face is the Myriad
+// expansion an as-enters copy's "except it has myriad" folded into the copy
+// face (Auton Soldier; CR 707.9b, events foldCopyExcept): o is a copy whose
+// printed card carries no Myriad trigger of its own. The kernel lists it as a
+// granted (latent) trigger, whose stack index is 255.
+func copyGrantedTriggerOf(o *state.Object, i int) bool {
+	if o == nil || o.Card == nil || o.Face() == nil || i < 0 || i >= len(o.Face().Triggers) {
+		return false
+	}
+	isMyriad := func(t cards.Trigger) bool {
+		return t.Mode == "Attacks" && t.Params["Myriad"] == "True"
+	}
+	if !isMyriad(o.Face().Triggers[i]) {
+		return false
+	}
+	for fi := range o.Card.Faces {
+		if o.Card.Faces[fi] == o.Face() {
+			return false // the printed face itself
+		}
+		for _, t := range o.Card.Faces[fi].Triggers {
+			if isMyriad(t) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // copyGrantedAbilityOf is copyGrantedAbility over the object itself.
 func copyGrantedAbilityOf(o *state.Object, i int) bool {
 	if o == nil || o.Face() == nil || i < 0 || i >= len(o.Face().Abilities) {

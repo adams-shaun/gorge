@@ -179,13 +179,19 @@ func (s *State) replCounters(k *prep, sl Slot, kind, n int) int {
 }
 
 // playerHexproof: player p has hexproof (controls a permanent with
-// StatPlayerHexproof).
+// StatPlayerHexproof, or carries one on a runtime emblem).
 func (s *State) playerHexproof(k *prep, p uint8) bool {
-	if k.gen == nil || k.gen.anyRepl&rbPlHex == 0 {
+	if k.gen == nil {
 		return false
 	}
 	if k.gen.anyPlHexRec && s.turnPlayerHex(k, p) {
 		return true // a Pump's this-turn player grant (repl_turnrepl.go)
+	}
+	if k.gen.anyEmbPlHex && s.embPlHex(k, p) {
+		return true // a Pump's until-next-turn player grant (static_emblemphex.go)
+	}
+	if k.gen.anyRepl&rbPlHex == 0 {
+		return false
 	}
 	if k.gen.anyYouHex {
 		return s.youHexproof(k, p) // ctr_shield.go

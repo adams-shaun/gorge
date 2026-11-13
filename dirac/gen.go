@@ -66,6 +66,7 @@ type genPrep struct {
 	ctrlSBA         bool  // the state-based check settles control (a control static, a source-bound OpGainControl)
 	anyPTDelta      bool  // some Override is a +N/+M pump record (kop.Override.PTDelta): ptGen adds it (static_ptdelta.go)
 	anyPlProtAll    bool  // some emblem static is a StatPlayerProtAll player protection grant (static_plprot.go)
+	anyEmbPlHex     bool  // some emblem static is a StatPlayerHexproof player hexproof grant (static_emblemphex.go)
 	anyNTOv         bool  // an OpOverride / OpOverrideAll lasts until its controller's next turn
 	legendGrant     bool  // some Override adds or sets the Legendary supertype (legendRule reads derived types)
 	anyMayPlay      bool
@@ -297,7 +298,8 @@ type genPrep struct {
 	anyPermMark     bool           // the table gives some kop.PredPermMark mark an arena mask (filter_permmarks.go)
 	anyTappedTurn   bool           // the table gives mechTappedTurn an arena mask (a Taps FirstTime$ line; filter_permmarks.go)
 	anyCombatHit    bool           // some card records its combat hits on players (cdRec) or some expression reads the legendary-hit bit (value_turntallies.go)
-	cdLegOn         bool           // some expression is ExOppsLostLife N 1: record cdLeg
+	cdLegOn         bool           // some expression is ExOppsLostLife N 1: record cdLeg bits 0-3
+	cdDamOn         bool           // some expression is ExOppsLostLife N 2: record cdLeg bits 4-7
 	anyAddPhase     bool           // some program is ExtAddPhase, some trigger is Tf3FirstAttack or some expression is ExPhaseCount (act_addphase.go)
 	anySkipPhase    bool           // some program is ExtSkipPhase (act_skipphase.go)
 	anyMonarch      bool           // some program is ExtBecomeMonarch (act_monarch.go)
@@ -947,7 +949,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				}
 			}
 			for ti := 0; ti < int(a.NTargets); ti++ {
-				if k := a.Targets[ti].Kind; k == kop.TgtStackObj || k == kop.TgtStackAb || k == kop.TgtStackObjTrig {
+				if k := a.Targets[ti].Kind; k == kop.TgtStackObj || k == kop.TgtStackAb || k == kop.TgtStackObjTrig || k == kop.TgtStackTgting {
 					g.anyStackTgt = true // tgt_stackability.go
 				} else if copyAbKind(k) {
 					g.anyStackTgt, g.anyCopyAb = true, true // copy_ability.go
@@ -1543,6 +1545,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepReplMult(t, g)
 	prepDmgMark(t, g)   // repl_dmgmark.go
 	prepPlProtAll(t, g) // static_plprot.go
+	prepEmbPlHex(t, g)  // static_emblemphex.go
 	if g.anyPlProtAll {
 		// open every replDamage site the way rbPlProt does above: no card
 		// carries the player-protection bit (the emblem is created at
@@ -2093,7 +2096,7 @@ type genState struct {
 	// CtrlHitBySrc (genPrep.cdRec): o the source, pl bit p = player p
 	// was hit by it this turn (value_turntallies.go).
 	// cdLeg bit p = player p was dealt combat damage this turn by a source
-	// matching Creature.Legendary.
+	// matching Creature.Legendary; bit 4+p = by any source (genPrep.cdDamOn).
 	cdh [4]struct {
 		o  Obj
 		pl uint8

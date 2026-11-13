@@ -53,6 +53,11 @@ REPRO_DIR = "dirac/oracle/testdata/repro/"
 REPRO_TESTS = "^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$|^TestStd[A-Za-z]*ReprosLockstep[A-Za-z]*$"
 CENSUS = ("Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrinks|IotaBlock|NoVerbatim|"
           "PublicBoundary|Acceptance|EnumConst|^TestHeads$|^TestSetHeads$")
+# Sub-second guards of the committed tables (repro compact encoding, repro glob table, kop ordinals) that
+# fail the landing gate and the daemon precheck when a change breaks them. They run for every diff, as
+# named tests, whatever the package's weight: forcing ./dirac/kop whole would be far slower.
+GUARDS = (("./dirac/kop", "^TestKopOrdinalsUnchanged$"),
+          ("./dirac/oracle", "^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$"))
 
 
 def short_pkgs(pkgs, keep=3):
@@ -327,6 +332,11 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None):
                 out[lp] = ("whole", lp, "")
             elif lp not in out:
                 out[lp] = ("census", lp, CENSUS)
+    for lp, rx in GUARDS:
+        if lp not in out:
+            out[lp] = ("named", lp, rx)
+        elif out[lp][0] != "whole":
+            out[lp] = (out[lp][0], lp, out[lp][2] + "|" + rx)
     for lp in ALWAYS:
         out[lp] = ("whole", lp, "")
     res = [out[k] for k in sorted(out)]

@@ -194,7 +194,21 @@ def test_heavy_package_with_named_tests_adds_the_census_tests():
 
 def test_docs_only_diff_selects_just_the_structural_packages():
     got, _ = planned({"docs/agents/invariants.md": None, "AGENTS.md": None})
-    assert sorted(got) == ["./internal/archtest", "./internal/codeshape"]
+    assert sorted(got) == ["./dirac/kop", "./dirac/oracle", "./internal/archtest", "./internal/codeshape"]
+    assert got["./internal/archtest"][0] == got["./internal/codeshape"][0] == "whole"
+
+
+def test_docs_only_diff_still_selects_the_three_guard_tests_as_named():
+    got, _ = planned({"docs/agents/invariants.md": None, "AGENTS.md": None})
+    assert got["./dirac/kop"] == ("named", "^TestKopOrdinalsUnchanged$")
+    kind, rx = got["./dirac/oracle"]
+    assert kind == "named" and rx.split("|") == ["^TestReproCompactRoundTrip$", "^TestReproGlobMatchesTable$"]
+
+
+def test_guards_join_a_heavy_packages_regex_and_yield_to_a_whole_run():
+    kind, rx = planned({"dirac/oracle/x_test.go": [(7, 7)]}, {"dirac/oracle/x_test.go": LEAF_TEST})[0]["./dirac/oracle"]
+    assert kind == "named" and rx.startswith("^(TestOne)$|") and rx.endswith("|^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$")
+    assert planned({"dirac/oracle/testdata/x.txt": None})[0]["./dirac/oracle"] == ("whole", "")
 
 
 CENSUS_CANDS = ["./engine/rules", "./engine/game/gorgegame", "./dirac/oracle", "./leaf", "./internal/archtest",
@@ -590,7 +604,8 @@ def test_oracle_repro_change_runs_the_tests_that_name_the_recording():
 
 def test_repro_names_for_a_untouched_package_add_nothing():
     got, _ = planned({}, repro_names={"m/dirac/oracle": {"TestOne"}})
-    assert "./dirac/oracle" not in got  # names merge only into a package the diff touched
+    # names merge only into a package the diff touched; the always-run guards still name the oracle package
+    assert "TestOne" not in got.get("./dirac/oracle", ("", ""))[1]
 
 
 def test_repro_named_maps_a_recording_to_its_reader(repo):
@@ -611,3 +626,13 @@ def test_repro_named_maps_a_recording_to_its_reader(repo):
     got = tt.repro_named({"dirac/oracle/testdata/repro/bar.repro.json": None}, {"dirac/oracle": "m/dirac/oracle"},
                          lambda p: (repo / p).read_text().splitlines(), cwd=str(repo))
     assert got == {}
+
+
+def test_smart_step_3_names_the_guard_tests_and_finds_their_packages():
+    sh = (HERE / "test-targets.sh").read_text()
+    c = [l for l in sh.splitlines() if l.startswith("C='Census|")][0]
+    for _, rx in tt.GUARDS:
+        for name in rx.split("|"):
+            assert name in c
+    # the anchored names cannot match inside the Test...($C) grep, so cpk needs its own for them
+    assert "TestKopOrdinalsUnchanged|TestReproCompactRoundTrip|TestReproGlobMatchesTable" in sh

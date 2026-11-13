@@ -1249,7 +1249,7 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 	}
 	if isPlayerTarget(code) {
 		pp := CodeSeat(code)
-		if pp != p && k.gen != nil && k.gen.anyRepl&rbPlHex != 0 && s.playerHexproof(k, pp) {
+		if pp != p && k.gen != nil && (k.gen.anyRepl&rbPlHex != 0 || k.gen.anyEmbPlHex) && s.playerHexproof(k, pp) {
 			return false
 		}
 		if s.plProtAll(k, pp) {
@@ -1372,7 +1372,7 @@ func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self 
 				n++
 			}
 		}
-	case kop.TgtStackObj, kop.TgtStackAb, kop.TgtCopyAb, kop.TgtCopyTrig, kop.TgtStackObjTrig:
+	case kop.TgtStackObj, kop.TgtStackAb, kop.TgtCopyAb, kop.TgtCopyTrig, kop.TgtStackObjTrig, kop.TgtStackTgting:
 		n = s.stackTgtCands(k, t, p, self, out, n) // tgt_stackability.go
 	case kop.TgtPermOrSpell:
 		n = s.permOrSpellCands(k, t, p, src, self, out, n) // tgt_permorspell.go

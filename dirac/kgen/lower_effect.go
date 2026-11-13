@@ -1801,14 +1801,14 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		var vtg, vspell *lFilter
 		vyou := false
 		if v, ok := ps.get("TargetValidTargeting"); ok {
-			if tt != "Spell" {
-				return refuse("Counter TargetValidTargeting beside TargetType %q: a stack ability's targets live in its trigger/activation roles, which gorge's filterTargetValidTargeting does not read (Diplomatic Escort, Siren Stormtamer, Not of This World)", tt)
+			if tt != "Spell" && tt != "Spell,Activated,Triggered" {
+				return refuse("Counter TargetValidTargeting beside TargetType %q: only a spell, or a spell or ability (Diplomatic Escort), has a lowered targeting clause", tt)
 			}
 			var verr error
 			if vtg, vyou, verr = lc.counterValidTargeting(strings.TrimSpace(v)); verr != nil {
 				return verr
 			}
-			if vt := ps.str("ValidTgts"); vt != "Card" {
+			if vt := ps.str("ValidTgts"); tt == "Spell" && vt != "Card" {
 				// the spell side's own filter (Avoid Fate: Instant,Aura)
 				if vspell, verr = lc.filter(vt); verr != nil {
 					return verr
@@ -2983,11 +2983,11 @@ func (lc *lowerCtx) pumpPlayerGrant(ps *params, obj lRef, zone int, d string, na
 // playerGrantStatics lowers the keywords of a player-scoped Pump grant to
 // the emblem player statics the kernel reads: "Protection from everything"
 // to StatPlayerProtAll (CR 702.16j; static_plprot.go's plProtAll walks the
-// player's emblems). Anything else refuses. Hexproof (Blossoming Calm, CR
-// 702.11c) has no emblem reader: playerHexproof and youHexproof read a
-// StatPlayerHexproof off the permanents the player controls, so an emblem
-// carrying it would leave the player a legal target for an opponent's spell
-// where gorge's playerKeywords refuses it. A shroud has no symmetric kernel
+// player's emblems), and "Hexproof" (Blossoming Calm, CR 702.11c) to a plain
+// StatPlayerHexproof with no Amount (A == 0: hexproof alone; A == 1 would add
+// protection from each opponent), which playerHexproof reads off the
+// player's emblems (static_emblemphex.go's embPlHex). Anything else refuses.
+// A shroud has no symmetric kernel
 // player read (playerHexproof keeps hexproof's own-controller exemption, CR
 // 702.11c, which shroud must not: CR 702.18a), and a Protection:<spec>
 // quality (Eon Frolicker's Player.PlayerUID_ChosenPlayerUID) names a player
@@ -2999,7 +2999,7 @@ func (lc *lowerCtx) playerGrantStatics(kw string) ([]lStatic, error) {
 		case "Protection from everything":
 			sts = append(sts, lStatic{Kind: "PlayerProtAll"})
 		case "Hexproof":
-			return nil, refuse("player-scoped Pump grant keyword %q: the kernel reads a player's hexproof off the permanents they control, never off a runtime emblem", k)
+			sts = append(sts, lStatic{Kind: "PlayerHexproof"})
 		default:
 			return nil, refuse("player-scoped Pump grant keyword %q", k)
 		}
