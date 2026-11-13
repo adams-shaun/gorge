@@ -26,7 +26,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/rules"
 	engineseat "github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/matchrecord"
 	sbenv "github.com/adams-shaun/gorge/server/spellbench/env"
 	sbseat "github.com/adams-shaun/gorge/server/spellbench/seat"
@@ -369,7 +368,7 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 		}
 	}()
 
-	n, err := driveMatch(e, seats, observe)
+	n, err := driveMatch(e, seats, newSeatRoute(cfg, seats), observe)
 	if err != nil {
 		status := "failed"
 		if _, ok := err.(*rules.LivelockError); ok {
@@ -431,13 +430,14 @@ func reportDriveFailure(out io.Writer, seed uint64, seats, n int, err error) boo
 // either way -- crashing loudly. The engine is abandoned once it has
 // livelocked; nothing may drive it again.
 func driveGame(e *rules.Engine, s engineseat.Seat) (int, error) {
-	return driveMatch(e, []engineseat.Seat{s}, nil)
+	seats := []engineseat.Seat{s}
+	return driveMatch(e, seats, newSeatRoute(rules.Config{}, seats), nil)
 }
 
-// driveMatch submits intents for a table until the game ends. observe, when
-// non-nil, is called with every decision before the seat is asked; it only
-// reads the engine.
-func driveMatch(e *rules.Engine, seats []engineseat.Seat, observe func(*rules.Engine, *decision.Decision)) (n int, err error) {
+// driveMatch submits intents for a table until the game ends, asking each
+// seat the way the host does (route). observe, when non-nil, is called with
+// every decision before the seat is asked; it only reads the engine.
+func driveMatch(e *rules.Engine, seats []engineseat.Seat, route *seatRoute, observe func(*rules.Engine, *decision.Decision)) (n int, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if lle, ok := r.(*rules.LivelockError); ok {
@@ -459,18 +459,24 @@ func driveMatch(e *rules.Engine, seats []engineseat.Seat, observe func(*rules.En
 		// A consumer seat (the SpellBench v2 agent) sees the planner's cast
 		// candidates only through Decision.PaymentActions; build them before
 		// the projection copies the decision.
+		// Every EnvSeat's feed observes every decision of every player
+		// before anything is built for it, as the host's projectNext does.
+		route.observe(e)
 		if consumer, ok := seats[d.Player].(engineseat.PaymentPlanConsumer); ok && consumer.WantsPaymentActions() {
 			e.EnsurePaymentActions()
 		}
-		v := view.Project(e.G, e, d.Player, d)
-		v.Round = view.RoundOf(e.G, e.L.Events)
-		in, err := seats[d.Player].Decide(ctx, v, *d)
+		if consumer, ok := seats[d.Player].(engineseat.TargetHintConsumer); ok && consumer.WantsTargetHints() {
+			e.EnsureTargetHints()
+		}
+		in, err := route.decide(ctx, e, seats[d.Player], d)
 		if err != nil {
 			return n, fmt.Errorf("bot error at intent %d: %w", n, err)
 		}
+		route.prepareRecord(e, d, in)
 		if err := e.Submit(in); err != nil {
 			return n, fmt.Errorf("intent %d rejected: %w", n, err)
 		}
+		route.record(in)
 		n++
 	}
 	return n, nil

@@ -27,6 +27,8 @@ go run -trimpath ./cmd/mtgsim -seats 2 -a bot -b lethal-pressure
 ```
 
 Game *i* uses seed + *i*. A game that doesn't finish, or doesn't replay under `-verify`, is an error and a non-zero exit.
+Seats are asked the way `gorged` asks them: a search policy such as `az-redeal` answers from an honest root dealt from its
+own observation feed, and a heuristic seat from the same reused board.
 `-sb-agent name=/path` adds a SpellBench v2 stdio agent as a policy.
 
 ## cardfuzz

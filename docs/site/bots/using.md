@@ -43,8 +43,8 @@ hidden zones, never the opponent's hand or the library order.
 hostile removal that could only hit the bot's own permanents.
 
 `sb-tactical` and `az-redeal` need a driver that supplies their honest roots and the card registry.
-`testkit/bench.PlayGame` with `Hooks{EnvSeats: true, HonestRoot: true}` does. `mtgsim` doesn't: `-a sb-tactical` fails with
-`Deps.Cards is nil`, and `-a az-redeal` runs but never searches.
+`gorged`, `mtgsim` and `testkit/bench.PlayGame` with `Hooks{EnvSeats: true, HonestRoot: true}` do. A driver that only
+calls `Seat.Decide` gets `az-redeal`'s wrapped heuristic bot, which never searches.
 
 As the opponent for an HTTP bot, or the baseline for your own policy, use `bot`, with a `bot`-against-`bot` control on the
 same seeds. Start `gorged` with `-bot-policy bot` to make it the default.
