@@ -26,12 +26,12 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | SPM | 192 | 169 | 1 | 10 | 158 | 157 |
 | TDM | 276 | 257 | 3 | 8 | 246 | 246 |
 | TLA | 285 | 261 | 1 | 9 | 251 | 250 |
-| TMT | 194 | 183 | 0 | 13 | 170 | 169 |
+| TMT | 194 | 183 | 0 | 0 | 183 | 182 |
 | TRC | 337 | 301 | 0 | 32 | 269 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 | 306 |
 | WOE | 281 | 264 | 0 | 18 | 246 | 245 |
 | MBC | 2188 | 1754 | 1 | 1502 | 251 | 250 |
-| ALL | 34442 | 23573 | 21 | 18239 | 5313 | 5280 |
+| ALL | 34442 | 23573 | 21 | 18226 | 5326 | 5293 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.
 
@@ -63,7 +63,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | std-spm | 1500 |
 | std-tdm | 1500 |
 | std-tla | 1500 |
-| std-tmt | 1500 |
+| std-tmt | 1430 |
 | std-trc | 1500 |
 | std-trk | 1500 |
 | std-woe | 1500 |
