@@ -1924,9 +1924,10 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				// (gorge markChangeZoneAttach and the entry gate); anything
 				// else enters, then attaches when the bearer is a creature
 				// (czAttachBearerHost).
-				var host Slot
 				var stay bool
-				if host, stay = s.czAttachBearerHost(k, s.objRefObj(kop.Ref(in.W)), o, ep); stay {
+				bb := s.objRefObj(kop.Ref(in.W))
+				host, stay = s.czAttachBearerHost(k, bb, o, ep)
+				if stay {
 					continue
 				}
 				s.enterOnto(host)
