@@ -144,7 +144,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +16 (the merge with land at 1acc5919d9: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering beside land's later work; merged ALL 23115 -> 23131, WOE stays 264 measured).
 	// +14 (the merge with land at 6014a11d54: this branch's Extort lowering, the printed K:Extort expansion and the granted trigger, beside land's 23177; merged ALL 23177 -> 23191 measured).
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
-	"ALL": {23253, 34442},
+	// +11 (flip cards, kop.FaceFlip, and Count$ValidGraveyard Card.OwnedBy TargetedController: Orochi Eggwatcher, Nezumi Graverobber, Budoka Gardener, Initiate of Blood, Jushi Apprentice, Kuon, Ogre Ascendant; "any other target" as TgtAny with an Other filter beside DamageDealtOnce AtLeastOneInstance$: Matoc, Lavamancer, Black Panther, Most Dangerous, Red Hulk, Invasion of Tarkir, Invasion of Ulgrotha; ALL 23253 -> 23264 measured).
+	"ALL": {23264, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {218, 280},
@@ -159,10 +160,11 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
-	"MBC": {1678, 2188},
+	// +3 (Orochi Eggwatcher // Shidako, Broodmistress and Nezumi Graverobber // Nighteyes the Desecrator, flip cards; Matoc, Lavamancer, AtLeastOneInstance$ and "any other target"; 1678 -> 1681 measured).
+	"MBC": {1681, 2188},
 	"MKM": {251, 279},
-	"MOM": {201, 296},
-	"MSH": {246, 276},
+	"MOM": {203, 296}, // +2 Invasion of Tarkir, Invasion of Ulgrotha ("any other target")
+	"MSH": {247, 276}, // +1 Red Hulk ("any other target")
 	"NEO": {201, 287},
 	"ONE": {201, 271},
 	"OTJ": {252, 276},
