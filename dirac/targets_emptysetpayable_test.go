@@ -60,7 +60,7 @@ func TestTargetAskWithholdsUnpayableEmptySetBattlefieldReduction(t *testing.T) {
 		d := sc.s.Step()
 		offered := false
 		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(spell) {
+			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(spell)) {
 				sc.s.Apply(a)
 				offered = true
 				break

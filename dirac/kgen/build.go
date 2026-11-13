@@ -45,6 +45,7 @@ type ovSub struct {
 type built struct {
 	def      kop.CardDef
 	subs     []uint8        // pool subtype indexes of the printed type line
+	printed  []uint8        // a changeling's printed subs, before changelingSubs (cardset.PoolData.CardPrinted)
 	stAddSub [][]uint8      // per ability: the static's granted subtypes (pool indexes)
 	tokens   []int          // pool indexes of the tokens it creates
 	refSubs  []uint8        // pool subtypes the card's filters name
@@ -474,9 +475,8 @@ func (cb *cardBuilder) record() error {
 		return err
 	}
 	if c.Changeling {
-		for _, i := range cb.out.subs {
-			d.PrintedSubtypes = d.PrintedSubtypes.With(int(i))
-		}
+		// pool indexes, which a matchup renumbers into d.PrintedSubtypes
+		cb.out.printed = append([]uint8{}, cb.out.subs...)
 		cb.out.subs = changelingSubs(cb.pt, cb.out.subs)
 	}
 	if d.Keywords, err = kwMask(c.Kw); err != nil {
@@ -590,6 +590,23 @@ func (cb *cardBuilder) record() error {
 		}
 		d.Buyback = true
 		if d.Kicker, err = manaCostOf(*c.Buyback); err != nil {
+			return err
+		}
+		if c.KickerCost != nil {
+			if d.KickerCost, err = cb.cost(*c.KickerCost); err != nil {
+				return err
+			}
+		}
+	}
+	if c.Entwine != nil {
+		// Entwine rides the kicked cast (sfKicked, CardDef.Kicker) with
+		// CardDef.Entwine naming it (dirac/kw_entwine.go); refuseEntwineCombos
+		// keeps every other optional cost off the card
+		if c.Kicker != nil || c.Offspring != nil || c.Buyback != nil {
+			return fmt.Errorf("entwine with a kicker/offspring/buyback")
+		}
+		d.Entwine = true
+		if d.Kicker, err = manaCostOf(*c.Entwine); err != nil {
 			return err
 		}
 		if c.KickerCost != nil {
@@ -790,6 +807,14 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Surge != nil {
+		// CR 702.117a: the hand's alternative cost once another spell was
+		// cast this turn (dirac/kw_surge.go)
+		d.HasSurge = true
+		if d.SurgeCost, err = manaCostOf(*c.Surge); err != nil {
+			return err
+		}
+	}
 	if c.Overload != nil {
 		// CR 702.96a: the hand's alternative cost and the resolving program's
 		// each-variant (dirac/kw_overload.go)
@@ -884,6 +909,7 @@ func (cb *cardBuilder) record() error {
 			return fmt.Errorf("Retrace without its discard cost")
 		}
 		d.Retrace = true
+		d.JumpStart = c.JumpStart // CR 702.84a: Discard<1/Card> and the exile (dirac/kw_jumpstart.go)
 		if d.RetraceCost, err = cb.cost(*c.RetraceCost); err != nil {
 			return err
 		}
@@ -1101,6 +1127,16 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	if c.DiscardSelf {
 		out.Flags |= kop.CostDiscardSelf
 	}
+	if c.Discard2N > 0 {
+		// the second discard part of a spell's alternative cost
+		// (lower_discardtwo.go): its count and filter ride their own bytes
+		out.Discard2N = uint8(c.Discard2N)
+		if c.Discard2F != nil {
+			if out.Discard2F, err = cb.filter(c.Discard2F, kop.ZoneHand); err != nil {
+				return out, err
+			}
+		}
+	}
 	if c.Loyalty > 0 {
 		set(kop.CostAddCtr, c.Loyalty)
 		out.Ctr = kop.CtrLoyalty
@@ -1200,7 +1236,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		}
 	}
 	if c.ExileG != nil {
-		set(kop.CostExileGrave, c.ExileGN)
+		set(kop.CostExileGrave, c.ExileGN) // ExileGN 0 (ExileGX): the announced X (kernel cost_exilex.go)
 		if c.ExileGBf {
 			out.Flags |= kop.CostExileCtrlOrGrave
 		}
@@ -1654,7 +1690,7 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	case cmpHasX:
 		kf.Pred = kop.PredHasXCost
 	case cmpPowerLTToughness:
-		kf.Pred = kop.PredPowerLTToughness
+		kf.Pred, kf.PredN = kop.PredPowerLTToughness, int16(c.CmpN)
 	case cmpMultiColor:
 		kf.Pred = kop.PredMultiColor
 	case cmpHistoric:
@@ -1734,6 +1770,9 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		if c.CmpN == int(kop.W7EnteredFromBF) && zone == kop.ZoneBattlefield {
 			// the word reads a card's latest arrival; a permanent has none to read
 			return kf, refuse("ThisTurnEnteredFrom_Battlefield on the battlefield")
+		}
+		if c.CmpN == int(kop.W7EnteredFromLib) && zone == kop.ZoneBattlefield {
+			return kf, refuse("ThisTurnEnteredFrom_Library on the battlefield")
 		}
 		kf.Pred, kf.PredN = kop.PredWord7, int16(c.CmpN) // (kernel wordPerm / wordCard)
 	case cmpNotF2:
@@ -2021,12 +2060,16 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefPromised, nil
 	case rAttachedCtrl:
 		return kop.RefAttachedCtrl, nil
+	case rChosenPlayer:
+		return kop.RefChosenPlayer, nil
 	case rLastCreated:
 		return kop.RefLastCreated, nil
 	case rTaxedAttacker:
 		return kop.RefTaxedAttacker, nil
 	case rSrcOwner:
 		return kop.RefSrcOwner, nil
+	case rTriggeredOwner:
+		return kop.RefTriggerObjOwner, nil
 	case rTriggerAttackers:
 		return kop.RefTriggerAttackers, nil
 	case rRememberedOwner:
@@ -2200,6 +2243,9 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 	if v.Kind == vTimesKicked {
 		e.N = 1 // ExKicked N 1: the multikicker payment count (eval's timesKicked)
 	}
+	if v.Kind == vActivations {
+		e.N = int16(v.N) // ExActivations N 1: the evaluating source's count, an ActivationLimit$ gate (lower_activationlimitn.go)
+	}
 	if v.Kind == vThisTurnEntered {
 		e.N = int16(v.Zone)
 		e.From = v.From
@@ -2371,6 +2417,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 		ko.AddTypes |= subtypeTypeBits(o.SetSubtypes)
 	}
 	ko.HasSub = o.HasSetSubtypes
+	ko.RemoveTypes = typeMask(o.RemoveTypes)
 	ko.AllCreatureTypes = o.AllCreatureTypes
 	ko.RemoveCreatureSub = o.RemoveCreatureSub
 	ko.HasColors, ko.SetColors = o.HasSetColors, colorMask(o.SetColors)

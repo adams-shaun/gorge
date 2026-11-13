@@ -212,7 +212,7 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 						restricted = true
 					}
 					// A payment's bound reads a Chosen source's colour.
-					if payment == nil || !addPotentialChosenColour(e, &out, id, ma) {
+					if payment == nil || !addPotentialChosenColour(e, &out, id, ma) && !addPotentialIdentityColours(e, &out, p, ma) {
 						if !addPotentialReflected(e, &out, p, id, ma) {
 							e.addPotentialManaOf(&out, ma)
 							// A Condition-split ability adds its sub's production instead
@@ -424,6 +424,32 @@ func addPotentialChosenColour(e *Engine, m *state.Mana, id state.ObjID, ma *card
 		return false
 	}
 	m[i] = saturatingPotentialMana(m[i], amt)
+	return true
+}
+
+// addPotentialIdentityColours adds a commander-identity ability's exact
+// production -- one mana of each colour in its payer's commanders' colour
+// identity (Arcane Signet, Command Tower: CR 903.4) -- and reports whether it
+// did. The plain PotentialMana over-bound prices the ColorIdentity word
+// unbounded in every colour; a payment's bound must not, or a triggered "you
+// may pay {5}{R}{R}" is offered to a seat whose only untapped source is one
+// Arcane Signet (CR 106.1a, 118.3). False (the caller's ordinary fold) for any
+// other production or an indeterminate amount; an empty identity never gets
+// here (potentialIdentityEmpty).
+func addPotentialIdentityColours(e *Engine, m *state.Mana, p state.PlayerID, ma *cards.SA) bool {
+	mp := effects.ManaOf(ma)
+	if !pay.IsColourIdentityProduced(mp.Produced) {
+		return false
+	}
+	amt, indeterminate := potentialAmount(mp)
+	if indeterminate {
+		return false
+	}
+	for _, c := range pay.CommanderIdentityColours(asPayer(e), p) {
+		if i := state.ManaIndex(c[0]); i != state.MC {
+			m[i] = saturatingPotentialMana(m[i], amt)
+		}
+	}
 	return true
 }
 

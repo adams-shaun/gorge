@@ -245,7 +245,7 @@ func TestSelfCondReadKindsGuard(t *testing.T) {
 			sc := newScenTableLib(t, &tbl, libID, Config{NoElide: true})
 			sl := sc.slot(sc.perm(id, 0))
 			if c.chosen >= 0 {
-				sc.s.perms[sl].chosen = uint8(c.chosen)
+				sc.s.perms[sl].chosen = objWord(uint8(c.chosen))
 				sc.s.refreshTy(sc.k) // the chosen value is read by the condition
 			}
 			if sc.k.gen.fxNeed&fxNeedGlobal == 0 {

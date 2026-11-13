@@ -103,7 +103,7 @@ func TestActOnlyRestrOffersActivation(t *testing.T) {
 	d := s.Step()
 	acts := 0
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkActivate && a.Source() == uint8(boom) {
+		if a.Kind() == AkActivate && a.Source() == TCode(uint8(boom)) {
 			acts++
 		}
 	}

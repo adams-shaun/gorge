@@ -30,3 +30,21 @@ func (s *State) activationsOfResolving() int {
 // DebugNoActCount (TestActivationLimitMutation): ExActivations reads 0, so a
 // ConditionActivationLimit$ gate never holds.
 var DebugNoActCount bool
+
+// activationsOfSource is ExActivations N 1: the evaluating source's non-mana
+// activations this turn, the ActivationLimit$ N offer gate (gorge
+// legal_loyalty.go activationLimitBlocked reads activationUsedCount before
+// the activation is pushed, so the one being offered is not in it). kgen
+// lowers it only on a printed battlefield ability that is its card's one
+// non-mana activated ability, where the per-object census is the ability's
+// own count (dirac/kgen/lower_activationlimitn.go).
+func (s *State) activationsOfSource(ctx evalCtx) int {
+	if ctx.src == NoObj {
+		return 0
+	}
+	ob := &s.objs[ctx.src]
+	if ob.zone != kop.ZoneBattlefield {
+		return 0
+	}
+	return int(ob.activations())
+}

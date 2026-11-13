@@ -48,8 +48,17 @@ func IsDraftCommanderPair(a, b *cards.Card) bool {
 	if IsCommanderPair(a, b) {
 		return true
 	}
-	half := func(c *cards.Card) bool {
-		return IsCommanderEligible(c) && (hasPlainPartner(c) || HasImpliedDraftPartner(c))
+	return IsDraftPairHalf(a) && IsDraftPairHalf(b)
+}
+
+// IsDraftPairHalf reports whether c may be one half of a Commander-draft
+// pair under the draft rule alone: a commander-eligible card with plain
+// partner, or one that may be treated as having it (HasImpliedDraftPartner).
+// Partner-with, partner—[text], Doctor's-companion and Background pairs are
+// IsCommanderPair's, and pair only with their own counterpart.
+func IsDraftPairHalf(c *cards.Card) bool {
+	if c == nil || len(c.Faces) == 0 {
+		return false
 	}
-	return half(a) && half(b)
+	return IsCommanderEligible(c) && (hasPlainPartner(c) || HasImpliedDraftPartner(c))
 }

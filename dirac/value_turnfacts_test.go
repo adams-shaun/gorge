@@ -45,8 +45,8 @@ func TestOutlastsTurn(t *testing.T) {
 	if d.Kind != DkPriority || d.Player != 0 || s.StepNow() != kop.StepMain1 {
 		t.Fatalf("decision kind %d player %d step %d, want seat 0's main-1 priority", d.Kind, d.Player, s.StepNow())
 	}
-	cast := func(o Obj, mode uint8) Action { return MakeAction(AkCast, uint8(o), 0, mode) }
-	act := func(o Obj) Action { return MakeAction(AkActivate, uint8(o), 0, 0) }
+	cast := func(o Obj, mode uint8) Action { return MakeAction(AkCast, TCode(o), 0, mode) }
+	act := func(o Obj) Action { return MakeAction(AkActivate, TCode(o), 0, 0) }
 	for _, c := range []struct {
 		name string
 		a    Action
@@ -64,7 +64,7 @@ func TestOutlastsTurn(t *testing.T) {
 		{"the other player's permanent's ability", act(oppFb), false},
 		{"an ability off the battlefield", act(gfb), false},
 		{"pass", MakeAction(AkPass, 0, 0, 0), false},
-		{"a land play", MakeAction(AkPlayLand, uint8(bl), 0, 0), false},
+		{"a land play", MakeAction(AkPlayLand, TCode(bl), 0, 0), false},
 		{"an object past the objects", cast(Obj(s.nobj), 0), false},
 	} {
 		if got := s.OutlastsTurn(c.a); got != c.want {
@@ -275,7 +275,7 @@ func TestOutlastsTurnSick(t *testing.T) {
 					}
 					if c.sick && c.eotHaste && c.lose == keeps {
 						// an ability index past the card's, a grant's host past the objects: turn-bound
-						for _, bad := range []Action{MakeAction(AkActivate, uint8(src), 0, 0x7f), MakeAction(AkActivate, uint8(src), uint8(s.nobj), 0x80)} {
+						for _, bad := range []Action{MakeAction(AkActivate, TCode(src), 0, 0x7f), MakeAction(AkActivate, TCode(src), TCode(s.nobj), 0x80)} {
 							if s.OutlastsTurn(bad) {
 								t.Errorf("%s: OutlastsTurn true for the malformed option %v", c.name, bad)
 							}

@@ -82,7 +82,7 @@ func (s *State) askOptionsBreach(k *prep, d *Decision) bool {
 	pl := &s.pl[s.g.pickP]
 	for _, o := range pl.grave[:pl.graveN] {
 		if s.breachCand(k, o) {
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 	return true

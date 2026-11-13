@@ -80,6 +80,11 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredCards":
 		// gorge definedSpecTriggeredCard reads the card forms
 		return lRef{Kind: rTriggered}, nil
+	case "TriggeredCardOwner":
+		// gorge definedSpecTriggeredCardOwner: the triggering card's
+		// immutable owner (CR 108.3), the player kernel RefTriggerObjOwner
+		// reads off the trigger object
+		return lRef{Kind: rTriggeredOwner}, nil
 	case "TriggeredAttacker", "TriggeredAttackerLKICopy":
 		// gorge binds the one attacker that raised the event: an Attacks
 		// trigger queues one trigger per matching attacker
@@ -177,6 +182,12 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// already left is a gone object, and Destroy of a gone object is a
 		// no-op in the kernel as in gorge).
 		if tr := lc.ab.Trigger; ddoObjectReferent(tr) {
+			return lRef{Kind: rTriggered}, nil
+		}
+		// a BecomesTarget watcher: the targeted permanent (gorge
+		// becomesTargetReferent), the trigger object the kernel's
+		// btWatchers queues
+		if tr := lc.ab.Trigger; tr != nil && tr.Event == "BecomesTarget" && tr.Watch && v == "TriggeredTarget" {
 			return lRef{Kind: rTriggered}, nil
 		}
 		// The player dealt the damage. The kernel's trigger player there is
@@ -315,6 +326,9 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 	}
 	if r, ok := lc.chosenPlayerDefined(v); ok {
 		return r, nil // lower_definedheads.go
+	}
+	if r, ok := lc.chosenPlayerEnterDefined(v); ok {
+		return r, nil // lower_chooseplayerenter.go
 	}
 	switch v {
 	case "OppNonRememberedController":
@@ -952,6 +966,11 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 	if rerr != nil {
 		return rerr
 	}
+	if !isRes {
+		if ri, isRes, rerr = lc.resUnlessDiscard(strings.TrimSpace(uc)); rerr != nil { // lower_costtokens.go
+			return rerr
+		}
+	}
 	if isRes {
 		in = ri
 	} else if _, isVar := lc.face.SVars[strings.TrimSpace(uc)]; isVar {
@@ -1543,12 +1562,23 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 	case "Assimilate":
 		return lc.assimilate(ps) // lower_assimilate.go
 	case "ChangeZoneAll":
+		// AbilityCount$ X names the SVar the ChangeType$ X-comparison reads;
+		// gorge reads the comparison's own SVar and never this param
+		// (Profaner of the Dead), so it is inert here too
+		if ps.str("AbilityCount") == "X" {
+			ps.consume("AbilityCount")
+		}
 		return lc.changeZoneAll(ps)
 	case "Draw":
 		remDrawn, remAll, err := rememberDrawn(ps)
 		if err != nil {
 			return err
 		}
+		// Reveal$ (Fa'adiyah Seer's "draw a card and reveal it"): gorge's
+		// compileDraw reads no Reveal key (it is an unread Note) and its draw
+		// emits no reveal event, so the drawn card changes nothing a later
+		// node reads; the remembered card (RememberDrawn$) is the whole effect.
+		ps.consume("Reveal")
 		if who, ok, err := lc.targetedAndYou(ps, "Defined"); err != nil {
 			return err
 		} else if ok {
@@ -1662,6 +1692,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if _, ok := ps.get("DefinedKW"); ok {
 			return lc.colorGrantPump(ps) // (Skrelv)
 		}
+		lc.chosenStrictPump(ps) // lower_choosecardenter.go
 		if done, err := lc.pumpYouAndValid(ps); done || err != nil {
 			return err // lower_definedheads.go
 		}
@@ -1767,6 +1798,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		lc.emit(lInstr{Op: sa.API, Obj: obj})
 	case "Fight":
 		return lc.fight(ps)
+	case "RemoveFromCombat":
+		return lc.removeFromCombat(ps) // lower_removefromcombat.go
 	case "Earthbend":
 		return lc.earthbend(ps)
 	case "Endure":
@@ -1898,7 +1931,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			if !lc.inGroup {
 				return refuse("Sacrifice Defined$ DelayTriggerRememberedLKI outside a Mobilize group")
 			}
-			lc.emit(lInstr{Op: "SacrificeDelayed", Obj: lRef{Kind: rDelayedRemembered}})
+			lc.emitSacDelayed()
 			return nil
 		}
 		if ps.str("Mode") == "TgtChoose" {
@@ -1968,7 +2001,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			if !lc.inGroup {
 				return refuse("SacrificeAll Defined$ DelayTriggerRememberedLKI outside a delayed group")
 			}
-			lc.emit(lInstr{Op: "SacrificeDelayed", Obj: lRef{Kind: rDelayedRemembered}})
+			lc.emitSacDelayed()
 			return nil
 		}
 		if _, ok := ps.get("ValidCards"); !ok {
@@ -2269,6 +2302,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.debuff(ps)
 	case "Explore":
 		return lc.explore(ps)
+	case "Exploit":
+		return lc.exploit(ps) // lower_exploit.go
 	case "Discover":
 		return lc.discover(ps)
 	case "Hideaway":
@@ -2293,7 +2328,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if err != nil {
 			return err
 		}
-		if !n.isConst() || n.N < 1 || n.N > 8 {
+		if !(n.isConst() && n.N >= 1 && n.N <= 8) && !rearrangeWholeLibrary(n) {
 			return refuse("RearrangeTopOfLibrary NumCards %v", n)
 		}
 		who, err := lc.objOrTarget(ps, "You", zNone)
@@ -2499,7 +2534,7 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 			// plus a second node's "any other target" that may be a player)
 			return refuse("DamageMap$ True with DamageSource$: the kernel has no damage-map flush")
 		}
-		if obj.Kind == rEachOpp {
+		if obj.Kind == rEachOpp || obj.Kind == rDefending {
 			return lc.dmgSrcPlayers(ps, dmgSrc, obj, n) // lower_damagesourceplayers.go
 		}
 		if obj.Kind == rTarget {
@@ -3244,6 +3279,10 @@ const mustBeBlockedKW = "HIDDEN CARDNAME must be blocked if able."
 // ExtMustBeBlocked with C = MustBeBlockedLure.
 const lureKW = "HIDDEN All creatures able to block CARDNAME do so."
 
+// protEachColorKW is the PumpAll KW$ term "Protection from each color"
+// (Akroma's Will): a mark per colour, not a keyword bit (ExtColorGrant).
+const protEachColorKW = "Protection from each color"
+
 // splitKWSentence takes one mark sentence (mustBeBlockedKW,
 // cantAttackOrBlockKW) out of a KW$ list: the rest of the list (possibly
 // empty) and whether the sentence was there. Any other spelling stays in the
@@ -3335,11 +3374,15 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	if scope.Kind != rNone {
 		in.Note = "only the target player's permanents"
 	}
-	mustBlock := false
+	mustBlock, eachColor := false, false
 	if kw, ok := ps.get("KW"); ok {
 		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
 		if mustBlock && scope.Kind != rNone {
 			return refuse("PumpAll KW$ must be blocked if able with a ValidTgts$ player scope")
+		}
+		kw, eachColor = splitKWSentence(kw, protEachColorKW)
+		if eachColor && scope.Kind != rNone {
+			return refuse("PumpAll KW$ protection from each color with a ValidTgts$ player scope")
 		}
 		if kw != "" {
 			ks, err := pumpKeywords(kw)
@@ -3351,8 +3394,16 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	}
 	_, hasAtt := ps.m["NumAtt"]
 	_, hasDef := ps.m["NumDef"]
-	if !mustBlock || in.CS != "" || hasAtt || hasDef {
+	if !(mustBlock || eachColor) || in.CS != "" || hasAtt || hasDef {
 		lc.emit(in)
+	}
+	if eachColor {
+		// CR 702.16 + 611.2c: the permanents matching ValidCards$ as this
+		// resolves have protection from each color until end of turn (gorge
+		// sourceHasQuality's "each color": any coloured source). The same
+		// marks as a chosen-colour grant, one per colour (ExtColorGrant C
+		// cgProt|cgProtAll; Akroma's Will)
+		lc.emit(lInstr{Op: "ColorGrant", F: f, A: cst(0), C: 12, Note: "until end of turn: each matching permanent has protection from each color"})
 	}
 	if mustBlock {
 		lc.emit(lInstr{Op: "MustBeBlocked", F: f}) // every permanent matching ValidCards$
@@ -4139,6 +4190,8 @@ func (lc *lowerCtx) charm(ps *params) error {
 		if rp != nil {
 			return lc.charmRepeatTargets(rp, len(choices))
 		}
+	} else if lc.out.Entwine != nil {
+		return lc.entwineTargets(len(choices), rootTargeted) // lower_entwine.go
 	}
 	return nil
 }

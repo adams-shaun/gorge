@@ -194,13 +194,13 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 		case dirac.AkPass:
 			o.kind = okPass
 		case dirac.AkPlayLand:
-			o.kind, o.obj = okPlayLand, src
+			o.kind, o.obj = okPlayLand, uint8(src)
 		case dirac.AkCast, dirac.AkCastCasualty, dirac.AkCastConspire:
-			o.kind, o.obj = okCast, src
+			o.kind, o.obj = okCast, uint8(src)
 			switch {
 			case a.Kind() == dirac.AkCastCasualty || a.Kind() == dirac.AkCastConspire:
 				o.mode = uint8(len(modeValues)) // gorge's "casualty" (the mode-other slot)
-			case mode&1 != 0 && (e.st0.FeatOffspringCast(dirac.Obj(src)) || e.st0.FeatBuybackCast(dirac.Obj(src))):
+			case mode&1 != 0 && (e.st0.FeatOffspringCast(dirac.Obj(src)) || e.st0.FeatBuybackCast(dirac.Obj(src)) || e.st0.FeatEntwineCast(dirac.Obj(src))):
 				o.mode = uint8(len(modeValues)) // gorge's "offspring" / "buyback" (the mode-other slot)
 			case mode&1 != 0:
 				o.mode = 1
@@ -222,12 +222,12 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 				}
 			}
 		case dirac.AkActivate:
-			o.kind, o.obj = okAbility, src
+			o.kind, o.obj = okAbility, uint8(src)
 		}
 	case dirac.DkAttackers:
 		o.dk = dkAttackers
 		if a.Kind() == dirac.AkAttack {
-			o.kind, o.obj = okAttacker, src
+			o.kind, o.obj = okAttacker, uint8(src)
 			// gorge's attacker option names the defending player (Option.
 			// Player): with two seats, always the attacker's opponent --
 			// a planeswalker's controller or a battle's protector included
@@ -239,13 +239,13 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 			// combat if able Required (rules mustAttackRequired)
 			o.required = e.st0.MustAttack(dirac.Obj(src))
 			if dirac.IsObjTarget(tgt) {
-				o.battle = tgt
+				o.battle = uint8(tgt)
 			}
 		}
 	case dirac.DkBlockers:
 		o.dk = dkBlockers
 		if a.Kind() == dirac.AkBlock {
-			o.kind, o.obj, o.attacker, o.group = okBlock, src, tgt, true
+			o.kind, o.obj, o.attacker, o.group = okBlock, uint8(src), uint8(tgt), true
 		}
 	case dirac.DkTarget:
 		o.dk = dkTarget
@@ -259,9 +259,9 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 		default:
 			// gorge names every object target "permanent" except one on
 			// the stack ("spell").
-			o.obj = tgt
+			o.obj = uint8(tgt)
 			o.kind = okPermanent
-			if int(tgt) < int(e.kp.NObj) && e.po(tgt).Zone == kop.ZoneStack {
+			if int(tgt) < int(e.kp.NObj) && e.po(uint8(tgt)).Zone == kop.ZoneStack {
 				o.kind = okSpell
 			}
 		}
@@ -272,7 +272,7 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 		}
 	case dirac.DkTriggerOrder:
 		// AkOrder packs source = the trigger's source object, target = pending index.
-		o.dk, o.kind, o.obj = dkTriggerOrder, okTrigger, src
+		o.dk, o.kind, o.obj = dkTriggerOrder, okTrigger, uint8(src)
 	case dirac.DkMulligan:
 		o.dk = dkMulligan
 		if a.Kind() == dirac.AkKeep {
@@ -291,7 +291,7 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 			}
 			break
 		}
-		o.obj = src
+		o.obj = uint8(src)
 		switch d.Sub {
 		case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick:
 			o.kind, o.obj, o.amount = okX, noObj, int32(mode)
@@ -340,7 +340,7 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 			}
 		case dirac.ChDivide:
 			o.kind = okDivision
-			o.amount = e.firstShare(src, int(mode))
+			o.amount = e.firstShare(uint8(src), int(mode))
 		case dirac.ChAltAdd:
 			// gorge's "altaddcost" option: Amount is the part's index in
 			// the card's either-or list (0 the spell's own, 1 the

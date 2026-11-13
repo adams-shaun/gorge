@@ -2514,6 +2514,11 @@ func resolutionChosenCards(g *state.Game, c *Ctx) []state.Target {
 	if c.ChosenValid || len(c.Chosen) > 0 {
 		return copyTargets(c.Chosen)
 	}
+	if c.TriggerContext.SourceLKIValid {
+		// The source left the battlefield after the ability was created:
+		// its live Chosen was cleared by the move, the last-known one stands.
+		return copyTargets(c.TriggerContext.SourceChosen)
+	}
 	if o := g.Obj(c.Source); o != nil {
 		return copyTargets(o.Chosen)
 	}
