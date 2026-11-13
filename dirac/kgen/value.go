@@ -703,6 +703,19 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			}
 			break
 		}
+		if lc.repeatPl > 0 {
+			if mv, ok := remEachOwnNonLand(rest); ok {
+				// Kroxa, Titan of Death's Hunger's gate: the discarded cards
+				// owned by the repeated opponent that are nonland (gorge
+				// evalRememberedOK's Remembered$Valid fold over the set
+				// effRepeatEach binds; lower_repeatplayers.go). The
+				// parameterless read keeps the filter build untouched;
+				// outside a RepeatEach player body the generic Valid arm
+				// below keeps the refusal.
+				v = mv
+				break
+			}
+		}
 		if spec, ok := strings.CutPrefix(rest, "Valid "); ok {
 			// gorge evalRefProperty Valid: the remembered objects matching
 			// the spec where they now are (kernel countRefMatches)

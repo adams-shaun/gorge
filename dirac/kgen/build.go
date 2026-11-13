@@ -2106,7 +2106,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vOppLifeLostThisTurn: kop.ExOppLifeLostThisTurn, vCountersOn: kop.ExCountersOn, vCreaturesDied: kop.ExCreaturesDied,
 	vRememberedCount: kop.ExRememberedCount, vExcessDamage: kop.ExExcessDamage, vLastLifeLost: kop.ExLastLifeLost,
 	vTokensCreated: kop.ExTokensCreated, vLifeLostThisTurn: kop.ExLifeLostThisTurn, vSum: kop.ExSum,
-	vHandSizeOf: kop.ExHandSizeOf, vCountExile: kop.ExCountExile, vExileTypes: kop.ExCountExile, vOppsLostLife: kop.ExOppsLostLife, vMVOf: kop.ExMVOf, vNotOwnLibMV: kop.ExNotOwnLibMV,
+	vHandSizeOf: kop.ExHandSizeOf, vCountExile: kop.ExCountExile, vExileTypes: kop.ExCountExile, vOppsLostLife: kop.ExOppsLostLife, vMVOf: kop.ExMVOf, vNotOwnLibMV: kop.ExNotOwnLibMV, vRemEachOwnNonLand: kop.ExRemEachOwnNonLand,
 	vCountAtLeast: kop.ExCountAtLeast,
 	vPromisedGift: kop.ExPromisedGift, vResolvedThisTurn: kop.ExResolvedThisTurn,
 	vThisTurnCast: kop.ExThisTurnCast,

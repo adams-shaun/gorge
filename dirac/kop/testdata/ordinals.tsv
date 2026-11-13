@@ -407,6 +407,7 @@ ExProduct	ExprKind	54
 ExPromisedGift	ExprKind	31
 ExRedNCDmg	ExprKind	253
 ExRefCount	ExprKind	56
+ExRemEachOwnNonLand	ExprKind	64
 ExRemLKIPT	ExprKind	240
 ExRememberedCount	ExprKind	20
 ExResolvedThisTurn	ExprKind	32
