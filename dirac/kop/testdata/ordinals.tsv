@@ -1349,6 +1349,7 @@ Tf3ManaFromTreasure	TrigFlags3	4
 Tf3MayPlaySrc	TrigFlags3	32
 Tf3OrTargets	TrigFlags3	8
 Tf3Static	TrigFlags3	16
+Tf4CauseSpellAb	TrigFlags4	8
 Tf4CounterCell	TrigFlags4	4
 Tf4DefEnch	TrigFlags4	128
 Tf4NamedCast	TrigFlags4	16
@@ -1460,6 +1461,8 @@ TrigLifeLost	TrigEvent	10
 TrigManaExpend	TrigEvent	21
 TrigManifestDread	TrigEvent	45
 TrigNAnyCounter	int16	-1
+TrigNCauseSpellOppCtrl	int16	2
+TrigNCauseSpellYouCtrl	int16	1
 TrigNMonarchBeganTurn	int16	1
 TrigNTeamworkTap	int16	1
 TrigNTraining	int16	2
