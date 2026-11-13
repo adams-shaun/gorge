@@ -1115,12 +1115,13 @@ func spellAb(k *prep, c CardID) uint8 {
 }
 
 // spellTargetsFeasibleFrom is spellTargetsFeasible for the spell card o, cast
-// from the graveyard: o is on the stack by the time its targets are chosen, so
-// it is no candidate for them (gorge castTargetsAvailable names the cast card).
+// from the graveyard or exile: o is on the stack by the time its targets are
+// chosen, so it is no candidate for them (CR 115.5, 601.2a; gorge
+// castTargetsAvailable names the cast card in every zone).
 // Flashback under The Dawning Archaic with no other instant or sorcery in the
 // graveyard has no target and is not offered.
 func (s *State) spellTargetsFeasibleFrom(k *prep, c CardID, p uint8, o Obj) bool {
-	if s.objs[o].zone != kop.ZoneGraveyard {
+	if z := s.objs[o].zone; z != kop.ZoneGraveyard && z != kop.ZoneExile {
 		return s.spellTargetsFeasible(k, c, p)
 	}
 	s.g.tgtSelf = uint8(o) + 1

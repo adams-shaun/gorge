@@ -21,3 +21,10 @@ const (
 	StAtkTaxPlayer = StOncePerTurn
 	StAtkTaxWalker = StAnyManaType
 )
+
+// RefTaxedAttacker is the creature an attack-tax charge is being priced for
+// (Nils, Discipline Enforcer's RememberingAttacker$): atkTaxCharge binds it
+// beside each (attacker, defender) pair it prices, the charge
+// Remembered$CardCounters.ALL reads the priced creature's live counters off
+// it. None outside a charge (the uncounted convention: 0 reads none).
+const RefTaxedAttacker Ref = 38

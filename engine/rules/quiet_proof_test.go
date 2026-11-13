@@ -882,35 +882,43 @@ func optKinds(opts []decision.Option) []string {
 // §4.2 item 5: corpus sweep
 // ---------------------------------------------------------------------------
 
-// TestQuietProofCorpusSweep builds one battlefield, hand and graveyard object
-// per corpus card face that has facts, and asserts the §2.1 contract for
+// TestQuietProofCorpusSweepChunk0..15 build one battlefield, hand and graveyard
+// object per corpus card face that has facts, and assert the §2.1 contract for
 // every seat and both timing classes: when seatQuiet is true the full walk
 // offered no non-mana option. It is the soundness gate for the blocker table.
 //
-// It is sharded by card index so no shard exceeds the 2 GB / 1 min budget;
-// run every shard with -run TestQuietProofCorpusSweep, or one shard with
-// -run 'TestQuietProofCorpusSweep$/^3-of-8$'. The shards run in parallel
-// (t.Parallel): the whole sweep is ~2x one shard's wall under the 2-vCPU cap
-// instead of 8x, so the parent test itself stays inside the per-test budget
-// that the serial run exceeded on a loaded box (74 s).
-func TestQuietProofCorpusSweep(t *testing.T) {
+// It is sharded by card index into top-level chunk tests (the wall budget
+// judges top-level tests, and a parent that owns parallel subtests is timed
+// with its queueing); run every chunk with -run TestQuietProofCorpusSweepChunk,
+// or one with -run '^TestQuietProofCorpusSweepChunk3$'. The chunks run in
+// parallel (t.Parallel). TestCensusChunksCoverEverySubject keeps the declared
+// chunk tests in step with quietSweepChunks.
+const quietSweepChunks = 16
+
+func TestQuietProofCorpusSweepChunk0(t *testing.T)  { quietProofCorpusSweepChunk(t, 0) }
+func TestQuietProofCorpusSweepChunk1(t *testing.T)  { quietProofCorpusSweepChunk(t, 1) }
+func TestQuietProofCorpusSweepChunk2(t *testing.T)  { quietProofCorpusSweepChunk(t, 2) }
+func TestQuietProofCorpusSweepChunk3(t *testing.T)  { quietProofCorpusSweepChunk(t, 3) }
+func TestQuietProofCorpusSweepChunk4(t *testing.T)  { quietProofCorpusSweepChunk(t, 4) }
+func TestQuietProofCorpusSweepChunk5(t *testing.T)  { quietProofCorpusSweepChunk(t, 5) }
+func TestQuietProofCorpusSweepChunk6(t *testing.T)  { quietProofCorpusSweepChunk(t, 6) }
+func TestQuietProofCorpusSweepChunk7(t *testing.T)  { quietProofCorpusSweepChunk(t, 7) }
+func TestQuietProofCorpusSweepChunk8(t *testing.T)  { quietProofCorpusSweepChunk(t, 8) }
+func TestQuietProofCorpusSweepChunk9(t *testing.T)  { quietProofCorpusSweepChunk(t, 9) }
+func TestQuietProofCorpusSweepChunk10(t *testing.T) { quietProofCorpusSweepChunk(t, 10) }
+func TestQuietProofCorpusSweepChunk11(t *testing.T) { quietProofCorpusSweepChunk(t, 11) }
+func TestQuietProofCorpusSweepChunk12(t *testing.T) { quietProofCorpusSweepChunk(t, 12) }
+func TestQuietProofCorpusSweepChunk13(t *testing.T) { quietProofCorpusSweepChunk(t, 13) }
+func TestQuietProofCorpusSweepChunk14(t *testing.T) { quietProofCorpusSweepChunk(t, 14) }
+func TestQuietProofCorpusSweepChunk15(t *testing.T) { quietProofCorpusSweepChunk(t, 15) }
+
+func quietProofCorpusSweepChunk(t *testing.T, k int) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
-	n := reg.Len()
-	if n == 0 {
+	if reg.Len() == 0 {
 		t.Fatal("corpus sweep precondition: the registry is empty")
 	}
-	const shards = 8
-	for shard := 0; shard < shards; shard++ {
-		t.Run(shardName(shard), func(t *testing.T) {
-			t.Parallel()
-			sweepShard(t, reg, n, shard, shards)
-		})
-	}
-}
-
-func shardName(shard int) string {
-	return string(rune('0'+shard)) + "-of-8"
+	sweepShard(t, reg, reg.Len(), k, quietSweepChunks)
 }
 
 // sweepShard visits every shards'th card by index, places it on the

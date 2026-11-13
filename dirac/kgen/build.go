@@ -1965,6 +1965,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefAttachedCtrl, nil
 	case rLastCreated:
 		return kop.RefLastCreated, nil
+	case rTaxedAttacker:
+		return kop.RefTaxedAttacker, nil
 	case rSrcOwner:
 		return kop.RefSrcOwner, nil
 	case rTriggerAttackers:

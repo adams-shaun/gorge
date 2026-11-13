@@ -3174,6 +3174,23 @@ func (s *State) paymentStranded(k *prep, e *stackEntry, cost *kop.ManaCost) bool
 		s.CopyFrom(saved)
 		return !ok
 	}
+	if known && !ok && k.gen.anyFilt && s.scriptFilt(k, e.ctrl).any() {
+		// The greedy walk never activates a paid-fee filter ({1},{T}: any
+		// colour); gorge's census (castWindowReachable) searches them, so the
+		// window opens when some filter set pays the cost (CR 601.2g-h).
+		// availFor and scriptFilt read ctrlM, which still holds the committed
+		// picks s.occ withholds: a pick with a mana ability would count a second
+		// time, after convokeApplyPicks already paid its share (gorge's census
+		// skips convokeCommitted). Take them out of the seat's mask meanwhile.
+		c := *cost
+		var av avail
+		held := s.ctrlM[e.ctrl]
+		s.ctrlM[e.ctrl] = held.and(s.occ)
+		s.availForBuilt(k, e, &av)
+		reach := s.faceReachable(k, e.ctrl, &av, &c, 0)
+		s.ctrlM[e.ctrl] = held
+		return !reach
+	}
 	return known && !ok
 }
 

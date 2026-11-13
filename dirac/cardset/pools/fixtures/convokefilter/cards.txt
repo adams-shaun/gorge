@@ -1,0 +1,9 @@
+# the convoke fee-filter pool (CR 601.2g, 702.51a): a convoke creature, a
+# mana creature a cast may convoke, a creature whose {1},{T} filter the
+# stranded-payment census must price, and basics
+# (dirac/convoke_stranded_manadork_pick_test.go)
+Halo Hopper
+Llanowar Elves
+Rootrider Faun
+Plains
+Forest
