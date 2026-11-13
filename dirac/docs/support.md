@@ -25,12 +25,12 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | SOS | 270 | 257 | 0 | 8 | 249 | 249 |
 | SPM | 192 | 169 | 1 | 10 | 158 | 157 |
 | TDM | 276 | 256 | 3 | 8 | 245 | 245 |
-| TLA | 285 | 261 | 2 | 9 | 250 | 249 |
+| TLA | 285 | 261 | 1 | 9 | 251 | 250 |
 | TMT | 194 | 183 | 0 | 13 | 170 | 169 |
 | TRC | 337 | 300 | 0 | 34 | 266 | 263 |
 | TRK | 311 | 311 | 0 | 0 | 311 | 306 |
 | WOE | 281 | 264 | 0 | 18 | 246 | 245 |
-| ALL | 34442 | 23161 | 24 | 18045 | 5092 | 5061 |
+| ALL | 34442 | 23161 | 23 | 18045 | 5093 | 5062 |
 
 `ALL` is the whole corpus; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.
 
@@ -70,13 +70,13 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-24 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+23 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | decision | 1 |
 | options | 5 |
-| options-options | 3 |
+| options-options | 2 |
 | projection | 1 |
 | projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Damage | 1 |
