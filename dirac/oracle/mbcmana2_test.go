@@ -9,21 +9,20 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The MBC mana-abilities-2 lockstep: Relic of Legends' second "tap an untapped
-// legendary creature you control: add one mana of any color" beside its {T}
-// ability, and the pip-fee {T} filters (Apprentice Wizard's "{U}, {T}: add {C}{C}{C}",
+// The MBC mana-abilities-2 lockstep: the pip-fee {T} filters (Apprentice Wizard's "{U}, {T}: add {C}{C}{C}",
 // Ceta Disciple's and Necra Disciple's any-colour one, Fire Sprites' {R}). Each has
 // its own deck, the card over artifacts, legendary creatures and spells only
 // its mana casts (Air Elemental, Serra Angel, Juggernaut), against a plain
 // creature deck. The tracked ability must be activated on gorge's side, so the
 // lockstep compares the kernel's walk of it. Krark-Clan Ironworks (a no-{T}
-// "sacrifice an artifact" ability) stays refused: its lowering diverged from
-// gorge beside depletion lands (see the report).
-var kmbc2Names = []string{"Apprentice Wizard", "Ceta Disciple", "Fire Sprites", "Necra Disciple", "Relic of Legends"}
+// "sacrifice an artifact" ability) and Relic of Legends (a no-{T}
+// tap-another second ability) stay refused: their lowerings diverged from gorge
+// (see the report).
+var kmbc2Names = []string{"Apprentice Wizard", "Ceta Disciple", "Fire Sprites", "Necra Disciple"}
 
 // kmbc2Cost: the cost text of the tracked mana ability, so the count is of that
-// ability's activations and not of Relic of Legends' own {T} one.
-var kmbc2Cost = map[string]string{"Relic of Legends": "tapXType", "Apprentice Wizard": "T", "Ceta Disciple": "T", "Fire Sprites": "T", "Necra Disciple": "T"}
+// ability's activations.
+var kmbc2Cost = map[string]string{"Apprentice Wizard": "T", "Ceta Disciple": "T", "Fire Sprites": "T", "Necra Disciple": "T"}
 
 var kmbc2Opp = []cardset.Entry{
 	{Name: "Hill Giant", Count: 2}, {Name: "Wind Drake", Count: 4}, {Name: "Grizzly Bears", Count: 4},
@@ -34,11 +33,6 @@ var kmbc2Opp = []cardset.Entry{
 // kmbc2Decks: one deck per spelling, the card in numbers over the spells its
 // mana casts.
 var kmbc2Decks = map[string][]cardset.Entry{
-	"Relic of Legends": {
-		{Name: "Relic of Legends", Count: 5}, {Name: "Isamaru, Hound of Konda", Count: 5}, {Name: "Mind Stone", Count: 2},
-		{Name: "Juggernaut", Count: 3}, {Name: "Air Elemental", Count: 4}, {Name: "Serra Angel", Count: 4},
-		{Name: "Island", Count: 8}, {Name: "Plains", Count: 9},
-	},
 	"Ceta Disciple": {
 		{Name: "Ceta Disciple", Count: 5}, {Name: "Serra Angel", Count: 4}, {Name: "Air Elemental", Count: 4}, {Name: "Juggernaut", Count: 3},
 		{Name: "Isamaru, Hound of Konda", Count: 2}, {Name: "Mind Stone", Count: 2}, {Name: "Sol Ring", Count: 1},

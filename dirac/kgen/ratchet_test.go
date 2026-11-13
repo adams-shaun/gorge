@@ -144,13 +144,13 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +16 (the merge with land at 1acc5919d9: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering beside land's later work; merged ALL 23115 -> 23131, WOE stays 264 measured).
 	// +14 (the merge with land at 6014a11d54: this branch's Extort lowering, the printed K:Extort expansion and the granted trigger, beside land's 23177; merged ALL 23177 -> 23191 measured).
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
-	// +5 (a {pip}, {T} mana ability beside no other mana ability lowers as a pip filter without an activation limit, and a tap-another-permanent ability with no {T} lowers beside a plain {T} one: Apprentice Wizard, Ceta Disciple, Fire Sprites, Necra Disciple, Relic of Legends; ALL 23253 -> 23258, MBC 1678 -> 1680, DMU 197 -> 198 measured; Krark-Clan Ironworks stays refused).
-	"ALL": {23258, 34442},
+	// +4 (a {pip}, {T} mana ability beside no other mana ability lowers as a pip filter without an activation limit: Apprentice Wizard, Ceta Disciple, Fire Sprites, Necra Disciple; ALL 23253 -> 23257, MBC 1678 -> 1679, DMU stays 197 measured; Krark-Clan Ironworks and Relic of Legends stay refused).
+	"ALL": {23257, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {218, 280},
 	"DFT": {255, 276},
-	"DMU": {198, 270},
+	"DMU": {197, 270},
 	"DSK": {251, 276},
 	"ECL": {244, 273},
 	"EOE": {250, 266},
@@ -160,7 +160,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
-	"MBC": {1680, 2188},
+	"MBC": {1679, 2188},
 	"MKM": {251, 279},
 	"MOM": {201, 296},
 	"MSH": {246, 276},
