@@ -1,4 +1,4 @@
-# the MBC replacements-2 spelling family (dirac/oracle/mbc_replacements2_test.go):
+# the MBC replacements-2 spelling family (dirac/oracle/mbc_replacement_doublers_test.go):
 # a DamageDone doubler with no ValidTarget$ (Fire Servant: your instant and
 # sorcery spells' damage to anything) and a Card.Self, IsCombat$ True one
 # (Charging Tuskodon: its combat damage to a player)

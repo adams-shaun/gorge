@@ -10,7 +10,7 @@ import (
 )
 
 // TestFourSeatMBCReplacements2Lowers plays four-seat pods of the mbcrepl2
-// fixture pool (mbc_replacements2_test.go's decks, alternating around the
+// fixture pool (mbc_replacement_doublers_test.go's decks, alternating around the
 // table, so seats 2 and 3 hold Fire Servant and Charging Tuskodon too). Past
 // two seats the damage doublers of seats 2 and 3 apply as gorge's do: the
 // kernel's replDamage, combat candidate walk and dblDmgN read "is a seat" as
