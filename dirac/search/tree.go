@@ -1,6 +1,10 @@
 package search
 
-import "math"
+import (
+	"math"
+
+	"github.com/adams-shaun/gorge/dirac"
+)
 
 // The tree is gorge bots/azmcts/tree.go's PUCT tree over preallocated,
 // index-linked node and edge arrays (no pointers, no allocation after
@@ -16,8 +20,12 @@ const MaxCands = 64
 
 // point is one searched decision as the tree sees it (azmcts Point).
 type point struct {
-	n     int
-	opp   bool
+	n   int
+	opp bool
+	// seat is the acting seat relative to the searching seat in turn order
+	// (relSeat; 0 at the searching seat's own points): the value-vector
+	// entry an opponent's point maximises under Options.MaxN.
+	seat  uint8
 	keys  [MaxCands]Key
 	prior [MaxCands]float64
 	// acts[i] is dirac action sequence key i plays (a declaration is
@@ -94,9 +102,17 @@ func puctScore(q, prior float64, avail, n int32, c float64) float64 {
 type tree struct {
 	nodes []node
 	edges []edge
-	nn    int32
-	ne    int32
-	full  bool // an expansion or edge append was refused (capacity)
+	// nwv and ewv parallel nodes and edges under Options.MaxN (nil without
+	// it, so the option off costs nothing): each node's and edge's backed-up
+	// value vector (the leaf vectors summed as w sums the values), indexed
+	// by relSeat. vec is set per search when max^n is in effect
+	// (maxNApplies); selection reads the vectors only then.
+	nwv  [][dirac.MaxSeats]float64
+	ewv  [][dirac.MaxSeats]float64
+	vec  bool
+	nn   int32
+	ne   int32
+	full bool // an expansion or edge append was refused (capacity)
 }
 
 func (t *tree) reset() {
@@ -111,6 +127,9 @@ func (t *tree) newNode(pt *point) int32 {
 	i := t.nn
 	t.nn++
 	t.nodes[i] = node{first: -1, last: -1, opp: pt.opp, snap: -1}
+	if t.nwv != nil {
+		t.nwv[i] = [dirac.MaxSeats]float64{}
+	}
 	for j := 0; j < pt.n; j++ {
 		t.addEdge(i, pt.keys[j], pt.prior[j])
 	}
@@ -125,6 +144,9 @@ func (t *tree) addEdge(ni int32, k Key, prior float64) int32 {
 	e := t.ne
 	t.ne++
 	t.edges[e] = edge{key: k, prior: prior, next: -1, sib: -1}
+	if t.ewv != nil {
+		t.ewv[e] = [dirac.MaxSeats]float64{}
+	}
 	nd := &t.nodes[ni]
 	if nd.last < 0 {
 		nd.first = e
@@ -144,14 +166,32 @@ func (t *tree) child(ni int32, k Key) int32 {
 	return -1
 }
 
+// vecSeat is the value-vector entry selection reads at pt: the acting
+// opponent's relative seat at its point when max^n is in effect (tree.vec),
+// else -1 (the scalar, read as 1 - Q at an opponent's point).
+func (t *tree) vecSeat(pt *point) int {
+	if t.vec && pt.opp {
+		return int(pt.seat)
+	}
+	return -1
+}
+
 // selectEdge is azmcts selectEdge: PUCT over the children this world
 // offers; an unvisited child's Q is the parent's minus FPU (or the
-// absolute UnvisitedQ); at an opponent's point every Q reads 1 - Q;
+// absolute UnvisitedQ); at an opponent's point every Q reads 1 - Q, or under
+// max^n (vecSeat) the opponent's own entry of the value vector, W_r / N;
 // strict > keeps the earlier child on a tie.
 func (t *tree) selectEdge(ni int32, pt *point, o *Options) int32 {
 	nd := &t.nodes[ni]
 	parentQ := nd.q()
-	if pt.opp {
+	r := t.vecSeat(pt)
+	switch {
+	case r >= 0:
+		parentQ = 0.5
+		if nd.n > 0 {
+			parentQ = t.nwv[ni][r] / float64(nd.n)
+		}
+	case pt.opp:
 		parentQ = 1 - parentQ
 	}
 	best := int32(-1)
@@ -167,7 +207,10 @@ func (t *tree) selectEdge(ni int32, pt *point, o *Options) int32 {
 		}
 		if kid.n > 0 {
 			q = kid.w / float64(kid.n)
-			if pt.opp {
+			switch {
+			case r >= 0:
+				q = t.ewv[e][r] / float64(kid.n)
+			case pt.opp:
 				q = 1 - q
 			}
 		}
@@ -176,4 +219,12 @@ func (t *tree) selectEdge(ni int32, pt *point, o *Options) int32 {
 		}
 	}
 	return best
+}
+
+// addVec adds vec to node ni's and edge e's backed-up vectors (max^n).
+func (t *tree) addVec(ni, e int32, vec *[dirac.MaxSeats]float64) {
+	for r, x := range vec {
+		t.nwv[ni][r] += x
+		t.ewv[e][r] += x
+	}
 }

@@ -306,7 +306,7 @@ func (sr *Searcher) chainSearch(seatSeed uint64) *Result {
 	c := uint8(0) // 1+obj; 0 the first creature
 	for {
 		bot := sr.pickBot(&sr.root, d)
-		sr.chainPt.n, sr.chainPt.opp, sr.chainPt.off[0] = 0, false, 0
+		sr.chainPt.n, sr.chainPt.opp, sr.chainPt.seat, sr.chainPt.off[0] = 0, false, 0, 0
 		sr.nForced, sr.chainFrom = 0, 0
 		sr.chainCur = c
 		sr.chainCands(&sr.root, d, bot, MaxCands, &sr.chainPt)

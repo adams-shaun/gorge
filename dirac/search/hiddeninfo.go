@@ -147,6 +147,9 @@ func (sr *Searcher) commitInfo(depth, nm int, v float64) {
 		e := &t.edges[sr.pathE[i]]
 		e.n++
 		e.w += v
+		if t.vec {
+			t.addVec(sr.pathN[i], sr.pathE[i], &sr.vec)
+		}
 		hi := nm
 		if i+1 < depth {
 			hi = int(sr.markLo[i+1])

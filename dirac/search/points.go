@@ -123,7 +123,7 @@ func (sr *Searcher) buildPoint(s *dirac.State, d *dirac.Decision, bot int, pt *p
 	if opp && !o.OpponentNodes {
 		return false
 	}
-	pt.n, pt.opp, pt.off[0] = 0, opp, 0
+	pt.n, pt.opp, pt.seat, pt.off[0] = 0, opp, relSeat(d.Player, sr.seat, s.NumSeats()), 0
 	byName := opp // a DedupSearch library search names its picks by card
 	dedup := o.DedupSearch && libSearch(d)
 	if dedup {
@@ -273,7 +273,7 @@ func (sr *Searcher) dedupKeys(pt *point) {
 		tmp.addSeq(pt.acts[pt.off[i]:pt.off[i+1]])
 		tmp.keys[tmp.n-1], tmp.prior[tmp.n-1] = pt.keys[i], pt.prior[i]
 	}
-	tmp.opp = pt.opp
+	tmp.opp, tmp.seat = pt.opp, pt.seat
 	*pt = tmp
 }
 
@@ -414,7 +414,7 @@ func cutTopK(pt *point, k int) {
 		m = k - 1
 	}
 	var tmp point
-	tmp.opp = pt.opp
+	tmp.opp, tmp.seat = pt.opp, pt.seat
 	add := func(i int) {
 		tmp.addSeq(pt.acts[pt.off[i]:pt.off[i+1]])
 		tmp.keys[tmp.n-1], tmp.prior[tmp.n-1] = pt.keys[i], pt.prior[i]

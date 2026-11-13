@@ -71,8 +71,20 @@ func (HeuristicLeaf) Value(s *dirac.State, _ *dirac.Decision, seat uint8) float3
 			return v
 		}
 	}
-	var score [dirac.MaxSeats]float64
-	for p := uint8(0); p < n; p++ {
+	score := heuristicScores(s)
+	var v float64
+	if n == 2 {
+		v = score[seat] - score[1-seat]
+	} else {
+		v = score[seat] - maxOpponent(s, seat, &score)
+	}
+	return float32(1 / (1 + math.Exp(-v/20)))
+}
+
+// heuristicScores is every seat's HeuristicLeaf score: life + 2*hand +
+// the battlefield's material it controls.
+func heuristicScores(s *dirac.State) (score [dirac.MaxSeats]float64) {
+	for p := uint8(0); p < s.NumSeats(); p++ {
 		score[p] = float64(s.LifeOf(p) + 2*s.HandSize(p))
 	}
 	t := s.Table()
@@ -93,14 +105,60 @@ func (HeuristicLeaf) Value(s *dirac.State, _ *dirac.Decision, seat uint8) float3
 		}
 		score[p] += m
 	}
-	var v float64
-	if n == 2 {
-		v = score[seat] - score[1-seat]
-	} else {
-		v = score[seat] - maxOpponent(s, seat, &score)
-	}
-	return float32(1 / (1 + math.Exp(-v/20)))
+	return score
 }
+
+// VecEvaluator is an optional Evaluator extension read under Options.MaxN
+// (detected once in Searcher.hooks): ValueVec writes the position's value to
+// every seat into out, indexed by the seat relative to seat in turn order
+// (relSeat: 0 seat itself, 1 the next seat to take a turn, ...), each entry in
+// [0,1] and a lost seat's 0. The search reads it only at a leaf of a game that
+// is not over. An Evaluator without it values only seat's position, and the
+// search splits the rest evenly over the living opponents (splitVec).
+// Implementations must not allocate.
+type VecEvaluator interface {
+	ValueVec(s *dirac.State, d *dirac.Decision, seat uint8, out *[dirac.MaxSeats]float64)
+}
+
+// ValueVec is gorge's heuristicLeafVec (bots/azmcts env.go): a softmax over
+// the living seats' scores at Value's temperature, exp(s_i/20) / sum
+// exp(s_j/20), so with two living seats seat's entry is Value's sigmoid. A
+// lost seat is 0.
+func (HeuristicLeaf) ValueVec(s *dirac.State, _ *dirac.Decision, seat uint8, out *[dirac.MaxSeats]float64) {
+	*out = [dirac.MaxSeats]float64{}
+	n := s.NumSeats()
+	score := heuristicScores(s)
+	top, have := 0.0, false
+	for p := uint8(0); p < n; p++ {
+		if s.FeatLost(p) {
+			continue
+		}
+		score[p] /= 20
+		if !have || score[p] > top {
+			top, have = score[p], true
+		}
+	}
+	if !have {
+		return
+	}
+	sum := 0.0
+	for p := uint8(0); p < n; p++ {
+		if s.FeatLost(p) {
+			continue
+		}
+		x := math.Exp(score[p] - top)
+		out[relSeat(p, seat, n)] = x
+		sum += x
+	}
+	for r := range out {
+		out[r] /= sum
+	}
+}
+
+// relSeat is seat p relative to seat in turn order among n seats (0 seat
+// itself, 1 the next seat to take a turn, ...): the index of p's entry in a
+// value vector (Options.MaxN).
+func relSeat(p, seat, n uint8) uint8 { return (p + n - seat) % n }
 
 // decidedValue is a leaf's value to seat when the game has decided it: the
 // game's end (1 to its winner, 0 to every other seat, 0.5 drawn), or seat's

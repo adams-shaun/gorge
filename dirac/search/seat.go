@@ -216,6 +216,8 @@ func (o *Options) Validate() error {
 		return fmt.Errorf("search: forced-playout k %g must be finite and >= 0 (0 is off)", o.ForcedK)
 	case o.LandPick && !o.LandSearch, o.DedupSearch && !o.Kinds.Choose: // landsearch.go
 		return errors.New("search: LandPick needs LandSearch, DedupSearch needs Kinds.Choose")
+	case o.MaxN && (o.NodeCache > 0 || o.Batch > 0): // maxn.go
+		return errors.New("search: MaxN does not combine with NodeCache or Batch (their backups carry the scalar value alone)")
 	}
 	if err := o.validateTiming(); err != nil { // timing.go
 		return err
@@ -365,7 +367,7 @@ func (sr *Searcher) lazyPoint(s *dirac.State, d *dirac.Decision, pt *point) bool
 	if int(d.N) > c {
 		return false
 	}
-	pt.n, pt.opp, pt.off[0] = 0, opp, 0
+	pt.n, pt.opp, pt.seat, pt.off[0] = 0, opp, relSeat(d.Player, sr.seat, s.NumSeats()), 0
 	switch kind {
 	case kindPriority:
 		// instwin.go: the instwin / endfire filter drops options from
