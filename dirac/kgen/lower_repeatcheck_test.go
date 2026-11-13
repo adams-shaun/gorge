@@ -3,8 +3,8 @@ package kgen
 import "testing"
 
 // TestLowerRepeatCheckSVar: Kroxa, Titan of Death's Hunger's RepeatEach body
-// gate (ConditionCheckSVar$ X beside ConditionSVarCompare$ EQ0, with
-// SVar:X:Remembered$Valid Card.nonLand+RememberedPlayerOwn) lowers as the
+// gate (ConditionCheckSVar$ X beside ConditionSVarCompare$ EQ0, with the
+// gate SVar X:Remembered$Valid Card.nonLand+RememberedPlayerOwn) lowers as the
 // parameterless vRemEachOwnNonLand read behind a SkipIf: RepeatEach over the
 // opponents, then SkipIf (new value, EQ 0), then the LoseLife over RefEach,
 // then the ClearRemembered. Both trigger nodes lower the same body.

@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"math/rand/v2"
 	"strconv"
 	"strings"
 	"testing"
@@ -24,11 +25,11 @@ import (
 var krcDecks = [2][]cardset.Entry{
 	{ // A: Kroxa, the floaters, discard outlets and vanilla attackers
 		{Name: "Kroxa, Titan of Death's Hunger", Count: 3},
-		{Name: "Priest of Gix", Count: 3}, {Name: "Coal Stoker", Count: 3},
-		{Name: "Tormenting Voice", Count: 3}, {Name: "Thrill of Possibility", Count: 2},
+		{Name: "Coal Stoker", Count: 4}, {Name: "Dark Ritual", Count: 4},
+		{Name: "Tormenting Voice", Count: 4}, {Name: "Thrill of Possibility", Count: 2},
 		{Name: "Walking Corpse", Count: 3}, {Name: "Warpath Ghoul", Count: 3},
-		{Name: "Barony Vampire", Count: 2}, {Name: "Sign in Blood", Count: 2},
-		{Name: "Swamp", Count: 9}, {Name: "Mountain", Count: 7},
+		{Name: "Barony Vampire", Count: 2}, {Name: "Sign in Blood", Count: 1},
+		{Name: "Swamp", Count: 8}, {Name: "Mountain", Count: 6},
 	},
 	{ // B: land-heavy, so its hand holds lands to discard, and cheap bodies
 		{Name: "Plains", Count: 8}, {Name: "Swamp", Count: 8}, {Name: "Mountain", Count: 4},
@@ -45,6 +46,146 @@ type krcCounts struct {
 	attack int // Kroxa attack triggers that made the opponent discard
 	lost   int // iterations where the opponent discarded and lost 3 life (the land arm)
 	kept   int // iterations where the opponent discarded and lost nothing (the nonland arm)
+}
+
+// kroxaName is the pool's gate carrier.
+const kroxaName = "Kroxa, Titan of Death's Hunger"
+
+// krcFloaters are the pool's cards whose entry floats the mana that pays
+// Kroxa's escape cost (both of gorge's escape gates price the floating pool:
+// its offer walk's castable and the kernel's FeatPoolPays). Coal Stoker
+// floats R:3; Dark Ritual's {B} pip is colour-forced, so its B:3 floats
+// cannot be eaten by the red ones and the pool ends at B:3,R:3. gorge's
+// planned payment route spends a live pool on the next cast's generic pips,
+// so Coal Stoker (its generic 3) must go first, into an empty pool.
+var krcFloaters = map[string]bool{"Coal Stoker": true, "Dark Ritual": true}
+
+// krcOutlets are the pool's spells that move cards into a graveyard.
+var krcOutlets = map[string]bool{"Tormenting Voice": true, "Thrill of Possibility": true}
+
+// krcProbe wraps a seeded random policy biased to take Kroxa's escape cast
+// when it is offered, to float mana with the pool's floaters while Kroxa
+// waits in the graveyard and to move Kroxa and its five exile mates there,
+// so both trigger paths play: the enter trigger from a hand cast (Kroxa then
+// dies to its enter sacrifice) and the attack trigger from an escaped Kroxa.
+type krcProbe struct {
+	base Policy
+	r    *rand.Rand
+}
+
+func (p *krcProbe) pick(c *PickCtx) Canon {
+	a := p.base.Pick(c)
+	if c.G == nil {
+		return a
+	}
+	e := c.G.E
+	// heavyReady: Kroxa sits in this player's graveyard with the five other
+	// cards its escape exiles. Its escape is a sorcery-speed cast the walk
+	// offers in a main phase with an empty stack, priced from the untapped
+	// census (gorge's planned payment route spends a live floating pool on
+	// the next cast's generic pips, so the floats are held unspent), so the
+	// probe holds until the escape is offered and keeps the lands untapped.
+	grave := e.G.Zone(state.ZGraveyard, state.PlayerID(c.D.Player))
+	graveKroxa := map[state.ObjID]bool{}
+	heavyReady := false
+	for _, id := range grave {
+		if ob := e.G.Obj(id); ob != nil && ob.Face() != nil && ob.Face().Name == kroxaName {
+			graveKroxa[id] = true
+			heavyReady = len(grave) >= 6
+		}
+	}
+	inHand := false
+	for _, id := range e.G.Zone(state.ZHand, state.PlayerID(c.D.Player)) {
+		if ob := e.G.Obj(id); ob != nil && ob.Face() != nil && ob.Face().Name == kroxaName {
+			inHand = true
+		}
+	}
+	var esc, atk, floaters, outlets, disc, passes []Canon
+	for _, x := range c.D.Options {
+		o, ok := c.G.GorgeOption(x)
+		if !ok {
+			continue
+		}
+		name := ""
+		if ob := e.G.Obj(o.Obj); ob != nil && ob.Face() != nil {
+			name = ob.Face().Name
+		}
+		switch {
+		case o.Kind == "cast" && name == kroxaName && graveKroxa[o.Obj]:
+			// the escape cast: gorge's walk offers it with Mode escape; the
+			// planned payment route that prices it reports the payment
+			// action's empty cast mode, so both shapes are the escape. A
+			// Kroxa cast option whose object is not in the grave is a plain
+			// hand cast and stays for the base policy.
+			esc = append(esc, x)
+		case o.Kind == "attacker" && name == kroxaName:
+			// the attack trigger: the base policy often declares no
+			// attackers, so the probe always sends Kroxa when it can
+			atk = append(atk, x)
+		case o.Kind == "cast" && krcFloaters[name]:
+			floaters = append(floaters, x)
+		case o.Kind == "cast" && krcOutlets[name]:
+			outlets = append(outlets, x)
+		case o.Kind == "discard" && name == kroxaName:
+			disc = append(disc, x)
+		case o.Kind == "pass":
+			passes = append(passes, x)
+		}
+	}
+	// a floater the base policy would cast stays in hand: the floats only
+	// matter while Kroxa waits in the graveyard, and gorge's planned payment
+	// route spends a live floating pool on the next cast's generic pips, so
+	// the escape is priced from the untapped census instead
+	for _, x := range floaters {
+		if a == x && len(passes) > 0 {
+			return passes[0]
+		}
+	}
+	switch {
+	case len(esc) > 0:
+		return esc[p.r.IntN(len(esc))]
+	case len(atk) > 0:
+		return atk[p.r.IntN(len(atk))]
+	case heavyReady:
+		// The floats expire with the step (CR 500.4), so both are built and
+		// spent inside one main phase, in cost order: Coal Stoker first, its
+		// generic 3 paid from lands while the pool is empty (gorge's planned
+		// payment route spends a live pool on generic), then its trigger's
+		// R:3, then Dark Ritual -- its {B} pip cannot be paid with the red
+		// floats, so the pool ends at B:3,R:3 and the escape is payable.
+		// Anything else holds with a pass.
+		pool := e.G.Players[c.D.Player].Pool
+		coal, ritual := -1, -1
+		for i, x := range floaters {
+			o, ok := c.G.GorgeOption(x)
+			if !ok {
+				continue
+			}
+			ob := e.G.Obj(o.Obj)
+			if ob == nil || ob.Face() == nil {
+				continue
+			}
+			switch ob.Face().Name {
+			case "Coal Stoker":
+				coal = i
+			case "Dark Ritual":
+				ritual = i
+			}
+		}
+		switch {
+		case pool.Total() == 0 && coal >= 0:
+			return floaters[coal]
+		case pool[state.MR] >= 2 && ritual >= 0:
+			return floaters[ritual]
+		case len(passes) > 0:
+			return passes[0] // hold the floats until the escape is payable
+		}
+	case (inHand || heavyReady) && e.G.Players[c.D.Player].Pool.Total() == 0 && len(disc) > 0:
+		return disc[p.r.IntN(len(disc))] // move Kroxa into the graveyard
+	case (inHand || heavyReady) && e.G.Players[c.D.Player].Pool.Total() == 0 && len(outlets) > 0:
+		return outlets[p.r.IntN(len(outlets))] // fill the graveyard
+	}
+	return a
 }
 
 // krcScan reads gorge's event log: a Kroxa trigger resolution is an ETB one
@@ -64,9 +205,13 @@ func krcScan(g *GorgeSide) krcCounts {
 	type stk struct {
 		src state.ObjID
 		ab  bool
+		// etb is per push, not per source: one Kroxa object can resolve an
+		// enter trigger and later an attack one, so a source-keyed mark
+		// would swallow the attack trigger of the escaped copy.
+		etb bool
 	}
 	var stack []stk
-	adj, etb := 0, map[state.ObjID]bool{}
+	adj := 0
 	evs := g.E.L.Events
 	for i, ev := range evs {
 		switch ev.Kind {
@@ -111,8 +256,11 @@ func krcScan(g *GorgeSide) krcCounts {
 						lost3 = true
 					}
 				}
-				if n == "Kroxa, Titan of Death's Hunger" && top.ab && discard {
-					if etb[ev.Obj] {
+				// A resolution counts when the opponent discarded (either arm)
+				// or lost the 3 life outright -- an empty hand discards
+				// nothing and still lands in the land arm.
+				if n == "Kroxa, Titan of Death's Hunger" && top.ab && (discard || lost3) {
+					if top.etb {
 						c.etb++
 					} else {
 						c.attack++
@@ -126,13 +274,23 @@ func krcScan(g *GorgeSide) krcCounts {
 				continue
 			}
 			adj++
-			if name(ev.Obj) == "Kroxa, Titan of Death's Hunger" && adj >= 2 {
-				etb[ev.Obj] = true
+			cur := stk{src: ev.Obj, ab: true}
+			if name(ev.Obj) == kroxaName && adj >= 2 {
+				// a pair: the enter sacrifice trigger beside the discard
+				// trigger. Mark both pushes (either order) so the discard
+				// trigger's resolution reads as the enter one; an attack
+				// push is alone (the sacrifice resolved with the entry).
+				cur.etb = true
+				for j := range stack {
+					if stack[j].ab && name(stack[j].src) == kroxaName {
+						stack[j].etb = true
+					}
+				}
 			}
-			stack = append(stack, stk{ev.Obj, true})
+			stack = append(stack, cur)
 		case events.PutOnStack:
 			adj = 0
-			stack = append(stack, stk{ev.Obj, false})
+			stack = append(stack, stk{src: ev.Obj, ab: false})
 		}
 	}
 	return c
@@ -181,15 +339,15 @@ func krcRun(t *testing.T, seeds uint64) (tot krcCounts, games int, div string, s
 			t.Fatal(err)
 		}
 		var gs *GorgeSide
-		pol := castFirstPolicy(seed)
+		probe := &krcProbe{base: castFirstPolicy(seed), r: rand.New(rand.NewPCG(seed, 0x6b726378))}
 		if seed%8 == 0 {
-			pol = RandomPolicy(seed)
+			probe.base = RandomPolicy(seed)
 		}
 		wrapped := PolicyFunc(func(c *PickCtx) Canon {
 			if c.G != nil {
 				gs = c.G
 			}
-			return pol.Pick(c)
+			return probe.pick(c)
 		})
 		res := Lockstep(m, seed, k, wrapped, RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40})
 		CloseSide(k)
@@ -222,17 +380,19 @@ func TestRepeatcheckLockstep(t *testing.T) {
 	if len(stalls) != 0 {
 		t.Errorf("kernel capacity stalls %v", stalls)
 	}
-	if tot.etb < 5 {
-		t.Errorf("Kroxa enter triggers %d, want at least 5", tot.etb)
+	// coverage floor, measured over the 400 seeds (356/109/262/203) with
+	// about three times headroom
+	if tot.etb < 100 {
+		t.Errorf("Kroxa enter triggers %d, want at least 100", tot.etb)
 	}
-	if tot.attack < 1 {
-		t.Errorf("Kroxa attack triggers %d, want at least 1", tot.attack)
+	if tot.attack < 20 {
+		t.Errorf("Kroxa attack triggers %d, want at least 20", tot.attack)
 	}
-	if tot.lost < 3 {
-		t.Errorf("land arms %d, want at least 3", tot.lost)
+	if tot.lost < 100 {
+		t.Errorf("land arms %d, want at least 100", tot.lost)
 	}
-	if tot.kept < 3 {
-		t.Errorf("nonland arms %d, want at least 3", tot.kept)
+	if tot.kept < 50 {
+		t.Errorf("nonland arms %d, want at least 50", tot.kept)
 	}
 }
 
