@@ -23,7 +23,7 @@ var cmd5CleanPin = filepath.Join("testdata", "cmd5-clean.tsv")
 // cmd5Window is how many pairs of the committed cmd5 slice the ratchet plays:
 // all of them. Measured 2026-11-12 with
 //
-//	kfuzz -kernel cmd5 -first-pair 0 -pairs 1500 -seed 1 -keep-going -allow-unverified \
+//	kfuzz -kernel cmd5 -first-pair 0 -pairs 1500 -seed 1 -keep-going \
 //	  -surface autopay -mulligans 1 -policy heuristic -workers 4 -shrink 0
 //
 // under GOMAXPROCS=4: 24 s wall and 350 MB RSS for the 1500 games, inside the
@@ -39,7 +39,7 @@ type cmd5Outcome struct {
 // TestCmd5SliceCleanOnlyGrows plays the first cmd5Window pairs of the committed
 // cmd5 slice (1v1 Commander, the Foundations Commander decks) dirac against
 // gorge, as kfuzz -kernel cmd5 plays them under the heuristic policy on the
-// autopay surface with one mulligan, unverified cards allowed. The pairs that
+// autopay surface with one mulligan. The pairs that
 // play clean are pinned in testdata/cmd5-clean.tsv. The test fails when a
 // pinned pair is no longer clean (a divergence, an unmodelled stall, a capacity
 // stall or a refusal) and when an unpinned pair becomes clean without the pin
@@ -53,7 +53,6 @@ func TestCmd5SliceCleanOnlyGrows(t *testing.T) {
 	if err != nil {
 		t.Fatalf("set cmd5: %v", err)
 	}
-	set = cardset.AllowUnverified(set) // kfuzz -allow-unverified: no cmd5 card has evidence yet
 	cardsDir, err := cardset.CorpusDir()
 	if err != nil {
 		t.Skipf("no gorge corpus: %v", err)
@@ -125,7 +124,7 @@ func TestCmd5SliceCleanOnlyGrows(t *testing.T) {
 		return
 	}
 	pin := readCmd5Pin(t, len(ps))
-	const repro = "kfuzz -kernel cmd5 -first-pair %d -pairs 1 -seed 1 -allow-unverified -surface autopay -mulligans 1 -policy heuristic -shrink 0 -keep-going -v"
+	const repro = "kfuzz -kernel cmd5 -first-pair %d -pairs 1 -seed 1 -surface autopay -mulligans 1 -policy heuristic -shrink 0 -keep-going -v"
 	var raised []string
 	for i, o := range out {
 		switch {

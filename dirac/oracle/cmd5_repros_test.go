@@ -10,8 +10,8 @@ import (
 )
 
 // replayCmd5Repro replays a kfuzz -kernel cmd5 recording (testdata/repro/<name>)
-// in lockstep on the cmd5 table, unverified cards allowed as the slice ratchet
-// plays them, and checks the recording is the divergence it was kept for: at
+// in lockstep on the cmd5 table, the way the slice ratchet
+// plays it, and checks the recording is the divergence it was kept for: at
 // decision at, in field. It returns the replay's result.
 func replayCmd5Repro(t *testing.T, name string, at int, field string) Result {
 	t.Helper()
@@ -29,7 +29,6 @@ func replayCmd5Repro(t *testing.T, name string, at int, field string) Result {
 	if err != nil {
 		t.Fatalf("set cmd5: %v", err)
 	}
-	set = cardset.AllowUnverified(set)
 	m, err := r.Matchup(synthReg(t))
 	if err != nil {
 		t.Fatal(err)
