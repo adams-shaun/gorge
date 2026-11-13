@@ -99,7 +99,8 @@ ColU	ColorMask	2
 ColW	ColorMask	1
 CondAlways	CondKind	0
 CondAnd	CondKind	8
-CondCount_	CondKind	11
+CondBlessing	CondKind	11
+CondCount_	CondKind	12
 CondEchoOwed	CondKind	9
 CondKicked	CondKind	3
 CondPresent	CondKind	1
@@ -342,6 +343,7 @@ ExAdamant	ExprKind	244
 ExAttackedThisTurn	ExprKind	9
 ExAttackedTurn	ExprKind	235
 ExAttackersAll	ExprKind	55
+ExBlessing	ExprKind	217
 ExBranches	ExprKind	37
 ExCastBattlefield	ExprKind	237
 ExCastFromGrave	ExprKind	247
