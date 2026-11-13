@@ -4067,6 +4067,12 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			lc.emit(lInstr{Op: "EnterTapped", Obj: lRef{Kind: rReplaced}})
 			lc.emit(lInstr{Op: "EnterAttacking", Obj: lRef{Kind: rReplaced}})
 		case "PutCounter":
+			if _, ok := ps.m["ChooseDifferent"]; ok {
+				if err := lc.etbCounterPick(ps, node, sa, other, cond); err != nil { // lower_enterctrpick.go
+					return err
+				}
+				break
+			}
 			if d, hasD := ps.get("Defined"); !ps.is("ETB", "True") || hasD && strings.TrimSpace(d) != want {
 				return refuse("ETB counter shape")
 			}

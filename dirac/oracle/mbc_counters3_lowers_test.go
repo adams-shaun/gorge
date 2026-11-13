@@ -34,6 +34,18 @@ func TestMBCCounters3Lowers(t *testing.T) {
 			t.Fatalf("requiem: %d verse counters (want 100), %d destroys (want 20): the pool does not exercise it", verse, kills)
 		}
 	})
+	t.Run("grimdancer", func(t *testing.T) {
+		t.Parallel()
+		picks, kept := 0, 0
+		pol := func(seed uint64) Policy { return mbcGrimdancerProbe(castFirstPolicy(seed), &picks, &kept) }
+		if div := lockstepRunPolicy(t, "mbccounters3", mbcGrimdancerDecks, 120, true, nil, nil, pol); div != 0 {
+			return
+		}
+		t.Logf("grimdancer: %d counter-kind asks, %d keyword counters placed", picks, kept)
+		if picks < 60 || kept < 120 {
+			t.Fatalf("grimdancer: %d counter-kind asks (want 60), %d keyword counters (want 120): the pool does not exercise it", picks, kept)
+		}
+	})
 }
 
 // mbcRequiemPolicy is castFirstPolicy that never sacrifices a Vile Requiem
@@ -90,4 +102,32 @@ func mbcCounters3Probe(base Policy, verse, kills *int) Policy {
 var mbcRequiemDecks = [2][]cardset.Entry{
 	{{Name: "Vile Requiem", Count: 12}, {Name: "Swamp", Count: 28}},
 	{{Name: "Savannah Lions", Count: 16}, {Name: "Plains", Count: 24}},
+}
+
+// mbcGrimdancerProbe wraps base and counts, when gorge leads, the
+// "counter_kinds" asks it poses and the keyword counters its log gains.
+func mbcGrimdancerProbe(base Policy, picks, kept *int) Policy {
+	seen := 0
+	return PolicyFunc(func(c *PickCtx) Canon {
+		a := base.Pick(c)
+		if c.G == nil {
+			return a
+		}
+		if fr := c.G.fr; fr != nil && fr.d != nil && fr.d.ResumeKind == "counter_kinds" {
+			*picks++
+		}
+		evs := c.G.E.L.Events
+		for ; seen < len(evs); seen++ {
+			if e := evs[seen]; e.Kind == events.CounterChange && e.Amount > 0 && e.Counter != "VERSE" {
+				*kept++
+			}
+		}
+		return a
+	})
+}
+
+// mbcGrimdancerDecks: Grimdancers to cast on both sides.
+var mbcGrimdancerDecks = [2][]cardset.Entry{
+	{{Name: "Grimdancer", Count: 16}, {Name: "Swamp", Count: 24}},
+	{{Name: "Grimdancer", Count: 10}, {Name: "Savannah Lions", Count: 6}, {Name: "Swamp", Count: 12}, {Name: "Plains", Count: 12}},
 }

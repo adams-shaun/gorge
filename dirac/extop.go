@@ -262,6 +262,10 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 			s.queueAsk(s.objs[o].slot, akCard)
 		}
 		return true, true
+	case kop.ExtEnterCtrPick:
+		// only inside an as-enters program: runReplProgAs queues the ask
+		// (repl_enterctrpick.go)
+		return true, true
 	case kop.ExtExploit:
 		s.exploitOp(k) // kw_exploit.go
 		return true, true

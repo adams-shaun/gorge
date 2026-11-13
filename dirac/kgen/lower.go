@@ -27,6 +27,7 @@ var ignoredParams = map[string]bool{
 	"AIPhyrexianPayment": true, // Forge's AI hint for paying a Phyrexian pip with life; gorge never reads it
 	"ChangeValidDesc":    true, // Dig/ChangeZone caption text ("nonland"); gorge lists it in params.DescriptiveKeys (descriptive.go), never read
 	"IfDesc":             true, // caption text; gorge lists it in params.DescriptiveKeys (descriptive.go), never read
+	"AIManaPref":         true, // Forge's AI hint for which mana to leave open; gorge reads it nowhere (untap.go discards it)
 	"NoPutDesc":          true, // caption text; gorge lists it in params.DescriptiveKeys (descriptive.go), never read
 	"PrimaryPrompt":      true, // caption text; gorge lists it in params.DescriptiveKeys (descriptive.go), never read
 	"AINoRecursiveCheck": true, // Forge AI hint: only in gorge's accepted-key lists (params/mana.go, params/dealdamage.go, changezone_params.go), never read

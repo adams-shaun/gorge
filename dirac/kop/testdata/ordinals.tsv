@@ -1565,3 +1565,4 @@ ZonePhased	Zone	8
 ZonePhasedInd	Zone	9
 ZoneSideboard	Zone	10
 ZoneStack	Zone	6
+ExtEnterCtrPick	ExtOp	296

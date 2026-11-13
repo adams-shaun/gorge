@@ -226,6 +226,16 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 			code, _ := chooseCode("counter")
 			return Pack(ActChoose+CanonKind(code), RefNone, RefNone, uint8(c)), true
 		}
+		if d.ResumeKind == "counter_kinds" {
+			// gorge's ChooseDifferent$ pick (putCounter, Grimdancer): two
+			// picks of a counter kind each, canonical by the kernel kind
+			c, ok := kernelCounterKind(o.Label)
+			if o.Kind != "counter_kinds" || !ok {
+				return 0, false
+			}
+			code, _ := chooseCode("counter")
+			return Pack(ActChoose+CanonKind(code), RefNone, RefNone, uint8(c)), true
+		}
 		code, known := chooseCode(cumulativeKindAlias(o.Kind))
 		if !known {
 			// An option kind the table lacks: still canonical as
