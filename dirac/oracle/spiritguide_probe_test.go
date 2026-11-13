@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -35,6 +36,7 @@ type spiritGuideObs struct {
 	castWithLand      int
 	noSourceGuide     int // priorities with a hand guide, no untapped caster source, an empty pool and another card in hand (the state castNoLandOneGuid needs)
 	windows           int // internal asks answered beneath the surface
+	windowsHoldGuide  int // of those, the windows whose payer held a guide in hand
 	windowListsGuide  int
 	windowPicksGuide  int
 	fallbacks         int
@@ -42,7 +44,20 @@ type spiritGuideObs struct {
 	fallbackNoBF      int // fallback windows with no untapped caster battlefield source (only the guide can pay)
 	fallbackBF        int // fallback windows with an untapped caster battlefield source left
 	fallbackBFPicks   int // of those, the windows the oracle answered with the guide anyway
-	sample            []string
+	// shapes tallies each window that listed the guide by the order of its
+	// options and the option the oracle's answer took: a letter per option (A
+	// auto-fill, B a mana/activate option of a battlefield or other source, H
+	// the hand guide's, x any other: done, cancel, undo), then "->" and the
+	// answer's letter.
+	shapes map[string]int
+	// unlisted tallies the windows that listed the guide but no battlefield
+	// option while a caster battlefield source was untapped: the source's
+	// name, and whether a payment (owed mana) rode the window.
+	unlisted map[string]int
+	// byPool tallies the windows whose payer held a guide, by whether the
+	// window listed one and the mana already in the payer's pool.
+	byPool map[string]int
+	sample []string
 }
 
 func (o *spiritGuideObs) note(s string) {
@@ -54,6 +69,33 @@ func (o *spiritGuideObs) note(s string) {
 func isHandGuide(g *GorgeSide, id state.ObjID) bool {
 	ob := g.E.G.Obj(id)
 	return ob != nil && ob.Zone == state.ZHand && ob.Face() != nil && strings.HasSuffix(ob.Face().Name, "Spirit Guide")
+}
+
+// windowShape is the shape key of a window d that listed a hand guide (see
+// spiritGuideObs.shapes); idx is the option index the answer took.
+func windowShape(g *GorgeSide, d *decision.Decision, idx int) string {
+	letter := func(o decision.Option) byte {
+		switch {
+		case o.Kind == decision.OptAutoFill:
+			return 'A'
+		case o.Obj != 0 && isHandGuide(g, o.Obj):
+			return 'H'
+		case o.Kind == "mana" || o.Kind == "activate":
+			return 'B'
+		}
+		return 'x'
+	}
+	var b strings.Builder
+	ans := byte('?')
+	for _, o := range d.Options {
+		b.WriteByte(letter(o))
+		if o.Index == idx {
+			ans = letter(o)
+		}
+	}
+	b.WriteString("->")
+	b.WriteByte(ans)
+	return b.String()
 }
 
 func spiritGuideDeck(guide string) []string {
@@ -105,8 +147,10 @@ const (
 	tapAll          // every untapped battlefield source of the caster: the forced state, no battlefield source left
 )
 
-// casterSources lists me's own untapped battlefield mana sources (not the
-// other seats' permanents pay.BattlefieldManaSourceIDs appends).
+// casterSources lists me's own untapped battlefield permanents (not the
+// other seats' permanents pay.BattlefieldManaSourceIDs appends). It is every
+// untapped permanent, mana source or not: a Grizzly Bears, or a Spirit Guide
+// cast as a creature (its mana ability works from the hand only), counts.
 func casterSources(g *GorgeSide, me state.PlayerID) []state.ObjID {
 	var ids []state.ObjID
 	for _, id := range pay.BattlefieldManaSourceIDs(g.E.G, me) {
@@ -119,12 +163,18 @@ func casterSources(g *GorgeSide, me state.PlayerID) []state.ObjID {
 
 func runSpiritGuideProbe(t *testing.T, guide string, seeds int, mode tapMode) *spiritGuideObs {
 	t.Helper()
-	reg := testutil.CorpusRegistry(t)
-	obs := &spiritGuideObs{}
 	deck := spiritGuideDeck(guide)
 	if mode != tapNone {
 		deck = spiritGuideTargetDeck(guide)
 	}
+	return runSpiritGuideDeck(t, deck, seeds, mode)
+}
+
+// runSpiritGuideDeck is runSpiritGuideProbe on an explicit deck list.
+func runSpiritGuideDeck(t *testing.T, deck []string, seeds int, mode tapMode) *spiritGuideObs {
+	t.Helper()
+	reg := testutil.CorpusRegistry(t)
+	obs := &spiritGuideObs{shapes: map[string]int{}, unlisted: map[string]int{}, byPool: map[string]int{}}
 	var decks [2][]*cards.Card
 	for s := range decks {
 		for _, n := range deck {
@@ -151,6 +201,17 @@ func runSpiritGuideProbe(t *testing.T, guide string, seeds int, mode tapMode) *s
 				obs.fallbacks++
 			}
 			bf := len(casterSources(g, d.Player)) > 0
+			for _, id := range g.E.G.Zone(state.ZHand, d.Player) {
+				if isHandGuide(g, id) {
+					obs.windowsHoldGuide++
+					hasListed := false
+					for _, o := range d.Options {
+						hasListed = hasListed || o.Obj != 0 && isHandGuide(g, o.Obj)
+					}
+					obs.byPool[fmt.Sprintf("listed=%v pool=%d", hasListed, g.E.G.Players[d.Player].Pool.Total())]++
+					break
+				}
+			}
 			listed := false
 			for _, o := range d.Options {
 				if o.Obj != 0 && isHandGuide(g, o.Obj) {
@@ -172,6 +233,12 @@ func runSpiritGuideProbe(t *testing.T, guide string, seeds int, mode tapMode) *s
 				}
 			}
 			if listed {
+				obs.shapes[windowShape(g, d, idx)]++
+				if shape := windowShape(g, d, idx); bf && !strings.Contains(shape, "B") {
+					for _, id := range casterSources(g, d.Player) {
+						obs.unlisted[fmt.Sprintf("%s owed=%v fallback=%v", g.E.G.Obj(id).Face().Name, d.ManaPayment != nil, d.PaymentFallback != nil)]++
+					}
+				}
 				obs.windowListsGuide++
 				obs.note("window lists guide: " + d.Prompt)
 			}
@@ -257,6 +324,9 @@ func runSpiritGuideProbe(t *testing.T, guide string, seeds int, mode tapMode) *s
 // battlefield sources left) and once every source (the forced state: nothing
 // on the battlefield can pay).
 func TestSpiritGuideGorgeWindow(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	for _, guide := range []string{"Elvish Spirit Guide", "Simian Spirit Guide"} {
 		nat := runSpiritGuideProbe(t, guide, 120, tapNone)
 		t.Logf("natural   %s: %+v", guide, *nat)
@@ -282,6 +352,143 @@ func TestSpiritGuideGorgeWindow(t *testing.T) {
 		// window lists the hand guide and the oracle's answer takes it.
 		if all.fallbackNoBF == 0 || all.windowListsGuide == 0 || all.windowPicksGuide == 0 {
 			t.Errorf("%s tapAll: %d no-source fallback windows, the guide listed %d and answered %d times, want all > 0", guide, all.fallbackNoBF, all.windowListsGuide, all.windowPicksGuide)
+		}
+	}
+}
+
+// TestSpiritGuideWindowOrder measures how gorge orders a payment window that
+// holds a hand guide and how the oracle's answer (payexec.WindowAnswer) takes
+// between the options, in the forced state (tapAll) and with one caster
+// permanent tapped (tapOne). Every window listed the guide, so the shape keys
+// cover every window the run opened. The claims it asserts: the listed options
+// are battlefield sources first (B), then one H per guide in the hand, then the
+// non-source rows (x); the answer is the first B, else the first H, so the
+// guide is answered only when no battlefield option is listed; and a window
+// that lists no B while the caster has an untapped permanent has no untapped
+// land among them (the permanents are Bears and creature-cast guides, which
+// have no mana ability on the battlefield).
+func TestSpiritGuideWindowOrder(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	for _, guide := range []string{"Elvish Spirit Guide", "Simian Spirit Guide"} {
+		land := "Forest"
+		if strings.HasPrefix(guide, "Simian") {
+			land = "Mountain"
+		}
+		for _, m := range []struct {
+			name string
+			mode tapMode
+		}{{"tapOne", tapOne}, {"tapAll", tapAll}} {
+			o := runSpiritGuideProbe(t, guide, 120, m.mode)
+			t.Logf("%s %s: windows=%d lists=%d picks=%d shapes=%v unlisted=%v", m.name, guide, o.windows, o.windowListsGuide, o.windowPicksGuide, o.shapes, o.unlisted)
+			if o.windowListsGuide == 0 || o.windowPicksGuide == 0 {
+				t.Fatalf("%s %s: the guide was listed %d and answered %d times: the probe measured nothing", m.name, guide, o.windowListsGuide, o.windowPicksGuide)
+			}
+			sawB := false
+			for shape, n := range o.shapes {
+				opts, ans, _ := strings.Cut(shape, "->")
+				sawB = sawB || strings.Contains(opts, "B")
+				if strings.Contains(opts, "H") && strings.Contains(opts[strings.Index(opts, "H"):], "B") {
+					t.Errorf("%s %s: shape %q (%d windows) lists a battlefield option after a hand guide", m.name, guide, shape, n)
+				}
+				if first := strings.TrimLeft(opts, "x"); first == "" || ans != first[:1] {
+					t.Errorf("%s %s: shape %q (%d windows): the answer is not the first source listed", m.name, guide, shape, n)
+				}
+			}
+			if m.mode == tapOne && !sawB {
+				t.Errorf("%s %s: no window listed a battlefield source beside the guide", m.name, guide)
+			}
+			for key := range o.unlisted {
+				if strings.HasPrefix(key, land+" ") {
+					t.Errorf("%s %s: an untapped %s was not listed as a source: %q", m.name, guide, land, key)
+				}
+			}
+		}
+	}
+}
+
+// TestSpiritGuideOffColour measures whether gorge lists a guide whose colour
+// the cast cannot use, and whether the oracle answers with it: a Simian Spirit
+// Guide (red) beside Giant Growth ({G}) and Forests, an Elvish Spirit Guide
+// (green) beside Lightning Bolt ({R}) and Mountains, every caster permanent
+// tapped at the target ask (tapAll). The Giant Growth deck adds Grizzly Bears,
+// the only creatures it can target.
+func TestSpiritGuideOffColour(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	for _, c := range []struct {
+		guide, spell, land string
+		listed             bool // the guide's colour can pay what the cast owes
+	}{
+		{"Simian Spirit Guide", "Giant Growth", "Forest", false},
+		{"Elvish Spirit Guide", "Lightning Bolt", "Mountain", false},
+		{"Elvish Spirit Guide", "Arc Lightning", "Mountain", true}, // {2}{R}: green pays the generic part
+	} {
+		var deck []string
+		if c.spell == "Giant Growth" {
+			for range 6 {
+				deck = append(deck, "Grizzly Bears") // Giant Growth needs a creature to target
+			}
+		}
+		for range 12 {
+			deck = append(deck, c.guide)
+		}
+		for range 10 {
+			deck = append(deck, c.spell)
+		}
+		for len(deck) < 40 {
+			deck = append(deck, c.land)
+		}
+		o := runSpiritGuideDeck(t, deck, 120, tapAll)
+		t.Logf("%s with %s: windows=%d fallbacks=%d windowsHoldGuide=%d lists=%d picks=%d byPool=%v", c.guide, c.spell, o.windows, o.fallbacks, o.windowsHoldGuide, o.windowListsGuide, o.windowPicksGuide, o.byPool)
+		if o.taps == 0 || o.windowsHoldGuide == 0 {
+			t.Fatalf("%s with %s: %d taps, %d windows with a guide in hand: the probe measured nothing", c.guide, c.spell, o.taps, o.windowsHoldGuide)
+		}
+		if c.listed && (o.byPool["listed=false pool=2"] == 0 || o.byPool["listed=false pool=0"] != 0 || o.byPool["listed=false pool=1"] != 0) {
+			// the green guide is withheld once the generic {2} is paid and only {R} is owed
+			t.Errorf("%s with %s: unlisted windows by pool %v, want some at pool=2 (the generic paid) and none below", c.guide, c.spell, o.byPool)
+		}
+		if c.listed != (o.windowListsGuide > 0) {
+			t.Errorf("%s with %s: the guide was listed %d times of %d windows holding one, want listed=%v", c.guide, c.spell, o.windowListsGuide, o.windowsHoldGuide, c.listed)
+		}
+	}
+}
+
+// TestSpiritGuideXWindow measures whether natural play (no out-of-band tap, so a
+// recorded repro could hold it) opens a payment window that lists the guide:
+// Banefire announces an {X}, whose window (gorge's announcedManaWindowAsk) is
+// the one natural window shape the decks here reach. Both guides sit beside
+// Banefire and Mountains (the Elvish guide's {G} could pay the generic X). The
+// Simian guide's decks open such windows, and it asserts that they are never
+// answered with the guide (a battlefield source is listed ahead of it, and the
+// plan covers what is owed). The Elvish guide's decks opened none in the seeds
+// run. The listing count is logged, not asserted: a natural listing is rare
+// (2 of 200 seeds here), so a later shuffle, card or policy change could move
+// it to 0 without a regression, and an asserted 0 would be a false alarm.
+func TestSpiritGuideXWindow(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	for _, guide := range []string{"Simian Spirit Guide", "Elvish Spirit Guide"} {
+		var deck []string
+		for range 8 {
+			deck = append(deck, guide, "Banefire")
+		}
+		for len(deck) < 40 {
+			deck = append(deck, "Mountain")
+		}
+		o := runSpiritGuideDeck(t, deck, 200, tapNone)
+		t.Logf("%s with Banefire: windows=%d holdGuide=%d lists=%d picks=%d shapes=%v byPool=%v", guide, o.windows, o.windowsHoldGuide, o.windowListsGuide, o.windowPicksGuide, o.shapes, o.byPool)
+		if o.guideInHand == 0 {
+			t.Fatalf("%s: no priority held the guide in hand: the probe measured nothing", guide)
+		}
+		if guide[0] == 'E' {
+			continue
+		}
+		if o.windowPicksGuide != 0 {
+			t.Errorf("%s: the oracle answered a natural window with the guide %d times", guide, o.windowPicksGuide)
 		}
 	}
 }

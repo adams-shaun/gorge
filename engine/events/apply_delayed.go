@@ -582,6 +582,16 @@ func foldGrantTriggerPush(g *state.Game, e *Event) {
 		sa = &cards.SA{Kind: "DB", API: "Pump", Params: map[string]string{
 			"Defined": "Self", "NumAtt": "+1", "NumDef": "+1"}}
 	}
+	if sa == nil && e.Counter == "__kwExtortGranted" {
+		// A granted Extort (a layer-6 AddKeyword$ Extort, e.g. Pontiff of
+		// Blight's "Other creatures you control have extort") likewise has
+		// no printed SVar; rebuild the same DB$ Extort body the printed
+		// K:Extort expansion carries (engine/cards/kw_extort.go). The
+		// granted creature's controller is the caster the body asks
+		// (effExtort reads c.Controller), exactly as a printed Extort
+		// permanent's controller is.
+		sa = &cards.SA{Kind: "DB", API: "Extort"}
+	}
 	if sa == nil && e.Counter == "__kwMyriadGranted" {
 		// A granted myriad keyword (CR 702.116a via a layer-6 AddKeyword$
 		// Myriad, e.g. Blade of Selves' "Equipped creature has myriad"): the
@@ -589,6 +599,13 @@ func foldGrantTriggerPush(g *state.Game, e *Event) {
 		// Myriad body (engine/cards/kw_myriad.go). The defending player the
 		// body excludes rides IDs as Remembered.
 		sa = &cards.SA{Kind: "DB", API: "Myriad", Params: map[string]string{}}
+	}
+	if sa == nil && e.Counter == "__kwEvolveGranted" {
+		// A granted evolve keyword (CR 702.100a via a layer-6 AddKeyword$
+		// Evolve, e.g. Tyranid Prime): rebuilt into the printed K:Evolve
+		// expansion's DB$ PutCounter body (engine/cards/kw_evolve.go).
+		sa = &cards.SA{Kind: "DB", API: "PutCounter", Params: map[string]string{
+			"Defined": "Self", "CounterType": "P1P1", "CounterNum": "1"}}
 	}
 	if sa == nil {
 		return

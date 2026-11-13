@@ -121,6 +121,9 @@ type CardDef struct {
 	// Society).
 	WardPoison uint8
 	Leyline    bool // may begin the game on the battlefield from the opening hand
+	// World: the printed World supertype (CR 205.4a), read by the CR 704.5k
+	// world rule (kernel zone_worldrule.go). No corpus effect grants or removes it.
+	World bool
 	// SelfFlash: a CastWithFlash EffectZone$ All self grant ("you may cast this
 	// spell as though it had flash if ..."; Illusion Spinners). The card's own
 	// StatCastWithFlash ability grants it from hand, never from the
@@ -134,6 +137,12 @@ type CardDef struct {
 	// zero mana; a kicked cast pays this through the cost stages (kernel
 	// kw_kicker.go).
 	KickerCost Cost
+	// Multikicker, HasMultikicker: K:Multikicker:<cost> (CR 702.43). The
+	// per-payment cost is paid any number of times as the spell is cast; a
+	// Multikicker card's kicked cast asks the count before X and targets
+	// (kernel cast.go's bsMulti). HasMultikicker distinguishes a zero cost.
+	Multikicker    ManaCost
+	HasMultikicker bool
 	// BeholdN, BeholdF: part one of the either-or additional cost is
 	// "behold a <type>" (Behold<1/Type>, CR 701.4a): BeholdN (1) of the
 	// payer's permanents or hand cards matching BeholdF. Table data, not a
@@ -426,6 +435,11 @@ type CardDef struct {
 	// returns a creature you control to its owner's hand (FbCost), then exiles
 	// the spell (dirac/kw_beammeup.go).
 	BeamMeUp bool
+	// Escape is printed escape (CR 702.138a): a graveyard cast for AltCost
+	// while exiling the cost's other cards from the graveyard (EscCost), a
+	// normal cast with no exile tail (dirac/kw_escape.go). Never set with
+	// Flashback, Harmonize, Mayhem or BeamMeUp (kgen refuses them).
+	Escape bool
 	// Retrace is printed K:Retrace (CR 702.81a; false = none): a graveyard
 	// cast paying the PRINTED cost (never a substitution) plus the additional
 	// RetraceCost, a discard of one land card (CostDiscardFiltered); the
@@ -547,6 +561,13 @@ type CardDef struct {
 	// tapXType<N/Spec>, paid through the cast's pick stages in place of
 	// the spell's additional cost (gorge flashbackCost).
 	FbCost Cost
+	// EscCost is a printed escape cost's non-mana part (Escape; AltCost
+	// holds its mana): ExileFromGrave<N/Card.Other> from your graveyard,
+	// paid through the cast's pick stage in place of the spell's additional
+	// cost (gorge escapeCost; the exiles are of OTHER cards, never the cast
+	// card). A cost with a battlefield-exile part beside it is refused in
+	// kgen (the cast carries one counted part).
+	EscCost Cost
 	// RemPersist: the card's enters trigger remembers objects its leaves
 	// trigger reads (gorge's Remembered persisting on the source: Journey
 	// to Nowhere, Mesmeric Fiend; dirac/zone_rememberpersist.go).

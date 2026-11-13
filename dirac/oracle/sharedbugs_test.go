@@ -43,9 +43,7 @@ var sharedBugsDecks = []struct {
 
 // TestSharedBugsLockstep plays the boards against gorge on both surfaces.
 func TestSharedBugsLockstep(t *testing.T) {
-	if isolate(t) {
-		return
-	}
+	t.Parallel() // each row runs isolated, side by side: one child held all 15 rows in series (206 s on the box)
 	reg, _ := kopusSetup(t)
 	set, err := cardset.RawByName("sharedbugs")
 	if err != nil {
@@ -53,6 +51,9 @@ func TestSharedBugsLockstep(t *testing.T) {
 	}
 	for _, row := range sharedBugsDecks {
 		t.Run(strings.ReplaceAll(row.name, " ", "_"), func(t *testing.T) {
+			if isolate(t) {
+				return
+			}
 			md := [2][]cardset.Entry{row.deck, row.deck}
 			decks := kcastDeck(t, reg, md)
 			tbl, _, _, err := set.Matchup(md[0], md[1])

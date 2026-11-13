@@ -341,6 +341,9 @@ var kwBits = map[string]kop.KwMask{
 	"PreventCombatDamageFrom": kop.KwPreventCombatDamageFrom, "Shroud": kop.KwShroud,
 	"Fear": kop.KwFear, "Shadow": kop.KwShadow, "Prowess": kop.KwProwess, "Wither": kop.KwWither, // a GRANTED wither only (printed: CardDef.Wither)
 	"Ward": kop.KwWard, // a static's granted ward only (lStatic.Ward; splitWardGrant)
+	// Multikicker has no free KwMask bit (all 32 are used); the keyword is
+	// carried by CardDef.HasMultikicker/Multikicker instead (CR 702.43).
+	"Multikicker": 0,
 }
 
 func kwMask(ks []string) (kop.KwMask, error) {
@@ -618,6 +621,12 @@ func (cb *cardBuilder) record() error {
 			}
 		}
 	}
+	if c.Multikicker != nil {
+		d.HasMultikicker = true
+		if d.Multikicker, err = manaCostOf(*c.Multikicker); err != nil {
+			return err
+		}
+	}
 	if c.MorphCost != nil {
 		d.MorphFamily = c.MorphFamily
 		if d.MorphCost, err = manaCostOf(*c.MorphCost); err != nil {
@@ -839,6 +848,23 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.EscCost != nil {
+		// CR 702.138a: the escape cost's printed exiles (dirac/kw_escape.go),
+		// paid through the cast's pick stages in place of the spell's
+		// additional cost, like FbCost
+		if c.SpellCost != nil {
+			return fmt.Errorf("escape cost beside a spell additional cost (one pick cost per cast)")
+		}
+		if d.EscCost, err = cb.cost(*c.EscCost); err != nil {
+			return err
+		}
+	}
+	if c.Escape != nil {
+		d.Escape = true
+		if d.AltCost, err = manaCostOf(*c.Escape); err != nil {
+			return err
+		}
+	}
 	if c.Aftermath {
 		// CR 702.127a: the right half of a split card, cast only from its
 		// owner's graveyard and exiled leaving the stack (dirac/face_aftermath.go)
@@ -906,6 +932,7 @@ func (cb *cardBuilder) record() error {
 		d.HasAltAdd = true
 	}
 	d.Leyline = c.Leyline
+	d.World = c.World
 	d.SelfFlash = c.SelfFlash
 	d.Gift = c.Gift
 	d.SpentSelf = c.SpentSelf
@@ -1473,8 +1500,25 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		// and Count$ValidStack Card.Self+sneaked
 		return kf, refuse("sneaked off the battlefield and the stack")
 	}
+	if c.Flags&fEscaped != 0 && !cb.selfCast && zone != kop.ZoneBattlefield {
+		// a battlefield permanent reads the arena's mechEscaped mark
+		// (PredEscaped, PredN 1); the stack read is the SpellCast self
+		// trigger's filter (kernel selfCastFilterOK), off both it fails
+		// closed (predCardCold)
+		return kf, refuse("escaped off the battlefield and the stack")
+	}
 	if c.Unblocked {
 		kf.Flags2 |= kop.F2Unblocked // a battlefield read only (the card matchers fail closed)
+	}
+	if c.Flags&fEscaped != 0 {
+		// Card.Self+escaped (CR 702.138a): the arena's mechEscaped mark as
+		// kop.PredEscaped, the clause's one Pred slot (kernel
+		// predPermCold); FilterFlags2 is full (kernel filter_negations.go)
+		if kf.Pred != kop.PredNone {
+			return kf, refuse("escaped beside another predicate")
+		}
+		kf.Pred, kf.PredN = kop.PredEscaped, 1
+		c.Flags &^= fEscaped // consumed as the Pred, no kop flag of its own
 	}
 	for b := uint64(1); b != 0; b <<= 1 {
 		if c.Flags&b == 0 {
@@ -2120,6 +2164,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vActivations:        kop.ExActivations,
 	vLifeLostLastTurn:   kop.ExLifeLostLastTurn,
 	vDmgAmount:          kop.ExDmgAmountReceived,
+	vTimesKicked:        kop.ExKicked, // Expr.N 1: the multikicker count, not the kicked bit
 	vEnergyOf:           kop.ExEnergyOf,
 	vMonarch:            kop.ExMonarch, // lower_monarch.go
 }
@@ -2145,6 +2190,9 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 	}
 	if v.Kind == vPWTypes {
 		e.N = 1 // ExCount N 1: the distinct planeswalker subtypes, not the count
+	}
+	if v.Kind == vTimesKicked {
+		e.N = 1 // ExKicked N 1: the multikicker payment count (eval's timesKicked)
 	}
 	if v.Kind == vThisTurnEntered {
 		e.N = int16(v.Zone)

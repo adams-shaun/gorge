@@ -1720,6 +1720,11 @@ func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 			return err // lower_attacktax.go: before the EffectZone$ strip below
 		}
 	}
+	if s.Mode == "CantBlockUnless" {
+		if err := blockTaxReadable(s.Params); err != nil {
+			return err // lower_blocktax.go: before the EffectZone$ strip below
+		}
+	}
 	if s.Params["EffectZone"] == "Battlefield" {
 		// a printed static's default zone spelled out (gorge
 		// EffectZoneOK: the battlefield, as with no EffectZone$)
@@ -1966,6 +1971,9 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		if opt, err := lc.reduceOptPaid(sp, &st); err != nil {
 			return nil, err // lower_optcost.go
 		} else if !opt {
+			if sp.str("ValidCard") == "Card.Self" {
+				sp.consume("Relative") // gorge lists Relative$ as readable and never reads it (as reduceOptPaid)
+			}
 			if st.Amount, err = lc.value(sp.str("Amount")); err != nil {
 				return nil, err
 			}
@@ -2077,6 +2085,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 	case "CantAttackUnless":
 		if err := lc.cantAttackUnless(sp, &st); err != nil {
 			return nil, err // lower_attacktax.go
+		}
+	case "CantBlockUnless":
+		if err := lc.cantBlockUnless(sp, &st); err != nil {
+			return nil, err // lower_blocktax.go
 		}
 	case "CanAttackDefender":
 		// gorge combat.AttackAllowedThroughDefender: ValidCard$ (or
@@ -2605,6 +2617,11 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		rest, melee := splitMeleeGrant(rest)
 		rest, exalted := splitExaltedGrant(rest)
+		rest, err = lc.grantEvolve(rest, st) // lower_evolvegrant.go
+		if err != nil {
+			return nil, err
+		}
+		rest, extort := splitExtortGrant(rest)           // lower_extortgrant.go
 		rest, myriad := splitMyriadGrant(rest)           // lower_myriad.go
 		rest, st.ProtFrom, err = lc.splitProtGrant(rest) // lower_protgrant.go
 		if err != nil {
@@ -2645,6 +2662,16 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			// once per instance (lower_exaltedgrant.go; gorge
 			// rules/melee.go)
 			idx, err := lc.exaltedGrantTrigger()
+			if err != nil {
+				return nil, err
+			}
+			st.Grant = append(st.Grant, idx)
+		}
+		for ; extort > 0; extort-- {
+			// CR 702.101a/b granted: one latent SpellCast trigger, listed
+			// once per instance (lower_extortgrant.go; gorge
+			// rules/scriptfacts)
+			idx, err := lc.extortGrantTrigger()
 			if err != nil {
 				return nil, err
 			}

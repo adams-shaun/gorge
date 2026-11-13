@@ -37,6 +37,7 @@ type options struct {
 	deckA, deckB, pairsFile        string
 	a, b, mullPolicy, config       string
 	out, summary                   string
+	cpuProf, memProf               string
 	pairs, firstPair, mulligans    int
 	maxTurns, maxIntents, workers  int
 	seed                           uint64
@@ -72,6 +73,8 @@ func (o *options) flags(errs io.Writer) *flag.FlagSet {
 	fs.StringVar(&o.summary, "summary", "", "summary file, one JSON object (default: stderr)")
 	fs.BoolVar(&o.skipRefused, "skip-refused", false, "skip a pair the set refuses and count it, instead of failing")
 	fs.Float64Var(&o.sampleReplay, "sample-replay", 0, "fraction of games also written as koracle-game-2 records under <out>.replays, which kfuzz -replay re-executes in gorge; needs -out")
+	fs.StringVar(&o.cpuProf, "cpuprofile", "", "write a CPU profile here")
+	fs.StringVar(&o.memProf, "memprofile", "", "write an allocation profile here and print the run's allocation totals")
 	fs.StringVar(&o.config, "config", configAutopay, "the verified surface to play: "+configAutopay+" or "+configFull)
 	return fs
 }
@@ -357,6 +360,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 	fs.Visit(func(f *flag.Flag) { o.explicit[f.Name] = true })
+	defer startProfile(o.cpuProf, o.memProf)()
 	if err := o.check(); err != nil {
 		fmt.Fprintln(stderr, "dplay:", err)
 		return 2

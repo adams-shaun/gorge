@@ -2,7 +2,8 @@
 # Imp's Mischief, Reroute and Sideswipe beside spells to redirect (Lava Spike,
 # First Volley, Rend Flesh are Arcane for Sideswipe), a targeted activated
 # ability (Rod of Ruin, Prodigal Sorcerer) and a targeted trigger
-# (Flametongue Kavu), with Spellskite and Hydroelectric Specimen taking a target (dirac/oracle/retarget_test.go)
+# (Flametongue Kavu), with Spellskite and Hydroelectric Specimen taking a target (dirac/oracle/retarget_test.go),
+# Spellskite choosing which of Arc Lightning's three targets it takes
 Deflecting Swat
 Misdirection
 Imp's Mischief
@@ -21,6 +22,7 @@ Prodigal Sorcerer
 Essence Scatter
 Opt
 Hill Giant
+Arc Lightning
 Grizzly Bears
 Mountain
 Island

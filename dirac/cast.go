@@ -24,11 +24,14 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	ob := &s.objs[o]
 	p := s.prio
 	c := ob.card
+	if int(o) < len(s.cold.mkObj) {
+		s.cold.mkObj[o] = 0 // a card cast again starts with no payments (CR 702.43; kw_multikicker.go)
+	}
 	var fl uint8
 	if mode&1 != 0 {
 		fl |= sfKicked
 	}
-	esc := mode&2 != 0 && s.g.escapeCast // the target byte's escape cast (kw_escape.go)
+	esc := escapeCast(k, c, mode, tgt) || s.g.escapeCast // a printed escape cast, or the target byte's granted escape (kw_escape.go)
 	s.g.escapeCast = false
 	mayhem := mayhemCast(k, c, mode) && !esc // a graveyard cast that is no flashback (kw_mayhem.go)
 	if k.gen != nil && k.gen.anyAftermath {
@@ -56,7 +59,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		e.trigPl = trigPlMayhem
 	}
 	if esc {
-		e.trigPl = trigPlEscape // the cost builder's escape cast (kw_escape.go)
+		e.trigPl = trigPlEscape // the printed or granted escape cost (CR 702.138a; kw_escape.go)
 	}
 	if retrace {
 		e.trigPl = trigPlRetrace // the retrace cast's pick cost (kw_retrace.go)
@@ -154,11 +157,22 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		// which plans with PlannedCast{}: its hand demand (rank key 6)
 		// counts the card being cast too, so nothing is excluded.
 		cost := s.buildCost(k)
+		if k.t.Cards[c].HasMultikicker {
+			// the count is asked after the cast action: the witness plans the
+			// offer's own base + one payment (gorge's composed potential play)
+			cost = addCost(cost, k.t.Cards[c].Multikicker)
+		}
 		if s.rbAny(p) {
 			// restricted mana the spell may spend (Secluded Courtyard's
 			// {R} for a Goblin, tapped by the play's script prefix) is in
 			// the witness's pool: tap only for the rest
 			cost = s.restrShort(k, p, c, s.restrOriginOfObj(o), cost)
+		}
+		if k.t.Cards[c].HasMultikicker {
+			// gorge's composed witness prices the delve credit (granted or
+			// printed) that kickedAffords / multikickMax offer on: the same
+			// helper, or the witness taps and floats that much extra
+			cost = s.gateDelveCredit(k, p, c, o, ob.zone == kop.ZoneHand, cost)
 		}
 		s.tapFor(k, p, &cost, 0, NoObj)
 	} else if mode&castWarp != 0 || k.gen != nil && (k.gen.anyImpending && s.bld().e.impended() || k.gen.anyEvoke && s.bld().e.evoked() || k.gen.anyDash && s.bld().e.dashed(k) || k.gen.anyOverload && s.bld().e.overloaded(k)) {
@@ -170,6 +184,10 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		if !s.poolRPays(k, p, c, o) {
 			s.lowerWitness(k, p)
 		}
+	} else if mode == 0 && ob.zone == kop.ZoneHand && k.gen != nil && k.gen.anySacX && s.sacXPoolOffer(k, p, o) {
+		// an announced Sac<X> the floating pool pays at some count: gorge offers
+		// it from the pool (offerSacXMods) and plans nothing, so nothing is
+		// lowered (cost_sacx.go)
 	} else if !(k.gen != nil && s.contribPays(k, p, c, o, ob.zone == kop.ZoneHand)) && mode&(castFace|castFaceDown|castWarpRecast) == 0 && (s.cfg&cfgGorgeLowering != 0 && mode&3 == 0 && mode != castFree && ob.zone == kop.ZoneHand ||
 		s.cfg&(cfgGorgeLowering|cfgGorgeAutopay) != 0 && (mode&castMayPlay != 0 && mode&castFree == 0 || mode&3 == 2)) &&
 		(typed || fl&sfFbGranted != 0 || !s.plannedUnderRider(p, o, mode&3)) {
@@ -412,7 +430,7 @@ func (s *State) syncBuild() {
 // these rows. A triggered ability is pushed by takePending before its
 // program starts.
 var buildProgram = [3][]uint8{
-	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsConspire, bsConvoke, bsX, bsDelve, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
+	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsMulti, bsConspire, bsConvoke, bsX, bsDelve, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seAbility: {bsPush, bsModes, bsTapCost, bsX, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seTrigger: {bsModes, bsPips, bsTargets, bsDivide, bsPay},
 }
@@ -613,6 +631,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if cd.Mayhem && e.trigPl == trigPlMayhem {
 			c = cd.AltCost // the mayhem cost (CR 702.187a; kw_mayhem.go)
 		}
+		if cd.Escape && e.trigPl == trigPlEscape {
+			c = cd.AltCost // the escape cost (CR 702.138a; kw_escape.go)
+		}
 		if e.trigPl == trigPlMadness && cd.HasMadness {
 			c = cd.MadnessCost // the madness cast from exile (CR 702.35b)
 		}
@@ -626,7 +647,7 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 			c = cd.WebSlingCost // the web-slinging cost (CR 702.188a; kw_websling.go)
 		}
 		if e.flags&sfKicked != 0 {
-			c = addCost(c, cd.Kicker)
+			c = s.addKickerPayments(cd, e, c)
 		}
 		if k.gen != nil && k.gen.anyMayFlash && mayFlashEntry(e) && cd.HasMayFlash && !DebugMayFlashFree {
 			c = addCost(c, cd.MayFlashCost) // the mana cost plus the extra (CR 702.8; kw_mayflash.go)
@@ -750,6 +771,12 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			}
 			s.nextStage(k)
 			continue
+		case bsMulti:
+			if s.multikickOptions(k, d) {
+				return true
+			}
+			s.nextStage(k)
+			continue
 		case bsConspire:
 			if s.bld().cas >= casConspire && s.bld().cas <= casConspHalf && e.kind == seSpell && s.conspireOptions(k, d) {
 				return true
@@ -853,6 +880,8 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			}
 			if k.gen != nil && k.gen.anySacX && cost.X != 0 {
 				hi = s.sacXClamp(k, &cost, hi) // (announced only, hi is the clamped mx already)
+			} else if k.gen != nil && k.gen.anySacX {
+				mx, hi = s.sacXDiscountBounds(k, &cost, &av, mx, hi) // announced only, priced at each count (cost_sacx.go)
 			}
 			if !s.addXOptions(k, d, e, mx, hi, &av) {
 				return s.ctl == ctlBuild // false: no X above the floor is payable, the cast reversed (cost_sacx.go)
@@ -1392,6 +1421,10 @@ func (s *State) applyBuild(k *prep, a Action) {
 			s.bld().pipN++
 			return
 		}
+		if s.bld().stage == bsMulti {
+			s.answerMultikick(k, a)
+			return
+		}
 		e.x = a.Mode() // X
 		s.nextStage(k)
 	case AkDone:
@@ -1675,6 +1708,19 @@ func (s *State) finishBuild(k *prep) {
 		early := k.gen != nil && k.gen.anyAbReduce
 		if early {
 			pre = s.buildCostCharge(k)
+		}
+		// CR 119.4, 733.1: the mana window's mana abilities may have paid life
+		// (Starting Town's {T}, Pay 1 life) after the offer priced this
+		// activation's fixed PayLife<N> payable. gorge charges the life at
+		// payment and reverses the activation when it no longer is
+		// (cast_commit.go), leaving the taps and floating mana; the spell
+		// build rechecks the same at bsCosts. The PayLife<X> form (owed 0) is
+		// bounded by the X ask.
+		if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayLife != 0 {
+			if owed := lifeCostOwed(pc); owed > 0 && int(s.pl[SeatIx(e.ctrl)].life) < owed {
+				s.reverseCast(k)
+				return
+			}
 		}
 		s.payAbilityCosts(k, &e)
 		if k.phyMana {
@@ -2391,6 +2437,9 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 		}
 		if e.flags&sfFlashback != 0 && cd.FbCost.Flags != 0 && e.flags&sfFbGranted == 0 {
 			return &cd.FbCost // a non-mana flashback cost (CR 702.34a; kgen lower_fbcost.go)
+		}
+		if cd.Escape && e.trigPl == trigPlEscape && cd.EscCost.Flags != 0 && !DebugEscapeSkipExiles {
+			return &cd.EscCost // the escape cost's exile parts (CR 702.138a; kw_escape.go)
 		}
 		if k.gen != nil && k.gen.anyKickCost {
 			if kc := kickerCostPick(k, e); kc != nil {

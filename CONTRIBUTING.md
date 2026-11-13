@@ -7,8 +7,8 @@ Forge. To fix a card that plays wrong, read this page and follow
 [glossary](docs/site/contributing/glossary.md). The fuller guide, including
 worktrees and what CI runs, is [docs/site/contributing/index.md](docs/site/contributing/index.md).
 
-**Open pull requests against `develop`,** not `main`. The maintainers merge
-`develop` into `main`.
+**Open pull requests against `develop`,** not `main`. The maintainers promote
+landed work to `main` through pull requests whose CI is the full gate.
 
 ## Set up
 

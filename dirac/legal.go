@@ -158,7 +158,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
 				s.offerOptCostOnly(k, d, p, o, c, &av)
 			}
-			continue
+			if k.gen == nil || !k.gen.anySacX || !s.sacXPoolOffer(k, p, o) {
+				continue // (an announced Sac<X> the floating pool pays at some X is offered, cost_sacx.go)
+			}
 		}
 		tgtOK, twOK := true, false
 		if k.teamwork && k.t.Cards[c].Teamwork != 0 {
@@ -204,15 +206,15 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if k.gen != nil && k.gen.anyBestow && k.t.Cards[c].HasBestow {
 			s.offerBestowHand(k, d, p, o, c, &av) // kw_bestow.go
 		}
-		if pc.kw&kop.KwKicker != 0 || k.offspring && offspringOffer(k, c) {
-			kc := addCost(pc.cost, k.t.Cards[c].Kicker)
+		if pc.kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker || k.offspring && offspringOffer(k, c) {
+			kc := addCost(pc.cost, kickerPayment(&k.t.Cards[c]))
 			if s.statM.any() || k.gen != nil {
 				kc = s.adjustCost(k, p, c, o, kc) // the reduction applies to the total (CR 601.2f)
 			}
 			if k.gen != nil && k.gen.anyTypeCreat && s.convAnyType(k, p, o) {
 				kc = anyType(kc) // the kicked total under Vizier's conversion too (mana_convertcreature.go)
 			}
-			if s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &kc, cav) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
+			if s.kickedAffords(k, p, c, o, &kc, cav) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
 				d.add(MakeAction(AkCast, uint8(o), 0, 1))
 			}
 		}
@@ -298,7 +300,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	if k.gen != nil && k.gen.anyBeam {
 		s.offerBeamCasts(k, d, p, sorc, &av) // kw_beammeup.go
 	}
-	if k.gen != nil && k.gen.anyEscapeGrant {
+	if k.escape || k.gen != nil && k.gen.anyEscapeGrant {
 		s.offerEscapeCasts(k, d, p, sorc, &av) // kw_escape.go: gorge lists the escape walk before mayhem's (legal_walk_alt.go)
 	}
 	if k.mayhem {
@@ -350,8 +352,8 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				s.availFor(k, p, &av)
 				haveAv = true
 			}
-			if (a.Cost.Mana.X > 0 || sacXCost(&a.Cost)) && s.cfg&cfgGorgeUnpriced != 0 {
-				m := xFloorCost(a.Cost.Mana, costXMin(&a.Cost)) // (an announced Sac<X> is "cost:x" to the planner too; the pool pays the cheapest legal announcement; cost_sacx.go)
+			if (a.Cost.Mana.X > 0 || a.Cost.XMin != 0) && s.cfg&cfgGorgeUnpriced != 0 {
+				m := xFloorCost(a.Cost.Mana, costXMin(&a.Cost)) // (gorge's cost:x is X != 0 || XMin != 0 (pay.PlanCostDetail); an announced Sac<X> part without {X} or XMin is planned like any other cost (Krav, the Unredeemed's {B}); the pool pays the cheapest legal announcement; cost_sacx.go)
 				if k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 {
 					m = s.powerUpReduced(k, s.perms[sl].obj, m) // CR 702.193b: gorge prices the reduced cost (legal_walk_battlefield.go)
 				}
@@ -741,6 +743,9 @@ func (s *State) gorgeOffers(p uint8, o Obj, mode uint8) bool {
 	if mode&1 != 0 || s.FeatPlannedCast(p, o, mode) || s.FeatPoolPays(p, o, mode) {
 		return true
 	}
+	if k := s.k(); mode == 0 && k.gen != nil && k.gen.anySacX && s.sacXPoolOffer(k, p, o) {
+		return true // the floating pool pays it at some announced Sac<X> count (cost_sacx.go)
+	}
 	return s.cfg&cfgGorgeAutopay == 0 && s.gorgeLowers(p, o, false)
 }
 
@@ -1036,10 +1041,10 @@ func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base
 		return true
 	}
 	ac := spellAddCost(k, c)
-	if s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p, c, o) {
+	if s.pickCostPayable(k, p, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p, c, o) {
 		return true
 	}
-	if !s.pickCostPayable(k, p, &cd.AltAddCost, NoObj) {
+	if !s.pickCostPayable(k, p, &cd.AltAddCost, o) {
 		return false
 	}
 	t := addCost(*cost, cd.AltAddCost.Mana)

@@ -231,11 +231,19 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		case mode&1 != 0:
 			cm, _ = CastModeCode("kicked")
 		case mode&2 != 0 && tgt == dirac.FeatEscapeTgt:
-			cm, _ = CastModeCode("escape") // CR 702.42a: the escape cast a StatEscapeGrant static gives (kw_escape.go)
+			// CR 702.138a: the escape cast a StatEscapeGrant static gives
+			// (kw_escape.go); gorge's "escape" cast option, CastModeOther
+			// like "mayhem" and the printed escape cast below.
+			cm = CastModeOther
 		case mode&2 != 0 && r.S.FeatMayhemCard(dirac.Obj(src)):
 			cm, _ = CastModeCode("mayhem") // CR 702.187a: CastModeOther, as "harmonize"
 		case mode&2 != 0 && r.S.FeatHarmonizeCast(dirac.Obj(src)):
 			cm, _ = CastModeCode("harmonize") // CR 702.180a: CastModeOther, as "bargained"
+		case mode&2 != 0 && tgt == dirac.FeatCastEscapeTgt:
+			// CR 702.138a: the mode-2 escape cast (kw_escape.go); gorge's
+			// "escape" cast option, CastModeOther as "mayhem". The target
+			// byte marks it apart from a granted flashback on the same card.
+			cm = CastModeOther
 		case mode&2 != 0 && tgt == dirac.FeatRetraceTgt && r.S.FeatRetraceCard(dirac.Obj(src)):
 			// the retrace cast (CR 702.81a; kw_retrace.go): the printed cost
 			// plus the discard-a-land additional cost; gorge's "retrace"
@@ -347,6 +355,10 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		switch r.D.Sub {
 		case dirac.ChX:
 			return ch("x", RefNone, mode)
+		case dirac.ChMultikick:
+			// CR 702.43's count pick (gorge KChoose "multikick"): the
+			// canonical option carries the count as its mode
+			return ch("multikick", RefNone, mode)
 		case dirac.ChCostDiscard, dirac.ChDiscard, dirac.ChCleanupDiscard:
 			return ch("discard", src, 0)
 		case dirac.ChDrawUpto:
@@ -819,6 +831,10 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return Pack(kind("clone"), RefNone, RefNone, 0), true
 		}
 		return Pack(kind("clone"), src, RefNone, 0), true
+	case dirac.ChEchoActionPick:
+		// gorge echoActionAsk's one choose-exactly-N kind for a discard or a
+		// land sacrifice paying an echo cost
+		return Pack(kind("echo_action_pick"), src, RefNone, 0), true
 	case dirac.ChGenPayPick:
 		if blight, modes := r.S.FeatPayBlight(); blight {
 			if modes {

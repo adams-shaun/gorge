@@ -148,6 +148,9 @@ func TestTgtxcountLockstep(t *testing.T) {
 // (dirac.DebugTgtBoundsMaxPlus1): the kernel then asks for a target past X,
 // and the games must diverge within 64 seeds.
 func TestTgtxcountMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, first, _ := runTgtxcount(t, 64,
 		func() { dirac.DebugTgtBoundsMaxPlus1 = true },
 		func() { dirac.DebugTgtBoundsMaxPlus1 = false })

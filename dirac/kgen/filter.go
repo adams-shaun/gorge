@@ -87,6 +87,7 @@ const (
 	fCrewedSrc     // CrewedThisTurn: crewed the source this turn
 	fWarped        // CastSa Spell.Warp: a battlefield permanent cast for its warp cost
 	fBargained     // bargained: the permanent's spell was bargained (CR 702.166; Card.Self+bargained reads F2Kicked)
+	fEscaped       // escaped: the permanent's spell was cast for its escape cost (CR 702.138a; kop.PredEscaped, the arena's mechEscaped)
 	fTeamwork      // Teamwork: the permanent's spell was teamworked (CR 702.194b; Card.Self+Teamwork reads F2Kicked)
 	fExiledWith    // ExiledWithSource: exiled with the reading source (kop.FExiledWith)
 	fNotAttacking  // !attacking (kop.FNotAttacking)
@@ -97,7 +98,7 @@ const (
 var flagNames = [...]string{"Self", "Other", "Token", "NonToken", "Attacking", "Blocking", "Tapped", "Untapped",
 	"WithFlying", "WithoutFlying", "Kicked", "CastByYou", "EquippedBy", "EnchantedBy", "EnteredThisTurn",
 	"ChosenType", "ChosenColor", "Remembered", "NotRemembered", "ChosenCard", "NotChosenCard",
-	"AttachedToParentTarget", "TargetedBy", "NamedAsSource", "Basic", "SharesColorWithOtherRemembered", "NotTriggerObj", "PromisedGift", "WasDamaged", "Legendary", "Saddled", "Sneaked", "BlockedBySrc", "DamagedBy", "CrewedSrc", "Warped", "Bargained", "Teamwork", "ExiledWith", "NotAttacking", "NotAttachedBy"}
+	"AttachedToParentTarget", "TargetedBy", "NamedAsSource", "Basic", "SharesColorWithOtherRemembered", "NotTriggerObj", "PromisedGift", "WasDamaged", "Legendary", "Saddled", "Sneaked", "BlockedBySrc", "DamagedBy", "CrewedSrc", "Warped", "Bargained", "Escaped", "Teamwork", "ExiledWith", "NotAttacking", "NotAttachedBy"}
 
 // Controller / owner selectors.
 const (
@@ -404,6 +405,7 @@ var propWords = map[string]uint64{
 	"SaddledThisTurn":           fCrewedSrc, // gorge: the exact twin of CrewedThisTurn (one pairedWithSourceThisTurn list)
 	"CastSa Spell.Warp":         fWarped,
 	"bargained":                 fBargained, // CR 702.166: Card.Self+bargained (kgen gates it on the CardDef.Bargain below)
+	"escaped":                   fEscaped,   // CR 702.138a: Card.Self+escaped (kop.PredEscaped; gated on CardDef.Escape below)
 	"Teamwork":                  fTeamwork,  // CR 702.194b: Card.Self+Teamwork (gated on CardDef.Teamwork)
 	"inZoneBattlefield":         0,          // implied by every battlefield context this pool uses it in
 }

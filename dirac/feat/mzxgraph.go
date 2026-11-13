@@ -586,7 +586,7 @@ func (e *Encoder) mzxCardAbilities(g *MZX, o uint8, c *vcard, cd *kop.CardDef, z
 // seats' player names.
 func (e *Encoder) AppendMZX(dst []byte, g *MZX, s *dirac.State, d *dirac.Decision, used []bool, kind string, seq uint64) []byte {
 	v := &e.v
-	me := d.Player & 1
+	me := dirac.SeatIx(d.Player)
 	clear(g.nodes)
 	clear(g.edges)
 	clear(g.canAct)
@@ -623,7 +623,7 @@ func (e *Encoder) AppendMZX(dst []byte, g *MZX, s *dirac.State, d *dirac.Decisio
 		switch d.Sub {
 		case dirac.ChOptional, dirac.ChOptDiscMay:
 			dt = "CHOOSE_USE"
-		case dirac.ChX, dirac.ChTrigX:
+		case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick:
 			dt = "CHOOSE_NUM"
 		case dirac.ChCostDiscard, dirac.ChCleanupDiscard, dirac.ChDiscard, dirac.ChCostSacrifice, dirac.ChSacrifice:
 			dt = "CHOOSE_TARGET"
@@ -644,7 +644,7 @@ func (e *Encoder) AppendMZX(dst []byte, g *MZX, s *dirac.State, d *dirac.Decisio
 	// exile (both players' exiled cards in one main exile zone)
 	exile, _ := g.node(MZZone, []byte("Exile"), mzxKExile, root, g.lNone)
 	mainX, _ := g.node(MZZone, []byte("exile"), mzxKMainX, exile, g.lNone)
-	for p := 0; p < 2; p++ {
+	for p := 0; p < int(v.n); p++ {
 		for _, ci := range v.players[p].exile {
 			c := &v.cards[ci]
 			if n, fresh := g.node(MZCard, c.c.name, mzxKeyObj('o', int(c.obj), 0), mainX, g.lNone); fresh {
@@ -654,21 +654,19 @@ func (e *Encoder) AppendMZX(dst []byte, g *MZX, s *dirac.State, d *dirac.Decisio
 			}
 		}
 	}
-	var pnode [2]int32
-	for k := 0; k < 2; k++ {
-		p := me
-		if k == 1 {
-			p = 1 - me
-		}
-		pn, _ := g.node(MZPlayer, []byte([...]string{"PlayerA", "PlayerB"}[p]), mzxKeyObj('p', int(p), 0), root, g.lNone)
-		pnode[p] = pn
+	// players: the decision's player, then each other seat in turn order
+	var pnode [dirac.MaxSeats]int32
+	for k := int(v.n); k < len(pnode); k++ {
+		pnode[k] = -1
 	}
-	for k := 0; k < 2; k++ {
-		p := me
-		if k == 1 {
-			p = 1 - me
-		}
-		e.mzxPlayer(g, s, p, me, pnode[p])
+	for k := 0; k < int(v.n); k++ {
+		p := v.seatFrom(me, k)
+		pn, _ := g.node(MZPlayer, []byte([...]string{"PlayerA", "PlayerB", "PlayerC", "PlayerD"}[p]), mzxKeyObj('p', int(p), 0), root, g.lNone)
+		pnode[dirac.SeatIx(p)] = pn
+	}
+	for k := 0; k < int(v.n); k++ {
+		p := v.seatFrom(me, k)
+		e.mzxPlayer(g, s, p, me, pnode[dirac.SeatIx(p)])
 	}
 	// stack, top first
 	stackZ, _ := g.node(MZZone, []byte("Stack"), mzxKStack, root, g.lNone)
@@ -842,9 +840,9 @@ func (e *Encoder) AppendMZX(dst []byte, g *MZX, s *dirac.State, d *dirac.Decisio
 // targetNode is the node a target t names: a player, a spell's stack
 // object (spells: XMage targets the Spell), or the object's
 // permanent/card node; -1 when it has none.
-func (g *MZX) targetNode(t uint8, pnode [2]int32, spellAsStack bool) int32 {
+func (g *MZX) targetNode(t uint8, pnode [dirac.MaxSeats]int32, spellAsStack bool) int32 {
 	if t >= dirac.PlayerTarget0 {
-		if p := int(t - dirac.PlayerTarget0); p < 2 {
+		if p := int(t - dirac.PlayerTarget0); p < dirac.MaxSeats && pnode[p] >= 0 {
 			return pnode[p]
 		}
 		return -1
@@ -952,7 +950,7 @@ func (e *Encoder) mzxPerm(g *MZX, s *dirac.State, c *vcard, n int32, p uint8) {
 	g.colours(cd.Colors, n, g.lStatic)
 	// attachments: the permanents attached to this one
 	v := &e.v
-	for q := 0; q < 2; q++ {
+	for q := 0; q < int(v.n); q++ {
 		for _, ai := range v.players[q].bf {
 			a := &v.cards[ai]
 			if a.attached == c.obj && a.obj != c.obj {
@@ -973,8 +971,13 @@ func (e *Encoder) mzxPerm(g *MZX, s *dirac.State, c *vcard, n int32, p uint8) {
 		if c.attacking {
 			g.featureS("Attacking", n)
 			opp := 1 - p
+			if v.n > 2 {
+				if t, ok := e.st0.HBotAttackTarget(dirac.Obj(c.obj)); ok {
+					opp = e.st0.FeatAttackDefender(t)
+				}
+			}
 			g.edge(g.nodes[mzxKeyObj('p', int(opp), 0)], n, g.lDefender)
-			for q := 0; q < 2; q++ {
+			for q := 0; q < int(v.n); q++ {
 				for _, bi := range v.players[q].bf {
 					b := &v.cards[bi]
 					if b.blocks == c.obj {

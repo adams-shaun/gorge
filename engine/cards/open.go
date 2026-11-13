@@ -265,6 +265,13 @@ func PruneCaches(dir, keepPath string) {
 			_ = os.Remove(s)
 		}
 	}
+	// And an image file (ImagePath).
+	imgs, _ := filepath.Glob(filepath.Join(dir, "ir-*.img"))
+	for _, s := range imgs {
+		if _, err := os.Stat(s[:len(s)-len(".img")] + ".gob.gz"); os.IsNotExist(err) {
+			_ = os.Remove(s)
+		}
+	}
 	// So does a single-flight lock file (cache_lock.go), unless it is held.
 	pruneCacheLocks(dir)
 }

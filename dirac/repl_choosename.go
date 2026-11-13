@@ -133,9 +133,9 @@ func (s *State) castNamedOK(l trigListener, e *stackEntry) bool {
 
 // namedActivation is the activation half of a Tf4NamedCast line: the ability
 // entry e was just activated by an opponent of the listener's controller and
-// its source is a card with the listener's chosen name. A mana ability never
-// reaches fireAbilityCast (it does not use the stack; gorge's AbilityCast
-// fires on a stack activation only).
+// its source is a card with the listener's chosen name. A mana ability
+// reaches fireAbilityCast through fireManaAbilityCast (it mints no stack
+// entry; gorge announces it with events.ManaAbilityActivation).
 func (s *State) namedActivation(k *prep, e *stackEntry, l trigListener, a *kop.Ability) bool {
 	if DebugNamedCastNoAct || !whoseOK(a.Trig.Whose, l.ctrl, e.ctrl) {
 		return false

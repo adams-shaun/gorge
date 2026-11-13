@@ -61,9 +61,9 @@ when a row stops matching the code.
 | [400-zones](400-zones.md) | 70 | 44 | 0 | 0 | 1 | 4 | 20 | 1 |
 | [500-turn-structure](500-turn-structure.md) | 125 | 77 | 6 | 1 | 0 | 0 | 41 | 0 |
 | [600-spells-abilities-effects](600-spells-abilities-effects.md) | 288 | 136 | 23 | 5 | 1 | 9 | 98 | 16 |
-| [700-additional-rules](700-additional-rules.md) | 439 | 196 | 32 | 1 | 1 | 1 | 206 | 2 |
-| [702-keyword-abilities](702-keyword-abilities.md) | 252 | 81 | 24 | 2 | 0 | 0 | 144 | 1 |
+| [700-additional-rules](700-additional-rules.md) | 439 | 197 | 32 | 1 | 1 | 1 | 205 | 2 |
+| [702-keyword-abilities](702-keyword-abilities.md) | 252 | 82 | 24 | 2 | 0 | 0 | 143 | 1 |
 | [800-multiplayer](800-multiplayer.md) | 43 | 0 | 0 | 0 | 0 | 0 | 43 | 0 |
 | [900-casual-variants](900-casual-variants.md) | 49 | 0 | 0 | 0 | 0 | 0 | 49 | 0 |
-| **all** | 1622 | 713 | 112 | 12 | 4 | 20 | 714 | 47 |
+| **all** | 1622 | 715 | 112 | 12 | 4 | 20 | 712 | 47 |
 <!-- /crcoverage:summary -->

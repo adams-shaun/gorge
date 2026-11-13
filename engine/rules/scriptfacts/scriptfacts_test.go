@@ -108,4 +108,19 @@ func TestGrantedKeywordTriggerReadsTheKeywordLine(t *testing.T) {
 	if strings.TrimSpace(tr.Effect.ParamStr(cards.PKNumAtt)) != "+1" {
 		t.Fatalf("Prowess body NumAtt = %q, want +1", tr.Effect.ParamStr(cards.PKNumAtt))
 	}
+	ev := GrantedKeywordTrigger("Evolve")
+	if ev == nil || !GrantedTriggerHeads("Evolve") {
+		t.Fatal("GrantedKeywordTrigger(Evolve) = nil, want the printed expansion's shape")
+	}
+	if ev.Mode != "ChangesZone" || ev.ParamStr(cards.PKEvolve) != "True" || ev.ParamStr(cards.PKDestination) != "Battlefield" ||
+		ev.ParamStr(cards.PKValidCard) != "Creature.YouCtrl+Other" || ev.Effect == nil || ev.Effect.API != "PutCounter" ||
+		ev.Effect.ParamStr(cards.PKCounterType) != "P1P1" || ev.Effect.ParamStr(cards.PKCounterNum) != "1" {
+		t.Fatalf("Evolve trigger = %+v / %+v, want ChangesZone Evolve$ True with a P1P1 PutCounter body", ev, ev.Effect)
+	}
+	if GrantedKeywordPayload("Evolve") != "__kwEvolveGranted" {
+		t.Fatalf("Evolve payload = %q", GrantedKeywordPayload("Evolve"))
+	}
+	if GrantedKeywordTrigger("Evolve:1") != nil {
+		t.Fatal("a parametrised Evolve spelling must fail closed")
+	}
 }

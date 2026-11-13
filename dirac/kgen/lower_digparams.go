@@ -22,17 +22,15 @@ func digNoReveal(ps *params) (bool, error) {
 	return false, refuse("NoReveal %q", v)
 }
 
-// digNoLooking reads Dig's NoLooking$ True. In gorge's effDig it only
-// withholds the chooser's look Note and the card names on the take and
-// arrange options (the window the instruction already named is unchanged,
-// and so are the takes, the remainder and every ask), so the kernel, which
-// carries no per-card look, plays it as the plain Dig. The one shape it
-// changes beyond what a player sees is a face-down exile, where the look
-// decides the may-look marker (digSecretTo / seenFaceDownExile): that
-// refuses, as does any spelling but True. noLooking also decides whether the
-// chooser "saw" the window, which digSecretTo reads for an event's Player; the
-// seat only differs when the chooser is not the library's owner, so a Dig of
-// anyone but the controller's own library, or one with a Choser$, refuses.
+// digNoLooking reads Dig's NoLooking$ True. gorge's effDig treats a dig as
+// blind only when NoLooking$ comes with ExileFaceDown$ or RandomChange$; a
+// bare NoLooking$ is inert there (the option names, the look Note and the
+// chooser's "saw" are the plain Dig's), so the kernel plays it as the plain
+// Dig. ExileFaceDown$ beside NoLooking$ refuses here, because the look also
+// decides the may-look marker (digSecretTo / seenFaceDownExile).
+// RandomChange$ refuses as an unread param (lower.go), and any spelling but
+// True refuses. A Dig with a Choser$ or of a library the controller does not
+// own is refused as well.
 func digNoLooking(ps *params, who lRef) error {
 	v, ok := ps.get("NoLooking")
 	if !ok {

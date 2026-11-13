@@ -450,7 +450,7 @@ func manaGapWhy(first, a *lAbility) string {
 	}
 	switch {
 	case a.Cost.SubCtrX && a.Cost.Mana.Generic > 0:
-		return "an announced-X counter cost beside a generic fee: the kernel's storage script gap prices no source fee (and gorge's planner prices no such source)"
+		return "an announced-X counter cost beside a generic fee: the kernel's storage script gap prices no source fee"
 	case a.Cost.SubCtrX:
 		return "an announced-X counter cost making a colour combination or any colour: the kernel's counter-X gap models one fixed colour per counter"
 	case !plainTapMana(a, false) && !plainTapMana(a, true):

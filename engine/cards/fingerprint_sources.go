@@ -38,6 +38,7 @@ import "embed"
 //go:embed hiddenkeyword.go
 //go:embed image.go
 //go:embed image_build.go
+//go:embed image_file.go
 //go:embed image_mat.go
 //go:embed intrinsic.go
 //go:embed ir.go

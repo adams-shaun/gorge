@@ -170,6 +170,9 @@ func TestCoverageCreditsStaticTriggers(t *testing.T) {
 // reaches the stack in the delayed shape, its body resolved afresh by its Execute$
 // name, so no inventory slot's SA is its ability object; the DelayedPush credits it.
 func TestCoverageCreditsDelayedShapeTriggers(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	c, _ := testCorpus(t)
 	const room = "Bottomless Pool // Locker Room"
 	cd, ok := c.Reg.Lookup(room)

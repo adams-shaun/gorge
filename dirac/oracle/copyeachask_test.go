@@ -156,6 +156,9 @@ func TestCopyeachaskLockstep(t *testing.T) {
 // (dirac.DebugCopyEachNoPark): every target's copy is made before the choice,
 // and the games must diverge within 64 seeds.
 func TestCopyeachaskMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, first, _ := runCopyeachask(t, 64,
 		func() { dirac.DebugCopyEachNoPark = true },
 		func() { dirac.DebugCopyEachNoPark = false })

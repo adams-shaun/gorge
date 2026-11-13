@@ -10,11 +10,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Activated.Loyalty a planeswalker loyalty ability, +OppCtrl the ability's
 // controller an opponent of the listener's controller. The kernel's
 // seAbility arm of finishBuild calls fireAbilityCast once the entry is on
-// the stack and paid, behind genPrep.anyAbilityCast. A mana ability never
-// reaches that arm (it does not use the stack), but activating one is still an
-// activation (CR 605.3, 602.2): manaTapped calls fireManaAbilityCast for an
-// Exhaust one (Loot, the Pathfinder). No State field: the trigger rides
-// pend.
+// the stack and paid, behind genPrep.anyAbilityCast; a mana ability mints no
+// stack entry, so the planner's tap loop calls fireManaAbilityCast for it
+// (CR 605.1a: a mana ability is an activated ability). No State field: the
+// trigger rides pend.
 
 // AbilityCastStats counts the lifted mechanic; oracle tests only.
 type AbilityCastStats struct {
@@ -79,12 +78,31 @@ func abilityCastMatch(k *prep, e *stackEntry, l trigListener, a *kop.Ability) bo
 	return abilityCastClass(k, e, t.N)
 }
 
-// fireManaAbilityCast queues the AbilityCast listeners for the activation of
-// ability ab of card c by ctrl, a mana ability that never builds a stack entry
-// (CR 605.3, 602.2). fireAbilityCast reads only the entry's card, ab and ctrl.
-func (s *State) fireManaAbilityCast(k *prep, c CardID, ab, ctrl uint8) {
-	e := stackEntry{card: c, ab: ab, ctrl: ctrl}
+// fireManaAbilityCast queues the AbilityCast listeners for mana ability ab of
+// card, which ctrl activates (CR 605.1a: a mana ability is an activated
+// ability, though it mints no stack entry). It is fireAbilityCast over a
+// synthetic entry, so the exhaust class and the Tf4NamedCast source test read
+// the same bodies a stack activation's do. Gorge announces the activation
+// before the cost is paid (rules/mana_activation.go), so a caller fires it
+// ahead of the tap and the sacrifice's own triggers.
+func (s *State) fireManaAbilityCast(k *prep, card CardID, ab int8, ctrl uint8) {
+	if k.gen == nil || !k.gen.anyAbilityCast || ab < 0 || int(card) >= len(k.t.Cards) || int(ab) >= len(k.t.Cards[card].Abilities) || k.t.Cards[card].Abilities[ab].Kind != kop.AbMana {
+		return
+	}
+	e := stackEntry{card: card, ab: uint8(ab), ctrl: ctrl}
 	s.fireAbilityCast(k, &e)
+}
+
+// fireViewAbilityCast is fireManaAbilityCast for the ability ab of the
+// planner's view of sl (manaPCGen). A granted view carries the grantor's
+// ability number, which names nothing on sl's own card, so a granted
+// activation fires nothing here (its listener class has no printed ability to
+// read).
+func (s *State) fireViewAbilityCast(k *prep, p uint8, sl Slot, ab int8) {
+	if k.gen == nil || !k.gen.anyAbilityCast || sl == NoSlot || s.manaGranted(k, sl) {
+		return
+	}
+	s.fireManaAbilityCast(k, s.cardAt(sl), ab, p)
 }
 
 // fireAbilityCast queues the AbilityCast listeners for the just-activated

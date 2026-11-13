@@ -441,6 +441,19 @@ func (g *GorgeSide) internal(d *decision.Decision) bool {
 	if manaChoiceResolving(d) {
 		return false
 	}
+	if d.Options[0].Kind == "block_mana" {
+		// The declare-blockers block-tax window (rules/attack_cost.go
+		// askNextBlockPay): one tap per ask, answered with the first source
+		// listed, the order the kernel's atkTaxNext walks.
+		g.Stats.Internal++
+		if g.OnInternal != nil {
+			g.OnInternal(d, d.Options[0].Index)
+		}
+		if err := g.submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}); err != nil {
+			g.fail(fmt.Errorf("oracle: block payment window answer refused: %w", err))
+		}
+		return true
+	}
 	if d.Options[0].Kind == "attack_mana" {
 		// The declare-attackers attack-tax window (rules/attack_cost.go
 		// askNextAttackPay): one tap per ask, answered with the first source
@@ -521,6 +534,15 @@ func hasManaOption(d *decision.Decision) bool {
 // HasX in gorge's convoke offer).
 func castHasX(o *state.Object) bool {
 	return o != nil && o.Face() != nil && pay.FaceCostOf(o.Face()).X > 0
+}
+
+// hasMultikicker reports whether o's face carries K:Multikicker (CR 702.43).
+func hasMultikicker(o *state.Object) bool {
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	_, ok := o.Face().KeywordCostParam("Multikicker")
+	return ok
 }
 
 // convokeFrameFor is the absorption frame of a convoke announcement d, or
@@ -648,7 +670,9 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 					g.castX[o.Obj] = castHasX(e.G.Obj(o.Obj))
 				}
 			}
-			if o.Mode == "" && o.AltCostIndex == 0 {
+			if o.Mode == "" && o.AltCostIndex == 0 && !hasMultikicker(e.G.Obj(o.Obj)) {
+				// (a Multikicker card's announcement prices the multikicked total,
+				// not the plain cost cached here: gorge's own gate answers it)
 				if pc, ok := e.CastPaymentCost(d.Player, o.Obj); ok {
 					if g.castCost == nil {
 						g.castCost = map[state.ObjID]decision.PaymentCost{}
@@ -727,6 +751,17 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				// Buyback card (kw_buyback.go), gorge's "buyback" mode
 				if o.AltCostIndex > 15 {
 					note("cast/" + o.Mode)
+					continue
+				}
+				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
+				continue
+			}
+			if o.Mode == "escape" {
+				// CR 702.138a: the kernel's mode-2 cast of an Escape card
+				// canonicalises to castModeOther, like "mayhem"
+				// (kw_escape.go)
+				if o.AltCostIndex > 15 {
+					note("cast/escape")
 					continue
 				}
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
@@ -815,6 +850,18 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 					continue
 				}
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
+				continue
+			}
+			if o.Mode == "multikicked" {
+				// CR 702.43: the kernel's multikicked cast is its kicked cast
+				// (AkCast mode bit 0) plus the count ask that follows, so the
+				// priority option canonicalises as "kicked"
+				if o.AltCostIndex > 15 {
+					note("cast/multikicked")
+					continue
+				}
+				mc, _ := castModeCode("kicked")
+				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, mc|uint8(o.AltCostIndex)<<4), opt: o.Index})
 				continue
 			}
 			mc, ok := castModeCode(o.Mode)
@@ -939,6 +986,11 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				a = Pack(ActCastFace, ref(pa.Obj), RefNone, fc)
 			} else if pa.Mode == "impended" {
 				a = Pack(ActCastImpended, ref(pa.Obj), RefNone, 0) // kw_impending.go
+			} else if pa.Mode == "multikicked" {
+				// CR 702.43: the kernel's multikicked cast is its kicked cast
+				// plus the count ask that follows, canonical "kicked"
+				mc, _ := castModeCode("kicked")
+				a = Pack(ActCast, ref(pa.Obj), RefNone, mc)
 			} else if pa.Mode == "suspend" {
 				a = Pack(ActCast, ref(pa.Obj), RefNone, castModeOther) // kw_suspend.go
 			} else if pa.Mode == "overloaded" {

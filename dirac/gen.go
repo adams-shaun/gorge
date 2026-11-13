@@ -85,6 +85,7 @@ type genPrep struct {
 	anyCopyAb       bool // some target slot is a TgtCopyAb or TgtCopyTrig (copy_ability.go)
 	anyBestow       bool // a card has printed bestow (CardDef.HasBestow; kw_bestow.go)
 	anyKickCost     bool // a card has a non-mana kicker cost (CardDef.KickerCost; kw_kicker.go)
+	anyMultikick    bool // a card has Multikicker (CardDef.HasMultikicker; cast.go's bsMulti, cold.mk)
 	anyEvTargets    bool // a spell's CollectEvidence<X> is the targets' total mana value (kop.EvidenceTargetsMV; cost_collectevidencex.go)
 	anyOptCost      bool // a card has an OptionalCost part (CardDef.OptCost/OptBehold; cost_optional.go)
 	equipAnim       bool // an Equip ability and a Creature-adding override: an Equipment can be a creature (CR 704.5p sba arm; static_equipanimated.go)
@@ -158,6 +159,8 @@ type genPrep struct {
 	twoSeatOnly     bool           // a card plays only two seats (stallclass.go prepTwoSeat): StallTwoSeat in a larger game
 	fbStampOwnCost  bool           // a stamped flashback grant beside an own-cost flashback static (kw_fbgrant.go prepFbStamp): StallFbGrantStamp
 	anyAtkTax       bool           // a card has a StatAttackTax static (combat_attacktax.go)
+	anyBlkTax       bool           // a card has a StatBlockTax static (combat_blocktax.go)
+	blkTaxStall     bool           // a block tax beside a part its walk does not model (combat_blocktax.go prepBlkTax): StallBlkTax
 	atkTaxStall     bool           // an attack tax beside a part its walk does not model (combat_attacktax.go prepAtkTax): StallAtkTax
 	anyWitherGrant  bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
 	anyEOTEmb       bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
@@ -240,6 +243,7 @@ type genPrep struct {
 	anyFinality     bool           // some program puts finality counters (kop.CtrFinality): dieZone exiles their creatures
 	anyHone         bool           // some program puts hone counters (kop.CtrHone): ptGen adds +1/+0 per hone counter on an attached permanent (CR 122.1j; ctr_hone.go)
 	anyBattle       bool           // some card is a Battle (kop.TBattle front; face_battle.go)
+	anyWorld        bool           // some card is a World (CardDef.World): the CR 704.5k arm (zone_worldrule.go)
 	anySneak        bool           // some card has sneak (CardDef.HasSneak; kw_sneak.go)
 	anyWebSling     bool           // some card has web-slinging (CardDef.HasWebSling; kw_websling.go)
 	anyMayFlash     bool           // some card has K:MayFlashCost (CardDef.HasMayFlash; kw_mayflash.go)
@@ -548,10 +552,22 @@ func tableHasPrevent(t *kop.Table) bool {
 	return false
 }
 
+// tableHasMultikicker reports whether any card carries K:Multikicker: its
+// count and the permanent's cold mark are cast.go's, so a table without one
+// pays neither.
+func tableHasMultikicker(t *kop.Table) bool {
+	for i := range t.Cards {
+		if t.Cards[i].HasMultikicker {
+			return true
+		}
+	}
+	return false
+}
+
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasStatic(t, kop.StatAttackTax) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) {
 		return nil
 	}
 	enteredNeed := tableHasEnteredFrom(t)
@@ -698,6 +714,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepExileGrant(t, g) // cast_exilegrant.go
 	prepWaterbend(t, g)
 	prepCostEvidence(t, g)
+	prepArena(t, g, &p.cold) // arena.go; fills g.ix, read by prepLure/prepMustBlock below
 	prepLure(t, g)
 	prepMustBlock(t, g) // combat_mustbeblocked.go
 	prepColGrant(t, g)
@@ -856,6 +873,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.Types&kop.TBattle != 0 {
 			g.anyBattle = true
 		}
+		if c.World {
+			g.anyWorld = true
+		}
 		if c.HasSneak {
 			g.anySneak = true
 		}
@@ -873,6 +893,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.KickerCost.Flags != 0 {
 			g.anyKickCost = true
+		}
+		if c.HasMultikicker {
+			g.anyMultikick = true
 		}
 		g.anyBeam = g.anyBeam || c.BeamMeUp
 		if c.TapPays() || c.Harmonize {
@@ -1540,7 +1563,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepDiscAll(t, g)
 	prepAbilityCast(t, g)
 	prepGoad(t, g)           // act_goad.go
-	prepArena(t, g, &p.cold) // arena.go
 	prepSuspect(g)           // act_suspect.go; reads g.ix
 	prepPermMark(g)          // filter_permmarks.go; reads g.ix
 	prepTurnTallies(t, p, g) // value_turntallies.go; reads g.ix
@@ -1569,6 +1591,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepBatchPool(t, g) // trig_batchmembers.go
 	g.anyCopyElect = g.anyCopyElect || p.casualty
 	prepAtkTax(t, g) // combat_attacktax.go: after the requirement, Taps and land-type reads it checks
+	prepBlkTax(t, g) // combat_blocktax.go: the same reads
 	prepCold(g, &p.cold)
 	return g
 }
@@ -1593,8 +1616,9 @@ const (
 // from the card src (whose abilities its Grant indexes name).
 type ovRec struct {
 	idx uint8 // Table.Overrides index + 1 (0 = empty)
-	// fl: bit 7 = until end of turn; bits 5-6 = ovNT/ovNTYou (ovNTYou alone: ovCopyGrant);
-	// bits 0-4 = further identical
+	// fl: bit 7 = until end of turn; bit 6 = ovNT (ovNTWho, seats_*.go,
+	// holds the controller that record waits for); bit 5 = ovCopyGrant; the
+	// ovReps bits (seats_*.go) = further identical
 	// applications merged into this record (Soulstone Sanctuary activated
 	// again: gorge lists its keyword once per application)
 	fl  uint8
@@ -1611,18 +1635,16 @@ type ovRec struct {
 const ovEOT = 0x80
 
 // ovNT: the record lasts until its controller's next turn begins (CR 613,
-// Duration$ UntilYourNextTurn); ovNTYou is that controller.
-// ovReps is the merge count's mask.
+// Duration$ UntilYourNextTurn); ovNTWho (seats_*.go) is that controller.
+// ovReps is the merge count's mask (seats_*.go).
 const (
-	ovNT    = 0x40
-	ovNTYou = 0x20
-	ovReps  = 0x1F
-	// ovCopyGrant (ovNTYou without ovNT, a combination no next-turn record
-	// has) marks the record of an as-enters copy's AddAbilities$ (Mercurial
+	ovNT = 0x40
+	// ovCopyGrant (read only when ovNT is clear: a next-turn record always
+	// sets ovNT) marks the record of an as-enters copy's AddAbilities$ (Mercurial
 	// Pretender): the ability is a copiable value in gorge (CR 707.9b), so a
 	// copy of the copy inherits the record (copyGrantsAdd), and the card the
 	// ability indexes is src, not the copy's own printed card.
-	ovCopyGrant = ovNTYou
+	ovCopyGrant = 0x20
 )
 
 // copyGrant reports whether r is an as-enters copy's grant record.

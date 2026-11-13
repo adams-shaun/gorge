@@ -81,13 +81,13 @@ var conditionUnmodelledDefined = newConditionNames(
 // evaluates (the case-insensitive switch in its bare branch).
 var conditionSupportedBare = newConditionNames(
 	"Kicked", "Bargain", "Foretold", "Revolt", "Delirium", "Metalcraft", "Blessing",
-	"OptionalCost", "EnduringStory",
+	"OptionalCost", "EnduringStory", "Threshold",
 )
 
 // conditionUnmodelledBare is every bare Condition$ value the corpus carries
 // that conditionMetCore does not evaluate. Counts measured 2026-10-04.
 var conditionUnmodelledBare = newConditionNames(
-	"PlayerTurn", "Threshold", "MaxSpeed", "NotPlayerTurn", "Hellbent",
+	"PlayerTurn", "MaxSpeed", "NotPlayerTurn", "Hellbent",
 	"NoOpponentHasMoreLifeThanAttacked",
 	"Monarch", "FatefulHour", "Evolve", "Surge", "Sacrificed", "Night",
 	"LifePaid", "Ferocious", "ExtraTurn", "AttackerHasUnattackedOpp",

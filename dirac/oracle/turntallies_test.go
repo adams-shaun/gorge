@@ -364,6 +364,9 @@ func TestTurntalliesLockstep(t *testing.T) {
 // TestTurntalliesMutation: keeping the three records across the turn change
 // must make the lockstep diverge.
 func TestTurntalliesMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	dirac.DebugTurnTalliesNoReset = true
 	defer func() { dirac.DebugTurnTalliesNoReset = false }()
 	games, divs, _, _ := runTurntallies(t, 32, false)
