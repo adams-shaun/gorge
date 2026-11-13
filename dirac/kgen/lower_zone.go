@@ -722,9 +722,13 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			in.C = 1
 		case 2:
 			// third from the top (gorge libraryOrderPlacementAt), read exactly
-			// for the source leaving the battlefield (Braided Quipu); another
-			// object or origin is lockstep-unverified and stays refused
-			if obj.Kind != rSelf || origin != zBattlefield {
+			// for the source leaving the battlefield (Braided Quipu) or from
+			// its own graveyard (Bookwurm's "{2}{G}: Put CARDNAME from your
+			// graveyard into your library third from the top", ActivationZone$
+			// Graveyard); another object or origin is lockstep-unverified and
+			// stays refused. A commander's own move parks at the CR 903.9b
+			// gate inside the kernel op, as for any library destination.
+			if obj.Kind != rSelf || origin != zBattlefield && origin != zGraveyard {
 				return refuse("library position 2 of %s from %s", refNames[obj.Kind], zoneLabel[origin])
 			}
 			in.C = kop.LibThird
