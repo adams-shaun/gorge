@@ -19,7 +19,8 @@
 #   GORGE_REMOTE_FALLBACK_CPU  the CPUQuota percent of a run that fell back here (default 200: -p 2, GOMAXPROCS 2),
 #                           so a box outage does not put every seat's heavy run on this machine at the full cap
 # Optional: GORGE_REMOTE_MAX_RUNS (concurrent remote runs, default 4), GORGE_REMOTE_WEIGHT (CPUWeight, default
-# 20; the landing gate's rgate.scope runs at 100), GORGE_REMOTE_CPU (CPUQuota percent, 2400), GORGE_REMOTE_MEM
+# 20; the landing gate's rgate.scope runs at 100), GORGE_REMOTE_NICE (the run's nice level, default 5; the gate
+# runs at 0), GORGE_REMOTE_CPU (CPUQuota percent, 2400), GORGE_REMOTE_MEM
 # (48G), GORGE_REMOTE_PROCS (GOMAXPROCS, 16), GORGE_REMOTE_CARDS (the corpus path on the box, default this
 # worktree's .cards target), GORGE_REMOTE_GOROOT (go on the box).
 #
@@ -39,7 +40,8 @@ rt_ssh() { # rt_ssh COMMAND...: ssh to the box (-F /dev/null: the system config 
 
 rt_box() { # rt_box VERB RUN [MODE]: a verb of test-remote-box.sh, with the settings the box script reads
 	local a=(env "TT_MAXRUNS=$rt_maxruns" "TT_WEIGHT=${GORGE_REMOTE_WEIGHT:-20}" "TT_CPU=${GORGE_REMOTE_CPU:-2400}"
-		"TT_MEM=${GORGE_REMOTE_MEM:-48G}" "TT_PROCS=${GORGE_REMOTE_PROCS:-16}" "TT_CARDS=$rt_cards")
+		"TT_MEM=${GORGE_REMOTE_MEM:-48G}" "TT_PROCS=${GORGE_REMOTE_PROCS:-16}" "TT_CARDS=$rt_cards"
+		"TT_NICE=${GORGE_REMOTE_NICE:-5}")
 	[ -z "${GORGE_REMOTE_GOROOT:-}" ] || a+=("TT_GOROOT=$GORGE_REMOTE_GOROOT")
 	local v
 	if [ "$1" = run ]; then

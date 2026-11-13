@@ -5,7 +5,9 @@ package scripts
 // shared the box is rerun there once, and a run that falls back is marked (TEST_TARGETS_FALLBACK) for the lower cap.
 
 import (
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -137,4 +139,33 @@ esac
 		t.Errorf("expected one rerun on the box (go test ran %d times):\n%s", r.goTestRuns(), errs)
 	}
 	r.boxIsClean()
+}
+
+// The box runs a seat's tests below the landing gate's nice level (0), as well as under its CPUWeight.
+func TestTestTargetsRemoteRunsNiced(t *testing.T) {
+	r := newRig(t)
+	seen := filepath.Join(filepath.Dir(r.repo), "nice.seen")
+	write(t, filepath.Join(r.bin, "go"), `#!/bin/sh
+case "$1" in
+list) echo m ;;
+env) echo /usr/local/go ;;
+test)
+  echo "remote=$TEST_TARGETS_REMOTE nice=$(nice)" >>"$SEEN"
+  echo x >>"$MARKS"
+  cat "$STREAM" ;;
+esac
+`, 0o755)
+	r.set("SEEN="+seen, "GORGE_REMOTE_NICE=7")
+	out, errs, code := r.run("one")
+	if code != 0 || !strings.Contains(out, "== remote") {
+		t.Fatalf("exit %d\n%s\n%s", code, out, errs)
+	}
+	b, _ := os.ReadFile(seen)
+	base := 0
+	if o, err := exec.Command("nice").Output(); err == nil {
+		fmt.Sscan(string(o), &base)
+	}
+	if want := fmt.Sprintf("remote=1 nice=%d\n", min(base+7, 19)); string(b) != want {
+		t.Errorf("the box ran the tests at %q, want %q", b, want)
+	}
 }
