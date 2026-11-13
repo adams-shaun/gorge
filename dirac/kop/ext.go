@@ -811,7 +811,7 @@ func init() { extOpNames[ExtPreventNext] = "PreventNext" }
 // path, then the renowned designation (gorge AlterAttribute "Renowned"). A
 // source that left the battlefield, or B <= 0, does nothing. The designation
 // is the arena slot bit mechRenowned, cleared when the permanent leaves.
-// dirac/act_renown.go.
-const ExtRenown ExtOp = 298
+// dirac/act_renown.go. 296: land's ExtExploit holds 298.
+const ExtRenown ExtOp = 296
 
 func init() { extOpNames[ExtRenown] = "Renown" }

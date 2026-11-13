@@ -511,7 +511,7 @@ ExtRememberImprinted	ExtOp	307
 ExtRememberSearcher	ExtOp	304
 ExtRemoveCounterAny	ExtOp	3
 ExtRemoveFromCombat	ExtOp	260
-ExtRenown	ExtOp	298
+ExtRenown	ExtOp	296
 ExtSacDelayed	ExtOp	32
 ExtSearchCounters	ExtOp	252
 ExtSkipPhase	ExtOp	313
