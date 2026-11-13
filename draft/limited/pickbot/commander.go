@@ -26,7 +26,7 @@ const (
 	cmdrCommitPick = 10
 	// cmdrBonus is a commander's pick bonus while the pool holds none;
 	// cmdrPairBonus a commander's while it pairs with the pool's best one.
-	cmdrBonus     = 6.0
+	cmdrBonus     = 50.0
 	cmdrPairBonus = 2.0
 	// onIdentity and offIdentity are the committed drafter's colour terms.
 	onIdentity  = 1.5
@@ -37,6 +37,19 @@ const (
 	// widthPenalty is an option's cost per identity colour beyond two.
 	widthPenalty = 4.0
 )
+
+// hasPlainPartnerCard reports whether c carries plain partner.
+func hasPlainPartnerCard(c *cards.Card) bool {
+	if c == nil || len(c.Faces) == 0 {
+		return false
+	}
+	for _, k := range c.Faces[0].Keywords {
+		if k == "Partner" {
+			return true
+		}
+	}
+	return false
+}
 
 // cmdrCard is one pool or pack card's facts as the commander persona reads
 // them.
@@ -167,6 +180,9 @@ func (d *CommanderDrafter) Pick(v PickView, r *rand.Rand) string {
 	if hasCommander {
 		lead = pool[plan.idx[0]].card
 	}
+	// open: the plan is one commander that may still take a partner, so a
+	// card one colour outside its identity may yet be played.
+	open := hasCommander && len(plan.idx) == 1 && (hasPlainPartnerCard(lead) || deck.HasImpliedDraftPartner(lead))
 
 	bestID, bestScore := "", 0.0
 	for i, ref := range v.Pack {
@@ -186,6 +202,8 @@ func (d *CommanderDrafter) Pick(v PickView, r *rand.Rand) string {
 				score += onIdentity
 			case c.commander && len(plan.idx) == 1 && deck.IsDraftCommanderPair(lead, c.card):
 				// a pairing commander widens the identity: no penalty
+			case open && bits.OnesCount8(c.mask&^plan.mask) <= 1:
+				// playable once a partner joins: neither bonus nor penalty
 			default:
 				score += offIdentity
 			}
@@ -272,8 +290,8 @@ func (b *CommanderBuilder) Build(set string, pool []limited.CardRef) build.Deck 
 
 // splitBasics divides n basics over the identity's colours by pip share
 // (largest remainder, ties to the lower colour), evenly when the spells
-// carry no pips. A colourless identity gets Plains as a stand-in: the
-// limited basics are the five coloured ones.
+// carry no pips. A colourless identity spreads them over all five as a
+// stand-in: the limited basics are the five coloured ones, no Wastes.
 func splitBasics(n int, mask uint8, pips [5]int) [5]int {
 	var out [5]int
 	if n <= 0 {
@@ -296,8 +314,8 @@ func splitBasics(n int, mask uint8, pips [5]int) [5]int {
 		}
 	}
 	if total == 0 {
-		out[0] = n
-		return out
+		w = [5]int{1, 1, 1, 1, 1}
+		total = 5
 	}
 	var rem [5]int
 	left := n

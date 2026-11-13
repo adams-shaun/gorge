@@ -88,11 +88,19 @@ func runOneEvent(r *runner, seed uint64, verify bool) (*event.Event, *eventResul
 	if sh.structure != event.StructureNone && sh.rounds != defaultRounds(sh.structure, n) {
 		en.Rounds = sh.rounds
 	}
+	en.Format = sh.format
+	if sh.picks > 1 {
+		en.PicksPerPass = sh.picks
+	}
 	if err := e.Apply(en); err != nil {
 		return nil, nil, err
 	}
 
-	packs, err := openPacks(r, seed)
+	open := openPacks
+	if r.packs != nil {
+		open = r.packs
+	}
+	packs, err := open(r, seed)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -142,6 +150,13 @@ func runOneEvent(r *runner, seed uint64, verify bool) (*event.Event, *eventResul
 		// The series stay pending, no EventEnded is applied and the caller
 		// reads the pools and decks off the returned event.
 		return e, er, nil
+	}
+	if sh.structure == event.StructurePod {
+		recs, err := playPodGames(r, e, verify)
+		if err != nil {
+			return nil, nil, err
+		}
+		er.games = recs
 	}
 	for {
 		if round, ok := e.AwaitingPairing(); ok {
@@ -208,6 +223,9 @@ func drafterLabel(r *runner) string {
 	if _, ok := r.drafter.(*pickbot.RatingColour); ok {
 		return "rating-colour"
 	}
+	if _, ok := r.drafter.(*pickbot.CommanderDrafter); ok {
+		return "commander"
+	}
 	return "pickbot"
 }
 
@@ -270,6 +288,10 @@ func buildDecks(r *runner, e *event.Event) ([][]*cards.Card, error) {
 		if r.verbose {
 			fmt.Fprintf(r.out, "  seat %d deck: %d cards (%d main, %d basics)\n",
 				s, len(cs), len(d.Main), d.Total()-len(d.Main))
+		}
+		if len(d.Commanders) > 0 {
+			fmt.Fprintf(r.out, "  seat %d: %s deck, %d cards, commander(s) %s, basics W%d U%d B%d R%d G%d\n",
+				s, r.players[s], d.Total(), commanderLabel(pool, d), d.Basics[0], d.Basics[1], d.Basics[2], d.Basics[3], d.Basics[4])
 		}
 	}
 	return decks, nil
