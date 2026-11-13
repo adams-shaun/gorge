@@ -1,7 +1,6 @@
 package oracle
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -22,7 +21,9 @@ import (
 //
 // Each call plays the games stored for the calling test (a test's n-th call reads
 // testdata/pins/<test name>.<n>.json), requires each to reach every condition in
-// reached at some decision, and requires the lockstep to stay clean. A game that no
+// reached at some decision, and requires the lockstep to stay clean. A pin whose
+// conditions are all cardOut/onBattlefield/cardSeen lives in the JSON instead, and
+// TestPinManifest plays it (pin_manifest_test.go). A game that no
 // longer reaches a condition fails: the recorded actions no longer lead where the
 // test is named for, and the games are recorded again with
 //
@@ -84,12 +85,11 @@ func pinnedGamesRun(t *testing.T, pool string, rc RunConfig, mulligans int, reac
 			t.Fatal(err)
 		}
 	}
-	b, err := os.ReadFile(path)
-	if err != nil {
+	games, err := readPinGames(path)
+	if os.IsNotExist(err) {
 		t.Fatalf("no recorded games at %s (%v): record them with PINS_RECORD=1", path, err)
 	}
-	var games []*Repro
-	if err := json.Unmarshal(b, &games); err != nil || len(games) == 0 {
+	if err != nil || len(games) == 0 {
 		t.Fatalf("%s: %v", path, err)
 	}
 	for i, r := range games {
@@ -164,7 +164,17 @@ func playPinned(set cardset.Set, reg *cards.Registry, r *Repro, rc RunConfig, re
 // game to record; under PINS_MUTANT=1 that means no game the mutated build diverges in.
 func recordPins(t *testing.T, path, pool string, set cardset.Set, rc RunConfig, mulligans int, reached []func(ref *GorgeSide) bool) error {
 	t.Helper()
-	reg := synthReg(t)
+	games, err := buildPins(t, path, pool, set, synthReg(t), rc, mulligans, reached)
+	if err != nil {
+		return err
+	}
+	return writePinGames(path, games)
+}
+
+// buildPins records the games of the synthetic pool that reach every condition and
+// play clean, replacing the games already at path that a change broke.
+func buildPins(t *testing.T, path, pool string, set cardset.Set, reg *cards.Registry, rc RunConfig, mulligans int, reached []func(ref *GorgeSide) bool) ([]*Repro, error) {
+	t.Helper()
 	hit := make([]bool, len(reached))
 	checks := 0
 	allAt := -1
@@ -251,22 +261,15 @@ func recordPins(t *testing.T, path, pool string, set cardset.Set, rc RunConfig, 
 	}
 	if len(games) == 0 {
 		if mutant {
-			return fmt.Errorf("PINS_MUTANT=1: no pair of %s within %d diverges after reaching every condition and reproduces on replay", pool, pinScan)
+			return nil, fmt.Errorf("PINS_MUTANT=1: no pair of %s within %d diverges after reaching every condition and reproduces on replay", pool, pinScan)
 		}
-		return fmt.Errorf("no pair of %s within %d reaches every condition and plays clean", pool, pinScan)
+		return nil, fmt.Errorf("no pair of %s within %d reaches every condition and plays clean", pool, pinScan)
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	b, err := json.Marshal(games)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path, append(b, '\n'), 0o644); err != nil {
-		t.Fatal(err)
-	}
 	t.Logf("recorded %d games to %s, %d of them kept", len(games), path, kept)
-	return nil
+	return games, nil
 }
 
 // keptPins is the games already at path that still reach every condition and play clean.
@@ -274,12 +277,8 @@ func recordPins(t *testing.T, path, pool string, set cardset.Set, rc RunConfig, 
 // decks, seed and actions, and the file's diff names what moved.
 func keptPins(t *testing.T, path string, set cardset.Set, reg *cards.Registry, rc RunConfig, reached []func(ref *GorgeSide) bool) []*Repro {
 	t.Helper()
-	b, err := os.ReadFile(path)
+	old, err := readPinGames(path)
 	if err != nil {
-		return nil
-	}
-	var old []*Repro
-	if json.Unmarshal(b, &old) != nil {
 		return nil
 	}
 	var keep []*Repro

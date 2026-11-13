@@ -172,16 +172,3 @@ func TestCopySubchainLockstep(t *testing.T) {
 		t.Errorf("copies %d, chained asks %d; want at least 20 and 10", tal.copies, tal.chainAsks)
 	}
 }
-
-// An electing copy shows the chain's inherited targets until its answers arrive, as
-// a copy that elects nothing does (Pigment Wrangler's copied chain).
-func TestElectingCopyKeepsTheChainsTargets(t *testing.T) {
-	pinnedGames(t, "std-sos", Config{GorgeAutopaySurface: true}, cardOut("Pigment Wrangler"))
-}
-
-// A copy of a trigger with an announced link asks that link after its root, and
-// "another target creature" leaves out the trigger's source (std-spm 319: Mechanical
-// Mobster and Starling, each copied by the same ability).
-func TestAbilityCopyAsksEachChainLink(t *testing.T) {
-	pinnedGames(t, "std-spm", Config{GorgeAutopaySurface: true}, cardOut("Mechanical Mobster"), cardOut("Starling, Aerial Ally"))
-}

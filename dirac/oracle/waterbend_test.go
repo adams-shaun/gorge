@@ -291,11 +291,3 @@ func TestWaterbendMutation(t *testing.T) {
 		t.Fatal("DebugWaterbendNoCredit did not diverge the lockstep")
 	}
 }
-
-// A pool holding firebending's red lowers a waterbend ability's witness, and gorge
-// prices that witness on the offer's credit: Water Tribe Rallier's {5} with one token
-// to tap taps one Plains over the floating RRR. Before, the kernel's
-// witness priced the whole {5} and found no plan.
-func TestWaterbendWitnessIsPricedOnTheCredit(t *testing.T) {
-	pinnedGames(t, "std-tla", Config{}, cardOut("Water Tribe Rallier"))
-}

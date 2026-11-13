@@ -70,12 +70,3 @@ func TestNonTokenEnteredThisTurnCount(t *testing.T) {
 	t.Parallel()
 	pinnedGamesRun(t, "std-trc", RunConfig{Config: Config{GorgeAutopaySurface: true}}, 0, activated("Spock, Voice of Reason"))
 }
-
-// U.S.S. Voyager's "put those land cards onto the battlefield tapped" with The
-// Unicomplex among them: the land enters tapped (CR 614.12), so its "when this
-// land enters untapped" charm is never put on the stack. gorge checked the
-// trigger between the move and the tap and posed it.
-func TestDigUntilTappedLandSkipsEntersUntapped(t *testing.T) {
-	t.Parallel()
-	pinnedGamesRun(t, "std-trk", RunConfig{Config: Config{GorgeAutopaySurface: true}}, 0, cardOut("U.S.S. Voyager, Lone Wanderer"), onBattlefield("The Unicomplex"))
-}

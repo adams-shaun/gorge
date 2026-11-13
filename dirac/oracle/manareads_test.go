@@ -27,33 +27,6 @@ func TestFloatingRestrictedManaPaysAnActivation(t *testing.T) {
 	lockstepWithCard(t, "std-ecl", Config{}, "Flamebraider")
 }
 
-// The prefix search activates every source the planner's census misses before it
-// funds a fee: a restricted any-colour source, a source that taps another
-// permanent and a granted mana ability all stand beside a filter as gaps: Daily
-// Bugle Building's and White Lotus Hideout's {1},{T} any-colour filters.
-func TestFilterSearchActivatesTheOtherGaps(t *testing.T) {
-	t.Parallel()
-	pinnedGames(t, "std-spm", Config{GorgeAutopaySurface: true}, onBattlefield("Daily Bugle Building"))
-	pinnedGames(t, "std-tla", Config{GorgeAutopaySurface: true}, onBattlefield("White Lotus Hideout"))
-}
-
-// A filter's fee may be paid with the restricted mana its restriction admits, so
-// that mana counts toward whether the filter can be funded at all: Surveillance
-// Room's {1},{T} any-colour beside a restricted any-colour land.
-func TestFilterFeeReadsRestrictedMana(t *testing.T) {
-	t.Parallel()
-	pinnedGames(t, "std-msh", Config{}, onBattlefield("Surveillance Room"),
-		anyOf(onBattlefield("Avengers Tower"), onBattlefield("Castle Doom"), onBattlefield("Villainous Hideout")))
-}
-
-// Under an any-type rider a pip is spent from the first of W U B R G C the pool
-// holds, and only then does the generic part take what is left, so {C} survives
-// a pip a coloured unit could pay: Black Cat, Cunning Thief's rider.
-func TestAnyTypeRiderSpendsPipsBeforeGeneric(t *testing.T) {
-	t.Parallel()
-	pinnedGames(t, "std-spm", Config{}, cardOut("Black Cat, Cunning Thief"))
-}
-
 // An attached mana grant counts beside the host's own ability (New Horizons on a
 // Forest). A countered spell's "its controller" is the player who controlled it
 // as it last existed, not its owner (CR 608.2h): An Offer You Can't Refuse's
