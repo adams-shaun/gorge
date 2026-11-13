@@ -1263,6 +1263,28 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			return refuse("Attached TriggerZones %d", tr.Zone)
 		}
 		tp.consume("ValidSource", "ValidTarget")
+	case "Unattached":
+		// gorge trigmatch unattachedMatches (CR 701.3b/d): the attachment's
+		// own "becomes unattached from a permanent" (ValidAttachment$
+		// Card.Self, ValidObject$ Permanent, the Captain's Hook family); the
+		// kernel's detach arms fire it (trig_unattached.go), RefTriggerObj
+		// the former bearer. gorge evaluates ValidAttachment$ against the
+		// event's Obj, the attachment the detach names, and Card.Self binds
+		// to the trigger's own source: the kernel queues only the attachment's
+		// own abilities, which is the same read for the corpus's Card.Self
+		// spelling. ValidObject$ is the bearer, matched against it as it last
+		// existed; the kernel's fire sites pass every bearer, so only the
+		// vacuous spellings lower.
+		if v := tp.str("ValidAttachment"); v != "Card.Self" {
+			return refuse("Unattached ValidAttachment$ %q", v)
+		}
+		if v := tp.str("ValidObject"); v != "" && v != "Permanent" {
+			return refuse("Unattached ValidObject$ %q", v)
+		}
+		if tr.Zone != 0 && tr.Zone != zBattlefield {
+			return refuse("Unattached TriggerZones %d", tr.Zone)
+		}
+		tp.consume("ValidAttachment", "ValidObject")
 	case "BecomesSaddled":
 		// gorge BecomesSaddledMatches / FirstTimeSaddled (trigmatch/
 		// saddled.go): the Mount's own Saddled grant, each resolution of

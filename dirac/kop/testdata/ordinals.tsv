@@ -1448,7 +1448,7 @@ TrigDiscardedAll	TrigEvent	35
 TrigDiscover	TrigEvent	44
 TrigDrawn	TrigEvent	14
 TrigETB	TrigEvent	1
-TrigEventCount	TrigEvent	49
+TrigEventCount	TrigEvent	50
 TrigEvolved	TrigEvent	47
 TrigExplores	TrigEvent	39
 TrigFacesDilemma	TrigEvent	46
@@ -1479,6 +1479,7 @@ TrigToGraveyard	TrigEvent	4
 TrigTokenCreated	TrigEvent	25
 TrigTransformed	TrigEvent	28
 TrigTurnFaceUp	TrigEvent	27
+TrigUnattached	TrigEvent	49
 TrigUnlockDoor	TrigEvent	30
 TrigUntaps	TrigEvent	17
 TurnReplExileOpp	untyped int	1

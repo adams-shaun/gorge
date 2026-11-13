@@ -233,6 +233,12 @@ func (s *State) sbaBestowDetach(k *prep, sl Slot) bool {
 	p := &s.perms[sl]
 	if p.attached != NoSlot {
 		s.touchSl(p.attached)
+		if k.gen != nil && k.gen.anyUnattach {
+			// gorge's bestowed arm (CR 702.114b, attachmentSBAs' "bestowed
+			// attachment ended"): the detach publishes an Unattached with
+			// the bearer, any attachment kind
+			s.fireUnattached(k, sl, p.attached)
+		}
 	}
 	p.attached = NoSlot
 	s.g.lingerM.clr(sl)

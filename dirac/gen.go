@@ -338,6 +338,7 @@ type genPrep struct {
 	exwRec          []uint8        // per card: its resolutions record the cards they exile (anyExW only): exwRecRead, exwRecRev
 	anyCloneCopy    bool           // some program is ExtCloneCopy: permanent copies record their source (fxCopyPerm; copy_clone.go)
 	anyAegis        bool           // some program is ExtAegisClone, or some card has a TrigAttached ability (zone_exilethenattach.go)
+	anyUnattach     bool           // some card has a TrigUnattached ability, the Mode$ Unattached family (trig_unattached.go)
 	anyHideaway     bool           // some program is ExtHideaway (kw_hideaway.go)
 	anyLoyaltyX     bool           // some ability costs a planeswalker's [-X] (CostLoyaltyX; cost_loyaltyx.go)
 	anyLifeX        bool           // some spell or ability costs an announced PayLife<X> (Cost.N 0; cost_paylifex.go)
@@ -729,6 +730,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepExHaste(t, g) // static_cantblockexcept.go
 	prepHideaway(t, g)
 	prepAegis(t, g)
+	prepUnattach(t, g)
 	prepCloneCopy(t, g)
 	prepNumTimes(t, g)
 	prepLoyaltyX(t, g)

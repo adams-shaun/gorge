@@ -128,6 +128,7 @@ const (
 	TrigFacesDilemma                // a player (Whose) chooses one or more modes for a spell or ability (gorge Mode$ FacesDilemma, trigmatch facesDilemmaMatches on the ModeChosen marker)
 	TrigEvolved                     // this creature evolves (CR 702.100b; gorge Mode$ Evolved, ValidCard$ Card.Self, trigmatch evolvedMatches on the events.Evolved marker its evolve ability emits once the +1/+1 counter lands): no slot subscription, fired as the evolve trigger finishes resolving (kw_evolve.go)
 	TrigBecomeMonarch               // a player (Whose) becomes the monarch (CR 725.3; gorge Mode$ BecomeMonarch, trigmatch BecomeMonarchMatches on events.MonarchChange; N TrigNMonarchBeganTurn: BeginTurn$ You); no slot subscription: the battlefield is scanned (act_monarch.go)
+	TrigUnattached                  // this attachment becomes unattached from a permanent (CR 701.3b/d; gorge Mode$ Unattached, ValidAttachment$ Card.Self, ValidObject$ Permanent, the Captain's Hook family): no slot subscription, fired by the detach arms on the attachment's own abilities; RefTriggerObj is the FORMER BEARER (trig_unattached.go)
 	TrigEventCount                  // number of trigger events; append above
 )
 
