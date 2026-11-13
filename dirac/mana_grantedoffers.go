@@ -76,10 +76,9 @@ func (s *State) contGrants(k *prep, sl Slot, lost bool, lts uint16, f func(c Car
 	// gorge lists the grants in its static walk's order (collectActionStatics:
 	// each seat's battlefield in entry order), which the activation ask
 	// and the prefix search follow (the first grant's colours are tried
-	// first): the sources of player 0 then player 1, each in entry order
+	// first): every seat's sources in seat order, each in entry order
 	var order [MaxPerm]Slot
-	n := s.battlefieldOrder(0, s.statM.and(s.ctrlM[0]), order[:], 0)
-	n = s.battlefieldOrder(1, s.statM.and(s.ctrlM[1]), order[:], n)
+	n := s.listenerOrder(s.statM, &order)
 	for oi := 0; oi < n; oi++ {
 		src := order[oi]
 		cid := s.cardAt(src)
@@ -130,8 +129,7 @@ func (s *State) grantIdxs(k *prep, sl Slot, out *[maxGrants]int16) (n int) {
 	var order [MaxPerm]Slot
 	no := 0
 	if g.anyContGrant {
-		no = s.battlefieldOrder(0, s.statM.and(s.ctrlM[0]), order[:], 0)
-		no = s.battlefieldOrder(1, s.statM.and(s.ctrlM[1]), order[:], no)
+		no = s.listenerOrder(s.statM, &order)
 	}
 	var key [maxGrants]uint8
 	s.grantedAbilities(k, sl, func(c CardID, ab uint8) {

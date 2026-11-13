@@ -68,8 +68,7 @@ func (s *State) turnUpEffCands(k *prep, in *kop.Instr, buf *[MaxPerm]Slot) int {
 			m = m.with(sl)
 		}
 	}
-	n := s.battlefieldOrder(0, m.and(s.ctrlM[0]), buf[:], 0)
-	return s.battlefieldOrder(1, m.and(s.ctrlM[1]), buf[:], n)
+	return s.listenerOrder(m, buf) // every seat's battlefield, seat by seat
 }
 
 // askOptionsTurnUpEff builds the pick's options: each candidate, then Done
