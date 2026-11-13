@@ -1023,6 +1023,12 @@ func plainQuality(f *lFilter) error {
 			// Guildpact): exactly one colour of the source
 			continue
 		}
+		if c.CmpStat == cmpCMC && (c.CmpOp == opGE || c.CmpOp == opLE) && c.CmpV == nil && c.Types == 0 && c.Ctrl == 0 && c.Owner == 0 && c.Flags == 0 && c.Subtype == "" && c.NotSubtype == "" && c.Colors == "" && c.NotColors == "" && c.CmpX == "" && c.CmpCounter == "" {
+			// a constant mana-value bound (Mistmeadow Skulk's cmcGE3, Reaver
+			// Titan's cmcLE3: gorge protectionCMC), read with a spell's
+			// announced X (kernel protSpellObj)
+			continue
+		}
 		if c.Ctrl != 0 || c.Owner != 0 || c.Flags != 0 || c.CmpOp != 0 || c.CmpStat != 0 || c.CmpX != "" || c.CmpCounter != "" {
 			return fmt.Errorf("quality %s", f)
 		}
