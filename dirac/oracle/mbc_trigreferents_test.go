@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -23,7 +24,11 @@ import (
 //   - TriggeredTarget$Valid Permanent.nonDemon+YouCtrl (Rakdos the
 //     Defiler's "that player sacrifices half the non-Demon permanents they
 //     control"): nothing else takes a Forest off the bears' battlefield, so
-//     one fewer is the damage trigger's sacrifice.
+//     one fewer is the damage trigger's sacrifice. Tomb Blade's
+//     TriggeredTarget$Valid Creature.YouCtrl ("loses life equal to the
+//     number of creatures they control unless they sacrifice a creature"):
+//     nothing else makes the bears lose life but by damage, so a LifeChange
+//     loss of theirs not straight after a Damage event is the trigger's.
 func TestMBCTriggerReferents2Lowers(t *testing.T) {
 	if isolate(t) {
 		return
@@ -51,6 +56,20 @@ func TestMBCTriggerReferents2Lowers(t *testing.T) {
 				n := trigRefsNamedOn(ref, 1, "Forest")
 				hit := *prev >= 0 && n < *prev
 				*prev = n
+				return hit
+			},
+		},
+		{
+			name: "TriggeredTargetValid/Tomb_Blade",
+			deck: []cardset.Entry{{Name: "Tomb Blade", Count: 16}, {Name: "Swamp", Count: 24}},
+			reached: func(ref *GorgeSide, next *int) bool {
+				evs := ref.E.L.Events
+				hit := false
+				for i := max(*next, 1); i < len(evs); i++ {
+					e := evs[i]
+					hit = hit || (e.Kind == events.LifeChange && e.Player == 1 && e.Amount < 0 && evs[i-1].Kind != events.Damage)
+				}
+				*next = len(evs)
 				return hit
 			},
 		},
