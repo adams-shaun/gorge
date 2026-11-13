@@ -529,8 +529,8 @@ func SetMatchup(set cardset.Set, c *Corpus, a, b string, mulligans int) (*Matchu
 
 // SetMatchupN is SetMatchup for a pod of len(names) decks (2..MaxSeats): one
 // table over every deck (set.MatchupN) and the gorge matchup built from that
-// table's decks (KernelMatchupN), seat s playing names[s]. At two seats it is
-// SetMatchup.
+// table's decks (KernelMatchupN), seat s playing names[s], with its deck
+// files' commanders (Corpus.MatchupN). At two seats it is SetMatchup.
 func SetMatchupN(set cardset.Set, c *Corpus, names []string, mulligans int) (*Matchup, *kop.Table, error) {
 	if len(names) == 2 {
 		return SetMatchup(set, c, names[0], names[1], mulligans)
@@ -551,6 +551,9 @@ func SetMatchupN(set cardset.Set, c *Corpus, names []string, mulligans int) (*Ma
 	}
 	m, err := KernelMatchupN(c.Reg, tbl, names, ids, nil, mulligans)
 	if err != nil {
+		return nil, nil, err
+	}
+	if err := c.readCommanders(m); err != nil {
 		return nil, nil, err
 	}
 	return m, tbl, nil

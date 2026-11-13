@@ -41,7 +41,8 @@ type Matchup struct {
 	// and 40 starting life, and Commanders[s], an index into Decks[s] (-1
 	// none), is seat s's commander, put into the command zone at genesis;
 	// Partners[s] (-1 none) is the second of a partner pair (CR 702.124),
-	// seated after it. Corpus.Matchup sets them from a commander deck file's
+	// seated after it. A further seat's are its MoreSeat's (SeatCommanders).
+	// Corpus.Matchup and MatchupN set them from commander deck files'
 	// commanders.
 	Commander  bool
 	Commanders [2]int
@@ -68,11 +69,14 @@ type Matchup struct {
 const MaxSeats = 4
 
 // MoreSeat is one seat past the first two: its deck name, resolved deck and
-// table indices (Matchup.Names, Decks and Deck for seats 0 and 1).
+// table indices (Matchup.Names, Decks and Deck for seats 0 and 1), and in a
+// Commander matchup its commander and partner (Matchup.Commanders and
+// Partners; -1 none).
 type MoreSeat struct {
-	Name string
-	Deck []*cards.Card
-	Ix   []uint8
+	Name               string
+	Deck               []*cards.Card
+	Ix                 []uint8
+	Commander, Partner int
 }
 
 // NSeat is the matchup's seat count.
@@ -92,6 +96,24 @@ func (m *Matchup) SeatDeck(s int) []*cards.Card {
 		return m.Decks[s]
 	}
 	return m.More[s-2].Deck
+}
+
+// SeatCommanders is seat s's commander and partner, indices into its deck
+// (-1 none).
+func (m *Matchup) SeatCommanders(s int) (cmd, partner int) {
+	if s < 2 {
+		return m.Commanders[s], m.Partners[s]
+	}
+	return m.More[s-2].Commander, m.More[s-2].Partner
+}
+
+// setSeatCommanders sets seat s's commander and partner.
+func (m *Matchup) setSeatCommanders(s, cmd, partner int) {
+	if s < 2 {
+		m.Commanders[s], m.Partners[s] = cmd, partner
+		return
+	}
+	m.More[s-2].Commander, m.More[s-2].Partner = cmd, partner
 }
 
 // seatIx is seat s's deck as table indices.
@@ -209,28 +231,40 @@ func (c *Corpus) Matchup(a, b string, mulligans int) (*Matchup, error) {
 	if err != nil {
 		return nil, err
 	}
-	for s, name := range [2]string{a, b} {
+	if err := c.readCommanders(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// readCommanders makes m a Commander matchup when a seat's deck file is a
+// commander deck, seating each such deck's commander (and partner) from the
+// file's designation.
+func (c *Corpus) readCommanders(m *Matchup) error {
+	for s := 0; s < m.NSeat(); s++ {
+		name := m.SeatName(s)
 		f, err := c.deckFile(name)
 		if err != nil {
-			return nil, fmt.Errorf("deck %s: %w", name, err)
+			return fmt.Errorf("deck %s: %w", name, err)
 		}
 		if !strings.EqualFold(f.Format, "commander") || len(f.CommanderNames()) == 0 {
 			continue
 		}
 		m.Commander = true
 		if ix := f.CommanderIndices(); len(ix) > 0 {
-			m.Commanders[s] = ix[0]
+			p := -1
 			if len(ix) > 1 {
-				m.Partners[s] = ix[1]
+				p = ix[1]
 			}
+			m.setSeatCommanders(s, ix[0], p)
 		}
 	}
-	return m, nil
+	return nil
 }
 
 // MatchupN builds the matchup of names, one deck a seat: at two seats it is
-// Matchup. A matchup of more than two seats is Constructed with no
-// sideboards.
+// Matchup. A matchup of more than two seats has no sideboards; it is a
+// Commander matchup when its deck files are commander decks, as Matchup's.
 func (c *Corpus) MatchupN(names []string, mulligans int) (*Matchup, error) {
 	if len(names) == 2 {
 		return c.Matchup(names[0], names[1], mulligans)
@@ -243,7 +277,14 @@ func (c *Corpus) MatchupN(names []string, mulligans int) (*Matchup, error) {
 		}
 		decks[s] = d
 	}
-	return NewMatchupN(c.Reg, names, decks, mulligans)
+	m, err := NewMatchupN(c.Reg, names, decks, mulligans)
+	if err != nil {
+		return nil, err
+	}
+	if err := c.readCommanders(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // NewMatchupN builds a matchup of len(names) seats from resolved decks; at two
@@ -257,7 +298,7 @@ func NewMatchupN(reg *cards.Registry, names []string, decks [][]*cards.Card, mul
 	}
 	m := &Matchup{Names: [2]string{names[0], names[1]}, Decks: [2][]*cards.Card{decks[0], decks[1]}, Mulligans: mulligans, Commanders: [2]int{-1, -1}, Partners: [2]int{-1, -1}, reg: reg}
 	for s := 2; s < len(names); s++ {
-		m.More = append(m.More, MoreSeat{Name: names[s], Deck: decks[s]})
+		m.More = append(m.More, MoreSeat{Name: names[s], Deck: decks[s], Commander: -1, Partner: -1})
 	}
 	if holdsNameChooserN(decks) {
 		m.NameUniverse = nameUniverseOf(decks)
@@ -410,12 +451,12 @@ func (m *Matchup) Config(seed uint64) rules.Config {
 	}
 	if m.Commander {
 		cfg.Format, cfg.StartingLife = rules.FormatCommander, 40
-		cfg.Commanders = make([][]int, 2)
-		for s, ix := range m.Commanders {
-			if ix >= 0 {
+		cfg.Commanders = make([][]int, m.NSeat())
+		for s := range cfg.Commanders {
+			if ix, p := m.SeatCommanders(s); ix >= 0 {
 				cfg.Commanders[s] = []int{ix}
-				if m.Partners[s] >= 0 {
-					cfg.Commanders[s] = append(cfg.Commanders[s], m.Partners[s])
+				if p >= 0 {
+					cfg.Commanders[s] = append(cfg.Commanders[s], p)
 				}
 			}
 		}
@@ -437,18 +478,21 @@ func (m *Matchup) Config(seed uint64) rules.Config {
 	return cfg
 }
 
-// kernelCommanders is m's commanders as dirac.Config carries them: seats 0
-// and 1, each its commander and its partner (CR 702.124), and -1 in every
-// other slot. A partner without a commander seats nothing, as Config drops it.
+// kernelCommanders is m's commanders as dirac.Config carries them: each
+// seat's commander and its partner (CR 702.124), and -1 in every other slot.
+// A partner without a commander seats nothing, as Config drops it. The
+// kernel side refuses a matchup of more seats than its build holds
+// (RealKernel), so every seat here has a slot.
 func (m *Matchup) kernelCommanders() (bool, [dirac.MaxSeats][2]int16) {
 	var c [dirac.MaxSeats][2]int16
 	for i := range c {
 		c[i] = [2]int16{-1, -1}
 	}
-	for s := 0; s < 2; s++ {
-		c[s][0] = int16(m.Commanders[s])
-		if m.Commanders[s] >= 0 {
-			c[s][1] = int16(m.Partners[s])
+	for s := 0; s < m.NSeat() && s < dirac.MaxSeats; s++ {
+		ix, p := m.SeatCommanders(s)
+		c[s][0] = int16(ix)
+		if ix >= 0 {
+			c[s][1] = int16(p)
 		}
 	}
 	return m.Commander, c

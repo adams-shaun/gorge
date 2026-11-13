@@ -64,6 +64,24 @@ func resolveKernel(kernel, setName, decks string, explicit map[string]bool) (str
 	return "fdn", kernel, decks, nil
 }
 
+// addMiniDecks cuts every deck of pool to n cards (-cmd-mini; 0 leaves them):
+// the pool's names then play the mini decks.
+func addMiniDecks(c *oracle.Corpus, pool []oracle.PoolDeck, n int) error {
+	if n <= 0 {
+		return nil
+	}
+	names := make([]string, len(pool))
+	for i, p := range pool {
+		names[i] = p.Name
+	}
+	minis, err := oracle.MiniCommanderDecks(c, names, n)
+	if err != nil {
+		return err
+	}
+	c.AddDecks(minis)
+	return nil
+}
+
 // runKernel is the side this run plays against, as a Repro records it.
 var runKernel string
 
@@ -174,6 +192,7 @@ func run() int {
 		synthDecks = flag.Int("synth-decks", oracle.SynthDecks, "-synth: decks to deal")
 		seats      = flag.Int("seats", 2, "seats a game: 2 plays deck pairs; 3 or 4 plays pods of distinct decks (oracle.PodAt): -kernel gorge in any build, -kernel vanilla or a -synth pool in a build with -tags dirac_mp")
 		pods       = flag.Int("pods", 0, "-seats above 2: pods to play (one game each; 0: -pairs)")
+		cmdMini    = flag.Int("cmd-mini", 0, "-seats above 2: cut every commander deck of the pool to this many cards, its commanders and an even spread of the rest (oracle.MiniCommanderDeck), so a Commander pod fits the kernel's four-seat build: -kernel gorge, or a Commander pool such as cmd5 in a build with -tags dirac_mp")
 		eventTail  = flag.Int("events", 0, "-repro: print the last N events of gorge's log when the game ends, objects named by card")
 		refusedIn  = flag.Bool("play-refused", false, "pool runs: play the pairs holding a card refused by name too, as scripts/dirac-first-refusals.py settle does")
 		focusPath  = flag.String("focus", "", "-synth: deal a focus pool instead: every deck holds -focus-per-deck cards of this list (one card a line, enablers after a tab, ';'-separated) beside the enablers they name; the run is named after the file (fx-dsk.txt: fx-dsk)")
@@ -231,6 +250,10 @@ func run() int {
 		fmt.Fprintln(os.Stderr, "kfuzz: -pods needs -seats above 2")
 		return 2
 	}
+	if explicit["cmd-mini"] && (*seats == 2 || *cmdMini < 1 || *synth != "") {
+		fmt.Fprintln(os.Stderr, "kfuzz: -cmd-mini needs -seats above 2, a positive card count and a pool, not -synth")
+		return 2
+	}
 	// synthGorge plays a synthetic pool's decks gorge against gorge, the
 	// harness check of a game of more than two seats.
 	synthGorge := *synth != "" && *seats > 2 && explicit["kernel"] && *kernel == "gorge"
@@ -267,10 +290,10 @@ func run() int {
 		*kernel = "gorge"
 	}
 	if *seats > 2 && *kernel != "gorge" {
-		podKernel := *kernel == "vanilla" || *kernel == "fdn" && *synth != ""
+		podKernel := *kernel == "vanilla" || *kernel == "fdn" && (*synth != "" || *cmdMini > 0)
 		switch {
 		case !podKernel:
-			fmt.Fprintf(os.Stderr, "kfuzz: -seats %d: a kernel game of more than two seats plays -kernel vanilla or a -synth pool; -kernel %s plays two seats (-kernel gorge plays any)\n", *seats, *kernel)
+			fmt.Fprintf(os.Stderr, "kfuzz: -seats %d: a kernel game of more than two seats plays -kernel vanilla, a -synth pool or a -cmd-mini Commander pool; -kernel %s plays two seats (-kernel gorge plays any)\n", *seats, *kernel)
 			return 2
 		case *seats > dirac.MaxSeats:
 			fmt.Fprintf(os.Stderr, "kfuzz: -seats %d: this dirac build holds %d seats; build with -tags dirac_mp for up to %d (-kernel gorge plays any)\n", *seats, dirac.MaxSeats, oracle.MaxSeats)
@@ -495,6 +518,10 @@ func run() int {
 				return 1
 			}
 		}
+		if err := addMiniDecks(c, pool, *cmdMini); err != nil {
+			fmt.Fprintln(os.Stderr, "kfuzz:", err)
+			return 1
+		}
 		ps := oracle.PodsFrom(pool, *firstPair, *pairs, *seed, *seats)
 		if o.minGames > 0 {
 			ps = oracle.PairingsPlayable(c, set, pool, *firstPair, *pairs, *seed)
@@ -534,6 +561,10 @@ func run() int {
 			return 1
 		}
 	} else if pool, err = oracle.ReadPool(*poolPath, *split); err != nil {
+		fmt.Fprintln(os.Stderr, "kfuzz:", err)
+		return 1
+	}
+	if err := addMiniDecks(c, pool, *cmdMini); err != nil {
 		fmt.Fprintln(os.Stderr, "kfuzz:", err)
 		return 1
 	}
