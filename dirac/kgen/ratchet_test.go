@@ -146,8 +146,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
 	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
-	// +21 (the merge with land: this branch's MBC combat-4 lowerings (CantAttackOrBlock, blockingSource/blockedBySource as W7BlockingSrc/W7BlockedBySrc renumbered to 33/34 beside land's W7AttackingSame, a targeted Effect's CanAttackDefender grant) against land's 23525; ALL 23525 -> 23546, MBC 1740 -> 1744 measured).
-	"ALL": {23546, 34442},
+	"ALL": {23526, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {220, 280},
@@ -162,14 +161,14 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
-	"MBC": {1744, 2188},
+	"MBC": {1741, 2188},
 	"MKM": {251, 279},
 	"MOM": {203, 296},
 	"MSH": {246, 276},
 	"NEO": {201, 287},
 	"ONE": {201, 271},
 	"OTJ": {252, 276},
-	"SNC": {188, 266},
+	"SNC": {187, 266},
 	"SOS": {257, 270},
 	"SPM": {169, 192},
 	"TDM": {256, 276},

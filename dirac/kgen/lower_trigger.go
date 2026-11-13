@@ -2673,7 +2673,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		return nil, err
 	}
 	hard := false
-	for _, k := range []string{"SetPower", "SetToughness", "SetColor", "RemoveAllAbilities", "RemoveCardTypes", "RemoveCreatureTypes", "SetName", "AddAllCreatureTypes"} {
+	for _, k := range []string{"SetPower", "SetToughness", "SetColor", "RemoveAllAbilities", "RemoveCardTypes", "RemoveCreatureTypes", "RemoveType", "SetName", "AddAllCreatureTypes"} {
 		if _, ok := sp.m[k]; ok {
 			hard = true
 		}
@@ -3159,6 +3159,16 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 	}
 	removeCard := sp.is("RemoveCardTypes", "True")
 	removeCreature := sp.is("RemoveCreatureTypes", "True")
+	if v, ok := sp.get("RemoveType"); ok {
+		// layer 4 (CR 613.1d, 205.1b): the devotion gods' "isn't a creature".
+		// Only the exact Creature word is lowered (gorge applyTypeEffect
+		// RemoveTypes strips the named word from the type list, before this
+		// effect's AddType$ words); any other value stays refused by name.
+		if strings.TrimSpace(v) != "Creature" {
+			return nil, refuse("RemoveType %q", v)
+		}
+		o.RemoveTypes = uint16(typeBits["Creature"])
+	}
 	if v, ok := sp.get("AddAllCreatureTypes"); ok {
 		// layer 4 (CR 205.3m / 702.73a): the object has every creature
 		// type. Only the exact True shape is lowered; any other value
@@ -3277,7 +3287,7 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 // reading of ovrKeptOnLoss in the kernel, for a lowered override).
 func (o *lOverride) beginsBeforeLayer6() bool {
 	return o.HasSetTypes || o.SetTypes != 0 || o.AddTypes != 0 || o.HasSetSubtypes || len(o.SetSubtypes) > 0 ||
-		len(o.AddSubtypes) > 0 || o.AllCreatureTypes || o.RemoveCreatureSub || o.HasSetColors || o.AddColors != "" || o.Name != ""
+		len(o.AddSubtypes) > 0 || o.AllCreatureTypes || o.RemoveCreatureSub || o.RemoveTypes != 0 || o.HasSetColors || o.AddColors != "" || o.Name != ""
 }
 
 // keepSubtypes records what removing o's card types leaves, from the words the

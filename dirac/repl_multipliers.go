@@ -138,8 +138,8 @@ func (s *State) srcEnteredThisTurn(k *prep, srcCard CardID) bool {
 // dblDmgN is the number of doublers matching the damage event (dblDmgMatch
 // over the source controller's battlefield).
 func (s *State) dblDmgN(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, combat bool) int {
-	if srcCtrl > 1 {
-		return 0
+	if srcCtrl >= MaxSeats {
+		return 0 // no seat controls the source
 	}
 	g := k.gen
 	n := 0
