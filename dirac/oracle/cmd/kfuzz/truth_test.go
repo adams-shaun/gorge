@@ -425,6 +425,32 @@ func TestFuzzGenericHangIsAFailure(t *testing.T) {
 	if sum.Games != 2 {
 		t.Errorf("%d games, want the hang and the pair before it (pair 2 belongs to the continuation)", sum.Games)
 	}
+	if sum.SkipAt != len(ps) {
+		t.Errorf("SkipAt %d, want %d (one worker: nothing was skipped)", sum.SkipAt, len(ps))
+	}
+	if played := playedPrefix(sum, len(ps)); played != 2 {
+		t.Errorf("played prefix %d, want 2 (Games + Errors with nothing skipped)", played)
+	}
+	// With two workers, a pair a worker receives after the feed's stop is
+	// skipped, and the summary records the lowest such index: both leading
+	// pairs hang, so pair 2 is only ever received after both watchdogs fired
+	// and the stop was set, and SkipAt names where the next attempt starts.
+	mk2 := func(m *oracle.Matchup, seed uint64) (oracle.Side, error) {
+		if seed == ps[0].Seed || seed == ps[1].Seed {
+			return &blockSide{name: "kernel", release: release}, nil
+		}
+		return inner(m, seed)
+	}
+	sum2 := oracle.Fuzz(c, ps, mk2, oracle.FuzzConfig{Run: oracle.RunConfig{MaxDecisions: 30}, GameTimeout: 2 * time.Second, Workers: 2, StopOnHang: true}, nil)
+	if sum2.Hung != 2 || sum2.Games != 2 {
+		t.Errorf("hung %d of %d games, want the two leading pairs (pair 2 belongs to the continuation)", sum2.Hung, sum2.Games)
+	}
+	if sum2.SkipAt != 2 {
+		t.Errorf("SkipAt %d, want 2 (pair 2 was received only after the feed stopped)", sum2.SkipAt)
+	}
+	if played := playedPrefix(sum2, len(ps)); played != 2 {
+		t.Errorf("played prefix %d, want 2 (the pair 2 the count would name was skipped)", played)
+	}
 }
 
 // -mulligans reaches a pool run: a game plays the round when asked and skips it at

@@ -23,7 +23,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime/debug"
@@ -33,6 +32,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -43,7 +43,26 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-func main() { os.Exit(run()) }
+func main() { os.Exit(priorHungCode(run())) }
+
+// priorHungEnv marks a continuation: runContinuation sets it just before the
+// exec that hands the unplayed pairs to a fresh process image, so the image
+// the run continues in can tell that an earlier segment hung.
+const priorHungEnv = "GORGE_KFUZZ_PRIOR_HUNG"
+
+// priorHung reports whether this image is a continuation of a segment that
+// confirmed a hang.
+func priorHung() bool { return os.Getenv(priorHungEnv) != "" }
+
+// priorHungCode is the exit-code rule a continuation's image runs under: a
+// hang fails its segment as always, and the continuation's code cannot rescue
+// the run, so a clean segment of a continuation is still a failed run.
+func priorHungCode(code int) int {
+	if code == 0 && priorHung() {
+		return 1
+	}
+	return code
+}
 
 // resolveKernel maps -kernel <registered pool other than fdn> to the fdn path
 // on that pool's set: it forces -set <name> (an explicit different -set is an
@@ -619,7 +638,7 @@ func run() int {
 	}
 	// Games and Errors each count every attempted pair (a hang counts in Games),
 	// so together they are how many pairs this segment played.
-	played := sum.Games + sum.Errors
+	played := playedPrefix(sum, len(ps))
 	for _, p := range sum.Hangs {
 		fmt.Printf("pair %d (%s, seed %d): hang: no result after two watchdogs of %s; rerun with: %s\n", p.Index, vs(p), p.Seed, *gameLimit, rerunCmd(p.Index))
 	}
@@ -640,12 +659,44 @@ func run() int {
 		}
 	}
 	if sum.Hung > 0 && played < len(ps) {
-		runContinuation(ps[played].Index, len(ps)-played)
+		return hangTail(played, ps[played].Index, len(ps)-played)
 	}
 	if sum.First != nil || sum.Hung > 0 {
 		return 1
 	}
 	return 0
+}
+
+// playedPrefix is how many of a generic path's pairs this segment played: with
+// StopOnHang the workers record the lowest pair index they received after the
+// feed stopped (FuzzSummary.SkipAt), and the played pairs are exactly the
+// prefix before it; with no stop every fed pair was played, and Games + Errors
+// count each of them (a hang counts in Games).
+func playedPrefix(sum oracle.FuzzSummary, n int) int {
+	if sum.SkipAt < n {
+		return sum.SkipAt
+	}
+	return sum.Games + sum.Errors
+}
+
+// hangTail ends a segment that confirmed a hang: the unplayed pairs rerun in a
+// fresh process image (runContinuation execs, so the hung game's goroutine —
+// which Go cannot cancel — dies with this image instead of holding a core for
+// the rest of the run) and the segment fails. firstUnplayed/remaining name the
+// unplayed pairs; playedN is how many pairs this segment played. A segment
+// that played no pair (a worker can receive pair 0 only after the feed's stop)
+// does not rerun: the continuation's arguments would be identical, so it could
+// only repeat this segment, and the run fails with the pairs unplayed.
+func hangTail(playedN, firstUnplayed, remaining int) int {
+	if remaining <= 0 {
+		return 1 // the hang was the last pair: nothing unplayed
+	}
+	if playedN == 0 {
+		fmt.Fprintln(os.Stderr, "kfuzz: no continuation: the segment played no pair, a rerun would repeat it")
+		return 1
+	}
+	runContinuation(firstUnplayed, remaining)
+	return 1 // the exec replaced this image; this is the exec-failure path
 }
 
 // lockstepDir plays one game with lead leading: a fresh gorge side leads and
@@ -907,8 +958,9 @@ func vanillaSeats(g, n, seats int) []int {
 // vanillaSweep plays games first..first+games-1 serially, each under the watchdog
 // (watchGame), and reports them. n is the deck count, for the game's deck indexes.
 // A confirmed hang ends the segment: the report covers the games played, and the
-// rest rerun in a child process (runContinuation), because the hung game's
-// goroutine holds a core until this process exits.
+// rest rerun in a fresh process image (hangTail -> runContinuation execs, so the
+// hung game's goroutine dies with this image instead of holding a core until the
+// run exits).
 func vanillaSweep(first, games, n, seats int, seed uint64, timeout time.Duration, rc oracle.RunConfig, out, lead string, feat *oracle.FeatStats, play func(int) played) int {
 	classes := map[string]int{}
 	clean := 0
@@ -976,8 +1028,7 @@ func vanillaSweep(first, games, n, seats int, seed uint64, timeout time.Duration
 	if played < games {
 		// The segment ended at the hang (an error path already returned): the
 		// rest belong to a fresh process.
-		runContinuation(first+played, games-played)
-		return 1
+		return hangTail(played, first+played, games-played)
 	}
 	if len(classes) > 0 {
 		return 1
@@ -1219,10 +1270,10 @@ func runFDN(c *oracle.Corpus, set cardset.Set, rc oracle.RunConfig, ps []oracle.
 // finishSweep reports the played prefix and reruns what a hang left unplayed.
 // playAll stops feeding at the first confirmed hang and lets the in-flight pairs
 // finish, so the played pairs are exactly ps[:playedN]; the segment's report
-// covers those, and the rest play in a child kfuzz (runContinuation) — the hung
-// game's goroutine holds a core in this process until it exits, so it must not
-// play on. The child's code cannot rescue the segment: a hang fails it as
-// always.
+// covers those, and the rest play in a fresh process image (hangTail ->
+// runContinuation execs, so the hung game's goroutine dies with this image
+// instead of holding a core for the rest of the run). The continuation's code
+// cannot rescue the segment: a hang fails it as always (priorHungCode).
 func finishSweep(name string, ps []oracle.Pairing, out []played, playedN int, rc oracle.RunConfig, o sweepOpts, feat *oracle.FeatStats) int {
 	if playedN < len(ps) {
 		// The floor belongs to the whole form, and the segments' union covers it.
@@ -1230,8 +1281,7 @@ func finishSweep(name string, ps []oracle.Pairing, out []played, playedN int, rc
 	}
 	code := report(name, ps[:playedN], out[:playedN], rc, o, feat)
 	if playedN < len(ps) {
-		runContinuation(ps[playedN].Index, len(ps)-playedN)
-		return 1
+		return hangTail(playedN, ps[playedN].Index, len(ps)-playedN)
 	}
 	return code
 }
@@ -1290,8 +1340,9 @@ func playAll(n, workers int, timeout time.Duration, retry bool, play func(i int)
 // stall). A game past its time on both attempts is a hang: the goroutine cannot
 // be stopped, so it leaks, but it only ever touches its own game and its
 // buffered result channel, and the sweep stops feeding new pairs — the unplayed
-// rest rerun in a child process, so the leak holds a core for a segment, not for
-// the run. A -stats or -features run keeps one attempt, because a stalled
+// rest rerun in a fresh process image (runContinuation execs, which destroys
+// this image's goroutines with it), so the leak holds a core until the segment
+// ends, not for the run. A -stats or -features run keeps one attempt, because a stalled
 // attempt shares that run's report-only counters and would double-count once its
 // retry finishes. A panic outside the lockstep's own recover (building the game)
 // is a divergence: one bad pair does not end the sweep.
@@ -1328,15 +1379,15 @@ func rerunCmd(pair int) string {
 // reruns exactly the pairs its caller leaves unplayed, whatever the run drew
 // them from: pool, pod, synth, -pairs-file (whose Index is the line index) and
 // vanilla (whose game index is the pair index) all make pair p a pure function
-// of (seed, p), and last occurrence wins in flag.Parse, so -flag v and -flag=v
-// both drop. -pods drops because a pod run's count is -pairs (oracle.PodAt makes
-// pod p of (seed, p)); the appended -pairs names it.
+// of (seed, p), and last occurrence wins in flag.Parse, so -flag v, -flag=v and
+// the --flag spellings all drop. -pods drops because a pod run's count is -pairs
+// (oracle.PodAt makes pod p of (seed, p)); the appended -pairs names it.
 func contArgs(firstPair, pairs int) []string {
-	drop := func(name string) bool { return name == "-pods" || name == "-first-pair" || name == "-pairs" }
+	drop := map[string]bool{"pods": true, "first-pair": true, "pairs": true}
 	args := os.Args[1:]
 	out := make([]string, 0, len(args)+4)
 	for i := 0; i < len(args); i++ {
-		if name, _, hasVal := strings.Cut(args[i], "="); drop(name) {
+		if name, _, hasVal := strings.Cut(args[i], "="); drop[strings.TrimLeft(name, "-")] {
 			if !hasVal && i+1 < len(args) {
 				i++ // -pods 3: the value is the next word, as flag.Parse reads it
 			}
@@ -1347,31 +1398,32 @@ func contArgs(firstPair, pairs int) []string {
 	return append(out, "-first-pair", strconv.Itoa(firstPair), "-pairs", strconv.Itoa(pairs))
 }
 
-// runContinuation executes kfuzz for the pairs a hang left unplayed: it re-runs
-// this program with contArgs(firstPair, pairs), inherits stdout and stderr, and
-// returns the child's exit code. The segments' file flags (-coverage, -evidence,
-// -reach, -out/repro.json, -cpuprofile, -memprofile) are inherited unchanged, so
-// the last segment's file wins — acceptable, because a hang already fails the
-// run, and the per-pair files under -out are pair-numbered and survive. Tests
+// runContinuation hands the pairs a hang left unplayed to a fresh process
+// image: it execs this program with contArgs(firstPair, pairs) — same pid, new
+// image — so the hung game's goroutine, which Go cannot cancel, is destroyed
+// with the segment's image instead of spinning a core until the run exits. It
+// sets priorHungEnv first, so the new image fails even a clean segment (a hang
+// already failed the run; priorHungCode), and it never returns: the exec'd
+// image's exit code is the run's. The segments' file flags (-coverage,
+// -evidence, -reach, -out/repro.json) are inherited unchanged, so the last
+// segment's file wins — acceptable, because a hang already fails the run, and
+// the per-pair files under -out are pair-numbered and survive; a
+// -cpuprofile/-memprofile is not flushed past the exec (its stop is deferred in
+// run). An exec error prints and returns 1, leaving the pairs unplayed. Tests
 // stub this var.
 var runContinuation = func(firstPair, pairs int) int {
+	os.Setenv(priorHungEnv, "1")
 	exe, err := os.Executable()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "kfuzz: continuation: %v\n", err)
 		return 1
 	}
-	cmd := exec.Command(exe, contArgs(firstPair, pairs)...)
-	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
-	err = cmd.Run()
-	if err == nil {
-		return 0
+	argv := append([]string{os.Args[0]}, contArgs(firstPair, pairs)...)
+	if err := syscall.Exec(exe, argv, os.Environ()); err != nil {
+		fmt.Fprintf(os.Stderr, "kfuzz: continuation: %v\n", err)
+		return 1
 	}
-	var ee *exec.ExitError
-	if errors.As(err, &ee) {
-		return max(1, ee.ExitCode())
-	}
-	fmt.Fprintf(os.Stderr, "kfuzz: continuation: %v\n", err)
-	return 1
+	return 1 // unreachable: the exec replaced this image
 }
 
 // writePairRepro writes one bad game's repro as dir/name, so the game replays from
