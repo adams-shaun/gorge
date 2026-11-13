@@ -95,8 +95,8 @@ func (a *SBT) card(s *dirac.State, o uint8, cv *view.CardView) {
 		cv.AttachedTo = sbtObjID(uint8(po.Attached))
 	}
 	cv.ActivatedThisTurn = int32(s.FeatActivations(ob))
-	if cv.Attacking && po.Attacks >= dirac.PlayerTarget0 && po.Attacks != dirac.NoTarget {
-		pl := state.PlayerID(po.Attacks - dirac.PlayerTarget0)
+	if cv.Attacking && dirac.TCode(po.Attacks) >= dirac.PlayerTarget0 && dirac.TCode(po.Attacks) != dirac.NoTarget {
+		pl := state.PlayerID(dirac.TCode(po.Attacks) - dirac.PlayerTarget0)
 		cv.AttackingPlayer = &pl
 	}
 	cv.Blocked = s.FeatBlocked(ob)
@@ -269,9 +269,9 @@ func (a *SBT) buildView(s *dirac.State, me uint8, potential []decision.Potential
 		sv.X = int32(e.X)
 		for _, t := range e.Targets {
 			switch {
-			case t == dirac.NoTarget:
-			case t >= dirac.PlayerTarget0:
-				sv.Targets = append(sv.Targets, view.TargetView{Player: state.PlayerID(t - dirac.PlayerTarget0), IsPlayer: true})
+			case dirac.TCode(t) == dirac.NoTarget:
+			case dirac.TCode(t) >= dirac.PlayerTarget0:
+				sv.Targets = append(sv.Targets, view.TargetView{Player: state.PlayerID(dirac.TCode(t) - dirac.PlayerTarget0), IsPlayer: true})
 			default:
 				sv.Targets = append(sv.Targets, view.TargetView{Obj: sbtObjID(t)})
 			}

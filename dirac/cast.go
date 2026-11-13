@@ -1202,7 +1202,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				}
 			}
 			for i := 0; i < n; i++ {
-				d.add(MakeAction(AkTarget, 0, buf[i], 0))
+				d.add(MakeAction(AkTarget, 0, TCode(buf[i]), 0))
 			}
 			if t.UpTo {
 				d.add(MakeAction(AkTarget, 0, NoTarget, 0))
@@ -1385,9 +1385,9 @@ func (s *State) applyBuild(k *prep, a Action) {
 		}
 		if s.bld().stage == bsAltAdd {
 			part := a.Target()
-			s.bld().altAdd = part
+			s.bld().altAdd = uint8(part)
 			s.nextStage(k)
-			if !s.altAddPayable(k, part) && !s.altAddOpenTargets(k) && !s.altAddPipsFirst(k) {
+			if !s.altAddPayable(k, uint8(part)) && !s.altAddOpenTargets(k) && !s.altAddPipsFirst(k) {
 				if k.t.Cards[e.card].BeholdN != 0 && !s.requiredTarget(k) {
 					// The seat chose an unpayable part of a behold-or-mana
 					// cost: gorge pays through its fallback CR 601.2g
@@ -1408,7 +1408,7 @@ func (s *State) applyBuild(k *prep, a Action) {
 			return
 		}
 		if s.bld().stage == bsDivide {
-			s.answerCastDivide(k, a.Source())
+			s.answerCastDivide(k, uint8(a.Source()))
 			s.syncBuild()
 			return
 		}
@@ -1501,12 +1501,12 @@ func (s *State) applyBuild(k *prep, a Action) {
 		}
 	case AkTarget:
 		ti := s.bld().ti
-		e.tgt[ti] = a.Target()
+		e.tgt[ti] = uint8(a.Target())
 		if a.Target() != NoTarget {
 			if isObjTarget(a.Target()) {
 				e.tver[ti] = s.objs[a.Target()].ver
 			} else if isStackTarget(a.Target()) {
-				s.stackTgtPicked(e, ti, a.Target()) // its stack identity (tgt_stackability.go)
+				s.stackTgtPicked(e, ti, uint8(a.Target())) // its stack identity (tgt_stackability.go)
 			}
 			if ti+1 > e.nt {
 				e.nt = ti + 1
@@ -1514,7 +1514,7 @@ func (s *State) applyBuild(k *prep, a Action) {
 			if k.gen != nil && k.gen.crimeOn {
 				// the plain target step takes one pick per ask: the ask
 				// completes here (act_commitcrime.go crimePick)
-				s.crimePick(k, a.Target(), true)
+				s.crimePick(k, uint8(a.Target()), true)
 			}
 		}
 		s.bld().ti++
@@ -1949,7 +1949,7 @@ func (s *State) castTrigVanilla(k *prep, ls Slot, e *stackEntry) {
 // targetedOne is one target code t of entry e chosen: its BecomesTarget
 // triggers, then the ward of a permanent its controller does not control.
 func (s *State) targetedOne(k *prep, e *stackEntry, t uint8) {
-	if !isObjTarget(t) {
+	if !isObjTarget(TCode(t)) {
 		return // a player, or a stack ability (tgt_stackability.go)
 	}
 	ob := &s.objs[t]
@@ -2101,7 +2101,7 @@ func (s *State) placeTriggers(k *prep, d *Decision) bool {
 		d.Kind, d.Player = DkTriggerOrder, p
 		for i := 0; i < int(s.npend); i++ {
 			if pt := &s.pend[i]; pt.ctrl == p && !s.ordered(uint8(i)) {
-				d.add(MakeAction(AkOrder, uint8(pt.obj), uint8(i), s.occurrence(i)))
+				d.add(MakeAction(AkOrder, TCode(pt.obj), TCode(i), s.occurrence(i)))
 			}
 		}
 		return true
@@ -2125,7 +2125,7 @@ func (s *State) ordered(i uint8) bool {
 }
 
 func (s *State) applyTriggerOrder(k *prep, a Action) {
-	s.ordList[s.orderN] = a.Target()
+	s.ordList[s.orderN] = uint8(a.Target())
 	s.orderN++
 	s.orderLeft--
 	if s.orderLeft == 0 {
@@ -2280,7 +2280,7 @@ func (s *State) costCands(k *prep, c *kop.Cost, src Slot, d *Decision) {
 		for i := 0; i < int(pl.handN); i++ {
 			if o := pl.hand[i]; !s.picked(o) && o != e.obj &&
 				!(fmatch && !s.matchCardGen(k, f, s.objs[o].card, e.ctrl, e.ctrl, o)) {
-				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 	case pkSac, pkTapX:
@@ -2293,7 +2293,7 @@ func (s *State) costCands(k *prep, c *kop.Cost, src Slot, d *Decision) {
 			if s.bld().pickK == pkTapX && (s.perms[sl].flags&pfTapped != 0 || (sl == src && c.Flags&kop.CostTap != 0)) {
 				continue
 			}
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 }
@@ -2609,7 +2609,7 @@ func (s *State) altAddOptions(k *prep, d *Decision) {
 	for pass := 0; pass < passes; pass++ {
 		for part := uint8(0); part < 2; part++ {
 			if ok[part] == (pass == 0) {
-				d.add(MakeAction(AkChoose, 0, part, pos))
+				d.add(MakeAction(AkChoose, 0, TCode(part), pos))
 				pos++
 			}
 		}
@@ -2705,7 +2705,7 @@ func (s *State) subCtrOptions(k *prep, d *Decision) bool {
 					continue // CtrLevel is no counter (kw_class.go)
 				}
 				if p.ctrN(s, c) > s.subCtrPicked(o, uint8(c)) {
-					d.add(MakeAction(AkChoose, uint8(o), 0, uint8(c)))
+					d.add(MakeAction(AkChoose, TCode(o), 0, uint8(c)))
 				}
 			}
 		}

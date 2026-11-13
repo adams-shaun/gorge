@@ -200,10 +200,10 @@ func TestPerCreatureRootDeclaration(t *testing.T) {
 	}
 	seen := map[uint8]bool{}
 	for _, a := range res.Acts[:res.NActs-1] {
-		if a.Kind() != dirac.AkAttack || seen[a.Source()] {
+		if a.Kind() != dirac.AkAttack || seen[uint8(a.Source())] {
 			t.Fatalf("bad pick %v in %v", a, res.Acts[:res.NActs])
 		}
-		seen[a.Source()] = true
+		seen[uint8(a.Source())] = true
 		ok := false
 		for i := 0; i < int(d.N); i++ {
 			ok = ok || d.Options[i] == a
@@ -234,7 +234,7 @@ func TestPerCreaturePriorIsMaskedSubsetLikelihood(t *testing.T) {
 	zi := -1
 	for i := 0; i < int(d.N); i++ {
 		if d.Options[i].Kind() == dirac.AkAttack {
-			first, zi = d.Options[i].Source(), i
+			first, zi = uint8(d.Options[i].Source()), i
 			break
 		}
 	}

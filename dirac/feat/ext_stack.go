@@ -103,8 +103,8 @@ func (e *Encoder) stackEntryOf(obj uint8) int {
 // targetClass classifies target byte t for seat as buildRel does; host is
 // the battlefield card for classes 2-5.
 func (e *Encoder) targetClass(seat, t uint8) (int, *vcard) {
-	if t >= dirac.PlayerTarget0 {
-		if t == dirac.PlayerTarget0+seat {
+	if dirac.TCode(t) >= dirac.PlayerTarget0 {
+		if dirac.TCode(t) == dirac.PlayerTarget0+dirac.TCode(seat) {
 			return tcPlayerMe, nil
 		}
 		return tcPlayerOpp, nil
@@ -171,7 +171,7 @@ func (e *Encoder) extStack(seat uint8, me, opp *vplayer) {
 			if j < len(se.Targets) {
 				t = se.Targets[j]
 			}
-			if t == dirac.NoTarget {
+			if dirac.TCode(t) == dirac.NoTarget {
 				continue
 			}
 			dup := false

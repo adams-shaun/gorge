@@ -54,7 +54,7 @@ func TestSkeletonReturnSameObject(t *testing.T) {
 	acts := 0
 	pick := func(d *Decision) (Action, bool) {
 		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; acts < 2 && a.Kind() == AkActivate && a.Source() == uint8(sk) {
+			if a := d.Options[i]; acts < 2 && a.Kind() == AkActivate && a.Source() == TCode(uint8(sk)) {
 				acts++
 				return a, true
 			}

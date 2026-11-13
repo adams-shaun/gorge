@@ -23,7 +23,7 @@ func coyoteResolve(t *testing.T, sc *scen, coy CardID, tgt Obj) int {
 		t.Fatal("Driftgloom Coyote has no trigger")
 	}
 	s.stack[0] = stackEntry{kind: seTrigger, obj: c, srcVer: s.objs[c].ver, card: coy, ab: uint8(ab), ctrl: 0,
-		nt: 1, tgt: [kop.MaxTargets]uint8{uint8(tgt), NoTarget, NoTarget, NoTarget, NoTarget}, tver: [kop.MaxTargets]uint8{s.objs[tgt].ver}, trigObj: c}
+		nt: 1, tgt: [kop.MaxTargets]uint8{uint8(tgt), uint8(NoTarget), uint8(NoTarget), uint8(NoTarget), uint8(NoTarget)}, tver: [kop.MaxTargets]uint8{s.objs[tgt].ver}, trigObj: c}
 	s.sp = 1
 	s.resolveTop(sc.k)
 	if s.objs[tgt].zone != kop.ZoneExile {

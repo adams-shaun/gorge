@@ -58,7 +58,7 @@ func TestAttackTaxPerAttackerCounters(t *testing.T) {
 		{"one counter", sl1, 1},
 		{"three counters", sl3, 3},
 	} {
-		n, ok := sc.s.atkTaxCharge(sc.k, tc.sl, tgt)
+		n, ok := sc.s.atkTaxCharge(sc.k, tc.sl, uint8(tgt))
 		if !ok || n != tc.want {
 			t.Fatalf("%s: charge %d ok %v; want %d", tc.name, n, ok, tc.want)
 		}

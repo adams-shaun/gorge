@@ -239,9 +239,9 @@ func (g *Game) deriveCombat(before func(int) *dirac.ProjObj, asked dirac.Decisio
 // included.
 func (g *Game) defender(o *dirac.ProjObj) uint8 {
 	switch {
-	case o.Attacks >= dirac.PlayerTarget0 && o.Attacks != dirac.NoTarget:
-		return (o.Attacks - dirac.PlayerTarget0) & 1
-	case dirac.IsObjTarget(o.Attacks):
+	case dirac.TCode(o.Attacks) >= dirac.PlayerTarget0 && dirac.TCode(o.Attacks) != dirac.NoTarget:
+		return uint8((dirac.TCode(o.Attacks) - dirac.PlayerTarget0) & 1)
+	case dirac.IsObjTarget(dirac.TCode(o.Attacks)):
 		return g.kp.Objs[o.Attacks].Ctrl & 1
 	}
 	return (o.Ctrl + 1) & 1

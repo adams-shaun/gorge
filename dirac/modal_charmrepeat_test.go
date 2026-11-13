@@ -93,9 +93,9 @@ func TestCharmRepeatModes(t *testing.T) {
 		}
 		charmnumPickMode(t, sc, 0)
 		// the extra instance of mode 0 owns the overflow slot after the template slots
-		sc.do(t, AkTarget, 0xff, uint8(a))        // mode 0, instance 0 (slot 0)
-		sc.do(t, AkTarget, 0xff, PlayerTarget0+1) // mode 1 (slot 1)
-		sc.do(t, AkTarget, 0xff, uint8(b))        // mode 0, instance 1 (slot 2)
+		sc.do(t, AkTarget, 0xff, uint8(a))               // mode 0, instance 0 (slot 0)
+		sc.do(t, AkTarget, 0xff, uint8(PlayerTarget0+1)) // mode 1 (slot 1)
+		sc.do(t, AkTarget, 0xff, uint8(b))               // mode 0, instance 1 (slot 2)
 		sc.resolveAll(t)
 		if sc.onBF(a) || sc.onBF(b) || sc.s.pl[1].life != 18 {
 			t.Fatalf("a on %v, b on %v, life %d: want both bears dead and 18 life", sc.onBF(a), sc.onBF(b), sc.s.pl[1].life)
@@ -116,7 +116,7 @@ func TestCharmRepeatModes(t *testing.T) {
 		// two groups of the two bears, then the players
 		var occ [2]uint8
 		for i := 0; i < int(d.N); i++ {
-			if x := d.Options[i]; x.Kind() == AkTarget && x.Target() == uint8(b) {
+			if x := d.Options[i]; x.Kind() == AkTarget && x.Target() == TCode(uint8(b)) {
 				occ[x.Mode()]++
 			}
 		}
@@ -140,7 +140,7 @@ func TestCharmRepeatModes(t *testing.T) {
 		}
 		sc.do(t, AkDone, 0xff, 0xff)
 		sc.do(t, AkTarget, 0xff, uint8(a))
-		sc.do(t, AkTarget, 0xff, PlayerTarget0+1)
+		sc.do(t, AkTarget, 0xff, uint8(PlayerTarget0+1))
 		sc.resolveAll(t)
 		if sc.onBF(a) || sc.s.pl[1].life != 18 {
 			t.Fatalf("a on %v, life %d: want the bear dead and 18 life", sc.onBF(a), sc.s.pl[1].life)

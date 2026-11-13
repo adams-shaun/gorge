@@ -68,7 +68,7 @@ func TestLinkReturnsParkedHostAskKeepsBatch(t *testing.T) {
 
 	// runProg poses the parked ask after the op that made the departures returns.
 	s.res.ask, s.res.askP = raGenRetChoice, s.objs[aura].owner()
-	s.applyResolveGen(sc.k, MakeAction(AkChoose, uint8(q), 0, 0))
+	s.applyResolveGen(sc.k, MakeAction(AkChoose, TCode(q), 0, 0))
 
 	for _, o := range []Obj{aura, a, b} {
 		if s.objs[o].zone != kop.ZoneBattlefield {

@@ -146,7 +146,7 @@ func TestCommanderDamagePrevented(t *testing.T) {
 	pyro := sc.perm(v.ProdigalPyromancer, 0)
 	sc.s.pl[0].cmd = pyro
 	sc.do(t, AkActivate, uint8(pyro), 0xff)
-	sc.do(t, AkTarget, 0xff, PlayerTarget1)
+	sc.do(t, AkTarget, 0xff, uint8(PlayerTarget1))
 	sc.passBoth(t)
 	if got := sc.s.pl[1].cmdDmg[0]; got != 0 {
 		t.Fatalf("noncombat: tally %d, want 0", got)

@@ -66,12 +66,12 @@ func (s *State) prolifOptions(k *prep, d *Decision) {
 			sl := m.first()
 			o := uint8(s.perms[sl].obj)
 			if s.permRealCtrs(sl) > 0 && !s.prolifPicked(o) {
-				d.add(MakeAction(AkChoose, o, 0, 0))
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 	}
 	for p := uint8(0); p < MaxSeats; p++ {
-		if (s.g.poison[p] > 0 || s.g.energy[p] > 0) && !s.pl[p].lost && !s.prolifPicked(PlayerCode(p)) {
+		if (s.g.poison[p] > 0 || s.g.energy[p] > 0) && !s.pl[p].lost && !s.prolifPicked(uint8(PlayerCode(p))) {
 			d.add(MakeAction(AkChoose, PlayerCode(p), 0, 0))
 		}
 	}
@@ -125,7 +125,7 @@ func (s *State) answerProlif(k *prep, a Action) {
 			}
 			r.peekN++
 		}
-		s.prolifApply(k, o)
+		s.prolifApply(k, uint8(o))
 		var d Decision
 		s.prolifOptions(k, &d)
 		if d.N > 1 {
@@ -141,8 +141,8 @@ func (s *State) answerProlif(k *prep, a Action) {
 
 // prolifApply gives recipient o another counter of each kind it has.
 func (s *State) prolifApply(k *prep, o uint8) {
-	if isPlayerOrNone(o) {
-		p := CodeSeat(o)
+	if isPlayerOrNone(TCode(o)) {
+		p := CodeSeat(TCode(o))
 		if s.g.poison[p] > 0 {
 			s.addPoison(p, 1)
 		}

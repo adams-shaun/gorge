@@ -61,7 +61,7 @@ func (o *Options) chainKindOn(k dirac.DecisionKind) bool {
 func hasAttackBy(d *dirac.Decision, x uint8) bool {
 	ck := chainKind(d)
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == ck && a.Source() == x {
+		if a := d.Options[i]; a.Kind() == ck && a.Source() == dirac.TCode(x) {
 			return true
 		}
 	}
@@ -80,10 +80,10 @@ func chainAfter(d *dirac.Decision, x uint8, out *[MaxPerm]uint8) int {
 			continue
 		}
 		last = int(a.Source())
-		if a.Source() == x {
+		if a.Source() == dirac.TCode(x) {
 			seenX = true
 		} else if seenX && n < len(out) {
-			out[n] = a.Source()
+			out[n] = uint8(a.Source())
 			n++
 		}
 	}
@@ -102,7 +102,7 @@ func chainObj(pt *point) uint8 {
 	best, x := 0, uint8(0)
 	for i := 0; i < pt.n; i++ {
 		if l := int(pt.off[i+1] - pt.off[i]); l > best {
-			best, x = l, dirac.Action(pt.acts[pt.off[i+1]-1]).Source()
+			best, x = l, uint8(dirac.Action(pt.acts[pt.off[i+1]-1]).Source())
 		}
 	}
 	return x
@@ -128,7 +128,7 @@ func (sr *Searcher) chainCands(s *dirac.State, d *dirac.Decision, bot, limit int
 		found := false
 		for i := 0; i < int(d.N) && !found; i++ {
 			if a := d.Options[i]; a.Kind() == dirac.AkAttack {
-				x, found = a.Source(), true
+				x, found = uint8(a.Source()), true
 			}
 		}
 		if !found {
@@ -140,7 +140,7 @@ func (sr *Searcher) chainCands(s *dirac.State, d *dirac.Decision, bot, limit int
 	nb := sr.botDeclaration(s, d, bot, &botSet)
 	bp, has := uint32(0), false
 	for _, a := range botSet[:nb] {
-		if dirac.Action(a).Source() == x {
+		if dirac.Action(a).Source() == dirac.TCode(x) {
 			bp, has = a, true
 			break
 		}
@@ -155,7 +155,7 @@ func (sr *Searcher) chainCands(s *dirac.State, d *dirac.Decision, bot, limit int
 	}
 	for i := 0; i < int(d.N) && pt.n < limit; i++ {
 		a := d.Options[i]
-		if a.Kind() != dirac.AkAttack || a.Source() != x || (has && uint32(a) == bp) {
+		if a.Kind() != dirac.AkAttack || a.Source() != dirac.TCode(x) || (has && uint32(a) == bp) {
 			continue
 		}
 		pt.addSeq([]uint32{uint32(a)})
@@ -459,7 +459,7 @@ func newBlockModel(s *dirac.State, d *dirac.Decision, m *blockModel) {
 	m.n = 0
 	for i := 0; i < int(d.N); i++ {
 		if a := d.Options[i]; a.Kind() == dirac.AkBlock {
-			m.find(a.Target())
+			m.find(uint8(a.Target()))
 		}
 	}
 	for o := 0; o < s.NumObjs(); o++ {
@@ -563,7 +563,7 @@ func (sr *Searcher) chainBlockCands(s *dirac.State, d *dirac.Decision, bot, limi
 	for i := 0; i < int(d.N); i++ {
 		if a := d.Options[i]; a.Kind() == dirac.AkBlock && int(a.Source()) != last && no < len(ord) {
 			last = int(a.Source())
-			ord[no] = a.Source()
+			ord[no] = uint8(a.Source())
 			no++
 		}
 	}
@@ -597,10 +597,10 @@ func (sr *Searcher) chainBlockCands(s *dirac.State, d *dirac.Decision, bot, limi
 		noneOK := blockFeasible(s, &m, -1, later)
 		for j := 0; j < int(d.N); j++ {
 			a := d.Options[j]
-			if a.Kind() != dirac.AkBlock || a.Source() != x {
+			if a.Kind() != dirac.AkBlock || a.Source() != dirac.TCode(x) {
 				continue
 			}
-			if k := m.find(a.Target()); k >= 0 && blockFeasible(s, &m, k, later) && na < len(adm) {
+			if k := m.find(uint8(a.Target())); k >= 0 && blockFeasible(s, &m, k, later) && na < len(adm) {
 				adm[na] = uint32(a)
 				na++
 			}
@@ -616,7 +616,7 @@ func (sr *Searcher) chainBlockCands(s *dirac.State, d *dirac.Decision, bot, limi
 		case na == 1:
 			sr.chainForced[sr.nForced] = adm[0]
 			sr.nForced++
-			if k := m.find(dirac.Action(adm[0]).Target()); k >= 0 {
+			if k := m.find(uint8(dirac.Action(adm[0]).Target())); k >= 0 {
 				m.cnt[k]++
 			}
 		}
@@ -639,7 +639,7 @@ func (sr *Searcher) fillBlockPoint(s *dirac.State, d *dirac.Decision, bot, limit
 	nb := sr.botDeclaration(s, d, bot, &botSet)
 	bp, has := noBlock, false
 	for _, a := range botSet[:nb] {
-		if dirac.Action(a).Source() == x {
+		if dirac.Action(a).Source() == dirac.TCode(x) {
 			bp, has = a, true
 			break
 		}

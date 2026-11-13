@@ -44,7 +44,7 @@ func (s *State) castTargetsAny(k *prep, f kop.FilterID, e *stackEntry, l trigLis
 	n := s.chainTargets(e, &codes)
 	for i := 0; i < n; i++ {
 		t := codes[i]
-		if isPlayerOrNone(t) {
+		if isPlayerOrNone(TCode(t)) {
 			continue
 		}
 		ob := &s.objs[t]

@@ -20,7 +20,7 @@ func TestDiscardCostIsChosen(t *testing.T) {
 	if d.Kind != DkChoose || d.N != 2 {
 		t.Fatalf("discard-cost decision kind %d n %d", d.Kind, d.N)
 	}
-	sc.s.Apply(MakeAction(AkChoose, uint8(b), 0, 0))
+	sc.s.Apply(MakeAction(AkChoose, TCode(b), 0, 0))
 	sc.passBoth(t)
 	sc.s.Step()
 	if sc.s.objs[b].zone != kop.ZoneGraveyard || sc.s.objs[a].zone != kop.ZoneHand {
@@ -42,7 +42,7 @@ func TestSacrificeCostIsChosen(t *testing.T) {
 	if d.Kind != DkChoose || d.N != 2 { // the ghoul itself is not "another creature"
 		t.Fatalf("sac-cost decision kind %d n %d", d.Kind, d.N)
 	}
-	sc.s.Apply(MakeAction(AkChoose, uint8(y), 0, 0))
+	sc.s.Apply(MakeAction(AkChoose, TCode(y), 0, 0))
 	sc.passBoth(t)
 	sc.s.Step()
 	if sc.onBF(y) || !sc.onBF(x) || sc.s.perms[sc.slot(g)].ctrLow(int(kop.CtrP1P1)) != 1 {
@@ -117,7 +117,7 @@ func TestEitherOrPayableOnly(t *testing.T) {
 	sc2.perm(v.GrizzlyBears, 1)
 	d = sc2.s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if d.Options[i].Kind() == AkCast && d.Options[i].Source() == uint8(ea2) {
+		if d.Options[i].Kind() == AkCast && d.Options[i].Source() == TCode(uint8(ea2)) {
 			t.Fatalf("an unpayable either-or spell is offered")
 		}
 	}
@@ -162,7 +162,7 @@ func TestEitherOrUndoFromGraveyard(t *testing.T) {
 	}
 	sc.stepTo(t, 1, func() bool { return false }, func(d *Decision) (Action, bool) {
 		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(ea) {
+			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(ea)) {
 				return a, true
 			}
 		}
@@ -189,7 +189,7 @@ func TestEitherOrUndoFromGraveyard(t *testing.T) {
 	offered := func() bool {
 		d := sc.s.Step()
 		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(ea) {
+			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(ea)) {
 				sc.s.Apply(a)
 				return true
 			}
@@ -242,7 +242,7 @@ func TestLoweredCastPaysAltAddThroughWindow(t *testing.T) {
 	sc.s.grantFB(sc.k, ea)
 	sc.stepTo(t, 1, func() bool { return false }, func(d *Decision) (Action, bool) {
 		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(ea) {
+			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(ea)) {
 				return a, true
 			}
 		}
@@ -297,7 +297,7 @@ func TestLoweredEitherOrManaPart(t *testing.T) {
 		d := sc.s.Step()
 		var cast Action
 		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(ea) {
+			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(ea)) {
 				cast = a
 			}
 		}
@@ -344,7 +344,7 @@ func TestLoweredStashCastPaysThroughWindow(t *testing.T) {
 	sc.s.stashSet(sc.k, ea)
 	sc.stepTo(t, 1, func() bool { return false }, func(d *Decision) (Action, bool) {
 		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(ea) {
+			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(ea)) {
 				return a, true
 			}
 		}

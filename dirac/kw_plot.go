@@ -138,7 +138,7 @@ func (s *State) plotLive(r mayPlay) bool {
 // offered on potential affordability, like the warp cast, so a pool that
 // must be tapped still sees it; the action itself taps then pays.
 func (s *State) offerPlotHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
-	s.offerSpecialHand(k, d, p, o, c, av, k.t.Cards[c].PlotCost, MakeAction(AkPlot, uint8(o), 0, 0))
+	s.offerSpecialHand(k, d, p, o, c, av, k.t.Cards[c].PlotCost, MakeAction(AkPlot, TCode(o), 0, 0))
 }
 
 // offerSpecialHand offers hand card o's special action act, priced at cost
@@ -235,7 +235,7 @@ func (s *State) offerPlotCasts(k *prep, d *Decision, p uint8, sorc bool) {
 		if !s.spellCostsFeasible(k, c, p, o) || !s.spellTargetsFeasible(k, c, p) {
 			continue
 		}
-		d.add(MakeAction(AkCast, uint8(o), 0, castPlotted))
+		d.add(MakeAction(AkCast, TCode(o), 0, castPlotted))
 	}
 }
 

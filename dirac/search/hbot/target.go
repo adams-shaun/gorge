@@ -84,7 +84,7 @@ func (bt *Bot) target(s *dirac.State, d *dirac.Decision) int {
 			skipped = true
 			continue
 		}
-		rs[n] = tgtRank{opt: int16(i), key: bt.targetKey(s, a.Target())}
+		rs[n] = tgtRank{opt: int16(i), key: bt.targetKey(s, uint8(a.Target()))}
 		n++
 	}
 	if n == 0 {
@@ -126,11 +126,11 @@ func (bt *Bot) target(s *dirac.State, d *dirac.Decision) int {
 		tg := d.Options[r.opt].Target()
 		switch mode {
 		case 1:
-			bt.effectRank(r, tg, me, dmg, spare)
+			bt.effectRank(r, uint8(tg), me, dmg, spare)
 		case 2:
-			bt.removalRank(r, tg, me, te)
+			bt.removalRank(r, uint8(tg), me, te)
 		default:
-			bt.rankOption(r, tg, me)
+			bt.rankOption(r, uint8(tg), me)
 		}
 	}
 	// the first pick: the best of the leading group (stable, by index)
@@ -183,10 +183,10 @@ func (bt *Bot) harm(d *dirac.Decision, r *tgtRank) int32 {
 // then objects by zone class (stack, battlefield, graveyard, exile, hand,
 // library), seat, zone position.
 func (bt *Bot) targetKey(s *dirac.State, tg uint8) uint32 {
-	if tg >= dirac.PlayerTarget0 {
-		return uint32(tg - dirac.PlayerTarget0)
+	if dirac.TCode(tg) >= dirac.PlayerTarget0 {
+		return uint32(dirac.TCode(tg) - dirac.PlayerTarget0)
 	}
-	if i, ok := dirac.StackTargetIndex(tg); ok {
+	if i, ok := dirac.StackTargetIndex(dirac.TCode(tg)); ok {
 		return uint32(i) // a stack ability: the stack class, by its place from the bottom
 	}
 	o := dirac.Obj(tg)
@@ -217,10 +217,10 @@ func (bt *Bot) targetKey(s *dirac.State, tg uint8) uint32 {
 // object's zone's player (controller on the battlefield and the stack,
 // owner elsewhere).
 func optPlayer(s *dirac.State, tg uint8) uint8 {
-	if tg >= dirac.PlayerTarget0 {
-		return tg - dirac.PlayerTarget0
+	if dirac.TCode(tg) >= dirac.PlayerTarget0 {
+		return uint8(dirac.TCode(tg) - dirac.PlayerTarget0)
 	}
-	if i, ok := dirac.StackTargetIndex(tg); ok {
+	if i, ok := dirac.StackTargetIndex(dirac.TCode(tg)); ok {
 		if i < s.StackLen() {
 			_, _, _, ctrl := s.StackEntry(i)
 			return ctrl
@@ -245,7 +245,7 @@ func optPlayer(s *dirac.State, tg uint8) uint8 {
 func (bt *Bot) rankOption(r *tgtRank, tg uint8, me uint8) {
 	b := &bt.b
 	pl := optPlayer(b.s, tg)
-	if tg >= dirac.PlayerTarget0 {
+	if dirac.TCode(tg) >= dirac.PlayerTarget0 {
 		r.score, r.ours = 0, pl == me
 		return
 	}
@@ -260,7 +260,7 @@ func (bt *Bot) rankOption(r *tgtRank, tg uint8, me uint8) {
 func (bt *Bot) effectRank(r *tgtRank, tg uint8, me uint8, dmg int32, spare bool) {
 	b := &bt.b
 	pl := optPlayer(b.s, tg)
-	if tg >= dirac.PlayerTarget0 {
+	if dirac.TCode(tg) >= dirac.PlayerTarget0 {
 		if pl == me {
 			r.score, r.ours = 0, true
 			return
@@ -302,7 +302,7 @@ func (bt *Bot) removalRank(r *tgtRank, tg uint8, me uint8, te *TgtEff) {
 		return
 	}
 	if te.API == ApiCounter {
-		if dirac.IsObjTarget(tg) {
+		if dirac.IsObjTarget(dirac.TCode(tg)) {
 			o := dirac.Obj(tg)
 			for i := 0; i < b.nStack; i++ {
 				if e := &b.stack[i]; e.obj == o && e.isSpell && e.ctrl != me {
@@ -313,11 +313,11 @@ func (bt *Bot) removalRank(r *tgtRank, tg uint8, me uint8, te *TgtEff) {
 		}
 		return
 	}
-	if tg >= dirac.PlayerTarget0 {
+	if dirac.TCode(tg) >= dirac.PlayerTarget0 {
 		return
 	}
 	value := r.score
-	if value == 0 && dirac.IsObjTarget(tg) {
+	if value == 0 && dirac.IsObjTarget(dirac.TCode(tg)) {
 		if i := b.cardX[tg]; i > 0 {
 			value = b.card[i-1].cmc * 3
 		}
@@ -404,7 +404,7 @@ func (bt *Bot) slotFits(s *dirac.State, d *dirac.Decision, e *TgtEff) bool {
 			continue
 		}
 		tg := a.Target()
-		mine := optPlayer(s, tg) == d.Player
+		mine := optPlayer(s, uint8(tg)) == d.Player
 		var need uint8
 		switch {
 		case tg >= dirac.PlayerTarget0 && mine:

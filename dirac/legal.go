@@ -32,7 +32,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		pc := &k.cards[c]
 		if pc.land {
 			if sorc && pl.landsPlayed < s.landLimit(k, p) {
-				d.add(MakeAction(AkPlayLand, uint8(o), 0, 0))
+				d.add(MakeAction(AkPlayLand, TCode(o), 0, 0))
 				if faces && k.gen.anyFaces {
 					s.offerFaceLand(k, d, o) // face_multiface.go
 				}
@@ -181,27 +181,27 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		// through the imprisoned lands)
 		plainOK := tgtOK && s.gorgeOffers(p, o, 0) && (cost.X == 0 || s.spellXBoundPayable(k, c, p, cost))
 		if plainOK {
-			d.add(MakeAction(AkCast, uint8(o), 0, 0))
+			d.add(MakeAction(AkCast, TCode(o), 0, 0))
 		}
 		if plainOK && k.gen != nil && k.gen.anyConspire && s.conspireOffer(k, p, c, o) && s.casualtyOffers(p, o) {
 			// the conspired cast (kw_conspire.go): beside the plain cast; like the casualty cast, gorge offers it only against a pool that pays
-			d.add(MakeAction(AkCastConspire, uint8(o), 0, 0))
+			d.add(MakeAction(AkCastConspire, TCode(o), 0, 0))
 		}
 		if twOK && s.teamworkOffer(k, p, c) && s.casualtyOffers(p, o) {
 			// the teamworked cast (kw_teamwork.go): the same action kind
-			d.add(MakeAction(AkCastCasualty, uint8(o), 0, 0))
+			d.add(MakeAction(AkCastCasualty, TCode(o), 0, 0))
 		}
 		if k.casualty && s.casualtyOffer(k, p, c, o) && s.casualtyOffers(p, o) {
 			// the casualty cast (kw_casualty.go): the plain cast's price, one more option
-			d.add(MakeAction(AkCastCasualty, uint8(o), 0, 0))
+			d.add(MakeAction(AkCastCasualty, TCode(o), 0, 0))
 		}
 		if k.bargain && s.bargainOffer(k, p, c) && s.bargainOffers(k, p, o) {
 			// the bargained cast (kw_bargain.go): the same action kind
-			d.add(MakeAction(AkCastCasualty, uint8(o), 0, 0))
+			d.add(MakeAction(AkCastCasualty, TCode(o), 0, 0))
 		}
 		if k.gen != nil && k.gen.anyOptCost && tgtOK && s.optCostOffer(k, p, c, o) {
 			// the optional-cost cast (cost_optional.go): the kicked action
-			d.add(MakeAction(AkCast, uint8(o), 0, 1))
+			d.add(MakeAction(AkCast, TCode(o), 0, 1))
 		}
 		if k.gen != nil && k.gen.anyBestow && k.t.Cards[c].HasBestow {
 			s.offerBestowHand(k, d, p, o, c, &av) // kw_bestow.go
@@ -215,7 +215,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				kc = anyType(kc) // the kicked total under Vizier's conversion too (mana_convertcreature.go)
 			}
 			if s.kickedAffords(k, p, c, o, &kc, cav) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
-				d.add(MakeAction(AkCast, uint8(o), 0, 1))
+				d.add(MakeAction(AkCast, TCode(o), 0, 1))
 			}
 		}
 	}
@@ -292,7 +292,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				continue
 			}
 		}
-		d.add(MakeAction(AkCast, uint8(o), 0, 2))
+		d.add(MakeAction(AkCast, TCode(o), 0, 2))
 	}
 	if k.gen != nil && k.gen.anyHarmonize {
 		s.offerHarmonizeCasts(k, d, p, sorc, &av) // kw_harmonize.go
@@ -377,7 +377,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				continue // a max-speed grant is offered from the floating pool alone (kw_maxspeed.go)
 			}
 			if s.canActivate(k, sl, ai, a, sorc, &av) {
-				d.add(MakeAction(AkActivate, uint8(s.perms[sl].obj), 0, uint8(ai)))
+				d.add(MakeAction(AkActivate, TCode(s.perms[sl].obj), 0, uint8(ai)))
 			}
 		}
 	}
@@ -1239,8 +1239,8 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 	if t.ParentPlus1 != 0 && !s.parentTargetOK(t, code) {
 		return false
 	}
-	if isPlayerTarget(code) {
-		pp := CodeSeat(code)
+	if isPlayerTarget(TCode(code)) {
+		pp := CodeSeat(TCode(code))
 		if pp != p && k.gen != nil && (k.gen.anyRepl&rbPlHex != 0 || k.gen.anyEmbPlHex) && s.playerHexproof(k, pp) {
 			return false
 		}
@@ -1338,8 +1338,8 @@ func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self 
 		// every seat still in the game, in seat order (gorge offers
 		// AliveFrom(0), target_legal.go)
 		for pp := uint8(0); pp < s.nSeats(); pp++ {
-			if !s.out(pp) && s.targetOK(k, t, p, src, self, PlayerCode(pp)) {
-				out[n] = PlayerCode(pp)
+			if !s.out(pp) && s.targetOK(k, t, p, src, self, uint8(PlayerCode(pp))) {
+				out[n] = uint8(PlayerCode(pp))
 				n++
 			}
 		}
@@ -1764,7 +1764,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 	case AkCast:
 		face := a.Mode()&castFace != 0
 		if face && (a.Target() != 0 || k.anyRoom && roomDef(k, s.objs[a.Source()].card)) {
-			s.turnFaceCast(k, Obj(a.Source()), a.Target()) // a face cast (face_castface.go)
+			s.turnFaceCast(k, Obj(a.Source()), uint8(a.Target())) // a face cast (face_castface.go)
 		}
 		if a.Target() == castImpTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyImpending {
 			s.g.impCast = true // the impending cost (kw_impending.go)
@@ -1791,15 +1791,15 @@ func (s *State) applyPriority(k *prep, a Action) {
 			// the warp instance the action names (kw_warpgrant.go): a grant's
 			// marks the entry for the cost builder
 			wi := s.warpInstances(k, s.prio, Obj(a.Source()))
-			s.g.warpGrant = a.Target() < wi.n && wi.grant[a.Target()]
+			s.g.warpGrant = a.Target() < TCode(wi.n) && wi.grant[a.Target()]
 		}
 		if a.Mode() == 2 && k.gen != nil && k.gen.anyBeam {
 			s.noteBeamCast(k, a) // kw_beammeup.go
 		}
-		if a.Mode()&2 != 0 && a.Target() == castEscapeTgt && k.gen != nil && k.gen.anyEscapeGrant {
+		if a.Mode()&2 != 0 && a.Target() == TCode(castEscapeTgt) && k.gen != nil && k.gen.anyEscapeGrant {
 			s.g.escapeCast = true // the escape cast the action names (kw_escape.go)
 		}
-		s.beginCast(k, Obj(a.Source()), a.Mode(), a.Target()) // the target byte names a retrace cast (kw_retrace.go)
+		s.beginCast(k, Obj(a.Source()), a.Mode(), uint8(a.Target())) // the target byte names a retrace cast (kw_retrace.go)
 		if face {
 			s.lowerFaceCast(k, p, Obj(a.Source())) // cast_faceroute.go
 		}

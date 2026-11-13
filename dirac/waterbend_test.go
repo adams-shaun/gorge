@@ -35,7 +35,7 @@ func wbOffers(t *testing.T, sc *scen, src Obj) bool {
 	t.Helper()
 	d := sc.s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(src) {
+		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == TCode(uint8(src)) {
 			return true
 		}
 	}

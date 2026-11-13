@@ -26,7 +26,7 @@ func TestInfectDamageTo(t *testing.T) {
 	sc, a, b := infectScen(t, true, 0)
 	sc.s.res.e.ctrl, sc.s.res.e.obj, sc.s.res.e.card = 0, a, sc.s.objs[a].card
 	life := sc.s.pl[1].life
-	sc.s.damageTo(sc.k, PlayerTarget1, 3)
+	sc.s.damageTo(sc.k, uint8(PlayerTarget1), 3)
 	if sc.s.Poison(1) != 3 || sc.s.pl[1].life != life {
 		t.Fatalf("player: poison %d life %d, want 3 and %d", sc.s.Poison(1), sc.s.pl[1].life, life)
 	}
@@ -59,7 +59,7 @@ func TestPoisonSBA(t *testing.T) {
 func combatHit(sc *scen, a Obj) {
 	p := &sc.s.perms[sc.slot(a)]
 	p.flags |= pfAttacking
-	p.atk = PlayerTarget1
+	p.atk = uint8(PlayerTarget1)
 	sc.s.active, sc.s.nAttackers = 0, 1
 	sc.s.combatDamage(sc.k, false)
 }

@@ -49,7 +49,7 @@ func restrScen(t *testing.T, cfg Config) (sc *scen, valk, hawk Obj, plains []Obj
 
 func castOffered(d *Decision, o Obj) bool {
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(o) {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(o)) {
 			return true
 		}
 	}
@@ -83,7 +83,7 @@ func TestRestrictedManaPaysAngel(t *testing.T) {
 	if !castOffered(&d, valk) || !castOffered(&d, hawk) {
 		t.Fatalf("Valkyrie offered %v, Hawk %v; want both (the pool pays)", castOffered(&d, valk), castOffered(&d, hawk))
 	}
-	s.Apply(MakeAction(AkCast, uint8(valk), 0, 0))
+	s.Apply(MakeAction(AkCast, TCode(valk), 0, 0))
 	s.Step()
 	if s.rbAny(0) || s.pl[0].pool[kop.W] != 1 {
 		t.Fatalf("after the Valkyrie: restricted %v pool {W} %d, want the restricted {W} spent first, one ordinary {W} left", s.rb[0], s.pl[0].pool[kop.W])
@@ -108,7 +108,7 @@ func TestRestrictedManaPaysAngel(t *testing.T) {
 	if !castOffered(&d, valk) || castOffered(&d, hawk) {
 		t.Fatalf("Plains tapped: Valkyrie offered %v, Hawk %v; want the Angel only ({G} and the Angel-only {W})", castOffered(&d, valk), castOffered(&d, hawk))
 	}
-	s.Apply(MakeAction(AkCast, uint8(valk), 0, 0))
+	s.Apply(MakeAction(AkCast, TCode(valk), 0, 0))
 	s.Step()
 	if s.rbAny(0) || s.pl[0].pool != ([kop.NumManaKinds]uint8{}) {
 		t.Fatalf("after the Valkyrie: restricted %v pool %v, want both empty", s.rb[0], s.pl[0].pool)

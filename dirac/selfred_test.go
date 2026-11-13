@@ -26,7 +26,7 @@ func TestSelfReductionFromGraveyard(t *testing.T) {
 	sc.s.place(tt, kop.ZoneGraveyard, false)
 	d := sc.s.Step()
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(tt) {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(tt)) {
 			return
 		}
 	}
@@ -135,7 +135,7 @@ func TestGrantedFlashbackBesidesPrinted(t *testing.T) {
 	sc.s.grantFB(sc.k, ib)
 	d := sc.s.Step()
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(ib) && a.Mode()&2 != 0 {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(ib)) && a.Mode()&2 != 0 {
 			sc.s.Apply(a)
 			sc.s.Step()
 			if z := sc.s.objs[ib].zone; z != kop.ZoneStack {
@@ -164,7 +164,7 @@ func TestGrantedFlashbackInstanceNotPlanned(t *testing.T) {
 	sc.s.grantFB(sc.k, ib)
 	d := sc.s.Step()
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(ib) && a.Mode()&2 != 0 {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(ib)) && a.Mode()&2 != 0 {
 			if sc.s.FeatPlannedCast(0, ib, a.Mode()) {
 				t.Fatal("the granted {2}{U} flashback instance is reported planned")
 			}
@@ -210,7 +210,7 @@ func TestGrantedFlashbackAmbiguous(t *testing.T) {
 		}
 		got := false
 		for _, a := range d.Options[:d.N] {
-			if a.Kind() == AkCast && a.Source() == uint8(tt) {
+			if a.Kind() == AkCast && a.Source() == TCode(uint8(tt)) {
 				got = true
 			}
 		}
@@ -239,7 +239,7 @@ func TestSelfReductionStashCaster(t *testing.T) {
 	sc.s.stashSet(sc.k, tt)
 	d := sc.s.Step()
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(tt) {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(tt)) {
 			return
 		}
 	}
@@ -261,7 +261,7 @@ func TestPrintedFlashbackPlanned(t *testing.T) {
 	sc.s.grantFB(sc.k, tt)
 	d := sc.s.Step()
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(tt) {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(tt)) {
 			return
 		}
 	}
@@ -283,7 +283,7 @@ func TestStashRebukeCheapestTarget(t *testing.T) {
 	sc.s.stashSet(sc.k, lr)
 	d := sc.s.Step()
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(lr) {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(lr)) {
 			return
 		}
 	}

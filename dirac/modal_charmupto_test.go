@@ -77,7 +77,7 @@ func TestCharmUpToDynamic(t *testing.T) {
 	if d.Kind != DkTarget {
 		t.Fatalf("after the creature: decision kind %d, want the player slot", d.Kind)
 	}
-	sc.do(t, AkTarget, 0xff, PlayerTarget1)
+	sc.do(t, AkTarget, 0xff, uint8(PlayerTarget1))
 	sc.resolveAll(t)
 	if sc.s.objs[bear].zone != kop.ZoneGraveyard || sc.s.pl[1].life != 18 {
 		t.Fatalf("both modes did not resolve: bear zone %d, opponent life %d", sc.s.objs[bear].zone, sc.s.pl[1].life)
@@ -93,7 +93,7 @@ func TestCharmUpToDynamic(t *testing.T) {
 	if d := sc.s.Step(); d.Kind != DkTarget {
 		t.Fatalf("after one pick at V=1: decision kind %d, want no further mode ask", d.Kind)
 	}
-	sc.do(t, AkTarget, 0xff, PlayerTarget1)
+	sc.do(t, AkTarget, 0xff, uint8(PlayerTarget1))
 	sc.resolveAll(t)
 	if sc.s.pl[1].life != 18 {
 		t.Fatalf("opponent life %d, want 18 after the one pick", sc.s.pl[1].life)

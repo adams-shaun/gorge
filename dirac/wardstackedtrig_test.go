@@ -48,7 +48,7 @@ func TestStackedWardTriggeredDoublesLeaveSameStack(t *testing.T) {
 		case d.Kind == DkTarget:
 			chosen := false
 			for j := 0; j < int(d.N); j++ {
-				if a := d.Options[j]; a.Target() == uint8(battler) {
+				if a := d.Options[j]; a.Target() == TCode(uint8(battler)) {
 					s.Apply(a)
 					targets++
 					chosen = true

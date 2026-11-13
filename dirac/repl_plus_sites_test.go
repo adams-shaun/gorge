@@ -164,13 +164,13 @@ func TestReplPlusSiteDamageBatchAsks(t *testing.T) {
 	own := sc.perm(v.GrizzlyBears, 0)
 	life := sc.s.pl[1].life
 	runMap(t, sc, src, mapCard,
-		struct{ code, amt uint8 }{PlayerTarget1, 3},
+		struct{ code, amt uint8 }{uint8(PlayerTarget1), 3},
 		struct{ code, amt uint8 }{uint8(own), 2})
 	if sc.s.g.plusBatchAsked != true || sc.s.g.nc.n != 5 || sc.s.g.ro.n != 2 {
 		t.Fatalf("parked map: flag %v nc.n %d candidates %d, want true/5/2 (stall %s)",
 			sc.s.g.plusBatchAsked, sc.s.g.nc.n, sc.s.g.ro.n, StallName(sc.s.StallReason()))
 	}
-	if sc.s.g.ndmg != 2 || sc.s.g.dmg[0].code != PlayerTarget1 || sc.s.g.dmg[0].amt != 3 || sc.s.g.dmg[1].amt != 2 {
+	if sc.s.g.ndmg != 2 || TCode(sc.s.g.dmg[0].code) != PlayerTarget1 || sc.s.g.dmg[0].amt != 3 || sc.s.g.dmg[1].amt != 2 {
 		t.Fatalf("the collected map did not survive the pause: ndmg %d %v", sc.s.g.ndmg, sc.s.g.dmg[:2])
 	}
 	if sc.s.pl[1].life != life || sc.s.perms[sc.slot(own)].damage != 0 {
@@ -193,7 +193,7 @@ func TestReplPlusSiteDamageBatchAsks(t *testing.T) {
 	opp := sc.perm(v.GrizzlyBears, 1)
 	life = sc.s.pl[1].life
 	runMap(t, sc, src, mapCard,
-		struct{ code, amt uint8 }{PlayerTarget1, 3},
+		struct{ code, amt uint8 }{uint8(PlayerTarget1), 3},
 		struct{ code, amt uint8 }{uint8(opp), 2})
 	if got := sc.s.StallReason(); got != StallReplPlus {
 		t.Fatalf("two competing map events: stall %s, want replplus", StallName(got))
@@ -220,8 +220,8 @@ func TestReplPlusSiteDamageMapSurvivesPark(t *testing.T) {
 	sc.perm(plus, 0)
 	l0, l1 := sc.s.pl[0].life, sc.s.pl[1].life
 	runMap(t, sc, src, mapCard,
-		struct{ code, amt uint8 }{PlayerTarget1, 3},
-		struct{ code, amt uint8 }{PlayerTarget0, 2})
+		struct{ code, amt uint8 }{uint8(PlayerTarget1), 3},
+		struct{ code, amt uint8 }{uint8(PlayerTarget0), 2})
 	if sc.s.g.ndmg != 2 || sc.s.g.dmg[0].amt != 3 || sc.s.g.dmg[1].amt != 2 {
 		t.Fatalf("the collected map did not survive the pause: ndmg %d amts %d/%d",
 			sc.s.g.ndmg, sc.s.g.dmg[0].amt, sc.s.g.dmg[1].amt)
@@ -338,7 +338,7 @@ func TestReplPlusSiteDamageMapCompetingSecondStalls(t *testing.T) {
 	}
 	runMap(t, sc, src, mapCard,
 		struct{ code, amt uint8 }{uint8(own), 2},
-		struct{ code, amt uint8 }{PlayerTarget1, 3})
+		struct{ code, amt uint8 }{uint8(PlayerTarget1), 3})
 	if got := sc.s.StallReason(); got != StallReplPlus {
 		t.Fatalf("competing second map event: stall %s, want replplus", StallName(got))
 	}

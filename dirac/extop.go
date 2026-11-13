@@ -348,7 +348,7 @@ func (s *State) eachDamageSlots(k *prep, mask uint8, f kop.FilterID, out *[MaxPe
 	src := s.objRef(k, kop.RefSelf)
 	n := 0
 	add := func(c, ver uint8) {
-		if c == NoTarget || !isObjTarget(c) {
+		if TCode(c) == NoTarget || !isObjTarget(TCode(c)) {
 			return
 		}
 		ob := &s.objs[c]

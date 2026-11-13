@@ -32,7 +32,7 @@ func (s *State) rmctrOptions(k *prep, in *kop.Instr, d *Decision) int {
 			sl := m.first()
 			o := uint8(s.perms[sl].obj)
 			if s.matchPerm(k, in.F, sl, s.res.e.ctrl, src) && !s.prolifPicked(o) {
-				d.add(MakeAction(AkChoose, o, 0, 0))
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 				n++
 			}
 		}

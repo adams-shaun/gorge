@@ -170,7 +170,7 @@ func TestImproviseLandPip(t *testing.T) {
 	m3 := sc3.hand(id["Maverick Thopterist"], 0)
 	d3 := sc3.s.Step()
 	for i := 0; i < int(d3.N); i++ {
-		if a := d3.Options[i]; a.Kind() == AkCast && a.Source() == uint8(m3) {
+		if a := d3.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(m3)) {
 			t.Fatalf("the credited price is more than the credit's sources pay: the cast is still offered")
 		}
 	}

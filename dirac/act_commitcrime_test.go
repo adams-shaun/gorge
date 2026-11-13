@@ -64,8 +64,8 @@ func TestCrimeTargetKinds(t *testing.T) {
 		t    uint8
 		want bool
 	}{
-		{"the opponent", PlayerTarget0 + 1, true},
-		{"you", PlayerTarget0, false},
+		{"the opponent", uint8(PlayerTarget0 + 1), true},
+		{"you", uint8(PlayerTarget0), false},
 		{"their permanent", uint8(theirPerm), true},
 		{"your permanent", uint8(myPerm), false},
 		{"their card you control", uint8(stolen), false},
@@ -76,7 +76,7 @@ func TestCrimeTargetKinds(t *testing.T) {
 		{"your card in exile", uint8(myExile), false},
 		{"their card in exile", uint8(theirExile), false},
 		{"their card in hand", uint8(theirHand), false},
-		{"no target", NoTarget, false},
+		{"no target", uint8(NoTarget), false},
 	}
 	for _, c := range cases {
 		s.g.crime = 0
@@ -106,7 +106,7 @@ func TestCrimeOncePerObject(t *testing.T) {
 	run := func() int {
 		s.npend, s.g.crime = 0, 0
 		e := stackEntry{kind: seAbility, ctrl: 0, nt: 2, obj: march, trigObj: NoObj}
-		e.tgt = [kop.MaxTargets]uint8{uint8(a), uint8(b), NoTarget}
+		e.tgt = [kop.MaxTargets]uint8{uint8(a), uint8(b), uint8(NoTarget)}
 		s.checkWard(sc.k, &e)
 		return int(s.npend)
 	}
@@ -156,7 +156,7 @@ func TestCrimeCopyRetarget(t *testing.T) {
 	burst := id("Burst Lightning")
 	o := sc.crimeStackSpell(burst, 0)
 	e := &s.stack[s.sp-1]
-	e.nt, e.tgt[0] = 1, PlayerTarget0 // aimed at its own controller
+	e.nt, e.tgt[0] = 1, uint8(PlayerTarget0) // aimed at its own controller
 	s.g.crime, s.npend = 0, 0
 	s.setCopyTargetsQ(sc.k, e, 0, []Obj{Obj(PlayerTarget0 + 1)})
 	s.crimeCopy(sc.k, e)
@@ -178,7 +178,7 @@ func TestCrimeResolutionTargetNotACrime(t *testing.T) {
 	s.res = resCtx{e: e, active: true, ask: raGenResTarget, lastTok: NoObj, eachObj: NoObj}
 	s.res.e.obj = o
 	s.g.crime = 0
-	s.applyResolveGen(sc.k, MakeAction(AkChoose, uint8(opp), 0, 0))
+	s.applyResolveGen(sc.k, MakeAction(AkChoose, TCode(opp), 0, 0))
 	if s.g.crime != 0 {
 		t.Fatalf("a resolution-time pick set the ledger: %b", s.g.crime)
 	}
@@ -224,7 +224,7 @@ func TestCrimeModalAbilityFiresOnce(t *testing.T) {
 	a := sc.perm(id("Hardbristle Bandit"), 1)
 	s.npend, s.g.crime = 0, 0
 	e := stackEntry{kind: seAbility, ctrl: 0, nt: 1, mode: 1, obj: march, trigObj: NoObj}
-	e.tgt = [kop.MaxTargets]uint8{uint8(a), NoTarget, NoTarget, NoTarget, NoTarget}
+	e.tgt = [kop.MaxTargets]uint8{uint8(a), uint8(NoTarget), uint8(NoTarget), uint8(NoTarget), uint8(NoTarget)}
 	s.checkWard(sc.k, &e)
 	if s.npend != 1 || s.g.crime != 1 {
 		t.Fatalf("modal ability queued %d (ledger %b), want 1 (ledger 1)", s.npend, s.g.crime)

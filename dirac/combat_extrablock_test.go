@@ -52,7 +52,7 @@ func xbAttack(t *testing.T, sc *scen, atk ...Obj) {
 
 func xbOffered(d Decision, b, a Obj) bool {
 	for i := 0; i < int(d.N); i++ {
-		if o := d.Options[i]; o.Kind() == AkBlock && o.Source() == uint8(b) && o.Target() == uint8(a) {
+		if o := d.Options[i]; o.Kind() == AkBlock && o.Source() == TCode(uint8(b)) && o.Target() == TCode(uint8(a)) {
 			return true
 		}
 	}
@@ -153,10 +153,10 @@ func TestExtraBlockDivisionAskedOfBlocker(t *testing.T) {
 		sc.do(t, AkBlock, uint8(tw), uint8(a3))
 		sc.do(t, AkDone, 0xff, 0xff)
 		d := xbToDivide(t, sc)
-		if d.Player != 1 || d.N != 8 || d.Options[0].Source() != uint8(tw) {
+		if d.Player != 1 || d.N != 8 || d.Options[0].Source() != TCode(uint8(tw)) {
 			t.Fatalf("division: player %d, N %d, source %d; want player 1, N 8, source %d", d.Player, d.N, d.Options[0].Source(), tw)
 		}
-		sc.s.Apply(MakeAction(AkChoose, uint8(tw), 0, tc.mode))
+		sc.s.Apply(MakeAction(AkChoose, TCode(tw), 0, tc.mode))
 		sc.passUntil(t, kop.StepMain2)
 		switch tc.mode {
 		case 3: // 3 to the 3/3, 4 to the 4/4: both die
@@ -289,7 +289,7 @@ func TestExtraBlockBothAttackersDivide(t *testing.T) {
 				t.Fatalf("unexpected division of %d", src)
 			}
 			asked[src] = true
-			sc.s.Apply(MakeAction(AkChoose, uint8(src), 0, m))
+			sc.s.Apply(MakeAction(AkChoose, TCode(src), 0, m))
 		default:
 			t.Fatalf("decision kind %d", d.Kind)
 		}

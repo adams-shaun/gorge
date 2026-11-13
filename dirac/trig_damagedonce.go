@@ -65,8 +65,8 @@ var DebugDmgIgnoreFilter2 bool
 
 // recipientPlayer is the player a recipient code names.
 func recipientPlayer(rcp uint8) (uint8, bool) {
-	if isPlayerTarget(rcp) {
-		return CodeSeat(rcp), true
+	if isPlayerTarget(TCode(rcp)) {
+		return CodeSeat(TCode(rcp)), true
 	}
 	return 0, false
 }
@@ -83,7 +83,7 @@ func (s *State) ddoLine(k *prep, l trigListener, a *kop.Ability, src Slot, srcOb
 	if t.Filter2 == 0 && t.Flags2&(kop.Tf2PerReferent|kop.Tf2ToYou) == 0 {
 		return amt, srcObj, s.dmgSeat(rcp, srcCtrl), true
 	}
-	if rcp == NoTarget {
+	if TCode(rcp) == NoTarget {
 		return 0, NoObj, 0, false // damageBatch's aggregate fire: its per-recipient pass handles it
 	}
 	tobj, tpl, ok := s.ddoRecipient(k, l, t, srcObj, rcp)
@@ -182,7 +182,7 @@ func (s *State) sameReferent(r *dmgRec, ev *dmgEv, rcp uint8) bool {
 		_, ok := recipientPlayer(rcp)
 		return ok
 	}
-	return isObjTarget(rcp) && s.perms[ev.dst].obj == Obj(rcp)
+	return isObjTarget(TCode(rcp)) && s.perms[ev.dst].obj == Obj(rcp)
 }
 
 // combatRcp is the recipient code of combat event ev (its player the
@@ -190,12 +190,12 @@ func (s *State) sameReferent(r *dmgRec, ev *dmgEv, rcp uint8) bool {
 func (s *State) combatRcp(k *prep, ev *dmgEv) uint8 {
 	if ev.dst == NoSlot {
 		if MaxSeats == 2 {
-			return PlayerCode(NextSeat(s.active))
+			return uint8(PlayerCode(NextSeat(s.active)))
 		}
-		if p := s.atkSeat(k, ev.src); p != NoTarget {
-			return PlayerCode(p)
+		if p := s.atkSeat(k, ev.src); TCode(p) != NoTarget {
+			return uint8(PlayerCode(p))
 		}
-		return PlayerCode(s.nextAlive(s.active))
+		return uint8(PlayerCode(s.nextAlive(s.active)))
 	}
 	return uint8(s.perms[ev.dst].obj)
 }
@@ -214,7 +214,7 @@ func (s *State) fireDamageRefs(k *prep, codes []uint8, dn []int16) {
 			continue
 		}
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
-			s.fireDamageEvGen(k, sl, dn[i], isPlayerOrNone(code), false, nil, code, &rl)
+			s.fireDamageEvGen(k, sl, dn[i], isPlayerOrNone(TCode(code)), false, nil, code, &rl)
 		} else if s.res.e.obj != NoObj {
 			s.fireDamageSrc(k, s.res.e.obj, s.res.e.ctrl, dn[i], dmgPl(code), code, &rl)
 		}

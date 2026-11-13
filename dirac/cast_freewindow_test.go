@@ -33,7 +33,7 @@ func TestFreeCastUnpayableRaiseReverses(t *testing.T) {
 	sc.kcastBuild(o, spell, 0)
 	e := &sc.s.bld().e
 	e.flags |= sfFree
-	e.nt, e.tgt[0], e.tgt[1] = 2, PlayerTarget0, PlayerTarget0+1
+	e.nt, e.tgt[0], e.tgt[1] = 2, uint8(PlayerTarget0), uint8(PlayerTarget0+1)
 	if sc.s.ctrlM[0].any() {
 		t.Fatal("the battlefield has a mana source: the window could pay the raise")
 	}

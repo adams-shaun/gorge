@@ -64,11 +64,11 @@ func (s *State) prevNextAdd(k *prep, in *kop.Instr) {
 		return // a shield that prevents nothing is no decision (gorge: total <= 0)
 	}
 	code := s.refCode(k, in.Obj)
-	if code == NoTarget {
+	if TCode(code) == NoTarget {
 		return
 	}
-	if isPlayerOrNone(code) {
-		if s.out(CodeSeat(code)) {
+	if isPlayerOrNone(TCode(code)) {
+		if s.out(CodeSeat(TCode(code))) {
 			return // gorge: a player no longer in the game takes no shield
 		}
 	} else if int(code) >= MaxObj || s.objs[code].zone != kop.ZoneBattlefield {
@@ -142,7 +142,7 @@ func (s *State) combatEvLess(r *dmgRec, ev *dmgEv, code uint8, d int) {
 	ev.n = s.sat16(int(ev.n) - d)
 	r.dealt[ev.src] = s.addSat16(r.dealt[ev.src], -d)
 	if ev.dst == NoSlot {
-		r.toPl[CodeSeat(code)] = s.addSat16(r.toPl[CodeSeat(code)], -d)
+		r.toPl[CodeSeat(TCode(code))] = s.addSat16(r.toPl[CodeSeat(TCode(code))], -d)
 		r.dealtPl[ev.src] = s.addSat16(r.dealtPl[ev.src], -d)
 	} else {
 		r.toPerm[ev.dst] = s.addSat16(r.toPerm[ev.dst], -d)

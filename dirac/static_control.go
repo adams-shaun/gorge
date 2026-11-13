@@ -552,8 +552,8 @@ func (s *State) ctrlPlayerRef(r kop.Ref) (uint8, bool) {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		t := s.tgtCode(sl)
-		if isPlayerTarget(t) {
-			return CodeSeat(t), true
+		if isPlayerTarget(TCode(t)) {
+			return CodeSeat(TCode(t)), true
 		}
 	}
 	return 0, false

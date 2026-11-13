@@ -449,7 +449,7 @@ func (s *State) retAuraAsk(k *prep, d *Decision, a *askRec) bool {
 	if n > 1 {
 		d.Player, d.Kind, d.Sub = x.owner(), DkChoose, ChGenEnchant
 		for i := 0; i < n; i++ {
-			d.add(MakeAction(AkChoose, buf[i], 0, 0))
+			d.add(MakeAction(AkChoose, TCode(buf[i]), 0, 0))
 		}
 		return true
 	}
@@ -1029,8 +1029,8 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 		// (gorge's opening_yes / opening_no)
 		if o := s.leyCard(k, s.g.leyP, s.g.ley[1]); o != NoObj {
 			d.Kind, d.Sub, d.Player = DkChoose, ChGenLeyline, s.g.leyP
-			d.add(MakeAction(AkChoose, uint8(o), 0, 1))
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 1))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			return true
 		}
 		s.nextLeyline(k)
@@ -1330,7 +1330,7 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 		}
 		n := s.enchantCands(k, s.objs[o].card, who, &buf)
 		for i := 0; i < n; i++ {
-			d.add(MakeAction(AkChoose, buf[i], 0, 0))
+			d.add(MakeAction(AkChoose, TCode(buf[i]), 0, 0))
 		}
 		return
 	}
@@ -1365,7 +1365,7 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 		return
 	}
 	for v := range k.t.TypeVocab {
-		d.add(MakeAction(AkChoose, 0, uint8(v>>8), uint8(v)))
+		d.add(MakeAction(AkChoose, 0, TCode(v>>8), uint8(v)))
 	}
 }
 

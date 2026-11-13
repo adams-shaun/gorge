@@ -13,7 +13,7 @@ import (
 func (sc *scen) activateAb(o Obj, ab uint8) bool {
 	d := sc.s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(o) && a.Mode() == ab {
+		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == TCode(uint8(o)) && a.Mode() == ab {
 			sc.s.Apply(a)
 			return true
 		}

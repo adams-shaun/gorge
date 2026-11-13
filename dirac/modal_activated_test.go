@@ -60,7 +60,7 @@ func TestModalActivatedTarget(t *testing.T) {
 	if d.N != 2 {
 		t.Fatalf("%d candidates, want both creatures", d.N)
 	}
-	s.Apply(MakeAction(AkTarget, 0, uint8(b), 0))
+	s.Apply(MakeAction(AkTarget, 0, TCode(b), 0))
 	s.Step()
 	if s.perms[sc.slot(b)].ctrLow(int(kop.CtrP1P1)) != 1 || s.perms[sc.slot(a)].ctrLow(int(kop.CtrP1P1)) != 0 {
 		t.Fatal("the counter did not land on the creature chosen")

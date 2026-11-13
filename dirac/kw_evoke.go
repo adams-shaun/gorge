@@ -99,7 +99,7 @@ func (s *State) offerEvokeHand(k *prep, d *Decision, p uint8, o Obj, c CardID, a
 	if s.castHeldOut(o) {
 		return
 	}
-	d.add(MakeAction(AkCast, uint8(o), castEvokeTgt, 0))
+	d.add(MakeAction(AkCast, TCode(o), castEvokeTgt, 0))
 }
 
 // adamantOf is the ExAdamant expression the ability's trigger condition

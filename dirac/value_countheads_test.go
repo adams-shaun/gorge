@@ -246,7 +246,7 @@ func (sc *scen) castToTrigger(t *testing.T, o Obj, want uint8) *stackEntry {
 	d := sc.s.Step()
 	cast := false
 	for i := 0; i < int(d.N) && !cast; i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(o) && a.Mode()&want == want {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(o)) && a.Mode()&want == want {
 			sc.s.Apply(a)
 			cast = true
 		}

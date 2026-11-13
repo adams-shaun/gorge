@@ -263,7 +263,7 @@ func (s *State) stepRaw(d *Decision) {
 			d.Kind, d.Sub, d.Player = DkChoose, ChBottom, p
 			pl := &s.pl[p]
 			for i := 0; i < int(pl.handN); i++ {
-				d.add(MakeAction(AkChoose, uint8(pl.hand[i]), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(pl.hand[i]), 0, 0))
 			}
 			return
 		case ctlStepBegin:
@@ -369,7 +369,7 @@ func (s *State) stepRaw(d *Decision) {
 			pl := &s.pl[p]
 			for i := 0; i < int(pl.handN); i++ {
 				if len(s.cold.parked) == 0 || !s.parked(pl.hand[i]) {
-					d.add(MakeAction(AkChoose, uint8(pl.hand[i]), 0, 0))
+					d.add(MakeAction(AkChoose, TCode(pl.hand[i]), 0, 0))
 				}
 			}
 			return

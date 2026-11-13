@@ -149,7 +149,7 @@ func (s *State) offerParadigm(k *prep, d *Decision, p uint8, sorc bool, av *avai
 	for i := 0; i < int(pl.exileN); i++ {
 		o := pl.exile[i]
 		if s.paradigmOffered(k, p, o, sorc) {
-			d.add(MakeAction(AkCast, uint8(o), 0, castParadigm))
+			d.add(MakeAction(AkCast, TCode(o), 0, castParadigm))
 		}
 	}
 }

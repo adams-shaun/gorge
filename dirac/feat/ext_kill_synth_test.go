@@ -47,7 +47,7 @@ func (f *killFix) spell(ctrl, src uint8, ef EffectSpec, tgt ...uint8) int {
 	se := &f.e.kp.Stack[f.e.kp.NStack]
 	se.Kind, se.Source, se.Ctrl = 0, dirac.Obj(src), ctrl
 	for i := range se.Targets {
-		se.Targets[i] = dirac.NoTarget
+		se.Targets[i] = uint8(dirac.NoTarget)
 	}
 	copy(se.Targets[:], tgt)
 	f.e.kp.NStack++
@@ -89,7 +89,7 @@ func TestExtKillCounterSamePlayer(t *testing.T) {
 
 	// control: my counter on the opponent's lethal burn -> 490, not 491
 	f := newKillFix(3, 20)
-	f.spell(1, 10, burnSpec(3), meP)
+	f.spell(1, 10, burnSpec(3), uint8(meP))
 	f.spell(0, 11, counter, 10)
 	f.run(0)
 	if !f.set(xKStackOppDmgMe) || !f.set(xKCounterMe) || f.set(xKCounterOpp) {
@@ -99,7 +99,7 @@ func TestExtKillCounterSamePlayer(t *testing.T) {
 
 	// the opponent counters its own lethal burn: neither side is saved
 	f = newKillFix(3, 20)
-	f.spell(1, 10, burnSpec(3), meP)
+	f.spell(1, 10, burnSpec(3), uint8(meP))
 	f.spell(1, 11, counter, 10)
 	f.run(0)
 	if !f.set(xKStackOppDmgMe) {
@@ -111,7 +111,7 @@ func TestExtKillCounterSamePlayer(t *testing.T) {
 
 	// I counter my own lethal damage
 	f = newKillFix(20, 3)
-	f.spell(0, 10, burnSpec(3), oppP)
+	f.spell(0, 10, burnSpec(3), uint8(oppP))
 	f.spell(0, 11, counter, 10)
 	f.run(0)
 	if !f.set(xKStackMeDmgOpp) {
@@ -123,7 +123,7 @@ func TestExtKillCounterSamePlayer(t *testing.T) {
 
 	// mirror control: their counter on my lethal burn -> 491, not 490
 	f = newKillFix(20, 3)
-	f.spell(0, 10, burnSpec(3), oppP)
+	f.spell(0, 10, burnSpec(3), uint8(oppP))
 	f.spell(1, 11, counter, 10)
 	f.run(0)
 	if !f.set(xKCounterOpp) || f.set(xKCounterMe) {
@@ -203,20 +203,20 @@ func TestExtKillBurnReach(t *testing.T) {
 	}
 	// 485: hand 5 + a stacked 3 aimed at the opponent
 	f = build(8)
-	f.spell(0, 10, burnSpec(3), oppP)
+	f.spell(0, 10, burnSpec(3), uint8(oppP))
 	f.run(0)
 	if !f.set(xKBurnReach) {
 		t.Fatal("485 clear at 5 hand burn + 3 stacked vs life 8")
 	}
 	// the same 3 aimed at me does not count
 	f = build(8)
-	f.spell(0, 10, burnSpec(3), meP)
+	f.spell(0, 10, burnSpec(3), uint8(meP))
 	f.run(0)
 	if f.set(xKBurnReach) {
 		t.Fatal("485 set for stacked damage aimed at me")
 	}
 	f = build(9)
-	f.spell(0, 10, burnSpec(3), oppP)
+	f.spell(0, 10, burnSpec(3), uint8(oppP))
 	f.run(0)
 	if f.set(xKBurnReach) {
 		t.Fatal("485 set at 8 total vs life 9")

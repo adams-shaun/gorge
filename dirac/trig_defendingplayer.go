@@ -13,10 +13,10 @@ import (
 //
 //go:noinline
 func (s *State) fireDefPlayer(k *prep, l trigListener, a *kop.Ability, grp []Slot) {
-	if len(grp) == 0 || isObjTarget(s.perms[grp[0]].atk) {
+	if len(grp) == 0 || isObjTarget(TCode(s.perms[grp[0]].atk)) {
 		return
 	}
-	def := CodeSeat(s.perms[grp[0]].atk)
+	def := CodeSeat(TCode(s.perms[grp[0]].atk))
 	if a.Trig.Flags2&kop.Tf2AtkOpp != 0 && def == l.ctrl {
 		return
 	}

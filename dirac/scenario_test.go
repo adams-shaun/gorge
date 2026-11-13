@@ -90,7 +90,7 @@ func (sc *scen) do(t *testing.T, kind ActionKind, src, tgt uint8) {
 	d := sc.s.Step()
 	for i := 0; i < int(d.N); i++ {
 		a := d.Options[i]
-		if a.Kind() == kind && (src == 0xff || a.Source() == src) && (tgt == 0xff || a.Target() == tgt) {
+		if a.Kind() == kind && (src == 0xff || a.Source() == TCode(src)) && (tgt == 0xff || a.Target() == TCode(tgt)) {
 			sc.s.Apply(a)
 			return
 		}
@@ -264,7 +264,7 @@ func TestLightningBoltAndDiesTrigger(t *testing.T) {
 	sc.do(t, AkPass, 0xff, 0xff)
 	sc.do(t, AkPass, 0xff, 0xff)
 	// SBA: the myr dies; its trigger asks seat 1 for a target: seat 0's face
-	sc.do(t, AkTarget, 0xff, PlayerTarget0)
+	sc.do(t, AkTarget, 0xff, uint8(PlayerTarget0))
 	if sc.onBF(myr) {
 		t.Fatalf("myr survived bolt")
 	}
@@ -290,7 +290,7 @@ func TestDamageDivisionDecision(t *testing.T) {
 	sc.passUntil(t, kop.StepDamage)
 	d := sc.s.Step()
 	// splits of 3 among 2 in lexicographic order: 0,3 1,2 2,1 3,0
-	if d.Kind != DkChoose || d.Sub != ChDivide || d.Player != 0 || d.N != 4 || d.Options[0].Source() != uint8(og) {
+	if d.Kind != DkChoose || d.Sub != ChDivide || d.Player != 0 || d.N != 4 || d.Options[0].Source() != TCode(uint8(og)) {
 		t.Fatalf("division decision %d n=%d %v", d.Kind, d.N, d.Options[:d.N])
 	}
 	sc.s.Apply(d.Options[1]) // 1 to b1, 2 to b2
@@ -326,7 +326,7 @@ func TestMenaceDoneWithheld(t *testing.T) {
 	sc.passUntil(t, kop.StepBlockers)
 	sc.do(t, AkBlock, uint8(b1), uint8(og))
 	d := sc.s.Step()
-	if d.N != 1 || d.Options[0] != MakeAction(AkBlock, uint8(b2), uint8(og), 0) {
+	if d.N != 1 || d.Options[0] != MakeAction(AkBlock, TCode(b2), TCode(og), 0) {
 		t.Fatalf("after a lone block on menace only the second block may follow: %v", d.Options[:d.N])
 	}
 }

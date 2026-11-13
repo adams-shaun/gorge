@@ -128,8 +128,8 @@ func (s *State) infectCounters(k *prep, sl Slot, n int) {
 //go:noinline
 func (s *State) infectDamageTo(k *prep, code uint8, n int, kw kop.KwMask) {
 	e := &s.res.e
-	if isPlayerOrNone(code) {
-		s.addPoison(CodeSeat(code), n)
+	if isPlayerOrNone(TCode(code)) {
+		s.addPoison(CodeSeat(TCode(code)), n)
 	} else {
 		ob := &s.objs[code]
 		if ob.zone != kop.ZoneBattlefield {
@@ -157,7 +157,7 @@ func (s *State) infectDamageTo(k *prep, code uint8, n int, kw kop.KwMask) {
 	}
 	if s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any() || k.gen != nil && k.gen.graveDmg {
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
-			s.fireDamage(k, sl, int16(n), isPlayerOrNone(code), false, code)
+			s.fireDamage(k, sl, int16(n), isPlayerOrNone(TCode(code)), false, code)
 		} else if e.obj != NoObj {
 			s.fireDamageSrc(k, e.obj, e.ctrl, int16(n), dmgPl(code), code, nil)
 		}
@@ -194,10 +194,10 @@ func (s *State) infectCombat(k *prep, r *dmgRec) {
 		}
 		if ev.dst == NoSlot {
 			t := s.perms[ev.src].atk
-			if isObjTarget(t) {
+			if isObjTarget(TCode(t)) {
 				continue
 			}
-			pl := CodeSeat(t)
+			pl := CodeSeat(TCode(t))
 			if s.infectAt(k, ev.src) {
 				r.toPl[pl] -= ev.n
 				r.infM = r.infM.with(ev.src)
@@ -258,7 +258,7 @@ func (s *State) combatFoe(k *prep, sl Slot) uint8 {
 	if c != s.active {
 		return s.active
 	}
-	if p := s.atkSeat(k, sl); p != NoTarget {
+	if p := s.atkSeat(k, sl); TCode(p) != NoTarget {
 		return p
 	}
 	return s.nextAlive(c)

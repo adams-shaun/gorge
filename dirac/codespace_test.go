@@ -11,7 +11,7 @@ func TestCodeSpaceDisjoint(t *testing.T) {
 	if MaxObj > int(StackTarget0) {
 		t.Fatalf("MaxObj %d overlaps the stack codes at %#x", MaxObj, StackTarget0)
 	}
-	if int(PlayerTarget0)+MaxSeats > int(StackTargetGone) || StackTargetGone == NoTarget {
+	if int(PlayerTarget0)+MaxSeats > int(StackTargetGone) || TCode(StackTargetGone) == NoTarget {
 		t.Fatalf("player codes %#x..+%d run into %#x/%#x", PlayerTarget0, MaxSeats, StackTargetGone, NoTarget)
 	}
 	if maxStackTgt != 16 {
@@ -20,7 +20,7 @@ func TestCodeSpaceDisjoint(t *testing.T) {
 	for c := 0; c < 256; c++ {
 		b := uint8(c)
 		n := 0
-		for _, in := range []bool{isObjTarget(b), isStackTarget(b), isPlayerTarget(b), b == StackTargetGone, b == NoTarget} {
+		for _, in := range []bool{isObjTarget(TCode(b)), isStackTarget(TCode(b)), isPlayerTarget(TCode(b)), b == StackTargetGone, TCode(b) == NoTarget} {
 			if in {
 				n++
 			}

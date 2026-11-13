@@ -65,7 +65,7 @@ func TestDamagedPermanentSeat(t *testing.T) {
 		if got := s.dmgSeat(uint8(x), 0); got != p {
 			t.Fatalf("damage to seat %d's permanent names seat %d", p, got)
 		}
-		if got := s.dmgSeat(PlayerTarget0+p, 1); got != p {
+		if got := s.dmgSeat(uint8(PlayerTarget0+TCode(p)), 1); got != p {
 			t.Fatalf("damage to seat %d names seat %d", p, got)
 		}
 	}

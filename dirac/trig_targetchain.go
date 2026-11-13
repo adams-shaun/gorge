@@ -28,13 +28,13 @@ func (s *State) castTargetsAll(k *prep, f kop.FilterID, e *stackEntry, l trigLis
 	n := s.chainTargets(e, &codes)
 	for i := 0; i < n; i++ {
 		t := codes[i]
-		if isPlayerTarget(t) {
-			if s.castTargetsPlayer(k, f, CodeSeat(t), l.ctrl) {
+		if isPlayerTarget(TCode(t)) {
+			if s.castTargetsPlayer(k, f, CodeSeat(TCode(t)), l.ctrl) {
 				return true
 			}
 			continue
 		}
-		if !isObjTarget(t) {
+		if !isObjTarget(TCode(t)) {
 			continue
 		}
 		ob := &s.objs[t]
@@ -79,14 +79,14 @@ func (s *State) castTargetsAll(k *prep, f kop.FilterID, e *stackEntry, l trigLis
 func (s *State) chainTargets(e *stackEntry, codes *[kop.MaxTargets + maxXTgt]uint8) int {
 	n := 0
 	for i := 0; i < int(e.nt); i++ {
-		if c := e.tgt[i]; c != NoTarget {
+		if c := e.tgt[i]; TCode(c) != NoTarget {
 			codes[n] = c
 			n++
 		}
 	}
 	x := s.xtOf(e)
 	for j := 0; j < int(x.n); j++ {
-		if c := x.code[j]; c != NoTarget {
+		if c := x.code[j]; TCode(c) != NoTarget {
 			codes[n] = c
 			n++
 		}

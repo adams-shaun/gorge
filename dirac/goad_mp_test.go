@@ -41,7 +41,7 @@ func (sc *scen) goadOffers(o Obj) []uint8 {
 	sc.s.attackerOptions(sc.k, d)
 	var out []uint8
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkAttack && a.Source() == uint8(o) && isPlayerTarget(a.Target()) {
+		if a := d.Options[i]; a.Kind() == AkAttack && a.Source() == TCode(uint8(o)) && isPlayerTarget(a.Target()) {
 			out = append(out, CodeSeat(a.Target()))
 		}
 	}

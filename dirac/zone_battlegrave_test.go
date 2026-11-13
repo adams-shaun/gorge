@@ -78,8 +78,8 @@ func TestChangeZoneAllBattleGrave(t *testing.T) {
 	s.g.chosen[0], s.g.nchosen = chosen, 1
 	s.res.active = true
 	s.res.e = stackEntry{kind: seSpell, ctrl: 0, nt: 1}
-	s.res.e.tgt[0] = PlayerTarget0 + 1
-	if s.g.nchosen != 1 || s.g.chosen[0] != chosen || s.res.e.tgt[0] != PlayerTarget0+1 {
+	s.res.e.tgt[0] = uint8(PlayerTarget0 + 1)
+	if s.g.nchosen != 1 || s.g.chosen[0] != chosen || TCode(s.res.e.tgt[0]) != PlayerTarget0+1 {
 		t.Fatalf("setup: chosen %v target %d", s.g.nchosen, s.res.e.tgt[0])
 	}
 

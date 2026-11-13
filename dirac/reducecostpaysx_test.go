@@ -116,7 +116,7 @@ func TestReduceCostPaysX(t *testing.T) {
 	sc, spring, _, _ = reducePaysXScen(t, 1)
 	d = sc.s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(spring) {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(spring)) {
 			t.Fatalf("Mind Spring offered with one Island")
 		}
 	}

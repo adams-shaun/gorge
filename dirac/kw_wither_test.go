@@ -34,7 +34,7 @@ func TestWither(t *testing.T) {
 	}
 	sc.s.res = resCtx{e: stackEntry{kind: seAbility, obj: w, card: n, ctrl: 0, srcVer: sc.s.objs[w].ver, trigObj: NoObj}, active: true, lastTok: NoObj, eachObj: NoObj}
 	life := sc.s.pl[1].life
-	sc.s.damageTo(sc.k, PlayerTarget0+1, 3)
+	sc.s.damageTo(sc.k, uint8(PlayerTarget0+1), 3)
 	if sc.s.pl[1].life != life-3 || sc.s.Poison(1) != 0 {
 		t.Fatalf("to a player: life %d -> %d, poison %d", life, sc.s.pl[1].life, sc.s.Poison(1))
 	}

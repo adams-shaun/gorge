@@ -16,7 +16,7 @@ func (sc *scen) classActs(t *testing.T, o Obj) []uint8 {
 	d := sc.s.Step()
 	var out []uint8
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(o) {
+		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == TCode(uint8(o)) {
 			out = append(out, a.Mode())
 		}
 	}

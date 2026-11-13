@@ -25,7 +25,7 @@ func newRemParamsScen(t *testing.T) (*scen, map[string]CardID) {
 	sc := newScenTableLib(t, tbl, id["Plains"], Config{NoElide: true})
 	e := stackEntry{card: id["Plains"], ctrl: 0, obj: NoObj, kind: seSpell, trigObj: NoObj}
 	for i := range e.tgt {
-		e.tgt[i] = NoTarget
+		e.tgt[i] = uint8(NoTarget)
 	}
 	sc.s.res = resCtx{e: e, active: true, lastTok: NoObj, eachObj: NoObj}
 	return sc, id
@@ -184,7 +184,7 @@ func TestDiscardUnlessType(t *testing.T) {
 			}
 			e := stackEntry{kind: seAbility, obj: src, srcVer: s.objs[src].ver, card: pl, ab: uint8(len(k.t.Cards[pl].Abilities) - 1), trigObj: NoObj}
 			for i := range e.tgt {
-				e.tgt[i] = NoTarget
+				e.tgt[i] = uint8(NoTarget)
 			}
 			s.stack[0], s.sp = e, 1
 			s.resolveTop(k)

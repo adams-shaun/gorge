@@ -64,8 +64,8 @@ func TestCommanderZoneAskReachesWire(t *testing.T) {
 		t.Fatal("the commander has no kernel object")
 	}
 	g.d = dirac.Decision{Kind: dirac.DkChoose, Sub: dirac.ChCommanderZone, Player: 0, N: 2}
-	g.d.Options[0] = dirac.MakeAction(dirac.AkChoose, uint8(obj), 0, 0)
-	g.d.Options[1] = dirac.MakeAction(dirac.AkChoose, uint8(obj), 0, 1)
+	g.d.Options[0] = dirac.MakeAction(dirac.AkChoose, dirac.TCode(obj), 0, 0)
+	g.d.Options[1] = dirac.MakeAction(dirac.AkChoose, dirac.TCode(obj), 0, 1)
 	g.pose()
 	d := g.Pending()
 	if d == nil || d.Kind != decision.KCommanderZone || d.Player != 0 {

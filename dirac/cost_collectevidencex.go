@@ -163,7 +163,7 @@ func (s *State) targetsEvidenceN(k *prep) uint8 {
 	e := &s.bld().e
 	n := 0
 	for i := 0; i < int(e.nt); i++ {
-		if t := e.tgt[i]; t != NoTarget && isObjTarget(t) {
+		if t := e.tgt[i]; TCode(t) != NoTarget && isObjTarget(TCode(t)) {
 			n += s.objTargetMV(k, Obj(t))
 		}
 	}

@@ -18,7 +18,7 @@ func unionScen(t *testing.T) (*scen, Obj, Obj, Obj) {
 	e.ctrl, e.obj, e.card = 0, src, fc
 	e.tgt[0], e.tver[0] = uint8(a), sc.s.objs[a].ver
 	e.tgt[1], e.tver[1] = uint8(b), sc.s.objs[b].ver
-	e.tgt[2] = NoTarget
+	e.tgt[2] = uint8(NoTarget)
 	sc.s.res.bad = 0
 	return sc, src, a, b
 }
@@ -65,7 +65,7 @@ func TestUnionSkipsIllegalSlot(t *testing.T) {
 // nothing; slots outside the mask are not read.
 func TestUnionUpToNone(t *testing.T) {
 	sc, _, a, b := unionScen(t)
-	sc.s.res.e.tgt[1] = NoTarget
+	sc.s.res.e.tgt[1] = uint8(NoTarget)
 	sc.s.res.e.tgt[2], sc.s.res.e.tver[2] = uint8(b), sc.s.objs[b].ver
 	in := kop.Instr{Op: kop.OpDestroy, Obj: kop.RefTargets01}
 	sc.s.exec(sc.k, &in)

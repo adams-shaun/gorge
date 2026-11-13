@@ -26,8 +26,8 @@ func TestLoyaltyAbilities(t *testing.T) {
 	}
 	bears := sc.perm(v.GrizzlyBears, 1)
 	// -3 is affordable: destroy the bears
-	sc.do(t, AkActivate, uint8(w), 0xff)    // first offered ability: +1
-	sc.do(t, AkTarget, 0xff, PlayerTarget1) // 1 damage to seat 1
+	sc.do(t, AkActivate, uint8(w), 0xff)           // first offered ability: +1
+	sc.do(t, AkTarget, 0xff, uint8(PlayerTarget1)) // 1 damage to seat 1
 	d := sc.s.Step()
 	if sc.s.perms[sl].ctrLow(int(kop.CtrLoyalty)) != 4 {
 		t.Fatalf("+1 not paid on activation")
@@ -54,7 +54,7 @@ func TestAttackPlaneswalker(t *testing.T) {
 	if d.Kind != DkAttackers || sc.count(&d, AkAttack) != 2 {
 		t.Fatalf("want 2 attack options (player, walker), got %v", d.Options[:d.N])
 	}
-	sc.s.Apply(MakeAction(AkAttack, uint8(g), uint8(w), 0))
+	sc.s.Apply(MakeAction(AkAttack, TCode(g), TCode(w), 0))
 	sc.do(t, AkDone, 0xff, 0xff)
 	sc.passUntil(t, kop.StepMain2)
 	sc.s.Step()
@@ -90,7 +90,7 @@ func TestLegendRule(t *testing.T) {
 	if d.Kind != DkChoose || d.N != 2 || d.Player != 0 {
 		t.Fatalf("legend decision %+v", d.Options[:d.N])
 	}
-	sc.s.Apply(MakeAction(AkChoose, uint8(b), 0, 0))
+	sc.s.Apply(MakeAction(AkChoose, TCode(b), 0, 0))
 	if sc.onBF(a) || !sc.onBF(b) || sc.s.objs[a].zone != kop.ZoneGraveyard {
 		t.Fatalf("legend rule kept the wrong one")
 	}

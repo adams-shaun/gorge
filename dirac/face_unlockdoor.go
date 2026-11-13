@@ -189,7 +189,7 @@ func (s *State) askOptionsUnlockDoor(k *prep, d *Decision) bool {
 		if !s.unlockDoorFi(m, fi, lock) {
 			continue
 		}
-		d.add(MakeAction(AkChoose, uint8(pm.obj), ord, fi))
+		d.add(MakeAction(AkChoose, TCode(pm.obj), TCode(ord), fi))
 		ord++
 	}
 	return true

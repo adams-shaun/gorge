@@ -87,17 +87,17 @@ func (s *State) noteCrime(k *prep, actor, t uint8) bool {
 
 // isCrime is noteCrime's verdict with no ledger write.
 func (s *State) isCrime(actor, t uint8) bool {
-	if t == NoTarget {
+	if TCode(t) == NoTarget {
 		return false
 	}
 	switch {
 	case DebugCrimeAnyTarget:
 		return true
-	case isPlayerOrNone(t):
-		return CodeSeat(t) != actor
-	case isStackTarget(t):
+	case isPlayerOrNone(TCode(t)):
+		return CodeSeat(TCode(t)) != actor
+	case isStackTarget(TCode(t)):
 		// an ability an opponent controls (CR 700.13a; tgt_stackability.go)
-		i := int(t - StackTarget0)
+		i := int(TCode(t) - StackTarget0)
 		return i < int(s.sp) && s.stack[i].ctrl != actor
 	}
 	ob := &s.objs[t]
@@ -268,7 +268,7 @@ func (s *State) pickCriminal(e *stackEntry, slot, xj int8) (crime, ok bool) {
 //
 //go:noinline
 func (s *State) crimeStep(k *prep, e *stackEntry, cs *crimeSt, t uint8, slot, xj int8) {
-	if t == NoTarget {
+	if TCode(t) == NoTarget {
 		return
 	}
 	cs.nT++
@@ -288,7 +288,7 @@ func (s *State) crimeStep(k *prep, e *stackEntry, cs *crimeSt, t uint8, slot, xj
 		return
 	}
 	cs.nC++
-	if st := DebugCrimeStats; st != nil && isObjTarget(t) {
+	if st := DebugCrimeStats; st != nil && isObjTarget(TCode(t)) {
 		switch s.objs[t].zone {
 		case kop.ZoneGraveyard:
 			st.GraveCrime++

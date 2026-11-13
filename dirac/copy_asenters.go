@@ -63,7 +63,7 @@ func cloneAnswer(a Action) uint8 {
 	if a.Mode() != 0 {
 		return uint8(NoObj)
 	}
-	return a.Source()
+	return uint8(a.Source())
 }
 
 // cloneOptions fills the clone ask for the spell s.g.pre.obj on top of the
@@ -75,7 +75,7 @@ func (s *State) cloneOptions(k *prep, d *Decision) {
 	o := s.g.pre.obj
 	in := s.cloneOp(k, s.objs[o].card)
 	if in == nil {
-		d.add(MakeAction(AkChoose, uint8(o), 0, 1))
+		d.add(MakeAction(AkChoose, TCode(o), 0, 1))
 		return
 	}
 	// the filter's bounds read the spell as the resolving entry (its mana
@@ -107,13 +107,13 @@ func (s *State) cloneOptions(k *prep, d *Decision) {
 				continue
 			}
 			if s.matchPermGen(k, in.F, sl, ctrl, NoSlot, layerFull) {
-				d.add(MakeAction(AkChoose, uint8(t), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(t), 0, 0))
 			}
 		}
 	}
 	s.res = saved
 	if in.C&1 != 0 || d.N == 0 { // seat-ok: an instruction flag bit
-		d.add(MakeAction(AkChoose, uint8(o), 0, 1)) // "enter as itself"
+		d.add(MakeAction(AkChoose, TCode(o), 0, 1)) // "enter as itself"
 	}
 }
 

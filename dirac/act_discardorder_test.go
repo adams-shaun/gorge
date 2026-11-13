@@ -79,11 +79,11 @@ func TestTargetedDiscardParksLaterPicksExileOrder(t *testing.T) {
 		chosen: 1,
 		left:   2,
 	}
-	s.applyResolve(k, MakeAction(AkChoose, uint8(instant), 0, 0))
+	s.applyResolve(k, MakeAction(AkChoose, TCode(instant), 0, 0))
 	if s.res.peekI != 1 || s.res.left != 1 {
 		t.Fatalf("peekI %d left %d after the first pick, want 1 and 1", s.res.peekI, s.res.left)
 	}
-	s.applyResolve(k, MakeAction(AkChoose, uint8(creature), 0, 0))
+	s.applyResolve(k, MakeAction(AkChoose, TCode(creature), 0, 0))
 	atDiscardOrderAsk(t, s, k, instant, creature)
 }
 
@@ -93,11 +93,11 @@ func TestCleanupDiscardParksLaterPicksExileOrder(t *testing.T) {
 	s, k, _, instant, creature := newDiscardOrderScen(t)
 	s.ctl = ctlCleanupDiscard
 	s.discardLeft = 2
-	s.Apply(MakeAction(AkChoose, uint8(instant), 0, 0))
+	s.Apply(MakeAction(AkChoose, TCode(instant), 0, 0))
 	if !s.parkedDiscardWaiting() || s.discardLeft != 1 || s.ctl != ctlCleanupDiscard {
 		t.Fatalf("after the first pick: parked %v left %d ctl %d, want its parked discard and one more pick", s.parkedDiscardWaiting(), s.discardLeft, s.ctl)
 	}
-	s.Apply(MakeAction(AkChoose, uint8(creature), 0, 0))
+	s.Apply(MakeAction(AkChoose, TCode(creature), 0, 0))
 	atDiscardOrderAsk(t, s, k, instant, creature)
 	if s.ctl == ctlCleanupDiscard || s.ctl == ctlExileOrder {
 		t.Fatalf("ctl %d after the last answer, want the cleanup finished", s.ctl)

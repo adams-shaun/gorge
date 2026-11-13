@@ -21,6 +21,6 @@ func (s *State) attackingEnchTrig(k *prep, sl, src Slot) bool {
 		return false
 	}
 	p := &s.perms[sl]
-	return p.flags&pfAttacking != 0 && isPlayerTarget(p.atk) && CodeSeat(p.atk) == at-1 &&
+	return p.flags&pfAttacking != 0 && isPlayerTarget(TCode(p.atk)) && CodeSeat(TCode(p.atk)) == at-1 &&
 		s.isCreature(k, sl) && s.trigPlayerCtrl(sl)
 }

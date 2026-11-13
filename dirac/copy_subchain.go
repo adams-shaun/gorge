@@ -236,7 +236,7 @@ func (s *State) copyOwnTargets(k *prep, w *stackEntry) bool {
 // copySlotTargets lists slot d's own targets: the first, then its extras.
 func (s *State) copySlotTargets(e *stackEntry, d int, out *[MaxOptions]uint8) int {
 	n := 0
-	if d < int(e.nt) && e.tgt[d] != NoTarget {
+	if d < int(e.nt) && TCode(e.tgt[d]) != NoTarget {
 		out[n] = e.tgt[d]
 		n++
 	}

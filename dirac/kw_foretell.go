@@ -81,7 +81,7 @@ func (s *State) offerForetellHand(k *prep, d *Decision, p uint8, o Obj, c CardID
 	if s.castHeldOut(o) || k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
 		return // gorge castSuppressed / castRestricted gate the hand card first
 	}
-	d.add(MakeAction(AkPlot, uint8(o), 0, plotForetell))
+	d.add(MakeAction(AkPlot, TCode(o), 0, plotForetell))
 }
 
 // foretellAction performs the foretell special action (CR 702.143a): pay {2},
@@ -151,7 +151,7 @@ func (s *State) offerForetellCasts(k *prep, d *Decision, p uint8, sorc bool) {
 		if !s.foretellPoolPays(k, p, o, c) {
 			continue
 		}
-		d.add(MakeAction(AkCast, uint8(o), castForetellTgt, 0))
+		d.add(MakeAction(AkCast, TCode(o), castForetellTgt, 0))
 	}
 }
 

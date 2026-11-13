@@ -335,9 +335,9 @@ func (v *sview) choose(pols *[2]seatPol) dirac.Action {
 		}
 	case dirac.DkTarget:
 		if pol.tgt != nil {
-			best, bs := opts[0], pol.tgt(v, opts[0].Target())
+			best, bs := opts[0], pol.tgt(v, uint8(opts[0].Target()))
 			for _, a := range opts[1:] {
-				if sc := pol.tgt(v, a.Target()); sc > bs {
+				if sc := pol.tgt(v, uint8(a.Target())); sc > bs {
 					best, bs = a, sc
 				}
 			}
@@ -542,7 +542,7 @@ func FeatScenarios(set cardset.Set, c *Corpus) ([]FeatScenario, error) {
 			func(int) [2]featSide { return [2]featSide{{"counter"}, {"chip"}} },
 			func(g *featGame, seed uint64) ([]FeatScenario, bool) {
 				pols := &[2]seatPol{{}, {cast: castAlways, tgt: func(_ *sview, t uint8) int {
-					if t == dirac.PlayerTarget0 {
+					if dirac.TCode(t) == dirac.PlayerTarget0 {
 						return 100
 					}
 					return 0
@@ -550,7 +550,7 @@ func FeatScenarios(set cardset.Set, c *Corpus) ([]FeatScenario, error) {
 				k := g.id["chip"]
 				return g.one("damage-at-me", seed, pols, func(v *sview) bool {
 					t := v.top()
-					return v.atPrio(0) && t != nil && t.Card == k && t.Ctrl == 1 && t.Targets[0] == dirac.PlayerTarget0
+					return v.atPrio(0) && t != nil && t.Card == k && t.Ctrl == 1 && dirac.TCode(t.Targets[0]) == dirac.PlayerTarget0
 				}, "chip")
 			}},
 		{"cheapkill-on-oneone", []string{"cheapkill-on-oneone"},
@@ -599,14 +599,14 @@ func FeatScenarios(set cardset.Set, c *Corpus) ([]FeatScenario, error) {
 						return id == chip
 					},
 					tgt: func(_ *sview, t uint8) int {
-						if t == dirac.PlayerTarget0 {
+						if dirac.TCode(t) == dirac.PlayerTarget0 {
 							return 100
 						}
 						return 0
 					}}}
 				return g.one("counter-prevents-lethal", seed, pols, func(v *sview) bool {
 					t := v.top()
-					return v.atPrio(0) && t != nil && t.Card == burn && t.Ctrl == 1 && t.Targets[0] == dirac.PlayerTarget0 &&
+					return v.atPrio(0) && t != nil && t.Card == burn && t.Ctrl == 1 && dirac.TCode(t.Targets[0]) == dirac.PlayerTarget0 &&
 						v.p.Life[0] <= amt && v.castable(ctr)
 				}, "burn", "chip", "counter")
 			}},

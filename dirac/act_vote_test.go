@@ -60,7 +60,7 @@ func voteAsk(t *testing.T, sc *scen, p uint8, pick Obj, want ...Obj) {
 	for _, w := range want {
 		found := false
 		for i := 0; i < int(d.N); i++ {
-			found = found || d.Options[i] == MakeAction(AkChoose, uint8(w), 0, 0)
+			found = found || d.Options[i] == MakeAction(AkChoose, TCode(w), 0, 0)
 		}
 		if !found {
 			t.Fatalf("object %d not on the ballot", w)

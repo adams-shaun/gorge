@@ -212,7 +212,7 @@ func TestRememberDamagedDealt(t *testing.T) {
 	bear := sc.perm(v.GrizzlyBears, 1)
 	s.res.e = stackEntry{kind: seSpell, ctrl: 0, card: prot + 1, trigObj: NoObj, obj: NoObj}
 	for i := range s.res.e.tgt {
-		s.res.e.tgt[i] = NoTarget
+		s.res.e.tgt[i] = uint8(NoTarget)
 	}
 	deal := func(flags int16, x Obj) {
 		s.res.e.tgt[0] = uint8(x)
@@ -274,7 +274,7 @@ func TestTwoExileMarksStall(t *testing.T) {
 			b := sc.perm(v.GrizzlyBears, 1)
 			s.res.e = stackEntry{kind: seSpell, ctrl: 0, card: spell, trigObj: NoObj, obj: NoObj}
 			for i := range s.res.e.tgt {
-				s.res.e.tgt[i] = NoTarget
+				s.res.e.tgt[i] = uint8(NoTarget)
 			}
 			deal := func(flags int16, x Obj) {
 				s.res.e.tgt[0] = uint8(x)
@@ -354,7 +354,7 @@ func TestCloneTemplateChoice(t *testing.T) {
 			seq = append(seq, fmt.Sprintf("choose/%d", d.Sub))
 			a := d.Options[1] // not the template's own answer, so the copy's differs
 			if d.Sub == ChGenClone {
-				a = MakeAction(AkChoose, uint8(tpl), 0, 0)
+				a = MakeAction(AkChoose, TCode(tpl), 0, 0)
 			}
 			s.Apply(a)
 			continue

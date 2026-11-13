@@ -256,7 +256,7 @@ func (s *State) charmTargetsStep(k *prep, d *Decision) bool {
 		}
 		for x := 0; x < ns[j]; x++ {
 			c := bufs[j][x]
-			d.add(MakeAction(AkTarget, 0, c, charmOccOrder(&order, p, c, &bufs, &ns)))
+			d.add(MakeAction(AkTarget, 0, TCode(c), charmOccOrder(&order, p, c, &bufs, &ns)))
 		}
 	}
 	return true
@@ -283,12 +283,12 @@ func (s *State) applyCharmTarget(k *prep, a Action) {
 		}
 		in := false
 		for x := 0; x < ns[j]; x++ {
-			in = in || bufs[j][x] == c
+			in = in || TCode(bufs[j][x]) == c
 		}
-		if !in || charmOccOrder(&order, p, c, &bufs, &ns) != a.Mode() {
+		if !in || charmOccOrder(&order, p, uint8(c), &bufs, &ns) != a.Mode() {
 			continue
 		}
-		e.tgt[j] = c
+		e.tgt[j] = uint8(c)
 		if isObjTarget(c) {
 			e.tver[j] = s.objs[c].ver
 		}
@@ -297,7 +297,7 @@ func (s *State) applyCharmTarget(k *prep, a Action) {
 		}
 		if k.gen != nil && k.gen.crimeOn {
 			// the combined ask is judged when its mask completes, below
-			s.crimePick(k, c, false)
+			s.crimePick(k, uint8(c), false)
 		}
 		mt.picked |= 1 << j
 		if mt.picked == mask {

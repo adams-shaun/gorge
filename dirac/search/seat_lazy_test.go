@@ -10,8 +10,12 @@ import (
 // decide that a combat point's candidate set does not depend on the bot's
 // answer: exactly one source over every non-Done option, and a Done option.
 func TestLazyOneSource(t *testing.T) {
-	attack := func(src, tgt uint8) dirac.Action { return dirac.MakeAction(dirac.AkAttack, src, tgt, 0) }
-	block := func(src, tgt uint8) dirac.Action { return dirac.MakeAction(dirac.AkBlock, src, tgt, 0) }
+	attack := func(src, tgt uint8) dirac.Action {
+		return dirac.MakeAction(dirac.AkAttack, dirac.TCode(src), dirac.TCode(tgt), 0)
+	}
+	block := func(src, tgt uint8) dirac.Action {
+		return dirac.MakeAction(dirac.AkBlock, dirac.TCode(src), dirac.TCode(tgt), 0)
+	}
 	done := dirac.MakeAction(dirac.AkDone, 0, 0, 0)
 	pass := dirac.MakeAction(dirac.AkPass, 0, 0, 0)
 	tests := []struct {
@@ -19,11 +23,11 @@ func TestLazyOneSource(t *testing.T) {
 		opts []dirac.Action
 		want int
 	}{
-		{"one attacker at several defenders", []dirac.Action{attack(1, dirac.PlayerTarget0), attack(1, dirac.PlayerTarget1), done}, 2},
-		{"two attackers", []dirac.Action{attack(1, dirac.PlayerTarget0), attack(2, dirac.PlayerTarget0), done}, -1},
+		{"one attacker at several defenders", []dirac.Action{attack(1, uint8(dirac.PlayerTarget0)), attack(1, uint8(dirac.PlayerTarget1)), done}, 2},
+		{"two attackers", []dirac.Action{attack(1, uint8(dirac.PlayerTarget0)), attack(2, uint8(dirac.PlayerTarget0)), done}, -1},
 		{"one blocker at several attackers", []dirac.Action{block(1, 2), block(1, 3), done}, 2},
-		{"no done option", []dirac.Action{attack(1, dirac.PlayerTarget0), attack(1, dirac.PlayerTarget1)}, -1},
-		{"non-combat option", []dirac.Action{attack(1, dirac.PlayerTarget0), pass, done}, -1},
+		{"no done option", []dirac.Action{attack(1, uint8(dirac.PlayerTarget0)), attack(1, uint8(dirac.PlayerTarget1))}, -1},
+		{"non-combat option", []dirac.Action{attack(1, uint8(dirac.PlayerTarget0)), pass, done}, -1},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

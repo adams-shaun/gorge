@@ -9,11 +9,11 @@ import (
 // targetStillLegal rechecks target i of e at resolution (CR 608.2b).
 func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 	code := e.tgt[i]
-	if code == NoTarget {
+	if TCode(code) == NoTarget {
 		return false
 	}
-	if isPlayerOrNone(code) {
-		pp := CodeSeat(code)
+	if isPlayerOrNone(TCode(code)) {
+		pp := CodeSeat(TCode(code))
 		if s.g.on && pp != e.ctrl && s.playerHexproof(s.k(), pp) {
 			return false
 		}
@@ -25,7 +25,7 @@ func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 		}
 		return !s.pl[pp].lost
 	}
-	if isStackTarget(code) {
+	if isStackTarget(TCode(code)) {
 		return s.stackTgtStillLegal(e, i) // tgt_stackability.go
 	}
 	if s.objs[code].ver != e.tver[i] {
@@ -85,7 +85,7 @@ func (s *State) resolveTop(k *prep) {
 	if e.mode&modeBestowed != 0 && e.bestowedEntry() {
 		s.bestowResolve(k, &e) // CR 702.103e (kw_bestow.go)
 	}
-	if k.gen != nil && e.kind == seSpell && isObjTarget(e.tgt[0]) && e.li == 0 {
+	if k.gen != nil && e.kind == seSpell && isObjTarget(TCode(e.tgt[0])) && e.li == 0 {
 		// the target's last known P/T (Condemn); a sacrificed cost's LKI,
 		// already held, is kept (RefSacrificed: Kazuul's Fury deals the
 		// sacrificed creature's power, not its target's)
@@ -96,7 +96,7 @@ func (s *State) resolveTop(k *prep) {
 		any := false
 		chosen := false
 		for i := 0; i < int(e.nt); i++ {
-			if e.tgt[i] == NoTarget {
+			if TCode(e.tgt[i]) == NoTarget {
 				continue
 			}
 			chosen = true
@@ -645,7 +645,7 @@ func (s *State) objRefObj(r kop.Ref) Obj {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		t := s.tgtCode(sl)
-		if t == NoTarget || isPlayerOrNone(t) {
+		if TCode(t) == NoTarget || isPlayerOrNone(TCode(t)) {
 			return NoObj
 		}
 		return Obj(t)
@@ -684,10 +684,10 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		t := s.tgtCode(sl)
-		if isPlayerOrNone(t) && t != NoTarget {
-			return CodeSeat(t)
+		if isPlayerOrNone(TCode(t)) && TCode(t) != NoTarget {
+			return CodeSeat(TCode(t))
 		}
-		if t != NoTarget {
+		if TCode(t) != NoTarget {
 			return s.ctrlOfObj(Obj(t))
 		}
 		return 255
@@ -708,7 +708,7 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.tgtCtrlSlot(k, int(r-kop.RefTgtCtrl1)+1) // tgt_stackability.go
 	case kop.RefTargetOwner:
 		t := s.tgtCode(0)
-		if t == NoTarget || isPlayerOrNone(t) {
+		if TCode(t) == NoTarget || isPlayerOrNone(TCode(t)) {
 			return 255
 		}
 		return s.objs[t].owner()
@@ -934,12 +934,12 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 		}
 	}
 	kw := s.srcKw(k)
-	if k.gen != nil && k.gen.anyInfect && (s.srcInfect(k) || isObjTarget(code) && s.srcWither(k, kw)) {
+	if k.gen != nil && k.gen.anyInfect && (s.srcInfect(k) || isObjTarget(TCode(code)) && s.srcWither(k, kw)) {
 		s.infectDamageTo(k, code, n, kw) // wither is infect's creature half (a player takes ordinary damage)
 		return n
 	}
-	if isPlayerOrNone(code) {
-		s.loseLife(k, CodeSeat(code), n)
+	if isPlayerOrNone(TCode(code)) {
+		s.loseLife(k, CodeSeat(TCode(code)), n)
 	} else {
 		ob := &s.objs[code]
 		if ob.zone != kop.ZoneBattlefield {
@@ -965,7 +965,7 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 	}
 	if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) {
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
-			s.fireDamage(k, sl, int16(n), isPlayerOrNone(code), false, code)
+			s.fireDamage(k, sl, int16(n), isPlayerOrNone(TCode(code)), false, code)
 		} else if k.gen != nil && e.obj != NoObj {
 			// a spell's damage, or an ability's whose source is gone
 			// (Niv-Mizzet: the sacrificed Fanatical Firebrand's, pair 3334)
@@ -984,13 +984,13 @@ func (s *State) refCode(k *prep, r kop.Ref) uint8 {
 	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer:
 		p := s.playerRef(k, r)
 		if p == 255 {
-			return NoTarget
+			return uint8(NoTarget)
 		}
-		return PlayerCode(p)
+		return uint8(PlayerCode(p))
 	}
 	o := s.objRefObj(r)
 	if o == NoObj {
-		return NoTarget
+		return uint8(NoTarget)
 	}
 	return uint8(o)
 }
@@ -1037,7 +1037,7 @@ func (s *State) oneOppOf(k *prep, r kop.Ref, e *stackEntry, ctrl uint8, obj Obj)
 	}
 	if r == kop.RefDefendingPlayer && obj != NoObj {
 		if ob := &s.objs[obj]; ob.zone == kop.ZoneBattlefield && s.perms[ob.slot].flags&pfAttacking != 0 {
-			if p := s.atkSeat(k, ob.slot); p != NoTarget {
+			if p := s.atkSeat(k, ob.slot); TCode(p) != NoTarget {
 				return p
 			}
 		}
@@ -1049,7 +1049,7 @@ func (s *State) oneOppOf(k *prep, r kop.Ref, e *stackEntry, ctrl uint8, obj Obj)
 // chosen but is illegal now.
 func (s *State) tgtCode(i int) uint8 {
 	if s.res.bad&(1<<i) != 0 {
-		return NoTarget
+		return uint8(NoTarget)
 	}
 	return s.res.e.tgt[i]
 }

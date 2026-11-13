@@ -100,11 +100,11 @@ func (s *State) offerAltFreeHand(k *prep, d *Decision, p uint8, o Obj, c CardID,
 		if !s.pickCostPayable(k, p, &a.Cost, o) || !av.affords(&ac, pipMaskOf(&ac), 0) || !s.windowPoolPays(p, &ac, false) {
 			return
 		}
-		d.add(MakeAction(AkCast, uint8(o), castAltTgt, 0))
+		d.add(MakeAction(AkCast, TCode(o), castAltTgt, 0))
 		return
 	}
 	if a.Cost.Mana == (kop.ManaCost{}) {
-		d.add(MakeAction(AkCast, uint8(o), 0, castMayPlay|castFree))
+		d.add(MakeAction(AkCast, TCode(o), 0, castMayPlay|castFree))
 		return
 	}
 	// a mana alternative (Blasphemous Edict's {B}): the cost modifiers
@@ -117,7 +117,7 @@ func (s *State) offerAltFreeHand(k *prep, d *Decision, p uint8, o Obj, c CardID,
 	if !av.affords(&ac, pipMaskOf(&ac), 0) || !s.windowPoolPays(p, &ac, false) {
 		return
 	}
-	d.add(MakeAction(AkCast, uint8(o), castAltTgt, 0))
+	d.add(MakeAction(AkCast, TCode(o), castAltTgt, 0))
 }
 
 // castAltTgt in an AkCast's target byte (mode 0, from the hand) is the

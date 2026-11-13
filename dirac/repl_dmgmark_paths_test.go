@@ -49,16 +49,16 @@ func TestDmgMarkSweepGuard(t *testing.T) {
 // a second mark (gorge asks the order).
 func TestDmgMarkDirectPaths(t *testing.T) {
 	s, k := markedPathState(false)
-	if n := s.replDamage(k, 0, NoSlot, 1, PlayerTarget0+1, false, 3); n != 6 || s.g.stalled != 0 {
+	if n := s.replDamage(k, 0, NoSlot, 1, uint8(PlayerTarget0+1), false, 3); n != 6 || s.g.stalled != 0 {
 		t.Fatalf("a lone mark: damage %d stalled %d, want 6 / 0", n, s.g.stalled)
 	}
 	s.res.e.ctrl = 1
 	s.dmgMarkAdd(nil, &kop.Instr{Obj: kop.RefTriggerPlayer})
-	if n := s.replDamage(k, 0, NoSlot, 1, PlayerTarget0+1, false, 3); n != 0 || s.g.stalled != StallDmgMarkOrder {
+	if n := s.replDamage(k, 0, NoSlot, 1, uint8(PlayerTarget0+1), false, 3); n != 0 || s.g.stalled != StallDmgMarkOrder {
 		t.Fatalf("two marks: damage %d stalled %d, want 0 / %d", n, s.g.stalled, StallDmgMarkOrder)
 	}
 	s, k = markedPathState(true)
-	if n := s.replDamage(k, 0, NoSlot, 1, PlayerTarget0+1, false, 3); n != 0 || s.g.stalled != StallDmgMarkOrder {
+	if n := s.replDamage(k, 0, NoSlot, 1, uint8(PlayerTarget0+1), false, 3); n != 0 || s.g.stalled != StallDmgMarkOrder {
 		t.Fatalf("a mark and a doubler: damage %d stalled %d, want 0 / %d", n, s.g.stalled, StallDmgMarkOrder)
 	}
 }

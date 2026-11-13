@@ -271,7 +271,7 @@ func (s *State) execMcombat(k *prep, in *kop.Instr) (ok, done bool) {
 		// it attacks the trigger's own controller, whom gorge's
 		// TriggeredDefender.Opponent names nobody for (an attacker the
 		// controller does not control: Mage Slayer on a stolen creature)
-		if sl := s.objRef(k, kop.RefTriggerObj); sl == NoSlot || isObjTarget(s.perms[sl].atk) || s.atkSeat(k, sl) == s.res.e.ctrl {
+		if sl := s.objRef(k, kop.RefTriggerObj); sl == NoSlot || isObjTarget(TCode(s.perms[sl].atk)) || s.atkSeat(k, sl) == s.res.e.ctrl {
 			s.capFull(StallDefenderPW)
 		}
 	default:
@@ -304,13 +304,13 @@ func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
 	}
 	atk := PlayerCode(s.nextAlive(SeatIx(p)))
 	if s.g.tokDefSet {
-		atk = s.g.tokDef
+		atk = TCode(s.g.tokDef)
 	} else if MaxSeats > 2 && in.B.N&kop.TokAttackAsk != 0 {
-		if atk = s.enterDefenderFallback(k, p); atk == NoTarget || s.out(CodeSeat(atk)) {
+		if atk = TCode(s.enterDefenderFallback(k, p)); atk == NoTarget || s.out(CodeSeat(atk)) {
 			return // no defender, or the captured one left the game (gorge EnteringAttackLegal)
 		}
 	}
-	s.setEnterAttacker(k, sl, atk)
+	s.setEnterAttacker(k, sl, uint8(atk))
 }
 
 // enterDefenderFallback is gorge's enteringDefenderFallback past two seats:
@@ -321,14 +321,14 @@ func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
 func (s *State) enterDefenderFallback(k *prep, p uint8) uint8 {
 	if e := &s.res.e; s.res.active && e.kind == seTrigger {
 		if e.defSeat != 0 {
-			return PlayerCode(e.defSeat - 1)
+			return uint8(PlayerCode(e.defSeat - 1))
 		}
 		s.capFull(StallDefenderPW)
-		return NoTarget
+		return uint8(NoTarget)
 	}
 	var buf [MaxOptions]uint8
 	if s.enteringDefenderCands(k, p, &buf) == 0 {
-		return NoTarget
+		return uint8(NoTarget)
 	}
 	return buf[0]
 }
@@ -376,7 +376,7 @@ func (s *State) tokenDefenderAsk(k *prep, in *kop.Instr, p uint8) bool {
 	n := s.enteringDefenderCands(k, p, &buf)
 	if MaxSeats > 2 {
 		fb := s.enterDefenderFallback(k, p)
-		if fb == NoTarget {
+		if TCode(fb) == NoTarget {
 			return false
 		}
 		n = enterDefenderOrder(&buf, n, fb)

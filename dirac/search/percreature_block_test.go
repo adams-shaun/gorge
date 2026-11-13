@@ -35,7 +35,7 @@ func menaceBoard(t *testing.T, k int) (*dirac.State, dirac.Decision) {
 				srcs, tgts := map[uint8]bool{}, map[uint8]bool{}
 				for j := 0; j < int(d.N); j++ {
 					if o := d.Options[j]; o.Kind() == dirac.AkBlock {
-						srcs[o.Source()], tgts[o.Target()] = true, true
+						srcs[uint8(o.Source())], tgts[uint8(o.Target())] = true, true
 					}
 				}
 				if len(srcs) == k && len(tgts) == 1 && offersDone(&d) {
@@ -226,9 +226,9 @@ func TestPerCreatureMenaceBlocks(t *testing.T) {
 	for i := 0; i < int(d.N); i++ {
 		if o := d.Options[i]; o.Kind() == dirac.AkBlock {
 			if n == 0 {
-				first, br = o.Source(), o
-			} else if o.Source() != first {
-				second = o.Source()
+				first, br = uint8(o.Source()), o
+			} else if o.Source() != dirac.TCode(first) {
+				second = uint8(o.Source())
 				break
 			}
 			n++

@@ -37,7 +37,7 @@ func TestEveryUnitNeededPlanIsFound(t *testing.T) {
 		d := sc.s.Step()
 		offered := false
 		for _, a := range d.Options[:d.N] {
-			offered = offered || a.Kind() == AkActivate && a.Source() == uint8(tl)
+			offered = offered || a.Kind() == AkActivate && a.Source() == TCode(uint8(tl))
 		}
 		if !offered {
 			t.Fatalf("cfg %+v: the Landscape's cycling is not offered: B, R (the Wall's sacrifice) and G are all there", cfg)

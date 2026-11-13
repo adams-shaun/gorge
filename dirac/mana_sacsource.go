@@ -770,9 +770,9 @@ func (s *State) resolvePrefixStack(k *prep, sp0 uint8, resolve bool) {
 func (s *State) firstPlayerTgt(k *prep, ts *kop.TargetSpec, pt *pendingTrig) uint8 {
 	q := uint8(0)
 	for ; q+1 < s.nSeats(); q++ {
-		if s.targetOK(k, ts, pt.ctrl, NoSlot, pt.obj, PlayerCode(q)) {
+		if s.targetOK(k, ts, pt.ctrl, NoSlot, pt.obj, uint8(PlayerCode(q))) {
 			break
 		}
 	}
-	return PlayerCode(q)
+	return uint8(PlayerCode(q))
 }

@@ -88,7 +88,7 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 			n := s.multiCands(k, t, ti, &buf)
 			var per [MaxSeats]uint8
 			for i := 0; i < n; i++ {
-				if c := buf[i]; isObjTarget(c) {
+				if c := buf[i]; isObjTarget(TCode(c)) {
 					per[SeatIx(s.ctrlOfObj(Obj(c)))]++
 				}
 			}
@@ -158,7 +158,7 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 	}
 	d.Kind, d.Player = DkTarget, e.ctrl
 	for i := 0; i < n; i++ {
-		d.add(MakeAction(AkTarget, 0, buf[i], 0))
+		d.add(MakeAction(AkTarget, 0, TCode(buf[i]), 0))
 	}
 	doneOK := mt.picked >= mt.min
 	if doneOK && mt.picked == 0 && mt.min == 0 && e.kind == seSpell && e.flags&(sfMayPlay|sfFlashback) == 0 {
@@ -221,7 +221,7 @@ func (s *State) multiCands(k *prep, t *kop.TargetSpec, ti uint8, out *[MaxOption
 		// four from a single graveyard offers no card of a graveyard
 		// with three)
 		for i := 0; i < n; i++ {
-			if c := all[i]; c != NoTarget && isObjTarget(c) {
+			if c := all[i]; TCode(c) != NoTarget && isObjTarget(TCode(c)) {
 				per[SeatIx(s.ctrlOfObj(Obj(c)))]++
 			}
 		}
@@ -229,18 +229,18 @@ func (s *State) multiCands(k *prep, t *kop.TargetSpec, ti uint8, out *[MaxOption
 	m := 0
 	for i := 0; i < n; i++ {
 		c := all[i]
-		if c == NoTarget || s.pickedInSlot(e, ti, c) {
+		if TCode(c) == NoTarget || s.pickedInSlot(e, ti, c) {
 			continue
 		}
-		if per[0]|per[1] != 0 && isObjTarget(c) && per[SeatIx(s.ctrlOfObj(Obj(c)))] < mt.min {
+		if per[0]|per[1] != 0 && isObjTarget(TCode(c)) && per[SeatIx(s.ctrlOfObj(Obj(c)))] < mt.min {
 			continue
 		}
 		if t.TFlags&kop.TgfDistinct != 0 && s.pickedBefore(e, ti, c) {
 			continue
 		}
-		if mt.picked > 0 && isObjTarget(c) && t.TFlags&(kop.TgfSameController|kop.TgfDiffController) != 0 {
+		if mt.picked > 0 && isObjTarget(TCode(c)) && t.TFlags&(kop.TgfSameController|kop.TgfDiffController) != 0 {
 			first := e.tgt[ti]
-			if isObjTarget(first) {
+			if isObjTarget(TCode(first)) {
 				same := s.ctrlOfObj(Obj(c)) == s.ctrlOfObj(Obj(first))
 				if t.TFlags&kop.TgfSameController != 0 && !same || t.TFlags&kop.TgfDiffController != 0 && same {
 					continue
@@ -293,15 +293,15 @@ func (s *State) applyMultiTarget(k *prep, a Action) {
 		if isObjTarget(c) {
 			ver = s.objs[c].ver
 		} else if isStackTarget(c) {
-			ver = s.stackTgtSid(c)
+			ver = s.stackTgtSid(uint8(c))
 		}
 		if k.gen != nil && k.gen.crimeOn {
 			// a multi-pick window's pick: a spell's is judged here (crimePick),
 			// an ability's with the slot's whole set at completion (finishSlot)
-			s.crimePick(k, c, false)
+			s.crimePick(k, uint8(c), false)
 		}
 		if mt.picked == 0 {
-			e.tgt[mt.slot] = c
+			e.tgt[mt.slot] = uint8(c)
 			e.tver[mt.slot] = ver
 			if mt.slot+1 > e.nt {
 				e.nt = mt.slot + 1
@@ -310,7 +310,7 @@ func (s *State) applyMultiTarget(k *prep, a Action) {
 			return
 		} else if x.n < maxXTgt {
 			x.slot[x.n] = mt.slot
-			x.code[x.n] = c
+			x.code[x.n] = uint8(c)
 			x.ver[x.n] = ver
 			x.n++
 		} else {
@@ -343,7 +343,7 @@ func (s *State) hasTargetsMin(k *prep, t *kop.TargetSpec, p uint8, src Slot, sel
 	if t.TFlags&kop.TgfSameController != 0 {
 		var per [MaxSeats]uint8
 		for i := 0; i < n; i++ {
-			if isObjTarget(buf[i]) {
+			if isObjTarget(TCode(buf[i])) {
 				per[SeatIx(s.ctrlOfObj(Obj(buf[i])))]++
 			}
 		}
@@ -352,7 +352,7 @@ func (s *State) hasTargetsMin(k *prep, t *kop.TargetSpec, p uint8, src Slot, sel
 	if t.TFlags&kop.TgfDiffController != 0 {
 		var seen [MaxSeats]bool
 		for i := 0; i < n; i++ {
-			if isObjTarget(buf[i]) {
+			if isObjTarget(TCode(buf[i])) {
 				seen[SeatIx(s.ctrlOfObj(Obj(buf[i])))] = true
 			}
 		}

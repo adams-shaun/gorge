@@ -174,7 +174,7 @@ func (s *State) emblemRecipientOK(k *prep, t *kop.Trigger, rcp uint8, toPlayer b
 	if toPlayer {
 		return t.Flags&kop.TfToPlayer != 0
 	}
-	if !isObjTarget(rcp) {
+	if !isObjTarget(TCode(rcp)) {
 		return false
 	}
 	ob := &s.objs[rcp]

@@ -17,7 +17,7 @@ func (s *State) notObj(o Obj) (e *stackEntry, ok bool) {
 	if int(o) < MaxObj {
 		return nil, false
 	}
-	if i, is := StackTargetIndex(uint8(o)); is && i < int(s.sp) {
+	if i, is := StackTargetIndex(TCode(o)); is && i < int(s.sp) {
 		return &s.stack[i], true
 	}
 	return nil, true

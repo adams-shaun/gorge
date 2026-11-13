@@ -46,7 +46,7 @@ func TestMindRotDiscardChoice(t *testing.T) {
 	h2 := sc.hand(v.HillGiant, 1)
 	h3 := sc.hand(v.Forest, 1)
 	sc.do(t, AkCast, uint8(mr), 0xff)
-	sc.do(t, AkTarget, 0xff, PlayerTarget1)
+	sc.do(t, AkTarget, 0xff, uint8(PlayerTarget1))
 	sc.passBoth(t)
 	sc.do(t, AkChoose, uint8(h3), 0xff)
 	sc.do(t, AkChoose, uint8(h1), 0xff)
@@ -107,7 +107,7 @@ func TestFieryCharmModes(t *testing.T) {
 		t.Fatalf("modes decision %+v", d.Options[:d.N])
 	}
 	sc.s.Apply(d.Options[0])
-	sc.do(t, AkTarget, 0xff, PlayerTarget1)
+	sc.do(t, AkTarget, 0xff, uint8(PlayerTarget1))
 	sc.passBoth(t)
 	sc.s.Step()
 	if sc.s.pl[1].life != 18 {

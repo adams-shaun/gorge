@@ -53,7 +53,7 @@ func facesScen(t *testing.T, names ...string) (*scen, map[string]CardID) {
 func landPlays(d *Decision, o Obj) []uint8 {
 	var out []uint8
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkPlayLand && a.Source() == uint8(o) {
+		if a := d.Options[i]; a.Kind() == AkPlayLand && a.Source() == TCode(uint8(o)) {
 			out = append(out, a.Mode())
 		}
 	}
@@ -77,7 +77,7 @@ func TestModalLandOffer(t *testing.T) {
 	if got := landPlays(&d, cp); len(got) != 2 || got[0] != 0 || got[1] != 1 {
 		t.Fatalf("Cragcrown Pathway land plays %v, want [0 1]", got)
 	}
-	sc.s.Apply(MakeAction(AkPlayLand, uint8(cp), 0, 0))
+	sc.s.Apply(MakeAction(AkPlayLand, TCode(cp), 0, 0))
 	d = sc.s.Step()
 	if got := landPlays(&d, aw); len(got) != 0 {
 		t.Fatalf("a second land play offered: %v", got)
@@ -97,7 +97,7 @@ func TestModalLandPlay(t *testing.T) {
 	back := sc.k.t.Cards[front].Faces[1]
 	aw := sc.hand(front, 0)
 	sc.s.Step()
-	sc.s.Apply(MakeAction(AkPlayLand, uint8(aw), 0, 1))
+	sc.s.Apply(MakeAction(AkPlayLand, TCode(aw), 0, 1))
 	if !sc.onBF(aw) {
 		t.Fatal("not on the battlefield")
 	}

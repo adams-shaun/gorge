@@ -21,9 +21,9 @@ func TestTargetPlayersExpr(t *testing.T) {
 	}
 	e := stackEntry{nt: 2}
 	for i := range e.tgt {
-		e.tgt[i] = NoTarget
+		e.tgt[i] = uint8(NoTarget)
 	}
-	e.tgt[1] = PlayerTarget0 + 1
+	e.tgt[1] = uint8(PlayerTarget0 + 1)
 	if got := read(kop.RefTarget0, &e); got != 0 {
 		t.Errorf("an unfilled slot reads %d, want 0", got)
 	}

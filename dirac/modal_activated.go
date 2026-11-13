@@ -119,7 +119,7 @@ func (s *State) askOptionsModalAct(k *prep, d *Decision) bool {
 		n := s.modalCands(k, &buf)
 		d.Sub = ChGenResTarget
 		for i := 0; i < n; i++ {
-			d.add(MakeAction(AkChoose, buf[i], 0, 0))
+			d.add(MakeAction(AkChoose, TCode(buf[i]), 0, 0))
 		}
 		if r.peekI >= lo {
 			d.add(MakeAction(AkDone, 0, 0, 0))
@@ -160,19 +160,19 @@ func (s *State) applyAskModalAct(k *prep, a Action) bool {
 			}
 			// gorge records the pick as the ability's TargetsChosen:
 			// BecomesTarget / ward first, then the crime (checkWard's order)
-			s.targetedOne(k, &r.e, c)
+			s.targetedOne(k, &r.e, uint8(c))
 			if k.gen != nil && k.gen.crimeOn {
-				s.crimeModalPick(k, &r.e, i, r.peekI, c)
+				s.crimeModalPick(k, &r.e, i, r.peekI, uint8(c))
 			}
 			if r.peekI == 0 {
-				r.e.tgt[i], r.e.tver[i] = c, ver
+				r.e.tgt[i], r.e.tver[i] = uint8(c), ver
 				if r.e.nt <= uint8(i) {
 					r.e.nt = uint8(i) + 1
 				}
 			} else if x := s.xtMut(&r.e); x == nil {
 				return true
 			} else if x.n < maxXTgt {
-				x.slot[x.n], x.code[x.n], x.ver[x.n] = uint8(i), c, ver
+				x.slot[x.n], x.code[x.n], x.ver[x.n] = uint8(i), uint8(c), ver
 				x.n++
 			} else {
 				s.capFull(StallXTgt)

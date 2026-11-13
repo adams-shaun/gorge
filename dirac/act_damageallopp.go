@@ -50,7 +50,7 @@ func (s *State) damageAllOpp(k *prep, in *kop.Instr, ctrl uint8, n int) {
 	if pl != 0 {
 		q := s.oppsFrom(ctrl)
 		for i := uint8(0); i < q.n; i++ {
-			s.damageTo(k, PlayerCode(q.s[i]), n)
+			s.damageTo(k, uint8(PlayerCode(q.s[i])), n)
 		}
 	}
 }

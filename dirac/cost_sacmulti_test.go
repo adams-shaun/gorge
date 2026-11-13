@@ -42,12 +42,12 @@ func multiSacResolve(t *testing.T, sc *scen, rite CardID, players ...uint8) {
 	t.Helper()
 	src := sc.perm(rite, 0)
 	e := stackEntry{kind: seAbility, obj: src, srcVer: sc.s.objs[src].ver, card: rite, ab: 0, ctrl: 0, nt: 1}
-	e.tgt[0] = PlayerTarget0 + players[0]
+	e.tgt[0] = uint8(PlayerTarget0 + TCode(players[0]))
 	if len(players) > 1 {
 		x := sc.s.xtMut(&e)
 		x.n = uint8(len(players) - 1)
 		for i, p := range players[1:] {
-			x.slot[i], x.code[i], x.ver[i] = 0, PlayerTarget0+p, 0
+			x.slot[i], x.code[i], x.ver[i] = 0, uint8(PlayerTarget0+TCode(p)), 0
 		}
 	}
 	sc.s.stack[0] = e

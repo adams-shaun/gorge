@@ -1015,7 +1015,7 @@ func (s *State) slotHasExtra(e *stackEntry, i uint8) bool {
 // first in tgt[slot], then its extra objects).
 func (s *State) divTargets(k *prep, e *stackEntry, slot uint8, codes *[maxXTgt + 1]uint8) int {
 	m := 0
-	if c := s.tgtCode(int(slot)); c != NoTarget {
+	if c := s.tgtCode(int(slot)); TCode(c) != NoTarget {
 		codes[m] = c
 		m++
 	}
@@ -1098,11 +1098,11 @@ func (s *State) xtLegal(k *prep, e *stackEntry, j int) bool {
 
 func (s *State) xtLegalBase(k *prep, e *stackEntry, j int) bool {
 	c := s.xtOf(e).code[j]
-	if c == NoTarget {
+	if TCode(c) == NoTarget {
 		return false
 	}
-	if isPlayerOrNone(c) {
-		return !s.pl[CodeSeat(c)].lost
+	if isPlayerOrNone(TCode(c)) {
+		return !s.pl[CodeSeat(TCode(c))].lost
 	}
 	if s.objs[c].ver != s.xtOf(e).ver[j] {
 		return false
@@ -1201,10 +1201,10 @@ func (s *State) slotPlayers(k *prep, slot uint8) (ps seatSeq, over bool) {
 	m := s.divTargets(k, &s.res.e, slot, &codes)
 	for i := 0; i < m; i++ {
 		c := codes[i]
-		if !isPlayerTarget(c) {
+		if !isPlayerTarget(TCode(c)) {
 			continue
 		}
-		p := CodeSeat(c)
+		p := CodeSeat(TCode(c))
 		dup := false
 		for j := uint8(0); j < ps.n; j++ {
 			if ps.s[j] == p {
@@ -1351,7 +1351,7 @@ func (s *State) execDamageEx(k *prep, in *kop.Instr) {
 		s.g.excess = 0 // an unbound read is 0, never a stale record
 	}
 	code := s.refCode(k, in.Obj)
-	if code == NoTarget {
+	if TCode(code) == NoTarget {
 		return
 	}
 	n := s.value(k, in.A)
@@ -1364,7 +1364,7 @@ func (s *State) execDamageEx(k *prep, in *kop.Instr) {
 		}
 		return
 	}
-	if isObjTarget(code) && s.objs[code].zone == kop.ZoneBattlefield {
+	if isObjTarget(TCode(code)) && s.objs[code].zone == kop.ZoneBattlefield {
 		sl := s.objs[code].slot
 		lethal := 0
 		if in.C&kop.DmgTrackExcess != 0 {
@@ -2392,14 +2392,14 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int, park bool) bool 
 		if n <= 0 {
 			continue
 		}
-		if isPlayerOrNone(code) {
+		if isPlayerOrNone(TCode(code)) {
 			if inf {
-				s.addPoison(CodeSeat(code), n) // CR 702.90b
+				s.addPoison(CodeSeat(TCode(code)), n) // CR 702.90b
 			} else {
-				s.loseLife(k, CodeSeat(code), n)
+				s.loseLife(k, CodeSeat(TCode(code)), n)
 			}
 			toPl = true
-			plM |= 1 << CodeSeat(code)
+			plM |= 1 << CodeSeat(TCode(code))
 		} else {
 			ob := &s.objs[code]
 			if ob.zone != kop.ZoneBattlefield {
@@ -2439,9 +2439,9 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int, park bool) bool 
 	if s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() || k.gen.graveDmg {
 		agg := refLatch{agg: true} // the once-per-batch lines take the total, the rest wait for the pass below
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
-			s.fireDamageEvGen(k, sl, int16(total), toPl, false, nil, NoTarget, &agg)
+			s.fireDamageEvGen(k, sl, int16(total), toPl, false, nil, uint8(NoTarget), &agg)
 		} else if s.res.e.obj != NoObj { // a spell, or an ability whose source is gone (pair 3334)
-			s.fireDamageSrc(k, s.res.e.obj, s.res.e.ctrl, int16(total), plM, NoTarget, &agg)
+			s.fireDamageSrc(k, s.res.e.obj, s.res.e.ctrl, int16(total), plM, uint8(NoTarget), &agg)
 		}
 		s.fireDamageRefs(k, codes, dn[:len(codes)]) // one Damage event per recipient
 	}

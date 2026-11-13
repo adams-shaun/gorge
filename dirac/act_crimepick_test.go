@@ -34,7 +34,7 @@ func TestCrimeAbilityPickActivation(t *testing.T) {
 	found := false
 	d := s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(maker) {
+		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == TCode(uint8(maker)) {
 			s.Apply(a)
 			found = true
 			break
@@ -54,7 +54,7 @@ func TestCrimeAbilityPickActivation(t *testing.T) {
 	found = false
 	d = s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkTarget && a.Target() == uint8(bandit) {
+		if a := d.Options[i]; a.Kind() == AkTarget && a.Target() == TCode(uint8(bandit)) {
 			s.Apply(a)
 			found = true
 			break

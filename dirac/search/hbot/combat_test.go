@@ -87,7 +87,7 @@ func TestChooseAttackers(t *testing.T) {
 		cs := &b.cs
 		cs.n = 0
 		for _, c := range mine {
-			cs.opts[cs.n] = copt{src: c.obj, tgt: dirac.PlayerTarget0 + 1, def: 1}
+			cs.opts[cs.n] = copt{src: c.obj, tgt: uint8(dirac.PlayerTarget0 + 1), def: 1}
 			cs.n++
 		}
 		cs.groupAttackers()

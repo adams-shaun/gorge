@@ -48,7 +48,7 @@ func TestSacrificeCostPaidAfterMana(t *testing.T) {
 		d := sc.s.Step()
 		a := d.Options[0]
 		for j := 0; j < int(d.N); j++ {
-			if o := d.Options[j]; o.Source() == uint8(dwynen) || o.Target() == uint8(dwynen) {
+			if o := d.Options[j]; o.Source() == TCode(uint8(dwynen)) || o.Target() == TCode(uint8(dwynen)) {
 				a = o
 				break
 			}

@@ -689,8 +689,8 @@ func dmgPlayers(toPlayer bool, srcCtrl uint8, rcp uint8) uint8 {
 
 // dmgPl is the player mask fireDamageSrc takes for one damage target code.
 func dmgPl(code uint8) uint8 {
-	if isPlayerOrNone(code) {
-		return 1 << CodeSeat(code)
+	if isPlayerOrNone(TCode(code)) {
+		return 1 << CodeSeat(TCode(code))
 	}
 	return 0
 }
@@ -972,8 +972,8 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 		if !life || dealt {
 			continue // dealt: the life changes were made per event (dealCombatEvent)
 		}
-		if r.dealtPl[sl] > 0 && isPlayerOrNone(s.perms[sl].atk) && !r.infM.has(sl) {
-			s.loseLife(k, CodeSeat(s.perms[sl].atk), int(r.dealtPl[sl]))
+		if r.dealtPl[sl] > 0 && isPlayerOrNone(TCode(s.perms[sl].atk)) && !r.infM.has(sl) {
+			s.loseLife(k, CodeSeat(TCode(s.perms[sl].atk)), int(r.dealtPl[sl]))
 			if int(s.npend)-loPl >= 2 {
 				s.pendListenerOrder(loPl)
 			}

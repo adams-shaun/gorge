@@ -31,7 +31,7 @@ func (sc *scen) xChoices(t *testing.T, o Obj, ab uint8) []int {
 	d := sc.s.Step()
 	found := false
 	for i := 0; i < int(d.N) && !found; i++ {
-		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(o) && a.Mode()&0x7f == ab {
+		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == TCode(uint8(o)) && a.Mode()&0x7f == ab {
 			sc.s.Apply(a)
 			found = true
 		}

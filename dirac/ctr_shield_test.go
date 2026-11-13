@@ -68,7 +68,7 @@ func (sc *scen) castAt(t *testing.T, o, tgt Obj) {
 	t.Helper()
 	sc.castCard(t, o)
 	if d := sc.s.Step(); d.Kind != DkPriority {
-		sc.s.Apply(MakeAction(AkTarget, 0, uint8(tgt), 0))
+		sc.s.Apply(MakeAction(AkTarget, 0, TCode(tgt), 0))
 	}
 	sc.resolveAll(t)
 }

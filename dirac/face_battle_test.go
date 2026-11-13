@@ -44,7 +44,7 @@ func attackOffers(sc *scen, a, tgt Obj) (n int) {
 	var d Decision
 	sc.s.attackerOptions(sc.k, &d)
 	for i := 0; i < int(d.N); i++ {
-		if x := d.Options[i]; x.Kind() == AkAttack && x.Source() == uint8(a) && x.Target() == uint8(tgt) {
+		if x := d.Options[i]; x.Kind() == AkAttack && x.Source() == TCode(uint8(a)) && x.Target() == TCode(uint8(tgt)) {
 			n++
 		}
 	}
@@ -205,7 +205,7 @@ func defeatToAsk(t *testing.T, sc *scen, front CardID) Obj {
 func TestBattleDefeatCastYes(t *testing.T) {
 	sc, front, back := battleScen(t, 2)
 	b := defeatToAsk(t, sc, front)
-	sc.s.Apply(MakeAction(AkChoose, uint8(b), 0, 1))
+	sc.s.Apply(MakeAction(AkChoose, TCode(b), 0, 1))
 	sc.buildToStack(t)
 	if ob := &sc.s.objs[b]; ob.zone != kop.ZoneStack || ob.card != back || sc.s.sp != 1 {
 		t.Fatalf("yes: zone %d card back %v stack %d, want the free back face on the stack", ob.zone, ob.card == back, sc.s.sp)
@@ -222,7 +222,7 @@ func TestBattleDefeatCastYes(t *testing.T) {
 func TestBattleDefeatCastNo(t *testing.T) {
 	sc, front, _ := battleScen(t, 2)
 	b := defeatToAsk(t, sc, front)
-	sc.s.Apply(MakeAction(AkChoose, uint8(b), 0, 0))
+	sc.s.Apply(MakeAction(AkChoose, TCode(b), 0, 0))
 	if ob := &sc.s.objs[b]; ob.zone != kop.ZoneExile || ob.card != front {
 		t.Fatalf("no: zone %d card front %v, want exile face 0", ob.zone, ob.card == front)
 	}
@@ -237,7 +237,7 @@ func TestBattleDefeatCastNo(t *testing.T) {
 func TestBattleDefeatCastSorcery(t *testing.T) {
 	sc, front, back := battleScenBack(t, 2, kop.TSorcery)
 	b := defeatToAsk(t, sc, front)
-	sc.s.Apply(MakeAction(AkChoose, uint8(b), 0, 1))
+	sc.s.Apply(MakeAction(AkChoose, TCode(b), 0, 1))
 	sc.buildToStack(t)
 	if ob := &sc.s.objs[b]; ob.card != back {
 		t.Fatal("the sorcery back face is not on the stack")
@@ -251,7 +251,7 @@ func TestBattleDefeatCastSorcery(t *testing.T) {
 func TestBattleDefeatReversalFront(t *testing.T) {
 	sc, front, back := battleScen(t, 2)
 	b := defeatToAsk(t, sc, front)
-	sc.s.Apply(MakeAction(AkChoose, uint8(b), 0, 1))
+	sc.s.Apply(MakeAction(AkChoose, TCode(b), 0, 1))
 	sc.s.Step()
 	if ob := &sc.s.objs[b]; ob.card != back {
 		t.Fatal("the free cast did not turn the card to its back face")

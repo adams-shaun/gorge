@@ -122,7 +122,7 @@ func TestDiscardPermanentBaseInHand(t *testing.T) {
 				A: kop.Const(1), C: tc.c, F: tc.f}
 			sc.s.res = resCtx{e: stackEntry{card: v.GrizzlyBears, ctrl: 0},
 				active: true, lastTok: NoObj, eachObj: NoObj}
-			sc.s.res.e.tgt[0] = PlayerTarget0 + 1
+			sc.s.res.e.tgt[0] = uint8(PlayerTarget0 + 1)
 			ok := sc.s.exec(sc.k, &in)
 			if tc.wantAsk {
 				if ok || sc.s.res.ask != raDiscard {

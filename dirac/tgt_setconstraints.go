@@ -126,7 +126,7 @@ func (s *State) tgtSetCap(k *prep, t *kop.TargetSpec, cands []uint8) uint8 {
 	if t.TFlags&kop.TgfDistinctNames != 0 {
 		var seen [MaxOptions]CardID
 		for _, c := range cands {
-			if c == NoTarget || !isObjTarget(c) {
+			if TCode(c) == NoTarget || !isObjTarget(TCode(c)) {
 				continue
 			}
 			id, dup := s.objs[c].card, false
@@ -146,7 +146,7 @@ func (s *State) tgtSetCap(k *prep, t *kop.TargetSpec, cands []uint8) uint8 {
 	var cnt [kop.MaxSubtypes]int
 	nAll, objs := 0, 0
 	for _, c := range cands {
-		if c == NoTarget || !isObjTarget(c) {
+		if TCode(c) == NoTarget || !isObjTarget(TCode(c)) {
 			continue
 		}
 		objs++
@@ -186,7 +186,7 @@ func (s *State) tgtSetBounds(k *prep, t *kop.TargetSpec, e *stackEntry, mt *mult
 // tgtSetAdmit reports whether candidate c may join the picks of slot ti of the
 // entry being built; cands is the slot's whole candidate list.
 func (s *State) tgtSetAdmit(k *prep, t *kop.TargetSpec, e *stackEntry, ti uint8, c uint8, cands []uint8) bool {
-	if DebugTgtSetOff || !isObjTarget(c) {
+	if DebugTgtSetOff || !isObjTarget(TCode(c)) {
 		return true
 	}
 	picked := s.g.mt.picked
@@ -223,7 +223,7 @@ func (s *State) tgtSetAdmit(k *prep, t *kop.TargetSpec, e *stackEntry, ti uint8,
 				return true
 			}
 			for _, d := range cands {
-				if d == c || d == NoTarget || !isObjTarget(d) {
+				if d == c || TCode(d) == NoTarget || !isObjTarget(TCode(d)) {
 					continue
 				}
 				if dm, da := s.crTypesOf(k, Obj(d)); s.sharesCr(cm, ca, dm, da) {
@@ -273,7 +273,7 @@ func (s *State) xtSetNarrowed(k *prep, e *stackEntry, j int) bool {
 				continue
 			}
 		}
-		if !isObjTarget(c) {
+		if !isObjTarget(TCode(c)) {
 			continue
 		}
 		m, all := s.crTypesOf(k, Obj(c))

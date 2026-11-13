@@ -95,12 +95,12 @@ func (s *State) askOptionsCzParams(k *prep, d *Decision) bool {
 		var buf [MaxOptions]uint8
 		n := s.enteringDefenderCands(k, s.res.askP, &buf)
 		if MaxSeats > 2 && s.res.e.kind == seTrigger {
-			if fb := s.enterDefenderFallback(k, s.res.askP); fb != NoTarget {
+			if fb := s.enterDefenderFallback(k, s.res.askP); TCode(fb) != NoTarget {
 				n = enterDefenderOrder(&buf, n, fb) // gorge chooseEnteringDefender: fallback first
 			}
 		}
 		for i := 0; i < n; i++ {
-			d.add(MakeAction(AkChoose, buf[i], 0, 0))
+			d.add(MakeAction(AkChoose, TCode(buf[i]), 0, 0))
 		}
 	default:
 		return false
@@ -130,12 +130,12 @@ func (s *State) applyAskCzParams(k *prep, a Action) bool {
 		s.res.ask = raNone
 		sl := Slot(s.res.chosen)
 		if sl == NoSlot { // a TokenAttacking$ True mint's pick, asked before it (filter_combatwords.go)
-			s.g.tokDef, s.g.tokDefSet = a.Source(), true
+			s.g.tokDef, s.g.tokDefSet = uint8(a.Source()), true
 			s.runProg(k) // re-run the mint instruction with the answer
 			return true
 		}
 		if s.occ.has(sl) {
-			s.setEnterAttacker(k, sl, a.Source())
+			s.setEnterAttacker(k, sl, uint8(a.Source()))
 		}
 		if s.unparkTail(k) {
 			return true
@@ -214,7 +214,7 @@ func (s *State) enteringDefenderCands(k *prep, ctrl uint8, buf *[MaxOptions]uint
 	n := 0
 	for opp := uint8(0); opp < s.nSeats(); opp++ {
 		if opp != ctrl && !s.pl[opp].lost {
-			buf[n] = PlayerCode(opp) // each opponent player, AliveFrom(0)
+			buf[n] = uint8(PlayerCode(opp)) // each opponent player, AliveFrom(0)
 			n++
 		}
 	}
@@ -290,7 +290,7 @@ next:
 			}
 		}
 		if !s.tokenLeftBattlefield(o) && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) { // a token off the battlefield is no card (CR 111.8)
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 }

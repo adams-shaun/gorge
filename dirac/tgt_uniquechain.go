@@ -88,7 +88,7 @@ func (s *State) uniqueChainViable(k *prep, ti uint8, buf *[MaxOptions]uint8, n i
 		c := s.targetCands(k, t, e.ctrl, s.srcSlot(), e.obj, &all)
 		w := 0
 		for i := 0; i < c; i++ {
-			if x := all[i]; x != NoTarget && !s.pickedBefore(e, ti, x) {
+			if x := all[i]; TCode(x) != NoTarget && !s.pickedBefore(e, ti, x) {
 				later[nl][w] = x
 				w++
 			}
@@ -192,7 +192,7 @@ func (m *uniqMatch) cands(u int) []uint8 {
 // try finds unit u a code by an augmenting path.
 func (m *uniqMatch) try(u int) bool {
 	for _, x := range m.cands(u) {
-		if x == m.c || x == NoTarget || m.seen[x] {
+		if x == m.c || TCode(x) == NoTarget || m.seen[x] {
 			continue
 		}
 		m.seen[x] = true

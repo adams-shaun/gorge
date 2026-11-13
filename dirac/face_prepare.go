@@ -194,7 +194,7 @@ func (s *State) offerPreparedCasts(k *prep, d *Decision, p uint8, sorc bool) {
 			continue
 		}
 		if s.faceCastable(k, p, o, ob.card, sorc) {
-			d.add(MakeAction(AkCast, uint8(o), 1, castFace))
+			d.add(MakeAction(AkCast, TCode(o), 1, castFace))
 		}
 	}
 }

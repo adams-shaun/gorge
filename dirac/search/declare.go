@@ -84,7 +84,7 @@ func (sr *Searcher) attackCands(s *dirac.State, d *dirac.Decision, bot, limit in
 	na := 0
 	for i := 0; i < int(d.N); i++ {
 		a := d.Options[i]
-		if a.Kind() != dirac.AkAttack || hasSource(all[:na], a.Source()) {
+		if a.Kind() != dirac.AkAttack || hasSource(all[:na], uint8(a.Source())) {
 			continue
 		}
 		all[na] = uint32(a)
@@ -118,7 +118,7 @@ func (sr *Searcher) attackCands(s *dirac.State, d *dirac.Decision, bot, limit in
 
 func hasSource(l []uint32, src uint8) bool {
 	for _, x := range l {
-		if dirac.Action(x).Source() == src {
+		if dirac.Action(x).Source() == dirac.TCode(src) {
 			return true
 		}
 	}

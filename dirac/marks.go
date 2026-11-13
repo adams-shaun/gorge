@@ -429,7 +429,7 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 	for i := 0; i < int(d.N); i++ {
 		a := d.Options[i]
 		h = hmix(h, uint64(a))
-		for _, o := range [2]uint8{a.Source(), a.Target()} {
+		for _, o := range [2]uint8{uint8(a.Source()), uint8(a.Target())} {
 			if int(o) >= int(s.nobj) {
 				continue
 			}

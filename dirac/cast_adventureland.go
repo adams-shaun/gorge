@@ -36,7 +36,7 @@ func (s *State) offerAdventureLandPlays(k *prep, d *Decision, p uint8, sorc bool
 		if playLandOffered(d, o) {
 			continue
 		}
-		d.add(MakeAction(AkPlayLand, uint8(o), 0, 0))
+		d.add(MakeAction(AkPlayLand, TCode(o), 0, 0))
 	}
 }
 
@@ -46,7 +46,7 @@ func (s *State) offerAdventureLandPlays(k *prep, d *Decision, p uint8, sorc bool
 func playLandOffered(d *Decision, o Obj) bool {
 	for i := 0; i < int(d.N); i++ {
 		a := d.Options[i]
-		if a.Kind() == AkPlayLand && a.Source() == uint8(o) {
+		if a.Kind() == AkPlayLand && a.Source() == TCode(uint8(o)) {
 			return true
 		}
 	}

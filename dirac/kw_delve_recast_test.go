@@ -61,7 +61,7 @@ func offered(sc *scen, kind ActionKind, o Obj, tgt, mode uint8) (n int) {
 	d := sc.s.Step()
 	for i := 0; i < int(d.N); i++ {
 		a := d.Options[i]
-		if a.Kind() == kind && a.Source() == uint8(o) && (tgt == 0xff || a.Target() == tgt) && (mode == 0xff || a.Mode() == mode) {
+		if a.Kind() == kind && a.Source() == TCode(uint8(o)) && (tgt == 0xff || a.Target() == TCode(tgt)) && (mode == 0xff || a.Mode() == mode) {
 			n++
 		}
 	}
@@ -75,7 +75,7 @@ func applyCast(t *testing.T, sc *scen, kind ActionKind, o Obj, tgt, mode uint8) 
 	d := sc.s.Step()
 	for i := 0; i < int(d.N); i++ {
 		a := d.Options[i]
-		if a.Kind() == kind && a.Source() == uint8(o) && (tgt == 0xff || a.Target() == tgt) && (mode == 0xff || a.Mode() == mode) {
+		if a.Kind() == kind && a.Source() == TCode(uint8(o)) && (tgt == 0xff || a.Target() == TCode(tgt)) && (mode == 0xff || a.Mode() == mode) {
 			sc.s.Apply(a)
 			return
 		}

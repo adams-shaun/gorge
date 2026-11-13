@@ -105,7 +105,7 @@ func (s *State) askOptionsBearer(k *prep, d *Decision) bool {
 	var buf [MaxOptions]uint8
 	n := s.czBearerCands(k, in, s.objRefObj(in.Obj), &buf)
 	for i := 0; i < n; i++ {
-		d.add(MakeAction(AkChoose, buf[i], 0, 0))
+		d.add(MakeAction(AkChoose, TCode(buf[i]), 0, 0))
 	}
 	return true
 }

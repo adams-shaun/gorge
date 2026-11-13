@@ -126,7 +126,7 @@ func TestStationPutsChargeEqualToPower(t *testing.T) {
 	sc.do(t, AkActivate, uint8(ship), 0xff)
 	// the pick comes before the push, always asked even with one candidate
 	d := sc.s.Step()
-	if d.Kind != DkChoose || d.Sub != ChStation || d.N != 1 || d.Options[0].Source() != uint8(giant) {
+	if d.Kind != DkChoose || d.Sub != ChStation || d.N != 1 || d.Options[0].Source() != TCode(uint8(giant)) {
 		t.Fatalf("decision %v sub %v n %d: want the one-candidate ChStation pick", d.Kind, d.Sub, d.N)
 	}
 	if sc.s.sp != 0 {

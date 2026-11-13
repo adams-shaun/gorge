@@ -157,7 +157,7 @@ func TestEnterAttackingMarksAttacker(t *testing.T) {
 		t.Fatal("the creature did not enter")
 	}
 	p := &sc.s.perms[sc.slot(o)]
-	if p.flags&pfAttacking == 0 || p.atk != PlayerTarget0+1 || p.bord != 1 || sc.s.nAttackers != 2 {
+	if p.flags&pfAttacking == 0 || TCode(p.atk) != PlayerTarget0+1 || p.bord != 1 || sc.s.nAttackers != 2 {
 		t.Fatalf("attacking %v atk %d bord %d nAttackers %d, want attacking the opponent as attacker 1", p.flags&pfAttacking != 0, p.atk, p.bord, sc.s.nAttackers)
 	}
 	if sc.s.npend != 0 {
@@ -187,7 +187,7 @@ func TestEnterAttackingMarksAttacker(t *testing.T) {
 		t.Fatalf("ask %d slot %d, want the CR 508.4 defender ask for slot %d", sc.s.res.ask, sc.s.res.chosen, sc.slot(o))
 	}
 	if !sc.s.resolveOptionsGen(sc.k, &d) || d.N != 2 || d.Sub != ChGenEnterDefender ||
-		d.Options[0].Source() != PlayerTarget0+1 || d.Options[1].Source() != uint8(walk) {
+		d.Options[0].Source() != PlayerTarget0+1 || d.Options[1].Source() != TCode(uint8(walk)) {
 		t.Fatalf("options %+v, want the opponent player then the walker", d.Options[:d.N])
 	}
 	sc.s.applyAskCold1(sc.k, d.Options[1]) // answer: the walker

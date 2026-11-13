@@ -52,7 +52,7 @@ func plotRestrScen(t *testing.T, names ...string) (sc *scen, id map[string]CardI
 
 func plotOffered(d *Decision, o Obj) bool {
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkPlot && a.Source() == uint8(o) {
+		if a.Kind() == AkPlot && a.Source() == TCode(uint8(o)) {
 			return true
 		}
 	}

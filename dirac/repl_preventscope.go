@@ -45,7 +45,7 @@ func (s *State) prevScopeHit(k *prep, sc, ctl uint8, srcSl Slot, t prevTgt) bool
 // code (an attacker's damage to the player it attacks) when dst is NoSlot.
 func (s *State) recipientCtl(dst Slot, code uint8) uint8 {
 	if dst == NoSlot {
-		return CodeSeat(code)
+		return CodeSeat(TCode(code))
 	}
 	return s.perms[dst].ctrl
 }

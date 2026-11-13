@@ -116,7 +116,7 @@ func TestMayPlayAnyTypeRiderPaysEitherOrTotal(t *testing.T) {
 	}
 	var d Decision
 	s.offerPlay(k, &d, 0, o, castMayPlay, false, false, true, false, false, &av)
-	if !hasOption(&d, MakeAction(AkCast, uint8(o), 0, castMayPlay)) {
+	if !hasOption(&d, MakeAction(AkCast, TCode(o), 0, castMayPlay)) {
 		t.Errorf("the any-type may-play cast is not offered: options %v", d.Options[:d.N])
 	}
 }

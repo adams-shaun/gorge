@@ -37,7 +37,7 @@ func (s *State) supportOptions(k *prep, in *kop.Instr, d *Decision) {
 			sl := m.first()
 			o := uint8(s.perms[sl].obj)
 			if s.supportOK(k, in, sl) && !s.prolifPicked(o) {
-				d.add(MakeAction(AkChoose, o, 0, 0))
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 	}

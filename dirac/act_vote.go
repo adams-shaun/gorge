@@ -63,7 +63,7 @@ func (s *State) voteStart(k *prep, in *kop.Instr) bool {
 func (s *State) voteOptions(k *prep, d *Decision) {
 	d.Sub = ChVoteCard
 	for m := s.voteBallot(k, &s.prog(k)[s.res.pc]); m.any(); m = m.rest() {
-		d.add(MakeAction(AkChoose, uint8(s.perms[m.first()].obj), 0, 0))
+		d.add(MakeAction(AkChoose, TCode(s.perms[m.first()].obj), 0, 0))
 	}
 }
 

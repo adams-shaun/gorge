@@ -42,7 +42,7 @@ func (sc *scen) altAddParts(t *testing.T) []uint8 {
 	d := sc.expect(t, DkChoose, ChAltAdd)
 	var parts []uint8
 	for i := 0; i < int(d.N); i++ {
-		parts = append(parts, d.Options[i].Target())
+		parts = append(parts, uint8(d.Options[i].Target()))
 	}
 	return parts
 }
@@ -51,7 +51,7 @@ func (sc *scen) chooseAltAdd(t *testing.T, part uint8) {
 	t.Helper()
 	d := sc.expect(t, DkChoose, ChAltAdd)
 	for i := 0; i < int(d.N); i++ {
-		if d.Options[i].Target() == part {
+		if d.Options[i].Target() == TCode(part) {
 			sc.s.Apply(d.Options[i])
 			return
 		}
@@ -286,7 +286,7 @@ func TestForageResolutionCost(t *testing.T) {
 		t.Fatalf("election: kind %d sub %d n %d, want ChCostForage exile + 2 Foods", d.Kind, d.Sub, d.N)
 	}
 	hand = sc.s.pl[0].handN
-	sc.s.Apply(MakeAction(AkChoose, uint8(foods[1]), 0, 1))
+	sc.s.Apply(MakeAction(AkChoose, TCode(foods[1]), 0, 1))
 	if sc.onBF(foods[1]) || !sc.onBF(foods[0]) || sc.s.pl[0].graveN < 3 || sc.s.pl[0].handN != hand+1 {
 		t.Fatalf("the chosen Food was not sacrificed alone, or no draw: %v %v grave %d hand %d/%d", sc.onBF(foods[1]), sc.onBF(foods[0]), sc.s.pl[0].graveN, sc.s.pl[0].handN, hand)
 	}

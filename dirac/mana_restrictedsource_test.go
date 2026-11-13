@@ -58,7 +58,7 @@ func restrSourceChose(t *testing.T, sc *scen, c Obj, typ string) {
 
 func actOffered(d *Decision, o Obj) bool {
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkActivate && a.Source() == uint8(o) {
+		if a.Kind() == AkActivate && a.Source() == TCode(uint8(o)) {
 			return true
 		}
 	}
@@ -84,7 +84,7 @@ func TestRestrictedSourceAdmission(t *testing.T) {
 	if !castOffered(&d, lions) || castOffered(&d, paci) {
 		t.Fatalf("(a) Savannah Lions offered %v, Pacifism %v; want the creature on the Village's {W} only", castOffered(&d, lions), castOffered(&d, paci))
 	}
-	sc.s.Apply(MakeAction(AkCast, uint8(lions), 0, 0))
+	sc.s.Apply(MakeAction(AkCast, TCode(lions), 0, 0))
 	sc.s.Step()
 	if sc.s.sp != 1 || sc.s.rbAny(0) || sc.s.pl[0].pool != ([kop.NumManaKinds]uint8{}) {
 		t.Fatalf("(a) after the Lions: stack %d restricted %v pool %v, want the Lions on the stack and nothing floating", sc.s.sp, sc.s.rb[0], sc.s.pl[0].pool)
@@ -167,7 +167,7 @@ func TestRestrictedSourceAdmission(t *testing.T) {
 		t.Fatalf("(e) Walking Ballista offered %v, Hill Giant %v, Grizzly Bears %v; want the X creature and the mana value 4, not the 2",
 			castOffered(&d, ball), castOffered(&d, giant), castOffered(&d, bears))
 	}
-	sc.s.Apply(MakeAction(AkCast, uint8(ball), 0, 0))
+	sc.s.Apply(MakeAction(AkCast, TCode(ball), 0, 0))
 	d = sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChX {
 		t.Fatalf("(e) the Ballista's X ask: kind %d sub %d", d.Kind, d.Sub)
@@ -217,7 +217,7 @@ func firstFail(out []byte) string {
 // actModeOffered reports whether d offers activation mode of permanent o.
 func actModeOffered(d *Decision, o Obj, mode uint8) bool {
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkActivate && a.Source() == uint8(o) && a.Mode() == mode {
+		if a.Kind() == AkActivate && a.Source() == TCode(uint8(o)) && a.Mode() == mode {
 			return true
 		}
 	}

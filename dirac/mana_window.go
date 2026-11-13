@@ -2606,7 +2606,7 @@ func (s *State) digMove(k *prep, p uint8, o Obj, z kop.Zone, next, after []Obj) 
 // first in tgt[slot], then its extra objects), legal or not.
 func (s *State) divPicks(e *stackEntry, slot uint8, codes *[maxXTgt + 1]uint8) int {
 	m := 0
-	if c := e.tgt[slot]; c != NoTarget {
+	if c := e.tgt[slot]; TCode(c) != NoTarget {
 		codes[m] = c
 		m++
 	}
@@ -2685,7 +2685,7 @@ func (s *State) castDivideOptions(k *prep, d *Decision) {
 	n := s.divPicks(e, s.bld().divSlot, &codes)
 	d.Kind, d.Sub, d.Player = DkChoose, ChCastDivide, e.ctrl
 	for i := 0; i < n; i++ {
-		d.add(MakeAction(AkChoose, codes[i], 0, 0))
+		d.add(MakeAction(AkChoose, TCode(codes[i]), 0, 0))
 	}
 }
 
@@ -2718,8 +2718,8 @@ func (s *State) dealAnnouncedDivision(k *prep, e *stackEntry, slot uint8) bool {
 	var codes [maxXTgt + 1]uint8
 	var amts [maxXTgt + 1]int
 	m, i := 0, 0
-	if e.tgt[slot] != NoTarget {
-		if c := s.tgtCode(int(slot)); c != NoTarget {
+	if TCode(e.tgt[slot]) != NoTarget {
+		if c := s.tgtCode(int(slot)); TCode(c) != NoTarget {
 			codes[m], amts[m] = c, int(x.div[0])
 			m++
 		}

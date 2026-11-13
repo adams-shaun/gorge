@@ -53,7 +53,7 @@ func TestTokenAttackingAsksDefenderBeforeMint(t *testing.T) {
 	if s.res.ask != raNone {
 		t.Fatalf("ask %d, want none with only the opponent player to attack", s.res.ask)
 	}
-	if got := tokenAttackDefenders(s); len(got) != 2 || got[0] != PlayerTarget0+1 || got[1] != PlayerTarget0+1 {
+	if got := tokenAttackDefenders(s); len(got) != 2 || TCode(got[0]) != PlayerTarget0+1 || TCode(got[1]) != PlayerTarget0+1 {
 		t.Fatalf("defenders %v, want two tokens attacking the opponent player", got)
 	}
 

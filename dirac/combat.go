@@ -74,8 +74,8 @@ func (s *State) declareMustAttack(k *prep) {
 				continue // CR 508.1d: no declaration obeys it alone (combat_alone.go)
 			}
 			s.perms[sl].flags |= pfAttacking
-			s.perms[sl].atk = PlayerCode(s.nextAlive(s.active)) // two live seats only: mustAttackAsked asks at more
-			s.perms[sl].bord = s.nAttackers                     // declaration order (fireAttacksGen)
+			s.perms[sl].atk = uint8(PlayerCode(s.nextAlive(s.active))) // two live seats only: mustAttackAsked asks at more
+			s.perms[sl].bord = s.nAttackers                            // declaration order (fireAttacksGen)
 			s.touchSl(sl)
 			s.nAttackers++
 		}
@@ -124,14 +124,14 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 		}
 		// defenders: the defending player, then each planeswalker they
 		// control in slot order
-		d.add(MakeAction(AkAttack, o, PlayerCode(def), 0))
+		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(def), 0))
 		if gd && s.goadedAt(k, sl) {
 			continue // a goad is satisfied by attacking a player only (act_goad.go)
 		}
 		for pm := s.ctrlM[def]; pm.any(); pm = pm.rest() {
 			q := pm.first()
 			if s.typesAt(k, q)&kop.TPlaneswalker != 0 {
-				d.add(MakeAction(AkAttack, o, uint8(s.perms[q].obj), 0))
+				d.add(MakeAction(AkAttack, TCode(o), TCode(s.perms[q].obj), 0))
 			}
 		}
 		if k.gen != nil && k.gen.anyBattle {
@@ -173,13 +173,13 @@ func (s *State) attackOffersN(k *prep, d *Decision, o uint8, sl Slot, goaded boo
 		if goaded && s.goadDefenderBanned(k, sl, q) {
 			continue
 		}
-		d.add(MakeAction(AkAttack, o, PlayerCode(q), 0))
+		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(q), 0))
 		if goaded {
 			continue
 		}
 		for pm := s.ctrlM[q]; pm.any(); pm = pm.rest() {
 			if w := pm.first(); s.typesAt(k, w)&kop.TPlaneswalker != 0 {
-				d.add(MakeAction(AkAttack, o, uint8(s.perms[w].obj), 0))
+				d.add(MakeAction(AkAttack, TCode(o), TCode(s.perms[w].obj), 0))
 			}
 		}
 	}
@@ -228,7 +228,7 @@ func (s *State) MustAttack(o Obj) bool {
 // attacks, or NoSlot when it attacks a player or the target is gone.
 func (s *State) attackedPerm(k *prep, a Slot) Slot {
 	t := s.perms[a].atk
-	if isPlayerOrNone(t) {
+	if isPlayerOrNone(TCode(t)) {
 		return NoSlot
 	}
 	ob := &s.objs[t]
@@ -245,7 +245,7 @@ func (s *State) applyAttack(k *prep, a Action) {
 	}
 	sl := s.objs[a.Source()].slot
 	s.perms[sl].flags |= pfAttacking
-	s.perms[sl].atk = a.Target()
+	s.perms[sl].atk = uint8(a.Target())
 	s.perms[sl].bord = s.nAttackers // declaration order (fireAttacksGen)
 	s.touchSl(sl)
 	s.nAttackers++
@@ -377,7 +377,7 @@ func (s *State) fireAttacksGen(k *prep) {
 	if DebugAtkSeatsMerged {
 		q0 := s.firstAtkSeat(k) // a test-only mutation: every attacked player's attackers in one event
 		for i, as := range atk[:na] {
-			if isPlayerTarget(s.perms[as].atk) {
+			if isPlayerTarget(TCode(s.perms[as].atk)) {
 				atkQ[i] = q0
 			}
 		}
@@ -389,7 +389,7 @@ func (s *State) fireAttacksGen(k *prep) {
 			var grp [MaxPerm]Slot
 			ng := 0
 			for i, as := range atk[:na] {
-				if t := s.perms[as].atk; atkQ[i] == q && (t == def || def == NoTarget && isPlayerOrNone(t)) {
+				if t := s.perms[as].atk; atkQ[i] == q && (t == def || TCode(def) == NoTarget && isPlayerOrNone(TCode(t))) {
 					grp[ng] = as
 					ng++
 				}
@@ -410,11 +410,11 @@ func (s *State) fireAttacksGen(k *prep) {
 			}
 			next := uint8(NoTarget)
 			for i, as := range atk[:na] {
-				if t := s.perms[as].atk; atkQ[i] == q && isObjTarget(t) && (def == NoTarget || t > def) && t < next {
+				if t := s.perms[as].atk; atkQ[i] == q && isObjTarget(TCode(t)) && (TCode(def) == NoTarget || t > def) && t < next {
 					next = t
 				}
 			}
-			if next == NoTarget {
+			if TCode(next) == NoTarget {
 				break
 			}
 			def = next
@@ -437,7 +437,7 @@ func (s *State) firstAtkSeat(k *prep) uint8 {
 // stampDefSeat binds defending seat q to the pending triggers from n0 on
 // (pendingTrig.defSeat); NoTarget binds none.
 func (s *State) stampDefSeat(n0 uint8, q uint8) {
-	if q == NoTarget {
+	if TCode(q) == NoTarget {
 		return
 	}
 	for i := n0; i < s.npend; i++ {
@@ -665,7 +665,7 @@ func (s *State) blockerOptions(k *prep, d *Decision) bool {
 				if int(d.N) >= MaxOptions-1 { // keep room for Done
 					return s.optionsFull(d)
 				}
-				d.add(MakeAction(AkBlock, uint8(s.perms[b].obj), uint8(s.perms[a].obj), 0))
+				d.add(MakeAction(AkBlock, TCode(s.perms[b].obj), TCode(s.perms[a].obj), 0))
 			}
 		}
 	}
@@ -1274,7 +1274,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			sl := m.first()
 			m = m.rest()
 			if r.dealt[sl] > 0 {
-				s.fireDamage(k, sl, r.dealt[sl], r.dealtPl[sl] > 0, true, NoTarget)
+				s.fireDamage(k, sl, r.dealt[sl], r.dealtPl[sl] > 0, true, uint8(NoTarget))
 			}
 		}
 	}
@@ -1285,8 +1285,8 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 // the defending player, or its planeswalker (none if that left).
 func (s *State) toDefender(k *prep, r *dmgRec, a Slot, n int) {
 	t := s.perms[a].atk
-	if isPlayerOrNone(t) {
-		r.toPl[CodeSeat(t)] = s.addSat16(r.toPl[CodeSeat(t)], n)
+	if isPlayerOrNone(TCode(t)) {
+		r.toPl[CodeSeat(TCode(t))] = s.addSat16(r.toPl[CodeSeat(TCode(t))], n)
 		r.dealtPl[a] = s.addSat16(r.dealtPl[a], n)
 		r.dealt[a] = s.addSat16(r.dealt[a], n)
 		r.note(a, NoSlot, s.sat16(n))
@@ -1509,7 +1509,7 @@ func (s *State) divideOptions(k *prep, d *Decision) {
 	n := splits(int(s.divRem), nb)
 	o := uint8(s.perms[s.divA].obj)
 	for i := 0; i < n; i++ {
-		d.add(MakeAction(AkChoose, o, 0, uint8(i)))
+		d.add(MakeAction(AkChoose, TCode(o), 0, uint8(i)))
 	}
 }
 

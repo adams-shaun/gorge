@@ -75,7 +75,7 @@ func TestReturnCostPick(t *testing.T) {
 	if d.Kind != DkChoose || d.Sub != ChCostReturn || d.N != 2 {
 		t.Fatalf("return pick: kind %d sub %d n %d, want ChCostReturn over both Otters", d.Kind, d.Sub, d.N)
 	}
-	sc.s.Apply(MakeAction(AkChoose, uint8(b), 0, 0))
+	sc.s.Apply(MakeAction(AkChoose, TCode(b), 0, 0))
 	if d := sc.s.Step(); d.Kind != DkPriority {
 		t.Fatalf("decision kind %d after the pick, want priority", d.Kind)
 	}

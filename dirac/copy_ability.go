@@ -99,7 +99,7 @@ func (s *State) copyAbilityN(k *prep, in *kop.Instr, n int) bool {
 	e := &s.res.e
 	for c := n - 1; c >= 0; c-- {
 		tc := s.tgtCode(slot)
-		if !isStackTarget(tc) {
+		if !isStackTarget(TCode(tc)) {
 			return true
 		}
 		si := s.stackTgtIdx(tc, e.tver[slot])

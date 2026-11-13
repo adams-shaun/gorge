@@ -34,7 +34,7 @@ func (s *State) protector(sl Slot) (uint8, bool) {
 // FeatAttackDefender is the defending player an attack declared at target
 // code tgt names (gorge's attacker option Player, CR 508.1b): the player
 // itself, a planeswalker's controller, or a battle's protector (CR 310.7).
-func (s *State) FeatAttackDefender(tgt uint8) uint8 {
+func (s *State) FeatAttackDefender(tgt TCode) uint8 {
 	if isPlayerTarget(tgt) {
 		return CodeSeat(tgt)
 	}
@@ -131,7 +131,7 @@ func (s *State) addBattleOffers(k *prep, d *Decision, o uint8) {
 		n = s.battlefieldOrder(p, m, order[:], n)
 	}
 	for _, sl := range order[:n] {
-		d.add(MakeAction(AkAttack, o, uint8(s.perms[sl].obj), 0))
+		d.add(MakeAction(AkAttack, TCode(o), TCode(s.perms[sl].obj), 0))
 	}
 }
 
@@ -297,8 +297,8 @@ func (s *State) defeatPosedOptions(d *Decision) bool {
 	}
 	r := *s.mayAt(i)
 	d.Kind, d.Sub, d.Player = DkChoose, ChDefeatCast, r.ctrl
-	d.add(MakeAction(AkChoose, uint8(r.obj), 0, 1))
-	d.add(MakeAction(AkChoose, uint8(r.obj), 0, 0))
+	d.add(MakeAction(AkChoose, TCode(r.obj), 0, 1))
+	d.add(MakeAction(AkChoose, TCode(r.obj), 0, 0))
 	return true
 }
 

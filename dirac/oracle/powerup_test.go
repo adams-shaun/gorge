@@ -220,7 +220,7 @@ func (t *powerupTally) countWithheld(k Side) {
 		}
 		offered := false
 		for j := 0; j < int(r.d.N); j++ {
-			if a := r.d.Options[j]; a.Kind() == dirac.AkActivate && a.Source() == uint8(i) {
+			if a := r.d.Options[j]; a.Kind() == dirac.AkActivate && a.Source() == dirac.TCode(uint8(i)) {
 				offered = true
 				break
 			}

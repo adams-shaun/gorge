@@ -419,9 +419,9 @@ func (g *Game) boardObject(i uint8) {
 	if po.Attached != dirac.NoObj {
 		o.AttachedTo = g.ids.obj(uint8(po.Attached))
 	}
-	if o.IsAttacking && po.Attacks >= dirac.PlayerTarget0 && po.Attacks != dirac.NoTarget {
-		o.Attacking = state.PlayerID(po.Attacks - dirac.PlayerTarget0)
-	} else if o.IsAttacking && dirac.IsObjTarget(po.Attacks) {
+	if o.IsAttacking && dirac.TCode(po.Attacks) >= dirac.PlayerTarget0 && dirac.TCode(po.Attacks) != dirac.NoTarget {
+		o.Attacking = state.PlayerID(dirac.TCode(po.Attacks) - dirac.PlayerTarget0)
+	} else if o.IsAttacking && dirac.IsObjTarget(dirac.TCode(po.Attacks)) {
 		o.Attacking = state.PlayerID(g.kp.Objs[po.Attacks].Ctrl)
 	}
 	if o.Zone != state.ZBattlefield && g.s.FeatSickOff(dirac.Obj(i)) {
@@ -548,7 +548,7 @@ func (g *Game) boardStack() {
 		}
 		o.Targets = o.Targets[:0]
 		for si, t := range e.Targets {
-			if t != dirac.NoTarget {
+			if dirac.TCode(t) != dirac.NoTarget {
 				o.Targets = append(o.Targets, g.stateTarget(t))
 			}
 			for j := 0; j < int(e.NExtra); j++ {

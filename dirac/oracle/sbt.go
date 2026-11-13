@@ -254,7 +254,7 @@ func (a *SBT) priority(s *dirac.State, d *dirac.Decision, seat *builtins.Seat) [
 		case dirac.AkPass:
 			pass, hasPass = x, true
 		case dirac.AkPlayLand:
-			es = append(es, sbtPrio{act: x, key: 0<<40 | zidx(src)<<8, src: builtins.KeyOption, kind: "play_land", obj: sbtObjID(src)})
+			es = append(es, sbtPrio{act: x, key: 0<<40 | zidx(uint8(src))<<8, src: builtins.KeyOption, kind: "play_land", obj: sbtObjID(uint8(src))})
 		case dirac.AkCast, dirac.AkCastCasualty, dirac.AkCastConspire:
 			cm := ""
 			switch {
@@ -276,15 +276,15 @@ func (a *SBT) priority(s *dirac.State, d *dirac.Decision, seat *builtins.Seat) [
 				cm = "entwined" // CR 702.42a: gorge's "entwined" cast option
 			case mode&1 != 0:
 				cm = "kicked"
-			case mode&2 != 0 && x.Target() == dirac.FeatEscapeTgt:
+			case mode&2 != 0 && x.Target() == dirac.TCode(dirac.FeatEscapeTgt):
 				cm = "escape" // CR 702.42a: the escape cast a StatEscapeGrant static gives (kw_escape.go)
 			case mode&2 != 0 && s.FeatMayhemCard(dirac.Obj(src)):
 				cm = "mayhem"
-			case mode&2 != 0 && x.Target() == dirac.FeatCastEscapeTgt:
+			case mode&2 != 0 && x.Target() == dirac.TCode(dirac.FeatCastEscapeTgt):
 				cm = "escape" // CR 702.138a: gorge's "escape" cast option, marked by the target byte (kw_escape.go)
 			case mode&2 != 0 && s.FeatHarmonizeCast(dirac.Obj(src)):
 				cm = "harmonize"
-			case mode&2 != 0 && x.Target() == dirac.FeatRetraceTgt && s.FeatRetraceCard(dirac.Obj(src)):
+			case mode&2 != 0 && x.Target() == dirac.TCode(dirac.FeatRetraceTgt) && s.FeatRetraceCard(dirac.Obj(src)):
 				cm = "retrace" // CR 702.81a: the printed cost plus the discard-a-land cost (kw_retrace.go)
 				if s.FeatJumpStartCard(dirac.Obj(src)) {
 					cm = "jumpstart" // CR 702.84a: the same cast with any card discarded (kw_jumpstart.go)
@@ -297,19 +297,19 @@ func (a *SBT) priority(s *dirac.State, d *dirac.Decision, seat *builtins.Seat) [
 				cm = "mayplay"
 			}
 			o := dirac.Obj(src)
-			e := sbtPrio{act: x, kind: "cast", obj: sbtObjID(src), mode: cm}
+			e := sbtPrio{act: x, kind: "cast", obj: sbtObjID(uint8(src)), mode: cm}
 			fromHand := kp.Objs[src].Zone == kop.ZoneHand
 			switch {
-			case s.FeatPoolPays(p, o, mode) || a.free(src, mode):
+			case s.FeatPoolPays(p, o, mode) || a.free(uint8(src), mode):
 				e.src = builtins.KeyOption
 				if mode&2 != 0 {
-					e.key = 1<<40 | zidx(src)<<8
+					e.key = 1<<40 | zidx(uint8(src))<<8
 				} else {
 					sub := uint64(0)
 					if !fromHand {
 						sub = 2
 					}
-					e.key = 0<<40 | sub<<32 | zidx(src)<<8 | 1 + uint64(mode&1)
+					e.key = 0<<40 | sub<<32 | zidx(uint8(src))<<8 | 1 + uint64(mode&1)
 				}
 			case mode&1 == 0 && s.FeatPlannedCast(p, o, mode) && (mode&dirac.FeatCastMayPlay == 0 || s.FeatMayPlayUntyped(p, o)):
 				e.src = builtins.KeyPlan
@@ -319,10 +319,10 @@ func (a *SBT) priority(s *dirac.State, d *dirac.Decision, seat *builtins.Seat) [
 				} else if !fromHand {
 					sub = 2
 				}
-				e.key = 7<<40 | sub<<32 | zidx(src)<<8
+				e.key = 7<<40 | sub<<32 | zidx(uint8(src))<<8
 			default:
 				e.src = builtins.KeyPotential
-				e.key = 8<<40 | zidx(src)<<8 | uint64(mode)
+				e.key = 8<<40 | zidx(uint8(src))<<8 | uint64(mode)
 			}
 			es = append(es, e)
 		case dirac.AkActivate:
@@ -330,7 +330,7 @@ func (a *SBT) priority(s *dirac.State, d *dirac.Decision, seat *builtins.Seat) [
 			if !ok {
 				gi = 255
 			}
-			e := sbtPrio{act: x, kind: "ability", obj: sbtObjID(src), ab: int(gi)}
+			e := sbtPrio{act: x, kind: "ability", obj: sbtObjID(uint8(src)), ab: int(gi)}
 			po := &kp.Objs[src]
 			zr := [8]uint64{}
 			_ = zr
@@ -351,10 +351,10 @@ func (a *SBT) priority(s *dirac.State, d *dirac.Decision, seat *builtins.Seat) [
 			}
 			if s.FeatPlannedActivation(p, dirac.Obj(src), mode) || s.FeatAbilityPoolPays(p, dirac.Obj(src), mode, dirac.Obj(x.Target())) {
 				e.src = builtins.KeyOption
-				e.key = 3<<40 | zone<<36 | seatOf<<32 | zidx(src)<<8 | uint64(mode)
+				e.key = 3<<40 | zone<<36 | seatOf<<32 | zidx(uint8(src))<<8 | uint64(mode)
 			} else {
 				e.src = builtins.KeyPotential
-				e.key = 8<<40 | 1<<36 | zidx(src)<<8 | uint64(mode)
+				e.key = 8<<40 | 1<<36 | zidx(uint8(src))<<8 | uint64(mode)
 			}
 			es = append(es, e)
 		}
@@ -702,7 +702,7 @@ func (a *SBT) chooseKey(s *dirac.State, d *dirac.Decision, x dirac.Action, zkey 
 		dirac.ChGenTopBottom, dirac.ChGenLeyline, dirac.ChGenDiscUnless:
 		return 1 - uint32(mode&1) // yes / pay / top / unless first
 	case dirac.ChGenDivide, dirac.ChCastDivide:
-		return uint32(s.FeatDivideIndex(src))
+		return uint32(s.FeatDivideIndex(uint8(src)))
 	case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick, dirac.ChDivide, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChGenManaChoice, dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenReplOrder, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped, dirac.ChGenDestAlt:
 		return uint32(mode)
 	case dirac.ChGenType:
@@ -710,7 +710,7 @@ func (a *SBT) chooseKey(s *dirac.State, d *dirac.Decision, x dirac.Action, zkey 
 	case dirac.ChGenChooseCard, dirac.ChGenFaceDownPick, dirac.ChGenCastFree:
 		return uint32(src)
 	}
-	if src == uint8(dirac.NoObj) || src >= dirac.PlayerTarget0 {
+	if src == dirac.TCode(uint8(dirac.NoObj)) || src >= dirac.PlayerTarget0 {
 		return uint32(mode)
 	}
 	return zkey(Ref(src))

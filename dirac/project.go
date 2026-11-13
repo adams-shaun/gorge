@@ -191,7 +191,7 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 	ob := &s.objs[i]
 	*po = ProjObj{ZoneIdx: 255}
 	po.Card, po.Owner, po.Ctrl, po.Zone, po.Token = ob.card, ob.owner(), ob.owner(), ob.zone, ob.of&ofToken != 0
-	po.Attached, po.Blocks, po.Attacks = NoObj, NoObj, NoTarget
+	po.Attached, po.Blocks, po.Attacks = NoObj, NoObj, uint8(NoTarget)
 	if po.Token && k.anyInit && ob.card == k.gen.dungeon {
 		po.Token = false // a dungeon is no token (act_initiative.go)
 	}
@@ -385,7 +385,7 @@ func (s *State) projRest(p *Projection, lib bool) {
 		}
 		if k.gen != nil && k.gen.anyStackTgt {
 			for j, c := range e.tgt {
-				if isStackTarget(c) {
+				if isStackTarget(TCode(c)) {
 					p.Stack[i].Targets[j] = s.stackTgtProj(c, e.tver[j]) // its live index (tgt_stackability.go)
 				}
 			}

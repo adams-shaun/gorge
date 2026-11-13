@@ -60,7 +60,7 @@ func TestGreatwurmAsksEachCounter(t *testing.T) {
 	}
 	picked := false
 	for i := 0; i < int(d.N); i++ {
-		if d.Options[i].Source() == uint8(boarders) {
+		if d.Options[i].Source() == TCode(uint8(boarders)) {
 			sc.s.Apply(d.Options[i])
 			picked = true
 		}

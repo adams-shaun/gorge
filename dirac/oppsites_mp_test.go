@@ -234,7 +234,7 @@ func TestTargetedExilerAndMostCreatures(t *testing.T) {
 	_, sc, id := oppScen(t, -1)
 	s, k := sc.s, sc.k
 	s.res.e.ctrl = 0
-	s.res.e.tgt[0] = PlayerCode(2)
+	s.res.e.tgt[0] = uint8(PlayerCode(2))
 	if got := s.targetedExiler(0); got != 2 {
 		t.Fatalf("exiler %d, want the targeted seat 2", got)
 	}

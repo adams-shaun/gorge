@@ -72,7 +72,7 @@ func pickTestOption(t *testing.T, d *Decision, o Obj) Action {
 	t.Helper()
 	for i := 0; i < int(d.N); i++ {
 		a := d.Options[i]
-		if a.Kind() == AkChoose && a.Source() == uint8(o) {
+		if a.Kind() == AkChoose && a.Source() == TCode(uint8(o)) {
 			return a
 		}
 	}
@@ -83,7 +83,7 @@ func pickTestOption(t *testing.T, d *Decision, o Obj) Action {
 // pickTestOffers reports whether the decision offers o.
 func pickTestOffers(d *Decision, o Obj) bool {
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkChoose && a.Source() == uint8(o) {
+		if a := d.Options[i]; a.Kind() == AkChoose && a.Source() == TCode(uint8(o)) {
 			return true
 		}
 	}

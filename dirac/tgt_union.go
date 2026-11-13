@@ -56,7 +56,7 @@ func (s *State) execUnion(k *prep, in *kop.Instr) {
 		if m&(1<<i) == 0 {
 			continue
 		}
-		if c := s.tgtCode(int(i)); c != NoTarget {
+		if c := s.tgtCode(int(i)); TCode(c) != NoTarget {
 			slot[n], code[n], ver[n] = i, c, e.tver[i]
 			n++
 		}
@@ -73,9 +73,9 @@ func (s *State) execUnion(k *prep, in *kop.Instr) {
 	}
 	if in.Op == kop.OpDestroy {
 		for j := 0; j < n; j++ {
-			if c := code[j]; isObjTarget(c) {
+			if c := code[j]; isObjTarget(TCode(c)) {
 				if ob := &s.objs[c]; ob.zone == kop.ZoneBattlefield && s.kw(k, ob.slot)&kop.KwIndestructible != 0 {
-					code[j] = NoTarget
+					code[j] = uint8(NoTarget)
 				}
 			}
 		}
@@ -89,7 +89,7 @@ func (s *State) execUnion(k *prep, in *kop.Instr) {
 	s.g.inLoop = true
 	one := *in
 	for j := 0; j < n && !s.over; j++ {
-		if code[j] == NoTarget {
+		if TCode(code[j]) == NoTarget {
 			continue
 		}
 		i := slot[j]

@@ -306,7 +306,7 @@ func TestReplCandsOverflowStalls(t *testing.T) {
 			sc.perm(c.tyrant, 0)
 		}
 		sc.s.g.stalled = 0
-		if ok := sc.s.parkNC(sc.k, 0, sc.slot(src), vanilla.GrizzlyBears, PlayerTarget1, 3, 0); !ok || sc.s.Stalled() {
+		if ok := sc.s.parkNC(sc.k, 0, sc.slot(src), vanilla.GrizzlyBears, uint8(PlayerTarget1), 3, 0); !ok || sc.s.Stalled() {
 			t.Fatalf("4 doublers: park %v stall %q, want true and none", ok, StallName(sc.s.StallReason()))
 		}
 		if sc.s.g.ro.n != 4 {
@@ -316,7 +316,7 @@ func TestReplCandsOverflowStalls(t *testing.T) {
 		sc.s.g.ro = replOrd{}
 		sc.s.g.nc = ncDmg{}
 		sc.s.g.stalled = 0
-		if ok := sc.s.parkNC(sc.k, 0, sc.slot(src), vanilla.GrizzlyBears, PlayerTarget1, 3, 0); ok {
+		if ok := sc.s.parkNC(sc.k, 0, sc.slot(src), vanilla.GrizzlyBears, uint8(PlayerTarget1), 3, 0); ok {
 			t.Fatalf("5 doublers: park succeeded, want no ask")
 		}
 		if got := sc.s.StallReason(); got != StallReplCands {

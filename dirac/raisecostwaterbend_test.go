@@ -28,7 +28,7 @@ func rcwbSetup(t *testing.T, bears, islands int) (sc *scen, id map[string]CardID
 func rcwbOffered(sc *scen, o Obj) bool {
 	d := sc.s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(o) {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(o)) {
 			return true
 		}
 	}

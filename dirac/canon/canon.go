@@ -16,8 +16,8 @@ import (
 type Ref = uint8
 
 const (
-	RefStack  Ref = dirac.StackTarget0  // one definition per size class (dirac seats_*.go)
-	RefPlayer Ref = dirac.PlayerTarget0 // seat p is RefPlayer+p
+	RefStack  Ref = Ref(dirac.StackTarget0)  // one definition per size class (dirac seats_*.go)
+	RefPlayer Ref = Ref(dirac.PlayerTarget0) // seat p is RefPlayer+p
 	RefNone   Ref = 0xFF
 )
 

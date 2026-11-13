@@ -12,7 +12,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 var DebugTgt3AsSlot2 bool
 
 // noTargets is a stack entry's target array with every slot empty.
-var noTargets = [kop.MaxTargets]uint8{NoTarget, NoTarget, NoTarget, NoTarget, NoTarget}
+var noTargets = [kop.MaxTargets]uint8{uint8(NoTarget), uint8(NoTarget), uint8(NoTarget), uint8(NoTarget), uint8(NoTarget)}
 
 // tgtSlot is the target slot a RefTarget names (ok false: r is no target ref).
 func tgtSlot(r kop.Ref) (int, bool) {

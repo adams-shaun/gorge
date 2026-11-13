@@ -11,13 +11,19 @@ const MaxSeats = 2
 // activations (4-7 stay free; static_turnbits.go).
 const turnExhaustShift = 2
 
+// TCode is a target code: an Obj, a stack ability, a player or none, as an
+// Action's source and target fields and the stack's target records hold it.
+// Its width is the class's object width, so a code never passes through a
+// narrower integer (TestObjCodeCastsOnlyShrink).
+type TCode uint8
+
 // The target-code space (types.go): objects 0..MaxObj-1, stack abilities
 // StackTarget0..PlayerTarget0-1 (16 codes), players PlayerTarget0.. (one
 // code per seat), 0xFE a departed stack target and 0xFF none.
 const (
 	MaxObj              = 236  // card instances: both decks + tokens (at most StackTarget0)
-	StackTarget0  uint8 = 0xEC // the bottom stack ability's target code
-	PlayerTarget0 uint8 = 0xFC // seat 0's target code
+	StackTarget0  TCode = 0xEC // the bottom stack ability's target code
+	PlayerTarget0 TCode = 0xFC // seat 0's target code
 )
 
 // object.acts packs the owner above this turn's activation count: one owner

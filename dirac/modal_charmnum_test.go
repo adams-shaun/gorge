@@ -95,7 +95,7 @@ func TestCharmnumChooseTwoOffer(t *testing.T) {
 		fc := sc.hand(v.TestCharm, 0)
 		d := sc.s.Step()
 		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(fc) {
+			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(fc)) {
 				return true
 			}
 		}
@@ -250,7 +250,7 @@ func TestCharmnumCombinedTargetsScenario(t *testing.T) {
 	seen0, seen1 := false, false
 	for i := 0; i < int(d.N); i++ {
 		a := d.Options[i]
-		if a.Kind() != AkTarget || a.Target() != uint8(bear) {
+		if a.Kind() != AkTarget || a.Target() != TCode(uint8(bear)) {
 			continue
 		}
 		switch a.Mode() {
@@ -264,11 +264,11 @@ func TestCharmnumCombinedTargetsScenario(t *testing.T) {
 		t.Fatalf("shared creature occurrences 0/1 offered %v/%v, want both: %+v", seen0, seen1, d.Options[:d.N])
 	}
 	sc.s.applyCharmTarget(sc.k, occ1)
-	if sc.s.bld().e.tgt[1] != uint8(bear) || sc.s.bld().e.tgt[0] != NoTarget {
+	if sc.s.bld().e.tgt[1] != uint8(bear) || TCode(sc.s.bld().e.tgt[0]) != NoTarget {
 		t.Fatalf("after occurrence 1: tgt %v, want slot 1 only", sc.s.bld().e.tgt)
 	}
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkTarget && a.Target() == uint8(bear) && a.Mode() == 0 {
+		if a := d.Options[i]; a.Kind() == AkTarget && a.Target() == TCode(uint8(bear)) && a.Mode() == 0 {
 			sc.s.applyCharmTarget(sc.k, a)
 			break
 		}

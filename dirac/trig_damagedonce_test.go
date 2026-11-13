@@ -66,9 +66,9 @@ func TestDdoFilter2Recipient(t *testing.T) {
 	for _, c := range []struct {
 		rcp  uint8
 		want int
-	}{{uint8(gh), 1}, {uint8(og), 0}, {PlayerTarget0, 0}, {PlayerTarget0 + 1, 0}} {
+	}{{uint8(gh), 1}, {uint8(og), 0}, {uint8(PlayerTarget0), 0}, {uint8(PlayerTarget0 + 1), 0}} {
 		sc.s.npend = 0
-		sc.s.fireDamage(sc.k, sc.slot(og), 2, c.rcp >= PlayerTarget0, false, c.rcp)
+		sc.s.fireDamage(sc.k, sc.slot(og), 2, TCode(c.rcp) >= PlayerTarget0, false, c.rcp)
 		if int(sc.s.npend) != c.want {
 			t.Fatalf("recipient %#x: %d queued, want %d", c.rcp, sc.s.npend, c.want)
 		}
@@ -109,7 +109,7 @@ func TestDdoToYou(t *testing.T) {
 		sg := sc.perm(id["Sun Droplet"], seat)
 		for rp := uint8(0); rp < 2; rp++ {
 			sc.s.npend = 0
-			sc.s.fireDamage(sc.k, sc.slot(og), 2, true, true, PlayerTarget0+rp)
+			sc.s.fireDamage(sc.k, sc.slot(og), 2, true, true, uint8(PlayerTarget0+TCode(rp)))
 			var gotNM, gotSG bool
 			for i := 0; i < int(sc.s.npend); i++ {
 				gotNM = gotNM || sc.s.pend[i].obj == nm
@@ -153,7 +153,7 @@ func TestDdoDealtOnceFilter2(t *testing.T) {
 	b := sc.perm(id["Gray Ogre"], 1)
 	sc.s.res.e.obj = gh
 	sc.s.npend = 0
-	sc.s.fireDamageRefs(sc.k, []uint8{uint8(a), PlayerTarget0 + 1, uint8(b)}, []int16{2, 4, 3})
+	sc.s.fireDamageRefs(sc.k, []uint8{uint8(a), uint8(PlayerTarget0 + 1), uint8(b)}, []int16{2, 4, 3})
 	if sc.s.npend != 1 || sc.s.pend[0].trigAmt != 5 {
 		t.Fatalf("queued %d (amount %d), want one carrying 5", sc.s.npend, sc.s.pend[0].trigAmt)
 	}
@@ -191,7 +191,7 @@ func TestFireDamageSrcInPlay(t *testing.T) {
 			tr.Flags2 &^= kop.Tf2SrcInPlay
 		}
 		sc.s.npend = 0
-		sc.s.fireDamageSrc(sc.k, og, 1, 1, 1, PlayerTarget0, nil)
+		sc.s.fireDamageSrc(sc.k, og, 1, 1, 1, uint8(PlayerTarget0), nil)
 		got := 0
 		for i := 0; i < int(sc.s.npend); i++ {
 			if sc.s.pend[i].obj == nm {

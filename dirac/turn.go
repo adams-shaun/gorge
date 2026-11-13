@@ -1201,7 +1201,7 @@ func (s *State) legendOptions(k *prep, d *Decision) {
 	for i := 0; i < no; i++ {
 		sl := ord[i]
 		if s.nameCardAt(sl) == s.legCard && s.typesAt(k, sl)&kop.TLegendary != 0 {
-			d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 		}
 	}
 }

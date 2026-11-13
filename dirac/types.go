@@ -23,8 +23,8 @@ const (
 	// stack target records; PlayerTarget0 and StackTarget0 are set per size
 	// class (seats_default.go, seats_mp.go). PlayerTarget1 is seat 1's code;
 	// PlayerCode(p) is the spelling that holds at every seat count.
-	PlayerTarget1 uint8 = PlayerTarget0 + 1
-	NoTarget      uint8 = 0xFF
+	PlayerTarget1 TCode = PlayerTarget0 + 1
+	NoTarget      TCode = 0xFF
 	// StackTarget0 encodes the activated or triggered ability at stack
 	// index i (from the bottom) as StackTarget0+i in a target byte, the
 	// oracle's canonical RefStack+i (tgt_stackability.go): codes
@@ -36,16 +36,16 @@ const (
 // isObjTarget reports whether target byte c names an object (a card or
 // token instance), not a stack ability, a player or no target. Every
 // object-target read goes through it (TestObjTargetPredicate).
-func isObjTarget(c uint8) bool { return c < MaxObj }
+func isObjTarget(c TCode) bool { return c < MaxObj }
 
 // isPlayerTarget reports whether target byte c names a player, not an
 // object, a stack ability or no target. A raw "c >= PlayerTarget0" also
 // admits NoTarget, so the player-range test goes through here.
-func isPlayerTarget(c uint8) bool { return c >= PlayerTarget0 && c <= PlayerTarget0+(MaxSeats-1) }
+func isPlayerTarget(c TCode) bool { return c >= PlayerTarget0 && c <= PlayerTarget0+(MaxSeats-1) }
 
 // IsObjTarget is isObjTarget for the kernel's clients (the search bots, the
 // feature encoders, the oracle).
-func IsObjTarget(c uint8) bool { return c < MaxObj }
+func IsObjTarget(c TCode) bool { return c < MaxObj }
 
 // Action is a packed answer to a Decision:
 //
@@ -94,13 +94,13 @@ const scriptPlayKinds = 1<<AkCast | 1<<AkCastCasualty | 1<<AkCastConspire | 1<<A
 func isScriptPlayKind(k ActionKind) bool { return scriptPlayKinds>>k&1 != 0 }
 
 // MakeAction packs an Action.
-func MakeAction(k ActionKind, source, target, mode uint8) Action {
+func MakeAction(k ActionKind, source, target TCode, mode uint8) Action {
 	return Action(uint32(k)<<24 | uint32(source)<<16 | uint32(target)<<8 | uint32(mode))
 }
 
 func (a Action) Kind() ActionKind { return ActionKind(a >> 24) }
-func (a Action) Source() uint8    { return uint8(a >> 16) }
-func (a Action) Target() uint8    { return uint8(a >> 8) }
+func (a Action) Source() TCode    { return TCode(uint8(a >> 16)) }
+func (a Action) Target() TCode    { return TCode(uint8(a >> 8)) }
 func (a Action) Mode() uint8      { return uint8(a) }
 
 // DecisionKind is what a Decision asks.

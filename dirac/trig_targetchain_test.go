@@ -37,7 +37,7 @@ func TestCastTargetsAll(t *testing.T) {
 	if sc.s.castTargetsAll(sc.k, f, &e, l) {
 		t.Fatal("a spell targeting only another creature matched")
 	}
-	e.nt, e.tgt[0] = 1, PlayerTarget0
+	e.nt, e.tgt[0] = 1, uint8(PlayerTarget0)
 	if sc.s.castTargetsAll(sc.k, f, &e, l) {
 		t.Fatal("a player target matched")
 	}

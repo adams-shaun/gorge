@@ -108,7 +108,7 @@ func TestDealDamageFromAnyTarget(t *testing.T) {
 	s.res.e.srcVer, s.res.e.nt = s.objs[src].ver, 1
 
 	// to a player
-	s.res.e.tgt[0] = PlayerTarget0 + 1
+	s.res.e.tgt[0] = uint8(PlayerTarget0 + 1)
 	life := s.pl[1].life
 	s.exec(k, &deal)
 	if s.pl[1].life != life-2 {

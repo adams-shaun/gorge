@@ -61,28 +61,28 @@ func TestEffectEOTEmblemPlayerCapture(t *testing.T) {
 	}
 
 	// player capture: seat 1 + 1
-	if got := queued(embPlayer, 2, true, toP1); got != 1 {
+	if got := queued(embPlayer, 2, true, uint8(toP1)); got != 1 {
 		t.Errorf("player capture, damage to the remembered seat: %d triggers, want 1", got)
 	}
-	if got := queued(embPlayer, 2, true, toP0); got != 0 {
+	if got := queued(embPlayer, 2, true, uint8(toP0)); got != 0 {
 		t.Errorf("player capture, damage to the other seat: %d triggers, want 0", got)
 	}
 	if got := queued(embPlayer, 2, false, uint8(other)); got != 0 {
 		t.Errorf("player capture, damage to a permanent: %d triggers, want 0", got)
 	}
 	// player capture that remembered nobody (embN 0): never fires
-	if got := queued(embPlayer, 0, true, toP1); got != 0 {
+	if got := queued(embPlayer, 0, true, uint8(toP1)); got != 0 {
 		t.Errorf("player capture with no remembered seat: %d triggers, want 0", got)
 	}
 	// no capture: any recipient seat fires
-	if got := queued(embNone, 0, true, toP1); got != 1 {
+	if got := queued(embNone, 0, true, uint8(toP1)); got != 1 {
 		t.Errorf("uncaptured emblem, damage to seat 1: %d triggers, want 1", got)
 	}
 	// object capture: only the remembered source fires, whatever the recipient
-	if got := queued(embObj, uint8(src)+1, true, toP1); got != 1 {
+	if got := queued(embObj, uint8(src)+1, true, uint8(toP1)); got != 1 {
 		t.Errorf("object capture, the remembered source: %d triggers, want 1", got)
 	}
-	if got := queued(embObj, uint8(other)+1, true, toP1); got != 0 {
+	if got := queued(embObj, uint8(other)+1, true, uint8(toP1)); got != 0 {
 		t.Errorf("object capture, another source: %d triggers, want 0", got)
 	}
 }

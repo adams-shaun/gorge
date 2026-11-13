@@ -14,8 +14,8 @@ func (s *State) preventFromGen(k *prep, r *dmgRec) {
 			continue
 		}
 		if ev.dst == NoSlot {
-			if t := s.perms[ev.src].atk; isPlayerOrNone(t) {
-				r.toPl[CodeSeat(t)] -= ev.n
+			if t := s.perms[ev.src].atk; isPlayerOrNone(TCode(t)) {
+				r.toPl[CodeSeat(TCode(t))] -= ev.n
 			}
 			r.dealtPl[ev.src] -= ev.n
 		} else {

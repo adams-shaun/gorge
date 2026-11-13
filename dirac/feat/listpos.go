@@ -102,7 +102,7 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 		case dirac.AkPlayLand:
 			// the hand walk, then a land played from another zone through a
 			// permission (mayPlayLandWalk)
-			z := e.zoneOf(src)
+			z := e.zoneOf(uint8(src))
 			if z.zone != 4 {
 				return secHand<<24 | 1<<20 | uint32(z.idx)<<8
 			}
@@ -111,7 +111,7 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 			if e.st0.FeatScripted(d.Player, a) {
 				return noPos // a scripted potential play (Bloom Tender's prefix)
 			}
-			z := e.zoneOf(src)
+			z := e.zoneOf(uint8(src))
 			sub := uint32(0) // the hand walk
 			if mode&2 == 0 && z.zone != 4 {
 				sub = 2 // a spell cast from another zone through a permission (mayPlaySpellWalk)
@@ -151,7 +151,7 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 			}
 			// the battlefield walk's zones: battlefield, stack, graveyard,
 			// hand, exile; each seat's list in order; ability index
-			z := e.zoneOf(src)
+			z := e.zoneOf(uint8(src))
 			if mode&0x80 != 0 {
 				// a granted activation (CR 613.1f): gorge's walk offers the
 				// granted abilities in a sweep after every printed ability,
@@ -167,22 +167,22 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 		// defender-major: each defending player, then the attacking
 		// creatures in battlefield order, each player pair followed by its
 		// planeswalker pairs.
-		c := uint32(e.zoneOf(src).idx)
+		c := uint32(e.zoneOf(uint8(src)).idx)
 		if tgt >= dirac.PlayerTarget0 {
 			return uint32(tgt-dirac.PlayerTarget0)<<24 | c<<12
 		}
-		w := e.zoneOf(tgt)
+		w := e.zoneOf(uint8(tgt))
 		return uint32(w.seat)<<24 | c<<12 | 1 + uint32(w.idx)
 	case dirac.DkBlockers:
 		// each blocker in its controller's battlefield order, then each
 		// attacker in the active player's.
-		return uint32(e.zoneOf(src).idx)<<12 | uint32(e.zoneOf(tgt).idx)
+		return uint32(e.zoneOf(uint8(src)).idx)<<12 | uint32(e.zoneOf(uint8(tgt)).idx)
 	case dirac.DkTarget:
 		var copyAsk uint32
 		if d.Sub == dirac.SubCopyTarget {
 			// a spell copy's new-target ask: gorge lists the inherited
 			// targets first, then the census in its usual order
-			if i := e.st0.FeatCopyInherited(tgt); i >= 0 {
+			if i := e.st0.FeatCopyInherited(uint8(tgt)); i >= 0 {
 				return uint32(i)
 			}
 			copyAsk = 1 << 30
@@ -191,7 +191,7 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 		if tgt >= dirac.PlayerTarget0 {
 			return copyAsk | uint32(tgt-dirac.PlayerTarget0)
 		}
-		return copyAsk | 1<<24 | e.zoneOf(tgt).key()
+		return copyAsk | 1<<24 | e.zoneOf(uint8(tgt)).key()
 	case dirac.DkModes:
 		return uint32(mode)
 	case dirac.DkTriggerOrder:
@@ -208,7 +208,7 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 		case dirac.ChGenMayShuffle:
 			return 1 - uint32(mode&1) // yes, then no
 		case dirac.ChGenDivide, dirac.ChCastDivide:
-			return uint32(e.st0.FeatDivideIndex(src)) // gorge lists the targets in target order
+			return uint32(e.st0.FeatDivideIndex(uint8(src))) // gorge lists the targets in target order
 		case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick, dirac.ChDivide, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped, dirac.ChGenDestAlt:
 			return uint32(mode) // ChAltAdd: the payable parts first, as gorge lists them
 		case dirac.ChGenPay, dirac.ChGenPayMode, dirac.ChGenTopBottom, dirac.ChGenLeyline:
@@ -224,7 +224,7 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 		case dirac.ChCommanderZone:
 			return uint32(mode) // command_zone (0) then leave (1), as gorge lists them
 		}
-		return e.zoneOf(src).key()
+		return e.zoneOf(uint8(src)).key()
 	}
 	return uint32(a)
 }

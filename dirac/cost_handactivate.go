@@ -55,7 +55,7 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 				continue // its window and its Return candidate (kw_ninjutsu.go)
 			}
 			if s.abilityTargetsFeasible(k, a, p, NoSlot, 0xff) {
-				d.add(MakeAction(AkActivate, uint8(o), 0, uint8(ai)))
+				d.add(MakeAction(AkActivate, TCode(o), 0, uint8(ai)))
 			}
 		}
 	}

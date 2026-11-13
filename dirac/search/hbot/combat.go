@@ -273,7 +273,7 @@ func (bt *Bot) attackers(s *dirac.State, d *dirac.Decision) int {
 		if _, ok := s.HBotAttackTarget(o.src); ok {
 			continue // declared already
 		}
-		if i := optIndex(d, dirac.MakeAction(dirac.AkAttack, uint8(o.src), o.tgt, 0)); i >= 0 {
+		if i := optIndex(d, dirac.MakeAction(dirac.AkAttack, dirac.TCode(o.src), dirac.TCode(o.tgt), 0)); i >= 0 {
 			return i
 		}
 	}
@@ -335,8 +335,8 @@ func (cs *combatScratch) attackOptsAt(b *board, s *dirac.State, d *dirac.Decisio
 		}
 		req := s.MustAttack(o)
 		all := declared || !pairs
-		if pt := dirac.PlayerTarget0 + q; all || optIndex(d, dirac.MakeAction(dirac.AkAttack, uint8(o), pt, 0)) >= 0 {
-			cs.opts[cs.n] = copt{src: o, tgt: pt, def: q, req: req}
+		if pt := dirac.PlayerTarget0 + dirac.TCode(q); all || optIndex(d, dirac.MakeAction(dirac.AkAttack, dirac.TCode(o), pt, 0)) >= 0 {
+			cs.opts[cs.n] = copt{src: o, tgt: uint8(pt), def: q, req: req}
 			cs.n++
 		}
 		for w := 0; w < cs.nWalk; w++ {
@@ -622,7 +622,7 @@ func (bt *Bot) blockers(s *dirac.State, d *dirac.Decision) int {
 		if s.HBotBlocking(o.src) != dirac.NoObj {
 			continue // declared already
 		}
-		if i := optIndex(d, dirac.MakeAction(dirac.AkBlock, uint8(o.src), o.tgt, 0)); i >= 0 {
+		if i := optIndex(d, dirac.MakeAction(dirac.AkBlock, dirac.TCode(o.src), dirac.TCode(o.tgt), 0)); i >= 0 {
 			return i
 		}
 	}

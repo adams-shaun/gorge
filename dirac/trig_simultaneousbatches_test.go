@@ -103,7 +103,7 @@ func TestLegendRuleAndSagaSacrificeAreOneBatch(t *testing.T) {
 		t.Fatalf("no legend ask posed: ctl %v", s.ctl)
 	}
 	s.npend = 0
-	s.applyLegend(k, MakeAction(AkChoose, uint8(keep), 0, 0))
+	s.applyLegend(k, MakeAction(AkChoose, TCode(keep), 0, 0))
 	if s.objs[saga].zone == kop.ZoneBattlefield || s.objs[gone].zone == kop.ZoneBattlefield {
 		t.Fatalf("the legend and the Saga must both leave: zones %v %v", s.objs[gone].zone, s.objs[saga].zone)
 	}

@@ -52,7 +52,7 @@ func TestProwessGrantsPerStatic(t *testing.T) {
 		}
 	}
 	sc.do(t, AkCast, uint8(shock), 0xff)
-	sc.do(t, AkTarget, 0xff, PlayerTarget1)
+	sc.do(t, AkTarget, 0xff, uint8(PlayerTarget1))
 	sc.s.Step()
 	per := map[Obj]int{}
 	printed := map[Obj]int{}

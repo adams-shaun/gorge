@@ -164,7 +164,7 @@ func (s *State) offerSneakHand(k *prep, d *Decision, p uint8, o Obj, c CardID, a
 	if DebugFacePoolOnly && !s.sneakPoolPays(k, p, c, o, &cost) {
 		return
 	}
-	d.add(MakeAction(AkSneak, uint8(o), 0, 0))
+	d.add(MakeAction(AkSneak, TCode(o), 0, 0))
 }
 
 // beginSneak casts hand card o for its sneak cost (gorge cast_begin.go
@@ -195,7 +195,7 @@ func (s *State) sneakReturnOptions(k *prep, d *Decision) bool {
 	for m := s.ctrlM[SeatIx(e.ctrl)]; m.any(); m = m.rest() {
 		sl := m.first()
 		if s.altReturnable(k, sl, e) {
-			d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 		}
 	}
 	if d.N == 0 {
@@ -253,8 +253,8 @@ func (s *State) sneakEnter(k *prep, sl Slot, e *stackEntry) {
 // check (or refuse the card) before it can be lowered.
 func (s *State) enteringAttackLegal(k *prep, ctrl uint8, d Obj) bool {
 	t := uint8(d)
-	if isPlayerTarget(t) {
-		return CodeSeat(t) != SeatIx(ctrl)
+	if isPlayerTarget(TCode(t)) {
+		return CodeSeat(TCode(t)) != SeatIx(ctrl)
 	}
 	if d == NoObj {
 		return false

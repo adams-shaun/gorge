@@ -31,13 +31,13 @@ func (s *State) parentTargetOK(t *kop.TargetSpec, code uint8) bool {
 		return false
 	}
 	p := e.tgt[i]
-	if !isPlayerTarget(p) {
+	if !isPlayerTarget(TCode(p)) {
 		return false
 	}
-	if code == NoTarget || isPlayerOrNone(code) {
+	if TCode(code) == NoTarget || isPlayerOrNone(TCode(code)) {
 		return false
 	}
-	return s.objs[code].owner() == CodeSeat(p)
+	return s.objs[code].owner() == CodeSeat(TCode(p))
 }
 
 // execOblige runs the oblige ops (execCold7's default branch, cold). done=false
@@ -71,7 +71,7 @@ func (s *State) askOptionsOblige(k *prep, d *Decision) bool {
 		// gorge's manifest_dread options: the top-two window in library order
 		d.Sub = ChGenManifestDread
 		for i := 0; i < int(s.res.peekN); i++ {
-			d.add(MakeAction(AkChoose, uint8(s.res.peek[i]), 0, uint8(i)))
+			d.add(MakeAction(AkChoose, TCode(s.res.peek[i]), 0, uint8(i)))
 		}
 	default:
 		return s.askOptionsModalAct(k, d)
@@ -152,7 +152,7 @@ func (s *State) shuffleRefs(k *prep, e *stackEntry, slot uint8, refs *[maxXTgt +
 	if slot >= kop.MaxTargets {
 		return 0
 	}
-	if c := e.tgt[slot]; c != NoTarget && isObjTarget(c) && s.objs[c].zone != kop.ZoneNone {
+	if c := e.tgt[slot]; TCode(c) != NoTarget && isObjTarget(TCode(c)) && s.objs[c].zone != kop.ZoneNone {
 		refs[n] = Obj(c)
 		legal[n] = s.res.bad&(1<<slot) == 0 && s.objs[c].zone == kop.ZoneGraveyard
 		n++
@@ -163,7 +163,7 @@ func (s *State) shuffleRefs(k *prep, e *stackEntry, slot uint8, refs *[maxXTgt +
 			continue
 		}
 		c := x.code[j]
-		if c == NoTarget || isPlayerOrNone(c) || s.objs[c].zone == kop.ZoneNone {
+		if TCode(c) == NoTarget || isPlayerOrNone(TCode(c)) || s.objs[c].zone == kop.ZoneNone {
 			continue
 		}
 		refs[n] = Obj(c)

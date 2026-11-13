@@ -68,7 +68,7 @@ func TestProliferate(t *testing.T) {
 	if d := sc.s.Step(); d.Sub != ChGenProlif || d.N != 4 {
 		t.Fatalf("after one pick: sub %d with %d options, want 4", d.Sub, d.N)
 	}
-	sc.do(t, AkChoose, PlayerTarget0+1, 0xff)
+	sc.do(t, AkChoose, uint8(PlayerTarget0+1), 0xff)
 	sc.do(t, AkDone, 0xff, 0xff)
 	if n := sc.s.perms[sc.slot(b1)].ctrLow(int(kop.CtrP1P1)); n != 2 {
 		t.Fatalf("b1 has %d +1/+1 counters, want 2", n)

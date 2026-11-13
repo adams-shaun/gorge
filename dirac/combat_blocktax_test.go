@@ -106,7 +106,7 @@ func blkTaxScene(t *testing.T, lands int) (sc *scen, atk, blk Obj, ls []Obj) {
 // open with one land) and Done pays the charge by tapping the lands.
 func TestBlockTaxBudgetAndPayment(t *testing.T) {
 	blockAndDone := func(atk, blk Obj) Decision {
-		return Decision{Kind: DkBlockers, N: 2, Options: [MaxOptions]Action{MakeAction(AkBlock, uint8(blk), uint8(atk), 0), MakeAction(AkDone, 0, 0, 0)}}
+		return Decision{Kind: DkBlockers, N: 2, Options: [MaxOptions]Action{MakeAction(AkBlock, TCode(blk), TCode(atk), 0), MakeAction(AkDone, 0, 0, 0)}}
 	}
 	t.Run("one land", func(t *testing.T) {
 		sc, atk, blk, _ := blkTaxScene(t, 1)
@@ -127,7 +127,7 @@ func TestBlockTaxBudgetAndPayment(t *testing.T) {
 			t.Fatalf("filtered options %v, want only Done", d.Options[:d.N])
 		}
 		// a bypassing declaration is declined: taps standing, nothing declared
-		s.applyBlock(k, MakeAction(AkBlock, uint8(blk), uint8(atk), 0))
+		s.applyBlock(k, MakeAction(AkBlock, TCode(blk), TCode(atk), 0))
 		if s.perms[sc.slot(atk)].nblock != 1 {
 			t.Fatalf("precondition: nblock = %d, want 1", s.perms[sc.slot(atk)].nblock)
 		}

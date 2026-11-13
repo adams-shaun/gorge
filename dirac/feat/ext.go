@@ -183,7 +183,7 @@ func (e *Encoder) entryTarget(seat uint8, se *dirac.ProjStack) (cre *vcard, play
 		if j < len(se.Targets) {
 			t = se.Targets[j]
 		}
-		if t == dirac.NoTarget {
+		if dirac.TCode(t) == dirac.NoTarget {
 			continue
 		}
 		dup := false
@@ -851,7 +851,7 @@ func (e *Encoder) hitsPlayer(seat uint8, i, tc int) bool {
 		if j < len(se.Targets) {
 			t = se.Targets[j]
 		}
-		if t != dirac.NoTarget {
+		if dirac.TCode(t) != dirac.NoTarget {
 			if tc2, _ := e.targetClass(seat, t); tc2 == tc {
 				return true
 			}
@@ -869,7 +869,7 @@ func (e *Encoder) hitsObj(seat uint8, i int, obj uint8, want int) bool {
 		if j < len(se.Targets) {
 			t = se.Targets[j]
 		}
-		if t != dirac.NoTarget && t == obj {
+		if dirac.TCode(t) != dirac.NoTarget && t == obj {
 			if tc, host := e.targetClass(seat, t); tc == want && host != nil {
 				return true
 			}

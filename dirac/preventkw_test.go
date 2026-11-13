@@ -204,7 +204,7 @@ func TestPreventKeywordOrderAsk(t *testing.T) {
 	var opts [2]Action
 	for i := 0; i < int(d.N); i++ {
 		a := d.Options[i]
-		if a.Source() != uint8(dawn) {
+		if a.Source() != TCode(uint8(dawn)) {
 			t.Fatalf("option %d source %d, want the Elemental's own replacement", i, a.Source())
 		}
 		opts[a.Mode()] = a

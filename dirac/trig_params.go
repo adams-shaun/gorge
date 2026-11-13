@@ -180,14 +180,14 @@ func (s *State) singleTargetOK(k *prep, e *stackEntry) bool {
 //go:noinline
 func (s *State) singleCauseOK(k *prep, recipient uint8) bool {
 	ok := false
-	if s.res.active && s.res.e.kind == seSpell && isObjTarget(recipient) {
+	if s.res.active && s.res.e.kind == seSpell && isObjTarget(TCode(recipient)) {
 		ob := &s.objs[recipient]
 		if ob.zone == kop.ZoneBattlefield && s.isCreature(k, ob.slot) {
 			e := &s.res.e
 			n, hit := 0, false
 			for i := 0; i < int(e.nt); i++ {
 				c := e.tgt[i]
-				if c == NoTarget {
+				if TCode(c) == NoTarget {
 					continue
 				}
 				n++
@@ -196,7 +196,7 @@ func (s *State) singleCauseOK(k *prep, recipient uint8) bool {
 			x := s.xtOf(e) // Targets+SubTargets: gorge counts every pick too
 			for j := 0; j < int(x.n); j++ {
 				c := x.code[j]
-				if c == NoTarget {
+				if TCode(c) == NoTarget {
 					continue
 				}
 				n++

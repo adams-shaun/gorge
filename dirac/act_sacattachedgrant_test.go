@@ -97,7 +97,7 @@ func TestActivateSacAttachedAuraCostFromGrantedMana(t *testing.T) {
 	if !s.matchPerm(k, creature, sc.slot(bearObj), 0, NoSlot) {
 		t.Fatal("the fight's target is not a creature the source's controller does not control")
 	}
-	a := MakeAction(AkActivate, uint8(s.perms[tsl].obj), 0, 0)
+	a := MakeAction(AkActivate, TCode(s.perms[tsl].obj), 0, 0)
 	cost, ex, need, ok := s.grantPlayCost(k, 0, a, true)
 	if !ok {
 		t.Fatal("grantPlayCost refused the activation")

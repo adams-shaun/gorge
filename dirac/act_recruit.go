@@ -57,7 +57,7 @@ func (s *State) recruitOptions(k *prep, d *Decision) {
 	d.Sub = ChRecruitDiscard
 	pl := &s.pl[s.res.chosen]
 	for i := 0; i < int(pl.handN); i++ {
-		d.add(MakeAction(AkChoose, uint8(pl.hand[i]), 0, 0))
+		d.add(MakeAction(AkChoose, TCode(pl.hand[i]), 0, 0))
 	}
 }
 

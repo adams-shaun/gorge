@@ -76,7 +76,7 @@ func (s *State) offerWarpHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av
 		if !s.altAddCastable(k, c, p, o, &wc, av) {
 			continue
 		}
-		d.add(MakeAction(AkCast, uint8(o), i, castWarp))
+		d.add(MakeAction(AkCast, TCode(o), TCode(i), castWarp))
 	}
 }
 
@@ -110,7 +110,7 @@ func (s *State) offerWarpRecasts(k *prep, d *Decision, p uint8, sorc bool) {
 		if !s.FeatPoolPays(p, o, 0) {
 			continue
 		}
-		d.add(MakeAction(AkCast, uint8(o), 0, castWarpRecast))
+		d.add(MakeAction(AkCast, TCode(o), 0, castWarpRecast))
 	}
 }
 

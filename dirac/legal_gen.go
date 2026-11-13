@@ -123,7 +123,7 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 				if hobj == NoObj {
 					hobj = s.perms[host].obj
 				}
-				act := MakeAction(AkActivate, uint8(s.perms[sl].obj), uint8(hobj), 0x80|ab)
+				act := MakeAction(AkActivate, TCode(s.perms[sl].obj), TCode(hobj), 0x80|ab)
 				for i := first; i < int(d.N); i++ {
 					if d.Options[i] == act {
 						return
@@ -147,7 +147,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 	anyMana = anyMana || mode&castFree == 0 && s.convAnyType(k, p, o) // mana_convertcreature.go
 	if pc.land {
 		if landOK {
-			d.add(MakeAction(AkPlayLand, uint8(o), 0, 0))
+			d.add(MakeAction(AkPlayLand, TCode(o), 0, 0))
 		}
 		return
 	}
@@ -218,7 +218,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 			return
 		}
 	}
-	d.add(MakeAction(AkCast, uint8(o), 0, mode))
+	d.add(MakeAction(AkCast, TCode(o), 0, mode))
 }
 
 // anyType turns coloured pips into generic (mana of any type may be spent).
@@ -782,7 +782,7 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 				}
 			}
 			if s.probeAbilityFrom(k, a, p, s.objs[o].card) {
-				d.add(MakeAction(AkActivate, uint8(o), 0, uint8(ai)))
+				d.add(MakeAction(AkActivate, TCode(o), 0, uint8(ai)))
 			}
 		}
 	}

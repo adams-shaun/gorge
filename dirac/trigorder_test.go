@@ -37,7 +37,7 @@ func TestCastTriggersInBattlefieldOrder(t *testing.T) {
 	pa.ts, pb.ts = pb.ts, pa.ts
 	bolt := sc.hand(v.LightningBolt, 0)
 	sc.do(t, AkCast, uint8(bolt), 0xff)
-	sc.do(t, AkTarget, 0xff, PlayerTarget1)
+	sc.do(t, AkTarget, 0xff, uint8(PlayerTarget1))
 	got := orderSources(t, sc.s, sc.s.Step())
 	if len(got) != 2 || got[0] != uint8(b) || got[1] != uint8(a) {
 		t.Fatalf("prowess order %v, want [%d %d]", got, b, a)
@@ -293,7 +293,7 @@ func TestEachPlayerChoosesThenSacrificesTogether(t *testing.T) {
 	d := sc.s.Step()
 	act := false
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(lil) && a.Mode() == 1 {
+		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == TCode(uint8(lil)) && a.Mode() == 1 {
 			sc.s.Apply(a)
 			act = true
 			break
@@ -312,7 +312,7 @@ func TestEachPlayerChoosesThenSacrificesTogether(t *testing.T) {
 		if d.Kind != DkChoose || d.Player != 1 {
 			t.Fatalf("pick %d: decision kind %d for p%d, want p1's sacrifice", pick, d.Kind, d.Player)
 		}
-		sc.s.Apply(MakeAction(AkChoose, uint8(mine[pick]), 0, 0))
+		sc.s.Apply(MakeAction(AkChoose, TCode(mine[pick]), 0, 0))
 		d = sc.s.Step()
 	}
 	if d.Kind != DkChoose || d.Player != 0 {
@@ -324,7 +324,7 @@ func TestEachPlayerChoosesThenSacrificesTogether(t *testing.T) {
 		}
 	}
 	for pick := 0; pick < 2; pick++ {
-		sc.s.Apply(MakeAction(AkChoose, uint8(theirs[pick]), 0, 0))
+		sc.s.Apply(MakeAction(AkChoose, TCode(theirs[pick]), 0, 0))
 		sc.s.Step()
 	}
 	for _, o := range []Obj{mine[0], mine[1], theirs[0], theirs[1]} {

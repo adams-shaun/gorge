@@ -43,7 +43,7 @@ func trigOnlyOK(kind uint8) bool {
 //
 //go:noinline
 func (s *State) spellTgtingOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, code uint8) bool {
-	if !isObjTarget(code) {
+	if !isObjTarget(TCode(code)) {
 		return false
 	}
 	o := Obj(code)
@@ -101,7 +101,7 @@ func (s *State) stackTgtingOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, cod
 // else a battlefield permanent matching the slot's Filter.
 func (s *State) tgtClauseMatch(k *prep, t *kop.TargetSpec, p uint8, c uint8) bool {
 	if t.VYou {
-		return isPlayerTarget(c) && (DebugCtrVYouAnyPlayer || CodeSeat(c) == p)
+		return isPlayerTarget(TCode(c)) && (DebugCtrVYouAnyPlayer || CodeSeat(TCode(c)) == p)
 	}
 	return s.tgtBattlefieldMatch(k, t.Filter, p, c)
 }
@@ -110,7 +110,7 @@ func (s *State) tgtClauseMatch(k *prep, t *kop.TargetSpec, p uint8, c uint8) boo
 // that matches f for chooser p (a player, a stack object or an empty slot
 // matches nothing).
 func (s *State) tgtBattlefieldMatch(k *prep, f kop.FilterID, p uint8, c uint8) bool {
-	if !isObjTarget(c) {
+	if !isObjTarget(TCode(c)) {
 		return false
 	}
 	ob := &s.objs[c]
@@ -121,7 +121,7 @@ func (s *State) tgtBattlefieldMatch(k *prep, f kop.FilterID, p uint8, c uint8) b
 // not reread the targeting clause at resolution, so the target is a plain
 // spell target (still a spell on the stack, never the entry itself).
 func (s *State) spellTgtingStill(e *stackEntry, code uint8) bool {
-	if !isObjTarget(code) || Obj(code) == e.obj || s.objs[code].zone != kop.ZoneStack {
+	if !isObjTarget(TCode(code)) || Obj(code) == e.obj || s.objs[code].zone != kop.ZoneStack {
 		return false
 	}
 	i := s.stackIndexOf(Obj(code))

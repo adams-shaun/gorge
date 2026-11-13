@@ -83,7 +83,7 @@ func ksneakCast(t *testing.T, sc *scen, o, ret Obj) int {
 		d := sc.s.Step()
 		if d.Kind == DkChoose && d.Sub == ChCostReturn {
 			n := int(d.N)
-			sc.s.Apply(MakeAction(AkChoose, uint8(ret), 0, 0))
+			sc.s.Apply(MakeAction(AkChoose, TCode(ret), 0, 0))
 			return n
 		}
 		if d.Kind == DkPriority {
@@ -377,7 +377,7 @@ func ksneakReturn(t *testing.T, sc *scen, ret Obj) {
 	for i := 0; i < 8; i++ {
 		d := sc.s.Step()
 		if d.Kind == DkChoose && d.Sub == ChCostReturn {
-			sc.s.Apply(MakeAction(AkChoose, uint8(ret), 0, 0))
+			sc.s.Apply(MakeAction(AkChoose, TCode(ret), 0, 0))
 			return
 		}
 		sc.s.Apply(d.Options[0])

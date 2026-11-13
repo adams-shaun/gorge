@@ -91,7 +91,7 @@ func (s *State) typeOptions(k *prep, d *Decision) bool {
 		for j := range a.Prog {
 			if in := &a.Prog[j]; in.Op == kop.OpChooseType && in.B.N != 0 {
 				for _, v := range cd.TypeValid {
-					d.add(MakeAction(AkChoose, 0, uint8(v>>8), uint8(v)))
+					d.add(MakeAction(AkChoose, 0, TCode(v>>8), uint8(v)))
 				}
 				return true
 			}
@@ -403,7 +403,7 @@ var cardTypeLabelH = func() (h [len(cardTypeChoice)]uint16) {
 func chooseCardTypeOptions(d *Decision, m kop.TypeMask) {
 	for i, c := range cardTypeChoice {
 		if m&c.bit != 0 {
-			d.add(MakeAction(AkChoose, 0, uint8(cardTypeLabelH[i]>>8), uint8(cardTypeLabelH[i])))
+			d.add(MakeAction(AkChoose, 0, TCode(cardTypeLabelH[i]>>8), uint8(cardTypeLabelH[i])))
 		}
 	}
 }

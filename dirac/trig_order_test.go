@@ -127,7 +127,7 @@ func TestCommandAttackTriggerQueuesAfterGraveyard(t *testing.T) {
 	sl := s.enter(k, edgar, 0, false, kop.ZoneNone)
 	s.perms[sl].flags &^= pfSick
 	s.perms[sl].flags |= pfAttacking
-	s.perms[sl].atk = PlayerTarget1
+	s.perms[sl].atk = uint8(PlayerTarget1)
 	s.nAttackers = 1
 	s.npend = 0
 	s.fireAttacksGen(k)

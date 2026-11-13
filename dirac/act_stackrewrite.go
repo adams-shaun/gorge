@@ -55,11 +55,11 @@ func (s *State) ksrSubject(k *prep, in *kop.Instr) int {
 	if slot, ok := tgtSlot(in.Obj); ok {
 		c := s.tgtCode(slot)
 		switch {
-		case c == NoTarget:
+		case TCode(c) == NoTarget:
 			return -1
-		case isStackTarget(c):
+		case isStackTarget(TCode(c)):
 			return s.stackTgtIdx(c, s.res.e.tver[slot])
-		case isObjTarget(c):
+		case isObjTarget(TCode(c)):
 			ob := &s.objs[c]
 			if ob.zone != kop.ZoneStack || ob.ver != s.res.e.tver[slot] {
 				return -1
@@ -168,9 +168,9 @@ func (s *State) ksrOffered(k *prep, idx, d int, must bool, out *[MaxOptions]uint
 	if e.kind != seSpell {
 		// an ability is no legal target for itself (CR 115.5): the entry's own
 		// stack code (a spell's own object is the self targetCands skips)
-		self, m := StackTarget0+uint8(idx), 0
+		self, m := StackTarget0+TCode(uint8(idx)), 0
 		for _, c := range out[:n] {
-			if c != self {
+			if TCode(c) != self {
 				out[m] = c
 				m++
 			}
@@ -389,7 +389,7 @@ func ksrRetargeted(old *[MaxOptions]uint8, nold int, picks *[8]uint8, np int, ou
 // them.
 func (s *State) ksrWrite(e *stackEntry, d int, out *[MaxOptions]uint8) {
 	n := 0
-	if d < int(e.nt) && e.tgt[d] != NoTarget {
+	if d < int(e.nt) && TCode(e.tgt[d]) != NoTarget {
 		c := out[0]
 		e.tgt[d] = c
 		e.tver[d] = s.ksrVer(c)
@@ -410,9 +410,9 @@ func (s *State) ksrWrite(e *stackEntry, d int, out *[MaxOptions]uint8) {
 // ksrVer is the version a target code records.
 func (s *State) ksrVer(c uint8) uint8 {
 	switch {
-	case isObjTarget(c):
+	case isObjTarget(TCode(c)):
 		return s.objs[c].ver
-	case isStackTarget(c):
+	case isStackTarget(TCode(c)):
 		return s.stackTgtSid(c)
 	}
 	return 0
@@ -439,7 +439,7 @@ next:
 				continue next
 			}
 		}
-		d.add(MakeAction(AkChoose, buf[i], 0, 0))
+		d.add(MakeAction(AkChoose, TCode(buf[i]), 0, 0))
 	}
 	if optional {
 		d.add(MakeAction(AkDone, 0, 0, 0))
@@ -493,7 +493,7 @@ func (s *State) askOptionsKsrMagnet(k *prep, d *Decision) bool {
 	n := s.ksrMagnetPlaces(k, &s.stack[int(s.res.left)-1], !optional, &codes, &decl, &pos)
 	d.Sub = ChKsrTarget
 	for i := 0; i < n; i++ {
-		d.add(MakeAction(AkChoose, codes[i], 0, 0))
+		d.add(MakeAction(AkChoose, TCode(codes[i]), 0, 0))
 	}
 	if optional {
 		d.add(MakeAction(AkDone, 0, 0, 0))
@@ -511,7 +511,7 @@ func (s *State) applyAskKsrMagnet(k *prep, a Action) {
 		e := &s.stack[int(r.left)-1]
 		n := s.ksrMagnetPlaces(k, e, !optional, &codes, &decl, &pos)
 		for i := 0; i < n; i++ {
-			if codes[i] == a.Source() {
+			if TCode(codes[i]) == a.Source() {
 				s.ksrMagnetWrite(k, e, decl[i], pos[i])
 				break
 			}

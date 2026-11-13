@@ -265,9 +265,9 @@ func (s *State) atkTaxScope(k *prep, st *kop.Static, ctrl, tgt uint8) bool {
 	switch {
 	case sc == 0:
 		return true
-	case isPlayerTarget(tgt):
-		return sc&kop.StAtkTaxPlayer != 0 && CodeSeat(tgt) == ctrl
-	case sc&kop.StAtkTaxWalker == 0 || isPlayerOrNone(tgt):
+	case isPlayerTarget(TCode(tgt)):
+		return sc&kop.StAtkTaxPlayer != 0 && CodeSeat(TCode(tgt)) == ctrl
+	case sc&kop.StAtkTaxWalker == 0 || isPlayerOrNone(TCode(tgt)):
 		return false
 	}
 	ob := &s.objs[tgt]
@@ -349,7 +349,7 @@ func (s *State) atkTaxTargets(k *prep, tg *[MaxPerm + MaxSeats]uint8) int {
 		if q == s.active || s.out(q) {
 			continue
 		}
-		tg[n] = PlayerCode(q)
+		tg[n] = uint8(PlayerCode(q))
 		n++
 		for pm := s.ctrlM[q]; pm.any(); pm = pm.rest() {
 			if w := pm.first(); s.typesAt(k, w)&kop.TPlaneswalker != 0 {
@@ -425,7 +425,7 @@ func (s *State) atkTaxFilter(k *prep, d *Decision) {
 		a := d.Options[i]
 		if a.Kind() == AkAttack {
 			sl := s.objs[a.Source()].slot
-			n, ok := s.atkTaxCharge(k, sl, a.Target())
+			n, ok := s.atkTaxCharge(k, sl, uint8(a.Target()))
 			u := s.atkTaxUnits(k, sl)
 			if !ok || n > 0 && n+u > budget || taxed && spent+n+u > budget {
 				continue

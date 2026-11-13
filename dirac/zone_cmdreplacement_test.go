@@ -54,7 +54,7 @@ func assertCmdZoneReplaceAsk(t *testing.T, sc *scen, o Obj, from kop.Zone) Decis
 	}
 	for i, wantMode := range [2]uint8{0, 1} {
 		a := d.Options[i]
-		if a.Kind() != AkChoose || a.Source() != uint8(o) || a.Mode() != wantMode {
+		if a.Kind() != AkChoose || a.Source() != TCode(uint8(o)) || a.Mode() != wantMode {
 			t.Fatalf("option %d = kind %d src %d mode %d, want AkChoose src %d mode %d", i, a.Kind(), a.Source(), a.Mode(), o, wantMode)
 		}
 	}

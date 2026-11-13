@@ -106,7 +106,7 @@ func (s *State) offerBestowHand(k *prep, d *Decision, p uint8, o Obj, c CardID, 
 	if s.targetCands(k, &cd.BestowTgt, p, NoSlot, o, &buf) == 0 {
 		return
 	}
-	d.add(MakeAction(AkBestow, uint8(o), 0, 0))
+	d.add(MakeAction(AkBestow, TCode(o), 0, 0))
 }
 
 // beginBestow casts hand card o bestowed. gorge prices the bestowed cast as
@@ -185,9 +185,9 @@ func (s *State) bestowResolve(k *prep, e *stackEntry) {
 	}
 	e.mode &^= modeBestowed
 	e.nt = 0
-	e.tgt[0] = NoTarget
+	e.tgt[0] = uint8(NoTarget)
 	s.res.e = *e
-	s.stack[s.sp-1].mode, s.stack[s.sp-1].nt, s.stack[s.sp-1].tgt[0] = e.mode, 0, NoTarget
+	s.stack[s.sp-1].mode, s.stack[s.sp-1].nt, s.stack[s.sp-1].tgt[0] = e.mode, 0, uint8(NoTarget)
 	if ob := &s.objs[e.obj]; ob.slot == slotBestowSpell {
 		s.touch(e.obj)
 		ob.slot = NoSlot
@@ -202,11 +202,11 @@ func (s *State) bestowResolve(k *prep, e *stackEntry) {
 //go:noinline
 func (s *State) enterAttached(k *prep, e *stackEntry) Slot {
 	sl := s.enterNF(k, e.obj, e.ctrl, false, kop.ZoneStack, 0)
-	if isPlayerTarget(e.tgt[0]) {
+	if isPlayerTarget(TCode(e.tgt[0])) {
 		// an Enchant:Player spell (the curses): the target is the player
 		// code, not an object (gorge auraEntry's toPlayer settle, the
 		// "attach to player" fold)
-		s.attachPlayer(k, sl, CodeSeat(e.tgt[0]))
+		s.attachPlayer(k, sl, CodeSeat(TCode(e.tgt[0])))
 	} else {
 		s.attachTo(k, sl, s.objs[e.tgt[0]].slot)
 	}

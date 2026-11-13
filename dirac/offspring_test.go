@@ -17,7 +17,7 @@ func (sc *scen) castMode(t *testing.T, o Obj, m uint8) {
 	t.Helper()
 	d := sc.s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(o) && a.Mode() == m {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(o)) && a.Mode() == m {
 			sc.s.Apply(a)
 			return
 		}
@@ -114,7 +114,7 @@ func TestOffspringNotOfferedUnaffordable(t *testing.T) {
 	d := sc.s.Step()
 	plain := false
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(vl) {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(vl)) {
 			if a.Mode()&1 != 0 {
 				t.Fatal("offspring cast offered without its {2}")
 			}

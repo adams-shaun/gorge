@@ -33,17 +33,17 @@ func SeatIx(p uint8) uint8 { return p % MaxSeats }
 
 // PlayerCode is seat p's target code (CR 115.1: a player can be a target).
 // Every seat has one: the code space holds MaxSeats player codes.
-func PlayerCode(p uint8) uint8 { return PlayerTarget0 + p }
+func PlayerCode(p uint8) TCode { return PlayerTarget0 + TCode(p) }
 
 // isPlayerOrNone reports whether target byte c is at or above the player
 // codes: a player, a departed stack target (0xFE) or NoTarget. It is the raw
 // "c >= PlayerTarget0" range test, named so it reads the same at every seat
 // count; isPlayerTarget is the test for a player alone.
-func isPlayerOrNone(c uint8) bool { return c >= PlayerTarget0 }
+func isPlayerOrNone(c TCode) bool { return c >= PlayerTarget0 }
 
 // CodeSeat is the seat a player target code names; c must satisfy
 // isPlayerTarget.
-func CodeSeat(c uint8) uint8 { return c - PlayerTarget0 }
+func CodeSeat(c TCode) uint8 { return uint8(c - PlayerTarget0) } // code-ok: a seat, below MaxSeats
 
 // nSeats is the number of seats in this game. The default build plays two
 // and never reads the byte; the multiplayer build reads what InitN set.
@@ -151,12 +151,12 @@ func (s *State) atkSeat(k *prep, a Slot) uint8 {
 		return 1 - s.active
 	}
 	t := s.perms[a].atk
-	if isPlayerTarget(t) {
-		return CodeSeat(t)
+	if isPlayerTarget(TCode(t)) {
+		return CodeSeat(TCode(t))
 	}
 	q := s.attackedPerm(k, a)
 	if q == NoSlot {
-		return NoTarget
+		return uint8(NoTarget)
 	}
 	if s.typesAt(k, q)&kop.TBattle != 0 && s.perms[q].chosen&protChosen == protChosen {
 		return s.perms[q].chosen &^ protChosen
@@ -324,10 +324,10 @@ func (s *State) dmgSeat(rcp, srcCtrl uint8) uint8 {
 	if MaxSeats == 2 {
 		return 1 - srcCtrl
 	}
-	if isPlayerTarget(rcp) {
-		return CodeSeat(rcp)
+	if isPlayerTarget(TCode(rcp)) {
+		return CodeSeat(TCode(rcp))
 	}
-	if isObjTarget(rcp) && s.objs[rcp].zone == kop.ZoneBattlefield {
+	if isObjTarget(TCode(rcp)) && s.objs[rcp].zone == kop.ZoneBattlefield {
 		return s.perms[s.objs[rcp].slot].ctrl
 	}
 	return NextSeat(srcCtrl)

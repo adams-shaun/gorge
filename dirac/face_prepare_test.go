@@ -132,7 +132,7 @@ func TestPrepareCastUnprepares(t *testing.T) {
 	if got := preparedCastOffers(s, &d); len(got) != 1 || got[0] != cp {
 		t.Fatalf("offers %v, want [%d]", got, cp)
 	}
-	s.Apply(MakeAction(AkCast, uint8(cp), 1, castFace))
+	s.Apply(MakeAction(AkCast, TCode(cp), 1, castFace))
 	sc.buildToStack(t)
 	if len(preparedRecords(s)) != 0 || s.prepared(eater) {
 		t.Fatal("the push kept the prepared designation")
@@ -181,7 +181,7 @@ func TestPrepareNotFromHand(t *testing.T) {
 	d := sc.s.Step()
 	n := 0
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(eater) {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(eater)) {
 			n++
 			if a.Mode()&castFace != 0 {
 				t.Fatalf("face cast offered from the hand: %v", a)
@@ -248,7 +248,7 @@ func TestPrepareReversalKeepsFace(t *testing.T) {
 	cp := preparedRecords(s)[0].obj
 	face := s.objs[cp].card
 	s.Step()
-	s.Apply(MakeAction(AkCast, uint8(cp), 1, castFace))
+	s.Apply(MakeAction(AkCast, TCode(cp), 1, castFace))
 	s.Step()
 	s.reverseCast(sc.k)
 	if ob := &s.objs[cp]; ob.zone != kop.ZoneExile || ob.card != face {

@@ -64,7 +64,7 @@ func TestCourtyardGap(t *testing.T) {
 	if !castOffered(&d, hawk) {
 		t.Fatalf("Hawk not offered (Bird chosen): decision kind %d, %d options", d.Kind, d.N)
 	}
-	s.Apply(MakeAction(AkCast, uint8(hawk), 0, 0))
+	s.Apply(MakeAction(AkCast, TCode(hawk), 0, 0))
 	s.Step()
 	if !sc.tapped(court) {
 		t.Fatal("the Courtyard is not tapped by the plan")
@@ -117,7 +117,7 @@ func TestVillageFundsCreature(t *testing.T) {
 	if castOffered(&d, savor) {
 		t.Fatal("Savor offered on a creature-only {B}")
 	}
-	s.Apply(MakeAction(AkCast, uint8(assassin), 0, 0))
+	s.Apply(MakeAction(AkCast, TCode(assassin), 0, 0))
 	s.Step()
 	if !sc.tapped(v1) || !sc.tapped(v2) || s.sp != 1 || s.pl[0].pool != ([kop.NumManaKinds]uint8{}) {
 		t.Fatalf("after the Assassin: Villages tapped %v %v, stack %d, pool %v; want both tapped and the Assassin on the stack", sc.tapped(v1), sc.tapped(v2), s.sp, s.pl[0].pool)

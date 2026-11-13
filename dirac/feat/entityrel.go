@@ -59,7 +59,7 @@ func (e *Encoder) buildRel(s *dirac.State) {
 		var seen [16]uint8
 		nseen := 0
 		add := func(t uint8) {
-			if t == dirac.NoTarget || t >= dirac.PlayerTarget0 {
+			if dirac.TCode(t) == dirac.NoTarget || dirac.TCode(t) >= dirac.PlayerTarget0 {
 				return
 			}
 			for j := 0; j < nseen; j++ {
@@ -96,11 +96,11 @@ func (e *Encoder) buildRel(s *dirac.State) {
 		c := &v.cards[ci]
 		se := &e.kp.Stack[i]
 		classify := func(t uint8) {
-			if t == dirac.NoTarget {
+			if dirac.TCode(t) == dirac.NoTarget {
 				return
 			}
-			if t >= dirac.PlayerTarget0 {
-				if t == dirac.PlayerTarget0+v.seat {
+			if dirac.TCode(t) >= dirac.PlayerTarget0 {
+				if dirac.TCode(t) == dirac.PlayerTarget0+dirac.TCode(v.seat) {
 					c.rel.playerMe++
 				} else {
 					c.rel.playerOpp++

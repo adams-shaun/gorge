@@ -324,7 +324,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			break
 		}
 		for v := range k.t.TypeVocab {
-			d.add(MakeAction(AkChoose, 0, uint8(v>>8), uint8(v)))
+			d.add(MakeAction(AkChoose, 0, TCode(v>>8), uint8(v)))
 		}
 
 	case raGenPay:
@@ -350,7 +350,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			for m := s.ctrlM[p]; m.any(); m = m.rest() {
 				sl := m.first()
 				if s.matchPermGen(k, f, sl, p, src, layerFull) {
-					d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+					d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 				}
 			}
 			break
@@ -362,7 +362,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 				pp := &s.perms[sl]
 				for c := 0; c < int(kop.NumCounterKinds3); c++ {
 					if kop.IsCounterKind(c) && pp.ctrN(s, c) > 0 {
-						d.add(MakeAction(AkChoose, uint8(pp.obj), 0, uint8(c)))
+						d.add(MakeAction(AkChoose, TCode(pp.obj), 0, uint8(c)))
 					}
 				}
 			}
@@ -391,7 +391,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			}
 			pl := &s.pl[p]
 			for i := 0; i < int(pl.handN); i++ {
-				d.add(MakeAction(AkChoose, uint8(pl.hand[i]), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(pl.hand[i]), 0, 0))
 			}
 			break
 		}
@@ -412,7 +412,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		for m := s.ctrlM[p].andNot(s.g.sacM); m.any(); m = m.rest() {
 			sl := m.first()
 			if s.matchPermGen(k, f, sl, p, src, layerFull) && !(sac && s.sacBlocked(k, sl)) {
-				d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 			}
 		}
 		s.tapXVarDone(k, d) // closes a tapXType<X/Spec> pick (cost_tapxvar.go)
@@ -420,7 +420,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		d.Sub = ChArrange
 		for i := 0; i < int(s.g.nlook); i++ {
 			if s.g.lookSel&(1<<i) == 0 {
-				d.add(MakeAction(AkChoose, uint8(s.resArm().look[i]), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(s.resArm().look[i]), 0, 0))
 			}
 		}
 	case raGenResTarget:
@@ -432,7 +432,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		// ("card"), closed by done for an up-to slot
 		d.Sub = ChGenResTarget
 		for i := 0; i < n; i++ {
-			d.add(MakeAction(AkChoose, buf[i], 0, 0))
+			d.add(MakeAction(AkChoose, TCode(buf[i]), 0, 0))
 		}
 		if t.UpTo {
 			d.add(MakeAction(AkDone, 0, 0, 0))
@@ -443,7 +443,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		in := &s.prog(k)[r.pc]
 		m := s.divTargets(k, &r.e, uint8(tgtSlotOf(in.Obj)), &codes)
 		for i := 0; i < m; i++ {
-			d.add(MakeAction(AkChoose, codes[i], 0, 0))
+			d.add(MakeAction(AkChoose, TCode(codes[i]), 0, 0))
 		}
 	case raGenForage:
 		s.forageResOptions(k, d)
@@ -485,7 +485,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		for i := 0; i < int(s.g.nlook); i++ {
 			o := s.resArm().look[i]
 			if s.g.lookSel&(1<<i) == 0 && s.matchCardGen(k, f, s.objs[o].card, s.objs[o].owner(), r.e.ctrl, o) && s.pickFits(k, f, o, true) {
-				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 		if d.N == 0 || s.digMayStop(k) {
@@ -501,7 +501,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		d.Sub = ChGenPileSplit
 		for i := 0; i < int(s.g.nrem); i++ {
 			if s.g.lookSel&(1<<i) == 0 {
-				d.add(MakeAction(AkChoose, uint8(s.g.rem[i]), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(s.g.rem[i]), 0, 0))
 			}
 		}
 		d.add(MakeAction(AkDone, 0, 0, 0))
@@ -528,7 +528,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			}
 		}
 		for _, o := range buf[:n] {
-			d.add(MakeAction(AkChoose, uint8(o), 0, s.g.pickZ))
+			d.add(MakeAction(AkChoose, TCode(o), 0, s.g.pickZ))
 		}
 	case raGenCastFree:
 		d.Sub = ChGenCastFree
@@ -536,7 +536,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			if s.freeRepeated(i) {
 				continue // an AllowRepeats$ card is offered once, at its first place left (cast_freerepeat.go)
 			}
-			d.add(MakeAction(AkChoose, uint8(s.g.free[i]), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(s.g.free[i]), 0, 0))
 		}
 		d.add(MakeAction(AkDone, 0, 0, 0))
 	case raGenChooseCard:
@@ -582,7 +582,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		var buf [MaxOptions]uint8
 		n := s.enchantCands(k, s.enchantingCard(k), r.askP, &buf)
 		for i := 0; i < n; i++ {
-			d.add(MakeAction(AkChoose, buf[i], 0, 0))
+			d.add(MakeAction(AkChoose, TCode(buf[i]), 0, 0))
 		}
 	case raGenCmdZone:
 		s.cmdZoneOptions(d) // zone_cmdzone.go
@@ -936,19 +936,19 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		i := int(in.C)
 		c := uint8(NoTarget)
 		if a.Kind() == AkChoose {
-			c = a.Source()
+			c = uint8(a.Source())
 		}
 		r.e.tgt[i] = c
 		if r.e.nt <= uint8(i) {
 			r.e.nt = uint8(i) + 1
 		}
-		if c != NoTarget && isObjTarget(c) {
+		if TCode(c) != NoTarget && isObjTarget(TCode(c)) {
 			r.e.tver[i] = s.objs[c].ver
 		}
 		r.bad &^= 1 << i
 		s.continueRes(k, 0)
 	case raGenDivide:
-		s.answerDivide(k, a.Source())
+		s.answerDivide(k, uint8(a.Source()))
 	case raGenForage:
 		s.answerForageRes(k, a)
 	case raGenLookAck:
@@ -1759,7 +1759,7 @@ func (s *State) searchCands(k *prep, d *Decision) {
 			continue
 		}
 		if !s.tokenLeftBattlefield(o) && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) && s.pickFits(k, in.F, o, false) { // a token off the battlefield is no card (CR 111.8)
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 }
@@ -2509,7 +2509,7 @@ func (s *State) cardCands(k *prep, f kop.FilterID, p uint8, d *Decision) int {
 	add := func(o Obj) {
 		n++
 		if d != nil {
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 	if z == kop.ZoneNone || z == kop.ZoneBattlefield {
@@ -2707,8 +2707,8 @@ func (s *State) targetedExiler(ctrl uint8) uint8 {
 		return NextSeat(ctrl)
 	}
 	for i := range s.res.e.tgt {
-		if t := s.tgtCode(i); isPlayerTarget(t) {
-			return CodeSeat(t)
+		if t := s.tgtCode(i); isPlayerTarget(TCode(t)) {
+			return CodeSeat(TCode(t))
 		}
 	}
 	return NextSeat(ctrl)

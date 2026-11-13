@@ -59,7 +59,7 @@ func TestCtrlRoleTgtStackSlot(t *testing.T) {
 	sc.s.stackSid(&sc.s.stack[0])
 	sc.s.ctl = ctlBuild
 	*sc.s.bld() = build{e: stackEntry{kind: seAbility, ctrl: 0, obj: src, nt: 1, trigObj: NoObj}}
-	sc.s.bld().e.tgt[0] = StackTarget0
+	sc.s.bld().e.tgt[0] = uint8(StackTarget0)
 	sc.s.bld().e.tver[0] = sc.s.stack[0].sid
 	if !sc.s.ctrlRoleTgt(sc.k, 0, 1) {
 		t.Fatal("a stack ability slot did not name its controller 1")

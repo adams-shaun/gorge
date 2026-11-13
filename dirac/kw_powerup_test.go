@@ -48,7 +48,7 @@ func powerupAbility(t *testing.T, sc *scen, c CardID) *kop.Ability {
 // power-up activation.
 func powerupActivation(d *Decision, o Obj) bool {
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(o) {
+		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == TCode(uint8(o)) {
 			return true
 		}
 	}
@@ -71,7 +71,7 @@ func TestPowerUpEntryTurnReduced(t *testing.T) {
 	if !powerupActivation(&d, b) {
 		t.Fatalf("entry-turn power-up not offered from three floating white: %v", d.Options[:d.N])
 	}
-	sc.s.Apply(MakeAction(AkActivate, uint8(b), 0, 0))
+	sc.s.Apply(MakeAction(AkActivate, TCode(b), 0, 0))
 	d = sc.s.Step()
 	if d.Kind != DkPriority || powerupActivation(&d, b) {
 		t.Fatalf("the power-up was offered twice in one stint (kind %d)", d.Kind)
@@ -120,7 +120,7 @@ func TestPowerUpHybridUntouched(t *testing.T) {
 // ability resolves. The pool or the untapped sources must already be set.
 func powerUpPip(t *testing.T, sc *scen, o Obj) Decision {
 	t.Helper()
-	sc.s.Apply(MakeAction(AkActivate, uint8(o), 0, 0))
+	sc.s.Apply(MakeAction(AkActivate, TCode(o), 0, 0))
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChGenPip {
 		t.Fatalf("decision after activate %v/%d, want the hybrid pip ask", d.Kind, d.Sub)
@@ -266,7 +266,7 @@ func TestPowerUpXCost(t *testing.T) {
 		if !powerupActivation(&d, o) {
 			return nil
 		}
-		sc.s.Apply(MakeAction(AkActivate, uint8(o), 0, 0))
+		sc.s.Apply(MakeAction(AkActivate, TCode(o), 0, 0))
 		d = sc.s.Step()
 		if d.Kind != DkChoose || d.Sub != ChX {
 			t.Fatalf("kind %d sub %d after the activation, want the X ask", d.Kind, d.Sub)

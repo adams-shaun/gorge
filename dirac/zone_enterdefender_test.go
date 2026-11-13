@@ -49,7 +49,7 @@ func TestEnteringDefenderCandidates(t *testing.T) {
 	if s.res.ask != raNone {
 		t.Fatalf("ask %d, want none with only the opponent player to attack", s.res.ask)
 	}
-	if p := &s.perms[sc.slot(o)]; p.flags&pfAttacking == 0 || p.atk != PlayerTarget0+1 {
+	if p := &s.perms[sc.slot(o)]; p.flags&pfAttacking == 0 || TCode(p.atk) != PlayerTarget0+1 {
 		t.Fatalf("atk %d attacking %v, want the opponent player with no ask", p.atk, p.flags&pfAttacking != 0)
 	}
 
@@ -70,9 +70,9 @@ func TestEnteringDefenderCandidates(t *testing.T) {
 	if !s.resolveOptionsGen(sc.k, &d) || d.Sub != ChGenEnterDefender || d.N != 4 {
 		t.Fatalf("options sub %d n %d, want the entering-defender ask with four options", d.Sub, d.N)
 	}
-	want := []uint8{PlayerTarget0 + 1, uint8(wa), uint8(wb), uint8(bat)}
+	want := []uint8{uint8(PlayerTarget0 + 1), uint8(wa), uint8(wb), uint8(bat)}
 	for i, w := range want {
-		if d.Options[i].Source() != w {
+		if d.Options[i].Source() != TCode(w) {
 			t.Fatalf("option %d = %d, want %d (%v)", i, d.Options[i].Source(), w, want)
 		}
 	}
@@ -88,7 +88,7 @@ func TestEnteringDefenderCandidates(t *testing.T) {
 	if s.res.ask != raNone {
 		t.Fatalf("ask %d, want none for a battle the controller protects", s.res.ask)
 	}
-	if p := &s.perms[sc.slot(o)]; p.atk != PlayerTarget0+1 {
+	if p := &s.perms[sc.slot(o)]; TCode(p.atk) != PlayerTarget0+1 {
 		t.Fatalf("atk %d, want the opponent player", p.atk)
 	}
 }
@@ -169,7 +169,7 @@ func TestEnteringDefenderCloneReturn(t *testing.T) {
 	}
 	var pick Action
 	for i := 0; i < int(d.N); i++ {
-		if d.Options[i].Source() == uint8(bear) {
+		if d.Options[i].Source() == TCode(uint8(bear)) {
 			pick = d.Options[i]
 		}
 	}

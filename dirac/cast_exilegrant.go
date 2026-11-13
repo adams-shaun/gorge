@@ -129,7 +129,7 @@ func (s *State) priorityExileGrant(k *prep, d *Decision, p uint8) {
 			if !s.graveActCond(k, a, p, o) || !s.costObjPayable(k, p, &a.Cost, o, NoObj) {
 				continue
 			}
-			act := MakeAction(AkActivate, uint8(o), uint8(host), 0x80|uint8(ai))
+			act := MakeAction(AkActivate, TCode(o), TCode(host), 0x80|uint8(ai))
 			dup := false
 			for x := 0; x < int(d.N); x++ {
 				dup = dup || d.Options[x] == act

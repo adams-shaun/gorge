@@ -73,11 +73,11 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		// the any-target form (Scourge of Valkas): the slot names a player,
 		// handled below as each-opponent is, or a permanent
 		code := s.tgtCode(sli)
-		if code == NoTarget {
+		if TCode(code) == NoTarget {
 			s.g.plusBatchAsked = false
 			return
 		}
-		if isObjTarget(code) {
+		if isObjTarget(TCode(code)) {
 			s.dmgSrcObject(k, Obj(code), o, sl, kw, ctrl, infect, int(n))
 			return
 		}
@@ -95,10 +95,10 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 	)
 	// the first seat is coded even when the set is empty, as before (its
 	// code then names no player and the pass sees it as such)
-	plCodes[0], plAmts[0] = PlayerCode(q.at(0)), int(n)
+	plCodes[0], plAmts[0] = uint8(PlayerCode(q.at(0))), int(n)
 	ne := 1
 	for i := uint8(1); i < q.n; i++ {
-		plCodes[i], plAmts[i] = PlayerCode(q.s[i]), int(n)
+		plCodes[i], plAmts[i] = uint8(PlayerCode(q.s[i])), int(n)
 		ne++
 	}
 	if s.replPlusSrcPass(k, ctrl, sl, card, kw, plCodes[:ne], plAmts[:ne]) {
@@ -113,7 +113,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		code := PlayerCode(p)
 		m := n
 		if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 {
-			if m = s.replDamage(k, ctrl, sl, card, code, false, m); m <= 0 {
+			if m = s.replDamage(k, ctrl, sl, card, uint8(code), false, m); m <= 0 {
 				continue
 			}
 		}
@@ -131,9 +131,9 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		}
 		if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) {
 			if sl != NoSlot {
-				s.fireDamage(k, sl, int16(m), true, false, code)
+				s.fireDamage(k, sl, int16(m), true, false, uint8(code))
 			} else if k.gen != nil {
-				s.fireDamageSrc(k, o, ctrl, int16(m), dmgPl(code), code, nil)
+				s.fireDamageSrc(k, o, ctrl, int16(m), dmgPl(uint8(code)), uint8(code), nil)
 			}
 		}
 	}

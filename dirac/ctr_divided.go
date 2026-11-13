@@ -96,8 +96,8 @@ func (s *State) divCounters(k *prep, in *kop.Instr) {
 		// the announced division: each still-legal target takes its share
 		// (CR 608.2b), an illegal one's is lost
 		i := 0
-		if e.tgt[slot] != NoTarget {
-			if c := s.tgtCode(int(slot)); c != NoTarget {
+		if TCode(e.tgt[slot]) != NoTarget {
+			if c := s.tgtCode(int(slot)); TCode(c) != NoTarget {
 				codes[m], amts[m] = c, int(x.div[0])
 				m++
 			}
@@ -123,7 +123,7 @@ func (s *State) divCounters(k *prep, in *kop.Instr) {
 	}
 	for i := 0; i < m; i++ {
 		c := codes[i]
-		if amts[i] <= 0 || isPlayerOrNone(c) || s.objs[c].zone != kop.ZoneBattlefield {
+		if amts[i] <= 0 || isPlayerOrNone(TCode(c)) || s.objs[c].zone != kop.ZoneBattlefield {
 			continue
 		}
 		s.putDividedShare(k, s.objs[c].slot, amts[i])

@@ -59,5 +59,5 @@ func (s *State) payResToken(k *prep) {
 		s.addPoison(s.g.pickP, int(s.g.pickLeft))
 		return
 	}
-	s.damageTo(k, PlayerCode(s.g.pickP), int(s.g.pickLeft))
+	s.damageTo(k, uint8(PlayerCode(s.g.pickP)), int(s.g.pickLeft))
 }

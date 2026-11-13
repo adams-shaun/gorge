@@ -78,6 +78,6 @@ func (s *State) copyPicked(k *prep, in *kop.Instr) bool {
 // lost.
 func (s *State) copyEnterAttacking(k *prep, sl Slot, ctrl uint8) {
 	if opp := NextSeat(ctrl); !s.pl[opp].lost {
-		s.setEnterAttacker(k, sl, PlayerCode(opp))
+		s.setEnterAttacker(k, sl, uint8(PlayerCode(opp)))
 	}
 }

@@ -42,7 +42,7 @@ func (sc *scen) castCard(t *testing.T, o Obj) {
 	t.Helper()
 	d := sc.s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(o) {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(o)) {
 			sc.s.Apply(a)
 			return
 		}

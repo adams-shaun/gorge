@@ -71,8 +71,8 @@ func TestExtStackTargetClasses(t *testing.T) {
 		_, top := topEntry(t, sc)
 		// the target is the encoded seat's
 		tb := top.Targets[0]
-		if tb == dirac.PlayerTarget0+sc.Seat {
-		} else if tb >= dirac.PlayerTarget0 {
+		if dirac.TCode(tb) == dirac.PlayerTarget0+dirac.TCode(sc.Seat) {
+		} else if dirac.TCode(tb) >= dirac.PlayerTarget0 {
 			t.Fatalf("%s: target %#x is not the seat", c.name, tb)
 		}
 		if off := encStack(sc.Pool, 0, sc.State, &sc.Dec, sc.Seat); len(off) != 0 {
@@ -194,7 +194,7 @@ func castCounterOnTop(t *testing.T, sc *FeatScenario) (*dirac.State, *dirac.Deci
 		case dirac.DkTarget:
 			pick := -1
 			for i, a := range d.Options[:d.N] {
-				if a.Target() == victim {
+				if a.Target() == dirac.TCode(victim) {
 					pick = i
 				}
 			}

@@ -83,7 +83,7 @@ func TestSpawnSacManaOffersCast(t *testing.T) {
 	d = sc3.s.Step()
 	for i := 0; i < int(d.N); i++ {
 		a := d.Options[i]
-		if a.Kind() == AkCast && a.Source() == uint8(os3) {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(os3)) {
 			t.Errorf("Old Stickfingers offered with no {B}{G} source")
 		}
 	}
@@ -95,7 +95,7 @@ func TestSpawnSacManaOffersCast(t *testing.T) {
 	d = sc4.s.Step()
 	plain, kicked := false, false
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(sm) {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(sm)) {
 			if a.Mode()&1 != 0 {
 				kicked = true
 			} else {
@@ -111,7 +111,7 @@ func TestSpawnSacManaOffersCast(t *testing.T) {
 	d = sc5.s.Step()
 	plain, kicked = false, false
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(sm5) {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(sm5)) {
 			if a.Mode()&1 != 0 {
 				kicked = true
 			} else {
@@ -248,7 +248,7 @@ func mapScen(t *testing.T, extra ...string) (*scen, Obj, Obj) {
 
 func mapOffered(d *Decision, m Obj) Action {
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(m) {
+		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == TCode(uint8(m)) {
 			return a
 		}
 	}

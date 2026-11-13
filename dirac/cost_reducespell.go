@@ -79,7 +79,7 @@ func (s *State) offerOptCostOnly(k *prep, d *Decision, p uint8, o Obj, c CardID,
 		return
 	}
 	if s.optCostOffer(k, p, c, o) {
-		d.add(MakeAction(AkCast, uint8(o), 0, 1))
+		d.add(MakeAction(AkCast, TCode(o), 0, 1))
 	}
 }
 
@@ -203,7 +203,7 @@ func (s *State) offerBargainOnly(k *prep, d *Decision, p uint8, o Obj, c CardID,
 		return
 	}
 	if s.bargainOffers(k, p, o) {
-		d.add(MakeAction(AkCastCasualty, uint8(o), 0, 0))
+		d.add(MakeAction(AkCastCasualty, TCode(o), 0, 0))
 	}
 }
 

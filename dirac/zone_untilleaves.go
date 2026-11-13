@@ -139,7 +139,7 @@ func (s *State) diffCtrlCap(k *prep, t *kop.TargetSpec, ti uint8, mt *multiTgt) 
 	n := s.multiCands(k, t, ti, &buf)
 	var seen [MaxSeats]bool
 	for i := 0; i < n; i++ {
-		if isObjTarget(buf[i]) {
+		if isObjTarget(TCode(buf[i])) {
 			seen[SeatIx(s.ctrlOfObj(Obj(buf[i])))] = true
 		}
 	}

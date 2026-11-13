@@ -68,7 +68,7 @@ func TestReplOrderNoncombatTwoTwinflames(t *testing.T) {
 	s := sc.s
 	t0 := sc.perm(id["Twinflame Tyrant"], 0)
 	t1 := sc.perm(id["Twinflame Tyrant"], 0)
-	d := burnToAsk(t, sc, id, PlayerTarget1)
+	d := burnToAsk(t, sc, id, uint8(PlayerTarget1))
 	if d.Kind != DkChoose || d.Sub != ChGenReplOrder || d.Player != 1 || d.N != 2 {
 		t.Fatalf("want the opponent's order ask over the two Twinflames, got kind %d sub %d player %d opts %v", d.Kind, d.Sub, d.Player, d.Options[:d.N])
 	}

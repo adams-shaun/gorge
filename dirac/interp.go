@@ -21,12 +21,12 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			q := s.oppsFrom(e.ctrl)
 			n := s.value(k, in.A)
 			for i := uint8(0); i < q.n; i++ {
-				s.damageTo(k, PlayerCode(q.s[i]), n)
+				s.damageTo(k, uint8(PlayerCode(q.s[i])), n)
 			}
 			break
 		}
 		code := s.refCode(k, in.Obj)
-		if code != NoTarget {
+		if TCode(code) != NoTarget {
 			s.damageTo(k, code, s.value(k, in.A))
 		}
 	case kop.OpDraw:
@@ -482,7 +482,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			// AliveFrom the controller)
 			q := s.aliveFrom(e.ctrl)
 			for i := uint8(0); i < q.n; i++ {
-				s.damageTo(k, PlayerCode(q.s[i]), n)
+				s.damageTo(k, uint8(PlayerCode(q.s[i])), n)
 			}
 		}
 	case kop.OpDestroyAll:
@@ -714,7 +714,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 func (s *State) cond(k *prep, in *kop.Instr) bool {
 	switch in.C {
 	case 0: // the first target is still legal
-		return s.tgtCode(0) != NoTarget
+		return TCode(s.tgtCode(0)) != NoTarget
 	case 1: // value A > 0
 		return s.value(k, in.A) > 0
 	case 2: // the spell was not kicked
@@ -861,7 +861,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 				}
 			}
 			if !taken && s.objs[o].of&ofCopy == 0 && (k.gen == nil || s.discardOK(k, o)) {
-				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 	case raScryTop, raSurveil:
@@ -877,7 +877,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 		d.Kind, d.Sub = DkChoose, ChArrange
 		for i := 0; i < int(r.peekN); i++ {
 			if (r.peekSel|r.restSel)&(1<<i) == 0 {
-				d.add(MakeAction(AkChoose, uint8(r.peek[i]), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(r.peek[i]), 0, 0))
 			}
 		}
 		if !r.restPh {
@@ -888,7 +888,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 		for m := s.ctrlM[r.askP]; m.any(); m = m.rest() {
 			sl := m.first()
 			if s.sacMatch(k, s.prog(k)[r.pc].F, sl, r.askP, s.resSrcSlot(k)) && !s.g.sacM.has(sl) {
-				d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 			}
 		}
 	case raOptional, raGeneric:
@@ -913,7 +913,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 		for m := s.ctrlM[r.askP]; m.any(); m = m.rest() {
 			sl := m.first()
 			if !s.optaskPicked(s.perms[sl].obj) && s.sacMatch(k, in.F, sl, r.askP, s.resSrcSlot(k)) {
-				d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 			}
 		}
 		d.add(MakeAction(AkDone, 0, 0, 0)) // Min 0: Done is always offered
@@ -925,7 +925,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 		for i := 0; i < int(pl.handN); i++ {
 			o := pl.hand[i]
 			if !s.optaskPicked(o) && s.discardOK(k, o) {
-				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 		if r.peekI >= uint8(s.optDiscardMin(k)) {

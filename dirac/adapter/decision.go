@@ -88,8 +88,8 @@ func (g *Game) priorityEntry(p uint8, x dirac.Action) entry {
 	src, mode := x.Source(), x.Mode()
 	po := &g.kp.Objs[src]
 	zidx := uint64(po.ZoneIdx)
-	e := entry{act: x, c: c, opt: decision.Option{Obj: g.ids.obj(src)}}
-	e.opt.Label = g.cardName(src)
+	e := entry{act: x, c: c, opt: decision.Option{Obj: g.ids.obj(uint8(src))}}
+	e.opt.Label = g.cardName(uint8(src))
 	switch c.Kind() {
 	case canon.ActPlayLand:
 		e.opt.Kind = "play_land"
@@ -103,7 +103,7 @@ func (g *Game) priorityEntry(p uint8, x dirac.Action) entry {
 		if x.Mode()&0x80 != 0 { // a granted ability has no index of its own (rules' Option.SVar)
 			e.opt.Ability = 0
 			if name, sa := g.grantedSA(g.kp.Objs[x.Target()].Card, x.Mode()&^0x80); sa != nil {
-				e.opt.SVar, e.opt.GrantSource = name, g.ids.obj(x.Target())
+				e.opt.SVar, e.opt.GrantSource = name, g.ids.obj(uint8(x.Target()))
 				e.opt.Cost = offerCost(sa)
 			}
 		} else if sa := g.faceSA(po.Card, c.Mode()); sa != nil {
@@ -523,8 +523,8 @@ func (g *Game) askOption(x dirac.Action, c canon.Canon, i uint32) (o decision.Op
 			o.Obj = g.ids.obj(uint8(src))
 		}
 		if g.d.Sub == dirac.ChGenCastFree {
-			o.Obj = g.ids.obj(x.Source())
-			o.Label = "Play " + g.cardName(x.Source())
+			o.Obj = g.ids.obj(uint8(x.Source()))
+			o.Label = "Play " + g.cardName(uint8(x.Source()))
 		}
 		key = uint32(c.Mode())
 		if g.d.Sub == dirac.ChWardPay || g.d.Sub == dirac.ChGenPayMode {
@@ -765,7 +765,7 @@ func (g *Game) chooseKey(x dirac.Action) uint32 {
 		dirac.ChGenTopBottom, dirac.ChGenLeyline, dirac.ChGenDiscUnless:
 		return 1 - uint32(mode&1) // yes, pay, top and unless come first
 	case dirac.ChGenDivide, dirac.ChCastDivide:
-		return uint32(g.s.FeatDivideIndex(src))
+		return uint32(g.s.FeatDivideIndex(uint8(src)))
 	case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick, dirac.ChDivide, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChGenManaChoice,
 		dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenReplOrder, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped, dirac.ChGenDestAlt:
 		return uint32(mode)
@@ -774,10 +774,10 @@ func (g *Game) chooseKey(x dirac.Action) uint32 {
 	case dirac.ChGenChooseCard, dirac.ChGenChooseEach, dirac.ChGenCastFree:
 		return uint32(src)
 	}
-	if src == uint8(dirac.NoObj) || src >= dirac.PlayerTarget0 {
+	if src == dirac.TCode(uint8(dirac.NoObj)) || src >= dirac.PlayerTarget0 {
 		return uint32(mode)
 	}
-	return g.zoneKey(src)
+	return g.zoneKey(canon.Ref(src))
 }
 
 // unlessSA stands for the resolving ability of an unless-pay ask; a client reads only
