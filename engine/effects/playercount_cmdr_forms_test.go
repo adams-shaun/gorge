@@ -221,9 +221,9 @@ func TestPlayerCountNonTriggeredTargetBattleAngels(t *testing.T) {
 }
 
 // TestTriggeredTargetRefReadsZoneHeads pins the widened default-ref arm:
-// TriggeredTarget reads CardsInHand and the Valid-family zone counts, but the
-// widening is confined to that one ref (TriggeredDefendingPlayer still fails
-// closed for CardsInHand).
+// TriggeredTarget reads CardsInHand and the Valid-family zone counts, and
+// TriggeredDefendingPlayer reads CardsInHand (Mr. Foxglove); the widening is
+// confined to those refs (TriggeredPlayer still fails closed for CardsInHand).
 func TestTriggeredTargetRefReadsZoneHeads(t *testing.T) {
 	h := newHost(t, 3)
 	g := h.g
@@ -257,10 +257,16 @@ func TestTriggeredTargetRefReadsZoneHeads(t *testing.T) {
 		t.Fatalf("TriggeredTarget$Valid Permanent.nonDemon+YouCtrl/HalfUp = (%d,%v), want (2,true)", got, ok)
 	}
 
-	// Confinement: a different default ref keeps CardsInHand unresolvable.
+	// Mr. Foxglove's defending player reads CardsInHand too (and only that
+	// head: its Valid heads stay unresolvable).
 	c.DefendingPlayer = state.Target{Player: 1, IsPlayer: true}
-	if got, ok := EvalCountOK(h, c, "TriggeredDefendingPlayer$CardsInHand"); ok || got != 0 {
-		t.Fatalf("TriggeredDefendingPlayer$CardsInHand = (%d,%v), want (0,false): the widening is TriggeredTarget-only", got, ok)
+	if got, ok := EvalCountOK(h, c, "TriggeredDefendingPlayer$CardsInHand"); !ok || got != 4 {
+		t.Fatalf("TriggeredDefendingPlayer$CardsInHand = (%d,%v), want (4,true)", got, ok)
+	}
+	// Confinement: a different default ref keeps CardsInHand unresolvable.
+	c.TriggerPlayer = state.Target{Player: 1, IsPlayer: true}
+	if got, ok := EvalCountOK(h, c, "TriggeredPlayer$CardsInHand"); ok || got != 0 {
+		t.Fatalf("TriggeredPlayer$CardsInHand = (%d,%v), want (0,false): the widening is TriggeredTarget- and TriggeredDefendingPlayer-only", got, ok)
 	}
 }
 

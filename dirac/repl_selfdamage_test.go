@@ -130,7 +130,7 @@ func TestCombatDamageWolverineDoubleBlockNoStall(t *testing.T) {
 func declareBlock(s *State, b, w Slot, bord uint8) {
 	s.perms[b].flags |= pfBlocking
 	s.perms[b].blocking = w
-	s.perms[b].bord = bord
+	s.perms[b].bord = objWord(bord)
 }
 
 // TestHealCombatBlockOrder: the event of the pass that survives is the one

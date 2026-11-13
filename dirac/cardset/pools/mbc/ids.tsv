@@ -1,0 +1,2355 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	A Killer Among Us
+1	card	Aboleth Spawn
+2	card	Abolish
+3	card	About Face
+4	card	Abrade
+5	card	Absorb Vis
+6	card	Abundant Growth
+7	card	Abzan Battle Priest
+8	card	Abzan Beastmaster
+9	card	Academy Journeymage
+10	card	Accorder Paladin
+11	card	Accursed Marauder
+12	card	Accursed Spirit
+13	card	Acidic Slime
+14	card	Acidic Soil
+15	card	Acquisition Octopus
+16	card	Act on Impulse
+17	card	Adamant Will
+18	card	Adanto Vanguard
+19	card	Adeline, Resplendent Cathar
+20	card	Adventurous Impulse
+21	card	Aerial Responder
+22	card	Aerie Bowmasters
+23	card	Aether Tradewinds
+24	card	Aether Vial
+25	card	Aetherize
+26	card	Aethersnipe
+27	card	Afterlife
+28	card	Afterlife Insurance
+29	card	Aftershock
+30	card	Against All Odds
+31	card	Agate Instigator
+32	card	Aggressive Urge
+33	card	Ainok Survivalist
+34	card	Ainok Tracker
+35	card	Ajani's Pridemate
+36	card	Ajani's Welcome
+37	card	Akroan Phalanx
+38	card	Akroma's Will
+39	card	Akroma, Vision of Ixidor
+40	card	Alchemist's Retrieval
+41	card	Alena, Kessig Trapper
+42	card	Alharu, Solemn Ritualist
+43	card	Alirios, Enraptured
+44	card	All That Glitters
+45	card	Alseid of Life's Bounty
+46	card	Altar's Reap
+47	card	Ambassador Oak
+48	card	Ambition's Cost
+49	card	Amoeboid Changeling
+50	card	Amphin Pathmage
+51	card	An Offer You Can't Refuse
+52	card	Anara, Wolvid Familiar
+53	card	Anarchist
+54	card	Anax, Hardened in the Forge
+55	card	Ancestral Blade
+56	card	Ancestral Mask
+57	card	Ancient Craving
+58	card	Ancient Grudge
+59	card	Ancient Hydra
+60	card	Ancient Silverback
+61	card	Ancient Stirrings
+62	card	Angel of Indemnity
+63	card	Angel of Light
+64	card	Angel of Renewal
+65	card	Angel of Vitality
+66	card	Angel of the Ruins
+67	card	Angelic Exaltation
+68	card	Angelic Favor
+69	card	Angelic Gift
+70	card	Angelic Page
+71	card	Angelic Protector
+72	card	Anger
+73	card	Anim Pakal, Thousandth Moon
+74	card	Animate Dead
+75	card	Annex
+76	card	Annoyed Altisaur
+77	card	Anzrag, the Quake-Mole
+78	card	Aphetto Alchemist
+79	card	Aphetto Exterminator
+80	card	Aphotic Wisps
+81	card	Apprentice Necromancer
+82	card	Apprentice Sorcerer
+83	card	Apprentice Wizard
+84	card	Aqueous Form
+85	card	Arabella, Abandoned Doll
+86	card	Araumi of the Dead Tide
+87	card	Arbor Elf
+88	card	Arc Lightning
+89	card	Arc Trail
+90	card	Arcane Denial
+91	card	Arcane Signet
+92	card	Archaeomancer
+93	card	Archetype of Courage
+94	card	Archetype of Finality
+95	card	Archetype of Imagination
+96	card	Archfiend of Sorrows
+97	card	Archon of Absolution
+98	card	Ardenn, Intrepid Archaeologist
+99	card	Ardent Elementalist
+100	card	Arena
+101	card	Argothian Elder
+102	card	Argothian Opportunist
+103	card	Armed // Dangerous
+104	card	Armix, Filigree Thrasher
+105	card	Armorcraft Judge
+106	card	Armored Ascension
+107	card	Arms Dealer
+108	card	Arrogant Vampire
+109	card	Arrogant Wurm
+110	card	Arrow Storm
+111	card	Artistic Process
+112	card	Arzakon
+113	card	Ashaya's Enduring Bond
+114	card	Ashaya, Soul of the Wild
+115	card	Ashling, Flame Dancer
+116	card	Assault Formation
+117	card	Athreos, God of Passage
+118	card	Atraxa's Fall
+119	card	Attempted Murder
+120	card	Augur of Bolas
+121	card	Augur of Skulls
+122	card	Aura Gnarlid
+123	card	Autumn Willow, Harmony
+124	card	Avacyn's Pilgrim
+125	card	Avatar of Growth
+126	card	Aven Fisher
+127	card	Aven Liberator
+128	card	Aven Mindcensor
+129	card	Aven Squire
+130	card	Avenging Druid
+131	card	Avian Changeling
+132	card	Axebane Guardian
+133	card	Axgard Cavalry
+134	card	Azorius Herald
+135	card	Azra Bladeseeker
+136	card	Azra Oddsmaker
+137	card	Azure Fleet Admiral
+138	card	Baba Lysaga, Night Witch
+139	card	Back to Basics
+140	card	Bad Deal
+141	card	Baeloth Barrityl, Entertainer
+142	card	Baffling End
+143	card	Baird, Steward of Argive
+144	card	Baldin, Century Herdmaster
+145	card	Balduvian Horde
+146	card	Balduvian Warlord
+147	card	Balefang the Unslayable
+148	card	Baleful Ammit
+149	card	Baleful Strix
+150	card	Ball Lightning
+151	card	Ballynock Cohort
+152	card	Balmor, Battlemage Captain
+153	card	Baloth Gorger
+154	card	Baloth Woodcrasher
+155	card	Balustrade Spy
+156	card	Bane's Invoker
+157	card	Banisher Priest
+158	card	Banishing Light
+159	card	Banishing Slash
+160	card	Banishing Stroke
+161	card	Banshee of the Dread Choir
+162	card	Barbed Batterfist
+163	card	Barbed Spike
+164	card	Barrage of Boulders
+165	card	Barrowgoyf
+166	card	Barter in Blood
+167	card	Basalt Monolith
+168	card	Basking Broodscale
+169	card	Basri's Acolyte
+170	card	Basri's Solidarity
+171	card	Bassara Tower Archer
+172	card	Bastion Inventor
+173	card	Bastion of Remembrance
+174	card	Battle Angels of Tyr
+175	card	Battle Cry Goblin
+176	card	Battle Screech
+177	card	Battle Squadron
+178	card	Battle-Rage Blessing
+179	card	Battlewing Mystic
+180	card	Batwing Brume
+181	card	Beanstalk Giant // Fertile Footsteps
+182	card	Beast Attack
+183	card	Beast Within
+184	card	Beetleback Chief
+185	card	Behold the Multiverse
+186	card	Bellowing Aegisaur
+187	card	Bellowing Tanglewurm
+188	card	Belltoll Dragon
+189	card	Beloved Chaplain
+190	card	Beneath the Sands
+191	card	Benevolent Ancestor
+192	card	Benevolent Blessing
+193	card	Benevolent Bodyguard
+194	card	Beseech the Queen
+195	card	Bestial Menace
+196	card	Betrayal of Flesh
+197	card	Bewilder
+198	card	Bhaal's Invoker
+199	card	Big Score
+200	card	Binding the Old Gods
+201	card	Biogenic Upgrade
+202	card	Biomechan Engineer
+203	card	Birchlore Rangers
+204	card	Birds of Paradise
+205	card	Bitter Reunion
+206	card	Bitterbow Sharpshooters
+207	card	Black Cat
+208	card	Black Dragon Gate
+209	card	Black Vise
+210	card	Blade Sliver
+211	card	Blade of Selves
+212	card	Blade of the Bloodchief
+213	card	Bladewing's Thrall
+214	card	Blanchwood Prowler
+215	card	Blastfire Bolt
+216	card	Blasting Station
+217	card	Blaze
+218	card	Blazing Crescendo
+219	card	Blazing Volley
+220	card	Blessed Hippogriff // Tyr's Blessing
+221	card	Blessed Spirits
+222	card	Blessing of Belzenlok
+223	card	Blessing of Leeches
+224	card	Blight Mamba
+225	card	Blightbeetle
+226	card	Blightsoil Druid
+227	card	Blightwidow
+228	card	Blindblast
+229	card	Blink of an Eye
+230	card	Blood Artist
+231	card	Blood Celebrant
+232	card	Blood Curdle
+233	card	Blood Fountain
+234	card	Blood Frenzy
+235	card	Blood Knight
+236	card	Blood Ogre
+237	card	Blood Pact
+238	card	Blood Speaker
+239	card	Bloodchief's Thirst
+240	card	Bloodfire Expert
+241	card	Bloodlust Inciter
+242	card	Bloodmark Mentor
+243	card	Bloodrite Invoker
+244	card	Bloodthirsty Aerialist
+245	card	Bloodthirsty Blade
+246	card	Bloodthrone Vampire
+247	card	Bloom Hulk
+248	card	Blor the Impervious
+249	card	Blossom Dryad
+250	card	Blossoming Defense
+251	card	Blot Out
+252	card	Blur
+253	card	Boarding Party
+254	card	Body Double
+255	card	Boggart Harbinger
+256	card	Boldwyr Intimidator
+257	card	Bolt Bend
+258	card	Bombard
+259	card	Bond of Discipline
+260	card	Bone Shards
+261	card	Bone Shredder
+262	card	Bookwurm
+263	card	Boomerang
+264	card	Boonweaver Giant
+265	card	Boots of Speed
+266	card	Borderland Ranger
+267	card	Borrowing 100,000 Arrows
+268	card	Boss Uramon, Shadow's Reach
+269	card	Bothersome Quasit
+270	card	Braids, Arisen Nightmare
+271	card	Brainstealer Dragon
+272	card	Brainstorm
+273	card	Brallin, Skyshark Rider
+274	card	Brave the Sands
+275	card	Brazen Wolves
+276	card	Breaker of Armies
+277	card	Breakthrough
+278	card	Breath Weapon
+279	card	Breath of Darigaaz
+280	card	Breath of Life
+281	card	Bria, Riptide Rogue
+282	card	Briar Patch
+283	card	Briarblade Adept
+284	card	Brilliant Plan
+285	card	Brine Elemental
+286	card	Brinelin, the Moon Kraken
+287	card	Bristling Boar
+288	card	Broken Wings
+289	card	Bronzeplate Boar
+290	card	Brood Monitor
+291	card	Brood of Cockroaches
+292	card	Broodbirth Viper
+293	card	Broodhatch Nantuko
+294	card	Brute Force
+295	card	Brute Strength
+296	card	Bubbling Muck
+297	card	Bulk Up
+298	card	Buried Alive
+299	card	Buried in the Garden
+300	card	Burning Palm Efreet
+301	card	Burning Prophet
+302	card	Burrenton Forge-Tender
+303	card	Burst Lightning
+304	card	Bushmeat Poacher
+305	card	Bushwhack
+306	card	Butcher Ghoul
+307	card	Cabal Pit
+308	card	Cabal Ritual
+309	card	Cadira, Caller of the Small
+310	card	Caligo Skin-Witch
+311	card	Call of the Herd
+312	card	Call the Bloodline
+313	card	Caller of the Pack
+314	card	Caltrops
+315	card	Campfire
+316	card	Canal Courier
+317	card	Candlekeep Inspiration
+318	card	Cankerbloom
+319	card	Canopy Cover
+320	card	Canopy Surge
+321	card	Captain Sisay
+322	card	Careful Study
+323	card	Carrier Thrall
+324	card	Carrion Feeder
+325	card	Carrion Imp
+326	card	Cartouche of Ambition
+327	card	Cartouche of Knowledge
+328	card	Cartouche of Strength
+329	card	Cast Down
+330	card	Cast Out
+331	card	Catacomb Crocodile
+332	card	Cathartic Pyre
+333	card	Caustic Caterpillar
+334	card	Cave-In
+335	card	Cenn's Enlistment
+336	card	Cephalid Broker
+337	card	Cephalid Illusionist
+338	card	Cerulean Wisps
+339	card	Cerulean Wyvern
+340	card	Chain of Acid
+341	card	Chain of Smog
+342	card	Chain of Vapor
+343	card	Chainer's Edict
+344	card	Chakram Retriever
+345	card	Chakram Slinger
+346	card	Challenger Troll
+347	card	Chandra's Pyrohelix
+348	card	Chandra, Novice Pyromancer
+349	card	Changeling Outcast
+350	card	Changeling Wayfinder
+351	card	Chaos Channeler
+352	card	Chaos Warp
+353	card	Charcoal Diamond
+354	card	Charge Through
+355	card	Charging Monstrosaur
+356	card	Charging Tuskodon
+357	card	Cheering Fanatic
+358	card	Chemister's Insight
+359	card	Chief Magistrate of Mercadia
+360	card	Choking Tethers
+361	card	Chomping Changeling
+362	card	Chromatic Lantern
+363	card	Cinder Cloud
+364	card	Citadel Gate
+365	card	Citanul Woodreaders
+366	card	City of Brass
+367	card	Citywatch Sphinx
+368	card	Clarion Spirit
+369	card	Claustrophobia
+370	card	Claws of Gix
+371	card	Cleric Class
+372	card	Cliffgate
+373	card	Cling to Dust
+374	card	Clinquant Skymage
+375	card	Clip Wings
+376	card	Cloak of Feathers
+377	card	Cloud Djinn
+378	card	Cloud Elemental
+379	card	Cloud Spirit
+380	card	Cloudgoat Ranger
+381	card	Cloudkill
+382	card	Cloudreader Sphinx
+383	card	Cloudshift
+384	card	Clown Car
+385	card	Coalition Honor Guard
+386	card	Coastal Piracy
+387	card	Coastline Marauders
+388	card	Code of Constraint
+389	card	Codecracker Hound
+390	card	Coercive Portal
+391	card	Cold-Water Snapper
+392	card	Collected Company
+393	card	Collective Resistance
+394	card	Colossal Dreadmaw
+395	card	Colossal Skyturtle
+396	card	Combat Research
+397	card	Combo Attack
+398	card	Command Tower
+399	card	Commander Eesha
+400	card	Commander Liara Portyr
+401	card	Commander's Sphere
+402	card	Commune with Nature
+403	card	Commune with the Gods
+404	card	Complicate
+405	card	Component Pouch
+406	card	Compost
+407	card	Compulsion
+408	card	Concentrate
+409	card	Conclave Evangelist
+410	card	Condemn
+411	card	Cone of Cold
+412	card	Cone of Flame
+413	card	Confound
+414	card	Congregate
+415	card	Conifer Strider
+416	card	Constricting Sliver
+417	card	Consul's Lieutenant
+418	card	Contagion
+419	card	Contagious Vorrac
+420	card	Contraband Livestock
+421	card	Control of the Court
+422	card	Convulsing Licid
+423	card	Coralhelm Guide
+424	card	Coronation of Chaos
+425	card	Corpse Augur
+426	card	Corpse Connoisseur
+427	card	Corpse Harvester
+428	card	Corrupt
+429	card	Corrupted Conviction
+430	card	Coruscation Mage
+431	card	Costly Plunder
+432	card	Counterbalance
+433	card	Counterspell
+434	card	Court Hussar
+435	card	Court of Ambition
+436	card	Court of Embereth
+437	card	Court of Garenbrig
+438	card	Court of Grace
+439	card	Court of Vantress
+440	card	Cower in Fear
+441	card	Cragsmasher Yeti
+442	card	Crashing Boars
+443	card	Crashing Drawbridge
+444	card	Crashing Footfalls
+445	card	Crimson Fleet Commodore
+446	card	Crimson Wisps
+447	card	Crippling Fatigue
+448	card	Cromat
+449	card	Crop Rotation
+450	card	Crossbow Infantry
+451	card	Crowd's Favor
+452	card	Crown-Hunter Hireling
+453	card	Crowned Ceratok
+454	card	Cryogen Relic
+455	card	Crypt Rats
+456	card	Crystal Dragon // Rob the Hoard
+457	card	Cudgel Troll
+458	card	Cultivate
+459	card	Cunning Wish
+460	card	Curiosity
+461	card	Curious Obsession
+462	card	Curse of Disturbance
+463	card	Curse of Opulence
+464	card	Curse of Predation
+465	card	Curse of Shallow Graves
+466	card	Curse of Verbosity
+467	card	Custodi Squire
+468	card	Cut a Deal
+469	card	Cytoplast Root-Kin
+470	card	Daggerback Basilisk
+471	card	Dakmor Plague
+472	card	Dakmor Sorceress
+473	card	Dakra Mystic
+474	card	Dalkovan Packbeasts
+475	card	Dance of the Tumbleweeds
+476	card	Daring Demolition
+477	card	Daring Saboteur
+478	card	Dark Ritual
+479	card	Dark Triumph
+480	card	Dark-Dweller Oracle
+481	card	Darksteel Mutation
+482	card	Daru Spiritualist
+483	card	Dauntless Bodyguard
+484	card	Dauntless Cathar
+485	card	Dauntless Dismantler
+486	card	Dauthi Embrace
+487	card	Dauthi Horror
+488	card	Dauthi Trapper
+489	card	Davriel, Rogue Shadowmage
+490	card	Davvol, Evincar of Rath
+491	card	Dawn Charm
+492	card	Dawn's Reflection
+493	card	Dawnbringer Cleric
+494	card	Dawnglare Invoker
+495	card	Dawntreader Elk
+496	card	Daxos, Blessed by the Sun
+497	card	Daydream
+498	card	Dead // Gone
+499	card	Deadly Dispute
+500	card	Death Denied
+501	card	Death Pulse
+502	card	Death's Shadow
+503	card	Death-Hood Cobra
+504	card	Deathgreeter
+505	card	Deathreap Ritual
+506	card	Debt to the Deathless
+507	card	Deceiver Exarch
+508	card	Decree of Justice
+509	card	Deekah, Fractal Theorist
+510	card	Deep Analysis
+511	card	Deepchannel Mentor
+512	card	Deepwood Legate
+513	card	Defensive Formation
+514	card	Deglamer
+515	card	Delina, Wild Mage
+516	card	Demand Answers
+517	card	Demonic Consultation
+518	card	Descent into Avernus
+519	card	Desert of the Fervent
+520	card	Desperate Lunge
+521	card	Destined // Lead
+522	card	Destiny Spinner
+523	card	Destroy Evil
+524	card	Destructive Tampering
+525	card	Devoted Druid
+526	card	Devouring Light
+527	card	Devout Witness
+528	card	Diabolic Servitude
+529	card	Diabolic Tutor
+530	card	Diamond Pick-Axe
+531	card	Diligent Farmhand
+532	card	Diminish
+533	card	Dimir House Guard
+534	card	Diplomatic Escort
+535	card	Direct Current
+536	card	Diregraf Horde
+537	card	Dirge of Dread
+538	card	Disrupt
+539	card	Disruptive Stormbrood // Petty Revenge
+540	card	Dissenter's Deliverance
+541	card	Distortion Strike
+542	card	Disturbed Burial
+543	card	Dive Down
+544	card	Divination
+545	card	Dockside Chef
+546	card	Doomed Traveler
+547	card	Doomsday
+548	card	Dragon Bell Monk
+549	card	Dragon Fodder
+550	card	Dragon Mage
+551	card	Dragon Sniper
+552	card	Dragon's Approach
+553	card	Dragon's Smile
+554	card	Dragonhawk, Fate's Tempest
+555	card	Dread Drone
+556	card	Dread Linnorm // Scale Deflection
+557	card	Dreadhound
+558	card	Dreadmalkin
+559	card	Dream Fracture
+560	card	Dream Thrush
+561	card	Dreampod Druid
+562	card	Dreamscape Artist
+563	card	Dreamtail Heron
+564	card	Drift of Phantasms
+565	card	Driver of the Dead
+566	card	Druid's Familiar
+567	card	Drumhunter
+568	card	Dusk Charger
+569	card	Dusk Legion Zealot
+570	card	Dusk Mangler
+571	card	Dust to Dust
+572	card	Dwarven Blastminer
+573	card	Dwarven Hammer
+574	card	Dwarven Miner
+575	card	Dyfed, the Guiding Hand
+576	card	Dynacharge
+577	card	Earthquake
+578	card	Eater of the Dead
+579	card	Ebony Fly
+580	card	Echo Tracer
+581	card	Echo of Eons
+582	card	Echoing Truth
+583	card	Edric, Spymaster of Trest
+584	card	Eel Umbra
+585	card	Ekthi, Contaminator Priest
+586	card	Elas il-Kor, Sadistic Pilgrim
+587	card	Elda, Conjurer of Spectacle
+588	card	Eldrazi Skyspawner
+589	card	Electric Revelation
+590	card	Electrickery
+591	card	Electrostatic Field
+592	card	Elemental Bond
+593	card	Elesh Norn, Mother of Machines
+594	card	Elite Cat Warrior
+595	card	Elite Scaleguard
+596	card	Elspeth's Nightmare
+597	card	Elspeth's Smite
+598	card	Elven Bow
+599	card	Elven Riders
+600	card	Elvish Harbinger
+601	card	Elvish Reclaimer
+602	card	Elvish Visionary
+603	card	Ember Weaver
+604	card	Embereth Shieldbreaker // Battle Display
+605	card	Emerge Unscathed
+606	card	Emiel the Blessed
+607	card	Empty the Warrens
+608	card	Empty-Shrine Kannushi
+609	card	Emrakul's Messenger
+610	card	Encampment Keeper
+611	card	Enclave Cryptologist
+612	card	End the Festivities
+613	card	Endless Scream
+614	card	Endrek Sahr, Master Breeder
+615	card	Energy Flux
+616	card	Engineered Explosives
+617	card	Enlarge
+618	card	Ensnaring Bridge
+619	card	Entangler
+620	card	Entourage of Trest
+621	card	Epic Confrontation
+622	card	Epic Downfall
+623	card	Epicure of Blood
+624	card	Equilibrium
+625	card	Errant Ephemeron
+626	card	Ertha Jo, Frontier Mentor
+627	card	Escape Tunnel
+628	card	Esior, Wardwing Familiar
+629	card	Essence Extraction
+630	card	Essence Scatter
+631	card	Eternal Thirst
+632	card	Ethereal Armor
+633	card	Ethereal Haze
+634	card	Evangel of Heliod
+635	card	Everflowing Chalice
+636	card	Evil Eye of Urborg
+637	card	Evincar's Justice
+638	card	Evolution Charm
+639	card	Evolution Sage
+640	card	Evolutionary Escalation
+641	card	Exclude
+642	card	Executioner's Capsule
+643	card	Exhaustion
+644	card	Exhume
+645	card	Exile
+646	card	Exotic Orchard
+647	card	Expedite
+648	card	Expedition Raptor
+649	card	Expel from Orazca
+650	card	Experiment One
+651	card	Experimental Augury
+652	card	Experimental Synthesizer
+653	card	Explore
+654	card	Explosive Vegetation
+655	card	Explosive Welcome
+656	card	Expunge
+657	card	Exquisite Huntmaster
+658	card	Exsanguinate
+659	card	Extinguish All Hope
+660	card	Extract from Darkness
+661	card	Exuberant Fuseling
+662	card	Exultant Skymarcher
+663	card	Eyeblight's Ending
+664	card	Ezuri's Archers
+665	card	Ezuri, Claw of Progress
+666	card	Fa'adiyah Seer
+667	card	Fact or Fiction
+668	card	Fade Away
+669	card	Fae Offering
+670	card	Faerie Guidemother // Gift of the Fae
+671	card	Faerie Mechanist
+672	card	Faerie Seer
+673	card	Faerie Swarm
+674	card	Fain, the Broker
+675	card	Fairgrounds Warden
+676	card	Faith Unbroken
+677	card	Faithbearer Paladin
+678	card	Faithless Salvaging
+679	card	Falkenrath Celebrants
+680	card	Falkenrath Noble
+681	card	Fall from Favor
+682	card	Fallen Angel
+683	card	Falter
+684	card	Falthis, Shadowcat Familiar
+685	card	Familiar's Ruse
+686	card	Fanatic of Mogis
+687	card	Fanatical Devotion
+688	card	Fangren Marauder
+689	card	Fangs of Kalonia
+690	card	Fanning the Flames
+691	card	Far Wanderings
+692	card	Farseek
+693	card	Fatal Push
+694	card	Fatestitcher
+695	card	Fathom Fleet Swordjack
+696	card	Fearless Fledgling
+697	card	Fearless Skald
+698	card	Feast or Famine
+699	card	Feed the Swarm
+700	card	Feign Death
+701	card	Felidar Guardian
+702	card	Felidar Umbra
+703	card	Fell
+704	card	Fell Gravship
+705	card	Fell Specter
+706	card	Fell Stinger
+707	card	Fellwar Stone
+708	card	Fencing Ace
+709	card	Feral Abomination
+710	card	Feral Hydra
+711	card	Feral Shadow
+712	card	Ferocious Zheng
+713	card	Feroz, Ulgrotha's Warden
+714	card	Fertile Ground
+715	card	Festercreep
+716	card	Field of Souls
+717	card	Fiend Hunter
+718	card	Fierce Retribution
+719	card	Fiery Impulse
+720	card	Filth
+721	card	Fin-Clade Fugitives
+722	card	Final Fortune
+723	card	Fire Servant
+724	card	Fire-Belly Changeling
+725	card	Fireball
+726	card	Fireblast
+727	card	Firecat Blitz
+728	card	Fireslinger
+729	card	Firewing Phoenix
+730	card	Fists of Flame
+731	card	Flame Elemental
+732	card	Flame Jab
+733	card	Flame Javelin
+734	card	Flame Slash
+735	card	Flame Wave
+736	card	Flametongue Kavu
+737	card	Flaring Pain
+738	card	Flash of Insight
+739	card	Flesh-Eater Imp
+740	card	Fleshbag Marauder
+741	card	Flickerwisp
+742	card	Flitwing, Lyev Detective
+743	card	Flock Impostor
+744	card	Flowstone Hellion
+745	card	Flusterstorm
+746	card	Flux
+747	card	Flux Channeler
+748	card	Fog
+749	card	Fog Bank
+750	card	Foil
+751	card	Footbottom Feast
+752	card	Footfall Crater
+753	card	Footsteps of the Goryo
+754	card	Forbid
+755	card	Forbidden Alchemy
+756	card	Force Spike
+757	card	Forest
+758	card	Forest Bear
+759	card	Forge Devil
+760	card	Forked Lightning
+761	card	Forsake the Worldly
+762	card	Fortify
+763	card	Foulmire Knight // Profane Insight
+764	card	Fragmentize
+765	card	Freed from the Real
+766	card	Frenzied Fugue
+767	card	Frenzied Saddlebrute
+768	card	Frog Tongue
+769	card	Frogify
+770	card	Frost Trickster
+771	card	Fumble
+772	card	Fungal Infection
+773	card	Furious Rise
+774	card	Furnace Punisher
+775	card	Furnace Whelp
+776	card	Fury Sliver
+777	card	Future Sight
+778	card	Fyndhorn Elder
+779	card	Fyndhorn Elves
+780	card	Fynn, the Fangbearer
+781	card	Gaea's Anthem
+782	card	Gaea's Embrace
+783	card	Gaea's Gift
+784	card	Galvanic Blast
+785	card	Gamekeeper
+786	card	Ganax, Astral Hunter
+787	card	Garruk's Packleader
+788	card	Garruk's Uprising
+789	card	Gatekeeper of Malakir
+790	card	Gathan Raiders
+791	card	Geist of the Moors
+792	card	Geistblast
+793	card	Gelatinous Genesis
+794	card	Gemhide Sliver
+795	card	Gempalm Incinerator
+796	card	Genasi Enforcers
+797	card	General Kreat, the Boltbringer
+798	card	General Marhault Elsdragon
+799	card	Generator Servant
+800	card	Generous Gift
+801	card	Genju of the Fields
+802	card	Geode Golem
+803	card	Geomancer's Gambit
+804	card	Gerrard, Weatherlight Hero
+805	card	Ghitu Slinger
+806	card	Ghost Lantern // Bind Spirit
+807	card	Ghost Ship
+808	card	Ghost-Lit Stalker
+809	card	Ghostly Changeling
+810	card	Ghostly Flicker
+811	card	Ghostly Prison
+812	card	Ghoulcaller Gisa
+813	card	Ghoulish Impetus
+814	card	Giant Ankheg
+815	card	Giant Cindermaw
+816	card	Giant Spider
+817	card	Gideon's Lawkeeper
+818	card	Gideon's Sacrifice
+819	card	Gift of the Viper
+820	card	Gifted Aetherborn
+821	card	Gigadrowse
+822	card	Gilanra, Caller of Wirewood
+823	card	Gilt-Leaf Winnower
+824	card	Gisa, Glorious Resurrector
+825	card	Giver of Runes
+826	card	Gix, Yawgmoth Praetor
+827	card	Glacial Crasher
+828	card	Glacier Godmaw
+829	card	Glarb, Calamity's Augur
+830	card	Glarewielder
+831	card	Glava, Five-Advents Mage
+832	card	Gleam of Resistance
+833	card	Glimmerpoint Stag
+834	card	Glimpse the Impossible
+835	card	Gloom Sower
+836	card	Gloomfang Mauler
+837	card	Gluntch, the Bestower
+838	card	Gnarlid Pack
+839	card	Gnoll War Band
+840	card	Go Blank
+841	card	Go for Blood
+842	card	Go for the Throat
+843	card	Goblin Assault
+844	card	Goblin Bombardment
+845	card	Goblin Charbelcher
+846	card	Goblin Gang Leader
+847	card	Goblin King
+848	card	Goblin Recruiter
+849	card	Goblin Settler
+850	card	Goblin Taskmaster
+851	card	Goblin War Party
+852	card	Goblin Wardriver
+853	card	Goblin Wizardry
+854	card	Goblinslide
+855	card	God-Eternal Kefnet
+856	card	God-Eternal Oketra
+857	card	Gods Willing
+858	card	Gold-Forged Thopteryx
+859	card	Goldlust Triad
+860	card	Goldmeadow Harrier
+861	card	Goldnight Commander
+862	card	Gonti, Lord of Luxury
+863	card	Gorehorn Minotaurs
+864	card	Gorilla Shaman
+865	card	Gorm the Great
+866	card	Gornog, the Red Reaper
+867	card	Graaz, Unstoppable Juggernaut
+868	card	Grab the Reins
+869	card	Grafdigger's Cage
+870	card	Grafted Exoskeleton
+871	card	Grakk the Pacifist
+872	card	Grandmother Goby
+873	card	Granitic Titan
+874	card	Grapeshot
+875	card	Grateful Apparition
+876	card	Gravedigger
+877	card	Graveshifter
+878	card	Gravitic Punch
+879	card	Gray Merchant of Asphodel
+880	card	Grazilaxx, Illithid Scholar
+881	card	Grazing Gladehart
+882	card	Great Oak Guardian
+883	card	Greater Good
+884	card	Green Slime
+885	card	Greensleeves
+886	card	Greensleeves, Maro-Sorcerer
+887	card	Greymond, Avacyn's Stalwart
+888	card	Griffin Guide
+889	card	Grim Affliction
+890	card	Grim Bounty
+891	card	Grimclaw Bats
+892	card	Grimdancer
+893	card	Grinding Station
+894	card	Grip of the Roil
+895	card	Grizzlegom, Hurloon Hero
+896	card	Grizzly Fate
+897	card	Ground Rift
+898	card	Gruesome Encore
+899	card	Gruesome Fate
+900	card	Guardian Naga // Banishing Coils
+901	card	Guardian of Faith
+902	card	Gudul Lurker
+903	card	Guided Strike
+904	card	Guildpact Informant
+905	card	Gurmag Angler
+906	card	Gush
+907	card	Gustha Ebbasdotter
+908	card	Guttersnipe
+909	card	Gwenna, Eyes of Gaea
+910	card	Hada Spy Patrol
+911	card	Halimar Depths
+912	card	Halimar Wavewatch
+913	card	Hammers of Moradin
+914	card	Hand of Death
+915	card	Hand of Honor
+916	card	Hard Evidence
+917	card	Hardened Berserker
+918	card	Harmonize
+919	card	Harrow
+920	card	Harvester Druid
+921	card	Hatchet Bully
+922	card	Havoc Demon
+923	card	Havoc Jester
+924	card	Haywire Mite
+925	card	Haze of Rage
+926	card	Healer of the Pride
+927	card	Healer's Hawk
+928	card	Heart Warden
+929	card	Heartless Act
+930	card	Hedge Troll
+931	card	Heliod's Punishment
+932	card	Hellspark Elemental
+933	card	Helm of the Ghastlord
+934	card	Helpful Hunter
+935	card	Hematite Golem
+936	card	Herald of Secret Streams
+937	card	Herald of the Host
+938	card	Hero's Blade
+939	card	Hero's Downfall
+940	card	Heroes' Bane
+941	card	Hickory Woodlot
+942	card	Hieroglyphic Illumination
+943	card	Hoarding Dragon
+944	card	Hoarding Ogre
+945	card	Hollow Marauder
+946	card	Homer, the Hermit
+947	card	Honor the God-Pharaoh
+948	card	Hoodwink
+949	card	Hope and Glory
+950	card	Hopeless Nightmare
+951	card	Hordeling Outburst
+952	card	Horizon Scholar
+953	card	Horned Sliver
+954	card	Horseshoe Crab
+955	card	Hostage Taker
+956	card	Hulking Metamorph
+957	card	Humble
+958	card	Humble Defector
+959	card	Hunger of the Howlpack
+960	card	Hunted Wumpus
+961	card	Hunter's Ambush
+962	card	Hunter's Edge
+963	card	Hunter's Mark
+964	card	Hunter's Talent
+965	card	Hunting Cheetah
+966	card	Hunting Pack
+967	card	Hydra's Growth
+968	card	Hydroblast
+969	card	Hydrolash
+970	card	Ideas Unbound
+971	card	Idol of Oblivion
+972	card	Ill-Gotten Inheritance
+973	card	Illusory Ambusher
+974	card	Immolating Souleater
+975	card	Imodane's Recruiter // Train Troops
+976	card	Imoti, Celebrant of Bounty
+977	card	Impact Tremors
+978	card	Imperial Oath
+979	card	Imperious Perfect
+980	card	Imposing Vantasaur
+981	card	Impostor of the Sixth Pride
+982	card	Impulse
+983	card	Impulsive Pilferer
+984	card	Incinerate
+985	card	Incremental Blight
+986	card	Incremental Growth
+987	card	Indrik Stomphowler
+988	card	Indulgent Tormentor
+989	card	Infernal Vessel
+990	card	Inferno Fist
+991	card	Inferno Jet
+992	card	Ingot Chewer
+993	card	Injector Crocodile
+994	card	Ink-Treader Nephilim
+995	card	Inner Demon
+996	card	Innocent Blood
+997	card	Insidious Fungus
+998	card	Inspired Tinkering
+999	card	Inspiring Overseer
+1000	card	Intangible Virtue
+1001	card	Invigorate
+1002	card	Invigorated Rampage
+1003	card	Invigorating Surge
+1004	card	Invisible Stalker
+1005	card	Iona's Judgment
+1006	card	Ire Shaman
+1007	card	Irenicus's Vile Duplication
+1008	card	Irregular Cohort
+1009	card	Island
+1010	card	Istvan, Butcher of Eln
+1011	card	Itazura, Lingering Wick
+1012	card	Ivy Lane Denizen
+1013	card	Iwamori of the Open Fist
+1014	card	Jabs, Mistress of Mockery
+1015	card	Jace's Phantasm
+1016	card	Jaheira, Friend of the Forest
+1017	card	Jandor, Fortuned Traveler
+1018	card	Jarad, Golgari Lich Lord
+1019	card	Jaspera Sentinel
+1020	card	Jaya, Venerated Firemage
+1021	card	Jeska, Warrior Adept
+1022	card	Jetmir, Nexus of Revels
+1023	card	Jewel Thief
+1024	card	Jeweled Amulet
+1025	card	Jolene, the Plunder Queen
+1026	card	Joraga Treespeaker
+1027	card	Journey to Nowhere
+1028	card	Joven and Chandler
+1029	card	Jubilant Mascot
+1030	card	Jwar Isle Avenger
+1031	card	Jötun Owl Keeper
+1032	card	Kabira Vindicator
+1033	card	Kamahl, Heart of Krosa
+1034	card	Kami of False Hope
+1035	card	Kami of the Crescent Moon
+1036	card	Kangee's Lieutenant
+1037	card	Kappa Tech-Wrecker
+1038	card	Karazikar, the Eye Tyrant
+1039	card	Karlach, Fury of Avernus
+1040	card	Karn, Legacy Reforged
+1041	card	Karoo
+1042	card	Kasmina, Enigmatic Mentor
+1043	card	Kataki, War's Wage
+1044	card	Kavu Climber
+1045	card	Kavu Predator
+1046	card	Kavu Primarch
+1047	card	Kaya's Ghostform
+1048	card	Kediss, Emberclaw Familiar
+1049	card	Keen Sense
+1050	card	Keeper of Keys
+1051	card	Keeper of the Dead
+1052	card	Keldon Halberdier
+1053	card	Keldon Strike Team
+1054	card	Keleth, Sunmane Familiar
+1055	card	Kelpie Guide
+1056	card	Kenrith's Transformation
+1057	card	Kess, Dissident Mage
+1058	card	Kessig Flamebreather
+1059	card	Kethis, the Hidden Hand
+1060	card	Khalni Garden
+1061	card	Kiki-Jiki, Mirror Breaker
+1062	card	Killer Whale
+1063	card	Killing Wave
+1064	card	Kiln Fiend
+1065	card	Kinsbaile Courier
+1066	card	Kira, Great Glass-Spinner
+1067	card	Kitesail Skirmisher
+1068	card	Kitsa, Otterball Elite
+1069	card	Kitsune Blademaster
+1070	card	Knight of Cliffhaven
+1071	card	Knight of Meadowgrain
+1072	card	Knight of the Holy Nimbus
+1073	card	Knight of the Tusk
+1074	card	Knights of the Black Rose
+1075	card	Kobolds of Kher Keep
+1076	card	Kokusho, the Evening Star
+1077	card	Konda, Lord of Eiganjo
+1078	card	Kor Cartographer
+1079	card	Kor Celebrant
+1080	card	Kor Firewalker
+1081	card	Kor Hookmaster
+1082	card	Korvold, Fae-Cursed King
+1083	card	Kozilek's Predator
+1084	card	Krark, the Thumbless
+1085	card	Krark-Clan Ironworks
+1086	card	Kraul Harpooner
+1087	card	Krosan Tusker
+1088	card	Krovikan Sorcerer
+1089	card	Kuroki, Thief of Talents
+1090	card	Kutzil, Malamet Exemplar
+1091	card	Kyren Negotiations
+1092	card	Laboratory Maniac
+1093	card	Lae'zel, Vlaakith's Champion
+1094	card	Lagonna-Band Trailblazer
+1095	card	Lampad of Death's Vigil
+1096	card	Land Grant
+1097	card	Larger Than Life
+1098	card	Lassoed by the Law
+1099	card	Lava Dart
+1100	card	Lava Hounds
+1101	card	Lay Claim
+1102	card	Lazotep Plating
+1103	card	Leap
+1104	card	Leatherback Baloth
+1105	card	Leech Collector // Bloodletting
+1106	card	Legacy's Allure
+1107	card	Legerdemain
+1108	card	Lethal Sting
+1109	card	Ley Weaver
+1110	card	Lieutenants of the Guard
+1111	card	Life of the Party
+1112	card	Lightning Bolt
+1113	card	Lightning Greaves
+1114	card	Lightning Mauler
+1115	card	Liliana's Caress
+1116	card	Liliana's Devotee
+1117	card	Liliana's Specter
+1118	card	Lim-Dûl the Necromancer
+1119	card	Lingering Souls
+1120	card	Linvala, the Preserver
+1121	card	Lively Dirge
+1122	card	Llanowar Visionary
+1123	card	Longshot Squad
+1124	card	Loot, Exuberant Explorer
+1125	card	Looter il-Kor
+1126	card	Lord of the Accursed
+1127	card	Lore Weaver
+1128	card	Lotus Petal
+1129	card	Loxodon Warhammer
+1130	card	Loyal Apprentice
+1131	card	Loyal Drake
+1132	card	Loyal Guardian
+1133	card	Loyal Sentry
+1134	card	Loyal Subordinate
+1135	card	Loyal Unicorn
+1136	card	Lunar Frenzy
+1137	card	Lure
+1138	card	Lyna, Veil of Vengeance
+1139	card	Mad Auntie
+1140	card	Mad Ratter
+1141	card	Madcap Skills
+1142	card	Maddening Hex
+1143	card	Maeve, Insidious Singer
+1144	card	Mage Slayer
+1145	card	Magmatic Insight
+1146	card	Magmaw
+1147	card	Majestic Metamorphosis
+1148	card	Make a Stand
+1149	card	Man-o'-War
+1150	card	Mana Flare
+1151	card	Mana Geyser
+1152	card	Mana Leak
+1153	card	Mana Short
+1154	card	Manabond
+1155	card	Mangara, the Diplomat
+1156	card	Manglehorn
+1157	card	Manifold Key
+1158	card	Mannichi, the Fevered Dream
+1159	card	Manor Gate
+1160	card	Marchesa's Decree
+1161	card	Mardu Warshrieker
+1162	card	Marionette Apprentice
+1163	card	Markov Baron
+1164	card	Marsh Flitter
+1165	card	Masako the Humorless
+1166	card	Mask of Law and Grace
+1167	card	Masked Admirers
+1168	card	Masked Vandal
+1169	card	Massacre
+1170	card	Massacre Girl, Known Killer
+1171	card	Massimo, the Magician
+1172	card	Massive Might
+1173	card	Master Decoy
+1174	card	Master Splicer
+1175	card	Master of Arms
+1176	card	Master's Rebuke
+1177	card	Matoc, Lavamancer
+1178	card	Maular, the Next Evolution
+1179	card	Meatsqueak, Hoard Lord
+1180	card	Meekstone
+1181	card	Meeting of Minds
+1182	card	Memnite
+1183	card	Memory Lapse
+1184	card	Mental Note
+1185	card	Mentor of the Meek
+1186	card	Mercadia's Downfall
+1187	card	Merchant Scroll
+1188	card	Merchant of the Vale // Haggle
+1189	card	Merciless Executioner
+1190	card	Merfolk Looter
+1191	card	Merfolk Seastalkers
+1192	card	Merfolk Thaumaturgist
+1193	card	Merfolk Trickster
+1194	card	Meria's Outrider
+1195	card	Mesmeric Fiend
+1196	card	Metastatic Evangel
+1197	card	Meteor Golem
+1198	card	Midnight Guard
+1199	card	Might of the Masses
+1200	card	Mikaeus, the Unhallowed
+1201	card	Mikokoro, Center of the Sea
+1202	card	Military Intelligence
+1203	card	Militia Bugler
+1204	card	Mind Bend
+1205	card	Mind Stone
+1206	card	Mind Twist
+1207	card	Mindbreak Trap
+1208	card	Mindclaw Shaman
+1209	card	Mindcrank
+1210	card	Mindwrack Harpy
+1211	card	Miner's Bane
+1212	card	Minimus Containment
+1213	card	Ministrant of Obligation
+1214	card	Miraculous Recovery
+1215	card	Mirri's Guile
+1216	card	Mirri, Weatherlight Duelist
+1217	card	Mirror Image
+1218	card	Mirrorshell Crab
+1219	card	Mischievous Mystic
+1220	card	Mischievous Poltergeist
+1221	card	Misleading Signpost
+1222	card	Miss Highwater
+1223	card	Mistblade Shinobi
+1224	card	Mistmeadow Skulk
+1225	card	Mistveil Plains
+1226	card	Mistwalker
+1227	card	Moan of the Unhallowed
+1228	card	Mobilize
+1229	card	Mogg Maniac
+1230	card	Mogg Raider
+1231	card	Mogis's Favor
+1232	card	Molten Birth
+1233	card	Moment of Defiance
+1234	card	Moment's Peace
+1235	card	Momentary Blink
+1236	card	Monastery Swiftspear
+1237	card	Moon-Blessed Cleric
+1238	card	Moon-Circuit Hacker
+1239	card	Moonglove Changeling
+1240	card	Morbid Opportunist
+1241	card	Mortuary
+1242	card	Mothdust Changeling
+1243	card	Mother of Runes
+1244	card	Mountain
+1245	card	Mr. Foxglove
+1246	card	Muddle the Mixture
+1247	card	Mulldrifter
+1248	card	Multani, Yavimaya's Avatar
+1249	card	Murmuring Mystic
+1250	card	Muscle Burst
+1251	card	Muscle Sliver
+1252	card	Mutagenic Growth
+1253	card	Mwonvuli Acid-Moss
+1254	card	Myriad Landscape
+1255	card	Mystic Retrieval
+1256	card	Mystic Speculation
+1257	card	Mystic Subdual
+1258	card	Mystic of the Hidden Way
+1259	card	Mystical Teachings
+1260	card	Myth Realized
+1261	card	Nadier's Nightblade
+1262	card	Nahiri's Machinations
+1263	card	Nalathni Dragon
+1264	card	Nameless Inversion
+1265	card	Nantuko Elder
+1266	card	Nantuko Vigilante
+1267	card	Narcolepsy
+1268	card	Narset, Enlightened Exile
+1269	card	Natural Order
+1270	card	Nature's Claim
+1271	card	Nature's Way
+1272	card	Nearheath Pilgrim
+1273	card	Necrologia
+1274	card	Needle Drop
+1275	card	Needletooth Raptor
+1276	card	Negate
+1277	card	Neheb, the Eternal
+1278	card	Nekrataal
+1279	card	Nemesis Mask
+1280	card	Nephalia Smuggler
+1281	card	Nephilim Epochal
+1282	card	Neutralize
+1283	card	Nevermaker
+1284	card	New Frontiers
+1285	card	Nezahal, Primal Tide
+1286	card	Nezumi Graverobber // Nighteyes the Desecrator
+1287	card	Nezumi Prowler
+1288	card	Night Soil
+1289	card	Night's Whisper
+1290	card	Nightfire Giant
+1291	card	Nightwind Glider
+1292	card	Nikko-Onna
+1293	card	Nils, Discipline Enforcer
+1294	card	Nimble Birdsticker
+1295	card	Ninja of the Deep Hours
+1296	card	Nirkana Cutthroat
+1297	card	Nissa's Judgment
+1298	card	Nivea, Beloved Battlemage
+1299	card	Noble Purpose
+1300	card	Nomads en-Kor
+1301	card	Noose Constrictor
+1302	card	Norwood Priestess
+1303	card	Novice Occultist
+1304	card	Noxious Dragon
+1305	card	Noxious Ghoul
+1306	card	Nylea's Presence
+1307	card	Nyx-Fleece Ram
+1308	card	Nyxborn Hydra
+1309	card	O-Kagachi, Vengeful Kami
+1310	card	Oakgnarl Warrior
+1311	card	Oakhame Adversary
+1312	card	Oath of Druids
+1313	card	Oathsworn Giant
+1314	card	Oblivion Ring
+1315	card	Oblivion Strike
+1316	card	Odric, Lunarch Marshal
+1317	card	Ogre Arsonist
+1318	card	Okiba-Gang Shinobi
+1319	card	Olag and Miau, New Friends
+1320	card	Olinda the Oblivious
+1321	card	Olivia's Bloodsworn
+1322	card	Omen
+1323	card	Omen of the Sea
+1324	card	Omen of the Sun
+1325	card	Omenspeaker
+1326	card	Omnath, Locus of Creation
+1327	card	Omni-Changeling
+1328	card	On Serra's Wings
+1329	card	Ondu Champion
+1330	card	One with Nature
+1331	card	Oneirophage
+1332	card	Onslaught
+1333	card	Ophidian
+1334	card	Ophidian Eye
+1335	card	Opportunity
+1336	card	Opt
+1337	card	Orcish Lumberjack
+1338	card	Orcish Settlers
+1339	card	Order of Midnight // Alter Fate
+1340	card	Order of Yawgmoth
+1341	card	Orochi Eggwatcher // Shidako, Broodmistress
+1342	card	Orthion, Hero of Lavabrink
+1343	card	Orvar, the All-Form
+1344	card	Orzhov Advokist
+1345	card	Orzhov Enforcer
+1346	card	Osseous Sticktwister
+1347	card	Ossification
+1348	card	Otharri, Suns' Glory
+1349	card	Otherworldly Journey
+1350	card	Oubliette
+1351	card	Outmaneuver
+1352	card	Outmuscle
+1353	card	Outnumber
+1354	card	Overgrown Battlement
+1355	card	Overgrowth
+1356	card	Overprotect
+1357	card	Overrun
+1358	card	Overwhelming Encounter
+1359	card	Owl Familiar
+1360	card	Pacifism
+1361	card	Pact of Negation
+1362	card	Painful Lesson
+1363	card	Painter's Studio // Defaced Gallery
+1364	card	Palace Jailer
+1365	card	Palace Sentinels
+1366	card	Paladin of the Bloodstained
+1367	card	Paradox Haze
+1368	card	Paragon of Open Graves
+1369	card	Parasitic Impetus
+1370	card	Pardic Collaborator
+1371	card	Patagia Viper
+1372	card	Path of Ancestry
+1373	card	Path of Annihilation
+1374	card	Patriar's Seal
+1375	card	Pawn of Ulamog
+1376	card	Peat Bog
+1377	card	Peema Outrider
+1378	card	Peerless Recycling
+1379	card	Pegasus Courser
+1380	card	Pegasus Guardian // Rescue the Foal
+1381	card	Pelakka Wurm
+1382	card	Pemmin's Aura
+1383	card	Pendrell Drake
+1384	card	Pentarch Ward
+1385	card	Penumbra Kavu
+1386	card	Penumbra Wurm
+1387	card	Perch Protection
+1388	card	Peregrine Drake
+1389	card	Perilous Research
+1390	card	Perimeter Captain
+1391	card	Personify
+1392	card	Phantom Centaur
+1393	card	Phantom Flock
+1394	card	Phantom Tiger
+1395	card	Phelia, Exuberant Shepherd
+1396	card	Phyrexian Gargantua
+1397	card	Phyrexian Ingester
+1398	card	Phyrexian Missionary
+1399	card	Phyrexian Rager
+1400	card	Phyrexian Reclamation
+1401	card	Phyrexian Triniform
+1402	card	Pick Your Poison
+1403	card	Pilgrim of the Ages
+1404	card	Pillaging Horde
+1405	card	Pir, Imaginative Rascal
+1406	card	Piracy Charm
+1407	card	Pirate's Prize
+1408	card	Pit Keeper
+1409	card	Pitchstone Wall
+1410	card	Plagon, Lord of the Beach
+1411	card	Plague Spitter
+1412	card	Plagued Rusalka
+1413	card	Plaguemaw Beast
+1414	card	Plains
+1415	card	Planar Disruption
+1416	card	Plargg and Nassari
+1417	card	Plate Armor
+1418	card	Plated Crusher
+1419	card	Plundering Barbarian
+1420	card	Poison Dart Frog
+1421	card	Pollenbright Druid
+1422	card	Pongify
+1423	card	Porcelain Legionnaire
+1424	card	Pore Over the Pages
+1425	card	Portal Manipulator
+1426	card	Portent
+1427	card	Power Matrix
+1428	card	Power Word Kill
+1429	card	Pox
+1430	card	Prakhata Pillar-Bug
+1431	card	Prava of the Steel Legion
+1432	card	Predator's Howl
+1433	card	Predator's Strike
+1434	card	Predatory Nightstalker
+1435	card	Preordain
+1436	card	Presence of Gond
+1437	card	Pressure Point
+1438	card	Price of Fame
+1439	card	Price of Glory
+1440	card	Price of Progress
+1441	card	Priest of Gix
+1442	card	Priest of Titania
+1443	card	Primal Growth
+1444	card	Primal Rage
+1445	card	Prismatic Strands
+1446	card	Prison Term
+1447	card	Prizefight
+1448	card	Prodigal Sorcerer
+1449	card	Promise of Bunrei
+1450	card	Propaganda
+1451	card	Prosperous Innkeeper
+1452	card	Prosperous Pirates
+1453	card	Proteus Staff
+1454	card	Psychic Corrosion
+1455	card	Public Execution
+1456	card	Punishing Fire
+1457	card	Puppet Conjurer
+1458	card	Purifying Dragon
+1459	card	Pyreheart Wolf
+1460	card	Pyrite Spellbomb
+1461	card	Pyroblast
+1462	card	Pyrohemia
+1463	card	Pyrokinesis
+1464	card	Pyrotechnics
+1465	card	Quakefoot Cyclops
+1466	card	Queen's Agent
+1467	card	Quest for Pure Flame
+1468	card	Quest for the Gravelord
+1469	card	Quirion Dryad
+1470	card	Quirion Elves
+1471	card	Quirion Ranger
+1472	card	Rabbit Battery
+1473	card	Rabid Bloodsucker
+1474	card	Radiant's Judgment
+1475	card	Raff, Weatherlight Stalwart
+1476	card	Raffine's Informant
+1477	card	Raiders' Wake
+1478	card	Rain of Daggers
+1479	card	Rain of Filth
+1480	card	Rain of Thorns
+1481	card	Raise the Alarm
+1482	card	Rakdos Charm
+1483	card	Rakdos, Patron of Chaos
+1484	card	Rally the Monastery
+1485	card	Rally the Peasants
+1486	card	Ram Through
+1487	card	Rambunctious Mutt
+1488	card	Ramos, Dragon Engine
+1489	card	Ramosian Rally
+1490	card	Rampaging Brontodon
+1491	card	Rampant Growth
+1492	card	Ramunap Ruins
+1493	card	Rancor
+1494	card	Rankle, Master of Pranks
+1495	card	Rapacious Dragon
+1496	card	Rapacious One
+1497	card	Rapid Hybridization
+1498	card	Ratadrabik of Urborg
+1499	card	Ravenform
+1500	card	Ravenous Chupacabra
+1501	card	Ravenous Slime
+1502	card	Read the Bones
+1503	card	Reality Shift
+1504	card	Reanimate
+1505	card	Reap
+1506	card	Reaper's Talisman
+1507	card	Reaping the Graves
+1508	card	Rebuff the Wicked
+1509	card	Reckless Abandon
+1510	card	Reckless Barbarian
+1511	card	Reckless Bushwhacker
+1512	card	Reckless Charge
+1513	card	Reckless Fireweaver
+1514	card	Reckless Impulse
+1515	card	Reckless Rage
+1516	card	Reckless Wurm
+1517	card	Reckoner's Bargain
+1518	card	Reclamation Sage
+1519	card	Reconnaissance
+1520	card	Reconnaissance Mission
+1521	card	Recover
+1522	card	Recross the Paths
+1523	card	Recumbent Bliss
+1524	card	Referee Squad
+1525	card	Reflecting Pool
+1526	card	Refuse to Yield
+1527	card	Regicide
+1528	card	Regrowth
+1529	card	Release the Dogs
+1530	card	Relic Crush
+1531	card	Relic of Legends
+1532	card	Relic of Progenitus
+1533	card	Rending Volley
+1534	card	Renegade Warlord
+1535	card	Renewed Faith
+1536	card	Reprobation
+1537	card	Repulse
+1538	card	Requisition Raid
+1539	card	Rescind
+1540	card	Resolute Reinforcements
+1541	card	Rest in Peace
+1542	card	Restock
+1543	card	Restoration Specialist
+1544	card	Retraction Helix
+1545	card	Retreat to Emeria
+1546	card	Return the Favor
+1547	card	Rev, Tithe Extractor
+1548	card	Reveille Squad
+1549	card	Revenge of Ravens
+1550	card	Reverent Hoplite
+1551	card	Reverent Mantra
+1552	card	Rewind
+1553	card	Reya Dawnbringer
+1554	card	Rhonas's Monument
+1555	card	Ricochet Trap
+1556	card	Rikala, Homarid King
+1557	card	Ringwarden Owl
+1558	card	Rionya, Fire Dancer
+1559	card	Rise from the Tides
+1560	card	Rise of the Ants
+1561	card	Rishadan Cutpurse
+1562	card	Rishadan Port
+1563	card	Rite of Consumption
+1564	card	Rite of the Raging Storm
+1565	card	Rites of Initiation
+1566	card	Rivals' Duel
+1567	card	River Bear
+1568	card	River Serpent
+1569	card	Riverwheel Aerialists
+1570	card	Roar of Challenge
+1571	card	Rock Slide
+1572	card	Rograkh, Son of Rohgahh
+1573	card	Rogue's Passage
+1574	card	Roiling Dragonstorm
+1575	card	Rootborn Defenses
+1576	card	Roots
+1577	card	Rot Hulk
+1578	card	Rotfeaster Maggot
+1579	card	Ruin Crab
+1580	card	Ruination
+1581	card	Ruinous Gremlin
+1582	card	Rumor Gatherer
+1583	card	Run Away Together
+1584	card	Runadi, Behemoth Caller
+1585	card	Rupture
+1586	card	Rush of Knowledge
+1587	card	Rush of Vitality
+1588	card	Rushing River
+1589	card	Rust Goliath
+1590	card	Ruthless Knave
+1591	card	Saber Ants
+1592	card	Sabertooth Wyvern
+1593	card	Sacred Cat
+1594	card	Sadistic Glee
+1595	card	Sage's Reverie
+1596	card	Sahir, Visitor in Darkness
+1597	card	Sakashima of a Thousand Faces
+1598	card	Salvage
+1599	card	Samurai of the Pale Curtain
+1600	card	Samut's Sprint
+1601	card	Sanctum Gargoyle
+1602	card	Sandstone Needle
+1603	card	Sapphire Dragon // Psionic Pulse
+1604	card	Saprazzan Skerry
+1605	card	Sarkhan's Rage
+1606	card	Sarkhan's Whelp
+1607	card	Sarulf's Packmate
+1608	card	Saryth, the Viper's Fang
+1609	card	Sash and Waistcoat, Unmen
+1610	card	Savage Gorger
+1611	card	Scale Up
+1612	card	Scalelord Reckoner
+1613	card	Scars of the Veteran
+1614	card	Scatter the Seeds
+1615	card	Scholar of the Ages
+1616	card	Scion of Glaciers
+1617	card	Scoria Cat
+1618	card	Scourge Devil
+1619	card	Scragnoth
+1620	card	Scrapwork Mutt
+1621	card	Scrapwork Rager
+1622	card	Scurry Oak
+1623	card	Scurry of Squirrels
+1624	card	Sea Gate
+1625	card	Sea Gate Oracle
+1626	card	Sea Scryer
+1627	card	Seal of Doom
+1628	card	Seal of Fire
+1629	card	Seal of Removal
+1630	card	Sealock Monster
+1631	card	Searing Blaze
+1632	card	Searing Spear
+1633	card	Season of Growth
+1634	card	Secret Rendezvous
+1635	card	Secrets of the Golden City
+1636	card	Seedguide Ash
+1637	card	Seeker of Skybreak
+1638	card	Seeker of the Way
+1639	card	Seething Anger
+1640	card	Seize the Spoils
+1641	card	Sejiri Merfolk
+1642	card	Selenia, the Cursed Heart
+1643	card	Seluma, Light of Aysen
+1644	card	Selvala, Heart of the Wilds
+1645	card	Send in the Pest
+1646	card	Sengir Autocrat
+1647	card	Sensei's Divining Top
+1648	card	Sensor Splicer
+1649	card	Sentinel Sliver
+1650	card	Sentinel of the Eternal Watch
+1651	card	Seraph of Dawn
+1652	card	Seraph of the Suns
+1653	card	Serenity
+1654	card	Serpentine Curve
+1655	card	Serra Sphinx
+1656	card	Serum Powder
+1657	card	Serum Visions
+1658	card	Set Adrift
+1659	card	Seton's Scout
+1660	card	Settle Beyond Reality
+1661	card	Sever Soul
+1662	card	Severed Strands
+1663	card	Shabraz, the Skyshark
+1664	card	Shade's Form
+1665	card	Shadow Prophecy
+1666	card	Shadow Rift
+1667	card	Shadow of the Second Sun
+1668	card	Shadowcloak Vampire
+1669	card	Shambling Ghast
+1670	card	Shanid, Sleepers' Scourge
+1671	card	Shaper Parasite
+1672	card	Share the Spoils
+1673	card	Shattered Angel
+1674	card	Shattering Spree
+1675	card	Shelter
+1676	card	Sheltered by Ghosts
+1677	card	Sheltering Word
+1678	card	Shenanigans
+1679	card	Sheoldred's Edict
+1680	card	Sheoldred, Whispering One
+1681	card	Shepherd of Rot
+1682	card	Shepherd of the Flock // Usher to Safety
+1683	card	Shepherd of the Lost
+1684	card	Shieldhide Dragon
+1685	card	Shifting Sliver
+1686	card	Shimmercreep
+1687	card	Shimmering Glasskite
+1688	card	Shimmerscale Drake
+1689	card	Shinen of Life's Roar
+1690	card	Shiny Impetus
+1691	card	Shipwreck Dowser
+1692	card	Shiv's Embrace
+1693	card	Shivan Raptor
+1694	card	Shoreline Looter
+1695	card	Shoreline Ranger
+1696	card	Shoreline Salvager
+1697	card	Shoulder to Shoulder
+1698	card	Show and Tell
+1699	card	Shower of Coals
+1700	card	Shredded Sails
+1701	card	Shrike Force
+1702	card	Shroofus Sproutsire
+1703	card	Siege-Gang Lieutenant
+1704	card	Sifa Grent
+1705	card	Sigil of Sleep
+1706	card	Sigil of the New Dawn
+1707	card	Sigiled Starfish
+1708	card	Sign in Blood
+1709	card	Silver Knight
+1710	card	Silver Myr
+1711	card	Silverglade Elemental
+1712	card	Silverglade Pathfinder
+1713	card	Sire of Stagnation
+1714	card	Siren Stormtamer
+1715	card	Six
+1716	card	Skeletal Changeling
+1717	card	Skeletal Scrying
+1718	card	Skeletal Wurm
+1719	card	Skinthinner
+1720	card	Skirge Familiar
+1721	card	Skittering Crustacean
+1722	card	Skullport Merchant
+1723	card	Skullsnatcher
+1724	card	Skullwinder
+1725	card	Sky Crier
+1726	card	Skyhunter Skirmisher
+1727	card	Skyline Despot
+1728	card	Skyshroud Claim
+1729	card	Skysnare Spider
+1730	card	Slaughter the Strong
+1731	card	Slavering Nulls
+1732	card	Slip Out the Back
+1733	card	Slip Through Space
+1734	card	Slurrk, All-Ingesting
+1735	card	Smash to Dust
+1736	card	Smiting Helix
+1737	card	Snake Pit
+1738	card	Snap
+1739	card	Snarling Gorehound
+1740	card	Sneering Shadewriter
+1741	card	Snuff Out
+1742	card	Sol Ring
+1743	card	Solar Blast
+1744	card	Soltari Trooper
+1745	card	Soltari Visionary
+1746	card	Song of Freyalise
+1747	card	Songs of the Damned
+1748	card	Sorcerous Sight
+1749	card	Soul Snuffers
+1750	card	Soul Warden
+1751	card	Soul's Attendant
+1752	card	Souldrinker
+1753	card	Spark Reaper
+1754	card	Sparkmage Apprentice
+1755	card	Specimen Collector
+1756	card	Spectral Procession
+1757	card	Spectral Sailor
+1758	card	Spectral Sliver
+1759	card	Spellshock
+1760	card	Spellstutter Sprite
+1761	card	Spidersilk Armor
+1762	card	Spike Colony
+1763	card	Spike Weaver
+1764	card	Spiketail Drake
+1765	card	Spin into Myth
+1766	card	Spined Megalodon
+1767	card	Spinewoods Armadillo
+1768	card	Spirit Link
+1769	card	Spirit Mantle
+1770	card	Spirit en-Dal
+1771	card	Spirited Companion
+1772	card	Spiritmonger
+1773	card	Spitebellows
+1774	card	Spiteful Prankster
+1775	card	Spitting Earth
+1776	card	Splendor Mare
+1777	card	Splitskin Doll
+1778	card	Spore Frog
+1779	card	Spore Swarm
+1780	card	Sporemound
+1781	card	Spreading Seas
+1782	card	Sprite Noble
+1783	card	Spyglass Siren
+1784	card	Squee, Goblin Nabob
+1785	card	Squelch
+1786	card	Squirrel Nest
+1787	card	Staggershock
+1788	card	Stand Together
+1789	card	Standard Bearer
+1790	card	Standstill
+1791	card	Starlit Angel
+1792	card	Startle
+1793	card	Stasis Snare
+1794	card	Steadfast Unicorn
+1795	card	Steady Progress
+1796	card	Steal Enchantment
+1797	card	Sticky Fingers
+1798	card	Stifle
+1799	card	Sting-Slinger
+1800	card	Stingerfling Spider
+1801	card	Stinging Barrier
+1802	card	Stinging Shot
+1803	card	Stingscourger
+1804	card	Stir the Pride
+1805	card	Stir the Sands
+1806	card	Stitch Together
+1807	card	Stitched Drake
+1808	card	Stock Up
+1809	card	Stoke the Flames
+1810	card	Stonecloaker
+1811	card	Stonehorn Dignitary
+1812	card	Stonespeaker Crystal
+1813	card	Storm Caller
+1814	card	Storm Sculptor
+1815	card	Storm the Seedcore
+1816	card	Storm-Kiln Artist
+1817	card	Stormbound Geist
+1818	card	Stormcatch Mentor
+1819	card	Stormkeld Vanguard // Bear Down
+1820	card	Strafe
+1821	card	Strands of Night
+1822	card	Strangleroot Geist
+1823	card	Strategic Planning
+1824	card	Street Wraith
+1825	card	Streetwise Negotiator
+1826	card	Strike It Rich
+1827	card	Striped Riverwinder
+1828	card	Stromgald Crusader
+1829	card	Stronghold Rats
+1830	card	Struggle for Skemfar
+1831	card	Su-Chi Cave Guard
+1832	card	Subjugator Angel
+1833	card	Submerge
+1834	card	Subterranean Tremors
+1835	card	Sudden Spinnerets
+1836	card	Suffocating Fumes
+1837	card	Sumala Rumblers
+1838	card	Summon Undead
+1839	card	Sunblade Angel
+1840	card	Sunder the Gateway
+1841	card	Sunlance
+1842	card	Sunscape Familiar
+1843	card	Sunscorch Regent
+1844	card	Sunset Strikemaster
+1845	card	Sunshot Militia
+1846	card	Supernatural Stamina
+1847	card	Supply Runners
+1848	card	Supreme Will
+1849	card	Sure Strike
+1850	card	Surge of Salvation
+1851	card	Surgical Skullbomb
+1852	card	Surrak and Goreclaw
+1853	card	Suture Priest
+1854	card	Swamp
+1855	card	Swarming Goblins
+1856	card	Swelter
+1857	card	Swift Justice
+1858	card	Swiftfoot Boots
+1859	card	Sword Coast Serpent // Capsizing Wave
+1860	card	Swords to Plowshares
+1861	card	Sygg, River Cutthroat
+1862	card	Symbiosis
+1863	card	Symbiotic Beast
+1864	card	Symbol of Unsummoning
+1865	card	Syndic of Tithes
+1866	card	Syphon Flesh
+1867	card	Syphon Mind
+1868	card	Syr Alin, the Lion's Claw
+1869	card	Syr Konrad, the Grim
+1870	card	Tabaxi Toucaneers
+1871	card	Tail Swipe
+1872	card	Tainted Strike
+1873	card	Tajuru Warcaller
+1874	card	Take Up the Shield
+1875	card	Take Vengeance
+1876	card	Talrand's Invocation
+1877	card	Talrand, Sky Summoner
+1878	card	Tandem Lookout
+1879	card	Tangle
+1880	card	Taunting Kobold
+1881	card	Tavern Swindler
+1882	card	Tear Asunder
+1883	card	Tectonic Rift
+1884	card	Teferi's Honor Guard
+1885	card	Telekinetic Sliver
+1886	card	Tempest Caller
+1887	card	Temple Acolyte
+1888	card	Temporal Fissure
+1889	card	Temporal Isolation
+1890	card	Temporal Manipulation
+1891	card	Tempt with Bunnies
+1892	card	Tempting Licid
+1893	card	Temur Battle Rage
+1894	card	Temur Sabertooth
+1895	card	Tenacity
+1896	card	Tendrils of Corruption
+1897	card	Terror
+1898	card	Tetsuko Umezawa, Fugitive
+1899	card	Tevesh Szat, Doom of Fools
+1900	card	Teyo, the Shieldmage
+1901	card	Tezzeret's Gambit
+1902	card	Thassa's Emissary
+1903	card	Thassa's Oracle
+1904	card	Thassa, Deep-Dwelling
+1905	card	The Birth of Meletis
+1906	card	The Eternal Wanderer
+1907	card	The Everforger
+1908	card	The Madcap Jester
+1909	card	The Mindskinner
+1910	card	The Muckslinger Gang
+1911	card	The Rack
+1912	card	The Reality Chip
+1913	card	The Scarab God
+1914	card	The Unluckiest Planeswalker
+1915	card	The Weaver King
+1916	card	Thermo-Alchemist
+1917	card	Thermopod
+1918	card	Think Twice
+1919	card	Third Path Iconoclast
+1920	card	Thirsting Bloodlord
+1921	card	Thomil, the Destroyer
+1922	card	Thopter Engineer
+1923	card	Thorn of the Black Rose
+1924	card	Thornscape Battlemage
+1925	card	Thornwind Faeries
+1926	card	Thought Courier
+1927	card	Thought Scour
+1928	card	Thought Vessel
+1929	card	Thoughtcast
+1930	card	Thraben Charm
+1931	card	Thraben Watcher
+1932	card	Thrashing Brontodon
+1933	card	Thrill of Possibility
+1934	card	Thrull Parasite
+1935	card	Thrummingbird
+1936	card	Thunderclap
+1937	card	Thunderdrum Soloist
+1938	card	Thunderfoot Baloth
+1939	card	Thunderous Orator
+1940	card	Thunderwave
+1941	card	Thwart
+1942	card	Tiamat's Fanatics
+1943	card	Tibalt's Rager
+1944	card	Tibalt, Rakish Instigator
+1945	card	Tidal Wave
+1946	card	Tide Skimmer
+1947	card	Tidy Conclusion
+1948	card	Timberland Ancient
+1949	card	Time Ebb
+1950	card	Time of Ice
+1951	card	Tinder Wall
+1952	card	Tinybones, the Pickpocket
+1953	card	Tireless Provisioner
+1954	card	Tireless Tribe
+1955	card	Titan's Strength
+1956	card	Titania, Protector of Argoth
+1957	card	Titanoth Rex
+1958	card	Tivit, Seller of Secrets
+1959	card	To Arms!
+1960	card	Toby, Beastie Befriender
+1961	card	Toggo, Goblin Weaponsmith
+1962	card	Tolabow, Loch Rascal
+1963	card	Tolaria West
+1964	card	Tolarian Kraken
+1965	card	Tolarian Terror
+1966	card	Tome Raider
+1967	card	Toothy, Imaginary Friend
+1968	card	Tor Wauki the Younger
+1969	card	Torbran, Thane of Red Fell
+1970	card	Torch Breath
+1971	card	Tormented Angel
+1972	card	Tormod's Crypt
+1973	card	Torpor Orb
+1974	card	Torrent of Fire
+1975	card	Tortured Existence
+1976	card	Toski, Bearer of Secrets
+1977	card	Totally Lost
+1978	card	Totem-Guide Hartebeest
+1979	card	Touch the Spirit Realm
+1980	card	Tower Above
+1981	card	Tower of the Magistrate
+1982	card	Tragic Slip
+1983	card	Trailblazer's Boots
+1984	card	Travel Preparations
+1985	card	Traveling Minister
+1986	card	Treasonous Ogre
+1987	card	Treasure Dredger
+1988	card	Treasure Hunt
+1989	card	Treetop Village
+1990	card	Trespasser's Curse
+1991	card	Tresserhorn's Lord, Returned
+1992	card	Trial of Ambition
+1993	card	Triton Tactics
+1994	card	Triumph of Ferocity
+1995	card	Trollbred Guardian
+1996	card	Tromokratis
+1997	card	Trostani's Judgment
+1998	card	Trove Tracker
+1999	card	True Love's Kiss
+2000	card	Trumpeting Herd
+2001	card	Tsabo's Web
+2002	card	Tsagan, Raider Warlord
+2003	card	Tura Kennerüd, Skyknight
+2004	card	Turnabout
+2005	card	Turtleshell Changeling
+2006	card	Twin-Silk Spider
+2007	card	Twinblade Paladin
+2008	card	Twinferno
+2009	card	Twinmaw Stormbrood // Charring Bite
+2010	card	Twisted Abomination
+2011	card	Twisted Image
+2012	card	Two-Handed Axe // Sweeping Cleave
+2013	card	Typhoid Rats
+2014	card	Tyvar's Stand
+2015	card	Tyvar, the Pummeler
+2016	card	Ulamog's Crusher
+2017	card	Ulamog, the Ceaseless Hunger
+2018	card	Ultimate Price
+2019	card	Unbounded Potential
+2020	card	Unburial Rites
+2021	card	Unchained Berserker
+2022	card	Undead Augur
+2023	card	Undercity Informer
+2024	card	Underworld Breach
+2025	card	Underworld Hermit
+2026	card	Undo
+2027	card	Unexpected Fangs
+2028	card	Unexpected Windfall
+2029	card	Unquestioned Authority
+2030	card	Unseal the Necropolis
+2031	card	Unspeakable Symbol
+2032	card	Unsubstantiate
+2033	card	Untimely Malfunction
+2034	card	Unwavering Initiate
+2035	card	Up the Beanstalk
+2036	card	Urborg Repossession
+2037	card	Urborg Uprising
+2038	card	Urza's Bauble
+2039	card	Urza, Lord High Artificer
+2040	card	Utopia Sprawl
+2041	card	Uugguu, the Omniplasm
+2042	card	Valakut Invoker
+2043	card	Valakut Predator
+2044	card	Valko Indorian
+2045	card	Valor
+2046	card	Valorous Stance
+2047	card	Valorous Steed
+2048	card	Vampire Gourmand
+2049	card	Vampire Hexmage
+2050	card	Vampire of the Dire Moon
+2051	card	Vampires' Vengeance
+2052	card	Vampiric Link
+2053	card	Vandalize
+2054	card	Vanish into Eternity
+2055	card	Vapor Snag
+2056	card	Varchild, Betrayer of Kjeldor
+2057	card	Vastwood Surge
+2058	card	Vat of Rebirth
+2059	card	Vedalken Dismisser
+2060	card	Vedalken Mastermind
+2061	card	Velukan Dragon
+2062	card	Vendetta
+2063	card	Vengeful Reaper
+2064	card	Venom Sliver
+2065	card	Venomspout Brackus
+2066	card	Venser, Visionary Traveler
+2067	card	Veteran Armorer
+2068	card	Victimize
+2069	card	View from Above
+2070	card	Vigean Graftmage
+2071	card	Vile Consumption
+2072	card	Vile Requiem
+2073	card	Village Rites
+2074	card	Vindictive Vampire
+2075	card	Vine Mare
+2076	card	Vines of Vastwood
+2077	card	Viral Drake
+2078	card	Viridian Joiner
+2079	card	Viridian Shaman
+2080	card	Virtue's Ruin
+2081	card	Virtus the Veiled
+2082	card	Virus Beetle
+2083	card	Visara the Dreadful
+2084	card	Vivien's Grizzly
+2085	card	Vizier of Remedies
+2086	card	Void Beckoner
+2087	card	Voidmage Husher
+2088	card	Volatile Claws
+2089	card	Volcanic Dragon
+2090	card	Volcanic Geyser
+2091	card	Volcanic Hammer
+2092	card	Volcanic Rush
+2093	card	Volcanic Spite
+2094	card	Volcanic Torrent
+2095	card	Voldaren Epicure
+2096	card	Volo, Itinerant Scholar
+2097	card	Vow of Duty
+2098	card	Vow of Lightning
+2099	card	Vow of Malice
+2100	card	Voyager Drake
+2101	card	Wake of Vultures
+2102	card	Waker of Waves
+2103	card	Wakestone Gargoyle
+2104	card	Walker of Secret Ways
+2105	card	Walking Ballista
+2106	card	Wall of Blood
+2107	card	Wall of Blossoms
+2108	card	Wall of Corpses
+2109	card	Wall of Fire
+2110	card	Wall of Glare
+2111	card	Wall of Mulch
+2112	card	Wall of Omens
+2113	card	Wall of Roots
+2114	card	Wall of Swords
+2115	card	Wall of Tears
+2116	card	Wander in Death
+2117	card	Wanderer's Strike
+2118	card	War Priest of Thune
+2119	card	Warbriar Blessing
+2120	card	Warchief Giant
+2121	card	Ward Sliver
+2122	card	Warrior en-Kor
+2123	card	Wash Away
+2124	card	Wasteland Viper
+2125	card	Watcher for Tomorrow
+2126	card	Wave-Wing Elemental
+2127	card	Wayward Giant
+2128	card	Weaponcraft Enthusiast
+2129	card	Weatherseed Faeries
+2130	card	Web of Inertia
+2131	card	Werebear
+2132	card	Wheel and Deal
+2133	card	Whip Silk
+2134	card	Whipcorder
+2135	card	Whiplash Trap
+2136	card	Whirler Rogue
+2137	card	Whirlpool Drake
+2138	card	Whirlwind Denial
+2139	card	Whispersilk Cloak
+2140	card	Wicked Pact
+2141	card	Wickerbough Elder
+2142	card	Wight of Precinct Six
+2143	card	Wild Hunger
+2144	card	Wild Magic Surge
+2145	card	Wildheart Invoker
+2146	card	Will-o'-the-Wisp
+2147	card	Willbender
+2148	card	Wilt
+2149	card	Windfall
+2150	card	Windgrace Acolyte
+2151	card	Winding Way
+2152	card	Windrider Eel
+2153	card	Winds of Change
+2154	card	Windstorm Drake
+2155	card	Wing Splicer
+2156	card	Wirewood Channeler
+2157	card	Wirewood Guardian
+2158	card	Wispweaver Angel
+2159	card	Witch's Mark
+2160	card	Witching Well
+2161	card	Withered Wretch
+2162	card	Witness Protection
+2163	card	Wizard Class
+2164	card	Wonder
+2165	card	Wood Elves
+2166	card	Woodland Changeling
+2167	card	Woodland Mystic
+2168	card	Words of Wisdom
+2169	card	Worzel, the Protector
+2170	card	Wrap in Vigor
+2171	card	Wrenn's Resolve
+2172	card	Writhing Chrysalis
+2173	card	Xantcha, Sleeper Agent
+2174	card	Xyris, the Writhing Storm
+2175	card	Yahenni, Undying Partisan
+2176	card	Yavimaya Elder
+2177	card	Yavimaya Granger
+2178	card	Yidris, Maelstrom Wielder
+2179	card	You Are Already Dead
+2180	card	You Find Some Prisoners
+2181	card	You Hear Something on Watch
+2182	card	You See a Pair of Goblins
+2183	card	You're Confronted by Robbers
+2184	card	Young Necromancer
+2185	card	Young Pyromancer
+2186	card	Young Red Dragon // Bathe in Gold
+2187	card	Young Wolf
+2188	card	Your Temple Is Under Attack
+2189	card	Youthful Valkyrie
+2190	card	Yume, Chronicler of Valor
+2191	card	Zada, Hedron Grinder
+2192	card	Zagorka, Mother of Sanctum
+2193	card	Zara, Renegade Recruiter
+2194	card	Zephid's Embrace
+2195	card	Zombie Cutthroat
+2196	card	Zombie Master
+2197	card	Zopandrel, Hunger Dominus
+2198	card	Zulaport Cutthroat
+2199	card	Zulaport Enforcer
+2200	card	face:Armed // Dangerous#1
+2201	card	face:Beanstalk Giant // Fertile Footsteps#1
+2202	card	face:Blessed Hippogriff // Tyr's Blessing#1
+2203	card	face:Crystal Dragon // Rob the Hoard#1
+2204	card	face:Dead // Gone#1
+2205	card	face:Destined // Lead#1
+2206	card	face:Disruptive Stormbrood // Petty Revenge#1
+2207	card	face:Dread Linnorm // Scale Deflection#1
+2208	card	face:Embereth Shieldbreaker // Battle Display#1
+2209	card	face:Faerie Guidemother // Gift of the Fae#1
+2210	card	face:Foulmire Knight // Profane Insight#1
+2211	card	face:Ghost Lantern // Bind Spirit#1
+2212	card	face:Guardian Naga // Banishing Coils#1
+2213	card	face:Imodane's Recruiter // Train Troops#1
+2214	card	face:Leech Collector // Bloodletting#1
+2215	card	face:Merchant of the Vale // Haggle#1
+2216	card	face:Order of Midnight // Alter Fate#1
+2217	card	face:Painter's Studio // Defaced Gallery#1
+2218	card	face:Pegasus Guardian // Rescue the Foal#1
+2219	card	face:Sapphire Dragon // Psionic Pulse#1
+2220	card	face:Shepherd of the Flock // Usher to Safety#1
+2221	card	face:Stormkeld Vanguard // Bear Down#1
+2222	card	face:Sword Coast Serpent // Capsizing Wave#1
+2223	card	face:Twinmaw Stormbrood // Charring Bite#1
+2224	card	face:Two-Handed Axe // Sweeping Cleave#1
+2225	card	face:Young Red Dragon // Bathe in Gold#1
+2226	card	fuse:Armed // Dangerous
+2227	card	name:Legitimate Businessperson
+2228	card	room:Painter's Studio // Defaced Gallery#00
+2229	card	room:Painter's Studio // Defaced Gallery#02
+2230	card	room:Painter's Studio // Defaced Gallery#03
+2231	card	room:Painter's Studio // Defaced Gallery#10
+2232	card	room:Painter's Studio // Defaced Gallery#11
+2233	card	room:Painter's Studio // Defaced Gallery#13
+2234	token	b_0_0_zombie_army
+2235	token	b_0_1_serf
+2236	token	b_0_1_thrull
+2237	token	b_1_1_goblin_rogue
+2238	token	b_1_1_rat
+2239	token	b_1_1_rat_rogue
+2240	token	b_1_1_thrull
+2241	token	b_1_1_vampire_knight_lifelink
+2242	token	b_2_2_zombie
+2243	token	b_2_2_zombie_decayed
+2244	token	b_3_3_kavu
+2245	token	b_4_4_zombie_warrior_vigilance
+2246	token	b_5_5_zombie_giant
+2247	token	b_6_6_wurm_trample
+2248	token	bg_1_1_pest_attack_lifegain
+2249	token	c_0_0_a_construct_total_artifacts
+2250	token	c_0_1_eldrazi_spawn_sac
+2251	token	c_0_4_a_wall_defender
+2252	token	c_10_10_eldrazi
+2253	token	c_1_1_a_gnome
+2254	token	c_1_1_a_servo
+2255	token	c_1_1_a_soldier
+2256	token	c_1_1_a_thopter_flying
+2257	token	c_1_1_eldrazi_scion_sac
+2258	token	c_1_1_shapeshifter_changeling
+2259	token	c_1_1_spirit
+2260	token	c_2_2_a_robot
+2261	token	c_2_2_shapeshifter_changeling
+2262	token	c_3_3_a_phyrexian_golem
+2263	token	c_a_blood_draw
+2264	token	c_a_clue_draw
+2265	token	c_a_food_sac
+2266	token	c_a_gold_sac
+2267	token	c_a_lander_sac_search
+2268	token	c_a_map_sac_explore
+2269	token	c_a_powerstone
+2270	token	c_a_treasure_sac
+2271	token	face:incubator_c_0_0_a_phyrexian#1
+2272	token	g_0_1_plant
+2273	token	g_1_1_elf_warrior
+2274	token	g_1_1_forest_dryad
+2275	token	g_1_1_insect
+2276	token	g_1_1_saproling
+2277	token	g_1_1_snake
+2278	token	g_1_1_squirrel
+2279	token	g_1_2_spider_reach
+2280	token	g_2_2_bear
+2281	token	g_2_2_boar
+2282	token	g_2_2_wolf
+2283	token	g_3_3_ape
+2284	token	g_3_3_badger
+2285	token	g_3_3_beast
+2286	token	g_3_3_dinosaur_trample
+2287	token	g_3_3_elephant
+2288	token	g_3_3_frog_lizard
+2289	token	g_3_3_insect
+2290	token	g_4_4_beast
+2291	token	g_4_4_ox
+2292	token	g_4_4_rhino_trample
+2293	token	g_5_3_elemental
+2294	token	g_x_x_elemental
+2295	token	gu_0_0_fractal
+2296	token	gu_1_1_snake
+2297	token	incubator_c_0_0_a_phyrexian
+2298	token	lightning_rager
+2299	token	r_1_1_devil_burn
+2300	token	r_1_1_elemental
+2301	token	r_1_1_elemental_cat_haste
+2302	token	r_1_1_goblin
+2303	token	r_1_1_goblin_haste
+2304	token	r_1_1_goblin_wizard_prowess
+2305	token	r_1_1_mercenary_tappump
+2306	token	r_1_1_satyr_noblock
+2307	token	r_1_1_survivor
+2308	token	r_1_1_warrior
+2309	token	r_2_1_dwarf_berserker
+2310	token	r_2_1_goblin_haste
+2311	token	r_2_2_rebel
+2312	token	r_3_1_knight
+2313	token	r_5_5_dragon_flying
+2314	token	r_8_8_lizard
+2315	token	rock
+2316	token	role_wicked
+2317	token	selenias_curse
+2318	token	u_0_1_a_homunculus
+2319	token	u_0_3_crab
+2320	token	u_1_1_bird_flying
+2321	token	u_1_1_bird_illusion_flying
+2322	token	u_1_1_faerie_flying
+2323	token	u_1_1_merfolk
+2324	token	u_2_2_drake_flying
+2325	token	u_2_2_wizard
+2326	token	u_3_2_reflection
+2327	token	u_5_5_wall_defender
+2328	token	ur_1_1_otter_prowess
+2329	token	ur_3_3_elemental_flying
+2330	token	volos_journal
+2331	token	w_0_1_goat
+2332	token	w_0_3_wall_defender
+2333	token	w_1_1_bird_flying
+2334	token	w_1_1_dog
+2335	token	w_1_1_human
+2336	token	w_1_1_human_soldier
+2337	token	w_1_1_kithkin_soldier
+2338	token	w_1_1_kor_ally
+2339	token	w_1_1_monk_prowess
+2340	token	w_1_1_pegasus_flying
+2341	token	w_1_1_rabbit
+2342	token	w_1_1_soldier
+2343	token	w_1_1_spirit_flying
+2344	token	w_1_1_vampire_lifelink
+2345	token	w_2_2_griffin_flying
+2346	token	w_2_2_knight_vigilance
+2347	token	w_2_2_samurai_double_strike
+2348	token	w_2_2_samurai_vigilance
+2349	token	w_3_3_angel_flying
+2350	token	w_4_4_angel_flying
+2351	token	w_4_4_beast_lonely
+2352	token	wb_1_1_spirit_flying
+2353	token	wb_2_1_inkling_flying

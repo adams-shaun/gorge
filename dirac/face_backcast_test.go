@@ -44,7 +44,7 @@ func TestLandFrontAdventureCast(t *testing.T) {
 		t.Fatalf("face casts after the land drop %v, want [1]", got)
 	}
 	perms := sc.s.occ.count()
-	sc.s.Apply(MakeAction(AkCast, uint8(lb), 1, castFace))
+	sc.s.Apply(MakeAction(AkCast, TCode(lb), 1, castFace))
 	sc.buildToStack(t)
 	if sc.s.objs[lb].card != face || sc.s.objs[lb].zone != kop.ZoneStack {
 		t.Fatal("the Adventure is not on the stack")
@@ -71,7 +71,7 @@ func TestLandFrontAdventureCast(t *testing.T) {
 		t.Fatalf("land plays from exile after the drop %v, want none", got)
 	}
 	sc.s.pl[0].landsPlayed = 0
-	sc.s.Apply(MakeAction(AkPlayLand, uint8(lb), 0, 0))
+	sc.s.Apply(MakeAction(AkPlayLand, TCode(lb), 0, 0))
 	if !sc.onBF(lb) || sc.s.cardAt(sc.slot(lb)) != front || sc.s.pl[0].landsPlayed != 1 {
 		t.Fatalf("played from exile: on battlefield %v, front %v, lands played %d",
 			sc.onBF(lb), sc.s.cardAt(sc.slot(lb)) == front, sc.s.pl[0].landsPlayed)
@@ -104,7 +104,7 @@ func TestModalSpellBackCast(t *testing.T) {
 	if got := faceCasts(&d, kv); len(got) != 1 || got[0] != 1 {
 		t.Fatalf("face casts %v, want [1]", got)
 	}
-	sc.s.Apply(MakeAction(AkCast, uint8(kv), 1, castFace))
+	sc.s.Apply(MakeAction(AkCast, TCode(kv), 1, castFace))
 	sc.buildToStack(t)
 	if sc.s.objs[kv].card != back || sc.s.objs[kv].zone != kop.ZoneStack {
 		t.Fatal("The Ringhart Crest is not on the stack")
@@ -137,7 +137,7 @@ func TestModalSpellBackResetsOffStack(t *testing.T) {
 	}
 	pc := sc.hand(front, 0)
 	sc.s.Step()
-	sc.s.Apply(MakeAction(AkCast, uint8(pc), 1, castFace))
+	sc.s.Apply(MakeAction(AkCast, TCode(pc), 1, castFace))
 	sc.buildToStack(t)
 	if sc.s.sp != 1 || sc.s.objs[pc].card != back {
 		t.Fatal("Restorative Burst is not on the stack")
@@ -154,7 +154,7 @@ func TestModalSpellBackResetsOffStack(t *testing.T) {
 	}
 	pc = sc.hand(front, 0)
 	sc.s.Step()
-	sc.s.Apply(MakeAction(AkCast, uint8(pc), 1, castFace))
+	sc.s.Apply(MakeAction(AkCast, TCode(pc), 1, castFace))
 	sc.buildToStack(t)
 	sc.resolveAll(t)
 	if ob := &sc.s.objs[pc]; ob.zone != kop.ZoneExile || ob.card != front {

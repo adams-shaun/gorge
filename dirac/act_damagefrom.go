@@ -90,7 +90,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 	// stall. The flag clears with the pass's events, below and at the early
 	// returns, so a later op of the same resolution never inherits it.
 	var (
-		plCodes [MaxSeats]uint8
+		plCodes [MaxSeats]TCode
 		plAmts  [MaxSeats]int
 	)
 	// the first seat is coded even when the set is empty, as before (its
@@ -165,11 +165,11 @@ func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl u
 		return
 	}
 	card := s.objs[o].card
-	code := uint8(dst)
-	if s.replPlusSrcPass(k, ctrl, NoSlot, card, kw, []uint8{code}, []int{n}) {
+	code := TCode(dst)
+	if s.replPlusSrcPass(k, ctrl, NoSlot, card, kw, []TCode{code}, []int{n}) {
 		return
 	}
-	if s.dmgSrcOrderStalls(k, ctrl, NoSlot, card, kw, []uint8{code}, []int{n}) {
+	if s.dmgSrcOrderStalls(k, ctrl, NoSlot, card, kw, []TCode{code}, []int{n}) {
 		s.g.plusBatchAsked = false
 		return
 	}
@@ -207,7 +207,7 @@ func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl u
 // never poses the ask. A pure plus-N competition is replPlusSrcPass's, which
 // parks it. parkNC is probed with the ask state saved and restored; it can
 // change nothing else before it reports the park, and a park stops the game.
-func (s *State) dmgSrcOrderStalls(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, kw kop.KwMask, codes []uint8, amts []int) bool {
+func (s *State) dmgSrcOrderStalls(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, kw kop.KwMask, codes []TCode, amts []int) bool {
 	if k.gen == nil || replPlusOnly(k.gen) {
 		return false
 	}

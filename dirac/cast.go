@@ -53,7 +53,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		// freeze the count the moment the spell reaches the stack, before
 		// targets, divisions and costs (CR 601.2a; gorge castBattlefieldEvent):
 		// a permanent a cost then sacrifices still counts (value_castbattlefield.go)
-		e.trigMV = s.castBFLiveCount(k, p, NoSlot, k.t.Cards[c].CastBF)
+		e.trigMV = objWord(s.castBFLiveCount(k, p, NoSlot, k.t.Cards[c].CastBF))
 	}
 	if mayhem {
 		e.trigPl = trigPlMayhem
@@ -93,7 +93,9 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 			s.g.impCast = false
 		}
 		if s.g.impCast {
-			if k.t.Cards[c].HasOverload {
+			if k.t.Cards[c].HasSurge {
+				e.mode |= modeImpended // the surged cast (kw_surge.go: the bit reads as surged on a HasSurge card)
+			} else if k.t.Cards[c].HasOverload {
 				e.mode |= modeImpended // the overloaded cast (kw_overload.go: the bit reads as overloaded on a HasOverload card)
 			} else if k.t.Cards[c].HasEvoke {
 				e.spc |= spcEvoked // the evoked cast (kw_evoke.go)
@@ -146,10 +148,11 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		}
 	}
 	n0 := s.npend
-	if fl&sfKicked != 0 && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
+	if (fl&sfKicked != 0 || k.gen != nil && k.gen.anySurge && s.bld().e.surged(k)) && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
 		// (an optional waterbend cast taps nothing here: its window pays after
 		// the picks, manaStep's waterbendCastWindow, as gorge's convokeAsk
 		// precedes its manual window)
+		// (a surged cast is the same potential play: kw_surge.go)
 		// gorge has no planned kicked cast: the oracle lowers it by tapping
 		// the witness's sources at priority, then casts from the floating
 		// pool; the mana is spent at payment as usual. The witness is
@@ -617,6 +620,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if cd.HasDash && e.impended() {
 			c = cd.DashCost // the dash cost (CR 702.109a; kw_dash.go)
 		}
+		if cd.HasSurge && e.surged(k) {
+			c = surgeCostOf(cd) // the surge cost (CR 702.117a; kw_surge.go)
+		}
 		if cd.HasOverload && e.overloaded(k) {
 			c = cd.OverloadCost // the overload cost (CR 702.96a; kw_overload.go)
 		}
@@ -871,8 +877,14 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if k.gen != nil && k.gen.anySacX {
 				mx = s.sacXClamp(k, &cost, mx) // Sac<X/Spec> bounds the ask by the sacrifice candidates
 			}
+			if k.gen != nil && k.gen.anyExileX {
+				mx = s.exileXClamp(k, mx) // ExileFromGrave<X/Spec> bounds the ask by the graveyard candidates
+			}
 			d.Kind, d.Sub, d.Player = DkChoose, ChX, e.ctrl
 			hi := s.xReducedCeiling(k, e, &cost, &av, mx)
+			if k.gen != nil && k.gen.anyExileX {
+				hi = s.exileXClamp(k, hi)
+			}
 			if np := s.convokeXCredit(k); np > 0 {
 				hi = min(maxXAsk, max(hi, mx+np)) // each announced pick pays one generic (a harmonize pick its power) of the X total
 			}
@@ -932,6 +944,17 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if k.teamwork {
 				if tw := s.twModes(k); tw != 0 {
 					pick = tw // the teamworked cast's "choose both" (kw_teamwork.go)
+				}
+			}
+			if k.entwine {
+				if n, ok := s.entwineModes(k); ok {
+					if n == 0 {
+						// an entwined cast with no mode that has a target is no legal
+						// announcement (gorge castModeAsk: CR 733.1 reversal)
+						s.reverseCast(k)
+						return false
+					}
+					pick = n // every feasible mode (kw_entwine.go)
 				}
 			}
 			if k.gen != nil && k.gen.anyCharmV {
@@ -1120,7 +1143,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				}
 				continue
 			}
-			var buf [MaxOptions]uint8
+			var buf [MaxOptions]TCode
 			n := s.targetCands(k, t, e.ctrl, s.srcSlot(), e.obj, &buf)
 			if k.gen != nil {
 				n = s.affordableTargets(k, &buf, n)
@@ -1361,7 +1384,7 @@ func (s *State) applyBuild(k *prep, a Action) {
 			break
 		}
 		if s.bld().stage == bsAltAdd {
-			part := a.Target()
+			part := uint8(a.Target()) // code-ok: the either-or part (0 or 1)
 			s.bld().altAdd = part
 			s.nextStage(k)
 			if !s.altAddPayable(k, part) && !s.altAddOpenTargets(k) && !s.altAddPipsFirst(k) {
@@ -1426,7 +1449,7 @@ func (s *State) applyBuild(k *prep, a Action) {
 			s.answerMultikick(k, a)
 			return
 		}
-		e.x = a.Mode() // X
+		e.x = objWord(a.Mode()) // X
 		s.nextStage(k)
 	case AkDone:
 		if s.bld().stage == bsModes {
@@ -1531,7 +1554,7 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 		s.payTargetsEvidence(k) // a spell's mandatory evidence part (cost_collectevidencex.go)
 	}
 	if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayLife != 0 {
-		s.payLifeCost(k, e.ctrl, pc, e.x)
+		s.payLifeCost(k, e.ctrl, pc, uint8(e.x))
 	}
 	if k.gen != nil && k.gen.anyRaiseLife {
 		s.payRaiseLife(k) // a RaiseCost PayLife<N> the chosen target owes (cost_raiselife.go)
@@ -1667,6 +1690,12 @@ func (s *State) finishBuild(k *prep) {
 		// resolveTop tests it only on a copy)
 		if s.bld().e.flags&sfFree != 0 && s.g.freeP&freeGY != 0 && s.bld().bfl&bflPushed != 0 {
 			s.stack[s.sp-1].flags |= sfFreeGY
+		}
+		if k.retrace && s.bld().bfl&bflPushed != 0 && jumpStartEntry(k, &e) && !DebugJumpStartNoExile {
+			// a paid jump-start cast is exiled whenever it leaves the stack
+			// (CR 702.84a; gorge FlagJumpstart): the flashback family's mark,
+			// stamped only now (kw_jumpstart.go)
+			s.stack[s.sp-1].flags |= sfFlashback
 		}
 		// ForgetPlayed$ True: this free cast now sits on the stack
 		// (CR 601.2a), the point where gorge's PlayDone pass sees it and
@@ -1919,7 +1948,7 @@ func (s *State) castTrigVanilla(k *prep, ls Slot, e *stackEntry) {
 
 // targetedOne is one target code t of entry e chosen: its BecomesTarget
 // triggers, then the ward of a permanent its controller does not control.
-func (s *State) targetedOne(k *prep, e *stackEntry, t uint8) {
+func (s *State) targetedOne(k *prep, e *stackEntry, t TCode) {
 	if !isObjTarget(t) {
 		return // a player, or a stack ability (tgt_stackability.go)
 	}
@@ -2072,7 +2101,7 @@ func (s *State) placeTriggers(k *prep, d *Decision) bool {
 		d.Kind, d.Player = DkTriggerOrder, p
 		for i := 0; i < int(s.npend); i++ {
 			if pt := &s.pend[i]; pt.ctrl == p && !s.ordered(uint8(i)) {
-				d.add(MakeAction(AkOrder, uint8(pt.obj), uint8(i), s.occurrence(i)))
+				d.add(MakeAction(AkOrder, TCode(pt.obj), TCode(i), s.occurrence(i)))
 			}
 		}
 		return true
@@ -2096,7 +2125,7 @@ func (s *State) ordered(i uint8) bool {
 }
 
 func (s *State) applyTriggerOrder(k *prep, a Action) {
-	s.ordList[s.orderN] = a.Target()
+	s.ordList[s.orderN] = uint8(a.Target()) // code-ok: a pending-trigger index (AkOrder)
 	s.orderN++
 	s.orderLeft--
 	if s.orderLeft == 0 {
@@ -2189,8 +2218,11 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 			}
 			s.bld().pickK = rest & -rest
 			s.bld().pickLeft = pc.N
+			if s.bld().pickK == pkDiscard {
+				s.bld().pickLeft += pc.Discard2N // the second discard part's picks follow (cost_discardfiltered.go)
+			}
 			if s.bld().pickK == pkSac && pc.N == 0 {
-				s.bld().pickLeft = e.x // Sac<X/Spec>: the announced X (cost_sacx.go; 0 asks nothing)
+				s.bld().pickLeft = uint8(e.x) // Sac<X/Spec>: the announced X (cost_sacx.go; 0 asks nothing)
 			}
 		}
 		if s.bld().pickLeft == 0 {
@@ -2239,12 +2271,16 @@ func (s *State) costCands(k *prep, c *kop.Cost, src Slot, d *Decision) {
 	case pkDiscard:
 		pl := &s.pl[e.ctrl]
 		// a filtered discard (CostDiscardFiltered) offers only the hand
-		// cards matching Cost.Filter (cost_discardfiltered.go)
-		fmatch := c.Flags&kop.CostDiscardFiltered != 0
+		// cards matching Cost.Filter (cost_discardfiltered.go); past the
+		// first part's picks a second part offers its own (Discard2F)
+		fmatch, f := c.Flags&kop.CostDiscardFiltered != 0, c.Filter
+		if s.discardPartTwo(c) {
+			fmatch, f = c.Discard2F != 0, c.Discard2F
+		}
 		for i := 0; i < int(pl.handN); i++ {
 			if o := pl.hand[i]; !s.picked(o) && o != e.obj &&
-				!(fmatch && !s.matchCardGen(k, c.Filter, s.objs[o].card, e.ctrl, e.ctrl, o)) {
-				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+				!(fmatch && !s.matchCardGen(k, f, s.objs[o].card, e.ctrl, e.ctrl, o)) {
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 	case pkSac, pkTapX:
@@ -2257,7 +2293,7 @@ func (s *State) costCands(k *prep, c *kop.Cost, src Slot, d *Decision) {
 			if s.bld().pickK == pkTapX && (s.perms[sl].flags&pfTapped != 0 || (sl == src && c.Flags&kop.CostTap != 0)) {
 				continue
 			}
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 }
@@ -2432,7 +2468,7 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 		}
 		if s.bld().altAdd == buildAltCost {
 			if a := &cd.Abilities[k.gen.altFree[e.card]-1]; altPickCost(&a.Cost) {
-				return &a.Cost // the sacrifice / hand-exile alternative cost (Fireblast, Force of Will; cast_altfree.go)
+				return &a.Cost // the sacrifice / return / hand-exile alternative cost (Fireblast, Gush, Force of Will; cast_altfree.go)
 			}
 		}
 		if s.bld().altAdd == buildBeamGrant {
@@ -2500,19 +2536,8 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 // (and its life) for card or source src (exclude: a hand card not counted).
 func (s *State) pickCostPayable(k *prep, p uint8, c *kop.Cost, exclude Obj) bool {
 	f := c.Flags
-	if f&kop.CostDiscard != 0 {
-		// a filtered discard counts only the hand cards matching
-		// Cost.Filter, the excluded source not among them
-		// (cost_discardfiltered.go)
-		n := int(s.pl[p].handN)
-		if f&kop.CostDiscardFiltered != 0 {
-			n = s.discardCandN(k, p, c.Filter, exclude)
-		} else if exclude != NoObj && s.objs[exclude].zone == kop.ZoneHand {
-			n--
-		}
-		if n < int(c.N) {
-			return false
-		}
+	if f&kop.CostDiscard != 0 && !s.discardPayable(k, p, c, exclude) {
+		return false
 	}
 	if f&kop.CostSac != 0 && s.countCostSac(k, p, c, NoSlot) < int(c.N) {
 		return false
@@ -2584,7 +2609,7 @@ func (s *State) altAddOptions(k *prep, d *Decision) {
 	for pass := 0; pass < passes; pass++ {
 		for part := uint8(0); part < 2; part++ {
 			if ok[part] == (pass == 0) {
-				d.add(MakeAction(AkChoose, 0, part, pos))
+				d.add(MakeAction(AkChoose, 0, TCode(part), pos)) // code-ok: the either-or part
 				pos++
 			}
 		}
@@ -2680,7 +2705,7 @@ func (s *State) subCtrOptions(k *prep, d *Decision) bool {
 					continue // CtrLevel is no counter (kw_class.go)
 				}
 				if p.ctrN(s, c) > s.subCtrPicked(o, uint8(c)) {
-					d.add(MakeAction(AkChoose, uint8(o), 0, uint8(c)))
+					d.add(MakeAction(AkChoose, TCode(o), 0, uint8(c)))
 				}
 			}
 		}

@@ -90,6 +90,26 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		}
 		text = text[:i]
 	}
+	// An Effect-created trigger whose body reads Card.ChosenCard(Strict)
+	// snapshots the resolution's chosen-card set at registration
+	// ("|CC=<id>[,<id>...]", appended LAST so a later ClearChosenCard$ cannot
+	// retract the effect's referent). It strips FIRST, ahead of |CN=, whose
+	// LastIndex would otherwise swallow a bare "|CC=" into the name's tail; an
+	// EMPTY value is itself the frozen set (fail closed), never an unbound
+	// snapshot. An already-logged registration carries no such spelling and
+	// decodes with the snapshot unbound, exactly as before. A malformed id is
+	// dropped, never a panic.
+	frozenChosenCards := []state.ObjID(nil)
+	frozenChosenCardsBound := false
+	if i := strings.LastIndex(text, "|CC="); i >= 0 {
+		for _, part := range strings.Split(text[i+4:], ",") {
+			if n, err := strconv.ParseUint(strings.TrimSpace(part), 10, 32); err == nil {
+				frozenChosenCards = append(frozenChosenCards, state.ObjID(n))
+			}
+		}
+		frozenChosenCardsBound = true
+		text = text[:i]
+	}
 	// An Effect-created trigger whose body reads Card.NamedCard snapshots the
 	// host's chosen name at registration ("|CN=<name>", appended LAST so a
 	// later ClearNamedCard$ cannot retract the effect's referent). It strips
@@ -327,6 +347,8 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		OptionalSpec:        optionalSpec,
 		ChosenName:          frozenChosenName,
 		ChosenNameFrozen:    frozenChosenNameBound,
+		ChosenCard:          frozenChosenCards,
+		ChosenCardFrozen:    frozenChosenCardsBound,
 		EffectDuration:      duration,
 		BirthTurn:           g.Turn,
 		ForgetOnMoved:       forget,

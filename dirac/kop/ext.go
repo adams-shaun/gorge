@@ -92,7 +92,8 @@ const (
 	ExtDividedCounters ExtOp = 30
 	// ExtSacDelayed (Mobilize): sacrifice, as one batch, the
 	// group program's remembered objects (trigObj and the one packed in
-	// trigAmt) still on the battlefield. dirac/kw_mobilize.go.
+	// trigAmt) still on the battlefield. C == 1: the DpMany program's up to
+	// four objects (Mobilize 3-4). dirac/kw_mobilize.go.
 	ExtSacDelayed ExtOp = 32
 	// ExtPlotGrant (Kellan Joins Up): every object in the
 	// resolution's remembered set that is in exile becomes plotted (CR
@@ -707,7 +708,10 @@ func init() { extOpNames[ExtChooseName] = "ChooseName" }
 // Obj (a target; Expose the Culprit). C 1: the resolving controller picks
 // up to one battlefield permanent matching F that would turn up, seat 0's
 // first in battlefield order, or Done (gorge setStateChoose's
-// "setstate_pick", Min 0 Max 1; Hustle // Bustle). dirac/face_turnupeffect.go.
+// "setstate_pick", Min 0 Max 1; Hustle // Bustle). C 2: the same pick for
+// Mode$ Transform with Mandatory$ True: one mandatory pick (no Done) over the
+// F permanents that would transform, which then transforms (Sunder the
+// Gateway). dirac/face_turnupeffect.go.
 const ExtTurnFaceUp ExtOp = 254
 
 func init() { extOpNames[ExtTurnFaceUp] = "TurnFaceUp" }

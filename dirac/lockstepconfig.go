@@ -198,7 +198,7 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 	// the caller asked for the gap mana).
 	if k.gen != nil && k.gen.anyDeferred && s.g.availX&3 == 0 {
 		for b := s.gapMask(k, p, gfDeferred); b.any(); b = b.rest() {
-			a.addUnits(1<<kop.R, 1)
+			a.addUnits(1<<k.deferCol(s.cardAt(b.first())), 1)
 		}
 	}
 	// A counter-rider or Taps-deferred source (Twitching Doll's "{T}: Add one
@@ -208,7 +208,13 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 	// window, so the ask counts this unit too.
 	if s.g.availX&3 == 0 {
 		for b := s.scriptTapsDefer(k, p); b.any(); b = b.rest() {
-			if _, ok := s.riderAbilityOf(k, b.first()); ok {
+			if ra, ok := s.riderAbilityOf(k, b.first()); ok {
+				if ra.ManaRider == kop.ManaRiderDeplete {
+					// A depletion land's activation costs a counter, so gorge's window
+					// census (windowManaUnits: a free cost only; castWindowProbeUnits
+					// withholds SubCounter) never counts it in an X announcement.
+					continue
+				}
 				s.addTapsDeferUnits(k, b.first(), a) // its own production, an all-at-once pair included (mana_rider.go)
 				continue
 			}

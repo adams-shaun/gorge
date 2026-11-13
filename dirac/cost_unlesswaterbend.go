@@ -148,7 +148,7 @@ func (s *State) unlessWaterbendOptions(k *prep, d *Decision) {
 		d.Sub = ChWardWaterbend
 	}
 	s.unlessWaterbendCands(k, s.g.pickP, func(sl Slot) {
-		d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+		d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 	})
 }
 

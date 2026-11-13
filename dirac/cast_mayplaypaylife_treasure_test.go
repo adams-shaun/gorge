@@ -25,7 +25,7 @@ func TestMayPlayPayLifeWithTreasureTap(t *testing.T) {
 			t.Fatalf("OpMayPlay not handled (%v, %v)", ok, done)
 		}
 		s.pl[0].life = 20
-		sc.do(t, AkCast, uint8(o), 0xff)
+		sc.do(t, AkCast, TCode(o), scAny)
 		sc.perm(v.GrizzlyBears, 0)
 		// a pool spend that takes a Treasure's unit marks the build (treSync)
 		s.g.poolTre[0][kop.G] = 1

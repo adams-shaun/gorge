@@ -44,7 +44,7 @@ func grantCostScen(t *testing.T) (sc *scen, src, pole, giada Obj) {
 
 func grantedAct(d *Decision, src Obj) (Action, bool) {
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkActivate && a.Source() == uint8(src) && a.Mode()&0x80 != 0 {
+		if a.Kind() == AkActivate && a.Source() == TCode(uint8(src)) && a.Mode()&0x80 != 0 {
 			return a, true
 		}
 	}
@@ -68,7 +68,7 @@ func TestGrantedAbilityRestrictedGap(t *testing.T) {
 	if !ok {
 		t.Fatalf("granted ability not offered with {1} in the pool: %v", d.Options[:d.N])
 	}
-	if a.Target() != uint8(pole) {
+	if a.Target() != TCode(uint8(pole)) {
 		t.Fatalf("granted ability target %d, want the granting Equipment %d", a.Target(), pole)
 	}
 	s.Apply(a)
@@ -173,7 +173,7 @@ func TestSecondSugarCoatIsTheGrantor(t *testing.T) {
 	if !ok {
 		t.Fatalf("the coated creature offers no ability: %v", d.Options[:d.N])
 	}
-	if a.Target() != uint8(newer) {
+	if a.Target() != TCode(uint8(newer)) {
 		t.Fatalf("granted by %d, want the later Sugar Coat %d, not %d", a.Target(), newer, older)
 	}
 }
@@ -189,7 +189,7 @@ func TestFirstListedPoleIsTheGrantor(t *testing.T) {
 	if !ok {
 		t.Fatalf("the equipped creature offers no ability: %v", d.Options[:d.N])
 	}
-	if a.Target() != uint8(high) {
+	if a.Target() != TCode(uint8(high)) {
 		t.Fatalf("granted by %d, want the older Pole %d, not %d", a.Target(), high, low)
 	}
 }
