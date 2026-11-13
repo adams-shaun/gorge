@@ -682,6 +682,8 @@ func (s *State) condEval(k *prep, id kop.CondID, ctx evalCtx) bool {
 		r = s.graveCards(ctx.ctrl) >= 7 // a token waiting to cease is no card (CR 111.7)
 	case kop.CondYourTurn:
 		r = s.active == ctx.ctrl
+	case kop.CondBlessing:
+		r = s.condBlessing(ctx.ctrl) // kw_ascend.go
 	case kop.CondRefMatches:
 		r = cmp(c.Op, s.countRefMatches(k, c.Ref, c.F, ctx), s.evalV(k, c.A, ctx))
 	case kop.CondPromised:

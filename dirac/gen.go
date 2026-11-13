@@ -312,6 +312,7 @@ type genPrep struct {
 	anyAddPhase     bool           // some program is ExtAddPhase, some trigger is Tf3FirstAttack or some expression is ExPhaseCount (act_addphase.go)
 	anySkipPhase    bool           // some program is ExtSkipPhase (act_skipphase.go)
 	anyMonarch      bool           // some program is ExtBecomeMonarch (act_monarch.go)
+	anyAscend       bool           // some card prints Ascend: the city's blessing scans run (kw_ascend.go)
 	anyAttackedObj  bool           // the table gives mechAttackedObj an arena mask: finishAttacks marks the declared attackers
 	anySuspect      bool           // the table gives mechSuspected an arena mask (act_suspect.go)
 	anySacSub       bool           // some ExRefCount is a Sacrificed$Valid type read (N 1): snapLKI captures the subtype set (value_countheads.go, zone_lki.go)
@@ -579,7 +580,7 @@ func tableHasMultikicker(t *kop.Table) bool {
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasStatic(t, kop.StatCanAttackIfHaste) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasAscend(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasStatic(t, kop.StatCanAttackIfHaste) {
 		return nil
 	}
 	enteredNeed := tableHasEnteredFrom(t)
@@ -1593,6 +1594,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepAddPhase(t, g)       // act_addphase.go
 	prepSkipPhase(t, g)      // act_skipphase.go
 	prepMonarch(t, g)        // act_monarch.go
+	prepAscend(t, g)         // kw_ascend.go
 	prepAirbend(t, g)
 	prepMayWhileSrc(t, g) // cast_whilesource.go
 	prepInit(t, g)        // act_initiative.go
@@ -1955,7 +1957,7 @@ type genState struct {
 	noPoison uint8           // bit p: player p can't get additional poison counters this turn (Melira's replacement; trig_leavereturn.go; padding)
 	plusCtr  [MaxSeats]uint8 // per player, how many Brad Boimler counter-plus-one effects are active this turn (ctr_pluseot.go; padding)
 	plusSrc  [MaxSeats]Obj   // per player, the Boimler that made them (NoObj: more than one; the order ask's source, repl_ctrorder.go; padding)
-	cast1    uint8           // bit p: seat p has cast a spell this game, recorded only for a table reading ExFirstCast (cast_firstcast.go; padding)
+	cast1    uint8           // bit p: seat p has cast a spell this game, recorded only for a table reading ExFirstCast (cast_firstcast.go); bit blessShift+p: seat p has the city's blessing (kw_ascend.go); padding
 	ctrAdder uint8           // transient: the player putting the counters being placed, +1 (0: the resolving / building controller; trig_leavereturn.go; padding)
 	// ctrSettle is the entrant whose entry counters are being placed, +1
 	// (0: none). While set, the AddCounter matcher skips that permanent as a

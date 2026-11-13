@@ -206,6 +206,9 @@ func (s *State) resolveTop(k *prep) {
 			s.afterResolve()
 			return
 		}
+		if k.gen != nil && k.gen.anyAscend {
+			s.spellBlessing(k, &e) // CR 702.131a, before the program reads it (kw_ascend.go)
+		}
 	case seTrigger, seAbility:
 		if e.ab == abProwess {
 			ob := &s.objs[e.obj]

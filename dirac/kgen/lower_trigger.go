@@ -1910,6 +1910,8 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 					st.Cond = deliriumCond() // gorge graveyardCardTypeCount >= 4
 				case c == "Hellbent" && s.Mode == "Continuous":
 					st.Cond = lCond{Kind: cValue, A: lValue{Kind: vHandSizeOf, Ref: lRef{Kind: rYou}}, Op: opEQ, B: cst(0)}
+				case c == "Blessing" && s.Mode == "Continuous":
+					st.Cond = lCond{Kind: cBlessing} // gorge condBlessing: the controller's latch (CR 702.131)
 				default:
 					return refuse("static Condition %q", c)
 				}

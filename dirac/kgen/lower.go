@@ -1106,6 +1106,10 @@ func (lc *lowerCtx) lowerKeywords() {
 			// (dirac/kw_speed.go); the keyword's other text is the
 			// card's own lines
 			lc.out.Engines = true
+		case head == "Ascend" && param == "":
+			// CR 702.131: the city's blessing is the kernel's post-placement
+			// scan and the spell's resolution grant (dirac/kw_ascend.go)
+			lc.out.Ascend = true
 		case head == "Wither" && param == "":
 			// CR 702.80: gorge damage riders read HasKeyword(source, "Wither")
 			lc.out.Wither = true

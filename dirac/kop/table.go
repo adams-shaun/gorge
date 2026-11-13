@@ -352,6 +352,10 @@ type CardDef struct {
 	// Engines is printed Start your engines! (CR 702.179a): its controller's
 	// speed starts at 1 when it has none (dirac/kw_speed.go).
 	Engines bool
+	// Ascend is printed Ascend (CR 702.131): its controller gets the city's
+	// blessing once they control ten or more permanents, and an instant or
+	// sorcery carrying it grants it as it resolves (dirac/kw_ascend.go).
+	Ascend bool
 	// AtkFace: the printed face has a triggered ability gorge's trigger
 	// prefilter lets observe an attack declaration (its compiled trigger
 	// interests: a mode of the attack-declaration class, a Phase$ line or a

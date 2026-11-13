@@ -693,6 +693,9 @@ func (s *State) sba(k *prep) bool {
 				}
 			}
 		}
+		if k.gen != nil && k.gen.anyAscend {
+			s.blessScan(k) // CR 702.131b "any time": after the pass's checks, before its batch (gorge sba.go; kw_ascend.go)
+		}
 		all := die.or(gy)
 		if k.gen != nil && k.gen.equipAnim && s.sbaAttachedCreatures(k, all) && !all.any() {
 			continue // CR 704.5p: an Equipment left its bearer; gorge's changed pass (static_unattachcreature.go)

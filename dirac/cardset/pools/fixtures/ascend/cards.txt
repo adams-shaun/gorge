@@ -1,0 +1,31 @@
+# the Ascend pool (CR 702.131): the Ascend carriers whose city's-blessing reads
+# lower (Count$Blessing.<yes>.<no>, static Condition$ Blessing, a CheckSVar$
+# on Count$Blessing), permanents and spells, beside cheap creatures that fill a
+# board to ten permanents (dirac/oracle/ascend_test.go)
+Andúril, Narsil Reforged
+Dusk Charger
+Elite Vanguard
+Expel from Orazca
+Forest
+Goblin Piker
+Golden Demise
+Grizzly Bears
+Illustrious Wanderglyph
+Island
+Kumena's Awakening
+Mountain
+Plains
+Pride of Conquerors
+Radiant Destiny
+Savannah Lions
+Secrets of the Golden City
+Skymarcher Aspirant
+Snubhorn Sentry
+Spire Winder
+Storm Fleet Swashbuckler
+Swamp
+Tendershoot Dryad
+Vona's Hunger
+Walking Corpse
+Wayward Swordtooth
+Wind Drake

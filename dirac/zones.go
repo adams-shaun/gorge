@@ -530,6 +530,9 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 	if k.engines {
 		s.speedStart(k, SpeedCntStartEntry) // kw_speed.go
 	}
+	if k.gen != nil && k.gen.anyAscend {
+		s.blessScan(k) // CR 702.131b (kw_ascend.go)
+	}
 	s.g.entrySelf = savedEntrySelf
 	return sl
 }
