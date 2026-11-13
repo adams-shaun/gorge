@@ -11,17 +11,18 @@ import (
 
 // The MBC mana-abilities-2 lockstep: Relic of Legends' second "tap an untapped
 // legendary creature you control: add one mana of any color" beside its {T}
-// ability, Krark-Clan Ironworks' "sacrifice an artifact: add {C}{C}" and
-// Apprentice Wizard's "{U}, {T}: add {C}{C}{C}". The first deck holds all
-// three over artifacts, legendary creatures and spells only their mana casts
-// (Air Elemental, Serra Angel, Juggernaut); the second is a plain creature
-// deck. Every tracked card's mana ability must be activated on gorge's side,
-// so the lockstep compares the kernel's walk of it.
+// ability, and Apprentice Wizard's "{U}, {T}: add {C}{C}{C}". Each spelling has
+// its own deck, the card over artifacts, legendary creatures and spells only
+// its mana casts (Air Elemental, Serra Angel, Juggernaut), against a plain
+// creature deck. The tracked ability must be activated on gorge's side, so the
+// lockstep compares the kernel's walk of it. Krark-Clan Ironworks (a no-{T}
+// "sacrifice an artifact" ability) stays refused: its lowering diverged from
+// gorge beside depletion lands (see the report).
 var kmbc2Names = []string{"Apprentice Wizard", "Relic of Legends"}
 
 // kmbc2Cost: the cost text of the tracked mana ability, so the count is of that
 // ability's activations and not of Relic of Legends' own {T} one.
-var kmbc2Cost = map[string]string{"Relic of Legends": "tapXType", "Krark-Clan Ironworks": "Sac<", "Apprentice Wizard": "T"}
+var kmbc2Cost = map[string]string{"Relic of Legends": "tapXType", "Apprentice Wizard": "T"}
 
 var kmbc2Opp = []cardset.Entry{
 	{Name: "Hill Giant", Count: 2}, {Name: "Wind Drake", Count: 4}, {Name: "Grizzly Bears", Count: 4},
@@ -36,11 +37,6 @@ var kmbc2Decks = map[string][]cardset.Entry{
 		{Name: "Relic of Legends", Count: 5}, {Name: "Isamaru, Hound of Konda", Count: 5}, {Name: "Mind Stone", Count: 2},
 		{Name: "Juggernaut", Count: 3}, {Name: "Air Elemental", Count: 4}, {Name: "Serra Angel", Count: 4},
 		{Name: "Island", Count: 8}, {Name: "Plains", Count: 9},
-	},
-	"Krark-Clan Ironworks": {
-		{Name: "Krark-Clan Ironworks", Count: 5}, {Name: "Ornithopter", Count: 4}, {Name: "Mind Stone", Count: 3},
-		{Name: "Sol Ring", Count: 1}, {Name: "Juggernaut", Count: 4}, {Name: "Air Elemental", Count: 4},
-		{Name: "Serra Angel", Count: 4}, {Name: "Island", Count: 8}, {Name: "Plains", Count: 7},
 	},
 	"Apprentice Wizard": {
 		{Name: "Apprentice Wizard", Count: 6}, {Name: "Sol Ring", Count: 1}, {Name: "Juggernaut", Count: 4},
