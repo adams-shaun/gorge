@@ -1124,6 +1124,7 @@ SpmCloakUp	SpecialMask	8
 SpmDisguiseUp	SpecialMask	2
 SpmManifestUp	SpecialMask	4
 SpmMorphUp	SpecialMask	1
+SpmNonSpell	SpecialMask	64
 SpmTurnFaceUp	SpecialMask	15
 SpmUnlock	SpecialMask	16
 SrAltAll	untyped int	8

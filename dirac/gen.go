@@ -431,6 +431,10 @@ type genPrep struct {
 		ab kop.FilterID
 		ns bool
 	}
+	// restrPers: bit kind-1 marks a restriction whose mana is persistent
+	// (PersistentMana$ True; Karn, Legacy Reforged): its State.rb batches
+	// survive the step boundaries until the turn changes (rbClearStep)
+	restrPers uint8
 	// anyR: card i's restricted any-colour tap mana ability (Secluded
 	// Courtyard's "{T}: Add one mana of any color. Spend this mana only to
 	// cast a creature spell of the chosen type ..."), -1 none: a census

@@ -162,6 +162,11 @@ const (
 	// DB$ Mana: the clause admits every activated-ability payment and nothing
 	// else (gorge restrictValidTermMatches); never a CR 116.2 special action.
 	SpmActivated
+	// SpmNonSpell marks a resolving DB$ Mana's CantCastNonArtifactSpells: the
+	// batch's other clauses are the artifact spells it may pay, and this one
+	// adds every payment that is not a spell (gorge restrictValidTermMatches);
+	// never a CR 116.2 special action.
+	SpmNonSpell
 )
 
 // SpmTurnFaceUp is Forge's isTurnFaceUp: every turn-up procedure.

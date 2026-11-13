@@ -560,12 +560,12 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			// negative power must not wrap the uint8 pool or fbR
 			n = max(n, 0)
 			s.firebendAdd(p, n) // kw_firebend.go
-		} else if in.B.N == 2 && in.B.K == kop.VConst {
+		} else if in.B.N == 2 && in.B.K == kop.VConst && in.F == 0 {
 			n = max(n, 0) // PersistentMana$ True: the units are also tallied in State.pm (mana_persistent.go)
 			s.persistAdd(p, col, n)
 		}
 		if in.F != 0 {
-			s.addManaRestr(k, p, col, n, in.F) // mana_resolverestriction.go
+			s.addManaRestr(k, p, col, n, in.F) // mana_resolverestriction.go; PersistentMana$ True: its restriction kind persists (genPrep.restrPers)
 			break
 		}
 		s.poolAdd(p, col, n)
