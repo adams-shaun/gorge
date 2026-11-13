@@ -450,6 +450,7 @@ ExtBlocksIfAble	ExtOp	256
 ExtBreachChoose	ExtOp	160
 ExtBreachReturn	ExtOp	161
 ExtChangeTargets	ExtOp	225
+ExtChooseCardEnter	ExtOp	297
 ExtChooseColorRes	ExtOp	5
 ExtChooseName	ExtOp	251
 ExtChooseNumber	ExtOp	230

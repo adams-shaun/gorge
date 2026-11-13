@@ -18,9 +18,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // none chose, or no candidate). A permanent that left holds nothing (CR
 // 400.7).
 //
-// An ability of the card reads the choice through F2ChosenCard (gorge's
-// ChosenCard / ChosenCardStrict filter arm, which falls back to the source's
-// chosen list): seedEnterChosen starts its resolution's chosen set with it.
+// An ability of the card reads the choice through the resolution's chosen
+// set (RefChosen, F2ChosenCard; gorge's ChosenCard / ChosenCardStrict reads,
+// which fall back to the source's chosen list): seedEnterChosen starts the
+// set with it.
 // The ability's Sac<1/CARDNAME> cost moved the source before it resolves, so
 // the read is the entry's last known information of it (CR 608.2h; gorge
 // TriggerContext.SourceChosen), never the slot, which another permanent may

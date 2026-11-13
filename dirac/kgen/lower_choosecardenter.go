@@ -21,12 +21,10 @@ import (
 // permanent's chosen byte, and seeds the card's resolutions' chosen set
 // from it (dirac/repl_choosecard.go). Only this exact body lowers: another
 // Defined$, Choices$ or an optional choice, a chain, or a choice beside
-// another enters part refuse.
-
-// ChosenCardStrict is gorge's ChosenCard predicate under another spelling
-// (effects/filter.go: "one predicate for this build"); a resolution reads
-// the chosen set either way (F2ChosenCard).
-func init() { propWords["ChosenCardStrict"] = fChosenCard }
+// another enters part refuse. ChosenCardStrict stays an unknown filter word
+// elsewhere: the Pump's spelling is read as the chosen referent
+// (chosenStrictPump), and the other carriers (Azra Oddsmaker's emblem
+// trigger's ValidSource$) wait on their own gorge fixes.
 
 // enterCardChoices is the one Choices$ spelling the as-enters object choice
 // lowers.
