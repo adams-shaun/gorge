@@ -731,7 +731,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 				// (0 none; an emblem with a capture has no frozen number)
 				r.num = 0
 				if o := s.objRefObj(emb.Capture); o != NoObj {
-					r.num = uint8(o) + 1
+					r.num = objWord(o) + 1
 				}
 			case emb.CapturePlayer != kop.RefNone:
 				// the Effect's RememberObjects$ TargetedPlayer: the chain's player

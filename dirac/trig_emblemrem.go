@@ -27,9 +27,9 @@ func (s *State) embRemCarry(p uint8, i int, pt *pendingTrig) {
 		case 1:
 			pt.trigAmt = int16(o) + 1
 		case 2:
-			pt.x = uint8(o) + 1
+			pt.x = objWord(o) + 1
 		default:
-			pt.trigMV = uint8(o) + 1
+			pt.trigMV = objWord(o) + 1
 		}
 		n++
 	}

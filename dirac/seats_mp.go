@@ -85,3 +85,9 @@ type seatWord = uint16
 // objWord is a multi-use field that may hold an object (or object+1) as well
 // as a byte-sized value (seats_default.go); the object width.
 type objWord = uint8
+
+// mayWord is mayPlay.turn (seats_default.go); mayHeld keeps an object below
+// its version, mayVerShift bits up.
+type mayWord = uint16
+
+const mayVerShift = 8

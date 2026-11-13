@@ -1721,8 +1721,16 @@ type mayPlay struct {
 	ctrl  uint8
 	until uint8 // DurEOT / DurYourNextTurn
 	kind  uint8 // kop.MayPlayKinds riders (free, mana of any type)
-	turn  uint16
+	turn  mayWord
 }
+
+// mayHeld packs a while-source or prepared record's source object and its
+// version into mayPlay.turn (cast_whilesource.go, face_prepare.go).
+func mayHeld(o Obj, ver uint8) mayWord { return mayWord(o) | mayWord(ver)<<mayVerShift }
+
+// heldObj and heldVer read back mayHeld's object and version.
+func (r *mayPlay) heldObj() Obj   { return Obj(r.turn & (1<<mayVerShift - 1)) }
+func (r *mayPlay) heldVer() uint8 { return uint8(r.turn >> mayVerShift) }
 
 // dprog is a delayed program: at the next end step run ability ab of card
 // with RefDelayedRemembered = objs.
@@ -1816,11 +1824,11 @@ type genState struct {
 	ndp   uint8
 	stkCt uint8 // a countered stack ability's controller+1, for its "its controller" (tgt_stackability.go)
 
-	emb  [MaxSeats][maxEmb]uint8  // emblem index+1
-	embC [MaxSeats][maxEmb]CardID // the card that created it (its latent abilities run the emblem's triggers)
-	embO [MaxSeats][maxEmb]Obj    // that card's object (the source of the emblem's triggers)
-	embN [MaxSeats][maxEmb]uint8  // the Effect's frozen SetChosenNumber$
-	embT [MaxSeats][maxEmb]uint16 // the emblem's CR 613.7 layer timestamp, set at creation (static_layer6.go)
+	emb  [MaxSeats][maxEmb]uint8   // emblem index+1
+	embC [MaxSeats][maxEmb]CardID  // the card that created it (its latent abilities run the emblem's triggers)
+	embO [MaxSeats][maxEmb]Obj     // that card's object (the source of the emblem's triggers)
+	embN [MaxSeats][maxEmb]objWord // the Effect's frozen SetChosenNumber$
+	embT [MaxSeats][maxEmb]uint16  // the emblem's CR 613.7 layer timestamp, set at creation (static_layer6.go)
 	nemb [MaxSeats]uint8
 	qgO  [qgN]Obj      // exile grants (Q, Stacking the Deck): the granted exiled object+1, 0 = free (cast_exilegrant.go)
 	qgV  [qgN]uint8    // each grant's object version: stale once the card left exile
@@ -2177,7 +2185,7 @@ type genState struct {
 	}
 	rsv [rsvN]uint8
 	// embX: an emblem's remembered slots 2 and 3, object + 1 (static_emblemrem.go); embR is slot 1, embN slot 0. Taken from rsv.
-	embX [MaxSeats][maxEmb][embRemSlots - 2]uint8
+	embX [MaxSeats][maxEmb][embRemSlots - 2]objWord
 	// atkDef is the defending seat + 1 of the attack event whose triggers are
 	// being checked (fireAttacksGen), 0 outside it: gorge binds a trigger's
 	// DefendingPlayer from that event, and an IsPresent$ checked as the
@@ -2824,7 +2832,8 @@ type askRec struct {
 	sl        Slot
 	ver, kind uint8
 	card      CardID
-	ab, pc    uint8
+	ab        objWord // the ability index; an akEnchant ask's returning Aura object
+	pc        uint8
 	ts        uint16
 }
 
@@ -2866,7 +2875,7 @@ type preAsk struct {
 	obj   Obj
 	kind  uint8
 	state uint8
-	val   uint8
+	val   objWord
 	land  bool // a land being played (asked while it is still in the hand)
 	// link: the clone park is an until-leaves link return (returnLinked), not
 	// a resolution's return op; the answer enters the card from exile instead

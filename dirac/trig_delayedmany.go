@@ -83,10 +83,10 @@ func (s *State) dpManyCarry(d *dprog, pt *pendingTrig) {
 		pt.trigAmt = int16(o) + 1
 	}
 	if o := s.dpManyObj(d, 2); o != NoObj {
-		pt.x = uint8(o) + 1
+		pt.x = objWord(o) + 1
 	}
 	if o := s.dpManyObj(d, 3); o != NoObj {
-		pt.trigMV = uint8(o) + 1
+		pt.trigMV = objWord(o) + 1
 	}
 }
 

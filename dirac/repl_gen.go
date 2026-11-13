@@ -331,7 +331,10 @@ type replHdr struct {
 	// gives a trampler whose blockers died its whole power to the player:
 	// no such event is dealt or triggers); a source's events are
 	// consecutive in gorge's order
-	cur, askS, askD Slot
+	// cur is a Slot here; the entry-order ask keeps its entering object in it
+	// (entObj), so it is an objWord
+	cur        objWord
+	askS, askD Slot
 }
 
 // replBody is the combat damage pass's bulk: all-zero outside a pass (it is
@@ -568,7 +571,7 @@ func (s *State) replOrderFreeze(k *prep, r *dmgRec, first bool) {
 			*s.divAmtFor(ev.dst, ev.src) += uint8(ev.n)
 		}
 	}
-	ro.replHdr = replHdr{on: true, nfz: nfz, cur: NoSlot}
+	ro.replHdr = replHdr{on: true, nfz: nfz, cur: objWord(NoSlot)}
 }
 
 // replOrderCombat deals the paused pass's frozen events not yet dealt in
@@ -589,7 +592,7 @@ func (s *State) replOrderCombat(k *prep, r *dmgRec) bool {
 	}
 	for j := 0; j < int(ro.nfz); j++ {
 		fe := &bd.fz[bd.ord[j]]
-		if bd.srcDone.has(fe.src) || fe.dst == NoSlot && bd.plDone.has(fe.src) || fe.src == ro.cur && fe.dst != NoSlot && bd.dstDone.has(fe.dst) {
+		if bd.srcDone.has(fe.src) || fe.dst == NoSlot && bd.plDone.has(fe.src) || fe.src == Slot(ro.cur) && fe.dst != NoSlot && bd.dstDone.has(fe.dst) {
 			s.preventFrozenEv(k, r, fe) // dealt (or prevented): fe holds what it dealt
 			continue
 		}
@@ -636,11 +639,11 @@ func (s *State) replOrderCombat(k *prep, r *dmgRec) bool {
 func (s *State) replOrderMark(src, dst Slot) {
 	ro := &s.g.ro
 	bd := s.roBody()
-	if src != ro.cur {
-		if ro.cur != NoSlot {
-			bd.srcDone.set(ro.cur)
+	if src != Slot(ro.cur) {
+		if Slot(ro.cur) != NoSlot {
+			bd.srcDone.set(Slot(ro.cur))
 		}
-		ro.cur, bd.dstDone = src, slotMask{}
+		ro.cur, bd.dstDone = objWord(src), slotMask{}
 	}
 	if dst == NoSlot {
 		bd.plDone.set(src)

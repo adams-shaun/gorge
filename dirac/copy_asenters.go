@@ -59,11 +59,11 @@ func (s *State) cloneOp(k *prep, c CardID) *kop.Instr {
 
 // cloneAnswer is the s.g.pre value of a clone answer: the chosen object,
 // or NoObj for "enter as itself".
-func cloneAnswer(a Action) uint8 {
+func cloneAnswer(a Action) objWord {
 	if a.Mode() != 0 {
-		return uint8(NoObj)
+		return objWord(NoObj)
 	}
-	return uint8(a.Source())
+	return objWord(a.Source())
 }
 
 // cloneOptions fills the clone ask for the spell s.g.pre.obj on top of the

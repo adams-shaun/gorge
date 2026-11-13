@@ -77,3 +77,9 @@ type seatWord = uint8
 // (TestObjCodeCastsOnlyShrink). It is an alias, so the default class's code
 // is unchanged.
 type objWord = uint8
+
+// mayWord is mayPlay.turn: a turn number, a cost surcharge, or a source
+// object below its version (mayHeld), mayVerShift bits up.
+type mayWord = uint16
+
+const mayVerShift = 8

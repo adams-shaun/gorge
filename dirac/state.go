@@ -273,8 +273,8 @@ type perm struct {
 	attached Slot // what this Aura/Equipment is attached to
 	blocking Slot // blocker: the attacker it blocks
 	nblock   uint8
-	chosen   uint8           // "as this enters" choice
-	bord     uint8           // blocker: declaration order (damage assignment order); attacker: declaration order (Attacks trigger queueing)
+	chosen   objWord         // "as this enters" choice; a last bearer's host (zones.go)
+	bord     objWord         // a last bearer's host (static_lastbearer.go); blocker: declaration order (damage assignment order); attacker: declaration order (Attacks trigger queueing)
 	actUsed  uint8           // OncePerTurn abilities activated this turn (bit per ability index)
 	atk      TCode           // attacker: the defender it attacks (PlayerTarget* or a planeswalker Obj)
 	ck       [ctrSlots]uint8 // general counter slots' kinds (see p1)
@@ -461,7 +461,7 @@ type stackEntry struct {
 	ab     uint8  // ability index in the card's CardDef
 	ctrl   uint8
 	mode   uint8 // chosen modes bitmask
-	x      uint8
+	x      objWord
 	flags  uint8
 	nt     uint8
 	tgt    [kop.MaxTargets]TCode
@@ -506,7 +506,7 @@ type stackEntry struct {
 	// trigMV is the triggering spell's pre-cast mana value, snapshotted
 	// when a SpellCast trigger is queued (value_spellmv.go): the
 	// triggering spell can leave the stack before the value is read.
-	trigMV uint8
+	trigMV objWord
 	// prov is a spell's cast provenance, recorded only for a
 	// table that reads it (genPrep.anyCastProv): bits 0-2 the zone it was
 	// cast from (kop.Zone), bits 3-7 the creatures that convoked it
@@ -555,10 +555,10 @@ type pendingTrig struct {
 	// x is the trigger object's spell's paid X, bound as it triggered
 	// (Tf2XBound, CR 107.3m; trig_xpaid.go): the stack entry's x.
 	// It takes the struct's padding byte.
-	x uint8
+	x objWord
 	// trigMV is the triggering spell's pre-cast mana value, snapshotted
 	// when the trigger is queued (value_spellmv.go).
-	trigMV uint8
+	trigMV objWord
 	// wardSid is the stack identity of the ability a ward trigger answers,
 	// captured when checkWard queues the trigger. The stack at placement can
 	// hold a newer ability of the same source (two triggered abilities of one
@@ -583,8 +583,8 @@ type delayed struct {
 	act  uint8 // kop.Op to perform
 	ctrl uint8
 	obj  Obj
-	ver  uint8
-	when uint8 // 0 = next end step
+	ver  objWord // the object's version; a dlyLeaveGrave record's registering source
+	when uint8   // 0 = next end step
 	// creator is the spell/permanent that created an AtEOT$ rider, the
 	// trigger's stack source (CR 603.7d-e, trig_ateotcreator.go);
 	// NoObj on every other record (the source is obj).
@@ -829,9 +829,9 @@ type resCtx struct {
 	e       stackEntry
 	pc      uint8
 	ask     uint8
-	askP    uint8 // who answers
-	left    uint8 // remaining picks for a multi-pick op
-	chosen  uint8
+	askP    uint8   // who answers
+	left    uint8   // remaining picks for a multi-pick op
+	chosen  objWord // a choice: a seat, an index, or (RefChosen) an object
 	lastDmg int16
 	lastTok Obj
 	loopN   [2]uint8 // Repeat counters (nesting depth 2)

@@ -425,7 +425,7 @@ func (s *State) queueAskRet(o Obj) {
 		s.g.askPrio = s.prio
 	}
 	a := &s.g.ask[s.g.nask]
-	a.sl, a.ver, a.kind, a.card, a.ab, a.pc, a.ts = NoSlot, s.objs[o].ver, akEnchant, s.objs[o].card, uint8(o), 0, s.ts
+	a.sl, a.ver, a.kind, a.card, a.ab, a.pc, a.ts = NoSlot, s.objs[o].ver, akEnchant, s.objs[o].card, objWord(o), 0, s.ts
 	s.g.nask++
 }
 

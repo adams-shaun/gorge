@@ -713,7 +713,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		host = Obj(p.bord)
 	}
 	if host != NoObj {
-		p.chosen = uint8(host)
+		p.chosen = objWord(host)
 		p.flags |= pfLastBear
 		s.recordLastBearLKI(o, host)
 	} else {

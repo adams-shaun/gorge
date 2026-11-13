@@ -369,7 +369,7 @@ func (s *State) entryOrderPark(k *prep, o Obj, ctrl uint8, mode uint8) bool {
 	if c.early {
 		mode |= entEarly
 	}
-	ro.replHdr = replHdr{n: c.n, prev: c.tap, shld: c.untap, p: ctrl, pcol: mode, cur: Slot(o)}
+	ro.replHdr = replHdr{n: c.n, prev: c.tap, shld: c.untap, p: ctrl, pcol: mode, cur: objWord(o)}
 	return true
 }
 
