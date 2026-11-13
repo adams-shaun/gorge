@@ -313,6 +313,11 @@ type lowerCtx struct {
 	// chosenOppAb is the ability whose one-opponent ChoosePlayer is lowered
 	// ChosenPlayer reads the opponent in that ability only.
 	chosenOppAb *lAbility
+	// chosenResAb is the ability whose mid-resolution ChoosePlayer
+	// (Choices$ Player, RememberChosen$ True) is lowered: ChosenPlayer reads
+	// the resolution's chosen player in that ability only
+	// (lower_chooseplayerres.go).
+	chosenResAb *lAbility
 	// remOppLinks are the chain links after a Pump RememberObjects$
 	// TargetedController whose Defined$ Remembered reads the one opponent
 	// (lower_remembered.go pumpRememberOppController).

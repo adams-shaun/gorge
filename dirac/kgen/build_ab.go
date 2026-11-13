@@ -4278,6 +4278,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
+	case "ChoosePlayerRes":
+		// OpExt ExtChoosePlayerRes, C bit 0 the Player.!IsRemembered pool
+		// (act_chooseplayerres.go)
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChoosePlayerRes)), int16(in.C&kop.ChoosePlayerFresh)
 	case "DrawUpto":
 		// OpExt ExtDrawUpto: Obj the drawer, B the most cards (act_drawupto.go)
 		v, err := cb.value(in.A)

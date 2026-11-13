@@ -74,6 +74,7 @@ CfShuffle	untyped int	2
 CfTapped	untyped int	1
 CharmRepeat	untyped int	256
 ChooseOpp	untyped int	2
+ChoosePlayerFresh	untyped int	1
 ChooseRandom	untyped int	1
 ChooseSelf	untyped int	0
 CloneBatch	untyped int	64
@@ -457,6 +458,7 @@ ExtChooseName	ExtOp	251
 ExtChooseNumber	ExtOp	230
 ExtChooseNumberMid	ExtOp	303
 ExtChoosePlayer	ExtOp	299
+ExtChoosePlayerRes	ExtOp	12
 ExtClearImprinted	ExtOp	257
 ExtCloneCopy	ExtOp	81
 ExtColorGrant	ExtOp	6
@@ -1014,6 +1016,7 @@ RefAttached	Ref	11
 RefAttachedCtrl	Ref	37
 RefChosen	Ref	13
 RefChosenPlayer	Ref	39
+RefChosenPlayerRes	Ref	41
 RefController	Ref	5
 RefDefendingPlayer	Ref	15
 RefDelayedRemembered	Ref	19

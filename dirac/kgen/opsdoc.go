@@ -707,7 +707,7 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 		kop.CondYourTurn: "YourTurn", kop.CondRefMatches: "RefMatches", kop.CondPromised: "Promised", kop.CondAnd: "And", kop.CondEchoOwed: "EchoOwed", kop.CondSourceZone: "SourceZone"}
 	refNamesK := map[kop.Ref]string{kop.RefRemembered: "Remembered", kop.RefDelayedRemembered: "DelayedRemembered", kop.RefReplaced: "Replaced",
 		kop.RefTriggerSource: "TriggerSource", kop.RefSacrificed: "Sacrificed", kop.RefHost: "Host",
-		kop.RefTargets01: "Targets01", kop.RefTargets012: "Targets012", kop.RefTargets12: "Targets12", kop.RefTargets0123: "Targets0123", kop.RefRememberedController: "RememberedController", kop.RefDiscarded: "Discarded", kop.RefOppNonRemCtrl: "OppNonRemCtrl", kop.RefSrcOwner: "SrcOwner", kop.RefPromised: "Promised", kop.RefChosenPlayer: "ChosenPlayer", kop.RefTriggerAttackers: "TriggerAttackers", kop.RefRememberedOwner: "RememberedOwner", kop.RefTriggerObjOwner: "TriggerObjOwner"}
+		kop.RefTargets01: "Targets01", kop.RefTargets012: "Targets012", kop.RefTargets12: "Targets12", kop.RefTargets0123: "Targets0123", kop.RefRememberedController: "RememberedController", kop.RefDiscarded: "Discarded", kop.RefOppNonRemCtrl: "OppNonRemCtrl", kop.RefSrcOwner: "SrcOwner", kop.RefPromised: "Promised", kop.RefChosenPlayer: "ChosenPlayer", kop.RefTriggerAttackers: "TriggerAttackers", kop.RefRememberedOwner: "RememberedOwner", kop.RefTriggerObjOwner: "TriggerObjOwner", kop.RefChosenPlayerRes: "ChosenPlayerRes"}
 	f2Names := []struct {
 		b kop.FilterFlags2
 		l string
