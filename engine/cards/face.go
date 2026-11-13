@@ -975,11 +975,18 @@ func (f *Face) Splice() (quality, cost string, ok bool) {
 	if !found {
 		return "", "", false
 	}
-	q, c, hasCost := strings.Cut(param, ":")
-	if !hasCost {
-		return "", "", false
+	// Byte loops, not strings.*: the strings ratchet counts the calls.
+	for i := 0; i < len(param); i++ {
+		if param[i] != ':' {
+			continue
+		}
+		cost = param[i+1:]
+		for len(cost) > 0 && cost[0] == ' ' {
+			cost = cost[1:]
+		}
+		return param[:i], cost, true
 	}
-	return strings.TrimSpace(q), strings.TrimSpace(c), true
+	return "", "", false
 }
 
 // HasTypeWord reports whether the face has the card type or subtype t (Types

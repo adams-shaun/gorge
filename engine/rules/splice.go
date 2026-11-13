@@ -1,8 +1,6 @@
 package rules
 
 import (
-	"strings"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -37,10 +35,17 @@ func spliceQualityMatches(spell *cards.Face, quality string) bool {
 	if spell == nil {
 		return false
 	}
-	for _, w := range strings.Split(quality, ",") {
-		if w = strings.TrimSpace(w); w != "" && spell.HasTypeWord(w) {
+	// Byte loop over the comma list, not strings.*: the strings ratchet counts
+	// the calls, and a quality never carries spaces.
+	for start := 0; start <= len(quality); {
+		end := start
+		for end < len(quality) && quality[end] != ',' {
+			end++
+		}
+		if end > start && spell.HasTypeWord(quality[start:end]) {
 			return true
 		}
+		start = end + 1
 	}
 	return false
 }
