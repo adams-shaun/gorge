@@ -46,11 +46,23 @@ pkgs_label=""
 # shellcheck disable=SC1091
 . "$top/scripts/test-remote.sh"
 
+# record_verdict STATUS LINE: remember a terminal verdict (PASS or FAIL) for the commit, next to the logs, so
+# a rerun on the same commit with the same gate scripts reuses it instead of repeating the work. ENV, EMPTY,
+# BUDGET and BUSY describe the box, not the commit, and are never recorded.
+record_verdict() {
+	case $1 in
+	PASS | FAIL) printf '%s\n' "$2" >.ds4/scratch/test/smart-${sha%+dirty}.verdict ;;
+	esac
+}
+
 # verdict STATUS [msg]: print the verdict line and leave with its exit code.
 verdict() {
-	local st=$1 msg=${2:-}
-	"${py[@]}" verdict --mode "$mode" --status "$st" --sha "$sha" --pkgs "$pkgs_label" --seconds $((SECONDS - t0)) ${msg:+--msg "$msg"}
-	exit $?
+	local st=$1 msg=${2:-} out rc
+	out=$("${py[@]}" verdict --mode "$mode" --status "$st" --sha "$sha" --pkgs "$pkgs_label" --seconds $((SECONDS - t0)) ${msg:+--msg "$msg"})
+	rc=$?
+	printf '%s\n' "$out"
+	[ "$mode" = smart ] && record_verdict "$st" "$out"
+	exit $rc
 }
 usage() { echo "test-targets: $mode: $1" >&2; exit 2; }
 
@@ -110,8 +122,17 @@ gojson() {
 	return $r
 }
 finish() { # finish NAMED_IMPORT_PATHS: classify $json, print detail and the verdict, exit
-	"${py[@]}" finish --mode "$mode" --json "$json" --rc "$rc" --sha "$sha" --pkgs "$pkgs_label" --seconds $((SECONDS - t0)) --named "$1"
-	exit $?
+	local out pyrc vline st
+	out=$("${py[@]}" finish --mode "$mode" --json "$json" --rc "$rc" --sha "$sha" --pkgs "$pkgs_label" --seconds $((SECONDS - t0)) --named "$1")
+	pyrc=$?
+	printf '%s\n' "$out"
+	if [ "$mode" = smart ]; then
+		vline=${out##*$'\n'}
+		st=${vline#test-smart: }
+		st=${st%% *}
+		record_verdict "$st" "$vline"
+	fi
+	exit $pyrc
 }
 
 # ---- test-one ----------------------------------------------------------------------------------------
@@ -215,6 +236,29 @@ echo "gate scripts: gate_affected=$aff_sha dirac-gate=$dg_sha"
 mb=$(git merge-base "$BASE" HEAD)
 bad() { echo "test-targets: smart: $*" >&2; verdict FAIL "$*"; }
 
+# The step-4 lane wait, clamped to 1500s whatever the environment says: a seat that waits longer than the
+# gate itself would wait better by reporting a BUSY concern than by holding its lane.
+wait_s=${GORGE_TEST_LANE_WAIT:-1500}
+case $wait_s in '' | *[!0-9]*) wait_s=1500 ;; esac
+if [ "$wait_s" -gt 1500 ]; then
+	echo "test-targets: note: GORGE_TEST_LANE_WAIT=$wait_s clamped to 1500; on a full heavy lane report the wait as a BUSY concern, do not wait longer" >&2
+	wait_s=1500
+fi
+
+# A terminal verdict (PASS or FAIL) recorded for this commit with these gate scripts is reused: the commit
+# and the gates did not change, so rerunning would repeat the same work. FORCE=1 reruns anyway.
+keep=.ds4/scratch/test/smart-${sha%+dirty}
+vfile=$keep.verdict
+if [ -z "${FORCE:-}" ] && [ -r "$vfile" ]; then
+	read -r _ rst _ rpk _ <"$vfile"
+	if [ "$rpk" = "$pkgs_label" ] && { [ "$rst" = PASS ] || [ "$rst" = FAIL ]; }; then
+		echo "test-targets: note: reused verdict for $sha; make test-smart FORCE=1 to rerun" >&2
+		printf '%s\n' "$(<"$vfile")"
+		case $rst in PASS) exit 0 ;; esac
+		exit 1
+	fi
+fi
+
 echo "== 1 gofmt, vet"
 files=$(git diff --name-only --diff-filter=d "$mb" HEAD -- '*.go')
 if [ -n "$files" ]; then
@@ -247,7 +291,6 @@ fi
 echo "== 4 affected gate and dirac gate, side by side"
 lock=${GORGE_HEAVY_LOCK:-}
 lanes=${GORGE_HEAVY_LANES:-3}
-wait_s=${GORGE_TEST_LANE_WAIT:-1500}
 if [ -n "${TEST_TARGETS_REMOTE:-}" ]; then
 	: # the box caps its concurrent runs itself (test-remote-box.sh)
 elif [ -n "$lock" ] && { : >>"$lock"; } 2>/dev/null; then
@@ -262,7 +305,7 @@ elif [ -n "$lock" ] && { : >>"$lock"; } 2>/dev/null; then
 			if flock -n 9; then got=$i; break; fi
 		done
 		[ -n "$got" ] && break
-		[ "$SECONDS" -lt "$deadline" ] || verdict BUSY "no heavy lane in ${wait_s}s"
+		[ "$SECONDS" -lt "$deadline" ] || verdict BUSY "no heavy lane in ${wait_s}s; finish the ticket with a BUSY concern instead of retrying with a longer GORGE_TEST_LANE_WAIT"
 		sleep 5
 	done
 else
@@ -310,7 +353,6 @@ wait
 ra=$(cat "$S/aff.rc" 2>/dev/null)
 rd=$(cat "$S/dg.rc" 2>/dev/null)
 grep -qE '^(--- FAIL|FAIL[[:space:]]|panic:)' "$S/aff" && ra=1
-keep=.ds4/scratch/test/smart-${sha%+dirty}
 cp "$S/aff" "$keep.affected.log" 2>/dev/null
 cp "$S/dg" "$keep.dirac.log" 2>/dev/null
 aff_fail=0 dirac_fail=0

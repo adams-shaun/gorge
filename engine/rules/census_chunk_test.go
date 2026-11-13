@@ -56,6 +56,7 @@ func TestCensusChunksCoverEverySubject(t *testing.T) {
 	}{
 		"TestCostStaticPlannedCastsNeverCostChange":    {"cost_static_plan_census_test.go", costStaticPlanChunks},
 		"TestChainTargetOfferCensusAgreesWithCastFlow": {"chain_target_census_test.go", chainTargetCensusChunks},
+		"TestQuietProofCorpusSweepChunk":               {"quiet_proof_test.go", quietSweepChunks},
 	}
 	seen := map[string]map[int]bool{}
 	for prefix, sh := range sharded {

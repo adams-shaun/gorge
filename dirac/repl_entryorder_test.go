@@ -15,6 +15,7 @@ type entFix struct {
 	sc                           *scen
 	tapLand, plain, untapC, tapC CardID
 	mover, ctrLand               CardID
+	choiceLand                   CardID // enters tapped, and as it enters, choose a color (Sunken Citadel)
 }
 
 func newEntFix(t *testing.T) *entFix {
@@ -49,13 +50,17 @@ func newEntFix(t *testing.T) *entFix {
 			{Op: kop.OpReturnEx, Obj: kop.RefRemembered, C: int16(kop.ZoneBattlefield)}}}}},
 		kop.CardDef{Name: "Counter Land", Types: kop.TLand, Abilities: []kop.Ability{{Kind: kop.AbReplacement, Repl: kop.Repl{Kind: kop.ReplEntersTapped}},
 			{Kind: kop.AbReplacement, Repl: kop.Repl{Kind: kop.ReplEntersWithCounters, A: 1, C: int16(kop.CtrP1P1)}}}},
+		kop.CardDef{Name: "Choice Land", Types: kop.TLand, Abilities: []kop.Ability{
+			{Kind: kop.AbReplacement, Repl: kop.Repl{Kind: kop.ReplEntersTapped}},
+			{Kind: kop.AbReplacement, Repl: kop.Repl{Kind: kop.ReplEntersProgram}, Prog: []kop.Instr{{Op: kop.OpChooseColor}}}},
+		},
 	)
 	sc := newScenTableLib(t, tbl, pl, Config{NoElide: true})
 	if sc.k.gen == nil || !sc.k.gen.anyEntUntap {
 		t.Fatal("the fixture table has no entry-order carrier")
 	}
 	sc.s.g.on = true
-	return &entFix{sc: sc, tapLand: base, plain: base + 1, untapC: base + 2, tapC: base + 3, mover: base + 4, ctrLand: base + 5}
+	return &entFix{sc: sc, tapLand: base, plain: base + 1, untapC: base + 2, tapC: base + 3, mover: base + 4, ctrLand: base + 5, choiceLand: base + 6}
 }
 
 func (e *entFix) tapped(o Obj) bool { return e.sc.tapped(o) }
@@ -93,6 +98,16 @@ func pick(d Decision, src Obj) Action {
 		}
 	}
 	panic("not an option")
+}
+
+// pickScan is d's option whose mode is m (the entry ask's scan index).
+func pickScan(d Decision, m uint8) Action {
+	for _, a := range d.Options[:d.N] {
+		if a.Mode() == m {
+			return a
+		}
+	}
+	panic("no such mode")
 }
 
 // TestReplEntryOrder: CR 616.1 for a land entering under its own enters-
@@ -307,3 +322,102 @@ func TestReplEntryOrder(t *testing.T) {
 		}
 	})
 }
+
+// TestEntryOrderOwnChoiceBodyAsks: the entering land's own as-enters choice
+// record (Sunken Citadel's "As it enters, choose a color") joins the CR
+// 616.1 order ask beside its own enters-tapped body and an other-enter
+// untap body (Spelunking). The choice is asked before the move (preLandAsk)
+// as gorge asks it, so the record candidate competes for the order without
+// touching the tapped bit: the last tap or untap applied still decides, and
+// a record pick that leaves a tap and an untap re-asks (CR 616.1f) once the
+// land has entered.
+func TestEntryOrderOwnChoiceBodyAsks(t *testing.T) {
+	// playChoice puts an Untap Carrier on the battlefield, plays the choice
+	// land from the hand, answers its as-enters colour ask, and returns the
+	// posed entry-order ask: the land is still in the hand while the colour
+	// is asked, and on the battlefield only after the first pick.
+	playChoice := func(t *testing.T, e *entFix) (Decision, Obj) {
+		t.Helper()
+		sc := e.sc
+		c := sc.perm(e.untapC, 0)
+		if !sc.onBF(c) {
+			t.Fatalf("carrier on battlefield %v", sc.onBF(c))
+		}
+		l := sc.hand(e.choiceLand, 0)
+		e.play(l, 0)
+		if sc.s.objs[l].zone != kop.ZoneHand {
+			t.Fatalf("zone %d, want the choice land still in the hand while its colour is asked", sc.s.objs[l].zone)
+		}
+		d := sc.s.Step()
+		if d.Kind != DkChoose || d.Sub != ChGenColor || d.N < 1 {
+			t.Fatalf("decision %d/%d options %d, want the as-enters colour ask", d.Kind, d.Sub, d.N)
+		}
+		sc.s.applyGen(sc.k, d.Options[0])
+		return e.ask(t), l
+	}
+	t.Run("ask_has_three_options", func(t *testing.T) {
+		e := newEntFix(t)
+		d, l := playChoice(t, e)
+		if d.Player != 0 || d.N != 3 {
+			t.Fatalf("player %d options %d, want player 0 with 3 options", d.Player, d.N)
+		}
+		got := srcs(d)
+		if got[0] != l || got[1] != l || got[2] == l {
+			t.Fatalf("options %v, want the land's tap and record candidates then the carrier [%d %d]", got, l, got[2])
+		}
+		var modes uint8
+		for _, a := range d.Options[:d.N] {
+			if a.Mode() > 2 {
+				t.Fatalf("mode %d, want a scan index of the 3 candidates", a.Mode())
+			}
+			modes |= 1 << a.Mode()
+		}
+		if modes != 0b111 {
+			t.Fatalf("modes %03b, want the scan indexes 0, 1 and 2 each once", modes)
+		}
+	})
+	for _, tc := range []struct {
+		name       string
+		first      uint8 // scan index of the first pick
+		second     uint8 // scan index of the re-ask pick; entNoSecond: no re-ask
+		wantTapped bool
+	}{
+		{"carrier_first_ends_tapped", 2, entNoSecond, true},
+		{"land_tap_first_ends_untapped", 0, entNoSecond, false},
+		{"record_first_then_tap", 1, 0, false},
+		{"record_first_then_carrier", 1, 2, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := newEntFix(t)
+			sc := e.sc
+			d, l := playChoice(t, e)
+			sc.s.applyGen(sc.k, pickScan(d, tc.first))
+			if tc.second != entNoSecond {
+				// the record pick leaves a tap and an untap: the land has
+				// entered untapped (no tap applied yet) and the ask repeats
+				if !sc.onBF(l) || e.tapped(l) {
+					t.Fatalf("after the record pick: on battlefield %v tapped %v, want entered untapped with the ask left", sc.onBF(l), e.tapped(l))
+				}
+				d2 := e.ask(t)
+				if d2.N != 2 {
+					t.Fatalf("re-ask options %d, want 2", d2.N)
+				}
+				sc.s.applyGen(sc.k, pickScan(d2, tc.second))
+			}
+			if !sc.onBF(l) || e.tapped(l) != tc.wantTapped {
+				t.Fatalf("picks %d,%d: on battlefield %v tapped %v, want tapped %v", tc.first, tc.second, sc.onBF(l), e.tapped(l), tc.wantTapped)
+			}
+			if sc.s.g.ro.n != 0 || sc.s.g.ro.pcol != 0 || sc.s.g.stalled != 0 || sc.s.ctl != ctlPriority {
+				t.Fatalf("after the last answer: ro %+v stalled %d ctl %d", sc.s.g.ro.replHdr, sc.s.g.stalled, sc.s.ctl)
+			}
+			if d := sc.s.Step(); d.Kind != DkPriority {
+				// the record's choice was answered before the move: the
+				// entry asks nothing more
+				t.Fatalf("next decision %d/%d, want priority", d.Kind, d.Sub)
+			}
+		})
+	}
+}
+
+// entNoSecond: the first pick ends the ask (no re-ask expected).
+const entNoSecond uint8 = 0xff
