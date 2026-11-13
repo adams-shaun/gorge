@@ -357,10 +357,14 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 		if src == 0 {
 			return false
 		}
-		// nil remembered: only the chosen half is added here, so an
-		// Effect-created `ValidSource$ Card.IsRemembered` line keeps the
-		// exact match it had before ChooseSource landed.
-		sc := e.rememberedSpecContextCap(ctrl, source, nil, cc)
+		// The Effect's own capture scopes the source half as it scopes the
+		// ValidTarget$ half below: Maze of Ith's and Cephalid Illusionist's
+		// `ValidSource$ Card.IsRemembered` names the creature the Effect
+		// remembered (RememberObjects$ Targeted), which the Effect never
+		// writes onto its host's own remembered list (CR 615.1: the combat
+		// damage that creature deals is prevented). A printed line passes no
+		// capture and reads the host's list as before.
+		sc := e.rememberedSpecContextCap(ctrl, source, remembered, cc)
 		sc.DamageSource = src
 		sc.DamageSourceLeft, sc.DamageSourceEntered = e.damageSourceLeftThisTurn(src)
 		if !e.matchesSpec(v, src, sc) {
