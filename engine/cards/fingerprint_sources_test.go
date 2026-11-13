@@ -68,6 +68,7 @@ var fingerprintCensus = map[string]fingerprintFile{
 	"hiddenkeyword.go":        {true, "CanonicalKeywordLine normalises keyword lines during compile"},
 	"image.go":                {true, "Image row types; S5 of the 2026-10-06 pointer-free spec persists them as ir-<fp>.img, so kept"},
 	"image_build.go":          {true, "builds the Image from IR; to be persisted under S5 (ir-<fp>.img), so kept"},
+	"image_file.go":           {true, "the S5 ir-<fp>.img file: the Image's rows persisted beside the cache and read back in place"},
 	"image_mat.go":            {true, "materialization behind Registry.AllCards, Save's input; kept conservatively"},
 	"intrinsic.go":            {true, "ApplyIntrinsics adds basic-land mana abilities during compile"},
 	"ir.go":                   {true, "the IR types themselves; their exported fields are what gob encodes"},

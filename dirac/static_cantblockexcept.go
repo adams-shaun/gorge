@@ -60,7 +60,7 @@ func (s *State) exHaste(k *prep, in *kop.Instr) {
 	}
 	o := s.perms[sl].obj
 	kind := uint8(1)
-	if in.C&1 != 0 {
+	if in.C&1 != 0 { // seat-ok: an instruction flag bit
 		kind = 0x80 | uint8(in.C>>1&7)<<4 | uint8(in.C>>4&15)
 	}
 	free := -1

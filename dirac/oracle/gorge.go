@@ -441,6 +441,19 @@ func (g *GorgeSide) internal(d *decision.Decision) bool {
 	if manaChoiceResolving(d) {
 		return false
 	}
+	if d.Options[0].Kind == "block_mana" {
+		// The declare-blockers block-tax window (rules/attack_cost.go
+		// askNextBlockPay): one tap per ask, answered with the first source
+		// listed, the order the kernel's atkTaxNext walks.
+		g.Stats.Internal++
+		if g.OnInternal != nil {
+			g.OnInternal(d, d.Options[0].Index)
+		}
+		if err := g.submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}); err != nil {
+			g.fail(fmt.Errorf("oracle: block payment window answer refused: %w", err))
+		}
+		return true
+	}
 	if d.Options[0].Kind == "attack_mana" {
 		// The declare-attackers attack-tax window (rules/attack_cost.go
 		// askNextAttackPay): one tap per ask, answered with the first source
@@ -738,6 +751,17 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				// Buyback card (kw_buyback.go), gorge's "buyback" mode
 				if o.AltCostIndex > 15 {
 					note("cast/" + o.Mode)
+					continue
+				}
+				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
+				continue
+			}
+			if o.Mode == "escape" {
+				// CR 702.138a: the kernel's mode-2 cast of an Escape card
+				// canonicalises to castModeOther, like "mayhem"
+				// (kw_escape.go)
+				if o.AltCostIndex > 15 {
+					note("cast/escape")
 					continue
 				}
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
@@ -1893,6 +1917,34 @@ func (g *GorgeSide) maxSpeedOrdinal(id state.ObjID, sv string) (int, bool) {
 // (cards.SA.IsCopyGranted), which no printed A: line is, whatever its text.
 func (g *GorgeSide) copyGrantedAbility(id state.ObjID, i int) bool {
 	return copyGrantedAbilityOf(g.E.G.Obj(id), i)
+}
+
+// copyGrantedTriggerOf reports whether trigger i of o's face is the Myriad
+// expansion an as-enters copy's "except it has myriad" folded into the copy
+// face (Auton Soldier; CR 707.9b, events foldCopyExcept): o is a copy whose
+// printed card carries no Myriad trigger of its own. The kernel lists it as a
+// granted (latent) trigger, whose stack index is 255.
+func copyGrantedTriggerOf(o *state.Object, i int) bool {
+	if o == nil || o.Card == nil || o.Face() == nil || i < 0 || i >= len(o.Face().Triggers) {
+		return false
+	}
+	isMyriad := func(t cards.Trigger) bool {
+		return t.Mode == "Attacks" && t.Params["Myriad"] == "True"
+	}
+	if !isMyriad(o.Face().Triggers[i]) {
+		return false
+	}
+	for fi := range o.Card.Faces {
+		if o.Card.Faces[fi] == o.Face() {
+			return false // the printed face itself
+		}
+		for _, t := range o.Card.Faces[fi].Triggers {
+			if isMyriad(t) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // copyGrantedAbilityOf is copyGrantedAbility over the object itself.

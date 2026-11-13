@@ -36,7 +36,7 @@ func (bt *Bot) objKey(s *dirac.State, o dirac.Obj) uint32 {
 	default:
 		zone, seat, idx = 5, uint32(s.ObjOwner(o)), uint32(s.FeatZoneIndex(o))
 	}
-	return zone<<20 | (seat&1)<<16 | idx
+	return zone<<20 | (seat%dirac.MaxSeats)<<16 | idx
 }
 
 // firstBy returns the option (not Done) with the smallest key.

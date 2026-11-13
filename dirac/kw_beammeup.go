@@ -72,13 +72,13 @@ func (s *State) hasBeamGrant(k *prep, sl Slot) bool {
 func (s *State) beamPoolPays(k *prep, p uint8, o Obj, mana kop.ManaCost) bool {
 	a := s.poolAvailPlus(p, nil)
 	c := s.objs[o].card
-	if s.rbAny(p & 1) {
-		s.restrAvail(k, p&1, c, s.restrOriginOfObj(o), &a)
+	if s.rbAny(SeatIx(p)) {
+		s.restrAvail(k, SeatIx(p), c, s.restrOriginOfObj(o), &a)
 	}
-	a.delve = s.tbDelveCredit(k, p&1, c, o, false) // the faces' credit (CR 702.66a)
-	cost := s.featCost(k, p&1, c, o, mana)
+	a.delve = s.tbDelveCredit(k, SeatIx(p), c, o, false) // the faces' credit (CR 702.66a)
+	cost := s.featCost(k, SeatIx(p), c, o, mana)
 	if !a.tbLeafCredited(&cost) {
-		cost = s.delveOfferCredit(k, p&1, c, o, false, cost) // the offer credits the generic too
+		cost = s.delveOfferCredit(k, SeatIx(p), c, o, false, cost) // the offer credits the generic too
 	}
 	return a.affords(&cost, pipMaskOf(&cost), 0)
 }

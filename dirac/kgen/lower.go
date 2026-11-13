@@ -149,6 +149,8 @@ type lowerCtx struct {
 	numTimesK      int       // lowering a NumTimes latent for the announced count k: Count$TriggerRememberAmount is k (lower_numtimes.go)
 	remLKMVN       int       // RememberedLKI$CardManaCost reads admitted (value_remlkimv.go)
 	remLKN         int       // RememberedLKI$ P/T reads lc.value produced: refuseRemLKIPT refuses unless each one sits in an ability program (value_remlki.go)
+	flipSide       uint8     // lowering a FlipCoin branch: 1 the win block, 2 the lose block; a bare Wins/Losses read is that flip's 1/0 (lower_dice.go flipCoin)
+	flipTallyAb    *lAbility // the ability whose FlipCoin consumed RememberNumber$: its Count$RememberedNumber is the unlowered flip tally, refused (value.go)
 	p              *pool
 	name           string
 	card           *cards.Card
@@ -224,6 +226,15 @@ type lowerCtx struct {
 	repeatCard int
 	// repeatOpp: that body repeats over the controller's opponents
 	repeatOpp bool
+	// repeatAllPl: that body repeats over every player (RepeatPlayers$ Player)
+	repeatAllPl bool
+	// joinForcesName is the accumulator SVar the current top-level node's
+	// chain writes (lower_storesvar.go joinForcesStore), joinForcesReset once
+	// its trailing write of 0 has been lowered; joinForcesNames every
+	// accumulator any node of the card wrote
+	joinForcesName  string
+	joinForcesReset bool
+	joinForcesNames map[string]bool
 	// repeatCheckSVar is the SVar an enclosing gated Repeat's
 	// RepeatCheckSVar$ names, while that body is lowered; repeatCheckAb is
 	// its ability, so a StoreSVar$ after the loop (the reset) still matches
@@ -462,6 +473,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseHarmonizeCombos()
 	lc.refuseReboundCombos() // lower_rebound.go
 	lc.refuseMayhemCombos()
+	lc.refuseEscapeCombos()
 	lc.lowerRetrace()
 	lc.refuseBeamCombos()
 	lc.refuseSneakCombos()
@@ -689,6 +701,7 @@ func (lc *lowerCtx) guard(node string, fn func() error) {
 	lc.guardNode = node
 	defer func() { lc.guardNode = savedNode }()
 	lc.excess = ""
+	lc.joinForcesName, lc.joinForcesReset = "", false
 	if err := fn(); err != nil {
 		lc.refuseNode(node, "%s", err.Error())
 	}
@@ -1444,6 +1457,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.out.Harmonize = &mc
 		case head == "Beam me up":
 			lc.beamMeUp(node, param) // lower_beammeup.go
+		case head == "Escape":
+			lc.escapeCost(node, param) // lower_escape.go (CR 702.138a; dirac/kw_escape.go)
 		case head == "Mayhem":
 			// CR 702.187a: a graveyard cast for the colon parameter, an
 			// alternative mana cost, if the card was discarded this turn
@@ -2084,6 +2099,9 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		}
 		parts := strings.Split(arg, "/")
 		if head == "Sac" && parts[0] == "X" {
+			// the third part is prompt text, which may hold a slash
+			// ("any number of artifacts and/or creatures")
+			parts = strings.SplitN(arg, "/", 3)
 			// Sac<X/Spec> (lower_xminsacx.go): the announced count
 			if err := lc.sacXCost(&c, parts, t); err != nil {
 				return c, err
@@ -2605,9 +2623,11 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 					// folds the body into a fixed amount as the cost window opens
 					// (evalTriggerCostFixedX), so the kernel reads the same value as
 					// the payment is offered. Only the power of the card an enters
-					// trigger fires for lowers (the shape played against gorge); every
-					// other body or trigger refuses by name.
-					if lc.trigBodyCost && lc.ab.Trigger != nil && lc.ab.Trigger.Event == "ETB" && strings.TrimSpace(x) == "TriggeredCard$CardPower" &&
+					// trigger fires for lowers (the shape played against gorge), and the
+					// opponents dealt combat damage this turn on a postcombat-main Phase
+					// trigger (Tymna the Weaver); every other body or trigger refuses
+					// by name.
+					if lc.trigBodyCost && lc.ab.Trigger != nil && triggerCostXShape(lc.ab.Trigger, strings.TrimSpace(x)) &&
 						c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.LoyaltyX {
 						v, verr := lc.svarValue(x, 0)
 						if verr != nil {
@@ -2973,6 +2993,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		}
 		if sa.API == "PermanentCreature" {
 			// The permanent spell itself: only its additional cost matters.
+			ps.consume("AdditionalDesc") // display text of a self discount (Dargo's "costs {2} less ...")
 			if left := ps.unread(); len(left) > 0 {
 				return refuse("unread params %v", left)
 			}

@@ -377,6 +377,7 @@ ExGraveTypes	ExprKind	41
 ExHandSizeOf	ExprKind	26
 ExHighestOppPoison	ExprKind	45
 ExIfCastOwnMain	ExprKind	224
+ExJoinForces	ExprKind	64
 ExKicked	ExprKind	7
 ExLastLifeLost	ExprKind	22
 ExLeftZone	ExprKind	249
@@ -486,6 +487,7 @@ ExtFinalityCtr	ExtOp	198
 ExtGrantExile	ExtOp	249
 ExtGrantPanharm	ExtOp	248
 ExtHideaway	ExtOp	8
+ExtJoinForces	ExtOp	301
 ExtLibSweep	ExtOp	101
 ExtLockActs	ExtOp	140
 ExtManaChoice	ExtOp	100
@@ -580,6 +582,7 @@ GcRemember	untyped int	4
 GcUntap	untyped int	1
 HybPhyrexian	ColorMask	64
 HybTwobrid	ColorMask	128
+JoinForcesReset	untyped int	1
 KwAffinity	KwMask	8388608
 KwCantBlock	KwMask	524288
 KwDeathtouch	KwMask	16
@@ -930,6 +933,7 @@ PredCountersGE	Pred	13
 PredCountersLT	Pred	33
 PredEnchanted	Pred	21
 PredEquipped	Pred	20
+PredEscaped	Pred	237
 PredExiledWith	Pred	249
 PredFaceDown	Pred	245
 PredHasCounter	Pred	7
@@ -1098,6 +1102,8 @@ RetFromLibrary	untyped int	16384
 RetShuffleOwed	untyped int	8192
 RetUnderOpponent	untyped int	4096
 RollDieCoin	int16	1
+RollDieCoinBatch	int16	2
+RollDieCoinMark	int16	4
 SacSumMV	untyped int	8
 SacSumPower	untyped int	2
 SacSumToughness	untyped int	4
@@ -1206,6 +1212,7 @@ StatAnyTypeCreatures	StaticKind	239
 StatAsIfHaste	StaticKind	231
 StatAttackTax	StaticKind	243
 StatBeamGrant	StaticKind	253
+StatBlockTax	StaticKind	256
 StatCDAPT	StaticKind	10
 StatCanAttackDefender	StaticKind	250
 StatCantActivate	StaticKind	236
@@ -1382,6 +1389,7 @@ TgtSpellTgting	TargetKind	239
 TgtStackAb	TargetKind	7
 TgtStackObj	TargetKind	6
 TgtStackObjTrig	TargetKind	238
+TgtStackTgting	TargetKind	242
 TimingInstant	Timing	1
 TimingLand	Timing	2
 TimingSorcery	Timing	0

@@ -802,7 +802,7 @@ func (s *State) castAffordsR(k *prep, p uint8, c CardID, og restrOrigin, cost *k
 	if av.affords(cost, pipMaskOf(cost), 0) {
 		return true
 	}
-	if s.rbAny(p & 1) {
+	if s.rbAny(SeatIx(p)) {
 		t := *av
 		if s.restrAvail(k, p, c, og, &t) {
 			if t.affords(cost, pipMaskOf(cost), 0) {
@@ -972,7 +972,7 @@ func (s *State) poolPaysAct(k *prep, p uint8, cost *kop.ManaCost, d payDesc) boo
 	}
 	m := uint8(0)
 	if s.rbAny(p) {
-		m = s.restrPoolAct(k, p&1, &d)
+		m = s.restrPoolAct(k, SeatIx(p), &d)
 	}
 	if m == 0 {
 		return false
@@ -983,7 +983,7 @@ func (s *State) poolPaysAct(k *prep, p uint8, cost *kop.ManaCost, d payDesc) boo
 			av.addUnits(1<<c, n)
 		}
 	}
-	s.restrAvailAdd(p&1, m, &av)
+	s.restrAvailAdd(SeatIx(p), m, &av)
 	return av.affords(cost, pipMaskOf(cost), 0)
 }
 

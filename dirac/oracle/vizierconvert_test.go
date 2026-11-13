@@ -100,6 +100,9 @@ func vizierPolicy(seed uint64, tl *vizierTally) Policy {
 }
 
 func TestVizierManaConvertLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg := synthReg(t)
 	set := cardsettest.Synth(t, "std-fdn")
 	var cs [2][]*cards.Card

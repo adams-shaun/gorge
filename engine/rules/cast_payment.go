@@ -490,6 +490,8 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		}
 	case castAnswerDefilerYes, castAnswerDefilerNo:
 		e.answerDefiler(pc, chosen)
+	case castAnswerSplice:
+		e.answerSplice(pc, chosen)
 	case castAnswerSquad:
 		// CR 702.66: the answered payment count folds that many squad
 		// payments into cost -- the replicate/multikicker arm's exact shape.
@@ -697,6 +699,7 @@ const (
 	castAnswerDivide
 	castAnswerDefilerYes
 	castAnswerDefilerNo
+	castAnswerSplice
 )
 
 var castAnswerCodes = state.NewStrCodes(
@@ -730,4 +733,5 @@ var castAnswerCodes = state.NewStrCodes(
 	state.StrEntry[castAnswerCode]{Key: "divide", Val: castAnswerDivide},
 	state.StrEntry[castAnswerCode]{Key: "yes", Val: castAnswerDefilerYes},
 	state.StrEntry[castAnswerCode]{Key: "no", Val: castAnswerDefilerNo},
+	state.StrEntry[castAnswerCode]{Key: "splice", Val: castAnswerSplice},
 )

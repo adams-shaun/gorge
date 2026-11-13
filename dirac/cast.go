@@ -28,10 +28,10 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		s.cold.mkObj[o] = 0 // a card cast again starts with no payments (CR 702.43; kw_multikicker.go)
 	}
 	var fl uint8
-	if mode&1 != 0 {
+	if mode&1 != 0 { // seat-ok: a cast-mode bit
 		fl |= sfKicked
 	}
-	esc := mode&2 != 0 && s.g.escapeCast // the target byte's escape cast (kw_escape.go)
+	esc := escapeCast(k, c, mode, tgt) || s.g.escapeCast // a printed escape cast, or the target byte's granted escape (kw_escape.go)
 	s.g.escapeCast = false
 	mayhem := mayhemCast(k, c, mode) && !esc // a graveyard cast that is no flashback (kw_mayhem.go)
 	if k.gen != nil && k.gen.anyAftermath {
@@ -59,7 +59,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		e.trigPl = trigPlMayhem
 	}
 	if esc {
-		e.trigPl = trigPlEscape // the cost builder's escape cast (kw_escape.go)
+		e.trigPl = trigPlEscape // the printed or granted escape cost (CR 702.138a; kw_escape.go)
 	}
 	if retrace {
 		e.trigPl = trigPlRetrace // the retrace cast's pick cost (kw_retrace.go)
@@ -184,6 +184,10 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		if !s.poolRPays(k, p, c, o) {
 			s.lowerWitness(k, p)
 		}
+	} else if mode == 0 && ob.zone == kop.ZoneHand && k.gen != nil && k.gen.anySacX && s.sacXPoolOffer(k, p, o) {
+		// an announced Sac<X> the floating pool pays at some count: gorge offers
+		// it from the pool (offerSacXMods) and plans nothing, so nothing is
+		// lowered (cost_sacx.go)
 	} else if !(k.gen != nil && s.contribPays(k, p, c, o, ob.zone == kop.ZoneHand)) && mode&(castFace|castFaceDown|castWarpRecast) == 0 && (s.cfg&cfgGorgeLowering != 0 && mode&3 == 0 && mode != castFree && ob.zone == kop.ZoneHand ||
 		s.cfg&(cfgGorgeLowering|cfgGorgeAutopay) != 0 && (mode&castMayPlay != 0 && mode&castFree == 0 || mode&3 == 2)) &&
 		(typed || fl&sfFbGranted != 0 || !s.plannedUnderRider(p, o, mode&3)) {
@@ -627,6 +631,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if cd.Mayhem && e.trigPl == trigPlMayhem {
 			c = cd.AltCost // the mayhem cost (CR 702.187a; kw_mayhem.go)
 		}
+		if cd.Escape && e.trigPl == trigPlEscape {
+			c = cd.AltCost // the escape cost (CR 702.138a; kw_escape.go)
+		}
 		if e.trigPl == trigPlMadness && cd.HasMadness {
 			c = cd.MadnessCost // the madness cast from exile (CR 702.35b)
 		}
@@ -828,7 +835,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				if m := s.restrActNow(k, e.ctrl); m != 0 {
 					s.restrAvailAdd(e.ctrl, m, &av)
 				}
-			} else if s.rbAny(e.ctrl & 1) {
+			} else if s.rbAny(SeatIx(e.ctrl)) {
 				// restricted mana a spell may spend (Secluded Courtyard's
 				// chosen type, tapped by the play's script prefix) is in
 				// gorge's AvailableFor pool, which its xAsk reads; the
@@ -873,6 +880,8 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			}
 			if k.gen != nil && k.gen.anySacX && cost.X != 0 {
 				hi = s.sacXClamp(k, &cost, hi) // (announced only, hi is the clamped mx already)
+			} else if k.gen != nil && k.gen.anySacX {
+				mx, hi = s.sacXDiscountBounds(k, &cost, &av, mx, hi) // announced only, priced at each count (cost_sacx.go)
 			}
 			if !s.addXOptions(k, d, e, mx, hi, &av) {
 				return s.ctl == ctlBuild // false: no X above the floor is payable, the cast reversed (cost_sacx.go)
@@ -1244,7 +1253,7 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 	s.availCastWindowFor(k, e.ctrl, &av)
 	if e.kind == seAbility {
 		s.excludeTapSource(k, &av)
-	} else if s.rbAny(e.ctrl & 1) {
+	} else if s.rbAny(SeatIx(e.ctrl)) {
 		s.restrAvail(k, e.ctrl, e.card, restrOriginOfEntry(e), &av) // the restricted mana the spell may spend, as the X ask reads it
 	}
 	d.Kind, d.Sub, d.Player = DkChoose, ChGenPip, e.ctrl
@@ -1655,7 +1664,7 @@ func (s *State) finishBuild(k *prep) {
 		// a free cast with ReplaceGraveyard$ Exile carries bit 4
 		// as sfFreeGY once the build bit is gone (a non-copy spell entry;
 		// resolveTop tests it only on a copy)
-		if s.bld().e.flags&sfFree != 0 && s.g.freeP&16 != 0 && s.bld().bfl&bflPushed != 0 {
+		if s.bld().e.flags&sfFree != 0 && s.g.freeP&freeGY != 0 && s.bld().bfl&bflPushed != 0 {
 			s.stack[s.sp-1].flags |= sfFreeGY
 		}
 		// ForgetPlayed$ True: this free cast now sits on the stack
@@ -1663,7 +1672,7 @@ func (s *State) finishBuild(k *prep) {
 		// drops it from the remembered set. A cast refused before the push,
 		// or reversed while its cost was being paid (CR 733.1), never
 		// reaches this commit and keeps its card remembered.
-		if s.bld().e.flags&sfFree != 0 && s.g.freeP&128 != 0 && s.bld().bfl&bflPushed != 0 {
+		if s.bld().e.flags&sfFree != 0 && s.g.freeP&freeForget != 0 && s.bld().bfl&bflPushed != 0 {
 			s.forgetRemGen(e.obj)
 		}
 		if k.gen != nil && k.gen.anyHist {
@@ -2429,6 +2438,9 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 		if e.flags&sfFlashback != 0 && cd.FbCost.Flags != 0 && e.flags&sfFbGranted == 0 {
 			return &cd.FbCost // a non-mana flashback cost (CR 702.34a; kgen lower_fbcost.go)
 		}
+		if cd.Escape && e.trigPl == trigPlEscape && cd.EscCost.Flags != 0 && !DebugEscapeSkipExiles {
+			return &cd.EscCost // the escape cost's exile parts (CR 702.138a; kw_escape.go)
+		}
 		if k.gen != nil && k.gen.anyKickCost {
 			if kc := kickerCostPick(k, e); kc != nil {
 				return kc // a kicked cast's Sac/Return kicker part (kw_kicker.go)
@@ -2708,7 +2720,7 @@ func (s *State) recordSubCtr(o Obj, c uint8) {
 func (s *State) poolRPays(k *prep, p uint8, c CardID, o Obj) bool {
 	var av avail
 	s.availPool(p, &av)
-	if s.rbAny(p & 1) {
+	if s.rbAny(SeatIx(p)) {
 		s.restrAvail(k, p, c, s.restrOriginOfObj(o), &av)
 	}
 	if av.total == 0 {

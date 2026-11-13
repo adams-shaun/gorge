@@ -296,6 +296,9 @@ func TestContinuousConditionTable(t *testing.T) {
 		{"EnduringStory",
 			func(e *Engine) { e.emit(events.Event{Kind: events.EnduringStoryChange, Player: 0}) },
 			func(e *Engine) {}},
+		{"Monarch",
+			func(e *Engine) { e.emit(events.Event{Kind: events.MonarchChange, Player: 0}) },
+			func(e *Engine) {}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.cond+"/true", func(t *testing.T) {

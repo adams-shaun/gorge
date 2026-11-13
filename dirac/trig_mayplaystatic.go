@@ -154,7 +154,7 @@ func (s *State) finalityCtr(k *prep, in *kop.Instr) {
 			s.capFull(StallFinality) // sid holds two seats' grant counts, 4 bits each
 			return
 		}
-		sh := 4 * uint(s.res.e.ctrl&1) // the grant's controller puts the counter
+		sh := 4 * uint(SeatIx(s.res.e.ctrl)) // the grant's controller puts the counter
 		if e.sid>>sh&sidFinalMax >= sidFinalMax {
 			s.capFull(StallFinality)
 			return

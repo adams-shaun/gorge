@@ -158,7 +158,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
 				s.offerOptCostOnly(k, d, p, o, c, &av)
 			}
-			continue
+			if k.gen == nil || !k.gen.anySacX || !s.sacXPoolOffer(k, p, o) {
+				continue // (an announced Sac<X> the floating pool pays at some X is offered, cost_sacx.go)
+			}
 		}
 		tgtOK, twOK := true, false
 		if k.teamwork && k.t.Cards[c].Teamwork != 0 {
@@ -298,7 +300,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	if k.gen != nil && k.gen.anyBeam {
 		s.offerBeamCasts(k, d, p, sorc, &av) // kw_beammeup.go
 	}
-	if k.gen != nil && k.gen.anyEscapeGrant {
+	if k.escape || k.gen != nil && k.gen.anyEscapeGrant {
 		s.offerEscapeCasts(k, d, p, sorc, &av) // kw_escape.go: gorge lists the escape walk before mayhem's (legal_walk_alt.go)
 	}
 	if k.mayhem {
@@ -738,8 +740,11 @@ func (s *State) gorgeOffers(p uint8, o Obj, mode uint8) bool {
 		// runs, the census being unrelaxable
 		return true
 	}
-	if mode&1 != 0 || s.FeatPlannedCast(p, o, mode) || s.FeatPoolPays(p, o, mode) {
+	if mode&1 != 0 || s.FeatPlannedCast(p, o, mode) || s.FeatPoolPays(p, o, mode) { // seat-ok: a cast-mode bit
 		return true
+	}
+	if k := s.k(); mode == 0 && k.gen != nil && k.gen.anySacX && s.sacXPoolOffer(k, p, o) {
+		return true // the floating pool pays it at some announced Sac<X> count (cost_sacx.go)
 	}
 	return s.cfg&cfgGorgeAutopay == 0 && s.gorgeLowers(p, o, false)
 }
@@ -911,7 +916,7 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 			// may spend) pays the reduced price on its own
 			a := s.poolAvailPlus(p, nil)
 			if s.rbAny(p) {
-				s.restrAvail(k, p&1, c, s.restrOriginOfObj(o), &a)
+				s.restrAvail(k, SeatIx(p), c, s.restrOriginOfObj(o), &a)
 			}
 			return a.affords(&cost, pipMaskOf(&cost), 0)
 		}
@@ -1036,10 +1041,10 @@ func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base
 		return true
 	}
 	ac := spellAddCost(k, c)
-	if s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p, c, o) {
+	if s.pickCostPayable(k, p, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p, c, o) {
 		return true
 	}
-	if !s.pickCostPayable(k, p, &cd.AltAddCost, NoObj) {
+	if !s.pickCostPayable(k, p, &cd.AltAddCost, o) {
 		return false
 	}
 	t := addCost(*cost, cd.AltAddCost.Mana)
@@ -1244,7 +1249,7 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 	}
 	if isPlayerTarget(code) {
 		pp := CodeSeat(code)
-		if pp != p && k.gen != nil && k.gen.anyRepl&rbPlHex != 0 && s.playerHexproof(k, pp) {
+		if pp != p && k.gen != nil && (k.gen.anyRepl&rbPlHex != 0 || k.gen.anyEmbPlHex) && s.playerHexproof(k, pp) {
 			return false
 		}
 		if s.plProtAll(k, pp) {
@@ -1367,7 +1372,7 @@ func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self 
 				n++
 			}
 		}
-	case kop.TgtStackObj, kop.TgtStackAb, kop.TgtCopyAb, kop.TgtCopyTrig, kop.TgtStackObjTrig:
+	case kop.TgtStackObj, kop.TgtStackAb, kop.TgtCopyAb, kop.TgtCopyTrig, kop.TgtStackObjTrig, kop.TgtStackTgting:
 		n = s.stackTgtCands(k, t, p, self, out, n) // tgt_stackability.go
 	case kop.TgtPermOrSpell:
 		n = s.permOrSpellCands(k, t, p, src, self, out, n) // tgt_permorspell.go

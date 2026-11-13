@@ -2205,6 +2205,18 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 	if hasAbilityToken(p) {
 		return objectHasAbility(o, strings.TrimPrefix(p, "hasAbility ")), true
 	}
+	if p == "equipped" || p == "enchanted" || p == "Enchanted" {
+		// CR 301.5a / 303.4: the creature an Equipment (Aura) is attached to.
+		// The attachment's kind is a layer-4 type (CR 613.1d): The Irencrag
+		// transformed into Everflame is an Equipment only through its derived
+		// type line, so the scan reads the bound layer-4 snapshot rather than
+		// the printed face predicates["equipped"] tests.
+		kind := "Equipment"
+		if p != "equipped" {
+			kind = "Aura"
+		}
+		return hasAttachmentOfKindCtx(g, o.ID, kind, &sc), true
+	}
 	if p == "token$DifferentCardNames" {
 		// Forge's token$DifferentCardNames set-level qualifier (Sandsteppe
 		// War Riders, Gimbal Gremlin Prodigy, Audience with Trostani, Neriv
@@ -2892,6 +2904,13 @@ type SpecContext struct {
 	// proposed list that matches nothing (a resolved non-match, never an
 	// unresolved gate).
 	ProposedTargets []state.Target
+	// AttachmentTypes is a value snapshot of the published layer-4 table
+	// (Layers.DerivedTypes) taken by rules' layer walk before it clears that
+	// table for the candidate's own match: the equipped/enchanted scan reads
+	// ANOTHER object's derived type line (an Everflame that is an Equipment
+	// only by a layer-4 effect, CR 613.1d), which the candidate's
+	// types-so-far list cannot answer. Nil outside that walk.
+	AttachmentTypes []ObjectTypes
 	// AsStack is a DERIVED-CHARACTERISTICS override, not a resolution fact:
 	// rules.derivedWith sets it while evaluating an AffectedZone$ Stack grant
 	// for the spell a cast is announcing (CR 601.2b runs while the announced

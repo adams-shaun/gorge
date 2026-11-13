@@ -137,6 +137,9 @@ func LegacyDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 			break
 		}
 		switch d.Options[0].Kind {
+		case "splice":
+			// Splice is optional; decline (see policy.go's KChoose arm).
+			return Clamp(d, in)
 		case "x":
 			in.Choices = []int{d.Options[len(d.Options)-1].Index}
 		case "exile", "sacrifice", "discard":

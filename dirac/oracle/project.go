@@ -535,6 +535,9 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 				if st.Ability != 255 && copyGrantedAbilityOf(src, int(st.Ability)) {
 					st.Ability = 255 // an as-enters copy's AddAbilities$: the kernel's latent ability
 				}
+				if st.Ability&0x80 != 0 && st.Ability != 255 && copyGrantedTriggerOf(src, int(st.Ability&0x7F)) {
+					st.Ability = 255 // an as-enters copy's "except it has myriad": the kernel's latent trigger
+				}
 			}
 		} else {
 			st.Source = id.ref(g, sid)

@@ -69,6 +69,8 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 	}
 	defer func(o bool) { lc.repeatOpp = o }(lc.repeatOpp)
 	lc.repeatOpp = who.Kind == rEachOpp
+	defer func(o bool) { lc.repeatAllPl = o }(lc.repeatAllPl)
+	lc.repeatAllPl = who.Kind == rEachPlayer
 	for n := body; n != nil; n = n.Sub {
 		var bad []string
 		for k, v := range n.Params {
@@ -135,6 +137,7 @@ func (lc *lowerCtx) repeatEachTargetedSlot() (lRef, error) {
 var repeatPlayerOps = map[string]bool{
 	"LoseLife": true, "GainLife": true, "Draw": true, "Discard": true, "Mill": true, "Sacrifice": true,
 	"CreateToken": true, "UnlessPaid": true,
+	"UnlessSwitched":  true, // the join-forces payer wrapper (lower_storesvar.go)
 	"ChooseMove":      true, // a hand move's owner (DefinedPlayer$ Remembered; startSearch's playerRef)
 	"Dig":             true, // the library dug (Doomsday Excruciator)
 	"ChooseNumberMid": true, // the repeated player chooses the amount (join forces; lower_choosenumber.go)

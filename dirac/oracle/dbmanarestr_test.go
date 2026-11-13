@@ -226,6 +226,9 @@ func TestDbmanarestrLockstep(t *testing.T) {
 // colour choice's restricted units go to the plain pool, which must diverge
 // from gorge (a creature spell paid with Desolation's mana).
 func TestDbmanarestrMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg, set := kdbrSetup(t)
 	old := dirac.DebugDBManaRestrPlain
 	dirac.DebugDBManaRestrPlain = true

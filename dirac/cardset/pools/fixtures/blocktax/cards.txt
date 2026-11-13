@@ -1,0 +1,24 @@
+# the block-tax lockstep pool (S:Mode$ CantBlockUnless with a generic mana
+# Cost$): the six lowered taxes, creatures to attack and block with, and the
+# defender's source shapes -- fixed lands and rocks, a choice-shaped gain
+# land, a chosen-colour land and a mana creature (dirac/oracle/blocktax_test.go).
+Archangel of Tithes
+Qal Sisma Behemoth
+Myr Prototype
+Hipparion
+Awesome Presence
+Cowed by Wisdom
+Grizzly Bears
+Llanowar Elves
+Warden of Geometries
+Serra Angel
+Sol Ring
+Mind Stone
+Tundra
+Tranquil Cove
+Thriving Isle
+Plains
+Island
+Forest
+Swamp
+Mountain

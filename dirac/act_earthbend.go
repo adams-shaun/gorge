@@ -169,11 +169,55 @@ func (s *State) earthbendReturn(k *prep, e *stackEntry) {
 	if ob.zone != kop.ZoneGraveyard && ob.zone != kop.ZoneExile {
 		return
 	}
-	ctrl := ob.owner()
+	if s.earthbendReturnPark(k, o) {
+		return
+	}
+	s.earthbendEnter(k, o)
+}
+
+// preEarthbendRet is preAsk.state for an earthbent card parked at its
+// as-enters choice: asked with the card still in its zone, the entry
+// follows the answer (earthbendEnter).
+const preEarthbendRet uint8 = 14
+
+// earthbendEnter puts the card onto the battlefield tapped under its owner.
+func (s *State) earthbendEnter(k *prep, o Obj) {
+	ctrl := s.objs[o].owner()
 	from := s.detach(o)
 	if from == kop.ZoneGraveyard {
 		s.enterFromGrave(k, o, ctrl, true)
 	} else {
 		s.enter(k, o, ctrl, true, from)
 	}
+}
+
+// earthbendReturnPark asks the returning card's "As it enters, choose ..."
+// with the card still in its graveyard or exile (as returnLinked does;
+// CR 614.12): the owner answers, then earthbendReturnAnswer enters it.
+func (s *State) earthbendReturnPark(k *prep, o Obj) bool {
+	if s.g.pre.state != 0 {
+		return false
+	}
+	switch kind := s.enterChoiceKind(k, s.objs[o].card); kind {
+	case akColor, akType, akNumber, akName, akNameAny:
+		s.g.pre = preAsk{obj: o, kind: kind, state: preEarthbendRet}
+		s.res.ask, s.res.askP = raGenRetChoice, s.objs[o].owner()
+		s.ctl = ctlResolve
+		return true
+	}
+	return false
+}
+
+// earthbendReturnAnswer enters the parked card with its answered choice
+// (the enters program reads pre.val), then the trigger goes on.
+//
+//go:noinline
+func (s *State) earthbendReturnAnswer(k *prep) {
+	o := s.g.pre.obj
+	s.g.pre.state = 2
+	if z := s.objs[o].zone; z == kop.ZoneGraveyard || z == kop.ZoneExile {
+		s.earthbendEnter(k, o)
+	}
+	s.g.pre = preAsk{}
+	s.continueRes(k, 0)
 }

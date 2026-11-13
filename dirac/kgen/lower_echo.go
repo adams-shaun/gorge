@@ -36,15 +36,15 @@ func echoGate(tp *params, tr *lTrigger, ab *lAbility, conds *[]lCond, otherGate 
 // The program is
 //
 //	Cumulative B=1 C=2    skips the rest when the source is gone (no age counter)
-//	UnlessPaid You Mana   the pay-or-decline ask, skipping the sacrifice when paid
+//	UnlessPaid You <kind> the pay-or-decline ask, skipping the sacrifice when paid
 //	Sacrifice self        a decline
 //
 // The gate (Echo$ True) is the trigger's CondEchoOwed (echoGate above).
-// Only a cost of plain mana, generic and coloured pips, lowers: {X} (Volcano
-// Hellion), the action costs of parseCumulativeAction (Discard<1/Card>,
-// Sac<2/Land>), a hybrid or Phyrexian pip (gorge announces those before the
-// election), a {C} pip and a free echo (no ask worth a decision) stay refused
-// by name.
+// A plain mana cost (generic and coloured pips) lowers as Mana; a default
+// Discard<N/Card> or a Sac<N/Land> echo cost lowers as the trigger's own
+// Discard/Sacrifice cost (payInstr). {X} (Volcano Hellion), a hybrid or
+// Phyrexian pip (gorge announces those before the election), a {C} pip, a
+// free echo and any other parseCumulativeAction kind stay refused by name.
 func (lc *lowerCtx) echoUpkeep(ps *params) error {
 	raw, ok := ps.get("Cost")
 	if !ok {
@@ -53,11 +53,13 @@ func (lc *lowerCtx) echoUpkeep(ps *params) error {
 	if lc.ab.Kind != akTriggered {
 		return refuse("echo outside a trigger")
 	}
-	m, err := parseManaCost(strings.TrimSpace(raw))
+	m, merr := parseManaCost(strings.TrimSpace(raw))
 	pips := m.Pips[0] + m.Pips[1] + m.Pips[2] + m.Pips[3] + m.Pips[4]
-	if err != nil || m.None || m.X || m.XX || m.XXX || m.C != 0 || len(m.Hybrid)+len(m.Twobrid)+len(m.Phyrexian) != 0 ||
-		m.Generic < 0 || m.Generic > 15 || m.Generic+pips < 1 {
-		return refuse("echo cost %q (only a plain mana cost of generic and coloured pips lowers)", raw)
+	plainMana := merr == nil && !m.None && !m.X && !m.XX && !m.XXX && m.C == 0 &&
+		len(m.Hybrid)+len(m.Twobrid)+len(m.Phyrexian) == 0 &&
+		m.Generic >= 0 && m.Generic <= 15 && m.Generic+pips >= 1
+	if !plainMana {
+		return lc.echoActionUpkeep(raw)
 	}
 	for _, n := range m.Pips {
 		if n > 7 {
@@ -67,6 +69,40 @@ func (lc *lowerCtx) echoUpkeep(ps *params) error {
 	lc.emit(lInstr{Op: "Cumulative", C: 2, B: cst(kop.EchoNoCounter), Note: "echo: no age counter; the payment and the sacrifice are skipped if the source is gone"})
 	lc.emit(lInstr{Op: "UnlessPaid", Obj: lRef{Kind: rYou}, CS: "Mana", Skip: 1,
 		A: cst(m.Generic), B: cst(packPips(m.Pips)), Note: "pay the echo cost, else sacrifice"})
+	lc.emit(lInstr{Op: "Sacrifice", Obj: lRef{Kind: rYou}, A: cst(1), F: &lFilter{Clauses: []lClause{{Flags: fSelf}}}})
+	return nil
+}
+
+// echoActionUpkeep lowers an echo cost that is an action rather than mana:
+// Discard<N/Card> (Deepcavern Imp, Rakdos Headliner) or Sac<N/Land> (Skizzik
+// Surger). gorge's echoActionAsk then asks which N cards or lands are chosen
+// (kernel PayDiscard / PaySac). Everything else keeps an "echo cost" refusal.
+func (lc *lowerCtx) echoActionUpkeep(raw string) error {
+	cost, err := lc.costUnless(strings.TrimSpace(raw))
+	if err != nil {
+		return refuse("echo cost %q (only a plain mana cost, a default discard or a land sacrifice lowers)", raw)
+	}
+	if cost.Sac != nil {
+		// Sac<N/Spec> costs sacrifice what the payer controls: say so in the
+		// filter, as a kernel cost's Filter does (build.go cost).
+		f := *cost.Sac
+		f.Clauses = append([]lClause(nil), f.Clauses...)
+		if cost.SacN <= 0 || len(f.Clauses) != 1 || f.Clauses[0] != (lClause{Types: tLand}) ||
+			f.Players != 0 || f.Each || f.PickSumMax != nil || f.PickDistinctPower {
+			return refuse("echo cost %q (only a plain mana cost, a default discard or a land sacrifice lowers)", raw)
+		}
+		f.Clauses[0].Ctrl = whoYou
+		cost.Sac = &f
+	}
+	lc.trigOwnCost = true
+	in, err := lc.payInstr(cost, lRef{Kind: rYou}, true)
+	lc.trigOwnCost = false
+	if err != nil || in.CS != "Discard" && in.CS != "Sacrifice" {
+		return refuse("echo cost %q (only a plain mana cost, a default discard or a land sacrifice lowers)", raw)
+	}
+	in.Op, in.Skip = "UnlessPaid", 1
+	lc.emit(lInstr{Op: "Cumulative", C: 2, B: cst(kop.EchoNoCounter), Note: "echo: no age counter; the payment and the sacrifice are skipped if the source is gone"})
+	lc.emit(in)
 	lc.emit(lInstr{Op: "Sacrifice", Obj: lRef{Kind: rYou}, A: cst(1), F: &lFilter{Clauses: []lClause{{Flags: fSelf}}}})
 	return nil
 }

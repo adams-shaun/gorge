@@ -81,7 +81,7 @@ func (s *State) prevNextAdd(k *prep, in *kop.Instr) {
 	for i := range s.g.prevCol {
 		if r := &s.g.prevCol[i]; r.col == 0 && r.sc == 0 {
 			r.obj, r.col, r.sc, r.ctl = s.res.e.obj, kop.ColorMask(n), prevNextSc, code
-			if in.C&1 != 0 {
+			if in.C&1 != 0 { // seat-ok: an instruction flag bit
 				r.sc |= prevNextCmb
 			}
 			return

@@ -71,19 +71,19 @@ func (e *Encoder) zoneOf(o uint8) zoneKey {
 			}
 		}
 	case kop.ZoneBattlefield:
-		for i, ci := range v.players[ob.Ctrl&1].bf {
+		for i, ci := range v.players[dirac.SeatIx(ob.Ctrl)].bf {
 			if v.cards[ci].obj == o {
-				return zoneKey{zone: 1, seat: ob.Ctrl & 1, idx: uint16(i), ok: true}
+				return zoneKey{zone: 1, seat: ob.Ctrl, idx: uint16(i), ok: true}
 			}
 		}
 	case kop.ZoneGraveyard:
-		return zoneKey{zone: 2, seat: ob.Owner & 1, idx: uint16(e.st0.FeatZoneIndex(dirac.Obj(o))), ok: true}
+		return zoneKey{zone: 2, seat: ob.Owner, idx: uint16(e.st0.FeatZoneIndex(dirac.Obj(o))), ok: true}
 	case kop.ZoneExile:
-		return zoneKey{zone: 3, seat: ob.Owner & 1, idx: uint16(e.st0.FeatZoneIndex(dirac.Obj(o))), ok: true}
+		return zoneKey{zone: 3, seat: ob.Owner, idx: uint16(e.st0.FeatZoneIndex(dirac.Obj(o))), ok: true}
 	case kop.ZoneHand:
-		return zoneKey{zone: 4, seat: ob.Owner & 1, idx: uint16(e.st0.FeatZoneIndex(dirac.Obj(o))), ok: true}
+		return zoneKey{zone: 4, seat: ob.Owner, idx: uint16(e.st0.FeatZoneIndex(dirac.Obj(o))), ok: true}
 	case kop.ZoneLibrary:
-		return zoneKey{zone: 5, seat: ob.Owner & 1, idx: uint16(e.st0.FeatZoneIndex(dirac.Obj(o))), ok: true}
+		return zoneKey{zone: 5, seat: ob.Owner, idx: uint16(e.st0.FeatZoneIndex(dirac.Obj(o))), ok: true}
 	}
 	return zoneKey{}
 }
@@ -238,7 +238,7 @@ func (e *Encoder) listShape(d *dirac.Decision, bot int) int {
 	extra := 0 // gorge-only entries: the mana taps
 	if d.Kind == dirac.DkPriority {
 		// kernel FeatManaSources, read from the view
-		for _, ci := range e.v.players[d.Player&1].bf {
+		for _, ci := range e.v.players[dirac.SeatIx(d.Player)].bf {
 			if e.v.cards[ci].manaSrc {
 				extra++
 			}

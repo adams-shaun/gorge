@@ -102,6 +102,9 @@ func TestInfiniteDiversityLockstep(t *testing.T) {
 // decision (every copy queued at the first pick), or each copy a cast of the
 // original card (it leaves exile), some seed diverges.
 func TestInfiniteDiversityMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	for _, mc := range []struct {
 		name string
 		mut  func(*kop.Table)

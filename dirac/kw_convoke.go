@@ -99,7 +99,7 @@ func (s *State) convokeCreditFrom(k *prep, p uint8, c CardID, o Obj, fromHand bo
 	gen := cost.Generic
 	var used slotMask
 	var ord [MaxPerm]Slot
-	n := s.battlefieldOrder(p&1, s.ctrlM[SeatIx(p)].and(s.occ), ord[:], 0)
+	n := s.battlefieldOrder(SeatIx(p), s.ctrlM[SeatIx(p)].and(s.occ), ord[:], 0)
 	if convoke {
 		for _, sl := range ord[:n] {
 			if !s.tapPayCand(k, sl, false) {
