@@ -46,7 +46,7 @@ func (s *State) extUnlockDoor(k *prep, in *kop.Instr) bool {
 		return true
 	}
 	s.res.peek[0] = Obj(sl) // code-ok: a slot rides the peek list
-	if in.C&1 != 0 { // seat-ok: an instruction flag bit
+	if in.C&1 != 0 {        // seat-ok: an instruction flag bit
 		s.res.ask, s.res.askP = raUnlockHalf, s.res.e.ctrl
 		return false
 	}
