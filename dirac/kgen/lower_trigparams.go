@@ -106,6 +106,9 @@ func (lc *lowerCtx) trigParams3(tp *params, tr *lTrigger, mode string) error {
 //     sacrificedMatches (zone.go L207-238) reads ValidCard$, ValidPlayer$ and
 //     WhileKeyword$ and never these two, so they are inert and consumed here.
 func (lc *lowerCtx) trigParams4(tp *params, tr *lTrigger, mode string) error {
+	if err := atLeastOneInstance(tp, tr, mode); err != nil { // lower_atleastone.go
+		return err
+	}
 	if mode == "SpellCast" {
 		if v, ok := tp.get("IsSingleTarget"); ok {
 			if strings.TrimSpace(v) != "True" {

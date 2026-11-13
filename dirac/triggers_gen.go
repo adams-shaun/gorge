@@ -560,6 +560,10 @@ type dmgLatch struct {
 	l       [8]trigListener
 	total   int16 // all the source's damage this batch
 	totalPl int16 // the part dealt to players
+	// r and src are the combat step's events and this latch's source: an
+	// AtLeastOneInstance$ gate reads each recipient's share (trig_atleastone.go)
+	r   *dmgRec
+	src Slot
 }
 
 // has reports whether l latched before the event whose walk began with seen
@@ -651,6 +655,9 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 			if t.Flags2&(kop.Tf2Batch|kop.Tf2PerReferent) == kop.Tf2Batch && !s.batchTrigOK(l, a, NoObj) {
 				return
 			}
+			if !instGateOK(t, amt, latch, rl) {
+				return // trig_atleastone.go: AtLeastOneInstance$
+			}
 			if once {
 				n = latch.total
 				if t.Flags&kop.TfToPlayer != 0 {
@@ -735,6 +742,9 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 			if n, tobj, tpl, ok = s.ddoLine(k, l, a, NoSlot, o, ctrl, amt, rcp, rl); !ok {
 				return
 			}
+		}
+		if !instGateOK(t, amt, nil, rl) {
+			return // trig_atleastone.go: AtLeastOneInstance$
 		}
 		s.queueTrig(k, l, a, tobj, tpl, n)
 	}
@@ -956,7 +966,7 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 			// one Damage event per recipient, in assignment order (gorge
 			// runCombatAssignments emits each assignment): DamageDone per
 			// event, DamageDealtOnce at the source's first matching event
-			latch := dmgLatch{total: r.dealt[sl], totalPl: r.dealtPl[sl]}
+			latch := dmgLatch{total: r.dealt[sl], totalPl: r.dealtPl[sl], r: r, src: sl}
 			for i := 0; i < r.nev; i++ {
 				if ev := r.ev[i]; ev.src == sl && ev.n > 0 {
 					if ev.dst == NoSlot {

@@ -8,6 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // The MBC api-params-2 spellings, each played in lockstep over its fixture
@@ -17,6 +18,10 @@ import (
 //     flip by SetState Mode$ Flip (kop.FaceFlip); the Graverobber's flip
 //     reads Count$ValidGraveyard Card.OwnedBy TargetedController
 //     (kop.CtrlTgtOwner). Fixture dirac/cardset/pools/fixtures/mbcflip.
+//   - param:trigger.AtLeastOneInstance: Matoc, Lavamancer's DamageDealtOnce
+//     trigger fires only when a recipient was dealt exactly 2 of a source's
+//     damage (Shock, Grizzly Bears and its own "any other target" ping pass;
+//     Lightning Bolt and Hill Giant do not). Fixture mbcmatoc.
 //
 // Each subtest asserts the route it is about ran in gorge (the flip, the
 // trigger), so a lockstep that never reached it cannot pass.
@@ -43,6 +48,7 @@ func TestMBCApiParams2Lowers(t *testing.T) {
 		c    ap2Case
 	}{
 		{"faces", ap2Flip},
+		{"AtLeastOneInstance", ap2Matoc},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			counts := runAP2(t, tc.c)
@@ -84,6 +90,45 @@ var ap2Flip = ap2Case{
 		}
 	},
 	want: map[string]int{"flip Orochi Eggwatcher": 10, "flip Nezumi Graverobber": 40},
+}
+
+var ap2Matoc = ap2Case{
+	fixture: "mbcmatoc",
+	decks: []fixtureDecks{{
+		{
+			{Name: "Matoc, Lavamancer", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Lightning Bolt", Count: 4},
+			{Name: "Grizzly Bears", Count: 4}, {Name: "Hill Giant", Count: 4},
+			{Name: "Mountain", Count: 14}, {Name: "Forest", Count: 6},
+		},
+		{
+			{Name: "Matoc, Lavamancer", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Lightning Bolt", Count: 4},
+			{Name: "Grizzly Bears", Count: 4}, {Name: "Hill Giant", Count: 4},
+			{Name: "Mountain", Count: 14}, {Name: "Forest", Count: 6},
+		},
+	}},
+	watch: map[string]bool{"Matoc, Lavamancer": true, "Shock": true, "Lightning Bolt": true},
+	seeds: 60,
+	tally: func(g *GorgeSide, evs []events.Event, counts map[string]int) {
+		matoc := func(id state.ObjID) bool {
+			o := g.E.G.Obj(id)
+			return o != nil && o.Card != nil && o.Card.Faces[0].Name == "Matoc, Lavamancer"
+		}
+		onField := false // a Matoc on the battlefield as the damage is dealt (approximated by any)
+		for i := range evs {
+			e := &evs[i]
+			switch {
+			case e.Kind == events.TriggerPush && matoc(e.Obj):
+				counts["trigger"]++
+			case e.Kind == events.AbilityPush && matoc(e.Obj):
+				counts["ping"]++
+			case e.Kind == events.MoveZone && e.To == state.ZBattlefield && matoc(e.Obj):
+				onField = true
+			case e.Kind == events.Damage && e.Amount > 0 && e.Amount != 2 && onField:
+				counts["not-2 damage"]++
+			}
+		}
+	},
+	want: map[string]int{"trigger": 20, "ping": 5, "not-2 damage": 20},
 }
 
 // ap2Policy plays randomly but, three times in four, takes a cast or an

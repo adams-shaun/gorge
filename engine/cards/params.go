@@ -880,6 +880,11 @@ const (
 	// Read by pay.WithSpellAbilityExtras / AbilityCompiledCost into
 	// rules/cost.Cost.XColors. Appended: earlier ordinals stay stable.
 	PKXColor
+	// AtLeastOneInstance$ <cmp> on a DamageDealtOnce trigger (Matoc,
+	// Lavamancer): some recipient's share of the batch passes the
+	// comparison. Read by rules latchDamageBatch / closeDamageBatch.
+	// Appended: earlier ordinals stay stable.
+	PKAtLeastOneInstance
 	paramKeyCount
 )
 
@@ -1695,6 +1700,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKCanBlockAmount:                   "CanBlockAmount",
 	PKCanBlockAny:                      "CanBlockAny",
 	PKXColor:                           "XColor",
+	PKAtLeastOneInstance:               "AtLeastOneInstance",
 }
 
 // String is the key's Forge text.

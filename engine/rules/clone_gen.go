@@ -570,6 +570,8 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 				c.damageBatchLog[i0] = e.damageBatchLog[i0]
 				c.damageBatchLog[i0].sources = append([]state.ObjID(nil), e.damageBatchLog[i0].sources...)
 				c.damageBatchLog[i0].targets = append([]state.Target(nil), e.damageBatchLog[i0].targets...)
+				c.damageBatchLog[i0].instTo = append([]state.Target(nil), e.damageBatchLog[i0].instTo...)
+				c.damageBatchLog[i0].instAmt = append([]int32(nil), e.damageBatchLog[i0].instAmt...)
 			}
 		}
 	}

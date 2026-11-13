@@ -401,6 +401,15 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 			if ts.Filter, err = cb.filter(&g, kop.ZoneBattlefield); err != nil {
 				return ts, err
 			}
+		case f.Players == plBoth && anyOtherTarget(f):
+			// "any other target" (Matoc, Lavamancer; Black Panther, Red
+			// Hulk, the Invasions of Tarkir and Ulgrotha): the "any target"
+			// walk with the object half not the source (gorge's .Other)
+			ts.Kind = kop.TgtAny
+			g := lFilter{Clauses: []lClause{{Flags: fOther}}}
+			if ts.Filter, err = cb.filter(&g, kop.ZoneBattlefield); err != nil {
+				return ts, err
+			}
 		default:
 			return ts, fmt.Errorf("mixed player/object target %s", f)
 		}
@@ -1485,6 +1494,14 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 			return kt, fmt.Errorf("source-in-play flag on a %s trigger", t.Event)
 		}
 		kt.Flags2 |= kop.Tf2SrcInPlay
+	}
+	if t.InstGate != 0 {
+		// AtLeastOneInstance$ (lower_atleastone.go): a once-per-source
+		// DamageDealtOnce line, whose Trigger.N nothing else reads
+		if t.Event != "DamageDealtOnce" || t.PerRef || t.F2 != nil {
+			return kt, fmt.Errorf("AtLeastOneInstance gate on a %s trigger", t.Event)
+		}
+		kt.N = t.InstGate
 	}
 	if t.PerRef {
 		if t.Event != "DamageDone" || !t.Batch {
