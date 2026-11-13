@@ -41,6 +41,7 @@ func Pools() []Pool {
 		{Name: "pauper", Label: "SpellBench pauper-bo1", Tree: "63423c92b1c867dc4e0406a23a08e6a84ba8e8975ff226902024674f40f9655a", Decks: 8},
 		{Name: "cmd5", Label: "gorge Foundations Commander precons", Tree: "bf7d262947055c44eb84c14e648249e7d907b0bfcca788f9fd04f9f53f300072", Decks: 5},
 		{Name: "standard-meta", Label: "MTGGoldfish Standard", Tree: "3788c0cc4bcecf3807a3c2045e33d466d04270f0d73145ed6c39a212f0122a9f", Decks: 60},
+		{Name: "mbc", Label: "draftsim MBC Commander drafts, 50-card decks", Tree: "92732986d6ecb20f20b86231ad525c7f8ca2c0a2fb1e1ac2970c07774659bbc0", Decks: 234},
 	}
 }
 

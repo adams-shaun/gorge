@@ -178,6 +178,9 @@ func (s *State) costObjOptions(k *prep, d *Decision) bool {
 		return s.returnPickOptions(k, d, pc) // a Return<N/Spec> part (act_energy.go)
 	}
 	n, f := int(pc.N), pc.Filter
+	if exileXCost(pc) {
+		n = int(e.x) // ExileFromGrave<X/Spec>: the announced X (cost_exilex.go)
+	}
 	if pc.ExileGSelf {
 		// ExileFromGrave<1/CARDNAME> first (gorge exAsk's unasked singleton),
 		// then the N other cards: the source is the first exile pick.

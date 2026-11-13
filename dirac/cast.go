@@ -93,7 +93,9 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 			s.g.impCast = false
 		}
 		if s.g.impCast {
-			if k.t.Cards[c].HasOverload {
+			if k.t.Cards[c].HasSurge {
+				e.mode |= modeImpended // the surged cast (kw_surge.go: the bit reads as surged on a HasSurge card)
+			} else if k.t.Cards[c].HasOverload {
 				e.mode |= modeImpended // the overloaded cast (kw_overload.go: the bit reads as overloaded on a HasOverload card)
 			} else if k.t.Cards[c].HasEvoke {
 				e.spc |= spcEvoked // the evoked cast (kw_evoke.go)
@@ -146,10 +148,11 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		}
 	}
 	n0 := s.npend
-	if fl&sfKicked != 0 && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
+	if (fl&sfKicked != 0 || k.gen != nil && k.gen.anySurge && s.bld().e.surged(k)) && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
 		// (an optional waterbend cast taps nothing here: its window pays after
 		// the picks, manaStep's waterbendCastWindow, as gorge's convokeAsk
 		// precedes its manual window)
+		// (a surged cast is the same potential play: kw_surge.go)
 		// gorge has no planned kicked cast: the oracle lowers it by tapping
 		// the witness's sources at priority, then casts from the floating
 		// pool; the mana is spent at payment as usual. The witness is
@@ -569,11 +572,6 @@ func (s *State) buildCost0(k *prep) kop.ManaCost {
 // folded, so the caller resolves nothing more.
 func (s *State) buildCostPre(k *prep, pre, charge bool) (kop.ManaCost, bool) {
 	c, done := s.buildCostPreRaw(k, pre, charge)
-	if s.cfg&cfgCommander != 0 && s.bld().e.kind == seSpell {
-		// CR 903.8: the command-zone tax, after the cost statics, so a
-		// reduction never takes it off
-		addCommanderTax(&c, s.commanderTax(s.bld().e.ctrl, s.bld().e.obj))
-	}
 	if s.bld().e.flags&sfAnyMana != 0 && s.bld().e.kind == seSpell {
 		c = anyTypePips(c) // a hand cast under Vizier's conversion too (mana_convertcreature.go); idempotent
 	}
@@ -622,6 +620,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if cd.HasDash && e.impended() {
 			c = cd.DashCost // the dash cost (CR 702.109a; kw_dash.go)
 		}
+		if cd.HasSurge && e.surged(k) {
+			c = surgeCostOf(cd) // the surge cost (CR 702.117a; kw_surge.go)
+		}
 		if cd.HasOverload && e.overloaded(k) {
 			c = cd.OverloadCost // the overload cost (CR 702.96a; kw_overload.go)
 		}
@@ -658,8 +659,14 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if cd.HasModeCost {
 			c = spreeCost(cd, e.mode, c) // kw_spree.go
 		}
+		if s.cfg&cfgCommander != 0 {
+			// CR 903.8: the command-zone tax, an additional cost. A
+			// command-zone cast is only ever this plain cast
+			// (offerCommanderSlot), so this is the one path it reaches.
+			addCommanderTax(&c, s.commanderTax(e.ctrl, e.obj))
+		}
 		// a reduction applies to the total cost, a flashback or kicked one
-		// too (CR 601.2f)
+		// or a taxed one too (CR 601.2f)
 		done := false
 		if pre {
 			c, done = s.foldTb(k, c)
@@ -870,8 +877,14 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if k.gen != nil && k.gen.anySacX {
 				mx = s.sacXClamp(k, &cost, mx) // Sac<X/Spec> bounds the ask by the sacrifice candidates
 			}
+			if k.gen != nil && k.gen.anyExileX {
+				mx = s.exileXClamp(k, mx) // ExileFromGrave<X/Spec> bounds the ask by the graveyard candidates
+			}
 			d.Kind, d.Sub, d.Player = DkChoose, ChX, e.ctrl
 			hi := s.xReducedCeiling(k, e, &cost, &av, mx)
+			if k.gen != nil && k.gen.anyExileX {
+				hi = s.exileXClamp(k, hi)
+			}
 			if np := s.convokeXCredit(k); np > 0 {
 				hi = min(maxXAsk, max(hi, mx+np)) // each announced pick pays one generic (a harmonize pick its power) of the X total
 			}
@@ -931,6 +944,17 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if k.teamwork {
 				if tw := s.twModes(k); tw != 0 {
 					pick = tw // the teamworked cast's "choose both" (kw_teamwork.go)
+				}
+			}
+			if k.entwine {
+				if n, ok := s.entwineModes(k); ok {
+					if n == 0 {
+						// an entwined cast with no mode that has a target is no legal
+						// announcement (gorge castModeAsk: CR 733.1 reversal)
+						s.reverseCast(k)
+						return false
+					}
+					pick = n // every feasible mode (kw_entwine.go)
 				}
 			}
 			if k.gen != nil && k.gen.anyCharmV {
@@ -1666,6 +1690,12 @@ func (s *State) finishBuild(k *prep) {
 		// resolveTop tests it only on a copy)
 		if s.bld().e.flags&sfFree != 0 && s.g.freeP&freeGY != 0 && s.bld().bfl&bflPushed != 0 {
 			s.stack[s.sp-1].flags |= sfFreeGY
+		}
+		if k.retrace && s.bld().bfl&bflPushed != 0 && jumpStartEntry(k, &e) && !DebugJumpStartNoExile {
+			// a paid jump-start cast is exiled whenever it leaves the stack
+			// (CR 702.84a; gorge FlagJumpstart): the flashback family's mark,
+			// stamped only now (kw_jumpstart.go)
+			s.stack[s.sp-1].flags |= sfFlashback
 		}
 		// ForgetPlayed$ True: this free cast now sits on the stack
 		// (CR 601.2a), the point where gorge's PlayDone pass sees it and
@@ -2438,7 +2468,7 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 		}
 		if s.bld().altAdd == buildAltCost {
 			if a := &cd.Abilities[k.gen.altFree[e.card]-1]; altPickCost(&a.Cost) {
-				return &a.Cost // the sacrifice / hand-exile alternative cost (Fireblast, Force of Will; cast_altfree.go)
+				return &a.Cost // the sacrifice / return / hand-exile alternative cost (Fireblast, Gush, Force of Will; cast_altfree.go)
 			}
 		}
 		if s.bld().altAdd == buildBeamGrant {

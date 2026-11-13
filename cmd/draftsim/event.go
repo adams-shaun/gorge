@@ -220,6 +220,9 @@ func (r *runner) podShapeOr() podShape {
 // concrete persona types are the only drafter the tool builds, so the
 // label is fixed.
 func drafterLabel(r *runner) string {
+	if x, ok := r.drafter.(*exploreDrafter); ok {
+		return drafterLabel(&runner{drafter: x.inner}) + "+explore"
+	}
 	if _, ok := r.drafter.(*pickbot.RatingColour); ok {
 		return "rating-colour"
 	}

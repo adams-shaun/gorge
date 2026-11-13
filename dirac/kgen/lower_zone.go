@@ -1967,7 +1967,12 @@ func (lc *lowerCtx) play(ps *params) error {
 	// Spirit): gorge effPlay walks only the resolving controller's hand, whose
 	// cards that player owns, so YouOwn filters nothing there
 	lc.bluffPlay = playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)
-	saExpr, err := lc.playSAExpr(ps.str("ValidSA"))
+	var saExpr string
+	var err error
+	if !playCommandZone(ps) {
+		// (the command-zone Play reads its absent ValidSA$: lower_playcommand.go)
+		saExpr, err = lc.playSAExpr(ps.str("ValidSA"))
+	}
 	lc.bluffPlay = false
 	if err != nil {
 		return err
@@ -2100,6 +2105,13 @@ func (lc *lowerCtx) play(ps *params) error {
 		}
 		lc.playLibrary = true
 		return emit(lRef{Kind: rRemembered}, zLibrary, saExpr)
+	case "Command":
+		// P5: the resolving controller's own commanders in the command zone
+		// (Geode Golem; lower_playcommand.go)
+		if !playCommandZone(ps) || forget || replace {
+			return refuse("Play ValidZone$ Command with Valid$ %q", valid)
+		}
+		return emit(lRef{Kind: rNone}, zCommand, "")
 	case "Hand", "Graveyard":
 		// P3/P4: untargeted filter population over the controller's hand or
 		// the graveyards, in seat order.
@@ -2571,6 +2583,9 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	}
 	if t.Mode == "BecomeMonarch" {
 		return monarchEffectTrigger() // lower_monarch.go
+	}
+	if eot && t.Mode == "TapsForMana" {
+		return effectTapExtraRefuse() // lower_tapextra.go
 	}
 	if (eot || next) && t.Mode != "SpellCast" && t.Mode != "ChangesZone" && t.Mode != "Sacrificed" && t.Mode != "DamageDone" && !(t.Mode == "DamageDealtOnce" && lc.pairCap != nil) &&
 		t.Mode != "AttackersDeclared" && t.Mode != "AttackersDeclaredOneTarget" && t.Mode != "Attacks" {
@@ -4333,6 +4348,15 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 			return true, refuse("Effect MayPlayIgnoreType %q beside a %s permission", v, map[bool]string{true: "card-owner", false: "controller"}[owner])
 		}
 		flags |= kop.MayPlayAnyType
+	}
+	if v, ok := may.get("MayPlayIgnoreColor"); ok {
+		// "you may spend mana as though it were mana of any color to cast
+		// it" (Brainstealer Dragon, Siphon Insight): the record's any-colour
+		// rider, as the end-of-turn grant above carries it
+		if strings.TrimSpace(v) != "True" || owner {
+			return true, refuse("Effect MayPlayIgnoreColor %q beside a %s permission", v, map[bool]string{true: "card-owner", false: "controller"}[owner])
+		}
+		flags |= kop.MayPlayIgnoreColor
 	}
 	var valid *lFilter
 	if name, ok := may.get("CheckSVar"); ok && !owner {

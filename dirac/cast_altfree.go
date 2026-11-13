@@ -36,6 +36,15 @@ func altSacCost(c *kop.Cost) bool {
 	return c.Flags == kop.CostSac && c.N > 0 && c.Mana == (kop.ManaCost{})
 }
 
+// altReturnCost: the alternative cost is returning N permanents matching its
+// filter to their owners' hands and nothing else (Gush's Return<2/Island>,
+// Thwart's Return<3/Island>, Daze's Return<1/Island>; gorge cost.go
+// returnCost, the pick posed as returnAsk; kgen altSacOK keeps it to an
+// instant or sorcery with no other cost).
+func altReturnCost(c *kop.Cost) bool {
+	return c.Flags == kop.CostReturn && c.N > 0 && c.Mana == (kop.ManaCost{})
+}
+
 // altHandExileCost: the alternative cost is exiling N hand cards matching its
 // filter, and paying N life beside it or not, nothing else (Force of Will's
 // PayLife<1> and ExileFromHand<1/Card.Blue+Other>, Misdirection's exile alone,
@@ -57,10 +66,10 @@ func altDiscardTwoCost(c *kop.Cost) bool {
 }
 
 // altPickCost: the alternative cost's non-mana parts are picks the cast asks
-// (the sacrifice, the hand exile or the two discards) rather than a bare
-// mana price.
+// (the sacrifice, the return, the hand exile or the two discards) rather than a
+// bare mana price.
 func altPickCost(c *kop.Cost) bool {
-	return altSacCost(c) || altHandExileCost(c) || altDiscardTwoCost(c)
+	return altSacCost(c) || altReturnCost(c) || altHandExileCost(c) || altDiscardTwoCost(c)
 }
 
 // offerAltFreeHand offers hand card o's cast for its own free alternative
@@ -82,10 +91,10 @@ func (s *State) offerAltFreeHand(k *prep, d *Decision, p uint8, o Obj, c CardID,
 		return
 	}
 	if altPickCost(&a.Cost) {
-		// the sacrifice alternative (Fireblast), or the pay-life and
-		// hand-exile one (Force of Will): gorge's hand walk offers its
-		// AltCostIndex 1 cast while the permanents can be sacrificed / the
-		// life paid and the cards exiled; the cast asks the targets, then
+		// the sacrifice alternative (Fireblast), the return one (Gush), or
+		// the pay-life and hand-exile one (Force of Will): gorge's hand walk
+		// offers its AltCostIndex 1 cast while the permanents can be
+		// sacrificed or returned / the life paid and the cards exiled; the cast asks the targets, then
 		// the picks (CR 601.2b-h; buildPickCost serves the static's cost)
 		ac := s.adjustCost(k, p, c, o, a.Cost.Mana)
 		if !s.pickCostPayable(k, p, &a.Cost, o) || !av.affords(&ac, pipMaskOf(&ac), 0) || !s.windowPoolPays(p, &ac, false) {

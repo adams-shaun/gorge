@@ -60,7 +60,9 @@ func (s *Store) DeckLoader(reg *cards.Registry, next func(string) (host.Deck, er
 		if err != nil {
 			return host.Deck{}, err
 		}
-		d := host.Deck{Name: f.Name, Cards: cs}
+		// A Commander-draft deck names its commanders; the commander
+		// table seats them from these indices (nil for a limited deck).
+		d := host.Deck{Name: f.Name, Cards: cs, Commanders: f.CommanderIndices()}
 		cache[id] = d
 		return d, nil
 	}

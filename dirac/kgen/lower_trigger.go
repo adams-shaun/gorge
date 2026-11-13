@@ -228,6 +228,12 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// no arena designation bit
 			return refuse("IsSuspected in a battlefield-origin ChangesZone ValidCard$")
 		}
+		if tr.Origin == zBattlefield && filterReadsNotBlocking(tr.F) {
+			// gorge matches a leave on the LKI, where isBlocking reads the
+			// live object's record and the attackers' BlockedBy lists; the
+			// kernel's off-battlefield W7NotBlocking always holds
+			return refuse("!blocking in a battlefield-origin ChangesZone ValidCard$")
+		}
 		if tc, ok := tp.get("TriggerController"); ok && tc != "TriggeredCardController" {
 			return refuse("TriggerController %q", tc)
 		}
@@ -538,6 +544,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if tp.str("ValidPlayer") == "Player.EnchantedController" {
 			// gorge playerEnchantedController: the bearer's controller
 			w, ok = whoEnchCtrl, true
+		}
+		if tp.str("ValidPlayer") == "Player.Chosen" && lc.granted == 0 && tr.Zone == zBattlefield && entersChoosingPlayer(lc.face) {
+			// the opponent the source chose as it entered (lower_chooseplayerenter.go)
+			w, ok = whoChosen, true
 		}
 		if tp.str("ValidPlayer") == "You.descended" {
 			// gorge playerSpecQualifierDescended (CR 700.11): a permanent
@@ -2149,7 +2159,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		} else if st.Cost, err = lc.altCostCost(sp.str("Cost")); err != nil {
 			return nil, err
 		}
-		if st.Cost.Forage != nil || st.Cost.ExileG != nil && !st.Cost.ExileHand || st.Cost.Energy != 0 || st.Cost.Return != nil {
+		// a Return<N/Spec> part lowers alone (Gush, Thwart, Daze: the
+		// kernel's return alternative, build_ab.go altReturnOK); beside any
+		// other part build_ab.go refuses it as a non-mana alternative
+		if st.Cost.Forage != nil || st.Cost.ExileG != nil && !st.Cost.ExileHand || st.Cost.Energy != 0 {
 			return nil, refuse("alternative cost with a forage / exile-from-graveyard part")
 		}
 	case "Activations":
@@ -4004,6 +4017,13 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 				return err
 			}
 		case "ChoosePlayer":
+			if !other && node == sa && !spyglassChain(sa) {
+				// the as-enters opponent (lower_chooseplayerenter.go)
+				if err := lc.etbChoosePlayer(ps, node, sa, other, cond); err != nil {
+					return err
+				}
+				break
+			}
 			// Sorcerous Spyglass's chain head (lower_choosename.go spyglassChain)
 			if other || node != sa || !spyglassChain(sa) {
 				return refuse("ETB replacement api ChoosePlayer")

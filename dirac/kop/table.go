@@ -253,6 +253,12 @@ type CardDef struct {
 	// mode bit 0, sfKicked) is gorge's "buyback" cast; Keywords has no
 	// KwKicker. The spell returns to its owner's hand as it resolves.
 	Buyback bool
+	// Entwine: K:Entwine (CR 702.42a) on a single-pick instant/sorcery charm:
+	// Kicker holds the entwine cost (zero mana with KickerCost for a Sac part)
+	// and the kicked cast (AkCast mode bit 0, sfKicked) is gorge's "entwined"
+	// cast, which announces every feasible mode (dirac/kw_entwine.go);
+	// Keywords has no KwKicker.
+	Entwine bool
 	// Landwalk is the printed landwalk keyword's land filter (CR 702.14,
 	// 0 = none): the creature can't be blocked while the defending player
 	// controls a land matching it.
@@ -450,6 +456,12 @@ type CardDef struct {
 	// spell additional cost (kgen refuses them; no corpus card carries one).
 	Retrace     bool
 	RetraceCost Cost
+	// JumpStart is printed K:Jump-start (CR 702.84a), set with Retrace: the
+	// same graveyard cast with RetraceCost a discard of any one card
+	// (CostDiscard), and the spell exiled whenever it leaves the stack (the
+	// flashback family's sfFlashback, stamped once the cast is paid;
+	// dirac/kw_jumpstart.go).
+	JumpStart bool
 	// MorphCost is the turn-face-up cost of a printed Morph, Megamorph or
 	// Disguise keyword (CR 702.37e, 702.168c, 702.169b; zero with
 	// MorphFamily 0). MorphFamily says which (CardDef.Face*Family).
@@ -538,6 +550,12 @@ type CardDef struct {
 	// spell runs OverloadProg, the "each" variant of its printed program
 	// (dirac/kw_overload.go).
 	HasOverload bool
+	// HasSurge is printed surge (CR 702.117a; no KwMask bit is free): the
+	// hand offers the surged cast at SurgeCost once its caster has cast
+	// another spell this turn (dirac/kw_surge.go).
+	HasSurge bool
+	// SurgeCost is the printed surge cost (HasSurge).
+	SurgeCost ManaCost
 	// OverloadCost is the printed overload cost (HasOverload).
 	OverloadCost ManaCost
 	// OverloadProg is the overloaded cast's program (CR 702.96a): the
@@ -600,6 +618,9 @@ type CardDef struct {
 	// itself (CR 509.1b: "can't be blocked except by N or more creatures";
 	// 0 = none): menace's floor generalised (dirac/combat.go minBlockers).
 	// Not when the creature has lost its abilities. Troll of Khazad-dum.
+	// MinBlockersAll (outside the literal 2..8) is Min$ All (Tromokratis:
+	// "can't be blocked unless all creatures defending player controls
+	// block it"): the floor is every creature the attacked player controls.
 	MinBlockers uint8
 	// ExtraBlocks is a printed S:Mode$ Continuous | AffectedDefined$ Self |
 	// CanBlockAmount$ 1 (CR 509.1a): the creature can block one additional
@@ -772,3 +793,8 @@ func (c *CardDef) TapPays() bool { return c.Convoke || c.Improvise }
 
 // AndNot is m without the members of o.
 func (m SubMask) AndNot(o SubMask) SubMask { return SubMask{m[0] &^ o[0], m[1] &^ o[1], m[2] &^ o[2]} }
+
+// MinBlockersAll is CardDef.MinBlockers' Min$ All form: the floor is the
+// attacked player's whole creature count (gorge combat.DefenderCreatureCount),
+// so one creature of theirs that cannot block makes the attacker unblockable.
+const MinBlockersAll uint8 = 255

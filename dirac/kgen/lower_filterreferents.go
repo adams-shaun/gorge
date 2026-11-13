@@ -177,6 +177,10 @@ func ownerRoleWord(w uint8) string {
 //     that object is some other event's. sharesCreatureTypeWith
 //     TriggeredAttacker (kop.W7SharesCrTrigObj) reads the same object
 //     under the same gate.
+//   - blockingTriggeredAttacker (kop.W7BlockingTrigObj) reads the
+//     become-blocked trigger's attacker, the kernel's trigObj of a
+//     TrigBecomesBlocked entry (trig_blocked.go) and gorge's per-attacker
+//     TriggerCard (rules/trigger_blocks.go); only Mode$ AttackerBlocked.
 //   - AttachedTo Targeted is gorge's attachedToReferentTargeted, the same
 //     referent as ParentTarget: target 0 of the entry. chooseCard sets
 //     attachedTgtOK only when the node declares no target slot of its own.
@@ -189,6 +193,11 @@ func (lc *lowerCtx) referentGate(expr string) error {
 		}
 		if tr == nil || tr.Event != "Attacks" || !lc.trigBody || lc.granted > 0 {
 			return refuse("filter %q: NotDefinedTriggeredAttacker outside an Attacks trigger", expr)
+		}
+	}
+	if strings.Contains(expr, "blockingTriggeredAttacker") {
+		if lc.ab == nil || lc.ab.Trigger == nil || lc.ab.Trigger.Event != "AttackerBlocked" || !lc.trigBody || lc.granted > 0 {
+			return refuse("filter %q: blockingTriggeredAttacker outside an AttackerBlocked trigger", expr)
 		}
 	}
 	if strings.Contains(expr, "AttachedTo Targeted") && !lc.attachedTgtOK {

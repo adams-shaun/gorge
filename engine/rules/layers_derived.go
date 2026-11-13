@@ -193,6 +193,12 @@ func (e *Engine) derivedName(id state.ObjID) (string, bool) {
 // compare characteristics must use this rather than the printed face name.
 func (e *Engine) Name(id state.ObjID) string { return e.Derived(id).Name }
 
+// CurrentName is the object's current layer-3 name and whether an effect
+// binds it (derivedName): the name a projected view.CardView.Name carries, so
+// botpolicy's game-shaped Board names a card as its view-shaped twin does.
+// It skips the rest of the walk Name runs.
+func (e *Engine) CurrentName(id state.ObjID) (string, bool) { return e.derivedName(id) }
+
 // Text returns the object's current layer-3 text (CR 613.1d / CR 612): its
 // printed Oracle text after every applicable text-changing effect. Callers
 // that render or compare an object's rules text must use this rather than

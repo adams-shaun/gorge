@@ -463,7 +463,7 @@ func (s *State) playerTrigGenObj(k *prep, ev kop.TrigEvent, l trigListener, a *k
 // command-zone triggers, then emblems.
 func (s *State) firePhaseGen(k *prep, st kop.Step) {
 	f := func(l trigListener, a *kop.Ability) {
-		if a.Trig.Step != st || !whoseOK(a.Trig.Whose, l.ctrl, s.active) && !(a.Trig.Whose == kop.WhoseEnchCtrl && s.enchCtrlIs(l.sl, s.active)) || !s.trigOK(k, l, a) {
+		if a.Trig.Step != st || !whoseOK(a.Trig.Whose, l.ctrl, s.active) && !(a.Trig.Whose == kop.WhoseEnchCtrl && s.enchCtrlIs(l.sl, s.active)) && !(a.Trig.Whose == kop.WhoseChosen && s.chosenIs(l.sl, s.active)) || !s.trigOK(k, l, a) {
 			return
 		}
 		s.queueTrig(k, l, a, NoObj, s.active, 0)

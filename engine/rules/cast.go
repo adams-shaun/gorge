@@ -458,8 +458,9 @@ type pendingCast struct {
 	// beginActivation for an ability — Color$ reductions, MinMana$ floors and
 	// the SetCost floor included) and the CR 903.8 commander tax. They are
 	// applied to the mana cost only AFTER {X} is folded into Generic
-	// (manaToPay), so an {X} reduction is not lost and the tax (an additional
-	// cost) is never reduced -- increases before reductions, per 601.2f.
+	// (manaToPay), so an {X} reduction is not lost; the tax (an additional
+	// cost) joins the total before the modifiers compose over it
+	// (pay.CostMods.ApplyTaxedTo) -- increases before reductions, per 601.2f.
 	mods       costMods `clone:"deep,copy=cloneCastMods"`
 	taxGeneric int32    `clone:"deep"`
 

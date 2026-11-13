@@ -138,11 +138,13 @@ export function passDirection(round: number): 'left' | 'right' {
 }
 
 /**
- * openedBy is the seat whose pack this is: a pack moves one seat per pick,
- * so at pick p it has travelled p-1 seats against the pass direction.
+ * openedBy is the seat whose pack this is: a pack moves one seat per pass,
+ * and a pass is picksPerPass picks (one outside a Commander draft), so at
+ * pick p it has travelled floor((p-1)/picksPerPass) seats against the pass
+ * direction.
  */
-export function openedBy(seat: number, round: number, pickNo: number, seats = 4): number {
-  const steps = Math.max(pickNo - 1, 0) % seats;
+export function openedBy(seat: number, round: number, pickNo: number, seats = 4, picksPerPass = 1): number {
+  const steps = Math.floor(Math.max(pickNo - 1, 0) / Math.max(picksPerPass, 1)) % seats;
   return passDirection(round) === 'left' ? (seat - steps + seats) % seats : (seat + steps) % seats;
 }
 
