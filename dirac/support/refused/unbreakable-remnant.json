@@ -1,7 +1,7 @@
 {
   "card": "Unbreakable Remnant",
   "class": "unmodelled",
-  "why": "the SpellCast filter Card.Self+wasCastFromYourGraveyardByYou is a cast-provenance word outside a SpellCast ValidCard$, unmodelled by kgen; the Escape keyword itself lowers",
+  "why": "the SpellCast filter Card.Self+wasCastFromYourGraveyardByYou is a cast-provenance word outside a SpellCast trigger filter, unmodelled by kgen; the Escape keyword itself lowers",
   "repro": {
     "pool": "custom",
     "surface": "full",
