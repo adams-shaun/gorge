@@ -74,7 +74,7 @@ func NewWriter(dst io.Writer, opt Options) (*Writer, error) {
 
 // Reset discards w's state and starts a new stream on dst, header first,
 // reusing w's buffers and gzip state. A tool that writes one gzip member per
-// game (kplay's corpus) resets onto each game's buffer: concatenated, such
+// game resets onto each game's buffer: concatenated, such
 // streams are one valid condensed stream, the later headers reading as
 // comments. Stats keep counting across a Reset.
 func (w *Writer) Reset(dst io.Writer) {

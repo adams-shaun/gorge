@@ -6,8 +6,8 @@
 // form breaks no reader that goes through this package or its Python twin,
 // scripts/recstream.py.
 //
-// It is public (testkit/, not internal/) so four-yay and gorge-compliance
-// import it at their gorge pin. It uses only the standard library.
+// It is public (testkit/, not internal/) so outside modules import it at
+// their gorge pin. It uses only the standard library.
 //
 // # Format, version 1
 //
