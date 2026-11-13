@@ -128,6 +128,7 @@ type lowerCtx struct {
 	batchPoolOK    bool      // the trigger being lowered is a ChangesZoneAll exile line whose body picks among its batch members (lower_trigzonebatch.go kayaBatchBody)
 	wasCastOK      bool      // the filter being read is a battlefield-entering trigger's ValidCard(s)$: wasCast may lower
 	cantCastProv   bool      // the filter being read is a CantBeCast ValidCard$: wasCastFromTheirHand may lower (kernel matchSpellCardOffer)
+	tgtProv        bool      // the filter being read is a plain Counter's ValidTgts$ (TgtSpell): wasCastFromTheirHand may lower (lower_countertgtprov.go)
 	spellProvOK    bool      // the filter being read is a SpellCast ValidCard$, a spell's own ConditionPresent$ or a mana ability's Spell. RestrictValid$: the cast-provenance words may lower
 	chosenNumOK    bool      // the filter being read is a battlefield SpellCast ValidCard$ of a card that chooses a number as it enters: a "Chosen" bound may lower (lower_choosenumber.go)
 	exwOK          bool      // the filter being read is a resolution-time mover's ChangeType$: ExiledWithSource may lower
@@ -2948,7 +2949,7 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 			// still resolving (kernel enterCast); a later read has no spell
 			return nil, refuse("filter %q: wasCast outside a battlefield-entering trigger's ValidCard$", expr)
 		}
-		if c.TheirHand && !lc.cantCastProv {
+		if c.TheirHand && !lc.cantCastProv && !lc.tgtProv {
 			return nil, refuse("filter %q: wasCastFromTheirHand outside a CantBeCast ValidCard$", expr)
 		}
 		if c.CmpStat == cmpWasCastSpell && !lc.spellProvOK {

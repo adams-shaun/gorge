@@ -1886,7 +1886,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if listF != "" {
 			vt = listF
 		}
-		f, err := lc.filter(vt)
+		f, err := lc.counterTgtFilter(tt, vt) // lower_countertgtprov.go
 		if err != nil {
 			return err
 		}
