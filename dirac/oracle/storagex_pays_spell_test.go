@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -23,27 +22,14 @@ func TestStorageXPaysSpellLockstep(t *testing.T) {
 	const vault = "Bottomless Vault"
 	const spell = "Blightsoil Druid"
 
-	// Find the pool holding BOTH cards, as storageXFixtures does, rather than
-	// hard-coding a pool name.
-	pools := cardsettest.SynthNames(t)
-	pool := ""
-	for _, name := range pools {
-		s := cardsettest.Synth(t, name)
-		_, hasVault := s.Lookup(vault)
-		_, hasSpell := s.Lookup(spell)
-		if hasVault && hasSpell {
-			pool = name
-			break
-		}
-	}
-	if pool == "" {
-		t.Fatalf("no synthetic pool holds both %s and %s", vault, spell)
-	}
-	set := cardsettest.Synth(t, pool)
 	decks := [2][]cardset.Entry{
 		{{Name: vault, Count: 30}, {Name: spell, Count: 10}},
 		{{Name: "Plains", Count: 40}},
 	}
+	// The table is built for exactly these cards: the synthetic pools are
+	// re-dealt as lowering and refusal change, so no pool is guaranteed to
+	// hold both.
+	set := printedDelveSet(t, [2][]string{{vault, spell}, {"Plains"}})
 	tbl, _, _, err := set.Matchup(decks[0], decks[1])
 	if err != nil {
 		t.Fatal(err)
