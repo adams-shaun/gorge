@@ -46,8 +46,9 @@ EXCLUDE = ("./server/host", "./cmd/cardfuzz", "./testkit/conformance")
 HEAVY = ("./engine/rules", "./dirac/oracle") + EXCLUDE
 # Packages that always run (the structural gates).
 ALWAYS = ("./internal/archtest", "./internal/codeshape")
-# The only tests that read dirac/oracle/testdata/repro: the recordings feed the table tests and the per-pool
-# lockstep replays, so a changed recording runs those (about a minute) instead of the whole package.
+# A changed recording under dirac/oracle/testdata/repro runs the tests that read it (repro_named finds them
+# by the recording's basename in the package's _test.go files) plus the fallback families below: the table
+# tests that glob the directory and the per-pool lockstep replays (about a minute, not the whole package).
 REPRO_DIR = "dirac/oracle/testdata/repro/"
 REPRO_TESTS = "^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$|^TestStd[A-Za-z]*ReprosLockstep[A-Za-z]*$"
 CENSUS = ("Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrinks|IotaBlock|NoVerbatim|"
@@ -216,7 +217,31 @@ def pkg_of(path, dirmap):
     return dirmap.get(d)
 
 
-def plan(changes, dirmap, deps, lines_of):
+def repro_named(changes, dirmap, lines_of, cwd=None):
+    """Test functions of the _test.go files that name a changed repro recording, as {import path: names}.
+
+    A re-recorded custom-pool recording usually leaves its reader's _test.go unchanged, so the recording's
+    basename is the only link: one `git grep -l -F` per changed recording finds the test files that name it,
+    and every test function of those files runs. Recordings no test file names (standard-pool replays) get
+    nothing here; the REPRO_TESTS families cover them."""
+    out, files = {}, {}
+    for path in sorted(changes):
+        if not path.startswith(REPRO_DIR) or not path.endswith(".repro.json"):
+            continue
+        base = path.rsplit("/", 1)[1][:-len(".repro.json")]
+        p = dirmap.get(path.split("/testdata/")[0])
+        if p is None:
+            continue
+        if base not in files:
+            # git grep exits 1 on no match, which is an answer, not an error
+            files[base] = sh("git", "grep", "-l", "-F", base, "--", path.split("/testdata/")[0] + "/*_test.go",
+                             check=False, cwd=cwd).split()
+        for f in files[base]:
+            out.setdefault(p, set()).update(m.group(1) for m in (re.match(r"func (Test[A-Za-z0-9_]+)\(", ln) for ln in lines_of(f)) if m)
+    return out
+
+
+def plan(changes, dirmap, deps, lines_of, repro_names=None):
     """What test-targeted runs.
 
     changes   {path: ranges}: the changed files; ranges is a list of (start, end) new-file line ranges,
@@ -224,12 +249,16 @@ def plan(changes, dirmap, deps, lines_of):
     dirmap    {repo-relative dir: import path} of every package
     deps      {import path: set of import paths} for every package that has a test binary
     lines_of  path -> lines of the file's current text
+    repro_names  {import path: test names} the changed repro recordings' readers (repro_named), optional
 
     Returns a list of (kind, package, regex): whole, named (regex must match), census (regex may match
     nothing). Package names are ./relative, as `go test` takes them. A package whose test helper, import or
     testdata fixture changed runs whole even when it is heavy: the tests it feeds are otherwise unprovable."""
     rel = {v: k for k, v in dirmap.items()}
     src, touched, named, forced_whole, repro = set(), set(), {}, set(), set()
+    for p, names in (repro_names or {}).items():
+        if names:
+            named.setdefault(p, set()).update(names)
     for path, ranges in sorted(changes.items()):
         if path.endswith(".md"):
             continue
@@ -304,8 +333,8 @@ def plan(changes, dirmap, deps, lines_of):
     return res, skipped
 
 
-def sh(*args, check=True):
-    r = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors="replace")
+def sh(*args, check=True, cwd=None):
+    r = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors="replace", cwd=cwd)
     if check and r.returncode:
         sys.exit("test_targets: %s: %s" % (" ".join(args), r.stderr.strip()))
     return r.stdout
@@ -362,7 +391,7 @@ def read_lines(path):
 def cmd_select(a):
     dirmap, deps = go_graph()
     changes = diff_changes(a.base)
-    res, skipped = plan(changes, dirmap, deps, read_lines)
+    res, skipped = plan(changes, dirmap, deps, read_lines, repro_named(changes, dirmap, read_lines))
     for kind, pkg, rx in res:
         print("%s\t%s\t%s" % (kind, pkg, rx))
     for p in skipped:
