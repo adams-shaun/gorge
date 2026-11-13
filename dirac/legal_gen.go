@@ -50,6 +50,9 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 				continue // the grant's once-per-turn cap is reached (Flameskull)
 			}
 			s.offerMayKind(k, d, p, r, sorc, landOK, &av)
+			if k.gen.anyZeroAlt {
+				s.offerZeroAlt(k, d, p, r.obj, mayKindMode(r), mayKindPlain(r), sorc, &av) // cast_mayzeroalt.go
+			}
 			continue
 		}
 		// a Paradigm card the offer covers is cast free instead (kw_paradigm.go:
@@ -58,6 +61,9 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 			continue
 		}
 		s.offerPlay(k, d, p, r.obj, castMayPlay, sorc, landOK, false, false, false, &av)
+		if k.gen.anyZeroAlt {
+			s.offerZeroAlt(k, d, p, r.obj, castMayPlay, true, sorc, &av) // cast_mayzeroalt.go
+		}
 	}
 	// play-from-zone statics: graveyards, exile, and the hand (free casts)
 	if k.gen.anyMayPlay {
@@ -303,6 +309,9 @@ func (s *State) castFlagsGen(k *prep, o Obj, mode uint8) {
 	}
 	s.bld().e.flags |= sfMayPlay
 	p := s.bld().e.ctrl
+	if mode&castFree != 0 && k.gen.anyZeroAlt && s.spendZeroAlt(k, o, p) {
+		mode &^= castFree // the {0} alternative: the plain cast's permission is spent below (cast_mayzeroalt.go)
+	}
 	// a permission record is spent; a once-per-turn static is marked
 	if k.gen.anyMayKind && s.spendMayKind(k, o, p, mode) {
 		return
@@ -698,6 +707,9 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 				mode |= castFree
 			}
 			s.offerPlay(k, d, p, o, mode, sorc, landOK, rest.anyMana, false, s.mayPlayUnpriced(k, p, o, rest.anyMana, av), av)
+			if k.gen.anyZeroAlt {
+				s.offerZeroAlt(k, d, p, o, mode, life == 0, sorc, av) // cast_mayzeroalt.go
+			}
 		}
 		if life > 0 && !(rest.grant && rest.free) {
 			n0 := int(d.N)
