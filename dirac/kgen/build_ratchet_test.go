@@ -256,7 +256,8 @@ import (
 // +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL build-level 23251 -> 23252 measured).
 // +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source, DamagePlus ValidTarget$ Player.Opponent: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL build-level 23253 -> 23261 measured).
 // +1 (Foil's two-part discard alternative cost lowered, kop.Cost.Discard2N/Discard2F; ALL build-level merged against land's MBC work 23347 -> 23348 measured).
-var buildAcceptancePin = [2]int{23525, 34442} // {built, cards}
+// +18 (CantGainLife/CantDraw ValidPlayer$ Opponent as kop.StBanOpp and an inert Continuous AddSVar$ with the TASK counter kind: Tibalt, Rakish Instigator, Quakebringer, Archfiend of Despair, Gríma Wormtongue, Heliod's Punishment, Animal Boneyard, Burning Anger, Hard Cover, Elemental Mastery, Dragon Throne of Tarkir, Oracle's Insight, Sisay's Ingenuity, Quicksilver Dagger, Sinstriker's Will, Sorcerer's Wand, Pathway Arrows, Knight of Dusk's Shadow, Arlinn Kord; ALL build-level 23525 -> 23543 measured).
+var buildAcceptancePin = [2]int{23543, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)
