@@ -37,11 +37,11 @@ func (k *prep) deferCol(c CardID) int {
 
 // floatDeferred adds the deferred source sl's mana to p's pool and remembers
 // the source and its colour (tapGap's deferred arm). A second deferred source
-// of another colour floating beside the first would leave the first's spend
-// unattributed: stall loudly.
+// floating beside the first would leave the first's spend unattributed: stall
+// loudly.
 func (s *State) floatDeferred(k *prep, p uint8, sl Slot) {
 	col := k.deferCol(s.cardAt(sl))
-	if d := s.g.defSrc[SeatIx(p)]; d != 0 && d != uint8(sl)+1 && int(s.defColOf(p)) != col && s.pl[SeatIx(p)].pool[s.defColOf(p)] != 0 {
+	if d := s.g.defSrc[SeatIx(p)]; d != 0 && d != uint8(sl)+1 && s.pl[SeatIx(p)].pool[s.defColOf(p)] != 0 {
 		s.capFull(StallObsSrc)
 	}
 	s.pl[SeatIx(p)].pool[col]++
@@ -51,20 +51,45 @@ func (s *State) floatDeferred(k *prep, p uint8, sl Slot) {
 }
 
 // deferredPool is p's floating deferred mana before a payment, 0 when none,
-// and the source's slot + 1 (the payment's pool spend forgets it).
-func (s *State) deferredPool(k *prep, p uint8) (r uint8, src uint8) {
+// the source's slot + 1 and its colour (the payment's pool spend forgets both,
+// deferSync, so deferredSpent is handed them).
+func (s *State) deferredPool(k *prep, p uint8) (r uint8, src uint8, col int) {
 	if k.gen == nil || !k.gen.anyDeferred || s.g.defSrc[SeatIx(p)] == 0 {
+		return 0, 0, 0
+	}
+	col = s.defColOf(p)
+	return s.pl[SeatIx(p)].pool[col], s.g.defSrc[SeatIx(p)], col
+}
+
+// deferSnap is the deferred colour's floating count before a pool spend (col is
+// meaningless when n is 0): deferSync compares it afterwards.
+func (s *State) deferSnap(p uint8) (col int, n uint8) {
+	if s.g.defSrc[SeatIx(p)] == 0 {
 		return 0, 0
 	}
-	return s.pl[SeatIx(p)].pool[s.defColOf(p)], s.g.defSrc[SeatIx(p)]
+	col = s.defColOf(p)
+	return col, s.pl[SeatIx(p)].pool[col]
+}
+
+// deferSync forgets the deferred source when a pool spend took some of its
+// colour (gorge spends the source's batch first, so its unit is gone even when
+// same-colour mana from other sources still floats). A creature source such as
+// Gilanra sets no poolArt bit, so artSync's gate never sees its spend; every
+// pool spend takes the snapshot.
+func (s *State) deferSync(p uint8, col int, n uint8) {
+	if n != 0 && s.pl[SeatIx(p)].pool[col] < n {
+		s.g.defSrc[SeatIx(p)] = 0
+		s.setDefCol(p, 0)
+	}
 }
 
 // deferredSpent records the deferred source on the cast being built when the
-// payment spent some of its {R} (r0 was the pool's before).
+// payment spent some of its mana (r0 was the pool's before, of colour col: read
+// before the payment, which clears the record).
 //
 //go:noinline
-func (s *State) deferredSpent(k *prep, p uint8, r0, src uint8) {
-	if s.pl[SeatIx(p)].pool[s.defColOf(p)] >= r0 {
+func (s *State) deferredSpent(k *prep, p uint8, r0, src uint8, col int) {
+	if s.pl[SeatIx(p)].pool[col] >= r0 {
 		return
 	}
 	// gorge spends the source's batch first, so its unit is gone now even when
