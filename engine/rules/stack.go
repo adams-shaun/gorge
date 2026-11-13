@@ -14,8 +14,6 @@
 package rules
 
 import (
-	"strings"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
@@ -1220,21 +1218,32 @@ func targetSpecForZone(spec string, z state.Zone) string {
 	if z == state.ZBattlefield || z == state.ZStack {
 		return spec
 	}
-	if !strings.Contains(spec, "Permanent") {
-		return spec
-	}
-	alts := strings.Split(spec, ",")
-	changed := false
-	for i, alt := range alts {
-		if alt == "Permanent" || (strings.HasPrefix(alt, "Permanent") && (alt[len("Permanent")] == '.' || alt[len("Permanent")] == '+')) {
-			alts[i] = "PermanentCard" + alt[len("Permanent"):]
-			changed = true
+	const base = "Permanent"
+	var out []byte // built lazily: most specs carry no rewritable alternative
+	for start := 0; start < len(spec); {
+		end := start
+		for end < len(spec) && spec[end] != ',' {
+			end++
 		}
+		alt := spec[start:end]
+		if len(alt) >= len(base) && alt[:len(base)] == base && (len(alt) == len(base) || alt[len(base)] == '.' || alt[len(base)] == '+') {
+			if out == nil {
+				out = append(out, spec[:start]...)
+			}
+			out = append(out, "PermanentCard"...)
+			out = append(out, alt[len(base):]...)
+		} else if out != nil {
+			out = append(out, alt...)
+		}
+		if end < len(spec) && out != nil {
+			out = append(out, ',')
+		}
+		start = end + 1
 	}
-	if !changed {
+	if out == nil {
 		return spec
 	}
-	return strings.Join(alts, ",")
+	return string(out)
 }
 
 // zoneIn reports whether z is one of the zones in the set.
