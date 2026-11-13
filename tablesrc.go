@@ -22,7 +22,7 @@ import (
 // of dirac/ would re-key every dirac change, so it is left out on purpose. The
 // engine patterns are the engine packages kgen builds against.
 //
-//go:embed dirac/kgen/*.go dirac/kop/*.go dirac/cardset/*.go dirac/cardset/pools dirac/cardset/standard.txt dirac/cardset/setlists/*.txt dirac/support
+//go:embed dirac/kgen/*.go dirac/kop/*.go dirac/cardset/*.go dirac/cardset/pools dirac/cardset/standard.txt dirac/cardset/draftpools.txt dirac/cardset/setlists/*.txt dirac/support
 //go:embed engine/cards/*.go engine/decision/*.go engine/effects/*.go engine/effects/params/*.go engine/events/*.go engine/rules/cost/*.go engine/rules/scriptfacts/*.go engine/state/*.go
 var tableSources embed.FS
 

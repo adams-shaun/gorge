@@ -8,7 +8,6 @@ import (
 	"os"
 	"reflect"
 	"slices"
-	"strings"
 
 	"github.com/adams-shaun/gorge"
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -41,7 +40,7 @@ func runShow(pool, card string, w io.Writer) error {
 		return errors.New("-show wants a card name argument")
 	}
 	s, err := cardset.RawByName(pool)
-	if err != nil && (strings.HasPrefix(pool, "std-") || strings.HasPrefix(pool, "tail-")) {
+	if err != nil && cardset.IsSynthName(pool) {
 		s, err = cardset.SynthByName(pool)
 	}
 	if err != nil {

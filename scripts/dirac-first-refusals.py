@@ -206,7 +206,7 @@ def entry_key(top, card):
 def settle(top, out, rounds, resume):
     subprocess.run(["make", "dirac-tables"], cwd=top, check=True, capture_output=True)
     pools = subprocess.check_output(["go", "run", "-trimpath", "./dirac/oracle/cmd/kfuzz", "-list-synth"], cwd=top, text=True)
-    corpus = (*DECK_POOLS, *(p for p in pools.split() if p.startswith("std-")))
+    corpus = (*DECK_POOLS, *(p for p in pools.split() if p.startswith(("std-", "dr-"))))
     played_in, gate = os.path.join(out, "played-in"), os.path.join(out, "gate")
     if not resume:
         print(f"playing {len(corpus)} pools with the refused cards in", flush=True)

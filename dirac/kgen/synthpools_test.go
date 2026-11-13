@@ -133,3 +133,44 @@ func TestNoSynthPoolIsTracked(t *testing.T) {
 		}
 	}
 }
+
+// TestSynthDraftPoolBuildsSplit: draftpools.txt's MBC list becomes dr-mbc, too big
+// for one table's subtype masks, so it builds as hash halves that each fit and
+// together hold every name of the list.
+func TestSynthDraftPoolBuildsSplit(t *testing.T) {
+	cardsDir := ratchetCards(t)
+	lists, err := synthDraftLists(gorge.TableSources(), cardsDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(lists) != 1 || lists[0].name != "dr-mbc" || !cardset.IsSynthName(lists[0].name) {
+		t.Fatalf("draft lists %v, want dr-mbc alone", lists)
+	}
+	ts, err := buildSynthList(lists[0], "", cardsDir, "k")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ts) < 2 {
+		t.Fatalf("dr-mbc built as %d table, want a split", len(ts))
+	}
+	var cards []string
+	for _, x := range ts {
+		if !strings.HasPrefix(x.name, "dr-mbc-") {
+			t.Errorf("%s: want a dr-mbc-<half> name", x.name)
+		}
+		pd, _, err := cardset.DecodeTable(x.data.Bytes())
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, n := range pd.Names[:pd.NumCards] {
+			if !cardset.IsSynthBasic(n) {
+				cards = append(cards, n)
+			}
+		}
+		t.Logf("%s: %d cards", x.name, pd.NumCards)
+	}
+	slices.Sort(cards)
+	if want := slices.DeleteFunc(slices.Clone(lists[0].names), cardset.IsSynthBasic); !slices.Equal(cards, want) {
+		t.Errorf("the halves hold %d cards, the list %d", len(cards), len(want))
+	}
+}
