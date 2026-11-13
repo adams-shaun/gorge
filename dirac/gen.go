@@ -1607,7 +1607,6 @@ const (
 	maxDProg  = 6  // delayed programs
 	maxEmb    = 4  // emblems per player in State; a table that repeats them keeps maxEmbCold more (static_emblemcold.go)
 	maxDmgMap = 8  // damage-map entries
-	maxXTgt   = 7  // objects of multi-object target slots beyond the first
 	maxUsed   = 16 // once-per-turn records
 	// maxSacOrd bounds one effect's sacrifice batch. The FDN and BLB
 	// 1500-pair lockstep slices reach 12 (measured
@@ -1739,8 +1738,9 @@ type xTargets struct {
 	ver  [maxXTgt]uint8
 	// crim is CR 700.13's pick-time verdicts for the pool's extra objects
 	// (act_commitcrime.go crimeAskDone): bit j says extra j's pick was a
-	// crime when it was made, bit 7 (crimRec) that verdicts were recorded.
-	crim uint8
+	// crime when it was made, bit maxXTgt (xCrimRec) that verdicts were
+	// recorded.
+	crim xtMask
 	div  [maxXTgt + 1]uint8 // damage assigned per object of the divided slot, in pick order
 }
 

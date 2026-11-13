@@ -358,7 +358,7 @@ func (s *State) eachDamageSlots(k *prep, mask uint8, f kop.FilterID, out *[MaxPe
 // xtIllegal is the bit set of e's multi-object extras illegal now.
 //
 //go:noinline
-func (s *State) xtIllegal(k *prep, e *stackEntry) (m uint8) {
+func (s *State) xtIllegal(k *prep, e *stackEntry) (m xtMask) {
 	x := s.xtOf(e)
 	for j := 0; j < int(x.n); j++ {
 		if !s.xtLegal(k, e, j) {

@@ -36,6 +36,13 @@ const (
 	ovReps       uint8 = 0x1f // the merge count's mask
 )
 
+// maxXTgt is how many objects a stack entry's multi-object target slots hold
+// beyond the first (xTargets); a pick past it stalls StallXTgt. xtMask holds
+// a bit per extra and one more (xCrimRec).
+const maxXTgt = 7
+
+type xtMask = uint8
+
 // embRemSlots is how many objects one emblem remembers (static_emblemrem.go):
 // the frozen-number byte, embR and embX's two.
 const embRemSlots = 4

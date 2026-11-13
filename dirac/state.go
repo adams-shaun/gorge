@@ -852,8 +852,8 @@ type resCtx struct {
 	// past its last known information) before the resolution began: a new object (CR 400.7). The one
 	// move a death trigger records, or a move this resolution makes itself, is no such change.
 	trigGone bool
-	bad      uint8 // targets illegal at resolution (bit per slot)
-	xbad     uint8 // multi-object extras illegal at resolution (bit per xTargets index; only with genPrep.anyEachTgt)
+	bad      uint8  // targets illegal at resolution (bit per slot)
+	xbad     xtMask // multi-object extras illegal at resolution (bit per xTargets index; only with genPrep.anyEachTgt)
 	// col is the resolution's mid-resolution ChooseColor answer (colour
 	// index + 1, 0 none; ExtChooseColorRes), which a ChosenColor filter
 	// reads (static_colourprot.go resColour)

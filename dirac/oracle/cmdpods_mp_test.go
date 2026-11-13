@@ -114,3 +114,63 @@ func TestFourSeatCommanderMiniPodsLockstep(t *testing.T) {
 		t.Fatalf("Commander rules not all exercised: %+v", sum)
 	}
 }
+
+// TestFourSeatOnslaughtPastEightTargets: pod 100's Monstrous Onslaught
+// ("X damage divided as you choose among any number of target creatures")
+// is cast into a four-seat board with nine or more creatures picked, past
+// the default class's eight-object slot (maxXTgt). The four-seat class holds
+// sixteen, so the pod plays to its end in lockstep instead of stalling
+// StallXTgt at the ninth pick.
+func TestFourSeatOnslaughtPastEightTargets(t *testing.T) {
+	c, names := cmd5MiniCorpus(t, 40)
+	set, err := cardset.ByName("cmd5")
+	if err != nil {
+		t.Skipf("no cmd5 table (make dirac-tables): %v", err)
+	}
+	set = cardset.AllowUnverified(set)
+	pool := make([]PoolDeck, len(names))
+	for i, n := range names {
+		pool[i] = PoolDeck{Name: n}
+	}
+	p := PodAt(pool, 100, 1, 4)
+	m, tbl, err := SetMatchupN(set, c, p.Decks(), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rc := RunConfig{MaxDecisions: 20000, MaxTurns: 100}
+	most := 0
+	rc.Finish = func(g *GorgeSide) {
+		// fold the TargetsChosen shapes per stack object: 0 replaces the
+		// object targets, 2 appends them (events.foldTargetsChosen)
+		n := map[state.ObjID]int{}
+		for i := range g.E.L.Events {
+			e := &g.E.L.Events[i]
+			if e.Kind != events.TargetsChosen || e.Text == events.SubTargetNotice {
+				continue
+			}
+			switch e.Amount {
+			case 0:
+				n[e.Obj] = len(e.IDs)
+			case 2:
+				n[e.Obj] += len(e.IDs)
+			}
+			most = max(most, n[e.Obj])
+		}
+	}
+	k, err := SetSide(set, tbl, rc.Config)(m, p.Seed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res := Lockstep(m, p.Seed, k, AffordableTargetPolicy(RandomPolicy(p.Seed)), rc)
+	CloseSide(k)
+	if res.Div != nil {
+		t.Fatalf("divergence at %d: %s %s %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
+	}
+	if res.Stall != "" {
+		t.Fatalf("stalled %q after %d decisions", res.Stall, res.Decisions)
+	}
+	if most < 9 {
+		t.Fatalf("the most targets one spell took is %d; want the ninth pick that overflowed eight", most)
+	}
+	t.Logf("%d decisions; one spell took %d targets", res.Decisions, most)
+}
