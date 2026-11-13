@@ -174,6 +174,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-decks` | string | none | pool deck directory (default: the fdn pool's, under $GORGE_POOLS or the module's .pools, else its committed slice) |
 | `-events` | int | `0` | -repro: print the last N events of gorge's log when the game ends, objects named by card |
 | `-evidence` | string | none | pool runs: play the cards the table does not refuse, unverified ones too, and write the cards the run's clean games evidence (oracle.Coverage.Evidence), one name a line, here |
+| `-explain` | string | none | print this repro's actions rendered, one a line, and exit (what a recorded repro's old readable field held) |
 | `-features` | bool | `false` | vanilla/fdn: also assert the network inputs (dirac/feat vs policynet) at every decision |
 | `-first-game` | int | `0` | -v2 transcript: index of the first pool pair (repro anchor) |
 | `-first-pair` | int | `0` | index of the first pair |
