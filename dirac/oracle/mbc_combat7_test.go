@@ -36,7 +36,7 @@ var combat7Cards = map[string]string{
 	"mountain":       "Name:Mountain\nManaCost:no cost\nTypes:Basic Land Mountain\nOracle:({T}: Add {R}.)\n",
 	"island":         "Name:Island\nManaCost:no cost\nTypes:Basic Land Island\nOracle:({T}: Add {U}.)\n",
 	"mind_grip": "Name:Mind Grip\nManaCost:2 U U\nTypes:Enchantment Aura\nK:Enchant:Creature\n" +
-		"S:Mode$ Continuous | AffectedDefined$ Enchanted | GainControl$ You | Description$ You control enchanted creature.\n" +
+		"S:Mode$ Continuous | Description$ Enchanted creature answers to you. | GainControl$ You | AffectedDefined$ Enchanted\n" +
 		"Oracle:Enchant creature\\nYou control enchanted creature.\n",
 }
 
