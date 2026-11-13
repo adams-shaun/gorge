@@ -4,7 +4,7 @@
 # enchanted creature's abilities and grants it a {T} ability that removes a
 # named counter from the Aura, beside an AddSVar$ no rules reader consults
 # (Heliod's Punishment)
-# (dirac/oracle/mbc_statics3_test.go)
+# (dirac/oracle/mbc_statics_lowers_test.go)
 Tibalt, Rakish Instigator
 Heliod's Punishment
 Lone Missionary
