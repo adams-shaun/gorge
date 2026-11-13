@@ -829,6 +829,7 @@ TestPhyactLockstep 37.7
 TestPhyactLockstepB 96.0
 TestPhyactLockstepMutation 2.2
 TestPicardLockstep 40.6
+TestPinManifest 20.0
 TestPinnedEnteredFromBroughtBack 1.1
 TestPinnedFarmEnterpriseNX01 1.1
 TestPinnedFarmSavvyProfiteer 2.4
@@ -1295,4 +1296,3 @@ TestZeroIncorporealSensateMutation 2.1
 TestZonebatchcloneLockstep 30.5
 TestZoralineLockstep 109.3
 TestZpBalladLockstep 19.3
-TestPinManifest 20.0
