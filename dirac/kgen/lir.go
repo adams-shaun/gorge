@@ -1040,7 +1040,8 @@ type lCard struct {
 	Aftermath      bool      // K:Aftermath on a split card's right half (CR 702.127a): CardDef.Aftermath (dirac/face_aftermath.go)
 	BeamMeUp       *manaCost // K:Beam me up:<cost>: a graveyard cast for this cost that also returns a creature you control (FbCost)
 	Escape         *manaCost // K:Escape:<cost> (CR 702.138a): a graveyard cast for this cost while exiling the printed exiles (EscCost; dirac/kw_escape.go)
-	EscCost        *lCost    // the escape cost's ExileFromGrave<N/Card.Other> part (lower_escape.go; a battlefield-exile part beside it refuses)
+	EscCost        *lCost    // the escape cost's ExileFromGrave<N/Card.Other> part (lower_escape.go)
+	EscBf          *lCost    // the escape cost's Exile<N/Spec> battlefield part, token-first beside EscCost (CardDef.EscBfCost)
 	Harmonize      *manaCost // K:Harmonize:<cost> (CR 702.180a): a graveyard cast for this cost, one creature tapped for its power off the generic part
 	Retrace        bool      // K:Retrace (CR 702.81a): a graveyard cast paying the PRINTED cost plus the additional discard-a-land cost (dirac/kw_retrace.go); never a substitution
 	RetraceCost    *lCost    // the retrace cast's additional cost: Discard<1/Land> (CardDef.RetraceCost)

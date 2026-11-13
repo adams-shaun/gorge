@@ -858,6 +858,11 @@ func (cb *cardBuilder) record() error {
 		if d.EscCost, err = cb.cost(*c.EscCost); err != nil {
 			return err
 		}
+		if c.EscBf != nil {
+			if d.EscBfCost, err = cb.cost(*c.EscBf); err != nil {
+				return err
+			}
+		}
 	}
 	if c.Escape != nil {
 		d.Escape = true

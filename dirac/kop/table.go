@@ -565,9 +565,14 @@ type CardDef struct {
 	// holds its mana): ExileFromGrave<N/Card.Other> from your graveyard,
 	// paid through the cast's pick stage in place of the spell's additional
 	// cost (gorge escapeCost; the exiles are of OTHER cards, never the cast
-	// card). A cost with a battlefield-exile part beside it is refused in
-	// kgen (the cast carries one counted part).
+	// card).
 	EscCost Cost
+	// EscBfCost is the printed escape cost's battlefield-exile part (Lunar
+	// Hatchling's Exile<1/Land>): one CostSac part with ExileBf, picked
+	// before EscCost's grave exile (gorge exAsk walks the parts in token
+	// order). A second Cost value keeps the one-counted-part invariant per
+	// Cost. The zero value is no such part.
+	EscBfCost Cost
 	// RemPersist: the card's enters trigger remembers objects its leaves
 	// trigger reads (gorge's Remembered persisting on the source: Journey
 	// to Nowhere, Mesmeric Fiend; dirac/zone_rememberpersist.go).

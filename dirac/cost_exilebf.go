@@ -15,8 +15,23 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // pickExiles reports whether the cost being built pays its CostSac picks by
 // exiling them (kop.Cost.ExileBf).
 func (s *State) pickExiles(k *prep) bool {
+	if s.escBfEntry(k) {
+		// the printed escape cast's battlefield part: buildPickCost has moved on
+		// to the grave exile by payment, the one CostSac pick is this part's
+		return true
+	}
 	pc := s.buildPickCost(k)
 	return pc != nil && pc.ExileBf
+}
+
+// escBfEntry reports whether the entry being built is a printed escape cast
+// whose cost exiles a permanent beside the graveyard cards (CardDef.EscBfCost,
+// Lunar Hatchling). gorge pays the exile parts in token order, the permanent
+// first, so payPicks and paySacsGen pay the graveyard picks (payExilePicks)
+// after the permanent's.
+func (s *State) escBfEntry(k *prep) bool {
+	e := &s.bld().e
+	return e.kind == seSpell && e.trigPl == trigPlEscape && k.t.Cards[e.card].EscBfCost.ExileBf && !DebugEscapeSkipExiles
 }
 
 // countCostSac counts the permanents of p that can pay c's CostSac part: a
