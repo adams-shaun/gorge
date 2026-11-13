@@ -347,6 +347,10 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		switch r.D.Sub {
 		case dirac.ChX:
 			return ch("x", RefNone, mode)
+		case dirac.ChMultikick:
+			// CR 702.43's count pick (gorge KChoose "multikick"): the
+			// canonical option carries the count as its mode
+			return ch("multikick", RefNone, mode)
 		case dirac.ChCostDiscard, dirac.ChDiscard, dirac.ChCleanupDiscard:
 			return ch("discard", src, 0)
 		case dirac.ChDrawUpto:
@@ -819,6 +823,10 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return Pack(kind("clone"), RefNone, RefNone, 0), true
 		}
 		return Pack(kind("clone"), src, RefNone, 0), true
+	case dirac.ChEchoActionPick:
+		// gorge echoActionAsk's one choose-exactly-N kind for a discard or a
+		// land sacrifice paying an echo cost
+		return Pack(kind("echo_action_pick"), src, RefNone, 0), true
 	case dirac.ChGenPayPick:
 		if blight, modes := r.S.FeatPayBlight(); blight {
 			if modes {

@@ -245,16 +245,26 @@ dirac-mp-check: dirac-tables
 # heuristic policies, and the FDN and BLB slices at two seats (the mp build plays a two-seat game
 # as the default build does). A divergence, a hang, an unmodelled stall or an error fails; a
 # capacity stall is counted. Needs dirac-tables. scripts/dirac-gate.sh runs it as step "mp".
+# The four runs are independent games, so they play side by side (a vanilla pod run plays one
+# game at a time); each writes its own log under $(BIN_DIR)/mp-lockstep, printed in the fixed
+# order below, and any failure fails the target once all four have finished.
 dirac-mp-lockstep:
 	go build -trimpath -tags dirac_mp -o $(BIN_DIR)/kfuzz-mp ./dirac/oracle/cmd/kfuzz
-	@for pol in random heuristic; do \
-		echo "kfuzz-mp: vanilla, 4 seats, policy $$pol"; \
-		GOMAXPROCS=4 GOMEMLIMIT=3GiB $(BIN_DIR)/kfuzz-mp -kernel vanilla -seats 4 -pairs 100 -seed 1 -keep-going -policy $$pol -shrink 0 || exit 1; \
-	done
-	@for set in fdn blb; do \
-		echo "kfuzz-mp: $$set, 2 seats, autopay"; \
-		GOMAXPROCS=4 GOMEMLIMIT=3GiB $(BIN_DIR)/kfuzz-mp -kernel $$set -first-pair 0 -pairs 200 -seed 1 -keep-going -surface autopay -mulligans 1 -shrink 0 -workers 4 -absolute || exit 1; \
-	done
+	@mkdir -p $(BIN_DIR)/mp-lockstep; \
+	for r in random heuristic fdn blb; do : >$(BIN_DIR)/mp-lockstep/$$r.rc; done; \
+	for pol in random heuristic; do \
+		{ echo "kfuzz-mp: vanilla, 4 seats, policy $$pol"; \
+		GOMAXPROCS=4 GOMEMLIMIT=3GiB $(BIN_DIR)/kfuzz-mp -kernel vanilla -seats 4 -pairs 100 -seed 1 -keep-going -policy $$pol -shrink 0; \
+		echo $$? >$(BIN_DIR)/mp-lockstep/$$pol.rc; } >$(BIN_DIR)/mp-lockstep/$$pol.log 2>&1 & \
+	done; \
+	for set in fdn blb; do \
+		{ echo "kfuzz-mp: $$set, 2 seats, autopay"; \
+		GOMAXPROCS=4 GOMEMLIMIT=3GiB $(BIN_DIR)/kfuzz-mp -kernel $$set -first-pair 0 -pairs 200 -seed 1 -keep-going -surface autopay -mulligans 1 -shrink 0 -workers 4 -absolute; \
+		echo $$? >$(BIN_DIR)/mp-lockstep/$$set.rc; } >$(BIN_DIR)/mp-lockstep/$$set.log 2>&1 & \
+	done; \
+	wait; rc=0; \
+	for r in random heuristic fdn blb; do cat $(BIN_DIR)/mp-lockstep/$$r.log; [ "$$(cat $(BIN_DIR)/mp-lockstep/$$r.rc 2>/dev/null)" = 0 ] || rc=1; done; \
+	exit $$rc
 
 .PHONY: fresh-clone-check
 fresh-clone-check:

@@ -1,0 +1,11 @@
+# the world-rule pool: four printed World enchantments (CR 205.4a) whose
+# CR 704.5k state-based action keeps only the newest of them on the
+# battlefield, beside Grizzly Bears and the basic lands for the lockstep
+# (dirac/oracle/worldrule_test.go, dirac/worldrule_test.go)
+Concordant Crossroads
+Storm World
+Chaosphere
+Gravity Sphere
+Grizzly Bears
+Forest
+Mountain

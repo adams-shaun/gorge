@@ -243,6 +243,9 @@ func TestDivcountersnLockstep(t *testing.T) {
 // TestDivcountersnMutation gives one counter per target instead of N: the
 // announced division is wrong, so the games must diverge.
 func TestDivcountersnMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	st := runDivcountersn(t, 64, true)
 	if st.divs == 0 {
 		t.Fatalf("mutation ran %d games with no divergence", st.games)

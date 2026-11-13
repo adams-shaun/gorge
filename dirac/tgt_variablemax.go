@@ -19,6 +19,7 @@ var DebugTgtBoundsMaxPlus1 bool
 // tgtBoundsEval is slot t's gorge-resolved [lo, hi] for entry e.
 func (s *State) tgtBoundsEval(k *prep, t *kop.TargetSpec, e *stackEntry) (lo, hi int) {
 	ctx := s.ctxEntry(e)
+	ctx.bounds = true
 	lo, hi = s.evalV(k, t.MinV, ctx), s.evalV(k, t.MaxV, ctx)
 	if DebugTgtBoundsMaxPlus1 {
 		hi++

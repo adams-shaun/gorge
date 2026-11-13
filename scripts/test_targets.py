@@ -304,6 +304,56 @@ def plan(changes, dirmap, deps, lines_of):
     return res, skipped
 
 
+def census_pkgs(changes, dirmap, deps, candidates):
+    """The packages test-smart's census step runs, of candidates (./relative, the packages that hold a
+    census test).
+
+    A package runs when its test binary imports a package a changed non-test file is in, or when the change
+    touches its directory (testdata included), or when it is in ALWAYS (the tree censuses). A changed file
+    in a directory with no package belongs to the nearest package above it (a fixture tree, the support
+    lists). A file whose nearest package is the module root (the Makefile, scripts/, decks/, docs/ data,
+    .github/) can move any census, so then every candidate runs, as before. Markdown is never an input.
+
+    Why (2026-11-12): on a fresh seat worktree go's result cache misses on every test that opens a file
+    (it keys on absolute paths and mtimes), so a dirac-only diff re-ran engine/rules', engine/effects' and
+    cmd/cardfuzz's censuses (TestTapeMissCensus alone plays 200 games), about 120 of the step's 190
+    package-seconds, none of which a dirac change can move."""
+    rel = {v: k for k, v in dirmap.items()}
+    root = dirmap.get(".")
+    src, touched = set(), set()
+    for path in sorted(changes):
+        if path.endswith(".md"):
+            continue
+        p = pkg_of(path, dirmap)
+        d = path.rsplit("/", 1)[0] if "/" in path else "."
+        while p is None and d not in (".", ""):
+            d = d.rsplit("/", 1)[0] if "/" in d else "."
+            p = dirmap.get(d)
+        if p is None or p == root:
+            return sorted(set(candidates))
+        touched.add(p)
+        if "/testdata/" not in "/" + path and not path.endswith("_test.go"):
+            src.add(p)
+    keep = set()
+    for c in candidates:
+        ip = dirmap.get(c[2:] if c.startswith("./") else c)
+        if ip is None:
+            keep.add(c)  # not a package this module lists: keep it rather than guess
+            continue
+        if ip in touched or (deps.get(ip, set()) & src) or c in ALWAYS:
+            keep.add(c)
+    keep.update(c for c in ALWAYS if c in candidates)
+    return sorted(keep)
+
+
+def cmd_census(a):
+    dirmap, deps = go_graph()
+    cands = [ln.strip() for ln in sys.stdin if ln.strip()]
+    for p in census_pkgs(diff_changes(a.base), dirmap, deps, cands):
+        print(p)
+    return 0
+
+
 def sh(*args, check=True):
     r = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors="replace")
     if check and r.returncode:
@@ -390,6 +440,8 @@ def main(argv=None):
     f.add_argument("--named", default="")
     s = sub.add_parser("select")
     s.add_argument("--base", default="land")
+    c = sub.add_parser("census")
+    c.add_argument("--base", default="land")
     a = ap.parse_args(argv)
     pk = [p for p in a.pkgs.split(",") if p] if hasattr(a, "pkgs") else []
     if a.cmd == "verdict":
@@ -399,6 +451,8 @@ def main(argv=None):
         return EXIT[a.status]
     if a.cmd == "finish":
         return finish(a.mode, a.json, a.rc, a.sha, pk, a.seconds, [p for p in a.named.split(",") if p])
+    if a.cmd == "census":
+        return cmd_census(a)
     return cmd_select(a)
 
 

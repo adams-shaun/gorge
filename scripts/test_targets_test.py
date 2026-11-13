@@ -211,6 +211,33 @@ def test_guards_join_a_heavy_packages_regex_and_yield_to_a_whole_run():
     assert planned({"dirac/oracle/testdata/x.txt": None})[0]["./dirac/oracle"] == ("whole", "")
 
 
+CENSUS_CANDS = ["./engine/rules", "./engine/game/gorgegame", "./dirac/oracle", "./leaf", "./internal/archtest",
+                "./internal/codeshape"]
+
+
+def census(changes):
+    return tt.census_pkgs(changes, dict(DIRMAP, **{".": "m"}), DEPS, CENSUS_CANDS)
+
+
+def test_census_runs_the_importers_and_the_touched_packages_only():
+    assert census({"engine/rules/engine.go": None}) == [
+        "./engine/game/gorgegame", "./engine/rules", "./internal/archtest", "./internal/codeshape"]
+    assert census({"dirac/oracle/x_test.go": None}) == ["./dirac/oracle", "./internal/archtest", "./internal/codeshape"]
+    assert census({"dirac/oracle/testdata/repro/a.json": None}) == [
+        "./dirac/oracle", "./internal/archtest", "./internal/codeshape"]
+
+
+def test_census_maps_a_package_less_directory_to_the_nearest_package_above():
+    assert census({"dirac/oracle/fixtures/deep/cards.txt": None}) == [
+        "./dirac/oracle", "./internal/archtest", "./internal/codeshape"]
+
+
+def test_census_runs_everything_for_a_root_level_or_unmapped_change():
+    assert census({"Makefile": None}) == sorted(CENSUS_CANDS)
+    assert census({"decks/x.dck": None}) == sorted(CENSUS_CANDS)
+    assert census({"docs/agents/invariants.md": None}) == ["./internal/archtest", "./internal/codeshape"]
+
+
 def test_go_graph_reads_the_real_test_binaries():
     # The real `go list -e -test` path (not the hand-built DEPS): `.test` entries are the reverse-dep graph
     # that made engine/rules/engine.go select gorgegame on 2026-11-11.
@@ -251,10 +278,15 @@ def repo():
     shutil.rmtree(d)
 
 
-def wrapper(repo, *args, env=None):
-    e = dict(os.environ, TEST_TARGETS_SCOPED="1", BASE="land", **(env or {}))
+def wrapper_output(repo, *args, env=None):
+    e = dict(os.environ, TEST_TARGETS_SCOPED="1", BASE="land")
+    e.update(env or {})
     e.pop("GORGE_CARDS", None)
-    r = subprocess.run(["bash", "scripts/test-targets.sh", *args], cwd=repo, env=e, capture_output=True, text=True)
+    return subprocess.run(["bash", "scripts/test-targets.sh", *args], cwd=repo, env=e, capture_output=True, text=True)
+
+
+def wrapper(repo, *args, env=None):
+    r = wrapper_output(repo, *args, env=env)
     lines = [l for l in r.stdout.splitlines() if l.startswith("test-")]
     return r.returncode, lines, r.stderr
 
@@ -305,6 +337,106 @@ def test_one_runs_go_and_maps_the_stream(repo, tmp_path):
     assert rc == 1 and lines[0].startswith("test-one: FAIL ")
 
 
+# ---- test-smart: the lander runs the gates, a seat does not -----------------------------------------
+
+def _recording_gate(path, label):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text('#!/bin/sh\necho %s >> "$GATE_CALLS"\n' % label)
+
+
+def _commit(repo, *paths):
+    subprocess.run(["git", "add", *paths], cwd=repo, check=True)
+    subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "fixture"], cwd=repo, check=True)
+
+
+def smart_fixture(repo, tmp_path):
+    """Everything a smart run needs to reach steps 4-5 without the box: a corpus, fake go/make, and a
+    recorder for each gate. BASE is a branch at the fixture commit, so a later commit is the diff."""
+    (repo / ".cards" / "cardsfolder").mkdir(parents=True)
+    (repo / ".cards" / "cardsfolder" / "a.txt").write_text("x")
+    (repo / "scripts" / "docs_sets_test.py").write_text(
+        "import unittest\n\n\nclass T(unittest.TestCase):\n    def test_ok(self):\n        pass\n")
+    fake = tmp_path / "bin"
+    fake.mkdir()
+    stream = tmp_path / "stream.json"
+    stream.write_text("\n".join([ev("run", "m/p", "TestA"), ev("pass", "m/p", "TestA"), ev("pass", "m/p")]))
+    go = fake / "go"
+    go.write_text("#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$GO_CALLS\"\n"
+                  "case \"$1\" in list) echo m;; env) echo /usr/local/go;; test) cat \"$STREAM\"; exit \"${GORC:-0}\";; esac\n")
+    go.chmod(0o755)
+    make = fake / "make"
+    make.write_text("#!/bin/sh\nexit 0\n")
+    make.chmod(0o755)
+    # The dirac gate is BASE's own script, so it has to be a committed file.
+    _recording_gate(repo / "scripts" / "dirac-gate.sh", "dirac")
+    _commit(repo, "scripts/dirac-gate.sh")
+    subprocess.run(["git", "branch", "base"], cwd=repo, check=True)
+    # The affected-package gate is fetched from another repository at GATE_REF.
+    affected = tmp_path / "affected"
+    affected.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=affected, check=True)
+    _recording_gate(affected / "ops" / "scripts" / "gate_affected.sh", "affected")
+    _commit(affected, "ops/scripts/gate_affected.sh")
+    gate_calls = tmp_path / "gate-calls"
+    go_calls = tmp_path / "go-calls"
+    env = {
+        "PATH": "%s:%s" % (fake, os.environ["PATH"]),
+        "STREAM": str(stream),
+        "BASE": "base",
+        "GATE_AFFECTED_REPO": str(affected),
+        "GATE_CALLS": str(gate_calls),
+        "GO_CALLS": str(go_calls),
+        "GORGE_TEST_TARGETS_ENV": str(tmp_path / "none.env"),
+        "GORGE_REMOTE_OFF": "1",
+        "GORGE_HEAVY_LOCK": "",
+        "GORGE_TEST_SMART_GATES": "",
+        # The operator's env file is not read, but the box's harness exports some of these.
+        "PRECHECK_DIRAC_GATE": "",
+        "GATE_AFFECTED_PATH": "",
+        "GATE_REF": "",
+    }
+    return env, gate_calls, go_calls
+
+
+def _verdict_line(r):
+    lines = [l for l in r.stdout.splitlines() if l.startswith("test-")]
+    assert len(lines) == 1, r.stdout
+    return lines[0]
+
+
+def test_smart_default_prints_why_step_4_is_skipped_and_launches_no_gate(repo, tmp_path):
+    env, gate_calls, _ = smart_fixture(repo, tmp_path)
+    r = wrapper_output(repo, "smart", env=env)
+    assert r.returncode == 0, r.stderr + r.stdout
+    assert "== 4 skipped (the lander runs the affected and dirac gates)" in r.stdout
+    assert _verdict_line(r).startswith("test-smart: PASS ")
+    assert not gate_calls.exists() or gate_calls.read_text() == ""
+
+
+def test_smart_gates_opt_in_launches_both_gates(repo, tmp_path):
+    env, gate_calls, _ = smart_fixture(repo, tmp_path)
+    r = wrapper_output(repo, "smart", env=dict(env, GORGE_TEST_SMART_GATES="1"))
+    assert r.returncode == 0, r.stderr + r.stdout
+    assert "== 4 affected gate and dirac gate, side by side" in r.stdout
+    assert _verdict_line(r).startswith("test-smart: PASS ")
+    assert sorted(gate_calls.read_text().split()) == ["affected", "dirac"]
+
+
+def test_smart_off_runs_the_repro_tables_only_when_the_diff_touches_them(repo, tmp_path):
+    env, _, go_calls = smart_fixture(repo, tmp_path)
+    r = wrapper_output(repo, "smart", env=env)
+    assert r.returncode == 0, r.stderr + r.stdout
+    assert "-run ^TestStd[A-Za-z]*ReprosLockstep" not in go_calls.read_text()
+    repro = repo / "dirac" / "oracle" / "testdata" / "repro" / "one.txt"
+    repro.parent.mkdir(parents=True)
+    repro.write_text("x")
+    _commit(repo, "dirac/oracle/testdata/repro/one.txt")
+    r = wrapper_output(repo, "smart", env=env)
+    assert r.returncode == 0, r.stderr + r.stdout
+    assert "-run ^TestStd[A-Za-z]*ReprosLockstep" in go_calls.read_text()
+    assert _verdict_line(r).startswith("test-smart: PASS ")
+
+
 # ---- test-smart: the recorded verdict is reused, the lane wait is clamped ----------------------------
 
 @pytest.fixture
@@ -348,7 +480,8 @@ def smart_env(tmp_path, repo, gate, **extra):
     env = dict(os.environ,  # wrapper() adds TEST_TARGETS_SCOPED and BASE
                GATE_AFFECTED_REPO=str(gate), PATH="%s:%s" % (fake, os.environ["PATH"]),
                CALLS=str(tmp_path / "go-calls"), STREAM=str(tmp_path / "stream.json"),
-               GORGE_TEST_TARGETS_ENV=str(tmp_path / "no-machine.env"), **extra)
+               GORGE_TEST_TARGETS_ENV=str(tmp_path / "no-machine.env"),
+               GORGE_TEST_SMART_GATES="1", **extra)
     env.pop("GORGE_CARDS", None)
     return env
 

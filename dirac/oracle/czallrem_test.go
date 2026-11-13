@@ -182,6 +182,9 @@ func TestCzallremLockstep(t *testing.T) {
 // instead of latching it per batch, so a Day of Judgment killing two creatures
 // fires the batch line twice and the lockstep must diverge.
 func TestCzallremMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runCzallrem(t, 96, true)
 	if divs == 0 {
 		t.Fatalf("DebugCzallNoLatch: no divergence in %d games", games)

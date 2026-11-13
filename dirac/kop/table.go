@@ -121,6 +121,9 @@ type CardDef struct {
 	// Society).
 	WardPoison uint8
 	Leyline    bool // may begin the game on the battlefield from the opening hand
+	// World: the printed World supertype (CR 205.4a), read by the CR 704.5k
+	// world rule (kernel zone_worldrule.go). No corpus effect grants or removes it.
+	World bool
 	// SelfFlash: a CastWithFlash EffectZone$ All self grant ("you may cast this
 	// spell as though it had flash if ..."; Illusion Spinners). The card's own
 	// StatCastWithFlash ability grants it from hand, never from the
@@ -134,6 +137,12 @@ type CardDef struct {
 	// zero mana; a kicked cast pays this through the cost stages (kernel
 	// kw_kicker.go).
 	KickerCost Cost
+	// Multikicker, HasMultikicker: K:Multikicker:<cost> (CR 702.43). The
+	// per-payment cost is paid any number of times as the spell is cast; a
+	// Multikicker card's kicked cast asks the count before X and targets
+	// (kernel cast.go's bsMulti). HasMultikicker distinguishes a zero cost.
+	Multikicker    ManaCost
+	HasMultikicker bool
 	// BeholdN, BeholdF: part one of the either-or additional cost is
 	// "behold a <type>" (Behold<1/Type>, CR 701.4a): BeholdN (1) of the
 	// payer's permanents or hand cards matching BeholdF. Table data, not a

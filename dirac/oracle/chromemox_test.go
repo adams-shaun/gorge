@@ -54,6 +54,9 @@ func TestChromeMoxLockstep(t *testing.T) {
 // it at its battlefield position (gorge's census replaces the stand-in it
 // listed there). Each must diverge.
 func TestChromeMoxLockstepMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	for _, m := range []struct {
 		mode uint8
 		what string

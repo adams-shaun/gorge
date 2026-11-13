@@ -117,6 +117,7 @@ func kshockPolicy(seed uint64, tal *kshockTally) Policy {
 }
 
 func TestShockLockstep(t *testing.T) {
+	t.Parallel() // its subtests run isolated, so the parent need not hold the serial phase
 	t.Run("coiling-oracle", func(t *testing.T) { kshockLockstep(t, kshockDecks, false) })
 	t.Run("wood-elves", func(t *testing.T) {
 		kshockLockstep(t, [2][]cardset.Entry{kshockDecks[0], kshockWoodElves()}, true)

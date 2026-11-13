@@ -102,7 +102,8 @@ func (s *State) airbendCost(k *prep, p uint8, c CardID, o Obj) kop.ManaCost {
 
 // offerAirbendCasts offers casting p's airbent cards from exile (gorge
 // legal_walk_alt.go exileCastsWalk, "airbend_cast"): the card's own timing,
-// castable targets, {2} paid by the floating pool alone.
+// castable targets, {2} paid by the floating pool plus the restricted mana a
+// cast from exile may spend (CR 106.6, 701.65a).
 func (s *State) offerAirbendCasts(k *prep, d *Decision, p uint8, sorc bool) {
 	pl := &s.pl[p]
 	for i := 0; i < int(pl.exileN); i++ {
@@ -122,7 +123,12 @@ func (s *State) offerAirbendCasts(k *prep, d *Decision, p uint8, sorc bool) {
 			continue
 		}
 		cost := s.airbendCost(k, p, c, o)
-		if !s.poolPays(p, &cost) {
+		var av avail
+		s.availPool(p, &av)
+		if s.rbAny(p) {
+			s.restrAvail(k, p, c, s.restrOriginOfObj(o), &av)
+		}
+		if !av.affords(&cost, pipMaskOf(&cost), 0) {
 			continue
 		}
 		d.add(MakeAction(AkCast, uint8(o), 0, castAirbend))
