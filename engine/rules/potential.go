@@ -410,17 +410,11 @@ func potentialRestrictionAdmits(e *Engine, p state.PlayerID, id state.ObjID, ma 
 func addPotentialChosenColour(e *Engine, m *state.Mana, id state.ObjID, ma *cards.SA) bool {
 	mp := effects.ManaOf(ma)
 	// the colours a "Combo U Chosen" gate land lists beside the chosen one
-	var fixed []string
+	fixed := ""
 	if mp.Produced != "Chosen" && mp.Produced != "ChosenColor" { // Produced is already trimmed
-		fixed = strings.Fields(mp.Produced)
-		if len(fixed) < 2 || fixed[0] != "Combo" || fixed[len(fixed)-1] != "Chosen" {
+		var ok bool
+		if fixed, ok = comboChosenColours(mp.Produced); !ok {
 			return false
-		}
-		fixed = fixed[1 : len(fixed)-1]
-		for _, f := range fixed {
-			if len(f) != 1 || state.ManaIndex(f[0]) == state.MC {
-				return false
-			}
 		}
 	}
 	o := e.G.Obj(id)
@@ -438,12 +432,32 @@ func addPotentialChosenColour(e *Engine, m *state.Mana, id state.ObjID, ma *card
 	m[i] = saturatingPotentialMana(m[i], amt)
 	// a Combo gate land makes one mana of any listed colour or the chosen one:
 	// each colour is bounded as a dual's face is (the kernel's exact mask)
-	for _, f := range fixed {
-		if j := state.ManaIndex(f[0]); j != i {
+	for k := 0; k < len(fixed); k++ {
+		if j := state.ManaIndex(fixed[k]); fixed[k] != ' ' && j != i {
 			m[j] = saturatingPotentialMana(m[j], amt)
 		}
 	}
 	return true
+}
+
+// comboChosenColours is the colours between "Combo " and " Chosen" in a gate
+// land's production ("Combo U Chosen": "U"; "Combo Chosen": ""), each a single
+// colour letter set apart by spaces; false for any other shape.
+func comboChosenColours(produced string) (string, bool) {
+	if produced == "Combo Chosen" {
+		return "", true
+	}
+	n := len(produced)
+	if n < len("Combo X Chosen") || produced[:6] != "Combo " || produced[n-7:] != " Chosen" {
+		return "", false
+	}
+	mid := produced[6 : n-7]
+	for k := 0; k < len(mid); k++ {
+		if k%2 == 1 && mid[k] != ' ' || k%2 == 0 && state.ManaIndex(mid[k]) == state.MC {
+			return "", false
+		}
+	}
+	return mid, len(mid)%2 == 1
 }
 
 // addPotentialIdentityColours adds a commander-identity ability's exact
