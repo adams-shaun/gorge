@@ -2116,6 +2116,14 @@ func (lc *lowerCtx) play(ps *params) error {
 		lc.playLibrary = true
 		return emit(lRef{Kind: rRemembered}, zLibrary, saExpr)
 	case "Hand", "Graveyard":
+		if valid == "Card.TargetedPlayerCtrl" && vzone == "Hand" && !forget {
+			// the targeted player's hand (lower_playtgtplayer.go)
+			obj, err := lc.playTargetedPlayerHand()
+			if err != nil {
+				return err
+			}
+			return emit(obj, zHand, saExpr)
+		}
 		// P3/P4: untargeted filter population over the controller's hand or
 		// the graveyards, in seat order.
 		if !strings.Contains(valid, "YouOwn") && !strings.Contains(valid, "YouCtrl") && !(valid == "Card" && (playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)) && ps.str("ValidSA") == "Spell.nonCreature+YouOwn") {

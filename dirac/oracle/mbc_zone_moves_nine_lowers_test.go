@@ -17,7 +17,11 @@ import (
 //     kop.DigRestTopAsk;
 //   - digtoporder: the same spelling's class over the controller's own
 //     library and a target player's (Ransack, Cruel Fate, Diabolic Vision,
-//     Dimir Machinations, Bamboozle).
+//     Dimir Machinations, Bamboozle);
+//   - mbcmindclaw: Mindclaw Shaman's free cast of an instant or sorcery from
+//     the target opponent's revealed hand (Play Valid$
+//     Card.TargetedPlayerCtrl ValidZone$ Hand): CastFree over the player
+//     target's hand.
 //
 // Each case asserts the lowered shape is in the table, plays clean, and then
 // diverges with that shape broken (the pool reaches what it tests).
@@ -76,6 +80,25 @@ var mbcZoneMoves9Cases = []mbcZoneMoves9Case{
 			}
 		},
 	},
+	{
+		pool: "mbcmindclaw",
+		decks: [2][]cardset.Entry{
+			{
+				{Name: "Mindclaw Shaman", Count: 12}, {Name: "Mountain", Count: 28},
+			},
+			{
+				{Name: "Shock", Count: 10}, {Name: "Lava Axe", Count: 6}, {Name: "Raging Goblin", Count: 6},
+				{Name: "Mountain", Count: 18},
+			},
+		},
+		shape: func(t *testing.T, tbl *kop.Table) {
+			if mbcTgtPlayerCast(tbl, "Mindclaw Shaman") == nil {
+				t.Fatal("Mindclaw Shaman has no CastFree over a target slot: the spelling did not lower")
+			}
+		},
+		// the controller's own hand instead of the target's
+		mutate: func(tbl *kop.Table) { mbcTgtPlayerCast(tbl, "Mindclaw Shaman").Obj = kop.RefNone },
+	},
 }
 
 func TestMBCZoneMoves9Lowers(t *testing.T) {
@@ -130,4 +153,22 @@ func digTopAskInstrs(tbl *kop.Table, name string) []*kop.Instr {
 		}
 	}
 	return out
+}
+
+// mbcTgtPlayerCast is the card's free cast whose population is a target
+// slot (the targeted player's hand).
+func mbcTgtPlayerCast(tbl *kop.Table, name string) *kop.Instr {
+	cd := mbcCard(tbl, name)
+	if cd == nil {
+		return nil
+	}
+	for j := range cd.Abilities {
+		prog := cd.Abilities[j].Prog
+		for k := range prog {
+			if prog[k].Op == kop.OpCastFree && prog[k].Obj == kop.RefTarget0 {
+				return &prog[k]
+			}
+		}
+	}
+	return nil
 }
