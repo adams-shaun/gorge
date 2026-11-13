@@ -230,3 +230,29 @@ func hasCommander(cs []protocol.DraftCard) bool {
 	}
 	return false
 }
+
+// TestCommanderBotPodCompletes: a bot-only Commander draft drafts, builds and
+// plays its pod game to COMPLETE with no human anywhere, and records one
+// PodGameEnded.
+func TestCommanderBotPodCompletes(t *testing.T) {
+	p := startGamePair(t, "", nil)
+	req := commanderReq()
+	req.Seats[0] = protocol.CreateEventSeat{Kind: "bot"}
+	resp := createOK(t, p.h, req)
+	waitPhase(t, p.h, resp.Event, "COMPLETE", 50*time.Second)
+	st := stateOf(t, p.h, resp.Event, "")
+	if len(st.Pod) != 1 || st.Pod[0].State != "ended" || st.Pod[0].Table == "" {
+		t.Fatalf("pod rows %+v", st.Pod)
+	}
+	r := runOf(t, p.h, resp.Event)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, en := range r.ev.Log() {
+		if en.Kind == "PodGameEnded" {
+			t.Logf("pod game: winner %v head %q attempts %d", en.Winner, en.Head, r.podAttempts[1])
+			if en.Head == "crashed" || en.Head == "" {
+				t.Fatalf("the pod game did not finish: head %q", en.Head)
+			}
+		}
+	}
+}
