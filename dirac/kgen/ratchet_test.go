@@ -146,7 +146,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
 	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
-	"ALL": {23443, 34442},
+	// +11 (MBC tokens-2: a TokenScript$ list with TokenOwner$ You lowers as the plain list, and a TokenPower$/TokenToughness$ mint of TokenAmount$ N or X sets every token it mints: Assemble the Entmoot, Bestial Menace, Devastating Summons, Devouring Sugarmaw, Fae Offering, Gelatinous Genesis, Hydra Broodmaster, Madame Vastra, Mascot Exhibition, Somberwald Beastmaster, Specimen Collector; ALL 23443 -> 23454, MBC 1727 -> 1731 (Bestial Menace, Fae Offering, Gelatinous Genesis, Specimen Collector), WOE 264 -> 265 (Devouring Sugarmaw) measured).
+	"ALL": {23454, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {219, 280},
@@ -161,7 +162,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
-	"MBC": {1727, 2188},
+	"MBC": {1731, 2188},
 	"MKM": {251, 279},
 	"MOM": {202, 296},
 	"MSH": {246, 276},
@@ -176,7 +177,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TMT": {183, 194},
 	"TRC": {301, 337},
 	"TRK": {311, 311},
-	"WOE": {264, 281},
+	"WOE": {265, 281},
 }
 
 // testSetlistDir is setlistDir relative to the test's working directory
