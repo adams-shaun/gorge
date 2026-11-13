@@ -2326,6 +2326,8 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 			break
 		}
 		lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: "Unblockable"})
+	case "CanAttackDefender":
+		return lc.targetedCanAttack(ps, s, obj) // lower_effectcaptured.go
 	case "MustAttack":
 		if err := lc.attacksIfAble(ps, sp, obj); err != nil { // lower_effectattacksifable.go
 			return err
