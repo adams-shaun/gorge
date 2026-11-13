@@ -1569,6 +1569,9 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			lc.emit(lInstr{Op: "Draw", Obj: lRef{Kind: rYou}, A: n})
 			return nil
 		}
+		if ps.str("Defined") == "You & TriggeredTarget" {
+			return lc.drawYouAndTriggeredTarget(ps, remDrawn || remAll) // lower_drawyouand.go
+		}
 		who, err := lc.objOrTarget(ps, "You", zNone)
 		if err != nil {
 			return err
