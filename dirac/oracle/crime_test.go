@@ -2,6 +2,7 @@ package oracle
 
 import (
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -148,6 +149,45 @@ func kcrimeSetup(t *testing.T) (*cards.Registry, cardset.Set) {
 	return reg, set
 }
 
+// kcrimeTally is one chunk's (or the run's) counts.
+type kcrimeTally struct {
+	Games, Parity int
+	Played        map[string]int
+	Stalls        map[string]int
+	St            dirac.CrimeStats
+}
+
+// kcrimeChunk plays one chunk of TestCrimeLockstep's games, stopping at its
+// first divergence.
+func kcrimeChunk(t *testing.T, c seedChunk) kcrimeTally {
+	t.Helper()
+	reg, set := kcrimeSetup(t)
+	tl := kcrimeTally{Played: map[string]int{}, Stalls: map[string]int{}}
+	dirac.DebugCrimeStats = &tl.St
+	defer func() { dirac.DebugCrimeStats = nil }()
+	md := kcrimeMatchups()[c.mi]
+	decks := kcastDeck(t, reg, md)
+	tbl, _, _, err := set.Matchup(md[0], md[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	for seed := c.lo; seed <= c.hi; seed++ {
+		res := kcrimeGame(t, reg, set, tbl, decks, seed, tl.Played, &tl.Parity)
+		tl.Games++
+		if strings.HasPrefix(res.Stall, KernelStallPrefix) {
+			tl.Stalls[res.Stall]++
+		}
+		if d := res.Div; d != nil {
+			lo := max(d.At-12, 0)
+			t.Logf("matchup %d seed %d last actions %v", c.mi, seed, actionStrings(res.Actions[lo:d.At]))
+			kcastDump(t, kcrimeGS)
+			t.Errorf("matchup %d seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", c.mi, seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
+			break
+		}
+	}
+	return tl
+}
+
 // kcrimeGame plays one seeded game of matchup md under the policy.
 func kcrimeGame(t *testing.T, reg *cards.Registry, set cardset.Set, tbl *kop.Table, decks [2][]*cards.Card, seed uint64, played map[string]int, parity *int) Result {
 	t.Helper()
@@ -168,39 +208,26 @@ func kcrimeGame(t *testing.T, reg *cards.Registry, set cardset.Set, tbl *kop.Tab
 }
 
 func TestCrimeLockstep(t *testing.T) {
-	if isolate(t) {
+	t.Parallel()
+	// Each chunk plays alone in a child process (it sets DebugCrimeStats and
+	// OccupancyHook, which every game reads) and logs its tally; the parent
+	// sums them and checks the floors over the whole run.
+	var tot kcrimeTally
+	matchupChunks(t, len(kcrimeMatchups()), 1, 1024, 256, func(t *testing.T, c seedChunk, mu *sync.Mutex) {
+		var part kcrimeTally
+		if isolateTally(t, &part) {
+			mu.Lock()
+			addTally(&tot, &part)
+			mu.Unlock()
+			return
+		}
+		part = kcrimeChunk(t, c)
+		logTally(t, &part)
+	})
+	if isolatedChild() || t.Failed() {
 		return
 	}
-
-	reg, set := kcrimeSetup(t)
-	st := &dirac.CrimeStats{}
-	dirac.DebugCrimeStats = st
-	defer func() { dirac.DebugCrimeStats = nil }()
-	games := 0
-	played := map[string]int{}
-	stalls := map[string]int{}
-	parity := 0
-	for mi, md := range kcrimeMatchups() {
-		decks := kcastDeck(t, reg, md)
-		tbl, _, _, err := set.Matchup(md[0], md[1])
-		if err != nil {
-			t.Fatal(err)
-		}
-		for seed := uint64(1); seed <= 1024; seed++ {
-			res := kcrimeGame(t, reg, set, tbl, decks, seed, played, &parity)
-			games++
-			if strings.HasPrefix(res.Stall, KernelStallPrefix) {
-				stalls[res.Stall]++
-			}
-			if d := res.Div; d != nil {
-				lo := max(d.At-12, 0)
-				t.Logf("matchup %d seed %d last actions %v", mi, seed, actionStrings(res.Actions[lo:d.At]))
-				kcastDump(t, kcrimeGS)
-				t.Errorf("matchup %d seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", mi, seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
-				return
-			}
-		}
-	}
+	st, games, played, stalls, parity := &tot.St, tot.Games, tot.Played, tot.Stalls, tot.Parity
 	st.Parity = parity
 	t.Logf("%d games, stalls %v, plays %v", games, stalls, played)
 	t.Logf("crime stats: %+v", *st)
