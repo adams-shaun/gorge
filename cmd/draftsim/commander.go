@@ -26,11 +26,12 @@ const (
 	podMaxIntents = 150000
 )
 
-// commanderPersona is the -format commander drafter and builder: the
-// Commander-draft persona, whatever -drafter and -builder name (they rate
-// limited picks and 40-card builds).
-func commanderPersona(lookup pickbot.CardLookup) (pickbot.Drafter, pickbot.Builder) {
-	return &pickbot.CommanderDrafter{Lookup: lookup}, &pickbot.CommanderBuilder{Lookup: lookup}
+// commanderPersona is the -format commander drafter and builder for
+// deckSize-card decks (0 = build.CommanderDeckSize): the Commander-draft
+// persona, whatever -drafter and -builder name (they rate limited picks and
+// 40-card builds).
+func commanderPersona(lookup pickbot.CardLookup, deckSize int) (pickbot.Drafter, pickbot.Builder) {
+	return &pickbot.CommanderDrafter{Lookup: lookup, DeckSize: deckSize}, &pickbot.CommanderBuilder{Lookup: lookup, DeckSize: deckSize}
 }
 
 // podGameSeed is a pod game's engine seed: gameSeed with both seats 0, a

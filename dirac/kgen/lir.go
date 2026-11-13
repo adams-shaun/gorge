@@ -530,6 +530,8 @@ type lCost struct {
 	DiscardHand    bool     // Discard<N/Hand> as an activated ability's cost: the whole hand (kop.Cost.DiscardHand)
 	DiscardSelf    bool     // discard this card (a hand ability: cycling)
 	DiscardF       *lFilter // Discard<N/Spec>: the discard candidates' filter (CostDiscardFiltered)
+	Discard2N      int      // a second Discard<N/Spec> part (a spell's alternative cost; kop.Cost.Discard2N)
+	Discard2F      *lFilter // the second part's filter, nil for any card (kop.Cost.Discard2F)
 	Loyalty        int      // +N / -N loyalty
 	LoyaltyX       bool     // [-X]: SubCounter<X/LOYALTY>, X announced up to the loyalty
 	Exert          bool     // Exert<1/NICKNAME>: exert the source as the cost (CR 702.100a)
@@ -590,7 +592,7 @@ type lCost struct {
 // with any other cost is outside the modelled shape.
 func (c lCost) pureMana() bool {
 	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 &&
-		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && c.Loyalty == 0 && !c.LoyaltyX &&
+		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && c.Discard2N == 0 && c.Loyalty == 0 && !c.LoyaltyX &&
 		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.SacX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
 		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.Energy == 0 && c.EnergyBy == nil && !c.ReturnSelf &&
 		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.TapXVar && !c.ExileTrigNew &&
