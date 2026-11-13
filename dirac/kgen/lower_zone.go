@@ -4427,12 +4427,15 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 
 // animateLivePT reads an Animate staticAbilities$ grant that is one
 // Mode$ Continuous static over the source itself setting its power and/or
-// toughness (Beorn's Hospitality's BeornStatic, Ms. Marvel's MsMarvelStatic;
-// gorge registerAnimateStaticAbilities). Unlike Animate Power$/Toughness$,
-// which gorge reads once at resolution, the granted static's values are read
-// live (layer 7b, every check): the override's LivePT. The Animate must reach
-// Self, set no P/T of its own and not be host-bound (anything else
-// refuses).
+// toughness (Beorn's Hospitality's BeornStatic, Ms. Marvel's MsMarvelStatic,
+// Myth Realized's Static; gorge registerAnimateStaticAbilities). Unlike
+// Animate Power$/Toughness$, which gorge reads once at resolution, the granted
+// static's values are read live (layer 7b, every check): the override's
+// LivePT. The Animate must reach Self, set no P/T of its own and not be
+// host-bound (anything else refuses). The body's EffectZone$ is the zone the
+// static would live in; gorge's self-grant whitelist admits the key and reads
+// it unread (the animated object is where the static applies), so the lowering
+// consumes it.
 func (lc *lowerCtx) animateLivePT(name string, st cards.Static, o *lOverride, obj lRef) error {
 	if obj.Kind != rSelf {
 		return refuse("Animate staticAbilities$ %q on a non-Self object", name)
@@ -4441,7 +4444,7 @@ func (lc *lowerCtx) animateLivePT(name string, st cards.Static, o *lOverride, ob
 		return refuse("Animate staticAbilities$ with a host-bound duration")
 	}
 	sp := newParams(st.Params)
-	sp.consume("Mode", "Description")
+	sp.consume("Mode", "Description", "EffectZone")
 	if d, ok := sp.get("AffectedDefined"); ok && d != "Self" {
 		return refuse("Animate staticAbilities$ %q AffectedDefined$ %q", name, d)
 	}
