@@ -19,17 +19,17 @@ func reasons(rs []refusal) []string {
 // "sacrifice it unless {W} was spent to cast it" one (CR 601.2h), whose
 // ManaNotSpent$ clause this file's lowering reads. gorge reads the script;
 // the kernel reads the CardDef kgen lowers it to.
-const hussarScript = "Name:Spend Gate Probe\nManaCost:2 U\nTypes:Creature Vedalken Knight\nPT:1/3\n" +
-	"T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDig | TriggerDescription$ When CARDNAME enters, look at the top three cards of your library, then put one of them into your hand and the rest on the bottom of your library in any order.\n" +
-	"T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigSac | ManaNotSpent$ W | TriggerDescription$ When CARDNAME enters, sacrifice it unless {W} was spent to cast it.\n" +
-	"SVar:TrigDig:DB$ Dig | DigNum$ 3 | Defined$ You\n" +
-	"SVar:TrigSac:DB$ Sacrifice\n" +
+const hussarScript = "Name:Spend Gate Probe\nManaCost:2 U\nTypes:Creature Probe\nPT:1/3\n" +
+	"T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ ProbeDig | TriggerDescription$ Dig on enter.\n" +
+	"T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ ProbeSac | ManaNotSpent$ W | TriggerDescription$ Sacrifice unless white was spent.\n" +
+	"SVar:ProbeDig:DB$ Dig | Defined$ You | DigNum$ 3\n" +
+	"SVar:ProbeSac:DB$ Sacrifice\n" +
 	"Oracle:x\n"
 
 // viperScript is Patagia Viper's enter pair with ManaNotSpent$ U.
 const viperScript = "Name:Spend Gate Viper\nManaCost:3 G\nTypes:Creature Snake\nPT:2/1\n" +
-	"T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigSac | ManaNotSpent$ U | TriggerDescription$ When CARDNAME enters, sacrifice it unless {U} was spent to cast it.\n" +
-	"SVar:TrigSac:DB$ Sacrifice\n" +
+	"T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ ProbeSac | ManaNotSpent$ U | TriggerDescription$ Sacrifice unless blue was spent.\n" +
+	"SVar:ProbeSac:DB$ Sacrifice\n" +
 	"Oracle:x\n"
 
 // TestTriggerManaSpendCond: a trigger's ManaSpent$ / ManaNotSpent$ colour
@@ -86,14 +86,14 @@ func TestTriggerManaSpendCond(t *testing.T) {
 // by name, never by lowering a half-read gate.
 func TestTriggerManaSpendRefusals(t *testing.T) {
 	for _, c := range []struct{ name, trig, want string }{
-		{"colour list", "T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigSac | ManaNotSpent$ W U", "trigger ManaSpend colours"},
-		{"colourless", "T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigSac | ManaNotSpent$ C", "trigger ManaSpend colours"},
-		{"not the card's own ETB", "T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ TrigSac | ManaNotSpent$ W", "outside the card's own ETB trigger"},
-		{"other creatures entering", "T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Creature | Execute$ TrigSac | ManaNotSpent$ W", "outside the card's own ETB trigger"},
-		{"ManaSpent polarity", "T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDestroy | ManaSpent$ R", ""},
+		{"colour list", "T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ ProbeSac | ManaNotSpent$ W U", "trigger ManaSpend colours"},
+		{"colourless", "T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ ProbeSac | ManaNotSpent$ C", "trigger ManaSpend colours"},
+		{"not the card's own ETB", "T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ ProbeSac | ManaNotSpent$ W", "outside the card's own ETB trigger"},
+		{"other creatures entering", "T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Creature | Execute$ ProbeSac | ManaNotSpent$ W", "outside the card's own ETB trigger"},
+		{"ManaSpent polarity", "T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ ProbeDestroy | ManaSpent$ R", ""},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			body := "SVar:TrigSac:DB$ Sacrifice\nSVar:TrigDestroy:DB$ Destroy | ValidTgts$ Artifact\n"
+			body := "SVar:ProbeSac:DB$ Sacrifice\nSVar:ProbeDestroy:DB$ Destroy | ValidTgts$ Artifact.Other\n"
 			def, pt, refs := kdiscfiltBuild(t, c.name,
 				"Name:Spend Refusal\nManaCost:R\nTypes:Creature Goblin\nPT:2/2\n"+c.trig+"\n"+body+"Oracle:x\n")
 			if c.want == "" {

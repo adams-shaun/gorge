@@ -204,7 +204,7 @@ func mbcSpendRun(t *testing.T, seeds uint64) (div *Divergence, seen map[string]b
 	return
 }
 
-// TestMBCApiParams1Lowers is the brief's per-spelling lockstep; this leg
+// TestMBCApiParams1Lowers is the per-spelling lockstep; this leg
 // covers the ManaSpent$ / ManaNotSpent$ clause. It both holds in lockstep and
 // proves the gate was exercised both ways: a kernel (or gorge) without the
 // gate fires the sacrifice on a gate-colour cast and the game diverges.

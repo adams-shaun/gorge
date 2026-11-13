@@ -13,10 +13,10 @@ import (
 // the trigger fires).
 func phaseProbeScript(phase string) string {
 	return "Name:Phase Gate Probe\nManaCost:2 U\nTypes:Creature\nPT:1/1\n" +
-		"T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDraw | TriggerDescription$ When CARDNAME enters, draw a card.\n" +
-		"T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDraw2 | Phase$ " + phase + " | TriggerDescription$ When CARDNAME enters during the named phase, draw a card.\n" +
-		"SVar:TrigDraw:DB$ Draw | NumCards$ 1\n" +
-		"SVar:TrigDraw2:DB$ Draw | NumCards$ 2\n" +
+		"T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ ProbeDraw | TriggerDescription$ Draw on enter.\n" +
+		"T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ ProbeDraw2 | Phase$ " + phase + " | TriggerDescription$ When CARDNAME enters during the named phase, draw a card.\n" +
+		"SVar:ProbeDraw:DB$ Draw | NumCards$ 1 | Defined$ You\n" +
+		"SVar:ProbeDraw2:DB$ Draw | NumCards$ 2\n" +
 		"Oracle:x\n"
 }
 
