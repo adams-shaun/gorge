@@ -506,6 +506,12 @@ type lTarget struct {
 	// DkTarget ask (cast.go).
 	TrigChooser bool
 
+	// ThanActive is a player target's Oath-cycle comparison with the active
+	// player (kop.ThanCreatures ...; 0 = none), always beside OppToActive
+	// (lower_thanactive.go; kop.TgfOppToActive / TgfThanMask).
+	ThanActive  int
+	OppToActive bool
+
 	AtRes   bool   // asked mid-resolution (gorge's deferred chain-link targets), at its ChooseTargets
 	ChgSub  bool   // declared by a ChangeZone chain link (not the root): gorge announces its targets on cast (castSubChangeZoneAnnounceable)
 	Decl    bool   // a spell's copy target declaration (its root node or a charm mode's head)

@@ -1472,6 +1472,10 @@ func (lc *lowerCtx) digUntil(ps *params) error {
 		in.C = rev
 		in.CS += "|FoundWithRevealed"
 	}
+	optional, err := lc.digUntilOptional(ps, who) // lower_thanactive.go
+	if err != nil {
+		return err
+	}
 	if ps.is("ImprintFound", "True") {
 		if ps.is("RememberRevealed", "True") {
 			return lc.digUntilImprint(ps, in, found, rev) // lower_digimprint.go
@@ -1488,6 +1492,9 @@ func (lc *lowerCtx) digUntil(ps *params) error {
 			return refuse("RememberFound %q", v)
 		}
 		in.CS += "|RememberFound"
+	}
+	if optional {
+		lc.emit(lInstr{Op: "MayAsk", C: kop.MayGuardDigUntil, Obj: who, Skip: 1, Note: "may reveal"})
 	}
 	lc.emit(in)
 	return nil

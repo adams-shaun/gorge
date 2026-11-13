@@ -23,6 +23,12 @@ func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 			// controller's spells included (gorge stack.go's recheck arm)
 			return false
 		}
+		if t := tspecE(s.k(), e, i); t != nil && t.TFlags&kop.TgfPlayerCompareOK != 0 && !s.playerThanActiveOK(k, t.TFlags, pp) {
+			// the Oath cycle's comparison with the active player is judged
+			// again at resolution (CR 608.2b; gorge's recheck of the full
+			// spec): the board may have changed since the target was chosen
+			return false // tgt_thanactive.go
+		}
 		return !s.pl[pp].lost
 	}
 	if isStackTarget(code) {

@@ -464,11 +464,18 @@ func (lc *lowerCtx) objOrTargetOpt(ps *params, dflt string, zone int, allowParen
 				return lRef{}, err
 			}
 		}
+		thanActive, vt, isThan := oathPlayerTarget(vt) // lower_thanactive.go
 		f, err := lc.filter(vt)
 		if err != nil {
 			return lRef{}, err
 		}
 		t := lTarget{F: f, Zone: zone}
+		if isThan {
+			t.OppToActive, t.ThanActive = true, thanActive
+			if err := lc.thanActiveChooser(ps, &t); err != nil {
+				return lRef{}, err
+			}
+		}
 		if lc.graveExileCard {
 			if f.Players != 0 || len(f.Clauses) != len(gxZones) {
 				return lRef{}, refuse("ChangeZone Origin$ Graveyard,Exile ValidTgts$ %q does not lower to one clause per alternative", vt)

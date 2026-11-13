@@ -538,6 +538,9 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 	if t.DiffCtrl {
 		ts.TFlags |= kop.TgfDiffController
 	}
+	if t.OppToActive {
+		ts.TFlags |= kop.TgfOppToActive | kop.TargetFlags(t.ThanActive)<<kop.TgfThanShift
+	}
 	if t.TrigChooser {
 		if ts.Min|ts.Max != 0 || ts.Divide != 0 {
 			return ts, fmt.Errorf("trigger-player chooser on a several-object slot")
