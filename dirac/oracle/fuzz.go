@@ -144,7 +144,9 @@ type FuzzSummary struct {
 	// SkipAt is the lowest pair index a worker received after the feed stopped
 	// (StopOnHang; len(pairs) when nothing was skipped): the played pairs are
 	// the prefix before it, so the caller's next attempt starts at SkipAt and
-	// no pair is played twice or lost between attempts.
+	// no pair is lost between attempts. With Workers > 1 a worker that held job
+	// s while descheduled can find the stop set after a later job was played, so
+	// that later pair may be played again by the next attempt (rare, benign).
 	SkipAt int
 }
 

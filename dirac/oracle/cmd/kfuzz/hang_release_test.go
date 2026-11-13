@@ -187,8 +187,9 @@ var helperCont = flag.Bool("test.hang-helper-cont", false, "the continuation ima
 
 // The helper's continuation argv carries the sweep's -first-pair and -pairs
 // (contArgs appends them), and the exec'd image is this test binary, which
-// defines neither: the helper's images accept them. No test calls run(), so
-// the sweep's own registration of the same names never collides here.
+// defines neither: the helper's images accept them. runKFuzz calls run() in
+// process, but on a fresh flag.CommandLine, so the sweep's own registration of
+// the same names never collides with these.
 var helperSweepFlags = func() bool {
 	flag.Int("first-pair", 0, "helper: runContinuation's argv")
 	flag.Int("pairs", 0, "helper: runContinuation's argv")

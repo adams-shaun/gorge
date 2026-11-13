@@ -361,6 +361,7 @@ func run() int {
 			return 1
 		}
 		defer remove()
+		beforeExec = append(beforeExec, remove) // a continuation's exec skips the defer
 		*decksDir, *poolPath, *pairsFile = filepath.Join(dir, "decks"), filepath.Join(dir, "pool.tsv"), filepath.Join(dir, "pairs.tsv")
 		explicit["pairs"] = true
 		sliced = true
@@ -636,9 +637,6 @@ func run() int {
 			return 1
 		}
 	}
-	// Games and Errors each count every attempted pair (a hang counts in Games),
-	// so together they are how many pairs this segment played.
-	played := playedPrefix(sum, len(ps))
 	for _, p := range sum.Hangs {
 		fmt.Printf("pair %d (%s, seed %d): hang: no result after two watchdogs of %s; rerun with: %s\n", p.Index, vs(p), p.Seed, *gameLimit, rerunCmd(p.Index))
 	}
@@ -658,13 +656,20 @@ func run() int {
 			}
 		}
 	}
+	if sum.First != nil || sum.Hung > 0 {
+		return failSegment(sum, ps)
+	}
+	return 0
+}
+
+// failSegment ends a failed generic segment: exit 1, after handing the pairs a
+// hang left unplayed to a continuation (hangTail).
+func failSegment(sum oracle.FuzzSummary, ps []oracle.Pairing) int {
+	played := playedPrefix(sum, len(ps))
 	if sum.Hung > 0 && played < len(ps) {
 		return hangTail(played, ps[played].Index, len(ps)-played)
 	}
-	if sum.First != nil || sum.Hung > 0 {
-		return 1
-	}
-	return 0
+	return 1
 }
 
 // playedPrefix is how many of a generic path's pairs this segment played: with
@@ -1371,7 +1376,14 @@ func kfuzzProg() string {
 // rerunCmd is the command that replays one pair in a fresh kfuzz: the pair's
 // index and one pair, so it reruns exactly the game the line reports.
 func rerunCmd(pair int) string {
-	return kfuzzProg() + " " + strings.Join(contArgs(pair, 1), " ")
+	words := []string{kfuzzProg()}
+	for _, a := range contArgs(pair, 1) {
+		if a == "" || strings.ContainsAny(a, " \t\n\"'\\$`*?[]{}()<>|&;!#~") {
+			a = "'" + strings.ReplaceAll(a, "'", `'\''`) + "'" // pastes back as one word
+		}
+		words = append(words, a)
+	}
+	return strings.Join(words, " ")
 }
 
 // contArgs is os.Args[1:] with every -pods, -first-pair and -pairs occurrence
@@ -1398,6 +1410,10 @@ func contArgs(firstPair, pairs int) []string {
 	return append(out, "-first-pair", strconv.Itoa(firstPair), "-pairs", strconv.Itoa(pairs))
 }
 
+// beforeExec holds the cleanups of run's deferred resources that runContinuation
+// must run itself, since syscall.Exec never unwinds the stack.
+var beforeExec []func()
+
 // runContinuation hands the pairs a hang left unplayed to a fresh process
 // image: it execs this program with contArgs(firstPair, pairs) — same pid, new
 // image — so the hung game's goroutine, which Go cannot cancel, is destroyed
@@ -1413,6 +1429,9 @@ func contArgs(firstPair, pairs int) []string {
 // stub this var.
 var runContinuation = func(firstPair, pairs int) int {
 	os.Setenv(priorHungEnv, "1")
+	for _, f := range beforeExec {
+		f() // the exec skips run's defers: drop the extracted slice dir now
+	}
 	exe, err := os.Executable()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "kfuzz: continuation: %v\n", err)
