@@ -13,7 +13,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // "cast" Mode "escape"). Lunar Hatchling's printed cost adds one
 // Exile<1/Land> part from the battlefield, a counted part of its own beside
 // the grave exile; the kernel's cast carries one counted part, so kgen
-// refuses that cost shape (Lunar Hatchling stays refused by name).
+// refuses that cost shape (kgen refuses Lunar Hatchling at its K:Escape node).
 //
 // Granted escape: a card in its owner's graveyard granted escape by a
 // battlefield static (kop.StatEscapeGrant, Underworld Breach's AffectedZone$
