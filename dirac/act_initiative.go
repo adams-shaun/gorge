@@ -34,10 +34,21 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     player controls deal combat damage to the holder (that player takes
 //     the initiative), a source-less trigger ventures into Undercity
 //     (gorge's "__initiative_venture": abDelayed with trigAmt initTrigAmt).
+//   - 726.4 (more than two seats): when the holder leaves the game, the
+//     active player takes the initiative, or the next player in turn order
+//     still in the game when the active player is the one leaving (gorge
+//     initiativeHandoffOnDeparture, designationHeir); the new holder queues
+//     the venture trigger. It runs at each loss site as the seat is marked
+//     lost (initLeft), immediately before the monarch handoff, in gorge's
+//     loss order.
 
 // DebugNoInitSteal (TestInitLockstepMutation): combat damage to the holder
 // takes nothing.
 var DebugNoInitSteal bool
+
+// DebugNoInitHandoff (TestFourSeatInitiativeHandoffLockstep): a departed
+// holder keeps the initiative (CR 726.4 dropped).
+var DebugNoInitHandoff bool
 
 const (
 	initTrigAmt = -2 // the abDelayed entry's trigAmt marking the venture trigger (speed's is -1)
@@ -148,6 +159,40 @@ func (s *State) markerEnter(k *prep, p, r uint8) {
 // initVentureTrig queues p's source-less "ventures into Undercity" trigger.
 func (s *State) initVentureTrig(p uint8) {
 	s.enqueue(NoObj, 0, 0, abDelayed, p, NoObj, p, initTrigAmt)
+}
+
+// initLeft runs as seat p is marked lost, at every loss site (sba's life and
+// empty-library loops, poisonSBA, cmdDamageSBA, lose). It sits immediately
+// before monarchLeft, matching gorge's losePlayer, which hands the initiative
+// off before the monarch (cantlose.go). Those are gorge's loss order
+// (checkLoseConditions: life, then an empty library, then poison, then
+// commander damage, each in seat order), and gorge's losePlayer hands the
+// designation off before the batch's next loss is made, so a seat that loses
+// later in the same check is still in the game when the heir is chosen. At two
+// seats a loss ends the game and the call folds away.
+func (s *State) initLeft(k *prep, p uint8) {
+	if MaxSeats > 2 && k.gen != nil && k.anyInit && s.g.initH == p+1 {
+		s.initHandoff(k, p)
+	}
+}
+
+// initHandoff is CR 726.4 for the departed holder p: the active player takes
+// the initiative, else the next player in turn order still in the game (gorge
+// designationHeir), and the new holder ventures -- gorge's handoff queues the
+// CR 726.2 venture trigger exactly as the combat-damage take does. With nobody
+// else left the designation stays.
+//
+//go:noinline
+func (s *State) initHandoff(k *prep, p uint8) {
+	if DebugNoInitHandoff {
+		return
+	}
+	h, ok := s.designationHeir(p)
+	if !ok {
+		return
+	}
+	s.g.initH = h + 1
+	s.initVentureTrig(h)
 }
 
 // initUpkeep is the holder's upkeep venture trigger (CR 726.2; gorge

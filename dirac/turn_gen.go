@@ -88,10 +88,18 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		}
 		if s.res.e.flags&sfKicked != 0 && !(k.gen.anyOptCost && castCollectedNever(k, &s.res.e)) {
 			s.mSlSet(k, mechKicked, sl)
+			if k.t.Cards[s.res.e.card].HasMultikicker && int(sl) < len(s.cold.mk) {
+				s.cold.mk[sl] = uint8(s.multikickCount(&s.res.e)) // CR 702.43: the permanent reads its spell's count
+			}
 		}
 		if sneakMarks(&s.res.e) {
 			s.mSlSet(k, mechSneaked, sl) // kw_sneak.go
 		}
+	} else if int(o) < len(s.cold.mkObj) {
+		// an entry that is not the resolving spell (reanimate, blink, return)
+		// is a new object with no payments (CR 400.7, 702.43): the last cast's
+		// count must not survive to the ETB trigger's target bound (exprs.go)
+		s.cold.mkObj[o] = 0
 	}
 	s.g.zoneTurn.set(o)
 	if s.g.enteredOn {
@@ -721,6 +729,7 @@ func (s *State) cleanupGen(k *prep) {
 			r.until == kop.DurWarp && s.warpRecastLive(r) ||
 			r.until == kop.DurAirbend && s.warpRecastLive(r) ||
 			r.until == kop.DurPlot && s.plotLive(r) ||
+			r.until == kop.DurSuspend && s.suspendLive(r) || // a suspended card stays while exiled, its haste while it stays (kw_suspend.go)
 			r.until == kop.DurForetell && s.plotLive(r) ||
 			r.until == kop.DurPrepared && s.preparedSrc(r) ||
 			r.dur() == kop.DurWhileSrcMay && s.mayWhileSrcKeep(r) || // cast_whilesource.go
@@ -948,6 +957,9 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 	if k.gen.anyBattle && s.g.nmay > 0 && s.defeatPosedOptions(d) {
 		return true
 	}
+	if k.gen.anySuspend && s.g.nmay > 0 && s.suspendPosedOptions(d) {
+		return true
+	}
 	if s.entryAsked(k) {
 		s.entryOrderOptions(k, d)
 		return true
@@ -1036,6 +1048,9 @@ func (s *State) applyGen(k *prep, a Action) {
 		return
 	}
 	if k.gen.anyBattle && s.g.nmay > 0 && s.applyDefeat(k, a) {
+		return
+	}
+	if k.gen.anySuspend && s.g.nmay > 0 && s.applySuspendAnswer(k, a) {
 		return
 	}
 	if s.entryAsked(k) {

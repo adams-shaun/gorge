@@ -1,0 +1,9 @@
+# the cumulative upkeep and phasing pool: a cumulative upkeep permanent (CR
+# 702.24a; Revered Unicorn {1}{W}) phased out in response to its trigger by
+# Vodalian Illusionist or Reality Ripple is not affected by it (CR 702.26b).
+# For the oracle's constructed lockstep (dirac/oracle/remoraphasing_test.go).
+Island
+Plains
+Reality Ripple
+Revered Unicorn
+Vodalian Illusionist

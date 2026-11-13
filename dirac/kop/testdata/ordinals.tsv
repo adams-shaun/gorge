@@ -320,6 +320,7 @@ DurForetell	untyped int	13
 DurPermanent	untyped int	1
 DurPlot	untyped int	7
 DurPrepared	untyped int	8
+DurSuspend	untyped int	14
 DurUntilYourNextTurn	untyped int	5
 DurWarp	untyped int	6
 DurWhileControlSource	untyped int	4

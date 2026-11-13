@@ -157,6 +157,9 @@ var ChooseKinds = []string{
 	"vote_card",        // gorge effCardVote's ballot pick (CR 701.38a)
 	"decline",          // gorge poseChosenTokenReplacement's optional copy-instead election: decline first (repl_tokcopy.go)
 	"creature",         // and the creature to copy
+	"multikick",        // CR 702.43: gorge multikickAsk's count pick (kw_multikicker.go)
+	"suspend_cast_yes", // CR 702.62a: gorge startSuspendedCast's may-cast ask (kw_suspend.go)
+	"suspend_cast_no",
 }
 
 // ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks.

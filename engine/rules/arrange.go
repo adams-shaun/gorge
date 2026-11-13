@@ -155,6 +155,12 @@ func arrangeAnswerRecord(e *Engine, d *decision.Decision, in decision.Intent, sa
 		return
 	}
 	switch arrangeAnswerRecordCodes.Code(string(kind)) {
+	case arrangeAnswerRecordPrimitive:
+		// A CR 401.4 placement ask: the asking primitive reads the order off
+		// the answer and emits its own LibraryOrder (the cards are already in
+		// the library, wherever the effect puts them), so there is no
+		// pile rebuild to record here.
+		return
 	case arrangeAnswerRecordAllToBottom:
 		// The all-to-bottom shapes: Hideaway has already moved its one chosen
 		// card to exile before this ask; Dig's default remainder never had a
@@ -282,6 +288,7 @@ const (
 	arrangeAnswerRecordAllToBottom arrangeAnswerRecordCode = iota + 1
 	arrangeAnswerRecordBottom
 	arrangeAnswerRecordGraveyard
+	arrangeAnswerRecordPrimitive
 )
 
 var arrangeAnswerRecordCodes = state.NewStrCodes(
@@ -289,4 +296,5 @@ var arrangeAnswerRecordCodes = state.NewStrCodes(
 	state.StrEntry[arrangeAnswerRecordCode]{Key: "dig_bottom", Val: arrangeAnswerRecordAllToBottom},
 	state.StrEntry[arrangeAnswerRecordCode]{Key: "bottom", Val: arrangeAnswerRecordBottom},
 	state.StrEntry[arrangeAnswerRecordCode]{Key: "graveyard", Val: arrangeAnswerRecordGraveyard},
+	state.StrEntry[arrangeAnswerRecordCode]{Key: "library_placement", Val: arrangeAnswerRecordPrimitive},
 )

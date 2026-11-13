@@ -341,6 +341,9 @@ var kwBits = map[string]kop.KwMask{
 	"PreventCombatDamageFrom": kop.KwPreventCombatDamageFrom, "Shroud": kop.KwShroud,
 	"Fear": kop.KwFear, "Shadow": kop.KwShadow, "Prowess": kop.KwProwess, "Wither": kop.KwWither, // a GRANTED wither only (printed: CardDef.Wither)
 	"Ward": kop.KwWard, // a static's granted ward only (lStatic.Ward; splitWardGrant)
+	// Multikicker has no free KwMask bit (all 32 are used); the keyword is
+	// carried by CardDef.HasMultikicker/Multikicker instead (CR 702.43).
+	"Multikicker": 0,
 }
 
 func kwMask(ks []string) (kop.KwMask, error) {
@@ -453,6 +456,7 @@ func (cb *cardBuilder) record() error {
 	// distinction the turn-face-up gate needs (CR 701.40b): gorge rejects
 	// only an empty printed cost, so "no cost" is offered as free.
 	d.CostEmpty = c.CostEmpty
+	d.NoManaCost = c.Cost.None && !c.CostEmpty // CR 118.6: dirac/cast_nomanacost.go
 	if (len(c.Cost.Twobrid) != 0 || len(c.Cost.Phyrexian) != 0) && costErr == nil {
 		costErr = twobridConflict(c)
 	}
@@ -617,6 +621,12 @@ func (cb *cardBuilder) record() error {
 			}
 		}
 	}
+	if c.Multikicker != nil {
+		d.HasMultikicker = true
+		if d.Multikicker, err = manaCostOf(*c.Multikicker); err != nil {
+			return err
+		}
+	}
 	if c.MorphCost != nil {
 		d.MorphFamily = c.MorphFamily
 		if d.MorphCost, err = manaCostOf(*c.MorphCost); err != nil {
@@ -692,6 +702,14 @@ func (cb *cardBuilder) record() error {
 		// (dirac/kw_plot.go)
 		d.HasPlot = true
 		if d.PlotCost, err = manaCostOf(*c.Plot); err != nil {
+			return err
+		}
+	}
+	if c.Suspend != nil {
+		// CR 702.62a: the hand's special action pays SuspendCost and exiles
+		// the card with Suspend time counters (dirac/kw_suspend.go)
+		d.Suspend = uint8(c.SuspendN)
+		if d.SuspendCost, err = manaCostOf(*c.Suspend); err != nil {
 			return err
 		}
 	}
@@ -2111,6 +2129,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vActivations:        kop.ExActivations,
 	vLifeLostLastTurn:   kop.ExLifeLostLastTurn,
 	vDmgAmount:          kop.ExDmgAmountReceived,
+	vTimesKicked:        kop.ExKicked, // Expr.N 1: the multikicker count, not the kicked bit
 	vEnergyOf:           kop.ExEnergyOf,
 	vMonarch:            kop.ExMonarch, // lower_monarch.go
 }
@@ -2136,6 +2155,9 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 	}
 	if v.Kind == vPWTypes {
 		e.N = 1 // ExCount N 1: the distinct planeswalker subtypes, not the count
+	}
+	if v.Kind == vTimesKicked {
+		e.N = 1 // ExKicked N 1: the multikicker payment count (eval's timesKicked)
 	}
 	if v.Kind == vThisTurnEntered {
 		e.N = int16(v.Zone)
