@@ -52,10 +52,15 @@ func (s *State) soleOpponent(p uint8) uint8 {
 const raChoosePlayerMid = raGenManifestDread + 8
 
 // choosePlayerMid is OpExt ExtChoosePlayerMid: false = the ask suspended the
-// program (a sole opponent is recorded unasked).
+// program (a sole opponent is recorded unasked; with none gorge records no
+// choice, and a reader finds none).
 func (s *State) choosePlayerMid(k *prep) bool {
-	if p := s.soleOpponent(s.res.e.ctrl); p != 255 {
-		s.res.chPl = p + 1
+	q := s.oppsFrom(s.res.e.ctrl)
+	switch {
+	case q.n == 1:
+		s.res.chPl = q.s[0] + 1
+		return true
+	case q.n == 0:
 		return true
 	}
 	s.res.ask, s.res.askP = raChoosePlayerMid, s.res.e.ctrl
