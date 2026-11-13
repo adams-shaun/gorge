@@ -12,8 +12,12 @@ import (
 // its root-caused verdict. A seq moves whenever a rule change shifts a game's log
 // or the bots' trajectory; a move keeps the card and the verdict.
 //
-//   - 4130, 2138, 4139: the findings are no longer reached, so each seed keeps an
+//   - 4130, 4139: the findings are no longer reached, so each seed keeps an
 //     empty pin and asserts a clean, control-equivalent game;
+//   - 2138 seq 11926: Kappa Cannoneer, equivalent. The plan credits Improvise
+//     with five artifacts, the seat taps one, and the engine plans the cast
+//     again (CR 702.126a, 601.2g-h); the float route floats that witness, the
+//     one run A paid by (Report.paid);
 //   - 25 seq 273: Master of Dark Rites, equivalent;
 //   - 4129 seq 1381: Demonic Tutor, equivalent (the Ogre pay-life-only witness
 //     stays pinned by TestWitnessReadsPayLifeOnlySources).
@@ -31,7 +35,7 @@ func TestCommanderFindingsMirrorKernel(t *testing.T) {
 		want  string // the named cast's verdict key ("" = equivalent)
 	}{
 		{4130, []string{"vivi-ornitier-cedh", "foundations-reign-of-dragons", "avengers-assemble", "valgavoth-endless-punishment"}, 0, ""},
-		{2138, []string{"vivi-ornitier-cedh", "hearthhull-worldseed-landfall", "pro-shaper", "foundations-keen-engineering"}, 0, ""},
+		{2138, []string{"vivi-ornitier-cedh", "hearthhull-worldseed-landfall", "pro-shaper", "foundations-keen-engineering"}, 11926, ""},
 		{25, []string{"foundations-reign-of-dragons", "hearthhull-worldseed-landfall", "avengers-assemble", "rakdos-muscle-scam-exe"}, 273, ""},
 		{4139, []string{"foundations-wretched-ranks", "deadly-disguise", "foundations-reign-of-dragons", "ulalek-eldrazi"}, 0, ""},
 		{4129, []string{"rakdos-muscle-scam-exe", "pro-shaper", "foundations-reign-of-dragons", "foundations-wretched-ranks"}, 1381, ""},
