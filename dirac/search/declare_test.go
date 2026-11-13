@@ -30,7 +30,7 @@ func TestBotDeclarationStopsAtTurnBoundary(t *testing.T) {
 	var d dirac.Decision
 	for i, a := range script {
 		s.StepInto(&d)
-		want := dirac.Action(a)
+		want := twoSeatPlayerCode(dirac.Action(a))
 		offered := false
 		for j := 0; j < int(d.N); j++ {
 			if d.Options[j] == want {
@@ -397,4 +397,14 @@ func TestDeclarerLazyPriors(t *testing.T) {
 	if sr.St.PriorSkips == 0 {
 		t.Fatal("lazyPoint never accepted a pure Declarer bot's declaration")
 	}
+}
+
+// twoSeatPlayerCode rewrites a scripted action's player target code, written
+// as the two-seat build numbers it (PlayerTarget0 0xFC, a seat per code), to
+// this build's: the seat count moves PlayerTarget0.
+func twoSeatPlayerCode(a dirac.Action) dirac.Action {
+	if t := a.Target(); t == 0xFC || t == 0xFD {
+		return a&^0xFF00 | dirac.Action(dirac.PlayerTarget0+t-0xFC)<<8
+	}
+	return a
 }
