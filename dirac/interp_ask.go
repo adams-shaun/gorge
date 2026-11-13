@@ -554,7 +554,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		if s.prog(k)[r.pc].C == chooseCopyPick {
 			d.Sub = ChGenCopyPick // gorge's copypermanent_choice pick (copy_picked.go)
 		}
-		s.cardCands(k, s.prog(k)[r.pc].F, r.askP, d)
+		s.cardCandsBase(k, s.prog(k)[r.pc].F, r.askP, s.chooseCardBase(s.prog(k)[r.pc].Obj, r.askP), d)
 		if c := s.prog(k)[r.pc].C; c == 1 || c == chooseLibUpTo {
 			d.add(MakeAction(AkDone, 0, 0, 0)) // up to one (gorge choiceBounds Min 0)
 		}
@@ -2504,6 +2504,24 @@ func (s *State) nextChooseEach(k *prep) bool {
 // cardCands lists (into d, or just counts) the objects matching f in its
 // zone (battlefield for ZoneNone).
 func (s *State) cardCands(k *prep, f kop.FilterID, p uint8, d *Decision) int {
+	return s.cardCandsBase(k, f, p, p, d)
+}
+
+// chooseCardBase is the ctrl base a ChooseCard ask's pool is matched
+// against: the asking player, except the chosen-player chooser (Obj
+// RefEachOpponent), whose pool gorge matches against the resolving
+// controller (gorge cardChoices' activator perspective, cardChoicesIn — the
+// same read interp_gen's OpChooseCard case applies).
+func (s *State) chooseCardBase(obj kop.Ref, askP uint8) uint8 {
+	if obj == kop.RefEachOpponent {
+		return s.res.e.ctrl
+	}
+	return askP
+}
+
+// cardCandsBase is cardCands with the ctrl base the filter's You reads are
+// matched against (chooseCardBase's rule).
+func (s *State) cardCandsBase(k *prep, f kop.FilterID, p, ctrl uint8, d *Decision) int {
 	n := 0
 	z := k.t.Filters[f].Zone
 	add := func(o Obj) {
@@ -2522,7 +2540,7 @@ func (s *State) cardCands(k *prep, f kop.FilterID, p uint8, d *Decision) int {
 		}
 		for m := s.occ; m.any(); m = m.rest() {
 			sl := m.first()
-			if s.matchPermGen(k, f, sl, p, src, layerFull) {
+			if s.matchPermGen(k, f, sl, ctrl, src, layerFull) {
 				add(s.perms[sl].obj)
 			}
 		}
@@ -2546,7 +2564,7 @@ func (s *State) cardCands(k *prep, f kop.FilterID, p uint8, d *Decision) int {
 			list = pl.hand[:pl.handN]
 		}
 		for _, o := range list {
-			if s.matchCardGen(k, f, s.objs[o].card, pp, p, o) {
+			if s.matchCardGen(k, f, s.objs[o].card, pp, ctrl, o) {
 				add(o)
 			}
 		}
