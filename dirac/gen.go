@@ -165,6 +165,7 @@ type genPrep struct {
 	blkTaxStall     bool           // a block tax beside a part its walk does not model (combat_blocktax.go prepBlkTax): StallBlkTax
 	atkTaxStall     bool           // an attack tax beside a part its walk does not model (combat_attacktax.go prepAtkTax): StallAtkTax
 	chPlOrder       bool           // an as-enters opponent choice beside another object's enters replacement (repl_chooseplayer.go prepChoosePlayer): StallChoosePlayerOrder
+	tokListAdd      bool           // a comma-listed TokenScript$ mint beside a ReplAddToken (repl_toklistadd.go prepTokListAdd): StallTokRewrite
 	anyWitherGrant  bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
 	anyEOTEmb       bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
 	anyNTEmb        bool           // some emblem ends at its controller's next turn (kop.Emblem.UntilNextTurn; static_effectdelivered.go)
@@ -1611,6 +1612,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepAtkTax(t, g)       // combat_attacktax.go: after the requirement, Taps and land-type reads it checks
 	prepBlkTax(t, g)       // combat_blocktax.go: the same reads
 	prepChoosePlayer(t, g) // repl_chooseplayer.go
+	prepTokListAdd(t, g)   // repl_toklistadd.go
 	prepCold(g, &p.cold)
 	return g
 }

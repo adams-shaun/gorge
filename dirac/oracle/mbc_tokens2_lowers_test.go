@@ -1,6 +1,8 @@
 package oracle
 
 import (
+	"errors"
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -140,5 +142,33 @@ func TestMBCTokens2Lowers(t *testing.T) {
 	}
 	if tal.multiOoze < 3 {
 		t.Errorf("%d X mints of two or more Oozes (< 3)", tal.multiOoze)
+	}
+}
+
+// TestMBCTokens2ListAdderRefused: Fae Offering's comma-listed mint beside
+// Jolene, the Plunder Queen's Treasure adder is refused at the matchup.
+// gorge appends the adder's one extra token after the whole creation event
+// (rules/replacement_token.go applyTokenReplacementToPlan); the kernel mints
+// the list op by op, so a game would reach the unmodelled tokrewrite stall
+// (repl_tokorder.go replTokensOp). Each half alone still builds.
+func TestMBCTokens2ListAdderRefused(t *testing.T) {
+	t.Parallel()
+	_, set, _ := lockstepPool(t, mbcTokens2Pool, mbcTokens2Decks)
+	deck := func(card, land string) []cardset.Entry {
+		return []cardset.Entry{{Name: card, Count: 10}, {Name: land, Count: 30}}
+	}
+	fae, jolene, lands := deck("Fae Offering", "Forest"), deck("Jolene, the Plunder Queen", "Mountain"), deck("Island", "Swamp")
+	for _, ok := range [][2][]cardset.Entry{{fae, lands}, {jolene, lands}} {
+		if _, _, err := set.MatchupN([][]cardset.Entry{ok[0], ok[1]}); err != nil {
+			t.Fatalf("precondition: one half alone must build: %v", err)
+		}
+	}
+	_, _, err := set.MatchupN([][]cardset.Entry{fae, jolene})
+	var ir *cardset.InteractionRefusal
+	if !errors.As(err, &ir) || ir.Reason != "tokrewrite" {
+		t.Fatalf("Fae Offering beside Jolene, the Plunder Queen: got %v, want the tokrewrite interaction refusal", err)
+	}
+	if !slices.Contains(ir.Cards, "Fae Offering") || !slices.Contains(ir.Cards, "Jolene, the Plunder Queen") {
+		t.Fatalf("refusal names %v, want both halves", ir.Cards)
 	}
 }
