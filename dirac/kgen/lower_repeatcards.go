@@ -17,8 +17,9 @@ import (
 // so ChangeZoneTable$ True is required (it is what the kernel does); every
 // other rider (ChooseOrder$, DamageMap$, a body of any other shape, a
 // nested loop) refuses by name. The one other body is a DealDamage by the
-// repeated card to its controller (repeatEachCardsDamage), which moves no
-// card, so it needs no ChangeZoneTable$.
+// repeated card to its controller under DamageMap$ True
+// (repeatEachCardsDamage), which moves no card, so it reads no
+// ChangeZoneTable$.
 func (lc *lowerCtx) repeatEachCards(ps *params) error {
 	cardsSpec, defSpec := strings.TrimSpace(ps.str("RepeatCards")), strings.TrimSpace(ps.str("DefinedCards"))
 	if cardsSpec == "" && defSpec == "" {
@@ -29,6 +30,15 @@ func (lc *lowerCtx) repeatEachCards(ps *params) error {
 	}
 	if lc.repeatPl > 0 || lc.repeatCard > 0 {
 		return refuse("RepeatEach cards nested in a RepeatEach body")
+	}
+	// the damage body moves no card: it reads no ChangeZoneTable$
+	// (repeatEachCardsDamage)
+	dmgBody := false
+	if b := cards.ResolveSVar(lc.face.SVars, ps.peek("RepeatSubAbility")); b != nil && b.API == "DealDamage" && b.Sub == nil && ps.peek("DamageMap") == "True" {
+		dmgBody = true
+	}
+	if !dmgBody && !ps.is("ChangeZoneTable", "True") {
+		return refuse("RepeatEach cards without ChangeZoneTable$ True")
 	}
 	if z := strings.TrimSpace(ps.str("Zone")); z != "" && z != "Battlefield" {
 		return refuse("RepeatEach cards Zone$ %q", z)
@@ -66,11 +76,8 @@ func (lc *lowerCtx) repeatEachCards(ps *params) error {
 	if body == nil {
 		return refuse("RepeatEach RepeatSubAbility %q", name)
 	}
-	if body.API == "DealDamage" && body.Sub == nil {
+	if dmgBody {
 		return lc.repeatEachCardsDamage(ps, in, body) // lower_repeatcardsdamage.go
-	}
-	if !ps.is("ChangeZoneTable", "True") {
-		return refuse("RepeatEach cards without ChangeZoneTable$ True")
 	}
 	if body.API != "Token" || body.Sub != nil {
 		return refuse("RepeatEach cards body %s (only a lone Token)", body.API)

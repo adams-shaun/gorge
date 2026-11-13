@@ -19,11 +19,10 @@ import (
 // kop.DmgFromEachCtrl deals from RefEach to that card's controller, inside
 // OpRepeatEach's batch. The body moves no card, so ChangeZoneTable$ is not
 // read; without DamageMap$ True gorge deals each pass as its own batch, which
-// the loop's one batch does not model, so it refuses. A constant N only.
+// the loop's one batch does not model, so the caller keeps its
+// ChangeZoneTable$ refusal. A constant N only.
 func (lc *lowerCtx) repeatEachCardsDamage(ps *params, in lInstr, body *cards.SA) error {
-	if !ps.is("DamageMap", "True") {
-		return refuse("RepeatEach cards DealDamage body without DamageMap$ True")
-	}
+	ps.consume("DamageMap") // the caller admits only DamageMap$ True
 	bp := newParams(body.Params)
 	for _, w := range [][2]string{{"Defined", "RememberedController"}, {"DamageSource", "Remembered"}} {
 		if bp.str(w[0]) != w[1] {
