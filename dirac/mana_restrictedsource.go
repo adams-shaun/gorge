@@ -497,19 +497,48 @@ func (s *State) restrSrcAffords(k *prep, p uint8, d payDesc, cost *kop.ManaCost,
 	if t.affordsMulti(cost, extra, multi[:nm]) {
 		return true
 	}
-	if d.instant && s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0 {
-		// Only a Taps-deferred restricted source pays it (Steelswarm Operator
-		// under Cryoshatter, funding an artifact's activation): gorge's census
-		// leaves the source out and its prefix search pays an instant-speed
-		// play by tapping the source first, its watcher's trigger stacked
-		// beneath, choosing which restricted ability to tap (a sorcery-speed
-		// play waits for that stack and is not offered). The script route
-		// models no restricted gap's ability choice.
-		if t, multi, nm = s.restrSrcAvailD(k, p, d, av, skip, true); t.affordsMulti(cost, extra, multi[:nm]) {
+	if s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0 {
+		// Only a Taps-deferred restricted source pays it (Hydraulic Helper's
+		// artifact-spells {U} funding Super Suit's equip, Steelswarm Operator
+		// under Cryoshatter): gorge's census leaves the source out and its
+		// prefix search pays the play by tapping the source first, its
+		// watcher's trigger stacked beneath and resolved before even a
+		// sorcery-speed play (CR 601.2g, 602.5d; the script route models the
+		// one-fixed-colour shape, mana_tapsdefer.go restrTapsGap). A source
+		// with a choice between restricted abilities (Steelswarm Operator's
+		// activation-only {U}{U}) the route models no ability choice of:
+		// an instant-speed play still stalls (the declared limit), while a
+		// sorcery-speed one keeps the old behaviour and is not offered.
+		if t, multi, nm = s.restrSrcAvailD(k, p, d, av, skip, true); t.affordsMulti(cost, extra, multi[:nm]) &&
+			!s.restrDeferScriptable(k, p, skip) && d.instant {
 			s.capFull(StallRestrDefer)
 		}
 	}
 	return false
+}
+
+// restrDeferScriptable: every restricted source gorge's planner defers
+// (restrSrcAvailD's withDeferred arm newly counts) is one the script route
+// funds -- a member of scriptTapsDefer's mask, the single-restricted-ability
+// Taps-deferred shape -- so restrSrcAffords need not stall the payment. A
+// deferred source that cannot be activated now (tapped, summoning-sick,
+// locked) funds nothing and is no reason to stall.
+func (s *State) restrDeferScriptable(k *prep, p uint8, skip Slot) bool {
+	var mask slotMask
+	have := false
+	for m := s.ctrlM[p]; m.any(); m = m.rest() {
+		sl := m.first()
+		if sl == skip || k.gen.flags[s.cardAt(sl)]&gfRestrSrc == 0 || !s.planDeferred(k, p, sl) {
+			continue
+		}
+		if !have {
+			mask, have = s.scriptTapsDefer(k, p), true
+		}
+		if !mask.has(sl) && s.tapsGapActivatable(k, sl) {
+			return false
+		}
+	}
+	return true
 }
 
 // restrSrcNone: no restricted source of the table can make av pay cost

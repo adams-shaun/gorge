@@ -77,9 +77,20 @@ func (s *State) spreeModeAffordable(k *prep, m int) bool {
 //
 //go:noinline
 func (s *State) spreeAffordable(k *prep) bool {
+	ctrl := s.bld().e.ctrl
+	if s.castTapX(k) && s.windowTapXLive(k, ctrl).any() {
+		// a tap-another source (Gene Pollinator) is live in the CR 601.2g
+		// window gorge walks for a Spree face (the payment planner declines
+		// it: "shape:modal_cost", kw_spree.go): the window asks each of its
+		// taps and finishes from the pool, and payCastWindow reverses the
+		// cast only if the cost is still short at the window's end (CR
+		// 733.1). availFor counts tap-another units only in a script availX
+		// mode, so pricing here without them reverses a cast whose window
+		// could still fund it (mana_window.go castTapX).
+		return true
+	}
 	c := s.buildCost(k)
 	var av avail
-	ctrl := s.bld().e.ctrl
 	s.availForBuilt(k, &s.bld().e, &av)
 	return s.faceReachable(k, ctrl, &av, &c, 0)
 }

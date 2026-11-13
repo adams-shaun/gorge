@@ -49,6 +49,14 @@ type TriggerContext struct {
 	// Incarnation sacrificed before its enter trigger's intervening-if is
 	// rechecked). Meaningful only with SourceLKIValid and a departed source.
 	SourceManaColorSpent state.Mana
+	// SourceTapped is the departed source's battlefield status as it last
+	// stood, read by an intervening-if whose PresentDefined$ Self spec asks
+	// Card.tapped / Card.untapped (House Cartographer's Survival: the
+	// Cartographer died of Bear Trap's damage while its own Survival trigger
+	// waited on the stack, and CR 603.4's resolution recheck must read the
+	// tapped status the trigger fired against, CR 608.2h). Meaningful only
+	// with SourceLKIValid and a departed source.
+	SourceTapped bool
 	// SourcePower, SourceToughness and SourceCounters are the departed
 	// source's layer-derived power and toughness and its counters as it last
 	// stood on the battlefield, read by Count$CardPower / CardToughness /
