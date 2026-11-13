@@ -1203,7 +1203,9 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 	}
 	if ask.kind == akMode {
 		s.siegeModeStore(ask.sl, a.Mode())
-	} else if ask.kind == akColor || ask.kind == akNumber || ask.kind == akCard || ask.kind == akPlayer || isNameAsk(ask.kind) {
+	} else if ask.kind == akCard {
+		p.chosen = objWord(a.Source()) // the chosen object rides the action's code (repl_choosecard.go)
+	} else if ask.kind == akColor || ask.kind == akNumber || ask.kind == akPlayer || isNameAsk(ask.kind) {
 		p.chosen = objWord(a.Mode())
 	} else {
 		v := int(a.Target())<<8 | int(a.Mode())
