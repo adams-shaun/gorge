@@ -1369,6 +1369,9 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 		kt.N = kop.TrigNTeamworkTap
 	}
+	if t.TapsForMana && (t.Event != "Taps" || kt.Flags&kop.TfSelf != 0) {
+		return kt, fmt.Errorf("TapsForMana on a %s trigger", t.Event)
+	}
 	if t.BlockedBySelf {
 		kt.Flags2 |= kop.Tf2BlockedBySelf
 	}

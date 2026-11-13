@@ -345,6 +345,9 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 		if k.gen.tapsWhose && !s.tapsWhoseOK(l, a, amt) {
 			return
 		}
+		if k.gen.anyTapsMana && !s.tapsManaOK(a, amt) {
+			return // Mode$ TapsForMana: only a mana tap by the right player (trig_params.go)
+		}
 		if k.gen.anyTWTap && !twTapOK(a, amt) {
 			return // Teamwork$ True: only a teamwork-cost tap (trig_params.go)
 		}

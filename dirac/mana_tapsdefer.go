@@ -48,6 +48,9 @@ func (s *State) tapsWatchClass(k *prep, p uint8, sl Slot) (painN int, deferSrc b
 			if !whoseOK(a.Trig.Whose, s.perms[w].ctrl, p) {
 				continue
 			}
+			if a.Trig.Flags5&kop.Tf5TapperNonActive != 0 && p == s.active {
+				continue // Activator$ Player.NonActive: the payer taps on their own turn
+			}
 			if a.Trig.Flags&kop.TfSelf != 0 {
 				// the source's own Pain-class line (City of Brass) is priced
 				// with its printed mana ability (prepSelfTapsPain), and a

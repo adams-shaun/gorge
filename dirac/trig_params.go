@@ -20,6 +20,22 @@ const gameOnceMark = 0x40 // usedRec.ab = gameOnceMark|ab (ab < 0x3E; valiantMar
 
 const twTapBit = 0x100 // rides fireTapsBy's amt above the tapper byte
 
+// mtTapBit rides the amt of a TrigTaps fire for a tap paying a mana ability's
+// cost (manaTapped): the only taps a Tf5TapsForMana line (gorge Mode$
+// TapsForMana, trigmatch tapsMatches' forMana flag) admits.
+const mtTapBit = 0x200
+
+// tapsManaOK: a Tf5TapsForMana line admits only a mana tap (mtTapBit), and
+// with Tf5TapperNonActive only one by a player other than the active player
+// (Activator$ Player.NonActive; the tapper is fireTapsBy's low byte).
+func (s *State) tapsManaOK(a *kop.Ability, amt int16) bool {
+	f := a.Trig.Flags5
+	if f&kop.Tf5TapsForMana == 0 {
+		return true
+	}
+	return amt&mtTapBit != 0 && (f&kop.Tf5TapperNonActive == 0 || uint8(amt) != s.active)
+}
+
 // fireTapsTW is fireTaps for a creature tapped to pay a teamwork cost.
 //
 //go:noinline
