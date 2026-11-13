@@ -21,9 +21,9 @@ import (
 //   - DividedAsYouChoose$ over a counter kind other than +1/+1 (Contagion's
 //     two -2/-1 counters among one or two target creatures).
 //
-// The COMPONENT counter kind lowers too, but Component Pouch stays refused for
-// its first mana ability's {T} + remove-a-counter cost (the kernel's mana walk),
-// so no game plays it. Each carrier must be played by some game; the
+// The COMPONENT counter kind lowers beside them (Component Pouch's {T} +
+// remove-a-component-counter mana ability is the dead census gap the
+// dead-mana-gap ticket models). Each carrier must be played by some game; the
 // comparison at every decision is gorge's.
 func TestMBCCounters1Lowers(t *testing.T) {
 	if isolate(t) {
@@ -58,7 +58,7 @@ func TestMBCCounters1Lowers(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			decks := [2][]cardset.Entry{c.a, c.b}
-			set := cardsettest.Synth(t, c.pool)
+			set := cardsettest.Set(t, "mbc")
 			var cs [2][]*cards.Card
 			for s, d := range decks {
 				n := 0

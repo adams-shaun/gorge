@@ -146,8 +146,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
 	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
-	// +12 (MBC counters-1: the Experience player counter and Count$YourCountersExperience, the DESCENT counter kind, and DividedAsYouChoose$ over any counter kind: Aang, Airbending Master, Atreus, Impulsive Son, Daxos the Returned, Ezuri, Claw of Progress, Kalemne, Disciple of Iroas, Kelsien, the Plague, Kratos, Stoic Father, Otharri, Suns' Glory, Toph, Earthbending Master, Descent into Avernus, Contagion, Splendid Agony; Component Pouch's COMPONENT kind lowers but its mana ability stays refused; ALL 23407 -> 23419 measured).
-	"ALL": {23419, 34442},
+	// +12 (MBC counters-1: the Experience player counter and Count$YourCountersExperience, the DESCENT counter kind, and DividedAsYouChoose$ over any counter kind: Aang, Airbending Master, Atreus, Impulsive Son, Daxos the Returned, Ezuri, Claw of Progress, Kalemne, Disciple of Iroas, Kelsien, the Plague, Kratos, Stoic Father, Otharri, Suns' Glory, Toph, Earthbending Master, Descent into Avernus, Contagion, Splendid Agony; Component Pouch's COMPONENT kind lowers; ALL 23407 -> 23419 measured).
+	// +200 (the dead mana-ability census gap, Component Pouch's "{T}, Remove a component counter from Component Pouch: Add two mana of different colors": kop.CtrDeadManaAb names the shape and ManaAbilityHonoured accepts it, so the card and the dead gap's boards lower; MBC 1721 -> 1770, ALL 23419 -> 23619 measured).
+	"ALL": {23619, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {221, 280},
@@ -163,7 +164,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"LCI": {260, 290},
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
 	// +4 (MBC counters-1: Contagion, Descent into Avernus, Ezuri, Claw of Progress, Otharri, Suns' Glory; MBC 1717 -> 1721 measured).
-	"MBC": {1721, 2188},
+	// +49 (the dead mana-ability census gap lowers Component Pouch; MBC 1721 -> 1770 measured).
+	"MBC": {1770, 2188},
 	"MKM": {251, 279},
 	"MOM": {203, 296},
 	"MSH": {246, 276},
