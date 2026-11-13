@@ -26,6 +26,9 @@ func zoneOf(ps *params, key string, dflt int) (int, error) {
 // changeZone lowers api:ChangeZone: targeted moves, defined moves, and the
 // hidden-zone searches (library, or a graveyard choice without targeting).
 func (lc *lowerCtx) changeZoneMove(ps *params) error {
+	if err := libPlaceManyDefined(ps); err != nil { // lower_libplace.go
+		return err
+	}
 	if _, ok := ps.m["DestAltSVar"]; ok {
 		return lc.czAltDest(ps) // lower_czaltdest.go
 	}
@@ -868,7 +871,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		lc.emit(lInstr{Op: "MayAsk", C: guard, Skip: 1, Note: "you may move it"})
 	}
-	arm, bracket, err := lc.libPlaceTargets(ps, obj, in, pos, optional) // lower_libplace.go
+	arm, bracket, err := lc.libPlaceTargets(ps, obj, in, pos) // lower_libplace.go
 	if err != nil {
 		return err
 	}

@@ -48,31 +48,34 @@ func libPlaceAll(ps *params) (bracket bool, err error) {
 // multi-object target slot (TargetMax$ past 1 or a variable count): the cards
 // of one owner may number two or more. pos is the LibraryPosition$ (0 top, -1
 // bottom). A single-object move (a lone target, Defined$ Self) never asks.
-func (lc *lowerCtx) libPlaceTargets(ps *params, obj lRef, in lInstr, pos int, optional bool) (arm int, bracket bool, err error) {
+func (lc *lowerCtx) libPlaceTargets(ps *params, obj lRef, in lInstr, pos int) (arm int, bracket bool, err error) {
 	if in.Op != "ToLibrary" || obj.Kind != rTarget || !libPlaceArranges(ps, "ChangeZone") {
 		return 0, false, nil
 	}
 	if mx := lc.ab.Targets[obj.N].Max; mx.Kind == vNone || mx.isConst() && mx.N <= 1 {
 		return 0, false, nil
 	}
-	switch {
-	case in.C != 0 && in.C != 1, pos != 0 && pos != -1:
+	if in.C != 0 && in.C != 1 || pos != 0 && pos != -1 {
 		return 0, false, refuse("ChangeZone of several targets to a library position other than the top or bottom (the CR 401.4 arrangement)")
-	case optional:
-		return 0, false, refuse("Optional$ ChangeZone of several targets to a library (the CR 401.4 arrangement)")
 	}
 	return in.C, true, nil
 }
 
-// libPlaceDefinedSet refuses a ChangeZone to a library of a Defined$ set the
-// kernel may not move whole: the moves of a remembered or valid set can number
-// two or more of one owner's cards, and the arrangement brackets none of them.
-func libPlaceDefinedSet(ps *params) error {
+// libPlaceManyDefined refuses a ChangeZone to a library of a Defined$ set that
+// names a group of cards (a remembered or imprinted set, a Valid group, the
+// discarded or triggered cards): its moves can number two or more of one
+// owner's cards, which gorge arranges and the bracket does not cover. The
+// references that name one card (Self, Parent, Triggered*LKICopy, Enchanted,
+// ReplacedCard, ChosenCard, TopOfLibrary) never ask, and a target slot is
+// bracketed by libPlaceTargets.
+func libPlaceManyDefined(ps *params) error {
 	if !libPlaceArranges(ps, "ChangeZone") {
 		return nil
 	}
 	d := ps.peek("Defined")
-	if d == "" || d == "Self" || d == "TopOfLibrary" || strings.HasPrefix(d, "Targeted") {
+	many := strings.HasPrefix(d, "Remembered") || strings.HasPrefix(d, "Imprinted") || strings.HasPrefix(d, "Valid") ||
+		strings.HasPrefix(d, "ExiledWith") || d == "DiscardedCards" || strings.HasPrefix(d, "TriggeredCards")
+	if !many {
 		return nil
 	}
 	return refuse("ChangeZone Defined$ %q to a library: the CR 401.4 arrangement of several cards is not lowered", d)
