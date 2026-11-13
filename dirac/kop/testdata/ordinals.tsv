@@ -1524,6 +1524,7 @@ W7BlockingTrigObj	int16	31
 W7BottomLibrary	int16	17
 W7CostBlue	int16	14
 W7CrewedBySrc	int16	13
+W7EnchPlayerCtrl	int16	33
 W7EnchantedByYours	int16	8
 W7EnteredFromBF	int16	24
 W7FaceUp	int16	5

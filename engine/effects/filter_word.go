@@ -237,6 +237,13 @@ const (
 	// carriers (Snowblind's Land.Snow+EnchantedControllerCtrl, and
 	// Disturbing Conversion's / So Tiny's Card.EnchantedControllerCtrl).
 	wordEnchantedControllerCtrl
+	// wordEnchantedPlayerCtrl is Forge's EnchantedPlayerCtrl (CardProperty
+	// startsWith("EnchantedPlayer") with the Ctrl suffix): the candidate is
+	// controlled by the player the SOURCE Aura enchants (Trespasser's Curse's
+	// "Creature.EnchantedPlayerCtrl", the Curse family). A source that
+	// enchants no player (a permanent bearer, or nothing) matches nothing, as
+	// Forge's "source not enchanting a player" arm.
+	wordEnchantedPlayerCtrl
 	wordChosenColor
 	// wordHasNonBasicLandType is Forge's Card.hasANonBasicLandType: the object
 	// is a LAND that has at least one land type outside CR 205.3i's five
@@ -521,6 +528,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordDefenderCtrl, ""
 	case wordPredicateWordEnchantedControllerCtrl:
 		return wordEnchantedControllerCtrl, ""
+	case wordPredicateWordEnchantedPlayerCtrl:
+		return wordEnchantedPlayerCtrl, ""
 	case wordPredicateWordOpponent:
 		return wordOpponentCtrl, ""
 	case wordPredicateWordOppProtect:
@@ -1127,6 +1136,14 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 			return true
 		}
 		return false
+	case wordEnchantedPlayerCtrl:
+		// Forge's EnchantedPlayerCtrl: the candidate is controlled by the
+		// player the SOURCE Aura enchants (source.getEntityAttachedTo() is a
+		// Player equal to the candidate's controller). The seat is the
+		// source's own AttachedPlayer, the pair player-attached Curses
+		// carry; an unattached or permanent-attached source fails closed.
+		src := g.Obj(sc.Source)
+		return src != nil && src.Zone == state.ZBattlefield && src.HasAttachedPlayer && src.AttachedPlayer == o.Controller
 	case wordHasNonBasicLandType:
 		// Forge's hasANonBasicLandType: a land with at least one land type
 		// outside CR 205.3i's five basic land types, read through hasTypeCtx so
@@ -1344,6 +1361,14 @@ func contextPredicateBound(g *state.Game, kind wordKind, key string, sc SpecCont
 		}
 		o := g.Obj(sc.Source)
 		return o != nil && o.AttachedTo != 0 && g.Obj(o.AttachedTo) != nil
+	case wordEnchantedPlayerCtrl:
+		// An absent player attachment has no seat to name: refuse the token
+		// beneath '!' too rather than invert an absent link into a match.
+		if sc.Source == 0 {
+			return false
+		}
+		o := g.Obj(sc.Source)
+		return o != nil && o.Zone == state.ZBattlefield && o.HasAttachedPlayer
 	case wordImprinted, wordChosenColor:
 		return sc.Source != 0
 	case wordCountersReceived:
@@ -1460,6 +1485,7 @@ const (
 	wordPredicateWordIsImprinted
 	wordPredicateWordDefenderCtrl
 	wordPredicateWordEnchantedControllerCtrl
+	wordPredicateWordEnchantedPlayerCtrl
 	wordPredicateWordNotDefinedTargeted
 	wordPredicateWordTargetedBy
 	wordPredicateWordOpponent
@@ -1526,6 +1552,7 @@ var wordPredicateWordCodes = state.NewStrCodes(
 	state.StrEntry[wordPredicateWordCode]{Key: "IsImprinted", Val: wordPredicateWordIsImprinted},
 	state.StrEntry[wordPredicateWordCode]{Key: "DefenderCtrl", Val: wordPredicateWordDefenderCtrl},
 	state.StrEntry[wordPredicateWordCode]{Key: "EnchantedControllerCtrl", Val: wordPredicateWordEnchantedControllerCtrl},
+	state.StrEntry[wordPredicateWordCode]{Key: "EnchantedPlayerCtrl", Val: wordPredicateWordEnchantedPlayerCtrl},
 	state.StrEntry[wordPredicateWordCode]{Key: "NotDefinedTargeted", Val: wordPredicateWordNotDefinedTargeted},
 	state.StrEntry[wordPredicateWordCode]{Key: "targetedBy", Val: wordPredicateWordTargetedBy},
 	state.StrEntry[wordPredicateWordCode]{Key: "Opponent", Val: wordPredicateWordOpponent},

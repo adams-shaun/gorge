@@ -1771,6 +1771,10 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			// the word reads a card's latest arrival; a permanent has none to read
 			return kf, refuse("ThisTurnEnteredFrom_Battlefield on the battlefield")
 		}
+		if c.CmpN == int(kop.W7EnchPlayerCtrl) && zone != kop.ZoneBattlefield {
+			// the kernel reads the source's enchanted seat against a permanent's controller
+			return kf, refuse("EnchantedPlayerCtrl off the battlefield")
+		}
 		kf.Pred, kf.PredN = kop.PredWord7, int16(c.CmpN) // (kernel wordPerm / wordCard)
 	case cmpNotF2:
 		// !targetedBy / !ThisTurnEntered / !wasDealtDamageThisTurn

@@ -494,6 +494,14 @@ const W7BlockingTrigObj int16 = 31
 // battlefield attacks. Kitesail Skirmisher.
 const W7AttackingSame int16 = 32
 
+// W7EnchPlayerCtrl (PredWord7 sub-kind 33): a battlefield permanent controlled
+// by the player the evaluating source Aura enchants (gorge wordEnchantedPlayerCtrl,
+// Forge's EnchantedPlayerCtrl: source.getEntityAttachedTo() is a Player equal
+// to the candidate's controller). The seat is the source's atchSeat; a source
+// that enchants no player, or is gone (NoSlot), leaves the set empty. Read on
+// the battlefield only. Trespasser's Curse.
+const W7EnchPlayerCtrl int16 = 33
+
 // PredPowerLTToughness's PredN: the power/toughness relation it reads. 0 is
 // power < toughness (gorge powerLTtoughness); PTRelEQ is gorge's equalPT
 // (net power equal to net toughness) and PTRelNE its negation !equalPT, each
