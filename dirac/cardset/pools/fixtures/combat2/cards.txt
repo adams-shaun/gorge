@@ -1,4 +1,4 @@
-# the combat-2 spelling family (dirac/oracle/mbc_combat2_test.go):
+# the combat-2 spelling family (dirac/oracle/mbc_combattwo_test.go):
 # blockingTriggeredAttacker (General Marhault Elsdragon, Spined Sliver),
 # a TriggeredDefender damage from an equipped attacker (Mage Slayer),
 # !blocking (Intrepid Ace, Unlikely Alliance) and RemoveFromCombat
