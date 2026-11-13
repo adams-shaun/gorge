@@ -158,6 +158,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"FRA": {255, 269},
 	"HOB": {159, 172},
 	"LCI": {260, 290},
+	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
+	"MBC": {1678, 2188},
 	"MKM": {251, 279},
 	"MOM": {201, 296},
 	"MSH": {246, 276},
