@@ -404,3 +404,38 @@ def test_smart_lane_wait_above_1500_is_clamped(tmp_path, smart_repo):
     # a value the environment cannot make sense of falls back to 1500 silently
     _, _, err2 = wrapper(repo, "smart", env=dict(env, GORGE_TEST_LANE_WAIT="soon", FORCE="1"))
     assert "clamped" not in err2
+
+
+# ---- oracle repro recordings run their own tests, not the whole package -----------------------------
+
+def test_oracle_repro_recording_change_runs_the_repro_tests_not_the_whole_package():
+    path = "dirac/oracle/testdata/repro/x.repro.json"
+    assert tt.pkg_of(path, DIRMAP) == "m/dirac/oracle"  # the precondition: the file maps to the heavy package
+    got, _ = planned({path: None})
+    kind, rx = got["./dirac/oracle"]
+    assert kind == "named"
+    for family in ("TestReproCompactRoundTrip", "TestReproGlobMatchesTable", "ReprosLockstep"):
+        assert family in rx
+    assert "Census" in rx
+
+
+def test_oracle_repro_change_beside_a_named_test_keeps_both():
+    got, _ = planned({"dirac/oracle/testdata/repro/x.repro.json": None, "dirac/oracle/x_test.go": [(7, 7)]},
+                     {"dirac/oracle/x_test.go": LEAF_TEST})
+    kind, rx = got["./dirac/oracle"]
+    assert kind == "named" and rx.startswith("^(TestOne)$|") and "ReprosLockstep" in rx
+
+
+def test_oracle_non_repro_fixture_still_runs_whole():
+    path = "dirac/oracle/testdata/pins/x.json"
+    assert tt.pkg_of(path, DIRMAP) == "m/dirac/oracle"
+    assert planned({path: None})[0]["./dirac/oracle"][0] == "whole"
+    # a repro change alongside such a fixture still needs the whole package
+    both = planned({path: None, "dirac/oracle/testdata/repro/x.repro.json": None})[0]
+    assert both["./dirac/oracle"][0] == "whole"
+
+
+def test_engine_rules_testdata_change_still_runs_whole():
+    path = "engine/rules/testdata/repro/x.repro.json"
+    assert tt.pkg_of(path, DIRMAP) == "m/engine/rules"
+    assert planned({path: None})[0]["./engine/rules"][0] == "whole"

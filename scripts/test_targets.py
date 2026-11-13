@@ -46,6 +46,10 @@ EXCLUDE = ("./server/host", "./cmd/cardfuzz", "./testkit/conformance")
 HEAVY = ("./engine/rules", "./dirac/oracle") + EXCLUDE
 # Packages that always run (the structural gates).
 ALWAYS = ("./internal/archtest", "./internal/codeshape")
+# The only tests that read dirac/oracle/testdata/repro: the recordings feed the table tests and the per-pool
+# lockstep replays, so a changed recording runs those (about a minute) instead of the whole package.
+REPRO_DIR = "dirac/oracle/testdata/repro/"
+REPRO_TESTS = "^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$|^TestStd[A-Za-z]*ReprosLockstep[A-Za-z]*$"
 CENSUS = ("Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrinks|IotaBlock|NoVerbatim|"
           "PublicBoundary|Acceptance|EnumConst|^TestHeads$|^TestSetHeads$")
 
@@ -225,7 +229,7 @@ def plan(changes, dirmap, deps, lines_of):
     nothing). Package names are ./relative, as `go test` takes them. A package whose test helper, import or
     testdata fixture changed runs whole even when it is heavy: the tests it feeds are otherwise unprovable."""
     rel = {v: k for k, v in dirmap.items()}
-    src, touched, named, forced_whole = set(), set(), {}, set()
+    src, touched, named, forced_whole, repro = set(), set(), {}, set(), set()
     for path, ranges in sorted(changes.items()):
         if path.endswith(".md"):
             continue
@@ -234,7 +238,9 @@ def plan(changes, dirmap, deps, lines_of):
             continue
         touched.add(p)
         if not path.endswith(".go"):
-            if "/testdata/" in "/" + path:
+            if path.startswith(REPRO_DIR):
+                repro.add(p)  # read only by the repro table and lockstep tests
+            elif "/testdata/" in "/" + path:
                 forced_whole.add(p)  # a fixture can move any test of the package
             else:
                 src.add(p)
@@ -267,8 +273,12 @@ def plan(changes, dirmap, deps, lines_of):
             out[lp] = ("whole", lp, "")
         elif heavy:
             names = sorted(named.get(p, ()))
-            if names:
+            if names and p in repro:
+                out[lp] = ("named", lp, "^(%s)$|%s|%s" % ("|".join(names), REPRO_TESTS, CENSUS))
+            elif names:
                 out[lp] = ("named", lp, "^(%s)$|%s" % ("|".join(names), CENSUS))
+            elif p in repro:
+                out[lp] = ("named", lp, "%s|%s" % (REPRO_TESTS, CENSUS))
             else:
                 out[lp] = ("census", lp, CENSUS)
         elif p in src or p in forced_whole or not named.get(p):
