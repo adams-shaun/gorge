@@ -146,12 +146,13 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
 	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
-	"ALL": {23525, 34442},
+	// +31 (MBC values-3: an activated {X} ability's X..X target slot, Orcish Settlers, Alexi, Zephyr Mage, Candelabra of Tawnos, Floodwater Dam, Magus of the Candelabra, Mishra's Helix, Synod Artificer; the opponents dealt damage this turn, Gnoll War Band, Furious Spinesplitter, War Elemental; a power <= / < a value and the TREASURE counter, Legacy's Allure, Goma Fada Vanguard and A-, Radha's Firebrand and A-, Auron, Venerated Guardian, Beguiler of Wills, Desperate Plea, Earthshape, Exert Influence, Invasion of Lorwyn, Killing Glare, Kraken of the Straits, Lena, Selfless Champion, Minamo Sightbender, Nightmare Unmaking, Nimbus Champion, Sage-Eye Avengers, Temporary Insanity, Unified Strike, Unliving Psychopath; ALL 23525 -> 23556, MBC 1740 -> 1743 (Orcish Settlers, Gnoll War Band, Legacy's Allure), DMU 198 -> 199 (Radha's Firebrand), MOM 203 -> 204 (Invasion of Lorwyn) measured).
+	"ALL": {23556, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {220, 280},
 	"DFT": {255, 276},
-	"DMU": {198, 270},
+	"DMU": {199, 270},
 	"DSK": {251, 276},
 	"ECL": {244, 273},
 	"EOE": {250, 266},
@@ -161,9 +162,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
-	"MBC": {1740, 2188},
+	"MBC": {1743, 2188},
 	"MKM": {251, 279},
-	"MOM": {203, 296},
+	"MOM": {204, 296},
 	"MSH": {246, 276},
 	"NEO": {201, 287},
 	"ONE": {201, 271},
