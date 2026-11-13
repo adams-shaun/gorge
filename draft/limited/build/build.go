@@ -152,8 +152,14 @@ func validate(pool []limited.CardRef, d Deck, minSize int) error {
 // with no coloured pips — all colourless spells, or no land slots to fill —
 // splits its share over nothing and gets zero basics back.
 func AutoLands(main []string, colourOf func(id string) [5]int) [5]int {
+	return AutoLandsTo(main, colourOf, 40)
+}
+
+// AutoLandsTo is AutoLands filling the deck to size cards instead of 40 (a
+// Commander-draft deck's CommanderDeckSize).
+func AutoLandsTo(main []string, colourOf func(id string) [5]int, size int) [5]int {
 	var out [5]int
-	lands := 40 - len(main)
+	lands := size - len(main)
 	if lands <= 0 {
 		return out
 	}

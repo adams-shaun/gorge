@@ -255,7 +255,8 @@ import (
 // +14 (Extort lowered, the keyword and its SpellCast trigger, against land's corpus; merged ALL build-level 23177 -> 23191 measured).
 // +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL build-level 23251 -> 23252 measured).
 // +40 (the MBC keywords-2 family: granted intimidate and infect, Static.Evasion / Static.Infect and ExtKwMark, 22 cards, and printed bloodthirst over ExDmgOppsTaken, 18 cards; named in ratchet_test.go's ALL pin; ALL build-level 23253 -> 23293 measured).
-var buildAcceptancePin = [2]int{23293, 34442} // {built, cards}
+// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source, DamagePlus ValidTarget$ Player.Opponent: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL build-level 23253 -> 23261 measured).
+var buildAcceptancePin = [2]int{23365, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)

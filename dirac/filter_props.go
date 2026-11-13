@@ -309,6 +309,10 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		ans = !s.hasIslandwalk(k, sl)
 	case kop.W7AttackingEnchTrig:
 		ans = s.attackingEnchTrig(k, sl, src) // filter_attackenchanted.go
+	case kop.W7NotBlocking:
+		ans = s.perms[sl].flags&pfBlocking == 0
+	case kop.W7BlockingTrigObj:
+		ans = s.blockingTrigObj(sl)
 	case kop.W7GreatestPowerTgt:
 		// gorge greatestPowerControlledByTargeted: a battlefield creature a
 		// player target of the current entry controls that no OTHER such
@@ -364,6 +368,8 @@ func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 		ans = c != kop.NoCard && k.t.Cards[c].Infect
 	case kop.W7FaceUpDisguise:
 		ans = c != kop.NoCard && !fd && k.t.Cards[c].MorphFamily == kop.MorphDisguise
+	case kop.W7NotBlocking:
+		ans = true // a card off the battlefield blocks nothing
 	case kop.W7LacksIslandwalk:
 		// the printed Landwalk of the card (no abilities to lose or grant off the battlefield)
 		ans = c == kop.NoCard || !landwalkNames(k.t, k.t.Cards[c].Landwalk, islandSub(k))
@@ -513,4 +519,17 @@ func (s *State) attachedToWord(k *prep, bits int16, sl Slot, ctrl uint8, src Slo
 		return false
 	}
 	return true
+}
+
+// blockingTrigObj is kop.W7BlockingTrigObj on battlefield slot sl: sl is
+// blocking the current entry's trigger object, an attacker still on the
+// battlefield (gorge blockingTriggeredAttacker reads that attacker's own
+// BlockedBy list). No entry or no trigger object fails closed.
+func (s *State) blockingTrigObj(sl Slot) bool {
+	e := s.curEntry()
+	if e == nil || e.trigObj == NoObj {
+		return false
+	}
+	ob := &s.objs[e.trigObj]
+	return ob.zone == kop.ZoneBattlefield && s.blocks(sl, ob.slot)
 }

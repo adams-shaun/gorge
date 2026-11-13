@@ -116,7 +116,6 @@ type lowerCtx struct {
 	imprintMox     bool      // the face is the imprint-mox shape: its two static bookkeeping triggers lower to nothing (lower_imprintmox.go)
 	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff; Yue's hand population, playOwnHand)
 	animAll        bool      // lowering an AnimateAll: animateRemoveKeywords accepts a bare RemoveKeywords$ (gorge effAnimateAll reads it)
-	speedRepl      bool      // lowering a max-speed static's granted replacement: damagePlus reads ValidTarget$ Player.Opponent (lower_maxspeedrepl.go)
 	replEnter      bool      // inside an ETB replacement's ReplaceWith chain
 	breachStage    int       // Breach the Multiverse's imprint chain: 1 the ChangeZone of Imprinted is next, 2 the Cleanup (lower_repeatgravechoice.go)
 	exileLandStage int       // Ensign Pavel Chekov's imprint chain: 1 the Imprinted Effect is next, 2 the Cleanup (lower_repeatexilechoice.go)
@@ -482,6 +481,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseBeamCombos()
 	lc.refuseSneakCombos()
 	lc.refuseBuybackCombos() // lower_buyback.go
+	lc.refuseEntwineCombos() // lower_entwine.go
 	lc.refuseWebSlingCombos()
 	lc.refuseMayFlashCombos()
 	lc.refuseEvokeCombos()
@@ -1372,6 +1372,13 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !lc.lowerBuyback(param) {
 				lc.refuseNode(node, "buyback cost %q", param)
 			}
+		case head == "Entwine":
+			// CR 702.42a: an optional additional cost, offered as its own cast
+			// option (gorge's "(entwined)" mode, the Buyback shape); the paid
+			// cast announces every feasible mode (lower_entwine.go)
+			if !lc.lowerEntwine(param) {
+				lc.refuseNode(node, "entwine cost %q", param)
+			}
 		case head == "Casualty":
 			// CR 702.153a: the optional creature sacrifice and the copy
 			// trigger are the kernel's casualty cast (kw_casualty.go). The
@@ -2112,6 +2119,14 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			parts = strings.SplitN(arg, "/", 3)
 			// Sac<X/Spec> (lower_xminsacx.go): the announced count
 			if err := lc.sacXCost(&c, parts, t); err != nil {
+				return c, err
+			}
+			continue
+		}
+		if head == "ExileFromGrave" && parts[0] == "X" {
+			// ExileFromGrave<X/Spec> (lower_exilex.go): the announced count
+			parts = strings.SplitN(arg, "/", 3)
+			if err := lc.exileXCost(&c, parts, t); err != nil {
 				return c, err
 			}
 			continue
@@ -3142,7 +3157,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			// (Cryptex); a hand / graveyard ability is not modelled
 			return refuse("evidence cost on a mana ability or outside a battlefield ability")
 		}
-		if ps.is("Planeswalker", "True") {
+		if loyaltyMarked(ps.str("Planeswalker")) {
 			ab.Loyalty = true
 			ab.Sorcery = true
 		}

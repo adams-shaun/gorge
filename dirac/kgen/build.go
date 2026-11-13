@@ -45,6 +45,7 @@ type ovSub struct {
 type built struct {
 	def      kop.CardDef
 	subs     []uint8        // pool subtype indexes of the printed type line
+	printed  []uint8        // a changeling's printed subs, before changelingSubs (cardset.PoolData.CardPrinted)
 	stAddSub [][]uint8      // per ability: the static's granted subtypes (pool indexes)
 	tokens   []int          // pool indexes of the tokens it creates
 	refSubs  []uint8        // pool subtypes the card's filters name
@@ -474,9 +475,8 @@ func (cb *cardBuilder) record() error {
 		return err
 	}
 	if c.Changeling {
-		for _, i := range cb.out.subs {
-			d.PrintedSubtypes = d.PrintedSubtypes.With(int(i))
-		}
+		// pool indexes, which a matchup renumbers into d.PrintedSubtypes
+		cb.out.printed = append([]uint8{}, cb.out.subs...)
 		cb.out.subs = changelingSubs(cb.pt, cb.out.subs)
 	}
 	if d.Keywords, err = kwMask(c.Kw); err != nil {
@@ -590,6 +590,23 @@ func (cb *cardBuilder) record() error {
 		}
 		d.Buyback = true
 		if d.Kicker, err = manaCostOf(*c.Buyback); err != nil {
+			return err
+		}
+		if c.KickerCost != nil {
+			if d.KickerCost, err = cb.cost(*c.KickerCost); err != nil {
+				return err
+			}
+		}
+	}
+	if c.Entwine != nil {
+		// Entwine rides the kicked cast (sfKicked, CardDef.Kicker) with
+		// CardDef.Entwine naming it (dirac/kw_entwine.go); refuseEntwineCombos
+		// keeps every other optional cost off the card
+		if c.Kicker != nil || c.Offspring != nil || c.Buyback != nil {
+			return fmt.Errorf("entwine with a kicker/offspring/buyback")
+		}
+		d.Entwine = true
+		if d.Kicker, err = manaCostOf(*c.Entwine); err != nil {
 			return err
 		}
 		if c.KickerCost != nil {
@@ -1200,7 +1217,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		}
 	}
 	if c.ExileG != nil {
-		set(kop.CostExileGrave, c.ExileGN)
+		set(kop.CostExileGrave, c.ExileGN) // ExileGN 0 (ExileGX): the announced X (kernel cost_exilex.go)
 		if c.ExileGBf {
 			out.Flags |= kop.CostExileCtrlOrGrave
 		}
@@ -2021,6 +2038,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefPromised, nil
 	case rAttachedCtrl:
 		return kop.RefAttachedCtrl, nil
+	case rChosenPlayer:
+		return kop.RefChosenPlayer, nil
 	case rLastCreated:
 		return kop.RefLastCreated, nil
 	case rTaxedAttacker:

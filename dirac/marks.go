@@ -186,6 +186,10 @@ func (s *State) genViewHash(h uint64) uint64 {
 	}
 	h = hmix(h, uint64(g.nemb[0])|uint64(g.nemb[1])<<8|uint64(g.died)<<16|uint64(g.attacked[0])<<24|
 		uint64(g.attacked[1])<<32|uint64(g.nused)<<40|uint64(g.oppAtt)<<48)
+	for i := 2; i < MaxSeats; i++ {
+		// the seats past the second (none at two seats)
+		h = hmix(h, uint64(g.nemb[i])|uint64(g.attacked[i])<<8)
+	}
 	if g.spent != [MaxSeats]uint16{} || g.hist != [MaxSeats][3]uint8{} {
 		// the turn history bank: only a table that reads it keeps it
 		h = hbytes(h, unsafe.Pointer(&g.hist), unsafe.Sizeof(g.hist))
@@ -195,6 +199,9 @@ func (s *State) genViewHash(h uint64) uint64 {
 			}
 		}
 		h = hmix(h, uint64(g.spent[0])|uint64(g.spent[1])<<16)
+		for i := 2; i < MaxSeats; i++ {
+			h = hmix(h, uint64(g.spent[i])) // the seats past the second (none at two seats)
+		}
 	}
 	if g.crime != 0 {
 		h = hmix(h, 0x6372696d65<<8|uint64(g.crime))
@@ -237,7 +244,7 @@ func (s *State) ViewHashCached(seat uint8, base *[MaxObj]uint64, c *ObjHashCache
 	if c != nil && (c.line != s.line || s.line == 0) {
 		c.line = s.line
 		c.ok = [MaxObj]bool{}
-		c.part = [2]objPart{}
+		c.part = [MaxSeats]objPart{}
 	}
 	var o uint64
 	if pc := c; pc != nil && s.line != 0 && pc.part[SeatIx(seat)].ok && pc.part[SeatIx(seat)].at == s.touchN {
@@ -358,7 +365,7 @@ type ObjHashCache struct {
 	ok   [MaxObj]bool
 	at   [MaxObj]uint32 // Touches() when computed
 	h    [MaxObj]uint64
-	part [2]objPart
+	part [MaxSeats]objPart // per seat's view (SeatIx)
 }
 
 type objPart struct {

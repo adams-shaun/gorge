@@ -163,6 +163,7 @@ type genPrep struct {
 	anyBlkTax       bool           // a card has a StatBlockTax static (combat_blocktax.go)
 	blkTaxStall     bool           // a block tax beside a part its walk does not model (combat_blocktax.go prepBlkTax): StallBlkTax
 	atkTaxStall     bool           // an attack tax beside a part its walk does not model (combat_attacktax.go prepAtkTax): StallAtkTax
+	chPlOrder       bool           // an as-enters opponent choice beside another object's enters replacement (repl_chooseplayer.go prepChoosePlayer): StallChoosePlayerOrder
 	anyWitherGrant  bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
 	anyInfectGrant  bool           // some static or ExtKwMark grants infect (kw_kwmark.go); sets anyInfect
 	anyEvasionGrant bool           // some static or ExtKwMark grants intimidate (kw_kwmark.go); sets anyEvasion
@@ -262,6 +263,7 @@ type genPrep struct {
 	anyStackKw      bool           // some card has a StatStackKw: AffectedZone$ Stack keyword grant (static_stackkeyword.go)
 	anyConspire     bool           // some card has a StatStackKw Conspire grant (kw_conspire.go)
 	anyStorm        bool           // some card has a StatStackKw Storm grant (kw_storm.go)
+	anyDemoGrant    bool           // some card has a StatStackKw Demonstrate grant (kw_demonstrate.go)
 	anySplitSecond  bool           // some card has a StatStackKw Split second grant (kw_splitsecond.go)
 	anyStackLife    bool           // some card has a StatStackKw Lifelink grant (static_stacklifelink.go)
 	anySplit        bool           // some card is a split card (kop.FaceSplit: its mana value off the stack; face_castface.go)
@@ -340,6 +342,7 @@ type genPrep struct {
 	anyHideaway     bool           // some program is ExtHideaway (kw_hideaway.go)
 	anyLoyaltyX     bool           // some ability costs a planeswalker's [-X] (CostLoyaltyX; cost_loyaltyx.go)
 	anyLifeX        bool           // some spell or ability costs an announced PayLife<X> (Cost.N 0; cost_paylifex.go)
+	anyExileX       bool           // some spell costs an announced ExileFromGrave<X/Spec> (CostExileGrave with Cost.N 0; cost_exilex.go)
 	anySacX         bool           // some spell or ability costs an announced Sac<X/Spec> (CostSac with Cost.N 0; cost_sacx.go)
 	anyXMin         bool           // some spell or ability floors its announced X (Cost.XMin; cost_sacx.go)
 	anyCopyCast     bool           // some OpCastFree casts a copy (C bit 6; cast_copycast.go)
@@ -732,6 +735,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepNumTimes(t, g)
 	prepLoyaltyX(t, g)
 	prepLifeX(t, g)
+	prepExileX(t, g)
 	prepSacX(t, g)
 	prepDiscarded(t, g)
 	prepUniqueChain(t, g)
@@ -1599,8 +1603,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepTrigAtk(t, g)   // trig_attackers.go
 	prepBatchPool(t, g) // trig_batchmembers.go
 	g.anyCopyElect = g.anyCopyElect || p.casualty
-	prepAtkTax(t, g) // combat_attacktax.go: after the requirement, Taps and land-type reads it checks
-	prepBlkTax(t, g) // combat_blocktax.go: the same reads
+	prepAtkTax(t, g)       // combat_attacktax.go: after the requirement, Taps and land-type reads it checks
+	prepBlkTax(t, g)       // combat_blocktax.go: the same reads
+	prepChoosePlayer(t, g) // repl_chooseplayer.go
 	prepCold(g, &p.cold)
 	return g
 }

@@ -363,6 +363,8 @@ type projector struct {
 	// memo (projScratch).
 	types *typeCache
 	text  *textMemo
+	// perm is the projection's reusable index scratch (projScratch.perm).
+	perm *[]int32
 	// looker is ch's optional MayLookAt$ read over a face-down exiled card
 	// (rules.Engine.MayLookAtFaceDown: a live Continuous MayLookAt$ static
 	// whose Affected$ spec matches the card names that seat), nil when ch
@@ -385,7 +387,7 @@ type projector struct {
 }
 
 func newProjector(g *state.Game, ch Chars, viewer state.PlayerID, sc *projScratch) projector {
-	p := projector{g: g, ch: ch, viewer: viewer, types: &sc.types, text: &sc.text}
+	p := projector{g: g, ch: ch, viewer: viewer, types: &sc.types, text: &sc.text, perm: &sc.perm}
 	p.effective, _ = ch.(interface {
 		SpellEffectiveCost(state.PlayerID, state.ObjID) string
 	})
@@ -963,6 +965,9 @@ func (c *typeCache) join(parts []string) string {
 type projScratch struct {
 	types typeCache
 	text  textMemo
+	// perm is unorderedLibrary's sort permutation: plain indices, every
+	// entry rewritten before it is read.
+	perm []int32
 }
 
 // textMemo is a small direct-mapped memo of derived display text (a

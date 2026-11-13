@@ -199,6 +199,20 @@ type Report struct {
 	castMode string
 }
 
+// paid is the witness run A paid by: ARearm when the engine planned the cast
+// again after the seat's own answer (a convoke-family tap, CR 702.51a,
+// 702.126a; a Phyrexian pip, CR 107.4f), else the selected Plan. A manual
+// player reproducing that payment floats, or pays in the CR 601.2g window,
+// exactly those sources, so the mirror routes read it too: floating the
+// first plan's sources for an Improvise spell whose seat then tapped fewer
+// artifacts than the plan credited leaves a remainder no planned step pays.
+func (r *Report) paid() *decision.PaymentPlan {
+	if r.ARearm != nil {
+		return r.ARearm
+	}
+	return &r.Plan
+}
+
 // Verdict folds the routes into one per-cast verdict: equivalent if any
 // route mirrored the cast equivalently, mismatch if a route mirrored it and
 // ended in a different state, otherwise unmirrorable.
@@ -599,14 +613,15 @@ func castOptionMode(origin string) string {
 	return decision.PlannedCast{Origin: origin}.CastMode()
 }
 
-// mirrorFloat is RouteFloat: activate each planned source at priority with
-// the witness's production, then cast through the ordinary option. aEvents is
+// mirrorFloat is RouteFloat: activate each source of the witness run A paid
+// by (Report.paid) at priority with its production, then cast through the
+// ordinary option. aEvents is
 // run A's event stream since the fork: where several priority-wheel options
 // produce the witness's mana, the float picks the member A's activation used.
 func mirrorFloat(b *rules.Engine, rep *Report, res *RouteResult, aEvents []events.Event) {
 	p := rep.Player
 	stackBefore := append([]state.ObjID(nil), b.G.Stack...)
-	for i, act := range rep.Plan.Activations {
+	for i, act := range rep.paid().Activations {
 		if b.G.Over || b.G.Players[p].Lost {
 			return // the game (or the caster) ended while floating; compare
 		}
@@ -784,7 +799,7 @@ func mirrorBase(b *rules.Engine, rep *Report, action *decision.PaymentAction, re
 		setUnmirrorable(res, "cast_rejected", err.Error())
 		return
 	}
-	replayFollowUps(b, rep, rep.Plan.Activations, res)
+	replayFollowUps(b, rep, rep.paid().Activations, res)
 }
 
 // replayFollowUps answers the mirror's decisions after its cast submit with
@@ -942,21 +957,21 @@ func choosesFloatSpentSource(b *rules.Engine, rep *Report, r Recorded) bool {
 // battlefield on b. It returns "" when anything is unproven.
 func floatRaisedCost(b *rules.Engine, rep *Report) string {
 	now, ok := b.CastPaymentCost(rep.Player, rep.Object)
-	if !ok || now == rep.Plan.Cost {
+	if !ok || now == rep.paid().Cost {
 		return ""
 	}
 	total := func(c decision.PaymentCost) int64 {
 		n := int64(c.Generic)
 		for i, m := range c.Mana {
 			n += int64(m)
-			if m < rep.Plan.Cost.Mana[i] {
+			if m < rep.paid().Cost.Mana[i] {
 				return -1 // a coloured requirement fell: not a pure raise.
 			}
 		}
 		return n
 	}
-	was, is := total(rep.Plan.Cost), total(now)
-	if is < 0 || now.Generic < rep.Plan.Cost.Generic || is <= was {
+	was, is := total(rep.paid().Cost), total(now)
+	if is < 0 || now.Generic < rep.paid().Cost.Generic || is <= was {
 		return ""
 	}
 	pool := int64(b.G.Players[rep.Player].Pool.Total())
@@ -964,7 +979,7 @@ func floatRaisedCost(b *rules.Engine, rep *Report) string {
 		return ""
 	}
 	var gone []string
-	for _, act := range rep.Plan.Activations {
+	for _, act := range rep.paid().Activations {
 		if act.Consequence == nil || !act.Consequence.Sacrifice {
 			continue
 		}
@@ -975,7 +990,7 @@ func floatRaisedCost(b *rules.Engine, rep *Report) string {
 	if len(gone) == 0 {
 		return ""
 	}
-	return fmt.Sprintf("cost locked in by run A %v (CR 601.2f) is %v after the float sacrificed %s", rep.Plan.Cost, now, strings.Join(gone, ", "))
+	return fmt.Sprintf("cost locked in by run A %v (CR 601.2f) is %v after the float sacrificed %s", rep.paid().Cost, now, strings.Join(gone, ", "))
 }
 
 // floatRemovedEveryTarget proves that the float route's activations left the
@@ -1044,7 +1059,7 @@ func floatRemovedEveryTarget(b *rules.Engine, rep *Report, from int) string {
 // floatSpentSource reports whether id is a planned source whose activation
 // cost sacrifices it and that is now off the battlefield in b.
 func floatSpentSource(b *rules.Engine, rep *Report, id state.ObjID) bool {
-	for _, act := range rep.Plan.Activations {
+	for _, act := range rep.paid().Activations {
 		if act.Source != id || act.Consequence == nil || !act.Consequence.Sacrifice {
 			continue
 		}
@@ -1958,8 +1973,8 @@ func collectDiffs(a, b *rules.Engine, fork int, res *RouteResult, rep *Report) {
 	b.EnsurePaymentActions()
 	df := newDiffer()
 	if rep != nil && res.Route == RouteFloat {
-		sources := make([]state.ObjID, 0, len(rep.Plan.Activations))
-		for _, act := range rep.Plan.Activations {
+		sources := make([]state.ObjID, 0, len(rep.paid().Activations))
+		for _, act := range rep.paid().Activations {
 			sources = append(sources, act.Source)
 		}
 		df.relax = newFloatReorder(a, b, rep.Object, sources, rep.forkObjs)

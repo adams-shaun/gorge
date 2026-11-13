@@ -569,11 +569,6 @@ func (s *State) buildCost0(k *prep) kop.ManaCost {
 // folded, so the caller resolves nothing more.
 func (s *State) buildCostPre(k *prep, pre, charge bool) (kop.ManaCost, bool) {
 	c, done := s.buildCostPreRaw(k, pre, charge)
-	if s.cfg&cfgCommander != 0 && s.bld().e.kind == seSpell {
-		// CR 903.8: the command-zone tax, after the cost statics, so a
-		// reduction never takes it off
-		addCommanderTax(&c, s.commanderTax(s.bld().e.ctrl, s.bld().e.obj))
-	}
 	if s.bld().e.flags&sfAnyMana != 0 && s.bld().e.kind == seSpell {
 		c = anyTypePips(c) // a hand cast under Vizier's conversion too (mana_convertcreature.go); idempotent
 	}
@@ -658,8 +653,14 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if cd.HasModeCost {
 			c = spreeCost(cd, e.mode, c) // kw_spree.go
 		}
+		if s.cfg&cfgCommander != 0 {
+			// CR 903.8: the command-zone tax, an additional cost. A
+			// command-zone cast is only ever this plain cast
+			// (offerCommanderSlot), so this is the one path it reaches.
+			addCommanderTax(&c, s.commanderTax(e.ctrl, e.obj))
+		}
 		// a reduction applies to the total cost, a flashback or kicked one
-		// too (CR 601.2f)
+		// or a taxed one too (CR 601.2f)
 		done := false
 		if pre {
 			c, done = s.foldTb(k, c)
@@ -870,8 +871,14 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if k.gen != nil && k.gen.anySacX {
 				mx = s.sacXClamp(k, &cost, mx) // Sac<X/Spec> bounds the ask by the sacrifice candidates
 			}
+			if k.gen != nil && k.gen.anyExileX {
+				mx = s.exileXClamp(k, mx) // ExileFromGrave<X/Spec> bounds the ask by the graveyard candidates
+			}
 			d.Kind, d.Sub, d.Player = DkChoose, ChX, e.ctrl
 			hi := s.xReducedCeiling(k, e, &cost, &av, mx)
+			if k.gen != nil && k.gen.anyExileX {
+				hi = s.exileXClamp(k, hi)
+			}
 			if np := s.convokeXCredit(k); np > 0 {
 				hi = min(maxXAsk, max(hi, mx+np)) // each announced pick pays one generic (a harmonize pick its power) of the X total
 			}
@@ -931,6 +938,17 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if k.teamwork {
 				if tw := s.twModes(k); tw != 0 {
 					pick = tw // the teamworked cast's "choose both" (kw_teamwork.go)
+				}
+			}
+			if k.entwine {
+				if n, ok := s.entwineModes(k); ok {
+					if n == 0 {
+						// an entwined cast with no mode that has a target is no legal
+						// announcement (gorge castModeAsk: CR 733.1 reversal)
+						s.reverseCast(k)
+						return false
+					}
+					pick = n // every feasible mode (kw_entwine.go)
 				}
 			}
 			if k.gen != nil && k.gen.anyCharmV {

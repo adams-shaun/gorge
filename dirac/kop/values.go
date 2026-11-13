@@ -243,8 +243,11 @@ type Cond struct {
 // life total, OppExtHand the cards in hand, OppExtGrave the cards in the
 // graveyard, OppExtValid the battlefield permanents matching F read from
 // that opponent's side ("YouCtrl" is the opponent's). OppExtLowest in N
-// takes the lowest, else the highest. An empty group reads 0. Explicit
-// ordinal, the iota tail stays untouched.
+// takes the lowest, else the highest. OppExtNonTrigPl in N swaps the group
+// for every living player but the current trigger entry's trigger player,
+// the controller included (gorge nonTriggeredTargetGroup,
+// PlayerCountDefinedNonTriggeredTarget$; no trigger entry excludes no one).
+// An empty group reads 0. Explicit ordinal, the iota tail stays untouched.
 const ExOppExtreme ExprKind = 220
 
 // ExOppExtreme's N.
@@ -255,6 +258,9 @@ const (
 	OppExtGrave  = 4
 	OppExtValid  = 5
 	OppExtLowest = 0x100
+	// OppExtNonTrigPl: the group is the living players but the trigger
+	// player (Battle Angels of Tyr's "more than each other player")
+	OppExtNonTrigPl = 0x200
 )
 
 // ExStepIn is 1 while the game's current step is one of the kop.Step bits

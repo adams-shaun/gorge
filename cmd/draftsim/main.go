@@ -51,6 +51,8 @@ func main() {
 	fs.IntVar(&o.gauntletGames, "gauntlet-games", 2, "games per gauntlet pairing, alternating which side sits in player 0's seat (one on the play's seat, one on the draw's)")
 	fs.StringVar(&o.gauntletPlayer, "gauntlet-player", "bot", "bot policy for BOTH gauntlet seats (an Env policy is refused, like the draft seats)")
 	fs.StringVar(&o.baseline, "baseline", "random", "gauntlet baseline deck per seat: random (23 random non-land pool cards + AutoLands) or none")
+	fs.StringVar(&o.valueLog, "valuelog", "", "path to append one JSON line per Commander pod game to: each seat's commanders, deck, in-hand cards and finish, the input of an offline card-value regression")
+	fs.Float64Var(&o.pickExplore, "pick-explore", 0, "probability per pick that a seat takes a random pack card instead of its persona's pick (card-value sampling; 0 = off)")
 	fs.BoolVar(&o.verbose, "v", false, "print each seat's policy and deck summary")
 	dir := fs.String("dir", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
 	fs.Parse(os.Args[1:])
@@ -104,6 +106,9 @@ type options struct {
 	// format is -format: "" or event.FormatCommander; picks is -picks.
 	format string
 	picks  int
+	// valueLog is -valuelog; pickExplore is -pick-explore (valuelog.go).
+	valueLog    string
+	pickExplore float64
 }
 
 // playerList splits the -players flag into its per-seat policies: one name

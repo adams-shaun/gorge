@@ -145,10 +145,11 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +14 (the merge with land at 6014a11d54: this branch's Extort lowering, the printed K:Extort expansion and the granted trigger, beside land's 23177; merged ALL 23177 -> 23191 measured).
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
 	// +40 (the MBC keywords-2 family: granted intimidate and infect, a static's Static.Evasion / Static.Infect or a Pump / PumpAll ExtKwMark, Akroan Line Breaker, Bellowing Tanglewurm, Cavern Lampad, Corrupted Conscience, Dreadbringer Lampads, Executioner's Hood, Glistening Oil, Grisly Transformation, Gruesome Deformity, Guul Draz Vampire, Hideous Visage, Korozda Guildmage, Pestilent Souleater, Phyresis, Shadow Alley Denizen, Surrakar Marauder, Tainted Strike, Triumph of the Hordes, Vector Asp, Vela the Night-Clad, Vow of Malice, Warchanter of Mogis; printed bloodthirst over ExDmgOppsTaken, Battering Wurm, Blood Ogre, Bloodrage Vampire, Bloodscale Prowler, Carnage Wurm, Duskhunter Bat, Furyborn Hellkite, Ghor-Clan Savage, Gorehorn Minotaurs, Gristleback, Lurking Crocodile, Petrified Wood-Kin, Rabble-Rouser, Scab-Clan Mauler, Skarrgan Pit-Skulk, Skarrgan Skybreaker, Stormblood Berserker, Vampire Outcasts; ALL 23253 -> 23293 measured).
-	"ALL": {23293, 34442},
+	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
+	"ALL": {23365, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
-	"BRO": {218, 280},
+	"BRO": {219, 280},
 	"DFT": {255, 276},
 	"DMU": {197, 270},
 	"DSK": {251, 276},
@@ -159,6 +160,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"FRA": {255, 269},
 	"HOB": {159, 172},
 	"LCI": {260, 290},
+	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
+	"MBC": {1696, 2188},
 	"MKM": {251, 279},
 	"MOM": {201, 296},
 	"MSH": {246, 276},

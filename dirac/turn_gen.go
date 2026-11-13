@@ -36,6 +36,7 @@ const (
 	// enters-with counters and the entrant's own prepared enter body, asked
 	// with the spell still on the stack (s.g.pre only; repl_etborder.go)
 	akEtbOrder uint8 = 14
+	akPlayer   uint8 = 16 // an as-enters opponent (OpExt ExtChoosePlayer; repl_chooseplayer.go)
 )
 
 // placeEntryCounters places an entry-characteristic counter grant on the
@@ -315,6 +316,8 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 					kind = akNumber
 				case kop.ExtChooseName:
 					kind = nameAskKind(in)
+				case kop.ExtChoosePlayer:
+					kind = akPlayer
 				default:
 					s.execGen(k, in)
 					continue
@@ -322,6 +325,21 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 			}
 			if kind == akNameHand && s.nameHandNone(k, s.perms[sl].ctrl) {
 				continue // nothing nonland was revealed: gorge poses no ask
+			}
+			if kind == akPlayer {
+				// gorge asks it with the permanent on the battlefield, never
+				// on the stack (repl_chooseplayer.go): queued, or answered
+				// in place for a single opponent
+				if p := s.soleOpponent(s.perms[sl].ctrl); p != 255 {
+					s.perms[sl].chosen = p
+					s.touchSl(sl)
+					continue
+				}
+				s.queueAskAt(sl, kind, c, ab, uint8(i+1))
+				if !saved.active {
+					s.res = saved
+				}
+				return
 			}
 			if s.g.pre.state == 2 && s.g.pre.obj == s.perms[sl].obj {
 				s.perms[sl].chosen = s.g.pre.val // asked on the stack
@@ -1183,7 +1201,7 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 	}
 	if ask.kind == akMode {
 		s.siegeModeStore(ask.sl, a.Mode())
-	} else if ask.kind == akColor || ask.kind == akNumber || isNameAsk(ask.kind) {
+	} else if ask.kind == akColor || ask.kind == akNumber || ask.kind == akPlayer || isNameAsk(ask.kind) {
 		p.chosen = a.Mode()
 	} else {
 		v := int(a.Target())<<8 | int(a.Mode())
@@ -1316,6 +1334,10 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 	}
 	if kind == akNumber {
 		s.numberOptions(k, d) // repl_choosenumber.go
+		return
+	}
+	if kind == akPlayer {
+		s.playerOptions(d) // repl_chooseplayer.go
 		return
 	}
 	if isNameAsk(kind) {
