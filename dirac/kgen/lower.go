@@ -3081,6 +3081,11 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				if !cost.pureMana() || cost.Mana.None {
 					return refuse("cleave Cost$ %q is not a plain mana cost", c)
 				}
+				if cost.Mana.X || cost.Mana.XX || cost.Mana.XXX || len(cost.Mana.Hybrid) != 0 || len(cost.Mana.Twobrid) != 0 || len(cost.Mana.Phyrexian) != 0 {
+					// the cleaved cast's X ask and symbol faces read the printed
+					// cost (Lantern Flare's {X}{R}{W}); only a plain cost is lowered
+					return refuse("cleave Cost$ %q has an {X}, hybrid or Phyrexian symbol", c)
+				}
 				mc := cost.Mana
 				lc.out.Cleave, lc.out.CleaveAb = &mc, ab.Index+1
 				ps.consume("NonBasicSpell")
