@@ -1,10 +1,16 @@
 # The MBC mana-abilities-2 family: Relic of Legends' second "tap an untapped
 # legendary creature you control: add one mana of any color" beside its
-# {T} ability, and Apprentice Wizard's "{U}, {T}: add {C}{C}{C}", in decks over
+# {T} ability, and the pip-fee {T} filters beside no other mana ability that
+# kop.PipFeeManaAb now admits without an activation limit: Apprentice Wizard's
+# "{U}, {T}: add {C}{C}{C}", Ceta Disciple's and Necra Disciple's "{G}, {T}: add
+# one mana of any color", Fire Sprites' "{G}, {T}: add {R}", in decks over
 # artifacts, legendary creatures and expensive spells against a plain creature
 # deck (dirac/oracle/mbcmana2_test.go). Krark-Clan Ironworks stays refused.
 Relic of Legends
 Apprentice Wizard
+Ceta Disciple
+Fire Sprites
+Necra Disciple
 Isamaru, Hound of Konda
 Mind Stone
 Sol Ring

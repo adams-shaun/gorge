@@ -11,18 +11,19 @@ import (
 
 // The MBC mana-abilities-2 lockstep: Relic of Legends' second "tap an untapped
 // legendary creature you control: add one mana of any color" beside its {T}
-// ability, and Apprentice Wizard's "{U}, {T}: add {C}{C}{C}". Each spelling has
+// ability, and the pip-fee {T} filters (Apprentice Wizard's "{U}, {T}: add {C}{C}{C}",
+// Ceta Disciple's and Necra Disciple's any-colour one, Fire Sprites' {R}). Each has
 // its own deck, the card over artifacts, legendary creatures and spells only
 // its mana casts (Air Elemental, Serra Angel, Juggernaut), against a plain
 // creature deck. The tracked ability must be activated on gorge's side, so the
 // lockstep compares the kernel's walk of it. Krark-Clan Ironworks (a no-{T}
 // "sacrifice an artifact" ability) stays refused: its lowering diverged from
 // gorge beside depletion lands (see the report).
-var kmbc2Names = []string{"Apprentice Wizard", "Relic of Legends"}
+var kmbc2Names = []string{"Apprentice Wizard", "Ceta Disciple", "Fire Sprites", "Necra Disciple", "Relic of Legends"}
 
 // kmbc2Cost: the cost text of the tracked mana ability, so the count is of that
 // ability's activations and not of Relic of Legends' own {T} one.
-var kmbc2Cost = map[string]string{"Relic of Legends": "tapXType", "Apprentice Wizard": "T"}
+var kmbc2Cost = map[string]string{"Relic of Legends": "tapXType", "Apprentice Wizard": "T", "Ceta Disciple": "T", "Fire Sprites": "T", "Necra Disciple": "T"}
 
 var kmbc2Opp = []cardset.Entry{
 	{Name: "Hill Giant", Count: 2}, {Name: "Wind Drake", Count: 4}, {Name: "Grizzly Bears", Count: 4},
@@ -37,6 +38,20 @@ var kmbc2Decks = map[string][]cardset.Entry{
 		{Name: "Relic of Legends", Count: 5}, {Name: "Isamaru, Hound of Konda", Count: 5}, {Name: "Mind Stone", Count: 2},
 		{Name: "Juggernaut", Count: 3}, {Name: "Air Elemental", Count: 4}, {Name: "Serra Angel", Count: 4},
 		{Name: "Island", Count: 8}, {Name: "Plains", Count: 9},
+	},
+	"Ceta Disciple": {
+		{Name: "Ceta Disciple", Count: 5}, {Name: "Serra Angel", Count: 4}, {Name: "Air Elemental", Count: 4}, {Name: "Juggernaut", Count: 3},
+		{Name: "Isamaru, Hound of Konda", Count: 2}, {Name: "Mind Stone", Count: 2}, {Name: "Sol Ring", Count: 1},
+		{Name: "Forest", Count: 9}, {Name: "Island", Count: 5}, {Name: "Plains", Count: 5},
+	},
+	"Necra Disciple": {
+		{Name: "Necra Disciple", Count: 5}, {Name: "Serra Angel", Count: 4}, {Name: "Air Elemental", Count: 4}, {Name: "Juggernaut", Count: 3},
+		{Name: "Isamaru, Hound of Konda", Count: 2}, {Name: "Mind Stone", Count: 2}, {Name: "Sol Ring", Count: 1},
+		{Name: "Forest", Count: 9}, {Name: "Swamp", Count: 5}, {Name: "Plains", Count: 5},
+	},
+	"Fire Sprites": {
+		{Name: "Fire Sprites", Count: 6}, {Name: "Lightning Bolt", Count: 4}, {Name: "Hill Giant", Count: 4}, {Name: "Grizzly Bears", Count: 4},
+		{Name: "Juggernaut", Count: 4}, {Name: "Forest", Count: 11}, {Name: "Mountain", Count: 7},
 	},
 	"Apprentice Wizard": {
 		{Name: "Apprentice Wizard", Count: 6}, {Name: "Sol Ring", Count: 1}, {Name: "Juggernaut", Count: 4},
