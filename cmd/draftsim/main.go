@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/draft/event"
+	"github.com/adams-shaun/gorge/draft/limited/build"
 	"github.com/adams-shaun/gorge/draft/limited/draft"
 	"github.com/adams-shaun/gorge/draft/limited/setdata"
 )
@@ -32,7 +33,9 @@ func main() {
 	fs.StringVar(&o.collation, "collation", string(setdata.DefaultCollation), "collation the packs are cut from: "+string(setdata.Play)+", "+string(setdata.Arena))
 	fs.IntVar(&o.seats, "seats", 4, "pod size: 4 or 8")
 	fs.IntVar(&o.seats, "pod", 4, "alias of -seats")
-	fs.StringVar(&o.format, "format", "", "construction format: empty (limited, 40-card decks and Bo1 series) or commander (a Commander Legends style draft: 60-card decks around drafted commanders, then 4-player free-for-all Commander games at 40 life; -rounds is the game count, default 1)")
+	fs.StringVar(&o.format, "format", "", "construction format: empty (limited, 40-card decks and Bo1 series) or commander (a Commander Legends style draft: 60-card decks, or -deck-size, around drafted commanders, then 4-player free-for-all Commander games at 40 life; -rounds is the game count, default 1; -structure none builds only)")
+	fs.IntVar(&o.deckSize, "deck-size", 0, fmt.Sprintf("-format commander only: the deck size, commanders and basics included, %d..%d; 0 = %d (the lands scale with it: 17 at 60, 14 at 50)", build.MinCommanderDeckSize, build.MaxDeckSize, build.CommanderDeckSize))
+	fs.StringVar(&o.decksOut, "decks-out", "", "directory to write every seat's built deck to as a gorge deck JSON file, <set>_e<event seed>_s<seat>.json (a Commander-draft deck marks its commanders); works with -structure none")
 	fs.IntVar(&o.picks, "picks", 0, "cards each seat takes from a pack before passing it; 0 = the format's default (1, or 2 with -format commander)")
 	fs.StringVar(&o.mode, "mode", string(event.ModeDraft), "supply mode: draft (3 packs per seat, picked), sealed (6 packs per seat, unopened) or prerelease (sealed plus one rare/mythic promo per seat)")
 	fs.StringVar(&o.structure, "structure", "", "series structure: roundrobin, swiss or none (build only); empty = roundrobin at 4 seats, swiss at 8")
@@ -51,6 +54,9 @@ func main() {
 	fs.IntVar(&o.gauntletGames, "gauntlet-games", 2, "games per gauntlet pairing, alternating which side sits in player 0's seat (one on the play's seat, one on the draw's)")
 	fs.StringVar(&o.gauntletPlayer, "gauntlet-player", "bot", "bot policy for BOTH gauntlet seats (an Env policy is refused, like the draft seats)")
 	fs.StringVar(&o.baseline, "baseline", "random", "gauntlet baseline deck per seat: random (23 random non-land pool cards + AutoLands) or none")
+	fs.StringVar(&o.valueLog, "valuelog", "", "path to append one JSON line per Commander pod game to: each seat's commanders, deck, in-hand cards and finish, the input of an offline card-value regression")
+	fs.StringVar(&o.only, "only", "", "deal only the cards this file names: one name a line, or kgen -supported's name<TAB>true|false lines (true rows only), so `kgen -supported mbc -four-seat` is dirac's 4-seat MBC list; a sheet the list cannot fill deals the same rarities' listed cards from the other sheets, and the run prints each sheet's fill rate")
+	fs.Float64Var(&o.pickExplore, "pick-explore", 0, "probability per pick that a seat takes a random pack card instead of its persona's pick (card-value sampling; 0 = off)")
 	fs.BoolVar(&o.verbose, "v", false, "print each seat's policy and deck summary")
 	dir := fs.String("dir", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
 	fs.Parse(os.Args[1:])
@@ -101,9 +107,20 @@ type options struct {
 	gauntletMaxHuman int
 	ratingsFile      string
 	ratingsField     string
-	// format is -format: "" or event.FormatCommander; picks is -picks.
-	format string
-	picks  int
+	// format is -format: "" or event.FormatCommander; picks is -picks;
+	// deckSize is -deck-size (0 = build.CommanderDeckSize).
+	format   string
+	picks    int
+	deckSize int
+	// decksOut is -decks-out: the directory each seat's built deck is
+	// written to as a deck JSON file, "" for none.
+	decksOut string
+	// valueLog is -valuelog; pickExplore is -pick-explore (valuelog.go).
+	valueLog    string
+	pickExplore float64
+	// only is -only: the card-list file the packs are cut to (only.go),
+	// "" for the set's full sheets.
+	only string
 }
 
 // playerList splits the -players flag into its per-seat policies: one name
@@ -160,6 +177,9 @@ type podShape struct {
 	// pass (1 unless a Commander draft or -picks says otherwise).
 	format string
 	picks  int
+	// deckSize is a Commander draft's deck size: 0 for
+	// build.CommanderDeckSize (and in every limited shape).
+	deckSize int
 }
 
 // defaultRounds is the round count a structure implies for n seats: n-1
@@ -195,6 +215,9 @@ func (o options) shape() (podShape, error) {
 	}
 	switch o.format {
 	case "":
+		if o.deckSize != 0 {
+			return podShape{}, fmt.Errorf("-deck-size needs -format %s", event.FormatCommander)
+		}
 	case event.FormatCommander:
 		return o.commanderShape(n)
 	default:
@@ -257,8 +280,10 @@ func (o options) shape() (podShape, error) {
 }
 
 // commanderShape resolves -format commander: a 4-seat booster draft, two
-// picks per pass unless -picks says otherwise, and the pod structure, one
-// free-for-all game per -rounds (default 1).
+// picks per pass unless -picks says otherwise, -deck-size cards a deck
+// (default build.CommanderDeckSize), and the pod structure, one
+// free-for-all game per -rounds (default 1), or -structure none (build
+// only, no games).
 func (o options) commanderShape(n int) (podShape, error) {
 	if n != 4 {
 		return podShape{}, fmt.Errorf("-format commander seats a 4-player pod, got -seats %d", n)
@@ -266,17 +291,35 @@ func (o options) commanderShape(n int) (podShape, error) {
 	if o.mode != "" && o.mode != event.ModeDraft {
 		return podShape{}, fmt.Errorf("-format commander needs -mode draft, got %q", o.mode)
 	}
-	if o.structure != "" && o.structure != event.StructurePod {
-		return podShape{}, fmt.Errorf("-format commander plays -structure %s, got %q", event.StructurePod, o.structure)
+	structure := event.StructurePod
+	switch o.structure {
+	case "", event.StructurePod:
+	case event.StructureNone:
+		structure = event.StructureNone
+	default:
+		return podShape{}, fmt.Errorf("-format commander plays -structure %s or %s, got %q", event.StructurePod, event.StructureNone, o.structure)
+	}
+	deckSize := o.deckSize
+	if deckSize != 0 && (deckSize < build.MinCommanderDeckSize || deckSize > build.MaxDeckSize) {
+		return podShape{}, fmt.Errorf("-deck-size must be %d..%d, got %d", build.MinCommanderDeckSize, build.MaxDeckSize, deckSize)
+	}
+	if deckSize == build.CommanderDeckSize {
+		// The default size is logged as no size, so the log matches a
+		// run without the flag byte for byte.
+		deckSize = 0
 	}
 	if o.gauntlet != "" {
 		return podShape{}, fmt.Errorf("-gauntlet measures limited decks; it does not run with -format commander")
 	}
 	rounds := o.rounds
-	if rounds == 0 {
+	if structure == event.StructureNone {
+		if rounds != 0 {
+			return podShape{}, fmt.Errorf("-rounds with -structure none takes no rounds")
+		}
+	} else if rounds == 0 {
 		rounds = 1
 	}
-	if rounds < 1 || rounds > event.MaxPodGames {
+	if structure == event.StructurePod && (rounds < 1 || rounds > event.MaxPodGames) {
 		return podShape{}, fmt.Errorf("-rounds must be 1..%d games with -format commander, got %d", event.MaxPodGames, o.rounds)
 	}
 	picks := o.picks
@@ -287,6 +330,6 @@ func (o options) commanderShape(n int) (podShape, error) {
 	if o.collationSet {
 		collation = o.collation
 	}
-	return podShape{seats: n, mode: event.ModeDraft, structure: event.StructurePod, packs: event.DraftPacks,
-		rounds: rounds, collation: collation, format: event.FormatCommander, picks: picks}, nil
+	return podShape{seats: n, mode: event.ModeDraft, structure: structure, packs: event.DraftPacks,
+		rounds: rounds, collation: collation, format: event.FormatCommander, picks: picks, deckSize: deckSize}, nil
 }

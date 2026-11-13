@@ -11,7 +11,7 @@ import (
 func guardPool() *PoolData {
 	return &PoolData{Name: "guard", NumCards: 2, NumTokens: 1, NumIDs: 3,
 		Names: []string{"Card A", "Card B", "Token T"}, PoolID: []uint16{0, 1, 2}, Status: make([]Status, 3), Reason: make([]string, 3),
-		Defs: make([]kop.CardDef, 3), CardSubs: make([]kop.SubMask, 3), CardTokens: [][]uint16{nil, {2}, nil},
+		Defs: make([]kop.CardDef, 3), CardSubs: make([]PoolSubMask, 3), CardTokens: [][]uint16{nil, {2}, nil},
 		CardRefSubs: make([][]uint8, 3), AbilityOrigin: make([][]uint8, 3), StaticSubs: make([][]AbSubs, 3),
 		Filters: []kop.Filter{{}}, Exprs: []kop.Expr{}, Conds: []kop.Cond{}, Overrides: []kop.Override{}, Emblems: []kop.Emblem{}}
 }

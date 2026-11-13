@@ -16,7 +16,7 @@ import (
 // sheetEntries are the measured card entries (a card on one sheet of one
 // collation counts once) of each embedded set across every collation; for a
 // substitute set (MBC) the entries off its substitute list.
-var sheetEntries = map[string]int{"FDN": 1896, "BLB": 1809, "MBC": 2363}
+var sheetEntries = map[string]int{"FDN": 1896, "BLB": 1809, "MBC": 2370}
 
 // TestSupportEverySheetCard is the support gate for the embedded specs:
 // every card on every sheet of every collation resolves in the card corpus

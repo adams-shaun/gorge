@@ -721,7 +721,7 @@ func (s *State) payRider(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Ob
 		r := s.hybResolveRider(k, p, *cost, x, anyColor)
 		cost = &r
 	}
-	r0, ds := s.deferredPool(k, p) // the {R} a script's deferred source floats (mana_deferred.go)
+	r0, ds, dcol := s.deferredPool(k, p) // the {R} a script's deferred source floats (mana_deferred.go)
 	if k.restrSrc {
 		s.payRiderRestr(k, p, cost, x, exclude, anyColor)
 	} else {
@@ -729,7 +729,7 @@ func (s *State) payRider(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Ob
 		s.payFromPoolRider(k, p, cost, x, anyColor)
 	}
 	if r0 != 0 {
-		s.deferredSpent(k, p, r0, ds)
+		s.deferredSpent(k, p, r0, ds, dcol)
 	}
 }
 
@@ -929,6 +929,7 @@ func (s *State) payFromPool(p uint8, cost *kop.ManaCost, x int) {
 		c := cost.AtX(x)
 		cost, x = &c, 0
 	}
+	dc, dn := s.deferSnap(p)
 	pl := &s.pl[p]
 	for c := 0; c < kop.NumManaKinds; c++ {
 		if pl.pool[c] < cost.Pips[c] {
@@ -947,6 +948,7 @@ func (s *State) payFromPool(p uint8, cost *kop.ManaCost, x int) {
 	if g > 0 {
 		panic("kernel: payment failed (generic)")
 	}
+	s.deferSync(p, dc, dn)
 	if s.g.poolArt[SeatIx(p)]|s.fbR[SeatIx(p)]|(s.pmOn>>SeatIx(p))&1 != 0 {
 		s.artSync(p)
 	}
@@ -954,6 +956,7 @@ func (s *State) payFromPool(p uint8, cost *kop.ManaCost, x int) {
 
 // payFromPoolRider is payFromPool with the may-play any-colour rider.
 func (s *State) payFromPoolRider(k *prep, p uint8, cost *kop.ManaCost, x int, anyColor bool) {
+	dc, dn := s.deferSnap(p)
 	if k.gen != nil && s.ctl == ctlBuild && s.bld().e.flags&sfAnyMana != 0 && s.bld().e.kind == seSpell {
 		var c kop.ManaCost
 		if o := s.bld().e.obj; s.convAnyType(k, p, o) && (s.bld().e.flags&sfMayPlay == 0 || !s.mayPlayAnyType(k, p, o)) {
@@ -963,15 +966,15 @@ func (s *State) payFromPoolRider(k *prep, p uint8, cost *kop.ManaCost, x int, an
 		}
 		cost = &c
 	}
-	if k.gen != nil && k.gen.anyColSpent && s.ctl == ctlBuild {
+	switch {
+	case k.gen != nil && k.gen.anyColSpent && s.ctl == ctlBuild:
 		s.payFromPoolSpc(p, cost, x, anyColor) // a cast's colours spent (mana_converge.go)
-		return
-	}
-	if anyColor {
+	case anyColor:
 		s.payFromPoolAnyColor(p, cost, x)
-		return
+	default:
+		s.payFromPool(p, cost, x)
 	}
-	s.payFromPool(p, cost, x)
+	s.deferSync(p, dc, dn)
 }
 
 // payAnyTypePips spends the pips of a cast under an any-type rider before its
@@ -1015,6 +1018,7 @@ func (s *State) payFromPoolAnyColor(p uint8, cost *kop.ManaCost, x int) {
 		c := cost.AtX(x)
 		cost, x = &c, 0
 	}
+	dc, dn := s.deferSnap(p)
 	pl := &s.pl[p]
 	if pl.pool[kop.C] < cost.Pips[kop.C] {
 		panic("kernel: payment failed (pips)")
@@ -1045,6 +1049,7 @@ func (s *State) payFromPoolAnyColor(p uint8, cost *kop.ManaCost, x int) {
 	if g > 0 {
 		panic("kernel: payment failed (generic)")
 	}
+	s.deferSync(p, dc, dn)
 	if s.g.poolArt[SeatIx(p)]|s.fbR[SeatIx(p)]|(s.pmOn>>SeatIx(p))&1 != 0 {
 		s.artSync(p)
 	}
@@ -1291,10 +1296,14 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				// abilities only): it is appended with the choice-shaped ones,
 				// in battlefield order (paymentPlanManaUnitsOnlyCompute)
 				choice = choice || sac
-				if choice && !sac && k.gen != nil && len(k.gen.grantPC) > 0 && s.grantMay(k, sl) && s.grantsFixedMana(k, sl) {
-					// a grant of fixed production (Rok-Tahk's {G}{G} to a creature) makes the
-					// source's census unit in the shared census, at its battlefield position;
-					// its own choice-shaped ability joins that unit
+				// a grant of fixed production (Rok-Tahk's {G}{G} to a creature,
+				// Rishkar's {G} to a creature with a counter) makes the source's
+				// census unit in the shared census, at its battlefield position;
+				// its own choice-shaped or evaluated-amount ability joins that unit
+				// (pay.AppendUnitAlt: Ilysian Caryatid's two of one colour, pairs
+				// 231, 1120)
+				fixedGrant := (choice || pc.manaDyn) && !sac && k.gen != nil && len(k.gen.grantPC) > 0 && s.grantMay(k, sl) && s.grantsFixedMana(k, sl)
+				if fixedGrant {
 					choice = false
 				}
 				if rk[i] != 0 {
@@ -1319,7 +1328,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 						continue
 					}
 				}
-				if pc.manaDyn {
+				if pc.manaDyn && !fixedGrant {
 					if pass != 2 {
 						continue
 					}

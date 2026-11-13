@@ -13,6 +13,7 @@ import (
 
 	"github.com/adams-shaun/gorge"
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -23,6 +24,7 @@ import (
 
 const (
 	synthStandardList = "dirac/cardset/standard.txt"
+	synthDraftList    = "dirac/cardset/draftpools.txt"
 	synthSetlistDir   = "dirac/cardset/setlists"
 )
 
@@ -61,7 +63,18 @@ func withBasics(names []string) []string {
 
 // synthStandardLists is one list per set code in standard.txt, without basics.
 func synthStandardLists(src fs.FS, cardsDir string) ([]synthList, error) {
-	b, err := fs.ReadFile(src, synthStandardList)
+	return synthCodeLists(src, cardsDir, synthStandardList, "std-")
+}
+
+// synthDraftLists is one list per code in draftpools.txt, without basics: a draft
+// pool's dealt names, played as dr-<code>.
+func synthDraftLists(src fs.FS, cardsDir string) ([]synthList, error) {
+	return synthCodeLists(src, cardsDir, synthDraftList, cardset.SynthDraftPrefix)
+}
+
+// synthCodeLists reads a file of list codes and resolves each code's set list.
+func synthCodeLists(src fs.FS, cardsDir, codesFile, prefix string) ([]synthList, error) {
+	b, err := fs.ReadFile(src, codesFile)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +88,7 @@ func synthStandardLists(src fs.FS, cardsDir string) ([]synthList, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", code, err)
 		}
-		out = append(out, synthList{name: "std-" + strings.ToLower(code), names: names})
+		out = append(out, synthList{name: prefix + strings.ToLower(code), names: names})
 	}
 	return out, nil
 }
@@ -147,6 +160,12 @@ func buildOneTable(name string, names []string, cardsDir, key string) (synthTabl
 		return synthTable{}, fmt.Errorf("%s: %w", name, err)
 	}
 	d, cv, _, err := tableOf(p, name, nil)
+	if err == nil && len(d.Subtypes) > kop.MaxSubtypes {
+		// A synthetic pool stays within one game table's subtypes: its decks are
+		// drawn from the whole list, so a wider list splits (a deck pool may be
+		// wider, cardset.PoolMaxSubtypes: its games are its decks').
+		err = fmt.Errorf("refusing the pool: %s %d subtypes, a synthetic pool's table holds %d", tableLimitMark, len(d.Subtypes), kop.MaxSubtypes)
+	}
 	if err != nil {
 		return synthTable{}, fmt.Errorf("%s: %w", name, err)
 	}
@@ -222,12 +241,18 @@ func buildSynthTables(src fs.FS, cardsDir, key string) (files []tableFile, table
 	if err != nil {
 		return nil, 0, 0, err
 	}
+	draft, err := synthDraftLists(src, cardsDir)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	// The tail is the corpus outside the Standard lists only: a draft pool's
+	// cards stay in their tail buckets too, so adding a draft pool moves no tail.
 	tail, unlowered, err := synthTail(std, cardsDir)
 	if err != nil {
 		return nil, 0, 0, err
 	}
 	var built []synthTable
-	for _, l := range append(slices.Clone(std), tail...) {
+	for _, l := range append(append(slices.Clone(std), draft...), tail...) {
 		ts, err := buildSynthList(l, "", cardsDir, key)
 		if err != nil {
 			return nil, 0, 0, err

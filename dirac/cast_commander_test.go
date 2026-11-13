@@ -62,7 +62,7 @@ func commanderCastOffered(sc *scen, p uint8) (Action, bool) {
 	sc.s.priorityOptions(sc.k, &d)
 	cmd := sc.s.pl[p].cmd
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(cmd) {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(cmd)) {
 			return a, true
 		}
 	}
@@ -75,7 +75,7 @@ func castCommanderFromCommandZone(t *testing.T, sc *scen, o Obj) {
 	t.Helper()
 	d := sc.s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(o) {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(o)) {
 			sc.s.Apply(a)
 			sc.buildToStack(t)
 			return
@@ -157,10 +157,12 @@ func TestCommanderCastTax(t *testing.T) {
 	}
 }
 
-// TestCommanderTaxAfterReduction: a commander whose own static covers its
-// whole generic still pays the tax in full on the second cast, because the
-// tax is added after the reduction.
-func TestCommanderTaxAfterReduction(t *testing.T) {
+// TestCommanderTaxReducedWithTheTotal: the tax is an additional cost, part
+// of the total cost a reduction applies to (CR 601.2f, 903.8). A {2}{G}
+// commander whose own static takes {3} off costs {G} on its first cast, and
+// on its second {2}{G} plus the {2} tax less {3}: {1}{G}, offered with two
+// lands, not one, and charged both.
+func TestCommanderTaxReducedWithTheTotal(t *testing.T) {
 	tbl, card := commanderTable(3) // more than the whole {2} generic
 	sc := newCommanderScen(t, tbl, card, true)
 	s := sc.s
@@ -178,13 +180,23 @@ func TestCommanderTaxAfterReduction(t *testing.T) {
 	}
 	returnCommanderToCommandZone(t, sc, o)
 	sc.perm(v.Forest, 0)
-	sc.perm(v.Forest, 0)
 	if _, ok := commanderCastOffered(sc, 0); ok {
-		t.Fatal("second cast offered with two mana; the reduction must not spill onto the tax")
+		t.Fatal("second cast offered with one untapped land; want {1}{G}")
 	}
 	sc.perm(v.Forest, 0)
 	if _, ok := commanderCastOffered(sc, 0); !ok {
-		t.Fatal("second cast not offered with three mana; want {G} plus the {2} tax")
+		t.Fatal("second cast not offered with two untapped lands; the reduction takes the tax off too")
+	}
+	castCommanderFromCommandZone(t, sc, o)
+	untapped := 0
+	for m := s.ctrlM[0]; m.any(); m = m.rest() {
+		sl := m.first()
+		if s.cardAt(sl) == v.Forest && s.perms[sl].flags&pfTapped == 0 {
+			untapped++
+		}
+	}
+	if untapped != 0 {
+		t.Fatalf("second cast left %d of the two untapped lands untapped: want {1}{G} charged", untapped)
 	}
 }
 
@@ -206,7 +218,7 @@ func TestCommanderCastOffNoOffer(t *testing.T) {
 	var d Decision
 	s.priorityOptions(sc.k, &d)
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(o) {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(o)) {
 			t.Fatalf("Commander off offered a cast from the command zone: %v", a)
 		}
 	}

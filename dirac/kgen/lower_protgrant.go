@@ -15,7 +15,7 @@ import "strings"
 func (lc *lowerCtx) splitProtGrant(kw string) (string, *lFilter, error) {
 	var rest []string
 	var out *lFilter
-	hostOK := lc.out.Types&tArtifact != 0
+	hostOK := lc.out.Types&(tArtifact|tEnchantment) != 0
 	for _, k := range strings.Split(kw, "&") {
 		k = strings.TrimSpace(k)
 		head, param, ok := strings.Cut(k, ":")
@@ -23,8 +23,8 @@ func (lc *lowerCtx) splitProtGrant(kw string) (string, *lFilter, error) {
 			rest = append(rest, k)
 			continue
 		}
-		// Only an Equipment's grant is lockstep-verified; an Aura's grant
-		// (Spirit Mantle) stays refused until it has a repro.
+		// Only an Equipment's or an Aura's grant is lockstep-verified (Sword of
+		// Wealth and Power; Spirit Mantle, Unquestioned Authority).
 		if !hostOK {
 			return "", nil, refuse("keyword %q: a granted protection from a non-artifact host", k)
 		}

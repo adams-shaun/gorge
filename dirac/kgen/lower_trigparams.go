@@ -176,5 +176,26 @@ func drawStepFlags(t *lTrigger) kop.TrigFlags5 {
 	if t.TapperNonActive {
 		f |= kop.Tf5TapperNonActive
 	}
+	if t.AtkYouLastTurn {
+		f |= kop.Tf5DmgAttackedYouLastTurn // lower_atklastturn.go
+	}
 	return f
+}
+
+// lowerDiscardedCause reads a Discarded trigger's ValidCause$ (gorge
+// trigmatch.DiscardCauseAdmits): only a card's own "when a spell or ability
+// an opponent controls causes you to discard this card" lowers, which the
+// kernel decides at the discard from the resolving object's controller
+// (kop.Tf5OppCause; a cost or cleanup discard has no cause). Any other
+// cause spec, or one beside a watcher, stays refused.
+func lowerDiscardedCause(tp *params, tr *lTrigger) error {
+	v, ok := tp.get("ValidCause")
+	if !ok {
+		return nil
+	}
+	if strings.TrimSpace(v) != "SpellAbility.OppCtrl" || tp.str("ValidCard") != "Card.Self" {
+		return refuse("Discarded ValidCause$ %q beside ValidCard$ %q", v, tp.str("ValidCard"))
+	}
+	tr.OppCause = true
+	return nil
 }

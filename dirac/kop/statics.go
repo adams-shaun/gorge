@@ -109,6 +109,7 @@ type Override struct {
 	HasTypes         bool
 	SetTypes         TypeMask // card types (supertypes are kept)
 	AddTypes         TypeMask
+	RemoveTypes      TypeMask // RemoveType$ (gorge applyTypeEffect RemoveTypes): card types removed after a HasTypes set, before AddTypes (the devotion gods' "isn't a creature", CR 205.1b)
 	HasSub           bool
 	SetSub           SubMask // Table.Subtypes indexes
 	AddSub           SubMask

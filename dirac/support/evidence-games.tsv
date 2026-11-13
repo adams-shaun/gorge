@@ -1,10 +1,11 @@
 blb	1500
+cmd5	1500
 fdn	1500
 pauper	1500
 std-big	1500
 std-blb	1500
 std-dft	1500
-std-dsk	1464
+std-dsk	1207
 std-ecl	1455
 std-eoe	1500
 std-fdn	1474

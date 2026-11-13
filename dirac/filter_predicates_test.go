@@ -228,7 +228,7 @@ func TestAttacksAlone(t *testing.T) {
 		for _, o := range objs {
 			p := &sc.s.perms[sc.slot(o)]
 			p.flags |= pfAttacking
-			p.atk = PlayerTarget1
+			p.atk = TCode(PlayerTarget1)
 		}
 		sc.s.nAttackers = uint8(len(objs))
 		sc.s.npend = 0
@@ -453,7 +453,7 @@ func TestAttachedReadsTheSource(t *testing.T) {
 			t.Fatal("Zack's ability not offered")
 		}
 		sc.s.Step()
-		sc.s.Apply(MakeAction(AkTarget, 0, uint8(mine), 0))
+		sc.s.Apply(MakeAction(AkTarget, 0, TCode(mine), 0))
 		sc.resolveAll(t)
 		if sc.onBF(zack) {
 			t.Fatal("Zack was not sacrificed")

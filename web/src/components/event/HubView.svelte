@@ -4,7 +4,8 @@
   import { seatLabel } from '../../lib/draftcards';
   import { standingRows } from '../../lib/standings';
   import { countNames, pickHistory, revealDecks } from '../../lib/eventlog';
-  import { gameDots, inPlay, seriesScore, seriesStatus } from '../../lib/series';
+  import { gameDots, inPlay, podStatus, seriesScore, seriesStatus } from '../../lib/series';
+  import { commanderFormat } from '../../lib/newevent';
   import Standings from './Standings.svelte';
   import BetweenGames from './BetweenGames.svelte';
 
@@ -19,6 +20,11 @@
    * is gone (a restart moves the series to a new table). `token` is the
    * viewer's event seat token; `onstate` adopts a submit's EventState and
    * `onstale` refetches after a 409.
+   *
+   * A Commander draft has no series: each round is one free-for-all pod
+   * game (EventState.pod) with every seat at one table. Its row names the
+   * seats, the winner once it ends, and the viewer's own join link (the
+   * server's seat-tokenised table path) while it is live.
    */
   let {
     ev,
@@ -46,7 +52,9 @@
     // the current round first, then the finished ones newest first, then the rest
     return out.sort((a, b) => rank(a.round) - rank(b.round));
   });
-  const rows = $derived(standingRows(ev.standings ?? [], ev.seats ?? [], ev.series ?? [], you));
+  const pod = $derived(commanderFormat(ev.format));
+  const podGames = $derived([...(ev.pod ?? [])].sort((a, b) => rank(a.round) - rank(b.round)));
+  const rows = $derived(standingRows(ev.standings ?? [], ev.seats ?? [], ev.series ?? [], you, pod ? (ev.pod ?? []) : null));
   const decks = $derived(complete && log ? revealDecks(log) : []);
 
   function rank(r: number): number {
@@ -84,6 +92,36 @@
   <section class="ev-main">
     {#if complete}
       <h2 class="title">Event complete</h2>
+    {/if}
+    {#if pod}
+      {#if podGames.length === 0}
+        <p class="dim" data-testid="pod-waiting">The pod game is being seated.</p>
+      {/if}
+      {#each podGames as g (g.round)}
+        <h3 class="ev-h5">{podGames.length > 1 || ev.round > 1 ? `Pod game ${g.round}` : 'Pod game'} · {podStatus(g)}</h3>
+        <div class="podrow" class:mine={you !== null} data-testid="pod-game" data-state={g.state}>
+          <ul class="podseats">
+            {#each ev.seats as s (s.seat)}
+              <li class:w={g.state === 'ended' && g.winner === s.seat} class:l={g.state === 'ended' && g.winner !== null && g.winner !== s.seat}>
+                <b>{label(s.seat)}</b>{#if g.state === 'ended' && g.winner === s.seat}<span class="data won">winner</span>{/if}
+              </li>
+            {/each}
+          </ul>
+          <div class="act">
+            {#if g.join && g.state === 'live'}
+              <a class="ev-btn primary" href={withBase(g.join)} data-testid="join-game">Join game</a>
+            {:else if g.table && g.state === 'live'}
+              <a class="ev-btn" href={withBase(`/t/${encodeURIComponent(g.table)}`)} data-testid="watch-game">Watch</a>
+            {:else if g.table && g.state === 'ended'}
+              <a class="ev-btn sm" href={withBase(`/t/${encodeURIComponent(g.table)}`)}>Replay</a>
+            {:else if g.join}
+              <a class="ev-btn primary" href={withBase(g.join)} data-testid="join-game">Join game</a>
+            {:else}
+              <span class="data dim">{g.state === 'live' ? 'starting…' : 'waiting for the table'}</span>
+            {/if}
+          </div>
+        </div>
+      {/each}
     {/if}
     {#each rounds as r (r.round)}
       <h3 class="ev-h5">Round {r.round} · {roundStatus(r.series)}</h3>
@@ -157,7 +195,7 @@
   </section>
 
   <aside class="ev-rail">
-    <Standings {rows} final={complete} />
+    <Standings {rows} final={complete} {pod} />
   </aside>
 </div>
 
@@ -247,6 +285,55 @@
   .act {
     display: flex;
     justify-content: flex-end;
+  }
+  .podrow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--sp-3);
+    align-items: center;
+    padding: var(--sp-2) var(--sp-3);
+    background: var(--felt-raised);
+    border: 1px solid var(--edge-felt);
+    border-radius: var(--radius);
+  }
+  .podrow.mine {
+    border-color: var(--gilt);
+  }
+  .podseats {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(10rem, 100%), 1fr));
+    gap: var(--sp-1) var(--sp-3);
+  }
+  .podseats li {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-1);
+    min-width: 0;
+  }
+  .podseats b {
+    font: 600 1rem var(--font-serif);
+    color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+  .podseats li.w b {
+    color: var(--verdigris);
+  }
+  .podseats li.l b {
+    color: var(--ink-dim);
+  }
+  .won {
+    font-size: var(--t-10);
+    color: var(--verdigris);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  @media (max-width: 520px) {
+    .podrow {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
   /* On a phone the action drops under the pairing instead of squeezing it. */
   @media (max-width: 520px) {

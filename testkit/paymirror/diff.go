@@ -1085,8 +1085,8 @@ func floatTriggerOnly(a, b *rules.Engine, fork int, rep *Report) string {
 	}
 	keyed := []string{"triggerContexts{", "triggerLKI{", "damageSourceLKI{", "sourceLifelinkLKI{", "sourceControllerLKI{"}
 	df := newDiffer()
-	sources := make([]state.ObjID, 0, len(rep.Plan.Activations))
-	for _, act := range rep.Plan.Activations {
+	sources := make([]state.ObjID, 0, len(rep.paid().Activations))
+	for _, act := range rep.paid().Activations {
 		sources = append(sources, act.Source)
 	}
 	df.relax = newFloatReorder(a, b, rep.Object, sources, rep.forkObjs)

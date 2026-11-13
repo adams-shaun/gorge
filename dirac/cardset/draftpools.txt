@@ -1,0 +1,4 @@
+# Draft pools played as synthetic evidence pools beside the Standard sets: each
+# code's list in setlists/ becomes dr-<code> (split by hash where it is too big for
+# one table). MBC: the Mystery Booster Commander draft pool.
+MBC

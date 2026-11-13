@@ -35,7 +35,7 @@ func (s *State) queueCascade(k *prep, e *stackEntry) {
 		base := s.npend
 		s.enqueue(e.obj, s.objs[e.obj].ver, e.card, abCascade, e.ctrl, e.obj, e.ctrl, mv)
 		if s.npend > base {
-			s.pend[base].x = sx
+			s.pend[base].x = objWord(sx)
 		}
 	}
 }

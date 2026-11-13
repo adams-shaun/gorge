@@ -307,6 +307,19 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		ans = !s.hasIslandwalk(k, sl)
 	case kop.W7AttackingEnchTrig:
 		ans = s.attackingEnchTrig(k, sl, src) // filter_attackenchanted.go
+	case kop.W7NotBlocking:
+		ans = s.perms[sl].flags&pfBlocking == 0
+	case kop.W7BlockingTrigObj:
+		ans = s.blockingTrigObj(sl)
+	case kop.W7BlockingSrc:
+		ans = src != NoSlot && s.blocks(sl, src) // gorge blockingSource: the source's BlockedBy names sl
+	case kop.W7BlockedBySrc:
+		ans = src != NoSlot && s.blocks(src, sl) // gorge blockedBySource: sl's BlockedBy names the source
+	case kop.W7AttackingSame:
+		// both attack the same defender entity: the player, or the same
+		// planeswalker (the atk code names either); no source fails closed
+		ans = src != NoSlot && s.perms[sl].flags&pfAttacking != 0 && s.perms[src].flags&pfAttacking != 0 &&
+			s.perms[sl].atk == s.perms[src].atk
 	case kop.W7GreatestPowerTgt:
 		// gorge greatestPowerControlledByTargeted: a battlefield creature a
 		// player target of the current entry controls that no OTHER such
@@ -362,6 +375,8 @@ func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 		ans = c != kop.NoCard && k.t.Cards[c].Infect
 	case kop.W7FaceUpDisguise:
 		ans = c != kop.NoCard && !fd && k.t.Cards[c].MorphFamily == kop.MorphDisguise
+	case kop.W7NotBlocking:
+		ans = true // a card off the battlefield blocks nothing
 	case kop.W7LacksIslandwalk:
 		// the printed Landwalk of the card (no abilities to lose or grant off the battlefield)
 		ans = c == kop.NoCard || !landwalkNames(k.t, k.t.Cards[c].Landwalk, islandSub(k))
@@ -384,7 +399,7 @@ func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 // TgtCard slot whose filter zone is exile reaches it.
 //
 //go:noinline
-func (s *State) exileCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]uint8, n int) int {
+func (s *State) exileCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]TCode, n int) int {
 	for pp := 0; pp < int(s.nSeats()); pp++ {
 		if s.out(uint8(pp)) {
 			continue
@@ -392,11 +407,11 @@ func (s *State) exileCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, se
 		pl := &s.pl[pp]
 		for i := 0; i < int(pl.exileN); i++ {
 			o := pl.exile[i]
-			if uint8(o)+1 == s.g.tgtSelf {
+			if o+1 == s.g.tgtSelf {
 				continue
 			}
-			if s.targetOK(k, t, p, src, self, uint8(o)) && n < MaxOptions-1 {
-				out[n] = uint8(o)
+			if s.targetOK(k, t, p, src, self, TCode(o)) && n < MaxOptions-1 {
+				out[n] = TCode(o)
 				n++
 			}
 		}
@@ -511,4 +526,17 @@ func (s *State) attachedToWord(k *prep, bits int16, sl Slot, ctrl uint8, src Slo
 		return false
 	}
 	return true
+}
+
+// blockingTrigObj is kop.W7BlockingTrigObj on battlefield slot sl: sl is
+// blocking the current entry's trigger object, an attacker still on the
+// battlefield (gorge blockingTriggeredAttacker reads that attacker's own
+// BlockedBy list). No entry or no trigger object fails closed.
+func (s *State) blockingTrigObj(sl Slot) bool {
+	e := s.curEntry()
+	if e == nil || e.trigObj == NoObj {
+		return false
+	}
+	ob := &s.objs[e.trigObj]
+	return ob.zone == kop.ZoneBattlefield && s.blocks(sl, ob.slot)
 }

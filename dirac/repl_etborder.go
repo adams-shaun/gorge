@@ -105,8 +105,8 @@ func (s *State) etbOtherOrderPark(k *prep, o Obj, ctrl uint8) bool {
 // has to match.
 func (s *State) etbOrderOptions(k *prep, d *Decision) {
 	e := &s.stack[s.sp-1]
-	d.add(MakeAction(AkChoose, uint8(s.g.pre.obj), 0, 0))
-	d.add(MakeAction(AkChoose, uint8(e.etbSrc), 0, 1))
+	d.add(MakeAction(AkChoose, TCode(s.g.pre.obj), 0, 0))
+	d.add(MakeAction(AkChoose, TCode(e.etbSrc), 0, 1))
 }
 
 // etbOrderAnswer consumes the answer and goes on with the resolution: a pick

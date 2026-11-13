@@ -78,6 +78,9 @@ type Encoder struct {
 	inc [dirac.MaxSeats]*seatInc
 	// IncStats counts EncodeStateInc's work.
 	IncStats IncStats
+	// objOverflow counts the builds whose position held an object past
+	// noObj (ObjOverflow).
+	objOverflow int
 	// vb is the search base (SetBase); hbase is the build's base hashes
 	// (hb, when the State carries vb's epoch)
 	vb    *viewBase

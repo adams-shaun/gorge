@@ -98,7 +98,7 @@ func (s *State) noteParadigmCast(k *prep, o Obj, caster uint8, from kop.Zone) {
 func (s *State) stackedThisTurn(o Obj) bool {
 	for p := uint8(0); p < s.nSeats(); p++ {
 		for _, r := range s.castPushes(p) {
-			if r.obj == uint8(o)+1 {
+			if r.obj == o+1 {
 				return true
 			}
 		}
@@ -149,7 +149,7 @@ func (s *State) offerParadigm(k *prep, d *Decision, p uint8, sorc bool, av *avai
 	for i := 0; i < int(pl.exileN); i++ {
 		o := pl.exile[i]
 		if s.paradigmOffered(k, p, o, sorc) {
-			d.add(MakeAction(AkCast, uint8(o), 0, castParadigm))
+			d.add(MakeAction(AkCast, TCode(o), 0, castParadigm))
 		}
 	}
 }

@@ -53,6 +53,15 @@ func SynthNameHash(name string) uint32 {
 	return h.Sum32()
 }
 
+// SynthDraftPrefix names a draft pool's synthetic pool (dirac/cardset/draftpools.txt): dr-<code>.
+const SynthDraftPrefix = "dr-"
+
+// IsSynthName reports whether a pool name is a synthetic evidence pool's: std-<set>,
+// dr-<code> or tail-NN, each possibly with a split suffix.
+func IsSynthName(name string) bool {
+	return strings.HasPrefix(name, "std-") || strings.HasPrefix(name, SynthDraftPrefix) || strings.HasPrefix(name, "tail-")
+}
+
 // TailBuckets cuts names into runs of TailBucket in hash order, breaking a hash tie
 // by name. Each bucket comes back sorted by name.
 func TailBuckets(names []string) [][]string {

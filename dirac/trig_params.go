@@ -137,10 +137,13 @@ func selfDiscLine(a *kop.Ability) bool {
 }
 
 // fireSelfDisc fires the discarded card's own selfDiscLine triggers, in
-// ability order; its owner, who discarded it, controls them.
+// ability order; its owner, who discarded it, controls them. effect is false
+// for a cost discard, which has no causing spell or ability (gorge
+// trigmatch.DiscardCauseAdmits): a Tf5OppCause line fires only when the
+// resolving spell or ability is an opponent's of the owner's.
 //
 //go:noinline
-func (s *State) fireSelfDisc(k *prep, o Obj) {
+func (s *State) fireSelfDisc(k *prep, o Obj, effect bool) {
 	c := s.objs[o].card
 	cd := &k.t.Cards[c]
 	for j := range cd.Abilities {
@@ -149,6 +152,9 @@ func (s *State) fireSelfDisc(k *prep, o Obj) {
 			continue
 		}
 		p := s.objs[o].owner()
+		if a.Trig.Flags5&kop.Tf5OppCause != 0 && !(effect && s.res.active && s.res.e.ctrl != p) {
+			continue
+		}
 		l := trigListener{obj: o, sl: NoSlot, ctrl: p, card: c, ab: uint8(j)}
 		if !s.trigOK(k, l, a) {
 			continue
@@ -180,7 +186,7 @@ var DebugTrigParams4Flip bool
 //
 //go:noinline
 func (s *State) singleTargetOK(k *prep, e *stackEntry) bool {
-	var codes [kop.MaxTargets + maxXTgt]uint8
+	var codes [kop.MaxTargets + maxXTgt]TCode
 	return (distinctTargets(&codes, s.chainTargets(e, &codes)) == 1) != DebugTrigParams4Flip
 }
 
@@ -188,7 +194,7 @@ func (s *State) singleTargetOK(k *prep, e *stackEntry) bool {
 // recipient and carries exactly one target, the recipient among it.
 //
 //go:noinline
-func (s *State) singleCauseOK(k *prep, recipient uint8) bool {
+func (s *State) singleCauseOK(k *prep, recipient TCode) bool {
 	ok := false
 	if s.res.active && s.res.e.kind == seSpell && isObjTarget(recipient) {
 		ob := &s.objs[recipient]

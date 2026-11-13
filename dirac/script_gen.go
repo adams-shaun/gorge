@@ -140,7 +140,7 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	for b := s.scriptRestr(k, p); b.any(); b = b.rest() {
 		c := s.cardAt(b.first())
 		if k.gen.has(c, gfDeferred) {
-			a.addUnits(1<<kop.R, 1) // Goggles' plain {R} (mana_deferred.go)
+			a.addUnits(1<<k.deferCol(c), 1) // the deferred source's plain mana (mana_deferred.go)
 			continue
 		}
 		ab := &k.t.Cards[c].Abilities[k.gen.restr(c)]

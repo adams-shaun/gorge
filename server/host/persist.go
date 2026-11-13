@@ -61,6 +61,10 @@ type sidecar struct {
 	Format       Format  `json:"format,omitempty"`
 	StartingLife int32   `json:"starting_life,omitempty"`
 	Commanders   [][]int `json:"commanders,omitempty"`
+	// DraftPartners is the match's Commander-draft pairing rule
+	// (game.Config.DraftPartners); a replay without it would seat a draft
+	// pair commander-less. Absent = false, every match before the field.
+	DraftPartners bool `json:"draft_partners,omitempty"`
 	// StartChooser is the configured starting-player chooser the match's
 	// rules.Config ran with: the seat posed CR 103.1's choice in
 	// place of the toss winner. A replay rebuilt without it would replay the

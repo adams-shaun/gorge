@@ -22,7 +22,7 @@ func TestAttackPlayerCanonAtNSeats(t *testing.T) {
 				if def == active {
 					continue
 				}
-				got := tr.Action(dirac.MakeAction(dirac.AkAttack, uint8(atk), dirac.PlayerCode(def), 0))
+				got := tr.Action(dirac.MakeAction(dirac.AkAttack, dirac.TCode(atk), dirac.PlayerCode(def), 0))
 				want := Pack(ActAttack, atk, RefPlayer+Ref(def), 0)
 				if got != want {
 					t.Fatalf("%d seats, p%d attacking p%d: %v, want %v", seats, active, def, got, want)
