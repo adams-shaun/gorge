@@ -1643,6 +1643,9 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 		kt.Flags4 |= kop.Tf4OptTrigPlayer
 	}
+	if t.OptSrcCtrl && (!t.Optional || t.Event != "DamageDone") {
+		return kt, fmt.Errorf("optional source controller on a %s trigger", t.Event)
+	}
 	if t.NamedCast {
 		if t.Event != "SpellCast" {
 			return kt, fmt.Errorf("named-cast flag on a %s trigger", t.Event)

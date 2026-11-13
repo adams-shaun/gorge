@@ -274,7 +274,7 @@ func (s *State) resolveTop(k *prep) {
 		}
 		if a.Trig.Flags&kop.TfOptional != 0 && e.kind == seTrigger && (k.gen == nil || !k.gen.anyCloneCopy || !s.cloneTrigMoved(k, &e)) {
 			s.res.ask = raOptional
-			s.res.askP = optTrigAsker(&e, a.Trig.Flags4) // trig_optplayer.go
+			s.res.askP = s.optTrigAsker(&e, a.Trig.Flags4, a.Trig.Flags5) // trig_optplayer.go
 			s.ctl = ctlResolve
 			return
 		}

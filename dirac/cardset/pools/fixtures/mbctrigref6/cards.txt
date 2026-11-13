@@ -1,0 +1,28 @@
+# the MBC trigger-referents-6 family: a DamageDone trigger whose "may" and
+# draw belong to the damage source's controller (Edric, Spymaster of Trest),
+# a put-into-the-library-third-from-the-top trigger of the card that died or
+# was exiled (God-Eternal Oketra), and a per-defender attack trigger whose
+# target is a creature the attacked player controls (Gornog, the Red
+# Reaper) -- beside creatures to attack and removal to kill and exile
+# (dirac/oracle/mbc_trigref_sourcectrl_test.go)
+Edric, Spymaster of Trest
+God-Eternal Oketra
+Gornog, the Red Reaper
+Grizzly Bears
+Giant Spider
+Coral Merfolk
+Hill Giant
+Mogg Flunkies
+Lightning Bolt
+Savannah Lions
+Glory Seeker
+Serra Angel
+Swords to Plowshares
+Doom Blade
+Minotaur Warrior
+Fearless Halberdier
+Plains
+Island
+Swamp
+Mountain
+Forest

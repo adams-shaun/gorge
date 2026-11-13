@@ -71,6 +71,14 @@ const (
 	// Tf5NotFirstCardInDrawStep: FirstCardInDrawStep$ False -- the draw is
 	// any card except that first one (Orcish Bowmasters, Xyris, Leela).
 	Tf5NotFirstCardInDrawStep TrigFlags5 = 1 << 1
+	// Tf5OptSrcCtrl: with TfOptional, a DamageDone line whose "may"
+	// belongs to the controller of the damage source (OptionalDecider$
+	// TriggeredSourceController): the CR 603.5 resolution ask goes to that
+	// seat, the controller of the entry's trigger object (the damage
+	// source, read live; the owner once it left), not to the listener's
+	// controller (gorge deciderFromSpecTriggeredSourceController). Edric,
+	// Spymaster of Trest.
+	Tf5OptSrcCtrl TrigFlags5 = 1 << 2
 )
 
 // TrigEvent is a triggered ability's subscription: the event kind it listens

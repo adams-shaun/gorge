@@ -724,7 +724,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			// third from the top (gorge libraryOrderPlacementAt), read exactly
 			// for the source leaving the battlefield (Braided Quipu); another
 			// object or origin is lockstep-unverified and stays refused
-			if obj.Kind != rSelf || origin != zBattlefield {
+			if !lc.libThirdOK(obj, origin) { // lower_libthird.go
 				return refuse("library position 2 of %s from %s", refNames[obj.Kind], zoneLabel[origin])
 			}
 			in.C = kop.LibThird
