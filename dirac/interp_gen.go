@@ -961,6 +961,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C == choosePutCounterPick {
 			return s.putCounterPick(k, in, p) // ctr_putparams.go
 		}
+		if in.C == choosePopulatePick {
+			return s.populatePick(k, in, p) // copy_picked.go
+		}
 		if s.cardCands(k, in.F, p, nil) == 0 {
 			break
 		}

@@ -144,10 +144,10 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +16 (the merge with land at 1acc5919d9: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering beside land's later work; merged ALL 23115 -> 23131, WOE stays 264 measured).
 	// +14 (the merge with land at 6014a11d54: this branch's Extort lowering, the printed K:Extort expansion and the granted trigger, beside land's 23177; merged ALL 23177 -> 23191 measured).
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
-	// +11 (flip cards, kop.FaceFlip, and Count$ValidGraveyard Card.OwnedBy TargetedController: Orochi Eggwatcher, Nezumi Graverobber, Budoka Gardener, Initiate of Blood, Jushi Apprentice, Kuon, Ogre Ascendant; "any other target" as TgtAny with an Other filter beside DamageDealtOnce AtLeastOneInstance$: Matoc, Lavamancer, Black Panther, Most Dangerous, Red Hulk, Invasion of Tarkir, Invasion of Ulgrotha; ALL merged against land's MBC work 23417 -> 23429 measured).
+	// +12 (flip cards, kop.FaceFlip, and Count$ValidGraveyard Card.OwnedBy TargetedController: Orochi Eggwatcher, Nezumi Graverobber, Budoka Gardener, Initiate of Blood, Jushi Apprentice, Kuon, Ogre Ascendant; "any other target" as TgtAny with an Other filter beside DamageDealtOnce AtLeastOneInstance$: Matoc, Lavamancer, Black Panther, Most Dangerous, Red Hulk, Invasion of Tarkir, Invasion of Ulgrotha; ALL merged against land at 45cf834dea 23483 -> 23495 measured).
 	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
-	"ALL": {23429, 34442},
+	"ALL": {23495, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {219, 280},
@@ -162,10 +162,10 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
-	// +3 (Orochi Eggwatcher // Shidako, Broodmistress and Nezumi Graverobber // Nighteyes the Desecrator, flip cards; Matoc, Lavamancer, AtLeastOneInstance$ and "any other target"; MBC merged against land 1722 -> 1725 measured).
-	"MBC": {1725, 2188},
+	// +3 (Orochi Eggwatcher // Shidako, Broodmistress and Nezumi Graverobber // Nighteyes the Desecrator, flip cards; Matoc, Lavamancer, AtLeastOneInstance$ and "any other target"; MBC merged against land at 45cf834dea 1729 -> 1732 measured).
+	"MBC": {1732, 2188},
 	"MKM": {251, 279},
-	"MOM": {203, 296}, // +2 Invasion of Tarkir, Invasion of Ulgrotha ("any other target")
+	"MOM": {205, 296}, // +2 Invasion of Tarkir, Invasion of Ulgrotha ("any other target")
 	"MSH": {247, 276}, // +1 Red Hulk ("any other target")
 	"NEO": {201, 287},
 	"ONE": {201, 271},

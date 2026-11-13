@@ -1135,7 +1135,7 @@ var stepMap = map[string]kop.Step{"Upkeep": kop.StepUpkeep, "End": kop.StepEnd, 
 var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies, "Leaves": kop.TrigLeaves, "ToGraveyard": kop.TrigToGraveyard, "Blocks": kop.TrigBlocks, "Taps": kop.TrigTaps, "Attacks": kop.TrigAttacks,
 	"AttackersDeclared": kop.TrigAttackersDeclared, "Phase": kop.TrigPhase, "SpellCast": kop.TrigSpellCast,
 	"LifeGained": kop.TrigLifeGained, "LifeLost": kop.TrigLifeLost, "DamageDone": kop.TrigDamageDone,
-	"DamageDealtOnce": kop.TrigDamageDealtOnce, "Drawn": kop.TrigDrawn, "Discarded": kop.TrigDiscarded, "DiscardedAll": kop.TrigDiscardedAll, "AbilityCast": kop.TrigAbilityCast, "Scry": kop.TrigScry, "Surveil": kop.TrigSurveil, "Explores": kop.TrigExplores, "CollectEvidence": kop.TrigCollectEvidence,
+	"DamageDealtOnce": kop.TrigDamageDealtOnce, "Drawn": kop.TrigDrawn, "Discarded": kop.TrigDiscarded, "DiscardedAll": kop.TrigDiscardedAll, "AbilityCast": kop.TrigAbilityCast, "Scry": kop.TrigScry, "Surveil": kop.TrigSurveil, "Explores": kop.TrigExplores, "CollectEvidence": kop.TrigCollectEvidence, "Exploited": kop.TrigExploited,
 	"LandPlayed": kop.TrigLandPlayed, "SearchedLibrary": kop.TrigSearchedLibrary, "Forage": kop.TrigForage, "Discover": kop.TrigDiscover, "ManifestDread": kop.TrigManifestDread,
 	"CounterAddedOnce": kop.TrigCounterAddedOnce, "CounterAdded": kop.TrigCounterAddedOnce, "Untaps": kop.TrigUntaps,
 	"Sacrificed": kop.TrigSacrificed, "GiveGift": kop.TrigGiveGift, "Proliferate": kop.TrigProliferate, "FacesDilemma": kop.TrigFacesDilemma, "BecomeMonarch": kop.TrigBecomeMonarch, "TokenCreated": kop.TrigTokenCreated, "BecomeMonstrous": kop.TrigBecomeMonstrous, "ManaExpend": kop.TrigManaExpend, "AttackerBlocked": kop.TrigBecomesBlocked, "TurnFaceUp": kop.TrigTurnFaceUp, "Transformed": kop.TrigTransformed, "CommitCrime": kop.TrigCommitCrime, "UnlockDoor": kop.TrigUnlockDoor, "FullyUnlock": kop.TrigFullyUnlock,
@@ -1629,6 +1629,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		kt.Flags3 |= kop.Tf3FirstAttack
 	}
 	kt.Flags5 = drawStepFlags(t)
+	if t.OppCause {
+		if t.Event != "Discarded" || kt.Flags&kop.TfSelf == 0 || t.Cycled {
+			return kt, fmt.Errorf("discard cause on a %s trigger", t.Event)
+		}
+		kt.Flags5 |= kop.Tf5OppCause
+	}
 	if t.GameOnce {
 		kt.Flags3 |= kop.Tf3GameOnce
 	}
@@ -3968,7 +3974,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 	case "TurnFaceUp":
 		// (CR 708.6; gorge effSetState Mode$ TurnFaceUp) OpExt ExtTurnFaceUp:
-		// C 0 the target in Obj, C 1 the up-to-one pick over F
+		// C 0 the target in Obj, C 1 the up-to-one pick over F, C 2 the
+		// mandatory Transform pick over F (lower_setstate.go)
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtTurnFaceUp)), int16(in.C)
 		if in.F != nil {
 			if err := objFilter(kop.ZoneBattlefield); err != nil {
@@ -4347,6 +4354,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 	case "Extort":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtExtort)) // dirac/act_extort.go
+	case "Exploit":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtExploit)) // dirac/kw_exploit.go
 	case "Fog":
 		ki.Op = kop.OpFog
 	case "LoseGame":
@@ -4505,6 +4514,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			ki.C = 7 // chooseFaceDownPick: the cloak-from-hand pick (gorge's face_down_choice)
 		case "CopyPick":
 			ki.C = 8 // chooseCopyPick: the CopyPermanent Choices$ pick (gorge's copypermanent_choice)
+		case "PopulatePick":
+			ki.C = 9 // choosePopulatePick: the Populate$ token pick, a lone candidate taken unasked
 		}
 	case "ChooseEachType":
 		ki.Op = kop.OpChooseEachType
