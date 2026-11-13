@@ -3161,7 +3161,11 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		if len(fbs) > 0 && zone != zBattlefield {
 			return refuse("granted Firebending to a non-battlefield object")
 		}
-		if rest != "" || len(fbs) == 0 {
+		rest, myriads := splitMyriadGrant(rest)
+		if myriads > 0 && (zone != zBattlefield || lc.pumpPlayerRef(obj)) {
+			return refuse("granted Myriad to a non-battlefield object")
+		}
+		if rest != "" || len(fbs)+myriads == 0 {
 			ks, err := pumpKeywords(rest)
 			if err != nil {
 				return err
@@ -3179,6 +3183,16 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 			// trigger rides an end-of-turn override record; identical
 			// applications stack (lower_firegrant.go)
 			idx, err := lc.firebendGrantTrigger(n)
+			if err != nil {
+				return err
+			}
+			lc.emitOverride(obj, &lOverride{GrantAbility: []int{idx}}, "EOT")
+		}
+		for range myriads {
+			// CR 702.116a granted until end of turn (Duke Ulder Ravengard):
+			// gorge's granted walk synthesizes the trigger from the
+			// registered AddKeywords line (lower_myriad.go)
+			idx, err := lc.myriadGrantTrigger()
 			if err != nil {
 				return err
 			}
