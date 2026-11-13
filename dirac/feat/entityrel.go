@@ -56,10 +56,10 @@ func (e *Encoder) buildRel(s *dirac.State) {
 	for i := 0; i < int(e.kp.NStack); i++ {
 		se := &e.kp.Stack[i]
 		mine := se.Ctrl == v.seat
-		var seen [16]uint8
+		var seen [16]dirac.TCode
 		nseen := 0
-		add := func(t uint8) {
-			if dirac.TCode(t) == dirac.NoTarget || dirac.TCode(t) >= dirac.PlayerTarget0 {
+		add := func(t dirac.TCode) {
+			if t == dirac.NoTarget || t >= dirac.PlayerTarget0 {
 				return
 			}
 			for j := 0; j < nseen; j++ {
@@ -70,7 +70,7 @@ func (e *Encoder) buildRel(s *dirac.State) {
 			seen[nseen] = t
 			nseen++
 			for ci := range v.cards {
-				if v.cards[ci].obj != t {
+				if v.cards[ci].obj != uint8(t) {
 					continue
 				}
 				if mine {
@@ -81,10 +81,10 @@ func (e *Encoder) buildRel(s *dirac.State) {
 			}
 		}
 		for _, t := range se.Targets {
-			add(uint8(t))
+			add(t)
 		}
 		for j := 0; j < int(se.NExtra); j++ {
-			add(uint8(se.Extra[j]))
+			add(se.Extra[j])
 		}
 	}
 	// A stack card's own entry: what its targets are, its X, its kicked bit.
@@ -95,19 +95,20 @@ func (e *Encoder) buildRel(s *dirac.State) {
 		}
 		c := &v.cards[ci]
 		se := &e.kp.Stack[i]
-		classify := func(t uint8) {
-			if dirac.TCode(t) == dirac.NoTarget {
+		classify := func(t dirac.TCode) {
+			if t == dirac.NoTarget {
 				return
 			}
-			if dirac.TCode(t) >= dirac.PlayerTarget0 {
-				if dirac.TCode(t) == dirac.PlayerTarget0+dirac.TCode(v.seat) {
+			if t >= dirac.PlayerTarget0 {
+				if t == dirac.PlayerTarget0+dirac.TCode(v.seat) {
 					c.rel.playerMe++
 				} else {
 					c.rel.playerOpp++
 				}
 				return
 			}
-			if host := e.bfCard(t); host != nil {
+			o := uint8(t)
+			if host := e.bfCard(o); host != nil {
 				if host.ctrl == v.seat {
 					c.rel.permMe++
 				} else {
@@ -115,19 +116,19 @@ func (e *Encoder) buildRel(s *dirac.State) {
 				}
 				return
 			}
-			if e.stackHas(t) {
+			if e.stackHas(o) {
 				c.rel.stack++
 				return
 			}
-			if e.zoneHas(t, zGraveyard) {
+			if e.zoneHas(o, zGraveyard) {
 				c.rel.grave++
 			}
 		}
 		for _, t := range se.Targets {
-			classify(uint8(t))
+			classify(t)
 		}
 		for j := 0; j < int(se.NExtra); j++ {
-			classify(uint8(se.Extra[j]))
+			classify(se.Extra[j])
 		}
 		if _, _, building := s.BuildingCast(); !building || i < int(e.kp.NStack)-1 {
 			c.rel.x = se.X // gorge writes Object.X as the cast commits, not as X is announced

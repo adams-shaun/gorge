@@ -321,24 +321,24 @@ func (e *Encoder) AppendMZGraph(dst []byte, g *MZGraph, d *dirac.Decision, opts 
 	}
 	for i := range v.stack {
 		se := &e.kp.Stack[i]
-		add := func(t uint8) {
+		add := func(t dirac.TCode) {
 			switch {
-			case dirac.TCode(t) == dirac.NoTarget:
-			case dirac.TCode(t) >= dirac.PlayerTarget0:
-				if p := int(dirac.TCode(t) - dirac.PlayerTarget0); p < 2 {
+			case t == dirac.NoTarget:
+			case t >= dirac.PlayerTarget0:
+				if p := int(t - dirac.PlayerTarget0); p < 2 {
 					g.edge(pnode[p], snode[i], elTPlayer)
 				}
 			default:
-				if o := g.objNode(t); o >= 0 && o != snode[i] {
+				if o := g.objNode(uint8(t)); o >= 0 && o != snode[i] {
 					g.edge(o, snode[i], elTarget)
 				}
 			}
 		}
 		for _, t := range se.Targets {
-			add(uint8(t))
+			add(t)
 		}
 		for j := 0; j < int(se.NExtra); j++ {
-			add(uint8(se.Extra[j]))
+			add(se.Extra[j])
 		}
 	}
 	// options: the record's used ones, in decision order

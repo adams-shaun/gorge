@@ -723,20 +723,20 @@ func (e *Encoder) AppendMZX(dst []byte, g *MZX, s *dirac.State, d *dirac.Decisio
 	for i := range v.stack {
 		se := &e.kp.Stack[i]
 		slot := 0
-		add := func(t uint8) {
+		add := func(t dirac.TCode) {
 			if tn := g.targetNode(t, pnode, se.Kind == 0); tn >= 0 {
 				g.edge(tn, snode[i], g.lTarget[slot&7])
 			}
 		}
 		for _, t := range se.Targets {
 			if dirac.TCode(t) != dirac.NoTarget {
-				add(uint8(t))
+				add(t)
 			}
 			slot++
 		}
 		for j := 0; j < int(se.NExtra); j++ {
 			slot = int(se.ExtraSlot[j])
-			add(uint8(se.Extra[j]))
+			add(se.Extra[j])
 		}
 	}
 	// the decision's source
@@ -777,7 +777,7 @@ func (e *Encoder) AppendMZX(dst []byte, g *MZX, s *dirac.State, d *dirac.Decisio
 			if t := a.Target(); a.Kind() == dirac.AkDone || t == dirac.NoTarget {
 				node = stop
 			} else {
-				node = g.targetNode(uint8(t), pnode, true)
+				node = g.targetNode(t, pnode, true)
 			}
 		case dirac.DkChoose:
 			switch d.Sub {
@@ -791,7 +791,7 @@ func (e *Encoder) AppendMZX(dst []byte, g *MZX, s *dirac.State, d *dirac.Decisio
 				if a.Kind() == dirac.AkDone {
 					node = stop
 				} else {
-					node = g.targetNode(uint8(a.Source()), pnode, true)
+					node = g.targetNode(dirac.TCode(a.Source()), pnode, true)
 				}
 			}
 		}
@@ -840,9 +840,9 @@ func (e *Encoder) AppendMZX(dst []byte, g *MZX, s *dirac.State, d *dirac.Decisio
 // targetNode is the node a target t names: a player, a spell's stack
 // object (spells: XMage targets the Spell), or the object's
 // permanent/card node; -1 when it has none.
-func (g *MZX) targetNode(t uint8, pnode [dirac.MaxSeats]int32, spellAsStack bool) int32 {
-	if dirac.TCode(t) >= dirac.PlayerTarget0 {
-		if p := int(dirac.TCode(t) - dirac.PlayerTarget0); p < dirac.MaxSeats && pnode[p] >= 0 {
+func (g *MZX) targetNode(t dirac.TCode, pnode [dirac.MaxSeats]int32, spellAsStack bool) int32 {
+	if t >= dirac.PlayerTarget0 {
+		if p := int(t - dirac.PlayerTarget0); p < dirac.MaxSeats && pnode[p] >= 0 {
 			return pnode[p]
 		}
 		return -1

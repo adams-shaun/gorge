@@ -100,16 +100,18 @@ func (e *Encoder) stackEntryOf(obj uint8) int {
 	return -1
 }
 
-// targetClass classifies target byte t for seat as buildRel does; host is
-// the battlefield card for classes 2-5.
-func (e *Encoder) targetClass(seat, t uint8) (int, *vcard) {
-	if dirac.TCode(t) >= dirac.PlayerTarget0 {
-		if dirac.TCode(t) == dirac.PlayerTarget0+dirac.TCode(seat) {
+// targetClass classifies target code t for seat as buildRel does; host is
+// the battlefield card for classes 2-5. t keeps the class's code width: a
+// player's code is above a byte under dirac_mp.
+func (e *Encoder) targetClass(seat uint8, t dirac.TCode) (int, *vcard) {
+	if t >= dirac.PlayerTarget0 {
+		if t == dirac.PlayerTarget0+dirac.TCode(seat) {
 			return tcPlayerMe, nil
 		}
 		return tcPlayerOpp, nil
 	}
-	if host := e.bfCard(t); host != nil {
+	o := uint8(t)
+	if host := e.bfCard(o); host != nil {
 		mine := host.ctrl == seat
 		switch {
 		case host.creature() && mine:
@@ -121,10 +123,10 @@ func (e *Encoder) targetClass(seat, t uint8) (int, *vcard) {
 		}
 		return tcPermOpp, host
 	}
-	if e.stackHas(t) {
+	if e.stackHas(o) {
 		return tcStack, nil
 	}
-	if e.zoneHas(t, zGraveyard) || e.zoneHas(t, zExile) {
+	if e.zoneHas(o, zGraveyard) || e.zoneHas(o, zExile) {
 		return tcGrave, nil
 	}
 	return tcNone, nil
@@ -163,7 +165,7 @@ func (e *Encoder) extStack(seat uint8, me, opp *vplayer) {
 			}
 			xsum[side] += int32(c.rel.x)
 		}
-		var seen [kop.MaxTargets + len(se.Extra)]uint8
+		var seen [kop.MaxTargets + len(se.Extra)]dirac.TCode
 		nseen := 0
 		n := len(se.Targets) + int(se.NExtra)
 		for j := 0; j < n; j++ {
@@ -176,14 +178,14 @@ func (e *Encoder) extStack(seat uint8, me, opp *vplayer) {
 			}
 			dup := false
 			for k := 0; k < nseen; k++ {
-				dup = dup || dirac.TCode(seen[k]) == t
+				dup = dup || seen[k] == t
 			}
 			if dup {
 				continue
 			}
-			seen[nseen] = uint8(t)
+			seen[nseen] = t
 			nseen++
-			tc, host := e.targetClass(seat, uint8(t))
+			tc, host := e.targetClass(seat, t)
 			if tc == tcNone {
 				continue
 			}
