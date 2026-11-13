@@ -22,6 +22,12 @@ func (lc *lowerCtx) deferredMana(ab *lAbility, ps *params, rider string) error {
 	if ab.Kind != akMana || !ab.Cost.Tap || !plainTapCost(ab.Cost) || lc.face == nil {
 		return refuse("TriggersWhenSpent$ on a mana ability beyond a plain {T}")
 	}
+	// The kernel tracks one floating deferred source per player (genState.defSrc):
+	// two sources' mana in one payment is unmodelled, so only a legendary source
+	// (never two on the battlefield, CR 704.5j) lowers.
+	if !lc.face.IsLegendary() {
+		return refuse("TriggersWhenSpent$ on a source that is not legendary")
+	}
 	for k := range ps.m {
 		switch k {
 		case "AB", "Cost", "Produced", "TriggersWhenSpent", "SpellDescription":
