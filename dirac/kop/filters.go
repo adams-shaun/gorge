@@ -506,6 +506,13 @@ const W7BlockingSrc int16 = 33
 // off the battlefield fail closed. Cromat.
 const W7BlockedBySrc int16 = 34
 
+// W7EnteredFromLib (PredWord7 sub-kind 35): W7EnteredFromBF's library
+// sibling, gorge's ThisTurnEnteredFrom_Library: the card was put into the
+// zone it is in now from a library this turn (the object's latest arrival,
+// read off the entered ledger). Read off the battlefield only: kgen refuses
+// it on a permanent. The Weaver King, Captain N'ghathrod.
+const W7EnteredFromLib int16 = 35
+
 // PredPowerLTToughness's PredN: the power/toughness relation it reads. 0 is
 // power < toughness (gorge powerLTtoughness); PTRelEQ is gorge's equalPT
 // (net power equal to net toughness) and PTRelNE its negation !equalPT, each

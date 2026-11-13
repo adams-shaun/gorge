@@ -356,6 +356,13 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				if pos != 0 {
 					return refuse("library-to-library search position %d", pos)
 				}
+				// Reorder$ True: gorge placeLibraryObjects pins the found
+				// cards on top in the answer order, the same placement a
+				// top LibraryPosition$ makes without it (zone_library.go;
+				// Goblin Recruiter, Congregation at Dawn)
+				if v, ok := ps.get("Reorder"); ok && strings.TrimSpace(v) != "True" {
+					return refuse("search Reorder$ %q", v)
+				}
 				if !noShuffle {
 					flags = append(flags, "ThenTop")
 				}

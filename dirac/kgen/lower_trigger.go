@@ -460,6 +460,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				break
 			}
 		}
+	case "TapsForMana":
+		if err := lc.tapsForManaWatch(tp, tr, t, readF); err != nil {
+			return err
+		}
 	case "Blocks":
 
 		// gorge checkBlocksTriggers/blocksCandidates: one instance per
@@ -3001,8 +3005,14 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
 			return err
 		}
 	}
+	if err := laterPermanentAlternative(aff); err != nil {
+		return err
+	}
 	f, err := lc.filter(aff)
 	if err != nil {
+		return err
+	}
+	if err := ownGraveLandsOnly(sp, f); err != nil {
 		return err
 	}
 	st.Kind = "MayPlayFrom"
@@ -4530,4 +4540,41 @@ func spentGateOf(v string, allowX bool) (int16, bool) {
 		return 0, false
 	}
 	return kop.DmgGate(cmp, n), true
+}
+
+// laterPermanentAlternative refuses a MayPlay$ Affected$ list whose second or
+// later alternative has the Permanent base (Kagha, Shadow Archdruid's
+// "Land.YouOwn+...,Permanent.YouOwn+..."). Off the battlefield Forge reads
+// Permanent as a permanent card, which the kernel's filter does, but gorge's
+// targetSpecForZone (engine/rules/stack.go) rewrites only a leading
+// Permanent to PermanentCard, so gorge's later alternative matches no card
+// in the affected zone and the two engines offer different casts.
+func laterPermanentAlternative(aff string) error {
+	alts := strings.Split(aff, ",")
+	for _, a := range alts[1:] {
+		a = strings.TrimSpace(a)
+		if b, ok := strings.CutPrefix(a, "Permanent"); ok && (b == "" || b[0] == '.' || b[0] == '+') {
+			return refuse("MayPlay Affected$ %q: a later Permanent alternative off the battlefield (gorge targetSpecForZone rewrites only the first)", aff)
+		}
+	}
+	return nil
+}
+
+// ownGraveLandsOnly refuses a typed (MayPlayText$) graveyard MayPlay$ grant
+// that admits a land its controller may not own (Coram, the Undertaker's
+// "play a land ... from among cards in graveyards"). gorge registers no
+// may-play effect for a MayPlayText$ static (layers.go mayPlayGrant), so its
+// land offers come from the fallback walk alone, which reads only the
+// player's own graveyard (legal_mayplay.go mayPlayLandIds walk(p, true));
+// the kernel offers an opponent's land too.
+func ownGraveLandsOnly(sp *params, f *lFilter) error {
+	if strings.TrimSpace(sp.m["MayPlayText"]) == "" || !strings.Contains(sp.str("AffectedZone"), "Graveyard") {
+		return nil
+	}
+	for _, c := range f.Clauses {
+		if (c.Types == 0 || c.Types&tLand != 0) && c.NotTypes&tLand == 0 && c.Owner != whoYou && c.Ctrl != whoYou {
+			return refuse("MayPlayText$ graveyard grant of a land you may not own: gorge's land walk reads only your graveyard")
+		}
+	}
+	return nil
 }

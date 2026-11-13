@@ -1373,6 +1373,8 @@ Tf5DmgAttackedYouLastTurn	TrigFlags5	8
 Tf5FirstCardInDrawStep	TrigFlags5	1
 Tf5NotFirstCardInDrawStep	TrigFlags5	2
 Tf5OppCause	TrigFlags5	4
+Tf5TapperNonActive	TrigFlags5	32
+Tf5TapsForMana	TrigFlags5	16
 TfCombat	TrigFlags	4
 TfNontokenSrc	TrigFlags	64
 TfNotToGrave	TrigFlags	128
@@ -1529,6 +1531,7 @@ W7CostBlue	int16	14
 W7CrewedBySrc	int16	13
 W7EnchantedByYours	int16	8
 W7EnteredFromBF	int16	24
+W7EnteredFromLib	int16	35
 W7FaceUp	int16	5
 W7FaceUpDisguise	int16	23
 W7GreatestPower	int16	2

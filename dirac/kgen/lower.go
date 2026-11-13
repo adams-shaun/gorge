@@ -32,6 +32,8 @@ var ignoredParams = map[string]bool{
 	"AINoRecursiveCheck": true, // Forge AI hint: only in gorge's accepted-key lists (params/mana.go, params/dealdamage.go, changezone_params.go), never read
 	"AIXMax":             true, // Forge AI hint for the X it announces: only in gorge's accepted-key lists (changezone_params.go, params/*.go), never read
 	"UnlessAI":           true, // Forge AI hint (CopySpellAbilityAi / the unless-cost AI: whether the AI pays or copies); gorge never reads it (engine/rules/paramcensus_test.go records it as an AI hint)
+
+	"AIRespondsToOwnAbility": true, // Forge AI hint (Sensei's Divining Top: the AI may respond to its own activation); gorge never reads it
 }
 
 // params tracks which parameters of one IR node the lowering read, so an
@@ -418,7 +420,7 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 		if lc.imprintMox && i > 0 {
 			continue // the imprint mox's static Cleanup / ForgetImprinted$ bookkeeping: the kernel's exiled-with record (lower_imprintmox.go)
 		}
-		if t.Mode == "TapsForMana" {
+		if t.Mode == "TapsForMana" && strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKStatic)), "True") {
 			lc.guard(fmt.Sprintf("T[%d] Mode=%s", i, t.Mode), func() error { return lc.tapExtraStatic(t) })
 			continue
 		}

@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"strconv"
@@ -71,13 +72,17 @@ var (
 )
 
 // Model is the shared network at path wrapped as a policynet.Model encoding under
-// the entity feature set.
+// the entity feature set. A network with a K-way value head carries its width
+// as the Model's ValueK, so a reader of the vector (azmcts under MaxN) finds it
+// through the External's ValueVec.
 func Model(path string) (*policynet.Model, error) {
 	g, err := Shared(path)
 	if err != nil {
 		return nil, err
 	}
-	return policynet.NewExternal(g, policynet.FeaturesEntity), nil
+	m := policynet.NewExternal(g, policynet.FeaturesEntity)
+	m.ValueK = g.ValueK()
+	return m, nil
 }
 
 func Shared(path string) (*Net, error) {
@@ -168,6 +173,14 @@ type Net struct {
 	polRest             []gnLinear // policy.2, policy.4, ... (the last has out 1)
 	value               []gnLinear // value.0, value.2, ... (the last has out 1)
 
+	// valueK is the K-way value head's width (config value_k; 0: the scalar
+	// head alone) and valueKHead its layers, value_k.0, value_k.2, ... (the
+	// last has out valueK): K logits read off the same trunk as value, in the
+	// trainer's outcome order (the relative seats from the viewer in turn
+	// order, then no winner). A graph network keeps its K-way head in gnGNN.
+	valueK     int
+	valueKHead []gnLinear
+
 	htab []float32 // TableRows×d: hproj(table[r])
 	pool sync.Pool // *gnScratch
 
@@ -225,6 +238,41 @@ func (g *Net) RawWidth() int {
 		return g.gnn.rawW
 	}
 	return g.cardRaw.in
+}
+
+// HeaderValueK reads only the header of the .dzgw file at path and returns
+// its K-way value head's width (config value_k), 0 for a scalar network: a
+// caller choosing a backend asks before loading, since only this package
+// runs the K-way head.
+func HeaderValueK(path string) (int, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return 0, err
+	}
+	defer f.Close()
+	var pre [16]byte
+	if _, err := io.ReadFull(f, pre[:]); err != nil || string(pre[:8]) != gnMagic {
+		return 0, fmt.Errorf("gonet %s: not a .dzgw file (python -m dzg.export)", path)
+	}
+	hl := int64(binary.LittleEndian.Uint64(pre[8:]))
+	st, err := f.Stat()
+	if err != nil {
+		return 0, err
+	}
+	if hl <= 0 || hl > st.Size()-16 {
+		return 0, fmt.Errorf("gonet %s: bad header length %d", path, hl)
+	}
+	raw := make([]byte, hl)
+	if _, err := io.ReadFull(f, raw); err != nil {
+		return 0, fmt.Errorf("gonet %s: header: %w", path, err)
+	}
+	var h struct {
+		Config map[string]float64 `json:"config"`
+	}
+	if err := json.Unmarshal(raw, &h); err != nil {
+		return 0, fmt.Errorf("gonet %s: header: %w", path, err)
+	}
+	return int(h.Config["value_k"]), nil
 }
 
 // Load reads a .dzgw file (contract dzgw, docs/contracts.md).
@@ -400,21 +448,28 @@ func Load(path string) (*Net, error) {
 	noneA, noneB := get("none_a", cd), get("none_b", cd)
 	g.optNorm = norm("opt_norm", d)
 	// heads: _mlp(d_in, hidden, layers): Linear at indices 0, 2, ..., 2*layers
-	head := func(name string, dIn, layers int) []gnLinear {
+	headN := func(name string, dIn, layers, last int) []gnLinear {
 		var out []gnLinear
 		in := dIn
 		for i := 0; i <= layers; i++ {
 			o := hh
 			if i == layers {
-				o = 1
+				o = last
 			}
 			out = append(out, lin(fmt.Sprintf("%s.%d", name, 2*i), in, o, true))
 			in = o
 		}
 		return out
 	}
+	head := func(name string, dIn, layers int) []gnLinear { return headN(name, dIn, layers, 1) }
 	pol := head("policy", 2*d, cfg("policy_layers"))
 	g.value = head("value", d, cfg("value_layers"))
+	if k := cfg("value_k"); k != 0 {
+		if k < 3 {
+			return nil, fmt.Errorf("gonet %s: value_k = %d: a K-way value head has at least 3 outcomes (two seats and no winner)", path, k)
+		}
+		g.valueK, g.valueKHead = k, headN("value_k", d, cfg("value_layers"), k)
+	}
 	if len(errs) > 0 {
 		return nil, fmt.Errorf("gonet %s: %v", path, errs)
 	}
@@ -503,6 +558,69 @@ func (g *Net) Eval(st *policynet.State, opts []policynet.Option, scores []float3
 	return g.eval(sc, st, opts, scores)
 }
 
+// ValueK is the width of the network's K-way value head (the trainer's
+// value_k: the relative seats from the viewer in turn order, then no
+// winner), or 0 for a network with the scalar value head alone.
+func (g *Net) ValueK() int {
+	if g.gnn != nil {
+		return g.gnn.valueK
+	}
+	return g.valueK
+}
+
+// EvalValueVec runs the network once on st with no result cache, as Eval
+// does with no options, and writes the K-way value head's logits into
+// logits (len ValueK); it returns the scalar value logit. It panics on a
+// network without the head (ValueK 0) or a logits of another length.
+// Allocation-free once the scratch is warm.
+func (g *Net) EvalValueVec(st *policynet.State, logits []float32) float32 {
+	if k := g.ValueK(); k == 0 || len(logits) != k {
+		panic(fmt.Sprintf("gonet: EvalValueVec: %d logits for a value_k %d network", len(logits), k))
+	}
+	sc := g.pool.Get().(*gnScratch)
+	defer g.pool.Put(sc)
+	return g.evalK(sc, st, nil, nil, logits)
+}
+
+// ValueVec is policynet.VectorValuer: the K-way value head's softmax at
+// st, in the head's outcome order, or nil for a network without the head
+// (the caller falls back to Value). It allocates the returned slice and is
+// not cached.
+func (g *Net) ValueVec(st policynet.State) []float32 {
+	k := g.ValueK()
+	if k == 0 {
+		return nil
+	}
+	g.calls.Add(1)
+	out := make([]float32, k)
+	g.EvalValueVec(&st, out)
+	Softmax32(out)
+	return out
+}
+
+// Softmax32 replaces the logits in x by their softmax, in float64 sums
+// (the arithmetic every K-way reader of this package shares).
+func Softmax32(x []float32) {
+	if len(x) == 0 {
+		return
+	}
+	top := x[0]
+	for _, v := range x[1:] {
+		if v > top {
+			top = v
+		}
+	}
+	sum := 0.0
+	for i, v := range x {
+		e := math.Exp(float64(v - top))
+		x[i] = float32(e)
+		sum += e
+	}
+	for i := range x {
+		x[i] = float32(float64(x[i]) / sum)
+	}
+}
+
 // EvalBatch runs the network once over len(sts) states with no result
 // cache: values[i] gets state i's value logit (as Eval returns it) and, when
 // opts is non-nil and opts[i] non-empty, scores[i] gets its len(opts[i])
@@ -520,7 +638,7 @@ func (g *Net) EvalBatch(sts []*policynet.State, opts [][]policynet.Option, score
 		if opts != nil && len(opts) != len(sts) {
 			panic(fmt.Sprintf("gonet: EvalBatch: %d states, %d option lists", len(sts), len(opts)))
 		}
-		g.evalGNNBatch(sc, sts, opts, scores, values[:len(sts)])
+		g.evalGNNBatch(sc, sts, opts, scores, values[:len(sts)], nil)
 		return
 	}
 	for i, st := range sts {
@@ -588,8 +706,14 @@ func Sigmoid32(x float32) float32 { return float32(1 / (1 + math.Exp(-float64(x)
 // returns the value logit. A graph network (g.gnn != nil) dispatches to evalGNN;
 // every other field and the caching around this call are shared.
 func (g *Net) eval(sc *gnScratch, st *policynet.State, opts []policynet.Option, scores []float32) float32 {
+	return g.evalK(sc, st, opts, scores, nil)
+}
+
+// evalK is eval that also writes the K-way value head's logits into vk
+// when vk is non-nil (len ValueK; the network must have the head).
+func (g *Net) evalK(sc *gnScratch, st *policynet.State, opts []policynet.Option, scores, vk []float32) float32 {
 	if g.gnn != nil {
-		return g.evalGNN(sc, st, opts, scores)
+		return g.evalGNN(sc, st, opts, scores, vk)
 	}
 	var t0 int64
 	if Clock != nil {
@@ -664,6 +788,9 @@ func (g *Net) eval(sc *gnScratch, st *policynet.State, opts []policynet.Option, 
 	g.norm.apply(s, s)
 
 	v := g.mlp(sc, g.value, s)
+	if vk != nil {
+		g.mlpOut(sc, g.valueKHead, s, vk)
+	}
 	if len(opts) > 0 {
 		g.options(sc, st, s, opts, scores)
 	}
@@ -690,6 +817,28 @@ func (g *Net) mlp(sc *gnScratch, layers []gnLinear, x []float32) float32 {
 		a, b = b, a
 	}
 	return 0
+}
+
+// mlpOut runs a head whose last Linear has len(out) outputs on x, writing
+// them to out: mlp's arithmetic, one dot product per output.
+func (g *Net) mlpOut(sc *gnScratch, layers []gnLinear, x, out []float32) {
+	sc.vh = grow(sc.vh, g.hh)
+	sc.vh2 = grow(sc.vh2, g.hh)
+	a, b := sc.vh, sc.vh2
+	in := x
+	for i := range layers {
+		l := &layers[i]
+		if i == len(layers)-1 {
+			for o := range out {
+				out[o] = l.b[o] + dot(l.w[o*l.in:(o+1)*l.in], in)
+			}
+			return
+		}
+		l.apply(a[:l.out], in)
+		relu(a[:l.out])
+		in = a[:l.out]
+		a, b = b, a
+	}
 }
 
 // options writes the logit of each option.

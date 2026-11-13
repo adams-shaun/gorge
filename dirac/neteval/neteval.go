@@ -60,7 +60,14 @@ func (w *Weights) Backend() string {
 // goroutine-safe), else gonet, which takes every MLP export netsimd's
 // kernels refuse. A file neither loads (not a .dzgw, a gnn export) reports
 // both errors.
+//
+// A network with a K-way value head (gonet.HeaderValueK) loads on gonet,
+// the backend that runs that head, so its Net is a search.VecEvaluator
+// (valuevec.go).
 func LoadWeights(path string) (*Weights, error) {
+	if k, err := gonet.HeaderValueK(path); err == nil && k > 0 {
+		return LoadGonet(path)
+	}
 	g, err := netsimd.Load(path, 0)
 	if err != nil {
 		gn, gerr := loadGonet(path)
@@ -138,6 +145,7 @@ type Net struct {
 	fopts []feat.Option
 	popts []policynet.Option
 	score []float32
+	vk    []float32 // the K-way value head's logits (len Weights.ValueK; nil without the head)
 
 	// the last evaluation: Value after Priors at the same position reuses it
 	lastS   *dirac.State
@@ -248,6 +256,9 @@ func New(w *Weights, pool *feat.Pool) *Net {
 		w.g.EvalBagExt(&n.sc, n.cin, n.pst.Dense, n.bagSum[:], nil, n.popts, n.score)
 	} else {
 		n.Materialize = true
+		if k := w.ValueK(); k > 0 {
+			n.vk = make([]float32, k)
+		}
 	}
 	n.pst = policynet.State{}
 	n.cards = n.cards[:0]
