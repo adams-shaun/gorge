@@ -27,6 +27,8 @@ Sol Ring
 Arcane Signet
 Mind Stone
 Tundra
+Adarkar Wastes
+Talisman of Progress
 Tranquil Cove
 Thriving Isle
 Plains

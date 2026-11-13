@@ -141,19 +141,20 @@ func producibleMask(f *cards.Face) kop.ColorMask {
 
 // reflTapMana: a is the lowered reflected ability, cost {T} alone.
 func reflTapMana(a *lAbility) bool {
-	if a.Mana == nil || a.Mana.Special != "Reflected" && a.Mana.Special != "ReflectedImprint" {
+	if a.Mana == nil || a.Mana.Special != "Reflected" && a.Mana.Special != "ReflectedImprint" && a.Mana.Special != "ReflectedIdentity" {
 		return false
 	}
-	c := &a.Cost
+	return reflTapCost(&a.Cost) && len(a.Prog) == 0 && a.ActCond.Kind == cNone && a.Limit == 0 && !a.TurnOnce && a.Gate == nil && !a.Sorcery && !a.Loyalty
+}
+
+// reflTapCost: c is {T} alone.
+func reflTapCost(c *lCost) bool {
 	m := &c.Mana
 	if !c.Tap || c.SacSelf || c.Sac != nil || c.DiscardN != 0 || c.DiscardSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.PayLife != 0 ||
 		c.TapN != 0 || c.TapHost || c.SacHost || c.Forage != nil || c.ExileG != nil || c.Energy != 0 || c.ReturnSelf || c.ExileSelf || c.Return != nil {
 		return false
 	}
-	if m.Pips != [5]int{} || len(m.Hybrid) > 0 || m.X || m.C != 0 || m.Generic != 0 {
-		return false
-	}
-	return len(a.Prog) == 0 && a.ActCond.Kind == cNone && a.Limit == 0 && !a.TurnOnce && a.Gate == nil && !a.Sorcery && !a.Loyalty
+	return m.Pips == [5]int{} && len(m.Hybrid) == 0 && !m.X && m.C == 0 && m.Generic == 0
 }
 
 // refuseReflectedMana handles a card with a reflected mana ability. The
@@ -168,7 +169,7 @@ func reflTapMana(a *lAbility) bool {
 // reflected ability (the caller then has nothing to add).
 func (lc *lowerCtx) refuseReflectedMana(ms []*lAbility) bool {
 	for _, a := range ms {
-		if a.Mana.Special != "ReflectedImprint" {
+		if a.Mana.Special != "ReflectedImprint" && a.Mana.Special != "ReflectedIdentity" {
 			continue
 		}
 		// the imprint mox's one ability (lower_imprintmox.go): the kernel

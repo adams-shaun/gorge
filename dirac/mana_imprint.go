@@ -41,12 +41,12 @@ func SetDebugImprintMutate(m uint8) { debugImprintMutate = m }
 // imprint shape): view m makes one mana of a colour of m.
 //
 //go:noinline
-func prepManaImprint(g *genPrep, id CardID, pc *pcard) {
+func prepManaImprint(g *genPrep, id CardID, pc *pcard, ident bool) {
 	g.setFlag(id, gfManaVar|gfManaRefl)
 	g.smallFor(id).manaVar = int16(len(g.varPC))
 	for m := 0; m < 32; m++ {
 		v := *pc
-		v.manaCol, v.manaMulti, v.manaRefl = kop.ColorMask(m), false, true
+		v.manaCol, v.manaMulti, v.manaRefl, v.manaIdent = kop.ColorMask(m), false, !ident, ident
 		if m == 0 {
 			v.manaAb = -1 // nothing to reflect: gorge lists no such ability
 		}
@@ -87,7 +87,7 @@ func (s *State) imprintMoxPick(k *prep) bool {
 	cd := &k.t.Cards[c]
 	for j := range cd.Abilities {
 		if a := &cd.Abilities[j]; a.Kind == kop.AbMana && a.AFlags&kop.AfManaReflect != 0 && a.AFlags&kop.AfLatent == 0 {
-			return a.ManaAmong == 0
+			return a.ManaAmong == 0 && !a.ManaIdentity
 		}
 	}
 	return false

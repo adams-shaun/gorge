@@ -90,7 +90,7 @@ func atkTaxGap(c *kop.CardDef) bool {
 		a := &c.Abilities[j]
 		switch a.Kind {
 		case kop.AbMana:
-			if a.AFlags&kop.AfLatent != 0 || !atkTaxManaAb(a) {
+			if a.AFlags&kop.AfLatent != 0 || !atkTaxManaAb(a) && !atkTaxPainPair(c, first, j) {
 				return true
 			}
 			if first < 0 {
@@ -122,10 +122,11 @@ func atkTaxGap(c *kop.CardDef) bool {
 // exactly as gorge's attack window lists it (rules windowManaUnits and
 // attackChoiceManaSources): a cost of {T} alone, a literal amount, no spend
 // restriction, rider, gate, deferral or simultaneous production, and one
-// colour, a choice of colours or the chosen colour.
+// colour, a choice of colours or the chosen colour, or the commander's colour
+// identity (ManaIdentity), which the window never lists (atkTaxShape).
 func atkTaxManaAb(a *kop.Ability) bool {
 	return a.Cost == (kop.Cost{Flags: kop.CostTap}) && a.ManaN > 0 && len(a.Prog) == 0 &&
-		a.AFlags&^(kop.AfManaChoice|kop.AfManaChosen) == 0 && a.ManaRestrict == 0 && a.ManaRestrictAb == 0 &&
+		(a.AFlags&^(kop.AfManaChoice|kop.AfManaChosen) == 0 || a.ManaIdentity && a.AFlags&^(kop.AfManaChoice|kop.AfManaReflect) == 0) && a.ManaRestrict == 0 && a.ManaRestrictAb == 0 &&
 		!a.ManaEach && !a.ManaDeferred && a.SplitGate == 0 && a.ManaHasteValid == 0 && a.ManaRider == 0 &&
 		a.ActZone == kop.ZoneNone && a.Gate == (kop.Gate{}) && !a.Exhaust && a.Once == 0
 }
@@ -145,6 +146,9 @@ func atkTaxMultiMana(c *kop.CardDef, first int) bool {
 		}
 		if n++; n == 2 {
 			second = j
+			if atkTaxPainPair(c, first, second) {
+				return true
+			}
 		}
 		m := a.ManaColors & 0x3f
 		if a.AFlags != 0 || a.ManaN != 1 || bits.OnesCount8(uint8(m)) != 1 || m <= seen {
@@ -153,6 +157,35 @@ func atkTaxMultiMana(c *kop.CardDef, first int) bool {
 		seen |= m
 	}
 	return true
+}
+
+// atkTaxPainPair reports whether card c's two mana abilities, first and
+// second, are a painland's or a Talisman's: a plain fixed {C} or one-colour
+// ability, then a {T}-only choice of colours (or one colour) whose rider is
+// the painland damage (manaPain). gorge's attack window taps the first
+// listed source in the fixed pass, so the land pays {C} and the painful
+// alternative never joins the free census (windowManaUnits drops it; the
+// choice pass lists it last). A pain-only source or a first ability that is
+// a choice orders differently and stays a gap.
+func atkTaxPainPair(c *kop.CardDef, first, second int) bool {
+	if first < 0 || second <= first || second >= len(c.Abilities) {
+		return false
+	}
+	for j := range c.Abilities {
+		if j != first && j != second && c.Abilities[j].Kind == kop.AbMana {
+			return false
+		}
+	}
+	f, a := &c.Abilities[first], &c.Abilities[second]
+	if f.Kind != kop.AbMana || a.Kind != kop.AbMana || f.AFlags != 0 || !atkTaxManaAb(f) || f.ManaN != 1 || bits.OnesCount8(uint8(f.ManaColors&0x3f)) != 1 {
+		return false
+	}
+	if _, ok := manaPain(a); !ok {
+		return false
+	}
+	return a.Cost == (kop.Cost{Flags: kop.CostTap}) && a.ManaN <= 1 && a.ManaColors != 0 && a.AFlags&^kop.AfManaChoice == 0 &&
+		a.ManaRestrict == 0 && a.ManaRestrictAb == 0 && !a.ManaEach && !a.ManaDeferred && a.SplitGate == 0 && a.ManaHasteValid == 0 &&
+		a.ManaRider == 0 && a.ActZone == kop.ZoneNone && a.Gate == (kop.Gate{}) && !a.Exhaust && a.Once == 0
 }
 
 // atkTaxOnlyTwo reports whether second is card c's last mana ability.
@@ -206,7 +239,12 @@ func (s *State) atkTaxCharge(k *prep, sl Slot, tgt uint8) (n int, ok bool) {
 		}
 		v := int(a.Static.A)
 		if a.Static.StFlags&kop.StDynamic != 0 {
-			v = s.evalV(k, a.Static.VA, s.ctxStatic(st))
+			// A RememberingAttacker$ charge (kop.RefTaxedAttacker) reads the
+			// priced creature's own counters: gorge attackUnlessCharge binds
+			// ctx.Remembered = [{Obj: attacker}] and evaluates X live.
+			c := s.ctxStatic(st)
+			c.taxed1 = s.perms[sl].obj + 1
+			v = s.evalV(k, a.Static.VA, c)
 		}
 		if v < 0 {
 			ok = false
@@ -253,6 +291,11 @@ func (s *State) atkTaxShape(k *prep, sl Slot) (col, n int, fixed, ok bool) {
 		return 0, 0, false, false
 	}
 	a := &k.t.Cards[s.cardAt(sl)].Abilities[s.manaPCGen(k, sl).manaAb]
+	if a.ManaIdentity {
+		// gorge's attack window excludes the commander-identity shape: the
+		// parser claims no colour for it (rules attackChoiceManaSources)
+		return 0, 0, false, false
+	}
 	m := uint8(a.ManaColors) & 0x3f
 	switch {
 	case a.AFlags&kop.AfManaChosen != 0:

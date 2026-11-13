@@ -65,7 +65,7 @@ const (
 	ExHandSizeOf                   // cards in player Ref's hand
 	ExCountExile                   // exiled cards matching F (all exile zones; F.Owner narrows)
 	ExOppsLostLife                 // the number of the controller's opponents who lost life this turn
-	ExMVOf                         // the mana value of object Ref's card (printed; X counts 0)
+	ExMVOf                         // the mana value of object Ref's card (printed; X counts 0); RefRemembered sums the set, or with N == AggGreatestMV takes the largest
 	ExCountAtLeast                 // Sub[0] if battlefield objects matching F number at least N, else Sub[1] (Count$Compare)
 	ExPromisedGift                 // Sub[0] if the gift was promised (the spell, or the permanent's spell as it enters), else Sub[1] (Count$PromisedGift)
 	ExResolvedThisTurn             // times the resolving ability (source object, ability) resolved this turn, this one included (AfResolveCount)

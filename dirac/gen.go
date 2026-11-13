@@ -231,6 +231,8 @@ type genPrep struct {
 	anyImpending    bool           // some card has impending (CardDef.Impending; kw_impending.go)
 	anyPrepare      bool           // some card is a preparation front (FacePrepare; face_prepare.go)
 	anyPlot         bool           // some card has plot (CardDef.HasPlot; kw_plot.go)
+	anySuspend      bool           // some card has suspend (CardDef.Suspend; kw_suspend.go)
+	anyNoManaCost   bool           // some card has a printed "no cost" mana cost (CardDef.NoManaCost; cast_nomanacost.go)
 	anyForetell     bool           // some card has foretell (CardDef.HasForetell; kw_foretell.go)
 	anyParadigm     bool           // some card has Paradigm (CardDef.Paradigm; kw_paradigm.go)
 	anyNetLock      bool           // some program is ExtLockActs: canActivate and the untap/leave sites read the lock list (act_lockpermanent.go)
@@ -829,6 +831,12 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.HasPlot {
 			g.anyPlot = true
+		}
+		if c.Suspend != 0 {
+			g.anySuspend = true
+		}
+		if c.NoManaCost {
+			g.anyNoManaCost = true
 		}
 		if c.HasForetell {
 			g.anyForetell = true
@@ -1837,7 +1845,7 @@ type genState struct {
 	noTgtRed   bool            // cost computation without target-dependent reductions
 	mayPlayAny bool            // the may-play cast being priced is under the any-type rider
 	probe      probe           // the spell / ability a priority feasibility check is for
-	tgtSelf    uint8           // the graveyard card a feasibility check is for, plus one (0: none): it leaves the graveyard for the stack when cast, so it is no target of its own cast
+	tgtSelf    uint8           // the graveyard or exile card a feasibility check is for, plus one (0: none): it leaves that zone for the stack when cast, so it is no target of its own cast
 	inLoop     bool            // executing one object of a multi-object target slot
 	each       eachSusp        // an each-target loop parked on a copy token's as-enters ask (copy_eachtarget.go)
 	tokFrz     slotMask        // the permanents whose CreateToken replacements an each-target copy loop reads, fixed when it began (tokSrcM)
@@ -1970,7 +1978,7 @@ type genState struct {
 	impCast        bool                    // the cast beginCast starts is for the card's impending cost (castImpTgt; kw_impending.go; padding)
 	warpGrant      bool                    // the warp cast beginCast starts pays a battlefield grant's instance (kw_warpgrant.go; padding)
 	escapeCast     bool                    // the cast beginCast starts is the escape cast an AkCast's target byte names (castEscapeTgt; kw_escape.go; padding)
-	bargainCast    bool                    // the permission cast beginCast starts is bargained: the pool it checks pays the bargained price (offerBargainPlay; kw_bargain.go; padding)
+	bargainCast    bool                    // the cast beginCast starts (a permission's or a hand cast) is of a Bargain card: the pool it checks pays the bargained price (offerBargainPlay, bargainOffers; kw_bargain.go; padding)
 	noUntapL       uint8                   // OpSkipUntap C=1: bit p, player p's lands don't untap during p's next untap step; bit 4+p their creatures (SkipUntapPlayerCL; padding)
 	yourTurns      [MaxSeats]uint8         // ExYourTurns: the turns each player began as the active player, saturating (prep.anyYourTurns only; padding)
 	extraTurnBegun uint8                   // ExYourExtraTurns: bit p, player p has begun an extra turn this game (CR 500.7; value_exprs.go)

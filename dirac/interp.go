@@ -454,7 +454,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				hit = hit.with(sl)
 			}
 		}
-		if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 {
+		if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 || shieldBesidePlus(k.gen)) {
 			// a sweep's events are dealt one at a time: park on each event two
 			// replacements match (CR 616.1) and resume the rest after the
 			// answer. The recipients freeze in gorge's sweep order
@@ -724,30 +724,30 @@ func (s *State) cond(k *prep, in *kop.Instr) bool {
 }
 
 func (s *State) destroy(k *prep, sl Slot) {
-	if s.destroyAbsorbed(k, sl) {
+	if s.destroySpared(k, sl, false) {
 		return
 	}
 	s.leaveParked(k, sl)
 }
 
-// destroyAbsorbed reports a destroy that does not happen: the permanent is
-// indestructible, healed, regenerated or shielded. Each of those has done its
-// work by the time it reports true.
-func (s *State) destroyAbsorbed(k *prep, sl Slot) bool {
+// destroySpared reports whether the permanent at sl survives a destroy
+// instruction (indestructible, healed, regenerated unless noRegen, shielded),
+// applying the survival's effect; the one home of destroy, destroyNoRegen and
+// the simultaneous multi-target destroy (zone_leavetogether.go).
+func (s *State) destroySpared(k *prep, sl Slot, noRegen bool) bool {
 	if s.kw(k, sl)&kop.KwIndestructible != 0 {
 		return true
 	}
 	if s.destroyHeal(k, sl) {
 		return true
 	}
-	if s.canRegen(sl) {
+	if !noRegen && s.canRegen(sl) {
 		s.regenerate(sl)
 		return true
 	}
-	if k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(sl) {
-		return true // CR 122.1c, after regeneration (gorge effDestroy)
-	}
-	return false
+	// CR 122.1c, after regeneration (gorge effDestroy); NoRegen$ suppresses
+	// regeneration, not the shield counter
+	return k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(sl)
 }
 
 // moveRef moves the object a Ref names to zone z (its owner's).

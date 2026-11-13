@@ -71,6 +71,12 @@ func (g *grantSrch) wideBranch(t *State, i int, sl Slot) bool {
 			}
 		}
 	}
+	return g.wideAlloc(t, i, sl)
+}
+
+// wideAlloc charges the wide ability's combination allocation ask and taps
+// candidate i (slot sl) for each combination in engine order.
+func (g *grantSrch) wideAlloc(t *State, i int, sl Slot) bool {
 	if !g.node() { // the combination's allocation ask
 		return false
 	}
@@ -82,6 +88,18 @@ func (g *grantSrch) wideBranch(t *State, i int, sl Slot) bool {
 		}
 	}
 	return false
+}
+
+// wide2Branch activates candidate i's wide second ability (slot sl) beside the
+// usable printed first one it follows (Hermitic Herbalist bearing a grant):
+// the "choose a mana ability" ask is the grant path's own, the first ability's
+// colours its dual branch, so only the combination's allocation ask and the
+// combinations in engine order are charged here.
+func (g *grantSrch) wide2Branch(t *State, i int, sl Slot) bool {
+	if !t.canTapForMana(g.k, sl) {
+		return false
+	}
+	return g.wideAlloc(t, i, sl)
 }
 
 // wideTry taps candidate i for engine answer ans on a copy of t and continues

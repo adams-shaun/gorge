@@ -26,8 +26,8 @@ import (
 // heads) and runs only derived_transparent.go's event half, with the
 // per-effect equality known and locality cached from the list's build.
 //
-// One more input is read at assembly: a granted land static's Controller is
-// its source's current controller (grantedStaticController). It is safe to
+// One more input is read at assembly: a granted static's Controller is its
+// source's current controller (grantedStaticController). It is safe to
 // leave out of the key only because ControlChange is in no quiet or inert
 // kind set, so a control change always rescans statics and bumps
 // staticBuildSeq; adding ControlChange to such a set would freeze the

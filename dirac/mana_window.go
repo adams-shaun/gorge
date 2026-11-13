@@ -359,12 +359,12 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				return true, held
 			}
 			s.leave(k, sl, kop.ZoneGraveyard, false)
-			// a token sacrificed to pay a cast ceases at once, as gorge pays (a
-			// Treasure: payCast's tail reaches gorge's priority-boundary check,
-			// engine.go checkStateBased); one sacrificed to pay mid-resolution or
-			// by a planned activation's mana step (bflManaStep) waits for the
-			// state-based action at the next priority (CR 704.3, 704.5d)
-			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && s.buildLive() && (s.ctl != ctlBuild || s.bld().bfl&bflManaStep == 0) {
+			// a token sacrificed to pay a spell waits in the graveyard for the
+			// state-based check after the cast (gorge's Submit checks only with no
+			// cast pending, so a later choice of the payment still sees it there);
+			// likewise one sacrificed mid-resolution or by a planned activation's
+			// mana step (bflManaStep). Another cast's token ceases at once (CR 704.3, 704.5d)
+			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && s.buildLive() && (s.ctl != ctlBuild || s.bld().bfl&bflManaStep == 0) && s.bld().e.kind != seSpell {
 				s.ceaseManaToken(o)
 			}
 		}
@@ -2330,7 +2330,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			x = restrWitnessXPlus(x, t, multi[:nm], &cost, s.restrWithheldMana(k, p, d)+int(L)) // (mana_restrwithheld.go)
 		}
 	}
-	if cost.X != 0 && s.bld().e.kind == seSpell && s.xWitnessEats(k, p, s.bld().e.card, &cost, x, excl) {
+	if cost.X != 0 && s.bld().e.kind == seSpell && s.xWitnessEats(k, p, s.bld().e.card, &cost, x, excl, L) {
 		s.lowerXEats(k, p, &cost, x, excl, anyColor)
 		return
 	}
@@ -2929,8 +2929,9 @@ func (s *State) manaStep(k *prep) bool {
 			// order (pay.ManaSourceIDs). When the offer priced a mana-free
 			// part instead, the seat's choice of the mana part changes the
 			// cost the plan was armed for, so fall back to the window as
-			// gorge's plan does.
-			if cd.BeholdN == 0 || s.altAddFreePart(k, e.ctrl, e.card, e.obj) {
+			// gorge's plan does. A cost static can make the two equal (a
+			// reduction taking the mana part's {1}), and then the plan stands.
+			if cd.BeholdN == 0 || s.altAddFreePart(k, e.ctrl, e.card, e.obj) && s.altAddPlanCostDiffers(k, cost) {
 				c := xFolded(cost, int(e.x))
 				// a behold carrier's fallback window has no ManaPayment: a source answers
 				// its lowest colour, not the owed pip (windowCol)
@@ -3172,6 +3173,23 @@ func (s *State) paymentStranded(k *prep, e *stackEntry, cost *kop.ManaCost) bool
 		ok, _ = s.windowTapRider(k, e.ctrl, &c, false, anyColor)
 		s.CopyFrom(saved)
 		return !ok
+	}
+	if known && !ok && k.gen.anyFilt && s.scriptFilt(k, e.ctrl).any() {
+		// The greedy walk never activates a paid-fee filter ({1},{T}: any
+		// colour); gorge's census (castWindowReachable) searches them, so the
+		// window opens when some filter set pays the cost (CR 601.2g-h).
+		// availFor and scriptFilt read ctrlM, which still holds the committed
+		// picks s.occ withholds: a pick with a mana ability would count a second
+		// time, after convokeApplyPicks already paid its share (gorge's census
+		// skips convokeCommitted). Take them out of the seat's mask meanwhile.
+		c := *cost
+		var av avail
+		held := s.ctrlM[e.ctrl]
+		s.ctrlM[e.ctrl] = held.and(s.occ)
+		s.availForBuilt(k, e, &av)
+		reach := s.faceReachable(k, e.ctrl, &av, &c, 0)
+		s.ctrlM[e.ctrl] = held
+		return !reach
 	}
 	return known && !ok
 }
@@ -3453,4 +3471,20 @@ func (s *State) applyCastWinTap(k *prep, a Action) {
 // (a larger alternative of a pair unit).
 func (s *State) floatRestrOnly(k *prep, p uint8, sl Slot, ab *kop.Ability, col int, n uint8) bool {
 	return s.addRestrSrcV(k, p, sl, ab.ManaRestrict, k.gen.restrVarOf(ab), col, n)
+}
+
+// altAddPlanCostDiffers: the mana part chosen beside a payable mana-free part
+// composes a cost other than the one the plan was armed for (the free part's,
+// planCastAltAdd). Gorge falls back to the window only then (paymentPlanCheckUnits:
+// plan.Cost != the actual cost), so a reduction that makes them equal keeps the plan.
+func (s *State) altAddPlanCostDiffers(k *prep, cost kop.ManaCost) bool {
+	b := s.bld()
+	fl, bf, fg, saved := b.e.flags, b.bfl, b.fixedGen, b.altAdd
+	b.e.flags &^= sfAnyMana
+	b.bfl &^= bflAnyColor | bflCostFixed
+	b.altAdd = 0
+	armed := s.buildCost(k)
+	b.altAdd = saved
+	b.e.flags, b.bfl, b.fixedGen = fl, bf, fg
+	return armed != cost
 }
