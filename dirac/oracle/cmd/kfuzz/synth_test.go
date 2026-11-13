@@ -128,11 +128,14 @@ func TestFuzzFullSpreeCastPaysThroughAFilter(t *testing.T) {
 	eventAfter(t, rest, `^(?s:.*?)tap p\d obj=Conduit Pylons#\d+\n\s*ev \d+ mana_add `+p+` n=1 `)
 }
 
-// TestFuzzCleanupLegendRuleGivesPriority replays the std-otj pair where an
+// TestFuzzCleanupLegendRuleGivesPriority replays the std-otj game where an
 // Oko's copy of an Elk ends at cleanup beside a second Oko: the legend rule's
 // keep choice, answered in the cleanup step, is a state-based action that
 // performed, so the active player gets priority there (CR 514.3a, 704.5j)
 // and the turn does not pass at once.
+//
+// The game is a recording (pinnedReplay): std-otj pair 231 as dealt when the
+// step was fixed.
 func TestFuzzCleanupLegendRuleGivesPriority(t *testing.T) {
 	corpus, err := cardset.CorpusDir()
 	if err != nil {
@@ -142,12 +145,19 @@ func TestFuzzCleanupLegendRuleGivesPriority(t *testing.T) {
 		t.Skipf("gorge corpus has no cardsfolder: %v", err)
 	}
 	cardsettest.Synth(t, "std-otj")
-	code, stdout, stderr := runKFuzz(t, "-synth", "std-otj", "-first-pair", "231", "-pairs", "1", "-seed", "1", "-surface", "full", "-shrink", "0", "-absolute")
-	if code != 0 {
-		t.Fatalf("exit %d, stderr %q\n%s", code, stderr, stdout)
-	}
-	if !strings.Contains(stdout, "1 clean, 0 divergent") {
-		t.Errorf("pair 231 diverged:\n%s", stdout)
+	out := pinnedReplay(t, "std-otj", "testdata/cleanup_legend_rule_gives_priority.repro.json")
+	// an Oko becomes a copy of an Elk; at cleanup the copy ends (the Oko is
+	// itself again), the legend rule asks which Oko to keep, the other goes
+	// to the graveyard, and priority is asked before the next turn begins
+	m, rest := eventAfter(t, out, `clone_permanent p\d obj=Oko, the Ringleader#(\d+) Elk Token#\d+`)
+	id := m[1]
+	_, rest = eventAfter(t, rest, `clone_permanent p\d obj=Oko, the Ringleader#`+id+`\n`)
+	_, rest = eventAfter(t, rest, `choose p\d obj=Oko, the Ringleader#\d+ ctr=legend_keep`)
+	_, rest = eventAfter(t, rest, `move_zone p\d obj=Oko, the Ringleader#\d+ zone 2>3 "legend rule"`)
+	ask := regexp.MustCompile(`decision_ask p\d "priority"`).FindStringIndex(rest)
+	turn := regexp.MustCompile(`ev \d+ turn p\d`).FindStringIndex(rest)
+	if ask == nil || turn != nil && turn[0] < ask[0] {
+		t.Fatalf("the turn passed after the legend rule at cleanup with no priority asked:\n%s", rest[:min(len(rest), 4000)])
 	}
 }
 
