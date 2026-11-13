@@ -976,8 +976,14 @@ func (s *State) FeatZoneList(p uint8, z kop.Zone, dst []Obj) []Obj {
 }
 
 // FeatZoneIndex is object o's position in its owner's hand, library (from
-// the top), graveyard or exile; 255 elsewhere.
-func (s *State) FeatZoneIndex(o Obj) uint8 { return s.zoneIndex(o) }
+// the top), graveyard or exile; 255 elsewhere, and for a code that names no
+// object (a stack ability's or a player's, which a choice's source can be).
+func (s *State) FeatZoneIndex(o Obj) uint8 {
+	if int(o) >= MaxObj {
+		return 255
+	}
+	return s.zoneIndex(o)
+}
 
 // featCost is card c's cast cost for p after reductions, exactly as the
 // kernel's priority walk prices it (adjustCost).

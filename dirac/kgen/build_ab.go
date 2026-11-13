@@ -724,6 +724,7 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		}
 		ka.Exhaust = a.Exhaust
 		ka.CantCopy = a.CantCopy
+		ka.AnyActivator = a.AnyAct
 		ka.Evidence = uint8(a.Cost.EvidenceN)
 		ka.GrantedKw = a.Latent && strings.HasPrefix(a.Name, "GrantedFirebending")
 		if a.PowerUp {
