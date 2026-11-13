@@ -44,30 +44,82 @@ func (s *State) srcExtra(k *prep, sl Slot, pc *pcard) (xv [kop.NumManaKinds]uint
 
 // srcExtraPain is the planner's extra for a painful source (a painland's
 // {C} ability and its painful coloured one, or a pain-only source): xc the
-// extra of its normal ability, xp the extra of the painful one, which only a
-// carrier that is not limited to a {C} tap reaches (gorge addTapExtra adds
-// per alternative). False, with the stall counted, when either depends on the
-// pick or the source is not one plain tap.
-func (s *State) srcExtraPain(k *prep, sl Slot, pc *pcard) (xc, xp [kop.NumManaKinds]uint8, ok bool) {
+// extra of its normal ability, xp the extra of the painful one (srcExtraPainPick),
+// r the part of it that is one mana of the pick (a reflected carrier over a
+// several-type production: gorge addTapExtra adds per alternative, rules
+// payment_plan_interference.go paymentPlanTapObservers), which the caller
+// folds into the tap's amount. False, with the stall counted, when either
+// depends on the pick in a way the caller cannot fold or the source is not
+// one plain tap.
+func (s *State) srcExtraPain(k *prep, sl Slot, pc *pcard) (xc, xp [kop.NumManaKinds]uint8, r uint8, ok bool) {
 	if k.gen == nil || !k.gen.anyTapExtra {
-		return xc, xp, true
+		return xc, xp, r, true
 	}
 	if !s.tapExtraPlainBase(pc) {
 		if _, hit := s.srcExtraHit(k, sl, pc); hit {
 			s.capFull(StallTapExtra)
-			return xc, xp, false
+			return xc, xp, r, false
 		}
-		return xc, xp, true
+		return xc, xp, r, true
 	}
 	if !pc.painOnly {
 		var hit bool
 		if xc, hit = s.srcExtraHit(k, sl, pc); hit && xc == [kop.NumManaKinds]uint8{} {
 			s.capFull(StallTapExtra)
-			return xc, xp, false
+			return xc, xp, r, false
 		}
 	}
-	xp = s.srcExtraColour(k, sl, pc)
-	return xc, xp, true
+	var stall bool
+	r, xp, stall = s.srcExtraPainPick(k, sl, pc)
+	if stall {
+		s.capFull(StallTapExtra)
+		return xc, xp, r, false
+	}
+	return xc, xp, r, true
+}
+
+// srcExtraPainPick is the extra a coloured pick of the painful alternative at
+// sl brings: the reflected carriers' (StTapReflect) mana of the produced type
+// and a literal carrier's fixed vector. prod guards nothing here — the
+// produced type is pc.painCol — but a one-type production makes the reflected
+// extra that fixed vector (folded into xv), a several-type one makes it one
+// mana of the pick (r; the caller folds it into the tap's amount, painUnit,
+// addPainAvail, addExtraCol). A StTapOnC carrier reaches a {C} tap only: on
+// the one {C} type it is xv's too, beside a several-type production it cannot
+// be priced (stall). False, with the stall counted, for that shape.
+func (s *State) srcExtraPainPick(k *prep, sl Slot, pc *pcard) (r uint8, xv [kop.NumManaKinds]uint8, stall bool) {
+	if k.gen == nil || !k.gen.anyTapExtra || pc.manaAb < 0 || pc.manaSacOnly ||
+		pc.painCol == 0 || pc.manaXv != ([kop.NumManaKinds]uint8{}) || !s.tapExtraPlainBase(pc) {
+		return r, xv, false
+	}
+	prod := uint8(pc.painCol) & 0x3f
+	ctl := s.perms[sl].ctrl
+	s.eachStatic(k, func(st statSrc) bool {
+		a := &st.a.Static
+		if !s.tapExtraReaches(k, st, sl, ctl) {
+			return true
+		}
+		if a.StFlags&(kop.StTapReflect|kop.StTapOnC) != 0 {
+			if a.StFlags&kop.StTapReflect != 0 {
+				r += uint8(a.B)
+				return true
+			}
+			if prod != 1<<kop.C {
+				stall = true // a {C}-tap carrier beside a several-type production
+				return true
+			}
+			xv[kop.C] += uint8(a.B)
+			return true
+		}
+		xv[a.A] += uint8(a.B)
+		return true
+	})
+	if r > 0 && prod != 0 && prod&(prod-1) == 0 {
+		// one produced type: the extra is that fixed vector beside the tap
+		xv[bits.TrailingZeros8(prod)] += r
+		r = 0
+	}
+	return r, xv, stall
 }
 
 // srcExtraHit is srcExtra without the stall: the extra vector, and whether any
@@ -75,13 +127,6 @@ func (s *State) srcExtraPain(k *prep, sl Slot, pc *pcard) (xc, xp [kop.NumManaKi
 // empty when the extra depends on the pick).
 func (s *State) srcExtraHit(k *prep, sl Slot, pc *pcard) (xv [kop.NumManaKinds]uint8, hit bool) {
 	return s.srcExtraAlt(k, sl, pc, false)
-}
-
-// srcExtraColour is the extra a coloured pick of sl's painful alternative
-// brings: the carriers not limited to a {C} tap.
-func (s *State) srcExtraColour(k *prep, sl Slot, pc *pcard) (xv [kop.NumManaKinds]uint8) {
-	xv, _ = s.srcExtraAlt(k, sl, pc, true)
-	return xv
 }
 
 // srcExtraAlt is srcExtraHit for the normal ability (colour false) or for a
@@ -337,12 +382,17 @@ func (s *State) addExtraCol(k *prep, p uint8, sl Slot, pc *pcard, col int) {
 	if k.gen == nil || !k.gen.anyTapExtra {
 		return
 	}
-	xc, xp, ok := s.srcExtraPain(k, sl, pc)
+	xc, xp, r, ok := s.srcExtraPain(k, sl, pc)
 	if !ok {
 		return
 	}
 	if pc.painOnly || uint8(pc.manaCol)&(1<<col) == 0 {
 		xc = xp
+		if r > 0 {
+			// a several-type production's reflected extra is one mana of the
+			// pick (srcExtraPainPick): this tap made col
+			s.poolAdd(p, col, int(r))
+		}
 	}
 	s.addXv(p, &xc)
 }
@@ -402,17 +452,22 @@ func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
 func (s *State) removePainAvail(k *prep, a *avail, sl Slot, pc *pcard) {
 	p := s.perms[sl].ctrl
 	m := s.painAvailMask(pc, p)
-	if m != 0 {
-		n := uint8(1)
-		if pc.painOnly {
-			n = max(pc.manaN, 1)
+	n := uint8(1)
+	if pc.painOnly {
+		n = max(pc.manaN, 1)
+	}
+	if m != 0 && k.gen != nil && k.gen.anyTapExtra {
+		if _, _, r, ok := s.srcExtraPain(k, sl, pc); ok && r > 0 {
+			n += r // the reflected extra rode the unit's amount (addPainAvail)
 		}
+	}
+	if m != 0 {
 		a.remove(m, n)
 	}
 	if m == 0 || k.gen == nil || !k.gen.anyTapExtra {
 		return
 	}
-	xc, xp, ok := s.srcExtraPain(k, sl, pc)
+	xc, xp, _, ok := s.srcExtraPain(k, sl, pc)
 	if !ok {
 		return
 	}
@@ -438,30 +493,52 @@ func (s *State) removePainAvail(k *prep, a *avail, sl Slot, pc *pcard) {
 // where the board allows it (modal), else the table stalls.
 func (s *State) addPainAvail(k *prep, sl Slot, pc *pcard, p uint8, a *avail, ms *modalSet, tight bool) {
 	m := s.painAvailMaskAt(k, sl, pc, p)
-	if m != 0 {
-		n := uint8(1)
-		if pc.painOnly {
-			n = max(pc.manaN, 1) // a pain-only source's whole activation (Ancient Tomb's {C}{C})
+	n := uint8(1)
+	if pc.painOnly {
+		n = max(pc.manaN, 1) // a pain-only source's whole activation (Ancient Tomb's {C}{C})
+	}
+	var xc, xp [kop.NumManaKinds]uint8
+	r, ok := uint8(0), true
+	if m != 0 && k.gen != nil && k.gen.anyTapExtra {
+		xc, xp, r, ok = s.srcExtraPain(k, sl, pc)
+	}
+	if r > 0 {
+		// a reflected extra of a several-type production is one mana of the
+		// pick: the unit's amount carries it, and the one-colour limit keeps
+		// the bound exact (a {W} and a {U} are not payable from one tap). Only
+		// the whole-mask pain-only unit carries it; anything narrower or
+		// modal-priced asks the pick in a shape the bound cannot pose.
+		if !pc.painOnly || m != uint8(kop.ColAny) || s.g.availX&(availAny|availWin|availWinCol) != 0 || k.gen.anyContGrant {
+			s.capFull(StallTapExtra)
+			return
 		}
+		n += r
+	}
+	if m != 0 {
 		a.addUnits(m, n)
+		if r > 0 {
+			s.addOneColour(a, n) // the activation's mana is all one colour of the pick
+		}
 	}
-	if m == 0 || k.gen == nil || !k.gen.anyTapExtra {
-		return
-	}
-	xc, xp, ok := s.srcExtraPain(k, sl, pc)
-	if !ok {
+	if m == 0 || !ok {
 		return
 	}
 	both := m&(1<<kop.C) != 0
 	colours := m&^(1<<kop.C) != 0
 	for c := range xc {
-		n := xp[c]
+		nx := xp[c]
 		if both && !colours {
-			n = xc[c]
+			nx = xc[c]
 		}
-		if n > 0 {
-			a.addUnits(1<<c, n)
+		if nx > 0 {
+			a.addUnits(1<<c, nx)
 		}
+	}
+	if r > 0 && both && colours {
+		// the modal model varies the base unit only: a pick-dependent extra
+		// has no per-mode price
+		s.capFull(StallTapExtra)
+		return
 	}
 	if !both || !colours || xc == xp {
 		return
@@ -513,7 +590,7 @@ func (s *State) painExtraC(k *prep, sl Slot, pc *pcard) uint8 {
 	if pc.painOnly || k.gen == nil || !k.gen.anyTapExtra {
 		return 0
 	}
-	xc, xp, ok := s.srcExtraPain(k, sl, pc)
+	xc, xp, _, ok := s.srcExtraPain(k, sl, pc)
 	if !ok {
 		return 0
 	}
