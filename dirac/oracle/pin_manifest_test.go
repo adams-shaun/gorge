@@ -51,14 +51,17 @@ func (c pinConfig) config() Config {
 }
 
 // pinCondition is one reached condition as data. Kind is "cardOut",
-// "onBattlefield", "cardSeen", "onStack", "activated", "counterAtLeast" or
-// "anyOf"; Card names the card, counterAtLeast reads the Counter kind against
-// N, and anyOf nests its alternatives in Conditions.
+// "onBattlefield", "cardSeen", "onStack", "activated", "counterAtLeast",
+// "anyOf" or "check"; Card names the card, counterAtLeast reads the Counter
+// kind against N, anyOf nests its alternatives in Conditions, and check
+// names an entry of the pinChecks registry (pinchecks_test.go) — a Go
+// predicate no kind says.
 type pinCondition struct {
 	Kind       string         `json:"kind"`
 	Card       string         `json:"card,omitempty"`
 	Counter    string         `json:"counter,omitempty"`
 	N          int            `json:"n,omitempty"`
+	Check      string         `json:"check,omitempty"`
 	Conditions []pinCondition `json:"conditions,omitempty"`
 }
 
@@ -74,6 +77,19 @@ func (c pinCondition) validate() error {
 			if err := c.Conditions[i].validate(); err != nil {
 				return fmt.Errorf("anyOf condition %d: %w", i, err)
 			}
+		}
+		return nil
+	case "check":
+		ch, ok := pinCheckByName(c.Check)
+		if !ok {
+			return fmt.Errorf("pin condition check %q: unknown check", c.Check)
+		}
+		if ch.maker != nil {
+			_, err := ch.maker(c)
+			return err
+		}
+		if c.Card != "" || c.Counter != "" || c.N != 0 || len(c.Conditions) != 0 {
+			return fmt.Errorf("pin condition check %q: takes no card, counter, n or conditions", c.Check)
 		}
 		return nil
 	case "cardOut", "onBattlefield", "cardSeen", "onStack", "activated", "counterAtLeast":
@@ -109,6 +125,19 @@ func (c pinCondition) reached(t *testing.T) func(ref *GorgeSide) bool {
 		return activated(c.Card)
 	case "counterAtLeast":
 		return counterAtLeast(c.Card, c.Counter, c.N)
+	case "check":
+		ch, ok := pinCheckByName(c.Check)
+		if !ok {
+			t.Fatalf("pin condition check %q: unknown check", c.Check)
+		}
+		if ch.maker != nil {
+			f, err := ch.maker(c)
+			if err != nil {
+				t.Fatalf("pin condition check %q: %v", c.Check, err)
+			}
+			return f
+		}
+		return ch.pred
 	case "anyOf":
 		conds := make([]func(ref *GorgeSide) bool, len(c.Conditions))
 		for i := range c.Conditions {
@@ -286,8 +315,8 @@ func TestPinManifestCoversOldPins(t *testing.T) {
 		}
 		old = append(old, string(bytes.TrimSpace(line)))
 	}
-	if len(old) < 66 {
-		t.Fatalf("%d old pin files, want at least the pre-change 66", len(old))
+	if len(old) < 93 {
+		t.Fatalf("%d old pin files, want at least the pre-change 93", len(old))
 	}
 	manifest := make(map[string]bool)
 	for _, path := range pinManifestFiles(t) {

@@ -41,6 +41,12 @@ func TestPinConditionValidate(t *testing.T) {
 		{"anyOf bad alternative", pinCondition{Kind: "anyOf", Conditions: []pinCondition{card("cardOut"), {Kind: "onStack"}}}, false},
 		{"anyOf nested bad alternative", pinCondition{Kind: "anyOf", Conditions: []pinCondition{
 			{Kind: "anyOf", Conditions: []pinCondition{without(counter, func(c *pinCondition) { c.Counter = "" })}}}}, false},
+		{"check", pinCondition{Kind: "check", Check: "hybridCast"}, true},
+		{"check stray card", pinCondition{Kind: "check", Check: "hybridCast", Card: "Grizzly Bears"}, false},
+		{"check unknown", pinCondition{Kind: "check", Check: "anyOut"}, false},
+		{"check no name", pinCondition{Kind: "check"}, false},
+		{"check maker", pinCondition{Kind: "check", Check: "castThroughPayLifeGrant", Card: "Inside Information"}, true},
+		{"check maker no card", pinCondition{Kind: "check", Check: "castThroughPayLifeGrant"}, false},
 		{"unknown kind", card("anyOut"), false},
 		{"no kind", pinCondition{Card: "Grizzly Bears"}, false},
 	}
@@ -51,6 +57,20 @@ func TestPinConditionValidate(t *testing.T) {
 		}
 		if !c.ok && err == nil {
 			t.Errorf("%s: nil, want an error", c.name)
+		}
+	}
+
+	// The check registry is sorted by name (a lookup is a binary search) and
+	// each entry is exactly one of a plain predicate and a field-reading maker.
+	for i, ch := range pinChecks {
+		if i > 0 && pinChecks[i-1].name >= ch.name {
+			t.Errorf("pinChecks not sorted at %q (after %q)", ch.name, pinChecks[i-1].name)
+		}
+		if ch.pred == nil && ch.maker == nil {
+			t.Errorf("check %q: neither pred nor maker", ch.name)
+		}
+		if ch.pred != nil && ch.maker != nil {
+			t.Errorf("check %q: both pred and maker", ch.name)
 		}
 	}
 
@@ -71,5 +91,12 @@ func TestPinConditionValidate(t *testing.T) {
 	_, _, err := readPinDoc(doc(`{"kind":"counterAtLeast","card":"Enterprise NX-01","counter":"CHARGE"}`))
 	if err == nil || !strings.Contains(err.Error(), "counterAtLeast") {
 		t.Fatalf("document with n missing: err %v, want a counterAtLeast error", err)
+	}
+	if _, ok, err := readPinDoc(doc(`{"kind":"check","check":"hybridCast"}`)); err != nil || !ok {
+		t.Fatalf("document with a check condition: ok %v, err %v; want it read", ok, err)
+	}
+	_, _, err = readPinDoc(doc(`{"kind":"check","check":"anyOut"}`))
+	if err == nil || !strings.Contains(err.Error(), "unknown check") {
+		t.Fatalf("document with an unknown check: err %v, want an unknown-check error", err)
 	}
 }

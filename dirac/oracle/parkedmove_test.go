@@ -137,19 +137,3 @@ func TestCleanupDiscardPicksBeforeOrderAsks(t *testing.T) {
 	parkedPairs(t)
 }
 
-// Two Rests in Peace: a Treasure in a resolution's mana payment waits for its order
-// ask, the plan's next source waits for that, and a mass destroy and a mill ask once a
-// card, each going where its answer says.
-func TestParkedMassAndPayment(t *testing.T) {
-	settled := func(ref *GorgeSide) bool { _, ok := gravesAfterAnswers(ref); return ok }
-	pinnedGamesRun(t, "std-big", RunConfig{Config: Config{GorgeAutopaySurface: true}}, 1, settled)
-}
-
-// An Aura whose host dies goes in the next state-based pass, behind that pass's
-// casualties and a token ceasing: Bard the Bowman, who loses Bard's Company's +1/+1
-// with 3 damage marked, ahead of Enchanted River's Grasp (std-hob 161), and an Aura
-// whose host dies ahead of one that was already unattached (std-dft).
-func TestAuraLeavesInThePassAfterItsHostLockstep(t *testing.T) {
-	pinnedGames(t, "std-hob", Config{GorgeAutopaySurface: true}, onBattlefield("Bard the Bowman"), cardOut("Enchanted River's Grasp"))
-	pinnedGames(t, "std-dft", Config{}, auraLeftBattlefield)
-}
