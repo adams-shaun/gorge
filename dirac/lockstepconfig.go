@@ -43,8 +43,10 @@ func xFolded(cost kop.ManaCost, x int) kop.ManaCost {
 // planner leaves such a cost to (pay.PlanCostDetail "cost:x"): the first useful
 // source, repeated until the pool pays. It reports false when the sources run out;
 // what the window tapped stays tapped and its mana floats (CR 733.1). The window
-// has no auto-fill option, so gorge's answerer (payexec.WindowAnswer) takes a
-// planner-deferred source (Twitching Doll) in its battlefield place, the unit
+// has no auto-fill option (the oracle's seat never sends Intent.Announce, so
+// manaWindowAsk poses the ordinary window), so gorge's answerer
+// (payexec.WindowAnswer) takes the first listed source -- a planner-deferred one
+// (Twitching Doll, a depletion land) in its battlefield place, the unit
 // availXWindow counted for the announcement.
 func (s *State) xWindowPay(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
 	c := xFolded(*cost, int(e.x))
