@@ -1574,6 +1574,11 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if err != nil {
 			return err
 		}
+		// Reveal$ (Fa'adiyah Seer's "draw a card and reveal it"): gorge's
+		// compileDraw reads no Reveal key (it is an unread Note) and its draw
+		// emits no reveal event, so the drawn card changes nothing a later
+		// node reads; the remembered card (RememberDrawn$) is the whole effect.
+		ps.consume("Reveal")
 		if who, ok, err := lc.targetedAndYou(ps, "Defined"); err != nil {
 			return err
 		} else if ok {
@@ -1926,7 +1931,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			if !lc.inGroup {
 				return refuse("Sacrifice Defined$ DelayTriggerRememberedLKI outside a Mobilize group")
 			}
-			lc.emit(lInstr{Op: "SacrificeDelayed", Obj: lRef{Kind: rDelayedRemembered}})
+			lc.emitSacDelayed()
 			return nil
 		}
 		if ps.str("Mode") == "TgtChoose" {
@@ -1996,7 +2001,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			if !lc.inGroup {
 				return refuse("SacrificeAll Defined$ DelayTriggerRememberedLKI outside a delayed group")
 			}
-			lc.emit(lInstr{Op: "SacrificeDelayed", Obj: lRef{Kind: rDelayedRemembered}})
+			lc.emitSacDelayed()
 			return nil
 		}
 		if _, ok := ps.get("ValidCards"); !ok {
@@ -4781,16 +4786,24 @@ func (lc *lowerCtx) preventColorEffect(ps *params) error {
 // refTargetUnion) or Targeted.YouCtrl (that union narrowed to the
 // controller's permanents, gorge eachDamagerTargets). Each deals NumDmg$
 // (a constant, or Count$CardPower: its own power) to the recipient: the
-// node's own single object target, or Defined$ Self. EachToItself$,
-// ToEachOther$, ValidCards$ damagers, DamageSource$, division and player
-// recipients refuse.
+// node's own single object target, or Defined$ Self. A ValidCards$ <filter>
+// without DefinedDamagers$ is gorge's same battlefield sweep as
+// DefinedDamagers$ Valid <filter> (effEachDamage, Nissa's Judgment).
+// EachToItself$, ToEachOther$, DamageSource$, division and player recipients
+// refuse.
 func (lc *lowerCtx) eachDamage(ps *params) error {
-	for _, k := range [...]string{"EachToItself", "ToEachOther", "ValidCards", "DamageSource", "DividedAsYouChoose"} {
+	for _, k := range [...]string{"EachToItself", "ToEachOther", "DamageSource", "DividedAsYouChoose"} {
 		if _, ok := ps.get(k); ok {
 			return refuse("EachDamage %s$", k)
 		}
 	}
 	dd := strings.TrimSpace(ps.str("DefinedDamagers"))
+	if vc, ok := ps.get("ValidCards"); ok {
+		if dd != "" {
+			return refuse("EachDamage ValidCards$ beside DefinedDamagers$")
+		}
+		dd = "Valid " + strings.TrimSpace(vc)
+	}
 	var f *lFilter
 	mask := 0 // damager target slots (bit per slot); 0 = the Valid sweep
 	if spec, ok := strings.CutPrefix(dd, "Valid "); ok {

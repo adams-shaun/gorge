@@ -239,12 +239,15 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 	return s.windowTapWalk(k, p, cost, useful, clamp, anyColor, noOwed, potential, false)
 }
 
-// windowTapWalk is windowTapUseful; takeDeferred is an announced X's window
-// (gorge's announcedManaWindowAsk), whose answer (payexec.WindowAnswer) is the
-// auto-fill option while gorge's planner prices what is owed, else the first
-// source listed. The planner never taps a deferred source (planDeferred), so
-// the walk skips one while the rest still cover the cost (windowPlanCovers),
-// and once they do not takes it in its battlefield place like any other.
+// windowTapWalk is windowTapUseful; takeDeferred is an X-cost payment's CR
+// 601.2g window (xWindowPay). The oracle lowers every cast as a plain cast
+// (Intent.Payment or the potential play's script, never Intent.Announce), so
+// gorge's window is manaWindowAsk's ordinary one: no ManaPayment, no auto-fill
+// option, and its answer (payexec.WindowAnswer) is the first "activate" option
+// listed -- a planner-deferred source (planDeferred) in its battlefield place
+// like any other, whatever the planner census affords. An Intent.Announce
+// cast's announced window (announcedManaWindowAsk) would offer the auto-fill
+// plan the census covers; no seat sends it here, so the walk never skips.
 func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clamp, anyColor, noOwed, potential, takeDeferred bool) (ok bool, held [kop.NumManaKinds]uint8) {
 	if s.buildLive() && s.bld().manaNP == 0 && s.bld().bfl&bflPushed != 0 && s.bld().e.kind == seSpell {
 		// the payment's mana abilities queue from here: a reversal (unpushSpell) keeps what they
@@ -262,7 +265,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		}
 		var order [MaxPerm]Slot
 		n := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), order[:], 0)
-		sl, gap := s.windowPick(k, p, order[:n], useful, clamp, anyColor, takeDeferred && s.deferLive(k) && !s.windowPlanCovers(k, p, cost, anyColor))
+		sl, gap := s.windowPick(k, p, order[:n], useful, clamp, anyColor, takeDeferred && s.deferLive(k))
 		if sl == NoSlot {
 			return false, held
 		}
@@ -415,18 +418,6 @@ func (s *State) restrPoolAdmits(k *prep, p uint8) uint8 {
 		return s.restrPoolAct(k, p, &d)
 	}
 	return s.restrPoolNonSpell(k, p)
-}
-
-// windowPlanCovers reports whether p's pool and planner census (availFor, which
-// leaves a deferred source out) cover cost: gorge's window then offers its
-// auto-fill plan (announcedAutoFillPlan), which the answer takes.
-func (s *State) windowPlanCovers(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) bool {
-	var a avail
-	s.availFor(k, p, &a)
-	if anyColor {
-		return a.affordsAnyColor(cost, 0)
-	}
-	return a.affords(cost, pipMaskOf(cost), 0)
 }
 
 // windowPick is the window's next source among order (p's battlefield, in

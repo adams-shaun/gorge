@@ -381,6 +381,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			}
 		}
 	}
+	if k.gen != nil && k.gen.anyAnyAct {
+		s.offerAnyActivations(k, d, p, sorc, &av, &haveAv) // cast_anyactivator.go
+	}
 	if k.gen != nil {
 		s.priorityGen(k, d, p, sorc, &av, haveAv)
 		if k.gen.anyFaceDown {
@@ -1780,6 +1783,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 		}
 		if a.Target() == castOverloadTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyOverload {
 			s.g.impCast = true // the overload cost (kw_overload.go): beginCast marks the entry overloaded
+		}
+		if a.Target() == castCleaveTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyCleave {
+			s.g.impCast = true // the cleave cost (kw_cleave.go): beginCast puts the cleave ability on the entry
 		}
 		if a.Target() == castSurgeTgt && a.Mode() == 0 && k.gen != nil && k.gen.anySurge {
 			s.g.impCast = true // the surge cost (kw_surge.go): beginCast marks the entry surged

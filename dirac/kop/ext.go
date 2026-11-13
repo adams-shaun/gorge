@@ -92,7 +92,8 @@ const (
 	ExtDividedCounters ExtOp = 30
 	// ExtSacDelayed (Mobilize): sacrifice, as one batch, the
 	// group program's remembered objects (trigObj and the one packed in
-	// trigAmt) still on the battlefield. dirac/kw_mobilize.go.
+	// trigAmt) still on the battlefield. C == 1: the DpMany program's up to
+	// four objects (Mobilize 3-4). dirac/kw_mobilize.go.
 	ExtSacDelayed ExtOp = 32
 	// ExtPlotGrant (Kellan Joins Up): every object in the
 	// resolution's remembered set that is in exile becomes plotted (CR
@@ -218,6 +219,14 @@ const (
 	// creatures with haste (gorge Effect Mode$ CantBlockBy ValidBlocker$
 	// Creature.withoutHaste; CR 509.1b, 702.10a). dirac/static_cantblockexcept.go.
 	ExtExHaste ExtOp = 171
+	// ExtAsgnGrant (Plagon, Lord of the Beach; Outmaneuver): until end of
+	// turn the object in Obj (RefTarget runs once per object of a multi-object
+	// slot) assigns its combat damage by a changed rule. C 0 equal to its
+	// toughness rather than its power (gorge Effect Mode$ CombatDamageToughness
+	// | ValidCard$ Card.IsRemembered, CR 510.1); C 1 as though it weren't
+	// blocked (gorge Effect Mode$ AssignCombatDamageAsUnblocked, mandatory,
+	// CR 510.1c-d). dirac/combat_asgngrant.go.
+	ExtAsgnGrant ExtOp = 173
 	// ExtDistCounters (Vastwood Hydra): "distribute N +1/+1 counters among
 	// any number of creatures you control", N the op's B value (the dying
 	// source's last-known counters): no targets. The resolving controller
@@ -579,6 +588,7 @@ func init() {
 	extOpNames[ExtLibSweep] = "LibSweep"
 	extOpNames[ExtRecruit] = "Recruit"
 	extOpNames[ExtExHaste] = "ExHaste"
+	extOpNames[ExtAsgnGrant] = "AsgnGrant"
 	extOpNames[ExtDistCounters] = "DistCounters"
 }
 

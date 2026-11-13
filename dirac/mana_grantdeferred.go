@@ -1,7 +1,5 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
-
 // A deferred mana source (Pyromancer's Goggles' TriggersWhenSpent$ {R},
 // mana_deferred.go) beside a granted mana ability (New Horizons on a land):
 // gorge's census lists neither (pay.PlanHasSpecialProductionParam defers the
@@ -16,13 +14,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // {R}.
 const stepDeferred int16 = -4
 
-// deferBranch taps the deferred candidate i (slot sl) for its {R} when it is
+// deferBranch taps the deferred candidate i (slot sl) for its mana when it is
 // still untapped: a single-ability source, so no ask node.
 func (g *grantSrch) deferBranch(t *State, i int, sl Slot) bool {
 	if t.perms[sl].flags&pfTapped != 0 {
 		return false
 	}
-	return g.branch(t, i, sl, stepDeferred, 1<<kop.R, 1, false)
+	return g.branch(t, i, sl, stepDeferred, 1<<g.k.deferCol(t.cardAt(sl)), 1, false)
 }
 
 // deferApply taps the deferred source of a found prefix step on s: its {R}
