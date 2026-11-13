@@ -82,11 +82,10 @@ type xtMask = uint16
 const embRemSlots = 2
 
 // linkPadN pads genState after its sixteen exile-until-leaves links so perms
-// keeps its cache-line phase (statelayout_mp_test.go). Four seats of
-// player.lastLost moved perms eight bytes past phase 0, the two-byte seatWord
-// fields eight more, and the sixteen-object xTargets eight more; forty bytes
-// here bring it round to the next line (re-measured below for the wider codes).
-const linkPadN = 40
+// keeps its cache-line phase (statelayout_mp_test.go): thirty-two bytes here
+// bring four seats of player.lastLost, the two-byte seatWord fields, the
+// sixteen-object xTargets and the class's sixteen-bit codes round to phase 0.
+const linkPadN = 32
 
 // seatWord is a packed field holding a few bits per seat beside its other
 // bits (genState.speed, genState.freeP): two bytes at four seats.
