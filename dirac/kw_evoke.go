@@ -125,6 +125,24 @@ func adamantOf(t *kop.Table, id kop.CondID, depth int) (*kop.Expr, bool) {
 	return nil, false
 }
 
+// abAdamantOf is the ExAdamant expression ability a reads: its trigger
+// condition's (an Adamant intervening-if), else a body SkipUnless gate's
+// (ConditionManaSpent$ / ConditionManaNotSpent$, kgen lower_manaspentcond.go;
+// Azorius Herald). Either reads the cast's spend bound into the trigger.
+func abAdamantOf(t *kop.Table, a *kop.Ability) (*kop.Expr, bool) {
+	if x, ok := adamantOf(t, a.Trig.Cond, 0); ok {
+		return x, true
+	}
+	for i := range a.Prog {
+		if in := &a.Prog[i]; in.Op == kop.OpSkipUnless {
+			if x, ok := adamantOf(t, kop.CondID(in.C), 0); ok {
+				return x, true
+			}
+		}
+	}
+	return nil, false
+}
+
 // spcCount is colour col's (W U B R G = 0-4) saturating spend count in spc.
 func spcCount(spc uint16, col uint) int { return int(spc >> (2 * col) & 3) }
 
@@ -140,7 +158,7 @@ func (s *State) evokeEnter(k *prep, e *stackEntry) {
 		if pt.obj != e.obj || pt.srcVer != ver || pt.ab >= abCascade {
 			continue
 		}
-		if x, ok := adamantOf(k.t, k.t.Cards[pt.card].Abilities[pt.ab].Trig.Cond, 0); ok {
+		if x, ok := abAdamantOf(k.t, &k.t.Cards[pt.card].Abilities[pt.ab]); ok {
 			pt.x = uint8(spcCount(e.spc, uint(x.N&7)))
 		}
 	}

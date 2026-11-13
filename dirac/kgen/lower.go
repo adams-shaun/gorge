@@ -358,6 +358,12 @@ func (lc *lowerCtx) lowerFace() {
 			lc.out.SpendRead = true
 		}
 	}
+	if lc.face.Mentions("ConditionManaSpent$") || lc.face.Mentions("ConditionManaNotSpent$") ||
+		lc.face.MentionsParam("ConditionManaSpent") || lc.face.MentionsParam("ConditionManaNotSpent") {
+		// gorge pay.FaceReadsManaSpent: the planner declines the face
+		// ("shape:mana_spent_reader"; Azorius Herald, lower_manaspentcond.go)
+		lc.out.SpendRead = true
+	}
 	for _, k := range lc.face.Keywords {
 		if cards.KeywordHead(k) == "Sunburst" {
 			// gorge faceWantsConverge reads the printed keyword too: the
