@@ -116,3 +116,26 @@ func TestCmd5GhaltaTaxNeedsGrantedMana(t *testing.T) {
 	res := replayCmd5Repro(t, "cmd5_ghalta_tax_needs_granted_mana", 564, "options")
 	requireCmd5ReproClean(t, res, 564)
 }
+
+// TestCmd5CaryatidGrantedUnitKeepsItsPlace: Rhonas the Indomitable's {2}{G}
+// is paid by Ilysian Caryatid's two mana and one of two untapped Forests.
+// Rishkar, Peema Renegade grants the Caryatid (a counter on it) "{T}: Add
+// {G}", a fixed production, so gorge's payment census lists the Caryatid in
+// its shared census at its battlefield position, between the two Forests, and
+// appends its own two-of-one-colour ability to that unit; the least witness
+// in that unit order taps the earlier Forest. The kernel listed the Caryatid's
+// evaluated-amount ability after every fixed source and tapped the other.
+func TestCmd5CaryatidGrantedUnitKeepsItsPlace(t *testing.T) {
+	t.Parallel()
+	res := replayCmd5Repro(t, "cmd5_caryatid_granted_unit_keeps_its_place", 604, "Cards[150].Flags")
+	requireCmd5ReproClean(t, res, 604)
+}
+
+// TestCmd5CaryatidGrantedUnitKeepsItsPlaceFull is the same census order on
+// the full surface (pair 1120): a three-mana cast paid by the Caryatid and
+// the earlier of two Forests.
+func TestCmd5CaryatidGrantedUnitKeepsItsPlaceFull(t *testing.T) {
+	t.Parallel()
+	res := replayCmd5Repro(t, "cmd5_caryatid_granted_unit_keeps_its_place_full", 414, "Cards[51].Flags")
+	requireCmd5ReproClean(t, res, 414)
+}
