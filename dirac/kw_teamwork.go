@@ -111,6 +111,11 @@ func (s *State) teamworkSlots(k *prep, a *kop.Ability, p uint8, modes uint8, tw 
 // twModes is the charm pick count the entry being built is announced with
 // when it is a teamworked cast (0: the ability's own ModesPick).
 func (s *State) twModes(k *prep) uint8 {
+	if k.entwine {
+		if n, ok := s.entwineModes(k); ok {
+			return n // the entwined cast's every feasible mode (kw_entwine.go)
+		}
+	}
 	if e := &s.bld().e; e.kind == seSpell && e.flags&sfKicked != 0 {
 		return k.t.Cards[e.card].ModesPickTW
 	}

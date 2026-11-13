@@ -212,6 +212,9 @@ func checkCommander(c game.Config) error {
 	if c.StartingLife != 0 && c.StartingLife != 40 {
 		return fmt.Errorf("dirac starts a commander game at 40 life, the table asks for %d", c.StartingLife)
 	}
+	if c.DraftPartners {
+		return fmt.Errorf("dirac does not seat the Commander-draft partner rule")
+	}
 	// table names a non-two-seat table before this check, so a wrong seat
 	// count keeps that error even when the commander list is short.
 	if len(c.Decks) != 2 {

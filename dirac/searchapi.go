@@ -290,6 +290,13 @@ func (s *State) ControlsMatching(p uint8, f kop.FilterID) bool {
 	return false
 }
 
+// MinBlockersOf is the fewest creatures that may block attacking object o
+// now (combat.go minBlockers: menace, a MinMaxBlocker Min$, Min$ All's
+// attacked player's creature count); 0 for none.
+func (s *State) MinBlockersOf(o Obj) int {
+	return s.minBlockers(s.k(), s.objs[o].slot)
+}
+
 // HasKeyword reports whether battlefield object o has keyword kw now.
 func (s *State) HasKeyword(o Obj, kw kop.KwMask) bool {
 	ob := &s.objs[o]
@@ -341,6 +348,10 @@ func (s *State) StackEntry(i int) (kind uint8, src Obj, card CardID, ctrl uint8)
 	e := &s.stack[i]
 	return e.kind, e.obj, e.card, e.ctrl
 }
+
+// StackFaceDown reports whether stack entry i is a face-down permanent spell
+// (Morph, Megamorph or Disguise cast face down, CR 708.4).
+func (s *State) StackFaceDown(i int) bool { return s.stack[i].faceDown() }
 
 // Damage is battlefield object o's marked damage.
 func (s *State) Damage(o Obj) int {

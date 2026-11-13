@@ -208,7 +208,13 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 	// window, so the ask counts this unit too.
 	if s.g.availX&3 == 0 {
 		for b := s.scriptTapsDefer(k, p); b.any(); b = b.rest() {
-			if _, ok := s.riderAbilityOf(k, b.first()); ok {
+			if ra, ok := s.riderAbilityOf(k, b.first()); ok {
+				if ra.ManaRider == kop.ManaRiderDeplete {
+					// A depletion land's activation costs a counter, so gorge's window
+					// census (windowManaUnits: a free cost only; castWindowProbeUnits
+					// withholds SubCounter) never counts it in an X announcement.
+					continue
+				}
 				s.addTapsDeferUnits(k, b.first(), a) // its own production, an all-at-once pair included (mana_rider.go)
 				continue
 			}

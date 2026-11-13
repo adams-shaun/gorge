@@ -254,8 +254,9 @@ import (
 // +16 (the merge with land at 1acc5919d9: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering beside land's later work; merged ALL build-level 23115 -> 23131 measured).
 // +14 (Extort lowered, the keyword and its SpellCast trigger, against land's corpus; merged ALL build-level 23177 -> 23191 measured).
 // +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL build-level 23251 -> 23252 measured).
-// +1 (Dauntless Bodyguard: the as-enters ChooseCard of another creature you control and the Sac<1/CARDNAME> Pump over Defined$ Valid Card.ChosenCardStrict lowered; ALL build-level 23253 -> 23254 measured).
-var buildAcceptancePin = [2]int{23254, 34442} // {built, cards}
+// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source, DamagePlus ValidTarget$ Player.Opponent: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL build-level 23253 -> 23261 measured).
+// +1 (Dauntless Bodyguard: the as-enters ChooseCard of another creature you control and the Sac<1/CARDNAME> Pump over Defined$ Valid Card.ChosenCardStrict lowered; ALL build-level +1 over land's 23347 measured).
+var buildAcceptancePin = [2]int{23348, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)

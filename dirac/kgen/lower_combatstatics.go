@@ -154,7 +154,9 @@ func evasionBit(head string) uint8 {
 // minMaxBlockerStatic lowers S:Mode$ MinMaxBlocker | ValidCard$ Creature.Self
 // | Min$ N (CR 509.1b, Troll of Khazad-dum) to CardDef
 // .MinBlockers: gorge MinMaxBlockerBounds reads the literal Min$ against the
-// attacker. A Max$, Min$ All, another scope or a gate is refused.
+// attacker. Min$ All (Tromokratis) lowers to kop.MinBlockersAll, the
+// attacked player's creature count (gorge MinMaxBlockerBounds' all). A Max$,
+// another scope or a gate is refused.
 func (lc *lowerCtx) minMaxBlockerStatic(s cards.Static) error {
 	ps := newParams(s.Params)
 	ps.consume("Mode", "Description")
@@ -163,7 +165,9 @@ func (lc *lowerCtx) minMaxBlockerStatic(s cards.Static) error {
 	}
 	ps.consume("ValidCard")
 	n, err := strconv.Atoi(ps.str("Min"))
-	if err != nil || n < 2 || n > 8 {
+	if strings.EqualFold(strings.TrimSpace(ps.str("Min")), "All") {
+		n, err = int(kop.MinBlockersAll), nil
+	} else if err != nil || n < 2 || n > 8 {
 		return refuse("MinMaxBlocker Min %q", ps.str("Min"))
 	}
 	ps.consume("Min")

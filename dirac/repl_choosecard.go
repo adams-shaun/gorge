@@ -28,7 +28,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // hold by then.
 
 // akCard is the ask kind of ExtChooseCardEnter (genState.ask).
-const akCard uint8 = 16
+const akCard uint8 = 17
 
 // enterCardOp is card c's ExtChooseCardEnter (the head of an enters
 // replacement program), or nil.

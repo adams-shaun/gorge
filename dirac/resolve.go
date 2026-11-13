@@ -526,6 +526,9 @@ func (s *State) prog(k *prep) []kop.Instr {
 			return cascadeProg[:]
 		}
 		if e.ab == abStorm {
+			if e.trigAmt == stormDemonstrate {
+				return demonstrateProg[:]
+			}
 			return stormProg[:]
 		}
 		return nil
@@ -717,6 +720,8 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.srcOwner()
 	case kop.RefPromised:
 		return s.promisedSeat(k, e) // kw_gift.go
+	case kop.RefChosenPlayer:
+		return s.chosenPlayerSeat(e) // repl_chooseplayer.go
 	case kop.RefAttachedCtrl:
 		return s.attachedCtrl(s.objRefObj(kop.RefAttached))
 	}
@@ -976,7 +981,7 @@ func (s *State) refCode(k *prep, r kop.Ref) uint8 {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		return s.tgtCode(sl)
-	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised:
+	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer:
 		p := s.playerRef(k, r)
 		if p == 255 {
 			return NoTarget

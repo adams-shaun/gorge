@@ -733,22 +733,25 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(alt)<<4), opt: o.Index})
 				continue
 			}
-			if o.Mode == "retrace" {
+			if o.Mode == "retrace" || o.Mode == "jumpstart" {
 				// CR 702.81a: the kernel's retrace cast (the printed cost
 				// plus the discard-a-land additional cost) canonicalises to
-				// castModeOther, like "harmonize" (kw_retrace.go)
+				// castModeOther, like "harmonize" (kw_retrace.go); CR
+				// 702.84a: so does the jump-start cast, the same cast with
+				// any card discarded (kw_jumpstart.go)
 				if o.AltCostIndex > 15 {
-					note("cast/retrace")
+					note("cast/" + o.Mode)
 					continue
 				}
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
 				continue
 			}
-			if o.Mode == "mayhem" || o.Mode == "buyback" {
+			if o.Mode == "mayhem" || o.Mode == "buyback" || o.Mode == "entwined" {
 				// CR 702.187a: the kernel's mode-2 cast of a Mayhem card
 				// canonicalises to castModeOther, like "harmonize"
 				// (kw_mayhem.go); CR 702.27a: so does the kicked cast of a
-				// Buyback card (kw_buyback.go), gorge's "buyback" mode
+				// Buyback card (kw_buyback.go), gorge's "buyback" mode, and the
+				// kicked cast of an Entwine card (kw_entwine.go), "entwined"
 				if o.AltCostIndex > 15 {
 					note("cast/" + o.Mode)
 					continue
@@ -945,7 +948,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			a = Pack(ActCastImpended, ref(pa.Cast.Object), RefNone, 0)
 		} else if pa.Cast.CastMode() == "conspired" {
 			a = Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther|15<<4)
-		} else if pa.Cast.CastMode() == "suspend" || pa.Cast.CastMode() == "bargained" || pa.Cast.CastMode() == "teamworked" || pa.Cast.CastMode() == "harmonize" || pa.Cast.CastMode() == "mayhem" || pa.Cast.CastMode() == "buyback" || pa.Cast.CastMode() == "optionalcost" || pa.Cast.CastMode() == "web-slinging" || pa.Cast.CastMode() == "overloaded" {
+		} else if pa.Cast.CastMode() == "suspend" || pa.Cast.CastMode() == "bargained" || pa.Cast.CastMode() == "teamworked" || pa.Cast.CastMode() == "harmonize" || pa.Cast.CastMode() == "mayhem" || pa.Cast.CastMode() == "buyback" || pa.Cast.CastMode() == "entwined" || pa.Cast.CastMode() == "optionalcost" || pa.Cast.CastMode() == "web-slinging" || pa.Cast.CastMode() == "overloaded" {
 			// CR 702.166: the full cast-mode table's castModeOther code, the
 			// same canonical form the offered option uses
 			a = Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther)
@@ -995,7 +998,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				a = Pack(ActCast, ref(pa.Obj), RefNone, castModeOther) // kw_suspend.go
 			} else if pa.Mode == "overloaded" {
 				a = Pack(ActCast, ref(pa.Obj), RefNone, castModeOther) // CR 702.96a, kw_overload.go
-			} else if pa.Mode == "buyback" {
+			} else if pa.Mode == "buyback" || pa.Mode == "entwined" {
 				// CR 702.27a: the 16-entry cast-mode table is full; the
 				// kernel's kicked cast of a Buyback card is castModeOther
 				// (kw_buyback.go), as the offered option above

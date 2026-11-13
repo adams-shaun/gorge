@@ -238,7 +238,7 @@ gorged-owned routes (`/art/`, `/cards/`, `/api/feedback`, `/debug/`) are `text/p
 
 ### Draft events
 
-These 15 operations appear only on a server running with `-events`, and otherwise answer the
+These 16 operations appear only on a server running with `-events`, and otherwise answer the
 JSON 404. The walkthrough is in the [user guide](../guide/draft.md#run-an-event-over-http). A seat is identified by an event token (`Authorization: Bearer` or `?token=`), and a
 request without one is a spectator. The backend picks the status and `code` of its own refusals.
 
@@ -251,6 +251,7 @@ request without one is a spectator. The backend picks the status and `code` of i
 | `GET` | `/api/events/{id}` | → `EventState` |
 | `POST` | `/api/events/{id}/join` | `JoinEventRequest` → `EventState` |
 | `GET` | `/api/events/{id}/pack` | → `DraftPack` |
+| `GET` | `/api/events/{id}/advice` | → `DraftAdvice` (the seat's own drafter's suggested picks; a Commander draft only) |
 | `POST` | `/api/events/{id}/pick` | `PickRequest` → `DraftPack` |
 | `GET` | `/api/events/{id}/pool` | → `EventPool` |
 | `POST` | `/api/events/{id}/deck/check` | `DeckRequest` → `DeckCheck` |

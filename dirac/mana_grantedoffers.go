@@ -1746,6 +1746,8 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 				return s.adjustCost(k, p, c, Obj(a.Source()), cd.DashCost), ex, need, true
 			case a.Target() == castOverloadTgt && cd.HasOverload:
 				return s.adjustCost(k, p, c, Obj(a.Source()), cd.OverloadCost), ex, need, true
+			case a.Target() == castSurgeTgt && cd.HasSurge:
+				return s.adjustCost(k, p, c, Obj(a.Source()), cd.SurgeCost), ex, need, true
 			}
 		}
 		if a.Mode()&1 != 0 {
@@ -1827,7 +1829,7 @@ func (s *State) playNeed(k *prep, a Action) (need [kop.NumManaKinds]bool) {
 			need = s.abilityNeed(k, Obj(a.Source()), a.Mode())
 		}
 	case AkCast:
-		if a.Mode() == 0 && a.Target() != castImpTgt && a.Target() != castEvokeTgt && a.Target() != castDashTgt && a.Target() != castOverloadTgt {
+		if a.Mode() == 0 && a.Target() != castImpTgt && a.Target() != castEvokeTgt && a.Target() != castDashTgt && a.Target() != castOverloadTgt && a.Target() != castSurgeTgt {
 			need = grantNeedColours(k.cards[s.objs[a.Source()].card].cost)
 		}
 	}

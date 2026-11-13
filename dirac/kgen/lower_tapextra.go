@@ -188,3 +188,19 @@ func (lc *lowerCtx) tapExtraReflected(t cards.Trigger) error {
 	lc.out.Statics = append(lc.out.Statics, st)
 	return nil
 }
+
+// effectTapExtraRefuse refuses the Mode$ TapsForMana | Static$ True trigger of
+// an until-end-of-turn Effect (Bubbling Muck: "until end of turn, whenever a
+// player taps a Swamp for mana, that player adds an additional {B}"). Unlike a
+// battlefield trigger, gorge registers it as a delayed trigger that
+// pay.PaymentPlanFoldableTapMana never sees: its planner defers every source
+// the registration matches to the manual window (paymentPlanDelayedTapObserver)
+// and its potential bound reads the tap without the extra, while the tap
+// itself adds it. A kernel StatTapExtra in an end-of-turn emblem prices the
+// extra into the potential and the plan, so lockstep games offered casts gorge
+// did not (measured: 9 of the first 50 seeds of dirac/cardset/pools/fixtures/
+// mbcmuck diverged at the options); mirroring the deferral is the Taps-watcher
+// prefix-script surface (mana_tapsdefer.go), a separate feature.
+func effectTapExtraRefuse() error {
+	return refuse("Effect TapsForMana trigger until end of turn: gorge defers the tapped source to the manual window and its potential bound omits the extra, which the kernel's tap-extra static would price")
+}
