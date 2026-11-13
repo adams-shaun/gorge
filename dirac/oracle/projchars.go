@@ -209,6 +209,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Annihilator":       "gorge kwAnnihilator's expansion: an Attacks trigger making the defending player sacrifice N permanents (kgen lowers the expansion's node, Annihilator$ N as the Sacrifice count; compared through the stack and the sacrifice choice), no battlefield characteristic",
 	"Echo":              "gorge kwEcho's expansion: an upkeep trigger gated by Echo$ True (CondEchoOwed, dirac/trig_echo.go) asking the controller to pay the cost or sacrifice it (ExtCumulative B=1; compared through the pay and decline options and the sacrifice), no battlefield characteristic",
 	"Fading":            "gorge kwFading's expansion: fade counters on entry and an upkeep trigger that sacrifices a permanent with none and removes one (kgen lowers the expansion's nodes; compared through the fade counters and the sacrifice), no battlefield characteristic",
+	"Renown":            "gorge kwRenown's expansion: a combat-damage trigger, intervening if Card.Self+!IsRenowned, putting N +1/+1 counters and setting the renowned designation (OpMonstrosity C=MonstrosityRenown, the arena bit mechRenowned read as PredPermMark; compared through the counters and the IsRenowned reads), no battlefield characteristic",
 	"Gift":              "CardDef.Gift (a cast-time promise and its GiftAbility; compared through the gift election and the stack; kw_gift.go), no battlefield characteristic",
 }
 
