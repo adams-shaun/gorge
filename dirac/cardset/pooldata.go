@@ -458,6 +458,13 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 					all = all.Or(dd.CardSubs[i])
 				}
 			}
+			if inert && all.Count() > kop.MaxSubtypes {
+				// The whole-pool table (Pool: the names, stable CardIDs and the
+				// net's vocabulary, never a game) of a pool wider than one table
+				// keeps the subtypes its cards name or grant; a game's table
+				// keeps the printed ones its type choices read.
+				all = subSet
+			}
 		}
 		subSet = all
 	}
