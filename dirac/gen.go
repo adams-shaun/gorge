@@ -989,6 +989,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.anyStackTgt, g.anyCopyAb = true, true // copy_ability.go
 				}
 			}
+			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigAbilityCast && a.Trig.N == kop.TrigAbCastAny {
+				g.anyStackTgt, g.anyCopyAb = true, true // the trigger's copy finds the activated ability by its stack identity (copy_ability.go)
+			}
 			switch a.Kind {
 			case kop.AbTriggered:
 				if a.Trig.Event == kop.TrigManaExpend || a.Trig.Event == kop.TrigSpellCast && a.Trig.Flags2&kop.Tf2NthSpell != 0 {

@@ -4579,6 +4579,9 @@ func (lc *lowerCtx) copySpell(ps *params) error {
 		}
 	}
 	tr := lc.ab.Trigger
+	if tr != nil && tr.Event == "AbilityCast" && ps.str("Defined") == "TriggeredSpellAbility" && tr.AbClass == kop.TrigAbCastAny {
+		return lc.copyTriggeringAbility(ps)
+	}
 	if tr == nil || tr.Event != "SpellCast" || ps.str("Defined") != "TriggeredSpellAbility" {
 		return refuse("CopySpellAbility outside a SpellCast trigger's Defined$ TriggeredSpellAbility")
 	}

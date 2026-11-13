@@ -710,21 +710,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// target through the card matcher. A line mixing a battlefield
 			// and a zone-free object alternative stays refused: the kernel
 			// would read the battlefield one in any zone too.
-			if strings.ContainsAny(v, "<>") {
-				return refuse("TargetsValid %q", v)
-			}
-			if tr.F2, err = lc.filter(v); err != nil {
+			if err := lc.targetsValid(tr, v, false); err != nil {
 				return err
 			}
-			if tr.F2.Players != 0 && tr.F2.Players != plYou && tr.F2.Players != plOpp || len(tr.F2.Clauses) == 0 {
-				return refuse("TargetsValid %q", v)
-			}
-			zones, ok := targetsValidZones(v, tr.F2, lc.p.isTypeWord)
-			if !ok {
-				return refuse("TargetsValid %q", v)
-			}
-			tr.F2Zones = zones
-			tr.TargetsAll = true
 		}
 		if v, ok := tp.get("Increment"); ok {
 			// gorge kwIncrement's Increment$ marker (trigmatch
@@ -1187,8 +1175,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// CR 602.2 / 603.2 (gorge trigmatch abilityCastMatches): the
 		// activation completes. Only the three ValidSA$ classes the kernel
 		// reads exactly lower (kop.TrigAbCast*); ValidActivatingPlayer$ is
-		// absent or You; ValidCard$, ValidSAonCard$, TargetsValid$ and the
-		// rest stay unread and refuse. The kernel scans the battlefield and
+		// absent or You; ValidSA$ SpellAbility beside TargetsValid$ is the
+		// target-shape class; ValidCard$, ValidSAonCard$ and the rest stay
+		// unread and refuse. The kernel scans the battlefield and
 		// graveyard cards only.
 		if zone != "" {
 			return refuse("AbilityCast trigger on an Effect")
@@ -1204,7 +1193,20 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		default:
 			return refuse("AbilityCast ValidActivatingPlayer$ %q", vp)
 		}
+		tv, hasTV := tp.get("TargetsValid")
 		switch vs := tp.str("ValidSA"); vs {
+		case "SpellAbility":
+			// any activated ability whose chosen targets match TargetsValid$
+			// (Ertha Jo, Frontier Mentor): the kernel judges it once the
+			// targets are chosen (kop.TrigAbCastAny). Without TargetsValid$
+			// it is every activation, which no corpus card asks for.
+			if !hasTV {
+				return refuse("AbilityCast ValidSA$ SpellAbility without TargetsValid$")
+			}
+			if err := lc.targetsValid(tr, tv, true); err != nil {
+				return err
+			}
+			tr.AbClass = kop.TrigAbCastAny
 		case "Activated.Exhaust":
 			tr.AbClass = kop.TrigAbCastExhaust
 		case "Activated.Loyalty":
@@ -1216,6 +1218,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			tr.AbClass = kop.TrigAbCastLoyaltyOpp
 		default:
 			return refuse("AbilityCast ValidSA$ %q", vs)
+		}
+		if hasTV && tr.AbClass != kop.TrigAbCastAny {
+			return refuse("AbilityCast TargetsValid$ beside ValidSA$ %q", tp.str("ValidSA"))
 		}
 	case "SpellAbilityCast":
 		if err := lc.namedCastTrigger(tp, tr, zone); err != nil { // lower_choosename.go

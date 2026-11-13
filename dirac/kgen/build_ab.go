@@ -1230,7 +1230,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		case len(t.F2.Clauses) == 0 && t.F2.Players == plYou && t.Event == "DamageDone":
 			kt.Flags |= kop.TfToPlayer
 			kt.Flags2 |= kop.Tf2ToYou
-		case t.TargetsAll && t.Event == "SpellCast" && len(t.F2.Clauses) > 0 && t.F2.Players == 0:
+		case t.TargetsAll && (t.Event == "SpellCast" || t.Event == "AbilityCast") && len(t.F2.Clauses) > 0 && t.F2.Players == 0:
 			// TargetsValid$ without a player alternative: the battlefield
 			// clauses keep ZoneNone, a zone-free one carries kop.ZoneAny
 			if kt.Filter2, err = cb.filterZones(t.F2, t.F2Zones); err != nil {
@@ -1248,7 +1248,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 			if kt.Filter2, err = cb.filter(&lFilter{Clauses: t.F2.Clauses}, kop.ZoneBattlefield); err != nil {
 				return kt, err
 			}
-		case t.TargetsAll && t.Event == "SpellCast" && len(t.F2.Clauses) > 0 && (t.F2.Players == plYou || t.F2.Players == plOpp):
+		case t.TargetsAll && (t.Event == "SpellCast" || t.Event == "AbilityCast") && len(t.F2.Clauses) > 0 && (t.F2.Players == plYou || t.F2.Players == plOpp || t.F2.Players == plBoth):
 			// TargetsValid$ with a player alternative
 			if kt.Filter2, err = cb.filterPlayerAlt(t.F2, t.F2Zones, t.F2.Players); err != nil {
 				return kt, err
@@ -1484,7 +1484,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		kt.Flags2 |= kop.Tf2PerPair
 	}
 	if t.TargetsAll {
-		if t.Event != "SpellCast" || kt.Filter2 == 0 {
+		if t.Event != "SpellCast" && t.Event != "AbilityCast" || kt.Filter2 == 0 {
 			return kt, fmt.Errorf("TargetsValid on a %s trigger", t.Event)
 		}
 		kt.Flags2 |= kop.Tf2TargetsFilter2
@@ -4184,6 +4184,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		// the MayChooseTarget$ election and C>>1 the target slot (not Obj: a
 		// target Ref would run the program once per target)
 		slot, ok := tgtSlotOfRef(ki.Obj)
+		if ki.Obj == kop.RefTriggerObj {
+			slot, ok = kop.CopyAbTriggering, true // the ability that fired an AbilityCast trigger
+		}
 		if !ok {
 			return ki, fmt.Errorf("CopyAbility Obj %d", ki.Obj)
 		}
