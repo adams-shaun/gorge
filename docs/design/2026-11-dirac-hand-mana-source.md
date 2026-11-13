@@ -126,8 +126,12 @@ window shape the decks reached):
     Elvish Spirit Guide with Banefire: windows=0 holdGuide=0 lists=0 picks=0
 
 A natural window can list the guide, and never takes it (a battlefield source is
-ahead of it and the plan covers what is owed). The guide is picked only where the
-battlefield is dry, which natural play did not reach in these decks.
+ahead of it and the plan covers what is owed). The probe asserts the `picks=0`
+half and logs the listing counts: 2 listings in 200 seeds is too thin a margin
+to pin (a later shuffle, card or policy change could move it to 0 without a
+regression), so the listing count is a measurement, not a gate. The guide is
+picked only where the battlefield is dry, which natural play did not reach in
+these decks.
 
 ## 2. Where a hand source sits in the kernel's window walk (Q2)
 
@@ -235,8 +239,9 @@ any zone.
   at the one place that maps kgen kinds to kop kinds (the `abKinds` table use in
   `dirac/kgen/build_ab.go`).
 
-Why not `AbMana` + `ActZone` hand: `kop.AbMana` is read in 30 non-test files of
-`dirac` at 65 sites (`grep -c 'kop.AbMana'`), and `manaAb` 114 times. The
+Why not `AbMana` + `ActZone` hand: `kop.AbMana` is read in 43 non-test files of
+`dirac` at 82 sites (`grep -rn 'kop.AbMana' dirac --include='*.go' | grep -v
+_test.go`), and `manaAb` 116 times on that census. The
 battlefield is where those readers look, and a Spirit Guide *does* reach the
 battlefield (the probes show guides cast as creatures: they are among the untapped
 permanents above). A guide on the battlefield with an `AbMana` row would be read by
