@@ -719,7 +719,7 @@ func (s *State) minBlockers(k *prep, a Slot) int {
 // attacker with no defending player has none.
 func (s *State) defCreatures(k *prep, a Slot) int {
 	def := s.atkSeat(k, a)
-	if def == NoTarget {
+	if def == noSeat {
 		return 0
 	}
 	n := 0

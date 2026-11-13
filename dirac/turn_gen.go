@@ -336,7 +336,7 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 				// on the stack (repl_chooseplayer.go): queued, or answered
 				// in place for a single opponent
 				if p := s.soleOpponent(s.perms[sl].ctrl); p != 255 {
-					s.perms[sl].chosen = p
+					s.perms[sl].chosen = objWord(p)
 					s.touchSl(sl)
 					continue
 				}

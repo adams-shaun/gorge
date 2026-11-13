@@ -232,7 +232,7 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
 			sl := s.objs[o].slot
 			if p := s.soleOpponent(s.perms[sl].ctrl); p != 255 {
-				s.perms[sl].chosen = p
+				s.perms[sl].chosen = objWord(p)
 				s.touchSl(sl)
 			} else {
 				s.queueAsk(sl, akPlayer)
