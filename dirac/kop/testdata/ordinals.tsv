@@ -255,6 +255,7 @@ CtrlHitBySrc	CtrlSel	4
 CtrlOpp	CtrlSel	2
 CtrlYou	CtrlSel	1
 CzBattleGrave	untyped int	8
+CzGraveLibrary	untyped int	128
 CzHandGrave	untyped int	32
 CzLibrarySideboard	untyped int	16
 CzShuffleEach	untyped int	64
@@ -1052,6 +1053,7 @@ RefTgtCtrl1	Ref	241
 RefTgtCtrl2	Ref	242
 RefTriggerAttackers	Ref	31
 RefTriggerObj	Ref	9
+RefTriggerObjOwner	Ref	40
 RefTriggerPlayer	Ref	10
 RefTriggerSource	Ref	21
 RefTriggerTgtCtrl	Ref	33
@@ -1184,6 +1186,7 @@ StFreeOnly	StaticFlags	128
 StFunctionsInExile	StaticFlags	1024
 StFunctionsInGraveyard	StaticFlags	16
 StHandOpp	StaticFlags	256
+StHasteOppDef	StaticFlags	1
 StMayPayLife	StaticFlags	8192
 StMayRaise	StaticFlags	32768
 StNoPrevCombat	StaticFlags	2
@@ -1232,6 +1235,7 @@ StatBeamGrant	StaticKind	253
 StatBlockTax	StaticKind	256
 StatCDAPT	StaticKind	10
 StatCanAttackDefender	StaticKind	250
+StatCanAttackIfHaste	StaticKind	257
 StatCantActivate	StaticKind	236
 StatCantAttack	StaticKind	8
 StatCantBeBeamedUp	StaticKind	244
@@ -1364,6 +1368,7 @@ Tf4PerCounter	TrigFlags4	128
 Tf4SingleCauseTarget	TrigFlags4	2
 Tf4SingleTarget	TrigFlags4	1
 Tf4StateCtr	TrigFlags4	64
+Tf5DmgAttackedYouLastTurn	TrigFlags5	8
 Tf5FirstCardInDrawStep	TrigFlags5	1
 Tf5NotFirstCardInDrawStep	TrigFlags5	2
 Tf5OppCause	TrigFlags5	4

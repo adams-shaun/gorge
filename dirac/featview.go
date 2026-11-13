@@ -1287,7 +1287,7 @@ func (s *State) FeatProjGlobals(p *Projection) {
 	p.NStack = s.sp
 	for i := 0; i < int(s.sp); i++ {
 		e := &s.stack[i]
-		p.Stack[i] = ProjStack{Kind: e.kind, Source: e.obj, Card: e.card, Ability: e.ab, Ctrl: e.ctrl, Targets: e.tgt, Mode: e.mode, X: e.x}
+		p.Stack[i] = ProjStack{Kind: e.kind, Source: e.obj, Card: e.card, Ability: e.ab, Ctrl: e.ctrl, Targets: e.tgt, Mode: e.mode, X: uint8(e.x)}
 		if e.x != 0 && e.kind == seTrigger {
 			p.Stack[i].X = projTrigX(s.k(), e) // a bound X is not the object's own (trig_xpaid.go)
 		}

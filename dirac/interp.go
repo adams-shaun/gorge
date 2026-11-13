@@ -208,7 +208,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.res.askP = e.ctrl // the source's controller chooses (gorge discardChooser)
 		}
 		s.res.left = uint8(n)
-		s.res.chosen = p
+		s.res.chosen = objWord(p)
 		return false
 	case kop.OpScry, kop.OpSurveil:
 		p := s.playerRef(k, in.Obj)
@@ -475,7 +475,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			hi = s.battlefieldOrder(p, hit.and(s.ctrlM[p]), ord[:], hi)
 		}
 		for _, sl := range ord[:hi] {
-			s.damageTo(k, uint8(s.perms[sl].obj), n)
+			s.damageTo(k, TCode(s.perms[sl].obj), n)
 		}
 		if in.B.N&1 != 0 { // seat-ok: an instruction flag bit
 			// then each player, the controller first (gorge validPlayers:
@@ -640,7 +640,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if o == NoObj {
 			s.delayEmpty(e)
 		} else if s.ndly < MaxDelayed {
-			s.dly[s.ndly] = delayed{act: uint8(in.C), ctrl: e.ctrl, obj: o, ver: s.objs[o].ver, creator: NoObj}
+			s.dly[s.ndly] = delayed{act: uint8(in.C), ctrl: e.ctrl, obj: o, ver: objWord(s.objs[o].ver), creator: NoObj}
 			s.ndly++
 		} else {
 			s.capFull(StallDelayed)
@@ -861,7 +861,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 				}
 			}
 			if !taken && s.objs[o].of&ofCopy == 0 && (k.gen == nil || s.discardOK(k, o)) {
-				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 	case raScryTop, raSurveil:
@@ -877,7 +877,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 		d.Kind, d.Sub = DkChoose, ChArrange
 		for i := 0; i < int(r.peekN); i++ {
 			if (r.peekSel|r.restSel)&(1<<i) == 0 {
-				d.add(MakeAction(AkChoose, uint8(r.peek[i]), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(r.peek[i]), 0, 0))
 			}
 		}
 		if !r.restPh {
@@ -888,7 +888,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 		for m := s.ctrlM[r.askP]; m.any(); m = m.rest() {
 			sl := m.first()
 			if s.sacMatch(k, s.prog(k)[r.pc].F, sl, r.askP, s.resSrcSlot(k)) && !s.g.sacM.has(sl) {
-				d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 			}
 		}
 	case raOptional, raGeneric:
@@ -913,7 +913,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 		for m := s.ctrlM[r.askP]; m.any(); m = m.rest() {
 			sl := m.first()
 			if !s.optaskPicked(s.perms[sl].obj) && s.sacMatch(k, in.F, sl, r.askP, s.resSrcSlot(k)) {
-				d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 			}
 		}
 		d.add(MakeAction(AkDone, 0, 0, 0)) // Min 0: Done is always offered
@@ -925,7 +925,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 		for i := 0; i < int(pl.handN); i++ {
 			o := pl.hand[i]
 			if !s.optaskPicked(o) && s.discardOK(k, o) {
-				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 		if r.peekI >= uint8(s.optDiscardMin(k)) {
@@ -1013,16 +1013,16 @@ func (s *State) applyResolve(k *prep, a Action) {
 		s.storeChosenNumber(o, sl, int(a.Mode()))
 	case raChooseType:
 		if k.gen != nil && s.prog(k)[r.pc].C != 0 {
-			r.chosen = cardTypeAnswer(a)
+			r.chosen = objWord(cardTypeAnswer(a))
 			r.bad |= resChosenCard
 		} else {
-			r.chosen = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
+			r.chosen = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
 		}
 		r.bad |= resChosenType
 		if o, sl := s.resolutionTypeSource(); sl != NoSlot {
 			s.perms[sl].chosen = r.chosen
 		} else if o != NoObj {
-			s.objs[o].chosen = r.chosen
+			s.objs[o].chosen = uint8(r.chosen)
 			s.touch(o)
 		}
 	case raSacrifice:

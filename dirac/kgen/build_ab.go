@@ -2225,6 +2225,17 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if err := amounts(s.Amount, lValue{}); err != nil {
 			return ka, nil, err
 		}
+	case "CanAttackIfHaste":
+		st.Kind = kop.StatCanAttackIfHaste // static_canattackifhaste.go
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		for _, fl := range s.Flags {
+			if fl != "OppDef" {
+				return ka, nil, fmt.Errorf("CanAttackIfHaste flag %q", fl)
+			}
+			st.StFlags |= kop.StHasteOppDef
+		}
 	case "CanAttackDefender":
 		st.Kind = kop.StatCanAttackDefender
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -3368,7 +3379,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if az, ok := fl["alt"]; ok {
 			// OriginAlternative$: the library
 			// search's zone election; the alternative zone rides B bits 5..7
-			if in.Op != "Search" || zoneMap[in.C] != kop.ZoneHand && zoneMap[in.C] != kop.ZoneBattlefield {
+			_, altAll := fl["altAll"]
+			_, noShuf := fl["NoShuffle"]
+			libPut := altAll && noShuf && zoneMap[in.C] == kop.ZoneLibrary // Doomsday (lower_libgrave.go)
+			if in.Op != "Search" || zoneMap[in.C] != kop.ZoneHand && zoneMap[in.C] != kop.ZoneBattlefield && !libPut {
 				return ki, fmt.Errorf("alt origin on a %s to zone %d", in.Op, zoneMap[in.C])
 			}
 			var altZ kop.Zone

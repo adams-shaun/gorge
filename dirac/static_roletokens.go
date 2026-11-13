@@ -47,7 +47,7 @@ func (s *State) createAttachedToken(k *prep, in *kop.Instr, p uint8, n int) (ok,
 	if dst == NoSlot {
 		return true, true
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	if s.enchantCands(k, CardID(in.C), p, &buf) == 0 {
 		return true, true
 	}

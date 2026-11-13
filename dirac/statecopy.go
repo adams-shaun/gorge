@@ -49,7 +49,7 @@ type coldArrays struct {
 	exMark   []exMarkRec  // this turn's exile-instead-of-dying effects
 	parked   []parkedMove // moves waiting on a replacement order ask
 	castRing []castPush   // this turn's spell pushes, castRingN per player
-	discHeld []uint8      // the earlier players' discards while the next chooses
+	discHeld []Obj        // the earlier players' discards while the next chooses
 	copyHeld []copyHold   // the resolution waiting on its copy's election
 	mk       []uint8      // per battlefield slot: multikicker payments of the permanent's spell (CR 702.43)
 	mkObj    []uint8      // per object: the multikicker payments of the spell on the stack (CR 702.43)
@@ -63,8 +63,9 @@ type coldLayout struct {
 	xblk                                                                            int // xblkRec per battlefield slot, after the creature-counter record (combat_extrablock.go)
 	may                                                                             int // mayPlay records past maxMay; the first thing in the buffer (cast_maycold.go)
 	emb                                                                             int // embRec records for emblems past maxEmb, both players; right after the may records (static_emblemcold.go)
-	ctrP                                                                            int // bytes of the per-player creature counter-plus-one record, right after the emblem records (repl_turnrepl.go)
+	ctrP                                                                            int // creature counter-plus-one records (0 or 1: plusCreRec), right after the emblem records (repl_turnrepl.go)
 	partner                                                                         int // cmdPartner records (0 or 1), right after the xblk records (zone_cmdpartner.go)
+	atkLast                                                                         int // per-seat attacked-defender bytes (0 or MaxSeats), right after the partner records (trig_atklastturn.go)
 	mk                                                                              int // multikicker counts per slot (CR 702.43; cast.go)
 	mkObj                                                                           int // multikicker counts per object while on the stack (cast.go)
 	words                                                                           int
@@ -108,7 +109,7 @@ func prepCold(g *genPrep, l *coldLayout) {
 		l.emb = MaxSeats * maxEmbCold
 	}
 	if g.anyPlusCre {
-		l.ctrP = 2 * MaxSeats
+		l.ctrP = 1
 	}
 	if g.anyExtraBlock {
 		l.xblk = MaxPerm
@@ -120,6 +121,9 @@ func prepCold(g *genPrep, l *coldLayout) {
 	if g.anyHexUB {
 		l.hexUB = MaxPerm
 	}
+	if g.anyAtkLast {
+		l.atkLast = MaxSeats
+	}
 }
 
 // place points c's arrays into b, or just counts them if b is nil, and returns
@@ -128,9 +132,10 @@ func (l *coldLayout) place(c *coldArrays, b []uint64) int {
 	at := 0
 	_ = coldView[mayPlay](b, &at, l.may)        // first: mayCold reads it at the buffer start
 	_ = coldView[embRec](b, &at, l.emb)         // next: embCold finds it after the may records
-	_ = coldView[uint8](b, &at, l.ctrP)         // then plusCreCold, after the emblem records
+	_ = coldView[plusCreRec](b, &at, l.ctrP)    // then plusCreCold, after the emblem records
 	_ = coldView[xblkRec](b, &at, l.xblk)       // then xblkRecs, after the counter record
 	_ = coldView[cmdPartner](b, &at, l.partner) // then partnerCold, after the xblk records
+	_ = coldView[uint8](b, &at, l.atkLast)      // then atkLastCold, after the partner records
 	c.ms = coldView[slotMask](b, &at, l.ms)
 	c.mo = coldView[objBits](b, &at, l.mo)
 	c.exw = coldView[exwRec](b, &at, l.exw)
@@ -140,7 +145,7 @@ func (l *coldLayout) place(c *coldArrays, b []uint64) int {
 	c.exMark = coldView[exMarkRec](b, &at, l.exMark)
 	c.parked = coldView[parkedMove](b, &at, l.parked)
 	c.castRing = coldView[castPush](b, &at, l.castRing)
-	c.discHeld = coldView[uint8](b, &at, l.discHeld)
+	c.discHeld = coldView[Obj](b, &at, l.discHeld)
 	c.copyHeld = coldView[copyHold](b, &at, l.copyHeld)
 	c.mk = coldView[uint8](b, &at, l.mk)
 	c.mkObj = coldView[uint8](b, &at, l.mkObj)

@@ -62,10 +62,10 @@ func TestDamagedPermanentSeat(t *testing.T) {
 	s := sc.s
 	for p := uint8(0); p < 4; p++ {
 		x := sc.perm(id["Plains"], p)
-		if got := s.dmgSeat(uint8(x), 0); got != p {
+		if got := s.dmgSeat(TCode(x), 0); got != p {
 			t.Fatalf("damage to seat %d's permanent names seat %d", p, got)
 		}
-		if got := s.dmgSeat(PlayerTarget0+p, 1); got != p {
+		if got := s.dmgSeat(TCode(PlayerTarget0+TCode(p)), 1); got != p {
 			t.Fatalf("damage to seat %d names seat %d", p, got)
 		}
 	}

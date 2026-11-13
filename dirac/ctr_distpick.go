@@ -60,7 +60,7 @@ func (s *State) askOptionsDistPick(k *prep, d *Decision) bool {
 	d.Sub = ChGenDistPick
 	for i := 0; i < int(s.g.nlook); i++ {
 		if s.g.lookSel&(1<<i) == 0 {
-			d.add(MakeAction(AkChoose, uint8(s.resArm().look[i]), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(s.resArm().look[i]), 0, 0))
 		}
 	}
 	if s.g.lookSel != 0 {

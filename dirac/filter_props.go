@@ -395,7 +395,7 @@ func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 // TgtCard slot whose filter zone is exile reaches it.
 //
 //go:noinline
-func (s *State) exileCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]uint8, n int) int {
+func (s *State) exileCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]TCode, n int) int {
 	for pp := 0; pp < int(s.nSeats()); pp++ {
 		if s.out(uint8(pp)) {
 			continue
@@ -403,11 +403,11 @@ func (s *State) exileCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, se
 		pl := &s.pl[pp]
 		for i := 0; i < int(pl.exileN); i++ {
 			o := pl.exile[i]
-			if uint8(o)+1 == s.g.tgtSelf {
+			if o+1 == s.g.tgtSelf {
 				continue
 			}
-			if s.targetOK(k, t, p, src, self, uint8(o)) && n < MaxOptions-1 {
-				out[n] = uint8(o)
+			if s.targetOK(k, t, p, src, self, TCode(o)) && n < MaxOptions-1 {
+				out[n] = TCode(o)
 				n++
 			}
 		}

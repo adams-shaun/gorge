@@ -36,7 +36,7 @@ func (s *State) shareLandTypeCands(k *prep, in *kop.Instr, d *Decision, list []O
 			continue
 		}
 		if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) {
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 }

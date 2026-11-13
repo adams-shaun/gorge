@@ -1133,6 +1133,9 @@ func (lc *lowerCtx) changeZoneAllSweep(ps *params) error {
 	if strings.TrimSpace(ps.str("Origin")) == "Library,Sideboard" {
 		return lc.originLibrarySideboard(ps) // lower_sideboardsearch.go
 	}
+	if strings.TrimSpace(ps.str("Origin")) == "Graveyard,Library" {
+		return lc.originGraveLibrary(ps) // lower_gravelibsweep.go
+	}
 	lc.exwOK = true // a ChangeZoneAll sweep is a resolution-time mover: ExiledWithSource reads the resolving source
 	f, err := lc.changeZoneAllFilter(ps)
 	lc.exwOK = false
@@ -3262,22 +3265,28 @@ func (lc *lowerCtx) gainControl(ps *params) error {
 	// NewController$ first: ParentTarget names the earlier link's player
 	// target, not this node's own (Donate)
 	to := lRef{}
-	if nc, ok := ps.get("NewController"); ok && nc != "You" {
-		r, err := lc.defined(nc)
-		if err != nil {
-			return err
-		}
-		if r.Kind != rTarget && r.Kind != rEachOpp {
-			return refuse("GainControl NewController %q", nc)
-		}
-		if r.Kind == rTarget {
-			t := lc.ab.Targets[r.N]
-			if t.F == nil || t.F.Players == 0 || len(t.F.Clauses) != 0 {
-				return refuse("GainControl NewController %q: not a player target", nc)
+	ncYou := false
+	if nc, ok := ps.get("NewController"); ok {
+		if nc == "You" {
+			ncYou = true // gorge controlPlayerSimpleYou: the resolving controller
+		} else {
+			r, err := lc.defined(nc)
+			if err != nil {
+				return err
 			}
+			if r.Kind != rTarget && r.Kind != rEachOpp {
+				return refuse("GainControl NewController %q", nc)
+			}
+			if r.Kind == rTarget {
+				t := lc.ab.Targets[r.N]
+				if t.F == nil || t.F.Players == 0 || len(t.F.Clauses) != 0 {
+					return refuse("GainControl NewController %q: not a player target", nc)
+				}
+			}
+			to = r
 		}
-		to = r
 	}
+	hadTgts := ps.peek("ValidTgts") != ""
 	// No ValidTgts$ and no Defined$: gorge's DefinedRef falls back to the
 	// source ("an ability declaring ValidTgts$ acts on its chosen targets,
 	// any other on its source"; effects/context.go DefinedRef), which is the
@@ -3287,6 +3296,27 @@ func (lc *lowerCtx) gainControl(ps *params) error {
 	obj, err := lc.objOrTarget(ps, "Self", zBattlefield)
 	if err != nil {
 		return err
+	}
+	// gorge controlPlayer (effects/choose_control.go): with no NewController$
+	// the new controller is the node's own chosen player target (Chaos Lord's
+	// ValidTgts$ Opponent: "target opponent gains control of CARDNAME"), else
+	// the resolving controller. The slot objOrTarget just added is the last
+	// one; a player slot only -- the kernel's RefTargetN player read.
+	if to.Kind == rNone && !ncYou && hadTgts {
+		slot := lc.lastTarget()
+		if slot < 0 {
+			return refuse("GainControl ValidTgts$ %q with no target slot", ps.str("ValidTgts"))
+		}
+		t := &lc.ab.Targets[slot]
+		if t.F != nil && t.F.Players != 0 && len(t.F.Clauses) == 0 {
+			if slot > 4 {
+				return refuse("GainControl ValidTgts$ %q: target slot %d beyond the kernel's player refs", ps.str("ValidTgts"), slot)
+			}
+			if !t.Min.isConst() || t.Min.N != 1 || !t.Max.isConst() || t.Max.N != 1 {
+				return refuse("GainControl ValidTgts$ %q: the new-controller target must be exactly one required player", ps.str("ValidTgts"))
+			}
+			to = lRef{Kind: rTarget, N: slot}
+		}
 	}
 	// LoseControl$ (gorge ParseControlDuration): the effect lasts until the
 	// first listed end; the kernel's layer-2 records (CR 613.1b) model

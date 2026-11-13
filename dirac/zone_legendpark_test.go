@@ -27,7 +27,7 @@ func TestLegendAskBeforeParkedDeath(t *testing.T) {
 	if !s.sba(k) || s.ctl != ctlLegend {
 		t.Fatalf("ctl %d, want the legend ask first", s.ctl)
 	}
-	s.applyLegend(k, MakeAction(AkChoose, uint8(keep), 0, 0))
+	s.applyLegend(k, MakeAction(AkChoose, TCode(keep), 0, 0))
 	if s.ctl != ctlExileOrder {
 		t.Fatalf("ctl %d after the legend answer, want the order ask", s.ctl)
 	}
