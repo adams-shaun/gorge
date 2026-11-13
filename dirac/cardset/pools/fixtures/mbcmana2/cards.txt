@@ -3,7 +3,7 @@
 # "{U}, {T}: add {C}{C}{C}", Ceta Disciple's and Necra Disciple's "{G}, {T}: add
 # one mana of any color", Fire Sprites' "{G}, {T}: add {R}", in decks over
 # artifacts, legendary creatures and expensive spells against a plain creature
-# deck (dirac/oracle/mbcmana2_test.go). Krark-Clan Ironworks and Relic of Legends stay refused.
+# deck (dirac/oracle/mbc_mana_abilities_test.go). Krark-Clan Ironworks and Relic of Legends stay refused.
 Apprentice Wizard
 Ceta Disciple
 Fire Sprites
