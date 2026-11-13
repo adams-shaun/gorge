@@ -3147,11 +3147,12 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		lc.emit(lInstr{Op: "PumpUntilEOT", Obj: obj, A: att, B: def})
 	}
 	kw, hasKW := ps.get("KW")
-	mustBlock, noCombat, lure := false, false, false
+	mustBlock, noCombat, lure, marks := false, false, false, 0
 	if hasKW {
 		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
 		kw, noCombat = splitKWSentence(kw, cantAttackOrBlockKW)
 		kw, lure = splitKWSentence(kw, lureKW)
+		kw, marks = splitKwMarks(kw) // lower_kwmark.go
 	}
 	if hasKW && kw != "" {
 		rest, fbs, err := splitFirebendingGrant(kw)
@@ -3210,6 +3211,12 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 			return refuse("Pump KW$ must be blocked if able on a non-permanent subject")
 		}
 		lc.emit(lInstr{Op: "MustBeBlocked", Obj: obj})
+	}
+	if marks != 0 {
+		if zone != zBattlefield || !lc.pumpObjectRef(obj) {
+			return refuse("Pump KW$ %s on a non-permanent subject", kwMarkNames(marks))
+		}
+		lc.emit(lInstr{Op: "KwMark", Obj: obj, C: marks, Note: kwMarkNames(marks) + " until end of turn"})
 	}
 	if lure {
 		if zone != zBattlefield || !lc.pumpObjectRef(obj) {
@@ -3335,11 +3342,15 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	if scope.Kind != rNone {
 		in.Note = "only the target player's permanents"
 	}
-	mustBlock := false
+	mustBlock, marks := false, 0
 	if kw, ok := ps.get("KW"); ok {
 		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
 		if mustBlock && scope.Kind != rNone {
 			return refuse("PumpAll KW$ must be blocked if able with a ValidTgts$ player scope")
+		}
+		kw, marks = splitKwMarks(kw) // lower_kwmark.go
+		if marks != 0 && scope.Kind != rNone {
+			return refuse("PumpAll KW$ %s with a ValidTgts$ player scope", kwMarkNames(marks))
 		}
 		if kw != "" {
 			ks, err := pumpKeywords(kw)
@@ -3351,11 +3362,14 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	}
 	_, hasAtt := ps.m["NumAtt"]
 	_, hasDef := ps.m["NumDef"]
-	if !mustBlock || in.CS != "" || hasAtt || hasDef {
+	if !mustBlock && marks == 0 || in.CS != "" || hasAtt || hasDef {
 		lc.emit(in)
 	}
 	if mustBlock {
 		lc.emit(lInstr{Op: "MustBeBlocked", F: f}) // every permanent matching ValidCards$
+	}
+	if marks != 0 {
+		lc.emit(lInstr{Op: "KwMark", F: f, C: marks, Note: kwMarkNames(marks) + " until end of turn"}) // every permanent matching ValidCards$
 	}
 	return nil
 }

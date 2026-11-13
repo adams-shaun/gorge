@@ -164,6 +164,9 @@ type genPrep struct {
 	blkTaxStall     bool           // a block tax beside a part its walk does not model (combat_blocktax.go prepBlkTax): StallBlkTax
 	atkTaxStall     bool           // an attack tax beside a part its walk does not model (combat_attacktax.go prepAtkTax): StallAtkTax
 	anyWitherGrant  bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
+	anyInfectGrant  bool           // some static or ExtKwMark grants infect (kw_kwmark.go); sets anyInfect
+	anyEvasionGrant bool           // some static or ExtKwMark grants intimidate (kw_kwmark.go); sets anyEvasion
+	anyKwMark       bool           // some program has an ExtKwMark (kw_kwmark.go: the cleanup clear)
 	anyEOTEmb       bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
 	anyNTEmb        bool           // some emblem ends at its controller's next turn (kop.Emblem.UntilNextTurn; static_effectdelivered.go)
 	anyNTEndEmb     bool           // some emblem ends at its controller's next turn's cleanup (kop.Emblem.UntilEndOfNextTurn; static_emblemdurations.go)
@@ -1552,6 +1555,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		// resolution), so the per-permanent walks find none
 		g.anyRepl |= rbPlusDmg
 	}
+	prepKwMark(t, g) // kw_kwmark.go; before prepInfect, which reads anyInfectGrant
 	prepInfect(t, g)
 	prepTwoSeat(t, g) // stallclass.go
 	prepFbStamp(t, g) // kw_fbgrant.go

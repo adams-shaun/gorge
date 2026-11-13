@@ -2631,6 +2631,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		if err != nil {
 			return nil, err
 		}
+		rest, st.Evasion, st.Infect = splitStaticKwMarks(rest) // lower_kwmark.go
 		if rest != "" {
 			if st.Kw, err = pumpKeywords(rest); err != nil {
 				return nil, err

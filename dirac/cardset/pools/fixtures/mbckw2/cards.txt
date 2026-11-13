@@ -1,0 +1,15 @@
+# kernel: granted intimidate and infect (Static.Evasion / Static.Infect, ExtKwMark) and printed bloodthirst (dirac/oracle/mbckeywords2_lockstep_test.go)
+Bellowing Tanglewurm
+Forest
+Goblin Piker
+Grizzly Bears
+Hideous Visage
+Mountain
+Ornithopter
+Phyresis
+Raging Goblin
+Shock
+Swamp
+Tainted Strike
+Vector Asp
+Vow of Malice
