@@ -19,7 +19,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // source attacks, the one opponent at two seats): its life is at least the
 // controller's and at least the highest living opponent's (ExOppExtreme
 // OppExtLife), which is gorge's comparison against every living player.
-// Seat-exact, so no two-seat mark.
+// The reading is seat-exact, so no two-seat mark.
 
 // dethroneGate reads an Attacks trigger's Dethrone$ v: True only, on
 // ValidCard$ Card.Self (the keyword's expansion), beside no Attacked$ (the
