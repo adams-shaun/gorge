@@ -323,6 +323,9 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			chooseCardTypeOptions(d, kop.TypeMask(c))
 			break
 		}
+		if s.midTypeOptions(k, &s.prog(k)[r.pc], d) { // ValidTypes$ (act_choosetype.go)
+			break
+		}
 		for v := range k.t.TypeVocab {
 			d.add(MakeAction(AkChoose, 0, TCode(v>>8), uint8(v)))
 		}

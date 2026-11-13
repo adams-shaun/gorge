@@ -2366,6 +2366,12 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			}
 			continue
 		}
+		if head == "RevealChosen" {
+			if err := lc.revealChosenCost(&c, parts, t); err != nil { // lower_revealchosen.go
+				return c, err
+			}
+			continue
+		}
 		n, err := strconv.Atoi(parts[0])
 		if err != nil && head != "PayLife" {
 			return c, refuse("cost token %q", t)
@@ -3482,6 +3488,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			ab.ActCond = andCond(ab.ActCond, lCond{Kind: cYourTurn})
 		}
 		ab.ActCond = andCond(ab.ActCond, actLimit)
+		ab.ActCond = andCond(ab.ActCond, revealChosenGate(cost)) // lower_revealchosen.go
 	default:
 		return refuse("ability kind %s", sa.Kind)
 	}

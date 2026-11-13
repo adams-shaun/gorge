@@ -857,7 +857,13 @@ func (lc *lowerCtx) node(sa *cards.SA, ps *params) error {
 	guard := lCond{}
 	// Peek, not get: get marks Defined$ read for every node, and the
 	// effect must still read (or leave unread) its own Defined$.
-	if d, ok := ps.m["Defined"]; ok && strings.HasPrefix(d, "Targeted.") && sa.API != "Animate" {
+	ownTgt := false
+	if g, ok, err := lc.ownTargetedGuard(sa, ps); ok || err != nil { // lower_targetedown.go
+		if err != nil {
+			return err
+		}
+		guard, ownTgt = g, true
+	} else if d, ok := ps.m["Defined"]; ok && strings.HasPrefix(d, "Targeted.") && sa.API != "Animate" {
 		// Defined$ Targeted.<qualifier> (graveexile): gorge definedSpec
 		// (context.go:440-452) keeps the chain targets the qualifier
 		// admits. Lower only exactly one target slot, so the node's
@@ -923,6 +929,11 @@ func (lc *lowerCtx) node(sa *cards.SA, ps *params) error {
 		return err
 	}
 	lc.targetedDefined = ""
+	if ownTgt {
+		if err := lc.ownTargetedSlot(guard); err != nil { // lower_targetedown.go
+			return err
+		}
+	}
 	if setPred != nil {
 		if err := lc.wrapPlayerSet(sa.API, effAt, *setPred); err != nil {
 			return err
@@ -2886,11 +2897,10 @@ func (lc *lowerCtx) chooseType(ps *params) error {
 	if ps.str("Type") == "Card" {
 		return lc.chooseCardType(ps) // lower_choosetype.go
 	}
-	if ps.str("Defined") != "You" || ps.str("Type") != "Creature" {
+	if ps.str("Type") != "Creature" {
 		return refuse("ChooseType shape")
 	}
-	lc.emit(lInstr{Op: "ChooseType", Obj: lRef{Kind: rYou}})
-	return nil
+	return lc.chooseCreatureTypeMid(ps) // lower_choosetype.go
 }
 
 func (lc *lowerCtx) pump(ps *params) error {
