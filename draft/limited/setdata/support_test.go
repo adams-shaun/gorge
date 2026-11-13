@@ -14,15 +14,18 @@ import (
 )
 
 // sheetEntries are the measured card entries (a card on one sheet of one
-// collation counts once) of each embedded set across every collation.
-var sheetEntries = map[string]int{"FDN": 1896, "BLB": 1809}
+// collation counts once) of each embedded set across every collation; for a
+// substitute set (MBC) the entries off its substitute list.
+var sheetEntries = map[string]int{"FDN": 1896, "BLB": 1809, "MBC": 2390}
 
 // TestSupportEverySheetCard is the support gate for the embedded specs:
 // every card on every sheet of every collation resolves in the card corpus
 // and is fully supported by the engine, so a generated pack never names a
 // card the rules core cannot play. It runs the same check cmd/cardfuzz
 // uses to build its pools: reg.Unsupported(c, effects.Supported()) is
-// empty.
+// empty. A card on a set's substitute list (spec.Unplayable) is skipped:
+// the booster never deals it, and TestPendingSetCards holds the list to
+// exactly the cards the corpus cannot play.
 //
 // The test lives in this external test package so the effects import never
 // reaches the pure setdata package.
@@ -54,6 +57,9 @@ func TestSupportEverySheetCard(t *testing.T) {
 			spec := mustLoadCollation(t, code, c)
 			for sheet, sh := range spec.Config.Sheets {
 				for _, sc := range sh.Cards {
+					if spec.Unplayable[sc.Name] {
+						continue
+					}
 					card, ok := reg.Lookup(sc.Name)
 					if !ok {
 						t.Errorf("%s %s %s: %q does not resolve in the corpus", code, c, sheet, sc.Name)
@@ -67,8 +73,8 @@ func TestSupportEverySheetCard(t *testing.T) {
 			}
 		}
 	}
-	if want := sheetEntries["FDN"] + sheetEntries["BLB"]; checked != want {
-		t.Errorf("checked %d sheet cards, want the %d FDN + %d BLB sheet entries", checked, sheetEntries["FDN"], sheetEntries["BLB"])
+	if want := sheetEntries["FDN"] + sheetEntries["BLB"] + sheetEntries["MBC"]; checked != want {
+		t.Errorf("checked %d sheet cards, want the %d FDN + %d BLB + %d MBC sheet entries", checked, sheetEntries["FDN"], sheetEntries["BLB"], sheetEntries["MBC"])
 	}
 }
 
@@ -81,6 +87,25 @@ func TestSupportEverySheetCard(t *testing.T) {
 // breaks and on a stale entry. Rewrite the list with GORGE_UPDATE_PENDING=1.
 var pendingSets = map[string]bool{"TRK": true}
 
+// substituteSets are the embedded sets whose sheets draw from a wider pool
+// than the engine plays (MBC: Mystery Booster playtest cards, Alchemy
+// acorn cards and a few unsupported mechanics). Their unplayable cards are
+// the embedded sets/<SET>.substitute.txt, which the booster deals a
+// playable same-sheet substitute for, every swap recorded.
+// TestPendingSetCards holds that file to exactly the cards the corpus
+// cannot play, in both directions; GORGE_UPDATE_PENDING=1 rewrites it.
+var substituteSets = map[string]bool{"MBC": true}
+
+// unplayableListPath is the file TestPendingSetCards holds to the set's
+// unplayable sheet cards: the embedded substitute list of a substitute set,
+// the testdata list of a pending one.
+func unplayableListPath(code string) string {
+	if substituteSets[code] {
+		return "sets/" + code + ".substitute.txt"
+	}
+	return "testdata/" + code + "-unplayable.txt"
+}
+
 func TestPendingSetCards(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	if reg.Len() == 0 {
@@ -90,7 +115,15 @@ func TestPendingSetCards(t *testing.T) {
 	if !sup["kw:Flying"] {
 		t.Fatal("effects.Supported() lacks kw:Flying: the rules package did not register the non-API primitives")
 	}
+	codes := make([]string, 0, len(pendingSets)+len(substituteSets))
 	for code := range pendingSets {
+		codes = append(codes, code)
+	}
+	for code := range substituteSets {
+		codes = append(codes, code)
+	}
+	sort.Strings(codes)
+	for _, code := range codes {
 		bad := map[string]bool{}
 		for _, c := range setdata.Collations(code) {
 			spec := mustLoadCollation(t, code, c)
@@ -109,7 +142,7 @@ func TestPendingSetCards(t *testing.T) {
 		}
 		sort.Strings(names)
 		got := strings.Join(names, "\n") + "\n"
-		path := "testdata/" + code + "-unplayable.txt"
+		path := unplayableListPath(code)
 		if os.Getenv("GORGE_UPDATE_PENDING") != "" {
 			if err := os.WriteFile(path, []byte(got), 0o644); err != nil {
 				t.Fatal(err)

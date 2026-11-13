@@ -5,6 +5,11 @@
 // allow_duplicates and fixed flags, and colour-balances the sheets marked
 // balance_colors.
 //
+// A spec whose Unplayable list names cards the engine cannot play gets a
+// substitute for each such card drawn: a playable card of the same sheet,
+// recorded as a Substitution (OpenLog, OpenPodLog), never dropped
+// silently.
+//
 // The package is pure: its only randomness is the *rand.Rand the caller
 // seeds, its only inputs besides that are the spec and a colour lookup the
 // caller supplies, and it imports nothing but the standard library and its
@@ -61,14 +66,39 @@ const wubrg = "WUBRG"
 // pack, so a pack never carries the same name twice; a sheet draws without
 // replacement within the pack unless its AllowDuplicates is set. A slot
 // that cannot be filled under those rules fails Open with an error.
+//
+// A drawn card on spec.Unplayable is replaced by a playable card of the
+// same sheet, drawn by weight under the same rules; a variant drawing from
+// a sheet with no playable card at all is replaced by the heaviest variant
+// that has none (MBC's Alchemy-acorn packs open as the base pack). Open
+// deals the substitutes; OpenLog also returns the record of each one.
 func Open(spec setdata.Spec, rng *rand.Rand, ids IDSource, colourOf ColourOf) ([]limited.CardRef, error) {
-	pack, _, err := openPack(spec, rng, ids, colourOf)
+	pack, _, err := openPack(spec, rng, ids, colourOf, nil)
 	return pack, err
+}
+
+// Substitution records one swap a pack made for spec.Unplayable: Original
+// was drawn from Sheet and Substitute dealt in its place. For a variant
+// swap Sheet is the sheet with no playable card, and Original and
+// Substitute name the variants ("variant 2", "variant 0").
+type Substitution struct {
+	Sheet      string `json:"sheet"`
+	Original   string `json:"original"`
+	Substitute string `json:"substitute"`
+}
+
+// OpenLog is Open returning the substitutions the pack made, in fill
+// order: the same pack, from the same draws.
+func OpenLog(spec setdata.Spec, rng *rand.Rand, ids IDSource, colourOf ColourOf) ([]limited.CardRef, []Substitution, error) {
+	var subs []Substitution
+	pack, _, err := openPack(spec, rng, ids, colourOf, &subs)
+	return pack, subs, err
 }
 
 // openPack is Open with the picked variant index returned, so the stats
 // tests can measure the variant distribution the public API only implies.
-func openPack(spec setdata.Spec, rng *rand.Rand, ids IDSource, colourOf ColourOf) ([]limited.CardRef, int, error) {
+// subs, when non-nil, collects the pack's substitutions.
+func openPack(spec setdata.Spec, rng *rand.Rand, ids IDSource, colourOf ColourOf, subs *[]Substitution) ([]limited.CardRef, int, error) {
 	if rng == nil {
 		return nil, -1, errors.New("booster: Open needs a seeded *rand.Rand")
 	}
@@ -90,6 +120,14 @@ func openPack(spec setdata.Spec, rng *rand.Rand, ids IDSource, colourOf ColourOf
 		}
 	}
 	v := pickVariant(spec.Config, rng)
+	if dead := deadSheet(spec, v); dead != "" {
+		f := fallbackVariant(spec)
+		if f < 0 {
+			return nil, -1, fmt.Errorf("booster: %s: every variant draws from a sheet with no playable card", spec.Code)
+		}
+		record(subs, Substitution{Sheet: dead, Original: fmt.Sprintf("variant %d", v), Substitute: fmt.Sprintf("variant %d", f)})
+		v = f
+	}
 	variant := spec.Config.Variants[v]
 	pack := make([]limited.CardRef, 0, spec.PackSize)
 	st := &drawState{inPack: map[string]bool{}, drawn: map[string]bool{}}
@@ -106,12 +144,19 @@ func openPack(spec setdata.Spec, rng *rand.Rand, ids IDSource, colourOf ColourOf
 				return nil, -1, fmt.Errorf("booster: %s sheet %q: %w", spec.Code, name, err)
 			}
 			for _, sc := range fixed {
+				sc, err = substitute(rng, name, sheet, sc, spec.Unplayable, st, subs)
+				if err != nil {
+					return nil, -1, fmt.Errorf("booster: %s sheet %q: %w", spec.Code, name, err)
+				}
 				pack = append(pack, ref(ids, sc))
 				st.take(sc)
 			}
 		} else {
 			for n := 0; n < count; n++ {
 				sc, err := drawWeighted(rng, sheet, st)
+				if err == nil {
+					sc, err = substitute(rng, name, sheet, sc, spec.Unplayable, st, subs)
+				}
 				if err != nil {
 					return nil, -1, fmt.Errorf("booster: %s sheet %q: %w", spec.Code, name, err)
 				}
@@ -120,10 +165,86 @@ func openPack(spec setdata.Spec, rng *rand.Rand, ids IDSource, colourOf ColourOf
 			}
 		}
 		if sheet.BalanceColors && count >= 5 {
-			balanceColours(rng, pack[start:], sheet.Cards, colourOf, st.inPack)
+			balanceColours(rng, pack[start:], sheet.Cards, colourOf, st.inPack, spec.Unplayable)
 		}
 	}
 	return pack, v, nil
+}
+
+// record appends one substitution when the caller collects them.
+func record(subs *[]Substitution, s Substitution) {
+	if subs != nil {
+		*subs = append(*subs, s)
+	}
+}
+
+// substitute returns sc, or, when sc is on the unplayable list, a playable
+// card of the same sheet drawn by weight over what the pack can still take
+// (the original is never packed), recording the swap. A sheet with no such
+// card left fails.
+func substitute(rng *rand.Rand, name string, sheet setdata.Sheet, sc setdata.SheetCard, unplayable map[string]bool, st *drawState, subs *[]Substitution) (setdata.SheetCard, error) {
+	if !unplayable[sc.Name] {
+		return sc, nil
+	}
+	total := 0
+	for _, c := range sheet.Cards {
+		if !unplayable[c.Name] && !st.packed(c, sheet.AllowDuplicates) {
+			total += c.Weight
+		}
+	}
+	if total == 0 {
+		return setdata.SheetCard{}, fmt.Errorf("no playable card is left to substitute for %q", sc.Name)
+	}
+	n := rng.IntN(total)
+	for _, c := range sheet.Cards {
+		if unplayable[c.Name] || st.packed(c, sheet.AllowDuplicates) {
+			continue
+		}
+		if n < c.Weight {
+			record(subs, Substitution{Sheet: name, Original: sc.Name, Substitute: c.Name})
+			return c, nil
+		}
+		n -= c.Weight
+	}
+	return setdata.SheetCard{}, errors.New("substitute draw fell off the sheet (impossible for a validated sheet)")
+}
+
+// deadSheet returns the first sheet (in sorted order) variant v draws from
+// whose every card is on spec.Unplayable, or "" when each has a playable
+// card.
+func deadSheet(spec setdata.Spec, v int) string {
+	if len(spec.Unplayable) == 0 {
+		return ""
+	}
+	for _, name := range sortedSheetNames(spec.Config.Variants[v].Contents) {
+		dead := true
+		for _, sc := range spec.Config.Sheets[name].Cards {
+			if !spec.Unplayable[sc.Name] {
+				dead = false
+				break
+			}
+		}
+		if dead {
+			return name
+		}
+	}
+	return ""
+}
+
+// fallbackVariant is the variant a pack whose variant draws a dead sheet
+// opens instead: the heaviest variant without one (the first listed on a
+// tie), or -1 when every variant has one.
+func fallbackVariant(spec setdata.Spec) int {
+	best := -1
+	for i, v := range spec.Config.Variants {
+		if deadSheet(spec, i) != "" {
+			continue
+		}
+		if best < 0 || v.Weight > spec.Config.Variants[best].Weight {
+			best = i
+		}
+	}
+	return best
 }
 
 // ref builds the pack entry one sheet card becomes. Set and number are the
@@ -247,7 +368,7 @@ func drawWeighted(rng *rand.Rand, sheet setdata.Sheet, st *drawState) (setdata.S
 // WUBRG/slot order); only the replacement card is random. A colour the
 // sheet has no unpacked mono card of stops the balancing quietly — the pack
 // stays as drawn.
-func balanceColours(rng *rand.Rand, slot []limited.CardRef, sheet []setdata.SheetCard, colourOf ColourOf, inPack map[string]bool) {
+func balanceColours(rng *rand.Rand, slot []limited.CardRef, sheet []setdata.SheetCard, colourOf ColourOf, inPack map[string]bool, unplayable map[string]bool) {
 	for tries := 0; tries < 5; tries++ {
 		mono := [5]int{}
 		for i := range slot {
@@ -267,10 +388,11 @@ func balanceColours(rng *rand.Rand, slot []limited.CardRef, sheet []setdata.Shee
 		if missing < 0 {
 			return
 		}
-		// Candidates: unpacked mono cards of the missing colour, in sheet order.
+		// Candidates: unpacked, playable mono cards of the missing colour, in
+		// sheet order.
 		var cand []int
 		for i, sc := range sheet {
-			if !inPack[sc.Name] && monoColour(colourOf(sc.Name)) == missing {
+			if !inPack[sc.Name] && !unplayable[sc.Name] && monoColour(colourOf(sc.Name)) == missing {
 				cand = append(cand, i)
 			}
 		}

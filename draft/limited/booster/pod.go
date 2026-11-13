@@ -18,23 +18,46 @@ import (
 //
 // ids must be one event-wide allocator (booster.IDs works): the pod's cards
 // get sequential IDs in seat-major, pack-second, slot order.
+//
+// The pod deals spec.Unplayable substitutes as Open does; OpenPodLog also
+// returns the record of each one.
 func OpenPod(spec setdata.Spec, seed uint64, seats, packs int, ids IDSource, colourOf ColourOf) ([][][]limited.CardRef, error) {
+	out, _, err := OpenPodLog(spec, seed, seats, packs, ids, colourOf)
+	return out, err
+}
+
+// PodSubstitution is one Substitution a pod's pack made, with the seat and
+// pack index that opened it.
+type PodSubstitution struct {
+	Seat int `json:"seat"`
+	Pack int `json:"pack"`
+	Substitution
+}
+
+// OpenPodLog is OpenPod returning every substitution the pod's packs made,
+// in seat-major, pack-second, fill order: the same packs, from the same
+// draws.
+func OpenPodLog(spec setdata.Spec, seed uint64, seats, packs int, ids IDSource, colourOf ColourOf) ([][][]limited.CardRef, []PodSubstitution, error) {
 	if seats <= 0 || packs <= 0 {
-		return nil, fmt.Errorf("booster: OpenPod needs seats and packs > 0, got %d and %d", seats, packs)
+		return nil, nil, fmt.Errorf("booster: OpenPod needs seats and packs > 0, got %d and %d", seats, packs)
 	}
 	out := make([][][]limited.CardRef, seats)
+	var log []PodSubstitution
 	for seat := 0; seat < seats; seat++ {
 		out[seat] = make([][]limited.CardRef, packs)
 		for p := 0; p < packs; p++ {
 			rng := rand.New(rand.NewPCG(seed, podSalt(seat, p)))
-			pack, err := Open(spec, rng, ids, colourOf)
+			pack, subs, err := OpenLog(spec, rng, ids, colourOf)
 			if err != nil {
-				return nil, fmt.Errorf("booster: pod seat %d pack %d: %w", seat, p, err)
+				return nil, nil, fmt.Errorf("booster: pod seat %d pack %d: %w", seat, p, err)
+			}
+			for _, s := range subs {
+				log = append(log, PodSubstitution{Seat: seat, Pack: p, Substitution: s})
 			}
 			out[seat][p] = pack
 		}
 	}
-	return out, nil
+	return out, log, nil
 }
 
 // podSalt is the per-pack stream salt: the seat in the high half and the
