@@ -13,9 +13,16 @@ const tokListBit = 4096
 // each listed script in order, TokenAmount$ of each, inside one zone batch,
 // which the kernel's per-resolution token batch already is. Only the plain
 // shape is read: every rider beside the list (owner, amount, tapped,
-// attacking, attached, remembered, AtEOT) refuses.
+// attacking, attached, remembered, AtEOT) refuses, except TokenOwner$ You: the
+// resolving controller is gorge's default owner (tokenOwnerPlayers), so the
+// spelling is the plain list (Specimen Collector, Fae Offering).
 func (lc *lowerCtx) tokenList(ps *params, list string) error {
-	for _, k := range []string{"TokenAmount", "TokenOwner", "TokenTapped", "TokenAttacking",
+	if o, ok := ps.get("TokenOwner"); ok && o == "You" {
+		ps.consume("TokenOwner")
+	} else if ok {
+		return refuse("TokenScript list %q with TokenOwner$", list)
+	}
+	for _, k := range []string{"TokenAmount", "TokenTapped", "TokenAttacking",
 		"AttachedTo", "RememberTokens", "RememberOriginalTokens", "AtEOT", "ImprintTokens"} {
 		if _, ok := ps.m[k]; ok {
 			return refuse("TokenScript list %q with %s$", list, k)
