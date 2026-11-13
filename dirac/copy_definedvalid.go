@@ -16,7 +16,8 @@ var DebugDefValidFirstOnly bool
 var DebugDefValidNoAnimateAsk bool
 
 // DebugDefValidMulti, when set, counts the copyAllEach resolutions that
-// minted two or more copies (TestDefvalidLockstep's minimum).
+// minted two or more copies (TestDefvalidLockstep's minimum), atomically:
+// a test's seeds may play side by side.
 var DebugDefValidMulti *uint32
 
 // StallCopyAllAsk: a copy of a copy that itself carries the as-enters clone

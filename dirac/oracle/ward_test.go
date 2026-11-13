@@ -3,6 +3,7 @@ package oracle
 import (
 	"os"
 	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -61,6 +62,30 @@ func lockstepSet(t *testing.T, setName string, decks [2][]cardset.Entry, seeds u
 			seeds = n
 		}
 	}
+	reg, set, gd := lockstepPool(t, setName, decks)
+	var clean, casts int
+	seedChunks(t, 1, seeds, lockstepChunk, func(t *testing.T, lo, hi uint64, mu *sync.Mutex) {
+		c, n, _ := lockstepSeeds(t, reg, set, setName, decks, gd, lo, hi, true, nil, nil, castFirstPolicy)
+		mu.Lock()
+		clean, casts = clean+c, casts+n
+		mu.Unlock()
+	})
+	t.Logf("%s: %d seeds, %d clean; %d casts/activations", setName, seeds, clean, casts)
+}
+
+// lockstepChunk is the seeds one parallel subtest of lockstepSet plays
+// (seedChunks).
+const lockstepChunk = 50
+
+// lockstepSetSerial is lockstepSet's games in one loop, for a test whose
+// kernel hooks count in plain (non-atomic) package variables.
+func lockstepSetSerial(t *testing.T, setName string, decks [2][]cardset.Entry, seeds uint64, env string) {
+	t.Helper()
+	if v := os.Getenv(env); v != "" {
+		if n, err := strconv.ParseUint(v, 10, 64); err == nil {
+			seeds = n
+		}
+	}
 	lockstepRun(t, setName, decks, seeds, true, nil)
 }
 
@@ -88,6 +113,19 @@ func lockstepRunSide(t *testing.T, setName string, decks [2][]cardset.Entry, see
 // chosen by the caller.
 func lockstepRunPolicy(t *testing.T, setName string, decks [2][]cardset.Entry, seeds uint64, report bool, mutate func(*kop.Table), wrap func(Side) Side, policy func(uint64) Policy) int {
 	t.Helper()
+	reg, set, gd := lockstepPool(t, setName, decks)
+	clean, casts, div := lockstepSeeds(t, reg, set, setName, decks, gd, 1, seeds, report, mutate, wrap, policy)
+	if div > 0 && !report {
+		return div
+	}
+	t.Logf("%s: %d seeds, %d clean; %d casts/activations", setName, seeds, clean, casts)
+	return div
+}
+
+// lockstepPool loads the corpus and the generated set and builds the two
+// gorge decks.
+func lockstepPool(t *testing.T, setName string, decks [2][]cardset.Entry) (*cards.Registry, cardset.Set, [2][]*cards.Card) {
+	t.Helper()
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {
@@ -112,6 +150,14 @@ func lockstepRunPolicy(t *testing.T, setName string, decks [2][]cardset.Entry, s
 			t.Fatalf("deck %d: %d cards", s, len(gd[s]))
 		}
 	}
+	return reg, set, gd
+}
+
+// lockstepSeeds plays seeds lo..hi of lockstepRunPolicy's games on a table of
+// its own and returns the clean games, the casts and activations, and the
+// divergent games (without report, it stops at the first).
+func lockstepSeeds(t *testing.T, reg *cards.Registry, set cardset.Set, setName string, decks [2][]cardset.Entry, gd [2][]*cards.Card, lo, hi uint64, report bool, mutate func(*kop.Table), wrap func(Side) Side, policy func(uint64) Policy) (clean, casts, div int) {
+	t.Helper()
 	tbl, _, _, err := set.Matchup(decks[0], decks[1])
 	if err != nil {
 		t.Fatal(err)
@@ -119,8 +165,7 @@ func lockstepRunPolicy(t *testing.T, setName string, decks [2][]cardset.Entry, s
 	if mutate != nil {
 		mutate(tbl)
 	}
-	clean, casts, div := 0, 0, 0
-	for seed := uint64(1); seed <= seeds; seed++ {
+	for seed := lo; seed <= hi; seed++ {
 		m, err := NewMatchup(reg, [2]string{setName + "-a", setName + "-b"}, gd, 1)
 		if err != nil {
 			t.Fatal(err)
@@ -154,17 +199,16 @@ func lockstepRunPolicy(t *testing.T, setName string, decks [2][]cardset.Entry, s
 			div++
 			if !report {
 				t.Logf("seed %d diverges (decision %d: %s)", seed, d.At, d.What)
-				return div
+				return clean, casts, div
 			}
-			lo := max(d.At-12, 0)
-			t.Logf("seed %d last actions %v", seed, actionStrings(res.Actions[lo:d.At]))
+			from := max(d.At-12, 0)
+			t.Logf("seed %d last actions %v", seed, actionStrings(res.Actions[from:d.At]))
 			t.Errorf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
 			continue
 		}
 		clean++
 	}
-	t.Logf("%s: %d seeds, %d clean; %d casts/activations", setName, seeds, clean, casts)
-	return div
+	return clean, casts, div
 }
 
 // kwardLifeDecks pairs a printed "ward—pay 2 life" (Zul'Ashur, Lich Lord)

@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -38,27 +39,33 @@ func fixtureLockstepSeeds(t *testing.T, setName string, decks [2][]cardset.Entry
 			t.Fatalf("deck %d has %d cards", s, n)
 		}
 	}
-	tbl, _, _, err := set.Matchup(decks[0], decks[1])
-	if err != nil {
-		t.Fatal(err)
-	}
-	for seed := uint64(first); seed <= uint64(last); seed++ {
-		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
-		m, err := NewMatchup(reg, [2]string{"fixture-a", "fixture-b"}, cs, 0)
+	seedChunks(t, uint64(first), uint64(last), fixtureChunk, func(t *testing.T, lo, hi uint64, _ *sync.Mutex) {
+		tbl, _, _, err := set.Matchup(decks[0], decks[1])
 		if err != nil {
 			t.Fatal(err)
 		}
-		k, err := SetSide(set, tbl, cfg)(m, seed)
-		if err != nil {
-			t.Fatal(err)
+		for seed := lo; seed <= hi; seed++ {
+			cfg := Config{GorgeAutopaySurface: seed%2 == 0}
+			m, err := NewMatchup(reg, [2]string{"fixture-a", "fixture-b"}, cs, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			k, err := SetSide(set, tbl, cfg)(m, seed)
+			if err != nil {
+				t.Fatal(err)
+			}
+			res := Lockstep(m, seed, k, RandomPolicy(seed), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40})
+			CloseSide(k)
+			if d := res.Div; d != nil {
+				t.Fatalf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v\nrecent %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions, res.RecentSources(m, 6))
+			}
 		}
-		res := Lockstep(m, seed, k, RandomPolicy(seed), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40})
-		CloseSide(k)
-		if d := res.Div; d != nil {
-			t.Fatalf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v\nrecent %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions, res.RecentSources(m, 6))
-		}
-	}
+	})
 }
+
+// fixtureChunk is the seeds one parallel subtest of fixtureLockstep plays
+// (seedChunks).
+const fixtureChunk = 15
 
 // Dispatch's Metalcraft link exiles the tapped creature only with three or
 // more artifacts (CR 207.2c); the deck holds artifacts to reach the threshold
