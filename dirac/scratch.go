@@ -41,6 +41,18 @@ type armRes struct {
 	dmgSeqOrd [MaxPerm]Slot // a multi-event damage op's recipients, frozen (dmgSeqOn / N / I / Pl, outside scr)
 	plc       libTally      // kop.ExtLibPlace's tally of the cards put into libraries (act_libplace.go); live from its arm op to its ask op, zeroed by scrResEnter
 	jf        int16         // the resolution's join-forces total (ExtJoinForces / ExJoinForces); zeroed by scrResEnter
+	// dmgB: a DamageAll sweep's latched DamageDealtOnce lines (trig_dmgbatch.go):
+	// the sweep's per-recipient damage events are one simultaneous batch (gorge
+	// effDamageAll's BeginDamageBatch, CR 510.4), so each once line queues at its
+	// first matching event and dmgBatchClose patches the queued entry's amount to
+	// the batch's matching-event total (gorge trigger_match.go latchDamageBatch /
+	// closeDamageBatch). dmgBOn says the batch is open and dmgBn counts the
+	// latched lines. The bracket survives a parked ask, as the sweep resumes
+	// after the answer (like dmgSeqOrd); a resolution enters with it closed
+	// (scrResEnter), so a read outside the window is never true.
+	dmgBOn   bool
+	dmgBn    uint8
+	dmgBRecs [maxDmgBatch]dmgBatchEnt
 }
 
 // armEvidence is the evidence ask's scratch beside a build or a resolution.
@@ -103,6 +115,8 @@ func (s *State) scrResEnter() {
 	s.g.plusBatchAsked = false // a new resolution cannot inherit a parked batch
 	s.resArm().plc = libTally{}
 	s.resArm().jf = 0 // the join-forces total is per resolution
+	a := s.resArm()
+	a.dmgBOn, a.dmgBn = false, 0 // a new resolution's sweep batch is closed (trig_dmgbatch.go)
 }
 
 // joinForcesAdd runs ExtJoinForces: it adds b to the resolution's join-forces

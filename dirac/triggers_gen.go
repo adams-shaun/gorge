@@ -637,7 +637,10 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 			if once && latch.has(l, seen) {
 				return
 			}
-			if !s.objEventMatch(k, l, a, src) || !s.trigOK(k, l, a) {
+			if !s.objEventMatch(k, l, a, src) {
+				return
+			}
+			if !s.trigOK(k, l, a) {
 				return
 			}
 			if t.Flags4 != 0 && !s.singleCauseOK(k, rcp) {
@@ -657,6 +660,9 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 			if t.Flags2&(kop.Tf2Batch|kop.Tf2PerReferent) == kop.Tf2Batch && !s.batchTrigOK(l, a, NoObj) {
 				return
 			}
+			if s.resArm().dmgBOn && dmgBatchOnce(a) && s.dmgBatchSeen(srcObj, l, amt) {
+				return // a DamageAll sweep's batch latched the line: this matching event only accumulates (trig_dmgbatch.go)
+			}
 			if once {
 				n = latch.total
 				if t.Flags&kop.TfToPlayer != 0 {
@@ -669,7 +675,11 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 					s.capFull(StallDmgLatch) // loud: a ninth listener is not latched
 				}
 			}
+			n0 := s.npend
 			s.queueTrig(k, l, a, tobj, tpl, n)
+			if s.resArm().dmgBOn && dmgBatchOnce(a) && latch == nil && s.npend > n0 {
+				s.dmgBatchArm(srcObj, l, amt, n0) // the sweep batch's entry for the line: the close patches the amount (trig_dmgbatch.go)
+			}
 		})
 	}
 	if k.gen.graveDmg && (rl == nil || !rl.agg) { // a batch's aggregate fire is not a damage event
@@ -729,7 +739,10 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 		if t.Flags2&kop.Tf2ToOpponent != 0 && !oppDamaged(plM, l.ctrl) || t.Flags2&kop.Tf2YourTurn != 0 && s.active != l.ctrl {
 			return
 		}
-		if t.Filter != 0 && !s.matchCardGen(k, t.Filter, s.objs[o].card, ctrl, l.ctrl, o) || !s.trigOK(k, l, a) {
+		if t.Filter != 0 && !s.matchCardGen(k, t.Filter, s.objs[o].card, ctrl, l.ctrl, o) {
+			return
+		}
+		if !s.trigOK(k, l, a) {
 			return
 		}
 		if t.Flags4 != 0 && !s.singleCauseOK(k, rcp) {
@@ -742,7 +755,14 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 				return
 			}
 		}
+		if s.resArm().dmgBOn && dmgBatchOnce(a) && s.dmgBatchSeen(o, l, amt) {
+			return // a DamageAll sweep's batch latched the line: this matching event only accumulates (trig_dmgbatch.go)
+		}
+		n0 := s.npend
 		s.queueTrig(k, l, a, tobj, tpl, n)
+		if s.resArm().dmgBOn && dmgBatchOnce(a) && rl == nil && s.npend > n0 {
+			s.dmgBatchArm(o, l, amt, n0) // the sweep batch's entry for the line: the close patches the amount (trig_dmgbatch.go)
+		}
 	}
 	for _, ev := range evs {
 		if s.subs[ev].any() {
