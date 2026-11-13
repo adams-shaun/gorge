@@ -125,6 +125,11 @@ func filterWordPred3(p string) (n int, ok bool) {
 		// the Attacks trigger's attacker (lowerCtx.referentGate holds it to
 		// an Attacks trigger's body, where trigObj is that attacker)
 		return int(kop.W7SharesCrTrigObj), true
+	case "blockingTriggeredAttacker":
+		// a creature blocking the become-blocked trigger's attacker
+		// (lowerCtx.referentGate holds it to an AttackerBlocked trigger's
+		// body, where trigObj is that attacker)
+		return int(kop.W7BlockingTrigObj), true
 	}
 	return attachedToWord(p)
 }
@@ -339,4 +344,18 @@ func notF2Bit(w string) (int, bool) {
 		return 0, false
 	}
 	return bits.TrailingZeros32(uint32(f)), true
+}
+
+// filterReadsNotBlocking reports whether a clause of f reads the negated
+// filter word !blocking (kop.W7NotBlocking).
+func filterReadsNotBlocking(f *lFilter) bool {
+	if f == nil {
+		return false
+	}
+	for _, c := range f.Clauses {
+		if c.CmpStat == cmpWord7 && c.CmpN == int(kop.W7NotBlocking) {
+			return true
+		}
+	}
+	return false
 }

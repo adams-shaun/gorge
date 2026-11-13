@@ -82,7 +82,11 @@ func (r *run) saveDeck(seat int, d build.Deck) (int, error) {
 	if !r.deckSaveOpen(seat) {
 		return 0, errConflict("eventhost: the event is not building (phase %s)", r.ev.Phase())
 	}
-	if err := build.Validate(r.ev.Pool(seat), d); err != nil {
+	if r.meta.commander() {
+		if _, err := r.validateCommanderDeck(seat, d); err != nil {
+			return 0, errInvalidDeck("eventhost: %v", err)
+		}
+	} else if err := build.Validate(r.ev.Pool(seat), d); err != nil {
 		return 0, errInvalidDeck("eventhost: %v", err)
 	}
 	rev := r.ev.SavedRev(seat) + 1
@@ -136,7 +140,7 @@ func (r *run) poolFor(seat int) protocol.EventPool {
 		}
 	}
 	if d, ok := r.ev.SavedDeck(seat); ok {
-		out.Deck = &protocol.DeckRequest{Main: d.Main, Basics: d.Basics}
+		out.Deck = &protocol.DeckRequest{Main: d.Main, Basics: d.Basics, Commanders: d.Commanders}
 	}
 	// In a round, Playing is the deck the seat plays (or last
 	// played) in its series' current games, with PlayingRev naming the
@@ -168,7 +172,7 @@ func (r *run) poolFor(seat int) protocol.EventPool {
 	ph := r.ev.Phase()
 	if r.builders[seat] != nil && ph != event.PhaseLobby && ph != event.PhaseDraft {
 		s := r.builders[seat].Build(r.meta.Set, r.ev.Pool(seat))
-		out.Suggestion = protocol.DeckRequest{Main: s.Main, Basics: s.Basics}
+		out.Suggestion = protocol.DeckRequest{Main: s.Main, Basics: s.Basics, Commanders: s.Commanders}
 	}
 	return out
 }
@@ -199,6 +203,9 @@ func (h *Host) CheckDeck(id, token string, req protocol.DeckRequest) (protocol.D
 
 // deckCheck is the DeckCheck body for one seat's request.
 func (r *run) deckCheck(seat int, req protocol.DeckRequest) protocol.DeckCheck {
+	if r.meta.commander() {
+		return r.commanderDeckCheck(seat, req)
+	}
 	d := build.Deck{Main: req.Main, Basics: req.Basics}
 	out := protocol.DeckCheck{Total: d.Total(), AutoLands: build.AutoLands(req.Main, r.pipsOf(seat))}
 	if err := build.Validate(r.ev.Pool(seat), d); err != nil {
@@ -225,7 +232,7 @@ func (h *Host) SaveDeck(id, token string, req protocol.DeckRequest) (protocol.De
 	if r.halted != "" {
 		return protocol.DeckCheck{}, errUnavailable("%s", r.halted)
 	}
-	rev, serr := r.saveDeck(seat, build.Deck{Main: req.Main, Basics: req.Basics})
+	rev, serr := r.saveDeck(seat, build.Deck{Main: req.Main, Basics: req.Basics, Commanders: req.Commanders})
 	if serr != nil {
 		return protocol.DeckCheck{}, serr
 	}

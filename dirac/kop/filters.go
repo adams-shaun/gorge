@@ -471,13 +471,28 @@ const W7WithInfect int16 = 28
 // a creature not attacking, and an attack on a planeswalker or battle.
 const W7AttackingEnchTrig int16 = 29
 
-// W7AttackingSame (PredWord7 sub-kind 30): an attacking creature attacking
+// W7NotBlocking (PredWord7 sub-kind 30): gorge's '!' of the filter word
+// blocking (effects/filter.go isBlocking negated): a battlefield permanent
+// that is not blocking; a card off the battlefield blocks nothing, so the
+// word holds there. FilterFlags has no free bit for it beside FNotAttacking.
+// Tromokratis, The Muckslinger Gang.
+const W7NotBlocking int16 = 30
+
+// W7BlockingTrigObj (PredWord7 sub-kind 31): gorge's
+// blockingTriggeredAttacker, a battlefield creature blocking the current
+// entry's trigger object (the become-blocked trigger's attacker), that
+// attacker still on the battlefield. No entry, no trigger object, an
+// attacker gone and a card off the battlefield fail closed. kgen admits it
+// only in an AttackerBlocked trigger's body. General Marhault Elsdragon.
+const W7BlockingTrigObj int16 = 31
+
+// W7AttackingSame (PredWord7 sub-kind 32): an attacking creature attacking
 // the same defender (player, or planeswalker) the evaluating source attacks
 // (gorge's attackingSame, Forge's combat.isAttacking(card,
 // getDefenderByAttacker(source))). The source itself matches; a source that
 // is not attacking, or gone (NoSlot), leaves the set empty; nothing off the
 // battlefield attacks. Kitesail Skirmisher.
-const W7AttackingSame int16 = 30
+const W7AttackingSame int16 = 32
 
 // PredPowerLTToughness's PredN: the power/toughness relation it reads. 0 is
 // power < toughness (gorge powerLTtoughness); PTRelEQ is gorge's equalPT

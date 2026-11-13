@@ -555,16 +555,8 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if f&kop.CostPayLife != 0 && int(s.pl[p.ctrl].life) < int(a.Cost.N) {
 		return false
 	}
-	if f&kop.CostDiscard != 0 {
-		// a filtered discard (CostDiscardFiltered) counts only the hand
-		// cards matching Cost.Filter (cost_discardfiltered.go)
-		n := int(s.pl[p.ctrl].handN)
-		if f&kop.CostDiscardFiltered != 0 {
-			n = s.discardCandN(k, p.ctrl, a.Cost.Filter, NoObj)
-		}
-		if n < int(a.Cost.N) {
-			return false
-		}
+	if f&kop.CostDiscard != 0 && !s.discardPayable(k, p.ctrl, &a.Cost, NoObj) {
+		return false // cost_discardfiltered.go
 	}
 	if f&kop.CostSac != 0 && s.countCostSac(k, p.ctrl, &a.Cost, sl) < int(a.Cost.N) {
 		return false
@@ -1788,6 +1780,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 		}
 		if a.Target() == castOverloadTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyOverload {
 			s.g.impCast = true // the overload cost (kw_overload.go): beginCast marks the entry overloaded
+		}
+		if a.Target() == castSurgeTgt && a.Mode() == 0 && k.gen != nil && k.gen.anySurge {
+			s.g.impCast = true // the surge cost (kw_surge.go): beginCast marks the entry surged
 		}
 		if a.Target() == castAltTgt && a.Mode() == 0 && k.gen != nil && k.gen.altFree != nil {
 			s.g.altCast = true // the card's own mana alternative cost (cast_altfree.go)

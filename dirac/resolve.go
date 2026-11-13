@@ -59,12 +59,17 @@ func (s *State) resolveTop(k *prep) {
 		s.g.nimp = 0
 		s.g.nrem, s.g.remCnt, s.g.tli = 0, 0, 0 // a resolution remembers afresh (gorge's per-resolution Ctx)
 		s.g.stkCt = 0                           // tgt_stackability.go
-		if k.anyStateCtr && e.kind == seTrigger && e.ab < abCascade &&
-			k.t.Cards[e.card].Abilities[e.ab].Trig.Flags4&kop.Tf4StateCtr != 0 {
-			s.remember(e.obj) // a state trigger's Remembered is its source alone (gorge stateTriggerRemembered, CR 603.8)
-		}
+		// A state trigger (Tf4StateCtr) starts with nothing remembered too.
+		// gorge seeds its Ctx with the source (stateTriggerRemembered), but
+		// as the fire-time capture, which a plain Remembered read leaves out
+		// (rememberedExcludingCapture): Mazemind Tome's "exile it. If you do"
+		// gate holds only when the exile's RememberChanged$ added the Tome,
+		// not when the Tome had already left the battlefield (CR 603.8, 608.2c).
 		if k.gen.anyRemPersist && remPersistSeeds(k, &e) {
 			s.remPersistSeed(k) // its source's kept set (zone_rememberpersist.go)
+		}
+		if k.gen.has(e.card, gfEnterRepl) {
+			s.seedEnterChosen(k, &e) // its source's as-enters chosen object (repl_choosecard.go)
 		}
 		// a damage sequence belongs to the resolution that started it: a new
 		// resolution drops any left over by an aborted one (repl_gen.go); the
@@ -521,6 +526,9 @@ func (s *State) prog(k *prep) []kop.Instr {
 			return cascadeProg[:]
 		}
 		if e.ab == abStorm {
+			if e.trigAmt == stormDemonstrate {
+				return demonstrateProg[:]
+			}
 			return stormProg[:]
 		}
 		return nil
@@ -712,6 +720,8 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.srcOwner()
 	case kop.RefPromised:
 		return s.promisedSeat(k, e) // kw_gift.go
+	case kop.RefChosenPlayer:
+		return s.chosenPlayerSeat(e) // repl_chooseplayer.go
 	case kop.RefAttachedCtrl:
 		return s.attachedCtrl(s.objRefObj(kop.RefAttached))
 	}
@@ -971,7 +981,7 @@ func (s *State) refCode(k *prep, r kop.Ref) uint8 {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		return s.tgtCode(sl)
-	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised:
+	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer:
 		p := s.playerRef(k, r)
 		if p == 255 {
 			return NoTarget

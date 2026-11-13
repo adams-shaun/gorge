@@ -272,6 +272,8 @@ func (a *SBT) priority(s *dirac.State, d *dirac.Decision, seat *builtins.Seat) [
 				cm = "offspring"
 			case mode&1 != 0 && s.FeatBuybackCast(dirac.Obj(src)):
 				cm = "buyback" // CR 702.27a: gorge's "buyback" cast option
+			case mode&1 != 0 && s.FeatEntwineCast(dirac.Obj(src)):
+				cm = "entwined" // CR 702.42a: gorge's "entwined" cast option
 			case mode&1 != 0:
 				cm = "kicked"
 			case mode&2 != 0 && x.Target() == dirac.FeatEscapeTgt:
@@ -284,6 +286,9 @@ func (a *SBT) priority(s *dirac.State, d *dirac.Decision, seat *builtins.Seat) [
 				cm = "harmonize"
 			case mode&2 != 0 && x.Target() == dirac.FeatRetraceTgt && s.FeatRetraceCard(dirac.Obj(src)):
 				cm = "retrace" // CR 702.81a: the printed cost plus the discard-a-land cost (kw_retrace.go)
+				if s.FeatJumpStartCard(dirac.Obj(src)) {
+					cm = "jumpstart" // CR 702.84a: the same cast with any card discarded (kw_jumpstart.go)
+				}
 			case mode&2 != 0 && x.Target() != 0:
 				cm = "beam_me_up"
 			case mode&2 != 0:

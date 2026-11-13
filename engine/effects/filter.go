@@ -2273,7 +2273,13 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// negated nonChosenCard form is unchanged for choice-less sources.
 		chosenList := sc.Chosen
 		if !sc.ChosenValid && len(chosenList) == 0 {
-			chosenList = ChosenTargetsFrom(g, sc.Source)
+			if sc.SourceLKIValid {
+				// A departed source (Dauntless Bodyguard sacrificed as its
+				// own cost) reads its last-known choice (CR 608.2h).
+				chosenList = sc.SourceChosen
+			} else {
+				chosenList = ChosenTargetsFrom(g, sc.Source)
+			}
 		}
 		if !sc.ChosenValid && len(chosenList) == 0 {
 			return false, true

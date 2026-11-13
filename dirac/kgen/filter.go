@@ -590,6 +590,9 @@ func parseClause(alt string, knownSub func(string) bool) (lClause, error) {
 }
 
 func (c *lClause) prop(p string, knownSub func(string) bool) error {
+	if q, ok := filterPropAlias(p); ok {
+		p = q
+	}
 	switch p {
 	case "nonLegendary":
 		c.NotTypes |= tLegendary
@@ -628,7 +631,9 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// twoSeat-at-caller: lowerCtx.filter marks the card)
 		c.Flags |= fAttacking
 		return c.setWho(&c.Ctrl, whoOpp)
-	case "YouCtrl":
+	case "YouCtrl", "YourTeamCtrl":
+		// gorge predicates["YourTeamCtrl"] reads YouCtrl: gorge models no
+		// teams, so a player's team is that player alone (Combo Attack)
 		return c.setWho(&c.Ctrl, whoYou)
 	case "OppCtrl", "YouDontCtrl":
 		return c.setWho(&c.Ctrl, whoOpp)
@@ -1014,6 +1019,11 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		}
 		if w == "BottomLibrary" {
 			return c.setCmp(cmpWord7, 0, int(kop.W7NotBottomLibrary), "", "") // lower_filterwords.go
+		}
+		if w == "blocking" {
+			// gorge's '!' of isBlocking (kop.W7NotBlocking: FilterFlags
+			// has no bit left for an FNotBlocking beside FNotAttacking)
+			return c.setCmp(cmpWord7, 0, int(kop.W7NotBlocking), "", "")
 		}
 		if i, ok := notF2Bit(w); ok {
 			return c.setCmp(cmpNotF2, 0, i, "", "") // lower_filterwords.go

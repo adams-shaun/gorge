@@ -83,6 +83,9 @@ func stackKwGates(a *kop.Ability, g *genPrep, p *prep) {
 		g.anySplitSecond = true
 	case kop.StackKwConspire:
 		g.anyConspire, g.anyCopyElect, g.anyPermCopy = true, true, true // its copy chooses new targets; a granted spell may be a permanent
+	case kop.StackKwDemonstrate:
+		g.anyDemoGrant = true
+		g.anyCopyElect, g.anyPermCopy = true, true // its copies choose new targets, and a granted spell may be a permanent
 	case kop.StackKwStorm:
 		g.anyStorm, g.anyHist = true, true         // the count reads the history bank
 		g.anyCopyElect, g.anyPermCopy = true, true // its copies choose new targets, and a granted spell may be a permanent
@@ -107,7 +110,11 @@ func (s *State) stackKwN(k *prep, code int16, c CardID, o Obj, caster uint8, fro
 		if a.Static.Zone == kop.ZoneHand && !fromHand {
 			return true
 		}
-		// no statCond: kgen refuses every gated AffectedZone$ Stack grant
+		// only a Demonstrate grant carries a gate (kgen lower_stackkw.go); the
+		// caller hides the in-flight cast's push from the cast ring first
+		if a.Static.Cond2 != 0 && !s.statCond(k, st) {
+			return true
+		}
 		if s.matchSpellCard(k, a.Static.Filter, c, caster, caster, o, st.sl) {
 			if n == 0 {
 				b = a.Static.B
