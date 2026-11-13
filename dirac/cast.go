@@ -93,7 +93,9 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 			s.g.impCast = false
 		}
 		if s.g.impCast {
-			if k.t.Cards[c].HasOverload {
+			if k.t.Cards[c].HasSurge {
+				e.mode |= modeImpended // the surged cast (kw_surge.go: the bit reads as surged on a HasSurge card)
+			} else if k.t.Cards[c].HasOverload {
 				e.mode |= modeImpended // the overloaded cast (kw_overload.go: the bit reads as overloaded on a HasOverload card)
 			} else if k.t.Cards[c].HasEvoke {
 				e.spc |= spcEvoked // the evoked cast (kw_evoke.go)
@@ -146,10 +148,11 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		}
 	}
 	n0 := s.npend
-	if fl&sfKicked != 0 && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
+	if (fl&sfKicked != 0 || k.gen != nil && k.gen.anySurge && s.bld().e.surged(k)) && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
 		// (an optional waterbend cast taps nothing here: its window pays after
 		// the picks, manaStep's waterbendCastWindow, as gorge's convokeAsk
 		// precedes its manual window)
+		// (a surged cast is the same potential play: kw_surge.go)
 		// gorge has no planned kicked cast: the oracle lowers it by tapping
 		// the witness's sources at priority, then casts from the floating
 		// pool; the mana is spent at payment as usual. The witness is
@@ -616,6 +619,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		}
 		if cd.HasDash && e.impended() {
 			c = cd.DashCost // the dash cost (CR 702.109a; kw_dash.go)
+		}
+		if cd.HasSurge && e.surged(k) {
+			c = surgeCostOf(cd) // the surge cost (CR 702.117a; kw_surge.go)
 		}
 		if cd.HasOverload && e.overloaded(k) {
 			c = cd.OverloadCost // the overload cost (CR 702.96a; kw_overload.go)
@@ -1685,6 +1691,12 @@ func (s *State) finishBuild(k *prep) {
 		if s.bld().e.flags&sfFree != 0 && s.g.freeP&freeGY != 0 && s.bld().bfl&bflPushed != 0 {
 			s.stack[s.sp-1].flags |= sfFreeGY
 		}
+		if k.retrace && s.bld().bfl&bflPushed != 0 && jumpStartEntry(k, &e) && !DebugJumpStartNoExile {
+			// a paid jump-start cast is exiled whenever it leaves the stack
+			// (CR 702.84a; gorge FlagJumpstart): the flashback family's mark,
+			// stamped only now (kw_jumpstart.go)
+			s.stack[s.sp-1].flags |= sfFlashback
+		}
 		// ForgetPlayed$ True: this free cast now sits on the stack
 		// (CR 601.2a), the point where gorge's PlayDone pass sees it and
 		// drops it from the remembered set. A cast refused before the push,
@@ -2206,6 +2218,9 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 			}
 			s.bld().pickK = rest & -rest
 			s.bld().pickLeft = pc.N
+			if s.bld().pickK == pkDiscard {
+				s.bld().pickLeft += pc.Discard2N // the second discard part's picks follow (cost_discardfiltered.go)
+			}
 			if s.bld().pickK == pkSac && pc.N == 0 {
 				s.bld().pickLeft = e.x // Sac<X/Spec>: the announced X (cost_sacx.go; 0 asks nothing)
 			}
@@ -2256,11 +2271,15 @@ func (s *State) costCands(k *prep, c *kop.Cost, src Slot, d *Decision) {
 	case pkDiscard:
 		pl := &s.pl[e.ctrl]
 		// a filtered discard (CostDiscardFiltered) offers only the hand
-		// cards matching Cost.Filter (cost_discardfiltered.go)
-		fmatch := c.Flags&kop.CostDiscardFiltered != 0
+		// cards matching Cost.Filter (cost_discardfiltered.go); past the
+		// first part's picks a second part offers its own (Discard2F)
+		fmatch, f := c.Flags&kop.CostDiscardFiltered != 0, c.Filter
+		if s.discardPartTwo(c) {
+			fmatch, f = c.Discard2F != 0, c.Discard2F
+		}
 		for i := 0; i < int(pl.handN); i++ {
 			if o := pl.hand[i]; !s.picked(o) && o != e.obj &&
-				!(fmatch && !s.matchCardGen(k, c.Filter, s.objs[o].card, e.ctrl, e.ctrl, o)) {
+				!(fmatch && !s.matchCardGen(k, f, s.objs[o].card, e.ctrl, e.ctrl, o)) {
 				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
 			}
 		}
@@ -2449,7 +2468,7 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 		}
 		if s.bld().altAdd == buildAltCost {
 			if a := &cd.Abilities[k.gen.altFree[e.card]-1]; altPickCost(&a.Cost) {
-				return &a.Cost // the sacrifice / hand-exile alternative cost (Fireblast, Force of Will; cast_altfree.go)
+				return &a.Cost // the sacrifice / return / hand-exile alternative cost (Fireblast, Gush, Force of Will; cast_altfree.go)
 			}
 		}
 		if s.bld().altAdd == buildBeamGrant {
@@ -2517,19 +2536,8 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 // (and its life) for card or source src (exclude: a hand card not counted).
 func (s *State) pickCostPayable(k *prep, p uint8, c *kop.Cost, exclude Obj) bool {
 	f := c.Flags
-	if f&kop.CostDiscard != 0 {
-		// a filtered discard counts only the hand cards matching
-		// Cost.Filter, the excluded source not among them
-		// (cost_discardfiltered.go)
-		n := int(s.pl[p].handN)
-		if f&kop.CostDiscardFiltered != 0 {
-			n = s.discardCandN(k, p, c.Filter, exclude)
-		} else if exclude != NoObj && s.objs[exclude].zone == kop.ZoneHand {
-			n--
-		}
-		if n < int(c.N) {
-			return false
-		}
+	if f&kop.CostDiscard != 0 && !s.discardPayable(k, p, c, exclude) {
+		return false
 	}
 	if f&kop.CostSac != 0 && s.countCostSac(k, p, c, NoSlot) < int(c.N) {
 		return false

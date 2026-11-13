@@ -143,7 +143,7 @@ func stallPool(name string, halves []kop.CardDef, overrides []kop.Override, filt
 		defs[i].Name = ""
 		d.Defs = append(d.Defs, defs[i])
 	}
-	d.CardSubs = make([]kop.SubMask, len(defs))
+	d.CardSubs = make([]cardset.PoolSubMask, len(defs))
 	d.CardTokens = make([][]uint16, len(defs))
 	d.CardRefSubs = make([][]uint8, len(defs))
 	d.AbilityOrigin = make([][]uint8, len(defs))

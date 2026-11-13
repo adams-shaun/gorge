@@ -121,10 +121,13 @@ func selfDiscLine(a *kop.Ability) bool {
 }
 
 // fireSelfDisc fires the discarded card's own selfDiscLine triggers, in
-// ability order; its owner, who discarded it, controls them.
+// ability order; its owner, who discarded it, controls them. effect is false
+// for a cost discard, which has no causing spell or ability (gorge
+// trigmatch.DiscardCauseAdmits): a Tf5OppCause line fires only when the
+// resolving spell or ability is an opponent's of the owner's.
 //
 //go:noinline
-func (s *State) fireSelfDisc(k *prep, o Obj) {
+func (s *State) fireSelfDisc(k *prep, o Obj, effect bool) {
 	c := s.objs[o].card
 	cd := &k.t.Cards[c]
 	for j := range cd.Abilities {
@@ -133,6 +136,9 @@ func (s *State) fireSelfDisc(k *prep, o Obj) {
 			continue
 		}
 		p := s.objs[o].owner()
+		if a.Trig.Flags5&kop.Tf5OppCause != 0 && !(effect && s.res.active && s.res.e.ctrl != p) {
+			continue
+		}
 		l := trigListener{obj: o, sl: NoSlot, ctrl: p, card: c, ab: uint8(j)}
 		if !s.trigOK(k, l, a) {
 			continue

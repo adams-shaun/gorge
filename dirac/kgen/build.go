@@ -45,6 +45,7 @@ type ovSub struct {
 type built struct {
 	def      kop.CardDef
 	subs     []uint8        // pool subtype indexes of the printed type line
+	printed  []uint8        // a changeling's printed subs, before changelingSubs (cardset.PoolData.CardPrinted)
 	stAddSub [][]uint8      // per ability: the static's granted subtypes (pool indexes)
 	tokens   []int          // pool indexes of the tokens it creates
 	refSubs  []uint8        // pool subtypes the card's filters name
@@ -474,9 +475,8 @@ func (cb *cardBuilder) record() error {
 		return err
 	}
 	if c.Changeling {
-		for _, i := range cb.out.subs {
-			d.PrintedSubtypes = d.PrintedSubtypes.With(int(i))
-		}
+		// pool indexes, which a matchup renumbers into d.PrintedSubtypes
+		cb.out.printed = append([]uint8{}, cb.out.subs...)
 		cb.out.subs = changelingSubs(cb.pt, cb.out.subs)
 	}
 	if d.Keywords, err = kwMask(c.Kw); err != nil {
@@ -807,6 +807,14 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Surge != nil {
+		// CR 702.117a: the hand's alternative cost once another spell was
+		// cast this turn (dirac/kw_surge.go)
+		d.HasSurge = true
+		if d.SurgeCost, err = manaCostOf(*c.Surge); err != nil {
+			return err
+		}
+	}
 	if c.Overload != nil {
 		// CR 702.96a: the hand's alternative cost and the resolving program's
 		// each-variant (dirac/kw_overload.go)
@@ -901,6 +909,7 @@ func (cb *cardBuilder) record() error {
 			return fmt.Errorf("Retrace without its discard cost")
 		}
 		d.Retrace = true
+		d.JumpStart = c.JumpStart // CR 702.84a: Discard<1/Card> and the exile (dirac/kw_jumpstart.go)
 		if d.RetraceCost, err = cb.cost(*c.RetraceCost); err != nil {
 			return err
 		}
@@ -1117,6 +1126,16 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	}
 	if c.DiscardSelf {
 		out.Flags |= kop.CostDiscardSelf
+	}
+	if c.Discard2N > 0 {
+		// the second discard part of a spell's alternative cost
+		// (lower_discardtwo.go): its count and filter ride their own bytes
+		out.Discard2N = uint8(c.Discard2N)
+		if c.Discard2F != nil {
+			if out.Discard2F, err = cb.filter(c.Discard2F, kop.ZoneHand); err != nil {
+				return out, err
+			}
+		}
 	}
 	if c.Loyalty > 0 {
 		set(kop.CostAddCtr, c.Loyalty)

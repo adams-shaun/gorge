@@ -206,6 +206,12 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ := CastModeCode("foretell_cast")
 			return Pack(ActCast, src, RefNone, cm)
 		}
+		if mode == 0 && tgt == dirac.FeatCastSurgeTgt && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
+			// the surged cast (CR 702.117a; kernel kw_surge.go
+			// castSurgeTgt): gorge's "surged" cast option, AltCostIndex 0
+			cm, _ := CastModeCode("surged")
+			return Pack(ActCast, src, RefNone, cm)
+		}
 		if mode == 0 && tgt == 5 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
 			// the overloaded cast (CR 702.96a; kernel kw_overload.go
 			// castOverloadTgt): gorge's "overloaded" cast option, AltCostIndex
@@ -253,6 +259,9 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			// separates it from a granted flashback instance of the same
 			// card, which stays the plain mode-2 cast below.
 			cm, _ = CastModeCode("retrace")
+			if r.S.FeatJumpStartCard(dirac.Obj(src)) {
+				cm, _ = CastModeCode("jumpstart") // CR 702.84a: gorge's "jumpstart" option, CastModeOther as "retrace" (kw_jumpstart.go)
+			}
 		case mode&2 != 0 && tgt != 0:
 			cm, _ = CastModeCode("beam_me_up") // CastModeOther, as "harmonize"
 			if tgt == dirac.FeatBeamGrantTgt && r.S.FeatBeamPrinted(dirac.Obj(src)) {

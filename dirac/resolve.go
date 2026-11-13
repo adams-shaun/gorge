@@ -68,6 +68,9 @@ func (s *State) resolveTop(k *prep) {
 		if k.gen.anyRemPersist && remPersistSeeds(k, &e) {
 			s.remPersistSeed(k) // its source's kept set (zone_rememberpersist.go)
 		}
+		if k.gen.has(e.card, gfEnterRepl) {
+			s.seedEnterChosen(k, &e) // its source's as-enters chosen object (repl_choosecard.go)
+		}
 		// a damage sequence belongs to the resolution that started it: a new
 		// resolution drops any left over by an aborted one (repl_gen.go); the
 		// looked-at cards are the resolution's too (arm C of scr)

@@ -255,8 +255,8 @@ func (r *run) prepare(lookup pickbotCardLookup) error {
 		if r.meta.commander() {
 			// Every Commander-draft seat drafts and builds with the
 			// Commander persona (a human's is its suggestion and its
-			// timed-out pick).
-			r.drafters[s], r.builders[s] = commanderPersona(lookup)
+			// timed-out pick), scoring for the event's deck size.
+			r.drafters[s], r.builders[s] = commanderPersona(lookup, r.commanderDeckSize())
 			continue
 		}
 		persona := ms.Drafter

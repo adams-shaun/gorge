@@ -179,6 +179,12 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		if tr := lc.ab.Trigger; ddoObjectReferent(tr) {
 			return lRef{Kind: rTriggered}, nil
 		}
+		// a BecomesTarget watcher: the targeted permanent (gorge
+		// becomesTargetReferent), the trigger object the kernel's
+		// btWatchers queues
+		if tr := lc.ab.Trigger; tr != nil && tr.Event == "BecomesTarget" && tr.Watch && v == "TriggeredTarget" {
+			return lRef{Kind: rTriggered}, nil
+		}
 		// The player dealt the damage. The kernel's trigger player there is
 		// the opponent of the source's controller (two players), which is
 		// the damaged player when the damage is combat damage to a player,
@@ -955,6 +961,11 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 	if rerr != nil {
 		return rerr
 	}
+	if !isRes {
+		if ri, isRes, rerr = lc.resUnlessDiscard(strings.TrimSpace(uc)); rerr != nil { // lower_costtokens.go
+			return rerr
+		}
+	}
 	if isRes {
 		in = ri
 	} else if _, isVar := lc.face.SVars[strings.TrimSpace(uc)]; isVar {
@@ -1665,6 +1676,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if _, ok := ps.get("DefinedKW"); ok {
 			return lc.colorGrantPump(ps) // (Skrelv)
 		}
+		lc.chosenStrictPump(ps) // lower_choosecardenter.go
 		if done, err := lc.pumpYouAndValid(ps); done || err != nil {
 			return err // lower_definedheads.go
 		}
@@ -2274,6 +2286,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.debuff(ps)
 	case "Explore":
 		return lc.explore(ps)
+	case "Exploit":
+		return lc.exploit(ps) // lower_exploit.go
 	case "Discover":
 		return lc.discover(ps)
 	case "Hideaway":
@@ -3249,6 +3263,10 @@ const mustBeBlockedKW = "HIDDEN CARDNAME must be blocked if able."
 // ExtMustBeBlocked with C = MustBeBlockedLure.
 const lureKW = "HIDDEN All creatures able to block CARDNAME do so."
 
+// protEachColorKW is the PumpAll KW$ term "Protection from each color"
+// (Akroma's Will): a mark per colour, not a keyword bit (ExtColorGrant).
+const protEachColorKW = "Protection from each color"
+
 // splitKWSentence takes one mark sentence (mustBeBlockedKW,
 // cantAttackOrBlockKW) out of a KW$ list: the rest of the list (possibly
 // empty) and whether the sentence was there. Any other spelling stays in the
@@ -3340,11 +3358,15 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	if scope.Kind != rNone {
 		in.Note = "only the target player's permanents"
 	}
-	mustBlock := false
+	mustBlock, eachColor := false, false
 	if kw, ok := ps.get("KW"); ok {
 		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
 		if mustBlock && scope.Kind != rNone {
 			return refuse("PumpAll KW$ must be blocked if able with a ValidTgts$ player scope")
+		}
+		kw, eachColor = splitKWSentence(kw, protEachColorKW)
+		if eachColor && scope.Kind != rNone {
+			return refuse("PumpAll KW$ protection from each color with a ValidTgts$ player scope")
 		}
 		if kw != "" {
 			ks, err := pumpKeywords(kw)
@@ -3356,8 +3378,16 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	}
 	_, hasAtt := ps.m["NumAtt"]
 	_, hasDef := ps.m["NumDef"]
-	if !mustBlock || in.CS != "" || hasAtt || hasDef {
+	if !(mustBlock || eachColor) || in.CS != "" || hasAtt || hasDef {
 		lc.emit(in)
+	}
+	if eachColor {
+		// CR 702.16 + 611.2c: the permanents matching ValidCards$ as this
+		// resolves have protection from each color until end of turn (gorge
+		// sourceHasQuality's "each color": any coloured source). The same
+		// marks as a chosen-colour grant, one per colour (ExtColorGrant C
+		// cgProt|cgProtAll; Akroma's Will)
+		lc.emit(lInstr{Op: "ColorGrant", F: f, A: cst(0), C: 12, Note: "until end of turn: each matching permanent has protection from each color"})
 	}
 	if mustBlock {
 		lc.emit(lInstr{Op: "MustBeBlocked", F: f}) // every permanent matching ValidCards$

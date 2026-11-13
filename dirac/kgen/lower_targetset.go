@@ -164,11 +164,12 @@ func tgtSetLIR(t lTarget) string {
 // damaged player, or a damaged object's controller; the same predicate is
 // rechecked on resolution (rules/stack.go, CR 608.2b). Only a DamageDone /
 // DamageDealtOnce trigger whose recipient filter is exactly "an opponent"
-// (ValidTarget$ Opponent) is read: the slot reads an opponent's permanent
-// whose controller is the damaged seat (OppCtrl with
-// kop.PredTrigPlayerCtrl, the trigger entry's trigger player at any seat
-// count), and the kernel's slot filter (rechecked on resolution) carries
-// it. Anything else refuses.
+// (ValidTarget$ Opponent) or "a player" (ValidTarget$ Player) is read: the
+// battlefield slot reads a permanent whose controller is the damaged seat
+// (kop.PredTrigPlayerCtrl, the trigger entry's trigger player at any seat
+// count; with OppCtrl beside it for Opponent), and the kernel's slot filter
+// (rechecked on resolution) carries it. A graveyard card slot reads the
+// damaged seat's graveyard (kop.ParentTrigPl). Anything else refuses.
 func (lc *lowerCtx) tgtCtrlTriggeredTarget(t *lTarget) error {
 	tr := (*lTrigger)(nil)
 	if lc.ab != nil {
@@ -177,10 +178,31 @@ func (lc *lowerCtx) tgtCtrlTriggeredTarget(t *lTarget) error {
 	if tr == nil || !lc.trigBody || lc.ab.Latent || (tr.Event != "DamageDone" && tr.Event != "DamageDealtOnce") {
 		return refuse("TargetsWithDefinedController$ TriggeredTarget outside a damage trigger")
 	}
-	if tr.F2 == nil || tr.F2.Players != plOpp || len(tr.F2.Clauses) != 0 {
-		return refuse("TargetsWithDefinedController$ TriggeredTarget: the damaged recipient is not an opponent")
+	if tr.F2 == nil || tr.F2.Players != plOpp && tr.F2.Players != plBoth || len(tr.F2.Clauses) != 0 {
+		return refuse("TargetsWithDefinedController$ TriggeredTarget: the damaged recipient is not a player")
 	}
+	// ValidTarget$ Player: the damaged player may be the listener's
+	// controller (an enchanted creature an opponent controls hits them),
+	// so the slot is "controlled by the trigger player" with no
+	// opponent word; ValidTarget$ Opponent keeps its OppCtrl clause.
+	anyPl := tr.F2.Players == plBoth
 	f := t.F
+	if t.Zone == zGraveyard {
+		// "target card in that player's graveyard": a graveyard card is
+		// controlled by its owner (gorge zone moves reset Controller to
+		// Owner), so the slot is restricted to the trigger player's
+		// graveyard (kernel parentTargetOK, kop.ParentTrigPl)
+		if f == nil || f.Players != 0 || len(f.Clauses) == 0 || t.ParentPlus1 != 0 {
+			return refuse("TargetsWithDefinedController$ TriggeredTarget: not a graveyard card slot")
+		}
+		for _, c := range f.Clauses {
+			if c.Owner != 0 || c.Ctrl != 0 {
+				return refuse("TargetsWithDefinedController$ TriggeredTarget with an owner/controller filter")
+			}
+		}
+		t.ParentPlus1 = int(kop.ParentTrigPl)
+		return nil
+	}
 	if t.Zone != zBattlefield || f == nil || f.Players != 0 || len(f.Clauses) == 0 || t.ParentPlus1 != 0 {
 		return refuse("TargetsWithDefinedController$ TriggeredTarget: not a battlefield permanent slot")
 	}
@@ -191,8 +213,10 @@ func (lc *lowerCtx) tgtCtrlTriggeredTarget(t *lTarget) error {
 		if c.Owner != 0 || c.Ctrl != 0 {
 			return refuse("TargetsWithDefinedController$ TriggeredTarget with an owner/controller filter")
 		}
-		if err := c.setWho(&c.Ctrl, whoOpp); err != nil {
-			return err
+		if !anyPl {
+			if err := c.setWho(&c.Ctrl, whoOpp); err != nil {
+				return err
+			}
 		}
 		if err := c.setCmp(cmpTrigPlayerCtrl, 0, 0, "", ""); err != nil {
 			return refuse("TargetsWithDefinedController$ TriggeredTarget: %v", err)

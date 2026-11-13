@@ -13,6 +13,7 @@ import (
 
 	"github.com/adams-shaun/gorge"
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -159,6 +160,12 @@ func buildOneTable(name string, names []string, cardsDir, key string) (synthTabl
 		return synthTable{}, fmt.Errorf("%s: %w", name, err)
 	}
 	d, cv, _, err := tableOf(p, name, nil)
+	if err == nil && len(d.Subtypes) > kop.MaxSubtypes {
+		// A synthetic pool stays within one game table's subtypes: its decks are
+		// drawn from the whole list, so a wider list splits (a deck pool may be
+		// wider, cardset.PoolMaxSubtypes: its games are its decks').
+		err = fmt.Errorf("refusing the pool: %s %d subtypes, a synthetic pool's table holds %d", tableLimitMark, len(d.Subtypes), kop.MaxSubtypes)
+	}
 	if err != nil {
 		return synthTable{}, fmt.Errorf("%s: %w", name, err)
 	}
