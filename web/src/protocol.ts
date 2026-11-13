@@ -1986,10 +1986,6 @@ export interface EventSeries {
   join?: string;
 }
 
-  /**
-   * EventStanding is one row of the event standings: MTR Appendix C points
-   * and match/game win percentages.
-   */
 export interface EventStanding {
   seat: number;
   points: number;
@@ -1997,6 +1993,21 @@ export interface EventStanding {
   omw: number;
   gw: number;
   ogw: number;
+}
+
+  /**
+   * EventStanding is one row of the event standings: MTR Appendix C points
+   * and match/game win percentages.
+   * EventPodGame is one Commander-draft free-for-all game: every seat at one
+   * table. State is "pending", "live" or "ended"; Winner is nil while not
+   * ended and for a drawn game; Join only in the viewer's own state.
+   */
+export interface EventPodGame {
+  round: number;
+  state: string;
+  table?: string;
+  winner: number | null;
+  join?: string;
 }
 
   /**
@@ -2021,6 +2032,16 @@ export interface EventState {
   series: EventSeries[];
   standings: EventStanding[];
   error?: string;
+  /**
+   * PicksPerPass is how many cards a seat takes from each pack before
+   * passing it; omitted (1) outside a Commander draft. DeckSize is the
+   * deck's minimum size when it is not limited's 40 (a Commander draft's
+   * 60). Pod is a Commander draft's free-for-all games, one per event
+   * round; Series stays empty in such an event.
+   */
+  picks_per_pass?: number;
+  deck_size?: number;
+  pod?: EventPodGame[];
 }
 
   /**
@@ -2039,6 +2060,16 @@ export interface DraftCard {
   colors?: string;
   type_line?: string;
   promo?: boolean;
+  /**
+   * Identity, Commander and Partner are set only in a Commander-draft
+   * event: the card's colour identity (CR 903.4, a subset of "WUBRG"),
+   * whether it can be a commander on its own (CR 903.3), and whether it
+   * can be half of a Commander-draft pair (plain partner, or a
+   * partnerless legend of at most one colour: the draft partner rule).
+   */
+  identity?: string;
+  commander?: boolean;
+  partner?: boolean;
 }
 
   /**
@@ -2055,14 +2086,17 @@ export interface DraftPack {
   pick_no: number;
   time_limit_ms?: number;
   remaining_ms?: number;
+  /**
+   * PicksPerPass and PassPick appear only when a seat takes more than
+   * one card per pass: PassPick is which of those picks this is (1-based),
+   * so a client can show "second pick from this pack".
+   */
+  picks_per_pass?: number;
+  pass_pick?: number;
   pack: DraftCard[];
   pool: DraftCard[];
 }
 
-  /**
-   * PodProgress is the pod_progress body: how far every seat is through the
-   * current draft round, as public counts.
-   */
 export interface PodProgress {
   event: string;
   round: number;
@@ -2156,6 +2190,11 @@ export interface PickRequest {
 export interface DeckRequest {
   main: string[];
   basics: [number, number, number, number, number];
+  /**
+   * Commanders names a Commander-draft deck's one or two commanders, as
+   * ids Main also carries. Omitted in every other event.
+   */
+  commanders?: string[];
 }
 
   /**
@@ -2169,6 +2208,13 @@ export interface DeckCheck {
   error?: string;
   auto_lands: [number, number, number, number, number];
   rev?: number;
+  /**
+   * Identity is a Commander-draft deck's commanders' colour identity
+   * (a subset of "WUBRG"; "" for colourless or no commander), and Size
+   * the deck's minimum size; both omitted outside a Commander draft.
+   */
+  identity?: string;
+  size?: number;
 }
 
   /**
@@ -2241,6 +2287,11 @@ export interface EventSetInfo {
   name: string;
   pack_size: number;
   ratings: string;
+  /**
+   * Commander is true when this server hosts a Commander draft of the set
+   * (create's format "commander"); the lobby offers that mode only then.
+   */
+  commander?: boolean;
 }
 
   /**

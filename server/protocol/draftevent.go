@@ -25,6 +25,14 @@ type DraftCard struct {
 	Colors    string `json:"colors,omitempty"`    // subset of "WUBRG", in WUBRG order
 	TypeLine  string `json:"type_line,omitempty"` // face types, space-joined
 	Promo     bool   `json:"promo,omitempty"`     // the seat's prerelease promo (sealed pools only)
+	// Identity, Commander and Partner are set only in a Commander-draft
+	// event: the card's colour identity (CR 903.4, a subset of "WUBRG"),
+	// whether it can be a commander on its own (CR 903.3), and whether it
+	// can be half of a Commander-draft pair (plain partner, or a
+	// partnerless legend of at most one colour: the draft partner rule).
+	Identity  string `json:"identity,omitempty"`
+	Commander bool   `json:"commander,omitempty"`
+	Partner   bool   `json:"partner,omitempty"`
 }
 
 // EventSeat is one entrant of a draft event. Kind is "human" or "bot";
@@ -73,6 +81,17 @@ type EventSeries struct {
 
 // EventStanding is one row of the event standings: MTR Appendix C points
 // and match/game win percentages.
+// EventPodGame is one Commander-draft free-for-all game: every seat at one
+// table. State is "pending", "live" or "ended"; Winner is nil while not
+// ended and for a drawn game; Join only in the viewer's own state.
+type EventPodGame struct {
+	Round  int    `json:"round"`
+	State  string `json:"state"`
+	Table  string `json:"table,omitempty"`
+	Winner *int   `json:"winner"`
+	Join   string `json:"join,omitempty"`
+}
+
 type EventStanding struct {
 	Seat   int     `json:"seat"`
 	Points int     `json:"points"`
@@ -95,13 +114,21 @@ type EventState struct {
 	Round     int             `json:"round"`
 	BestOf    int             `json:"best_of"` // the event's series format (1 or 3)
 	PickTimer string          `json:"pick_timer,omitempty"`
-	Format    string          `json:"format,omitempty"`  // "sealed" | "prerelease"; omitted for a draft
+	Format    string          `json:"format,omitempty"`  // "sealed" | "prerelease" | "commander"; omitted for a draft
 	Rebuild   bool            `json:"rebuild,omitempty"` // MTR 7.3 continuous construction; true for sealed and prerelease by default
 	Seats     []EventSeat     `json:"seats"`
 	You       *int            `json:"you"`    // the viewer's seat when a valid seat token was presented
 	Series    []EventSeries   `json:"series"` // every pairing of rounds 1..3, round then pairing order
 	Standings []EventStanding `json:"standings"`
 	Error     string          `json:"error,omitempty"`
+	// PicksPerPass is how many cards a seat takes from each pack before
+	// passing it; omitted (1) outside a Commander draft. DeckSize is the
+	// deck's minimum size when it is not limited's 40 (a Commander draft's
+	// 60). Pod is a Commander draft's free-for-all games, one per event
+	// round; Series stays empty in such an event.
+	PicksPerPass int            `json:"picks_per_pass,omitempty"`
+	DeckSize     int            `json:"deck_size,omitempty"`
+	Pod          []EventPodGame `json:"pod,omitempty"`
 }
 
 // DraftPack is the draft_pack body: the pack waiting at a seat's queue head
@@ -109,19 +136,52 @@ type EventState struct {
 // this seat right now, so Pack and Pool carry their last-known (or empty)
 // contents.
 type DraftPack struct {
-	Event       string      `json:"event"`
-	Seat        int         `json:"seat"`
-	Waiting     bool        `json:"waiting"` // no pack queued for this seat right now
-	Round       int         `json:"round"`
-	PickNo      int         `json:"pick_no"`
-	TimeLimitMS int64       `json:"time_limit_ms,omitempty"` // 0 = no pick timer
-	RemainingMS int64       `json:"remaining_ms,omitempty"`
-	Pack        []DraftCard `json:"pack"`
-	Pool        []DraftCard `json:"pool"`
+	Event       string `json:"event"`
+	Seat        int    `json:"seat"`
+	Waiting     bool   `json:"waiting"` // no pack queued for this seat right now
+	Round       int    `json:"round"`
+	PickNo      int    `json:"pick_no"`
+	TimeLimitMS int64  `json:"time_limit_ms,omitempty"` // 0 = no pick timer
+	RemainingMS int64  `json:"remaining_ms,omitempty"`
+	// PicksPerPass and PassPick appear only when a seat takes more than
+	// one card per pass: PassPick is which of those picks this is (1-based),
+	// so a client can show "second pick from this pack".
+	PicksPerPass int         `json:"picks_per_pass,omitempty"`
+	PassPick     int         `json:"pass_pick,omitempty"`
+	Pack         []DraftCard `json:"pack"`
+	Pool         []DraftCard `json:"pool"`
 }
 
 // PodProgress is the pod_progress body: how far every seat is through the
 // current draft round, as public counts.
+// DraftAdvice is GET /api/events/{id}/advice: the seat's own drafter's
+// suggestion for the pack at its queue head, from what the seat itself sees
+// (its pack and its pool, nothing else). Picks are the best cards in score
+// order, as many as the seat still takes from this pack this pass; Plan is
+// the colour identity of the commander plan the drafter reads from the pool
+// ("" before the pool holds a commander). Waiting when no pack is queued.
+type DraftAdvice struct {
+	Event   string            `json:"event"`
+	Seat    int               `json:"seat"`
+	Waiting bool              `json:"waiting"`
+	Round   int               `json:"round"`
+	PickNo  int               `json:"pick_no"`
+	Plan    string            `json:"plan,omitempty"`
+	Picks   []DraftAdvicePick `json:"picks"`
+}
+
+// DraftAdvicePick is one suggested card: its score on the drafter's points
+// scale, the score's terms (value, commander and identity) and a short
+// reason spelling them.
+type DraftAdvicePick struct {
+	ID        string  `json:"id"`
+	Score     float64 `json:"score"`
+	Value     float64 `json:"value"`
+	Commander float64 `json:"commander,omitempty"`
+	Identity  float64 `json:"identity,omitempty"`
+	Reason    string  `json:"reason"`
+}
+
 type PodProgress struct {
 	Event  string `json:"event"`
 	Round  int    `json:"round"`
@@ -155,7 +215,7 @@ type CreateEventSeat struct {
 // for draft.
 type CreateEventRequest struct {
 	Set       string            `json:"set"`
-	Format    string            `json:"format,omitempty"`     // "" or "draft", "sealed", "prerelease"
+	Format    string            `json:"format,omitempty"`     // "" or "draft", "sealed", "prerelease", "commander"
 	BestOf    int               `json:"best_of,omitempty"`    // 0 = 1; 1 or 3
 	PickTimer string            `json:"pick_timer,omitempty"` // "", "off", "standard", "relaxed"
 	Rebuild   *bool             `json:"rebuild,omitempty"`    // nil = the format's default: true for sealed and prerelease, false for draft
@@ -199,6 +259,9 @@ type EventSetInfo struct {
 	Name     string `json:"name"`
 	PackSize int    `json:"pack_size"`
 	Ratings  string `json:"ratings"` // "17lands" | "simulated" | "heuristic"
+	// Commander is true when this server hosts a Commander draft of the set
+	// (create's format "commander"); the lobby offers that mode only then.
+	Commander bool `json:"commander,omitempty"`
 }
 
 // EventPersonas is the GET /api/events/personas reply: the registered
@@ -229,6 +292,9 @@ type PickRequest struct {
 type DeckRequest struct {
 	Main   []string `json:"main"`   // CardRef ids from the seat's pool
 	Basics [5]int   `json:"basics"` // W U B R G
+	// Commanders names a Commander-draft deck's one or two commanders, as
+	// ids Main also carries. Omitted in every other event.
+	Commanders []string `json:"commanders,omitempty"`
 }
 
 // DeckCheck is the deck-check reply: whether the submitted (or suggested)
@@ -240,6 +306,11 @@ type DeckCheck struct {
 	Error     string `json:"error,omitempty"`
 	AutoLands [5]int `json:"auto_lands"`    // basics AutoLands would add to this main
 	Rev       int    `json:"rev,omitempty"` // set by a successful save
+	// Identity is a Commander-draft deck's commanders' colour identity
+	// (a subset of "WUBRG"; "" for colourless or no commander), and Size
+	// the deck's minimum size; both omitted outside a Commander draft.
+	Identity string `json:"identity,omitempty"`
+	Size     int    `json:"size,omitempty"`
 }
 
 // EventPool is the GET /api/events/{id}/pool body: the seat's drafted cards,

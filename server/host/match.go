@@ -295,6 +295,7 @@ func (r *Registry) matchConfig(c TableConfig, k int, plan *SeriesGame) (game.Con
 			life = 40
 		}
 		gc.StartingLife = life
+		gc.DraftPartners = c.DraftPartners
 		gc.Commanders = make([][]int, c.Seats)
 		for i := range gc.Commanders {
 			gc.Commanders[i] = append([]int(nil), cmds[i]...)
@@ -396,7 +397,8 @@ func (m *match) sidecar() sidecar {
 		NameUniverseNames: append([]string(nil), m.g.Board().NameUniverseNames...),
 		PaidManaCensus:    !m.gc.DisablePaidManaCensus,
 		Format:            Format(m.gc.Format), StartingLife: m.gc.StartingLife, Commanders: m.gc.Commanders, BotPolicy: m.table.cfg.BotPolicy,
-		StartChooser: m.gc.StartChooser, Engine: m.table.cfg.Engine, EngineKey: m.gc.Key,
+		DraftPartners: m.gc.DraftPartners,
+		StartChooser:  m.gc.StartChooser, Engine: m.table.cfg.Engine, EngineKey: m.gc.Key,
 		Refusals: m.refusals, Fallbacks: m.fallbacks, RootRefusals: m.rootRefusals}
 }
 

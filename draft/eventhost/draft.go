@@ -79,6 +79,9 @@ func (r *run) advanceLobby() bool {
 	if r.meta.sealed() {
 		created.Mode, created.Promos = event.ModeSealed, r.meta.promos()
 	}
+	if r.meta.commander() {
+		created.Format, created.Structure, created.PicksPerPass = formatCommander, event.StructurePod, commanderPicksPerPass
+	}
 	if err := r.apply(created); err != nil {
 		return false
 	}
