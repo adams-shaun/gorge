@@ -244,7 +244,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		s.repeatEachCards(k, in) // act_repeatcards.go
 	case kop.OpRepeatEachPlayer:
 		q := s.eachPlayers(k, in.Obj)
-		if in.C&1 == 0 && in.Obj == kop.RefEachPlayer {
+		if in.C&1 == 0 && in.Obj == kop.RefEachPlayer { // seat-ok: an instruction flag bit
 			// the C=0 form keeps APNAP, also when the controller is the
 			// active player (C&1: gorge RepeatEach's AliveFrom)
 			q = s.aliveFrom(s.active)

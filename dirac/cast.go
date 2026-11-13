@@ -28,7 +28,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		s.cold.mkObj[o] = 0 // a card cast again starts with no payments (CR 702.43; kw_multikicker.go)
 	}
 	var fl uint8
-	if mode&1 != 0 {
+	if mode&1 != 0 { // seat-ok: a cast-mode bit
 		fl |= sfKicked
 	}
 	esc := escapeCast(k, c, mode, tgt) || s.g.escapeCast // a printed escape cast, or the target byte's granted escape (kw_escape.go)

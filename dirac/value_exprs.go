@@ -40,7 +40,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		}
 		return 0
 	case kop.ExScriedThisTurn:
-		return int(s.pl[SeatIx(ctx.ctrl)].scry>>(4*(x.N&1))) & 15
+		return int(s.pl[SeatIx(ctx.ctrl)].scry>>(4*(x.N&1))) & 15 // seat-ok: the scry nibble an operand selects
 	case kop.ExDilemmasFaced:
 		return int(s.g.dilemmas[SeatIx(ctx.ctrl)])
 	case kop.ExCastBattlefield:

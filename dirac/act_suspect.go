@@ -47,7 +47,7 @@ func (s *State) suspectNoBlock(k *prep, b Slot) bool {
 // with Obj RefNone (gorge effAlterAttribute over Defined$: battlefield
 // objects only), becomes suspected, or with C bit0 no longer suspected.
 func (s *State) suspectExt(k *prep, in *kop.Instr) {
-	set := in.C&1 == 0
+	set := in.C&1 == 0 // seat-ok: an instruction flag bit
 	if in.Obj == kop.RefNone {
 		var ord [MaxPerm]Slot
 		n := s.sweepHits(k, in.F, &ord)
@@ -82,7 +82,7 @@ func (s *State) suspectOne(k *prep, sl Slot, set bool) {
 // here: gorge reads it only at the emit choke point, so the ask is still posed
 // and suspectOne then swallows the answer.
 func (s *State) suspectWouldChange(k *prep, next *kop.Instr) bool {
-	set := next.C&1 == 0
+	set := next.C&1 == 0 // seat-ok: an instruction flag bit
 	if next.Obj == kop.RefNone {
 		var ord [MaxPerm]Slot
 		n := s.sweepHits(k, next.F, &ord)

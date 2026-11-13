@@ -209,7 +209,7 @@ func (s *State) changeTargets(k *prep, in *kop.Instr) bool {
 	if total == 0 {
 		return true
 	}
-	must := in.C&1 == 0
+	must := in.C&1 == 0 // seat-ok: an instruction flag bit
 	magnet := in.C&2 != 0
 	s.res.peekN = 0
 	var old, buf [MaxOptions]uint8
@@ -428,7 +428,7 @@ func (s *State) askOptionsStackRewrite(k *prep, d *Decision) bool {
 	if s.res.ask != raKsr {
 		return false
 	}
-	optional := s.prog(k)[s.res.pc].C&1 != 0
+	optional := s.prog(k)[s.res.pc].C&1 != 0 // seat-ok: an instruction flag bit
 	var buf [MaxOptions]uint8
 	n := s.ksrOffered(k, int(s.res.left)-1, int(s.res.chosen), !optional, &buf)
 	d.Sub = ChKsrTarget
@@ -463,7 +463,7 @@ func (s *State) applyAskStackRewrite(k *prep, a Action) bool {
 	r := &s.res
 	idx := int(r.left) - 1
 	d := int(r.chosen)
-	must := s.prog(k)[r.pc].C&1 == 0
+	must := s.prog(k)[r.pc].C&1 == 0 // seat-ok: an instruction flag bit
 	if a.Kind() == AkChoose {
 		if int(r.peekN) >= len(r.peek) {
 			s.capFull(StallMultiRetarget)
@@ -488,7 +488,7 @@ func (s *State) applyAskStackRewrite(k *prep, a Action) bool {
 // askOptionsKsrMagnet lists the places' targets (ChKsrTarget); Done leaves every
 // target when the redirect is Optional$.
 func (s *State) askOptionsKsrMagnet(k *prep, d *Decision) bool {
-	optional := s.prog(k)[s.res.pc].C&1 != 0
+	optional := s.prog(k)[s.res.pc].C&1 != 0 // seat-ok: an instruction flag bit
 	var codes, decl, pos [MaxOptions]uint8
 	n := s.ksrMagnetPlaces(k, &s.stack[int(s.res.left)-1], !optional, &codes, &decl, &pos)
 	d.Sub = ChKsrTarget
@@ -506,7 +506,7 @@ func (s *State) askOptionsKsrMagnet(k *prep, d *Decision) bool {
 func (s *State) applyAskKsrMagnet(k *prep, a Action) {
 	r := &s.res
 	if a.Kind() == AkChoose {
-		optional := s.prog(k)[r.pc].C&1 != 0
+		optional := s.prog(k)[r.pc].C&1 != 0 // seat-ok: an instruction flag bit
 		var codes, decl, pos [MaxOptions]uint8
 		e := &s.stack[int(r.left)-1]
 		n := s.ksrMagnetPlaces(k, e, !optional, &codes, &decl, &pos)

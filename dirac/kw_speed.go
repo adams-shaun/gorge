@@ -198,7 +198,7 @@ func (s *State) changeSpeedOp(k *prep, in *kop.Instr) {
 	for i := uint8(0); i < q.n; i++ {
 		p := q.s[i]
 		v := s.speedOf(p)
-		if in.C == 1 && v >= speedMaxV || in.C == 2 && v <= 1 || in.B.N&1 != 0 && v != 0 {
+		if in.C == 1 && v >= speedMaxV || in.C == 2 && v <= 1 || in.B.N&1 != 0 && v != 0 { // seat-ok: an instruction flag bit
 			if SpeedCounting {
 				SpeedCounts[SpeedCntDecreaseHeld].Add(1)
 			}

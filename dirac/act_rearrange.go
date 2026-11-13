@@ -55,7 +55,7 @@ func (s *State) rearrangeDone(k *prep) bool {
 		pl.libTop(o)
 	}
 	r.peekN, r.peekI, r.peekSel = 0, 0, 0
-	if in.C&1 != 0 {
+	if in.C&1 != 0 { // seat-ok: an instruction flag bit
 		r.ask, r.askP = raGenRearrShuffle, s.res.e.ctrl
 		return false
 	}

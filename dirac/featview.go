@@ -336,14 +336,14 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 		cost = k.t.Cards[c].Cost // the retrace cast's printed cost, whatever flashback the card also holds (kw_retrace.go)
 	} else if mode&2 != 0 {
 		cost = s.flashbackCostOf(k, o)
-	} else if mode&1 != 0 {
+	} else if mode&1 != 0 { // seat-ok: a cast-mode bit
 		cost = addCost(cost, kickerPayment(&k.t.Cards[c]))
 	}
 	if mode == 0 && k.gen != nil && k.gen.anyConvoke {
 		cost = s.convokeCredit(k, p&1, c, o, cost)
 	}
 	tb := false
-	if mode&4 != 0 || mode&1 != 0 && k.bargainRed && k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
+	if mode&4 != 0 || mode&1 != 0 && k.bargainRed && k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) { // seat-ok: a cast-mode bit
 		cost = s.bargainedPrice(k, p&1, c, o, cost) // the bargained cast's price, or the optional-cost cast's (cost_reducespell.go)
 	} else if s.statM.any() || k.gen != nil {
 		// a reduction applies to the total cost, a flashback or kicked one
@@ -356,7 +356,7 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	if k.gen != nil && k.t.Cards[c].SpellWaterbend != 0 {
 		cost = s.waterbendSpellCredit(k, p&1, c, o, cost) // act_waterbend.go
 	}
-	if mode&1 != 0 && k.gen != nil && k.t.Cards[c].OptWaterbend != 0 {
+	if mode&1 != 0 && k.gen != nil && k.t.Cards[c].OptWaterbend != 0 { // seat-ok: a cast-mode bit
 		// the kicked cast's OptionalCost Waterbend<N> credits with the own part (act_waterbend.go)
 		cost = s.waterbendCreditN(k, p&1, NoSlot, s.waterbendOwnPart(k, p&1, c, o)+int(k.t.Cards[c].OptWaterbend), cost)
 	}

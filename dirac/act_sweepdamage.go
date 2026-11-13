@@ -41,7 +41,7 @@ func (s *State) sweepFrom(k *prep, in *kop.Instr) {
 	var hs [MaxPerm]dmgHit
 	m := 0
 	for i := 0; i < cnt; i++ {
-		if sl := ord[i]; s.isCreature(k, sl) && (in.C&1 == 0 || sl != src) {
+		if sl := ord[i]; s.isCreature(k, sl) && (in.C&1 == 0 || sl != src) { // seat-ok: an instruction flag bit
 			hs[m] = dmgHit{src: src, dst: sl, n: int16(min(n, 1<<14))}
 			m++
 		}

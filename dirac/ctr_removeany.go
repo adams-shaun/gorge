@@ -84,7 +84,7 @@ func (s *State) rcaStep(k *prep, in *kop.Instr, sl Slot) bool {
 		if n == 0 {
 			break
 		}
-		if n > 1 || in.C&1 != 0 {
+		if n > 1 || in.C&1 != 0 { // seat-ok: an instruction flag bit
 			r.ask, r.askP = raRemCtrAny, r.e.ctrl
 			return false
 		}
@@ -127,7 +127,7 @@ func (s *State) askOptionsRca(k *prep, d *Decision) bool {
 			d.add(MakeAction(AkChoose, 0, 0, kinds[i]))
 		}
 	}
-	if in.C&1 != 0 && !put {
+	if in.C&1 != 0 && !put { // seat-ok: an instruction flag bit
 		d.add(MakeAction(AkDone, 0, 0, 0))
 	}
 	return true

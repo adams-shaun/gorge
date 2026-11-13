@@ -65,7 +65,7 @@ func (s *State) abReduceStaticApplies(k *prep, st statSrc, a *kop.Ability, sl Sl
 	if sa.B&kop.ReduceAbUnlock != 0 {
 		return false // an unlock-cost reduction never lowers an ability
 	}
-	if sa.B&1 != 0 && !a.Exhaust {
+	if sa.B&1 != 0 && !a.Exhaust { // seat-ok: an ability flag bit
 		return false
 	}
 	if sa.B&kop.ReduceAbPowerUp != 0 && a.Cost.Flags&kop.CostPowerUp == 0 {
