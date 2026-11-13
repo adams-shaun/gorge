@@ -40,6 +40,8 @@ type runner struct {
 	// packs, when non-nil, replaces openPacks as the event's pack source:
 	// the tests' synthetic 20-card Commander-draft packs.
 	packs func(r *runner, seed uint64) ([][][]limited.CardRef, error)
+	// valueLog, when non-nil, takes one -valuelog line per pod game.
+	valueLog io.Writer
 }
 
 // result is what one run produced, in the shape the tests assert on.
@@ -148,6 +150,23 @@ func run(o options, out io.Writer) (*result, error) {
 	}
 	if err := applyRatingsOverride(o, r, out); err != nil {
 		return nil, err
+	}
+	if o.pickExplore < 0 || o.pickExplore > 1 {
+		return nil, fmt.Errorf("-pick-explore must be in [0, 1], got %g", o.pickExplore)
+	}
+	if o.pickExplore > 0 {
+		r.drafter = &exploreDrafter{inner: r.drafter, p: o.pickExplore}
+	}
+	if o.valueLog != "" {
+		if sh.format != event.FormatCommander {
+			return nil, fmt.Errorf("-valuelog needs -format commander")
+		}
+		vf, err := os.OpenFile(o.valueLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+		if err != nil {
+			return nil, fmt.Errorf("opening -valuelog %s: %w", o.valueLog, err)
+		}
+		defer vf.Close()
+		r.valueLog = vf
 	}
 
 	var csvOut *os.File
