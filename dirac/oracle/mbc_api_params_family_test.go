@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestMBCApiParams5Lowers plays the MBC api-params-5 spellings kgen now
+// TestMBCApiParamsFamilyLowers plays the MBC api-params-5 spellings kgen now
 // lowers decision by decision against gorge, on a fixture pool built from the
 // decks (printedDelveSet), over seeds until each observable is met:
 //
@@ -23,7 +23,7 @@ import (
 //
 // Ardenn's Attach Object$ Valid ... Optional$ and Burrenton Forge-Tender's
 // ChooseSource stay refused (see the report), so they have no game here.
-func TestMBCApiParams5Lowers(t *testing.T) {
+func TestMBCApiParamsFamilyLowers(t *testing.T) {
 	reg := synthReg(t)
 	protectors := append(deckOf(8, "Swooping Protector"), deckOf(16, "Plains")...)
 
