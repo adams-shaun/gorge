@@ -1031,6 +1031,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.out.Flash = true
 		case head == "Decayed" && param == "":
 			lc.lowerDecayed() // lower_decayed.go
+		case head == "CantAttackOrBlock" && param == "":
+			lc.lowerCantAttackOrBlock() // lower_cantattackorblock.go
 		case head == "Infect" && param == "":
 			// CR 702.90: gorge damage riders read HasKeyword(source, "Infect")
 			lc.out.Infect = true
