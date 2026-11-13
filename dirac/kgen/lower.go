@@ -3044,6 +3044,14 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		if cost.Mana.X || cost.Mana.XX || cost.Mana.XXX {
 			lc.xPaidAb = ab
 		}
+		if cost.LoyaltyX {
+			// a planeswalker's [-X] (SubCounter<X/LOYALTY>, CR 606.4): the
+			// activation announces X with the other costs and the body's bare
+			// amount reads it -- the target bounds "untap X target artifacts"
+			// (Dyfed, the Guiding Hand) as much as an amount (gorge count.go
+			// raw "X" -> Ctx.X)
+			lc.xPaidAb = ab
+		}
 		if err := xminParam(&cost, ps, ab.Kind == akActivated); err != nil {
 			return err
 		}
