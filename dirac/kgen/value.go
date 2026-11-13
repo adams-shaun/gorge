@@ -1034,6 +1034,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	if spec, ok := strings.CutPrefix(rest, "LastStateBattlefieldWithFallback "); ok {
 		return lc.castBattlefieldValue(spec)
 	}
+	if v, ok := lc.chosenCtrlHand(rest); ok {
+		return v, nil // lower_chooseplayerenter.go
+	}
 	switch rest {
 	case "TotalDamageReceivedThisTurn":
 		// the positive damage the source received this turn (gorge

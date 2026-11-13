@@ -221,6 +221,19 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtUnlockDoor:
 		return s.extUnlockDoor(k, in), true // face_unlockdoor.go
+	case kop.ExtChoosePlayer:
+		// inside an as-enters program (runReplProgAs poses it); elsewhere
+		// the queued ask, as ExtChooseNumber
+		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
+			sl := s.objs[o].slot
+			if p := s.soleOpponent(s.perms[sl].ctrl); p != 255 {
+				s.perms[sl].chosen = p
+				s.touchSl(sl)
+			} else {
+				s.queueAsk(sl, akPlayer)
+			}
+		}
+		return true, true
 	case kop.ExtChooseNumber:
 		// inside an as-enters program: asked before the next priority
 		// (the OpChooseColor arm of execGen)

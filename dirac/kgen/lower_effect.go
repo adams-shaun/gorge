@@ -316,6 +316,9 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 	if r, ok := lc.chosenPlayerDefined(v); ok {
 		return r, nil // lower_definedheads.go
 	}
+	if r, ok := lc.chosenPlayerEnterDefined(v); ok {
+		return r, nil // lower_chooseplayerenter.go
+	}
 	switch v {
 	case "OppNonRememberedController":
 		// gorge definedSpecNonRememberedController: the opponents minus every

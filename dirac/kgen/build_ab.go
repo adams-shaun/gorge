@@ -835,6 +835,10 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		if ka.Trig, err = cb.trigger(a.Trigger); err != nil {
 			return ka, err
 		}
+		if ka.Trig.Whose == kop.WhoseChosen && (a.Latent || a.Trigger.Event != "Phase" || a.Trigger.Zone != zBattlefield) {
+			// the kernel reads it only for a printed battlefield Phase listener (chosenIs)
+			return ka, fmt.Errorf("Player.Chosen outside a printed battlefield Phase trigger")
+		}
 		if ka.Trig.Whose == kop.WhoseEnchCtrl && (a.Latent || a.Trigger.Event != "Phase" || a.Trigger.Zone != zNone && a.Trigger.Zone != zBattlefield) {
 			// the kernel reads it only for a printed battlefield Phase listener
 			return ka, fmt.Errorf("EnchantedController outside a printed battlefield Phase trigger")
@@ -4860,6 +4864,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.C = kop.OpChooseType, int16(in.C) // C: a card-type category's offered types (lower_choosetype.go)
 	case "ChooseName":
 		buildChooseName(&ki, in.B.N) // an as-enters card name (lower_choosename.go)
+	case "ChoosePlayerEnter":
+		// an as-enters opponent (lower_chooseplayerenter.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtChoosePlayer))
 	case "ChooseNumber":
 		// an as-enters number from B to C (lower_choosenumber.go)
 		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumber)), kop.Const(in.B.N), int16(in.C)

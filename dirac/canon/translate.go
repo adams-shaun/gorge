@@ -1003,6 +1003,9 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		// gorge's counter_kind pick (removeCounterAny), compared by the
 		// counter kind (mode), not gorge's carrier-order position
 		return Pack(kind("counter"), RefNone, RefNone, mode), true
+	case dirac.ChGenPlayer:
+		// gorge effChoosePlayer's "player" option names the seat
+		return Pack(kind("player"), RefNone, RefPlayer+Ref(mode), 0), true
 	case dirac.ChGenColor:
 		// gorge indexes its colour options densely: with an Exclude$
 		// colour dropped (Citadel Gate) the index is the colour's rank

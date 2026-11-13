@@ -539,6 +539,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// gorge playerEnchantedController: the bearer's controller
 			w, ok = whoEnchCtrl, true
 		}
+		if tp.str("ValidPlayer") == "Player.Chosen" && lc.granted == 0 && tr.Zone == zBattlefield && entersChoosingPlayer(lc.face) {
+			// the opponent the source chose as it entered (lower_chooseplayerenter.go)
+			w, ok = whoChosen, true
+		}
 		if tp.str("ValidPlayer") == "You.descended" {
 			// gorge playerSpecQualifierDescended (CR 700.11): a permanent
 			// card entered your graveyard this turn, read as the trigger
@@ -4004,6 +4008,13 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 				return err
 			}
 		case "ChoosePlayer":
+			if !other && node == sa && !spyglassChain(sa) {
+				// the as-enters opponent (lower_chooseplayerenter.go)
+				if err := lc.etbChoosePlayer(ps, node, sa, other, cond); err != nil {
+					return err
+				}
+				break
+			}
 			// Sorcerous Spyglass's chain head (lower_choosename.go spyglassChain)
 			if other || node != sa || !spyglassChain(sa) {
 				return refuse("ETB replacement api ChoosePlayer")
