@@ -8,14 +8,13 @@ import (
 	"github.com/adams-shaun/gorge/engine/events"
 )
 
-// Chaos Lord's upkeep trigger (`DB$ GainControl | Defined$ Self |
-// ValidTgts$ Opponent | ConditionCheckSVar$ X | ConditionSVarCompare$ EQ0`
-// with `SVar:X:Count$Valid Permanent/Mod.2`) hands the Lord to an opponent on
-// even permanents. This plays the two-seat deck the divergence was measured on
-// (8 Chaos Lord, 10 Hill Giant, 22 Mountain on both sides, every offered
-// attacker declared, casting Chaos Lord then Hill Giant) against gorge
-// decision by decision: a parity read that only the kernel gets wrong shows up
-// as a control change on one side alone.
+// Chaos Lord's upkeep trigger hands the Lord to a targeted opponent when the
+// number of permanents is even: the GainControl body is gated on an SVar
+// holding the permanent count mod 2, compared equal to zero. This plays the
+// two-seat deck the divergence was measured on (8 Chaos Lord, 10 Hill Giant,
+// 22 Mountain on both sides, every offered attacker declared, casting Chaos
+// Lord then Hill Giant) against gorge decision by decision: a parity read that
+// only the kernel gets wrong shows up as a control change on one side alone.
 //
 // The table is built from the card names alone (printedDelveSet), so a
 // spelling kgen still refuses fails the case at Matchup.
