@@ -2159,7 +2159,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		} else if st.Cost, err = lc.altCostCost(sp.str("Cost")); err != nil {
 			return nil, err
 		}
-		if st.Cost.Forage != nil || st.Cost.ExileG != nil && !st.Cost.ExileHand || st.Cost.Energy != 0 || st.Cost.Return != nil {
+		// a Return<N/Spec> part lowers alone (Gush, Thwart, Daze: the
+		// kernel's return alternative, build_ab.go altReturnOK); beside any
+		// other part build_ab.go refuses it as a non-mana alternative
+		if st.Cost.Forage != nil || st.Cost.ExileG != nil && !st.Cost.ExileHand || st.Cost.Energy != 0 {
 			return nil, refuse("alternative cost with a forage / exile-from-graveyard part")
 		}
 	case "Activations":

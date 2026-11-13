@@ -2449,7 +2449,7 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 		}
 		if s.bld().altAdd == buildAltCost {
 			if a := &cd.Abilities[k.gen.altFree[e.card]-1]; altPickCost(&a.Cost) {
-				return &a.Cost // the sacrifice / hand-exile alternative cost (Fireblast, Force of Will; cast_altfree.go)
+				return &a.Cost // the sacrifice / return / hand-exile alternative cost (Fireblast, Gush, Force of Will; cast_altfree.go)
 			}
 		}
 		if s.bld().altAdd == buildBeamGrant {

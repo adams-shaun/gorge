@@ -2255,6 +2255,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, fmt.Errorf("alternative cost with a forage / exile-from-graveyard part")
 		}
 		sacAlt := ka.Cost.Flags == kop.CostSac && ka.Cost.N > 0 && ka.Cost.Mana == (kop.ManaCost{}) && cb.altSacOK()
+		// the return alternative (Gush's "return two Islands you control to
+		// their owner's hand rather than pay this spell's mana cost"): the
+		// sacrifice shape with the permanents returned (kernel cast_altfree.go
+		// altReturnCost, the cast's pkReturn picks)
+		sacAlt = sacAlt || ka.Cost.Flags == kop.CostReturn && ka.Cost.N > 0 && ka.Cost.Mana == (kop.ManaCost{}) && cb.altSacOK()
 		if !sacAlt && !cb.altHandExileOK(&ka.Cost) && (ka.Cost.Flags != 0 || ka.Cost.N != 0 || ka.Cost.Mana.X != 0) {
 			// the kernel offers a mana-only alternative cost
 			// (prepAltFree); a Return / Sac / PayLife / exile-from-hand
