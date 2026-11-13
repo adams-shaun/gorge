@@ -45,8 +45,8 @@ func TestMBCCounters1Lowerings(t *testing.T) {
 	t.Run("experience", func(t *testing.T) {
 		const src = "Name:Exp Probe\nManaCost:1\nTypes:Artifact\n" +
 			"A:AB$ PutCounter | Cost$ T | Defined$ You | CounterType$ Experience | CounterNum$ 1 | SpellDescription$ You get an experience counter.\n" +
-			"A:AB$ GainLife | Cost$ 1 | LifeAmount$ X | SpellDescription$ Gain life.\n" +
-			"SVar:X:Count$YourCountersExperience\nOracle:x\n"
+			"A:AB$ GainLife | Cost$ 1 | LifeAmount$ ExpRead | SpellDescription$ Gain life.\n" +
+			"SVar:ExpRead:Count$YourCountersExperience\nOracle:x\n"
 		d, exprs, rs := mbcCounters1Build(t, "Exp Probe", src)
 		if len(rs) != 0 {
 			t.Fatalf("refused: %v", rs)
