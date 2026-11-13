@@ -147,7 +147,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
 	// +1 (MBC keywords-4: a static-granted Saddle:N lowered as a latent AB$ AlterAttribute the static lists in Grant: Jandor, Fortuned Traveler; ALL 23437 -> 23438, MBC 1724 -> 1725 measured).
-	"ALL": {23438, 34442},
+	// +6 (MBC keywords-4: a static-granted Living Weapon as a latent ChangesZone Self trigger, Ekthi, Contaminator Priest; K:Escalate:<mana> on Spree's per-mode-cost path, Collective Resistance, Collective Defiance, Borrowed Grace, Borrowed Hostility, Borrowed Malevolence; ALL 23438 -> 23444, MBC 1725 -> 1727 measured).
+	"ALL": {23444, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {219, 280},
@@ -162,7 +163,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
-	"MBC": {1725, 2188},
+	"MBC": {1727, 2188},
 	"MKM": {251, 279},
 	"MOM": {201, 296},
 	"MSH": {246, 276},
