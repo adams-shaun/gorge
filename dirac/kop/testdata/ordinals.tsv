@@ -1505,6 +1505,7 @@ W7CostBlue	int16	14
 W7CrewedBySrc	int16	13
 W7EnchantedByYours	int16	8
 W7EnteredFromBF	int16	24
+W7EnteredFromLib	int16	30
 W7FaceUp	int16	5
 W7FaceUpDisguise	int16	23
 W7GreatestPower	int16	2
