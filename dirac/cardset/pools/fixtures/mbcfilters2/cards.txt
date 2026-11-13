@@ -1,4 +1,4 @@
-# the MBC filters-2 spelling family (dirac/oracle/mbc_filters2_test.go
+# the MBC filters-2 spelling family (dirac/oracle/mbc_populate_lowers_test.go
 # TestMBCFilters2Lowers): CopyPermanent Populate$ True (Rootborn Defenses,
 # Trostani's Judgment) beside two creature-token makers of different tokens
 # (Raise the Alarm's Soldiers, Dragon Fodder's Goblins, so a populate has a
