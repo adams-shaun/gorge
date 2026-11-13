@@ -631,7 +631,9 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// twoSeat-at-caller: lowerCtx.filter marks the card)
 		c.Flags |= fAttacking
 		return c.setWho(&c.Ctrl, whoOpp)
-	case "YouCtrl":
+	case "YouCtrl", "YourTeamCtrl":
+		// gorge predicates["YourTeamCtrl"] reads YouCtrl: gorge models no
+		// teams, so a player's team is that player alone (Combo Attack)
 		return c.setWho(&c.Ctrl, whoYou)
 	case "OppCtrl", "YouDontCtrl":
 		return c.setWho(&c.Ctrl, whoOpp)
