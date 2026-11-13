@@ -49,6 +49,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtExHaste:
 		s.exHaste(k, in) // static_cantblockexcept.go
 		return true, true
+	case kop.ExtAsgnGrant:
+		s.asgnGrant(k, in) // combat_asgngrant.go
+		return true, true
 	case kop.ExtMayPlayGrave:
 		s.mayPlayGrave(k, in) // cast_graveyardgrant.go
 		return true, true

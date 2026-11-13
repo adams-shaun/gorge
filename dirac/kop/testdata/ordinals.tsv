@@ -445,6 +445,7 @@ ExYourTurns	ExprKind	251
 ExtAddPhase	ExtOp	193
 ExtAegisClone	ExtOp	80
 ExtAirbend	ExtOp	95
+ExtAsgnGrant	ExtOp	173
 ExtAttacksIfAble	ExtOp	255
 ExtBecomeMonarch	ExtOp	259
 ExtBlocksIfAble	ExtOp	256
