@@ -3,7 +3,7 @@ package kgen
 import (
 	"strings"
 
-	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/rules/scriptfacts"
 )
 
 // splitEvolveGrant takes every bare "Evolve" term out of a `&` keyword list:
@@ -25,10 +25,26 @@ func splitEvolveGrant(kw string) (string, int) {
 	return strings.Join(rest, " & "), n
 }
 
+// grantEvolve takes the bare Evolve terms out of a static's granted keyword
+// list and appends one latent trigger per instance to st.Grant (CR 702.100a,
+// 113.2c), returning the rest of the list. Lives here so lowerCtx.continuous
+// gains one call, not another per-instance loop.
+func (lc *lowerCtx) grantEvolve(kw string, st *lStatic) (string, error) {
+	rest, n := splitEvolveGrant(kw)
+	for ; n > 0; n-- {
+		idx, err := lc.evolveGrantTrigger()
+		if err != nil {
+			return "", err
+		}
+		st.Grant = append(st.Grant, idx)
+	}
+	return rest, nil
+}
+
 // evolveGrantTrigger lowers the trigger a granted Evolve gives its holder
 // (CR 702.100a; Tyranid Prime, Propagator Drone) as a latent ability and
 // returns its index, one per card. It has the printed expansion's shape
-// (cards.kwEvolve): ChangesZone to the battlefield of another creature you
+// (cards.kwEvolve, via scriptfacts): ChangesZone to the battlefield of another creature you
 // control, Evolve$ True (readEvolveCondition folds it into Tf2Evolve), body
 // DB$ PutCounter P1P1 on Self. The kernel lists it once per granting static
 // among the holder's granted triggers (grantedAbilitiesN), so the holder
@@ -40,14 +56,14 @@ func (lc *lowerCtx) evolveGrantTrigger() (int, error) {
 			return i, nil
 		}
 	}
-	t := cards.Trigger{
-		Mode: "ChangesZone",
-		Params: map[string]string{"Mode": "ChangesZone", "Destination": "Battlefield",
-			"ValidCard": "Creature.YouCtrl+Other", "Evolve": "True", "TriggerDescription": "Evolve"},
-		Effect: &cards.SA{Kind: "DB", API: "PutCounter", Params: map[string]string{
-			"Defined": "Self", "CounterType": "P1P1", "CounterNum": "1",
-		}},
+	// One shared shape: the same synthesizer gorge queues the granted
+	// trigger from (scriptfacts.GrantedKeywordTrigger), so the kernel and the
+	// engine cannot drift apart on what a granted Evolve is.
+	tp := scriptfacts.GrantedKeywordTrigger("Evolve")
+	if tp == nil {
+		return 0, refuse("granted Evolve lowering")
 	}
+	t := *tp
 	idx := len(lc.out.Abilities)
 	if err := lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "") }); err != nil {
 		return 0, err

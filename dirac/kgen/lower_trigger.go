@@ -2605,7 +2605,10 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		rest, melee := splitMeleeGrant(rest)
 		rest, exalted := splitExaltedGrant(rest)
-		rest, evolve := splitEvolveGrant(rest)           // lower_evolvegrant.go
+		rest, err = lc.grantEvolve(rest, st) // lower_evolvegrant.go
+		if err != nil {
+			return nil, err
+		}
 		rest, myriad := splitMyriadGrant(rest)           // lower_myriad.go
 		rest, st.ProtFrom, err = lc.splitProtGrant(rest) // lower_protgrant.go
 		if err != nil {
@@ -2646,16 +2649,6 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			// once per instance (lower_exaltedgrant.go; gorge
 			// rules/melee.go)
 			idx, err := lc.exaltedGrantTrigger()
-			if err != nil {
-				return nil, err
-			}
-			st.Grant = append(st.Grant, idx)
-		}
-		for ; evolve > 0; evolve-- {
-			// CR 702.100a granted: one latent ETB Evolve trigger, listed
-			// once per instance (lower_evolvegrant.go; gorge
-			// rules/trigger_granted.go)
-			idx, err := lc.evolveGrantTrigger()
 			if err != nil {
 				return nil, err
 			}
