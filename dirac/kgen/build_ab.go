@@ -4298,6 +4298,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
+	case "Extort":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtExtort)) // dirac/act_extort.go
 	case "Fog":
 		ki.Op = kop.OpFog
 	case "LoseGame":

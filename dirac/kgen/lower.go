@@ -716,6 +716,9 @@ func (lc *lowerCtx) lowerRecord() {
 			out.Types |= b
 			continue
 		}
+		if t == "World" {
+			out.World = true // CR 704.5k (kernel zone_worldrule.go)
+		}
 		out.Subtypes = append(out.Subtypes, t)
 	}
 	out.NoAbilities = effects.FaceHasNoAbilities(f, out.Types&tLand != 0)
@@ -1242,6 +1245,15 @@ func (lc *lowerCtx) lowerKeywords() {
 			// (lower_meleegrant.go), and the only one on a face-down or
 			// ability-less holder (CR 708.2, 613.7).
 			if !faceHasMeleeTrigger(lc.face) {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
+		case head == "Extort" && param == "":
+			// CR 702.101a: gorge kwExtort expands the keyword into a
+			// SpellCast trigger (DB$ Extort), lowered from that line
+			// (lower_effect.go's Extort arm). The keyword itself has no
+			// CardDef bit; a face whose expansion is missing would lose
+			// the trigger silently.
+			if !faceHasExtortTrigger(lc.face) {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
 		case head == "Partner with":

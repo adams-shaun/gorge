@@ -14,7 +14,7 @@
 // target decisions.
 //
 // The adapter never sets SeatConfig.Source: the clairvoyant world source is
-// a bench-only injection (bots/azmcts/clairvoyant), and a hosted entry
+// a bench-only injection (the private companion module's `clairvoyant` package), and a hosted entry
 // with it would clone the real engine.
 package azredeal
 

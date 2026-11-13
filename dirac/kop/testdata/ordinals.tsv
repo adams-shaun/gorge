@@ -481,6 +481,7 @@ ExtExchangeControl	ExtOp	244
 ExtExileEmbRem	ExtOp	319
 ExtExileExMark	ExtOp	51
 ExtExileLandChoose	ExtOp	162
+ExtExtort	ExtOp	302
 ExtFinalityCtr	ExtOp	198
 ExtGrantExile	ExtOp	249
 ExtGrantPanharm	ExtOp	248

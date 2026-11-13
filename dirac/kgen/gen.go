@@ -374,6 +374,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Leyline {
 		fmt.Fprintf(w, " leyline")
 	}
+	if c.World {
+		fmt.Fprintf(w, " world")
+	}
 	if c.SelfFlash {
 		fmt.Fprintf(w, " selfflash")
 	}

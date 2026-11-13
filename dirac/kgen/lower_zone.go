@@ -364,15 +364,10 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			if err != nil {
 				return err
 			}
-			// DefinedPlayer$: whose library is searched. Gorge reads it for
-			// this ChangeZone shape (params.DefinedPlayerRef); absent or
-			// blank is the controller's own library.
-			obj := lRef{Kind: rYou}
-			if dp, ok := ps.get("DefinedPlayer"); ok && strings.TrimSpace(dp) != "" {
-				var err error
-				if obj, err = lc.definedPlayer(strings.TrimSpace(dp)); err != nil {
-					return err
-				}
+			// DefinedPlayer$: whose library is searched (lower_eachsearch.go)
+			obj, err := lc.searchOwner(ps, arm != nil)
+			if err != nil {
+				return err
 			}
 			// Optional$ True/You gates the search on the fetching player's
 			// yes/no before any pick (gorge zone_hand.go optionalConfirmMarker
@@ -460,6 +455,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			if err := lc.rememberSearcher(ps, obj, flags); err != nil { // lower_remembersearcher.go
 				return err
 			}
+			lc.eachSearchLoop(obj) // lower_eachsearch.go
 			lc.emit(lInstr{Op: "Search", Obj: obj, A: n, F: f, C: dest, CS: strings.Join(flags, "|")})
 			if clear != nil {
 				lc.emit(*clear)

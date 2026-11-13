@@ -53,7 +53,7 @@ import (
 //     controller's graveyard (Descend upon the Sinful's DB$ Token), read
 //     through Host.DeliriumHolds — the same census the "Delirium —"
 //     activation/continuous/replacement gates already share. The other
-//     bare-Condition values (OptionalCost, Bargain, Threshold,
+//     bare-Condition values (OptionalCost, Bargain,
 //     Hellbent, Surge — ~25 SAs) stay unresolved.
 //  5. `ConditionDefined$ Imprinted` (34 corpus lines over 26 files) — the
 //     source card's persistent imprint list (state.Object.Imprinted, the
@@ -479,8 +479,9 @@ func conditionMetCore(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	// Host.DeliriumHolds (the same census the "Delirium —" activation,
 	// continuous and replacement gates read, so the spellings cannot drift);
 	// OptionalCost is the self-spell OptionalCost static's paid provenance,
-	// selected by ConditionOptionalPaid$; the other corpus values
-	// (Threshold, Hellbent, Surge) are classified unmodelled
+	// selected by ConditionOptionalPaid$; Threshold is seven or more cards in
+	// the controller's graveyard; the other corpus values
+	// (Hellbent, Surge) are classified unmodelled
 	// (conditionUnmodelledBare) and so fail CLOSED with a Note at the walk,
 	// never running their rider. A bare Condition beside a group key or
 	// beside ConditionSVarCompare$ is a mixed shape no single evaluator
@@ -1030,6 +1031,14 @@ func conditionBareMet(h Host, c *Ctx, bare, optionalPaid string) (bool, bool) {
 		// (Balin, Loremaster), the state playerHasEnduringStory reads.
 		p := int(c.Controller)
 		return p >= 0 && p < len(g.Players) && g.Players[p].EnduringStory, true
+	case strings.EqualFold(bare, "Threshold"):
+		// The Threshold ability word: seven or more cards in the resolving
+		// controller's graveyard (Demoralize's can't-block rider). CardCount is
+		// the primitive the rules-side thresholdHolds wraps, so an ephemeral
+		// token (CR 704.5d) never counts on either side. An out-of-range
+		// controller denies -- a graveyard this build cannot name holds nothing.
+		p := c.Controller
+		return p >= 0 && int(p) < len(g.Players) && g.CardCount(state.ZGraveyard, p) >= 7, true
 	case strings.EqualFold(bare, "OptionalCost"):
 		// CR 601.2b/601.2f: "If this spell's additional cost was paid" (Ruinous
 		// Waterbending's waterbend, the behold Exhales, Undergrowth's {2}{R}).

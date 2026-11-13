@@ -2614,6 +2614,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		rest, melee := splitMeleeGrant(rest)
 		rest, exalted := splitExaltedGrant(rest)
+		rest, extort := splitExtortGrant(rest)           // lower_extortgrant.go
 		rest, myriad := splitMyriadGrant(rest)           // lower_myriad.go
 		rest, st.ProtFrom, err = lc.splitProtGrant(rest) // lower_protgrant.go
 		if err != nil {
@@ -2654,6 +2655,16 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			// once per instance (lower_exaltedgrant.go; gorge
 			// rules/melee.go)
 			idx, err := lc.exaltedGrantTrigger()
+			if err != nil {
+				return nil, err
+			}
+			st.Grant = append(st.Grant, idx)
+		}
+		for ; extort > 0; extort-- {
+			// CR 702.101a/b granted: one latent SpellCast trigger, listed
+			// once per instance (lower_extortgrant.go; gorge
+			// rules/scriptfacts)
+			idx, err := lc.extortGrantTrigger()
 			if err != nil {
 				return nil, err
 			}
