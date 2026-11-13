@@ -22,17 +22,18 @@ var ignoredParams = map[string]bool{
 	"AIPreferenceOverride": true, "Ultimate": true, "MayPlayText": true, "Keyword": true,
 	"ConditionDescription": true, "SelectPrompt": true,
 	"GiftDescription": true, "CostDesc": true, "ValidTgtsDesc": true,
-	"SacMessage":             true, // Forge SacrificeEffect's prompt text; gorge never reads it
-	"DefinedDesc":            true, // ChangeZone caption text ("that card"); gorge lists it in params.DescriptiveKeys (descriptive.go), never read
-	"AIPhyrexianPayment":     true, // Forge's AI hint for paying a Phyrexian pip with life; gorge never reads it
-	"ChangeValidDesc":        true, // Dig/ChangeZone caption text ("nonland"); gorge lists it in params.DescriptiveKeys (descriptive.go), never read
-	"IfDesc":                 true, // caption text; gorge lists it in params.DescriptiveKeys (descriptive.go), never read
-	"NoPutDesc":              true, // caption text; gorge lists it in params.DescriptiveKeys (descriptive.go), never read
-	"PrimaryPrompt":          true, // caption text; gorge lists it in params.DescriptiveKeys (descriptive.go), never read
-	"AINoRecursiveCheck":     true, // Forge AI hint: only in gorge's accepted-key lists (params/mana.go, params/dealdamage.go, changezone_params.go), never read
-	"AIXMax":                 true, // Forge AI hint for the X it announces: only in gorge's accepted-key lists (changezone_params.go, params/*.go), never read
+	"SacMessage":         true, // Forge SacrificeEffect's prompt text; gorge never reads it
+	"DefinedDesc":        true, // ChangeZone caption text ("that card"); gorge lists it in params.DescriptiveKeys (descriptive.go), never read
+	"AIPhyrexianPayment": true, // Forge's AI hint for paying a Phyrexian pip with life; gorge never reads it
+	"ChangeValidDesc":    true, // Dig/ChangeZone caption text ("nonland"); gorge lists it in params.DescriptiveKeys (descriptive.go), never read
+	"IfDesc":             true, // caption text; gorge lists it in params.DescriptiveKeys (descriptive.go), never read
+	"NoPutDesc":          true, // caption text; gorge lists it in params.DescriptiveKeys (descriptive.go), never read
+	"PrimaryPrompt":      true, // caption text; gorge lists it in params.DescriptiveKeys (descriptive.go), never read
+	"AINoRecursiveCheck": true, // Forge AI hint: only in gorge's accepted-key lists (params/mana.go, params/dealdamage.go, changezone_params.go), never read
+	"AIXMax":             true, // Forge AI hint for the X it announces: only in gorge's accepted-key lists (changezone_params.go, params/*.go), never read
+	"UnlessAI":           true, // Forge AI hint (CopySpellAbilityAi / the unless-cost AI: whether the AI pays or copies); gorge never reads it (engine/rules/paramcensus_test.go records it as an AI hint)
+
 	"AIRespondsToOwnAbility": true, // Forge AI hint (Sensei's Divining Top: the AI may respond to its own activation); gorge never reads it
-	"UnlessAI":               true, // Forge AI hint (CopySpellAbilityAi / the unless-cost AI: whether the AI pays or copies); gorge never reads it (engine/rules/paramcensus_test.go records it as an AI hint)
 }
 
 // params tracks which parameters of one IR node the lowering read, so an
