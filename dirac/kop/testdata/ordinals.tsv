@@ -377,6 +377,7 @@ ExGraveTypes	ExprKind	41
 ExHandSizeOf	ExprKind	26
 ExHighestOppPoison	ExprKind	45
 ExIfCastOwnMain	ExprKind	224
+ExJoinForces	ExprKind	64
 ExKicked	ExprKind	7
 ExLastLifeLost	ExprKind	22
 ExLeftZone	ExprKind	249
@@ -485,6 +486,7 @@ ExtFinalityCtr	ExtOp	198
 ExtGrantExile	ExtOp	249
 ExtGrantPanharm	ExtOp	248
 ExtHideaway	ExtOp	8
+ExtJoinForces	ExtOp	320
 ExtLibSweep	ExtOp	101
 ExtLockActs	ExtOp	140
 ExtManaChoice	ExtOp	100
@@ -682,7 +684,7 @@ NumCounterKinds	CounterKind	7
 NumCounterKinds2	CounterKind	13
 NumCounterKinds3	CounterKind	74
 NumCounterKindsX	int	59
-NumExtOps	ExtOp	320
+NumExtOps	ExtOp	330
 NumManaKinds	untyped int	6
 NumSteps	Step	13
 OpAddMana	Op	48

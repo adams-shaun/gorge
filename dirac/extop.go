@@ -240,6 +240,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtTurnFaceUp:
 		return s.extTurnFaceUp(k, in), true // face_turnupeffect.go
+	case kop.ExtJoinForces:
+		s.joinForcesAdd(s.value(k, in.B)) // scratch.go
+		return true, true
 	case kop.ExtDistCounters:
 		return s.distPickStart(k, in), true // ctr_distpick.go
 	case kop.ExtExileEmbRem:

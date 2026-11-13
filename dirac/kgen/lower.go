@@ -224,6 +224,15 @@ type lowerCtx struct {
 	repeatCard int
 	// repeatOpp: that body repeats over the controller's opponents
 	repeatOpp bool
+	// repeatAllPl: that body repeats over every player (RepeatPlayers$ Player)
+	repeatAllPl bool
+	// joinForcesName is the accumulator SVar the current top-level node's
+	// chain writes (lower_storesvar.go joinForcesStore), joinForcesReset once
+	// its trailing write of 0 has been lowered; joinForcesNames every
+	// accumulator any node of the card wrote
+	joinForcesName  string
+	joinForcesReset bool
+	joinForcesNames map[string]bool
 	// repeatCheckSVar is the SVar an enclosing gated Repeat's
 	// RepeatCheckSVar$ names, while that body is lowered; repeatCheckAb is
 	// its ability, so a StoreSVar$ after the loop (the reset) still matches
@@ -689,6 +698,7 @@ func (lc *lowerCtx) guard(node string, fn func() error) {
 	lc.guardNode = node
 	defer func() { lc.guardNode = savedNode }()
 	lc.excess = ""
+	lc.joinForcesName, lc.joinForcesReset = "", false
 	if err := fn(); err != nil {
 		lc.refuseNode(node, "%s", err.Error())
 	}

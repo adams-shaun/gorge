@@ -40,6 +40,18 @@ func (lc *lowerCtx) value(raw string) (lValue, error) {
 		// ChosenNumber, ahead of any SVar (lower_choosenumber.go)
 		return lValue{Kind: vChosenNumber}, nil
 	}
+	if lc.joinForcesNames[raw] {
+		// the join-forces total (lower_storesvar.go): the kernel keeps it for
+		// one resolution, so only the chain that wrote it reads it, before
+		// its trailing reset
+		switch {
+		case raw != lc.joinForcesName:
+			return lValue{}, fmt.Errorf("join-forces total %q read outside the chain that writes it", raw)
+		case lc.joinForcesReset:
+			return lValue{}, fmt.Errorf("join-forces total %q read after its reset", raw)
+		}
+		return lValue{Kind: vJoinForces, Neg: neg}, nil
+	}
 	body, ok := lc.face.SVars[raw]
 	if !ok && raw == lc.rollName && lc.rollAb == lc.ab && lc.ab != nil {
 		// gorge Num: a RollDice ResultSVar$ publication, read after the

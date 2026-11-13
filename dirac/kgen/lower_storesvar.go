@@ -18,6 +18,9 @@ func (lc *lowerCtx) storeSVar(ps *params) error {
 	expr := strings.TrimSpace(ps.str("Expression"))
 	cond := strings.TrimSpace(ps.str("ConditionCheckSVar"))
 	cmp := strings.TrimSpace(ps.str("ConditionSVarCompare"))
+	if ok, err := lc.joinForcesStore(ps, name, typ, expr); ok || err != nil {
+		return err
+	}
 	if lc.repeatCheckSVar == "" || name != lc.repeatCheckSVar || lc.ab != lc.repeatCheckAb || typ != "Number" {
 		return refuse("api StoreSVar")
 	}
@@ -32,6 +35,52 @@ func (lc *lowerCtx) storeSVar(ps *params) error {
 	}
 	ps.consume("SVar", "Type", "Expression", "ConditionCheckSVar", "ConditionSVarCompare")
 	return nil
+}
+
+// joinForcesStore lowers the join-forces accumulator (Collective Voyage, Minds
+// Aglow, Alliance of Arms, Shared Trauma, Mana-Charged Dragon): inside a
+// RepeatPlayers$ Player loop, "StoreSVar SVar$ acc | Type$ CountSVar |
+// Expression$ acc/Plus.Y" under UnlessCost$ Y (Y = Count$ChosenNumber), the
+// unless wrapper (lc.unless) having the repeated player pay what they chose.
+// It adds the paid amount to the resolution's total (kop.ExtJoinForces); the
+// chain's trailing "Type$ Number | Expression$ 0" write resets it. The total
+// is read back only by the same top-level node's chain (lc.value). Any other
+// shape reports ok=false for the caller's refusal, or an error when it is
+// the accumulator's own variant that does not fit.
+func (lc *lowerCtx) joinForcesStore(ps *params, name, typ, expr string) (bool, error) {
+	switch {
+	case typ == "CountSVar" && expr == name+"/Plus.Y":
+		sv := lc.face.SVars
+		if strings.TrimSpace(sv[name]) != "Number$0" || strings.TrimSpace(sv["Y"]) != "Count$ChosenNumber" ||
+			ps.str("UnlessCost") != "Y" || ps.str("UnlessPayer") != "Player.IsRemembered" || !ps.is("UnlessSwitched", "True") {
+			return false, nil
+		}
+		if lc.repeatPl == 0 || !lc.repeatAllPl {
+			return true, refuse("api StoreSVar: join-forces accumulator outside a RepeatEach over every player")
+		}
+		if lc.joinForcesName != "" && lc.joinForcesName != name {
+			return true, refuse("api StoreSVar: a second join-forces accumulator %q in one chain", name)
+		}
+		y, err := lc.value("Y")
+		if err != nil {
+			return true, err
+		}
+		lc.joinForcesName, lc.joinForcesReset = name, false
+		if lc.joinForcesNames == nil {
+			lc.joinForcesNames = map[string]bool{}
+		}
+		lc.joinForcesNames[name] = true
+		ps.consume("SVar", "Type", "Expression")
+		lc.emit(lInstr{Op: "ExtJoinForces", B: y})
+		return true, nil
+	case typ == "Number" && expr == "0" && name == lc.joinForcesName && lc.repeatPl == 0 &&
+		ps.str("ConditionCheckSVar") == "" && ps.str("UnlessCost") == "":
+		lc.joinForcesReset = true
+		ps.consume("SVar", "Type", "Expression")
+		lc.emit(lInstr{Op: "ExtJoinForces", B: cst(0)})
+		return true, nil
+	}
+	return false, nil
 }
 
 // pumpRememberImprinted lowers a Pump that only rebinds the remembered set to

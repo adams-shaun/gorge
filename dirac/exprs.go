@@ -301,6 +301,8 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 	switch x.Kind {
 	case kop.ExConst:
 		v = int(x.N)
+	case kop.ExJoinForces:
+		v = int(s.resArm().jf)
 	case kop.ExX:
 		if e != nil {
 			v = int(e.x)

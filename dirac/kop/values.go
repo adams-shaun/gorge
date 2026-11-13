@@ -570,6 +570,11 @@ const ExCounterKinds ExprKind = 225
 // most the one opponent. Explicit ordinal, the iota tail stays untouched.
 const ExTargetPlayers ExprKind = 223
 
+// ExJoinForces: the resolution's join-forces total, the sum of every
+// ExtJoinForces B since the last reset (0 at the start of each resolution).
+// Explicit ordinal in the free low range; the iota tail stays untouched.
+const ExJoinForces ExprKind = 64
+
 // ExNotOwnLibMV: the summed mana value of the library cards in the
 // resolution's remembered set that the repeated player (an OpRepeatEachPlayer
 // in progress) does not own: Parker Luck's Count$ValidLibrary

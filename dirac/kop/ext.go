@@ -231,8 +231,9 @@ const (
 	// NumExtOps is a fixed capacity of the sub-op tables, not last+1: a new
 	// sub-op takes the next free value below it (values are pinned by
 	// testdata/ordinals.tsv) and never edits this line. Unused slots stay
-	// unnamed. Raise it only when the free values run out.
-	NumExtOps ExtOp = 320
+	// unnamed. Raise it only when the free values run out (310-319 were all
+	// taken when ExtJoinForces was added, so it went 320 -> 330).
+	NumExtOps ExtOp = 330
 )
 
 // ExtDrainMana: the player in Obj loses all unspent mana (gorge

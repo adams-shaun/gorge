@@ -4809,6 +4809,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
+	case "ExtJoinForces":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtJoinForces)) // lower_storesvar.go
 	case "RememberImprinted":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRememberImprinted)) // Tainted Pact
 	case "AddTurn":
