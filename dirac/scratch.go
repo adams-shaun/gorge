@@ -103,17 +103,17 @@ func (s *State) scrResEnter() {
 	s.resArm().jf = 0          // the join-forces total is per resolution
 }
 
-// joinForcesAdd runs ExtJoinForces: B > 0 adds to the resolution's join-forces
-// total (saturating at 32767), B = 0 resets it (the chain's trailing
+// joinForcesAdd runs ExtJoinForces: it adds b to the resolution's join-forces
+// total (saturating at 32767), or zeroes it when reset (the chain's trailing
 // StoreSVar$ 0). Each ask is at most numberOfferCeiling and there are at most
 // MaxSeats askers, so the total stays far below the saturation.
-func (s *State) joinForcesAdd(b int) {
+func (s *State) joinForcesAdd(b int, reset bool) {
 	a := s.resArm()
-	if b <= 0 {
+	if reset {
 		a.jf = 0
 		return
 	}
-	a.jf = int16(min(int(a.jf)+b, 32767))
+	a.jf = int16(min(int(a.jf)+max(b, 0), 32767))
 }
 
 // scrCombatEnter starts a combat damage step's scratch afresh (damageStep,

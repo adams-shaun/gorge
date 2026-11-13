@@ -4810,7 +4810,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, err
 		}
 	case "ExtJoinForces":
-		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtJoinForces)) // lower_storesvar.go
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtJoinForces)), int16(in.C) // lower_storesvar.go
 	case "RememberImprinted":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRememberImprinted)) // Tainted Pact
 	case "AddTurn":

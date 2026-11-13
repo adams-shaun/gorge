@@ -3,6 +3,8 @@ package kgen
 import (
 	"strings"
 	"testing"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // joinForcesProg is every instruction of every ability of c, in order.
@@ -52,8 +54,8 @@ func TestJoinForcesAccumulatorLowers(t *testing.T) {
 	}
 	// the reset after the read lowers as ExtJoinForces 0
 	prog := joinForcesProg(lowerCorpusCard(t, "Shared Trauma"))
-	if last := prog[len(prog)-1]; last.Op != "ExtJoinForces" || !last.B.isConst() || last.B.N != 0 {
-		t.Errorf("Shared Trauma's last op = %s B=%v, want the ExtJoinForces 0 reset", last.Op, last.B)
+	if last := prog[len(prog)-1]; last.Op != "ExtJoinForces" || last.C != kop.JoinForcesReset {
+		t.Errorf("Shared Trauma's last op = %s C=%d, want the ExtJoinForces reset (C %d)", last.Op, last.C, kop.JoinForcesReset)
 	}
 	cv := lowerCorpusCard(t, "Collective Voyage")
 	if len(cv.Refusals) != 1 || !strings.Contains(cv.Refusals[0].Reason, "ChangeZone DefinedPlayer$ Player") {

@@ -142,7 +142,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +24 (mid-resolution ChooseNumber lowers: ChooseNumberMid, with Count$ChosenNumber and the dynamic PayEnergy<X> unless cost; an activated {X} energy cost stays refused rather than losing its amount; merged onto land c70201715c: ALL 23076 -> 23100, WOE 263 -> 264 measured).
 	// -1 (Gilded Light refuses: its until-end-of-turn player shroud lowered to a keyword grant that lands on no permanent; ALL 23105 -> 23104 measured).
 	// +16 (the merge with land at 1acc5919d9: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering beside land's later work; merged ALL 23115 -> 23131, WOE stays 264 measured).
-	"ALL": {23177, 34442},
+	// +4 (the join-forces StoreSVar accumulator: Minds Aglow, Alliance of Arms, Shared Trauma, Mana-Charged Dragon; Collective Voyage stays refused; ALL 23177 -> 23181 measured).
+	"ALL": {23181, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {218, 280},

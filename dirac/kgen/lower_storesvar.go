@@ -1,6 +1,10 @@
 package kgen
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // lower_storesvar.go: the two constant StoreSVar$ writes Tainted Pact's chain
 // makes to its own RepeatCheckSVar$. gorge lets a StoreSVar$ shadow the
@@ -77,7 +81,7 @@ func (lc *lowerCtx) joinForcesStore(ps *params, name, typ, expr string) (bool, e
 		ps.str("ConditionCheckSVar") == "" && ps.str("UnlessCost") == "":
 		lc.joinForcesReset = true
 		ps.consume("SVar", "Type", "Expression")
-		lc.emit(lInstr{Op: "ExtJoinForces", B: cst(0)})
+		lc.emit(lInstr{Op: "ExtJoinForces", B: cst(0), C: kop.JoinForcesReset})
 		return true, nil
 	}
 	return false, nil

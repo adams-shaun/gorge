@@ -21,6 +21,9 @@ func TestJoinForcesAccumulator(t *testing.T) {
 	add := func(n int) {
 		t.Helper()
 		in := kop.Instr{Op: kop.OpExt, A: kop.Const(int(kop.ExtJoinForces)), B: kop.Const(n)}
+		if n < 0 { // the reset form
+			in.B, in.C = kop.Const(0), kop.JoinForcesReset
+		}
 		if _, done := sc.s.execExt(sc.k, &in); !done {
 			t.Fatal("ext dispatch did not claim ExtJoinForces")
 		}
@@ -39,8 +42,12 @@ func TestJoinForcesAccumulator(t *testing.T) {
 		t.Fatalf("after adding 3 then 4: %d, want 7", g)
 	}
 	add(0)
+	if g := got(); g != 7 {
+		t.Fatalf("after adding 0 (a player who paid nothing): %d, want 7 kept", g)
+	}
+	add(-1)
 	if g := got(); g != 0 {
-		t.Fatalf("after the reset (B = 0): %d, want 0", g)
+		t.Fatalf("after the reset (C = JoinForcesReset): %d, want 0", g)
 	}
 	add(5)
 	if g := got(); g != 5 {
