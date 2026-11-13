@@ -12,9 +12,8 @@ const laboratoryManiacSrc = `Name:Laboratory Maniac
 ManaCost:2 U
 Types:Creature Human Wizard
 PT:2/2
-R:Event$ Draw | ActiveZones$ Battlefield | ValidPlayer$ You | IsPresent$ Card.YouOwn | PresentZone$ Library | PresentCompare$ EQ0 | ReplaceWith$ Win | Description$ If you would draw a card while your library has no cards in it, you win the game instead.
-SVar:Win:DB$ WinsGame | Defined$ You
-Oracle:If you would draw a card while your library has no cards in it, you win the game instead.
+R:Event$ Draw | ValidPlayer$ You | ActiveZones$ Battlefield | ReplaceWith$ WinNow | PresentZone$ Library | IsPresent$ Card.YouOwn | PresentCompare$ EQ0 | Description$ Fixture: win instead of drawing from an empty library.
+SVar:WinNow:DB$ WinsGame | Defined$ You
 `
 
 // TestLaboratoryManiacWinsOnEmptyLibraryDraw pins CR 614.11: a Draw
