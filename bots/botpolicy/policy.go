@@ -823,6 +823,11 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			break
 		}
 		switch d.Options[0].Kind {
+		case "splice":
+			// CR 702.47a: splicing is optional and the policy declines it (a
+			// later policy ticket may splice for value); Clamp admits the
+			// empty answer (AllowNone).
+			return Clamp(d, in)
 		case "destination":
 			// A non-MANDATORY DestAltSVar$ "may put it onto the battlefield
 			// instead" (Green Sun's Twilight, Caravan Vigil, Emeria

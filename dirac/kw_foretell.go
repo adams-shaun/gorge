@@ -161,8 +161,8 @@ func (s *State) offerForetellCasts(k *prep, d *Decision, p uint8, sorc bool) {
 func (s *State) foretellPoolPays(k *prep, p uint8, o Obj, c CardID) bool {
 	a := s.poolAvailPlus(p, nil)
 	if s.rbAny(p) {
-		s.restrAvail(k, p&1, c, s.restrOriginOfObj(o), &a)
+		s.restrAvail(k, SeatIx(p), c, s.restrOriginOfObj(o), &a)
 	}
-	cost := s.adjustFit(k, &a, p&1, c, o, k.t.Cards[c].ForetellCost, k.gen != nil)
+	cost := s.adjustFit(k, &a, SeatIx(p), c, o, k.t.Cards[c].ForetellCost, k.gen != nil)
 	return a.affords(&cost, pipMaskOf(&cost), 0)
 }

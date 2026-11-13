@@ -171,14 +171,14 @@ type Net struct {
 	// version) -- the same inputs, summed in another order.
 	Materialize bool
 	parts       *feat.Parts
-	vecW        int                 // w.vecW
-	bagSum      []float32           // vecW wide
-	ext         []policynet.Feature // the encoded state's extension block (empty when off)
-	ptab        [2][]float32        // per seat: a row sum of vecW per parts slot (feat PartSlots)
-	pver        [2][feat.PartSlots]uint32
+	vecW        int                       // w.vecW
+	bagSum      []float32                 // vecW wide
+	ext         []policynet.Feature       // the encoded state's extension block (empty when off)
+	ptab        [dirac.MaxSeats][]float32 // per seat: a row sum of vecW per parts slot (feat PartSlots)
+	pver        [dirac.MaxSeats][feat.PartSlots]uint32
 	sumRows     []policynet.Feature
-	pvec        [2][feat.PartSlots][2]uint32 // the version of each slot's card vectors, not castable and castable
-	pvv         [2][]float32                 // per seat: 2 card vectors of vecW per parts slot
+	pvec        [dirac.MaxSeats][feat.PartSlots][2]uint32 // the version of each slot's card vectors, not castable and castable
+	pvv         [dirac.MaxSeats][]float32                 // per seat: 2 card vectors of vecW per parts slot
 	cin         []netsimd.CardIn
 	raws        [][feat.EntityRawWidth]float32
 	miss        []int32
@@ -235,8 +235,10 @@ func New(w *Weights, pool *feat.Pool) *Net {
 		n.cin = make([]netsimd.CardIn, maxCards)
 		n.raws = make([][feat.EntityRawWidth]float32, maxCards)
 		n.miss = make([]int32, 0, maxCards)
-		n.pvv = [2][]float32{make([]float32, feat.PartSlots*2*w.vecW), make([]float32, feat.PartSlots*2*w.vecW)}
-		n.ptab = [2][]float32{make([]float32, feat.PartSlots*w.vecW), make([]float32, feat.PartSlots*w.vecW)}
+		for s := range n.pvv {
+			n.pvv[s] = make([]float32, feat.PartSlots*2*w.vecW)
+			n.ptab[s] = make([]float32, feat.PartSlots*w.vecW)
+		}
 		n.sumRows = make([]policynet.Feature, 0, dirac.MaxObj)
 		n.pst = policynet.State{Dense: make([]float32, feat.DenseWidth), Cards: n.cards}
 		w.g.Eval(&n.sc, &n.pst, n.popts, n.score)
@@ -360,12 +362,7 @@ func (n *Net) state(s *dirac.State, d *dirac.Decision, seat uint8) {
 func (n *Net) prepParts(s *dirac.State, d *dirac.Decision, seat uint8) {
 	g := n.w.g
 	p := n.enc.EncodeParts(s, d, seat)
-	if seat > 1 {
-		// the per-seat caches (ptab, pver, pvec, pvv) hold two seats: seat
-		// 2 would alias seat 0's rows silently
-		panic(fmt.Sprintf("neteval: seat %d: the parts caches hold two seats", seat))
-	}
-	se := seat & 1
+	se := dirac.SeatIx(seat) // the per-seat caches (ptab, pver, pvec, pvv) hold every seat
 	n.parts, n.partSeat = p, se
 	n.ext = featSlice(p.Ext)
 	tab := n.ptab[se]

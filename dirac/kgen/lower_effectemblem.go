@@ -135,13 +135,13 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 	}
 	ps.consume("Name", "Image", "Stackable")
 	left := ps.unread()
-	if allCantBeCast(ss) || lc.monarchGate(ps) {
-		// the Effect's own ConditionPresent$ (Bilbo's Gambit: the gift was
-		// promised) or monarch check (Aragorn, lower_monarch.go) guards the
-		// whole node; the node's condition read runs after this lowering
-		// and the node's own unread check refuses what it does not read
-		left = slices.DeleteFunc(left, func(k string) bool { return strings.HasPrefix(k, "Condition") })
-	}
+	// The Effect's own Condition*$ keys (ConditionPresent$, the monarch's
+	// ConditionCheckSVar$) guard the whole node: the node's condition read
+	// (nodeCondition, lower_effect.go) runs after this lowering, puts a
+	// SkipIf over the node alone, and refuses any key it does not read.
+	// gorge checks a sub-ability's conditions at resolution for every API
+	// (engine/effects/conditions.go), so the deferral is not a narrowing.
+	left = slices.DeleteFunc(left, func(k string) bool { return strings.HasPrefix(k, "Condition") })
 	if len(left) > 0 {
 		return refuse("Effect static unread %v", left)
 	}
@@ -484,15 +484,4 @@ func emblemFiltersRefuseHost(where string, fs ...*lFilter) error {
 		}
 	}
 	return nil
-}
-
-// allCantBeCast reports whether every StaticAbilities$ body is Mode$
-// CantBeCast (a non-empty list).
-func allCantBeCast(ss []cards.Static) bool {
-	for _, s := range ss {
-		if s.Mode != "CantBeCast" {
-			return false
-		}
-	}
-	return len(ss) > 0
 }

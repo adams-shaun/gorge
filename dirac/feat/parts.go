@@ -212,10 +212,10 @@ func (e *Encoder) partKey(c *vcard, role uint8, seat uint8) uint64 {
 // EncodeParts encodes s at d from seat's view as parts.
 func (e *Encoder) EncodeParts(s *dirac.State, d *dirac.Decision, seat uint8) *Parts {
 	seat, me, opp := e.prelude(s, d, seat)
-	if e.parts[seat&1] == nil {
-		e.parts[seat&1] = newPartsSeat()
+	if e.parts[dirac.SeatIx(seat)] == nil {
+		e.parts[dirac.SeatIx(seat)] = newPartsSeat()
 	}
-	ps := e.parts[seat&1]
+	ps := e.parts[dirac.SeatIx(seat)]
 	p := &ps.p
 	p.Dense = e.st.Dense
 	ps.start, ps.novf = ps.use+1, 0

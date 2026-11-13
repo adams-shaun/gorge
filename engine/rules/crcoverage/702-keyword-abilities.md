@@ -93,7 +93,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.44c | not-impl | - | - | LOUD (coverage gate, through Modular) |
 | 702.45a,b | partial | `engine/cards/kw_bushido.go#kwBushido` `engine/rules/trigger_blocks.go#Engine.checkBlocksTriggers` `engine/rules/trigger_blocks.go#Engine.checkAttackerBlockedTriggers` | `TestBushidoPumpsOnBlocksAndBecomesBlocked` | printed K:Bushido expands to the two block triggers; granted Bushido (Fumiko the Lowblood, Sensei Golden-Tail's Animate) not synthesized |
 | 702.46a,b | not-impl | - | - | LOUD (26); SILENT granted (Kodama of the Center Tree) |
-| 702.47a-e | not-impl | - | - | LOUD (30) |
+| 702.47a-e | follows | `engine/rules/splice.go#Engine.spliceAsk` `engine/rules/splice.go#Engine.runSplicedSegments` | `TestSpliceOntoArcaneRevealAndCost` `TestSpliceAddedTextTargetsAreItsOwn` `TestSpliceNonManaCostSacrifices` `TestSpliceCounteredLeavesTheCardsInHand` `TestSpliceQualityAndPayabilityGateTheOffer` | splice cost folded in as an additional cost, reveal Note, per-text target stages, texts resolve after the spell's own in chosen order |
 | 702.48a-c | not-impl | - | - | LOUD (6) |
 | 702.49a-d | follows | `engine/cards/kw_ninjutsu.go#kwNinjutsu` | `TestNinjutsuOrochiSoulReaverAndFallenShinobiFromHand` |  |
 | 702.50a,b | not-impl | - | - | LOUD (5) |

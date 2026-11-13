@@ -17,6 +17,7 @@ type killFix struct {
 
 func newKillFix(meLife, oppLife int32) *killFix {
 	e := &Encoder{}
+	e.v.n = 2
 	e.v.players[0].life, e.v.players[1].life = meLife, oppLife
 	return &killFix{e: e}
 }

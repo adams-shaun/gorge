@@ -1,0 +1,13 @@
+# Blossoming Calm's player-hexproof lockstep pool, for
+# dirac/oracle/blossomingcalm_lockstep_test.go: Blossoming Calm (you gain
+# hexproof until your next turn, a next-turn StatPlayerHexproof emblem) beside
+# Sign in Blood's target-player draw and life loss, which an opponent cannot
+# aim at the hexproof player and its caster can, and Doom Blade over vanilla
+# creatures.
+Blossoming Calm
+Sign in Blood
+Doom Blade
+Savannah Lions
+Walking Corpse
+Plains
+Swamp

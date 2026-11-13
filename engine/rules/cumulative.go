@@ -960,8 +960,8 @@ func bindTriggerObjectLKI(ctx *effects.Ctx, held triggerObjectLKI, ok bool) {
 //     that cover X + pips are real): the payer's current life caps a
 //     PayLife<X> part, PotentialMana caps a mana {X}.
 //
-// A face with NO SVar:X, and a face whose SVar:X body is unresolvable (Tymna
-// the Weaver's head), both fail closed: no announcement ask, the amount stays
+// A face with NO SVar:X, and a face whose SVar:X body is unresolvable, both
+// fail closed: no announcement ask, the amount stays
 // unfolded, and the ordinary unpriceable path below poses decline only -- the
 // no-SVar case is what keeps the synthetic copy-cost shapes (Verrak's
 // PayLife<X> copy execute) hard-decline. Returns true
@@ -995,8 +995,7 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 	if strings.EqualFold(strings.TrimSpace(body), "Count$xPaid") {
 		// Payer-chooses by construction: fall through to the ask.
 	} else if n, resolvable := e.evalTriggerCostFixedX(tc, o, body); !resolvable {
-		// A PRESENT but unresolvable SVar:X body (Tymna the Weaver's
-		// head) fails closed: no announcement ask, the amount stays
+		// A PRESENT but unresolvable SVar:X body fails closed: no announcement ask, the amount stays
 		// unfolded, and the ordinary unpriceable path below poses the
 		// decline-only ask -- the same hard-decline convention the
 		// unpayable-cost arm takes, never a silent zero.

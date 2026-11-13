@@ -22,7 +22,10 @@ const (
 	// v2 block (colour, pips, category) starts above it.
 	EntityRawWidthRelEnd = 84
 
-	// The Commander block: two relative seats (the kernel is 2-seat) of
+	// The seat blocks: maxSeatBlocks relative seats of ten values from 28.
+	maxSeatBlocks = 4
+
+	// The Commander block: maxSeatBlocks relative seats of
 	// commanderBlockWidth values, appended after the 68-wide pre-Commander
 	// vector.
 	denseCmd0           = 68
@@ -72,7 +75,7 @@ type Encoder struct {
 	st0    *dirac.State
 	source uint8
 	// inc is the incremental encoder's per-seat state (EncodeStateInc).
-	inc [2]*seatInc
+	inc [dirac.MaxSeats]*seatInc
 	// IncStats counts EncodeStateInc's work.
 	IncStats IncStats
 	// vb is the search base (SetBase); hbase is the build's base hashes
@@ -83,7 +86,7 @@ type Encoder struct {
 	kpg  [dirac.MaxObj]uint32
 	kgen uint32
 	// parts is EncodeParts' per-seat cache.
-	parts [2]*partsSeat
+	parts [dirac.MaxSeats]*partsSeat
 
 	// ext is the extension groups (SetExt); extAcc/extHit accumulate a
 	// block, extOut is its emission. killMine/killTheirs are the current
@@ -195,7 +198,7 @@ func (e *Encoder) EncodeStateFor(s *dirac.State, d *dirac.Decision, seat uint8) 
 // returns the seat and its player blocks.
 func (e *Encoder) prelude(s *dirac.State, d *dirac.Decision, seat uint8) (uint8, *vplayer, *vplayer) {
 	e.st0 = s
-	e.build(s, seat, d.Kind)
+	e.build(s, seat, d.Kind, d.Player)
 	v := &e.v
 	// gorge's priority holder at a decision that is not a priority round:
 	// a turn-based action (declaring attackers or blockers, combat damage
@@ -213,7 +216,7 @@ func (e *Encoder) prelude(s *dirac.State, d *dirac.Decision, seat uint8) (uint8,
 		// whose priority round (CR 510.4) ended with the non-active player.
 		v.priority = v.active
 		if s.FeatFirstStrikeCombat() && e.kp.Step == kop.StepDamage {
-			v.priority = 1 - v.active
+			v.priority = v.lastToPass(s)
 		}
 	}
 	st := &e.st
@@ -238,8 +241,11 @@ func (e *Encoder) prelude(s *dirac.State, d *dirac.Decision, seat uint8) (uint8,
 		dn[20] = 1
 	}
 	dn[21] = float32(len(v.stack))
-	me, opp := &v.players[seat&1], &v.players[1-seat&1]
-	for blk, pv := range [2]*vplayer{me, opp} {
+	me, opp := v.sides()
+	// The seat blocks: the viewer's, then each other seat in turn order from
+	// it (policynet's relative seats); at two seats, me then the opponent.
+	for blk := 0; blk < int(v.n) && blk < maxSeatBlocks; blk++ {
+		pv := &v.players[v.relPlayer(blk)]
 		base := 28 + blk*10
 		dn[base+0] = float32(pv.life)
 		dn[base+1] = float32(pv.handN)
@@ -271,27 +277,28 @@ func (e *Encoder) prelude(s *dirac.State, d *dirac.Decision, seat uint8) (uint8,
 	for k := 0; k < 6; k++ {
 		dn[22+k] = float32(me.pool[k])
 	}
-	// The Commander block: the kernel is 2-seat, so each relative seat has
-	// one other commander to take damage from. Blocks are relative to the
-	// deciding seat, the same order policynet writes: block 0 is the viewer,
-	// block 1 the next seat in turn order. A non-Commander game leaves the
-	// block zero except the left-the-game bit.
+	// The Commander block: one per relative seat, the order the seat blocks
+	// use (block 0 the viewer, then turn order from it), each with a damage
+	// column per other relative seat in turn order from its own seat, as
+	// policynet writes them. A non-Commander game leaves the block zero
+	// except the left-the-game bit.
 	cmdGame := s.FeatCommanderGame()
-	for blk := uint8(0); blk < 2; blk++ {
-		p := (seat + blk) & 1
-		base := denseCmd0 + int(blk)*commanderBlockWidth
+	for blk := 0; blk < int(v.n) && blk < maxSeatBlocks; blk++ {
+		p := v.relPlayer(blk)
+		base := denseCmd0 + blk*commanderBlockWidth
 		if s.FeatLost(p) {
 			dn[base+denseCmdLost] = 1
 		}
 		if !cmdGame {
 			continue
 		}
-		src := 1 - p
-		dmg := float32(s.FeatCommanderDamage(p, src)) / 21
-		if dmg > 1 {
-			dmg = 1
+		for k := 1; k < int(v.n) && k <= maxSeatBlocks-1; k++ {
+			dmg := float32(s.FeatCommanderDamage(p, v.relPlayer(blk+k))) / 21
+			if dmg > 1 {
+				dmg = 1
+			}
+			dn[base+denseCmdDamage0+k-1] = dmg
 		}
-		dn[base+denseCmdDamage0] = dmg
 		casts := float32(s.FeatCommanderCast(p)) / 4
 		if casts > 1 {
 			casts = 1
@@ -629,7 +636,7 @@ func (e *Encoder) handCard(c *vcard, avail int32) {
 // lookup), nil when it is not on the battlefield.
 func (e *Encoder) bfCard(o uint8) *vcard {
 	v := &e.v
-	for p := 1; p >= 0; p-- {
+	for p := int(v.n) - 1; p >= 0; p-- {
 		bf := v.players[p].bf
 		for j := len(bf) - 1; j >= 0; j-- {
 			if v.cards[bf[j]].obj == o {
@@ -806,7 +813,7 @@ func (e *Encoder) entityCard(out *Card, c *vcard, zone int, seat uint8, avail in
 		}
 		hosts := 0
 		v := &e.v
-		for p := 0; p < 2; p++ {
+		for p := 0; p < int(v.n); p++ {
 			for _, ci := range v.players[p].bf {
 				if v.cards[ci].attached == c.obj {
 					hosts++
@@ -984,8 +991,11 @@ func (e *Encoder) Reserve() {
 	if cap(v.stack) < dirac.MaxStack {
 		v.stack = make([]vstack, 0, dirac.MaxStack)
 	}
-	for p := range v.players {
-		pl := &v.players[p]
+	for p := 0; p <= len(v.players); p++ {
+		pl := &v.others
+		if p < len(v.players) {
+			pl = &v.players[p]
+		}
 		pl.bf = make([]int32, 0, objs)
 		pl.hand = make([]int32, 0, objs)
 		pl.grave = make([]int32, 0, objs)

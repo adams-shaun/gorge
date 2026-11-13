@@ -15,6 +15,7 @@ them.
 | `testkit/bench` | Policy-agnostic game runner: `PlayGame`, `RunPairs`, watchdogs, livelock recovery. Shared with outside modules' bench tools. |
 | `internal/codeshape` | Code-shape metrics and ratchets for `engine/rules` and `engine/effects` (function length, interface width); `cmd/codeshape` prints them. |
 | `internal/corpusheap` | Heap-footprint ratchet for the opened corpus (tests only). |
+| `testkit/recstream` | Condensed JSON Lines record streams (delta frames against the previous record, keyframes, gzip members) and the reader that opens plain, gzipped and condensed `.jsonl` alike; the format spec is its `doc.go`. Public so outside modules import it; `cmd/recstream` converts and verifies, `scripts/recstream.py` is the stdlib Python reader. |
 | `testkit/paymirror` | A/B check of planned vs manual cast payment; `cmd/paymirror` drives it. |
 | `cli` | Cobra-style commands on the standard library: GNU flags, environment variables and JSON `--config` files ([`docs/cli.md`](../cli.md)). |
 | `internal/schemacheck` | Validates JSON documents against a directory of JSON Schema files that refer to each other by relative name. |

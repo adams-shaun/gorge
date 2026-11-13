@@ -64,7 +64,7 @@ if [ "$rc" -ne 0 ]; then cat "$tmp/log"; fi
 sed -nE 's/^ *--- SKIP: ([^ ]+) .*/\1/p' "$tmp/log" | sort -u >"$tmp/skipped"
 grep -E '^(ok|FAIL|panic:)' "$tmp/log" || true
 echo "ci-oracle-shard: slowest tests of part $i (refresh $weights from these):"
-sed -nE 's/^--- (PASS|FAIL): (Test[^ ]*) \(([0-9.]+)s\)$/\2 \3/p' "$tmp/log" | sort -k2,2gr | head -15 | sed 's/^/  /'
+sed -nE 's/^--- (PASS|FAIL): (Test[^ ]*) \(([0-9.]+)s\)$/\2 \3/p' "$tmp/log" | sort -k2,2gr | sed -n 1,15p | sed 's/^/  /'
 echo "ci-oracle-shard: $(wc -l <"$tmp/skipped") skips, $(wc -l <"$tmp/allowed") expected"
 unexpected=$(comm -23 "$tmp/skipped" "$tmp/allowed")
 ran=$(comm -13 "$tmp/skipped" "$tmp/allowed")

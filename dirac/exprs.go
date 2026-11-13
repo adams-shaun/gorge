@@ -301,6 +301,8 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 	switch x.Kind {
 	case kop.ExConst:
 		v = int(x.N)
+	case kop.ExJoinForces:
+		v = int(s.resArm().jf)
 	case kop.ExX:
 		if px := s.g.probe.x; px != 0 {
 			v = int(px) - 1 // an offer's sweep at this X (sacXPoolOffer; evalV's VX reads it first too)

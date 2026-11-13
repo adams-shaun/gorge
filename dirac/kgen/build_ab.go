@@ -353,6 +353,9 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 			// the filter names the battlefield object one of the spell's
 			// targets must match (VYou: the chooser); SpellF is the spell side
 			ts.Kind = kop.TgtSpellTgting
+			if t.StackAb {
+				ts.Kind = kop.TgtStackTgting // a stack ability's own targets count too
+			}
 			ts.VYou = t.VYou
 			if t.VTgt != nil {
 				if ts.Filter, err = cb.filter(t.VTgt, kop.ZoneBattlefield); err != nil {
@@ -4824,6 +4827,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
+	case "ExtJoinForces":
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtJoinForces)), int16(in.C) // lower_storesvar.go
 	case "RememberImprinted":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRememberImprinted)) // Tainted Pact
 	case "AddTurn":
