@@ -350,4 +350,16 @@ func TestHostedAZSplitsRootRefusedFromFeedStop(t *testing.T) {
 	if g := got[1]; g.Stats.FeedStopped != 1 || g.Stats.RootRefused != 0 {
 		t.Fatalf("stopped feed diag %+v, want FeedStopped 1 RootRefused 0", g)
 	}
+	// A kind the seat never searches reaches DecideBoard (the host and
+	// mtgsim ask it there): nothing was routed around, so nothing is counted.
+	// It once counted FeedStopped, which made every mulligan, choice and
+	// mode read as a fallback (1,221 in mtgsim's first az-redeal sample).
+	mull := decision.Decision{Kind: decision.KMulligan, Seq: 4}
+	if s.(bots.EnvSeat).WantsEnv(&mull) {
+		t.Fatal("the hosted config searches the mulligan; pick another unsearched kind")
+	}
+	_, _ = s.(heuristic.BoardSeat).DecideBoard(context.Background(), board, mull)
+	if len(got) != 2 {
+		t.Fatalf("diags %d after an unsearched-kind DecideBoard, want still 2: %+v", len(got), got[2:])
+	}
 }
