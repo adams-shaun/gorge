@@ -170,6 +170,9 @@ func TestCastLimitAndGrantedLookLockstep(t *testing.T) {
 // TestCastLimitAndGrantedLookMutation ignores the cap: the kernel then forbids every cast
 // while a High Noon is out, which gorge does not, so some game must diverge.
 func TestCastLimitAndGrantedLookMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	st := runCastlimitlook(t, 64, true)
 	if st.divs == 0 {
 		t.Fatalf("mutation left the cap off in %d games with no divergence", st.games)

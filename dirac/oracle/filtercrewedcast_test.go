@@ -355,6 +355,9 @@ func TestFilterWordsCrewedAndCastLockstep(t *testing.T) {
 // wasCastRead): each matchup must diverge. A green mutation means the
 // lockstep never reaches a decision the words shape.
 func TestFilterWordsCrewedAndCastMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runFiltercrewedcast(t, 32, true)
 	for mi, d := range divs {
 		if d == 0 {

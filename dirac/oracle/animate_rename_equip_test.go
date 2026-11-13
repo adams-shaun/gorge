@@ -234,6 +234,9 @@ func animateRenameEquipPlay(t *testing.T, reg *cards.Registry, c animateRenameEq
 // TestAnimateRenameEquipReprosReach replays the recorded games: no
 // divergence, every scripted action offered, and the animation reached.
 func TestAnimateRenameEquipReprosReach(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg := synthReg(t)
 	for _, c := range animateRenameEquipCases() {
 		t.Run(c.name, func(t *testing.T) {

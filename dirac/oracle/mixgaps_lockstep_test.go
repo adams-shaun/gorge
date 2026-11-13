@@ -18,6 +18,7 @@ import (
 // (dirac mana_mixsrc.go). Each matchup plays 150 seeds, the two option
 // surfaces alternating, and asserts the payments it is about happened.
 func TestMixGapsCombinedSourceLockstep(t *testing.T) {
+	t.Parallel() // its subtests run isolated, so the parent need not hold the serial phase
 	lessonB := []cardset.Entry{{Name: "Firebending Lesson", Count: 8}, {Name: "Appa, Loyal Sky Bison", Count: 4}, {Name: "Island", Count: 12}, {Name: "Plains", Count: 16}}
 	for _, mu := range []struct {
 		name               string
