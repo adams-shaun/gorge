@@ -630,6 +630,11 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		return c.setWho(&c.Ctrl, whoOpp)
 	case "YouCtrl":
 		return c.setWho(&c.Ctrl, whoYou)
+	case "YourTeamCtrl":
+		// gorge word YourTeamCtrl reads YouCtrl: gorge models no teams, a
+		// player's team is that player alone (engine/effects/filter.go, the
+		// compiled YourTeamCtrl term's YouCtrl)
+		return c.setWho(&c.Ctrl, whoYou)
 	case "OppCtrl", "YouDontCtrl":
 		return c.setWho(&c.Ctrl, whoOpp)
 	case "YouOwn":
