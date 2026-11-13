@@ -81,7 +81,7 @@ const (
 	// whether the object is still where it was or has since moved). Gorge
 	// Defined$ TriggeredCardOwner; Brainstealer Dragon's "they lose life
 	// equal to its mana value". None when the trigger binds no object.
-	RefTriggerObjOwner Ref = 39
+	RefTriggerObjOwner Ref = 40
 )
 
 // RefTgtCtrl1 / RefTgtCtrl2 are RefTargetController for target slot 1 / 2
