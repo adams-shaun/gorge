@@ -743,6 +743,17 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
 				continue
 			}
+			if o.Mode == "suspend" {
+				// CR 702.62a: the kernel's suspend special action (AkPlot,
+				// mode 1) canonicalises to castModeOther, like "mayflash"
+				// (kw_suspend.go)
+				if o.AltCostIndex > 15 {
+					note("cast/suspend")
+					continue
+				}
+				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
+				continue
+			}
 			if o.Mode == "mayflash" {
 				// CR 702.8: the kernel's AkMayFlash canonicalises to
 				// castModeOther, like "web-slinging" (kw_mayflash.go)
@@ -910,7 +921,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			a = Pack(ActCastImpended, ref(pa.Cast.Object), RefNone, 0)
 		} else if pa.Cast.CastMode() == "conspired" {
 			a = Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther|15<<4)
-		} else if pa.Cast.CastMode() == "bargained" || pa.Cast.CastMode() == "teamworked" || pa.Cast.CastMode() == "harmonize" || pa.Cast.CastMode() == "mayhem" || pa.Cast.CastMode() == "buyback" || pa.Cast.CastMode() == "optionalcost" || pa.Cast.CastMode() == "web-slinging" || pa.Cast.CastMode() == "overloaded" {
+		} else if pa.Cast.CastMode() == "suspend" || pa.Cast.CastMode() == "bargained" || pa.Cast.CastMode() == "teamworked" || pa.Cast.CastMode() == "harmonize" || pa.Cast.CastMode() == "mayhem" || pa.Cast.CastMode() == "buyback" || pa.Cast.CastMode() == "optionalcost" || pa.Cast.CastMode() == "web-slinging" || pa.Cast.CastMode() == "overloaded" {
 			// CR 702.166: the full cast-mode table's castModeOther code, the
 			// same canonical form the offered option uses
 			a = Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther)
@@ -956,6 +967,8 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				// plus the count ask that follows, canonical "kicked"
 				mc, _ := castModeCode("kicked")
 				a = Pack(ActCast, ref(pa.Obj), RefNone, mc)
+			} else if pa.Mode == "suspend" {
+				a = Pack(ActCast, ref(pa.Obj), RefNone, castModeOther) // kw_suspend.go
 			} else if pa.Mode == "overloaded" {
 				a = Pack(ActCast, ref(pa.Obj), RefNone, castModeOther) // CR 702.96a, kw_overload.go
 			} else if pa.Mode == "buyback" {

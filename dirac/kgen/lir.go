@@ -1013,6 +1013,8 @@ type lCard struct {
 	Impending      *manaCost     // K:Impending:<N>:<cost> (CR 702.176a): the hand's alternate cost; ImpendingN time counters
 	ImpendingN     int
 	Plot           *manaCost // K:Plot:<cost> (CR 702.170a): the sorcery-speed special action's cost
+	Suspend        *manaCost // K:Suspend:<N>:<cost> (CR 702.62a): the hand's special action cost; SuspendN time counters
+	SuspendN       int
 	Foretell       *manaCost // K:Foretell:<cost> (CR 702.143a): the later cast's cost (the {2} special action is fixed; CardDef.ForetellCost)
 	Paradigm       bool      // K:Paradigm (SOS): resolved -> exile, a free cast from exile each first main phase
 	Sneak          *manaCost // K:Sneak:<cost> (CR 702.190a): the declare-blockers alternative cost (plus the return)

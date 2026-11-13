@@ -108,6 +108,11 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// even when the mana cost is not payable (CR 702.185a)
 			s.offerWarpHand(k, d, p, o, c, &av) // kw_warp.go
 		}
+		if k.gen != nil && k.gen.anySuspend && k.t.Cards[c].Suspend != 0 {
+			// under the plain cast's timing and prohibition gates, before its
+			// affordability gate and without a target check (CR 702.62a)
+			s.offerSuspendHand(k, d, p, o, c, &av) // kw_suspend.go
+		}
 		if k.gen != nil && k.gen.anyWebSling && k.t.Cards[c].HasWebSling {
 			// under the plain cast's timing and prohibition gates, before
 			// its affordability gate (CR 702.188a)
@@ -393,6 +398,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	if faces {
 		// after the may-play walks: one land play per object (CR 715.3d)
 		s.offerAdventureLandPlays(k, d, p, sorc) // cast_adventureland.go
+	}
+	if k.gen != nil && k.gen.anyNoManaCost {
+		s.dropNoManaCostCasts(k, d) // CR 118.6 (cast_nomanacost.go)
 	}
 	if k.gen != nil && k.gen.anySplitSecond && s.splitSecondHolds(k) {
 		s.filterSplitSecond(k, d) // kw_splitsecond.go
@@ -1809,6 +1817,10 @@ func (s *State) applyPriority(k *prep, a Action) {
 	case AkPlot:
 		if a.Mode() == plotForetell {
 			s.foretellAction(k, Obj(a.Source()), p) // CR 702.143a; kw_foretell.go
+			break
+		}
+		if a.Mode() == plotModeSuspend {
+			s.suspendAction(k, Obj(a.Source()), p) // CR 702.62a; kw_suspend.go
 			break
 		}
 		s.plotAction(k, Obj(a.Source()), p) // CR 702.170a; kw_plot.go

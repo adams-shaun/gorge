@@ -203,6 +203,20 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 					n += refPower(h, o, lki)
 				}
 			}
+		case prop == "CardSumPT":
+			// Phthisis' and Predator's Rapport's "its power plus its
+			// toughness": the two reads above, summed, from the same snapshot.
+			if f != nil {
+				if sacLKI != nil {
+					n += sacLKI.Power + sacLKI.Toughness
+				} else if lki && c.Snap.PTValid {
+					n += c.Snap.Power + c.Snap.Toughness
+				} else if pt, ok := targetPTLKI(c, o); ok && !lki {
+					n += pt.Power + pt.Toughness
+				} else {
+					n += refPower(h, o, lki) + refToughness(h, o, lki)
+				}
+			}
 		case prop == "GreatestCardPower":
 			// Greatest-of, never summed: the extreme
 			// aggregate the ref-scoped carriers size X with -- Aloy, Savior of

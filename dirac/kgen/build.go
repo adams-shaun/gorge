@@ -456,6 +456,7 @@ func (cb *cardBuilder) record() error {
 	// distinction the turn-face-up gate needs (CR 701.40b): gorge rejects
 	// only an empty printed cost, so "no cost" is offered as free.
 	d.CostEmpty = c.CostEmpty
+	d.NoManaCost = c.Cost.None && !c.CostEmpty // CR 118.6: dirac/cast_nomanacost.go
 	if (len(c.Cost.Twobrid) != 0 || len(c.Cost.Phyrexian) != 0) && costErr == nil {
 		costErr = twobridConflict(c)
 	}
@@ -701,6 +702,14 @@ func (cb *cardBuilder) record() error {
 		// (dirac/kw_plot.go)
 		d.HasPlot = true
 		if d.PlotCost, err = manaCostOf(*c.Plot); err != nil {
+			return err
+		}
+	}
+	if c.Suspend != nil {
+		// CR 702.62a: the hand's special action pays SuspendCost and exiles
+		// the card with Suspend time counters (dirac/kw_suspend.go)
+		d.Suspend = uint8(c.SuspendN)
+		if d.SuspendCost, err = manaCostOf(*c.Suspend); err != nil {
 			return err
 		}
 	}

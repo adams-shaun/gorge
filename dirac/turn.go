@@ -177,6 +177,9 @@ func (s *State) beginStep(k *prep) {
 		}
 		s.step = kop.StepUpkeep
 	case kop.StepUpkeep:
+		if k.gen != nil && k.gen.anySuspend {
+			s.suspendTick(k) // CR 702.62a: gorge ticks as the step is entered (kw_suspend.go)
+		}
 		s.firePhase(k, kop.StepUpkeep)
 		if k.gen != nil && k.gen.anyDelayUp {
 			s.fireDelayedUpkeep(k)
