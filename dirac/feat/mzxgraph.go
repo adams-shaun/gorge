@@ -623,7 +623,7 @@ func (e *Encoder) AppendMZX(dst []byte, g *MZX, s *dirac.State, d *dirac.Decisio
 		switch d.Sub {
 		case dirac.ChOptional, dirac.ChOptDiscMay:
 			dt = "CHOOSE_USE"
-		case dirac.ChX, dirac.ChTrigX:
+		case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick:
 			dt = "CHOOSE_NUM"
 		case dirac.ChCostDiscard, dirac.ChCleanupDiscard, dirac.ChDiscard, dirac.ChCostSacrifice, dirac.ChSacrifice:
 			dt = "CHOOSE_TARGET"

@@ -366,7 +366,7 @@ func parseCumulativeAction(label string) (*cumulativeAction, bool) {
 func (e *Engine) startCumulativeUpkeep(stackObj, source state.ObjID, sa *cards.SA) {
 	o := e.G.Obj(source)
 	stack := e.G.Obj(stackObj)
-	if o == nil || o.Zone != state.ZBattlefield || stack == nil {
+	if !pay.ExistsOnBattlefield(o) || stack == nil {
 		e.finishResumption(stackObj)
 		return
 	}
@@ -620,7 +620,7 @@ func (e *Engine) cumulativePaymentAsk() {
 		return
 	}
 	o := e.G.Obj(cu.source)
-	if o == nil || o.Zone != state.ZBattlefield {
+	if !pay.ExistsOnBattlefield(o) {
 		e.finishCumulative()
 		return
 	}
@@ -1709,7 +1709,7 @@ func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
 		e.continueCumulativeAction()
 		return
 	}
-	if o := e.G.Obj(cu.source); o != nil && o.Zone == state.ZBattlefield {
+	if pay.ExistsOnBattlefield(e.G.Obj(cu.source)) {
 		pay.PaySacrificeCost(asPayer(e), []state.ObjID{cu.source})
 	}
 	e.finishCumulative()
