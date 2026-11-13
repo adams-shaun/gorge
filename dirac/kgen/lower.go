@@ -418,7 +418,7 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 		if lc.imprintMox && i > 0 {
 			continue // the imprint mox's static Cleanup / ForgetImprinted$ bookkeeping: the kernel's exiled-with record (lower_imprintmox.go)
 		}
-		if t.Mode == "TapsForMana" {
+		if t.Mode == "TapsForMana" && strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKStatic)), "True") {
 			lc.guard(fmt.Sprintf("T[%d] Mode=%s", i, t.Mode), func() error { return lc.tapExtraStatic(t) })
 			continue
 		}

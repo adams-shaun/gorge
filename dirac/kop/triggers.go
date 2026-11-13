@@ -71,6 +71,15 @@ const (
 	// Tf5NotFirstCardInDrawStep: FirstCardInDrawStep$ False -- the draw is
 	// any card except that first one (Orcish Bowmasters, Xyris, Leela).
 	Tf5NotFirstCardInDrawStep TrigFlags5 = 1 << 1
+	// Tf5TapsForMana: a TrigTaps line lowered from Mode$ TapsForMana (a
+	// non-Static$ trigger, Price of Glory): it fires only for a permanent
+	// tapped as the cost of a mana ability (gorge trigmatch tapsMatches'
+	// forMana flag), never for an attack, cost or effect tap. Bit 2.
+	Tf5TapsForMana TrigFlags5 = 1 << 2
+	// Tf5TapperNonActive: with Tf5TapsForMana, Activator$ Player.NonActive --
+	// the tapping player is not the turn's active player (gorge
+	// effects.MatchesPlayerSpec over TapActor). Bit 3.
+	Tf5TapperNonActive TrigFlags5 = 1 << 3
 )
 
 // TrigEvent is a triggered ability's subscription: the event kind it listens

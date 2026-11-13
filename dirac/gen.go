@@ -149,6 +149,9 @@ type genPrep struct {
 	// anyTWTap: a TrigTaps trigger with N == TrigNTeamworkTap; anyGameOnce: a
 	// trigger with Tf3GameOnce (trig_params.go)
 	anyTWTap, anyGameOnce bool
+	// anyTapsMana: a TrigTaps line lowered from Mode$ TapsForMana
+	// (Tf5TapsForMana; trig_params.go tapsManaOK)
+	anyTapsMana bool
 	// anySelfDisc: a card's own non-cycled "when you discard this card" line
 	// (TrigDiscarded, TfSelf, Zone graveyard; fireSelfDisc)
 	anySelfDisc bool
@@ -1441,6 +1444,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				}
 			}
 			g.anySelfDisc = g.anySelfDisc || a.Kind == kop.AbTriggered && selfDiscLine(a)
+			g.anyTapsMana = g.anyTapsMana || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Flags5&kop.Tf5TapsForMana != 0
 			g.anyTWTap = g.anyTWTap || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.N == kop.TrigNTeamworkTap
 			if a.Kind == kop.AbTriggered && a.Trig.Flags3&kop.Tf3GameOnce != 0 {
 				if j >= 0x3E {

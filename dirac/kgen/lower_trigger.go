@@ -448,6 +448,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				break
 			}
 		}
+	case "TapsForMana":
+		if err := lc.tapsForManaWatch(tp, tr, t, readF); err != nil {
+			return err
+		}
 	case "Blocks":
 
 		// gorge checkBlocksTriggers/blocksCandidates: one instance per

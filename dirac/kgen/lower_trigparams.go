@@ -170,5 +170,11 @@ func drawStepFlags(t *lTrigger) kop.TrigFlags5 {
 	if t.NotFirstInDrawStep {
 		f |= kop.Tf5NotFirstCardInDrawStep
 	}
+	if t.TapsForMana {
+		f |= kop.Tf5TapsForMana
+	}
+	if t.TapperNonActive {
+		f |= kop.Tf5TapperNonActive
+	}
 	return f
 }

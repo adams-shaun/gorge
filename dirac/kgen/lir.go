@@ -751,6 +751,12 @@ type lTrigger struct {
 	// own draw step (gorge trigmatch.firstCardInDrawStep, CR 504.1).
 	FirstInDrawStep    bool // FirstCardInDrawStep$ True (kop.Tf5FirstCardInDrawStep)
 	NotFirstInDrawStep bool // FirstCardInDrawStep$ False (kop.Tf5NotFirstCardInDrawStep)
+
+	// Taps lowered from a non-Static$ Mode$ TapsForMana (lower_tapsformana.go):
+	// only a tap paying a mana ability's cost (kop.Tf5TapsForMana), by a
+	// player other than the active one (Activator$ Player.NonActive,
+	// kop.Tf5TapperNonActive).
+	TapsForMana, TapperNonActive bool
 }
 
 // lTrigger.Attacked bits.
