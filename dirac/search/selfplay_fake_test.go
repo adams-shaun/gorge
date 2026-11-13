@@ -33,8 +33,24 @@ func (f *fakeNet) Priors(_ *dirac.State, d *dirac.Decision, _ []bool, out []floa
 			out[i] = 0
 			continue
 		}
-		out[i] = float32((uint32(d.Options[i])*2654435761>>7)%13) / 4
+		out[i] = float32((uint32(twoSeatCodes(d.Options[i]))*2654435761>>7)%13) / 4
 	}
+}
+
+// twoSeatCodes renumbers an action's source and target bytes as the two-seat
+// build numbers them, so the fake prior, and every digest pinned over it, is
+// the same in both size classes: the four-seat class starts the stack and
+// player codes two lower (StackTarget0 0xEA, PlayerTarget0 0xFA). In the
+// two-seat build it returns a unchanged.
+func twoSeatCodes(a dirac.Action) dirac.Action {
+	const shift = 0xEC - dirac.StackTarget0
+	if src := a.Source(); src >= dirac.StackTarget0 && src < 0xFE {
+		a = a&^0xFF0000 | dirac.Action(src+shift)<<16
+	}
+	if t := a.Target(); t >= dirac.StackTarget0 && t < 0xFE {
+		a = a&^0xFF00 | dirac.Action(t+shift)<<8
+	}
+	return a
 }
 
 // seatStep is one decision of a seat-search game: the searching seat's

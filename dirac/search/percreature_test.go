@@ -239,7 +239,7 @@ func TestPerCreaturePriorIsMaskedSubsetLikelihood(t *testing.T) {
 		}
 	}
 	// the only attack option of the first creature (the player defends alone)
-	z := float64(float32((uint32(d.Options[zi])*2654435761>>7)%13) / 4)
+	z := float64(float32((uint32(twoSeatCodes(d.Options[zi]))*2654435761>>7)%13) / 4)
 	sr.inChain, sr.chainRoot = true, first+1
 	res := sr.Search(s, 7)
 	sr.inChain, sr.chainRoot = false, 0
