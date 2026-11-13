@@ -245,6 +245,7 @@ type genPrep struct {
 	anyUnearth      bool           // some program has OpUnearth: leaves check the unearth exile promise (cast_altfree.go)
 	anyFinality     bool           // some program puts finality counters (kop.CtrFinality): dieZone exiles their creatures
 	anyHone         bool           // some program puts hone counters (kop.CtrHone): ptGen adds +1/+0 per hone counter on an attached permanent (CR 122.1j; ctr_hone.go)
+	anyM2M1         bool           // some program puts -2/-1 counters (kop.CtrM2M1): ptGen reads them (CR 122.1a; ctr_hone.go)
 	anyBattle       bool           // some card is a Battle (kop.TBattle front; face_battle.go)
 	anyWorld        bool           // some card is a World (CardDef.World): the CR 704.5k arm (zone_worldrule.go)
 	anySneak        bool           // some card has sneak (CardDef.HasSneak; kw_sneak.go)
@@ -751,6 +752,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepNetLock(t, g)    // act_lockpermanent.go
 	prepFinality(t, g)   // ctr_finality.go
 	prepHone(t, g)       // ctr_hone.go
+	prepM2M1(t, g)       // ctr_hone.go
 	prepPrevCol(t, g)    // cast_altfree.go
 	prepStackKw(t, g, p) // static_stackkeyword.go
 	g.anyCdmgTough = tableHasStatic(t, kop.StatCombatDmgToughness)
@@ -1771,6 +1773,7 @@ type genState struct {
 	atkHi     uint8               // the highest attacker group ever taken (the hash walks 1..atkHi)
 	tli       uint8               // LKI index of a target the resolving entry moved off the battlefield; bit 7: a filter is reading it (zone_lki.go)
 	energy    [MaxSeats]uint8     // each player's energy counters (CR 122.1; saturates at 255; act_energy.go)
+	exper     [MaxSeats]uint8     // each player's experience counters (CR 122.1; saturates at 255; act_energy.go)
 	roll      uint8               // the last OpRollDie result (ExRollResult; act_energy.go)
 	drawFirst bool                // the turn-based draw of the draw step is pending and no card has been drawn in it yet (repl_draw.go; transient, false between decisions)
 	drawStepN uint8               // the active player's draws in this draw step (trig_drawstep.go; reset on entry)

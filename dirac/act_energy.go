@@ -14,7 +14,13 @@ import (
 // (rules/pay EnergyPayable). The kernel saturates at 255 (gorge's int32
 // never does; no corpus line reaches it).
 
-// gainEnergy is OpGainEnergy: player(s) Obj get A energy counters.
+// Experience (CR 122.1) is the other player counter the kernel keeps, in
+// genState.exper: gorge's "Experience" player counter (PutCounter Defined$
+// You | CounterType$ Experience), read by Count$YourCountersExperience. Like
+// energy it saturates at 255.
+
+// gainEnergy is OpGainEnergy: player(s) Obj get A counters of player counter
+// kind C (kop.PlCtrEnergy or kop.PlCtrExperience).
 //
 //go:noinline
 func (s *State) gainEnergy(k *prep, in *kop.Instr) {
@@ -24,9 +30,17 @@ func (s *State) gainEnergy(k *prep, in *kop.Instr) {
 		return
 	}
 	for i := uint8(0); i < q.n; i++ {
-		p := q.s[i]
-		s.g.energy[p] = uint8(min(int(s.g.energy[p])+n, 255))
+		c := s.plCtr(q.s[i], int(in.C))
+		*c = uint8(min(int(*c)+n, 255))
 	}
+}
+
+// plCtr is player p's counter of player counter kind kind (kop.PlCtr*).
+func (s *State) plCtr(p uint8, kind int) *uint8 {
+	if kind == kop.PlCtrExperience {
+		return &s.g.exper[p]
+	}
+	return &s.g.energy[p]
 }
 
 // energyPayable: p has the N energy a CostPayEnergy cost needs.
@@ -47,6 +61,9 @@ func (s *State) payEnergy(p uint8, c *kop.Cost) {
 
 // Energy is player p's energy counter count (oracle / tests).
 func (s *State) Energy(p uint8) int { return int(s.g.energy[SeatIx(p)]) }
+
+// Experience is player p's experience counter count (oracle / tests).
+func (s *State) Experience(p uint8) int { return int(s.g.exper[SeatIx(p)]) }
 
 // payEnergyN pays n energy for an unless / if-you-do cost (kop.PayEnergy;
 // asked only when payable, else decline-only).

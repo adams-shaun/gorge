@@ -88,7 +88,9 @@ const (
 	// target slot C, as the controller divided them while putting the
 	// trigger on the stack (TargetSpec.Divide == DivLKIP1P1: the slot takes
 	// 0..X targets, the total is X; CR 601.2d, 603.10a; gorge cr-dies-trigger-
-	// divided-counters-lki). dirac/ctr_divided.go.
+	// divided-counters-lki). B.N is the counter kind the shares put (0,
+	// CtrP1P1, for every form but the literal-N one; Contagion's -2/-1).
+	// dirac/ctr_divided.go.
 	ExtDividedCounters ExtOp = 30
 	// ExtSacDelayed (Mobilize): sacrifice, as one batch, the
 	// group program's remembered objects (trigObj and the one packed in

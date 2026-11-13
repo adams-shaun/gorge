@@ -3850,7 +3850,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "GiveGift":
 		ki.Op = kop.OpGiveGift
 	case "GainEnergy":
-		ki.Op = kop.OpGainEnergy
+		ki.Op, ki.C = kop.OpGainEnergy, int16(in.C) // C: kop.PlCtrEnergy / kop.PlCtrExperience
 	case "Proliferate":
 		ki.Op = kop.OpProliferate
 	case "Saddle":
@@ -4145,6 +4145,14 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, fmt.Errorf("DividedCounters Obj %d", ki.Obj)
 		}
 		ki.Op, ki.A, ki.C, ki.Obj = kop.OpExt, kop.Const(int(kop.ExtDividedCounters)), int16(slot), kop.RefSelf
+		if in.CS != "" {
+			// the literal-N form's CounterType$ (Contagion's M2M1): B.N the kind
+			k, err := counterKind(in.CS)
+			if err != nil {
+				return ki, err
+			}
+			ki.B = kop.Const(int(k))
+		}
 	case "DrainMana":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtDrainMana))
 	case "CounterLose":

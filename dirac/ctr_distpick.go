@@ -33,7 +33,7 @@ func (s *State) distPickStart(k *prep, in *kop.Instr) bool {
 		return true
 	case n == 1:
 		// gorge asks nothing when one recipient is all there is
-		s.putDividedShare(k, ord[0], total)
+		s.putDividedShare(k, ord[0], kop.CtrP1P1, total)
 		return true
 	}
 	look := &s.resArm().look
@@ -91,7 +91,7 @@ func (s *State) applyAskDistPick(k *prep, a Action) bool {
 			share++
 		}
 		if ob := &s.objs[s.resArm().look[i]]; share > 0 && ob.zone == kop.ZoneBattlefield {
-			s.putDividedShare(k, ob.slot, share)
+			s.putDividedShare(k, ob.slot, kop.CtrP1P1, share)
 		}
 	}
 	s.continueRes(k, 0)
