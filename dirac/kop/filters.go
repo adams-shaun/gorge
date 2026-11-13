@@ -282,6 +282,24 @@ const OvChosenColor = 1
 // (assimilate, CR 613-layer characteristics seen as it enters).
 const OvEnterWith = 2
 
+// OvChosenType, in an OpOverride's B field: the chosen basic land type
+// animation (Navigator's Compass: "target land you control becomes the basic
+// land type of your choice in addition to its other types"). C names the
+// FIRST of five consecutive Overrides records differing only in AddSub, one
+// basic land type each in gorge's option order (Forest, Island, Mountain,
+// Plains, Swamp: effects type_choices.go chooseBasicLandTypes). At resolution
+// the kernel applies the record whose AddSub holds the type the controller
+// chose earlier in the same resolution (OpChooseType with B =
+// ChooseTypeBasicLand, res.chosen); gorge combatfx.go animateGrant reads the
+// source's ChosenType AT RESOLUTION.
+const OvChosenType = 3
+
+// ChooseTypeBasicLand, in a mid-resolution OpChooseType's B field: the ask
+// offers the five basic land types (gorge effChooseType Type$ Basic Land,
+// CR 205.3i) rather than the creature-type vocabulary. The answer is the
+// chosen type's matchup subtype index.
+const ChooseTypeBasicLand = 2
+
 // The exiled-with source link, numbered explicitly clear of the
 // iota lists that sibling families append to.
 

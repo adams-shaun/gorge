@@ -2774,6 +2774,9 @@ func (lc *lowerCtx) animate(ps *params) error {
 			return err
 		}
 	}
+	if lc.landTypeGrant && !selfDefined && strings.TrimSpace(ps.m["Types"]) == "ChosenType" {
+		return lc.animateChosenLandType(ps, obj) // lower_choosetype.go
+	}
 	_, optional := ps.m["Optional"]
 	ps.consume("OptionQuestion") // prompt text only (gorge combatfx.go); the yes/no is the same
 	if optional && obj.Kind != rSelf {

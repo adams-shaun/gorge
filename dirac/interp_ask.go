@@ -323,6 +323,10 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			chooseCardTypeOptions(d, kop.TypeMask(c))
 			break
 		}
+		if isBasicLandChoose(&s.prog(k)[r.pc]) {
+			chooseBasicLandOptions(d) // act_choosebasicland.go
+			break
+		}
 		for v := range k.t.TypeVocab {
 			d.add(MakeAction(AkChoose, 0, uint8(v>>8), uint8(v)))
 		}

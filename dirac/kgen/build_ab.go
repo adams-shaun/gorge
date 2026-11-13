@@ -4587,6 +4587,21 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, err
 			}
 		}
+		if _, ok := fl["chosenType"]; ok {
+			// C names the FIRST of five records differing only in
+			// AddSub, one basic land type each (lower_choosetype.go
+			// emitChosenLandTypeAnimate); B marks the op for the
+			// kernel's pick of the chosen type's record.
+			for n := 1; n < 5; n++ {
+				if _, err := cb.override(cb.c.overrides[in.C+n]); err != nil {
+					return ki, err
+				}
+			}
+			ki.B = kop.Const(kop.OvChosenType)
+			if err := cb.chosenTypeOverridesOK(i); err != nil {
+				return ki, err
+			}
+		}
 		if _, ok := fl["enterWith"]; ok {
 			ki.B = kop.Const(kop.OvEnterWith)
 		}

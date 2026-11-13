@@ -2861,6 +2861,9 @@ func (lc *lowerCtx) chooseType(ps *params) error {
 	if ps.str("Type") == "Card" {
 		return lc.chooseCardType(ps) // lower_choosetype.go
 	}
+	if ps.str("Type") == "Basic Land" {
+		return lc.chooseBasicLandType(ps) // lower_choosetype.go
+	}
 	if ps.str("Defined") != "You" || ps.str("Type") != "Creature" {
 		return refuse("ChooseType shape")
 	}

@@ -302,6 +302,9 @@ type lowerCtx struct {
 	// (Skrelv: the Pump DefinedKW$ ChosenColor, the CantBlockBy Effect, the
 	// ClearChosenColor Cleanup) are still to be lowered
 	colGrant bool
+	// landTypeGrant while a mid-resolution ChooseType Basic Land's
+	// Types$ ChosenType Animate is still to be lowered (lower_choosetype.go)
+	landTypeGrant bool
 	// clAt is 1 + the index of a CounterLose instruction whose following
 	// Effect (the host-bound loss of abilities) is still to be read.
 	clAt   int
@@ -2979,6 +2982,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 	// ClearChosenColor$ Cleanup (Puca's Eye's ETB)
 	// must not leak colGrant into the next ability's Pump/Animate reading
 	lc.colGrant = false
+	lc.landTypeGrant = false
 	lc.colTgt = lRef{}
 	lc.remTgt = 0
 	ps := newParams(sa.Params)

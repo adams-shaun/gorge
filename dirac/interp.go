@@ -1015,6 +1015,8 @@ func (s *State) applyResolve(k *prep, a Action) {
 		if k.gen != nil && s.prog(k)[r.pc].C != 0 {
 			r.chosen = cardTypeAnswer(a)
 			r.bad |= resChosenCard
+		} else if isBasicLandChoose(&s.prog(k)[r.pc]) {
+			r.chosen = basicLandAnswer(k, a) // act_choosebasicland.go
 		} else {
 			r.chosen = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
 		}

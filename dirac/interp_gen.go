@@ -786,6 +786,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.ovChosenColor(k, sl, int(in.C), e.card, s.ovDurFl(in.A.N)) // static_animatechosen.go
 			break
 		}
+		if in.B.N == kop.OvChosenType {
+			s.ovChosenType(k, sl, int(in.C), e.card, s.ovDurFl(in.A.N)) // act_choosebasicland.go
+			break
+		}
 		s.applyOverrideFl(k, sl, int(in.C), e.card, s.ovDurFl(in.A.N))
 	case kop.OpReflexiveTrigger:
 		n := s.value(k, in.A)
@@ -928,18 +932,19 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C != 0 {
 			card = resChosenCard // a card-type category (kw_madness.go)
 		}
-		if o := s.g.replaced; in.C == 0 && o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
+		if o := s.g.replaced; in.C == 0 && !isBasicLandChoose(in) && o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
 			s.queueAsk(s.objs[o].slot, 2)
-		} else if _, sl := s.resolutionTypeSource(); sl != NoSlot && s.perms[sl].chosen != 255 {
-			// gorge effChooseType: a source that already carries a
-			// ChosenType keeps it (the second activation is no-op)
-			s.res.chosen = s.perms[sl].chosen
+		} else if _, sl := s.resolutionTypeSource(); DebugChooseTypeReuse && sl != NoSlot && s.perms[sl].chosen != 255 {
+			s.res.chosen = s.perms[sl].chosen // act_choosebasicland.go's mutation
 			s.res.bad |= resChosenType | card
-		} else if o, sl := s.resolutionTypeSource(); sl == NoSlot && o != NoObj && s.objs[o].chosen != 255 {
+		} else if o, sl := s.resolutionTypeSource(); s.res.e.kind == seSpell && sl == NoSlot && o != NoObj && s.objs[o].chosen != 255 {
 			// a spell card keeps its ChosenType across the graveyard
 			// (gorge apply_zone.go only clears it on a battlefield
 			// leave), so a flashback re-cast reuses the first cast's
-			// answer instead of asking again
+			// answer instead of asking again. An activated or triggered
+			// ability's resolution always asks (CR 608.2; gorge
+			// effChooseType's resolvesAbility), its answer replacing the
+			// source's earlier one.
 			s.res.chosen = s.objs[o].chosen
 			s.res.bad |= resChosenType | card
 		} else {
