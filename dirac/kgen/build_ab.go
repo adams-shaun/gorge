@@ -4765,6 +4765,11 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op = kop.OpGainControlEOT
 	case "GainControl":
 		ki.Op = kop.OpGainControl
+		if in.F != nil { // AllValid$: every battlefield permanent F admits (lower_gaincontrolall.go)
+			if err := objFilter(zBattlefield); err != nil {
+				return ki, err
+			}
+		}
 		var rid int
 		for _, f := range strings.Split(in.CS, "|") {
 			switch {

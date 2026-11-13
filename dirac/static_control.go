@@ -494,8 +494,14 @@ func (s *State) ctrlStaticShadowed(host, src Slot, stamp uint16) bool {
 //
 //go:noinline
 func (s *State) opGainControl(k *prep, in *kop.Instr) {
-	sl := s.objRef(k, in.Obj)
-	if sl == NoSlot {
+	var list [MaxPerm]Slot
+	n := 0
+	if in.Obj == kop.RefNone && in.F != 0 {
+		n = s.gainControlAllHits(k, in.F, &list) // AllValid$ (act_gaincontrolall.go)
+	} else if sl := s.objRef(k, in.Obj); sl != NoSlot {
+		list[0], n = sl, 1
+	}
+	if n == 0 {
 		return
 	}
 	e := &s.res.e
@@ -520,8 +526,17 @@ func (s *State) opGainControl(k *prep, in *kop.Instr) {
 		src = s.perms[ssl].obj
 		ver = s.objs[src].ver
 	}
+	for _, sl := range list[:n] {
+		s.gainControlOne(k, in, sl, to, dur, src, ver)
+	}
+}
+
+// gainControlOne is opGainControl's grant to the permanent at sl, with its
+// Untap$ / haste / RememberControlled$ riders (gorge effGainControl's
+// per-target body).
+func (s *State) gainControlOne(k *prep, in *kop.Instr, sl Slot, to, dur uint8, src Obj, ver uint8) {
 	s.touchSl(sl)
-	if !s.gainControl(sl, to, e.ctrl, dur, src, ver, false) {
+	if !s.gainControl(sl, to, s.res.e.ctrl, dur, src, ver, false) {
 		return
 	}
 	p := &s.perms[sl]

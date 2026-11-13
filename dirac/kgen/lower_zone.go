@@ -3287,15 +3287,20 @@ func (lc *lowerCtx) gainControl(ps *params) error {
 		}
 	}
 	hadTgts := ps.peek("ValidTgts") != ""
+	allF, err := lc.gainControlAll(ps) // lower_gaincontrolall.go
+	if err != nil {
+		return err
+	}
 	// No ValidTgts$ and no Defined$: gorge's DefinedRef falls back to the
 	// source ("an ability declaring ValidTgts$ acts on its chosen targets,
 	// any other on its source"; effects/context.go DefinedRef), which is the
 	// shape Contested Game Ball's "gains control of CARDNAME" takes. Any
-	// other subject parameter (AllValid$ and kin) still reaches the node's
-	// unread-params refusal.
-	obj, err := lc.objOrTarget(ps, "Self", zBattlefield)
-	if err != nil {
-		return err
+	// other subject parameter still reaches the node's unread-params refusal.
+	obj := lRef{}
+	if allF == nil {
+		if obj, err = lc.objOrTarget(ps, "Self", zBattlefield); err != nil {
+			return err
+		}
 	}
 	// gorge controlPlayer (effects/choose_control.go): with no NewController$
 	// the new controller is the node's own chosen player target (Chaos Lord's
@@ -3362,13 +3367,13 @@ func (lc *lowerCtx) gainControl(ps *params) error {
 		}
 		flags = append(flags, "Remember")
 	}
-	if dur == "EOT" && to.Kind == rNone && strings.Join(flags, "|") == "Untap|kw=Haste" {
+	if dur == "EOT" && to.Kind == rNone && allF == nil && strings.Join(flags, "|") == "Untap|kw=Haste" {
 		// the threaten shape keeps its op (existing tables)
 		lc.emit(lInstr{Op: "GainControlEOT", Obj: obj, CS: strings.Join(flags, "|")})
 		return nil
 	}
 	flags = append(flags, "dur="+dur)
-	in := lInstr{Op: "GainControl", Obj: obj, CS: strings.Join(flags, "|")}
+	in := lInstr{Op: "GainControl", Obj: obj, F: allF, CS: strings.Join(flags, "|")}
 	if to.Kind != rNone {
 		in.Note = "to=" + to.String()
 		in.C = int(to.Kind)<<8 | to.N
