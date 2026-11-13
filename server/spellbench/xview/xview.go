@@ -28,6 +28,10 @@ type OptionFacts struct {
 	SetProps   []string        `json:"set_props"`
 	BlockMust  bool            `json:"block_must"`
 	AttackMust bool            `json:"attack_must"`
+	// AttackMustTwo carries decision.Option.AttackMustTwo, the two-blocker
+	// requirement unit, so the agent's rebuilt decision counts the same
+	// required-block quota the engine does.
+	AttackMustTwo bool `json:"attack_must_two,omitempty"`
 	// The facts the bot ranks an "ability" option by.
 	Loyalty       *decision.Loyalty `json:"loyalty,omitempty"`
 	SelfSkipTurns int8              `json:"self_skip_turns,omitempty"`
@@ -225,7 +229,7 @@ func facts(d *decision.Decision) Facts {
 	}
 	for _, o := range d.Options {
 		f.Options = append(f.Options, OptionFacts{Attach: o.Attach, Grant: o.Grant, Controller: uint8(o.Controller),
-			SetProps: o.SetProps, BlockMust: o.BlockMust, AttackMust: o.AttackMust,
+			SetProps: o.SetProps, BlockMust: o.BlockMust, AttackMust: o.AttackMust, AttackMustTwo: o.AttackMustTwo,
 			Loyalty: o.Loyalty, SelfSkipTurns: o.SelfSkipTurns, ForeignSource: o.ForeignSource, GrantStatics: o.GrantStatics})
 	}
 	return f
