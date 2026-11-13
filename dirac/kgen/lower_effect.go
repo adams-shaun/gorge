@@ -4786,16 +4786,24 @@ func (lc *lowerCtx) preventColorEffect(ps *params) error {
 // refTargetUnion) or Targeted.YouCtrl (that union narrowed to the
 // controller's permanents, gorge eachDamagerTargets). Each deals NumDmg$
 // (a constant, or Count$CardPower: its own power) to the recipient: the
-// node's own single object target, or Defined$ Self. EachToItself$,
-// ToEachOther$, ValidCards$ damagers, DamageSource$, division and player
-// recipients refuse.
+// node's own single object target, or Defined$ Self. A ValidCards$ <filter>
+// without DefinedDamagers$ is gorge's same battlefield sweep as
+// DefinedDamagers$ Valid <filter> (effEachDamage, Nissa's Judgment).
+// EachToItself$, ToEachOther$, DamageSource$, division and player recipients
+// refuse.
 func (lc *lowerCtx) eachDamage(ps *params) error {
-	for _, k := range [...]string{"EachToItself", "ToEachOther", "ValidCards", "DamageSource", "DividedAsYouChoose"} {
+	for _, k := range [...]string{"EachToItself", "ToEachOther", "DamageSource", "DividedAsYouChoose"} {
 		if _, ok := ps.get(k); ok {
 			return refuse("EachDamage %s$", k)
 		}
 	}
 	dd := strings.TrimSpace(ps.str("DefinedDamagers"))
+	if vc, ok := ps.get("ValidCards"); ok {
+		if dd != "" {
+			return refuse("EachDamage ValidCards$ beside DefinedDamagers$")
+		}
+		dd = "Valid " + strings.TrimSpace(vc)
+	}
 	var f *lFilter
 	mask := 0 // damager target slots (bit per slot); 0 = the Valid sweep
 	if spec, ok := strings.CutPrefix(dd, "Valid "); ok {

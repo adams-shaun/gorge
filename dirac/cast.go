@@ -93,7 +93,9 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 			s.g.impCast = false
 		}
 		if s.g.impCast {
-			if k.t.Cards[c].HasSurge {
+			if k.t.Cards[c].CleaveAb != 0 {
+				e.ab = k.t.Cards[c].CleaveAb - 1 // the cleaved cast: its own text (kw_cleave.go)
+			} else if k.t.Cards[c].HasSurge {
 				e.mode |= modeImpended // the surged cast (kw_surge.go: the bit reads as surged on a HasSurge card)
 			} else if k.t.Cards[c].HasOverload {
 				e.mode |= modeImpended // the overloaded cast (kw_overload.go: the bit reads as overloaded on a HasOverload card)
@@ -148,7 +150,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		}
 	}
 	n0 := s.npend
-	if (fl&sfKicked != 0 || k.gen != nil && k.gen.anySurge && s.bld().e.surged(k)) && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
+	if (fl&sfKicked != 0 || k.gen != nil && (k.gen.anySurge && s.bld().e.surged(k) || k.gen.anyCleave && s.bld().e.cleaved(k))) && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
 		// (an optional waterbend cast taps nothing here: its window pays after
 		// the picks, manaStep's waterbendCastWindow, as gorge's convokeAsk
 		// precedes its manual window)
@@ -625,6 +627,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		}
 		if cd.HasOverload && e.overloaded(k) {
 			c = cd.OverloadCost // the overload cost (CR 702.96a; kw_overload.go)
+		}
+		if cd.CleaveAb != 0 && e.cleaved(k) {
+			c = cd.CleaveCost // the cleave cost (CR 702.148a; kw_cleave.go)
 		}
 		if e.mode&modeBestowed != 0 && e.bestowedEntry() {
 			c = cd.BestowCost // the bestow cost (CR 702.103a; kw_bestow.go)

@@ -258,7 +258,7 @@ import (
 // +1 (Foil's two-part discard alternative cost lowered, kop.Cost.Discard2N/Discard2F; ALL build-level merged against land's MBC work 23347 -> 23348 measured).
 // +2 (MBC replacements-2: a DamageDone doubler with no ValidTarget$, Fire Servant; ValidSource$ Card.Self with IsCombat$ True, Charging Tuskodon; merged ALL build-level 23559 -> 23561 measured).
 // +11 (MBC zone-moves-5: Count$TopOfLibraryCMC, Reorder$ on a library-to-top search, the AIRespondsToOwnAbility$ hint and the ThisTurnEnteredFrom_Library word; the same eleven cards as ratchet_test.go's ALL pin; ALL build-level 23253 -> 23264 measured).
-var buildAcceptancePin = [2]int{23578, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{23605, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)

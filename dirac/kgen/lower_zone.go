@@ -1297,13 +1297,13 @@ func (lc *lowerCtx) dig(ps *params) error {
 		}
 		flags = append(flags, "pos="+lp)
 	}
-	var restTop bool
+	var restTop, restAsk bool
 	if _, d2 := ps.m["DestinationZone2"]; !d2 && strings.TrimSpace(ps.m["SkipReorder"]) == "True" {
 		// gorge effDig's rest(): SkipReorder$ leaves the remainder in place
 		// before LibraryPosition2$ is read, so the position is moot (the
 		// Undercity's Throne of the Dead Three)
 		ps.consume("LibraryPosition2")
-	} else if restTop, err = digRestTop(ps, n, take, dest2); err != nil {
+	} else if restTop, restAsk, err = lc.digRestTop(ps, who, n, take, dest, dest2); err != nil {
 		return err
 	}
 	if v, ok := ps.get("SkipReorder"); ok {
@@ -1317,6 +1317,9 @@ func (lc *lowerCtx) dig(ps *params) error {
 	}
 	if restTop {
 		flags = append(flags, "RestTop")
+	}
+	if restAsk {
+		flags = append(flags, "RestTopAsk") // lower_digparams.go digRestTop
 	}
 	noReveal, err := digNoReveal(ps)
 	if err != nil {
@@ -2113,6 +2116,14 @@ func (lc *lowerCtx) play(ps *params) error {
 		lc.playLibrary = true
 		return emit(lRef{Kind: rRemembered}, zLibrary, saExpr)
 	case "Hand", "Graveyard":
+		if valid == "Card.TargetedPlayerCtrl" && vzone == "Hand" && !forget {
+			// the targeted player's hand (lower_playtgtplayer.go)
+			obj, err := lc.playTargetedPlayerHand()
+			if err != nil {
+				return err
+			}
+			return emit(obj, zHand, saExpr)
+		}
 		// P3/P4: untargeted filter population over the controller's hand or
 		// the graveyards, in seat order.
 		if !strings.Contains(valid, "YouOwn") && !strings.Contains(valid, "YouCtrl") && !(valid == "Card" && (playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)) && ps.str("ValidSA") == "Spell.nonCreature+YouOwn") {

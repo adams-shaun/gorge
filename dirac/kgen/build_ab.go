@@ -4423,7 +4423,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		rest := zoneNames[fl["rest"]]
 		df := int(zoneMap[rest])
 		for k, b := range map[string]int{"Optional": kop.DigOptional, "RestRandomOrder": kop.DigRandomOrder, "Reveal": kop.DigReveal,
-			"RememberChanged": kop.DigRemember, "ForceRevealToController": kop.DigRevealToCtrl, "Tapped": kop.DigTapped, "RestTop": kop.DigRestTop, "ExileFaceDown": kop.DigFaceDown, "ExilerOther": kop.DigExilerOther} {
+			"RememberChanged": kop.DigRemember, "ForceRevealToController": kop.DigRevealToCtrl, "Tapped": kop.DigTapped, "RestTop": kop.DigRestTop, "RestTopAsk": kop.DigRestTopAsk, "ExileFaceDown": kop.DigFaceDown, "ExilerOther": kop.DigExilerOther} {
 			if _, ok := fl[k]; ok {
 				df |= b
 			}

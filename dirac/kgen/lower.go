@@ -407,6 +407,9 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 		if len(out.Abilities) > n && origin {
 			out.Abilities[n].Origin, out.Abilities[n].OriginOK = i, true
 		}
+		if len(out.Abilities) > n && out.Cleave != nil && out.CleaveAb == n+1 && lc.isCleaveSA(a) {
+			out.Abilities[n].Latent = true // the cleaved cast's own text, reached only through its cast (lower_cleave.go)
+		}
 	}
 	for i, t := range lc.face.Triggers {
 		t := t
@@ -494,8 +497,9 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseForetellCombos()      // lower_foretell.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
 	lc.lowerImpending()
-	lc.lowerOverload()     // lower_overload.go
-	lc.refuseSurgeCombos() // lower_surge.go
+	lc.lowerOverload()      // lower_overload.go
+	lc.refuseCleaveCombos() // lower_cleave.go
+	lc.refuseSurgeCombos()  // lower_surge.go
 }
 
 // lowerImpending appends Impending's end-step tick after the printed lines
@@ -3071,13 +3075,29 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				ab.EvidenceTargets = true
 				cost.EvidenceX = false
 			}
-			// The printed mana cost rides on the card record; the SP
-			// Cost$ adds the non-mana additional costs.
-			if !cost.Mana.None && cost.Mana.String() != lc.out.Cost.String() {
-				return refuse("spell Cost$ %q differs from the printed cost", c)
+			if lc.isCleaveSA(sa) {
+				// Cleave's second line: its Cost$ is the whole alternative cost
+				// (CR 702.148a), mana only (lower_cleave.go)
+				if !cost.pureMana() || cost.Mana.None {
+					return refuse("cleave Cost$ %q is not a plain mana cost", c)
+				}
+				if cost.Mana.X || cost.Mana.XX || cost.Mana.XXX || len(cost.Mana.Hybrid) != 0 || len(cost.Mana.Twobrid) != 0 || len(cost.Mana.Phyrexian) != 0 {
+					// the cleaved cast's X ask and symbol faces read the printed
+					// cost (Lantern Flare's {X}{R}{W}); only a plain cost is lowered
+					return refuse("cleave Cost$ %q has an {X}, hybrid or Phyrexian symbol", c)
+				}
+				mc := cost.Mana
+				lc.out.Cleave, lc.out.CleaveAb = &mc, ab.Index+1
+				ps.consume("NonBasicSpell")
+			} else {
+				// The printed mana cost rides on the card record; the SP
+				// Cost$ adds the non-mana additional costs.
+				if !cost.Mana.None && cost.Mana.String() != lc.out.Cost.String() {
+					return refuse("spell Cost$ %q differs from the printed cost", c)
+				}
+				cost.Mana = manaCost{None: true}
+				lc.out.SpellCost = &cost
 			}
-			cost.Mana = manaCost{None: true}
-			lc.out.SpellCost = &cost
 		}
 		if sa.API == "PermanentCreature" {
 			// The permanent spell itself: only its additional cost matters.

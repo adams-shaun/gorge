@@ -1003,10 +1003,14 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 	case raGenDigArrange:
 		o := Obj(a.Source())
 		pl := &s.pl[s.g.pickP]
-		s.detach(o)
-		s.objs[o].zone = kop.ZoneLibrary
-		s.objs[o].ver++
-		pl.libBottom(o)
+		if s.digArrangeTop(k) {
+			s.digArrangeTopPick(o) // zone_digtoporder.go
+		} else {
+			s.detach(o)
+			s.objs[o].zone = kop.ZoneLibrary
+			s.objs[o].ver++
+			pl.libBottom(o)
+		}
 		for i := 0; i < int(s.g.nlook); i++ {
 			if s.resArm().look[i] == o {
 				s.g.lookSel |= 1 << i
@@ -2270,7 +2274,7 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 		if park && s.parkTail(k, tailDigArrange) {
 			return true
 		}
-		s.res.ask, s.res.askP = raGenDigArrange, p
+		s.res.ask, s.res.askP = raGenDigArrange, s.digArrangeAsker(k)
 		return true
 	}
 	if z == kop.ZoneBattlefield {

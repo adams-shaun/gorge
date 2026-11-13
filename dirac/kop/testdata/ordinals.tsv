@@ -278,6 +278,7 @@ DigRandomOrder	untyped int	16
 DigRemember	untyped int	64
 DigRestShift	untyped int	0
 DigRestTop	untyped int	256
+DigRestTopAsk	untyped int	272
 DigReveal	untyped int	32
 DigRevealToCtrl	untyped int	512
 DigTakeToTop	untyped int	128
