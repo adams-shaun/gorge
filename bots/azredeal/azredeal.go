@@ -244,11 +244,23 @@ func (s *hostedSeat) DecideSearch(ctx context.Context, env searchseat.Env, d dec
 	return s.bot.DecideSearch(ctx, env, d)
 }
 
-// DecideBoard is the game-shaped half: the wrapped bot. It is the fallback
-// the Env branch plays (root refused, feed stopped) and the whole answer for
-// every non-searched decision.
+// DecideBoard is the game-shaped half: the wrapped bot, the whole answer for
+// every decision WantsEnv declines (the host and mtgsim ask it there). It is
+// played through the wrapped seat's uncounted half when it has one: the Env
+// branch's fallbacks (root refused, feed stopped) call the wrapped
+// DecideBoard themselves and are counted there, but a kind this seat never
+// searches was routed around nothing.
 func (s *hostedSeat) DecideBoard(ctx context.Context, b botpolicy.Board, d decision.Decision) (decision.Intent, error) {
+	if u, ok := s.bot.(unsearchedDecider); ok {
+		return u.DecideUnsearched(ctx, b, d)
+	}
 	return s.bot.DecideBoard(ctx, b, d)
+}
+
+// unsearchedDecider is the wrapped seat's uncounted bot half (*azmcts.Seat's
+// DecideUnsearched); a delegate without it plays DecideBoard.
+type unsearchedDecider interface {
+	DecideUnsearched(ctx context.Context, b botpolicy.Board, d decision.Decision) (decision.Intent, error)
 }
 
 // WantsEnv reports whether this decision is one of the az seat's searched

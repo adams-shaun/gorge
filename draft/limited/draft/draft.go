@@ -3,6 +3,8 @@
 // are supplied by the caller (draft/limited/booster generates them from the event
 // seed), so this package depends only on the limited vocabulary.
 //
+// A seat takes PicksPerPass cards from a pack before passing it (1 in a
+// booster draft, 2 in a Commander Legends style draft; NewPodPicks).
 // Packs 1 and 3 pass left — a seat passes to (seat+1)%n — and pack 2 passes
 // right, to (seat+n-1)%n. Each seat holds a FIFO queue of packs; a seat
 // picks from the pack at the head of its queue, and the remainder moves on.
@@ -93,6 +95,12 @@ type Pod struct {
 	pools  [][]limited.CardRef
 	seen   [][][]limited.CardRef
 	pickNo []int // picks made by each seat in the current round
+	// picksPerPass is how many cards a seat takes from a pack before
+	// passing it on: 1 in a booster draft, 2 in a Commander Legends style
+	// draft. passPicks[seat] counts the cards the seat has taken from the
+	// pack at its queue head so far.
+	picksPerPass int
+	passPicks    []int
 
 	record []Picked
 }
@@ -181,6 +189,13 @@ func (p *Pod) Pick(seat int, pickNo int, id string) error {
 	p.pickNo[seat]++
 	p.record = append(p.record, Picked{Round: p.round, PickNo: p.pickNo[seat], Seat: seat, ID: id})
 
+	p.passPicks[seat]++
+	if p.passPicks[seat] < p.picksPerPass && len(head.remaining) > 0 {
+		// The seat keeps the pack until it has taken its picksPerPass
+		// cards (or emptied it); nothing passes yet.
+		return nil
+	}
+	p.passPicks[seat] = 0
 	passed := *head
 	p.queues[seat] = q[1:]
 	if len(passed.remaining) > 0 {

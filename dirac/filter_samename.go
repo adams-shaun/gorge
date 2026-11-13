@@ -39,7 +39,7 @@ func (s *State) sameNameT0(sl Slot) bool {
 // matches. A graveyard card is face up; fd only refuses a face-down
 // candidate's name (CR 708.2).
 func (s *State) sameNameT0Card(c CardID, o Obj, fd bool) bool {
-	if !s.res.active || o == NoObj || s.res.bad&1 != 0 {
+	if !s.res.active || o == NoObj || s.res.bad&1 != 0 { // seat-ok: a resolution flag bit
 		return false
 	}
 	t := s.res.e.tgt[0]

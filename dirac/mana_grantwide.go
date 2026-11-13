@@ -150,7 +150,7 @@ func (s *State) wideApply(k *prep, p uint8, sl Slot, ans uint8) {
 // combination, with the TapsForMana extra either tap brings (gorge
 // addTapExtra). A unit the restricted table cannot hold is counted in spill.
 func (s *State) wide2Float(k *prep, p uint8, sl Slot, c int, spill *[kop.NumManaKinds]uint8) {
-	s.addExtra(k, p&1, sl, s.manaPCGen(k, sl))
+	s.addExtra(k, SeatIx(p), sl, s.manaPCGen(k, sl))
 	if c < kop.NumManaKinds-1 {
 		s.pl[p].pool[c]++
 		return

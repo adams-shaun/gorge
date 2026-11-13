@@ -305,7 +305,7 @@ func (g *Game) poseAsk() {
 		d.Kind, d.Prompt = decision.KArrange, "Arrange"
 		d.Min, d.Max = 0, n
 		kind := g.arrangeKind()
-		if kind == "dig_bottom" {
+		if kind == "dig_bottom" || kind == "library_placement" {
 			d.Min = n
 		} else {
 			d.Restable = true // a scry or surveil's other pile has an order of its own
@@ -389,6 +389,8 @@ func (g *Game) arrangeKind() string {
 		return "graveyard"
 	case g.s.FeatArrangeDig():
 		return "dig_bottom"
+	case g.s.FeatArrangePlace():
+		return "library_placement"
 	}
 	return "bottom"
 }

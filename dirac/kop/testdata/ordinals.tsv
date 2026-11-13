@@ -377,6 +377,7 @@ ExGraveTypes	ExprKind	41
 ExHandSizeOf	ExprKind	26
 ExHighestOppPoison	ExprKind	45
 ExIfCastOwnMain	ExprKind	224
+ExJoinForces	ExprKind	64
 ExKicked	ExprKind	7
 ExLastLifeLost	ExprKind	22
 ExLeftZone	ExprKind	249
@@ -407,6 +408,7 @@ ExProduct	ExprKind	54
 ExPromisedGift	ExprKind	31
 ExRedNCDmg	ExprKind	253
 ExRefCount	ExprKind	56
+ExRemEachOwnNonLand	ExprKind	65
 ExRemLKIPT	ExprKind	240
 ExRememberedCount	ExprKind	20
 ExResolvedThisTurn	ExprKind	32
@@ -486,6 +488,8 @@ ExtFinalityCtr	ExtOp	198
 ExtGrantExile	ExtOp	249
 ExtGrantPanharm	ExtOp	248
 ExtHideaway	ExtOp	8
+ExtJoinForces	ExtOp	301
+ExtLibPlace	ExtOp	300
 ExtLibSweep	ExtOp	101
 ExtLockActs	ExtOp	140
 ExtManaChoice	ExtOp	100
@@ -580,6 +584,7 @@ GcRemember	untyped int	4
 GcUntap	untyped int	1
 HybPhyrexian	ColorMask	64
 HybTwobrid	ColorMask	128
+JoinForcesReset	untyped int	1
 KwAffinity	KwMask	8388608
 KwCantBlock	KwMask	524288
 KwDeathtouch	KwMask	16
@@ -912,6 +917,9 @@ PlExtGrave	untyped int	256
 PlExtLibrary	untyped int	512
 PlExtOpponents	untyped int	1
 PlExtPlayers	untyped int	0
+PlaceArmBottom	untyped int	1
+PlaceArmTop	untyped int	0
+PlaceAsk	untyped int	2
 PlayerPredArtOrEnch	untyped int	4
 PlayerPredControlsCreature	untyped int	1
 PlayerPredCorrupted	untyped int	3
@@ -1099,6 +1107,8 @@ RetFromLibrary	untyped int	16384
 RetShuffleOwed	untyped int	8192
 RetUnderOpponent	untyped int	4096
 RollDieCoin	int16	1
+RollDieCoinBatch	int16	2
+RollDieCoinMark	int16	4
 SacSumMV	untyped int	8
 SacSumPower	untyped int	2
 SacSumToughness	untyped int	4
@@ -1384,6 +1394,7 @@ TgtSpellTgting	TargetKind	239
 TgtStackAb	TargetKind	7
 TgtStackObj	TargetKind	6
 TgtStackObjTrig	TargetKind	238
+TgtStackTgting	TargetKind	242
 TimingInstant	Timing	1
 TimingLand	Timing	2
 TimingSorcery	Timing	0

@@ -446,7 +446,7 @@ func (s *State) finishCleanup(k *prep) {
 		s.pl[s.active].extraTurns--
 		next = s.active
 		if !DebugNoExtraTurnBegun {
-			s.g.extraTurnBegun |= 1 << (s.active & 1) // ExYourExtraTurns: an extra turn's TurnChange fires
+			s.g.extraTurnBegun |= 1 << SeatIx(s.active) // ExYourExtraTurns: an extra turn's TurnChange fires
 		}
 	}
 	s.beginTurn(next)

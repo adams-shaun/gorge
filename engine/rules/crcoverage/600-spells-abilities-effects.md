@@ -168,7 +168,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 609.7c | unknown | - | - |  |
 | 610.1 | definition | - | - | - |
 | 610.2 | unknown | - | - | deferred to 603.7 slice |
-| 610.3-610.3b | follows | `engine/effects/zone_change.go#exileHostGoneFor` `engine/effects/zone_change.go#changeZonePrelude` `engine/rules/emit.go#Engine.sweepExileReturn` | `TestCR610_3AuraReturnFindsTheBoardAfterTheDestroyAll` `TestCR610_3AuraReturnEnchantsTheSurvivor` `TestCR610_3AuraReturnFindsTheBoardAfterLethalDamage` | host gone: no exile (610.3a/b); a departure in a zone batch returns its cards when the batch closes |
+| 610.3-610.3b | follows | `engine/effects/zone_change.go#exileHostGoneFor` `engine/effects/zone_change.go#changeZonePrelude` `engine/rules/emit.go#Engine.sweepExileReturn` `engine/effects/zone_change.go#exileUntilOpponentMonarchMet` | `TestCR610_3AuraReturnFindsTheBoardAfterTheDestroyAll` `TestCR610_3AuraReturnEnchantsTheSurvivor` `TestCR610_3AuraReturnFindsTheBoardAfterLethalDamage` `TestPalaceJailerExilesNothingWhenOpponentTookCrownAfterTrigger` `TestPalaceJailerExilesWhenOpponentWasMonarchBeforeTrigger` | host gone: no exile (610.3a/b); an opponent became the monarch after the push: no exile (610.3b, push-time stamp); a departure in a zone batch returns its cards when the batch closes |
 | 610.3c | unknown | - | - | returns under owner |
 | 610.3d | partial | `engine/rules/emit.go#Engine.flushExileReturns` | `TestCR610_3dReturnsFromOneEventAreSimultaneous` | one zone batch for triggers; the moves are ordered, so a returning Aura can choose a creature returning with it |
 | 610.4-610.4d | unknown | - | - | phase out "until" |
@@ -196,7 +196,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 612.7 | not-impl | - | - | SILENT; AddNames$ unread, Spy Kit names missing |
 | 612.8 | follows | `engine/rules/chars/derive.go#Name` `engine/rules/chars/derive.go#Compute` | - | SetName / Witness Protection |
 | 612.9 | unknown | - | - | stickers |
-| 612.10 | not-impl | - | - | LOUD via coverage gate; no kw:Splice handler |
+| 612.10 | follows | `engine/rules/splice.go#Engine.spliceAsk` `engine/rules/splice.go#Engine.runSplicedSegments` | `TestSpliceOntoArcaneRevealAndCost` `TestSpliceAddedTextTargetsAreItsOwn` `TestSpliceNonManaCostSacrifices` `TestSpliceCounteredLeavesTheCardsInHand` `TestSpliceQualityAndPayabilityGateTheOffer` | spliced text is added to the spell as it is cast; the card stays in hand |
 | 613.1 | follows | `engine/rules/layers.go#compareContinuousPtr` `engine/rules/layers.go#continuousPtrsSorted` `engine/rules/chars/derive.go#Compute` | `TestCR613HumilitySetsBaseBeforePumpAndRemovesAbilities` `TestAttackTriggerReadsAttackerTypesPastColorTable` | a build under a live match keeps private buffers (Scratch.Borrowed) |
 | 613.1a | partial | `engine/state/object.go#Object.CopyFace` | `TestCloneModifiersApplyAtTheirOwnLayers` | copy as face swap; see 707 slice |
 | 613.1b | follows | `engine/rules/control.go#Engine.RegisterControl` `engine/rules/control.go#Engine.expireControl` | - | grants in timestamp order |

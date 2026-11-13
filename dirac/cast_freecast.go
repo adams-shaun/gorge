@@ -32,9 +32,22 @@ func (s *State) freeQueued(o Obj) bool {
 //     filter population over the zone).
 //
 // The zone, ReplaceGraveyard and ForgetPlayed bits ride to the freeQ drain
-// in s.g.freeP: bit 0 is the caster, bits 1-3 the zone, bit 4
-// ReplaceGraveyard, bit 7 ForgetPlayed. freeP is only a player index
-// everywhere else, so its readers mask it.
+// in s.g.freeP: the caster in the low freeSeatBits, the zone in the three
+// bits above, then freeGY (ReplaceGraveyard), freeCopy (CopyCard), freePaid
+// and freeForget (ForgetPlayed). At two seats that is bit 0, bits 1-3 and
+// bits 4-7 of a byte.
+const (
+	freeSeatBits  = MaxSeats / 2 // one bit at two seats, two at four
+	freeSeatMask  = 1<<freeSeatBits - 1
+	freeZoneShift = freeSeatBits
+	freeGY        = 1 << (freeZoneShift + 3)
+	freeCopy      = freeGY << 1
+	freePaid      = freeGY << 2
+	freeForget    = freeGY << 3
+)
+
+// freeSeatBits holds every seat.
+var _ = [1<<freeSeatBits - MaxSeats]struct{}{}
 
 // sfFreeGY is stackEntry.flags bit 4, meaning "exile instead of the
 // graveyard" on a free cast. Bit 4 also means sfFbGranted while a cast is built

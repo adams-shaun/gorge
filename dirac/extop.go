@@ -240,6 +240,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtTurnFaceUp:
 		return s.extTurnFaceUp(k, in), true // face_turnupeffect.go
+	case kop.ExtJoinForces:
+		s.joinForcesAdd(s.value(k, in.B), in.C&kop.JoinForcesReset != 0) // scratch.go
+		return true, true
 	case kop.ExtDistCounters:
 		return s.distPickStart(k, in), true // ctr_distpick.go
 	case kop.ExtExileEmbRem:
@@ -252,6 +255,8 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtTurnRepl:
 		s.turnRepl(k, in) // repl_turnrepl.go
 		return true, true
+	case kop.ExtLibPlace:
+		return s.libPlaceExt(k, in), true // act_libplace.go
 	case kop.ExtExtort:
 		// CR 702.101a: the trigger's controller may pay {W/B}; both
 		// options are always offered (gorge effExtort), the ask answered

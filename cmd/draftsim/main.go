@@ -31,6 +31,9 @@ func main() {
 	fs.StringVar(&o.set, "set", "FDN", "set code to draft (an embedded draft/limited/setdata spec)")
 	fs.StringVar(&o.collation, "collation", string(setdata.DefaultCollation), "collation the packs are cut from: "+string(setdata.Play)+", "+string(setdata.Arena))
 	fs.IntVar(&o.seats, "seats", 4, "pod size: 4 or 8")
+	fs.IntVar(&o.seats, "pod", 4, "alias of -seats")
+	fs.StringVar(&o.format, "format", "", "construction format: empty (limited, 40-card decks and Bo1 series) or commander (a Commander Legends style draft: 60-card decks around drafted commanders, then 4-player free-for-all Commander games at 40 life; -rounds is the game count, default 1)")
+	fs.IntVar(&o.picks, "picks", 0, "cards each seat takes from a pack before passing it; 0 = the format's default (1, or 2 with -format commander)")
 	fs.StringVar(&o.mode, "mode", string(event.ModeDraft), "supply mode: draft (3 packs per seat, picked), sealed (6 packs per seat, unopened) or prerelease (sealed plus one rare/mythic promo per seat)")
 	fs.StringVar(&o.structure, "structure", "", "series structure: roundrobin, swiss or none (build only); empty = roundrobin at 4 seats, swiss at 8")
 	fs.IntVar(&o.rounds, "rounds", 0, "event round count; 0 = the structure's default (n-1 round robin, ceil(log2 n) Swiss)")
@@ -98,6 +101,9 @@ type options struct {
 	gauntletMaxHuman int
 	ratingsFile      string
 	ratingsField     string
+	// format is -format: "" or event.FormatCommander; picks is -picks.
+	format string
+	picks  int
 }
 
 // playerList splits the -players flag into its per-seat policies: one name
@@ -150,6 +156,10 @@ type podShape struct {
 	// collation is the EventCreated's Collation value, "" unless -collation
 	// was set explicitly (so a default-flag log omits them).
 	collation string
+	// format is "" or event.FormatCommander; picks the cards taken per
+	// pass (1 unless a Commander draft or -picks says otherwise).
+	format string
+	picks  int
 }
 
 // defaultRounds is the round count a structure implies for n seats: n-1
@@ -165,6 +175,8 @@ func defaultRounds(structure string, n int) int {
 		}
 	case event.StructureNone:
 		return 0
+	case event.StructurePod:
+		return 1
 	default:
 		return n - 1
 	}
@@ -177,6 +189,23 @@ func (o options) shape() (podShape, error) {
 	n, err := o.seatCount()
 	if err != nil {
 		return podShape{}, err
+	}
+	if o.picks < 0 || o.picks > draft.MaxPicksPerPass {
+		return podShape{}, fmt.Errorf("-picks must be 1..%d, got %d", draft.MaxPicksPerPass, o.picks)
+	}
+	switch o.format {
+	case "":
+	case event.FormatCommander:
+		return o.commanderShape(n)
+	default:
+		return podShape{}, fmt.Errorf("unknown -format %q (want commander, or empty for limited)", o.format)
+	}
+	picks := o.picks
+	if picks == 0 {
+		picks = 1
+	}
+	if picks > 1 && o.mode != "" && o.mode != event.ModeDraft {
+		return podShape{}, fmt.Errorf("-picks needs -mode draft")
 	}
 	mode := event.ModeDraft
 	promos := 0
@@ -224,5 +253,40 @@ func (o options) shape() (podShape, error) {
 	if o.collationSet {
 		collation = o.collation
 	}
-	return podShape{seats: n, mode: mode, structure: structure, packs: packs, promos: promos, rounds: rounds, collation: collation}, nil
+	return podShape{seats: n, mode: mode, structure: structure, packs: packs, promos: promos, rounds: rounds, collation: collation, picks: picks}, nil
+}
+
+// commanderShape resolves -format commander: a 4-seat booster draft, two
+// picks per pass unless -picks says otherwise, and the pod structure, one
+// free-for-all game per -rounds (default 1).
+func (o options) commanderShape(n int) (podShape, error) {
+	if n != 4 {
+		return podShape{}, fmt.Errorf("-format commander seats a 4-player pod, got -seats %d", n)
+	}
+	if o.mode != "" && o.mode != event.ModeDraft {
+		return podShape{}, fmt.Errorf("-format commander needs -mode draft, got %q", o.mode)
+	}
+	if o.structure != "" && o.structure != event.StructurePod {
+		return podShape{}, fmt.Errorf("-format commander plays -structure %s, got %q", event.StructurePod, o.structure)
+	}
+	if o.gauntlet != "" {
+		return podShape{}, fmt.Errorf("-gauntlet measures limited decks; it does not run with -format commander")
+	}
+	rounds := o.rounds
+	if rounds == 0 {
+		rounds = 1
+	}
+	if rounds < 1 || rounds > event.MaxPodGames {
+		return podShape{}, fmt.Errorf("-rounds must be 1..%d games with -format commander, got %d", event.MaxPodGames, o.rounds)
+	}
+	picks := o.picks
+	if picks == 0 {
+		picks = 2
+	}
+	collation := ""
+	if o.collationSet {
+		collation = o.collation
+	}
+	return podShape{seats: n, mode: event.ModeDraft, structure: event.StructurePod, packs: event.DraftPacks,
+		rounds: rounds, collation: collation, format: event.FormatCommander, picks: picks}, nil
 }

@@ -75,6 +75,10 @@ type Event struct {
 	rounds    int // 0 for StructureNone
 	collation string
 	rebuild   bool // the EventCreated Rebuild flag (MTR 7.3)
+	// format is FormatCommander or "" (limited); picksPerPass the
+	// EventCreated PicksPerPass, 0 meaning 1.
+	format       string
+	picksPerPass int
 
 	log []Entry
 
@@ -94,6 +98,8 @@ type Event struct {
 	pairings [][2]int
 	series   map[[2]int]*seriesState
 	results  []finishedSeries
+	// podResults is a StructurePod event's played games, in round order.
+	podResults []podResult
 }
 
 // savedDeck is one revision of a seat's deck list.
@@ -168,7 +174,8 @@ func (e *Event) Log() []Entry {
 // Done reports whether the event reached COMPLETE.
 func (e *Event) Done() bool { return e.phase == PhaseComplete }
 
-// Next returns seat's draft view when a pack waits for it. It is read-only:
+// Next returns seat's draft view when a pack waits for it (in a Commander
+// draft, with the event's set code as the view's Set). It is read-only:
 // the actual pick goes through a Picked entry. A sealed event never offers
 // one.
 func (e *Event) Next(seat int) (draft.PickView, bool) {
@@ -179,7 +186,14 @@ func (e *Event) Next(seat int) (draft.PickView, bool) {
 	if e.pod == nil || seat < 0 || seat >= e.NumSeats() {
 		return draft.PickView{}, false
 	}
-	return e.pod.Next(seat)
+	v, ok := e.pod.Next(seat)
+	if ok && e.format == FormatCommander {
+		// A Commander-draft pack mixes printings (MBC packs carry MBC, MB2
+		// and PLST cards), so the pack's first card does not name the set
+		// being drafted; the event's set code does.
+		v.Set = e.set
+	}
+	return v, ok
 }
 
 // Pool returns seat's cards — a draft's picks through its pod, a sealed
@@ -291,6 +305,8 @@ func (e *Event) apply(en *Entry) error {
 		return e.applySideboarded(en)
 	case KindRoundPaired:
 		return e.applyRoundPaired(en)
+	case KindPodGameEnded:
+		return e.applyPodGameEnded(en)
 	case KindLobbyTimeout:
 		return e.applyLobbyTimeout(en)
 	case KindIdleTimeout:
@@ -371,7 +387,7 @@ func (e *Event) applyEventCreated(en *Entry) error {
 	structure := StructureRoundRobin
 	switch en.Structure {
 	case "":
-	case StructureRoundRobin, StructureNone, StructureSwiss:
+	case StructureRoundRobin, StructureNone, StructureSwiss, StructurePod:
 		structure = en.Structure
 	default:
 		return fmt.Errorf("event: EventCreated: unknown structure %q", en.Structure)
@@ -396,11 +412,39 @@ func (e *Event) applyEventCreated(en *Entry) error {
 			}
 			rounds = en.Rounds
 		}
+	case StructurePod:
+		rounds = 1
+		if en.Rounds != 0 {
+			if en.Rounds < 1 || en.Rounds > MaxPodGames {
+				return fmt.Errorf("event: EventCreated: pod games %d out of range 1..%d", en.Rounds, MaxPodGames)
+			}
+			rounds = en.Rounds
+		}
 	default: // StructureNone
 		if en.Rounds != 0 {
 			return fmt.Errorf("event: EventCreated: structure none takes no rounds")
 		}
 	}
+	switch en.Format {
+	case "":
+		if structure == StructurePod {
+			return fmt.Errorf("event: EventCreated: structure pod needs format %s", FormatCommander)
+		}
+	case FormatCommander:
+		if structure != StructurePod && structure != StructureNone {
+			return fmt.Errorf("event: EventCreated: format %s plays structure %s or %s, not %s", FormatCommander, StructurePod, StructureNone, structure)
+		}
+	default:
+		return fmt.Errorf("event: EventCreated: unknown format %q", en.Format)
+	}
+	if en.PicksPerPass < 0 || en.PicksPerPass > draft.MaxPicksPerPass {
+		return fmt.Errorf("event: EventCreated: picks per pass %d, want 1..%d", en.PicksPerPass, draft.MaxPicksPerPass)
+	}
+	if en.PicksPerPass > 1 && mode != ModeDraft {
+		return fmt.Errorf("event: EventCreated: picks per pass needs draft mode")
+	}
+	e.format = en.Format
+	e.picksPerPass = en.PicksPerPass
 	e.seed = en.Seed
 	e.set = en.Set
 	e.seats = append([]SeatSpec(nil), en.Seats...)
@@ -492,7 +536,7 @@ func (e *Event) ensurePod() {
 			packs[s][r] = e.packs[r][s]
 		}
 	}
-	p, err := draft.NewPod(e.seed, packs)
+	p, err := draft.NewPodPicks(e.seed, packs, e.PicksPerPass())
 	if err != nil {
 		e.podErr = err // impossible for a validated event
 	} else {
@@ -585,11 +629,12 @@ func (e *Event) applyDeckSaved(en *Entry) error {
 	if en.Deck == nil {
 		return fmt.Errorf("event: DeckSaved: seat %d has no deck", en.Seat)
 	}
-	if err := build.Validate(e.Pool(en.Seat), *en.Deck); err != nil {
+	if err := e.validateDeck(en.Seat, *en.Deck); err != nil {
 		return fmt.Errorf("event: DeckSaved: seat %d: %w", en.Seat, err)
 	}
 	d := *en.Deck
 	d.Main = append([]string(nil), d.Main...)
+	d.Commanders = append([]string(nil), d.Commanders...)
 	e.decks[en.Seat] = append(e.decks[en.Seat], savedDeck{rev: en.Rev, deck: d})
 	if !inRound {
 		e.ready[en.Seat] = 0 // a new revision must be readied again
@@ -644,6 +689,11 @@ func (e *Event) allReady() bool {
 // Swiss event stays in BUILD too: it awaits the driver's first RoundPaired
 // entry (see AwaitingPairing).
 func (e *Event) startRounds() {
+	if e.structure == StructurePod {
+		e.round = 1
+		e.phase = RoundPhase(1)
+		return
+	}
 	if e.structure != StructureRoundRobin {
 		return
 	}
@@ -955,6 +1005,10 @@ func (e *Event) applyEventEnded(en *Entry) error {
 				return fmt.Errorf("event: EventEnded: seat %d is not ready", s)
 			}
 		}
+	} else if e.structure == StructurePod {
+		if e.phase != RoundPhase(e.rounds) || len(e.podResults) < e.rounds {
+			return fmt.Errorf("event: EventEnded: pod game %d not played (phase %s)", e.rounds, e.phase)
+		}
 	} else {
 		if e.phase != RoundPhase(e.rounds) {
 			return fmt.Errorf("event: EventEnded: illegal in phase %s", e.phase)
@@ -1016,6 +1070,11 @@ func (e *Event) StateJSON() ([]byte, error) {
 		Games  []int8 `json:"games"`
 		Winner int    `json:"winner"`
 	}
+	type podGameJSON struct {
+		Round  int    `json:"round"`
+		Winner int    `json:"winner"`
+		Head   string `json:"head,omitempty"`
+	}
 	type snapshot struct {
 		Phase Phase  `json:"phase"`
 		Round int    `json:"round"`
@@ -1024,18 +1083,23 @@ func (e *Event) StateJSON() ([]byte, error) {
 		// Mode, Structure, Packs and Rounds appear only when the event's
 		// shape is not the default, so a 4-seat draft round-robin event
 		// marshals without them.
-		Mode      string              `json:"mode,omitempty"`
-		Structure string              `json:"structure,omitempty"`
-		Packs     int                 `json:"packs,omitempty"`
-		Promos    int                 `json:"promos,omitempty"`
-		Rounds    int                 `json:"rounds,omitempty"`
-		Rebuild   bool                `json:"rebuild,omitempty"`
-		Seats     []SeatSpec          `json:"seats"`
-		Pools     [][]limited.CardRef `json:"pools"`
-		Decks     [][]deckJSON        `json:"decks"`
-		Ready     []int               `json:"ready"`
-		Results   []resultJSON        `json:"results"`
-		Standings []Standing          `json:"standings"`
+		Mode      string `json:"mode,omitempty"`
+		Structure string `json:"structure,omitempty"`
+		Packs     int    `json:"packs,omitempty"`
+		Promos    int    `json:"promos,omitempty"`
+		Rounds    int    `json:"rounds,omitempty"`
+		Rebuild   bool   `json:"rebuild,omitempty"`
+		// Format, PicksPerPass and PodGames appear only in a Commander
+		// draft's state.
+		Format       string              `json:"format,omitempty"`
+		PicksPerPass int                 `json:"picks_per_pass,omitempty"`
+		PodGames     []podGameJSON       `json:"pod_games,omitempty"`
+		Seats        []SeatSpec          `json:"seats"`
+		Pools        [][]limited.CardRef `json:"pools"`
+		Decks        [][]deckJSON        `json:"decks"`
+		Ready        []int               `json:"ready"`
+		Results      []resultJSON        `json:"results"`
+		Standings    []Standing          `json:"standings"`
 	}
 	n := e.NumSeats()
 	s := snapshot{
@@ -1048,8 +1112,15 @@ func (e *Event) StateJSON() ([]byte, error) {
 		s.Mode = e.mode
 	}
 	s.Rebuild = e.rebuild
-	if e.structure == StructureNone || e.structure == StructureSwiss {
+	if e.structure == StructureNone || e.structure == StructureSwiss || e.structure == StructurePod {
 		s.Structure = e.structure
+	}
+	s.Format = e.format
+	if e.picksPerPass > 1 {
+		s.PicksPerPass = e.picksPerPass
+	}
+	for _, g := range e.podResults {
+		s.PodGames = append(s.PodGames, podGameJSON{Round: g.round, Winner: g.winner, Head: g.head})
 	}
 	if e.packsPer != e.defaultPacks() {
 		s.Packs = e.packsPer
@@ -1062,6 +1133,10 @@ func (e *Event) StateJSON() ([]byte, error) {
 		}
 	case StructureSwiss:
 		if n > 0 && e.rounds != swissDefaultRounds(n) {
+			s.Rounds = e.rounds
+		}
+	case StructurePod:
+		if e.rounds != 1 {
 			s.Rounds = e.rounds
 		}
 	}

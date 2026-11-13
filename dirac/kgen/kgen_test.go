@@ -218,6 +218,7 @@ func TestStaticRecordsMatchIR(t *testing.T) {
 // TestMatchupsBuild assembles a deterministic sample of matchups from the
 // fully supported decks and checks the tables.
 func TestMatchupsBuild(t *testing.T) {
+	heavyParallel(t)
 	p := testPool(t)
 	var ok [][]string
 	set := cardsettest.Set(t, "fdn")

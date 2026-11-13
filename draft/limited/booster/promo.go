@@ -79,8 +79,8 @@ func OpenPrereleasePod(spec setdata.Spec, seed uint64, seats, packs, promos int,
 	return out, nil
 }
 
-// promoUniverse is the cards a promo can be: the rare and mythic sheet cards
-// of the spec's own set (every rare and mythic when none carries the set
+// promoUniverse is the cards a promo can be: the playable (not
+// spec.Unplayable) rare and mythic sheet cards of the spec's own set (every rare and mythic when none carries the set
 // code), one printing per name (the lowest collector number), sorted by name.
 func promoUniverse(spec setdata.Spec) ([]setdata.SheetCard, error) {
 	names := make([]string, 0, len(spec.Config.Sheets))
@@ -93,6 +93,9 @@ func promoUniverse(spec setdata.Spec) ([]setdata.SheetCard, error) {
 		for _, sc := range spec.Config.Sheets[n].Cards {
 			if sc.Rarity != limited.Rare && sc.Rarity != limited.Mythic {
 				continue
+			}
+			if spec.Unplayable[sc.Name] {
+				continue // a promo has no sheet to substitute from
 			}
 			all = append(all, sc)
 			if strings.EqualFold(sc.Set, spec.Code) {

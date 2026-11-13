@@ -438,6 +438,27 @@ func cloneFieldsEngineTriggerMaps2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 			c.charmTargets[k0] = nv0
 		}
 	}
+	if e.spliceFor != nil {
+		c.spliceFor = make(map[state.ObjID][]state.ObjID, len(e.spliceFor))
+		for k0, v0 := range e.spliceFor {
+			var nv0 []state.ObjID
+			nv0 = append([]state.ObjID(nil), v0...)
+			c.spliceFor[k0] = nv0
+		}
+	}
+	if e.spliceTargets != nil {
+		c.spliceTargets = make(map[state.ObjID][][]state.Target, len(e.spliceTargets))
+		for k0, v0 := range e.spliceTargets {
+			var nv0 [][]state.Target
+			if v0 != nil {
+				nv0 = make([][]state.Target, len(v0))
+				for i1 := range v0 {
+					nv0[i1] = append([]state.Target(nil), v0[i1]...)
+				}
+			}
+			c.spliceTargets[k0] = nv0
+		}
+	}
 }
 
 func cloneFieldsEngineResolution(c, e *Engine, sp *Spare, remap *cloneRemap) {
@@ -789,6 +810,13 @@ func cloneFieldsEngineContinuation(c, e *Engine, sp *Spare, remap *cloneRemap) {
 				p0.stageTargets[i1] = append([]state.Target(nil), e.cast.stageTargets[i1]...)
 			}
 		}
+		p0.spliced = append([]state.ObjID(nil), e.cast.spliced...)
+		if e.cast.spliceTargets != nil {
+			p0.spliceTargets = make([][]state.Target, len(e.cast.spliceTargets))
+			for i1 := range e.cast.spliceTargets {
+				p0.spliceTargets[i1] = append([]state.Target(nil), e.cast.spliceTargets[i1]...)
+			}
+		}
 		if e.cast.charmTargets != nil {
 			p0.charmTargets = make([][]state.Target, len(e.cast.charmTargets))
 			for i1 := range e.cast.charmTargets {
@@ -854,11 +882,11 @@ func cloneFieldsEngineContinuation(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	c.etbLandPlay = e.etbLandPlay
 	c.etbLandObj = e.etbLandObj
 	c.etbLandPlayer = e.etbLandPlayer
-	c.etbLandPerm = e.etbLandPerm
-	c.etbLandFrom = e.etbLandFrom
 }
 
 func cloneFieldsEngineContinuation2(c, e *Engine, sp *Spare, remap *cloneRemap) {
+	c.etbLandPerm = e.etbLandPerm
+	c.etbLandFrom = e.etbLandFrom
 	if e.riotMove != nil {
 		p0 := *e.riotMove
 		p0.IDs = append([]state.ObjID(nil), e.riotMove.IDs...)

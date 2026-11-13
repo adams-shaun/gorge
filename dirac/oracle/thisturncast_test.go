@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -134,6 +135,19 @@ type kcastLog struct {
 	lizardOff int // ...on a turn the non-active cast a creature and the active cast none
 	drudge    int // end-step triggers pushed by Laboratory Drudge (TriggerPush Obj is the source)
 	flashback int // spells pushed from a graveyard (Bulk Up's flashback)
+}
+
+// add sums o's per-game counts (not maxPush) into l.
+func (l *kcastLog) add(o kcastLog) {
+	l.recast += o.recast
+	l.reversed += o.reversed
+	l.impDmg += o.impDmg
+	l.impOff += o.impOff
+	l.runner += o.runner
+	l.lizard += o.lizard
+	l.lizardOff += o.lizardOff
+	l.drudge += o.drudge
+	l.flashback += o.flashback
 }
 
 func kcastScan(g *GorgeSide) kcastLog {
@@ -290,14 +304,32 @@ func TestThisturncastLockstep(t *testing.T) {
 	played := map[string]int{}
 	pushHist := map[int]int{} // the most pushes by one player in one turn, per game
 	stalls := map[string]int{}
-	recast, reversed, impDmg, impOff, runner, lizard, lizardOff, drudge, flashback := 0, 0, 0, 0, 0, 0, 0, 0, 0
-	for mi, md := range kcastDecks {
+	var sum kcastLog // maxPush unused: pushHist holds it
+	matchupChunks(t, len(kcastDecks), 1, 512, 128, func(t *testing.T, c seedChunk, mu *sync.Mutex) {
+		mi, md := c.mi, kcastDecks[c.mi]
+		n, part, partHist, partStalls := 0, map[string]int{}, map[int]int{}, map[string]int{}
+		var tl kcastLog
+		defer func() {
+			mu.Lock()
+			defer mu.Unlock()
+			games += n
+			for k, v := range part {
+				played[k] += v
+			}
+			for k, v := range partHist {
+				pushHist[k] += v
+			}
+			for k, v := range partStalls {
+				stalls[k] += v
+			}
+			sum.add(tl)
+		}()
 		decks := kcastDeck(t, reg, md)
 		tbl, _, _, err := set.Matchup(md[0], md[1])
 		if err != nil {
 			t.Fatal(err)
 		}
-		for seed := uint64(1); seed <= 512; seed++ {
+		for seed := c.lo; seed <= c.hi; seed++ {
 			cfg := Config{GorgeAutopaySurface: seed%2 == 0}
 			m, err := NewMatchup(reg, [2]string{"kcast-a", "kcast-b"}, decks, 1)
 			if err != nil {
@@ -308,36 +340,29 @@ func TestThisturncastLockstep(t *testing.T) {
 				t.Fatal(err)
 			}
 			var gs *GorgeSide
-			var pol Policy = kcastPolicy(seed, played, &gs)
+			var pol Policy = kcastPolicy(seed, part, &gs)
 			res := Lockstep(m, seed, k, pol, RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 20})
 			CloseSide(k)
-			games++
+			n++
 			if strings.HasPrefix(res.Stall, KernelStallPrefix) {
-				stalls[res.Stall]++
+				partStalls[res.Stall]++
 			}
 			lg := kcastScan(gs)
-			pushHist[lg.maxPush]++
-			recast += lg.recast
-			reversed += lg.reversed
-			impDmg += lg.impDmg
-			impOff += lg.impOff
-			runner += lg.runner
-			lizard += lg.lizard
-			lizardOff += lg.lizardOff
-			drudge += lg.drudge
-			flashback += lg.flashback
+			partHist[lg.maxPush]++
+			tl.add(lg)
 			if d := res.Div; d != nil {
-				lo := d.At - 12
-				if lo < 0 {
-					lo = 0
-				}
+				lo := max(d.At-12, 0)
 				t.Logf("matchup %d seed %d last actions %v", mi, seed, actionStrings(res.Actions[lo:d.At]))
 				kcastDump(t, gs)
 				t.Errorf("matchup %d seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", mi, seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
 				return
 			}
 		}
+	})
+	if t.Failed() {
+		return
 	}
+	recast, reversed, impDmg, impOff, runner, lizard, lizardOff, drudge, flashback := sum.recast, sum.reversed, sum.impDmg, sum.impOff, sum.runner, sum.lizard, sum.lizardOff, sum.drudge, sum.flashback
 	var hist []int
 	for n := range pushHist {
 		hist = append(hist, n)

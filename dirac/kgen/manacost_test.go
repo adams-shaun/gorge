@@ -44,6 +44,7 @@ func manaCostCensus(t *testing.T) map[string][]string {
 // mana walk cannot pay (a tap-another-creature cost, a sacrifice, life, a
 // counter, mana in the cost) is refused, never lowered and silently dropped.
 func TestManaAbilityCostsAreHonoured(t *testing.T) {
+	heavyParallel(t)
 	got := manaCostCensus(t)
 	var shapes []string
 	n := 0
@@ -65,6 +66,7 @@ func TestManaAbilityCostsAreHonoured(t *testing.T) {
 // (dirac/cardset/pools) lists a card with a mana ability the kernel cannot
 // activate, so no lockstep pool silently plays one.
 func TestManaCostPoolsHaveNoDroppedAbility(t *testing.T) {
+	heavyParallel(t)
 	bad := map[string]string{}
 	for shape, names := range manaCostCensus(t) {
 		for _, n := range names {

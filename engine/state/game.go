@@ -214,6 +214,9 @@ type Player struct {
 	// (`NoteCards$ Self` on a body whose label is read by `Card.NotedForX`)
 	// is a different family and is not stored here.
 	Notes []string
+	// BecameMonarchSeq is Game.MonarchSeq as of the last MonarchChange that
+	// made this player the monarch (0: never). Folded only by events.Apply.
+	BecameMonarchSeq uint32
 }
 
 // ExtraTurn is one pending CR 500.7 turn. It is deliberately a queue entry,
@@ -480,6 +483,13 @@ type Game struct {
 	// the Black Rose.
 	TurnStartMonarch    PlayerID
 	HasTurnStartMonarch bool
+	// MonarchSeq counts every MonarchChange events.Apply has folded; the
+	// player who became the monarch takes the new value as BecameMonarchSeq
+	// and a pushed stack object stamps it as PushMonarchSeq, so "did an
+	// opponent become the monarch after this went on the stack" (CR 610.3b,
+	// Palace Jailer) compares two numbers. Monotonic, rebuilt by replay and
+	// left by a CR 727 restart (a stale-high value is safe).
+	MonarchSeq uint32
 	// Initiative is the current initiative holder when HasInitiative is true
 	// (CR 726.1). At most one player has it (CR 726.3); the presence bit keeps
 	// seat zero distinct from no initiative, exactly like Monarch above.

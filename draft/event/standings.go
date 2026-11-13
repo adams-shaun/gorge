@@ -178,7 +178,11 @@ func (e *Event) SeriesResults() []SeriesResult {
 	return rs
 }
 
-// Standings computes the event's current table from its completed series.
+// Standings computes the event's current table from its completed series
+// (a StructurePod event's from its free-for-all games, podStandings).
 func (e *Event) Standings() []Standing {
+	if e.structure == StructurePod {
+		return e.podStandings()
+	}
 	return ComputeStandingsN(e.NumSeats(), e.SeriesResults())
 }

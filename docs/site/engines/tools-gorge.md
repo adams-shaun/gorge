@@ -24,9 +24,14 @@ go run -trimpath ./cmd/forgec report     # playable cards and the primitives sti
 ```sh
 go run -trimpath ./cmd/mtgsim -games 20 -verify -seed 1
 go run -trimpath ./cmd/mtgsim -seats 2 -a bot -b lethal-pressure
+go run -trimpath ./cmd/mtgsim -seats 4 -format commander -policies az-redeal,lethal-pressure,-,forge-heuristic
 ```
 
 Game *i* uses seed + *i*. A game that doesn't finish, or doesn't replay under `-verify`, is an error and a non-zero exit.
+`-policies` names a policy for every seat (`-` keeps the plain heuristic); without it `-a` and `-b` name seats 0 and 1.
+Each game line ends with `policies=`, and a seat that searched gets a `search seat` line with its decisions, simulations
+and tree nodes. Seats are asked the way `gorged` asks them: a search policy such as `az-redeal` answers from an honest
+root dealt from its own observation feed, and a heuristic seat from the same reused board.
 `-sb-agent name=/path` adds a SpellBench v2 stdio agent as a policy.
 
 ## cardfuzz

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -131,6 +132,30 @@ func kxminsacxPolicy(seed uint64, tl *kxminsacxTally) Policy {
 // mutation must diverge).
 func runXMinSacX(t *testing.T, lo, hi int, mutate bool) (games, divs, stalls int, tl kxminsacxTally) {
 	t.Helper()
+	old := dirac.DebugXMinIgnored
+	dirac.DebugXMinIgnored = mutate
+	defer func() { dirac.DebugXMinIgnored = old }()
+	tl.x1, tl.x0, tl.zeroOffs, tl.offered = map[string]int{}, map[string]int{}, map[string]int{}, map[string]int{}
+	// the seeds play as parallel chunks (seedChunks) under the flag above
+	seedChunks(t, uint64(lo), uint64(hi), 150, func(t *testing.T, lo, hi uint64, mu *sync.Mutex) {
+		g, d, s, part := xminsacxChunk(t, int(lo), int(hi), mutate)
+		mu.Lock()
+		defer mu.Unlock()
+		games, divs, stalls = games+g, divs+d, stalls+s
+		tl.techCap += part.techCap
+		tl.techAsks += part.techAsks
+		for _, mp := range [][2]map[string]int{{tl.x1, part.x1}, {tl.x0, part.x0}, {tl.zeroOffs, part.zeroOffs}, {tl.offered, part.offered}} {
+			for k, v := range mp[1] {
+				mp[0][k] += v
+			}
+		}
+	})
+	return games, divs, stalls, tl
+}
+
+// xminsacxChunk plays seeds lo..hi of runXMinSacX's games.
+func xminsacxChunk(t *testing.T, lo, hi int, mutate bool) (games, divs, stalls int, tl kxminsacxTally) {
+	t.Helper()
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {
@@ -140,9 +165,6 @@ func runXMinSacX(t *testing.T, lo, hi int, mutate bool) (games, divs, stalls int
 	if err != nil {
 		t.Fatal(err)
 	}
-	old := dirac.DebugXMinIgnored
-	dirac.DebugXMinIgnored = mutate
-	defer func() { dirac.DebugXMinIgnored = old }()
 	tl.x1, tl.x0, tl.zeroOffs, tl.offered = map[string]int{}, map[string]int{}, map[string]int{}, map[string]int{}
 	var decks [2][]*cards.Card
 	for s, d := range kxminsacxDecks {

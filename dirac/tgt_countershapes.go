@@ -3,7 +3,7 @@ package dirac
 import "github.com/adams-shaun/gorge/dirac/kop"
 
 // Counter's target shapes (Spider-Sense's TgtStackObjTrig,
-// Fugitive Droid's TgtSpellTgting) and its RememberCounteredCMC$ /
+// Fugitive Droid's TgtSpellTgting, Diplomatic Escort's TgtStackTgting) and its RememberCounteredCMC$ /
 // RememberCountered$ riders (Hurl into History, Thranduil's Decree). Reached
 // only from a slot of those kinds or an OpCounter with B set.
 
@@ -20,10 +20,14 @@ var DebugCtrSpellFOff bool
 // "You" clause accepts a target that is any player, not the chooser.
 var DebugCtrVYouAnyPlayer bool
 
-// ctrShapeKind reports whether target kind kd is TgtStackObjTrig or
-// TgtSpellTgting.
+// DebugCtrAbTgtOff (mutation, TestCtrabtgtLockstepMutation): TgtStackTgting
+// admits any activated or triggered ability, whatever it targets.
+var DebugCtrAbTgtOff bool
+
+// ctrShapeKind reports whether target kind kd is TgtStackObjTrig,
+// TgtSpellTgting or TgtStackTgting.
 func ctrShapeKind(kd kop.TargetKind) bool {
-	return kd == kop.TgtStackObjTrig || kd == kop.TgtSpellTgting
+	return kd == kop.TgtStackObjTrig || kd == kop.TgtSpellTgting || kd == kop.TgtStackTgting
 }
 
 // trigOnlyOK is TgtStackObjTrig's verdict for a stack ability entry of the
@@ -56,7 +60,13 @@ func (s *State) spellTgtingOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, cod
 	if !DebugCtrSpellFOff && t.SpellF != 0 && !s.matchCardAt(k, t.SpellF, s.objs[o].card, s.stackCtrl(o), p, o) {
 		return false // the spell side's own filter (Avoid Fate: Instant,Aura)
 	}
-	e := &s.stack[i]
+	return s.entryTgtClause(k, t, p, &s.stack[i])
+}
+
+// entryTgtClause: stack entry e's own targets (its slots and the extra
+// multi-object ones) include one that satisfies slot t's targeting clause for
+// chooser p.
+func (s *State) entryTgtClause(k *prep, t *kop.TargetSpec, p uint8, e *stackEntry) bool {
 	for _, c := range e.tgt {
 		if s.tgtClauseMatch(k, t, p, c) {
 			return true
@@ -69,6 +79,21 @@ func (s *State) spellTgtingOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, cod
 		}
 	}
 	return false
+}
+
+// stackTgtingOK is targetOK for a TgtStackTgting slot: a spell as
+// spellTgtingOK has it, or an activated or triggered ability (named
+// StackTarget0 + its stack index, never the entry being built or resolving)
+// whose own targets satisfy the slot's targeting clause for the chooser.
+func (s *State) stackTgtingOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, code uint8) bool {
+	if !isStackTarget(code) {
+		return s.spellTgtingOK(k, t, p, self, code)
+	}
+	i := int(code - StackTarget0)
+	if i >= int(s.sp) || i == s.stackTgtSelf() || s.stack[i].kind == seSpell {
+		return false
+	}
+	return DebugCtrAbTgtOff || s.entryTgtClause(k, t, p, &s.stack[i])
 }
 
 // tgtClauseMatch: target byte c satisfies slot t's targeting clause for

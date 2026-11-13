@@ -393,6 +393,10 @@ components:
         effective_mana_cost:
           description: "EffectiveManaCost is the offer-time cost to cast this card when the engine can determine a non-X own-cost composition that differs from the printed ManaCost. Empty means use ManaCost."
           type: "string"
+        empty_library_win:
+          maximum: 255
+          minimum: 0
+          type: "integer"
         exiled_cards:
           items:
             maximum: 4294967295
@@ -431,6 +435,9 @@ components:
           type: "string"
         name:
           type: "string"
+        name_keyed_self_mill:
+          description: "NameKeyedSelfMill reports a spell that digs its caster's own library away until a card matches a name (effects.CastNameKeyedSelfMill), and EmptyLibraryWin how the card wins for a player with an empty library (effects.EmptyLibraryWin). Printed-face facts the bot's self-mill guard reads."
+          type: "boolean"
         owner:
           maximum: 255
           minimum: 0
@@ -439,6 +446,9 @@ components:
           maximum: 4294967295
           minimum: 0
           type: "integer"
+        pay_or_lose_cost:
+          description: "PayOrLoseCost is the mana the caster must pay at their next upkeep or lose the game (effects.CastPayOrLoseCost: the Pact cycle)."
+          type: "string"
         play_main1:
           description: "PlayMain1 is the canonical Forge `SVar:PlayMain1` timing hint: \"ALWAYS\", \"TRUE\" (cast in the first main while the caster controls a creature) or \"OPPONENTCREATURES\" (while an opponent does), and \"\" for no hint. It is a printed deck-builder hint of a visible card, never hidden information. The opt-in AIHints cast rule reads it; the default bot ignores it."
           type: "string"

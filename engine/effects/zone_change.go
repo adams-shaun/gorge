@@ -529,7 +529,7 @@ func altDeciderChooser(h Host, c *Ctx, spec string, target *state.Object) (state
 func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	cz := ChangeZoneOf(sa)
 	to, stop := changeZonePrelude(h, c, cz)
-	if stop {
+	if stop || exileUntilOpponentMonarchMet(h, c, sa, to) {
 		return
 	}
 	// Set only when an explicit multi-zone Origin$ including Hand falls
@@ -2138,6 +2138,33 @@ func exileHostGoneFor(h Host, c *Ctx, dur ParamText) bool {
 	}
 	o := h.Game().Obj(c.Source)
 	return o == nil || o.Zone != state.ZBattlefield
+}
+
+// exileUntilOpponentMonarchMet is CR 610.3b for "exile ... until an opponent
+// becomes the monarch" (Palace Jailer: a ChangeZone to exile whose SubAbility$
+// Effect arms a Mode$ BecomeMonarch trigger). When an opponent of the
+// controller became the monarch after the ability was put on the stack, the
+// "until" event has already happened, so the object is not exiled at all.
+// Push-time stamping (state.Object.PushMonarchSeq) approximates the
+// trigger-time moment. It emits one Note and reports true when that is so.
+func exileUntilOpponentMonarchMet(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool {
+	if to != state.ZExile || sa == nil || !effectNamesBecomeMonarchTrigger(h, c, sa.Sub) {
+		return false
+	}
+	g := h.Game()
+	ro := g.Obj(c.ResolvingObj)
+	if c.ResolvingObj == 0 || ro == nil {
+		return false
+	}
+	for q := range g.Players {
+		if state.PlayerID(q) == c.Controller || g.Players[q].BecameMonarchSeq <= ro.PushMonarchSeq {
+			continue
+		}
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "CR 610.3b: an opponent became the monarch after the exile-until ability was put on the stack; nothing is exiled"})
+		return true
+	}
+	return false
 }
 
 // recordExileReturnFor is recordExileReturn over a compiled Duration$.

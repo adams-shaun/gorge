@@ -18,7 +18,7 @@ func (s *State) convAnyType(k *prep, p uint8, o Obj) bool {
 	}
 	hit := false
 	s.eachStatic(k, func(st statSrc) bool {
-		if st.a.Kind == kop.AbStatic && st.a.Static.Kind == kop.StatAnyTypeCreatures && st.ctrl == p&1 && s.statCond(k, st) {
+		if st.a.Kind == kop.AbStatic && st.a.Static.Kind == kop.StatAnyTypeCreatures && st.ctrl == SeatIx(p) && s.statCond(k, st) {
 			hit = true
 			return false
 		}

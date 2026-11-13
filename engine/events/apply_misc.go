@@ -232,6 +232,8 @@ func foldRingEmblemPush(g *state.Game, e *Event) {
 func foldMonarchChange(g *state.Game, e *Event) {
 	if validPlayer(g, e.Player) {
 		g.Monarch, g.HasMonarch = e.Player, true
+		g.MonarchSeq++
+		g.Players[e.Player].BecameMonarchSeq = g.MonarchSeq
 	}
 }
 

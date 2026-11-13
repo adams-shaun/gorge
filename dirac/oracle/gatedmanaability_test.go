@@ -2,10 +2,12 @@ package oracle
 
 import (
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -316,6 +318,31 @@ func gatedmanaabilityPolicy(seed uint64, counts map[string]int) Policy {
 	})
 }
 
+// gatedmanaabilityGame plays one seeded game of matchup mi, counting into
+// counts.
+func gatedmanaabilityGame(t *testing.T, set cardset.Set, build func(int) (*Matchup, error), tbl *kop.Table, mi int, seed uint64, counts map[string]int) {
+	t.Helper()
+	m, err := build(mi)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := Config{GorgeAutopaySurface: seed%2 == 0}
+	k, err := SetSide(set, tbl, cfg)(m, seed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res := Lockstep(m, seed, k, gatedmanaabilityPolicy(seed, counts), RunConfig{Config: cfg, MaxDecisions: 1500, MaxTurns: 16})
+	CloseSide(k)
+	if strings.HasPrefix(res.Stall, KernelStallPrefix) {
+		t.Errorf("matchup %d seed %d: kernel capacity stall %q", mi, seed, res.Stall)
+	}
+	if d := res.Div; d != nil {
+		lo := max(d.At-12, 0)
+		t.Logf("matchup %d seed %d last actions %v", mi, seed, actionStrings(res.Actions[lo:d.At]))
+		t.Errorf("matchup %d seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", mi, seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
+	}
+}
+
 // gatedmanaabilityWardMatchup is the matchup whose games reach the ward mana window.
 const gatedmanaabilityWardMatchup = 2
 
@@ -387,39 +414,51 @@ func TestGatedManaAbilityLockstep(t *testing.T) {
 	set, build := gatedmanaabilityEnv(t)
 	counts := map[string]int{}
 	games := 0
+	// pre is the counts of the matchups up to the ward matchup: what the
+	// ward matchup's extension read when the matchups played in order
+	pre := map[string]int{}
+	merge := func(part map[string]int, mi int) {
+		for k, v := range part {
+			counts[k] += v
+			if mi <= gatedmanaabilityWardMatchup {
+				pre[k] += v
+			}
+		}
+	}
+	// every deck builds (build's lookups fail on the test's goroutine)
 	for mi := range gatedmanaabilityDecks {
-		md := gatedmanaabilityDecks[mi]
+		if _, err := build(mi); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// seeds 1..512 of every matchup as parallel chunks, each on a table of its own
+	matchupChunks(t, len(gatedmanaabilityDecks), 1, 512, 128, func(t *testing.T, c seedChunk, mu *sync.Mutex) {
+		md := gatedmanaabilityDecks[c.mi]
 		tbl, _, _, err := set.Matchup(md[0], md[1])
 		if err != nil {
 			t.Fatal(err)
 		}
-		// the ward matchup runs on, seed by seed, until every ward floor is met
-		// (deterministic: the stop reads only the counts so far)
-		for seed := uint64(1); seed <= 512 || mi == gatedmanaabilityWardMatchup && seed <= 4096 && !gatedmanaabilityWardFloors(counts); seed++ {
-			m, err := build(mi)
-			if err != nil {
-				t.Fatal(err)
-			}
-			cfg := Config{GorgeAutopaySurface: seed%2 == 0}
-			k, err := SetSide(set, tbl, cfg)(m, seed)
-			if err != nil {
-				t.Fatal(err)
-			}
-			res := Lockstep(m, seed, k, gatedmanaabilityPolicy(seed, counts), RunConfig{Config: cfg, MaxDecisions: 1500, MaxTurns: 16})
-			CloseSide(k)
-			games++
-			if strings.HasPrefix(res.Stall, KernelStallPrefix) {
-				t.Errorf("matchup %d seed %d: kernel capacity stall %q", mi, seed, res.Stall)
-			}
-			if d := res.Div; d != nil {
-				lo := d.At - 12
-				if lo < 0 {
-					lo = 0
-				}
-				t.Logf("matchup %d seed %d last actions %v", mi, seed, actionStrings(res.Actions[lo:d.At]))
-				t.Errorf("matchup %d seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", mi, seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
-			}
+		part := map[string]int{}
+		for seed := c.lo; seed <= c.hi; seed++ {
+			gatedmanaabilityGame(t, set, build, tbl, c.mi, seed, part)
 		}
+		mu.Lock()
+		defer mu.Unlock()
+		games += int(c.hi - c.lo + 1)
+		merge(part, c.mi)
+	})
+	// the ward matchup runs on, seed by seed, until every ward floor is met
+	// (deterministic: the stop reads only the counts so far)
+	wmd := gatedmanaabilityDecks[gatedmanaabilityWardMatchup]
+	wtbl, _, _, err := set.Matchup(wmd[0], wmd[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	for seed := uint64(513); seed <= 4096 && !gatedmanaabilityWardFloors(pre); seed++ {
+		part := map[string]int{}
+		gatedmanaabilityGame(t, set, build, wtbl, gatedmanaabilityWardMatchup, seed, part)
+		games++
+		merge(part, gatedmanaabilityWardMatchup)
 	}
 	t.Logf("%d games, carrier counts %v", games, counts)
 	for _, sh := range []string{"verge"} {

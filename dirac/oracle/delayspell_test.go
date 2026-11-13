@@ -2,6 +2,8 @@ package oracle
 
 import (
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -65,6 +67,22 @@ type delaySpellTally struct {
 	expired     int // a SpellCast registration removed at a turn change
 	srcGone     int // a push whose registration's source is off the stack and battlefield
 	maxNdp      int
+}
+
+// add sums o's counts into p.
+func (p *delaySpellTally) add(o *delaySpellTally) {
+	p.registered += o.registered
+	p.fired += o.fired
+	p.copies += o.copies
+	p.two += o.two
+	p.skipped += o.skipped
+	p.oppCast += o.oppCast
+	p.oppPush += o.oppPush
+	p.wrongFire += o.wrongFire
+	p.granted += o.granted
+	p.grantedFire += o.grantedFire
+	p.expired += o.expired
+	p.srcGone += o.srcGone
 }
 
 func delaySpellIS(g *state.Game, id state.ObjID) bool {
@@ -343,28 +361,38 @@ func TestDelayspellLockstep(t *testing.T) {
 		return
 	}
 
-	reg, set, decks, tbl := delaySpellSetup(t)
-	p := delaySpellTally{live: map[uint32]delaySpellReg{}}
+	// the hook is the process's (this test plays alone, isolated); its
+	// chunks share it, so it keeps the maximum atomically
 	prevHook := OccupancyHook
-	var occ dirac.Occupancy
+	var maxNdp atomic.Int64
 	OccupancyHook = func(s *dirac.State) {
+		var occ dirac.Occupancy
 		s.Occupancy(&occ)
-		if n := occ.N[dirac.PoolDProg]; n > p.maxNdp {
-			p.maxNdp = n
+		n := int64(occ.N[dirac.PoolDProg])
+		for cur := maxNdp.Load(); n > cur && !maxNdp.CompareAndSwap(cur, n); cur = maxNdp.Load() {
 		}
 	}
 	defer func() { OccupancyHook = prevHook }()
-	for seed := uint64(1); seed <= delaySpellSeeds; seed++ {
-		res := delaySpellRun(t, reg, set, decks, tbl, seed, p.check)
-		if res.Stall != "" {
-			t.Errorf("seed %d: stalled: %s", seed, res.Stall)
+	var p delaySpellTally
+	seedChunks(t, 1, delaySpellSeeds, 250, func(t *testing.T, lo, hi uint64, mu *sync.Mutex) {
+		reg, set, decks, tbl := delaySpellSetup(t)
+		part := delaySpellTally{live: map[uint32]delaySpellReg{}}
+		for seed := lo; seed <= hi; seed++ {
+			res := delaySpellRun(t, reg, set, decks, tbl, seed, part.check)
+			if res.Stall != "" {
+				t.Errorf("seed %d: stalled: %s", seed, res.Stall)
+			}
+			if d := res.Div; d != nil {
+				lo := max(d.At-12, 0)
+				t.Logf("seed %d last actions %v", seed, actionStrings(res.Actions[lo:d.At]))
+				t.Errorf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
+			}
 		}
-		if d := res.Div; d != nil {
-			lo := max(d.At-12, 0)
-			t.Logf("seed %d last actions %v", seed, actionStrings(res.Actions[lo:d.At]))
-			t.Errorf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
-		}
-	}
+		mu.Lock()
+		p.add(&part)
+		mu.Unlock()
+	})
+	p.maxNdp = int(maxNdp.Load())
 	t.Logf("%d games: %d registered (%d granted), %d fired (%d granted), %d copies, %d two-on-one-cast, %d skipped by a non-matching cast, %d opponent casts (%d pushes), %d wrong fires, %d expired, %d fired after the source left, max ndp %d",
 		delaySpellSeeds, p.registered, p.granted, p.fired, p.grantedFire, p.copies, p.two, p.skipped, p.oppCast, p.oppPush, p.wrongFire, p.expired, p.srcGone, p.maxNdp)
 	for _, c := range []struct {

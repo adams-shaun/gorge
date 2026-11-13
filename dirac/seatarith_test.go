@@ -28,13 +28,21 @@ import (
 //     choice or a loop), so leave it raw rather than invent one.
 //   - xor1: an XOR with the literal 1 on either side, or "^= 1". As opp1minus.
 //   - and1: an index expression whose index is an AND with the literal 1
-//     (a[p&1], a[1&p]). Use SeatIx(p). Bare parity (in.C&1) is not counted.
+//     (a[p&1], a[1&p]). Use SeatIx(p). An AND that is not an index is and1val's.
 //   - seatloop2: a for loop bounded by the literal 2 ("< 2", "<= 1") or a
 //     "range 2" loop whose variable indexes a [MaxSeats] field of a struct
 //     in this package (s.pl[p], s.g.poison[p]). Bound it by MaxSeats.
 //   - ptarget: a use of PlayerTarget0 or PlayerTarget1 outside types.go and
 //     the seats files that define them.
 //     Use PlayerCode(p), CodeSeat(c) and isPlayerTarget(c).
+//   - and1val: an AND with the literal 1 whose other side is an identifier
+//     or a selector (p&1, s.res.e.ctrl&1, 1&q) and which is not an index (the
+//     and1 family counts those), and the assignment "p &= 1". At more than
+//     two seats it folds seats 2 and 3 onto 0 and 1. Pass the seat itself
+//     (callees index with SeatIx) or widen the packed field it goes into. A
+//     bit read (x>>p&1) has a shift on its other side and is not counted; the
+//     parity of something that is not a seat (a mode, a face, a flag bit)
+//     takes "seat-ok".
 //
 // A site that is genuinely not seat arithmetic is exempted by a trailing
 // "// seat-ok: <reason>" comment on its line.
@@ -104,6 +112,7 @@ var seatHelperFor = map[string]string{
 	"and1":      "SeatIx(p)",
 	"seatloop2": "a MaxSeats bound (p < MaxSeats, range MaxSeats)",
 	"ptarget":   "PlayerCode(p) to encode, CodeSeat(c) to decode, isPlayerTarget(c) to test",
+	"and1val":   "the seat itself (pass p and let callees index with SeatIx) or a packed field wide enough for MaxSeats",
 }
 
 func isLitOne(e ast.Expr) bool {
@@ -119,6 +128,28 @@ func isLitTwo(e ast.Expr) bool {
 func isAndOne(e ast.Expr) bool {
 	b, ok := ast.Unparen(e).(*ast.BinaryExpr)
 	return ok && b.Op == token.AND && (isLitOne(b.X) || isLitOne(b.Y))
+}
+
+// isAndOneVal reports whether e is an AND with the literal 1 whose other
+// side is an identifier or a selector: a seat folded to its parity.
+func isAndOneVal(e *ast.BinaryExpr) bool {
+	if e.Op != token.AND {
+		return false
+	}
+	var o ast.Expr
+	switch {
+	case isLitOne(e.Y):
+		o = e.X
+	case isLitOne(e.X):
+		o = e.Y
+	default:
+		return false
+	}
+	switch ast.Unparen(o).(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+		return true
+	}
+	return false
 }
 
 // seatFields is the set of struct field names in the package whose type is
@@ -216,9 +247,20 @@ func scanSeatArithmetic(t *testing.T) (map[string]int, map[string][]string) {
 			got[k]++
 			sites[k] = append(sites[k], fmt.Sprintf("dirac/%s:%d", n, p.Line))
 		}
+		// The and1 family counts the ANDs that index; and1val the rest.
+		indexAnd := map[ast.Expr]bool{}
+		ast.Inspect(f, func(nd ast.Node) bool {
+			if x, ok := nd.(*ast.IndexExpr); ok {
+				indexAnd[ast.Unparen(x.Index)] = true
+			}
+			return true
+		})
 		ast.Inspect(f, func(nd ast.Node) bool {
 			switch x := nd.(type) {
 			case *ast.BinaryExpr:
+				if isAndOneVal(x) && !indexAnd[x] {
+					add("and1val", x.Pos())
+				}
 				switch x.Op {
 				case token.SUB:
 					l := ast.Unparen(x.X)
@@ -239,6 +281,9 @@ func scanSeatArithmetic(t *testing.T) (map[string]int, map[string][]string) {
 			case *ast.AssignStmt:
 				if x.Tok == token.XOR_ASSIGN && len(x.Rhs) == 1 && isLitOne(x.Rhs[0]) {
 					add("xor1", x.Pos())
+				}
+				if x.Tok == token.AND_ASSIGN && len(x.Rhs) == 1 && isLitOne(x.Rhs[0]) {
+					add("and1val", x.Pos())
 				}
 			case *ast.ForStmt:
 				if c, ok := x.Cond.(*ast.BinaryExpr); ok &&

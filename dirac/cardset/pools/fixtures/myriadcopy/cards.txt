@@ -1,0 +1,11 @@
+# Auton Soldier's "enter as a copy of any creature, except ... it has myriad"
+# (CR 707.9b, 702.116a): the copy's Myriad trigger beside the template's own
+# attack triggers, for dirac/oracle/myriad_copy_test.go
+Auton Soldier
+Vicious Conquistador
+Infectious Horror
+Audacious Thief
+Coral Merfolk
+Wind Drake
+Island
+Swamp

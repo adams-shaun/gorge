@@ -61,7 +61,7 @@ func (s *State) copySpells(k *prep, in *kop.Instr, n int) bool {
 	if in.Obj == kop.RefSelf {
 		return s.copyParentSpell(k, in, n) // kw_madness.go
 	}
-	return s.copySpell(k, s.objRefObj(in.Obj), n, in.C&1 != 0)
+	return s.copySpell(k, s.objRefObj(in.Obj), n, in.C&1 != 0) // seat-ok: an instruction flag bit
 }
 
 // copySpell copies the spell src (on the stack below the resolving entry) n

@@ -404,6 +404,20 @@ export interface CardView {
    */
   aura_logic?: string;
   /**
+   * NameKeyedSelfMill reports a spell that digs its caster's own library
+   * away until a card matches a name (effects.CastNameKeyedSelfMill), and
+   * EmptyLibraryWin how the card wins for a player with an empty library
+   * (effects.EmptyLibraryWin). Printed-face facts the bot's self-mill
+   * guard reads.
+   */
+  name_keyed_self_mill?: boolean;
+  empty_library_win?: number;
+  /**
+   * PayOrLoseCost is the mana the caster must pay at their next upkeep or
+   * lose the game (effects.CastPayOrLoseCost: the Pact cycle).
+   */
+  pay_or_lose_cost?: string;
+  /**
    * ColourIdentity is the card's colour IDENTITY mask (cards.ColourMask:
    * the printed cost's pips, the colour indicator and every colour-naming
    * mana symbol in the rules text -- CR 903.4's definition, the same one

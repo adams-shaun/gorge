@@ -53,6 +53,10 @@ const (
 	// full: a log keeps its meaning after a later change to the pairing
 	// algorithm.
 	KindRoundPaired Kind = "RoundPaired"
+
+	// KindPodGameEnded reports a StructurePod event round's free-for-all
+	// game: Round, Winner (nil for a draw or a watchdog stall) and Head.
+	KindPodGameEnded Kind = "PodGameEnded"
 )
 
 // Entry is one log entry: a Kind discriminator plus the fields of that
@@ -153,6 +157,14 @@ type Entry struct {
 
 	// Pairs is a RoundPaired's pairs: lower seat first, table order.
 	Pairs [][2]int `json:"pairs,omitempty"`
+
+	// Format is the EventCreated construction format: "" = limited (40-card
+	// decks), FormatCommander = a Commander draft (DeckSaved decks name
+	// their commanders and hold at least build.CommanderDeckSize cards).
+	Format string `json:"format,omitempty"`
+	// PicksPerPass is the EventCreated cards a seat takes from each pack
+	// before passing it; 0 = 1 (every log before the field).
+	PicksPerPass int `json:"picks_per_pass,omitempty"`
 }
 
 // cloneEntry deep-copies an entry's slice and pointer fields so the log
@@ -164,6 +176,9 @@ func cloneEntry(en Entry) Entry {
 	if en.Deck != nil {
 		d := *en.Deck
 		d.Main = append([]string(nil), d.Main...)
+		if d.Commanders != nil {
+			d.Commanders = append([]string(nil), d.Commanders...)
+		}
 		en.Deck = &d
 	}
 	if en.Seats != nil {
@@ -219,7 +234,8 @@ func ParseLog(data []byte) ([]Entry, error) {
 		case KindEventCreated, KindPackOpened, KindPicked, KindDeckSaved,
 			KindReady, KindSeriesStarted, KindGameEnded, KindSeriesEnded,
 			KindEventEnded, KindGameStarted, KindGameAborted,
-			KindLobbyTimeout, KindIdleTimeout, KindSideboarded, KindRoundPaired:
+			KindLobbyTimeout, KindIdleTimeout, KindSideboarded, KindRoundPaired,
+			KindPodGameEnded:
 		default:
 			return nil, fmt.Errorf("event: parse log line %d: unknown kind %q", i+1, en.Kind)
 		}

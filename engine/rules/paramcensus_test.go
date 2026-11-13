@@ -1939,6 +1939,11 @@ func (s *scan) closureReads(fi *fnInfo, exclude map[string]bool, visited map[str
 // unread rider. The rot guard fails on an entry naming no effects function.
 var foreignAbilityReaders = map[string]bool{
 	"producibleSymbols": true,
+	// engine/effects/effect.go: effChangeZone's CR 610.3b guard
+	// (exileUntilOpponentMonarchMet) reads its SubAbility$ Effect's
+	// Triggers$ through effects.EffectOf (Palace Jailer's DBEffect), never a
+	// ChangeZone parameter.
+	"effectNamesBecomeMonarchTrigger": true,
 }
 
 // handEffectsRoots are effects functions registered by function value rather
@@ -1971,6 +1976,17 @@ var handEffectsRoots = []string{
 	// engine rng (Haktos the Unscarred's Random$ True). It reads only that
 	// rider, so it joins no API's read set.
 	"ChooseNumberAtRandom",
+	// engine/effects/castselfmill.go: the bots' self-mill guard
+	// (bots/botpolicy combat.go, board_inc.go) and the card view call these
+	// advisory classifiers directly on a printed face; their Dig/DigUntil/
+	// Repeat/WinsGame reads are a heuristic over the printed chain, not a
+	// resolution consumer, so they join no API's read set.
+	"CastNameKeyedSelfMill",
+	"EmptyLibraryWin",
+	// engine/effects/castpayorlose.go: the same advisory shape for the Pact
+	// cycle's pay-next-upkeep-or-lose cost; the DelayedTrigger and LosesGame
+	// reads join no API's read set.
+	"CastPayOrLoseCost",
 }
 
 // apiSpecificRulesSA names the rules functions whose SA (bSA) reads execute

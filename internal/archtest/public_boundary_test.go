@@ -196,7 +196,7 @@ var boundaryRules = []boundaryRule{
 		return ""
 	}},
 	{"unresolvable-reference", func(p string, blob []byte) string {
-		if !inLabelFreeTree(p) || isBinary(blob) {
+		if !inLabelFreeTree(p) || isBinary(blob) || isSetData(p) {
 			return ""
 		}
 		if m := findUnresolvable(p, blob); m != nil {
@@ -228,6 +228,15 @@ func inLabelFreeTree(p string) bool {
 		}
 	}
 	return false
+}
+
+// isSetData is the draft stack's MTGJSON booster data: the trimmed inputs
+// and the generated specs. They are card records, not prose, and a printed
+// collector number can take a label's shape (The List prints Archenemy:
+// Nicol Bolas cards as "E01-30").
+func isSetData(p string) bool {
+	dir := path.Dir(p)
+	return path.Ext(p) == ".json" && (dir == "draft/limited/setdata/mtgjson" || dir == "draft/limited/setdata/sets")
 }
 
 // findUnresolvable returns the first reference in blob a reader cannot follow,
@@ -687,6 +696,8 @@ func TestPublicBoundaryDetection(t *testing.T) {
 		{"engine/x.go", "// spec §4.6 and plan §2 name an internal document\n", ""},
 		{"cmd/gorged/x.go", "// E3-5, spec §4.6\n", ""},
 		{"draft/x.go", "// 0xE3, 1E3, e1-r1-s03-g1-a2, a brief pause, the spec's pack size\n", ""},
+		{"draft/limited/setdata/sets/X.json", `{"number": "E01-30"}`, ""},
+		{"draft/limited/setdata/x.go", `// number "E01-30"` + "\n", "unresolvable-reference"},
 	}
 	covered := map[string]bool{}
 	for _, c := range cases {

@@ -40,7 +40,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		}
 		return 0
 	case kop.ExScriedThisTurn:
-		return int(s.pl[SeatIx(ctx.ctrl)].scry>>(4*(x.N&1))) & 15
+		return int(s.pl[SeatIx(ctx.ctrl)].scry>>(4*(x.N&1))) & 15 // seat-ok: the scry nibble an operand selects
 	case kop.ExDilemmasFaced:
 		return int(s.g.dilemmas[SeatIx(ctx.ctrl)])
 	case kop.ExCastBattlefield:
@@ -91,7 +91,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		}
 		return int(s.g.yourTurns[SeatIx(ctx.ctrl)])
 	case kop.ExYourExtraTurns:
-		return int(s.g.extraTurnBegun>>(ctx.ctrl&1)) & 1
+		return int(s.g.extraTurnBegun>>SeatIx(ctx.ctrl)) & 1
 	case kop.ExRedNCDmg:
 		if DebugNoRedNC {
 			return 0
@@ -185,12 +185,11 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExAttackedTurn:
 		return s.attackedTurn(k, x, ctx) // value_turntallies.go
 	case kop.ExOppsLostLife:
-		if x.N == 1 {
-			return s.oppsLostLife(ctx.ctrl, true) // dealt combat damage by a legendary creature (value_turntallies.go)
-		}
-		return s.oppsLostLife(ctx.ctrl, false)
+		return s.oppsLostLife(ctx.ctrl, x.N) // N 1 legendary hit, N 2 any hit (value_turntallies.go)
 	case kop.ExNotOwnLibMV:
 		return s.notOwnLibMV(k) // value_objectmv.go
+	case kop.ExRemEachOwnNonLand:
+		return s.remEachOwnNonLand(k) // value_remeachown.go
 	case kop.ExCounterKinds:
 		return s.counterKinds(k, x, ctx) // value_counterkinds.go
 	case kop.ExMVOf:
@@ -322,16 +321,27 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 }
 
 // oppsLostLife is ExOppsLostLife: the number of p's opponents who lost life
-// this turn, or (leg) who were dealt combat damage by a legendary creature
-// (genState.cdLeg bit q).
-func (s *State) oppsLostLife(p uint8, leg bool) int {
+// this turn (mode 0), who were dealt combat damage by a legendary creature
+// (mode 1, genState.cdLeg bit q) or by any source (mode 2, cdLeg bit 4+q).
+func (s *State) oppsLostLife(p uint8, mode int16) int {
 	c := 0
 	for q := uint8(0); q < s.nSeats(); q++ {
 		if q == p {
 			continue
 		}
-		if leg && s.g.cdLeg>>q&1 != 0 || !leg && s.pl[q].lifeLost > 0 {
-			c++
+		switch mode {
+		case 1:
+			if s.g.cdLeg>>q&1 != 0 {
+				c++
+			}
+		case 2:
+			if s.g.cdLeg>>(4+q)&1 != 0 {
+				c++
+			}
+		default:
+			if s.pl[q].lifeLost > 0 {
+				c++
+			}
 		}
 	}
 	return c

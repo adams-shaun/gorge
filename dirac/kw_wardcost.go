@@ -41,7 +41,7 @@ func (s *State) wardSacFilter(k *prep) kop.FilterID {
 
 // wardSacCands counts the payer's permanents the pick offers.
 func (s *State) wardSacCands(k *prep, each func(Slot)) int {
-	p := s.g.pickP & 1
+	p := SeatIx(s.g.pickP)
 	f, src, n := s.wardSacFilter(k), s.resSrcSlot(k), 0
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
 		sl := m.first()
@@ -359,7 +359,7 @@ func (s *State) wardAltMana(k *prep, p uint8) bool {
 //
 //go:noinline
 func (s *State) startWardAlt(k *prep) {
-	p := s.g.pickP & 1
+	p := SeatIx(s.g.pickP)
 	s.g.pickLeft = 0
 	if s.wardAltMana(k, p) {
 		s.g.pickLeft = 1

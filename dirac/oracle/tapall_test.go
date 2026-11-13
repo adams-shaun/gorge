@@ -33,7 +33,8 @@ var tapAllDecks = [2][]cardset.Entry{
 func TestTapAllLockstep(t *testing.T) {
 	t.Parallel()
 	j0 := dirac.DebugTapAllJoins
-	lockstepSet(t, "tapall", tapAllDecks, 300, "KTAPALL_SEEDS")
+	// serial: DebugTapAllJoins is a plain package int
+	lockstepSetSerial(t, "tapall", tapAllDecks, 300, "KTAPALL_SEEDS")
 	if joins := dirac.DebugTapAllJoins - j0; joins < 20 {
 		t.Errorf("%d taps joined a TapAll instance already queued in their batch, want at least 20", joins)
 	}

@@ -1,0 +1,23 @@
+# the RepeatEach player-body gate pool: Kroxa, Titan of Death's Hunger
+# (Remembered$Valid Card.nonLand+RememberedPlayerOwn behind a
+# ConditionCheckSVar$) beside cheap discard fillers and outlets, the RRR/B
+# floaters that pay its escape cost (Coal Stoker floats R:3, Dark Ritual
+# floats B:3), vanilla attackers and lands
+# (dirac/oracle/repeatcheck_test.go)
+Barony Vampire
+Catacomb Crocodile
+Coal Stoker
+Dark Ritual
+Kami of Old Stone
+Kroxa, Titan of Death's Hunger
+Mountain
+Plains
+Priest of Gix
+Rotting Mastodon
+Sign in Blood
+Swamp
+Thrill of Possibility
+Tormenting Voice
+Walking Corpse
+Warpath Ghoul
+Wandering Tombshell

@@ -54,6 +54,10 @@ func (s *State) nSeats() uint8 {
 	return s.g.nseat
 }
 
+// NumSeats is the number of seats in this game, departed seats included
+// (gorge's view keeps a seat that has left in its place).
+func (s *State) NumSeats() uint8 { return s.nSeats() }
+
 // mullOrderFrom is the mulligan order of n seats: turn order from the
 // starting player p (CR 103.5: the starting player decides first, then each
 // other player in turn order).

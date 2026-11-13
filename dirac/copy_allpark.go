@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"sync/atomic"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -39,7 +41,7 @@ func (s *State) sweepTmpl() Slot {
 // copies (TestDefvalidLockstep's minimum).
 func (s *State) defValidMulti(n int) {
 	if DebugDefValidMulti != nil && n >= 2 {
-		*DebugDefValidMulti++
+		atomic.AddUint32(DebugDefValidMulti, 1)
 	}
 }
 

@@ -4,4 +4,4 @@
 //	go generate ./
 package setdata
 
-//go:generate go run ./internal/gen -sets FDN,BLB,TRK
+//go:generate go run ./internal/gen -sets FDN,BLB,TRK,MBC

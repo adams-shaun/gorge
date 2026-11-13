@@ -47,6 +47,11 @@ const embRemSlots = 2
 
 // linkPadN pads genState after its sixteen exile-until-leaves links so perms
 // keeps its cache-line phase (statelayout_mp_test.go). Four seats of
-// player.lastLost moved perms eight bytes past phase 0; fifty-six bytes here
-// bring it round to the next line.
-const linkPadN = 56
+// player.lastLost moved perms eight bytes past phase 0 and the two-byte
+// seatWord fields eight more; forty-eight bytes here bring it round to the
+// next line.
+const linkPadN = 48
+
+// seatWord is a packed field holding a few bits per seat beside its other
+// bits (genState.speed, genState.freeP): two bytes at four seats.
+type seatWord = uint16

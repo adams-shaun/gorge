@@ -130,6 +130,7 @@ func foldStackCopy(g *state.Game, e *Event) {
 	// re-taken from the source as it is now.
 	pushStamped, pushOnBF := src.PushSourceStamped, src.PushSourceOnBattlefield
 	pushInc, pushZoneGen, pushZone := src.PushSourceIncarnation, src.PushSourceZoneGen, src.PushSourceZone
+	pushMonarchSeq := src.PushMonarchSeq
 	// A copy resolves the same compiled SA, so it reads the same owning face.
 	abilityFace, gainedFrom := src.AbilityFace, src.GainedFrom
 	copyNonLegendary := src.CopyNonLegendary
@@ -224,6 +225,7 @@ func foldStackCopy(g *state.Game, e *Event) {
 		o.PushSourceIncarnation, o.PushSourceZoneGen = pushInc, pushZoneGen
 		o.PushSourceZone = pushZone
 	}
+	o.PushMonarchSeq = pushMonarchSeq
 	o.AbilityFace, o.GainedFrom = abilityFace, gainedFrom
 	o.Targets = targets
 	o.SubTargets = subTargets

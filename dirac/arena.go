@@ -62,8 +62,15 @@ const (
 	mechAtch1                       // the same, seat 1
 	mechAtch2                       // seat 2 (read only when MaxSeats > 2)
 	mechAtch3                       // seat 3
+	mechGoad2                       // goad[2]: slots whose permanent seat 2 goaded (read only when MaxSeats > 2; act_goad.go)
+	mechGoad3                       // goad[3]: the same, seat 3
 	numMech
 )
+
+// goadMechs names each seat's goad mech in seat order: mechGoad0 and
+// mechGoad1 first, mechGoad2 and mechGoad3 appended past mechAtch3, so the
+// per-seat goad mech cannot be read by arithmetic off mechGoad0.
+var goadMechs = []mech{mechGoad0, mechGoad1, mechGoad2, mechGoad3}
 
 // mech widths: a slot mask indexes the permanent's slot; an object mask
 // indexes its Obj.
@@ -118,9 +125,11 @@ var mechWidth = [numMech]uint8{
 	mechAtch1:           wSlot,
 	mechAtch2:           wSlot,
 	mechAtch3:           wSlot,
+	mechGoad2:           wSlot,
+	mechGoad3:           wSlot,
 }
 
-var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen", "sbaChain", "once2", "once3", "tappedTurn", "escaped", "lure", "lurePost", "protW", "protU", "protB", "protR", "protG", "protPostW", "protPostU", "protPostB", "protPostR", "protPostG", "echoOwed", "hexUB", "atch0", "atch1", "atch2", "atch3"}
+var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen", "sbaChain", "once2", "once3", "tappedTurn", "escaped", "lure", "lurePost", "protW", "protU", "protB", "protR", "protG", "protPostW", "protPostU", "protPostB", "protPostR", "protPostG", "echoOwed", "hexUB", "atch0", "atch1", "atch2", "atch3", "goad2", "goad3"}
 
 // arenaNone is the index of a mechanic the table does not use.
 const arenaNone = 0xFF
@@ -170,7 +179,9 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 			for _, in := range a.Prog {
 				switch in.Op {
 				case kop.OpGoad:
-					u[mechGoad0], u[mechGoad1] = true, true // goad[ctrl&1]: either player may goad
+					for sd := 0; sd < MaxSeats; sd++ {
+						u[goadMechs[sd]] = true // goad[sd]: seat sd may goad
+					}
 				case kop.OpMonstrosity:
 					u[mechMonstrous] = true
 				case kop.OpRegenerate:
@@ -201,7 +212,7 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 					if in.Ext() == kop.ExtTurnRepl && in.C == kop.TurnReplHexUB {
 						u[mechHexUB] = true // repl_turnrepl.go
 					}
-					if in.Ext() == kop.ExtSuspect && in.C&1 == 0 {
+					if in.Ext() == kop.ExtSuspect && in.C&1 == 0 { // seat-ok: an instruction flag bit
 						u[mechSuspected] = true // a suspect; an un-suspect or a read needs no mask
 					}
 				case kop.OpGrantKeyword:

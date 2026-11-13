@@ -858,6 +858,11 @@ func (cb *cardBuilder) record() error {
 		if d.EscCost, err = cb.cost(*c.EscCost); err != nil {
 			return err
 		}
+		if c.EscBf != nil {
+			if d.EscBfCost, err = cb.cost(*c.EscBf); err != nil {
+				return err
+			}
+		}
 	}
 	if c.Escape != nil {
 		d.Escape = true
@@ -2106,7 +2111,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vOppLifeLostThisTurn: kop.ExOppLifeLostThisTurn, vCountersOn: kop.ExCountersOn, vCreaturesDied: kop.ExCreaturesDied,
 	vRememberedCount: kop.ExRememberedCount, vExcessDamage: kop.ExExcessDamage, vLastLifeLost: kop.ExLastLifeLost,
 	vTokensCreated: kop.ExTokensCreated, vLifeLostThisTurn: kop.ExLifeLostThisTurn, vSum: kop.ExSum,
-	vHandSizeOf: kop.ExHandSizeOf, vCountExile: kop.ExCountExile, vExileTypes: kop.ExCountExile, vOppsLostLife: kop.ExOppsLostLife, vMVOf: kop.ExMVOf, vNotOwnLibMV: kop.ExNotOwnLibMV,
+	vHandSizeOf: kop.ExHandSizeOf, vCountExile: kop.ExCountExile, vExileTypes: kop.ExCountExile, vOppsLostLife: kop.ExOppsLostLife, vMVOf: kop.ExMVOf, vNotOwnLibMV: kop.ExNotOwnLibMV, vRemEachOwnNonLand: kop.ExRemEachOwnNonLand,
 	vCountAtLeast: kop.ExCountAtLeast,
 	vPromisedGift: kop.ExPromisedGift, vResolvedThisTurn: kop.ExResolvedThisTurn,
 	vThisTurnCast: kop.ExThisTurnCast,
@@ -2166,7 +2171,8 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vDmgAmount:          kop.ExDmgAmountReceived,
 	vTimesKicked:        kop.ExKicked, // Expr.N 1: the multikicker count, not the kicked bit
 	vEnergyOf:           kop.ExEnergyOf,
-	vMonarch:            kop.ExMonarch, // lower_monarch.go
+	vMonarch:            kop.ExMonarch,    // lower_monarch.go
+	vJoinForces:         kop.ExJoinForces, // lower_storesvar.go
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {

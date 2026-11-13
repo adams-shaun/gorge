@@ -2,6 +2,7 @@ package oracle
 
 import (
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -199,6 +200,19 @@ type fuseTally struct {
 	perCard                    map[string]int
 }
 
+// add sums o's counts into t.
+func (t *fuseTally) add(o *fuseTally) {
+	t.offers += o.offers
+	t.emptyPoolOffers += o.emptyPoolOffers
+	t.resolved += o.resolved
+	t.toGrave += o.toGrave
+	t.toOther += o.toOther
+	t.halfCasts += o.halfCasts
+	for k, v := range o.perCard {
+		t.perCard[k] += v
+	}
+}
+
 func (t *fuseTally) start() {
 	t.ref = nil
 	t.frames = map[uint64]bool{}
@@ -329,31 +343,41 @@ func kfuseRun(t *testing.T, reg *cards.Registry, set cardset.Set, decks [2][]*ca
 func TestFuseLockstep(t *testing.T) {
 	t.Parallel()
 	var tally fuseTally
+	tally.perCard = map[string]int{}
 	const seeds = 256
 	var carriers []string
 	capacity := 0
 	for mi := range kfuseDecks {
-		reg, set, decks, tbl := kfuseSetup(t, mi)
-		for seed := uint64(1); seed <= seeds; seed++ {
-			res := kfuseRun(t, reg, set, decks, tbl, seed, aftermathCfg(seed), &tally)
-			switch {
-			case res.StallUnmodelled:
-				t.Errorf("matchup %d seed %d: unmodelled stall: %s", mi, seed, res.Stall)
-			case strings.HasPrefix(res.Stall, KernelStallPrefix):
-				capacity++
-			}
-			if d := res.Div; d != nil {
-				lo := max(d.At-12, 0)
-				t.Logf("matchup %d seed %d last actions %v", mi, seed, actionStrings(res.Actions[lo:d.At]))
-				t.Errorf("matchup %d seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", mi, seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
-			}
-		}
+		_, _, _, tbl := kfuseSetup(t, mi)
 		for _, c := range tbl.Cards {
 			if c.FaceMode == kop.FaceSplit && c.Face == 0 && c.FuseDef != 0 {
 				carriers = append(carriers, c.Name)
 			}
 		}
 	}
+	matchupChunks(t, len(kfuseDecks), 1, seeds, 64, func(t *testing.T, c seedChunk, mu *sync.Mutex) {
+		var part fuseTally
+		stalls := 0
+		reg, set, decks, tbl := kfuseSetup(t, c.mi)
+		for seed := c.lo; seed <= c.hi; seed++ {
+			res := kfuseRun(t, reg, set, decks, tbl, seed, aftermathCfg(seed), &part)
+			switch {
+			case res.StallUnmodelled:
+				t.Errorf("matchup %d seed %d: unmodelled stall: %s", c.mi, seed, res.Stall)
+			case strings.HasPrefix(res.Stall, KernelStallPrefix):
+				stalls++
+			}
+			if d := res.Div; d != nil {
+				lo := max(d.At-12, 0)
+				t.Logf("matchup %d seed %d last actions %v", c.mi, seed, actionStrings(res.Actions[lo:d.At]))
+				t.Errorf("matchup %d seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", c.mi, seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
+			}
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		capacity += stalls
+		tally.add(&part)
+	})
 	t.Logf("%d seeds per matchup (%d kernel capacity stalls): fused offers %d (%d with an empty pool); fused resolutions %d, per carrier %v; to the graveyard %d, elsewhere %d; single-half casts %d",
 		seeds, capacity, tally.offers, tally.emptyPoolOffers, tally.resolved, tally.perCard, tally.toGrave, tally.toOther, tally.halfCasts)
 	for _, c := range []struct {

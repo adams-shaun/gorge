@@ -475,7 +475,9 @@ const ExAttackedTurn ExprKind = 235
 // ExSacrificedThisTurn N 2 is the Food cards (printed subtype) sacrificed
 // this turn; ExOppsLostLife N 1 is the opponent dealt combat damage this turn
 // by a legendary creature (gorge PlayerCountRegisteredOpponents$
-// HasPropertywasDealtCombatDamageThisTurnBy Creature.Legendary GE1).
+// HasPropertywasDealtCombatDamageThisTurnBy Creature.Legendary GE1), N 2 the
+// opponent dealt combat damage this turn by any source (the bare head
+// HasPropertywasDealtCombatDamageThisTurn, Tymna the Weaver).
 const (
 	SacrificedFood   = 2
 	OppsHitLegendary = 1
@@ -496,6 +498,14 @@ const ExChromaOf ExprKind = 231
 // player attacks, so any other controller reads 0. With one opponent the
 // value is 0 or 1.
 const ExOppsAttacked ExprKind = 229
+
+// ExRemEachOwnNonLand (an explicit ordinal in the free low range): the cards
+// in the resolution's remembered set that are nonland and owned by the
+// repeated player (an OpRepeatEachPlayer in progress) -- Kroxa, Titan of
+// Death's Hunger's RepeatEach body gate, Remembered$Valid
+// Card.nonLand+RememberedPlayerOwn, read 1 when that opponent discarded a
+// nonland card this way. No parameters. The iota tail stays untouched.
+const ExRemEachOwnNonLand ExprKind = 65
 
 // ExIfCastOwnMain (high expr kind): Sub[0] if the resolving or announcing
 // spell was cast, is read in a main phase and its controller is the active
@@ -569,6 +579,11 @@ const ExCounterKinds ExprKind = 225
 // opponents-only ValidTgts$ in a two-player game, where the slot holds at
 // most the one opponent. Explicit ordinal, the iota tail stays untouched.
 const ExTargetPlayers ExprKind = 223
+
+// ExJoinForces: the resolution's join-forces total, the sum of every
+// ExtJoinForces B since the last reset (0 at the start of each resolution).
+// Explicit ordinal in the free low range; the iota tail stays untouched.
+const ExJoinForces ExprKind = 64
 
 // ExNotOwnLibMV: the summed mana value of the library cards in the
 // resolution's remembered set that the repeated player (an OpRepeatEachPlayer
