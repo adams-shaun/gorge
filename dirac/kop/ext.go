@@ -235,17 +235,6 @@ const (
 	NumExtOps ExtOp = 320
 )
 
-// ExtExploit (CR 702.110a/b): the marker half of the K:Exploit expansion, run
-// after its optional Sacrifice (B.N bit SacExploit). When that sacrifice took a
-// creature the exploiting creature (the resolving ability's source) has
-// exploited it: every TrigExploited line fires, carrying the exploited
-// creature's last-known power or toughness (Trigger.N 1 / 2) as its amount. A
-// declined or empty sacrifice fires nothing. dirac/trig_exploited.go.
-// 298: the next free ordinal below NumExtOps.
-const ExtExploit ExtOp = 298
-
-func init() { extOpNames[ExtExploit] = "Exploit" }
-
 // ExtDrainMana: the player in Obj loses all unspent mana (gorge
 // effDrainMana: one events.ManaClear for that seat; Power Sink's
 // unless-payment decline, Mana Short). The pool and its side tallies empty.
@@ -718,7 +707,10 @@ func init() { extOpNames[ExtChooseName] = "ChooseName" }
 // Obj (a target; Expose the Culprit). C 1: the resolving controller picks
 // up to one battlefield permanent matching F that would turn up, seat 0's
 // first in battlefield order, or Done (gorge setStateChoose's
-// "setstate_pick", Min 0 Max 1; Hustle // Bustle). dirac/face_turnupeffect.go.
+// "setstate_pick", Min 0 Max 1; Hustle // Bustle). C 2: the same pick for
+// Mode$ Transform with Mandatory$ True: one mandatory pick (no Done) over the
+// F permanents that would transform, which then transforms (Sunder the
+// Gateway). dirac/face_turnupeffect.go.
 const ExtTurnFaceUp ExtOp = 254
 
 func init() { extOpNames[ExtTurnFaceUp] = "TurnFaceUp" }

@@ -20,6 +20,11 @@ func (s *State) staticFlagGen(k *prep, sk kop.StaticKind, sl Slot) bool {
 		}
 		return true
 	})
+	if !hit && k.gen.anyOvGateStat && s.fxM.has(sl) {
+		// a static an Animate staticAbilities$ grant record on sl switches on
+		// (Streetwise Negotiator's Backup rider; static_ovgate.go)
+		s.grantedStaticFlag(k, sk, sl, &hit)
+	}
 	return hit
 }
 

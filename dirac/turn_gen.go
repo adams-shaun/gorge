@@ -316,6 +316,8 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 					kind = akNumber
 				case kop.ExtChooseName:
 					kind = nameAskKind(in)
+				case kop.ExtChooseCardEnter:
+					kind = akCard // repl_choosecard.go
 				case kop.ExtChoosePlayer:
 					kind = akPlayer
 				default:
@@ -325,6 +327,9 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 			}
 			if kind == akNameHand && s.nameHandNone(k, s.perms[sl].ctrl) {
 				continue // nothing nonland was revealed: gorge poses no ask
+			}
+			if kind == akCard && s.enterCardNone(k, sl, c) {
+				continue // no object to choose: gorge poses no ask (repl_choosecard.go)
 			}
 			if kind == akPlayer {
 				// gorge asks it with the permanent on the battlefield, never
@@ -341,7 +346,7 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 				}
 				return
 			}
-			if s.g.pre.state == 2 && s.g.pre.obj == s.perms[sl].obj {
+			if kind != akCard && s.g.pre.state == 2 && s.g.pre.obj == s.perms[sl].obj {
 				s.perms[sl].chosen = s.g.pre.val // asked on the stack
 				s.touchSl(sl)
 				s.g.pre.state = 0
@@ -1198,7 +1203,7 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 	}
 	if ask.kind == akMode {
 		s.siegeModeStore(ask.sl, a.Mode())
-	} else if ask.kind == akColor || ask.kind == akNumber || ask.kind == akPlayer || isNameAsk(ask.kind) {
+	} else if ask.kind == akColor || ask.kind == akNumber || ask.kind == akCard || ask.kind == akPlayer || isNameAsk(ask.kind) {
 		p.chosen = a.Mode()
 	} else {
 		v := int(a.Target())<<8 | int(a.Mode())
@@ -1339,6 +1344,10 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 	}
 	if isNameAsk(kind) {
 		s.nameOptions(k, d, kind) // repl_choosename.go
+		return
+	}
+	if kind == akCard {
+		s.enterCardOptions(k, d) // repl_choosecard.go
 		return
 	}
 	if kind == akColor {

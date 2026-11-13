@@ -18,12 +18,22 @@ const notePutRememberPut = "remember put"
 // counters through the ordinary CounterChange. ChoiceTitle$ is the prompt
 // only. Every shape beside the bare Min 1 / Max 1 controller pick refuses.
 func (lc *lowerCtx) putCounterChoices(ps *params) error {
-	for _, k := range []string{"Defined", "ValidTgts", "MinChoiceAmount", "ChoiceAmount", "Chooser", "ForColor",
+	for _, k := range []string{"ValidTgts", "MinChoiceAmount", "ChoiceAmount", "Chooser", "ForColor",
 		"CounterTypes", "RememberPut", "RememberAmount", "CounterNumPerDefined", "Optional"} {
 		if _, ok := ps.m[k]; ok {
 			return refuse("PutCounter Choices$ with %s$", k)
 		}
 	}
+	// Defined$ is unread on the pick path: gorge's putCounterChooseTitled
+	// takes the recipient from the pick alone, and lists Defined$ in
+	// putCounterKnownKeys as deliberately ignored (Forge's CountersPutEffect
+	// Choices$ branch never reads it either), so the script's referrer names
+	// the pick's outcome for its reader only (Gluntch, the Bestower's
+	// "They put two +1/+1 counters on a creature they control" beside its
+	// Choices$; Haphazard Bombardment's Defined$ ChosenCard). Gorge Notes
+	// nothing for it either, so consuming it unread matches gorge decision
+	// for decision.
+	ps.consume("Defined")
 	spec := ps.str("Choices")
 	for _, a := range strings.Split(spec, ",") {
 		if strings.Contains(a, "inZone") && !strings.Contains(a, "inZoneBattlefield") {

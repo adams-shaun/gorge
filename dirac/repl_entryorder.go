@@ -120,7 +120,7 @@ func entBodyRecord(prog []kop.Instr) bool {
 		return true
 	case kop.OpExt:
 		switch prog[0].Ext() {
-		case kop.ExtChooseNumber, kop.ExtChooseName:
+		case kop.ExtChooseNumber, kop.ExtChooseName, kop.ExtChooseCardEnter:
 			return true
 		}
 	}

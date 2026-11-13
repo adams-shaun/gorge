@@ -971,9 +971,6 @@ var expandedKeywords = map[string]bool{
 	// Echo (CR 702.30a): gorge kwEcho's upkeep trigger, gated by Echo$ True,
 	// whose body is DB$ Echo (lower_echo.go)
 	"Echo": true,
-	// Exploit (CR 702.110a): gorge kwExploit's enters trigger, an optional
-	// Sacrifice then DB$ Exploit (lower_trigexploited.go)
-	"Exploit": true,
 }
 
 // protColourLetters maps a "Protection from <q>" colour quality to its
@@ -1169,6 +1166,13 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !found {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
+		case head == "Dethrone":
+			// CR 702.105a: gorge kwDethrone expands it into an Attacks
+			// trigger (Dethrone$ True), lowered from that line
+			// (lower_dethrone.go)
+			if !lc.faceHasDethroneTrigger() {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
 		case head == "Evolve":
 			// CR 702.100a: gorge kwEvolve expands it into an ETB trigger
 			// (Evolve$ True) whose body puts a +1/+1 counter on Self,
@@ -1274,6 +1278,14 @@ func (lc *lowerCtx) lowerKeywords() {
 			// (lower_meleegrant.go), and the only one on a face-down or
 			// ability-less holder (CR 708.2, 613.7).
 			if !faceHasMeleeTrigger(lc.face) {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
+		case head == "Exploit" && param == "":
+			// CR 702.110a: gorge kwExploit expands it into an ETB trigger
+			// (Keyword$ Exploit) whose body is the optional remembering
+			// sacrifice then DB$ Exploit, lowered from that line
+			// (lower_exploit.go)
+			if !faceHasExploitTrigger(lc.face) {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
 		case head == "Extort" && param == "":
@@ -1986,9 +1998,10 @@ func (lc *lowerCtx) costParts(c lCost) error {
 	if c.DiscardSelf {
 		return refuse("discard cost %q outside a hand ability", "Discard<1/CARDNAME>")
 	}
-	if c.DiscardF != nil {
+	if c.DiscardF != nil && !(lc.altCostHand && c.Discard2N > 0) {
 		// a filtered discard is a battlefield activated ability's own cost
-		// (the candidates are that controller's hand cards; CR 118.3)
+		// (the candidates are that controller's hand cards; CR 118.3), or
+		// a spell alternative cost's two discard parts (lower_discardtwo.go)
 		return refuse("filtered discard cost outside an activated ability")
 	}
 	if c.DiscardHand && (lc.ab == nil || lc.ab.Kind != akActivated) {
@@ -2481,10 +2494,16 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			c.ExileTrigNew = true
 		case "Discard":
 			// One discard part per cost: lCost carries a single N/Spec, so a
-			// second token would silently overwrite the first (Foil's
-			// alternative cost is the corpus's only multi-discard line and
-			// refuses on its Island spec already).
+			// second token would silently overwrite the first. A spell's own
+			// alternative cost takes one second part (Foil;
+			// lower_discardtwo.go).
 			if c.DiscardN > 0 || c.DiscardSelf || c.DiscardF != nil {
+				if lc.altCostHand {
+					if err := lc.altDiscardTwo(&c, parts, n, t); err != nil {
+						return c, err
+					}
+					continue
+				}
 				return c, refuse("discard cost %q: more than one discard part", t)
 			}
 			if (len(parts) == 2 || len(parts) == 3) && parts[1] == "CARDNAME" && n == 1 {

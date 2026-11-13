@@ -70,9 +70,9 @@ func init() {
 		"kop.TrigSacrificed", kop.TrigSacrificed, "kop.TrigManaExpend", kop.TrigManaExpend, "kop.TrigTaps", kop.TrigTaps,
 		"kop.TrigGiveGift", kop.TrigGiveGift, "kop.TrigProliferate", kop.TrigProliferate, "kop.TrigFacesDilemma", kop.TrigFacesDilemma, "kop.TrigBecomeMonarch", kop.TrigBecomeMonarch, "kop.TrigTokenCreated", kop.TrigTokenCreated,
 		"kop.TrigBecomeMonstrous", kop.TrigBecomeMonstrous, "kop.TrigTurnFaceUp", kop.TrigTurnFaceUp, "kop.TrigTransformed", kop.TrigTransformed, "kop.TrigCommitCrime", kop.TrigCommitCrime, "kop.TrigUnlockDoor", kop.TrigUnlockDoor, "kop.TrigFullyUnlock", kop.TrigFullyUnlock,
-		"kop.TrigBecomesPlotted", kop.TrigBecomesPlotted, "kop.TrigBecomesSaddled", kop.TrigBecomesSaddled, "kop.TrigAttached", kop.TrigAttached, "kop.TrigDiscardedAll", kop.TrigDiscardedAll, "kop.TrigAbilityCast", kop.TrigAbilityCast, "kop.TrigScry", kop.TrigScry, "kop.TrigSurveil", kop.TrigSurveil, "kop.TrigExplores", kop.TrigExplores, "kop.TrigCollectEvidence", kop.TrigCollectEvidence,
+		"kop.TrigBecomesPlotted", kop.TrigBecomesPlotted, "kop.TrigBecomesSaddled", kop.TrigBecomesSaddled, "kop.TrigAttached", kop.TrigAttached, "kop.TrigDiscardedAll", kop.TrigDiscardedAll, "kop.TrigAbilityCast", kop.TrigAbilityCast, "kop.TrigScry", kop.TrigScry, "kop.TrigSurveil", kop.TrigSurveil, "kop.TrigExplores", kop.TrigExplores, "kop.TrigCollectEvidence", kop.TrigCollectEvidence, "kop.TrigExploited", kop.TrigExploited,
 		"kop.TrigLandPlayed", kop.TrigLandPlayed, "kop.TrigSearchedLibrary", kop.TrigSearchedLibrary, "kop.TrigForage", kop.TrigForage, "kop.TrigDiscover", kop.TrigDiscover,
-		"kop.TrigManifestDread", kop.TrigManifestDread, "kop.TrigEvolved", kop.TrigEvolved, "kop.TrigExploited", kop.TrigExploited)
+		"kop.TrigManifestDread", kop.TrigManifestDread, "kop.TrigEvolved", kop.TrigEvolved)
 	enum[kop.StaticKind]("kop.StatNone", kop.StatNone, "kop.StatContinuous", kop.StatContinuous,
 		"kop.StatReduceCost", kop.StatReduceCost, "kop.StatCantBlock", kop.StatCantBlock, "kop.StatCantBlockBy", kop.StatCantBlockBy,
 		"kop.StatAlternativeCost", kop.StatAlternativeCost, "kop.StatCastWithFlash", kop.StatCastWithFlash,
