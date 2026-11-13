@@ -867,17 +867,17 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		var d Decision
 		t.restrOptions(k, &d, p)
 		offered = hasOption(&d, rs.a)
-		if offered && rs.a.Kind() == AkCast && rs.a.Mode()&^3 == 0 {
-			// gorge's node decision offers the play when the floating pool
-			// alone pays it, or its planner prices it (rules
-			// potentialScript.visit's sr.offered; the node decision's options
-			// are the window's, gorgeOffers): the pool alone is
-			// FeatPoolPays, the planner's witness FeatPlannedCast. The
-			// kernel walk's offer alone would also list a play gorge's
-			// planner declines the shape of, so gorgeOffers gates it
-			if t.gorgeOffers(p, Obj(rs.a.Source()), rs.a.Mode()&3) {
-				return true
-			}
+		// gorge's before-dedup question (potentialScript.visit's sr.offered,
+		// the node decision's options, the window's) is asked even at a node
+		// the seen-key dedup would refuse, so the window's mirror answers
+		// first: the pool alone pays it (FeatPoolPays), or its planner prices
+		// it (FeatPlannedCast, gorgeOffers). The kernel walk's offer alone
+		// would also list a play gorge's planner declines the shape of, so
+		// the window gates the early answer; the walk's offer alone still
+		// answers after the dedup (the kept half of the question)
+		if offered && rs.a.Kind() == AkCast && rs.a.Mode()&^3 == 0 &&
+			t.gorgeOffers(p, Obj(rs.a.Source()), rs.a.Mode()&3) {
+			return true
 		}
 	}
 	pl := &t.pl[SeatIx(p)]
