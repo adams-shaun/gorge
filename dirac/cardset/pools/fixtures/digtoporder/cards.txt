@@ -1,0 +1,15 @@
+# the rest-on-top-in-any-order Dig pool (LibraryPosition2$ 0 with two or
+# more cards left: gorge digTopOrderAsk, kop.DigRestTopAsk) over the
+# controller's library and a target player's: Ransack, Cruel Fate,
+# Diabolic Vision, Dimir Machinations, Bamboozle
+# (dirac/oracle/mbc_zone_moves_nine_lowers_test.go)
+Ransack
+Cruel Fate
+Diabolic Vision
+Dimir Machinations
+Bamboozle
+Island
+Swamp
+Raging Goblin
+Hill Giant
+Mountain

@@ -409,6 +409,14 @@ const (
 	DigExilerOther = 1 << 12
 )
 
+// DigRestTopAsk (both bits; C has no free flag bit, and the pair is
+// otherwise unused: a random order is a bottom placement): the rest go on
+// top in the order the resolving controller picks, one card at a time, the
+// first pick on top (gorge digTopOrderAsk, CR 701.29a "the rest on top in
+// any order"; Spin into Myth's fateseal). DigRestTop alone keeps the window
+// order (SkipReorder$, or one card left).
+const DigRestTopAsk = DigRestTop | DigRandomOrder
+
 // DigUntilFlags (OpDigUntil C>>3): bits 0..2 the revealed rest's zone.
 const (
 	DuRestBottom        = 1 << 3 // the revealed rest go to the library bottom

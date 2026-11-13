@@ -313,6 +313,8 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 				o.kind = okGraveyard
 			} else if e.st0.FeatArrangeDig() {
 				o.kind = okDigBottom
+			} else if e.st0.FeatArrangeDigTop() {
+				o.kind = okTop // gorge digTopOrderAsk's "top" options
 			}
 		case dirac.ChWardPay:
 			// gorge poses a ward cost as modes [pay, decline] (unless_pay /
