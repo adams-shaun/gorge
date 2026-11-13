@@ -3357,6 +3357,10 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			switch v {
 			case "Threshold":
 				ab.ActCond = lCond{Kind: cThreshold}
+			case "Blessing":
+				// "activate only if you have the city's blessing" (CR 702.131;
+				// gorge activationConditionOKBlessing, a Lost player denied)
+				ab.ActCond = lCond{Kind: cBlessing}
 			case "Delirium":
 				ab.ActCond = deliriumCond() // gorge activationConditionOK
 			case "Metalcraft":
