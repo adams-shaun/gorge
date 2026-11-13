@@ -1731,9 +1731,12 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			// a permanent's granted or lost abilities change the answer
 			return kf, refuse("NoAbilities on the battlefield")
 		}
-		if (c.CmpN == int(kop.W7EnteredFromBF) || c.CmpN == int(kop.W7EnteredFromLib)) && zone == kop.ZoneBattlefield {
+		if c.CmpN == int(kop.W7EnteredFromBF) && zone == kop.ZoneBattlefield {
 			// the word reads a card's latest arrival; a permanent has none to read
-			return kf, refuse("ThisTurnEnteredFrom_<zone> on the battlefield")
+			return kf, refuse("ThisTurnEnteredFrom_Battlefield on the battlefield")
+		}
+		if c.CmpN == int(kop.W7EnteredFromLib) && zone == kop.ZoneBattlefield {
+			return kf, refuse("ThisTurnEnteredFrom_Library on the battlefield")
 		}
 		kf.Pred, kf.PredN = kop.PredWord7, int16(c.CmpN) // (kernel wordPerm / wordCard)
 	case cmpNotF2:
