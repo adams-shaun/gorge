@@ -606,6 +606,9 @@ type CardDef struct {
 	// itself (CR 509.1b: "can't be blocked except by N or more creatures";
 	// 0 = none): menace's floor generalised (dirac/combat.go minBlockers).
 	// Not when the creature has lost its abilities. Troll of Khazad-dum.
+	// MinBlockersAll (outside the literal 2..8) is Min$ All (Tromokratis:
+	// "can't be blocked unless all creatures defending player controls
+	// block it"): the floor is every creature the attacked player controls.
 	MinBlockers uint8
 	// ExtraBlocks is a printed S:Mode$ Continuous | AffectedDefined$ Self |
 	// CanBlockAmount$ 1 (CR 509.1a): the creature can block one additional
@@ -778,3 +781,8 @@ func (c *CardDef) TapPays() bool { return c.Convoke || c.Improvise }
 
 // AndNot is m without the members of o.
 func (m SubMask) AndNot(o SubMask) SubMask { return SubMask{m[0] &^ o[0], m[1] &^ o[1], m[2] &^ o[2]} }
+
+// MinBlockersAll is CardDef.MinBlockers' Min$ All form: the floor is the
+// attacked player's whole creature count (gorge combat.DefenderCreatureCount),
+// so one creature of theirs that cannot block makes the attacker unblockable.
+const MinBlockersAll uint8 = 255

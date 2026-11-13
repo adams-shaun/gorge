@@ -290,6 +290,13 @@ func (s *State) ControlsMatching(p uint8, f kop.FilterID) bool {
 	return false
 }
 
+// MinBlockersOf is the fewest creatures that may block attacking object o
+// now (combat.go minBlockers: menace, a MinMaxBlocker Min$, Min$ All's
+// attacked player's creature count); 0 for none.
+func (s *State) MinBlockersOf(o Obj) int {
+	return s.minBlockers(s.k(), s.objs[o].slot)
+}
+
 // HasKeyword reports whether battlefield object o has keyword kw now.
 func (s *State) HasKeyword(o Obj, kw kop.KwMask) bool {
 	ob := &s.objs[o]

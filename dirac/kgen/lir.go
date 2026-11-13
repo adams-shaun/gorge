@@ -1097,7 +1097,7 @@ type lCard struct {
 	SagaN          int      // K:Chapter:<count>: the final chapter number (CR 714.1)
 	TapPowerCrew   int      // S:Mode$ TapPowerValue for Crew (graveexile)
 	TapPowerSaddle int      // S:Mode$ TapPowerValue for Saddle (graveexile)
-	MinBlockers    int      // S:Mode$ MinMaxBlocker | ValidCard$ Creature.Self | Min$ N (CR 509.1b)
+	MinBlockers    int      // S:Mode$ MinMaxBlocker | ValidCard$ Creature.Self | Min$ N (CR 509.1b); Min$ All is kop.MinBlockersAll
 	ExtraBlocks    int      // S:Mode$ Continuous | AffectedDefined$ Self | CanBlockAmount$ 1 (CR 509.1a)
 	Lure           bool     // the all-must-block keyword: every able creature blocks it (CR 509.1c)
 	MustBeBlocked  bool     // the must-be-blocked keyword (CR 509.1c)
