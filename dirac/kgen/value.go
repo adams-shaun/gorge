@@ -626,6 +626,8 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		v, err = lc.playerCountRemembered(rest, depth) // lower_repeatplayers.go
 	case "PlayerCountPlayers", "TargetedController", "TriggeredTarget":
 		v, err = lc.kvfHead(head, rest) // value_filterheads.go
+	case "PlayerCountDefinedNonTriggeredTarget":
+		v, err = lc.nonTrigTargetExtreme(rest) // value_trigreferents.go
 	case "SVar":
 		// gorge count.go: SVar$<name>[/Op] reads another SVar on the face
 		body, ok := lc.face.SVars[rest]
