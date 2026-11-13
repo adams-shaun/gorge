@@ -3746,6 +3746,15 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
+	case "GrantKwAll":
+		// OpExt ExtGrantKwAll: a keyword-only PumpAll above bit 15 (lower_pumpallhighkw.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtGrantKwAll))
+		if ki.C, ki.B, err = kwMaskOperands(in.CS); err != nil {
+			return ki, err
+		}
+		if err := objFilter(kop.ZoneBattlefield); err != nil {
+			return ki, err
+		}
 	case "PumpAllEach":
 		ki.Op, ki.Obj = kop.OpPumpAllEach, kop.Ref(in.C) // kop.PumpEach* bits
 		if in.CS != "" {

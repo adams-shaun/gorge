@@ -498,6 +498,7 @@ ExtExploit	ExtOp	298
 ExtExtort	ExtOp	302
 ExtFinalityCtr	ExtOp	198
 ExtGrantExile	ExtOp	249
+ExtGrantKwAll	ExtOp	296
 ExtGrantPanharm	ExtOp	248
 ExtHideaway	ExtOp	8
 ExtJoinForces	ExtOp	301

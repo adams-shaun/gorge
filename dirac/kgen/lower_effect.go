@@ -3469,6 +3469,9 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	_, hasDef := ps.m["NumDef"]
 	if !(mustBlock || eachColor) || in.CS != "" || hasAtt || hasDef {
 		lc.emit(in)
+	if err := pumpAllHighKw(&in, hasAtt || hasDef); err != nil { // lower_pumpallhighkw.go
+		return err
+	}
 	}
 	if eachColor {
 		// CR 702.16 + 611.2c: the permanents matching ValidCards$ as this
