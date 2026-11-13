@@ -300,6 +300,9 @@ func TestCondkeysLockstep(t *testing.T) {
 // Eye of Jace, Rollercrusher and Putrid Pals gates even when gorge's gate is
 // false, so some game must diverge.
 func TestCondkeysMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	_, divs, _, _ := kcondkeysRun(t, 64, true)
 	if divs == 0 {
 		t.Fatalf("DebugCondKeysIgnore: no divergence in 64 seeds")

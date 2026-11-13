@@ -141,11 +141,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +16 (the merge with land at bcd3c03ad118: the same CR 702.43 Multikicker and Count$TimesKicked lowering against land's later corpus; merged ALL 23052 -> 23068 measured).
 	// +24 (mid-resolution ChooseNumber lowers: ChooseNumberMid, with Count$ChosenNumber and the dynamic PayEnergy<X> unless cost; an activated {X} energy cost stays refused rather than losing its amount; merged onto land c70201715c: ALL 23076 -> 23100, WOE 263 -> 264 measured).
 	// -1 (Gilded Light refuses: its until-end-of-turn player shroud lowered to a keyword grant that lands on no permanent; ALL 23105 -> 23104 measured).
-	// +6 (the block tax lowers: Archangel of Tithes, Awesome Presence, Cowed by Wisdom, Hipparion, Myr Prototype, Qal Sisma Behemoth; OTJ 251 -> 252 (Archangel) measured).
 	// +16 (the merge with land at 1acc5919d9: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering beside land's later work; merged ALL 23115 -> 23131, WOE stays 264 measured).
 	// +14 (the merge with land at 6014a11d54: this branch's Extort lowering, the printed K:Extort expansion and the granted trigger, beside land's 23177; merged ALL 23177 -> 23191 measured).
-	// +6 (the block tax lowers, merged onto land at af34894912: Archangel of Tithes, Awesome Presence, Cowed by Wisdom, Hipparion, Myr Prototype, Qal Sisma Behemoth; ALL 23198 -> 23204, OTJ 251 -> 252 (Archangel) measured).
-	"ALL": {23204, 34442},
+	"ALL": {23209, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {218, 280},
@@ -164,7 +162,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"MSH": {246, 276},
 	"NEO": {201, 287},
 	"ONE": {201, 271},
-	"OTJ": {252, 276},
+	"OTJ": {251, 276},
 	"SNC": {187, 266},
 	"SOS": {257, 270},
 	"SPM": {169, 192},

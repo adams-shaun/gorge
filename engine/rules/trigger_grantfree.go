@@ -106,7 +106,7 @@ func (e *Engine) registryRescan() bool {
 	if n := len(e.continuous); n != pr.contLen || (n > 0 && &e.continuous[0] != pr.contPtr) {
 		for i := range e.continuous {
 			ce := &e.continuous[i]
-			if ce.AddTrigger != nil || len(ce.GainedTriggerFaces) > 0 {
+			if pr.free && continuousGrantsTrigger(ce) {
 				pr.free = false
 			}
 			if ce.ReplacementEvent != "" {
@@ -119,6 +119,22 @@ func (e *Engine) registryRescan() bool {
 		}
 	}
 	return pr.free
+}
+
+// continuousGrantsTrigger reports whether a registered effect carries a
+// granted trigger: an AddTrigger, gained trigger faces, or an added keyword
+// whose trigger the granted walk synthesizes (grantedKeywordTrigger: a Pump's
+// "gains myriad until end of turn", CR 702.116a).
+func continuousGrantsTrigger(ce *ContinuousEffect) bool {
+	if ce.AddTrigger != nil || len(ce.GainedTriggerFaces) > 0 {
+		return true
+	}
+	for _, kw := range ce.AddKeywords {
+		if grantedKeywordTrigger(kw) != nil {
+			return true
+		}
+	}
+	return false
 }
 
 // effectReplacementsPossible reports whether active() may hold an

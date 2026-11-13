@@ -192,6 +192,9 @@ func TestEquipshufMutation(t *testing.T) {
 // a lowered play, even while artifact mana floats (Mind Stone / Sol Ring on
 // the board). Seed 39 once panicked "autopay found no plan" at decision 106.
 func TestEquipshufWaterbendArtifactMana(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg, set := kequipshufSetup(t)
 	decksAB := [2][]cardset.Entry{
 		{

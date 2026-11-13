@@ -152,7 +152,9 @@ type compiledPred struct {
 // specialPositiveToken reports whether p is handled by matchPositive's leading
 // special-case block (everything before the controlReferent test). It must
 // list exactly those conditions; a token it misses would be dispatched to a
-// later branch the oracle never reaches for it.
+// later branch the oracle never reaches for it. equipped/enchanted are here
+// (not on csChain's predicates[] read) because their attachment scan needs the
+// SpecContext's layer-4 snapshot, which a predicates[] func never sees.
 func specialPositiveToken(p string) bool {
 	if specialPositiveTokenSet.Has(p) {
 		return true
@@ -687,6 +689,9 @@ var specialPositiveTokenSet = state.NewNameSet(
 	"IsRemembered",
 	"phasedOutIsRemembered",
 	"IsTriggerRemembered",
+	"equipped",
+	"enchanted",
+	"Enchanted",
 )
 
 var typePredicateTokenSet = state.NewNameSet(

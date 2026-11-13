@@ -1,0 +1,54 @@
+# the Escape pool (CR 702.138a): the lowered escape carriers, the escape-cost
+# exile class and the K:etbCounter / ConditionNotPresent Card.Self+escaped riders
+# beside discard outlets, self-mill, floating-mana sources and basics
+# (dirac/oracle/escape_test.go)
+Akki Rockspeaker
+Bloodbraid Challenger
+Burning-Tree Emissary
+Chainweb Aracnir
+Charred Graverobber
+Cling to Dust
+Coal Stoker
+Crumbling Vestige
+Elspeth, Sun's Nemesis
+Escape Velocity
+Flamecache Gecko
+Forest
+Fruit of Tizerus
+Glimpse of Freedom
+Hidden Herbalists
+Island
+Loathsome Chimera
+Lotus Cobra
+Mogis's Favor
+Mountain
+Mulch
+Ox of Agonas
+Phlage, Titan of Fire's Fury
+Phoenix of Ash
+Plains
+Priest of Gix
+Run for Your Life
+Satyr Wayfinder
+Satyr's Cunning
+Sentinel's Eyes
+Sleep of the Dead
+Sphinx of Forgotten Lore
+Swamp
+Sweet Oblivion
+Thrill of Possibility
+Tormenting Voice
+Underworld Charger
+Underworld Rage-Hound
+Uro, Titan of Nature's Wrath
+Voracious Typhon
+Woe Strider
+Faithless Looting
+Rampant Growth
+Nature's Lore
+Three Visits
+Cultivate
+Skyshroud Claim
+Explosive Vegetation
+Growth Spiral
+Kodama's Reach

@@ -577,7 +577,7 @@ func (s *State) ovDurFl(dur int16) uint8 {
 	case kop.DurEOT:
 		return ovEOT
 	case kop.DurUntilYourNextTurn:
-		return ovNT | (s.res.e.ctrl&1)*ovNTYou
+		return ovNT | (s.res.e.ctrl<<ovNTWhoShift)&ovNTWho
 	}
 	return 0
 }
@@ -592,7 +592,7 @@ func (s *State) dropNextTurnOv() (ended slotMask) {
 	s.fxM = slotMask{}
 	for i := 0; i < int(s.g.nfx); i++ {
 		r := &s.g.fx[i]
-		if r.kind == fxOverride && r.r.fl&ovNT != 0 && (r.r.fl&ovNTYou)>>5 == nt {
+		if r.kind == fxOverride && r.r.fl&ovNT != 0 && (r.r.fl&ovNTWho)>>ovNTWhoShift == nt {
 			s.touchSl(r.sl)
 			ended = ended.with(r.sl)
 			continue

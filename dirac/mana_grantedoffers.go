@@ -754,17 +754,16 @@ func (g *grantSrch) visit(t *State) bool {
 	// check, though: the priority options price a cast against the floating
 	// pool alone (legalActions), so a unit that is spendable here where the
 	// seen state's was not still offers the play when the pool pays it. A
-	// state equal in the ghost too is priced first: dirac's seen key leaves
-	// out what gorge's also reads (counters, snow) and what its verdict reads
-	// (waitsForStack), so a repeat of it may still be the answer.
-	same := false
+	// state equal in the ghost too is the same payer state in gorge's key
+	// (the key reads the same pool, tapped bits, counters, stack, hand and
+	// graveyard sizes, and neither the cards a discard moved nor which card
+	// went), so it is dropped the same way: Gran-Gran's loot discarding the
+	// cast card first shadows the discard of any other card, and the printed
+	// sources the planner would add at the pricing are not offered
+	// (scriptSearch.visit: offered, then seen, then priced).
 	fk := key.folded()
 	for i := 0; i < g.nseen; i++ {
-		switch e := g.seen[i]; {
-		case e == key:
-			same = true
-		case e.folded() == fk:
-			// (gorge's seen check precedes its pricing: scriptSearch.visit)
+		if g.seen[i].folded() == fk {
 			if t.floatPaysPlay(g.k, g.p, &cost, g.d) && !g.waitsForStack(t) {
 				g.cheaper = cheap
 				return true
@@ -775,9 +774,6 @@ func (g *grantSrch) visit(t *State) bool {
 	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &cost, g.ex, g.d) && !g.waitsForStack(t) {
 		g.cheaper = cheap
 		return true
-	}
-	if same {
-		return false
 	}
 	if g.nseen < len(g.seen) {
 		g.seen[g.nseen] = key

@@ -600,6 +600,13 @@ func foldGrantTriggerPush(g *state.Game, e *Event) {
 		// body excludes rides IDs as Remembered.
 		sa = &cards.SA{Kind: "DB", API: "Myriad", Params: map[string]string{}}
 	}
+	if sa == nil && e.Counter == "__kwEvolveGranted" {
+		// A granted evolve keyword (CR 702.100a via a layer-6 AddKeyword$
+		// Evolve, e.g. Tyranid Prime): rebuilt into the printed K:Evolve
+		// expansion's DB$ PutCounter body (engine/cards/kw_evolve.go).
+		sa = &cards.SA{Kind: "DB", API: "PutCounter", Params: map[string]string{
+			"Defined": "Self", "CounterType": "P1P1", "CounterNum": "1"}}
+	}
 	if sa == nil {
 		return
 	}

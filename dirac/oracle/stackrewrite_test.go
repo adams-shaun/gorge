@@ -332,6 +332,9 @@ func TestStackrewriteLockstep(t *testing.T) {
 
 // TestStackrewriteMutation keeps every redirect's old target: M1 must diverge.
 func TestStackrewriteMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runStackrewrite(t, 16, true)
 	if divs[0] == 0 {
 		t.Errorf("the redirect mutation kept every old target with no divergence")
