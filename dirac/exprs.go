@@ -575,7 +575,7 @@ func (s *State) refObjCtx(r kop.Ref, ctx evalCtx) Obj {
 		return Obj(t)
 	case kop.RefTriggerObj, kop.RefTriggerSource, kop.RefDelayedRemembered, kop.RefHost:
 		if r == kop.RefDelayedRemembered && e.remSet && e.trigObj != NoObj &&
-			s.objs[e.trigObj].ver != e.remVer {
+			objWord(s.objs[e.trigObj].ver) != e.remVer {
 			return NoObj // a new object since registration (CR 400.7; gorge dropDelayedRememberedMoved)
 		}
 		return e.trigObj

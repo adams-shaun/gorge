@@ -2291,6 +2291,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.debuff(ps)
 	case "Explore":
 		return lc.explore(ps)
+	case "Exploit":
+		return lc.exploit(ps) // lower_exploit.go
 	case "Discover":
 		return lc.discover(ps)
 	case "Hideaway":

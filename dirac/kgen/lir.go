@@ -756,6 +756,10 @@ type lTrigger struct {
 	// own draw step (gorge trigmatch.firstCardInDrawStep, CR 504.1).
 	FirstInDrawStep    bool // FirstCardInDrawStep$ True (kop.Tf5FirstCardInDrawStep)
 	NotFirstInDrawStep bool // FirstCardInDrawStep$ False (kop.Tf5NotFirstCardInDrawStep)
+
+	// Discarded Card.Self: ValidCause$ SpellAbility.OppCtrl, the discard caused
+	// by a spell or ability an opponent controls (kop.Tf5OppCause).
+	OppCause bool
 }
 
 // lTrigger.Attacked bits.

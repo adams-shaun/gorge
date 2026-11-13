@@ -1969,12 +1969,7 @@ func (lc *lowerCtx) play(ps *params) error {
 	// Spirit): gorge effPlay walks only the resolving controller's hand, whose
 	// cards that player owns, so YouOwn filters nothing there
 	lc.bluffPlay = playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)
-	var saExpr string
-	var err error
-	if !playCommandZone(ps) {
-		// (the command-zone Play reads its absent ValidSA$: lower_playcommand.go)
-		saExpr, err = lc.playSAExpr(ps.str("ValidSA"))
-	}
+	saExpr, err := lc.playSAExpr(ps.str("ValidSA"))
 	lc.bluffPlay = false
 	if err != nil {
 		return err
@@ -2107,13 +2102,6 @@ func (lc *lowerCtx) play(ps *params) error {
 		}
 		lc.playLibrary = true
 		return emit(lRef{Kind: rRemembered}, zLibrary, saExpr)
-	case "Command":
-		// P5: the resolving controller's own commanders in the command zone
-		// (Geode Golem; lower_playcommand.go)
-		if !playCommandZone(ps) || forget || replace {
-			return refuse("Play ValidZone$ Command with Valid$ %q", valid)
-		}
-		return emit(lRef{Kind: rNone}, zCommand, "")
 	case "Hand", "Graveyard":
 		// P3/P4: untargeted filter population over the controller's hand or
 		// the graveyards, in seat order.

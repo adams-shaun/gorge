@@ -74,7 +74,7 @@ func TestPayLifeSpellUnplanned(t *testing.T) {
 // 601.2h) spends that pool and pays the 3 life.
 func TestPayLifeSpellLowered(t *testing.T) {
 	sc, fum, giant, swamp := kpaylifeScen(t, Config{GorgeLowering: true, NoElide: true})
-	sc.do(t, AkCast, uint8(fum), 0xff)
+	sc.do(t, AkCast, TCode(fum), scAny)
 	pool, _ := sc.s.PoolOf(0)
 	n := 0
 	for _, u := range pool {
@@ -97,7 +97,7 @@ func TestPayLifeSpellLowered(t *testing.T) {
 				want = giant
 			}
 		}
-		sc.do(t, AkTarget, 0xff, uint8(want))
+		sc.do(t, AkTarget, scAny, TCode(want))
 	}
 	if d := sc.s.Step(); d.Kind != DkPriority {
 		t.Fatalf("decision %d after the targets, want priority", d.Kind)

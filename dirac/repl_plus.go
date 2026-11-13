@@ -20,7 +20,7 @@ import (
 // use, so it is probed per event with the ask state saved and restored, and
 // re-parked for the one competing event. handled reports that the pass was
 // consumed (parked or stalled) and must not deal.
-func (s *State) replPlusSrcPass(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, kw kop.KwMask, codes []uint8, amts []int) bool {
+func (s *State) replPlusSrcPass(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, kw kop.KwMask, codes []TCode, amts []int) bool {
 	if !replPlusOnly(k.gen) || s.g.ro.n != 0 || s.g.ro.on || s.g.nc.n != 0 || s.g.plusBatchAsked {
 		return false
 	}

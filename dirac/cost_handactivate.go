@@ -55,7 +55,7 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 				continue // its window and its Return candidate (kw_ninjutsu.go)
 			}
 			if s.abilityTargetsFeasible(k, a, p, NoSlot, 0xff) {
-				d.add(MakeAction(AkActivate, uint8(o), 0, uint8(ai)))
+				d.add(MakeAction(AkActivate, TCode(o), 0, uint8(ai)))
 			}
 		}
 	}
@@ -69,8 +69,8 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 func (s *State) discardSelfCost(k *prep, e *stackEntry) {
 	if o := e.obj; o != NoObj && s.objs[o].zone == kop.ZoneHand {
 		if k.t.Cards[e.card].Abilities[e.ab].AFlags&kop.AfCycling != 0 {
-			if !s.parkCost(k, o, parkCycle, e.x) {
-				s.cycleDiscard(k, o, e.x)
+			if !s.parkCost(k, o, parkCycle, uint8(e.x)) {
+				s.cycleDiscard(k, o, uint8(e.x))
 			}
 			return
 		}

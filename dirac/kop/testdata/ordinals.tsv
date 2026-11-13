@@ -485,6 +485,7 @@ ExtExchangeControl	ExtOp	244
 ExtExileEmbRem	ExtOp	319
 ExtExileExMark	ExtOp	51
 ExtExileLandChoose	ExtOp	162
+ExtExploit	ExtOp	298
 ExtExtort	ExtOp	302
 ExtFinalityCtr	ExtOp	198
 ExtGrantExile	ExtOp	249
@@ -1363,6 +1364,7 @@ Tf4SingleTarget	TrigFlags4	1
 Tf4StateCtr	TrigFlags4	64
 Tf5FirstCardInDrawStep	TrigFlags5	1
 Tf5NotFirstCardInDrawStep	TrigFlags5	2
+Tf5OppCause	TrigFlags5	4
 TfCombat	TrigFlags	4
 TfNontokenSrc	TrigFlags	64
 TfNotToGrave	TrigFlags	128
@@ -1449,8 +1451,9 @@ TrigDiscardedAll	TrigEvent	35
 TrigDiscover	TrigEvent	44
 TrigDrawn	TrigEvent	14
 TrigETB	TrigEvent	1
-TrigEventCount	TrigEvent	49
+TrigEventCount	TrigEvent	50
 TrigEvolved	TrigEvent	47
+TrigExploited	TrigEvent	49
 TrigExplores	TrigEvent	39
 TrigFacesDilemma	TrigEvent	46
 TrigForage	TrigEvent	43

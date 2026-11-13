@@ -56,7 +56,7 @@ var graveTriggerModes = map[string]bool{
 }
 
 func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
-	var atkMostLife, descended bool // fire-time player gates
+	var atkMostLife, descended, dethrone bool // fire-time player gates
 	ab := &lAbility{Kind: akTriggered, Index: len(lc.out.Abilities)}
 	defer func(b bool) { lc.trigBody = b }(lc.trigBody)
 	lc.trigBody = false
@@ -262,6 +262,12 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				return refuse("Attacks Training %q", v)
 			}
 			tr.Training = true
+		}
+		if v, ok := tp.get("Dethrone"); ok {
+			// K:Dethrone's expansion (lower_dethrone.go)
+			if dethrone, err = dethroneGate(v, tp, tr); err != nil {
+				return err
+			}
 		}
 		if v, ok := tp.get("Myriad"); ok {
 			// K:Myriad's expansion (gorge kwMyriad; trigmatch
@@ -911,6 +917,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			tr.Zone = zGraveyard
 		}
+		if err := lowerDiscardedCause(tp, tr); err != nil { // lower_trigparams.go
+			return err
+		}
 	case "DiscardedAll":
 		// "whenever you discard one or more cards" (gorge trigmatch
 		// discardedAllMatches, rules discard batch): once per discard
@@ -1134,6 +1143,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 	case "CollectEvidence":
 		if err := lc.collectEvidenceTrigger(tp, tr); err != nil {
+			return err
+		}
+	case "Exploited":
+		if err := lc.exploitedTrigger(tp, tr); err != nil { // lower_exploit.go
 			return err
 		}
 	case "TokenCreatedOnce":
@@ -1491,6 +1504,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	fireOnly, err := lc.kvfTriggerConds(tp, &conds, atkMostLife, descended)
 	if err != nil {
 		return err
+	}
+	if dethrone {
+		conds, fireOnly = append(conds, dethroneCond()), true // lower_dethrone.go
 	}
 	if fc, err := lc.firstAttackCombat(tp, tr, &conds, t.Mode); err != nil { // lower_addphase.go
 		return err

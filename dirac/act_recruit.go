@@ -43,7 +43,7 @@ func (s *State) recruitStart(k *prep) bool {
 	default:
 		s.res.ask = raRecruitDiscard
 		s.res.askP = p
-		s.res.chosen = p
+		s.res.chosen = objWord(p)
 		return false
 	}
 	return true
@@ -57,7 +57,7 @@ func (s *State) recruitOptions(k *prep, d *Decision) {
 	d.Sub = ChRecruitDiscard
 	pl := &s.pl[s.res.chosen]
 	for i := 0; i < int(pl.handN); i++ {
-		d.add(MakeAction(AkChoose, uint8(pl.hand[i]), 0, 0))
+		d.add(MakeAction(AkChoose, TCode(pl.hand[i]), 0, 0))
 	}
 }
 
@@ -75,13 +75,13 @@ func (s *State) recruitPick(k *prep, a Action) {
 			break
 		}
 	}
-	if !inHand || s.objs[o].owner() != p {
+	if !inHand || objWord(s.objs[o].owner()) != p {
 		return // the pick left the hand meanwhile (gorge recruitPicks)
 	}
 	nonland := !k.cards[s.objs[o].card].land
 	s.discardObj(k, o)
 	if nonland || DebugRecruitAlwaysToken {
-		s.recruitToken(k, p)
+		s.recruitToken(k, uint8(p))
 	}
 }
 

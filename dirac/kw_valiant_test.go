@@ -13,7 +13,7 @@ func valiantTarget(sc *scen, p uint8, o Obj, n int) int {
 	sc.s.npend = 0
 	e := stackEntry{kind: seSpell, obj: NoObj, ctrl: p, nt: uint8(n)}
 	for i := 0; i < n; i++ {
-		e.tgt[i] = uint8(o)
+		e.tgt[i] = TCode(o)
 	}
 	sc.s.checkWard(sc.k, &e)
 	return int(sc.s.npend)
