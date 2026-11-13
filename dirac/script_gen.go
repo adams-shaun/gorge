@@ -297,7 +297,11 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			if !s.filtScript(k, a, p, false) {
 				continue // no script within gorge's search budget
 			}
-		} else if tx.any() && s.tapXBoard(k, p) {
+		} else if tx.any() && s.tapXBoard(k, p) && (s.scriptTapXModelled(k, p).any() || !tapsDef.any()) {
+			// A Taps-deferred gap (a depletion land) beside the counter-cost
+			// ones is no gap of this search (rs.gaps, mana_tapanother.go):
+			// the DFS search below taps both in battlefield order, so the
+			// tapX route keeps only a board with a real tap-another source.
 			if !s.tapXScript(k, a, p, false) && !(s.tapXSecondLive(k, p) && s.liveGrantGap(k, p) && s.grantActScript(k, a, p)) {
 				continue // no script within gorge's budget (mana_tapanother.go), nor in the one search beside the grants (mana_granttapx.go)
 			}
@@ -465,7 +469,11 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		}
 		return
 	}
-	if (k.tapMana || k.ctrMana) && s.tapXPrefix(k, a, p) {
+	// The tapX route owns the prefix only when a real tap-another source is
+	// on the board, or no Taps-deferred gap is: beside a depletion land the
+	// DFS search's replay (scriptPrefixAny) taps both gaps in battlefield
+	// order, and the tapX search's gaps (rs.gaps) hold no Taps-deferred one.
+	if (k.tapMana || k.ctrMana) && (s.scriptTapXModelled(k, p).any() || !s.scriptTapsDefer(k, p).any()) && s.tapXPrefix(k, a, p) {
 		return // a tap-another-permanent board (mana_tapanother.go)
 	}
 	gaps, restr, anyR := s.scriptGaps(k, p), s.scriptRestr(k, p), s.scriptAnyR(k, p)
