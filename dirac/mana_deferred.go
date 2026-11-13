@@ -41,12 +41,13 @@ func (k *prep) deferCol(c CardID) int {
 // unattributed: stall loudly.
 func (s *State) floatDeferred(k *prep, p uint8, sl Slot) {
 	col := k.deferCol(s.cardAt(sl))
-	if d := s.g.defSrc[SeatIx(p)]; d != 0 && d != uint8(sl)+1 && int(s.g.defCol[SeatIx(p)]) != col && s.pl[SeatIx(p)].pool[s.g.defCol[SeatIx(p)]] != 0 {
+	if d := s.g.defSrc[SeatIx(p)]; d != 0 && d != uint8(sl)+1 && int(s.defColOf(p)) != col && s.pl[SeatIx(p)].pool[s.defColOf(p)] != 0 {
 		s.capFull(StallObsSrc)
 	}
 	s.pl[SeatIx(p)].pool[col]++
 	s.artTag(k, p, sl, col)
-	s.g.defSrc[SeatIx(p)], s.g.defCol[SeatIx(p)] = uint8(sl)+1, uint8(col)
+	s.g.defSrc[SeatIx(p)] = uint8(sl) + 1
+	s.setDefCol(p, col)
 }
 
 // deferredPool is p's floating deferred mana before a payment, 0 when none,
@@ -55,7 +56,7 @@ func (s *State) deferredPool(k *prep, p uint8) (r uint8, src uint8) {
 	if k.gen == nil || !k.gen.anyDeferred || s.g.defSrc[SeatIx(p)] == 0 {
 		return 0, 0
 	}
-	return s.pl[SeatIx(p)].pool[s.g.defCol[SeatIx(p)]], s.g.defSrc[SeatIx(p)]
+	return s.pl[SeatIx(p)].pool[s.defColOf(p)], s.g.defSrc[SeatIx(p)]
 }
 
 // deferredSpent records the deferred source on the cast being built when the
@@ -63,13 +64,14 @@ func (s *State) deferredPool(k *prep, p uint8) (r uint8, src uint8) {
 //
 //go:noinline
 func (s *State) deferredSpent(k *prep, p uint8, r0, src uint8) {
-	if s.pl[SeatIx(p)].pool[s.g.defCol[SeatIx(p)]] >= r0 {
+	if s.pl[SeatIx(p)].pool[s.defColOf(p)] >= r0 {
 		return
 	}
 	// gorge spends the source's batch first, so its unit is gone now even when
 	// same-colour mana from other sources still floats (Gilanra's {G} beside
 	// Forests'): a later payment of that colour is not the source's
-	s.g.defSrc[SeatIx(p)], s.g.defCol[SeatIx(p)] = 0, 0
+	s.g.defSrc[SeatIx(p)] = 0
+	s.setDefCol(p, 0)
 	if !s.buildLive() || s.bld().e.kind != seSpell {
 		return
 	}
@@ -115,4 +117,16 @@ func (s *State) fireDeferredRider(k *prep, e *stackEntry) {
 	s.slotTriggers(k, sl, func(a *kop.Ability) bool { return a.Trig.Event == kop.TrigSpellCast && s.deferRider(k, sl, a) }, func(l trigListener, a *kop.Ability) {
 		s.castTrigGen(k, l, a, e)
 	})
+}
+
+// defColOf is the colour index of the deferred mana floating in p's pool.
+func (s *State) defColOf(p uint8) int {
+	p = SeatIx(p)
+	return int(s.g.defCol[p/2]>>(4*(p%2))) & 15
+}
+
+func (s *State) setDefCol(p uint8, col int) {
+	p = SeatIx(p)
+	sh := 4 * (p % 2)
+	s.g.defCol[p/2] = s.g.defCol[p/2]&^(15<<sh) | uint8(col)<<sh
 }

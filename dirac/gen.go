@@ -1918,7 +1918,6 @@ type genState struct {
 	poison   [MaxSeats]uint8 // each player's poison counters (CR 122.1f; infect and toxic, kw_infect.go; padding before lingerM)
 	poolArt  [MaxSeats]uint8 // per player, the pool slots holding mana an artifact produced (mana_artifact.go; padding)
 	defSrc   [MaxSeats]uint8 // per player, the slot + 1 of the deferred source whose mana floats in the pool (mana_deferred.go; padding)
-	defCol   [MaxSeats]uint8 // per player, that deferred mana's colour index (valid while defSrc is nonzero; mana_deferred.go; padding)
 	speed    seatWord        // each seat's speed (3 bits each) and the once-per-turn speed trigger latch above them (kw_speed.go; padding)
 	noPoison uint8           // bit p: player p can't get additional poison counters this turn (Melira's replacement; trig_leavereturn.go; padding)
 	plusCtr  [MaxSeats]uint8 // per player, how many Brad Boimler counter-plus-one effects are active this turn (ctr_pluseot.go; padding)
@@ -2153,6 +2152,10 @@ type genState struct {
 	// (value_dmgamount.go). Written only under genPrep.anyDmgAmt; cleared at the
 	// turn change. Taken from rsv.
 	dmgAmt [dmgAmtN]struct{ o, n uint8 }
+	// defCol: per player, a nibble: the colour index of the deferred mana floating
+	// in the pool (valid while defSrc is nonzero; defColOf, mana_deferred.go).
+	// Taken from rsv.
+	defCol [(MaxSeats + 1) / 2]uint8
 	rsv    [rsvN]uint8
 	// embX: an emblem's remembered slots 2 and 3, object + 1 (static_emblemrem.go); embR is slot 1, embN slot 0. Taken from rsv.
 	embX [MaxSeats][maxEmb][embRemSlots - 2]uint8
@@ -2177,7 +2180,7 @@ const (
 	// absorbs the rest of the alignment, including tgtSpent): 64, plus the 16
 	// that carry State's growth for MaxObj 236 to a multiple of 64 so perms
 	// keeps its phase.
-	rsvN = max(0, 80-maxImp-2-MaxSeats-MaxSeats*maxEmb-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-MaxSeats*maxEmb*(embRemSlots-2)-1-turnFBytes-dmgAmtBytes)
+	rsvN = max(0, 80-maxImp-2-MaxSeats-MaxSeats*maxEmb-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-MaxSeats*maxEmb*(embRemSlots-2)-1-turnFBytes-dmgAmtBytes-(MaxSeats+1)/2)
 )
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).
