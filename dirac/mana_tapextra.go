@@ -80,13 +80,14 @@ func (s *State) srcExtraPain(k *prep, sl Slot, pc *pcard) (xc, xp [kop.NumManaKi
 
 // srcExtraPainPick is the extra a coloured pick of the painful alternative at
 // sl brings: the reflected carriers' (StTapReflect) mana of the produced type
-// and a literal carrier's fixed vector. prod guards nothing here — the
-// produced type is pc.painCol — but a one-type production makes the reflected
-// extra that fixed vector (folded into xv), a several-type one makes it one
-// mana of the pick (r; the caller folds it into the tap's amount, painUnit,
-// addPainAvail, addExtraCol). A StTapOnC carrier reaches a {C} tap only: on
-// the one {C} type it is xv's too, beside a several-type production it cannot
-// be priced (stall). False, with the stall counted, for that shape.
+// and a literal carrier's fixed vector. A one-type production (pc.painCol's
+// one colour, or {C} for a pain-only {C} source) makes the reflected extra
+// that fixed vector (folded into xv); a several-type one makes it one mana of
+// the pick (r; the caller folds it into the tap's amount: painUnit,
+// addPainAvail, addExtraCol). A StTapOnC carrier reaches by the source's own
+// mask, as srcExtraTapped reads it; a source whose own ability is a {C}-or-
+// colour choice leaves the carrier's extra on the pick, which cannot be
+// priced here (stall). False, with the stall counted, for that shape.
 func (s *State) srcExtraPainPick(k *prep, sl Slot, pc *pcard) (r uint8, xv [kop.NumManaKinds]uint8, stall bool) {
 	if k.gen == nil || !k.gen.anyTapExtra || pc.manaAb < 0 || pc.manaSacOnly ||
 		pc.painCol == 0 || pc.manaXv != ([kop.NumManaKinds]uint8{}) || !s.tapExtraPlainBase(pc) {
@@ -104,8 +105,13 @@ func (s *State) srcExtraPainPick(k *prep, sl Slot, pc *pcard) (r uint8, xv [kop.
 				r += uint8(a.B)
 				return true
 			}
-			if prod != 1<<kop.C {
-				stall = true // a {C}-tap carrier beside a several-type production
+			// a StTapOnC carrier reaches by the source's own mask (talisman
+			// beside Forsaken Monument), as srcExtraTapped reads it
+			switch m := srcMask(pc); {
+			case m&(1<<kop.C) == 0:
+				return true
+			case m != 1<<kop.C:
+				stall = true // the extra depends on the pick ({C} or a colour)
 				return true
 			}
 			xv[kop.C] += uint8(a.B)
