@@ -566,6 +566,17 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		// player, never an object; kernel castTargetsPlayer reads it
 		return false
 	}
+	if fl.Flags&kop.FAttachedBySrc != 0 {
+		// the source's host is a battlefield attachment the perm matcher
+		// reads (kop.FAttachedBySrc: Spirit Link's "whenever enchanted
+		// creature deals damage"); a card matcher has no live attachment to
+		// read, and a card outside the battlefield is never attached, so it
+		// fails closed like FCtrlTgt above. The damage walk's card matcher
+		// (fireDamageSrc: the source is a spell or a departed ability's
+		// card) would otherwise pass Spirit Link's trigger at a spell's
+		// damage, which gorge's matchesSourceCard refuses.
+		return false
+	}
 	if fl.Flags2&kop.F2BasePermanent != 0 {
 		// a ThisTurnEntered battlefield entry whose object has since left
 		// (a live permanent is read by the perm matcher): the Permanent base
