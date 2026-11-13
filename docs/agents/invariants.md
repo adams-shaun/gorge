@@ -311,8 +311,9 @@ shrink-only) do not list fails it. Peak RSS is measured per test binary by
    - `make sim`: 20/20 `replay OK`.
    - If you touched `web/` or changed when a decision is posed, also run the
      `./engine/view` package and the web gates.
-   - The full suite runs after merge, in CI. Never run an uncapped
-     `go test ./...` by hand.
+   - The full suite runs in CI: every pull request runs the six test shards,
+     and a pull request to `main` also runs the whole `dirac/oracle` in ten
+     parts. Never run an uncapped `go test ./...` or the whole oracle by hand.
 4. **Every test fits the budget: 4 GB RSS, 4 vCPU, 1 minute wall.** Run tests
    through the make targets (`scripts/test-targets.sh`), never a raw
    `go test`. To debug one test: `make test-one PKG=./pkg RUN='^TestX$'`
