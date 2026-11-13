@@ -1101,6 +1101,16 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	if c.DiscardSelf {
 		out.Flags |= kop.CostDiscardSelf
 	}
+	if c.Discard2N > 0 {
+		// the second discard part of a spell's alternative cost
+		// (lower_discardtwo.go): its count and filter ride their own bytes
+		out.Discard2N = uint8(c.Discard2N)
+		if c.Discard2F != nil {
+			if out.Discard2F, err = cb.filter(c.Discard2F, kop.ZoneHand); err != nil {
+				return out, err
+			}
+		}
+	}
 	if c.Loyalty > 0 {
 		set(kop.CostAddCtr, c.Loyalty)
 		out.Ctr = kop.CtrLoyalty

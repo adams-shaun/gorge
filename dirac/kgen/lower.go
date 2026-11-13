@@ -1934,9 +1934,10 @@ func (lc *lowerCtx) costParts(c lCost) error {
 	if c.DiscardSelf {
 		return refuse("discard cost %q outside a hand ability", "Discard<1/CARDNAME>")
 	}
-	if c.DiscardF != nil {
+	if c.DiscardF != nil && !(lc.altCostHand && c.Discard2N > 0) {
 		// a filtered discard is a battlefield activated ability's own cost
-		// (the candidates are that controller's hand cards; CR 118.3)
+		// (the candidates are that controller's hand cards; CR 118.3), or
+		// a spell alternative cost's two discard parts (lower_discardtwo.go)
 		return refuse("filtered discard cost outside an activated ability")
 	}
 	if c.DiscardHand && (lc.ab == nil || lc.ab.Kind != akActivated) {
@@ -2421,10 +2422,16 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			c.ExileTrigNew = true
 		case "Discard":
 			// One discard part per cost: lCost carries a single N/Spec, so a
-			// second token would silently overwrite the first (Foil's
-			// alternative cost is the corpus's only multi-discard line and
-			// refuses on its Island spec already).
+			// second token would silently overwrite the first. A spell's own
+			// alternative cost takes one second part (Foil;
+			// lower_discardtwo.go).
 			if c.DiscardN > 0 || c.DiscardSelf || c.DiscardF != nil {
+				if lc.altCostHand {
+					if err := lc.altDiscardTwo(&c, parts, n, t); err != nil {
+						return c, err
+					}
+					continue
+				}
 				return c, refuse("discard cost %q: more than one discard part", t)
 			}
 			if (len(parts) == 2 || len(parts) == 3) && parts[1] == "CARDNAME" && n == 1 {
