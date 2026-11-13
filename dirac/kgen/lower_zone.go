@@ -3114,6 +3114,13 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 		if err != nil {
 			return err
 		}
+	} else if ps.is("Populate", "True") {
+		// populate: the controller's creature token, copied (lower_populate.go)
+		picked = true
+		obj, err = lc.populatePick(ps)
+		if err != nil {
+			return err
+		}
 	} else if obj, err = lc.objOrTarget(ps, "", zBattlefield); err != nil {
 		return err
 	}
