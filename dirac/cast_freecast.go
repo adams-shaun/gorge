@@ -126,7 +126,7 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 			if o := Obj(e.tgt[slot]); isObjTarget(TCode(o)) {
 				add(o)
 			} else if isPlayerTarget(e.tgt[slot]) {
-				s.castFreeFillHand(e.tgt[slot]-PlayerTarget0, zone, add) // cast_freetgtplayer.go
+				s.castFreeFillHand(CodeSeat(e.tgt[slot]), zone, add) // cast_freetgtplayer.go
 			}
 		}
 	case zone == kop.ZoneHand:
