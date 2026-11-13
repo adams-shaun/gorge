@@ -15,15 +15,18 @@ import (
 
 // Ethereal Haze (no ValidTarget$: every recipient), Surge of Salvation (a
 // colour-filtered ValidSource$ onto creatures you control) and Loyal Unicorn
-// (IsCombat$ True) against red burn and creatures.
+// (IsCombat$ True, which needs a commander to trigger: You Look Upon the
+// Tarrasque carries the same combat-only scope with no such gate) against red
+// burn and creatures.
 var kmbcPreventDecks = [2][]cardset.Entry{
 	{
-		{Name: "Ethereal Haze", Count: 5}, {Name: "Surge of Salvation", Count: 5}, {Name: "Loyal Unicorn", Count: 3},
-		{Name: "Savannah Lions", Count: 6}, {Name: "Serra Angel", Count: 4}, {Name: "Plains", Count: 17},
+		{Name: "Ethereal Haze", Count: 4}, {Name: "Surge of Salvation", Count: 4}, {Name: "Loyal Unicorn", Count: 2},
+		{Name: "Savannah Lions", Count: 6}, {Name: "Serra Angel", Count: 4}, {Name: "Shock", Count: 3},
+		{Name: "Lightning Bolt", Count: 2}, {Name: "Plains", Count: 11}, {Name: "Mountain", Count: 4},
 	},
 	{
 		{Name: "Lightning Bolt", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Hill Giant", Count: 4},
-		{Name: "Raging Goblin", Count: 4}, {Name: "Grizzly Bears", Count: 6},
+		{Name: "Raging Goblin", Count: 4}, {Name: "Grizzly Bears", Count: 2}, {Name: "You Look Upon the Tarrasque", Count: 4},
 		{Name: "Mountain", Count: 10}, {Name: "Forest", Count: 8},
 	},
 }
@@ -75,7 +78,7 @@ func dropPrevScope(name string) func(*kop.Table) {
 // with that card's record dropped, some seed diverges from gorge.
 func TestMBCEffectApi1PreventionMutation(t *testing.T) {
 	t.Parallel()
-	for _, name := range []string{"Ethereal Haze", "Surge of Salvation"} {
+	for _, name := range []string{"Ethereal Haze", "Surge of Salvation", "You Look Upon the Tarrasque"} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			if lockstepRun(t, "mbceffectapi1", kmbcPreventDecks, 300, false, dropPrevScope(name)) == 0 {
