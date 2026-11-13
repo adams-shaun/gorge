@@ -18,7 +18,7 @@ type trigListener struct {
 	ctrl uint8
 	card CardID
 	ab   uint8
-	host uint8 // the granting permanent plus one (stackEntry.trigHost); 0 = none
+	host Obj // the granting permanent plus one (stackEntry.trigHost); 0 = none
 }
 
 // eachTrigger calls f for every triggered ability of event ev on the
@@ -227,7 +227,7 @@ func (s *State) queueTrig(k *prep, l trigListener, a *kop.Ability, tobj Obj, tpl
 	n := s.npend
 	s.enqueueLKI(l.obj, s.objs[l.obj].ver, l.card, l.ab, l.ctrl, tobj, tpl, amt)
 	if s.npend > n {
-		s.pend[n].remVer = l.host // a granted trigger's host rides remVer (stackEntry.trigHost)
+		s.pend[n].remVer = objWord(l.host) // a granted trigger's host rides remVer (stackEntry.trigHost)
 	}
 	if a.Trig.Flags2&(kop.Tf2XBound|kop.Tf2SpentBound|kop.Tf2Convoked) != 0 {
 		s.bindTrigProv(a, tobj) // trig_xpaid.go, trig_gravedrawn.go

@@ -498,7 +498,7 @@ type stackEntry struct {
 	// A spell has no remembered object: see spellGainedDeathtouch. A granted
 	// trigger has none either, and keeps the permanent that granted it here
 	// instead: see trigHost.
-	remVer uint8
+	remVer objWord
 	remSet bool
 	xi     uint8 // multi-object target slots: genState.xtp index + 1 (gen.go)
 	grp    uint8 // an AttackersDeclared trigger's attacker group: State.cold.atkGrp index + 1 (trig_attackers.go)
@@ -551,7 +551,7 @@ type pendingTrig struct {
 	// A granted trigger has no remembered object and keeps the permanent that
 	// granted it here instead (stackEntry.trigHost)
 	// (the captured flag rides pendingTrig.skw's skwRem bit: no byte of its own)
-	remVer uint8
+	remVer objWord
 	// x is the trigger object's spell's paid X, bound as it triggered
 	// (Tf2XBound, CR 107.3m; trig_xpaid.go): the stack entry's x.
 	// It takes the struct's padding byte.
@@ -895,7 +895,7 @@ type stateCore struct {
 
 	pl     [MaxSeats]player
 	objs   [MaxObj]object
-	nobj   uint8
+	nobj   Obj
 	permHi Slot              // one past the highest battlefield slot this game has used: perms[permHi:] is all zero
 	lstamp [MaxPerm]uint16   // CR 613.7e layer restamp on attach (static_attachtimestamp.go layerTs)
 	kwx    [maxKwRepX]kwRepX // until-end-of-turn keyword repeats past the third (grantEOT)
@@ -988,7 +988,7 @@ type stateCore struct {
 	// (with Config.NoElide off), per player: chiefly priority decisions
 	// where passing is the only legal action.
 	Skipped [MaxSeats]uint32
-	nlC     [4]uint8 // Braided Net locks 5..8 (genState.nlA; fills the padding before g; act_lockpermanent.go)
+	nlC     [4]Obj   // Braided Net locks 5..8 (genState.nlA; fills the padding before g; act_lockpermanent.go)
 	g       genState // the generated-table extension (gen.go)
 
 	// Decisions counts the decisions answered (SeqNo).

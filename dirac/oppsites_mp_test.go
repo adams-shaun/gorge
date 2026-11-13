@@ -40,7 +40,7 @@ func oppScen(t *testing.T, gone int) (*rules.Engine, *scen, map[string]CardID) {
 		s.pl[gone].lost = true
 	}
 	if len(s.cold.discHeld) == 0 {
-		s.cold.discHeld = make([]uint8, discHeldLen)
+		s.cold.discHeld = make([]Obj, discHeldLen)
 	}
 	return e, sc, id
 }

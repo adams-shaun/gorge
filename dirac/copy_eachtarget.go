@@ -15,7 +15,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 type eachSusp struct {
 	j    uint8   // the next extra target index plus one; 0 = no loop parked
 	slot uint8   // the target slot being walked
-	t, v uint8   // the slot's own target and version, restored when the loop ends
+	t    TCode   // the slot's own target, restored when the loop ends
+	v    uint8   // and its version, restored when the loop ends
 	bad  uint8   // res.bad before the loop
 	hold holdRec // a return's entry frame, kept open across the ask (on: it is ours to close)
 }
@@ -67,7 +68,7 @@ func (s *State) eachRun(k *prep, in *kop.Instr, i uint8, j0 int, w eachSusp) boo
 	if w.hold.on {
 		s.holdClose(k, w.hold) // the targets still enter together (CR 603.6a)
 	}
-	e.tgt[i], e.tver[i], s.res.bad = TCode(w.t), w.v, w.bad
+	e.tgt[i], e.tver[i], s.res.bad = w.t, w.v, w.bad
 	s.g.inLoop = false
 	s.g.tokFrzOn = false
 	return false

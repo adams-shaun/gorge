@@ -69,3 +69,11 @@ const linkPadN = 16
 // seatWord is a packed field holding a few bits per seat beside its other
 // bits (genState.speed, genState.freeP): a byte at two seats.
 type seatWord = uint8
+
+// objWord is a multi-use field that may hold an object (or object+1) as well
+// as a byte-sized value: a version, flags, a paid X. It is the object width,
+// a byte here and wider under dirac_mp, so an object stored in it is never
+// truncated; a conversion to or from it is no narrowing
+// (TestObjCodeCastsOnlyShrink). It is an alias, so the default class's code
+// is unchanged.
+type objWord = uint8

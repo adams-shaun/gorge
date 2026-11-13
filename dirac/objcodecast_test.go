@@ -40,6 +40,10 @@ import (
 // (uint8(i) for a loop index): such a value is no Obj until it is converted.
 // Store codes in Obj or TCode fields so that the narrowing fails to compile.
 //
+// A multi-use field that holds an object beside other byte values (a
+// version, flags, a paid X) is typed objWord, an alias that is the object
+// width in every class; conversions into and out of it are not counted.
+//
 // A site that is genuinely not a code (a seat decoded from a player code, a
 // byte that a format fixes at eight bits) is exempted by a trailing
 // "// code-ok: <reason>" comment on its line (after a seat-ok, when both apply).
@@ -163,6 +167,13 @@ func scanObjCodeCasts(t *testing.T) (map[string]int, map[string][]string) {
 		return ok && n.Obj().Pkg() == pkg && n.Obj().Name() == name
 	}
 	isCode := func(ty types.Type) bool { return named(ty, "Obj") || named(ty, "TCode") }
+	// isWord: objWord, the per-class alias for a multi-use field that may hold
+	// an object (seats_*.go). It is the object width in every class, so a
+	// conversion into or out of it narrows no code.
+	isWord := func(ty types.Type) bool {
+		a, ok := ty.(*types.Alias)
+		return ok && a.Obj().Pkg() == pkg && a.Obj().Name() == "objWord"
+	}
 	isByte := func(ty types.Type) bool {
 		b, ok := ty.Underlying().(*types.Basic)
 		return ok && (b.Kind() == types.Uint8 || b.Kind() == types.Int8)
@@ -207,9 +218,9 @@ func scanObjCodeCasts(t *testing.T) (map[string]int, map[string][]string) {
 						return true // a constant: a width change overflows it at compile time
 					}
 					switch {
-					case isCode(arg.Type) && isByte(to) && !isCode(to):
+					case isCode(arg.Type) && isByte(to) && !isCode(to) && !isWord(to):
 						add("narrow", x)
-					case isCode(to) && isByte(arg.Type) && !isCode(arg.Type):
+					case isCode(to) && isByte(arg.Type) && !isCode(arg.Type) && !isWord(arg.Type):
 						add("launder", x)
 					case isAction(arg.Type) != isAction(to):
 						add("actbits", x)

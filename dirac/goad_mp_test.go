@@ -28,7 +28,7 @@ func goadScen(t *testing.T, gone int) (*scen, map[string]CardID) {
 		sc.s.pl[gone].lost = true
 	}
 	if len(sc.s.cold.discHeld) == 0 {
-		sc.s.cold.discHeld = make([]uint8, discHeldLen)
+		sc.s.cold.discHeld = make([]Obj, discHeldLen)
 	}
 	return sc, id
 }

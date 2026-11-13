@@ -36,7 +36,7 @@ func (s *State) xblkRecs() []xblkRec {
 	at := 0
 	_ = coldView[mayPlay](nil, &at, l.may)
 	_ = coldView[embRec](nil, &at, l.emb)
-	_ = coldView[uint8](nil, &at, l.ctrP)
+	_ = coldView[plusCreRec](nil, &at, l.ctrP)
 	return coldView[xblkRec](s.cold.buf, &at, l.xblk)
 }
 

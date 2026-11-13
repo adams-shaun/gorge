@@ -107,7 +107,7 @@ func (s *State) InitN(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed uint64
 			if int(s.nobj) >= MaxObj {
 				panic("kernel: decks larger than MaxObj") // a pod of full Commander decks, past the four-seat build's objects
 			}
-			o := Obj(s.nobj)
+			o := s.nobj
 			s.nobj++
 			s.objs[o] = object{card: c, chosen: 255, zone: kop.ZoneLibrary, slot: NoSlot, acts: uint8(p) << objOwnerShift}
 			s.touch(o)

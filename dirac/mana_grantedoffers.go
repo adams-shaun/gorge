@@ -99,7 +99,7 @@ func (s *State) contGrants(k *prep, sl Slot, lost bool, lts uint16, f func(c Car
 				continue
 			}
 			prev := s.g.grantSrc
-			s.g.grantSrc = uint8(st.obj) + 1 // grantIdxs orders by this source's place in the walk
+			s.g.grantSrc = st.obj + 1 // grantIdxs orders by this source's place in the walk
 			f(cid, a.Static.Grant-1, 1)
 			s.g.grantSrc = prev
 		}
@@ -135,7 +135,7 @@ func (s *State) grantIdxs(k *prep, sl Slot, out *[maxGrants]int16) (n int) {
 	s.grantedAbilities(k, sl, func(c CardID, ab uint8) {
 		pos := uint8(255)
 		for oi := 0; oi < no; oi++ {
-			if s.g.grantSrc != 0 && uint8(s.perms[order[oi]].obj)+1 == s.g.grantSrc {
+			if s.g.grantSrc != 0 && s.perms[order[oi]].obj+1 == s.g.grantSrc {
 				pos = uint8(oi)
 				break
 			}

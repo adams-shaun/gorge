@@ -68,7 +68,7 @@ type ProjStack struct {
 // fixed arrays in a deterministic order (objects by Obj index, the stack
 // bottom to top). Two States in the same game position project equal.
 type Projection struct {
-	NObj   uint8
+	NObj   Obj
 	Objs   [MaxObj]ProjObj
 	Life   [MaxSeats]int16
 	NStack uint8

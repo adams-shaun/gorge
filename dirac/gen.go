@@ -1822,12 +1822,12 @@ type genState struct {
 	embN [MaxSeats][maxEmb]uint8  // the Effect's frozen SetChosenNumber$
 	embT [MaxSeats][maxEmb]uint16 // the emblem's CR 613.7 layer timestamp, set at creation (static_layer6.go)
 	nemb [MaxSeats]uint8
-	qgO  [qgN]uint8      // exile grants (Q, Stacking the Deck): the granted exiled object+1, 0 = free (cast_exilegrant.go)
-	qgV  [qgN]uint8      // each grant's object version: stale once the card left exile
-	qgH  [qgN]uint8      // each grant's host (the card whose ability was granted) object+1
-	pgT  [pgN]uint8      // Panharmonicon grants: the granted object+1, compacted (act_grantpanharm.go)
-	pgH  [pgN]uint8      // each grant's host (the tapped source) object+1
-	nlA  [MaxSeats]uint8 // locked permanents, object+1, compacted (act_lockpermanent.go; fills the padding before lki)
+	qgO  [qgN]Obj      // exile grants (Q, Stacking the Deck): the granted exiled object+1, 0 = free (cast_exilegrant.go)
+	qgV  [qgN]uint8    // each grant's object version: stale once the card left exile
+	qgH  [qgN]Obj      // each grant's host (the card whose ability was granted) object+1
+	pgT  [pgN]Obj      // Panharmonicon grants: the granted object+1, compacted (act_grantpanharm.go)
+	pgH  [pgN]Obj      // each grant's host (the tapped source) object+1
+	nlA  [MaxSeats]Obj // locked permanents, object+1, compacted (act_lockpermanent.go; fills the padding before lki)
 	// the untap step suspended on a keep-tapped ask (repl_untapchoice.go):
 	// untapUp the slots untapped so far, untapNext the scan index of the
 	// asked permanent, untapSl its slot, untapAns its answer (0 unanswered,
@@ -1855,7 +1855,7 @@ type genState struct {
 	// casting spells (expend). Kept only when genPrep.anyHist.
 	hist [MaxSeats][3]uint8
 	// actRing: per activator, the first actRingN abilities activated this turn, each as the source Obj+1 (0 = empty), actN the counts. Written only when genPrep.actRingOn; in no hash (cast_activationledger.go).
-	actRing [MaxSeats][actRingN]uint8
+	actRing [MaxSeats][actRingN]Obj
 	actN    [MaxSeats]uint8
 
 	// pending as-enters choices (colour / creature type) and the leyline ask
@@ -1889,7 +1889,7 @@ type genState struct {
 	noTgtRed   bool            // cost computation without target-dependent reductions
 	mayPlayAny bool            // the may-play cast being priced is under the any-type rider
 	probe      probe           // the spell / ability a priority feasibility check is for
-	tgtSelf    uint8           // the graveyard or exile card a feasibility check is for, plus one (0: none): it leaves that zone for the stack when cast, so it is no target of its own cast
+	tgtSelf    Obj             // the graveyard or exile card a feasibility check is for, plus one (0: none): it leaves that zone for the stack when cast, so it is no target of its own cast
 	inLoop     bool            // executing one object of a multi-object target slot
 	each       eachSusp        // an each-target loop parked on a copy token's as-enters ask (copy_eachtarget.go)
 	tokFrz     slotMask        // the permanents whose CreateToken replacements an each-target copy loop reads, fixed when it began (tokSrcM)
@@ -1897,14 +1897,14 @@ type genState struct {
 	sweep      sweepSusp       // a copy-all sweep parked on a copy's as-enters ask (copy_allpark.go)
 	mt         multiTgt        // the multi-object target slot being chosen
 	lastCK     kop.CounterKind
-	disc       Obj             // the card being discarded (TrigDiscarded)
-	nlB        [MaxSeats]uint8 // locked permanents 3 and 4 (nlA; fills the padding before kicked)
+	disc       Obj           // the card being discarded (TrigDiscarded)
+	nlB        [MaxSeats]Obj // locked permanents 3 and 4 (nlA; fills the padding before kicked)
 
 	redNC [MaxSeats]uint8 // ExRedNCDmg: the noncombat damage each player's red sources dealt this turn, saturating (prep.anyRedNC only; value_damagetally.go; fills the pad before kicked)
 	// grantSrc is the granting permanent plus one (0 = none) while a grant
 	// walk (grantedAbilitiesN) reports one ability to its callback; it fills
 	// the pad after redNC.
-	grantSrc uint8
+	grantSrc Obj
 	cast     slotMask // slots whose permanent was cast by its controller
 	zoneTurn objBits  // objects put into their current zone this turn
 	// dmgTurn is gorge Object.WasDealtDamageThisTurn (CR 120.3a): it survives a
@@ -2171,8 +2171,11 @@ type genState struct {
 	// received this turn, o = Obj+1 (0 empty) and n saturating at 255
 	// (value_dmgamount.go). Written only under genPrep.anyDmgAmt; cleared at the
 	// turn change. Taken from rsv.
-	dmgAmt [dmgAmtN]struct{ o, n uint8 }
-	rsv    [rsvN]uint8
+	dmgAmt [dmgAmtN]struct {
+		o Obj
+		n uint8
+	}
+	rsv [rsvN]uint8
 	// embX: an emblem's remembered slots 2 and 3, object + 1 (static_emblemrem.go); embR is slot 1, embN slot 0. Taken from rsv.
 	embX [MaxSeats][maxEmb][embRemSlots - 2]uint8
 	// atkDef is the defending seat + 1 of the attack event whose triggers are

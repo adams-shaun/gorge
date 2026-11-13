@@ -39,7 +39,7 @@ func (s *State) graveExileCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slo
 		pl := &s.pl[pp]
 		for i := 0; i < int(pl.graveN); i++ {
 			o := pl.grave[i]
-			if uint8(o)+1 == s.g.tgtSelf {
+			if o+1 == s.g.tgtSelf {
 				continue
 			}
 			if s.targetOK(k, t, p, src, self, TCode(o)) && n < MaxOptions-1 {

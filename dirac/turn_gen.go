@@ -652,7 +652,7 @@ func (s *State) newTurnGen() {
 	s.g.isCast = [MaxSeats]uint8{}
 	s.g.hist = [MaxSeats][3]uint8{}
 	clear(s.cold.castRing)
-	s.g.actRing = [MaxSeats][actRingN]uint8{}
+	s.g.actRing = [MaxSeats][actRingN]Obj{}
 	s.g.actN = [MaxSeats]uint8{}
 	if k := s.k(); k.gen != nil && k.gen.anyTurnF {
 		s.g.turnF = 0 // coin flips and Exhaust activations end with the turn (static_turnbits.go)
@@ -664,8 +664,8 @@ func (s *State) newTurnGen() {
 		s.g.nused = 0
 	}
 	s.g.zoneTurn = objBits{}
-	s.g.dmgTurn = objBits{}                      // WasDealtDamageThisTurn clears with the marked damage (gorge TurnChange)
-	s.g.dmgAmt = [dmgAmtN]struct{ o, n uint8 }{} // DamageReceivedThisTurn clears with it (gorge TurnChange; value_dmgamount.go)
+	s.g.dmgTurn = objBits{} // WasDealtDamageThisTurn clears with the marked damage (gorge TurnChange)
+	clear(s.g.dmgAmt[:])    // DamageReceivedThisTurn clears with it (gorge TurnChange; value_dmgamount.go)
 	s.g.enteredN = 0
 	s.g.enteredFull = false
 	s.mSlZero(s.k(), mechExileEx)

@@ -81,3 +81,7 @@ const linkPadN = 40
 // seatWord is a packed field holding a few bits per seat beside its other
 // bits (genState.speed, genState.freeP): two bytes at four seats.
 type seatWord = uint16
+
+// objWord is a multi-use field that may hold an object (or object+1) as well
+// as a byte-sized value (seats_default.go); the object width.
+type objWord = uint8

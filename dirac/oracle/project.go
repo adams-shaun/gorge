@@ -102,7 +102,7 @@ type StackProj struct {
 // Projection is the canonical state both sides are compared on after every
 // committed action (doc.go, "Projection").
 type Projection struct {
-	NInst  uint8
+	NInst  dirac.Obj
 	Cards  [MaxInst]CardProj
 	Life   [2]int32
 	Poison [2]int16
@@ -338,7 +338,7 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 	g := e.G
 	id.sync(g)
 	*p = Projection{}
-	p.NInst = uint8(len(id.obj))
+	p.NInst = dirac.Obj(len(id.obj))
 	for i := range p.Cards {
 		p.Cards[i] = CardProj{Card: NoCardIndex, Zone: ZoneNone, Pos: 255, AttachedTo: RefNone, Blocks: RefNone}
 	}

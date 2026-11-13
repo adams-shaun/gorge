@@ -1129,7 +1129,7 @@ func (s *State) spellTargetsFeasibleFrom(k *prep, c CardID, p uint8, o Obj) bool
 	if z := s.objs[o].zone; z != kop.ZoneGraveyard && z != kop.ZoneExile {
 		return s.spellTargetsFeasible(k, c, p)
 	}
-	s.g.tgtSelf = uint8(o) + 1
+	s.g.tgtSelf = o + 1
 	ok := s.spellTargetsFeasible(k, c, p)
 	s.g.tgtSelf = 0
 	return ok
@@ -1380,7 +1380,7 @@ func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self 
 			pl := &s.pl[pp]
 			for i := 0; i < int(pl.graveN); i++ {
 				o := pl.grave[i]
-				if uint8(o)+1 == s.g.tgtSelf {
+				if o+1 == s.g.tgtSelf {
 					continue
 				}
 				if s.targetOK(k, t, p, src, self, TCode(o)) && n < MaxOptions-1 {

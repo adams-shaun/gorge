@@ -98,7 +98,7 @@ func (s *State) noteParadigmCast(k *prep, o Obj, caster uint8, from kop.Zone) {
 func (s *State) stackedThisTurn(o Obj) bool {
 	for p := uint8(0); p < s.nSeats(); p++ {
 		for _, r := range s.castPushes(p) {
-			if r.obj == uint8(o)+1 {
+			if r.obj == o+1 {
 				return true
 			}
 		}
