@@ -1187,7 +1187,7 @@ func (s *State) FeatObjHash(o Obj, base *[MaxObj]uint64, c *ObjHashCache) uint64
 	if c.line != s.line {
 		c.line = s.line
 		c.ok = [MaxObj]bool{}
-		c.part = [2]objPart{}
+		c.part = [MaxSeats]objPart{}
 	}
 	if c.ok[o] && !s.ChangedSince(o, c.at[o]) {
 		return c.h[o]
