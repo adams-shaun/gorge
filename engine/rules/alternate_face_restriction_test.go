@@ -28,19 +28,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// altFaceOption returns the cast option for id whose Mode is exactly mode, or
-// nil when none is offered. It reads e.legalActions directly rather than the
-// pending snapshot, so it can be called at any point in a transaction.
-func altFaceOption(e *Engine, id state.ObjID, mode string) *decision.Option {
-	for _, o := range e.legalActions(0) {
-		if o.Kind == "cast" && o.Obj == id && o.Mode == mode {
-			cp := o
-			return &cp
-		}
-	}
-	return nil
-}
-
 // probeFaceRestricted evaluates castRestricted against face under the same
 // offerAsFace probe the offer walk prices with -- the precondition every test
 // here asserts before it trusts its direction.

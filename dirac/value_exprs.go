@@ -151,7 +151,10 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.evalV(k, x.Sub[0], ctx) + s.evalV(k, x.Sub[1], ctx)
 	case kop.ExHandSizeOf:
 		if p := s.refPlayer(k, x.Ref, ctx); p != 255 {
-			return int(s.pl[p].handN)
+			if x.N == 1 {
+				return s.handCards(p) // Count$ValidHand Card: a token waiting in the hand is no card (CR 111.6)
+			}
+			return int(s.pl[p].handN) // N 0: Count$CardsInYourHand, the raw zone length
 		}
 		return 0
 	case kop.ExCountExile:
@@ -198,7 +201,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 			return s.sacrificedMV(ctx)
 		}
 		if x.Ref == kop.RefRemembered {
-			return s.rememberedMV(k)
+			return s.rememberedMVAgg(k, x.N == kop.AggGreatestMV)
 		}
 		if _, ok := tgtSlot(x.Ref); ok {
 			return s.targetMV(k, x.Ref, ctx)

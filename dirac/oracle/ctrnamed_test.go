@@ -81,33 +81,13 @@ func kctrnamedSetup(t *testing.T) (*cards.Registry, cardset.Set) {
 	return reg, set
 }
 
-func kctrnamedDecksOf(t *testing.T, reg *cards.Registry, md [2][]cardset.Entry) [2][]*cards.Card {
-	t.Helper()
-	var decks [2][]*cards.Card
-	for s, d := range md {
-		for _, e := range d {
-			c, ok := reg.Lookup(e.Name)
-			if !ok {
-				t.Fatalf("%s not in the corpus", e.Name)
-			}
-			for i := 0; i < e.Count; i++ {
-				decks[s] = append(decks[s], c)
-			}
-		}
-		if len(decks[s]) != 40 {
-			t.Fatalf("deck %d: %d cards", s, len(decks[s]))
-		}
-	}
-	return decks
-}
-
 // kctrnamedRun plays seeds 1..seeds of the matchup through tbl; it returns
 // the games played, whether any diverged (the first is logged) and the
 // stalls, and adds to held one game per seed in which a battlefield
 // permanent held at least one counter of a kind (the kernel's projection).
 func kctrnamedRun(t *testing.T, reg *cards.Registry, set cardset.Set, tbl *kop.Table, seeds uint64, held *[kop.NumCounterKinds3]int, stopOnDiv bool) (games int, div bool, stalls int) {
 	t.Helper()
-	decks := kctrnamedDecksOf(t, reg, kctrnamedDecks)
+	decks := kcastDeck(t, reg, kctrnamedDecks)
 	for seed := uint64(1); seed <= seeds; seed++ {
 		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
 		m, err := NewMatchup(reg, [2]string{"kctrnamed-a", "kctrnamed-b"}, decks, 1)

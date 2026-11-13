@@ -44,7 +44,7 @@ func submitAttackerAt(t *testing.T, e *Engine, id state.ObjID, def state.PlayerI
 func attacksTriggerSeat(t *testing.T) (*Engine, state.ObjID) {
 	t.Helper()
 	e := threeSeatEngine(t)
-	ravens := mshCorpusCard(t, "Revenge of Ravens")
+	ravens := corpusAlternativeCard(t, "Revenge of Ravens")
 	onBoardCard(t, e, 0, ravens)
 	// A 0-power attacker: it can attack (no minimum power) and deals no
 	// combat damage, so the only life movement is the trigger's own drain and
@@ -104,7 +104,7 @@ func TestRevengeOfRavensDoesNotFireWhenAThirdSeatIsAttacked(t *testing.T) {
 func kazuulAttackedSeat(t *testing.T) (*Engine, state.ObjID) {
 	t.Helper()
 	e := threeSeatEngine(t)
-	onBoardCard(t, e, 0, mshCorpusCard(t, "Kazuul, Tyrant of the Cliffs"))
+	onBoardCard(t, e, 0, corpusAlternativeCard(t, "Kazuul, Tyrant of the Cliffs"))
 	// A 0-power attacker: it can attack (no minimum power) and deals no
 	// combat damage, so the only state movement is the trigger's own token.
 	bear := onBoardReady(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:0/4\nOracle:x\n")

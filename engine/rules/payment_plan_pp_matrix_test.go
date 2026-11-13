@@ -19,19 +19,6 @@ const (
 	ppShock2   = "Name:Planned Blast\nManaCost:R R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 2\nOracle:x\n"
 )
 
-func ppAsk(t *testing.T, e *Engine) *decision.Decision {
-	t.Helper()
-	e.pending = nil
-	e.askPriority(0)
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KPriority {
-		t.Fatalf("pending = %#v, want seat-0 priority", d)
-	}
-	// Payment actions are published lazily: build them
-	// for this ask, as an opted-in consumer would.
-	e.EnsurePaymentActions()
-	return d
-}
 func ppAction(t *testing.T, d *decision.Decision, spell state.ObjID) decision.PaymentAction {
 	t.Helper()
 	for _, a := range d.PaymentActions {
@@ -50,32 +37,6 @@ func ppHasAction(d *decision.Decision, spell state.ObjID) bool {
 	}
 	return false
 }
-func ppSubmitPlan(t *testing.T, e *Engine, d *decision.Decision, a decision.PaymentAction) {
-	t.Helper()
-	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Payment: &decision.PaymentSelection{ActionID: a.ID, Plan: a.Plans[0]}}); err != nil {
-		t.Fatalf("Submit planned cast: %v", err)
-	}
-}
-func ppProduced(e *Engine, from int) []string {
-	var out []string
-	for _, ev := range e.L.Events[from:] {
-		if ev.Kind == events.ManaAdd && ev.Amount > 0 {
-			for i := int32(0); i < ev.Amount; i++ {
-				out = append(out, ev.Counter)
-			}
-		}
-	}
-	return out
-}
-func ppTaps(e *Engine, from int, id state.ObjID) int {
-	n := 0
-	for _, ev := range e.L.Events[from:] {
-		if ev.Kind == events.Tap && ev.Obj == id {
-			n++
-		}
-	}
-	return n
-}
 
 func TestPaymentPlanPrefersMountainOverBadlandsAndLeavesItUntapped(t *testing.T) {
 	t.Parallel()
@@ -84,7 +45,7 @@ func TestPaymentPlanPrefersMountainOverBadlandsAndLeavesItUntapped(t *testing.T)
 	onBoard(t, e, 0, ppSwamp)
 	badlands := onBoard(t, e, 0, "Name:Badlands Test\nTypes:Land Swamp Mountain\nOracle:x\n")
 	mountain := onBoard(t, e, 0, ppMountain)
-	d := ppAsk(t, e)
+	d := paymentPlanReask(t, e)
 	a := ppAction(t, d, spell)
 	again := e.PaymentActionsForPriority(0, d.Seq)
 	if !reflect.DeepEqual(d.PaymentActions, again) {
@@ -97,7 +58,7 @@ func TestPaymentPlanPrefersMountainOverBadlandsAndLeavesItUntapped(t *testing.T)
 	if !used[mountain] || used[badlands] {
 		t.Fatalf("witness %#v, want the Mountain and not the Badlands", a.Plans[0].Activations)
 	}
-	ppSubmitPlan(t, e, d, a)
+	submitPaymentPlan(t, e, d, a)
 	if e.G.Obj(badlands).Tapped || !e.G.Obj(mountain).Tapped {
 		t.Fatalf("after execution badlands tapped=%v mountain tapped=%v", e.G.Obj(badlands).Tapped, e.G.Obj(mountain).Tapped)
 	}
@@ -112,7 +73,7 @@ func TestPaymentPlanPaysGenericWithMountainOnExactBoard(t *testing.T) {
 	if e.G.Players[0].Pool.Total() != 0 {
 		t.Fatalf("precondition: mana pool = %v, want empty", e.G.Players[0].Pool)
 	}
-	d := ppAsk(t, e)
+	d := paymentPlanReask(t, e)
 	a := ppAction(t, d, spell)
 	used := make(map[state.ObjID]bool)
 	for _, activation := range a.Plans[0].Activations {
@@ -121,7 +82,7 @@ func TestPaymentPlanPaysGenericWithMountainOnExactBoard(t *testing.T) {
 	if len(used) != 3 || !used[island] || !used[swamp] || !used[mountain] {
 		t.Fatalf("witness sources = %#v, want Island, Swamp and Mountain", a.Plans[0].Activations)
 	}
-	ppSubmitPlan(t, e, d, a)
+	submitPaymentPlan(t, e, d, a)
 	if e.G.Obj(spell).Zone != state.ZStack {
 		t.Fatalf("planned Grixis spell zone = %s, want stack", e.G.Obj(spell).Zone)
 	}
@@ -131,13 +92,13 @@ func TestPaymentPlanFixedMultiOutputLeavesSurplusFloating(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9311, "Name:Generic Plan\nManaCost:1\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
 	rock := onBoard(t, e, 0, "Name:Twin Rock\nTypes:Artifact\nA:AB$ Mana | Cost$ T | Produced$ C | Amount$ 2\nOracle:x\n")
-	d := ppAsk(t, e)
+	d := paymentPlanReask(t, e)
 	a := ppAction(t, d, spell)
 	p := a.Plans[0]
 	if len(p.Activations) != 1 || p.Activations[0].Source != rock || p.Activations[0].Produces[5] != 2 || p.PoolAfter[5] != 1 {
 		t.Fatalf("witness = %#v, want the rock for CC leaving one C", p)
 	}
-	ppSubmitPlan(t, e, d, a)
+	submitPaymentPlan(t, e, d, a)
 	if got := e.G.Players[0].Pool; got[state.ManaIndex('C')] != 1 || got.Total() != 1 {
 		t.Fatalf("pool after planned payment = %v, want exactly one floating C", got)
 	}
@@ -151,20 +112,20 @@ func TestPaymentPlanSourceEligibilityShapes(t *testing.T) {
 	t.Run("ready dork funds", func(t *testing.T) {
 		e, _, spell := newFixtureDeck(t, 9320, greenSpell)
 		id := onBoardReady(t, e, 0, dork)
-		if a := ppAction(t, ppAsk(t, e), spell); a.Plans[0].Activations[0].Source != id {
+		if a := ppAction(t, paymentPlanReask(t, e), spell); a.Plans[0].Activations[0].Source != id {
 			t.Fatalf("witness %#v", a.Plans[0])
 		}
 	})
 	t.Run("sick dork with haste admitted", func(t *testing.T) {
 		e, _, spell := newFixtureDeck(t, 9322, greenSpell)
 		onBoard(t, e, 0, hasty)
-		ppAction(t, ppAsk(t, e), spell)
+		ppAction(t, paymentPlanReask(t, e), spell)
 	})
 	t.Run("tapped excluded", func(t *testing.T) {
 		e, _, spell := newFixtureDeck(t, 9323, greenSpell)
 		id := onBoardReady(t, e, 0, dork)
 		e.emit(events.Event{Kind: events.Tap, Obj: id})
-		if ppHasAction(ppAsk(t, e), spell) {
+		if ppHasAction(paymentPlanReask(t, e), spell) {
 			t.Fatal("tapped dork funded a plan")
 		}
 	})
@@ -175,14 +136,14 @@ func TestPaymentPlanSourceEligibilityShapes(t *testing.T) {
 		if !e.G.Obj(id).PhasedOut {
 			t.Fatal("fixture did not phase the dork out")
 		}
-		if ppHasAction(ppAsk(t, e), spell) {
+		if ppHasAction(paymentPlanReask(t, e), spell) {
 			t.Fatal("phased-out dork funded a plan")
 		}
 	})
 	t.Run("opponent source excluded", func(t *testing.T) {
 		e, _, spell := newFixtureDeck(t, 9325, greenSpell)
 		onBoardReady(t, e, 1, dork)
-		if ppHasAction(ppAsk(t, e), spell) {
+		if ppHasAction(paymentPlanReask(t, e), spell) {
 			t.Fatal("opponent's dork funded seat 0's plan")
 		}
 	})
@@ -190,7 +151,7 @@ func TestPaymentPlanSourceEligibilityShapes(t *testing.T) {
 		e, _, spell := newFixtureDeck(t, 9326, greenSpell)
 		onBoardReady(t, e, 0, dork)
 		onBoard(t, e, 1, "Name:Cursed Totem Test\nTypes:Artifact\nS:Mode$ CantBeActivated | AffectedZone$ Battlefield | ValidCard$ Creature | ValidSA$ Activated | Description$ x\nOracle:x\n")
-		if ppHasAction(ppAsk(t, e), spell) {
+		if ppHasAction(paymentPlanReask(t, e), spell) {
 			t.Fatal("activation-prohibited dork funded a plan")
 		}
 	})
@@ -206,7 +167,7 @@ func TestPaymentPlanLegalityGatesSuppressPlans(t *testing.T) {
 		if e.G.Step.IsMain() {
 			t.Fatal("fixture unexpectedly in a main phase")
 		}
-		if ppHasAction(ppAsk(t, e), spell) {
+		if ppHasAction(paymentPlanReask(t, e), spell) {
 			t.Fatal("sorcery offered a plan outside sorcery timing")
 		}
 	})
@@ -215,7 +176,7 @@ func TestPaymentPlanLegalityGatesSuppressPlans(t *testing.T) {
 		for i := 0; i < 4; i++ {
 			onBoard(t, e, 0, ppMountain)
 		}
-		if ppHasAction(ppAsk(t, e), spell) {
+		if ppHasAction(paymentPlanReask(t, e), spell) {
 			t.Fatal("targetless spell offered a plan")
 		}
 	})
@@ -225,7 +186,7 @@ func TestPaymentPlanLegalityGatesSuppressPlans(t *testing.T) {
 			onBoard(t, e, 0, ppMountain)
 		}
 		onBoard(t, e, 1, "Name:Hush Test\nTypes:Artifact\nS:Mode$ CantBeCast | ValidCard$ Instant | Description$ x\nOracle:x\n")
-		if ppHasAction(ppAsk(t, e), spell) {
+		if ppHasAction(paymentPlanReask(t, e), spell) {
 			t.Fatal("CantBeCast spell offered a plan")
 		}
 	})
@@ -235,7 +196,7 @@ func TestPaymentPlanLegalityGatesSuppressPlans(t *testing.T) {
 			onBoard(t, e, 0, ppMountain)
 		}
 		onBoard(t, e, 1, "Name:Thalia Test\nTypes:Artifact\nS:Mode$ RaiseCost | ValidCard$ Card.nonCreature | Type$ Spell | Amount$ 1 | Description$ x\nOracle:x\n")
-		a := ppAction(t, ppAsk(t, e), spell)
+		a := ppAction(t, paymentPlanReask(t, e), spell)
 		if c := a.Plans[0].Cost; c.Generic != 1 || c.Mana[state.ManaIndex('R')] != 1 || len(a.Plans[0].Activations) != 2 {
 			t.Fatalf("taxed witness = %#v, want {1}{R} from two sources", a.Plans[0])
 		}
@@ -249,14 +210,14 @@ func TestPaymentPlanProducerAndPoolExclusions(t *testing.T) {
 		e, _, spell := newFixtureDeck(t, 9350, redSpell)
 		onBoard(t, e, 0, "Name:Pain Rock\nTypes:Artifact\nA:AB$ Mana | Cost$ T PayLife<1> | Produced$ R\nOracle:x\n")
 		mtn := onBoard(t, e, 0, ppMountain)
-		if a := ppAction(t, ppAsk(t, e), spell); a.Plans[0].Activations[0].Source != mtn {
+		if a := ppAction(t, paymentPlanReask(t, e), spell); a.Plans[0].Activations[0].Source != mtn {
 			t.Fatalf("witness %#v, want the Mountain", a.Plans[0])
 		}
 	})
 	t.Run("costly producer funds only as a disclosed last resort", func(t *testing.T) {
 		e, _, spell := newFixtureDeck(t, 9351, redSpell)
 		onBoard(t, e, 0, "Name:Pain Rock\nTypes:Artifact\nA:AB$ Mana | Cost$ T PayLife<1> | Produced$ R\nOracle:x\n")
-		a := ppAction(t, ppAsk(t, e), spell)
+		a := ppAction(t, paymentPlanReask(t, e), spell)
 		if acts := a.Plans[0].Activations; len(acts) != 1 || acts[0].Consequence == nil || *acts[0].Consequence != (decision.PaymentConsequence{Life: 1}) {
 			t.Fatalf("life-cost producer witness = %#v, want one step disclosing life:1", a.Plans[0])
 		}
@@ -264,7 +225,7 @@ func TestPaymentPlanProducerAndPoolExclusions(t *testing.T) {
 	t.Run("restricted producer never funds", func(t *testing.T) {
 		e, _, spell := newFixtureDeck(t, 9352, redSpell)
 		onBoard(t, e, 0, "Name:Picky Rock\nTypes:Artifact\nA:AB$ Mana | Cost$ T | Produced$ R | RestrictValid$ Spell.Creature\nOracle:x\n")
-		if ppHasAction(ppAsk(t, e), spell) {
+		if ppHasAction(paymentPlanReask(t, e), spell) {
 			t.Fatal("restricted producer funded a plan")
 		}
 	})
@@ -277,7 +238,7 @@ func TestPaymentPlanProducerAndPoolExclusions(t *testing.T) {
 		e, _, spell := newFixtureDeck(t, 9353, redSpell)
 		mtn := onBoard(t, e, 0, ppMountain)
 		onBoard(t, e, 1, "Name:Flare Test\nTypes:Enchantment\nT:Mode$ TapsForMana | ValidCard$ Land | Execute$ OnMana | TriggerZones$ Battlefield | Static$ True | TriggerDescription$ x\nSVar:OnMana:DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$ Produced | Defined$ TriggeredActivator | SubAbility$ OnGain\nSVar:OnGain:DB$ GainLife | LifeAmount$ 1 | Defined$ You\nOracle:x\n")
-		d := ppAsk(t, e)
+		d := paymentPlanReask(t, e)
 		for _, a := range d.PaymentActions {
 			for _, p := range a.Plans {
 				for _, act := range p.Activations {
@@ -295,7 +256,7 @@ func TestPaymentPlanProducerAndPoolExclusions(t *testing.T) {
 		e, _, spell := newFixtureDeck(t, 9354, redSpell)
 		onBoard(t, e, 0, ppMountain)
 		e.G.Players[0].RestrictedMana = append(e.G.Players[0].RestrictedMana, state.ManaRestriction{Color: "R", Amount: 1, Valid: "Spell.Creature"})
-		if ppHasAction(ppAsk(t, e), spell) {
+		if ppHasAction(paymentPlanReask(t, e), spell) {
 			t.Fatal("restricted pool was planned around as ordinary mana")
 		}
 	})
@@ -330,7 +291,7 @@ func TestPaymentPlanEngineRejectsForgedWitnessBeforeMutation(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9370, "Name:Red Plan\nManaCost:R\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
 	onBoard(t, e, 0, ppMountain)
-	d := ppAsk(t, e)
+	d := paymentPlanReask(t, e)
 	a := ppAction(t, d, spell)
 	forged := decision.ClonePaymentPlan(a.Plans[0])
 	forged.Activations[0].Produces[state.ManaIndex('R')] = 2
@@ -356,15 +317,15 @@ func TestPaymentPlanTargetsPrecedePlannedActivation(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9308, ppShock)
 	mtn := onBoard(t, e, 0, ppMountain)
-	d := ppAsk(t, e)
+	d := paymentPlanReask(t, e)
 	a := ppAction(t, d, spell)
 	start := len(e.L.Events)
-	ppSubmitPlan(t, e, d, a)
+	submitPaymentPlan(t, e, d, a)
 	td := e.Pending()
 	if td == nil || td.Kind != decision.KTarget {
 		t.Fatalf("pending = %#v, want the CR 601.2c target ask", td)
 	}
-	if e.G.Obj(mtn).Tapped || len(ppProduced(e, start)) != 0 {
+	if e.G.Obj(mtn).Tapped || len(producedManaSince(e, start)) != 0 {
 		t.Fatal("planned source activated before targets were chosen")
 	}
 	submitChoices(t, e, 0)
@@ -385,12 +346,12 @@ func TestPaymentPlanPlannedMatchesManualExecution(t *testing.T) {
 		return e, spell, ids
 	}
 	planned, spell, lands := build()
-	d := ppAsk(t, planned)
+	d := paymentPlanReask(t, planned)
 	a := ppAction(t, d, spell)
-	ppSubmitPlan(t, planned, d, a)
+	submitPaymentPlan(t, planned, d, a)
 
 	manual, mspell, mlands := build()
-	md := ppAsk(t, manual)
+	md := paymentPlanReask(t, manual)
 	for i, id := range mlands {
 		idx := -1
 		for _, o := range manual.Pending().Options {
@@ -434,13 +395,13 @@ func TestPaymentPlanExecutionHonoursWitnessPoolSpend(t *testing.T) {
 	e.G.Players[0].Pool[state.ManaIndex('U')] = 1
 	e.G.Players[0].Pool[state.ManaIndex('R')] = 1
 	e.G.Players[0].Pool[state.ManaIndex('G')] = 1
-	d := ppAsk(t, e)
+	d := paymentPlanReask(t, e)
 	a := ppAction(t, d, spell)
 	p := a.Plans[0]
 	if len(p.Activations) != 0 {
 		t.Fatalf("witness %#v, want pool-only", p)
 	}
-	ppSubmitPlan(t, e, d, a)
+	submitPaymentPlan(t, e, d, a)
 	if got := pay.ManaAmount(e.G.Players[0].Pool); got != p.PoolAfter {
 		t.Fatalf("pool after execution %v, witness pool_after %v (spend %v)", got, p.PoolAfter, p.PoolSpend)
 	}
@@ -451,9 +412,9 @@ func TestPaymentPlanCloneAtTargetAskFinishesIdentically(t *testing.T) {
 	e, _, spell := newFixtureDeck(t, 9380, ppShock2)
 	onBoard(t, e, 0, ppMountain)
 	onBoard(t, e, 0, ppMountain)
-	d := ppAsk(t, e)
+	d := paymentPlanReask(t, e)
 	a := ppAction(t, d, spell)
-	ppSubmitPlan(t, e, d, a)
+	submitPaymentPlan(t, e, d, a)
 	if td := e.Pending(); td == nil || td.Kind != decision.KTarget {
 		t.Fatalf("pending = %#v, want target ask", td)
 	}
@@ -473,7 +434,7 @@ func TestPaymentPlanNewSeqRejectsPreviousOffer(t *testing.T) {
 	e, _, spell := newFixtureDeck(t, 9371, "Name:Red Plan\nManaCost:R\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
 	onBoard(t, e, 0, ppMountain)
 	onBoard(t, e, 0, ppMountain)
-	d1 := ppAsk(t, e)
+	d1 := paymentPlanReask(t, e)
 	old := ppAction(t, d1, spell)
 	// Answer with a legacy manual activation: the game moves to a new Seq.
 	idx := -1

@@ -32,15 +32,3 @@ func devourFodder(t *testing.T, e *Engine, names ...string) []state.ObjID {
 	}
 	return ids
 }
-
-// idOf finds a seat-0 battlefield object by face name.
-func idOf(t *testing.T, e *Engine, name string) state.ObjID {
-	t.Helper()
-	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
-		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
-			return id
-		}
-	}
-	t.Fatalf("no battlefield object named %q", name)
-	return 0
-}

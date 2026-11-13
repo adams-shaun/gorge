@@ -52,7 +52,7 @@ func kconspirePolicy(seed uint64, cnt map[string]int) Policy {
 			if a.Kind() == ActCast {
 				if o, ok := c.G.GorgeOption(a); ok && o.Mode == "conspired" {
 					cnt["conspired"]++
-					if kbargainName(c.G, a.Src()) == "Johann's Stopgap" {
+					if refCardName(c.G, a.Src()) == "Johann's Stopgap" {
 						cnt["conspired-bargain"]++ // a Bargain spell cast conspired is never priced bargained
 					}
 				}
@@ -64,17 +64,17 @@ func kconspirePolicy(seed uint64, cnt map[string]int) Policy {
 		}
 		if c.D.Kind == DPriority && len(c.G.E.G.Stack) == 0 {
 			for _, a := range c.D.Options {
-				if a.Kind() == ActCast && kconspirePay[kbargainName(c.G, a.Src())] {
+				if a.Kind() == ActCast && kconspirePay[refCardName(c.G, a.Src())] {
 					return note(a)
 				}
 			}
 			for _, a := range c.D.Options {
-				if a.Kind() == ActCast && kconspireCreature[kbargainName(c.G, a.Src())] {
+				if a.Kind() == ActCast && kconspireCreature[refCardName(c.G, a.Src())] {
 					return note(a)
 				}
 			}
 			for _, a := range c.D.Options {
-				if o, ok := c.G.GorgeOption(a); ok && a.Kind() == ActCast && o.Mode == "conspired" && kbargainName(c.G, a.Src()) == "Johann's Stopgap" {
+				if o, ok := c.G.GorgeOption(a); ok && a.Kind() == ActCast && o.Mode == "conspired" && refCardName(c.G, a.Src()) == "Johann's Stopgap" {
 					return note(a)
 				}
 			}

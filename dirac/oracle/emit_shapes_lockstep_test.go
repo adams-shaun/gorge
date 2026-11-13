@@ -55,13 +55,6 @@ type efTally struct {
 	festOn, tearOn               bool
 }
 
-func efName(g *state.Game, id state.ObjID) string {
-	if o := g.Obj(id); o != nil && o.Face() != nil {
-		return o.Face().Name
-	}
-	return ""
-}
-
 func (p *efTally) check(ref *GorgeSide, _ Side) *Divergence {
 	g := ref.E.G
 	evs := ref.E.L.Events
@@ -72,7 +65,7 @@ func (p *efTally) check(ref *GorgeSide, _ Side) *Divergence {
 		e := &evs[j]
 		switch e.Kind {
 		case events.CastInfo:
-			if efName(g, e.Obj) == "Tear Asunder" {
+			if chName(g, e.Obj) == "Tear Asunder" {
 				for _, f := range strings.Split(e.Counter, ",") {
 					if strings.TrimSpace(f) == "kicked" {
 						p.tearKicked++
@@ -81,7 +74,7 @@ func (p *efTally) check(ref *GorgeSide, _ Side) *Divergence {
 				}
 			}
 		case events.PutOnStack:
-			if efName(g, e.Obj) == "End the Festivities" {
+			if chName(g, e.Obj) == "End the Festivities" {
 				p.festOn = true
 			}
 		case events.Damage:
@@ -89,13 +82,13 @@ func (p *efTally) check(ref *GorgeSide, _ Side) *Divergence {
 				p.festPW++
 			}
 		case events.CounterChange:
-			if efName(g, e.Obj) == "Warden of the Inner Sky" {
+			if chName(g, e.Obj) == "Warden of the Inner Sky" {
 				if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield && o.Counter("ALL") >= 3 {
 					p.warden++
 				}
 			}
 		case events.MoveZone:
-			n := efName(g, e.Obj)
+			n := chName(g, e.Obj)
 			switch {
 			case n == "End the Festivities" && e.From == state.ZStack:
 				p.festOn = false
@@ -188,7 +181,7 @@ func TestEmitfixLockstep(t *testing.T) {
 					var b strings.Builder
 					for j := max(len(evs)-30, 0); j < len(evs); j++ {
 						e := &evs[j]
-						fmt.Fprintf(&b, "%d %s p%d %d(%s) %d->%d amt=%d c=%q t=%q ids=%v\n", j, e.Kind, e.Player, e.Obj, efName(lead.E.G, e.Obj), e.From, e.To, e.Amount, e.Counter, e.Text, e.IDs)
+						fmt.Fprintf(&b, "%d %s p%d %d(%s) %d->%d amt=%d c=%q t=%q ids=%v\n", j, e.Kind, e.Player, e.Obj, chName(lead.E.G, e.Obj), e.From, e.To, e.Amount, e.Counter, e.Text, e.IDs)
 					}
 					t.Logf("gorge log tail:\n%s", b.String())
 				}

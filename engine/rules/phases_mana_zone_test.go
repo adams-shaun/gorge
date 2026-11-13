@@ -31,7 +31,7 @@ const handGuide = "Name:Hand Guide\nManaCost:no cost\nTypes:Creature Spirit\nPT:
 func TestCR702PhasedOutBattlefieldManaAbilityNotPayable(t *testing.T) {
 	t.Parallel()
 	e, _ := phasesGame(t, 601, "Forest")
-	forest := moveSeededCard(t, e, 0, tokenReplCorpusCard(t, "Forest"), state.ZBattlefield)
+	forest := moveSeededCard(t, e, 0, corpusAlternativeCard(t, "Forest"), state.ZBattlefield)
 	o := e.G.Obj(forest)
 	if o == nil || o.Zone != state.ZBattlefield || o.PhasedOut {
 		t.Fatalf("precondition: Forest not a phased-in battlefield permanent: %+v", o)

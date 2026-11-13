@@ -240,7 +240,7 @@ func (b *rememberDrawnBoard) castAndResolve(t *testing.T, wantDiscards int, pick
 			if b.reflection == 0 {
 				t.Fatalf("unexpected replacement choice: %+v", d)
 			}
-			pick := optionForObj(d, b.reflection)
+			pick := indexOfObjOption(d, b.reflection)
 			if pick < 0 {
 				t.Fatalf("Thought Reflection missing from the draw competition: %+v", d.Options)
 			}
@@ -255,7 +255,7 @@ func (b *rememberDrawnBoard) castAndResolve(t *testing.T, wantDiscards int, pick
 			}
 			var picks []int
 			for _, want := range pickObjs {
-				idx := optionForObj(d, want)
+				idx := indexOfObjOption(d, want)
 				if idx < 0 {
 					t.Fatalf("discard ask does not offer card %d: %+v", want, d.Options)
 				}

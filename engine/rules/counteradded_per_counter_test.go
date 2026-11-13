@@ -187,7 +187,7 @@ func TestCounterAddedOnceAndCrossingQueueOne(t *testing.T) {
 // while Mode$ CounterRemovedOnce and a NewCounterAmount$ line stay one.
 func TestPlainCounterRemovedQueuesOnePerCounter(t *testing.T) {
 	t.Parallel()
-	hydra := mshCorpusCard(t, "Protean Hydra")
+	hydra := corpusAlternativeCard(t, "Protean Hydra")
 	e := combatEngine(t)
 	id := onBoardCard(t, e, 0, hydra)
 

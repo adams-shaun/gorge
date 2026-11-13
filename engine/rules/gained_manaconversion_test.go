@@ -30,8 +30,8 @@ func gainedOption(e *Engine, obj state.ObjID) (decision.Option, bool) {
 
 func dranaBoard(t *testing.T, extraSeat0 ...string) (*Engine, Config, state.ObjID, state.ObjID) {
 	t.Helper()
-	drana := tokenReplCorpusCard(t, "Drana and Linvala")
-	dragon := tokenReplCorpusCard(t, "Shivan Dragon")
+	drana := corpusAlternativeCard(t, "Drana and Linvala")
+	dragon := corpusAlternativeCard(t, "Shivan Dragon")
 	seat0 := []*cards.Card{drana}
 	for _, src := range extraSeat0 {
 		seat0 = append(seat0, card(t, src))
@@ -100,7 +100,7 @@ func TestGainedManaConversionScopedToGainedAbilities(t *testing.T) {
 
 func TestGainedManaConversionSchemingFenceChosenPermanent(t *testing.T) {
 	t.Parallel()
-	fence := tokenReplCorpusCard(t, "Scheming Fence")
+	fence := corpusAlternativeCard(t, "Scheming Fence")
 	rock := card(t, "Name:Green Rock\nManaCost:2\nTypes:Artifact\nA:AB$ Draw | Cost$ 1 G | NumCards$ 1 | SpellDescription$ Draw a card.\nOracle:x\n")
 	e, cfg := tokenReplGameSeats(t, 9202, []*cards.Card{fence}, []*cards.Card{rock})
 	fenceID := moveSeededCard(t, e, 0, fence, state.ZBattlefield)
@@ -126,7 +126,7 @@ func TestGainedManaConversionSchemingFenceChosenPermanent(t *testing.T) {
 
 func TestGainsAbilitiesWithoutConversionUnchanged(t *testing.T) {
 	t.Parallel()
-	idris := tokenReplCorpusCard(t, "Idris, Soul of the TARDIS")
+	idris := corpusAlternativeCard(t, "Idris, Soul of the TARDIS")
 	artifact := card(t, "Name:Red Gains\nManaCost:2\nTypes:Artifact\nA:AB$ Draw | Cost$ R | NumCards$ 1 | SpellDescription$ Draw a card.\nOracle:x\n")
 	e, _ := tokenReplGame(t, 9203, idris, artifact)
 	idrisID := moveSeededCard(t, e, 0, idris, state.ZBattlefield)

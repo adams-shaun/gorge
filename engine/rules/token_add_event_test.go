@@ -10,8 +10,8 @@ import (
 
 func TestFixedAddTokenAppliesOncePerCreationEvent(t *testing.T) {
 	t.Parallel()
-	helm := tokenReplCorpusCard(t, "Worldwalker Helm")
-	doubler := tokenReplCorpusCard(t, "Doubling Season")
+	helm := corpusAlternativeCard(t, "Worldwalker Helm")
+	doubler := corpusAlternativeCard(t, "Doubling Season")
 
 	mapCounts := make(map[string]int)
 	for _, tc := range []struct {
@@ -58,8 +58,8 @@ func TestFixedAddTokenAppliesOncePerCreationEvent(t *testing.T) {
 
 func TestChatterfangAddTokenRemainsProportional(t *testing.T) {
 	t.Parallel()
-	chatterfang := tokenReplCorpusCard(t, "Chatterfang, Squirrel General")
-	doubler := tokenReplCorpusCard(t, "Doubling Season")
+	chatterfang := corpusAlternativeCard(t, "Chatterfang, Squirrel General")
+	doubler := corpusAlternativeCard(t, "Doubling Season")
 	e, cfg := tokenReplGame(t, 20260927, chatterfang, doubler)
 	chatterfangID := moveSeededCard(t, e, 0, chatterfang, state.ZBattlefield)
 	doublerID := moveSeededCard(t, e, 0, doubler, state.ZBattlefield)

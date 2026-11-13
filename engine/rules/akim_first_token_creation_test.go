@@ -20,7 +20,7 @@ func TestAkimFirstTokenCreationOnly(t *testing.T) {
 	// (a) An opponent's first creation does not fire Akim; the controller's
 	// own first creation later in the same turn does.
 	t.Run("opponent_first_then_controller_first", func(t *testing.T) {
-		akim := tokenReplCorpusCard(t, "Akim, the Soaring Wind")
+		akim := corpusAlternativeCard(t, "Akim, the Soaring Wind")
 		maker0 := cardByName(t, tokenForgeSrc("c_a_food_sac"))
 		maker1 := cardByName(t, tokenForgeSrc("c_a_food_sac"))
 		e, cfg := tokenReplGameSeats(t, 41, []*cards.Card{akim, maker0}, []*cards.Card{maker1})
@@ -58,7 +58,7 @@ func TestAkimFirstTokenCreationOnly(t *testing.T) {
 	// (b) Tokens created earlier in the turn, before Akim entered, make the
 	// controller's later creation not the first, so Akim does not fire.
 	t.Run("controller_created_before_akim_entered", func(t *testing.T) {
-		akim := tokenReplCorpusCard(t, "Akim, the Soaring Wind")
+		akim := corpusAlternativeCard(t, "Akim, the Soaring Wind")
 		maker := cardByName(t, tokenForgeSrc("c_a_food_sac"))
 		e, cfg := tokenReplGame(t, 41, akim, maker)
 		makerID := moveSeededCard(t, e, 0, maker, state.ZBattlefield)

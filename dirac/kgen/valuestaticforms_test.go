@@ -40,7 +40,7 @@ var valuestaticformsLIR = []string{
 	"trigger Attacks F={types=0x0 EquippedBy}", // Baseball Bat
 	"static Continuous F={types=0x2 color=W}",  // Crusade
 	"F={types=0x2 notcolor=B}",
-	"cond=Value(op1,HandSizeOf(You),7)",
+	"cond=Value(op1,HandSizeOf(n=1,You),7)",
 	"CreateToken obj=You A=Count({types=0x2 sub=Zombie ctrl=1})/2",
 	"SacrificeAll F={types=0x0 TargetedBy}",                    // Mercy Killing                                   // Endless Ranks of the Dead
 	"GainLife obj=You A=CountGraveyard({types=0x2 owner=1})*2", // Gnaw to the Bone // Akki Underling                 // Doom Blade                // Goblin Chainwhirler

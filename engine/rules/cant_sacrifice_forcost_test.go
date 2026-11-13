@@ -28,16 +28,6 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// cantSacForCostCard looks a corpus card up and fails fast when it is absent.
-func cantSacForCostCard(t *testing.T, reg *cards.Registry, name string) *cards.Card {
-	t.Helper()
-	c, ok := reg.Lookup(name)
-	if !ok {
-		t.Fatalf("corpus missing %s", name)
-	}
-	return c
-}
-
 // battlefieldObj returns the id of seat p's copy of c (matched by card
 // pointer, the bearOnBoard contract) and fails when it is not on the
 // battlefield -- the precondition every leaf below depends on.
@@ -52,21 +42,6 @@ func battlefieldObj(t *testing.T, e *Engine, p state.PlayerID, c *cards.Card) st
 	return 0
 }
 
-// hasCastOptionFor reports whether the pending priority decision offers a
-// "cast" option naming id.
-func hasCastOptionFor(e *Engine, id state.ObjID) bool {
-	d := e.Pending()
-	if d == nil {
-		return false
-	}
-	for _, o := range d.Options {
-		if o.Kind == "cast" && o.Obj == id {
-			return true
-		}
-	}
-	return false
-}
-
 // TestCantSacrificeForCostWithholdsActivatedAbilityCost is the filing
 // symptom: with Angel of Jubilation on the battlefield, Viscera Seer's
 // `Cost$ Sac<1/Creature>` activated ability (the real castable ->
@@ -78,8 +53,8 @@ func hasCastOptionFor(e *Engine, id state.ObjID) bool {
 func TestCantSacrificeForCostWithholdsActivatedAbilityCost(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
-	angel := cantSacForCostCard(t, reg, "Angel of Jubilation")
-	seer := cantSacForCostCard(t, reg, "Viscera Seer")
+	angel := registryCardOrFatal(t, reg, "Angel of Jubilation")
+	seer := registryCardOrFatal(t, reg, "Viscera Seer")
 	bear := card(t, staticBearFixture)
 
 	// Control: the same board WITHOUT Angel still offers the ability, so the
@@ -126,8 +101,8 @@ func TestCantSacrificeForCostWithholdsActivatedAbilityCost(t *testing.T) {
 func TestCantSacrificeForCostWithholdsSpellCost(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
-	angel := cantSacForCostCard(t, reg, "Angel of Jubilation")
-	rites := cantSacForCostCard(t, reg, "Village Rites")
+	angel := registryCardOrFatal(t, reg, "Angel of Jubilation")
+	rites := registryCardOrFatal(t, reg, "Village Rites")
 	bear := card(t, staticBearFixture)
 
 	// Control: no Angel; the bear pays the additional cost, so the cast is
@@ -141,7 +116,7 @@ func TestCantSacrificeForCostWithholdsSpellCost(t *testing.T) {
 	}
 	ctlRites := findAndMoveToHand(t, ctl, 0, "Village Rites")
 	addMana(t, ctl, 0, "B")
-	if !hasCastOptionFor(ctl, ctlRites) {
+	if !castOffered(ctl, ctlRites) {
 		t.Fatalf("control without Angel: Village Rites is not offered: %+v", ctl.Pending())
 	}
 	replayCheck(t, ctl, ctlCfg)
@@ -161,7 +136,7 @@ func TestCantSacrificeForCostWithholdsSpellCost(t *testing.T) {
 	}
 	ritesID := findAndMoveToHand(t, e, 0, "Village Rites")
 	addMana(t, e, 0, "B")
-	if hasCastOptionFor(e, ritesID) {
+	if castOffered(e, ritesID) {
 		t.Fatalf("Angel of Jubilation must withhold Village Rites' Sac cost: %+v", castOptions(t, e))
 	}
 	replayCheck(t, e, cfg)
@@ -175,8 +150,8 @@ func TestCantSacrificeForCostWithholdsSpellCost(t *testing.T) {
 func TestCantSacrificeForCostLeavesEffectSacrificeAlone(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
-	angel := cantSacForCostCard(t, reg, "Angel of Jubilation")
-	fleshbag := cantSacForCostCard(t, reg, "Fleshbag Marauder")
+	angel := registryCardOrFatal(t, reg, "Angel of Jubilation")
+	fleshbag := registryCardOrFatal(t, reg, "Fleshbag Marauder")
 	bear := card(t, staticBearFixture)
 
 	e, cfg := restrictionGame(t, 9405,

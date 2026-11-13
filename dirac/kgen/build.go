@@ -637,6 +637,7 @@ func (cb *cardBuilder) record() error {
 	d.ExiledWith = c.ExiledWith
 	d.CombatHitRec = c.CombatHitRec
 	d.ProduceCol = c.ProduceCol
+	d.Identity = c.Identity
 	d.ExiledWithRev = c.ExwWord
 	d.SpendRead = c.SpendRead
 	if c.FbCost != nil {
@@ -1973,6 +1974,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefAttachedCtrl, nil
 	case rLastCreated:
 		return kop.RefLastCreated, nil
+	case rTaxedAttacker:
+		return kop.RefTaxedAttacker, nil
 	case rSrcOwner:
 		return kop.RefSrcOwner, nil
 	case rTriggerAttackers:

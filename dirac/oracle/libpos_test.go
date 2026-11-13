@@ -56,7 +56,7 @@ func klibposSetup(t *testing.T) (*cards.Registry, cardset.Set) {
 // stopOnDiv) and the kernel stalls.
 func klibposRun(t *testing.T, reg *cards.Registry, set cardset.Set, seeds uint64, stopOnDiv bool) (games int, div bool, stalls int) {
 	t.Helper()
-	decks := kincrementDecksOf(t, reg, klibposDecks)
+	decks := kcastDeck(t, reg, klibposDecks)
 	tbl, _, _, err := set.Matchup(klibposDecks[0], klibposDecks[1])
 	if err != nil {
 		t.Fatal(err)

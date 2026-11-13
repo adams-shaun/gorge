@@ -80,6 +80,36 @@ var (
 	sectionCite = regexp.MustCompile(`(\w+)?\s?§\s?\d`)
 )
 
+// mayHaveUnresolvableTag reports whether blob could match unresolvableTag. It
+// is an exact superset: every alternative needs one of the literals below, an
+// ASCII "operator" (the only case-folded form), or an "E" before an ASCII
+// digit. A false answer lets findUnresolvable skip the regexp on the many
+// label-free files that hold none of them.
+func mayHaveUnresolvableTag(blob []byte) bool {
+	for _, lit := range [][]byte{
+		[]byte("kr-"),
+		[]byte("DESIGN §"),
+		[]byte("wt/"),
+		[]byte("(task "),
+		[]byte("Ruling "),
+		[]byte("the " + "brief"),
+		[]byte("brief" + "'s"),
+	} {
+		if bytes.Contains(blob, lit) {
+			return true
+		}
+	}
+	if bytes.Contains(bytes.ToLower(blob), []byte("operator")) {
+		return true
+	}
+	for i := 0; i+1 < len(blob); i++ {
+		if blob[i] == 'E' && blob[i+1] >= '0' && blob[i+1] <= '9' {
+			return true
+		}
+	}
+	return false
+}
+
 // boundaryRule is one row of the boundary. check returns what it found, or ""
 // when path and blob are clean.
 type boundaryRule struct {
@@ -206,10 +236,15 @@ func inLabelFreeTree(p string) bool {
 // where it must name a document a reader can open; engine/ keeps its existing
 // "spec §" shorthand.
 func findUnresolvable(p string, blob []byte) []byte {
-	if m := unresolvableTag.Find(blob); m != nil {
-		return m
+	if mayHaveUnresolvableTag(blob) {
+		if m := unresolvableTag.Find(blob); m != nil {
+			return m
+		}
 	}
 	if strings.HasPrefix(p, "engine/") {
+		return nil
+	}
+	if !bytes.Contains(blob, []byte("§")) {
 		return nil
 	}
 	for _, m := range sectionCite.FindAllSubmatch(blob, -1) {

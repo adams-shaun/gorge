@@ -230,7 +230,7 @@ func TestPutAwaySubAsksGraveyardTarget(t *testing.T) {
 // consumed once: no re-posed ask anywhere before the stack drains.
 func TestCatharticPartingSubAsksGraveyardTargetElectedZero(t *testing.T) {
 	t.Parallel()
-	catharticSrc := alltargetedCorpusText(t, "c/cathartic_parting.txt")
+	catharticSrc := corpusCardText(t, "c/cathartic_parting.txt")
 	orbSrc := "Name:Orb\nManaCost:1\nTypes:Artifact\nOracle:x\n"
 	graveSrc := "Name:Grave Card\nManaCost:1\nTypes:Artifact\nOracle:x\n"
 	e, cfg, _ := newFixtureDeckWithOpponentCard(t, 7011, catharticSrc, graveSrc, orbSrc)

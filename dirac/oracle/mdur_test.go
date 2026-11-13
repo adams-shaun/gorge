@@ -84,7 +84,7 @@ func TestMdurLockstep(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			pol := kmcombatPolicy(seed)
+			pol := castActivateKindPolicy(seed)
 			if seed%4 == 0 {
 				pol = RandomPolicy(seed)
 			}

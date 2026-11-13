@@ -1137,16 +1137,18 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lValue{Kind: vRedNCDmg}, nil // gorge evalDamageHistory
 	case "ValidHand Card.YouOwn":
 		// gorge's zone count over every hand: the cards you own there are
-		// exactly your hand
-		return lValue{Kind: vHandSizeOf, Ref: lRef{Kind: rYou}}, nil
+		// exactly your hand. N 1: the cards, not the zone length -- a token
+		// bounced into the hand waits there (CR 704.5d) and is no card (CR
+		// 111.6), as gorge's zoneCountFold.visit reads.
+		return lValue{Kind: vHandSizeOf, N: 1, Ref: lRef{Kind: rYou}}, nil
 	case "ValidHand Card":
 		// gorge's zone count over every hand: both players' hand sizes
-		return lValue{Kind: vSum, Sub: []lValue{{Kind: vHandSizeOf, Ref: lRef{Kind: rYou}}, {Kind: vHandSizeOf, Ref: lRef{Kind: rEachOpp}}}}, nil
+		return lValue{Kind: vSum, Sub: []lValue{{Kind: vHandSizeOf, N: 1, Ref: lRef{Kind: rYou}}, {Kind: vHandSizeOf, N: 1, Ref: lRef{Kind: rEachOpp}}}}, nil
 	case "ValidHand Card.ActivePlayerCtrl":
 		// gorge's zone count over every hand, each card controlled by its
 		// owner: the active player's hand size, yours on your turn and the
 		// opponent's otherwise
-		hand := func(r refKind) lValue { return lValue{Kind: vHandSizeOf, Ref: lRef{Kind: r}} }
+		hand := func(r refKind) lValue { return lValue{Kind: vHandSizeOf, N: 1, Ref: lRef{Kind: r}} }
 		return lValue{Kind: vCompare, N: 1, Op: opGE, Sub: []lValue{{Kind: vYourTurns, N: 1}, {Kind: vBranches, Sub: []lValue{hand(rYou), hand(rEachOpp)}}}}, nil
 	case "ValidHand Land.YouOwn":
 		// gorge's zone count over every hand (Land Grant): a

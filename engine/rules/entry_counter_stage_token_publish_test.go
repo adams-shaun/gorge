@@ -81,11 +81,11 @@ func TestChosenCopyRidersWaitForItsStagedEntry(t *testing.T) {
 }
 
 func chosenCopyStagedRiders(t *testing.T, useEsix bool, mandatory *cards.Card, wantElections, wantCopies, pick0 int, want int32) {
-	scales := tokenReplCorpusCard(t, "Hardened Scales")
-	evolution := tokenReplCorpusCard(t, "Branching Evolution")
+	scales := corpusAlternativeCard(t, "Hardened Scales")
+	evolution := corpusAlternativeCard(t, "Branching Evolution")
 	copier := mandatory
 	if useEsix {
-		copier = tokenReplCorpusCard(t, "Esix, Fractal Bloom")
+		copier = corpusAlternativeCard(t, "Esix, Fractal Bloom")
 	}
 	bear := stagedGrantCreature(t, "Staged Copy Bear", "Creature Bear")
 	spell := card(t, "Name:Tapped Remembered Tokens\nManaCost:0\nTypes:Sorcery\n"+
@@ -130,7 +130,7 @@ func chosenCopyStagedRiders(t *testing.T, useEsix bool, mandatory *cards.Card, w
 			continue
 		case decision.KChoose:
 			elections++
-			pick = optionForObj(d, bearID)
+			pick = indexOfObjOption(d, bearID)
 		case decision.KReplacement:
 			orders++
 			// The staged copy: the newest object, minted by CopyToken and
@@ -304,8 +304,8 @@ func TestNoTokenRiderPrecedesItsStagedEntry(t *testing.T) {
 	// the staged-grant creature, puts the counter modifiers into play after
 	// the pre-seeded battlefield cards, and casts spell.
 	spellGame := func(t *testing.T, seed uint64, spell *cards.Card, mana string, overrides []string, battlefield, graveyard []*cards.Card, pickName string) (*Engine, Config, state.ObjID, func(*Engine)) {
-		scales := tokenReplCorpusCard(t, "Hardened Scales")
-		evolution := tokenReplCorpusCard(t, "Branching Evolution")
+		scales := corpusAlternativeCard(t, "Hardened Scales")
+		evolution := corpusAlternativeCard(t, "Branching Evolution")
 		seat := append([]*cards.Card{scales, evolution, spell}, battlefield...)
 		seat = append(seat, graveyard...)
 		e, cfg := tokenReplGame(t, seed, seat...)
@@ -345,7 +345,7 @@ func TestNoTokenRiderPrecedesItsStagedEntry(t *testing.T) {
 		{
 			name: "token-plan",
 			setup: func(t *testing.T) (*Engine, Config, state.ObjID, func(*Engine)) {
-				pl := tokenReplCorpusCard(t, "Parallel Lives")
+				pl := corpusAlternativeCard(t, "Parallel Lives")
 				return spellGame(t, 1033, tokenSpell(t, "Staged Plan Tokens", "1"), "", []string{"staged_grant"},
 					[]*cards.Card{pl}, nil, "")
 			},
@@ -387,7 +387,7 @@ func TestNoTokenRiderPrecedesItsStagedEntry(t *testing.T) {
 		{
 			name: "incubate",
 			setup: func(t *testing.T) (*Engine, Config, state.ObjID, func(*Engine)) {
-				return spellGame(t, 1039, tokenReplCorpusCard(t, "Eyes of Gitaxias"), "UUU",
+				return spellGame(t, 1039, corpusAlternativeCard(t, "Eyes of Gitaxias"), "UUU",
 					[]string{"incubator_c_0_0_a_phyrexian"}, nil, nil, "")
 			},
 			// Incubate's +1/+1 counters are folded into the token's entry
@@ -400,7 +400,7 @@ func TestNoTokenRiderPrecedesItsStagedEntry(t *testing.T) {
 			name: "amass",
 			setup: func(t *testing.T) (*Engine, Config, state.ObjID, func(*Engine)) {
 				fodder := card(t, "Name:Graveyard Sorcery\nManaCost:0\nTypes:Sorcery\nA:SP$ GainLife | LifeAmount$ 1 | SpellDescription$ x\nOracle:x\n")
-				return spellGame(t, 1041, tokenReplCorpusCard(t, "Invade the City"), "UUR",
+				return spellGame(t, 1041, corpusAlternativeCard(t, "Invade the City"), "UUR",
 					[]string{"b_0_0_zombie_army", "b_0_0_army"}, nil, []*cards.Card{fodder}, "")
 			},
 			entered: named(grantName), riders: positiveCounters, perToken: 1, tokens: 1,
@@ -428,8 +428,8 @@ func TestNoTokenRiderPrecedesItsStagedEntry(t *testing.T) {
 		{
 			name: "encore",
 			setup: func(t *testing.T) (*Engine, Config, state.ObjID, func(*Engine)) {
-				scales := tokenReplCorpusCard(t, "Hardened Scales")
-				evolution := tokenReplCorpusCard(t, "Branching Evolution")
+				scales := corpusAlternativeCard(t, "Hardened Scales")
+				evolution := corpusAlternativeCard(t, "Branching Evolution")
 				grace := card(t, "Name:Encore Grace\nManaCost:1\nTypes:Creature Elf\nPT:1/1\nK:Encore:1\n"+
 					"R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ AddEntry | ReplacementResult$ Updated | Description$ entry counter\n"+
 					"SVar:AddEntry:DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ 1 | ETB$ True\nOracle:x\n")
@@ -495,7 +495,7 @@ func TestNoTokenRiderPrecedesItsStagedEntry(t *testing.T) {
 						continue
 					case decision.KChoose:
 						if electFor != 0 {
-							if k := optionForObj(d, electFor); k >= 0 {
+							if k := indexOfObjOption(d, electFor); k >= 0 {
 								pick = k
 							}
 						}

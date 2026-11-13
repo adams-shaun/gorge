@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -31,18 +30,6 @@ func evolvedMarkerCount(e *Engine, id state.ObjID) int {
 		}
 	}
 	return n
-}
-
-// noUnimplementedAPI fails if the log carries an "unimplemented API" note, so
-// a test that merely observes "nothing happened" cannot pass while the whole
-// feature (or a needed sibling primitive) is unregistered.
-func noUnimplementedAPI(t *testing.T, e *Engine) {
-	t.Helper()
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note && strings.Contains(ev.Text, "unimplemented API") {
-			t.Fatalf("log carries an unimplemented-API note: %q", ev.Text)
-		}
-	}
 }
 
 // enterFromLibrary moves the named seeded corpus card from seat p's library to
@@ -128,7 +115,7 @@ func TestWatchfulRadstagEvolvesAndCopiesItself(t *testing.T) {
 	// The sibling "whenever this creature evolves" ability fired and made a
 	// token copy of the Radstag.
 	findTokenCopyOf(t, e, byName[radstagName], radstag)
-	noUnimplementedAPI(t, e)
+	noUnimplementedCopyPermanent(t, e)
 	replayCheck(t, e, cfg)
 }
 
@@ -169,7 +156,7 @@ func TestEvolvedDoesNotFireForAnEqualOrSmallerCreature(t *testing.T) {
 			t.Fatal("a token copy was created although the Radstag never evolved")
 		}
 	}
-	noUnimplementedAPI(t, e)
+	noUnimplementedCopyPermanent(t, e)
 }
 
 // TestRenegadeKrasisGrowsEachOtherCounterBearerWhenItEvolves drives the
@@ -214,5 +201,5 @@ func TestRenegadeKrasisGrowsEachOtherCounterBearerWhenItEvolves(t *testing.T) {
 	if got := e.G.Obj(bear).Counter("P1P1"); got != 2 {
 		t.Fatalf("counter-bearing Bears +1/+1 counters = %d after the Krasis evolved, want 2", got)
 	}
-	noUnimplementedAPI(t, e)
+	noUnimplementedCopyPermanent(t, e)
 }

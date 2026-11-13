@@ -1096,8 +1096,11 @@ func (s *State) applyGen(k *prep, a Action) {
 			s.resolveTop(k) // the permanent enters with the choice made
 		}
 		// a second pre-ask posed by the resolution (the entry order) stays
-		// posed; otherwise the answered choice is done
-		if s.g.pre.state != 1 {
+		// posed; otherwise the answered choice is done. The CR 616.1
+		// entry-order ask parked the play instead: the answer stays put
+		// (state 2) and the entering program's record body applies it once
+		// the order is picked (repl_entryorder.go, runReplProgAs).
+		if s.g.pre.state != 1 && !s.entryAsked(k) {
 			s.g.pre = preAsk{}
 		}
 		return

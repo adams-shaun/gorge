@@ -65,15 +65,6 @@ func apOption(t *testing.T, d *decision.Decision, kind string, obj state.ObjID, 
 	return decision.Option{}
 }
 
-func hasWindowOption(d *decision.Decision, kind string) bool {
-	for _, o := range d.Options {
-		if o.Kind == kind {
-			return true
-		}
-	}
-	return false
-}
-
 func apAnswer(t *testing.T, e *Engine, o decision.Option) {
 	t.Helper()
 	d := e.Pending()
@@ -216,7 +207,7 @@ func TestAnnouncePayUndoLastTap(t *testing.T) {
 	island := onBoard(t, e, 0, apIsland)
 	swamp := onBoard(t, e, 0, apSwamp)
 	w := announce(t, e, spell)
-	if hasWindowOption(w, decision.OptUndoTap) {
+	if optionKindOffered(w, decision.OptUndoTap) {
 		t.Fatal("undo offered before any tap")
 	}
 	apAnswer(t, e, apOption(t, w, "mana", swamp, ""))
@@ -230,7 +221,7 @@ func TestAnnouncePayUndoLastTap(t *testing.T) {
 	if e.G.Obj(swamp).Tapped || e.G.Players[0].Pool.Total() != 0 || w == nil || w.ManaPayment == nil {
 		t.Fatalf("after undo: swamp tapped=%v pool=%v pending=%#v", e.G.Obj(swamp).Tapped, e.G.Players[0].Pool, w)
 	}
-	if hasWindowOption(w, decision.OptUndoTap) {
+	if optionKindOffered(w, decision.OptUndoTap) {
 		t.Fatal("undo still offered with nothing left to undo")
 	}
 	undos := 0
@@ -270,7 +261,7 @@ func TestAnnouncePayUndoWithheldForRiderSource(t *testing.T) {
 	if w == nil || w.ManaPayment == nil {
 		t.Fatalf("pending = %#v, want the window", w)
 	}
-	if hasWindowOption(w, decision.OptUndoTap) {
+	if optionKindOffered(w, decision.OptUndoTap) {
 		t.Fatal("undo offered for an activation that dealt damage")
 	}
 }

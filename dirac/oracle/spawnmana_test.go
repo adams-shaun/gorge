@@ -125,32 +125,6 @@ func (c *spawnCounter) check(ref *GorgeSide, _ Side) *Divergence {
 	return nil
 }
 
-// kickHoldPolicy takes a kicked cast whenever one is offered and otherwise
-// never casts a held card unkicked, so Sowing Mycospawn and Hatchery Spider
-// wait for their {1}{C} kickers (the Spawn's {C}) instead of being cast at
-// five mana.
-func kspawnKickHoldPolicy(base Policy, hold map[Ref]bool) Policy {
-	var buf []Canon
-	return PolicyFunc(func(c *PickCtx) Canon {
-		buf = buf[:0]
-		for _, a := range c.D.Options {
-			if a.Kind() == ActCast && a.Mode()&0xF == 1 {
-				return a
-			}
-			if a.Kind() == ActCast && hold[a.Src()] {
-				continue
-			}
-			buf = append(buf, a)
-		}
-		if len(buf) == len(c.D.Options) || len(buf) == 0 {
-			return base.Pick(c)
-		}
-		d := *c.D
-		d.Options = buf
-		return base.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
-	})
-}
-
 func TestSpawnmanaLockstep(t *testing.T) {
 	t.Parallel()
 	cardsettest.Require(t, "spawnmana")
@@ -216,7 +190,7 @@ func TestSpawnmanaLockstep(t *testing.T) {
 		}
 		pol := castFirstPolicy(seed)
 		if seed%4 == 1 {
-			pol = kspawnKickHoldPolicy(pol, holdKick)
+			pol = kickHoldPolicy(pol, holdKick)
 		}
 		if seed%8 == 0 {
 			pol = RandomPolicy(seed)
@@ -306,7 +280,7 @@ func TestSpawnmanaMutation(t *testing.T) {
 		}
 		pol := castFirstPolicy(seed)
 		if seed%4 == 1 {
-			pol = kspawnKickHoldPolicy(pol, holdKspawnKicks(decks))
+			pol = kickHoldPolicy(pol, holdKspawnKicks(decks))
 		}
 		if seed%8 == 0 {
 			pol = RandomPolicy(seed)

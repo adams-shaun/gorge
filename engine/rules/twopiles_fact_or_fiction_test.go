@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -25,13 +26,27 @@ import (
 // package); the deck is built from compiled corpus cards only, so no Forge
 // script text is committed here either.
 
-// fofTestEngine deals seat 0 a 40-card deck whose first six distinct cards
+// fofTestEngine is the two-seat shape: it asserts the first pending decision
+// after the cast is the split KChoose (the no-ask regression pin CR 801.5b's
+// one-opponent case rides on).
+func fofTestEngine(t *testing.T) (*Engine, Config, []state.ObjID, state.ObjID) {
+	t.Helper()
+	e, cfg, revealIDs, fofID := fofTestEngineN(t, 2)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "twopiles_split" {
+		t.Fatalf("after the cast: %+v, want the TwoPiles split KChoose", d)
+	}
+	return e, cfg, revealIDs, fofID
+}
+
+// fofTestEngineN deals seat 0 a 40-card deck whose first six distinct cards
 // are Fact or Fiction plus the five reveal-window cards, reorders seat 0's
 // library to a KNOWN exact order (the five reveal cards on top, in order),
-// adds 3U+ to the pool, casts Fact or Fiction, and drives to the split ask.
-// Returns the engine, config, the five reveal ids in reveal order, and the
-// FoF id.
-func fofTestEngine(t *testing.T) (*Engine, Config, []state.ObjID, state.ObjID) {
+// adds 3U+ to the pool, casts Fact or Fiction, and drives to the first
+// pending decision after the cast (the split ask at two seats; the CR 801.5b
+// opponent ask at three or more). Returns the engine, config, the five
+// reveal ids in reveal order, and the FoF id.
+func fofTestEngineN(t *testing.T, seats int) (*Engine, Config, []state.ObjID, state.ObjID) {
 	t.Helper()
 	reg := searchTestRegistry(t)
 	fof := searchCorpusCard(t, reg, "Fact or Fiction")
@@ -52,8 +67,14 @@ func fofTestEngine(t *testing.T) (*Engine, Config, []state.ObjID, state.ObjID) {
 	for i := range opp {
 		opp[i] = mountain
 	}
-	cfg := seatZeroStart(Config{Seed: 9304, Names: []string{"fof", "separator"},
-		Decks: [][]*cards.Card{deck, opp}, Tokens: reg.Tokens})
+	seatNames := []string{"fof"}
+	decks := [][]*cards.Card{deck}
+	for i := 1; i < seats; i++ {
+		seatNames = append(seatNames, "p"+strconv.Itoa(i))
+		decks = append(decks, opp)
+	}
+	cfg := seatZeroStart(Config{Seed: 9304, Names: seatNames,
+		Decks: decks, Tokens: reg.Tokens})
 	e := New(cfg)
 	e.Advance()
 	toMain1(t, e)
@@ -86,7 +107,7 @@ func fofTestEngine(t *testing.T) (*Engine, Config, []state.ObjID, state.ObjID) {
 	lib = e.G.Zone(state.ZLibrary, 0)
 	order := append([]state.ObjID(nil), revealIDs...)
 	for _, id := range lib {
-		if !fofContainsID(revealIDs, id) {
+		if !contains(revealIDs, id) {
 			order = append(order, id)
 		}
 	}
@@ -103,20 +124,8 @@ func fofTestEngine(t *testing.T) (*Engine, Config, []state.ObjID, state.ObjID) {
 		t.Fatalf("no cast option for Fact or Fiction: %+v", d.Options)
 	}
 	submitChoices(t, e, idx)
-	d = passUntilNonPriority(t, e, 40)
-	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "twopiles_split" {
-		t.Fatalf("after the cast: %+v, want the TwoPiles split KChoose", d)
-	}
+	passUntilNonPriority(t, e, 40)
 	return e, cfg, revealIDs, fofID
-}
-
-func fofContainsID(ids []state.ObjID, want state.ObjID) bool {
-	for _, id := range ids {
-		if id == want {
-			return true
-		}
-	}
-	return false
 }
 
 // TestFactOrFictionSplitsAndMovesThePiles is the before/after pin: before

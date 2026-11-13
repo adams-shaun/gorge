@@ -1321,7 +1321,7 @@ func TestSetAudit_sos_WitherbloomBalancer_AffinityGrantStack(t *testing.T) {
 		t.Fatal("precondition: the balancer is not on the battlefield")
 	}
 	e.priorityRound()
-	if sosHandCardByName(e, 0, "Witherbloom, the Balancer") != 0 {
+	if findInHand(e, 0, "Witherbloom, the Balancer") != 0 {
 		t.Fatal("precondition: the balancer is still in hand")
 	}
 	if got := reduceOf(t, e, 0, bolt); got != 2 {
@@ -1409,7 +1409,7 @@ func TestSetAudit_sos_StrixhavenSkycoach_ETBSearchAndCrew(t *testing.T) {
 	if o := e.G.Obj(coach); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("precondition: skycoach not on the battlefield")
 	}
-	if sosHandCardByName(e, 0, "Mountain") == 0 {
+	if findInHand(e, 0, "Mountain") == 0 {
 		t.Errorf("crew: the ETB search never put a basic land into hand (ChangeZone Library→Hand, ShuffleNonMandatory$ True)")
 	}
 	crewer := putCreature(t, e, 0, sosBearSrc)
@@ -1570,7 +1570,7 @@ func TestSetAudit_sos_GoblinGlasswright_PreparedCopyMintsTreasure(t *testing.T) 
 	}
 	// Back face from hand must NOT be offered (CR 722.3).
 	e.priorityRound()
-	if o := sosHandCardByName(e, 0, "Craft with Pride"); o != 0 {
+	if o := findInHand(e, 0, "Craft with Pride"); o != 0 {
 		t.Errorf("treasure: the inset prepare spell was offered from hand (CR 722.3 forbids it)")
 	}
 	copyID := sosPreparedCopy(e, "Craft with Pride")
@@ -1877,16 +1877,6 @@ func sosFindTokenBy(t *testing.T, e *Engine, name string) state.ObjID {
 	t.Helper()
 	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
 		if o := e.G.Obj(id); o != nil && o.IsToken && o.Face() != nil && o.Face().Name == name {
-			return id
-		}
-	}
-	return 0
-}
-
-// sosHandCardByName returns the hand object named name, or 0.
-func sosHandCardByName(e *Engine, p state.PlayerID, name string) state.ObjID {
-	for _, id := range e.G.Zone(state.ZHand, p) {
-		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
 			return id
 		}
 	}

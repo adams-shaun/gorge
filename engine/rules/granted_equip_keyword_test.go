@@ -99,7 +99,7 @@ func TestGrantedEquipOffersEquip(t *testing.T) {
 // so the equip must be offered although the printed mana ability is gone.
 func TestIrencragEverflameOffersGrantedEquip(t *testing.T) {
 	t.Parallel()
-	crag := tokenReplCorpusCard(t, "The Irencrag")
+	crag := corpusAlternativeCard(t, "The Irencrag")
 	legend := cardByName(t, "Name:Grant Test Legend\nTypes:Legendary Creature Human\nPT:2/2\nOracle:x\n")
 	e, cfg := tokenReplGame(t, 9, crag, legend)
 	cragID := moveSeededCard(t, e, 0, crag, state.ZBattlefield)

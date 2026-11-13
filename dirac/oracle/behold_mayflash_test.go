@@ -39,29 +39,17 @@ type kbmfStats struct {
 	plain          int // sorcery-timing plain casts of Molten Exhale with no Dragon to behold
 }
 
-func kbmfHasType(o *state.Object, ty string) bool {
-	if o == nil || o.Face() == nil {
-		return false
-	}
-	for _, w := range o.Face().Types {
-		if w == ty {
-			return true
-		}
-	}
-	return false
-}
-
 // kbmfDragons counts p's behold candidates for Molten Exhale src: Dragons p
 // controls and Dragon cards in p's hand.
 func kbmfDragons(g *state.Game, p state.PlayerID, src state.ObjID) int {
 	n := 0
 	for _, id := range g.Zone(state.ZBattlefield, p) {
-		if o := g.Obj(id); o != nil && o.Controller == p && kbmfHasType(o, "Dragon") {
+		if o := g.Obj(id); o != nil && o.Controller == p && objectHasType(o, "Dragon") {
 			n++
 		}
 	}
 	for _, id := range g.Zone(state.ZHand, p) {
-		if id != src && kbmfHasType(g.Obj(id), "Dragon") {
+		if id != src && objectHasType(g.Obj(id), "Dragon") {
 			n++
 		}
 	}

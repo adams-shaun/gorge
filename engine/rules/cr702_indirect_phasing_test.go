@@ -14,9 +14,9 @@ import (
 func TestCR70226gAuraPhasesOutWithBearer(t *testing.T) {
 	t.Parallel()
 	e, cfg := phasesGame(t, 301, "Talon Gates of Madara", "Grizzly Bears", "Witness Protection")
-	bears := moveSeededCard(t, e, 0, tokenReplCorpusCard(t, "Grizzly Bears"), state.ZBattlefield)
+	bears := moveSeededCard(t, e, 0, corpusAlternativeCard(t, "Grizzly Bears"), state.ZBattlefield)
 	aura := lossAttach(t, e, "Witness Protection", 0, bears)
-	_ = moveSeededCard(t, e, 0, tokenReplCorpusCard(t, "Talon Gates of Madara"), state.ZBattlefield)
+	_ = moveSeededCard(t, e, 0, corpusAlternativeCard(t, "Talon Gates of Madara"), state.ZBattlefield)
 	addMana(t, e, 0, "")
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KTarget {
@@ -47,7 +47,7 @@ func TestCR70226gAuraPhasesOutWithBearer(t *testing.T) {
 func TestCR70226hIndirectPhasesInWithHost(t *testing.T) {
 	t.Parallel()
 	e, cfg := phasesGame(t, 302, "Grizzly Bears", "Witness Protection")
-	bears := moveSeededCard(t, e, 0, tokenReplCorpusCard(t, "Grizzly Bears"), state.ZBattlefield)
+	bears := moveSeededCard(t, e, 0, corpusAlternativeCard(t, "Grizzly Bears"), state.ZBattlefield)
 	aura := lossAttach(t, e, "Witness Protection", 0, bears)
 	e.emit(events.Event{Kind: events.PhaseOut, Obj: bears, Amount: 1})
 	if a := e.G.Obj(aura); !a.PhasedOut || !a.PhasedOutIndirect {

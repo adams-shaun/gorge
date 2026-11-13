@@ -48,7 +48,7 @@ func TestMeddleRedirectsSingleCreatureTargetKernel(t *testing.T) {
 	if offersObj(d, mineA) {
 		t.Fatalf("offered Murder's current target: %+v", d.Options)
 	}
-	submitChoices(t, e, optionOfObj(t, d, mineB))
+	submitChoices(t, e, optionIdxForObj(t, d, mineB))
 	if got := e.G.Obj(murder.ID).Targets; len(got) != 1 || got[0].Obj != mineB {
 		t.Fatalf("Murder targets = %+v, want creature %d", got, mineB)
 	}
@@ -140,7 +140,7 @@ func TestQuicksilverDragonRedirectsOnlyWhenItIsTheTarget(t *testing.T) {
 	if offersObj(d, dragon) {
 		t.Fatalf("offered the Dragon, Murder's current target: %+v", d.Options)
 	}
-	submitChoices(t, e, optionOfObj(t, d, other))
+	submitChoices(t, e, optionIdxForObj(t, d, other))
 	if got := e.G.Obj(murder.ID).Targets; len(got) != 1 || got[0].Obj != other {
 		t.Fatalf("Murder targets = %+v, want creature %d", got, other)
 	}

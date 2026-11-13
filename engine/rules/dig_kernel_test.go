@@ -98,21 +98,27 @@ func TestKernelDigWithTotalCMCCapsCumulative(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestKernelDigNoLooking: NoLooking$ True hides the
+// TestKernelDigNoLooking: a bare NoLooking$ True is Forge's presentation
+// rider, not a blind dig -- it still names the cards under a secret look. A
+// blind-shaped dig (NoLooking$ with ExileFaceDown$ or RandomChange$) hides the
 // window (no secret look, no names in prompt or options) while an ordinary
 // Dig names the cards under a secret look and Reveal$ wins over NoLooking$
 // with a public reveal of the whole window. In every case the answer moves
-// the chosen object.
+// the chosen object to the dig's destination.
 func TestKernelDigNoLooking(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name                              string
 		params                            string
+		dest                              state.Zone
 		wantSecretLook, wantPublic, named bool
 	}{
-		{name: "blind", params: " | NoLooking$ True"},
-		{name: "ordinary", wantSecretLook: true, named: true},
-		{name: "reveal wins", params: " | NoLooking$ True | Reveal$ True", wantPublic: true, named: true},
+		{name: "names the cards under a secret look", params: " | NoLooking$ True", dest: state.ZHand,
+			wantSecretLook: true, named: true},
+		{name: "blind random change", params: " | NoLooking$ True | RandomChange$ True", dest: state.ZHand},
+		{name: "blind face-down exile", params: " | NoLooking$ True | ExileFaceDown$ True | DestinationZone$ Exile", dest: state.ZExile},
+		{name: "ordinary", dest: state.ZHand, wantSecretLook: true, named: true},
+		{name: "reveal wins", params: " | NoLooking$ True | Reveal$ True", dest: state.ZHand, wantPublic: true, named: true},
 	}
 	for i, tc := range cases {
 		tc := tc
@@ -169,8 +175,8 @@ func TestKernelDigNoLooking(t *testing.T) {
 			}
 			chosen := d.Options[1].Obj
 			answerKindFor(t, e, decision.KChoose, 0, d.Options[1].Index)
-			if zoneOfID(e, chosen) != state.ZHand {
-				t.Fatalf("answer did not move the chosen object %d to hand", chosen)
+			if zoneOfID(e, chosen) != tc.dest {
+				t.Fatalf("answer did not move the chosen object %d to %s", chosen, tc.dest)
 			}
 			replayCheck(t, e, cfg)
 		})

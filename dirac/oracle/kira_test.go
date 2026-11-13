@@ -114,7 +114,7 @@ func kiraRun(t *testing.T, seeds uint64, mutation bool) (int, *kiraTally) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			pol := kmcombatPolicy(seed)
+			pol := castActivateKindPolicy(seed)
 			if seed%2 == 0 {
 				pol = RandomPolicy(seed)
 			}

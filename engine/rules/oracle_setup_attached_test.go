@@ -6,20 +6,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
-
-func runSetupAttachedScenario(t *testing.T, raw string) (fails, transcript []string, run *oracleRun) {
-	t.Helper()
-	reg := testutil.CorpusRegistry(t)
-	sc, err := decodeOracleScenario([]byte(raw))
-	if err != nil {
-		t.Fatal(err)
-	}
-	sc.xmageFixture = true
-	fails, transcript, run = runOracleScenario(reg, sc)
-	return fails, transcript, run
-}
 
 func TestOracleSetupAttachedAuraNamesItsBearer(t *testing.T) {
 	const raw = `{"name":"attached-bearer","setup":{"p0":{"battlefield":["Pacifism"],

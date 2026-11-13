@@ -105,15 +105,7 @@ type kbolgScenario struct {
 }
 
 func (p *kbolgScenario) Pick(c *PickCtx) Canon {
-	switch c.D.Kind {
-	case DMulligan:
-		return pickKind(c, ActKeep)
-	case DAttackers, DBlockers:
-		return pickKind(c, ActDone)
-	case DPriority:
-		return p.priority(c)
-	}
-	return c.D.Options[0]
+	return mulliganDonePick(p.priority, c)
 }
 
 func (p *kbolgScenario) priority(c *PickCtx) Canon {
@@ -124,15 +116,15 @@ func (p *kbolgScenario) priority(c *PickCtx) Canon {
 	if a, ok := findAction(c, func(a Canon) bool { return a.Kind() == ActPlayLand }); ok {
 		return a
 	}
-	if a, ok := mccoyCast(c, g, 0, "Desolation of Smaug"); ok {
-		if mccoyFind(g, "Bolg's Company", 0) == nil {
+	if a, ok := reproHandCastAction(c, g, 0, "Desolation of Smaug"); ok {
+		if reproBattlefieldObj(g, "Bolg's Company", 0) == nil {
 			p.t.Fatalf("turn %d: Desolation of Smaug offered with no Bolg's Company", g.Turn)
 		}
 		p.tl.paid++ // {R}{R}: the one Mountain makes a single {R}, so Bolg's {R} pays it
 		return a
 	}
 	for _, name := range []string{"Bolg's Company", "Fearsome Goblin Pair"} {
-		if a, ok := mccoyCast(c, g, 0, name); ok {
+		if a, ok := reproHandCastAction(c, g, 0, name); ok {
 			return a
 		}
 	}

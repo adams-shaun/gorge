@@ -146,7 +146,7 @@ func TestHavocEaterGoadsOneCreaturePerOpponentAndCountsThePower(t *testing.T) {
 		}
 	}
 	eo := e.G.Obj(eaterID)
-	if n := targetCounterN(eo, "P1P1"); n != 4 {
+	if n := counterN(eo, "P1P1"); n != 4 {
 		t.Fatalf("Havoc Eater P1P1 counters = %d, want 4: X is the total goaded power (2+2)", n)
 	}
 	for _, id := range []state.ObjID{bearA, bearC} {
@@ -224,20 +224,9 @@ func TestHavocEaterElectedZeroGoadsNothingAndStillResolves(t *testing.T) {
 			t.Fatalf("submit pass: %v", err)
 		}
 	}
-	if n := targetCounterN(e.G.Obj(eaterID), "P1P1"); n != 0 {
+	if n := counterN(e.G.Obj(eaterID), "P1P1"); n != 0 {
 		t.Fatalf("Havoc Eater P1P1 counters = %d, want 0", n)
 	}
-}
-
-// counterN reads one counter kind off an object's Counters (the cloak_test
-// helper shape, local to this file).
-func targetCounterN(o *state.Object, kind string) int {
-	for i := range o.Counters {
-		if o.Counters[i].Kind == kind {
-			return int(o.Counters[i].N)
-		}
-	}
-	return 0
 }
 
 // TestTolarianContemptBareInlineBoundAsksOnePerOpponent pins the bare inline
@@ -292,7 +281,7 @@ func TestTolarianContemptBareInlineBoundAsksOnePerOpponent(t *testing.T) {
 		if o.Obj != bearA && o.Obj != bearB && o.Obj != bearC {
 			t.Fatalf("offered %d — only the opponents' creatures are targets", o.Obj)
 		}
-		if n := targetCounterN(e.G.Obj(o.Obj), "REJECTION"); n != 1 {
+		if n := counterN(e.G.Obj(o.Obj), "REJECTION"); n != 1 {
 			t.Fatalf("offered creature %d carries %d rejection counters, want 1", o.Obj, n)
 		}
 		groupOf[o.Obj] = o.Group

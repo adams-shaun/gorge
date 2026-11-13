@@ -55,12 +55,12 @@ func TestChainedCounterUnlessPayerIsCounteredController(t *testing.T) {
 					// the unless cost reads the greatest power (3).
 					sawX = true
 					d = answerDecision(t, e, d, chainedXOption(d))
-				case d.Kind == decision.KTarget && chainedOfferedObj(d, bear) >= 0:
+				case d.Kind == decision.KTarget && indexOfObjOption(d, bear) >= 0:
 					sawRoot = true
-					d = answerDecision(t, e, d, chainedOfferedObj(d, bear))
-				case d.Kind == decision.KTarget && chainedOfferedObj(d, oppSpell) >= 0:
+					d = answerDecision(t, e, d, indexOfObjOption(d, bear))
+				case d.Kind == decision.KTarget && indexOfObjOption(d, oppSpell) >= 0:
 					sawLink = true
-					d = answerDecision(t, e, d, chainedOfferedObj(d, oppSpell))
+					d = answerDecision(t, e, d, indexOfObjOption(d, oppSpell))
 				default:
 					t.Fatalf("unexpected decision while casting Repulsive Mutation: kind=%s resume=%q player=%d options=%+v",
 						d.Kind, d.ResumeKind, d.Player, d.Options)
@@ -136,16 +136,6 @@ func chainedXOption(d *decision.Decision) int {
 	return -1
 }
 
-// chainedOfferedObj returns the index of d's option naming obj, or -1.
-func chainedOfferedObj(d *decision.Decision, obj state.ObjID) int {
-	for _, o := range d.Options {
-		if o.Obj == obj {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 // TestChainedCounterUnlessEmptyTargetPosesNoAsk pins the second half of the contract:
 // when the chained link's OWN target answer is the explicit
 // EMPTY set, no "its controller" exists, so no unless_pay ask is posed and the
@@ -188,10 +178,10 @@ func TestChainedCounterUnlessEmptyTargetPosesNoAsk(t *testing.T) {
 				case d.Kind == decision.KChoose && chainedXOption(d) >= 0:
 					sawX = true
 					d = answerDecision(t, e, d, chainedXOption(d))
-				case d.Kind == decision.KTarget && chainedOfferedObj(d, bear) >= 0:
+				case d.Kind == decision.KTarget && indexOfObjOption(d, bear) >= 0:
 					sawRoot = true
-					d = answerDecision(t, e, d, chainedOfferedObj(d, bear))
-				case d.Kind == decision.KTarget && tc.oppSpell && chainedOfferedObj(d, oppSpell) >= 0:
+					d = answerDecision(t, e, d, indexOfObjOption(d, bear))
+				case d.Kind == decision.KTarget && tc.oppSpell && indexOfObjOption(d, oppSpell) >= 0:
 					sawLinkAsk = true
 					d = answerDecision(t, e, d) // explicit empty answer
 				default:

@@ -156,10 +156,10 @@ func TestIntoTheFloodMawGiftRequiresAFeasibleTarget(t *testing.T) {
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("after declining gift target decision = %+v", d)
 	}
-	if targetOptionIndex(d, ownCreature) >= 0 {
+	if indexOfObjOption(d, ownCreature) >= 0 {
 		t.Fatal("own creature was offered as target for Into the Flood Maw")
 	}
-	idx := targetOptionIndex(d, opponentCreature)
+	idx := indexOfObjOption(d, opponentCreature)
 	if idx < 0 {
 		t.Fatalf("opponent creature missing from legal target options: %+v", d.Options)
 	}
@@ -188,10 +188,10 @@ func TestFlashPhotographyAnnouncementUsesCoveredTarget(t *testing.T) {
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("target decision = %+v", d)
 	}
-	if istTargetOptionFor(d, theirBear) >= 0 {
+	if indexOfObjOption(d, theirBear) >= 0 {
 		t.Fatalf("permission-uncovered opponent target was offered: %+v", d.Options)
 	}
-	if idx := istTargetOptionFor(d, myBear); idx < 0 {
+	if idx := indexOfObjOption(d, myBear); idx < 0 {
 		t.Fatalf("qualifying target missing from announcement: %+v", d.Options)
 	} else {
 		submitChoices(t, e, idx)

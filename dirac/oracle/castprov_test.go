@@ -44,13 +44,6 @@ type cpTally struct {
 	warped                             map[state.ObjID]bool
 }
 
-func cpName(g *state.Game, id state.ObjID) string {
-	if o := g.Obj(id); o != nil && o.Face() != nil {
-		return o.Face().Name
-	}
-	return ""
-}
-
 func (p *cpTally) check(ref *GorgeSide, _ Side) *Divergence {
 	g := ref.E.G
 	evs := ref.E.L.Events
@@ -66,7 +59,7 @@ func (p *cpTally) check(ref *GorgeSide, _ Side) *Divergence {
 				p.warped[e.Obj] = true
 			}
 		case events.PutOnStack:
-			switch cpName(g, e.Obj) {
+			switch chName(g, e.Obj) {
 			case "Knight-Errant of Eos":
 				p.knOn = true
 			case "Memory Deluge":
@@ -89,14 +82,14 @@ func (p *cpTally) check(ref *GorgeSide, _ Side) *Divergence {
 		case events.Priority:
 			p.knOn = false
 		case events.TriggerPush:
-			switch cpName(g, e.Obj) {
+			switch chName(g, e.Obj) {
 			case "Soulhunter Rakshasa":
 				p.rakTrig++
 			case "Knight-Errant of Eos":
 				p.knTrig++
 			}
 		case events.MoveZone:
-			n := cpName(g, e.Obj)
+			n := chName(g, e.Obj)
 			if e.From == state.ZBattlefield {
 				delete(p.warped, e.Obj)
 			}
@@ -181,7 +174,7 @@ func TestCastprovLockstep(t *testing.T) {
 					var sb strings.Builder
 					for j := max(len(evs)-30, 0); j < len(evs); j++ {
 						e := &evs[j]
-						fmt.Fprintf(&sb, "%d %s p%d %d(%s) %d->%d amt=%d c=%q t=%q ids=%v\n", j, e.Kind, e.Player, e.Obj, cpName(lead.E.G, e.Obj), e.From, e.To, e.Amount, e.Counter, e.Text, e.IDs)
+						fmt.Fprintf(&sb, "%d %s p%d %d(%s) %d->%d amt=%d c=%q t=%q ids=%v\n", j, e.Kind, e.Player, e.Obj, chName(lead.E.G, e.Obj), e.From, e.To, e.Amount, e.Counter, e.Text, e.IDs)
 					}
 					t.Logf("gorge log tail:\n%s", sb.String())
 				}

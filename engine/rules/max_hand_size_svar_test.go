@@ -36,7 +36,7 @@ const (
 // the test claims cannot pass silently.
 func TestMaxHandSizeSVarDeliriumValue(t *testing.T) {
 	t.Parallel()
-	e := landBase(t)
+	e := mayPlayBase(t)
 	src := onBoardGrant(t, e, 0, winterSrc)
 	if e.G.Obj(src).Zone != state.ZBattlefield {
 		t.Fatalf("precondition: Winter not on the battlefield")

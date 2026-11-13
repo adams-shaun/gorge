@@ -18,7 +18,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // seedPlayerCounter grants p n counters of kind through the event the engine
@@ -26,16 +25,6 @@ import (
 func seedPlayerCounter(t *testing.T, e *Engine, p state.PlayerID, kind string, n int32) {
 	t.Helper()
 	e.emit(events.Event{Kind: events.PlayerCounterChange, Player: p, Counter: kind, Amount: n})
-}
-
-// yourCountersCard looks a corpus card up by name.
-func yourCountersCard(t *testing.T, name string) *cards.Card {
-	t.Helper()
-	c, ok := testutil.CorpusRegistry(t).Lookup(name)
-	if !ok {
-		t.Fatalf("corpus missing %s", name)
-	}
-	return c
 }
 
 // resolveSVarOf resolves one named SVar body from a face; a nil result means
@@ -69,7 +58,7 @@ func svarBodyOf(t *testing.T, f *cards.Face, name string) string {
 func TestRazorfieldRipperAttackPumpEqualsEnergyTotal(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
-	rip := onBoardCard(t, e, 0, yourCountersCard(t, "Razorfield Ripper"))
+	rip := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Razorfield Ripper"))
 
 	// Precondition: the trigger's pump is the YourCounters-driven body and the
 	// seeded energy differs from the answer the buggy read would produce.
@@ -110,8 +99,8 @@ func TestRazorfieldRipperAttackPumpEqualsEnergyTotal(t *testing.T) {
 func TestYourCountersExperienceAndRADSpellings(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
-	otharri := onBoardCard(t, e, 0, yourCountersCard(t, "Otharri, Suns' Glory"))
-	base := onBoardCard(t, e, 0, yourCountersCard(t, "Mariposa Military Base"))
+	otharri := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Otharri, Suns' Glory"))
+	base := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Mariposa Military Base"))
 
 	// Precondition: the SVars under test are the YourCounters heads.
 	if body := svarBodyOf(t, e.G.Obj(otharri).Face(), "X"); body != "Count$YourCountersExperience" {
@@ -167,7 +156,7 @@ func TestEnergyCountersBoundTheMayPayAsks(t *testing.T) {
 			// ReplaceWith$ Twice replacement doubles every energy grant on its
 			// board, so a shared engine would couple the two cards' totals.
 			e := layerEngine(t)
-			id := onBoardCard(t, e, 0, yourCountersCard(t, tc.name))
+			id := onBoardCard(t, e, 0, corpusAlternativeCard(t, tc.name))
 			face := e.G.Obj(id).Face()
 			sa := resolveSVarOf(t, face, "DBChooseNumber")
 			if sa.Params["Max"] != "Count$YourCountersEnergy" {

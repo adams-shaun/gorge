@@ -78,7 +78,7 @@ func TestAlternateAdditionalCostPlainCastHasPaymentPlan(t *testing.T) {
 	}
 	// The plan must actually cast the spell: the altAdd ask picks the {2}
 	// alternative, then the witnessed sources pay it.
-	ppSubmitPlan(t, e, d, a)
+	submitPaymentPlan(t, e, d, a)
 	for guard := 0; guard < 20; guard++ {
 		d := e.Pending()
 		if d == nil || d.Kind == decision.KPriority {

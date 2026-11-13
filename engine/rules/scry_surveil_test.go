@@ -37,26 +37,6 @@ func surveilFixture(t *testing.T, seed uint64) (*Engine, Config, state.ObjID) {
 	return e, cfg, id
 }
 
-// scryDecision casts scrySrc and returns the pending KArrange decision.
-func scryDecision(t *testing.T, e *Engine, id state.ObjID) *decision.Decision {
-	t.Helper()
-	d := castFixture(t, e, id, -1)
-	if d == nil || d.Kind != decision.KArrange {
-		t.Fatalf("expected a pending KArrange decision, got %+v", d)
-	}
-	return d
-}
-
-// surveilDecision casts surveilSrc and returns the pending KArrange decision.
-func surveilDecision(t *testing.T, e *Engine, id state.ObjID) *decision.Decision {
-	t.Helper()
-	d := castFixture(t, e, id, -1)
-	if d == nil || d.Kind != decision.KArrange {
-		t.Fatalf("expected a pending KArrange decision, got %+v", d)
-	}
-	return d
-}
-
 // TestScryAnswerKeepsChosenOnTopAndUnchosenAtBottom is the leaf 2, the one
 // that catches pile B being dropped beneath pile A instead of at the bottom:
 // with 3 offered and the answer [2,0], the unchosen card (option 1) must sit
@@ -118,7 +98,7 @@ func TestScryAnswerEmptySendsAllToBottom(t *testing.T) {
 func TestSurveilAnswerKeepsChosenOnTopAndMovesOtherToGraveyard(t *testing.T) {
 	t.Parallel()
 	e, cfg, id := surveilFixture(t, 204)
-	d := surveilDecision(t, e, id)
+	d := scryDecision(t, e, id)
 	if d.Min != 0 || d.Max != 2 {
 		t.Fatalf("Min/Max = %d/%d, want 0/2", d.Min, d.Max)
 	}
@@ -163,7 +143,7 @@ func TestSurveilAnswerKeepsChosenOnTopAndMovesOtherToGraveyard(t *testing.T) {
 func TestSurveilAnswerEmptySendsEveryOfferedCardToGraveyard(t *testing.T) {
 	t.Parallel()
 	e, _, id := surveilFixture(t, 205)
-	d := surveilDecision(t, e, id)
+	d := scryDecision(t, e, id)
 	top := []state.ObjID{d.Options[0].Obj, d.Options[1].Obj}
 	libBefore := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 0)...)
 
@@ -199,7 +179,7 @@ func TestScryReplaysByteIdentically(t *testing.T) {
 func TestSurveilReplaysByteIdentically(t *testing.T) {
 	t.Parallel()
 	e, cfg, id := surveilFixture(t, 207)
-	d := surveilDecision(t, e, id)
+	d := scryDecision(t, e, id)
 	submitChoices(t, e, d.Options[0].Index)
 	replayCheck(t, e, cfg)
 }
@@ -210,7 +190,7 @@ func TestSurveilReplaysByteIdentically(t *testing.T) {
 func TestSurveilEmptyReplaysByteIdentically(t *testing.T) {
 	t.Parallel()
 	e, cfg, id := surveilFixture(t, 208)
-	_ = surveilDecision(t, e, id)
+	_ = scryDecision(t, e, id)
 	submitChoices(t, e)
 	replayCheck(t, e, cfg)
 }
@@ -227,7 +207,7 @@ func TestArrangeUnchangedForRearrangeTopOfLibrary(t *testing.T) {
 	e, _, id := arrangeFixture(t, 210)
 	// The default ("bottom", pile B empty) route must keep the permutation:
 	// run the canonical reorder via the real arrange machinery.
-	d := arrangeDecision(t, e, id)
+	d := scryDecision(t, e, id)
 	top := []state.ObjID{d.Options[0].Obj, d.Options[1].Obj, d.Options[2].Obj}
 	libBefore := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 0)...)
 	submitChoices(t, e, 2, 0, 1)
@@ -314,7 +294,7 @@ func TestScryResumeRunsSubAbilityOnceAndDoesNotReask(t *testing.T) {
 func TestSurveilResumeRunsSubAbilityOnceAndDoesNotReask(t *testing.T) {
 	t.Parallel()
 	e, cfg, id := surveilSubFixture(t, 212)
-	d := surveilDecision(t, e, id)
+	d := scryDecision(t, e, id)
 	pre := countDraw(e)
 
 	submitChoices(t, e, d.Options[1].Index, d.Options[0].Index)
@@ -329,18 +309,6 @@ func TestSurveilResumeRunsSubAbilityOnceAndDoesNotReask(t *testing.T) {
 		t.Fatalf("a second KArrange for the same source (%d) is pending after answering; the Ctx.Arrange guard was removed", id)
 	}
 	replayCheck(t, e, cfg)
-}
-
-func sameObjIDs(a, b []state.ObjID) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func zoneContains(ids []state.ObjID, id state.ObjID) bool {

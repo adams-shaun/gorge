@@ -97,7 +97,7 @@ func kequipshufWatch(t *testing.T, tbl *kop.Table) {
 // when stopOnDiv) and the kernel stalls.
 func kequipshufRun(t *testing.T, reg *cards.Registry, set cardset.Set, seeds uint64, stopOnDiv bool) (games int, div bool, stalls int) {
 	t.Helper()
-	decks := kincrementDecksOf(t, reg, kequipshufDecks)
+	decks := kcastDeck(t, reg, kequipshufDecks)
 	tbl, _, _, err := set.Matchup(kequipshufDecks[0], kequipshufDecks[1])
 	if err != nil {
 		t.Fatal(err)
@@ -208,7 +208,7 @@ func TestEquipshufWaterbendArtifactMana(t *testing.T) {
 			{Name: "Mind Stone", Count: 2}, {Name: "Sol Ring", Count: 1}, {Name: "Island", Count: 10}, {Name: "Plains", Count: 10},
 		},
 	}
-	decks := kincrementDecksOf(t, reg, decksAB)
+	decks := kcastDeck(t, reg, decksAB)
 	tbl, _, _, err := set.Matchup(decksAB[0], decksAB[1])
 	if err != nil {
 		t.Fatal(err)

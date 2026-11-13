@@ -15,7 +15,7 @@ import (
 
 func ashiokPayLifeGame(t *testing.T) (*Engine, state.ObjID) {
 	t.Helper()
-	ashiok := tokenReplCorpusCard(t, "Ashiok, Wicked Manipulator")
+	ashiok := corpusAlternativeCard(t, "Ashiok, Wicked Manipulator")
 	e, _ := tokenReplGame(t, 0xA510, ashiok)
 	var id state.ObjID
 	for _, p := range e.G.AliveFrom(0) {

@@ -40,8 +40,8 @@ func TestInvestigatedSupported(t *testing.T) {
 // total, replay-verified.
 func TestErdwalIlluminatorInvestigatesAnAdditionalTimeOnTheFirstInvestigate(t *testing.T) {
 	t.Parallel()
-	erdwal := tokenReplCorpusCard(t, "Erdwal Illuminator")
-	wave := tokenReplCorpusCard(t, "Wavesifter")
+	erdwal := corpusAlternativeCard(t, "Erdwal Illuminator")
+	wave := corpusAlternativeCard(t, "Wavesifter")
 	e, cfg := tokenReplGame(t, 77, erdwal, wave)
 	moveSeededCard(t, e, 0, erdwal, state.ZBattlefield)
 	moveSeededCard(t, e, 0, wave, state.ZBattlefield)
@@ -61,8 +61,8 @@ func TestErdwalIlluminatorInvestigatesAnAdditionalTimeOnTheFirstInvestigate(t *t
 // again (still 3 Clues, not 4).
 func TestErdwalIlluminatorSecondInvestigateThisTurnDoesNotFire(t *testing.T) {
 	t.Parallel()
-	erdwal := tokenReplCorpusCard(t, "Erdwal Illuminator")
-	martha := tokenReplCorpusCard(t, "Martha Jones")
+	erdwal := corpusAlternativeCard(t, "Erdwal Illuminator")
+	martha := corpusAlternativeCard(t, "Martha Jones")
 	e, cfg := tokenReplGame(t, 78, erdwal, martha, martha)
 	moveSeededCard(t, e, 0, erdwal, state.ZBattlefield)
 	firstMartha := moveSeededCard(t, e, 0, martha, state.ZBattlefield)
@@ -102,7 +102,7 @@ func TestErdwalIlluminatorSecondInvestigateThisTurnDoesNotFire(t *testing.T) {
 // than on the mint.
 func TestPlainClueTokenCreationDoesNotFireInvestigated(t *testing.T) {
 	t.Parallel()
-	erdwal := tokenReplCorpusCard(t, "Erdwal Illuminator")
+	erdwal := corpusAlternativeCard(t, "Erdwal Illuminator")
 	forge := cardByName(t, tokenForgeSrc("c_a_clue_draw"))
 	e, cfg := tokenReplGame(t, 79, erdwal, forge)
 	moveSeededCard(t, e, 0, erdwal, state.ZBattlefield)

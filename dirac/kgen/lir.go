@@ -53,12 +53,13 @@ const (
 	rPromised                     // the opponent the gift was promised to (Defined$ / TokenOwner$ Promised)
 	rAttachedCtrl                 // the controller of the object the source is attached to, read live (Contaminated Bond's blocker)
 	rLastCreated                  // the token(s) the previous CreateToken/copy op minted (kop.RefLastCreated; Encore's duty on the minted copy)
+	rTaxedAttacker                // the creature an attack tax is being priced for (kop.RefTaxedAttacker; Nils's RememberingAttacker$ charge, lower_attacktax.go)
 	rCount
 )
 
 var refNames = [...]string{"None", "Target", "Self", "You", "EachOpp", "EachPlayer", "TargetController",
 	"TargetOwner", "Triggered", "TriggeredNew", "TriggeredSource", "TriggeredPlayer", "TriggeredTgtCtrl", "Equipped", "Remembered",
-	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted", "Promised", "AttachedCtrl", "LastCreated"}
+	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted", "Promised", "AttachedCtrl", "LastCreated", "TaxedAttacker"}
 
 type lRef struct {
 	Kind refKind
@@ -252,9 +253,9 @@ func (v lValue) String() string {
 			args = append(args, fmt.Sprintf("op=%d,n=%d", v.Op, v.N))
 		case vSacrificedThisTurn, vScriedThisTurn, vDilemmasFaced, vRemLKIPT, vPhaseCount, vAdamant, vMonarch:
 			args = append(args, fmt.Sprintf("n=%d", v.N))
-		case vCountGraveyard, vOppsLostLife:
+		case vCountGraveyard, vHandSizeOf, vOppsLostLife:
 			if v.N != 0 {
-				args = append(args, fmt.Sprintf("n=%d", v.N)) // N 1: the opponents dealt combat damage by a legendary creature
+				args = append(args, fmt.Sprintf("n=%d", v.N)) // N 1: the cards, not the raw zone length (a hand token is no card)
 			}
 		}
 		if v.Ref.Kind != rNone {
@@ -999,6 +1000,7 @@ type lCard struct {
 	ExiledWith     bool          // a resolution reads the exiled-with source link: the card records what it exiles (CardDef.ExiledWith)
 	CombatHitRec   bool          // a filter reads wasDealtCombatDamageThisTurnBySource against the card itself: its objects' combat hits on players are recorded (CardDef.CombatHitRec)
 	SpendRead      bool          // an SVar body reads Count$CastTotalManaSpent: gorge's planner declines the cast
+	Identity       kop.ColorMask // the card's colour identity (CardDef.Identity; a commander-identity mana ability's read)
 	ProduceCol     kop.ColorMask // the face's printed mana abilities' produced colours ({C} dropped; CardDef.ProduceCol; a Produce-mode reflected ability's read)
 	FbCost         *lCost        // the flashback cost's non-mana part (Sac<N/Spec> or tapXType<N/Spec>)
 	Madness        *manaCost     // K:Madness:<cost> (CR 702.35a): the exile-cast cost

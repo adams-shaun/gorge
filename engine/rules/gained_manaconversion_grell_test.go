@@ -13,7 +13,7 @@ import (
 // static: the same conversion must reach the gained ability's payment.
 func TestGainedManaConversionGrellEffectDelivered(t *testing.T) {
 	t.Parallel()
-	grell := tokenReplCorpusCard(t, "Grell Philosopher")
+	grell := corpusAlternativeCard(t, "Grell Philosopher")
 	rock := card(t, "Name:Red Rock\nManaCost:2\nTypes:Artifact\nA:AB$ Draw | Cost$ R | NumCards$ 1 | SpellDescription$ Draw a card.\nOracle:x\n")
 	e, cfg := tokenReplGameSeats(t, 9204, []*cards.Card{grell}, []*cards.Card{rock})
 	rockID := moveSeededCard(t, e, 1, rock, state.ZBattlefield)

@@ -189,10 +189,20 @@ func TestEncoreLockstep(t *testing.T) {
 		}
 	}
 	st := &kencoreStats{}
+	skipped := 0
 	for _, g := range kencoreGroups {
 		t.Run(g.name, func(t *testing.T) {
+			defer func() {
+				if t.Skipped() {
+					skipped++
+				}
+			}()
 			lockstepRunPolicy(t, "encore", kencoreDecks(g), seeds, true, nil, nil, kencorePolicy(st))
 		})
+	}
+	// Without a corpus every group skips; the counts below would then judge games that never ran (fresh-clone-check).
+	if skipped == len(kencoreGroups) {
+		t.Skip("every encore group skipped (no corpus)")
 	}
 	t.Logf("%d encore activations, %d attack requirements on encore copies", len(st.acts), st.marks)
 	for _, name := range kencoreNames {

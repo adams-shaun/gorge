@@ -50,11 +50,11 @@ func TestRingTemptsYouAsksAndAppliesTheChosenBearer(t *testing.T) {
 	if d.Player != 0 || d.Min != 1 || d.Max != 1 || len(d.Options) != 2 {
 		t.Fatalf("decision = %+v, want seat 0 choose-one over two creatures", d)
 	}
-	optionObjOrFail(t, d, bear)
+	objOptionIndex(t, d, bear)
 	if n := len(ringTemptsFrom(e, mark)); n != 0 || e.G.Players[0].RingTempted != 0 {
 		t.Fatalf("emitted %d temptations (count %d) while the ask is posed", n, e.G.Players[0].RingTempted)
 	}
-	if d := answerChoices(t, e, optionObjOrFail(t, d, gorilla)); d != nil {
+	if d := answerChoices(t, e, objOptionIndex(t, d, gorilla)); d != nil {
 		t.Fatalf("unexpected follow-up %+v", d)
 	}
 	evs := ringTemptsFrom(e, mark)
@@ -82,7 +82,7 @@ func TestRingTemptsYouCanKeepTheExistingBearer(t *testing.T) {
 	if d == nil || d.ResumeKind != "ring_bearer" {
 		t.Fatalf("decision = %+v, want a ring_bearer ask", d)
 	}
-	if d := answerChoices(t, e, optionObjOrFail(t, d, gorilla)); d != nil {
+	if d := answerChoices(t, e, objOptionIndex(t, d, gorilla)); d != nil {
 		t.Fatalf("unexpected follow-up %+v", d)
 	}
 	if p := e.G.Players[0]; p.RingTempted != 2 || p.RingBearer != gorilla {

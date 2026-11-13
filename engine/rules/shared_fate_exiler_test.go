@@ -94,7 +94,7 @@ func TestSharedFateExilerMayCastFromExile(t *testing.T) {
 		t.Error("mayPlaySpellIds must offer the exiled card to seat 0 and not to seat 1")
 	}
 	addMana(t, e, 0, "G")
-	if !hasCastOptionFor(e, mid) {
+	if !castOffered(e, mid) {
 		t.Fatalf("no cast option for the exiled card: %+v", e.Pending())
 	}
 	e.beginCast(0, castOptionFor(t, e, mid))

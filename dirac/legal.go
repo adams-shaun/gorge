@@ -979,12 +979,17 @@ func severalTargets(k *prep, c CardID) bool {
 }
 
 // altAddFreePart: card c's either-or additional cost has a part with no mana
-// that can be paid (a creature to sacrifice).
+// that can be paid (a creature to sacrifice). The candidates exclude the card
+// being cast (o): for a cast the card is on the stack while its cost is paid,
+// so it can never pay its own exile or sacrifice fodder (gorge pay
+// NonManaCastable's cast self-skip, CR 601.2a/h) -- a may-play cast from the
+// graveyard (Ark of Hunger's permission) whose only other grave card is a
+// third one must price the mana part, not the exile part.
 func (s *State) altAddFreePart(k *prep, p uint8, c CardID, o Obj) bool {
 	cd := &k.t.Cards[c]
 	ac := spellAddCost(k, c)
-	return manaEmpty(&ac.Mana) && s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p, c, o) && s.altAddPartDisjoint(k, p, c, o, ac) ||
-		manaEmpty(&cd.AltAddCost.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost, NoObj) && s.altAddPartDisjoint(k, p, c, o, &cd.AltAddCost)
+	return manaEmpty(&ac.Mana) && s.pickCostPayable(k, p, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p, c, o) && s.altAddPartDisjoint(k, p, c, o, ac) ||
+		manaEmpty(&cd.AltAddCost.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost, o) && s.altAddPartDisjoint(k, p, c, o, &cd.AltAddCost)
 }
 
 // altAddPartDisjoint: the permanents a part sacrifices or taps are not the
@@ -1118,12 +1123,13 @@ func spellAb(k *prep, c CardID) uint8 {
 }
 
 // spellTargetsFeasibleFrom is spellTargetsFeasible for the spell card o, cast
-// from the graveyard: o is on the stack by the time its targets are chosen, so
-// it is no candidate for them (gorge castTargetsAvailable names the cast card).
+// from the graveyard or exile: o is on the stack by the time its targets are
+// chosen, so it is no candidate for them (CR 115.5, 601.2a; gorge
+// castTargetsAvailable names the cast card in every zone).
 // Flashback under The Dawning Archaic with no other instant or sorcery in the
 // graveyard has no target and is not offered.
 func (s *State) spellTargetsFeasibleFrom(k *prep, c CardID, p uint8, o Obj) bool {
-	if s.objs[o].zone != kop.ZoneGraveyard {
+	if z := s.objs[o].zone; z != kop.ZoneGraveyard && z != kop.ZoneExile {
 		return s.spellTargetsFeasible(k, c, p)
 	}
 	s.g.tgtSelf = uint8(o) + 1
@@ -1726,6 +1732,12 @@ func (s *State) applyPriority(k *prep, a Action) {
 	}
 	if grants && !grantFirst {
 		s.grantPrefix(k, a, p) // a play only a granted mana ability pays (script_gen.go)
+		if s.npend != 0 {
+			s.flushPrefixTriggers(k)
+		}
+	}
+	if a.Kind() == AkActivate && k.gen != nil && k.gen.rs != nil && k.gen.rs.chosenPair {
+		s.chosenPairPrefix(k, a, p) // a play only a chosen-colour pair pays (mana_chosenprefix.go)
 		if s.npend != 0 {
 			s.flushPrefixTriggers(k)
 		}

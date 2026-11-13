@@ -709,11 +709,15 @@ func (s *State) waterbendCastWindow(k *prep, e *stackEntry, cost, full *kop.Mana
 			hide = hide.with(s.objs[o].slot)
 		}
 	}
-	occ := s.occ
 	s.occ = s.occ.andNot(hide)
 	s.windowTapUseful(k, e.ctrl, cost, full, true, anyColor, s.bld().pipN == 0, false)
-	s.occ = occ
+	s.unhide(hide)
 }
+
+// unhide makes the slots a payment window withheld from s.occ visible again.
+// Only those bits come back: a permanent the window itself sacrificed stays
+// off the battlefield, which restoring the pre-window mask would undo.
+func (s *State) unhide(h slotMask) { s.occ = s.occ.or(h) }
 
 // payWaterbend taps the announced permanents in pick order after the mana
 // cost is paid (gorge EmitConvokeTaps); a pick that has left the

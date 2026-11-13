@@ -71,7 +71,7 @@ type Player struct {
 	Counters []Counter
 
 	// LastUpkeepTurn records the turn of this seat's most recent upkeep,
-	// written by events.Apply's StepChange case when the Draw step begins
+	// written by events.Apply's StepChange case when the upkeep step ends
 	// (the turn's upkeep has just completed, so acquisitions made during
 	// that upkeep itself still count as "since the beginning of your most
 	// recent upkeep" — kw:Echo's gate, CR 702.35a — via the AcqStep half of

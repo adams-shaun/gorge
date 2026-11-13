@@ -61,8 +61,8 @@ func TestKillerHalfIsCastable(t *testing.T) {
 		t.Fatalf("precondition: split card zone=%s, want hand", z)
 	}
 	addMana(t, e, 0, "RRRR")
-	plain := splitOption(t, e, id, "")
-	alt := splitOption(t, e, id, "split_alt")
+	plain := adventureOption(t, e, id, "")
+	alt := adventureOption(t, e, id, "split_alt")
 	if plain == nil || plain.Label != "Cast Coward" {
 		t.Fatalf("front-half offer missing/renamed: %+v", castOptions(t, e))
 	}
@@ -137,16 +137,16 @@ func TestGallifreyFallsFuseCastsBothHalves(t *testing.T) {
 	// {2}{W} on top and must NOT be offered. (No More alone is not payable
 	// either, so only the front half shows.)
 	addMana(t, e, 0, "RRRRRRR")
-	if splitOption(t, e, id, "fuse") != nil {
+	if adventureOption(t, e, id, "fuse") != nil {
 		t.Fatalf("fused cast offered for {4}{R}{R} alone, want the summed {6}{R}{R}{W}: %+v", castOptions(t, e))
 	}
-	if splitOption(t, e, id, "") == nil {
+	if adventureOption(t, e, id, "") == nil {
 		t.Fatalf("front half not offered at its own {4}{R}{R}: %+v", castOptions(t, e))
 	}
 
 	// Add the {2}{W}: now the fused cast is offered.
 	addMana(t, e, 0, "WW")
-	fuse := splitOption(t, e, id, "fuse")
+	fuse := adventureOption(t, e, id, "fuse")
 	if fuse == nil {
 		t.Fatalf("fused offer missing at the summed cost: %+v", castOptions(t, e))
 	}

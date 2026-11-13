@@ -74,13 +74,6 @@ type rpTally struct {
 	etbOn                            map[state.ObjID]bool // a source whose enters trigger is on the stack
 }
 
-func rpName(g *state.Game, id state.ObjID) string {
-	if o := g.Obj(id); o != nil && o.Face() != nil {
-		return o.Face().Name
-	}
-	return ""
-}
-
 func (p *rpTally) check(ref *GorgeSide, _ Side) *Divergence {
 	g := ref.E.G
 	evs := ref.E.L.Events
@@ -116,7 +109,7 @@ func (p *rpTally) check(ref *GorgeSide, _ Side) *Divergence {
 			}
 		}
 		if e.From == state.ZBattlefield {
-			if n := rpName(g, e.Obj); n == "Journey to Nowhere" || n == "Mesmeric Fiend" {
+			if n := chName(g, e.Obj); n == "Journey to Nowhere" || n == "Mesmeric Fiend" {
 				if p.etbOn[e.Obj] {
 					p.early++
 				}

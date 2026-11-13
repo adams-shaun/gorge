@@ -35,7 +35,7 @@ func attackPropSeatUnequal(t *testing.T, propName string) (*Engine, state.ObjID)
 	cfg := Config{Seed: 719, Names: []string{"a", "b", "c"},
 		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40)}}
 	e := New(cfg)
-	onBoardCard(t, e, 0, mshCorpusCard(t, propName))
+	onBoardCard(t, e, 0, corpusAlternativeCard(t, propName))
 	bear := onBoardReady(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:0/4\nOracle:x\n")
 	onBoardCard(t, e, 1, unequalDualLandScript(t))
 	e.G.Active = 1
@@ -108,7 +108,7 @@ func TestAttackPropPaysTheSelectedAlternative(t *testing.T) {
 func TestBlockPropPaysTheSelectedAlternative(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
-	qal := onBoardCard(t, e, 0, mshCorpusCard(t, "Qal Sisma Behemoth"))
+	qal := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Qal Sisma Behemoth"))
 	land := onBoardCard(t, e, 0, unequalDualLandScript(t))
 	bear := onBoardReady(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:0/4\nOracle:x\n")
 	attackSeat0(t, e, bear)

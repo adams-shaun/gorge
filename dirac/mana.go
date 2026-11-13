@@ -317,6 +317,7 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 		if pc.manaOne {
 			s.addOneColour(a, pc.manaN)
 		}
+		s.addReflectOne(k, a, sl, pc)
 		if k.gen != nil && k.gen.anyTapExtra {
 			xv := s.srcExtra(k, sl, pc)
 			for c := range xv {
@@ -501,9 +502,32 @@ func (a *avail) hybWitnessRider(cost kop.ManaCost, x int, anyColor bool) kop.Man
 // Elves under two Priests of Titania pays 22.
 const maxXAsk = 60
 
-// maxX is the largest X a can pay for cost (bounded by maxXAsk).
+// maxX is the largest X a can pay for cost (bounded by maxXAsk). With L = 0
+// xLcredit prices cost at AtX(0), which differs from cost only in the fields
+// affords never reads (X, XRed, XPip), so the search is the plain one.
 func (a *avail) maxX(cost *kop.ManaCost, pipMask uint8) int {
-	if !a.affords(cost, pipMask, 0) {
+	return a.maxXLeft(cost, 0, pipMask)
+}
+
+// maxXAnyColor is maxX under the any-colour rider.
+func (a *avail) maxXAnyColor(cost *kop.ManaCost) int {
+	return a.maxXAnyColorLeft(cost, 0)
+}
+
+// xLcredit folds cost's {X} at x and takes L generic off: the restricted
+// mana's leftover pays into {X} (CR 106.6).
+func xLcredit(cost kop.ManaCost, x int, L uint8) kop.ManaCost {
+	c := cost.AtX(x)
+	c.Generic -= uint8(min(int(L), int(c.Generic)))
+	return c
+}
+
+// maxXLeft is maxX with the restricted leftover L credited to cost's {X}
+// (CR 106.6): every check prices AtX(x) with L generic off, so the units the
+// fixed pips and generic could not fold still buy X.
+func (a *avail) maxXLeft(cost *kop.ManaCost, L uint8, pipMask uint8) int {
+	c := xLcredit(*cost, 0, L)
+	if !a.affords(&c, pipMask, 0) {
 		return -1
 	}
 	x := 0
@@ -512,7 +536,7 @@ func (a *avail) maxX(cost *kop.ManaCost, pipMask uint8) int {
 		return 0
 	}
 	for x < maxXAsk {
-		next := cost.AtX(x + 1)
+		next := xLcredit(cost.AtX(x+1), 0, L)
 		if !a.affords(&next, pipMaskOf(&next), 0) {
 			break
 		}
@@ -521,9 +545,10 @@ func (a *avail) maxX(cost *kop.ManaCost, pipMask uint8) int {
 	return x
 }
 
-// maxXAnyColor is maxX under the any-colour rider.
-func (a *avail) maxXAnyColor(cost *kop.ManaCost) int {
-	if !a.affordsAnyColor(cost, 0) {
+// maxXAnyColorLeft is maxXLeft under the any-colour rider.
+func (a *avail) maxXAnyColorLeft(cost *kop.ManaCost, L uint8) int {
+	c := xLcredit(*cost, 0, L)
+	if !a.affordsAnyColor(&c, 0) {
 		return -1
 	}
 	x := 0
@@ -532,7 +557,7 @@ func (a *avail) maxXAnyColor(cost *kop.ManaCost) int {
 		return 0
 	}
 	for x < maxXAsk {
-		next := cost.AtX(x + 1)
+		next := xLcredit(cost.AtX(x+1), 0, L)
 		if !a.affordsAnyColor(&next, 0) {
 			break
 		}
@@ -1252,7 +1277,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				// shared census listed at its battlefield position
 				// (rules setPaymentPlanUnitAlt), whatever its colours
 				// (mana_imprint.go)
-				choice := (pc.manaCol == kop.ColAny || bits.OnesCount8(mask) > 1 || pc.manaChosen) && !pc.manaMulti && !pc.manaFixedChosen && !(pc.manaRefl && debugImprintMutate != 2)
+				choice := (pc.manaCol == kop.ColAny || bits.OnesCount8(mask) > 1 || pc.manaChosen || pc.manaIdent) && !pc.manaMulti && !pc.manaFixedChosen && !(pc.manaRefl && debugImprintMutate != 2)
 				if choice && k.gen != nil && k.gen.blgOn && pc.manaCol == kop.ColAny && s.blgMask(k, sl) != 0 {
 					// a Produced$ Any land with a granted basic land type
 					// also has the intrinsic abilities, which are

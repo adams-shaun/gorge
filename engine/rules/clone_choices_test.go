@@ -51,16 +51,6 @@ func cloneCreatureChoice(d *decision.Decision) bool {
 	return true
 }
 
-// cloneOptionFor returns the option index naming obj, or -1.
-func cloneOptionFor(d *decision.Decision, obj state.ObjID) int {
-	for _, o := range d.Options {
-		if o.Obj == obj {
-			return o.Index
-		}
-	}
-	return -1
-}
-
 // TestCloneChoicesPosesRealAsk is the core pin: Choices$ poses a real ask
 // whose TWO creature options are the two placed bears, and the copy follows
 // the answered pick (Beta, the second), not the deterministic-first Alpha.
@@ -97,8 +87,8 @@ func TestCloneChoicesPosesRealAsk(t *testing.T) {
 	if got := len(d.Options); got != 2 {
 		t.Fatalf("Choices$ offered %d options, want exactly the 2 placed creatures: %+v", got, d.Options)
 	}
-	betaIdx := cloneOptionFor(d, beta)
-	alphaIdx := cloneOptionFor(d, alpha)
+	betaIdx := indexOfObjOption(d, beta)
+	alphaIdx := indexOfObjOption(d, alpha)
 	if betaIdx < 0 || alphaIdx < 0 {
 		t.Fatalf("Choices$ options %+v do not cover both bears (%d, %d)", d.Options, alpha, beta)
 	}
@@ -151,7 +141,7 @@ func TestCloneChoicesAnswerSurvivesOptionalAsk(t *testing.T) {
 	if !cloneCreatureChoice(d) {
 		t.Fatalf("expected the Choices$ KChoose first, got %+v", d)
 	}
-	betaIdx := cloneOptionFor(d, beta)
+	betaIdx := indexOfObjOption(d, beta)
 	if betaIdx < 0 {
 		t.Fatalf("Choices$ options %+v do not include Beta %d", d.Options, beta)
 	}

@@ -32,7 +32,7 @@ func TestGrantedDelayedSpellCastResolvesOnGrantor(t *testing.T) {
 	if got := len(e.G.Stack); got != 2 {
 		t.Fatalf("stack size = %d, want the cast and its copy (stack %v)", got, e.G.Stack)
 	}
-	if got := copiedSpells(e); got != 1 {
+	if got := copiesOnStack(e); got != 1 {
 		t.Fatalf("stack has %d copied spells, want exactly 1 (stack %v)", got, e.G.Stack)
 	}
 	if len(e.G.Delayed) != 0 {
@@ -119,7 +119,7 @@ func TestGrantedDelayedSpellCastSurvivesGrantorLeaving(t *testing.T) {
 	addMana(t, e, 0, "U")
 	castNamed(t, e, "Opt")
 	passUntilCopy(t, e)
-	if got := copiedSpells(e); got != 1 {
+	if got := copiesOnStack(e); got != 1 {
 		t.Fatalf("stack has %d copied spells after the grantor left, want 1 (stack %v)", got, e.G.Stack)
 	}
 	drainGrantedStack(t, e, 60)
@@ -227,7 +227,7 @@ func assertGrantedDelayedRegistration(t *testing.T, e *Engine, tok state.ObjID) 
 func passUntilCopy(t *testing.T, e *Engine) {
 	t.Helper()
 	for i := 0; i < 20; i++ {
-		if copiedSpells(e) > 0 {
+		if copiesOnStack(e) > 0 {
 			return
 		}
 		d := e.Pending()
@@ -240,17 +240,6 @@ func passUntilCopy(t *testing.T, e *Engine) {
 		passPriorityOnce(t, e)
 	}
 	t.Fatalf("no copied spell reached the stack (stack %v)", e.G.Stack)
-}
-
-// copiedSpells counts the copied spells on the stack.
-func copiedSpells(e *Engine) int {
-	n := 0
-	for _, id := range e.G.Stack {
-		if o := e.G.Obj(id); o != nil && o.IsCopy {
-			n++
-		}
-	}
-	return n
 }
 
 // delayedPushCount counts the DelayedPush events in the engine's whole log.

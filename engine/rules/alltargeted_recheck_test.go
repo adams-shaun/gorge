@@ -12,7 +12,7 @@ import (
 // resolution, even though it is still on the battlefield.
 func TestWaytaCastSubTargetRecheckedAfterResponse(t *testing.T) {
 	t.Parallel()
-	waytaSrc := alltargetedCorpusText(t, "w/wayta_trainer_prodigy.txt")
+	waytaSrc := corpusCardText(t, "w/wayta_trainer_prodigy.txt")
 	e, _, _ := newFixtureDeckWithOpponentCard(t, 86, waytaSrc, atBearSrc, atBearSrc)
 	wayta := moveSeeded(t, e, 0, waytaSrc, state.ZBattlefield)
 	fighter := putCreature(t, e, 0, atBearSrc)

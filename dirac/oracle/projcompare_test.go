@@ -159,7 +159,7 @@ func TestChoosesHaveNoOther(t *testing.T) {
 				t.Fatal(err)
 			}
 			for seed := uint64(1); seed <= 16; seed++ {
-				m, err := NewMatchup(reg, [2]string{c.set + "-a", c.set + "-b"}, cascadeDecksOf(t, reg, md), 1)
+				m, err := NewMatchup(reg, [2]string{c.set + "-a", c.set + "-b"}, kcastDeck(t, reg, md), 1)
 				if err != nil {
 					t.Fatal(err)
 				}

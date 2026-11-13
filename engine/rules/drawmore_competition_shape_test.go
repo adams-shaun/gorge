@@ -36,7 +36,7 @@ func TestGatedDrawMoreStillAsksTheOrder(t *testing.T) {
 			if d == nil || d.Kind != decision.KReplacement {
 				t.Fatalf("reedFirst=%v: a gated draw-more competition must park the CR 616.1 order ask, got %+v", reedFirst, d)
 			}
-			ri, ti := optionForObj(d, reed), optionForObj(d, tr)
+			ri, ti := indexOfObjOption(d, reed), indexOfObjOption(d, tr)
 			if ri < 0 || ti < 0 {
 				t.Fatalf("reedFirst=%v: ask must offer both replacements, got %+v", reedFirst, d.Options)
 			}

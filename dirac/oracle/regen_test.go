@@ -168,7 +168,7 @@ func (p *regenScenario) Pick(c *PickCtx) Canon {
 	case DAttackers:
 		p.blockPicked = false
 		if d.Player == 0 {
-			if bear := p.find(g, "Dragon-Scarred Bear", 0); bear != nil {
+			if bear := reproBattlefieldObj(g, "Dragon-Scarred Bear", 0); bear != nil {
 				ref := c.G.InstRef(bear.ID)
 				for _, a := range d.Options {
 					if a.Kind() == ActAttack && a.Src() == ref {
@@ -180,7 +180,7 @@ func (p *regenScenario) Pick(c *PickCtx) Canon {
 		return pickKind(c, ActDone)
 	case DBlockers:
 		if d.Player == 1 && !p.blockPicked {
-			if bear := p.find(g, "Dragon-Scarred Bear", 0); bear != nil && bear.IsAttacking {
+			if bear := reproBattlefieldObj(g, "Dragon-Scarred Bear", 0); bear != nil && bear.IsAttacking {
 				ref := c.G.InstRef(bear.ID)
 				for _, a := range d.Options {
 					if a.Kind() == ActBlock && a.Tgt() == ref {
@@ -198,7 +198,7 @@ func (p *regenScenario) Pick(c *PickCtx) Canon {
 }
 
 func (p *regenScenario) priority(c *PickCtx, g *state.Game) Canon {
-	bear := p.find(g, "Dragon-Scarred Bear", 0)
+	bear := reproBattlefieldObj(g, "Dragon-Scarred Bear", 0)
 	if bear != nil && bear.IsAttacking && g.Step == state.StepDeclareBlockers && !p.fired {
 		bearRef := c.G.InstRef(bear.ID)
 		if bear.Counter("Shield") == 0 {
@@ -210,7 +210,7 @@ func (p *regenScenario) priority(c *PickCtx, g *state.Game) Canon {
 					return a
 				}
 			}
-		} else if a, ok := p.cast(c, g, 0, "Fated Conflagration"); ok {
+		} else if a, ok := reproHandCastAction(c, g, 0, "Fated Conflagration"); ok {
 			p.fired = true
 			p.bearID = bear.ID
 			p.wantTarget = true
@@ -222,17 +222,17 @@ func (p *regenScenario) priority(c *PickCtx, g *state.Game) Canon {
 		return a
 	}
 	if p.count(g, "Dragon-Scarred Bear", 0) == 0 {
-		if a, ok := p.cast(c, g, 0, "Dragon-Scarred Bear"); ok {
+		if a, ok := reproHandCastAction(c, g, 0, "Dragon-Scarred Bear"); ok {
 			return a
 		}
 	}
 	if p.count(g, "Kree Sentinel", 0) == 0 {
-		if a, ok := p.cast(c, g, 0, "Kree Sentinel"); ok {
+		if a, ok := reproHandCastAction(c, g, 0, "Kree Sentinel"); ok {
 			return a
 		}
 	}
 	if c.D.Player == 1 {
-		if a, ok := p.cast(c, g, 1, "Grizzly Bears"); ok {
+		if a, ok := reproHandCastAction(c, g, 1, "Grizzly Bears"); ok {
 			return a
 		}
 	}
@@ -240,21 +240,6 @@ func (p *regenScenario) priority(c *PickCtx, g *state.Game) Canon {
 		return a
 	}
 	return c.D.Options[0]
-}
-
-// find returns the first battlefield permanent named name controlled by
-// ctrl, in arena order (deterministic).
-func (p *regenScenario) find(g *state.Game, name string, ctrl state.PlayerID) *state.Object {
-	for i := range g.Objs {
-		o := &g.Objs[i]
-		if o.Zone != state.ZBattlefield || o.Controller != ctrl || o.Card == nil {
-			continue
-		}
-		if f := o.Face(); f != nil && f.Name == name {
-			return o
-		}
-	}
-	return nil
 }
 
 func (p *regenScenario) count(g *state.Game, name string, ctrl state.PlayerID) int {
@@ -269,24 +254,6 @@ func (p *regenScenario) count(g *state.Game, name string, ctrl state.PlayerID) i
 		}
 	}
 	return n
-}
-
-// cast finds the canonical cast option of a name card in ctrl's hand.
-func (p *regenScenario) cast(c *PickCtx, g *state.Game, ctrl state.PlayerID, name string) (Canon, bool) {
-	for i := range g.Objs {
-		o := &g.Objs[i]
-		if o.Zone != state.ZHand || o.Owner != ctrl || o.Card == nil {
-			continue
-		}
-		if f := o.Face(); f == nil || f.Name != name {
-			continue
-		}
-		ref := c.G.InstRef(o.ID)
-		if a, ok := findAction(c, func(a Canon) bool { return a.Kind() == ActCast && a.Src() == ref }); ok {
-			return a, true
-		}
-	}
-	return 0, false
 }
 
 func findAction(c *PickCtx, match func(Canon) bool) (Canon, bool) {

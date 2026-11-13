@@ -78,7 +78,7 @@ func TestTargetedGateLeavesAPreAskSASubRunnable(t *testing.T) {
 			}
 			var choice []int
 			if tc.pick {
-				choice = []int{optionObjOrFail(t, d, bear)}
+				choice = []int{objOptionIndex(t, d, bear)}
 			}
 			if d := answerChoices(t, e, choice...); d != nil {
 				t.Fatalf("unexpected follow-up %+v", d)
@@ -236,7 +236,7 @@ func TestVerdantCrescendoSearchesItsCompoundOrigin(t *testing.T) {
 	if !has(libNissa) || !has(graveNissa) {
 		t.Fatalf("options = %v, want both compound-origin candidates %d and %d", offered, libNissa, graveNissa)
 	}
-	d = answerChoices(t, e, optionObjOrFail(t, d, graveNissa))
+	d = answerChoices(t, e, objOptionIndex(t, d, graveNissa))
 	for d != nil {
 		d = answerChoices(t, e, tapePick(d)...)
 	}
@@ -281,7 +281,7 @@ func TestMemoryLeakCompoundFetchPlayerChoosesFromBothZones(t *testing.T) {
 	if !seen[hand] || !seen[grave] || seen[other] {
 		t.Fatalf("options = %+v, want the targeted player's hand and graveyard only", d.Options)
 	}
-	d = answerChoices(t, e, optionObjOrFail(t, d, grave))
+	d = answerChoices(t, e, objOptionIndex(t, d, grave))
 	for d != nil {
 		d = answerChoices(t, e, tapePick(d)...)
 	}

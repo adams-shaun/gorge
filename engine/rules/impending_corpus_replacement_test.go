@@ -11,8 +11,8 @@ import (
 // replacement path as the focused inline fixture.
 func TestImpendingEntryTimeCountersApplyDoublingSeasonOnCorpusCard(t *testing.T) {
 	t.Parallel()
-	season := tokenReplCorpusCard(t, "Doubling Season")
-	carrier := tokenReplCorpusCard(t, "Overlord of the Balemurk")
+	season := corpusAlternativeCard(t, "Doubling Season")
+	carrier := corpusAlternativeCard(t, "Overlord of the Balemurk")
 	e, cfg := tokenReplGame(t, 9877, season, carrier)
 
 	seasonID := moveSeededCard(t, e, 0, season, state.ZBattlefield)

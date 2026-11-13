@@ -23,22 +23,10 @@ func confrontEngine(t *testing.T) (e *Engine, confront, bear state.ObjID) {
 	reg := searchTestRegistry(t)
 	ctat := searchCorpusCard(t, reg, "Confront the Assault")
 	e, _ = activationDeck(t, 4412, []*cards.Card{ctat}, []*cards.Card{card(t, actPhaseAllyBearSrc)})
-	confront = confrontHandOrMove(t, e, 0, "Confront the Assault")
-	bear = confrontHandOrMove(t, e, 1, "Ally Bear")
+	confront = handByName(t, e, 0, "Confront the Assault")
+	bear = handByName(t, e, 1, "Ally Bear")
 	confrontToBattlefield(t, e, bear)
 	return e, confront, bear
-}
-
-// confrontHandOrMove returns the named card's id, moving it to seat p's hand from the
-// library when the opening hand did not already hold it.
-func confrontHandOrMove(t *testing.T, e *Engine, p state.PlayerID, name string) state.ObjID {
-	t.Helper()
-	for _, id := range e.G.Zone(state.ZHand, p) {
-		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
-			return id
-		}
-	}
-	return moveByName(t, e, p, name, state.ZHand)
 }
 
 func confrontToBattlefield(t *testing.T, e *Engine, id state.ObjID) {
@@ -77,7 +65,7 @@ func TestSpellIsPresentGatesCast(t *testing.T) {
 		if o := e.G.Obj(bear); o.IsAttacking {
 			t.Fatal("precondition: the bear is attacking on turn 1")
 		}
-		fundPoolSeat(t, e, 0, "WWWWW")
+		addManaQuiet(t, e, 0, "WWWWW")
 		if d := e.Pending(); d == nil || d.Kind != decision.KPriority || d.Player != 0 {
 			t.Fatalf("precondition: want seat 0 priority, got %+v", d)
 		}
@@ -96,7 +84,7 @@ func TestSpellIsPresentGatesCast(t *testing.T) {
 		if o := e.G.Obj(bear); !o.IsAttacking || o.Attacking != 0 {
 			t.Fatalf("precondition: bear attacking=%v defender=%d, want attacking seat 0", o.IsAttacking, o.Attacking)
 		}
-		fundPoolSeat(t, e, 0, "WWWWW")
+		addManaQuiet(t, e, 0, "WWWWW")
 		if !castOffered(e, confront) {
 			t.Fatalf("Confront the Assault not offered while a creature attacks seat 0: %+v", e.Pending())
 		}
@@ -110,7 +98,7 @@ func TestSpellIsPresentGatesCast(t *testing.T) {
 		if o := e.G.Obj(bear); o.Zone != state.ZBattlefield || o.IsAttacking {
 			t.Fatalf("precondition: bear zone=%v attacking=%v", o.Zone, o.IsAttacking)
 		}
-		fundPoolSeat(t, e, 0, "WWWWW")
+		addManaQuiet(t, e, 0, "WWWWW")
 		if d := e.Pending(); d == nil || d.Kind != decision.KPriority || d.Player != 0 {
 			t.Fatalf("precondition: want seat 0 priority, got %+v", d)
 		}

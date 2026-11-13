@@ -94,7 +94,7 @@ func assertSingleRoll(t *testing.T, e *Engine, stone state.ObjID, wantCount, wan
 // 1-6 result kept, no ignore marker and no replacement (no Ichor in play).
 func TestFracturedPowerstoneRollsThePlanarDie(t *testing.T) {
 	t.Parallel()
-	stone := tokenReplCorpusCard(t, "Fractured Powerstone")
+	stone := corpusAlternativeCard(t, "Fractured Powerstone")
 	e, cfg := tokenReplGame(t, 9204, stone)
 	id := moveSeededCard(t, e, 0, stone, state.ZBattlefield)
 	rollThePlanarDie(t, e, id)
@@ -121,8 +121,8 @@ func TestFracturedPowerstoneRollsThePlanarDie(t *testing.T) {
 // Notes plus the ignore Note.
 func TestIchorElixirRollsOneMoreAndIgnoresOne(t *testing.T) {
 	t.Parallel()
-	stone := tokenReplCorpusCard(t, "Fractured Powerstone")
-	elixir := tokenReplCorpusCard(t, "Ichor Elixir")
+	stone := corpusAlternativeCard(t, "Fractured Powerstone")
+	elixir := corpusAlternativeCard(t, "Ichor Elixir")
 	e, cfg := tokenReplGame(t, 9205, stone, elixir)
 	id := moveSeededCard(t, e, 0, stone, state.ZBattlefield)
 	moveSeededCard(t, e, 0, elixir, state.ZBattlefield)
@@ -150,8 +150,8 @@ func TestIchorElixirRollsOneMoreAndIgnoresOne(t *testing.T) {
 // stays a bare one-die roll with no ignore marker.
 func TestIchorElixirValidPlayerScopesTheRoll(t *testing.T) {
 	t.Parallel()
-	stone := tokenReplCorpusCard(t, "Fractured Powerstone")
-	elixir := tokenReplCorpusCard(t, "Ichor Elixir")
+	stone := corpusAlternativeCard(t, "Fractured Powerstone")
+	elixir := corpusAlternativeCard(t, "Ichor Elixir")
 	e, cfg := tokenReplGameSeats(t, 9206, []*cards.Card{stone}, []*cards.Card{elixir})
 	id := moveSeededCard(t, e, 0, stone, state.ZBattlefield)
 	moveSeededCard(t, e, 1, elixir, state.ZBattlefield)

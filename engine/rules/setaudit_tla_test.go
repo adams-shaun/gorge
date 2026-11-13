@@ -459,21 +459,6 @@ func tlaAnswerTargetsAndPass(t *testing.T, e *Engine, p state.PlayerID, limit in
 // (c) Scry trigger on a library look -- Planetarium of Wan Shi Tong (finding)
 // ---------------------------------------------------------------------------
 
-// tlaTriggerPushes counts the trigger pushes whose source is id: the direct
-// "did this permanent's triggered ability reach the stack" observable, the
-// same one anchorTriggerPushes (temporal_anchor_test.go) uses. A bare Scry
-// never emits a TriggerPush, so unlike a Note this cannot be satisfied by the
-// scry primitive itself.
-func tlaTriggerPushes(e *Engine, id state.ObjID) int {
-	n := 0
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.TriggerPush && ev.Obj == id {
-			n++
-		}
-	}
-	return n
-}
-
 // TestSetAudit_tla_Planetarium_ScryTriggerLooksAtTop pins the library half of
 // "Whenever you scry or surveil, look at the top card of your library. You may
 // cast that card without paying its mana cost. Do this only once each turn."
@@ -544,7 +529,7 @@ func TestSetAudit_tla_Planetarium_ScryTriggerLooksAtTop(t *testing.T) {
 	}
 	// The trigger-only observable: the trigger must reach the stack. A bare
 	// scry never emits a TriggerPush for the activating permanent.
-	if n := tlaTriggerPushes(e, p); n == 0 {
+	if n := pushCount(e, p); n == 0 {
 		t.Fatalf("Planetarium's Mode$ Scry trigger never fired after a real scry (TriggerPush count = 0; the scry's own Note is not proof)")
 	}
 }

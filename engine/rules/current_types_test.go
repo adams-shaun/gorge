@@ -126,7 +126,7 @@ func TestCloseEncounterChoosesACurrentCreature(t *testing.T) {
 			t.Fatalf("an animated land did not enable the cost: %+v", e.Pending().Options)
 		}
 		submitChoices(t, e, pick)
-		submitChoices(t, e, optionForObj(e.Pending(), receiver))
+		submitChoices(t, e, indexOfObjOption(e.Pending(), receiver))
 		passUntilStackEmpty(t, e, 40)
 		if got := e.G.Obj(receiver).Damage; got != 4 {
 			t.Fatalf("damage %d, want the animated land's power 4", got)

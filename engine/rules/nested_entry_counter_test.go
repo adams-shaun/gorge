@@ -18,7 +18,7 @@ func TestReplacementBodyCounterReceivesAddCounterReplacement(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 
-	vori := tokenReplCorpusCard(t, "Vorinclex, Monstrous Raider")
+	vori := corpusAlternativeCard(t, "Vorinclex, Monstrous Raider")
 	e, cfg = tokenReplGame(t, 171, vori, cre)
 	v := moveSeededCard(t, e, 0, vori, state.ZBattlefield)
 	if o := e.G.Obj(v); o == nil || o.Zone != state.ZBattlefield {

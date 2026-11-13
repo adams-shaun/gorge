@@ -87,21 +87,6 @@ func sideMatchups(t *testing.T, reg *cards.Registry, set cardset.Set) []sideMatc
 	}}
 }
 
-func expandSide(t *testing.T, reg *cards.Registry, es []cardset.Entry) []*cards.Card {
-	t.Helper()
-	var out []*cards.Card
-	for _, e := range es {
-		c, ok := reg.Lookup(e.Name)
-		if !ok {
-			t.Fatalf("%s not in the corpus", e.Name)
-		}
-		for i := 0; i < e.Count; i++ {
-			out = append(out, c)
-		}
-	}
-	return out
-}
-
 // sideReach counts what the games did with the sideboards, read from gorge's
 // event log: cards moved from a sideboard to a hand (both cards' picks) and
 // into a library (Turtles Forever's put-back), and Turtles Forever casts.
@@ -119,8 +104,8 @@ func runSideSearch(t *testing.T, seeds int, mutate bool) (games, divs, stalls, f
 	for mi, md := range sideMatchups(t, reg, set) {
 		var decks, sides [2][]*cards.Card
 		for s := range md.deck {
-			decks[s] = expandSide(t, reg, md.deck[s])
-			sides[s] = expandSide(t, reg, md.side[s])
+			decks[s] = expandEntries(t, reg, md.deck[s])
+			sides[s] = expandEntries(t, reg, md.side[s])
 			if len(decks[s]) != 40 {
 				t.Fatalf("matchup %d deck %d: %d cards", mi, s, len(decks[s]))
 			}

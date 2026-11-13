@@ -32,7 +32,7 @@ func ownerReturnSource(t *testing.T) *cards.Card {
 // engine, cfg and the card's id.
 func entryPutterBoard(t *testing.T, seed uint64, replName string) (*Engine, Config, state.ObjID) {
 	t.Helper()
-	repl := tokenReplCorpusCard(t, replName)
+	repl := corpusAlternativeCard(t, replName)
 	src := ownerReturnSource(t)
 	target := card(t, "Name:Fallen Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e, cfg := tokenReplGameSeats(t, seed, []*cards.Card{repl, target}, []*cards.Card{src})

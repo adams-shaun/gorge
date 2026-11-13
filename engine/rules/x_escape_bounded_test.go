@@ -73,7 +73,7 @@ func xEscapeBoard(t *testing.T, rel string, gy int) (*Engine, state.ObjID, stati
 	}
 	var yard []state.ObjID
 	for range gy {
-		o := e.G.AddObject(mustCorpusCardT(t, "Island"), 0)
+		o := e.G.AddObject(corpusAlternativeCard(t, "Island"), 0)
 		o.Zone = state.ZGraveyard
 		yard = append(yard, o.ID)
 	}

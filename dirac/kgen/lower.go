@@ -355,6 +355,7 @@ func (lc *lowerCtx) lowerFace() {
 	// ProduceCol; lower_reflectedmana.go producibleMask): a Produce-mode
 	// reflected ability's read
 	lc.out.ProduceCol = producibleMask(lc.face)
+	lc.out.Identity = kop.ColorMask(lc.card.ColourIdentity())
 	lc.scanStorm() // lower_storm.go: K:Storm's expanded trigger, before the lines lower
 	// lower_imprintmox.go: the imprint-mox shape, before the lines lower
 	lc.imprintMox = lc.imprintMoxShape()

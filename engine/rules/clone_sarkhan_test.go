@@ -58,25 +58,13 @@ func sarkhanFixture(t *testing.T) (*Engine, Config, state.ObjID, state.ObjID, *d
 	return e, cfg, sark, drag, d
 }
 
-// optionIndexOf returns the option whose Kind is kind.
-func optionIndexOf(t *testing.T, d *decision.Decision, kind string) int {
-	t.Helper()
-	for _, o := range d.Options {
-		if o.Kind == kind {
-			return o.Index
-		}
-	}
-	t.Fatalf("no %q option in %+v", kind, d.Options)
-	return -1
-}
-
 // TestSarkhanDragonEntryPosesTheMayCopyElectionAndDeclineKeepsSarkhan is the
 // election half of the pin: the Dragon entry poses the real may-copy ask,
 // and the decline leaves Sarkhan exactly as it printed (no copy event).
 func TestSarkhanDragonEntryPosesTheMayCopyElectionAndDeclineKeepsSarkhan(t *testing.T) {
 	t.Parallel()
 	e, cfg, sark, _, d := sarkhanFixture(t)
-	no := optionIndexOf(t, d, "no")
+	no := optionKindIndex(t, d, "no")
 	submitChoices(t, e, no)
 	passUntilStackEmpty(t, e, 40)
 
@@ -233,7 +221,7 @@ func TestSarkhanLeavesBeforeTheOptionalChoiceNeverAsks(t *testing.T) {
 func TestSarkhanAcceptedCopyIsNamedLegendaryAndExpiresAtCleanup(t *testing.T) {
 	t.Parallel()
 	e, cfg, sark, drag, d := sarkhanFixture(t)
-	yes := optionIndexOf(t, d, "yes")
+	yes := optionKindIndex(t, d, "yes")
 	submitChoices(t, e, yes)
 	passUntilStackEmpty(t, e, 40)
 

@@ -138,21 +138,6 @@ func assertHenzieBoardPins(t *testing.T, e *Engine, henzie, four, three state.Ob
 	}
 }
 
-// hasCastOption reports whether the pending priority decision offers a cast
-// option for id with the given mode.
-func hasModeOption(e *Engine, id state.ObjID, mode string) bool {
-	d := e.Pending()
-	if d == nil {
-		return false
-	}
-	for _, o := range d.Options {
-		if o.Kind == "cast" && o.Obj == id && o.Mode == mode {
-			return true
-		}
-	}
-	return false
-}
-
 // resolveBlitzCasted asserts the paid blitz cast resolved onto the
 // battlefield with the CR 702.152c riders (FlagBlitzed, haste).
 func resolveBlitzCasted(t *testing.T, e *Engine, id state.ObjID) {
@@ -182,13 +167,13 @@ func TestHenzieGrantedBlitzDiscount(t *testing.T) {
 		// cost, undiscounted at count 0). Both the granted blitz and the
 		// ordinary printed-cost cast are offered at this pool.
 		addMana(t, e, 0, "GCCC")
-		if !hasModeOption(e, four, "blitzed") {
+		if !bargainHasCastMode(e, four, "blitzed") {
 			t.Fatal("no (blitzed) cast option for the mana-value-4 creature with Henzie on the battlefield")
 		}
-		if !hasModeOption(e, four, "") {
+		if !bargainHasCastMode(e, four, "") {
 			t.Fatal("ordinary printed-cost cast disappeared while the grant is active")
 		}
-		if hasModeOption(e, three, "blitzed") {
+		if bargainHasCastMode(e, three, "blitzed") {
 			t.Fatal("mana-value-3 creature received Henzie's Blitz grant")
 		}
 		submitChoices(t, e, castModeOption(t, e, four, "blitzed"))
@@ -201,7 +186,7 @@ func TestHenzieGrantedBlitzDiscount(t *testing.T) {
 		// The ordinary cast stays a real, full-priced option: fund exactly
 		// Blitz Three's printed {2}{G} and pay it -- no grant discount.
 		addMana(t, e, 0, "GGC")
-		if !hasModeOption(e, three, "") {
+		if !bargainHasCastMode(e, three, "") {
 			t.Fatal("plain cast option for the mana-value-3 creature missing")
 		}
 		submitChoices(t, e, castModeOption(t, e, three, ""))
@@ -233,17 +218,17 @@ func TestHenzieGrantedBlitzDiscount(t *testing.T) {
 		// with only {C}{C}{C} the pip-less shape {3} would be payable, so a
 		// (blitzed) option there would prove the discount ate the {G}.
 		addMana(t, e, 0, "CC")
-		if hasModeOption(e, four, "blitzed") {
+		if bargainHasCastMode(e, four, "blitzed") {
 			t.Fatal("blitz offered from a pool that cannot pay the {G} pip: the discount consumed a colored pip")
 		}
 		addMana(t, e, 0, "G")
-		if !hasModeOption(e, four, "blitzed") {
+		if !bargainHasCastMode(e, four, "blitzed") {
 			t.Fatal("no granted blitz option at exactly {2}{G}; the discount must reach the offer")
 		}
-		if hasModeOption(e, four, "") {
+		if bargainHasCastMode(e, four, "") {
 			t.Fatal("plain {3}{G} cast offered with only the discounted {2}{G} funded")
 		}
-		if hasModeOption(e, three, "blitzed") || hasModeOption(e, three, "blitzed_grant_2") {
+		if bargainHasCastMode(e, three, "blitzed") || bargainHasCastMode(e, three, "blitzed_grant_2") {
 			t.Fatal("mana-value-3 creature received Henzie's Blitz grant")
 		}
 		poolBefore := e.G.Players[0].Pool.Total()
@@ -261,11 +246,11 @@ func TestHenzieGrantedBlitzDiscount(t *testing.T) {
 			t.Fatalf("setup: plain-cast control id=%d MV=%d, want a distinct MV-4 card", plain, got)
 		}
 		addMana(t, e, 0, "GCC")
-		if hasModeOption(e, plain, "") {
+		if bargainHasCastMode(e, plain, "") {
 			t.Fatal("ordinary MV-4 cast incorrectly offered after funding only discounted {2}{G}")
 		}
 		addMana(t, e, 0, "C")
-		if !hasModeOption(e, plain, "") {
+		if !bargainHasCastMode(e, plain, "") {
 			t.Fatal("ordinary MV-4 cast missing at its full {3}{G} cost")
 		}
 		poolBefore = e.G.Players[0].Pool.Total()
@@ -291,10 +276,10 @@ func TestHenzieGrantedBlitzDiscount(t *testing.T) {
 			t.Fatal("setup: creature has Blitz without Henzie")
 		}
 		addMana(t, e, 0, "GGCC")
-		if hasModeOption(e, four, "blitzed") {
+		if bargainHasCastMode(e, four, "blitzed") {
 			t.Fatal("Blitz offered without Henzie on the battlefield")
 		}
-		if !hasModeOption(e, four, "") {
+		if !bargainHasCastMode(e, four, "") {
 			t.Fatal("control: the plain cast option itself is missing (vacuous control)")
 		}
 	})
@@ -317,10 +302,10 @@ func TestHenzieGrantedBlitzDiscount(t *testing.T) {
 		if e.G.Active != 1 {
 			t.Fatalf("setup: active seat %d, want 1", e.G.Active)
 		}
-		if hasModeOption(e, foe, "blitzed") {
+		if bargainHasCastMode(e, foe, "blitzed") {
 			t.Fatal("the opponent's mana-value-5 creature received Henzie's Blitz grant")
 		}
-		if !hasModeOption(e, foe, "") {
+		if !bargainHasCastMode(e, foe, "") {
 			t.Fatal("setup: the opponent's plain cast option is missing (vacuous control)")
 		}
 	})
@@ -341,10 +326,10 @@ func TestHenzieGrantedBlitzDiscount(t *testing.T) {
 		}
 		findCardObj(t, e, 0, "Mountain", state.ZHand) // Blitz's printed cost needs discard fodder.
 		addMana(t, e, 0, "CCCCR")
-		if hasModeOption(e, sabin, "blitzed") {
+		if bargainHasCastMode(e, sabin, "blitzed") {
 			t.Fatal("printed Sabin Blitz offered with only {4}{R}; its {2}{R}{R} and discard are not payable")
 		}
-		if !hasModeOption(e, sabin, "blitzed_grant_2") {
+		if !bargainHasCastMode(e, sabin, "blitzed_grant_2") {
 			t.Fatalf("Henzie's separate CardManaCost Blitz was not offered: %+v", e.Pending().Options)
 		}
 		poolBefore := e.G.Players[0].Pool.Total()

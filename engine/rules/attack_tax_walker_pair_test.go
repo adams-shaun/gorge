@@ -21,7 +21,7 @@ func TestPricedOutPlayerPairKeepsWalkerPair(t *testing.T) {
 	cfg := Config{Seed: 719, Names: []string{"a", "b"},
 		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}}
 	e := New(cfg)
-	onBoardCard(t, e, 0, mshCorpusCard(t, "Ghostly Prison"))
+	onBoardCard(t, e, 0, corpusAlternativeCard(t, "Ghostly Prison"))
 	walker := onBoardCard(t, e, 0, card(t, targetWalkerFixture))
 	bear := onBoardReady(t, e, 1, "Name:Taxed Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e.G.Active = 1

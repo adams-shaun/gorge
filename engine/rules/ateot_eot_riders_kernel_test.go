@@ -47,7 +47,7 @@ func TestAtEOTPurphorosHandMoveIsSacrificedAtEOTKernel(t *testing.T) {
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "hand_move" {
 		t.Fatalf("pending %+v, want the hand_move KChoose", d)
 	}
-	submitChoices(t, e, optionOfObj(t, d, gob))
+	submitChoices(t, e, objOptionIndex(t, d, gob))
 	settlePassing(e)
 	passUntilStackEmpty(t, e, 20)
 

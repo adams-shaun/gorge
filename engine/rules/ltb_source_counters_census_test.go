@@ -145,7 +145,7 @@ func TestCorpusLTBSourceCountersCensus(t *testing.T) {
 	}
 	if !got["Selfless Police Captain"] {
 		t.Fatalf("%s: precondition: %q is not a measured carrier, got %v",
-			censusLabelLTBSourceCounters, "Selfless Police Captain", sortedCensusNames(got))
+			censusLabelLTBSourceCounters, "Selfless Police Captain", sortedSetKeys(got))
 	}
 
 	var gotNames, wantNames []string

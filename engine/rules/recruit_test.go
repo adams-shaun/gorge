@@ -32,7 +32,7 @@ func recruitEngine(t *testing.T, carrier string, handExtra, lib []*cards.Card) *
 		ids = append(ids, o.ID)
 		return o.ID
 	}
-	carrierID := addHand(hobCard(t, reg, carrier))
+	carrierID := addHand(lookup(t, reg, carrier))
 	for _, c := range handExtra {
 		addHand(c)
 	}
@@ -237,7 +237,7 @@ func TestSetAudit_hob_RecruitCarriersAreSupported(t *testing.T) {
 		"Patient Instructor",
 	}
 	for _, name := range carriers {
-		c := hobCard(t, reg, name)
+		c := lookup(t, reg, name)
 		for _, miss := range reg.Unsupported(c, supported) {
 			if strings.Contains(miss, "api:Recruit") {
 				t.Errorf("%s is Unsupported [%s]", name, miss)

@@ -69,7 +69,7 @@ func teamworkQuantumFlash(t *testing.T) {
 			if d.Kind != decision.KTarget {
 				t.Fatalf("unexpected announcement decision: %+v", d)
 			}
-			submitChoices(t, e, istTargetOptionFor(d, bear))
+			submitChoices(t, e, indexOfObjOption(d, bear))
 		}
 		if pay {
 			if o := e.G.Obj(spell); o == nil || o.Zone != state.ZStack || o.CastFlags&state.FlagTeamworkPaid == 0 {

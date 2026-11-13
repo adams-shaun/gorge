@@ -19,10 +19,12 @@ import (
 //
 // gorge asks a CR 616.1 order question when two such replacements match one
 // Counter event (this spell's own plus a battlefield source, or two sources;
-// GORGE-FINDINGS.md), which the kernel does not pose (dirac.StallUncounterOrder), so
-// each matchup holds at most one source per seat: one Chimil each, or one
-// Sphinx each (the Sphinx spell itself is the lone own-replacement, a
-// battlefield Sphinx never meets its own spell).
+// GORGE-FINDINGS.md), which dirac poses in uncGate. This pool keeps one source
+// per seat (one Chimil each, or one Sphinx each; the Sphinx spell itself is
+// the lone own-replacement, a battlefield Sphinx never meets its own spell) so
+// it also covers the ordinary single-match path; the two-source and own-line
+// competitions are TestStdEclReprosLockstep/uncounter_order and
+// TestStdEclReprosLockstep/uncounter_order_own_line.
 func kuncounterDecks(source string) [2][]cardset.Entry {
 	seat := func(counters, blue []cardset.Entry) []cardset.Entry {
 		d := []cardset.Entry{{Name: source, Count: 1}}
