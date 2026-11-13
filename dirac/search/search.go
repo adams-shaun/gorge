@@ -84,8 +84,9 @@ type Stats struct {
 	// complete because AkDone was not offered.
 	ChainSteps, ChainPoints, ChainFallbacks int
 	// MaxN is 1 when this search ran its tree under max^n (Options.MaxN,
-	// maxNApplies).
-	MaxN int
+	// maxNApplies); VecLeaves counts the leaves whose value vector the
+	// evaluator wrote (VecEvaluator), not splitVec.
+	MaxN, VecLeaves int
 }
 
 // Result is one Search: the root candidates (index 0 the bot's answer),
@@ -197,6 +198,8 @@ type Searcher struct {
 	bs     BaseSetter
 	be     BatchEvaluator // Options.Batch's batched leaf value (nil: serial)
 	ve     VecEvaluator   // Options.MaxN's leaf value vector (nil: splitVec)
+	vr     VecReporter    // whether ve has a vector for the root's seats (nil: it always does)
+	veOn   bool           // this search's leaves read ve (maxNApplies, and vr agrees at the root)
 	// vec is the last leaf's value vector under max^n (maxn.go)
 	vec [dirac.MaxSeats]float64
 	// RootEval's hooks, asserted once per RootEval value; atRoot is true
@@ -340,6 +343,7 @@ func (sr *Searcher) hooks() {
 	sr.bs, _ = sr.Eval.(BaseSetter)
 	sr.be, _ = sr.Eval.(BatchEvaluator)
 	sr.ve, _ = sr.Eval.(VecEvaluator)
+	sr.vr, _ = sr.Eval.(VecReporter)
 }
 
 // BaseSetter is an evaluator that keys on dirac's change marks: it is
@@ -443,6 +447,7 @@ func (sr *Searcher) Search(root *dirac.State, seatSeed uint64) *Result {
 	}
 	sr.seat = d.Player
 	sr.t.vec = sr.maxNApplies() // maxn.go
+	sr.veOn = sr.t.vec && sr.ve != nil && (sr.vr == nil || sr.vr.HasValueVec(sr.root.NumSeats()))
 	sr.nHeld = 0
 	sr.hidOn, sr.hidMode, sr.hidDealtCommits = sr.Opts.infoOn(), hidAll, 0
 	react := sr.Opts.InstWin == InstWinReact
