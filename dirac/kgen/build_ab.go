@@ -639,6 +639,11 @@ func tgtBoundReads(v lValue) bool {
 	switch v.Kind {
 	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked, vIfCastOwnMain, vTimesKicked:
 		return true
+	case vCountersOn:
+		// the source's own counters (Vile Requiem: up to X targets, X the verse
+		// counters on CARDNAME): gorge's bound context anchors Source at the
+		// ability's object, the kernel's entry context reads it the same way
+		return v.Ref.Kind == rSelf && v.S != "ALL"
 	case vOppExtreme:
 		// the asking player's living opponents (PlayerCountPlayers$Amount
 		// is their count plus one): gorge's bound context holds the asker

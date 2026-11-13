@@ -1,0 +1,8 @@
+# the MBC counters-3 pool: Grimdancer (enters with a choice of two different
+# counters), Vile Requiem (up to X targets, X its verse counters) beside basics
+# (dirac/oracle/mbc_counters3_lowers_test.go)
+Grimdancer
+Vile Requiem
+Swamp
+Plains
+Savannah Lions
