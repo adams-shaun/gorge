@@ -137,7 +137,7 @@ func (s *State) adjustCostGenB(k *prep, p uint8, c CardID, o, priced Obj, base k
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
 		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceCost && a.Static.Zone == kop.ZoneCommand {
-			apply(a, evalCtx{src: o, srcSl: NoSlot, ctrl: p}, 0)
+			apply(a, evalCtx{src: mo, srcSl: NoSlot, ctrl: p}, 0) // (mo: the priced spell on the stack reads its announced X, CR 107.3, 601.2f)
 		}
 	}
 	if cd.SpellWaterbend != 0 {

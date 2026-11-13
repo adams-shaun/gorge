@@ -2084,6 +2084,9 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		}
 		parts := strings.Split(arg, "/")
 		if head == "Sac" && parts[0] == "X" {
+			// the third part is prompt text, which may hold a slash
+			// ("any number of artifacts and/or creatures")
+			parts = strings.SplitN(arg, "/", 3)
 			// Sac<X/Spec> (lower_xminsacx.go): the announced count
 			if err := lc.sacXCost(&c, parts, t); err != nil {
 				return c, err
@@ -2973,6 +2976,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		}
 		if sa.API == "PermanentCreature" {
 			// The permanent spell itself: only its additional cost matters.
+			ps.consume("AdditionalDesc") // display text of a self discount (Dargo's "costs {2} less ...")
 			if left := ps.unread(); len(left) > 0 {
 				return refuse("unread params %v", left)
 			}
