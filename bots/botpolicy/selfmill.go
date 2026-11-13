@@ -29,7 +29,27 @@ func (b Board) selfMillVeto(c Card) bool {
 // ranking, the subset search's candidate table and the tap gate all ask it,
 // so none of them prices or taps for a card the others refuse.
 func (b Board) castVetoed(c Card) bool {
-	return b.aiHintsVetoCast(c) || b.selfMillVeto(c)
+	return b.aiHintsVetoCast(c) || b.selfMillVeto(c) || b.payOrLoseVeto(c)
+}
+
+// payOrLoseVeto reports whether the guard refuses casting c, a spell the
+// caster must pay for at their next upkeep or lose the game (Summoner's Pact:
+// Card.PayOrLoseCost). The seat that cannot pay it then loses at once, and the
+// pay-or-lose offer (unlessManaPayOffer) can only pay what the lands reach, so
+// the cast waits for a board whose lands reach the cost on the next upkeep
+// (manaReachesFrom, conservative: lands only, a land in hand not counted). The
+// obligation of a pact already cast this turn is not on the Board, so two
+// pacts in one turn price each against the lands alone.
+func (b Board) payOrLoseVeto(c Card) bool {
+	if c.PayOrLoseCost == "" {
+		return false
+	}
+	pips := colourPips(c.PayOrLoseCost)
+	var coloured int32
+	for _, n := range pips {
+		coloured += n
+	}
+	return !b.manaReachesFrom(pips, max(CmcOf(c.PayOrLoseCost)-coloured, 0), true)
 }
 
 // emptyLibraryWinReady reports whether the seat can win once spell, a

@@ -114,6 +114,7 @@ type boardRow struct {
 	// hints above.
 	selfMill bool
 	emptyWin uint8
+	payCost  string
 	// derived facts (valid per gen/fill). kw is the derived keyword list:
 	// the face's own printed list when the derivation answered with exactly
 	// that (immutable compiled data, so it is carried, not copied), else a
@@ -183,6 +184,7 @@ func (inc *boardInc) face(id state.ObjID, f *cards.Face, k boardReadKeyer) *boar
 		r.pflash, r.pflashback = hasFlash(f.Keywords), hasFlashback(f.Keywords)
 		r.removeDeck, r.playMain1, r.auraLogic = f.RemoveDeck != "", f.PlayMain1Hint(), effects.CastAuraLogic(f)
 		r.selfMill, r.emptyWin = effects.CastNameKeyedSelfMill(f), effects.EmptyLibraryWin(f)
+		r.payCost = effects.CastPayOrLoseCost(f)
 		r.reusable = k.CharacteristicsReusable(id)
 		r.gen, r.fill = 0, 0
 	}
@@ -357,6 +359,7 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 				AuraLogic:         r.auraLogic,
 				NameKeyedSelfMill: r.selfMill,
 				EmptyLibraryWin:   r.emptyWin,
+				PayOrLoseCost:     r.payCost,
 			}
 		}
 	}
@@ -401,6 +404,7 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 				AuraLogic:         r.auraLogic,
 				NameKeyedSelfMill: r.selfMill,
 				EmptyLibraryWin:   r.emptyWin,
+				PayOrLoseCost:     r.payCost,
 			}
 		}
 	}

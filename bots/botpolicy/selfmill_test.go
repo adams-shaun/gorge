@@ -86,3 +86,60 @@ func TestPayOrLoseNeverDeclined(t *testing.T) {
 		t.Fatalf("ordinary unless-pay facing lethal: %v, want [1] (decline)", got)
 	}
 }
+
+// TestPayOrLoseGuard: a spell the caster must pay for at the next upkeep or
+// lose the game (Summoner's Pact, {2}{G}{G}) is cast only when the seat's
+// lands reach the cost on that upkeep. Tapped lands count (they untap); the
+// pool, a mana rock, a land in hand and the wrong colours do not.
+func TestPayOrLoseGuard(t *testing.T) {
+	const g, u = 4, 1
+	pact := Card{PayOrLoseCost: "2 G G", ManaCost: "0", Castable: true, InstantSpeed: true}
+	tapped := func(c Card) Card { c.Tapped = true; return c }
+	var rockMana cards.ManaProduction
+	rockMana.Colour[5] = 2
+	rock := Card{OnBattlefield: true, Produces: rockMana}
+	hand := selfMillLand(g)
+	hand.OnBattlefield = false
+	board := func(cs ...Card) Board {
+		m := map[state.ObjID]Card{1: pact}
+		for i, c := range cs {
+			m[state.ObjID(i+2)] = c
+		}
+		return Board{IsMain: true, MyTurn: true, Cards: TableOf(m)}
+	}
+	cases := []struct {
+		name   string
+		b      Board
+		vetoed bool
+	}{
+		{"four lands", board(selfMillLand(g), selfMillLand(g), selfMillLand(u), selfMillLand(u)), false},
+		{"tapped lands untap", board(tapped(selfMillLand(g)), tapped(selfMillLand(g)), selfMillLand(u), tapped(selfMillLand(u))), false},
+		{"three lands", board(selfMillLand(g), selfMillLand(g), selfMillLand(u)), true},
+		{"one green source", board(selfMillLand(g), selfMillLand(u), selfMillLand(u), selfMillLand(u)), true},
+		{"rock does not stand in for a land", board(selfMillLand(g), selfMillLand(g), selfMillLand(u), rock), true},
+		{"land in hand does not count", board(selfMillLand(g), selfMillLand(g), selfMillLand(u), hand), true},
+	}
+	pooled := board(selfMillLand(g), selfMillLand(g))
+	pooled.Pool[5], pooled.Pool[g] = 2, 2
+	cases = append(cases, struct {
+		name   string
+		b      Board
+		vetoed bool
+	}{"the pool is empty by then", pooled, true})
+	for _, tc := range cases {
+		if got := tc.b.payOrLoseVeto(pact); got != tc.vetoed {
+			t.Errorf("%s: vetoed %v, want %v", tc.name, got, tc.vetoed)
+		}
+	}
+	if (Board{}).payOrLoseVeto(Card{}) {
+		t.Error("a card with no pay-or-lose cost is never vetoed")
+	}
+	d := &decision.Decision{Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
+		Options: []decision.Option{{Index: 0, Kind: "cast", Obj: 1}}}
+	if got := withTuned(cases[0].b, func(w *CastWeights) { w.CastThreshold = -1000 }).chooseCast(d); got != 0 {
+		t.Fatalf("payable pact: chooseCast = %d, want 0", got)
+	}
+	if got := withTuned(cases[2].b, func(w *CastWeights) { w.CastThreshold = -1000 }).chooseCast(d); got != -1 {
+		t.Fatalf("unpayable pact: chooseCast = %d, want -1", got)
+	}
+}

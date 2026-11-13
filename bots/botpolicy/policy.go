@@ -1483,10 +1483,25 @@ func (b Board) announcedSpell(d *decision.Decision) *StackEntry {
 // the pool pays first, and what it leaves pays generic. The answer doesn't depend on
 // the order of the Board's tables.
 func (b Board) manaReaches(pips [5]int32, generic int32) bool {
-	spare := b.Pool[5] - b.PoolRestricted[5]
+	return b.manaReachesFrom(pips, generic, false)
+}
+
+// manaReachesFrom is manaReaches, or with nextTurn the same question asked of
+// the seat's next upkeep: the pool is empty then and every land it controls
+// has untapped, so only its lands count, tapped or not. Lands alone, because
+// a rock or token may be sacrificed or tapped out of play before then; no
+// land in hand counts either, because it may never be played.
+func (b Board) manaReachesFrom(pips [5]int32, generic int32, nextTurn bool) bool {
+	var spare int32
+	if !nextTurn {
+		spare = b.Pool[5] - b.PoolRestricted[5]
+	}
 	var short int32
 	for slot, n := range pips {
 		pool := b.Pool[slot] - b.PoolRestricted[slot]
+		if nextTurn {
+			pool = 0
+		}
 		spare += max(pool-n, 0)
 		pips[slot] = max(n-pool, 0)
 		short += pips[slot]
@@ -1503,6 +1518,9 @@ func (b Board) manaReaches(pips [5]int32, generic int32) bool {
 	}
 	usable := func(i int) bool {
 		c := &cs[i]
+		if nextTurn {
+			return c.OnBattlefield && c.Land
+		}
 		return c.OnBattlefield && !c.Tapped && !(c.Creature && c.Sick)
 	}
 	for set := 1; set < 1<<5; set++ {

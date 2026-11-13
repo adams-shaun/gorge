@@ -871,6 +871,7 @@ func (b *Builder) printed(cv *view.CardView, f *cards.Face, name string, c *prot
 		cv.AuraLogic = effects.CastAuraLogic(f)
 	}
 	cv.NameKeyedSelfMill, cv.EmptyLibraryWin = effects.CastNameKeyedSelfMill(f), effects.EmptyLibraryWin(f)
+	cv.PayOrLoseCost = effects.CastPayOrLoseCost(f)
 	if p := f.ManaProduction(); !p.IsZero() {
 		cv.Produces = &p
 	}

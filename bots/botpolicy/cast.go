@@ -276,6 +276,11 @@ type Card struct {
 	// (selfmill.go) reads them.
 	NameKeyedSelfMill bool
 	EmptyLibraryWin   uint8
+	// PayOrLoseCost is the mana the caster must pay at their next upkeep or
+	// lose the game (effects.CastPayOrLoseCost: Summoner's Pact), empty for
+	// any other card; CardView.PayOrLoseCost on the view half. The pay-or-
+	// lose guard (selfmill.go) reads it.
+	PayOrLoseCost string
 }
 
 // braceForm normalises a brace-form mana cost ("{2}{U}{U}") to the

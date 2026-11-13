@@ -440,6 +440,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				AuraLogic:         effects.CastAuraLogic(f),
 				NameKeyedSelfMill: effects.CastNameKeyedSelfMill(f),
 				EmptyLibraryWin:   effects.EmptyLibraryWin(f),
+				PayOrLoseCost:     effects.CastPayOrLoseCost(f),
 			}
 		}
 	}
@@ -524,6 +525,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				AuraLogic:         effects.CastAuraLogic(f),
 				NameKeyedSelfMill: effects.CastNameKeyedSelfMill(f),
 				EmptyLibraryWin:   effects.EmptyLibraryWin(f),
+				PayOrLoseCost:     effects.CastPayOrLoseCost(f),
 			}
 		}
 	}

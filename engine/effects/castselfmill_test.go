@@ -45,3 +45,29 @@ func TestCastNameKeyedSelfMillClass(t *testing.T) {
 		}
 	}
 }
+
+// TestCastPayOrLoseCostClass pins the pay-next-upkeep-or-lose fact on the
+// Pact cycle and a sample of cards that must not match.
+func TestCastPayOrLoseCostClass(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	cases := []struct{ name, want string }{
+		{"Summoner's Pact", "2 G G"},
+		{"Pact of Negation", "3 U U"},
+		{"Slaughter Pact", "2 B"},
+		{"Pact of the Titan", "4 R"},
+		{"Intervention Pact", "1 W W"},
+		{"Demonic Consultation", ""},
+		{"Tainted Pact", ""},
+		{"Lightning Bolt", ""},
+		{"Rhystic Study", ""},
+	}
+	for _, tc := range cases {
+		c, ok := reg.Lookup(tc.name)
+		if !ok {
+			t.Fatalf("corpus has no %s", tc.name)
+		}
+		if got := effects.CastPayOrLoseCost(c.Faces[0]); got != tc.want {
+			t.Errorf("%s: CastPayOrLoseCost = %q, want %q", tc.name, got, tc.want)
+		}
+	}
+}

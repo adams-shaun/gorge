@@ -904,6 +904,7 @@ func BoardFromView(v view.View) botpolicy.Board {
 				AuraLogic:         cv.AuraLogic,
 				NameKeyedSelfMill: cv.NameKeyedSelfMill,
 				EmptyLibraryWin:   cv.EmptyLibraryWin,
+				PayOrLoseCost:     cv.PayOrLoseCost,
 			})
 		}
 	}
@@ -953,6 +954,7 @@ func BoardFromView(v view.View) botpolicy.Board {
 					AuraLogic:         cv.AuraLogic,
 					NameKeyedSelfMill: cv.NameKeyedSelfMill,
 					EmptyLibraryWin:   cv.EmptyLibraryWin,
+					PayOrLoseCost:     cv.PayOrLoseCost,
 				})
 			}
 		}

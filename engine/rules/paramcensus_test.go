@@ -1983,6 +1983,10 @@ var handEffectsRoots = []string{
 	// resolution consumer, so they join no API's read set.
 	"CastNameKeyedSelfMill",
 	"EmptyLibraryWin",
+	// engine/effects/castpayorlose.go: the same advisory shape for the Pact
+	// cycle's pay-next-upkeep-or-lose cost; the DelayedTrigger and LosesGame
+	// reads join no API's read set.
+	"CastPayOrLoseCost",
 }
 
 // apiSpecificRulesSA names the rules functions whose SA (bSA) reads execute
