@@ -3384,6 +3384,7 @@
         "x-go-type": "github.com/adams-shaun/gorge/engine/view.PlayerView"
       },
       "PodProgress": {
+        "description": "PodProgress is the pod_progress body: how far every seat is through the current draft round, as public counts.",
         "properties": {
           "event": {
             "type": "string"

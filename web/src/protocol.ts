@@ -2097,6 +2097,10 @@ export interface DraftPack {
   pool: DraftCard[];
 }
 
+  /**
+   * PodProgress is the pod_progress body: how far every seat is through the
+   * current draft round, as public counts.
+   */
 export interface PodProgress {
   event: string;
   round: number;
@@ -2301,6 +2305,38 @@ export interface EventSetInfo {
 export interface EventPersonas {
   drafters: string[];
   builders: string[];
+}
+
+  /**
+   * DraftAdvicePick is one suggested card: its score on the drafter's points
+   * scale, the score's terms (value, commander and identity) and a short
+   * reason spelling them.
+   */
+export interface DraftAdvicePick {
+  id: string;
+  score: number;
+  value: number;
+  commander?: number;
+  identity?: number;
+  reason: string;
+}
+
+  /**
+   * DraftAdvice is GET /api/events/{id}/advice: the seat's own drafter's
+   * suggestion for the pack at its queue head, from what the seat itself sees
+   * (its pack and its pool, nothing else). Picks are the best cards in score
+   * order, as many as the seat still takes from this pack this pass; Plan is
+   * the colour identity of the commander plan the drafter reads from the pool
+   * ("" before the pool holds a commander). Waiting when no pack is queued.
+   */
+export interface DraftAdvice {
+  event: string;
+  seat: number;
+  waiting: boolean;
+  round: number;
+  pick_no: number;
+  plan?: string;
+  picks: DraftAdvicePick[];
 }
 
   /**

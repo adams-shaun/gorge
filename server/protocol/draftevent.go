@@ -152,8 +152,6 @@ type DraftPack struct {
 	Pool         []DraftCard `json:"pool"`
 }
 
-// PodProgress is the pod_progress body: how far every seat is through the
-// current draft round, as public counts.
 // DraftAdvice is GET /api/events/{id}/advice: the seat's own drafter's
 // suggestion for the pack at its queue head, from what the seat itself sees
 // (its pack and its pool, nothing else). Picks are the best cards in score
@@ -182,6 +180,8 @@ type DraftAdvicePick struct {
 	Reason    string  `json:"reason"`
 }
 
+// PodProgress is the pod_progress body: how far every seat is through the
+// current draft round, as public counts.
 type PodProgress struct {
 	Event  string `json:"event"`
 	Round  int    `json:"round"`
