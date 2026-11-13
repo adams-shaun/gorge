@@ -1,4 +1,4 @@
-# the MBC costs-3 spelling family (dirac/oracle/mbc_costs3_test.go
+# the MBC costs-3 spelling family (dirac/oracle/mbc_costfamily_test.go
 # TestMBCCosts3Lowers): the Return<N/Island> alternative cost (Gush, Thwart,
 # Daze), Jump-start (Chemister's Insight, Direct Current, Radical Idea),
 # Surge (Grip of the Roil, Jwar Isle Avenger) and Court of Ambition's
