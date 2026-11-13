@@ -310,6 +310,8 @@ DmgMarkBySource	untyped int	1
 DmgNE	DmgCmp	4
 DmgNoRegen	untyped int	32
 DmgNoRegenTarget	untyped int	128
+DmgRedirectNext	untyped int	1
+DmgRedirectScope	untyped int	2
 DmgRemember	untyped int	8
 DmgTrackExcess	untyped int	1
 DpGroup	untyped int	1
@@ -493,6 +495,7 @@ ExtDigImprint	ExtOp	282
 ExtDistCounters	ExtOp	310
 ExtDividedCounters	ExtOp	30
 ExtDmgMark	ExtOp	317
+ExtDmgRedirect	ExtOp	293
 ExtDrainMana	ExtOp	40
 ExtDrawUpto	ExtOp	309
 ExtEachDamage	ExtOp	2

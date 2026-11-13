@@ -209,6 +209,7 @@ type genPrep struct {
 	anyPlusCre      bool           // some program is ExtTurnRepl TurnReplPlusCreatureCtr: the cold buffer holds its per-player count and source (repl_turnrepl.go)
 	anyAtkLast      bool           // some DamageDone line carries kop.Tf5DmgAttackedYouLastTurn: the cold buffer holds each seat's attacked defenders (trig_atklastturn.go)
 	anyDmgMark      bool           // some program is ExtDmgMark: every damage site reads the per-player marks (repl_dmgmark.go)
+	anyRedir        bool           // some program is ExtDmgRedirect: every damage site reads genState.redir (repl_dmgredirect.go)
 	anyFiltRepl     bool           // a filtered damage doubler or token multiplier, or an x3 one (repl_multipliers.go)
 	untapRepl       bool           // a ReplOthersDoesntUntap or ReplAnyUntap card: the untap step runs untapStepGen (act_energy.go)
 	anyUntapBlock   bool           // some card has ReplAnyUntap: every untap site consults State.untapBlocked (static_cantuntap.go)
@@ -2268,6 +2269,9 @@ type genState struct {
 	// turn began + 1 in bits 4-7 (act_monarch.go). The tail padding after
 	// atkDef, so State does not grow.
 	mon uint8
+	// redir: Ext DmgRedirect's this-turn records (repl_dmgredirect.go). Appended
+	// after the tail padding: State grows by its size (statelayout_test.go).
+	redir [maxRedir]redirRec // taken from rsv
 }
 
 const (
@@ -2279,8 +2283,10 @@ const (
 	// absorbs the rest of the alignment, including tgtSpent): 64, plus the 16
 	// that carry State's growth for MaxObj 236 to a multiple of 64 so perms
 	// keeps its phase. It counts bytes: an object-wide field takes its width
-	// in the class.
-	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes-(MaxSeats+1)/2)
+	// in the class. The redirect records (redirBytes) grow the block by a
+	// whole cache line (64) in every seat class, so the phase holds: rsvN is
+	// what is left of that line after them.
+	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes-(MaxSeats+1)/2) + 64 - redirBytes
 )
 
 // dmgAmtRec is one genState.dmgAmt record: the reader card's object+1 (0
@@ -2423,6 +2429,8 @@ const (
 	StallPanharmGrant  = 142 // a fifth Panharmonicon grant (Lwaxana Troi) live at once (genState.pgT; act_grantpanharm.go)
 	StallNetMana       = 86  // a Braided Net lock on a card with a mana ability that does not tap it (act_lockpermanent.go)
 	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once (ChoiceRestriction$; modal_charmpick.go)
+	StallRedirOrder    = 184 // a damage event a redirect record and another replacement both match, or a redirect the kernel does not model (infect, a combat pass already in an order ask; repl_dmgredirect.go)
+	StallRedirCap      = 185 // a fifth redirect record in one turn (genState.redir; repl_dmgredirect.go)
 	NumStall           = 192 // fixed capacity of the reason tables (StallName), not last+1: a new reason takes the next free value below it and registers its name in its own file; at most 255 (reasons are uint8)
 )
 

@@ -4321,6 +4321,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if in.CS == "Many" {
 			ki.C = 1 // the DpMany program's up to four objects (Mobilize 3-4)
 		}
+	case "DmgRedirect":
+		// OpExt ExtDmgRedirect, Obj the recipient, C the kop.DmgRedirect* kind (dirac/repl_dmgredirect.go)
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtDmgRedirect)), int16(in.C)
 	case "PreventColor":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtPreventColor)) // (Prismatic Strands)
 	case "PreventDamageScope":
