@@ -71,7 +71,7 @@ func (s *State) prolifOptions(k *prep, d *Decision) {
 		}
 	}
 	for p := uint8(0); p < MaxSeats; p++ {
-		if (s.g.poison[p] > 0 || s.g.energy[p] > 0) && !s.pl[p].lost && !s.prolifPicked(PlayerCode(p)) {
+		if (s.g.poison[p] > 0 || s.g.energy[p] > 0 || s.plCtr(p, kop.PlCtrExperience) > 0) && !s.pl[p].lost && !s.prolifPicked(PlayerCode(p)) {
 			d.add(MakeAction(AkChoose, PlayerCode(p), 0, 0))
 		}
 	}
@@ -148,6 +148,9 @@ func (s *State) prolifApply(k *prep, o TCode) {
 		}
 		if s.g.energy[p] > 0 {
 			s.g.energy[p] = uint8(min(int(s.g.energy[p])+1, 255))
+		}
+		if c := s.plCtrPtr(p, kop.PlCtrExperience); c != nil && *c > 0 {
+			*c = uint8(min(int(*c)+1, 255))
 		}
 		return
 	}

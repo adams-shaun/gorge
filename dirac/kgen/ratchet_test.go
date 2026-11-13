@@ -146,9 +146,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
 	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
-	// +2 (MBC replacements-2: a DamageDone doubler with no ValidTarget$ reads any recipient, Fire Servant; ValidSource$ Card.Self with IsCombat$ True as FSelf + ReplDmgCombat, Charging Tuskodon; ALL merged against land 23559 -> 23561 measured).
-	// +11 (MBC zone-moves-5: Count$TopOfLibraryCMC as ExMVOf RefLibTop, Reorder$ on a library-to-top search, the AIRespondsToOwnAbility$ hint and the ThisTurnEnteredFrom_Library word: Counterbalance, Riddle of Lightning, Judge Unworthy, Putrid Cyclops, Stormchaser Chimera, Goblin Recruiter, Dwarven Recruiter, Congregation at Dawn, Scouting Trek, Sensei's Divining Top, Captain N'ghathrod; ALL 23253 -> 23264 measured).
-	"ALL": {23605, 34442},
+	// +12 (MBC counters-1: the Experience player counter and Count$YourCountersExperience, the DESCENT counter kind, and DividedAsYouChoose$ over any counter kind: Aang, Airbending Master, Atreus, Impulsive Son, Daxos the Returned, Ezuri, Claw of Progress, Kalemne, Disciple of Iroas, Kelsien, the Plague, Kratos, Stoic Father, Otharri, Suns' Glory, Toph, Earthbending Master, Descent into Avernus, Contagion, Splendid Agony; Component Pouch's COMPONENT kind lowers but its mana ability stays refused; ALL 23407 -> 23419 measured).
+	"ALL": {23419, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {221, 280},
@@ -163,9 +162,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
-	// +2 (MBC replacements-2: Fire Servant, Charging Tuskodon; MBC merged against land 1748 -> 1750 measured).
-	// +3 (MBC zone-moves-5: Counterbalance, Goblin Recruiter, Sensei's Divining Top; The Weaver King still refuses on its per-opponent pick; MBC 1678 -> 1681 measured).
-	"MBC": {1765, 2188},
+	// +4 (MBC counters-1: Contagion, Descent into Avernus, Ezuri, Claw of Progress, Otharri, Suns' Glory; MBC 1717 -> 1721 measured).
+	"MBC": {1721, 2188},
 	"MKM": {251, 279},
 	"MOM": {203, 296},
 	"MSH": {246, 276},

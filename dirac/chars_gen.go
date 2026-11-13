@@ -678,6 +678,11 @@ func (s *State) ptGen(k *prep, sl Slot) (int, int) {
 	if k.gen.anyHone {
 		bp += s.honePower(k, sl) // CR 122.1j hone counters on attached permanents (ctr_hone.go)
 	}
+	if k.gen.anyM2M1 {
+		m := p.ctrN(s, int(kop.CtrM2M1)) // CR 122.1a -2/-1 counters (ctr_hone.go prepM2M1)
+		bp -= 2 * m
+		bt -= m
+	}
 	if s.statM.any() || s.g.nemb[0]+s.g.nemb[1] != 0 {
 		s.eachStaticC(k, sclsPT, func(st statSrc) bool {
 			a := st.a

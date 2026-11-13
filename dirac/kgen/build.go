@@ -423,6 +423,9 @@ var counterKinds = map[string]kop.CounterKind{
 	"BURDEN":     kop.CtrBurden,     // The One Ring's burden counter (CR 122.1; its count reads in Count$CardCounters.BURDEN)
 	"STORAGE":    kop.CtrStorage,    // Molten Slagheap's storage counter (CR 122.1; mana_countercost.go)
 	"SCREAM":     kop.CtrScream,     // Endless Scream's named counter (CR 122.1; its count reads in Count$CardCounters.SCREAM)
+	"COMPONENT":  kop.CtrComponent,  // Component Pouch's named counter (CR 122.1)
+	"DESCENT":    kop.CtrDescent,    // Descent into Avernus's named counter (CR 122.1)
+	"M2M1":       kop.CtrM2M1,       // a -2/-1 counter (CR 122.1a; Contagion; the kernel's ptGen)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
