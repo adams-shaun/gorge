@@ -4007,39 +4007,54 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 		}
 		ab.Kind = akActivated
 		ab.Mana = nil
-		if m.Each && !stack {
-			// Lukka's +1 {R}{G}: the resolution's AddMana floats one colour
-			// of a restriction (State.rb); several at once have no carrier
-			return refuse("loyalty ability adding several colours at once")
+		// UnlessCost$ with UnlessSwitched$ True (Thomil, the Destroyer's "you
+		// may sacrifice a creature. If you do, add {B}{B}{B}"): the resolution
+		// asks the payer and adds the mana only if they pay (lower_effect.go
+		// unless, the wrapper every resolving node's UnlessCost$ rides).
+		// Whatever follows the mana in a chain stays refused beside it, as
+		// gorge's unless gate covers the node's own effect only.
+		if _, ok := ps.get("UnlessCost"); ok && sa.Sub != nil {
+			return refuse("loyalty mana ability with UnlessCost$ and a sub-ability")
 		}
-		if m.Each {
-			// an unrestricted all-at-once production: one AddMana per colour
-			if m.Restrict != nil || !amt.isConst() || amt.N < 1 {
-				return refuse("stack mana ability adding several colours under a restriction")
+		err := lc.unless(ps, func() error {
+			if m.Each && !stack {
+				// Lukka's +1 {R}{G}: the resolution's AddMana floats one colour
+				// of a restriction (State.rb); several at once have no carrier
+				return refuse("loyalty ability adding several colours at once")
 			}
-			for i := 0; i < len(m.Colors); i++ {
-				lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors[i : i+1]})
+			if m.Each {
+				// an unrestricted all-at-once production: one AddMana per colour
+				if m.Restrict != nil || !amt.isConst() || amt.N < 1 {
+					return refuse("stack mana ability adding several colours under a restriction")
+				}
+				for i := 0; i < len(m.Colors); i++ {
+					lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors[i : i+1]})
+				}
+			} else if m.Choice || len(m.Colors) > 1 {
+				// a colour choice at resolution (gorge askManaChoice): one pick
+				// per mana of a Combo, one for the whole amount of Any; the
+				// kernel's AddMana takes the mask's last colour, no choice
+				if m.Colors == "Chosen" || m.Special != "" || m.Colors == "" || strings.Trim(m.Colors, "WUBRG") != "" {
+					return refuse("loyalty mana choice over %q", m.Colors)
+				}
+				if !amt.isConst() || amt.N < 1 || amt.N > 7 || len(m.Colors) < 2 || m.Restrict != nil || m.RestrictAb != nil {
+					return refuse("loyalty mana choice amount or restriction")
+				}
+				mode := 0
+				if !m.Choice {
+					mode = 1
+				}
+				lc.emit(lInstr{Op: "ManaChoice", A: amt, C: mode, CS: m.Colors})
+			} else {
+				// F: a spell restriction (CR 106.6), floated as restricted
+				// mana (State.rb) like gorge's ManaAdd restriction (Chandra, Chill
+				// of Compliance's noncreature-only {U})
+				lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors, F: m.Restrict})
 			}
-		} else if m.Choice || len(m.Colors) > 1 {
-			// a colour choice at resolution (gorge askManaChoice): one pick
-			// per mana of a Combo, one for the whole amount of Any; the
-			// kernel's AddMana takes the mask's last colour, no choice
-			if m.Colors == "Chosen" || m.Special != "" || m.Colors == "" || strings.Trim(m.Colors, "WUBRG") != "" {
-				return refuse("loyalty mana choice over %q", m.Colors)
-			}
-			if !amt.isConst() || amt.N < 1 || amt.N > 7 || len(m.Colors) < 2 || m.Restrict != nil || m.RestrictAb != nil {
-				return refuse("loyalty mana choice amount or restriction")
-			}
-			mode := 0
-			if !m.Choice {
-				mode = 1
-			}
-			lc.emit(lInstr{Op: "ManaChoice", A: amt, C: mode, CS: m.Colors})
-		} else {
-			// F: a spell restriction (CR 106.6), floated as restricted
-			// mana (State.rb) like gorge's ManaAdd restriction (Chandra, Chill
-			// of Compliance's noncreature-only {U})
-			lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors, F: m.Restrict})
+			return nil
+		})
+		if err != nil {
+			return err
 		}
 	}
 	if sa.Sub != nil && m.Split == nil { // (a Condition-split's sub is folded into m.Split)

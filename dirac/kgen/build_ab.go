@@ -1508,6 +1508,13 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 		kt.Flags2 |= kop.Tf2PerReferent
 		kt.N = t.DmgGate
+	} else if t.DmgGate != 0 {
+		// a plain DamageDone line's per-event DamageAmount$ gate, read by
+		// ddoLine for the lines that read their recipient (lower_damageamount.go)
+		if t.Event != "DamageDone" || kt.Filter2 == 0 && kt.Flags2&kop.Tf2ToYou == 0 {
+			return kt, fmt.Errorf("damage-amount gate on a %s trigger without a recipient read", t.Event)
+		}
+		kt.N = t.DmgGate
 	}
 	if t.NotToGrave {
 		if t.Event != "Leaves" || !t.Batch {

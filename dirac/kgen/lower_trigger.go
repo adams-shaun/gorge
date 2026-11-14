@@ -788,6 +788,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				tr.Combat = -1
 			}
 		}
+		if err := lc.damageAmountGate(tp, tr, t); err != nil { // lower_damageamount.go
+			return err
+		}
 		if err := lc.damageDoneSelfObjRef(tp, tr, t); err != nil {
 			return err
 		}
