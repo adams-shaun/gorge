@@ -27,6 +27,13 @@ func TestCastOptionsParityLockstep(t *testing.T) {
 		// source, so the plain cast is not offered.
 		"multikicker_plain_cast_needs_depletion_land",
 		"multikicker_plain_cast_needs_depletion_skerry",
+		// Eldrazi Spawn tokens beside Path of Annihilation's granted "{T}: Add
+		// one mana of any color": gorge's cast planner leaves the grant out
+		// of its census but keeps each token's printed sacrifice for {C}, a
+		// last-resort unit, so a cast that sacrifice pays is planned (CR
+		// 602.2b, 605.1a). The kernel dropped the tokens from that census.
+		"spawn_sac_mana_beside_granted_tap_planned",
+		"spawn_sac_mana_beside_granted_tap_planned_aura",
 	} {
 		name := name
 		t.Run(name, func(t *testing.T) {

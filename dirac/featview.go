@@ -845,14 +845,20 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet) {
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		pm := &s.perms[sl]
-		if sl == ex || pm.flags&pfTapped != 0 || s.grantMay(k, sl) && s.manaGranted(k, sl) {
+		if sl == ex || s.grantMay(k, sl) && s.manaGranted(k, sl) {
 			continue
 		}
 		if defer_ && s.planDeferred(k, p, sl) {
 			continue // the census never lists a deferred source (mana_rider.go)
 		}
 		pc := s.manaPCGen(k, sl)
-		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || !s.canTapForManaPC(k, sl, pc) {
+		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 {
+			continue
+		}
+		// a printed sacrifice-only ability (Eldrazi Spawn's {C}) is a last-resort
+		// unit of the census, tapped or not and beside a granted {T} ability
+		// (CR 602.2b; gorge's census admits each printed ability on its own)
+		if !s.canTapForManaPC(k, sl, pc) && !(k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)) {
 			continue
 		}
 		if k.painMana && pc.painCol != 0 {
