@@ -297,6 +297,16 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 					tr.Attacked |= atkOpp
 				case "Player":
 					tr.Attacked |= atkYou | atkOpp
+				case "Player.EnchantedBy":
+					// gorge attackedDefenderMatches over MatchesPlayerSpec:
+					// the attacked player is enchanted by THIS listener's Aura
+					// (playerSpecQualifierEnchantedBy), the Attacks twin of
+					// AttackedTarget$ Player.EnchantedBy (Tf4DefEnch). Alone
+					// only: a comma alternative would need a second gate.
+					if strings.Contains(v, ",") {
+						return refuse("Attacks Attacked %q", v)
+					}
+					tr.Attacked |= atkEnch
 				case "Player.withMostLife":
 					// gorge attackedDefenderMatches over MatchesPlayerSpec:
 					// the attacked player has the most life or is tied

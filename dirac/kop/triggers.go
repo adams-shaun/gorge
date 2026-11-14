@@ -545,7 +545,7 @@ const (
 
 // Tf4DefEnch (Trigger.Flags4, bit 7, shared with Tf4PerCounter: that flag is
 // read only on a TrigCounterAddedOnce line and this one only on an
-// AttackersDeclared line, so no trigger carries both; the Tf2ToYou /
+// AttackersDeclared or Attacks line, so no trigger carries both; the Tf2ToYou /
 // Tf2Increment bit-24 precedent): Mode$
 // AttackersDeclared with AttackedTarget$ Player.EnchantedBy, the Commander
 // curses' "whenever enchanted player is attacked" (Curse of Opulence,
@@ -554,7 +554,9 @@ const (
 // enchanted by THIS listener's Aura (gorge attackedDefenderMatches reads
 // Player.EnchantedBy, the source-relative player property player_filter.go
 // playerSpecQualifierEnchantedBy: player.isEnchantedBy(source)), through
-// fireDefPlayer's Tf4DefEnch arm.
+// fireDefPlayer's Tf4DefEnch arm. On an Attacks line (Attacked$
+// Player.EnchantedBy, Curse of Predation) the flag gates each defender group
+// the same way (trig_attacksenchanted.go).
 const Tf4DefEnch TrigFlags4 = 1 << 7
 
 // TrigNAnyCounter in Trigger.N of a TrigCounterAddedOnce trigger: every

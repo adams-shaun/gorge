@@ -1392,6 +1392,9 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		if t.Attacked&atkOpp != 0 {
 			kt.Flags2 |= kop.Tf2AtkOpp
 		}
+		if t.Attacked&atkEnch != 0 {
+			kt.Flags4 |= kop.Tf4DefEnch // fireAtkGroup's Attacks arm (trig_attacksenchanted.go)
+		}
 	}
 	if t.PerCounter {
 		if t.Event != "CounterAdded" {
