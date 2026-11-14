@@ -62,7 +62,7 @@ GUARDS = (("./dirac/kop", "^TestKopOrdinalsUnchanged$"),
 # test-smart's narrow precheck (GORGE_TEST_SMART_GATES unset; coverage audit 2026-11-14, section 5 "affected
 # plus groups"): test-targeted's selection with three changes, and the dirac and affected gates left to the
 # prescreen and the lander.
-#  - ./engine/rules runs whole, minus RULES_SKIP, when a changed non-test file reaches
+#  - ./engine/rules runs whole, minus RULES_SKIP and one of KERNEL_PAIR, when a changed non-test file reaches
 #    its test binary: its card-behaviour tests are what a unit's own change breaks. A diff that cannot reach
 #    it (a dirac-only diff: nothing it imports is under dirac/) does not run it.
 #  - ./dirac/oracle never runs whole (its lockstep games are the prescreen's): a forced whole becomes the
@@ -83,6 +83,9 @@ RULES_SKIP = ("TestHeads", "TestLargeEliminationSweepDoesNotTripLivelockWatcher"
               "TestCloneFidelityShort[0-9A-Za-z]*", "TestCostStaticPlannedCastsNeverCostChange[0-9]*",
               "TestChainTargetOfferCensusAgreesWithCastFlow[0-9]*",
               "TestPaymentPlanOnePassMatchesReferenceOverAutoPayGameKernel[0-9A-Za-z]*")
+# Two halves of one game's decision probes, 36 s each, each contained in the other's coverage and never red
+# (audit item 8): a run plays one, chosen by the commit sha's parity, so consecutive commits cover both.
+KERNEL_PAIR = ("TestKernelWorldsInFuzzGame5Shard0", "TestKernelWorldsInFuzzGame5Shard1")
 PINS_TESTS = "^TestPinManifest$|^TestPinManifestCoversOldPins$"
 ARCH32 = "TestEngineCompilesFor32Bit"
 FAST_TIER = "dirac/oracle/testdata/fasttier.txt"
@@ -94,6 +97,12 @@ def needs_386(changes):
     return any(p in ("go.mod", "go.sum") or (p.endswith(".go") and not p.endswith("_test.go")) for p in changes)
 
 
+def kernel_shard(sha):
+    """The KERNEL_PAIR index a commit plays: its sha's last hex digit's parity (0 when unreadable)."""
+    try:
+        return int(sha.strip()[-1], 16) % 2
+    except (ValueError, IndexError):
+        return 0
 
 
 def short_pkgs(pkgs, keep=3):
@@ -413,7 +422,8 @@ def _narrow(out, changes, src, forced_whole, named, deps, local, narrow):
         if lp in ip:
             out[lp] = ("whole", lp, "")
     if RULES in reached or out.get(RULES, ("",))[0] == "whole":
-        out[RULES] = ("wholeskip", RULES, "^(%s)$" % "|".join(RULES_SKIP))
+        other = KERNEL_PAIR[1 - kernel_shard(narrow.get("sha", ""))]
+        out[RULES] = ("wholeskip", RULES, "^(%s)$" % "|".join(RULES_SKIP + (other,)))
     if ARCHTEST in out and not needs_386(changes):
         out[ARCHTEST] = ("wholeskip", ARCHTEST, "^%s$" % ARCH32)
     if ORACLE in out:

@@ -284,6 +284,14 @@ def test_narrow_runs_engine_rules_whole_when_a_source_change_reaches_it():
     assert dict((p, k) for k, p, _ in res)["./engine/rules"] == "census"
 
 
+def test_narrow_plays_one_kernel_half_by_the_sha_parity():
+    even = narrowed({"engine/rules/engine.go": None}, sha="abc4")["./engine/rules"][1]
+    odd = narrowed({"engine/rules/engine.go": None}, sha="abc5")["./engine/rules"][1]
+    assert "TestKernelWorldsInFuzzGame5Shard1" in even and "TestKernelWorldsInFuzzGame5Shard0" not in even
+    assert "TestKernelWorldsInFuzzGame5Shard0" in odd and "TestKernelWorldsInFuzzGame5Shard1" not in odd
+    assert tt.kernel_shard("") == 0 and tt.kernel_shard("f") == 1
+
+
 def test_narrow_dirac_only_diff_does_not_run_engine_rules():
     got = narrowed({"dirac/state.go": None})
     assert "./engine/rules" not in got
