@@ -33,16 +33,32 @@ func (s *State) pilesTooWide() bool {
 	return true
 }
 
-// pilesUnchosenPicks moves an unchosen pile A to the graveyard in pick order
-// under kop.TpUnchosenPileOrder: gorge's ChangeZone Defined$ Remembered body
-// walks the pile as answered (Fact or Fiction, Steam Augury). Without the flag
-// the caller's walk moves it in the revealed order, the library order
-// Curator's ChangeZoneAll sweep reads.
-func (s *State) pilesUnchosenPicks(in *kop.Instr, np int) {
-	if in.B.N&kop.TpUnchosenPileOrder == 0 {
-		return
+// pilesGraveOrder lists, in the order gorge's ChangeZone Defined$ Remembered body
+// moves them, the revealed cards still in the library that go to the graveyard
+// once the chosen pile has moved: an unchosen pile A in pick order under
+// kop.TpUnchosenPileOrder (Fact or Fiction, Steam Augury), then the rest in the
+// revealed order, the library order Curator's ChangeZoneAll sweep reads.
+func (s *State) pilesGraveOrder(in *kop.Instr, pickA bool, np int, out *[maxRem]Obj) int {
+	n := 0
+	add := func(o Obj) {
+		if s.objs[o].zone != kop.ZoneLibrary {
+			return
+		}
+		for _, q := range out[:n] {
+			if q == o {
+				return
+			}
+		}
+		out[n] = o
+		n++
 	}
-	for j := 0; j < np; j++ {
-		s.pileMove(s.g.rem[s.resArm().pileOrd[j]], kop.ZoneGraveyard)
+	if !pickA && in.B.N&kop.TpUnchosenPileOrder != 0 {
+		for j := 0; j < np; j++ {
+			add(s.g.rem[s.resArm().pileOrd[j]])
+		}
 	}
+	for i := 0; i < int(s.g.nrem); i++ {
+		add(s.g.rem[i])
+	}
+	return n
 }
