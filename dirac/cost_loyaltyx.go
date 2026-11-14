@@ -38,7 +38,15 @@ func (s *State) loyaltyXOptions(k *prep, d *Decision) bool {
 	}
 	d.Kind, d.Sub, d.Player = DkChoose, ChX, e.ctrl
 	for x := 0; x <= have; x++ {
-		d.add(MakeAction(AkChoose, 0, 0, uint8(x)))
+		// CR 601.2c: an X the body's target bounds read ("untap X target
+		// artifacts", Dyfed, the Guiding Hand) is offered only while the
+		// target ask could answer it, the same filter the mana X ask applies
+		// (gorge xAsk's targetsAnnounceableAt, cast_subcounter.go; xAnswerable
+		// for the shared ask). X = 0 is always answerable, so the ask never
+		// comes up empty.
+		if s.xAnswerable(k, a, e, x) {
+			d.add(MakeAction(AkChoose, 0, 0, uint8(x)))
+		}
 	}
 	s.bld().stage = bsX | 0x80 // awaiting X
 	return true

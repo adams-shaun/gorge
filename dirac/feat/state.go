@@ -67,20 +67,17 @@ type Encoder struct {
 	sp    []Feature
 	sorts sortScratch
 	cards []Card
-	seen  [256]uint32
+	seen  [objSlots]uint32
 	gen   uint32
 	opt   optScratch
 	// st0 is the state the last EncodeState read; source its
 	// dirac.FeatSource.
 	st0    *dirac.State
-	source uint8
+	source dirac.Obj
 	// inc is the incremental encoder's per-seat state (EncodeStateInc).
 	inc [dirac.MaxSeats]*seatInc
 	// IncStats counts EncodeStateInc's work.
 	IncStats IncStats
-	// objOverflow counts the builds whose position held an object past
-	// noObj (ObjOverflow).
-	objOverflow int
 	// vb is the search base (SetBase); hbase is the build's base hashes
 	// (hb, when the State carries vb's epoch)
 	vb    *viewBase
@@ -307,7 +304,7 @@ func (e *Encoder) prelude(s *dirac.State, d *dirac.Decision, seat uint8) (uint8,
 			casts = 1
 		}
 		dn[base+denseCmdCasts] = casts
-		if cmd := s.FeatCommander(p); cmd != dirac.NoObj && e.po(uint8(cmd)).Zone == kop.ZoneBattlefield {
+		if cmd := s.FeatCommander(p); cmd != dirac.NoObj && e.po(cmd).Zone == kop.ZoneBattlefield {
 			dn[base+denseCmdOnField] = 1
 		}
 	}
@@ -637,7 +634,7 @@ func (e *Encoder) handCard(c *vcard, avail int32) {
 
 // bfCard is the battlefield card of obj o (policynet battlefieldName's
 // lookup), nil when it is not on the battlefield.
-func (e *Encoder) bfCard(o uint8) *vcard {
+func (e *Encoder) bfCard(o dirac.Obj) *vcard {
 	v := &e.v
 	for p := int(v.n) - 1; p >= 0; p-- {
 		bf := v.players[p].bf
@@ -717,7 +714,7 @@ func (e *Encoder) entities(seat uint8, me, opp *vplayer) {
 	v := &e.v
 	e.gen++
 	if e.gen == 0 {
-		e.seen = [256]uint32{}
+		e.seen = [objSlots]uint32{}
 		e.gen = 1
 	}
 	e.cards = e.cards[:0]

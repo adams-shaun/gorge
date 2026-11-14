@@ -1,0 +1,11 @@
+# the TapOrUntapAll pool: Turnabout's one tap-or-untap election over the
+# target player's artifacts, creatures or lands (gorge effTapOrUntapAll, kernel
+# act_taporuntapall.go); creatures that attack and lands tapped for mana make a
+# mixed board, Ornithopter the artifact (dirac/oracle/turnabout_lockstep_test.go)
+Forest
+Grizzly Bears
+Hill Giant
+Island
+Mountain
+Ornithopter
+Turnabout

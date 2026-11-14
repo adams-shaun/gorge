@@ -170,6 +170,9 @@ func drawStepFlags(t *lTrigger) kop.TrigFlags5 {
 	if t.NotFirstInDrawStep {
 		f |= kop.Tf5NotFirstCardInDrawStep
 	}
+	if t.OptSrcCtrl {
+		f |= kop.Tf5OptSrcCtrl
+	}
 	if t.TapsForMana {
 		f |= kop.Tf5TapsForMana
 	}

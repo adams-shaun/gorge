@@ -1,0 +1,12 @@
+# PersistentMana$ True beside a spend restriction (Karn, Legacy Reforged)
+# (dirac/oracle/persistrestr_test.go)
+Karn, Legacy Reforged
+Ornithopter
+Bonesplitter
+Swiftfoot Boots
+Short Sword
+Sol Ring
+Mind Stone
+Hill Giant
+Shock
+Mountain
