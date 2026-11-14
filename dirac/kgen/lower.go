@@ -3592,7 +3592,10 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			return err
 		}
 	}
-	return lc.chain(sa, ps)
+	if err := lc.chain(sa, ps); err != nil {
+		return err
+	}
+	return anyActivatorWindow(ab) // lower_anyactivator.go: read once the chain has declared its targets
 }
 
 // giftHead emits the promised gift ahead of a spell's own effects: the
