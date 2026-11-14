@@ -102,6 +102,7 @@ type prep struct {
 	t        *kop.Table
 	cards    []pcard
 	gen      *genPrep // generated-table extension (gen.go); nil for hand-written tables
+	gyCont   bool     // some Continuous static works from its card's graveyard (genPrep.anyGyCont; static_gycont.go): one load on the hot walks
 	cold     coldLayout
 	cda      bool // some card has a characteristic-defining P/T (StatCDAPT)
 	casualty bool // some card has Casualty (kw_casualty.go): guards the casualty cast offer
@@ -454,6 +455,7 @@ func prepare(t *kop.Table) *prep {
 	// and cost path to the generated forms (value_tappower.go)
 	p.anyTapPowerStatic = tableHasStatic(t, kop.StatTapPower)
 	p.gen = prepareGen(t, p)
+	p.gyCont = p.gen != nil && p.gen.anyGyCont
 	p.painMana = p.painMana || p.gen != nil && p.gen.anyTapsPain  // a Pain-class Taps watcher prices its tapped source (mana_tapsdefer.go)
 	p.costObj = p.costObj || p.gen != nil && p.gen.anyEscapeGrant // an escape cast's exile-fodder picks (kw_escape.go)
 	p.availExt = p.painMana || p.phyMana
