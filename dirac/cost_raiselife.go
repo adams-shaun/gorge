@@ -132,7 +132,7 @@ func (s *State) raiseLifeDropTargets(k *prep, buf *[MaxOptions]TCode, n int) int
 // chooses and a spell that targets (gorge paymentPlanTargetDependentFor:
 // "shape:target_dependent_cost", the planner declines it, no prefix search).
 func (s *State) spellTgtDep(k *prep, p uint8, c CardID, o Obj) bool {
-	return cardTgtDepCost(&k.t.Cards[c]) || s.boardLifeTgtDep(k, p, c, o) || s.stackTgtDep(k, c)
+	return cardTgtDepCost(&k.t.Cards[c]) || s.boardLifeTgtDep(k, p, c, o) || s.boardRaiseTgtDep(k, p, c, o) || s.stackTgtDep(k, c)
 }
 
 // boardLifeTgtDep is spellTgtDep's battlefield half.
