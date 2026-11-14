@@ -312,11 +312,12 @@ const (
 	cEchoOwed               // the source came under its controller's control since the beginning of their most recent upkeep (echo's gate)
 	cSourceZone             // the source object is in Zone (source-identity IsPresent$ PresentZone$)
 	cBlessing               // the controller has the city's blessing (Condition$ Blessing, CR 702.131)
+	cRemMark                // the source's persistent remembered list is non-empty (the ConditionDefined$ Remembered group's host half; gorge rememberedWithSource)
 	cCount_
 )
 
 var condNames = [...]string{"None", "Present", "Value", "Kicked", "Threshold", "YourTurn", "RefMatches",
-	"CostPaid", "OpponentsTurn", "PromisedGift", "And", "EchoOwed", "SourceZone", "Blessing"}
+	"CostPaid", "OpponentsTurn", "PromisedGift", "And", "EchoOwed", "SourceZone", "Blessing", "RemMark"}
 
 type lCond struct {
 	Kind condKind
@@ -371,6 +372,14 @@ func andCond(a, b lCond) lCond {
 		return a
 	}
 	return lCond{Kind: cAnd, Sub: []lCond{a, b}}
+}
+
+// orCond composes a and b into a disjunction: NOT(AND(NOT a, NOT b)), the
+// de-Morgan shape the kernel's CondAnd evaluates.
+func orCond(a, b lCond) lCond {
+	na, nb := a, b
+	na.Neg, nb.Neg = !a.Neg, !b.Neg
+	return lCond{Kind: cAnd, Neg: true, Sub: []lCond{na, nb}}
 }
 
 // lInstr is one instruction: Op on Obj with amounts A, B, the op-specific
