@@ -83,7 +83,7 @@ func (s *State) eachCands(k *prep, in *kop.Instr, d *Decision, list []Obj) {
 			continue
 		}
 		if g := s.eachGroup(k, in.F, c, p, s.res.e.ctrl, o); g >= 0 && picked&(1<<g) == 0 {
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 }
@@ -113,6 +113,7 @@ func (s *State) pickFits(k *prep, f kop.FilterID, o Obj, dig bool) bool {
 	}
 	var pow int8
 	if distinct {
+		s.offZonePTRead(k, s.objs[o].card, s.objs[o].owner(), o) // static_offzonept.go
 		pow = cand.Power
 	}
 	for i := 0; i < int(s.g.nlook); i++ {

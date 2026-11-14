@@ -72,7 +72,7 @@ func TestEncoreGroupSacrificeIsSimultaneous(t *testing.T) {
 	}
 	// a's end-step trigger is on the stack; b joined it as a follower. The
 	// entry carries a's registration version, as fireDelayed enqueues it.
-	s.dly[0] = delayed{act: uint8(kop.OpSacrifice), ctrl: 0, obj: b, ver: s.objs[b].ver, when: dlyGrpFollow, creator: a}
+	s.dly[0] = delayed{act: uint8(kop.OpSacrifice), ctrl: 0, obj: b, ver: objWord(s.objs[b].ver), when: dlyGrpFollow, creator: a}
 	s.ndly = 1
 	s.npend = 0
 	s.resolveSacUntracked(sc.k, &stackEntry{ctrl: 0, obj: a, trigObj: NoObj, srcVer: s.objs[a].ver})
@@ -103,7 +103,7 @@ func TestLegendRuleAndSagaSacrificeAreOneBatch(t *testing.T) {
 		t.Fatalf("no legend ask posed: ctl %v", s.ctl)
 	}
 	s.npend = 0
-	s.applyLegend(k, MakeAction(AkChoose, uint8(keep), 0, 0))
+	s.applyLegend(k, MakeAction(AkChoose, TCode(keep), 0, 0))
 	if s.objs[saga].zone == kop.ZoneBattlefield || s.objs[gone].zone == kop.ZoneBattlefield {
 		t.Fatalf("the legend and the Saga must both leave: zones %v %v", s.objs[gone].zone, s.objs[saga].zone)
 	}

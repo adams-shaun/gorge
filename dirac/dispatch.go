@@ -96,10 +96,14 @@ func (s *State) askOptionsCold1(k *prep, d *Decision) bool {
 		d.add(MakeAction(AkChoose, 0, 0, 0))
 	case raVote:
 		s.voteOptions(k, d) // act_vote.go
+	case raChoosePlayerRes:
+		s.choosePlayerResOptions(k, d) // act_chooseplayerres.go
 	case raDrawUpto:
 		s.drawUptoOptions(d) // act_drawupto.go
 	case raGenDestAlt:
 		s.destAltOptions(d) // zone_destalt.go
+	case raTapOrUntapAll:
+		s.tapOrUntapAllOptions(d) // act_taporuntapall.go
 	default:
 		return s.askOptionsCold2(k, d)
 	}
@@ -123,10 +127,14 @@ func (s *State) applyAskCold1(k *prep, a Action) bool {
 		}
 	case raVote:
 		s.voteAnswer(k, a) // act_vote.go
+	case raChoosePlayerRes:
+		s.choosePlayerResAnswer(k, a) // act_chooseplayerres.go
 	case raDrawUpto:
 		s.drawUptoAnswer(k, a) // act_drawupto.go
 	case raGenDestAlt:
 		s.destAltAnswer(k, a) // zone_destalt.go
+	case raTapOrUntapAll:
+		s.tapOrUntapAllAnswer(k, a) // act_taporuntapall.go
 	default:
 		return s.applyAskCold2(k, a)
 	}
@@ -216,13 +224,13 @@ func (s *State) askOptionsCold2(k *prep, d *Decision) bool {
 		d.Sub = ChGenTapOrUntap
 		in := &s.prog(k)[s.res.pc]
 		sl := s.objRef(k, in.Obj)
-		o := uint8(s.perms[sl].obj)
+		o := s.perms[sl].obj
 		first, second := uint8(1), uint8(0)
 		if s.perms[sl].flags&pfTapped != 0 {
 			first, second = 0, 1
 		}
-		d.add(MakeAction(AkChoose, o, 0, first))
-		d.add(MakeAction(AkChoose, o, 0, second))
+		d.add(MakeAction(AkChoose, TCode(o), 0, first))
+		d.add(MakeAction(AkChoose, TCode(o), 0, second))
 	case raGenRearrange:
 		// gorge's KArrange over the looked-at cards: each pick is the next
 		// card from the top; every card is ordered (no Done)
@@ -230,7 +238,7 @@ func (s *State) askOptionsCold2(k *prep, d *Decision) bool {
 		r := &s.res
 		for i := 0; i < int(r.peekN); i++ {
 			if r.peekSel&(1<<i) == 0 {
-				d.add(MakeAction(AkChoose, uint8(r.peek[i]), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(r.peek[i]), 0, 0))
 			}
 		}
 	case raGenLibPlace:
@@ -248,9 +256,9 @@ func (s *State) askOptionsCold2(k *prep, d *Decision) bool {
 		// gorge's options: the graveyard (option 0), back on top
 		d.Sub = ChGenExplore
 		pl := &s.pl[s.res.askP]
-		top := uint8(pl.lib[pl.libLo])
-		d.add(MakeAction(AkChoose, top, 0, 0))
-		d.add(MakeAction(AkChoose, top, 0, 1))
+		top := pl.lib[pl.libLo]
+		d.add(MakeAction(AkChoose, TCode(top), 0, 0))
+		d.add(MakeAction(AkChoose, TCode(top), 0, 1))
 	default:
 		return s.askOptionsCold3(k, d)
 	}
@@ -338,7 +346,7 @@ func (s *State) askOptionsCold3(k *prep, d *Decision) bool {
 		var buf [MaxPerm]Slot
 		n := s.bolsterCands(k, s.res.askP, &buf)
 		for _, sl := range buf[:n] {
-			d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 		}
 	case raGenProliferate:
 		d.Sub = ChGenProlif
@@ -349,7 +357,7 @@ func (s *State) askOptionsCold3(k *prep, d *Decision) bool {
 		var buf [MaxPerm]Slot
 		n := s.empowerCands(k, s.res.askP, s.empowerSub(k, in), buf[:])
 		for _, sl := range buf[:n] {
-			d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 		}
 	default:
 		return s.askOptionsCold4(k, d)
@@ -502,7 +510,7 @@ func (s *State) askOptionsUnread(k *prep, d *Decision) bool {
 		var buf [MaxPerm]Slot
 		n := s.untapChooseCands(k, &s.prog(k)[s.res.pc], &buf)
 		for _, sl := range buf[:n] {
-			d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 		}
 		if s.prog(k)[s.res.pc].C == 1 {
 			d.add(MakeAction(AkDone, 0, 0, 0))
@@ -513,7 +521,7 @@ func (s *State) askOptionsUnread(k *prep, d *Decision) bool {
 		pl := &s.pl[s.res.chosen]
 		for i := 0; i < int(pl.handN); i++ {
 			if o := pl.hand[i]; s.discardMatch(k, in.F, o) {
-				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 	default:
@@ -564,12 +572,12 @@ func (s *State) applyAskUnread(k *prep, a Action) bool {
 	case raGenDiscUnless:
 		s.res.ask = raNone
 		if a.Mode() == 0 {
-			if s.discardOrdinary(k, &s.prog(k)[s.res.pc], s.res.chosen) {
+			if s.discardOrdinary(k, &s.prog(k)[s.res.pc], uint8(s.res.chosen)) {
 				s.continueRes(k, 0)
 			}
 			break
 		}
-		if o, n := s.unlessMatch(k, &s.prog(k)[s.res.pc], s.res.chosen); n == 1 {
+		if o, n := s.unlessMatch(k, &s.prog(k)[s.res.pc], uint8(s.res.chosen)); n == 1 {
 			s.discardObj(k, o)
 		} else if n > 1 {
 			s.res.ask = raGenDiscUnlessPick

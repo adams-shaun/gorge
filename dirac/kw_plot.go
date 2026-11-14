@@ -66,7 +66,7 @@ func (s *State) plotOne(k *prep, o Obj) bool {
 		s.capFull(StallMayPlay)
 		return false
 	}
-	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurPlot, turn: s.turn}
+	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurPlot, turn: mayWord(s.turn)}
 	s.g.nmay++
 	if k.cards[ob.card].plotTrig {
 		s.fireBecomesPlotted(k, o) // kw_plot.go
@@ -117,7 +117,7 @@ func (s *State) plotRecord(p uint8, o Obj) bool {
 	ob := &s.objs[o]
 	for i := 0; i < int(s.g.nmay); i++ {
 		r := *s.mayAt(i)
-		if r.obj == o && r.ctrl == p && r.ver == ob.ver && r.until == kop.DurPlot && (s.turn > r.turn || DebugPlotSameTurn) {
+		if r.obj == o && r.ctrl == p && r.ver == ob.ver && r.until == kop.DurPlot && (mayWord(s.turn) > r.turn || DebugPlotSameTurn) {
 			return true
 		}
 	}
@@ -138,7 +138,7 @@ func (s *State) plotLive(r mayPlay) bool {
 // offered on potential affordability, like the warp cast, so a pool that
 // must be tapped still sees it; the action itself taps then pays.
 func (s *State) offerPlotHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
-	s.offerSpecialHand(k, d, p, o, c, av, k.t.Cards[c].PlotCost, MakeAction(AkPlot, uint8(o), 0, 0))
+	s.offerSpecialHand(k, d, p, o, c, av, k.t.Cards[c].PlotCost, MakeAction(AkPlot, TCode(o), 0, 0))
 }
 
 // offerSpecialHand offers hand card o's special action act, priced at cost
@@ -175,7 +175,7 @@ func (s *State) plotAction(k *prep, o Obj, p uint8) {
 		s.capFull(StallMayPlay)
 		return
 	}
-	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurPlot, turn: s.turn}
+	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurPlot, turn: mayWord(s.turn)}
 	s.g.nmay++
 	s.passes = 0
 	if pc := &k.cards[c]; pc.plotTrig {
@@ -235,7 +235,7 @@ func (s *State) offerPlotCasts(k *prep, d *Decision, p uint8, sorc bool) {
 		if !s.spellCostsFeasible(k, c, p, o) || !s.spellTargetsFeasible(k, c, p) {
 			continue
 		}
-		d.add(MakeAction(AkCast, uint8(o), 0, castPlotted))
+		d.add(MakeAction(AkCast, TCode(o), 0, castPlotted))
 	}
 }
 

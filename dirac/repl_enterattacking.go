@@ -24,7 +24,7 @@ func (s *State) enterAttackingRepl(k *prep, sl Slot, ctrl uint8) {
 	if sl == NoSlot || ctrl != s.active || s.step < kop.StepAttackers || s.step > kop.StepEndCombat {
 		return
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	n := s.enteringDefenderCands(k, ctrl, &buf)
 	switch {
 	case n == 0:

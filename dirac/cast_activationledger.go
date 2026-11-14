@@ -36,7 +36,7 @@ func (s *State) noteAct(o Obj, activator uint8) {
 		s.capFull(StallActRing)
 		return
 	}
-	s.g.actRing[activator][n] = uint8(o) + 1
+	s.g.actRing[activator][n] = o + 1
 	s.g.actN[activator] = n + 1
 }
 
@@ -48,7 +48,7 @@ func (s *State) noteAct(o Obj, activator uint8) {
 func (s *State) thisTurnActGrave(ctx evalCtx) int {
 	n := 0
 	for i := uint8(0); i < s.g.actN[ctx.ctrl]; i++ {
-		ob := &s.objs[Obj(s.g.actRing[ctx.ctrl][i]-1)]
+		ob := &s.objs[s.g.actRing[ctx.ctrl][i]-1]
 		if ob.zone == kop.ZoneGraveyard && !s.ceasedCopy(ob) {
 			n++
 		}

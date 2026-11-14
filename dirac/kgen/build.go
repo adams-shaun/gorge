@@ -27,6 +27,7 @@ type poolTables struct {
 	ovSubs    []ovSub
 	emblems   []kop.Emblem
 	subtypes  []string // pool subtype names (index = pool subtype id)
+	textWords bool     // the pool holds a lowered ChangeText: CardDef.TextWords is filled (textreach.go)
 	subIdx    map[string]int
 	tokenIdx  map[string]int   // token script key -> pool index
 	cardIdx   map[string]int   // pool card name -> pool index (multi-face links)
@@ -98,6 +99,11 @@ func newPoolTables(lw *lowered, extra map[string]bool) *poolTables {
 			pt.paradigm[c.Name] = len(pt.paradigm)
 		}
 	}
+	for _, c := range lw.cards {
+		if c.HasChangeText && len(c.Refusals) == 0 {
+			pt.textWords = true // a ChangeText card: every card of the table carries TextWords (textreach.go)
+		}
+	}
 	for i, t := range lw.tokens {
 		if t.printed != "" {
 			pt.named[t.printed] = append(pt.named[t.printed], len(lw.cards)+i)
@@ -167,6 +173,16 @@ func buildCard(pt *poolTables, c *lCard) built {
 			cb.out.def.ReboundAb = uint8(j + 1)
 		} else {
 			cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "emit K:Rebound", Reason: "the recast body was not emitted"})
+			cb.out.def.Abilities = nil
+		}
+	}
+	if len(c.Refusals) == 0 && c.Cleave != nil {
+		// CR 702.148a: the cleave line's latent spell ability (dirac/kw_cleave.go);
+		// the ability map is filled by abilities()
+		if j, ok := cb.abMap[c.CleaveAb-1]; ok && j+1 <= 255 {
+			cb.out.def.CleaveAb = uint8(j + 1)
+		} else {
+			cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "emit A:SP$ NonBasicSpell", Reason: "the cleave ability was not emitted"})
 			cb.out.def.Abilities = nil
 		}
 	}
@@ -411,7 +427,11 @@ var counterKinds = map[string]kop.CounterKind{
 	"DEPLETION":  kop.CtrDepletion,  // Peat Bog's depletion counter (CR 122.1; mana_rider.go)
 	"MINING":     kop.CtrMining,     // Gemstone Mine's mining counter (CR 122.1; mana_rider.go)
 	"BURDEN":     kop.CtrBurden,     // The One Ring's burden counter (CR 122.1; its count reads in Count$CardCounters.BURDEN)
+	"LEVEL":      kop.CtrLevelUp,    // Level up's level counter (CR 702.87; the level bands' counters_GEn_LEVEL)
 	"STORAGE":    kop.CtrStorage,    // Molten Slagheap's storage counter (CR 122.1; mana_countercost.go)
+	"SCREAM":     kop.CtrScream,     // Endless Scream's named counter (CR 122.1; its count reads in Count$CardCounters.SCREAM)
+	"TREASURE":   kop.CtrTreasure,   // Legacy's Allure's named counter (CR 122.1)
+	"TASK":       kop.CtrTask,       // Heliod's Punishment's named counter (CR 122.1)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -823,6 +843,13 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Cleave != nil {
+		// CR 702.148a: the hand's alternative cost of the cleaved cast
+		// (dirac/kw_cleave.go; CleaveAb is set where the abilities map)
+		if d.CleaveCost, err = manaCostOf(*c.Cleave); err != nil {
+			return err
+		}
+	}
 	if c.Bestow != nil {
 		// CR 702.103a: no KwMask bit is free, so the bestow marker is its own
 		// field; the cost is the hand's alternative cost of the Aura cast and
@@ -961,6 +988,9 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 		d.HasAltAdd = true
+	}
+	if cb.pt.textWords {
+		d.TextWords = c.TextWords
 	}
 	d.Leyline = c.Leyline
 	d.World = c.World
@@ -1690,7 +1720,7 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	case cmpHasX:
 		kf.Pred = kop.PredHasXCost
 	case cmpPowerLTToughness:
-		kf.Pred = kop.PredPowerLTToughness
+		kf.Pred, kf.PredN = kop.PredPowerLTToughness, int16(c.CmpN)
 	case cmpMultiColor:
 		kf.Pred = kop.PredMultiColor
 	case cmpHistoric:
@@ -1770,6 +1800,9 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		if c.CmpN == int(kop.W7EnteredFromBF) && zone == kop.ZoneBattlefield {
 			// the word reads a card's latest arrival; a permanent has none to read
 			return kf, refuse("ThisTurnEnteredFrom_Battlefield on the battlefield")
+		}
+		if c.CmpN == int(kop.W7EnteredFromLib) && zone == kop.ZoneBattlefield {
+			return kf, refuse("ThisTurnEnteredFrom_Library on the battlefield")
 		}
 		kf.Pred, kf.PredN = kop.PredWord7, int16(c.CmpN) // (kernel wordPerm / wordCard)
 	case cmpNotF2:
@@ -1932,7 +1965,9 @@ func tgtRefOf(n int) kop.Ref {
 // (kernel cardPowerGEV); > X lowers as >= X+1 (power is an integer; Ensign
 // Harry Kim, Operations' powerGTY over his own power). A battlefield power ==
 // a constant (Amalia Benavides Aguirre's powerEQ20) is PredPowerGEV with
-// PredN 3.
+// PredN 3. A power <= a value (Legacy's Allure's powerLEX, X the treasure
+// counters on it) is PredPowerGEV with PredN 2, the same reads with the
+// comparison flipped; < X lowers as <= X-1.
 func (cb *cardBuilder) powerBattlefieldClause(c lClause, zone kop.Zone, kf *kop.Filter) (done bool, err error) {
 	if c.CmpV == nil && c.CmpX == "" && c.CmpOp == opEQ && zone == kop.ZoneBattlefield {
 		kf.Pred, kf.PredN, kf.PredV = kop.PredPowerGEV, 3, kop.Const(c.CmpN)
@@ -1942,9 +1977,16 @@ func (cb *cardBuilder) powerBattlefieldClause(c lClause, zone kop.Zone, kf *kop.
 		return false, nil
 	}
 	bound := *c.CmpV
-	if c.CmpOp == opGT && !bound.Neg {
+	le := false
+	switch {
+	case c.CmpOp == opGT && !bound.Neg:
 		bound.Add++
-	} else if c.CmpOp != opGE {
+	case c.CmpOp == opLT && !bound.Neg:
+		bound.Add--
+		le = true
+	case c.CmpOp == opLE:
+		le = true
+	case c.CmpOp != opGE:
 		return false, fmt.Errorf("power compare against a value")
 	}
 	if zone != kop.ZoneBattlefield && zone != kop.ZoneNone {
@@ -1955,6 +1997,9 @@ func (cb *cardBuilder) powerBattlefieldClause(c lClause, zone kop.Zone, kf *kop.
 		return false, err
 	}
 	kf.Pred, kf.PredV = kop.PredPowerGEV, v
+	if le {
+		kf.PredN = 2
+	}
 	return true, nil
 }
 
@@ -2059,12 +2104,18 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefAttachedCtrl, nil
 	case rChosenPlayer:
 		return kop.RefChosenPlayer, nil
+	case rChosenPlayerRes:
+		return kop.RefChosenPlayerRes, nil
 	case rLastCreated:
 		return kop.RefLastCreated, nil
 	case rTaxedAttacker:
 		return kop.RefTaxedAttacker, nil
+	case rTriggerOpps:
+		return kop.RefTriggerOpponents, nil
 	case rSrcOwner:
 		return kop.RefSrcOwner, nil
+	case rTriggeredOwner:
+		return kop.RefTriggerObjOwner, nil
 	case rTriggerAttackers:
 		return kop.RefTriggerAttackers, nil
 	case rRememberedOwner:
@@ -2211,6 +2262,8 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vEnergyOf:           kop.ExEnergyOf,
 	vMonarch:            kop.ExMonarch,    // lower_monarch.go
 	vJoinForces:         kop.ExJoinForces, // lower_storesvar.go
+	vCmdGreatestMV:      kop.ExCmdGreatestMV,
+	vDmgOppsTaken:       kop.ExDmgOppsTaken, // lower_bloodthirst.go
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
@@ -2237,6 +2290,9 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 	}
 	if v.Kind == vTimesKicked {
 		e.N = 1 // ExKicked N 1: the multikicker payment count (eval's timesKicked)
+	}
+	if v.Kind == vActivations {
+		e.N = int16(v.N) // ExActivations N 1: the evaluating source's count, an ActivationLimit$ gate (lower_activationlimitn.go)
 	}
 	if v.Kind == vThisTurnEntered {
 		e.N = int16(v.Zone)
@@ -2409,6 +2465,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 		ko.AddTypes |= subtypeTypeBits(o.SetSubtypes)
 	}
 	ko.HasSub = o.HasSetSubtypes
+	ko.RemoveTypes = typeMask(o.RemoveTypes)
 	ko.AllCreatureTypes = o.AllCreatureTypes
 	ko.RemoveCreatureSub = o.RemoveCreatureSub
 	ko.HasColors, ko.SetColors = o.HasSetColors, colorMask(o.SetColors)

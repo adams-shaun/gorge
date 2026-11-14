@@ -97,7 +97,7 @@ func TestSubsGenMatchesHasSubGen(t *testing.T) {
 	sc.stepTo(t, 40, func() bool { return pushed && sc.s.sp == 0 }, func(d *Decision) (Action, bool) {
 		pushed = pushed || sc.s.sp > 0
 		for _, a := range d.Options[:d.N] {
-			if !pushed && a.Kind() == AkActivate && a.Source() == uint8(ss) {
+			if !pushed && a.Kind() == AkActivate && a.Source() == TCode(ss) {
 				return a, true // the tap resolves without the stack; the animate pushes
 			}
 		}

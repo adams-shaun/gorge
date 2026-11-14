@@ -91,7 +91,7 @@ func GorgeKind(d *dirac.Decision, gen bool) string {
 
 // Action is a kernel action's canonical form.
 func (r *Translator) Action(a dirac.Action) Canon {
-	src, tgt, mode := a.Source(), a.Target(), a.Mode()
+	src, tgt, mode := Ref(a.Source()), Ref(a.Target()), a.Mode()
 	switch a.Kind() {
 	case dirac.AkPass:
 		return Pack(ActPass, RefNone, RefNone, 0)
@@ -177,7 +177,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return Pack(ActCastFace, src, RefNone, fc)
 		}
 		if mode&dirac.FeatCastFace != 0 {
-			return Pack(ActCastFace, src, RefNone, r.faceCastCanon(src, tgt)) // faces.go
+			return Pack(ActCastFace, src, RefNone, r.faceCastCanon(dirac.Obj(src), uint8(tgt))) // faces.go
 		}
 		if mode == 0 && tgt == 2 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
 			// the impending cast (CR 702.176a; kernel
@@ -212,6 +212,12 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ := CastModeCode("surged")
 			return Pack(ActCast, src, RefNone, cm)
 		}
+		if mode == 0 && tgt == dirac.FeatCastCleaveTgt && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
+			// the cleaved cast (CR 702.148a; kernel kw_cleave.go
+			// castCleaveTgt): gorge's "cleaved" cast option, AltCostIndex 0;
+			// the 16-entry cast-mode table is full, so CastModeOther
+			return Pack(ActCast, src, RefNone, CastModeOther)
+		}
 		if mode == 0 && tgt == 5 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
 			// the overloaded cast (CR 702.96a; kernel kw_overload.go
 			// castOverloadTgt): gorge's "overloaded" cast option, AltCostIndex
@@ -227,7 +233,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm = 1 << 4
 		case mode&dirac.FeatCastWarp != 0:
 			cm, _ = CastModeCode("warped") // a hand cast for its warp cost (kw_warp.go)
-			cm |= tgt << 4                 // the warp instance, gorge's AltCostIndex (kw_warpgrant.go)
+			cm |= uint8(tgt) << 4          // the warp instance, gorge's AltCostIndex (kw_warpgrant.go)
 		case mode&1 != 0 && r.S.FeatOptCostCard(dirac.Obj(src)):
 			cm = CastModeOther | 1<<4 // gorge's "optionalcost" cast, AltCostIndex 1 (CR 601.2b; cost_optional.go)
 		case mode&1 != 0 && r.S.FeatOffspringCast(dirac.Obj(src)):
@@ -238,7 +244,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ = CastModeCode("entwined") // the kicked cast of an Entwine card (kw_entwine.go): CastModeOther, as "buyback"
 		case mode&1 != 0:
 			cm, _ = CastModeCode("kicked")
-		case mode&2 != 0 && tgt == dirac.FeatEscapeTgt:
+		case mode&2 != 0 && tgt == Ref(dirac.FeatEscapeTgt):
 			// CR 702.138a: the escape cast a StatEscapeGrant static gives
 			// (kw_escape.go); gorge's "escape" cast option, CastModeOther
 			// like "mayhem" and the printed escape cast below.
@@ -247,12 +253,12 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ = CastModeCode("mayhem") // CR 702.187a: CastModeOther, as "harmonize"
 		case mode&2 != 0 && r.S.FeatHarmonizeCast(dirac.Obj(src)):
 			cm, _ = CastModeCode("harmonize") // CR 702.180a: CastModeOther, as "bargained"
-		case mode&2 != 0 && tgt == dirac.FeatCastEscapeTgt:
+		case mode&2 != 0 && tgt == Ref(dirac.FeatCastEscapeTgt):
 			// CR 702.138a: the mode-2 escape cast (kw_escape.go); gorge's
 			// "escape" cast option, CastModeOther as "mayhem". The target
 			// byte marks it apart from a granted flashback on the same card.
 			cm = CastModeOther
-		case mode&2 != 0 && tgt == dirac.FeatRetraceTgt && r.S.FeatRetraceCard(dirac.Obj(src)):
+		case mode&2 != 0 && tgt == Ref(dirac.FeatRetraceTgt) && r.S.FeatRetraceCard(dirac.Obj(src)):
 			// the retrace cast (CR 702.81a; kw_retrace.go): the printed cost
 			// plus the discard-a-land additional cost; gorge's "retrace"
 			// option, CastModeOther as "harmonize". The target byte
@@ -287,7 +293,13 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			if idx == 0 {
 				idx = 1
 			}
-			cm |= idx << 4
+			cm |= uint8(idx) << 4
+		case mode&0x18 == 0x18 && r.S.FeatMayZeroAltCast(r.D.Player, dirac.Obj(src)):
+			// a non-granting static's {0} alternative (Dragon's Smile, CR
+			// 118.9): gorge's "mayplay" option at AltCostIndex 1 beside the
+			// plain cast (cast_mayzeroalt.go)
+			cm, _ = CastModeCode("mayplay")
+			cm |= 1 << 4
 		case mode&8 != 0:
 			cm, _ = CastModeCode("mayplay") // a generated table's play permission (castMayPlay)
 		}
@@ -299,20 +311,20 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		c, _ := SpecialCode("turn_face_up")
 		return Pack(ActSpecial, src, RefNone, c|mode<<4) // mode = the turn-up procedure
 	case dirac.AkActivate:
-		if r.stationAbility(src, mode) {
+		if r.stationAbility(dirac.Obj(src), mode) {
 			c, _ := SpecialCode("station") // gorge's priority option (rules/station.go)
 			return Pack(ActSpecial, src, RefNone, c)
 		}
-		if mode&0x80 != 0 && r.FaceAbility(src, mode, false) == 255 {
+		if mode&0x80 != 0 && r.FaceAbility(dirac.Obj(src), mode, false) == 255 {
 			return Pack(ActActivate, src, tgt, 255) // a granted ability, told apart by its grantor
 		}
-		return Pack(ActActivate, src, RefNone, r.FaceAbility(src, mode, false))
+		return Pack(ActActivate, src, RefNone, r.FaceAbility(dirac.Obj(src), mode, false))
 	case dirac.AkAttack:
-		if dirac.IsObjTarget(tgt) {
+		if dirac.IsObjTarget(dirac.TCode(tgt)) {
 			return Pack(ActAttack, src, Ref(tgt), 0) // a planeswalker
 		}
-		if tgt >= dirac.PlayerTarget0 && tgt <= dirac.PlayerTarget0+(dirac.MaxSeats-1) {
-			return Pack(ActAttack, src, RefPlayer+Ref(dirac.CodeSeat(tgt)), 0) // the defending player
+		if dirac.TCode(tgt) >= dirac.PlayerTarget0 && dirac.TCode(tgt) <= dirac.PlayerTarget0+(dirac.MaxSeats-1) {
+			return Pack(ActAttack, src, RefPlayer+Ref(dirac.CodeSeat(dirac.TCode(tgt))), 0) // the defending player
 		}
 		return Pack(ActAttack, src, RefPlayer+Ref(1-r.D.Player), 0)
 	case dirac.AkBlock:
@@ -320,7 +332,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 	case dirac.AkDone:
 		return Pack(ActDone, RefNone, RefNone, 0)
 	case dirac.AkTarget:
-		if tgt == dirac.NoTarget {
+		if dirac.TCode(tgt) == dirac.NoTarget {
 			return Pack(ActDone, RefNone, RefNone, 0) // declining an "up to one" target
 		}
 		// the mode byte is the occurrence of a charm's combined target ask
@@ -505,7 +517,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 // gorge's: Face.Abilities index for an activated or mana ability (gorge
 // lists both as AB lines), 0x80 | Face.Triggers index for a triggered one;
 // the kernel-native ward/prowess indices (253, 254) and 255 pass through.
-func (r *Translator) FaceAbility(o uint8, idx uint8, _ bool) uint8 {
+func (r *Translator) FaceAbility(o dirac.Obj, idx uint8, _ bool) uint8 {
 	if idx >= 253 || int(o) >= int(r.KP.NObj) {
 		return idx
 	}
@@ -517,7 +529,7 @@ func (r *Translator) FaceAbility(o uint8, idx uint8, _ bool) uint8 {
 
 // stationAbility reports whether ability idx of object o is a Station
 // ability (kop.AfStation, kcounters).
-func (r *Translator) stationAbility(o uint8, idx uint8) bool {
+func (r *Translator) stationAbility(o dirac.Obj, idx uint8) bool {
 	if int(o) >= int(r.KP.NObj) || int(r.KP.Objs[o].Card) >= len(r.Tbl.Cards) {
 		return false
 	}
@@ -761,53 +773,53 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		}
 		return Pack(ActMode, RefNone, RefNone, 1), true
 	case dirac.ChGenSearch:
-		return Pack(kind("search"), src, RefNone, 0), true
+		return Pack(kind("search"), Ref(src), RefNone, 0), true
 	case dirac.ChGenKczZone:
 		// gorge's originAlternativeZones pick: the option index (0 the
 		// library, 1 the alternative zone, 2 the Graveyard,Hand pair's hand)
 		return Pack(kind("zone"), RefNone, RefNone, mode), true
 	case dirac.ChGenHiddenPick:
-		return Pack(kind("hidden_pick"), src, RefNone, 0), true
+		return Pack(kind("hidden_pick"), Ref(src), RefNone, 0), true
 	case dirac.ChGenHandMove:
-		return Pack(kind("hand_move"), src, RefNone, 0), true
+		return Pack(kind("hand_move"), Ref(src), RefNone, 0), true
 	case dirac.ChGenImprint:
 		// gorge zone_change.go's imprint pick (Chrome Mox)
-		return Pack(kind("imprint"), src, RefNone, 0), true
+		return Pack(kind("imprint"), Ref(src), RefNone, 0), true
 	case dirac.ChGenReveal:
-		return Pack(kind("reveal"), src, RefNone, 0), true
+		return Pack(kind("reveal"), Ref(src), RefNone, 0), true
 	case dirac.ChGenDig:
-		return Pack(kind("dig"), src, RefNone, 0), true
+		return Pack(kind("dig"), Ref(src), RefNone, 0), true
 	case dirac.ChGenBolster:
-		return Pack(kind("counter_pick"), src, RefNone, 0), true
+		return Pack(kind("counter_pick"), Ref(src), RefNone, 0), true
 	case dirac.ChGenDistPick:
 		// gorge's "counter_dist" pick
-		return Pack(kind("counter_dist"), src, RefNone, 0), true
+		return Pack(kind("counter_dist"), Ref(src), RefNone, 0), true
 	case dirac.ChGenProlif:
 		// gorge's proliferate pick: a permanent by Obj, a player by Player
 		if src >= dirac.PlayerTarget0 {
 			return Pack(kind("proliferate"), RefNone, RefPlayer+Ref(src-dirac.PlayerTarget0), 0), true
 		}
-		return Pack(kind("proliferate"), src, RefNone, 0), true
+		return Pack(kind("proliferate"), Ref(src), RefNone, 0), true
 	case dirac.ChCastDivide:
 		// gorge's CR 601.2d division ask: a repeatable "divide" pick over
 		// the targets, a player target named by Player
 		if src >= dirac.PlayerTarget0 {
 			return Pack(kind("divide"), RefNone, RefPlayer+Ref(src-dirac.PlayerTarget0), 0), true
 		}
-		return Pack(kind("divide"), src, RefNone, 0), true
+		return Pack(kind("divide"), Ref(src), RefNone, 0), true
 	case dirac.ChGenDivide:
 		// gorge's resolution division: a repeatable pick over the targets
 		if src >= dirac.PlayerTarget0 {
 			return Pack(kind("player"), RefNone, RefPlayer+Ref(src-dirac.PlayerTarget0), 0), true
 		}
-		return Pack(kind("card"), src, RefNone, 0), true
+		return Pack(kind("card"), Ref(src), RefNone, 0), true
 	case dirac.ChGenEnterDefender:
 		// gorge's CR 508.4 entering_defender ask: a "player" option for a
 		// player, a "card" option for a planeswalker or battle (optionAction)
 		if src >= dirac.PlayerTarget0 {
 			return Pack(kind("player"), RefNone, RefPlayer+Ref(src-dirac.PlayerTarget0), 0), true
 		}
-		return Pack(kind("card"), src, RefNone, 0), true
+		return Pack(kind("card"), Ref(src), RefNone, 0), true
 	case dirac.ChKsrTarget:
 		// gorge's effChangeTargets "Choose new target" KChoose: a "player"
 		// option for a player, a "card" option for an object or a stack
@@ -815,55 +827,55 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		if src >= dirac.PlayerTarget0 {
 			return Pack(kind("player"), RefNone, RefPlayer+Ref(src-dirac.PlayerTarget0), 0), true
 		}
-		return Pack(kind("card"), src, RefNone, 0), true
+		return Pack(kind("card"), Ref(src), RefNone, 0), true
 	case dirac.ChGenCopyPick:
 		// gorge's CopyPermanent Choices$ pick: its options are "permanent"
-		return Pack(kind("permanent"), src, RefNone, 0), true
+		return Pack(kind("permanent"), Ref(src), RefNone, 0), true
 	case dirac.ChGenTokCopy:
 		// gorge's chosen-copy token replacement election: "decline" first, then
 		// the creature to copy (poseChosenTokenReplacement)
 		if mode == 1 {
-			return Pack(kind("creature"), src, RefNone, 0), true
+			return Pack(kind("creature"), Ref(src), RefNone, 0), true
 		}
 		return Pack(kind("decline"), RefNone, RefNone, 0), true
 	case dirac.ChGenFaceDownPick:
 		// gorge's face_down_choice pick: the hand card to put onto the
 		// battlefield face down (CR 701.58a)
-		return Pack(kind("face_down_choice"), src, RefNone, 0), true
+		return Pack(kind("face_down_choice"), Ref(src), RefNone, 0), true
 	case dirac.ChGenChooseCard, dirac.ChGenResTarget, dirac.ChGenChooseEach:
 		// (ChGenChooseEach: gorge's ChooseCard per permanent type, Liliana's -9)
-		return Pack(kind("card"), src, RefNone, 0), true
+		return Pack(kind("card"), Ref(src), RefNone, 0), true
 	case dirac.ChGenEnchant:
-		return Pack(kind("enchant"), src, RefNone, 0), true
+		return Pack(kind("enchant"), Ref(src), RefNone, 0), true
 	case dirac.ChGenClone:
 		// gorge's ETB "clone" ask: the templates by object, then "Enter as
 		// itself" naming no object
 		if mode == 1 {
 			return Pack(kind("clone"), RefNone, RefNone, 0), true
 		}
-		return Pack(kind("clone"), src, RefNone, 0), true
+		return Pack(kind("clone"), Ref(src), RefNone, 0), true
 	case dirac.ChEchoActionPick:
 		// gorge echoActionAsk's one choose-exactly-N kind for a discard or a
 		// land sacrifice paying an echo cost
-		return Pack(kind("echo_action_pick"), src, RefNone, 0), true
+		return Pack(kind("echo_action_pick"), Ref(src), RefNone, 0), true
 	case dirac.ChGenPayPick:
 		if blight, modes := r.S.FeatPayBlight(); blight {
 			if modes {
-				return Pack(kind("blightcost"), src, RefNone, 0), true
+				return Pack(kind("blightcost"), Ref(src), RefNone, 0), true
 			}
-			return Pack(kind("trigger_cost_blight"), src, RefNone, 0), true
+			return Pack(kind("trigger_cost_blight"), Ref(src), RefNone, 0), true
 		}
-		return Pack(kind("sacrifice"), src, RefNone, 0), true
+		return Pack(kind("sacrifice"), Ref(src), RefNone, 0), true
 	case dirac.ChGenBlightPick:
-		return Pack(kind("blight"), src, RefNone, 0), true
+		return Pack(kind("blight"), Ref(src), RefNone, 0), true
 	case dirac.ChCostBlight:
-		return Pack(kind("blightcost"), src, RefNone, 0), true
+		return Pack(kind("blightcost"), Ref(src), RefNone, 0), true
 	case dirac.ChGenPayReturn:
-		return Pack(kind("returncost"), src, RefNone, 0), true
+		return Pack(kind("returncost"), Ref(src), RefNone, 0), true
 	case dirac.ChGenPayExile:
-		return Pack(kind("exile_cost"), src, RefNone, 0), true
+		return Pack(kind("exile_cost"), Ref(src), RefNone, 0), true
 	case dirac.ChGenPileSplit:
-		return Pack(kind("twopiles"), src, RefNone, 0), true
+		return Pack(kind("twopiles"), Ref(src), RefNone, 0), true
 	case dirac.ChGenPileChoose:
 		if mode == 0 {
 			return Pack(kind("pile-a"), RefNone, RefNone, 0), true
@@ -908,34 +920,40 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 	case dirac.ChGenExplore:
 		// gorge's explore: a KChoose of "graveyard" / "top" over the revealed card
 		if mode == 1 {
-			return Pack(kind("top"), src, RefNone, 0), true
+			return Pack(kind("top"), Ref(src), RefNone, 0), true
 		}
-		return Pack(kind("graveyard"), src, RefNone, 0), true
+		return Pack(kind("graveyard"), Ref(src), RefNone, 0), true
 	case dirac.ChGenEndure:
 		// gorge's endure: a KChoose of "endure_counters" / "endure_spirit"
 		// over the permanent
 		if mode == 1 {
-			return Pack(kind("endure_spirit"), src, RefNone, 0), true
+			return Pack(kind("endure_spirit"), Ref(src), RefNone, 0), true
 		}
-		return Pack(kind("endure_counters"), src, RefNone, 0), true
+		return Pack(kind("endure_counters"), Ref(src), RefNone, 0), true
 	case dirac.ChGenTapOrUntap:
 		// gorge's taporuntap: a KChoose of "tap" / "untap" over the permanent
 		if mode == 1 {
-			return Pack(kind("tap"), src, RefNone, 0), true
+			return Pack(kind("tap"), Ref(src), RefNone, 0), true
 		}
-		return Pack(kind("untap"), src, RefNone, 0), true
+		return Pack(kind("untap"), Ref(src), RefNone, 0), true
+	case dirac.ChGenTapOrUntapAll:
+		// gorge's taporuntapall: a KChoose of "tap" / "untap", no object
+		if mode == 1 {
+			return Pack(kind("tap"), RefNone, RefNone, 0), true
+		}
+		return Pack(kind("untap"), RefNone, RefNone, 0), true
 	case dirac.ChGenKeepTapped:
 		// gorge's untap-step election over the permanent: "untap" first,
 		// then "keep_tapped"
 		if mode == 1 {
-			return Pack(kind("keep_tapped"), src, RefNone, 0), true
+			return Pack(kind("keep_tapped"), Ref(src), RefNone, 0), true
 		}
-		return Pack(kind("untap"), src, RefNone, 0), true
+		return Pack(kind("untap"), Ref(src), RefNone, 0), true
 	case dirac.ChGenPeekReveal:
 		// gorge's reveal_optional over a PeekAndReveal: yes carries the
 		// top card as its Obj, no names nothing
 		if mode == 1 {
-			return Pack(kind("yes"), src, RefNone, 0), true
+			return Pack(kind("yes"), Ref(src), RefNone, 0), true
 		}
 		return Pack(kind("no"), RefNone, RefNone, 0), true
 	case dirac.ChGenConfirm:
@@ -950,13 +968,13 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(kind("room"), RefNone, RefNone, mode), true
 	case dirac.ChCloneCopyPick:
 		// gorge's clone_choice KChoose over battlefield permanents
-		return Pack(kind("permanent"), src, RefNone, 0), true
+		return Pack(kind("permanent"), Ref(src), RefNone, 0), true
 	case dirac.ChCloneBatchPick:
 		// gorge's clone_choice KChoose over the cards of an exile pool
-		return Pack(kind("card"), src, RefNone, 0), true
+		return Pack(kind("card"), Ref(src), RefNone, 0), true
 	case dirac.ChHideaway:
 		// gorge's hideaway_pick KChoose over the top cards
-		return Pack(kind("hideaway"), src, RefNone, 0), true
+		return Pack(kind("hideaway"), Ref(src), RefNone, 0), true
 	case dirac.ChTrigX:
 		// gorge's triggeredCostXAsk: a KChoose of "trigger_cost_x", the
 		// option's Amount the X; canonical like the NumTimes count (canon.go),
@@ -964,40 +982,40 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(kind("x"), RefNone, RefNone, mode), true
 	case dirac.ChWardDiscard:
 		// gorge's ward_discard KChoose over the payer's hand
-		return Pack(kind("ward_discard"), src, RefNone, 0), true
+		return Pack(kind("ward_discard"), Ref(src), RefNone, 0), true
 	case dirac.ChWardAlt:
 		// gorge's ward_alt KChoose: a ward_discard per hand card, then
 		// ward_mana for the {N}
 		if mode == 1 {
 			return Pack(kind("ward_mana"), RefNone, RefNone, 0), true
 		}
-		return Pack(kind("ward_discard"), src, RefNone, 0), true
+		return Pack(kind("ward_discard"), Ref(src), RefNone, 0), true
 	case dirac.ChWardSac:
 		// gorge's ward_sac KChoose over the payer's matching permanents
-		return Pack(kind("ward_sac"), src, RefNone, 0), true
+		return Pack(kind("ward_sac"), Ref(src), RefNone, 0), true
 	case dirac.ChCostBehold:
 		// gorge's beholdCostAsk KChoose over the battlefield then hand
 		// candidates
-		return Pack(kind("beholdcost"), src, RefNone, 0), true
+		return Pack(kind("beholdcost"), Ref(src), RefNone, 0), true
 	case dirac.ChCostReveal:
 		// gorge's AdvanceUnless "revealcost" pick over the payer's hand
-		return Pack(kind("revealcost"), src, RefNone, 0), true
+		return Pack(kind("revealcost"), Ref(src), RefNone, 0), true
 	case dirac.ChCostEvidence:
 		// gorge's evidence KChoose over the payer's graveyard
-		return Pack(kind("evidence"), src, RefNone, 0), true
+		return Pack(kind("evidence"), Ref(src), RefNone, 0), true
 	case dirac.ChWardWaterbend:
 		// gorge's ward_waterbend KChoose over the payer's untapped artifacts and creatures
-		return Pack(kind("ward_waterbend"), src, RefNone, 0), true
+		return Pack(kind("ward_waterbend"), Ref(src), RefNone, 0), true
 	case dirac.ChWardEvidence:
 		// gorge's ward_evidence KChoose over the payer's graveyard
-		return Pack(kind("ward_evidence"), src, RefNone, 0), true
+		return Pack(kind("ward_evidence"), Ref(src), RefNone, 0), true
 	case dirac.ChGenTurnUpPick:
 		// gorge setStateChoose's "setstate_pick" KChoose over the Choices$
 		// permanents that would turn face up
-		return Pack(kind("setstate_pick"), src, RefNone, 0), true
+		return Pack(kind("setstate_pick"), Ref(src), RefNone, 0), true
 	case dirac.ChGenUntapPick:
 		// gorge's "untap" KChoose over the UntapType$ candidates
-		return Pack(kind("untap"), src, RefNone, 0), true
+		return Pack(kind("untap"), Ref(src), RefNone, 0), true
 	case dirac.ChGenDiscUnless:
 		// gorge's discard_unless: a KChoose of unless / ordinary, both
 		// canonical kinds naming no object
@@ -1017,6 +1035,13 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 	case dirac.ChGenPlayer:
 		// gorge effChoosePlayer's "player" option names the seat
 		return Pack(kind("player"), RefNone, RefPlayer+Ref(mode), 0), true
+	case dirac.ChGenTextWord:
+		// gorge's changetext KChoose: one option per word, kind
+		// changetext_from / changetext_to, valued by the word index
+		if mode >= 16 {
+			return Pack(kind("changetext_to"), RefNone, RefNone, mode-16), true
+		}
+		return Pack(kind("changetext_from"), RefNone, RefNone, mode), true
 	case dirac.ChGenColor:
 		// gorge indexes its colour options densely: with an Exclude$
 		// colour dropped (Citadel Gate) the index is the colour's rank
@@ -1071,15 +1096,15 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 				occ++
 			}
 		}
-		return Pack(ActReplacement, src, RefNone, occ), true
+		return Pack(ActReplacement, Ref(src), RefNone, occ), true
 	case dirac.ChGenPip:
 		// gorge's pip announcement (rules manaAsk): pay_W..pay_G
 		return Pack(kind("pay"), RefNone, RefNone, mode), true
 	case dirac.ChGenLeyline:
 		if mode == 1 {
-			return Pack(kind("opening_yes"), src, RefNone, 0), true
+			return Pack(kind("opening_yes"), Ref(src), RefNone, 0), true
 		}
-		return Pack(kind("opening_no"), src, RefNone, 0), true
+		return Pack(kind("opening_no"), Ref(src), RefNone, 0), true
 	case dirac.ChRoomDoorHalf:
 		// gorge effUnlockDoor's "Lock or unlock a door?" KChoose
 		if mode == 1 {
@@ -1090,7 +1115,7 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		// gorge effUnlockDoor's "Choose a Room door" KChoose: both doors name
 		// the same Room and gorge's disambiguate gives the k-th repeat mode k
 		// in option (face) order; the kernel carries that ordinal in Target.
-		return Pack(kind("card"), src, RefNone, a.Target()), true
+		return Pack(kind("card"), Ref(src), RefNone, uint8(a.Target())), true
 	}
 	return 0, false
 }

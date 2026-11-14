@@ -34,3 +34,18 @@ func (s *State) libTopExists() bool {
 func (s *State) topLibForceMove(k *prep) bool {
 	return DebugTopLibraryAlwaysMove && s.prog(k)[s.res.pc].C == kop.MayGuardLibraryTop
 }
+
+// libTopMV is ExMVOf RefLibTop (gorge count_cov3.go
+// evalCov3HeadTopOfLibraryCMC, Count$TopOfLibraryCMC): the mana value of the
+// top card of the evaluating controller's library, 0 when it is empty.
+func (s *State) libTopMV(k *prep, ctx evalCtx) int {
+	if int(ctx.ctrl) >= len(s.pl) {
+		return 0
+	}
+	pl := &s.pl[ctx.ctrl]
+	if pl.libLen() == 0 {
+		return 0
+	}
+	o := pl.lib[int(pl.libLo)]
+	return s.objMV(k, s.objs[o].card, o)
+}

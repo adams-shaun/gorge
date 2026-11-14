@@ -760,7 +760,7 @@ func (p *Pool) precomputeTypeLines() {
 		kop.TInstant | kop.TSorcery | kop.TBattle | kop.TKindred
 	for i := range p.tbl.Overrides {
 		o := &p.tbl.Overrides[i]
-		if !o.HasTypes && o.AddTypes == 0 {
+		if !o.HasTypes && o.AddTypes == 0 && o.RemoveTypes == 0 {
 			continue
 		}
 		for c := range p.tbl.Cards {
@@ -769,7 +769,7 @@ func (p *Pool) precomputeTypeLines() {
 			if o.HasTypes {
 				types = types&^cardTypes | o.SetTypes
 			}
-			types |= o.AddTypes
+			types = types&^o.RemoveTypes | o.AddTypes
 			if o.HasSub {
 				subs = subs.And(o.KeepSub).Or(o.SetSub)
 			}

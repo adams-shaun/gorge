@@ -31,6 +31,10 @@ type evalCtx struct {
 	// left the battlefield (CR 704.5j before 603.3b), where a later effect
 	// read sees gorge's reset.
 	bounds bool
+	// xmv is the announced X an {X} spell adds to its own mana value when a
+	// protection quality reads it as a source (protMatch; CR 202.3e), which
+	// a card matcher off the stack cannot see. 0 adds nothing.
+	xmv int
 }
 
 // ctxCur is the context of the resolving entry, else the one being built.
@@ -212,6 +216,7 @@ func (s *State) objPT(k *prep, o Obj, sl Slot) (int, int) {
 	if k.phasing && ob.zone.Phased() && ob.slot != NoSlot {
 		return s.phasedPT(k, ob.slot)
 	}
+	s.offZonePTRead(k, ob.card, ob.owner(), o) // static_offzonept.go
 	pc := &k.cards[ob.card]
 	if k.cda && k.gen.has(ob.card, gfCDAPT) {
 		return s.cardCDAPT(k, ob.card, ob.owner(), o) // CR 604.3: a CDA works in every zone
@@ -422,6 +427,8 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 		v = int(s.pl[ctx.ctrl].lifeGained)
 	case kop.ExOppLifeLostThisTurn:
 		v = s.oppsLifeLost(ctx.ctrl)
+	case kop.ExDmgOppsTaken:
+		v = s.oppsDmgTaken(ctx.ctrl) // kw_bloodthirst.go
 	case kop.ExCountersOn:
 		v = s.refCounters(k, x, x.Ref, x.Ctr, ctx)
 	case kop.ExCreaturesDied:
@@ -575,7 +582,7 @@ func (s *State) refObjCtx(r kop.Ref, ctx evalCtx) Obj {
 		return Obj(t)
 	case kop.RefTriggerObj, kop.RefTriggerSource, kop.RefDelayedRemembered, kop.RefHost:
 		if r == kop.RefDelayedRemembered && e.remSet && e.trigObj != NoObj &&
-			s.objs[e.trigObj].ver != e.remVer {
+			objWord(s.objs[e.trigObj].ver) != e.remVer {
 			return NoObj // a new object since registration (CR 400.7; gorge dropDelayedRememberedMoved)
 		}
 		return e.trigObj
@@ -622,6 +629,11 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 		return s.attachedCtrl(s.refObjCtx(kop.RefAttached, ctx))
 	case kop.RefTriggerPlayer:
 		return e.trigPl
+	case kop.RefTriggerObjOwner:
+		if o := e.trigObj; o != NoObj {
+			return s.objs[o].owner() // CR 108.3 (resolve.go playerRef)
+		}
+		return 255
 	case kop.RefTriggerTgtCtrl:
 		// gorge TriggeredTargetController, read live (resolve.go playerRef)
 		if o := e.trigObj; o != NoObj {

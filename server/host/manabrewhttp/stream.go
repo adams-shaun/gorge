@@ -211,20 +211,32 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-r.Context().Done():
 			return
-		case _, open := <-sess.Out():
+		case f, open := <-sess.Out():
 			if !open {
 				return
 			}
+			rewound := f.T == protocol.TRewind
 		drain:
 			for {
 				select {
-				case _, open2 := <-sess.Out():
+				case f2, open2 := <-sess.Out():
 					if !open2 {
 						return
 					}
+					rewound = rewound || f2.T == protocol.TRewind
 				default:
 					break drain
 				}
+			}
+			if rewound {
+				// An undo put back a decision this seat already answered, and its
+				// seq is the promptId this connection last sent when the answer's
+				// own wake-up and the rewind's arrive together. The client has
+				// withdrawn that prompt, so it goes out again; a running pass
+				// policy belongs to the discarded tail and stops here, whichever
+				// route asked for the undo.
+				havePrompt = false
+				sc.setPolicy(nil)
 			}
 			if err := refresh(); err != nil {
 				return

@@ -13,22 +13,17 @@ const tokListBit = 4096
 // each listed script in order, TokenAmount$ of each, inside one zone batch,
 // which the kernel's per-resolution token batch already is. Only the plain
 // shape is read: every rider beside the list (owner, amount, tapped,
-// attacking, attached, remembered, AtEOT) refuses, except TokenOwner$ You: the
-// resolving controller is gorge's default owner (tokenOwnerPlayers), so the
-// spelling is the plain list (Specimen Collector, Fae Offering).
+// attacking, attached, remembered, AtEOT) refuses, except TokenOwner$ You,
+// which is the controller every list already mints for (Bestial Menace).
 func (lc *lowerCtx) tokenList(ps *params, list string) error {
-	if o, ok := ps.get("TokenOwner"); ok && o == "You" {
-		ps.consume("TokenOwner")
-	} else if ok {
-		return refuse("TokenScript list %q with TokenOwner$", list)
-	}
-	for _, k := range []string{"TokenAmount", "TokenTapped", "TokenAttacking",
+	youOwner := strings.TrimSpace(ps.m["TokenOwner"]) == "You"
+	for _, k := range []string{"TokenAmount", "TokenOwner", "TokenTapped", "TokenAttacking",
 		"AttachedTo", "RememberTokens", "RememberOriginalTokens", "AtEOT", "ImprintTokens"} {
-		if _, ok := ps.m[k]; ok {
+		if _, ok := ps.m[k]; ok && !(k == "TokenOwner" && youOwner) {
 			return refuse("TokenScript list %q with %s$", list, k)
 		}
 	}
-	ps.consume("TokenScript", "LockTokenScript")
+	ps.consume("TokenScript", "LockTokenScript", "TokenOwner")
 	var scripts []string
 	for _, s := range strings.Split(list, ",") {
 		s = strings.TrimSpace(s)

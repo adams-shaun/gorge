@@ -8,7 +8,7 @@ import "github.com/adams-shaun/gorge/dirac"
 // a free cast and a cost-in-an-effect pay as KModes.
 func (e *Encoder) genOption(d *dirac.Decision, a dirac.Action, o *optIn) {
 	src, mode := a.Source(), a.Mode()
-	o.obj = src
+	o.obj = dirac.Obj(src)
 	switch d.Sub {
 	case dirac.ChGenSearch:
 		o.kind = okSearch
@@ -89,6 +89,11 @@ func (e *Encoder) genOption(d *dirac.Decision, a dirac.Action, o *optIn) {
 		}
 	case dirac.ChGenTapOrUntap:
 		o.kind = okUntap // gorge's taporuntap "tap" / "untap" over the permanent
+		if mode == 1 {
+			o.kind = okTap
+		}
+	case dirac.ChGenTapOrUntapAll:
+		o.kind, o.obj = okUntap, noObj // gorge's taporuntapall "tap" / "untap", no object
 		if mode == 1 {
 			o.kind = okTap
 		}
