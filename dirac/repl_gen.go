@@ -477,6 +477,19 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		ro.prev |= 1 << n
 		n++
 	}
+	if g.anyPrevFrom && s.prevFromGrant(k, fsl) {
+		// the source's granted prevention (Maze of Ith's Effect, gorge's
+		// bodyless Prevent$ ValidSource$ Card.IsRemembered line) is a
+		// candidate of its own: an Effect, so after the printed and
+		// keyword matches (preventFromGen removes the event once asked)
+		if n == len(ro.cand) {
+			s.capFull(StallReplCands) // loud: never truncate the candidates
+			return n
+		}
+		ro.cand[n] = s.perms[fsl].obj
+		ro.prev |= 1 << n
+		n++
+	}
 	if g.anyRepl&rbPrevCol != 0 {
 		// Ext PreventColor's effect records (cast_altfree.go)
 		ro.pcol = 0
@@ -679,6 +692,9 @@ func (s *State) replCandLive(k *prep, i int) bool {
 		return s.perms[sl].ctrl == ro.actl && k.gen.replBits[s.cardAt(sl)]&rbPlusDmg != 0 && !s.genLost(k, sl)
 	}
 	if ro.prev&(1<<i) != 0 {
+		if sl == ro.askS {
+			return s.prevFromGrant(k, sl) // the source's own granted prevention
+		}
 		return s.prevCombatTo(k, sl)
 	}
 	return s.perms[sl].ctrl == ro.actl && k.gen.replBits[s.cardAt(sl)]&rbDblDmg != 0 && !s.genLost(k, sl) &&
