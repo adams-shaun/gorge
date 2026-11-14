@@ -203,6 +203,11 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 			a.addUnits(1<<k.deferCol(s.cardAt(b.first())), 1)
 		}
 	}
+	// A Combo Any source (Axebane Guardian) is a census gap too, and the window
+	// taps it for its amount of any-colour mana (mana_comboany.go).
+	if k.gen != nil && k.gen.anyComboAny && s.g.availX&3 == 0 {
+		s.availCA(k, p, a)
+	}
 	// A counter-rider or Taps-deferred source (Twitching Doll's "{T}: Add one
 	// mana of any color. Put a nest counter on this", a Taps watcher's Defer
 	// source) is deferred by the planner the same way, and CR 601.2g's window

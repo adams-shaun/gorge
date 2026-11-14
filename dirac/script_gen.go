@@ -200,7 +200,11 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	}
 	tx := s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p))
 	dh := k.gen.anyDiscHand && s.dhBoard(k, p) // Lion's Eye Diamonds the only gaps (mana_discardhand.go)
-	ca := k.gen.anyComboAny && s.caBoard(k, p) // Combo Any sources the only gaps (mana_comboany.go)
+	ca := k.gen.anyComboAny && s.caBoard(k, p) // a Combo Any source among the gaps (mana_comboany.go)
+	var caM slotMask
+	if ca {
+		caM = s.caGaps(k, p)
+	}
 	if !dh && !ca && !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).any() {
 		return
 	}
@@ -232,7 +236,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	var cand [MaxOptions]Action
 	var key [MaxOptions]uint64
 	nc := 0
-	wide := !mix && !tapsDef.any() && s.wideGapsOnly(k, p, restr, anyR) // (gorge's relaxed proof reads a wide source against each play; a Taps-deferred gap is none of them)
+	wide := !mix && !tapsDef.any() && !ca && s.wideGapsOnly(k, p, restr, anyR) // (gorge's relaxed proof reads a wide source against each play; a Taps-deferred gap is none of them)
 	// The drop of a play no wide source may fund is the relaxed proof's
 	// (potentialRestrictionAdmits): an unrelaxable census (a live
 	// two-permanent source, Supportive Parents) runs no proof, so gorge
@@ -294,7 +298,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 				continue // no script: the discarded hand held the play, or three mana of one colour do not pay it (mana_discardhand.go)
 			}
 		} else if ca {
-			if !s.caScript(k, a, p, false) {
+			if !s.caSearch(k, a, p, restr, anyR, tapsDef, caM) {
 				continue // no script within gorge's search: no colour answers pay the play (mana_comboany.go)
 			}
 		} else if (filt.any() || mix) && a.Kind() == AkActivate && s.liveGrantGap(k, p) {
@@ -314,7 +318,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 				continue // no script within gorge's budget, or one the pool cannot complete (mana_reflected.go)
 			}
 		} else if anyR.any() || tapsDef.any() {
-			if s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, s.scriptCtr(k, p)) {
+			if s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, s.scriptCtr(k, p), slotMask{}) {
 				continue // no script within gorge's budget (mana_window.go scriptDeadEndAny)
 			}
 		} else if !restr.any() && !s.scriptCtr(k, p).any() && s.eachFeeBoard(k, p) {
@@ -463,11 +467,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		return
 	}
 	if k.gen.anyComboAny && s.caBoard(k, p) {
-		var d Decision
-		s.plainOptions(k, &d, 0)
-		if !hasOption(&d, a) {
-			s.caScript(k, a, p, true) // Combo Any sources the only gaps (mana_comboany.go)
-		}
+		s.caPrefix(k, a, p) // a Combo Any source among the gaps (mana_comboany.go)
 		return
 	}
 	act := a.Kind() == AkActivate && s.liveGrantGap(k, p)
@@ -518,7 +518,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		return
 	}
 	if anyR.any() || tapsDef.any() {
-		s.scriptPrefixAny(k, a, p, restr, anyR, tapsDef, ctr)
+		s.scriptPrefixAny(k, a, p, restr, anyR, tapsDef, ctr, slotMask{})
 		return
 	}
 	if !restr.any() && !ctr.any() && s.eachFeeBoard(k, p) {

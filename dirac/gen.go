@@ -415,6 +415,8 @@ type genPrep struct {
 	anyComboAny bool
 	// dhMix: a Diamond beside another census-gap kind (mana_diamondmix.go prepDiamondMix): StallDiamondMix
 	dhMix bool
+	// caMix: a Combo Any source beside another census-gap kind (mana_comboany.go prepComboAnyMix): StallComboAnyMix
+	caMix bool
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
 	// Tender), -1 none: a source gorge's planner census misses, reached by
 	// a potential play's scripted prefix (script_gen.go)
@@ -1300,7 +1302,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.anyDiscHand = true
 				}
 				if comboAnyMana(a) && j == firstManaAb(&t.Cards[i]) {
-					g.anyComboAny = true // a census gap (gfGapOther, censusGapMana), never a planner unit (mana_comboany.go)
+					g.anyComboAny, g.anyWindowGap = true, true // a census gap (gfGapOther, censusGapMana), never a planner unit; the window taps it (mana_comboany.go)
 				}
 				if a.AFlags&kop.AfManaEachColor != 0 && a.AFlags&kop.AfLatent == 0 && g.eachCol(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).eachCol = int8(j)
@@ -1579,6 +1581,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyScriptGap = g.anyEachCol || g.anyRestrScript || g.anyAnyR || g.anyFilt || p.tapMana // (a tap-another-permanent mana gap: mana_tapanother.go)
 	// a Diamond beside another census-gap kind (mana_diamondmix.go)
 	prepDiamondMix(t, g, p)
+	prepComboAnyMix(t, g, p)
 	g.anyPrevFrom = grantsKw(t, kop.KwPreventCombatDamageFrom) || g.anyRepl&rbPrevCombatBy != 0
 	prepReplMult(t, g)
 	prepDmgMark(t, g)   // repl_dmgmark.go

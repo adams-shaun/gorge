@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // Axebane Guardian: "{T}: Add X mana in any combination of colors, where X is
 // the number of creatures with defender you control" (Produced$ Combo Any,
@@ -10,12 +14,17 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // or activation only its mana pays is insufficient in the planner and gets a
 // prefix search (rules potentialPrefixScript) that activates the source and
 // answers its colour ask, one colour per unit. The kernel mirrors it as a gap
-// kind of its own (gfGapOther; never a planner unit, no gfManaVar view), modelled
-// like the Lion's Eye Diamond's (mana_discardhand.go): when these sources are
-// their controller's only census gaps (caBoard), availScript counts each one's
-// amount of any-colour units, and scriptOffers searches the plays the sources'
-// mana would pay. A board with a gap of another kind keeps its old behaviour (the
-// Combo Any source is then outside the model).
+// kind of its own (gfGapOther, censusGapMana; never a planner unit, no gfManaVar
+// view), modelled like the Lion's Eye Diamond's (mana_discardhand.go): when the
+// board holds no gap the chain cannot carry (caBoard), availScript counts each
+// source's amount of any-colour units, and scriptOffers searches the plays the
+// sources' mana would pay: the dedicated search (caScript) when these are the
+// controller's only gaps, else the scriptDFS chain with the other gaps in
+// battlefield order, the source branched on its colour answers. A payment window
+// (a cast's X or pip ask, a ward or unless cost) taps the source for its amount
+// (windowComboTap, availCA beside availXWindow). A filter, a tap-another source, a
+// granted mana ability or a Diamond in the table is refused at its start
+// (StallComboAnyMix).
 //
 // The ask is gorge's scriptAnswers: the per-unit colours of an N-unit allocation
 // in odometer order (unit 0 the slowest digit, W U B R G), at most 64 answers; one
@@ -41,11 +50,7 @@ func comboAnyMana(a *kop.Ability) bool {
 // isComboAny reports whether card c's census gap (gfGapOther) is its Combo Any
 // ability.
 func (k *prep) isComboAny(c CardID) bool {
-	if !k.gen.anyComboAny || !k.gen.has(c, gfGapOther) {
-		return false
-	}
-	j := k.gen.gapOther(c)
-	return j >= 0 && comboAnyMana(&k.t.Cards[c].Abilities[j])
+	return k.gen.anyComboAny && k.gen.isComboAnyCard(c, &k.t.Cards[c])
 }
 
 // comboAnyAb is the Combo Any ability of card c (isComboAny).
@@ -77,23 +82,75 @@ func (s *State) caGaps(k *prep, p uint8) slotMask {
 	return m
 }
 
-// caBoard reports whether p controls a live Combo Any source and no census gap
-// of another kind (the Diamond's own dhBoard test, with the Diamond itself one
-// of the other kinds).
+// caBoard reports whether p controls a live Combo Any source and every census
+// gap beside it is of a kind the prefix search models together with it: an
+// each-colour, restricted, any-colour restricted, Taps-deferred or counter-cost
+// source (the scriptDFS chain). A filter, a tap-another source, a granted mana
+// ability or a Lion's Eye Diamond beside it is refused at the table's start
+// (StallComboAnyMix).
 func (s *State) caBoard(k *prep, p uint8) bool {
 	if k.gen == nil || !k.gen.anyComboAny || !s.caGaps(k, p).any() {
 		return false
 	}
-	if k.gen.anyDiscHand && s.dhGaps(k, p).any() {
+	if k.gen.anyDiscHand && s.dhGaps(k, p).any() || s.scriptFilt(k, p).any() {
 		return false
 	}
-	if s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapsDefer(k, p)).or(s.scriptCtr(k, p)).or(s.scriptFilt(k, p)).any() {
-		return false
+	return !(k.tapMana && s.scriptTapX(k, p).any() || s.liveGrantGap(k, p) || s.grantGapLive(k, p))
+}
+
+// caPure reports whether the Combo Any sources are p's only census gaps: the
+// dedicated search (caScript) then runs; beside another modelled gap kind the
+// scriptDFS chain does.
+func (s *State) caPure(k *prep, p uint8) bool {
+	return !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapsDefer(k, p)).or(s.scriptCtr(k, p)).any()
+}
+
+// caSearch reports whether gorge's prefix search over p's census gaps finds a
+// script for play a (the gaps' chain: scriptDFS beside another gap kind).
+func (s *State) caSearch(k *prep, a Action, p uint8, restr, anyR, tapsDef, ca slotMask) bool {
+	if s.caPure(k, p) {
+		return s.caScript(k, a, p, false)
 	}
-	if k.tapMana && s.scriptTapX(k, p).any() || s.liveGrantGap(k, p) || s.grantGapLive(k, p) {
-		return false
+	return !s.scriptDeadEndAny(k, a, p, restr, s.caSpendable(k, a, p, anyR), tapsDef, s.scriptCtr(k, p), ca)
+}
+
+// caSpendable is the any-colour restricted gaps (Gwenna, Eyes of Gaea) gorge's
+// search keeps for play a: a plain cast or an activation of the printed cost
+// drops each source whose mana the payment cannot spend (potential_script.go
+// scriptSpendableGaps, CR 106.6), so the search does not spend nodes on it nor
+// tap it.
+func (s *State) caSpendable(k *prep, a Action, p uint8, anyR slotMask) slotMask {
+	plain := a.Kind() == AkActivate || a.Kind() == AkCast && a.Mode() == 0 && a.Target() == 0
+	if !plain {
+		return anyR
 	}
-	return !s.gapOthers(k, p).andNot(s.caGaps(k, p)).any()
+	for b := anyR; b.any(); b = b.rest() {
+		if sl := b.first(); !s.wideAdmits(k, a, p, slotBit(sl)) {
+			anyR = anyR.andNot(slotBit(sl))
+		}
+	}
+	return anyR
+}
+
+// caPrefix plays the script gorge's search finds for play a when the plain walk
+// does not list it.
+func (s *State) caPrefix(k *prep, a Action, p uint8) {
+	if s.caPure(k, p) {
+		var d Decision
+		s.plainOptions(k, &d, 0)
+		if !hasOption(&d, a) {
+			s.caScript(k, a, p, true)
+		}
+		return
+	}
+	s.scriptPrefixAny(k, a, p, s.scriptRestr(k, p), s.caSpendable(k, a, p, s.scriptAnyR(k, p)), s.scriptTapsDefer(k, p), s.scriptCtr(k, p), s.caGaps(k, p))
+}
+
+// caChainTap taps Combo Any source sl for the scriptDFS chain's answer c of play
+// a: the c'th answer gorge's search tries (caRank).
+func (s *State) caChainTap(k *prep, p uint8, a Action, sl Slot, c int) {
+	need := s.playNeed(k, a)
+	s.caActivate(k, p, sl, caRank(s.caAmount(k, sl), &need, c))
 }
 
 // availCA adds each live Combo Any source's units: its amount of any colour.
@@ -253,4 +310,94 @@ func (s *State) caScript(k *prep, a Action, p uint8, apply bool) bool {
 		}
 	}
 	return true
+}
+
+// windowComboTap activates Combo Any source sl in a payment window: the tap,
+// then each unit's colour as the ask is answered (payexec.WindowChoices, the
+// wide source's windowWideTap): the clamp's kept colours listed, each mana a
+// colour the cost still owes, else the lowest listed, the owed amount falling
+// by what each mana covers; a window whose ask carries no cost (noOwed) owes
+// nothing, so every mana is the lowest listed.
+func (s *State) windowComboTap(k *prep, p uint8, sl Slot, cost, useful *kop.ManaCost, clamp, noOwed bool) {
+	n := s.caAmount(k, sl)
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	s.manaTapped(k, sl)
+	mask := uint8(kop.ColAny)
+	if clamp {
+		if want, decided := s.windowUseful(k, p, useful); decided && want&mask != 0 {
+			mask &= want
+		}
+	}
+	var owed [len(cost.Pips)]uint8
+	if !noOwed {
+		owed = cost.Pips
+		for c := range owed {
+			owed[c] -= min(owed[c], s.pl[p].pool[c])
+		}
+	}
+	var got [5]int
+	for i := 0; i < n; i++ {
+		col := bits.TrailingZeros8(mask)
+		for c := 0; c < 5; c++ {
+			if mask&(1<<c) != 0 && owed[c] > 0 {
+				col = c
+				owed[c]--
+				break
+			}
+		}
+		got[col]++
+	}
+	for col, c := range got {
+		if c > 0 {
+			s.poolAdd(p, col, c)
+			s.artTag(k, p, sl, col)
+		}
+	}
+	s.tapExtraStall(k, sl)
+}
+
+// StallComboAnyMix: a table holding an unrestricted Combo Any source
+// (comboAnyMana) beside a mana source of a census-gap kind the kernel does not
+// search together with it: a filter, a tap-another source, a granted mana ability
+// or a Lion's Eye Diamond. gorge's one prefix search activates every census gap
+// together (potential_script.go scriptSearch.visit); the kernel chains the Combo
+// Any source with the each-colour, restricted, any-colour restricted,
+// Taps-deferred and counter-cost sources (caBoard), so the others are refused at
+// the game's start. The check is table-wide: a Combo Any source in one deck and a
+// filter in the other is refused too.
+const StallComboAnyMix = 188
+
+func init() { stallNames[StallComboAnyMix] = "comboanymix" }
+
+// prepComboAnyMix sets genPrep.caMix when t holds a Combo Any source and a source
+// of a gap kind caBoard does not chain: StallComboAnyMix.
+func prepComboAnyMix(t *kop.Table, g *genPrep, p *prep) {
+	if !g.anyComboAny {
+		return
+	}
+	g.caMix = g.anyFilt || p.tapMana || len(g.grantPC) != 0 || g.anyDiscHand || g.anyRefl
+	for i := range t.Cards {
+		g.caMix = g.caMix || caMixGap(t, g, p, i)
+	}
+}
+
+// caMixGap reports whether card i carries a census-gap kind caBoard does not
+// chain with a Combo Any source.
+func caMixGap(t *kop.Table, g *genPrep, p *prep, i int) bool {
+	c := CardID(i)
+	if g.has(c, gfFilt|gfDiscHand) || p.tapXAb[i] >= 0 {
+		return true // a filter, a Lion's Eye Diamond, a tap-another source (mana_filter.go, mana_discardhand.go, mana_tapanother.go)
+	}
+	return abilityOn(func(a *kop.Ability) bool { return a.Kind == kop.AbMana && a.AFlags&kop.AfLatent != 0 })(&t.Cards[i], i) // a granted mana ability
+}
+
+// isComboAnyCard reports whether card c's census gap is its unrestricted Combo Any
+// ability (isComboAny without a prepared table).
+func (g *genPrep) isComboAnyCard(c CardID, cd *kop.CardDef) bool {
+	if !g.has(c, gfGapOther) {
+		return false
+	}
+	j := g.gapOther(c)
+	return j >= 0 && comboAnyMana(&cd.Abilities[j])
 }
