@@ -1,6 +1,10 @@
 package kgen
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // manaSpentCondition lowers a lone ConditionManaSpent$ / ConditionManaNotSpent$
 // <colour> read in the body of a card's own enters trigger (Azorius Herald:
@@ -10,7 +14,10 @@ import "strings"
 // that put the permanent onto the battlefield, zero when it entered any other
 // way. The kernel's ExAdamant reads the same count, bound into the trigger as
 // it is queued (kernel kw_evoke.go evokeEnter, which binds a body SkipUnless
-// gate's read too). ConditionManaSpent$ is "at least one mana of the colour",
+// gate's read too). Unlike Adamant's intervening-if (the departure snapshot),
+// gorge reads the body gate live, so the read carries kop.AdamantLiveRead: 0
+// once the source has left the battlefield, its spend wiped (Steamcore Weird
+// bounced in response deals nothing). ConditionManaSpent$ is "at least one mana of the colour",
 // ConditionManaNotSpent$ none. A spell's own gate, several colours, or another
 // Condition*$ key beside it refuses.
 func (lc *lowerCtx) manaSpentCondition(ps *params) (lCond, bool, error) {
@@ -38,7 +45,7 @@ func (lc *lowerCtx) manaSpentCondition(ps *params) (lCond, bool, error) {
 	if ci < 0 || adamantColourLetter(toks[0]) == "" {
 		return lCond{}, true, refuse("%s$ colour %q", key, toks[0])
 	}
-	v := lValue{Kind: vAdamant, N: ci | 1<<3, Sub: []lValue{cst(1), cst(0)}}
+	v := lValue{Kind: vAdamant, N: ci | 1<<3 | kop.AdamantLiveRead, Sub: []lValue{cst(1), cst(0)}}
 	return lCond{Kind: cValue, A: v, Op: opEQ, B: cst(want)}, true, nil
 }
 

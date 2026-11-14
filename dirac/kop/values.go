@@ -370,8 +370,16 @@ const ExDiscardedThisTurn ExprKind = 241
 // lowered only in the header (CheckSVar$) of a self-ETB trigger. As the
 // object enters it reads the resolving spell's spend (stackEntry.spc); once
 // queued the colour's count is bound into the pending trigger's x, which the
-// resolution recheck reads (kernel kw_evoke.go).
+// resolution recheck reads (kernel kw_evoke.go). AdamantLiveRead in N
+// marks a body gate's read instead (ConditionManaSpent$/ConditionManaNotSpent$).
 const ExAdamant ExprKind = 244
+
+// AdamantLiveRead (bit 5 of an ExAdamant's N) marks a read of the source's
+// spend LIVE at resolution, gorge effects conditionManaSpentMet (a body
+// ConditionManaSpent$/ConditionManaNotSpent$ gate): the bound count while the
+// source is still the same object on the battlefield, else 0 (leaving wiped
+// its spend, CR 400.7), never Adamant's departure snapshot.
+const AdamantLiveRead = 1 << 5
 
 // ExExiledWithN: the cards exiled with the reading source, counted over every
 // seat's exile zone (gorge exiledWithSet; Count$ExiledWith$Amount).

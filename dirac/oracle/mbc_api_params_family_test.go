@@ -103,6 +103,21 @@ func TestMBCApiParamsFamilyLowers(t *testing.T) {
 		mbcPlayUntil(t, reg, c, effectLongPolicy, 200, func(int) bool { return dealt >= 3 && quiet >= 1 })
 		t.Logf("games with the trigger's 2 damage: %d, with a Weird entered and none dealt: %d", dealt, quiet)
 	})
+
+	t.Run("steamcore_weird_bounced_before_its_trigger_resolves", func(t *testing.T) {
+		// the gate reads the source's spend live at resolution (gorge
+		// conditionManaSpentMet): once an Unsummon has returned the Weird to
+		// its owner's hand in response, leaving wiped the spend and the
+		// trigger deals nothing, unlike Adamant's departure snapshot
+		c := effectLongCase{
+			name:   "steamcore_bounced",
+			prefer: []string{"Steamcore Weird", "Unsummon"},
+			decks: [2][]string{append(deckOf(10, "Steamcore Weird"), append(deckOf(7, "Island"), deckOf(7, "Mountain")...)...),
+				append(deckOf(10, "Unsummon"), deckOf(14, "Island")...)},
+			reached: weirdBounced,
+		}
+		mbcPlayUntil(t, reg, c, effectLongPolicy, 120, func(reached int) bool { return reached >= 6 })
+	})
 }
 
 // mbcPlayUntil plays c over seeds 1..maxSeeds with pol until done holds (and
@@ -190,6 +205,19 @@ func heraldOnBattlefield(g *GorgeSide) bool {
 	for p := range g.E.G.Players {
 		for _, id := range g.E.G.Zone(state.ZBattlefield, state.PlayerID(p)) {
 			if o := g.E.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Azorius Herald" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// weirdBounced: a Steamcore Weird went from the battlefield to a hand (only
+// the opponent's Unsummon moves it there).
+func weirdBounced(g *GorgeSide) bool {
+	for _, e := range g.E.L.Events {
+		if e.Kind == events.MoveZone && e.From == state.ZBattlefield && e.To == state.ZHand {
+			if o := g.E.G.Obj(e.Obj); o != nil && o.Face() != nil && o.Face().Name == "Steamcore Weird" {
 				return true
 			}
 		}
