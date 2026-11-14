@@ -24,7 +24,7 @@ func (s *State) divTotal(k *prep, e *stackEntry, slot uint8) int {
 		return s.divMaxVTotal(k, t, e) // ctr_divided.go
 	}
 	if DebugDivNOneEach {
-		var codes [maxXTgt + 1]uint8
+		var codes [maxXTgt + 1]TCode
 		return s.divTargets(k, e, slot, &codes)
 	}
 	return int(t.Divide)
@@ -88,7 +88,7 @@ func (s *State) divCounters(k *prep, in *kop.Instr) {
 	e := &s.res.e
 	slot := uint8(in.C) // C, not Obj: a RefTarget Obj would make the interpreter run the program once per target (execEachTarget)
 	total := s.divTotal(k, e, slot)
-	var codes [maxXTgt + 1]uint8
+	var codes [maxXTgt + 1]TCode
 	var amts [maxXTgt + 1]int
 	m := 0
 	x := s.xtOf(e)

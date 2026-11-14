@@ -62,7 +62,16 @@ Bad flags exit 2. `-absolute` prints `absolute: OK` or `absolute: FAIL: <what>`.
 paths also exit 1 on a divergence or a hang.
 
 `-game-timeout` (default 30 s, 0 turns it off, on every path) records a game with no result in that
-time as a `hang` with its decks and seed, and the run moves on. `-surface autopay|full` picks the option
+time as a `hang` with its decks and seed, and the run moves on — by replacing its own process image:
+a hung game's goroutine cannot be stopped and would hold a core until the process exits, so the first
+hang ends the segment (the verdict lines cover the pairs it played) and kfuzz execs itself for the
+remaining pairs (same pid, new image — the hung goroutine dies with the old one), which fails the run
+even when its own segment is clean; the hang line's `rerun with: <cmd>` names the command that replays
+one pair, and the segment-level file flags
+(`-coverage`, `-evidence`, `-reach`, `-out/repro.json`, `-cpuprofile`, `-memprofile`) are inherited
+unchanged, so the last segment's file wins (a `-cpuprofile`/`-memprofile` is not flushed past the
+exec) — a hang already fails the run, and the per-pair files
+under `-out` are pair-numbered and survive. `-surface autopay|full` picks the option
 surface (default `full`; `-autopay-surface` means `-surface autopay`). `-pairs-file F` plays
 `deckA<TAB>deckB[<TAB>seed]` lines instead of drawing from `pool.tsv`. `-coverage F` and `-evidence F`
 count clean games only: `-evidence` writes the cards with at least `oracle.EvidenceMinPlays` plays and
@@ -104,6 +113,10 @@ derives each list from the set lists and the corpus on every build, and kfuzz de
   the tables names the rest of the corpus, so every card is accounted for.
 - A list too big for one table (over the 192 subtypes a table's masks hold) becomes `<pool>-a` and `<pool>-b`, split
   on the lowest bit of the name's hash that lets both halves build. Cards on opposite sides never meet.
+- `dr-<code>` is a draft pool of `dirac/cardset/draftpools.txt`. A draft list over `cardset.DraftSplitCards`
+  (200) cards splits the same way, so MBC plays as 16 splits of about 137 (`dr-mbc-aaaa` ... `dr-mbc-bbbb`):
+  a split's evidence counts only when every one of its games is clean, so a smaller split loses less to
+  one divergent card.
 
 `oracle.SynthPool` deals `oracle.SynthDecks` 40-card decks from `-seed`: two colours, 23 spells from a
 shuffled queue at most two of each, up to 4 nonbasic lands, basics to 40. A card of three or more colours

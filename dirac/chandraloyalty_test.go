@@ -40,7 +40,7 @@ func TestChandraRestrictedLoyaltyMana(t *testing.T) {
 		uns := sc.hand(id["Unsummon"], 0)
 		hawk := sc.hand(id["Healer's Hawk"], 0)
 		// abilities 0 Surveil +1, 1 Mana +1, 2 Tap -X, 3 Emblem -6
-		act, d := MakeAction(AkActivate, uint8(ch), 0, 1), s.Step()
+		act, d := MakeAction(AkActivate, TCode(ch), 0, 1), s.Step()
 		offered := false
 		for _, a := range d.Options[:d.N] {
 			offered = offered || a == act

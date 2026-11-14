@@ -1,0 +1,9 @@
+# the Spin into Myth pool: put target creature on top of its owner's
+# library, then fateseal 2 -- the cards not put on the bottom go back on
+# top in the order the caster picks (Dig LibraryPosition2$ 0, gorge
+# digTopOrderAsk; dirac/oracle/mbc_zone_moves_nine_lowers_test.go)
+Spin into Myth
+Island
+Raging Goblin
+Hill Giant
+Mountain

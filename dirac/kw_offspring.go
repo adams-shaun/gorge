@@ -23,7 +23,7 @@ package dirac
 // offspringOffer: card c has Offspring and its "(offspring)" cast is
 // offered beside the plain one (the kicked cast's offer, legal.go).
 func offspringOffer(k *prep, c CardID) bool {
-	return k.t.Cards[c].Offspring || k.t.Cards[c].Buyback
+	return k.t.Cards[c].Offspring || k.t.Cards[c].Buyback || k.t.Cards[c].Entwine
 }
 
 // FeatOffspringCast reports that object o's kicked cast (AkCast mode bit 0)

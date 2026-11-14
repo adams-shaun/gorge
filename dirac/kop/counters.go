@@ -319,6 +319,13 @@ const (
 	// counter with no inherent rules meaning (CR 122.1) that its own mana
 	// ability removes.
 	CtrStorage
+	// CtrScream is Endless Scream's scream counter: a named counter with no
+	// inherent rules meaning (CR 122.1); its count drives the aura's +N/+0
+	// (Count$CardCounters.SCREAM).
+	CtrScream
+	// CtrTreasure is a treasure counter, a named counter with no inherent
+	// rules meaning (CR 122.1; Legacy's Allure's Count$CardCounters.TREASURE).
+	CtrTreasure
 	// CtrLevelUp is a level counter (CR 702.87: Level up puts one on the
 	// permanent; the LEVEL bands read counters_GEn_LEVEL). A named counter with
 	// no inherent rules meaning (CR 122.1), distinct from CtrLevel, a Class's
@@ -342,7 +349,7 @@ var CtrXNames = [NumCounterKindsX]string{"CHARGE", "OIL", "SPORE", "QUEST", "VER
 	"Reach", "Shadow", "Trample", "Vigilance", "SUPPLY", "LORE", "LANDMARK", "DREAD", "DEFENSE", "CHORUS", "M0M1", "FINALITY", "TIME", "VALOR", "NET", "PLAN",
 	"INVASION", "LOOT", "REV", "PAGE", "INGENUITY", "FILM", "FIRE", "HONE", "COIN",
 	"DIVINITY", "IMPOSTOR", "BORE", "POINT", "BLOODSTAIN", "POSSESSION", "PROMOTION", "PEACE", "WISH", "SKEWER", "NEST", "AGE", "LUCK",
-	"DEPLETION", "MINING", "FADE", "BURDEN", "STORAGE", "LEVEL"}
+	"DEPLETION", "MINING", "FADE", "BURDEN", "STORAGE", "SCREAM", "TREASURE", "LEVEL"}
 
 // IsCounterKind reports whether c is a real counter kind (a featurized one
 // or an unfeaturized one; CtrLevel and the gap at NumCounterKinds2 are not).

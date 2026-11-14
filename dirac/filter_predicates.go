@@ -18,7 +18,7 @@ func (s *State) predPermStats(k *prep, fl *kop.Filter, sl Slot) bool {
 	}
 	pw, t := s.ptGen(k, sl)
 	if fl.Pred == kop.PredPowerLTToughness {
-		return pw < t
+		return ptRel(fl.PredN, pw, t)
 	}
 	return t >= int(fl.PredN)
 }
@@ -35,9 +35,21 @@ func (s *State) predCardStats(k *prep, fl *kop.Filter, c CardID, owner uint8, o 
 		pw, t = s.cardCDAPT(k, c, owner, o)
 	}
 	if fl.Pred == kop.PredPowerLTToughness {
-		return pw < t
+		return ptRel(fl.PredN, pw, t)
 	}
 	return t >= int(fl.PredN)
+}
+
+// ptRel is PredPowerLTToughness's relation (kop.PTRel*) over power pw and
+// toughness t.
+func ptRel(rel int16, pw, t int) bool {
+	switch rel {
+	case kop.PTRelEQ:
+		return pw == t
+	case kop.PTRelNE:
+		return pw != t
+	}
+	return pw < t
 }
 
 // notTriggerObj: F2NotTriggerObj (gorge `NotDefinedTriggeredCard`): o is
@@ -145,7 +157,7 @@ func predCardKind(k *prep, fl *kop.Filter, c CardID) bool {
 // (Tf2Attacked: attackedMatch on this event group's defender def).
 //
 //go:noinline
-func (s *State) attacksGate(f kop.TrigFlags2, ctrl uint8, def uint8) bool {
+func (s *State) attacksGate(f kop.TrigFlags2, ctrl uint8, def TCode) bool {
 	if f&kop.Tf2Alone != 0 && s.nAttackers != 1 {
 		return false
 	}
@@ -157,7 +169,7 @@ func (s *State) attacksGate(f kop.TrigFlags2, ctrl uint8, def uint8) bool {
 // planeswalker Obj) is the trigger controller ctrl (Tf2AtkYou), a
 // planeswalker ctrl controls (Tf2AtkYourPW), or an opponent player
 // (Tf2AtkOpp).
-func (s *State) attackedMatch(f kop.TrigFlags2, ctrl uint8, def uint8) bool {
+func (s *State) attackedMatch(f kop.TrigFlags2, ctrl uint8, def TCode) bool {
 	if isPlayerOrNone(def) {
 		p := CodeSeat(def)
 		return p == ctrl && f&kop.Tf2AtkYou != 0 || p != ctrl && f&kop.Tf2AtkOpp != 0

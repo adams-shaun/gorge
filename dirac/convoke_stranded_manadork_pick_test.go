@@ -42,7 +42,7 @@ func TestConvokeStrandedCensusHidesPickedManaCreature(t *testing.T) {
 		t.Fatalf("precondition: Rootrider Faun is no live fee filter (anyFilt %v)", sc.k.gen.anyFilt)
 	}
 
-	sc.do(t, AkCast, uint8(hopper), 0xff)
+	sc.do(t, AkCast, TCode(hopper), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChGenConvoke {
 		t.Fatalf("first decision %v/%d, want the convoke ask", d.Kind, d.Sub)
@@ -58,7 +58,7 @@ func TestConvokeStrandedCensusHidesPickedManaCreature(t *testing.T) {
 	if !picked {
 		t.Fatalf("Llanowar Elves' convoke pick not offered: %v", d.Options[:d.N])
 	}
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkDone, scAny, scAny)
 	sc.s.Step()
 
 	if sc.s.objs[hopper].zone != kop.ZoneHand {

@@ -56,7 +56,7 @@ func TestCopiedAuraChoosesWhatItEnchants(t *testing.T) {
 	if d.Kind != DkTarget || s.active != 0 {
 		t.Fatalf("want the Replication's upkeep target ask, got kind %d active %d", d.Kind, s.active)
 	}
-	sc.s.Apply(MakeAction(AkTarget, 0, uint8(moon), 0))
+	sc.s.Apply(MakeAction(AkTarget, 0, TCode(moon), 0))
 	for i := 0; i < 4; i++ {
 		d = s.Step()
 		if d.Kind != DkPriority {
@@ -83,12 +83,12 @@ func TestCopiedAuraChoosesWhatItEnchants(t *testing.T) {
 	}
 	found := false
 	for _, a := range d.Options[:d.N] {
-		found = found || a.Source() == uint8(c2)
+		found = found || a.Source() == TCode(uint8(c2))
 	}
 	if !found || d.N < 2 {
 		t.Fatalf("enchant options %v lack the second creature", d.Options[:d.N])
 	}
-	s.Apply(MakeAction(AkChoose, uint8(c2), 0, 0))
+	s.Apply(MakeAction(AkChoose, TCode(c2), 0, 0))
 	if !sc.onBF(tok) || s.perms[sc.slot(tok)].attached != sc.slot(c2) {
 		t.Fatalf("token zone %d, want on the battlefield attached to the chosen creature", s.objs[tok].zone)
 	}
@@ -136,7 +136,7 @@ func TestReturnedAuraChoosesWhatItEnchants(t *testing.T) {
 	d := s.Step()
 	kicked := false
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(healer) && a.Mode()&1 != 0 {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(healer)) && a.Mode()&1 != 0 {
 			s.Apply(a)
 			kicked = true
 			break
@@ -151,7 +151,7 @@ func TestReturnedAuraChoosesWhatItEnchants(t *testing.T) {
 			break
 		}
 		if d.Kind == DkTarget {
-			s.Apply(MakeAction(AkTarget, 0, uint8(wp), 0))
+			s.Apply(MakeAction(AkTarget, 0, TCode(wp), 0))
 			continue
 		}
 		s.Apply(d.Options[0])
@@ -162,7 +162,7 @@ func TestReturnedAuraChoosesWhatItEnchants(t *testing.T) {
 	if s.objs[wp].zone != kop.ZoneGraveyard || s.sp == 0 {
 		t.Fatalf("want the Aura in the graveyard and the trigger on the stack at the ask (zone %d sp %d)", s.objs[wp].zone, s.sp)
 	}
-	s.Apply(MakeAction(AkChoose, uint8(c2), 0, 0))
+	s.Apply(MakeAction(AkChoose, TCode(c2), 0, 0))
 	s.Step()
 	if !sc.onBF(wp) || s.perms[sc.slot(wp)].attached != sc.slot(c2) {
 		t.Fatalf("Witness Protection zone %d, want on the battlefield attached to the chosen creature", s.objs[wp].zone)
@@ -252,7 +252,7 @@ func TestCopyTokenAsEntersChoiceFirst(t *testing.T) {
 		case d.Kind == DkNone:
 			t.Fatal("the game ended")
 		case d.Kind == DkTarget:
-			s.Apply(MakeAction(AkTarget, 0, uint8(banner), 0))
+			s.Apply(MakeAction(AkTarget, 0, TCode(banner), 0))
 			continue
 		case d.Kind == DkChoose && d.Sub == ChGenColor && s.nobj > n0:
 			tok := Obj(s.nobj - 1)
@@ -306,14 +306,14 @@ func TestReturnFromExileAsEntersChoiceFirst(t *testing.T) {
 	l.src, l.sver, l.obj = a, s.objs[a].ver, banner
 	s.g.nlinks++
 	b := sc.hand(id["Banishing Light"], 0)
-	sc.do(t, AkCast, uint8(b), 0xff)
+	sc.do(t, AkCast, TCode(b), scAny)
 	for i := 0; i < 40; i++ {
 		d := s.Step()
 		switch {
 		case d.Kind == DkNone:
 			t.Fatal("the game ended")
 		case d.Kind == DkTarget:
-			s.Apply(MakeAction(AkTarget, 0, uint8(a), 0))
+			s.Apply(MakeAction(AkTarget, 0, TCode(a), 0))
 			continue
 		case d.Kind == DkChoose && d.Sub == ChGenColor:
 			if s.objs[banner].zone != kop.ZoneExile {
@@ -348,12 +348,12 @@ func TestReturnedAuraAsksHostInExile(t *testing.T) {
 	sc.s.place(wp, kop.ZoneExile, false)
 	sc.s.g.links[0].src, sc.s.g.links[0].sver, sc.s.g.links[0].obj = bl, sc.s.objs[bl].ver, wp
 	sc.s.g.nlinks = 1
-	sc.do(t, AkActivate, uint8(cc), 0xff)
+	sc.do(t, AkActivate, TCode(cc), scAny)
 	for i := 0; i < 12 && sc.s.objs[bl].zone == kop.ZoneBattlefield; i++ {
 		d := sc.s.Step()
 		a := d.Options[0]
 		for j := 0; j < int(d.N); j++ {
-			if o := d.Options[j]; o.Kind() == AkTarget && o.Target() == uint8(bl) || o.Kind() == AkPass {
+			if o := d.Options[j]; o.Kind() == AkTarget && o.Target() == TCode(uint8(bl)) || o.Kind() == AkPass {
 				a = o
 				break
 			}
@@ -367,7 +367,7 @@ func TestReturnedAuraAsksHostInExile(t *testing.T) {
 	if d.Kind != DkChoose || d.Sub != ChGenEnchant || sc.s.objs[wp].zone != kop.ZoneExile {
 		t.Fatalf("decision kind %d sub %d, Witness Protection zone %d: want the host ask in exile", d.Kind, d.Sub, sc.s.objs[wp].zone)
 	}
-	sc.s.Apply(MakeAction(AkChoose, uint8(l1), 0, 0))
+	sc.s.Apply(MakeAction(AkChoose, TCode(l1), 0, 0))
 	sc.s.Step()
 	if sc.s.objs[wp].zone != kop.ZoneBattlefield || sc.s.perms[sc.slot(wp)].attached != sc.slot(l1) {
 		t.Fatalf("Witness Protection zone %d, want it on the battlefield attached to the chosen Lions", sc.s.objs[wp].zone)
@@ -394,14 +394,14 @@ func TestReturnFromExileAfterEnterChoiceMidResolution(t *testing.T) {
 	l.src, l.sver, l.obj = a, s.objs[a].ver, banner
 	s.g.nlinks++
 	b := sc.hand(id["Banishing Light"], 0)
-	sc.do(t, AkCast, uint8(b), 0xff)
+	sc.do(t, AkCast, TCode(b), scAny)
 	for i := 0; i < 40; i++ {
 		d := s.Step()
 		switch {
 		case d.Kind == DkNone:
 			t.Fatal("the game ended")
 		case d.Kind == DkTarget:
-			s.Apply(MakeAction(AkTarget, 0, uint8(a), 0))
+			s.Apply(MakeAction(AkTarget, 0, TCode(a), 0))
 			continue
 		case d.Kind == DkChoose && d.Sub == ChGenType:
 			if s.objs[banner].zone != kop.ZoneBattlefield {
@@ -443,14 +443,14 @@ func TestEquipmentFallsOffNoncreature(t *testing.T) {
 	pick := sc.perm(id["Goldvein Pick"], 1)
 	s.perms[sc.slot(pick)].attached = sc.slot(lions)
 	moon := sc.hand(id["Imprisoned in the Moon"], 0)
-	sc.do(t, AkCast, uint8(moon), 0xff)
+	sc.do(t, AkCast, TCode(moon), scAny)
 	for i := 0; i < 20 && !(sc.onBF(moon) && s.sp == 0); i++ {
 		d := s.Step()
 		switch d.Kind {
 		case DkNone:
 			t.Fatal("the game ended")
 		case DkTarget:
-			s.Apply(MakeAction(AkTarget, 0, uint8(lions), 0))
+			s.Apply(MakeAction(AkTarget, 0, TCode(lions), 0))
 			continue
 		}
 		s.Apply(d.Options[0])
@@ -516,12 +516,12 @@ func TestReturnedAuraOneHostAttaches(t *testing.T) {
 	sc.s.place(wp, kop.ZoneExile, false)
 	sc.s.g.links[0].src, sc.s.g.links[0].sver, sc.s.g.links[0].obj = bl, sc.s.objs[bl].ver, wp
 	sc.s.g.nlinks = 1
-	sc.do(t, AkActivate, uint8(cc), 0xff)
+	sc.do(t, AkActivate, TCode(cc), scAny)
 	for i := 0; i < 12 && sc.s.objs[bl].zone == kop.ZoneBattlefield; i++ {
 		d := sc.s.Step()
 		a := d.Options[0]
 		for j := 0; j < int(d.N); j++ {
-			if o := d.Options[j]; o.Kind() == AkTarget && o.Target() == uint8(bl) || o.Kind() == AkPass {
+			if o := d.Options[j]; o.Kind() == AkTarget && o.Target() == TCode(uint8(bl)) || o.Kind() == AkPass {
 				a = o
 				break
 			}
@@ -570,12 +570,12 @@ func TestReturnedAuraNoHostStaysExiled(t *testing.T) {
 	sc.s.place(wp, kop.ZoneExile, false)
 	sc.s.g.links[0].src, sc.s.g.links[0].sver, sc.s.g.links[0].obj = bl, sc.s.objs[bl].ver, wp
 	sc.s.g.nlinks = 1
-	sc.do(t, AkActivate, uint8(cc), 0xff)
+	sc.do(t, AkActivate, TCode(cc), scAny)
 	for i := 0; i < 12 && sc.s.objs[bl].zone == kop.ZoneBattlefield; i++ {
 		d := sc.s.Step()
 		a := d.Options[0]
 		for j := 0; j < int(d.N); j++ {
-			if o := d.Options[j]; o.Kind() == AkTarget && o.Target() == uint8(bl) || o.Kind() == AkPass {
+			if o := d.Options[j]; o.Kind() == AkTarget && o.Target() == TCode(uint8(bl)) || o.Kind() == AkPass {
 				a = o
 				break
 			}

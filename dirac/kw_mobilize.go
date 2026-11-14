@@ -54,17 +54,25 @@ func (s *State) dpSecond(d *dprog) int16 {
 }
 
 // sacDelayed is ExtSacDelayed: the group's members still on the battlefield
-// are sacrificed together.
+// are sacrificed together. in.C == 1 is the many-object form (Mobilize 3 and
+// 4: the DpMany program, up to four objects through dpManyCarrier, each still
+// the object the program remembered); otherwise the two-object DpGroup form.
 //
 //go:noinline
-func (s *State) sacDelayed(k *prep) {
+func (s *State) sacDelayed(k *prep, in *kop.Instr) {
 	e := &s.res.e
+	many := in.C == 1
 	var hit slotMask
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 4; i++ {
 		var o Obj
-		if i == 0 {
+		if many {
+			var ver uint8
+			if o, ver = e.dpManyCarrier(i); o != NoObj && s.objs[o].ver != ver {
+				continue
+			}
+		} else if i == 0 {
 			o = e.trigObj
-		} else if e.trigAmt > 0 {
+		} else if i == 1 && e.trigAmt > 0 {
 			o = Obj(e.trigAmt - 1)
 		} else {
 			break

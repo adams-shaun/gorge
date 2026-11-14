@@ -56,6 +56,8 @@ type FeedbackMatch struct {
 	Format       Format              `json:"format,omitempty"`
 	StartingLife int32               `json:"starting_life,omitempty"`
 	Commanders   [][]int             `json:"commanders,omitempty"`
+	// DraftPartners mirrors the sidecar's Commander-draft pairing rule.
+	DraftPartners bool `json:"draft_partners,omitempty"`
 	// StartChooser mirrors the sidecar's field of the same name: the
 	// configured seat posed CR 103.1's starting-player choice in place of
 	// the toss winner. It is genesis replay input like Mulligans —
@@ -371,6 +373,7 @@ func feedbackMatch(sc sidecar, deckCards [][]string, sideboards [][]string,
 		State:     sc.State, Result: sc.Result, Winner: sc.Winner, Head: sc.Head, Events: sc.Events,
 		Turns: sc.Turns, Reason: sc.Reason, Mulligans: sc.Mulligans, Format: sc.Format,
 		StartingLife: sc.StartingLife, Commanders: sc.Commanders, BotPolicy: sc.BotPolicy,
+		DraftPartners:     sc.DraftPartners,
 		StartChooser:      sc.StartChooser,
 		NameUniverse:      sc.NameUniverse,
 		NameUniverseNames: append([]string(nil), sc.NameUniverseNames...),

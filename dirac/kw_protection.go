@@ -40,10 +40,19 @@ func (s *State) protFrom(k *prep, sl, srcSl Slot, srcCard CardID, col kop.ColorM
 //
 //go:noinline
 func (s *State) protQuality(k *prep, sl, srcSl Slot, srcCard CardID) bool {
+	return s.protQualityAt(k, sl, srcSl, srcCard, false)
+}
+
+// protQualityAt is protQuality; sba marks the Aura state-based check
+// (turn.go), where a granted protection's exception spares its source (the
+// attached Auras and Equipment a Benevolent Blessing leaves, CR 702.16).
+//
+//go:noinline
+func (s *State) protQualityAt(k *prep, sl, srcSl Slot, srcCard CardID, sba bool) bool {
 	if f := k.t.Cards[s.cardAt(sl)].ProtFrom; f != 0 && !s.genLost(k, sl) && s.protMatch(k, f, sl, srcSl, srcCard) {
 		return true
 	}
-	return k.gen.anyProtGrant && s.protGranted(k, sl, srcSl, srcCard)
+	return k.gen.anyProtGrant && s.protGranted(k, sl, srcSl, srcCard, sba)
 }
 
 // protMatch: the protection quality filter f matches the source, read for
@@ -63,25 +72,46 @@ func (s *State) protMatch(k *prep, f kop.FilterID, sl, srcSl Slot, srcCard CardI
 // behind genPrep.anyProtGrant.
 //
 //go:noinline
-func (s *State) protGranted(k *prep, sl, srcSl Slot, srcCard CardID) bool {
+func (s *State) protGranted(k *prep, sl, srcSl Slot, srcCard CardID, sba bool) bool {
 	lts, lost := s.lossAt(k, sl)
 	hit := false
 	s.eachStatic(k, func(st statSrc) bool {
 		a := st.a
-		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.ProtFrom == 0 {
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.ProtFrom == 0 && !a.Static.ProtChosen {
 			return true
 		}
 		if lost && s.grantTs(st) < lts {
 			return true
 		}
-		if s.statCond(k, st) && s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerKw) &&
-			s.protMatch(k, a.Static.ProtFrom, sl, srcSl, srcCard) {
-			hit = true
-			return false
+		if !s.statCond(k, st) || !s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerKw) {
+			return true
 		}
-		return true
+		if !(a.Static.ProtFrom != 0 && s.protMatch(k, a.Static.ProtFrom, sl, srcSl, srcCard) || a.Static.ProtChosen && s.protChosenHit(k, st.sl, srcSl, srcCard)) {
+			return true
+		}
+		if sba && a.Static.ProtExc != 0 && srcSl != NoSlot && s.occ.has(srcSl) &&
+			s.matchPermGen(k, a.Static.ProtExc, srcSl, st.ctrl, st.sl, layerFull) {
+			return true // the grant's exception spares this attachment (CR 702.16)
+		}
+		hit = true
+		return false
 	})
 	return hit
+}
+
+// protChosenHit: the source (the permanent at srcSl, else card srcCard as a
+// spell or a departed source) has the colour the static source host chose
+// (a grant of protection from the chosen colour); a host with no choice
+// protects from nothing.
+func (s *State) protChosenHit(k *prep, host, srcSl Slot, srcCard CardID) bool {
+	ch := s.perms[host].chosen
+	if ch > 4 {
+		return false
+	}
+	if srcSl != NoSlot && s.occ.has(srcSl) {
+		return s.colorsGen(k, srcSl)&(kop.ColW<<ch) != 0
+	}
+	return k.t.Cards[srcCard].Colors&(kop.ColW<<ch) != 0
 }
 
 // prepProtGrant arms the granted-protection reads (genPrep.anyProtGrant
@@ -106,7 +136,7 @@ func prepProtGrant(t *kop.Table, g *genPrep) {
 // protection from a quality.
 func protGrantIn(abs []kop.Ability) bool {
 	for j := range abs {
-		if a := &abs[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && a.Static.ProtFrom != 0 {
+		if a := &abs[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && (a.Static.ProtFrom != 0 || a.Static.ProtChosen) {
 			return true
 		}
 	}

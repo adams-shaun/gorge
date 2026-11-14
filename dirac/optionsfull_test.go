@@ -25,9 +25,9 @@ func TestBlockPairsPastMaxOptionsStall(t *testing.T) {
 	}
 	sc.passUntil(t, kop.StepAttackers)
 	for _, a := range atk {
-		sc.do(t, AkAttack, uint8(a), 0xff)
+		sc.do(t, AkAttack, TCode(a), scAny)
 	}
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkDone, scAny, scAny)
 	for i := 0; i < 20 && !sc.s.over; i++ {
 		d := sc.s.Step()
 		if d.Kind == DkNone {

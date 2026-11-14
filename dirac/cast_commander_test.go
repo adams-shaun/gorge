@@ -62,7 +62,7 @@ func commanderCastOffered(sc *scen, p uint8) (Action, bool) {
 	sc.s.priorityOptions(sc.k, &d)
 	cmd := sc.s.pl[p].cmd
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(cmd) {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(cmd)) {
 			return a, true
 		}
 	}
@@ -75,7 +75,7 @@ func castCommanderFromCommandZone(t *testing.T, sc *scen, o Obj) {
 	t.Helper()
 	d := sc.s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(o) {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(o)) {
 			sc.s.Apply(a)
 			sc.buildToStack(t)
 			return
@@ -218,7 +218,7 @@ func TestCommanderCastOffNoOffer(t *testing.T) {
 	var d Decision
 	s.priorityOptions(sc.k, &d)
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(o) {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(o)) {
 			t.Fatalf("Commander off offered a cast from the command zone: %v", a)
 		}
 	}

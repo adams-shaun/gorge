@@ -241,8 +241,8 @@ func TestDealDamageFrom(t *testing.T) {
 	a, b := sc.perm(fc, 0), sc.perm(fc, 1)
 	e := &sc.s.res.e
 	e.ctrl = 0
-	e.tgt[0], e.tver[0] = uint8(a), sc.s.objs[a].ver
-	e.tgt[1], e.tver[1] = uint8(b), sc.s.objs[b].ver
+	e.tgt[0], e.tver[0] = TCode(a), sc.s.objs[a].ver
+	e.tgt[1], e.tver[1] = TCode(b), sc.s.objs[b].ver
 	e.nt = 2
 	sc.s.exec(sc.k, &in)
 	if d := sc.s.perms[sc.slot(b)].damage; d != 4 {

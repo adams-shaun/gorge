@@ -35,7 +35,7 @@ func menaceBoard(t *testing.T, k int) (*dirac.State, dirac.Decision) {
 				srcs, tgts := map[uint8]bool{}, map[uint8]bool{}
 				for j := 0; j < int(d.N); j++ {
 					if o := d.Options[j]; o.Kind() == dirac.AkBlock {
-						srcs[o.Source()], tgts[o.Target()] = true, true
+						srcs[uint8(o.Source())], tgts[uint8(o.Target())] = true, true
 					}
 				}
 				if len(srcs) == k && len(tgts) == 1 && offersDone(&d) {
@@ -107,7 +107,7 @@ func chainBlockSets(t *testing.T, sr *Searcher, s *dirac.State, d dirac.Decision
 	t.Helper()
 	reached := map[string]bool{}
 	turn0 := s.Turn()
-	var dfs func(s *dirac.State, d dirac.Decision, c uint8, acts []uint32)
+	var dfs func(s *dirac.State, d dirac.Decision, c dirac.Obj, acts []uint32)
 	end := func(s *dirac.State, d dirac.Decision, acts []uint32) {
 		d2 := dirac.Decision{}
 		s.StepInto(&d2)
@@ -122,7 +122,7 @@ func chainBlockSets(t *testing.T, sr *Searcher, s *dirac.State, d dirac.Decision
 		}
 		reached[blockSetKey(acts)] = true
 	}
-	dfs = func(s *dirac.State, d dirac.Decision, c uint8, acts []uint32) {
+	dfs = func(s *dirac.State, d dirac.Decision, c dirac.Obj, acts []uint32) {
 		var p point
 		sr.chainCur, sr.nForced = c, 0
 		bot := sr.pickBot(s, &d)
@@ -140,7 +140,7 @@ func chainBlockSets(t *testing.T, sr *Searcher, s *dirac.State, d dirac.Decision
 			return
 		}
 		x := sr.chainX
-		var after [MaxPerm]uint8
+		var after [MaxPerm]dirac.Obj
 		na := chainAfter(&d, x, &after)
 		for i := 0; i < p.n; i++ {
 			s2, d2 := new(dirac.State), dirac.Decision{}
@@ -151,7 +151,7 @@ func chainBlockSets(t *testing.T, sr *Searcher, s *dirac.State, d dirac.Decision
 				next = append(next, a)
 			}
 			s2.StepInto(&d2)
-			nc := uint8(0)
+			nc := dirac.Obj(0)
 			if d2.Kind == d.Kind && d2.Player == d.Player {
 				for _, y := range after[:na] {
 					if hasAttackBy(&d2, y) {
@@ -220,15 +220,15 @@ func TestPerCreatureMenaceBlocks(t *testing.T) {
 		}
 	}
 	// B2's point after B1 blocks / skips
-	var first, second uint8
+	var first, second dirac.Obj
 	var br dirac.Action
 	n := 0
 	for i := 0; i < int(d.N); i++ {
 		if o := d.Options[i]; o.Kind() == dirac.AkBlock {
 			if n == 0 {
-				first, br = o.Source(), o
-			} else if o.Source() != first {
-				second = o.Source()
+				first, br = dirac.Obj(o.Source()), o
+			} else if o.Source() != dirac.TCode(first) {
+				second = dirac.Obj(o.Source())
 				break
 			}
 			n++
