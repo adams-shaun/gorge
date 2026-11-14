@@ -15,24 +15,38 @@ var DebugNoPrevScope bool
 // so each is its own CR 616.1 order candidate beside the others; a fourth in
 // one turn stalls loudly (StallPrevCol).
 func (s *State) prevScopeAdd(k *prep, in *kop.Instr) {
-	sc := uint8(in.C)
+	sc := uint8(in.C & (1<<kop.PrevScopeColourShift - 1))
+	scc := kop.ColorMask(in.C >> kop.PrevScopeColourShift)
 	for i := range s.g.prevCol {
 		r := &s.g.prevCol[i]
 		if r.col == 0 && r.sc == 0 {
-			r.obj, r.sc, r.ctl = s.res.e.obj, sc, TCode(s.res.e.ctrl) // code-ok: a scoped record holds its controller's seat in ctl
+			r.obj, r.sc, r.ctl, r.col = s.res.e.obj, sc, TCode(s.res.e.ctrl), scc // code-ok: a scoped record holds its controller's seat in ctl
 			return
 		}
 	}
 	s.capFull(StallPrevCol) // loud: never drop an effect
 }
 
-// prevScopeHit reports whether a record of scope sc made by player ctl
-// prevents damage from the source at srcSl to t.
-func (s *State) prevScopeHit(k *prep, sc, ctl uint8, srcSl Slot, t prevTgt) bool {
-	if DebugNoPrevScope || t.rcp != ctl {
+// prevScopeHit reports whether scoped record r (made by player r.ctl)
+// prevents damage from the source at srcSl, whose colours are srcCol, to t.
+func (s *State) prevScopeHit(k *prep, r *prevRec, srcSl Slot, srcCol kop.ColorMask, t prevTgt, combat bool) bool {
+	sc := r.sc
+	if DebugNoPrevScope {
+		return false
+	}
+	if sc&kop.PrevScopeCombat != 0 && !combat {
+		return false
+	}
+	if r.col != 0 && srcCol&r.col == 0 {
 		return false
 	}
 	if sc&kop.PrevScopeSrcCreature != 0 && (srcSl == NoSlot || !s.isCreature(k, srcSl)) {
+		return false
+	}
+	if sc&kop.PrevScopeAll != 0 {
+		return true
+	}
+	if t.rcp != uint8(r.ctl) { // code-ok: a scoped record's ctl is a seat
 		return false
 	}
 	if t.dst == NoSlot {

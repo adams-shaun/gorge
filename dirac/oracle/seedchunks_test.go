@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+	"sync/atomic"
 	"testing"
 )
 
@@ -51,6 +52,7 @@ func runChunks(t *testing.T, cs []seedChunk, named bool, play func(t *testing.T,
 		play(t, cs[0], &mu)
 		return
 	}
+	var skipped atomic.Int64
 	t.Run("seeds", func(t *testing.T) {
 		for _, c := range cs {
 			name := fmt.Sprintf("%d-%d", c.lo, c.hi)
@@ -59,10 +61,21 @@ func runChunks(t *testing.T, cs []seedChunk, named bool, play func(t *testing.T,
 			}
 			t.Run(name, func(t *testing.T) {
 				t.Parallel()
+				defer func() {
+					if t.Skipped() {
+						skipped.Add(1)
+					}
+				}()
 				play(t, c, &mu)
 			})
 		}
 	})
+	// A chunk that skips (no corpus, no tables) leaves the caller's tallies
+	// empty, and its floors would then fail a fresh clone: when every chunk
+	// skipped, the caller skips too, as the one-chunk run does.
+	if n := skipped.Load(); n == int64(len(cs)) {
+		t.Skipf("all %d seed chunks skipped: no corpus, tables or pool", n)
+	}
 }
 
 // addTally adds src's counts into dst (both pointers to the same struct

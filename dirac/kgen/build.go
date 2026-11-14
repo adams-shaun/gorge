@@ -665,7 +665,7 @@ func (cb *cardBuilder) record() error {
 		}
 	}
 	if c.MorphCost != nil {
-		d.MorphFamily = c.MorphFamily
+		d.MorphFamily, d.MorphLife = c.MorphFamily, c.MorphLife
 		if d.MorphCost, err = manaCostOf(*c.MorphCost); err != nil {
 			return err
 		}
@@ -1018,6 +1018,7 @@ func (cb *cardBuilder) record() error {
 	d.AloneAtk = c.AloneAtk
 	d.AloneBlk = c.AloneBlk
 	d.Engines = c.Engines
+	d.Ascend = c.Ascend
 	d.AtkFace = c.AtkFace
 	d.SagaN = uint8(c.SagaN)
 	d.TapPowerCrew = int8(c.TapPowerCrew)
@@ -2265,6 +2266,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vTimesKicked:        kop.ExKicked, // Expr.N 1: the multikicker count, not the kicked bit
 	vEnergyOf:           kop.ExEnergyOf,
 	vMonarch:            kop.ExMonarch,    // lower_monarch.go
+	vBlessing:           kop.ExBlessing,   // dirac/kw_ascend.go
 	vJoinForces:         kop.ExJoinForces, // lower_storesvar.go
 	vCmdGreatestMV:      kop.ExCmdGreatestMV,
 	vDmgOppsTaken:       kop.ExDmgOppsTaken, // lower_bloodthirst.go
@@ -2379,7 +2381,8 @@ var cmpOps = map[uint8]kop.CmpOp{opGE: kop.CmpGE, opLE: kop.CmpLE, opEQ: kop.Cmp
 
 var condKinds = map[condKind]kop.CondKind{cPresent: kop.CondPresent, cValue: kop.CondValue, cKicked: kop.CondKicked,
 	cThreshold: kop.CondThreshold, cYourTurn: kop.CondYourTurn, cRefMatches: kop.CondRefMatches,
-	cPromisedGift: kop.CondPromised, cAnd: kop.CondAnd, cEchoOwed: kop.CondEchoOwed, cSourceZone: kop.CondSourceZone}
+	cPromisedGift: kop.CondPromised, cAnd: kop.CondAnd, cEchoOwed: kop.CondEchoOwed, cSourceZone: kop.CondSourceZone,
+	cBlessing: kop.CondBlessing}
 
 // cond interns a condition (0 for none).
 func (cb *cardBuilder) cond(c lCond) (kop.CondID, error) {
@@ -2486,6 +2489,9 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 		return 0, err
 	}
 	if ko.RemoveKw, err = kwMask(o.RemoveKw); err != nil {
+		return 0, err
+	}
+	if ko.CantHaveKw, err = kwMask(o.CantHaveKw); err != nil {
 		return 0, err
 	}
 	if len(o.GrantAbility) > 2 {

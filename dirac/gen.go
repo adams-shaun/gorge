@@ -172,6 +172,7 @@ type genPrep struct {
 	blkTaxStall     bool           // a block tax beside a part its walk does not model (combat_blocktax.go prepBlkTax): StallBlkTax
 	atkTaxStall     bool           // an attack tax beside a part its walk does not model (combat_attacktax.go prepAtkTax): StallAtkTax
 	chPlOrder       bool           // an as-enters opponent choice beside another object's enters replacement (repl_chooseplayer.go prepChoosePlayer): StallChoosePlayerOrder
+	tokListAdd      bool           // a comma-listed TokenScript$ mint beside a ReplAddToken (repl_toklistadd.go prepTokListAdd): StallTokRewrite
 	anyWitherGrant  bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
 	anyInfectGrant  bool           // some static or ExtKwMark grants infect (kw_kwmark.go); sets anyInfect
 	anyEvasionGrant bool           // some static or ExtKwMark grants intimidate (kw_kwmark.go); sets anyEvasion
@@ -236,6 +237,7 @@ type genPrep struct {
 	anyDelaySpell   bool           // some program registers a delayed SpellCast program (kop.DelaySpellCast; trig_delayedspell.go)
 	anyRaise        bool           // some card has a generated StatIncreaseCost (RaiseCost; trig_delayedtiming.go)
 	anyRaiseLife    bool           // some card has a StatIncreaseCost with StRaiseLife (RaiseCost Cost$ PayLife<N>; cost_raiselife.go)
+	anyRaiseTgt     bool           // some card has a battlefield generic StatIncreaseCost gated by a ValidTarget$ (cost_raisetgt.go)
 	anyComboDyn     bool           // some card's mana ability adds an evaluated amount in any combination of colours (mana_combodyn.go)
 	anyComboAny     bool           // some card has a {T} Combo Any mana ability, which gorge's planner does not witness (mana_comboany.go)
 	anyCantCast     bool           // some card has a StatCantBeCast (trig_delayedtiming.go castForbidden)
@@ -598,7 +600,7 @@ func tableHasMultikicker(t *kop.Table) bool {
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasStatic(t, kop.StatCanAttackIfHaste) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasAscend(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasStatic(t, kop.StatCanAttackIfHaste) {
 		return nil
 	}
 	enteredNeed := tableHasEnteredFrom(t)
@@ -746,7 +748,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepExileGrant(t, g) // cast_exilegrant.go
 	prepWaterbend(t, g)
 	prepCostEvidence(t, g)
-	prepArena(t, g, &p.cold) // arena.go; fills g.ix, read by prepLure/prepMustBlock below
+	prepArena(t, g) // arena.go; fills g.ix, read by prepLure/prepMustBlock below
 	prepLure(t, g)
 	prepMustBlock(t, g) // combat_mustbeblocked.go
 	prepColGrant(t, g)
@@ -785,6 +787,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyOvGateStat = tableHasOvGate(t)
 	g.anyRaise = tableRaises(t)
 	g.anyRaiseLife = tableRaiseLife(t)
+	g.anyRaiseTgt = tableRaiseTgt(t)
 	g.anyComboDyn = tableComboDyn(t)
 	g.anyComboAny = tableComboAny(t)
 	g.anyTwobrid = tableTwobrid(t)
@@ -1654,6 +1657,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepAtkTax(t, g)       // combat_attacktax.go: after the requirement, Taps and land-type reads it checks
 	prepBlkTax(t, g)       // combat_blocktax.go: the same reads
 	prepChoosePlayer(t, g) // repl_chooseplayer.go
+	prepTokListAdd(t, g)   // repl_toklistadd.go
 	prepCold(g, &p.cold)
 	return g
 }
@@ -1812,6 +1816,21 @@ type xTargets struct {
 }
 
 // genState is the generated-table part of State.
+// prevRec is one genState.prevCol record (see the field).
+type prevRec struct {
+	obj Obj
+	col kop.ColorMask
+	// sc, ctl: a scoped record (Ext PreventDamageScope) prevents the
+	// damage its controller ctl (a player) or the creatures ctl controls
+	// would take; sc holds the kop.PrevScope* bits and col is the record's
+	// source-colour filter (0: any source; the C bits of Ext PreventDamageScope
+	// above kop.PrevScopeColourShift), not a colour to prevent. A record
+	// with sc&prevNextSc is an Ext PreventNext shield: ctl the recipient's
+	// damage code, obj the effect's source, col the damage left (repl_prevnext.go)
+	sc  uint8
+	ctl TCode
+}
+
 type genState struct {
 	graveKept bool // removePerm: this move to a graveyard takes no "from anywhere" redirect
 	// cskip: the combat-phase skips (act_skipphase.go). Bit p: player p skips the
@@ -1992,7 +2011,7 @@ type genState struct {
 	noPoison uint8           // bit p: player p can't get additional poison counters this turn (Melira's replacement; trig_leavereturn.go; padding)
 	plusCtr  [MaxSeats]uint8 // per player, how many Brad Boimler counter-plus-one effects are active this turn (ctr_pluseot.go; padding)
 	plusSrc  [MaxSeats]Obj   // per player, the Boimler that made them (NoObj: more than one; the order ask's source, repl_ctrorder.go; padding)
-	cast1    uint8           // bit p: seat p has cast a spell this game, recorded only for a table reading ExFirstCast (cast_firstcast.go; padding)
+	cast1    uint8           // bit p: seat p has cast a spell this game, recorded only for a table reading ExFirstCast (cast_firstcast.go); bit blessShift+p: seat p has the city's blessing (kw_ascend.go); padding
 	ctrAdder uint8           // transient: the player putting the counters being placed, +1 (0: the resolving / building controller; trig_leavereturn.go; padding)
 	// ctrSettle is the entrant whose entry counters are being placed, +1
 	// (0: none). While set, the AddCounter matcher skips that permanent as a
@@ -2015,17 +2034,7 @@ type genState struct {
 	// gorge Effect): the card that made it and the colour chosen (col, a
 	// ColorMask bit; 0 = free) whose sources' damage it prevents
 	// (cast_altfree.go; padding before lingerM)
-	prevCol [3]struct {
-		obj Obj
-		col kop.ColorMask
-		// sc, ctl: a scoped record (Ext PreventDamageScope) prevents the
-		// damage its controller ctl (a player) or the creatures ctl controls
-		// would take; sc holds the kop.PrevScope* bits and col is 0. A record
-		// with sc&prevNextSc is an Ext PreventNext shield: ctl the recipient's
-		// damage code, obj the effect's source, col the damage left (repl_prevnext.go)
-		sc  uint8
-		ctl TCode
-	}
+	prevCol [3]prevRec
 	lingerM slotMask
 	// declM: the slots declared as attackers earlier this turn (Count$AttackersDeclared
 	// counts each creature once across extra combats). perm.flags has no free bit, so
@@ -2125,9 +2134,11 @@ type genState struct {
 	// effect-borne entry counters.
 	entrySelf uint8
 	// tokPT: the P/T set the token entering next takes with its entry
-	// (act_tokenpt.go): on, the override index, the evaluated P/T
+	// (act_tokenpt.go): on, how many more entering tokens take it after the
+	// next (a mint of X), the override index, the evaluated P/T
 	tokPT struct {
 		on   bool
+		left uint8
 		idx  uint16
 		p, t int16
 	}

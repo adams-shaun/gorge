@@ -270,11 +270,27 @@ func arenaAssign(t *kop.Table) (ix [numMech]uint8, nms, nmo uint8) {
 	return ix, nms, nmo
 }
 
-// prepArena fills g.ix and sizes the masks in the table's cold layout.
-func prepArena(t *kop.Table, g *genPrep, c *coldLayout) {
-	var nms, nmo uint8
-	g.ix, nms, nmo = arenaAssign(t)
-	c.ms, c.mo = int(nms), int(nmo)
+// prepArena fills g.ix; coldMS and coldMO size the masks from it.
+func prepArena(t *kop.Table, g *genPrep) {
+	g.ix, _, _ = arenaAssign(t)
+}
+
+// coldMS and coldMO are the slot- and object-width masks a table's arena
+// assigned.
+var (
+	coldMS = newCold[slotMask]("ms", func(g *genPrep) int { return arenaCount(g, wSlot) }).view(func(c *coldArrays) *[]slotMask { return &c.ms })
+	coldMO = newCold[objBits]("mo", func(g *genPrep) int { return arenaCount(g, wObj) }).view(func(c *coldArrays) *[]objBits { return &c.mo })
+)
+
+// arenaCount is how many masks of width w g.ix assigned.
+func arenaCount(g *genPrep, w uint8) int {
+	n := 0
+	for m, i := range g.ix {
+		if i != arenaNone && mechWidth[m] == w {
+			n++
+		}
+	}
+	return n
 }
 
 // mSl reports whether mechanic m's mask holds sl; false when the table does
@@ -325,15 +341,7 @@ func (s *State) arenaClrSlot(sl Slot) {
 	for i := range ms {
 		ms[i] = ms[i].without(sl)
 	}
-	if r := s.xblkRecs(); len(r) > 0 {
-		r[sl] = xblkRec{}
-	}
-	if int(sl) < len(s.cold.mk) {
-		s.cold.mk[sl] = 0 // the last permanent's multikicker count ends with it (CR 702.43; cast.go)
-	}
-	if int(sl) < len(s.cold.hexUB) {
-		s.cold.hexUB[sl] = 0 // a new permanent takes no mark from the last one (repl_turnrepl.go)
-	}
+	s.coldClrSlot(sl) // every perSlot cold region's record (statecopy.go)
 	for i := range s.cold.exMark {
 		if r := &s.cold.exMark[i]; r.sl == sl {
 			r.live = false // the last permanent's exile-instead records end with it (repl_exilemark.go)

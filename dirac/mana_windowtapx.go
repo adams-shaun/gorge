@@ -174,7 +174,7 @@ func (s *State) winTapCost(k *prep) kop.ManaCost {
 	if s.g.winMode == winWard {
 		return kop.ManaCost{Generic: uint8(s.res.e.trigAmt &^ wardAltBits)} // a discard-or-{N} ward's N (kw_wardcost.go)
 	}
-	return manaOf(int(s.g.pickLeft), s.numTimesPips(k, s.prog(k)[s.res.pc].B.N))
+	return s.resPayCost(k) // cost_trighybrid.go
 }
 
 // askOptionsWinTap builds the pick's options: the source's candidates in

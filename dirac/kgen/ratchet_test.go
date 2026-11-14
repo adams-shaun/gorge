@@ -152,11 +152,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +10 (MBC trigger-referents-6: OptionalDecider$ and Defined$ TriggeredSourceController on a plain DamageDone line, TargetsWithDefinedController$ TriggeredAttackedTarget under a per-defender attack trigger, LibraryPosition$ 2 of the dying card: Edric, Spymaster of Trest, Gornog, the Red Reaper, God-Eternal Oketra (the three MBC cards beside Karazikar and Gix, which keep other blockers), and Brood Sliver, Synapse Sliver, Backfire, Michiko Konda, Truth Seeker, Whirlwind, Killer Cyclone, God-Eternal Rhonas, God-Eternal Bontu; ALL merged against land 23608 -> 23618, MBC 1766 -> 1769 measured).
 	// +2 (a GenericChoice whose bodies are DB$ ChangeText lowers to OpExt ExtChangeText, a no-op unless the target face reads the from word: Mind Bend and Whim of Volrath; ALL merged against land 23728 -> 23730, MBC 1797 -> 1798 (Mind Bend) measured).
 	// +17 (Level up lowers (CR 702.87a): kwLevelUp's sorcery-speed PutCounter LEVEL line, kop.CtrLevelUp, and the two-sided level band IsPresent$ Card.Self+counters_GEa_LEVEL+counters_LEb_LEVEL as two Self presence tests: Brimstone Mage, Caravan Escort, Enclave Cryptologist, Guul Draz Assassin, Hada Spy Patrol, Hedron Field Purists, Ikiral Outrider, Joraga Treespeaker, Kargan Dragonlord, Kazandu Tuskcaller, Knight of Cliffhaven, Nirkana Cutthroat, Null Champion, Skywatcher Adept, Student of Warfare, Transcendent Master, Under Construction Skyscraper; ALL 23253 -> 23270, MBC 1678 -> 1683 measured).
-	// +5 (MBC keywords-5: a granted "Prevent all combat damage that would be dealt by CARDNAME." lowered to KwPreventCombatDamageFrom: Hunter's Ambush, Mtenda Lion, Subdue, Urza's Science Fair Project, Zealot il-Vec; ALL 23443 -> 23448 measured).
-	// +18 (MBC keywords-5: Renown lowered from gorge kwRenown's trigger, its PutCounter Renown$ body to OpExt ExtRenown and IsRenowned to PredRenowned: Acolyte of the Inferno, Akroan Sergeant, Citadel Castellan, Constable of the Realm, Consul's Lieutenant, Firefiend Elemental, Goblin Glory Chaser, Honored Hierarch, Knight of the Pilgrim's Road, Kytheon's Irregulars, Outland Colossus, Pharika's Disciple, Rhox Maulers, Scab-Clan Berserker, Stalwart Aven, Topan Freeblade, Undercity Troll, War Oracle; ALL 23448 -> 23466 measured).
 	// +41 (this branch's lowerings merged against land 23802 -> 23843 measured).
-	// merged with land's +41 (23855): ALL 23855 -> 23878 measured with the keywords-5 lowerings.
-	"ALL": {23878, 34442},
+	"ALL": {23918, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {221, 280},
@@ -173,14 +170,12 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
 	// +2 (MBC replacements-2: Fire Servant, Charging Tuskodon; MBC merged against land 1748 -> 1750 measured).
 	// +3 (MBC zone-moves-5: Counterbalance, Goblin Recruiter, Sensei's Divining Top; The Weaver King still refuses on its per-opponent pick; MBC 1678 -> 1681 measured).
-	// +1 (MBC keywords-5: Hunter's Ambush's granted "dealt by" combat prevention; 1727 -> 1728 measured).
-	// +1 (MBC keywords-5: Renown, Consul's Lieutenant; 1728 -> 1729 measured).
 	// listed 2188 -> 2195: the list is held to what an MBC pack deals (setdata TestMBCSetlistIsItsDealtNames); the seven
 	// blocking/targeting cards gorge now plays (Balduvian Warlord, Gorm the Great, Ophidian ...) do not lower yet.
 	// MBC +5 (Level up: Enclave Cryptologist, Knight of Cliffhaven, Joraga Treespeaker, Nirkana Cutthroat, Hada Spy Patrol; 1678 -> 1683).
-	"MBC": {1827, 2195},
+	"MBC": {1843, 2195},
 	"MKM": {252, 279},
-	"MOM": {204, 296},
+	"MOM": {205, 296},
 	"MSH": {247, 276},
 	"NEO": {204, 287},
 	"ONE": {201, 271},

@@ -26,23 +26,21 @@ type xblkRec struct{ a, ord, div, adiv uint8 }
 type blkPair struct{ b, a Slot }
 
 // xblkRecs is the second-block records by blocker slot (nil when the pool has
-// no ExtraBlocks card). They sit in the cold buffer after the may, emblem and
-// creature-counter records, so State itself does not grow (TestStateLayoutPinned).
-func (s *State) xblkRecs() []xblkRec {
-	l := s.cold.layout
-	if l == nil || l.xblk == 0 {
-		return nil
+// no ExtraBlocks card). They sit in the cold buffer, so State itself does not
+// grow (TestStateLayoutPinned), and a slot's record is zeroed as the slot takes
+// a new permanent (arenaClrSlot).
+func (s *State) xblkRecs() []xblkRec { return coldXblk.of(s) }
+
+var coldXblk = newCold[xblkRec]("xblk", func(g *genPrep) int {
+	if g.anyExtraBlock {
+		return MaxPerm
 	}
-	at := 0
-	_ = coldView[mayPlay](nil, &at, l.may)
-	_ = coldView[embRec](nil, &at, l.emb)
-	_ = coldView[plusCreRec](nil, &at, l.ctrP)
-	return coldView[xblkRec](s.cold.buf, &at, l.xblk)
-}
+	return 0
+}).perSlot()
 
 // xblkOf is blocker b's second attacker (NoSlot none).
 func (s *State) xblkOf(b Slot) Slot {
-	if l := s.cold.layout; l == nil || l.xblk == 0 {
+	if coldXblk.count(s.cold.layout) == 0 {
 		return NoSlot
 	}
 	if a := s.xblkRecs()[b].a; a != 0 {
