@@ -9,8 +9,8 @@ package kop
 // scope is F's TargetedPlayerCtrl word. No other field is read.
 // dirac/act_taporuntapall.go.
 //
-// The ordinal is 296, the highest free value below NumExtOps (297 is
-// ExtChooseCardEnter's).
-const ExtTapOrUntapAll ExtOp = 296
+// The ordinal is 295, the highest free value below NumExtOps (296 is
+// ExtGrantKwAll's, 297 ExtChooseCardEnter's).
+const ExtTapOrUntapAll ExtOp = 295
 
 func init() { extOpNames[ExtTapOrUntapAll] = "TapOrUntapAll" }

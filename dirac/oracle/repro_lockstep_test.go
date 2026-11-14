@@ -13,6 +13,22 @@ import (
 // game that found a difference, whatever the list says today.
 func synthReproLockstep(t *testing.T, file, pool string, cfg Config) {
 	t.Helper()
+	res, skipped := synthReproRun(t, file, pool, cfg)
+	if skipped != 0 {
+		t.Errorf("%d scripted actions were not offered", skipped)
+	}
+	if res.Div != nil {
+		t.Fatalf("divergence at %d: %s %s\n gorge %v\n dirac %v\n %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.RefOptions, res.Div.KerOptions, res.Div.Diff)
+	}
+	if res.Stall == KernelStallPrefix+"tapextra" {
+		t.Fatalf("the kernel stalled on a tap's extra mana (tapextra) after %d decisions", len(res.Actions))
+	}
+}
+
+// synthReproRun is synthReproLockstep's replay: the result and the count of
+// scripted actions that were not offered.
+func synthReproRun(t *testing.T, file, pool string, cfg Config) (Result, int) {
+	t.Helper()
 	r, err := ReadRepro("testdata/" + file + ".repro.json")
 	if err != nil {
 		t.Fatal(err)
@@ -42,15 +58,7 @@ func synthReproLockstep(t *testing.T, file, pool string, cfg Config) {
 	rc := RunConfig{Config: cfg, MaxDecisions: len(r.Actions) + 200}
 	script := &ScriptPolicy{Actions: r.Actions}
 	res := Lockstep(m, r.Seed, k, script, rc)
-	if script.Skipped != 0 {
-		t.Errorf("%d scripted actions were not offered", script.Skipped)
-	}
-	if res.Div != nil {
-		t.Fatalf("divergence at %d: %s %s\n gorge %v\n dirac %v\n %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.RefOptions, res.Div.KerOptions, res.Div.Diff)
-	}
-	if res.Stall == KernelStallPrefix+"tapextra" {
-		t.Fatalf("the kernel stalled on a tap's extra mana (tapextra) after %d decisions", len(res.Actions))
-	}
+	return res, script.Skipped
 }
 
 // A trigger exiling the object that fired it, then returning it: Salvation Swan and a

@@ -4,7 +4,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // raTapOrUntapAll is OpExt ExtTapOrUntapAll's one election (res.askP the
 // resolving controller).
-const raTapOrUntapAll = raGenManifestDread + 83
+const raTapOrUntapAll = raGenManifestDread + 84
 
 // tapOrUntapAllStart is OpExt ExtTapOrUntapAll (gorge effTapOrUntapAll):
 // the controller is always asked, before the sweep is read.

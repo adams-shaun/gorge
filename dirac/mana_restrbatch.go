@@ -64,6 +64,41 @@ func (s *State) rbClear(p uint8) {
 	s.rb[SeatIx(p)] = [maxRB]rbatch{}
 }
 
+// rbClearStep empties p's restricted mana at a step boundary but the batches
+// of a persistent restriction (genPrep.restrPers): gorge foldManaClear keeps a
+// batch whose Persistent flag is set.
+func (s *State) rbClearStep(p uint8) {
+	g := s.k().gen
+	if g == nil || g.restrPers == 0 {
+		s.rbClear(p)
+		return
+	}
+	rb := &s.rb[SeatIx(p)]
+	for i := range rb {
+		if rb[i].kind != 0 && !g.restrPersKind(rb[i].kind) {
+			rb[i] = rbatch{}
+		}
+	}
+	s.rbCompact(p)
+}
+
+// rbPersist: p holds a batch of a persistent restriction. A batch a payment
+// has taken (rbTake) is emptied in place until rbSettle floats what is left
+// back, so it counts while it holds its slot: a persistSync mid-payment must
+// not drop pmOn for it (rbCompact drops the batch once it is spent).
+func (s *State) rbPersist(p uint8) bool {
+	g := s.k().gen
+	if g == nil || g.restrPers == 0 {
+		return false
+	}
+	for i := range s.rb[SeatIx(p)] {
+		if kind := s.rb[SeatIx(p)][i].kind; kind != 0 && g.restrPersKind(kind) {
+			return true
+		}
+	}
+	return false
+}
+
 // rbCompact drops p's emptied batches, keeping the order of the rest.
 func (s *State) rbCompact(p uint8) {
 	rb := &s.rb[SeatIx(p)]

@@ -259,8 +259,10 @@ import (
 // +2 (MBC replacements-2: a DamageDone doubler with no ValidTarget$, Fire Servant; ValidSource$ Card.Self with IsCombat$ True, Charging Tuskodon; merged ALL build-level 23559 -> 23561 measured).
 // +11 (MBC zone-moves-5: Count$TopOfLibraryCMC, Reorder$ on a library-to-top search, the AIRespondsToOwnAbility$ hint and the ThisTurnEnteredFrom_Library word; the same eleven cards as ratchet_test.go's ALL pin; ALL build-level 23253 -> 23264 measured).
 // +10 (MBC trigger-referents-6: TriggeredSourceController on a plain DamageDone line, TriggeredAttackedTarget controller slots, LibraryPosition$ 2 of the dying card: Edric, Spymaster of Trest, Gornog, the Red Reaper, God-Eternal Oketra, Brood Sliver, Synapse Sliver, Backfire, Michiko Konda, Truth Seeker, Whirlwind, Killer Cyclone, God-Eternal Rhonas, God-Eternal Bontu; ALL build-level merged against land 23608 -> 23618 measured).
-// +1 (Turnabout, ExtTapOrUntapAll; ALL build-level merged against land 8202e3b6c0 23657 -> 23658 measured).
-var buildAcceptancePin = [2]int{23658, 34442} // {built, cards}
+// +2 (Mind Bend and Whim of Volrath: a GenericChoice whose DB$ ChangeText bodies lower to ExtChangeText; ALL build-level merged against land 23728 -> 23730 measured).
+// +17 (Level up lowers (CR 702.87a): kwLevelUp's PutCounter LEVEL line, kop.CtrLevelUp, and the two-sided level band as two Self presence tests, the 17 cards named in ratchet_test.go's MBC pin; ALL build-level 23253 -> 23270 measured).
+// +1 (Turnabout, ExtTapOrUntapAll; ALL build-level merged against land 3a3e9ce45a 23802 -> 23803 measured).
+var buildAcceptancePin = [2]int{23803, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)
