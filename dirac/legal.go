@@ -214,7 +214,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			if k.gen != nil && k.gen.anyTypeCreat && s.convAnyType(k, p, o) {
 				kc = anyType(kc) // the kicked total under Vizier's conversion too (mana_convertcreature.go)
 			}
-			if s.kickedAffords(k, p, c, o, &kc, cav) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
+			if s.kickedAffords(k, p, c, o, &kc, cav) && s.kickedChainFeasible(k, c, p) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
 				d.add(MakeAction(AkCast, TCode(o), 0, 1))
 			}
 		}
@@ -707,7 +707,13 @@ func (s *State) spellCostsFeasible(k *prep, c CardID, p uint8, o Obj) bool {
 	if s.objs[o].zone == kop.ZoneHand && s.objs[o].owner() == p {
 		others--
 	}
-	if s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || others >= int(ac.N)) && s.beholdPayable(k, p, c, o) {
+	discardOK := ac.Flags&kop.CostDiscard == 0 || others >= int(ac.N)
+	if ac.Flags&kop.CostDiscardFiltered != 0 {
+		// a filtered discard (Magmatic Insight's land card) never takes the
+		// card being cast, whatever its filter says (cost_discardfiltered.go)
+		discardOK = s.discardPayable(k, p, ac, o)
+	}
+	if s.pickCostPayable(k, p, ac, NoObj) && discardOK && s.beholdPayable(k, p, c, o) {
 		return true
 	}
 	cd := &k.t.Cards[c]
@@ -1228,7 +1234,7 @@ func (s *State) abilityTargetsFeasible(k *prep, a *kop.Ability, p uint8, src Slo
 			return false
 		}
 	}
-	if a.NTargets > 1 && !s.distinctCastFeasible(k, a, p, src, modes, excl) {
+	if a.NTargets > 1 && !s.distinctCastFeasible(k, a, p, src, modes, excl, false) {
 		return false // TargetUnique$ chain: jointly distinct (tgt_uniqueoffer.go)
 	}
 	return true
@@ -1764,6 +1770,8 @@ func (s *State) applyPriority(k *prep, a Action) {
 	grantFirst = grantFirst || grants && s.deferBesideGrant(k, p) // the same one search (mana_grantdeferred.go)
 	grantFirst = grantFirst || grants && s.eachBesideGrant(k, p)  // an each-colour gap among the grants (mana_granteach.go)
 	grantFirst = grantFirst || grants && s.wideBesideGrant(k, p)  // a wide-only gap among the grants (mana_grantwide.go)
+	// a planner-deferred gap among the grants: the activation's one search (mana_granttapsdefer.go)
+	grantFirst = grantFirst || grants && a.Kind() == AkActivate && s.tdBesideGrant(k, p)
 	if grantFirst {
 		s.grantPrefix(k, a, p)
 		if s.npend != 0 {

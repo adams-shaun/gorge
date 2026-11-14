@@ -131,6 +131,7 @@ type lowerCtx struct {
 	batchPoolOK    bool      // the trigger being lowered is a ChangesZoneAll exile line whose body picks among its batch members (lower_trigzonebatch.go kayaBatchBody)
 	wasCastOK      bool      // the filter being read is a battlefield-entering trigger's ValidCard(s)$: wasCast may lower
 	cantCastProv   bool      // the filter being read is a CantBeCast ValidCard$: wasCastFromTheirHand may lower (kernel matchSpellCardOffer)
+	tgtProv        bool      // the filter being read is a plain Counter's ValidTgts$ (TgtSpell): wasCastFromTheirHand may lower (lower_countertgtprov.go)
 	spellProvOK    bool      // the filter being read is a SpellCast ValidCard$, a spell's own ConditionPresent$ or a mana ability's Spell. RestrictValid$: the cast-provenance words may lower
 	chosenNumOK    bool      // the filter being read is a battlefield SpellCast ValidCard$ of a card that chooses a number as it enters: a "Chosen" bound may lower (lower_choosenumber.go)
 	exwOK          bool      // the filter being read is a resolution-time mover's ChangeType$: ExiledWithSource may lower
@@ -307,6 +308,9 @@ type lowerCtx struct {
 	// (Skrelv: the Pump DefinedKW$ ChosenColor, the CantBlockBy Effect, the
 	// ClearChosenColor Cleanup) are still to be lowered
 	colGrant bool
+	// landTypeGrant while a mid-resolution ChooseType Basic Land's
+	// Types$ ChosenType Animate is still to be lowered (lower_choosetype.go)
+	landTypeGrant bool
 	// clAt is 1 + the index of a CounterLose instruction whose following
 	// Effect (the host-bound loss of abilities) is still to be read.
 	clAt   int
@@ -1011,8 +1015,10 @@ var expandedKeywords = map[string]bool{
 	// Echo (CR 702.30a): gorge kwEcho's upkeep trigger, gated by Echo$ True,
 	// whose body is DB$ Echo (lower_echo.go)
 	"Echo": true,
-	// Level up (CR 702.87a): gorge kwLevelUp appends one sorcery-speed
-	// AB$ PutCounter LEVEL line; the level bands are ordinary statics
+	// Level up (CR 702.87a): gorge kwLevelUp (cards/kw_levelup.go) appends one
+	// sorcery-speed AB$ PutCounter of a LEVEL counter on the source; the level
+	// bands are the card's own statics (a two-compare IsPresent$ gate:
+	// levelBandFilters)
 	"Level up": true,
 }
 
@@ -1467,6 +1473,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !lc.lowerEntwine(param) {
 				lc.refuseNode(node, "entwine cost %q", param)
 			}
+		case head == "Escalate":
+			lc.lowerEscalate(node, param) // lower_escalate.go
 		case head == "Casualty":
 			// CR 702.153a: the optional creature sacrifice and the copy
 			// trigger are the kernel's casualty cast (kw_casualty.go). The
@@ -2073,10 +2081,10 @@ func (lc *lowerCtx) costParts(c lCost) error {
 	if c.DiscardSelf {
 		return refuse("discard cost %q outside a hand ability", "Discard<1/CARDNAME>")
 	}
-	if c.DiscardF != nil && !(lc.altCostHand && c.Discard2N > 0) {
+	if c.DiscardF != nil && !lc.filteredDiscardHome(c) {
 		// a filtered discard is a battlefield activated ability's own cost
 		// (the candidates are that controller's hand cards; CR 118.3), or
-		// a spell alternative cost's two discard parts (lower_discardtwo.go)
+		// a spell's alternative or additional cost (lower_discardtwo.go)
 		return refuse("filtered discard cost outside an activated ability")
 	}
 	if c.DiscardHand && (lc.ab == nil || lc.ab.Kind != akActivated) {
@@ -2473,7 +2481,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				continue
 			}
 			// gorge cost.parse folds a cost spec's ";" alternation to ","
-			if c.SacX || c.SacExile {
+			if c.SacX || c.SacExile || c.Sac != nil {
 				return c, refuse("sacrifice cost %q beside a second sacrifice part", t)
 			}
 			f, err := lc.filter(strings.ReplaceAll(parts[1], ";", ","))
@@ -3029,7 +3037,7 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 			// still resolving (kernel enterCast); a later read has no spell
 			return nil, refuse("filter %q: wasCast outside a battlefield-entering trigger's ValidCard$", expr)
 		}
-		if c.TheirHand && !lc.cantCastProv {
+		if c.TheirHand && !lc.cantCastProv && !lc.tgtProv {
 			return nil, refuse("filter %q: wasCastFromTheirHand outside a CantBeCast ValidCard$", expr)
 		}
 		if c.CmpStat == cmpWasCastSpell && !lc.spellProvOK {
@@ -3053,6 +3061,17 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 		}
 	}
 	for i := range f.Clauses {
+		if f.Clauses[i].Owner == whoTgtCtrl {
+			// the referent is the current link's target, a card off the
+			// battlefield: gorge binds an object target's controller only
+			// (a player target binds nothing), so the slot names no player
+			t := lc.lastTarget()
+			if t < 0 || !offFieldCardSlot(lc.ab.Targets[t].Zone) {
+				return nil, refuse("filter %q: OwnedBy TargetedController without an earlier off-battlefield card target", expr)
+			}
+			f.Clauses[i].CtrlTgt = uint8(t + 1)
+			continue
+		}
 		if f.Clauses[i].Ctrl != whoTgtOrCtrl {
 			continue
 		}
@@ -3082,6 +3101,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 	// ClearChosenColor$ Cleanup (Puca's Eye's ETB)
 	// must not leak colGrant into the next ability's Pump/Animate reading
 	lc.colGrant = false
+	lc.landTypeGrant = false
 	lc.colTgt = lRef{}
 	lc.remTgt = 0
 	ps := newParams(sa.Params)
@@ -3963,6 +3983,22 @@ func (lc *lowerCtx) probeParam(k, v string) error {
 		_, err := lc.value(v)
 		return err
 	case probeFilterKeys[k] || strings.HasPrefix(k, "Valid"):
+		if k == "ValidZone" {
+			// ValidZone$ is a zone list, never a filter: gorge reads it
+			// with ZoneFromString per comma part (effects/play.go), and
+			// every kgen reader of the key (play's Hand/Graveyard/Exile/
+			// Library cases, the counters' refusal, the drain-mana
+			// context) reads zone names. Probing it as a filter reported
+			// every zone-named value as `filter head "Hand"` and hid the
+			// real readers' refusals behind a spelling that is not one
+			// (Kuroki, Thief of Talents' DB$ Play ValidZone$ Hand).
+			for part := range strings.SplitSeq(v, ",") {
+				if _, ok := zoneNames[strings.TrimSpace(part)]; !ok {
+					return fmt.Errorf("unknown zone %q", strings.TrimSpace(part))
+				}
+			}
+			return nil
+		}
 		_, err := lc.filter(v)
 		return err
 	}

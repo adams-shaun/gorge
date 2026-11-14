@@ -14,7 +14,15 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 	switch v {
 	case "RememberedController":
 		return lc.rememberedController() // lower_stacktgt.go
-	case "Self":
+	case "Self", "Parent":
+		// gorge's defined-spec table reads "Parent" as definedSpecSelf
+		// (effects/context.go), the same one alias it gives "Self" and
+		// "EffectSource": the parent of a resolving sub-ability is the
+		// ability itself, and Defined() names its source -- for View from
+		// Above's and Molten Birth's DB$ ChangeZone Origin$ Stack
+		// Destination$ Hand the spell on the stack returns to its owner's
+		// hand. ParentTarget(ed) above is the different, target-reading
+		// spelling.
 		return lRef{Kind: rSelf}, nil
 	case "OriginalHost":
 		return lRef{Kind: rHost}, nil
@@ -1665,6 +1673,22 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		// emits no reveal event, so the drawn card changes nothing a later
 		// node reads; the remembered card (RememberDrawn$) is the whole effect.
 		ps.consume("Reveal")
+		if who, ok, err := lc.manaSpenderYouAnd(ps); err != nil { // lower_manaspender.go
+			return err
+		} else if ok {
+			if remDrawn || remAll {
+				return refuse("RememberDrawn$ on a two-player draw")
+			}
+			if _, ok := ps.get("OptionalDecider"); ok {
+				return refuse("OptionalDecider$ on a two-player draw")
+			}
+			n, err := lc.amount(ps, "NumCards", 1)
+			if err != nil {
+				return err
+			}
+			lc.emit(lInstr{Op: "Draw", Obj: who, A: n})
+			return nil
+		}
 		if who, ok, err := lc.targetedAndYou(ps, "Defined"); err != nil {
 			return err
 		} else if ok {
@@ -1977,7 +2001,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if listF != "" {
 			vt = listF
 		}
-		f, err := lc.filter(vt)
+		f, err := lc.counterTgtFilter(tt, vt) // lower_countertgtprov.go
 		if err != nil {
 			return err
 		}
@@ -3032,6 +3056,9 @@ func (lc *lowerCtx) chooseType(ps *params) error {
 	if ps.str("Type") == "Card" {
 		return lc.chooseCardType(ps) // lower_choosetype.go
 	}
+	if ps.str("Type") == "Basic Land" {
+		return lc.chooseBasicLandType(ps) // lower_choosetype.go
+	}
 	if ps.str("Type") != "Creature" {
 		return refuse("ChooseType shape")
 	}
@@ -3325,6 +3352,19 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 			def = cst(0)
 		}
 		lc.emit(lInstr{Op: "PumpUntilEOT", Obj: obj, A: att, B: def})
+	}
+	if zone == zGraveyard && att.Kind == vNone && def.Kind == vNone {
+		// Araumi of the Dead Tide: a Pump whose whole body is a graveyard
+		// keyword grant. gorge's pump registers the derived keyword
+		// [Encore:CardManaCost] on the card until end of turn and offers no
+		// activation of it (kw_granted.go synthesizes no Encore body; the
+		// grant lands and nothing is offered), so ExtGrantEncore encodes the
+		// grant alone. Any other keyword on a graveyard card stays refused
+		// below.
+		if kw, ok := ps.get("KW"); ok && strings.TrimSpace(kw) == "Encore:CardManaCost" {
+			lc.emit(lInstr{Op: "GrantEncore", Obj: obj})
+			return nil
+		}
 	}
 	kw, hasKW := ps.get("KW")
 	mustBlock, noCombat, lure, marks := false, false, false, 0

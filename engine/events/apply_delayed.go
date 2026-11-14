@@ -629,6 +629,17 @@ func foldGrantTriggerPush(g *state.Game, e *Event) {
 		sa = &cards.SA{Kind: "DB", API: "PutCounter", Params: map[string]string{
 			"Defined": "Self", "CounterType": "P1P1", "CounterNum": "1"}}
 	}
+	if sa == nil && e.Counter == "__kwLivingWeaponGranted" {
+		// A granted living weapon (CR 702.92a via a layer-6 AddKeyword$ Living
+		// Weapon, e.g. Ekthi, Contaminator Priest): rebuilt into the printed
+		// K:Living Weapon expansion's body (engine/cards/kw_livingweapon.go),
+		// the remembered Germ token and the source attached to it. Source is
+		// the granted Equipment, so Object$ Self attaches it.
+		sa = &cards.SA{Kind: "DB", API: "Token", Params: map[string]string{
+			"TokenScript": "b_0_0_phyrexian_germ", "TokenOwner": "You", "RememberTokens": "True"},
+			Sub: &cards.SA{Kind: "DB", API: "Attach", Params: map[string]string{
+				"Defined": "Remembered", "Object": "Self"}}}
+	}
 	if sa == nil {
 		return
 	}
