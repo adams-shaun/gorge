@@ -259,8 +259,8 @@ import (
 // +2 (MBC replacements-2: a DamageDone doubler with no ValidTarget$, Fire Servant; ValidSource$ Card.Self with IsCombat$ True, Charging Tuskodon; merged ALL build-level 23559 -> 23561 measured).
 // +11 (MBC zone-moves-5: Count$TopOfLibraryCMC, Reorder$ on a library-to-top search, the AIRespondsToOwnAbility$ hint and the ThisTurnEnteredFrom_Library word; the same eleven cards as ratchet_test.go's ALL pin; ALL build-level 23253 -> 23264 measured).
 // +10 (MBC trigger-referents-6: TriggeredSourceController on a plain DamageDone line, TriggeredAttackedTarget controller slots, LibraryPosition$ 2 of the dying card: Edric, Spymaster of Trest, Gornog, the Red Reaper, God-Eternal Oketra, Brood Sliver, Synapse Sliver, Backfire, Michiko Konda, Truth Seeker, Whirlwind, Killer Cyclone, God-Eternal Rhonas, God-Eternal Bontu; ALL build-level merged against land 23608 -> 23618 measured).
-// +15 (the ChangesZone Origin$ set onto TrigToGraveyard, this branch's TopOfLibrary and DefinedPlayer pick lowerings, merged against land; ALL build-level 23657 -> 23672 measured).
-var buildAcceptancePin = [2]int{23672, 34442} // {built, cards}
+// +15 (the ChangesZone Origin$ set onto TrigToGraveyard, the TopOfLibrary and hidden-pick DefinedPlayer$ lowerings, merged against land; ALL build-level 23687 -> 23702 measured).
+var buildAcceptancePin = [2]int{23702, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)

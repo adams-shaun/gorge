@@ -1266,6 +1266,9 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 		case kop.TgtAny:
 			return t.TFlags&kop.TgfOppOnly == 0 || pp != p
 		case kop.TgtPlayer:
+			if t.TFlags&kop.TgfPlayerCompareOK != 0 && !s.playerThanActiveOK(k, t.TFlags, pp) {
+				return false // tgt_thanactive.go
+			}
 			if t.Filter != 0 {
 				switch k.t.Filters[t.Filter].Ctrl {
 				case kop.CtrlYou:

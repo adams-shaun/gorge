@@ -494,8 +494,18 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		graveBF := dest == zBattlefield && override == nil && graveToBattlefieldFlags(flags)
 		if origin == zGraveyard && (dest == zHand || graveBF) {
+			dpScope, err := graveDefinedPlayer(ps, lc, dest, flags, counterKind) // lower_gravedefinedplayer.go
+			if err != nil {
+				return err
+			}
 			for i := range f.Clauses {
 				if f.Clauses[i].Owner != whoAny {
+					continue
+				}
+				if dpScope != dpNone {
+					// DefinedPlayer$ names the fetch player: gorge's pool is that
+					// player's own graveyard (effHiddenPick, not gameWide), the
+					// kernel's plain walk
 					continue
 				}
 				if f.Clauses[i].Ctrl == whoYou {
@@ -575,8 +585,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				}
 			}
 			lc.pickEachLoop(pickLoop)
-			lc.emit(lInstr{Op: "ChooseMove", Obj: pickOwner, A: n, F: f, C: dest, CS: cs})
-			return nil
+			// dpScope You / Player (graveDefinedPlayer) consumed the param above, so
+			// pickOwner is You and emitGravePick opens the each-player loop for Player
+			return lc.emitGravePick(dpScope, lInstr{Op: "ChooseMove", Obj: pickOwner, A: n, F: f, C: dest, CS: cs}) // lower_gravedefinedplayer.go
 		}
 		if exwPick {
 			return lc.exilePick(ps, f, n, flags, counterKind, override, dest) // lower_exw.go
@@ -1497,6 +1508,10 @@ func (lc *lowerCtx) digUntil(ps *params) error {
 		in.C = rev
 		in.CS += "|FoundWithRevealed"
 	}
+	optional, err := lc.digUntilOptional(ps, who) // lower_thanactive.go
+	if err != nil {
+		return err
+	}
 	if ps.is("ImprintFound", "True") {
 		if ps.is("RememberRevealed", "True") {
 			return lc.digUntilImprint(ps, in, found, rev) // lower_digimprint.go
@@ -1513,6 +1528,9 @@ func (lc *lowerCtx) digUntil(ps *params) error {
 			return refuse("RememberFound %q", v)
 		}
 		in.CS += "|RememberFound"
+	}
+	if optional {
+		lc.emit(lInstr{Op: "MayAsk", C: kop.MayGuardDigUntil, Obj: who, Skip: 1, Note: "may reveal"})
 	}
 	lc.emit(in)
 	return nil
