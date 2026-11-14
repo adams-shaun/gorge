@@ -524,6 +524,9 @@ type genPrep struct {
 	landSub kop.SubMask
 	setIdx  []int16
 	setPC   []pcard
+	// uses: the registered per-table flags (newGenUse; genneed.go), where a
+	// feature's fact goes instead of a new bool here
+	uses useSet
 }
 
 // Replacement bits (genPrep.replBits).
@@ -625,7 +628,7 @@ func tableHasReconfigure(t *kop.Table) bool {
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasAscend(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasReconfigure(t) && !tableHasStatic(t, kop.StatCanAttackIfHaste) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasAscend(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasReconfigure(t) && !tableHasStatic(t, kop.StatCanAttackIfHaste) && !genNeeded(t) {
 		return nil
 	}
 	enteredNeed := tableHasEnteredFrom(t)
@@ -638,6 +641,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		enteredNeed: enteredNeed,
 		flags:       make([]uint32, len(t.Cards)),
 		replBits:    make([]uint32, len(t.Cards)),
+		uses:        tableUses(t), // genneed.go
 	}
 	for i := range t.Cards {
 		// the printed K:Prevent facts (dirac/kgen/lower_preventkw.go)

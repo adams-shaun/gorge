@@ -740,6 +740,7 @@ default	field	genPrep.landSet	4006	1
 default	field	genPrep.landSub	4008	24
 default	field	genPrep.setIdx	4032	24
 default	field	genPrep.setPC	4056	24
+default	field	genPrep.uses	4080	32
 default	field	coldArrays.layout	0	8
 default	field	coldArrays.buf	8	24
 default	field	coldArrays.ms	32	24
@@ -1496,6 +1497,7 @@ mp	field	genPrep.landSet	4006	1
 mp	field	genPrep.landSub	4008	24
 mp	field	genPrep.setIdx	4032	24
 mp	field	genPrep.setPC	4056	24
+mp	field	genPrep.uses	4080	32
 mp	field	coldArrays.layout	0	8
 mp	field	coldArrays.buf	8	24
 mp	field	coldArrays.ms	32	24

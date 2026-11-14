@@ -12,7 +12,7 @@ var coreFiles = map[string]bool{
 	"arena.go": true, "arenaobj.go": true, "cardflags.go": true, "cast.go": true, "chars.go": true,
 	"chars_gen.go": true, "combat.go": true, "copy_gen.go": true, "dispatch.go": true, "doc.go": true,
 	"driver.go": true, "engine.go": true, "exprs.go": true, "extop.go": true, "featview.go": true,
-	"filters_gen.go": true, "gen.go": true, "hbotapi_combat.go": true, "hiddendeal.go": true,
+	"filters_gen.go": true, "gen.go": true, "genneed.go": true, "hbotapi_combat.go": true, "hiddendeal.go": true,
 	"interp.go": true, "interp_ask.go": true, "interp_gen.go": true, "legal.go": true,
 	"legal_gen.go": true, "lockstepconfig.go": true, "mana.go": true, "manifest_gen.go": true, "marks.go": true, "occupancy.go": true,
 	"pregame.go": true, "prep.go": true, "project.go": true, "projchars.go": true, "repl_gen.go": true,
