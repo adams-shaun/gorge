@@ -538,6 +538,9 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 	if t.DiffCtrl {
 		ts.TFlags |= kop.TgfDiffController
 	}
+	if t.OppToActive {
+		ts.TFlags |= kop.TgfOppToActive | kop.TargetFlags(t.ThanActive)<<kop.TgfThanShift
+	}
 	if t.TrigChooser {
 		if ts.Min|ts.Max != 0 || ts.Divide != 0 {
 			return ts, fmt.Errorf("trigger-player chooser on a several-object slot")
@@ -2145,6 +2148,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "CantGainLife":
 		st.Kind = kop.StatCantGainLife
+		if err := banOppFlag(s.Flags, st); err != nil {
+			return ka, nil, err
+		}
 	case "ActivateAbilityAsIfHaste":
 		st.Kind = kop.StatAsIfHaste // static_asifhaste.go
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -2159,6 +2165,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		st.Kind = kop.StatAnyTypeCreatures // lower_manaconvert.go
 	case "CantDraw":
 		st.Kind = kop.StatCantDraw
+		if err := banOppFlag(s.Flags, st); err != nil {
+			return ka, nil, err
+		}
 	case "CantPreventDamage":
 		st.Kind = kop.StatCantPreventDamage // static_cantprevent.go
 		for _, fl := range s.Flags {
@@ -4295,6 +4304,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
+	case "ChoosePlayerRes":
+		// OpExt ExtChoosePlayerRes, C bit 0 the Player.!IsRemembered pool
+		// (act_chooseplayerres.go)
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChoosePlayerRes)), int16(in.C&kop.ChoosePlayerFresh)
 	case "DrawUpto":
 		// OpExt ExtDrawUpto: Obj the drawer, B the most cards (act_drawupto.go)
 		v, err := cb.value(in.A)

@@ -1882,8 +1882,8 @@ func (lc *lowerCtx) selfFlashShape(s cards.Static, ez string) error {
 func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 	sp := newParams(s.Params)
 	sp.consume("Mode")
-	if lc.aiHintSVars(s.Params["AddSVar"]) {
-		sp.consume("AddSVar") // an AI-hint variable grant, no rules reader
+	if lc.aiHintSVars(s.Params["AddSVar"]) || s.Mode == "Continuous" && lc.inertAddSVar(s.Params["AddSVar"]) {
+		sp.consume("AddSVar") // a variable grant gorge's layer walk drops or no rules reader reads
 	}
 	st := lStatic{Kind: s.Mode}
 	var err error
@@ -2336,7 +2336,13 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			return nil, refuse("CombatDamageToughness without ValidCard$")
 		}
 	case "CantGainLife", "CantDraw":
-		if v := sp.str("ValidPlayer"); v != "" && v != "Player" {
+		switch v := sp.str("ValidPlayer"); v {
+		case "", "Player":
+		case "Opponent", "Player.Opponent":
+			// gorge lifeGainForbidden / drawForbidden: the spec is matched from
+			// the static's controller, so Opponent is every other seat
+			st.Flags = append(st.Flags, "BanOpp")
+		default:
 			return nil, refuse("%s ValidPlayer %q", s.Mode, v)
 		}
 		sp.consume("ValidPlayer", "Secondary")

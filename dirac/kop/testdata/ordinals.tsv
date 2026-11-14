@@ -74,6 +74,7 @@ CfShuffle	untyped int	2
 CfTapped	untyped int	1
 CharmRepeat	untyped int	256
 ChooseOpp	untyped int	2
+ChoosePlayerFresh	untyped int	1
 ChooseRandom	untyped int	1
 ChooseSelf	untyped int	0
 CloneBatch	untyped int	64
@@ -244,6 +245,7 @@ CtrStorage	CounterKind	73
 CtrStory	CounterKind	22
 CtrStun	CounterKind	3
 CtrSupply	CounterKind	35
+CtrTask	CounterKind	76
 CtrTime	CounterKind	43
 CtrTrample	CounterKind	33
 CtrTreasure	CounterKind	75
@@ -461,6 +463,7 @@ ExtChooseName	ExtOp	251
 ExtChooseNumber	ExtOp	230
 ExtChooseNumberMid	ExtOp	303
 ExtChoosePlayer	ExtOp	299
+ExtChoosePlayerRes	ExtOp	12
 ExtClearImprinted	ExtOp	257
 ExtCloneCopy	ExtOp	81
 ExtColorGrant	ExtOp	6
@@ -647,6 +650,7 @@ MayGuardAnimateAll	untyped int	7
 MayGuardAttach	untyped int	1
 MayGuardCloneCopy	untyped int	8
 MayGuardDamage	untyped int	6
+MayGuardDigUntil	untyped int	12
 MayGuardDraw	untyped int	5
 MayGuardLibraryTop	untyped int	4
 MayGuardMill	untyped int	0
@@ -696,8 +700,8 @@ MvUnderYourControl	untyped int	4
 NoCard	CardID	65535
 NumCounterKinds	CounterKind	7
 NumCounterKinds2	CounterKind	13
-NumCounterKinds3	CounterKind	76
-NumCounterKindsX	int	61
+NumCounterKinds3	CounterKind	77
+NumCounterKindsX	int	62
 NumExtOps	ExtOp	320
 NumManaKinds	untyped int	6
 NumSteps	Step	13
@@ -1018,6 +1022,7 @@ RefAttached	Ref	11
 RefAttachedCtrl	Ref	37
 RefChosen	Ref	13
 RefChosenPlayer	Ref	39
+RefChosenPlayerRes	Ref	41
 RefController	Ref	5
 RefDefendingPlayer	Ref	15
 RefDelayedRemembered	Ref	19
@@ -1182,6 +1187,7 @@ StAlsoSideboard	StaticFlags	512
 StAnyManaType	StaticFlags	4
 StAtkTaxPlayer	StaticFlags	2
 StAtkTaxWalker	StaticFlags	4
+StBanOpp	StaticFlags	256
 StBargained	StaticFlags	4096
 StBeamGranted	StaticFlags	1
 StCasterActive	StaticFlags	64
@@ -1402,9 +1408,13 @@ TgfGiftRange	TargetFlags	128
 TgfKickedRange	TargetFlags	8
 TgfMaxTotalMV	TargetFlags	4096
 TgfOppOnly	TargetFlags	16384
+TgfOppToActive	TargetFlags	131072
+TgfPlayerCompareOK	TargetFlags	1966080
 TgfSameController	TargetFlags	2
 TgfSharedCrType	TargetFlags	1024
 TgfSingleTgt	TargetFlags	8192
+TgfThanMask	TargetFlags	1835008
+TgfThanShift	untyped int	18
 TgfTrigChooser	TargetFlags	65536
 TgtAny	TargetKind	3
 TgtCard	TargetKind	5
@@ -1422,6 +1432,11 @@ TgtStackAb	TargetKind	7
 TgtStackObj	TargetKind	6
 TgtStackObjTrig	TargetKind	238
 TgtStackTgting	TargetKind	242
+ThanCreatures	untyped int	1
+ThanHandCards	untyped int	3
+ThanLands	untyped int	2
+ThanLife	untyped int	4
+ThanYardFewer	untyped int	5
 TimingInstant	Timing	1
 TimingLand	Timing	2
 TimingSorcery	Timing	0
