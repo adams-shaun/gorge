@@ -1105,6 +1105,9 @@ func overrideString(o *lOverride) string {
 	if len(o.RemoveKw) > 0 {
 		p = append(p, "removekw="+strings.Join(o.RemoveKw, ","))
 	}
+	if len(o.CantHaveKw) > 0 {
+		p = append(p, "canthavekw="+strings.Join(o.CantHaveKw, ","))
+	}
 	if len(o.AddKw) > 0 {
 		p = append(p, "kw="+strings.Join(o.AddKw, "&"))
 	}

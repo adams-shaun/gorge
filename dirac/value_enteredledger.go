@@ -21,6 +21,14 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // maxEntered (seats_default.go, seats_mp.go) is the zone entries one turn may
 // record. Only tables with a reader carry the array.
 
+// coldEntered is the turn's ledger, for a table with a reader (noteEnter).
+var coldEntered = newCold[zoneEntry]("entered", func(g *genPrep) int {
+	if g.enteredNeed {
+		return maxEntered
+	}
+	return 0
+}).view(func(c *coldArrays) *[]zoneEntry { return &c.entered })
+
 // zoneEntry is one add. tf holds two kop.Zone values, the destination in its
 // low nibble and the origin in its high one (gorge's ZoneEntry.To and .From;
 // every zone fits four bits), so an entry is four bytes at four seats, where

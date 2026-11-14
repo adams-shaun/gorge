@@ -53,7 +53,7 @@ func TokenDigestPath(cache string) string {
 func tokenDigest(dir string) (string, error) {
 	root := TokensDir(dir)
 	var paths []string
-	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(walkRoot(root), func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

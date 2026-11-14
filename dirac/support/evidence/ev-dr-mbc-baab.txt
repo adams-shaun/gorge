@@ -1,4 +1,5 @@
 Adamant Will
+Azra Oddsmaker
 Biogenic Upgrade
 Corrupted Conviction
 Cryogen Relic
@@ -15,7 +16,9 @@ Night's Whisper
 O-Kagachi, Vengeful Kami
 Ogre Arsonist
 Plains
+Purifying Dragon
 Requisition Raid
+Roiling Dragonstorm
 Shipwreck Dowser
 Squee, Goblin Nabob
 Swamp
