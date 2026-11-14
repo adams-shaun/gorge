@@ -7,7 +7,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // that many cards instead. gorge (rules/replacement.go
 // applyNonMoveReplacements) runs the DB$ Mill body when the damage event is
 // proposed and hands back a stopped event: nothing is dealt, so no lifelink,
-// no damage trigger, no life loss. Each damage event is one application; a
+// no damage trigger, no life loss (under "damage can't be prevented" it
+// mills and the damage stands, CR 615.12). Each damage event is one application; a
 // combat damage step has one event per attacker, so three unblocked
 // attackers mill three times. Beside a doubler, a plus-N or a colour
 // prevention gorge asks the CR 616.1 order; that pair is refused before the
@@ -16,7 +17,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // preventMill applies the replacement to n damage from a source srcCtrl
 // controls to player rcp, an opponent of srcCtrl: true when one of srcCtrl's
-// permanents carries it (the damage is then 0). The mill happens now, as
+// permanents carries it (the damage is then 0, unless it can't be prevented). The mill happens now, as
 // gorge's body runs at the proposal. A combat pass the order ask paused is
 // recomputed on its resume (replOrd), so a mill there would run twice: that
 // state stalls, as the order ask with this replacement is not modelled.
@@ -24,17 +25,17 @@ func (s *State) preventMill(k *prep, srcCtrl, rcp uint8, combat bool, n int) boo
 	if s.replN(k, srcCtrl, rbPrevMill) == 0 {
 		return false
 	}
-	if s.noPrev(k, combat) {
-		s.capFull(StallNoPrevent) // gorge prevents and mills anyway (static_cantprevent.go)
-		return true
-	}
 	if s.g.ro.on || s.parkedAny() {
 		s.capFull(StallReplPlus)
 		return true
 	}
+	// CR 615.12: under "damage can't be prevented" the rider (the mill) still
+	// runs and the damage stands (gorge applyNonMoveReplacements,
+	// damageReplacementPreventsWithRider): false hands the damage back.
+	prevented := !s.noPrev(k, combat)
 	if k.gen.anyRepl&rbGraveLib != 0 {
 		s.millShuffling(k, rcp, n, 0)
-		return true
+		return prevented
 	}
 	pl := &s.pl[rcp]
 	for i := 0; i < n && pl.libLo < pl.libHi; i++ {
@@ -44,7 +45,7 @@ func (s *State) preventMill(k *prep, srcCtrl, rcp uint8, combat bool, n int) boo
 		s.objs[o].zone = kop.ZoneNone
 		s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
 	}
-	return true
+	return prevented
 }
 
 // parkedAny reports a live parked-move record. cold.parked is allocated at a

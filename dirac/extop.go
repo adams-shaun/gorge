@@ -74,6 +74,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtStackExileMark:
 		s.stackExileMark(k, in) // repl_stackexile.go
 		return true, true
+	case kop.ExtDmgRedirect:
+		s.redirAdd(k, in) // repl_dmgredirect.go
+		return true, true
 	case kop.ExtDmgMark:
 		s.dmgMarkAdd(k, in) // repl_dmgmark.go
 		return true, true
@@ -255,6 +258,10 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 			}
 		}
 		return true, true
+	case kop.ExtChoosePlayerMid:
+		// a mid-resolution opponent choice (repl_chooseplayer.go); false
+		// suspends the program at its ask
+		return s.choosePlayerMid(k), true
 	case kop.ExtChooseNumber:
 		// inside an as-enters program: asked before the next priority
 		// (the OpChooseColor arm of execGen)

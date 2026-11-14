@@ -18,11 +18,25 @@ const ExtChoosePlayer ExtOp = 299
 
 func init() { extOpNames[ExtChoosePlayer] = "ChoosePlayer" }
 
-// RefChosenPlayer is a player ref: the opponent the resolving entry's source
-// permanent chose as it entered (gorge Defined$ ChosenPlayer over the
-// source's Object.Chosen). None once the source is no longer that permanent
-// (CR 400.7: gorge clears the choice when it leaves the battlefield).
+// RefChosenPlayer is a player ref: the opponent the resolution chose
+// mid-resolution (ExtChoosePlayerMid; the seat the resolution holds), else
+// the one the resolving entry's source permanent chose as it entered (gorge
+// Defined$ ChosenPlayer over the source's Object.Chosen). None once the
+// source is no longer that permanent (CR 400.7: gorge clears the choice when
+// it leaves the battlefield).
 const RefChosenPlayer Ref = 39
+
+// ExtChoosePlayerMid: a mid-resolution opponent choice (Skullwinder: a
+// battlefield trigger's DB chain `ChoosePlayer | Defined$ You | Choices$
+// Player.Opponent` whose later links read it, gorge effChoosePlayer run
+// mid-resolution). The resolving controller chooses one of their opponents
+// (ChGenPlayer, mode = the seat, AliveFrom order), asked only with more than
+// one (one is recorded unasked, the oracle's forcedPlayerChoice); the seat
+// stays in the resolution (res.chPl, seat + 1) and RefChosenPlayer reads it
+// while the resolution holds it. dirac/repl_chooseplayer.go.
+const ExtChoosePlayerMid ExtOp = 290
+
+func init() { extOpNames[ExtChoosePlayerMid] = "ChoosePlayerMid" }
 
 // WhoseChosen restricts a printed battlefield Phase trigger to the turn of
 // the player its source chose as it entered (gorge ValidPlayer$
