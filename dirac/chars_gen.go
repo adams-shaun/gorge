@@ -317,6 +317,7 @@ func (s *State) typesGen(k *prep, sl Slot) kop.TypeMask {
 		if o.HasTypes {
 			t = t&(keep|o.KeepTypes) | o.SetTypes
 		}
+		t &^= o.RemoveTypes
 		t |= o.AddTypes
 	}
 	s.eachOvRec(sl, func(r ovRec) { apply(&k.t.Overrides[r.idx-1]) })

@@ -757,6 +757,11 @@ type lTrigger struct {
 	FirstInDrawStep    bool // FirstCardInDrawStep$ True (kop.Tf5FirstCardInDrawStep)
 	NotFirstInDrawStep bool // FirstCardInDrawStep$ False (kop.Tf5NotFirstCardInDrawStep)
 
+	// Taps lowered from a non-Static$ Mode$ TapsForMana (lower_tapsformana.go):
+	// only a tap paying a mana ability's cost (kop.Tf5TapsForMana), by a
+	// player other than the active one (Activator$ Player.NonActive,
+	// kop.Tf5TapperNonActive).
+	TapsForMana, TapperNonActive bool
 	// DamageDone: ValidTarget$ Player.attackedYouTheirLastTurn, the damaged
 	// player attacked the controller during their last turn
 	// (kop.Tf5DmgAttackedYouLastTurn; lower_atklastturn.go).
@@ -798,6 +803,7 @@ type lAbility struct {
 	EvidenceTargets bool    // CollectEvidence<X> with SVar:X AllTargeted$CardManaCost (a spell's mandatory additional cost; kop.EvidenceTargetsMV)
 	PowerUp         bool    // PowerUp$ True (CR 702.193): once per object stint, cost reduced on its entry turn
 	TurnOnce        bool    // ActivationLimit$ 1: once each turn
+	AnyAct          bool    // Activator$ Player: any player may activate it (lower_anyactivator.go)
 	Reduce          *lValue // ReduceCost$: the generic reduction of an activated ability's own cost (lower_ownreduce.go)
 	ActCond         lCond   // CheckSVar$/SVarCompare$: activate only if (CR 602.5b)
 	Targets         []lTarget
@@ -939,6 +945,7 @@ type lOverride struct {
 	SetTypes         uint16
 	HasSetTypes      bool
 	AddTypes         uint16
+	RemoveTypes      uint16 // RemoveType$: card types removed (kop.Override.RemoveTypes)
 	SetSubtypes      []string
 	HasSetSubtypes   bool
 	AddSubtypes      []string

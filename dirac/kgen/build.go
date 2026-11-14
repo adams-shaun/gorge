@@ -412,6 +412,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"MINING":     kop.CtrMining,     // Gemstone Mine's mining counter (CR 122.1; mana_rider.go)
 	"BURDEN":     kop.CtrBurden,     // The One Ring's burden counter (CR 122.1; its count reads in Count$CardCounters.BURDEN)
 	"STORAGE":    kop.CtrStorage,    // Molten Slagheap's storage counter (CR 122.1; mana_countercost.go)
+	"SCREAM":     kop.CtrScream,     // Endless Scream's named counter (CR 122.1; its count reads in Count$CardCounters.SCREAM)
 	"TREASURE":   kop.CtrTreasure,   // Legacy's Allure's named counter (CR 122.1)
 }
 
@@ -1772,6 +1773,9 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			// the word reads a card's latest arrival; a permanent has none to read
 			return kf, refuse("ThisTurnEnteredFrom_Battlefield on the battlefield")
 		}
+		if c.CmpN == int(kop.W7EnteredFromLib) && zone == kop.ZoneBattlefield {
+			return kf, refuse("ThisTurnEnteredFrom_Library on the battlefield")
+		}
 		kf.Pred, kf.PredN = kop.PredWord7, int16(c.CmpN) // (kernel wordPerm / wordCard)
 	case cmpNotF2:
 		// !targetedBy / !ThisTurnEntered / !wasDealtDamageThisTurn
@@ -2427,6 +2431,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 		ko.AddTypes |= subtypeTypeBits(o.SetSubtypes)
 	}
 	ko.HasSub = o.HasSetSubtypes
+	ko.RemoveTypes = typeMask(o.RemoveTypes)
 	ko.AllCreatureTypes = o.AllCreatureTypes
 	ko.RemoveCreatureSub = o.RemoveCreatureSub
 	ko.HasColors, ko.SetColors = o.HasSetColors, colorMask(o.SetColors)
