@@ -104,6 +104,7 @@ func (s *State) beginTurn(p uint8) {
 			pl.disc = 0
 		}
 	}
+	s.dmgTakenNewTurn() // gorge DamageTakenThisTurn folds back to the last TurnChange (kw_bloodthirst.go)
 }
 
 // openPriority starts the step's priority round.
@@ -588,8 +589,10 @@ func (s *State) sba(k *prep) bool {
 				// infect hit marks no damage (gorge destroyLethalDamage).
 				if (int(p.damage) >= tough || p.flags&pfDeathtouched != 0) &&
 					s.kw(k, sl)&kop.KwIndestructible == 0 {
-					if s.destroyHeal(k, sl) {
-						s.cfgx |= cfgxDestroyHealPass // CR 614.1: the counters leave, so a 0-toughness creature still dies next pass
+					if r := s.destroyLine(k, sl, true); r != drNone {
+						if r == drHeal {
+							s.cfgx |= cfgxDestroyHealPass // CR 614.1: the counters leave, so a 0-toughness creature still dies next pass
+						}
 						continue
 					}
 					if s.canRegen(sl) {
@@ -656,7 +659,10 @@ func (s *State) sba(k *prep) bool {
 			}
 		}
 		if k.ctrMana {
-			s.sbaCtrTough(k, &die, &gy) // -0/-1 counters (mana_countercost.go)
+			s.sbaCtrTough(k, kop.CtrM0M1, &die, &gy) // -0/-1 counters (mana_countercost.go)
+		}
+		if k.gen != nil && k.gen.anyM2M1 {
+			s.sbaCtrTough(k, kop.CtrM2M1, &die, &gy) // -2/-1 counters (ctr_hone.go prepM2M1)
 		}
 		var wld slotMask
 		if k.gen != nil && k.gen.anyWorld {
@@ -697,6 +703,9 @@ func (s *State) sba(k *prep) bool {
 					}
 				}
 			}
+		}
+		if k.ascend {
+			s.blessScan(k) // CR 702.131b "any time": after the pass's checks, before its batch (gorge sba.go; kw_ascend.go)
 		}
 		all := die.or(gy)
 		if k.gen != nil && k.gen.equipAnim && s.sbaAttachedCreatures(k, all) && !all.any() {
@@ -994,11 +1003,19 @@ func (s *State) battlefieldOrder(p uint8, mask slotMask, out []Slot, n int) int 
 
 func (s *State) regenerate(sl Slot) {
 	s.touchSl(sl)
+	s.spendRegenShield(sl)
+	s.regenerateBody(sl)
+}
+
+// regenerateBody is the regeneration itself (CR 701.19a: heal it, tap it,
+// remove it from combat), with no shield involved: gorge's regenerate, which
+// both ReplaceDestruction and a Regeneration$ destroy line's body run. The
+// caller touched sl.
+func (s *State) regenerateBody(sl Slot) {
 	p := &s.perms[sl]
 	if p.flags&pfDeathtouched != 0 {
 		p.cseen |= cseenDT // gorge lists the removed mark at 0
 	}
-	s.spendRegenShield(sl)
 	s.leaveCombat(sl) // CR 701.19b: regeneration removes it from combat
 	p.flags &^= pfDeathtouched | pfDtMore
 	wasUntapped := p.flags&pfTapped == 0
@@ -1116,6 +1133,9 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 	case kop.OpSacrifice:
 		if s.sacBlocked(k, sl) {
 			return // gorge effSacrifice skips a permanent that can't be sacrificed (static_cantsacrifice.go)
+		}
+		if s.sacDelayPark(k, sl) {
+			return // the move's CR 616.1 order ask waits; runParkedMass makes the sacrifice with the move (repl_sacbatch.go)
 		}
 		s.fireSac(k, sl)
 		s.leave(k, sl, kop.ZoneGraveyard, false)

@@ -108,6 +108,16 @@ type Static struct {
 	// (AddKeyword$ Ward:PayLife<N>; Kw holds KwWard; CR 702.21a). Like Ward,
 	// each such static is its own ward instance; 0 = no life ward.
 	WardLife uint8
+	// Evasion: a StatContinuous grant of blocking-restriction keywords
+	// (CardDef.Evasion bits; only EvIntimidate is lowered: AddKeyword$
+	// Intimidate, CR 702.13a, Bellowing Tanglewurm, Vow of Malice). A
+	// layer-6 grant, read beside the printed bits by State.evasionAt
+	// (dirac/kw_kwmark.go). 0 = none.
+	Evasion uint8
+	// Infect: a StatContinuous grant of infect (AddKeyword$ Infect, CR
+	// 702.90; Grafted Exoskeleton, Phyresis): read beside CardDef.Infect by
+	// State.infectAt (dirac/kw_kwmark.go).
+	Infect bool
 }
 
 // Override is a fixed-order override record (the plan's replacement for a
@@ -145,6 +155,12 @@ type Override struct {
 	// StatContinuous static, Static.Override names an Override carrying
 	// only this removal (the static's other parts stay Continuous).
 	RemoveKw KwMask
+	// CantHaveKw: the keywords the affected permanent can't have or gain
+	// (CR 613.1f; a Continuous static's CantHaveKeyword$, always beside a
+	// RemoveKeyword$ of the same keywords: the Archetype cycle). gorge
+	// chars.derive applies it as a final filter after every layer-6 grant,
+	// so the kernel's layer-6 walk drops these bits from its result.
+	CantHaveKw KwMask
 	// WhileHost: the record lasts only while the effect's source (its
 	// host) stays on the battlefield (Duration$ UntilHostLeavesPlay or
 	// AsLongAsInPlay; the applied record keeps the host's Obj and ver in its
@@ -166,6 +182,15 @@ type Override struct {
 	// (genPrep.creatSub) and the all-creature-types mark, keep the rest,
 	// then add AddSub.
 	RemoveCreatureSub bool
+	// SetLandSub: a CR 305.7 land-type setter (a static's RemoveLandTypes$
+	// True with AddType$ basic land types: Spreading Seas, Evil Presence).
+	// Layer 4 strips every land subtype (genPrep.landSub) before AddSub, and
+	// LoseAbilities is set beside it: the land loses the abilities its rules
+	// text generates as part of the layer-4 effect, so the loss carries no
+	// layer-6 timestamp (an ability granted to the land survives it) and the
+	// intrinsic mana ability of each new basic land type stays (gorge
+	// abilityloss.go lossStamp 0; dirac static_landtypesetter.go).
+	SetLandSub bool
 	// AddColors: colours added to the object's own (an Animate Colors$ without
 	// OverwriteColors$; a copy exception's
 	// AddColors$, CR 707.9b; applied after a SetColors).

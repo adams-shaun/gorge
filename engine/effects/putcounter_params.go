@@ -198,7 +198,7 @@ var putCounterKnownKeys = [...]string{
 	"TargetsWithSharedTypes", "TgtPrompt", "TgtZone", "TokenScript",
 	"Tribute", "TriggerController", "TriggerDescription", "TriggeredCounterMap", "Type", "TypeList", "Ultimate",
 	"UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs", "UnlessSwitched", "UpTo", "UpToMin",
-	"ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices", "ValidCounterType",
+	"ValidAfterStack", "ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices", "ValidCounterType",
 	"ValidDescription", "ValidTgts", "ValidTgtsDesc", "VoteMessage",
 	"WithoutManaCost", "XColor", "XMax", "XMin",
 }

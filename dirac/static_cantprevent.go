@@ -12,14 +12,16 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // after it found a prevention that would apply, so a pool without the static
 // pays nothing (genPrep.anyNoPrev) and the static costs one scan per hit.
 //
-// Two preventions gorge applies regardless are not copied: its Fog
-// (combat.go fogActive) and The Mindskinner's prevent-and-mill body (no
-// Prevent$ True, so damageReplacementPrevents misses it) still prevent the
-// damage there, which CR 615.12 forbids. Meeting either while the static
-// functions stalls (StallNoPrevent) rather than play either reading.
+// Both preventions that carry a rider are copied as gorge plays them
+// (CR 615.12): a Fog (combat.go fogActive) stops nothing the static covers,
+// so damageStep runs the ordinary pass (gorge's fogUnpreventable keeps every
+// assignment the blanket static covers), and The Mindskinner's
+// prevent-and-mill body (repl_preventmill.go) still mills while the damage
+// stands. No kernel path stalls on the static any more; StallNoPrevent stays
+// in the append-only stall table, unused.
 
-// StallNoPrevent: damage can't be prevented while a Fog or a prevent-and-mill
-// replacement would apply (gorge prevents it anyway; CR 615.12 does not).
+// StallNoPrevent: formerly a Fog or a prevent-and-mill replacement under
+// "damage can't be prevented"; no longer raised.
 const StallNoPrevent = 151
 
 func init() { stallNames[StallNoPrevent] = "noprevent" }
@@ -31,8 +33,12 @@ var DebugNoPreventOff bool
 // noPrev reports whether damage can't be prevented now; combat says the
 // damage being prevented is combat damage (a StNoPrevCombat static, IsCombat$
 // True, reaches only that: gorge cantPreventDamage's combatDamaging).
+//
+// A resolving DealDamage NoPrevention$ True (kop.DmgNoPrevention, res.flags rfNoPrev)
+// says the same for the damage it deals (gorge cantPreventDamage's
+// dmgNoPrevention).
 func (s *State) noPrev(k *prep, combat bool) bool {
-	return k.gen != nil && k.gen.anyNoPrev && s.noPrevLive(k, combat)
+	return k.gen != nil && (s.res.flags&rfNoPrev != 0 || k.gen.anyNoPrev && s.noPrevLive(k, combat))
 }
 
 // noPrevLive: a functioning StatCantPreventDamage static (a battlefield
@@ -79,12 +85,4 @@ func (s *State) noPrevSpellSelf(k *prep) bool {
 		}
 	}
 	return false
-}
-
-// fogNoPrev stalls a Fog's combat damage step while damage can't be
-// prevented (gorge's fogActive ignores the static).
-func (s *State) fogNoPrev(k *prep) {
-	if s.noPrev(k, true) {
-		s.capFull(StallNoPrevent)
-	}
 }

@@ -26,6 +26,7 @@ func init() {
 		Register("arrange/"+k, newScryLike)
 	}
 	Register("arrange/dig_bottom", newDigBottom)
+	Register("arrange/library_placement", newLibraryPlacement)
 	Register("choose/dig", newDig)
 	Register("choose/explore", newExplore)
 }
@@ -632,6 +633,59 @@ func newDigBottom(env *Env, d *decision.Decision) (Transaction, error) {
 	t.listFor = func(i int, _ string) (string, int) { return "choices", t.native[i] }
 	t.commit = func() ([]decision.Intent, error) {
 		return []decision.Intent{Intent(d, t.nativeOf(t.orderedFor("bottom"))...)}, nil
+	}
+	return t, nil
+}
+
+// libraryPlacementDest reads the arrangement's destination out of the prompt
+// the engine writes (zone_library.go's libraryPlacementOrder always names the
+// position). Any other spelling stays a loud contract failure.
+func libraryPlacementDest(d *decision.Decision) (string, error) {
+	switch {
+	case strings.Contains(d.Prompt, "on the top"):
+		return "top", nil
+	case strings.Contains(d.Prompt, "on the bottom"):
+		return "bottom", nil
+	}
+	return "", fmt.Errorf("%w:library_placement_prompt", ErrUnmapped)
+}
+
+// newLibraryPlacement: the CR 401.4 arrangement engine/effects' libraryPlacementOrder
+// poses when one effect moves two or more of one owner's cards to the same
+// library position. The cards are already in the owner's library; the ask is
+// a full permutation (Min == Max == the offered count), every card goes to
+// the one destination read off the prompt, so each partition pick is forced
+// and presentational, and only the order is chosen: the ANSWER order is the
+// placement order, the first pick nearest the top, for both positions.
+func newLibraryPlacement(env *Env, d *decision.Decision) (Transaction, error) {
+	dst, err := libraryPlacementDest(d)
+	if err != nil {
+		return nil, err
+	}
+	if d.Min != d.Max || d.Min != len(d.Options) {
+		return nil, fmt.Errorf("%w:library_placement_count", ErrUnmapped)
+	}
+	src, err := ResolveSource(env, d)
+	if err != nil {
+		return nil, err
+	}
+	t := &arrangeTx{env: env, d: d, purpose: "arrangement", src: src, restOnly: map[string]bool{}}
+	for _, o := range d.Options {
+		if o.Kind != "library_placement" || o.Player != d.Player {
+			return nil, fmt.Errorf("%w:library_placement_shape", ErrUnmapped)
+		}
+		t.cards = append(t.cards, o.Obj)
+		t.native = append(t.native, o.Index)
+		t.dests = append(t.dests, []string{dst})
+	}
+	if err := t.look("looked_at"); err != nil {
+		return nil, err
+	}
+	t.legal = func(int, string, []string) bool { return true }
+	t.destOp = func(i int, d2 string) NativeOp { return NativeOp{Op: "dest", Option: -1, List: d2, Position: i} }
+	t.listFor = func(i int, _ string) (string, int) { return "choices", t.native[i] }
+	t.commit = func() ([]decision.Intent, error) {
+		return []decision.Intent{Intent(d, t.nativeOf(t.orderedFor(dst))...)}, nil
 	}
 	return t, nil
 }

@@ -125,7 +125,7 @@ func (c cmdrCard) fixes(mask uint8) int {
 
 // cmdrFacts resolves one card's facts; an unscripted card is valued at
 // unscriptedScore so neither half of the persona plays it.
-func cmdrFacts(lookup CardLookup, ref limited.CardRef) cmdrCard {
+func cmdrFacts(lookup CardLookup, ref limited.CardRef, value func(*cards.Card, limited.CardRef) float64) cmdrCard {
 	c := cmdrCard{ref: ref}
 	if lookup != nil {
 		c.card = lookup(ref.Name)
@@ -137,6 +137,9 @@ func cmdrFacts(lookup CardLookup, ref limited.CardRef) cmdrCard {
 	f := factsOf(lookup, ref.Name)
 	c.mask, c.pips = f.mask, f.pips
 	c.value = Heuristic(c.card, ref.Rarity)
+	if value != nil {
+		c.value = value(c.card, ref)
+	}
 	face := c.card.Faces[0]
 	c.land = face.IsLand()
 	c.commander = deck.IsCommanderEligible(c.card)
@@ -313,14 +316,7 @@ type PickAdvice struct {
 
 // facts is cmdrFacts with the drafter's Value override.
 func (d *CommanderDrafter) facts(ref limited.CardRef) cmdrCard {
-	c := cmdrFacts(d.Lookup, ref)
-	if d.Value != nil && c.card != nil && !c.land {
-		c.value = d.Value(c.card, ref)
-		if c.rock {
-			c.value += rockBonus
-		}
-	}
-	return c
+	return cmdrFacts(d.Lookup, ref, d.Value)
 }
 
 // Rank rates every pack card in pack order, and names the plan's colour
@@ -421,13 +417,17 @@ func (d *CommanderDrafter) Pick(v PickView, r *rand.Rand) string {
 type CommanderBuilder struct {
 	Lookup   CardLookup
 	DeckSize int
+	// Value, when non-nil, replaces Heuristic as a nonland card's value,
+	// as CommanderDrafter.Value does; nil keeps Heuristic. Lands keep
+	// their fixing value.
+	Value func(c *cards.Card, ref limited.CardRef) float64
 }
 
 // Build returns the seat's Commander-draft deck.
 func (b *CommanderBuilder) Build(set string, pool []limited.CardRef) build.Deck {
 	cs := make([]cmdrCard, len(pool))
 	for i, ref := range pool {
-		cs[i] = cmdrFacts(b.Lookup, ref)
+		cs[i] = cmdrFacts(b.Lookup, ref, b.Value)
 	}
 	size := cmdrDeckSize(b.DeckSize)
 	nLands := cmdrLandsFor(size)
