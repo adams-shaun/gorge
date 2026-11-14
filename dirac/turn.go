@@ -1121,6 +1121,9 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 		if s.sacBlocked(k, sl) {
 			return // gorge effSacrifice skips a permanent that can't be sacrificed (static_cantsacrifice.go)
 		}
+		if s.sacDelayPark(k, sl) {
+			return // the move's CR 616.1 order ask waits; runParkedMass makes the sacrifice with the move (repl_sacbatch.go)
+		}
 		s.fireSac(k, sl)
 		s.leave(k, sl, kop.ZoneGraveyard, false)
 	case kop.OpExile, kop.OpUnearth:
