@@ -106,7 +106,7 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	if g.anyRepl&rbDblDmg != 0 && (rcp != srcCtrl || g.anyFiltRepl || g.anyDmgMark) {
 		c := s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat)
 		if g.anyDmgMark {
-			if m := s.dmgMarkN(rcp); m > 0 && s.dmgMarkDirect(k, m, c-m, rcp, sl, combat) {
+			if m := s.dmgMarkEv(rcp, srcCtrl); m > 0 && s.dmgMarkDirect(k, m, c-m, rcp, sl, combat) {
 				return 0 // the mark beside another replacement: gorge asks (repl_dmgmark.go)
 			}
 		}
@@ -477,6 +477,19 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		ro.prev |= 1 << n
 		n++
 	}
+	if g.anyPrevFrom && s.prevFromGrant(k, fsl) {
+		// the source's granted prevention (Maze of Ith's Effect, gorge's
+		// bodyless Prevent$ ValidSource$ Card.IsRemembered line) is a
+		// candidate of its own: an Effect, so after the printed and
+		// keyword matches (preventFromGen removes the event once asked)
+		if n == len(ro.cand) {
+			s.capFull(StallReplCands) // loud: never truncate the candidates
+			return n
+		}
+		ro.cand[n] = s.perms[fsl].obj
+		ro.prev |= 1 << n
+		n++
+	}
 	if g.anyRepl&rbPrevCol != 0 {
 		// Ext PreventColor's effect records (cast_altfree.go)
 		ro.pcol = 0
@@ -513,7 +526,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		}
 		ro.prev &^= ro.pnx
 	}
-	if g.anyDmgMark && s.dmgMarkCompetes(rcp, n) {
+	if g.anyDmgMark && s.dmgMarkCompetesEv(rcp, sc, n) {
 		return 0 // repl_dmgmark.go
 	}
 	if barePrevOnly(n, ro.prev, ro.shld, ro.pnx, ro.plus) {
@@ -679,6 +692,9 @@ func (s *State) replCandLive(k *prep, i int) bool {
 		return s.perms[sl].ctrl == ro.actl && k.gen.replBits[s.cardAt(sl)]&rbPlusDmg != 0 && !s.genLost(k, sl)
 	}
 	if ro.prev&(1<<i) != 0 {
+		if sl == ro.askS {
+			return s.prevFromGrant(k, sl) // the source's own granted prevention
+		}
 		return s.prevCombatTo(k, sl)
 	}
 	return s.perms[sl].ctrl == ro.actl && k.gen.replBits[s.cardAt(sl)]&rbDblDmg != 0 && !s.genLost(k, sl) &&
@@ -1162,7 +1178,7 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 			return false
 		}
 	}
-	if g.anyDmgMark && s.dmgMarkCompetes(rcp, c) {
+	if g.anyDmgMark && s.dmgMarkCompetesEv(rcp, ctrl, c) {
 		return false // repl_dmgmark.go
 	}
 	if c < 2 {

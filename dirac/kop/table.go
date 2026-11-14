@@ -471,6 +471,11 @@ type CardDef struct {
 	// reduction, evaluated for the permanent's controller and subtracted
 	// from MorphCost's generic, floored at zero (dirac/face_morphreduce.go).
 	MorphReduce ValueRef
+	// MorphLife (0 = none) is the life a keyword turn-up whose cost is
+	// PayLife<N> pays (CR 702.37e, 119.4; Zombie Cutthroat): MorphCost is
+	// then {0}, and the action is offered only while the controller's life
+	// covers N (dirac/face_morphlife.go).
+	MorphLife uint8
 	// CostEmpty is an EMPTY printed mana-cost text, the one case gorge's
 	// manifestFaceUpCost rejects outright (strings.TrimSpace(f.ManaCost)=="");
 	// Cost is also the zero ManaCost for {0} and for a printed "no cost", so

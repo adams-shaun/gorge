@@ -1,8 +1,6 @@
 package dirac
 
 import (
-	"unsafe"
-
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -17,7 +15,7 @@ import (
 // never does; no corpus line reaches it).
 
 // Experience (CR 122.1) is the other player counter the kernel keeps, in
-// coldArrays.exper (genState has no room left): gorge's "Experience" player counter (PutCounter Defined$
+// the cold region coldExper (genState has no room left): gorge's "Experience" player counter (PutCounter Defined$
 // You | CounterType$ Experience), read by Count$YourCountersExperience. Like
 // energy it saturates at 255.
 
@@ -53,14 +51,15 @@ func (s *State) plCtrPtr(p uint8, kind int) *uint8 {
 }
 
 // experCold is the per-seat experience counters, or nil when the table never
-// gains any (coldLayout.exper is 0).
-func (s *State) experCold() []uint8 {
-	l := s.cold.layout
-	if l == nil || l.exper == 0 {
-		return nil
+// gains any (genPrep.anyExper).
+func (s *State) experCold() []uint8 { return coldExper.of(s) }
+
+var coldExper = newCold[uint8]("exper", func(g *genPrep) int {
+	if g.anyExper {
+		return MaxSeats
 	}
-	return unsafe.Slice((*uint8)(unsafe.Add(unsafe.Pointer(&s.cold.buf[0]), l.experAt)), l.exper)
-}
+	return 0
+})
 
 // plCtr is the value of player p's counter of player counter kind kind.
 func (s *State) plCtr(p uint8, kind int) int {

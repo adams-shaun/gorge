@@ -463,7 +463,7 @@ func prepare(t *kop.Table) *prep {
 	// included. Both layouts are table-level, so Init and InitN of the same
 	// table with the same Config select the same pointer.
 	p.coldCmd = p.cold
-	p.coldCmd.partner = 1
+	coldPartner.set(&p.coldCmd, 1)
 	p.coldCmd.size()
 	return p
 }
