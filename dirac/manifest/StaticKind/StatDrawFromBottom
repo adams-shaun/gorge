@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatDrawFromBottom
+value: 41
+forge: DrawFromBottom
+census: stat DrawFromBottom all=2 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

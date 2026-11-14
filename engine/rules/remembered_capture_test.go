@@ -12,8 +12,8 @@ import (
 // endStepCaptureProbe is an inline (never corpus) card shaped after
 // Enchanter's Bane minus the imprint: an end-step
 // phase trigger targets a creature, its controller may sacrifice it, and a
-// chained leg is gated `ConditionCheckSVar$ Y | ConditionSVarCompare$ EQ0`
-// with `SVar:Y:Remembered$Amount`. With the capture excluded, an unsacrificed
+// chained leg is gated on an SVar Y, the count of remembered objects, being
+// zero. With the capture excluded, an unsacrificed
 // resolution leaves the remembered set empty, Y reads 0 and EQ0 HOLDS (the leg
 // fires). The forced-sacrifice variant writes the sacrificed card into
 // Remembered (`RememberSacrificed$ True`), so the same gate must deny -- the

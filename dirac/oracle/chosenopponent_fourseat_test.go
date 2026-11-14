@@ -12,9 +12,7 @@ import (
 // ask (the controller chooses among the living opponents, the answer kept in
 // the permanent's chosen byte), not an in-place "the next seat" answer, and
 // none is two-seat or pod-limited, so a three- or four-seat pod does not stall
-// on StallTwoSeat at its start. The four-seat play itself (the ask posed, an
-// answer past the first opponent) is TestFourSeatChosenOpponentLockstep under
-// the dirac_mp tag.
+// on StallTwoSeat at its start.
 func TestChosenOpponentFourSeat(t *testing.T) {
 	set := chosenOppPool(t)
 	for _, name := range chosenOppCards {

@@ -5,10 +5,9 @@ package rules
 // RepeatOptionalMessage$ is the prompt); a yes runs that subject's body once,
 // a no skips only that subject and the loop continues with the next.
 //
-// Tempt with Vengeance is the real corpus carrier: its DBRepeat is
-// `RepeatEach | RepeatPlayers$ Player.Opponent | RepeatOptionalForEachPlayer$
-// True | RepeatOptionalMessage$ Do you want to create X 1/1 red Elemental
-// creature tokens with haste?`, and its per-subject body creates X Elemental
+// Tempt with Vengeance is the real corpus carrier: its DBRepeat is a
+// RepeatEach over each opponent, optional for each, prompting whether that
+// opponent wants the tokens, and its per-subject body creates X Elemental
 // tokens owned by `Player.IsRemembered` -- exactly one per accepting opponent
 // at X=1, so the election's effect and the loop order are observable without
 // an accumulation primitive (the post-loop DBToken depends on an SVar

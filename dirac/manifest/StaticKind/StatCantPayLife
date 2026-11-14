@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatCantPayLife
+value: 36
+forge: CantPayLife
+census: stat CantPayLife all=3 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

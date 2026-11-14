@@ -25,8 +25,8 @@ func findBlightedNightmareAbility(t *testing.T, reg *cards.Registry) int {
 }
 
 // TestBlightXCostAnnouncesAndPaysX is the Blight<X> cost end-to-end carrier:
-// Blighted Nightmare's `Cost$ Blight<X> Return<1/CARDNAME> | Announce$ X`
-// ability is activated, X is announced as the greatest toughness among the
+// Blighted Nightmare's ability, whose cost blights X and returns the card and
+// whose X is announced, is activated, X is announced as the greatest toughness among the
 // activator's creatures (CR 601.2b / the card's `XMax$ GrTo`), the payment
 // places exactly X -1/-1 counters on the chosen creature, and the X-dependent
 // effect (return a creature card with mana value X or less) returns the

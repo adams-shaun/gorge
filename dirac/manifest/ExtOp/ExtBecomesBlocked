@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtBecomesBlocked
+value: 53
+forge: BecomesBlocked
+census: api BecomesBlocked all=5 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

@@ -414,8 +414,8 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	//
 	// ValidCard$ is the corpus's second narrowing spelling: three Sacrifice
 	// SAs carry `ValidCard$ Card.Self` and no SacValid$. Exactly one of them is
-	// player-targeted -- Expert-Level Safe's
-	// `DB$ Sacrifice | Defined$ You | ValidCard$ Card.Self` -- so before this
+	// player-targeted -- Expert-Level Safe's sacrifice by you narrowed to the
+	// source itself -- so before this
 	// read its controller handed over whichever permanent sat first in zone
 	// order (an artifact, a land, anything) rather than "this artifact". The
 	// other two, Departed Deckhand and Dream Strix, carry no Defined$ and no

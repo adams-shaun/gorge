@@ -1,0 +1,7 @@
+family: KwID
+name: KwDieAdjustPayLife
+value: 97
+forge: After you roll a die, you may pay 1 life. If you do, increase or decrease the result by 1. Do this only once each turn.
+census: kw After you roll a die, you may pay 1 life. If you do, increase or decrease the result by 1. Do this only once each turn. all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

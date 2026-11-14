@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtExchangeLifeVariant
+value: 61
+forge: ExchangeLifeVariant
+census: api ExchangeLifeVariant all=3 std=0 mbc=0 sole=3
+state: code 0
+status: reserved

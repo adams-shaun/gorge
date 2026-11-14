@@ -1,0 +1,6 @@
+family: mech
+name: mechIntimidate
+value: 47
+state: slotbit 16/16
+status: active
+doc: slots whose permanent has intimidate until end of turn (ExtKwMark; kw_kwmark.go)

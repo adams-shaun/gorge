@@ -3,17 +3,15 @@
 // hand" carriers print WITHOUT the ByYou suffix — pinned end to end on real
 // corpus carriers in both directions:
 //
-//   - Vega, the Watcher's `T:Mode$ SpellCast | ValidCard$
-//     Card.!wasCastFromYourHand | ValidActivatingPlayer$ You` draw trigger:
-//     fires for a flashback (non-hand) cast, never for a hand cast.
-//   - Otterball Antics' `ConditionDefined$ Self | ConditionPresent$
-//     Card.wasCast+!wasCastFromYourHand | ConditionCompare$ EQ1` gate on its
-//     own flashback cast: the token enters WITH the +1/+1 counter from the
+//   - Vega, the Watcher's draw trigger on your casting a spell from
+//     anywhere other than your hand: fires for a flashback (non-hand) cast, never for a hand cast.
+//   - Otterball Antics' gate that it was itself cast, and not from your
+//     hand, on its own flashback cast: the token enters WITH the +1/+1 counter from the
 //     graveyard, without it from the hand.
 //   - See the Truth's `X = Count$wasCastFromYourHand.1.3` branch head: a
 //     non-hand cast takes all three dug cards into the hand, a hand cast one.
-//   - Bilbo, Thief in the Night's `S:Mode$ ReduceCost | ValidCard$
-//     Card.!wasCastFromYourHand | Amount$ 1` static: a non-hand cast is {1}
+//   - Bilbo, Thief in the Night's static reducing by {1} the cost of spells
+//     cast from anywhere other than your hand: a non-hand cast is {1}
 //     cheaper, a hand cast full price (the post-push re-price pins here).
 //   - Mm'menon, the Right Hand's `RestrictValid$ Spell.!wasCastFromYourHand`
 //     granted mana ability: the {U} pays only a non-hand cast.

@@ -1,0 +1,6 @@
+family: mech
+name: mechAttackedObj
+value: 16
+state: objbit 32/64
+status: active
+doc: object mask: objects declared as attackers this turn, wherever they are now (value_turntallies.go)

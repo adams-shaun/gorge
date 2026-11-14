@@ -322,9 +322,9 @@ func TestRemoveFromCombatHollowhengeSpiritRemovesAttackerStillTapped(t *testing.
 
 // TestRemoveFromCombatGustcloakSaviorRemovesItsOwnAttacker drives the real
 // corpus Gustcloak Savior's AttackerBlocked trigger: the optional ask is
-// answered "yes", and the body's `DB$ Untap | Defined$ TriggeredAttackerLKICopy
-// | SubAbility$ DBRemoveCombat` untaps the remembered attacker and removes it
-// from combat -- the trigger-role capture feeding Defined$.
+// answered "yes", and the body's Untap of the triggered attacker's LKI copy,
+// chained to a remove-from-combat step, untaps the remembered attacker and
+// removes it from combat -- the trigger-role capture feeding Defined$.
 func TestRemoveFromCombatGustcloakSaviorRemovesItsOwnAttacker(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

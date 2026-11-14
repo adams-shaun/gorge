@@ -11,11 +11,11 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestUnattachedEquipmentLowers: the Mode$ Unattached Equipment family
+// TestUnattachedEquipmentLowers: the Unattached-trigger Equipment family
 // (gorge trigmatch unattachedMatches, CR 701.3b/d) in lockstep over the
 // unattachequip fixture pool. Captain's Hook, Grafted Wargear and Stitcher's
-// Graft print `T:Mode$ Unattached | ValidAttachment$ Card.Self | ValidObject$
-// Permanent` and destroy or sacrifice that permanent; Grafted Exoskeleton
+// Graft print a trigger on this Equipment becoming unattached from a
+// permanent, and destroy or sacrifice that permanent; Grafted Exoskeleton
 // rides the same trigger but stays refused for its Infect. The kernel fires
 // the trigger at the boundary where gorge publishes the detach
 // (dirac/trig_unattached.go):

@@ -1,0 +1,7 @@
+family: CounterKind
+name: CtrKnowledge
+value: 185
+forge: KNOWLEDGE
+census: ctr KNOWLEDGE all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

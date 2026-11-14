@@ -8,8 +8,7 @@ import (
 )
 
 // TestSelfExilePauseProjection: a sorcery whose resolution exiles itself
-// from the stack (gorge's DB$ ChangeZone | Origin$ Stack | Destination$
-// Exile) and then asks a pick (Time Spiral's "untap up to six lands") is in
+// from the stack (gorge's ChangeZone from the stack to exile) and then asks a pick (Time Spiral's "untap up to six lands") is in
 // exile and off the stack while the pick is pending, as gorge has it: the
 // spell leaves the stack at that op (CR 608.2c), so the projection's stack
 // excludes the resolving entry. After the answer the stack is empty and the

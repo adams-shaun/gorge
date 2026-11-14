@@ -1,0 +1,7 @@
+family: key
+name: keySaddled
+value: 28
+forge: saddled
+census: key saddled classes=1 all=2
+state: slotbit 16
+status: reserved

@@ -490,6 +490,9 @@ func (s *State) fireAtkGroup(k *prep, ord *[MaxPerm]Slot, n int, atk, grp []Slot
 		if a.Trig.Flags2&(kop.Tf2Alone|kop.Tf2Attacked) != 0 && !s.attacksGate(a.Trig.Flags2, l.ctrl, s.perms[grp[0]].atk) {
 			return // gorge Alone$ / Attacked$ (filter_predicates.go)
 		}
+		if a.Trig.Flags4&kop.Tf4DefEnch != 0 && !s.attacksDefEnch(k, l, grp) {
+			return // Attacked$ Player.EnchantedBy (trig_attacksenchanted.go)
+		}
 		if a.Trig.N == kop.TrigNTraining && !s.trainingGate(k, l.sl, atk) {
 			return // Training (kw_training.go)
 		}
@@ -852,7 +855,9 @@ func (s *State) applyBlock(k *prep, a Action) {
 	bp := &s.perms[b]
 	s.blockSeq++
 	if bp.flags&pfBlocking != 0 {
-		s.xblkRecs()[b] = xblkRec{a: uint8(at) + 1, ord: s.blockSeq} // the second attacker (combat_extrablock.go)
+		if !s.xblkAdd(b, at, s.blockSeq) { // the second attacker (combat_extrablock.go)
+			s.stall(StallExtraBlockCap)
+		}
 	} else {
 		bp.flags |= pfBlocking
 		bp.blocking = at
@@ -1089,7 +1094,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			}
 		}
 		for i := 1; i < nb; i++ {
-			for j := i; j > 0 && s.blockKey(bl[j], a) < s.blockKey(bl[j-1], a); j-- { // a two-attacker blocker's pair order (combat_extrablock.go)
+			for j := i; j > 0 && s.blockKey(bl[j], a) < s.blockKey(bl[j-1], a); j-- { // the (b, a) pair's declaration order
 				bl[j], bl[j-1] = bl[j-1], bl[j]
 			}
 		}
@@ -1122,7 +1127,10 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		for i := 0; i < nb && rem > 0; i++ {
 			b := bl[i]
 			_, t := s.pt(k, b)
-			lethal := t - int(s.perms[b].damage) - int(r.toPerm[b])
+			// marked damage only: what another attacker assigns a blocker of
+			// two in this step is not read (gorge lethalDamageNeed; CR
+			// 702.19b allows either, combat_extrablock.go)
+			lethal := t - int(s.perms[b].damage)
 			if dt {
 				// A deathtouch source owes the blocker only 1, or nothing
 				// once the blocker already carries a Deathtouched mark: the
@@ -1421,7 +1429,9 @@ func (s *State) damageStep(k *prep, first, ans bool) {
 	}
 }
 
-// liveBlockers writes attacker a's blockers in block order.
+// liveBlockers writes attacker a's blockers in block order: each (b, a)
+// pair's declaration order, so a blocker of two attackers sits where it was
+// declared against a (gorge's BlockedBy append order; blockKey).
 func (s *State) liveBlockers(a Slot, bl *[MaxPerm]Slot) int {
 	nb := 0
 	for bm := s.oppsM(s.active); bm.any(); bm = bm.rest() {
@@ -1432,7 +1442,7 @@ func (s *State) liveBlockers(a Slot, bl *[MaxPerm]Slot) int {
 		}
 	}
 	for i := 1; i < nb; i++ {
-		for j := i; j > 0 && s.blockKey(bl[j], a) < s.blockKey(bl[j-1], a); j-- { // a two-attacker blocker's pair order (combat_extrablock.go)
+		for j := i; j > 0 && s.blockKey(bl[j], a) < s.blockKey(bl[j-1], a); j-- {
 			bl[j], bl[j-1] = bl[j-1], bl[j]
 		}
 	}

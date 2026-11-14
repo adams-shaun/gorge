@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtAdvanceCrank
+value: 76
+forge: AdvanceCrank
+census: api AdvanceCrank all=1 std=0 mbc=0 sole=1
+state: objspace (contraptions)
+status: blocked objspace:tcode

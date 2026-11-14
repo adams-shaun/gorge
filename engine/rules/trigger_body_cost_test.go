@@ -168,7 +168,7 @@ func elendaEndStepCostAsk(t *testing.T, e *Engine) *decision.Decision {
 }
 
 // TestElendaAndAzorEndStepPayLifeCharges pins the mandatory arm: Elenda and
-// Azor's end-step body (`AB$ Token | Cost$ PayLife<4> | TokenAmount$ Y`) is
+// Azor's end-step body (a Token ability costing 4 life, making Y tokens) is
 // "you may pay 4 life. If you do, ..." -- paying charges 4 life.
 func TestElendaAndAzorEndStepPayLifeCharges(t *testing.T) {
 	t.Parallel()

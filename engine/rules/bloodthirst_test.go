@@ -134,9 +134,8 @@ func TestBloodthirstXCountsDamageDealtToOpponents(t *testing.T) {
 }
 
 // TestBloodthirstGrantTwinsOfDiscord pins the AddKeyword$ GRANT path end to
-// end: Twins of Discord's `S:Mode$ Continuous | Affected$
-// Creature.Other+YouCtrl+Colorless | AddKeyword$ Bloodthirst:2` grants the
-// keyword to every OTHER colorless creature you control, and such a creature
+// end: Twins of Discord's continuous static grants bloodthirst 2 to every
+// OTHER colorless creature you control, and such a creature
 // enters with the granted counters. The grant is invisible to the primitive
 // ratchet (Face.Primitives walks printed keywords only), so this test is the
 // census's only defence for the shape.

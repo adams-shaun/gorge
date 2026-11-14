@@ -1,0 +1,176 @@
+# The seed's alias and exclusion list (kmanifest seed; dirac/manifest/seed.go).
+# A row names a census item (kind, item) that is not a new code of its family:
+#   alias   TARGET  an existing constant (TARGET) already is the item
+#   exclude -       the item is no code of the family
+#   name    NAME    seed the item under the Go name NAME, not the derived one
+# Columns: kind<TAB>item<TAB>action<TAB>target<TAB>why. A partial item is lowered
+# for some cards already, so it is an existing representation, not a new kind.
+
+# Counter types (ctr -> CounterKind)
+
+# Existing kinds: not lowered only because the cards carry other blockers (co-refused).
+ctr	M0M1	alias	CtrM0M1	an existing kind; co-refused by the cards' other blockers
+ctr	LUCK	alias	CtrLuck	an existing kind; co-refused by the cards' other blockers
+ctr	AGE	alias	CtrAge	an existing kind; co-refused by the cards' other blockers
+ctr	DEFENSE	alias	CtrDefense	an existing kind; co-refused by the cards' other blockers
+ctr	Quest	alias	CtrQuest	an existing kind; co-refused by the cards' other blockers
+ctr	Verse	alias	CtrVerse	an existing kind; co-refused by the cards' other blockers
+ctr	FADE	alias	CtrFade	an existing kind; co-refused by the cards' other blockers
+
+# Lowered items that are not permanent counter types (documented; the seed skips lowered items).
+ctr	ENERGY	alias	PlCtrEnergy	a player counter (OpGainEnergy/ExEnergyOf's C), not a CounterKind
+ctr	Experience	alias	PlCtrExperience	a player counter (OpGainEnergy/ExEnergyOf's C), not a CounterKind
+ctr	POISON	alias	OpPoison	a player counter (OpPoison, ExPoisonOf), not a CounterKind
+ctr	First	alias	CtrFirstStrike	the parser's first word of the keyword counter First Strike
+ctr	Double	alias	CtrDoubleStrike	the parser's first word of the keyword counter Double Strike
+ctr	EachFromSource	exclude	-	CounterType$ EachFromSource: every kind on another object, not a counter type
+ctr	ExistingCounter	exclude	-	CounterType$ ExistingCounter: a kind already on the object, not a counter type
+ctr	Stun	alias	CtrStun	the spelling Stun of STUN
+
+# Not lowered, and not a permanent counter type.
+ctr	EachType_Permanent	exclude	-	CounterTypes$ EachType_<valid>: every kind on the matching objects, not a counter type
+ctr	EachType_Creature	exclude	-	CounterTypes$ EachType_<valid>: every kind on the matching objects, not a counter type
+ctr	ChosenFromList	exclude	-	CounterTypes$ ...,ChosenFromList: a choice among listed kinds, not a counter type
+ctr	EachNotOn	exclude	-	CounterType$ EachNotOn: every kind not already on the object, not a counter type
+ctr	EACH	exclude	-	etbCounter:EACH <kinds>: the parser's first word of a kind list, not a counter type
+ctr	True	exclude	-	a parser artifact (a $ True flag beside CounterType$), not a counter type
+ctr	TICKET	exclude	-	a player counter ({TK}, Defined$ You): a PlCtr operand (hand-written, kop/counters.go), not a CounterKind
+ctr	RAD	exclude	-	a player counter (CR 122.1, rad counters): a PlCtr operand (hand-written), not a CounterKind
+ctr	Contract	exclude	-	a player counter (Player.counters_EQ0_Contract): a PlCtr operand (hand-written), not a CounterKind
+
+# Names: word boundaries the all-capitals token loses.
+ctr	ACQUIREDTASTE	name	CtrAcquiredTaste	word boundary
+ctr	GHOSTFORM	name	CtrGhostForm	word boundary
+ctr	MANABOND	name	CtrManaBond	word boundary
+
+# Keywords (kw -> KwID). KwID 0..31 are the KwMask bits.
+
+# Partially lowered keywords: an existing representation; the refused rest is code or a variant that takes its own entry.
+kw	Trample	alias	KwTrample	a KwMask bit (KwID 6); the refused forms are code (partial)
+kw	Hexproof	alias	KwHexproof	a KwMask bit (KwID 12); Hexproof:<quality> forms are code (partial)
+kw	Protection	alias	KwProtectionAll	KwMask bits (KwProtectionAll, KwProtBlack, KwProtRed) and the mechProt* arena marks; the refused forms are code (partial)
+kw	Crew	exclude	-	partial: lowered through existing ops (kgen lower_tappower.go); the refused forms are code, or a variant that takes its own entry
+kw	Landwalk	exclude	-	partial: lowered through existing ops (kgen lower_landwalkgrant.go); the refused forms are code, or a variant that takes its own entry
+kw	Cumulative upkeep	exclude	-	partial: lowered through existing ops (kgen lower_twobrid.go); the refused forms are code, or a variant that takes its own entry
+kw	Partner	exclude	-	partial: lowered through existing ops (kgen lower_partnerwith.go); the refused forms are code, or a variant that takes its own entry
+kw	Toxic	exclude	-	partial: lowered through existing ops (kgen lower_effect.go); the refused forms are code, or a variant that takes its own entry
+kw	Horsemanship	exclude	-	partial: lowered through existing ops (kgen lower_combatstatics.go); the refused forms are code, or a variant that takes its own entry
+kw	Exploit	exclude	-	partial: lowered through existing ops (kgen lower_exploit.go); the refused forms are code, or a variant that takes its own entry
+kw	Craft	exclude	-	partial: lowered through existing ops (kgen lower.go); the refused forms are code, or a variant that takes its own entry
+kw	Bloodthirst	exclude	-	partial: lowered through existing ops (kgen lower_bloodthirst.go); the refused forms are code, or a variant that takes its own entry
+kw	Fabricate	exclude	-	partial: lowered through existing ops (kgen lower.go); the refused forms are code, or a variant that takes its own entry
+kw	Annihilator	exclude	-	partial: lowered through existing ops (kgen lower_effect.go); the refused forms are code, or a variant that takes its own entry
+kw	Melee	exclude	-	partial: lowered through existing ops (kgen lower_meleegrant.go); the refused forms are code, or a variant that takes its own entry
+kw	Outlast	exclude	-	partial: lowered through existing ops (kgen lower.go); the refused forms are code, or a variant that takes its own entry
+kw	Afterlife	exclude	-	partial: lowered through existing ops (kgen lower_afterlifegrant.go); the refused forms are code, or a variant that takes its own entry
+kw	Afflict	exclude	-	partial: lowered through existing ops (kgen lower.go); the refused forms are code, or a variant that takes its own entry
+kw	Dethrone	exclude	-	partial: lowered through existing ops (kgen lower_dethrone.go); the refused forms are code, or a variant that takes its own entry
+
+# Deck-construction text with no game rule: kgen ignoring it is code, not a code value.
+kw	DeckLimit	exclude	-	deck construction only (copies allowed in a deck)
+kw	CARDNAME can be your commander.	exclude	-	deck construction only (commander eligibility)
+kw	Your minimum deck size is reduced by five.	exclude	-	deck construction only
+kw	Your deck can't have basic land cards.	exclude	-	deck construction only
+kw	Choose a Background	exclude	-	deck construction only (commander pairing)
+kw	Remove CARDNAME from your deck before playing if you're not playing for ante.	exclude	-	an ante-only deck instruction: no rule outside ante games
+
+# Rules-text keywords: Go names.
+kw	The number of loyalty counters on CARDNAME is equal to the number of Beebles you control.	name	KwLoyaltyIsBeebles	a rules-text keyword: a short name
+kw	You may assign CARDNAME's combat damage divided as you choose among defending player and/or any number of creatures they control.	name	KwDivideDamageAmongDefenders	a rules-text keyword: a short name
+kw	CARDNAME can't attack unless a creature with greater power also attacks.	name	KwCantAttackUnlessGreaterPowerAttacks	a rules-text keyword: a short name
+kw	CARDNAME can't block unless a creature with greater power also blocks.	name	KwCantBlockUnlessGreaterPowerBlocks	a rules-text keyword: a short name
+kw	CARDNAME can't attack unless at least two other creatures attack.	name	KwCantAttackUnlessTwoOthersAttack	a rules-text keyword: a short name
+kw	CARDNAME can't block unless at least two other creatures block.	name	KwCantBlockUnlessTwoOthersBlock	a rules-text keyword: a short name
+kw	CARDNAME can't be destroyed by lethal damage unless lethal damage dealt by a single source is marked on it.	name	KwLethalDamageSingleSource	a rules-text keyword: a short name
+kw	Once each turn, you may pay {1} to reroll one or more dice you rolled.	name	KwRerollDicePayOne	a rules-text keyword: a short name
+kw	CARDNAME can only attack alone.	name	KwAttacksAlone	a rules-text keyword: a short name
+kw	Spend only colored mana on X. No more than one mana of each color may be spent this way.	name	KwXColoredManaOnePerColor	a rules-text keyword: a short name
+kw	Before drawing your opening hand, choose 1, 2, or 3.	name	KwChooseOneTwoOrThree	a rules-text keyword: a short name
+kw	After you roll a die, you may remove a +1/+1 counter from Xenosquirrels. If you do, increase or decrease the result by 1.	name	KwDieAdjustRemoveP1P1	a rules-text keyword: a short name
+kw	If CARDNAME is unblocked, you may have it assign its combat damage to a creature defending player controls.	name	KwUnblockedDamageToCreature	a rules-text keyword: a short name
+kw	As an additional cost to cast creature spells, you may pay any amount of mana. If you do, that creature enters with that many additional +1/+1 counters on it.	name	KwCreatureSpellsPayForCounters	a rules-text keyword: a short name
+kw	While you're searching your library, you may cast CARDNAME from your library.	name	KwCastWhileSearching	a rules-text keyword: a short name
+kw	CARDNAME must be blocked by two or more creatures if able.	name	KwMustBeBlockedByTwo	a rules-text keyword: a short name
+kw	Your starting hand size is five.	name	KwStartingHandFive	a rules-text keyword: a short name
+kw	CARDNAME can't attack unless a black or green creature also attacks.	name	KwCantAttackUnlessBlackOrGreenAttacks	a rules-text keyword: a short name
+kw	CARDNAME must be blocked by exactly one creature if able.	name	KwMustBeBlockedByOne	a rules-text keyword: a short name
+kw	After you roll a die, you may pay 1 life. If you do, increase or decrease the result by 1. Do this only once each turn.	name	KwDieAdjustPayLife	a rules-text keyword: a short name
+
+# APIs (api -> ExtOp).
+api	PreventDamage	alias	OpPreventDamage	partial: OpPreventDamage; the refused forms need prevention records (unbounded)
+api	NameCard	alias	ExtChooseName	partial: ExtChooseName (kgen lower_choosename.go); the refused forms need the named-card key
+api	StoreSVar	exclude	-	partial: lowered as a value store (kgen lower_storesvar.go); the refused forms need the stored-svar key
+api	ManaReflected	exclude	-	partial: lowered as mana abilities (kgen lower_trigger.go, lower_activationcount.go); the refused forms are code
+api	PermanentCreature	exclude	-	partial: lowered as a permanent spell (kgen lower.go); the refused forms are code
+api	AssembleContraption	exclude	-	partial: lowered for one card; the rest need contraptions (objspace)
+
+# Count$ heads (count -> ExprKind).
+count	Valid	alias	ExCount	partial: lowered as ExCount (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	ValidBattlefield	alias	ExCount	partial: lowered as ExCount (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	ValidGraveyard	alias	ExCountGraveyard	partial: lowered as ExCountGraveyard (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	ValidExile	alias	ExCountExile	partial: lowered as ExCountExile (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	ValidHand	alias	ExCountHand	partial: lowered as ExCountHand (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	CardPower	alias	ExPowerOf	partial: lowered as ExPowerOf (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	CardCounters	alias	ExCountersOn	partial: lowered as ExCountersOn (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	YourLifeTotal	alias	ExLifeOf	partial: lowered as ExLifeOf (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	LifeYouGainedThisTurn	alias	ExLifeGainedThisTurn	partial: lowered as ExLifeGainedThisTurn (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	RememberedSize	alias	ExRememberedCount	partial: lowered as ExRememberedCount (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	TimesKicked	alias	ExKicked	partial: lowered as ExKicked (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	OptionalGenericCostPaid	alias	ExKicked	partial: lowered as ExKicked (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	xPaid	alias	ExX	partial: lowered as ExX (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	ThisTurnEntered	alias	ExThisTurnEntered	partial: lowered as ExThisTurnEntered (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	Compare	alias	ExCompare	partial: lowered as ExCompare (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	ThisTurnCast	alias	ExThisTurnCast	partial: lowered as ExThisTurnCast (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	ChosenNumber	alias	ExChosenNumber	partial: lowered as ExChosenNumber (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	Devotion	alias	ExDevotion	partial: lowered as ExDevotion (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	Adamant	alias	ExAdamant	partial: lowered as ExAdamant (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	YourTurns	alias	ExYourTurns	partial: lowered as ExYourTurns (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	CastTotalManaSpent	alias	ExCastManaSpent	partial: lowered as ExCastManaSpent (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	DamageAmount	exclude	-	partial: lowered through existing kinds (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	ValidLibrary	exclude	-	partial: lowered through existing kinds (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	AttackersDeclared	exclude	-	partial: lowered through existing kinds (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	LifeAmount	exclude	-	partial: lowered through existing kinds (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	RememberedNumber	exclude	-	partial: lowered through existing kinds (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	TriggerRememberAmount	exclude	-	partial: lowered through existing kinds (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	ThisTurnActivated	exclude	-	partial: lowered through existing kinds (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	CountersAddedThisTurn	exclude	-	partial: lowered through existing kinds (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	LeftGraveyardThisTurn	exclude	-	partial: lowered through existing kinds (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	TotalDamageDoneByThisTurn	exclude	-	partial: lowered through existing kinds (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	ValidSelf	exclude	-	partial: lowered through existing kinds (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	CreaturesAttackedThisTurn	exclude	-	partial: lowered through existing kinds (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	DifferentCounterKinds	exclude	-	partial: lowered through existing kinds (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	YouCastThisGame	exclude	-	partial: lowered through existing kinds (kgen value.go); the refused forms are code or a variant that takes its own entry
+count	SacrificedThisTurn	alias	ExSacrificedThisTurn	an existing kind; the refused forms are code
+count	Number	exclude	-	ReplaceCount$Number/...: a ReplaceEffect's variable, not a Count$ head
+count	Num	exclude	-	ReplaceCount$Num/...: a ReplaceEffect's variable, not a Count$ head
+count	Ignore	exclude	-	ReplaceCount$Ignore/...: a ReplaceEffect's variable, not a Count$ head
+count	YourCountersRAD	alias	ExEnergyOf	ExEnergyOf reads a player counter by PlCtr; rad needs a PlCtr operand, not a kind
+
+# Trigger modes (trig -> TrigEvent).
+trig	TapsForMana	exclude	-	partial: lowered as mana triggers (kgen lower_tapsformana.go); the refused forms are code
+trig	TokenCreated	alias	TrigTokenCreated	an existing event; the refused forms are code
+
+# Static modes (stat -> StaticKind).
+stat	ManaConvert	exclude	-	partial: lowered (kgen lower_manaconvert.go); the refused forms are code
+stat	CantPhaseIn	alias	StatCantPhaseIn	an existing kind; co-refused
+
+# Replacement events (repl -> ReplKind). ReplKinds are semantic (ReplEntersTapped, ...), not one per event.
+repl	Moved	exclude	-	partial: the event lowers into semantic ReplKinds (kgen lower_trigger.go); a new form takes a value: next entry named for its meaning
+repl	DamageDone	exclude	-	partial: the event lowers into semantic ReplKinds (kgen lower_trigger.go); a new form takes a value: next entry named for its meaning
+repl	Draw	exclude	-	partial: the event lowers into semantic ReplKinds (kgen lower_trigger.go); a new form takes a value: next entry named for its meaning
+repl	AddCounter	exclude	-	partial: the event lowers into semantic ReplKinds (kgen lower_trigger.go); a new form takes a value: next entry named for its meaning
+repl	CreateToken	exclude	-	partial: the event lowers into semantic ReplKinds (kgen lower_trigger.go); a new form takes a value: next entry named for its meaning
+repl	GainLife	exclude	-	partial: the event lowers into semantic ReplKinds (kgen lower_trigger.go); a new form takes a value: next entry named for its meaning
+repl	LifeReduced	exclude	-	partial: the event lowers into semantic ReplKinds (kgen lower_trigger.go); a new form takes a value: next entry named for its meaning
+repl	Destroy	exclude	-	partial: the event lowers into semantic ReplKinds (kgen lower_trigger.go); a new form takes a value: next entry named for its meaning
+
+# Zones (zone -> Zone).
+zone	None	alias	ZoneNone	an existing zone
+
+# Bounded State keys (classes state_key -> key). A category of several keys is no one key.
+key	turn tallies	exclude	-	a category, not one key: each tally, fact or mark takes its own key entry (value: next) with its feature
+key	player facts	exclude	-	a category, not one key: each tally, fact or mark takes its own key entry (value: next) with its feature
+key	turn facts	exclude	-	a category, not one key: each tally, fact or mark takes its own key entry (value: next) with its feature
+key	once-per-event marks	exclude	-	a category, not one key: each tally, fact or mark takes its own key entry (value: next) with its feature
+key	cast facts	exclude	-	a category, not one key: each tally, fact or mark takes its own key entry (value: next) with its feature
+key	paid counts	exclude	-	a category, not one key: each tally, fact or mark takes its own key entry (value: next) with its feature

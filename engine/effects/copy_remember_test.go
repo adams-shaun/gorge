@@ -10,8 +10,8 @@ import (
 )
 
 // TestCopySpellAbilityRememberCopiesAppendsMintedCopy drives the REAL
-// compiled Chef's Kiss copy SA (Defined$ Targeted | RememberCopies$ True |
-// SubAbility$ DBChangeTargets) and pins Forge's append semantics: the copy
+// compiled Chef's Kiss copy SA (it copies the targeted spell, remembers the
+// copies, then changes targets) and pins Forge's append semantics: the copy
 // actually minted is appended to the resolution's remembered set ALONGSIDE
 // the entry the chain already carried. Chef's Kiss is the corpus carrier
 // whose copy clause is followed by "reselect the targets at random for the
@@ -91,8 +91,7 @@ func TestCopySpellAbilityRememberCopiesAppendsMintedCopy(t *testing.T) {
 
 // TestCopySpellAbilityRememberCopiesGateFlips pins the
 // exact "if you didn't copy a spell this way" shape Shiko and Narset,
-// Unified's DBDraw uses --
-// ConditionDefined$ Remembered | ConditionPresent$ Spell | ConditionCompare$ EQ0.
+// Unified's DBDraw uses -- a condition that no remembered object is a spell.
 // A hand-built chain keeps the trigger's fire-time capture (Ctx.Captured and
 // the trigger-seeded Remembered) out of the picture, so the gate reads ONLY
 // what the copy clause itself recorded. Resolved through the real chain, the

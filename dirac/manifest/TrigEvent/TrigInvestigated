@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigInvestigated
+value: 98
+forge: Investigated
+census: trig Investigated all=2 std=0 mbc=0 sole=1
+state: code 0
+status: reserved
