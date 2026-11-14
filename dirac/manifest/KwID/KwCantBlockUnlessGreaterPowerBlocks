@@ -1,0 +1,7 @@
+family: KwID
+name: KwCantBlockUnlessGreaterPowerBlocks
+value: 108
+forge: CARDNAME can't block unless a creature with greater power also blocks.
+census: kw CARDNAME can't block unless a creature with greater power also blocks. all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

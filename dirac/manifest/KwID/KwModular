@@ -1,0 +1,7 @@
+family: KwID
+name: KwModular
+value: 42
+forge: Modular
+census: kw Modular all=24 std=0 mbc=0 sole=20
+state: code 0
+status: reserved

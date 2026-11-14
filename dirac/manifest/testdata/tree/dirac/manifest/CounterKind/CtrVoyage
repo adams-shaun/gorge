@@ -1,0 +1,6 @@
+family: CounterKind
+name: CtrVoyage
+value: next
+forge: VOYAGE | Voyage
+status: active
+ticket: example-1

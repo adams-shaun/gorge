@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExExactManaCostGraveyard
+value: 127
+forge: ExactManaCostGraveyard
+census: count ExactManaCostGraveyard all=1 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

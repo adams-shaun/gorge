@@ -80,6 +80,13 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	if ev.Kind == events.DrawEmpty && ev.Amount == 0 && e.drawForbidden(ev.Player) {
 		return e.emit(events.Event{Kind: events.Note, Player: ev.Player, Text: "prevented: cannot draw cards"}), true
 	}
+	// CR 614.11: a Draw replacement also meets the attempted draw from an
+	// empty library (repl_draw_empty.go).
+	if emptyDrawProposal(ev) {
+		if replaced, handled := e.applyEmptyDrawReplacement(ev); handled {
+			return replaced, true
+		}
+	}
 	// Positive LifeChange is a gain; it never carries a repl:DamageDone
 	// match (that class names a Damage event only), so it routes straight
 	// to the life replacement machinery.
@@ -419,7 +426,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		if len(matches) == 0 {
 			return ev, false
 		}
-		if len(matches) > 1 || hasOptionalReplacement(matches) {
+		if (len(matches) > 1 && !allBarePreventions(matches)) || hasOptionalReplacement(matches) {
 			if p, ok := e.damageAffectedPlayer(ev); ok && !e.G.Players[p].Lost {
 				if applied, served := e.poseDamageReplacementChoice(ev, matches, e.replacementAskPlayer(matches, p)); served {
 					// Under the resolution kernel the ask was answered in place
@@ -1271,9 +1278,8 @@ func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *ca
 	// whose SubAbility$ chain was never linked -- only cards.Link links a
 	// printed body. Resolve it from the source's own SVar table so a body
 	// that carries a chain actually runs it: the ChooseSource family's
-	// ReplaceWith$ body chains SubAbility$ ExileEffect
-	// (`DB$ ChangeZone | Defined$ Self | Origin$ Command | Destination$ Exile`),
-	// the idiom that ends the effect after one use. A printed body keeps its
+	// ReplaceWith$ body chains SubAbility$ ExileEffect (a ChangeZone of the
+	// effect itself from the command zone to exile), the idiom that ends the effect after one use. A printed body keeps its
 	// already-linked chain (Sub non-nil), so this only touches the
 	// Effect-created parse.
 	if with != nil && with.Sub == nil && ctx != nil && ctx.SVars != nil {

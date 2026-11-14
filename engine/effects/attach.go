@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -280,7 +281,14 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 		// link's answered target set, which the card text attaches as a whole
 		// (Thorin, Mountain-king's "attach any number of target Equipment you
 		// control to target creature you control").
-		plural := ap.objectKind == attachObjectAttachedTo || ap.objectKind == attachObjectParentTarget
+		//
+		// Object$ Valid <filter> with no Choices$ (Ardenn's "attach any number
+		// of Auras and Equipment you control", Vulshok Battlemaster's "attach
+		// all Equipment") is plural as well: the card text names every
+		// matching object, and an Optional$ one lets the controller pick the
+		// subset (the no-Choices$ tail below).
+		plural := ap.objectKind == attachObjectAttachedTo || ap.objectKind == attachObjectParentTarget ||
+			ap.objectKind == attachObjectValid
 		if ts, ok := definedSpec(h, c, ap.Object); ok {
 			// An Object$ TriggeredCard referent that changed zones since the
 			// trigger fired is a new object the ability cannot find (CR 400.7);
@@ -359,9 +367,9 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
-	// PlayerChoices$ (Curse of Leeches' `DB$ Attach | Object$ Self |
-	// PlayerChoices$ Player`, Lynde's `DB$ Attach | Object$ ChosenCard |
-	// PlayerChoices$ Opponent`): the destination is a player chosen from the
+	// PlayerChoices$ (Curse of Leeches attaching itself to a player chosen from
+	// all players, Lynde attaching the chosen card to a chosen opponent): the
+	// destination is a player chosen from the
 	// named pool. The value names the DESTINATION POOL, not the chooser --
 	// `PlayerChoices$ Player` admits every living seat, `PlayerChoices$
 	// Opponent` the resolving controller's opponents. The chooser is the
@@ -684,7 +692,46 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	// With nothing legal no ask is posed: the Note refusal below fires.
-	if ap.OptionalTrue && len(legalT) > 0 {
+	if ap.OptionalTrue && len(legalT) > 0 && ap.objectKind == attachObjectValid {
+		// "Attach any number of ...": one subset ask over the objects that
+		// have a legal destination; each picked object then takes its own
+		// first legal destination below. No answer or an empty one attaches
+		// nothing.
+		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 0,
+			Source: c.Source, ResumeKind: "attach_subset", ResumeSA: sa,
+			Prompt: "Attach which?"}
+		var offered []state.ObjID
+		for _, o := range objs {
+			if len(destCandidatesFor(o)) == 0 {
+				continue
+			}
+			d.Options = append(d.Options, decision.Option{Index: len(offered), Kind: "card", Obj: o, Player: c.Controller})
+			offered = append(offered, o)
+		}
+		d.Max = len(d.Options)
+		ans, ok := AskTape(h, d)
+		if !ok {
+			return
+		}
+		noteUnreadParams(h, c, "Attach", ap.Unread)
+		picked := make([]state.ObjID, 0, len(ans))
+		for _, o := range ans {
+			if o.Kind == "card" && slices.Contains(offered, o.Obj) && !slices.Contains(picked, o.Obj) {
+				picked = append(picked, o.Obj)
+			}
+		}
+		// objs keeps its deterministic order; only the picked members attach.
+		kept := objs[:0:0]
+		for _, o := range objs {
+			if slices.Contains(picked, o) {
+				kept = append(kept, o)
+			}
+		}
+		objs = kept
+		if len(objs) == 0 {
+			return
+		}
+	} else if ap.OptionalTrue && len(legalT) > 0 {
 		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
 			Source: c.Source, ResumeKind: "attach_optional", ResumeSA: sa,
 			Prompt: "Attach it?",

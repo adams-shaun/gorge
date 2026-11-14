@@ -80,8 +80,8 @@ func TestEffectCantBeCastEmblem(t *testing.T) {
 	}
 
 	// The word stays refused outside a CantBeCast ValidCard$: the SpellCast
-	// triggers and Wash Away's target filter read a stack entry.
-	for _, n := range []string{"Knowledge Pool", "Aerial Extortionist", "Ghostly Pilferer", "Possibility Storm", "River Song's Diary", "Swindler's Scheme", "Wash Away"} {
+	// triggers read a stack entry (Wash Away's Counter target lowers it: countertgtprov_test.go).
+	for _, n := range []string{"Knowledge Pool", "Aerial Extortionist", "Ghostly Pilferer", "Possibility Storm", "River Song's Diary", "Swindler's Scheme"} {
 		c := byName[n]
 		if c == nil || !refusalsMention(c, "wasCastFromTheirHand") {
 			t.Errorf("%s: want a refusal naming wasCastFromTheirHand, got %+v", n, c)

@@ -97,7 +97,7 @@ func TestFlankingKnightOfTheHolyNimbusDebuffsBlockers(t *testing.T) {
 // Forge's Mode$ AttackerBlockedByCreature pair hook. Forge's mode has two
 // halves: the "becomes blocked" line (source = the ATTACKER, body names
 // Defined$ TriggeredBlockerLKICopy) and the "blocks" line (source = the
-// BLOCKER, spelled ValidCard$ Creature | ValidBlocker$ Card.Self, body names
+// BLOCKER, a creature attacker blocked by the card itself, body names
 // Defined$ TriggeredAttackerLKICopy). The pair hook used to gate every
 // instance on pr[0]==source, so the blocker half was inert (Skewer Slinger,
 // Witherscale Wurm, Wooden Stake; see trigger_blocks_blocker_test.go). Ornery

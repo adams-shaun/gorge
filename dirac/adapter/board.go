@@ -409,6 +409,11 @@ func (g *Game) boardObject(i canon.Ref) {
 		IsToken: po.Token, IsCopy: po.Flags&dirac.ProjCopy != 0, IsAttacking: po.Flags&dirac.ProjAttacking != 0,
 		Monstrous: po.Flags&dirac.ProjMonstrous != 0, Suspected: po.Flags2&dirac.ProjSuspected != 0,
 		ActivatedThisTurn: int32(g.s.FeatActivations(dirac.Obj(i))), FaceIdx: g.tbl.Cards[printed].Face}
+	if cd := &g.tbl.Cards[printed]; cd.FaceMode == kop.FacePrototype && cd.Face != 0 {
+		// the prototype def is the card's one printed face with the designation
+		// (CR 718.3a): gorge keeps FaceIdx 0 and a cast flag (state.prototypeIn)
+		o.FaceIdx, o.CastFlags = 0, state.FlagPrototype
+	}
 	if card != nil && printed != po.Card {
 		o.CopyFace = g.face(po.Card)
 	}

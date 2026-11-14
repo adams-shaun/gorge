@@ -35,8 +35,8 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 // family, NONE pairing it with IsPresent$/PresentCompare$) predated commit
 // f81f996e ("split compound S:Mode$ comma lists into one static per mode"):
 // the split makes a compound line's CantAttack half inherit the SHARED Params
-// map, so an `S:Mode$ CantAttack,CantBlock | ... | IsPresent$ Creature.YouCtrl
-// | PresentCompare$ LE2` line (Bast, Panther Goddess) now reaches
+// map, so a compound CantAttack,CantBlock line gated on how many creatures you
+// control (Bast, Panther Goddess) now reaches
 // combat.AttackBlocked as a CantAttack static carrying IsPresent. The gate machinery
 // already evaluates it, so excluding the keys only skipped the attack half
 // whole while the block half (combat.BlockRestricted's CantBlock loop, which runs
@@ -66,8 +66,8 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 // is rejected too: countPresent counts through the matcher, so an unparseable
 // spec matches nothing and an EQ0 compare ("restrict unless X is ABSENT")
 // would read count 0 unconditionally and blanket-restrict. The one corpus row
-// (Flowering Lumberknot, `IsPresent$ Creature.PairedWith+withSoulbond |
-// PresentCompare$ EQ0`) now resolves through the paired creature's Soulbond
+// (Flowering Lumberknot, gated on there being no creature paired with
+// it by soulbond) now resolves through the paired creature's Soulbond
 // keyword, rather than treating the predicate as unread.
 // UnknownPredicates (this package) is the same census the matcher's
 // recognisedPredicate classifier drives, so the check cannot drift from what
@@ -78,7 +78,7 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 // ValidBlocker, Cost, Trigger, Min, Max) and XMage's Realmbreaker's Grasp is an
 // unconditional CantAttackBlockAttachedEffect. It reaches a CantAttack static
 // only because the parse-time split (f81f996e) hands every mode of a compound
-// `Mode$ CantAttack,CantBlock,CantBeActivated | ValidSA$ ...` line the SAME
+// CantAttack,CantBlock,CantBeActivated line with a ValidSA$ filter the SAME
 // Params map, where ValidSA$ belongs to the sibling CantBeActivated mode
 // ("activated abilities ... unless they're mana abilities"). Admitting it lets
 // the attack half bind instead of skipping the whole static; it is read and
@@ -163,11 +163,13 @@ func CantAttackParamsReadableForRules(params map[string]string) bool {
 //   - `IsPoisoned`: the defender has a poison counter.
 //   - `isMonarch`: the defender is the monarch (CR 716.2).
 //
-// source is the static's source object (the object-spec matcher's Source
-// binding) and you is the static's controller. The evaluation is a pure read:
+// sc is the object-spec context of the static (its source and controller) with
+// the engine's layer tables bound, so a `controls<objSpec>` filter reads a
+// permanent's derived types (a land that became an Island, CR 305.7) and not
+// only its printed ones; you is the static's controller. The evaluation is a pure read:
 // no event, no state write, and the battlefield/zone walks are the engine's
 // one deterministic scan order.
-func UnlessDefenderHolds(g *state.Game, spec string, defender, you state.PlayerID, source state.ObjID) bool {
+func UnlessDefenderHolds(g *state.Game, spec string, defender, you state.PlayerID, sc SpecContext) bool {
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
 		return true
@@ -176,7 +178,7 @@ func UnlessDefenderHolds(g *state.Game, spec string, defender, you state.PlayerI
 	if neg {
 		spec = strings.TrimSpace(spec[1:])
 	}
-	holds, known := unlessDefenderProperty(g, spec, defender, you, source)
+	holds, known := unlessDefenderProperty(g, spec, defender, you, sc)
 	if !known {
 		return false
 	}
@@ -189,7 +191,7 @@ func UnlessDefenderHolds(g *state.Game, spec string, defender, you state.PlayerI
 // unlessDefenderProperty evaluates ONE UnlessDefender$ property (no `!`). An
 // unknown or malformed property returns known=false so a leading `!` cannot
 // turn an unread predicate into permission to attack.
-func unlessDefenderProperty(g *state.Game, property string, defender, you state.PlayerID, source state.ObjID) (holds, known bool) {
+func unlessDefenderProperty(g *state.Game, property string, defender, you state.PlayerID, sc SpecContext) (holds, known bool) {
 	if int(defender) >= len(g.Players) {
 		return false, false
 	}
@@ -205,7 +207,6 @@ func unlessDefenderProperty(g *state.Game, property string, defender, you state.
 		if objSpec == "" {
 			return false, false
 		}
-		sc := NewSpecContext(you, source)
 		n := int32(0)
 		for _, id := range g.Zone(state.ZBattlefield, defender) {
 			if MatchesObjectCtx(g, objSpec, g.Obj(id), sc) {
@@ -370,8 +371,8 @@ func CantBlockRestrictionParamsReadable(params map[string]string) bool {
 
 // MustAttackParamsReadable is the parameter whitelist a MustAttack line must
 // pass before effEffect registers it as an Effect-delivered per-player attack
-// REQUIREMENT (Territorial Hellkite's `DB$ Effect | StaticAbilities$
-// AttackChosen`, and the four plain-SubAbility siblings Knight Rampager,
+// REQUIREMENT (Territorial Hellkite's Effect granting its attack-the-chosen-
+// player requirement, and the four plain-SubAbility siblings Knight Rampager,
 // Ursine Monstrosity, Raving Dead and Ruhan of the Fomori). It mirrors
 // CantRestrictionParamsReadable's shape, with ValidCreature$ in place of
 // ValidCard$/Target$ (Forge's MustAttack names the required creature with
@@ -472,8 +473,8 @@ func CantAttackUnlessRestrictionParamsReadable(params map[string]string) bool {
 // (engine/rules/layers.go causeSpecAdmits) and ForCost$ against the
 // cost-driven/effect-driven split of the Host method's callers -- so a line
 // carrying them is enforced, not skipped. The Master, Multiplied's
-// `ValidCard$ Creature.YouCtrl+token | ValidCause$ Triggered.YouCtrl |
-// ForCost$ False` is the filing carrier.
+// restriction on tokens you control, scoped to your triggered abilities and
+// not to costs, is the filing carrier.
 //
 // It DELIBERATELY diverges from CantRestrictionParamsReadable: effEffect's
 // registration gate keeps the narrower list for BOTH modes, because the
@@ -511,8 +512,8 @@ func CantSacrificeRestrictionParamsReadable(params map[string]string) bool {
 // against actionCause() through the shared stack-kind classifier
 // (engine/rules/layers.go causeSpecAdmits) and ForCost$ against the
 // cost-driven/effect-driven split of the ExileBlocked callers -- and display
-// text. The Master, Multiplied's `ValidCard$ Creature.YouCtrl+token |
-// ValidCause$ Triggered.YouCtrl | ForCost$ False` is the corpus's one
+// text. The Master, Multiplied's restriction on tokens you control, scoped
+// to your triggered abilities and not to costs, is the corpus's one
 // carrier.
 //
 // It is used by the rules-side face-static walk (engine/rules/layers.go
@@ -781,8 +782,8 @@ func CostStaticParamsReadable(params map[string]string) bool {
 // Condition$), which the face read evaluates through the shared
 // continuousGateHolds grammar (rules presentGate reads PresentZone$ and
 // PresentCompare$) — the same shape cantAttackUnlessParamsReadable carries
-// for CantAttackUnless. Platypus-Bear's `IsPresent$ Lesson.YouOwn |
-// PresentZone$ Graveyard` is the corpus row that needs the zone key. A
+// for CantAttackUnless. Platypus-Bear's gate on a Lesson card in your
+// graveyard is the corpus row that needs the zone key. A
 // static carrying any other parameter names a scoping this build does not
 // evaluate; skipping it is the conservative direction for a permission (the
 // creature stays walled, today's behaviour), never the wrong-wide one.
@@ -1049,10 +1050,10 @@ func replacementLineWith(params map[string]string) string {
 
 // replacementRedirectsToExile reports whether an Effect-delivered Event$
 // Moved replacement is the plain "exile it instead" redirect: a
-// ReplaceWith$ body `DB$ ChangeZone | Defined$ ReplacedCard | Destination$
-// Exile` (Origin$/Hidden$ riders only), optionally chaining the one-shot
-// self-exile idiom `DB$ ChangeZone | Defined$ Self | Origin$ Command |
-// Destination$ Exile` (engine/effects/zone.go ends the registration on it). That is
+// ReplaceWith$ body that moves the replaced card to exile (Origin$/Hidden$
+// riders only), optionally chaining the one-shot self-exile idiom, a
+// ChangeZone moving the Effect itself from the command zone to exile
+// (engine/effects/zone.go ends the registration on it). That is
 // exactly the body shape a PRINTED R: line resolves through the same
 // replacement dispatcher (Rest in Peace, Leyline of the Void), so the
 // Effect-created registration cannot lose the moved object: the replaced
@@ -1367,10 +1368,8 @@ func effectTriggerDealerIsEffect(mode string, tl effectTriggerLine) bool {
 // effectSelfExileOnCastTrigger reports whether tr is the Effect self-exile
 // idiom: a SpellCast trigger whose Execute$ body moves the Effect itself out
 // of the Command zone into exile (Forge's effect token; TARDIS's
-// `SVar:ExileEffect:Mode$ SpellCast | EffectZone$ Command | ValidCard$
-// Card.YouCtrl | Execute$ RemoveEffect | Static$ True` with
-// `RemoveEffect:DB$ ChangeZone | Origin$ Command | Destination$ Exile |
-// Defined$ Self`). The EffectZone$ Command marker plus the ChangeZone body
+// static SpellCast trigger, live in the command zone, on a spell you control,
+// whose body moves the Effect itself from the command zone to exile). The EffectZone$ Command marker plus the ChangeZone body
 // identify it.
 func effectSelfExileOnCastTrigger(h Host, c *Ctx, tr cards.Trigger) bool {
 	if tr.Mode != "SpellCast" {
@@ -1772,7 +1771,7 @@ const (
 )
 
 // redirectTapBodyCodes is the body-key whitelist of the entry-update Tap body
-// (DB$ Tap | ETB$ True | Defined$ ReplacedCard).
+// (a Tap of the replaced card as it enters).
 var redirectTapBodyCodes = state.NewStrCodes(
 	state.StrEntry[redirectTapBodyCode]{Key: "DB", Val: redirectTapBodyAllowed},
 	state.StrEntry[redirectTapBodyCode]{Key: "Defined", Val: redirectTapBodyAllowed},

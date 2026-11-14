@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatOptionalAttackCost
+value: 22
+forge: OptionalAttackCost
+census: stat OptionalAttackCost all=28 std=1 mbc=0 sole=22
+state: code 0
+status: reserved

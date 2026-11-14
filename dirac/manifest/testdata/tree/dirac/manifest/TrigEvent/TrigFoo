@@ -1,0 +1,6 @@
+family: TrigEvent
+name: TrigFoo
+value: 3
+forge: Foo
+state: objspace
+status: blocked objspace:tcode

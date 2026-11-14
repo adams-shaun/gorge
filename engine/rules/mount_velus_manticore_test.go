@@ -4,9 +4,9 @@ package rules
 // you may discard a card. When you do, CARDNAME deals X damage to any
 // target, where X is the number of card types the discarded card has."
 //
-// The trigger's chain is `Discard | Mode$ TgtChoose | RememberDiscarded$
-// True | SubAbility$ DBImmediateTrigger`, and the payoff SVar is
-// `X:TriggerRemembered$CardTypes`. Before that reference was resolved the
+// The trigger's chain is a chosen discard that remembers the discarded card,
+// followed by a reflexive trigger, and the payoff X is the number of card
+// types among the trigger's remembered cards. Before that reference was resolved the
 // damage was 0 whatever was discarded; the assertion below pins the number
 // of card types of the remembered (discarded) card as the damage.
 //

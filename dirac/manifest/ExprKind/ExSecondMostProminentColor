@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExSecondMostProminentColor
+value: 147
+forge: SecondMostProminentColor
+census: count SecondMostProminentColor all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

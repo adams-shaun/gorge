@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatFlipCoinDoubler
+value: 57
+forge: FlipCoinDoubler
+census: stat FlipCoinDoubler all=1 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

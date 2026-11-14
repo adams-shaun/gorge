@@ -7,8 +7,7 @@ import (
 )
 
 // A static TapsForMana trigger adding one mana of the type the tap produced
-// (Lavaleaper's DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$
-// Produced) folds into a planned tap of a source making one type, as a
+// (Lavaleaper's ManaReflected of the type the tap produced) folds into a planned tap of a source making one type, as a
 // literal extra does (CR 106.12a, 605.1b): the Mountain's plan step makes
 // {R}{R}, so one Mountain pays a {1}{R} spell. A source making two types
 // leaves the extra a choice and stays deferred.

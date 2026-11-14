@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatTurnReversed
+value: 67
+forge: TurnReversed
+census: stat TurnReversed all=1 std=0 mbc=0 sole=0
+state: global 1 (direction)
+status: reserved

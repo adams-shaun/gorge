@@ -312,8 +312,8 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		// An Effect-created Phase registration (its lifetime suffix is the
 		// Effect's Duration$) resolves its body under the Effect's own
 		// source-scoped frame, so the self-exile idiom (Rowan Kenrith's
-		// `ExileEffect: DB$ ChangeZone | Defined$ Self | Origin$ Command |
-		// Destination$ Exile`) ends the Effect (CR 611.2a) instead of moving
+		// ExileEffect, a ChangeZone of the effect itself from the command zone
+		// to exile) ends the Effect (CR 611.2a) instead of moving
 		// nothing.
 		frame := effectDelayedFrame(dt)
 		if frame.Source == 0 && dt.EffectDuration != "" {
@@ -787,9 +787,8 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 				Captured:   f.remembered,
 				// An Effect-created trigger body resolves under the Effect's OWN
 				// source-scoped frame, so the one-shot self-exile idiom reached
-				// from it (Kor Dirge's `Triggers$ OutOfSight` ->
-				// `DB$ ChangeZone | Defined$ Self | Origin$ Command |
-				// Destination$ Exile`) ends the registration instead of
+				// from it (Kor Dirge's OutOfSight trigger -> a ChangeZone of
+				// the effect itself from the command zone to exile) ends the registration instead of
 				// lingering for the Effect's whole duration. A plain CR 603.7
 				// promise leaves the frame zero (nothing to end).
 				EffectFrame: effectDelayedFrame(dt),

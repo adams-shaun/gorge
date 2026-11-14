@@ -62,9 +62,8 @@ func TestWasCastFromHandHeadBareResolvesSVariantOperands(t *testing.T) {
 }
 
 // TestBareConditionPresentGateResolvesTheHandProvenance pins otterball
-// antics' gate shape through the fake host: `ConditionDefined$ Self |
-// ConditionPresent$ Card.wasCast+!wasCastFromYourHand | ConditionCompare$
-// EQ1` is met exactly when the resolving spell on the stack was cast from
+// antics' gate shape through the fake host: a condition that the spell itself
+// is a card cast but not cast from your hand is met exactly when the resolving spell on the stack was cast from
 // anywhere OTHER than a hand (the fake's flag false), and its positive
 // mirror met exactly when it was cast from a hand.
 func TestBareConditionPresentGateResolvesTheHandProvenance(t *testing.T) {

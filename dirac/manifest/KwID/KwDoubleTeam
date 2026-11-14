@@ -1,0 +1,7 @@
+family: KwID
+name: KwDoubleTeam
+value: 53
+forge: Double team
+census: kw Double team all=18 std=0 mbc=0 sole=13
+state: objspace (outside-game cards)
+status: blocked objspace:tcode

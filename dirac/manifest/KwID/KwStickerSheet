@@ -1,0 +1,7 @@
+family: KwID
+name: KwStickerSheet
+value: 32
+forge: StickerSheet
+census: kw StickerSheet all=48 std=0 mbc=0 sole=48
+state: objspace (stickers-sheet)
+status: blocked objspace:tcode

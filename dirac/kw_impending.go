@@ -144,6 +144,9 @@ func (s *State) tyPostTy(k *prep, sl Slot, t kop.TypeMask) kop.TypeMask {
 	if k.gen.anyImpending {
 		t = s.impendTy(k, sl, t) // CR 702.176a
 	}
+	if k.gen.anyReconfigure {
+		t = s.reconfigureTy(k, sl, t) // CR 702.151b (kw_reconfigure.go)
+	}
 	return t
 }
 
@@ -157,6 +160,9 @@ func (s *State) tyPostSlots(k *prep) (m slotMask) {
 	if k.gen.anyImpending {
 		m = m.or(s.impendSlots(k))
 	}
+	if k.gen.anyReconfigure {
+		m = m.or(s.reconfigureSlots(k))
+	}
 	return m
 }
 
@@ -166,7 +172,7 @@ func (s *State) tyPostSlots(k *prep) (m slotMask) {
 //
 //go:noinline
 func (s *State) tyPostRefresh(k *prep) bool {
-	return k.gen.anyBestow && s.bestowRefresh(k) || k.gen.anyImpending && s.impendRefresh(k)
+	return k.gen.anyBestow && s.bestowRefresh(k) || k.gen.anyImpending && s.impendRefresh(k) || k.gen.anyReconfigure && s.reconfigureRefresh(k)
 }
 
 // offerAltHand offers hand card o's own alternative casts (prep.altCost):

@@ -30,8 +30,13 @@ const (
 	StatPanharmonicon     // a triggered ability of an object of the controller matching Filter triggers an additional time (CR 603.2d; gorge statics_echo.go panharmoniconEchoes)
 	StatHexproofOwnColors // objects matching Filter have hexproof from each of their own current colours (a granted Hexproof:CardColors, CR 702.11d; kw_hexproofcolor.go)
 	StatPlayerProtAll     // the controller has protection from everything (The One Ring's player grant; static_plprot.go)
-	StatCount
+	// StatCount ends the frozen iota list (the kinds above are 0..20). It
+	// is a fixed value: do not append above it. A new static kind is a
+	// manifest entry (dirac/manifest/StaticKind, kmanifest).
+	StatCount StaticKind = 21
 )
+
+var _ = [1]struct{}{}[StatCount-StatPlayerProtAll-1]
 
 // Static is a static ability.
 type Static struct {
@@ -84,6 +89,20 @@ type Static struct {
 	// <spec>, Sword of Wealth and Power's instants and sorceries). 0 = none.
 	// The granted read is armed by genPrep.anyProtGrant (kernel kw_protection.go prepProtGrant); anyProtF opens the target, block and attach sites.
 	ProtFrom FilterID
+	// ProtChosen: the grant is also protection from the host's own chosen
+	// colour (AddKeyword$ Protection:Card.ChosenColor:chosenColor, CR 702.16;
+	// Ward Sliver, Pentarch Ward, Benevolent Blessing): a source of the static
+	// source permanent's chosen colour (perm.chosen), none while it has not
+	// chosen (gorge resolveGrantedProtection). Armed with ProtFrom.
+	ProtChosen bool
+	// ProtExc: a source this filter matches (read with the static source as
+	// its source and the static's controller as "you") is spared by the grant
+	// at the Aura state-based check only (CR 702.16 "this effect doesn't
+	// remove ..."; Pentarch Ward's CardUID of the host, Benevolent Blessing's
+	// Auras and Equipment you control). 0 = no exception. A kernel read of the
+	// SBA site alone is the whole of Pentarch Ward's, whose excepted Aura is
+	// no other protection check's source.
+	ProtExc FilterID
 	// Landwalk: a StatContinuous grant of landwalk besides its other parts:
 	// the affected creatures can't be blocked while the defending player
 	// controls a land this filter matches (CR 702.14; AddKeyword$
@@ -94,6 +113,16 @@ type Static struct {
 	// (AddKeyword$ Ward:PayLife<N>; Kw holds KwWard; CR 702.21a). Like Ward,
 	// each such static is its own ward instance; 0 = no life ward.
 	WardLife uint8
+	// Evasion: a StatContinuous grant of blocking-restriction keywords
+	// (CardDef.Evasion bits; only EvIntimidate is lowered: AddKeyword$
+	// Intimidate, CR 702.13a, Bellowing Tanglewurm, Vow of Malice). A
+	// layer-6 grant, read beside the printed bits by State.evasionAt
+	// (dirac/kw_kwmark.go). 0 = none.
+	Evasion uint8
+	// Infect: a StatContinuous grant of infect (AddKeyword$ Infect, CR
+	// 702.90; Grafted Exoskeleton, Phyresis): read beside CardDef.Infect by
+	// State.infectAt (dirac/kw_kwmark.go).
+	Infect bool
 }
 
 // Override is a fixed-order override record (the plan's replacement for a
@@ -131,6 +160,12 @@ type Override struct {
 	// StatContinuous static, Static.Override names an Override carrying
 	// only this removal (the static's other parts stay Continuous).
 	RemoveKw KwMask
+	// CantHaveKw: the keywords the affected permanent can't have or gain
+	// (CR 613.1f; a Continuous static's CantHaveKeyword$, always beside a
+	// RemoveKeyword$ of the same keywords: the Archetype cycle). gorge
+	// chars.derive applies it as a final filter after every layer-6 grant,
+	// so the kernel's layer-6 walk drops these bits from its result.
+	CantHaveKw KwMask
 	// WhileHost: the record lasts only while the effect's source (its
 	// host) stays on the battlefield (Duration$ UntilHostLeavesPlay or
 	// AsLongAsInPlay; the applied record keeps the host's Obj and ver in its
@@ -152,6 +187,15 @@ type Override struct {
 	// (genPrep.creatSub) and the all-creature-types mark, keep the rest,
 	// then add AddSub.
 	RemoveCreatureSub bool
+	// SetLandSub: a CR 305.7 land-type setter (a static's RemoveLandTypes$
+	// True with AddType$ basic land types: Spreading Seas, Evil Presence).
+	// Layer 4 strips every land subtype (genPrep.landSub) before AddSub, and
+	// LoseAbilities is set beside it: the land loses the abilities its rules
+	// text generates as part of the layer-4 effect, so the loss carries no
+	// layer-6 timestamp (an ability granted to the land survives it) and the
+	// intrinsic mana ability of each new basic land type stays (gorge
+	// abilityloss.go lossStamp 0; dirac static_landtypesetter.go).
+	SetLandSub bool
 	// AddColors: colours added to the object's own (an Animate Colors$ without
 	// OverwriteColors$; a copy exception's
 	// AddColors$, CR 707.9b; applied after a SetColors).
@@ -455,8 +499,8 @@ const (
 const StatCantPutCounter StaticKind = 252
 
 // StatCantPhaseIn (an explicit ordinal clear of the iota tail): while the
-// static's source is on the battlefield no permanent can phase in (S:Mode$
-// CantPhaseIn | ValidCard$ Card.phasedOutPermanent, "Permanents can't phase
+// static's source is on the battlefield no permanent can phase in (a
+// CantPhaseIn static over every phased-out permanent, "Permanents can't phase
 // in"; CR 702.26; gorge rules/cantphase.go phaseBlocked). Only that
 // blanket ValidCard$ is lowered. dirac/kw_phasing.go.
 const StatCantPhaseIn StaticKind = 238
@@ -600,15 +644,14 @@ const StNoPrevCombat = StOncePerTurn
 
 // StNoPrevSpellSelf (aliases StAnyManaType, a MayPlayFrom-only bit) on a
 // StatCantPreventDamage static: it functions on the stack, for the damage its
-// own spell deals while that spell resolves (EffectZone$ Stack | ValidSource$
-// Spell.Self; Cond2 the X gate: Banefire). It is never in the battlefield
+// own spell deals while that spell resolves (it works from the stack, for the
+// spell itself as source; Cond2 the X gate: Banefire). It is never in the battlefield
 // static scan.
 const StNoPrevSpellSelf = StAnyManaType
 
 // StatAnyTypeCreatures: the static's controller may spend mana as though it
-// were mana of any type to cast creature spells (S:Mode$ ManaConvert |
-// ValidPlayer$ You | ValidCard$ Creature.YouCtrl | ValidSA$ Spell |
-// ManaConversion$ AnyType->AnyType; CR 609.4b; Vizier of the Menagerie;
+// were mana of any type to cast creature spells (a ManaConvert static for
+// its controller's creature spells, any type to any type; CR 609.4b; Vizier of the Menagerie;
 // gorge rules/mana_convert.go manaConversionParts). No operands: the fact is
 // read from the battlefield. Explicit ordinal: the StaticKind iota tail
 // stays untouched.

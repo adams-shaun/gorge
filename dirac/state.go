@@ -21,7 +21,7 @@ const (
 )
 
 // ObjWords is the number of 64-bit words an object bitset takes (the change
-// marks, objBits). MaxObj (seats_default.go, seats_mp.go) may be any value
+// marks, objBits). MaxObj (seats_default.go) may be any value
 // up to StackTarget0: an Obj is a uint8 whose StackTarget0.. codes are stack
 // abilities, PlayerTarget0.. players and 0xFE/0xFF a departed stack target
 // and NoTarget/NoObj in target bytes.
@@ -144,7 +144,7 @@ const (
 )
 
 // object stays 8 bytes: the owner shares the acts byte with the activation
-// count (objActsMask, objOwnerBits: seats_default.go, seats_mp.go), and
+// count (objActsMask, objOwnerBits: seats_default.go), and
 // chosen takes the byte the owner used to hold.
 
 type object struct {
@@ -273,16 +273,20 @@ type perm struct {
 	attached Slot // what this Aura/Equipment is attached to
 	blocking Slot // blocker: the attacker it blocks
 	nblock   uint8
-	actUsed  uint8           // OncePerTurn abilities activated this turn (bit per ability index); beside nblock so the objWord and TCode fields below pack without a pad byte under dirac_mp
-	chosen   objWord         // "as this enters" choice; a last bearer's host (zones.go)
-	bord     objWord         // a last bearer's host (static_lastbearer.go); blocker: declaration order (damage assignment order); attacker: declaration order (Attacks trigger queueing)
-	atk      TCode           // attacker: the defender it attacks (PlayerTarget* or a planeswalker Obj)
-	ck       [ctrSlots]uint8 // general counter slots' kinds (see p1)
+	actUsed  uint8            // OncePerTurn abilities activated this turn (bit per ability index)
+	chosen   objWord          // "as this enters" choice; a last bearer's host (zones.go)
+	bord     objWord          // a last bearer's host (static_lastbearer.go); blocker: declaration order (damage assignment order); attacker: declaration order (Attacks trigger queueing)
+	atk      TCode            // attacker: the defender it attacks (PlayerTarget* or a planeswalker Obj)
+	ck       [ctrSlots]uint16 // general counter slots' kinds (see p1)
 	// cseen records the counter kinds held since it entered, as one is
 	// removed (seeCtr; gorge lists a removed kind at 0): bit i < ctrSlots
 	// is general slot i (a seen slot keeps its kind at count 0), then
 	// cseenP1 and cseenDT (the deathtouch mark, FeatCtrDeathtouched).
 	cseen uint8
+	// spare is the byte the 16-bit counter kinds (ck) left ahead of card:
+	// named and never written, so perm has no padding (ObjHash hashes every
+	// byte of it).
+	spare uint8
 	card  CardID       // the card's id (the copy-of id lives in ovr)
 	gty   kop.TypeMask // types derived by a generated table's overrides (ovGenTy)
 }
@@ -824,6 +828,14 @@ const (
 	raChooseNumber // mid-resolution ChooseNumber (ExtChooseNumberMid; repl_choosenumber.go)
 )
 
+// resFlags is resCtx.flags: single-bit facts of the resolution in progress.
+type resFlags uint8
+
+const (
+	rfTrigGone resFlags = 1 << iota // the trigger's triggering permanent left and came back (CR 400.7)
+	rfNoPrev                        // the damage op executing now can't be prevented (static_cantprevent.go)
+)
+
 // resCtx is a resolution in progress.
 type resCtx struct {
 	e       stackEntry
@@ -851,13 +863,25 @@ type resCtx struct {
 	// trigGone: the entry is a trigger whose triggering permanent had left and come back (two moves
 	// past its last known information) before the resolution began: a new object (CR 400.7). The one
 	// move a death trigger records, or a move this resolution makes itself, is no such change.
-	trigGone bool
-	bad      uint8  // targets illegal at resolution (bit per slot)
-	xbad     xtMask // multi-object extras illegal at resolution (bit per xTargets index; only with genPrep.anyEachTgt)
+	// The flag is resFlags bit rfTrigGone; rfNoPrev is the damage op executing now
+	// that can't be prevented (kop.DmgNoPrevention, DealDamage NoPrevention$;
+	// static_cantprevent.go), set only around its damage. One byte for both: a
+	// further bool would grow State past its pinned layout (statelayout_test.go).
+	flags resFlags
+	bad   uint8  // targets illegal at resolution (bit per slot)
+	xbad  xtMask // multi-object extras illegal at resolution (bit per xTargets index; only with genPrep.anyEachTgt)
 	// col is the resolution's mid-resolution ChooseColor answer (colour
 	// index + 1, 0 none; ExtChooseColorRes), which a ChosenColor filter
 	// reads (static_colourprot.go resColour)
-	col   uint8
+	col uint8
+	// chPl is the resolution's mid-resolution ChoosePlayer answer (seat + 1,
+	// 0 none; ExtChoosePlayerMid), which RefChosenPlayer reads while the
+	// resolution holds it (repl_chooseplayer.go resChosenPlayer). OpChoosePlayer's
+	// random pick (Maddening Hex's Attach to the chosen player) is kept here
+	// too, seat + 1 or 0 for an empty pool, and RefResChosenPlayer reads it
+	// (act_chooseplayer.go); one byte, as the layout has no padding for a second.
+	chPl  uint8
+	cpl   uint8 // the chosen player and the remembered players (ExtChoosePlayerRes; act_chooseplayerres.go)
 	remLK int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)
 }
 
@@ -993,6 +1017,12 @@ type stateCore struct {
 
 	// Decisions counts the decisions answered (SeqNo).
 	Decisions uint32
+
+	// payHyb: a trigger's own hybrid PayMana cost's announced faces, three
+	// bits per pip from bit 0, colour+1 (cost_trighybrid.go). Cleared when
+	// the ask settles. It sits here, after Decisions, because genState's
+	// reserve has no byte left: the byte fills the padding before perms.
+	payHyb uint8
 }
 
 const (

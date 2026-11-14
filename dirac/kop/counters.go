@@ -1,7 +1,7 @@
 package kop
 
 // CounterKind names a counter type. Append-only.
-type CounterKind uint8
+type CounterKind uint16
 
 const (
 	CtrP1P1 CounterKind = iota // +1/+1
@@ -119,6 +119,13 @@ const StFreeOnly = StRaiseYou
 // NoMaxHandSize reads no IncreaseCost flag.
 const StHandOpp = StRaiseOpp
 
+// StBanOpp is StRaiseOpp read on a StatCantGainLife / StatCantDraw: the ban
+// binds only the controller's opponents (ValidPlayer$ Opponent, Tibalt, Rakish
+// Instigator's "Your opponents can't gain life"; gorge lifeGainForbidden /
+// drawForbidden match the spec from the static's controller, so the banned
+// player is any seat other than it). Neither kind reads an IncreaseCost flag.
+const StBanOpp = StRaiseOpp
+
 // StReduceAny is StRaiseOpp read on a StatReduceCost: the reduction applies to
 // the spells of either player (a ReduceCost with no Activator$, Helm of
 // Awakening), where a ReduceCost with Activator$ You reduces its controller's.
@@ -169,8 +176,9 @@ var _ = [1]struct{}{}[CtrLevel-NumCounterKinds2-1]
 // [0, NumCounterKinds2) and FeatCtrDeathtouched stay byte-identical (trained
 // models consume that layout; featview.go's seeCtr and project.go's
 // Counters skip every kind >= NumCounterKinds2). The kernel keeps them in
-// the same sparse perm slots (ck is a uint8); ProjObj.CountersX carries
-// them to the oracle, which compares each kind against gorge. Append-only.
+// the same sparse perm slots (ck is a uint16); ProjObj.CountersX carries
+// them to the oracle, which compares each kind against gorge. Frozen at
+// CtrM2M1: a new kind is a manifest entry.
 const (
 	CtrCharge CounterKind = CtrLevel + 1 + iota
 	CtrOil
@@ -326,7 +334,45 @@ const (
 	// CtrTreasure is a treasure counter, a named counter with no inherent
 	// rules meaning (CR 122.1; Legacy's Allure's Count$CardCounters.TREASURE).
 	CtrTreasure
-	NumCounterKinds3
+	// CtrTask is a task counter (Heliod's Punishment): a named counter with no
+	// inherent rules meaning (CR 122.1) that the granted {T} ability removes.
+	CtrTask
+	// CtrLevelUp is a level counter (CR 702.87: Level up puts one on the
+	// permanent; the LEVEL bands read counters_GEn_LEVEL). A named counter with
+	// no inherent rules meaning (CR 122.1), distinct from CtrLevel, a Class's
+	// level designation.
+	CtrLevelUp
+	// CtrComponent is Component Pouch's component counter: a named counter
+	// with no inherent rules meaning (CR 122.1) that its mana ability removes.
+	CtrComponent
+	// CtrDescent is Descent into Avernus's descent counter: a named counter
+	// with no inherent rules meaning (CR 122.1); its count is the upkeep
+	// trigger's X (Count$CardCounters.DESCENT).
+	CtrDescent
+	// CtrM2M1 is a -2/-1 counter (CR 122.1a; Contagion): ptGen subtracts 2
+	// power and 1 toughness per counter (gorge state.CounterPTDelta), read
+	// only when some program can place one (genPrep.anyM2M1, ctr_hone.go).
+	CtrM2M1
+)
+
+// The iota list above is frozen at CtrM2M1 (80): a new counter kind is a
+// manifest entry (dirac/manifest/CounterKind, kmanifest), not an append here.
+var _ = [1]struct{}{}[CtrM2M1-80]
+
+// NumCounterKinds3 is the frozen cover of the counter kinds: every kind below
+// it that IsCounterKind admits is one the kernel's per-kind walks, its
+// CountersX projection and CtrXNames serve. It moved once, at the manifest
+// cutover (81 to 242), to cover the pre-mapped manifest kinds, and is fixed
+// since: the manifest defers a kind at or above it (manifest.CounterKindCover),
+// and a kind of 256 or more also needs dirac's ctrMode byte widened.
+const NumCounterKinds3 CounterKind = 242
+
+// Player counter kinds: OpGainEnergy's C and ExEnergyOf's N name which of a
+// player's counters (CR 122.1) the op adds to or the expression reads. The
+// zero value is energy, so a table built before experience reads the same.
+const (
+	PlCtrEnergy     = 0 // energy counters (CR 107.14; gorge "ENERGY")
+	PlCtrExperience = 1 // experience counters (gorge "Experience"; Count$YourCountersExperience)
 )
 
 // CtrAll is no counter kind: an ExCountersOn reading it sums every counter
@@ -338,13 +384,15 @@ const CtrAll CounterKind = 254
 const NumCounterKindsX = int(NumCounterKinds3 - CtrCharge)
 
 // CtrXNames is gorge's (Forge's CounterType) name of each unfeaturized
-// kind, CtrXNames[k-CtrCharge].
+// kind, CtrXNames[k-CtrCharge]. The literal names the hand kinds, up to
+// CtrM2M1; manifest_gen.go's registrations (kmanifest gen) name each
+// manifest kind from its entry's first forge token. Never append here.
 var CtrXNames = [NumCounterKindsX]string{"CHARGE", "OIL", "SPORE", "QUEST", "VERSE", "GROWTH", "FUSE", "STORY",
 	"First Strike", "Double Strike", "Deathtouch", "Haste", "Hexproof", "Indestructible", "Lifelink", "Menace",
 	"Reach", "Shadow", "Trample", "Vigilance", "SUPPLY", "LORE", "LANDMARK", "DREAD", "DEFENSE", "CHORUS", "M0M1", "FINALITY", "TIME", "VALOR", "NET", "PLAN",
 	"INVASION", "LOOT", "REV", "PAGE", "INGENUITY", "FILM", "FIRE", "HONE", "COIN",
 	"DIVINITY", "IMPOSTOR", "BORE", "POINT", "BLOODSTAIN", "POSSESSION", "PROMOTION", "PEACE", "WISH", "SKEWER", "NEST", "AGE", "LUCK",
-	"DEPLETION", "MINING", "FADE", "BURDEN", "STORAGE", "SCREAM", "TREASURE"}
+	"DEPLETION", "MINING", "FADE", "BURDEN", "STORAGE", "SCREAM", "TREASURE", "TASK", "LEVEL", "COMPONENT", "DESCENT", "M2M1"}
 
 // IsCounterKind reports whether c is a real counter kind (a featurized one
 // or an unfeaturized one; CtrLevel and the gap at NumCounterKinds2 are not).

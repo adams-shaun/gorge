@@ -70,7 +70,7 @@ func prepMcombat(t *kop.Table, g *genPrep) {
 				f |= chainFlags2(t, ts.Filter)
 			}
 			for _, in := range a.Prog {
-				f |= chainFlags2(t, in.F)
+				f |= chainFlags2(t, kop.InstrFilter(&in))
 				// a per-card expression may read
 				// the Flags2 word through a ValueRef (Count$CrewSize is
 				// an ExCount whose filter is F2CrewedSrc), not only

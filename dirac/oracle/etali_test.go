@@ -68,9 +68,6 @@ func ketaliCheck(tal *ketaliTally) func(*GorgeSide, Side) *Divergence {
 
 func TestEtaliLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgePhyActFixTime) {
-		t.Skip("gorge before cr-phyrexian-activation-low-life: Etali's {9}{G/P} transform is offered differently below 2 life")
-	}
 	var tal ketaliTally
 	sonRun(t, "etali", ketaliMatchups, 600, true, nil, ketaliCheck(&tal))
 	t.Logf("%d games: Etali entered %d times, %d free casts from exile", tal.games, tal.etali, tal.casts)
@@ -82,9 +79,6 @@ func TestEtaliLockstep(t *testing.T) {
 // TestEtaliLockstepMutation: with the free casts dropped, some seed diverges.
 func TestEtaliLockstepMutation(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgePhyActFixTime) {
-		t.Skip("gorge before cr-phyrexian-activation-low-life")
-	}
 	n := sonRun(t, "etali", ketaliMatchups, 200, false, func(tbl *kop.Table) {
 		cards := append([]kop.CardDef(nil), tbl.Cards...)
 		for i := range cards {

@@ -1,0 +1,7 @@
+family: KwID
+name: KwAwaken
+value: 56
+forge: Awaken
+census: kw Awaken all=15 std=0 mbc=0 sole=14
+state: code 0
+status: reserved

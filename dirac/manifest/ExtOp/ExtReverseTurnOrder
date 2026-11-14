@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtReverseTurnOrder
+value: 62
+forge: ReverseTurnOrder
+census: api ReverseTurnOrder all=3 std=0 mbc=0 sole=1
+state: global 1 (direction)
+status: reserved

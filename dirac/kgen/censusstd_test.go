@@ -10,8 +10,9 @@ import (
 
 // TestStdCensus runs the live census over the real Standard lists and
 // asserts only invariants no grammar change can move: two runs are
-// byte-identical, every set's accepted/listed equal the ratchet pins, and
-// the short-of-90 total follows from the pins. Class orders, steps and
+// byte-identical, every set's accepted/listed meet the ratchet pins (judgePin:
+// exact under DIRAC_PIN_STRICT=1), and the short-of-90 total follows from the
+// per-set counts. Class orders, steps and
 // bundle rows are pinned on constructed tables (TestStd*Constructed).
 func TestStdCensus(t *testing.T) {
 	heavyParallel(t)
@@ -28,28 +29,29 @@ func TestStdCensus(t *testing.T) {
 		}
 		var md, tsv strings.Builder
 		writeStdCensus(&md, res)
-		if err := writeStdTSV(&tsv, res); err != nil {
+		if err := writeStdTSV(&tsv, res, nil); err != nil {
 			t.Fatal(err)
 		}
 		if i == 0 {
 			firstMD, firstTSV = md.String(), tsv.String()
 			wantShort := 0
+			pins := acceptancePins(t)
 			for _, s := range res.sets {
-				pin, ok := acceptancePins[s.set]
+				pin, ok := pins[s.set]
 				if !ok {
 					t.Fatalf("%s has no acceptance pin", s.set)
 				}
-				if s.accepted != pin[0] || s.listed != pin[1] {
-					t.Errorf("%s accepted/listed = %d/%d, pin %d/%d", s.set, s.accepted, s.listed, pin[0], pin[1])
+				if err := judgePin(s.set+" census", pin, [2]int{s.accepted, s.listed}, pinStrict()); err != nil {
+					t.Error(err)
 				}
 				if s.std {
-					if n := (9*pin[1]+9)/10 - pin[0]; n > 0 {
+					if n := (9*s.listed+9)/10 - s.accepted; n > 0 {
 						wantShort += n
 					}
 				}
 			}
 			if res.stdTotalShort != wantShort {
-				t.Errorf("std total short = %d, want %d from the pins", res.stdTotalShort, wantShort)
+				t.Errorf("std total short = %d, want %d from the per-set counts", res.stdTotalShort, wantShort)
 			}
 			continue
 		}
@@ -159,14 +161,15 @@ func TestStdBundlesConstructed(t *testing.T) {
 	// distinct A+B cards besides c3 the dedupe is what keeps it at 3.
 }
 
-// TestStdCensusBuildPass pins the build pass: Aerie Mystics is refused only at emit
-// (PumpAll keyword above bit N; Forge, Neverwinter Charlatan's ward—sacrifice lowers since
+// TestStdCensusBuildPass pins the build pass: Assemble the Legion is refused only at emit
+// (PutCounter of a counter kind with no kop kind; Aerie Mystics' PumpAll above bit 15 lowers
+// since ExtGrantKwAll; Forge, Neverwinter Charlatan's ward—sacrifice lowers since
 // Maha's ward—discard), while Grizzly Bears and
 // Boros Charm build. Boros Charm's "target player or planeswalker" lowers since
 // so it no longer has an emit-refusal row.
 func TestStdCensusBuildPass(t *testing.T) {
 	dir := t.TempDir()
-	names := []string{"Aerie Mystics", "Boros Charm", "Grizzly Bears"}
+	names := []string{"Assemble the Legion", "Boros Charm", "Grizzly Bears"}
 	if err := os.WriteFile(filepath.Join(dir, "AAA.txt"), []byte(strings.Join(names, "\n")+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -177,11 +180,11 @@ func TestStdCensusBuildPass(t *testing.T) {
 	if len(res.sets) != 1 || res.sets[0].accepted != 2 {
 		t.Fatalf("sets = %+v, want AAA accepted 2", res.sets)
 	}
-	var mystics []stdTSVRow
+	var legion []stdTSVRow
 	for _, r := range res.tsv {
 		switch r.card {
-		case "Aerie Mystics":
-			mystics = append(mystics, r)
+		case "Assemble the Legion":
+			legion = append(legion, r)
 		case "Boros Charm":
 			if r.class != "" {
 				t.Fatalf("Boros Charm still refused: %+v", r)
@@ -189,13 +192,13 @@ func TestStdCensusBuildPass(t *testing.T) {
 		}
 	}
 	foundEmit := false
-	for _, r := range mystics {
-		if r.class == "other:instr N PumpAll: PumpAll keyword above bit N" {
+	for _, r := range legion {
+		if r.class == `other:instr N PutCounter: counter kind "_"` {
 			foundEmit = true
 		}
 	}
 	if !foundEmit {
-		t.Fatalf("Aerie Mystics rows = %+v, want the emit-stage PumpAll refusal", mystics)
+		t.Fatalf("Assemble the Legion rows = %+v, want the emit-stage PutCounter refusal", legion)
 	}
 }
 
@@ -256,7 +259,7 @@ func TestStdCensusRealDeterministic(t *testing.T) {
 		}
 		var md, tsv strings.Builder
 		writeStdCensus(&md, res)
-		if err := writeStdTSV(&tsv, res); err != nil {
+		if err := writeStdTSV(&tsv, res, nil); err != nil {
 			t.Fatal(err)
 		}
 		if i == 0 {
@@ -567,25 +570,25 @@ func TestStdCensusMatchesRatchet(t *testing.T) {
 		isStd[code] = true
 	}
 	wantShort := 0
+	pins := acceptancePins(t)
 	for _, s := range res.sets {
-		pin, ok := acceptancePins[s.set]
+		pin, ok := pins[s.set]
 		if !ok {
 			t.Fatalf("%s has no acceptance pin", s.set)
 		}
-		if s.accepted != pin[0] || s.listed != pin[1] {
-			t.Errorf("%s accepted/listed = %d/%d, pin %d/%d", s.set, s.accepted, s.listed, pin[0], pin[1])
+		if err := judgePin(s.set+" census", pin, [2]int{s.accepted, s.listed}, pinStrict()); err != nil {
+			t.Error(err)
 		}
 		if isStd[s.set] {
-			if n := (9*pin[1]+9)/10 - pin[0]; n > 0 {
+			if n := (9*s.listed+9)/10 - s.accepted; n > 0 {
 				wantShort += n
 			}
 		}
 	}
 	if res.stdTotalShort != wantShort {
-		t.Errorf("std total short = %d, want %d from the pins", res.stdTotalShort, wantShort)
+		t.Errorf("std total short = %d, want %d from the per-set counts", res.stdTotalShort, wantShort)
 	}
-	if res.allAccepted != acceptancePins["ALL"][0] || res.allListed != acceptancePins["ALL"][1] {
-		t.Errorf("ALL accepted/listed = %d/%d, pin %d/%d", res.allAccepted, res.allListed,
-			acceptancePins["ALL"][0], acceptancePins["ALL"][1])
+	if err := judgePin("ALL census", pins["ALL"], [2]int{res.allAccepted, res.allListed}, pinStrict()); err != nil {
+		t.Error(err)
 	}
 }

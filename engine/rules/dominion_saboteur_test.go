@@ -12,8 +12,8 @@ import (
 // copy of any artifact or creature on the battlefield, except it isn't
 // legendary. If you do, it enters with additional counters on it equal to the
 // same number and kinds of counters the copied permanent has on it." The
-// Clone body remembers its copy origin and chains a PutCounter Defined$ Self
-// | ETB$ True | CounterType$ EachFromSource | EachFromSource$ Remembered, so
+// Clone body remembers its copy origin and chains an as-enters PutCounter on
+// itself of each kind of counter on the remembered origin, so
 // the copy gets the origin's counters while it is entering (CR 707.9b,
 // 614.12): its own enters trigger and the state-based actions see them.
 func TestDominionSaboteurGorge(t *testing.T) {

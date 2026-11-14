@@ -9,12 +9,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// gorgeLagrellaFixTime is the commit time (UTC) of gorge, the merge
-// of the fix (ChangeZone ReturnAbility$/ReturnValid$ runs on a
-// card returned by Duration$ UntilHostLeavesPlay, CR 610.3): before it a
-// card returned from Lagrella's exile came back with no counters.
-const gorgeLagrellaFixTime = "20261026165709"
-
 // The Lagrella, the Magpie lockstep: "exile any number of other
 // target creatures controlled by different players until Lagrella leaves the
 // battlefield. When an exiled card enters under your control this way, put two
@@ -74,9 +68,6 @@ func klagrellaCheck(tal *klagrellaTally) func(*GorgeSide, Side) *Divergence {
 
 func TestLagrellaLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeLagrellaFixTime) {
-		t.Skip("gorge before the ReturnAbility$ fix (5dc9b0697)")
-	}
 	var tal klagrellaTally
 	sonRun(t, "lagrella", klagrellaMatchups, 300, true, nil, klagrellaCheck(&tal))
 	t.Logf("%d games: %d returns with two counters, %d without", tal.games, tal.with, tal.without)
@@ -89,9 +80,6 @@ func TestLagrellaLockstep(t *testing.T) {
 // seed diverges.
 func TestLagrellaLockstepMutation(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeLagrellaFixTime) {
-		t.Skip("gorge before the ReturnAbility$ fix (5dc9b0697)")
-	}
 	n := sonRun(t, "lagrella", klagrellaMatchups, 100, false, func(tbl *kop.Table) {
 		cards := append([]kop.CardDef(nil), tbl.Cards...)
 		for i := range cards {

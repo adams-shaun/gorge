@@ -155,9 +155,9 @@ func TestCantAttackWalkerOnlyTargetBindsThroughAttackBlocked(t *testing.T) {
 }
 
 // TestCantAttackUnlessWalkerTargetPricesAttackCharge drives the REAL corpus
-// carrier of the walker-only shape, Onakke Oathkeeper's
-// `S:Mode$ CantAttackUnless | ValidCard$ Creature | Target$ Planeswalker.YouCtrl | Cost$ 1`,
-// through attackPairCharge — the CantAttackUnless pricing read the offer
+// carrier of the walker-only shape, Onakke Oathkeeper's CantAttackUnless
+// static (creatures can't attack planeswalkers its controller controls unless
+// their controller pays {1}), through attackPairCharge — the CantAttackUnless pricing read the offer
 // list, validator and payer share. Without a planeswalker under the
 // oathkeeper's controller the clause matches nobody and nothing is charged;
 // with one, attacking the oathkeeper's controller costs {1}; the defender

@@ -1,0 +1,7 @@
+family: KwID
+name: KwStartingIntensity
+value: 47
+forge: Starting intensity
+census: kw Starting intensity all=21 std=0 mbc=0 sole=0
+state: objbyte 236 (intensity)
+status: reserved

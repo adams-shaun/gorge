@@ -176,7 +176,7 @@ func TestCantPhaseInPhasingOfZhalfir(t *testing.T) {
 
 // TestCantPhaseInDisciplePrintedStatic covers the one printed carrier,
 // Disciple of Caelus Nin's "Permanents can't phase in."
-// (`S:Mode$ CantPhaseIn | ValidCard$ Card.phasedOutPermanent`): a phased-out
+// (a CantPhaseIn static over phased-out permanents): a phased-out
 // permanent stays phased out at its controller's untap step.
 func TestCantPhaseInDisciplePrintedStatic(t *testing.T) {
 	t.Parallel()

@@ -1,8 +1,7 @@
 package rules
 
-// Bend or Break's
-// `ChoosePlayer | Defined$ Remembered | Choices$ Player.OpponentOf
-// Remembered` asks the REMEMBERED player (each RepeatEach iteration's
+// Bend or Break's ChoosePlayer, offering the remembered player's opponents,
+// asks the REMEMBERED player (each RepeatEach iteration's
 // player) to choose among that player's opponents only, in seat order after
 // it, and the answer is the chosen player the chain reads.
 

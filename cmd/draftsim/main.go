@@ -34,7 +34,7 @@ func main() {
 	fs.IntVar(&o.seats, "seats", 4, "pod size: 4 or 8")
 	fs.IntVar(&o.seats, "pod", 4, "alias of -seats")
 	fs.StringVar(&o.format, "format", "", "construction format: empty (limited, 40-card decks and Bo1 series) or commander (a Commander Legends style draft: 60-card decks, or -deck-size, around drafted commanders, then 4-player free-for-all Commander games at 40 life; -rounds is the game count, default 1; -structure none builds only)")
-	fs.IntVar(&o.deckSize, "deck-size", 0, fmt.Sprintf("-format commander only: the deck size, commanders and basics included, %d..%d; 0 = %d (the lands scale with it: 17 at 60, 14 at 50)", build.MinCommanderDeckSize, build.MaxDeckSize, build.CommanderDeckSize))
+	fs.IntVar(&o.deckSize, "deck-size", 0, fmt.Sprintf("-format commander only: the deck size, commanders and basics included, %d..%d; 0 = %d (the lands scale with it: 23 at 60, 19 at 50)", build.MinCommanderDeckSize, build.MaxDeckSize, build.CommanderDeckSize))
 	fs.StringVar(&o.decksOut, "decks-out", "", "directory to write every seat's built deck to as a gorge deck JSON file, <set>_e<event seed>_s<seat>.json (a Commander-draft deck marks its commanders); works with -structure none")
 	fs.IntVar(&o.picks, "picks", 0, "cards each seat takes from a pack before passing it; 0 = the format's default (1, or 2 with -format commander)")
 	fs.StringVar(&o.mode, "mode", string(event.ModeDraft), "supply mode: draft (3 packs per seat, picked), sealed (6 packs per seat, unopened) or prerelease (sealed plus one rare/mythic promo per seat)")

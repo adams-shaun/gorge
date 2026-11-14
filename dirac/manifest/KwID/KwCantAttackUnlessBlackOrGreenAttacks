@@ -1,0 +1,7 @@
+family: KwID
+name: KwCantAttackUnlessBlackOrGreenAttacks
+value: 104
+forge: CARDNAME can't attack unless a black or green creature also attacks.
+census: kw CARDNAME can't attack unless a black or green creature also attacks. all=1 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

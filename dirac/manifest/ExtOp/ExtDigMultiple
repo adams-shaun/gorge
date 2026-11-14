@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtDigMultiple
+value: 35
+forge: DigMultiple
+census: api DigMultiple all=12 std=2 mbc=0 sole=8
+state: code 0
+status: reserved

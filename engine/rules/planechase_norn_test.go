@@ -11,8 +11,8 @@ import (
 
 // This file pins findings on the planechase machinery:
 //
-//   - Norn's Seedcore's `DB$ Planeswalk | Defined$ Remembered |
-//     DontPlaneswalkAway$ True` must actually land on the remembered plane
+//   - Norn's Seedcore's planeswalk to the remembered plane without
+//     planeswalking away must actually land on the remembered plane
 //     and actually suppress the walked-away-from ability -- not rotate and
 //     fire it.
 //   - the chaos-ensues scan must reject a marker naming another
@@ -252,8 +252,8 @@ func TestDontPlaneswalkAwaySuppressesTheFromTrigger(t *testing.T) {
 }
 
 // TestNornsSeedcoreVerbLandsOnRememberedAndSuppressesAwayWalk drives the REAL
-// corpus carrier's own SVar: `DB$ Planeswalk | Defined$ Remembered |
-// DontPlaneswalkAway$ True` resolved against a planar deck and a Ctx whose
+// corpus carrier's own SVar, a planeswalk to the remembered plane without
+// planeswalking away, resolved against a planar deck and a Ctx whose
 // Remembered names a plane. That is exactly the shape the deleted AGENTS row
 // documented as inert, so this is the end-to-end pin on the finding.
 func TestNornsSeedcoreVerbLandsOnRememberedAndSuppressesAwayWalk(t *testing.T) {
@@ -513,8 +513,8 @@ func TestChaosScanRejectsAnotherSeatsPlaneMarker(t *testing.T) {
 }
 
 // TestNornsSeedcorePlaneswalkedToEruptsChaos is the real-corpus arrival pin:
-// Norn's Seedcore's own `T:Mode$ PlaneswalkedTo | ValidCard$ Plane.Self |
-// Execute$ TrigChaos` (DB$ ChaosEnsues) must queue on arrival. The trigger is
+// Norn's Seedcore's own trigger on planeswalking to itself, whose body is a
+// ChaosEnsues, must queue on arrival. The trigger is
 // asserted at the QUEUE rather than drained end to end, because the seedcore's
 // chaos body is the unimplemented `DigUntil | DigZone$ PlanarDeck` remainder
 // (loud-unimplemented by design); draining it would enter that remainder, not

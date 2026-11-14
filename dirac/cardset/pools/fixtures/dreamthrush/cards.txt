@@ -1,0 +1,29 @@
+# Dream Thrush's "{T}: Target land becomes the basic land type of your choice
+# until end of turn" (dirac/oracle/dream_thrush_test.go TestDreamThrushLowers):
+# the mid-resolution ChooseType Basic Land and the CR 305.7 Animate that sets
+# the land's types to the chosen one (RemoveLandTypes$), costing it its
+# printed mana ability and giving it the chosen type's, beside off-colour
+# spells that only a set land can pay for; and the other cards of the same
+# spelling (TestChosenLandTypeFamilyLowers)
+Dream Thrush
+Jinx
+Shimmering Mirage
+Unstable Frontier
+Mystic Compass
+Moonbow Illusionist
+Tideshaper Mystic
+Grixis Illusionist
+Pixie Illusionist
+Reef Shaman
+Sea Snidd
+Grizzly Bears
+Savannah Lions
+Shock
+Merfolk of the Pearl Trident
+Raging Goblin
+Llanowar Elves
+Forest
+Island
+Mountain
+Plains
+Swamp

@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigVote
+value: 94
+forge: Vote
+census: trig Vote all=3 std=0 mbc=0 sole=0
+state: global 4 (vote)
+status: reserved

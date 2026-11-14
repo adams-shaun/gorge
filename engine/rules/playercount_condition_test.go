@@ -11,7 +11,7 @@ package rules
 //   - Anya, Merciless Angel: `PlayerCountOpponents$ConditionLTZ LifeTotal`
 //     with `Z = PlayerCountDefinedPlayer.PlayerUID_RelativePlayerUID$StartingLife/HalfDown`,
 //     behind both her +3/+3-per-opponent static and her Indestructible static.
-//   - Hot Pursuit: `CheckSVar$ PlayerCountHasLost$Amount | SVarCompare$ GE2`,
+//   - Hot Pursuit: a CheckSVar$ gate on two or more players having lost,
 //     the intervening-if on its begin-combat gain-control trigger.
 //
 // Both gate paths fail CLOSED on an unresolvable count head
