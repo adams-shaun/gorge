@@ -1432,7 +1432,7 @@ func packPips(p [5]int) int {
 func (lc *lowerCtx) effect(sa *cards.SA, ps *params) error {
 	// An AB$ inside a trigger body (an optional cost paid on resolution).
 	if lc.ab.Kind == akTriggered || lc.ab.Kind == akLatent {
-		if c, ok := ps.get("Cost"); ok && sa.Kind == "AB" {
+		if c, ok := ps.get("Cost"); ok && sa.Kind == "AB" && sa != lc.probeHead {
 			if strings.HasSuffix(c, `\NumTimes>`) && strings.HasPrefix(c, "Mana<") {
 				return lc.numTimesPay(sa, ps, c) // lower_numtimes.go
 			}

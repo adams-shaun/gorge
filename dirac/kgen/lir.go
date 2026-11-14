@@ -902,6 +902,10 @@ type lStatic struct {
 	Override     *lOverride
 	// ProtFrom: a Continuous grant's protection qualities (kop.Static.ProtFrom)
 	ProtFrom *lFilter
+	// ProtChosen and ProtExc: the host's chosen-colour quality and the
+	// state-based exception (kop.Static.ProtChosen, ProtExc)
+	ProtChosen bool
+	ProtExc    *lFilter
 	// Landwalk: a Continuous grant's landwalk land filter (kop.Static.Landwalk)
 	Landwalk *lFilter
 	Grant    []int    // latent abilities the affected objects gain

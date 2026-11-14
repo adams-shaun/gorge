@@ -1804,6 +1804,10 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.ProtFrom, err = filter(s.ProtFrom, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+		st.ProtChosen = s.ProtChosen
+		if st.ProtExc, err = filter(s.ProtExc, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
 		if st.Landwalk, err = filter(s.Landwalk, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}

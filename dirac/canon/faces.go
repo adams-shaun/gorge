@@ -92,9 +92,9 @@ func FaceDownCastCanon(fam uint8) uint8 {
 	return faceCastFaces[code]<<4 | code
 }
 
-func (r *Translator) faceCastCanon(src, i uint8) uint8 {
+func (r *Translator) faceCastCanon(src dirac.Obj, i uint8) uint8 {
 	code := uint8(0)
-	switch cd := &r.Tbl.Cards[r.S.ObjCard(dirac.Obj(src))]; {
+	switch cd := &r.Tbl.Cards[r.S.ObjCard(src)]; {
 	case cd.FaceMode == kop.FaceModal && i == 1:
 		code = FaceCodeModal
 	case cd.FaceMode == kop.FaceAdventure && i == 1:
