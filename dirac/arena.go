@@ -71,6 +71,7 @@ const (
 	mechRenowned                    // slots whose permanent is renowned (CR 702.112b; act_renown.go)
 	mechAttacksPlayer               // slots whose attack duty names the opponent: a player, never their planeswalkers or battles (Encore's "attacks that opponent"; combat_attacksifable.go)
 	mechRem                         // object mask: objects whose persistent remembered list is non-empty (gorge's event-backed o.Remembered, the Choose "remembered" fold), the host half of a ConditionDefined$ Remembered group gate (exprs.go CondRemMark)
+	mechEncore                      // object mask: graveyard cards with a granted encore (Araumi of the Dead Tide; kw_encoregrant.go)
 	numMech
 )
 
@@ -141,9 +142,10 @@ var mechWidth = [numMech]uint8{
 	mechInfectPost:      wSlot,
 	mechRenowned:        wSlot,
 	mechRem:             wObj,
+	mechEncore:          wObj,
 }
 
-var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen", "sbaChain", "once2", "once3", "tappedTurn", "escaped", "lure", "lurePost", "protW", "protU", "protB", "protR", "protG", "protPostW", "protPostU", "protPostB", "protPostR", "protPostG", "echoOwed", "hexUB", "atch0", "atch1", "atch2", "atch3", "goad2", "goad3", "intimidate", "intimidatePost", "infect", "infectPost", "renowned", "attacksPlayer", "rem"}
+var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen", "sbaChain", "once2", "once3", "tappedTurn", "escaped", "lure", "lurePost", "protW", "protU", "protB", "protR", "protG", "protPostW", "protPostU", "protPostB", "protPostR", "protPostG", "echoOwed", "hexUB", "atch0", "atch1", "atch2", "atch3", "goad2", "goad3", "intimidate", "intimidatePost", "infect", "infectPost", "renowned", "attacksPlayer", "rem", "encore"}
 
 // arenaNone is the index of a mechanic the table does not use.
 const arenaNone = 0xFF
@@ -240,6 +242,9 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 					}
 					if in.Ext() == kop.ExtRenown {
 						u[mechRenowned] = true // the only writer; a read alone needs no mask (act_renown.go)
+					}
+					if in.Ext() == kop.ExtGrantEncore {
+						u[mechEncore] = true // kw_encoregrant.go
 					}
 				case kop.OpGrantKeyword:
 					// grantFB is the only writer of the flashback planes, so a pool

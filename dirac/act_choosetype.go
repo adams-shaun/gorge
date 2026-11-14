@@ -37,9 +37,9 @@ func (s *State) chosenTypeSub(src Slot) (uint8, bool) {
 // resolutionTypeSource is the source object a mid-resolution ChooseType
 // records its answer on, and its battlefield slot when it is a permanent.
 // gorge stores Object.ChosenType on the ability's source (effects/choose.go
-// effChooseType), so a second activation or trigger of that same permanent,
-// or a second cast of the same card, is a no-op that reuses the recorded
-// type. A source that already left the battlefield has no slot here.
+// effChooseType). A second cast of the same card reuses the recorded type;
+// each activation or trigger resolution asks again (CR 608.2). A source that
+// already left the battlefield has no slot here.
 func (s *State) resolutionTypeSource() (Obj, Slot) {
 	if !s.res.active || s.res.e.obj == NoObj {
 		return NoObj, NoSlot

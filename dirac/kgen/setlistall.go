@@ -3,11 +3,12 @@ package kgen
 import (
 	"bytes"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 // corpusAllList writes the ALL set list, one name per line, and returns its
@@ -54,18 +55,7 @@ func corpusAllList(cardsDir string) (string, error) {
 // corpusAllNames is the ALL list's bytes over the scripts under root.
 func corpusAllNames(root string) ([]byte, error) {
 	var names []string
-	// WalkDir does not descend a symlinked root (cards-overlay.sh links it);
-	// the resolved path makes it, and only names leave this function.
-	if resolved, err := filepath.EvalSymlinks(root); err == nil {
-		root = resolved
-	}
-	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() || !strings.HasSuffix(p, ".txt") {
-			return nil
-		}
+	err := cards.WalkScripts(root, func(p string) error {
 		b, err := os.ReadFile(p)
 		if err != nil {
 			return err

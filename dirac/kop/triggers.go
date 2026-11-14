@@ -57,6 +57,29 @@ const (
 	Tf4PerCounter TrigFlags4 = 1 << 7
 )
 
+// Tf4CauseSpellAb (Trigger.Flags4, bit 3, shared with Tf4NthFiltered: that
+// flag is set only on a SpellCast line and this one only on a LifeLost /
+// LifeLostAll line, so no trigger carries both; readers scope the bit by
+// event, as the Tf4PerCounter / Tf4DefEnch pair does): LifeLost / LifeLostAll, the line's ValidCause$
+// names a spell or ability (gorge trigmatch/life.go lifeLossCauseMatches:
+// the loss's cause is the spell or ability resolving right now, gorge's
+// Facts.Damaging set; combat damage and any loss with no resolution in
+// flight -- a cost payment, a mana ability -- match none). Trigger.N, when
+// nonzero, carries the cause's controller qualifier:
+// TrigNCauseSpellYouCtrl (the cause is controlled by the listener's
+// controller, ValidCause$ SpellAbility.YouCtrl) or
+// TrigNCauseSpellOppCtrl (by someone else, SpellAbility.OppCtrl); N 0 is
+// any spell or ability (a bare SpellAbility$ alternative). Sahir, Visitor
+// in Darkness.
+const Tf4CauseSpellAb TrigFlags4 = 1 << 3
+
+// Trigger.N of a TrigLifeLost trigger with Tf4CauseSpellAb: the ValidCause$
+// controller qualifier (gorge lifeLossCauseMatches's YouCtrl / OppCtrl).
+const (
+	TrigNCauseSpellYouCtrl int16 = 1
+	TrigNCauseSpellOppCtrl int16 = 2
+)
+
 // TrigFlags5 are the Drawn trigger's draw-step qualifiers (Trigger.Flags5).
 // Flags through Flags4 carry their documented bits, so this family appends a
 // byte after Flags4.
@@ -216,14 +239,14 @@ type Trigger struct {
 	Whose  Whose    // for player events and TrigPhase
 	Step   Step     // TrigPhase
 	Flags  TrigFlags
-	From   Zone // TrigLeaves / TrigToGraveyard origin restriction (ZoneNone = any)
+	From   Zone // TrigLeaves / TrigToGraveyard origin restriction (ZoneNone = any; ToGraveyard also reads the N mask)
 
 	// Appended by dirac/kgen.
 	Filter2 FilterID   // DamageDone: the damaged object/player must match; AttackersDeclared: the attackers
 	Flags2  TrigFlags2 // more qualifiers
 	Cond    CondID     // intervening-if (0 = none): checked when the event happens and on resolution
 	Zone    Zone       // the zone the source must be in (ZoneNone = battlefield)
-	N       int16      // AttackersDeclared: minimum attackers; CounterAddedOnce: the counter kind (TrigNAnyCounter = every kind); BecomesTarget: TrigNValiant; AbilityCast: TrigAbCast*; LandPlayed: origin mask 1<<kop.Zone, 0 = any; Leaves: destination mask 1<<kop.Zone, 0 = any
+	N       int16      // AttackersDeclared: minimum attackers; CounterAddedOnce: the counter kind (TrigNAnyCounter = every kind); BecomesTarget: TrigNValiant; AbilityCast: TrigAbCast*; LandPlayed: origin mask 1<<kop.Zone, 0 = any; Leaves: destination mask 1<<kop.Zone, 0 = any; ToGraveyard: origin mask 1<<kop.Zone, 0 = any
 	Flags3  TrigFlags3 // still more qualifiers (values.go; a padding byte)
 	Flags4  TrigFlags4 // single-target qualifiers (triggers.go)
 	Flags5  TrigFlags5 // Drawn: the draw-step position (FirstCardInDrawStep$)

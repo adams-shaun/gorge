@@ -104,6 +104,9 @@ func PolicyFallbacks(p Policy) int {
 	if h, ok := p.(*heurPolicy); ok {
 		return h.Fallbacks
 	}
+	if f, ok := p.(interface{ PolicyFallbacks() int }); ok {
+		return f.PolicyFallbacks() // WithSearchSeats' policy
+	}
 	return 0
 }
 

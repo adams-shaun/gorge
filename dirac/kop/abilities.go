@@ -300,15 +300,17 @@ func TapXManaTwo(a *Ability) bool {
 // TapXMana is either tap-other-permanents mana shape.
 func TapXMana(a *Ability) bool { return TapXManaAb(a) || TapXManaTwo(a) }
 
-// PipFeeManaAb reports whether a is an activate-only-once mana ability whose
-// fee is exactly one coloured pip (with a {T}) and no generic part, and the
-// pip's colour. Loot, the Pathfinder's "{G}, {T}: Add three mana of any one
-// colour" is the shape: the kernel models it as a filter
-// (dirac/mana_filterfirst.go), paying the pip from the pool. A mana ability
-// that also sacrifices, pays life, or has no once limit is not one.
+// PipFeeManaAb reports whether a is a mana ability whose fee is exactly one
+// coloured pip with a {T} and no generic part, and the pip's colour: either
+// activate-only-once (Loot, the Pathfinder's "{G}, {T}: Add three mana of any
+// one colour") or limitless (Apprentice Wizard's "{U}, {T}: Add {C}{C}{C}",
+// Ceta Disciple's and Necra Disciple's "{G}, {T}: any colour", Fire Sprites'
+// "{G}, {T}: Add {R}"; the {T} is the limit). The kernel models it as a filter
+// (dirac/mana_filterfirst.go), paying the pip from the pool. A mana ability that
+// also sacrifices, pays life, or has any other cost part is not one.
 func PipFeeManaAb(a *Ability) (col int, ok bool) {
 	m := &a.Cost.Mana
-	if a.Kind != AbMana || a.Cost.Flags != CostTap|CostOncePerGame ||
+	if a.Kind != AbMana || a.Cost.Flags != CostTap|CostOncePerGame && a.Cost.Flags != CostTap ||
 		m.Generic != 0 || m.X != 0 || m.Hyb != ([4]ColorMask{}) || m.Tb != 0 ||
 		a.ManaRestrict != 0 || a.ManaN == 0 || len(a.Prog) != 0 ||
 		a.Gate.Ctr != 0 || a.Trig.Cond != 0 || a.ActZone != ZoneNone && a.ActZone != ZoneBattlefield {
@@ -481,7 +483,9 @@ func StoreManaAb(a *Ability) bool {
 //
 //   - the first mana ability: a mana-free {T}, {T} + sacrifice this,
 //     sacrifice this alone (pcard.manaTap / manaSac / manaSacOnly), a counter
-//     placed on or removed from the source once a turn (CtrManaAb), the tap-another-
+//     placed on or removed from the source once a turn (CtrManaAb), the dead
+//     counter-cost shape of CtrDeadManaAb (Component Pouch: a census gap whose
+//     chain activation adds no mana), the tap-another-
 //     permanent shape of TapXManaAb, the sacrifice-another all-at-once shape
 //     of SacXEachManaAb, or a filter (FilterManaAb, a fee-only {cost} one
 //     included: FeeOnlyManaAb);
@@ -522,7 +526,7 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	switch {
 	case plain && (f == CostTap || f == CostTap|CostOncePerGame || f == CostTap|CostSacSelf || f == CostSacSelf):
 		return true
-	case CtrManaAb(a), TapXManaAb(a), TapXManaTwo(a), FilterManaAb(a), SacXEachManaAb(a), SoleLifeManaAb(cd, j), StoreManaAb(a):
+	case CtrManaAb(a), CtrDeadManaAb(a), TapXManaAb(a), TapXManaTwo(a), FilterManaAb(a), SacXEachManaAb(a), SoleLifeManaAb(cd, j), StoreManaAb(a):
 		return true
 	case ManaRiderAb(a) && riderManaCostOK(a):
 		return true
@@ -585,6 +589,31 @@ func CtrTapSecondManaAb(a *Ability) bool {
 	return a.Kind == AbMana && a.Cost.Flags == CostTap|CostRemoveCtr && a.Cost.N > 0 && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
 		a.AFlags == 0 && a.ManaRestrict == 0 && !a.ManaEach && (c != 0 && c&(c-1) == 0 && a.ManaN >= 1 || c == ColAny && a.ManaN <= 1) && len(a.Prog) == 0 &&
 		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
+}
+
+// CtrDeadManaAb reports whether mana ability a is the dead counter-cost
+// shape: "{T}, Remove N <kind> counters from this: Add <a production the
+// kernel's mana walk cannot resolve to any colour>" (Component Pouch's
+// "Add two mana of different colors", Produced$ Combo AnyDifferent: gorge
+// cards.ProducedCounts parses it to CountsAny with zero counts, so no
+// colour can be enumerated). A mana-free cost of the source's {T} and its
+// own counters, any amount, AfManaChoice set by the Combo$ parse and no
+// other flag, no restriction, rider or program. gorge's planner records the
+// source as an unrelaxable, unbounded census gap while the cost is payable
+// (potential_plan.go paymentPlanCensusOf, manaAbilityPayablePool;
+// paymentPlanRelaxedAlternatives enumerates no colour) and its resolution
+// fail-closes with no mana (engine/effects/mana_effect.go's rune gate: the
+// Note "unhandled Produced$ AnyDifferent"). The kernel models it as a DEAD
+// chain member of the prefix search (dirac mana_countercost.go): it is
+// never a planner unit or window pick, adds no units to any gaps walk, and
+// its one chain branch pays the cost and taps without mana. Kernel
+// mana_countercost.go reads it, through prep.ctrAb, as a dead gap.
+func CtrDeadManaAb(a *Ability) bool {
+	return a.Kind == AbMana && a.Cost.Flags == CostTap|CostRemoveCtr && a.Cost.N > 0 && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
+		a.AFlags == AfManaChoice && a.ManaColors == 0 && a.ManaN > 0 && a.ManaRestrict == 0 && a.ManaRestrictAb == 0 &&
+		!a.ManaEach && !a.ManaDeferred && a.ManaRider == ManaRiderNone && len(a.Prog) == 0 &&
+		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && a.SplitGate == SplitGateNone &&
+		(a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
 }
 
 // SecondCtrTapManaAb reports whether ability j of cd, a later mana ability

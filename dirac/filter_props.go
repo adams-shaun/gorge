@@ -326,6 +326,14 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		// planeswalker (the atk code names either); no source fails closed
 		ans = src != NoSlot && s.perms[sl].flags&pfAttacking != 0 && s.perms[src].flags&pfAttacking != 0 &&
 			s.perms[sl].atk == s.perms[src].atk
+	case kop.W7EnchPlayerCtrl:
+		// gorge wordEnchantedPlayerCtrl: the candidate's controller is the
+		// seat the source Aura enchants (atchSeat, seat+1; 0 = none)
+		if src != NoSlot {
+			if at := s.atchSeat(k, src); at != 0 {
+				ans = s.perms[sl].ctrl == at-1
+			}
+		}
 	case kop.W7GreatestPowerTgt:
 		// gorge greatestPowerControlledByTargeted: a battlefield creature a
 		// player target of the current entry controls that no OTHER such

@@ -561,11 +561,38 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				return err
 			}
 			f = pickConstraintFilter(f, budget, hasBudget, false)
+			// DefinedPlayer$ names the fetch player whose graveyard the pool
+			// is (gorge effHiddenPick's players; the plain graveyard walk is
+			// that player's zone already); Chooser$ Opponent asks the
+			// resolving controller's first living opponent (gorge
+			// hiddenPickChooser: Chooser$ Opponent through chooserPlayer),
+			// the kernel's SrChooserOpp read. You is the default fetch
+			// player (Forge's getDefinedPlayers(null) is "You") and the
+			// default chooser.
+			pickOwner := owner // lRef{Kind: rYou}, or the chosen player (lower_chooseplayermid.go)
+			pickLoop := lRef{}
+			if dp := ps.str("DefinedPlayer"); dp != "" && dpScope == dpNone {
+				if pickOwner, pickLoop, err = lc.pickFetchPlayer(dp); err != nil {
+					return refuse("graveyard pick %v", err)
+				}
+			}
 			cs := "from=Graveyard|" + strings.Join(flags, "|")
 			if counterKind != "" && dest == zBattlefield {
 				cs += "|counters=" + counterKind
 			}
-			return lc.emitGravePick(dpScope, lInstr{Op: "ChooseMove", Obj: owner, A: n, F: f, C: dest, CS: cs}) // lower_gravedefinedplayer.go
+			if ch, ok := ps.get("Chooser"); ok && !chosenPool { // chosenMidPool already read it
+				switch {
+				case ch == "You", ch == "":
+				case ch == "Opponent" && pickOwner.Kind == rYou && pickLoop.Kind == rNone:
+					cs += "|ChooserOpp"
+				default:
+					return refuse("graveyard pick Chooser$ %q", ch)
+				}
+			}
+			lc.pickEachLoop(pickLoop)
+			// dpScope You / Player (graveDefinedPlayer) already read the param, so
+			// pickOwner is You and emitGravePick opens the each-player loop for Player
+			return lc.emitGravePick(dpScope, lInstr{Op: "ChooseMove", Obj: pickOwner, A: n, F: f, C: dest, CS: cs}) // lower_gravedefinedplayer.go
 		}
 		if exwPick {
 			return lc.exilePick(ps, f, n, flags, counterKind, override, dest) // lower_exw.go
@@ -1086,6 +1113,9 @@ func overrideString(o *lOverride) string {
 	if o.RemoveCreatureSub {
 		p = append(p, "rmcreaturesub")
 	}
+	if o.SetLandSub {
+		p = append(p, "setlandsub")
+	}
 	if o.AllCreatureTypes {
 		p = append(p, "allcreaturetypes")
 	}
@@ -1153,6 +1183,9 @@ func (lc *lowerCtx) changeZoneAllSweep(ps *params) error {
 	}
 	if strings.TrimSpace(ps.str("Origin")) == "Battlefield,Graveyard" {
 		return lc.originBattleGrave(ps) // lower_changezoneall.go
+	}
+	if strings.TrimSpace(ps.str("Origin")) == "Command,Graveyard" {
+		return lc.originCommandGrave(ps) // lower_cmdsweep.go
 	}
 	if strings.TrimSpace(ps.str("Origin")) == "Library,Sideboard" {
 		return lc.originLibrarySideboard(ps) // lower_sideboardsearch.go
@@ -2846,6 +2879,9 @@ func (lc *lowerCtx) animate(ps *params) error {
 			return err
 		}
 	}
+	if lc.landTypeGrant && !selfDefined && strings.TrimSpace(ps.m["Types"]) == "ChosenType" {
+		return lc.animateChosenLandType(ps, obj) // lower_choosetype.go
+	}
 	_, optional := ps.m["Optional"]
 	ps.consume("OptionQuestion") // prompt text only (gorge combatfx.go); the yes/no is the same
 	if optional && obj.Kind != rSelf {
@@ -4004,39 +4040,54 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 		}
 		ab.Kind = akActivated
 		ab.Mana = nil
-		if m.Each && !stack {
-			// Lukka's +1 {R}{G}: the resolution's AddMana floats one colour
-			// of a restriction (State.rb); several at once have no carrier
-			return refuse("loyalty ability adding several colours at once")
+		// UnlessCost$ with UnlessSwitched$ True (Thomil, the Destroyer's "you
+		// may sacrifice a creature. If you do, add {B}{B}{B}"): the resolution
+		// asks the payer and adds the mana only if they pay (lower_effect.go
+		// unless, the wrapper every resolving node's UnlessCost$ rides).
+		// Whatever follows the mana in a chain stays refused beside it, as
+		// gorge's unless gate covers the node's own effect only.
+		if _, ok := ps.get("UnlessCost"); ok && sa.Sub != nil {
+			return refuse("loyalty mana ability with UnlessCost$ and a sub-ability")
 		}
-		if m.Each {
-			// an unrestricted all-at-once production: one AddMana per colour
-			if m.Restrict != nil || !amt.isConst() || amt.N < 1 {
-				return refuse("stack mana ability adding several colours under a restriction")
+		err := lc.unless(ps, func() error {
+			if m.Each && !stack {
+				// Lukka's +1 {R}{G}: the resolution's AddMana floats one colour
+				// of a restriction (State.rb); several at once have no carrier
+				return refuse("loyalty ability adding several colours at once")
 			}
-			for i := 0; i < len(m.Colors); i++ {
-				lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors[i : i+1]})
+			if m.Each {
+				// an unrestricted all-at-once production: one AddMana per colour
+				if m.Restrict != nil || !amt.isConst() || amt.N < 1 {
+					return refuse("stack mana ability adding several colours under a restriction")
+				}
+				for i := 0; i < len(m.Colors); i++ {
+					lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors[i : i+1]})
+				}
+			} else if m.Choice || len(m.Colors) > 1 {
+				// a colour choice at resolution (gorge askManaChoice): one pick
+				// per mana of a Combo, one for the whole amount of Any; the
+				// kernel's AddMana takes the mask's last colour, no choice
+				if m.Colors == "Chosen" || m.Special != "" || m.Colors == "" || strings.Trim(m.Colors, "WUBRG") != "" {
+					return refuse("loyalty mana choice over %q", m.Colors)
+				}
+				if !amt.isConst() || amt.N < 1 || amt.N > 7 || len(m.Colors) < 2 || m.Restrict != nil || m.RestrictAb != nil {
+					return refuse("loyalty mana choice amount or restriction")
+				}
+				mode := 0
+				if !m.Choice {
+					mode = 1
+				}
+				lc.emit(lInstr{Op: "ManaChoice", A: amt, C: mode, CS: m.Colors})
+			} else {
+				// F: a spell restriction (CR 106.6), floated as restricted
+				// mana (State.rb) like gorge's ManaAdd restriction (Chandra, Chill
+				// of Compliance's noncreature-only {U})
+				lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors, F: m.Restrict})
 			}
-		} else if m.Choice || len(m.Colors) > 1 {
-			// a colour choice at resolution (gorge askManaChoice): one pick
-			// per mana of a Combo, one for the whole amount of Any; the
-			// kernel's AddMana takes the mask's last colour, no choice
-			if m.Colors == "Chosen" || m.Special != "" || m.Colors == "" || strings.Trim(m.Colors, "WUBRG") != "" {
-				return refuse("loyalty mana choice over %q", m.Colors)
-			}
-			if !amt.isConst() || amt.N < 1 || amt.N > 7 || len(m.Colors) < 2 || m.Restrict != nil || m.RestrictAb != nil {
-				return refuse("loyalty mana choice amount or restriction")
-			}
-			mode := 0
-			if !m.Choice {
-				mode = 1
-			}
-			lc.emit(lInstr{Op: "ManaChoice", A: amt, C: mode, CS: m.Colors})
-		} else {
-			// F: a spell restriction (CR 106.6), floated as restricted
-			// mana (State.rb) like gorge's ManaAdd restriction (Chandra, Chill
-			// of Compliance's noncreature-only {U})
-			lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors, F: m.Restrict})
+			return nil
+		})
+		if err != nil {
+			return err
 		}
 	}
 	if sa.Sub != nil && m.Split == nil { // (a Condition-split's sub is folded into m.Split)
