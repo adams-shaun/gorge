@@ -14,6 +14,12 @@ import (
 // chain builds them).
 func (lc *lowerCtx) modeCost(sa *cards.SA, i int) (*params, error) {
 	raw, has := sa.Params["ModeCost"]
+	if lc.out.Escalate != nil {
+		if has {
+			return nil, refuse("ModeCost$ beside Escalate")
+		}
+		return nil, nil // the modes carry no cost of their own: Escalate prices the count (lower_escalate.go)
+	}
 	if !lc.out.Spree {
 		if has {
 			return nil, refuse("ModeCost$ without Spree or Tiered")

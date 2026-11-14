@@ -27,6 +27,9 @@ func TestOppStateReadsEverySeat(t *testing.T) {
 			for q := uint8(0); q < 4; q++ {
 				if q != ctrl {
 					want += int(s.pl[q].lifeLost)
+					if s.pl[q].lost {
+						continue
+					}
 					if s.pl[q].lifeLost > 0 {
 						cnt++
 					}

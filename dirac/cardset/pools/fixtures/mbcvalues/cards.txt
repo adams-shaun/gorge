@@ -1,0 +1,15 @@
+# the MBC values-3 pool: Orcish Settlers ("destroy X target lands" on an
+# activated {X}{X}{R} ability), Gnoll War Band ({1} less for each opponent
+# dealt damage this turn) and Legacy's Allure (gain control of a creature
+# with power at most its treasure counters), with Shock for noncombat damage,
+# Seething Song for the floating mana an {X} activation is offered from, two
+# vanilla creatures and basics (dirac/oracle/mbc_values_lowers_test.go)
+Orcish Settlers
+Gnoll War Band
+Legacy's Allure
+Shock
+Seething Song
+Grizzly Bears
+Hill Giant
+Mountain
+Island

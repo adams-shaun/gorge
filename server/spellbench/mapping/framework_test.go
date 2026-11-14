@@ -86,6 +86,8 @@ func TestRouteNamesEveryPoolShape(t *testing.T) {
 		{"replacement/order", &decision.Decision{Kind: decision.KReplacement, Options: []decision.Option{{Kind: "replacement"}, {Kind: "replacement"}}}},
 		// An arrangement routes on its first option's kind.
 		{"arrange/bottom", &decision.Decision{Kind: decision.KArrange, Options: []decision.Option{{Kind: "bottom"}, {Kind: "bottom"}}}},
+		// The CR 401.4 library placement (engine/effects' libraryPlacementOrder).
+		{"arrange/library_placement", &decision.Decision{Kind: decision.KArrange, Options: []decision.Option{{Kind: "library_placement"}, {Kind: "library_placement"}}}},
 		// The choose classes, in the switch's own order.
 		{"choose/mana_window", &decision.Decision{Kind: decision.KChoose, Options: []decision.Option{{Kind: "activate"}, {Kind: "done"}}}},
 		{"choose/mana_window", &decision.Decision{Kind: decision.KChoose, Options: []decision.Option{{Kind: "done"}}}},
@@ -125,7 +127,7 @@ func TestRouteNamesEveryPoolShape(t *testing.T) {
 			t.Errorf("Route(%v) = %q, want %q", tc.d, got, tc.want)
 		}
 	}
-	if len(seen) != 35 {
-		t.Errorf("table names %d distinct shapes, want 35", len(seen))
+	if len(seen) != 36 {
+		t.Errorf("table names %d distinct shapes, want 36", len(seen))
 	}
 }
