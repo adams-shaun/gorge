@@ -819,7 +819,13 @@ components:
           type: "array"
         error:
           type: "string"
+        identity:
+          description: "Identity is a Commander-draft deck's commanders' colour identity (a subset of \"WUBRG\"; \"\" for colourless or no commander), and Size the deck's minimum size; both omitted outside a Commander draft."
+          type: "string"
         rev:
+          format: "int64"
+          type: "integer"
+        size:
           format: "int64"
           type: "integer"
         total:
@@ -897,6 +903,11 @@ components:
           maxItems: 5
           minItems: 5
           type: "array"
+        commanders:
+          description: "Commanders names a Commander-draft deck's one or two commanders, as ids Main also carries. Omitted in every other event."
+          items:
+            type: "string"
+          type: "array"
         main:
           items:
             type: "string"
@@ -934,7 +945,12 @@ components:
       properties:
         colors:
           type: "string"
+        commander:
+          type: "boolean"
         id:
+          type: "string"
+        identity:
+          description: "Identity, Commander and Partner are set only in a Commander-draft event: the card's colour identity (CR 903.4, a subset of \"WUBRG\"), whether it can be a commander on its own (CR 903.3), and whether it can be half of a Commander-draft pair (plain partner, or a partnerless legend of at most one colour: the draft partner rule)."
           type: "string"
         mana_cost:
           type: "string"
@@ -945,6 +961,8 @@ components:
           type: "string"
         number:
           type: "string"
+        partner:
+          type: "boolean"
         promo:
           type: "boolean"
         rarity:
@@ -972,7 +990,14 @@ components:
           type:
             - "array"
             - "null"
+        pass_pick:
+          format: "int64"
+          type: "integer"
         pick_no:
+          format: "int64"
+          type: "integer"
+        picks_per_pass:
+          description: "PicksPerPass and PassPick appear only when a seat takes more than one card per pass: PassPick is which of those picks this is (1-based), so a client can show \"second pick from this pack\"."
           format: "int64"
           type: "integer"
         pool:
@@ -1204,6 +1229,29 @@ components:
         - "drafters"
       type: "object"
       x-go-type: "github.com/adams-shaun/gorge/server/protocol.EventPersonas"
+    EventPodGame:
+      description: "EventStanding is one row of the event standings: MTR Appendix C points and match/game win percentages. EventPodGame is one Commander-draft free-for-all game: every seat at one table. State is \"pending\", \"live\" or \"ended\"; Winner is nil while not ended and for a drawn game; Join only in the viewer's own state."
+      properties:
+        join:
+          type: "string"
+        round:
+          format: "int64"
+          type: "integer"
+        state:
+          type: "string"
+        table:
+          type: "string"
+        winner:
+          format: "int64"
+          type:
+            - "integer"
+            - "null"
+      required:
+        - "round"
+        - "state"
+        - "winner"
+      type: "object"
+      x-go-type: "github.com/adams-shaun/gorge/server/protocol.EventPodGame"
     EventPool:
       description: "EventPool is the GET /api/events/{id}/pool body: the seat's drafted cards, its latest saved deck revision (nil before the first save), whether the seat has readied, and the bot builder's suggested deck for this pool. Playing is, in a round, the deck the seat plays or last played in its series, with PlayingRev naming its revision."
       properties:
@@ -1341,6 +1389,9 @@ components:
       properties:
         code:
           type: "string"
+        commander:
+          description: "Commander is true when this server hosts a Commander draft of the set (create's format \"commander\"); the lobby offers that mode only then."
+          type: "boolean"
         name:
           type: "string"
         pack_size:
@@ -1356,7 +1407,6 @@ components:
       type: "object"
       x-go-type: "github.com/adams-shaun/gorge/server/protocol.EventSetInfo"
     EventStanding:
-      description: "EventStanding is one row of the event standings: MTR Appendix C points and match/game win percentages."
       properties:
         gw:
           type: "number"
@@ -1387,6 +1437,9 @@ components:
         best_of:
           format: "int64"
           type: "integer"
+        deck_size:
+          format: "int64"
+          type: "integer"
         error:
           type: "string"
         event:
@@ -1397,6 +1450,14 @@ components:
           type: "string"
         pick_timer:
           type: "string"
+        picks_per_pass:
+          description: "PicksPerPass is how many cards a seat takes from each pack before passing it; omitted (1) outside a Commander draft. DeckSize is the deck's minimum size when it is not limited's 40 (a Commander draft's 60). Pod is a Commander draft's free-for-all games, one per event round; Series stays empty in such an event."
+          format: "int64"
+          type: "integer"
+        pod:
+          items:
+            $ref: "#/components/schemas/EventPodGame"
+          type: "array"
         rebuild:
           type: "boolean"
         round:
@@ -3502,6 +3563,43 @@ paths:
         - eventBearer: []
         - eventQuery: []
       summary: "An event's state"
+      tags:
+        - "draft-events"
+      x-gorge-requires: "-events (a binary with a draft-event runtime)"
+    parameters:
+      - $ref: "#/components/parameters/eventId"
+  "/api/events/{id}/advice":
+    get:
+      description: "The token seat's own drafter's suggestion for its current pack: the best cards for the picks it still owes this pass, each with its score's terms and a short reason. Read from the seat's own pack and pool only; logs nothing. Answers conflict when the event's drafter gives no advice (only a Commander draft's does)."
+      operationId: "getDraftAdvice"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/DraftAdvice"
+          description: "The suggested picks."
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
+          description: "No such event, or this server is not running with -events."
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        default:
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
+          description: "A backend refusal: the draft-event runtime picks the status and `code`."
+      security:
+        - {}
+        - eventBearer: []
+        - eventQuery: []
+      summary: "Draft advice for your current pack"
       tags:
         - "draft-events"
       x-gorge-requires: "-events (a binary with a draft-event runtime)"

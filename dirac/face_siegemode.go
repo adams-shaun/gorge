@@ -31,7 +31,7 @@ func (s *State) siegeModeStore(sl Slot, v uint8) {
 	if DebugSiegeModeFlip {
 		v = 1 - v&1 // seat-ok: flips a mode bit
 	}
-	s.perms[sl].chosen = v
+	s.perms[sl].chosen = objWord(v)
 	s.touchSl(sl)
 	SiegeModeAnswered.Add(1)
 }

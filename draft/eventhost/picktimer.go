@@ -97,7 +97,7 @@ func (r *run) armPickTimers() {
 			continue
 		}
 		r.stopPickTimer(s)
-		limit := r.h.pickLimit(mode, len(v.Pack))
+		limit := r.h.pickLimit(mode, scaledCardsLeft(len(v.Pack), r.spec.PackSize))
 		if limit <= 0 {
 			continue
 		}

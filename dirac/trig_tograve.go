@@ -4,19 +4,24 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // "a creature card is put into a graveyard from anywhere other than the
 // battlefield" (ChangesZone with an Origin$ set that leaves the battlefield
-// out: Syr Konrad, the Grim, Ultron the Annihilator, Ultron's Auxiliary). The
-// line is one TrigToGraveyard ability whose Trigger.N carries the origin
-// zones as a 1<<kop.Zone mask (0 = any), mirroring TrigLandPlayed's origin
-// mask. The battlefield origin is not part of the family: a Dies line and a
-// ToGraveyard line never share a move, so dies triggers keep their own event
-// and their own firing (fireDies).
+// out: Syr Konrad, the Grim, Ultron the Annihilator, Ultron's Auxiliary) and
+// "a creature card is put into a graveyard from a library" (Dreadhound;
+// Origin$ Library Destination$ Graveyard). The first is one TrigToGraveyard
+// ability whose Trigger.N carries the origin zones as a 1<<kop.Zone mask
+// (0 = any), mirroring TrigLandPlayed's origin mask; the second is the same
+// event with From ZoneLibrary. The battlefield origin is not part of the
+// family: a Dies line and a ToGraveyard line never share a move, so dies
+// triggers keep their own event and their own firing (fireDies).
 //
 // gorge fires the line as the move completes (trigmatch
 // ZoneChangeMatchesWithCapture reads the move's from-zone against Origin$ and
-// its to-zone against Destination$), from the listener that is on the
-// battlefield at that moment. The kernel fires the same way in placeFromK,
-// the sole card-placement choke point: o is already in its graveyard, its
-// from-zone rides the call.
+// its to-zone against Destination$, one trigger per card in move order), from
+// the listener that is on the battlefield at that moment. The kernel fires the
+// same way in placeFromK, the sole card-placement choke point: o is already in
+// its graveyard, after any replacement chose its zone (Rest in Peace's exile
+// and Progenitus' shuffle do not fire it), its from-zone rides the call. Only
+// battlefield (and command zone) listeners hear it: kgen refuses the card's
+// own line (Narcomoeba), which listens from the graveyard it lands in.
 
 // fireToGrave queues the TrigToGraveyard lines that o's move from `from` into
 // a graveyard satisfies. o is already placed; the listener matches the card
@@ -29,6 +34,9 @@ func (s *State) fireToGrave(k *prep, o Obj, from kop.Zone) {
 	card, owner := ob.card, ob.owner()
 	s.eachTrigger(k, kop.TrigToGraveyard, func(l trigListener, a *kop.Ability) {
 		t := &a.Trig
+		if t.From != kop.ZoneNone && t.From != from || t.Flags&kop.TfSelf != 0 {
+			return
+		}
 		if t.N != 0 && t.N&(1<<uint(from)) == 0 {
 			return
 		}

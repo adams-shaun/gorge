@@ -73,3 +73,64 @@ func (s *State) demonstrateCopy(k *prep, left uint8) bool {
 	}
 	return true
 }
+
+// stormDemonstrate is the trigAmt of an abStorm entry that is a granted
+// demonstrate's copy trigger (a storm count is never negative): resolving
+// it runs demonstrateProg, the OpDemonstrate a printed Demonstrate card's
+// self-cast trigger carries.
+const stormDemonstrate int16 = -1
+
+// demonstrateProg is the resolution of a granted demonstrate trigger (CR
+// 702.144a, gorge effects/demonstrate.go): the election, then the copies.
+var demonstrateProg = [1]kop.Instr{
+	{Op: kop.OpDemonstrate, Obj: kop.RefTriggerObj},
+}
+
+// queueDemonstrate queues the demonstrate trigger of the spell e just cast
+// when a live StatStackKw Demonstrate grant of its caster reaches it (gorge
+// trigger_granted.go checkGrantedDemonstrateTriggers: a spell has the
+// keyword or not, so two granting statics give one trigger, and a face that
+// prints Demonstrate is skipped, its printed trigger owning the line).
+//
+// gorge reads the grant's CheckSVar$ gate with the in-flight cast's own push
+// left out of the cast ledger (hasKeywordPriorCasts), so "the first
+// nonlegendary creature spell you cast each turn" (Elda, Conjurer of
+// Spectacle) holds for the very cast the grant is for. The cast ring already
+// holds that push, the caster's latest, so the gate is read with it hidden.
+func (s *State) queueDemonstrate(k *prep, e *stackEntry) {
+	if s.printsDemonstrate(k, e.card) {
+		return
+	}
+	p := e.ctrl
+	n := s.g.hist[p][histCastN]
+	hidden := n > 0 && Obj(s.cold.castRing[int(p)*castRingN+int(n)-1].obj-1) == e.obj
+	if hidden {
+		s.g.hist[p][histCastN] = n - 1
+	}
+	g, _ := s.stackKwN(k, kop.StackKwDemonstrate, e.card, e.obj, p, s.castFromHandBy(e, p))
+	if hidden {
+		s.g.hist[p][histCastN] = n
+	}
+	if g == 0 {
+		return
+	}
+	s.enqueue(e.obj, s.objs[e.obj].ver, e.card, abStorm, p, e.obj, p, stormDemonstrate)
+}
+
+// printsDemonstrate: card c prints Demonstrate, a self-cast trigger whose
+// program holds OpDemonstrate.
+func (s *State) printsDemonstrate(k *prep, c CardID) bool {
+	cd := &k.t.Cards[c]
+	for i := range cd.Abilities {
+		a := &cd.Abilities[i]
+		if a.Kind != kop.AbTriggered || a.Trig.Event != kop.TrigSpellCast || a.Trig.Flags&kop.TfSelf == 0 {
+			continue
+		}
+		for j := range a.Prog {
+			if a.Prog[j].Op == kop.OpDemonstrate {
+				return true
+			}
+		}
+	}
+	return false
+}

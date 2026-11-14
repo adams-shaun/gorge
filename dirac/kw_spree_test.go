@@ -39,7 +39,7 @@ func TestSpreeWindowAbort(t *testing.T) {
 	sc := newScenTable(t, spree2Table(), Config{NoElide: true})
 	land := sc.perm(v.Forest, 0)
 	fc := sc.hand(v.TestCharm, 0)
-	sc.do(t, AkCast, uint8(fc), 0xff)
+	sc.do(t, AkCast, TCode(fc), scAny)
 	// the lowering surface's witness prices the cast with no target chosen
 	// and can leave the mode-cost remainder to the payment window (bflLowered
 	// makes bsMana leave the pool alone, as the OTJ repro does); the window
@@ -71,7 +71,7 @@ func TestSpreeAskDead(t *testing.T) {
 	sc := newScenTable(t, spree2Table(), Config{NoElide: true})
 	land := sc.perm(v.Forest, 0)
 	fc := sc.hand(v.TestCharm, 0)
-	sc.do(t, AkCast, uint8(fc), 0xff)
+	sc.do(t, AkCast, TCode(fc), scAny)
 	charmnumPickMode(t, sc, 0)
 	charmnumPickMode(t, sc, 1)
 	if sc.s.charmTargetAskDead(sc.k) {

@@ -32,6 +32,8 @@ var ignoredParams = map[string]bool{
 	"AINoRecursiveCheck": true, // Forge AI hint: only in gorge's accepted-key lists (params/mana.go, params/dealdamage.go, changezone_params.go), never read
 	"AIXMax":             true, // Forge AI hint for the X it announces: only in gorge's accepted-key lists (changezone_params.go, params/*.go), never read
 	"UnlessAI":           true, // Forge AI hint (CopySpellAbilityAi / the unless-cost AI: whether the AI pays or copies); gorge never reads it (engine/rules/paramcensus_test.go records it as an AI hint)
+
+	"AIRespondsToOwnAbility": true, // Forge AI hint (Sensei's Divining Top: the AI may respond to its own activation); gorge never reads it
 }
 
 // params tracks which parameters of one IR node the lowering read, so an
@@ -116,7 +118,6 @@ type lowerCtx struct {
 	imprintMox     bool      // the face is the imprint-mox shape: its two static bookkeeping triggers lower to nothing (lower_imprintmox.go)
 	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff; Yue's hand population, playOwnHand)
 	animAll        bool      // lowering an AnimateAll: animateRemoveKeywords accepts a bare RemoveKeywords$ (gorge effAnimateAll reads it)
-	speedRepl      bool      // lowering a max-speed static's granted replacement: damagePlus reads ValidTarget$ Player.Opponent (lower_maxspeedrepl.go)
 	replEnter      bool      // inside an ETB replacement's ReplaceWith chain
 	breachStage    int       // Breach the Multiverse's imprint chain: 1 the ChangeZone of Imprinted is next, 2 the Cleanup (lower_repeatgravechoice.go)
 	exileLandStage int       // Ensign Pavel Chekov's imprint chain: 1 the Imprinted Effect is next, 2 the Cleanup (lower_repeatexilechoice.go)
@@ -165,9 +166,11 @@ type lowerCtx struct {
 	depth          int       // chain nesting (1: the ability's own chain)
 	head           bool      // the node being lowered heads its chain
 	inGroup        bool      // lowering a Mobilize group program's body (SacrificeDelayed is legal)
+	groupMany      bool      // ... of Mobilize 3-4: the DpMany program, SacrificeDelayed reads up to four objects
 	czForgetSet    bool      // a ChangeZoneAll ForgetOtherRemembered$ ran in this ability: Remembered is a many-object set (lower_changezoneall.go)
 	chains         int       // chain entries so far (every-blocker census: did a node's body get read?)
 	guardNode      string    // the top-level node guard is lowering (every-blocker census names extra refusals by it)
+	probeHead      *cards.SA // probeBody: the refused activated ability whose body is probed (its Cost$ is no resolution cost)
 	curNode        *cards.SA // the SA node being lowered (its Sub is the rest of the chain)
 	condDefined    bool      // defined() is reading a ConditionDefined$ (lower_triggerattackers.go)
 	own            ownTgt    // the slot curNode declared itself (lower_owntarget.go)
@@ -398,12 +401,15 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 			entered := lc.chains
 			err := lc.lowerAbility(a)
 			if err != nil {
-				lc.probeBody(a, entered)
+				lc.probeBody(a, entered, true)
 			}
 			return err
 		})
 		if len(out.Abilities) > n && origin {
 			out.Abilities[n].Origin, out.Abilities[n].OriginOK = i, true
+		}
+		if len(out.Abilities) > n && out.Cleave != nil && out.CleaveAb == n+1 && lc.isCleaveSA(a) {
+			out.Abilities[n].Latent = true // the cleaved cast's own text, reached only through its cast (lower_cleave.go)
 		}
 	}
 	for i, t := range lc.face.Triggers {
@@ -418,7 +424,7 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 		if lc.imprintMox && i > 0 {
 			continue // the imprint mox's static Cleanup / ForgetImprinted$ bookkeeping: the kernel's exiled-with record (lower_imprintmox.go)
 		}
-		if t.Mode == "TapsForMana" {
+		if t.Mode == "TapsForMana" && strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKStatic)), "True") {
 			lc.guard(fmt.Sprintf("T[%d] Mode=%s", i, t.Mode), func() error { return lc.tapExtraStatic(t) })
 			continue
 		}
@@ -426,7 +432,7 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 			entered := lc.chains
 			err := lc.lowerTriggered(t, "")
 			if err != nil {
-				lc.probeBody(t.Effect, entered)
+				lc.probeBody(t.Effect, entered, false)
 			}
 			return err
 		})
@@ -482,6 +488,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseBeamCombos()
 	lc.refuseSneakCombos()
 	lc.refuseBuybackCombos() // lower_buyback.go
+	lc.refuseEntwineCombos() // lower_entwine.go
 	lc.refuseWebSlingCombos()
 	lc.refuseMayFlashCombos()
 	lc.refuseEvokeCombos()
@@ -491,7 +498,9 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseForetellCombos()      // lower_foretell.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
 	lc.lowerImpending()
-	lc.lowerOverload() // lower_overload.go
+	lc.lowerOverload()      // lower_overload.go
+	lc.refuseCleaveCombos() // lower_cleave.go
+	lc.refuseSurgeCombos()  // lower_surge.go
 }
 
 // lowerImpending appends Impending's end-step tick after the printed lines
@@ -602,27 +611,35 @@ func (lc *lowerCtx) refuseMayhemCombos() {
 // prices the printed base and the discard alone): Convoke, Improvise and
 // Delve fold credits into the base (gorge offerCastable), {X} needs the
 // cast's xAsk, and the rest carry their own pick or mana cost on the cast.
+//
+// Jump-start (CR 702.84a) is the same cast with Discard<1/Card> in place of
+// Discard<1/Land> (out.JumpStart; dirac/kw_jumpstart.go).
 func (lc *lowerCtx) lowerRetrace() {
 	out := lc.out
 	if !out.Retrace {
 		return
 	}
+	node, spec := "K:Retrace", "Discard<1/Land>"
+	if out.JumpStart {
+		node, spec = "K:Jump-start", "Discard<1/Card>"
+	}
 	if out.Flashback != nil || out.Harmonize != nil || out.Mayhem != nil || out.BeamMeUp != nil {
-		lc.refuseNode("K:Retrace", "Retrace beside a mode-2 graveyard-cast keyword (canon/translate.go reads one)")
+		lc.refuseNode(node, "%s beside a mode-2 graveyard-cast keyword (canon/translate.go reads one)", strings.TrimPrefix(node, "K:"))
 	}
 	if out.Convoke || out.Improvise || out.Delve || out.Kicker != nil || out.Warp != nil || out.Plot != nil || out.Sneak != nil || out.Impending != nil ||
 		out.Bestow != nil || out.SpellCost != nil || out.AltAddCost != nil || out.Offspring != nil || out.Gift || out.MorphCost != nil ||
 		out.Casualty != 0 || out.Bargain || out.OptCost != nil || out.Teamwork != 0 || out.Spree || out.Madness != nil || out.Cost.X {
-		lc.refuseNode("K:Retrace", "Retrace beside another cast route, additional cost or an {X} cost (the offer walk prices the printed base and the discard alone)")
+		lc.refuseNode(node, "%s beside another cast route, additional cost or an {X} cost (the offer walk prices the printed base and the discard alone)", strings.TrimPrefix(node, "K:"))
 	}
 	// The discard part is built directly (lc.cost's costParts refuses a
 	// filtered discard outside an activated ability): a bare Discard<1/Land>
-	// is the whole cost, no other part can ride beside it.
-	c, err := lc.costHand("Discard<1/Land>")
-	if err != nil || c.DiscardF == nil || c.DiscardN != 1 ||
+	// (or Jump-start's unfiltered Discard<1/Card>) is the whole cost, no
+	// other part can ride beside it.
+	c, err := lc.costHand(spec)
+	if err != nil || (c.DiscardF == nil) != out.JumpStart || c.DiscardN != 1 || c.DiscardSelf ||
 		c.Mana.Generic != 0 || c.Mana.Pips != [5]int{} || c.Mana.C != 0 || c.Mana.X || c.Mana.XX ||
 		len(c.Mana.Hybrid) != 0 || len(c.Mana.Twobrid) != 0 || len(c.Mana.Phyrexian) != 0 || c.Mana.XColor != 0 {
-		lc.refuseNode("K:Retrace", "retrace additional cost %q", "Discard<1/Land>")
+		lc.refuseNode(node, "%s additional cost %q", strings.ToLower(strings.TrimPrefix(node, "K:")), spec)
 		return
 	}
 	out.RetraceCost = &c
@@ -1031,6 +1048,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.out.Flash = true
 		case head == "Decayed" && param == "":
 			lc.lowerDecayed() // lower_decayed.go
+		case head == "CantAttackOrBlock" && param == "":
+			lc.lowerCantAttackOrBlock() // lower_cantattackorblock.go
 		case head == "Infect" && param == "":
 			// CR 702.90: gorge damage riders read HasKeyword(source, "Infect")
 			lc.out.Infect = true
@@ -1157,6 +1176,13 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !found {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
+		case head == "Dethrone":
+			// CR 702.105a: gorge kwDethrone expands it into an Attacks
+			// trigger (Dethrone$ True), lowered from that line
+			// (lower_dethrone.go)
+			if !lc.faceHasDethroneTrigger() {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
 		case head == "Evolve":
 			// CR 702.100a: gorge kwEvolve expands it into an ETB trigger
 			// (Evolve$ True) whose body puts a +1/+1 counter on Self,
@@ -1264,6 +1290,14 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !faceHasMeleeTrigger(lc.face) {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
+		case head == "Exploit" && param == "":
+			// CR 702.110a: gorge kwExploit expands it into an ETB trigger
+			// (Keyword$ Exploit) whose body is the optional remembering
+			// sacrifice then DB$ Exploit, lowered from that line
+			// (lower_exploit.go)
+			if !faceHasExploitTrigger(lc.face) {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
 		case head == "Extort" && param == "":
 			// CR 702.101a: gorge kwExtort expands the keyword into a
 			// SpellCast trigger (DB$ Extort), lowered from that line
@@ -1367,6 +1401,13 @@ func (lc *lowerCtx) lowerKeywords() {
 			// resolving spell returns to hand (lower_buyback.go)
 			if !lc.lowerBuyback(param) {
 				lc.refuseNode(node, "buyback cost %q", param)
+			}
+		case head == "Entwine":
+			// CR 702.42a: an optional additional cost, offered as its own cast
+			// option (gorge's "(entwined)" mode, the Buyback shape); the paid
+			// cast announces every feasible mode (lower_entwine.go)
+			if !lc.lowerEntwine(param) {
+				lc.refuseNode(node, "entwine cost %q", param)
 			}
 		case head == "Casualty":
 			// CR 702.153a: the optional creature sacrifice and the copy
@@ -1482,7 +1523,25 @@ func (lc *lowerCtx) lowerKeywords() {
 			// mode bit 2 beside the mode-2 graveyard-cast keywords rather
 			// than claiming CardDef.AltCost. lowerRetrace refuses the
 			// collisions and builds the discard cost.
+			if lc.out.Retrace {
+				lc.refuseNode(node, "Retrace beside Jump-start (one graveyard discard cast per card)")
+				continue
+			}
 			lc.out.Retrace = true
+		case head == "Jump-start" && param == "":
+			// CR 702.84a: the retrace shape (gorge legal_walk_alt.go's
+			// jump-start walk and beginCast's "jumpstart" mode fold
+			// jumpstartExtra onto the printed base exactly as retraceExtra)
+			// with any card discarded and the spell exiled leaving the stack
+			// (gorge FlagJumpstart, one of state.ExilesLeavingStack's flags).
+			// It rides the kernel's retrace cast (dirac/kw_jumpstart.go):
+			// lowerRetrace refuses the same collisions and builds the
+			// Discard<1/Card> cost.
+			if lc.out.Retrace {
+				lc.refuseNode(node, "Jump-start beside Retrace or a second Jump-start")
+				continue
+			}
+			lc.out.Retrace, lc.out.JumpStart = true, true
 		case head == "Spree" && param == "":
 			// CR 702.172a: a modal spell whose modes carry ModeCost$
 			// additional costs (lower_modecost.go reads them)
@@ -1670,6 +1729,21 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Evoke = &mc
+		case head == "Surge":
+			// CR 702.117a: an alternative hand cost offered once the caster
+			// has cast another spell this turn (dirac/kw_surge.go). X, a ":"
+			// or "<" rider and any non-mana part are refused; hybrid pips are
+			// announced as for any cost.
+			mc, err := parseManaCost(param)
+			if err != nil || param == "" || strings.ContainsAny(param, ":<") || mc.X || mc.None {
+				lc.refuseNode(node, "surge cost %q", param)
+				continue
+			}
+			if lc.out.Surge != nil {
+				lc.refuseNode(node, "two Surge keywords")
+				continue
+			}
+			lc.out.Surge = &mc
 		case head == "Overload":
 			// CR 702.96a: an alternative hand cost; if paid, every
 			// "target" in the spell's text reads "each" (dirac/kw_overload.go).
@@ -1934,9 +2008,10 @@ func (lc *lowerCtx) costParts(c lCost) error {
 	if c.DiscardSelf {
 		return refuse("discard cost %q outside a hand ability", "Discard<1/CARDNAME>")
 	}
-	if c.DiscardF != nil {
+	if c.DiscardF != nil && !(lc.altCostHand && c.Discard2N > 0) {
 		// a filtered discard is a battlefield activated ability's own cost
-		// (the candidates are that controller's hand cards; CR 118.3)
+		// (the candidates are that controller's hand cards; CR 118.3), or
+		// a spell alternative cost's two discard parts (lower_discardtwo.go)
 		return refuse("filtered discard cost outside an activated ability")
 	}
 	if c.DiscardHand && (lc.ab == nil || lc.ab.Kind != akActivated) {
@@ -2108,6 +2183,14 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			parts = strings.SplitN(arg, "/", 3)
 			// Sac<X/Spec> (lower_xminsacx.go): the announced count
 			if err := lc.sacXCost(&c, parts, t); err != nil {
+				return c, err
+			}
+			continue
+		}
+		if head == "ExileFromGrave" && parts[0] == "X" {
+			// ExileFromGrave<X/Spec> (lower_exilex.go): the announced count
+			parts = strings.SplitN(arg, "/", 3)
+			if err := lc.exileXCost(&c, parts, t); err != nil {
 				return c, err
 			}
 			continue
@@ -2284,6 +2367,12 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			}
 			continue
 		}
+		if head == "RevealChosen" {
+			if err := lc.revealChosenCost(&c, parts, t); err != nil { // lower_revealchosen.go
+				return c, err
+			}
+			continue
+		}
 		n, err := strconv.Atoi(parts[0])
 		if err != nil && head != "PayLife" {
 			return c, refuse("cost token %q", t)
@@ -2421,10 +2510,16 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			c.ExileTrigNew = true
 		case "Discard":
 			// One discard part per cost: lCost carries a single N/Spec, so a
-			// second token would silently overwrite the first (Foil's
-			// alternative cost is the corpus's only multi-discard line and
-			// refuses on its Island spec already).
+			// second token would silently overwrite the first. A spell's own
+			// alternative cost takes one second part (Foil;
+			// lower_discardtwo.go).
 			if c.DiscardN > 0 || c.DiscardSelf || c.DiscardF != nil {
+				if lc.altCostHand {
+					if err := lc.altDiscardTwo(&c, parts, n, t); err != nil {
+						return c, err
+					}
+					continue
+				}
 				return c, refuse("discard cost %q: more than one discard part", t)
 			}
 			if (len(parts) == 2 || len(parts) == 3) && parts[1] == "CARDNAME" && n == 1 {
@@ -2963,6 +3058,17 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			}
 			ab.ActCond = c
 		}
+		if lc.out.Types&tLegendary != 0 && lc.out.Types&(tInstant|tSorcery) != 0 {
+			// CR 205.4e: a legendary instant or sorcery is cast only while
+			// its caster controls a legendary creature or planeswalker
+			// (gorge legendarySpellLocked, on every cast route): the same
+			// cast restriction castForbidden withholds an IsPresent$ cast by
+			f, err := lc.filter("Creature.Legendary+YouCtrl,Planeswalker.Legendary+YouCtrl")
+			if err != nil {
+				return err
+			}
+			ab.ActCond = andCond(ab.ActCond, lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)})
+		}
 		if c, ok := ps.get("Cost"); ok {
 			lc.lifeXSpell = true
 			cost, err := lc.cost(c)
@@ -2973,7 +3079,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			if cost.Energy != 0 {
 				return refuse("energy cost on a spell")
 			}
-			if cost.Return != nil {
+			if cost.Return != nil && !lc.spellReturnOnly(&cost) {
 				return refuse("return cost on a spell")
 			}
 			if cost.EvidenceX {
@@ -2987,13 +3093,29 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				ab.EvidenceTargets = true
 				cost.EvidenceX = false
 			}
-			// The printed mana cost rides on the card record; the SP
-			// Cost$ adds the non-mana additional costs.
-			if !cost.Mana.None && cost.Mana.String() != lc.out.Cost.String() {
-				return refuse("spell Cost$ %q differs from the printed cost", c)
+			if lc.isCleaveSA(sa) {
+				// Cleave's second line: its Cost$ is the whole alternative cost
+				// (CR 702.148a), mana only (lower_cleave.go)
+				if !cost.pureMana() || cost.Mana.None {
+					return refuse("cleave Cost$ %q is not a plain mana cost", c)
+				}
+				if cost.Mana.X || cost.Mana.XX || cost.Mana.XXX || len(cost.Mana.Hybrid) != 0 || len(cost.Mana.Twobrid) != 0 || len(cost.Mana.Phyrexian) != 0 {
+					// the cleaved cast's X ask and symbol faces read the printed
+					// cost (Lantern Flare's {X}{R}{W}); only a plain cost is lowered
+					return refuse("cleave Cost$ %q has an {X}, hybrid or Phyrexian symbol", c)
+				}
+				mc := cost.Mana
+				lc.out.Cleave, lc.out.CleaveAb = &mc, ab.Index+1
+				ps.consume("NonBasicSpell")
+			} else {
+				// The printed mana cost rides on the card record; the SP
+				// Cost$ adds the non-mana additional costs.
+				if !cost.Mana.None && cost.Mana.String() != lc.out.Cost.String() {
+					return refuse("spell Cost$ %q differs from the printed cost", c)
+				}
+				cost.Mana = manaCost{None: true}
+				lc.out.SpellCost = &cost
 			}
-			cost.Mana = manaCost{None: true}
-			lc.out.SpellCost = &cost
 		}
 		if sa.API == "PermanentCreature" {
 			// The permanent spell itself: only its additional cost matters.
@@ -3138,7 +3260,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			// (Cryptex); a hand / graveyard ability is not modelled
 			return refuse("evidence cost on a mana ability or outside a battlefield ability")
 		}
-		if ps.is("Planeswalker", "True") {
+		if loyaltyMarked(ps.str("Planeswalker")) {
 			ab.Loyalty = true
 			ab.Sorcery = true
 		}
@@ -3248,11 +3370,12 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				return err
 			}
 		}
-		if v, ok := ps.get("ActivationLimit"); ok {
-			if v != "1" {
-				return refuse("ActivationLimit %q", v)
-			}
-			ab.TurnOnce = true
+		actLimit, err := lc.activationLimit(sa, ps, ab) // lower_activationlimitn.go
+		if err != nil {
+			return err
+		}
+		if err := lc.anyActivator(sa.API, ps, ab, cost); err != nil { // lower_anyactivator.go
+			return err
 		}
 		if cost.AddCtr > 0 {
 			// a counter put on the source as a cost (CR 118.3): the
@@ -3376,6 +3499,8 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			}
 			ab.ActCond = andCond(ab.ActCond, lCond{Kind: cYourTurn})
 		}
+		ab.ActCond = andCond(ab.ActCond, actLimit)
+		ab.ActCond = andCond(ab.ActCond, revealChosenGate(cost)) // lower_revealchosen.go
 	default:
 		return refuse("ability kind %s", sa.Kind)
 	}
@@ -3751,13 +3876,26 @@ func (lc *lowerCtx) probeParam(k, v string) error {
 
 // probeBody lowers a refused ability's or trigger's body on its own when the
 // refusal came before the body was read, so its blockers are listed too.
-func (lc *lowerCtx) probeBody(sa *cards.SA, entered int) {
+// An activated ability's head Cost$ is its activation cost, which the real
+// lowering already read: the probe skips it rather than reading it as an
+// in-body resolution cost (lowerCtx.effect). A mana ability's head is no
+// chain node (lowerMana / lowerManaReflected lower it, and chain only its
+// SubAbility$): the probe reads that sub-chain alone.
+func (lc *lowerCtx) probeBody(sa *cards.SA, entered int, activated bool) {
+	if activated && sa != nil && (sa.API == "Mana" || sa.API == "ManaReflected") {
+		sa, activated = sa.Sub, false
+	}
 	if lc.p == nil || !lc.p.allBlockers || sa == nil || lc.chains != entered {
 		return
 	}
 	saved := lc.guardNode
 	lc.guardNode = saved + " body"
-	err := lc.withAbility(lc.newLatent("Probe"), func() error { return lc.chain(sa, nil) })
+	var ps *params
+	if activated {
+		lc.probeHead, ps = sa, probeHeadParams(sa) // lower_probehead.go
+	}
+	err := lc.withAbility(lc.newLatent("Probe"), func() error { return lc.chain(sa, ps) })
+	lc.probeHead = nil
 	if err != nil {
 		lc.refuseNode(lc.guardNode, "%s", err.Error())
 	}

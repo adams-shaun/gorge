@@ -1,0 +1,8 @@
+# the Iwamori of the Open Fist pool: each opponent may put a legendary
+# creature card from their hand onto the battlefield (hand move
+# DefinedPlayer$ Player.Opponent), against a deck of legendary creatures
+# (dirac/oracle/mbc_zone_moves_nine_lowers_test.go)
+Iwamori of the Open Fist
+Forest
+Isamaru, Hound of Konda
+Plains

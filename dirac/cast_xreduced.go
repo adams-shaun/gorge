@@ -14,7 +14,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 func (s *State) xHypoCost(k *prep, x int) kop.ManaCost {
 	b := s.bld()
 	ox, fixed := b.e.x, b.fixedGen
-	b.e.x = uint8(x)
+	b.e.x = objWord(uint8(x))
 	s.syncBuild()
 	c := s.buildCost(k)
 	b.e.x, b.fixedGen = ox, fixed

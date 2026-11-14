@@ -317,6 +317,7 @@ func (s *State) typesGen(k *prep, sl Slot) kop.TypeMask {
 		if o.HasTypes {
 			t = t&(keep|o.KeepTypes) | o.SetTypes
 		}
+		t &^= o.RemoveTypes
 		t |= o.AddTypes
 	}
 	s.eachOvRec(sl, func(r ovRec) { apply(&k.t.Overrides[r.idx-1]) })
@@ -898,7 +899,7 @@ func (s *State) grantsBetween(k *prep, sl Slot, lo, hi uint32, kinds uint8, lts 
 				for _, g := range k.t.Overrides[a.Static.Override-1].Grant {
 					if g != 0 {
 						prev := s.g.grantSrc
-						s.g.grantSrc = uint8(s.perms[src].obj) + 1
+						s.g.grantSrc = s.perms[src].obj + 1
 						f(cid, g-1, 1)
 						s.g.grantSrc = prev
 					}
@@ -907,7 +908,7 @@ func (s *State) grantsBetween(k *prep, sl Slot, lo, hi uint32, kinds uint8, lts 
 				st := statSrc{a: a, sl: src, ctrl: s.perms[src].ctrl, obj: s.perms[src].obj}
 				if a.Static.Grant != 0 && s.statCond(k, st) && s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, src, layerKw) {
 					prev := s.g.grantSrc
-					s.g.grantSrc = uint8(s.perms[src].obj) + 1
+					s.g.grantSrc = s.perms[src].obj + 1
 					f(cid, a.Static.Grant-1, 1)
 					s.g.grantSrc = prev
 				}
@@ -1105,7 +1106,11 @@ func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8,
 	// then turns back; a merged second turn-back sat before the animate and
 	// the object stayed a creature.
 	ov := &k.t.Overrides[idx]
-	merge := !ov.HasPT && !ov.HasColors && ov.AddColors == 0 && !ov.HasTypes && !ov.HasSub
+	// An override that strips the creature subtypes (RemoveCreatureTypes$ with
+	// Types$: Gornog's "becomes a Coward") is a subtype setter too: re-applied
+	// after another subtype setter it takes the newest position, not the older
+	// application's (Majestic Metamorphosis between two of Gornog's triggers).
+	merge := !ov.HasPT && !ov.HasColors && ov.AddColors == 0 && !ov.HasTypes && !ov.HasSub && !ov.RemoveCreatureSub
 	if merge && k.gen.anyOvrStat && s.ovStaticOn(k, sl) {
 		// An override static on the host (an Aura that removes card types)
 		// sits between the older application and this one in timestamp

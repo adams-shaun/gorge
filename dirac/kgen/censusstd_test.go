@@ -272,16 +272,15 @@ func TestStdCensusRealDeterministic(t *testing.T) {
 	}
 }
 
-// TestStdCensusDeterministic runs the census ten times over cards whose
+// TestStdCensusDeterministic runs the census ten times over a card whose
 // lowering has several equally valid refusal keys: Winnowing's RepeatEach
-// body has ControlledByPlayer$ and RememberChosen$, and Arrester's
-// Admonition's ConditionPlayerTurn$ sits beside ConditionDefined$,
-// ConditionPresent$ and ConditionPhases$. The report must be byte-identical
-// and must name the first key in sorted order, not whichever the map
-// happened to yield.
+// body has ControlledByPlayer$ and RememberChosen$. The report must be
+// byte-identical and must name the first key in sorted order, not whichever
+// the map happened to yield. (Arrester's Admonition, the Condition*$ case,
+// lowers now; TestAddendumGateLowers pins that sort.)
 func TestStdCensusDeterministic(t *testing.T) {
 	dir := t.TempDir()
-	names := []string{"Winnowing", "Arrester's Admonition"}
+	names := []string{"Winnowing"}
 	for _, list := range []string{"ZZZ.txt", "ALL.txt"} {
 		if err := os.WriteFile(filepath.Join(dir, list), []byte(strings.Join(names, "\n")+"\n"), 0o644); err != nil {
 			t.Fatal(err)
@@ -300,7 +299,6 @@ func TestStdCensusDeterministic(t *testing.T) {
 			first = sb.String()
 			for _, want := range []string{
 				`other:RepeatEach body ControlledByPlayer$ "_"`,
-				`other:ConditionPlayerTurn$ beside ConditionDefined$`,
 			} {
 				if !strings.Contains(first, want) {
 					t.Errorf("output lacks canonical class %q:\n%s", want, first)

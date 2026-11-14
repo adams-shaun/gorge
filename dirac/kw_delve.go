@@ -192,7 +192,7 @@ func (s *State) delveOptions(k *prep, d *Decision) bool {
 			s.capFull(StallDelve)
 			break
 		}
-		d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+		d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 	}
 	if d.N == 0 {
 		return false // gorge's multi-pick Max is min(#options, shortfall): every card picked ends the ask
