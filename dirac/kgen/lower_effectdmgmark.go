@@ -64,3 +64,52 @@ func (lc *lowerCtx) effectDmgMark(ps *params) error {
 	lc.emit(lInstr{Op: "DmgMark", Obj: obj, Note: "until your next turn, damage to the damaged player and their permanents is doubled"})
 	return nil
 }
+
+// effectDmgDoubleBySource lowers the this-turn Effect that doubles the damage
+// the controller's sources deal to anything (Quest for Pure Flame): DB$ Effect
+// with no Duration$ and no remembered object over one Event$ DamageDone |
+// ValidSource$ Card.YouCtrl,Emblem.YouCtrl | ValidTarget$ Permanent,Player
+// replacement whose body is DB$ ReplaceEffect | VarName$ DamageAmount |
+// VarValue$ ReplaceCount$DamageAmount/Twice. One OpExt ExtDmgMark with
+// kop.DmgMarkBySource (dirac/repl_dmgmark.go). It reports false for any other
+// shape so effectPrevent's remaining arms read it.
+func (lc *lowerCtx) effectDmgDoubleBySource(ps *params) (bool, error) {
+	if _, ok := ps.get("RememberObjects"); ok {
+		return false, nil
+	}
+	if _, ok := ps.get("ValidTgts"); ok {
+		return false, nil
+	}
+	name := strings.TrimSpace(ps.str("ReplacementEffects"))
+	r := etbParams(lc.face.SVars[name])
+	if name == "" || strings.Contains(name, ",") || r == nil || r["Event"] != "DamageDone" || r["ValidSource"] != "Card.YouCtrl,Emblem.YouCtrl" {
+		return false, nil
+	}
+	rp := newParams(r)
+	rp.consume("Event", "Description")
+	if v, ok := rp.get("ActiveZones"); ok && strings.TrimSpace(v) != "Command" {
+		return true, refuse("Effect DamageDone doubling ActiveZones$ %q", v)
+	}
+	rp.consume("ActiveZones", "ValidSource")
+	if !rp.is("ValidTarget", "Permanent,Player") {
+		return true, refuse("Effect DamageDone doubling ValidTarget$ %q", rp.str("ValidTarget"))
+	}
+	body := etbParams(lc.face.SVars[rp.str("ReplaceWith")])
+	if body == nil || len(body) != 3 || body["DB"] != "ReplaceEffect" || body["VarName"] != "DamageAmount" {
+		return true, refuse("Effect DamageDone doubling body")
+	}
+	vv := body["VarValue"]
+	if sv, ok := lc.face.SVars[vv]; ok {
+		vv = strings.TrimSpace(sv)
+	}
+	if vv != "ReplaceCount$DamageAmount/Twice" {
+		return true, refuse("Effect DamageDone doubling VarValue$ %q", vv)
+	}
+	rp.consume("ReplaceWith")
+	if left := rp.unread(); len(left) > 0 {
+		return true, refuse("Effect DamageDone doubling unread %v", left)
+	}
+	ps.consume("ReplacementEffects")
+	lc.emit(lInstr{Op: "DmgMark", C: 1, Note: "this turn, damage dealt by the controller's sources is doubled"})
+	return true, nil
+}

@@ -2970,13 +2970,15 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(z); err != nil {
 			return ki, err
 		}
-		if pk == kop.PayMana && in.C > 0 {
-			// PayMana's F is the life paid beside the mana
-			// (a trigger's own mana-and-life cost, Zoraline)
-			if in.F != nil || in.C > 255 {
+		if pk == kop.PayMana && (in.C > 0 || len(in.Hyb) != 0) {
+			// PayMana's F is the life paid beside the mana (a trigger's own
+			// mana-and-life cost, Zoraline) and its hybrid pips (Emiel the
+			// Blessed's {G/W}; kop.PayManaF)
+			f, ok := payManaF(in.C, in.Hyb) // lower_trighybrid.go
+			if in.F != nil || !ok {
 				return ki, fmt.Errorf("mana-and-life pay shape")
 			}
-			ki.F = kop.FilterID(in.C)
+			ki.F = f
 		}
 	case "DealDamage":
 		ki.Op = kop.OpDealDamage
@@ -4197,8 +4199,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		// OpExt ExtStackExileMark, C the kop.StackExile* bits (repl_stackexile.go)
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtStackExileMark)), int16(in.C)
 	case "DmgMark":
-		// OpExt ExtDmgMark, Obj the damaged player (dirac/repl_dmgmark.go)
-		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtDmgMark))
+		// OpExt ExtDmgMark, Obj the damaged player, or C kop.DmgMarkBySource
+		// for the resolving controller's sources (dirac/repl_dmgmark.go)
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtDmgMark)), int16(in.C)
 	case "EffFinalityCtr":
 		// OpExt ExtFinalityCtr, Obj the triggering spell
 		// (the kernel reads the entry's trigObj); the spell enters with one

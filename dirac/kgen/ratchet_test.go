@@ -147,16 +147,13 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +40 (the MBC keywords-2 family: granted intimidate and infect, a static's Static.Evasion / Static.Infect or a Pump / PumpAll ExtKwMark, Akroan Line Breaker, Bellowing Tanglewurm, Cavern Lampad, Corrupted Conscience, Dreadbringer Lampads, Executioner's Hood, Glistening Oil, Grisly Transformation, Gruesome Deformity, Guul Draz Vampire, Hideous Visage, Korozda Guildmage, Pestilent Souleater, Phyresis, Shadow Alley Denizen, Surrakar Marauder, Tainted Strike, Triumph of the Hordes, Vector Asp, Vela the Night-Clad, Vow of Malice, Warchanter of Mogis; printed bloodthirst over ExDmgOppsTaken, Battering Wurm, Blood Ogre, Bloodrage Vampire, Bloodscale Prowler, Carnage Wurm, Duskhunter Bat, Furyborn Hellkite, Ghor-Clan Savage, Gorehorn Minotaurs, Gristleback, Lurking Crocodile, Petrified Wood-Kin, Rabble-Rouser, Scab-Clan Mauler, Skarrgan Pit-Skulk, Skarrgan Skybreaker, Stormblood Berserker, Vampire Outcasts; ALL 23253 -> 23293 measured).
 	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
-	// +12 (MBC counters-1: the Experience player counter and Count$YourCountersExperience, the DESCENT counter kind, and DividedAsYouChoose$ over any counter kind: Aang, Airbending Master, Atreus, Impulsive Son, Daxos the Returned, Ezuri, Claw of Progress, Kalemne, Disciple of Iroas, Kelsien, the Plague, Kratos, Stoic Father, Otharri, Suns' Glory, Toph, Earthbending Master, Descent into Avernus, Contagion, Splendid Agony; Component Pouch's COMPONENT kind lowers; ALL 23407 -> 23419 measured).
-	// +200 (the dead mana-ability census gap, Component Pouch's "{T}, Remove a component counter from Component Pouch: Add two mana of different colors": kop.CtrDeadManaAb names the shape and ManaAbilityHonoured accepts it, so the card and the dead gap's boards lower; MBC 1721 -> 1770, ALL 23419 -> 23619 measured).
 	// +2 (MBC replacements-2: a DamageDone doubler with no ValidTarget$ reads any recipient, Fire Servant; ValidSource$ Card.Self with IsCombat$ True as FSelf + ReplDmgCombat, Charging Tuskodon; ALL merged against land 23559 -> 23561 measured).
 	// +11 (MBC zone-moves-5: Count$TopOfLibraryCMC as ExMVOf RefLibTop, Reorder$ on a library-to-top search, the AIRespondsToOwnAbility$ hint and the ThisTurnEnteredFrom_Library word: Counterbalance, Riddle of Lightning, Judge Unworthy, Putrid Cyclops, Stormchaser Chimera, Goblin Recruiter, Dwarven Recruiter, Congregation at Dawn, Scouting Trek, Sensei's Divining Top, Captain N'ghathrod; ALL 23253 -> 23264 measured).
 	// +10 (MBC trigger-referents-6: OptionalDecider$ and Defined$ TriggeredSourceController on a plain DamageDone line, TargetsWithDefinedController$ TriggeredAttackedTarget under a per-defender attack trigger, LibraryPosition$ 2 of the dying card: Edric, Spymaster of Trest, Gornog, the Red Reaper, God-Eternal Oketra (the three MBC cards beside Karazikar and Gix, which keep other blockers), and Brood Sliver, Synapse Sliver, Backfire, Michiko Konda, Truth Seeker, Whirlwind, Killer Cyclone, God-Eternal Rhonas, God-Eternal Bontu; ALL merged against land 23608 -> 23618, MBC 1766 -> 1769 measured).
 	// +2 (a GenericChoice whose bodies are DB$ ChangeText lowers to OpExt ExtChangeText, a no-op unless the target face reads the from word: Mind Bend and Whim of Volrath; ALL merged against land 23728 -> 23730, MBC 1797 -> 1798 (Mind Bend) measured).
 	// +17 (Level up lowers (CR 702.87a): kwLevelUp's sorcery-speed PutCounter LEVEL line, kop.CtrLevelUp, and the two-sided level band IsPresent$ Card.Self+counters_GEa_LEVEL+counters_LEb_LEVEL as two Self presence tests: Brimstone Mage, Caravan Escort, Enclave Cryptologist, Guul Draz Assassin, Hada Spy Patrol, Hedron Field Purists, Ikiral Outrider, Joraga Treespeaker, Kargan Dragonlord, Kazandu Tuskcaller, Knight of Cliffhaven, Nirkana Cutthroat, Null Champion, Skywatcher Adept, Student of Warfare, Transcendent Master, Under Construction Skyscraper; ALL 23253 -> 23270, MBC 1678 -> 1683 measured).
 	// +41 (this branch's lowerings merged against land 23802 -> 23843 measured).
-	// +14 (merge of this branch with land at 7f5ecb425d; ALL 23855 -> 23869, MBC 1825 -> 1830 measured).
-	"ALL": {23869, 34442},
+	"ALL": {23875, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {221, 280},
@@ -171,16 +168,14 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
-	// +4 (MBC counters-1: Contagion, Descent into Avernus, Ezuri, Claw of Progress, Otharri, Suns' Glory; MBC 1717 -> 1721 measured).
-	// +49 (the dead mana-ability census gap lowers Component Pouch; MBC 1721 -> 1770 measured).
 	// +2 (MBC replacements-2: Fire Servant, Charging Tuskodon; MBC merged against land 1748 -> 1750 measured).
 	// +3 (MBC zone-moves-5: Counterbalance, Goblin Recruiter, Sensei's Divining Top; The Weaver King still refuses on its per-opponent pick; MBC 1678 -> 1681 measured).
 	// listed 2188 -> 2195: the list is held to what an MBC pack deals (setdata TestMBCSetlistIsItsDealtNames); the seven
 	// blocking/targeting cards gorge now plays (Balduvian Warlord, Gorm the Great, Ophidian ...) do not lower yet.
 	// MBC +5 (Level up: Enclave Cryptologist, Knight of Cliffhaven, Joraga Treespeaker, Nirkana Cutthroat, Hada Spy Patrol; 1678 -> 1683).
-	"MBC": {1830, 2195},
+	"MBC": {1833, 2195},
 	"MKM": {252, 279},
-	"MOM": {204, 296},
+	"MOM": {205, 296},
 	"MSH": {247, 276},
 	"NEO": {204, 287},
 	"ONE": {201, 271},

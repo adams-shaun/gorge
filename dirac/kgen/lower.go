@@ -1389,8 +1389,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			// A printed generic reduction rides the second colon field
 			// (lower_morphreduce.go).
 			cs, red, rok := lc.morphReduceParam(param)
-			mc, err := parseManaCost(cs)
-			if !rok || err != nil || cs == "" || strings.Contains(cs, ":") || mc.None || red.Kind != vNone && (mc.X || mc.Generic == 0) {
+			mc, life, err := morphTurnUpCost(cs) // lower_morphlife.go
+			if !rok || err != nil || cs == "" || strings.Contains(cs, ":") || mc.None || red.Kind != vNone && (life != 0 || mc.X || mc.Generic == 0) {
 				lc.refuseNode(node, "%s cost %q", strings.ToLower(head), param)
 				continue
 			}
@@ -1398,7 +1398,7 @@ func (lc *lowerCtx) lowerKeywords() {
 				lc.refuseNode(node, "second face-down keyword")
 				continue
 			}
-			lc.out.MorphCost, lc.out.MorphReduce = &mc, red
+			lc.out.MorphCost, lc.out.MorphReduce, lc.out.MorphLife = &mc, red, life
 			switch head {
 			case "Morph":
 				lc.out.MorphFamily = kop.MorphMorph
