@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigConjureAll
+value: 84
+forge: ConjureAll
+census: trig ConjureAll all=3 std=0 mbc=0 sole=1
+state: objspace (outside-game cards)
+status: blocked objspace:tcode

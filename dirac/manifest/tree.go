@@ -57,13 +57,25 @@ func Read(fsys fs.FS) (*Tree, error) {
 	for i := range t.Ordinals {
 		t.byName[t.Ordinals[i].Name] = &t.Ordinals[i]
 	}
+	if t.Entries, err = ReadEntries(fsys); err != nil {
+		return nil, err
+	}
+	return t, nil
+}
+
+// ReadEntries parses fsys's manifest entries alone, unvalidated and in
+// directory order: what a reader without ordinals.tsv (kgen's embedded table
+// sources) needs to tell an active code from an inactive one. A tree with no
+// Dir has none.
+func ReadEntries(fsys fs.FS) ([]*Entry, error) {
 	fams, err := fs.ReadDir(fsys, Dir)
 	if errors.Is(err, fs.ErrNotExist) {
-		return t, nil
+		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
+	var out []*Entry
 	for _, fd := range fams {
 		if !fd.IsDir() || fd.Name() == "testdata" || strings.HasPrefix(fd.Name(), ".") {
 			continue
@@ -92,10 +104,10 @@ func Read(fsys fs.FS) (*Tree, error) {
 			if err != nil {
 				return nil, err
 			}
-			t.Entries = append(t.Entries, e)
+			out = append(out, e)
 		}
 	}
-	return t, nil
+	return out, nil
 }
 
 // Entry is the entry at path (Dir/<Family>/<Name>), or nil.
@@ -205,7 +217,26 @@ func (t *Tree) Validate() []error {
 	if len(errs) > 0 {
 		return errs
 	}
-	return t.resolve(held, nil)
+	if errs := t.resolve(held, nil); len(errs) > 0 {
+		return errs
+	}
+	return t.coverErrs()
+}
+
+// coverErrs: an entry at or above its family's Cover is deferred or blocked,
+// since the kernel serves no code there; a provisional value counts.
+func (t *Tree) coverErrs() []error {
+	var errs []error
+	for _, e := range t.Entries {
+		f := e.Fam()
+		if f.Cover == 0 || e.Value < f.Cover {
+			continue
+		}
+		if k := e.Status.Kind; k == Reserved || k == Active {
+			errs = append(errs, fmt.Errorf("%s: value %d is at or above %s's cover %d, which the kernel does not serve: status %q, not %s", e.Path, e.Value, f.Name, f.Cover, Deferred.String()+" "+CoverWhy, k))
+		}
+	}
+	return errs
 }
 
 // validate is Validate without resolving: the values the tree's constants

@@ -1,0 +1,7 @@
+family: KwID
+name: KwReinforce
+value: 75
+forge: Reinforce
+census: kw Reinforce all=11 std=0 mbc=0 sole=10
+state: code 0
+status: reserved

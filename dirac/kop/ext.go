@@ -1,11 +1,14 @@
 package kop
 
-// Extension sub-ops (OpExt): the op space is full (the iota list below
-// OpCount and the high range 250-254), so a new family adds an ExtOp here,
-// numbered from 1 up and append-only, and lowers its instruction as
-// {Op: OpExt, A: Const(sub)} with the rest of the fields its own. The
-// kernel dispatches them in a cold file (extop.go):
-// one extra switch only on an ext instruction, nothing on the hot path.
+// Extension sub-ops (OpExt): a new operation is an ExtOp, not an Op (the op
+// values left below OpHighFirst are kept for approved hot-path ops), and
+// lowers its instruction as {Op: OpExt, A: Const(sub)} with the rest of the
+// fields its own. The list below is frozen: a new sub-op is a manifest entry
+// (dirac/manifest/ExtOp/ExtX; most are pre-mapped, so activate it), which
+// kmanifest generates with its extOpNames row into manifest_gen.go. The
+// kernel dispatches them in a cold file (extop.go): one extra switch only on
+// an ext instruction, nothing on the hot path; a new sub-op's handler is a
+// //kmanifest:ext method, not a case there.
 type ExtOp int16
 
 const (
@@ -240,8 +243,8 @@ const (
 	// eligible permanent it takes all N unasked, with none nothing happens.
 	// dirac/ctr_distpick.go.
 	ExtDistCounters ExtOp = 310
-	// NumExtOps is a fixed capacity of the sub-op tables, not last+1: a new
-	// sub-op takes the next free value below it (values are pinned by
+	// NumExtOps is a fixed capacity of the sub-op tables, not last+1: a
+	// manifest sub-op takes a free value below it (values are pinned by
 	// testdata/ordinals.tsv) and never edits this line. Unused slots stay
 	// unnamed. Raise it only when the free values run out.
 	NumExtOps ExtOp = 321

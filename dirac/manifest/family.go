@@ -40,12 +40,27 @@ type Family struct {
 	// Kgen is the kgen name registration helper for the type ("enum",
 	// "mask"), or "" when kgen names it some other way or not at all.
 	Kgen string
+	// Cover, when not 0, is one past the values the kernel serves: an entry
+	// at or above it is deferred or blocked (Validate), and the generator
+	// writes no name registration for it (CounterKind: kop.NumCounterKinds3).
+	Cover int64
 
 	// register is the kop/dirac name registration for e, a statement or "".
 	register func(e *Entry) string
 	// check is the family's own entry rule.
 	check func(e *Entry) error
 }
+
+// CounterKindCover is kop.NumCounterKinds3, frozen at the cutover: the
+// counter kinds the kernel's per-kind tables and walks reach (ProjObj.CountersX,
+// CtrXNames, kop.IsCounterKind). A kind at or above it waits on moving the
+// cover, and a kind of 256 or more also on widening the Action mode byte and
+// the CostSubAmong pick key (dirac ctrMode). dirac's
+// TestManifestStatusMatchesCode holds the two equal.
+const CounterKindCover = 242
+
+// CoverWhy is the status reason of an entry at or above its family's Cover.
+const CoverWhy = "cover:NumCounterKinds3"
 
 // opHotBand keeps the free Op values [158,249] for hot-path ops: a new
 // operation is otherwise an ExtOp, and an Op here needs an approval line.
@@ -60,11 +75,13 @@ var Families = []*Family{
 	enum8("CondKind", "Cond", "enum"),
 	flags("CostFlags", "Cost", 32, "mask"),
 	{
-		// perm.ck is widening to uint16, so every uint16 value is a legal
-		// counter kind. The name registration fills CtrXNames,
-		// gorge's counter name, from the first forge token.
+		// perm.ck is 16 bits wide, so every uint16 value is a legal counter
+		// kind, but the kernel serves the kinds below CounterKindCover only
+		// (kop.IsCounterKind): the seed defers a kind at or above it. The
+		// name registration fills CtrXNames, gorge's counter name, from the
+		// first forge token.
 		Name: "CounterKind", Pkg: "kop", Prefix: "Ctr", Min: 0, Max: 65535,
-		Alloc: Band{Lo: 0, Hi: 65535}, Seeded: true, Kgen: "enum",
+		Alloc: Band{Lo: 0, Hi: 65535}, Seeded: true, Kgen: "enum", Cover: CounterKindCover,
 		register: func(e *Entry) string {
 			return fmt.Sprintf("CtrXNames[%s-CtrCharge] = %q", e.Name, e.Forge[0])
 		},

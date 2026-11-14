@@ -64,11 +64,11 @@ func TestSeedFixture(t *testing.T) {
 		"ExtOp/ExtMakeCard 2 blocked objspace:tcode | objspace (outside-game cards)",
 		"ExtOp/ExtChooseSource 4 blocked unbounded:prevention/effect-records | unbounded (prevention/effect records)",
 		"ExtOp/ExtClash 6 reserved | code 0",
-		"KwID/KwBanding 32 reserved | slotbyte 112/112 (banding)",
+		"KwID/KwBanding 32 reserved | slotbyte 112 (banding)",
 		"KwID/KwAttacksAlone 33 reserved | code 0",
-		"TrigEvent/TrigCrewed 4 reserved | slotbit 16/16 (crewed)",
-		"key/keyBanding 1 reserved | slotbyte 112/112",
-		"key/keyCrewed 2 reserved | slotbit 16/16",
+		"TrigEvent/TrigCrewed 4 reserved | slotbit 16 (crewed)",
+		"key/keyBanding 1 reserved | slotbyte 112",
+		"key/keyCrewed 2 reserved | slotbit 16",
 	}
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Errorf("seed:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
@@ -185,11 +185,16 @@ func TestReadCensusHeader(t *testing.T) {
 		t.Errorf("a wrong header: %v", err)
 	}
 	head := strings.Join(censusHeader, "\t") + "\n"
-	if _, err := ReadCensus("c.tsv", strings.NewReader(head+"ctr\tX\t1\t0\t0\t0\t0\t0\trefused\tcode\t-\t0\n")); err == nil || !strings.Contains(err.Error(), "c.tsv:2: 12 fields") {
+	if _, err := ReadCensus("c.tsv", strings.NewReader(head+"ctr\tX\t1\t0\t0\t0\t0\t0\trefused\tcode\t-\n")); err == nil || !strings.Contains(err.Error(), "c.tsv:2: 11 fields") {
 		t.Errorf("a short row: %v", err)
 	}
-	if _, err := ReadCensus("c.tsv", strings.NewReader(head+"ctr\tX\tmany\t0\t0\t0\t0\t0\trefused\tcode\t-\t0\t0\n")); err == nil || !strings.Contains(err.Error(), `"many" is not an integer`) {
+	if _, err := ReadCensus("c.tsv", strings.NewReader(head+"ctr\tX\tmany\t0\t0\t0\t0\t0\trefused\tcode\t-\t0\n")); err == nil || !strings.Contains(err.Error(), `"many" is not an integer`) {
 		t.Errorf("a non-number: %v", err)
+	}
+	// A trailing column past the header (the research's retired bytes_mp) is ignored.
+	rows, err := ReadCensus("c.tsv", strings.NewReader(strings.TrimSuffix(head, "\n")+"\tbytes_mp\nctr\tX\t1\t0\t0\t0\t0\t0\trefused\tslotbit\t-\t16\t32\n"))
+	if err != nil || len(rows) != 1 || rows[0].Bytes != 16 {
+		t.Errorf("a trailing column: %+v, %v", rows, err)
 	}
 }
 

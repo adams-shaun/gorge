@@ -1,0 +1,7 @@
+family: KwID
+name: KwDoubleAgenda
+value: 113
+forge: Double agenda
+census: kw Double agenda all=1 std=0 mbc=0 sole=0
+state: objspace (conspiracy)
+status: blocked objspace:tcode

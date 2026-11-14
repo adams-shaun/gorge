@@ -51,8 +51,8 @@ func (lc *lowerCtx) activationLimit(sa *cards.SA, ps *params, ab *lAbility) (lCo
 }
 
 // objActsLimit bounds a lowered ActivationLimit$ N: the kernel's per-object
-// census (dirac objActsMask) keeps seven bits at two seats and would keep six
-// at four, and a limit it can reach stays exact.
+// census (dirac objActsMask) keeps seven bits; 63 is the six-bit bound the
+// retired larger build kept, and a limit the census can reach stays exact.
 const objActsLimit = 63
 
 // nonManaActivations counts the face's AB$ lines that are not mana

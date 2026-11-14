@@ -30,8 +30,13 @@ const (
 	StatPanharmonicon     // a triggered ability of an object of the controller matching Filter triggers an additional time (CR 603.2d; gorge statics_echo.go panharmoniconEchoes)
 	StatHexproofOwnColors // objects matching Filter have hexproof from each of their own current colours (a granted Hexproof:CardColors, CR 702.11d; kw_hexproofcolor.go)
 	StatPlayerProtAll     // the controller has protection from everything (The One Ring's player grant; static_plprot.go)
-	StatCount
+	// StatCount ends the frozen iota list (the kinds above are 0..20). It
+	// is a fixed value: do not append above it. A new static kind is a
+	// manifest entry (dirac/manifest/StaticKind, kmanifest).
+	StatCount StaticKind = 21
 )
+
+var _ = [1]struct{}{}[StatCount-StatPlayerProtAll-1]
 
 // Static is a static ability.
 type Static struct {

@@ -1,0 +1,7 @@
+family: KwID
+name: KwReflect
+value: 117
+forge: Reflect
+census: kw Reflect all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

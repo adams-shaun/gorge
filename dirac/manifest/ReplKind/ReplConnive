@@ -1,0 +1,7 @@
+family: ReplKind
+name: ReplConnive
+value: 57
+forge: Connive
+census: repl Connive all=1 std=1 mbc=0 sole=1
+state: code 0
+status: reserved

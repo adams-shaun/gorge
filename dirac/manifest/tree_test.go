@@ -258,3 +258,44 @@ func TestSkipsPackageFilesAndTestdata(t *testing.T) {
 		t.Errorf("entries %d, want 9", n)
 	}
 }
+
+// TestCounterKindCover: a counter kind at or above CounterKindCover must be
+// deferred or blocked, a provisional value included, and gets no CtrXNames
+// registration; below the cover a reserved kind is fine.
+func TestCounterKindCover(t *testing.T) {
+	ctr := func(name, value, status string) *fstest.MapFile {
+		return &fstest.MapFile{Data: []byte("family: CounterKind\nname: " + name + "\nvalue: " + value + "\nforge: " + strings.ToUpper(name) + "\nstatus: " + status + "\n")}
+	}
+	cover := strconv.Itoa(CounterKindCover)
+	for _, c := range []struct {
+		name  string
+		entry *fstest.MapFile
+		want  string
+	}{
+		{"below", ctr("CtrBelow", strconv.Itoa(CounterKindCover-1), "reserved"), ""},
+		{"at, reserved", ctr("CtrAt", cover, "reserved"), "at or above CounterKind's cover"},
+		{"at, active", ctr("CtrAt", cover, "active"), "at or above CounterKind's cover"},
+		{"at, deferred", ctr("CtrAt", cover, "deferred "+CoverWhy), ""},
+		{"next past a full band", ctr("CtrNext", "next", "reserved"), "at or above CounterKind's cover"},
+	} {
+		m := fstest.MapFS{OrdinalsPath: {Data: []byte("CtrP1P1\tCounterKind\t0\n")}}
+		for v := 1; c.name == "next past a full band" && v < CounterKindCover; v++ {
+			m[OrdinalsPath].Data = append(m[OrdinalsPath].Data, "CtrHeld"+strconv.Itoa(v)+"\tCounterKind\t"+strconv.Itoa(v)+"\n"...)
+		}
+		name := strings.TrimPrefix(strings.SplitN(string(c.entry.Data), "\n", 3)[1], "name: ")
+		m[Dir+"/CounterKind/"+name] = c.entry
+		_, err := Load(m)
+		switch {
+		case c.want == "" && err != nil:
+			t.Errorf("%s: %v", c.name, err)
+		case c.want != "" && (err == nil || !strings.Contains(err.Error(), c.want)):
+			t.Errorf("%s: %v, want %q", c.name, err, c.want)
+		}
+		if c.name == "at, deferred" {
+			files := generate(t, m)
+			if strings.Contains(string(files[KopGen]), "CtrXNames") {
+				t.Errorf("a kind past the cover is registered in CtrXNames:\n%s", files[KopGen])
+			}
+		}
+	}
+}
