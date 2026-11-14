@@ -739,6 +739,9 @@ func (s *State) cleanupGen(k *prep) {
 		s.cgClear()       // static_colourgrant.go
 		s.colProtClear(k) // static_colourprot.go
 	}
+	if k.gen.anyKwMark {
+		s.kwMarkClear(k) // kw_kwmark.go
+	}
 	if k.gen.anyDmgMark {
 		s.dmgMarkEnd() // Duration$ UntilYourNextTurn (repl_dmgmark.go)
 	}

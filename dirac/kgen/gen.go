@@ -525,6 +525,12 @@ func dumpLIR(w io.Writer, c *lCard) {
 		if s.Landwalk != nil {
 			fmt.Fprintf(w, " landwalk=%s", s.Landwalk)
 		}
+		if s.Evasion != 0 {
+			fmt.Fprintf(w, " evasion=%d", s.Evasion)
+		}
+		if s.Infect {
+			fmt.Fprintf(w, " infect")
+		}
 		if s.OutlivesLoss {
 			fmt.Fprintf(w, " outlivesloss")
 		}
