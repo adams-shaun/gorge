@@ -1759,7 +1759,7 @@ func (s *State) searchCands(k *prep, d *Decision) {
 	case kop.ZoneLibrary:
 		list = pl.lib[pl.libLo:pl.libHi]
 	case kop.ZoneGraveyard:
-		if in.Op == kop.OpChooseMove && s.g.pickF&(kop.SrUnderYourControl|kop.SrGameGrave) != 0 {
+		if in.Op == kop.OpChooseMove && s.g.pickF&(kop.SrUnderYourControl|kop.SrGameGrave) != 0 && s.g.pickF&kop.SrOwnZone == 0 {
 			s.gameGraveCands(k, in, d) // trig_sacqueueorder.go: an ownerless GainControl$ pick, or a game-wide graveyard pick (gorge effHiddenPick gameWide)
 			return
 		}
@@ -1946,6 +1946,9 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 		if z == kop.ZoneBattlefield {
 			if fl&kop.SrGraveExile != 0 && fl&kop.SrUnderYourControl == 0 {
 				ep = s.objs[o].owner() // graveexile: gorge enters a hidden pick under its owner unless GainControl$
+			}
+			if fl&(kop.SrUnderYourControl|kop.SrOwnZone) == kop.SrUnderYourControl|kop.SrOwnZone {
+				ep = s.res.e.ctrl // GainControl$ from a fetch player's graveyard: under the resolving controller, not the fetch player
 			}
 			if DebugGyBfOwnerEntry && fl&kop.SrUnderYourControl != 0 {
 				ep = s.objs[o].owner() // mutation: a GainControl$ graveyard pick keeps its owner

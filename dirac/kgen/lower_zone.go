@@ -621,8 +621,17 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			if counterKind != "" && dest == zBattlefield {
 				cs += "|counters=" + counterKind
 			}
+			// A named fetch player scopes the pool to their graveyard (gorge
+			// gameWide is false); SrOwnZone keeps a GainControl$ pick off the
+			// kernel's game-wide walk (The Weaver King's each-opponent pick).
+			fetched := pickOwner.Kind != rYou && ps.str("DefinedPlayer") != "" && dpScope == dpNone
+			if fetched && slices.Contains(flags, "UnderYourControl") {
+				cs += "|OwnZone"
+			}
 			if ch, ok := ps.get("Chooser"); ok && !chosenPool { // chosenMidPool already read it
 				switch {
+				case ch == "You" && fetched:
+					cs += "|ChooserYou" // gorge hiddenPickChooser: the controller picks from the fetch player's graveyard
 				case ch == "You", ch == "":
 				case ch == "Opponent" && pickOwner.Kind == rYou && pickLoop.Kind == rNone:
 					cs += "|ChooserOpp"
