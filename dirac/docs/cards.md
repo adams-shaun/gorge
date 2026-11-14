@@ -291,7 +291,7 @@ Most support work is a lowering, not a new engine primitive. The shape of the wo
 4. **Rebuild the tables.** `make dirac-tables` rebuilds every pool and extends each `ids.tsv`; commit a
    changed `ids.tsv`. For a new pool, create `dirac/cardset/pools/fixtures/<pool>/cards.txt` first, opening with a
    comment that says what it is for. If the lowering changes acceptance counts in the set-list ratchets, `KGEN_REPIN=1`
-   rewrites the pins in `dirac/kgen/ratchet_test.go` (see
+   rewrites the pins in `dirac/kgen/testdata/acceptance.tsv` and `build_acceptance.tsv` (see
    [`verification.md`](verification.md#following-a-gorge-change)).
 5. **Prove it against gorge.** The generated table is dirac's claim; gorge is the arbiter. The
    lockstep harness in `dirac/oracle` and its `kfuzz` lockstep fuzz driver compare the same game action

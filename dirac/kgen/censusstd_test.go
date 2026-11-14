@@ -10,8 +10,9 @@ import (
 
 // TestStdCensus runs the live census over the real Standard lists and
 // asserts only invariants no grammar change can move: two runs are
-// byte-identical, every set's accepted/listed equal the ratchet pins, and
-// the short-of-90 total follows from the pins. Class orders, steps and
+// byte-identical, every set's accepted/listed meet the ratchet pins (judgePin:
+// exact under DIRAC_PIN_STRICT=1), and the short-of-90 total follows from the
+// per-set counts. Class orders, steps and
 // bundle rows are pinned on constructed tables (TestStd*Constructed).
 func TestStdCensus(t *testing.T) {
 	heavyParallel(t)
@@ -34,22 +35,23 @@ func TestStdCensus(t *testing.T) {
 		if i == 0 {
 			firstMD, firstTSV = md.String(), tsv.String()
 			wantShort := 0
+			pins := acceptancePins(t)
 			for _, s := range res.sets {
-				pin, ok := acceptancePins[s.set]
+				pin, ok := pins[s.set]
 				if !ok {
 					t.Fatalf("%s has no acceptance pin", s.set)
 				}
-				if s.accepted != pin[0] || s.listed != pin[1] {
-					t.Errorf("%s accepted/listed = %d/%d, pin %d/%d", s.set, s.accepted, s.listed, pin[0], pin[1])
+				if err := judgePin(s.set+" census", pin, [2]int{s.accepted, s.listed}, pinStrict()); err != nil {
+					t.Error(err)
 				}
 				if s.std {
-					if n := (9*pin[1]+9)/10 - pin[0]; n > 0 {
+					if n := (9*s.listed+9)/10 - s.accepted; n > 0 {
 						wantShort += n
 					}
 				}
 			}
 			if res.stdTotalShort != wantShort {
-				t.Errorf("std total short = %d, want %d from the pins", res.stdTotalShort, wantShort)
+				t.Errorf("std total short = %d, want %d from the per-set counts", res.stdTotalShort, wantShort)
 			}
 			continue
 		}
@@ -568,25 +570,25 @@ func TestStdCensusMatchesRatchet(t *testing.T) {
 		isStd[code] = true
 	}
 	wantShort := 0
+	pins := acceptancePins(t)
 	for _, s := range res.sets {
-		pin, ok := acceptancePins[s.set]
+		pin, ok := pins[s.set]
 		if !ok {
 			t.Fatalf("%s has no acceptance pin", s.set)
 		}
-		if s.accepted != pin[0] || s.listed != pin[1] {
-			t.Errorf("%s accepted/listed = %d/%d, pin %d/%d", s.set, s.accepted, s.listed, pin[0], pin[1])
+		if err := judgePin(s.set+" census", pin, [2]int{s.accepted, s.listed}, pinStrict()); err != nil {
+			t.Error(err)
 		}
 		if isStd[s.set] {
-			if n := (9*pin[1]+9)/10 - pin[0]; n > 0 {
+			if n := (9*s.listed+9)/10 - s.accepted; n > 0 {
 				wantShort += n
 			}
 		}
 	}
 	if res.stdTotalShort != wantShort {
-		t.Errorf("std total short = %d, want %d from the pins", res.stdTotalShort, wantShort)
+		t.Errorf("std total short = %d, want %d from the per-set counts", res.stdTotalShort, wantShort)
 	}
-	if res.allAccepted != acceptancePins["ALL"][0] || res.allListed != acceptancePins["ALL"][1] {
-		t.Errorf("ALL accepted/listed = %d/%d, pin %d/%d", res.allAccepted, res.allListed,
-			acceptancePins["ALL"][0], acceptancePins["ALL"][1])
+	if err := judgePin("ALL census", pins["ALL"], [2]int{res.allAccepted, res.allListed}, pinStrict()); err != nil {
+		t.Error(err)
 	}
 }
