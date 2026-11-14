@@ -10,7 +10,7 @@ import (
 const (
 	cfdBlueMorpher = "Name:Test Blue Morpher\nManaCost:4 U\nTypes:Creature Dragon\nPT:3/3\nK:Megamorph:2 U\nOracle:x\n"
 	cfdBlueReducer = "Name:Test Blue Reducer\nManaCost:1 W\nTypes:Creature Wall\nPT:0/3\n" +
-		"S:Mode$ ReduceCost | ValidCard$ Card.Blue,Card.Green | Type$ Spell | Activator$ You | Amount$ 1 | Description$ Green spells and blue spells you cast cost {1} less to cast.\nOracle:x\n"
+		"S:Mode$ ReduceCost | Type$ Spell | Activator$ You | ValidCard$ Card.Blue | Amount$ 1 | Description$ Blue spells you cast cost one less.\nOracle:x\n"
 )
 
 // CR 708.4 and CR 601.2f: a face-down spell is a colourless creature spell, so
