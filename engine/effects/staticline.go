@@ -873,6 +873,11 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 				if c.TriggerCard != 0 && h.Game().Obj(c.TriggerCard) != nil {
 					out = append(out, c.TriggerCard)
 				}
+			case effectRememberedTriggeredCards:
+				// The plural batch capture (The Madcap Jester's ChangesZoneAll
+				// RememberObjects$ TriggeredCards): every card the batch moved,
+				// the same group Defined$ TriggeredCards names.
+				out = appendEffectRememberedObjects(h, out, triggeredCardGroup(c))
 			case effectRememberedChosenCard:
 				// Dauthi Voidwalker and the wider ChooseCard -> Effect family do
 				// not set RememberChosen$: the chosen card lives in Ctx.Chosen, or
@@ -1157,6 +1162,7 @@ const (
 	effectRememberedTriggeredCard
 	effectRememberedChosenCard
 	effectRememberedRememberedLKI
+	effectRememberedTriggeredCards
 )
 
 var effectRememberedCodes = state.NewStrCodes(
@@ -1175,6 +1181,7 @@ var effectRememberedCodes = state.NewStrCodes(
 	state.StrEntry[effectRememberedCode]{Key: "TriggeredCard", Val: effectRememberedTriggeredCard},
 	state.StrEntry[effectRememberedCode]{Key: "TriggeredObject", Val: effectRememberedTriggeredCard},
 	state.StrEntry[effectRememberedCode]{Key: "TriggeredObjectLKICopy", Val: effectRememberedTriggeredCard},
+	state.StrEntry[effectRememberedCode]{Key: "TriggeredCards", Val: effectRememberedTriggeredCards},
 	state.StrEntry[effectRememberedCode]{Key: "ChosenCard", Val: effectRememberedChosenCard},
 	state.StrEntry[effectRememberedCode]{Key: "RememberedLKI", Val: effectRememberedRememberedLKI},
 	state.StrEntry[effectRememberedCode]{Key: "TriggeredAttacker", Val: effectRememberedRememberedLKI},

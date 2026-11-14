@@ -146,6 +146,8 @@ func (g *genPrep) initStall(nseat uint8) uint8 {
 		return StallBlkTax // combat_blocktax.go prepBlkTax
 	case g.chPlOrder:
 		return StallChoosePlayerOrder // repl_chooseplayer.go prepChoosePlayer
+	case g.tokListAdd:
+		return StallTokRewrite // repl_toklistadd.go prepTokListAdd
 	}
 	return StallNone
 }
@@ -247,6 +249,8 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 		text = "an unrestricted Combo Any mana source (Axebane Guardian) beside a filter, a tap-another source, a granted mana ability or a Lion's Eye Diamond: gorge's one prefix search activates both and the kernel chains the Combo Any source with the each-colour, restricted, any-colour restricted, deferred and counter-cost sources only"
 		a = func(cd *kop.CardDef, i int) bool { return g.isComboAnyCard(CardID(i), cd) }
 		b = func(_ *kop.CardDef, i int) bool { return caMixGap(tt, g, pp, i) }
+	case StallTokRewrite:
+		text, a, b = tokListAdderPair() // repl_toklistadd.go
 	case StallDiamondMix:
 		text = "a Lion's Eye Diamond beside another mana census-gap kind (a filter, a restricted or any-colour restricted source, a counter-cost or tap-another source, a deferred source, a granted mana ability, an each-colour source): gorge's one prefix search activates both and the kernel models the Diamond alone"
 		a = abilityOn(kop.DiscardHandManaAb)

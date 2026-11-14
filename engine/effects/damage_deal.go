@@ -373,7 +373,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 				dealt := int32(0)
 				if o := h.Game().Obj(t.obj); o != nil {
 					lethal, ok := excessLethal(h, o)
-					dealt = emitObjectDamage(r, t.obj)
+					dealt = emitObjectDamageExcess(h, c, dp, r, t.obj)
 					if ok {
 						bindExcess(o, lethal, dealt)
 					}
@@ -403,7 +403,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
 			lethal, ok := excessLethal(h, o)
-			dealt := emitObjectDamage(rider, t.Obj)
+			dealt := emitObjectDamageExcess(h, c, dp, rider, t.Obj)
 			if ok {
 				bindExcess(o, lethal, dealt)
 			}
@@ -502,7 +502,7 @@ func emitFromEachSource(h Host, c *Ctx, sa *cards.SA, dp *DealDamageParams, sour
 			}
 			if to := h.Game().Obj(t.Obj); to != nil && to.Zone == state.ZBattlefield {
 				lethal, ok := excessLethal(h, to)
-				dealt := emitObjectDamage(rider, t.Obj)
+				dealt := emitObjectDamageExcess(h, c, dp, rider, t.Obj)
 				if ok {
 					bindExcess(to, lethal, dealt)
 				}
