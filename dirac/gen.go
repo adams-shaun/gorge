@@ -2010,14 +2010,14 @@ type genState struct {
 	replaced Obj // the object an as-enters replacement program is modifying
 
 	// OpCastFree: cards still castable this resolution
-	free  [8]Obj
+	free  [maxFree]Obj
 	nfree uint8
 	// the cards OpCastFree accepted, frozen: a mode's index ranks in this
 	// list (gorge's modes decision is built once over the castable
 	// candidates), the ones already cast keeping their places
-	freeAll  [8]Obj
+	freeAll  [maxFree]Obj
 	nfreeAll uint8
-	freeQ    [8]Obj // chosen to be cast after the resolution
+	freeQ    [maxFree]Obj // chosen to be cast after the resolution
 	nfq      uint8
 	freeP    seatWord // who casts the queued cards, their zone and flags (cast_freecast.go)
 	hold     bool     // an sfHold entry is on the stack

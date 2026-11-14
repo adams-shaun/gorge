@@ -19,8 +19,9 @@ func TestStateLayoutPinnedMP(t *testing.T) {
 	// +24: coldArrays.hexUB's slice header, as in the default class; +48:
 	// coldArrays.mk and mkObj, the multikicker counts; the sixteen-object
 	// xTargets; then Obj, TCode and objWord at sixteen bits (lkiRec runs its
-	// fields widest first, perm packs actUsed beside nblock) and linkPad 32.
-	const want = 27896
+	// fields widest first, perm packs actUsed beside nblock), the sixteen-object
+	// free-cast arrays (maxFree, +48) and linkPad 48.
+	const want = 27960
 	if sz := unsafe.Sizeof(State{}); sz != want {
 		t.Fatalf("State is %d bytes, pinned at %d", sz, want)
 	}

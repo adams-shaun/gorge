@@ -91,3 +91,8 @@ type objWord = uint8
 type mayWord = uint16
 
 const mayVerShift = 8
+
+// maxFree is how many cast-without-paying candidates (genState.free, freeAll)
+// and queued casts (freeQ) one resolution holds; a larger pool stalls
+// StallFree.
+const maxFree = 8
