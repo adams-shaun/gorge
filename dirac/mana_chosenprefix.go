@@ -42,17 +42,22 @@ func (s *State) chosenPairPrefix(k *prep, a Action, p uint8) {
 	n := s.battlefieldOrder(p, gaps, order[:], 0)
 	d.noPair = true
 	for i := 0; i < n && !s.affordsUngrantedPlay(k, p, a, &cost, ex, d); i++ {
-		sl := order[i]
-		c := s.cardAt(sl)
-		rec := k.gen.restrRecOf(c)
-		ab := &k.t.Cards[c].Abilities[rec.ab]
-		col := bits.TrailingZeros8(s.restrWideMask(&k.gen.rs.views[rec.view], sl) & 0x1f)
-		s.perms[sl].flags |= pfTapped
-		s.touchSl(sl)
-		s.manaTapped(k, sl)
-		if !s.floatRestrOnly(k, p, sl, ab, col, max(ab.ManaN, 1)) {
-			s.capFull(StallRestrSrc) // never a silent spill
-		}
+		s.tapChosenPair(k, p, order[i])
+	}
+}
+
+// tapChosenPair taps the chosen-colour pair source sl for its land-only
+// ability: the restricted mana floats (State.rb).
+func (s *State) tapChosenPair(k *prep, p uint8, sl Slot) {
+	c := s.cardAt(sl)
+	rec := k.gen.restrRecOf(c)
+	ab := &k.t.Cards[c].Abilities[rec.ab]
+	col := bits.TrailingZeros8(s.restrWideMask(&k.gen.rs.views[rec.view], sl) & 0x1f)
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	s.manaTapped(k, sl)
+	if !s.floatRestrOnly(k, p, sl, ab, col, max(ab.ManaN, 1)) {
+		s.capFull(StallRestrSrc) // never a silent spill
 	}
 }
 

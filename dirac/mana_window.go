@@ -334,6 +334,8 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				} else if m := s.windowSrcMask(k, sl) & want; m != 0 {
 					col = bits.TrailingZeros8(m)
 				}
+			} else if c, ok := s.windowGrantFirstCol(k, p, sl, useful); ok {
+				col = c // the unsettled generic keeps every colour: the grant that makes the owed pip is listed first (mana_grantfirst.go)
 			}
 		}
 		sacOnly := windowSacOnly(k, pc) // printed or granted (mana_grantcost.go)

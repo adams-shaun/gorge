@@ -13,6 +13,7 @@ Ambrosia Whiteheart
 Ashe, Princess of Dalmasca
 Auron's Inspiration
 Balamb Garden, SeeD Academy
+Balamb T-Rexaur
 Balthier and Fran
 Bard's Bow
 Baron, Airship Kingdom
@@ -96,6 +97,7 @@ Haste Magic
 Hecteyes
 Hill Gigas
 Hope Estheim
+Ice Flan
 Ice Magic
 Ignis Scientia
 Il Mheg Pixie
@@ -130,6 +132,7 @@ Magic Pot
 Magitek Armor
 Magitek Infantry
 Magitek Scythe
+Malboro
 Midgar, City of Mako
 Minwu, White Mage
 Monk's Fist
@@ -171,6 +174,7 @@ Rook Turret
 Rosa, Resolute White Mage
 Rufus Shinra
 Rydia's Return
+Rydia, Summoner of Mist
 Sabotender
 Sage's Nouliths
 Sahagin

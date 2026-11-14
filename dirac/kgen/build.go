@@ -2140,6 +2140,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefTaxedAttacker, nil
 	case rTriggerOpps:
 		return kop.RefTriggerOpponents, nil
+	case rResChosenPlayer:
+		return kop.RefResChosenPlayer, nil
 	case rSrcOwner:
 		return kop.RefSrcOwner, nil
 	case rTriggeredOwner:

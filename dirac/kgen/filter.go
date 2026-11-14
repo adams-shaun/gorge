@@ -501,6 +501,17 @@ func parseFilter(expr string, knownSub, isType func(string) bool) (*lFilter, err
 	if expr == "" {
 		return nil, fmt.Errorf("empty filter")
 	}
+	// gorge's spec normalisation reads a WHOLE spec of exactly "Self" or
+	// "Other" as "Card.Self"/"Card.Other" (effects/filter.go): the bare
+	// word is not a base, so without it the spec fails closed as an
+	// unknown head -- Forge's SacValid$ Self (Tresserhorn's Lord,
+	// Returned's own sacrifice) is the corpus carrier. The normalisation
+	// sits here, the one home every lc.filter call -- a probe of an unread
+	// param included -- shares, so the census cannot disagree with a real
+	// reader about the spelling.
+	if expr == "Self" || expr == "Other" {
+		expr = "Card." + expr
+	}
 	f := &lFilter{}
 	for _, alt := range splitAlternatives(expr, isType) {
 		alt = strings.TrimSpace(alt)
@@ -704,6 +715,23 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// as one code, so the resolution's player targets -- read as
 		// OwnedBy on the candidate's owner
 		return c.setWho(&c.Owner, whoTgtPlayer) // off the battlefield only (ownerRoleF2)
+	case "ControlledBy Player.targetedBy":
+		// Forge PlayerProperty.targetedBy (PlayerProperty.java): the
+		// player the resolving ability's ROOT is targeting -- the
+		// resolution's player targets for a spell chain and the firing
+		// trigger's target in one (Kuroki, Thief of Talents' DB$ Play
+		// Valid$ Card.ControlledBy Player.targetedBy, the corpus's only
+		// carrier). Same referent as gorge's controlReferentPlayers
+		// "Targeted"/"TargetedPlayer" code, so it lowers onto the
+		// TargetedPlayerCtrl shape (whoTgtPlayer); the kernel reads that
+		// through a battlefield-only Flags2 bit (build.go), where owner
+		// and controller are the same seat only on the battlefield.
+		// gorge's own classifier does not read the spelling yet
+		// (UnknownPredicates; effects owned_by_player_notedfor_test.go
+		// keeps the scope boundary), and no carrier reaches a kop op with
+		// it: Kuroki's node refuses on ConditionCheckSVar, and a hand
+		// filter refuses off the battlefield before a bit is set.
+		return c.setWho(&c.Ctrl, whoTgtPlayer)
 	}
 	if p == "IsSolved" || p == "!IsSolved" {
 		// a Case's solved designation (CR 719.3b; gorge filter.go IsSolved:
