@@ -174,8 +174,8 @@ func (lc *lowerCtx) animateChosenLandType(ps *params, obj lRef) error {
 		if landSet {
 			// CR 305.7: the land's land types become the chosen one and it
 			// loses its rules-text abilities, keeping the intrinsic mana
-			// ability of the type (kop.Override.LandSet)
-			r.LandSet, r.LoseAbilities = true, true
+			// ability of the type (kop.Override.SetLandSub)
+			r.SetLandSub, r.LoseAbilities = true, true
 		}
 		r.AddSubtypes = []string{w}
 		lc.out.overrides = append(lc.out.overrides, &r)

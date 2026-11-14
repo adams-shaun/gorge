@@ -565,6 +565,10 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			s.attachPickOptions(k, d, r.pc, r.askP) // tgt_attachpick.go
 			break
 		}
+		if s.prog(k)[r.pc].C == chooseAttachDest {
+			s.attachDestScan(k, r.pc, r.askP, d) // tgt_attachdest.go
+			break
+		}
 		if s.prog(k)[r.pc].C == choosePutCounterPick {
 			d.Sub = ChGenBolster // gorge's counter_pick
 		}

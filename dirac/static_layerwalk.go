@@ -285,8 +285,8 @@ func lfxApply4(k *prep, e *lfx, c *dchars) {
 	if o.RemoveCreatureSub && !DebugRmCreatSubKeep {
 		c.subs, c.all = c.subs.AndNot(k.gen.creatSub), false
 	}
-	if o.LandSet {
-		c.subs = c.subs.AndNot(k.gen.landSub)
+	if o.SetLandSub {
+		c.subs = c.subs.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
 	}
 	c.subs = c.subs.Or(o.AddSub)
 	if ovrAllCreat(o) {
@@ -762,7 +762,7 @@ func prepLayerWalk(t *kop.Table, g *genPrep) {
 			return false
 		}
 		ov := &t.Overrides[o-1]
-		return ov.HasTypes || ov.HasSub || ov.RemoveCreatureSub || ov.LandSet || ov.RemoveTypes != 0
+		return ov.HasTypes || ov.HasSub || ov.RemoveCreatureSub || ov.RemoveTypes != 0
 	}
 	var grantOther, setAny, setOtherKeep bool
 	var grantSelf, setSelf []bool

@@ -2208,7 +2208,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 	case "ChooseCard":
 		return lc.chooseCard(ps)
 	case "ChoosePlayer":
-		return lc.choosePlayer(ps) // lower_definedheads.go
+		return lc.choosePlayer(ps, chainReadsChosenPlayer(sa.Sub)) // lower_definedheads.go, lower_chooseplayermid.go
 	case "GenericChoice":
 		return lc.genericChoice(ps)
 	case "ChangeText":

@@ -42,6 +42,7 @@ AttToCreature	untyped int	1
 AttToLand	untyped int	2
 AttToOther	untyped int	4
 AttToYouCtrl	untyped int	8
+AttacksOpponent	untyped int	1
 B	untyped int	2
 BecomeCopyCtr	untyped int	1
 BncDelayedMany	untyped int	8192
@@ -310,6 +311,8 @@ DmgMarkBySource	untyped int	1
 DmgNE	DmgCmp	4
 DmgNoRegen	untyped int	32
 DmgNoRegenTarget	untyped int	128
+DmgRedirectNext	untyped int	1
+DmgRedirectScope	untyped int	2
 DmgRemember	untyped int	8
 DmgTrackExcess	untyped int	1
 DpGroup	untyped int	1
@@ -474,6 +477,7 @@ ExtChooseName	ExtOp	251
 ExtChooseNumber	ExtOp	230
 ExtChooseNumberMid	ExtOp	303
 ExtChoosePlayer	ExtOp	299
+ExtChoosePlayerMid	ExtOp	290
 ExtChoosePlayerRes	ExtOp	12
 ExtClearImprinted	ExtOp	257
 ExtCloneCopy	ExtOp	81
@@ -492,6 +496,7 @@ ExtDigImprint	ExtOp	282
 ExtDistCounters	ExtOp	310
 ExtDividedCounters	ExtOp	30
 ExtDmgMark	ExtOp	317
+ExtDmgRedirect	ExtOp	293
 ExtDrainMana	ExtOp	40
 ExtDrawUpto	ExtOp	309
 ExtEachDamage	ExtOp	2
@@ -1092,6 +1097,7 @@ RefTriggerOpponents	Ref	247
 RefTriggerPlayer	Ref	10
 RefTriggerSource	Ref	21
 RefTriggerTgtCtrl	Ref	33
+RememberAllObjOrder	untyped int	1
 RepeatEachSeatOrder	untyped int	2
 ReplAddCountersOn	ReplKind	21
 ReplAddToken	ReplKind	35

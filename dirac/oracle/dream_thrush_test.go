@@ -17,7 +17,7 @@ import (
 // rules text generates and keeps the intrinsic mana ability of the type it was
 // set to (CR 305.6). The kernel lowers it to OpChooseType B =
 // kop.ChooseTypeBasicLand and an OvChosenType override over five kop.Override
-// LandSet records (act_choosebasicland.go, static_landset.go). Each deck holds
+// SetLandSub records (act_choosebasicland.go, static_landtypesetter.go). Each deck holds
 // colours only a set land can pay for (Savannah Lions without a Plains).
 var dreamThrushDecks = [2][]cardset.Entry{
 	{
@@ -88,14 +88,14 @@ func TestDreamThrushLowers(t *testing.T) {
 
 // TestDreamThrushMutation: the lockstep catches the kernel applying a fixed
 // type's record (Forest) whatever was chosen, and the kernel taking the set
-// land's intrinsic mana ability away with its printed ones.
+// land keep its printed mana abilities beside the intrinsic one.
 func TestDreamThrushMutation(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		flag *bool
 	}{
 		{"fixed-type", &dirac.DebugChosenLandTypeFirst},
-		{"no-intrinsic", &dirac.DebugLandSetLosesMana},
+		{"own-mana", &dirac.DebugLandSetOwnMana},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			old := *tc.flag

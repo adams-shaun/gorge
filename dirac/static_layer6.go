@@ -166,7 +166,11 @@ func (s *State) l6Walk(k *prep, sl Slot, w *l6walk) (kw kop.KwMask, lts uint16, 
 		if e.a == nil {
 			w.l6add(l6e{add: o.AddKw, rem: o.RemoveKw, lose: o.LoseAbilities, ts: lossTs(o, e.ts), kind: l6Rec, reps: e.reps})
 		} else if s.lfxLocked(k, sl, e, &c) {
-			w.l6add(l6e{add: o.AddKw, rem: o.RemoveKw, lose: o.LoseAbilities, ts: e.ts, kind: l6Stat, reps: 1})
+			ts := e.ts
+			if o.SetLandSub {
+				ts = 0 // a land-type setter's loss is layer 4's: a granted keyword survives it (static_landtypesetter.go)
+			}
+			w.l6add(l6e{add: o.AddKw, rem: o.RemoveKw, lose: o.LoseAbilities, ts: ts, kind: l6Stat, reps: 1})
 		}
 	}
 	// the Continuous statics' grants and removals
@@ -360,7 +364,9 @@ func (s *State) loss6(k *prep, sl Slot) (ts uint16, lost bool) {
 		}
 		if e.a == nil || s.lfxLocked(k, sl, e, &c) {
 			lost = true
-			ts = max(ts, e.ts)
+			if !e.o.SetLandSub {
+				ts = max(ts, e.ts) // a land-type setter's loss is layer 4's: no timestamp (static_landtypesetter.go)
+			}
 		}
 	}
 	return ts, lost

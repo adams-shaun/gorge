@@ -144,6 +144,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +16 (the merge with land at 1acc5919d9: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering beside land's later work; merged ALL 23115 -> 23131, WOE stays 264 measured).
 	// +14 (the merge with land at 6014a11d54: this branch's Extort lowering, the printed K:Extort expansion and the granted trigger, beside land's 23177; merged ALL 23177 -> 23191 measured).
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
+	// +6 (the Effect DamageDone redirect replacements lowered as OpExt ExtDmgRedirect: the en-Kor family's DB$ ReplaceSplitDamage, Nomads en-Kor, Warrior en-Kor, Lancers en-Kor, Spirit en-Kor and Zealous Inquisitor, and Gideon's Sacrifice's DB$ ReplaceEffect VarName$ Affected; Outrider en-Kor (Flanking), Shaman en-Kor (ChooseSource) and Zhalfirin Crusader (Flanking, a player target) stay refused; ALL merged against land 23657 -> 23663, MBC 1775 -> 1778 measured).
 	// +40 (the MBC keywords-2 family: granted intimidate and infect, a static's Static.Evasion / Static.Infect or a Pump / PumpAll ExtKwMark, Akroan Line Breaker, Bellowing Tanglewurm, Cavern Lampad, Corrupted Conscience, Dreadbringer Lampads, Executioner's Hood, Glistening Oil, Grisly Transformation, Gruesome Deformity, Guul Draz Vampire, Hideous Visage, Korozda Guildmage, Pestilent Souleater, Phyresis, Shadow Alley Denizen, Surrakar Marauder, Tainted Strike, Triumph of the Hordes, Vector Asp, Vela the Night-Clad, Vow of Malice, Warchanter of Mogis; printed bloodthirst over ExDmgOppsTaken, Battering Wurm, Blood Ogre, Bloodrage Vampire, Bloodscale Prowler, Carnage Wurm, Duskhunter Bat, Furyborn Hellkite, Ghor-Clan Savage, Gorehorn Minotaurs, Gristleback, Lurking Crocodile, Petrified Wood-Kin, Rabble-Rouser, Scab-Clan Mauler, Skarrgan Pit-Skulk, Skarrgan Skybreaker, Stormblood Berserker, Vampire Outcasts; ALL 23253 -> 23293 measured).
 	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
 	// +1 (ChooseType Type$ Basic Land and its Types$ ChosenType Animate in addition to the land's types: Navigator's Compass; ALL 23347 -> 23348 measured).
@@ -154,8 +155,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (a GenericChoice whose bodies are DB$ ChangeText lowers to OpExt ExtChangeText, a no-op unless the target face reads the from word: Mind Bend and Whim of Volrath; ALL merged against land 23728 -> 23730, MBC 1797 -> 1798 (Mind Bend) measured).
 	// +17 (Level up lowers (CR 702.87a): kwLevelUp's sorcery-speed PutCounter LEVEL line, kop.CtrLevelUp, and the two-sided level band IsPresent$ Card.Self+counters_GEa_LEVEL+counters_LEb_LEVEL as two Self presence tests: Brimstone Mage, Caravan Escort, Enclave Cryptologist, Guul Draz Assassin, Hada Spy Patrol, Hedron Field Purists, Ikiral Outrider, Joraga Treespeaker, Kargan Dragonlord, Kazandu Tuskcaller, Knight of Cliffhaven, Nirkana Cutthroat, Null Champion, Skywatcher Adept, Student of Warfare, Transcendent Master, Under Construction Skyscraper; ALL 23253 -> 23270, MBC 1678 -> 1683 measured).
 	// +41 (this branch's lowerings merged against land 23802 -> 23843 measured).
-	// +12 (the merge with land at 1c3765bafc: this branch's Hand,Graveyard sweep beside an activated Cost$, the DefinedPlayer$ graveyard pick and the ChooseType basic-land answer beside land's level-up, ChangeText and CantHaveKeyword work; ALL 23952 -> 23964, DMU 200 -> 201, MBC 1847 -> 1848 measured).
-	"ALL": {23964, 34442},
+	// +12 (the merge with land at 78f6320a39: this branch's Hand,Graveyard sweep beside an activated Cost$, the DefinedPlayer$ graveyard pick and the ChooseType basic-land answer, with its RemoveLandTypes$ Animate on land's SetLandSub setter; ALL 23968 -> 23980, MBC 1854 -> 1855 measured).
+	"ALL": {23980, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {221, 280},
@@ -175,7 +176,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// listed 2188 -> 2195: the list is held to what an MBC pack deals (setdata TestMBCSetlistIsItsDealtNames); the seven
 	// blocking/targeting cards gorge now plays (Balduvian Warlord, Gorm the Great, Ophidian ...) do not lower yet.
 	// MBC +5 (Level up: Enclave Cryptologist, Knight of Cliffhaven, Joraga Treespeaker, Nirkana Cutthroat, Hada Spy Patrol; 1678 -> 1683).
-	"MBC": {1848, 2195},
+	"MBC": {1855, 2195},
 	"MKM": {252, 279},
 	"MOM": {205, 296},
 	"MSH": {247, 276},
