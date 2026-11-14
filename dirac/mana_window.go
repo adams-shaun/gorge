@@ -275,7 +275,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				continue
 			}
 			if a, ok := s.riderAbilityOf(k, sl); ok && (s.scriptTapsDefer(k, p).has(sl) ||
-				!potential && s.riderActivatable(k, p, sl, a)) {
+				s.riderActivatable(k, p, sl, a)) {
 				ans := 0
 				if !a.ManaEach && (uint8(a.ManaColors) == uint8(kop.ColAny) || a.AFlags&kop.AfManaChoice != 0) {
 					pc := s.manaPCGen(k, sl)
@@ -431,8 +431,10 @@ func (s *State) restrPoolAdmits(k *prep, p uint8) uint8 {
 // so the walk takes it here and riderGap pays its counter, mana and rider
 // (mana_rider.go) -- in the paying cast's window, a ward or unless window
 // (payWindow) and their census probes (windowAffordsTake) alike. The
-// potential route (a trigger-cost window, windowTapNoOwed) keeps the
-// planner's tier.
+// potential route (a trigger-cost window, windowTapNoOwed) takes it too:
+// gorge's trigger-cost ask prices the payer's potential mana, whose walk
+// counts the rider's activation, so the elected pay funds it here the same
+// way (mana_rider.go).
 func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost, clamp, anyColor, takeDeferred, potential bool) (sl Slot, gap bool) {
 	want, decided := uint8(0), false
 	var tapsDef slotMask
@@ -446,7 +448,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		if s.buildLive() && s.bld().pickN != 0 && s.waterbendPicked(s.perms[o].obj) {
 			continue // a waterbend pick cannot also pay the mana (gorge convokeCommitted)
 		}
-		if !potential && k.gen != nil && k.gen.anyManaRider {
+		if k.gen != nil && k.gen.anyManaRider {
 			c := s.cardAt(o)
 			if a, ok := s.riderAbilityOf(k, o); ok && int(k.cards[c].manaAb) == int(k.riderAbOf(c)) && s.riderActivatable(k, p, o, a) {
 				mask := uint8(a.ManaColors)
@@ -800,6 +802,12 @@ func (s *State) windowColOwed(k *prep, p uint8, cost, owed *kop.ManaCost, sl Slo
 		// payment, so the answer is its lowest colour option whatever
 		// the window owes (mana_pain.go)
 		col = bits.TrailingZeros8(uint8(pc.painCol))
+		if pc.painLife && bits.OnesCount8(uint8(pc.painCol)&0x1f) == 1 && uint8(pc.painCol)&^0x1f == 0 {
+			// a life-cost ability of one fixed colour (Ramunap Ruins' {R})
+			// lists no mana symbol, like Starting Town's, so the window's
+			// answer takes the first listed ability, the plain {C} (CR 605.3b)
+			col = kop.C
+		}
 		if pc.painCol == kop.ColAny {
 			// Starting Town: the any-colour ability lists no symbol. A fixed
 			// pip still owed makes the ability ask take it (owedAbilitiesFirst);
@@ -1077,9 +1085,7 @@ func (s *State) riderOfferable(k *prep, p uint8) bool {
 		return false
 	}
 	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
-		sl := m.first()
-		c := s.cardAt(sl)
-		if a, ok := s.riderAbilityOf(k, sl); ok && int(k.cards[c].manaAb) == int(k.riderAbOf(c)) && s.riderActivatable(k, p, sl, a) {
+		if s.riderPotential(k, p, m.first()) {
 			return true
 		}
 	}
@@ -1273,9 +1279,13 @@ func (s *State) poolProj(p uint8) [kop.NumManaKinds]uint8 {
 // restrOptions is p's plain priority walk at a node of gorge's prefix search:
 // the search prices a play through the planner, which reads the floating pool
 // through the restriction (pay.PlanPool), so restricted mana counts exactly
-// when this play may spend it.
+// when this play may spend it. The planner's verdict is a payment, not a new
+// activation: p's this-turn Exhaust fact is read as at the search's root
+// (static_turnbits.go withRootExhaust).
 func (s *State) restrOptions(k *prep, d *Decision, p uint8) {
+	saved := s.withRootExhaust(p)
 	s.plainOptions(k, d, 0)
+	s.g.turnF = saved
 }
 
 // pendListenerOrder sorts the triggers queued since lo into listener order
@@ -2272,6 +2282,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 	}
 	var av avail
 	s.availFor(k, p, &av)
+	printedPays := false
 	if any != 0 || anyColor {
 		// gorge prices the printed symbols on its census, which has no
 		// granted source (rules potentialModeCastPlan: the rider only when
@@ -2285,6 +2296,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		}
 		ok := pv.affords(&cost, pipMaskOf(&cost), 0)
 		if anyColor {
+			printedPays = ok // gorge's witness plans the printed symbols when they are payable, the rider's generic price only otherwise
 			ok = pv.affordsAnyColor(&cost, 0)
 		}
 		if !ok && !anyColor && k.restrSrc && s.bld().e.kind == seSpell {
@@ -2400,15 +2412,16 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		x = 0
 	}
 	untapped := s.untappedRestrSrcs(k, p)
+	tapColor := anyColor && !printedPays // the printed symbols the census pays are planned as printed (CR 609.4b lets either tap pay)
 	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd && cost.Hyb[0] == 0 && !s.anyRestrEach(k, untapped) {
-		if !s.tapForSpellTaps(k, p, &cost, x, excl, anyColor) {
-			s.tapForRider(k, p, &cost, x, excl, anyColor)
+		if !s.tapForSpellTaps(k, p, &cost, x, excl, tapColor) {
+			s.tapForRider(k, p, &cost, x, excl, tapColor)
 		}
 		return
 	}
 	pool := s.pl[p].pool
 	var pk planner
-	s.tapForPK(k, p, &cost, x, excl, false, anyColor, &pk)
+	s.tapForPK(k, p, &cost, x, excl, false, tapColor, &pk)
 	s.witnessManaRestricted(k, p, &pool, untapped, &pk)
 }
 

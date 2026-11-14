@@ -243,7 +243,7 @@ var drawKnownKeys = [...]string{
 	"UnlessResolveSubs",
 	"UnlessSwitched",
 	"Upto",
-	"ValidCard",
+	"ValidAfterStack", "ValidCard",
 	"ValidCards",
 	"ValidCardsDesc",
 	"ValidChoices",

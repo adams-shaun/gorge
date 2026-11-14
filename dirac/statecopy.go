@@ -2,6 +2,8 @@ package dirac
 
 import (
 	"slices"
+	"strings"
+	"sync"
 	"unsafe"
 )
 
@@ -31,141 +33,6 @@ func (dst *State) CopyFrom(src *State) {
 // SameGame reports whether s and t hold the same game.
 func (s *State) SameGame(t *State) bool {
 	return s.stateCore == t.stateCore && s.perms == t.perms && slices.Equal(s.cold.buf, t.cold.buf)
-}
-
-// coldArrays are the arrays only some tables' cards reach. Each is a view of
-// buf, one allocation per State, as long as the table's coldLayout says and
-// empty when no card reaches it. An element type must hold no pointers: buf is
-// a []uint64, which the garbage collector does not scan.
-type coldArrays struct {
-	layout   *coldLayout
-	buf      []uint64
-	ms       []slotMask   // slot-width mechanic masks (arenaAssign)
-	mo       []objBits    // object-width mechanic masks
-	exw      []exwRec     // exiled-with links
-	atkGrp   []objBits    // attacker groups; stackEntry.grp - 1 indexes it
-	exH      []exhRec     // until-end-of-turn can't-be-blocked-except records
-	entered  []zoneEntry  // this turn's zone entries, in add order
-	exMark   []exMarkRec  // this turn's exile-instead-of-dying effects
-	parked   []parkedMove // moves waiting on a replacement order ask
-	castRing []castPush   // this turn's spell pushes, castRingN per player
-	discHeld []Obj        // the earlier players' discards while the next chooses
-	copyHeld []copyHold   // the resolution waiting on its copy's election
-	mk       []uint8      // per battlefield slot: multikicker payments of the permanent's spell (CR 702.43)
-	mkObj    []uint8      // per object: the multikicker payments of the spell on the stack (CR 702.43)
-	hexUB    []uint16     // per-slot timestamp of the mechHexUB grant (repl_turnrepl.go)
-}
-
-// coldLayout is the lengths of a table's cold arrays.
-type coldLayout struct {
-	ms, mo, exw, atkGrp, exH, entered, exMark, parked, castRing, discHeld, copyHeld int
-	hexUB                                                                           int // the marking record's timestamp per battlefield slot (0: unmarked)
-	xblk                                                                            int // xblkRec per battlefield slot, after the creature-counter record (combat_extrablock.go)
-	may                                                                             int // mayPlay records past maxMay; the first thing in the buffer (cast_maycold.go)
-	emb                                                                             int // embRec records for emblems past maxEmb, both players; right after the may records (static_emblemcold.go)
-	ctrP                                                                            int // creature counter-plus-one records (0 or 1: plusCreRec), right after the emblem records (repl_turnrepl.go)
-	partner                                                                         int // cmdPartner records (0 or 1), right after the xblk records (zone_cmdpartner.go)
-	atkLast                                                                         int // per-seat attacked-defender bytes (0 or MaxSeats), right after the partner records (trig_atklastturn.go)
-	mk                                                                              int // multikicker counts per slot (CR 702.43; cast.go)
-	mkObj                                                                           int // multikicker counts per object while on the stack (cast.go)
-	words                                                                           int
-}
-
-// prepCold sizes the arrays by the flags that cover their writers: exwPut's
-// callers, grpNew's caller, ExtExHaste, noteEnter, noteCast and OpDiscard. A full exw, exH,
-// atkGrp, entered or castRing stalls by name, and an empty exw or exH is simply full.
-func prepCold(g *genPrep, l *coldLayout) {
-	if g.anyExW || g.anyFaceExile {
-		l.exw = maxExw
-	}
-	if g.anyTriggerAttackers || g.anyBatchPool {
-		l.atkGrp = maxAtkGrp
-	}
-	if g.anyExHaste {
-		l.exH = maxExH
-	}
-	if g.enteredNeed {
-		l.entered = maxEntered
-	}
-	if g.ix[mechExileEx] != arenaNone || g.anyTurnScope {
-		l.exMark = maxExMarks
-	}
-	if g.ix[mechExileEx] != arenaNone || g.anyRepl&rbExileOnLeave != 0 {
-		l.parked = maxParked
-	}
-	if g.castRingOn || g.anyParadigm {
-		l.castRing = MaxSeats * castRingN
-	}
-	if g.anyDiscard {
-		l.discHeld = discHeldLen
-	}
-	if g.anyCopyElect {
-		l.copyHeld = 1
-	}
-	if g.anyMayCold {
-		l.may = maxMayCold
-	}
-	if g.anyEmbCold {
-		l.emb = MaxSeats * maxEmbCold
-	}
-	if g.anyPlusCre {
-		l.ctrP = 1
-	}
-	if g.anyExtraBlock {
-		l.xblk = MaxPerm
-	}
-	if g.anyMultikick {
-		l.mk = MaxPerm
-		l.mkObj = MaxObj
-	}
-	if g.anyHexUB {
-		l.hexUB = MaxPerm
-	}
-	if g.anyAtkLast {
-		l.atkLast = MaxSeats
-	}
-}
-
-// place points c's arrays into b, or just counts them if b is nil, and returns
-// the words they take.
-func (l *coldLayout) place(c *coldArrays, b []uint64) int {
-	at := 0
-	_ = coldView[mayPlay](b, &at, l.may)        // first: mayCold reads it at the buffer start
-	_ = coldView[embRec](b, &at, l.emb)         // next: embCold finds it after the may records
-	_ = coldView[plusCreRec](b, &at, l.ctrP)    // then plusCreCold, after the emblem records
-	_ = coldView[xblkRec](b, &at, l.xblk)       // then xblkRecs, after the counter record
-	_ = coldView[cmdPartner](b, &at, l.partner) // then partnerCold, after the xblk records
-	_ = coldView[uint8](b, &at, l.atkLast)      // then atkLastCold, after the partner records
-	c.ms = coldView[slotMask](b, &at, l.ms)
-	c.mo = coldView[objBits](b, &at, l.mo)
-	c.exw = coldView[exwRec](b, &at, l.exw)
-	c.atkGrp = coldView[objBits](b, &at, l.atkGrp)
-	c.exH = coldView[exhRec](b, &at, l.exH)
-	c.entered = coldView[zoneEntry](b, &at, l.entered)
-	c.exMark = coldView[exMarkRec](b, &at, l.exMark)
-	c.parked = coldView[parkedMove](b, &at, l.parked)
-	c.castRing = coldView[castPush](b, &at, l.castRing)
-	c.discHeld = coldView[Obj](b, &at, l.discHeld)
-	c.copyHeld = coldView[copyHold](b, &at, l.copyHeld)
-	c.mk = coldView[uint8](b, &at, l.mk)
-	c.mkObj = coldView[uint8](b, &at, l.mkObj)
-	c.hexUB = coldView[uint16](b, &at, l.hexUB)
-	return (at + 7) / 8
-}
-
-// size fills l.words from the lengths.
-func (l *coldLayout) size() { l.words = l.place(new(coldArrays), nil) }
-
-func coldView[T any](b []uint64, at *int, n int) []T {
-	var v T
-	// at counts bytes: each view starts at its element's alignment, and only
-	// the whole buffer rounds up to a word (place)
-	p := (*at + int(unsafe.Alignof(v)) - 1) &^ (int(unsafe.Alignof(v)) - 1)
-	*at = p + n*int(unsafe.Sizeof(v))
-	if b == nil || n == 0 {
-		return nil
-	}
-	return unsafe.Slice((*T)(unsafe.Add(unsafe.Pointer(&b[0]), p)), n)
 }
 
 var noCold coldLayout
@@ -206,6 +73,11 @@ func (s *State) resetCold(l *coldLayout) {
 type ForkPool struct {
 	forks []*State
 	depth int
+	// rootF[i] is the per-player turn facts (genState.turnF) of the State
+	// that is no fork which forks[i] descends from, as they stood when its
+	// outermost fork was taken: the search root's (static_turnbits.go
+	// rootTurnF).
+	rootF []uint8
 }
 
 // warmForkDepth is past the deepest nesting measured, 5 in random play.
@@ -213,7 +85,7 @@ const warmForkDepth = 8
 
 // NewForkPool returns a pool that will not allocate for any measured nesting.
 func NewForkPool() *ForkPool {
-	p := &ForkPool{forks: make([]*State, warmForkDepth)}
+	p := &ForkPool{forks: make([]*State, warmForkDepth), rootF: make([]uint8, warmForkDepth)}
 	for i := range p.forks {
 		p.forks[i] = &State{pool: p}
 	}
@@ -237,8 +109,11 @@ func (s *State) fork() *State {
 		f := new(State)
 		f.pool = p
 		p.forks = append(p.forks, f)
+		p.rootF = append(p.rootF, 0)
 	}
+	root := s.rootTurnF()
 	f := p.forks[p.depth]
+	p.rootF[p.depth] = root
 	p.depth++
 	f.CopyFrom(s)
 	return f
@@ -246,3 +121,252 @@ func (s *State) fork() *State {
 
 // unfork releases the most recent fork of s or of a State sharing its pool.
 func (s *State) unfork() { s.pool.depth-- }
+
+// The cold buffer. Arrays only some tables' cards reach live in one []uint64
+// per State, laid out per table. Each array is a cold region, registered by
+// the file of the feature that owns it, in a package-level var:
+//
+//	var coldAtkLast = newCold[uint8]("atkLast", func(g *genPrep) int { ... })
+//
+// and read through coldAtkLast.of(s). A new region touches no shared file:
+// the registry orders the regions itself (coldRegistry.seal), so neither the
+// order the files initialise in nor the order regions are added in reaches
+// the layout.
+
+// coldArrays is a State's cold buffer and the views of it that hot paths read
+// without going through the layout: a region bound with view keeps one here
+// (a slice header, so a new one grows State; TestStateLayoutPinned). An
+// element type must hold no pointers: buf is a []uint64, which the garbage
+// collector does not scan (TestColdArraysHoldNoPointers).
+type coldArrays struct {
+	layout *coldLayout
+	buf    []uint64
+	// slot-width mechanic masks (arena.go arenaAssign)
+	ms []slotMask
+	// object-width mechanic masks (arena.go)
+	mo []objBits
+	// exiled-with links (zone_exiledwith.go)
+	exw []exwRec
+	// attacker groups; stackEntry.grp - 1 indexes it (trig_attackers.go)
+	atkGrp []objBits
+	// until-end-of-turn can't-be-blocked-except records (static_cantblockexcept.go)
+	exH []exhRec
+	// this turn's zone entries, in add order (value_enteredledger.go)
+	entered []zoneEntry
+	// this turn's exile-instead-of-dying effects (repl_exilemark.go)
+	exMark []exMarkRec
+	// moves waiting on a replacement order ask (repl_exilemark.go)
+	parked []parkedMove
+	// this turn's spell pushes, castRingN per player (cast_castledger.go)
+	castRing []castPush
+	// the earlier players' discards while the next chooses (act_eachdiscard.go)
+	discHeld []uint8
+	// the resolution waiting on its copy's election (copy_gen.go)
+	copyHeld []copyHold
+	// per battlefield slot: multikicker payments of the permanent's spell (CR 702.43; kw_multikicker.go)
+	mk []uint8
+	// per object: the multikicker payments of the spell on the stack (CR 702.43; kw_multikicker.go)
+	mkObj []uint8
+	// per-slot timestamp of the mechHexUB grant (repl_turnrepl.go)
+	hexUB []uint16
+}
+
+// maxCold is how many regions the registry holds; registering one more panics
+// at start-up.
+const maxCold = 64
+
+// coldLayout is where a table's cold regions sit in the buffer, by registry
+// position: n elements at byte offset off. set fills n, size the rest.
+type coldLayout struct {
+	n   [maxCold]int32
+	off [maxCold]int32
+	// the perSlot regions laid out, nslot of them (arenaClrSlot)
+	slot  [maxCold]coldSlotSpan
+	nslot int
+	words int
+}
+
+// coldSlotSpan is a perSlot region: n records of sz bytes at off.
+type coldSlotSpan struct{ off, sz, n int32 }
+
+// coldDesc describes one region.
+type coldDesc struct {
+	key         string
+	pos         int // its index in the sealed order (coldLayout.n)
+	size, align int
+	need        func(g *genPrep) int
+	bind        func(c *coldArrays, p unsafe.Pointer, n int) // nil: no view in coldArrays
+	slotReset   bool
+	zero        any // a zero element, for TestColdArraysHoldNoPointers
+	reg         *coldRegistry
+}
+
+// coldRegion is the handle a feature reads its region through.
+type coldRegion[T any] struct{ *coldDesc }
+
+// coldRegistry holds the regions. seal sorts them by alignment, widest
+// first (no padding between them), then by key; keys are unique.
+type coldRegistry struct {
+	descs  []*coldDesc
+	once   sync.Once
+	sealed bool
+}
+
+// coldRegs is the package's registry.
+var coldRegs coldRegistry
+
+// newCold registers a region of T, need(g) elements long in a table whose
+// generated prep is g (prepCold; a table with none has no regions; a nil need
+// leaves the length to whoever lays the table out, as zone_cmdpartner.go's
+// does). Call it only from a package-level var declaration.
+func newCold[T any](key string, need func(g *genPrep) int) *coldRegion[T] {
+	return coldRegister[T](&coldRegs, key, need)
+}
+
+func coldRegister[T any](r *coldRegistry, key string, need func(g *genPrep) int) *coldRegion[T] {
+	if r.sealed {
+		panic("dirac: cold region " + key + " registered after the layout was sealed")
+	}
+	var v T
+	d := &coldDesc{key: key, size: int(unsafe.Sizeof(v)), align: int(unsafe.Alignof(v)), need: need, zero: v, reg: r}
+	r.descs = append(r.descs, d)
+	return &coldRegion[T]{d}
+}
+
+// view binds the region to a coldArrays field, which layOut points at it.
+func (r *coldRegion[T]) view(f func(c *coldArrays) *[]T) *coldRegion[T] {
+	r.bind = func(c *coldArrays, p unsafe.Pointer, n int) {
+		if n == 0 {
+			*f(c) = nil
+			return
+		}
+		*f(c) = unsafe.Slice((*T)(p), n)
+	}
+	return r
+}
+
+// perSlot marks a region indexed by battlefield slot: arenaClrSlot zeroes a
+// slot's record when the slot takes a new permanent.
+func (r *coldRegion[T]) perSlot() *coldRegion[T] {
+	r.slotReset = true
+	return r
+}
+
+// seal fixes the order and each region's pos, once.
+func (r *coldRegistry) seal() {
+	r.once.Do(func() {
+		if len(r.descs) > maxCold {
+			panic("dirac: more cold regions than maxCold")
+		}
+		slices.SortFunc(r.descs, func(a, b *coldDesc) int {
+			if a.align != b.align {
+				return b.align - a.align
+			}
+			return strings.Compare(a.key, b.key)
+		})
+		for i, d := range r.descs {
+			if i > 0 && r.descs[i-1].key == d.key {
+				panic("dirac: cold region " + d.key + " registered twice")
+			}
+			d.pos = i
+		}
+		r.sealed = true
+	})
+}
+
+// of is the region in s, nil when s's table has none of it.
+func (r *coldRegion[T]) of(s *State) []T {
+	l := s.cold.layout
+	if l == nil {
+		return nil
+	}
+	n := l.n[r.pos]
+	if n == 0 {
+		return nil
+	}
+	return unsafe.Slice((*T)(unsafe.Add(unsafe.Pointer(unsafe.SliceData(s.cold.buf)), l.off[r.pos])), n)
+}
+
+// count is the region's length in l (0 for a nil l).
+func (r *coldRegion[T]) count(l *coldLayout) int {
+	if l == nil {
+		return 0
+	}
+	return int(l.n[r.pos])
+}
+
+// set makes the region n elements long in l; l.size lays it out.
+func (r *coldRegion[T]) set(l *coldLayout, n int) {
+	r.reg.seal()
+	l.n[r.pos] = int32(n)
+}
+
+// prepCold sizes every region of the package's registry for g.
+func prepCold(g *genPrep, l *coldLayout) { coldRegs.prep(g, l) }
+
+func (r *coldRegistry) prep(g *genPrep, l *coldLayout) {
+	r.seal()
+	for _, d := range r.descs {
+		if d.need != nil {
+			l.n[d.pos] = int32(d.need(g))
+		}
+	}
+}
+
+// size lays the regions out in the package's registry order.
+func (l *coldLayout) size() { coldRegs.size(l) }
+
+// size lays l's regions out in r's order. Each starts at its element's
+// alignment, and only the whole buffer rounds up to a word; an empty region
+// takes nothing, not even padding.
+func (r *coldRegistry) size(l *coldLayout) {
+	r.seal()
+	at := 0
+	l.nslot = 0
+	for _, d := range r.descs {
+		l.off[d.pos] = 0
+		n := int(l.n[d.pos])
+		if n == 0 {
+			continue
+		}
+		at = (at + d.align - 1) &^ (d.align - 1)
+		l.off[d.pos] = int32(at)
+		if d.slotReset {
+			l.slot[l.nslot] = coldSlotSpan{off: int32(at), sz: int32(d.size), n: int32(n)}
+			l.nslot++
+		}
+		at += n * d.size
+	}
+	l.words = (at + 7) / 8
+}
+
+// place points c's views into b, which holds l.words words.
+func (l *coldLayout) place(c *coldArrays, b []uint64) {
+	coldRegs.seal()
+	base := unsafe.Pointer(unsafe.SliceData(b))
+	for _, d := range coldRegs.descs {
+		if d.bind == nil {
+			continue
+		}
+		n := int(l.n[d.pos])
+		if n == 0 {
+			d.bind(c, nil, 0)
+			continue
+		}
+		d.bind(c, unsafe.Add(base, l.off[d.pos]), n)
+	}
+}
+
+// coldClrSlot zeroes slot sl's record in every perSlot region of s.
+func (s *State) coldClrSlot(sl Slot) {
+	l := s.cold.layout
+	if l == nil || l.nslot == 0 {
+		return
+	}
+	base := unsafe.Pointer(unsafe.SliceData(s.cold.buf))
+	for _, c := range l.slot[:l.nslot] {
+		if int32(sl) < c.n {
+			clear(unsafe.Slice((*byte)(unsafe.Add(base, int(c.off)+int(sl)*int(c.sz))), c.sz))
+		}
+	}
+}

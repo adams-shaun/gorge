@@ -1047,8 +1047,13 @@ func (e *Engine) candidatesForLimitInto(dst []targetCandidate, p state.PlayerID,
 	// affected census (targeting=false) does not, the same split the
 	// permanent shroud gate applies.
 	if len(zones) == 1 && zones[0] == state.ZBattlefield {
+		var vasCtx *effects.Ctx
+		if targeting {
+			vasCtx = e.validAfterStackCtx(tp.ValidAfterStack, specSrc, p)
+		}
 		for _, q := range e.G.AliveFrom(0) {
 			if e.playerTargetSpecMatches(sc, spec, q, p, specSrc) &&
+				e.playerValidAfterStackAdmits(vasCtx, tp.ValidAfterStack, q) &&
 				(!targeting || !e.playerShroudBlocksTarget(q)) &&
 				(!targeting || !e.playerHexproofBlocksTarget(q, p, protSrc)) &&
 				(!targeting || !e.playerProtectedFrom(q, protSrc)) {
