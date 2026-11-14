@@ -1184,6 +1184,22 @@ func (g *genPrep) addRestrFV(f kop.FilterID, v uint8) {
 	}
 }
 
+// addRestrPers marks registered restriction f persistent (genPrep.restrPers):
+// the DB$ Mana that floats it carries PersistentMana$ True. kgen lowers
+// CantCastNonArtifactSpells (kop.SpmNonSpell) beside persistent mana alone
+// and every other restriction beside none, so no restriction is both.
+func (g *genPrep) addRestrPers(f kop.FilterID) {
+	if kind, ok := g.restrKind(f); ok {
+		g.restrPers |= 1 << (kind - 1)
+	}
+}
+
+// restrPersKind: batch kind kind is a persistent restriction's
+// (genPrep.restrPers).
+func (g *genPrep) restrPersKind(kind uint8) bool {
+	return g.restrPers>>((kind-1)%restrKinds)&1 != 0
+}
+
 // restrKind is restriction f's batch kind (its restrF index plus one); ok
 // is false for a restriction past restrKinds, which a batch cannot name.
 func (g *genPrep) restrKind(f kop.FilterID) (uint8, bool) { return g.restrKindV(f, 0) }

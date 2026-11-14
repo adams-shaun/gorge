@@ -492,6 +492,7 @@ func (s *State) graveGreatestPower(k *prep, x *kop.Expr, ctx evalCtx) int {
 			if !s.matchCardGenAt(k, x.F, c, pp, ctx.ctrl, o, &ctx) {
 				continue
 			}
+			s.offZonePTRead(k, c, pp, o) // static_offzonept.go
 			v := int(k.cards[c].power)
 			if k.cda && k.gen != nil && k.gen.has(c, gfCDAPT) {
 				v, _, _ = s.FeatCDAPT(o)
