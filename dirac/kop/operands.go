@@ -225,6 +225,11 @@ const (
 	MvFromGraveyard    = 1 << 13   // OpExile/OpExileEx C: a trigger object's graveyard-origin exile moves only if the card is still in the graveyard (bits 11 and 12 belong to the shifted OpChangeZoneAllEx/OpReturnEx space, so this unshifted flag takes 13)
 )
 
+// AttachUnattach (OpAttach C, beside MvRemember's bit 0): Reconfigure's
+// unattach half (CR 702.151a), "unattach from a creature": the source stops
+// being attached, to nothing if it was not attached.
+const AttachUnattach = 1 << 1
+
 // SurveilRememberKept (OpSurveil C): the cards the surveil leaves on top of the
 // library join the remembered set (RememberKept$), beside MvRemember's cards put
 // into the graveyard.
@@ -723,6 +728,13 @@ const CzBattleGrave = 8
 // seat order (seat 0 first) instead of the controller first (gorge
 // tokenOwnersControllingAny walks AliveFrom(0)).
 const RepeatEachSeatOrder = 2
+
+// DmgFromEachCtrl is OpDealDamageFrom's B.N for the player mode whose
+// source is the object the enclosing OpRepeatEach binds (Obj RefEach) and
+// whose one recipient is that object's controller (gorge DealDamage
+// Defined$ RememberedController | DamageSource$ Remembered in a RepeatEach
+// card body: Rakdos Charm). B.N 1 is the trigger-object player mode.
+const DmgFromEachCtrl = 2
 
 // OpPumpAllEach's Obj bits: the amount read per creature from its own
 // derived power / toughness (NumAtt$ Double / NumDef$ Double).

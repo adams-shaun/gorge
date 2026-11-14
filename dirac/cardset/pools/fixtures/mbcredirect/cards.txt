@@ -1,0 +1,18 @@
+# Damage redirects (Nomads en-Kor, Warrior en-Kor: ExtDmgRedirect Next; Gideon's
+# Sacrifice: ExtDmgRedirect Scope) beside red burn, creatures and a lifelinker
+# (dirac/oracle/mbcredirect_test.go)
+Nomads en-Kor
+Warrior en-Kor
+Gideon's Sacrifice
+Zealous Inquisitor
+Savannah Lions
+Serra Angel
+Child of Night
+Lightning Bolt
+Shock
+Hill Giant
+Raging Goblin
+Grizzly Bears
+Plains
+Mountain
+Forest

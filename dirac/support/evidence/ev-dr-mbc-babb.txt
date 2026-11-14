@@ -18,6 +18,7 @@ Kutzil, Malamet Exemplar
 Manor Gate
 Mistmeadow Skulk
 Mountain
+Otharri, Suns' Glory
 Pick Your Poison
 Plains
 Rampant Growth
@@ -27,7 +28,9 @@ Shoreline Looter
 Snap
 Sting-Slinger
 Stir the Sands
+Surge of Salvation
 Swamp
 Take Up the Shield
 The Muckslinger Gang
 Unexpected Fangs
+Zombie Cutthroat

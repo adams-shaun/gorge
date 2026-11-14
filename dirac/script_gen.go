@@ -208,7 +208,13 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// the gaps walk's alone (one walk, not two).
 	twoLive := k.tapMana && s.tapXTwoLive(k, p) // (a live Baylen makes the census unrelaxable: gorge paymentPlanRelaxedAlternatives, no once-only cost; every walk play is searched)
 	// A fourth filter, or a dynamic one out of bounds, makes it unrelaxable too (mana_filter.go filtRelaxable).
-	relax := !s.scriptGaps(k, p).any() && !twoLive && s.filtRelaxable(k, filt)
+	// A live dead counter-cost gap (Component Pouch) is unrelaxable as well:
+	// gorge's census records it while the cost is payable and
+	// paymentPlanRelaxedAlternatives enumerates no colour for its production
+	// (potential_plan.go), so the prefix search runs on the any-mana walk and
+	// the search's slot accounting counts every insufficient play whatever it
+	// finds; the dead gap contributes no units to either walk (availCtr).
+	relax := !s.scriptGaps(k, p).any() && !twoLive && s.filtRelaxable(k, filt) && !s.deadCtrMask(k, p).any()
 	// A live repeatable fee-only filter (Nomadic Elf) has no relaxed or bounded
 	// proof in gorge either: it searches every insufficient play, and the gaps
 	// walk (one conversion per filter) cannot say which a many-times-activated
@@ -261,6 +267,9 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		if isCastKind(a.Kind()) && a.Mode()&castMayPlay == 0 && k.gen.anyOptCost && optCostCard(k, s.objs[Obj(a.Source())].card) {
 			continue // nor for an OptionalCost card: the planner declines it (shape:optional_cost, cost_optional.go); a may-play cast it composes (potentialModeCastPlan)
 		}
+		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&castMayPlay == 0 && k.t.Cards[s.objs[Obj(a.Source())].card].HasMultikicker {
+			continue // nor for a Multikicker card's plain cast: gorge's planner declines the face (payment_plan.go "shape:optional_cost"), so a plain cast only a census gap pays is not offered (Gnarlid Pack beside Jaspera Sentinel); the multikicked cast keeps its own offer gate (legal_walk_hand.go phMultikicker)
+		}
 		if s.objPartCast(k, a) && !k.t.Cards[s.objs[Obj(a.Source())].card].HasAltAdd || s.contribCast(k, p, a) {
 			continue // nor for an exile, forage, return, blight or evidence part (shape:additional_cost; objPartCast), nor a contribution (shape:contribution); a forage-or-pay either-or (Feed the Cycle) stays with gorge's offer gate, which searches the filter script for its paid part (payment_plan.go altAdd)
 		}
@@ -297,7 +306,11 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			if !s.filtScript(k, a, p, false) {
 				continue // no script within gorge's search budget
 			}
-		} else if tx.any() && s.tapXBoard(k, p) {
+		} else if tapsDef.any() && a.Kind() == AkActivate && s.liveGrantGap(k, p) {
+			if !s.grantActScript(k, a, p) {
+				continue // the grant search is gorge's one search over the deferred gap and the grants (mana_granttapsdefer.go)
+			}
+		} else if tx.any() && !(tapsDef.any() && !s.tapXRiderGaps(k, p).any()) && s.tapXBoard(k, p) {
 			if !s.tapXScript(k, a, p, false) && !(s.tapXSecondLive(k, p) && s.liveGrantGap(k, p) && s.grantActScript(k, a, p)) {
 				continue // no script within gorge's budget (mana_tapanother.go), nor in the one search beside the grants (mana_granttapx.go)
 			}
