@@ -168,6 +168,7 @@ const (
 	cmpTriggerObj     // the resolving trigger's object, wherever it is now (ChooseFromDefined$ TriggeredCards; kernel isTriggerObj; no operator)
 	cmpSameNameRem    // shares a name with an object in the remembered set (gorge sharesNameWith Remembered; no operator)
 	cmpHasManaAbility // hasManaAbility (CmpN 0) / !hasManaAbility (CmpN 1): the printed face has a mana ability (no operator)
+	cmpRenowned       // IsRenowned (CmpN 1) / !IsRenowned (CmpN 0): the CR 702.112b renowned designation
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
@@ -290,6 +291,28 @@ func filterSelfOnly(f *lFilter) bool {
 		}
 	}
 	return true
+}
+
+// anyCardClause reports whether a clause restricts nothing: it matches any
+// card, so a group gate lowered from it asks only for a group member. A
+// typed present check (ConditionPresent$ Card.Creature) narrows the gate to
+// remembered cards of the type, which the persistent mark cannot see.
+func anyCardClause(c lClause) bool {
+	return c.Types == 0 && c.TypesAll == 0 && c.NotTypes == 0 &&
+		c.Subtype == "" && c.Name == "" && c.NotSubtype == "" && c.Subtype2 == "" &&
+		c.MoreNotSubtype == [4]string{} &&
+		c.Ctrl == 0 && c.Owner == 0 && c.Flags == 0 &&
+		c.CmpStat == 0 && c.CmpOp == 0 && c.CmpN == 0 && c.CmpX == "" && c.CmpV == nil &&
+		c.CmpCounter == "" && c.Colors == "" && c.NotColors == "" &&
+		!c.BasePermanent && !c.SpellBase && !c.Unblocked && !c.TheirHand &&
+		c.Special == 0 && c.CtrlTgt == 0
+}
+
+// filterAnyCard reports whether f restricts nothing: one unrestricted clause,
+// no player alternative and no pick constraint.
+func filterAnyCard(f *lFilter) bool {
+	return f == nil || len(f.Clauses) == 1 && anyCardClause(f.Clauses[0]) &&
+		f.Players == 0 && !f.Each && f.PickSumMax == nil && !f.PickDistinctPower
 }
 
 func (f *lFilter) String() string {
@@ -691,6 +714,16 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 			n = 0
 		}
 		return c.setCmp(cmpSolved, 0, n, "", "")
+	}
+	if p == "IsRenowned" || p == "!IsRenowned" {
+		// the renowned designation (CR 702.112b; gorge filter.go IsRenowned:
+		// Object.Renowned, cleared off the battlefield): CmpN 1 renowned, 0
+		// not
+		n := 1
+		if p[0] == '!' {
+			n = 0
+		}
+		return c.setCmp(cmpRenowned, 0, n, "", "")
 	}
 	if p == "IsSuspected" || p == "!IsSuspected" {
 		// the suspected designation (CR 701.60; gorge filter.go IsSuspected:

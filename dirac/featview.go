@@ -582,7 +582,7 @@ func (s *State) plannedCastCost(k *prep, p uint8, o Obj, mode uint8) (kop.ManaCo
 // searches potentialScriptPlays caps.
 func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, composed bool) (kop.ManaCost, bool) {
 	c := s.objs[o].card
-	refused := planNeverPricesCore(k, c, hyb, composed, false) || s.boardLifeTgtDep(k, p, c, o) || s.stackTgtDep(k, c)
+	refused := planNeverPricesCore(k, c, hyb, composed, false) || s.boardLifeTgtDep(k, p, c, o) || s.boardRaiseTgtDep(k, p, c, o) || s.stackTgtDep(k, c)
 	optRefused := k.gen != nil && k.gen.anyOptCost && optCostCard(k, c)
 	spendRefused := !composed && k.gen != nil && k.gen.anyCastSpent && s.spendReaderOut(k)
 	fromHand := s.objs[o].zone == kop.ZoneHand
@@ -1005,8 +1005,7 @@ func (s *State) FeatPayManual() bool {
 		return false
 	}
 	k := s.k()
-	in := &s.prog(k)[s.res.pc]
-	c := manaOf(int(s.g.pickLeft), s.numTimesPips(k, in.B.N))
+	c := s.resPayCost(k) // cost_trighybrid.go
 	var av avail
 	pl := &s.pl[SeatIx(s.g.pickP)]
 	for i := 0; i < kop.NumManaKinds; i++ {
@@ -1059,6 +1058,9 @@ func (s *State) FeatViewTypes(o Obj) (types kop.TypeMask, subs kop.SubMask, all,
 			}
 			if ov.RemoveCreatureSub && !DebugRmCreatSubKeep {
 				subs, all, setSub = subs.AndNot(k.gen.creatSub), false, true
+			}
+			if ov.SetLandSub {
+				subs, setSub = subs.AndNot(k.gen.landSub), true // CR 305.7 (static_landtypesetter.go)
 			}
 			subs = subs.Or(ov.AddSub)
 			if ovrAllCreat(ov) {

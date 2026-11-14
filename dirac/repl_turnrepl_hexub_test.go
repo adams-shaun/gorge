@@ -24,7 +24,7 @@ func newHexUBState(t *testing.T) (*State, *prep) {
 	t.Helper()
 	tbl := hexUBTbl()
 	k := &prep{gen: &genPrep{}}
-	prepArena(tbl, k.gen, &k.cold)
+	prepArena(tbl, k.gen)
 	prepTurnRepl(tbl, k.gen) // anyTurnScope: the cold exMark table is sized
 	prepCold(k.gen, &k.cold)
 	k.cold.size()
