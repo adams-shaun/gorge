@@ -54,7 +54,7 @@ func (s *State) offerCommanderSlot(k *prep, d *Decision, p uint8, av *avail, o O
 	if cost.X != 0 && !s.spellXBoundPayable(k, c, p, &cost) {
 		return
 	}
-	d.add(MakeAction(AkCast, uint8(o), 0, 0))
+	d.add(MakeAction(AkCast, TCode(o), 0, 0))
 }
 
 // commanderTax is the CR 903.8 generic tax on o's cast by p: two per

@@ -309,6 +309,12 @@ const (
 	CzShuffleEach = 64
 )
 
+// CzGraveLibrary is OpChangeZoneAllEx's B for a MvGraveExile sweep whose
+// origin is Graveyard,Library (Doomsday's "exile the rest"): every seat's
+// graveyard, then every seat's library, top first (gorge effChangeZoneAll's
+// zone-major walk). Clear of every Cz* code above.
+const CzGraveLibrary = 128
+
 // RetAttachTo (OpReturnEx B.N, A counters absent):
 // AttachedTo$ -- the returned permanent enters attached to the permanent the
 // Ref in B.N bits 8..10 names (RefSelf, or a target slot; the low byte stays
@@ -402,6 +408,14 @@ const (
 	// without it for the controller as exiler (Vulcan Mind-Meld).
 	DigExilerOther = 1 << 12
 )
+
+// DigRestTopAsk (both bits; C has no free flag bit, and the pair is
+// otherwise unused: a random order is a bottom placement): the rest go on
+// top in the order the resolving controller picks, one card at a time, the
+// first pick on top (gorge digTopOrderAsk, CR 701.29a "the rest on top in
+// any order"; Spin into Myth's fateseal). DigRestTop alone keeps the window
+// order (SkipReorder$, or one card left).
+const DigRestTopAsk = DigRestTop | DigRandomOrder
 
 // DigUntilFlags (OpDigUntil C>>3): bits 0..2 the revealed rest's zone.
 const (

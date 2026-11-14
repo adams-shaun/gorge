@@ -30,7 +30,7 @@ func (lc *lowerCtx) choosePlayer(ps *params) error {
 // while this ability's one-opponent ChoosePlayer is armed.
 func (lc *lowerCtx) chosenPlayerDefined(v string) (lRef, bool) {
 	if lc.chosenOppAb == nil || lc.chosenOppAb != lc.ab {
-		return lc.srcChosenDefined(v) // lower_chosenopp.go
+		return lRef{}, false
 	}
 	if v == "ChosenPlayer" || v == "Player.Chosen" {
 		return lRef{Kind: rEachOpp}, true

@@ -41,7 +41,7 @@ func prepExileGrant(t *kop.Table, g *genPrep) {
 
 // exileGrantLive reports whether record j grants a live ability to card o.
 func (s *State) exileGrantLive(j int, o Obj) bool {
-	if s.g.qgO[j] != uint8(o)+1 {
+	if s.g.qgO[j] != o+1 {
 		return false
 	}
 	ob := &s.objs[o]
@@ -69,11 +69,11 @@ func (s *State) grantExile(k *prep, in *kop.Instr) {
 		}
 		free := -1
 		for j := 0; j < qgN; j++ {
-			if s.exileGrantLive(j, o) && s.g.qgH[j] == uint8(host)+1 {
+			if s.exileGrantLive(j, o) && s.g.qgH[j] == host+1 {
 				free = -2
 				break
 			}
-			if free == -1 && (s.g.qgO[j] == 0 || !s.exileGrantLive(j, Obj(s.g.qgO[j]-1))) {
+			if free == -1 && (s.g.qgO[j] == 0 || !s.exileGrantLive(j, s.g.qgO[j]-1)) {
 				free = j
 			}
 		}
@@ -84,7 +84,7 @@ func (s *State) grantExile(k *prep, in *kop.Instr) {
 			s.capFull(StallExileGrant)
 			return
 		}
-		s.g.qgO[free], s.g.qgV[free], s.g.qgH[free] = uint8(o)+1, s.objs[o].ver, uint8(host)+1
+		s.g.qgO[free], s.g.qgV[free], s.g.qgH[free] = o+1, s.objs[o].ver, host+1
 	}
 }
 
@@ -113,7 +113,7 @@ func (s *State) priorityExileGrant(k *prep, d *Decision, p uint8) {
 			if !s.exileGrantLive(j, o) {
 				continue
 			}
-			host := Obj(s.g.qgH[j] - 1)
+			host := s.g.qgH[j] - 1
 			// a host on the battlefield is read as it is now (a Dominion
 			// Saboteur that entered as Q, Stacking the Deck grants Q's body,
 			// CR 707.2); one that left keeps its printed card, as activateGen
@@ -129,7 +129,7 @@ func (s *State) priorityExileGrant(k *prep, d *Decision, p uint8) {
 			if !s.graveActCond(k, a, p, o) || !s.costObjPayable(k, p, &a.Cost, o, NoObj) {
 				continue
 			}
-			act := MakeAction(AkActivate, uint8(o), uint8(host), 0x80|uint8(ai))
+			act := MakeAction(AkActivate, TCode(o), TCode(host), 0x80|uint8(ai))
 			dup := false
 			for x := 0; x < int(d.N); x++ {
 				dup = dup || d.Options[x] == act

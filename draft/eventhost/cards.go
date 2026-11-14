@@ -83,6 +83,9 @@ func (r *run) draftCards(refs []limited.CardRef) []protocol.DraftCard {
 		out[i].Colors = wubrgOf(c.ColourIdentity())
 		out[i].TypeLine = strings.Join(f.Types, " ")
 	}
+	if r.meta.commander() {
+		r.commanderCards(out)
+	}
 	return out
 }
 

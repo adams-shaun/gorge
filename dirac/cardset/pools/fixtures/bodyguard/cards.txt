@@ -1,0 +1,10 @@
+# Dauntless Bodyguard's as-enters choice of another creature you control and
+# its Sac<1/CARDNAME> Pump over the chosen creature (Card.ChosenCardStrict,
+# read from the sacrificed source's last known choice, CR 608.2h) against
+# Murder and Day of Judgment, for dirac/oracle/bodyguard_choosecard_test.go
+Dauntless Bodyguard
+Savannah Lions
+Day of Judgment
+Murder
+Plains
+Swamp

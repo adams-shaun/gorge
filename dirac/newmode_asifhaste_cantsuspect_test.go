@@ -42,7 +42,7 @@ func (sc *scen) sickPerm(c CardID, p uint8) Obj {
 func (sc *scen) activateOffered(o Obj, ab uint8) bool {
 	d := sc.s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(o) && a.Mode() == ab {
+		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == TCode(uint8(o)) && a.Mode() == ab {
 			return true
 		}
 	}

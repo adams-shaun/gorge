@@ -378,7 +378,7 @@ func kernelCombatGame(t *testing.T, n int, seed uint64, limit int) (out []combat
 				case AkPlayLand:
 					return -1
 				case AkCast:
-					return castRank[cardName(x.Source())]
+					return castRank[cardName(uint8(x.Source()))]
 				case AkPass:
 					return 10
 				}
@@ -409,7 +409,7 @@ func kernelCombatGame(t *testing.T, n int, seed uint64, limit int) (out []combat
 						continue
 					}
 					if _, ok := per[int(x.Source())]; !ok {
-						order = append(order, x.Source())
+						order = append(order, uint8(x.Source()))
 					}
 					per[int(x.Source())] = append(per[int(x.Source())], int(CodeSeat(x.Target())))
 				}
@@ -427,7 +427,7 @@ func kernelCombatGame(t *testing.T, n int, seed uint64, limit int) (out []combat
 				}
 				for i, o := range order {
 					want := attackAt(opps, i, int(s.turn))
-					plan = append(plan, MakeAction(AkAttack, o, PlayerCode(uint8(want)), 0))
+					plan = append(plan, MakeAction(AkAttack, TCode(o), PlayerCode(uint8(want)), 0))
 					cnt[want]++
 				}
 				ev.det = offerDet(per) + fmt.Sprintf(" declared %v", cnt)
@@ -444,7 +444,7 @@ func kernelCombatGame(t *testing.T, n int, seed uint64, limit int) (out []combat
 				atk := map[uint8]bool{}
 				for i := 0; i < int(d.N); i++ {
 					if x := d.Options[i]; x.Kind() == AkBlock {
-						atk[x.Target()] = true
+						atk[uint8(x.Target())] = true
 					}
 				}
 				nAtk := 0
@@ -462,7 +462,7 @@ func kernelCombatGame(t *testing.T, n int, seed uint64, limit int) (out []combat
 			if len(usedB) < quota {
 				if x, ok := nextBlock(&d, usedB, usedA, cardName); ok {
 					a = x
-					usedB[x.Source()], usedA[x.Target()] = true, true
+					usedB[uint8(x.Source())], usedA[uint8(x.Target())] = true, true
 				}
 			}
 			if a.Kind() == AkDone {
@@ -489,10 +489,10 @@ func nextBlock(d *Decision, usedB, usedA map[uint8]bool, name func(uint8) string
 	best, ok := Action(0), false
 	for i := 0; i < int(d.N); i++ {
 		x := d.Options[i]
-		if x.Kind() != AkBlock || usedB[x.Source()] || usedA[x.Target()] {
+		if x.Kind() != AkBlock || usedB[uint8(x.Source())] || usedA[uint8(x.Target())] {
 			continue
 		}
-		if !ok || pairRank(name(x.Target()), name(x.Source())) < pairRank(name(best.Target()), name(best.Source())) {
+		if !ok || pairRank(name(uint8(x.Target())), name(uint8(x.Source()))) < pairRank(name(uint8(best.Target())), name(uint8(best.Source()))) {
 			best, ok = x, true
 		}
 	}
@@ -508,9 +508,9 @@ func blockable(d *Decision, limit int, name func(uint8) string) (c, tr int) {
 		if !ok {
 			break
 		}
-		usedB[x.Source()], usedA[x.Target()] = true, true
+		usedB[uint8(x.Source())], usedA[uint8(x.Target())] = true, true
 		c++
-		if name(x.Target()) == "Colossal Dreadmaw" {
+		if name(uint8(x.Target())) == "Colossal Dreadmaw" {
 			tr++
 		}
 	}

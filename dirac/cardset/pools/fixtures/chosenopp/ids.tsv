@@ -1,10 +1,9 @@
 # CardID index of the pool table, maintained by dirac/kgen: an id never moves.
 0	card	Black Vise
-1	card	Entropic Specter
-2	card	Forest
-3	card	Grizzly Bears
-4	card	Hill Giant
-5	card	Mountain
-6	card	Nyxathid
-7	card	Swamp
-8	card	The Rack
+1	card	Island
+2	card	Plains
+3	card	The Rack
+4	card	Entropic Specter
+5	card	Nyxathid
+6	card	Swamp
+7	card	Orb of Dreams

@@ -49,7 +49,7 @@ func (s *State) offerFuseCast(k *prep, d *Decision, p uint8, o Obj, sorc bool) {
 		return
 	}
 	if s.faceCastable(k, p, o, fd, sorc) {
-		d.add(MakeAction(AkCast, uint8(o), FeatFuseFace, castFace))
+		d.add(MakeAction(AkCast, TCode(o), TCode(FeatFuseFace), castFace))
 	}
 }
 

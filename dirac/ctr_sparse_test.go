@@ -270,10 +270,17 @@ func TestCtrOverFullStalls(t *testing.T) {
 	}
 }
 
+// TestPermSize pins perm's size. Under dirac_mp the object index and the
+// codes are sixteen bits (obj, chosen, bord, atk: Obj, objWord, TCode), four
+// bytes more with no pad byte (actUsed sits beside nblock to keep it so).
 func TestPermSize(t *testing.T) {
 	var p perm
-	if got := unsafeSizeofPerm(&p); got != 56 {
-		t.Fatalf("perm is %d bytes, want 56", got)
+	want := uintptr(56)
+	if MaxSeats > 2 {
+		want = 60
+	}
+	if got := unsafeSizeofPerm(&p); got != want {
+		t.Fatalf("perm is %d bytes, want %d", got, want)
 	}
 }
 

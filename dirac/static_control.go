@@ -34,7 +34,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 //	r.idx  bit 0 to, bit 1 prev, bit 2 you (the effect's controller),
 //	       bits 3-5 the duration (kop.Dur*), bit 6 static, bit 7 armed
-//	r.src  the source object | its ver << 8 (NoObj: none)
+//	r.src  the source object | its ver << 8 (NoObj: none); an object
+//	       wider than a byte (dirac_mp) keeps r.src the object and r.p
+//	       its ver
 //	r.fl   unused; r.ts the CR 613.7a timestamp (static: the source's
 //	       layerTs; API: s.ts at begin)
 
@@ -77,6 +79,9 @@ func (r *fxRec) cYou() uint8 {
 func (r *fxRec) cDur() uint8 { return r.r.idx & fcDurMask >> fcDurShift }
 func (r *fxRec) cSrc() Obj   { return Obj(r.r.src) }
 func (r *fxRec) cSrcVer() uint8 {
+	if NoObj > 0xff {
+		return uint8(r.r.p)
+	}
 	return uint8(r.r.src >> 8)
 }
 func (r *fxRec) setPrev(p uint8) {
@@ -155,7 +160,11 @@ func (s *State) gainControl(sl Slot, to, you, dur uint8, src Obj, srcVer uint8, 
 		// is the next one they take
 		r.r.idx |= fcArmed
 	}
-	r.r.src = CardID(src) | CardID(srcVer)<<8
+	if NoObj > 0xff {
+		r.r.src, r.r.p = CardID(src), int16(srcVer)
+	} else {
+		r.r.src = CardID(src) | CardID(srcVer)<<8
+	}
 	s.g.fx[s.g.nfx] = r
 	s.g.nfx++
 	s.fxM.set(sl)

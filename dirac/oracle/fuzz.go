@@ -114,9 +114,19 @@ type FuzzConfig struct {
 	Coverage bool
 	// GameTimeout is the per-game watchdog: a game with no result after this long,
 	// twice (one retry absorbs a host stall), is a hang and the worker moves on.
-	// Its goroutine cannot be stopped, so it leaks until the process exits. 0: no
-	// watchdog.
+	// Its goroutine cannot be stopped, so it leaks until the process exits; with
+	// StopOnHang the run stops feeding new pairs and the caller re-executes the
+	// rest elsewhere. 0: no watchdog.
 	GameTimeout time.Duration
+	// StopOnHang stops the feed at the first recorded hang, as StopAtFirst stops
+	// it at the first divergence: the played pairs are the prefix before
+	// FuzzSummary.SkipAt (Games + Errors when nothing was skipped; both count
+	// every attempted pair, a hang counts in Games), and the pairs from SkipAt on
+	// belong to the caller's next attempt, not to this leaking process. It also
+	// stops the feed at a StopAtFirst divergence: the jobs a worker receives
+	// after that stop are then skipped too, which changes a divergence run's
+	// games count slightly (by the pairs a worker received past the stop).
+	StopOnHang bool
 }
 
 // FuzzSummary is a fuzz run's totals.
@@ -131,6 +141,13 @@ type FuzzSummary struct {
 	FirstPair                              *Pairing
 	Stats                                  Stats
 	Coverage                               *Coverage // FuzzConfig.Coverage's merge (nil: off)
+	// SkipAt is the lowest pair index a worker received after the feed stopped
+	// (StopOnHang; len(pairs) when nothing was skipped): the played pairs are
+	// the prefix before it, so the caller's next attempt starts at SkipAt and
+	// no pair is lost between attempts. With Workers > 1 a worker that held job
+	// s while descheduled can find the stop set after a later job was played, so
+	// that later pair may be played again by the next attempt (rare, benign).
+	SkipAt int
 }
 
 // Fuzz plays every pairing in lockstep against the side factory mk.
@@ -161,6 +178,7 @@ func Fuzz(c *Corpus, pairs []Pairing, mk SideFactory, fc FuzzConfig, progress fu
 		first   done
 		covs    []*Coverage
 		hung    []int
+		skipAt  = len(pairs) // the lowest index a worker received after the feed stopped
 	)
 	if fc.Coverage {
 		covs = make([]*Coverage, len(pairs))
@@ -172,6 +190,18 @@ func Fuzz(c *Corpus, pairs []Pairing, mk SideFactory, fc FuzzConfig, progress fu
 		go func() {
 			defer wg.Done()
 			for i := range jobs {
+				if fc.StopOnHang && stopped.Load() {
+					// Received after the feed stopped: the caller's next attempt
+					// plays it. Record the lowest such index, so the played pairs
+					// stay an exact prefix (a worker can be descheduled between
+					// receiving a job and checking the stop, below a played one).
+					mu.Lock()
+					if i < skipAt {
+						skipAt = i
+					}
+					mu.Unlock()
+					continue
+				}
 				p := pairs[i]
 				// The game owns everything it writes (d, its coverage), so one the
 				// watchdog gave up on touches nothing shared.
@@ -210,6 +240,9 @@ func Fuzz(c *Corpus, pairs []Pairing, mk SideFactory, fc FuzzConfig, progress fu
 					s.Hung++
 					s.ByClass["hang"]++
 					hung = append(hung, i)
+					if fc.StopOnHang {
+						stopped.Store(true)
+					}
 				} else if d.err != nil {
 					s.Errors++
 				} else {
@@ -247,6 +280,7 @@ func Fuzz(c *Corpus, pairs []Pairing, mk SideFactory, fc FuzzConfig, progress fu
 	}
 	close(jobs)
 	wg.Wait()
+	s.SkipAt = skipAt
 	if covs != nil {
 		s.Coverage = NewCoverage()
 		for _, cv := range covs {

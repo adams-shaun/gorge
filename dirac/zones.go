@@ -263,6 +263,9 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	if from == kop.ZoneGraveyard && k != nil && k.gen != nil && k.gen.anyLeavesGrave {
 		s.fireLeavesGraveTo(k, o, z) // trig_leavesgrave.go
 	}
+	if from == kop.ZoneLibrary && z == kop.ZoneGraveyard && k != nil && k.gen != nil && k.gen.anyLibToGrave {
+		s.fireLibToGrave(k, o) // trig_libtograve.go
+	}
 }
 
 // draw draws one card for p. Drawing from an empty library loses at once
@@ -356,7 +359,7 @@ func (s *State) checkOver() {
 // names any more (freeTokenObj, zone_objreuse.go).
 func (s *State) newToken(c CardID, p uint8) Obj {
 	if int(s.nobj) < MaxObj {
-		o := Obj(s.nobj)
+		o := s.nobj
 		s.nobj++
 		s.objs[o] = object{card: c, chosen: 255, of: ofToken, slot: NoSlot, acts: p << objOwnerShift}
 		s.touch(o)
@@ -710,7 +713,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		host = Obj(p.bord)
 	}
 	if host != NoObj {
-		p.chosen = uint8(host)
+		p.chosen = objWord(host)
 		p.flags |= pfLastBear
 		s.recordLastBearLKI(o, host)
 	} else {
@@ -849,8 +852,8 @@ func whoseOK(w kop.Whose, ctrl, who uint8) bool {
 		return who == ctrl
 	case kop.WhoseOpp:
 		return who != ctrl
-	case kop.WhoseEnchCtrl, kop.WhoseChosenPl:
-		return false // read with the listener's slot (enchCtrlIs, chosenPlIs); elsewhere it fails closed
+	case kop.WhoseEnchCtrl, kop.WhoseChosen:
+		return false // read with the listener's slot (enchCtrlIs, chosenIs); elsewhere it fails closed
 	}
 	return true
 }

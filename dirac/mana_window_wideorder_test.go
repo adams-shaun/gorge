@@ -31,7 +31,7 @@ func TestScriptEngineAnswerWideOrder(t *testing.T) {
 		t.Fatal("Sentinel of Lost Lore is not in the wascastspell table")
 	}
 	o := sc.hand(sent, 0)
-	a := MakeAction(AkCast, uint8(o), 0, 0)
+	a := MakeAction(AkCast, TCode(o), 0, 0)
 	need := sc.s.playNeed(sc.k, a)
 	if !need[kop.G] || need[kop.W] {
 		t.Fatalf("precondition: the cast's announced colours %v, want {G}", need)

@@ -40,7 +40,7 @@ func (e *stackEntry) promised() bool {
 // array below fails to compile otherwise.
 const nSubEvents = kop.TrigGiveGift
 
-var _ = [1]struct{}{}[kop.TrigEventCount-1-kop.TrigBecomeMonarch]
+var _ = [1]struct{}{}[kop.TrigEventCount-1-kop.TrigExploited]
 
 // giftOptions poses the gift election (gorge giftAsk: decline first, then
 // one option per opponent, AliveFrom(caster) without the caster): mode 0
@@ -155,7 +155,7 @@ func (s *State) giftTargetsFeasible(k *prep, a *kop.Ability, p uint8, src Slot) 
 			if lo == 0 {
 				continue
 			}
-			var buf [MaxOptions]uint8
+			var buf [MaxOptions]TCode
 			ok = s.targetCands(k, t, p, src, NoObj, &buf) >= int(lo)
 		}
 		if ok {
@@ -175,7 +175,7 @@ func (s *State) giftSlotStart(k *prep, t *kop.TargetSpec, ti uint8) bool {
 	if mt.min == 0 || e.kind != seSpell {
 		return true
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	if s.multiCands(k, t, ti, &buf) >= int(mt.min) {
 		return true
 	}
