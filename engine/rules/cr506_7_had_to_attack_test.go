@@ -15,8 +15,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// hadToAttackBruteSrc attacks each combat if able (the corpus's 58-line
-// `S:Mode$ MustAttack | ValidCreature$ Card.Self` shape); hadToAttackFreeSrc
+// hadToAttackBruteSrc attacks each combat if able (the corpus has 58 lines of the
+// MustAttack-on-itself static shape); hadToAttackFreeSrc
 // is the same body with no requirement. Both have haste so they attack the
 // turn they are seeded.
 const (

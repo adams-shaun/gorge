@@ -2,8 +2,8 @@ package rules
 
 // Toluz, Clever Conductor's discard batch trigger:
 // "Whenever you discard one or more cards, exile them from your graveyard."
-// Its body is `DB$ ChangeZoneAll | Origin$ Graveyard | Destination$ Exile |
-// ChangeType$ Card.TriggeredCards` — the sweep must move exactly the discarded
+// Its body is a ChangeZoneAll of the triggered cards from the graveyard to
+// exile — the sweep must move exactly the discarded
 // cards the trigger CAPTURED (Ctx.Remembered) from the graveyard to exile. This
 // file is the engine-level carrier for the ChangeZoneAll ChangeType$
 // Card.TriggeredCards referent with an Exile destination.

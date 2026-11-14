@@ -19,8 +19,8 @@ import (
 // were dead.
 //
 // The batch face is pinned on the REAL corpus script: Contaminant Grafter's
-// T:Mode$ DamageAll | CombatDamage$ True | ValidSource$ Creature.YouCtrl |
-// ValidTarget$ Player | Execute$ TrigProliferate, with two attackers dealing
+// DamageAll trigger (creatures you control deal combat damage to a player,
+// then proliferate), with two attackers dealing
 // combat damage to a player in ONE damage step. The mode must fire the
 // proliferate ability exactly ONCE for the whole batch -- not once per Damage
 // event -- which a counter carrier makes observable. The non-combat face is
@@ -596,9 +596,8 @@ func TestDamageAllBatchSourceControllersDrawOnRealCorpusScript(t *testing.T) {
 }
 
 // TestDamageAllTriggeredTargetsDrivesBreechesExileTop pins the third reader
-// on Breeches, Brazen Plunderer's real script: its body is
-// "DB$ Dig | DigNum$ 1 | ChangeNum$ All | Defined$ TriggeredTargets |
-// DestinationZone$ Exile" -- "exile the top card of each of those opponents'
+// on Breeches, Brazen Plunderer's real script: its body is a Dig of one card
+// from each triggered target's library, all of it to exile -- "exile the top card of each of those opponents'
 // libraries" -- so the batch's matching TARGET set is the dig's Defined$
 // list. A split attack at two opponents exiles one library-top card from
 // EACH of them (two library->exile moves) and nothing from the untouched

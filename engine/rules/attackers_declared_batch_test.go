@@ -21,8 +21,8 @@ import (
 // attackersDeclaredBatchSeat builds a three-seat table with Love on the
 // Battlefield on seat 0's battlefield and two ready 2/2 attackers on seat 0,
 // active and sitting in the declare-attackers step. Two attackers is the
-// card's own exactly-two gate (IsPresent$ Creature.attacking+YouCtrl |
-// PresentCompare$ EQ2), so the split declaration below satisfies it.
+// card's own exactly-two gate (exactly two attacking creatures you control
+// are present), so the split declaration below satisfies it.
 func attackersDeclaredBatchSeat(t *testing.T) (*Engine, state.ObjID, state.ObjID, state.ObjID) {
 	t.Helper()
 	love := mshCorpusCardPath(t, "Love on the Battlefield", "l/love_on_the_battlefield.txt")

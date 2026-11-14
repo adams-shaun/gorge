@@ -163,8 +163,8 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 	}
 	// PlayerCountHasLost$<Property> — Forge's group of players who have LOST
 	// the game (CR 104.2-3; a concession counts). `Amount` counts them, so
-	// Hot Pursuit's `CheckSVar$ PlayerCountHasLost$Amount | SVarCompare$
-	// GE2` is "if two or more players have lost the game". Read off the live
+	// Hot Pursuit's check of that Amount against two or more
+	// is "if two or more players have lost the game". Read off the live
 	// seat set (state.Player.Lost), which events.Apply's PlayerLost fold sets
 	// and Clone copies, so a replay derives the same count. Any other
 	// property fails closed: the head has no other corpus reader (measured:

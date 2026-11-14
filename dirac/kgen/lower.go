@@ -31,6 +31,7 @@ var ignoredParams = map[string]bool{
 	"PrimaryPrompt":      true, // caption text; gorge lists it in params.DescriptiveKeys (descriptive.go), never read
 	"AINoRecursiveCheck": true, // Forge AI hint: only in gorge's accepted-key lists (params/mana.go, params/dealdamage.go, changezone_params.go), never read
 	"AIXMax":             true, // Forge AI hint for the X it announces: only in gorge's accepted-key lists (changezone_params.go, params/*.go), never read
+	"AIManaPref":         true, // Forge's AI mana-source preference (Basalt Monolith's AIManaPref$ NotSameCard); gorge's effUntap recognises and discards it (effects/untap.go), never a rules read
 	"UnlessAI":           true, // Forge AI hint (CopySpellAbilityAi / the unless-cost AI: whether the AI pays or copies); gorge never reads it (engine/rules/paramcensus_test.go records it as an AI hint)
 
 	"AIRespondsToOwnAbility": true, // Forge AI hint (Sensei's Divining Top: the AI may respond to its own activation); gorge never reads it
@@ -131,6 +132,7 @@ type lowerCtx struct {
 	batchPoolOK    bool      // the trigger being lowered is a ChangesZoneAll exile line whose body picks among its batch members (lower_trigzonebatch.go kayaBatchBody)
 	wasCastOK      bool      // the filter being read is a battlefield-entering trigger's ValidCard(s)$: wasCast may lower
 	cantCastProv   bool      // the filter being read is a CantBeCast ValidCard$: wasCastFromTheirHand may lower (kernel matchSpellCardOffer)
+	tgtProv        bool      // the filter being read is a plain Counter's ValidTgts$ (TgtSpell): wasCastFromTheirHand may lower (lower_countertgtprov.go)
 	spellProvOK    bool      // the filter being read is a SpellCast ValidCard$, a spell's own ConditionPresent$ or a mana ability's Spell. RestrictValid$: the cast-provenance words may lower
 	chosenNumOK    bool      // the filter being read is a battlefield SpellCast ValidCard$ of a card that chooses a number as it enters: a "Chosen" bound may lower (lower_choosenumber.go)
 	exwOK          bool      // the filter being read is a resolution-time mover's ChangeType$: ExiledWithSource may lower
@@ -307,6 +309,9 @@ type lowerCtx struct {
 	// (Skrelv: the Pump DefinedKW$ ChosenColor, the CantBlockBy Effect, the
 	// ClearChosenColor Cleanup) are still to be lowered
 	colGrant bool
+	// landTypeGrant while a mid-resolution ChooseType Basic Land's
+	// Types$ ChosenType Animate is still to be lowered (lower_choosetype.go)
+	landTypeGrant bool
 	// clAt is 1 + the index of a CounterLose instruction whose following
 	// Effect (the host-bound loss of abilities) is still to be read.
 	clAt   int
@@ -1011,8 +1016,10 @@ var expandedKeywords = map[string]bool{
 	// Echo (CR 702.30a): gorge kwEcho's upkeep trigger, gated by Echo$ True,
 	// whose body is DB$ Echo (lower_echo.go)
 	"Echo": true,
-	// Level up (CR 702.87a): gorge kwLevelUp appends one sorcery-speed
-	// AB$ PutCounter LEVEL line; the level bands are ordinary statics
+	// Level up (CR 702.87a): gorge kwLevelUp (cards/kw_levelup.go) appends one
+	// sorcery-speed AB$ PutCounter of a LEVEL counter on the source; the level
+	// bands are the card's own statics (a two-compare IsPresent$ gate:
+	// levelBandFilters)
 	"Level up": true,
 }
 
@@ -1372,6 +1379,24 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !lc.partnerWithTrigger() {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
+		case head == "Reconfigure":
+			// CR 702.151a: gorge kwReconfigure expands it into an attach and
+			// an unattach activated ability (Keyword$ Reconfigure), lowered
+			// from those lines (lc.attach); the card is flagged so the
+			// kernel's type switch (CR 702.151b, dirac/kw_reconfigure.go)
+			// knows an attached one is no creature
+			if !lc.hasKeywordLine(k) {
+				lc.refuseNode(node, "keyword %q without its ability", head)
+				continue
+			}
+			lc.out.Reconfigure = true
+		case head == "Choose a Background" && param == "":
+			// CR 702.124k: a deck-construction marker (the card may have a
+			// Background as its second commander, gorge deck.IsPartnerPair's
+			// Choose-a-Background family). Gorge expands it into no ability
+			// (rules/trigger_match.go registers kw:Choose a Background as
+			// play-free) and the adapter's commander gate reads the raw
+			// face keyword, so lowering nothing is exact.
 		case head == "Doctor's companion":
 			// CR 702.124m: a deck-construction marker (the card may be one
 			// of two commanders beside a Doctor, gorge deck.IsPartnerPair's
@@ -1467,6 +1492,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !lc.lowerEntwine(param) {
 				lc.refuseNode(node, "entwine cost %q", param)
 			}
+		case head == "Escalate":
+			lc.lowerEscalate(node, param) // lower_escalate.go
 		case head == "Casualty":
 			// CR 702.153a: the optional creature sacrifice and the copy
 			// trigger are the kernel's casualty cast (kw_casualty.go). The
@@ -2473,7 +2500,9 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				continue
 			}
 			// gorge cost.parse folds a cost spec's ";" alternation to ","
-			if c.SacX || c.SacExile {
+			if c.SacX || c.SacExile || c.Sac != nil {
+				// the kernel pays one Sac pick: a second part (Jarad's Sac<1/Swamp>
+				// Sac<1/Forest>) would overwrite the first and offer the wrong land
 				return c, refuse("sacrifice cost %q beside a second sacrifice part", t)
 			}
 			f, err := lc.filter(strings.ReplaceAll(parts[1], ";", ","))
@@ -3029,7 +3058,7 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 			// still resolving (kernel enterCast); a later read has no spell
 			return nil, refuse("filter %q: wasCast outside a battlefield-entering trigger's ValidCard$", expr)
 		}
-		if c.TheirHand && !lc.cantCastProv {
+		if c.TheirHand && !lc.cantCastProv && !lc.tgtProv {
 			return nil, refuse("filter %q: wasCastFromTheirHand outside a CantBeCast ValidCard$", expr)
 		}
 		if c.CmpStat == cmpWasCastSpell && !lc.spellProvOK {
@@ -3053,6 +3082,17 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 		}
 	}
 	for i := range f.Clauses {
+		if f.Clauses[i].Owner == whoTgtCtrl {
+			// the referent is the current link's target, a card off the
+			// battlefield: gorge binds an object target's controller only
+			// (a player target binds nothing), so the slot names no player
+			t := lc.lastTarget()
+			if t < 0 || !offFieldCardSlot(lc.ab.Targets[t].Zone) {
+				return nil, refuse("filter %q: OwnedBy TargetedController without an earlier off-battlefield card target", expr)
+			}
+			f.Clauses[i].CtrlTgt = uint8(t + 1)
+			continue
+		}
 		if f.Clauses[i].Ctrl != whoTgtOrCtrl {
 			continue
 		}
@@ -3082,6 +3122,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 	// ClearChosenColor$ Cleanup (Puca's Eye's ETB)
 	// must not leak colGrant into the next ability's Pump/Animate reading
 	lc.colGrant = false
+	lc.landTypeGrant = false
 	lc.colTgt = lRef{}
 	lc.remTgt = 0
 	ps := newParams(sa.Params)

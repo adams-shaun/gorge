@@ -1,0 +1,7 @@
+family: KwID
+name: KwUnblockedDamageToCreature
+value: 114
+forge: If CARDNAME is unblocked, you may have it assign its combat damage to a creature defending player controls.
+census: kw If CARDNAME is unblocked, you may have it assign its combat damage to a creature defending player controls. all=1 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

@@ -58,8 +58,8 @@ func attackerOption(t *testing.T, e *Engine, id state.ObjID, def state.PlayerID)
 }
 
 // TestFelotharLiftsTheWallForYourCreatures pins the printed-static route on
-// the real corpus Felothar the Steadfast (`S:Mode$ CanAttackDefender |
-// ValidCard$ Creature.YouCtrl`): an authored Defender wall on the same
+// the real corpus Felothar the Steadfast (a CanAttackDefender static over
+// creatures you control): an authored Defender wall on the same
 // battlefield is offered as an attacker, and the declaration commits.
 func TestFelotharLiftsTheWallForYourCreatures(t *testing.T) {
 	t.Parallel()
@@ -252,7 +252,7 @@ func TestKrotiqNestguardGrantExpiresAtEndOfTurn(t *testing.T) {
 
 // TestAssaultFormationRememberedGrant pins the remembered-target grant on the
 // real corpus Assault Formation: its `AB$ Effect | RememberObjects$ Targeted`
-// delivers `Mode$ CanAttackDefender | ValidCard$ Creature.IsRemembered`, so
+// delivers a CanAttackDefender static over the remembered creature, so
 // the TARGETED Defender wall attacks this turn and an untargeted one does not.
 func TestAssaultFormationRememberedGrant(t *testing.T) {
 	t.Parallel()

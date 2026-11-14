@@ -427,8 +427,8 @@ func effCloak(h Host, c *Ctx, sa *cards.SA) {
 			cloak(id, c.Controller)
 		}
 	} else if definedPlayerRef(sa).Set() {
-		// The per-player top-card shape (unexplained_absence's
-		// "Defined$ TopOfLibrary | DefinedPlayer$ RememberedController"):
+		// The per-player top-card shape (Unexplained Absence's manifest of
+		// the top card of each remembered controller's library):
 		// each listed player's OWN top Amount$ cards -- searchPlayers's
 		// DefinedPlayer$ precedence, the effManifest loop's move shape.
 		for _, p := range searchPlayers(h, c, sa) {

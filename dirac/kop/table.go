@@ -586,11 +586,21 @@ type CardDef struct {
 	HasBestow  bool
 	BestowCost ManaCost
 	BestowTgt  TargetSpec
+	// HasReconfigure is printed Reconfigure (CR 702.151; no KwMask bit is
+	// free): while the permanent is attached it is not a creature
+	// (dirac/kw_reconfigure.go). The attach and unattach abilities are the
+	// card's own activated abilities.
+	HasReconfigure bool
 	// HasModeCost: Spree (CR 702.172a): each chosen mode i adds
 	// ModeCost[i] to the spell's total cost (kernel
 	// kw_spree.go).
 	HasModeCost bool
 	ModeCost    [4]ManaCost
+	// HasEscalate: Escalate (CR 702.120a) rides HasModeCost with every
+	// ModeCost zero: the chosen modes add Escalate once for each mode beyond
+	// the first (kernel kw_escalate.go).
+	HasEscalate bool
+	Escalate    ManaCost
 	// FbCost is a printed flashback cost's non-mana part (KwFlashback;
 	// AltCost holds its mana, {0} when none): Sac<N/Spec> or
 	// tapXType<N/Spec>, paid through the cast's pick stages in place of
@@ -639,8 +649,8 @@ type CardDef struct {
 	// "can't be blocked unless all creatures defending player controls
 	// block it"): the floor is every creature the attacked player controls.
 	MinBlockers uint8
-	// ExtraBlocks is a printed S:Mode$ Continuous | AffectedDefined$ Self |
-	// CanBlockAmount$ 1 (CR 509.1a): the creature can block one additional
+	// ExtraBlocks is a printed continuous static on the card itself granting
+	// one extra block (its CanBlockAmount, CR 509.1a): the creature can block one additional
 	// attacker each combat; 0 none. Not when it has lost its abilities.
 	ExtraBlocks uint8
 	// SpendRead: an SVar reads Count$CastTotalManaSpent (Memory Deluge):
@@ -772,6 +782,12 @@ const (
 	// object's card on the stack and on the battlefield only; every other
 	// zone shows the front (dirac/face_castface.go).
 	FacePrototype
+	// FaceFlip is a flip card (CR 710, gorge's "Flip"): it is cast and
+	// enters as its top half; a SetState Mode$ Flip turns a permanent that
+	// is not yet flipped to face 1 in place, one-way (CR 710.4), with no new
+	// layer timestamp and no Mode$ Transformed trigger; leaving the
+	// battlefield it is its top half again (CR 710.2).
+	FaceFlip
 )
 
 // RoomState is the Faces index of a Room's battlefield state showing face

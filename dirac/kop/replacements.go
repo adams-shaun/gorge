@@ -64,9 +64,13 @@ const (
 	ReplCopyFirstToken           // the first time this turn the controller would create a token while no token they own has entered this turn (Repl.Cond, the gate), they may instead have it be a copy of the permanent this source is attached to: an election, decline first (R:Event$ CreateToken | ValidPlayer$ You | Optional$ True | Layer$ Copy | CheckSVar$ X | SVarCompare$ EQ0 | ReplaceWith$ DB$ ReplaceToken | Type$ ReplaceToken | ValidChoices$ Card.EquippedBy or Card.EnchantedBy | TokenScript$ Chosen; Mirrormind Crown, Moonlit Meditation; gorge poseChosenTokenReplacement). The election is asked once per creation, at the first token of a plain CreateToken op; every other mint site stalls (StallTokRewrite)
 	ReplPayBeforeETB             // this permanent spell's controller may discard a land card as it would enter: the ability's Prog is that optional discard, run as the spell resolves; the card then enters when it discarded one and goes to its owner's graveyard otherwise (Mox Diamond; gorge's Moved replacement with a Discard / ChangeZone chain). An entry by any other route stalls (StallPayETB)
 	ReplDestroyRegenerate        // this permanent would be destroyed by a destruction it can be regenerated from (not NoRegen$, no can't-be-regenerated mark, toughness above 0 when a creature): regenerate it instead, no shield spent (CR 701.19a; gorge's R:Event$ Destroy | ValidCard$ Card.Self | Regeneration$ True line with a DB$ Regeneration | Defined$ ReplacedCard body, replacement_destroy.go; Mossbridge Troll). No other field
-	ReplPreventDamageToSelf      // damage that would be dealt to this permanent by a source matching Repl.Filter (0: any source) is prevented, once per damage event, within the Repl.C ReplPrevTo* scope (Istvan, Butcher of Eln; Guardian Naga; gorge's bodyless Prevent$ True | ValidTarget$ Card.Self or Creature.Self line)
-	ReplCount
+	// ReplCount ends the frozen iota list (the kinds above are 0..40). It
+	// is a fixed value: do not append above it. A new replacement kind is a
+	// manifest entry (dirac/manifest/ReplKind, kmanifest).
+	ReplCount ReplKind = 41
 )
+
+var _ = [1]struct{}{}[ReplCount-ReplDestroyRegenerate-1]
 
 // ReplPreventDamageToSelf scope bits (Repl.C).
 const (

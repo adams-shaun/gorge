@@ -8,9 +8,9 @@ package rules
 // through its ordinary `DB$ Animate`/`DB$ Pump` parsing and gated on the
 // target being another creature.
 //
-// Guardian Scalelord is the pinned real-corpus carrier: its
-// `SVar:BackupAbilities` prints `DB$ Animate | Keywords$ Flying | Triggers$
-// AttackTrig | sVars$ AE`, so one ETB observable covers the counter, the
+// Guardian Scalelord is the pinned real-corpus carrier: its backup-abilities
+// SVar is an Animate granting flying and an attack trigger, so one ETB
+// observable covers the counter, the
 // keyword grant and the granted-trigger grant.
 
 import (

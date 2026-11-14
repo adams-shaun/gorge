@@ -1,0 +1,7 @@
+family: key
+name: keyCipher
+value: 18
+forge: cipher
+census: key cipher classes=1 all=15
+state: objobj 236
+status: reserved

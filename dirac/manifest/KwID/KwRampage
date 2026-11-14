@@ -1,0 +1,7 @@
+family: KwID
+name: KwRampage
+value: 61
+forge: Rampage
+census: kw Rampage all=15 std=0 mbc=0 sole=12
+state: code 0
+status: reserved

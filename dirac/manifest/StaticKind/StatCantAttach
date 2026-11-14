@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatCantAttach
+value: 29
+forge: CantAttach
+census: stat CantAttach all=7 std=0 mbc=0 sole=5
+state: code 0
+status: reserved

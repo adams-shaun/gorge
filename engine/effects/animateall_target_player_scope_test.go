@@ -19,7 +19,7 @@ import (
 // 0, theirBig on seat 1 (engine/effects/filter_test.go:10).
 
 // TestAnimateAllOpponentScopeRestrictsSweep is the Curious Colossus shape:
-// ValidTgts$ Opponent | ValidCards$ Creature.  The target opponent's creature
+// an AnimateAll targeting an opponent over their creatures. The target opponent's creature
 // must be animated; seat 0's creatures must take no grant at all.
 func TestAnimateAllOpponentScopeRestrictsSweep(t *testing.T) {
 	g, ids := board(t)

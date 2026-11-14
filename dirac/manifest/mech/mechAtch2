@@ -1,0 +1,6 @@
+family: mech
+name: mechAtch2
+value: 43
+state: slotbit 16/16
+status: active
+doc: seat 2 (read only when MaxSeats > 2)

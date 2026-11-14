@@ -1,0 +1,7 @@
+family: key
+name: keyIntensity
+value: 5
+forge: intensity
+census: key intensity classes=3 all=60
+state: objbyte 236
+status: reserved

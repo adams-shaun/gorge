@@ -1,9 +1,9 @@
 // trig:ManaExpend — "Whenever you expend N ..." (the Bloomburrow Commander
 // expend keyword).
 //
-// The end-to-end pins run on the REAL corpus card Teapot Slinger (whose T:
-// line is `Mode$ ManaExpend | Amount$ 4 | Player$ You | ... Execute$
-// DealDamage`, body `DB$ DealDamage | NumDmg$ 2 | Defined$ Opponent`): the
+// The end-to-end pins run on the REAL corpus card Teapot Slinger (whose
+// trigger is an expend-4 ManaExpend for you, and whose body deals 2 damage to
+// each opponent): the
 // per-turn cast-spend tally folds from the pay-time FlagManaExpendCast
 // CastInfo (engine/rules/cast.go's payCast), the crossing matcher is
 // trigmatch.ManaExpendMatches (engine/rules/trigmatch/cast.go), and the emission gate is

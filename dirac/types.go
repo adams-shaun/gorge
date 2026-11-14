@@ -14,14 +14,13 @@ type Slot uint8
 // Obj is a card instance (object) index into State.objs; NoObj = none. The
 // first len(deckA) objects are seat 0's deck in deck order, the next
 // len(deckB) seat 1's; tokens take the remaining indices. Obj and NoObj are
-// set per size class (seats_default.go, seats_mp.go): a byte, and nine bits
-// in a uint16 under dirac_mp.
+// set in seats_default.go: a byte.
 
 const (
 	NoSlot Slot = 255
 	// PlayerTarget0.. encode a player in an Action's target byte and in
-	// stack target records; PlayerTarget0 and StackTarget0 are set per size
-	// class (seats_default.go, seats_mp.go). PlayerTarget1 is seat 1's code;
+	// stack target records; PlayerTarget0 and StackTarget0 are set in
+	// seats_default.go. PlayerTarget1 is seat 1's code;
 	// PlayerCode(p) is the spelling that holds at every seat count.
 	PlayerTarget1 TCode = PlayerTarget0 + 1
 	// StackTarget0 encodes the activated or triggered ability at stack
@@ -47,8 +46,8 @@ func isPlayerTarget(c TCode) bool { return c >= PlayerTarget0 && c <= PlayerTarg
 func IsObjTarget(c TCode) bool { return c < MaxObj }
 
 // Action is a packed answer to a Decision: its kind, source, target and
-// mode, laid out per size class (actKindShift and the rest, seats_*.go;
-// kind<<24 | source<<16 | target<<8 | mode in the default class). Only
+// mode, laid out kind<<24 | source<<16 | target<<8 | mode (actKindShift and
+// the rest, seats_default.go). Only
 // MakeAction and the accessors below read or write the layout
 // (TestObjCodeCastsOnlyShrink).
 //

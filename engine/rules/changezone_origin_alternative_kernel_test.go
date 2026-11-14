@@ -9,7 +9,8 @@ import (
 )
 
 // TestChangeZoneOriginAlternativeTowerWinderGraveyardKernel pins Tower
-// Winder's `Origin$ Library | OriginAlternative$ Graveyard` ETB search: the
+// Winder's ETB search of the library, with the graveyard as its alternative
+// origin: the
 // graveyard Command Tower is offered (and is the only option: the hand copy
 // sits outside the named origins), and the pick moves it to the searcher's
 // hand.

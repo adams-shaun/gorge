@@ -1129,6 +1129,9 @@ func (s *State) FeatStaticKey() uint64 {
 			h = hmix(h, uint64(s.embStamp(p, i))) // the layer timestamp
 		}
 	}
+	if anyGyStatic(k) {
+		h = s.gyStaticKey(k, h) // static_gycont.go
+	}
 	if s.statM.any() || s.g.nemb[0]+s.g.nemb[1] != 0 {
 		s.eachStatic(k, func(st statSrc) bool {
 			a := st.a
@@ -1371,6 +1374,9 @@ func (s *State) FeatManaActivatable(o Obj) bool {
 func (s *State) FeatTypeKey(p uint8, v int) uint32 {
 	k := s.k()
 	t := k.t
+	if i, ok := basicLandKey(v); ok {
+		return i // gorge's basic land type order (act_choosebasicland.go)
+	}
 	if v >= len(t.TypeVocab) {
 		return 1<<16 | uint32(v)
 	}
@@ -1481,7 +1487,7 @@ func (s *State) FeatGrantedOffRep(o Obj) (kop.KwMask, FeatKwReps) {
 // counter list keeps it at 0 while the permanent stays.
 func (p *perm) seeCtr(s *State) {
 	for i := range p.cn {
-		if p.cn[i] != 0 && p.ck[i] < uint8(kop.NumCounterKinds2) { // CtrLevel is no counter (kw_class.go)
+		if p.cn[i] != 0 && p.ck[i] < uint16(kop.NumCounterKinds2) { // CtrLevel is no counter (kw_class.go)
 			p.cseen |= 1 << i
 		}
 	}

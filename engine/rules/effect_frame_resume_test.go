@@ -5,9 +5,8 @@ package rules
 // frame carrying the Effect-created registration identity onto the resume
 // point (engine/rules/resolution.go's resumePoint.effectFrame, published by
 // effects.Resolve via the optional effectFrameHost interface) is what lets
-// the body's one-shot self-exile idiom
-// (`DB$ ChangeZone | Defined$ Self | Origin$ Command | Destination$ Exile`)
-// still end exactly that registration after the answer -- before this the
+// the body's one-shot self-exile idiom (a ChangeZone of the effect itself
+// from the command zone to exile) still end exactly that registration after the answer -- before this the
 // resume rebuilt a Ctx with no EffectFrame and the effect lingered for its
 // whole duration.
 //
@@ -17,8 +16,8 @@ package rules
 // families engine/rules/replacement.go registers), 79 reach the self-exile idiom
 // and **0** reach any ask-shaped parameter in the body chain. So no real
 // corpus carrier exercises a decision inside an Effect replacement body
-// today; the fixture below carries a real corpus SHAPE (the wildgrowth1
-// `Event$ Moved | ReplaceWith$ Grow` + `SubAbility$` chain) with the
+// today; the fixture below carries a real corpus SHAPE (a Moved replacement
+// whose body is a sub-ability chain) with the
 // unless-cost ask the corpus's other Effect bodies use everywhere else.
 
 // effectSelfExileResumeSrc is the live Moved+PutCounter Effect replacement

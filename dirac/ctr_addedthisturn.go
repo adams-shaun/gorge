@@ -130,9 +130,10 @@ func (s *State) ctrNoteBy(k *prep, sl Slot, kind int, adder uint8) {
 //go:noinline
 func (s *State) ctrNoteEnter(k *prep, sl Slot) {
 	p := &s.perms[sl]
-	for c := 0; c < int(kop.NumCounterKinds3); c++ {
-		if kop.IsCounterKind(c) && p.ctrN(s, c) > 0 {
-			s.ctrNoteBy(k, sl, c, p.ctrl)
+	var held ctrHeld
+	for _, c := range held[:p.heldKinds(s, &held)] {
+		if kop.IsCounterKind(int(c)) {
+			s.ctrNoteBy(k, sl, int(c), p.ctrl)
 		}
 	}
 }

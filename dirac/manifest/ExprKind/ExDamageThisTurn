@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExDamageThisTurn
+value: 122
+forge: DamageThisTurn
+census: count DamageThisTurn all=1 std=0 mbc=0 sole=1
+state: player 4 (turn tallies)
+status: reserved

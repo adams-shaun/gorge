@@ -131,8 +131,8 @@ func TestConditionGateUnresolvedShapesReportFalse(t *testing.T) {
 }
 
 // TestConditionGateTargetedGroup pins the ConditionDefined$ Targeted group
-// (Stalking Leonin's `ConditionDefined$ Targeted | ConditionPresent$
-// Card.ChosenCtrl`): the group is the resolving ability's own answered
+// (Stalking Leonin's gate that the chosen player controls the target): the
+// group is the resolving ability's own answered
 // targets -- Ctx.PickedTargets while a pre-asked body dispatches, else
 // Ctx.Targets -- exactly the channels Defined$ Targeted reads. A chosen
 // player that controls the target admits; one that does not denies; an empty

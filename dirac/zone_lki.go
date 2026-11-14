@@ -46,8 +46,8 @@ const lkiInfect uint8 = 1 << 5
 // lkiRec is one snapshot: P/T, controller, every counter, and the derived
 // (layered) types, colours and keywords (CR 608.2h in full).
 //
-// The fields run widest first, so the record has no interior padding in
-// either size class (the object is one byte or two): 56 bytes in both.
+// The fields run widest first, so the record has no interior padding: 56
+// bytes.
 type lkiRec struct {
 	// subs is the derived subtype set at the snapshot, for the
 	// Sacrificed$Valid Card/creature-type reads (anySacSub): the 192-bit
@@ -64,7 +64,7 @@ type lkiRec struct {
 	ver    uint8 // the object's ver when snapshot
 	ref    uint8 // live holders at the last sweep (0 = free)
 	ctrl   uint8
-	ck     [ctrSlots]uint8
+	ck     [ctrSlots]uint16
 	col    kop.ColorMask
 	bits   uint8 // lkiFaceDown / lkiSuspected; the byte faceDown used
 	chosen uint8 // perm.chosen (gorge SpecContext.SourceChosenType: a sacrificed source's choice; act_choosetype.go)
@@ -94,7 +94,7 @@ func (s *State) lkiCounter(i uint8, c kop.CounterKind) int {
 	}
 	if i != 0 && s.g.nctrOver != 0 {
 		for _, e := range s.ctrOverOf(l.obj, i) {
-			if e.kind == uint8(c) {
+			if e.kind == uint16(c) {
 				return int(e.n)
 			}
 		}

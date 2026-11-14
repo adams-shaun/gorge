@@ -1,0 +1,7 @@
+family: KwID
+name: KwRerollDicePayOne
+value: 115
+forge: Once each turn, you may pay {1} to reroll one or more dice you rolled.
+census: kw Once each turn, you may pay {1} to reroll one or more dice you rolled. all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

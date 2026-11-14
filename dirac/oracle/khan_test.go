@@ -7,8 +7,8 @@ import (
 )
 
 // Khan, Vengeful Heart's static is a self permission that works from exile
-// (S:Mode$ Continuous | Affected$ Card.Self | MayPlay$ True | AffectedZone$
-// Exile | EffectZone$ Exile): once Swords to Plowshares exiles it, its owner
+// (a continuous static, functioning in exile, that lets the card itself be
+// played from exile): once Swords to Plowshares exiles it, its owner
 // may cast it again. The fixture pool is
 // dirac/cardset/pools/fixtures/khan.
 

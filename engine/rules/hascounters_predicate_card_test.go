@@ -19,8 +19,8 @@ import (
 //	{1}{U}, {T}: Return target creature with a counter on it to its owner's
 //	hand.
 //
-// Its compiled ability is `A:AB$ ChangeZone | Cost$ 1 U T | ValidTgts$
-// Creature.HasCounters`. With the HasCounters predicate implemented, the
+// Its compiled ability is an activated ChangeZone costing {1}{U},{T} whose
+// target filter is a creature with counters. With the HasCounters predicate implemented, the
 // ability is offered and offers exactly the creatures that carry a counter;
 // without it `Creature.HasCounters` matched NOTHING, so the ability had zero
 // legal targets and was withheld entirely -- "{1}{U}, {T}: return target

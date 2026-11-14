@@ -85,9 +85,8 @@ func TestPlaceLibraryObjectsNonZeroPosition(t *testing.T) {
 }
 
 // TestLongTermPlansPutsCardThirdFromTop is the corpus-driven end-to-end pin
-// on the live carrier: the ACTUAL compiled Long-Term Plans spell (SP$
-// ChangeZone | Origin$ Library | Destination$ Library | LibraryPosition$ 2 |
-// ChangeType$ Card | ChangeNum$ 1 | Mandatory$ True) driven through Resolve
+// on the live carrier: the ACTUAL compiled Long-Term Plans spell (a mandatory
+// library search for one card, put back into the library at position 2) driven through Resolve
 // on a plain fakeHost. The search takes the first eligible card (the searched
 // card sits first in the library, so the deterministic no-host stand-in finds
 // exactly it), the mandatory-shuffle arm shuffles and hands the tail to

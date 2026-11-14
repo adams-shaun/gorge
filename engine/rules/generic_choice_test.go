@@ -116,9 +116,9 @@ func TestTirelessProvisionerLandfallCreatesChosenTreasure(t *testing.T) {
 
 // TestDayOfTheDoctorChapterIVAsks pins the third dispatch path — the one the
 // duplicate report worried about (a GenericChoice reached as a chained
-// SubAbility$): The Day of the Doctor's saga chapter IV is
-// `SVar:DBChoose: DB$ ChooseCard … | SubAbility$ DBGenericChoice`, where
-// DBGenericChoice is `DB$ GenericChoice | Choices$ DBExileAll,DBCleanupBis`.
+// SubAbility$): The Day of the Doctor's saga chapter IV is a ChooseCard whose
+// sub-ability is a GenericChoice between two bodies (an exile-all and a
+// cleanup).
 // effects.Resolve's chain walk (engine/effects/registry.go) dispatches every
 // registered API — with GenericChoice registered the chained SA reaches
 // effCharm and poses its KModes ask with the two Choices$ bodies' labels; it

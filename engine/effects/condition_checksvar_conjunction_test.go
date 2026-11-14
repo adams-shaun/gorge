@@ -10,9 +10,9 @@ import (
 // TestConditionCheckSVarConjunctionIsAnd pins the `ConditionCheckSVar$` +
 // `ConditionDefined$`/`ConditionPresent$` conjunction as a real AND, not a
 // replace: the SVar gate and the presence group must BOTH pass for the rider
-// to run. Coiling Rebirth's DBCopy is the measured carrier
-// (`ConditionCheckSVar$ X | ConditionDefined$ Remembered | ConditionPresent$
-// Card.nonLegendary`), where X is `Count$PromisedGift.1.0`; the shape is
+// to run. Coiling Rebirth's DBCopy is the measured carrier (an SVar gate on
+// X plus a presence check that the remembered card is nonlegendary), where X
+// counts whether the gift was promised; the shape is
 // exercised here with a controllable X (`Count$Valid Creature.YouCtrl`) and a
 // plain `Card` presence spec so each half can be made to fail on its own.
 //

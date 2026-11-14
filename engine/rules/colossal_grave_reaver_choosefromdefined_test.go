@@ -2,10 +2,9 @@ package rules
 
 // Colossal Grave-Reaver's death-adjacent batch trigger:
 // "Whenever one or more creature cards are put into your graveyard from your
-// library, put one of them onto the battlefield." Its body is
-// `DB$ ChangeZone | ChooseFromDefined$ TriggeredCards | ChangeNum$ 1 |
-// Mandatory$ True | Hidden$ True | Origin$ Graveyard | Destination$
-// Battlefield` — the pick must be offered over (and taken from) exactly the
+// library, put one of them onto the battlefield." Its body is a mandatory
+// hidden ChangeZone of one card chosen from the triggered cards, graveyard to
+// battlefield — the pick must be offered over (and taken from) exactly the
 // creature cards the trigger CAPTURED (the moved batch, Ctx.Remembered), not
 // over every card in the graveyard, and an unresolvable selector fails
 // closed. This file is the engine-level pin for the TriggeredCards spelling.

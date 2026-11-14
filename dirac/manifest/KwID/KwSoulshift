@@ -1,0 +1,7 @@
+family: KwID
+name: KwSoulshift
+value: 38
+forge: Soulshift
+census: kw Soulshift all=26 std=0 mbc=0 sole=26
+state: code 0
+status: reserved

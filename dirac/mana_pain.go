@@ -632,14 +632,15 @@ const availWinCol uint8 = 64
 
 // availCastWindowFor is availFor under availWinCol.
 func (s *State) availCastWindowFor(k *prep, p uint8, a *avail) {
-	if !k.painMana {
-		s.availFor(k, p, a)
-		return
-	}
 	x := s.g.availX
-	s.g.availX |= availWinCol
+	if k.painMana {
+		s.g.availX |= availWinCol
+	}
 	s.availFor(k, p, a)
 	s.g.availX = x
+	if k.gen != nil && k.gen.anyComboAny && x&3 == 0 {
+		s.availCA(k, p, a) // the window taps a Combo Any source (mana_comboany.go)
+	}
 }
 
 // loweredWindowOK pays a lowered cast through its window: the window's answers

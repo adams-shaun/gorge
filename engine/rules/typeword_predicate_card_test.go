@@ -18,7 +18,7 @@ import (
 //
 //	{2}: Untap target artifact creature.
 //
-// Its compiled ability is `A:AB$ Untap | Cost$ 2 | ValidTgts$ Creature.Artifact`.
+// Its compiled ability is a {2} activated Untap targeting a Creature.Artifact.
 // With the positive type-word predicate path in place, the `Artifact`
 // predicate (a type word after the base `Creature`) evaluates as hasType, so
 // the ability offers exactly the artifact creatures as targets and is offered
