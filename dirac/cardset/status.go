@@ -91,3 +91,20 @@ func Raw(s Set) Set {
 func AllowUnverified(s Set) Set {
 	return viewOf(s.(*dataSet).d, notRefused)
 }
+
+// AllowNamed returns s playing its supported cards and the unverified cards names
+// holds; tokens play as under AllowUnverified. It is how a targeted evidence run plays
+// the cards it owes evidence among cards that already have it, the way a real game
+// plays supported cards only.
+func AllowNamed(s Set, names map[string]bool) Set {
+	d := s.(*dataSet).d
+	sup := make([]bool, len(d.Status))
+	for i, st := range d.Status {
+		if i >= d.NumCards {
+			sup[i] = notRefused(st)
+			continue
+		}
+		sup[i] = st == StatusSupported || st == StatusUnverified && names[d.Names[i]]
+	}
+	return &dataSet{d: d, plays: sup, nameInert: nameInertCards(d)}
+}

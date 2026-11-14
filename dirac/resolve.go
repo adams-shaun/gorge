@@ -23,6 +23,12 @@ func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 			// controller's spells included (gorge stack.go's recheck arm)
 			return false
 		}
+		if t := tspecE(s.k(), e, i); t != nil && t.TFlags&kop.TgfPlayerCompareOK != 0 && !s.playerThanActiveOK(k, t.TFlags, pp) {
+			// the Oath cycle's comparison with the active player is judged
+			// again at resolution (CR 608.2b; gorge's recheck of the full
+			// spec): the board may have changed since the target was chosen
+			return false // tgt_thanactive.go
+		}
 		return !s.pl[pp].lost
 	}
 	if isStackTarget(code) {
@@ -274,7 +280,7 @@ func (s *State) resolveTop(k *prep) {
 		}
 		if a.Trig.Flags&kop.TfOptional != 0 && e.kind == seTrigger && (k.gen == nil || !k.gen.anyCloneCopy || !s.cloneTrigMoved(k, &e)) {
 			s.res.ask = raOptional
-			s.res.askP = optTrigAsker(&e, a.Trig.Flags4) // trig_optplayer.go
+			s.res.askP = s.optTrigAsker(&e, a.Trig.Flags4, a.Trig.Flags5) // trig_optplayer.go
 			s.ctl = ctlResolve
 			return
 		}
@@ -727,6 +733,8 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.promisedSeat(k, e) // kw_gift.go
 	case kop.RefChosenPlayer:
 		return s.chosenPlayerSeat(e) // repl_chooseplayer.go
+	case kop.RefChosenPlayerRes:
+		return s.chosenSeatRes() // act_chooseplayerres.go
 	case kop.RefAttachedCtrl:
 		return s.attachedCtrl(s.objRefObj(kop.RefAttached))
 	}
@@ -811,6 +819,10 @@ func (s *State) value(k *prep, v kop.ValueRef) int {
 	case kop.VSelfPower, kop.VSelfToughness:
 		sl := s.objRef(k, kop.RefSelf)
 		if sl == NoSlot {
+			if e.obj != NoObj && (e.kind == seSpell || s.objs[e.obj].ver != e.srcVer+1) {
+				// not a departed source's last known P/T: the card itself
+				s.offZonePTRead(k, e.card, s.objs[e.obj].owner(), e.obj) // static_offzonept.go
+			}
 			c := &k.cards[e.card]
 			pw, t := int(c.power), int(c.tough)
 			if e.kind != seSpell && e.obj != NoObj {
@@ -939,6 +951,7 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 		}
 	}
 	kw := s.srcKw(k)
+	s.notePlDamagedNC(k, code) // value_oppsdamaged.go
 	if k.gen != nil && k.gen.anyInfect && (s.srcInfect(k) || isObjTarget(code) && s.srcWither(k, kw)) {
 		s.infectDamageTo(k, code, n, kw) // wither is infect's creature half (a player takes ordinary damage)
 		return n
@@ -986,7 +999,7 @@ func (s *State) refCode(k *prep, r kop.Ref) TCode {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		return s.tgtCode(sl)
-	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefTriggerObjOwner:
+	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefChosenPlayerRes, kop.RefTriggerTgtCtrl, kop.RefTriggerObjOwner:
 		p := s.playerRef(k, r)
 		if p == 255 {
 			return TCode(NoTarget)
@@ -1011,6 +1024,8 @@ func (s *State) players(k *prep, r kop.Ref) seatSeq {
 	case kop.RefEachOpponent:
 		// gorge Defined$ Opponent: AliveFrom(controller) without it
 		return s.oppsFrom(s.res.e.ctrl)
+	case kop.RefTriggerOpponents:
+		return s.triggerOpps() // trig_triggeropps.go
 	}
 	return seatOne(s.playerRef(k, r))
 }
