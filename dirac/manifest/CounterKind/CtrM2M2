@@ -1,0 +1,7 @@
+family: CounterKind
+name: CtrM2M2
+value: 187
+forge: M2M2
+census: ctr M2M2 all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

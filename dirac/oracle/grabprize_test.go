@@ -7,11 +7,6 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// gorgeDiscardedFixTime is gorge cr-discarded-cost-value-ref (79fe01b4f,
-// 2026-10-26 11:07:01 UTC): before it the Discarded$ value ref read 0, so
-// Grab the Prize never dealt its damage.
-const gorgeDiscardedFixTime = "20261026110701"
-
 // The Grab the Prize lockstep: "As an additional cost, discard a
 // card. Draw two cards. If the discarded card wasn't a land card, deal 2
 // damage to each opponent" -- RefDiscarded, the cost-discarded card
@@ -34,9 +29,6 @@ var kgrabprizeDecks = [2][]cardset.Entry{
 
 func TestGrabprizeLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeDiscardedFixTime) {
-		t.Skip("gorge before cr-discarded-cost-value-ref (79fe01b4f): Discarded$ reads 0")
-	}
 	lockstepSet(t, "grabprize", kgrabprizeDecks, 500, "KGRABPRIZE_SEEDS")
 }
 
@@ -44,9 +36,6 @@ func TestGrabprizeLockstep(t *testing.T) {
 // with RefDiscarded unread (the pre-fix gorge's 0), some seed diverges.
 func TestGrabprizeLockstepMutation(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeDiscardedFixTime) {
-		t.Skip("gorge before cr-discarded-cost-value-ref (79fe01b4f)")
-	}
 	n := lockstepRun(t, "grabprize", kgrabprizeDecks, 100, false, func(tbl *kop.Table) {
 		tbl.Exprs = append([]kop.Expr(nil), tbl.Exprs...) // the pool's Exprs is shared with the parallel lockstep
 		for i := range tbl.Exprs {

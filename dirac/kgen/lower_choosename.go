@@ -8,10 +8,10 @@ import (
 )
 
 // The as-enters nonland card-name choice and the trigger that reads it (Kai
-// Winn, Faithless Leader): K:ETBReplacement:Other:<SVar> with DB$ NameCard |
-// Defined$ You | ValidCards$ Card.nonLand, and T: Mode$ SpellAbilityCast |
-// ValidCard$ Card.NamedCard | ValidSA$ Spell,Activated |
-// ValidActivatingPlayer$ Opponent. gorge asks the name at the entry boundary
+// Winn, Faithless Leader): an as-enters replacement whose body has its
+// controller name a nonland card, and a SpellAbilityCast trigger on an
+// opponent casting a spell or activating an ability of a card with the chosen
+// name. gorge asks the name at the entry boundary
 // over the sorted nonland names of its universe (effects
 // NameChoicesFromListCtx) and keeps it on Object.ChosenName; the line reads
 // it through the NamedCard predicate on the cast spell, or on the source of an

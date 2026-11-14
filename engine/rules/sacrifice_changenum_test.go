@@ -2,7 +2,7 @@ package rules
 
 // The cr-pc-sacrifice-changenum leaves: Forge's SacrificeEffect reads only
 // Amount$ (default 1) and never ChangeNum$; Glacial Chasm's ETB
-// `DB$ Sacrifice | SacValid$ Land | ChangeNum$ 1` is therefore inert script
+// land Sacrifice carries a ChangeNum$ of 1, which is therefore inert script
 // noise, not a second amount. A non-1 ChangeNum$ is a shape this resolver
 // cannot honour, so Face.Primitives reports it as unsupported instead of
 // letting a future script pass silently.

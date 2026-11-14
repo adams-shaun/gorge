@@ -33,8 +33,7 @@ func effectNotesContaining(e *Engine, sub string) []string {
 
 // TestEffectDeliveredContinuousGrantAppliesAddPower pins the layer-7c
 // additive P/T half (the finding's Vivien Reid shape): an Effect-delivered
-// `AddPower$ +2 | AddToughness$ +2 | AddKeyword$ Vigilance` must register
-// BOTH layers.
+// +2/+2 and vigilance grant must register BOTH layers.
 func TestEffectDeliveredContinuousGrantAppliesAddPower(t *testing.T) {
 	t.Parallel()
 	grant := card(t, "Name:EmblemOfMight\nManaCost:U\nTypes:Sorcery\n"+

@@ -11,8 +11,8 @@ import (
 // a granted static replacement. Scion
 // of Halaster grants the commander creatures you own "The first time you would
 // draw a card each turn, instead look at the top two cards ... Then draw a
-// card." The granted R: body is `Event$ Draw | ValidPlayer$ You | ReplaceWith$
-// DBDig | CheckSVar$ X | SVarCompare$ EQ0` with `SVar:X:Count$YouDrewThisTurn`
+// card." The granted replacement replaces your draw with a Dig when its SVar
+// X (the cards you drew this turn) is zero, with X
 // defined on SCION, while the HOST the static affects is the commander
 // creature. The gate must resolve X from the GRANTING face (Scion), so the
 // replacement fires only on the turn's FIRST draw. Resolving X from the host's

@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExAltCost
+value: 72
+forge: AltCost
+census: count AltCost all=8 std=0 mbc=0 sole=6
+state: slotbyte 112 (cast facts)
+status: reserved

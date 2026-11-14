@@ -49,9 +49,8 @@ func TestVortexRunner(t *testing.T) {
 }
 
 // TestMaraudingMaulhorn drives the real corpus gate end to end: Marauding
-// Maulhorn's `S:Mode$ MustAttack | ... | IsPresent$
-// Card.namedAdvocate of the Beast+YouCtrl | PresentCompare$ EQ0` is a
-// requirement ONLY while its controller controls no Advocate of the Beast
+// Maulhorn's MustAttack static, gated on no Advocate of the Beast under your
+// control, is a requirement ONLY while its controller controls no Advocate of the Beast
 // (the Advocate is the card's own printed release valve). Both leaves go
 // through the NORMAL attacker offer/validator path -- restrictionGame parks
 // the table at turn-2 Main1, driveToStep reaches seat 0's KAttackers

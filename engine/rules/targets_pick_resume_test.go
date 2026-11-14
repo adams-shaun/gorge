@@ -9,8 +9,8 @@ package rules
 // That livelock was once fixed, for MoveCounter alone, by the per-object
 // moveCounterAsk cursor. It is a defect of the SHARED
 // pre-ask, not of MoveCounter, and the live corpus carrier is Kozilek's
-// Command: its CharmNum$ 2 election can pick `DBScry` (`DB$ Scry | ScryNum$ X
-// | ValidTgts$ Player`) alongside another targeting mode, so the stack
+// Command: its CharmNum$ 2 election can pick `DBScry` (a target player scries
+// X) alongside another targeting mode, so the stack
 // object's one undivided target list is not DBScry's player, the pre-ask
 // fires, and the Scry's own KArrange is the second ask -- which loops
 // arrange -> tgts -> arrange until the livelock watcher panics.

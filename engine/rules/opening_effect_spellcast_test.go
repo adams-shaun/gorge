@@ -10,8 +10,8 @@ import (
 )
 
 // The opening-hand Effect registration's event-matched (non-phase) half:
-// Chancellor of the Annex's `DB$ Effect | Triggers$ TrigCounter |
-// EffectOwner$ Opponent` registers a one-off Mode$ SpellCast delayed trigger
+// Chancellor of the Annex's Effect, owned by each opponent and carrying a
+// counter trigger, registers a one-off spell-cast delayed trigger
 // per opponent, which fires on that opponent's first cast and counters the
 // spell unless its controller pays {1}. The Phase half
 // (TestChancellorOpeningEffectRegistersAndRunsItsPhaseTrigger) already has a

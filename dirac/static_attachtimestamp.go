@@ -94,6 +94,10 @@ func (s *State) attachQuietPlayer(k *prep, sl Slot, seat uint8) {
 	s.touchSl(sl)
 }
 
+// The seat marks are a run indexed by seat (mechAtch0+seat), one per seat
+// of the widest table: consecutive values.
+var _ = [1]struct{}{}[mechAtch1-mechAtch0-1+mechAtch2-mechAtch1-1+mechAtch3-mechAtch2-1]
+
 // atchSeat is a player-attached Aura's enchanted seat + 1 (0 = not attached
 // to a player): the Enchant:Player curses (gorge Object.HasAttachedPlayer /
 // AttachedPlayer, engine/events/apply_zone.go foldAttach's "attach to

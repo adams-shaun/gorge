@@ -13,9 +13,9 @@ import (
 // destruction path for Dismantle (the destructible counterpart of
 // TestDismantleCounterTypeChoiceContinuesAfterDeterministicRecipient, which
 // deliberately uses an indestructible target). Dismantle's Destroy moves the
-// targeted artifact to the graveyard before DBPutCounter evaluates BOTH
-// `ConditionDefined$ Targeted | ConditionPresent$ Card.HasCounters` and
-// `X:Targeted$CardCounters.ALL`; both must read the target's
+// targeted artifact to the graveyard before DBPutCounter evaluates BOTH its
+// condition that the target has counters and its X, the target's total
+// counter count; both must read the target's
 // last-known-information counters (CR 608.2b/h), which the engine now
 // captures at the start of resolution (Ctx.TargetCountersLKI). The test
 // proves the target really was destroyed (so the counters are gone from the

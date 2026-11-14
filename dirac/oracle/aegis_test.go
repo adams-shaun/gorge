@@ -29,10 +29,6 @@ var kaegisDecks = [2][]cardset.Entry{
 	},
 }
 
-// gorgeAegisFixTime is gorge son-exiledwith-cr4007 / son-clone-untilunattached
-// (73fafdba3, 79bd6874a), both before 71304b28d (2026-10-26 17:36:20Z).
-const gorgeAegisFixTime = "20261026173620"
-
 // kaegisCounts is what the gorge side did over the run.
 type kaegisCounts struct{ attaches, clones, ends int }
 
@@ -115,9 +111,6 @@ func kaegisRun(t *testing.T, n uint64, report bool, mut func(*kop.Table)) (div i
 
 func TestAegisLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeAegisFixTime) {
-		t.Skip("gorge before son-clone-untilunattached / son-exiledwith-cr4007")
-	}
 	_, c := kaegisRun(t, 600, true, nil)
 	t.Logf("600 games: %d Aegis attaches, %d copies", c.attaches, c.clones)
 	if c.attaches < 1000 || c.clones < 1000 {
@@ -129,9 +122,6 @@ func TestAegisLockstep(t *testing.T) {
 // seed diverges.
 func TestAegisLockstepMutation(t *testing.T) {
 	// not parallel: it flips dirac.DebugAegisNoUnlink
-	if !gorgePinAtLeast(t, gorgeAegisFixTime) {
-		t.Skip("gorge before son-clone-untilunattached / son-exiledwith-cr4007")
-	}
 	n, _ := kaegisRun(t, 300, false, func(tbl *kop.Table) {
 		cards := append([]kop.CardDef(nil), tbl.Cards...)
 		for i := range cards {

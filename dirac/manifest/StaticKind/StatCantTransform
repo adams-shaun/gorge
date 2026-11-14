@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatCantTransform
+value: 52
+forge: CantTransform
+census: stat CantTransform all=1 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

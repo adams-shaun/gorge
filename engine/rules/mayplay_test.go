@@ -350,10 +350,9 @@ func TestKaZarGrantsPlayLandFromTopOfLibrary(t *testing.T) {
 }
 
 // TestVergeRangersOffersTopLibraryLandWhenOpponentAhead drives Verge Rangers'
-// real static -- S:Mode$ Continuous | Affected$ Land.TopLibrary+YouCtrl |
-// AffectedZone$ Library | MayPlay$ True | CheckSVar$ X | SVarCompare$ GTY, X
-// = PlayerCountOpponents$HighestValid Land.YouCtrl, Y = Count$Valid
-// Land.YouCtrl -- through the priority walk. The static's SVar gate is an
+// real static -- a continuous static letting its controller play the land on
+// top of their library, gated on an opponent controlling more lands than they
+// do -- through the priority walk. The static's SVar gate is an
 // intervening-if the may-play path must EVALUATE, not withhold: with an
 // opponent controlling more lands the top-of-library land is offered, played
 // and consumes the land drop; with no opponent ahead the same board offers

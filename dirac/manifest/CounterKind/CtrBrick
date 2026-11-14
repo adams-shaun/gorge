@@ -1,0 +1,7 @@
+family: CounterKind
+name: CtrBrick
+value: 88
+forge: BRICK
+census: ctr BRICK all=5 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

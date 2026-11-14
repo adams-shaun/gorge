@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigRolledDieOnce
+value: 67
+forge: RolledDieOnce
+census: trig RolledDieOnce all=7 std=0 mbc=0 sole=3
+state: global 2 (die result)
+status: reserved

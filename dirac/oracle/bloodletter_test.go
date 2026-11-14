@@ -7,11 +7,6 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// gorgeLifeReducedFixTime is gorge cr-lifereduced-twice-not-damage
-// (d86d838e0, 2026-10-26 10:36:59 UTC): before it Bloodletter's doubled
-// life loss doubled the damage itself.
-const gorgeLifeReducedFixTime = "20261026103659"
-
 // The Bloodletter lockstep: Bloodletter of Aclazotz doubles the
 // life an opponent would lose during its controller's turn (ReplLifeLossDouble
 // in loseLife): combat damage, Shock, Sovereign's Bite's life loss; not on
@@ -31,18 +26,12 @@ var kbloodletterDecks = [2][]cardset.Entry{
 
 func TestBloodletterLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeLifeReducedFixTime) {
-		t.Skip("gorge before cr-lifereduced-twice-not-damage (d86d838e0)")
-	}
 	lockstepSet(t, "bloodletter", kbloodletterDecks, 600, "KBLOODLETTER_SEEDS")
 }
 
 // TestBloodletterLockstepMutation: with the doubler gone, some seed diverges.
 func TestBloodletterLockstepMutation(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeLifeReducedFixTime) {
-		t.Skip("gorge before cr-lifereduced-twice-not-damage (d86d838e0)")
-	}
 	n := lockstepRun(t, "bloodletter", kbloodletterDecks, 100, false, func(tbl *kop.Table) {
 		cards := append([]kop.CardDef(nil), tbl.Cards...)
 		for i := range cards {

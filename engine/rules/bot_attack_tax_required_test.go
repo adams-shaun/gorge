@@ -13,7 +13,7 @@ import (
 // reproduction: the combined Phyrexian attack tax must be
 // priced on the REQUIRED path too, not just the optional one. With Norn's
 // Annex out beside seat 1 and three creatures that each MUST attack (CR
-// 508.1d, their own `S:Mode$ MustAttack | ValidCreature$ Card.Self` static)
+// 508.1d, their own MustAttack static on themselves)
 // at four life, the engine's RequiredQuota used to count all three required
 // pairs -- it priced only Option.Value/MaxSum, never the wire's
 // CostPhyrexian -- so the production policy's charge guard trimmed the

@@ -10,14 +10,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// gorgeKatildaFixTime is gorge son-g-script-own-tap (04c2c4c46, 2026-10-26
-// 18:00:44Z, on top of 10772317e's Defined.Self reflected-mana planning): a
-// prefix script never taps the searched ability's own {T} source, which
-// Katilda's own "{4}{G}{W}, {T}" counters ability needs (she is a Human and
-// first in battlefield order). Before it gorge's search ends in a dead-end
-// script and drops the play.
-const gorgeKatildaFixTime = "20261026180044"
-
 // The Katilda, Dawnhart Prime lockstep: "Human creatures you
 // control have '{T}: Add one mana of any of this creature's colors'" (a
 // granted AB$ ManaReflected, Valid$ Defined.Self, ReflectProperty$ Is) and
@@ -83,9 +75,6 @@ func kkatildaCheck(tal *kkatildaTally) func(*GorgeSide, Side) *Divergence {
 
 func TestCardKatildaLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeKatildaFixTime) {
-		t.Skip("gorge before the prefix-script own-tap fix (04c2c4c46)")
-	}
 	var tal kkatildaTally
 	sonRun(t, "katilda", kkatildaMatchups, 300, true, nil, kkatildaCheck(&tal))
 	t.Logf("%d games: %d granted reflected activations by Katilda, %d by other Humans", tal.games, tal.katilda, tal.human)
@@ -98,9 +87,6 @@ func TestCardKatildaLockstep(t *testing.T) {
 // the granted mana pays differently, and some seed diverges.
 func TestCardKatildaLockstepMutation(t *testing.T) {
 	// (serial: the mutation switch is a package global, so the parallel lockstep waits for it)
-	if !gorgePinAtLeast(t, gorgeKatildaFixTime) {
-		t.Skip("gorge before the prefix-script own-tap fix (04c2c4c46)")
-	}
 	dirac.SetDebugOwnColoursMutate(1)
 	defer dirac.SetDebugOwnColoursMutate(0)
 	n := sonRun(t, "katilda", kkatildaMatchups, 100, false, func(tbl *kop.Table) {}, nil)

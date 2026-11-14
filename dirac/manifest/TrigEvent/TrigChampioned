@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigChampioned
+value: 108
+forge: Championed
+census: trig Championed all=1 std=0 mbc=0 sole=0
+state: slotobj 112 (champion)
+status: reserved

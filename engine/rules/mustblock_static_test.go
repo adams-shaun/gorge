@@ -41,7 +41,7 @@ func TestMustBlockContinuousRestrictionScopesToRemembered(t *testing.T) {
 	remembered := onBoardCard(t, e, 0, card(t, "Name:Duty Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"))
 	other := onBoardCard(t, e, 0, card(t, "Name:Bystander Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"))
 
-	// The corpus shape: `Mode$ MustBlock | ValidCreature$ Card.IsRemembered`.
+	// The corpus shape: a MustBlock static on the remembered creature.
 	e.AddContinuous(state.ContinuousEffect{
 		Source:         src,
 		Controller:     0,

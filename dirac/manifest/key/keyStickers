@@ -1,0 +1,7 @@
+family: key
+name: keyStickers
+value: 6
+forge: stickers
+census: key stickers classes=11 all=60
+state: objbyte 236
+status: reserved

@@ -1,0 +1,19 @@
+# the Renown pool: K:Renown carriers (Consul's Lieutenant, Topan Freeblade,
+# Goblin Glory Chaser, Scab-Clan Berserker, Honored Hierarch, Undercity Troll,
+# Rhox Maulers, Outland Colossus) whose combat-damage trigger sets the
+# renowned designation and whose IsRenowned reads (an attack trigger, a
+# spell-cast trigger, a granted-keyword static) follow it, beside burn that
+# kills a renowned creature, for the oracle's constructed lockstep
+# (dirac/oracle/renown_test.go)
+Consul's Lieutenant
+Forest
+Goblin Glory Chaser
+Honored Hierarch
+Mountain
+Outland Colossus
+Plains
+Rhox Maulers
+Scab-Clan Berserker
+Shock
+Topan Freeblade
+Undercity Troll

@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigClashed
+value: 77
+forge: Clashed
+census: trig Clashed all=4 std=0 mbc=0 sole=3
+state: code 0
+status: reserved

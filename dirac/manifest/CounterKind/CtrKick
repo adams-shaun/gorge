@@ -1,0 +1,7 @@
+family: CounterKind
+name: CtrKick
+value: 184
+forge: KICK
+census: ctr KICK all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

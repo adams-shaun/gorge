@@ -217,12 +217,33 @@ build now supports: it is stale.
 **To change:** when your work closes an entry, delete it in the same commit.
 Adding an entry means a regression, and a branch cannot land one (see below).
 
+**Code-shape ratchets fail on growth only.** `internal/codeshape` holds two
+kinds, both run by every precheck (`scripts/test_targets.py` always selects
+the package) and both measured from syntax in under a second:
+
+- `TestCodeShapeOnlyShrinks`: the constants in `ratchet_test.go` (interface
+  widths, `*Engine` surface, string-keyed dispatch and parameter leaks in
+  `engine/rules` and `engine/effects`).
+- `TestLongFunctionsOnlyShrink` and `TestComplexFunctionsOnlyShrink`: every
+  non-test, non-generated function in `engine/rules`, `engine/effects` and
+  `dirac/` (kgen included) over 300 lines or cyclomatic complexity 50 has a
+  row in `internal/codeshape/testdata/func_ceilings.tsv`. A listed function
+  fails when it grows past its row in either measure; an unlisted one fails
+  when it crosses a threshold.
+
+A shrink, a function that drops under both thresholds, and a deleted function
+only log, so concurrent refactors never fail on each other.
+`CODESHAPE_LOWER=1 go test -run '^TestFuncCeilingsLowerOnly$' ./internal/codeshape`
+lowers the rows to the measurement and drops the stale ones; it never raises
+or adds a row. A function renamed, or moved to another package, takes its row
+under the new key in the same commit at no higher value.
+
 **A ratchet is never raised by a branch.** That covers the coverage tables
-above, the shrink-only constants and `longFuncCeilings` in
-`internal/codeshape`, the constants and allow-lists of `internal/archtest`,
-and `testkit/testutil/agentsdoc_test.go`. Review enforces this: a raised or
+above, the constants and `func_ceilings.tsv` in `internal/codeshape`, the
+constants and allow-lists of `internal/archtest`, and
+`testkit/testutil/agentsdoc_test.go`. Review enforces this: a raised or
 deleted constant, an added allow-list entry, a removed or rewired
-`TestCodeShapeOnlyShrinks` row, a new or grown `longFuncCeilings` entry or a
+`TestCodeShapeOnlyShrinks` row, a new or raised `func_ceilings.tsv` row or a
 new known-unsupported file is refused. A raise is a maintainer's decision.
 
 ### 9. Golden chain heads move only with a named cause
@@ -306,7 +327,10 @@ shrink-only) do not list fails it. Peak RSS is measured per test binary by
    - `make test-targeted` on each iteration: the packages your diff touches
      plus every package whose tests import them, capped, one verdict line.
    - `make test-smart` once on the committed tree (`make precheck` is an alias):
-     the landing gate's own steps, fail-fast. Quote its verdict line.
+     fail-fast, the affected packages (`./engine/rules` whole when the change
+     reaches it) plus the pin, census, layout and lint groups; the prescreen and
+     the lander run the dirac gate. `GORGE_TEST_SMART_GATES=1` runs the landing
+     gate's own affected and dirac gates instead. Quote its verdict line.
    - `make lint`: gofmt, vet, `gentypes -check`, plus web lint.
    - `make sim`: 20/20 `replay OK`.
    - If you touched `web/` or changed when a decision is posed, also run the
@@ -317,7 +341,7 @@ shrink-only) do not list fails it. Peak RSS is measured per test binary by
 4. **Every test fits the budget: 4 GB RSS, 4 vCPU, 1 minute wall.** Run tests
    through the make targets (`scripts/test-targets.sh`), never a raw
    `go test`. To debug one test: `make test-one PKG=./pkg RUN='^TestX$'`
-   (`SKIP=`, `V=1`, `TIMEOUT=2m` at most 5m, `TAGS=`, `UPDATE=1`, and
+   (`SKIP=`, `V=1`, `TIMEOUT=` default and at most 5m, `TAGS=`, `UPDATE=1`, and
    `TESTENV='KGEN_REPIN=1'` for the allow-listed regeneration variables). Each
    target caps itself (4G/400% for test-one, `GOMAXPROCS=4`, `GOMEMLIMIT=3GiB`),
    never passes `-count` (the cache stays on), and ends with one line:

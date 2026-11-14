@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtRemoveFromGame
+value: 86
+forge: RemoveFromGame
+census: api RemoveFromGame all=1 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

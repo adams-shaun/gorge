@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExBloodthirstAmount
+value: 115
+forge: BloodthirstAmount
+census: count BloodthirstAmount all=1 std=0 mbc=0 sole=0
+state: slotbyte 112 (cast facts)
+status: reserved

@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigCaseSolved
+value: 107
+forge: CaseSolved
+census: trig CaseSolved all=1 std=1 mbc=0 sole=0
+state: slotbit 16 (solved)
+status: reserved

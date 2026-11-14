@@ -9,8 +9,8 @@ import (
 )
 
 // TestNoAbilitiesMuragandaPetroglyphsBuffsOnlyVanilla is the rules leaf for
-// the NoAbilities predicate: Muraganda Petroglyphs' `S:Mode$ Continuous |
-// Affected$ Creature.NoAbilities | AddPower$ 2 | AddToughness$ 2` reaches a
+// the NoAbilities predicate: Muraganda Petroglyphs' continuous +2/+2 static
+// over creatures with no abilities reaches a
 // printed-vanilla creature and never an ability-bearing one. Before the
 // predicate existed the token failed closed, so the Affected$ spec matched
 // nothing and the vanilla creature stayed 2/2 -- the assertion below fails by

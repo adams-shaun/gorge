@@ -51,12 +51,6 @@ func TestStacktgtLockstepMutation(t *testing.T) {
 	}
 }
 
-// gorgeRememberForCounterTime is gorge ("write the linked remember
-// params"), the commit time in UTC: before it gorge's effCounter left
-// RememberForCounter$ unread, so Ertai Resurrected's "its controller draws a
-// card" after its counter mode drew for no one.
-const gorgeRememberForCounterTime = "20261026080405"
-
 // kstacktgtErtaiDecks: Ertai Resurrected's enters charm (choose up to one:
 // counter target spell, activated or triggered ability, or destroy another
 // target creature or planeswalker; either way that thing's controller draws
@@ -193,9 +187,6 @@ func ertaiRun(t *testing.T, seeds uint64, report bool, mutate func(*kop.Table)) 
 
 func TestStacktgtErtaiLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeRememberForCounterTime) {
-		t.Skip("gorge pin predates 84b5a37bd: Counter RememberForCounter$ unread, Ertai's draw goes to no one")
-	}
 	lockstepSet(t, "stacktgt", kstacktgtErtaiDecks, 500, "KSTACKTGT_SEEDS")
 	if _, n := ertaiRun(t, 300, true, nil); n == 0 {
 		t.Fatal("ertaiPolicy never chose Ertai's counter mode")
@@ -209,9 +200,6 @@ func TestStacktgtErtaiLockstep(t *testing.T) {
 // countered thing's, some seed diverges.
 func TestStacktgtErtaiLockstepMutation(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeRememberForCounterTime) {
-		t.Skip("gorge pin predates 84b5a37bd")
-	}
 	n, _ := ertaiRun(t, 300, false, func(tbl *kop.Table) {
 		for i := range tbl.Cards {
 			for j := range tbl.Cards[i].Abilities {

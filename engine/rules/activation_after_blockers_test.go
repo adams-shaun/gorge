@@ -30,8 +30,8 @@ import (
 // TestActivationAfterBlockersTrapRunnerOfferedOnceBlockersDeclared is the real
 // corpus carrier: Trap Runner's `{T}: Target unblocked attacking creature
 // becomes blocked. Activate only during combat after blockers are declared`
-// (`ActivationPhases$ Declare Blockers->EndCombat | ActivationAfterBlockers$
-// True`). The ability must be OFFERED at priority in the declare-blockers
+// (an activation window from declare blockers to end of combat, restricted to
+// after blockers are declared). The ability must be OFFERED at priority in the declare-blockers
 // step once the blockers declaration is complete.
 //
 // Offer-only: Trap Runner's BecomesBlocked resolution is unrelated machinery

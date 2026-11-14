@@ -44,8 +44,8 @@ func chooseTargetOption(t *testing.T, e *Engine, obj state.ObjID) {
 // TestEffectCantBlockBySuspiciousBookcaseUnblocksItsTarget pins the
 // Effect-registered CantBlockBy route end to end on the real corpus card:
 // Suspicious Bookcase's "{3},{T}: Target creature can't be blocked this turn"
-// is an `AB$ Effect | StaticAbilities$ Unblockable` whose SVar body is
-// `Mode$ CantBlockBy | ValidAttacker$ Card.IsRemembered` (the dominant
+// is an activated Effect whose static body is a CantBlockBy on the remembered
+// attacker (the dominant
 // unblockable template -- measured 246 corpus files carry the shape). Without
 // a CantBlockBy case in effEffect's static-mode switch, the
 // ability resolves as an unimplemented Note and the targeted creature stays

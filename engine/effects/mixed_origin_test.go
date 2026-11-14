@@ -43,7 +43,7 @@ func zoneOfObj(g *state.Game, id state.ObjID) state.Zone {
 
 // TestDreamsOfSteelAndOilMixedOriginExilesBothChosenCards closes the row the
 // mixed-origin Note once covered: Dreams of Steel and Oil's DBExileBoth is a
-// real corpus `ChangeZone | Defined$ RememberedCard | Origin$ Graveyard,Hand`
+// real corpus ChangeZone of the remembered cards from the graveyard or hand,
 // whose two ChooseCard answers must BOTH exile. An unmodelled RememberedCard
 // selector would fall through Defined to the source default, the Origin$
 // precondition would skip it, and the resolution would emit one replay-note

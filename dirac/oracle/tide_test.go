@@ -28,10 +28,6 @@ var ktideDecks = [2][]cardset.Entry{
 	},
 }
 
-// gorgeTideFixTime is gorge son-tidebinder-host (5137d4811; after son-counter-remember-source 890505b74): Counter
-// RememberCountered$ remembers a countered ability's SOURCE card.
-const gorgeTideFixTime = "20261026173435"
-
 // ktideRun plays seeds 1..n and returns the divergent games and the
 // number of graveyard-to-stack casts on gorge's side.
 func ktideRun(t *testing.T, n uint64, report bool, mut func(*kop.Table)) (div, grave int) {
@@ -111,9 +107,6 @@ func ktideRun(t *testing.T, n uint64, report bool, mut func(*kop.Table)) (div, g
 // 544 of the second matchup deck diverged before it.
 func TestTideLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeTideFixTime) {
-		t.Skip("gorge before son-tidebinder-host (5137d4811)")
-	}
 	_, grave := ktideRun(t, 600, true, nil)
 	t.Logf("600 games: %d abilities countered", grave)
 	if grave < 60 {
@@ -125,9 +118,6 @@ func TestTideLockstep(t *testing.T) {
 // diverges.
 func TestTideLockstepMutation(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeTideFixTime) {
-		t.Skip("gorge before son-tidebinder-host (5137d4811)")
-	}
 	n, _ := ktideRun(t, 300, false, func(tbl *kop.Table) {
 		cards := append([]kop.CardDef(nil), tbl.Cards...)
 		for i := range cards {

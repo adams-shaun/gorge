@@ -105,7 +105,7 @@ func (s *State) InitN(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed uint64
 	for p := 0; p < ns; p++ {
 		for _, c := range decks[p] {
 			if int(s.nobj) >= MaxObj {
-				panic("kernel: decks larger than MaxObj") // a pod of full Commander decks, past the four-seat build's objects
+				panic("kernel: decks larger than MaxObj")
 			}
 			o := s.nobj
 			s.nobj++

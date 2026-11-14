@@ -32,7 +32,7 @@ func (s *State) pceStart(k *prep, in *kop.Instr) bool {
 	if s.g.ro.fin && s.g.ro.ac&ctrOrdTag == ctrOrdTag {
 		return s.pcePut(k, in, r.peek[0]) // the order answered: the same pick again
 	}
-	var kinds [kop.NumCounterKinds3]uint8
+	var kinds ctrHeld
 	switch s.ctrKindsOn(sl, &kinds, false) {
 	case 0:
 		return true

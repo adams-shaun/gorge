@@ -85,7 +85,7 @@ func (s *State) windowRestr(k *prep, p uint8) slotMask {
 // restricted or any-colour gap, a filter-only gap, a counter-cost source, or
 // a Taps-deferred one (mana_tapsdefer.go).
 func (s *State) scriptAny(k *prep) bool {
-	return k.gen != nil && (k.gen.anyScriptGap || k.sacOnlyMana || k.ctrMana || k.gen.anyTapsDefer || k.gen.anyDiscHand)
+	return k.gen != nil && (k.gen.anyScriptGap || k.sacOnlyMana || k.ctrMana || k.gen.anyTapsDefer || k.gen.anyDiscHand || k.gen.anyComboAny)
 }
 
 // gapMask: p's untapped permanents whose card carries the sparse mana
@@ -130,6 +130,9 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	}
 	if k.gen.anyDiscHand && s.dhBoard(k, p) {
 		s.availDH(k, p, a) // a Lion's Eye Diamond's relaxed units (mana_discardhand.go)
+	}
+	if k.gen.anyComboAny && s.caBoard(k, p) {
+		s.availCA(k, p, a) // a Combo Any source's any-colour units (mana_comboany.go)
 	}
 	for b := s.scriptGaps(k, p); b.any(); b = b.rest() {
 		s.eachGapUnits(k, p, b.first(), a)
@@ -197,7 +200,12 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	}
 	tx := s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p))
 	dh := k.gen.anyDiscHand && s.dhBoard(k, p) // Lion's Eye Diamonds the only gaps (mana_discardhand.go)
-	if !dh && !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).any() {
+	ca := k.gen.anyComboAny && s.caBoard(k, p) // a Combo Any source among the gaps (mana_comboany.go)
+	var caM slotMask
+	if ca {
+		caM = s.caGaps(k, p)
+	}
+	if !dh && !ca && !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).any() {
 		return
 	}
 	// With only restricted gaps (Giada, a Courtyard) gorge's census is
@@ -215,7 +223,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// (potential_plan.go), so the prefix search runs on the any-mana walk and
 	// the search's slot accounting counts every insufficient play whatever it
 	// finds; the dead gap contributes no units to either walk (availCtr).
-	relax := !s.scriptGaps(k, p).any() && !twoLive && !sacAny && s.filtRelaxable(k, filt) && !s.deadCtrMask(k, p).any()
+	relax := !s.scriptGaps(k, p).any() && !ca && !twoLive && !sacAny && s.filtRelaxable(k, filt) && !s.deadCtrMask(k, p).any()
 	// A live repeatable fee-only filter (Nomadic Elf) has no relaxed or bounded
 	// proof in gorge either: it searches every insufficient play, and the gaps
 	// walk (one conversion per filter) cannot say which a many-times-activated
@@ -235,7 +243,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	var cand [MaxOptions]Action
 	var key [MaxOptions]uint64
 	nc := 0
-	wide := !mix && !tapsDef.any() && s.wideGapsOnly(k, p, restr, anyR) // (gorge's relaxed proof reads a wide source against each play; a Taps-deferred gap is none of them)
+	wide := !mix && !tapsDef.any() && !ca && s.wideGapsOnly(k, p, restr, anyR) // (gorge's relaxed proof reads a wide source against each play; a Taps-deferred gap is none of them)
 	// The drop of a play no wide source may fund is the relaxed proof's
 	// (potentialRestrictionAdmits): an unrelaxable census (a live
 	// two-permanent source, Supportive Parents) runs no proof, so gorge
@@ -268,6 +276,9 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		if isCastKind(a.Kind()) && a.Mode()&castMayPlay == 0 && k.gen.anyOptCost && optCostCard(k, s.objs[Obj(a.Source())].card) {
 			continue // nor for an OptionalCost card: the planner declines it (shape:optional_cost, cost_optional.go); a may-play cast it composes (potentialModeCastPlan)
 		}
+		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&castMayPlay == 0 && k.t.Cards[s.objs[Obj(a.Source())].card].HasMultikicker {
+			continue // nor for a Multikicker card's plain cast: gorge's planner declines the face (payment_plan.go "shape:optional_cost"), so a plain cast only a census gap pays is not offered (Gnarlid Pack beside Jaspera Sentinel); the multikicked cast keeps its own offer gate (legal_walk_hand.go phMultikicker)
+		}
 		if s.objPartCast(k, a) && !k.t.Cards[s.objs[Obj(a.Source())].card].HasAltAdd || s.contribCast(k, p, a) {
 			continue // nor for an exile, forage, return, blight or evidence part (shape:additional_cost; objPartCast), nor a contribution (shape:contribution); a forage-or-pay either-or (Feed the Cycle) stays with gorge's offer gate, which searches the filter script for its paid part (payment_plan.go altAdd)
 		}
@@ -296,6 +307,10 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			if !s.dhScript(k, a, p, false) {
 				continue // no script: the discarded hand held the play, or three mana of one colour do not pay it (mana_discardhand.go)
 			}
+		} else if ca {
+			if !s.caSearch(k, a, p, restr, anyR, tapsDef, caM) {
+				continue // no script within gorge's search: no colour answers pay the play (mana_comboany.go)
+			}
 		} else if (filt.any() || mix) && a.Kind() == AkActivate && s.liveGrantGap(k, p) {
 			if !s.grantActScript(k, a, p) {
 				continue // no script within gorge's one search's budget (grantActScript)
@@ -308,7 +323,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			if !s.grantActScript(k, a, p) {
 				continue // the grant search is gorge's one search over the deferred gap and the grants (mana_granttapsdefer.go)
 			}
-		} else if tx.any() && s.tapXBoard(k, p) {
+		} else if tx.any() && !(tapsDef.any() && !s.tapXRiderGaps(k, p).any()) && s.tapXBoard(k, p) {
 			if !s.tapXScript(k, a, p, false) && !(s.tapXSecondLive(k, p) && s.liveGrantGap(k, p) && s.grantActScript(k, a, p)) {
 				continue // no script within gorge's budget (mana_tapanother.go), nor in the one search beside the grants (mana_granttapx.go)
 			}
@@ -317,7 +332,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 				continue // no script within gorge's budget, or one the pool cannot complete (mana_reflected.go)
 			}
 		} else if anyR.any() || tapsDef.any() {
-			if s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, s.scriptCtr(k, p)) {
+			if s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, s.scriptCtr(k, p), slotMask{}) {
 				continue // no script within gorge's budget (mana_window.go scriptDeadEndAny)
 			}
 		} else if !restr.any() && !s.scriptCtr(k, p).any() && s.eachFeeBoard(k, p) {
@@ -465,6 +480,10 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		}
 		return
 	}
+	if k.gen.anyComboAny && s.caBoard(k, p) {
+		s.caPrefix(k, a, p) // a Combo Any source among the gaps (mana_comboany.go)
+		return
+	}
 	act := a.Kind() == AkActivate && s.liveGrantGap(k, p)
 	if s.mixBoard(k, p) {
 		if !act {
@@ -476,7 +495,11 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		}
 		return
 	}
-	if (k.tapMana || k.ctrMana) && s.tapXPrefix(k, a, p) {
+	// The tapX route owns the prefix only when a real tap-another source is
+	// on the board, or no Taps-deferred gap is: beside a depletion land the
+	// DFS search's replay (scriptPrefixAny) taps both gaps in battlefield
+	// order, and the tapX search's gaps (rs.gaps) hold no Taps-deferred one.
+	if (k.tapMana || k.ctrMana) && (s.scriptTapXModelled(k, p).any() || !s.scriptTapsDefer(k, p).any()) && s.tapXPrefix(k, a, p) {
 		return // a tap-another-permanent board (mana_tapanother.go)
 	}
 	gaps, restr, anyR := s.scriptGaps(k, p), s.scriptRestr(k, p), s.scriptAnyR(k, p)
@@ -513,7 +536,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		return
 	}
 	if anyR.any() || tapsDef.any() {
-		s.scriptPrefixAny(k, a, p, restr, anyR, tapsDef, ctr)
+		s.scriptPrefixAny(k, a, p, restr, anyR, tapsDef, ctr, slotMask{})
 		return
 	}
 	if !restr.any() && !ctr.any() && s.eachFeeBoard(k, p) {
@@ -549,7 +572,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 // payment actions and the decision's own options) does not hold.
 func (s *State) FeatScripted(p uint8, a Action) bool {
 	k := s.k()
-	if !s.scriptAny(k) || !isScriptPlayKind(a.Kind()) || !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapsDefer(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapXModelled(k, p)).any() && !(k.gen.anyFilt && s.filtOnly(k, p)) && !(k.gen.anyDiscHand && s.dhBoard(k, p)) {
+	if !s.scriptAny(k) || !isScriptPlayKind(a.Kind()) || !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapsDefer(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapXModelled(k, p)).any() && !(k.gen.anyFilt && s.filtOnly(k, p)) && !(k.gen.anyDiscHand && s.dhBoard(k, p)) && !(k.gen.anyComboAny && s.caBoard(k, p)) {
 		return false
 	}
 	var d Decision

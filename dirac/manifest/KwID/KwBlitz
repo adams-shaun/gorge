@@ -1,0 +1,7 @@
+family: KwID
+name: KwBlitz
+value: 50
+forge: Blitz
+census: kw Blitz all=19 std=0 mbc=0 sole=13
+state: slotbit 16 (blitz)
+status: reserved

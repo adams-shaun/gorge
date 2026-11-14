@@ -513,7 +513,7 @@ func TestMultiPlayerSurveilAsksTheFirstOptionalCarrier(t *testing.T) {
 
 // TestEnhancedSurveillanceWithRealConsiderLooksAtThree is the corpus
 // leaf end to end on REAL cards only: the corpus Enhanced Surveillance static
-// and the corpus Consider (`SP$ Surveil | Amount$ 1 | SubAbility$ DBDraw`)
+// and the corpus Consider (surveil 1, then draw)
 // as the Surveil 1 source. Accepting the election raises the look to three
 // cards (1 + 2), the answered KArrange completes the resolution (Consider's
 // draw runs after it), and the game replays byte-identically.

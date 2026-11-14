@@ -73,11 +73,9 @@ func registerLeaveExile(h Host, c *Ctx, id state.ObjID, value, dur string, perma
 
 // registerAnimateReplacements is the Replacements$ grant's registration for
 // ONE animated object: each named SVar on the ANIMATING face's table is an
-// R:-shaped replacement body (Spirit-Sister's Call's `ReplaceLeaves:Event$
-// Moved | ActiveZones$ Battlefield | Origin$ Battlefield | ValidCard$
-// Card.Self | ReplaceWith$ Exile`, whose ReplaceWith$ names the sibling
-// `Exile:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | Defined$
-// ReplacedCard`), resolved through the SAME Effect-created replacement path
+// R:-shaped replacement body (Spirit-Sister's Call's: if the card itself
+// would leave the battlefield, a sibling ChangeZone exiles the replaced card
+// instead), resolved through the SAME Effect-created replacement path
 // the LeaveBattlefield$ promise above uses -- an Effect-created Moved
 // replacement scoped to id's own departure (ValidCard$ Card.Self resolves
 // against Source = id), registered through Host.AddContinuous, never a

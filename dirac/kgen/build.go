@@ -1050,6 +1050,7 @@ func (cb *cardBuilder) record() error {
 	d.AloneAtk = c.AloneAtk
 	d.AloneBlk = c.AloneBlk
 	d.Engines = c.Engines
+	d.HasReconfigure = c.Reconfigure
 	d.Ascend = c.Ascend
 	d.AtkFace = c.AtkFace
 	d.SagaN = uint8(c.SagaN)

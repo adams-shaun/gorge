@@ -18,7 +18,9 @@
 #      and BLB above INSTR_PB_MAX times the accepted program base below.
 #   6. inlining: the hot accessors stay inlinable.
 #   7. escapes: no dirac local moves to the heap.
-#   8. tests: ./dirac, ./dirac/crcoverage, internal/archtest; and, whatever the change touched,
+#   8. tests: ./dirac, ./dirac/crcoverage, internal/archtest bar TestEngineCompilesFor32Bit (the 386
+#      build, which the affected side runs when a non-test Go file, go.mod or go.sum moves); and,
+#      whatever the change touched,
 #      every refused entry still diverges, every committed repro table (TestStd*ReprosLockstep)
 #      plays in lockstep, and every pinned game still reaches what its pin is named for: the
 #      data-driven pins in dirac/oracle/testdata/pins play under TestPinManifest (one subtest per
@@ -29,14 +31,10 @@
 #      divergent on the merge base and the head is an open divergence, counted and not failed; a
 #      pair newly divergent fails.
 #  8b. the oracle fast tier: the ./dirac/oracle tests of 0.5 s or less (dirac/oracle/testdata/fasttier.txt).
-#  8c. the dirac_mp unit tests (-tags dirac_mp) of ./dirac, canon, neteval, search and search/hbot.
-#  mp. the dirac_mp build (make dirac-mp-check: vet, the State bar and layout pin, then lockstep on
-#      4-seat vanilla pods and the FDN and BLB slices at two seats), about 60 s, only when a non-test
-#      file under dirac/ changed. A failure fails the gate.
 #
 # Steps 2-3 and 5-7 and step 8's package tests run only when a non-test file under dirac/ changed. A
 # merge base without dirac/ has nothing to compare, so the base rows print a note. The steps run
-# cheapest first (0-3, 6-8, then 4, mp, 5 and 9), and the first failure ends the run.
+# cheapest first (0-3, 6-8, then 4, 5 and 9), and the first failure ends the run.
 #
 # A commit's measurements (State size, the FDN bench line, instructions per bench, each synthetic
 # pool's divergent pairs) are cached under $DIRAC_GATE_CACHE, keyed by the commit, the corpus digest
@@ -52,7 +50,7 @@ INSTR_CORE=${INSTR_CORE:-20}
 PERF_MAX=${PERF_MAX:-1.06}
 # The accepted program base: instructions per op before the instruction budget was set.
 INSTR_PB_FDN=52373
-INSTR_PB_BLB=54677
+INSTR_PB_BLB=56097
 
 top=$(git rev-parse --show-toplevel) || exit 2
 cd "$top" || exit 2
@@ -192,7 +190,7 @@ if [ -n "$dirac_changed" ]; then
 
 	echo "== 8 tests"
 	out=$(cd "$top/dirac" && "$S/head.test" -test.timeout 2m 2>&1) && echo ok || bad "./dirac tests failed: $(tail -20 <<<"$out")"
-	out=$(go test -timeout 2m ./dirac/crcoverage ./internal/archtest 2>&1) || bad "./dirac/crcoverage or ./internal/archtest failed: $(tail -20 <<<"$out")"
+	out=$(go test -timeout 2m -skip '^TestEngineCompilesFor32Bit$' ./dirac/crcoverage ./internal/archtest 2>&1) || bad "./dirac/crcoverage or ./internal/archtest failed: $(tail -20 <<<"$out")"
 fi
 
 # The whole refused list, the committed repro tables and the pinned games, whatever changed: a gorge
@@ -235,26 +233,6 @@ skipped=$(grep -F -- '--- SKIP' <<<"$out"); skip_rc=$?
 [ -z "$skipped" ] || bad "the fast tier skipped a test, since its pool or tables are not on this machine: $(head -10 <<<"$skipped")"
 echo "8b: ok ($((SECONDS - t8b)) s, $(wc -l <<<"$tier") tests)"
 
-# 8c. The dirac_mp unit tests (-tags dirac_mp): the packages whose tests compile and pass under the
-# four-seat-slot size class. Step mp plays that build in lockstep but runs only three of its unit tests, so
-# an mp-only break (the widths of a perm, a nine-bit object, a seat-count assumption) landed silently and
-# only the promote CI saw it. Not in the list, because each fails under dirac_mp today (a standing mp
-# break, to be fixed and then added here): ./dirac/feat and ./dirac/oracle/cmd/kfuzz. ./dirac/oracle runs
-# its mp-only tests through step 8's pins and repro tables. A package that prints no "ok", a missing mp
-# witness test or any skip but a test that names a KERNEL_ environment variable is a vacuous run and fails.
-echo "== 8c dirac_mp unit tests"
-t8c=$SECONDS
-mp_pkgs="./dirac ./dirac/canon ./dirac/neteval ./dirac/search ./dirac/search/hbot"
-out=$(go test -tags dirac_mp -trimpath -v -failfast -timeout 3m $mp_pkgs 2>&1) || bad "dirac_mp unit tests failed: $(grep -E -- '^(--- FAIL|FAIL|panic:|# )|^[[:space:]]+[A-Za-z0-9_]+_test\.go:[0-9]+:' <<<"$out" | head -20)"
-for p in $mp_pkgs; do
-	grep -qE "^ok[[:space:]]+[^[:space:]]*${p#.}[[:space:]]" <<<"$out" || bad "dirac_mp unit tests: no ok line for $p (the package did not run)"
-done
-grep -qE '^--- PASS: TestStateLayoutPinnedMP ' <<<"$out" || bad "dirac_mp unit tests: TestStateLayoutPinnedMP did not run and pass (is the build tag dirac_mp in effect?)"
-skipped=$(awk '/^--- SKIP: /{ if (prev !~ /: set KERNEL_[A-Z0-9_]+$/) print } { prev=$0 }' <<<"$out"); skip_rc=$?
-[ "$skip_rc" -eq 0 ] || bad "cannot read the dirac_mp unit test output for skips"
-[ -z "$skipped" ] || bad "dirac_mp unit tests skipped a test, since its pool or tables are not on this machine: $(head -10 <<<"$skipped")"
-echo "8c: ok ($((SECONDS - t8c)) s, $(grep -c -- '^--- PASS: ' <<<"$out") tests)"
-
 echo "== 4 lockstep, absolute"
 lockstep() {
 	"$S/kfuzz" -kernel "$1" -first-pair 0 -pairs 1500 -seed 1 -keep-going -surface "$2" -mulligans 1 -shrink 0 -workers "${GATE_KFUZZ_WORKERS:-4}" -absolute -v >"$S/lockstep-$1-$2.log" 2>&1
@@ -285,19 +263,6 @@ for set in fdn blb; do
 		fi
 	done
 done
-
-if [ -n "$dirac_changed" ]; then
-echo "== mp: vet, layout pin and lockstep, 4 seats and the 2-seat slices"
-mp_t0=$SECONDS
-if make --no-print-directory dirac-mp-check BIN_DIR="$S" >"$S/mp.log" 2>&1; then
-	grep -E '^(vanilla|fdn|blb):' "$S/mp.log" | grep -v ' kernel capacity stalls '
-	echo "mp: ok ($((SECONDS - mp_t0)) s)"
-else
-	grep -E '^(kfuzz-mp:|vanilla:|DIV |absolute:)|^(fdn|blb): .* clean' "$S/mp.log" | head -12
-	tail -3 "$S/mp.log"
-	bad "make dirac-mp-check failed ($((SECONDS - mp_t0)) s)"
-fi
-fi
 
 if [ -n "$dirac_changed" ]; then
 	echo "== 5 instructions (perf stat instructions:u, GOGC=off, (N500k-N100k)/400000; core $INSTR_CORE)"

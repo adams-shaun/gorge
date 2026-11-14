@@ -90,16 +90,16 @@ help:
 	@echo "  make report         — print card coverage against implemented primitives"
 	@echo "  make dirac-tables   — write dirac's binary card tables under the corpus (gitignored, keyed by corpus and kgen sources)"
 	@echo "  make dirac-slices   — play dirac against gorge on the committed FDN and BLB slices, both surfaces"
-	@echo "  make dirac-mp-check — vet, test and lockstep-play dirac's four-seat-slot size class (build tag dirac_mp)"
 	@echo "  make test-one PKG=./p RUN=TestX — one capped, corpus-checked test run with one verdict line (debugging)"
 	@echo "  make test-targeted  — the packages your diff vs BASE touches plus their test reverse deps (the inner loop)"
-	@echo "  make test-smart     — the landing gate's steps, fail-fast, on a committed tree (precheck is an alias)"
+	@echo "  make test-smart     — the precheck, fail-fast, on a committed tree: affected packages + test groups (GORGE_TEST_SMART_GATES=1: the landing gates; precheck is an alias)"
 	@echo "  make fresh-clone-check — build, vet and test dirac with no corpus: tests needing tables skip, none fail"
 	@echo "  make enginebench-pair BASE=main CAND=. — paired engine-speed comparison (cmd/enginebench)"
 	@echo "  make enginebench-profile [REV=.]       — CPU/alloc profiles of the bench rows, tops printed"
 	@echo "  make enginebench-verify [REV=.]        — memo-verify-mode smoke over the bench rows"
 	@echo "  make sim            — build mtgsim and play 20 verified 4-seat games"
 	@echo "  make draftsim       — build draftsim and play 2 verified FDN draft events"
+	@echo "  make pod-bot-decks  — write the MBC Commander belief gorged -pod-bot-decks reads (POD_BOT_DECKS, under the corpus)"
 	@echo "  make pr [PR_BASE=main] [DRY=1] — open/refresh a GitHub PR with a generated change overview"
 	@echo "  make gorged         — run the table server (browser client at the addr)"
 	@echo "  make deploy-demo    — build the client and gorged, then (re)serve the demo (scripts/deploy-demo.sh; deploy/demo.env)"
@@ -199,6 +199,19 @@ draftsim:
 	go build -trimpath -o $(BIN_DIR)/draftsim ./cmd/draftsim
 	$(BIN_DIR)/draftsim -set FDN -seed 1 -events 2 -verify
 
+# pod-bot-decks writes the az-closed-maxn belief gorged's -pod-bot-decks reads:
+# every seat's built deck of POD_BOT_EVENTS bot-drafted MBC Commander drafts,
+# at the 60-card size the events build. Generated, never committed (deck lists
+# from the corpus, kept under it).
+POD_BOT_DECKS  ?= $(CARDS_DIR)/pod-bot-decks/mbc
+POD_BOT_EVENTS ?= 100
+.PHONY: pod-bot-decks
+pod-bot-decks:
+	go build -trimpath -o $(BIN_DIR)/draftsim ./cmd/draftsim
+	$(BIN_DIR)/draftsim -dir $(CARDS_DIR) -set MBC -collation draft -format commander -deck-size 60 -structure none \
+		-players bot -seed 1000 -events $(POD_BOT_EVENTS) -decks-out $(POD_BOT_DECKS) >/dev/null
+	@echo "pod-bot-decks: wrote $(POD_BOT_DECKS) (gorged -pod-bot-decks $(POD_BOT_DECKS))"
+
 .PHONY: fetch-cards
 # A worktree's corpus tests open the main checkout's .cards, which is outside
 # that worktree's module root, so `go test` does not hash it: a cached pass
@@ -233,48 +246,16 @@ dirac-slices: dirac-tables
 		$(BIN_DIR)/kfuzz -kernel $$set -first-pair 0 -pairs 1500 -seed 1 -keep-going -surface $$surface -mulligans 1 -shrink 0 -workers 4 -absolute -v || exit 1; \
 	done; done
 
-.PHONY: dirac-mp-check dirac-mp-lockstep
-# The dirac_mp size class (four seat slots) vets and plays: its State fits the bar, its layout
-# pin holds, two-seat random games run, and it plays in lockstep with gorge (dirac-mp-lockstep).
-dirac-mp-check: dirac-tables
-	go vet -tags dirac_mp ./dirac/...
-	GOMAXPROCS=4 GOMEMLIMIT=3GiB go test -tags dirac_mp -trimpath -failfast -timeout 2m -run 'TestStateSize|TestStateLayoutPinnedMP|TestRandomGames' ./dirac
-	$(MAKE) --no-print-directory dirac-mp-lockstep
-
-# The dirac_mp build in lockstep with gorge, absolutely: 4-seat vanilla pods under the random and
-# heuristic policies, and the FDN and BLB slices at two seats (the mp build plays a two-seat game
-# as the default build does). A divergence, a hang, an unmodelled stall or an error fails; a
-# capacity stall is counted. Needs dirac-tables. scripts/dirac-gate.sh runs it as step "mp".
-# The four runs are independent games, so they play side by side (a vanilla pod run plays one
-# game at a time); each writes its own log under $(BIN_DIR)/mp-lockstep, printed in the fixed
-# order below, and any failure fails the target once all four have finished.
-dirac-mp-lockstep:
-	go build -trimpath -tags dirac_mp -o $(BIN_DIR)/kfuzz-mp ./dirac/oracle/cmd/kfuzz
-	@mkdir -p $(BIN_DIR)/mp-lockstep; \
-	for r in random heuristic fdn blb; do : >$(BIN_DIR)/mp-lockstep/$$r.rc; done; \
-	for pol in random heuristic; do \
-		{ echo "kfuzz-mp: vanilla, 4 seats, policy $$pol"; \
-		GOMAXPROCS=4 GOMEMLIMIT=3GiB $(BIN_DIR)/kfuzz-mp -kernel vanilla -seats 4 -pairs 100 -seed 1 -keep-going -policy $$pol -shrink 0; \
-		echo $$? >$(BIN_DIR)/mp-lockstep/$$pol.rc; } >$(BIN_DIR)/mp-lockstep/$$pol.log 2>&1 & \
-	done; \
-	for set in fdn blb; do \
-		{ echo "kfuzz-mp: $$set, 2 seats, autopay"; \
-		GOMAXPROCS=4 GOMEMLIMIT=3GiB $(BIN_DIR)/kfuzz-mp -kernel $$set -first-pair 0 -pairs 200 -seed 1 -keep-going -surface autopay -mulligans 1 -shrink 0 -workers 4 -absolute; \
-		echo $$? >$(BIN_DIR)/mp-lockstep/$$set.rc; } >$(BIN_DIR)/mp-lockstep/$$set.log 2>&1 & \
-	done; \
-	wait; rc=0; \
-	for r in random heuristic fdn blb; do cat $(BIN_DIR)/mp-lockstep/$$r.log; [ "$$(cat $(BIN_DIR)/mp-lockstep/$$r.rc 2>/dev/null)" = 0 ] || rc=1; done; \
-	exit $$rc
-
 .PHONY: fresh-clone-check
 fresh-clone-check:
 	bash scripts/fresh-clone-check.sh
 
 # The test targets (scripts/test-targets.sh) replace a raw `go test`: capped, corpus-checked, one verdict line
 # `test-<mode>: PASS|FAIL|ENV|EMPTY|BUDGET|BUSY <sha> <pkgs> <seconds>` (exit 0, 1, 3, 4, 5, 75).
-#   test-one       PKG=./p RUN=TestX [SKIP= V=1 TIMEOUT=2m TAGS= TESTENV='KGEN_REPIN=1' UPDATE=1]: debugging
+#   test-one       PKG=./p RUN=TestX [SKIP= V=1 TIMEOUT=5m TAGS= TESTENV='KGEN_REPIN=1' UPDATE=1]: debugging
 #   test-targeted  the packages the diff vs BASE touches plus every package whose tests import them
-#   test-smart     the landing gate's steps, fail-fast, on a committed tree; precheck is an alias
+#   test-smart     the precheck, fail-fast, on a committed tree: the affected packages plus the test groups;
+#                  GORGE_TEST_SMART_GATES=1 runs the landing gate's affected and dirac gates instead; precheck is an alias
 # BASE is the branch the change lands on.
 BASE ?= land
 export BASE

@@ -1,0 +1,6 @@
+family: mech
+name: mechStash
+value: 6
+state: objbit 32/64
+status: active
+doc: object mask: exiled cards with a stash counter (marks.go)

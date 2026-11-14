@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExDevotionDual
+value: 70
+forge: DevotionDual
+census: count DevotionDual all=13 std=0 mbc=1 sole=7
+state: code 0
+status: reserved
