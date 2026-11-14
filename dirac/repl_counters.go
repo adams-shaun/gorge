@@ -32,7 +32,7 @@ func ctrKw(s *State, p *perm) kop.KwMask {
 
 // ctrKindKw is the keyword a counter of kind k grants. Flying is the
 // featurized CtrFlying; the other supported kinds sit above CtrCharge.
-func ctrKindKw(k uint8) kop.KwMask {
+func ctrKindKw(k uint16) kop.KwMask {
 	switch kop.CounterKind(k) {
 	case kop.CtrFlying:
 		return kop.KwFlying

@@ -100,10 +100,11 @@ func TestFxPoolHashStable(t *testing.T) {
 
 // The pin moved when ovRec grew P/T and a repeated P/T setter became the
 // newest record: the hash covers the override records,
-// so the extra fields and their order change the digest.
-const fxPoolHashPin = 0x653f405b2cffb158
+// so the extra fields and their order change the digest. It moved again when
+// perm.ck widened to 16-bit counter kinds: ObjHash reads the permanent whole.
+const fxPoolHashPin = 0x3e29634684c92abb
 
 // fxPoolHashPinMP is the dirac_mp build's pin: ObjHash reads the permanent
 // whole, and its code fields are MaxSeats-dependent widths (TestPermSize), as
 // TestCapacityHashPins' ObjHash pin.
-const fxPoolHashPinMP = 0x5924b07694b5a87a
+const fxPoolHashPinMP = 0x48aa9c47bf33100f

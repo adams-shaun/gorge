@@ -2724,8 +2724,8 @@ func (s *State) subCtrOptions(k *prep, d *Decision) bool {
 				if !kop.IsCounterKind(int(c)) {
 					continue // CtrLevel is no counter (kw_class.go)
 				}
-				if p.ctrN(s, int(c)) > s.subCtrPicked(o, c) {
-					d.add(MakeAction(AkChoose, TCode(o), 0, c))
+				if p.ctrN(s, int(c)) > s.subCtrPicked(o, ctrMode(c)) {
+					d.add(MakeAction(AkChoose, TCode(o), 0, ctrMode(c)))
 				}
 			}
 		}

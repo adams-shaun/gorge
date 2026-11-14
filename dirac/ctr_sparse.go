@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"unsafe"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // Cold paths of the sparse counter slots (perm.ck/cn/cseen) and of
 // the overflow table behind them.
@@ -16,18 +20,29 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // that costs about 100 bytes of State.
 const maxCtrOver = 16
 
+// ctrPadN pads genState so the 16-bit counter kinds (perm.ck, lkiRec.ck,
+// ctrOverEntry.kind, genState's lastCK and enterCtr.kind) grow the State ahead
+// of perms by a whole number of cache lines and perms keeps its phase in both
+// size classes (statelayout_test.go, statelayout_mp_test.go): the default
+// class grew by 48 bytes, which these 16 carry to 64; the mp class grew by 256
+// (lkiRec 56 -> 64 bytes), already whole lines.
+const ctrPadN = 16 * (2 - int(unsafe.Sizeof(Obj(0))))
+
 // ctrOverEntry is one counter kind in the overflow table. lki 0 is a kind obj
 // holds now; i+1 is LKI record i's copy of a kind obj held when it was taken.
 type ctrOverEntry struct {
 	n    uint16
+	kind uint16 // a kop.CounterKind, as wide as perm.ck
 	obj  Obj
-	kind uint8
 	lki  uint8
 	seen bool // perm.cseen's bit for this kind
 }
 
-func (e *ctrOverEntry) key() uint32 {
-	return uint32(e.lki)<<16 | uint32(e.obj)<<8 | uint32(e.kind)
+// key orders the table by lki and object, then kind. The lki and object half is
+// the one the 8-bit kinds had (lki<<16 | obj<<8), shifted past the 16-bit kind,
+// so the order of every table holding kinds below 256 is unchanged.
+func (e *ctrOverEntry) key() uint64 {
+	return uint64(uint32(e.lki)<<16|uint32(e.obj)<<8)<<8 | uint64(e.kind)
 }
 
 // DebugCtrOverProjOff is a test-only mutation: Project ignores the overflow
@@ -116,7 +131,7 @@ func (s *State) ctrOverSet(o Obj, c int, n uint16) bool {
 func (s *State) ctrOverSee(o Obj) {
 	t := s.ctrOverOf(o, 0)
 	for i := range t {
-		if t[i].n != 0 && t[i].kind < uint8(kop.NumCounterKinds2) {
+		if t[i].n != 0 && t[i].kind < uint16(kop.NumCounterKinds2) {
 			t[i].seen = true
 		}
 	}
@@ -141,11 +156,13 @@ func (s *State) ctrOverSum(o Obj, lki uint8) int {
 //go:noinline
 func (s *State) ctrOverHash(h uint64, o Obj) uint64 {
 	for _, e := range s.ctrOverOf(o, 0) {
-		v := uint64(e.kind)<<16 | uint64(e.n)
+		v := uint64(e.kind&0xff)<<16 | uint64(e.n)
 		if e.seen {
 			v |= 1 << 24
 		}
-		h = hmix(h, 0x6374726f<<32|v)
+		// a kind's high byte folds in above the 8-bit kinds' layout, so a
+		// kind below 256 hashes as it did
+		h = hmix(h, (0x6374726f<<32|v)^uint64(e.kind>>8)<<40)
 	}
 	return h
 }
@@ -223,7 +240,7 @@ func (p *perm) ctrInsert(s *State, c int, n uint16) bool {
 	if used == ctrSlots {
 		top := ctrSlots - 1
 		if c > int(p.ck[top]) {
-			return s.ctrOverPut(ctrOverEntry{n: n, obj: p.obj, kind: uint8(c)})
+			return s.ctrOverPut(ctrOverEntry{n: n, obj: p.obj, kind: uint16(c)})
 		}
 		if !s.ctrOverPut(ctrOverEntry{n: p.cn[top], obj: p.obj, kind: p.ck[top], seen: p.cseen&(1<<top) != 0}) {
 			return false
@@ -238,7 +255,7 @@ func (p *perm) ctrInsert(s *State, c int, n uint16) bool {
 		p.ck[i], p.cn[i] = p.ck[i-1], p.cn[i-1]
 		p.cseen = p.cseen&^(1<<i) | (p.cseen<<1)&(1<<i)
 	}
-	p.ck[at], p.cn[at] = uint8(c), n
+	p.ck[at], p.cn[at] = uint16(c), n
 	p.cseen &^= 1 << at
 	return true
 }
@@ -271,7 +288,7 @@ func (p *perm) ctrFree(s *State, i int) {
 
 // ctrHeld is room for every counter kind one permanent can hold at once: its
 // +1/+1 count, its general slots and the whole overflow table.
-type ctrHeld [1 + ctrSlots + maxCtrOver]uint8
+type ctrHeld [1 + ctrSlots + maxCtrOver]uint16
 
 // heldKinds writes to out the counter kinds p holds with a positive count, in
 // ascending kind order, and returns how many: exactly the kinds c a walk of
@@ -283,7 +300,7 @@ type ctrHeld [1 + ctrSlots + maxCtrOver]uint8
 func (p *perm) heldKinds(s *State, out *ctrHeld) int {
 	n := 0
 	if p.p1 != 0 {
-		out[0] = uint8(kop.CtrP1P1)
+		out[0] = uint16(kop.CtrP1P1)
 		n = 1
 	}
 	// the occupied slots are packed in ascending kind order (ctrInsert,

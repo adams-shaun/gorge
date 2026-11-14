@@ -272,12 +272,14 @@ func TestCtrOverFullStalls(t *testing.T) {
 
 // TestPermSize pins perm's size. Under dirac_mp the object index and the
 // codes are sixteen bits (obj, chosen, bord, atk: Obj, objWord, TCode), four
-// bytes more with no pad byte (actUsed sits beside nblock to keep it so).
+// bytes more with no pad byte (actUsed sits beside nblock to keep it so). The
+// 16-bit counter kinds (ck) added three bytes and the named spare byte one,
+// in both classes.
 func TestPermSize(t *testing.T) {
 	var p perm
-	want := uintptr(56)
+	want := uintptr(60)
 	if MaxSeats > 2 {
-		want = 60
+		want = 64
 	}
 	if got := unsafeSizeofPerm(&p); got != want {
 		t.Fatalf("perm is %d bytes, want %d", got, want)
@@ -367,10 +369,10 @@ func TestHeldKindsMatchKindWalk(t *testing.T) {
 			}
 			for i := range ps {
 				q := &ps[i]
-				var want []uint8
+				var want []uint16
 				for k := 0; k < int(kop.NumCounterKinds3); k++ {
 					if q.ctrN(s, k) > 0 {
-						want = append(want, uint8(k))
+						want = append(want, uint16(k))
 					}
 				}
 				var held ctrHeld

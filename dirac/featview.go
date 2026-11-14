@@ -1484,7 +1484,7 @@ func (s *State) FeatGrantedOffRep(o Obj) (kop.KwMask, FeatKwReps) {
 // counter list keeps it at 0 while the permanent stays.
 func (p *perm) seeCtr(s *State) {
 	for i := range p.cn {
-		if p.cn[i] != 0 && p.ck[i] < uint8(kop.NumCounterKinds2) { // CtrLevel is no counter (kw_class.go)
+		if p.cn[i] != 0 && p.ck[i] < uint16(kop.NumCounterKinds2) { // CtrLevel is no counter (kw_class.go)
 			p.cseen |= 1 << i
 		}
 	}

@@ -156,13 +156,13 @@ type Expr struct {
 	N    int16
 	F    FilterID
 	Ref  Ref
+	Op   CmpOp // ExCompare's comparison; beside Ref so the 16-bit Ctr packs without a pad byte
 	Ctr  CounterKind
 	Sub  [2]ValueRef
 	Mul  int8
 	Div  int8
 	Add  int8
 	Neg  bool
-	Op   CmpOp // ExCompare's comparison
 
 	// Appended by ExThisTurnEntered's operands.
 	F2   FilterID // creature-base alternatives rewritten onto Card (gated by WasCreature)

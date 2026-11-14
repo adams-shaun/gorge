@@ -2252,6 +2252,7 @@ type genState struct {
 
 	ctrOver  [maxCtrOver]ctrOverEntry // counter kinds past the general slots, sorted (ctr_sparse.go)
 	nctrOver uint8
+	ctrPad   [ctrPadN]uint8 // carries the 16-bit counter kinds' growth to a whole cache line (ctr_sparse.go)
 
 	// Reserved tail: State bytes set aside so later work never edits a struct
 	// definition. Nothing reads or writes these yet. The rule: new State bytes

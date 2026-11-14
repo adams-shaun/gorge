@@ -61,7 +61,7 @@ func (s *State) ctrKindsOn(sl Slot, out *ctrHeld, pending bool) int {
 	var held ctrHeld
 	p := &s.perms[sl]
 	for _, c := range held[:p.heldKinds(s, &held)] {
-		if !kop.IsCounterKind(int(c)) || c == uint8(kop.CtrOther) {
+		if !kop.IsCounterKind(int(c)) || c == uint16(kop.CtrOther) {
 			continue
 		}
 		have := p.ctrN(s, int(c))
@@ -126,7 +126,7 @@ func (s *State) askOptionsRca(k *prep, d *Decision) bool {
 		var kinds ctrHeld
 		n := s.ctrKindsOn(sl, &kinds, !put)
 		for i := 0; i < n; i++ {
-			d.add(MakeAction(AkChoose, 0, 0, kinds[i]))
+			d.add(MakeAction(AkChoose, 0, 0, ctrMode(kinds[i])))
 		}
 	}
 	if in.C&1 != 0 && !put { // seat-ok: an instruction flag bit

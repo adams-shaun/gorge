@@ -386,7 +386,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 				var held ctrHeld
 				for _, c := range held[:pp.heldKinds(s, &held)] {
 					if kop.IsCounterKind(int(c)) {
-						d.add(MakeAction(AkChoose, TCode(pp.obj), 0, c))
+						d.add(MakeAction(AkChoose, TCode(pp.obj), 0, ctrMode(c)))
 					}
 				}
 			}

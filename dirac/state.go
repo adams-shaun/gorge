@@ -273,16 +273,20 @@ type perm struct {
 	attached Slot // what this Aura/Equipment is attached to
 	blocking Slot // blocker: the attacker it blocks
 	nblock   uint8
-	actUsed  uint8           // OncePerTurn abilities activated this turn (bit per ability index); beside nblock so the objWord and TCode fields below pack without a pad byte under dirac_mp
-	chosen   objWord         // "as this enters" choice; a last bearer's host (zones.go)
-	bord     objWord         // a last bearer's host (static_lastbearer.go); blocker: declaration order (damage assignment order); attacker: declaration order (Attacks trigger queueing)
-	atk      TCode           // attacker: the defender it attacks (PlayerTarget* or a planeswalker Obj)
-	ck       [ctrSlots]uint8 // general counter slots' kinds (see p1)
+	actUsed  uint8            // OncePerTurn abilities activated this turn (bit per ability index); beside nblock so the objWord and TCode fields below pack without a pad byte under dirac_mp
+	chosen   objWord          // "as this enters" choice; a last bearer's host (zones.go)
+	bord     objWord          // a last bearer's host (static_lastbearer.go); blocker: declaration order (damage assignment order); attacker: declaration order (Attacks trigger queueing)
+	atk      TCode            // attacker: the defender it attacks (PlayerTarget* or a planeswalker Obj)
+	ck       [ctrSlots]uint16 // general counter slots' kinds (see p1)
 	// cseen records the counter kinds held since it entered, as one is
 	// removed (seeCtr; gorge lists a removed kind at 0): bit i < ctrSlots
 	// is general slot i (a seen slot keeps its kind at count 0), then
 	// cseenP1 and cseenDT (the deathtouch mark, FeatCtrDeathtouched).
 	cseen uint8
+	// spare is the byte the 16-bit counter kinds (ck) left ahead of card:
+	// named and never written, so perm has no padding (ObjHash hashes every
+	// byte of it).
+	spare uint8
 	card  CardID       // the card's id (the copy-of id lives in ovr)
 	gty   kop.TypeMask // types derived by a generated table's overrides (ovGenTy)
 }

@@ -1,7 +1,7 @@
 package kop
 
 // CounterKind names a counter type. Append-only.
-type CounterKind uint8
+type CounterKind uint16
 
 const (
 	CtrP1P1 CounterKind = iota // +1/+1
@@ -176,7 +176,7 @@ var _ = [1]struct{}{}[CtrLevel-NumCounterKinds2-1]
 // [0, NumCounterKinds2) and FeatCtrDeathtouched stay byte-identical (trained
 // models consume that layout; featview.go's seeCtr and project.go's
 // Counters skip every kind >= NumCounterKinds2). The kernel keeps them in
-// the same sparse perm slots (ck is a uint8); ProjObj.CountersX carries
+// the same sparse perm slots (ck is a uint16); ProjObj.CountersX carries
 // them to the oracle, which compares each kind against gorge. Append-only.
 const (
 	CtrCharge CounterKind = CtrLevel + 1 + iota
