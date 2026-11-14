@@ -707,7 +707,13 @@ func (s *State) spellCostsFeasible(k *prep, c CardID, p uint8, o Obj) bool {
 	if s.objs[o].zone == kop.ZoneHand && s.objs[o].owner() == p {
 		others--
 	}
-	if s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || others >= int(ac.N)) && s.beholdPayable(k, p, c, o) {
+	discardOK := ac.Flags&kop.CostDiscard == 0 || others >= int(ac.N)
+	if ac.Flags&kop.CostDiscardFiltered != 0 {
+		// a filtered discard (Magmatic Insight's land card) never takes the
+		// card being cast, whatever its filter says (cost_discardfiltered.go)
+		discardOK = s.discardPayable(k, p, ac, o)
+	}
+	if s.pickCostPayable(k, p, ac, NoObj) && discardOK && s.beholdPayable(k, p, c, o) {
 		return true
 	}
 	cd := &k.t.Cards[c]

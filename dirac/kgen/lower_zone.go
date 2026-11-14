@@ -1154,6 +1154,9 @@ func (lc *lowerCtx) changeZoneAllSweep(ps *params) error {
 	if strings.TrimSpace(ps.str("Origin")) == "Battlefield,Graveyard" {
 		return lc.originBattleGrave(ps) // lower_changezoneall.go
 	}
+	if strings.TrimSpace(ps.str("Origin")) == "Command,Graveyard" {
+		return lc.originCommandGrave(ps) // lower_cmdsweep.go
+	}
 	if strings.TrimSpace(ps.str("Origin")) == "Library,Sideboard" {
 		return lc.originLibrarySideboard(ps) // lower_sideboardsearch.go
 	}
