@@ -56,9 +56,9 @@ func (e *Encoder) buildRel(s *dirac.State) {
 	for i := 0; i < int(e.kp.NStack); i++ {
 		se := &e.kp.Stack[i]
 		mine := se.Ctrl == v.seat
-		var seen [16]uint8
+		var seen [16]dirac.TCode
 		nseen := 0
-		add := func(t uint8) {
+		add := func(t dirac.TCode) {
 			if t == dirac.NoTarget || t >= dirac.PlayerTarget0 {
 				return
 			}
@@ -70,7 +70,7 @@ func (e *Encoder) buildRel(s *dirac.State) {
 			seen[nseen] = t
 			nseen++
 			for ci := range v.cards {
-				if v.cards[ci].obj != t {
+				if dirac.TCode(v.cards[ci].obj) != t {
 					continue
 				}
 				if mine {
@@ -95,19 +95,19 @@ func (e *Encoder) buildRel(s *dirac.State) {
 		}
 		c := &v.cards[ci]
 		se := &e.kp.Stack[i]
-		classify := func(t uint8) {
+		classify := func(t dirac.TCode) {
 			if t == dirac.NoTarget {
 				return
 			}
 			if t >= dirac.PlayerTarget0 {
-				if t == dirac.PlayerTarget0+v.seat {
+				if t == dirac.PlayerTarget0+dirac.TCode(v.seat) {
 					c.rel.playerMe++
 				} else {
 					c.rel.playerOpp++
 				}
 				return
 			}
-			if host := e.bfCard(t); host != nil {
+			if host := e.bfCard(dirac.Obj(t)); host != nil {
 				if host.ctrl == v.seat {
 					c.rel.permMe++
 				} else {
@@ -115,11 +115,11 @@ func (e *Encoder) buildRel(s *dirac.State) {
 				}
 				return
 			}
-			if e.stackHas(t) {
+			if e.stackHas(dirac.Obj(t)) {
 				c.rel.stack++
 				return
 			}
-			if e.zoneHas(t, zGraveyard) {
+			if e.zoneHas(dirac.Obj(t), zGraveyard) {
 				c.rel.grave++
 			}
 		}
@@ -151,7 +151,7 @@ func (c *vcard) hasKw(k kop.KwMask) bool {
 // combatSlots/combatFoes): an attacker's foes are the live blockers that
 // block it, a blocker's foe is the attacker it blocks.
 func (e *Encoder) combatRel(c *vcard) {
-	var foes [dirac.MaxPerm]uint8
+	var foes [dirac.MaxPerm]dirac.Obj
 	n := 0
 	if c.attacking {
 		for bi := range e.v.cards {
@@ -213,9 +213,9 @@ func (e *Encoder) combatRel(c *vcard) {
 // stackHas over StackView.ID: a spell's stack object is its card object; the
 // kernel has no separate ability objects, so an ability's source card is not
 // a stack target).
-func (e *Encoder) stackHas(obj uint8) bool {
+func (e *Encoder) stackHas(obj dirac.Obj) bool {
 	for i := 0; i < int(e.kp.NStack); i++ {
-		if se := &e.kp.Stack[i]; se.Kind == 0 && uint8(se.Source) == obj {
+		if se := &e.kp.Stack[i]; se.Kind == 0 && se.Source == obj {
 			return true
 		}
 	}
@@ -223,7 +223,7 @@ func (e *Encoder) stackHas(obj uint8) bool {
 }
 
 // zoneHas reports whether obj is listed in zone z.
-func (e *Encoder) zoneHas(obj uint8, z uint8) bool {
+func (e *Encoder) zoneHas(obj dirac.Obj, z uint8) bool {
 	for i := range e.v.cards {
 		if c := &e.v.cards[i]; c.obj == obj && c.zone == z {
 			return true

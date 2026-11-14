@@ -37,6 +37,12 @@ type Ability struct {
 	// been chosen [this turn]" (gorge CharmEligibleModes): 0 none, 1 ThisTurn,
 	// 2 ThisGame. The kernel reads it only behind prep.anyCharmPick.
 	ModeRestrict uint8
+	// ChainModes: the modes (bit per mode) whose targets are all chain links
+	// because the mode's own root declares none (Grab the Reins' "sacrifice a
+	// creature, then deal damage equal to its power to any target"). gorge's
+	// combined mode ask is over the roots only, so charmRootSlots skips them
+	// and their links follow the roots' ask (dirac/modal_charmtwotgt.go).
+	ChainModes uint8
 	// TgtModes[i] is the set of modes (bit per mode) that use target slot i;
 	// 0 = every mode. A slot none of whose modes was chosen is not chosen.
 	TgtModes [MaxTargets]uint8
@@ -94,6 +100,12 @@ type Ability struct {
 	// second and third in the arena masks (dirac/legal.go onceUsed). A
 	// table byte, not State.
 	Once uint8
+	// AnyActivator: "any player may activate this ability" (Activator$
+	// Player; Feral Hydra): the kernel also offers it to the permanent's
+	// controller's opponents (dirac/cast_anyactivator.go). Only a mana-only
+	// battlefield PutCounter on the source carries it (kgen
+	// lower_anyactivator.go). A table byte: AbilityFlags has no free bit.
+	AnyActivator bool
 	// CantCopy: "this ability can't be copied" (CantCopy$ True; gorge
 	// SpellCopyAllowed): an ExtCopyAbility naming its stack entry copies
 	// nothing. A table byte, not State (AbilityFlags has no free bit).

@@ -19,8 +19,8 @@ func TestScriptWalkGraveyardOrder(t *testing.T) {
 	sc.s.place(gp, kop.ZoneGraveyard, false)
 	tt := sc.obj(id["Think Twice"], 0)
 	sc.s.place(tt, kop.ZoneGraveyard, false)
-	fb := MakeAction(AkCast, uint8(tt), 0, 2)
-	may := MakeAction(AkCast, uint8(gp), 0, castMayPlay)
+	fb := MakeAction(AkCast, TCode(tt), 0, 2)
+	may := MakeAction(AkCast, TCode(gp), 0, castMayPlay)
 	if kf, km := sc.s.walkKey(fb, 0, 0), sc.s.walkKey(may, 0, 1); km > kf {
 		t.Fatalf("walk keys: Plunderer (graveyard 0) %#x after Think Twice's flashback (graveyard 1) %#x", km, kf)
 	}
@@ -40,12 +40,12 @@ func TestMayPlayRecordAndStaticOnce(t *testing.T) {
 	}
 	z := sc.obj(id["Soul-Shackled Zombie"], 0)
 	sc.s.place(z, kop.ZoneGraveyard, false)
-	sc.s.g.may[0] = mayPlay{obj: z, ver: sc.s.objs[z].ver, ctrl: 0, turn: sc.s.turn}
+	sc.s.g.may[0] = mayPlay{obj: z, ver: sc.s.objs[z].ver, ctrl: 0, turn: mayWord(sc.s.turn)}
 	sc.s.g.nmay = 1
 	d := sc.s.Step()
 	n := 0
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(z) {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(z)) {
 			n++
 		}
 	}
@@ -68,7 +68,7 @@ func TestExsanguinateGainsTheLifeLost(t *testing.T) {
 	sc.stepTo(t, 20, func() bool { return sc.s.objs[ex].zone == kop.ZoneGraveyard }, func(d *Decision) (Action, bool) {
 		for i := 0; i < int(d.N); i++ {
 			a := d.Options[i]
-			if a.Kind() == AkCast && a.Source() == uint8(ex) || d.Kind == DkChoose && d.Sub == ChX && a.Mode() == 2 {
+			if a.Kind() == AkCast && a.Source() == TCode(uint8(ex)) || d.Kind == DkChoose && d.Sub == ChX && a.Mode() == 2 {
 				return a, true
 			}
 		}
@@ -103,9 +103,9 @@ func TestCardKykarReturnsUnderOwner(t *testing.T) {
 		for i := 0; i < int(d.N); i++ {
 			a := d.Options[i]
 			switch {
-			case a.Kind() == AkCast && a.Source() == uint8(shock):
+			case a.Kind() == AkCast && a.Source() == TCode(uint8(shock)):
 				return a, true
-			case d.Kind == DkTarget && (a.Target() == PlayerTarget0+1 || a.Target() == uint8(rat)):
+			case d.Kind == DkTarget && (a.Target() == PlayerTarget0+1 || a.Target() == TCode(uint8(rat))):
 				return a, true
 			case d.Kind == DkModes && a.Mode() == 0:
 				return a, true
@@ -144,7 +144,7 @@ func TestStrokeTokenToLastController(t *testing.T) {
 	sc.stepTo(t, 30, func() bool { return sc.s.objs[st].zone == kop.ZoneGraveyard }, func(d *Decision) (Action, bool) {
 		for i := 0; i < int(d.N); i++ {
 			a := d.Options[i]
-			if a.Kind() == AkCast && a.Source() == uint8(st) || d.Kind == DkTarget && a.Target() == uint8(rat) {
+			if a.Kind() == AkCast && a.Source() == TCode(uint8(st)) || d.Kind == DkTarget && a.Target() == TCode(uint8(rat)) {
 				return a, true
 			}
 		}

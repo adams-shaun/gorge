@@ -17,7 +17,7 @@ func mmmenonHandBarredBoard(t *testing.T) (sc *scen, equip Action) {
 	sc.perm(id["Gene Pollinator"], 0)
 	sc.perm(id["Nanoform Sentinel"], 0)
 	eq := sc.perm(id["Atomic Microsizer"], 0)
-	return sc, MakeAction(AkActivate, uint8(eq), 0, 0)
+	return sc, MakeAction(AkActivate, TCode(eq), 0, 0)
 }
 
 // TestRelaxedProofCountsTapAnotherUnitAndRefusesHandBarredGrant: Equip {2}

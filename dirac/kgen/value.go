@@ -226,6 +226,24 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		v = lValue{Kind: vTriggerAmount}
 	case "CastSA>Count":
 		v, err = lc.adamantValue(rest) // lower_evoke.go
+	case "TriggeredExploited":
+		// the exploited creature's last-known power / toughness (CR 608.2g),
+		// the Exploited trigger's amount: the face's own K:Exploit sacrifice
+		// accumulates it (lower_exploit.go), so a face that only grants
+		// Exploit (Henry Wu) stays refused
+		tr := (*lTrigger)(nil)
+		if lc.ab != nil {
+			tr = lc.ab.Trigger
+		}
+		if tr == nil || !lc.trigBody || lc.ab.Latent || tr.Event != "Exploited" || !faceHasExploitTrigger(lc.face) {
+			err = refuse("TriggeredExploited$%s outside an Exploited trigger on a K:Exploit face", rest)
+			break
+		}
+		if rest != "CardPower" && rest != "CardToughness" {
+			err = refuse("TriggeredExploited$%s", rest)
+			break
+		}
+		v = lValue{Kind: vTriggerAmount}
 	case "TriggerRemembered":
 		v, err = lc.triggerRemembered(rest) // lower_trigremembered.go
 	case "TriggerCount":
@@ -308,6 +326,8 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = lValue{Kind: vHighestOppPoison}
 		case strings.HasPrefix(rest, "Condition"):
 			v, err = lc.oppCastCondValue(rest) // value_oppcondition.go
+		case rest == oppsDealtDamageBody:
+			v = lValue{Kind: vOppsLostLife, N: 3} // value_turntallies.go
 		default:
 			err = fmt.Errorf("PlayerCountOpponents$%s", rest)
 		}
@@ -320,6 +340,8 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = hv // value_turntallies.go
 		} else if rest == oppsDealtCombatDamageBody {
 			v = lValue{Kind: vOppsLostLife, N: 2}
+		} else if rest == oppsDealtDamageBody {
+			v = lValue{Kind: vOppsLostLife, N: 3} // value_turntallies.go
 		} else {
 			err = fmt.Errorf("PlayerCountRegisteredOpponents$%s", rest)
 		}
@@ -624,8 +646,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		}
 	case "PlayerCountRemembered":
 		v, err = lc.playerCountRemembered(rest, depth) // lower_repeatplayers.go
-	case "PlayerCountPlayers", "TargetedController", "TriggeredTarget":
+	case "PlayerCountPlayers", "TargetedController", "TriggeredTarget", "TriggeredDefendingPlayer":
 		v, err = lc.kvfHead(head, rest) // value_filterheads.go
+	case "PlayerCountDefinedNonTriggeredTarget":
+		v, err = lc.nonTrigTargetExtreme(rest) // value_trigreferents.go
 	case "SVar":
 		// gorge count.go: SVar$<name>[/Op] reads another SVar on the face
 		body, ok := lc.face.SVars[rest]
@@ -1034,6 +1058,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	if spec, ok := strings.CutPrefix(rest, "LastStateBattlefieldWithFallback "); ok {
 		return lc.castBattlefieldValue(spec)
 	}
+	if v, ok := lc.chosenCtrlHand(rest); ok {
+		return v, nil // lower_chooseplayerenter.go
+	}
 	switch rest {
 	case "TotalDamageReceivedThisTurn":
 		// the positive damage the source received this turn (gorge
@@ -1126,6 +1153,11 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lValue{Kind: vLifeOf, Ref: lRef{Kind: rYou}}, nil
 	case "CardsInYourHand":
 		return lValue{Kind: vHandSizeOf, Ref: lRef{Kind: rYou}}, nil
+	case "TopOfLibraryCMC":
+		// gorge count_cov3.go evalCov3HeadTopOfLibraryCMC: the mana value of
+		// the top card of the resolving controller's library, 0 when it is
+		// empty (Counterbalance, Riddle of Lightning): ExMVOf RefLibTop
+		return lValue{Kind: vMVOf, Ref: lRef{Kind: rLibTop}}, nil
 	case "YourStartingLife":
 		return lValue{Kind: vStartingLife}, nil
 	case "CardPower":
@@ -1383,6 +1415,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	if arms, ok := strings.CutPrefix(rest, "Threshold."); ok {
 		return lc.thresholdValue(arms, depth) // value_threshold.go
 	}
+	if arms, ok := strings.CutPrefix(rest, "Revolt."); ok {
+		return lc.revoltValue(arms, depth) // value_revolt.go
+	}
 	if arms, ok := strings.CutPrefix(rest, "Hellbent."); ok {
 		// gorge cov3BranchHolds: <yes> with no cards in your hand, else <no>
 		parts := strings.Split(arms, ".")
@@ -1495,6 +1530,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	}
 	if strings.HasPrefix(rest, "ValidStack ") {
 		return lValue{}, refuse("Count$%s: only ValidStack Card.Self+sneaked is read", rest)
+	}
+	if spec, ok := strings.CutPrefix(rest, "ValidBattlefield,Command "); ok {
+		return cmdGreatestMVValue(spec) // value_cmdmv.go
 	}
 	for _, zc := range []struct {
 		pre  string

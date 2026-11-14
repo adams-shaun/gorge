@@ -1,0 +1,8 @@
+# the Mindclaw Shaman pool: target opponent reveals their hand, you may cast
+# an instant or sorcery from it free (Play Valid$ Card.TargetedPlayerCtrl
+# ValidZone$ Hand; dirac/oracle/mbc_zone_moves_nine_lowers_test.go)
+Mindclaw Shaman
+Mountain
+Shock
+Lava Axe
+Raging Goblin

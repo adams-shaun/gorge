@@ -737,6 +737,7 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		// the fee is paid from the pool, generic in C W U B R G order, after
 		// the restricted mana it may spend; a one-pip filter's {c} is paid in
 		// c (mana_filterpip.go)
+		dc, dn := s.deferSnap(p) // a deferred source's unit the fee spends is gone (mana_deferred.go)
 		fee := s.filtFee(k, st.sl)
 		if col, ok := s.filtPip(k, st.sl); ok {
 			s.filtPayPip(k, p, st.sl, col)
@@ -755,6 +756,7 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		if k.artMana {
 			s.artSync(p) // a slot the fee emptied no longer holds an artifact's mana
 		}
+		s.deferSync(p, dc, dn)
 		if s.filtAb(k, st.sl).ManaEach {
 			s.filtEachDo(k, p, st.sl) // every colour at once, whatever ans names (mana_filtereach.go)
 			break

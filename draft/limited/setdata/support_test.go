@@ -158,3 +158,63 @@ func TestPendingSetCards(t *testing.T) {
 		}
 	}
 }
+
+// mbcSetlist is dirac's MBC list (dirac/cardset/setlists/MBC.txt): the names
+// dirac plays as the dr-mbc evidence pools and counts as MBC on its support
+// page.
+const mbcSetlist = "../../../dirac/cardset/setlists/MBC.txt"
+
+// TestMBCSetlistIsItsDealtNames holds dirac's MBC list to exactly the names an
+// MBC pack can deal: every card on every sheet of every collation, less the
+// substitute list (which TestPendingSetCards holds to what the corpus cannot
+// play). A list cut by hand goes stale as gorge's support grows: a card that
+// leaves the substitute list is dealt to players but never played or
+// evidenced by dirac. GORGE_UPDATE_PENDING=1 rewrites the list.
+func TestMBCSetlistIsItsDealtNames(t *testing.T) {
+	names := map[string]bool{}
+	for _, c := range setdata.Collations("MBC") {
+		spec := mustLoadCollation(t, "MBC", c)
+		for _, sh := range spec.Config.Sheets {
+			for _, sc := range sh.Cards {
+				if !spec.Unplayable[sc.Name] {
+					names[sc.Name] = true
+				}
+			}
+		}
+	}
+	if len(names) == 0 {
+		t.Fatal("MBC deals no names")
+	}
+	sorted := make([]string, 0, len(names))
+	for n := range names {
+		sorted = append(sorted, n)
+	}
+	sort.Strings(sorted)
+	got := strings.Join(sorted, "\n") + "\n"
+	if os.Getenv("GORGE_UPDATE_PENDING") != "" {
+		if err := os.WriteFile(mbcSetlist, []byte(got), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+	want, err := os.ReadFile(mbcSetlist)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(want) != got {
+		have := map[string]bool{}
+		for _, n := range strings.Split(strings.TrimSpace(string(want)), "\n") {
+			have[n] = true
+		}
+		for _, n := range sorted {
+			if !have[n] {
+				t.Errorf("MBC deals %q, which dirac's MBC list lacks", n)
+			}
+			delete(have, n)
+		}
+		for n := range have {
+			t.Errorf("dirac's MBC list names %q, which no MBC pack deals", n)
+		}
+		t.Error("rerun with GORGE_UPDATE_PENDING=1 -run TestMBCSetlistIsItsDealtNames and review the diff")
+	}
+}

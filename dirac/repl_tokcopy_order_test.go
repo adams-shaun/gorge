@@ -122,7 +122,7 @@ func TestTokCopyFirstBesideMultiplierLockstepCase(t *testing.T) {
 			if e.N != 2 || e.Options[0].Mode() != 0 || e.Options[1].Mode() != 1 {
 				t.Fatalf("pick %d: election options %v, want decline then the host", pick, e.Options[:e.N])
 			}
-			if e.Options[1].Source() != uint8(host) {
+			if e.Options[1].Source() != TCode(uint8(host)) {
 				t.Fatalf("pick %d: the election's host %d is not the attached permanent %d", pick, e.Options[1].Source(), host)
 			}
 			ans := e.Options[0]

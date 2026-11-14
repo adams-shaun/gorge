@@ -21,6 +21,9 @@ type gameRef struct {
 	// firstGame is the series game the table's match 1 plays; 0 on a Bo1
 	// ref (whose game is game).
 	firstGame int
+	// pod marks a Commander-draft event's free-for-all table (every seat
+	// at it; a and b unused).
+	pod bool
 }
 
 // outcome is one finished game match waiting for its pairing-order place
@@ -75,6 +78,10 @@ func (h *Host) OnMatchEnd(t host.TableID, k int, m protocol.MatchInfo) error {
 func (r *run) gameOver(ref gameRef, k int, m protocol.MatchInfo) {
 	if ref.series {
 		r.seriesGameOver(ref, k, m)
+		return
+	}
+	if ref.pod {
+		r.podGameOver(ref, m)
 		return
 	}
 	live := false

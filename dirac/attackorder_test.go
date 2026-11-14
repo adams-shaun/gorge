@@ -29,9 +29,9 @@ func TestAttackTriggersPerDefender(t *testing.T) {
 		for i := 0; i < int(d.N); i++ {
 			a := d.Options[i]
 			switch {
-			case d.Kind == DkAttackers && a.Kind() == AkAttack && a.Source() == uint8(old) && a.Target() == uint8(li) && sc.s.perms[sc.slot(old)].flags&pfAttacking == 0:
+			case d.Kind == DkAttackers && a.Kind() == AkAttack && a.Source() == TCode(uint8(old)) && a.Target() == TCode(uint8(li)) && sc.s.perms[sc.slot(old)].flags&pfAttacking == 0:
 				return a, true
-			case d.Kind == DkAttackers && a.Kind() == AkAttack && a.Source() == uint8(nw) && a.Target() >= PlayerTarget0 && sc.s.perms[sc.slot(nw)].flags&pfAttacking == 0:
+			case d.Kind == DkAttackers && a.Kind() == AkAttack && a.Source() == TCode(uint8(nw)) && a.Target() >= PlayerTarget0 && sc.s.perms[sc.slot(nw)].flags&pfAttacking == 0:
 				return a, true
 			}
 		}

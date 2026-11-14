@@ -41,7 +41,7 @@ func TestTapOrUntap(t *testing.T) {
 		}
 		var d Decision
 		s.resolveOptionsGen(sc.k, &d)
-		if d.Sub != ChGenTapOrUntap || d.N != 2 || d.Options[0].Source() != uint8(land) {
+		if d.Sub != ChGenTapOrUntap || d.N != 2 || d.Options[0].Source() != TCode(uint8(land)) {
 			t.Fatalf("tapped=%v: sub %d with %d options", tapped, d.Sub, d.N)
 		}
 		if want := uint8(1); tapped == (d.Options[0].Mode() == want) {

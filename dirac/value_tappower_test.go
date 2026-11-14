@@ -25,7 +25,7 @@ func TestGraveExilePickMutation(t *testing.T) {
 	sc.s.graveExileCands(sc.k, in, &d)
 	found := false
 	for i := 0; i < int(d.N); i++ {
-		if d.Options[i].Source() == uint8(o) {
+		if d.Options[i].Source() == TCode(uint8(o)) {
 			found = true
 		}
 	}

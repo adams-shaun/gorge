@@ -45,6 +45,11 @@ type sourceCharSnapshot struct {
 	// chosenType and chosenColor are the source's recorded "as this enters"
 	// choices; the live object loses them on leaving the battlefield.
 	chosenType, chosenColor string
+	// chosen is the source's recorded card/player choice (Object.Chosen, the
+	// Choose "chosen" fold): Dauntless Bodyguard's as-enters creature, read
+	// by its sacrifice-cost Pump's Card.ChosenCardStrict. Owned copy, never
+	// written after capture.
+	chosen []state.Target
 	// manaColorSpent is the cast-time spend ("if {W}{W} was spent to cast
 	// it"); the live object loses it on leaving the battlefield (CR 400.7).
 	manaColorSpent state.Mana
@@ -64,7 +69,8 @@ func (e *Engine) sourceCharSnapshotOf(src state.ObjID) sourceCharSnapshot {
 	}
 	return sourceCharSnapshot{power: e.Power(src), toughness: e.Toughness(src),
 		counters:   append([]state.Counter(nil), o.Counters...),
-		chosenType: o.ChosenType, chosenColor: o.ChosenColor, manaColorSpent: o.ManaColorSpent, tapped: o.Tapped}
+		chosenType: o.ChosenType, chosenColor: o.ChosenColor, chosen: append([]state.Target(nil), o.Chosen...),
+		manaColorSpent: o.ManaColorSpent, tapped: o.Tapped}
 }
 
 // bindSourceLKI binds the departed source's snapshot for the stack object id
@@ -78,6 +84,7 @@ func (e *Engine) bindSourceLKI(tc *effects.TriggerContext, id, source state.ObjI
 	}
 	tc.SourceLKIValid = true
 	tc.SourceChosenType, tc.SourceChosenColor = snap.chosenType, snap.chosenColor
+	tc.SourceChosen = snap.chosen
 	tc.SourceManaColorSpent = snap.manaColorSpent
 	tc.SourcePower, tc.SourceToughness, tc.SourceCounters = snap.power, snap.toughness, snap.counters
 	tc.SourceTapped = snap.tapped
@@ -157,6 +164,7 @@ func (e *Engine) delayedSpellMatchSpec(dt *state.DelayedTrigger) effects.SpecCon
 	sc.SourceLKIValid = true
 	sc.SourcePower, sc.SourceToughness, sc.SourceCounters = snap.power, snap.toughness, snap.counters
 	sc.SourceChosenType, sc.SourceChosenColor = snap.chosenType, snap.chosenColor
+	sc.SourceChosen = snap.chosen
 	live := sc.Resolve
 	sc.Resolve = func(name string) (int32, bool) {
 		if o := e.G.Obj(dt.Source); o != nil {
@@ -244,7 +252,7 @@ func (e *Engine) sourceCharLKIFor(stack, source state.ObjID, lki *state.Object, 
 		return sourceCharSnapshot{}, false
 	}
 	return sourceCharSnapshot{power: lkiPower, toughness: lkiToughness, counters: lki.Counters,
-		chosenType: lki.ChosenType, chosenColor: lki.ChosenColor, manaColorSpent: lki.ManaColorSpent,
+		chosenType: lki.ChosenType, chosenColor: lki.ChosenColor, chosen: lki.Chosen, manaColorSpent: lki.ManaColorSpent,
 		tapped: lki.Tapped}, true
 }
 

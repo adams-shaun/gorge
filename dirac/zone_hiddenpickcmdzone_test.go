@@ -42,7 +42,7 @@ func TestBattlefieldPickCommanderMove(t *testing.T) {
 				t.Fatalf("ask %d, want the hidden pick", s.res.ask)
 			}
 			d := s.Step()
-			if d.Sub != ChGenHiddenPick || d.N != 1 || d.Options[0].Source() != uint8(o) {
+			if d.Sub != ChGenHiddenPick || d.N != 1 || d.Options[0].Source() != TCode(uint8(o)) {
 				t.Fatalf("pick: sub %d with %d options, want ChGenHiddenPick over the commander alone", d.Sub, d.N)
 			}
 			s.Apply(d.Options[0])
