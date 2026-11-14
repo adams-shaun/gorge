@@ -70,6 +70,7 @@ const (
 	mechInfectPost                  // slots marked infect while their permanent had lost all abilities (CR 613.7)
 	mechRenowned                    // slots whose permanent is renowned (CR 702.112b; act_renown.go)
 	mechAttacksPlayer               // slots whose attack duty names the opponent: a player, never their planeswalkers or battles (Encore's "attacks that opponent"; combat_attacksifable.go)
+	mechRem                         // object mask: objects whose persistent remembered list is non-empty (gorge's event-backed o.Remembered, the Choose "remembered" fold), the host half of a ConditionDefined$ Remembered group gate (exprs.go CondRemMark)
 	numMech
 )
 
@@ -139,9 +140,10 @@ var mechWidth = [numMech]uint8{
 	mechInfect:          wSlot,
 	mechInfectPost:      wSlot,
 	mechRenowned:        wSlot,
+	mechRem:             wObj,
 }
 
-var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen", "sbaChain", "once2", "once3", "tappedTurn", "escaped", "lure", "lurePost", "protW", "protU", "protB", "protR", "protG", "protPostW", "protPostU", "protPostB", "protPostR", "protPostG", "echoOwed", "hexUB", "atch0", "atch1", "atch2", "atch3", "goad2", "goad3", "intimidate", "intimidatePost", "infect", "infectPost", "renowned", "attacksPlayer"}
+var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen", "sbaChain", "once2", "once3", "tappedTurn", "escaped", "lure", "lurePost", "protW", "protU", "protB", "protR", "protG", "protPostW", "protPostU", "protPostB", "protPostR", "protPostG", "echoOwed", "hexUB", "atch0", "atch1", "atch2", "atch3", "goad2", "goad3", "intimidate", "intimidatePost", "infect", "infectPost", "renowned", "attacksPlayer", "rem"}
 
 // arenaNone is the index of a mechanic the table does not use.
 const arenaNone = 0xFF
@@ -152,6 +154,11 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 	permMarkUses(t, &u)    // filter_permmarks.go
 	turnTalliesUses(t, &u) // value_turntallies.go
 	addPhaseUses(t, &u)    // act_addphase.go
+	for i := range t.Conds {
+		if t.Conds[i].Kind == kop.CondRemMark {
+			u[mechRem] = true // a persistent-remembered gate (exprs.go CondRemMark)
+		}
+	}
 	for i := range t.Cards {
 		if cd := &t.Cards[i]; cd.Keywords&kop.KwKicker != 0 || cd.HasMultikicker || cd.Bargain || cd.Offspring || cd.OptEvidence != 0 && cd.Types&(kop.TInstant|kop.TSorcery) == 0 {
 			u[mechKicked] = true
