@@ -10,9 +10,8 @@ import (
 
 // Magitek Scythe is the RememberAttached$ carrier whose payoff is a
 // condition gate, not a filter exclusion: its ETB trigger attaches the
-// Scythe to a creature you control and the chained DBPump carries
-// `ConditionDefined$ Remembered | ConditionPresent$ Card | ConditionCompare$
-// GE1` — the pump only runs when the attach actually remembered its object.
+// Scythe to a creature you control and the chained DBPump is gated on at
+// least one remembered card — the pump only runs when the attach actually remembered its object.
 // Before the read the Remembered set stayed empty and the gate failed
 // closed, so "that creature gains first strike until end of turn" never
 // landed. Novel Nunchaku's ImmediateTrigger and Thorin's damage trigger ride

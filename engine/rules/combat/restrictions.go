@@ -283,9 +283,8 @@ func BlockRestricted(b Board, blocker, attacker state.ObjID) bool {
 			return true
 		}
 	}
-	// The Effect-registered CantBlock restrictions: a
-	// `DB$ Effect | StaticAbilities$ KWPump` whose SVar body is
-	// `Mode$ CantBlock | ValidCard$ Creature.OppCtrl` -- Cosmotronic Wave's
+	// The Effect-registered CantBlock restrictions: an Effect whose static
+	// is a CantBlock over the creatures your opponents control -- Cosmotronic Wave's
 	// "creatures your opponents control can't block this turn", the same
 	// Effect-delivered shape Ahn-Crop Crasher, Ember Gale, Hazardous Blast,
 	// Immobilizer Eldrazi, Rumbling Ruin, Sontaran General and Headliner
@@ -340,9 +339,8 @@ func BlockRestricted(b Board, blocker, attacker state.ObjID) bool {
 			return true
 		}
 	}
-	// The Effect-registered CantBlockBy restrictions: an
-	// `AB$ Effect | StaticAbilities$ Unblockable` whose SVar body is
-	// `Mode$ CantBlockBy | ValidAttacker$ Card.IsRemembered` -- Suspicious
+	// The Effect-registered CantBlockBy restrictions: an activated Effect
+	// whose static is a CantBlockBy on the remembered attacker -- Suspicious
 	// Bookcase's "{3},{T}: Target creature can't be blocked this turn", the
 	// dominant unblockable template (measured 246 corpus files carry the
 	// Effect-delivered shape) -- registers through effEffect's restriction

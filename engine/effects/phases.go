@@ -32,8 +32,8 @@ func init() {
 // `PhaseInOrOut$` (8 corpus lines) is a TOGGLE, matching Forge's
 // PhasesEffect.resolve: an affected permanent that is phased out phases IN,
 // one that is phased in phases OUT. Time and Tide is the measured case --
-// `AllValid$ Creature.hasKeywordPhasing,Card.phasedOutCreature |
-// PhaseInOrOut$ True` is its oracle's "all phased-out creatures phase in and
+// toggling every creature with phasing and every phased-out creature is its
+// oracle's "all phased-out creatures phase in and
 // all creatures with phasing phase out" in one pass. With the toggle present
 // the AllValid$ pool must also include phased-out permanents (Forge's
 // getCardsIncludePhasingIn), or the phase-in half can never be reached.

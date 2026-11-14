@@ -380,9 +380,9 @@ func TestTriggerCostUnpayableSacComponentDeclinesOnly(t *testing.T) {
 }
 
 // TestAmbergrisXCountsThePaidDiscard is the secondary-scope pin, on the REAL
-// carrier's body and SVar (`AB$ DamageAll | Cost$
-// Discard<1/Hand> Draw<2/You> | NumDmg$ X | ValidPlayers$ Opponent` with
-// `SVar:X:PlayerCountPropertyYou$CardsDiscardedThisTurn`): the cost's
+// carrier's body and SVar (a DamageAll of X to each opponent, whose cost
+// discards a card and draws two, with X the number of cards you discarded
+// this turn): the cost's
 // discards are paid BEFORE the body resolves, so the body's X counts them --
 // the opponent takes one damage per discarded card. Without the count head
 // the X degraded to 0 and the body dealt nothing.

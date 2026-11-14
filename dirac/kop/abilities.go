@@ -151,8 +151,8 @@ type Ability struct {
 	SplitGate uint8
 	SplitCtr  CounterKind
 	SplitCols ColorMask
-	// ManaHasteValid: AddsKeywords$ Haste | AddsKeywordsValid$ ... |
-	// AddsKeywordsUntil$ UntilEOT (Carnelian Orb of Dragonkind; CR 106.6):
+	// ManaHasteValid: a mana ability's rider granting haste until end of
+	// turn to a matching spell (Carnelian Orb of Dragonkind; CR 106.6):
 	// a spell matching this filter, paid with this ability's mana, gains
 	// haste until end of turn as it enters (0 = no rider). A table field.
 	ManaHasteValid FilterID

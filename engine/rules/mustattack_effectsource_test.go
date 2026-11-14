@@ -14,9 +14,9 @@ import (
 // Gideon Jura's +2 ("During target opponent's next turn, creatures that
 // player controls attack Gideon Jura if able"): a DelayedTrigger remembers
 // the opponent, its Execute$ Effect captures that player
-// (RememberObjects$ DelayTriggerRemembered) and registers
-// `MustAttack | ValidCreature$ Creature.RememberedPlayerCtrl |
-// MustAttack$ EffectSource`. The duty names the effect's SOURCE permanent
+// (RememberObjects$ DelayTriggerRemembered) and registers a MustAttack on the
+// creatures the remembered player controls, naming the effect's source as
+// what they must attack. The duty names the effect's SOURCE permanent
 // (CR 508.1d), so only an attack on Gideon discharges it.
 const gideonJuraPlusTwoToP1Upkeep = `{"name":"gideon-plus-two","cr":["508.1d","506.3"],"why":"Gideon Jura's +2 names Gideon as the defender",
  "setup":{"p0":{"battlefield":["Gideon Jura"]},"p1":{"battlefield":["Balduvian Bears"]}},

@@ -67,8 +67,8 @@ func (s *State) noPrevLive(k *prep, combat bool) bool {
 }
 
 // noPrevSpellSelf: the spell resolving now carries a StatCantPreventDamage
-// static that functions on the stack (StNoPrevSpellSelf: EffectZone$ Stack |
-// ValidSource$ Spell.Self, Banefire's "if X is 5 or more, the damage can't be
+// static that functions on the stack (StNoPrevSpellSelf: its source is the
+// spell itself, Banefire's "if X is 5 or more, the damage can't be
 // prevented") whose Cond2 holds against the entry. gorge's source match is the
 // spell itself; the kernel reads every damage dealt while the spell resolves
 // as its own (a resolution deals no other source's damage).

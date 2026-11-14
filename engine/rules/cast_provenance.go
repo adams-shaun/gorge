@@ -840,8 +840,8 @@ func provGateSlot(spec string) uint {
 var provenanceGateVerify = derivedMemoVerifyFlag != ""
 
 // bareGraveyardCastToken is Forge's caster-agnostic "cast from a graveyard"
-// spelling (Aven Interrupter's `RaiseCost | Activator$ Opponent | ValidCard$
-// Card.wasCastFromGraveyard,Card.wasCastFromExile`). Outside the cost paths
+// spelling (Aven Interrupter's RaiseCost on opponents' spells cast from a
+// graveyard or from exile). Outside the cost paths
 // it is the effects-side CastFlags predicate, whose graveyard-origin bits are
 // stamped by the pay-time CastInfo -- AFTER the cost is determined (CR
 // 601.2f precedes 601.2h), so a cost static keyed on it never saw the cast it

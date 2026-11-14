@@ -9,10 +9,9 @@ package rules
 //
 // The card's begin-combat trigger chooses an opponent at random that the
 // Hellkite did not attack during the last combat
-// (Choices$ Player.Opponent+!IsRemembered | Random$ True). A successful
+// (a random pick among the opponents not yet remembered). A successful
 // choice runs ChooseSubAbility$ DBPump, which registers an Effect-delivered
-// `Mode$ MustAttack | ValidCreature$ Card.EffectSource | MustAttack$
-// ChosenPlayer` for the combat; a choice with no candidate runs
+// requirement that the Effect's source attack the chosen player this combat; a choice with no candidate runs
 // CantChooseSubAbility$ DBTap, tapping the dragon. The requirement is read at
 // the declare-attackers step through the shared attackRequirements collector
 // (engine/rules/combat.go), which decides which offered (attacker, defender) pairs
@@ -427,8 +426,8 @@ func TestMustAttackFaceAndEffectWhitelistsAgree(t *testing.T) {
 
 // TestMustAttackRememberedPlayerBindsThroughRealEffectRegistration is the
 // review's end-to-end case: the Effect-delivered MustAttack$ RememberedPlayer
-// requirement must bind the player captured by a REAL `DB$ Effect |
-// RememberObjects$ Remembered | StaticAbilities$ MustAttack` registration,
+// requirement must bind the player captured by a REAL Effect registration
+// that remembers the chain's remembered objects and grants a MustAttack static,
 // not only a hand-built AddContinuous with RememberedPlayers prefilled. The
 // fixture resolves the actual compiled `DBEff` SVar of the real corpus
 // carrier Furygale Flocking, whose DBToken chain is the per-opponent
@@ -436,8 +435,8 @@ func TestMustAttackFaceAndEffectWhitelistsAgree(t *testing.T) {
 // bound into Ctx.Remembered beside the tokens the chain created. The
 // registered requirement then has to reach attackRequirements with that
 // player named -- effectRemembered records objects only, so the player half
-// must come from effectRememberedPlayers reading the same
-// `RememberObjects$ Remembered` spelling the card writes.
+// must come from effectRememberedPlayers reading the same RememberObjects$
+// spelling the card writes.
 func TestMustAttackRememberedPlayerBindsThroughRealEffectRegistration(t *testing.T) {
 	t.Parallel()
 	deck := func() []*cards.Card {

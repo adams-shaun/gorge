@@ -144,8 +144,8 @@ engine/effects (*zoneCountFold).visit	168	51
 engine/effects Resolve	311	65
 engine/effects applyLibrarySearch	344	87
 engine/effects chooseDiscards	349	64
-engine/effects conditionDefinedGroup	265	52
-engine/effects conditionMetCore	256	85
+engine/effects conditionDefinedGroup	264	52
+engine/effects conditionMetCore	255	85
 engine/effects controlReferentPlayers	275	69
 engine/effects definedSpec	1169	260
 engine/effects effAttach	553	117
@@ -157,7 +157,7 @@ engine/effects effCopySpellAbility	323	60
 engine/effects effDealDamage	343	74
 engine/effects effDig	676	184
 engine/effects effDigUntil	433	90
-engine/effects effEffect	1653	236
+engine/effects effEffect	1652	236
 engine/effects effHiddenPick	437	97
 engine/effects effMana	322	61
 engine/effects effMoveCounter	220	56
@@ -190,7 +190,7 @@ engine/rules (*Engine).askReplacementChoiceIn	169	54
 engine/rules (*Engine).beginCastWith	781	173
 engine/rules (*Engine).candidatesForLimitInto	193	63
 engine/rules (*Engine).castAnswer	242	80
-engine/rules (*Engine).checkEventDelayedTriggers	357	59
+engine/rules (*Engine).checkEventDelayedTriggers	356	59
 engine/rules (*Engine).checkFaceTriggers	798	166
 engine/rules (*Engine).checkGrantedStaticTriggersUsing	269	62
 engine/rules (*Engine).continueCast	237	53

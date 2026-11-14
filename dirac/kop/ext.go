@@ -204,8 +204,8 @@ const (
 	// ExtLockActs (Braided Net): the permanent in Obj (a target),
 	// when it is tapped as this resolves, loses the ability to have its
 	// activated abilities activated, mana abilities included, for as long as
-	// it stays tapped (gorge Effect Mode$ CantBeActivated | ValidCard$
-	// Card.IsRemembered | ValidSA$ Activated, Duration$ UntilTargetedUntaps;
+	// it stays tapped (a gorge Effect whose CantBeActivated static covers the
+	// remembered card's activated abilities until the target untaps;
 	// CR 602.5, 611.2b): its first untap or departure ends the lock for good,
 	// and the source leaving does not. dirac/act_lockpermanent.go.
 	ExtLockActs ExtOp = 140
@@ -228,8 +228,8 @@ const (
 	// ExtAsgnGrant (Plagon, Lord of the Beach; Outmaneuver): until end of
 	// turn the object in Obj (RefTarget runs once per object of a multi-object
 	// slot) assigns its combat damage by a changed rule. C 0 equal to its
-	// toughness rather than its power (gorge Effect Mode$ CombatDamageToughness
-	// | ValidCard$ Card.IsRemembered, CR 510.1); C 1 as though it weren't
+	// toughness rather than its power (a gorge Effect's CombatDamageToughness
+	// static on the remembered card, CR 510.1); C 1 as though it weren't
 	// blocked (gorge Effect Mode$ AssignCombatDamageAsUnblocked, mandatory,
 	// CR 510.1c-d). dirac/combat_asgngrant.go.
 	ExtAsgnGrant ExtOp = 173
@@ -648,8 +648,9 @@ func init() { extOpNames[ExtCounterPlusEOT] = "CounterPlusEOT" }
 // slot) gains "if a triggered ability of this permanent triggers, that
 // ability triggers an additional time" for as long as the resolving ability's
 // source stays tapped on the battlefield and the object stays on the
-// battlefield (gorge Effect Mode$ Panharmonicon | ValidCard$ Card.IsRemembered,
-// Duration$ UntilUntaps, ExileOnMoved$ Battlefield; CR 603.2d, 611.2b). Nothing
+// battlefield (a gorge Effect's Panharmonicon static on the remembered card,
+// lasting until the source untaps and exiled if it leaves the battlefield;
+// CR 603.2d, 611.2b). Nothing
 // is granted when the source is not a tapped permanent as this resolves. One
 // record per grant in genState.pgT / pgH, counted by the echo walk beside the
 // printed StatPanharmonicon statics. dirac/act_grantpanharm.go.

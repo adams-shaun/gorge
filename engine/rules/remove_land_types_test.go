@@ -39,9 +39,8 @@ func landTypesEngine(t *testing.T, reg *cards.Registry, extras0, extras1 []*card
 }
 
 // TestZhaoMoonSlayerStripsLandTypes pins the corpus row:
-// Zhao, the Moon Slayer's third static (AddType$ Mountain |
-// RemoveLandTypes$ True | IsPresent$ Card.Self+counters_GE1_CONQUEROR)
-// makes an opponent's nonbasic Dryad Arbor a Mountain AND strips its
+// Zhao, the Moon Slayer's third static (nonbasic lands are Mountains,
+// losing their land types, while Zhao has a conqueror counter) makes an opponent's nonbasic Dryad Arbor a Mountain AND strips its
 // printed Forest land subtype (CR 613.1d -- the strip runs before the same
 // effect's AddTypes), while Land, Creature and Dryad survive. Before the
 // conqueror counter the IsPresent$ gate is closed and the Arbor still reads

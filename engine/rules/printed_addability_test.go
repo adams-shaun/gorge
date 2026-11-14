@@ -294,16 +294,16 @@ func TestPrintedContinuousAddAbilityCorpusKusariGama(t *testing.T) {
 	}
 }
 
-// TestPrintedContinuousAddAbilityCorpusGoldspanDragon is the
-// done-criterion carrier: the real corpus Goldspan Dragon's
-// `S:Mode$ Continuous | Affected$ Card.Treasure+YouCtrl | AddAbility$ Mana`
-// ("Treasures you control have '{T}, Sacrifice this artifact: Add two mana of
-// any one color'") must give ITS controller's Treasure a SECOND mana ability
-// (the SVar body's Amount$ 2), while an opponent's Treasure -- outside the
-// YouCtrl scope -- keeps only its printed add-one ability. Before the mana
-// scan read the static, the deck's Treasures added one mana at a time with no
-// error anywhere: the divergence this test pins end to end, activation
-// included (the T + sacrifice cost, the "any one color" ask, the two units).
+// TestPrintedContinuousAddAbilityCorpusGoldspanDragon is the done-criterion
+// carrier: the real corpus Goldspan Dragon's continuous static granting a mana
+// ability to the Treasures you control ("Treasures you control have '{T},
+// Sacrifice this artifact: Add two mana of any one color'") must give ITS
+// controller's Treasure a SECOND mana ability (the SVar body's Amount$ 2),
+// while an opponent's Treasure -- outside the YouCtrl scope -- keeps only its
+// printed add-one ability. Before the mana scan read the static, the deck's
+// Treasures added one mana at a time with no error anywhere: the divergence
+// this test pins end to end, activation included (the T + sacrifice cost, the
+// "any one color" ask, the two units).
 func TestPrintedContinuousAddAbilityCorpusGoldspanDragon(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

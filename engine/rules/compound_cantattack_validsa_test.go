@@ -1,7 +1,7 @@
 package rules
 
-// The compound `S:Mode$ CantAttack,CantBlock,CantBeActivated |
-// ValidCard$ Card.EnchantedBy | ValidSA$ Activated.!ManaAbility` line on
+// The compound static line naming CantAttack, CantBlock and CantBeActivated
+// for the enchanted creature, with a ValidSA$ filter sparing mana abilities, on
 // Realmbreaker's Grasp and Intercessor's Arrest. The parse-time split
 // (engine/cards/parse.go) gives each mode its own static but
 // shares ONE Params map, so the CantAttack half carries ValidSA$, which belongs

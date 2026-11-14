@@ -40,8 +40,7 @@ func resolveAttackPump(t *testing.T, e *Engine, src state.ObjID, others ...state
 
 // TestGoblinPiledriverPumpsForEachOtherAttackingGoblin pins the user-reported
 // defect end to end with the REAL corpus card: Goblin Piledriver's trigger
-// (`SVar:TrigPump:DB$ Pump | Defined$ Self | NumAtt$ +X`,
-// `X = Count$Valid Goblin.attacking+Other`) resolved as +0/+0
+// (a self Pump of +X power, X the count of other attacking Goblins) resolved as +0/+0
 // because Num saw the signed non-literal "+X", failed Atoi, missed the SVar
 // table under the sign-prefixed key and degraded to zero. With the sign
 // stripped the pump is +2/+0 per other attacking Goblin.

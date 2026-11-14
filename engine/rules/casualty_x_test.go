@@ -10,9 +10,8 @@ import (
 )
 
 // TestCasualtyXObNixilisCopyRiders: Ob Nixilis, the Adversary is the
-// corpus's one variable-Casualty carrier — its printed line is
-// `K:Casualty:X:NonLegendary$ True | SetLoyalty$ Casualty:The copy isn't
-// legendary and has starting loyalty X.` The test casts it through the real
+// corpus's one variable-Casualty carrier — it prints casualty X with riders
+// making the copy nonlegendary with starting loyalty X. The test casts it through the real
 // election/payment/resolution path with a power-1 sacrifice, so the variable
 // amount (the sacrificed creature's power, 1) differs from the printed
 // starting loyalty (3) in both directions, and asserts the casualty copy

@@ -499,8 +499,8 @@ const (
 const StatCantPutCounter StaticKind = 252
 
 // StatCantPhaseIn (an explicit ordinal clear of the iota tail): while the
-// static's source is on the battlefield no permanent can phase in (S:Mode$
-// CantPhaseIn | ValidCard$ Card.phasedOutPermanent, "Permanents can't phase
+// static's source is on the battlefield no permanent can phase in (a
+// CantPhaseIn static over every phased-out permanent, "Permanents can't phase
 // in"; CR 702.26; gorge rules/cantphase.go phaseBlocked). Only that
 // blanket ValidCard$ is lowered. dirac/kw_phasing.go.
 const StatCantPhaseIn StaticKind = 238
@@ -644,15 +644,14 @@ const StNoPrevCombat = StOncePerTurn
 
 // StNoPrevSpellSelf (aliases StAnyManaType, a MayPlayFrom-only bit) on a
 // StatCantPreventDamage static: it functions on the stack, for the damage its
-// own spell deals while that spell resolves (EffectZone$ Stack | ValidSource$
-// Spell.Self; Cond2 the X gate: Banefire). It is never in the battlefield
+// own spell deals while that spell resolves (it works from the stack, for the
+// spell itself as source; Cond2 the X gate: Banefire). It is never in the battlefield
 // static scan.
 const StNoPrevSpellSelf = StAnyManaType
 
 // StatAnyTypeCreatures: the static's controller may spend mana as though it
-// were mana of any type to cast creature spells (S:Mode$ ManaConvert |
-// ValidPlayer$ You | ValidCard$ Creature.YouCtrl | ValidSA$ Spell |
-// ManaConversion$ AnyType->AnyType; CR 609.4b; Vizier of the Menagerie;
+// were mana of any type to cast creature spells (a ManaConvert static for
+// its controller's creature spells, any type to any type; CR 609.4b; Vizier of the Menagerie;
 // gorge rules/mana_convert.go manaConversionParts). No operands: the fact is
 // read from the battlefield. Explicit ordinal: the StaticKind iota tail
 // stays untouched.
