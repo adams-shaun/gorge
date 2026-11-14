@@ -436,6 +436,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"DESCENT":    kop.CtrDescent,    // Descent into Avernus's named counter (CR 122.1)
 	"M2M1":       kop.CtrM2M1,       // a -2/-1 counter (CR 122.1a; Contagion; the kernel's ptGen)
 	"TREASURE":   kop.CtrTreasure,   // Legacy's Allure's named counter (CR 122.1)
+	"TASK":       kop.CtrTask,       // Heliod's Punishment's named counter (CR 122.1)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -2105,6 +2106,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefAttachedCtrl, nil
 	case rChosenPlayer:
 		return kop.RefChosenPlayer, nil
+	case rChosenPlayerRes:
+		return kop.RefChosenPlayerRes, nil
 	case rLastCreated:
 		return kop.RefLastCreated, nil
 	case rTaxedAttacker:
@@ -2259,6 +2262,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vEnergyOf:           kop.ExEnergyOf,
 	vMonarch:            kop.ExMonarch,    // lower_monarch.go
 	vJoinForces:         kop.ExJoinForces, // lower_storesvar.go
+	vCmdGreatestMV:      kop.ExCmdGreatestMV,
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {

@@ -333,11 +333,11 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 func (s *State) walkKey(a Action, p uint8, i int) uint64 {
 	ob := &s.objs[Obj(a.Source())]
 	switch {
-	case (isCastKind(a.Kind()) || a.Kind() == AkPlot || a.Kind() == AkSneak) && ob.zone == kop.ZoneHand:
+	case (isCastKind(a.Kind()) || a.Kind() == AkPlot || a.Kind() == AkSneak || a.Kind() == AkBestow) && ob.zone == kop.ZoneHand:
 		for h := 0; h < int(s.pl[SeatIx(p)].handN); h++ {
 			if s.pl[SeatIx(p)].hand[h] == Obj(a.Source()) {
 				k := uint64(h)<<16 | uint64(i)
-				if a.Mode() == 0 && a.Target() != 0 || a.Kind() == AkPlot || a.Kind() == AkSneak || a.Kind() == AkCast && a.Mode()&castWarp != 0 {
+				if a.Mode() == 0 && a.Target() != 0 || a.Kind() == AkPlot || a.Kind() == AkSneak || a.Kind() == AkBestow || a.Kind() == AkCast && a.Mode()&castWarp != 0 {
 					k |= 1 << 15 // an alternative cost's cast follows the card's plain one, though the kernel offers it first
 				}
 				return k
