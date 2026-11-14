@@ -1842,9 +1842,11 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 	if k.gen != nil && k.gen.grantTrigEv&(1<<kop.TrigSpellCast) != 0 {
 		lm = s.grantTrigHosts(k, lm)
 	}
-	if e.ctrl == 1 && !e.faceDown() {
-		// the spell's own cast trigger: gorge walks the stack after seat
-		// 0's battlefield and before seat 1's (trig_selfcast.go)
+	if e.ctrl != 0 && !e.faceDown() {
+		// the spell's own cast trigger: gorge walks the stack on seat 0's
+		// pass, after seat 0's battlefield and before every later seat's
+		// (trig_selfcast.go), so a caster beyond seat 0 queues it before
+		// its own battlefield listeners
 		s.castFromStack(k, e)
 	}
 	if lm.or(pm).any() {
