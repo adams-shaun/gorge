@@ -42,7 +42,7 @@ func (s *State) ctrlRoleF2(k *prep, f kop.FilterFlags2, ctrl uint8) bool {
 		}
 		// the slots and a multi-pick slot's extras (Officious Interrogation's
 		// second player)
-		var codes [kop.MaxTargets + maxXTgt]uint8
+		var codes [kop.MaxTargets + maxXTgt]TCode
 		for _, c := range codes[:s.chainTargets(e, &codes)] {
 			if c == PlayerCode(ctrl) {
 				return true
@@ -99,7 +99,7 @@ func (s *State) ctrlRoleTgt(k *prep, slot int, ctrl uint8) bool {
 // queued: while the trigger fires (an IsPresent$ condition) it is the
 // checked event's seat (g.atkDef), afterwards the current entry's defSeat.
 // A read with neither stalls the game (StallDefenderPW, a declared limit)
-// and answers NoTarget, which matches no seat.
+// and answers noSeat, which matches no seat.
 func (s *State) defendingSeatF2(k *prep) uint8 {
 	if DebugDefendingActiveOpp {
 		return (s.active + 1) % s.nSeats() // seat-ok: a test-only mutation (DebugDefendingActiveOpp)
@@ -111,7 +111,7 @@ func (s *State) defendingSeatF2(k *prep) uint8 {
 		return e.defSeat - 1
 	}
 	s.capFull(StallDefenderPW)
-	return NoTarget
+	return noSeat
 }
 
 // DebugDefendingActiveOpp is a test-only mutation: past two seats the
@@ -125,13 +125,13 @@ var DebugDefendingActiveOpp bool
 // Spell.Creature) a spell on the stack, read like a TgtSpell target
 // (legal.go targetOK). Every Filter2 reader (costTargetOK's build and probe
 // branches, affordableTargets) goes through it.
-func (s *State) costTargetMatch(k *prep, f kop.FilterID, p uint8, t uint8) bool {
+func (s *State) costTargetMatch(k *prep, f kop.FilterID, p uint8, t TCode) bool {
 	return s.costTargetMatchSrc(k, f, p, t, NoSlot)
 }
 
 // costTargetMatchSrc is costTargetMatch for a filter read against the cost
 // static's source permanent src (a Card.Self ValidTarget$: Terror of the Peaks).
-func (s *State) costTargetMatchSrc(k *prep, f kop.FilterID, p uint8, t uint8, src Slot) bool {
+func (s *State) costTargetMatchSrc(k *prep, f kop.FilterID, p uint8, t TCode, src Slot) bool {
 	if isPlayerOrNone(t) {
 		return false
 	}

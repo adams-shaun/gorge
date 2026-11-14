@@ -462,7 +462,7 @@ func (s *State) waterbendOptions(k *prep, d *Decision) bool {
 			s.capFull(StallTapPick)
 			break
 		}
-		d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+		d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 	}
 	if !pose && s.waterbendPickCount() == 0 {
 		return false

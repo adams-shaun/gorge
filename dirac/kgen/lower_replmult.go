@@ -11,9 +11,11 @@ import (
 // damageDoubler lowers a filtered DamageDone doubler (Gratuitous Violence,
 // Neriv, Trance Kuja): DB$ ReplaceEffect | VarName$ DamageAmount with a
 // VarValue$ (an SVar or inline) of ReplaceCount$DamageAmount/Twice, a
-// ValidSource$ every alternative of which is a non-self object you control,
-// the ValidTarget$ words as kop.ReplDmg* bits, IsCombat$ False as
-// ReplDmgNonCombat and inZoneBattlefield as ReplDmgSrcInPlay (gorge
+// ValidSource$ every alternative of which is a non-self object you control
+// (Fire Servant: Instant.YouCtrl,Sorcery.YouCtrl) or Card.Self alone
+// (Charging Tuskodon), the ValidTarget$ words as kop.ReplDmg* bits (absent:
+// any player or permanent), IsCombat$ False as ReplDmgNonCombat and True as
+// ReplDmgCombat, and inZoneBattlefield as ReplDmgSrcInPlay (gorge
 // replacement_damage.go damageReplacementMatches). The kernel reads it as a
 // ReplDoubleDamageToOpps with Filter/C set (dirac/repl_multipliers.go).
 func (lc *lowerCtx) damageDoubler(rp *params, w *cards.SA, rl *lRepl) error {
@@ -41,14 +43,22 @@ func (lc *lowerCtx) damageDoubler(rp *params, w *cards.SA, rl *lRepl) error {
 	if rl.F.Players != 0 || len(rl.F.Clauses) == 0 {
 		return refuse("repl-hard: DamageDone doubler ValidSource %q", vs)
 	}
+	// Card.Self alone is the host's own damage (Charging Tuskodon): its
+	// controller is the source's, and the source must be the host on the
+	// battlefield (ReplDmgSrcInPlay; the kernel's FSelf reads the host slot)
+	self := len(rl.F.Clauses) == 1 && rl.F.Clauses[0] == (lClause{Flags: fSelf})
 	for _, c := range rl.F.Clauses {
 		// the kernel walks the source controller's doublers only (YouCtrl)
-		if c.Flags&fSelf != 0 || c.Ctrl != whoYou {
+		if !self && (c.Flags&fSelf != 0 || c.Ctrl != whoYou) {
 			return refuse("repl-hard: DamageDone doubler ValidSource %q", vs)
 		}
 	}
 	bits := 0
-	for _, t := range strings.Split(rp.str("ValidTarget"), ",") {
+	targets := "Player,Permanent" // no ValidTarget$: any recipient (gorge damageReplacementMatches; Fire Servant)
+	if vt, ok := rp.get("ValidTarget"); ok {
+		targets = vt
+	}
+	for _, t := range strings.Split(targets, ",") {
 		switch strings.TrimSpace(t) {
 		case "Opponent":
 			bits |= kop.ReplDmgOppPlayer
@@ -59,16 +69,20 @@ func (lc *lowerCtx) damageDoubler(rp *params, w *cards.SA, rl *lRepl) error {
 		case "Permanent":
 			bits |= kop.ReplDmgPerm
 		default:
-			return refuse("repl-hard: DamageDone doubler ValidTarget %q", rp.str("ValidTarget"))
+			return refuse("repl-hard: DamageDone doubler ValidTarget %q", targets)
 		}
 	}
 	if c, ok := rp.get("IsCombat"); ok {
-		if strings.TrimSpace(c) != "False" {
+		switch strings.TrimSpace(c) {
+		case "False":
+			bits |= kop.ReplDmgNonCombat
+		case "True":
+			bits |= kop.ReplDmgCombat
+		default:
 			return refuse("repl-hard: DamageDone doubler IsCombat %q", c)
 		}
-		bits |= kop.ReplDmgNonCombat
 	}
-	if in {
+	if in || self {
 		bits |= kop.ReplDmgSrcInPlay
 	}
 	rl.Kind, rl.Bits = "DoubleDamageToOpps", bits

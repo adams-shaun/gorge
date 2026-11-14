@@ -126,7 +126,7 @@ func (s *State) infectCounters(k *prep, sl Slot, n int) {
 // emitObjectDamage's infect markers); a noncreature takes ordinary damage.
 //
 //go:noinline
-func (s *State) infectDamageTo(k *prep, code uint8, n int, kw kop.KwMask) {
+func (s *State) infectDamageTo(k *prep, code TCode, n int, kw kop.KwMask) {
 	e := &s.res.e
 	if isPlayerOrNone(code) {
 		s.addPoison(CodeSeat(code), n)
@@ -258,7 +258,7 @@ func (s *State) combatFoe(k *prep, sl Slot) uint8 {
 	if c != s.active {
 		return s.active
 	}
-	if p := s.atkSeat(k, sl); p != NoTarget {
+	if p := s.atkSeat(k, sl); p != noSeat {
 		return p
 	}
 	return s.nextAlive(c)

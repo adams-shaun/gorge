@@ -100,7 +100,7 @@ func (s *State) FeatDivision(out *[MaxPerm]Obj) (n, damage int) {
 
 // FeatBlockOrder is where blocking permanent o was declared among its attacker's
 // blockers.
-func (s *State) FeatBlockOrder(o Obj) uint8 { return s.perms[s.objs[o].slot].bord }
+func (s *State) FeatBlockOrder(o Obj) uint8 { return uint8(s.perms[s.objs[o].slot].bord) }
 
 // FeatDamageOp is what the n-th damage instruction of the ability being built or
 // resolved deals now, read for a target ask: X and kicks are known by then (CR 601.2b).

@@ -76,6 +76,32 @@ func (lc *lowerCtx) adamantValue(rest string) (lValue, error) {
 	return lValue{Kind: vAdamant, N: ci | n<<3, Sub: []lValue{arms[0], arms[1]}}, nil
 }
 
+// trigManaSpendCond lowers a trigger's ManaSpent$ / ManaNotSpent$ colour
+// ("sacrifice it unless {W} was spent to cast it", CR 601.2h; gorge
+// trigger_condition.go manaColourSpendHolds) to the same Count$Adamant read
+// a self-ETB trigger's CheckSVar$ lowers to: the kernel binds the entering
+// spell's per-colour spend into the pending trigger as it queues and the
+// intervening-if recheck reads the bound count (kw_evoke.go exAdamant), the
+// snapshot-or-live rule gorge's read follows. `not` picks the arms: the
+// gate holds while the colour was NOT spent (the sacrifice arm) or while it
+// was. Only the corpus spellings lower: one colour name or letter, on the
+// card's own ETB trigger; a colour list, colourless, or any other trigger
+// refuses.
+func (lc *lowerCtx) trigManaSpendCond(colours string, not bool) (lCond, error) {
+	if lc.adamantTrigger() == nil {
+		return lCond{}, refuse("trigger ManaSpend outside the card's own ETB trigger")
+	}
+	if letter := adamantColourLetter(colours); letter == "" || len(strings.Fields(colours)) != 1 {
+		return lCond{}, refuse("trigger ManaSpend colours %q", colours)
+	}
+	ci := strings.Index("WUBRG", adamantColourLetter(colours))
+	yes, no := cst(1), cst(0)
+	if not {
+		yes, no = cst(0), cst(1)
+	}
+	return lCond{Kind: cValue, A: lValue{Kind: vAdamant, N: ci | 1<<3, Sub: []lValue{yes, no}}, Op: opEQ, B: cst(1)}, nil
+}
+
 // adamantTrigger is the trigger whose header condition is being lowered, if
 // it is an ETB of the card itself (nil otherwise).
 func (lc *lowerCtx) adamantTrigger() *lTrigger {

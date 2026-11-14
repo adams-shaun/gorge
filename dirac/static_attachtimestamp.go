@@ -155,7 +155,7 @@ func (s *State) attachSelfToPlayer(k *prep, in *kop.Instr) {
 // ask's object sources.
 func (s *State) answerDigEnchPlayer(k *prep, r *resCtx, a Action) {
 	s.res.ask = raNone
-	s.g.pre.val = CodeSeat(a.Source())
+	s.g.pre.val = objWord(CodeSeat(a.Source()))
 	s.g.pre.state = preDigEnchPlayerDone
 	if s.rerunMove(k, &s.prog(k)[r.pc]) {
 		return // suspended again at another Aura's choice

@@ -74,7 +74,7 @@ func TestMidResSearchEnterAskOrder(t *testing.T) {
 		t.Fatalf("ask %d, want the search pick", s.res.ask)
 	}
 	before, draws := m.libOrder(), s.rng.Draws
-	s.applyResolveGen(k, MakeAction(AkChoose, uint8(m.banner), 0, 0))
+	s.applyResolveGen(k, MakeAction(AkChoose, TCode(m.banner), 0, 0))
 	if s.objs[m.banner].zone != kop.ZoneBattlefield {
 		t.Fatalf("the found Banner is in zone %d, want the battlefield", s.objs[m.banner].zone)
 	}

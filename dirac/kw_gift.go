@@ -158,7 +158,7 @@ func (s *State) giftTargetsFeasible(k *prep, a *kop.Ability, p uint8, src Slot) 
 			if lo == 0 {
 				continue
 			}
-			var buf [MaxOptions]uint8
+			var buf [MaxOptions]TCode
 			ok = s.targetCands(k, t, p, src, NoObj, &buf) >= int(lo)
 		}
 		if ok {
@@ -178,7 +178,7 @@ func (s *State) giftSlotStart(k *prep, t *kop.TargetSpec, ti uint8) bool {
 	if mt.min == 0 || e.kind != seSpell {
 		return true
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	if s.multiCands(k, t, ti, &buf) >= int(mt.min) {
 		return true
 	}

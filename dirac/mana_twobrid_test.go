@@ -74,7 +74,7 @@ func TestTwobridMV(t *testing.T) {
 // each ask's offered modes.
 func pipAsks(t *testing.T, sc *scen, o Obj, pick func(i int, modes []uint8) uint8) [][]uint8 {
 	t.Helper()
-	sc.do(t, AkCast, uint8(o), 0xff)
+	sc.do(t, AkCast, TCode(o), scAny)
 	var asks [][]uint8
 	for {
 		d := sc.s.Step()

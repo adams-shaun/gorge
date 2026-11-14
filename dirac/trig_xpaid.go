@@ -29,10 +29,10 @@ func (s *State) bindTrigX(tobj Obj, spent bool) {
 		return
 	}
 	if spent {
-		s.pend[s.npend-1].x = s.spellSpent(tobj) // Tf2SpentBound (CR 601.2h)
+		s.pend[s.npend-1].x = objWord(s.spellSpent(tobj)) // Tf2SpentBound (CR 601.2h)
 		return
 	}
-	s.pend[s.npend-1].x = s.spellX(tobj)
+	s.pend[s.npend-1].x = objWord(s.spellX(tobj))
 }
 
 // spellSpent is the mana spent to cast the spell object o is or is
@@ -59,11 +59,11 @@ func (s *State) spellSpent(o Obj) uint8 {
 // spellX is the paid X of the spell object o is or is becoming, 0 if none.
 func (s *State) spellX(o Obj) uint8 {
 	if s.res.active && s.res.e.kind == seSpell && s.res.e.obj == o {
-		return s.res.e.x
+		return uint8(s.res.e.x)
 	}
 	for i := int(s.sp) - 1; i >= 0; i-- {
 		if e := &s.stack[i]; e.kind == seSpell && e.obj == o {
-			return e.x
+			return uint8(e.x)
 		}
 	}
 	return 0
@@ -78,7 +78,7 @@ func (s *State) spellX(o Obj) uint8 {
 func projTrigX(k *prep, e *stackEntry) uint8 {
 	cd := &k.t.Cards[e.card]
 	if int(e.ab) < len(cd.Abilities) && cd.Abilities[e.ab].Kind == kop.AbTriggered && cd.Abilities[e.ab].Cost.Mana.X != 0 {
-		return e.x
+		return uint8(e.x)
 	}
 	return 0
 }

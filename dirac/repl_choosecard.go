@@ -72,7 +72,7 @@ func (s *State) enterCards(k *prep, c CardID, self Obj, p uint8, d *Decision) in
 		}
 		n++
 		if d != nil {
-			d.add(MakeAction(AkChoose, uint8(o), 0, uint8(o)))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 	return n
@@ -112,13 +112,13 @@ func (s *State) seedEnterChosen(k *prep, e *stackEntry) {
 		return
 	}
 	s.g.nchosen = 0
-	ch := uint8(255)
+	ch := objWord(NoObj)
 	if r := s.lk(e.li); e.li != 0 && r.obj == e.obj {
-		ch = r.chosen
+		ch = objWord(r.chosen)
 	} else if ob := &s.objs[e.obj]; ob.zone == kop.ZoneBattlefield && ob.ver == e.srcVer {
 		ch = s.perms[ob.slot].chosen
 	}
-	if ch != 255 && int(ch) < MaxObj {
+	if ch != objWord(NoObj) && int(ch) < MaxObj {
 		s.g.chosen[0], s.g.nchosen = Obj(ch), 1
 	}
 }
