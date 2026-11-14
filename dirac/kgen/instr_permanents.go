@@ -221,6 +221,11 @@ func (ic *instrCtx) opGainControl() error {
 	cb := ic.cb
 	fl := ic.fl
 	ki.Op = kop.OpGainControl
+	if in.F != nil { // AllValid$: every battlefield permanent F admits (lower_gaincontrolall.go)
+		if err := ic.objFilter(kop.ZoneBattlefield); err != nil {
+			return err
+		}
+	}
 	var rid int
 	for _, f := range strings.Split(in.CS, "|") {
 		switch {
