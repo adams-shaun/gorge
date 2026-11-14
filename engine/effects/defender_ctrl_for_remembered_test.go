@@ -19,9 +19,9 @@ func TestDefenderCtrlForRemembered(t *testing.T) {
 	const script = `Name:Mercadia's Downfall
 ManaCost:2 R
 Types:Instant
-A:SP$ RepeatEach | RepeatCards$ Creature.attacking | RepeatSubAbility$ DBPump | SpellDescription$ Each attacking creature gets +1/+0 until end of turn for each nonbasic land defending player controls.
-SVar:DBPump:DB$ Pump | Defined$ Remembered | NumAtt$ +X
-SVar:X:Count$Valid Land.nonBasic+DefenderCtrlForRemembered
+A:SP$ RepeatEach | RepeatSubAbility$ Boost | RepeatCards$ Creature.attacking
+SVar:Boost:DB$ Pump | NumAtt$ +N | Defined$ Remembered
+SVar:N:Count$Valid Land.nonBasic+DefenderCtrlForRemembered
 Oracle:x
 `
 	card, diags := cards.ParseBytes("mercadias-downfall.txt", []byte(script))
