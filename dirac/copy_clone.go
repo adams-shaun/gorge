@@ -607,7 +607,7 @@ func (s *State) cloneTrigMoved(k *prep, e *stackEntry) bool {
 		// owning-line scan finds it there, off the battlefield as on it
 		// (trigger_inactive_face.go, CR 712.8a)
 		cd := &k.t.Cards[ob.card]
-		if (cd.FaceMode == kop.FaceTransform || cd.FaceMode == kop.FaceModal) && len(cd.Faces) == 2 &&
+		if (cd.FaceMode == kop.FaceTransform || cd.FaceMode == kop.FaceModal || cd.FaceMode == kop.FacePrototype) && len(cd.Faces) == 2 &&
 			(cd.Faces[0] == e.card || cd.Faces[1] == e.card) {
 			return false
 		}

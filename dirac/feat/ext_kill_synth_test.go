@@ -23,7 +23,7 @@ func newKillFix(meLife, oppLife int32) *killFix {
 }
 
 // creature puts a creature on pl's battlefield.
-func (f *killFix) creature(pl uint8, obj uint8, power int32, kw kop.KwMask, tapped bool) {
+func (f *killFix) creature(pl uint8, obj dirac.Obj, power int32, kw kop.KwMask, tapped bool) {
 	f.e.v.cards = append(f.e.v.cards, vcard{
 		vcore: &vcore{c: &card{creature: true}, ctrl: pl, power: power, kw: kw, tapped: tapped},
 		obj:   obj,
@@ -41,16 +41,16 @@ func (f *killFix) hand(pl uint8, mv int32, ef EffectSpec) {
 
 // spell pushes a stack spell (bottom first) controlled by ctrl, with source
 // object src and the given target bytes, returning its stack index.
-func (f *killFix) spell(ctrl, src uint8, ef EffectSpec, tgt ...uint8) int {
+func (f *killFix) spell(ctrl uint8, src dirac.Obj, ef EffectSpec, tgt ...dirac.TCode) int {
 	f.e.v.cards = append(f.e.v.cards, vcard{vcore: &vcore{c: &card{eff: ef}, ctrl: ctrl}})
 	f.e.v.stack = append(f.e.v.stack, vstack{cv: int32(len(f.e.v.cards) - 1), ctrl: ctrl})
 	se := &f.e.kp.Stack[f.e.kp.NStack]
-	se.Kind, se.Source, se.Ctrl = 0, dirac.Obj(src), ctrl
+	se.Kind, se.Source, se.Ctrl = 0, src, ctrl
 	for i := range se.Targets {
 		se.Targets[i] = dirac.TCode(dirac.NoTarget)
 	}
 	for i, c := range tgt {
-		se.Targets[i] = dirac.TCode(c)
+		se.Targets[i] = c
 	}
 	f.e.kp.NStack++
 	return int(f.e.kp.NStack) - 1
@@ -91,7 +91,7 @@ func TestExtKillCounterSamePlayer(t *testing.T) {
 
 	// control: my counter on the opponent's lethal burn -> 490, not 491
 	f := newKillFix(3, 20)
-	f.spell(1, 10, burnSpec(3), uint8(meP))
+	f.spell(1, 10, burnSpec(3), meP)
 	f.spell(0, 11, counter, 10)
 	f.run(0)
 	if !f.set(xKStackOppDmgMe) || !f.set(xKCounterMe) || f.set(xKCounterOpp) {
@@ -101,7 +101,7 @@ func TestExtKillCounterSamePlayer(t *testing.T) {
 
 	// the opponent counters its own lethal burn: neither side is saved
 	f = newKillFix(3, 20)
-	f.spell(1, 10, burnSpec(3), uint8(meP))
+	f.spell(1, 10, burnSpec(3), meP)
 	f.spell(1, 11, counter, 10)
 	f.run(0)
 	if !f.set(xKStackOppDmgMe) {
@@ -113,7 +113,7 @@ func TestExtKillCounterSamePlayer(t *testing.T) {
 
 	// I counter my own lethal damage
 	f = newKillFix(20, 3)
-	f.spell(0, 10, burnSpec(3), uint8(oppP))
+	f.spell(0, 10, burnSpec(3), oppP)
 	f.spell(0, 11, counter, 10)
 	f.run(0)
 	if !f.set(xKStackMeDmgOpp) {
@@ -125,7 +125,7 @@ func TestExtKillCounterSamePlayer(t *testing.T) {
 
 	// mirror control: their counter on my lethal burn -> 491, not 490
 	f = newKillFix(20, 3)
-	f.spell(0, 10, burnSpec(3), uint8(oppP))
+	f.spell(0, 10, burnSpec(3), oppP)
 	f.spell(1, 11, counter, 10)
 	f.run(0)
 	if !f.set(xKCounterOpp) || f.set(xKCounterMe) {
@@ -205,20 +205,20 @@ func TestExtKillBurnReach(t *testing.T) {
 	}
 	// 485: hand 5 + a stacked 3 aimed at the opponent
 	f = build(8)
-	f.spell(0, 10, burnSpec(3), uint8(oppP))
+	f.spell(0, 10, burnSpec(3), oppP)
 	f.run(0)
 	if !f.set(xKBurnReach) {
 		t.Fatal("485 clear at 5 hand burn + 3 stacked vs life 8")
 	}
 	// the same 3 aimed at me does not count
 	f = build(8)
-	f.spell(0, 10, burnSpec(3), uint8(meP))
+	f.spell(0, 10, burnSpec(3), meP)
 	f.run(0)
 	if f.set(xKBurnReach) {
 		t.Fatal("485 set for stacked damage aimed at me")
 	}
 	f = build(9)
-	f.spell(0, 10, burnSpec(3), uint8(oppP))
+	f.spell(0, 10, burnSpec(3), oppP)
 	f.run(0)
 	if f.set(xKBurnReach) {
 		t.Fatal("485 set at 8 total vs life 9")
@@ -229,7 +229,7 @@ func TestExtKillBurnReach(t *testing.T) {
 // my only untapped creature while the opponent's next-turn power is lethal.
 func TestExtKillRemovesLastBlocker(t *testing.T) {
 	kill := EffectSpec{Class: EffKill, TgtCreat: true}
-	build := func(meLife int32, second bool, target uint8) *killFix {
+	build := func(meLife int32, second bool, target dirac.TCode) *killFix {
 		f := newKillFix(meLife, 20)
 		f.creature(0, 1, 2, 0, false)
 		if second {

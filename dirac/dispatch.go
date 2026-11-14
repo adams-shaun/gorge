@@ -20,7 +20,7 @@ func (s *State) execCold1(k *prep, in *kop.Instr) (ok, done bool) {
 		// on the battlefield; the source creature is the damage source. A
 		// planeswalker is a source too (Compel Brutality's second mode:
 		// loyalty damage, DamageSource$ ParentTarget)
-		if in.B.N == 1 {
+		if in.B.N == 1 || in.B.N == kop.DmgFromEachCtrl {
 			s.dmgSrcPlayers(k, in) // players mode (act_damagefrom.go)
 			break
 		}
@@ -96,10 +96,16 @@ func (s *State) askOptionsCold1(k *prep, d *Decision) bool {
 		d.add(MakeAction(AkChoose, 0, 0, 0))
 	case raVote:
 		s.voteOptions(k, d) // act_vote.go
+	case raChoosePlayerRes:
+		s.choosePlayerResOptions(k, d) // act_chooseplayerres.go
 	case raDrawUpto:
 		s.drawUptoOptions(d) // act_drawupto.go
 	case raGenDestAlt:
 		s.destAltOptions(d) // zone_destalt.go
+	case raChoosePlayerMid:
+		s.chosenPlayerMidOptions(d) // repl_chooseplayer.go
+	case raTapOrUntapAll:
+		s.tapOrUntapAllOptions(d) // act_taporuntapall.go
 	default:
 		return s.askOptionsCold2(k, d)
 	}
@@ -123,10 +129,16 @@ func (s *State) applyAskCold1(k *prep, a Action) bool {
 		}
 	case raVote:
 		s.voteAnswer(k, a) // act_vote.go
+	case raChoosePlayerRes:
+		s.choosePlayerResAnswer(k, a) // act_chooseplayerres.go
 	case raDrawUpto:
 		s.drawUptoAnswer(k, a) // act_drawupto.go
 	case raGenDestAlt:
 		s.destAltAnswer(k, a) // zone_destalt.go
+	case raChoosePlayerMid:
+		s.applyAskChosenPlayerMid(k, a) // repl_chooseplayer.go
+	case raTapOrUntapAll:
+		s.tapOrUntapAllAnswer(k, a) // act_taporuntapall.go
 	default:
 		return s.applyAskCold2(k, a)
 	}
@@ -714,7 +726,7 @@ func (s *State) applyAskStdmech(k *prep, a Action) bool {
 	free := -1
 	for i := range s.g.prevCol {
 		r := &s.g.prevCol[i]
-		if DebugPrevColRecolor && r.col != 0 && r.obj == o {
+		if DebugPrevColRecolor && r.sc == 0 && r.col != 0 && r.obj == o {
 			r.col = col // the pre-690ed17f0 reading: the card's live ChosenColor
 		} else if r.col == 0 && r.sc == 0 && free < 0 {
 			free = i

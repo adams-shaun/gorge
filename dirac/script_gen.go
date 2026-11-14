@@ -140,7 +140,7 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	for b := s.scriptRestr(k, p); b.any(); b = b.rest() {
 		c := s.cardAt(b.first())
 		if k.gen.has(c, gfDeferred) {
-			a.addUnits(1<<kop.R, 1) // Goggles' plain {R} (mana_deferred.go)
+			a.addUnits(1<<k.deferCol(c), 1) // the deferred source's plain mana (mana_deferred.go)
 			continue
 		}
 		ab := &k.t.Cards[c].Abilities[k.gen.restr(c)]
@@ -208,7 +208,13 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// the gaps walk's alone (one walk, not two).
 	twoLive := k.tapMana && s.tapXTwoLive(k, p) // (a live Baylen makes the census unrelaxable: gorge paymentPlanRelaxedAlternatives, no once-only cost; every walk play is searched)
 	// A fourth filter, or a dynamic one out of bounds, makes it unrelaxable too (mana_filter.go filtRelaxable).
-	relax := !s.scriptGaps(k, p).any() && !twoLive && s.filtRelaxable(k, filt)
+	// A live dead counter-cost gap (Component Pouch) is unrelaxable as well:
+	// gorge's census records it while the cost is payable and
+	// paymentPlanRelaxedAlternatives enumerates no colour for its production
+	// (potential_plan.go), so the prefix search runs on the any-mana walk and
+	// the search's slot accounting counts every insufficient play whatever it
+	// finds; the dead gap contributes no units to either walk (availCtr).
+	relax := !s.scriptGaps(k, p).any() && !twoLive && s.filtRelaxable(k, filt) && !s.deadCtrMask(k, p).any()
 	// A live repeatable fee-only filter (Nomadic Elf) has no relaxed or bounded
 	// proof in gorge either: it searches every insufficient play, and the gaps
 	// walk (one conversion per filter) cannot say which a many-times-activated
@@ -297,6 +303,10 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			if !s.filtScript(k, a, p, false) {
 				continue // no script within gorge's search budget
 			}
+		} else if tapsDef.any() && a.Kind() == AkActivate && s.liveGrantGap(k, p) {
+			if !s.grantActScript(k, a, p) {
+				continue // the grant search is gorge's one search over the deferred gap and the grants (mana_granttapsdefer.go)
+			}
 		} else if tx.any() && s.tapXBoard(k, p) && (s.scriptTapXModelled(k, p).any() || !tapsDef.any()) {
 			// A Taps-deferred gap (a depletion land) beside the counter-cost
 			// ones is no gap of this search (rs.gaps, mana_tapanother.go):
@@ -331,11 +341,11 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 func (s *State) walkKey(a Action, p uint8, i int) uint64 {
 	ob := &s.objs[Obj(a.Source())]
 	switch {
-	case (isCastKind(a.Kind()) || a.Kind() == AkPlot || a.Kind() == AkSneak) && ob.zone == kop.ZoneHand:
+	case (isCastKind(a.Kind()) || a.Kind() == AkPlot || a.Kind() == AkSneak || a.Kind() == AkBestow) && ob.zone == kop.ZoneHand:
 		for h := 0; h < int(s.pl[SeatIx(p)].handN); h++ {
 			if s.pl[SeatIx(p)].hand[h] == Obj(a.Source()) {
 				k := uint64(h)<<16 | uint64(i)
-				if a.Mode() == 0 && a.Target() != 0 || a.Kind() == AkPlot || a.Kind() == AkSneak || a.Kind() == AkCast && a.Mode()&castWarp != 0 {
+				if a.Mode() == 0 && a.Target() != 0 || a.Kind() == AkPlot || a.Kind() == AkSneak || a.Kind() == AkBestow || a.Kind() == AkCast && a.Mode()&castWarp != 0 {
 					k |= 1 << 15 // an alternative cost's cast follows the card's plain one, though the kernel offers it first
 				}
 				return k

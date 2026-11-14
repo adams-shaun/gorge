@@ -133,7 +133,11 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	if s.g.tokPT.on && s.objs[o].of&ofToken != 0 {
 		// TokenPower$/TokenToughness$: the token enters with that P/T, so its
 		// enters checks (a watcher's power limit) read it (act_tokenpt.go)
-		s.g.tokPT.on = false
+		if s.g.tokPT.left > 0 {
+			s.g.tokPT.left--
+		} else {
+			s.g.tokPT.on = false
+		}
 		if !DebugTokenXPTSkip {
 			s.applyOverridePT(k, sl, int(s.g.tokPT.idx), s.res.e.card, 0, s.g.tokPT.p, s.g.tokPT.t)
 		}
@@ -644,6 +648,7 @@ func (s *State) newTurnGen() {
 		s.dropTurnLeave() // trig_leavereturn.go: "this turn" leave records end
 	}
 	clear(s.g.prevCol[:])
+	clear(s.g.redir[:])
 	if s.g.ctrAdd.pl|s.g.ctrAdd.n != 0 {
 		s.ctrAddedReset() // ctr_addedthisturn.go
 	}
@@ -716,6 +721,7 @@ func (s *State) cleanupGen(k *prep) {
 	// object field names it: mark every card whose grant this clear ends
 	// before dropping the bitsets.
 	s.fbClearAll(k)
+	s.encoreClearAll(k)
 	if s.g.nfx > 0 {
 		var ended slotMask
 		for i := 0; i < int(s.g.nfx); i++ {
@@ -738,6 +744,9 @@ func (s *State) cleanupGen(k *prep) {
 	if k.gen.anyColGrant {
 		s.cgClear()       // static_colourgrant.go
 		s.colProtClear(k) // static_colourprot.go
+	}
+	if k.gen.anyKwMark {
+		s.kwMarkClear(k) // kw_kwmark.go
 	}
 	if k.gen.anyDmgMark {
 		s.dmgMarkEnd() // Duration$ UntilYourNextTurn (repl_dmgmark.go)
@@ -1227,7 +1236,7 @@ func (s *State) leylineStart(k *prep) bool {
 		return false
 	}
 	s.g.leyDn = true
-	if !s.hasLeyline(k, 0) && !s.hasLeyline(k, 1) {
+	if !s.anyLeyline(k) {
 		return false
 	}
 	s.g.leyP = s.startPl
@@ -1236,6 +1245,17 @@ func (s *State) leylineStart(k *prep) bool {
 	s.g.ctlRet = ctlStepBegin
 	s.ctl = ctlGenAsk
 	return true
+}
+
+// anyLeyline reports whether any seat holds a Leyline in its opening hand:
+// gorge's opening round asks every seat (AliveFrom the starting player).
+func (s *State) anyLeyline(k *prep) bool {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.hasLeyline(k, p) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *State) hasLeyline(k *prep, p uint8) bool {

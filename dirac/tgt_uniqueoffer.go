@@ -15,11 +15,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // distinctCastFeasible reports whether the root (the first mandatory
 // target slot of the mode set) and every later mandatory TgfDistinct slot
 // have a distinct assignment of their printed minimums. excl, when set, is
-// left out of every pool (the modal census's source).
+// left out of every pool (the modal census's source). kicked judges the
+// kicked cast: a kicked-range slot owes its kicked minimum (castSlotMin).
 //
 //go:noinline
-func (s *State) distinctCastFeasible(k *prep, a *kop.Ability, p uint8, src Slot, modes uint8, excl Obj) bool {
-	if k.gen != nil && !k.gen.anyUniqLater {
+func (s *State) distinctCastFeasible(k *prep, a *kop.Ability, p uint8, src Slot, modes uint8, excl Obj, kicked bool) bool {
+	if !kicked && k.gen != nil && !k.gen.anyUniqLater {
 		return true
 	}
 	var slots [kop.MaxTargets]uint8
@@ -34,13 +35,13 @@ func (s *State) distinctCastFeasible(k *prep, a *kop.Ability, p uint8, src Slot,
 		}
 		if !root {
 			root = true
-			if staticSlotMin(t) > 0 {
+			if castSlotMin(t, kicked) > 0 {
 				slots[ns] = uint8(i)
 				ns++
 			}
 			continue
 		}
-		if t.TFlags&kop.TgfDistinct != 0 && staticSlotMin(t) > 0 {
+		if t.TFlags&kop.TgfDistinct != 0 && castSlotMin(t, kicked) > 0 {
 			slots[ns] = uint8(i)
 			ns++
 			later = true
@@ -63,7 +64,7 @@ func (s *State) distinctCastFeasible(k *prep, a *kop.Ability, p uint8, src Slot,
 				w++
 			}
 		}
-		m := staticSlotMin(t)
+		m := castSlotMin(t, kicked)
 		if w < int(m) {
 			return false
 		}
@@ -72,4 +73,44 @@ func (s *State) distinctCastFeasible(k *prep, a *kop.Ability, p uint8, src Slot,
 	// uniqueFeasible with no pick taken and no current-slot remainder:
 	// every collected slot is a "later" pool of the shared matching
 	return s.uniqueFeasible(TCode(NoTarget), nil, 0, &pools, &ln, &need, ns)
+}
+
+// castSlotMin is slot t's mandatory minimum for the offered cast: the kicked
+// cast reads a kicked-range slot's kicked bound (Urborg Repossession's
+// "another target permanent card", Count$Kicked.1.0), the plain cast the
+// printed one (staticSlotMin).
+func castSlotMin(t *kop.TargetSpec, kicked bool) uint8 {
+	if kicked && t.TFlags&kop.TgfKickedRange != 0 {
+		return t.MinKicked
+	}
+	return staticSlotMin(t)
+}
+
+// kickedChainFeasible is the kicked cast's half of the target census (gorge
+// kickedChainTargetsAvailable, rules/target_kicked_chain.go): a spell whose
+// kicked cast announces a TargetUnique$ link the plain cast does not owe
+// must have the root and that link jointly answerable by distinct targets,
+// or the kicked cast could only end in the CR 733.1 reversal. Any other
+// spell is the plain census's alone.
+func (s *State) kickedChainFeasible(k *prep, c CardID, p uint8) bool {
+	ab := spellAb(k, c)
+	if ab == 255 {
+		return true
+	}
+	a := &k.t.Cards[c].Abilities[ab]
+	owed := false
+	for i := 1; i < int(a.NTargets); i++ {
+		if t := &a.Targets[i]; t.TFlags&kop.TgfDistinct != 0 && t.TFlags&kop.TgfKickedRange != 0 && staticSlotMin(t) == 0 && t.MinKicked > 0 {
+			owed = true
+			break
+		}
+	}
+	if !owed {
+		return true
+	}
+	if k.gen != nil && s.g.probe.kind == 0 {
+		s.g.probe = probe{kind: probeSpell, src: NoSlot, card: c, ctrl: p}
+		defer func() { s.g.probe = probe{} }()
+	}
+	return s.distinctCastFeasible(k, a, p, NoSlot, 0xff, NoObj, true)
 }

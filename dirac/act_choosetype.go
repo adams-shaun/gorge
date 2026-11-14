@@ -15,7 +15,10 @@ const resChosenType uint8 = 0x80
 // chosenTypeSub is the subtype a filter's ChosenType test compares: the
 // source permanent's choice (an as-enters choice, or the answer a
 // triggered / activated ability's ChooseType recorded on it), or, for a
-// spell source, the resolution's mid-resolution ChooseType answer.
+// spell source, the resolution's mid-resolution ChooseType answer. A
+// resolving ability whose source already left (A Killer Among Us's
+// Sac<1/CARDNAME> cost) reads the source's last known choice (srcChosen;
+// gorge sourceChosen binds SourceChosenType, CR 608.2h).
 func (s *State) chosenTypeSub(src Slot) (uint8, bool) {
 	if src != NoSlot {
 		ch := s.perms[src].chosen
@@ -24,15 +27,19 @@ func (s *State) chosenTypeSub(src Slot) (uint8, bool) {
 	if s.res.active && s.res.bad&resChosenType != 0 {
 		return uint8(s.res.chosen), s.res.chosen != 255
 	}
+	if s.res.active && s.res.e.li != 0 {
+		ch := s.srcChosen(NoSlot, s.res.e.obj)
+		return ch, ch != 255
+	}
 	return 0, false
 }
 
 // resolutionTypeSource is the source object a mid-resolution ChooseType
 // records its answer on, and its battlefield slot when it is a permanent.
 // gorge stores Object.ChosenType on the ability's source (effects/choose.go
-// effChooseType), so a second activation or trigger of that same permanent,
-// or a second cast of the same card, is a no-op that reuses the recorded
-// type. A source that already left the battlefield has no slot here.
+// effChooseType). A second cast of the same card reuses the recorded type;
+// each activation or trigger resolution asks again (CR 608.2). A source that
+// already left the battlefield has no slot here.
 func (s *State) resolutionTypeSource() (Obj, Slot) {
 	if !s.res.active || s.res.e.obj == NoObj {
 		return NoObj, NoSlot
@@ -98,6 +105,27 @@ func (s *State) typeOptions(k *prep, d *Decision) bool {
 		}
 	}
 	return false
+}
+
+// midTypeOptions fills a mid-resolution creature-type ask narrowed by
+// ValidTypes$ (A Killer Among Us's enters trigger: gorge effChooseType asks
+// over h.TypeChoices with the same filter as the as-enters ask): kgen marks
+// the OpChooseType with B = 1 and the resolving card carries the allowed
+// vocabulary indexes. false when the instruction is not narrowed.
+//
+//go:noinline
+func (s *State) midTypeOptions(k *prep, in *kop.Instr, d *Decision) bool {
+	if in.B.N == 0 || DebugChooseTypeAllVocab || int(s.res.e.card) >= len(k.t.Cards) {
+		return false
+	}
+	tv := k.t.Cards[s.res.e.card].TypeValid
+	if len(tv) == 0 {
+		return false
+	}
+	for _, v := range tv {
+		d.add(MakeAction(AkChoose, 0, TCode(v>>8), uint8(v)))
+	}
+	return true
 }
 
 // prepChooseType sets the prep gates of this file.

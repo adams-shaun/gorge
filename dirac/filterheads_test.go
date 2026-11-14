@@ -73,17 +73,21 @@ func TestFlags2TgtPlayerCtrl(t *testing.T) {
 }
 
 // TestFlags2DefendingCtrl: Spring Splasher's Creature.ControlledBy
-// TriggeredDefendingPlayer matches the non-active player's creatures.
+// TriggeredDefendingPlayer matches the non-active player's creatures. Past
+// two seats the defending player is the seat the attack event attacked,
+// which the attack trigger's check binds (g.atkDef, seat + 1); in a
+// two-player game that is the non-active seat, and the two-seat build reads
+// it as such without the binding.
 func TestFlags2DefendingCtrl(t *testing.T) {
 	sc, id := newKFHScen(t)
 	f := kfhFilter(t, sc, kop.F2DefendingCtrl)
 	b0, b1 := sc.slot(sc.perm(id["Grizzly Bears"], 0)), sc.slot(sc.perm(id["Grizzly Bears"], 1))
 	m := func(sl Slot) bool { return sc.s.matchPermGen(sc.k, f, sl, sc.s.active, NoSlot, layerFull) }
-	sc.s.active = 0
+	sc.s.active, sc.s.g.atkDef = 0, 1+1
 	if m(b0) || !m(b1) {
 		t.Fatalf("player 0 active: p0's bears %v, p1's bears %v; want p1's only", m(b0), m(b1))
 	}
-	sc.s.active = 1
+	sc.s.active, sc.s.g.atkDef = 1, 0+1
 	if !m(b0) || m(b1) {
 		t.Fatalf("player 1 active: p0's bears %v, p1's bears %v; want p0's only", m(b0), m(b1))
 	}

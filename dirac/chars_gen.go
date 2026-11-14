@@ -127,7 +127,7 @@ func (s *State) lossAt(k *prep, sl Slot) (ts uint16, lost bool) {
 		for i := 0; i < int(s.g.nfx); i++ {
 			if r := &s.g.fx[i]; r.sl == sl && r.kind == fxOverride && k.t.Overrides[r.r.idx-1].LoseAbilities {
 				lost = true
-				ts = max(ts, r.r.ts)
+				ts = max(ts, lossTs(&k.t.Overrides[r.r.idx-1], r.r.ts))
 			}
 		}
 	}
@@ -138,7 +138,9 @@ func (s *State) lossAt(k *prep, sl Slot) (ts uint16, lost bool) {
 				continue
 			}
 			lost = true
-			ts = max(ts, s.layerTs(src))
+			if !k.gen.landSet || !landSetCard(k, s.cardAt(src)) {
+				ts = max(ts, s.layerTs(src)) // a land-type setter's loss is layer 4's: no timestamp (static_landtypesetter.go)
+			}
 		}
 	}
 	if lost && p.ovr.walk&walkOn != 0 {
@@ -197,7 +199,8 @@ func (s *State) loseAllOnset(k *prep, src, dst Slot) {
 		cd := &k.t.Cards[s.cardAt(src)]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatOverride && a.Static.Override > 0 && k.t.Overrides[a.Static.Override-1].LoseAbilities {
+			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatOverride && a.Static.Override > 0 && k.t.Overrides[a.Static.Override-1].LoseAbilities &&
+				!k.t.Overrides[a.Static.Override-1].SetLandSub { // a layer-4 loss removes no later grant
 				lose = true
 			}
 		}
@@ -317,6 +320,7 @@ func (s *State) typesGen(k *prep, sl Slot) kop.TypeMask {
 		if o.HasTypes {
 			t = t&(keep|o.KeepTypes) | o.SetTypes
 		}
+		t &^= o.RemoveTypes
 		t |= o.AddTypes
 	}
 	s.eachOvRec(sl, func(r ovRec) { apply(&k.t.Overrides[r.idx-1]) })
@@ -400,6 +404,9 @@ func typeVocabSub(k *prep, v int) uint8 {
 // hasSubGen reports whether sl has matchup subtype i (subOutside: a
 // creature type outside the matchup's subtypes).
 func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
+	if k.gen != nil && k.gen.anyBestow && int(i) == int(k.gen.auraSub) && s.bestowAttached(k, sl) {
+		return true // CR 702.103b: an attached bestow card is an Aura (the subtype too; kw_bestow.go)
+	}
 	if k.gen != nil && k.gen.anyImpending && (outsideSub(k, i) || k.gen.creatSub.Has(int(i))) && s.impendDormant(k, sl) {
 		return false // CR 205.1a: gone with the creature type
 	}
@@ -439,6 +446,9 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 		}
 		if o.RemoveCreatureSub && !DebugRmCreatSubKeep {
 			m, all = m.AndNot(k.gen.creatSub), false
+		}
+		if o.SetLandSub {
+			m = m.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
 		}
 		m = m.Or(o.AddSub)
 		if ovrAllCreat(o) {
@@ -513,6 +523,9 @@ func (s *State) subsGen(k *prep, sl Slot) (subs kop.SubMask, all bool) {
 					mAll = false
 				}
 			}
+			if o.SetLandSub {
+				m = m.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
+			}
 			m = m.Or(o.AddSub)
 			if ovrAllCreat(o) {
 				mAll, allOut = true, true
@@ -556,6 +569,9 @@ func (s *State) subsGen(k *prep, sl Slot) (subs kop.SubMask, all bool) {
 		// grants
 		subs = subs.AndNot(k.gen.creatSub)
 		all = false
+	}
+	if k.gen.anyBestow && k.gen.auraSub >= 0 && s.bestowAttached(k, sl) {
+		subs = subs.With(int(k.gen.auraSub)) // CR 702.103b: the Aura subtype with the Aura type (kw_bestow.go)
 	}
 	return subs, all
 }
@@ -676,6 +692,11 @@ func (s *State) ptGen(k *prep, sl Slot) (int, int) {
 	}
 	if k.gen.anyHone {
 		bp += s.honePower(k, sl) // CR 122.1j hone counters on attached permanents (ctr_hone.go)
+	}
+	if k.gen.anyM2M1 {
+		m := p.ctrN(s, int(kop.CtrM2M1)) // CR 122.1a -2/-1 counters (ctr_hone.go prepM2M1)
+		bp -= 2 * m
+		bt -= m
 	}
 	if s.statM.any() || s.g.nemb[0]+s.g.nemb[1] != 0 {
 		s.eachStaticC(k, sclsPT, func(st statSrc) bool {
@@ -1105,7 +1126,11 @@ func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8,
 	// then turns back; a merged second turn-back sat before the animate and
 	// the object stayed a creature.
 	ov := &k.t.Overrides[idx]
-	merge := !ov.HasPT && !ov.HasColors && ov.AddColors == 0 && !ov.HasTypes && !ov.HasSub
+	// An override that strips the creature subtypes (RemoveCreatureTypes$ with
+	// Types$: Gornog's "becomes a Coward") is a subtype setter too: re-applied
+	// after another subtype setter it takes the newest position, not the older
+	// application's (Majestic Metamorphosis between two of Gornog's triggers).
+	merge := !ov.HasPT && !ov.HasColors && ov.AddColors == 0 && !ov.HasTypes && !ov.HasSub && !ov.RemoveCreatureSub
 	if merge && k.gen.anyOvrStat && s.ovStaticOn(k, sl) {
 		// An override static on the host (an Aura that removes card types)
 		// sits between the older application and this one in timestamp
@@ -1121,7 +1146,7 @@ func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8,
 		s.stall(StallTables)
 		return
 	}
-	if k.t.Overrides[idx].LoseAbilities {
+	if k.t.Overrides[idx].LoseAbilities && !k.t.Overrides[idx].SetLandSub { // a CR 305.7 setter's loss is layer 4's: no earlier grant is suppressed (static_landtypesetter.go)
 		s.loseAllOnset(k, NoSlot, sl)
 	}
 	s.subscribeGrants(k, sl)

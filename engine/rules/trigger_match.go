@@ -406,6 +406,38 @@ type damageBatchEntry struct {
 	gateSrc state.ObjID
 	sources []state.ObjID
 	targets []state.Target
+	// inst is the trigger line when it carries AtLeastOneInstance$, and
+	// instTo/instAmt each recipient's share of the batch (first-seen order):
+	// closeDamageBatch drops the queued trigger when no share passes.
+	inst    *cards.Trigger
+	instTo  []state.Target
+	instAmt []int32
+}
+
+// addInstance adds an event's amount to its recipient's share of the batch.
+func (ent *damageBatchEntry) addInstance(ev events.Event, amount int32) {
+	to := state.Target{Obj: ev.Obj}
+	if ev.Obj == 0 {
+		to = state.Target{Player: ev.Player, IsPlayer: true}
+	}
+	for i := range ent.instTo {
+		if ent.instTo[i] == to {
+			ent.instAmt[i] += amount
+			return
+		}
+	}
+	ent.instTo = append(ent.instTo, to)
+	ent.instAmt = append(ent.instAmt, amount)
+}
+
+// passes reports whether a closed batch entry's gates hold: DamageAmount$
+// over the batch total, AtLeastOneInstance$ over each recipient's share
+// (CR 603.2: a failing entry never triggered).
+func (ent *damageBatchEntry) passes(e *Engine) bool {
+	if ent.gate != nil && !trigmatch.DamageAmountMatches(boardOf(e), *ent.gate, ent.gateSrc, 0, ent.amount) {
+		return false
+	}
+	return ent.inst == nil || trigmatch.AtLeastOneInstanceMatches(*ent.inst, ent.instAmt)
 }
 
 // zoneBatchKey identifies one ChangesZoneAll trigger line already queued
@@ -1844,6 +1876,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				// against THAT face's own SVar table.
 				tc := observer.triggerReferents(t, id, *ev, objLKI)
 				attackersDeclaredCapture(boardOf(observer), t, id, *ev, &tc)
+				tc.TriggerAttackedPlayers = attackedPlayersCapture(t, *ev, e.declaredDefenders)
 				fireRemembered := e.triggerRememberedFor(t, *ev, id)
 				tc.TriggerRememberedStamps = e.fireTimeRememberedStamps(fireRemembered)
 				pt := pendingTrigger{
@@ -2230,9 +2263,10 @@ func (e *Engine) latchDamageBatch(t cards.Trigger, line *cards.Trigger, mk cards
 		}
 	}
 	if !e.damageBatchOpen {
-		// No batch open: this event is its own batch, so DamageAmount$ reads its
-		// amount now.
-		return trigmatch.DamageAmountMatches(boardOf(e), t, id, ev.Obj, damageAmount)
+		// No batch open: this event is its own batch, so DamageAmount$ and
+		// AtLeastOneInstance$ read its amount now.
+		return trigmatch.DamageAmountMatches(boardOf(e), t, id, ev.Obj, damageAmount) &&
+			trigmatch.AtLeastOneInstanceMatches(t, []int32{damageAmount})
 	}
 	if e.damageBatchIdx == nil {
 		e.damageBatchIdx = map[damageBatchKey]int{}
@@ -2240,6 +2274,9 @@ func (e *Engine) latchDamageBatch(t cards.Trigger, line *cards.Trigger, mk cards
 	if entIdx, ok := e.damageBatchIdx[bk]; ok {
 		ent := &e.damageBatchLog[entIdx]
 		ent.amount += damageAmount
+		if ent.inst != nil {
+			ent.addInstance(ev, damageAmount)
+		}
 		if bk.all {
 			ent.sources = batchAppendSource(ent.sources, allSrc)
 			ent.targets = batchAppendTarget(ent.targets, allTgt)
@@ -2250,6 +2287,10 @@ func (e *Engine) latchDamageBatch(t cards.Trigger, line *cards.Trigger, mk cards
 	ent := damageBatchEntry{key: bk, idx: len(e.pendingTriggers), amount: damageAmount}
 	if _, ok := t.Param(cards.PKDamageAmount); ok {
 		ent.gate, ent.gateSrc = line, id
+	}
+	if _, ok := t.Param(cards.PKAtLeastOneInstance); ok {
+		ent.inst = line
+		ent.addInstance(ev, damageAmount)
 	}
 	if bk.all {
 		ent.sources = batchAppendSource(ent.sources, allSrc)
@@ -2310,9 +2351,10 @@ func (e *Engine) closeDamageBatch() {
 		if li+1 < len(e.damageBatchLog) && e.damageBatchLog[li+1].idx < end {
 			end = e.damageBatchLog[li+1].idx
 		}
-		// DamageAmount$ on a batch mode compares the accumulated TOTAL: a
-		// queued entry whose total fails it never triggered (CR 603.2).
-		if ent.gate != nil && !trigmatch.DamageAmountMatches(boardOf(e), *ent.gate, ent.gateSrc, 0, ent.amount) {
+		// DamageAmount$ on a batch mode compares the accumulated TOTAL, and
+		// AtLeastOneInstance$ each recipient's share: a queued entry failing
+		// either never triggered (CR 603.2).
+		if !ent.passes(e) {
 			if dead == nil {
 				dead = make([]bool, len(e.pendingTriggers))
 			}
@@ -2850,6 +2892,24 @@ func attackersDeclaredCapture(b trigmatch.Board, t cards.Trigger, source state.O
 	if matched, ok := trigmatch.AttackersDeclaredMatchedAttackers(b, t, source, ev); ok {
 		tc.TriggerAttackers = matched
 	}
+}
+
+// attackedPlayersCapture is the distinct players an AttackersDeclared
+// declaration attacked, for effects.TriggerContext.TriggerAttackedPlayers: the
+// declaration scratch's defenders for a batch line (finishAttackers builds it
+// across every per-defender DeclareAttackers event), or the event's one
+// defender for a per-defender line or when a direct synthetic emit left no
+// scratch. Other trigger modes capture nothing.
+func attackedPlayersCapture(t cards.Trigger, ev events.Event, declared []state.PlayerID) []state.PlayerID {
+	if mk := t.ModeKind(); mk != cards.TriggerAttackersDeclared && mk != cards.TriggerAttackersDeclaredOneTarget {
+		return nil
+	}
+	if len(declared) == 0 || !trigmatch.AttackersDeclaredBatch(t) {
+		// A per-defender line (OneTarget, or AttackedTarget$) fires for the
+		// event's own defender only.
+		return []state.PlayerID{ev.Player}
+	}
+	return append([]state.PlayerID(nil), declared...)
 }
 
 // triggerMatches decides whether one cards.Trigger fires for ev. lki is the

@@ -56,6 +56,9 @@ func mayPlayFromZone(st *kop.Static, z kop.Zone) bool {
 // mayPlayZoneBits is the zones MayPlayFrom static st plays from, a bit per
 // kop.Zone.
 func mayPlayZoneBits(st *kop.Static) uint16 {
+	if zeroAltStatic(st) {
+		return 0 // a {0} alternative opens no zone (cast_mayzeroalt.go)
+	}
 	if st.StFlags&kop.StFreeOnly != 0 {
 		return 1 << kop.ZoneHand // opens no zone; a hand cast needs no permission
 	}

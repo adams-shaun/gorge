@@ -47,6 +47,15 @@ type Obj uint16
 // NoObj is no object, the same value as NoTarget.
 const NoObj Obj = 511
 
+// maxEntered is the zone entries one turn's ledger records
+// (value_enteredledger.go); the next stalls StallEntered. Four seats move
+// four boards: in four-seat 100-card MBC pods under max^n search 64 stalled 6
+// of 264 pods (2.3%), and over every searched and played turn of those pods
+// (about 160,000 that reached 16 entries) 2,238 reached 64, 70 reached 80, 7
+// reached 96, one 112 and none 128. Packed to four bytes an entry, 96 costs what 64
+// did at six.
+const maxEntered = 96
+
 // object.acts packs the owner above this turn's activation count: two owner
 // bits for four seats, so the count saturates at 63 (cast.go stalls with
 // StallActs rather than wrapping).
@@ -82,10 +91,11 @@ type xtMask = uint16
 const embRemSlots = 2
 
 // linkPadN pads genState after its sixteen exile-until-leaves links so perms
-// keeps its cache-line phase (statelayout_mp_test.go): thirty-two bytes here
+// keeps its cache-line phase (statelayout_mp_test.go): forty-eight bytes here
 // bring four seats of player.lastLost, the two-byte seatWord fields, the
-// sixteen-object xTargets and the class's sixteen-bit codes round to phase 0.
-const linkPadN = 32
+// sixteen-object xTargets, the sixteen-object free-cast arrays (maxFree) and
+// the class's sixteen-bit codes round to phase 0.
+const linkPadN = 48
 
 // seatWord is a packed field holding a few bits per seat beside its other
 // bits (genState.speed, genState.freeP): two bytes at four seats.
@@ -100,3 +110,10 @@ type objWord = uint16
 type mayWord = uint32
 
 const mayVerShift = 16
+
+// maxFree is how many cast-without-paying candidates (genState.free, freeAll)
+// and queued casts (freeQ) one resolution holds; a larger pool stalls
+// StallFree. The four-seat class holds sixteen: a cast-without-paying effect
+// over a 100-card deck's graveyard and exile found more than eight candidates
+// in 4-seat cmd5 pods, none at 50 cards.
+const maxFree = 16

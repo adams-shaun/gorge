@@ -7,11 +7,10 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 )
 
 // TestFourSeatBodyguardChoiceLockstep plays four-seat MBC pods of Dauntless
-// Bodyguard (dr-mbc-bb): the as-enters choice of another creature you
+// Bodyguard (its MBC draft split): the as-enters choice of another creature you
 // control, asked once the Bodyguard is on the battlefield, and the
 // sacrifice-cost Pump over the chosen creature, read from the sacrificed
 // source's last known choice. No divergence and no kernel stop, and the run
@@ -19,7 +18,7 @@ import (
 func TestFourSeatBodyguardChoiceLockstep(t *testing.T) {
 	deck := deckOf(16, bodyguard, append(deckOf(8, "Soul Warden"), deckOf(16, "Plains")...)...)
 	reg := synthReg(t)
-	set := cardsettest.Synth(t, "dr-mbc-bb")
+	pool, set := mbcSplitOf(t, bodyguard)
 	var lists [][]cardset.Entry
 	for range 4 {
 		lists = append(lists, []cardset.Entry{{Name: bodyguard, Count: 16}, {Name: "Soul Warden", Count: 8}, {Name: "Plains", Count: 16}})
@@ -29,7 +28,7 @@ func TestFourSeatBodyguardChoiceLockstep(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !bodyguardLowered(tbl) {
-		t.Fatalf("dr-mbc-bb's %s is not lowered", bodyguard)
+		t.Fatalf("%s's %s is not lowered", pool, bodyguard)
 	}
 	tl := &bodyguardTally{seen: map[[2]int]bool{}}
 	const seeds = 12
