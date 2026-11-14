@@ -265,6 +265,8 @@ type genPrep struct {
 	anyUnearth      bool           // some program has OpUnearth: leaves check the unearth exile promise (cast_altfree.go)
 	anyFinality     bool           // some program puts finality counters (kop.CtrFinality): dieZone exiles their creatures
 	anyHone         bool           // some program puts hone counters (kop.CtrHone): ptGen adds +1/+0 per hone counter on an attached permanent (CR 122.1j; ctr_hone.go)
+	anyExper        bool           // some program gains experience counters: coldArrays.exper holds them (act_energy.go)
+	anyM2M1         bool           // some program puts -2/-1 counters (kop.CtrM2M1): ptGen reads them (CR 122.1a; ctr_hone.go)
 	anyBattle       bool           // some card is a Battle (kop.TBattle front; face_battle.go)
 	anyWorld        bool           // some card is a World (CardDef.World): the CR 704.5k arm (zone_worldrule.go)
 	anySneak        bool           // some card has sneak (CardDef.HasSneak; kw_sneak.go)
@@ -793,8 +795,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepNetLock(t, g)    // act_lockpermanent.go
 	prepFinality(t, g)   // ctr_finality.go
 	prepHone(t, g)       // ctr_hone.go
+	prepM2M1(t, g)       // ctr_hone.go
 	prepPrevCol(t, g)    // cast_altfree.go
 	prepStackKw(t, g, p) // static_stackkeyword.go
+	g.anyExper = tableGainsExper(t)
 	g.anyCdmgTough = tableHasStatic(t, kop.StatCombatDmgToughness)
 	g.anyOffZonePT = tableHasStatic(t, kop.StatOffZonePT) // static_offzonept.go
 	prepAsgnGrant(t, g)                                   // combat_asgngrant.go: sets anyExHaste, and anyCdmgTough for a toughness grant
