@@ -98,6 +98,7 @@ func refuse(format string, a ...any) error { return errRefuse{fmt.Sprintf(format
 
 // lowerCtx lowers one card (or token).
 type lowerCtx struct {
+	proto    bool  // lowering a FacePrototype card's face 1: lowerRecord applies the inset (lower_prototype.go)
 	capRem   bool  // lowering the body of a capturing emblem's DamageDealtOnce trigger: a Remembered read before the body writes its own set is the captured object, the damage source (lower_effectcaptured.go)
 	effCount bool  // lowering the body of an Effect trigger that remembers a count: Remembered$Amount reads the frozen trigger amount (lower_effectremember.go)
 	pairCap  *lRef // the capture slot the pair lowering already resolved for the emblem (lower_effectcaptured.go)
@@ -320,6 +321,10 @@ type lowerCtx struct {
 	// chosenOppAb is the ability whose one-opponent ChoosePlayer is lowered
 	// ChosenPlayer reads the opponent in that ability only.
 	chosenOppAb *lAbility
+	// chosenPlAb is the ability whose random-pool ChoosePlayer (kop
+	// OpChoosePlayer) is lowered: ChosenPlayer reads the resolution's chosen
+	// player (kop RefResChosenPlayer), not the opponent (Maddening Hex's Attach)
+	chosenPlAb *lAbility
 	// chosenMidAb is the ability whose mid-resolution ChoosePlayer is lowered
 	// (OpExt ExtChoosePlayerMid): the chain's ChosenPlayer readers read the
 	// resolution's choice, and only until the Cleanup clears it.
@@ -340,7 +345,7 @@ type lowerCtx struct {
 func lowerCard(p *pool, name string, c *cards.Card, token bool) *lCard {
 	out := &lCard{Name: name, Token: token}
 	lc := &lowerCtx{p: p, name: name, card: c, out: out, mode: -1, known: p.knownSubtype}
-	if len(c.Faces) != 1 || c.AlternateMode != "" {
+	if len(c.Faces) != 1 || c.AlternateMode != "" || protoCard(c, token) {
 		before := len(out.Refusals)
 		if !lc.lowerFaces(c) { // lower_faces.go
 			if len(out.Refusals) == before {
@@ -372,6 +377,12 @@ func (lc *lowerCtx) lowerFace() {
 			// face ("shape:mana_spent_reader")
 			lc.out.SpendRead = true
 		}
+	}
+	if lc.face.Mentions("ConditionManaSpent$") || lc.face.Mentions("ConditionManaNotSpent$") ||
+		lc.face.MentionsParam("ConditionManaSpent") || lc.face.MentionsParam("ConditionManaNotSpent") {
+		// gorge pay.FaceReadsManaSpent: the planner declines the face
+		// ("shape:mana_spent_reader"; Azorius Herald, lower_manaspentcond.go)
+		lc.out.SpendRead = true
 	}
 	for _, k := range lc.face.Keywords {
 		if cards.KeywordHead(k) == "Sunburst" {
@@ -801,6 +812,9 @@ func (lc *lowerCtx) lowerRecord() {
 	}
 	if f.Defense != "" {
 		out.Defense, _ = strconv.Atoi(strings.TrimSpace(f.Defense)) // battle (lower_battle.go)
+	}
+	if lc.proto {
+		lc.protoInset() // the prototype face's cost, colours and P/T (lower_prototype.go)
 	}
 }
 
@@ -1807,6 +1821,13 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Overload = &mc
+		case head == "Prototype":
+			// CR 702.160a: the printed line is inert on the permanent (the
+			// prototype face keeps it, CR 718.3a); the face layout owns the
+			// cast (lower_prototype.go, dirac/face_castface.go)
+			if !protoCard(lc.card, lc.out.Token) {
+				lc.refuseNode(node, "Prototype on a multi-face card or token")
+			}
 		case head == "Bestow":
 			// CR 702.103a: an alternative hand cost; the spell is an Aura
 			// with enchant creature (gorge rules/bestow.go bestowCost and
@@ -2055,10 +2076,10 @@ func (lc *lowerCtx) costParts(c lCost) error {
 	if c.DiscardSelf {
 		return refuse("discard cost %q outside a hand ability", "Discard<1/CARDNAME>")
 	}
-	if c.DiscardF != nil && !(lc.altCostHand && c.Discard2N > 0) {
+	if c.DiscardF != nil && !lc.filteredDiscardHome(c) {
 		// a filtered discard is a battlefield activated ability's own cost
 		// (the candidates are that controller's hand cards; CR 118.3), or
-		// a spell alternative cost's two discard parts (lower_discardtwo.go)
+		// a spell's alternative or additional cost (lower_discardtwo.go)
 		return refuse("filtered discard cost outside an activated ability")
 	}
 	if c.DiscardHand && (lc.ab == nil || lc.ab.Kind != akActivated) {
@@ -3585,7 +3606,10 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			return err
 		}
 	}
-	return lc.chain(sa, ps)
+	if err := lc.chain(sa, ps); err != nil {
+		return err
+	}
+	return anyActivatorWindow(ab) // lower_anyactivator.go: read once the chain has declared its targets
 }
 
 // giftHead emits the promised gift ahead of a spell's own effects: the
@@ -3943,6 +3967,22 @@ func (lc *lowerCtx) probeParam(k, v string) error {
 		_, err := lc.value(v)
 		return err
 	case probeFilterKeys[k] || strings.HasPrefix(k, "Valid"):
+		if k == "ValidZone" {
+			// ValidZone$ is a zone list, never a filter: gorge reads it
+			// with ZoneFromString per comma part (effects/play.go), and
+			// every kgen reader of the key (play's Hand/Graveyard/Exile/
+			// Library cases, the counters' refusal, the drain-mana
+			// context) reads zone names. Probing it as a filter reported
+			// every zone-named value as `filter head "Hand"` and hid the
+			// real readers' refusals behind a spelling that is not one
+			// (Kuroki, Thief of Talents' DB$ Play ValidZone$ Hand).
+			for part := range strings.SplitSeq(v, ",") {
+				if _, ok := zoneNames[strings.TrimSpace(part)]; !ok {
+					return fmt.Errorf("unknown zone %q", strings.TrimSpace(part))
+				}
+			}
+			return nil
+		}
 		_, err := lc.filter(v)
 		return err
 	}

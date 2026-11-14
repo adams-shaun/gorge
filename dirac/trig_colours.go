@@ -27,8 +27,8 @@ func (s *State) refNumColors(k *prep, r kop.Ref, ctx evalCtx) int {
 	case r == kop.RefTriggerObj && e != nil && e.trigObj != NoObj:
 		if ob := &s.objs[e.trigObj]; ob.zone == kop.ZoneBattlefield {
 			c = s.colorsAt(k, ob.slot)
-		} else {
-			c = k.t.Cards[ob.card].Colors
+		} else if !(k.gen != nil && k.gen.anyFaceDown && s.faceDownAt(k, e.trigObj)) {
+			c = k.t.Cards[ob.card].Colors // a face-down spell is colourless (CR 708.4)
 		}
 	default:
 		return 0

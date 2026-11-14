@@ -116,6 +116,12 @@ func (s *State) ddoLine(k *prep, l trigListener, a *kop.Ability, src Slot, srcOb
 			}
 			return int16(total), srcObj, s.dmgSeat(rcp, srcCtrl), true
 		}
+		// a plain DamageDone line's DamageAmount$ gate over this event's own
+		// amount (gorge trigmatch.DamageAmountMatches; Sahir, Visitor in
+		// Darkness: exactly 1 damage to you)
+		if t.Event == kop.TrigDamageDone && !DebugDdoNoGate && !kop.DmgGatePass(t.N, int(amt)) {
+			return 0, NoObj, 0, false
+		}
 		return amt, srcObj, s.dmgSeat(rcp, srcCtrl), true
 	}
 	total := int(amt)

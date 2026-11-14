@@ -9,6 +9,7 @@ Alacrian Jaguar
 Amonkhet Raceway
 Apocalypse Runner
 Autarch Mammoth
+Avishkar Raceway
 Back on Track
 Basri, Tomorrow's Champion
 Beastrider Vanguard
@@ -27,6 +28,7 @@ Brightglass Gearhulk
 Broadcast Rambler
 Broodheart Engine
 Burner Rocket
+Burnout Bashtronaut
 Caelorna, Coral Tyrant
 Camera Launcher
 Caradora, Heart of Alacria
@@ -48,8 +50,10 @@ Daring Mechanic
 Deathless Pilot
 Debris Beetle
 Defend the Rider
+Detention Chariot
 Dismal Backwater
 District Mascot
+Diversion Unit
 Dracosaur Auxiliary
 Dredger's Insight
 Dynamite Diver
@@ -67,7 +71,11 @@ Fuel the Flames
 Gallant Strike
 Gastal Blockbuster
 Gastal Raider
+Gastal Thrillroller
 Gastal Thrillseeker
+Gearseeker Serpent
+Gilded Ghoda
+Glitch Ghost Surveyor
 Gloryheath Lynx
 Goblin Surveyor
 Greasewrench Goblin
@@ -76,10 +84,16 @@ Grim Bauble
 Grim Javelineer
 Guardian Sunmare
 Guidelight Matrix
+Guidelight Optimizer
 Guidelight Synergist
+Haunt the Network
+Haunted Hellride
 Hazard of the Dunes
+Hazoret, Godseeker
 Hellish Sideswipe
 Hour of Victory
+Howler's Heavy
+Hulldrifter
 Interface Ace
 Intimidation Tactics
 Island
@@ -87,10 +101,12 @@ Jibbirik Omnivore
 Jungle Hollow
 Kalakscion, Hunger Tyrant
 Keen Buccaneer
+Kickoff Celebrations
 Kolodin, Triumph Caster
 Lagorin, Soul of Alacria
 Leonin Surveyor
 Lifecraft Engine
+Lightning Strike
 Lightshield Parry
 Lightwheel Enhancements
 Locust Spray
@@ -103,6 +119,8 @@ March of the World Ooze
 Marketback Walker
 Marshals' Pathcruiser
 Maximum Overdrive
+Memory Guardian
+Midnight Mangler
 Migrating Ketradon
 Momentum Breaker
 Monument to Endurance
@@ -110,7 +128,11 @@ Mountain
 Mu Yanling, Wind Rider
 Mutant Surveyor
 Nesting Bot
+Night Market
+Nimble Thopterist
+Oildeep Gearhulk
 Ooze Patrol
+Outpace Oblivion
 Oviya, Automech Artisan
 Pacesetter Paragon
 Pactdoll Terror
@@ -127,6 +149,7 @@ Pyrewood Gearhulk
 Quag Feast
 Racers' Scoreboard
 Rangers' Refueler
+Reef Roads
 Regal Imperiosaur
 Repurposing Bay
 Ride's End
@@ -135,8 +158,10 @@ Rise from the Wreck
 Risen Necroregent
 Risky Shortcut
 Riverchurn Monument
+Riverpyre Verge
 Road Rage
 Roadside Assistance
+Roadside Blowout
 Rocketeer Boostbuggy
 Rocky Roads
 Rover Blades
@@ -148,10 +173,13 @@ Salvation Engine
 Scoured Barrens
 Scrap Compactor
 Scrounging Skyray
+Shefet Archfiend
 Silken Strength
 Skybox Ferry
 Skycrash
 Skystreak Engineer
+Slick Imitator
+Spectacular Pileup
 Spectral Interference
 Spell Pierce
 Spikeshell Harrier
@@ -159,7 +187,10 @@ Spin Out
 Spire Mechcycle
 Spotcycle Scouter
 Stall Out
+Starting Column
+Stock Up
 Streaking Oilgorger
+Sunbillow Verge
 Sundial, Dawn Tyrant
 Swamp
 Swiftwater Cliffs
@@ -168,24 +199,32 @@ Syphon Fuel
 Terrian, World Tyrant
 The Last Ride
 The Speed Demon
+Thopter Fabricator
 Thornwood Falls
 Thunderhead Gunner
 Thunderous Velocipede
 Ticket Tortoise
+Trade the Helm
 Tranquil Cove
+Transit Mage
+Trip Up
 Tune Up
 Tyrox, Saurid Tyrant
 Unstoppable Plan
 Unswerving Sloth
+Valor's Flagship
 Veloheart Bike
 Veteran Beastrider
 Vnwxt, Verbose Host
 Voyager Glidecar
 Voyager Quickwelder
 Walking Sarcophagus
+Wastewood Verge
 Waxen Shapethief
 Wickerfolk Indomitable
+Wild Roads
 Willowrush Verge
 Wind-Scarred Crag
+Wreck Remover
 Wreckage Wickerfolk
 Wretched Doll
