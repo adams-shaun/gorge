@@ -1402,6 +1402,9 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		if t.Attacked&atkOpp != 0 {
 			kt.Flags2 |= kop.Tf2AtkOpp
 		}
+		if t.Attacked&atkEnch != 0 {
+			kt.Flags4 |= kop.Tf4DefEnch // fireAtkGroup's Attacks arm (trig_attacksenchanted.go)
+		}
 	}
 	if t.PerCounter {
 		if t.Event != "CounterAdded" {
@@ -2305,6 +2308,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				return ka, nil, fmt.Errorf("CanAttackIfHaste flag %q", fl)
 			}
 			st.StFlags |= kop.StHasteOppDef
+		}
+	case "ExtraBlock":
+		st.Kind = kop.StatExtraBlock // combat_extrablock.go blockCap
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
 		}
 	case "CanAttackDefender":
 		st.Kind = kop.StatCanAttackDefender
@@ -3894,6 +3902,16 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op = map[string]kop.Op{"PutCounter": kop.OpPutCounter, "RemoveCounter": kop.OpRemoveCounter, "EnterWithCounters": kop.OpEnterWithCounters}[in.Op]
 		if in.Op == "RemoveCounter" && in.C == 1 {
 			ki.Op = kop.OpRemoveCounterRem
+		}
+		if in.Op == "PutCounter" && in.CS == contractCounter {
+			// a player's counter (lower_contract.go): OpExt ExtPutContract on
+			// Obj (the players), B the amount (dirac/ctr_contract.go)
+			v, err := cb.value(in.A)
+			if err != nil {
+				return ki, err
+			}
+			ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPutContract)), v, 0
+			break
 		}
 		k, err := counterKind(in.CS)
 		if err != nil {

@@ -142,6 +142,15 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			tr.F.Players == 0 && tr.F.Clauses[0] == (lClause{Flags: fEquippedBy}) {
 			return lRef{Kind: rAttachedCtrl}, nil
 		}
+		if tr := lc.ab.Trigger; tr != nil && tr.ByCreature && !tr.AnchorBlocker {
+			// the attacker's "becomes blocked by a creature" trigger (Gloom
+			// Sower): gorge captures no TriggerBlocker role there, so
+			// TriggeredCardController reads the trigger card, the blocker
+			// (TriggerCard = Remembered[0]), live. The kernel's trigger object
+			// is that blocker; RefTriggerTgtCtrl reads its controller live (a
+			// blocker gone from the battlefield reads its owner).
+			return lRef{Kind: rTriggeredTgtCtrl}, nil
+		}
 		return lRef{}, refuse("Defined$ %q outside a Blocks trigger over the attached creature", v)
 	case "TriggeredBlocker", "TriggeredBlockerLKICopy":
 		// gorge TriggerBlocker of a Blocks trigger: the source itself when
@@ -3770,6 +3779,9 @@ func (lc *lowerCtx) putCounter(ps *params) error {
 	}
 	if ct == "Experience" {
 		return lc.gainEnergy(obj, n, kop.PlCtrExperience) // Otharri, Suns' Glory; Ezuri, Claw of Progress
+	}
+	if ct == contractCounter {
+		return lc.putContract(obj, n) // lower_contract.go
 	}
 	if ct == "EachFromSource" {
 		return lc.putCounterEachFromSource(ps, obj)

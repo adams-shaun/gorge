@@ -858,6 +858,7 @@ ExtPlotGrant	ExtOp	31
 ExtPreventColor	ExtOp	1
 ExtPreventDamageScope	ExtOp	246
 ExtPreventNext	ExtOp	305
+ExtPutContract	ExtOp	91
 ExtPutCounterExisting	ExtOp	253
 ExtPutSticker	ExtOp	18
 ExtRadiation	ExtOp	25
@@ -1795,6 +1796,7 @@ StatDevotion	StaticKind	56
 StatDisableETB	StaticKind	234
 StatDrawFromBottom	StaticKind	41
 StatEscapeGrant	StaticKind	225
+StatExtraBlock	StaticKind	69
 StatExtraLandPlay	StaticKind	12
 StatFbGrant	StaticKind	242
 StatFlipCoinDoubler	StaticKind	57
@@ -1933,6 +1935,7 @@ Tf4SingleCauseTarget	TrigFlags4	2
 Tf4SingleTarget	TrigFlags4	1
 Tf4StateCtr	TrigFlags4	64
 Tf5DmgAttackedYouLastTurn	TrigFlags5	8
+Tf5DmgNoContract	TrigFlags5	128
 Tf5FirstCardInDrawStep	TrigFlags5	1
 Tf5NotFirstCardInDrawStep	TrigFlags5	2
 Tf5OppCause	TrigFlags5	4

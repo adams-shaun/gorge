@@ -802,6 +802,10 @@ type lTrigger struct {
 	// player attacked the controller during their last turn
 	// (kop.Tf5DmgAttackedYouLastTurn; lower_atklastturn.go).
 	AtkYouLastTurn bool
+	// DamageDone: ValidTarget$ Player.counters_EQ0_Contract, the damaged
+	// player has no contract counter (kop.Tf5DmgNoContract;
+	// lower_contract.go).
+	NoContract bool
 	// Discarded Card.Self: ValidCause$ SpellAbility.OppCtrl, the discard caused
 	// by a spell or ability an opponent controls (kop.Tf5OppCause).
 	OppCause bool
@@ -812,6 +816,7 @@ const (
 	atkYou uint8 = 1 << iota
 	atkYourPW
 	atkOpp
+	atkEnch // Player.EnchantedBy: the defender is enchanted by this listener's Aura (kop.Tf4DefEnch)
 )
 
 type lAbility struct {

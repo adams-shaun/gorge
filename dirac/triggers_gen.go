@@ -672,6 +672,9 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 			if t.Flags5&kop.Tf5DmgAttackedYouLastTurn != 0 && (!toPlayer || !s.attackedYouLastTurn(dpl, l.ctrl)) {
 				return // trig_atklastturn.go
 			}
+			if t.Flags5&kop.Tf5DmgNoContract != 0 && (!toPlayer || s.contracts(dpl) != 0) {
+				return // ctr_contract.go
+			}
 			once := t.Event == kop.TrigDamageDealtOnce && latch != nil
 			if once && latch.has(l, seen) {
 				return
@@ -981,7 +984,7 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 				continue
 			}
 			j := nb
-			for j > 0 && s.perms[bl[j-1]].bord > s.perms[b].bord {
+			for j > 0 && s.blockKey(bl[j-1], a) > s.blockKey(b, a) { // the (b, a) pair's declaration order
 				bl[j] = bl[j-1]
 				j--
 			}

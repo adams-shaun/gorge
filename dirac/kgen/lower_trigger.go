@@ -354,6 +354,16 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 					tr.Attacked |= atkOpp
 				case "Player":
 					tr.Attacked |= atkYou | atkOpp
+				case "Player.EnchantedBy":
+					// gorge attackedDefenderMatches over MatchesPlayerSpec:
+					// the attacked player is enchanted by THIS listener's Aura
+					// (playerSpecQualifierEnchantedBy), the Attacks twin of
+					// AttackedTarget$ Player.EnchantedBy (Tf4DefEnch). Alone
+					// only: a comma alternative would need a second gate.
+					if strings.Contains(v, ",") {
+						return refuse("Attacks Attacked %q", v)
+					}
+					tr.Attacked |= atkEnch
 				case "Player.withMostLife":
 					// gorge attackedDefenderMatches over MatchesPlayerSpec:
 					// the attacked player has the most life or is tied
@@ -833,6 +843,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		if tp.str("ValidTarget") == atkLastTurnSpec {
 			if err := atkYouLastTurn(tp, tr, t); err != nil { // lower_atklastturn.go
+				return err
+			}
+		} else if tp.str("ValidTarget") == noContractSpec {
+			if err := noContract(tp, tr, t); err != nil { // lower_contract.go
 				return err
 			}
 		} else if tr.F2, err = readF("ValidTarget"); err != nil {
