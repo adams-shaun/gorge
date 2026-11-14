@@ -1297,6 +1297,28 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			return refuse("Attached TriggerZones %d", tr.Zone)
 		}
 		tp.consume("ValidSource", "ValidTarget")
+	case "Unattached":
+		// gorge trigmatch unattachedMatches (CR 701.3b/d): the attachment's
+		// own "becomes unattached from a permanent" (ValidAttachment$
+		// Card.Self, ValidObject$ Permanent, the Captain's Hook family); the
+		// kernel's detach arms fire it (trig_unattached.go), RefTriggerObj
+		// the former bearer. gorge evaluates ValidAttachment$ against the
+		// event's Obj, the attachment the detach names, and Card.Self binds
+		// to the trigger's own source: the kernel queues only the attachment's
+		// own abilities, which is the same read for the corpus's Card.Self
+		// spelling. ValidObject$ is the bearer, matched against it as it last
+		// existed; the kernel's fire sites pass every bearer, so only the
+		// vacuous spellings lower.
+		if v := tp.str("ValidAttachment"); v != "Card.Self" {
+			return refuse("Unattached ValidAttachment$ %q", v)
+		}
+		if v := tp.str("ValidObject"); v != "" && v != "Permanent" {
+			return refuse("Unattached ValidObject$ %q", v)
+		}
+		if tr.Zone != 0 && tr.Zone != zBattlefield {
+			return refuse("Unattached TriggerZones %d", tr.Zone)
+		}
+		tp.consume("ValidAttachment", "ValidObject")
 	case "BecomesSaddled":
 		// gorge BecomesSaddledMatches / FirstTimeSaddled (trigmatch/
 		// saddled.go): the Mount's own Saddled grant, each resolution of
@@ -1955,6 +1977,17 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			st.Cond = andCond(st.Cond, c)
 		}
 		if ip, ok := sp.get("IsPresent"); ok {
+			if lo, hi, ok := levelBand(ip); ok && s.Params["PresentCompare"] == "" && s.Params["PresentZone"] == "" {
+				// a Level up band (lower_levelband.go): two Self presence tests
+				for _, band := range []string{lo, hi} {
+					f, err := lc.filter(band)
+					if err != nil {
+						return err
+					}
+					st.Cond = andCond(st.Cond, lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)})
+				}
+				return nil
+			}
 			f, err := lc.filter(ip)
 			if err != nil {
 				return err
@@ -2930,6 +2963,14 @@ func selfOnlyCond(c lCond) bool {
 	switch c.Kind {
 	case cNone, cYourTurn:
 		return true
+	case cAnd:
+		// a Level up band: two Self counter tests (lower_levelband.go)
+		for _, sub := range c.Sub {
+			if !selfOnlyCond(sub) {
+				return false
+			}
+		}
+		return len(c.Sub) > 0
 	case cPresent:
 		if c.F == nil || c.F.Players != 0 || len(c.F.Clauses) == 0 {
 			return false
@@ -3064,7 +3105,17 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
 		return refuse("MayPlay zone %q", z)
 	}
 	if dg, ok := sp.get("MayPlayDontGrantZonePermissions"); ok && (dg != "True" || zRaw != "All") {
-		return refuse("MayPlayDontGrantZonePermissions$ %q on zone %q", dg, zRaw)
+		if !exileZeroAltShape(sp, dg, zRaw) {
+			return refuse("MayPlayDontGrantZonePermissions$ %q on zone %q", dg, zRaw)
+		}
+		// Dragon's Smile: once during each of your turns, {0} instead of the
+		// mana cost of a spell cast from exile through another permission
+		// (gorge mayPlayAltCosts / mayPlayCastAlts: a non-granting
+		// alternative, AltCostIndex 1 beside the plain cast). A FreeOnly
+		// static on Exile is that alternative (dirac/cast_mayzeroalt.go);
+		// OncePerTurn and the PlayerTurn condition ride as for any static.
+		sp.consume("MayPlayAltManaCost")
+		st.Flags = append(st.Flags, "FreeOnly", "WithoutManaCost")
 	}
 	if mp, ok := sp.get("MayPlayPlayer"); ok {
 		if mp != "Player.Active" || zRaw != "All" {
@@ -3109,6 +3160,19 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
 		st.Amount = cst(n)
 	}
 	return nil
+}
+
+// exileZeroAltShape reports whether a MayPlayDontGrantZonePermissions$ static
+// is Dragon's Smile's exact "once during each of your turns, you may pay {0}
+// rather than pay the mana cost for a spell you cast from exile": the only
+// non-granting alternative-cost shape the kernel models.
+func exileZeroAltShape(sp *params, dg, zone string) bool {
+	_, mp := sp.get("MayPlayPlayer")
+	_, rc := sp.get("RaiseCost")
+	_, ez := sp.get("EffectZone")
+	return dg == "True" && zone == "Exile" && sp.is("MayPlayAltManaCost", "0") &&
+		sp.is("MayPlayLimit", "1") && sp.is("Condition", "PlayerTurn") &&
+		!mp && !rc && !ez && !sp.is("MayPlayWithoutManaCost", "True")
 }
 
 // overrideStatic lowers the layer-hard statics (Witness Protection,

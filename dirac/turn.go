@@ -640,6 +640,11 @@ func (s *State) sba(k *prep) bool {
 				// (Crystallized Serah transformed beside another)
 				h := p.attached
 				s.touchSl(h)
+				if k.gen != nil && k.gen.anyUnattach {
+					// gorge's Equipment-bearer arm publishes the detach with
+					// the bearer (CR 704.5n, attachmentSBAs)
+					s.fireUnattached(k, sl, h)
+				}
 				p.attached = NoSlot
 				s.touchSl(sl)
 				if k.gen != nil && k.gen.anyAegis {

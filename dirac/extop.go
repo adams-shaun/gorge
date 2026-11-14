@@ -160,6 +160,8 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 			s.leaveCombat(sl) // combat_noncreature.go
 		}
 		return true, true
+	case kop.ExtChangeText:
+		return s.changeTextStart(k, in), true // act_changetext.go
 	case kop.ExtClearImprinted:
 		s.g.nimp = 0
 		return true, true
