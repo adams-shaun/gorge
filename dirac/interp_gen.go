@@ -133,6 +133,7 @@ const (
 	ChEchoActionPick                          // source = a card/permanent chosen to pay an echo cost (gorge echoActionAsk's "echo_action_pick", Min=Max=N)
 	ChGenPlayer                               // mode = the seat of the opponent a permanent chooses as it enters (gorge effChoosePlayer's "player" option; repl_chooseplayer.go)
 	ChGenTextWord                             // mode = the word index (0..4 colours WUBRG, 5..9 basic land types) of a ChangeText "from" word, +16 for a "to" word (gorge's changetext_from / changetext_to, two sequential picks; act_changetext.go)
+	ChGenTapOrUntapAll                        // no source; mode 1 = tap all / 0 = untap all (gorge effTapOrUntapAll's "tap" / "untap", in that order; act_taporuntapall.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -2416,7 +2417,8 @@ func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool 
 			continue
 		}
 		if isPlayerOrNone(code) {
-			s.notePlDamagedNC(k, code) // value_oppsdamaged.go
+			s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
+			s.notePlDamagedNC(k, code)        // value_oppsdamaged.go
 			if inf {
 				s.addPoison(CodeSeat(code), n) // CR 702.90b
 			} else {
