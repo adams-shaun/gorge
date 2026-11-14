@@ -1095,7 +1095,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			}
 		}
 		for i := 1; i < nb; i++ {
-			for j := i; j > 0 && s.perms[bl[j]].bord < s.perms[bl[j-1]].bord; j-- {
+			for j := i; j > 0 && s.blockKey(bl[j], a) < s.blockKey(bl[j-1], a); j-- { // the (b, a) pair's declaration order
 				bl[j], bl[j-1] = bl[j-1], bl[j]
 			}
 		}
@@ -1430,7 +1430,9 @@ func (s *State) damageStep(k *prep, first, ans bool) {
 	}
 }
 
-// liveBlockers writes attacker a's blockers in block order.
+// liveBlockers writes attacker a's blockers in block order: each (b, a)
+// pair's declaration order, so a blocker of two attackers sits where it was
+// declared against a (gorge's BlockedBy append order; blockKey).
 func (s *State) liveBlockers(a Slot, bl *[MaxPerm]Slot) int {
 	nb := 0
 	for bm := s.oppsM(s.active); bm.any(); bm = bm.rest() {
@@ -1441,7 +1443,7 @@ func (s *State) liveBlockers(a Slot, bl *[MaxPerm]Slot) int {
 		}
 	}
 	for i := 1; i < nb; i++ {
-		for j := i; j > 0 && s.perms[bl[j]].bord < s.perms[bl[j-1]].bord; j-- {
+		for j := i; j > 0 && s.blockKey(bl[j], a) < s.blockKey(bl[j-1], a); j-- {
 			bl[j], bl[j-1] = bl[j-1], bl[j]
 		}
 	}
