@@ -78,16 +78,17 @@ func TestRiderBesideCtrGapOffersCast(t *testing.T) {
 	}
 }
 
-// TestDepletionLastCounterNeedle is the ticket's literal state: a seat with
-// Mountain, Mountain, Island and a Sandstone Needle on its last counter. The
-// ticket names the seat's spell as Arrow Storm {3}{R}{R}, but kgen refuses
-// Arrow Storm in every pool (its raid body reads NoPrevention), so the spell
-// here is the pool's {4}{R}{R} Volcanic Dragon, with the fourth Mountain its
-// extra generic needs (two Mountains, an Island and the Needle's {R} are only
-// 4 mana). The cast is priced through the Needle's activation, which removes
-// the last counter and sacrifices the land (CR 605.3b).
+// TestDepletionLastCounterNeedle is the kernel side of the ticket's state: a
+// seat with Mountain, Mountain, Island and a Sandstone Needle on its last
+// counter. The ticket's spell is Arrow Storm {3}{R}{R}, which kgen refuses in
+// every pool (its raid body reads NoPrevention), so the spell here is the
+// pool's {4}{R}{R} Volcanic Dragon, with a third Mountain for its extra
+// generic: the four lands make 4, the Needle's {R}{R} the other 2. The cast is
+// priced through the Needle's activation, which removes the last counter and
+// sacrifices the land (CR 605.3b). oracle's TestDepletionLastCounterOffer
+// checks the same board against gorge.
 func TestDepletionLastCounterNeedle(t *testing.T) {
-	deck := []cardset.Entry{{Name: "Sandstone Needle", Count: 1}, {Name: "Volcanic Dragon", Count: 1}, {Name: "Mountain", Count: 18}}
+	deck := []cardset.Entry{{Name: "Sandstone Needle", Count: 1}, {Name: "Volcanic Dragon", Count: 1}, {Name: "Island", Count: 1}, {Name: "Mountain", Count: 17}}
 	tbl, _, _, err := cardsettest.Synth(t, "dr-mbc-bb").Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
@@ -98,15 +99,20 @@ func TestDepletionLastCounterNeedle(t *testing.T) {
 			id[tbl.Cards[c].Name] = CardID(c)
 		}
 	}
+	for _, n := range []string{"Mountain", "Island", "Sandstone Needle", "Volcanic Dragon"} {
+		if _, ok := id[n]; !ok {
+			t.Fatalf("precondition: %s is not in the table", n)
+		}
+	}
 	sc := newScenTableLib(t, tbl, id["Mountain"], Config{NoElide: true, GorgeLowering: true})
 	var needle Obj
-	for _, n := range []string{"Mountain", "Mountain", "Island", "Mountain", "Mountain", "Sandstone Needle"} {
+	for _, n := range []string{"Mountain", "Mountain", "Island", "Mountain", "Sandstone Needle"} {
 		o := sc.perm(id[n], 0)
 		if n == "Sandstone Needle" {
 			needle = o
 		}
 	}
-	arrow := sc.hand(id["Volcanic Dragon"], 0)
+	dragon := sc.hand(id["Volcanic Dragon"], 0)
 	sl := sc.slot(needle)
 	a, ok := sc.s.riderAbilityOf(sc.k, sl)
 	if !ok {
@@ -123,11 +129,11 @@ func TestDepletionLastCounterNeedle(t *testing.T) {
 	d := sc.s.Step()
 	offered := false
 	for i := 0; i < int(d.N); i++ {
-		if d.Options[i].Kind() == AkCast && d.Options[i].Source() == TCode(arrow) {
+		if d.Options[i].Kind() == AkCast && d.Options[i].Source() == TCode(dragon) {
 			offered = true
 		}
 	}
 	if !offered {
-		t.Fatalf("the cast of Arrow Storm is not offered beside the pass; opts %v", d.Options[:d.N])
+		t.Fatalf("the cast of Volcanic Dragon is not offered beside the pass; opts %v", d.Options[:d.N])
 	}
 }

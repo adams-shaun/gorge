@@ -1,121 +1,145 @@
 package oracle
 
 import (
-	"path/filepath"
+	"slices"
 	"testing"
 
-	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The depletion land's scripted potential play: gorge's potential planner
-// prices a cast only a deferred source's activation funds (rules
-// potential_plan.go: the census misses a deplete land, the relaxed proof
-// admits the search, potentialPrefixScript finds the prefix), and the kernel
-// must offer it beside it. Pair 39 (dr-mbc-bb, seed 17133499884003748923)
-// diverged at decision 700 on gorge's Cast Relic Crush {4}{G}, funded by a
-// prefix activating Peat Bog (a deplete rider) beside Wall of Roots (a
-// counter-cost gap): the kernel's script search routed a board whose gaps are
-// a Taps-deferred one beside counter-cost ones to the tap-another search,
-// whose gaps (rs.gaps, mana_tapanother.go) hold no Taps-deferred source, and
-// listed only the pass.
-const depletionLastCounterRepro = "depletion_last_counter_offer"
+// A depletion land on its last counter funds a cast (CR 605.3b: the mana
+// ability's rider sacrifices it once no counter is left, and the activation
+// is legal). The board is the one kfuzz pair 39 (dr-mbc-bb) reported: the
+// active player holds a {3}{R}{R} spell (Earth Elemental here, a vanilla
+// with the same cost) with Mountain, Mountain and Island untapped beside a
+// Sandstone Needle holding one depletion counter, so the three lands make 3
+// and only the Needle's {R}{R} completes the 5.
+var (
+	depletionLastCounterSpell = "Earth Elemental"
+	depletionLastCounterDecks = [2][]string{
+		append(deckOf(8, "Sandstone Needle"), append(deckOf(5, "Mountain"), append(deckOf(5, "Island"), deckOf(6, depletionLastCounterSpell)...)...)...),
+		deckOf(24, "Plains"),
+	}
+)
 
-// TestDepletionLastCounterOffer replays the recorded game (both engines offer
-// the same options at every decision) and, at the decision where gorge prices
-// the scripted cast, requires the kernel's own priority decision to list the
-// same cast.
+// depletionLastCounterBoard reports whether d is the ticket's state: p's
+// sorcery-speed priority, the spell in hand, exactly one untapped Sandstone
+// Needle, on its last depletion counter, and exactly Mountain, Mountain and
+// Island as p's other untapped lands.
+func depletionLastCounterBoard(g *state.Game, d *decision.Decision) bool {
+	p := d.Player
+	if g.Active != p || !g.Step.IsMain() || len(g.Zone(state.ZStack, p)) != 0 {
+		return false
+	}
+	inHand := false
+	for _, id := range g.Zone(state.ZHand, p) {
+		if o := g.Obj(id); o != nil && o.Face() != nil && o.Face().Name == depletionLastCounterSpell {
+			inHand = true
+		}
+	}
+	if !inHand {
+		return false
+	}
+	needles, lastCounter := 0, false
+	var others []string
+	for _, id := range g.Zone(state.ZBattlefield, p) {
+		o := g.Obj(id)
+		if o == nil || o.Face() == nil || o.Tapped || o.Controller != p {
+			continue
+		}
+		switch n := o.Face().Name; n {
+		case "Sandstone Needle":
+			needles++
+			lastCounter = o.Counter("DEPLETION") == 1
+		case "Mountain", "Island":
+			others = append(others, n)
+		}
+	}
+	slices.Sort(others)
+	return needles == 1 && lastCounter && slices.Equal(others, []string{"Island", "Mountain", "Mountain"})
+}
+
+// TestDepletionLastCounterOffer plays seeded games of the Needle deck until
+// the ticket's board is reached at least three times. At each such decision
+// gorge's potential planner must price the cast (CR 605.3b) and the kernel's
+// posed priority must list a cast of the same hand card; the lockstep itself
+// requires every other decision's options to agree. It fails if no seed
+// reaches the board, so it cannot pass vacuously.
 func TestDepletionLastCounterOffer(t *testing.T) {
 	t.Parallel()
-	r, err := ReadRepro(filepath.Join("testdata", "repro", depletionLastCounterRepro+".repro.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
 	reg := synthReg(t)
-	set := globSet(t, r.Pool, r)
-	m, err := r.Matchup(reg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	tbl, _, _, err := set.Matchup(entryList(r.Cards[0]), entryList(r.Cards[1]))
-	if err != nil {
-		t.Fatal(err)
-	}
-	rc := r.RunConfig()
-	rc.MaxDecisions = len(r.Actions) + 200
-	pinned := false
-	rc.Check = func(ref *GorgeSide, k Side) *Divergence {
-		d := ref.Pending()
-		if d == nil || d.Kind != decision.KPriority {
-			return nil
+	set := printedDelveSet(t, depletionLastCounterDecks)
+	name := "depletion_last_counter_offer"
+	c := effectLongCase{name: name, prefer: []string{depletionLastCounterSpell}, decks: depletionLastCounterDecks, surface: "full"}
+	witnessed := 0
+	for seed := uint64(1); seed <= 400 && witnessed < 3; seed++ {
+		r := &Repro{Format: reproFormat, Decks: [2]string{name + "_0", name + "_1"}, Cards: c.decks, Seed: seed, PassElision: true, Surface: c.surface, Kernel: "custom"}
+		m, err := r.Matchup(reg)
+		if err != nil {
+			t.Fatal(err)
 		}
-		for _, pp := range ref.E.PotentialPaymentPlans(d.Player) {
-			if pp.Action.Kind != "cast" || pp.Action.Label != "Cast Relic Crush" {
-				continue
+		tbl, _, _, err := set.Matchup(entryList(r.Cards[0]), entryList(r.Cards[1]))
+		if err != nil {
+			t.Fatal(err)
+		}
+		rc := r.RunConfig()
+		rc.MaxDecisions = 2000
+		rc.MaxTurns = 16
+		rc.Check = func(ref *GorgeSide, k Side) *Divergence {
+			d := ref.Pending()
+			if d == nil || d.Kind != decision.KPriority || !depletionLastCounterBoard(ref.E.G, d) {
+				return nil
 			}
-			// gorge's prefix activates the deplete land (Peat Bog), whose
-			// rider sacrifices it once its last counter leaves (CR 605.3b):
-			// the play the posed priority never lists.
-			scripts := false
-			for _, st := range pp.Script {
-				for _, pk := range st.Picks {
-					if o := ref.E.G.Obj(pk.Obj); o != nil && o.Face() != nil && o.Face().Name == "Peat Bog" {
-						scripts = true
-					}
+			gorgeOffers := false
+			for _, pp := range ref.E.PotentialPaymentPlans(d.Player) {
+				if pp.Action.Kind == "cast" && pp.Action.Label == "Cast "+depletionLastCounterSpell {
+					gorgeOffers = true
 				}
 			}
-			if !scripts {
-				return &Divergence{What: "script", Field: "script",
-					Detail: "gorge's Cast Relic Crush plan does not activate Peat Bog"}
-			}
-			// The same cast on the kernel side, as a canon: a cast of the hand
-			// card, whatever its mode bits.
-			var hand state.ObjID
-			for _, id := range ref.E.G.Zone(state.ZHand, d.Player) {
-				if o := ref.E.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Relic Crush" {
-					hand = id
-				}
-			}
-			if hand == 0 {
-				return &Divergence{What: "state", Field: "hand", Detail: "Relic Crush not in hand at the priced cast"}
-			}
-			want := Pack(ActCast, ref.InstRef(hand), RefNone, 0)
 			_, _, kopts := KernelStateOf(k)
 			if kopts == nil {
 				return &Divergence{What: "options", Field: "kernel", Detail: "not the real kernel side"}
 			}
-			for _, c := range kopts {
-				if c.Kind() == want.Kind() && c.Src() == want.Src() {
-					pinned = true
-					return nil // the kernel offers the same cast
+			kernelOffers := false
+			for _, id := range ref.E.G.Zone(state.ZHand, d.Player) {
+				o := ref.E.G.Obj(id)
+				if o == nil || o.Face() == nil || o.Face().Name != depletionLastCounterSpell {
+					continue
+				}
+				want := Pack(ActCast, ref.InstRef(id), RefNone, 0)
+				for _, kc := range kopts {
+					if kc.Kind() == want.Kind() && kc.Src() == want.Src() {
+						kernelOffers = true
+					}
 				}
 			}
-			return &Divergence{What: "options", Field: "options",
-				Detail: "gorge prices Cast Relic Crush through the deplete land's activation, the kernel lists only the pass"}
+			if !gorgeOffers || !kernelOffers {
+				return &Divergence{What: "options", Field: "options",
+					Detail: "Needle on its last counter: gorge offers the cast " + yesNo(gorgeOffers) + ", the kernel " + yesNo(kernelOffers)}
+			}
+			witnessed++
+			return nil
 		}
-		return nil
+		k, err := SetSide(set, tbl, rc.Config)(m, seed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res := Lockstep(m, seed, k, effectLongPolicy(m, c, seed), rc)
+		CloseSide(k)
+		if d := res.Div; d != nil {
+			t.Fatalf("seed %d: divergence at %d: %s %s %v %s\nref %v\nker %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
+		}
 	}
-	k, err := SetSide(set, tbl, rc.Config)(m, r.Seed)
-	if err != nil {
-		t.Fatal(err)
+	if witnessed < 3 {
+		t.Fatalf("the Needle-on-its-last-counter board was reached %d times in 400 seeds, want 3", witnessed)
 	}
-	defer CloseSide(k)
-	res := Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
-	if res.Div != nil {
-		t.Fatalf("divergence at %d: %s %s %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
-	}
-	stallCheck(t, r, res, false)
-	if !pinned {
-		t.Fatal("the replay never reaches gorge's Cast Relic Crush plan funded by the deplete land")
-	}
+	t.Logf("board reached %d times; both engines offered the cast each time", witnessed)
 }
 
-// entryList is a repro deck's card list as Matchup's entries.
-func entryList(names []string) []cardset.Entry {
-	es := make([]cardset.Entry, len(names))
-	for i, n := range names {
-		es[i] = cardset.Entry{Name: n, Count: 1}
+func yesNo(b bool) string {
+	if b {
+		return "yes"
 	}
-	return es
+	return "no"
 }
