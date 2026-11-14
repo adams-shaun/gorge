@@ -163,6 +163,8 @@ var ChooseKinds = []string{
 	"suspend_cast_yes", // CR 702.62a: gorge startSuspendedCast's may-cast ask (kw_suspend.go)
 	"suspend_cast_no",
 	"echo_action_pick", // gorge echoActionAsk's choose-exactly-N cards or lands an action echo cost pays
+	"changetext_from",  // gorge effChangeText's "from" word pick (CR 612; the option mode is the word index)
+	"changetext_to",    // and its "to" word pick
 }
 
 // ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks.

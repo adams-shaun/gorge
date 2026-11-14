@@ -326,6 +326,8 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = lValue{Kind: vHighestOppPoison}
 		case strings.HasPrefix(rest, "Condition"):
 			v, err = lc.oppCastCondValue(rest) // value_oppcondition.go
+		case rest == oppsDealtDamageBody:
+			v = lValue{Kind: vOppsLostLife, N: 3} // value_turntallies.go
 		default:
 			err = fmt.Errorf("PlayerCountOpponents$%s", rest)
 		}
@@ -338,6 +340,8 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = hv // value_turntallies.go
 		} else if rest == oppsDealtCombatDamageBody {
 			v = lValue{Kind: vOppsLostLife, N: 2}
+		} else if rest == oppsDealtDamageBody {
+			v = lValue{Kind: vOppsLostLife, N: 3} // value_turntallies.go
 		} else {
 			err = fmt.Errorf("PlayerCountRegisteredOpponents$%s", rest)
 		}
@@ -1174,6 +1178,10 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lValue{Kind: vYourExtraTurns}, nil // gorge ExtraTurnsBegun
 	case "LifeOppsLostThisTurn":
 		return lValue{Kind: vOppLifeLostThisTurn}, nil
+	case "DamageOppsTakenThisTurn":
+		// gorge count_body_paid.go: the damage the living opponents were
+		// dealt this turn (bloodthirst's reader, lower_bloodthirst.go)
+		return lValue{Kind: vDmgOppsTaken}, nil
 	case "RememberedSize":
 		return lValue{Kind: vRememberedCount}, nil
 	case "RememberedNumber":
@@ -1411,6 +1419,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	if arms, ok := strings.CutPrefix(rest, "Threshold."); ok {
 		return lc.thresholdValue(arms, depth) // value_threshold.go
 	}
+	if arms, ok := strings.CutPrefix(rest, "Revolt."); ok {
+		return lc.revoltValue(arms, depth) // value_revolt.go
+	}
 	if arms, ok := strings.CutPrefix(rest, "Hellbent."); ok {
 		// gorge cov3BranchHolds: <yes> with no cards in your hand, else <no>
 		parts := strings.Split(arms, ".")
@@ -1450,7 +1461,7 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		bargain bool
 	}{{"Kicked.", vKicked, false}, {"Teamwork.", vKicked, false}, {"Morbid.", vMorbid, false}, {"PromisedGift.", vPromisedGift, false},
 		{"CommittedCrimeThisTurn.", vCommittedCrime, false}, {"Void.", vVoid, false}, {"IfCastInOwnMainPhase.", vIfCastOwnMain, false},
-		{"Monarch.", vMonarch, false},
+		{"Monarch.", vMonarch, false}, {"Blessing.", vBlessing, false},
 		{"wasCastFromGraveyard.", vCastFromGrave, false},
 		{"Bargained.", vKicked, true}, {"Bargain.", vKicked, true}, {"OptionalGenericCostPaid.", vKicked, false}} {
 		if !strings.HasPrefix(rest, cv.pre) {
@@ -1479,15 +1490,16 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		}
 		parts := strings.Split(strings.TrimPrefix(rest, cv.pre), ".")
 		if len(parts) != 2 {
-			if cv.kind == vCommittedCrime || cv.kind == vVoid || cv.kind == vIfCastOwnMain || cv.kind == vMonarch {
+			if cv.kind == vCommittedCrime || cv.kind == vVoid || cv.kind == vIfCastOwnMain || cv.kind == vMonarch || cv.kind == vBlessing {
 				return lValue{}, refuse("Count$%s arms %q", strings.TrimSuffix(cv.pre, "."), rest)
 			}
 			return lValue{}, fmt.Errorf("Count$%s", rest)
 		}
-		if cv.kind == vCommittedCrime || cv.kind == vVoid || cv.kind == vIfCastOwnMain || cv.kind == vMonarch {
+		if cv.kind == vCommittedCrime || cv.kind == vVoid || cv.kind == vIfCastOwnMain || cv.kind == vMonarch || cv.kind == vBlessing {
 			// gorge cov3BranchHoldsCommittedCrimeThisTurn / ...HoldsVoid /
-			// evalCountBodyDottedMorbidOrMonarch's Monarch arm: two
-			// arms, read as integers here (an SVar arm refuses)
+			// evalCountBodyDottedMorbidOrMonarch's Monarch arm /
+			// evalCountBodyDottedBlessing: two arms, read as integers
+			// here (an SVar arm refuses)
 			for _, p := range parts {
 				if _, err := strconv.Atoi(p); err != nil {
 					return lValue{}, refuse("Count$%s arms %q", strings.TrimSuffix(cv.pre, "."), rest)
@@ -1523,6 +1535,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	}
 	if strings.HasPrefix(rest, "ValidStack ") {
 		return lValue{}, refuse("Count$%s: only ValidStack Card.Self+sneaked is read", rest)
+	}
+	if spec, ok := strings.CutPrefix(rest, "ValidBattlefield,Command "); ok {
+		return cmdGreatestMVValue(spec) // value_cmdmv.go
 	}
 	for _, zc := range []struct {
 		pre  string

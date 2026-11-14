@@ -30,6 +30,7 @@ func (s *State) predCardStats(k *prep, fl *kop.Filter, c CardID, owner uint8, o 
 	if fl.Pred == kop.PredHasXCost {
 		return s.hasXCostCard(k, c, o) // CR 708.4: false for a face-down spell
 	}
+	s.offZonePTRead(k, c, owner, o) // static_offzonept.go
 	pw, t := int(pc.power), int(pc.tough)
 	if k.cda && k.gen.has(c, gfCDAPT) {
 		pw, t = s.cardCDAPT(k, c, owner, o)

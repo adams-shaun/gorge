@@ -132,6 +132,8 @@ const (
 	ChGenImprint                              // source = the hand card the imprint mox exiles (gorge's "imprint" KChoose, Min=Max=ChangeNum$, asked only with more candidates; mana_imprint.go)
 	ChEchoActionPick                          // source = a card/permanent chosen to pay an echo cost (gorge echoActionAsk's "echo_action_pick", Min=Max=N)
 	ChGenPlayer                               // mode = the seat of the opponent a permanent chooses as it enters (gorge effChoosePlayer's "player" option; repl_chooseplayer.go)
+	ChGenTextWord                             // mode = the word index (0..4 colours WUBRG, 5..9 basic land types) of a ChangeText "from" word, +16 for a "to" word (gorge's changetext_from / changetext_to, two sequential picks; act_changetext.go)
+	ChGenTapOrUntapAll                        // no source; mode 1 = tap all / 0 = untap all (gorge effTapOrUntapAll's "tap" / "untap", in that order; act_taporuntapall.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -340,6 +342,15 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpDiscard:
 		if in.C&kop.OptAsk != 0 { // Optional$ (act_optionalask.go)
 			return s.optDiscardGen(k, in, e)
+		}
+		if in.C&kop.OptDefined != 0 { // gorge effDiscard's Mode$ Defined arm
+			// the cards DefinedCards$ names that are still in the discarder's
+			// hand move, no ask, the amount never read
+			// (act_discarddefined.go)
+			if p := s.playerRef(k, in.Obj); p != 255 {
+				s.discardDefinedAll(k, p, in.F)
+			}
+			break
 		}
 		if in.F == 0 && in.C != kop.ChooseOpp {
 			return true, false
@@ -851,6 +862,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpClearRemembered:
 		s.g.nrem = 0
 		s.g.remCnt = 0
+		s.res.cpl &^= cplRemMask // the remembered players (act_chooseplayerres.go)
 	case kop.OpClearChosen:
 		s.g.nchosen = 0
 	case kop.OpDoubleCounters:
@@ -1242,6 +1254,8 @@ func (s *State) eachPlayers(k *prep, r kop.Ref) seatSeq {
 		return seatOne(s.promisedSeat(k, &s.res.e)) // kw_gift.go
 	case kop.RefChosenPlayer:
 		return seatOne(s.chosenPlayerSeat(&s.res.e)) // repl_chooseplayer.go
+	case kop.RefChosenPlayerRes:
+		return seatOne(s.chosenSeatRes()) // act_chooseplayerres.go
 	}
 	if sl, ok := tgtSlot(r); ok {
 		// the slot's player targets (gorge repeatPlayers' Targeted arm:
@@ -2396,6 +2410,8 @@ func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool 
 			continue
 		}
 		if isPlayerOrNone(code) {
+			s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
+			s.notePlDamagedNC(k, code)        // value_oppsdamaged.go
 			if inf {
 				s.addPoison(CodeSeat(code), n) // CR 702.90b
 			} else {

@@ -1378,9 +1378,12 @@ func blockFloorsMatchable(fr *frame, chosen []int) bool {
 // requiredCovered reports whether every creature an attackers decision
 // marks Required (CR 508.1d) that can still be declared is in the answer so
 // far: gorge's validateAttackers refuses a declaration that omits one.
+// A zero decision.RequiredQuota binds no creature: a lone required attacker
+// that can't attack alone and has no partner obeys its requirement by not
+// attacking (CR 508.1d, CR 506.5), the one rule gorge's validator reads.
 func requiredCovered(fr *frame, chosen []int) bool {
 	d := fr.d
-	if d.Kind != decision.KAttackers {
+	if d.Kind != decision.KAttackers || d.RequiredQuota() == 0 {
 		return true
 	}
 	for i := range d.Options {
@@ -1413,6 +1416,12 @@ func (g *GorgeSide) admissible(fr *frame, chosen []int, i int) bool {
 	}
 	for _, c := range chosen {
 		if c == o.Index && !d.Repeatable {
+			return false
+		}
+		if d.ResumeKind == "changetext" && optByIndex(d, c).Kind == o.Kind {
+			// one "from" and one "to" word: gorge's answer binds each list
+			// from its own picks and defaults the other half if a list is
+			// picked twice, a malformed answer the kernel's two picks never ask
 			return false
 		}
 		if o.Group == "" && (d.Kind == decision.KAttackers || d.Kind == decision.KBlockers) && optByIndex(d, c).Obj == o.Obj {
