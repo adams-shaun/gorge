@@ -217,7 +217,12 @@ jobs:
 
   # dirac plays the committed slices of its FDN and BLB pools against gorge, on both
   # surfaces. A divergence, an unmodelled stall or a hang fails.
+  # Not on a promote PR (a pull request to main): every tree it carries already passed
+  # scripts/dirac-gate.sh, whose step 4 plays these same slices with kfuzz and whose mp
+  # step runs make dirac-mp-check, and the oracle job below plays the whole of dirac/oracle.
+  # Its 30-day reds there were all one mp build break the gate's step 8c now catches.
   dirac-slices:
+    if: ${{ !(github.event_name == 'pull_request' && github.base_ref == 'main') }}
     runs-on: ${{ github.event_name != 'pull_request' && vars.CI_SELF_HOSTED == 'true' && 'gorge-box' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@v4
@@ -397,7 +402,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - run: |
-          # oracle runs on a pull request to main and nowhere else.
-          oracle=skipped
-          if [ "${{ github.base_ref }}" = main ]; then oracle=success; fi
-          [ "${{ needs.lint.result }}" = success ] && [ "${{ needs.test.result }}" = success ] && [ "${{ needs.examples.result }}" = success ] && [ "${{ needs.wire-matrix.result }}" = success ] && [ "${{ needs.dirac-slices.result }}" = success ] && [ "${{ needs.oracle.result }}" = "$oracle" ] || { echo "lint=${{ needs.lint.result }} test=${{ needs.test.result }} examples=${{ needs.examples.result }} wire-matrix=${{ needs.wire-matrix.result }} dirac-slices=${{ needs.dirac-slices.result }} oracle=${{ needs.oracle.result }}"; exit 1; }
+          # oracle runs on a pull request to main and nowhere else; dirac-slices runs everywhere but there.
+          oracle=skipped slices=success
+          if [ "${{ github.base_ref }}" = main ]; then oracle=success slices=skipped; fi
+          [ "${{ needs.lint.result }}" = success ] && [ "${{ needs.test.result }}" = success ] && [ "${{ needs.examples.result }}" = success ] && [ "${{ needs.wire-matrix.result }}" = success ] && [ "${{ needs.dirac-slices.result }}" = "$slices" ] && [ "${{ needs.oracle.result }}" = "$oracle" ] || { echo "lint=${{ needs.lint.result }} test=${{ needs.test.result }} examples=${{ needs.examples.result }} wire-matrix=${{ needs.wire-matrix.result }} dirac-slices=${{ needs.dirac-slices.result }} oracle=${{ needs.oracle.result }}"; exit 1; }
