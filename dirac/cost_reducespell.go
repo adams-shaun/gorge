@@ -132,6 +132,7 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]TCode, n int, free bo
 			break
 		}
 	}
+	has = has || s.boardTargetRaise(k)
 	if !has {
 		return n
 	}
@@ -160,6 +161,24 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]TCode, n int, free bo
 	}
 	e.nt, e.tgt[0] = nt, t0
 	return m
+}
+
+// boardTargetRaise reports a battlefield mana RaiseCost with a ValidTarget$
+// on a permanent in play (Kasmina, Enigmatic Mentor's "spells your opponents
+// cast that target a creature you control cost {2} more"): it prices a cast by
+// the target the caster picks, whatever the cast card's own abilities.
+func (s *State) boardTargetRaise(k *prep) bool {
+	found := false
+	s.eachStatic(k, func(stc statSrc) bool {
+		a := stc.a
+		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatIncreaseCost && a.Static.Zone != kop.ZoneCommand && a.Static.Zone != kop.ZoneStack &&
+			a.Static.StFlags&kop.StTargetsFilter2 != 0 && a.Static.StFlags&kop.StRaiseLife == 0 {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
 }
 
 // bargainedPrice is card c's cost priced as the bargained cast: gorge's

@@ -26,8 +26,12 @@ func (s *State) raiseCostGen(k *prep, p uint8, c CardID, o, priced Obj, pips *[k
 		if !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl) {
 			return
 		}
-		if st.StFlags&kop.StTargetsFilter2 != 0 && !s.raiseTargetOK(k, st.Filter2, p, c) {
-			return // a ValidTarget$ raise: the charge with a matching target only (cost_reducespell.go)
+		if st.StFlags&kop.StTargetsFilter2 != 0 && !s.raiseTargetAt(k, st.Filter2, ctx.ctrl, c, ctx.srcSl) {
+			// a ValidTarget$ raise: the charge with a matching target only, the
+			// filter read from the static's controller and source (Kasmina's
+			// Creature.YouCtrl is the creatures of the player it taxes
+			// against, not the caster's; cost_reducespell.go)
+			return
 		}
 		n := 1
 		if st.StFlags&kop.StRaisePerTarget != 0 {
@@ -133,6 +137,34 @@ func (s *State) raiseStackSelfGen(k *prep, p uint8, c CardID, priced Obj) int {
 		}
 	}
 	return g
+}
+
+// boardManaTgtDep reports that a battlefield mana RaiseCost with a ValidTarget$
+// (Kasmina, Enigmatic Mentor) applies to p's cast of card c (object o) whichever
+// target it chooses: gorge's paymentPlanTargetDependentFor reads the raise
+// group without its ValidTarget$ key and declines the cast planner's witness
+// for a spell that targets, so the oracle lowers the cast (a life raise is
+// raiseLifeFor's anyTarget read).
+func (s *State) boardManaTgtDep(k *prep, p uint8, c CardID, o Obj) bool {
+	found := false
+	s.eachStatic(k, func(stc statSrc) bool {
+		a := stc.a
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatIncreaseCost || a.Static.Zone == kop.ZoneCommand || a.Static.Zone == kop.ZoneStack ||
+			a.Static.StFlags&kop.StTargetsFilter2 == 0 || a.Static.StFlags&kop.StRaiseLife != 0 {
+			return true
+		}
+		st := &a.Static
+		if f := st.StFlags; f&kop.StRaiseYou != 0 && stc.ctrl != p || f&kop.StRaiseOpp != 0 && stc.ctrl == p {
+			return true
+		}
+		ctx := s.ctxStatic(stc)
+		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, ctx) || !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl) {
+			return true
+		}
+		found = true
+		return false
+	})
+	return found
 }
 
 // stackRaiseOnStack reports whether a spell currently on the stack carries a

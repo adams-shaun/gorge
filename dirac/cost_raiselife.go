@@ -132,13 +132,14 @@ func (s *State) raiseLifeDropTargets(k *prep, buf *[MaxOptions]TCode, n int) int
 // chooses and a spell that targets (gorge paymentPlanTargetDependentFor:
 // "shape:target_dependent_cost", the planner declines it, no prefix search).
 func (s *State) spellTgtDep(k *prep, p uint8, c CardID, o Obj) bool {
-	return cardTgtDepCost(&k.t.Cards[c]) || s.boardLifeTgtDep(k, p, c, o) || s.stackTgtDep(k, c)
+	return cardTgtDepCost(&k.t.Cards[c]) || s.boardTgtDep(k, p, c, o) || s.stackTgtDep(k, c)
 }
 
-// boardLifeTgtDep is spellTgtDep's battlefield half.
-func (s *State) boardLifeTgtDep(k *prep, p uint8, c CardID, o Obj) bool {
-	if k.gen == nil || !k.gen.anyRaiseLife || tspec(k, c, spellAb(k, c), 0) == nil {
+// boardTgtDep is spellTgtDep's battlefield half: a life raise, or a mana raise
+// (boardManaTgtDep), that applies to the spell whichever target it chooses.
+func (s *State) boardTgtDep(k *prep, p uint8, c CardID, o Obj) bool {
+	if k.gen == nil || !k.gen.anyRaiseLife && !k.gen.anyRaise || tspec(k, c, spellAb(k, c), 0) == nil {
 		return false
 	}
-	return s.raiseLifeFor(k, p, c, o, true) > 0
+	return k.gen.anyRaiseLife && s.raiseLifeFor(k, p, c, o, true) > 0 || k.gen.anyRaise && s.boardManaTgtDep(k, p, c, o)
 }
