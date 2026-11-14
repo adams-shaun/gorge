@@ -160,7 +160,7 @@ type coldArrays struct {
 	// this turn's spell pushes, castRingN per player (cast_castledger.go)
 	castRing []castPush
 	// the earlier players' discards while the next chooses (act_eachdiscard.go)
-	discHeld []Obj
+	discHeld []uint8
 	// the resolution waiting on its copy's election (copy_gen.go)
 	copyHeld []copyHold
 	// per battlefield slot: multikicker payments of the permanent's spell (CR 702.43; kw_multikicker.go)

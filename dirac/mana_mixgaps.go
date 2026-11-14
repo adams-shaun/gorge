@@ -26,6 +26,7 @@ const (
 	otherDeferred  // a deferred source tapped for its {R} (mixDeferred)
 	otherTapXPlain // a second-ability tap-another source's plain first ability (tapXPlainDo)
 	otherCtr       // a counter-cost source's ability (mixCtr): the counter one, or plain {T} first
+	otherChosen    // a chosen-colour pair source (mana_chosenfilter.go): its plain {T} ability or the land-only pair
 )
 
 // otherStep is one activation of a gap that is no filter.
@@ -134,6 +135,7 @@ func (s *State) otherGaps(k *prep, p uint8, a Action) slotMask {
 			}
 		}
 	}
+	m = m.or(s.chosenPairGaps(k, p)) // (a filter board only: mana_chosenfilter.go)
 	return m.andNot(s.scriptFilt(k, p))
 }
 
@@ -171,6 +173,8 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 		return fs.try(k, t, filtStep{sl: sl, gap: true, other: o}, funded, true)
 	}
 	switch {
+	case k.gen.rs != nil && k.gen.rs.chosenPair && t.chosenPairSrc(k, t.cardAt(sl)):
+		return fs.chosenPairGap(t, sl, try)
 	case k.gen.anyDeferred && k.gen.has(t.cardAt(sl), gfDeferred):
 		// a single fixed {R} ability: no ask node (deferBranch)
 		return t.perms[sl].flags&pfTapped == 0 && try(otherStep{kind: otherDeferred})
@@ -454,6 +458,8 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 		s.tapXDo(k, p, tapXStep{sl: st.sl, cand: o.cand, cand2: o.cand2, col: o.ans})
 	case otherTapXPlain:
 		s.tapXPlainDo(k, p, st.sl, o.ans)
+	case otherChosen:
+		s.chosenGapDo(k, p, st.sl, o.plain)
 	case otherCtr:
 		if o.plain {
 			// the plain first {T} ability's answer: the counters and the use
