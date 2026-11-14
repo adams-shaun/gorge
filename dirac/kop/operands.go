@@ -71,6 +71,14 @@ const MayGuardPut = 10
 // asked and the move is skipped.
 const MayGuardMoveRemembered = 11
 
+// MayGuardDigUntil: the OpMayAsk guard of an Optional$ DigUntil (gorge
+// effects/diguntil.go digUntilMayReveal): asked only when the next DigUntil's
+// amount is above 0 and the dug player's library holds a card (drawAsks'
+// test); else the DigUntil is skipped unasked. Obj names the asked player
+// (the dug player; unset: the resolving controller). Oath of Druids,
+// Thicket Elemental.
+const MayGuardDigUntil = 12
+
 // MayGuardAnimateAll: the OpMayAsk guard of Animate over Defined$ Valid: the
 // next op is an OpOverrideAll whose F has at least one battlefield hit (gorge
 // animateWouldChange), else nothing is asked.

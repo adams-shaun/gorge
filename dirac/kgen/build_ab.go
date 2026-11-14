@@ -538,6 +538,9 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 	if t.DiffCtrl {
 		ts.TFlags |= kop.TgfDiffController
 	}
+	if t.OppToActive {
+		ts.TFlags |= kop.TgfOppToActive | kop.TargetFlags(t.ThanActive)<<kop.TgfThanShift
+	}
 	if t.TrigChooser {
 		if ts.Min|ts.Max != 0 || ts.Divide != 0 {
 			return ts, fmt.Errorf("trigger-player chooser on a several-object slot")
@@ -4301,6 +4304,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
+	case "ChoosePlayerRes":
+		// OpExt ExtChoosePlayerRes, C bit 0 the Player.!IsRemembered pool
+		// (act_chooseplayerres.go)
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChoosePlayerRes)), int16(in.C&kop.ChoosePlayerFresh)
 	case "DrawUpto":
 		// OpExt ExtDrawUpto: Obj the drawer, B the most cards (act_drawupto.go)
 		v, err := cb.value(in.A)

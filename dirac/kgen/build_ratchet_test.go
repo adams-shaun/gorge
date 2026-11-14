@@ -259,8 +259,7 @@ import (
 // +2 (MBC replacements-2: a DamageDone doubler with no ValidTarget$, Fire Servant; ValidSource$ Card.Self with IsCombat$ True, Charging Tuskodon; merged ALL build-level 23559 -> 23561 measured).
 // +11 (MBC zone-moves-5: Count$TopOfLibraryCMC, Reorder$ on a library-to-top search, the AIRespondsToOwnAbility$ hint and the ThisTurnEnteredFrom_Library word; the same eleven cards as ratchet_test.go's ALL pin; ALL build-level 23253 -> 23264 measured).
 // +10 (MBC trigger-referents-6: TriggeredSourceController on a plain DamageDone line, TriggeredAttackedTarget controller slots, LibraryPosition$ 2 of the dying card: Edric, Spymaster of Trest, Gornog, the Red Reaper, God-Eternal Oketra, Brood Sliver, Synapse Sliver, Backfire, Michiko Konda, Truth Seeker, Whirlwind, Killer Cyclone, God-Eternal Rhonas, God-Eternal Bontu; ALL build-level merged against land 23608 -> 23618 measured).
-// +18 (CantGainLife/CantDraw ValidPlayer$ Opponent as kop.StBanOpp and an inert Continuous AddSVar$ with the TASK counter kind: Tibalt, Rakish Instigator, Quakebringer, Archfiend of Despair, Gríma Wormtongue, Heliod's Punishment, Animal Boneyard, Burning Anger, Hard Cover, Elemental Mastery, Dragon Throne of Tarkir, Oracle's Insight, Sisay's Ingenuity, Quicksilver Dagger, Sinstriker's Will, Sorcerer's Wand, Pathway Arrows, Knight of Dusk's Shadow, Arlinn Kord; ALL build-level 23525 -> 23543 measured).
-var buildAcceptancePin = [2]int{23676, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{23687, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)
