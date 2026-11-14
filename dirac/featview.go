@@ -547,8 +547,8 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 	if k.gen == nil {
 		return true
 	}
-	if len(k.gen.grantPC) != 0 && !s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
-		return false // payable only with a granted mana ability (the V1 exclusion above)
+	if (len(k.gen.grantPC) != 0 || k.gen.anyComboDyn && s.comboDynLive(k, p)) && !s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
+		return false // payable only with a granted mana ability (the V1 exclusion above) or a Combo Any of an evaluated amount (mana_combodyn.go)
 	}
 	return s.planHoldsOnStack(k, p, o, &cost) // cast_planholdsonstack.go
 }
@@ -845,14 +845,20 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet) {
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		pm := &s.perms[sl]
-		if sl == ex || pm.flags&pfTapped != 0 || s.grantMay(k, sl) && s.manaGranted(k, sl) {
+		if sl == ex || s.grantMay(k, sl) && s.manaGranted(k, sl) {
 			continue
 		}
 		if defer_ && s.planDeferred(k, p, sl) {
 			continue // the census never lists a deferred source (mana_rider.go)
 		}
 		pc := s.manaPCGen(k, sl)
-		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || !s.canTapForManaPC(k, sl, pc) {
+		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || k.gen.anyComboDyn && s.comboDynAt(k, sl, pc) {
+			continue // (a Combo Any of an evaluated amount is no census unit: mana_combodyn.go)
+		}
+		// a printed sacrifice-only ability (Eldrazi Spawn's {C}) is a last-resort
+		// unit of the census, tapped or not and beside a granted {T} ability
+		// (CR 602.2b; gorge's census admits each printed ability on its own)
+		if !s.canTapForManaPC(k, sl, pc) && !(k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)) {
 			continue
 		}
 		if k.painMana && pc.painCol != 0 {
@@ -999,8 +1005,7 @@ func (s *State) FeatPayManual() bool {
 		return false
 	}
 	k := s.k()
-	in := &s.prog(k)[s.res.pc]
-	c := manaOf(int(s.g.pickLeft), s.numTimesPips(k, in.B.N))
+	c := s.resPayCost(k) // cost_trighybrid.go
 	var av avail
 	pl := &s.pl[SeatIx(s.g.pickP)]
 	for i := 0; i < kop.NumManaKinds; i++ {

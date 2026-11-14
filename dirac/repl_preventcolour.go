@@ -36,15 +36,20 @@ func prepPrevCol(t *kop.Table, g *genPrep) {
 func (s *State) prevColHit(k *prep, sl Slot, c CardID, t prevTgt, combat bool) bool {
 	var m kop.ColorMask
 	for i := range s.g.prevCol {
-		if s.g.prevCol[i].sc&prevNextSc == 0 {
-			m |= s.g.prevCol[i].col // a depleting shield's col is its pool (repl_prevnext.go)
+		if s.g.prevCol[i].sc == 0 {
+			m |= s.g.prevCol[i].col // a scoped record's col filters its sources, a depleting shield's is its pool (repl_prevnext.go)
 		}
 	}
 	if m != 0 && s.srcColors(k, sl, c)&m != 0 && !DebugNoPrevCol {
 		return !s.noPrev(k, combat) // CR 615.12
 	}
 	for i := range s.g.prevCol {
-		if r := &s.g.prevCol[i]; r.sc != 0 && s.prevScopeHit(k, r.sc, uint8(r.ctl), sl, t) { // code-ok: a scoped record's ctl is a seat
+		r := &s.g.prevCol[i]
+		var sc kop.ColorMask
+		if r.col != 0 {
+			sc = s.srcColors(k, sl, c) // only a colour-filtered record reads it
+		}
+		if r.sc != 0 && s.prevScopeHit(k, r, sl, sc, t, combat) {
 			return !s.noPrev(k, combat)
 		}
 	}
@@ -68,7 +73,7 @@ func (s *State) prevColCands(k *prep, col kop.ColorMask, srcSl Slot, t prevTgt, 
 	for i := range s.g.prevCol {
 		r := &s.g.prevCol[i]
 		if r.sc != 0 {
-			if !s.prevScopeHit(k, r.sc, uint8(r.ctl), srcSl, t) { // code-ok: a scoped record's ctl is a seat
+			if !s.prevScopeHit(k, r, srcSl, col, t, combat) {
 				continue
 			}
 		} else if r.col == 0 || r.col&col == 0 || DebugNoPrevCol {
