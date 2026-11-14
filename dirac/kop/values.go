@@ -485,7 +485,9 @@ const ExAttackedTurn ExprKind = 235
 // by a legendary creature (gorge PlayerCountRegisteredOpponents$
 // HasPropertywasDealtCombatDamageThisTurnBy Creature.Legendary GE1), N 2 the
 // opponent dealt combat damage this turn by any source (the bare head
-// HasPropertywasDealtCombatDamageThisTurn, Tymna the Weaver).
+// HasPropertywasDealtCombatDamageThisTurn, Tymna the Weaver), N 3 the living
+// opponents dealt any damage this turn, combat or not (gorge
+// PlayerCountOpponents$HasPropertywasDealtDamageThisTurn, Gnoll War Band).
 const (
 	SacrificedFood   = 2
 	OppsHitLegendary = 1

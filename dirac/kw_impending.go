@@ -187,6 +187,9 @@ func (s *State) offerAltHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av 
 	if k.t.Cards[c].HasOverload {
 		s.offerOverloadHand(k, d, p, o, c, av) // kw_overload.go
 	}
+	if k.t.Cards[c].CleaveAb != 0 {
+		s.offerCleaveHand(k, d, p, o, c, av) // kw_cleave.go
+	}
 	if k.t.Cards[c].HasSurge {
 		s.offerSurgeHand(k, d, p, o, c, av) // kw_surge.go
 	}

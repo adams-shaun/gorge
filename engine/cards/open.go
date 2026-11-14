@@ -160,9 +160,12 @@ func loadFreshCache(dir, cache string) (*Registry, bool) {
 	return r, true
 }
 
-// cacheFresh reports whether cache is a usable IR cache for dir: it exists
-// and is at least as new as every corpus input that is present. It is the ONE
-// home of the staleness rule -- openCorpus and the segment path in subset.go
+// cacheFresh reports whether cache is a usable IR cache for dir: it exists,
+// is at least as new as every corpus input that is present, and carries a
+// digest sidecar (tokens_digest.go) agreeing with the token scripts dir holds
+// now — the mtime rules compare one directory's timeline and cannot see a
+// cache written by another view of the corpus. It is the ONE home of the
+// staleness rule -- openCorpus and the segment path in subset.go
 // both consult it, so the three sites cannot drift apart.
 //
 // The lock alone is not enough, because fetchRepo's write order defeats it:
@@ -181,7 +184,14 @@ func cacheFresh(dir, cache string) bool {
 	if err != nil {
 		return false
 	}
-	return !corpusInputNewerThan(dir, ci)
+	if corpusInputNewerThan(dir, ci) {
+		return false
+	}
+	// The mtimes above compare one directory's timeline; the digest sidecar
+	// (tokens_digest.go) compares the cache's recorded token scripts against
+	// the directory's actual ones, which is what catches a cache written by
+	// another view of the corpus whose mtimes are all older.
+	return tokenDigestFresh(dir, cache)
 }
 
 // corpusInputNewerThan reports whether any corpus input for dir is newer than

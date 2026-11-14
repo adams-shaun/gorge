@@ -55,6 +55,7 @@ func main() {
 	fs.StringVar(&o.gauntletPlayer, "gauntlet-player", "bot", "bot policy for BOTH gauntlet seats (an Env policy is refused, like the draft seats)")
 	fs.StringVar(&o.baseline, "baseline", "random", "gauntlet baseline deck per seat: random (23 random non-land pool cards + AutoLands) or none")
 	fs.StringVar(&o.valueLog, "valuelog", "", "path to append one JSON line per Commander pod game to: each seat's commanders, deck, in-hand cards and finish, the input of an offline card-value regression")
+	fs.StringVar(&o.only, "only", "", "deal only the cards this file names: one name a line, or kgen -supported's name<TAB>true|false lines (true rows only), so `kgen -supported mbc -four-seat` is dirac's 4-seat MBC list; a sheet the list cannot fill deals the same rarities' listed cards from the other sheets, and the run prints each sheet's fill rate")
 	fs.Float64Var(&o.pickExplore, "pick-explore", 0, "probability per pick that a seat takes a random pack card instead of its persona's pick (card-value sampling; 0 = off)")
 	fs.BoolVar(&o.verbose, "v", false, "print each seat's policy and deck summary")
 	dir := fs.String("dir", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
@@ -117,6 +118,9 @@ type options struct {
 	// valueLog is -valuelog; pickExplore is -pick-explore (valuelog.go).
 	valueLog    string
 	pickExplore float64
+	// only is -only: the card-list file the packs are cut to (only.go),
+	// "" for the set's full sheets.
+	only string
 }
 
 // playerList splits the -players flag into its per-seat policies: one name

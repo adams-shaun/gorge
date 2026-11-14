@@ -17,7 +17,7 @@ func TestEnteredFromWordLowers(t *testing.T) {
 	if err != nil || len(f.Clauses) != 1 || f.Clauses[0].CmpStat != cmpWord7 || f.Clauses[0].CmpN != int(kop.W7EnteredFromBF) {
 		t.Fatalf("battlefield origin: got %s, %v", f, err)
 	}
-	for _, z := range []string{"Hand", "Library", "Graveyard", "Exile"} {
+	for _, z := range []string{"Hand", "Graveyard", "Exile"} { // Library lowers (enteredfromlib_test.go)
 		_, err := parseFilter("Creature.ThisTurnEnteredFrom_"+z, known, known)
 		if err == nil || !strings.Contains(err.Error(), "ThisTurnEnteredFrom_"+z) {
 			t.Errorf("origin %s: err %v, want a refusal naming the word", z, err)

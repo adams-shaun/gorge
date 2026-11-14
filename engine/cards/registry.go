@@ -349,6 +349,14 @@ func (r *Registry) Save(path string) error {
 	if err := r.saveGob(path); err != nil {
 		return err
 	}
+	// Record what the tokenscripts directory held when r was compiled
+	// (tokens_digest.go): the freshness rule refuses a cache whose sidecar is
+	// missing or disagrees with the directory the cache is opened from, which
+	// is how a cache compiled by a corpus view without the token scripts
+	// stops being served once it is read from a view that has them.
+	if err := saveTokenDigest(path); err != nil {
+		return err
+	}
 	return writeSegments(SegmentPath(path), r.AllCards(), r.Tokens)
 }
 
