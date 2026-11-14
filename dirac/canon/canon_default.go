@@ -1,9 +1,6 @@
-//go:build !dirac_mp
-
 package canon
 
-// Ref is a canonical reference (canon.go): a byte in the default class, as
-// dirac.TCode.
+// Ref is a canonical reference (canon.go): a byte, as dirac.TCode.
 type Ref = uint8
 
 // Canon is a canonical option tuple (canon.go): kind<<24 | source<<16 |

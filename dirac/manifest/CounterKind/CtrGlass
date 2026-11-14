@@ -1,0 +1,7 @@
+family: CounterKind
+name: CtrGlass
+value: 166
+forge: GLASS
+census: ctr GLASS all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

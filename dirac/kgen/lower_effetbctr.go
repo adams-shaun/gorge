@@ -147,8 +147,8 @@ func (lc *lowerCtx) effectEtbCounters(ps *params) (bool, error) {
 
 // etbCtrSelfExile verifies a widened body's SubAbility is the exact
 // self-exile the carriers spell (the Effect removes itself after the
-// counter lands: DB$ ChangeZone | Defined$ Self | Origin$ Command |
-// Destination$ Exile). Anything else refuses by name.
+// counter lands: a ChangeZone moving the Effect itself from the command
+// zone to exile). Anything else refuses by name.
 func (lc *lowerCtx) etbCtrSelfExile(name string) error {
 	s := etbParams(lc.face.SVars[name])
 	if s == nil || s["DB"] != "ChangeZone" || s["Defined"] != "Self" || s["Origin"] != "Command" || s["Destination"] != "Exile" || len(s) != 4 {

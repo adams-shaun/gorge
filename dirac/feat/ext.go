@@ -175,7 +175,7 @@ func (e *Encoder) extBelief(seat uint8, opp *vplayer) {
 // distinct real targets. Classes are targetClass's.
 func (e *Encoder) entryTarget(seat uint8, se *dirac.ProjStack) (cre *vcard, player, stack, n int) {
 	player, stack = tcNone, -1
-	var seen [kop.MaxTargets + len(se.Extra)]uint8
+	var seen [kop.MaxTargets + len(se.Extra)]dirac.TCode
 	nseen := 0
 	total := len(se.Targets) + int(se.NExtra)
 	for j := 0; j < total; j++ {
@@ -188,7 +188,7 @@ func (e *Encoder) entryTarget(seat uint8, se *dirac.ProjStack) (cre *vcard, play
 		}
 		dup := false
 		for k := 0; k < nseen; k++ {
-			if dirac.TCode(seen[k]) == t {
+			if seen[k] == t {
 				dup = true
 				break
 			}
@@ -196,10 +196,10 @@ func (e *Encoder) entryTarget(seat uint8, se *dirac.ProjStack) (cre *vcard, play
 		if dup {
 			continue
 		}
-		seen[nseen] = uint8(t)
+		seen[nseen] = t
 		nseen++
 		n++
-		tc, host := e.targetClass(seat, uint8(t))
+		tc, host := e.targetClass(seat, t)
 		switch {
 		case host != nil && (tc == tcCreatureMe || tc == tcCreatureOpp):
 			if cre == nil {
@@ -211,7 +211,7 @@ func (e *Encoder) entryTarget(seat uint8, se *dirac.ProjStack) (cre *vcard, play
 			}
 		case tc == tcStack:
 			if stack < 0 {
-				stack = e.stackEntryOf(uint8(t))
+				stack = e.stackEntryOf(dirac.Obj(t))
 			}
 		}
 	}
@@ -852,7 +852,7 @@ func (e *Encoder) hitsPlayer(seat uint8, i, tc int) bool {
 			t = se.Targets[j]
 		}
 		if dirac.TCode(t) != dirac.NoTarget {
-			if tc2, _ := e.targetClass(seat, uint8(t)); tc2 == tc {
+			if tc2, _ := e.targetClass(seat, t); tc2 == tc {
 				return true
 			}
 		}
@@ -862,7 +862,7 @@ func (e *Encoder) hitsPlayer(seat uint8, i, tc int) bool {
 
 // hitsObj reports whether stack entry i targets battlefield creature obj,
 // whose controller's class (tcCreatureMe or tcCreatureOpp) is want.
-func (e *Encoder) hitsObj(seat uint8, i int, obj uint8, want int) bool {
+func (e *Encoder) hitsObj(seat uint8, i int, obj dirac.Obj, want int) bool {
 	se := &e.kp.Stack[i]
 	for j := 0; j < len(se.Targets)+int(se.NExtra); j++ {
 		t := se.Extra[max(j-len(se.Targets), 0)]
@@ -870,7 +870,7 @@ func (e *Encoder) hitsObj(seat uint8, i int, obj uint8, want int) bool {
 			t = se.Targets[j]
 		}
 		if dirac.TCode(t) != dirac.NoTarget && t == dirac.TCode(obj) {
-			if tc, host := e.targetClass(seat, uint8(t)); tc == want && host != nil {
+			if tc, host := e.targetClass(seat, t); tc == want && host != nil {
 				return true
 			}
 		}
@@ -880,8 +880,8 @@ func (e *Encoder) hitsObj(seat uint8, i int, obj uint8, want int) bool {
 
 // onlyUntapped is pv's only untapped creature's object, false unless
 // exactly one exists.
-func (e *Encoder) onlyUntapped(pv *vplayer) (uint8, bool) {
-	var o uint8
+func (e *Encoder) onlyUntapped(pv *vplayer) (dirac.Obj, bool) {
+	var o dirac.Obj
 	n := 0
 	for _, ci := range pv.bf {
 		c := &e.v.cards[ci]
@@ -982,7 +982,7 @@ func (e *Encoder) extKill(seat uint8, me, opp *vplayer, mine, theirs *agg) {
 				if j < len(se.Targets) {
 					t = se.Targets[j]
 				}
-				k := e.stackEntryOf(uint8(t))
+				k := e.stackEntryOf(dirac.Obj(t))
 				if k < 0 {
 					continue
 				}

@@ -1,73 +1,12 @@
 package oracle
 
 import (
-	"reflect"
-	"runtime"
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/engine/effects"
 )
-
-// skipWithoutGorgeStdFixes skips the stdfix lockstep at a gorge pin
-// without the four MageZero fixes (gorge carries them all:
-// cr-trigcond-defenderctrl, cr-sleep-defined-targeted, cr-blocked-filter,
-// cr-totalpt-filter). The probe
-// reads the two filter words the fixes added (effects.UnknownPredicates);
-// the Siege Dragon and Sleep fixes have no exported surface and landed in
-// the same pin range.
-func skipWithoutGorgeStdFixes(t *testing.T) {
-	t.Helper()
-	if len(effects.UnknownPredicates("Creature.blocked+YouCtrl")) != 0 || len(effects.UnknownPredicates("Creature.totalPT_LE5")) != 0 || !gorgePinAtLeast(t, gorgeStdFixesTime) {
-		t.Skip("gorge pin lacks the blocked / totalPT filter words and the Siege Dragon / Sleep fixes")
-	}
-}
-
-// gorgeStdFixesTime is the commit time (UTC, as in a Go pseudo-version) of
-// gorge, the first commit carrying all four fixes. The filter-word
-// probe alone is not enough: gorge (07:44:17Z) has blocked and
-// totalPT but not cr-sleep-defined-targeted, so the Sleep leg cannot
-// diverge there.
-const gorgeStdFixesTime = "20261026075942"
-
-// gorgePinAtLeast reports whether the linked gorge module's pseudo-version
-// timestamp is at or after ts (yyyymmddhhmmss). A test binary's build info
-// does not list its dependencies, so the version is read from the source
-// path of a gorge function, which the module cache spells
-// .../github.com/adams-shaun/gorge@v0.0.0-<time>-<sha>/...; a replace to a
-// local checkout (the -modfile route used to test against an unreleased
-// gorge) rewrites the path to the require version, the bare v0.0.0 for a
-// versionless replace, and counts as new enough.
-func gorgePinAtLeast(t *testing.T, ts string) bool {
-	t.Helper()
-	f := runtime.FuncForPC(reflect.ValueOf(effects.UnknownPredicates).Pointer())
-	if f == nil {
-		return false
-	}
-	file, _ := f.FileLine(f.Entry())
-	at := strings.Index(file, "adams-shaun/gorge@")
-	if at < 0 {
-		return true
-	}
-	v := file[at+len("adams-shaun/gorge@"):]
-	if i := strings.IndexByte(v, '/'); i >= 0 {
-		v = v[:i]
-	}
-	// v0.0.0-yyyymmddhhmmss-abcdef123456
-	parts := strings.Split(v, "-")
-	if len(parts) < 3 {
-		// No pseudo-version timestamp: the bare v0.0.0 rewrite means the
-		// module is a directory replace, i.e. a local (unreleased) checkout.
-		return v == "v0.0.0"
-	}
-	if len(parts[len(parts)-2]) != 14 {
-		return false
-	}
-	return parts[len(parts)-2] >= ts
-}
 
 // The MageZero gorge-fix lockstep, for the four cards gorge
 // mis-played at the f9191e666 pin:
@@ -99,7 +38,6 @@ var kstdfixDecks = [2][]cardset.Entry{
 
 func TestStdfixLockstep(t *testing.T) {
 	t.Parallel()
-	skipWithoutGorgeStdFixes(t)
 	lockstepSet(t, "stdfix", kstdfixDecks, 1000, "KSTDFIX_SEEDS")
 }
 
@@ -108,7 +46,6 @@ func TestStdfixLockstep(t *testing.T) {
 // players' creatures, makes some seed diverge.
 func TestStdfixLockstepMutation(t *testing.T) {
 	t.Parallel()
-	skipWithoutGorgeStdFixes(t)
 	for _, m := range []struct {
 		name string
 		fn   func(*kop.Table)

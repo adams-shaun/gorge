@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtExchangePower
+value: 67
+forge: ExchangePower
+census: api ExchangePower all=2 std=0 mbc=0 sole=2
+state: code 0
+status: reserved

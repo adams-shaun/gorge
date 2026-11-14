@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigCrankContraption
+value: 55
+forge: CrankContraption
+census: trig CrankContraption all=45 std=0 mbc=0 sole=31
+state: objspace (contraptions)
+status: blocked objspace:tcode

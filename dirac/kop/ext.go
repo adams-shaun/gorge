@@ -1,11 +1,14 @@
 package kop
 
-// Extension sub-ops (OpExt): the op space is full (the iota list below
-// OpCount and the high range 250-254), so a new family adds an ExtOp here,
-// numbered from 1 up and append-only, and lowers its instruction as
-// {Op: OpExt, A: Const(sub)} with the rest of the fields its own. The
-// kernel dispatches them in a cold file (extop.go):
-// one extra switch only on an ext instruction, nothing on the hot path.
+// Extension sub-ops (OpExt): a new operation is an ExtOp, not an Op (the op
+// values left below OpHighFirst are kept for approved hot-path ops), and
+// lowers its instruction as {Op: OpExt, A: Const(sub)} with the rest of the
+// fields its own. The list below is frozen: a new sub-op is a manifest entry
+// (dirac/manifest/ExtOp/ExtX; most are pre-mapped, so activate it), which
+// kmanifest generates with its extOpNames row into manifest_gen.go. The
+// kernel dispatches them in a cold file (extop.go): one extra switch only on
+// an ext instruction, nothing on the hot path; a new sub-op's handler is a
+// //kmanifest:ext method, not a case there.
 type ExtOp int16
 
 const (
@@ -88,7 +91,9 @@ const (
 	// target slot C, as the controller divided them while putting the
 	// trigger on the stack (TargetSpec.Divide == DivLKIP1P1: the slot takes
 	// 0..X targets, the total is X; CR 601.2d, 603.10a; gorge cr-dies-trigger-
-	// divided-counters-lki). dirac/ctr_divided.go.
+	// divided-counters-lki). B.N is the counter kind the shares put (0,
+	// CtrP1P1, for every form but the literal-N one; Contagion's -2/-1).
+	// dirac/ctr_divided.go.
 	ExtDividedCounters ExtOp = 30
 	// ExtSacDelayed (Mobilize): sacrifice, as one batch, the
 	// group program's remembered objects (trigObj and the one packed in
@@ -199,8 +204,8 @@ const (
 	// ExtLockActs (Braided Net): the permanent in Obj (a target),
 	// when it is tapped as this resolves, loses the ability to have its
 	// activated abilities activated, mana abilities included, for as long as
-	// it stays tapped (gorge Effect Mode$ CantBeActivated | ValidCard$
-	// Card.IsRemembered | ValidSA$ Activated, Duration$ UntilTargetedUntaps;
+	// it stays tapped (a gorge Effect whose CantBeActivated static covers the
+	// remembered card's activated abilities until the target untaps;
 	// CR 602.5, 611.2b): its first untap or departure ends the lock for good,
 	// and the source leaving does not. dirac/act_lockpermanent.go.
 	ExtLockActs ExtOp = 140
@@ -210,8 +215,9 @@ const (
 	// before the mint loop), runs that CreateToken in place and skips it, then
 	// sets the token it minted (res.lastTok) to those values as a permanent
 	// layer-7b set stamped at the mint (gorge effects/token.go: one SubSet
-	// effect sourced to the token). The Ex form counts the mint: no mint does
-	// nothing, more than one stalls StallTokenPT.
+	// effect sourced to the token). The Ex form counts the mints: no mint does
+	// nothing, each of an X mint takes the set, and a count that is not the
+	// op's amount (a token doubler) stalls StallTokenPT.
 	// dirac/act_tokenpt.go.
 	ExtTokenPT ExtOp = 170
 	// ExtExHaste (Agility Bobblehead): the object in Obj (RefTarget runs once
@@ -222,8 +228,8 @@ const (
 	// ExtAsgnGrant (Plagon, Lord of the Beach; Outmaneuver): until end of
 	// turn the object in Obj (RefTarget runs once per object of a multi-object
 	// slot) assigns its combat damage by a changed rule. C 0 equal to its
-	// toughness rather than its power (gorge Effect Mode$ CombatDamageToughness
-	// | ValidCard$ Card.IsRemembered, CR 510.1); C 1 as though it weren't
+	// toughness rather than its power (a gorge Effect's CombatDamageToughness
+	// static on the remembered card, CR 510.1); C 1 as though it weren't
 	// blocked (gorge Effect Mode$ AssignCombatDamageAsUnblocked, mandatory,
 	// CR 510.1c-d). dirac/combat_asgngrant.go.
 	ExtAsgnGrant ExtOp = 173
@@ -237,11 +243,11 @@ const (
 	// eligible permanent it takes all N unasked, with none nothing happens.
 	// dirac/ctr_distpick.go.
 	ExtDistCounters ExtOp = 310
-	// NumExtOps is a fixed capacity of the sub-op tables, not last+1: a new
-	// sub-op takes the next free value below it (values are pinned by
+	// NumExtOps is a fixed capacity of the sub-op tables, not last+1: a
+	// manifest sub-op takes a free value below it (values are pinned by
 	// testdata/ordinals.tsv) and never edits this line. Unused slots stay
 	// unnamed. Raise it only when the free values run out.
-	NumExtOps ExtOp = 320
+	NumExtOps ExtOp = 321
 )
 
 // ExtDrainMana: the player in Obj loses all unspent mana (gorge
@@ -329,6 +335,13 @@ func init() {
 // activated (CR 707.10), so no cost is paid and no activation tally moves. An
 // ability with Ability.CantCopy is not copied (gorge SpellCopyAllowed).
 const ExtCopyAbility ExtOp = 191
+
+// CopyAbTriggering is the target-slot value (C>>1) of an ExtCopyAbility that
+// copies the activated ability whose activation fired the resolving
+// AbilityCast trigger (Ertha Jo, Frontier Mentor: CopySpellAbility, Defined$
+// TriggeredSpellAbility): the ability is found by the stack identity the
+// trigger's trigAmt carries (dirac/trig_abilitycast.go) instead of a target.
+const CopyAbTriggering = 0x3fff
 
 func init() {
 	extOpNames[ExtCopyAbility] = "CopyAbility"
@@ -607,7 +620,17 @@ const (
 	PrevScopePlayer = 1 << iota
 	PrevScopeCreatures
 	PrevScopeSrcCreature
+	// PrevScopeAll: whatever the recipient (no ValidTarget$ on the line:
+	// Ethereal Haze); the controller bits are then not read.
+	PrevScopeAll
+	// PrevScopeCombat: combat damage only (IsCombat$ True: Loyal Unicorn).
+	PrevScopeCombat
 )
+
+// PrevScopeColourShift: the C bits above it hold the source-colour filter
+// (a ColorMask, 0 = any source): only damage from a source of one of those
+// colours is prevented (Surge of Salvation's ValidSource$ Card.Red,Card.Black).
+const PrevScopeColourShift = 8
 
 func init() { extOpNames[ExtPreventDamageScope] = "PreventDamageScope" }
 
@@ -625,8 +648,9 @@ func init() { extOpNames[ExtCounterPlusEOT] = "CounterPlusEOT" }
 // slot) gains "if a triggered ability of this permanent triggers, that
 // ability triggers an additional time" for as long as the resolving ability's
 // source stays tapped on the battlefield and the object stays on the
-// battlefield (gorge Effect Mode$ Panharmonicon | ValidCard$ Card.IsRemembered,
-// Duration$ UntilUntaps, ExileOnMoved$ Battlefield; CR 603.2d, 611.2b). Nothing
+// battlefield (a gorge Effect's Panharmonicon static on the remembered card,
+// lasting until the source untaps and exiled if it leaves the battlefield;
+// CR 603.2d, 611.2b). Nothing
 // is granted when the source is not a tapped permanent as this resolves. One
 // record per grant in genState.pgT / pgH, counted by the echo walk beside the
 // printed StatPanharmonicon statics. dirac/act_grantpanharm.go.
@@ -735,6 +759,12 @@ func init() { extOpNames[ExtTurnFaceUp] = "TurnFaceUp" }
 // dirac/combat_attacksifable.go.
 const ExtAttacksIfAble ExtOp = 255
 
+// AttacksOpponent is ExtAttacksIfAble's C bit 0: the duty names the
+// opponent ("attacks that opponent this turn if able", Encore), so only the
+// player satisfies it and no planeswalker or battle of theirs is offered
+// (the arena bit mechAttacksPlayer).
+const AttacksOpponent = 1
+
 func init() { extOpNames[ExtAttacksIfAble] = "AttacksIfAble" }
 
 // ExtBlocksIfAble: the battlefield object named by Obj (a target slot)
@@ -816,3 +846,29 @@ func init() { extOpNames[ExtRememberImprinted] = "RememberImprinted" }
 const ExtPreventNext ExtOp = 305
 
 func init() { extOpNames[ExtPreventNext] = "PreventNext" }
+
+// ExtRenown (CR 702.112): the renown trigger's resolution (gorge
+// effPutCounter's RenownSet arm, the K:Renown expansion body DB$ PutCounter |
+// Defined$ Self | Renown$ N). The battlefield permanent Obj (the source),
+// unless it is already renowned, gets B +1/+1 counters through OpPutCounter's
+// path, then the renowned designation (gorge AlterAttribute "Renowned"). A
+// source that left the battlefield, or B <= 0, does nothing. The designation
+// is the arena slot bit mechRenowned, cleared when the permanent leaves.
+// dirac/act_renown.go. 294: land's ExtTapOrUntapAll holds 295.
+const ExtRenown ExtOp = 294
+
+func init() { extOpNames[ExtRenown] = "Renown" }
+
+// ExtGrantEncore (Araumi of the Dead Tide): the graveyard card Obj gains
+// encore until end of turn (gorge pump.go's PumpZone$ Graveyard keyword
+// grant, the derived keyword [Encore:CardManaCost], CR 702.164a's grant
+// rider). gorge offers no activation of a granted encore -- kw_granted.go
+// synthesizes granted-keyword abilities for Cycling, Crew, Equip and friends
+// but not Encore, and no graveyard walk offers one -- so the kernel records
+// the grant alone: one mech bit on the card (mechEncore), part of its view,
+// ending at the zone change or the cleanup, like a granted flashback
+// (dirac/kw_encoregrant.go). A card no longer in the graveyard takes nothing
+// (gorge pump.go's zone guard skips it).
+const ExtGrantEncore ExtOp = 320
+
+func init() { extOpNames[ExtGrantEncore] = "GrantEncore" }

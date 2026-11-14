@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExLandfall
+value: 79
+forge: Landfall
+census: count Landfall all=5 std=0 mbc=1 sole=4
+state: player 4 (turn tallies)
+status: reserved

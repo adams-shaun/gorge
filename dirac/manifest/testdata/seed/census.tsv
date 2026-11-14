@@ -1,0 +1,18 @@
+kind	item	cards_all	cards_std	cards_mbc	lowered_cards	refused_naming_it	sole_blocker	status	state_category	state_key	bytes_def	bytes_mp
+ctr	P1P1	900	10	5	900	0	0	lowered	done	-	0	0
+ctr	BOUNTY	6	0	0	0	0	0	co-refused	code	ctr:BOUNTY	0	0
+ctr	ICE	7	0	0	0	0	0	co-refused	code	ctr:ICE	0	0
+ctr	FLOOD	6	1	0	0	0	0	co-refused	code	ctr:FLOOD	0	0
+ctr	TICKET	23	0	0	0	0	0	co-refused	code	ctr:TICKET	0	0
+ctr	M1M1	9	0	0	0	0	0	co-refused	code	ctr:M1M1	0	0
+ctr	EachNotOn	1	0	0	0	0	0	co-refused	code	ctr:EachNotOn	0	0
+ctr	ACQUIREDTASTE	1	0	0	0	0	0	co-refused	code	ctr:ACQUIREDTASTE	0	0
+kw	Banding	24	0	1	0	3	2	refused	slotbyte	banding	112	112
+kw	Trample	1041	206	52	748	2	1	partial	code	kw:Trample	0	0
+kw	CARDNAME can only attack alone.	1	0	0	0	1	1	refused	code	kw:CARDNAME can only attack alone.	0	0
+api	MakeCard	187	0	0	0	90	75	refused	objspace	outside-game cards	0	0
+api	ChooseSource	67	2	1	0	30	10	refused	unbounded	prevention/effect records	0	0
+api	Clash	29	3	0	0	10	5	refused	code	api:Clash	0	0
+api	Bar	9	0	0	0	1	1	refused	code	api:Bar	0	0
+trig	Crewed	7	1	0	0	2	1	refused	slotbit	crewed	16	16
+link	Paired	3	0	0	3	0	0	lowered	done	-	0	0

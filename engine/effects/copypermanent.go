@@ -445,9 +445,9 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		pick := DefinedSpec(h, c, "Valid "+cp.ChoiceFilter)
 		if spec != "" {
 			// Choices$ with Defined$: Forge narrows the Defined$ objects by
-			// the Choices$ filter (Mimic Vat's `Defined$
-			// Imprinted.ExiledWithSource | Choices$ Card` picks one of the
-			// cards exiled with it). The selector stays FAIL-CLOSED like the
+			// the Choices$ filter (Mimic Vat names its imprinted cards
+			// exiled with it and lets any of them be chosen, so it picks one
+			// of the cards exiled with it). The selector stays FAIL-CLOSED like the
 			// plain Defined$ arm below: an unresolvable one is one Note and
 			// no copy, never the battlefield sweep.
 			ts, ok := knownDefinedTargets(h, c, spec)

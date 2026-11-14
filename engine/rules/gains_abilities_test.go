@@ -12,13 +12,9 @@ import (
 
 // The has-all-abilities-of static class (Forge's GainsAbilitiesOf$ /
 // GainsTriggerAbsOf$ on a Mode$ Continuous static) pinned on the real corpus
-// carrier Idris, Soul of the TARDIS, whose static is
-//
-//	S:Mode$ Continuous | Affected$ Card.Self | EffectZone$ Battlefield |
-//	  GainsAbilitiesOf$ Card.ExiledWithSource |
-//	  GainsTriggerAbsOf$ Card.ExiledWithSource | GainsAbilitiesOfZones$ Exile |
-//	  AddPower$ X | AddToughness$ X
-//	X = Count$ValidExile Card.ExiledWithSource$CardManaCost
+// carrier Idris, Soul of the TARDIS, whose static, on the battlefield, gives
+// Idris the activated and triggered abilities of the cards exiled with it (read
+// from exile) and +X/+X, X being the total mana value of those cards.
 //
 // The exiled card is an AUTHORED fixture artifact (never a corpus .txt, per
 // the licensing rule) carrying one activated ability and one triggered
@@ -390,8 +386,8 @@ func gainsRivalLandSrc(t testing.TB) *cards.Card {
 
 // TestGainsValidAbilitiesExcludesForeignManaAbilities pins the grant's
 // GainsValidAbilities$ filter on the real corpus carrier Sharkey, Tyrant of
-// the Shire (`GainsAbilitiesOf$ Land.OppCtrl |
-// GainsValidAbilities$ Activated.!ManaAbility`): the opponent land's
+// the Shire (it gains the non-mana activated abilities of lands your opponents
+// control): the opponent land's
 // non-mana activated ability IS gained and offered, its mana ability is NOT --
 // neither on the ability offer nor in the mana-ability collector the payment
 // window reads.
@@ -443,8 +439,8 @@ func gainsRivalWalkerSrc(t testing.TB) *cards.Card {
 
 // TestGainsValidAbilitiesLoyaltyOnlyAdmitsOnlyLoyalty pins the other filter
 // direction on the real corpus carrier Nicol Bolas, Dragon-God
-// (`GainsAbilitiesOf$ Planeswalker.Other |
-// GainsValidAbilities$ Activated.Loyalty`): of the foreign walker's two
+// (it gains the loyalty abilities of other planeswalkers): of the foreign
+// walker's two
 // activated abilities exactly the loyalty one is gained.
 func TestGainsValidAbilitiesLoyaltyOnlyAdmitsOnlyLoyalty(t *testing.T) {
 	t.Parallel()
@@ -509,10 +505,9 @@ func TestGainsValidAbilitiesLoyaltyOnlyAdmitsOnlyLoyalty(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// gainsMairsilFixtureSrc is an AUTHORED carrier carrying Mairsil the
-// Pretender's exact static line (GainsAbilitiesOf$ Card.YouOwn+counters_GE1_CAGE
-// | GainsAbilitiesOfZones$ Exile | GainsAbilitiesLimitPerTurn$ 1) and nothing
-// else -- no ETB trigger, no own abilities, so the per-turn cap is the only
+// gainsMairsilFixtureSrc is an AUTHORED carrier with Mairsil the Pretender's
+// static (it gains the abilities of cards you own in exile with a cage counter,
+// each usable once per turn) and nothing else -- no ETB trigger, no own abilities, so the per-turn cap is the only
 // thing under test.
 func gainsMairsilFixtureSrc(t testing.TB) *cards.Card {
 	t.Helper()
@@ -658,8 +653,8 @@ func gainsCarrierSrc(t testing.TB) *cards.Card {
 
 // gainsReturnerSrc is the r2-finding foreign fixture: an artifact whose
 // trigger fires when a creature you control dies and whose body returns the
-// remembered card (the Custodi Squire shape, `DB$ ChangeZone | Defined$
-// Remembered | Origin$ Graveyard | Destination$ Hand`). The body reads NO
+// remembered card (the Custodi Squire shape, a ChangeZone of the remembered
+// card from the graveyard to the hand). The body reads NO
 // SVar -- this test isolates the remembered serialization, not the SVar
 // provenance.
 func gainsReturnerSrc(t testing.TB) *cards.Card {

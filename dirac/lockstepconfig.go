@@ -203,6 +203,11 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 			a.addUnits(1<<k.deferCol(s.cardAt(b.first())), 1)
 		}
 	}
+	// A Combo Any source (Axebane Guardian) is a census gap too, and the window
+	// taps it for its amount of any-colour mana (mana_comboany.go).
+	if k.gen != nil && k.gen.anyComboAny && s.g.availX&3 == 0 {
+		s.availCA(k, p, a)
+	}
 	// A counter-rider or Taps-deferred source (Twitching Doll's "{T}: Add one
 	// mana of any color. Put a nest counter on this", a Taps watcher's Defer
 	// source) is deferred by the planner the same way, and CR 601.2g's window
@@ -264,6 +269,9 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 		for i := 0; i < int(a.NTargets); i++ {
 			bound = bound || xBoundTarget(k.t, &a.Targets[i]) || xCountTarget(&a.Targets[i])
 		}
+		// a protection quality reads the spell's own mana value, X in it: the
+		// announced X can leave every candidate protected (protSpellXMV)
+		bound = bound || k.gen.anyProtF && e.kind == seSpell && k.cards[e.card].cost.X != 0 && a.NTargets != 0
 	}
 	picks := s.convokePickCount() > 0
 	wbX := s.waterbendXBuilding(k) && s.waterbendPickCount() > 0 // a Waterbend<X> pick pays one generic of X (act_waterbend.go)

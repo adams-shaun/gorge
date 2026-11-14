@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigAbilityTriggered
+value: 75
+forge: AbilityTriggered
+census: trig AbilityTriggered all=4 std=1 mbc=1 sole=1
+state: code 0
+status: reserved

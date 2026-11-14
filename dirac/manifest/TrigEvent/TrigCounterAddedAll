@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigCounterAddedAll
+value: 86
+forge: CounterAddedAll
+census: trig CounterAddedAll all=3 std=1 mbc=0 sole=3
+state: code 0
+status: reserved

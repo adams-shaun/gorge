@@ -6,7 +6,7 @@ package rules
 //
 //   - Ashenmoor Liege (`.cards/cardsfolder/a/ashenmoor_liege.txt`): an
 //     opponent's ability targeting the Liege makes THAT PLAYER lose 4 life
-//     (`DB$ LoseLife | Defined$ TriggeredSourceSAController | LifeAmount$ 4`).
+//     (a LoseLife of 4 on the triggering spell or ability's controller).
 //   - Black Bolt, Inhuman King (`.cards/cardsfolder/b/black_bolt_inhuman_king.txt`):
 //     Lethal Voice's destroy ask offers only "nonland permanent that player
 //     controls" (`ValidTgts$ Permanent.nonLand+ControlledBy

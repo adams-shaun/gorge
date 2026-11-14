@@ -10,12 +10,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// gorgeBraidedFixTime is the commit time (UTC, a Go pseudo-version stamp) of
-// gorge (e10ad8b0d registers an Effect-delivered
-// CantBeActivated; 026d67928 makes its Duration$ UntilTargetedUntaps outlive
-// the turn and the Net). Before it the lock is a Note, or ends early.
-const gorgeBraidedFixTime = "20261026220850"
-
 // The Braided Net // Braided Quipu lockstep: the Net
 // enters with three net counters; {T}, remove a net counter taps another
 // target nonland permanent and, for as long as it stays tapped, its activated
@@ -170,9 +164,6 @@ func kbraidedRun(t *testing.T, n uint64, report bool, tal *kbraidedTally) int {
 
 func TestBraidedLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeBraidedFixTime) {
-		t.Skip("gorge before the Effect CantBeActivated fix (86cc3f752)")
-	}
 	var tal kbraidedTally
 	kbraidedRun(t, 300, true, &tal)
 	t.Logf("%d games: locks %d, held-out decisions %d, crafts %d, Quipu activations %d", tal.games, tal.locks, tal.held, tal.flips, tal.quipu)
@@ -187,9 +178,6 @@ func TestBraidedLockstep(t *testing.T) {
 func TestBraidedLockstepMutation(t *testing.T) {
 	if isolate(t) {
 		return
-	}
-	if !gorgePinAtLeast(t, gorgeBraidedFixTime) {
-		t.Skip("gorge before the Effect CantBeActivated fix (86cc3f752)")
 	}
 	for _, m := range []uint8{1, 2, 3} {
 		dirac.SetDebugNetMutate(m)

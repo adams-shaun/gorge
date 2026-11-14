@@ -120,15 +120,8 @@ func ksurgeRun(t *testing.T, n uint64, report bool, tal *ksurgeTally, mut func(*
 	return div
 }
 
-// gorgeSurgeFixTime is gorge cr-animate-cantblockby (b055edbfd): an Animate
-// staticAbilities$ CantBlockBy grant is registered for real.
-const gorgeSurgeFixTime = "20261026162550"
-
 func TestSurgeLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeSurgeFixTime) {
-		t.Skip("gorge before the Animate CantBlockBy grant (b055edbfd)")
-	}
 	var tal ksurgeTally
 	ksurgeRun(t, 600, true, &tal, nil)
 	t.Logf("%d games: Surge Engine activations %v", tal.games, tal.ab)
@@ -140,9 +133,6 @@ func TestSurgeLockstep(t *testing.T) {
 // TestSurgeLockstepMutation: with the override's removed Defender kept, and
 // with its Unblockable grant dropped, some seed diverges.
 func TestSurgeLockstepMutation(t *testing.T) {
-	if !gorgePinAtLeast(t, gorgeSurgeFixTime) {
-		t.Skip("gorge before the Animate CantBlockBy grant (b055edbfd)")
-	}
 	for name, mut := range map[string]func(*kop.Override){
 		"defender kept":    func(o *kop.Override) { o.RemoveKw = 0 },
 		"unblockable lost": func(o *kop.Override) { o.AddKw = 0 },

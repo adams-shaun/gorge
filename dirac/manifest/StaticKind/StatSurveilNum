@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatSurveilNum
+value: 66
+forge: SurveilNum
+census: stat SurveilNum all=1 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

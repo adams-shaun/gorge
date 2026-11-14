@@ -1,0 +1,13 @@
+# The MBC flip cards (CR 710): Orochi Eggwatcher flips with ten or more
+# creatures, Nezumi Graverobber when the exiled card's owner's graveyard is
+# empty (Count$ValidGraveyard Card.OwnedBy TargetedController), beside cheap
+# creatures, a burn spell to fill graveyards, and basics
+# (dirac/oracle/mbc_apiparams_lowering_test.go).
+Orochi Eggwatcher
+Nezumi Graverobber
+Llanowar Elves
+Grizzly Bears
+Shock
+Forest
+Swamp
+Mountain

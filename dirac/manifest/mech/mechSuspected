@@ -1,0 +1,6 @@
+family: mech
+name: mechSuspected
+value: 9
+state: slotbit 16/16
+status: active
+doc: slots whose permanent is suspected (CR 701.60; act_suspect.go)

@@ -271,6 +271,7 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 		filt(ab.Static.Filter)
 		filt(ab.Static.Filter2)
 		filt(ab.Static.ProtFrom)
+		filt(ab.Static.ProtExc)
 		filt(ab.Static.Landwalk)
 		cond(ab.Static.Cond2)
 		val(ab.Static.VA)
@@ -284,7 +285,7 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 		val(ab.ManaV)
 		val(ab.OwnReduce) // ReduceCost$ (a subtype filter in its count)
 		for _, in := range ab.Prog {
-			filt(in.F)
+			filt(kop.InstrFilter(&in)) // a PayMana F packs life and hybrid pips (kop.PayManaF)
 			val(in.A)
 			val(in.B)
 			if in.Op == kop.OpSkipUnless {
@@ -356,6 +357,9 @@ func buildPool(lw *lowered) ([]*lCard, []built, *poolTables, error) {
 	}
 	if len(pt.missing) > 0 {
 		return nil, nil, nil, fmt.Errorf("subtype table incomplete after two passes: %v", pt.missing)
+	}
+	if err := refuseInactiveCodes(pt, all, bs); err != nil {
+		return nil, nil, nil, err
 	}
 	// A card whose token was refused at build time is refused too.
 	for i, c := range lw.cards {

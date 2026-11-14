@@ -81,8 +81,8 @@ func (s *State) castForbiddenFree(k *prep, p uint8, c CardID, o Obj) bool {
 }
 
 // a card's own "you can't cast this spell unless/during
-// ..." (S:Mode$ CantBeCast | ValidCard$ Card.Self | EffectZone$ All; Jace
-// Reawakened, Proft). No State field: the static lives on the card's own
+// ..." (a CantBeCast static on the card itself that works from every zone;
+// Jace Reawakened, Proft). No State field: the static lives on the card's own
 // abilities and is read at the cast offer.
 
 // DebugCantSelfOff is TestCantselfMutation's switch: self CantBeCast

@@ -1,0 +1,7 @@
+family: KwID
+name: KwAuraSwap
+value: 100
+forge: Aura swap
+census: kw Aura swap all=1 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

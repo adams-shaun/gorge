@@ -1,0 +1,19 @@
+# X announced and paid beside the sources that make no mana: Decree of Justice
+# (its cycling trigger's "you may pay {X}"), Tyvar's Stand, Debt to the Deathless
+# and Subterranean Tremors, with Command Tower (no commander, no mana, CR 903.4f)
+# and Sea Gate (U or the chosen colour) among the lands
+# (dirac/oracle/x_range_test.go)
+Decree of Justice
+Tyvar's Stand
+Debt to the Deathless
+Subterranean Tremors
+Command Tower
+Sea Gate
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Plains
+Island
+Swamp
+Mountain
+Forest

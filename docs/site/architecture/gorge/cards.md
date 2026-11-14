@@ -105,8 +105,8 @@ ManaCost:1 R
 Types:Creature Goblin
 PT:1/1
 K:Haste
-T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDamage | TriggerDescription$ When CARDNAME enters, it deals 1 damage to any target.
-SVar:TrigDamage:DB$ DealDamage | NumDmg$ 1 | ValidTgts$ Any
+T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigEmber | TriggerDescription$ When CARDNAME enters, it deals 2 damage to target creature or planeswalker an opponent controls.
+SVar:TrigEmber:DB$ DealDamage | NumDmg$ 2 | ValidTgts$ Creature.OppCtrl,Planeswalker.OppCtrl | TgtPrompt$ Select target creature or planeswalker an opponent controls
 ```
 
 `cards.ParseBytes` ([`engine/cards/parse.go`](https://github.com/adams-shaun/gorge/blob/main/engine/cards/parse.go))

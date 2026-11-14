@@ -104,8 +104,8 @@ func victim2controller(e *Engine, victim state.ObjID) state.PlayerID {
 
 // TestEffectGrantedGoadHotPursuitForcesAttackAway casts the real Hot Pursuit,
 // answers its entering suspect trigger against an opponent's creature, and
-// proves the granted `Mode$ Continuous | Affected$ Creature.IsRemembered |
-// Goad$ True` static goads that creature for combat exactly like a printed
+// proves the granted continuous static that goads the remembered creature
+// goads that creature for combat exactly like a printed
 // static: it must attack the non-goader defender, Required, and cannot skip.
 func TestEffectGrantedGoadHotPursuitForcesAttackAway(t *testing.T) {
 	t.Parallel()
@@ -209,8 +209,7 @@ func TestEffectGrantedGoadEndsWithTheHost(t *testing.T) {
 // TestEffectGrantedGoadImmortalObligation casts the real Immortal Obligation
 // at a creature card in an opponent's graveyard: it returns under THEIR
 // control with a duty counter (precondition) and the Effect's granted
-// `Mode$ Continuous | Affected$ Creature.IsRemembered | Goad$ True` static
-// goads it, so the returned creature must attack a player other than the
+// continuous static that goads the remembered creature goads it, so the returned creature must attack a player other than the
 // caster (CR 701.38b), Required (CR 508.1d).
 func TestEffectGrantedGoadImmortalObligation(t *testing.T) {
 	t.Parallel()
@@ -265,8 +264,8 @@ func TestEffectGrantedGoadImmortalObligation(t *testing.T) {
 
 // TestCloneGrantedGoadMockingDoppelganger casts the real Mocking
 // Doppelganger and has it enter as a copy of one of two same-named creatures
-// an opponent controls: the AddStaticAbilities$ FamilyTease grant
-// (`Affected$ Creature.sameName+Other | Goad$ True`) goads every OTHER
+// an opponent controls: the AddStaticAbilities$ FamilyTease grant (it goads
+// other creatures with the same name) goads every OTHER
 // creature with the copy's name -- including the copied template -- for the
 // clone's controller, and never the clone itself.
 func TestCloneGrantedGoadMockingDoppelganger(t *testing.T) {

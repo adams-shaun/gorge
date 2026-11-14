@@ -15,8 +15,7 @@ import (
 // rules/impending.go), against a creature deck. The expected answer at
 // every decision is gorge's. No targeted removal yet: gorge's
 // effects/filter_type.go hasTypePrinted still reads a dormant permanent as
-// a creature target (reported; the removal deck lands behind
-// gorgePinAtLeast once the fix is pinned).
+// a creature target (reported; the removal deck lands with that fix).
 var kimpendDecks = [2][]cardset.Entry{
 	{
 		{Name: "Overlord of the Mistmoors", Count: 10}, {Name: "Savannah Lions", Count: 10}, {Name: "Plains", Count: 20},

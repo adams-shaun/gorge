@@ -2,8 +2,8 @@ package rules
 
 // The multi-target bare look's pacing ack, pinned END TO END on the real
 // corpus card: Case the Joint ("Draw two cards, then look at the top card of
-// each player's library") carries `DB$ PeekAndReveal | Defined$ Player |
-// NoReveal$ True`, and `Defined$ Player` resolves to BOTH seats — so the
+// each player's library") carries a PeekAndReveal over every player that
+// does not reveal, and its Defined$ player set resolves to BOTH seats — so the
 // resolution walk holds two bare-look targets. The r1 gate consumed its
 // answered flag at the FIRST bare-look target, so the later target's ack was
 // never marked answered and every resume re-emitted the earlier notes and

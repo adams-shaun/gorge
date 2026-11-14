@@ -247,7 +247,7 @@ func TestPaymentPlanInterferenceOwnCityAndVaultAreLastResort(t *testing.T) {
 	}
 }
 
-// Mana Reflection (ProduceMana | ValidActivator$ You | ValidCard$ Permanent)
+// Mana Reflection (a ProduceMana replacement on permanents its controller taps)
 // defers every source its controller could tap -- seat 0 has no plan, and the
 // diagnostic names it -- while seat 1's sources are outside its filter.
 func TestPaymentPlanInterferenceManaReflectionDefersControllerSources(t *testing.T) {

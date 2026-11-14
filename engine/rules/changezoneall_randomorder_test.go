@@ -12,8 +12,8 @@ import (
 
 // TestSunbirdsInvocationRestRandomOrderShufflesLibraryBottom is the pin for
 // the named real-corpus carrier: Sunbird's Invocation's `DBRestRandomOrder`
-// ChangeZoneAll (`ChangeType$ Card.IsRemembered | Origin$ Library |
-// Destination$ Library | LibraryPosition$ -1 | RandomOrder$ True`) returns
+// ChangeZoneAll (the remembered cards from library to the bottom of the
+// library, in a random order) returns
 // the remembered revealed cards to the bottom of their owner's library in a
 // shuffled order, and a log-only replay re-derives the identical order (the
 // shuffle draws the seeded engine rng, never math/rand).
@@ -81,8 +81,8 @@ func TestSunbirdsInvocationRestRandomOrderShufflesLibraryBottom(t *testing.T) {
 // RandomOrder$ branch: returning BEFORE the shared post-placement
 // tail, so `LibraryPosition$ 0` was ignored and a RandomOrder$ sweep always
 // landed at the BOTTOM. Triumph of Saint Katherine's real compiled
-// DBChangeLibrary is `... | Destination$ Library | LibraryPosition$ 0 |
-// RandomOrder$ True` and its oracle is "shuffle that pile and put it back on
+// DBChangeLibrary puts the pile on top of the library in a random order, and
+// its oracle is "shuffle that pile and put it back on
 // TOP of your library", so the shuffled pile must sit above the pre-existing
 // library.
 func TestTriumphOfSaintKatherineRandomOrderOnTop(t *testing.T) {
@@ -91,8 +91,8 @@ func TestTriumphOfSaintKatherineRandomOrderOnTop(t *testing.T) {
 	triumph := searchCorpusCard(t, reg, "Triumph of Saint Katherine")
 	e, cfg := mordorEngine(t, reg, 7701, "Grizzly Bears", "Grizzly Bears", "Grizzly Bears", "Grizzly Bears", "Grizzly Bears", "Grizzly Bears", "Grizzly Bears", "Grizzly Bears", "Grizzly Bears", "Grizzly Bears", "Grizzly Bears", "Grizzly Bears")
 	src := moveToBattlefieldByName(t, e, 0, "Grizzly Bears")
-	// The compiled DBChangeLibrary carries `ConditionCheckSVar$ RememberedSize |
-	// ConditionSVarCompare$ GE7` (the real trigger remembers the creature plus
+	// The compiled DBChangeLibrary is gated on the remembered pile holding at
+	// least seven cards (the real trigger remembers the creature plus
 	// the six dug cards), so the pool must hold at least seven for the gap
 	// gate to open — the exact reason this pin feeds seven, not three.
 	var exiled []state.Target

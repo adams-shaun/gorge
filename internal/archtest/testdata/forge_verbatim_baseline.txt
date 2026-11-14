@@ -47,11 +47,9 @@ engine/rules/adapt_test.go
 engine/rules/adds_counters_riders_test.go
 engine/rules/affinity_test.go
 engine/rules/animate_hiddenkeywords_test.go
-engine/rules/animate_svars_test.go
 engine/rules/arachnogenesis_test.go
 engine/rules/athreos_devotion_dual_test.go
 engine/rules/attack_prop_test.go
-engine/rules/attack_restriction_conditions_test.go
 engine/rules/attack_tax_mana_window_test.go
 engine/rules/attacks_trigger_per_attacker_test.go
 engine/rules/augur_autumn_coven_test.go
@@ -74,7 +72,6 @@ engine/rules/choose_control_regression_kernel_test.go
 engine/rules/choose_control_regression_test.go
 engine/rules/chosen_type_mana_test.go
 engine/rules/combat_damage_trigger_test.go
-engine/rules/combat_restriction_statics_test.go
 engine/rules/combat_test.go
 engine/rules/commander_cast_count_test.go
 engine/rules/conduit_test.go
@@ -168,7 +165,6 @@ engine/rules/no_resolving_check_test.go
 engine/rules/noxious_gearhulk_test.go
 engine/rules/opal_palace_test.go
 engine/rules/opening_effect_spellcast_test.go
-engine/rules/optional_cost_test.go
 engine/rules/order_duplicates_test.go
 engine/rules/paramcensus_gates_test.go
 engine/rules/paramcensus_targeting_type_choice_test.go
@@ -235,7 +231,6 @@ engine/rules/selfcost_caster_test.go
 engine/rules/setaudit_sos_test.go
 engine/rules/setcolor_chosen_test.go
 engine/rules/setlife_setstate_kernel_test.go
-engine/rules/signed_param_test.go
 engine/rules/spellcast_permanent_test.go
 engine/rules/split_mana_value_test.go
 engine/rules/stack_test.go

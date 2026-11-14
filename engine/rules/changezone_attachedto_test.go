@@ -125,9 +125,9 @@ func attachDrain(t *testing.T, e *Engine, limit int) *decision.Decision {
 
 // TestRetetherReturnsAurasAttached is the mass-return carrier of ChangeZone's
 // AttachedTo$ (its second named carrier; the first is Forum
-// Filibuster's ValidTgts$ target-ask shape): `SP$ ChangeZone | Origin$
-// Graveyard | Destination$ Battlefield | Defined$ ValidGraveyard Aura.YouOwn
-// | AttachedTo$ Creature`. Every Aura returned from the graveyard enters the
+// Filibuster's ValidTgts$ target-ask shape): a spell returning every Aura
+// you own from your graveyard to the battlefield attached to a creature.
+// Every Aura returned from the graveyard enters the
 // battlefield attached to the creature the battlefield walk resolves (the
 // only one), via one real events.Attach per moved card, and SURVIVES -- the
 // CR 704.5m SBA (engine/rules/attach.go attachmentSBAs) does not sweep a legally

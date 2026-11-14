@@ -174,7 +174,7 @@ func TestXMinParamDoesNotLowerCostFloor(t *testing.T) {
 // TestCorpseweftXMinParamOffersNoZeroExileX pins the real corpus carrier
 // (script text stays in the gitignored .cards/ tree): Corpseweft's
 // "{1}{B}, Exile one or more creature cards from your graveyard" is
-// `Cost$ 1 B ExileFromGrave<X/Creature> | XMin$ 1`, and with exactly one
+// an exile-X-creature-cards cost with an XMin of 1, and with exactly one
 // creature in the graveyard the X ask offers ONLY X = 1.
 func TestCorpseweftXMinParamOffersNoZeroExileX(t *testing.T) {
 	t.Parallel()

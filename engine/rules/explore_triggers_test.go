@@ -342,9 +342,9 @@ func TestExploreGraveyardAnswerMovesTheCard(t *testing.T) {
 
 // TestTopographyTrackerExploresTwice is the replacement half (repl:Explore):
 // Topography Tracker's "If a creature you control would explore, instead it
-// explores, then it explores again" (R:Event$ Explore | ValidExplorer$
-// Creature.YouCtrl | ReplaceWith$ Explore1, body DB$ Explore | Defined$
-// ReplacedCard | Num$ 2). The explore is activated through the Map token its
+// explores, then it explores again" (an Explore replacement on a creature
+// you control whose body has the replaced creature explore twice). The
+// explore is activated through the Map token its
 // own ETB created, targeting the Tracker itself: the replaced process
 // performs NOTHING (no reveal of its own), and the replacement body's two
 // fresh explores each reveal a land to the hand — two records, no counter.

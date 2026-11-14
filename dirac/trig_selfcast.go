@@ -6,12 +6,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // trigger's source, on the stack; Mode$ SpellCast | ValidCard$ Card.Self,
 // kop.TfSelf). gorge's trigger walk (rules/object_query.go forEachObject)
 // visits seat 0's battlefield, then the stack (once, on seat 0's pass),
-// then seat 1's battlefield, and sortPendingTriggers keeps that order
-// within a controller (APNAP, stable). So the kernel fires the spell's own
-// cast triggers from the stack entry at cast time, after the caster's
-// battlefield listeners when the caster is player 0 and before them when
-// the caster is player 1 (onCast; the other player's entries are ordered by
-// controller, never relative to it). A battlefield permanent carrying such
+// then every later living seat's battlefield, and sortPendingTriggers keeps
+// that order within a controller (APNAP, stable). So the kernel fires the
+// spell's own cast triggers from the stack entry at cast time, after the
+// caster's battlefield listeners when the caster is player 0 and before
+// them for any later seat (onCast; the other player's entries are ordered
+// by controller, never relative to it). A battlefield permanent carrying such
 // a trigger never fires it on another spell (the TfSelf skip in onCast's
 // listener walk and castTrigVanilla): the trigger reads the cast spell,
 // which is never the permanent.

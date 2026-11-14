@@ -152,8 +152,7 @@ func TestSacrificeAmountIsOneChangesZoneAllBatch(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	// The board corpus Barter in Blood itself, cast and resolved for real:
-	// `Amount$ 2 | SacValid$ Creature | Defined$ Player` is exactly the shape
-	// under test.
+	// each player sacrificing two creatures is exactly the shape under test.
 	e := corpusEngine(t, reg,
 		[]*cards.Card{lookup(t, reg, "Vengeful Townsfolk"), lookup(t, reg, "Grizzly Bears"), lookup(t, reg, "Elite Vanguard"),
 			lookup(t, reg, "Barter in Blood")}, nil)

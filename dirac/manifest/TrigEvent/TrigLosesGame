@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigLosesGame
+value: 66
+forge: LosesGame
+census: trig LosesGame all=7 std=1 mbc=1 sole=2
+state: code 0
+status: reserved

@@ -1293,8 +1293,8 @@ func TestSetAudit_sos_WitherbloomBalancer_AffinitySelf(t *testing.T) {
 }
 
 // (a) Affinity, GRANT half (CR 702.41a), Witherbloom, the Balancer: its
-// continuous static (Affected$ Instant.wasCastByYou,Sorcery.wasCastByYou |
-// AffectedZone$ Stack | AddKeyword$ Affinity:Creature) must give a bolt on
+// continuous static (affinity for creatures on instant and sorcery spells
+// you cast, on the stack) must give a bolt on
 // the stack the affinity reduction (the dragon's own printed K:Affinity
 // prices its own casts through the face static kwAffinity mints; this is
 // the GRANTED half, delivered by the layer-6 AddKeyword$ walk). Fixed in

@@ -87,9 +87,8 @@ func TestRadiationDrainNotQueuedWithoutCounters(t *testing.T) {
 }
 
 // TestRadiationPlacementAcquiredMutationAttacks drives the REAL corpus Aura
-// through its own attack trigger: `T:Mode$ Attacks | ValidCard$
-// Creature.EnchantedBy | Execute$ TrigRadiation` ->
-// `DB$ Radiation | Defined$ TriggeredDefendingPlayer | Num$ 2`. The defending
+// through its own attack trigger: when the enchanted creature attacks, the
+// defending player gets two rad counters. The defending
 // player gets exactly two rad counters and the attacking player gets none.
 func TestRadiationPlacementAcquiredMutationAttacks(t *testing.T) {
 	t.Parallel()
@@ -121,7 +120,7 @@ func TestRadiationPlacementAcquiredMutationAttacks(t *testing.T) {
 }
 
 // TestRadiationPlacementVault12ChapterI drives the REAL Saga's chapter-I body
-// (`DB$ Radiation | Defined$ Player | Num$ 3`) and asserts EVERY player gains
+// (three rad counters for each player) and asserts EVERY player gains
 // three rad counters. The chapter is queued by the lore counter the Saga
 // enters with, exactly as a live entry does.
 func TestRadiationPlacementVault12ChapterI(t *testing.T) {

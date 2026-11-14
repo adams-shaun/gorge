@@ -1,0 +1,7 @@
+family: CounterKind
+name: CtrFetch
+value: 117
+forge: FETCH
+census: ctr FETCH all=2 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

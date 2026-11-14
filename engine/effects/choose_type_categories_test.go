@@ -105,8 +105,8 @@ func TestChooseTypeNonbasicLandExcludesTheBasicTypes(t *testing.T) {
 	}
 }
 
-// TestChooseTypeCardFiltersByValidTypes pins Type$ Card | ValidTypes$
-// Artifact,Creature,Land (Turnabout's tap/untap all): the ask offers exactly
+// TestChooseTypeCardFiltersByValidTypes pins a card-type choice restricted by
+// ValidTypes to artifact, creature and land (Turnabout's tap/untap all): the ask offers exactly
 // the named card types, not the whole vocabulary.
 func TestChooseTypeCardFiltersByValidTypes(t *testing.T) {
 	h := &chooseTypeHost{}
@@ -177,8 +177,8 @@ func TestChooseTypePlaneswalkerOffersPlaneswalkerTypes(t *testing.T) {
 	}
 }
 
-// TestChooseTypeSharedOffersTypesSharedByExiledObjects pins Type$ Shared |
-// TypesFromDefined$ ExiledWith (Apex Observatory): the option list is the
+// TestChooseTypeSharedOffersTypesSharedByExiledObjects pins a shared-type
+// choice over the cards exiled with the source (Apex Observatory): the option list is the
 // CARD types shared by every object exiled with the source -- here two
 // artifact creatures sharing Artifact and Creature (the creature subtype
 // Golem is not a card type) -- even though both also share the Creature

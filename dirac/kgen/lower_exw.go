@@ -9,7 +9,7 @@ import "strings"
 // with PredN 1 (a resolving trigger's fire ver counts too, as exiledWithSet
 // passes it).
 
-// exiledWithMove lowers `DB$ ChangeZone | Defined$ ExiledWith | Origin$ Exile`.
+// exiledWithMove lowers a ChangeZone that moves the cards exiled with the source out of exile.
 func (lc *lowerCtx) exiledWithMove(ps *params, origin, dest int, flags []string, counterKind string, override *lOverride) error {
 	if origin != zExile || dest != zBattlefield && dest != zHand {
 		return refuse("Defined$ ExiledWith %s->%s", zoneLabel[origin], zoneLabel[dest])

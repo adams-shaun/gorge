@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExRegeneratedThisTurn
+value: 144
+forge: RegeneratedThisTurn
+census: count RegeneratedThisTurn all=1 std=0 mbc=0 sole=1
+state: player 4 (turn tallies)
+status: reserved
