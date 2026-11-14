@@ -40,7 +40,7 @@ func (s *State) landwalkHit(k *prep, f kop.FilterID, b, a Slot) bool {
 func (s *State) landwalkGranted(k *prep, b, a Slot) bool {
 	lts, lost := s.lossAt(k, a)
 	hit := false
-	s.eachStatic(k, func(st statSrc) bool {
+	f := func(st statSrc) bool {
 		ab := st.a
 		if ab.Kind != kop.AbStatic || ab.Static.Kind != kop.StatContinuous || ab.Static.Landwalk == 0 {
 			return true
@@ -54,7 +54,11 @@ func (s *State) landwalkGranted(k *prep, b, a Slot) bool {
 			return false
 		}
 		return true
-	})
+	}
+	s.eachStatic(k, f)
+	if !hit && k.gyCont {
+		s.eachGyStatic(k, 0, f) // a graveyard card's landwalk grant (static_gycont.go)
+	}
 	return hit
 }
 
@@ -99,7 +103,7 @@ func (s *State) hasIslandwalk(k *prep, sl Slot) bool {
 	}
 	lts, lost := s.lossAt(k, sl)
 	hit := false
-	s.eachStatic(k, func(st statSrc) bool {
+	f := func(st statSrc) bool {
 		ab := st.a
 		if ab.Kind != kop.AbStatic || ab.Static.Kind != kop.StatContinuous || ab.Static.Landwalk == 0 ||
 			!landwalkNames(k.t, ab.Static.Landwalk, sub) || lost && s.grantTs(st) < lts {
@@ -110,7 +114,11 @@ func (s *State) hasIslandwalk(k *prep, sl Slot) bool {
 			return false
 		}
 		return true
-	})
+	}
+	s.eachStatic(k, f)
+	if !hit && k.gyCont {
+		s.eachGyStatic(k, 0, f) // a graveyard card's landwalk grant (static_gycont.go)
+	}
 	return hit
 }
 
