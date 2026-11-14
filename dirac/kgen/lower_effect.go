@@ -3375,6 +3375,7 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 		in.Note = "only the target player's permanents"
 	}
 	mustBlock, eachColor := false, false
+	var afterlives []int
 	if kw, ok := ps.get("KW"); ok {
 		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
 		if mustBlock && scope.Kind != rNone {
@@ -3383,6 +3384,14 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 		kw, eachColor = splitKWSentence(kw, protEachColorKW)
 		if eachColor && scope.Kind != rNone {
 			return refuse("PumpAll KW$ protection from each color with a ValidTgts$ player scope")
+		}
+		if kw != "" {
+			if kw, afterlives, err = splitAfterlifeGrant(kw); err != nil {
+				return err
+			}
+			if len(afterlives) > 0 && scope.Kind != rNone {
+				return refuse("PumpAll KW$ Afterlife with a ValidTgts$ player scope")
+			}
 		}
 		if kw != "" {
 			ks, err := pumpKeywords(kw)
@@ -3394,8 +3403,11 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	}
 	_, hasAtt := ps.m["NumAtt"]
 	_, hasDef := ps.m["NumDef"]
-	if !(mustBlock || eachColor) || in.CS != "" || hasAtt || hasDef {
+	if !(mustBlock || eachColor || len(afterlives) > 0) || in.CS != "" || hasAtt || hasDef {
 		lc.emit(in)
+	}
+	if err := lc.grantAfterlifeAll(f, afterlives); err != nil { // lower_afterlifegrant.go
+		return err
 	}
 	if eachColor {
 		// CR 702.16 + 611.2c: the permanents matching ValidCards$ as this
