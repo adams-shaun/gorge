@@ -816,8 +816,13 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 		// (gorge conditionMetCore: a denying SVar skips, a passing one leaves
 		// the present group to decide). H.M.S. Bounty: ConditionPresent$
 		// Whale.YouCtrl with Count$YourExtraTurns EQ0; Abzan Beastmaster:
-		// Creature.YouCtrl with YourTough GEOppsTough. The extra-turn count
-		// is read only against zero.
+		// Creature.YouCtrl with YourTough GEOppsTough; Triumph of Ferocity:
+		// YourFerocity GE OppsFerocity, the two Count$Valid
+		// <creatures>$GreatestCardPower aggregates. The SVar gate lowers
+		// whenever its value and compare lower (the kernel's CondValue evalV's
+		// both sides in the same resolution context, exprs.go); the extra-turn
+		// count is read only against zero, and anything else refuses rather
+		// than dropping the SVar gate.
 		if cs, ok := ps.get("ConditionCheckSVar"); ok {
 			v, err := lc.value(cs)
 			if err != nil {
@@ -1485,11 +1490,15 @@ func (lc *lowerCtx) effect(sa *cards.SA, ps *params) error {
 					return err
 				}
 			}
+			ownCost := lc.trigOwnCost
 			in, err := lc.payInstr(cost, lRef{Kind: rYou}, lc.trigOwnCost)
 			lc.trigOwnCost = false
 			lc.trigXMax = nil
 			if err != nil {
 				return err
+			}
+			if ownCost && in.CS == "SacrificeSelf" && strings.HasPrefix(c, "Mandatory") {
+				in.CS = "SacrificeSelfMust" // no "may": gorge settles it unasked (cost_mandatorysac.go)
 			}
 			if _, ok := ps.m["UnlessResolveSubs"]; ok {
 				return refuse("UnlessResolveSubs$ with a trigger's own cost")
@@ -1603,6 +1612,9 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		}
 		return lc.changeZoneAll(ps)
 	case "Draw":
+		if ps.is("Defined", "TriggeredCardOpponent") {
+			return lc.drawTriggerOpps(ps) // lower_triggeropps.go
+		}
 		if _, ok := ps.get("Reveal"); ok {
 			// gorge's Draw never reads Reveal$ (draw_params.go's
 			// drawKnownKeys omits it): effDraw emits no reveal decision, only

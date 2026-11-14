@@ -1600,3 +1600,5 @@ ZonePhased	Zone	8
 ZonePhasedInd	Zone	9
 ZoneSideboard	Zone	10
 ZoneStack	Zone	6
+RefTriggerOpponents	Ref	247
+PayBSubSacSelfMust	untyped int	4
