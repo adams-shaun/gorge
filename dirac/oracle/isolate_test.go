@@ -31,6 +31,11 @@ func isolate(t *testing.T) bool {
 	if isolatedChild() {
 		return false
 	}
+	// Every isolated test plays the corpus: with none (a fresh clone, CI's
+	// lint), skip here rather than let the child fail on a missing table
+	// (11-14: TestLicidLowers, TestDestroySelfRegenerateLowers each failed
+	// fresh-clone-check and turned a promote PR red).
+	corpusDirOrSkip(t)
 	t.Parallel()
 	runIsolated(t)
 	return true
@@ -54,6 +59,7 @@ func isolateTally(t *testing.T, v any) bool {
 	if isolatedChild() {
 		return false
 	}
+	corpusDirOrSkip(t)
 	text := runIsolated(t)
 	if t.Skipped() {
 		return true
