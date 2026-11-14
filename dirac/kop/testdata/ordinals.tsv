@@ -207,6 +207,7 @@ CtrIngenuity	CounterKind	51
 CtrInvasion	CounterKind	47
 CtrLandmark	CounterKind	37
 CtrLevel	CounterKind	14
+CtrLevelUp	CounterKind	77
 CtrLifelink	CounterKind	29
 CtrLoot	CounterKind	48
 CtrLore	CounterKind	36
@@ -703,8 +704,8 @@ MvUnderYourControl	untyped int	4
 NoCard	CardID	65535
 NumCounterKinds	CounterKind	7
 NumCounterKinds2	CounterKind	13
-NumCounterKinds3	CounterKind	77
-NumCounterKindsX	int	62
+NumCounterKinds3	CounterKind	78
+NumCounterKindsX	int	63
 NumExtOps	ExtOp	320
 NumManaKinds	untyped int	6
 NumSteps	Step	13
@@ -1488,7 +1489,7 @@ TrigDiscardedAll	TrigEvent	35
 TrigDiscover	TrigEvent	44
 TrigDrawn	TrigEvent	14
 TrigETB	TrigEvent	1
-TrigEventCount	TrigEvent	50
+TrigEventCount	TrigEvent	51
 TrigEvolved	TrigEvent	47
 TrigExploited	TrigEvent	49
 TrigExplores	TrigEvent	39
@@ -1520,6 +1521,7 @@ TrigToGraveyard	TrigEvent	4
 TrigTokenCreated	TrigEvent	25
 TrigTransformed	TrigEvent	28
 TrigTurnFaceUp	TrigEvent	27
+TrigUnattached	TrigEvent	50
 TrigUnlockDoor	TrigEvent	30
 TrigUntaps	TrigEvent	17
 TurnReplExileOpp	untyped int	1
@@ -1598,3 +1600,5 @@ ZonePhased	Zone	8
 ZonePhasedInd	Zone	9
 ZoneSideboard	Zone	10
 ZoneStack	Zone	6
+RefTriggerOpponents	Ref	247
+PayBSubSacSelfMust	untyped int	4

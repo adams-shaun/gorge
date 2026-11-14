@@ -233,6 +233,7 @@ type genPrep struct {
 	anyRaise        bool           // some card has a generated StatIncreaseCost (RaiseCost; trig_delayedtiming.go)
 	anyRaiseLife    bool           // some card has a StatIncreaseCost with StRaiseLife (RaiseCost Cost$ PayLife<N>; cost_raiselife.go)
 	anyComboDyn     bool           // some card's mana ability adds an evaluated amount in any combination of colours (mana_combodyn.go)
+	anyComboAny     bool           // some card has a {T} Combo Any mana ability, which gorge's planner does not witness (mana_comboany.go)
 	anyCantCast     bool           // some card has a StatCantBeCast (trig_delayedtiming.go castForbidden)
 	anyCantAct      bool           // some card has a StatCantActivate (cast_cantactivate.go actForbidden), or a StatCantSacrifice
 	anyCantSac      bool           // some card has a StatCantSacrifice (static_cantsacrifice.go sacBlocked)
@@ -351,6 +352,7 @@ type genPrep struct {
 	exwRec          []uint8        // per card: its resolutions record the cards they exile (anyExW only): exwRecRead, exwRecRev
 	anyCloneCopy    bool           // some program is ExtCloneCopy: permanent copies record their source (fxCopyPerm; copy_clone.go)
 	anyAegis        bool           // some program is ExtAegisClone, or some card has a TrigAttached ability (zone_exilethenattach.go)
+	anyUnattach     bool           // some card has a TrigUnattached ability, the Mode$ Unattached family (trig_unattached.go)
 	anyHideaway     bool           // some program is ExtHideaway (kw_hideaway.go)
 	anyLoyaltyX     bool           // some ability costs a planeswalker's [-X] (CostLoyaltyX; cost_loyaltyx.go)
 	anyLifeX        bool           // some spell or ability costs an announced PayLife<X> (Cost.N 0; cost_paylifex.go)
@@ -746,6 +748,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepExHaste(t, g) // static_cantblockexcept.go
 	prepHideaway(t, g)
 	prepAegis(t, g)
+	prepUnattach(t, g)
 	prepCloneCopy(t, g)
 	prepNumTimes(t, g)
 	prepLoyaltyX(t, g)
@@ -778,6 +781,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyRaise = tableRaises(t)
 	g.anyRaiseLife = tableRaiseLife(t)
 	g.anyComboDyn = tableComboDyn(t)
+	g.anyComboAny = tableComboAny(t)
 	g.anyTwobrid = tableTwobrid(t)
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	g.anyCantCast = tableHasStatic(t, kop.StatCantBeCast) || prepSpellCond(t, g)
@@ -1608,6 +1612,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepL6(t, g)
 	prepCtrl(t, g)
 	prepTokMana(t, g)
+	prepOvrManaGrant(t, g) // mana_grantedoffers.go: an override record's mana grant is the dual census too
 	prepMonstrosity(t, g)
 	prepAnyAct(t, g) // cast_anyactivator.go
 	prepDiscAll(t, g)
