@@ -576,6 +576,22 @@ def test_smart_gates_opt_in_launches_both_gates(repo, tmp_path):
     assert sorted(gate_calls.read_text().split()) == ["affected", "dirac"]
 
 
+def test_smart_gates_run_the_386_build_on_the_affected_side_only_when_go_source_moved(repo, tmp_path):
+    env, _, go_calls = smart_fixture(repo, tmp_path)
+    env = dict(env, GORGE_TEST_SMART_GATES="1")
+    want = "-run ^TestEngineCompilesFor32Bit$ ./internal/archtest"
+    (repo / "x_test.go").write_text("package m\n")
+    _commit(repo, "x_test.go")
+    r = wrapper_output(repo, "smart", env=env)
+    assert r.returncode == 0, r.stderr + r.stdout
+    assert want not in go_calls.read_text()
+    (repo / "x.go").write_text("package m\n")
+    _commit(repo, "x.go")
+    r = wrapper_output(repo, "smart", env=env)
+    assert r.returncode == 0, r.stderr + r.stdout
+    assert want in go_calls.read_text()
+
+
 def test_smart_off_runs_the_repro_tables_only_when_the_diff_touches_them(repo, tmp_path):
     env, _, go_calls = smart_fixture(repo, tmp_path)
     env = dict(env, GORGE_TEST_SMART_GATES="0")

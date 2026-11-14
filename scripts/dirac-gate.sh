@@ -18,7 +18,9 @@
 #      and BLB above INSTR_PB_MAX times the accepted program base below.
 #   6. inlining: the hot accessors stay inlinable.
 #   7. escapes: no dirac local moves to the heap.
-#   8. tests: ./dirac, ./dirac/crcoverage, internal/archtest; and, whatever the change touched,
+#   8. tests: ./dirac, ./dirac/crcoverage, internal/archtest bar TestEngineCompilesFor32Bit (the 386
+#      build, which the affected side runs when a non-test Go file, go.mod or go.sum moves); and,
+#      whatever the change touched,
 #      every refused entry still diverges, every committed repro table (TestStd*ReprosLockstep)
 #      plays in lockstep, and every pinned game still reaches what its pin is named for: the
 #      data-driven pins in dirac/oracle/testdata/pins play under TestPinManifest (one subtest per
@@ -192,7 +194,7 @@ if [ -n "$dirac_changed" ]; then
 
 	echo "== 8 tests"
 	out=$(cd "$top/dirac" && "$S/head.test" -test.timeout 2m 2>&1) && echo ok || bad "./dirac tests failed: $(tail -20 <<<"$out")"
-	out=$(go test -timeout 2m ./dirac/crcoverage ./internal/archtest 2>&1) || bad "./dirac/crcoverage or ./internal/archtest failed: $(tail -20 <<<"$out")"
+	out=$(go test -timeout 2m -skip '^TestEngineCompilesFor32Bit$' ./dirac/crcoverage ./internal/archtest 2>&1) || bad "./dirac/crcoverage or ./internal/archtest failed: $(tail -20 <<<"$out")"
 fi
 
 # The whole refused list, the committed repro tables and the pinned games, whatever changed: a gorge

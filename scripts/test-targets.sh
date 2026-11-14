@@ -383,11 +383,17 @@ if [ "$smart" = gates ]; then
 	cpu_a=$((ncpu * 100)); [ "$cpu_a" -le 1600 ] || cpu_a=1600
 	cpu_d=$((ncpu * 100)); [ "$cpu_d" -le 800 ] || cpu_d=800
 	U=tsmart-$$-$(date +%s)
+	# The 386 cross-build (TestEngineCompilesFor32Bit, about 90 s) left the dirac gate's step 8 for this, the
+	# affected side, which finishes well before the dirac gate (coverage audit 2026-11-14, item 6). It runs
+	# when the change can move a GOARCH=386 build: a non-test Go file, go.mod or go.sum.
+	A32=
+	[ -z "$(git diff --name-only "$mb" HEAD -- '*.go' go.mod go.sum ':(exclude)*_test.go')" ] || A32=1
+	export A32
 	{
 		if [ -n "$have_sd" ]; then
-			systemd-run --user --scope -q --unit="$U-aff" -p MemoryMax=16G -p CPUQuota=$cpu_a% env GOFLAGS=-trimpath T="$BASE" bash -c 'set -o pipefail; git -C "$0" show "$1:$2" | bash -s "$T"' "$GATE_AFFECTED_REPO" "$GATE_REF" "$GATE_AFFECTED_PATH" >"$S/aff" 2>&1
+			systemd-run --user --scope -q --unit="$U-aff" -p MemoryMax=16G -p CPUQuota=$cpu_a% env GOFLAGS=-trimpath T="$BASE" A32="$A32" bash -c 'set -o pipefail; git -C "$0" show "$1:$2" | bash -s "$T" && { [ -z "$A32" ] || go test -timeout 5m -run "^TestEngineCompilesFor32Bit\$" ./internal/archtest; }' "$GATE_AFFECTED_REPO" "$GATE_REF" "$GATE_AFFECTED_PATH" >"$S/aff" 2>&1
 		else
-			GOFLAGS=-trimpath T="$BASE" bash -c 'set -o pipefail; git -C "$0" show "$1:$2" | bash -s "$T"' "$GATE_AFFECTED_REPO" "$GATE_REF" "$GATE_AFFECTED_PATH" >"$S/aff" 2>&1
+			GOFLAGS=-trimpath T="$BASE" bash -c 'set -o pipefail; git -C "$0" show "$1:$2" | bash -s "$T" && { [ -z "$A32" ] || go test -timeout 5m -run "^TestEngineCompilesFor32Bit\$" ./internal/archtest; }' "$GATE_AFFECTED_REPO" "$GATE_REF" "$GATE_AFFECTED_PATH" >"$S/aff" 2>&1
 		fi
 		echo $? >"$S/aff.rc"
 	} 9>&- &
