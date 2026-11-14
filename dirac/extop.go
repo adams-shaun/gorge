@@ -137,11 +137,16 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtKwMark:
 		s.kwMarkExt(k, in) // kw_kwmark.go
 		return true, true
+	case kop.ExtGrantKwAll:
+		s.grantKwAll(k, in) // act_grantkwall.go
+		return true, true
 	case kop.ExtSpellToLib:
 		s.spellToLib(k) // act_spelltolib.go
 		return true, true
 	case kop.ExtVote:
 		return s.voteStart(k, in), true // act_vote.go
+	case kop.ExtChoosePlayerRes:
+		return s.choosePlayerResStart(in), true // act_chooseplayerres.go
 	case kop.ExtDrawUpto:
 		return s.drawUptoStart(k, in), true // act_drawupto.go
 	case kop.ExtAttacksIfAble:
