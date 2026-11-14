@@ -328,12 +328,19 @@ func (s *State) exileOrderAsk(k *prep, die, gy, pwz, aur *slotMask, askAfter *bo
 	if !s.parkedWaiting() {
 		return false
 	}
-	// The batch's later asks follow the first with no state-based check between them
-	// (CR 704.3): a token an earlier answer exiled is still there. So is one that
-	// died beside the parked casualties and moved in an earlier pass of this check:
-	// it ceases at the next check. Only a pass that parks them now first ceases the
-	// tokens already outside the battlefield, as gorge's pass does before its ask.
-	if fresh && s.cold.parked[0].fl&parkLater == 0 {
+	// gorge rechecks between a parked casualty's answer and the next ask
+	// (rules/sba.go: the answer re-enters the check; the recheck pass
+	// destroys nothing, which ends the sbaChain, and the pass after it
+	// ceases the tokens the answered moves left off the battlefield): a
+	// token an earlier answer exiled (Rest in Peace's exile of a dying
+	// token) is gone by the next ask (CR 111.7, 704.5d; zone_tokenleft.go).
+	// A pass that parks them now ceases them first, and a pass that re-runs
+	// its own parked casualty's ask ends the chain and ceases first, as
+	// gorge's recheck does before posing it.
+	if fresh {
+		s.ceaseTokensGen()
+	} else {
+		s.sbaChainEnd(k)
 		s.ceaseTokensGen()
 	}
 	s.ctl = ctlExileOrder

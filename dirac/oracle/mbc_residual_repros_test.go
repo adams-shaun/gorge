@@ -5,7 +5,6 @@ package oracle
 import (
 	"errors"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -60,9 +59,9 @@ func mbcResidualRepro(t *testing.T, name string) {
 	if res.Decisions < len(r.Actions) {
 		t.Fatalf("the replay ended after %d of %d decisions (stall %q)", res.Decisions, len(r.Actions), res.Stall)
 	}
-	if strings.HasPrefix(res.Stall, KernelStallPrefix) {
-		t.Fatalf("kernel stalled: %s", res.Stall)
-	}
+	// no tail-stall check: past the recorded actions the FirstPolicy
+	// continuation can reach one of the pool's remaining unmodelled classes
+	// (replleave), which the recorded game never reached
 }
 
 // TestMBCSelfCastEverySeatReprosLockstep: a "when you cast this spell"
@@ -88,4 +87,17 @@ func TestMBCSelfCastEverySeatReprosLockstep(t *testing.T) {
 func TestMBCDepartedSweepAfterBatchReprosLockstep(t *testing.T) {
 	t.Parallel()
 	mbcResidualRepro(t, "departed_sweep_after_the_sba_batch")
+}
+
+// TestMBCAnsweredCasualtyTokenCeaseReprosLockstep: gorge rechecks between a
+// parked casualty's answer and the next ask (rules/sba.go: the answer
+// re-enters the check; the recheck destroys nothing, which ends the sbaChain,
+// and the tokens the answered moves left off the battlefield cease there),
+// so a token Rest in Peace exiled on a casualty's answer is gone by the next
+// casualty's ask. The kernel posed the next ask with the token still in
+// exile (CR 111.7, 704.5d; decision 1934 of 1934; the 2026-11-13 4-seat MBC
+// lock pool, pair 61).
+func TestMBCAnsweredCasualtyTokenCeaseReprosLockstep(t *testing.T) {
+	t.Parallel()
+	mbcResidualRepro(t, "answered_casualty_ceases_tokens_before_the_next_ask")
 }
