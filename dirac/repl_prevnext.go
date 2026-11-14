@@ -117,6 +117,9 @@ func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID,
 		return n, false
 	}
 	g := k.gen
+	if g.anyRedir && s.redirBeside(code, rcp) {
+		return n, false // a shield and a redirect on one recipient: gorge asks the order (repl_dmgredirect.go)
+	}
 	if sl != NoSlot && (g.anyRepl&rbProtAll != 0 && s.kw(k, sl)&kop.KwProtectionAll != 0 ||
 		g.anyRepl&rbProtCol != 0 && s.protFrom(k, sl, srcSl, srcCard, s.srcColors(k, srcSl, srcCard), combat)) ||
 		sl == NoSlot && g.anyRepl&rbPlProt != 0 && s.plProtected(k, srcCtrl, rcp, combat) {
@@ -160,7 +163,7 @@ func (s *State) prevNextCompetes(k *prep, srcCtrl uint8, srcSl Slot, srcCard Car
 	if s.prevColHit(k, srcSl, srcCard, prevTgt{rcp, sl}, combat) {
 		return true // a colour or scope record
 	}
-	if g.anyDmgMark && s.dmgMarkN(rcp) > 0 {
+	if g.anyDmgMark && s.dmgMarkEv(rcp, srcCtrl) > 0 {
 		return true
 	}
 	if sl != NoSlot {

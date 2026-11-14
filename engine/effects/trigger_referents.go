@@ -810,6 +810,18 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 		if sc.PlayerLinkTargets != nil && ref != "TargetedController" && ref != "TargetedOrController" {
 			targets = sc.PlayerLinkTargets
 		}
+	case controlReferentPlayersParent:
+		// Forge's getDefinedPlayers("ParentTarget") is the PLAYER targets of
+		// the parent link, and "ParentTargetedController" the controllers of
+		// the parent link's CARD targets (the tail below filters by name). It
+		// reads the parent's chosen targets bound for a SubAbility$'s own
+		// offer (Searing Blaze's creature link), else the resolving list; no
+		// binding stays unbound.
+		bound, ok := sc.TargetBinding()
+		if !ok {
+			return nil, false
+		}
+		targets = bound
 	case controlReferentPlayersRemembered:
 		// Resolution-only, like Targeted*: the players this resolution
 		// remembers -- a RepeatEach loop's current subject. Forge's
@@ -933,7 +945,7 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 			// TargetedController means the controller of an object target; a
 			// player target is instead Targeted/TargetedPlayer (or the explicit
 			// TargetedOrController union).
-			if ref == "TargetedController" {
+			if ref == "TargetedController" || ref == "ParentTargetedController" {
 				continue
 			}
 			if int(t.Player) >= len(g.Players) {
@@ -951,14 +963,14 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 		}
 		// Targeted and TargetedPlayer name a player target, not an object's
 		// controller. TargetedOrController explicitly admits both forms.
-		if ref == "Targeted" || ref == "TargetedPlayer" || ref == "ThisTargetedPlayer" {
+		if ref == "Targeted" || ref == "TargetedPlayer" || ref == "ThisTargetedPlayer" || ref == "ParentTarget" {
 			continue
 		}
 		// TargetedController and TargetedOrController resolve the target's
 		// controller to a PLAYER before ControlledBy/OwnedBy compares its
 		// candidate. In particular, OwnedBy TargetedController means "owned
 		// by that controller", not "owned by the targeted permanent's owner".
-		if ref == "TargetedController" || ref == "TargetedOrController" {
+		if ref == "TargetedController" || ref == "TargetedOrController" || ref == "ParentTargetedController" {
 			players = append(players, obj.Controller)
 		} else if op == "OwnedBy" {
 			players = append(players, obj.Owner)
@@ -1087,6 +1099,8 @@ var controlReferentCodes = state.NewStrCodes(
 	state.StrEntry[controlReferentCode]{Key: "ThisTargetedPlayer", Val: controlReferentTriggeredTarget},
 	state.StrEntry[controlReferentCode]{Key: "TargetedController", Val: controlReferentTriggeredTarget},
 	state.StrEntry[controlReferentCode]{Key: "TargetedOrController", Val: controlReferentTriggeredTarget},
+	state.StrEntry[controlReferentCode]{Key: "ParentTarget", Val: controlReferentTriggeredTarget},
+	state.StrEntry[controlReferentCode]{Key: "ParentTargetedController", Val: controlReferentTriggeredTarget},
 	state.StrEntry[controlReferentCode]{Key: "Remembered", Val: controlReferentTriggeredTarget},
 	state.StrEntry[controlReferentCode]{Key: "RememberedPlayer", Val: controlReferentTriggeredTarget},
 	state.StrEntry[controlReferentCode]{Key: "Player.IsRemembered", Val: controlReferentTriggeredTarget},
@@ -1120,6 +1134,7 @@ const (
 	controlReferentPlayersPlayerActive
 	controlReferentPlayersTriggeredActivator
 	controlReferentPlayersTriggeredAttackingPlayer
+	controlReferentPlayersParent
 )
 
 var controlReferentPlayersCodes = state.NewStrCodes(
@@ -1138,6 +1153,8 @@ var controlReferentPlayersCodes = state.NewStrCodes(
 	state.StrEntry[controlReferentPlayersCode]{Key: "ThisTargetedPlayer", Val: controlReferentPlayersTargeted},
 	state.StrEntry[controlReferentPlayersCode]{Key: "TargetedController", Val: controlReferentPlayersTargeted},
 	state.StrEntry[controlReferentPlayersCode]{Key: "TargetedOrController", Val: controlReferentPlayersTargeted},
+	state.StrEntry[controlReferentPlayersCode]{Key: "ParentTarget", Val: controlReferentPlayersParent},
+	state.StrEntry[controlReferentPlayersCode]{Key: "ParentTargetedController", Val: controlReferentPlayersParent},
 	state.StrEntry[controlReferentPlayersCode]{Key: "Remembered", Val: controlReferentPlayersRemembered},
 	state.StrEntry[controlReferentPlayersCode]{Key: "RememberedPlayer", Val: controlReferentPlayersRemembered},
 	state.StrEntry[controlReferentPlayersCode]{Key: "Player.IsRemembered", Val: controlReferentPlayersPlayerIsRemembered},

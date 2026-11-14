@@ -18,7 +18,7 @@ func TestShieldPrepOffOnFrozenPools(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		g := genPrep{replBits: make([]uint32, len(tb.Cards))}
+		g := genPrep{replBits: make([]uint64, len(tb.Cards))}
 		prepShield(tb, &g)
 		if g.anyRepl&rbShield != 0 || g.anyYouHex {
 			t.Fatal("rbShield / anyYouHex on a frozen pool")

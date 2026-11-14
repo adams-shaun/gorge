@@ -427,6 +427,8 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 		v = int(s.pl[ctx.ctrl].lifeGained)
 	case kop.ExOppLifeLostThisTurn:
 		v = s.oppsLifeLost(ctx.ctrl)
+	case kop.ExDmgOppsTaken:
+		v = s.oppsDmgTaken(ctx.ctrl) // kw_bloodthirst.go
 	case kop.ExCountersOn:
 		v = s.refCounters(k, x, x.Ref, x.Ctr, ctx)
 	case kop.ExCreaturesDied:
@@ -687,6 +689,8 @@ func (s *State) condEval(k *prep, id kop.CondID, ctx evalCtx) bool {
 		r = s.graveCards(ctx.ctrl) >= 7 // a token waiting to cease is no card (CR 111.7)
 	case kop.CondYourTurn:
 		r = s.active == ctx.ctrl
+	case kop.CondBlessing:
+		r = s.condBlessing(ctx.ctrl) // kw_ascend.go
 	case kop.CondRefMatches:
 		r = cmp(c.Op, s.countRefMatches(k, c.Ref, c.F, ctx), s.evalV(k, c.A, ctx))
 	case kop.CondPromised:
@@ -699,6 +703,15 @@ func (s *State) condEval(k *prep, id kop.CondID, ctx evalCtx) bool {
 		// the source object itself is in Zone now: gorge's intervening-if for
 		// IsPresent$ Card.StrictlySelf | PresentZone$, re-checked at resolution
 		r = ctx.src != NoObj && s.objs[ctx.src].zone == c.Zone
+	case kop.CondRemMark:
+		// the source's persistent remembered list is non-empty: the host half
+		// of a ConditionDefined$ Remembered group gate. gorge's group is the
+		// source's event-backed list UNIONED with the resolution's own memory
+		// (rememberedWithSource; Forge's areMet reads
+		// getDefinedObjects(host, "Remembered"), which survives the
+		// resolution); the mark is set by every remember write on the
+		// resolving source (interp_gen.go remember).
+		r = ctx.src != NoObj && s.mObj(k, mechRem, ctx.src)
 	default:
 		panic("kernel: condition kind not implemented")
 	}

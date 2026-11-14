@@ -18,17 +18,15 @@ type cmdPartner struct {
 
 // partnerCold is s's partner record, nil for a State never Init'd.
 func (s *State) partnerCold() *cmdPartner {
-	l := s.cold.layout
-	if l == nil || l.partner == 0 {
-		return nil
+	if c := coldPartner.of(s); c != nil {
+		return &c[0]
 	}
-	at := 0
-	_ = coldView[mayPlay](nil, &at, l.may)
-	_ = coldView[embRec](nil, &at, l.emb)
-	_ = coldView[plusCreRec](nil, &at, l.ctrP)
-	_ = coldView[xblkRec](nil, &at, l.xblk)
-	return &coldView[cmdPartner](s.cold.buf, &at, l.partner)[0]
+	return nil
 }
+
+// coldPartner is the record, only in a Commander game's layout (prep.go's
+// coldCmd sets it), so it has no need of its own.
+var coldPartner = newCold[cmdPartner]("partner", nil)
 
 // initPartners empties every seat's partner slot (a zeroed record would name
 // object 0, a real card).

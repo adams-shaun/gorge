@@ -87,7 +87,7 @@ func (s *State) selfDamageRemoveOne(sl Slot) {
 
 // selfDamageHost: the permanent at sl carries a self-damage replacement
 // that still functions.
-func (s *State) selfDamageHost(k *prep, sl Slot, b uint32) bool {
+func (s *State) selfDamageHost(k *prep, sl Slot, b uint64) bool {
 	return !DebugSelfDamageReplOff && k.gen.replBits[s.cardAt(sl)]&b != 0 && !s.genLost(k, sl)
 }
 

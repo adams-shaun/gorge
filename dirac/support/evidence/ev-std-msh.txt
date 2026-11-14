@@ -3,6 +3,7 @@ A.I.M. Synthoids
 Abomination, Terrifying Titan
 Aerial Doombot
 Agent 13, Sharon Carter
+Agent Phil Coulson
 Agent of Atlas
 Agents of HYDRA
 Agents of S.H.I.E.L.D.
@@ -11,10 +12,17 @@ Ant-Man, Colony Commander
 Arc Reactor
 Ares, God of War
 Armor Wars
+Asgardian Citadel
+Atlantean Cavalry
+Atlantis Attacks
+Attuma, Atlantean Warlord
+Avengers Assemble!
 Avengers Disassembled
+Avengers Tower
 Avengers: Under Siege
 Baron Strucker, HYDRA Overlord
 Beast, Erudite Aerialist
+Birnin Zana Plaza
 Black Panther, Vanguard
 Black Widow, Double Agent
 Black Widow, Super Spy
@@ -22,17 +30,30 @@ Blazing Crescendo
 Bold Biochemist
 Brave Brawler
 Call Damage Control
+Captain America's Shield
 Captain America, Super-Soldier
+Captain America, Wings of Freedom
+Captain Mar-Vell, Space-Born
+Captain Marvel, Earth's Protector
+Castle Doom
 Claim the Kingdom
+Colleen Wing, Street Samurai
+Cosmic Cube
 Crimson Operative
 Crossbones, Malicious Mercenary
 Crowd of True Believers
 Cruel Alliance
 Daredevil, Man Without Fear
 Dark Deed
+Dark Fortress
 Death to Our Enemies
 Decoy Ploy
+Dependable Quinjet
+Depower
+Doc Samson, Super Psychiatrist
+Doctor Doom
 Doom Reigns Supreme
+Earth's Mightiest Heroes
 Echo, Perceptive Prodigy
 Elektra, Daughter of the Hand
 Epic Fight
@@ -45,9 +66,12 @@ Frozen in Ice
 Futurist Forge
 Giant Growth
 Giant-Sized Flying Ant
+Go Nuts!
 Grim Reaper, Lethal Legionnaire
 Guerrilla Gorilla
+H.E.R.B.I.E. Scout Unit
 HULK SMASH!
+HYDRA Assault Robot
 HYDRA Infiltration
 HYDRA Troopers
 Hawkeye's Bow
@@ -56,7 +80,11 @@ Hawkeye, Young Avenger
 Helicarrier Strike
 Hell's Kitchen
 Hellcat, Undying Vigilante
+Hercules, Prince of Power
+Hero in Training
+Heroic Feast
 Hex Magic
+Hidden Lair
 Hire a Crew
 Hour of Defeat
 Hulk, Gamma Goliath
@@ -66,42 +94,68 @@ I Am Iron Man
 Iron Man, Master of Machines
 Island
 Jennifer Walters
+Jessica Jones, Private Eye
 Justice, Vance Astrovik
+K'un-Lun Warrior
 Ka-Zar of the Savage Land
 Killmonger, Scourge of Wakanda
+King T'Challa
 Kingpin's Enforcers
 Knight of Wundagore
+Kree Commandos
+Lightning Strike
 Los Diablos Missile Base
 Luke Cage, Power Man
 M.O.D.O.K.
 Machinesmith Automaton
 Madame Hydra
 Madame Masque
+Mister Fantastic, Reed Richards
 Misty Knight, Hero for Hire
 Mockingbird, Ace Agent
 Monica Rambeau
+Moon Girl and Devil Dinosaur
 Moonstone, Harsh Mistress
 Mountain
+Ms. Marvel, Kamala Khan
 Multiversal Incursion
 Murdock's Crusade
 Namor the Sub-Mariner
+Night Nurse, Healer of Heroes
 Ninja of the Hand
 Okoye, Dora Milaje Leader
+Origin of the Avengers
+Panther Pounce
+Patriot, Shield Wielder
+Pet Avengers
 Photon Blast Barrage
 Plains
 Project Deathlok Soldier
+Punishing Punch
+Pym Particles
 Quake, Agent of S.H.I.E.L.D.
 Quicksilver, Brash Blur
+Rapid Rescue
+Red Guardian, Super-Soldier
+Reptil, Dinomorpher
 Repulsor Blast
+Restorative Technique
+Rick Jones, Destined Sidekick
+Roxxon Brutes
 S.H.I.E.L.D. Deployment Drone
+S.H.I.E.L.D. Flying Car
+S.H.I.E.L.D. Helicarrier
+S.H.I.E.L.D. Spy Kit
 Serpent Specialist
 She-Hulk, Jade Defender
 Shuri, Wakandan Inventor
 Speedball, New Warrior
 Spider-Man, To the Rescue
+Stark Industries Executive
 Stolen Stark Tech
 Subterranean Cavern
 Super Speed
+Super Strength
 Super Suit
 Super Villain Lockup
 Super-Skrull
@@ -116,27 +170,40 @@ The Sentry, Golden Guardian
 The Serpent Society
 The Thing, Ben Grimm
 The Unbeatable Squirrel Girl
+The Vision
 Thirst for Knowledge
 Thor Odinson
 Thor, God of Thunder
 Thunderbolts Conspiracy
+Tigra, Feline Fury
 Titania, Rugged Rumbler
 Tony Stark
+Too Evil to Stay Dead
+Training Compound
+Training Regimen
 Trickster's Stratagem
 Truck Toss
 U.S.Agent, John Walker
 Ultron Drone
+Ultron, Artificial Malevolence
 Undercover Skrull
 Unliving Legionnaire
 Vibranium Energy Daggers
+Villainous Hideout
 Vision of Love
 Visions of Villainy
+Viv Vision, Teen Synthezoid
 Volcanic Villain
 Wakandan Drone Flock
+Wakandan Royal Guard
 War Machine, Legacy of Iron
 We Say Thee Nay!
+Web Up
+Whiplash, Vengeful Engineer
 White Tiger, Ava Ayala
 White Widow, Free Agent
 Wiccan, Rising Magician
 Widow's Bite
+Winter Soldier, Icy Assassin
+Worlds Within Worlds
 Yellowjacket, Heartless Marauder

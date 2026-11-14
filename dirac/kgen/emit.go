@@ -285,7 +285,7 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 		val(ab.ManaV)
 		val(ab.OwnReduce) // ReduceCost$ (a subtype filter in its count)
 		for _, in := range ab.Prog {
-			filt(in.F)
+			filt(kop.InstrFilter(&in)) // a PayMana F packs life and hybrid pips (kop.PayManaF)
 			val(in.A)
 			val(in.B)
 			if in.Op == kop.OpSkipUnless {

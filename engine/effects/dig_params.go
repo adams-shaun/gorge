@@ -308,7 +308,7 @@ var digKnownKeys = [...]string{
 	"UnlessPayer",
 	"UnlessResolveSubs",
 	"UnlessSwitched",
-	"ValidCard",
+	"ValidAfterStack", "ValidCard",
 	"ValidCards",
 	"ValidCardsDesc",
 	"ValidChoices",
