@@ -549,9 +549,12 @@ func (s *State) sba(k *prep) bool {
 			}
 			return true
 		}
-		if MaxSeats > 2 && s.sweepDeparted(k) {
-			continue // CR 800.4a: the departed seats' objects left (zone_leavegame.go)
-		}
+		// gorge poses the departed sweep at the pass end (rules/sba.go
+		// sweepDepartedPlayers, after applySBABatch): the casualties this pass
+		// computed saw the departed seat's permanents still in force -- an
+		// Aura the departed seat controls (Witness Protection on the Angel of
+		// Vitality) is still attached when the lethal-damage scan runs, and
+		// only the sweep takes it off (CR 800.4a, zone_leavegame.go)
 		if (s.nAttackers > 0 || s.declared) && (k.gen == nil || k.gen.tyCombat) {
 			s.removeNoncreatureCombatants(k) // CR 506.4 (cold)
 		}
@@ -712,6 +715,9 @@ func (s *State) sba(k *prep) bool {
 			// gorge poses the legend ask before the pass's other actions
 			// apply, a token outside the battlefield still there (pair 3630)
 			if s.legendRule(k) {
+				if MaxSeats > 2 {
+					s.sweepDeparted(k) // gorge sweeps before it parks (rules/sba.go)
+				}
 				s.legSaga = s.sagasDue(k) // parked with the ask (applyLegend)
 				return true
 			}
@@ -737,12 +743,20 @@ func (s *State) sba(k *prep) bool {
 				s.annihilateAll(anni)
 				continue
 			}
+			// CR 800.4a: the departed seats' objects left, at the pass end
+			// (gorge sweepDepartedPlayers runs after every pass's batch)
+			if MaxSeats > 2 && s.sweepDeparted(k) {
+				continue
+			}
 			return false
 		}
 		// gorge poses the legend ask before any of the pass's casualties
 		// apply (parkLegendChoice): park the creature casualties, which
 		// the answer applies ahead of the non-kept legends
 		if s.legendRule(k) {
+			if MaxSeats > 2 {
+				s.sweepDeparted(k) // gorge sweeps before it parks (rules/sba.go)
+			}
 			s.legDie = die
 			s.legSaga = s.sagasDue(k)
 			return true
@@ -803,6 +817,11 @@ func (s *State) sba(k *prep) bool {
 		}
 		if anni.any() {
 			s.annihilateAll(anni.and(s.occ))
+		}
+		// CR 800.4a: the departed seats' objects left, after this pass's
+		// casualties applied (gorge sweepDepartedPlayers, rules/sba.go)
+		if MaxSeats > 2 && s.sweepDeparted(k) {
+			continue
 		}
 		if askAfter && s.parkedWaiting() {
 			s.ctl = ctlExileOrder

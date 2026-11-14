@@ -76,3 +76,16 @@ func TestMBCSelfCastEverySeatReprosLockstep(t *testing.T) {
 	t.Parallel()
 	mbcResidualRepro(t, "selfcast_fires_for_every_caster_seat")
 }
+
+// TestMBCDepartedSweepAfterBatchReprosLockstep: gorge's state-based pass
+// (rules/sba.go) computes the lethal-damage casualties and applies the batch
+// before sweepDepartedPlayers moves a departed seat's objects (CR 800.4a), so
+// an Aura that seat controls (Witness Protection on the Angel of Vitality,
+// making it a 1/1) is still in force when its bearer's damage is judged. The
+// kernel swept the departed seat first, the Angel reverted to 4/4 and
+// survived its damage (decision 1434 of 1434; the 2026-11-13 4-seat MBC lock
+// pool, pair 46).
+func TestMBCDepartedSweepAfterBatchReprosLockstep(t *testing.T) {
+	t.Parallel()
+	mbcResidualRepro(t, "departed_sweep_after_the_sba_batch")
+}
