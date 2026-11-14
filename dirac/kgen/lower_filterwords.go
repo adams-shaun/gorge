@@ -122,6 +122,8 @@ func filterWordPred3(p string) (n int, ok bool) {
 		return int(kop.W7IsCommander), true
 	case "ThisTurnEnteredFrom_Battlefield":
 		return int(kop.W7EnteredFromBF), true
+	case "ThisTurnEnteredFrom_Library":
+		return int(kop.W7EnteredFromLib), true
 	case "BottomLibrary":
 		return int(kop.W7BottomLibrary), true
 	case "IsImprinted":
@@ -135,6 +137,14 @@ func filterWordPred3(p string) (n int, ok bool) {
 		// (lowerCtx.referentGate holds it to an AttackerBlocked trigger's
 		// body, where trigObj is that attacker)
 		return int(kop.W7BlockingTrigObj), true
+	case "blockingSource":
+		// a creature blocking the filter's source (gorge blockingSource: the
+		// source's BlockedBy names it)
+		return int(kop.W7BlockingSrc), true
+	case "blockedBySource":
+		// a creature the filter's source is blocking (gorge blockedBySource:
+		// its BlockedBy names the source)
+		return int(kop.W7BlockedBySrc), true
 	}
 	return attachedToWord(p)
 }

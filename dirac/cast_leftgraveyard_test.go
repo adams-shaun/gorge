@@ -12,7 +12,7 @@ import (
 func kactytRing(s *State, o Obj) int {
 	n := 0
 	for i := uint8(0); i < s.g.enteredN; i++ {
-		if e := &s.cold.entered[i]; e.o == o && e.to == uint8(kop.ZoneStack) && e.from == uint8(kop.ZoneGraveyard) {
+		if e := &s.cold.entered[i]; e.o == o && e.to() == uint8(kop.ZoneStack) && e.from() == uint8(kop.ZoneGraveyard) {
 			n++
 		}
 	}
