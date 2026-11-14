@@ -91,6 +91,24 @@ func TestProtectionFromColorsYouControl(t *testing.T) {
 		t.Fatal("protectedFrom(Kannushi, red source) = false after a controlled permanent became red")
 	}
 
+	// A phased-out permanent is treated as though it doesn't exist (CR
+	// 702.26b): an intrinsically red permanent, phased out, protects from
+	// nothing (the painter is phased out too so its layer-5 red cannot stand
+	// in for it), and does again once it phases back in.
+	phasedRed := putToken(t, e, 0, redOwnSrc, state.ZBattlefield)
+	if got := e.Colors(phasedRed); got != "R" {
+		t.Fatalf("precondition: phased red permanent colours = %q, want R", got)
+	}
+	e.G.Obj(painter).PhasedOut = true
+	e.G.Obj(phasedRed).PhasedOut = true
+	if e.protectedFrom(k, oppRed) {
+		t.Fatal("protectedFrom(Kannushi, red source) = true with every red controlled permanent phased out")
+	}
+	e.G.Obj(phasedRed).PhasedOut = false
+	if !e.protectedFrom(k, oppRed) {
+		t.Fatal("protectedFrom(Kannushi, red source) = false once a red permanent phased back in")
+	}
+
 	// The opponent's own red permanents are not "permanents you control":
 	// the check is relative to the Kannushi's controller, not the source's.
 	if e.controllerOf(oppRed) != 1 {

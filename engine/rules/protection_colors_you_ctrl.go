@@ -21,12 +21,12 @@ type colorsYouCtrlReader interface {
 // battlefield permanent controlled by you has (Forge Card.hasProtectionFrom's
 // colorsYouCtrl arm). Colours are read live at the time of the check, the
 // protected permanent itself included, so a colour change on either side moves
-// the answer. Objects are walked in ObjID order; the union is order-free.
+// the answer. Phased-out permanents are skipped (CR 702.26b). Objects are walked in ObjID order; the union is order-free.
 func sourceSharesControlledColor(g *state.Game, r colorsYouCtrlReader, you state.PlayerID, source state.ObjID) bool {
 	var seen [5]bool // WUBRG
 	for i := range g.Objs {
 		o := &g.Objs[i]
-		if o.Zone != state.ZBattlefield || o.Face() == nil || r.controllerOf(o.ID) != you {
+		if o.Zone != state.ZBattlefield || o.PhasedOut || o.Face() == nil || r.controllerOf(o.ID) != you {
 			continue
 		}
 		for _, c := range r.Colors(o.ID) {
