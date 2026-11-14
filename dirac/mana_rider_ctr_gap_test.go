@@ -19,7 +19,7 @@ func riderCtrGapScen(t *testing.T) (*scen, map[string]Obj) {
 	t.Helper()
 	deck := []cardset.Entry{{Name: "Peat Bog", Count: 1}, {Name: "Wall of Roots", Count: 1},
 		{Name: "Relic Crush", Count: 1}, {Name: "Blasting Station", Count: 1}, {Name: "Island", Count: 16}}
-	tbl, _, _, err := cardsettest.Synth(t, "dr-mbc-bb").Matchup(deck, deck)
+	tbl, _, _, err := cardsettest.Set(t, "mbc").Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func TestRiderBesideCtrGapOffersCast(t *testing.T) {
 // checks the same board against gorge.
 func TestDepletionLastCounterNeedle(t *testing.T) {
 	deck := []cardset.Entry{{Name: "Sandstone Needle", Count: 1}, {Name: "Volcanic Dragon", Count: 1}, {Name: "Island", Count: 1}, {Name: "Mountain", Count: 17}}
-	tbl, _, _, err := cardsettest.Synth(t, "dr-mbc-bb").Matchup(deck, deck)
+	tbl, _, _, err := cardsettest.Set(t, "mbc").Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
 	}
