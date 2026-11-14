@@ -367,9 +367,9 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
-	// PlayerChoices$ (Curse of Leeches' `DB$ Attach | Object$ Self |
-	// PlayerChoices$ Player`, Lynde's `DB$ Attach | Object$ ChosenCard |
-	// PlayerChoices$ Opponent`): the destination is a player chosen from the
+	// PlayerChoices$ (Curse of Leeches attaching itself to a player chosen from
+	// all players, Lynde attaching the chosen card to a chosen opponent): the
+	// destination is a player chosen from the
 	// named pool. The value names the DESTINATION POOL, not the chooser --
 	// `PlayerChoices$ Player` admits every living seat, `PlayerChoices$
 	// Opponent` the resolving controller's opponents. The chooser is the

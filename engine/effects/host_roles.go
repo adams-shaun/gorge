@@ -246,8 +246,8 @@ type HostContinuous interface {
 	// EndEffect ends the one continuous-effect registration named by its
 	// (source, timestamp) identity -- the analogue of Forge's implicit
 	// Command-zone effect object being exiled. It backs the corpus's one-shot
-	// idiom `DB$ ChangeZone | Defined$ Self | Origin$ Command | Destination$
-	// Exile` run from inside an Effect-created replacement's own body (the
+	// idiom, a ChangeZone of the effect itself from the command zone to exile,
+	// run from inside an Effect-created replacement's own body (the
 	// ChooseSource prevention family's RPreventNextFromSource: "the NEXT time
 	// ... prevent that damage"). effChangeZone reaches it only through
 	// Ctx.EffectFrame, so a body that is not an Effect-created replacement's
@@ -268,8 +268,8 @@ type HostContinuous interface {
 	// EndImprintedEffects ends every live continuous-effect registration
 	// that an ImprintOnHost$ True Effect imprinted on the named host card
 	// (state.ContinuousEffect.ImprintOnHost): the analogue of Forge's
-	// `DB$ ChangeZone | Defined$ Imprinted | Origin$ Command | Destination$
-	// Exile` exiling the imprinted effect token from the Command zone
+	// ChangeZone of the imprinted cards from the command zone to exile,
+	// exiling the imprinted effect token from the Command zone
 	// (Superior Foes of Spider-Man's "until you exile another card with
 	// this creature" -- the second dig's trigger exiles the FIRST effect's
 	// token before the new dig's Effect registers). rules.Engine implements

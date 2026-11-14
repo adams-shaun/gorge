@@ -216,7 +216,7 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 	}
 	if k.gen != nil && k.gen.anySuspend && ob.zone == kop.ZoneExile {
 		if n := s.suspendTime(i); n != 0 {
-			projCtr(po, uint8(kop.CtrTime), uint16(n)) // a suspended card's time counters (kw_suspend.go)
+			projCtr(po, uint16(kop.CtrTime), uint16(n)) // a suspended card's time counters (kw_suspend.go)
 		}
 	}
 	if s.res.ask == raGenRetChoice && s.g.pre.obj == i && ob.zone != kop.ZoneBattlefield {

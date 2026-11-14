@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtAddOrRemoveCounter
+value: 36
+forge: AddOrRemoveCounter
+census: api AddOrRemoveCounter all=11 std=0 mbc=0 sole=6
+state: code 0
+status: reserved

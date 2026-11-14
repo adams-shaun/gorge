@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExActivatedThisGame
+value: 113
+forge: ActivatedThisGame
+census: count ActivatedThisGame all=1 std=0 mbc=0 sole=0
+state: player 4 (turn tallies)
+status: reserved

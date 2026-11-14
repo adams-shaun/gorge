@@ -1,0 +1,6 @@
+family: mech
+name: mechInfect
+value: 49
+state: slotbit 16/16
+status: active
+doc: slots whose permanent has infect until end of turn (ExtKwMark; kw_kwmark.go)

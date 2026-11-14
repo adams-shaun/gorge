@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExDomainActivePlayer
+value: 104
+forge: DomainActivePlayer
+census: count DomainActivePlayer all=2 std=0 mbc=0 sole=2
+state: code 0
+status: reserved

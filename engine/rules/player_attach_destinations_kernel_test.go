@@ -13,9 +13,9 @@ import (
 )
 
 // TestCurseOfLeechesTransformAttachesToChosenPlayer drives Curse of Leeches'
-// `R:Event$ Transform | ReplaceWith$ Attach` delivery: as the permanent
+// Transform replacement delivery: as the permanent
 // transforms into Curse of Leeches the replacement resolves the
-// `DB$ Attach | Object$ Self | PlayerChoices$ Player` body, which poses a
+// body that attaches the card itself to a chosen player, which poses a
 // real KChoose user-player ask over BOTH living seats. Choosing the OTHER
 // seat and asserting the Curse lands there proves the answer governs the
 // attachment rather than a deterministic first-seat pick; the second subtest

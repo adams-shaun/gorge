@@ -639,7 +639,7 @@ func castInFlight(g *state.Game, id state.ObjID) state.ObjID {
 // effects.CantBeCastParamsReadable (the playLandForbidden precedent: one
 // whitelist shared by effEffect's registration gate and this consultation, so
 // the two paths cannot disagree about what is readable). This is the route
-// Bilbo's Gambit's `DB$ Effect | StaticAbilities$ STCantBeCast` reaches the
+// Bilbo's Gambit's Effect carrying a CantBeCast static reaches the
 // cast gate through; a printed-static-only board appends nothing and pays
 // only the active() walk.
 func (e *Engine) castRestrictionSources(statics []staticView, id state.ObjID) []staticView {

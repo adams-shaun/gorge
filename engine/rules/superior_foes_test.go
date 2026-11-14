@@ -2,8 +2,8 @@ package rules
 
 // ImprintOnHost$: the DB$ Effect
 // parameter that ties the created effect to its HOST card so a later
-// `DB$ ChangeZone | Defined$ Imprinted | Origin$ Command | Destination$
-// Exile` can exile the imprinted effect and end it. Forge's EffectEffect
+// ChangeZone of the imprinted effect from the command zone to exile
+// can exile the imprinted effect and end it. Forge's EffectEffect
 // imprints the created effect TOKEN on the host card and moves the token to
 // the Command zone; this build has no effect-token object, so the marker
 // rides the registrations (state.ContinuousEffect.ImprintOnHost) and the
@@ -90,7 +90,7 @@ func TestSuperiorFoesSecondDigExilesTheFirstEffect(t *testing.T) {
 	}
 
 	// Big Spell B: the second dig. Its trigger's ExileSelf ChangeZone
-	// (`Defined$ Imprinted | Origin$ Command | Destination$ Exile`) must
+	// (the imprinted effect, from the command zone to exile) must
 	// exile the FIRST imprinted effect -- ending the bolt grant -- before
 	// the new Effect registers for bear.
 	addMana(t, e, 0, "GGGG")

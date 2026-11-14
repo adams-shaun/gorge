@@ -1,0 +1,6 @@
+family: mech
+name: mechEchoOwed
+value: 39
+state: slotbit 16/16
+status: active
+doc: slots of the active player's permanents that came under their control since their previous turn began, read as their upkeep's echo gate (CR 702.30a; trig_echo.go)

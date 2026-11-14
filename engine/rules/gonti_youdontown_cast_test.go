@@ -2,9 +2,8 @@ package rules
 
 // trig:SpellCast.ValidSAonCard -- the single-field Spell.YouDontOwn head.
 //
-// Gonti, Night Minister's real compiled SpellCast trigger carries
-// `ValidSAonCard$ Spell.YouDontOwn | ValidActivatingPlayer$ Player`:
-// "Whenever a player casts a spell they don't own, that player creates a
+// Gonti, Night Minister's real compiled SpellCast trigger matches a spell the
+// caster doesn't own, cast by any player: "Whenever a player casts a spell they don't own, that player creates a
 // Treasure token." Before this fix the head was unmodelled and failed closed,
 // so the trigger could never fire. The discriminator that matters is WHOSE
 // ownership the clause reads: "they don't own" is relative to the CASTER

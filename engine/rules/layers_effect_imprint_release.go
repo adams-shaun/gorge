@@ -3,12 +3,11 @@ package rules
 import "github.com/adams-shaun/gorge/engine/state"
 
 // ReleaseImprintedEffects is the ClearImprinted$ half of the ImprintOnHost$
-// idiom (effects.ImprintedEffectReleaser). Forge's DB$ Cleanup |
-// ClearImprinted$ True makes the host card forget the effect token an
+// idiom (effects.ImprintedEffectReleaser). Forge's Cleanup that clears the
+// imprinted list makes the host card forget the effect token an
 // ImprintOnHost$ True Effect imprinted on it: the effect itself lives on
-// (Duration$ Permanent), but a later `DB$ ChangeZone | Defined$ Imprinted |
-// Origin$ Command | Destination$ Exile` on the same host no longer reaches
-// it. Superior Foes of Spider-Man's Static$ True leaves-the-battlefield
+// (a permanent duration), but a later ChangeZone of the imprinted cards from
+// the command zone to exile on the same host no longer reaches it. Superior Foes of Spider-Man's Static$ True leaves-the-battlefield
 // cleanup is the load-bearing carrier: "you may play that card until you
 // exile another card with THIS creature" -- once the creature leaves the
 // battlefield it is a new object when it returns (CR 400.7), so a card the

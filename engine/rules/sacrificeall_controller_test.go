@@ -11,8 +11,8 @@ import (
 // TestSacrificeAllController: Controller$ You on a SacrificeAll keeps only the
 // objects the ability's controller controls (Forge's SacrificeAllEffect
 // filters by Controller$ after the LKI refresh). Crumbling Colossus, Fog
-// Elemental, Mardu Blazebringer and Runaway Carriage ("DB$ SacrificeAll |
-// Defined$ Self | Controller$ You") must not sacrifice the source when another
+// Elemental, Mardu Blazebringer and Runaway Carriage (a SacrificeAll of
+// itself limited to its controller) must not sacrifice the source when another
 // player controls it; the sweep and Defined$ spellings both honour the filter.
 func TestSacrificeAllController(t *testing.T) {
 	t.Parallel()

@@ -101,8 +101,8 @@ func TestCR701_14aHansErikssonFightsTheRevealedCreature(t *testing.T) {
 	}
 }
 
-// TestFightGrantedTriggerNamesTheGrantor: Grothama's granted trigger is
-// `DB$ Fight | Defined$ TriggeredAttackerLKICopy & OriginalHost`. OriginalHost
+// TestFightGrantedTriggerNamesTheGrantor: Grothama's granted trigger makes the
+// attacker (its last known information) fight the original host. OriginalHost
 // of a static-granted trigger is the granting Grothama, not the attacker, so
 // the attacker (3/3) and Grothama (10/8) fight each other: CR 701.14a.
 func TestFightGrantedTriggerNamesTheGrantor(t *testing.T) {
@@ -213,8 +213,8 @@ func TestCR701_14bNoncreatureFighterDealsNothing(t *testing.T) {
 }
 
 // TestCR701_14aBloodFeudPairGuard is a guard (passes today): the
-// no-Defined$ two-target shape (`SP$ Fight | ValidTgts$ Creature |
-// TargetMin$ 2 | TargetMax$ 2`) pairs its two targets against each other
+// no-Defined$ two-target shape (a Fight spell targeting exactly two
+// creatures) pairs its two targets against each other
 // once -- never a self-fight per target.
 func TestCR701_14aBloodFeudPairGuard(t *testing.T) {
 	t.Parallel()

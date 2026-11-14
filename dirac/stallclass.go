@@ -84,9 +84,12 @@ var stallCapacityReasons = [...]uint8{
 	StallDmgAmt,       // a fifth reader-card object damaged in one turn (genState.dmgAmt; value_dmgamount.go)
 	StallDmgMark,      // a second mark of one controller on one player while the first is live (genState.dmk; repl_dmgmark.go)
 	StallChooseNumber, // a mid-resolution ChooseNumber's present Max$ resolves above the chosen byte's 254 (repl_choosenumber.go)
-	StallDmgBatch,     // a ninth DamageDealtOnce line of one DamageAll sweep's batch latched (armRes.dmgB; trig_dmgbatch.go)
-	StallRedirCap,     // a fifth Ext DmgRedirect record in one turn (genState.redir; repl_dmgredirect.go)
-	StallRedirOrder,   // a damage event a redirect record and another replacement both match, or a redirect of a source the kernel does not model: gorge asks the CR 616.1 order (repl_dmgredirect.go)
+	// a blocker of two attackers that two CanBlockAmount$ 1 sources reach:
+	// gorge's capacity is three, the second-block record holds two (combat_extrablock.go)
+	StallExtraBlockCap,
+	StallDmgBatch,   // a ninth DamageDealtOnce line of one DamageAll sweep's batch latched (armRes.dmgB; trig_dmgbatch.go)
+	StallRedirCap,   // a fifth Ext DmgRedirect record in one turn (genState.redir; repl_dmgredirect.go)
+	StallRedirOrder, // a damage event a redirect record and another replacement both match, or a redirect of a source the kernel does not model: gorge asks the CR 616.1 order (repl_dmgredirect.go)
 }
 
 var stallUnmodelledReasons = [...]uint8{
@@ -101,6 +104,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallDmgMarkOrder, // a damage event the per-player mark and another replacement both match: gorge asks the CR 616.1 order, which the mark has no candidate for (repl_dmgmark.go)
 	StallFbGrantStamp, // a stamped flashback grant beside an own-cost flashback static: gorge offers both granted instances (kw_fbgrant.go)
 	StallRestrDefer,   // a non-spell payment only a Taps-deferred restricted source funds: gorge pays it by its prefix search (mana_tapsdefer.go)
+	StallComboAnyMix,  // a Combo Any source (Axebane Guardian) beside another census-gap kind: gorge's one prefix search activates both and the kernel chains it with only some gap kinds (mana_comboany.go)
 	StallDiamondMix,   // a Lion's Eye Diamond beside another census-gap kind: gorge's one prefix search activates both (mana_diamondmix.go)
 	StallStackKwGrant, // a granted convoke/improvise on a Harmonize or alternative-cost cast: gorge's announcement for those routes is unverified (kw_convoke.go)
 	// a requirement- or lure-maximising block declaration with a two-attacker blocker ready: gorge offers its second block too (combat_extrablock.go)
@@ -138,6 +142,8 @@ func (g *genPrep) initStall(nseat uint8) uint8 {
 		return StallReplPlus // repl_selfdamage.go: gorge asks the order of a self-damage replacement and another damage replacement
 	case g.dhMix:
 		return StallDiamondMix // mana_diamondmix.go prepDiamondMix
+	case g.caMix:
+		return StallComboAnyMix // mana_comboany.go prepComboAnyMix
 	case g.fbStampOwnCost:
 		return StallFbGrantStamp // kw_fbgrant.go prepFbStamp
 	case g.atkTaxStall:
@@ -245,6 +251,10 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 		text, a, b = blkTaxStallPair(t, g) // combat_blocktax.go
 	case StallChoosePlayerOrder:
 		text, a, b = choosePlayerStallPair() // repl_chooseplayer.go
+	case StallComboAnyMix:
+		text = "an unrestricted Combo Any mana source (Axebane Guardian) beside a filter, a tap-another source, a granted mana ability or a Lion's Eye Diamond: gorge's one prefix search activates both and the kernel chains the Combo Any source with the each-colour, restricted, any-colour restricted, deferred and counter-cost sources only"
+		a = func(cd *kop.CardDef, i int) bool { return g.isComboAnyCard(CardID(i), cd) }
+		b = func(_ *kop.CardDef, i int) bool { return caMixGap(tt, g, pp, i) }
 	case StallTokRewrite:
 		text, a, b = tokListAdderPair() // repl_toklistadd.go
 	case StallDiamondMix:

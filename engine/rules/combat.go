@@ -795,8 +795,8 @@ func attackedCreature(o decision.Option) state.ObjID {
 // (attackDutyDischargeable) -- CR 508.1d's "attacks if able". The requirement set
 // is the board-wide collection (which includes the creature's own face,
 // source-bound through the same specCtx the face walk used), so an
-// AURA-carried requirement -- Fealty to the Realm's `S:Mode$ MustAttack |
-// ValidCreature$ Creature.EnchantedBy`, the Vow cycle's shape -- reaches the
+// AURA-carried requirement -- Fealty to the Realm's MustAttack static on the
+// creature it enchants, the Vow cycle's shape -- reaches the
 // enchanted creature, not just its bearer's own face. A MustAttack static
 // carrying a condition or any other parameter the requirement collector
 // cannot evaluate contributes nothing (combat.AttackRequirements skips it), the safe

@@ -1,0 +1,7 @@
+family: CounterKind
+name: CtrIntel
+value: 178
+forge: INTEL
+census: ctr INTEL all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

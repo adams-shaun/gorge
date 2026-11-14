@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExManaColorsPaid
+value: 108
+forge: ManaColorsPaid
+census: count ManaColorsPaid all=2 std=0 mbc=0 sole=2
+state: slotbyte 112 (cast facts)
+status: reserved

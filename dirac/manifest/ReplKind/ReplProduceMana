@@ -1,0 +1,7 @@
+family: ReplKind
+name: ReplProduceMana
+value: 43
+forge: ProduceMana
+census: repl ProduceMana all=11 std=1 mbc=0 sole=8
+state: code 0
+status: reserved

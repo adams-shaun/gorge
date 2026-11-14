@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtGameDrawn
+value: 70
+forge: GameDrawn
+census: api GameDrawn all=2 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

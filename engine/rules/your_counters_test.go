@@ -3,10 +3,9 @@
 // degrades to zero" rule.
 //
 // The end-to-end pin runs on the REAL corpus card Razorfield Ripper (whose
-// trigger body is `DB$ Pump | Defined$ TriggeredAttackerLKICopy | NumAtt$ +X
-// | NumDef$ +X` with `X = Count$YourCountersEnergy`); the compiled-SVar
-// pins run Localized Destruction's and Aether Refinery's
-// `DB$ ChooseNumber | Max$ Count$YourCountersEnergy` Max expressions and the
+// trigger body pumps the attacker by +X/+X, X being your energy count); the
+// compiled-SVar pins run Localized Destruction's and Aether Refinery's
+// ChooseNumber Max expressions (bounded by your energy count) and the
 // YourCountersExperience / YourCountersRAD spellings (Otharri, Mariposa
 // Military Base) through the real cards' own SVar tables.
 package rules
@@ -139,7 +138,7 @@ func TestYourCountersExperienceAndRADSpellings(t *testing.T) {
 
 // TestEnergyCountersBoundTheMayPayAsks pins the Creative Energy deck's two
 // ChooseNumber carriers: Localized Destruction's and Aether Refinery's
-// `DB$ ChooseNumber | Max$ Count$YourCountersEnergy` Max expressions resolve
+// ChooseNumber Max expressions (bounded by your energy count) resolve
 // to the controller's energy total through each card's own compiled SVar —
 // the bound the may-pay-{E} ask takes once the ChooseNumber ask primitive
 // itself lands (today the ask is the silent 0 fallback).

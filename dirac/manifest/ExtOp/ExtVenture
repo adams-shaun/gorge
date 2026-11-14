@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtVenture
+value: 15
+forge: Venture
+census: api Venture all=45 std=0 mbc=0 sole=28
+state: player 6 (dungeon)
+status: reserved

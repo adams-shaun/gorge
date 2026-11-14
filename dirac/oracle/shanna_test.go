@@ -9,11 +9,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// gorgeShannaXMaxFixTime is gorge cr-trigger-x-xmax (166c27426, 2026-10-26
-// 16:31:02Z): before it triggeredCostXAsk offered X beyond the XMax$ cap
-// (Shanna: the life gained this turn).
-const gorgeShannaXMaxFixTime = "20261026163102"
-
 // The Shanna, Purifying Blade lockstep: "at the beginning of your
 // end step, you may pay {X}. If you do, draw X cards. X can't be greater than
 // the amount of life you gained this turn." A trigger-own announced X
@@ -65,9 +60,6 @@ func kshannaCheck(tal *kshannaTally) func(*GorgeSide, Side) *Divergence {
 
 func TestShannaLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeShannaXMaxFixTime) {
-		t.Skip("gorge before cr-trigger-x-xmax (166c27426)")
-	}
 	var tal kshannaTally
 	sonRun(t, "shanna", kshannaMatchups, 300, true, nil, kshannaCheck(&tal))
 	t.Logf("%d games: %d cards drawn by a paid Shanna trigger", tal.games, tal.draws)
@@ -80,9 +72,6 @@ func TestShannaLockstep(t *testing.T) {
 // and with the announcement dropped, some seed diverges.
 func TestShannaLockstepMutation(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeShannaXMaxFixTime) {
-		t.Skip("gorge before cr-trigger-x-xmax (166c27426)")
-	}
 	n := sonRun(t, "shanna", kshannaMatchups, 100, false, func(tbl *kop.Table) {
 		cards := append([]kop.CardDef(nil), tbl.Cards...)
 		for i := range cards {

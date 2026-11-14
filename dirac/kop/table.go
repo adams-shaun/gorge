@@ -649,8 +649,8 @@ type CardDef struct {
 	// "can't be blocked unless all creatures defending player controls
 	// block it"): the floor is every creature the attacked player controls.
 	MinBlockers uint8
-	// ExtraBlocks is a printed S:Mode$ Continuous | AffectedDefined$ Self |
-	// CanBlockAmount$ 1 (CR 509.1a): the creature can block one additional
+	// ExtraBlocks is a printed continuous static on the card itself granting
+	// one extra block (its CanBlockAmount, CR 509.1a): the creature can block one additional
 	// attacker each combat; 0 none. Not when it has lost its abilities.
 	ExtraBlocks uint8
 	// SpendRead: an SVar reads Count$CastTotalManaSpent (Memory Deluge):

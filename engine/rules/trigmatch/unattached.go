@@ -10,7 +10,8 @@ import (
 // "whenever CARDNAME becomes unattached from a permanent" trigger the four
 // corpus carriers print (Captain's Hook, Grafted Exoskeleton, Grafted
 // Wargear, Stitcher's Graft -- all Equipment). The four lines share one
-// shape: `ValidAttachment$ Card.Self | ValidObject$ Permanent`.
+// shape: the attachment is the source itself and the object it leaves is a
+// permanent.
 //
 // Two events carry a detach. The first is events.Unattached: a distinct Kind
 // is what lets this mode fire while Mode$ Attached keeps ignoring a detach,

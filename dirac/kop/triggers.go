@@ -184,8 +184,13 @@ const (
 	TrigBecomeMonarch               // a player (Whose) becomes the monarch (CR 725.3; gorge Mode$ BecomeMonarch, trigmatch BecomeMonarchMatches on events.MonarchChange; N TrigNMonarchBeganTurn: BeginTurn$ You); no slot subscription: the battlefield is scanned (act_monarch.go)
 	TrigExploited                   // a creature matching Filter exploits a creature matching Filter2 (CR 702.110b; gorge Mode$ Exploited, trigmatch exploitedMatches on the events.Exploit marker effExploit emits per sacrificed object: Filter = the exploiter, Filter2 = the exploited creature, type predicates only); no slot subscription: fired by ExtExploit over the battlefield (kw_exploit.go)
 	TrigUnattached                  // this attachment becomes unattached from a permanent (CR 701.3b/d; gorge Mode$ Unattached, ValidAttachment$ Card.Self, ValidObject$ Permanent, the Captain's Hook family): no slot subscription, fired by the detach arms on the attachment's own abilities; RefTriggerObj is the FORMER BEARER (trig_unattached.go)
-	TrigEventCount                  // number of trigger events; append above
+	// TrigEventCount ends the frozen iota list (the events above are
+	// 0..50). It is a fixed value: do not append above it. A new trigger
+	// event is a manifest entry (dirac/manifest/TrigEvent, kmanifest).
+	TrigEventCount TrigEvent = 51
 )
+
+var _ = [1]struct{}{}[TrigEventCount-TrigUnattached-1]
 
 // Whose restricts a trigger to an event about a player relative to the
 // controller.
@@ -570,7 +575,7 @@ const (
 
 // Tf4DefEnch (Trigger.Flags4, bit 7, shared with Tf4PerCounter: that flag is
 // read only on a TrigCounterAddedOnce line and this one only on an
-// AttackersDeclared line, so no trigger carries both; the Tf2ToYou /
+// AttackersDeclared or Attacks line, so no trigger carries both; the Tf2ToYou /
 // Tf2Increment bit-24 precedent): Mode$
 // AttackersDeclared with AttackedTarget$ Player.EnchantedBy, the Commander
 // curses' "whenever enchanted player is attacked" (Curse of Opulence,
@@ -579,7 +584,9 @@ const (
 // enchanted by THIS listener's Aura (gorge attackedDefenderMatches reads
 // Player.EnchantedBy, the source-relative player property player_filter.go
 // playerSpecQualifierEnchantedBy: player.isEnchantedBy(source)), through
-// fireDefPlayer's Tf4DefEnch arm.
+// fireDefPlayer's Tf4DefEnch arm. On an Attacks line (Attacked$
+// Player.EnchantedBy, Curse of Predation) the flag gates each defender group
+// the same way (trig_attacksenchanted.go).
 const Tf4DefEnch TrigFlags4 = 1 << 7
 
 // TrigNAnyCounter in Trigger.N of a TrigCounterAddedOnce trigger: every

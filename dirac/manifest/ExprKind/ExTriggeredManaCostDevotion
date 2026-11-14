@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExTriggeredManaCostDevotion
+value: 153
+forge: TriggeredManaCostDevotion
+census: count TriggeredManaCostDevotion all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved
