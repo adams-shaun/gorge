@@ -622,15 +622,11 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				cs += "|counters=" + counterKind
 			}
 			if ch, ok := ps.get("Chooser"); ok && !chosenPool { // chosenMidPool already read it
-				switch {
-				case ch == "You" && pickOwner.Kind != rYou:
-					cs += "|ChooserYou" // the fetch player is not the controller: the default chooser is wrong
-				case ch == "You", ch == "":
-				case ch == "Opponent" && pickOwner.Kind == rYou && pickLoop.Kind == rNone:
-					cs += "|ChooserOpp"
-				default:
+				flag, ok := gravePickChooserFlag(ch, pickOwner, pickLoop)
+				if !ok {
 					return refuse("graveyard pick Chooser$ %q", ch)
 				}
+				cs += flag
 			}
 			lc.pickEachLoop(pickLoop)
 			// dpScope You / Player (graveDefinedPlayer) already read the param, so
@@ -4773,4 +4769,21 @@ func noCost(c lCost) bool {
 func plainTapCostIgnoringTap(c lCost) bool {
 	c.Tap = true
 	return plainTapCost(c)
+}
+
+// gravePickChooserFlag is the plain graveyard pick's chooser flag for a
+// Chooser$ spelling. You is the default chooser only when the fetch player
+// is the controller; over another player's yard (The Weaver King's each
+// opponent) the kernel would ask that player, so it needs ChooserYou
+// (gorge hiddenPickChooser). ok is false for a spelling it does not read.
+func gravePickChooserFlag(ch string, pickOwner, pickLoop lRef) (flag string, ok bool) {
+	switch {
+	case ch == "You" && pickOwner.Kind != rYou:
+		return "|ChooserYou", true
+	case ch == "You", ch == "":
+		return "", true
+	case ch == "Opponent" && pickOwner.Kind == rYou && pickLoop.Kind == rNone:
+		return "|ChooserOpp", true
+	}
+	return "", false
 }

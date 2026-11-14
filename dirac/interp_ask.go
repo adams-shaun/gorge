@@ -1947,9 +1947,7 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			if fl&kop.SrGraveExile != 0 && fl&kop.SrUnderYourControl == 0 {
 				ep = s.objs[o].owner() // graveexile: gorge enters a hidden pick under its owner unless GainControl$
 			}
-			if fl&(kop.SrUnderYourControl|kop.SrChooserYou) == kop.SrUnderYourControl|kop.SrChooserYou {
-				ep = s.res.e.ctrl // GainControl$ with Chooser$ You: gorge enters under the resolving controller
-			}
+			ep = s.pickEntrant(fl, ep)
 			if DebugGyBfOwnerEntry && fl&kop.SrUnderYourControl != 0 {
 				ep = s.objs[o].owner() // mutation: a GainControl$ graveyard pick keeps its owner
 			}
@@ -2792,4 +2790,14 @@ func (s *State) targetedExiler(ctrl uint8) uint8 {
 		}
 	}
 	return NextSeat(ctrl)
+}
+
+// pickEntrant is the seat a hidden pick enters the battlefield under, given
+// the seat ep it was picked from: GainControl$ with Chooser$ You enters the
+// card under the resolving controller (gorge changeHiddenOriginResolve).
+func (s *State) pickEntrant(fl uint16, ep uint8) uint8 {
+	if fl&(kop.SrUnderYourControl|kop.SrChooserYou) == kop.SrUnderYourControl|kop.SrChooserYou {
+		return s.res.e.ctrl
+	}
+	return ep
 }
