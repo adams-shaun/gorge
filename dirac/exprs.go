@@ -31,6 +31,10 @@ type evalCtx struct {
 	// left the battlefield (CR 704.5j before 603.3b), where a later effect
 	// read sees gorge's reset.
 	bounds bool
+	// xmv is the announced X an {X} spell adds to its own mana value when a
+	// protection quality reads it as a source (protMatch; CR 202.3e), which
+	// a card matcher off the stack cannot see. 0 adds nothing.
+	xmv int
 }
 
 // ctxCur is the context of the resolving entry, else the one being built.
@@ -423,6 +427,8 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 		v = int(s.pl[ctx.ctrl].lifeGained)
 	case kop.ExOppLifeLostThisTurn:
 		v = s.oppsLifeLost(ctx.ctrl)
+	case kop.ExDmgOppsTaken:
+		v = s.oppsDmgTaken(ctx.ctrl) // kw_bloodthirst.go
 	case kop.ExCountersOn:
 		v = s.refCounters(k, x, x.Ref, x.Ctr, ctx)
 	case kop.ExCreaturesDied:

@@ -72,6 +72,8 @@ CfManifestRemembered	untyped int	64
 CfRemember	untyped int	4
 CfShuffle	untyped int	2
 CfTapped	untyped int	1
+ChangeTextColour	int16	1
+ChangeTextLand	int16	2
 CharmRepeat	untyped int	256
 ChooseOpp	untyped int	2
 ChoosePlayerFresh	untyped int	1
@@ -377,6 +379,7 @@ ExDilemmasFaced	ExprKind	239
 ExDiscardedThisTurn	ExprKind	241
 ExDistinctCMC	ExprKind	6
 ExDmgAmountReceived	ExprKind	219
+ExDmgOppsTaken	ExprKind	66
 ExDrawnThisTurn	ExprKind	40
 ExEnergyOf	ExprKind	63
 ExExcessDamage	ExprKind	21
@@ -461,6 +464,7 @@ ExtBlocksIfAble	ExtOp	256
 ExtBreachChoose	ExtOp	160
 ExtBreachReturn	ExtOp	161
 ExtChangeTargets	ExtOp	225
+ExtChangeText	ExtOp	261
 ExtChooseCardEnter	ExtOp	297
 ExtChooseColorRes	ExtOp	5
 ExtChooseName	ExtOp	251
@@ -505,6 +509,7 @@ ExtGrantKwAll	ExtOp	296
 ExtGrantPanharm	ExtOp	248
 ExtHideaway	ExtOp	8
 ExtJoinForces	ExtOp	301
+ExtKwMark	ExtOp	10
 ExtLibPlace	ExtOp	300
 ExtLibSweep	ExtOp	101
 ExtLockActs	ExtOp	140
@@ -532,6 +537,7 @@ ExtSpellToLib	ExtOp	308
 ExtStackExileMark	ExtOp	315
 ExtSuspect	ExtOp	190
 ExtSweepFrom	ExtOp	97
+ExtTapOrUntapAll	ExtOp	295
 ExtToGraveyard	ExtOp	192
 ExtTokenPT	ExtOp	170
 ExtTurnFaceUp	ExtOp	254
@@ -619,6 +625,8 @@ KwHexproofFromInstants	KwMask	16777216
 KwIndestructible	KwMask	8192
 KwKicker	KwMask	2097152
 KwLifelink	KwMask	32
+KwMarkInfect	untyped int	2
+KwMarkIntimidate	untyped int	1
 KwMenace	KwMask	512
 KwPreventCombatDamageFrom	KwMask	536870912
 KwPreventCombatDamageTo	KwMask	134217728
@@ -919,6 +927,7 @@ PayEnergy	untyped int	5
 PayEvidence	untyped int	15
 PayExileGrave	untyped int	14
 PayForage	untyped int	7
+PayHybMax	untyped int	2
 PayLife	untyped int	4
 PayMana	untyped int	1
 PayManaX	untyped int	15
@@ -1493,7 +1502,7 @@ TrigDiscardedAll	TrigEvent	35
 TrigDiscover	TrigEvent	44
 TrigDrawn	TrigEvent	14
 TrigETB	TrigEvent	1
-TrigEventCount	TrigEvent	50
+TrigEventCount	TrigEvent	51
 TrigEvolved	TrigEvent	47
 TrigExploited	TrigEvent	49
 TrigExplores	TrigEvent	39
@@ -1525,6 +1534,7 @@ TrigToGraveyard	TrigEvent	4
 TrigTokenCreated	TrigEvent	25
 TrigTransformed	TrigEvent	28
 TrigTurnFaceUp	TrigEvent	27
+TrigUnattached	TrigEvent	50
 TrigUnlockDoor	TrigEvent	30
 TrigUntaps	TrigEvent	17
 TurnReplExileOpp	untyped int	1
@@ -1603,3 +1613,7 @@ ZonePhased	Zone	8
 ZonePhasedInd	Zone	9
 ZoneSideboard	Zone	10
 ZoneStack	Zone	6
+payFLifeBits	untyped int	6
+payFLifeMask	untyped int	63
+RefTriggerOpponents	Ref	247
+PayBSubSacSelfMust	untyped int	4
