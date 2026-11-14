@@ -1,0 +1,17 @@
+# the MBC AnimateAll Abilities$ grant family: an AnimateAll whose Abilities$
+# names a granted mana ability of the casting card -- Rain of Filth's
+# "lands you control gain 'Sacrifice this land: Add {B}'" (sacrifice-only,
+# a tapped land still funds a play) and Song of Freyalise's saga chapters
+# ("{T}: Add one mana of any color", until the controller's next turn) --
+# beside creatures to cast and lands to fund
+# (dirac/oracle/mbcanimate1_test.go)
+Rain of Filth
+Song of Freyalise
+Walking Corpse
+Terror
+Grizzly Bears
+Hill Giant
+Swamp
+Forest
+Plains
+Mountain

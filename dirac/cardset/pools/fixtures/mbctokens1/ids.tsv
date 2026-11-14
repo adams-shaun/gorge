@@ -1,0 +1,16 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Banishing Slash
+1	card	Bestial Menace
+2	card	Forest
+3	card	Grizzly Bears
+4	card	Hill Giant
+5	card	Mountain
+6	card	Pacifism
+7	card	Plains
+8	card	Savannah Lions
+9	card	Sol Ring
+10	card	Wayfarer's Bauble
+11	token	g_1_1_snake
+12	token	g_2_2_wolf
+13	token	g_3_3_elephant
+14	token	w_2_2_samurai_vigilance

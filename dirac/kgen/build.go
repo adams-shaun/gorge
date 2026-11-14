@@ -27,6 +27,7 @@ type poolTables struct {
 	ovSubs    []ovSub
 	emblems   []kop.Emblem
 	subtypes  []string // pool subtype names (index = pool subtype id)
+	textWords bool     // the pool holds a lowered ChangeText: CardDef.TextWords is filled (textreach.go)
 	subIdx    map[string]int
 	tokenIdx  map[string]int   // token script key -> pool index
 	cardIdx   map[string]int   // pool card name -> pool index (multi-face links)
@@ -96,6 +97,11 @@ func newPoolTables(lw *lowered, extra map[string]bool) *poolTables {
 		// is 1 + the index, the kernel's genState.parad bit
 		if _, ok := pt.paradigm[c.Name]; c.Paradigm && len(c.Refusals) == 0 && !ok {
 			pt.paradigm[c.Name] = len(pt.paradigm)
+		}
+	}
+	for _, c := range lw.cards {
+		if c.HasChangeText && len(c.Refusals) == 0 {
+			pt.textWords = true // a ChangeText card: every card of the table carries TextWords (textreach.go)
 		}
 	}
 	for i, t := range lw.tokens {
@@ -421,9 +427,11 @@ var counterKinds = map[string]kop.CounterKind{
 	"DEPLETION":  kop.CtrDepletion,  // Peat Bog's depletion counter (CR 122.1; mana_rider.go)
 	"MINING":     kop.CtrMining,     // Gemstone Mine's mining counter (CR 122.1; mana_rider.go)
 	"BURDEN":     kop.CtrBurden,     // The One Ring's burden counter (CR 122.1; its count reads in Count$CardCounters.BURDEN)
+	"LEVEL":      kop.CtrLevelUp,    // Level up's level counter (CR 702.87; the level bands' counters_GEn_LEVEL)
 	"STORAGE":    kop.CtrStorage,    // Molten Slagheap's storage counter (CR 122.1; mana_countercost.go)
 	"SCREAM":     kop.CtrScream,     // Endless Scream's named counter (CR 122.1; its count reads in Count$CardCounters.SCREAM)
 	"TREASURE":   kop.CtrTreasure,   // Legacy's Allure's named counter (CR 122.1)
+	"TASK":       kop.CtrTask,       // Heliod's Punishment's named counter (CR 122.1)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -980,6 +988,9 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 		d.HasAltAdd = true
+	}
+	if cb.pt.textWords {
+		d.TextWords = c.TextWords
 	}
 	d.Leyline = c.Leyline
 	d.World = c.World
@@ -2099,6 +2110,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefLastCreated, nil
 	case rTaxedAttacker:
 		return kop.RefTaxedAttacker, nil
+	case rTriggerOpps:
+		return kop.RefTriggerOpponents, nil
 	case rSrcOwner:
 		return kop.RefSrcOwner, nil
 	case rTriggeredOwner:
@@ -2249,6 +2262,8 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vEnergyOf:           kop.ExEnergyOf,
 	vMonarch:            kop.ExMonarch,    // lower_monarch.go
 	vJoinForces:         kop.ExJoinForces, // lower_storesvar.go
+	vCmdGreatestMV:      kop.ExCmdGreatestMV,
+	vDmgOppsTaken:       kop.ExDmgOppsTaken, // lower_bloodthirst.go
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
