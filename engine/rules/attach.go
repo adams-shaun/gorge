@@ -159,7 +159,7 @@ func (e *Engine) attachmentSBAs(b *sbaBatch) {
 				// binning it to the graveyard would contradict 702.114b's own
 				// "becomes a creature again if it's not attached".)
 				if bearer == nil || bearer.Zone != state.ZBattlefield ||
-					!e.IsCreature(bearer.ID) || e.protectedFrom(bearer.ID, o.ID) {
+					!e.IsCreature(bearer.ID) || protectedFromKW(e, e.G, bearer.ID, o.ID, true) {
 					b.add(events.Event{Kind: events.Unattached, Obj: id,
 						IDs:  []state.ObjID{o.AttachedTo},
 						Text: "bestowed attachment ended"})
@@ -207,7 +207,7 @@ func (e *Engine) attachmentSBAs(b *sbaBatch) {
 					Text: why})
 				continue
 			}
-			if e.isAura(o) && (!e.auraStillMatchesEnchant(o, bearer) || e.protectedFrom(bearer.ID, o.ID)) {
+			if e.isAura(o) && (!e.auraStillMatchesEnchant(o, bearer) || protectedFromKW(e, e.G, bearer.ID, o.ID, true)) {
 				b.add(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZBattlefield, To: state.ZGraveyard,
 					Text: "attached to something it can no longer legally enchant"})

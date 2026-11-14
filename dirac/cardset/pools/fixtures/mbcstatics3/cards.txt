@@ -1,0 +1,38 @@
+# the MBC statics-3 family: a CantGainLife static scoped to the controller's
+# opponents (Tibalt, Rakish Instigator's ValidPlayer$ Opponent) beside the
+# lifegain sources it swallows and an Aura whose Continuous static takes the
+# enchanted creature's abilities and grants it a {T} ability that removes a
+# named counter from the Aura, beside an AddSVar$ no rules reader consults
+# (Heliod's Punishment)
+# (dirac/oracle/mbc_statics_lowers_test.go)
+Tibalt, Rakish Instigator
+Heliod's Punishment
+Lone Missionary
+Healer's Hawk
+Soulmender
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Plains
+Mountain
+Forest
+# the same spellings' other cards: Continuous statics granting an ability
+# beside an AddSVar$, and the CantGainLife statics scoped Player.Opponent
+Animal Boneyard
+Burning Anger
+Hard Cover
+Elemental Mastery
+Dragon Throne of Tarkir
+Knight of Dusk's Shadow
+Arlinn Kord
+Oracle's Insight
+Sisay's Ingenuity
+Quicksilver Dagger
+Sinstriker's Will
+Sorcerer's Wand
+Pathway Arrows
+Quakebringer
+Archfiend of Despair
+Gríma Wormtongue
+Island
+Swamp

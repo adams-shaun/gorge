@@ -128,7 +128,7 @@ func (s *State) srcEnteredThisTurn(k *prep, srcCard CardID) bool {
 	}
 	o := s.res.e.obj
 	for i := uint8(0); i < s.g.enteredN; i++ {
-		if e := &s.cold.entered[i]; e.o == o && e.to == uint8(kop.ZoneBattlefield) {
+		if e := &s.cold.entered[i]; e.o == o && e.to() == uint8(kop.ZoneBattlefield) {
 			return true
 		}
 	}
