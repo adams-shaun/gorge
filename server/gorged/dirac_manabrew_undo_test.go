@@ -121,7 +121,7 @@ func landUndoGame(t *testing.T, game int, undo bool) {
 	// next is seat 0's next open chooseAction prompt.
 	next := func(what string) (mb.GameViewDto, *mb.PromptMessage) {
 		t.Helper()
-		for at := time.Now(); time.Since(at) < 15*time.Second; time.Sleep(2 * time.Millisecond) {
+		for at := time.Now(); time.Since(at) < 15*time.Second; time.Sleep(time.Millisecond) {
 			if answerNative() {
 				continue
 			}
