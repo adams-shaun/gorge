@@ -85,7 +85,7 @@ func (s *State) dblDmgMatch(k *prep, b Slot, srcCtrl uint8, srcSl Slot, srcCard 
 			}
 			continue
 		}
-		if r.C&kop.ReplDmgNonCombat != 0 && combat || r.C&kop.ReplDmgSrcInPlay != 0 && srcSl == NoSlot {
+		if r.C&kop.ReplDmgNonCombat != 0 && combat || r.C&kop.ReplDmgCombat != 0 && !combat || r.C&kop.ReplDmgSrcInPlay != 0 && srcSl == NoSlot {
 			continue
 		}
 		var to int16
@@ -128,7 +128,7 @@ func (s *State) srcEnteredThisTurn(k *prep, srcCard CardID) bool {
 	}
 	o := s.res.e.obj
 	for i := uint8(0); i < s.g.enteredN; i++ {
-		if e := &s.cold.entered[i]; e.o == o && e.to == uint8(kop.ZoneBattlefield) {
+		if e := &s.cold.entered[i]; e.o == o && e.to() == uint8(kop.ZoneBattlefield) {
 			return true
 		}
 	}
@@ -138,8 +138,8 @@ func (s *State) srcEnteredThisTurn(k *prep, srcCard CardID) bool {
 // dblDmgN is the number of doublers matching the damage event (dblDmgMatch
 // over the source controller's battlefield).
 func (s *State) dblDmgN(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, combat bool) int {
-	if srcCtrl > 1 {
-		return 0
+	if srcCtrl >= MaxSeats {
+		return 0 // no seat controls the source
 	}
 	g := k.gen
 	n := 0

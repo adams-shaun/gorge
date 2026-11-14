@@ -9,14 +9,14 @@ func TestConvokeMixedExpend(t *testing.T) {
 	sc, m, objs := stackKwBoardScen(t, "Kappa Cannoneer")
 	sc.k.gen.anyHist = true
 	sc.k.gen.anySpent = true
-	sc.do(t, AkCast, uint8(m), 0xff)
+	sc.do(t, AkCast, TCode(m), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChGenConvoke {
 		t.Fatalf("first decision %v/%d, want the convoke ask", d.Kind, d.Sub)
 	}
 	pickMode(t, sc, objs["Chief Engineer"], 1) // convoke_U
 	pickMode(t, sc, objs["Mind Stone"], 6)     // improvise_generic
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkDone, scAny, scAny)
 	if d = sc.s.Step(); d.Kind != DkPriority {
 		t.Fatalf("decision after payment %v/%d, want priority", d.Kind, d.Sub)
 	}

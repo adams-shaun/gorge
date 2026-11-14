@@ -54,7 +54,7 @@ func TestEquipNotOfferedItself(t *testing.T) {
 			t.Fatalf("decision kind %d, want priority", d.Kind)
 		}
 		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(sw) {
+			if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == TCode(uint8(sw)) {
 				equip = equip || a.Mode() == 0
 				plain = plain || a.Mode() == 1
 			}
@@ -69,9 +69,9 @@ func TestEquipNotOfferedItself(t *testing.T) {
 		t.Fatal("a second creature: Equip not offered")
 	}
 	// the Equip's target ask offers only the other creature
-	sc.s.Apply(MakeAction(AkActivate, uint8(sw), 0, 0))
+	sc.s.Apply(MakeAction(AkActivate, TCode(sw), 0, 0))
 	d := sc.s.Step()
-	if d.Kind != DkTarget || d.N != 1 || d.Options[0].Target() != uint8(b) {
+	if d.Kind != DkTarget || d.N != 1 || d.Options[0].Target() != TCode(uint8(b)) {
 		t.Fatalf("Equip target ask: kind %d, %d options %v, want the Bear (obj %d) alone", d.Kind, d.N, d.Options[:d.N], b)
 	}
 }
@@ -150,7 +150,7 @@ func TestETBAttachOffersItself(t *testing.T) {
 			switch {
 			case d.Kind == DkTarget:
 				for j := 0; j < int(d.N); j++ {
-					opts = append(opts, d.Options[j].Target())
+					opts = append(opts, uint8(d.Options[j].Target()))
 				}
 				sc.s.Apply(d.Options[0])
 				sc.resolveAll(t)

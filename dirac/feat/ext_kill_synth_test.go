@@ -23,7 +23,7 @@ func newKillFix(meLife, oppLife int32) *killFix {
 }
 
 // creature puts a creature on pl's battlefield.
-func (f *killFix) creature(pl uint8, obj uint8, power int32, kw kop.KwMask, tapped bool) {
+func (f *killFix) creature(pl uint8, obj dirac.Obj, power int32, kw kop.KwMask, tapped bool) {
 	f.e.v.cards = append(f.e.v.cards, vcard{
 		vcore: &vcore{c: &card{creature: true}, ctrl: pl, power: power, kw: kw, tapped: tapped},
 		obj:   obj,
@@ -41,15 +41,17 @@ func (f *killFix) hand(pl uint8, mv int32, ef EffectSpec) {
 
 // spell pushes a stack spell (bottom first) controlled by ctrl, with source
 // object src and the given target bytes, returning its stack index.
-func (f *killFix) spell(ctrl, src uint8, ef EffectSpec, tgt ...uint8) int {
+func (f *killFix) spell(ctrl uint8, src dirac.Obj, ef EffectSpec, tgt ...dirac.TCode) int {
 	f.e.v.cards = append(f.e.v.cards, vcard{vcore: &vcore{c: &card{eff: ef}, ctrl: ctrl}})
 	f.e.v.stack = append(f.e.v.stack, vstack{cv: int32(len(f.e.v.cards) - 1), ctrl: ctrl})
 	se := &f.e.kp.Stack[f.e.kp.NStack]
-	se.Kind, se.Source, se.Ctrl = 0, dirac.Obj(src), ctrl
+	se.Kind, se.Source, se.Ctrl = 0, src, ctrl
 	for i := range se.Targets {
-		se.Targets[i] = dirac.NoTarget
+		se.Targets[i] = dirac.TCode(dirac.NoTarget)
 	}
-	copy(se.Targets[:], tgt)
+	for i, c := range tgt {
+		se.Targets[i] = c
+	}
 	f.e.kp.NStack++
 	return int(f.e.kp.NStack) - 1
 }
@@ -227,7 +229,7 @@ func TestExtKillBurnReach(t *testing.T) {
 // my only untapped creature while the opponent's next-turn power is lethal.
 func TestExtKillRemovesLastBlocker(t *testing.T) {
 	kill := EffectSpec{Class: EffKill, TgtCreat: true}
-	build := func(meLife int32, second bool, target uint8) *killFix {
+	build := func(meLife int32, second bool, target dirac.TCode) *killFix {
 		f := newKillFix(meLife, 20)
 		f.creature(0, 1, 2, 0, false)
 		if second {

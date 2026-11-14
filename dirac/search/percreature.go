@@ -58,10 +58,10 @@ func (o *Options) chainKindOn(k dirac.DecisionKind) bool {
 		k == dirac.DkBlockers && o.PerCreature&PerCreatureBlock != 0
 }
 
-func hasAttackBy(d *dirac.Decision, x uint8) bool {
+func hasAttackBy(d *dirac.Decision, x dirac.Obj) bool {
 	ck := chainKind(d)
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == ck && a.Source() == x {
+		if a := d.Options[i]; a.Kind() == ck && a.Source() == dirac.TCode(x) {
 			return true
 		}
 	}
@@ -71,7 +71,7 @@ func hasAttackBy(d *dirac.Decision, x uint8) bool {
 // chainAfter writes the distinct attack sources of d that follow x in
 // option order to out and returns how many (a creature's offers are
 // contiguous).
-func chainAfter(d *dirac.Decision, x uint8, out *[MaxPerm]uint8) int {
+func chainAfter(d *dirac.Decision, x dirac.Obj, out *[MaxPerm]dirac.Obj) int {
 	n, seenX, last := 0, false, -1
 	ck := chainKind(d)
 	for i := 0; i < int(d.N); i++ {
@@ -80,10 +80,10 @@ func chainAfter(d *dirac.Decision, x uint8, out *[MaxPerm]uint8) int {
 			continue
 		}
 		last = int(a.Source())
-		if a.Source() == x {
+		if a.Source() == dirac.TCode(x) {
 			seenX = true
 		} else if seenX && n < len(out) {
-			out[n] = a.Source()
+			out[n] = dirac.Obj(a.Source())
 			n++
 		}
 	}
@@ -98,11 +98,11 @@ func isChainPoint(pt *point) bool {
 
 // chainObj is the creature a chain point decides: the source of a longest
 // candidate's last act.
-func chainObj(pt *point) uint8 {
-	best, x := 0, uint8(0)
+func chainObj(pt *point) dirac.Obj {
+	best, x := 0, dirac.Obj(0)
 	for i := 0; i < pt.n; i++ {
 		if l := int(pt.off[i+1] - pt.off[i]); l > best {
-			best, x = l, dirac.Action(pt.acts[pt.off[i+1]-1]).Source()
+			best, x = l, dirac.Obj(dirac.Action(pt.acts[pt.off[i+1]-1]).Source())
 		}
 	}
 	return x
@@ -115,7 +115,7 @@ func (sr *Searcher) chainCands(s *dirac.State, d *dirac.Decision, bot, limit int
 	if d.Kind == dirac.DkBlockers {
 		return sr.chainBlockCands(s, d, bot, limit, pt)
 	}
-	var x uint8
+	var x dirac.Obj
 	switch {
 	case sr.rootBuild && sr.chainRoot != 0:
 		x = sr.chainRoot - 1
@@ -128,7 +128,7 @@ func (sr *Searcher) chainCands(s *dirac.State, d *dirac.Decision, bot, limit int
 		found := false
 		for i := 0; i < int(d.N) && !found; i++ {
 			if a := d.Options[i]; a.Kind() == dirac.AkAttack {
-				x, found = a.Source(), true
+				x, found = dirac.Obj(a.Source()), true
 			}
 		}
 		if !found {
@@ -140,7 +140,7 @@ func (sr *Searcher) chainCands(s *dirac.State, d *dirac.Decision, bot, limit int
 	nb := sr.botDeclaration(s, d, bot, &botSet)
 	bp, has := uint32(0), false
 	for _, a := range botSet[:nb] {
-		if dirac.Action(a).Source() == x {
+		if dirac.Action(a).Source() == dirac.TCode(x) {
 			bp, has = a, true
 			break
 		}
@@ -155,7 +155,7 @@ func (sr *Searcher) chainCands(s *dirac.State, d *dirac.Decision, bot, limit int
 	}
 	for i := 0; i < int(d.N) && pt.n < limit; i++ {
 		a := d.Options[i]
-		if a.Kind() != dirac.AkAttack || a.Source() != x || (has && uint32(a) == bp) {
+		if a.Kind() != dirac.AkAttack || a.Source() != dirac.TCode(x) || (has && uint32(a) == bp) {
 			continue
 		}
 		pt.addSeq([]uint32{uint32(a)})
@@ -197,7 +197,7 @@ func (sr *Searcher) chainPlay(w *world, pt *point, idx int, next *point) (ok, un
 		return false, false, false
 	}
 	x := chainObj(pt)
-	var after [MaxPerm]uint8
+	var after [MaxPerm]dirac.Obj
 	na := chainAfter(&w.d, x, &after)
 	u0 := w.s.Undos()
 	k0, p0, turn := w.d.Kind, w.d.Player, w.s.Turn()
@@ -303,7 +303,7 @@ func (sr *Searcher) chainSearch(seatSeed uint64) *Result {
 	var tot Stats
 	k0, p0, turn := d.Kind, d.Player, sr.root.Turn()
 	closed := false
-	c := uint8(0) // 1+obj; 0 the first creature
+	c := dirac.Obj(0) // 1+obj; 0 the first creature
 	for {
 		bot := sr.pickBot(&sr.root, d)
 		sr.chainPt.n, sr.chainPt.opp, sr.chainPt.seat, sr.chainPt.off[0] = 0, false, 0, 0
@@ -326,7 +326,7 @@ func (sr *Searcher) chainSearch(seatSeed uint64) *Result {
 			break
 		}
 		x := sr.chainX
-		var after [MaxPerm]uint8
+		var after [MaxPerm]dirac.Obj
 		na := chainAfter(d, x, &after)
 		var step [MaxPerm + 1]dirac.Action
 		ns := 0
@@ -436,12 +436,12 @@ func (sr *Searcher) chainApplyTail(s *dirac.State, d *dirac.Decision, k0 dirac.D
 // short attacker can still be completed by distinct later blockers.
 type blockModel struct {
 	n    int
-	atk  [MaxPerm]uint8
+	atk  [MaxPerm]dirac.Obj
 	cnt  [MaxPerm]int
 	need [MaxPerm]int
 }
 
-func (m *blockModel) find(a uint8) int {
+func (m *blockModel) find(a dirac.Obj) int {
 	for i := 0; i < m.n; i++ {
 		if m.atk[i] == a {
 			return i
@@ -459,12 +459,12 @@ func newBlockModel(s *dirac.State, d *dirac.Decision, m *blockModel) {
 	m.n = 0
 	for i := 0; i < int(d.N); i++ {
 		if a := d.Options[i]; a.Kind() == dirac.AkBlock {
-			m.find(a.Target())
+			m.find(dirac.Obj(a.Target()))
 		}
 	}
 	for o := 0; o < s.NumObjs(); o++ {
 		if a := s.HBotBlocking(dirac.Obj(o)); a != dirac.NoObj {
-			if i := m.find(uint8(a)); i >= 0 {
+			if i := m.find(a); i >= 0 {
 				m.cnt[i]++
 			}
 		}
@@ -487,15 +487,15 @@ func newBlockModel(s *dirac.State, d *dirac.Decision, m *blockModel) {
 // to distinct blockers (dirac combat.go augment's algorithm).
 type blockMatch struct {
 	s       *dirac.State
-	later   []uint8
-	slotAtk [MaxPerm]uint8
+	later   []dirac.Obj
+	slotAtk [MaxPerm]dirac.Obj
 	owner   [MaxPerm]int16
 	seen    [MaxPerm]bool
 }
 
 func (bm *blockMatch) augment(slot int) bool {
 	for j, b := range bm.later {
-		if bm.seen[j] || !bm.s.HBotBlockPair(dirac.Obj(b), dirac.Obj(bm.slotAtk[slot])) {
+		if bm.seen[j] || !bm.s.HBotBlockPair(b, bm.slotAtk[slot]) {
 			continue
 		}
 		bm.seen[j] = true
@@ -510,7 +510,7 @@ func (bm *blockMatch) augment(slot int) bool {
 // blockFeasible reports whether, with attacker index extra (-1 none) given
 // one more blocker, every attacker's deficit (0 < cnt < need) can be matched
 // to distinct blockers among later.
-func blockFeasible(s *dirac.State, m *blockModel, extra int, later []uint8) bool {
+func blockFeasible(s *dirac.State, m *blockModel, extra int, later []dirac.Obj) bool {
 	var bm blockMatch
 	ns := 0
 	for i := 0; i < m.n; i++ {
@@ -558,16 +558,16 @@ const noBlock = ^uint32(0) // chainBlockCands' "no block" candidate
 // left in sr.chainForced. It reports false at a chain start whose decision
 // withholds AkDone (lure: the classic point is built there).
 func (sr *Searcher) chainBlockCands(s *dirac.State, d *dirac.Decision, bot, limit int, pt *point) bool {
-	var ord [MaxPerm]uint8
+	var ord [MaxPerm]dirac.Obj
 	no, last := 0, -1
 	for i := 0; i < int(d.N); i++ {
 		if a := d.Options[i]; a.Kind() == dirac.AkBlock && int(a.Source()) != last && no < len(ord) {
 			last = int(a.Source())
-			ord[no] = a.Source()
+			ord[no] = dirac.Obj(a.Source())
 			no++
 		}
 	}
-	from := uint8(0)
+	from := dirac.Obj(0)
 	switch {
 	case sr.rootBuild && sr.chainRoot != 0:
 		from = sr.chainFrom
@@ -597,10 +597,10 @@ func (sr *Searcher) chainBlockCands(s *dirac.State, d *dirac.Decision, bot, limi
 		noneOK := blockFeasible(s, &m, -1, later)
 		for j := 0; j < int(d.N); j++ {
 			a := d.Options[j]
-			if a.Kind() != dirac.AkBlock || a.Source() != x {
+			if a.Kind() != dirac.AkBlock || a.Source() != dirac.TCode(x) {
 				continue
 			}
-			if k := m.find(a.Target()); k >= 0 && blockFeasible(s, &m, k, later) && na < len(adm) {
+			if k := m.find(dirac.Obj(a.Target())); k >= 0 && blockFeasible(s, &m, k, later) && na < len(adm) {
 				adm[na] = uint32(a)
 				na++
 			}
@@ -616,7 +616,7 @@ func (sr *Searcher) chainBlockCands(s *dirac.State, d *dirac.Decision, bot, limi
 		case na == 1:
 			sr.chainForced[sr.nForced] = adm[0]
 			sr.nForced++
-			if k := m.find(dirac.Action(adm[0]).Target()); k >= 0 {
+			if k := m.find(dirac.Obj(dirac.Action(adm[0]).Target())); k >= 0 {
 				m.cnt[k]++
 			}
 		}
@@ -634,12 +634,12 @@ func chainBoolInt(b bool) int {
 // fillBlockPoint writes blocker x's candidates, each the forced prefix then
 // its own act (none for "no block"): the bot's answer when admissible,
 // else the first admissible one, as candidate 0.
-func (sr *Searcher) fillBlockPoint(s *dirac.State, d *dirac.Decision, bot, limit int, pt *point, x uint8, noneOK bool, adm []uint32) {
+func (sr *Searcher) fillBlockPoint(s *dirac.State, d *dirac.Decision, bot, limit int, pt *point, x dirac.Obj, noneOK bool, adm []uint32) {
 	var botSet [MaxPerm]uint32
 	nb := sr.botDeclaration(s, d, bot, &botSet)
 	bp, has := noBlock, false
 	for _, a := range botSet[:nb] {
-		if dirac.Action(a).Source() == x {
+		if dirac.Action(a).Source() == dirac.TCode(x) {
 			bp, has = a, true
 			break
 		}

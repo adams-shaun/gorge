@@ -52,9 +52,9 @@ func modalBounds(t *kop.TargetSpec) (lo, hi uint8) {
 }
 
 // modalCands lists slot r.left's candidates not picked yet.
-func (s *State) modalCands(k *prep, out *[MaxOptions]uint8) int {
+func (s *State) modalCands(k *prep, out *[MaxOptions]TCode) int {
 	r := &s.res
-	var all [MaxOptions]uint8
+	var all [MaxOptions]TCode
 	n := s.targetCands(k, &s.modalAb(k).Targets[r.left], r.e.ctrl, s.resSrcSlot(k), r.e.obj, &all)
 	m := 0
 	x := s.xtOf(&r.e)
@@ -88,7 +88,7 @@ func (s *State) modalNextTarget(k *prep) bool {
 			continue
 		}
 		_, hi := modalBounds(t)
-		var buf [MaxOptions]uint8
+		var buf [MaxOptions]TCode
 		n := s.modalCands(k, &buf)
 		if r.peekI >= hi || n == 0 {
 			continue
@@ -115,7 +115,7 @@ func (s *State) askOptionsModalAct(k *prep, d *Decision) bool {
 		}
 	case raGenModalTarget:
 		lo, _ := modalBounds(&s.modalAb(k).Targets[r.left])
-		var buf [MaxOptions]uint8
+		var buf [MaxOptions]TCode
 		n := s.modalCands(k, &buf)
 		d.Sub = ChGenResTarget
 		for i := 0; i < n; i++ {
@@ -143,7 +143,7 @@ func (s *State) applyAskModalAct(k *prep, a Action) bool {
 		if k.gen != nil && k.gen.anyCharmPick {
 			s.charmPickLog(ab, s.resSrcSlot(k), a.Mode()) // modal_charmpick.go
 		}
-		if r.chosen < max8(ab.ModesPick, 1) && int(r.chosen) < int(ab.NModes) {
+		if r.chosen < objWord(max8(ab.ModesPick, 1)) && int(r.chosen) < int(ab.NModes) {
 			return true // the next mode
 		}
 		if k.gen != nil && k.gen.anyDilemma {

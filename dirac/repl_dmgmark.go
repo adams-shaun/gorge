@@ -9,8 +9,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // replacement, Duration$ UntilYourNextTurn, ValidSource$ any).
 //
 // genState.dmk holds one bit per (controller, marked player) pair: bit
-// c*MaxSeats+p; then a 2-bit expiry per controller (dmkQ), taken from rsv
-// (one byte for two seats, three for four). The controller's pairs end at the
+// c*MaxSeats+p; then an expiry per controller (dmkQ, dmkQBits wide), taken from
+// rsv (one byte for two seats). The controller's pairs end at the
 // cleanup before their next turn begins, as dropNextTurnEmblems and
 // dropNextTurnOv end their records. A controller still in the game has that
 // cleanup re-derived at every cleanup (gorge's rescheduleNextTurnBoundaries);
@@ -28,7 +28,15 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // mark is no object, so an event the mark and another replacement both match
 // stalls (StallDmgMarkOrder) rather than answer without that ask.
 
-const dmkBytes = (MaxSeats*MaxSeats + 3*MaxSeats + 7) / 8 // genState.dmk: taken from rsv
+// dmkQBits is the width of a controller's expiry counter: it counts at most
+// MaxSeats-1 cleanups, so one bit for two seats and two for three or four.
+const dmkQBits = 1 + (MaxSeats+1)/4
+
+const dmkQMask = 1<<dmkQBits - 1
+
+// genState.dmk: the pair bits, a counter per controller, a source-mark bit per
+// controller; taken from rsv.
+const dmkBytes = (MaxSeats*MaxSeats + (dmkQBits+1)*MaxSeats + 7) / 8
 
 // StallDmgMark is a second mark of one controller on one player while the
 // first is live (genState.dmk).
@@ -70,7 +78,7 @@ func dmkBit(c, p uint8) (idx int, mask uint8) {
 // cleanups left after the one in progress before the cleanup the marks end at
 // (at most 3: four seats).
 func dmkQ(c uint8) (idx int, sh uint) {
-	b := MaxSeats*MaxSeats + 2*int(c)
+	b := MaxSeats*MaxSeats + dmkQBits*int(c)
 	return b >> 3, uint(b & 7)
 }
 
@@ -81,7 +89,7 @@ var DebugNoDmgSrcMark bool
 // dmkSrc is controller c's source-mark bit in genState.dmk (kop.DmgMarkBySource):
 // after the pair bits and the expiry counters; it ends at the cleanup.
 func dmkSrc(c uint8) (idx int, mask uint8) {
-	b := MaxSeats*MaxSeats + 2*MaxSeats + int(c)
+	b := MaxSeats*MaxSeats + dmkQBits*MaxSeats + int(c)
 	return b >> 3, 1 << (b & 7)
 }
 
@@ -168,9 +176,9 @@ func (s *State) dmgMarkAdd(k *prep, in *kop.Instr) {
 	qi, sh := dmkQ(c)
 	q := uint8(0)
 	if d := s.turnsTo(c); d > 1 {
-		q = min(d-1, 3)
+		q = min(d-1, dmkQMask)
 	}
-	s.g.dmk[qi] = s.g.dmk[qi]&^(3<<sh) | q<<sh
+	s.g.dmk[qi] = s.g.dmk[qi]&^(dmkQMask<<sh) | q<<sh
 }
 
 // dmgMarkN is the number of live marks on player p: the doublings every damage
@@ -217,21 +225,21 @@ func (s *State) dmgMarkEnd() {
 			continue
 		}
 		qi, sh := dmkQ(c)
-		q := s.g.dmk[qi] >> sh & 3
+		q := s.g.dmk[qi] >> sh & dmkQMask
 		if s.out(c) {
 			if q > 0 {
-				s.g.dmk[qi] = s.g.dmk[qi]&^(3<<sh) | (q-1)<<sh
+				s.g.dmk[qi] = s.g.dmk[qi]&^(dmkQMask<<sh) | (q-1)<<sh
 				continue
 			}
 		} else if d := s.turnsTo(c); d > 1 {
-			s.g.dmk[qi] = s.g.dmk[qi]&^(3<<sh) | min(d-2, 3)<<sh
+			s.g.dmk[qi] = s.g.dmk[qi]&^(dmkQMask<<sh) | min(d-2, dmkQMask)<<sh
 			continue
 		}
 		for p := uint8(0); p < MaxSeats; p++ {
 			i, m := dmkBit(c, p)
 			s.g.dmk[i] &^= m
 		}
-		s.g.dmk[qi] &^= 3 << sh
+		s.g.dmk[qi] &^= dmkQMask << sh
 	}
 }
 

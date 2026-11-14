@@ -141,7 +141,7 @@ func TestManifestDreadAskAndSplit(t *testing.T) {
 	}
 	var pick Action
 	for i := 0; i < int(d.N); i++ {
-		if d.Options[i].Source() == uint8(other) {
+		if d.Options[i].Source() == TCode(uint8(other)) {
 			pick = d.Options[i]
 		}
 	}
@@ -370,7 +370,7 @@ func TestManifestDreadCreatureTurnsUp(t *testing.T) {
 	s.resolveOptionsGen(sc.k, &d)
 	var pick Action
 	for i := 0; i < int(d.N); i++ {
-		if d.Options[i].Source() == uint8(chosen) {
+		if d.Options[i].Source() == TCode(uint8(chosen)) {
 			pick = d.Options[i]
 		}
 	}

@@ -20,7 +20,7 @@ func (s *State) prevScopeAdd(k *prep, in *kop.Instr) {
 	for i := range s.g.prevCol {
 		r := &s.g.prevCol[i]
 		if r.col == 0 && r.sc == 0 {
-			r.obj, r.sc, r.ctl, r.col = s.res.e.obj, sc, s.res.e.ctrl, scc
+			r.obj, r.sc, r.ctl, r.col = s.res.e.obj, sc, TCode(s.res.e.ctrl), scc // code-ok: a scoped record holds its controller's seat in ctl
 			return
 		}
 	}
@@ -46,7 +46,7 @@ func (s *State) prevScopeHit(k *prep, r *prevRec, srcSl Slot, srcCol kop.ColorMa
 	if sc&kop.PrevScopeAll != 0 {
 		return true
 	}
-	if t.rcp != r.ctl {
+	if t.rcp != uint8(r.ctl) { // code-ok: a scoped record's ctl is a seat
 		return false
 	}
 	if t.dst == NoSlot {
@@ -57,7 +57,7 @@ func (s *State) prevScopeHit(k *prep, r *prevRec, srcSl Slot, srcCol kop.ColorMa
 
 // recipientCtl is the controller of a combat damage recipient: the player
 // code (an attacker's damage to the player it attacks) when dst is NoSlot.
-func (s *State) recipientCtl(dst Slot, code uint8) uint8 {
+func (s *State) recipientCtl(dst Slot, code TCode) uint8 {
 	if dst == NoSlot {
 		return CodeSeat(code)
 	}
