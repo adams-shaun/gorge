@@ -16,9 +16,33 @@ func (s *State) rememberAll(k *prep, in *kop.Instr) {
 			hit = hit.with(sl)
 		}
 	}
+	if in.C == kop.RememberAllObjOrder {
+		s.rememberByObj(hit)
+		return
+	}
 	var ord [MaxPerm]Slot
 	n := s.listenerOrder(hit, &ord)
 	for _, sl := range ord[:n] {
 		s.remember(s.perms[sl].obj)
+	}
+}
+
+// rememberByObj remembers the permanents in hit in object order, the order
+// gorge walks g.Objs for a Defined$ AttachedTo selector (attachedToDefined
+// Selector), which the control changes and the attaches after it follow.
+func (s *State) rememberByObj(hit slotMask) {
+	var objs [MaxPerm]Obj
+	n := 0
+	for m := hit; m.any(); m = m.rest() {
+		o := s.perms[m.first()].obj
+		i := n
+		for ; i > 0 && objs[i-1] > o; i-- {
+			objs[i] = objs[i-1]
+		}
+		objs[i] = o
+		n++
+	}
+	for _, o := range objs[:n] {
+		s.remember(o)
 	}
 }

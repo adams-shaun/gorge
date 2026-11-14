@@ -9,7 +9,7 @@ import (
 // ExtTurnRepl (kop/turnrepl.go): two until-end-of-turn replacements an Effect
 // makes over a player's side of the board. Neither costs State bytes: the
 // exile one is a scope record in the cold exMark table, the counter one a
-// region of the cold buffer (coldLayout.ctrP) that exists only for a table
+// region of the cold buffer (coldCtrP) that exists only for a table
 // with such a program.
 
 // DebugTurnReplOff is the mutation switch: both replacements are set but
@@ -27,6 +27,24 @@ var TurnReplStats struct{ Exiled, Plus, Asked, Unc, HexP, HexO atomic.Int64 }
 // StallTurnRepl is a second scope record or creature counter record past what
 // the cold table holds: the exile-instead table is full.
 const StallTurnRepl = 159
+
+// coldHexUB is the mechHexUB grant's timestamp per battlefield slot (0:
+// unmarked), for a table with TurnReplHexUB.
+var coldHexUB = newCold[uint16]("hexUB", func(g *genPrep) int {
+	if g.anyHexUB {
+		return MaxPerm
+	}
+	return 0
+}).view(func(c *coldArrays) *[]uint16 { return &c.hexUB }).perSlot()
+
+// coldCtrP is the creature counter-plus-one record (0 or 1 of them), for a
+// table with a Prairie Dog replacement.
+var coldCtrP = newCold[plusCreRec]("ctrP", func(g *genPrep) int {
+	if g.anyPlusCre {
+		return 1
+	}
+	return 0
+})
 
 func init() { stallNames[StallTurnRepl] = "turnrepl" }
 
@@ -171,14 +189,10 @@ type plusCreRec struct {
 // plusCreCold is the creature counter-plus-one record, nil when the table has
 // none.
 func (s *State) plusCreCold() *plusCreRec {
-	l := s.cold.layout
-	if l == nil || l.ctrP == 0 {
-		return nil
+	if c := coldCtrP.of(s); c != nil {
+		return &c[0]
 	}
-	at := 0
-	_ = coldView[mayPlay](nil, &at, l.may)
-	_ = coldView[embRec](nil, &at, l.emb)
-	return &coldView[plusCreRec](s.cold.buf, &at, l.ctrP)[0]
+	return nil
 }
 
 // plusCreN is the number of Prairie Dog activations whose replacement puts one

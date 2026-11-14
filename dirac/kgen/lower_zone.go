@@ -276,6 +276,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			origin == zExile && dest == zGraveyard && ps.is("Hidden", "True")) {
 			return refuse("ChangeType$ with ValidTgts$")
 		}
+		ct = lc.chosenCtrlImplied(ps, origin, ct) // lower_chooseplayermid.go
 		exwPick := origin == zExile && dest == zBattlefield && ps.is("Hidden", "True")
 		lc.exwOK = exwPick          // a hidden pick out of exile is a resolution-time mover: ExiledWithSource reads the resolving source
 		f, err := lc.pickFilter(ct) // lower_each.go
@@ -494,12 +495,16 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		graveBF := dest == zBattlefield && override == nil && graveToBattlefieldFlags(flags)
 		if origin == zGraveyard && (dest == zHand || graveBF) {
+			owner, chosenPool, err := lc.chosenMidPool(ps, dest) // lower_chooseplayermid.go
+			if err != nil {
+				return err
+			}
 			dpScope, err := graveDefinedPlayer(ps, lc, dest, flags, counterKind) // lower_gravedefinedplayer.go
 			if err != nil {
 				return err
 			}
 			for i := range f.Clauses {
-				if f.Clauses[i].Owner != whoAny {
+				if chosenPool || f.Clauses[i].Owner != whoAny {
 					continue
 				}
 				if dpScope != dpNone {
@@ -564,7 +569,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			// the kernel's SrChooserOpp read. You is the default fetch
 			// player (Forge's getDefinedPlayers(null) is "You") and the
 			// default chooser.
-			pickOwner := lRef{Kind: rYou}
+			pickOwner := owner // lRef{Kind: rYou}, or the chosen player (lower_chooseplayermid.go)
 			pickLoop := lRef{}
 			if dp := ps.str("DefinedPlayer"); dp != "" && dpScope == dpNone {
 				if pickOwner, pickLoop, err = lc.pickFetchPlayer(dp); err != nil {
@@ -575,7 +580,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			if counterKind != "" && dest == zBattlefield {
 				cs += "|counters=" + counterKind
 			}
-			if ch, ok := ps.get("Chooser"); ok {
+			if ch, ok := ps.get("Chooser"); ok && !chosenPool { // chosenMidPool already read it
 				switch {
 				case ch == "You", ch == "":
 				case ch == "Opponent" && pickOwner.Kind == rYou && pickLoop.Kind == rNone:
@@ -1131,6 +1136,9 @@ func overrideString(o *lOverride) string {
 	}
 	if len(o.RemoveKw) > 0 {
 		p = append(p, "removekw="+strings.Join(o.RemoveKw, ","))
+	}
+	if len(o.CantHaveKw) > 0 {
+		p = append(p, "canthavekw="+strings.Join(o.CantHaveKw, ","))
 	}
 	if len(o.AddKw) > 0 {
 		p = append(p, "kw="+strings.Join(o.AddKw, "&"))
@@ -2025,7 +2033,12 @@ func (lc *lowerCtx) play(ps *params) error {
 	// Spirit): gorge effPlay walks only the resolving controller's hand, whose
 	// cards that player owns, so YouOwn filters nothing there
 	lc.bluffPlay = playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)
-	saExpr, err := lc.playSAExpr(ps.str("ValidSA"))
+	var saExpr string
+	var err error
+	if !playCommandZone(ps) {
+		// (the command-zone Play reads its absent ValidSA$: lower_playcommand.go)
+		saExpr, err = lc.playSAExpr(ps.str("ValidSA"))
+	}
 	lc.bluffPlay = false
 	if err != nil {
 		return err
@@ -2158,6 +2171,13 @@ func (lc *lowerCtx) play(ps *params) error {
 		}
 		lc.playLibrary = true
 		return emit(lRef{Kind: rRemembered}, zLibrary, saExpr)
+	case "Command":
+		// P5: the resolving controller's own commanders in the command zone
+		// (Geode Golem; lower_playcommand.go)
+		if !playCommandZone(ps) || forget || replace {
+			return refuse("Play ValidZone$ Command with Valid$ %q", valid)
+		}
+		return emit(lRef{Kind: rNone}, zCommand, "")
 	case "Hand", "Graveyard":
 		if valid == "Card.TargetedPlayerCtrl" && vzone == "Hand" && !forget {
 			// the targeted player's hand (lower_playtgtplayer.go)
@@ -2954,6 +2974,9 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 			o.AddSubtypes, o.SetSubtypes = o.SetSubtypes, nil
 		}
 	}
+	if err := lc.animateRemoveEnchantmentTypes(ps, o); err != nil { // lower_animateaura.go
+		return nil, "", false, err
+	}
 	if ps.is("AddAllCreatureTypes", "True") {
 		o.AllCreatureTypes = true
 	}
@@ -3044,7 +3067,11 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 		lc.out.Tokens = append(lc.out.Tokens, nameCardKey+n)
 	}
 	if k, ok := ps.get("Keywords"); ok {
-		k, err := lc.animateGrantedKeywordAbilities(k, o) // lower_animatekwability.go
+		k, err := lc.animateSelfEnchant(ps, k, o, obj, dur) // lower_animateaura.go
+		if err != nil {
+			return nil, "", false, err
+		}
+		k, err = lc.animateGrantedKeywordAbilities(k, o) // lower_animatekwability.go
 		if err != nil {
 			return nil, "", false, err
 		}
@@ -3329,6 +3356,9 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 }
 
 func (lc *lowerCtx) gainControl(ps *params) error {
+	if d := ps.str("Defined"); strings.HasPrefix(d, attachGroupPrefix) {
+		return lc.gainControlAttached(ps, d) // lower_attachgroup.go
+	}
 	// NewController$ first: ParentTarget names the earlier link's player
 	// target, not this node's own (Donate)
 	to := lRef{}

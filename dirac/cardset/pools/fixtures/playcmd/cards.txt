@@ -1,0 +1,13 @@
+# api:Play from the command zone (Geode Golem's free commander cast, CR 903.8)
+# in Commander duels that seat one cheap commander a seat, beside removal and
+# blockers so a commander dies and is cast again at its tax
+# (dirac/oracle/playcommand_test.go)
+Geode Golem
+Rograkh, Son of Rohgahh
+Yoshimaru, Ever Faithful
+Shock
+Gray Ogre
+Savannah Lions
+Ornithopter
+Mountain
+Plains

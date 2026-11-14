@@ -133,7 +133,11 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	if s.g.tokPT.on && s.objs[o].of&ofToken != 0 {
 		// TokenPower$/TokenToughness$: the token enters with that P/T, so its
 		// enters checks (a watcher's power limit) read it (act_tokenpt.go)
-		s.g.tokPT.on = false
+		if s.g.tokPT.left > 0 {
+			s.g.tokPT.left--
+		} else {
+			s.g.tokPT.on = false
+		}
 		if !DebugTokenXPTSkip {
 			s.applyOverridePT(k, sl, int(s.g.tokPT.idx), s.res.e.card, 0, s.g.tokPT.p, s.g.tokPT.t)
 		}
@@ -644,6 +648,7 @@ func (s *State) newTurnGen() {
 		s.dropTurnLeave() // trig_leavereturn.go: "this turn" leave records end
 	}
 	clear(s.g.prevCol[:])
+	clear(s.g.redir[:])
 	if s.g.ctrAdd.pl|s.g.ctrAdd.n != 0 {
 		s.ctrAddedReset() // ctr_addedthisturn.go
 	}

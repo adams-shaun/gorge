@@ -43,6 +43,10 @@ rt_box() { # rt_box VERB RUN [MODE]: a verb of test-remote-box.sh, with the sett
 		"TT_MEM=${GORGE_REMOTE_MEM:-48G}" "TT_PROCS=${GORGE_REMOTE_PROCS:-16}" "TT_CARDS=$rt_cards"
 		"TT_NICE=${GORGE_REMOTE_NICE:-5}")
 	[ -z "${GORGE_REMOTE_GOROOT:-}" ] || a+=("TT_GOROOT=$GORGE_REMOTE_GOROOT")
+	# test-targets.sh's own switches ride along to the box, where test-targets.sh runs: GORGE_TEST_SMART_GATES=1 (the
+	# affected-package and dirac gates in test-smart) set in test-targets.env never reached it, so every remote precheck
+	# skipped both gates (11-14).
+	[ -z "${GORGE_TEST_SMART_GATES:-}" ] || a+=("GORGE_TEST_SMART_GATES=$GORGE_TEST_SMART_GATES")
 	local v
 	if [ "$1" = run ]; then
 		for v in PKG RUN SKIP V TIMEOUT TAGS; do [ -z "${!v:-}" ] || a+=("$v=${!v}"); done
