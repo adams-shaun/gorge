@@ -110,6 +110,9 @@ func (s *State) predPermCold(k *prep, fl *kop.Filter, sl Slot) bool {
 	if fl.Pred == kop.PredSuspected {
 		return s.suspected(k, sl) == (fl.PredN == 1)
 	}
+	if fl.Pred == kop.PredRenowned {
+		return s.renownedAt(k, sl) == (fl.PredN == 1) // act_renown.go
+	}
 	if fl.Pred == kop.PredEscaped {
 		return s.mSl(k, mechEscaped, sl) == (fl.PredN == 1) // kw_escape.go
 	}
@@ -166,6 +169,9 @@ func predCardCold(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 	}
 	if fl.Pred == kop.PredSuspected {
 		return fl.PredN == 0 // off the battlefield nothing is suspected (gorge Object.Suspected clears on the move)
+	}
+	if fl.Pred == kop.PredRenowned {
+		return fl.PredN == 0 // off the battlefield nothing is renowned (gorge Object.Renowned clears on the move)
 	}
 	if fl.Pred == kop.PredEscaped {
 		return fl.PredN == 0 // off the battlefield nothing is escaped (gorge resets CastFlags on the move)

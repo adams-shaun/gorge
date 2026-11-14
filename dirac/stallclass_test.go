@@ -21,14 +21,14 @@ var (
 	capacityStalls = []string{"twoseat", "ctradded", "addphase", "untaplock", "turnrepl", "dmgmark", "board", "pending", "stack", "tables", "loop", "delayed", "remember", "imprint",
 		"mayplay", "dprog", "emblem", "dmgmap", "xtgt", "used", "kwrepx", "links", "free", "ask", "counters", "lki", "tappick",
 		"regen", "look", "grants", "acts", "linger", "sac", "entered", "convoke", "castring", "pt", "actring", "charmopts",
-		"reflatch", "zone", "options", "srcmark", "dmglatch", "replcands", "replplusbatch", "prevcol", "colgrant", "restrx", "obssrc", "dynmana", "tapextra", "planalts",
+		"reflatch", "zone", "options", "srcmark", "dmglatch", "dmgbatch", "replcands", "replplusbatch", "prevcol", "colgrant", "restrx", "obssrc", "dynmana", "tapextra", "planalts",
 		"exiledwith", "breach", "netlock", "panharmgrant", "exilegrant", "charmpick", "combathit", "finality", "persistmana", "optmoves", "mustblock",
-		"restrsrc", "firebend", "exhaste", "effetbctr", "atkGrp", "paradigm", "filtx", "delve", "embrem", "dmgamt", "choosenumber"}
+		"restrsrc", "firebend", "exhaste", "effetbctr", "atkGrp", "paradigm", "filtx", "delve", "embrem", "dmgamt", "choosenumber", "dmgredirectcap", "dmgredirectorder"}
 	unmodelledStalls = []string{"infect", "replplus", "liferepl", "drawrepl", "prolif", "ctrorder",
 		"shield", "replctr", "replleave", "copyface", "rolemulti", "defenderpw", "tokatkask", "enterdefender",
 		"endure", "linkctr", "numtimes", "aegis", "sacother", "copycast", "netmana", "tokenpt", "staticask", "handsize",
 		"mayraise", "uncounterorder", "entryorder", "copyallask", "clonelayer", "gravepower", "landgrant",
-		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering", "tokrewrite", "stackkwgrant", "paylifeshared", "noprevent", "dmgmarkorder", "fbgrantstamp", "restrdefer", "diamondmix", "extrablockreq", "paybeforeetb", "atktax", "blktax", "prevnext", "chooseplayerorder", "offzonept", "zeroaltshared"}
+		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering", "tokrewrite", "stackkwgrant", "paylifeshared", "noprevent", "dmgmarkorder", "fbgrantstamp", "restrdefer", "diamondmix", "extrablockreq", "paybeforeetb", "atktax", "blktax", "prevnext", "chooseplayerorder", "offzonept", "zeroaltshared", "textchange"}
 )
 
 // Every registered reason has a class, and it is the one the lists above name.

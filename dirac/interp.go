@@ -476,6 +476,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		// entry order first, then seat 1's: damageTo fires per-referent
 		// damage triggers as it goes, so the sweep order is the queue order
 		// (the replacement path freezes the same order in damageSeqStart).
+		// The whole sweep is one damage batch for the DamageDealtOnce latch
+		// (gorge effDamageAll's BeginDamageBatch; trig_dmgbatch.go).
+		s.dmgBatchOpen()
 		var ord [MaxPerm]Slot
 		hi := 0
 		for p := uint8(0); p < s.nSeats(); p++ {
@@ -492,6 +495,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				s.damageTo(k, PlayerCode(q.s[i]), n)
 			}
 		}
+		s.dmgBatchClose()
 	case kop.OpDestroyAll:
 		if in.C != 0 {
 			s.destroyAllRemember(k, in)
@@ -969,7 +973,7 @@ func (s *State) applyResolve(k *prep, a Action) {
 		chained := s.discardChained(k, in)
 		if chained && s.repPending() {
 			// the next player chooses with these picks still in hand
-			s.holdDiscard(r.arr[:r.peekI])
+			s.holdDiscard(uint8(r.chosen), r.arr[:r.peekI])
 			r.peekI = 0
 			p := s.repPop()
 			if !s.discardChain(k, in, p) {

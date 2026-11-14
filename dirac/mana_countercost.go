@@ -374,15 +374,15 @@ func (s *State) ctrScript(k *prep, a Action, p uint8, order []Slot, ctr, restr s
 	}
 }
 
-// sbaCtrTough is CR 704.5f for a creature whose toughness only -0/-1
-// counters lowered: the SBA's no-damage shortcut reads the printed
-// toughness, so the counters are read here, once per pass.
+// sbaCtrTough is CR 704.5f for a creature whose toughness only counters of
+// kind ck lowered (-0/-1, or Contagion's -2/-1): the SBA's no-damage shortcut
+// reads the printed toughness, so the counters are read here, once per pass.
 //
 //go:noinline
-func (s *State) sbaCtrTough(k *prep, die, gy *slotMask) {
+func (s *State) sbaCtrTough(k *prep, ck kop.CounterKind, die, gy *slotMask) {
 	for m := s.occ; m.any(); m = m.rest() {
 		sl := m.first()
-		if die.has(sl) || s.perms[sl].ctrN(s, int(kop.CtrM0M1)) == 0 || !s.isCreature(k, sl) {
+		if die.has(sl) || s.perms[sl].ctrN(s, int(ck)) == 0 || !s.isCreature(k, sl) {
 			continue
 		}
 		if _, t := s.pt(k, sl); t <= 0 {

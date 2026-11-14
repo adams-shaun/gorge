@@ -88,7 +88,9 @@ const (
 	// target slot C, as the controller divided them while putting the
 	// trigger on the stack (TargetSpec.Divide == DivLKIP1P1: the slot takes
 	// 0..X targets, the total is X; CR 601.2d, 603.10a; gorge cr-dies-trigger-
-	// divided-counters-lki). dirac/ctr_divided.go.
+	// divided-counters-lki). B.N is the counter kind the shares put (0,
+	// CtrP1P1, for every form but the literal-N one; Contagion's -2/-1).
+	// dirac/ctr_divided.go.
 	ExtDividedCounters ExtOp = 30
 	// ExtSacDelayed (Mobilize): sacrifice, as one batch, the
 	// group program's remembered objects (trigObj and the one packed in
@@ -210,8 +212,9 @@ const (
 	// before the mint loop), runs that CreateToken in place and skips it, then
 	// sets the token it minted (res.lastTok) to those values as a permanent
 	// layer-7b set stamped at the mint (gorge effects/token.go: one SubSet
-	// effect sourced to the token). The Ex form counts the mint: no mint does
-	// nothing, more than one stalls StallTokenPT.
+	// effect sourced to the token). The Ex form counts the mints: no mint does
+	// nothing, each of an X mint takes the set, and a count that is not the
+	// op's amount (a token doubler) stalls StallTokenPT.
 	// dirac/act_tokenpt.go.
 	ExtTokenPT ExtOp = 170
 	// ExtExHaste (Agility Bobblehead): the object in Obj (RefTarget runs once
@@ -614,7 +617,17 @@ const (
 	PrevScopePlayer = 1 << iota
 	PrevScopeCreatures
 	PrevScopeSrcCreature
+	// PrevScopeAll: whatever the recipient (no ValidTarget$ on the line:
+	// Ethereal Haze); the controller bits are then not read.
+	PrevScopeAll
+	// PrevScopeCombat: combat damage only (IsCombat$ True: Loyal Unicorn).
+	PrevScopeCombat
 )
+
+// PrevScopeColourShift: the C bits above it hold the source-colour filter
+// (a ColorMask, 0 = any source): only damage from a source of one of those
+// colours is prevented (Surge of Salvation's ValidSource$ Card.Red,Card.Black).
+const PrevScopeColourShift = 8
 
 func init() { extOpNames[ExtPreventDamageScope] = "PreventDamageScope" }
 
@@ -742,6 +755,12 @@ func init() { extOpNames[ExtTurnFaceUp] = "TurnFaceUp" }
 // dirac/combat_attacksifable.go.
 const ExtAttacksIfAble ExtOp = 255
 
+// AttacksOpponent is ExtAttacksIfAble's C bit 0: the duty names the
+// opponent ("attacks that opponent this turn if able", Encore), so only the
+// player satisfies it and no planeswalker or battle of theirs is offered
+// (the arena bit mechAttacksPlayer).
+const AttacksOpponent = 1
+
 func init() { extOpNames[ExtAttacksIfAble] = "AttacksIfAble" }
 
 // ExtBlocksIfAble: the battlefield object named by Obj (a target slot)
@@ -823,3 +842,15 @@ func init() { extOpNames[ExtRememberImprinted] = "RememberImprinted" }
 const ExtPreventNext ExtOp = 305
 
 func init() { extOpNames[ExtPreventNext] = "PreventNext" }
+
+// ExtRenown (CR 702.112): the renown trigger's resolution (gorge
+// effPutCounter's RenownSet arm, the K:Renown expansion body DB$ PutCounter |
+// Defined$ Self | Renown$ N). The battlefield permanent Obj (the source),
+// unless it is already renowned, gets B +1/+1 counters through OpPutCounter's
+// path, then the renowned designation (gorge AlterAttribute "Renowned"). A
+// source that left the battlefield, or B <= 0, does nothing. The designation
+// is the arena slot bit mechRenowned, cleared when the permanent leaves.
+// dirac/act_renown.go. 294: land's ExtTapOrUntapAll holds 295.
+const ExtRenown ExtOp = 294
+
+func init() { extOpNames[ExtRenown] = "Renown" }

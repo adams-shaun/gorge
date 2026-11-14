@@ -1,15 +1,19 @@
 package dirac
 
-import (
-	"unsafe"
-
-	"github.com/adams-shaun/gorge/dirac/kop"
-)
+import "github.com/adams-shaun/gorge/dirac/kop"
 
 // maxMayCold is how many play-from-zone permissions past the first maxMay a
 // table that grants them over a remembered set keeps in the cold buffer (an
 // Expedited Inheritance chain peaks at 40 records).
 const maxMayCold = 32
+
+// coldMay is the records past maxMay, for a table with a remembered-set grant.
+var coldMay = newCold[mayPlay]("may", func(g *genPrep) int {
+	if g.anyMayCold {
+		return maxMayCold
+	}
+	return 0
+})
 
 // tableMayPlayRemembered reports whether some program of t grants a play
 // permission to every card of a remembered, chosen or imprinted set
@@ -30,17 +34,14 @@ func tableMayPlayRemembered(t *kop.Table) bool {
 // mayCap is how many permission records s can hold: maxMay in the State and,
 // for a table that sized it, the cold buffer's records after them.
 func (s *State) mayCap() int {
-	if l := s.cold.layout; l != nil {
-		return maxMay + l.may
-	}
-	return maxMay
+	return maxMay + coldMay.count(s.cold.layout)
 }
 
 // mayFull reports whether no record can be added.
 func (s *State) mayFull() bool { return int(s.g.nmay) >= s.mayCap() }
 
-// mayAt is record i: the first maxMay live in genState, the rest at the start
-// of the cold buffer.
+// mayAt is record i: the first maxMay live in genState, the rest in the cold
+// buffer.
 func (s *State) mayAt(i int) *mayPlay {
 	if i < maxMay {
 		return &s.g.may[i]
@@ -48,13 +49,7 @@ func (s *State) mayAt(i int) *mayPlay {
 	return &s.mayCold()[i-maxMay]
 }
 
-func (s *State) mayCold() []mayPlay {
-	n := s.cold.layout.may
-	if n == 0 {
-		return nil
-	}
-	return unsafe.Slice((*mayPlay)(unsafe.Pointer(unsafe.SliceData(s.cold.buf))), n)
-}
+func (s *State) mayCold() []mayPlay { return coldMay.of(s) }
 
 // mayShiftDown moves every record after i one place down, over i; the caller
 // drops nmay.
