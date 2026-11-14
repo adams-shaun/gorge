@@ -39,6 +39,11 @@ func (s *State) addManaRestr(k *prep, p uint8, col, n int, f kop.FilterID) {
 	if k.gen == nil || n > 255 || !s.addRestr(k, p, f, col, uint8(n)) {
 		s.capFull(StallRestrSrc)
 	}
+	if k.gen != nil && k.gen.restrPers != 0 {
+		if kind, ok := k.gen.restrKind(f); ok && k.gen.restrPersKind(kind) {
+			s.pmOn |= 1 << SeatIx(p) // the step boundaries keep the batch (persistEmpty)
+		}
+	}
 }
 
 // prepAddManaRestr registers the restriction of every AddMana in a's
@@ -49,6 +54,9 @@ func (g *genPrep) prepAddManaRestr(a *kop.Ability) {
 	for i := range a.Prog {
 		if in := &a.Prog[i]; in.Op == kop.OpAddMana && in.F != 0 {
 			g.addRestrF(in.F)
+			if in.B.N == 2 && in.B.K == kop.VConst {
+				g.addRestrPers(in.F) // PersistentMana$ True (interp.go)
+			}
 		}
 	}
 	g.prepDBManaRestr(a) // mana_resolverestriction.go

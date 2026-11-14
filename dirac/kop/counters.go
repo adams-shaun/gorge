@@ -119,6 +119,13 @@ const StFreeOnly = StRaiseYou
 // NoMaxHandSize reads no IncreaseCost flag.
 const StHandOpp = StRaiseOpp
 
+// StBanOpp is StRaiseOpp read on a StatCantGainLife / StatCantDraw: the ban
+// binds only the controller's opponents (ValidPlayer$ Opponent, Tibalt, Rakish
+// Instigator's "Your opponents can't gain life"; gorge lifeGainForbidden /
+// drawForbidden match the spec from the static's controller, so the banned
+// player is any seat other than it). Neither kind reads an IncreaseCost flag.
+const StBanOpp = StRaiseOpp
+
 // StReduceAny is StRaiseOpp read on a StatReduceCost: the reduction applies to
 // the spells of either player (a ReduceCost with no Activator$, Helm of
 // Awakening), where a ReduceCost with Activator$ You reduces its controller's.
@@ -326,6 +333,9 @@ const (
 	// CtrTreasure is a treasure counter, a named counter with no inherent
 	// rules meaning (CR 122.1; Legacy's Allure's Count$CardCounters.TREASURE).
 	CtrTreasure
+	// CtrTask is a task counter (Heliod's Punishment): a named counter with no
+	// inherent rules meaning (CR 122.1) that the granted {T} ability removes.
+	CtrTask
 	// CtrComponent is Component Pouch's component counter: a named counter
 	// with no inherent rules meaning (CR 122.1) that its mana ability removes.
 	CtrComponent
@@ -363,7 +373,7 @@ var CtrXNames = [NumCounterKindsX]string{"CHARGE", "OIL", "SPORE", "QUEST", "VER
 	"Reach", "Shadow", "Trample", "Vigilance", "SUPPLY", "LORE", "LANDMARK", "DREAD", "DEFENSE", "CHORUS", "M0M1", "FINALITY", "TIME", "VALOR", "NET", "PLAN",
 	"INVASION", "LOOT", "REV", "PAGE", "INGENUITY", "FILM", "FIRE", "HONE", "COIN",
 	"DIVINITY", "IMPOSTOR", "BORE", "POINT", "BLOODSTAIN", "POSSESSION", "PROMOTION", "PEACE", "WISH", "SKEWER", "NEST", "AGE", "LUCK",
-	"DEPLETION", "MINING", "FADE", "BURDEN", "STORAGE", "SCREAM", "TREASURE", "COMPONENT", "DESCENT", "M2M1"}
+	"DEPLETION", "MINING", "FADE", "BURDEN", "STORAGE", "SCREAM", "TREASURE", "TASK", "COMPONENT", "DESCENT", "M2M1"}
 
 // IsCounterKind reports whether c is a real counter kind (a featurized one
 // or an unfeaturized one; CtrLevel and the gap at NumCounterKinds2 are not).
