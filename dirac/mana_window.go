@@ -2282,6 +2282,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 	}
 	var av avail
 	s.availFor(k, p, &av)
+	printedPays := false
 	if any != 0 || anyColor {
 		// gorge prices the printed symbols on its census, which has no
 		// granted source (rules potentialModeCastPlan: the rider only when
@@ -2295,6 +2296,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		}
 		ok := pv.affords(&cost, pipMaskOf(&cost), 0)
 		if anyColor {
+			printedPays = ok // gorge's witness plans the printed symbols when they are payable, the rider's generic price only otherwise
 			ok = pv.affordsAnyColor(&cost, 0)
 		}
 		if !ok && !anyColor && k.restrSrc && s.bld().e.kind == seSpell {
@@ -2410,15 +2412,16 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		x = 0
 	}
 	untapped := s.untappedRestrSrcs(k, p)
+	tapColor := anyColor && !printedPays // the printed symbols the census pays are planned as printed (CR 609.4b lets either tap pay)
 	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd && cost.Hyb[0] == 0 && !s.anyRestrEach(k, untapped) {
-		if !s.tapForSpellTaps(k, p, &cost, x, excl, anyColor) {
-			s.tapForRider(k, p, &cost, x, excl, anyColor)
+		if !s.tapForSpellTaps(k, p, &cost, x, excl, tapColor) {
+			s.tapForRider(k, p, &cost, x, excl, tapColor)
 		}
 		return
 	}
 	pool := s.pl[p].pool
 	var pk planner
-	s.tapForPK(k, p, &cost, x, excl, false, anyColor, &pk)
+	s.tapForPK(k, p, &cost, x, excl, false, tapColor, &pk)
 	s.witnessManaRestricted(k, p, &pool, untapped, &pk)
 }
 
