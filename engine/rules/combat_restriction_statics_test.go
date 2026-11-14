@@ -154,7 +154,7 @@ func drainThrough(t *testing.T, e *Engine, turn int32, active state.PlayerID, st
 
 // TestFealtyToTheRealmEnchantedMustAttackEachCombat pins the aura-carried
 // MustAttack requirement: Fealty to the Realm's
-// `S:Mode$ MustAttack | ValidCreature$ Creature.EnchantedBy` is printed on
+// MustAttack static over the enchanted creature is printed on
 // the AURA's face, so the old face-only solver never saw it; the board-wide
 // activeStatics walk does. With the monarch control static active (the same
 // grant TestFealtyToTheRealmMonarchControlsEnchantedCreature pins), the
@@ -244,9 +244,9 @@ func TestFealtyToTheRealmCantAttackScoping(t *testing.T) {
 
 // TestCallForAidStolenCreaturesCantSacrifice pins the CantSacrifice
 // restriction end to end on the card the static exists for: Call for Aid's
-// DB$ Effect (RememberObjects$ TargetedPlayer & RememberedCard,
-// StaticAbilities$ CantSac,CantAttack) registers
-// `Mode$ CantSacrifice | ValidCard$ Card.IsRemembered+YouCtrl` for the turn,
+// Effect (remembering the targeted player and card, with CantSac and
+// CantAttack statics) registers a CantSacrifice static over the remembered
+// cards you control for the turn,
 // and every sacrifice path over the stolen creatures — the mana-ability Sac
 // cost (Ashnod's Altar) and effSacrifice's player-target eligible pool
 // (Innocent Blood's "each player sacrifices a creature") — offers and takes
@@ -428,7 +428,7 @@ func TestCallForAidCantAttackRememberedPlayer(t *testing.T) {
 }
 
 // TestMustAttackIfAbleCantAttackBlocksRequirement pins CR 508.1d's "if able"
-// gate: Valley Dasher (its own `S:Mode$ MustAttack | ValidCreature$ Card.Self`)
+// gate: Valley Dasher (its own MustAttack static on itself)
 // is required every combat — but after Call for Aid's CantAttack blocks
 // attacking the table's ONLY defender, the requirement is not counted at all:
 // no Required option, no option for the dasher, an empty declaration accepted,

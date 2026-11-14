@@ -123,8 +123,8 @@ func TestIrohTeaMasterGivesTheChainTarget(t *testing.T) {
 }
 
 // TestVedalkenPlotterExchangesTheChainTarget is the ExchangeControl sibling
-// of the same shape: `DB$ ExchangeControl | Defined$ ParentTarget |
-// ValidTgts$ Land.OppCtrl`. The opponent's land is asked at placement and
+// of the same shape: an ExchangeControl of the parent's target with a
+// targeted land an opponent controls. The opponent's land is asked at placement and
 // the two lands swap controllers.
 func TestVedalkenPlotterExchangesTheChainTarget(t *testing.T) {
 	t.Parallel()

@@ -1,0 +1,7 @@
+family: KwID
+name: KwDredge
+value: 63
+forge: Dredge
+census: kw Dredge all=14 std=0 mbc=1 sole=13
+state: code 0
+status: reserved

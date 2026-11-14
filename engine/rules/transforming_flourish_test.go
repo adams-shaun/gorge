@@ -1,19 +1,16 @@
 package rules
 
-// Transforming Flourish: its single-target `SP$ Destroy`
-// carries `RememberDestroyed$ True`, and the chained DBDig (a DB$ DigUntil) is
-// gated on `ConditionDefined$ Remembered | ConditionPresent$ Card`. Without
+// Transforming Flourish: its single-target Destroy remembers what it
+// destroyed, and the chained DBDig (a DigUntil) is gated on something being
+// remembered. Without
 // the RememberDestroyed$ read the destroyed permanent never joins the ability's
 // remembered set, so the gate is never satisfied and the whole dig leg silently
 // skips.
 //
-// Measured shape (GPL corpus, never copied into a tracked fixture):
-//
-//	A:SP$ Destroy | ValidTgts$ Artifact.YouDontCtrl,Creature.YouDontCtrl |
-//	    SubAbility$ DBDig | RememberDestroyed$ True
-//	SVar:DBDig:DB$ DigUntil | ... | ConditionDefined$ Remembered |
-//	    ConditionPresent$ Card | ConditionCompare$ GE1 | Valid$ Card.nonLand
-//	SVar:DBPlay:DB$ Play | ... | Defined$ Remembered | Optional$ True
+// Measured shape: the spell destroys a target artifact or creature you don't
+// control and remembers it; its DigUntil sub digs for a nonland card only when
+// at least one card is remembered; a final optional Play casts the remembered
+// card.
 //
 // The victim's controller exiles from the top of their library until they
 // exile a nonland card, then may cast it. The assertion is end-to-end: the

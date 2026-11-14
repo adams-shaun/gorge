@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExTotalOppPoisonCounters
+value: 90
+forge: TotalOppPoisonCounters
+census: count TotalOppPoisonCounters all=4 std=0 mbc=0 sole=4
+state: code 0
+status: reserved

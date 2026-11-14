@@ -76,7 +76,7 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 		}
 		n := m.NSeat()
 		if n > dirac.MaxSeats {
-			return nil, fmt.Errorf("realkernel: a matchup of %d seats; this kernel build holds %d (the dirac_mp build tag holds %d)", n, dirac.MaxSeats, MaxSeats)
+			return nil, fmt.Errorf("realkernel: a matchup of %d seats; the kernel holds %d", n, dirac.MaxSeats)
 		}
 		var decks [dirac.MaxSeats][]kop.CardID
 		for s := 0; s < n; s++ {

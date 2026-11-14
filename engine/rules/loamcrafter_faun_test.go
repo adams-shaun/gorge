@@ -16,10 +16,10 @@ import (
 //	return up to that many target nonland permanent cards from your graveyard
 //	to your hand.
 //
-// The chain is DB$ Discard | AnyNumber$ True | Optional$ True | Mode$ TgtChoose
-// | RememberDiscarded$ True, then DB$ ImmediateTrigger | ConditionDefined$
-// Remembered | ConditionCompare$ GE1 | RememberObjects$ Remembered | Execute$
-// TrigReturn, whose SVar:X:TriggerRemembered$Amount sizes TargetMax$ X.
+// The chain is an optional discard of any number of chosen cards that
+// remembers them, then a reflexive trigger, gated on at least one remembered
+// card, that passes them on to its return, whose target maximum X is the
+// trigger's remembered count.
 //
 // These tests run on the REAL compiled corpus card only -- no Forge script
 // text is committed here (the licensing rule) -- fetched by name through

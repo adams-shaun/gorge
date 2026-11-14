@@ -75,9 +75,9 @@ func TestCRAnimateAllRemoveLandTypesSetsBasicType(t *testing.T) {
 	}
 }
 
-// TestCRAnimateChosenTypeResolvesStrips: the 14 corpus carriers that write
-// `Types$ ChosenType | RemoveLandTypes$ True` (Elsewhere Flask's
-// AB$ ChooseType | SubAbility$ DBAnimate chain, Terraformer, Reef Shaman,
+// TestCRAnimateChosenTypeResolvesStrips: the 14 corpus carriers that animate
+// to the chosen type while removing land types (Elsewhere Flask's
+// choose-a-type-then-animate chain, Terraformer, Reef Shaman,
 // Dream Thrush, ...) must resolve the element against the SOURCE's recorded
 // type choice -- choose.go records it on the resolving source, never on the
 // animated land -- and then strip + set exactly that basic type. A second

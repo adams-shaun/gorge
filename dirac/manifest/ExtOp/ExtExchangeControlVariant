@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtExchangeControlVariant
+value: 82
+forge: ExchangeControlVariant
+census: api ExchangeControlVariant all=1 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

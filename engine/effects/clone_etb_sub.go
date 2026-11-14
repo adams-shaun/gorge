@@ -8,9 +8,8 @@ import (
 )
 
 // The as-enters copy's "except it enters with N additional +1/+1 counters"
-// rider (Altered Ego: `DB$ Clone | ... | SubAbility$ DBAddCounter` with
-// `DBAddCounter:DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | ETB$ True
-// | CounterNum$ X`). The rider is part of the copy election, not of the
+// rider (Altered Ego: a Clone whose sub-ability puts X +1/+1 counters on
+// itself as it enters, an ETB PutCounter). The rider is part of the copy election, not of the
 // entry: CR 707.9 makes it an exception of the copy effect, and CR 614.1c
 // makes the whole "you may have it enter as a copy" replacement optional,
 // so a declined election (or one with nothing to copy) enters the object as
@@ -30,10 +29,9 @@ var cloneETBReflexiveKeys = state.NewNameSet(
 
 // CloneETBSubChainOK reports whether an as-enters Clone body's SubAbility$
 // chain lies inside the implemented shapes: any number of unconditional
-// `DB$ PutCounter | Defined$ Self | ETB$ True` rider links with no asking
-// modifier, then optionally Superior Spider-Man's reflexive exile
-// (CloneETBReflexiveExileOK) with its trailing `DB$ Cleanup | ClearRemembered$
-// True`. A body with no SubAbility$ is trivially inside it. Any other chain
+// as-it-enters PutCounter links on itself with no asking modifier, then
+// optionally Superior Spider-Man's reflexive exile (CloneETBReflexiveExileOK)
+// with its trailing Cleanup that clears the remembered set. A body with no SubAbility$ is trivially inside it. Any other chain
 // (Moritte of the Frost's DB$ Effect replacement, Undercover Operative's
 // ConditionPresent$ shield counter) fails closed, keeping the body out of the
 // ETB election. The key scan only answers a boolean, so map order cannot
@@ -95,8 +93,9 @@ func CloneETBSubChainOK(sa *cards.SA, svars map[string]string) bool {
 
 // CloneETBReflexiveExileOK reports whether link is exactly Superior
 // Spider-Man's "When you do, exile that card": an ImmediateTrigger over the
-// remembered copy origin whose Execute$ is a `DB$ ChangeZone | Defined$
-// DelayTriggerRememberedLKI` from the graveyard to exile.
+// remembered copy origin whose Execute$ is a ChangeZone of the delayed
+// trigger's remembered card (its last known information) from the graveyard
+// to exile.
 func CloneETBReflexiveExileOK(link *cards.SA, svars map[string]string) bool {
 	if link == nil || link.API != "ImmediateTrigger" {
 		return false

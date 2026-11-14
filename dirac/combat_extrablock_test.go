@@ -33,8 +33,8 @@ func xbScen(t *testing.T, cfg Config) *scen {
 	if sc.k.gen == nil || !sc.k.gen.anyExtraBlock {
 		t.Fatal("the table is not a generated one with anyExtraBlock")
 	}
-	if len(sc.s.xblkRecs()) != MaxPerm {
-		t.Fatalf("xblk records = %d, want %d", len(sc.s.xblkRecs()), MaxPerm)
+	if len(sc.s.xblkRecs()) != maxXblk {
+		t.Fatalf("xblk records = %d, want %d", len(sc.s.xblkRecs()), maxXblk)
 	}
 	return sc
 }

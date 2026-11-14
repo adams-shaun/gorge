@@ -523,7 +523,7 @@ func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 				// CR 613.1f: this effect's own named keywords leave the
 				// accumulated list BEFORE its AddKeywords append, so a
 				// single effect that both removes and grants (mirage
-				// phalanx's RemoveKeywords$ Soulbond | AddKeywords$ Haste)
+				// phalanx's effect removes soulbond and grants haste)
 				// yields the card text's result regardless of how the
 				// timestamps order neighbour effects. A keyword is matched
 				// by its HEAD (cards.KeywordHead), so a parameterised print

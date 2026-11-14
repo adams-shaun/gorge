@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigDungeonCompleted
+value: 79
+forge: DungeonCompleted
+census: trig DungeonCompleted all=4 std=0 mbc=0 sole=0
+state: player 6 (dungeon)
+status: reserved

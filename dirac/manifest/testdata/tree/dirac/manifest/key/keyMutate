@@ -1,0 +1,6 @@
+family: key
+name: keyMutate
+value: 0
+census: slotbyte mutate
+state: slotbyte 112/112
+status: deferred waits on the keyed arena

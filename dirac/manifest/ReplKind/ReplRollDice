@@ -1,0 +1,7 @@
+family: ReplKind
+name: ReplRollDice
+value: 46
+forge: RollDice
+census: repl RollDice all=4 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

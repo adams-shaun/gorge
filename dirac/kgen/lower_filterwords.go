@@ -292,8 +292,7 @@ func spawnAttacked(ab *lAbility) bool {
 }
 
 // spawnDamagedOpp reports whether ab is a triggered ability whose trigger is
-// `Mode$ DamageDone | ValidSource$ Card.Self | ValidTarget$ Player |
-// CombatDamage$ True`.
+// a DamageDone trigger on this card dealing combat damage to a player.
 func spawnDamagedOpp(ab *lAbility) bool {
 	if ab == nil || ab.Trigger == nil || ab.Latent {
 		return false

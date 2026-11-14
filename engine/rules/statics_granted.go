@@ -110,8 +110,8 @@ func (e *Engine) grantedStaticHosts(out []staticView, affects string, source sta
 }
 
 // grantPhasesHold evaluates the OUTER static's Phases$ window for a granted
-// static: Zurgo, Thunder's Decree's `Condition$ PlayerTurn | Phases$ End of
-// Turn` grants "This token can't be sacrificed" only during its controller's
+// static: Zurgo, Thunder's Decree's grant, conditioned on its controller's
+// turn and windowed to the end step, grants "This token can't be sacrificed" only during its controller's
 // end step. An absent Phases$ always holds; an unparsable one fails closed.
 func (e *Engine) grantPhasesHold(st cards.Static) bool {
 	phases := strings.TrimSpace(st.ParamStr(cards.PKPhases))

@@ -364,8 +364,8 @@ func TestMoriaScavengerAmassesOnlyOnCreatureDiscard(t *testing.T) {
 // --- item 1: Upto$ True on DB$ Draw ---
 
 // TestTruceOffersEachPlayerAnUptoDraw drives the SAME Upto$ read through a
-// real cast end to end: Truce's `SP$ Draw | Defined$ Player | Upto$ True |
-// NumCards$ 2` asks EACH player in turn, and the two answers are different —
+// real cast end to end: Truce's "each player draws up to two" Draw asks EACH
+// player in turn, and the two answers are different —
 // seat 0 takes both cards, seat 1 declines — so a per-target count that was
 // applied to the wrong target, or a single shared answer, fails here. The
 // Arcane Denial test above pins the same primitive against a remembered

@@ -9,10 +9,10 @@ import (
 )
 
 // Goldwardens' Gambit is the Rebellion Rising carrier of RememberAttached$:
-// `DB$ RepeatEach | UseImprinted$ True | DefinedCards$ DirectRemembered |
-// RepeatSubAbility$ DBAttach` loops over the five Rebel tokens and each
-// iteration's `DB$ Attach | Choices$ Equipment.YouCtrl+!IsRemembered | ... |
-// RememberAttached$ True` lets the caster attach a DIFFERENT Equipment to
+// a RepeatEach over the directly remembered cards (each imprinted in turn)
+// loops over the five Rebel tokens, and each iteration's Attach, choosing an
+// Equipment you control that is not yet remembered and remembering what it
+// attached, lets the caster attach a DIFFERENT Equipment to
 // each token — the equipment just attached joins the Remembered (both
 // halves, the same discipline RememberTokens$ uses) so the next iteration's
 // !IsRemembered filter no longer offers it.

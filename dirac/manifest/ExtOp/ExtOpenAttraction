@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtOpenAttraction
+value: 24
+forge: OpenAttraction
+census: api OpenAttraction all=22 std=0 mbc=0 sole=12
+state: objspace (attractions)
+status: blocked objspace:tcode

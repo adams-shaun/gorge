@@ -1,0 +1,6 @@
+family: mech
+name: mechGoad2
+value: 45
+state: slotbit 16/16
+status: active
+doc: goad[2]: slots whose permanent seat 2 goaded (read only when MaxSeats > 2; act_goad.go)

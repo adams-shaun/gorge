@@ -1,0 +1,7 @@
+family: KwID
+name: KwProwl
+value: 81
+forge: Prowl
+census: kw Prowl all=10 std=0 mbc=0 sole=3
+state: player 2 (turn facts)
+status: reserved

@@ -18,8 +18,8 @@ import (
 // through the separate Triggered* family -- so a raw objectsOf(c.Remembered)
 // read treats the capture as something the resolution itself remembered. The
 // measured symptom: Nurturing Pixie's ETB returned no permanent, yet the
-// trigger's own self-capture (the Pixie, a permanent) made
-// `ConditionDefined$ RememberedLKI | ConditionPresent$ Card.Permanent` true
+// trigger's own self-capture (the Pixie, a permanent) made its gate, a
+// remembered-LKI permanent being present, true
 // and granted the +1/+1 counter.
 //
 // Each sub-case asserts its own precondition -- the capture object really has

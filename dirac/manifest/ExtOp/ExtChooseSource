@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtChooseSource
+value: 13
+forge: ChooseSource
+census: api ChooseSource all=67 std=1 mbc=1 sole=0
+state: unbounded (prevention/effect records)
+status: blocked unbounded:prevention/effect-records

@@ -147,7 +147,7 @@ func controlBoundaryOf(t *testing.T, e *Engine, obj state.ObjID) int32 {
 }
 
 // steelRealArtifact resolves Power of Persuasion's real corpus d20=20 SVar
-// (DB$ GainControl | Defined$ Targeted | LoseControl$ UntilTheEndOfYourNextTurn)
+// (gain control of the target until the end of your next turn)
 // against an artifact seat 1 controls, exactly as the card's own resolution
 // would once the die shows 20.
 func stealRealArtifact(t *testing.T, e *Engine) state.ObjID {

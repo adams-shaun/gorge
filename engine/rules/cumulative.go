@@ -162,7 +162,7 @@ type triggeredEffectCost struct {
 	// call path re-enters while the announcement is still unanswered.
 	xDone bool
 	// numTimes is the Announce$ NumTimes repeat-payment announcement (Tranquil
-	// Frillback's `Cost$ Mana<G\NumTimes> | Announce$ NumTimes | AnnounceMax$ 3`):
+	// Frillback's {G} cost repeated an announced number of times, at most 3):
 	// unit is the single-repetition mana text, max the AnnounceMax$ cap (0 =
 	// none), done marks the answered ask. The announced count folds the cost
 	// to the unit repeated that many times and rides xPaid into the body,

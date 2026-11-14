@@ -1,0 +1,6 @@
+family: mech
+name: mechKicked
+value: 5
+state: slotbit 16/16
+status: active
+doc: slots whose permanent's spell was kicked (Kicker, Bargain, Offspring)

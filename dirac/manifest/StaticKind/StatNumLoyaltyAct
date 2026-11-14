@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatNumLoyaltyAct
+value: 43
+forge: NumLoyaltyAct
+census: stat NumLoyaltyAct all=2 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

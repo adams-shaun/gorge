@@ -553,7 +553,7 @@ func TestCloakOutOfScopeShapesStayLoud(t *testing.T) {
 // TestUnexplainedAbsenceCloaksEachControllerTop is the per-player carrier end
 // to end: Unexplained Absence exiles up to one nonland permanent each player
 // controls (TargetsForEachPlayer$ True, implemented) and its
-// "Defined$ TopOfLibrary | DefinedPlayer$ RememberedController" sub-cloak
+// sub-cloak of the top card of each remembered controller's library
 // takes each listed controller's OWN top card -- never the caster's.
 func TestUnexplainedAbsenceCloaksEachControllerTop(t *testing.T) {
 	t.Parallel()

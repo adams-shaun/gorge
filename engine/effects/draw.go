@@ -47,16 +47,16 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if remember {
 		// A triggered ability's resolution starts with its fire-time event
-		// capture already in Ctx.Remembered (engine/rules/resolution.go seeds both
-		// Remembered and Captured from the ability object's own Remembered).
-		// That object -- for Communal Brewing's self-ETB trigger, the
-		// entering Brewing itself -- is not a card drawn this way, so it must
-		// not inflate Remembered$Amount ("one ingredient counter ... for each
-		// card drawn this way") nor defeat the did-I-draw-anything gate
-		// (Mr. Foxglove's `ConditionDefined$ Remembered | ConditionCompare$
-		// EQ0`). Drop it before recording what the draws actually moved; the
-		// helper is the same capture-exclusion every TriggerRemembered$Amount
-		// read uses, and it is a no-op for an activated ability (no capture).
+		// capture already in Ctx.Remembered (engine/rules/resolution.go seeds
+		// both Remembered and Captured from the ability object's own
+		// Remembered). That object -- for Communal Brewing's self-ETB trigger,
+		// the entering Brewing itself -- is not a card drawn this way, so it
+		// must not inflate Remembered$Amount ("one ingredient counter ... for
+		// each card drawn this way") nor defeat the did-I-draw-anything gate
+		// (Mr. Foxglove's condition that nothing was remembered). Drop it
+		// before recording what the draws actually moved; the helper is the
+		// same capture-exclusion every TriggerRemembered$Amount read uses, and
+		// it is a no-op for an activated ability (no capture).
 		c.Remembered = rememberedExcludingCapture(h, c)
 	}
 	targets := actingPlayers(h, c, sa)

@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtFlipOntoBattlefield
+value: 69
+forge: FlipOntoBattlefield
+census: api FlipOntoBattlefield all=2 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

@@ -2,8 +2,8 @@ package kgen
 
 import "strings"
 
-// The mid-resolution ChoosePlayer (Gluntch, the Bestower: `DB$ ChoosePlayer |
-// Defined$ You | Choices$ Player | RememberChosen$ True`, then a Draw, a Token
+// The mid-resolution ChoosePlayer (Gluntch, the Bestower: you choose any
+// player and remember the choice, then a Draw, a Token
 // and a PutCounter pick reading ChosenPlayer; gorge effChoosePlayer). The
 // resolving controller chooses one living player (any seat count: the kernel's
 // pool is the living players from the controller, kop.ExtChoosePlayerRes), the

@@ -1,11 +1,10 @@
 package rules
 
 // kw:Blitz (CR 702.152) proof tests, driven by the real corpus card Sabin,
-// Master Monk (`.cards/cardsfolder/s/sabin_master_monk.txt`):
-//
-//	K:Blitz:2 R R Discard<1/Card>
-//	S:Mode$ Continuous | Affected$ Card.Self | MayPlay$ True |
-//	  ValidSA$ Spell.Blitz | AffectedZone$ Graveyard | EffectZone$ Graveyard
+// Master Monk (`.cards/cardsfolder/s/sabin_master_monk.txt`): blitz {2}{R}{R}
+// with a discard of one card as a further cost, and a continuous static,
+// working from the graveyard, that lets the card itself be cast from the
+// graveyard by its blitz cost only.
 //
 // Sabin is the discriminating corpus form: its blitz cost is the only one
 // carrying a non-mana part (Discard<1/Card>), and it is one of the two cards
@@ -166,8 +165,8 @@ func TestBlitzedCreatureIsSacrificedAtTheNextEndStep(t *testing.T) {
 }
 
 // TestSabinGraveyardBlitzCastViaItsOwnStatic pins the graveyard permission:
-// Sabin's own S: static (MayPlay$ True | ValidSA$ Spell.Blitz | AffectedZone$
-// Graveyard) makes the blitz cast offered from the graveyard, and only the
+// Sabin's own static (a MayPlay grant from the graveyard, for blitz casts
+// only) makes the blitz cast offered from the graveyard, and only the
 // blitz cast -- the plain printed-cost cast is NOT granted.
 func TestSabinGraveyardBlitzCastViaItsOwnStatic(t *testing.T) {
 	t.Parallel()

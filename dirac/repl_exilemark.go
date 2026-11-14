@@ -36,8 +36,7 @@ func (s *State) exileExMark(k *prep, in *kop.Instr) {
 }
 
 // exMarkRec is one exile-instead-of-dying effect on slot sl, made by src. Its
-// two-byte fields come first, so a record takes eight bytes at either object
-// width (ten under dirac_mp with sl leading).
+// two-byte fields come first, so a record takes eight bytes.
 type exMarkRec struct {
 	ts   uint16 // a player hexproof record: its timestamp (a later loss of abilities takes the permanent grant)
 	src  Obj

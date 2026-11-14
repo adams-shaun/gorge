@@ -3,8 +3,8 @@ package dirac
 import "github.com/adams-shaun/gorge/dirac/kop"
 
 // Agility Bobblehead's "can't be blocked this turn except by creatures with
-// haste" (gorge Effect Mode$ CantBlockBy | ValidAttacker$ Card.IsRemembered |
-// ValidBlocker$ Creature.withoutHaste; CR 509.1b, 702.10a, 611.2c).
+// haste" (gorge: an Effect granting a CantBlockBy static on the remembered
+// attacker against blockers without haste; CR 509.1b, 702.10a, 611.2c).
 // ExtExHaste records, until the cleanup step, the attacker (obj, ver) in
 // State.cold.exH; canBlock refuses a blocker without haste (its CURRENT
 // keywords, so the same turn's KW$ Haste grant to the blocker's own side

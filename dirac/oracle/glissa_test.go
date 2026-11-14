@@ -7,10 +7,6 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// gorgeRemoveAnyFixTime is gorge cr-removecounter-any-upto (461d8b818):
-// before it CounterType$ Any removed nothing.
-const gorgeRemoveAnyFixTime = "20261026095710"
-
 // The Glissa lockstep: Glissa Sunslayer's third mode, "remove up
 // to three counters from target permanent" (Ext RemoveCounterAny: a kind
 // pick per counter, Done at every step), against +1/+1 counters (Luminarch
@@ -30,18 +26,12 @@ var kglissaDecks = [2][]cardset.Entry{
 
 func TestGlissaLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeRemoveAnyFixTime) {
-		t.Skip("gorge before cr-removecounter-any-upto (461d8b818)")
-	}
 	lockstepSet(t, "glissa", kglissaDecks, 600, "KGLISSA_SEEDS")
 }
 
 // TestGlissaLockstepMutation: with the removal dropped, some seed diverges.
 func TestGlissaLockstepMutation(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeRemoveAnyFixTime) {
-		t.Skip("gorge before cr-removecounter-any-upto (461d8b818)")
-	}
 	n := lockstepRun(t, "glissa", kglissaDecks, 200, false, func(tbl *kop.Table) {
 		cards := append([]kop.CardDef(nil), tbl.Cards...)
 		for i := range cards {

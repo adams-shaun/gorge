@@ -306,7 +306,7 @@ func TestOpsDocCoversAppendedOps(t *testing.T) {
 	}
 	for o := kop.OpSkipUnless; o < kop.OpHighEnd; o++ {
 		if o.Known() && !have["op:"+o.String()] {
-			t.Errorf("op %s has no OPS.md entry (dirac/kgen/opsdoc.go)", o)
+			t.Errorf("op %s has no OPS.md entry (add an opsdoc_<mechanic>.go)", o)
 		}
 	}
 }
