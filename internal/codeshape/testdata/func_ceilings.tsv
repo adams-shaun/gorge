@@ -48,11 +48,11 @@ dirac (*State).replDamage	96	71
 dirac (*State).resolveOptionsGen	314	107
 dirac (*State).resolveTop	238	122
 dirac (*State).sba	339	135
-dirac (*State).scriptOffers	149	102
+dirac (*State).scriptOffers	149	109
 dirac (*State).stepRaw	153	63
 dirac (*State).windowColOwed	143	64
 dirac (*State).windowPick	67	51
-dirac (*State).windowTapWalk	129	72
+dirac (*State).windowTapWalk	129	74
 dirac (*State).wordPerm3	92	51
 dirac (*filtSearch).otherGap	228	70
 dirac (*filtSearch).visit	142	58
@@ -60,7 +60,7 @@ dirac (*grantSrch).visit	292	111
 dirac (*tapXSearch).visit	266	74
 dirac arenaUses	114	58
 dirac prepare	208	116
-dirac prepareGen	1078	425
+dirac prepareGen	1085	432
 dirac/canon (*Translator).Action	422	156
 dirac/canon (*Translator).generatedChoose	365	118
 dirac/cardset (dataSet).matchup	395	127
@@ -82,9 +82,9 @@ dirac/kgen (*cardBuilder).fold	103	51
 dirac/kgen (*cardBuilder).mana	171	62
 dirac/kgen (*cardBuilder).record	628	186
 dirac/kgen (*cardBuilder).repl	227	91
-dirac/kgen (*cardBuilder).static	798	295
+dirac/kgen (*cardBuilder).static	803	297
 dirac/kgen (*cardBuilder).target	305	183
-dirac/kgen (*cardBuilder).trigger	589	291
+dirac/kgen (*cardBuilder).trigger	592	292
 dirac/kgen (*instrCtx).opSearch	259	93
 dirac/kgen (*lClause).prop	563	149
 dirac/kgen (*lowerCtx).applyModifier	160	75
@@ -94,7 +94,7 @@ dirac/kgen (*lowerCtx).continuous	473	149
 dirac/kgen (*lowerCtx).copyPermanent	218	65
 dirac/kgen (*lowerCtx).costHand	702	297
 dirac/kgen (*lowerCtx).countValue	604	197
-dirac/kgen (*lowerCtx).defined	352	120
+dirac/kgen (*lowerCtx).defined	361	123
 dirac/kgen (*lowerCtx).definedValid	132	51
 dirac/kgen (*lowerCtx).dig	172	65
 dirac/kgen (*lowerCtx).effectEtbCounters	110	57
@@ -105,7 +105,7 @@ dirac/kgen (*lowerCtx).imprintMoxShape	56	59
 dirac/kgen (*lowerCtx).lowerAbility	536	287
 dirac/kgen (*lowerCtx).lowerKeywords	955	397
 dirac/kgen (*lowerCtx).lowerRepl	302	106
-dirac/kgen (*lowerCtx).lowerTriggered	1788	595
+dirac/kgen (*lowerCtx).lowerTriggered	1798	597
 dirac/kgen (*lowerCtx).manaEffect	165	67
 dirac/kgen (*lowerCtx).nodeCondition	238	78
 dirac/kgen (*lowerCtx).objOrTargetOpt	150	56
