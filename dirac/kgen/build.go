@@ -862,6 +862,17 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.AnimateEnchant != nil {
+		// the Licids' self-granted enchant: the kernel's Aura state-based
+		// action reads it once the card's own animation makes it an Aura
+		// (lower_animateaura.go)
+		if d.Enchant.Kind != kop.TgtNone {
+			return fmt.Errorf("a granted enchant beside a printed one")
+		}
+		if d.Enchant, err = cb.target(*c.AnimateEnchant); err != nil {
+			return err
+		}
+	}
 	if c.Convoke {
 		// CR 702.51a: printed convoke; the cast taps creatures for its
 		// mana cost (dirac/kw_convoke.go)

@@ -73,6 +73,11 @@ func (s *State) resetCold(l *coldLayout) {
 type ForkPool struct {
 	forks []*State
 	depth int
+	// rootF[i] is the per-player turn facts (genState.turnF) of the State
+	// that is no fork which forks[i] descends from, as they stood when its
+	// outermost fork was taken: the search root's (static_turnbits.go
+	// rootTurnF).
+	rootF []uint8
 }
 
 // warmForkDepth is past the deepest nesting measured, 5 in random play.
@@ -80,7 +85,7 @@ const warmForkDepth = 8
 
 // NewForkPool returns a pool that will not allocate for any measured nesting.
 func NewForkPool() *ForkPool {
-	p := &ForkPool{forks: make([]*State, warmForkDepth)}
+	p := &ForkPool{forks: make([]*State, warmForkDepth), rootF: make([]uint8, warmForkDepth)}
 	for i := range p.forks {
 		p.forks[i] = &State{pool: p}
 	}
@@ -104,8 +109,11 @@ func (s *State) fork() *State {
 		f := new(State)
 		f.pool = p
 		p.forks = append(p.forks, f)
+		p.rootF = append(p.rootF, 0)
 	}
+	root := s.rootTurnF()
 	f := p.forks[p.depth]
+	p.rootF[p.depth] = root
 	p.depth++
 	f.CopyFrom(s)
 	return f

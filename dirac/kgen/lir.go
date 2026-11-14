@@ -1091,6 +1091,7 @@ type lCard struct {
 	CleaveAb       int       // 1 + the LIR index of the cleave line's ability (Cleave != nil)
 	Bestow         *manaCost // K:Bestow:<cost> (CR 702.103a): the hand's alternative cost of the Aura cast
 	BestowT        *lTarget  // the bestowed Aura's enchant creature target (gorge bestowedAttachSA)
+	AnimateEnchant *lTarget  // the enchant a permanent Animate of Self grants the card it makes an Aura (the Licids; CardDef.Enchant, lower_animateaura.go)
 	Convoke        bool      // K:Convoke (CR 702.51a): the cast may tap creatures for its mana cost
 	Improvise      bool      // K:Improvise (CR 702.126a): the cast may tap artifacts for the generic part of its mana cost
 	Delve          bool      // K:Delve (CR 702.66a): the cast exiles graveyard cards toward its generic cost (dirac/kw_delve.go)
