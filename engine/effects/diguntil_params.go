@@ -278,7 +278,7 @@ var digUntilKnownKeys = [...]string{
 	"UnlessResolveSubs",
 	"UnlessSwitched",
 	"Valid",
-	"ValidCard",
+	"ValidAfterStack", "ValidCard",
 	"ValidCards",
 	"ValidCardsDesc",
 	"ValidChoices",

@@ -1,0 +1,9 @@
+# the MBC trigger-referents-4 pool: Elite Scaleguard and Purifying Dragon
+# (TargetsWithDefinedController$ TriggeredDefendingPlayer on an Attacks
+# trigger's target) beside Raging Goblin and basics
+# (dirac/oracle/mbc_trigger_referents4_lowers_test.go)
+Elite Scaleguard
+Purifying Dragon
+Raging Goblin
+Mountain
+Plains

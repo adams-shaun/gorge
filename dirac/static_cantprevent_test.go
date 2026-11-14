@@ -102,3 +102,86 @@ func TestCantPreventDamagePrepOff(t *testing.T) {
 		t.Fatal("anyNoPrev set on a table without StatCantPreventDamage")
 	}
 }
+
+// noPrevEmblemTweak appends the can't-prevent end-of-turn emblem to the
+// matchup table before the kernel prepares it (as noPrevScen does), writing
+// its 1-based Table.Emblems index to *emb.
+func noPrevEmblemTweak(emb *uint8) func(*kop.Table, map[string]CardID) {
+	return func(tbl *kop.Table, _ map[string]CardID) {
+		tbl.Emblems = append(tbl.Emblems, kop.Emblem{UntilEOT: true, Abilities: []kop.Ability{
+			{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatCantPreventDamage}}}})
+		*emb = uint8(len(tbl.Emblems))
+	}
+}
+
+// TestFogUnderCantPreventKernel: a Fog stops no combat damage while damage
+// can't be prevented (CR 615.12; gorge damageStep keeps the assignments
+// fogUnpreventable selects): the attacker's damage is dealt with the Fog and
+// the emblem both active, a Fog alone still prevents it, and
+// DebugNoPreventOff makes the Fog prevent again.
+func TestFogUnderCantPreventKernel(t *testing.T) {
+	run := func(t *testing.T, withEmblem, off bool) int16 {
+		DebugNoPreventOff = off
+		defer func() { DebugNoPreventOff = false }()
+		var emb uint8
+		sc, id := newSetScenTweak(t, "fdn", []cardset.Entry{{Name: "Savannah Lions", Count: 2}, {Name: "Plains", Count: 4}}, noPrevEmblemTweak(&emb))
+		if !sc.k.gen.anyNoPrev {
+			t.Fatal("prep: anyNoPrev unset")
+		}
+		a := sc.perm(id["Savannah Lions"], 0)
+		sc.s.exec(sc.k, &kop.Instr{Op: kop.OpFog})
+		if !sc.s.g.fog {
+			t.Fatal("precondition: the Fog is not active")
+		}
+		if withEmblem {
+			embDurPut(sc, 0, NoObj, emb)
+			if !off && !sc.s.noPrev(sc.k, true) {
+				t.Fatal("precondition: the emblem's static is not in force")
+			}
+		}
+		life := sc.s.pl[1].life
+		sc.combat(t, []Obj{a}, nil)
+		return life - sc.s.pl[1].life
+	}
+	if got := run(t, true, false); got != 2 {
+		t.Fatalf("Fog under the emblem: the defender lost %d life, want 2 (Savannah Lions)", got)
+	}
+	if got := run(t, false, false); got != 0 {
+		t.Fatalf("Fog alone: the defender lost %d life, want 0", got)
+	}
+	if got := run(t, true, true); got != 0 {
+		t.Fatalf("Fog under the emblem with the static ignored: the defender lost %d life, want 0", got)
+	}
+}
+
+// TestPreventMillUnderCantPrevent: The Mindskinner's controller's creature
+// deals combat damage to the opponent under the can't-prevent emblem; the
+// opponent loses the life and mills that many cards (CR 615.12: the rider
+// runs, the damage stands). Without the emblem the damage is prevented and
+// the mill alone happens.
+func TestPreventMillUnderCantPrevent(t *testing.T) {
+	run := func(t *testing.T, withEmblem bool) (lost, milled int16) {
+		var emb uint8
+		sc, id := newSetScenTweak(t, "mbc", []cardset.Entry{{Name: "The Mindskinner", Count: 2}, {Name: "Plains", Count: 4}}, noPrevEmblemTweak(&emb))
+		if sc.k.gen.anyRepl&rbPrevMill == 0 {
+			t.Fatal("prep: rbPrevMill unset")
+		}
+		a := sc.perm(id["The Mindskinner"], 0)
+		if withEmblem {
+			embDurPut(sc, 0, NoObj, emb)
+			if !sc.s.noPrev(sc.k, true) {
+				t.Fatal("precondition: the emblem's static is not in force")
+			}
+		}
+		life, lib := sc.s.pl[1].life, int16(sc.s.pl[1].libHi-sc.s.pl[1].libLo)
+		sc.combat(t, []Obj{a}, nil)
+		return life - sc.s.pl[1].life, lib - int16(sc.s.pl[1].libHi-sc.s.pl[1].libLo)
+	}
+	lost, milled := run(t, true)
+	if lost <= 0 || milled != lost {
+		t.Fatalf("under the emblem: life lost %d, cards milled %d; want both equal and positive", lost, milled)
+	}
+	if lost, milled := run(t, false); lost != 0 || milled <= 0 {
+		t.Fatalf("control without the emblem: life lost %d, cards milled %d; want 0 and a positive mill", lost, milled)
+	}
+}

@@ -149,7 +149,10 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 		}
 	}
 	if k.ctrMana {
-		n += s.scriptCtr(k, p).count()
+		// a dead counter-cost gap (Component Pouch) is admitted to gorge's
+		// PotentialMana with a production that resolves to no mana, so it
+		// funds no fee (mana_countercost.go)
+		n += s.scriptCtr(k, p).count() - s.deadCtrMask(k, p).count()
 	}
 	if k.gen.anyDeferred {
 		// a deferred source's {R} (mana_deferred.go): gorge's PotentialMana

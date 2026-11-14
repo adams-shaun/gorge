@@ -54,6 +54,9 @@ func (lc *lowerCtx) stationSelfGrant(sp *params, st *lStatic) error {
 	}
 	n, ok := stationThreshold(st.F)
 	if !ok {
+		if hasS && !hasT && !hasA && filterSelfOnly(st.F) && levelBandCond(st.Cond) {
+			return lc.levelGrantStatic(sp, inner, st.Cond) // lower_levelband.go
+		}
 		return nil
 	}
 	if c := st.F.Clauses[0]; c.CmpOp != opGE || c.CmpCounter != "CHARGE" {
@@ -187,17 +190,30 @@ func (lc *lowerCtx) gatedGrantTrigger(sp *params, name, what string, gate *lGate
 // stationGrantStatic lowers AddStaticAbility$ as the inner Continuous static
 // ANDed with the source holding n charge counters.
 func (lc *lowerCtx) stationGrantStatic(sp *params, name string, n int) error {
+	f, err := lc.filter("Card.Self+counters_GE" + strconv.Itoa(n) + "_CHARGE")
+	if err != nil {
+		return err
+	}
+	return lc.gatedGrantStatic(sp, name, lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)}, "station", false)
+}
+
+// gatedGrantStatic lowers a self-grant static's AddStaticAbility$ name as the
+// inner static ANDed with have, the outer static's own gate (what prefixes
+// the refusal reasons). A CantBlockBy inner static (allowCantBlockBy: a
+// level band's "can't be blocked except by black creatures") rides the same
+// way: gorge's grantedStatics scan applies it while the outer static is live.
+func (lc *lowerCtx) gatedGrantStatic(sp *params, name string, have lCond, what string, allowCantBlockBy bool) error {
 	if strings.ContainsAny(name, "&,") {
-		return refuse("station AddStaticAbility %q: more than one static", name)
+		return refuse("%s AddStaticAbility %q: more than one static", what, name)
 	}
 	inners, ok := cards.ParseStaticLines(lc.face.SVars[name])
-	if !ok || len(inners) != 1 || inners[0].Mode != "Continuous" {
-		return refuse("station AddStaticAbility %q", name)
+	if !ok || len(inners) != 1 || inners[0].Mode != "Continuous" && !(allowCantBlockBy && inners[0].Mode == "CantBlockBy") {
+		return refuse("%s AddStaticAbility %q", what, name)
 	}
 	in := inners[0]
 	for _, k := range []string{"Condition", "CheckSVar", "IsPresent", "ClassBand"} {
 		if _, ok := in.Params[k]; ok {
-			return refuse("station granted static beside its own %s$", k)
+			return refuse("%s granted static beside its own %s$", what, k)
 		}
 	}
 	lc.granted++
@@ -206,11 +222,6 @@ func (lc *lowerCtx) stationGrantStatic(sp *params, name string, n int) error {
 	if err != nil {
 		return err
 	}
-	f, err := lc.filter("Card.Self+counters_GE" + strconv.Itoa(n) + "_CHARGE")
-	if err != nil {
-		return err
-	}
-	have := lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)}
 	var out []lStatic
 	for _, s := range sts {
 		if s.Kind == "" {
@@ -220,7 +231,7 @@ func (lc *lowerCtx) stationGrantStatic(sp *params, name string, n int) error {
 		out = append(out, s)
 	}
 	if len(out) == 0 {
-		return refuse("station AddStaticAbility %q lowered to nothing", name)
+		return refuse("%s AddStaticAbility %q lowered to nothing", what, name)
 	}
 	lc.grantInner = out
 	sp.consume("AddStaticAbility")

@@ -89,7 +89,7 @@ func (s *State) faceCastable(k *prep, p uint8, o Obj, c CardID, sorc bool) bool 
 // source the face needs) gate this face route's census offer. Omen's isn't.
 func facePlannerLimited(fm uint8) bool {
 	switch fm {
-	case kop.FaceAdventure, kop.FaceSplit, kop.FaceModal, kop.FaceRoom, kop.FacePrepare:
+	case kop.FaceAdventure, kop.FaceSplit, kop.FaceModal, kop.FaceRoom, kop.FacePrepare, kop.FacePrototype:
 		return true
 	}
 	return false
@@ -114,7 +114,7 @@ func (s *State) offerFaceCasts(k *prep, d *Decision, p uint8, o Obj, sorc bool) 
 		return
 	}
 	switch cd.FaceMode {
-	case kop.FaceAdventure, kop.FaceOmen:
+	case kop.FaceAdventure, kop.FaceOmen, kop.FacePrototype:
 	case kop.FaceSplit:
 		if k.t.Cards[cd.Faces[1]].Aftermath && !DebugAftermathFromHand {
 			return // cast only from the graveyard (face_aftermath.go)
@@ -199,7 +199,7 @@ func (s *State) stackExitFace(k *prep, o Obj, z kop.Zone, resolved bool) kop.Zon
 		ob.card = front // a fused spell is its card again (face_fuse.go)
 		return z
 	}
-	if cd.Face == 0 || len(cd.Faces) == 0 || cd.FaceMode != kop.FaceAdventure && cd.FaceMode != kop.FaceSplit && cd.FaceMode != kop.FaceModal && cd.FaceMode != kop.FaceOmen {
+	if cd.Face == 0 || len(cd.Faces) == 0 || cd.FaceMode != kop.FaceAdventure && cd.FaceMode != kop.FaceSplit && cd.FaceMode != kop.FaceModal && cd.FaceMode != kop.FaceOmen && cd.FaceMode != kop.FacePrototype {
 		return z
 	}
 	s.touch(o)
