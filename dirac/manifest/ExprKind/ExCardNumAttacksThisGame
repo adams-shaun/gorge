@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExCardNumAttacksThisGame
+value: 116
+forge: CardNumAttacksThisGame
+census: count CardNumAttacksThisGame all=1 std=0 mbc=0 sole=1
+state: player 4 (turn tallies)
+status: reserved

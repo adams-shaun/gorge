@@ -99,8 +99,8 @@ func TestPhasesAllValidFilterIsHonoured(t *testing.T) {
 // 8 corpus-carrier shape, Time and Tide's oracle in one pass): an affected
 // permanent that is phased out phases IN while one that is phased in phases
 // OUT, in the same resolution. Before this fix the parameter was treated as
-// an unconditional phase-out, so every `Defined$ Remembered | PhaseInOrOut$
-// True` phase-back-in body (Out of Time, Oubliette, Unyaro, Ferris Wheel,
+// an unconditional phase-out, so every phase-back-in body toggling the
+// remembered permanents (Out of Time, Oubliette, Unyaro, Ferris Wheel,
 // The Moment, The Pandora, The Doctor's Childhood Barn) phased nothing in.
 func TestPhasesPhaseInOrOutToggles(t *testing.T) {
 	h, ctx, ids := phasesBattlefieldBoard(t)

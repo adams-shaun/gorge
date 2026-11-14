@@ -6,6 +6,7 @@ import (
 
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -32,10 +33,7 @@ var kmbcredirectDecks = [2][]cardset.Entry{
 // two kinds), and the games against gorge diverge nowhere.
 func TestMBCDamageRedirectLowers(t *testing.T) {
 	t.Parallel()
-	set, err := cardset.RawByName("mbcredirect")
-	if err != nil {
-		t.Fatal(err)
-	}
+	set := cardsettest.Set(t, "mbcredirect")
 	tbl, _, _, err := set.Matchup(kmbcredirectDecks[0], kmbcredirectDecks[1])
 	if err != nil {
 		t.Fatal(err)

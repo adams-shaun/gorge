@@ -136,7 +136,7 @@ func (lc *lowerCtx) tapExtraGate(t cards.Trigger) (lCond, bool, error) {
 // Island the gate reaches as TierDeferred (deferBy), with the potential bound
 // (paymentPlanTapExtraMana, whole=true) summing only folded triggers. The
 // kernel mirrors both halves: the static carries the gate as lStatic.Cond
-// (kop.Static.Cond2) and a class-only Taps line (kop.Tf5TapsClassOnly) whose
+// (kop.Static.Cond2) and a class-only Taps line (kop.Tf5TapsForMana with no body) whose
 // Trigger.Cond is the same gate defers the same sources
 // (mana_tapsdefer.go tapsWatchClass) while the gate holds; the extra itself is
 // never priced into the census or the potential (mana_tapextra.go
@@ -200,7 +200,6 @@ func (lc *lowerCtx) tapExtraGated(t cards.Trigger, cond lCond) error {
 		Cond:        cond,
 		TapPlan:     uint8(kop.TapPlanDefer),
 		TapsForMana: true,
-		ClassOnly:   true,
 	}
 	ab := &lAbility{Kind: akTriggered, Index: len(lc.out.Abilities), Trigger: tr}
 	lc.out.Abilities = append(lc.out.Abilities, ab)

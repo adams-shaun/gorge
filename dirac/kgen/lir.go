@@ -58,12 +58,52 @@ const (
 	rChosenPlayer                 // the opponent the source permanent chose as it entered (kop.RefChosenPlayer; lower_chooseplayerenter.go)
 	rChosenPlayerRes              // the player this resolution's ChoosePlayer chose (kop.RefChosenPlayerRes; lower_chooseplayerres.go)
 	rTriggerOpps                  // each opponent of the trigger's player (kop.RefTriggerOpponents; Defined$ TriggeredCardOpponent, lower_triggeropps.go)
+	rResChosenPlayer              // the resolution's chosen player: OpChoosePlayer's random pick (gorge Ctx.Chosen's player entry, Maddening Hex's Attach destination)
 	rCount
 )
 
-var refNames = [...]string{"None", "Target", "Self", "You", "EachOpp", "EachPlayer", "TargetController",
-	"TargetOwner", "Triggered", "TriggeredNew", "TriggeredSource", "TriggeredPlayer", "TriggeredTgtCtrl", "Equipped", "Remembered",
-	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted", "Promised", "AttachedCtrl", "LastCreated", "TaxedAttacker", "ChosenPlayer", "TriggeredOwner", "ChosenPlayerRes", "TriggerOpps"}
+var refNames = [...]string{
+	rNone:                 "None",
+	rTarget:               "Target",
+	rSelf:                 "Self",
+	rYou:                  "You",
+	rEachOpp:              "EachOpp",
+	rEachPlayer:           "EachPlayer",
+	rTargetController:     "TargetController",
+	rTargetOwner:          "TargetOwner",
+	rTriggered:            "Triggered",
+	rTriggeredNew:         "TriggeredNew",
+	rTriggeredSource:      "TriggeredSource",
+	rTriggeredPlayer:      "TriggeredPlayer",
+	rTriggeredTgtCtrl:     "TriggeredTgtCtrl",
+	rEquipped:             "Equipped",
+	rRemembered:           "Remembered",
+	rDelayedRemembered:    "DelayedRemembered",
+	rReplaced:             "Replaced",
+	rChosen:               "Chosen",
+	rEach:                 "Each",
+	rSacrificed:           "Sacrificed",
+	rHost:                 "Host",
+	rDefending:            "Defending",
+	rTargetUnion:          "Targets",
+	rRememberedController: "RememberedController",
+	rDiscarded:            "Discarded",
+	rLibTop:               "LibTop",
+	rOppNonRemCtrl:        "OppNonRemCtrl",
+	rSrcOwner:             "SrcOwner",
+	rTriggerAttackers:     "TriggerAttackers",
+	rRememberedOwner:      "RememberedOwner",
+	rImprinted:            "Imprinted",
+	rPromised:             "Promised",
+	rAttachedCtrl:         "AttachedCtrl",
+	rLastCreated:          "LastCreated",
+	rTaxedAttacker:        "TaxedAttacker",
+	rTriggeredOwner:       "ChosenPlayer",
+	rChosenPlayer:         "TriggeredOwner",
+	rChosenPlayerRes:      "ChosenPlayerRes",
+	rTriggerOpps:          "TriggerOpps",
+	rResChosenPlayer:      "ResChosenPlayer",
+}
 
 type lRef struct {
 	Kind refKind
@@ -205,11 +245,120 @@ const (
 	vCount_
 )
 
-var valNames = [...]string{"None", "Const", "X", "Count", "CountGraveyard", "SumPower", "DistinctCMC", "Kicked",
-	"Morbid", "AttackedThisTurn", "PowerOf", "ToughnessOf", "LifeOf", "LibrarySizeOf", "StartingLife",
-	"TriggerAmount", "LifeGainedThisTurn", "OppLifeLostThisTurn", "CountersOn", "CreaturesDied",
-	"RememberedCount", "ExcessDamage", "LastLifeLost", "TokensCreated", "CountCast", "LifeLostThisTurn", "Sum",
-	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast", "YourExtraTurns", "NotOwnLibMV", "CounterKinds", "TargetPlayers", "IfCastOwnMain", "PWTypes", "TapPower", "StepIn", "TgtSpent", "OppExtreme", "ThisTurnActExhaust", "Activations", "LifeLostLastTurn", "LastDamage", "DmgAmount", "TimesKicked", "Monarch", "EnergyOf", "PlExtreme", "JoinForces", "RemEachOwnNonLand", "DmgOppsTaken", "CmdGreatestMV", "Blessing"}
+var valNames = [...]string{
+	vNone:                "None",
+	vConst:               "Const",
+	vX:                   "X",
+	vCount:               "Count",
+	vCountGraveyard:      "CountGraveyard",
+	vSumPower:            "SumPower",
+	vDistinctCMC:         "DistinctCMC",
+	vKicked:              "Kicked",
+	vMorbid:              "Morbid",
+	vAttackedThisTurn:    "AttackedThisTurn",
+	vPowerOf:             "PowerOf",
+	vToughnessOf:         "ToughnessOf",
+	vLifeOf:              "LifeOf",
+	vLibrarySizeOf:       "LibrarySizeOf",
+	vStartingLife:        "StartingLife",
+	vTriggerAmount:       "TriggerAmount",
+	vLifeGainedThisTurn:  "LifeGainedThisTurn",
+	vOppLifeLostThisTurn: "OppLifeLostThisTurn",
+	vCountersOn:          "CountersOn",
+	vCreaturesDied:       "CreaturesDied",
+	vRememberedCount:     "RememberedCount",
+	vExcessDamage:        "ExcessDamage",
+	vLastLifeLost:        "LastLifeLost",
+	vTokensCreated:       "TokensCreated",
+	vCountCast:           "CountCast",
+	vLifeLostThisTurn:    "LifeLostThisTurn",
+	vSum:                 "Sum",
+	vHandSizeOf:          "HandSizeOf",
+	vCountExile:          "CountExile",
+	vOppsLostLife:        "OppsLostLife",
+	vMVOf:                "MVOf",
+	vCountAtLeast:        "CountAtLeast",
+	vPromisedGift:        "PromisedGift",
+	vResolvedThisTurn:    "ResolvedThisTurn",
+	vThisTurnCast:        "ThisTurnCast",
+	vRollResult:          "RollResult",
+	vCastManaSpent:       "CastManaSpent",
+	vCompare:             "Compare",
+	vBranches:            "Branches",
+	vDevotion:            "Devotion",
+	vParty:               "Party",
+	vDrawnThisTurn:       "DrawnThisTurn",
+	vGraveTypes:          "GraveTypes",
+	vValidAgg:            "ValidAgg",
+	vGraveAgg:            "GraveAgg",
+	vYourSpeed:           "YourSpeed",
+	vHighestOppPoison:    "HighestOppPoison",
+	vThisTurnEntered:     "ThisTurnEntered",
+	vThisTurnCastSpec:    "ThisTurnCastSpec",
+	vCommittedCrime:      "CommittedCrime",
+	vThisTurnActGrave:    "ThisTurnActGrave",
+	vSelfPrepared:        "SelfPrepared",
+	vSneaked:             "Sneaked",
+	vTriggerSpellMVLKI:   "TriggerSpellMVLKI",
+	vPoisonOf:            "PoisonOf",
+	vProduct:             "Product",
+	vAttackersAll:        "AttackersAll",
+	vRefCount:            "RefCount",
+	vCountHand:           "CountHand",
+	vYourTurns:           "YourTurns",
+	vLowestLife:          "LowestLife",
+	vRedNCDmg:            "RedNCDmg",
+	vVoid:                "Void",
+	vRevolt:              "Revolt",
+	vLeftZone:            "LeftZone",
+	vCastFromGrave:       "CastFromGrave",
+	vCtrAdded:            "CtrAdded",
+	vExiledWithN:         "ExiledWithN",
+	vConverge:            "Converge",
+	vExileTypes:          "ExileTypes",
+	vSacrificedThisTurn:  "SacrificedThisTurn",
+	vDiscardedThisTurn:   "DiscardedThisTurn",
+	vNumColorsOf:         "NumColorsOf",
+	vScriedThisTurn:      "ScriedThisTurn",
+	vRemLKIPT:            "RemLKIPT",
+	vCastBattlefield:     "CastBattlefield",
+	vUnlockedDoors:       "UnlockedDoors",
+	vChosenMode:          "ChosenMode",
+	vMod:                 "Mod",
+	vPow:                 "Pow",
+	vAttackedTurn:        "AttackedTurn",
+	vPhaseCount:          "PhaseCount",
+	vAdamant:             "Adamant",
+	vDilemmasFaced:       "DilemmasFaced",
+	vChromaOf:            "ChromaOf",
+	vOppsAttacked:        "OppsAttacked",
+	vChosenNumber:        "ChosenNumber",
+	vFirstCast:           "FirstCast",
+	vYourExtraTurns:      "YourExtraTurns",
+	vNotOwnLibMV:         "NotOwnLibMV",
+	vCounterKinds:        "CounterKinds",
+	vTargetPlayers:       "TargetPlayers",
+	vIfCastOwnMain:       "IfCastOwnMain",
+	vPWTypes:             "PWTypes",
+	vTapPower:            "TapPower",
+	vStepIn:              "StepIn",
+	vTgtSpent:            "TgtSpent",
+	vOppExtreme:          "OppExtreme",
+	vThisTurnActExhaust:  "ThisTurnActExhaust",
+	vActivations:         "Activations",
+	vLifeLostLastTurn:    "LifeLostLastTurn",
+	vLastDamage:          "LastDamage",
+	vDmgAmount:           "DmgAmount",
+	vTimesKicked:         "TimesKicked",
+	vMonarch:             "Monarch",
+	vEnergyOf:            "EnergyOf",
+	vPlExtreme:           "PlExtreme",
+	vJoinForces:          "JoinForces",
+	vRemEachOwnNonLand:   "RemEachOwnNonLand",
+	vDmgOppsTaken:        "DmgOppsTaken",
+	vCmdGreatestMV:       "CmdGreatestMV",
+	vBlessing:            "Blessing",
+}
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
 // that order, then negated when Neg.
@@ -315,8 +464,23 @@ const (
 	cCount_
 )
 
-var condNames = [...]string{"None", "Present", "Value", "Kicked", "Threshold", "YourTurn", "RefMatches",
-	"CostPaid", "OpponentsTurn", "PromisedGift", "And", "EchoOwed", "SourceZone", "Blessing", "RemMark"}
+var condNames = [...]string{
+	cNone:          "None",
+	cPresent:       "Present",
+	cValue:         "Value",
+	cKicked:        "Kicked",
+	cThreshold:     "Threshold",
+	cYourTurn:      "YourTurn",
+	cRefMatches:    "RefMatches",
+	cCostPaid:      "CostPaid",
+	cOpponentsTurn: "OpponentsTurn",
+	cPromisedGift:  "PromisedGift",
+	cAnd:           "And",
+	cEchoOwed:      "EchoOwed",
+	cSourceZone:    "SourceZone",
+	cBlessing:      "Blessing",
+	cRemMark:       "RemMark",
+}
 
 type lCond struct {
 	Kind condKind
@@ -748,6 +912,11 @@ type lTrigger struct {
 	TapPlan       uint8 // kop.TapPlan; Taps, non-Self ValidCard$: the payment-planner class of the watcher body (lower_tapsclass.go)
 	TapPainN      uint8 // TapPlanPain: the vetted literal damage amount
 	CauseTarget   bool  // DamageDone: ValidCause$ Spell.numTargets EQ1 + TargetRelativeToCause$ Creature.targetedBy (kop.Tf4SingleCauseTarget)
+	// CauseSpell: LifeLost/LifeLostAll ValidCause$ SpellAbility[.<qual>], the
+	// loss's cause is the spell or ability resolving right now (gorge
+	// lifeLossCauseMatches; kop.Tf4CauseSpellAb): 1 any spell or ability, 2
+	// SpellAbility.YouCtrl, 3 SpellAbility.OppCtrl.
+	CauseSpell uint8
 	// Watch: BecomesTarget watching ValidTarget$ objects (F) targeted by an
 	// opponent's spell or ability (ValidSource$ SpellAbility.OppCtrl);
 	// SpellToo: a creature spell its controller controls counts too.
@@ -769,6 +938,7 @@ type lTrigger struct {
 	SrcInPlay                 bool  // DamageDone ValidSource$ carries inZoneBattlefield: a source that is not a permanent never matches (kernel Tf2SrcInPlay)
 	SelfPlayerRef             bool  // PerRef from a plain self-source DamageDone to any player that reads the damaged player (lower_damagedoneonce.go selfPlayerRefShape)
 	DmgGate                   int16 // PerRef: DamageAmount$ gate (kop.DmgGate), 0 = none
+	InstGate                  int16 // DamageDealtOnce: AtLeastOneInstance$ gate (kop.DmgGate in Trigger.N), 0 = none
 	ResolvedLimit             bool  // ResolvedLimit$ 1: the source's limited lines resolve at most once each turn
 	Convoked                  bool  // ETB TfSelf: the trigger amount is Convoked$Amount, bound as it triggers (kernel Tf2Convoked)
 	CastHand                  bool  // ValidCard$ ...+wasCastFromYourHandByYou: ETB on the entering spell's cast, SpellCast on the spell (kernel Tf2CastFromHand)
@@ -791,15 +961,14 @@ type lTrigger struct {
 	// player other than the active one (Activator$ Player.NonActive,
 	// kop.Tf5TapperNonActive).
 	TapsForMana, TapperNonActive bool
-	// ClassOnly: a Static$ True TapsForMana lowered under an IsPresent$ gate
-	// (lower_tapextra.go tapExtraGated, Rikala, Homarid King): the paired
-	// StatTapExtra static's class-only line (kop.Tf5TapsClassOnly), whose
-	// Trigger.Cond is the gate and no body.
-	ClassOnly bool
 	// DamageDone: ValidTarget$ Player.attackedYouTheirLastTurn, the damaged
 	// player attacked the controller during their last turn
 	// (kop.Tf5DmgAttackedYouLastTurn; lower_atklastturn.go).
 	AtkYouLastTurn bool
+	// DamageDone: ValidTarget$ Player.counters_EQ0_Contract, the damaged
+	// player has no contract counter (kop.Tf5DmgNoContract;
+	// lower_contract.go).
+	NoContract bool
 	// Discarded Card.Self: ValidCause$ SpellAbility.OppCtrl, the discard caused
 	// by a spell or ability an opponent controls (kop.Tf5OppCause).
 	OppCause bool
@@ -810,6 +979,7 @@ const (
 	atkYou uint8 = 1 << iota
 	atkYourPW
 	atkOpp
+	atkEnch // Player.EnchantedBy: the defender is enchanted by this listener's Aura (kop.Tf4DefEnch)
 )
 
 type lAbility struct {
@@ -1062,6 +1232,7 @@ type lCard struct {
 	KickerCost     *lCost      // K:Kicker with one Sac<1/..> or Return<1/..> part: Kicker is then zero mana (lower_kickercost.go)
 	Spree          bool        // K:Spree (CR 702.172) or K:Tiered (CR 702.183): ModeCost holds each mode's additional mana cost
 	ModeCost       [4]manaCost // Spree/Tiered: mode i's ModeCost$
+	Escalate       *manaCost   // K:Escalate:<mana> (CR 702.120): paid once per mode chosen beyond the first; Spree is set with it (lower_escalate.go)
 	MorphCost      *manaCost   // K:Morph / K:Megamorph / K:Disguise turn-face-up cost
 	MorphFamily    uint8       // kop.Morph*: which face-down keyword the cost belongs to
 	MorphReduce    lValue      // the turn-up cost's printed generic reduction (lower_morphreduce.go)
@@ -1165,6 +1336,7 @@ type lCard struct {
 	AloneAtk       bool     // the printed can't-attack-alone keyword (CR 506.5)
 	AloneBlk       bool     // the printed can't-block-alone keyword, and the compound's block half (CR 506.5)
 	Engines        bool     // printed K:Start your engines (CR 702.179a)
+	Reconfigure    bool     // printed K:Reconfigure (CR 702.151): CardDef.HasReconfigure
 	Ascend         bool     // printed K:Ascend (CR 702.131)
 	AtkFace        bool     // the printed face's lines may observe an attack declaration (CardDef.AtkFace)
 	SagaN          int      // K:Chapter:<count>: the final chapter number (CR 714.1)

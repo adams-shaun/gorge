@@ -347,8 +347,8 @@ func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
 // when no plan exists without them a second pass plans with them, in
 // battlefield order like any source.
 func (s *State) planTiered(k *prep, p uint8, pk *planner, exclude Obj) {
-	if k.gen != nil && k.gen.anyComboAny && !pk.comboIn && !DebugComboAnyPlanned {
-		s.planComboTiered(k, p, pk, exclude) // mana_comboany.go
+	if k.gen != nil && k.gen.anyComboOff && !pk.comboIn && !DebugComboAnyPlanned {
+		s.planComboTiered(k, p, pk, exclude) // mana_comboanyplan.go
 		return
 	}
 	s.planTiered0(k, p, pk, exclude)

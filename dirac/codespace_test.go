@@ -2,8 +2,8 @@ package dirac
 
 import "testing"
 
-// TestCodeSpaceDisjoint holds the target-code space to its partition in
-// whichever size class the build has: objects 0..MaxObj-1, stack abilities
+// TestCodeSpaceDisjoint holds the target-code space to its partition:
+// objects 0..MaxObj-1, stack abilities
 // StackTarget0..PlayerTarget0-1, one player code per seat, then the departed
 // stack target and none. Every byte falls in exactly one range, and every
 // seat's player code round-trips.

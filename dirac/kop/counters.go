@@ -1,7 +1,7 @@
 package kop
 
 // CounterKind names a counter type. Append-only.
-type CounterKind uint8
+type CounterKind uint16
 
 const (
 	CtrP1P1 CounterKind = iota // +1/+1
@@ -176,8 +176,9 @@ var _ = [1]struct{}{}[CtrLevel-NumCounterKinds2-1]
 // [0, NumCounterKinds2) and FeatCtrDeathtouched stay byte-identical (trained
 // models consume that layout; featview.go's seeCtr and project.go's
 // Counters skip every kind >= NumCounterKinds2). The kernel keeps them in
-// the same sparse perm slots (ck is a uint8); ProjObj.CountersX carries
-// them to the oracle, which compares each kind against gorge. Append-only.
+// the same sparse perm slots (ck is a uint16); ProjObj.CountersX carries
+// them to the oracle, which compares each kind against gorge. Frozen at
+// CtrM2M1: a new kind is a manifest entry.
 const (
 	CtrCharge CounterKind = CtrLevel + 1 + iota
 	CtrOil
@@ -352,13 +353,19 @@ const (
 	// power and 1 toughness per counter (gorge state.CounterPTDelta), read
 	// only when some program can place one (genPrep.anyM2M1, ctr_hone.go).
 	CtrM2M1
-	// CtrTide is Rikala, Homarid King's tide counter, a named counter with no
-	// inherent rules meaning (CR 122.1): its count gates the card's own
-	// remove-when-four line and tap extra, and drives its +1/+0 read
-	// (Count$CardCounters.TIDE).
-	CtrTide
-	NumCounterKinds3
 )
+
+// The iota list above is frozen at CtrM2M1 (80): a new counter kind is a
+// manifest entry (dirac/manifest/CounterKind, kmanifest), not an append here.
+var _ = [1]struct{}{}[CtrM2M1-80]
+
+// NumCounterKinds3 is the frozen cover of the counter kinds: every kind below
+// it that IsCounterKind admits is one the kernel's per-kind walks, its
+// CountersX projection and CtrXNames serve. It moved once, at the manifest
+// cutover (81 to 242), to cover the pre-mapped manifest kinds, and is fixed
+// since: the manifest defers a kind at or above it (manifest.CounterKindCover),
+// and a kind of 256 or more also needs dirac's ctrMode byte widened.
+const NumCounterKinds3 CounterKind = 242
 
 // Player counter kinds: OpGainEnergy's C and ExEnergyOf's N name which of a
 // player's counters (CR 122.1) the op adds to or the expression reads. The
@@ -377,13 +384,15 @@ const CtrAll CounterKind = 254
 const NumCounterKindsX = int(NumCounterKinds3 - CtrCharge)
 
 // CtrXNames is gorge's (Forge's CounterType) name of each unfeaturized
-// kind, CtrXNames[k-CtrCharge].
+// kind, CtrXNames[k-CtrCharge]. The literal names the hand kinds, up to
+// CtrM2M1; manifest_gen.go's registrations (kmanifest gen) name each
+// manifest kind from its entry's first forge token. Never append here.
 var CtrXNames = [NumCounterKindsX]string{"CHARGE", "OIL", "SPORE", "QUEST", "VERSE", "GROWTH", "FUSE", "STORY",
 	"First Strike", "Double Strike", "Deathtouch", "Haste", "Hexproof", "Indestructible", "Lifelink", "Menace",
 	"Reach", "Shadow", "Trample", "Vigilance", "SUPPLY", "LORE", "LANDMARK", "DREAD", "DEFENSE", "CHORUS", "M0M1", "FINALITY", "TIME", "VALOR", "NET", "PLAN",
 	"INVASION", "LOOT", "REV", "PAGE", "INGENUITY", "FILM", "FIRE", "HONE", "COIN",
 	"DIVINITY", "IMPOSTOR", "BORE", "POINT", "BLOODSTAIN", "POSSESSION", "PROMOTION", "PEACE", "WISH", "SKEWER", "NEST", "AGE", "LUCK",
-	"DEPLETION", "MINING", "FADE", "BURDEN", "STORAGE", "SCREAM", "TREASURE", "TASK", "LEVEL", "COMPONENT", "DESCENT", "M2M1", "TIDE"}
+	"DEPLETION", "MINING", "FADE", "BURDEN", "STORAGE", "SCREAM", "TREASURE", "TASK", "LEVEL", "COMPONENT", "DESCENT", "M2M1"}
 
 // IsCounterKind reports whether c is a real counter kind (a featurized one
 // or an unfeaturized one; CtrLevel and the gap at NumCounterKinds2 are not).

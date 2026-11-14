@@ -1,0 +1,7 @@
+family: KwID
+name: KwVisit
+value: 43
+forge: Visit
+census: kw Visit all=23 std=0 mbc=0 sole=21
+state: objspace (attractions)
+status: blocked objspace:tcode

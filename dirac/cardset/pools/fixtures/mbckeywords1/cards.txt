@@ -1,0 +1,22 @@
+# the MBC keywords-1 spelling family (dirac/oracle/mbc_keywords_lowers_test.go
+# TestMBCKeywords1Lowers): K:Choose a Background (Ganax, Astral Hunter and
+# Jaheira, Friend of the Forest, a deck-construction marker) and K:Reconfigure
+# (Rabbit Battery, Bronzeplate Boar, Acquisition Octopus, The Reality Chip: an
+# attach and an unattach ability, and no creature while attached) beside the
+# token makers Jaheira's mana reads, the bodies the equipment rides and Reverse
+# Engineer (Improvise: an attached Reconfigure artifact is no improvise tap)
+Ganax, Astral Hunter
+Jaheira, Friend of the Forest
+Rabbit Battery
+Bronzeplate Boar
+Acquisition Octopus
+The Reality Chip
+Raise the Alarm
+Dragon Fodder
+Grizzly Bears
+Hill Giant
+Plains
+Mountain
+Forest
+Island
+Reverse Engineer

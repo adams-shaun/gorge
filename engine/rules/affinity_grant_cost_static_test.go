@@ -18,9 +18,9 @@ const affinityRelicSrc = "Name:Test Relic\nManaCost:1\nTypes:Artifact\nOracle:x\
 const affinityPlainSrc = "Name:Test Plain Golem\nManaCost:3\nTypes:Creature Golem\nPT:2/2\nOracle:x\n"
 
 // TestAffinityGrant_MycosynthGolem_ArtifactCreature prices the SECOND
-// corpus carrier shape: Mycosynth Golem's stack static (Affected$
-// Artifact.Creature+wasCastByYou | AffectedZone$ Stack | AddKeyword$
-// Affinity:Artifact) must give an artifact-creature spell you cast the
+// corpus carrier shape: Mycosynth Golem's stack static (artifact creature
+// spells you cast have affinity for artifacts, applied on the stack) must
+// give an artifact-creature spell you cast the
 // affinity-for-artifacts reduction. Two artifacts you control (the Golem
 // itself and a plain relic) take {2} off {2}: free.
 func TestAffinityGrant_MycosynthGolem_ArtifactCreature(t *testing.T) {

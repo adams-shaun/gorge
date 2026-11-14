@@ -11,8 +11,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Relentless Assault (DB$ AddPhase | ExtraPhase$ Combat | FollowedBy$ Main2,
-// behind ConditionPhases$ Main1,Main2): "After this main phase, there is an
+// Relentless Assault (an AddPhase adding a combat followed by a main phase,
+// gated to either main phase): "After this main phase, there is an
 // additional combat phase followed by an additional main phase" (CR 500.8).
 // Cast in the first main phase the extra combat and extra main come before the
 // ordinary combat; cast in the second the extra main is the last before the end

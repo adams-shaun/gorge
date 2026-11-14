@@ -16,8 +16,9 @@ package scriptfacts
 import "github.com/adams-shaun/gorge/engine/cards"
 
 // GrantedTriggerHeads is the set of keyword heads GrantedKeywordTrigger can
-// synthesize a TRIGGERED ability for: Prowess, Myriad, Extort and Evolve, whose
-// bodies read nothing the walk does not already capture. Every other head returns false (fail
+// synthesize a TRIGGERED ability for: Prowess, Myriad, Extort, Evolve and
+// Living Weapon, whose bodies read nothing the walk does not already capture,
+// and Afterlife, whose only input is the N in its own keyword line. Every other head returns false (fail
 // closed): the expansion of a keyword like Afflict, Dethrone or Firebending
 // mints a trigger whose body reads keyword-specific state (a defending player,
 // an attack's attacker set, an N in the keyword text) through a dedicated walk
@@ -29,7 +30,8 @@ import "github.com/adams-shaun/gorge/engine/cards"
 func GrantedTriggerHeads(head string) bool {
 	id := cards.KeywordHeadIDOf(head)
 	return id == cards.KeywordHeadIDOf("Prowess") || id == cards.KeywordHeadIDOf("Myriad") ||
-		id == cards.KeywordHeadIDOf("Extort") || id == cards.KeywordHeadIDOf("Evolve")
+		id == cards.KeywordHeadIDOf("Extort") || id == cards.KeywordHeadIDOf("Evolve") ||
+		id == cards.KeywordHeadIDOf("Afterlife") || id == cards.KeywordHeadIDOf("Living Weapon")
 }
 
 // GrantedMyriadPayload is the GrantTriggerPush body name a granted Myriad
@@ -48,6 +50,42 @@ const GrantedEvolvePayload = "__kwEvolveGranted"
 // sibling of the granted Prowess and Myriad payloads.
 const GrantedExtortPayload = "__kwExtortGranted"
 
+// GrantedAfterlifePayloadPrefix starts the GrantTriggerPush body name a granted
+// Afterlife rides: "__kwAfterlifeGranted:N", the count N after the colon
+// (events.foldGrantTriggerPush rebuilds it into the printed expansion's Spirit
+// token body). A bare "__kwAfterlifeGranted" with no count rebuilds nothing.
+const GrantedAfterlifePayloadPrefix = "__kwAfterlifeGranted:"
+
+// grantedAfterlifeCount reads N from an "Afterlife:N" keyword line: a bare
+// decimal literal of one to nine digits with no leading zero (so N is at
+// least 1), the only form the corpus prints. Any other spelling reports false
+// (fail closed). Read by hand: the rules-side strings ratchet counts every
+// strings.*/strconv.* call.
+func grantedAfterlifeCount(line string) (string, bool) {
+	i := 0
+	for i < len(line) && line[i] != ':' {
+		i++
+	}
+	if i == len(line) {
+		return "", false
+	}
+	param := line[i+1:]
+	if len(param) == 0 || len(param) > 9 || param[0] < '1' || param[0] > '9' {
+		return "", false
+	}
+	for j := 1; j < len(param); j++ {
+		if param[j] < '0' || param[j] > '9' {
+			return "", false
+		}
+	}
+	return param, true
+}
+
+// GrantedLivingWeaponPayload is the GrantTriggerPush body name a granted
+// Living Weapon rides (events.foldGrantTriggerPush rebuilds it into the Germ
+// token and attach chain).
+const GrantedLivingWeaponPayload = "__kwLivingWeaponGranted"
+
 // GrantedKeywordPayload names the GrantTriggerPush body payload the trigger
 // GrantedKeywordTrigger synthesizes for line rides: events.Apply rebuilds the
 // body from that name, so a log-only replay mints the identical ability.
@@ -59,6 +97,11 @@ func GrantedKeywordPayload(line string) string {
 		return GrantedEvolvePayload
 	case cards.KeywordHeadIDOf("Extort"):
 		return GrantedExtortPayload
+	case cards.KeywordHeadIDOf("Afterlife"):
+		n, _ := grantedAfterlifeCount(line)
+		return GrantedAfterlifePayloadPrefix + n
+	case cards.KeywordHeadIDOf("Living Weapon"):
+		return GrantedLivingWeaponPayload
 	}
 	return "__kwProwessGranted"
 }
@@ -96,8 +139,14 @@ func GrantedKeywordTrigger(line string) *cards.Trigger {
 	if id == cards.KeywordHeadIDOf("Myriad") {
 		return grantedMyriadTrigger(line, head)
 	}
+	if id == cards.KeywordHeadIDOf("Afterlife") {
+		return grantedAfterlifeTrigger(line)
+	}
 	if cards.KeywordHeadIDOf(head) == cards.KeywordHeadIDOf("Evolve") {
 		return grantedEvolveTrigger(line, head)
+	}
+	if id == cards.KeywordHeadIDOf("Living Weapon") {
+		return grantedLivingWeaponTrigger(line, head)
 	}
 	return &cards.Trigger{Mode: "SpellCast", Params: map[string]string{
 		"Mode": "SpellCast", "ValidCard": "Card.nonCreature",
@@ -153,5 +202,52 @@ func grantedEvolveTrigger(line, head string) *cards.Trigger {
 		return nil
 	}
 	t.Effect = grantedBodySA("PutCounter", "Defined", "Self", "CounterType", "P1P1", "CounterNum", "1")
+	return &t
+}
+
+// grantedAfterlifeTrigger is the trigger a granted Afterlife N gives its
+// holder (CR 702.135a; Afterlife Insurance's "creatures you control gain
+// afterlife 1 until end of turn"): the printed expansion's exact shape
+// (engine/cards/kw_afterlife.go), the body carried inline. Its Origin$
+// Battlefield makes it a look-back trigger (CR 603.10a): the walk reads the
+// grant from the pre-departure board. A count that is not a positive decimal
+// literal fails closed.
+func grantedAfterlifeTrigger(line string) *cards.Trigger {
+	n, ok := grantedAfterlifeCount(line)
+	if !ok {
+		return nil
+	}
+	t, ok := cards.ParseTriggerLine("Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | TriggerDescription$ Afterlife")
+	if !ok {
+		return nil
+	}
+	t.Effect = grantedBodySA("Token", "TokenScript", "wb_1_1_spirit_flying", "TokenAmount", n)
+	return &t
+}
+
+// GrantedLivingWeaponBody is the body a granted Living Weapon carries: the
+// printed expansion's (engine/cards/kw_livingweapon.go) 0/0 black Phyrexian
+// Germ token, remembered, then the source attached to it. The chain is built
+// here once for the live queue and events.foldGrantTriggerPush alike.
+func GrantedLivingWeaponBody() *cards.SA {
+	body := grantedBodySA("Token", "TokenScript", "b_0_0_phyrexian_germ", "TokenOwner", "You", "RememberTokens", "True")
+	body.Sub = grantedBodySA("Attach", "Defined", "Remembered", "Object", "Self")
+	return body
+}
+
+// grantedLivingWeaponTrigger is the trigger a granted Living Weapon gives its
+// holder (CR 702.92a, 613.1f; Ekthi, Contaminator Priest's "each Equipment you
+// control has living weapon"): the printed expansion's exact shape, an
+// enters-the-battlefield trigger of the holder itself, with the body carried
+// inline. Only the bare line is the keyword; any other spelling fails closed.
+func grantedLivingWeaponTrigger(line, head string) *cards.Trigger {
+	if len(line) != len(head) {
+		return nil
+	}
+	t, ok := cards.ParseTriggerLine("Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | TriggerDescription$ Living weapon")
+	if !ok {
+		return nil
+	}
+	t.Effect = GrantedLivingWeaponBody()
 	return &t
 }

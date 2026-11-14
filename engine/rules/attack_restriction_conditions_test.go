@@ -23,6 +23,7 @@ package rules
 // fails loudly rather than passing.
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/events"
@@ -39,9 +40,8 @@ func attackBlockedRegressionEngine(t *testing.T) *Engine {
 }
 
 // TestCantAttackUnlessDefenderControlsIsland drives Kukemssa Serpent's real
-// corpus static
-// `S:Mode$ CantAttack | ValidCard$ Card.Self | UnlessDefender$ controlsIsland`.
-// The creature may attack only when the DEFENDING player controls an Island:
+// corpus static: a CantAttack on itself unless the defender controls an
+// Island (UnlessDefender$). The creature may attack only when the DEFENDING player controls an Island:
 // with none it is blocked, and an Island on the defender's battlefield
 // releases it -- both directions measured through attackBlocked.
 func TestCantAttackUnlessDefenderControlsIsland(t *testing.T) {
@@ -64,9 +64,8 @@ func TestCantAttackUnlessDefenderControlsIsland(t *testing.T) {
 }
 
 // TestCantAttackUnlessDefenderHasFewerCreatures drives Mogg Toady's real
-// corpus static
-// `S:Mode$ CantAttack | ValidCard$ Card.Self | UnlessDefender$ hasFewerCreaturesInPlayThanYou`.
-// The creature may attack only while the DEFENDER controls strictly fewer
+// corpus static: a CantAttack on itself unless the defender has fewer
+// creatures in play than you (UnlessDefender$). The creature may attack only while the DEFENDER controls strictly fewer
 // creatures than the Toady's controller. With the defender behind it is
 // released; at parity the predicate fails and it is blocked.
 func TestCantAttackUnlessDefenderHasFewerCreatures(t *testing.T) {
@@ -100,9 +99,8 @@ func TestCantAttackUnlessDefenderHasFewerCreatures(t *testing.T) {
 }
 
 // TestCantAttackUnlessDefenderNegated drives Veteran Brawlers's real corpus
-// static
-// `S:Mode$ CantAttack | ValidCard$ Card.Self | UnlessDefender$ !controlsLand.untapped`
-// ("can't attack if defending player controls an untapped land"). The leading
+// static: a CantAttack on itself whose UnlessDefender$ predicate is the
+// negated "controls an untapped land" ("can't attack if defending player controls an untapped land"). The leading
 // `!` inverts the predicate: an untapped land on the defender's battlefield
 // BLOCKS, and a tapped-only land releases. This is the negation half of the
 // UnlessDefender$ evaluator.
@@ -127,9 +125,8 @@ func TestCantAttackUnlessDefenderNegated(t *testing.T) {
 }
 
 // TestCantAttackUnlessDefenderHasCardsInGraveyard drives Vantress Gargoyle's
-// real corpus static
-// `S:Mode$ CantAttack | ValidCard$ Card.Self | UnlessDefender$ HasCardsInGraveyard_Card_GE7`.
-// Seven cards in the DEFENDER's graveyard release it; fewer block it. This is
+// real corpus static: a CantAttack on itself unless the defender has seven or
+// more cards in their graveyard (UnlessDefender$). Seven cards in the DEFENDER's graveyard release it; fewer block it. This is
 // the HasCardsIn<zone>_<type>_<cmp> half of the UnlessDefender$ evaluator.
 func TestCantAttackUnlessDefenderHasCardsInGraveyard(t *testing.T) {
 	t.Parallel()
@@ -156,9 +153,9 @@ func TestCantAttackUnlessDefenderHasCardsInGraveyard(t *testing.T) {
 	}
 }
 
-// TestCantAttackCheckSVarGate drives Deep-Sea Terror's real corpus static
-// `S:Mode$ CantAttack | ValidCard$ Card.Self | CheckSVar$ X | SVarCompare$ LT7`
-// with `SVar:X:Count$ValidGraveyard Card.YouOwn`. The creature can't attack
+// TestCantAttackCheckSVarGate drives Deep-Sea Terror's real corpus static: a
+// CantAttack on itself gated on an SVar comparison (the count of cards in your
+// graveyard below seven). The creature can't attack
 // unless seven or more cards are in its controller's graveyard: at six the
 // gate holds and it is blocked, at seven the gate fails and it may attack.
 // This exercises the CheckSVar$/SVarCompare$ half through continuousGateHolds.
@@ -217,9 +214,9 @@ func TestCantAttackConditionGate(t *testing.T) {
 }
 
 // TestQueenMotherRamondaCantAttackWhileMonarch drives Queen Mother Ramonda's
-// real corpus static
-// `S:Mode$ CantAttack | ValidCard$ Creature.powerLE2 | Condition$ Monarch | Target$ You`
-// through e.attackBlocked: while seat 0 (the static's controller) is the
+// real corpus static (creatures with power 2 or less can't attack you while
+// you are the monarch, a Condition$ Monarch CantAttack) through
+// e.attackBlocked: while seat 0 (the static's controller) is the
 // monarch, a power-2 creature cannot attack them but a power-3 creature can;
 // before the events.MonarchChange that grants the designation both attack
 // freely (the precondition that pins the Condition$ as the discriminating
@@ -253,5 +250,30 @@ func TestQueenMotherRamondaCantAttackWhileMonarch(t *testing.T) {
 	e.emit(events.Event{Kind: events.MonarchChange, Player: 1})
 	if e.attackBlocked(bear, 0, 0) {
 		t.Fatal("a 2/2 stayed blocked after seat 0 lost the monarch designation")
+	}
+}
+
+// TestCantAttackUnlessDefenderControlsGrantedIsland pins Sealock Monster's
+// corpus static (a CantAttack on itself unless the defender controls an
+// Island) against a layer-4 type grant: the defender controls no printed Island, only
+// a Swamp that a continuous static turned INTO an Island (CR 305.6). The
+// predicate reads the defender's derived types through the static's spec
+// context, so the grant releases the creature; with the printed-types-only
+// read it stayed blocked.
+func TestCantAttackUnlessDefenderControlsGrantedIsland(t *testing.T) {
+	t.Parallel()
+	e := attackBlockedRegressionEngine(t)
+	e.layer4InPool = true // the grant below is placed, not in a scanned deck
+	m := onBoardCard(t, e, 0, corpusCard(t, "Sealock Monster"))
+	swamp := onBoard(t, e, 1, "Name:Swamp\nTypes:Basic Land Swamp\nOracle:x\n")
+	if !e.attackBlocked(m, 1, 0) {
+		t.Fatal("precondition: Sealock Monster attacked although the defender controlled no Island")
+	}
+	onBoard(t, e, 0, "Name:Island Grant\nTypes:Enchantment\nS:Mode$ Continuous | Affected$ Land | AddType$ Island | Description$ x\nOracle:x\n")
+	if !slices.Contains(e.Derived(swamp).Types, "Island") {
+		t.Fatal("precondition: the grant did not make the defender's Swamp an Island")
+	}
+	if e.attackBlocked(m, 1, 0) {
+		t.Fatal("Sealock Monster stayed blocked although the defender's Swamp is an Island by a layer-4 grant (CR 305.6)")
 	}
 }

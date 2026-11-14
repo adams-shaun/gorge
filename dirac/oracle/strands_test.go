@@ -28,21 +28,7 @@ var kstrandsDecks = [2][]cardset.Entry{
 	},
 }
 
-// gorgeChosenColorSnapshotTime is gorge's UTC commit time
-// (cr-effect-chosencolor-snapshot; no exported probe surface).
-const gorgeChosenColorSnapshotTime = "20261026111538"
-
-func strandsPinned(t *testing.T) bool {
-	t.Helper()
-	if !gorgePinAtLeast(t, gorgeChosenColorSnapshotTime) {
-		t.Skip("gorge pin predates 690ed17f0 (each Effect's own ChosenColor)")
-		return false
-	}
-	return true
-}
-
 func TestStrandsLockstep(t *testing.T) {
-	strandsPinned(t)
 	t.Parallel()
 	lockstepSet(t, "strands", kstrandsDecks, 1000, "KSTRANDS_SEEDS")
 }
@@ -50,7 +36,6 @@ func TestStrandsLockstep(t *testing.T) {
 // TestStrandsLockstepMutation proves the pool prevents damage: with the
 // prevention dropped (the colour still asked), some seed diverges.
 func TestStrandsLockstepMutation(t *testing.T) {
-	strandsPinned(t)
 	if isolate(t) {
 		return
 	}
@@ -66,7 +51,6 @@ func TestStrandsLockstepMutation(t *testing.T) {
 // colour (gorge's reading before 690ed17f0), some seed diverges -- the pool
 // casts Strands, then flashes it back in the same turn naming another colour.
 func TestStrandsLockstepRecolorMutation(t *testing.T) {
-	strandsPinned(t)
 	if isolate(t) {
 		return
 	}

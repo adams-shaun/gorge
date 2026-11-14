@@ -1854,9 +1854,11 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 	if k.gen != nil && k.gen.grantTrigEv&(1<<kop.TrigSpellCast) != 0 {
 		lm = s.grantTrigHosts(k, lm)
 	}
-	if e.ctrl == 1 && !e.faceDown() {
-		// the spell's own cast trigger: gorge walks the stack after seat
-		// 0's battlefield and before seat 1's (trig_selfcast.go)
+	if e.ctrl != 0 && !e.faceDown() {
+		// the spell's own cast trigger: gorge walks the stack on seat 0's
+		// pass, after seat 0's battlefield and before every later seat's
+		// (trig_selfcast.go), so a caster beyond seat 0 queues it before
+		// its own battlefield listeners
 		s.castFromStack(k, e)
 	}
 	if lm.or(pm).any() {
@@ -2717,12 +2719,13 @@ func (s *State) subCtrOptions(k *prep, d *Decision) bool {
 			}
 			o := s.perms[sl].obj
 			p := &s.perms[sl]
-			for c := 0; c < int(kop.NumCounterKinds3); c++ {
-				if !kop.IsCounterKind(c) {
+			var held ctrHeld
+			for _, c := range held[:p.heldKinds(s, &held)] {
+				if !kop.IsCounterKind(int(c)) {
 					continue // CtrLevel is no counter (kw_class.go)
 				}
-				if p.ctrN(s, c) > s.subCtrPicked(o, uint8(c)) {
-					d.add(MakeAction(AkChoose, TCode(o), 0, uint8(c)))
+				if p.ctrN(s, int(c)) > s.subCtrPicked(o, ctrMode(c)) {
+					d.add(MakeAction(AkChoose, TCode(o), 0, ctrMode(c)))
 				}
 			}
 		}

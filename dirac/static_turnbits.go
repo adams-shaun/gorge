@@ -13,8 +13,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //   - bit turnExhaustShift+p: player p activated an Exhaust ability this
 //     turn (Elvish Refueler's Activations static).
 //
-// The two-seat class uses bits 0-1 for flips and 2-3 for Exhaust (4-7 free);
-// the four-seat class uses 0-3 and 4-7.
+// Bits 0-1 hold the flips and 2-3 Exhaust (4-7 free).
 const turnFlipShift = 0
 
 func turnFlipMask(p uint8) uint8 {

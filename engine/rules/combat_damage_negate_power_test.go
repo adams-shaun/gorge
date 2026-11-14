@@ -2,7 +2,7 @@ package rules
 
 // stat:CombatDamageNegatePower -- Loot, the Anomaly: "If Loot's power is
 // negative, he assigns combat damage as though his power were positive."
-// (S:Mode$ CombatDamageNegatePower | ValidCard$ Card.Self+powerLT0.) A -2/4
+// (A CombatDamageNegatePower static on itself while its power is negative.) A -2/4
 // Loot assigns 2 combat damage, attacking or blocking, through the one
 // assignment-amount read (combatDamageAmount); a creature with no such
 // static and negative power still assigns nothing (CR 510.1a).

@@ -337,6 +337,10 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			chooseCardTypeOptions(d, kop.TypeMask(c))
 			break
 		}
+		if isBasicLandChoose(&s.prog(k)[r.pc]) {
+			chooseBasicLandOptions(d) // act_choosebasicland.go
+			break
+		}
 		if s.midTypeOptions(k, &s.prog(k)[r.pc], d) { // ValidTypes$ (act_choosetype.go)
 			break
 		}
@@ -379,9 +383,10 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			sl := s.resSrcSlot(k)
 			if sl != NoSlot {
 				pp := &s.perms[sl]
-				for c := 0; c < int(kop.NumCounterKinds3); c++ {
-					if kop.IsCounterKind(c) && pp.ctrN(s, c) > 0 {
-						d.add(MakeAction(AkChoose, TCode(pp.obj), 0, uint8(c)))
+				var held ctrHeld
+				for _, c := range held[:pp.heldKinds(s, &held)] {
+					if kop.IsCounterKind(int(c)) {
+						d.add(MakeAction(AkChoose, TCode(pp.obj), 0, ctrMode(c)))
 					}
 				}
 			}
@@ -577,7 +582,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		if c := s.prog(k)[r.pc].C; c == chooseCopyPick || c == choosePopulatePick {
 			d.Sub = ChGenCopyPick // gorge's copypermanent_choice pick (copy_picked.go)
 		}
-		s.cardCands(k, s.prog(k)[r.pc].F, r.askP, d)
+		s.cardCandsBase(k, s.prog(k)[r.pc].F, r.askP, s.chooseCardBase(s.prog(k)[r.pc].Obj, r.askP), d)
 		if c := s.prog(k)[r.pc].C; c == 1 || c == chooseLibUpTo {
 			d.add(MakeAction(AkDone, 0, 0, 0)) // up to one (gorge choiceBounds Min 0)
 		}
@@ -1893,11 +1898,16 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 	// The current instruction is only needed for a library destination; a
 	// direct moveFound (no resolving program) has none.
 	var in *kop.Instr
-	if z == kop.ZoneLibrary {
+	if z == kop.ZoneLibrary || z == kop.ZoneBattlefield {
+		// the library destination reads the instruction for its order; a
+		// battlefield destination for OpSearchEx's SrSearchAttach bearer
+		// (zone_originalternative.go's czAttachBearerHost)
 		if prog := s.prog(k); int(s.res.pc) < len(prog) {
 			in = &prog[s.res.pc]
 		}
 	}
+	attach := z == kop.ZoneBattlefield && in != nil && in.Op == kop.OpSearchEx &&
+		in.B.N&kop.SrSearchAttach != 0 && !DebugCzAttachOff
 	handBottom := in != nil && in.Op == kop.OpChooseMove && in.B.N&kop.SrHandBottom != 0 && s.searchZone(k) == kop.ZoneHand
 	if z == kop.ZoneLibrary && s.g.nlook > 1 && !handBottom && (s.searchZone(k) == kop.ZoneHand || fl&(kop.SrNoShuffle|kop.SrThenTop) != 0) {
 		// act_mayask.go: the first answered ends on top (an unshuffled
@@ -1939,6 +1949,25 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			}
 			if DebugGyBfOwnerEntry && fl&kop.SrUnderYourControl != 0 {
 				ep = s.objs[o].owner() // mutation: a GainControl$ graveyard pick keeps its owner
+			}
+			if attach {
+				// AttachedTo$ on a search (kop.SrSearchAttach): the named
+				// bearer replaces the plain CR 303.4f enchant ask -- the Aura
+				// enters attached to it when it may legally enchant it, else
+				// it stays in its zone and the search's later cards move on
+				// (gorge markChangeZoneAttach and the entry gate); anything
+				// else enters, then attaches when the bearer is a creature
+				// (czAttachBearerHost).
+				var stay bool
+				var bb Obj
+				if bsl := s.objRef(k, kop.Ref(in.W)); bsl != NoSlot {
+					bb = s.perms[bsl].obj // objRef's CR 400.7 ver guard: a bearer that left and returned since the ability went on the stack is a new object (gorge SourceReturned), so Self names nobody
+				}
+				host, stay = s.czAttachBearerHost(k, bb, o, ep)
+				if stay {
+					continue
+				}
+				s.enterOnto(host)
 			}
 		}
 		if z == kop.ZoneBattlefield && s.handAuraArmed(k) {
@@ -2533,6 +2562,24 @@ func (s *State) nextChooseEach(k *prep) bool {
 // cardCands lists (into d, or just counts) the objects matching f in its
 // zone (battlefield for ZoneNone).
 func (s *State) cardCands(k *prep, f kop.FilterID, p uint8, d *Decision) int {
+	return s.cardCandsBase(k, f, p, p, d)
+}
+
+// chooseCardBase is the ctrl base a ChooseCard ask's pool is matched
+// against: the asking player, except the chosen-player chooser (Obj
+// RefEachOpponent), whose pool gorge matches against the resolving
+// controller (gorge cardChoices' activator perspective, cardChoicesIn — the
+// same read interp_gen's OpChooseCard case applies).
+func (s *State) chooseCardBase(obj kop.Ref, askP uint8) uint8 {
+	if obj == kop.RefEachOpponent {
+		return s.res.e.ctrl
+	}
+	return askP
+}
+
+// cardCandsBase is cardCands with the ctrl base the filter's You reads are
+// matched against (chooseCardBase's rule).
+func (s *State) cardCandsBase(k *prep, f kop.FilterID, p, ctrl uint8, d *Decision) int {
 	n := 0
 	z := k.t.Filters[f].Zone
 	add := func(o Obj) {
@@ -2551,7 +2598,7 @@ func (s *State) cardCands(k *prep, f kop.FilterID, p uint8, d *Decision) int {
 		}
 		for m := s.occ; m.any(); m = m.rest() {
 			sl := m.first()
-			if s.matchPermGen(k, f, sl, p, src, layerFull) {
+			if s.matchPermGen(k, f, sl, ctrl, src, layerFull) {
 				add(s.perms[sl].obj)
 			}
 		}
@@ -2575,7 +2622,7 @@ func (s *State) cardCands(k *prep, f kop.FilterID, p uint8, d *Decision) int {
 			list = pl.hand[:pl.handN]
 		}
 		for _, o := range list {
-			if s.matchCardGen(k, f, s.objs[o].card, pp, p, o) {
+			if s.matchCardGen(k, f, s.objs[o].card, pp, ctrl, o) {
 				add(o)
 			}
 		}
@@ -2598,10 +2645,11 @@ func (s *State) paySubCounterAny(k *prep, sl Slot) {
 		return
 	}
 	first, n := 0, 0
-	for c := 0; c < int(kop.NumCounterKinds3); c++ {
-		if kop.IsCounterKind(c) && pp.ctrN(s, c) > 0 {
+	var held ctrHeld
+	for _, c := range held[:pp.heldKinds(s, &held)] {
+		if kop.IsCounterKind(int(c)) {
 			if n == 0 {
-				first = c
+				first = int(c)
 			}
 			n++
 		}

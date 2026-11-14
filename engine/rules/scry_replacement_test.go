@@ -13,11 +13,11 @@ import (
 // exactly two carriers at the pin:
 //
 //   - Kenessos, Priest of Thassa: "If you would scry a number of cards, scry
-//     that many cards plus one instead."  DB$ ReplaceEffect | VarName$ Num |
-//     VarValue$ X, SVar:X ReplaceCount$Num/Plus.1
+//     that many cards plus one instead." Its body is a ReplaceEffect setting
+//     the scry count to the replaced count plus one.
 //   - Eligeth, Crossroads Augur: "If you would scry a number of cards, draw
-//     that many cards instead."  DB$ Draw | Defined$ You | NumCards$ X,
-//     SVar:X ReplaceCount$Num
+//     that many cards instead." Its body is a Draw by you of the replaced
+//     count.
 //
 // (/usr/bin/grep -rlE 'R:Event\$ Scry' .cards/cardsfolder -> 2 files.)
 //

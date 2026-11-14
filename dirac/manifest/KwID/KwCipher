@@ -1,0 +1,7 @@
+family: KwID
+name: KwCipher
+value: 57
+forge: Cipher
+census: kw Cipher all=15 std=0 mbc=0 sole=15
+state: objobj 236 (cipher)
+status: reserved

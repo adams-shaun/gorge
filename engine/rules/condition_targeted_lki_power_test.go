@@ -7,8 +7,8 @@ import (
 )
 
 // TestConditionTargetedReadsLKIPower pins CR 608.2h for the power/toughness
-// half of a `ConditionDefined$ Targeted | ConditionPresent$
-// Creature.powerLE2` gate: "if that creature had power 2 or less" reads the
+// half of a gate that the target is a creature with power 2 or less: "if that
+// creature had power 2 or less" reads the
 // target as it last existed on the battlefield, not the card in exile.
 // Driftgloom Coyote's ETB exiles the target before the gate runs, so a live
 // read would recompute Burrowguard Mentor's characteristic-defining power off

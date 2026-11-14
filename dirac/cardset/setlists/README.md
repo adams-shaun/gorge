@@ -1,8 +1,9 @@
 # Set card lists (acceptance ratchets)
 
 One card name per line. `dirac/kgen/ratchet_test.go` lowers each list with kgen
-in-process and pins the accepted count: a fall fails, a
-rise must be re-pinned in the same commit.
+in-process and pins the accepted count in `dirac/kgen/testdata/acceptance.tsv`: a
+fall fails, and a rise is re-pinned (`KGEN_REPIN=1`); CI runs with
+`DIRAC_PIN_STRICT=1`, where every pin is exact.
 
 - `<SET>.txt`: the set's card names, from gorge-compliance's XMage manifest
   `oracle/compliance/manifests/<SET>.json`:

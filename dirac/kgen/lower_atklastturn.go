@@ -18,8 +18,7 @@ const atkLastTurnSpec = "Player.attackedYouTheirLastTurn"
 // damage dealt by the battlefield source itself, the one kernel fire path
 // (fireDamageEvGen) that reads the flag.
 func atkYouLastTurn(tp *params, tr *lTrigger, t cards.Trigger) error {
-	if t.Mode != "DamageDone" || !tp.is("CombatDamage", "True") || tr.Zone != zNone ||
-		tr.F == nil || len(tr.F.Clauses) != 1 || tr.F.Clauses[0].Flags&fSelf == 0 || tr.F.Players != 0 {
+	if !selfCombatDamageDone(tp, tr, t) { // lower_contract.go
 		return refuse("ValidTarget$ %s off a battlefield Card.Self combat DamageDone", atkLastTurnSpec)
 	}
 	tr.F2 = &lFilter{Players: plBoth}

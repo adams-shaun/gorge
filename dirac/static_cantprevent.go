@@ -33,8 +33,12 @@ var DebugNoPreventOff bool
 // noPrev reports whether damage can't be prevented now; combat says the
 // damage being prevented is combat damage (a StNoPrevCombat static, IsCombat$
 // True, reaches only that: gorge cantPreventDamage's combatDamaging).
+//
+// A resolving DealDamage NoPrevention$ True (kop.DmgNoPrevention, res.flags rfNoPrev)
+// says the same for the damage it deals (gorge cantPreventDamage's
+// dmgNoPrevention).
 func (s *State) noPrev(k *prep, combat bool) bool {
-	return k.gen != nil && k.gen.anyNoPrev && s.noPrevLive(k, combat)
+	return k.gen != nil && (s.res.flags&rfNoPrev != 0 || k.gen.anyNoPrev && s.noPrevLive(k, combat))
 }
 
 // noPrevLive: a functioning StatCantPreventDamage static (a battlefield
@@ -63,8 +67,8 @@ func (s *State) noPrevLive(k *prep, combat bool) bool {
 }
 
 // noPrevSpellSelf: the spell resolving now carries a StatCantPreventDamage
-// static that functions on the stack (StNoPrevSpellSelf: EffectZone$ Stack |
-// ValidSource$ Spell.Self, Banefire's "if X is 5 or more, the damage can't be
+// static that functions on the stack (StNoPrevSpellSelf: its source is the
+// spell itself, Banefire's "if X is 5 or more, the damage can't be
 // prevented") whose Cond2 holds against the entry. gorge's source match is the
 // spell itself; the kernel reads every damage dealt while the spell resolves
 // as its own (a resolution deals no other source's damage).

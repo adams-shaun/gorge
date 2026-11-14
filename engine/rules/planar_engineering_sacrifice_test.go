@@ -13,8 +13,8 @@ import (
 // land to select"): an engine taking `eligible[:n]` with n hardcoded to 1 makes
 // "Sacrifice two lands" both pick the land itself and sacrifice only one.
 // These tests pin the reported card end to end on the REAL
-// corpus card (Planar Engineering, SP$ Sacrifice | Defined$ You |
-// SacValid$ Land | Amount$ 2 | SubAbility$ DBChangeZone), which is in the
+// corpus card (Planar Engineering: you sacrifice two lands, then a
+// ChangeZone), which is in the
 // hearthhull-worldseed-landfall repo deck but not in any legacy golden deck,
 // so no chain head depends on it.
 //

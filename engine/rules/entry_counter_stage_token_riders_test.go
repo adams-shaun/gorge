@@ -129,8 +129,8 @@ func TestEntryCounterStageTokenEffectRiders(t *testing.T) {
 // TestTokenOrderAskKeepsTokenEffectRiders is the same continuation under the
 // OTHER mint-parking competition, CR 616.1's order over CreateToken
 // replacements (replChoiceToken): a real Blood Money resolves with two
-// nontoken creatures destroyed, so its `DB$ Token | TokenAmount$ X |
-// TokenTapped$ True` owes two Treasure mints, and each mint parks on the
+// nontoken creatures destroyed, so its tapped Token of X Treasures owes two
+// Treasure mints, and each mint parks on the
 // Doubling Season (Amount) against Worldwalker Helm (AddToken) order (a
 // multiplier and an adder are not a commuting class, so the creator is
 // asked). Every token of every answered plan must enter tapped, the second

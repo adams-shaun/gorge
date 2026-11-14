@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtChangeX
+value: 65
+forge: ChangeX
+census: api ChangeX all=2 std=0 mbc=1 sole=0
+state: code 0
+status: reserved

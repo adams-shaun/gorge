@@ -85,8 +85,8 @@ func (sc *scen) onBF(o Obj) bool { return sc.s.objs[o].zone == kop.ZoneBattlefie
 
 // do steps to the next decision and applies the option matching want
 // (kind + source + target), failing if it is not offered.
-// scAny is do's wildcard source or target: all ones, which no code reaches in
-// either size class (NoTarget in the default class).
+// scAny is do's wildcard source or target: all ones (NoTarget), which no
+// code reaches.
 const scAny = ^TCode(0)
 
 func (sc *scen) do(t *testing.T, kind ActionKind, src, tgt TCode) {

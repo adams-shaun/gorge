@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigPlanarDice
+value: 74
+forge: PlanarDice
+census: trig PlanarDice all=5 std=0 mbc=0 sole=0
+state: objspace (planechase)
+status: blocked objspace:tcode

@@ -832,8 +832,8 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		return e.replacementConditionHoldsWith(r, source, you, svars)
 	case cards.ReplCascade:
 		// The cascade instruction's replacement boundary (CR 614.4;
-		// Averna, the Chaos Bloom's `ValidPlayer$ You | ActiveZones$
-		// Battlefield`). Only the synthetic proposal reaches here, so there
+		// Averna, the Chaos Bloom's replacement on its controller, active
+		// on the battlefield). Only the synthetic proposal reaches here, so there
 		// is no logged event and no ValidCard$: the caster is ev.Player and
 		// ValidPlayer$ scopes it exactly as the Draw/ProduceMana classes do.
 		if ev.Kind != events.Cascade {

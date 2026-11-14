@@ -1,0 +1,7 @@
+family: key
+name: keyNamedCard
+value: 0
+forge: named card
+census: key named card classes=9 all=201
+state: slotcard 224
+status: reserved

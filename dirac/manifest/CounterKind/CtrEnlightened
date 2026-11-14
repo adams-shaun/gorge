@@ -1,0 +1,7 @@
+family: CounterKind
+name: CtrEnlightened
+value: 152
+forge: ENLIGHTENED
+census: ctr ENLIGHTENED all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

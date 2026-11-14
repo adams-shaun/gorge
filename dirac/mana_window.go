@@ -298,6 +298,10 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				}
 				continue
 			}
+			if k.gen.anyComboAny && k.isComboAny(s.cardAt(sl)) {
+				s.windowComboTap(k, p, sl, cost, useful, clamp, noOwed)
+				continue
+			}
 			if k.gen.anyMultiR && s.scriptWide(k, p).has(sl) {
 				s.windowWideTap(k, p, sl, cost, useful, clamp, noOwed, &held)
 				continue
@@ -334,6 +338,8 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				} else if m := s.windowSrcMask(k, sl) & want; m != 0 {
 					col = bits.TrailingZeros8(m)
 				}
+			} else if c, ok := s.windowGrantFirstCol(k, p, sl, useful); ok {
+				col = c // the unsettled generic keeps every colour: the grant that makes the owed pip is listed first (mana_grantfirst.go)
 			}
 		}
 		sacOnly := windowSacOnly(k, pc) // printed or granted (mana_grantcost.go)
@@ -995,6 +1001,9 @@ func (s *State) windowPoolPays(p uint8, cost *kop.ManaCost, anyColor bool) bool 
 // ward / unless mana window; a restricted one only when the payment may spend its mana.
 func (s *State) windowGap(k *prep, p uint8, sl Slot) bool {
 	c := s.cardAt(sl)
+	if k.gen.anyComboAny && k.isComboAny(c) {
+		return s.caGaps(k, p).has(sl) // a Combo Any source: the window's own tap (windowComboTap)
+	}
 	if k.gen.flags[c]&(gfEachCol|gfRestr|gfDeferred) == 0 {
 		return false
 	}
@@ -1097,7 +1106,7 @@ func (s *State) riderOfferable(k *prep, p uint8) bool {
 // source, Twitching Doll) once the rest cannot cover the cost: gorge's
 // unlessWindowUnits lists it, so the pay is offered (CR 118.3, 605.3b).
 func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDeferred bool) bool {
-	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.scriptTapsDefer(k, p).any() || s.riderOfferable(k, p)) {
+	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.scriptTapsDefer(k, p).any() || s.riderOfferable(k, p)) {
 		return false
 	}
 	t := s.fork()
@@ -1379,7 +1388,7 @@ func (s *State) restrSpendableB(k *prep, p uint8, b *rbatch, c CardID, og restrO
 // play it prices.
 func (s *State) wideGapsOnly(k *prep, p uint8, restr, anyR slotMask) bool {
 	if !k.gen.anyMultiR || !anyR.any() || restr.any() || s.scriptGaps(k, p).any() ||
-		s.scriptCtr(k, p).any() || s.scriptFilt(k, p).any() || s.scriptAnyR(k, p).and(s.scriptWide(k, p)) != anyR {
+		s.scriptCtr(k, p).any() || s.scriptFilt(k, p).any() || s.scriptAnyR(k, p).and(s.scriptWide(k, p)) != anyR || k.gen.anyComboAny && s.caGaps(k, p).any() {
 		return false
 	}
 	return true
@@ -1739,7 +1748,11 @@ func (s *State) availAnyR(k *prep, p uint8, a *avail) {
 // Courtyard's c 0 is the "choose a mana ability" ask's printed ability (no
 // ManaSymbol): engine order there. A counter-cost gap (Vivid Grove's second
 // ability) its counters and mana, the ask's colour (ctrChainTap).
-func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, anyR, tapsDef slotMask, c int, spill *[kop.NumManaKinds]uint8) {
+func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, anyR, tapsDef, ca slotMask, c int, spill *[kop.NumManaKinds]uint8) {
+	if ca.has(sl) {
+		s.caChainTap(k, p, a, sl, c) // a Combo Any source's colour ask (mana_comboany.go)
+		return
+	}
 	if ctr.has(sl) {
 		s.ctrChainTap(k, p, a, sl, ctr, restr, c, &[kop.NumManaKinds]uint8{})
 		return
@@ -1851,6 +1864,18 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR, tapsDef slo
 	}
 }
 
+// anyRAnswers: the answers of gap sl's activation ask in the script search (a
+// Courtyard's six; a wide source's colour multisets).
+func (s *State) anyRAnswers(k *prep, sl Slot) uint8 {
+	if cd := &k.t.Cards[s.cardAt(sl)]; restrWideAnyMana(&cd.Abilities[k.gen.anyR(s.cardAt(sl))]) {
+		if s.wideSecond(k, sl) {
+			return wide2Answers
+		}
+		return wideAnswers
+	}
+	return 6
+}
+
 // scriptDFS is gorge's prefix search (scriptSearch.visit) for play a: p's
 // gaps tapped in battlefield order (order[i:]), a Courtyard branched on its
 // six answers, a counter-cost gap with a plain {T} first mana ability on
@@ -1867,20 +1892,30 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR, tapsDef slo
 // The walk is iterative over one copy of s (a recursive walk's per-node
 // copy escapes to the heap): each node rebuilds the copy from s by
 // replaying path's taps, so the play loop allocates nothing.
-func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, anyR, tapsDef slotMask, path []uint8, dead *bool) (int, bool) {
+func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, anyR, tapsDef, ca slotMask, path []uint8, dead *bool) (int, bool) {
 	var d Decision
 	depth := 0 // gaps tapped at this node: order[:depth], answers path[:depth]
 	nodes := 0
+	// An activation's granted mana is the grant search's only for a play its
+	// walk lists (grantCap). A play the walk leaves off -- it needs a
+	// Taps-deferred or counter-cost gap (Saprazzan Skerry), which is no unit
+	// of that walk -- reaches only this search, and gorge's one prefix search
+	// activates the grants beside that gap (scriptSearch.visit): count them
+	// as units here, as scriptDeadEnd does, unless a live grant carries a
+	// spend rule availFor does not read (restrictedGrantLive). Ebony Fly's
+	// {4} roll from Gemhide Sliver's and Mothdust Changeling's granted mana
+	// and Skerry's {U}{U} (CR 605.1a, 601.2g-h).
+	noGrant := a.Kind() == AkActivate && s.restrictedGrantLive(k, p)
 	for {
 		if depth > 0 {
-			if nodes++; ctr.any() && nodes > potentialScriptNodes { // gorge's search budget: no script past it (the counter gaps' answers multiply)
+			if nodes++; (ctr.any() || ca.any()) && nodes > potentialScriptNodes { // gorge's search budget: no script past it (the counter gaps' answers multiply)
 				return 0, false
 			}
 			t := s.fork()
-			t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
+			t.g.noGrant = noGrant
 			var spill [kop.NumManaKinds]uint8
 			for j := 0; j < depth; j++ {
-				t.scriptGapTap(k, p, a, order[j], ctr, restr, anyR, tapsDef, int(path[j]), &spill)
+				t.scriptGapTap(k, p, a, order[j], ctr, restr, anyR, tapsDef, ca, int(path[j]), &spill)
 			}
 			t.restrOptions(k, &d, p)
 			// gorge's search completes at a payer priority only when the play
@@ -1939,15 +1974,11 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			case ctr.has(order[j]):
 				nch = uint8(max(k.ctrChainN(s.cardAt(order[j])), 1)) // the plain {T} first ability's answers, then the counter ability's (ctrChainTap)
 			case anyR.has(order[j]):
-				nch = 6
-				if cd := &k.t.Cards[s.cardAt(order[j])]; restrWideAnyMana(&cd.Abilities[k.gen.anyR(s.cardAt(order[j]))]) {
-					nch = wideAnswers
-					if s.wideSecond(k, order[j]) {
-						nch = wide2Answers
-					}
-				}
+				nch = s.anyRAnswers(k, order[j])
 			case tapsDef.has(order[j]):
 				nch = s.deferGapAnswers(k, order[j])
+			case ca.has(order[j]):
+				nch = uint8(caAnswerCount(s.caAmount(k, order[j]))) // the colour ask's answers (mana_comboany.go)
 			}
 			if path[j]+1 < nch {
 				path[j]++
@@ -1960,12 +1991,12 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 
 // scriptDeadEndAny is scriptDeadEnd with a Courtyard, a Taps-deferred source
 // or a counter-cost gap among the gaps.
-func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR, tapsDef, ctr slotMask) bool {
+func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR, tapsDef, ctr, ca slotMask) bool {
 	var order [MaxPerm]Slot
-	n := s.battlefieldOrder(p, s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr), order[:], 0)
+	n := s.battlefieldOrder(p, s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca), order[:], 0)
 	var path [MaxPerm]uint8
 	dead := true
-	if _, ok := s.scriptDFS(k, a, p, order[:n], ctr, restr, anyR, tapsDef, path[:], &dead); !ok {
+	if _, ok := s.scriptDFS(k, a, p, order[:n], ctr, restr, anyR, tapsDef, ca, path[:], &dead); !ok {
 		return true
 	}
 	return dead
@@ -1973,23 +2004,23 @@ func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR, tapsDe
 
 // scriptPrefixAny is scriptPrefix with a Courtyard, a Taps-deferred source
 // or a counter-cost gap among the gaps: the search's script, played.
-func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef, ctr slotMask) {
+func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef, ctr, ca slotMask) {
 	var d Decision
 	s.plainOptions(k, &d, 0)
 	if hasOption(&d, a) {
 		return
 	}
 	var order [MaxPerm]Slot
-	n := s.battlefieldOrder(p, s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr), order[:], 0)
+	n := s.battlefieldOrder(p, s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca), order[:], 0)
 	var path [MaxPerm]uint8
 	var dead bool
-	m, ok := s.scriptDFS(k, a, p, order[:n], ctr, restr, anyR, tapsDef, path[:], &dead)
+	m, ok := s.scriptDFS(k, a, p, order[:n], ctr, restr, anyR, tapsDef, ca, path[:], &dead)
 	if !ok {
 		return
 	}
 	var spill [kop.NumManaKinds]uint8
 	for i := 0; i < m; i++ {
-		s.scriptGapTap(k, p, a, order[i], ctr, restr, anyR, tapsDef, int(path[i]), &spill)
+		s.scriptGapTap(k, p, a, order[i], ctr, restr, anyR, tapsDef, ca, int(path[i]), &spill)
 	}
 }
 

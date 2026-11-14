@@ -145,7 +145,8 @@ packages are split across six shards, Go's test cache from the base branch
 lets unchanged packages report `(cached)`, and `TestHeads` runs as its own
 step; `examples` (`scripts/examples-smoke.sh`, the Python and Java agents); and
 `wire-matrix` ([Wires](../architecture/wires.md)); `dirac-slices`, which
-plays dirac against gorge on the committed FDN and BLB slices; and `browser`
+plays dirac against gorge on the committed FDN and BLB slices (not on a PR to
+`main`, whose trees already passed the dirac gate's slices); and `browser`
 (`make smoke`), the built client in headless Chromium against real servers.
 `browser` isn't part of `ci-ok`, the required check. A PR to `main`
 also runs `oracle`, the whole of `dirac/oracle` in ten parts: no deck pool ships

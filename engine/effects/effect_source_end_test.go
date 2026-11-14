@@ -7,8 +7,8 @@ import (
 )
 
 // TestChangeZoneCommandSelfExileEndsTheBoundEffectFrame pins the one-shot
-// Effect self-exile idiom (`DB$ ChangeZone | Defined$ Self | Origin$ Command
-// | Destination$ Exile`, Deflecting Palm's ExileEffect) run inside an
+// Effect self-exile idiom (a ChangeZone of the effect itself from the command
+// zone to exile, Deflecting Palm's ExileEffect) run inside an
 // Effect-created replacement body: Ctx.EffectFrame names the registration
 // the body belongs to, and the shape ends exactly that registration -- not
 // the same source's OTHER registration, not another source's. Both spellings

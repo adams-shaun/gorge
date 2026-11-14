@@ -721,6 +721,7 @@ func (s *State) cleanupGen(k *prep) {
 	// object field names it: mark every card whose grant this clear ends
 	// before dropping the bitsets.
 	s.fbClearAll(k)
+	s.encoreClearAll(k)
 	if s.g.nfx > 0 {
 		var ended slotMask
 		for i := 0; i < int(s.g.nfx); i++ {

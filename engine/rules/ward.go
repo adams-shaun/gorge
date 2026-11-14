@@ -153,8 +153,8 @@ func (e *Engine) beginWardPayment(rp *resumePoint, ctx *effects.Ctx) (paid, aske
 		// A CantSacrifice restriction (Call for Aid) or face static: the
 		// permanent cannot pay the ward's sacrifice component. The ward cost
 		// is demanded by the ward trigger (CR 702.22), so the cause is
-		// costCauseTriggered -- a `ValidCause$ Spell,Activated | ForCost$ True`
-		// carrier scopes PAST it, a `ValidCause$ Triggered` one admits it.
+		// costCauseTriggered -- a carrier scoped to spell and activated-ability
+		// costs passes it by, one scoped to triggered causes admits it.
 		var sacIDs []state.ObjID
 		for _, id := range ids {
 			if !e.sacrificeBlockedForCost(id, pay.CostCauseTriggered) {
