@@ -114,3 +114,17 @@ func TestMBCDepartedSeatReplacementInertReprosLockstep(t *testing.T) {
 	t.Parallel()
 	mbcResidualRepro(t, "departed_seat_replacement_inert")
 }
+
+// TestMBCLethalRecheckKeepsTheChainReprosLockstep: gorge's chain-clear check
+// (rules/sba.go) runs before ceaseDeadTokens, so a pass that queues a lethal
+// casualty keeps the sbaChain and skips the sweep -- the re-entry pass after
+// one casualty's answer re-queues the next lethal creature and poses its ask
+// with the token an earlier answer exiled still in exile; the token ceases
+// only when a pass queues nothing pre-sweep, after the last answer. The
+// kernel ended the chain at every re-run ask, ceasing Rest in Peace's token
+// before the second lethal creature's ask (CR 111.7, 704.5d; decision 2201
+// of 2201; the 2026-11-13 4-seat MBC lock pool, pair 5).
+func TestMBCLethalRecheckKeepsTheChainReprosLockstep(t *testing.T) {
+	t.Parallel()
+	mbcResidualRepro(t, "lethal_recheck_keeps_the_chain")
+}

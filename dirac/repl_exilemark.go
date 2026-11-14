@@ -286,6 +286,19 @@ func (s *State) parkedWaiting() bool {
 // them still applies (CR 704.3), and they do not depart with it. It poses gorge's
 // CR 616.1 order ask for the first once nothing else is left to die.
 func (s *State) exileOrderAsk(k *prep, die, gy, pwz, aur *slotMask, askAfter *bool) bool {
+	// gorge ends its sbaChain (rules/sba.go) only when the families that queue
+	// before ceaseDeadTokens -- lethal damage and zero toughness, the world
+	// rule, zero-loyalty walkers -- find nothing this pass; the attachment
+	// sweep and the later families queue after the sweep, so a pass whose only
+	// casualties are theirs ends the chain and the sweep runs before their
+	// asks. A pass that queues a creature casualty keeps the chain and skips
+	// the sweep, so a token an earlier answer exiled is still there when the
+	// ask is posed (Rest in Peace exiling a dying token beside a second lethal
+	// creature's ask). Captured before the parking below strips the masks:
+	// gorge's check reads the whole batch, the parked casualties included.
+	// Defeated battles queue pre-sweep in gorge too, but they exile rather
+	// than move to a graveyard, so they never reach a grave-move ask here.
+	pre := (*die).or((*gy).andNot(*aur))
 	var order [MaxPerm]Slot
 	n := 0
 	for p := uint8(0); p < s.nSeats(); p++ {
@@ -331,17 +344,16 @@ func (s *State) exileOrderAsk(k *prep, die, gy, pwz, aur *slotMask, askAfter *bo
 		return false
 	}
 	// gorge rechecks between a parked casualty's answer and the next ask
-	// (rules/sba.go: the answer re-enters the check; the recheck pass
-	// destroys nothing, which ends the sbaChain, and the pass after it
-	// ceases the tokens the answered moves left off the battlefield): a
-	// token an earlier answer exiled (Rest in Peace's exile of a dying
-	// token) is gone by the next ask (CR 111.7, 704.5d; zone_tokenleft.go).
-	// A pass that parks them now ceases them first, and a pass that re-runs
-	// its own parked casualty's ask ends the chain and ceases first, as
-	// gorge's recheck does before posing it.
-	if fresh {
-		s.ceaseTokensGen()
-	} else {
+	// (rules/sba.go: the answer re-enters the check): the recheck ends the
+	// sbaChain and ceases the tokens the answered moves left off the
+	// battlefield (CR 111.7, 704.5d; zone_tokenleft.go) only when the pass
+	// queues no pre-sweep casualty, so a pass whose own casualty asks first
+	// keeps the chain and the token an earlier answer exiled is still there
+	// at the ask. It is the same rule for a fresh pose (the pass that parks
+	// the casualties first sees them too) and a re-run pose (the recheck
+	// re-queues the waiting casualty, the head, which is still on the
+	// battlefield).
+	if !pre.any() {
 		s.sbaChainEnd(k)
 		s.ceaseTokensGen()
 	}
