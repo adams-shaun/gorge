@@ -94,7 +94,7 @@ func TestFourSeatDenseBlocksRelative(t *testing.T) {
 							wc[denseCmdDamage0+k-1] = clip1(float32(s.FeatCommanderDamage(p, (p+uint8(k))%4)) / 21)
 						}
 						wc[denseCmdCasts] = clip1(float32(s.FeatCommanderCast(p)) / 4)
-						if cmd := s.FeatCommander(p); cmd != dirac.NoObj && e.po(uint8(cmd)).Zone == kop.ZoneBattlefield {
+						if cmd := s.FeatCommander(p); cmd != dirac.NoObj && e.po(cmd).Zone == kop.ZoneBattlefield {
 							wc[denseCmdOnField] = 1
 						}
 						if s.FeatLost(p) {

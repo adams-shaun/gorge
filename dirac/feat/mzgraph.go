@@ -107,8 +107,8 @@ type MZGraph struct {
 	ec   []uint16
 	ep   []uint16
 	el   []uint8
-	on   [256]int32 // object -> node + 1, stamped by gen
-	og   [256]uint32
+	on   [objSlots]int32 // object -> node + 1, stamped by gen
+	og   [objSlots]uint32
 	gen  uint32
 	optN []uint16
 	optP []uint8
@@ -155,11 +155,11 @@ func (g *MZGraph) leaf(owner int, fam uint8, index uint32, v int64) {
 	g.edge(n, owner, fam)
 }
 
-func (g *MZGraph) setObj(o uint8, n int) {
+func (g *MZGraph) setObj(o dirac.Obj, n int) {
 	g.on[o], g.og[o] = int32(n)+1, g.gen
 }
 
-func (g *MZGraph) objNode(o uint8) int {
+func (g *MZGraph) objNode(o dirac.Obj) int {
 	if o == noObj || g.og[o] != g.gen {
 		return -1
 	}
@@ -195,7 +195,7 @@ func (e *Encoder) AppendMZGraph(dst []byte, g *MZGraph, d *dirac.Decision, opts 
 	g.optN, g.optP = g.optN[:0], g.optP[:0]
 	g.gen++
 	if g.gen == 0 {
-		g.og = [256]uint32{}
+		g.og = [objSlots]uint32{}
 		g.gen = 1
 	}
 	me := &v.players[dirac.SeatIx(seat)]
@@ -302,7 +302,7 @@ func (e *Encoder) AppendMZGraph(dst []byte, g *MZGraph, d *dirac.Decision, opts 
 				e.entityLeaves(g, n, c, entZoneStack, seat, me.avail)
 				g.setObj(c.obj, n)
 			}
-		} else if src := g.objNode(uint8(se.Source)); src >= 0 {
+		} else if src := g.objNode(se.Source); src >= 0 {
 			g.edge(src, n, elSrc)
 		}
 	}
@@ -321,24 +321,24 @@ func (e *Encoder) AppendMZGraph(dst []byte, g *MZGraph, d *dirac.Decision, opts 
 	}
 	for i := range v.stack {
 		se := &e.kp.Stack[i]
-		add := func(t uint8) {
+		add := func(t dirac.TCode) {
 			switch {
-			case dirac.TCode(t) == dirac.NoTarget:
-			case dirac.TCode(t) >= dirac.PlayerTarget0:
-				if p := int(dirac.TCode(t) - dirac.PlayerTarget0); p < 2 {
+			case t == dirac.NoTarget:
+			case t >= dirac.PlayerTarget0:
+				if p := int(t - dirac.PlayerTarget0); p < 2 {
 					g.edge(pnode[p], snode[i], elTPlayer)
 				}
 			default:
-				if o := g.objNode(t); o >= 0 && o != snode[i] {
+				if o := g.objNode(dirac.Obj(t)); o >= 0 && o != snode[i] {
 					g.edge(o, snode[i], elTarget)
 				}
 			}
 		}
 		for _, t := range se.Targets {
-			add(uint8(t))
+			add(t)
 		}
 		for j := 0; j < int(se.NExtra); j++ {
-			add(uint8(se.Extra[j]))
+			add(se.Extra[j])
 		}
 	}
 	// options: the record's used ones, in decision order

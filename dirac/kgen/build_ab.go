@@ -538,6 +538,9 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 	if t.DiffCtrl {
 		ts.TFlags |= kop.TgfDiffController
 	}
+	if t.OppToActive {
+		ts.TFlags |= kop.TgfOppToActive | kop.TargetFlags(t.ThanActive)<<kop.TgfThanShift
+	}
 	if t.TrigChooser {
 		if ts.Min|ts.Max != 0 || ts.Divide != 0 {
 			return ts, fmt.Errorf("trigger-player chooser on a several-object slot")
@@ -800,7 +803,7 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		if ka.Targets[i], err = cb.target(t); err != nil {
 			return ka, err
 		}
-		if xt := &ka.Targets[i]; xt.TFlags&kop.TgfBoundsV != 0 && !xt.UpTo && ka.Kind != kop.AbSpell {
+		if xt := &ka.Targets[i]; xt.TFlags&kop.TgfBoundsV != 0 && !xt.UpTo && ka.Kind != kop.AbSpell && !xCountActivatedOK(a, &ka) {
 			return ka, fmt.Errorf("target count X..X outside a spell")
 		}
 		if t.Mode >= 0 {
@@ -1653,6 +1656,9 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 		kt.Flags4 |= kop.Tf4OptTrigPlayer
 	}
+	if t.OptSrcCtrl && (!t.Optional || t.Event != "DamageDone") {
+		return kt, fmt.Errorf("optional source controller on a %s trigger", t.Event)
+	}
 	if t.NamedCast {
 		if t.Event != "SpellCast" {
 			return kt, fmt.Errorf("named-cast flag on a %s trigger", t.Event)
@@ -1799,6 +1805,10 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			st.Grant = uint8(j + 1)
 		}
 		if st.ProtFrom, err = filter(s.ProtFrom, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		st.ProtChosen = s.ProtChosen
+		if st.ProtExc, err = filter(s.ProtExc, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
 		if st.Landwalk, err = filter(s.Landwalk, kop.ZoneBattlefield); err != nil {
@@ -4288,6 +4298,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
+	case "ChoosePlayerRes":
+		// OpExt ExtChoosePlayerRes, C bit 0 the Player.!IsRemembered pool
+		// (act_chooseplayerres.go)
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChoosePlayerRes)), int16(in.C&kop.ChoosePlayerFresh)
 	case "DrawUpto":
 		// OpExt ExtDrawUpto: Obj the drawer, B the most cards (act_drawupto.go)
 		v, err := cb.value(in.A)

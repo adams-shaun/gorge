@@ -1675,6 +1675,9 @@ async function playLandUndoAndSpell(page: Page, label: string): Promise<void> {
     } else if (!land && (await visible(landCard))) {
       did.push('land');
       const before = await hand.count();
+      // The land itself must come back: a count alone is fooled by a draw, since the client may
+      // pass on into the next turn before the undo lands, and each undo then takes back one pass.
+      const played = page.locator(`.handfan [data-obj="${await landCard.getAttribute('data-obj')}"]`);
       if (await playFromHand(page, hand, landCard, async () => landCard.locator('[data-play-land]'))) {
         if (undone) {
           land = true;
@@ -1690,13 +1693,13 @@ async function playLandUndoAndSpell(page: Page, label: string): Promise<void> {
             if ((await visible(asked)) && undos !== 1) {
               await answerOpenAsk(page);
               undos = 0;
-              return -1;
+              return false;
             }
             undos++;
             await page.locator('[data-cluster-undo]:enabled').click({ timeout: 2_000 }).catch(() => {});
             await page.waitForTimeout(500);
-            return hand.count();
-          }, { message: `${label} undo returns the land to the hand`, timeout: WAIT_MS, intervals: [100] }).toBe(before);
+            return (await played.count()) > 0 && (await hand.count()) >= before;
+          }, { message: `${label} undo returns the land to the hand`, timeout: WAIT_MS, intervals: [100] }).toBe(true);
           undone = true;
         }
       }
