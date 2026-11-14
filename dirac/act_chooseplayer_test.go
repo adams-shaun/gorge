@@ -68,8 +68,8 @@ func TestChoosePlayerOpEmptyPool(t *testing.T) {
 	if s.res.ask != raNone {
 		t.Errorf("ask %d, want none", s.res.ask)
 	}
-	if s.res.chosenPl != 255 {
-		t.Errorf("chosenPl %d, want 255 (no pick recorded)", s.res.chosenPl)
+	if s.res.chPl != 0 {
+		t.Errorf("chPl %d, want 0 (no pick recorded)", s.res.chPl)
 	}
 	if s.rng.Draws != draws {
 		t.Errorf("the empty pool drew %d times, want none", s.rng.Draws-draws)
@@ -100,8 +100,8 @@ func TestChoosePlayerOpRandomPick(t *testing.T) {
 	if s.rng.Draws != draws+1 {
 		t.Errorf("%d rng draws, want one (gorge randomChoices picks one of one)", s.rng.Draws-draws)
 	}
-	if s.res.chosenPl != 1 {
-		t.Errorf("chosenPl %d, want the one candidate (seat 1)", s.res.chosenPl)
+	if s.res.chPl != 2 {
+		t.Errorf("chPl %d, want the one candidate (seat 1, stored + 1)", s.res.chPl)
 	}
 	if s.atchSeat(sc.k, sl) != 2 {
 		t.Errorf("the aura is on seat %d, want it attached to the pick (seat 1)", s.atchSeat(sc.k, sl))

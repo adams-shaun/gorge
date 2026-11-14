@@ -739,7 +739,7 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 	case kop.RefChosenPlayerRes:
 		return s.chosenSeatRes() // act_chooseplayerres.go
 	case kop.RefResChosenPlayer:
-		return s.res.chosenPl // the pick OpChoosePlayer recorded (255 none)
+		return s.res.chPl - 1 // the pick OpChoosePlayer recorded (chPl seat + 1; 0 wraps to 255, none)
 	case kop.RefAttachedCtrl:
 		return s.attachedCtrl(s.objRefObj(kop.RefAttached))
 	}

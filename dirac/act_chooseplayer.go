@@ -10,7 +10,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // (!EnchantedBy is player.isEnchantedBy(source): a source off the battlefield
 // fails closed and excludes nobody). The engine rng picks ONE of them (gorge
 // randomChoices: rng.IntN(len(pool)) over the pool in that order) and the
-// pick is the resolution's chosen player (res.chosenPl, RefResChosenPlayer).
+// pick is the resolution's chosen player (res.chPl, seat + 1, 0 none; RefResChosenPlayer).
 // An empty pool draws nothing (gorge randomChoices clamps the pick count to
 // the pool) and records no choice: a following ChosenPlayer read — Maddening
 // Hex's Attach — resolves to none, and gorge's effAttach EnchantSelf walk
@@ -24,7 +24,7 @@ func (s *State) choosePlayerOp(k *prep, in *kop.Instr) {
 	if p == 255 || p >= s.nSeats() || s.out(p) {
 		// no chooser (gorge choiceChoosers with an unresolvable Defined$): no
 		// pick is recorded
-		s.res.chosenPl = 255
+		s.res.chPl = 0
 		return
 	}
 	src := s.objRef(k, kop.RefSelf)
@@ -43,8 +43,8 @@ func (s *State) choosePlayerOp(k *prep, in *kop.Instr) {
 		n++
 	}
 	if n == 0 || in.C&kop.ChPlRandom == 0 {
-		s.res.chosenPl = 255
+		s.res.chPl = 0
 		return
 	}
-	s.res.chosenPl = pool[s.rng.IntN(n)]
+	s.res.chPl = pool[s.rng.IntN(n)] + 1
 }
