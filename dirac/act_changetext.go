@@ -28,7 +28,7 @@ const raChangeText uint8 = 243
 
 // StallTextChange: a ChangeText whose "from" word the target's face reads;
 // gorge rewrites the face, the kernel has no text to rewrite.
-const StallTextChange = 189
+const StallTextChange = 190
 
 // ChangeTextStats counts the mechanism for the lockstep tests: Asked is each
 // ChangeText resolved, Reads those whose target's face read the "from" word
