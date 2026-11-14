@@ -125,11 +125,6 @@ const (
 	// controller (gorge deciderFromSpecTriggeredSourceController). Edric,
 	// Spymaster of Trest.
 	Tf5OptSrcCtrl TrigFlags5 = 1 << 6
-	// Tf5DmgNoContract: a combat DamageDone line's damaged player has no
-	// contract counter (ValidTarget$ Player.counters_EQ0_Contract, Miss
-	// Highwater; gorge state.Player.Counter("Contract"); kernel
-	// ctr_contract.go).
-	Tf5DmgNoContract TrigFlags5 = 1 << 7
 )
 
 // TrigEvent is a triggered ability's subscription: the event kind it listens

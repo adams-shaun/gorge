@@ -3896,7 +3896,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			ki.Op = kop.OpRemoveCounterRem
 		}
 		if in.Op == "PutCounter" && in.CS == contractCounter {
-			ki.C = int16(kop.CtrContract) // a player's counter (lower_contract.go)
+			// a player's counter (lower_contract.go): OpExt ExtPutContract on
+			// Obj (the players), B the amount (dirac/ctr_contract.go)
+			v, err := cb.value(in.A)
+			if err != nil {
+				return ki, err
+			}
+			ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPutContract)), v, 0
 			break
 		}
 		k, err := counterKind(in.CS)

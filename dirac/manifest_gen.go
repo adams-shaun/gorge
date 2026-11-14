@@ -658,5 +658,9 @@ const numMech mech = 55
 //
 //go:noinline
 func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
+	switch kop.ExtOp(in.A.N) {
+	case kop.ExtPutContract:
+		return s.putContract(k, in) // ctr_contract.go
+	}
 	panic("kernel: ext op not implemented: " + kop.ExtOp(in.A.N).String())
 }

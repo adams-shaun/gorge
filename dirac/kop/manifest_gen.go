@@ -1475,6 +1475,11 @@ const ExtTaporUntapAll ExtOp = 90
 
 func init() { extOpNames[ExtTaporUntapAll] = "TaporUntapAll" }
 
+// PutContract (dirac/manifest/ExtOp/ExtPutContract)
+const ExtPutContract ExtOp = 91
+
+func init() { extOpNames[ExtPutContract] = "PutContract" }
+
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32
 
@@ -2185,6 +2190,11 @@ const TrigUntapAll TrigEvent = 126
 
 // trig VisitAttraction (dirac/manifest/TrigEvent/TrigVisitAttraction)
 const TrigVisitAttraction TrigEvent = 127
+
+// TrigFlags5 (dirac/manifest/TrigFlags5/Tf5DmgNoContract)
+//
+// Tf5DmgNoContract: a combat DamageDone line's damaged player has no contract counter (ValidTarget$ Player.counters_EQ0_Contract, Miss Highwater; gorge state.Player.Counter("Contract"); kernel ctr_contract.go).
+const Tf5DmgNoContract TrigFlags5 = 1 << 7
 
 // zone PlanarDeck (dirac/manifest/Zone/ZonePlanarDeck)
 const ZonePlanarDeck Zone = 12

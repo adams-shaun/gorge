@@ -85,7 +85,7 @@ func contractSelfExile(svars map[string]string, t cards.Trigger) bool {
 }
 
 // contractCounter is the PutCounter CounterType$ of a player's contract
-// counter (Miss Highwater; kop.CtrContract).
+// counter (Miss Highwater; OpExt ExtPutContract).
 const contractCounter = "Contract"
 
 // putContract lowers PutCounter CounterType$ Contract: a player's counter,

@@ -3,7 +3,7 @@ package dirac
 import "github.com/adams-shaun/gorge/dirac/kop"
 
 // Contract counters (Miss Highwater): a player gets one from an OpPutCounter
-// of kop.CtrContract on a player operand, and a combat DamageDone line with
+// of OpExt ExtPutContract on a player operand, and a combat DamageDone line with
 // kop.Tf5DmgNoContract (ValidTarget$ Player.counters_EQ0_Contract) fires
 // only on a damaged player who has none. gorge keeps the count in
 // state.Player.Counters ("Contract", one PlayerCounterChange per put) and
@@ -47,24 +47,27 @@ func (s *State) addContract(k *prep, p uint8, n int) {
 	c[SeatIx(p)] = uint8(min(int(c[SeatIx(p)])+n, 255))
 }
 
-// putContract is OpPutCounter of kop.CtrContract: each player Obj names gets
-// A contract counters.
-func (s *State) putContract(k *prep, in *kop.Instr) {
+// putContract is OpExt ExtPutContract: each player Obj names gets B contract
+// counters.
+//
+//kmanifest:ext ExtPutContract
+func (s *State) putContract(k *prep, in *kop.Instr) (ok, done bool) {
 	q := s.players(k, in.Obj)
-	n := s.value(k, in.A)
+	n := s.value(k, in.B)
 	for i := uint8(0); i < q.n; i++ {
 		s.addContract(k, q.s[i], n)
 	}
+	return true, true
 }
 
 // contractLine reports whether a carries the kernel's contract reads: a
-// Tf5DmgNoContract trigger or a put of kop.CtrContract.
+// Tf5DmgNoContract trigger or an OpExt ExtPutContract.
 func contractLine(a *kop.Ability) bool {
 	if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigDamageDone && a.Trig.Flags5&kop.Tf5DmgNoContract != 0 {
 		return true
 	}
 	for i := range a.Prog {
-		if in := &a.Prog[i]; in.Op == kop.OpPutCounter && kop.CounterKind(in.C) == kop.CtrContract {
+		if in := &a.Prog[i]; in.Op == kop.OpExt && in.Ext() == kop.ExtPutContract {
 			return true
 		}
 	}

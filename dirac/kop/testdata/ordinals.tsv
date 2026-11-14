@@ -206,7 +206,6 @@ CtrCell	CounterKind	137
 CtrCharge	CounterKind	15
 CtrChorus	CounterKind	40
 CtrCoin	CounterKind	55
-CtrContract	CounterKind	252
 CtrCollection	CounterKind	111
 CtrComponent	CounterKind	78
 CtrConqueror	CounterKind	138
@@ -859,6 +858,7 @@ ExtPlotGrant	ExtOp	31
 ExtPreventColor	ExtOp	1
 ExtPreventDamageScope	ExtOp	246
 ExtPreventNext	ExtOp	305
+ExtPutContract	ExtOp	91
 ExtPutCounterExisting	ExtOp	253
 ExtPutSticker	ExtOp	18
 ExtRadiation	ExtOp	25
